@@ -24,12 +24,55 @@
  *  along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <stdio.h>
+#include <signal.h>
 #include <QCoreApplication>
+#include <QtDebug>
+
+#include "server.h"
+
+
+/**
+ * @brief signalHandler
+ * @param sig
+ */
+
+void signalHandler(int sig)
+{
+	qInfo("Signal %d caught, exit...", sig);
+
+	QCoreApplication::instance()->quit();
+}
+
+
+
+
+/**
+ * @brief main
+ * @param argc
+ * @param argv
+ * @return
+ */
 
 int main(int argc, char *argv[])
 {
-	QCoreApplication a(argc, argv);
+	signal(SIGABRT, &signalHandler);
+	signal(SIGTERM, &signalHandler);
+	signal(SIGINT, &signalHandler);
 
-	return a.exec();
+	QCoreApplication app(argc, argv);
+
+	Server s;
+
+	s.commandLineParse(app);
+
+	s.start();
+
+	if (s.readyToStart())
+		app.exec();
+
+	s.stop();
+
+	qDebug() << "Finished";
+	return 0;
 }
