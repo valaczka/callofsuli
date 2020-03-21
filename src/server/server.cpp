@@ -113,10 +113,8 @@ void Server::commandLineParse(QCoreApplication &app)
 	parser.addHelpOption();
 	parser.addVersionOption();
 
-	QCommandLineOption dbFile(QStringList() << "d" << "database",
-							  QStringLiteral("Az adatbázis <db> fájl"),
-							  QStringLiteral("db"));
-	parser.addOption(dbFile);
+
+	parser.addPositionalArgument("db", "Az adatbázis fájl");
 
 
 	QCommandLineOption dbCreate(QStringList() << "i" << "initialize",
@@ -153,7 +151,10 @@ void Server::commandLineParse(QCoreApplication &app)
 
 	parser.process(app);
 
-	if (parser.isSet(dbFile))	setSqlDbFile(parser.value(dbFile));
+	QStringList args = parser.positionalArguments();
+
+	setSqlDbFile(args.value(0));
+
 	if (parser.isSet(dbCreate)) setSqlDbCreate(parser.isSet(dbCreate));
 	if (parser.isSet(certFile))	setSocketCertFile(parser.value(certFile));
 	if (parser.isSet(keyFile))	setSocketCertKey(parser.value(keyFile));
