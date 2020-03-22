@@ -28,6 +28,7 @@
 #include <QDebug>
 #include <QtSql/QSqlDatabase>
 #include <QCommandLineParser>
+#include <QCryptographicHash>
 
 #include "server.h"
 #include "../version/buildnumber.h"
@@ -51,10 +52,10 @@ Server::Server(QObject *parent) : QObject(parent)
 
 	m_socketServer = nullptr;
 
-	m_sqlDbFile = "";
+	m_sqlDbDir = "";
+	m_db = new CosSql(this);
+
 	m_sqlDbCreate = false;
-	m_readyToStart = true;
-	m_db = QSqlDatabase::addDatabase("QSQLITE");
 	m_dbVersionMajor = 0;
 	m_dbVersionMinor = 0;
 	m_dbSocketPort = 0;
@@ -70,9 +71,12 @@ Server::~Server()
 {
 	if (m_socketServer) {
 		m_socketServer->close();
-		//qDeleteAll(m_clients.begin(), m_clients.end());
 		delete m_socketServer;
 	}
+
+	qDeleteAll(m_clients.begin(), m_clients.end());
+
+	delete m_db;
 }
 
 
@@ -82,16 +86,30 @@ Server::~Server()
  * @return
  */
 
-void Server::start()
+bool Server::start()
 {
-	databaseOpen();
-	if (readyToStart())	databaseLoad();
-	if (readyToStart()) websocketServerStart();
+	if (!dbDirCheck(sqlDbDir(), sqlDbCreate()))
+		return false;
+
+	QString file = QDir::toNativeSeparators(sqlDbDir()+"/main.cosdb");
+
+	if (!m_db->open(file, sqlDbCreate()))
+		return false;
+
+	if (!databaseLoad())
+		return false;
+
+	resourcesLoad();
+
+	if (!websocketServerStart())
+		return false;
+
+	return true;
 }
 
 void Server::stop()
 {
-	m_db.close();
+	m_db->close();
 }
 
 
@@ -114,7 +132,7 @@ void Server::commandLineParse(QCoreApplication &app)
 	parser.addVersionOption();
 
 
-	parser.addPositionalArgument("db", "Az adatbázis fájl");
+	parser.addPositionalArgument("dir", "Az adatbázisokat tartalmazó könyvtár");
 
 
 	QCommandLineOption dbCreate(QStringList() << "i" << "initialize",
@@ -153,7 +171,7 @@ void Server::commandLineParse(QCoreApplication &app)
 
 	QStringList args = parser.positionalArguments();
 
-	setSqlDbFile(args.value(0));
+	setSqlDbDir(args.value(0));
 
 	if (parser.isSet(dbCreate)) setSqlDbCreate(parser.isSet(dbCreate));
 	if (parser.isSet(certFile))	setSocketCertFile(parser.value(certFile));
@@ -171,95 +189,87 @@ void Server::commandLineParse(QCoreApplication &app)
 }
 
 
-
 /**
- * @brief Server::databaseOpen
+ * @brief Server::dbDirCheck
+ * @return
  */
 
-void Server::databaseOpen()
+bool Server::dbDirCheck(const QString &dirname, bool create)
 {
-	if (sqlDbFile().isEmpty()) {
-		qCritical() << "Nincs megadva adatbázis!";
-		setReadyToStart(false);
+	if (dirname.isEmpty()) {
+		qWarning().noquote() << tr("Nincs megadva adatbáziskönyvtár!");
+		return false;
 	}
 
+	QFileInfo f(dirname);
 
-	m_db.setDatabaseName(sqlDbFile());
-
-	if (!QFile::exists(sqlDbFile()) && !sqlDbCreate()) {
-		qCritical() << "Nem létezik az adatbázis:" << sqlDbFile();
-		setReadyToStart(false);
-		return;
+	if (!f.isDir() || !f.isReadable()) {
+		if (create) {
+			QDir d;
+			if (d.mkdir(dirname)) {
+				qDebug().noquote() << tr("Az adatbáziskönyvtár létrehozva: ")+dirname;
+			} else {
+				qWarning().noquote() << tr("Nem sikerült létrehozni az adatbáziskönyvtárt: ")+dirname;
+				return false;
+			}
+		} else {
+			qWarning().noquote() << tr("A megadott könyvtár nem létezik vagy nem olvasható: ")+dirname;
+			return false;
+		}
 	}
 
-	if (!m_db.open()) {
-		qCritical() << "Nem sikerült megnyitni az adatbázist:" << m_db.databaseName();
-		setReadyToStart(false);
-		return;
-	}
-
-	QSqlQuery q;
-	if (!q.exec("PRAGMA foreign_keys = ON")) {
-		qCritical() << "Nem sikerült megnyitni az adatbázist:" << m_db.databaseName();
-		setReadyToStart(false);
-		return;
-	}
-
-	qInfo() << "Adatbázis megnyitva:" << m_db.databaseName();
+	return true;
 }
+
+
+
 
 
 /**
  * @brief Server::databaseLoad
  */
 
-void Server::databaseLoad()
+bool Server::databaseLoad()
 {
-	QSqlQuery q;
-	bool isFirst = true;
+	bool isFirst=true;
 
-tryAgain:
-	q.clear();
-	q.exec("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName text from system");
-	if (q.first()) {
-		setDbVersionMajor(q.value(0).toInt());
-		setDbVersionMinor(q.value(1).toInt());
-		if (!m_isHostForced) setDbSocketHost(q.value(2).toString());
-		if (!m_isPortForced) setDbSocketPort(q.value(3).toInt());
-		setDbServerName(q.value(4).toString());
-	} else if (!sqlDbCreate() || !isFirst) {
-		qCritical() << "Az adatbázis üres vagy hibás!";
-		setReadyToStart(false);
-		return;
-	} else {
-		qInfo() << "Az adatbázis üres vagy hibás, előkészítem.";
+	while (true) {
+		QVariantList r = m_db->simpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName from system");
 
-		isFirst = false;
+		if (r.isEmpty()) {
+			if (isFirst) {
+				qInfo().noquote() << tr("Az adatbázis üres vagy hibás, előkészítem...");
 
-		QStringList commands;
-		commands << "CREATE TABLE system(versionMajor integer, versionMinor integer, socketHost text, socketPort integer, serverName text)";
-		commands << QString("INSERT INTO system(versionMajor, versionMinor, socketHost, socketPort, serverName) values (%1, %2, '%3', %4, '%5')")
-					.arg(serverVersionMajor())
-					.arg(serverVersionMinor())
-					.arg("")
-					.arg(10101)
-					.arg("-- my Call of Suli server --");
-
-		foreach (QString c, commands) {
-			QSqlQuery q;
-			if (!q.exec(c)) {
-				qWarning() << "DB error:" << q.lastError().text() << c;
-				setReadyToStart(false);
-				return;
+				if (!m_db->batchQueryFromFile(":/sql/init.sql") || !databaseInit()) {
+					if (m_db->dbCreated()) {
+						QString dbname = m_db->db().databaseName();
+						qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+dbname;
+						m_db->close();
+						if (!QFile::remove(dbname)) {
+							qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+dbname;
+						}
+					}
+					return false;
+				}
+			} else {
+				qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist!");
+				return false;
 			}
+		} else {
+			setDbVersionMajor(r.value(0).toInt());
+			setDbVersionMinor(r.value(1).toInt());
+			if (!m_isHostForced) setDbSocketHost(r.value(2).toString());
+			if (!m_isPortForced) setDbSocketPort(r.value(3).toInt());
+			setDbServerName(r.value(4).toString());
+			break;
 		}
 
-		qInfo() << "Adatbázis előkészítve.";
-
-		goto tryAgain;
+		isFirst=false;
 	}
 
-	qInfo() << "Adatbázis betöltve:" << dbServerName();
+	qInfo().noquote() << tr("Az adatbázis betöltve: ")+dbServerName();
+
+	return true;
 }
 
 
@@ -268,17 +278,95 @@ tryAgain:
  * @brief Server::databaseInit
  */
 
-void Server::databaseInit()
+bool Server::databaseInit()
 {
-	/*
-	foreach (QString f, files) {
-					qDebug() << "load "+f;
-					QFile file(f);
-					file.open(QFile::ReadOnly);
-					qExec(QString::fromUtf8(file.readAll()));
-					q.clear();
-			}
-*/
+	QVariantList params;
+
+	params << serverVersionMajor()
+		   << serverVersionMinor()
+		   << dbSocketHost()
+		   << dbSocketPort()
+		   << tr("-- új Call of Suli szerver --");
+
+	QVariant insertID = QVariant::Invalid;
+
+	m_db->simpleQuery("INSERT INTO system(versionMajor, versionMinor, socketHost, socketPort, serverName) values (?, ?, ?, ?, ?)",
+					  params,
+					  &insertID);
+
+	if (!insertID.isValid())
+		return false;
+
+
+	params.clear();
+	params << "admin"
+		   << tr("Adminisztrátor")
+		   << true
+		   << true
+		   << true;
+	insertID = QVariant::Invalid;
+
+	m_db->simpleQuery("INSERT INTO user(username, firstname, active, isTeacher, isAdmin) VALUES (?, ?, ?, ?, ?)",
+					  params,
+					  &insertID);
+
+	if (!insertID.isValid())
+		return false;
+
+
+
+	QString salt;
+	QString pwd = CosSql::hashPassword("admin", &salt);
+
+	params.clear();
+	params << "admin"
+		   << pwd
+		   << salt;
+	insertID = QVariant::Invalid;
+
+	m_db->simpleQuery("INSERT INTO auth (username, password, salt) VALUES (?, ?, ?)",
+					  params,
+					  &insertID);
+
+	if (!insertID.isValid())
+		return false;
+
+	return true;
+}
+
+
+/**
+ * @brief Server::resourcesLoad
+ * @return
+ */
+
+bool Server::resourcesLoad()
+{
+	QString f = QDir::toNativeSeparators(sqlDbDir()+"/resources.cosdb");
+
+	if (QFile::exists(f)) {
+		QFile file(f);
+		if (file.open(QIODevice::ReadOnly)) {
+			QCryptographicHash hash(QCryptographicHash::Sha1);
+			hash.addData(&file);
+			QByteArray d = hash.result();
+			file.close();
+
+			setDbResources(f);
+			setDbResourcesHash(d);
+
+			qInfo().noquote() << tr("Erőforrásadatbázis betöltve: ")+dbResources();
+			qDebug().noquote() << tr("Erőforrásh hash: ")+dbResourcesHash().toHex();
+		} else {
+			qWarning().noquote() << tr("Az erőforrásadtabázis nem olvasható: ")+f;
+			return false;
+		}
+	} else {
+		qDebug().noquote() << tr("Az erőforrásadtabázis nem létezik: ")+f;
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -287,15 +375,16 @@ void Server::databaseInit()
 
 /**
  * @brief Server::websocketServerStart
+ * @return
  */
 
-void Server::websocketServerStart()
+
+bool Server::websocketServerStart()
 {
 	if (!socketCertFile().isEmpty()) {
 		if (!QSslSocket::supportsSsl()) {
 			qCritical("Platform doesn't support SSL");
-			setReadyToStart(false);
-			return;
+			return false;
 		}
 
 
@@ -338,20 +427,22 @@ void Server::websocketServerStart()
 	connect(m_socketServer, SIGNAL(newConnection()), this, SLOT(onNewConnection()));
 	connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
 
-	quint16 port = (dbSocketPort()<=0) ? 1024 : quint16(dbSocketPort());
+	quint16 port = (dbSocketPort()<=0) ? 10101 : quint16(dbSocketPort());
 	if (m_socketServer->listen(dbSocketHost().isEmpty() ? QHostAddress::Any : QHostAddress(dbSocketHost()), port))
 	{
 		qInfo() << "Listening on port" << port
 				<< (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "SSL" : "");
 	} else {
 		qCritical("Cannot listen on host %s and port %d", dbSocketHost().toStdString().data(), port);
-		setReadyToStart(false);
-		return;
+		return false;
 	}
 
-	qInfo("Maximum pending connections: %d", m_socketServer->maxPendingConnections());
+	qDebug("Maximum pending connections: %d", m_socketServer->maxPendingConnections());
 
+	return true;
 }
+
+
 
 
 
@@ -360,11 +451,11 @@ void Server::websocketServerStart()
  * @param errors
  */
 
+
 void Server::onSslErrors(const QList<QSslError> &errors)
 {
 	qWarning() << "SSL error" << errors;
 }
-
 
 
 /**
@@ -374,51 +465,47 @@ void Server::onSslErrors(const QList<QSslError> &errors)
 void Server::onNewConnection()
 {
 	QWebSocket *pSocket = m_socketServer->nextPendingConnection();
-/*	COSsocketHandler *socketHandler = new COSsocketHandler(pSocket, this);
 
-	connect(socketHandler, SIGNAL(disconnected()), this, SLOT(onSocketDisconnected()));
+	Handler *handler = new Handler(m_db, pSocket);
 
-	m_clients << socketHandler; */
+	connect(handler, SIGNAL(disconnected()), this, SLOT(onSocketDisconnected()));
+
+	m_clients << handler;
 }
 
 
+/**
+ * @brief Server::onSocketDisconnected
+ */
 
-/*void COSsocket::onSocketDisconnected()
+void Server::onSocketDisconnected()
 {
-	COSsocketHandler *pClient = qobject_cast<COSsocketHandler *>(sender());
-	if (pClient)
+	Handler *handler = qobject_cast<Handler *>(sender());
+	if (handler)
 	{
-		m_clients.removeAll(pClient);
-		pClient->deleteLater();
+		m_clients.removeAll(handler);
+		handler->deleteLater();
 	}
-}*/
+}
 
 
 
 
 
 /**
- * @brief Server::setSqlDbFile
- * @param sqlDbFile
- */
+	 * @brief Server::setSqlDbFile
+	 * @param sqlDbFile
+	 */
 
-void Server::setSqlDbFile(QString sqlDbFile)
+void Server::setSqlDbDir(QString sqlDbFile)
 {
-	if (m_sqlDbFile == sqlDbFile)
+	if (m_sqlDbDir == sqlDbFile)
 		return;
 
-	m_sqlDbFile = sqlDbFile;
-	emit sqlDbFileChanged(m_sqlDbFile);
+	m_sqlDbDir = sqlDbFile;
+	emit sqlDbDirChanged(m_sqlDbDir);
 }
 
-void Server::setReadyToStart(bool readyToStart)
-{
-	if (m_readyToStart == readyToStart)
-		return;
-
-	m_readyToStart = readyToStart;
-	emit readyToStartChanged(m_readyToStart);
-}
 
 void Server::setSqlDbCreate(bool sqlDbCreate)
 {
@@ -499,5 +586,23 @@ void Server::setSocketPendingConnections(int socketPendingConnections)
 
 	m_socketPendingConnections = socketPendingConnections;
 	emit socketPendingConnectionsChanged(m_socketPendingConnections);
+}
+
+void Server::setDbResources(QString dbResources)
+{
+	if (m_dbResources == dbResources)
+		return;
+
+	m_dbResources = dbResources;
+	emit dbResourcesChanged(m_dbResources);
+}
+
+void Server::setDbResourcesHash(QByteArray dbResourcesHash)
+{
+	if (m_dbResourcesHash == dbResourcesHash)
+		return;
+
+	m_dbResourcesHash = dbResourcesHash;
+	emit dbResourcesHashChanged(m_dbResourcesHash);
 }
 

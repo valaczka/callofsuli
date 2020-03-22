@@ -66,9 +66,7 @@ int main(int argc, char *argv[])
 
 	s.commandLineParse(app);
 
-	s.start();
-
-	if (s.readyToStart())
+	if (s.start())
 		app.exec();
 
 	s.stop();
