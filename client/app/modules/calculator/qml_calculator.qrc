@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GQ_calculator.qml</file>
+        <file>ME_calculator.qml</file>
+    </qresource>
+</RCC>

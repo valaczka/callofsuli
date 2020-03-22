@@ -1,6 +1,0 @@
-VER_MAJ = 2
-VER_MIN = 91
-VER_PAT = 1520
-VER_MAINTENANCE = "-dev"
-VERSION = "2.91.1520-dev"
-

@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/">
+        <file>sql/init.sql</file>
+        <file>images/default.db</file>
+        <file>sql/maps.sql</file>
+        <file>../../common/license.txt</file>
+        <file>sql/stat.sql</file>
+        <file>sql/upgrade_3.0.sql</file>
+    </qresource>
+</RCC>

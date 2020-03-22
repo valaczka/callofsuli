@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>sql/init.sql</file>
-    </qresource>
-</RCC>

@@ -1,0 +1,22 @@
+{
+    "blocks": [
+        {
+            "enemies": 9,
+            "num": 1
+        },
+        {
+            "enemies": 7,
+            "num": 2
+        },
+        {
+            "enemies": 7,
+            "num": 3
+        },
+        {
+            "enemies": 9,
+            "num": 4
+        }
+    ],
+    "enemies": 32
+}
+
