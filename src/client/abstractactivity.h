@@ -37,6 +37,7 @@
 
 #include <QObject>
 
+#include "../common/cossql.h"
 #include "client.h"
 
 class Client;
@@ -46,21 +47,37 @@ class AbstractActivity : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
+	Q_PROPERTY(CosSql* db READ db WRITE setDb NOTIFY dbChanged)
+	Q_PROPERTY(QString databaseFile READ databaseFile WRITE setDatabaseFile NOTIFY databaseFileChanged)
 
 public:
 	explicit AbstractActivity(QObject *parent = nullptr);
 	virtual ~AbstractActivity();
 
 	Client* client() const { return m_client; }
+	CosSql* db() const { return m_db; }
+	QString databaseFile() const { return m_databaseFile; }
 
 public slots:
 	void setClient(Client* client);
+	void setDb(CosSql* db);
+	void setDatabaseFile(QString databaseFile);
+
+	bool databaseOpen();
+
+protected slots:
+	virtual bool databaseInit() { return true; }
 
 signals:
+	void databaseError(const QString &text);
 	void clientChanged(Client* client);
+	void dbChanged(CosSql* db);
+	void databaseFileChanged(QString databaseFile);
 
 protected:
-	Client *m_client;
+	Client* m_client;
+	CosSql* m_db;
+	QString m_databaseFile;
 
 };
 

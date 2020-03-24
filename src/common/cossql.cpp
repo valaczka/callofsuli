@@ -32,10 +32,16 @@ CosSql::CosSql(QObject *parent)
 {
 	m_db = QSqlDatabase::addDatabase("QSQLITE");
 	m_dbCreated = false;
+
+	qDebug() << "m_db" << m_db;
 }
 
 CosSql::~CosSql()
 {
+	if (m_db.isOpen()) {
+		qDebug().noquote() << tr("Adatbázis bezárása: ")+m_db.databaseName();
+	}
+	qDebug() << "m_db" << m_db << "destroy";
 }
 
 
@@ -52,69 +58,22 @@ bool CosSql::open(const QString &file, bool create)
 
 	if (!QFile::exists(file)){
 		if (!create) {
-			qWarning().noquote() << QString(tr("Az adatbázis (%1) nem létezik!")).arg(file);
+			qWarning().noquote() << tr("Az adatbázis nem létezik: ")+file;
 			return false;
 		}
 		m_dbCreated = true;
 	}
 
 	if (!m_db.open()) {
-		qWarning().noquote() << QString(tr("Nem sikerült megnyitni az adatbázist: %1")).arg(file);
+		qWarning().noquote() << tr("Nem sikerült megnyitni az adatbázist: ")+file;
 		return false;
 	}
 
-	qDebug().noquote() << QString(tr("Adatbázis megnyitva: %1")).arg(m_db.databaseName());
+	qDebug().noquote() << tr("Adatbázis megnyitva: ")+m_db.databaseName();
 
 	return true;
 }
 
-
-/**
- * @brief CosSql::simpleQuery
- * @param query
- * @param args
- * @return
- */
-
-QVariantList CosSql::simpleQuery(const QString &query, const QVariantList &args, QVariant *lastInsertId)
-{
-	QSqlQuery q(m_db);
-	QVariantList r;
-
-	qDebug() << args;
-
-	q.prepare(query);
-	for (int i=0; i<args.count(); ++i) {
-		q.addBindValue(args.at(i));
-	}
-
-	bool success = true;
-
-	if (!q.exec()) {
-		qWarning().noquote() << QString(tr("SQL error: %1")).arg(q.lastError().text());
-		success = false;
-	}
-
-	qDebug().noquote() << QString(tr("SQL command: %1")).arg(q.executedQuery());
-
-	if (!success) {
-		return r;
-	}
-
-	if (lastInsertId) {
-		*lastInsertId = q.lastInsertId();
-	}
-
-	if (q.first()) {
-		QSqlRecord rec = q.record();
-
-		for (int i=0; i<rec.count(); ++i) {
-			r << q.value(i);
-		}
-	}
-
-	return r;
-}
 
 
 /**
@@ -138,7 +97,7 @@ bool CosSql::batchQuery(const QString &query)
 
 		qDebug().noquote() << c;
 		if (!q.exec(c)) {
-			qWarning().noquote() << QString(tr("SQL error: %1")).arg(q.lastError().text());
+			qWarning().noquote() << tr("SQL error: ")+q.lastError().text();
 			return false;
 		}
 	}
@@ -157,12 +116,12 @@ bool CosSql::batchQuery(const QString &query)
 
 bool CosSql::batchQueryFromFile(const QString &filename)
 {
-	qDebug().noquote() << QString(tr("Batch sql query from file: %1")).arg(filename);
+	qDebug().noquote() << tr("Batch sql query from file: ")+filename;
 
 	QFile file(filename);
 
 	if (!file.open(QFile::ReadOnly)) {
-		qWarning().noquote() << QString(tr("Read error: %1")).arg(file.fileName());
+		qWarning().noquote() << tr("Read error: ")+file.fileName();
 		return false;
 	}
 
@@ -173,6 +132,27 @@ bool CosSql::batchQueryFromFile(const QString &filename)
 	return batchQuery(t);
 }
 
+
+/**
+ * @brief CosSql::simpleQuery
+ * @param query
+ * @param args
+ * @param lastInsertId
+ * @return
+ */
+
+QSqlQuery CosSql::simpleQuery(QString query, const QVariantList &args)
+{
+	QSqlQuery q(m_db);
+	QVariantList r;
+
+	q.prepare(query);
+	for (int i=0; i<args.count(); ++i) {
+		q.addBindValue(args.at(i));
+	}
+
+	return q;
+}
 
 
 /**
@@ -237,6 +217,60 @@ QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map) const
 
 	return q;
 }
+
+
+/**
+ * @brief CosSql::runQuery
+ * @param query
+ * @param lastInsertId
+ * @return
+ */
+
+QVariantMap CosSql::runQuery(QSqlQuery query)
+{
+	bool success = true;
+
+	QVariantMap r;
+
+	if (!query.exec()) {
+		QString errText = query.lastError().text();
+		r["error"] = true;
+		r["errorString"] = errText;
+
+		qWarning().noquote() << tr("SQL error: ")+errText;
+		success = false;
+	}
+
+	qDebug().noquote() << tr("SQL command: ")+query.executedQuery();
+
+	if (!success) {
+		return r;
+	}
+
+	r["error"] = false;
+	r["lastInsertId"] = query.lastInsertId();
+
+	QVariantList records;
+
+	while (query.next()) {
+		QSqlRecord rec = query.record();
+		QVariantMap rr;
+
+		for (int i=0; i<rec.count(); ++i) {
+			QString key = rec.fieldName(i);
+			if (key.isEmpty())
+				key = QString("#key%1").arg(i);
+
+			rr[key] = query.value(i);
+		}
+		records << rr;
+	}
+
+	r["records"] = records;
+
+	return r;
+}
+
 
 
 /**

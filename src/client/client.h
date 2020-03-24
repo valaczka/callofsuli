@@ -38,15 +38,18 @@ class Client : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
-	Q_PROPERTY(QUrl socketUrl READ socketUrl WRITE setSocketUrl NOTIFY socketUrlChanged)
 
 public:
+	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
+	Q_ENUM(ConnectionState)
+
+	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
+	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
+
+
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
 
-	QWebSocket * socket() const { return m_socket; }
-	QUrl socketUrl() const { return m_socketUrl; }
 
 	static bool registerResource(const QString &filename = "callofsuli.rcc");
 	static void registerTypes();
@@ -61,18 +64,31 @@ public:
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key);
 
+	QWebSocket * socket() const { return m_socket; }
+	ConnectionState connectionState() const { return m_connectionState; }
+
 public slots:
-	void socketOpen();
-	void socketLoadSslCerts();
-
-	void setSocketUrl(QUrl socketUrl);
-
-	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText) {
+	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
 		emit messageSent("warning", title, informativeText, detailedText);
 	}
+	void sendMessageError(const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("error", title, informativeText, detailedText);
+	}
+	void sendMessageInfo(const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("info", title, informativeText, detailedText);
+	}
+	void sendDatabaseError(const QString &informativeText) {
+		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "");
+	}
+
+	void setConnectionState(ConnectionState connectionState);
+	void closeConnection();
+
+	void sendData();
 
 private slots:
 	void setSocket(QWebSocket * socket);
+	void socketPing();
 
 	void onSocketConnected();
 	void onSocketDisconnected();
@@ -80,22 +96,25 @@ private slots:
 	void onSocketBinaryMessageReceived(const QByteArray &message);
 	void onSocketBytesWritten(qint64 bytes);
 	void onSocketError(QAbstractSocket::SocketError error);
+	void onSocketSslErrors(const QList<QSslError> &errors);
+	void onSocketStateChanged(QAbstractSocket::SocketState state);
 
 
 signals:
-	void socketChanged(QWebSocket * socket);
-	void socketUrlChanged(QUrl socketUrl);
-
 	void messageSent(const QString &type,
 					 const QString &title,
 					 const QString &informativeText,
 					 const QString &detailedText);
 
+	void socketChanged(QWebSocket * socket);
+	void connectionStateChanged(ConnectionState connectionState);
+
 private:
 	QWebSocket* m_socket;
-	QUrl m_socketUrl;
+	QTimer* m_timer;
+	QUrl m_connectedUrl;
 
-
+	ConnectionState m_connectionState;
 };
 
 #endif // CLIENT_H

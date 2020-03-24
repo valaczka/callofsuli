@@ -24,7 +24,7 @@
  *  along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <QJsonDocument>
 #include <QDebug>
 #include "handler.h"
 
@@ -70,6 +70,24 @@ void Handler::onDisconnected()
 
 void Handler::onBinaryMessageReceived(const QByteArray &message)
 {
-	qDebug() << message;
+	QDataStream ds(message);
+	ds.setVersion(QDataStream::Qt_5_14);
+
+	quint64 siz;
+	QString txt;
+	bool test;
+	QByteArray json;
+	QByteArray doc;
+	QByteArray hash;
+
+	ds >> siz >> txt >> test >> json >> hash >> doc;
+
+	qDebug() << siz << txt << test;
+	qDebug() << QJsonDocument::fromJson(json) << hash.toHex();
+
+	QFile f("out.db");
+	f.open(QIODevice::WriteOnly);
+	f.write(doc);
+	f.close();
 }
 

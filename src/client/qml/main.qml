@@ -192,11 +192,12 @@ ApplicationWindow {
 		cosClient.windowSaveGeometry(mainWindow)
 	}
 
+
 	Component.onCompleted: {
 		cosClient.windowSetIcon(mainWindow)
 		cosClient.windowRestoreGeometry(mainWindow)
 		cosClient.messageSent.connect(JS.dialogMessage)
 
-		JS.createPage("Start", {})
+		JS.createPage("Start", {}, mainWindow)
 	}
 }

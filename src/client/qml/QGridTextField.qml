@@ -7,6 +7,7 @@ QTextField {
 	id: control
 	property string fieldName: ""
 	property string sqlField: ""
+	property alias sqlData: control.text
 	property bool modified: false
 
 	property bool watchModification: parent.watchModification

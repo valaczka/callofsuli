@@ -31,6 +31,7 @@
 #include <QtSql>
 #include <QObject>
 
+
 class CosSql : public QObject
 {
 	Q_OBJECT
@@ -42,17 +43,31 @@ public:
 
 	bool open(const QString &file, bool create = false);
 	void close() { m_db.close(); }
-	QVariantList simpleQuery(const QString &query, const QVariantList &args = QVariantList(), QVariant *lastInsertId = nullptr);
+
+	bool isOpen() const { return m_db.isOpen(); }
+	bool isValid() const { return m_db.isValid(); }
+
 	bool batchQuery(const QString &query);
 	bool batchQueryFromFile(const QString &filename);
+	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
 	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
 	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap()) const;
+	QVariantMap runQuery(QSqlQuery query);
 
+	QVariantMap runSimpleQuery(QString query, const QVariantList &args = QVariantList()) {
+		return runQuery(simpleQuery(query, args));
+	}
+	QVariantMap runInsertQuery(QString query, const QVariantMap &map = QVariantMap()) {
+		return runQuery(insertQuery(query, map));
+	}
+	QVariantMap runUpdateQuery(QString query, const QVariantMap &map = QVariantMap()) {
+		return runQuery(updateQuery(query, map));
+	}
 
 	static QString hashPassword (const QString &password, QString *salt = nullptr,
 								 QCryptographicHash::Algorithm method = QCryptographicHash::Sha1);
 
-	QSqlDatabase db() { return m_db; }
+	QSqlDatabase db() const { return m_db; }
 	bool dbCreated() const { return m_dbCreated; }
 
 private:

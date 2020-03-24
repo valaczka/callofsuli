@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS server(
+	id INTEGER PRIMARY KEY,
+	name TEXT,
+	host TEXT,
+	port INTEGER NOT NULL DEFAULT 1 CHECK(port>0),
+	ssl BOOL NOT NULL DEFAULT FALSE,
+	user TEXT,
+	password TEXT,
+	oauthtoken TEXT,
+	cert BLOB
+);
+
+
+CREATE TABLE IF NOT EXISTS autoconnect(
+	serverid INTEGER REFERENCES server(id) ON UPDATE CASCADE ON DELETE CASCADE
+);

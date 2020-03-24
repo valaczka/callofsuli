@@ -32,7 +32,7 @@ HEADERS += \
 
 RESOURCES += \
 	qml/qml.qrc \
-	qml/qml.qrc
+	sql.qrc
 
 
 CONFIG(release, debug|release) {

@@ -120,9 +120,9 @@ void Server::stop()
 
 void Server::commandLineParse(QCoreApplication &app)
 {
-	QCoreApplication::instance()->setApplicationName(QString::fromUtf8("Call of Suli szerver"));
+	QCoreApplication::instance()->setApplicationName("callofsuli-server");
 	QCoreApplication::instance()->setOrganizationDomain("server.callofsuli.vjp.piarista.hu");
-	QCoreApplication::instance()->setOrganizationName("Call of Suli");
+	//QCoreApplication::instance()->setOrganizationName("Call of Suli");
 	QCoreApplication::instance()->setApplicationVersion(_VERSION_FULL);
 
 	QCommandLineParser parser;
@@ -234,9 +234,9 @@ bool Server::databaseLoad()
 	bool isFirst=true;
 
 	while (true) {
-		QVariantList r = m_db->simpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName from system");
+		QVariantMap r = m_db->runSimpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName from system");
 
-		if (r.isEmpty()) {
+		if (r["error"].toBool() || r["records"].toList().isEmpty()) {
 			if (isFirst) {
 				qInfo().noquote() << tr("Az adatbázis üres vagy hibás, előkészítem...");
 
@@ -256,11 +256,12 @@ bool Server::databaseLoad()
 				return false;
 			}
 		} else {
-			setDbVersionMajor(r.value(0).toInt());
-			setDbVersionMinor(r.value(1).toInt());
-			if (!m_isHostForced) setDbSocketHost(r.value(2).toString());
-			if (!m_isPortForced) setDbSocketPort(r.value(3).toInt());
-			setDbServerName(r.value(4).toString());
+			QVariantMap rr = r["records"].toList().value(0).toMap();
+			setDbVersionMajor(rr["versionMajor"].toInt());
+			setDbVersionMinor(rr["versionMinor"].toInt());
+			if (!m_isHostForced) setDbSocketHost(rr["socketHost"].toString());
+			if (!m_isPortForced) setDbSocketPort(rr["socketPort"].toInt());
+			setDbServerName(rr["serverName"].toString());
 			break;
 		}
 
@@ -280,38 +281,33 @@ bool Server::databaseLoad()
 
 bool Server::databaseInit()
 {
-	QVariantList params;
+	QVariantMap params;
 
-	params << serverVersionMajor()
-		   << serverVersionMinor()
-		   << dbSocketHost()
-		   << dbSocketPort()
-		   << tr("-- új Call of Suli szerver --");
+	params["versionMajor"] = serverVersionMajor();
+	params["versionMinor"] = serverVersionMinor();
+	params["socketHost"] = dbSocketHost();
+	params["socketPort"] = dbSocketPort();
+	params["serverName"] = tr("-- új Call of Suli szerver --");
 
-	QVariant insertID = QVariant::Invalid;
+	QVariantMap r = m_db->runInsertQuery("INSERT INTO system(?k?) values (?)", params);
 
-	m_db->simpleQuery("INSERT INTO system(versionMajor, versionMinor, socketHost, socketPort, serverName) values (?, ?, ?, ?, ?)",
-					  params,
-					  &insertID);
-
-	if (!insertID.isValid())
+	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
 		return false;
+
 
 
 	params.clear();
-	params << "admin"
-		   << tr("Adminisztrátor")
-		   << true
-		   << true
-		   << true;
-	insertID = QVariant::Invalid;
+	params["username"] = "admin";
+	params["firstname"] = tr("Adminisztrátor");
+	params["active"] = true;
+	params["isTeacher"] = true;
+	params["isAdmin"] = true;
 
-	m_db->simpleQuery("INSERT INTO user(username, firstname, active, isTeacher, isAdmin) VALUES (?, ?, ?, ?, ?)",
-					  params,
-					  &insertID);
+	QVariantMap r2 = m_db->runInsertQuery("INSERT INTO user(?k?) values (?)", params);
 
-	if (!insertID.isValid())
+	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
 		return false;
+
 
 
 
@@ -319,16 +315,13 @@ bool Server::databaseInit()
 	QString pwd = CosSql::hashPassword("admin", &salt);
 
 	params.clear();
-	params << "admin"
-		   << pwd
-		   << salt;
-	insertID = QVariant::Invalid;
+	params["username"] = "admin";
+	params["password"] = pwd;
+	params["salt"] = salt;
 
-	m_db->simpleQuery("INSERT INTO auth (username, password, salt) VALUES (?, ?, ?)",
-					  params,
-					  &insertID);
+	QVariantMap r3 = m_db->runInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params);
 
-	if (!insertID.isValid())
+	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
 		return false;
 
 	return true;
@@ -430,8 +423,8 @@ bool Server::websocketServerStart()
 	quint16 port = (dbSocketPort()<=0) ? 10101 : quint16(dbSocketPort());
 	if (m_socketServer->listen(dbSocketHost().isEmpty() ? QHostAddress::Any : QHostAddress(dbSocketHost()), port))
 	{
-		qInfo() << "Listening on port" << port
-				<< (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "SSL" : "");
+		qInfo() << QString(tr("Listening on host %1 port %2")).arg(dbSocketHost().toStdString().data()).arg(port)+
+				   (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "SSL" : "");
 	} else {
 		qCritical("Cannot listen on host %s and port %d", dbSocketHost().toStdString().data(), port);
 		return false;

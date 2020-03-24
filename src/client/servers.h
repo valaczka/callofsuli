@@ -47,9 +47,19 @@ public:
 
 public slots:
 	void serverListReload();
+	QVariantMap serverInfoGet(const int &serverId);
+	void serverInfoInsertOrUpdate(const int &id, const QVariantMap &map);
+	void serverInfoDelete(const int &id);
+	void serverConnect(const int &serverId);
+	void serverSetAutoConnect(const int &serverId);
+
+protected slots:
+	bool databaseInit() override;
 
 signals:
-	void serverListLoaded(QVariantList serverList);
+	void serverListLoaded(const QVariantList &serverList);
+	void serverInfoLoaded(const QVariantMap &server);
+	void serverInfoUpdated(const int &serverId);
 };
 
 #endif // SERVERS_H

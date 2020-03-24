@@ -6,8 +6,7 @@
         <file>qml.qrc</file>
         <file>qtquickcontrols2.conf</file>
         <file>_Page.qml</file>
-        <file>PageConnectionModify.qml</file>
-        <file>PageServer.qml</file>
+        <file>PageServerEdit.qml</file>
         <file>PageStart.qml</file>
         <file>QAnimatedText.qml</file>
         <file>QButton.qml</file>
@@ -29,5 +28,8 @@
         <file>QTextField.qml</file>
         <file>QToolBar.qml</file>
         <file>JScript.js</file>
+        <file>QGridCheckBox.qml</file>
+        <file>QCheckBox.qml</file>
+        <file>PageConnection.qml</file>
     </qresource>
 </RCC>

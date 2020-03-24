@@ -25,11 +25,11 @@ function setColorAlpha(color, alpha) {
 }
 
 
-function createPage(_qml, _prop) {
+function createPage(_qml, _prop, _parent) {
 	var comp = Qt.createComponent("Page"+_qml+".qml")
 
 	if (comp.status === Component.Ready) {
-		var obj = comp.createObject(mainWindow, _prop)
+		var obj = comp.createObject(_parent, _prop)
 		if (obj === null) {
 			console.error("Error creating object")
 			return null
@@ -46,11 +46,11 @@ function createPage(_qml, _prop) {
 
 
 
-function createPageOnly(_qml, _prop) {
+function createPageOnly(_qml, _prop, _parent) {
 	var comp = Qt.createComponent("Page"+_qml+".qml")
 
 	if (comp.status === Component.Ready) {
-		var obj = comp.createObject(mainWindow, _prop)
+		var obj = comp.createObject(_parent, _prop)
 		if (obj === null) {
 			console.error("Error creating object")
 			return null
@@ -123,8 +123,8 @@ function dialogCreate(component) {
 
 		obj.x = 0
 		obj.x = 0
-		obj.width = parent.width
-		obj.height = parent.height
+		obj.width = mainWindow.width
+		obj.height = mainWindow.height
 		obj.effectSource = mainStack
 
 		obj.popupContent.sourceComponent = component
@@ -178,7 +178,7 @@ function getSqlFields(_items, _all) {
 
 	for (var i=0; i<_items.length; i++) {
 		if (_all === true || _items[i].modified === true) {
-			o[_items[i].sqlField] = _items[i].text
+			o[_items[i].sqlField] = _items[i].sqlData
 		}
 	}
 

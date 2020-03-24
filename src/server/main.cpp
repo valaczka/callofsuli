@@ -62,6 +62,11 @@ int main(int argc, char *argv[])
 
 	QCoreApplication app(argc, argv);
 
+#ifndef QT_NO_DEBUG_OUTPUT
+	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
+#endif
+
+
 	Server s;
 
 	s.commandLineParse(app);

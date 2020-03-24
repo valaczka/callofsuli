@@ -1,5 +1,5 @@
 import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 import COS.Client 1.0
 import "."
@@ -22,6 +22,26 @@ Page {
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectCrop
 		source: "qrc:/img/villa.png"
+	}
+
+	QButton {
+		id: button1
+		label: "SEND DATA"
+
+		onClicked: {
+			cosClient.sendData()
+		}
+	}
+
+	QButton {
+		id: button2
+		label: "CLOSE CONNECTION"
+
+		anchors.top: button1.bottom
+
+		onClicked: {
+			cosClient.closeConnection()
+		}
 	}
 
 	/* CONTENT */

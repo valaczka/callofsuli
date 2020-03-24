@@ -12,11 +12,18 @@ import "JScript.js" as JS
 Page {
 	id: page
 
+	property bool _isFirst: true
+
 	Servers {
 		id: servers
 		client: cosClient
 
 		onServerListLoaded: JS.setModel(listMenu.model, serverList)
+		onServerInfoUpdated: serverListReload()
+
+		Component.onCompleted: {
+			databaseError.connect(client.sendDatabaseError)
+		}
 
 	}
 
@@ -31,7 +38,7 @@ Page {
 			QMenuButton {
 				MenuItem {
 					text: qsTr("Új szerver")
-					onClicked:  createServer()
+					onClicked:  editServer(-1)
 				}
 
 				MenuSeparator {}
@@ -41,18 +48,13 @@ Page {
 					onClicked: {
 						JS.dialogMessageInfo("Call of Suli",
 											 qsTr("Verzió: ")+Qt.application.version+
-											 qsTr("\n© 2012-2019 Valaczka János Pál")
+											 "\n© 2012-2020 Valaczka János Pál"
 											 )
 					}
 				}
 				MenuItem {
 					text: qsTr("Kilépés")
 					onClicked: mainWindow.close()
-				}
-
-				MenuItem {
-					text: qsTr("QRTester")
-					onClicked: JS.createPage("QRread", {})
 				}
 			}
 		}
@@ -78,7 +80,7 @@ Page {
 			id: listMenu
 			anchors.fill: parent
 
-			onClicked: connectServer(listMenu.model.get(index).filePath)
+			onClicked: servers.serverConnect(listMenu.model.get(listMenu.currentIndex).id)
 
 			onLongPressed: {
 				listRigthMenu.modelIndex = index
@@ -88,6 +90,17 @@ Page {
 			onRightClicked: {
 				listRigthMenu.modelIndex = index
 				listRigthMenu.popup()
+			}
+
+			Keys.onPressed: {
+				if (event.key === Qt.Key_Insert) {
+					editServer(-1)
+				} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
+					editServer(listMenu.model.get(listMenu.currentIndex).id)
+				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
+					var d = JS.dialogCreate(dlgDelete)
+					d.open()
+				}
 			}
 
 
@@ -100,26 +113,39 @@ Page {
 
 
 			MenuItem {
-				text: qsTr("Kapcsolódás")
+				text: qsTr("Csatlakozás")
 				onClicked: if (listRigthMenu.modelIndex !== -1) {
-							   connectServer(listMenu.model.get(listRigthMenu.modelIndex).filePath)
+							   servers.serverConnect(listMenu.model.get(listRigthMenu.modelIndex).id)
 						   }
 
 			}
 
 			MenuItem {
 				text: qsTr("Szerkesztés")
-				onClicked: editServer(listRigthMenu.modelIndex)
+				onClicked: editServer(listMenu.model.get(listRigthMenu.modelIndex).id)
 			}
 
 			MenuItem {
 				text: qsTr("Törlés")
-				onClicked: deleteServer(listRigthMenu.modelIndex)
+				onClicked: {
+					var d = JS.dialogCreate(dlgDelete)
+					d.open()
+				}
+
 			}
 
 			MenuItem {
+				text: qsTr("Automata csatlakozás")
+				onClicked: if (listRigthMenu.modelIndex !== -1) {
+							   servers.serverSetAutoConnect(listMenu.model.get(listRigthMenu.modelIndex).id)
+						   }
+			}
+
+			MenuSeparator {}
+
+			MenuItem {
 				text: qsTr("Új szerver")
-				onClicked: createServer()
+				onClicked: editServer(-1)
 			}
 		}
 
@@ -143,122 +169,49 @@ Page {
 
 			text: idx === -1 ? "" : listMenu.model.get(idx).label
 
-			onDlgAccept: {
-				page.deleteServerReal(idx)
-			}
+			onDlgAccept: servers.serverInfoDelete(listMenu.model.get(idx).id)
 
 		}
 	}
 
 
+
+	Connections {
+		target: cosClient
+
+		onConnectionStateChanged: {
+			console.debug("changed", connectionState)
+			if (connectionState === Client.Connected) {
+				JS.createPage("Connection", {}, page)
+			} else if (connectionState === Client.Standby) {
+				mainStack.pop(page)
+			}
+		}
+	}
 
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
 		toolbar.title = qsTr("Call of Suli szerverek")
 
-		servers.serverListReload()
-	}
-
-
-	function createServer() {
-		var o = JS.createPageOnly("ConnectionModify",
-								  {
-									  connectionModel: listMenu.model,
-									  connectionModelIndex: -1
-								  })
-
-		if (o) {
-			o.saveData.connect(function(_data) {
-				mainStack.pop(page.StackView.index)
-				var r = Client.clientRunnable("connectionCreate", busy)
-
-				r.parameters = {
-					data: _data
-				}
-
-				r.success.connect(function() {
-					var m = r.getResult()
-
-				})
-
-				r.finished.connect(function() { mainStack.pop(page) })
-
-				r.start()
-			})
-
-			mainStack.push(o)
+		if (_isFirst) {
+			servers.serverListReload()
+			_isFirst = false
 		}
 	}
-
 
 
 
 	function editServer(idx) {
-		if (idx === -1) {
-			console.error("currentIndex error")
-			return
-		}
-
-		var o = JS.createPage("ConnectionModify",
-								  {
-									  servers: servers,
-									  connectionModel: listMenu.model,
-									  connectionModelIndex: idx
-								  })
-/*
-		if (o) {
-			o.saveData.connect(function(_data) {
-				mainStack.pop(page.StackView.index)
-				var r = Client.clientRunnable("connectionUpdate", busy)
-
-				r.parameters = {
-					filePath: listMenu.model.get(idx).filePath,
-					data: _data
-				}
-
-				r.success.connect(function() {
-					var m = r.getResult()
-
-				})
-
-				r.finished.connect(function() { mainStack.pop(page) })
-
-				r.start()
-			})
-
-			mainStack.push(o)
-		} */
-	}
-
-
-	function deleteServer(idx) {
-		var d = JS.dialogCreate(dlgDelete)
-		d.open()
-	}
-
-
-	function deleteServerReal(idx) {
-		if (idx === -1) {
-			console.error("currentIndex error")
-			return
-		}
-
-		servers.deleteServer(listMenu.model.get(idx).filePath)
-	}
-
-
-
-	function connectServer(filepath) {
-		var p = JS.createPage("Server", {
-								  filePath: filepath,
-							  })
-		p.openFailed.connect(function() {
-			if (Client.getSetting("autoConnect") === filepath)
-				Client.setSetting("autoConnect", null)
-		})
+		JS.createPage("ServerEdit",
+					  {
+						  servers: servers,
+						  serverId: idx
+					  },
+					  page)
 
 	}
+
 
 
 	function stackBack() {

@@ -8,7 +8,7 @@ import "Style"
 Label {
 	id: label
 
-	property QGridTextField field
+	property QGridTextField field: null
 
 	Layout.alignment: parent.columns > 1 ?
 						  Qt.AlignRight | Qt.AlignVCenter :
@@ -16,7 +16,7 @@ Label {
 
 	font.pixelSize: CosStyle.pixelSize*0.9
 
-	color: CosStyle.colorPrimary
+	color: (field && field.modified) ? CosStyle.colorAccent : CosStyle.colorPrimary
 
 
 	Connections {
@@ -37,10 +37,6 @@ Label {
 	}
 
 
-	Binding on color {
-		when: field && field.modified
-		value: CosStyle.colorAccent
-	}
 
 	Binding on color {
 		when: field && !field.acceptableInput

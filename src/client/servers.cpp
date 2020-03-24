@@ -37,8 +37,9 @@
 Servers::Servers(QObject *parent)
 	: AbstractActivity(parent)
 {
-
+	m_databaseFile = Client::standardPath("servers.db");
 }
+
 
 
 /**
@@ -47,19 +48,209 @@ Servers::Servers(QObject *parent)
 
 void Servers::serverListReload()
 {
-	QVariantList list;
-	for (int i=1; i<5; ++i) {
-		QVariantMap x;
-		x.insert("icon", "M\ue880");
-		x.insert("disabled", false);
-		x.insert("selected", false);
-		x.insert("image", "");
-		x.insert("label", "name"+QString(i));
-		x.insert("filePath", "kamupath");
-		x.insert("serverHost", "host"+QString(i*5));
-		x.insert("serverPort", i+1000);
-		x.insert("database", "db"+QString(i*127));
-		list.append(x);
+	Q_ASSERT (m_client);
+
+	if (!databaseOpen())
+		return;
+
+	QVariantMap r2 = m_db->runSimpleQuery("SELECT id, name as label, false as disabled, false as selected, '' as image, "
+										  "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
+										  "FROM server "
+										  "ORDER BY name");
+	if (r2["error"].toBool()) {
+		m_client->sendMessageError(tr("Adatbázis"), tr("Adatbázis hiba!"), databaseFile());
+		return;
 	}
-	emit serverListLoaded(list);
+
+	QVariantList list = r2["records"].toList();
+	QVariantList list2;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		if (m["autoconnect"].toBool())
+			m["icon"] = "M\ue838";
+		else
+			m["icon"] = "M\ue83a";
+		list2 << m;
+	}
+
+	emit serverListLoaded(list2);
+
+}
+
+
+/**
+ * @brief Servers::serverGet
+ * @param serverId
+ */
+
+QVariantMap Servers::serverInfoGet(const int &serverId)
+{
+	Q_ASSERT (m_client);
+
+	if (!databaseOpen())
+		return QVariantMap();
+
+	QVariantList p;
+	p << serverId;
+
+	QVariantMap r = m_db->runSimpleQuery("SELECT name, host, port, ssl, user, password, cert FROM server WHERE id=?", p);
+
+	QVariantList rl = r["records"].toList();
+	if (r["error"].toBool() || rl.count() != 1) {
+		m_client->sendMessageError(tr("Internal error"), QString(tr("Érvénytelen azonosító: %1")).arg(serverId));
+		return QVariantMap();
+	}
+
+	QVariantMap server = rl.value(0).toMap();
+
+	emit serverInfoLoaded(server);
+
+	return server;
+}
+
+
+
+/**
+ * @brief Servers::serverInfoInsertOrUpdate
+ * @param map
+ */
+
+void Servers::serverInfoInsertOrUpdate(const int &id, const QVariantMap &map)
+{
+	Q_ASSERT (m_client);
+
+	if (!databaseOpen())
+		return;
+
+	QSqlQuery q;
+	if (id == -1) {
+		q = m_db->insertQuery("INSERT INTO server (?k?) VALUES (?)", map);
+	} else {
+		q = m_db->updateQuery("UPDATE server SET ? WHERE id=:id", map);
+		q.bindValue(":id", id);
+	}
+
+	QVariantMap r = m_db->runQuery(q);
+	if (r["error"].toBool()) {
+		emit databaseError(r["errorString"].toString());
+		return;
+	}
+
+	emit serverInfoUpdated( id == -1 ? r["lastInsertId"].toInt() : id);
+}
+
+
+/**
+ * @brief Servers::serverInfoDelete
+ * @param id
+ */
+
+void Servers::serverInfoDelete(const int &id)
+{
+	Q_ASSERT (m_client);
+
+	if (!databaseOpen())
+		return;
+
+	QVariantList l;
+	l << id;
+	QVariantMap r = m_db->runSimpleQuery("DELETE FROM server WHERE id=?", l);
+	if (r["error"].toBool()) {
+		emit databaseError(r["errorString"].toString());
+		return;
+	}
+
+	emit serverInfoUpdated(id);
+}
+
+
+/**
+ * @brief Servers::serverConnect
+ * @param serverId
+ */
+
+void Servers::serverConnect(const int &serverId)
+{
+	Q_ASSERT (m_client);
+
+	QVariantMap m = serverInfoGet(serverId);
+
+	if (m.empty())
+		return;
+
+	QUrl url;
+	url.setHost(m["host"].toString());
+	url.setPort(m["port"].toInt());
+	url.setScheme(m["ssl"].toBool() ? "wss" : "ws");
+
+
+	QByteArray cert = m["cert"].toByteArray();
+	if (!cert.isEmpty()) {
+		QSslCertificate c(cert, QSsl::Pem);
+		if (!c.isNull()) {
+			QList<QSslError> eList;
+			eList.append(QSslError(QSslError::SelfSignedCertificate, c));
+			eList.append(QSslError(QSslError::HostNameMismatch, c));
+
+			m_client->socket()->ignoreSslErrors(eList);
+		}
+	}
+
+	m_client->socket()->open(url);
+}
+
+
+
+
+/**
+ * @brief Servers::serverSetAutoConnect
+ * @param serverId
+ */
+
+void Servers::serverSetAutoConnect(const int &serverId)
+{
+	Q_ASSERT (m_client);
+
+	if (!databaseOpen())
+		return;
+
+	QVariantMap r = m_db->runInsertQuery("DELETE FROM autoconnect");
+	if (r["error"].toBool()) {
+		emit databaseError(r["errorString"].toString());
+		return;
+	}
+
+	QVariantMap m;
+	m["serverid"] = serverId;
+	QSqlQuery q;
+	q = m_db->insertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m);
+	QVariantMap r2 = m_db->runQuery(q);
+	if (r2["error"].toBool()) {
+		emit databaseError(r2["errorString"].toString());
+		return;
+	}
+
+	emit serverInfoUpdated(serverId);
+}
+
+
+
+
+/**
+ * @brief Servers::databaseInit
+ * @return
+ */
+
+
+bool Servers::databaseInit()
+{
+	Q_ASSERT(m_client);
+
+	if (!m_db->batchQueryFromFile(":/sql/servers.sql")) {
+		m_client->sendMessageError(tr("Adatbázis"), tr("Nem sikerült előkészíteni az adatbázist!"), databaseFile());
+		return false;
+	}
+
+	return true;
 }

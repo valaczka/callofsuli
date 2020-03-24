@@ -29,7 +29,7 @@
 #include <QDir>
 #include <QResource>
 #include <QQuickItem>
-
+#include <QJsonDocument>
 
 #include "client.h"
 #include "servers.h"
@@ -37,7 +37,23 @@
 
 Client::Client(QObject *parent) : QObject(parent)
 {
+	m_connectionState = ConnectionState::Standby;
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
+	m_timer = new QTimer(this);
+
+	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
+	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
+	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
+	connect(m_socket, &QWebSocket::sslErrors, this, &Client::onSocketSslErrors);
+	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
+			[=](QAbstractSocket::SocketError error){
+		qDebug() << "error" << error;
+		if (m_connectionState == ConnectionState::Standby || m_connectionState == ConnectionState::Connecting)
+		sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
+	});
+
+	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
+	m_timer->start(5000);
 }
 
 /**
@@ -46,6 +62,7 @@ Client::Client(QObject *parent) : QObject(parent)
 
 Client::~Client()
 {
+	delete m_timer;
 	delete m_socket;
 }
 
@@ -60,10 +77,11 @@ void Client::initialize()
 	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
 #endif
 
-	QCoreApplication::setApplicationName(QString::fromUtf8("Call of Suli"));
+	QCoreApplication::setApplicationName("callofsuli");
 	QCoreApplication::setOrganizationDomain("client.callofsuli.vjp.piarista.hu");
-	QCoreApplication::setOrganizationName("Call of Suli");
+	//QCoreApplication::setOrganizationName("Call of Suli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
+
 }
 
 
@@ -113,6 +131,7 @@ bool Client::registerResource(const QString &filename)
 			QString realname=QDir(file.fileName()).canonicalPath();
 			qInfo().noquote() << tr("Registered resource: ")+realname;
 			QResource::registerResource(realname);
+
 			return true;
 		}
 	}
@@ -217,8 +236,6 @@ void Client::standardPathCreate()
 		qInfo().noquote() << tr("Create directory ") + d.absolutePath();
 		d.mkpath(d.absolutePath());
 	}
-
-	d.mkdir("db");
 }
 
 
@@ -260,32 +277,75 @@ QVariant Client::getSetting(const QString &key)
 	return s.value(key);
 }
 
-
-
-
-/**
- * @brief Client::socketOpen
- */
-
-void Client::socketOpen()
+void Client::setConnectionState(Client::ConnectionState connectionState)
 {
-	m_socket->open(m_socketUrl);
+	if (m_connectionState == connectionState)
+		return;
+
+	qDebug() << tr("set connection state") << connectionState;
+
+	m_connectionState = connectionState;
+	emit connectionStateChanged(m_connectionState);
 }
 
 
 /**
- * @brief Client::socketLoadSslCerts
+ * @brief Client::closeConnection
  */
 
-void Client::socketLoadSslCerts()
+void Client::closeConnection()
 {
-	QList<QSslCertificate> cert = QSslCertificate::fromPath(QLatin1String("server-certificate.pem"));
-	QSslError error(QSslError::SelfSignedCertificate, cert.at(0));
-	QList<QSslError> expectedSslErrors;
-	expectedSslErrors.append(error);
-
-	m_socket->ignoreSslErrors(expectedSslErrors);
+	if (m_socket->state() == QAbstractSocket::ConnectedState) {
+		setConnectionState(ConnectionState::Closing);
+		m_socket->close();
+	} else {
+		setConnectionState(ConnectionState::Standby);
+		m_socket->close();
+	}
 }
+
+
+/**
+ * @brief Client::sendData
+ */
+
+void Client::sendData()
+{
+	QJsonObject o;
+
+	o["name"] = "Valaczka János";
+	o["size"] = 234;
+	o["bool"] = true;
+
+	QJsonDocument d(o);
+
+	QByteArray data;
+	QDataStream ds(&data, QIODevice::ReadWrite);
+	ds.setVersion(QDataStream::Qt_5_14);
+
+	ds << quint64(1234);
+	ds << QString("--ez a hash--");
+	ds << true;
+	ds << d.toJson(QJsonDocument::Compact);
+
+	QFile f(standardPath("servers.db"));
+	f.open(QIODevice::ReadOnly);
+	QByteArray fff = f.readAll();
+
+	QByteArray hash = QCryptographicHash::hash(fff, QCryptographicHash::Sha1);
+
+	ds << hash << fff;
+
+	f.close();
+
+
+	m_socket->sendBinaryMessage(data);
+
+	qDebug() << "data sent" << hash.toHex();
+}
+
+
+
 
 
 /**
@@ -302,42 +362,87 @@ void Client::setSocket(QWebSocket *socket)
 	emit socketChanged(m_socket);
 }
 
-void Client::setSocketUrl(QUrl socketUrl)
-{
-	if (m_socketUrl == socketUrl)
-		return;
 
-	m_socketUrl = socketUrl;
-	emit socketUrlChanged(m_socketUrl);
+/**
+ * @brief Client::socketPing
+ */
+
+void Client::socketPing()
+{
+	if (m_connectionState == ConnectionState::Connected || m_connectionState == ConnectionState::Reconnected) {
+		qDebug() << "ping";
+		m_socket->ping();
+	} else if (m_connectionState == ConnectionState::Disconnected) {
+		qDebug() << "reconnect";
+		m_socket->open(m_connectedUrl);
+	}
 }
+
+
+
+/**
+ * @brief Client::onSocketConnected
+ */
 
 void Client::onSocketConnected()
 {
-
+	m_connectedUrl = m_socket->requestUrl();
+	if (m_connectionState == ConnectionState::Connecting || m_connectionState == ConnectionState::Standby)
+		setConnectionState(ConnectionState::Connected);
+	else if (m_connectionState == ConnectionState::Reconnecting || m_connectionState == ConnectionState::Disconnected)
+		setConnectionState(ConnectionState::Reconnected);
 }
+
 
 void Client::onSocketDisconnected()
 {
+	if (m_connectionState == ConnectionState::Connected ||
+		m_connectionState == ConnectionState::Reconnecting ||
+		m_connectionState == ConnectionState::Reconnected)
+		setConnectionState(ConnectionState::Disconnected);
+	else
+		setConnectionState(ConnectionState::Standby);
 
 }
 
 void Client::onSocketBinaryFrameReceived(const QByteArray &frame, bool isLastFrame)
 {
-
+	Q_UNUSED(frame)
+	Q_UNUSED(isLastFrame)
 }
 
 void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
-
+	Q_UNUSED(message)
 }
 
 void Client::onSocketBytesWritten(qint64 bytes)
 {
-
+	Q_UNUSED(bytes)
 }
 
 void Client::onSocketError(QAbstractSocket::SocketError error)
 {
+	qDebug() << "error" << error;
+}
+
+void Client::onSocketSslErrors(const QList<QSslError> &errors)
+{
+	qDebug() << "ssl error" << errors;
+}
+
+
+/**
+ * @brief Client::onSocketStateChanged
+ * @param state
+ */
+
+void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
+{
+	if (m_connectionState == ConnectionState::Standby && state == QAbstractSocket::ConnectingState)
+		setConnectionState(ConnectionState::Connecting);
+	else if (m_connectionState == ConnectionState::Disconnected && state == QAbstractSocket::ConnectingState)
+		setConnectionState(ConnectionState::Reconnecting);
 
 }
 

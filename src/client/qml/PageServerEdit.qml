@@ -11,11 +11,7 @@ Page {
 	id: page
 
 	property Servers servers: null
-
-	property ListModel connectionModel: null
-	property int connectionModelIndex: -1
-
-	signal saveData(var fields)
+	property int serverId: -1
 
 	header: QToolBar {
 		id: toolbar
@@ -83,14 +79,20 @@ Page {
 				validator: IntValidator {bottom: 1; top: 65534}
 			}
 
-			QGridLabel { field: textDb }
+			QGridLabel { field: textUser }
 
 			QGridTextField {
-				id: textDb
-				fieldName: qsTr("Adatbázis")
-				sqlField: "db"
+				id: textUser
+				fieldName: qsTr("Felhasználó")
+				sqlField: "user"
 
-				validator: RegExpValidator { regExp: /.+/ }
+				//validator: RegExpValidator { regExp: /.+/ }
+			}
+
+			QGridCheckBox {
+				id: checkSsl
+				text: qsTr("SSL kapcsolat")
+				sqlField: "ssl"
 			}
 
 			QGridButton {
@@ -98,16 +100,26 @@ Page {
 				label: qsTr("Mentés")
 				disabled: !textName.acceptableInput ||
 						  !textHostname.acceptableInput ||
-						  !textPort.acceptableInput ||
-						  !textDb.acceptableInput
+						  !textPort.acceptableInput
 
-				onClicked: saveData(JS.getSqlFields([textName, textHostname, textPort, textDb],
-										connectionModelIndex === -1))
+				onClicked: {
+					var m = JS.getSqlFields([textName, textHostname, textPort, textUser, checkSsl],
+											serverId === -1)
+
+					if (Object.keys(m).length) {
+						busy.running = true
+						servers.serverInfoInsertOrUpdate(serverId, m)
+					}
+				}
 
 			}
 		}
 
-
+		BusyIndicator {
+			id: busy
+			anchors.centerIn: parent
+			running: false
+		}
 	}
 
 	Component {
@@ -127,28 +139,37 @@ Page {
 	}
 
 
-	Component.onCompleted: {
-		if (connectionModelIndex === -1)
-			return
+	Connections {
+		target: servers
+		onServerInfoLoaded: {
+			textName.setText(server.name)
+			textHostname.setText(server.host)
+			textPort.setText(server.port)
+			textUser.setText(server.user)
+			checkSsl.setChecked(server.ssl)
+			grid.modified = false
+			busy.running = false
+		}
 
-		var m = connectionModel.get(connectionModelIndex)
-
-		textName.setText(m.label)
-		textHostname.setText(m.serverHost)
-		textPort.setText(m.serverPort)
-		textDb.setText(m.database)
-		grid.modified = false
+		onServerInfoUpdated: {
+			busy.running = false
+			grid.modified = false
+			mainStack.back()
+		}
 	}
+
 
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.title = connectionModelIndex === -1 ?
+		toolbar.title = serverId === -1 ?
 					qsTr("Új szerver hozzáadása") :
 					qsTr("Szerver szerkesztése")
 
-		servers.sendMessageWarning("SIKER", "Úgy tűnik, sikerült!", "Remélem...")
-
+		if (serverId !== -1) {
+			busy.running = true
+			servers.serverInfoGet(serverId)
+		}
 	}
 
 	StackView.onDeactivated: {
