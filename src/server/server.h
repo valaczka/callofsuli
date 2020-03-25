@@ -37,7 +37,7 @@
 #include <QtNetwork/QSslSocket>
 
 #include "../common/cossql.h"
-#include "handler.h"
+#include "client.h"
 
 class Server : public QObject
 {
@@ -79,7 +79,7 @@ class Server : public QObject
 	QByteArray m_dbResourcesHash;
 
 private:
-	QList<Handler *> m_clients;
+	QList<Client *> m_clients;
 
 public:
 	explicit Server(QObject *parent = nullptr);

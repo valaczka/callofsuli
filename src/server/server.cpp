@@ -374,9 +374,27 @@ bool Server::resourcesLoad()
 
 bool Server::websocketServerStart()
 {
-	if (!socketCertFile().isEmpty()) {
+	if (socketCertFile().isEmpty()) {
+		QString f = QDir::toNativeSeparators(sqlDbDir()+"/sslcert.pem");
+
+		if (QFile::exists(f)) {
+			qInfo().noquote() << tr("SSL tanúsítvány automatikus beállítása: ") << f;
+			setSocketCertFile(f);
+		}
+	}
+
+	if (socketCertKey().isEmpty()) {
+		QString f = QDir::toNativeSeparators(sqlDbDir()+"/sslkey.pem");
+
+		if (QFile::exists(f)) {
+			qInfo().noquote() << tr("SSL kulcs automatikus beállítása: ") << f;
+			setSocketCertKey(f);
+		}
+	}
+
+	if (!socketCertFile().isEmpty() && !socketCertKey().isEmpty()) {
 		if (!QSslSocket::supportsSsl()) {
-			qCritical("Platform doesn't support SSL");
+			qCritical().noquote() << tr("Platform doesn't support SSL");
 			return false;
 		}
 
@@ -423,10 +441,9 @@ bool Server::websocketServerStart()
 	quint16 port = (dbSocketPort()<=0) ? 10101 : quint16(dbSocketPort());
 	if (m_socketServer->listen(dbSocketHost().isEmpty() ? QHostAddress::Any : QHostAddress(dbSocketHost()), port))
 	{
-		qInfo() << QString(tr("Listening on host %1 port %2")).arg(dbSocketHost().toStdString().data()).arg(port)+
-				   (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "SSL" : "");
+		qInfo().noquote() << tr("Listening on ")+m_socketServer->serverUrl().toString();
 	} else {
-		qCritical("Cannot listen on host %s and port %d", dbSocketHost().toStdString().data(), port);
+		qCritical().noquote() << QString(tr("Cannot listen on host %1 and port %2")).arg(dbSocketHost().toStdString().data()).arg(port);
 		return false;
 	}
 
@@ -459,7 +476,7 @@ void Server::onNewConnection()
 {
 	QWebSocket *pSocket = m_socketServer->nextPendingConnection();
 
-	Handler *handler = new Handler(m_db, pSocket);
+	Client *handler = new Client(m_db, pSocket);
 
 	connect(handler, SIGNAL(disconnected()), this, SLOT(onSocketDisconnected()));
 
@@ -473,7 +490,7 @@ void Server::onNewConnection()
 
 void Server::onSocketDisconnected()
 {
-	Handler *handler = qobject_cast<Handler *>(sender());
+	Client *handler = qobject_cast<Client *>(sender());
 	if (handler)
 	{
 		m_clients.removeAll(handler);

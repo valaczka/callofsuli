@@ -24,23 +24,32 @@ Page {
 		source: "qrc:/img/villa.png"
 	}
 
-	QButton {
-		id: button1
-		label: "SEND DATA"
+	Column {
+		QButton {
+			id: button1
+			label: "SEND JSON DATA"
 
-		onClicked: {
-			cosClient.sendData()
+			onClicked: {
+				cosClient.socketSendJson({"test": "szia", "vissza": 3})
+			}
 		}
-	}
 
-	QButton {
-		id: button2
-		label: "CLOSE CONNECTION"
+		QButton {
+			id: button3
+			label: "SEND INVALID DATA"
 
-		anchors.top: button1.bottom
+			onClicked: {
+				cosClient.socketSend("erwer", "")
+			}
+		}
 
-		onClicked: {
-			cosClient.closeConnection()
+		QButton {
+			id: button2
+			label: "CLOSE CONNECTION"
+
+			onClicked: {
+				cosClient.closeConnection()
+			}
 		}
 	}
 
@@ -56,11 +65,11 @@ Page {
 
 	StackView.onActivated: {
 		toolbar.title = qsTr("Page")
-			/* LOAD */
+		/* LOAD */
 	}
 
 	StackView.onDeactivated: {
-			/* UNLOAD */
+		/* UNLOAD */
 	}
 
 
@@ -74,8 +83,8 @@ Page {
 			return true
 		}
 
-		/* BACK */
+		cosClient.closeConnection()
 
-		return false
+		return true
 	}
 }

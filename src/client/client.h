@@ -32,7 +32,7 @@
 #include <QObject>
 #include <QQuickWindow>
 #include <QSettings>
-
+#include "../common/COS.h"
 
 class Client : public QObject
 {
@@ -84,7 +84,9 @@ public slots:
 	void setConnectionState(ConnectionState connectionState);
 	void closeConnection();
 
-	void sendData();
+	int socketNextClientMsgId();
+	int socketSend(const QString &msgType, const QByteArray &data, const int &serverMsgId = -1);
+	int socketSendJson(const QJsonObject &jsonObject);
 
 private slots:
 	void setSocket(QWebSocket * socket);
@@ -92,12 +94,10 @@ private slots:
 
 	void onSocketConnected();
 	void onSocketDisconnected();
-	void onSocketBinaryFrameReceived(const QByteArray &frame, bool isLastFrame);
 	void onSocketBinaryMessageReceived(const QByteArray &message);
-	void onSocketBytesWritten(qint64 bytes);
-	void onSocketError(QAbstractSocket::SocketError error);
 	void onSocketSslErrors(const QList<QSslError> &errors);
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
+	void onSocketServerError(const COS::ServerError &error);
 
 
 signals:
@@ -113,6 +113,7 @@ private:
 	QWebSocket* m_socket;
 	QTimer* m_timer;
 	QUrl m_connectedUrl;
+	int m_clientMsgId;
 
 	ConnectionState m_connectionState;
 };

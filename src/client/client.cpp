@@ -35,15 +35,19 @@
 #include "servers.h"
 #include "../version/buildnumber.h"
 
+
 Client::Client(QObject *parent) : QObject(parent)
 {
 	m_connectionState = ConnectionState::Standby;
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
 	m_timer = new QTimer(this);
 
+	m_clientMsgId = 0;
+
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
+	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
 	connect(m_socket, &QWebSocket::sslErrors, this, &Client::onSocketSslErrors);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
 			[=](QAbstractSocket::SocketError error){
@@ -305,43 +309,58 @@ void Client::closeConnection()
 }
 
 
+
+int Client::socketNextClientMsgId()
+{
+	return ++m_clientMsgId;
+}
+
+
+
 /**
- * @brief Client::sendData
+ * @brief Client::socketSend
+ * @param msgType
+ * @param data
+ * @param serverMsgId
  */
 
-void Client::sendData()
+int Client::socketSend(const QString &msgType, const QByteArray &data, const int &serverMsgId)
 {
-	QJsonObject o;
-
-	o["name"] = "Valaczka János";
-	o["size"] = 234;
-	o["bool"] = true;
-
-	QJsonDocument d(o);
-
-	QByteArray data;
-	QDataStream ds(&data, QIODevice::ReadWrite);
+	if (m_connectionState != Connected && m_connectionState != Reconnected) {
+		sendMessageWarning(tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
+		return -1;
+	}
+	QByteArray d;
+	QDataStream ds(&d, QIODevice::WriteOnly);
 	ds.setVersion(QDataStream::Qt_5_14);
 
-	ds << quint64(1234);
-	ds << QString("--ez a hash--");
-	ds << true;
-	ds << d.toJson(QJsonDocument::Compact);
+	int clientMsgId = (serverMsgId == -1 ? socketNextClientMsgId() : -1);
+	ds << clientMsgId;
+	ds << serverMsgId;
+	ds << msgType;
+	ds << data;
 
-	QFile f(standardPath("servers.db"));
-	f.open(QIODevice::ReadOnly);
-	QByteArray fff = f.readAll();
+	qDebug().noquote() << tr("SEND to server ") << m_socket << clientMsgId << serverMsgId << msgType;
 
-	QByteArray hash = QCryptographicHash::hash(fff, QCryptographicHash::Sha1);
+	m_socket->sendBinaryMessage(d);
 
-	ds << hash << fff;
-
-	f.close();
+	return clientMsgId;
+}
 
 
-	m_socket->sendBinaryMessage(data);
+/**
+ * @brief Client::socketSendJson
+ * @param jsonObject
+ * @return
+ */
 
-	qDebug() << "data sent" << hash.toHex();
+int Client::socketSendJson(const QJsonObject &jsonObject)
+{
+	QJsonObject d;
+	d["callofsuli"] = jsonObject;
+	QJsonDocument data(d);
+	qDebug() << "send" << data;
+	return socketSend("json", data.toBinaryData());
 }
 
 
@@ -405,26 +424,40 @@ void Client::onSocketDisconnected()
 
 }
 
-void Client::onSocketBinaryFrameReceived(const QByteArray &frame, bool isLastFrame)
-{
-	Q_UNUSED(frame)
-	Q_UNUSED(isLastFrame)
-}
+
+
+/**
+ * @brief Client::onSocketBinaryMessageReceived
+ * @param message
+ */
 
 void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
-	Q_UNUSED(message)
+	QDataStream ds(message);
+	ds.setVersion(QDataStream::Qt_5_14);
+
+	int serverMsgId = -1;
+	int clientMsgId = -1;
+	QString msgType;
+
+	ds >> serverMsgId >> clientMsgId >> msgType;
+
+	qDebug().noquote() << tr("RECEIVED from server ") << serverMsgId << clientMsgId << msgType;
+
+	if (msgType == "json") {
+		QByteArray data;
+		ds >> data;
+
+		qDebug() << QJsonDocument::fromBinaryData(data);
+	} else {
+		COS::ServerError error;
+		ds >> error;
+		onSocketServerError(error);
+	}
+
 }
 
-void Client::onSocketBytesWritten(qint64 bytes)
-{
-	Q_UNUSED(bytes)
-}
 
-void Client::onSocketError(QAbstractSocket::SocketError error)
-{
-	qDebug() << "error" << error;
-}
 
 void Client::onSocketSslErrors(const QList<QSslError> &errors)
 {
@@ -444,5 +477,31 @@ void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
 	else if (m_connectionState == ConnectionState::Disconnected && state == QAbstractSocket::ConnectingState)
 		setConnectionState(ConnectionState::Reconnecting);
 
+}
+
+
+/**
+ * @brief Client::onSocketServerError
+ * @param error
+ */
+
+void Client::onSocketServerError(const COS::ServerError &error)
+{
+	switch (error) {
+		case COS::InvalidJson:
+			sendMessageError(tr("Internal server error"), tr("Hibás JSON"));
+			break;
+
+		case COS::InvalidMessage:
+			sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
+			break;
+
+		case COS::InvalidMessageType:
+			sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
+			break;
+
+		case COS::InvalidSession:
+			break;
+	}
 }
 

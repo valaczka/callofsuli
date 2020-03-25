@@ -8,6 +8,10 @@ CREATE TABLE system(
 	serverName TEXT
 );
 
+CREATE TABLE settings(
+	key TEXT,
+	value TEXT
+);
 
 CREATE TABLE class(
 	id INTEGER PRIMARY KEY,
@@ -18,6 +22,7 @@ CREATE TABLE user(
 	username TEXT NOT NULL PRIMARY KEY,
 	firstname TEXT,
 	lastname TEXT,
+	email TEXT,
 	active BOOL NOT NULL DEFAULT false,
 	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	isTeacher BOOL NOT NULL DEFAULT false,
@@ -33,7 +38,7 @@ CREATE TABLE auth(
 
 
 CREATE TABLE session(
-	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	username TEXT NOT NULL UNIQUE REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	token TEXT,
 	lastDate TEXT NOT NULL DEFAULT (datetime('now'))
 );

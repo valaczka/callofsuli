@@ -1,0 +1,91 @@
+/*
+ * ---- Call of Suli ----
+ *
+ * handler.h
+ *
+ * Created on: 2020. 03. 22.
+ *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
+ *
+ * Handler
+ *
+ *  This file is part of Call of Suli.
+ *
+ *  Call of Suli is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  Call of Suli is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+#ifndef CLIENT_H
+#define CLIENT_H
+
+#include <QWebSocket>
+#include <QObject>
+
+#include "../common/cossql.h"
+#include "../common/COS.h"
+
+class Client : public QObject
+{
+	Q_OBJECT
+
+public:
+
+	enum ClientState { ClientInvalid, ClientUnauthorized, ClientAuthorized };
+	Q_ENUM(ClientState)
+
+	Q_PROPERTY(ClientState clientState READ clientState WRITE setClientState NOTIFY clientStateChanged)
+	Q_PROPERTY(QString clientUserName READ clientUserName WRITE setClientUserName NOTIFY clientUserNameChanged)
+
+	explicit Client(CosSql *database,
+					 QWebSocket *socket,
+					 QObject *parent = nullptr);
+	virtual ~Client();
+
+	int nextServerMsgId();
+
+
+	ClientState clientState() const { return m_clientState; }
+	QString clientUserName() const { return m_clientUserName; }
+
+public slots:
+	void sendError(const COS::ServerError &error, const int &clientMsgId = -1);
+	void sendJson(const QJsonObject &object, const int &clientMsgId = -1);
+
+	void setClientState(ClientState clientState);
+	void setClientUserName(QString clientUserName);
+
+private slots:
+	void onDisconnected();
+	void onBinaryMessageReceived(const QByteArray &message);
+	void clientAuthorize(const QJsonObject &data);
+
+signals:
+	void disconnected();
+
+	void clientStateChanged(ClientState clientState);
+	void clientUserNameChanged(QString clientUserName);
+
+private:
+	void parseJson(const QByteArray &data, const int &clientMsgId, const int &serverMsgId);
+
+private:
+	CosSql *m_db;
+	QWebSocket *m_socket;
+	int m_serverMsgId;
+
+	ClientState m_clientState;
+	QString m_clientSession;
+	QString m_clientUserName;
+};
+
+#endif // CLIENT_H

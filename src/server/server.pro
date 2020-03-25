@@ -26,12 +26,12 @@ CONFIG(release, debug|release) {
 }
 
 SOURCES += \
-		handler.cpp \
+		client.cpp \
 		main.cpp \
 		server.cpp
 
 HEADERS += \
-	handler.h \
+	client.h \
 	server.h
 
 RESOURCES += \

@@ -1,9 +1,11 @@
 QT += sql websockets quick
+CONFIG += skip_version
 
 include(../version/version.pro)
 include(../common/common.pri)
 
 CONFIG += c++11
+
 
 TEMPLATE = app
 TARGET = callofsuli
