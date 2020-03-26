@@ -26,13 +26,17 @@ CONFIG(release, debug|release) {
 }
 
 SOURCES += \
+		abstracthandler.cpp \
 		client.cpp \
 		main.cpp \
-		server.cpp
+		server.cpp \
+		userinfo.cpp
 
 HEADERS += \
+	abstracthandler.h \
 	client.h \
-	server.h
+	server.h \
+	userinfo.h
 
 RESOURCES += \
 	resources.qrc

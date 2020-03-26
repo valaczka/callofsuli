@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * COS.h
+ * abstracthandler.cpp
  *
- * Created on: 2020. 03. 25.
+ * Created on: 2020. 03. 26.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * %{Cpp:License:ClassName}
+ * AbstractHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -32,23 +32,53 @@
  * SOFTWARE.
  */
 
-#ifndef COS_H
-#define COS_H
+#include "abstracthandler.h"
 
-#include <QObject>
+AbstractHandler::AbstractHandler(Client *client, const QJsonObject &object)
+	: QObject(client)
+	, m_client(client)
+	, m_object(object)
+{
 
-namespace COS {
-	Q_NAMESPACE
-
-	enum ServerError {
-		InvalidMessageType,
-		InvalidMessage,
-		InvalidJson,
-		InvalidSession
-	};
-
-
-	Q_ENUM_NS(ServerError)
 }
 
-#endif // COS_H
+
+/**
+ * @brief AbstractHandler::~AbstractHandler
+ */
+
+AbstractHandler::~AbstractHandler()
+{
+
+}
+
+
+/**
+ * @brief AbstractHandler::start
+ * @param func
+ */
+
+QJsonObject AbstractHandler::start(const QString &func)
+{
+	QJsonObject data;
+
+	qDebug() << "call func" << func;
+
+	qDebug() << QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
+							  Q_RETURN_ARG(QJsonObject, data));
+
+	return data;
+}
+
+
+/**
+ * @brief AbstractHandler::addPermissionDenied
+ * @param object
+ */
+
+void AbstractHandler::addPermissionDenied(QJsonObject *object)
+{
+	Q_ASSERT (object);
+
+	object->insert("error", "permission denied");
+}

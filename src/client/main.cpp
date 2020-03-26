@@ -34,7 +34,7 @@
 #include <QObject>
 #include <QQmlContext>
 
-#include "client.h"
+#include "cosclient.h"
 
 
 int main(int argc, char *argv[])

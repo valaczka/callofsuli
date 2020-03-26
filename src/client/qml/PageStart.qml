@@ -20,11 +20,6 @@ Page {
 
 		onServerListLoaded: JS.setModel(listMenu.model, serverList)
 		onServerInfoUpdated: serverListReload()
-
-		Component.onCompleted: {
-			databaseError.connect(client.sendDatabaseError)
-		}
-
 	}
 
 	property bool isFirstRun: true
@@ -187,6 +182,10 @@ Page {
 				mainStack.pop(page)
 			}
 		}
+
+		onUserRolesChanged: {
+			console.debug("user roles", userRoles);
+		}
 	}
 
 	StackView.onRemoved: destroy()
@@ -195,8 +194,11 @@ Page {
 		toolbar.title = qsTr("Call of Suli szerverek")
 
 		if (_isFirst) {
-			servers.serverListReload()
+			var autoConnectId = servers.serverListReload()
 			_isFirst = false
+
+			if (autoConnectId !== -1)
+				servers.serverConnect(autoConnectId)
 		}
 	}
 

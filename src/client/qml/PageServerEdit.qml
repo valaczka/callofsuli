@@ -79,16 +79,6 @@ Page {
 				validator: IntValidator {bottom: 1; top: 65534}
 			}
 
-			QGridLabel { field: textUser }
-
-			QGridTextField {
-				id: textUser
-				fieldName: qsTr("Felhasználó")
-				sqlField: "user"
-
-				//validator: RegExpValidator { regExp: /.+/ }
-			}
-
 			QGridCheckBox {
 				id: checkSsl
 				text: qsTr("SSL kapcsolat")
@@ -103,7 +93,7 @@ Page {
 						  !textPort.acceptableInput
 
 				onClicked: {
-					var m = JS.getSqlFields([textName, textHostname, textPort, textUser, checkSsl],
+					var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl],
 											serverId === -1)
 
 					if (Object.keys(m).length) {
@@ -145,7 +135,6 @@ Page {
 			textName.setText(server.name)
 			textHostname.setText(server.host)
 			textPort.setText(server.port)
-			textUser.setText(server.user)
 			checkSsl.setChecked(server.ssl)
 			grid.modified = false
 			busy.running = false

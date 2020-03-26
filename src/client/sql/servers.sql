@@ -4,9 +4,8 @@ CREATE TABLE IF NOT EXISTS server(
 	host TEXT,
 	port INTEGER NOT NULL DEFAULT 1 CHECK(port>0),
 	ssl BOOL NOT NULL DEFAULT FALSE,
-	user TEXT,
-	password TEXT,
-	oauthtoken TEXT,
+	username TEXT,
+	session TEXT,
 	cert BLOB
 );
 

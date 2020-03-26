@@ -99,7 +99,15 @@ void AbstractActivity::setClient(Client *client)
 
 	m_client = client;
 	emit clientChanged(m_client);
+
+	qDebug() << "setClient" << m_client;
+
+	if (m_client) {
+		connect(this, &AbstractActivity::databaseError, m_client, &Client::sendDatabaseError);
+		clientSetup();
+	}
 }
+
 
 void AbstractActivity::setDb(CosSql *db)
 {

@@ -3,7 +3,6 @@
         <file>Style/CosStyle.qml</file>
         <file>Style/qmldir</file>
         <file>main.qml</file>
-        <file>qml.qrc</file>
         <file>qtquickcontrols2.conf</file>
         <file>_Page.qml</file>
         <file>PageServerEdit.qml</file>

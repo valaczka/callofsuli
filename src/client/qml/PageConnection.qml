@@ -34,12 +34,35 @@ Page {
 			}
 		}
 
+
 		QButton {
-			id: button3
-			label: "SEND INVALID DATA"
+			label: "SEND LOGIN USERNAME"
 
 			onClicked: {
-				cosClient.socketSend("erwer", "")
+				cosClient.socketSendJson({"auth":{"username": "admin"}, "test": "szia", "vissza": 3})
+			}
+		}
+
+
+		QButton {
+			label: "SEND LOGIN"
+
+			onClicked: {
+				cosClient.login("admin", "", "admin")
+			}
+		}
+
+		QButton {
+			label: "GET USER INFO"
+			onClicked: {
+				cosClient.socketSendJson({"class": "userinfo", "func": "getUser"})
+			}
+		}
+
+		QButton {
+			label: "GET USER ALL"
+			onClicked: {
+				cosClient.socketSendJson({"class": "userinfo", "func": "getAllUser"})
 			}
 		}
 

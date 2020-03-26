@@ -31,18 +31,19 @@
 #include <QQuickItem>
 #include <QJsonDocument>
 
-#include "client.h"
+#include "cosclient.h"
 #include "servers.h"
 #include "../version/buildnumber.h"
 
 
 Client::Client(QObject *parent) : QObject(parent)
 {
-	m_connectionState = ConnectionState::Standby;
+	m_connectionState = Standby;
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
 	m_timer = new QTimer(this);
 
 	m_clientMsgId = 0;
+	m_userRoles = Guest;
 
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
@@ -52,8 +53,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
 			[=](QAbstractSocket::SocketError error){
 		qDebug() << "error" << error;
-		if (m_connectionState == ConnectionState::Standby || m_connectionState == ConnectionState::Connecting)
-		sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
+		if (m_connectionState == Standby || m_connectionState == Connecting)
+			sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
 	});
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
@@ -300,12 +301,46 @@ void Client::setConnectionState(Client::ConnectionState connectionState)
 void Client::closeConnection()
 {
 	if (m_socket->state() == QAbstractSocket::ConnectedState) {
-		setConnectionState(ConnectionState::Closing);
+		setConnectionState(Closing);
 		m_socket->close();
 	} else {
-		setConnectionState(ConnectionState::Standby);
+		setConnectionState(Standby);
 		m_socket->close();
 	}
+}
+
+
+/**
+ * @brief Client::login
+ * @param username
+ * @param session
+ * @param password
+ */
+
+void Client::login(const QString &username, const QString &session, const QString &password)
+{
+	if (username.isEmpty() || (session.isEmpty() && password.isEmpty()))
+		return;
+
+	QJsonObject d;
+	d["username"] = username;
+	if (!session.isEmpty()) {
+		d["session"] = session;
+	} else {
+		d["password"] = password;
+	}
+
+	QJsonObject	d2 {
+		{"auth", d}
+	};
+
+	QJsonObject d3 {
+		{"callofsuli", d2}
+	};
+
+	QJsonDocument data(d3);
+	qDebug() << "send" << data;
+	socketSend("json", data.toBinaryData());
 }
 
 
@@ -357,10 +392,47 @@ int Client::socketSend(const QString &msgType, const QByteArray &data, const int
 int Client::socketSendJson(const QJsonObject &jsonObject)
 {
 	QJsonObject d;
-	d["callofsuli"] = jsonObject;
+	QJsonObject d2 = jsonObject;
+
+	if (!m_sessionToken.isEmpty()) {
+		QJsonObject auth {
+			{"session", m_sessionToken}
+		};
+		d2["auth"] = auth;
+	}
+
+	d["callofsuli"] = d2;
+
 	QJsonDocument data(d);
 	qDebug() << "send" << data;
 	return socketSend("json", data.toBinaryData());
+}
+
+void Client::setUserName(QString userName)
+{
+	if (m_userName == userName)
+		return;
+
+	m_userName = userName;
+	emit userNameChanged(m_userName);
+}
+
+void Client::setUserRoles(Roles userRoles)
+{
+	if (m_userRoles == userRoles)
+		return;
+
+	m_userRoles = userRoles;
+	emit userRolesChanged(m_userRoles);
+}
+
+void Client::setSessionToken(QString sessionToken)
+{
+	if (m_sessionToken == sessionToken)
+		return;
+
+	m_sessionToken = sessionToken;
+	emit sessionTokenChanged(m_sessionToken);
 }
 
 
@@ -388,13 +460,46 @@ void Client::setSocket(QWebSocket *socket)
 
 void Client::socketPing()
 {
-	if (m_connectionState == ConnectionState::Connected || m_connectionState == ConnectionState::Reconnected) {
+	if (m_connectionState == Connected || m_connectionState == Reconnected) {
 		qDebug() << "ping";
 		m_socket->ping();
-	} else if (m_connectionState == ConnectionState::Disconnected) {
+	} else if (m_connectionState == Disconnected) {
 		qDebug() << "reconnect";
 		m_socket->open(m_connectedUrl);
 	}
+}
+
+
+/**
+ * @brief Client::parseJson
+ * @param object
+ * @return
+ */
+
+bool Client::parseJson(const QJsonObject &object)
+{
+	if (object["session"].isObject()) {
+		QJsonObject o = object["session"].toObject();
+		if (o.contains("token")) {
+			QString token = o["token"].toString();
+			setSessionToken(token);
+			qDebug() << "user token" <<token;
+			return false;
+		}
+	} else if (object["roles"].isObject()) {
+		QJsonObject o = object["roles"].toObject();
+		setUserName(o["username"].toString());
+		Roles newRole;
+		newRole.setFlag(Guest, o["guest"].toBool());
+		newRole.setFlag(Student, o["student"].toBool());
+		newRole.setFlag(Teacher, o["teacher"].toBool());
+		newRole.setFlag(Admin, o["admin"].toBool());
+		setUserRoles(newRole);
+		qDebug() << "user roles" <<newRole;
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -406,21 +511,21 @@ void Client::socketPing()
 void Client::onSocketConnected()
 {
 	m_connectedUrl = m_socket->requestUrl();
-	if (m_connectionState == ConnectionState::Connecting || m_connectionState == ConnectionState::Standby)
-		setConnectionState(ConnectionState::Connected);
-	else if (m_connectionState == ConnectionState::Reconnecting || m_connectionState == ConnectionState::Disconnected)
-		setConnectionState(ConnectionState::Reconnected);
+	if (m_connectionState == Connecting || m_connectionState == Standby)
+		setConnectionState(Connected);
+	else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
+		setConnectionState(Reconnected);
 }
 
 
 void Client::onSocketDisconnected()
 {
-	if (m_connectionState == ConnectionState::Connected ||
-		m_connectionState == ConnectionState::Reconnecting ||
-		m_connectionState == ConnectionState::Reconnected)
-		setConnectionState(ConnectionState::Disconnected);
+	if (m_connectionState == Connected ||
+		m_connectionState == Reconnecting ||
+		m_connectionState == Reconnected)
+		setConnectionState(Disconnected);
 	else
-		setConnectionState(ConnectionState::Standby);
+		setConnectionState(Standby);
 
 }
 
@@ -448,13 +553,24 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 		QByteArray data;
 		ds >> data;
 
-		qDebug() << QJsonDocument::fromBinaryData(data);
+		QJsonDocument doc = QJsonDocument::fromBinaryData(data);
+		if (doc.isNull()) {
+			sendMessageError(tr("Internal server error"), tr("Hibás válasz"));
+			return;
+		}
+
+		QJsonObject obj = doc.object();
+
+		qDebug() << obj;
+
+		if (parseJson(obj)) {
+			emit jsonReceived(obj);
+		}
 	} else {
-		COS::ServerError error;
+		QString error;
 		ds >> error;
 		onSocketServerError(error);
 	}
-
 }
 
 
@@ -472,10 +588,10 @@ void Client::onSocketSslErrors(const QList<QSslError> &errors)
 
 void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
 {
-	if (m_connectionState == ConnectionState::Standby && state == QAbstractSocket::ConnectingState)
-		setConnectionState(ConnectionState::Connecting);
-	else if (m_connectionState == ConnectionState::Disconnected && state == QAbstractSocket::ConnectingState)
-		setConnectionState(ConnectionState::Reconnecting);
+	if (m_connectionState == Standby && state == QAbstractSocket::ConnectingState)
+		setConnectionState(Connecting);
+	else if (m_connectionState == Disconnected && state == QAbstractSocket::ConnectingState)
+		setConnectionState(Reconnecting);
 
 }
 
@@ -485,23 +601,24 @@ void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
  * @param error
  */
 
-void Client::onSocketServerError(const COS::ServerError &error)
+void Client::onSocketServerError(const QString &error)
 {
-	switch (error) {
-		case COS::InvalidJson:
-			sendMessageError(tr("Internal server error"), tr("Hibás JSON"));
-			break;
-
-		case COS::InvalidMessage:
-			sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
-			break;
-
-		case COS::InvalidMessageType:
-			sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
-			break;
-
-		case COS::InvalidSession:
-			break;
+	if (error == "invalidJSON") {
+		sendMessageError(tr("Internal server error"), tr("Hibás JSON"));
+	} else if (error == "invalidMessage") {
+		sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
+	} else if (error == "invalidMessageType") {
+		sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
+	} else if (error == "invalidUser") {
+		sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
+		setSessionToken("");
+		setUserName("");
+	} else if (error == "invalidSession") {
+		sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
+		setSessionToken("");
+		setUserName("");
+	} else {
+		sendMessageError(tr("Internal server error"), tr("Internal error"), error);
 	}
 }
 

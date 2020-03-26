@@ -88,7 +88,7 @@ bool CosSql::batchQuery(const QString &query)
 
 	qDebug().noquote() << "SQL batch query ----------";
 
-	QStringList list = query.split(';', QString::SkipEmptyParts);
+	QStringList list = query.split("\n\n", QString::SkipEmptyParts);
 	foreach (QString cmd, list) {
 		QString c = cmd.simplified();
 

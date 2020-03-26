@@ -32,7 +32,6 @@
 #include <QObject>
 
 #include "../common/cossql.h"
-#include "../common/COS.h"
 
 class Client : public QObject
 {
@@ -43,8 +42,18 @@ public:
 	enum ClientState { ClientInvalid, ClientUnauthorized, ClientAuthorized };
 	Q_ENUM(ClientState)
 
+	enum ClientRole {
+		RoleGuest = 0x01,
+		RoleStudent = 0x02,
+		RoleTeacher = 0x04,
+		RoleAdmin = 0x08
+	};
+	Q_DECLARE_FLAGS(ClientRoles, ClientRole)
+
+
 	Q_PROPERTY(ClientState clientState READ clientState WRITE setClientState NOTIFY clientStateChanged)
 	Q_PROPERTY(QString clientUserName READ clientUserName WRITE setClientUserName NOTIFY clientUserNameChanged)
+	Q_PROPERTY(ClientRoles clientRoles READ clientRoles WRITE setClientRoles NOTIFY clientRolesChanged)
 
 	explicit Client(CosSql *database,
 					 QWebSocket *socket,
@@ -56,24 +65,31 @@ public:
 
 	ClientState clientState() const { return m_clientState; }
 	QString clientUserName() const { return m_clientUserName; }
+	ClientRoles clientRoles() const { return m_clientRoles; }
+	CosSql *db() const { return m_db; }
 
 public slots:
-	void sendError(const COS::ServerError &error, const int &clientMsgId = -1);
+	void sendError(const QString &error, const int &clientMsgId = -1);
 	void sendJson(const QJsonObject &object, const int &clientMsgId = -1);
+	void sendFile(const QString &filename, const int &clientMsgId = -1);
+	void sendClientRoles(const ClientRoles &clientRoles);
 
 	void setClientState(ClientState clientState);
 	void setClientUserName(QString clientUserName);
+	void setClientRoles(ClientRoles clientRoles);
 
 private slots:
 	void onDisconnected();
 	void onBinaryMessageReceived(const QByteArray &message);
-	void clientAuthorize(const QJsonObject &data);
+	void clientAuthorize(const QJsonObject &data, const int &clientMsgId = -1);
+	void updateRoles();
 
 signals:
 	void disconnected();
 
 	void clientStateChanged(ClientState clientState);
 	void clientUserNameChanged(QString clientUserName);
+	void clientRolesChanged(ClientRoles clientRoles);
 
 private:
 	void parseJson(const QByteArray &data, const int &clientMsgId, const int &serverMsgId);
@@ -86,6 +102,9 @@ private:
 	ClientState m_clientState;
 	QString m_clientSession;
 	QString m_clientUserName;
+	ClientRoles m_clientRoles;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Client::ClientRoles);
 
 #endif // CLIENT_H

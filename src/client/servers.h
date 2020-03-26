@@ -42,24 +42,44 @@ class Servers : public AbstractActivity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int connectedServerId READ connectedServerId WRITE setConnectedServerId NOTIFY connectedServerIdChanged)
+
+
 public:
 	Servers(QObject *parent = nullptr);
 
+	int connectedServerId() const { return m_connectedServerId; }
+
 public slots:
-	void serverListReload();
+	int serverListReload();
 	QVariantMap serverInfoGet(const int &serverId);
 	void serverInfoInsertOrUpdate(const int &id, const QVariantMap &map);
 	void serverInfoDelete(const int &id);
 	void serverConnect(const int &serverId);
-	void serverSetAutoConnect(const int &serverId);
+	void serverSetAutoConnect(const int &serverId, const bool &value = true);
+	void serverTryLogin(const int &serverId);
+
+	void setConnectedServerId(int connectedServerId);
 
 protected slots:
 	bool databaseInit() override;
+	void clientSetup() override;
+
+	void jsonParse(const QJsonObject &object);
+	void onSessionTokenChanged(QString sessionToken);
+	void onConnectionStateChanged(Client::ConnectionState state);
+	void onUserNameChanged(QString username);
 
 signals:
 	void serverListLoaded(const QVariantList &serverList);
 	void serverInfoLoaded(const QVariantMap &server);
 	void serverInfoUpdated(const int &serverId);
+
+	void connectedServerIdChanged(int connectedServerId);
+
+private:
+	int m_connectedServerId;
+	int m_tryToConnectServerId;
 };
 
 #endif // SERVERS_H

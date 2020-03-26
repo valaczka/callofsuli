@@ -38,6 +38,8 @@ Servers::Servers(QObject *parent)
 	: AbstractActivity(parent)
 {
 	m_databaseFile = Client::standardPath("servers.db");
+	m_connectedServerId = -1;
+	m_tryToConnectServerId = -1;
 }
 
 
@@ -46,12 +48,12 @@ Servers::Servers(QObject *parent)
  * @brief Servers::serverListReload
  */
 
-void Servers::serverListReload()
+int Servers::serverListReload()
 {
 	Q_ASSERT (m_client);
 
 	if (!databaseOpen())
-		return;
+		return -1;
 
 	QVariantMap r2 = m_db->runSimpleQuery("SELECT id, name as label, false as disabled, false as selected, '' as image, "
 										  "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
@@ -59,22 +61,28 @@ void Servers::serverListReload()
 										  "ORDER BY name");
 	if (r2["error"].toBool()) {
 		m_client->sendMessageError(tr("Adatbázis"), tr("Adatbázis hiba!"), databaseFile());
-		return;
+		return -1;
 	}
+
+	int autoconnectId = -1;
 
 	QVariantList list = r2["records"].toList();
 	QVariantList list2;
 
 	foreach (QVariant v, list) {
 		QVariantMap m = v.toMap();
-		if (m["autoconnect"].toBool())
+		if (m["autoconnect"].toBool()) {
 			m["icon"] = "M\ue838";
-		else
+			autoconnectId = m["id"].toInt();
+		} else {
 			m["icon"] = "M\ue83a";
+		}
 		list2 << m;
 	}
 
 	emit serverListLoaded(list2);
+
+	return autoconnectId;
 
 }
 
@@ -94,7 +102,7 @@ QVariantMap Servers::serverInfoGet(const int &serverId)
 	QVariantList p;
 	p << serverId;
 
-	QVariantMap r = m_db->runSimpleQuery("SELECT name, host, port, ssl, user, password, cert FROM server WHERE id=?", p);
+	QVariantMap r = m_db->runSimpleQuery("SELECT name, host, port, ssl, cert, username, session FROM server WHERE id=?", p);
 
 	QVariantList rl = r["records"].toList();
 	if (r["error"].toBool() || rl.count() != 1) {
@@ -179,6 +187,8 @@ void Servers::serverConnect(const int &serverId)
 	if (m.empty())
 		return;
 
+	m_tryToConnectServerId = serverId;
+
 	QUrl url;
 	url.setHost(m["host"].toString());
 	url.setPort(m["port"].toInt());
@@ -208,30 +218,80 @@ void Servers::serverConnect(const int &serverId)
  * @param serverId
  */
 
-void Servers::serverSetAutoConnect(const int &serverId)
+void Servers::serverSetAutoConnect(const int &serverId, const bool &value)
 {
 	Q_ASSERT (m_client);
 
 	if (!databaseOpen())
 		return;
 
-	QVariantMap r = m_db->runInsertQuery("DELETE FROM autoconnect");
+	QVariantMap r;
+
+	if (value)
+		r = m_db->runSimpleQuery("DELETE FROM autoconnect");
+	else {
+		QVariantList l;
+		l << serverId;
+		r = m_db->runSimpleQuery("DELETE FROM autoconnect WHERE serverid=", l);
+	}
+
 	if (r["error"].toBool()) {
 		emit databaseError(r["errorString"].toString());
 		return;
 	}
 
-	QVariantMap m;
-	m["serverid"] = serverId;
-	QSqlQuery q;
-	q = m_db->insertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m);
-	QVariantMap r2 = m_db->runQuery(q);
-	if (r2["error"].toBool()) {
-		emit databaseError(r2["errorString"].toString());
-		return;
+	if (value) {
+		QVariantMap m;
+		m["serverid"] = serverId;
+		QSqlQuery q;
+		q = m_db->insertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m);
+		QVariantMap r2 = m_db->runQuery(q);
+		if (r2["error"].toBool()) {
+			emit databaseError(r2["errorString"].toString());
+			return;
+		}
 	}
 
 	emit serverInfoUpdated(serverId);
+}
+
+
+/**
+ * @brief Servers::serverTryLogin
+ * @param serverId
+ */
+
+void Servers::serverTryLogin(const int &serverId)
+{
+	if (!databaseOpen())
+		return;
+
+	QVariantList p;
+	p << serverId;
+
+	QVariantMap r = m_db->runSimpleQuery("SELECT username, session FROM server WHERE id=?", p);
+
+	QVariantList rl = r["records"].toList();
+	if (r["error"].toBool() || rl.count() != 1) {
+		return;
+	}
+
+	QString username = rl.value(0).toMap().value("username").toString();
+	QString session = rl.value(0).toMap().value("session").toString();
+
+	m_client->login(username, session);
+}
+
+
+
+
+void Servers::setConnectedServerId(int connectedServerId)
+{
+	if (m_connectedServerId == connectedServerId)
+		return;
+
+	m_connectedServerId = connectedServerId;
+	emit connectedServerIdChanged(m_connectedServerId);
 }
 
 
@@ -253,4 +313,77 @@ bool Servers::databaseInit()
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief Servers::clientSetup
+ */
+
+void Servers::clientSetup()
+{
+	connect(m_client, &Client::jsonReceived, this, &Servers::jsonParse);
+	connect(m_client, &Client::connectionStateChanged, this, &Servers::onConnectionStateChanged);
+	connect(m_client, &Client::sessionTokenChanged, this, &Servers::onSessionTokenChanged);
+	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
+}
+
+
+/**
+ * @brief Servers::jsonParse
+ * @param object
+ */
+
+void Servers::jsonParse(const QJsonObject &object)
+{
+
+}
+
+
+/**
+ * @brief Servers::onSessionTokenChanged
+ * @param sessionToken
+ */
+
+void Servers::onSessionTokenChanged(QString sessionToken)
+{
+	if (m_connectedServerId != -1 && !sessionToken.isEmpty()) {
+		QVariantList l;
+		l << sessionToken;
+		l << m_connectedServerId;
+		m_db->runSimpleQuery("UPDATE server SET session=? WHERE id=?", l);
+	}
+}
+
+
+/**
+ * @brief Servers::onConnectionStateChanged
+ * @param state
+ */
+
+void Servers::onConnectionStateChanged(Client::ConnectionState state)
+{
+	if (state == Client::Connected) {
+		setConnectedServerId(m_tryToConnectServerId);
+		serverTryLogin(m_connectedServerId);
+	} else if (state == Client::Standby) {
+		setConnectedServerId(-1);
+	}
+}
+
+
+/**
+ * @brief Servers::onUserNameChanged
+ * @param username
+ */
+
+
+void Servers::onUserNameChanged(QString username)
+{
+	if (m_connectedServerId != -1 && !username.isEmpty()) {
+		QVariantList l;
+		l << username;
+		l << m_connectedServerId;
+		m_db->runSimpleQuery("UPDATE server SET username=? WHERE id=?", l);
+	}
 }

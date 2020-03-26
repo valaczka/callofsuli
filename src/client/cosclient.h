@@ -32,7 +32,6 @@
 #include <QObject>
 #include <QQuickWindow>
 #include <QSettings>
-#include "../common/COS.h"
 
 class Client : public QObject
 {
@@ -43,8 +42,20 @@ public:
 	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
 	Q_ENUM(ConnectionState)
 
+	enum Role {
+		Guest = 0x01,
+		Student = 0x02,
+		Teacher = 0x04,
+		Admin = 0x08
+	};
+	Q_DECLARE_FLAGS(Roles, Role)
+
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
+
+	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
+	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
+	Q_PROPERTY(Roles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
 
 
 	explicit Client(QObject *parent = nullptr);
@@ -66,6 +77,9 @@ public:
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
+	QString userName() const { return m_userName; }
+	Roles userRoles() const { return m_userRoles; }
+	QString sessionToken() const { return m_sessionToken; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -83,21 +97,27 @@ public slots:
 
 	void setConnectionState(ConnectionState connectionState);
 	void closeConnection();
+	void login(const QString &username, const QString &session, const QString &password = "");
 
 	int socketNextClientMsgId();
 	int socketSend(const QString &msgType, const QByteArray &data, const int &serverMsgId = -1);
 	int socketSendJson(const QJsonObject &jsonObject);
+	void setUserName(QString userName);
+	void setUserRoles(Roles userRoles);
+	void setSessionToken(QString sessionToken);
 
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
+
+	bool parseJson(const QJsonObject &object);
 
 	void onSocketConnected();
 	void onSocketDisconnected();
 	void onSocketBinaryMessageReceived(const QByteArray &message);
 	void onSocketSslErrors(const QList<QSslError> &errors);
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
-	void onSocketServerError(const COS::ServerError &error);
+	void onSocketServerError(const QString &error);
 
 
 signals:
@@ -105,9 +125,13 @@ signals:
 					 const QString &title,
 					 const QString &informativeText,
 					 const QString &detailedText);
+	void jsonReceived(const QJsonObject &json);
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);
+	void userNameChanged(QString userName);
+	void userRolesChanged(Roles userRoles);
+	void sessionTokenChanged(QString sessionToken);
 
 private:
 	QWebSocket* m_socket;
@@ -116,6 +140,12 @@ private:
 	int m_clientMsgId;
 
 	ConnectionState m_connectionState;
+	QString m_userName;
+	Roles m_userRoles;
+	QString m_sessionToken;
 };
+
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Client::Roles);
 
 #endif // CLIENT_H

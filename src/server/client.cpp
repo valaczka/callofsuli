@@ -28,6 +28,8 @@
 #include <QDebug>
 #include "client.h"
 
+#include "userinfo.h"
+
 Client::Client(CosSql *database, QWebSocket *socket, QObject *parent)
 	: QObject(parent)
 	, m_db(database)
@@ -37,11 +39,14 @@ Client::Client(CosSql *database, QWebSocket *socket, QObject *parent)
 
 	m_serverMsgId = 0;
 	m_clientState = ClientInvalid;
+	m_clientRoles = RoleGuest;
 
 	qInfo().noquote() << tr("Client connected: ") << this << m_socket->peerAddress().toString() << m_socket->peerPort();
 
 	connect(m_socket, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
 	connect(m_socket, SIGNAL(binaryMessageReceived(QByteArray)), this, SLOT(onBinaryMessageReceived(QByteArray)));
+
+	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
 }
 
 
@@ -88,10 +93,12 @@ int Client::nextServerMsgId()
  * @param clientMsgId
  */
 
-void Client::sendError(const COS::ServerError &error, const int &clientMsgId)
+void Client::sendError(const QString &error, const int &clientMsgId)
 {
 	QString msgType = "error";
 	SEND_BEGIN;
+
+	qDebug() << error;
 
 	ds << error;
 
@@ -110,10 +117,58 @@ void Client::sendJson(const QJsonObject &object, const int &clientMsgId)
 	QString msgType = "json";
 	SEND_BEGIN;
 
+	qDebug() << object;
+
 	ds << QJsonDocument(object).toBinaryData();
 
 	SEND_END;
 }
+
+
+/**
+ * @brief Client::sendFile
+ * @param filename
+ * @param clientMsgId
+ */
+
+void Client::sendFile(const QString &filename, const int &clientMsgId)
+{
+	QString msgType = "file";
+	QFile f(filename);
+	f.open(QIODevice::ReadOnly);
+	QByteArray content = f.readAll();
+	f.close();
+
+	SEND_BEGIN;
+
+	ds << filename;
+	ds << content;
+
+	SEND_END;
+}
+
+
+/**
+ * @brief Client::sendClientRoles
+ * @param clientRoles
+ */
+
+void Client::sendClientRoles(const ClientRoles &clientRoles)
+{
+	QJsonObject roles, obj;
+
+	roles["username"] = m_clientUserName;
+	roles["guest"] = clientRoles.testFlag(RoleGuest);
+	roles["student"] = clientRoles.testFlag(RoleStudent);
+	roles["teacher"] = clientRoles.testFlag(RoleTeacher);
+	roles["admin"] = clientRoles.testFlag(RoleAdmin);
+
+	obj["roles"] = roles;
+
+	sendJson(obj, -1);
+}
+
+
 
 
 void Client::setClientState(Client::ClientState clientState)
@@ -133,6 +188,15 @@ void Client::setClientUserName(QString clientUserName)
 
 	m_clientUserName = clientUserName;
 	emit clientUserNameChanged(m_clientUserName);
+}
+
+void Client::setClientRoles(ClientRoles clientRoles)
+{
+	if (m_clientRoles == clientRoles)
+		return;
+
+	m_clientRoles = clientRoles;
+	emit clientRolesChanged(m_clientRoles);
 }
 
 
@@ -171,7 +235,7 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 		ds >> msgData;
 		parseJson(msgData, clientMsgId, serverMsgId);
 	} else {
-		sendError(COS::InvalidMessageType, clientMsgId);
+		sendError("invalidMessageType", clientMsgId);
 	}
 }
 
@@ -181,7 +245,7 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
  * @param data
  */
 
-void Client::clientAuthorize(const QJsonObject &data)
+void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 {
 	if (!data.contains("auth")) {
 		setClientState(ClientUnauthorized);
@@ -194,14 +258,113 @@ void Client::clientAuthorize(const QJsonObject &data)
 	if (a.contains("session")) {
 		QVariantList l;
 		l << a["session"].toString();
-		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=?", l);
+		l << a["username"].toString();
+		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=? AND username=?", l);
 		QVariantList r = m["records"].toList();
 		if (!m["error"].toBool() && !r.isEmpty()) {
+			m_db->runSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
 			setClientState(ClientAuthorized);
 			setClientUserName(r.value(0).toMap().value("username").toString());
+		} else {
+			sendError("invalidSession", clientMsgId);
+			setClientState(ClientUnauthorized);
+			setClientUserName("");
+			return;
+		}
+	} else {
+		QString username = a["username"].toString();
+		QString password = a["password"].toString();
+
+		if (username.isEmpty() || password.isEmpty()) {
+			setClientState(ClientUnauthorized);
+			setClientUserName("");
+			return;
+		}
+
+		QVariantList l;
+		l << username;
+		QVariantMap m = m_db->runSimpleQuery("SELECT password, salt FROM auth WHERE auth.username IN "
+											 "(SELECT username FROM user WHERE active=1) AND auth.username=?", l);
+		QVariantList r = m["records"].toList();
+		if (!m["error"].toBool() && !r.isEmpty()) {
+			QString storedPassword = r.value(0).toMap().value("password").toString();
+			QString salt = r.value(0).toMap().value("salt").toString();
+			QString hashedPassword = CosSql::hashPassword(password, &salt);
+
+			if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0) {
+				QVariantMap s = m_db->runSimpleQuery("INSERT INTO session (username) VALUES (?)", l);
+				QVariant vId = s["lastInsertId"];
+				if (!m["error"].toBool() && !vId.isNull()) {
+					QVariantList rl;
+					rl << vId.toInt();
+					QVariantMap mToken = m_db->runSimpleQuery("SELECT token FROM session WHERE rowid=?", rl);
+					QVariantList rToken = mToken["records"].toList();
+					if (!mToken["error"].toBool() && !rToken.isEmpty()) {
+						QJsonObject json;
+						json["token"] = rToken.value(0).toMap().value("token").toString();
+						QJsonObject doc;
+						doc["session"] = json;
+						sendJson(doc);
+					} else {
+						qWarning().noquote() << tr("Internal error ")+mToken["errorString"].toString();
+						sendError("internalError", clientMsgId);
+						setClientState(ClientUnauthorized);
+						setClientUserName("");
+						return;
+					}
+				} else {
+					qWarning().noquote() << tr("Internal error ")+m["errorString"].toString();
+					sendError("internalError", clientMsgId);
+					setClientState(ClientUnauthorized);
+					setClientUserName("");
+					return;
+				}
+
+				setClientState(ClientAuthorized);
+				setClientUserName(username);
+			} else {
+				sendError("invalidUser", clientMsgId);
+				setClientState(ClientUnauthorized);
+				setClientUserName("");
+				return;
+			}
+		} else {
+			sendError("invalidUser", clientMsgId);
+			setClientState(ClientUnauthorized);
+			setClientUserName("");
 			return;
 		}
 	}
+}
+
+
+/**
+ * @brief Client::getRoles
+ */
+
+void Client::updateRoles()
+{
+	if (m_clientState != ClientAuthorized || m_clientUserName.isEmpty()) {
+		setClientRoles(RoleGuest);
+		return;
+	}
+
+	ClientRoles newRoles;
+	newRoles.setFlag(RoleGuest);
+
+	QVariantList l;
+	l << m_clientUserName;
+	QVariantMap m = m_db->runSimpleQuery("SELECT isTeacher, isAdmin FROM user WHERE active=1 AND username=?", l);
+	QVariantList r = m["records"].toList();
+	if (!m["error"].toBool() && !m.isEmpty()) {
+		bool isTeacher = r.value(0).toMap().value("isTeacher").toBool();
+		bool isAdmin = r.value(0).toMap().value("isAdmin").toBool();
+		newRoles.setFlag(RoleStudent, !isTeacher);
+		newRoles.setFlag(RoleTeacher, isTeacher);
+		newRoles.setFlag(RoleAdmin, isAdmin);
+	}
+
+	setClientRoles(newRoles);
 }
 
 
@@ -218,25 +381,47 @@ void Client::parseJson(const QByteArray &data, const int &clientMsgId, const int
 	QJsonDocument d = QJsonDocument::fromBinaryData(data);
 
 	if (d.isNull()) {
-		sendError(COS::InvalidJson, clientMsgId);
+		sendError("invalidJSON", clientMsgId);
 		return;
 	}
 
 	QJsonObject o = d.object();
 
+	qDebug() << o;
+
 	if (!o.contains("callofsuli")) {
-		sendError(COS::InvalidMessage, clientMsgId);
+		sendError("invalidMessage", clientMsgId);
 		return;
 	}
 
 	QJsonObject cos = o["callofsuli"].toObject();
 
-	clientAuthorize(cos);
+	clientAuthorize(cos, clientMsgId);
+	updateRoles();
 
-	QJsonObject o2;
-	o2["szi"] = "válasz";
-	o2["második"] = 2;
+	QString cl = cos["class"].toString();
+	QString func = cos["func"].toString();
 
-	sendJson(o2, clientMsgId);
+	if (cl.isEmpty() || func.isEmpty())
+		return;
+
+	QJsonObject ret;
+	ret["class"] = cl;
+	ret["func"] = func;
+	QJsonObject fdata;
+
+	if (cl == "userinfo") {
+		UserInfo u(this, cos);
+		fdata = u.start(func);
+	} else {
+		sendError("invalidClass", clientMsgId);
+		return;
+	}
+
+	ret["data"] = fdata;
+
+	sendJson(ret, clientMsgId);
 }
+
+
 

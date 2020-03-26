@@ -23,13 +23,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
 		abstractactivity.cpp \
-		client.cpp \
+		cosclient.cpp \
 		main.cpp \
 		servers.cpp
 
 HEADERS += \
 	abstractactivity.h \
-	client.h \
+	cosclient.h \
 	servers.h
 
 RESOURCES += \
