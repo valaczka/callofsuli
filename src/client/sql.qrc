@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>sql/servers.sql</file>
+        <file>sql/map.sql</file>
     </qresource>
 </RCC>

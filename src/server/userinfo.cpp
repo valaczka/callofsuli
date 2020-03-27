@@ -41,6 +41,23 @@ UserInfo::UserInfo(Client *client, const QJsonObject &object)
 }
 
 
+/**
+ * @brief UserInfo::getServer
+ * @return
+ */
+
+QJsonObject UserInfo::getServerName()
+{
+	QJsonObject ret;
+
+	QVariantMap m = m_client->db()->runSimpleQuery("SELECT serverName from system");
+	QVariantList r = m["records"].toList();
+	ret = r.value(0).toJsonObject();
+
+	return ret;
+}
+
+
 
 
 /**

@@ -49,6 +49,7 @@ public:
 	explicit UserInfo(Client *client, const QJsonObject &object);
 
 public slots:
+	QJsonObject getServerName();
 	QJsonObject getUser();
 	QJsonObject getAllUser();
 

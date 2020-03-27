@@ -61,6 +61,7 @@ class Server : public QObject
 	mutable int m_serverVersionMinor;
 	bool m_isHostForced;
 	bool m_isPortForced;
+	bool m_isConnectionForced;
 
 	QWebSocketServer *m_socketServer;
 

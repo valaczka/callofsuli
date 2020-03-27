@@ -258,8 +258,9 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 	if (a.contains("session")) {
 		QVariantList l;
 		l << a["session"].toString();
-		l << a["username"].toString();
-		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=? AND username=?", l);
+		//		l << a["username"].toString();
+		//		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=? AND username=?", l);
+		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=?", l);
 		QVariantList r = m["records"].toList();
 		if (!m["error"].toBool() && !r.isEmpty()) {
 			m_db->runSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
@@ -339,6 +340,34 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 
 
 /**
+ * @brief Client::clientLogout
+ * @param data
+ * @param clientMsgId
+ */
+
+void Client::clientLogout(const QJsonObject &data)
+{
+	if (m_clientState != ClientAuthorized)
+		return;
+
+	if(data["logout"].toBool()) {
+		QJsonObject a = data["auth"].toObject();
+
+		QVariantList l;
+		l << a["session"].toString();
+		l << m_clientUserName;
+
+		QVariantMap m = m_db->runSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
+
+		setClientState(ClientUnauthorized);
+		setClientUserName("");
+	}
+}
+
+
+
+
+/**
  * @brief Client::getRoles
  */
 
@@ -397,6 +426,7 @@ void Client::parseJson(const QByteArray &data, const int &clientMsgId, const int
 	QJsonObject cos = o["callofsuli"].toObject();
 
 	clientAuthorize(cos, clientMsgId);
+	clientLogout(cos);
 	updateRoles();
 
 	QString cl = cos["class"].toString();

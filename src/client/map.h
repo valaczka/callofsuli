@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstracthandler.cpp
+ * map.h
  *
- * Created on: 2020. 03. 26.
+ * Created on: 2020. 03. 27.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractHandler
+ * Map
  *
  *  This file is part of Call of Suli.
  *
@@ -32,51 +32,57 @@
  * SOFTWARE.
  */
 
-#include "abstracthandler.h"
+#ifndef MAP_H
+#define MAP_H
 
-AbstractHandler::AbstractHandler(Client *client, const QJsonObject &object)
-	: QObject(client)
-	, m_client(client)
-	, m_object(object)
+#include <QObject>
+#include "abstractactivity.h"
+
+class Map : public AbstractActivity
 {
+	Q_OBJECT
 
-}
-
-
-/**
- * @brief AbstractHandler::~AbstractHandler
- */
-
-AbstractHandler::~AbstractHandler()
-{
-
-}
+	Q_PROPERTY(QString mapTitle READ mapTitle WRITE setMapTitle NOTIFY mapTitleChanged)
+	Q_PROPERTY(QString mapUuid READ mapUuid WRITE setMapUuid NOTIFY mapUuidChanged)
 
 
-/**
- * @brief AbstractHandler::start
- * @param func
- */
+public:
+	Map(QObject *parent = nullptr);
+	virtual ~Map() override;
 
-QJsonObject AbstractHandler::start(const QString &func)
-{
-	QJsonObject data;
+	QString mapTitle() const { return m_mapTitle; }
+	bool dbExists() const { return (QFile::exists(m_databaseFile)); }
+	QString mapUuid() const { return m_mapUuid; }
 
-	qDebug() << QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
-							  Q_RETURN_ARG(QJsonObject, data));
+public slots:
+	bool create();
+	bool loadFromJson(const QByteArray &data);
+	bool loadFromFile(const QString &filename);
+	QByteArray saveToJson();
+	bool saveToFile(const QString &filename);
 
-	return data;
-}
+	void updateMapTitle(const QString &name);
 
 
-/**
- * @brief AbstractHandler::addPermissionDenied
- * @param object
- */
+protected slots:
+	bool databaseInit() override;
 
-void AbstractHandler::addPermissionDenied(QJsonObject *object)
-{
-	Q_ASSERT (object);
 
-	object->insert("error", "permission denied");
-}
+private slots:
+	void setMapTitle(QString mapTitle);
+	void setMapUuid(QString mapUuid);
+
+signals:
+	void mapTitleChanged(QString mapTitle);
+	void mapUuidChanged(QString mapUuid);
+
+private:
+	QJsonArray tableToJson(const QString &table, const bool &convertData = false);
+	bool JsonToTable(const QJsonArray &array, const QString &table, const bool &convertData = false);
+
+	QStringList m_tableNames;
+	QString m_mapTitle;
+	QString m_mapUuid;
+};
+
+#endif // MAP_H

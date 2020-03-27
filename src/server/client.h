@@ -82,6 +82,7 @@ private slots:
 	void onDisconnected();
 	void onBinaryMessageReceived(const QByteArray &message);
 	void clientAuthorize(const QJsonObject &data, const int &clientMsgId = -1);
+	void clientLogout(const QJsonObject &data);
 	void updateRoles();
 
 signals:

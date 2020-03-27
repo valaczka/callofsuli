@@ -58,6 +58,7 @@ public slots:
 	void serverConnect(const int &serverId);
 	void serverSetAutoConnect(const int &serverId, const bool &value = true);
 	void serverTryLogin(const int &serverId);
+	void serverLogOut();
 
 	void setConnectedServerId(int connectedServerId);
 
@@ -65,9 +66,11 @@ protected slots:
 	bool databaseInit() override;
 	void clientSetup() override;
 
-	void jsonParse(const QJsonObject &object);
+
 	void onSessionTokenChanged(QString sessionToken);
 	void onConnectionStateChanged(Client::ConnectionState state);
+	void onAuthInvalid();
+	void onUserRolesChanged(Client::Roles userRoles);
 	void onUserNameChanged(QString username);
 
 signals:

@@ -49,6 +49,7 @@ Server::Server(QObject *parent) : QObject(parent)
 
 	m_isHostForced = false;
 	m_isPortForced = false;
+	m_isConnectionForced = false;
 
 	m_socketServer = nullptr;
 
@@ -154,12 +155,12 @@ void Server::commandLineParse(QCoreApplication &app)
 							QStringLiteral("host"));
 	parser.addOption(host);
 
-	QCommandLineOption port(QStringList() << "p" << "port",
+	QCommandLineOption port(QStringList() << "P" << "port",
 							QStringLiteral("Port"),
 							QStringLiteral("port"));
 	parser.addOption(port);
 
-	QCommandLineOption pend(QStringList() << "P" << "pending-connections",
+	QCommandLineOption pend(QStringList() << "p" << "pending-connections",
 							QStringLiteral("Max. pending connections"),
 							QStringLiteral("num"));
 	parser.addOption(pend);
@@ -185,7 +186,10 @@ void Server::commandLineParse(QCoreApplication &app)
 		setDbSocketPort(parser.value(port).toInt());
 		m_isPortForced = true;
 	}
-	if (parser.isSet(pend)) setSocketPendingConnections(parser.value(pend).toInt());
+	if (parser.isSet(pend)) {
+		setSocketPendingConnections(parser.value(pend).toInt());
+		m_isConnectionForced = true;
+	}
 }
 
 
@@ -234,7 +238,7 @@ bool Server::databaseLoad()
 	bool isFirst=true;
 
 	while (true) {
-		QVariantMap r = m_db->runSimpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName from system");
+		QVariantMap r = m_db->runSimpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName, connections from system");
 
 		if (r["error"].toBool() || r["records"].toList().isEmpty()) {
 			if (isFirst) {
@@ -257,11 +261,35 @@ bool Server::databaseLoad()
 			}
 		} else {
 			QVariantMap rr = r["records"].toList().value(0).toMap();
+			setDbServerName(rr["serverName"].toString());
 			setDbVersionMajor(rr["versionMajor"].toInt());
 			setDbVersionMinor(rr["versionMinor"].toInt());
 			if (!m_isHostForced) setDbSocketHost(rr["socketHost"].toString());
 			if (!m_isPortForced) setDbSocketPort(rr["socketPort"].toInt());
-			setDbServerName(rr["serverName"].toString());
+			int conn;
+			if (!m_isConnectionForced)
+				conn = rr["connections"].toInt();
+			else
+				conn = socketPendingConnections();
+
+			if (conn>0)
+				setSocketPendingConnections(conn);
+			else
+				setSocketPendingConnections(30);
+
+
+			QVariantMap p;
+			if (m_isHostForced)
+				p["socketHost"] = m_dbSocketHost;
+			if (m_isPortForced)
+				p["socketPort"] = m_dbSocketPort;
+			if (m_isConnectionForced)
+				p["connections"] = m_socketPendingConnections;
+
+			if (p.count()) {
+				m_db->runUpdateQuery("UPDATE system SET ?", p);
+			}
+
 			break;
 		}
 

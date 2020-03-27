@@ -36,6 +36,11 @@ Page {
 					onClicked:  editServer(-1)
 				}
 
+				MenuItem {
+					text: qsTr("Offline mód")
+					onClicked: JS.createPage("Offline", {}, page)
+				}
+
 				MenuSeparator {}
 
 				MenuItem {
@@ -191,7 +196,7 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.title = qsTr("Call of Suli szerverek")
+		/*toolbar.title = qsTr("Call of Suli szerverek")
 
 		if (_isFirst) {
 			var autoConnectId = servers.serverListReload()
@@ -199,7 +204,8 @@ Page {
 
 			if (autoConnectId !== -1)
 				servers.serverConnect(autoConnectId)
-		}
+		}*/
+		onClicked: JS.createPage("Offline", {}, page)
 	}
 
 

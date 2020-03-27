@@ -283,6 +283,20 @@ void Servers::serverTryLogin(const int &serverId)
 }
 
 
+/**
+ * @brief Servers::serverLogOut
+ */
+
+void Servers::serverLogOut()
+{
+	if (m_connectedServerId != -1) {
+		QVariantList l;
+		l << m_connectedServerId;
+		m_db->runSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
+	}
+}
+
+
 
 
 void Servers::setConnectedServerId(int connectedServerId)
@@ -322,21 +336,10 @@ bool Servers::databaseInit()
 
 void Servers::clientSetup()
 {
-	connect(m_client, &Client::jsonReceived, this, &Servers::jsonParse);
 	connect(m_client, &Client::connectionStateChanged, this, &Servers::onConnectionStateChanged);
 	connect(m_client, &Client::sessionTokenChanged, this, &Servers::onSessionTokenChanged);
 	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
-}
-
-
-/**
- * @brief Servers::jsonParse
- * @param object
- */
-
-void Servers::jsonParse(const QJsonObject &object)
-{
-
+	connect(m_client, &Client::authInvalid, this, &Servers::onAuthInvalid);
 }
 
 
@@ -347,7 +350,7 @@ void Servers::jsonParse(const QJsonObject &object)
 
 void Servers::onSessionTokenChanged(QString sessionToken)
 {
-	if (m_connectedServerId != -1 && !sessionToken.isEmpty()) {
+	if (m_connectedServerId != -1) {
 		QVariantList l;
 		l << sessionToken;
 		l << m_connectedServerId;
@@ -368,6 +371,31 @@ void Servers::onConnectionStateChanged(Client::ConnectionState state)
 		serverTryLogin(m_connectedServerId);
 	} else if (state == Client::Standby) {
 		setConnectedServerId(-1);
+	}
+}
+
+
+/**
+ * @brief Servers::onInvalidAuth
+ */
+
+void Servers::onAuthInvalid()
+{
+	serverLogOut();
+}
+
+/**
+ * @brief Servers::onUserRolesChanged
+ * @param userRoles
+ */
+
+void Servers::onUserRolesChanged(Client::Roles userRoles)
+{
+	if (!userRoles.testFlag(Client::Student) &&
+		!userRoles.testFlag(Client::Teacher) &&
+		!userRoles.testFlag(Client::Admin))
+	{
+		serverLogOut();
 	}
 }
 

@@ -71,6 +71,13 @@ bool AbstractActivity::databaseOpen()
 	if (m_db) {
 		qInfo().noquote() << tr("Az adatbázis már meg van nyitva: ")+m_db->db().databaseName();
 	} else {
+		bool isOwnCreated = false;
+
+		if (!QFile::exists(m_databaseFile)) {
+			qDebug() << tr("Új adatbázis létrehozása ")+m_databaseFile;
+			isOwnCreated = true;
+		}
+
 		m_db=new CosSql(this);
 		if (!m_db->open(m_databaseFile, true)) {
 			qWarning().noquote() << tr("Nem lehet megnyitni az adatbázist: ")+m_databaseFile;
@@ -81,6 +88,16 @@ bool AbstractActivity::databaseOpen()
 		if (!databaseInit()) {
 			qWarning().noquote() << tr("Nem lehet létrehozni az adatbázist: ")+m_databaseFile;
 			m_client->sendMessageError(tr("Internal error"), tr("Nem lehet létrehozni az adatbázist!"), m_databaseFile);
+
+
+			if (isOwnCreated) {
+				qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+m_databaseFile;
+				m_db->close();
+				if (!QFile::remove(m_databaseFile)) {
+					qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+m_databaseFile;
+				}
+			}
+
 			return false;
 		}
 	}

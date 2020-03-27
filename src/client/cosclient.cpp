@@ -33,6 +33,7 @@
 
 #include "cosclient.h"
 #include "servers.h"
+#include "map.h"
 #include "../version/buildnumber.h"
 
 
@@ -44,6 +45,11 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_clientMsgId = 0;
 	m_userRoles = Guest;
+	m_userXP = 0;
+	m_userRank = 0;
+
+	m_clientVersionMajor = _VERSION_MAJOR;
+	m_clientVersionMinor = _VERSION_MINOR;
 
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
@@ -52,10 +58,12 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, &QWebSocket::sslErrors, this, &Client::onSocketSslErrors);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
 			[=](QAbstractSocket::SocketError error){
-		qDebug() << "error" << error;
+		qDebug().noquote() << tr("Socket error") << error;
 		if (m_connectionState == Standby || m_connectionState == Connecting)
 			sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
 	});
+
+	connect(this, &Client::jsonUserInfoReceived, this, &Client::onJsonUserInfoReceived);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
 	m_timer->start(5000);
@@ -154,6 +162,7 @@ void Client::registerTypes()
 {
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
+	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
 }
 
 
@@ -287,8 +296,6 @@ void Client::setConnectionState(Client::ConnectionState connectionState)
 	if (m_connectionState == connectionState)
 		return;
 
-	qDebug() << tr("set connection state") << connectionState;
-
 	m_connectionState = connectionState;
 	emit connectionStateChanged(m_connectionState);
 }
@@ -306,6 +313,10 @@ void Client::closeConnection()
 	} else {
 		setConnectionState(Standby);
 		m_socket->close();
+		setUserName("");
+		setUserRank(0);
+		setUserXP(0);
+		setUserRoles(Guest);
 	}
 }
 
@@ -324,7 +335,9 @@ void Client::login(const QString &username, const QString &session, const QStrin
 
 	QJsonObject d;
 	d["username"] = username;
+	setUserName(username);
 	if (!session.isEmpty()) {
+		setSessionToken(session);
 		d["session"] = session;
 	} else {
 		d["password"] = password;
@@ -339,8 +352,23 @@ void Client::login(const QString &username, const QString &session, const QStrin
 	};
 
 	QJsonDocument data(d3);
-	qDebug() << "send" << data;
+	qDebug() << "login send" << data;
 	socketSend("json", data.toBinaryData());
+}
+
+
+
+/**
+ * @brief Client::logout
+ */
+
+void Client::logout()
+{
+	socketSendJson({
+					   {"logout", true}
+				   });
+	setSessionToken("");
+	setUserName("");
 }
 
 
@@ -404,8 +432,53 @@ int Client::socketSendJson(const QJsonObject &jsonObject)
 	d["callofsuli"] = d2;
 
 	QJsonDocument data(d);
-	qDebug() << "send" << data;
+	qDebug() << "send JSON" << data;
 	return socketSend("json", data.toBinaryData());
+}
+
+void Client::setClientVersionMajor(int clientVersionMajor)
+{
+	if (m_clientVersionMajor == clientVersionMajor)
+		return;
+
+	m_clientVersionMajor = clientVersionMajor;
+	emit clientVersionMajorChanged(m_clientVersionMajor);
+}
+
+void Client::setClientVersionMinor(int clientVersionMinor)
+{
+	if (m_clientVersionMinor == clientVersionMinor)
+		return;
+
+	m_clientVersionMinor = clientVersionMinor;
+	emit clientVersionMinorChanged(m_clientVersionMinor);
+}
+
+void Client::setServerName(QString serverName)
+{
+	if (m_serverName == serverName)
+		return;
+
+	m_serverName = serverName;
+	emit serverNameChanged(m_serverName);
+}
+
+void Client::setUserFirstName(QString userFirstName)
+{
+	if (m_userFirstName == userFirstName)
+		return;
+
+	m_userFirstName = userFirstName;
+	emit userFirstNameChanged(m_userFirstName);
+}
+
+void Client::setUserLastName(QString userLastName)
+{
+	if (m_userLastName == userLastName)
+		return;
+
+	m_userLastName = userLastName;
+	emit userLastNameChanged(m_userLastName);
 }
 
 void Client::setUserName(QString userName)
@@ -435,6 +508,24 @@ void Client::setSessionToken(QString sessionToken)
 	emit sessionTokenChanged(m_sessionToken);
 }
 
+void Client::setUserXP(int userXP)
+{
+	if (m_userXP == userXP)
+		return;
+
+	m_userXP = userXP;
+	emit userXPChanged(m_userXP);
+}
+
+void Client::setUserRank(int userRank)
+{
+	if (m_userRank == userRank)
+		return;
+
+	m_userRank = userRank;
+	emit userRankChanged(m_userRank);
+}
+
 
 
 
@@ -461,10 +552,13 @@ void Client::setSocket(QWebSocket *socket)
 void Client::socketPing()
 {
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
-		qDebug() << "ping";
-		m_socket->ping();
+		socketSendJson({
+						   {"class", "userinfo"},
+						   {"func", "getUser"}
+					   });
 	} else if (m_connectionState == Disconnected) {
 		qDebug() << "reconnect";
+		emit reconnecting();
 		m_socket->open(m_connectedUrl);
 	}
 }
@@ -476,17 +570,22 @@ void Client::socketPing()
  * @return
  */
 
-bool Client::parseJson(const QJsonObject &object)
+void Client::parseJson(const QJsonObject &object)
 {
+	QHash<QString, QString> signalList;
+	signalList["userinfo"] = "UserInfo";
+
+
 	if (object["session"].isObject()) {
 		QJsonObject o = object["session"].toObject();
 		if (o.contains("token")) {
 			QString token = o["token"].toString();
 			setSessionToken(token);
-			qDebug() << "user token" <<token;
-			return false;
+			qDebug() << "new session token" <<token;
 		}
-	} else if (object["roles"].isObject()) {
+	}
+
+	if (object["roles"].isObject()) {
 		QJsonObject o = object["roles"].toObject();
 		setUserName(o["username"].toString());
 		Roles newRole;
@@ -495,13 +594,30 @@ bool Client::parseJson(const QJsonObject &object)
 		newRole.setFlag(Teacher, o["teacher"].toBool());
 		newRole.setFlag(Admin, o["admin"].toBool());
 		setUserRoles(newRole);
-		qDebug() << "user roles" <<newRole;
-		return false;
+		qDebug() << "set user roles from server" <<newRole;
+
+		socketSendJson({
+						   {"class", "userinfo"},
+						   {"func", "getUser"}
+					   });
 	}
 
-	return true;
-}
+	QString cl = object["class"].toString();
 
+	if (cl.isEmpty())
+		return;
+
+	QString s = signalList.value(cl, "");
+
+	if (s.isEmpty()) {
+		qWarning() << tr("Invalid JSON class ")+cl;
+		return;
+	}
+
+	QString f = "json"+s+"Received";
+
+	QMetaObject::invokeMethod(this, f.toStdString().data(), Qt::DirectConnection, Q_ARG(QJsonObject, object));
+}
 
 
 /**
@@ -511,9 +627,10 @@ bool Client::parseJson(const QJsonObject &object)
 void Client::onSocketConnected()
 {
 	m_connectedUrl = m_socket->requestUrl();
-	if (m_connectionState == Connecting || m_connectionState == Standby)
+	if (m_connectionState == Connecting || m_connectionState == Standby) {
 		setConnectionState(Connected);
-	else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
+		socketSendJson({{"class", "userinfo"}, {"func", "getServerName"}});
+	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
 }
 
@@ -563,9 +680,7 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 
 		qDebug() << obj;
 
-		if (parseJson(obj)) {
-			emit jsonReceived(obj);
-		}
+		parseJson(obj);
 	} else {
 		QString error;
 		ds >> error;
@@ -613,12 +728,38 @@ void Client::onSocketServerError(const QString &error)
 		sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
 		setSessionToken("");
 		setUserName("");
+		emit authInvalid();
 	} else if (error == "invalidSession") {
 		sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
 		setSessionToken("");
 		setUserName("");
+		emit authInvalid();
 	} else {
 		sendMessageError(tr("Internal server error"), tr("Internal error"), error);
 	}
 }
+
+
+/**
+ * @brief Client::onJsonUserInfoReceived
+ * @param object
+ */
+
+void Client::onJsonUserInfoReceived(const QJsonObject &object)
+{
+	if (object["func"].toString() == "getUser") {
+		QJsonObject d = object["data"].toObject();
+
+		if (d["username"].toString() == m_userName) {
+			setUserXP(d["xp"].toInt(0));
+			setUserRank(d["rank"].toInt(0));
+			setUserLastName(d["lastname"].toString());
+			setUserFirstName(d["firstname"].toString());
+		}
+	} else if (object["func"].toString() == "getServerName") {
+		QJsonObject d = object["data"].toObject();
+		setServerName(d["serverName"].toString());
+	}
+}
+
 

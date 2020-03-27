@@ -25,11 +25,16 @@ Page {
 	}
 
 	Column {
+		Label {
+			text: "NÉV:"+cosClient.userFirstName+" "+cosClient.userLastName
+		}
+
 		QButton {
 			id: button1
 			label: "SEND JSON DATA"
 
 			onClicked: {
+				console.debug(cosClient.userFirstName)
 				cosClient.socketSendJson({"test": "szia", "vissza": 3})
 			}
 		}
@@ -39,7 +44,7 @@ Page {
 			label: "SEND LOGIN USERNAME"
 
 			onClicked: {
-				cosClient.socketSendJson({"auth":{"username": "admin"}, "test": "szia", "vissza": 3})
+				cosClient.login("admin", "", "dadmin")
 			}
 		}
 
@@ -50,6 +55,12 @@ Page {
 			onClicked: {
 				cosClient.login("admin", "", "admin")
 			}
+		}
+
+
+		QButton {
+			label: "logout"
+			onClicked: cosClient.logout()
 		}
 
 		QButton {
@@ -87,7 +98,7 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.title = qsTr("Page")
+		toolbar.title = cosClient.serverName
 		/* LOAD */
 	}
 

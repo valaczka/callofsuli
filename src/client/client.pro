@@ -25,11 +25,13 @@ SOURCES += \
 		abstractactivity.cpp \
 		cosclient.cpp \
 		main.cpp \
+		map.cpp \
 		servers.cpp
 
 HEADERS += \
 	abstractactivity.h \
 	cosclient.h \
+	map.h \
 	servers.h
 
 RESOURCES += \

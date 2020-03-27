@@ -52,10 +52,17 @@ public:
 
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
+	Q_PROPERTY(int clientVersionMajor READ clientVersionMajor WRITE setClientVersionMajor NOTIFY clientVersionMajorChanged)
+	Q_PROPERTY(int clientVersionMinor READ clientVersionMinor WRITE setClientVersionMinor NOTIFY clientVersionMinorChanged)
 
 	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
+	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
 	Q_PROPERTY(Roles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
+	Q_PROPERTY(int userXP READ userXP WRITE setUserXP NOTIFY userXPChanged)
+	Q_PROPERTY(int userRank READ userRank WRITE setUserRank NOTIFY userRankChanged)
+	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
+	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
 
 
 	explicit Client(QObject *parent = nullptr);
@@ -80,6 +87,13 @@ public:
 	QString userName() const { return m_userName; }
 	Roles userRoles() const { return m_userRoles; }
 	QString sessionToken() const { return m_sessionToken; }
+	int userXP() const { return m_userXP; }
+	int userRank() const { return m_userRank; }
+	QString userFirstName() const { return m_userFirstName; }
+	QString userLastName() const { return m_userLastName; }
+	QString serverName() const { return m_serverName; }
+	int clientVersionMajor() const { return m_clientVersionMajor; }
+	int clientVersionMinor() const { return m_clientVersionMinor; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -98,19 +112,20 @@ public slots:
 	void setConnectionState(ConnectionState connectionState);
 	void closeConnection();
 	void login(const QString &username, const QString &session, const QString &password = "");
+	void logout();
 
 	int socketNextClientMsgId();
 	int socketSend(const QString &msgType, const QByteArray &data, const int &serverMsgId = -1);
 	int socketSendJson(const QJsonObject &jsonObject);
-	void setUserName(QString userName);
-	void setUserRoles(Roles userRoles);
-	void setSessionToken(QString sessionToken);
+
+
+
 
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
 
-	bool parseJson(const QJsonObject &object);
+	void parseJson(const QJsonObject &object);
 
 	void onSocketConnected();
 	void onSocketDisconnected();
@@ -119,19 +134,45 @@ private slots:
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
 	void onSocketServerError(const QString &error);
 
+	void onJsonUserInfoReceived(const QJsonObject &object);
+
+
+	void setUserName(QString userName);
+	void setUserRoles(Roles userRoles);
+	void setSessionToken(QString sessionToken);
+	void setUserXP(int userXP);
+	void setUserRank(int userRank);
+	void setUserFirstName(QString userFirstName);
+	void setUserLastName(QString userLastName);
+	void setServerName(QString serverName);
+	void setClientVersionMajor(int clientVersionMajor);
+	void setClientVersionMinor(int clientVersionMinor);
 
 signals:
 	void messageSent(const QString &type,
 					 const QString &title,
 					 const QString &informativeText,
 					 const QString &detailedText);
+	void reconnecting();
+
+	void authInvalid();
+
 	void jsonReceived(const QJsonObject &json);
+
+	void jsonUserInfoReceived(const QJsonObject &object);
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);
 	void userNameChanged(QString userName);
 	void userRolesChanged(Roles userRoles);
 	void sessionTokenChanged(QString sessionToken);
+	void userXPChanged(int userXP);
+	void userRankChanged(int userRank);
+	void userFirstNameChanged(QString userFirstName);
+	void userLastNameChanged(QString userLastName);
+	void serverNameChanged(QString serverName);
+	void clientVersionMajorChanged(int clientVersionMajor);
+	void clientVersionMinorChanged(int clientVersionMinor);
 
 private:
 	QWebSocket* m_socket;
@@ -143,6 +184,13 @@ private:
 	QString m_userName;
 	Roles m_userRoles;
 	QString m_sessionToken;
+	int m_userXP;
+	int m_userRank;
+	QString m_userFirstName;
+	QString m_userLastName;
+	QString m_serverName;
+	int m_clientVersionMajor;
+	int m_clientVersionMinor;
 };
 
 

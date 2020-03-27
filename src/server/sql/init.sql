@@ -5,7 +5,8 @@ CREATE TABLE system(
 	versionMinor INTEGER,
 	socketHost TEXT,
 	socketPort INTEGER,
-	serverName TEXT
+	serverName TEXT,
+	connections INTEGER
 );
 
 CREATE TABLE settings(

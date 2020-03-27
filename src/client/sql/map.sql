@@ -1,0 +1,122 @@
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE info (
+	title TEXT
+);
+
+
+CREATE TABLE intro (
+	id INTEGER PRIMARY KEY,
+	ttext TEXT,
+	img TEXT,
+	video TEXT,
+	levelMin INTEGER CHECK(levelMin>0),
+	levelMax INTEGER CHECK(levelMax>0)
+);
+
+CREATE TABLE campaign (
+	id INTEGER PRIMARY KEY,
+	name TEXT
+);
+
+CREATE TABLE mission (
+	id INTEGER PRIMARY KEY,
+	name TEXT,
+	shuffle BOOL DEFAULT false
+);
+
+CREATE TABLE missionLevel (
+	id INTEGER PRIMARY KEY,
+	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	level INTEGER NOT NULL CHECK (level>0),
+	sec INTEGER NOT NULL CHECK (sec>0),
+	hp INTEGER NOT NULL CHECK (hp>0),
+	UNIQUE(missionid, level)
+);
+
+CREATE TABLE summary (
+	id INTEGER PRIMARY KEY,
+	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	UNIQUE(campaignid)
+);
+
+CREATE TABLE summaryLevel (
+	id INTEGER PRIMARY KEY,
+	summaryid INTEGER NOT NULL REFERENCES summary(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	level INTEGER NOT NULL CHECK (level>0),
+	sec INTEGER NOT NULL CHECK (sec>0),
+	hp INTEGER NOT NULL CHECK (hp>0),
+	UNIQUE(summaryid, level)
+);
+
+CREATE TABLE bindCampaignMission (
+	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	UNIQUE (campaignid, missionid)
+);
+
+CREATE TABLE chapter (
+	id INTEGER PRIMARY KEY,
+	name TEXT,
+	title TEXT,
+	levelMin INTEGER CHECK(levelMin>0),
+	levelMax INTEGER CHECK(levelMax>0)
+);
+
+CREATE TABLE bindMissionChapter (
+	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	num INTEGER NOT NULL
+);
+
+CREATE TABLE objective (
+	id INTEGER PRIMARY KEY,
+	name TEXT,
+	module TEXT NOT NULL,
+	data TEXT
+);
+
+
+CREATE TABLE bindIntroCampaign (
+	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	UNIQUE(introid, campaignid)
+);
+
+
+CREATE TABLE bindIntroMission (
+	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	outro BOOL NOT NULL DEFAULT false,
+	UNIQUE(introid, missionid, outro)
+);
+
+CREATE TABLE bindIntroSummary (
+	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	summaryid INTEGER NOT NULL REFERENCES summary(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	outro BOOL NOT NULL DEFAULT false,
+	UNIQUE(introid, summaryid, outro)
+);
+
+CREATE TABLE bindIntroChapter (
+	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	UNIQUE(introid, chapterid)
+);
+
+
+CREATE TABLE bindObjectiveChapter (
+	objectiveid INTEGER NOT NULL REFERENCES objective(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	levelMin INTEGER CHECK(levelMin>0),
+	levelMax INTEGER CHECK(levelMax>0),
+	UNIQUE (objectiveid, chapterid)
+);
+
+CREATE TABLE bindObjectiveSummary (
+	objectiveid INTEGER NOT NULL REFERENCES objective(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	summaryid INTEGER NOT NULL REFERENCES summary(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	levelMin INTEGER CHECK(levelMin>0),
+	levelMax INTEGER CHECK(levelMax>0),
+	UNIQUE (objectiveid, summaryid)
+);

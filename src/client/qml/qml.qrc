@@ -30,5 +30,7 @@
         <file>QGridCheckBox.qml</file>
         <file>QCheckBox.qml</file>
         <file>PageConnection.qml</file>
+        <file>PageOffline.qml</file>
+        <file>PageMapEditor.qml</file>
     </qresource>
 </RCC>
