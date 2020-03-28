@@ -32,5 +32,6 @@
         <file>PageConnection.qml</file>
         <file>PageOffline.qml</file>
         <file>PageMapEditor.qml</file>
+        <file>QDialogTextField.qml</file>
     </qresource>
 </RCC>

@@ -50,9 +50,7 @@ QJsonObject UserInfo::getServerName()
 {
 	QJsonObject ret;
 
-	QVariantMap m = m_client->db()->runSimpleQuery("SELECT serverName from system");
-	QVariantList r = m["records"].toList();
-	ret = r.value(0).toJsonObject();
+	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), &ret);
 
 	return ret;
 }
@@ -79,13 +77,10 @@ QJsonObject UserInfo::getUser()
 
 	QVariantList l;
 	l << username;
-	QVariantMap m = m_client->db()->runSimpleQuery("SELECT username, firstname, lastname, email, active, "
-												   "isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
-												   "FROM userInfo where username=?", l);
-	QVariantList r = m["records"].toList();
-	if (!m["error"].toBool() && !r.isEmpty()) {
-		ret = r.value(0).toJsonObject();
-	}
+
+	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, email, active, "
+										  "isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
+										  "FROM userInfo where username=?", l, &ret);
 
 	return ret;
 }
@@ -104,13 +99,13 @@ QJsonObject UserInfo::getAllUser()
 
 	qDebug() << "getAllUser";
 
-	QVariantMap m = m_client->db()->runSimpleQuery("SELECT username, firstname, lastname, email, active, "
-												   "isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
-												   "FROM userInfo ORDER BY firstname, lastname");
-	if (!m["error"].toBool()) {
-		QVariantList list = m["records"].toList();
-		ret["list"] = m["records"].toJsonArray();
-	}
+	QJsonArray l;
+	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "
+									"isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
+									"FROM userInfo ORDER BY firstname, lastname",
+									QVariantList(),
+									&l);
+	ret["list"] = l;
 
 	return ret;
 }

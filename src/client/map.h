@@ -42,47 +42,69 @@ class Map : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QString mapTitle READ mapTitle WRITE setMapTitle NOTIFY mapTitleChanged)
-	Q_PROPERTY(QString mapUuid READ mapUuid WRITE setMapUuid NOTIFY mapUuidChanged)
-
-
 public:
+
+	enum MapType { MapInvalid, MapEditor, MapGame };
+	Q_ENUM(MapType)
+
+	Q_PROPERTY(QString mapUuid READ mapUuid WRITE setMapUuid NOTIFY mapUuidChanged)
+	Q_PROPERTY(QString mapTimeCreated READ mapTimeCreated WRITE setMapTimeCreated NOTIFY mapTimeCreatedChanged)
+	Q_PROPERTY(QString mapOriginalFile READ mapOriginalFile WRITE setMapOriginalFile NOTIFY mapOriginalFileChanged)
+	Q_PROPERTY(MapType mapType READ mapType WRITE setMapType NOTIFY mapTypeChanged)
+
+
 	Map(QObject *parent = nullptr);
 	virtual ~Map() override;
 
-	QString mapTitle() const { return m_mapTitle; }
-	bool dbExists() const { return (QFile::exists(m_databaseFile)); }
+
 	QString mapUuid() const { return m_mapUuid; }
+	QString mapTimeCreated() const { return m_mapTimeCreated; }
+	QString mapOriginalFile() const { return m_mapOriginalFile; }
+	MapType mapType() const { return m_mapType; }
 
 public slots:
 	bool create();
-	bool loadFromJson(const QByteArray &data);
-	bool loadFromFile(const QString &filename);
-	QByteArray saveToJson();
-	bool saveToFile(const QString &filename);
+	void save(const bool &binaryFormat = true);
+	bool loadFromJson(const QByteArray &data, const bool &binaryFormat = true);
+	bool loadFromFile(const QString &filename, const bool &binaryFormat = true);
+	bool loadFromBackup();
+	QByteArray saveToJson(const bool &binaryFormat = true);
+	bool saveToFile(const QString &filename, const QByteArray &data = QByteArray());
+	void updateMapOriginalFile(const QString &filename);
+	bool databaseCheck();
+	bool databasePrepare();
 
-	void updateMapTitle(const QString &name);
+	void setMapType(MapType mapType);
 
-
-protected slots:
-	bool databaseInit() override;
 
 
 private slots:
-	void setMapTitle(QString mapTitle);
 	void setMapUuid(QString mapUuid);
+	void setMapTimeCreated(QString mapTimeCreated);
+	void setMapOriginalFile(QString mapOriginalFile);
 
 signals:
+	void mapBackupExists(const QString &originalFile);
+	void mapLoaded();
+	void mapLoadedFromBackup();
+	void mapSaved(const QByteArray &data, const QString &uuid);
+
 	void mapTitleChanged(QString mapTitle);
 	void mapUuidChanged(QString mapUuid);
+	void mapTimeCreatedChanged(QString mapTimeCreated);
+	void mapOriginalFileChanged(QString mapOriginalFile);
+
+	void mapTypeChanged(MapType mapType);
 
 private:
 	QJsonArray tableToJson(const QString &table, const bool &convertData = false);
 	bool JsonToTable(const QJsonArray &array, const QString &table, const bool &convertData = false);
 
 	QStringList m_tableNames;
-	QString m_mapTitle;
 	QString m_mapUuid;
+	QString m_mapTimeCreated;
+	QString m_mapOriginalFile;
+	MapType m_mapType;
 };
 
 #endif // MAP_H

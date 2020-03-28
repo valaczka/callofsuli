@@ -137,6 +137,7 @@ Page {
 			MenuItem {
 				text: qsTr("Automata csatlakozás")
 				onClicked: if (listRigthMenu.modelIndex !== -1) {
+							   console.debug("*******************")
 							   servers.serverSetAutoConnect(listMenu.model.get(listRigthMenu.modelIndex).id)
 						   }
 			}
@@ -196,7 +197,7 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		/*toolbar.title = qsTr("Call of Suli szerverek")
+		toolbar.title = qsTr("Call of Suli szerverek")
 
 		if (_isFirst) {
 			var autoConnectId = servers.serverListReload()
@@ -204,8 +205,7 @@ Page {
 
 			if (autoConnectId !== -1)
 				servers.serverConnect(autoConnectId)
-		}*/
-		onClicked: JS.createPage("Offline", {}, page)
+		}
 	}
 
 

@@ -27,10 +27,14 @@
 
 #include "cossql.h"
 
-CosSql::CosSql(QObject *parent)
+CosSql::CosSql(const QString &connectionName, QObject *parent)
 	: QObject(parent)
 {
-	m_db = QSqlDatabase::addDatabase("QSQLITE");
+	if (connectionName.isEmpty())
+		m_db = QSqlDatabase::addDatabase("QSQLITE");
+	else
+		m_db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+
 	m_dbCreated = false;
 
 	qDebug() << "m_db" << m_db;
@@ -196,7 +200,7 @@ QSqlQuery CosSql::insertQuery(QString query, const QVariantMap &map) const
  * @return
  */
 
-QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map) const
+QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues) const
 {
 	QStringList keys = map.keys();
 
@@ -213,6 +217,11 @@ QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map) const
 	while (i.hasNext()) {
 		i.next();
 		q.bindValue(QString(":").append(i.key()), i.value());
+	}
+
+	QStringList bindKeys = bindValues.keys();
+	foreach (QString k, bindKeys) {
+		q.bindValue(k, bindValues[k]);
 	}
 
 	return q;
@@ -269,6 +278,149 @@ QVariantMap CosSql::runQuery(QSqlQuery query)
 	r["records"] = records;
 
 	return r;
+}
+
+
+/**
+ * @brief CosSql::query
+ * @param query
+ * @return
+ */
+
+bool CosSql::execQuery(QSqlQuery query)
+{
+	QVariantMap r = runQuery(query);
+
+	if (r["error"].toBool()) {
+		qWarning() << tr("SQL query error: ")+r["errorString"].toString();
+		return false;
+	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief CosSql::execSelectQuery
+ * @param query
+ * @param args
+ * @param records
+ * @return
+ */
+
+bool CosSql::execSelectQuery(QString query, const QVariantList &args, QVariantList *records)
+{
+	QVariantMap r = runSimpleQuery(query, args);
+
+	if (r["error"].toBool()) {
+		qWarning() << tr("SQL query error: ")+r["errorString"].toString();
+		return false;
+	}
+
+	if (records) {
+		*records = r["records"].toList();
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief CosSql::execSelectQuery
+ * @param query
+ * @param args
+ * @param records
+ * @return
+ */
+
+bool CosSql::execSelectQuery(QString query, const QVariantList &args, QJsonArray *records)
+{
+	QVariantMap r = runSimpleQuery(query, args);
+
+	if (r["error"].toBool()) {
+		qWarning() << tr("SQL query error: ")+r["errorString"].toString();
+		return false;
+	}
+
+	if (records) {
+		*records = r["records"].toJsonArray();
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief CosSql::execSelectQueryOneRow
+ * @param query
+ * @param args
+ * @param records
+ * @return
+ */
+
+bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QVariantMap *record)
+{
+	QVariantList list;
+
+	if (!execSelectQuery(query, args, &list))
+		return false;
+
+	if (list.count()>1)
+		return false;
+
+	if (record && list.count()) {
+		*record = list.value(0).toMap();
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief CosSql::execSelectQueryOneRow
+ * @param query
+ * @param args
+ * @param record
+ * @return
+ */
+
+bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QJsonObject *record)
+{
+	QVariantList list;
+
+	if (!execSelectQuery(query, args, &list))
+		return false;
+
+	if (list.count()>1)
+		return false;
+
+	if (record && list.count()) {
+		*record = list.value(0).toJsonObject();
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief CosSql::execInsertQuery
+ * @param query
+ * @param map
+ * @return
+ */
+
+int CosSql::execInsertQuery(QString query, const QVariantMap &map)
+{
+	QSqlQuery q = insertQuery(query, map);
+	QVariantMap m = runQuery(q);
+
+	if (m["error"].toBool()) {
+		qWarning() << tr("SQL query error: ")+m["errorString"].toString();
+		return -1;
+	}
+
+	return m["lastInsertId"].toInt();
 }
 
 

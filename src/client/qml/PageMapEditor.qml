@@ -11,11 +11,23 @@ Page {
 	id: page
 
 	property string fileName: ""
+	property bool mapLoaded: false
 
 	Map {
 		id: map
 
 		client: cosClient
+		mapType: Map.MapEditor
+
+		onMapBackupExists: {
+			var d = JS.dialogCreate(dlgBackupExists)
+			d.item.fname = originalFile
+			d.open()
+		}
+
+		onMapLoaded: page.mapLoaded = true
+
+		onMapSaved: console.debug(data)
 	}
 
 	header: QToolBar {
@@ -36,17 +48,65 @@ Page {
 		QButton {
 			label: "NEW"
 			onClicked: map.create()
+			disabled: mapLoaded
 		}
+
+		QButton {
+			label: "OPEN"
+			onClicked: {
+				var d = JS.dialogCreate(dlgFileName)
+				d.item.mode = 0
+				d.open()
+			}
+			disabled: mapLoaded
+		}
+
+
+		QButton {
+			label: "OPEN JSON"
+			onClicked: {
+				var d = JS.dialogCreate(dlgFileName)
+				d.item.mode = 1
+				d.open()
+			}
+			disabled: mapLoaded
+		}
+
 
 		QButton {
 			label: "SAVE"
-			onClicked: map.saveToFile("/tmp/aaaaaa.cosm")
+			onClicked: map.save(true)
+			disabled: !mapLoaded
 		}
 
 		QButton {
-			label: "LOAD"
-			onClicked: map.loadFromFile("/tmp/aaaaaa.cosm")
+			label: "Save json"
+			onClicked: map.save(false)
+			disabled: !mapLoaded
 		}
+
+
+		QButton {
+			label: "Save as"
+			onClicked: {
+				var d = JS.dialogCreate(dlgFileName)
+				d.item.mode = 4
+				d.open()
+			}
+			disabled: !mapLoaded
+		}
+
+
+		QButton {
+			label: "Save as JSON"
+			onClicked: {
+				var d = JS.dialogCreate(dlgFileName)
+				d.item.mode = 5
+				d.open()
+			}
+			disabled: !mapLoaded
+		}
+
 	}
 
 
@@ -57,6 +117,57 @@ Page {
 		running: false
 	}
 	/* CONTENT */
+
+
+	Component {
+		id: dlgBackupExists
+
+		QDialogYesNo {
+			id: dlgYesNo
+
+			property alias fname: dlgYesNo.text
+
+			title: qsTr("Helyreállítsam automatikusan a fájlt?")
+
+			onDlgAccept: {
+				map.loadFromBackup()
+			}
+
+		}
+	}
+
+
+
+	Component {
+		id: dlgFileName
+
+		QDialogTextField {
+			id: dlgYesNo
+
+			property int mode: 0
+
+			title: switch (mode) {
+				   case 0: qsTr("Megnyitás fájlból"); break
+				   case 1: qsTr("Megnyitás JSON fájlból"); break
+				   case 2: qsTr("Mentés"); break
+				   case 3: qsTr("Mentés JSON"); break
+				   case 4: qsTr("Mentés másként"); break
+				   case 5: qsTr("Mentés másként JSON"); break
+				   }
+
+			onDlgAccept: {
+				switch (mode) {
+				case 0: map.loadFromFile(data, true); break
+				case 1: map.loadFromFile(data, false); break
+				case 2: map.save(true); break
+				case 3: map.save(false); break
+				case 4: map.saveAs(data, true); break
+				case 5: map.saveAs(data, false); break
+				}
+			}
+
+		}
+	}
 
 	StackView.onRemoved: destroy()
 
@@ -71,13 +182,7 @@ Page {
 
 
 	Component.onCompleted: {
-		if (!map.databaseOpen())
-			mainStack.back()
-		/*		if (fileName.length) {
-			map.loadFromFile(fileName)
-		} else {
-			map.create()
-		} */
+		map.databaseCheck()
 	}
 
 	function stackBack() {

@@ -14,6 +14,7 @@ Popup {
 
 	property alias effectSource: effectsource.sourceItem
 	property alias popupContent: popupContent
+	property alias item: popupContent.item
 
 	signal accepted(var data)
 	signal closedAndDestroyed()

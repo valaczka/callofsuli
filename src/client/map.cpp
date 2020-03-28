@@ -34,10 +34,11 @@
 
 #include "map.h"
 
-Map::Map(QObject *parent) : AbstractActivity(parent)
-{
-	m_databaseFile = Client::standardPath("tmpmap.db");
+#define DATETIME_JSON_FORMAT QString("yyyy-MM-dd hh:mm:ss")
 
+Map::Map(QObject *parent)
+	: AbstractActivity("mapDB", parent)
+{
 	m_tableNames << "info"
 				 << "intro"
 				 << "campaign"
@@ -54,6 +55,8 @@ Map::Map(QObject *parent) : AbstractActivity(parent)
 				 << "bindIntroChapter"
 				 << "bindObjectiveChapter"
 				 << "bindObjectiveSummary";
+
+	m_mapType = MapInvalid;
 }
 
 
@@ -67,9 +70,10 @@ Map::~Map()
 		m_db->close();
 
 	if (QFile::exists(m_databaseFile)) {
-		qDebug() << tr("Remove map file ")+m_databaseFile << QFile::remove(m_databaseFile);
+		qDebug() << tr("Remove temporary map file ")+m_databaseFile << QFile::remove(m_databaseFile);
 	}
 }
+
 
 
 
@@ -82,21 +86,43 @@ bool Map::create()
 {
 	Q_ASSERT (m_client);
 
-	QVariantMap params;
-
-	setMapTitle(tr("-- Új pálya --"));
-
-	params["title"] = m_mapTitle;
-
-	QVariantMap r = m_db->runInsertQuery("INSERT INTO info(?k?) values (?)", params);
-
-	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
+	if (!databaseOpen() || !databasePrepare()) {
 		return false;
+	}
 
 	setMapUuid(QUuid::createUuid().toString());
-	return true;
+	setMapTimeCreated(QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT));
+	updateMapOriginalFile("");
 
+	emit mapLoaded();
+
+	return true;
 }
+
+
+
+
+/**
+ * @brief Map::save
+ */
+
+void Map::save(const bool &binaryFormat)
+{
+	QByteArray data = saveToJson(binaryFormat);
+
+	if (!m_mapOriginalFile.isEmpty()) {
+		qDebug() << tr("Adatbázis mentése fájlba: ")+m_mapOriginalFile;
+		if (saveToFile(m_mapOriginalFile, data))
+			emit mapSaved(data, m_mapUuid);
+	} else {
+		qDebug() << tr("Adatbázis mentése");
+		emit mapSaved(data, m_mapUuid);
+	}
+}
+
+
+
+
 
 
 /**
@@ -105,23 +131,26 @@ bool Map::create()
  * @return
  */
 
-bool Map::loadFromJson(const QByteArray &data)
+bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 {
 	Q_ASSERT (m_client);
 
-	QJsonDocument doc = QJsonDocument::fromBinaryData(data);
-	//QJsonDocument doc = QJsonDocument::fromJson(data);
+	if (!databaseOpen() || !databasePrepare()) {
+		return false;
+	}
+
+	QJsonDocument doc = binaryFormat ? QJsonDocument::fromBinaryData(data) : QJsonDocument::fromJson(data);
 
 	if (doc.isNull())
 		return false;
 
 	QJsonObject root = doc.object();
 
-	/*QJsonObject fileinfo = root["callofsuli"].toObject();
+	QJsonObject fileinfo = root["callofsuli"].toObject();
 
 	if (fileinfo.isEmpty()) {
 		return false;
-	}*/
+	}
 
 	foreach (QString t, m_tableNames) {
 		if (!JsonToTable(root[t].toArray(), t, false))
@@ -131,8 +160,11 @@ bool Map::loadFromJson(const QByteArray &data)
 	if (!JsonToTable(root["objective"].toArray(), "objective", true))
 		return false;
 
-	QString uuid = root["callofsuli"].toObject()["uuid"].toString();
+	QString uuid = fileinfo["uuid"].toString();
 	setMapUuid(uuid.isEmpty() ? QUuid::createUuid().toString() : uuid);
+	setMapTimeCreated(fileinfo["timeCreated"].toString());
+
+	emit mapLoaded();
 
 	return true;
 }
@@ -144,7 +176,7 @@ bool Map::loadFromJson(const QByteArray &data)
  * @return
  */
 
-bool Map::loadFromFile(const QString &filename)
+bool Map::loadFromFile(const QString &filename, const bool &binaryFormat)
 {
 	QFile f(filename);
 
@@ -157,7 +189,42 @@ bool Map::loadFromFile(const QString &filename)
 
 	f.close();
 
-	return loadFromJson(b);
+	bool ret = loadFromJson(b, binaryFormat);
+
+	return ret;
+}
+
+
+/**
+ * @brief Map::loadFromBackup
+ * @return
+ */
+
+bool Map::loadFromBackup()
+{
+	Q_ASSERT(m_client);
+
+	if (!databaseOpen()) {
+		return false;
+	}
+
+	QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid, timeCreated from mapeditor");
+	if (!m["error"].toBool() && m["records"].toList().count()) {
+		QVariantMap r = m["records"].toList().value(0).toMap();
+		QString filename = r.value("originalFile").toString();
+		QString uuid = r.value("uuid").toString();
+		QString timeCreated = r.value("timeCreated").toString();
+
+		setMapUuid(uuid.isEmpty() ? QUuid::createUuid().toString() : uuid);
+		setMapTimeCreated(timeCreated);
+		setMapOriginalFile(filename);
+
+		emit mapLoadedFromBackup();
+		emit mapLoaded();
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -167,7 +234,7 @@ bool Map::loadFromFile(const QString &filename)
  * @return
  */
 
-QByteArray Map::saveToJson()
+QByteArray Map::saveToJson(const bool &binaryFormat)
 {
 	QJsonObject root;
 
@@ -175,6 +242,8 @@ QByteArray Map::saveToJson()
 	fileinfo["versionMajor"] = m_client->clientVersionMajor();
 	fileinfo["versionMinor"] = m_client->clientVersionMinor();
 	fileinfo["uuid"] = m_mapUuid;
+	fileinfo["timeCreated"] = m_mapTimeCreated.isEmpty() ? QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT) : m_mapTimeCreated;
+	fileinfo["timeModified"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
 
 	root["callofsuli"] = fileinfo;
 
@@ -186,9 +255,10 @@ QByteArray Map::saveToJson()
 
 	QJsonDocument d(root);
 
-	return d.toBinaryData();
-	//return d.toJson(QJsonDocument::Indented);
+
+	return binaryFormat ? d.toBinaryData() : d.toJson(QJsonDocument::Indented);
 }
+
 
 
 /**
@@ -197,7 +267,7 @@ QByteArray Map::saveToJson()
  * @return
  */
 
-bool Map::saveToFile(const QString &filename)
+bool Map::saveToFile(const QString &filename, const QByteArray &data)
 {
 	QSaveFile f(filename);
 
@@ -206,8 +276,12 @@ bool Map::saveToFile(const QString &filename)
 		return false;
 	}
 
-	QByteArray b = saveToJson();
-	f.write(b);
+	if (data.isNull()) {
+		QByteArray b = saveToJson(true);
+		f.write(b);
+	} else {
+		f.write(data);
+	}
 
 	if (!f.commit()) {
 		m_client->sendMessageError(tr("Mentési hiba"), tr("Nem sikerült menteni a fájlt!"), filename);
@@ -218,21 +292,47 @@ bool Map::saveToFile(const QString &filename)
 }
 
 
+
+
+
+
+
 /**
- * @brief Map::updateMapName
- * @param name
- * @return
+ * @brief Map::updateMapOriginalFile
+ * @param filename
  */
 
-void Map::updateMapTitle(const QString &name)
+void Map::updateMapOriginalFile(const QString &filename)
 {
-	QVariantList l;
-	l << name;
-	QVariantMap m = m_db->runSimpleQuery("UPDATE info SET title=?", l);
+	QVariantMap l;
+	l["originalFile"] = filename;
+	l["uuid"] = m_mapUuid;
+	l["timeCreated"] = m_mapTimeCreated;
+	m_db->execInsertQuery("INSERT OR REPLACE INTO mapeditor (?k?) VALUES(?)", l);
+	setMapOriginalFile(filename);
+}
 
-	if (!m["error"].toBool()) {
-		setMapTitle(name);
-	}
+
+
+void Map::setMapOriginalFile(QString mapOriginalFile)
+{
+	if (m_mapOriginalFile == mapOriginalFile)
+		return;
+
+	m_mapOriginalFile = mapOriginalFile;
+	emit mapOriginalFileChanged(m_mapOriginalFile);
+}
+
+
+
+
+void Map::setMapTimeCreated(QString mapTimeCreated)
+{
+	if (m_mapTimeCreated == mapTimeCreated)
+		return;
+
+	m_mapTimeCreated = mapTimeCreated;
+	emit mapTimeCreatedChanged(m_mapTimeCreated);
 }
 
 
@@ -260,7 +360,6 @@ QJsonArray Map::tableToJson(const QString &table, const bool &convertData)
 	QVariantMap m = m_db->runSimpleQuery("SELECT * from "+table+" ORDER BY rowid");
 
 	if (m["error"].toBool()) {
-		qWarning() << m["errorString"].toString();
 		return QJsonArray();
 	}
 
@@ -331,8 +430,7 @@ bool Map::JsonToTable(const QJsonArray &array, const QString &table, const bool 
 			rr = rec.toVariantMap();
 		}
 
-		QVariantMap m = m_db->runInsertQuery("INSERT INTO "+table+" (?k?) VALUES (?)", rr);
-		if (m["errors"].toBool() || m["lastInsertId"] == QVariant::Invalid)
+		if (!m_db->execInsertQuery("INSERT INTO "+table+" (?k?) VALUES (?)", rr))
 			return false;
 
 	}
@@ -344,17 +442,6 @@ bool Map::JsonToTable(const QJsonArray &array, const QString &table, const bool 
 
 
 
-void Map::setMapTitle(QString mapName)
-{
-	if (m_mapTitle == mapName)
-		return;
-
-	m_mapTitle = mapName;
-	emit mapTitleChanged(m_mapTitle);
-}
-
-
-
 
 
 
@@ -363,14 +450,98 @@ void Map::setMapTitle(QString mapName)
  * @return
  */
 
-bool Map::databaseInit()
+bool Map::databasePrepare()
 {
 	Q_ASSERT(m_client);
 
 	if (!m_db->batchQueryFromFile(":/sql/map.sql")) {
-		m_client->sendMessageError(tr("Adatbázis"), tr("Nem sikerült előkészíteni az adatbázist!"), databaseFile());
+		m_client->sendMessageError(tr("Adatbázis"), tr("Nem sikerült előkészíteni az adatbázist!"), m_databaseFile);
+		return false;
+	}
+
+	if (!m_db->batchQueryFromFile(":/sql/mapeditor.sql")) {
+		m_client->sendMessageError(tr("Adatbázis"), tr("Nem sikerült előkészíteni az adatbázist!"), m_databaseFile);
 		return false;
 	}
 
 	return true;
 }
+
+
+
+
+
+/**
+ * @brief Map::databaseChecio
+ */
+
+bool Map::databaseCheck()
+{
+	Q_ASSERT(m_client);
+
+	if (m_mapType == MapInvalid) {
+		m_client->sendMessageError(tr("Internal error"), tr("Az adatbázis típusa nincs megadva!"));
+		return false;
+	}
+
+	if (m_mapType == MapEditor) {
+		setDatabaseFile(Client::standardPath("tmpmapeditor.db"));
+	} else if (m_mapType == MapGame) {
+		setDatabaseFile(Client::standardPath("tmpmapgame.db"));
+	}
+
+	if (m_mapType == MapEditor && QFile::exists(m_databaseFile)) {
+		qInfo() << tr("Létező ideiglenes adatbázis: ")+m_databaseFile;
+		if (!databaseOpen()) {
+			m_db->close();
+
+			qInfo() << tr("Nem sikerült megnyitni a fájlt, törlöm: ")+m_databaseFile;
+
+			if (!QFile::remove(m_databaseFile)) {
+				m_client->sendMessageError(tr("Internal error"), tr("Nem sikerült törölni az ideiglenes adatbázist!"), m_databaseFile);
+				return false;
+			}
+
+			return true;
+		}
+
+		QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid from mapeditor");
+		if (!m["error"].toBool() && m["records"].toList().count()) {
+			QVariantMap r = m["records"].toList().value(0).toMap();
+			QString filename = r.value("originalFile").toString();
+			QString uuid = r.value("uuid").toString();
+
+			if (!uuid.isEmpty()) {
+				emit mapBackupExists(filename);
+				m_db->close();
+				return true;
+			}
+		}
+
+		m_db->close();
+
+		qInfo() << tr("Hibás adatbázis, törlöm: ")+m_databaseFile;
+
+		if (!QFile::remove(m_databaseFile)) {
+			m_client->sendMessageError(tr("Internal error"), tr("Nem sikerült törölni az ideiglenes adatbázist!"), m_databaseFile);
+			return false;
+		}
+
+		return true;
+	}
+
+	return true;
+}
+
+
+
+
+void Map::setMapType(Map::MapType mapType)
+{
+	if (m_mapType == mapType)
+		return;
+
+	m_mapType = mapType;
+	emit mapTypeChanged(m_mapType);
+}
+

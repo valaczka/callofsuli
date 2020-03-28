@@ -27,7 +27,7 @@ Page {
 
 	Column {
 		QButton {
-			label: "NEW"
+			label: "MAP EDITOR"
 
 			onClicked: {
 				JS.createPage("MapEditor", {}, page)

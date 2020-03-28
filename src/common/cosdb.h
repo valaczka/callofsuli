@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * cosdb.h
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 03. 28.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * COSdb
  *
  *  This file is part of Call of Suli.
  *
@@ -32,39 +32,46 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#ifndef COSDB_H
+#define COSDB_H
 
 #include <QObject>
+#include "cossql.h"
 
-#include "../common/cosdb.h"
-#include "cosclient.h"
-
-class Client;
-
-class AbstractActivity : public COSdb
+class COSdb : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
+	Q_PROPERTY(CosSql* db READ db WRITE setDb NOTIFY dbChanged)
+	Q_PROPERTY(QString databaseFile READ databaseFile WRITE setDatabaseFile NOTIFY databaseFileChanged)
 
 public:
-	explicit AbstractActivity(const QString &connectionName = QString(), QObject *parent = nullptr);
+	explicit COSdb(const QString &connectionName = QString(), QObject *parent = nullptr);
+	virtual ~COSdb();
 
-	Client* client() const { return m_client; }
+	CosSql* db() const { return m_db; }
+	QString databaseFile() const { return m_databaseFile; }
+	bool databaseExists() const { return (QFile::exists(m_databaseFile)); }
 
 public slots:
-	void setClient(Client* client);
+	bool databaseOpen();
+
+	void setDb(CosSql* db);
+	void setDatabaseFile(QString databaseFile);
 
 protected slots:
-	virtual void clientSetup() {}
+	virtual bool databaseInit() { return true; }
 
 signals:
-	void clientChanged(Client* client);
+	void databaseError(const QString &text);
+	void dbChanged(CosSql* db);
+	void databaseFileChanged(QString databaseFile);
 
 protected:
-	Client* m_client;
+	CosSql* m_db;
+	QString m_databaseFile;
+	bool m_isOwnCreated;
 
 };
 
-#endif // ABSTRACTACTIVITY_H
+#endif // COSDB_H

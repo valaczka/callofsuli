@@ -86,10 +86,11 @@ Client::~Client()
 
 void Client::initialize()
 {
+/*
 #ifndef QT_NO_DEBUG_OUTPUT
 	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
 #endif
-
+*/
 	QCoreApplication::setApplicationName("callofsuli");
 	QCoreApplication::setOrganizationDomain("client.callofsuli.vjp.piarista.hu");
 	//QCoreApplication::setOrganizationName("Call of Suli");

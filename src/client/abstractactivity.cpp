@@ -34,75 +34,10 @@
 
 #include "abstractactivity.h"
 
-AbstractActivity::AbstractActivity(QObject *parent) : QObject(parent)
+AbstractActivity::AbstractActivity(const QString &connectionName, QObject *parent)
+	: COSdb(connectionName, parent)
 {
 	m_client = nullptr;
-	m_db = nullptr;
-}
-
-/**
- * @brief AbstractActivity::~AbstractActivity
- */
-
-AbstractActivity::~AbstractActivity()
-{
-	// Az m_client-et nem töröljük, az a QML-ben lesz megadva.
-	if (m_db)
-		delete m_db;
-}
-
-
-/**
- * @brief AbstractActivity::databaseInit
- * @param filename
- * @return
- */
-
-bool AbstractActivity::databaseOpen()
-{
-	Q_ASSERT (m_client);
-
-	if (m_databaseFile.isEmpty()) {
-		qWarning().noquote() << tr("Nincs megadva adatbázis!");
-		m_client->sendMessageError(tr("Internal error"), tr("Nincs megadva adatbázis!"));
-		return false;
-	}
-
-	if (m_db) {
-		qInfo().noquote() << tr("Az adatbázis már meg van nyitva: ")+m_db->db().databaseName();
-	} else {
-		bool isOwnCreated = false;
-
-		if (!QFile::exists(m_databaseFile)) {
-			qDebug() << tr("Új adatbázis létrehozása ")+m_databaseFile;
-			isOwnCreated = true;
-		}
-
-		m_db=new CosSql(this);
-		if (!m_db->open(m_databaseFile, true)) {
-			qWarning().noquote() << tr("Nem lehet megnyitni az adatbázist: ")+m_databaseFile;
-			m_client->sendMessageError(tr("Internal error"), tr("Nem lehet megnyitni az adatbázist!"), m_databaseFile);
-			return false;
-		}
-
-		if (!databaseInit()) {
-			qWarning().noquote() << tr("Nem lehet létrehozni az adatbázist: ")+m_databaseFile;
-			m_client->sendMessageError(tr("Internal error"), tr("Nem lehet létrehozni az adatbázist!"), m_databaseFile);
-
-
-			if (isOwnCreated) {
-				qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+m_databaseFile;
-				m_db->close();
-				if (!QFile::remove(m_databaseFile)) {
-					qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+m_databaseFile;
-				}
-			}
-
-			return false;
-		}
-	}
-
-	return true;
 }
 
 
@@ -120,27 +55,8 @@ void AbstractActivity::setClient(Client *client)
 	qDebug() << "setClient" << m_client;
 
 	if (m_client) {
-		connect(this, &AbstractActivity::databaseError, m_client, &Client::sendDatabaseError);
+		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
 		clientSetup();
 	}
-}
-
-
-void AbstractActivity::setDb(CosSql *db)
-{
-	if (m_db == db)
-		return;
-
-	m_db = db;
-	emit dbChanged(m_db);
-}
-
-void AbstractActivity::setDatabaseFile(QString databaseFile)
-{
-	if (m_databaseFile == databaseFile)
-		return;
-
-	m_databaseFile = databaseFile;
-	emit databaseFileChanged(m_databaseFile);
 }
 

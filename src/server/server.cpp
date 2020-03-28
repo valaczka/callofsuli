@@ -54,7 +54,9 @@ Server::Server(QObject *parent) : QObject(parent)
 	m_socketServer = nullptr;
 
 	m_sqlDbDir = "";
-	m_db = new CosSql(this);
+	m_db = new CosSql("mainDB", this);
+	m_mapDb = new MapRepository("mapDB", this);
+
 
 	m_sqlDbCreate = false;
 	m_dbVersionMajor = 0;
@@ -77,6 +79,7 @@ Server::~Server()
 
 	qDeleteAll(m_clients.begin(), m_clients.end());
 
+	delete m_mapDb;
 	delete m_db;
 }
 
@@ -101,6 +104,13 @@ bool Server::start()
 		return false;
 
 	resourcesLoad();
+
+
+	m_mapDb->setDatabaseFile(QDir::toNativeSeparators(sqlDbDir()+"/maps.cosdb"));
+
+	if (!m_mapDb->databaseOpen())
+		return false;
+
 
 	if (!websocketServerStart())
 		return false;
@@ -287,7 +297,7 @@ bool Server::databaseLoad()
 				p["connections"] = m_socketPendingConnections;
 
 			if (p.count()) {
-				m_db->runUpdateQuery("UPDATE system SET ?", p);
+				m_db->execUpdateQuery("UPDATE system SET ?", p);
 			}
 
 			break;
@@ -317,9 +327,7 @@ bool Server::databaseInit()
 	params["socketPort"] = dbSocketPort();
 	params["serverName"] = tr("-- új Call of Suli szerver --");
 
-	QVariantMap r = m_db->runInsertQuery("INSERT INTO system(?k?) values (?)", params);
-
-	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
+	if (m_db->execInsertQuery("INSERT INTO system(?k?) values (?)", params)==-1)
 		return false;
 
 
@@ -331,9 +339,7 @@ bool Server::databaseInit()
 	params["isTeacher"] = true;
 	params["isAdmin"] = true;
 
-	QVariantMap r2 = m_db->runInsertQuery("INSERT INTO user(?k?) values (?)", params);
-
-	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
+	if (m_db->execInsertQuery("INSERT INTO user(?k?) values (?)", params)==-1)
 		return false;
 
 
@@ -347,9 +353,7 @@ bool Server::databaseInit()
 	params["password"] = pwd;
 	params["salt"] = salt;
 
-	QVariantMap r3 = m_db->runInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params);
-
-	if (r["errors"].toBool() || r["lastInsertId"] == QVariant::Invalid)
+	if (m_db->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params)==-1)
 		return false;
 
 	return true;

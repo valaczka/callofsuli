@@ -37,6 +37,7 @@
 #include <QtNetwork/QSslSocket>
 
 #include "../common/cossql.h"
+#include "../common/maprepository.h"
 #include "client.h"
 
 class Server : public QObject
@@ -67,6 +68,7 @@ class Server : public QObject
 
 	QString m_sqlDbDir;
 	CosSql* m_db;
+	MapRepository* m_mapDb;
 	bool m_sqlDbCreate;
 	int m_dbVersionMajor;
 	int m_dbVersionMinor;

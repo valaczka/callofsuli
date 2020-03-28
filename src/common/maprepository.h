@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * maprepository.h
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 03. 28.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * MapRepository
  *
  *  This file is part of Call of Suli.
  *
@@ -32,39 +32,40 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#ifndef MAPREPOSITORY_H
+#define MAPREPOSITORY_H
 
 #include <QObject>
+#include "cosdb.h"
 
-#include "../common/cosdb.h"
-#include "cosclient.h"
-
-class Client;
-
-class AbstractActivity : public COSdb
+class MapRepository : public COSdb
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-
 public:
-	explicit AbstractActivity(const QString &connectionName = QString(), QObject *parent = nullptr);
-
-	Client* client() const { return m_client; }
+	MapRepository(const QString &connectionName = QString(), QObject *parent = nullptr);
 
 public slots:
-	void setClient(Client* client);
+	void listReload();
+	QVariantMap getInfo(const int &id);
+	QByteArray getData(const int &id);
+	QByteArray getData(const QString &uuid);
+	int getId(const QString &uuid);
+	QVariantMap create(const QString &name = QString());
+
+	bool updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
+	bool updateName(const int &id, const QString &name);
 
 protected slots:
-	virtual void clientSetup() {}
+	bool databaseInit();
+
+private:
+	QByteArray getDataReal(QSqlQuery q);
 
 signals:
-	void clientChanged(Client* client);
-
-protected:
-	Client* m_client;
+	void listLoaded(QVariantList list);
+	void uuidComapareError(const int &id);
 
 };
 
-#endif // ABSTRACTACTIVITY_H
+#endif // MAPREPOSITORY_H

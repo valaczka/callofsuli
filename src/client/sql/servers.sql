@@ -1,4 +1,6 @@
-CREATE TABLE IF NOT EXISTS server(
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE server(
 	id INTEGER PRIMARY KEY,
 	name TEXT,
 	host TEXT,
@@ -10,6 +12,6 @@ CREATE TABLE IF NOT EXISTS server(
 );
 
 
-CREATE TABLE IF NOT EXISTS autoconnect(
+CREATE TABLE autoconnect(
 	serverid INTEGER REFERENCES server(id) ON UPDATE CASCADE ON DELETE CASCADE
 );

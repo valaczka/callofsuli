@@ -35,12 +35,14 @@
 #include "servers.h"
 
 Servers::Servers(QObject *parent)
-	: AbstractActivity(parent)
+	: AbstractActivity("serversDb", parent)
 {
-	m_databaseFile = Client::standardPath("servers.db");
+	setDatabaseFile(Client::standardPath("servers.db"));
 	m_connectedServerId = -1;
 	m_tryToConnectServerId = -1;
 }
+
+
 
 
 
@@ -50,23 +52,19 @@ Servers::Servers(QObject *parent)
 
 int Servers::serverListReload()
 {
-	Q_ASSERT (m_client);
-
 	if (!databaseOpen())
 		return -1;
 
-	QVariantMap r2 = m_db->runSimpleQuery("SELECT id, name as label, false as disabled, false as selected, '' as image, "
+	QVariantList list;
+	if (!m_db->execSelectQuery("SELECT id, name as label, false as disabled, false as selected, '' as image, "
 										  "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
 										  "FROM server "
-										  "ORDER BY name");
-	if (r2["error"].toBool()) {
-		m_client->sendMessageError(tr("Adatbázis"), tr("Adatbázis hiba!"), databaseFile());
+										  "ORDER BY name", QVariantList(), &list)) {
 		return -1;
 	}
 
 	int autoconnectId = -1;
 
-	QVariantList list = r2["records"].toList();
 	QVariantList list2;
 
 	foreach (QVariant v, list) {
@@ -94,23 +92,17 @@ int Servers::serverListReload()
 
 QVariantMap Servers::serverInfoGet(const int &serverId)
 {
-	Q_ASSERT (m_client);
-
 	if (!databaseOpen())
 		return QVariantMap();
+
+	QVariantMap server;
 
 	QVariantList p;
 	p << serverId;
 
-	QVariantMap r = m_db->runSimpleQuery("SELECT name, host, port, ssl, cert, username, session FROM server WHERE id=?", p);
-
-	QVariantList rl = r["records"].toList();
-	if (r["error"].toBool() || rl.count() != 1) {
-		m_client->sendMessageError(tr("Internal error"), QString(tr("Érvénytelen azonosító: %1")).arg(serverId));
+	if (!m_db->execSelectQueryOneRow("SELECT name, host, port, ssl, cert, username, session FROM server WHERE id=?", p, &server)) {
 		return QVariantMap();
 	}
-
-	QVariantMap server = rl.value(0).toMap();
 
 	emit serverInfoLoaded(server);
 
@@ -126,26 +118,21 @@ QVariantMap Servers::serverInfoGet(const int &serverId)
 
 void Servers::serverInfoInsertOrUpdate(const int &id, const QVariantMap &map)
 {
-	Q_ASSERT (m_client);
-
 	if (!databaseOpen())
 		return;
 
-	QSqlQuery q;
 	if (id == -1) {
-		q = m_db->insertQuery("INSERT INTO server (?k?) VALUES (?)", map);
+		int newId = m_db->execInsertQuery("INSERT INTO server (?k?) VALUES (?)", map);
+		if (newId == -1)
+			return;
+		emit serverInfoUpdated(newId);
 	} else {
-		q = m_db->updateQuery("UPDATE server SET ? WHERE id=:id", map);
-		q.bindValue(":id", id);
+		QVariantMap bindValues;
+		bindValues[":id"] = id;
+		if (!m_db->execUpdateQuery("UPDATE server SET ? WHERE id=:id", map, bindValues))
+			return;
+		serverInfoUpdated(id);
 	}
-
-	QVariantMap r = m_db->runQuery(q);
-	if (r["error"].toBool()) {
-		emit databaseError(r["errorString"].toString());
-		return;
-	}
-
-	emit serverInfoUpdated( id == -1 ? r["lastInsertId"].toInt() : id);
 }
 
 
@@ -156,18 +143,13 @@ void Servers::serverInfoInsertOrUpdate(const int &id, const QVariantMap &map)
 
 void Servers::serverInfoDelete(const int &id)
 {
-	Q_ASSERT (m_client);
-
 	if (!databaseOpen())
 		return;
 
 	QVariantList l;
 	l << id;
-	QVariantMap r = m_db->runSimpleQuery("DELETE FROM server WHERE id=?", l);
-	if (r["error"].toBool()) {
-		emit databaseError(r["errorString"].toString());
+	if (!m_db->execSimpleQuery("DELETE FROM server WHERE id=?", l))
 		return;
-	}
 
 	emit serverInfoUpdated(id);
 }
@@ -220,36 +202,24 @@ void Servers::serverConnect(const int &serverId)
 
 void Servers::serverSetAutoConnect(const int &serverId, const bool &value)
 {
-	Q_ASSERT (m_client);
-
 	if (!databaseOpen())
 		return;
 
-	QVariantMap r;
-
-	if (value)
-		r = m_db->runSimpleQuery("DELETE FROM autoconnect");
-	else {
+	if (value) {
+		if (!m_db->execSimpleQuery("DELETE FROM autoconnect"))
+			return;
+	} else {
 		QVariantList l;
 		l << serverId;
-		r = m_db->runSimpleQuery("DELETE FROM autoconnect WHERE serverid=", l);
-	}
-
-	if (r["error"].toBool()) {
-		emit databaseError(r["errorString"].toString());
-		return;
+		if (!m_db->execSimpleQuery("DELETE FROM autoconnect WHERE serverid=", l))
+			return;
 	}
 
 	if (value) {
 		QVariantMap m;
 		m["serverid"] = serverId;
-		QSqlQuery q;
-		q = m_db->insertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m);
-		QVariantMap r2 = m_db->runQuery(q);
-		if (r2["error"].toBool()) {
-			emit databaseError(r2["errorString"].toString());
+		if(m_db->execInsertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m) == -1)
 			return;
-		}
 	}
 
 	emit serverInfoUpdated(serverId);
@@ -269,15 +239,13 @@ void Servers::serverTryLogin(const int &serverId)
 	QVariantList p;
 	p << serverId;
 
-	QVariantMap r = m_db->runSimpleQuery("SELECT username, session FROM server WHERE id=?", p);
+	QVariantMap r;
 
-	QVariantList rl = r["records"].toList();
-	if (r["error"].toBool() || rl.count() != 1) {
+	if (!m_db->execSelectQueryOneRow("SELECT username, session FROM server WHERE id=?", p, &r))
 		return;
-	}
 
-	QString username = rl.value(0).toMap().value("username").toString();
-	QString session = rl.value(0).toMap().value("session").toString();
+	QString username = r.value("username").toString();
+	QString session = r.value("session").toString();
 
 	m_client->login(username, session);
 }
@@ -292,7 +260,7 @@ void Servers::serverLogOut()
 	if (m_connectedServerId != -1) {
 		QVariantList l;
 		l << m_connectedServerId;
-		m_db->runSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
+		m_db->execSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
 	}
 }
 
@@ -354,7 +322,7 @@ void Servers::onSessionTokenChanged(QString sessionToken)
 		QVariantList l;
 		l << sessionToken;
 		l << m_connectedServerId;
-		m_db->runSimpleQuery("UPDATE server SET session=? WHERE id=?", l);
+		m_db->execSimpleQuery("UPDATE server SET session=? WHERE id=?", l);
 	}
 }
 
@@ -412,6 +380,6 @@ void Servers::onUserNameChanged(QString username)
 		QVariantList l;
 		l << username;
 		l << m_connectedServerId;
-		m_db->runSimpleQuery("UPDATE server SET username=? WHERE id=?", l);
+		m_db->execSimpleQuery("UPDATE server SET username=? WHERE id=?", l);
 	}
 }

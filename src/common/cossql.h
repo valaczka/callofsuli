@@ -37,7 +37,7 @@ class CosSql : public QObject
 	Q_OBJECT
 
 public:
-	explicit CosSql(QObject *parent = nullptr);
+	explicit CosSql(const QString &connectionName = QString(), QObject *parent = nullptr);
 	virtual ~CosSql();
 
 
@@ -51,8 +51,9 @@ public:
 	bool batchQueryFromFile(const QString &filename);
 	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
 	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
-	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap()) const;
+	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) const;
 	QVariantMap runQuery(QSqlQuery query);
+	bool execQuery(QSqlQuery query);
 
 	QVariantMap runSimpleQuery(QString query, const QVariantList &args = QVariantList()) {
 		return runQuery(simpleQuery(query, args));
@@ -60,8 +61,23 @@ public:
 	QVariantMap runInsertQuery(QString query, const QVariantMap &map = QVariantMap()) {
 		return runQuery(insertQuery(query, map));
 	}
-	QVariantMap runUpdateQuery(QString query, const QVariantMap &map = QVariantMap()) {
-		return runQuery(updateQuery(query, map));
+	QVariantMap runUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) {
+		return runQuery(updateQuery(query, map, bindValues));
+	}
+
+	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList()) {
+		return execQuery(simpleQuery(query, args));
+	}
+
+	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QVariantList *records = nullptr);
+	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QJsonArray *records = nullptr);
+	bool execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QVariantMap *record = nullptr);
+	bool execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QJsonObject *record = nullptr);
+
+	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap());
+
+	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) {
+		return execQuery(updateQuery(query, map, bindValues));
 	}
 
 	static QString hashPassword (const QString &password, QString *salt = nullptr,

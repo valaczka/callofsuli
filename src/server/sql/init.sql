@@ -63,8 +63,7 @@ CREATE TABLE map(
 	timeModified TEXT NOT NULL DEFAULT (datetime('now')),
 	version INTEGER NOT NULL DEFAULT 0,
 	objectives INTEGER NOT NULL DEFAULT 0 CHECK (objectives>=0),
-	hash TEXT,
-	solution TEXT
+	md5 TEXT
 );
 
 
@@ -114,7 +113,8 @@ CREATE TABLE score(
 	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0),
 	achievementid INTEGER REFERENCES achievement(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	mapid INTEGER REFERENCES map(id) ON UPDATE CASCADE ON DELETE SET NULL,
-	mission INTEGER
+	mission INTEGER,
+	level INTEGER
 );
 
 
@@ -126,7 +126,10 @@ SELECT u.username, u.firstname, u.lastname, u.email, u.active, u.isTeacher, u.is
 	FROM user u
 	LEFT JOIN class c ON (c.id=u.classid)
 	LEFT JOIN (SELECT username, (SELECT SUM(xp) FROM score WHERE score.username=uuu.username) as xp FROM user uuu) s ON (s.username=u.username)
-	LEFT JOIN (SELECT uu.username, COALESCE(rl.rankid, (SELECT MIN(id) FROM rank)) as rankid
+	LEFT JOIN (SELECT uu.username,
+			CASE WHEN uu.isTeacher=1 THEN COALESCE((SELECT MAX(id) FROM rank WHERE xp IS null), (SELECT MIN(id) FROM rank))
+			ELSE COALESCE(rl.rankid, (SELECT MIN(id) FROM rank))
+			END as rankid
 		FROM user uu
 		LEFT JOIN (SELECT username, rankid FROM ranklog GROUP BY username HAVING MAX(timestamp)) rl ON (rl.username=uu.username)) ur
 		ON (ur.username=u.username)
