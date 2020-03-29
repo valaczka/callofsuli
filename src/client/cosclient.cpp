@@ -34,7 +34,8 @@
 #include "cosclient.h"
 #include "servers.h"
 #include "map.h"
-#include "../version/buildnumber.h"
+#include "teachermaps.h"
+
 
 
 Client::Client(QObject *parent) : QObject(parent)
@@ -44,12 +45,12 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_timer = new QTimer(this);
 
 	m_clientMsgId = 0;
-	m_userRoles = Guest;
+	m_userRoles = RoleGuest;
 	m_userXP = 0;
 	m_userRank = 0;
 
-	m_clientVersionMajor = _VERSION_MAJOR;
-	m_clientVersionMinor = _VERSION_MINOR;
+	m_signalList["userInfo"] = "UserInfo";
+	m_signalList["teacherMaps"] = "TeacherMaps";
 
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
@@ -164,6 +165,7 @@ void Client::registerTypes()
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
+	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 }
 
 
@@ -317,7 +319,7 @@ void Client::closeConnection()
 		setUserName("");
 		setUserRank(0);
 		setUserXP(0);
-		setUserRoles(Guest);
+		setUserRoles(RoleGuest);
 	}
 }
 
@@ -437,23 +439,7 @@ int Client::socketSendJson(const QJsonObject &jsonObject)
 	return socketSend("json", data.toBinaryData());
 }
 
-void Client::setClientVersionMajor(int clientVersionMajor)
-{
-	if (m_clientVersionMajor == clientVersionMajor)
-		return;
 
-	m_clientVersionMajor = clientVersionMajor;
-	emit clientVersionMajorChanged(m_clientVersionMajor);
-}
-
-void Client::setClientVersionMinor(int clientVersionMinor)
-{
-	if (m_clientVersionMinor == clientVersionMinor)
-		return;
-
-	m_clientVersionMinor = clientVersionMinor;
-	emit clientVersionMinorChanged(m_clientVersionMinor);
-}
 
 void Client::setServerName(QString serverName)
 {
@@ -554,7 +540,7 @@ void Client::socketPing()
 {
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
 		socketSendJson({
-						   {"class", "userinfo"},
+						   {"class", "userInfo"},
 						   {"func", "getUser"}
 					   });
 	} else if (m_connectionState == Disconnected) {
@@ -573,10 +559,6 @@ void Client::socketPing()
 
 void Client::parseJson(const QJsonObject &object)
 {
-	QHash<QString, QString> signalList;
-	signalList["userinfo"] = "UserInfo";
-
-
 	if (object["session"].isObject()) {
 		QJsonObject o = object["session"].toObject();
 		if (o.contains("token")) {
@@ -590,15 +572,15 @@ void Client::parseJson(const QJsonObject &object)
 		QJsonObject o = object["roles"].toObject();
 		setUserName(o["username"].toString());
 		Roles newRole;
-		newRole.setFlag(Guest, o["guest"].toBool());
-		newRole.setFlag(Student, o["student"].toBool());
-		newRole.setFlag(Teacher, o["teacher"].toBool());
-		newRole.setFlag(Admin, o["admin"].toBool());
+		newRole.setFlag(RoleGuest, o["guest"].toBool());
+		newRole.setFlag(RoleStudent, o["student"].toBool());
+		newRole.setFlag(RoleTeacher, o["teacher"].toBool());
+		newRole.setFlag(RoleAdmin, o["admin"].toBool());
 		setUserRoles(newRole);
 		qDebug() << "set user roles from server" <<newRole;
 
 		socketSendJson({
-						   {"class", "userinfo"},
+						   {"class", "userInfo"},
 						   {"func", "getUser"}
 					   });
 	}
@@ -608,16 +590,46 @@ void Client::parseJson(const QJsonObject &object)
 	if (cl.isEmpty())
 		return;
 
-	QString s = signalList.value(cl, "");
+	QString s = m_signalList.value(cl, "");
 
 	if (s.isEmpty()) {
 		qWarning() << tr("Invalid JSON class ")+cl;
 		return;
 	}
 
+	if (object["data"].toObject()["error"] == "permission denied") {
+		sendMessageWarning(tr("Hozzáférés megtagadva"), tr("Nincs elég jogosultságod a funkció eléréshez!"));
+		return;
+	}
+
 	QString f = "json"+s+"Received";
 
 	QMetaObject::invokeMethod(this, f.toStdString().data(), Qt::DirectConnection, Q_ARG(QJsonObject, object));
+}
+
+
+/**
+ * @brief Client::parseMap
+ */
+
+void Client::parseMap(const QString &classname, const int &mapid, const QJsonObject &jsonData, const QByteArray &mapdata)
+{
+	if (classname.isEmpty())
+		return;
+
+	QString s = m_signalList.value(classname, "");
+
+	if (s.isEmpty()) {
+		qWarning() << tr("Invalid MAP class ")+classname;
+		return;
+	}
+
+	QString f = "map"+s+"Received";
+
+	QMetaObject::invokeMethod(this, f.toStdString().data(), Qt::DirectConnection,
+							  Q_ARG(int, mapid),
+							  Q_ARG(QJsonObject, jsonData),
+							  Q_ARG(QByteArray, mapdata));
 }
 
 
@@ -630,7 +642,7 @@ void Client::onSocketConnected()
 	m_connectedUrl = m_socket->requestUrl();
 	if (m_connectionState == Connecting || m_connectionState == Standby) {
 		setConnectionState(Connected);
-		socketSendJson({{"class", "userinfo"}, {"func", "getServerName"}});
+		socketSendJson({{"class", "userInfo"}, {"func", "getServerName"}});
 	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
 }
@@ -682,6 +694,14 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 		qDebug() << obj;
 
 		parseJson(obj);
+	} else if (msgType == "map") {
+		int mapid;
+		QByteArray mapdata;
+		QString classname;
+		QJsonObject jsonData;
+		ds >> classname >> mapid >> jsonData >> mapdata;
+
+		parseMap(classname, mapid, jsonData, mapdata);
 	} else {
 		QString error;
 		ds >> error;

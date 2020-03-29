@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * teachermaps.h
  *
  * Created on: 2020. 03. 29.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * TeacherMaps
  *
  *  This file is part of Call of Suli.
  *
@@ -32,53 +32,32 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#ifndef TEACHERMAPS_H
+#define TEACHERMAPS_H
 
 #include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include "cosclient.h"
+#include "client.h"
+#include "abstracthandler.h"
 
 class Client;
 
-class AbstractActivity : public QObject
+class TeacherMaps : public AbstractHandler
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
-	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
-
-
 public:
-	explicit AbstractActivity(QObject *parent = nullptr);
+	explicit TeacherMaps(Client *client, const QJsonObject &object);
 
-	Client* client() const { return m_client; }
-	bool isBusy() const { return m_isBusy; }
-	QStringList busyStack() const { return m_busyStack; }
+	bool classInit() override;
 
 public slots:
-	void send(const QJsonObject &query);
-	void setClient(Client* client);
-	void setIsBusy(bool isBusy);
-	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func);
-	void busyStackRemove(const QString &func);
+	QJsonObject getAllMap();
+	QJsonObject getMap();
+	QJsonObject createMap();
 
-protected slots:
-	virtual void clientSetup() {}
-
-signals:
-	void clientChanged(Client* client);
-	void isBusyChanged(bool isBusy);
-	void busyStackChanged(QStringList busyStack);
-
-protected:
-	Client* m_client;
-	bool m_isBusy;
-	QStringList m_busyStack;
+private:
+	void updateMapInfo(const int &id, const QVariantMap &params, const bool &increaseVersion = false);
 
 };
 
-#endif // ABSTRACTACTIVITY_H
+#endif // TEACHERMAPS_H

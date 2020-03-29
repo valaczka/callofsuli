@@ -34,6 +34,8 @@
 
 #include "maprepository.h"
 
+#define DATETIME_JSON_FORMAT QString("yyyy-MM-dd hh:mm:ss")
+
 MapRepository::MapRepository(const QString &connectionName, QObject *parent)
 	: COSdb(connectionName, parent)
 {
@@ -53,7 +55,7 @@ void MapRepository::listReload()
 		return;
 
 	QVariantList list;
-	if (m_db->execSelectQuery("SELECT id, name, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
+	if (m_db->execSelectQuery("SELECT id, refid, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
 		emit listLoaded(list);
 }
 
@@ -72,7 +74,27 @@ QVariantMap MapRepository::getInfo(const int &id)
 	QVariantMap r;
 	QVariantList l;
 	l << id;
-	m_db->execSelectQueryOneRow("SELECT id, name, uuid, md5 FROM mapdata WHERE id=?", l, &r);
+	m_db->execSelectQueryOneRow("SELECT id, refid, uuid, md5 FROM mapdata WHERE id=?", l, &r);
+
+	return r;
+}
+
+
+/**
+ * @brief MapRepository::getInfoByRefId
+ * @param id
+ * @return
+ */
+
+QVariantMap MapRepository::getInfoByRefId(const int &refid)
+{
+	if (!databaseOpen())
+		return QVariantMap();
+
+	QVariantMap r;
+	QVariantList l;
+	l << refid;
+	m_db->execSelectQueryOneRow("SELECT id, refid, uuid, md5 FROM mapdata WHERE refid=?", l, &r);
 
 	return r;
 }
@@ -134,29 +156,62 @@ int MapRepository::getId(const QString &uuid)
 
 
 /**
+ * @brief MapRepository::getRefId
+ * @param uuid
+ * @return
+ */
+
+int MapRepository::getRefId(const QString &uuid)
+{
+	if (!databaseOpen())
+		return -1;
+
+	QVariantMap r;
+	QVariantList l;
+	l << uuid;
+	if (!m_db->execSelectQueryOneRow("SELECT refid FROM mapdata WHERE uuid=?", l, &r))
+		return -1;
+
+	return r.value("id", -1).toInt();
+}
+
+
+/**
  * @brief MapRepository::repositoryCreate
  * @param name
  * @return
  */
 
-QVariantMap MapRepository::create(const QString &name)
+QVariantMap MapRepository::create(const int &refid)
 {
 	if (!databaseOpen())
 		return QVariantMap();
 
-	QVariantList l;
-	l << (name.isEmpty() ? tr("-- új pálya --") : name);
-	l << QUuid::createUuid().toString();
-	QVariantMap m = m_db->runSimpleQuery("INSERT INTO mapdata (name, uuid) VALUES (?)");
+	QJsonObject root;
 
-	if (m["error"].toBool()) {
-		emit databaseError(m["errorString"].toString());
-		return QVariantMap();
-	}
+	QJsonObject fileinfo;
+	fileinfo["uuid"] = QUuid::createUuid().toString();
+	fileinfo["timeCreated"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
+	fileinfo["timeModified"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
 
-	int id = m["lastInsertId"].toInt();
+	root["callofsuli"] = fileinfo;
 
-	return getInfo(id);
+	QJsonDocument d(root);
+
+	QByteArray mapdata = d.toBinaryData();
+
+	QString md5 = QCryptographicHash::hash(mapdata, QCryptographicHash::Md5).toHex();
+
+	QVariantMap l;
+	l["refid"] = refid;
+	l["uuid"] = fileinfo["uuid"].toString();
+	l["md5"] = md5;
+	l["data"] = mapdata;
+	int id = m_db->execInsertQuery("INSERT INTO mapdata (?k?) VALUES (?)", l);
+
+	fileinfo["id"] = id;
+
+	return fileinfo.toVariantMap();
 }
 
 
@@ -192,37 +247,18 @@ bool MapRepository::updateData(const int &id, const QByteArray &data, const bool
 	if (uuid != orig["uuid"].toString()) {
 		emit uuidComapareError(id);
 
-		if (!uuidOverwrite)
+		if (!uuidOverwrite) {
+			qWarning() << tr("Update map UUID error");
 			return false;
+		}
 
 		params["uuid"] = uuid;
 	}
 
-	QByteArray md5 = QCryptographicHash::hash(data, QCryptographicHash::Md5);
+	QString md5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
 
 	params["md5"] = md5;
 	params["data"] = data;
-
-
-
-	return true;
-}
-
-
-/**
- * @brief MapRepository::updateName
- * @param id
- * @param name
- * @return
- */
-
-bool MapRepository::updateName(const int &id, const QString &name)
-{
-	if (!databaseOpen())
-		return false;
-
-	QVariantMap params;
-	params["name"] = name;
 
 	QVariantMap binds;
 	binds[":id"] = id;
@@ -240,7 +276,7 @@ bool MapRepository::updateName(const int &id, const QString &name)
 
 bool MapRepository::databaseInit()
 {
-	if (m_isOwnCreated && !m_db->batchQueryFromFile(":/sql/maprepository.sql")) {
+	if (!m_db->batchQueryFromFile(":/sql/maprepository.sql")) {
 		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_databaseFile);
 		return false;
 	}

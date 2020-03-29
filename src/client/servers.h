@@ -36,9 +36,9 @@
 #define SERVERS_H
 
 #include <QObject>
-#include "abstractactivity.h"
+#include "abstractdbactivity.h"
 
-class Servers : public AbstractActivity
+class Servers : public AbstractDbActivity
 {
 	Q_OBJECT
 

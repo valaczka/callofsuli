@@ -75,17 +75,14 @@ bool COSdb::databaseOpen()
 			return false;
 		}
 
-		if (!databaseInit()) {
+		if (m_isOwnCreated && !databaseInit()) {
 			qWarning().noquote() << tr("Nem lehet létrehozni az adatbázist: ")+m_databaseFile;
 			emit databaseError(tr("Nem lehet létrehozni az adatbázist: ")+m_databaseFile);
 
-
-			if (m_isOwnCreated) {
-				qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+m_databaseFile;
-				m_db->close();
-				if (!QFile::remove(m_databaseFile)) {
-					qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+m_databaseFile;
-				}
+			qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+m_databaseFile;
+			m_db->close();
+			if (!QFile::remove(m_databaseFile)) {
+				qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+m_databaseFile;
 			}
 
 			return false;

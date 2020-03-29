@@ -62,8 +62,7 @@ CREATE TABLE map(
 	timeCreated TEXT NOT NULL DEFAULT (datetime('now')),
 	timeModified TEXT NOT NULL DEFAULT (datetime('now')),
 	version INTEGER NOT NULL DEFAULT 0,
-	objectives INTEGER NOT NULL DEFAULT 0 CHECK (objectives>=0),
-	md5 TEXT
+	objectives INTEGER NOT NULL DEFAULT 0 CHECK (objectives>=0)
 );
 
 

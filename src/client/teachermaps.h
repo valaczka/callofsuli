@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * teachermaps.h
  *
  * Created on: 2020. 03. 29.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * TeacherMaps
  *
  *  This file is part of Call of Suli.
  *
@@ -32,53 +32,32 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#ifndef TEACHERMAPS_H
+#define TEACHERMAPS_H
 
 #include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include "cosclient.h"
+#include "abstractactivity.h"
 
-class Client;
-
-class AbstractActivity : public QObject
+class TeacherMaps : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
-	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
-
-
 public:
-	explicit AbstractActivity(QObject *parent = nullptr);
+	TeacherMaps(QObject *parent=nullptr);
 
-	Client* client() const { return m_client; }
-	bool isBusy() const { return m_isBusy; }
-	QStringList busyStack() const { return m_busyStack; }
+	void clientSetup() override;
 
 public slots:
-	void send(const QJsonObject &query);
-	void setClient(Client* client);
-	void setIsBusy(bool isBusy);
-	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func);
-	void busyStackRemove(const QString &func);
-
-protected slots:
-	virtual void clientSetup() {}
+	void mapGet(const QJsonObject &data);
 
 signals:
-	void clientChanged(Client* client);
-	void isBusyChanged(bool isBusy);
-	void busyStackChanged(QStringList busyStack);
+	void mapListLoaded(const QJsonArray &list);
+	void mapCreated(const QJsonObject &map);
+	void mapReceived(const int &mapid, const QJsonObject &jsonData, const QByteArray &mapdata);
 
-protected:
-	Client* m_client;
-	bool m_isBusy;
-	QStringList m_busyStack;
-
+private slots:
+	void onJsonReceived(const QJsonObject &object);
+	void onMapReceived(const int &, const QJsonObject &, const QByteArray &);
 };
 
-#endif // ABSTRACTACTIVITY_H
+#endif // TEACHERMAPS_H

@@ -35,13 +35,6 @@ Page {
 		}
 	}
 
-	/* CONTENT */
-	BusyIndicator {
-		id: busy
-		anchors.centerIn: parent
-		running: false
-	}
-	/* CONTENT */
 
 	StackView.onRemoved: destroy()
 

@@ -66,8 +66,6 @@ QJsonObject UserInfo::getUser()
 {
 	QJsonObject ret;
 
-	qDebug() << "getUser";
-
 	QString username = m_object["username"].toString();
 	if (username.isEmpty())
 		username = m_client->clientUserName();
@@ -96,8 +94,6 @@ QJsonObject UserInfo::getUser()
 QJsonObject UserInfo::getAllUser()
 {
 	QJsonObject ret;
-
-	qDebug() << "getAllUser";
 
 	QJsonArray l;
 	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "

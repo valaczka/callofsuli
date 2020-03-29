@@ -1,9 +1,9 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * abstractactivity.cpp
  *
- * Created on: 2020. 03. 29.
+ * Created on: 2020. 03. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * AbstractActivity
@@ -32,53 +32,31 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#include "abstractdbactivity.h"
 
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include "cosclient.h"
-
-class Client;
-
-class AbstractActivity : public QObject
+AbstractDbActivity::AbstractDbActivity(const QString &connectionName, QObject *parent)
+	: COSdb(connectionName, parent)
 {
-	Q_OBJECT
-
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
-	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
+	m_client = nullptr;
+}
 
 
-public:
-	explicit AbstractActivity(QObject *parent = nullptr);
 
-	Client* client() const { return m_client; }
-	bool isBusy() const { return m_isBusy; }
-	QStringList busyStack() const { return m_busyStack; }
 
-public slots:
-	void send(const QJsonObject &query);
-	void setClient(Client* client);
-	void setIsBusy(bool isBusy);
-	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func);
-	void busyStackRemove(const QString &func);
 
-protected slots:
-	virtual void clientSetup() {}
+void AbstractDbActivity::setClient(Client *client)
+{
+	if (m_client == client)
+		return;
 
-signals:
-	void clientChanged(Client* client);
-	void isBusyChanged(bool isBusy);
-	void busyStackChanged(QStringList busyStack);
+	m_client = client;
+	emit clientChanged(m_client);
 
-protected:
-	Client* m_client;
-	bool m_isBusy;
-	QStringList m_busyStack;
+	qDebug() << "setClient" << m_client;
 
-};
+	if (m_client) {
+		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
+		clientSetup();
+	}
+}
 
-#endif // ABSTRACTACTIVITY_H

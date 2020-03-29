@@ -15,6 +15,15 @@ Page {
 
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
+
+		rightLoader.sourceComponent: Row {
+			/*QToolBusyIndicator { running: .isBusy }
+			QMenuButton {
+				MenuItem {
+					text:
+				}
+			}*/
+		}
 	}
 
 	Image {
@@ -24,13 +33,10 @@ Page {
 		source: "qrc:/img/villa.png"
 	}
 
+
+
 	/* CONTENT */
-	BusyIndicator {
-		id: busy
-		anchors.centerIn: parent
-		running: false
-	}
-	/* CONTENT */
+
 
 	StackView.onRemoved: destroy()
 

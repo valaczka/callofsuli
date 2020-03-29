@@ -3,7 +3,7 @@
  *
  * abstractactivity.cpp
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 03. 29.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * AbstractActivity
@@ -33,14 +33,28 @@
  */
 
 #include "abstractactivity.h"
+#include "QQuickItem"
 
-AbstractActivity::AbstractActivity(const QString &connectionName, QObject *parent)
-	: COSdb(connectionName, parent)
+AbstractActivity::AbstractActivity(QObject *parent) : QObject(parent)
 {
 	m_client = nullptr;
+	m_isBusy = false;
 }
 
 
+/**
+ * @brief AbstractActivity::send
+ * @param query
+ */
+
+void AbstractActivity::send(const QJsonObject &query)
+{
+	QString f = query["func"].toString();
+	if (!f.isEmpty())
+		busyStackAdd(f);
+
+	m_client->socketSendJson(query);
+}
 
 
 
@@ -55,8 +69,50 @@ void AbstractActivity::setClient(Client *client)
 	qDebug() << "setClient" << m_client;
 
 	if (m_client) {
-		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
 		clientSetup();
 	}
 }
 
+void AbstractActivity::setIsBusy(bool isBusy)
+{
+	if (m_isBusy == isBusy)
+		return;
+
+	m_isBusy = isBusy;
+	emit isBusyChanged(m_isBusy);
+}
+
+void AbstractActivity::setBusyStack(QStringList busyStack)
+{
+	if (m_busyStack == busyStack)
+		return;
+
+	m_busyStack = busyStack;
+	emit busyStackChanged(m_busyStack);
+}
+
+
+/**
+ * @brief AbstractActivity::busyStackAdd
+ * @param func
+ */
+
+void AbstractActivity::busyStackAdd(const QString &func)
+{
+	if (!m_busyStack.contains(func)) {
+		m_busyStack.append(func);
+		setIsBusy(true);
+	}
+}
+
+
+/**
+ * @brief AbstractActivity::busyStackRemove
+ * @param func
+ */
+
+void AbstractActivity::busyStackRemove(const QString &func)
+{
+	m_busyStack.removeAll(func);
+	setIsBusy(m_busyStack.count());
+}

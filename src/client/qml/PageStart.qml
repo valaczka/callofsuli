@@ -150,11 +150,7 @@ Page {
 			}
 		}
 
-		BusyIndicator {
-			id: busy
-			anchors.centerIn: parent
-			running: false
-		}
+
 	}
 
 

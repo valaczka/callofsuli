@@ -3,7 +3,7 @@
  *
  * abstractactivity.h
  *
- * Created on: 2020. 03. 29.
+ * Created on: 2020. 03. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * AbstractActivity
@@ -32,52 +32,38 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#ifndef ABSTRACTDBACTIVITY_H
+#define ABSTRACTDBACTIVITY_H
 
 #include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
+
+#include "../common/cosdb.h"
 #include "cosclient.h"
 
 class Client;
 
-class AbstractActivity : public QObject
+class AbstractDbActivity : public COSdb
 {
 	Q_OBJECT
 
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
-	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
-
 
 public:
-	explicit AbstractActivity(QObject *parent = nullptr);
+	explicit AbstractDbActivity(const QString &connectionName = QString(), QObject *parent = nullptr);
 
 	Client* client() const { return m_client; }
-	bool isBusy() const { return m_isBusy; }
-	QStringList busyStack() const { return m_busyStack; }
 
 public slots:
-	void send(const QJsonObject &query);
 	void setClient(Client* client);
-	void setIsBusy(bool isBusy);
-	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func);
-	void busyStackRemove(const QString &func);
 
 protected slots:
 	virtual void clientSetup() {}
 
 signals:
 	void clientChanged(Client* client);
-	void isBusyChanged(bool isBusy);
-	void busyStackChanged(QStringList busyStack);
 
 protected:
 	Client* m_client;
-	bool m_isBusy;
-	QStringList m_busyStack;
 
 };
 

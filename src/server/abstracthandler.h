@@ -48,6 +48,7 @@ public:
 	explicit AbstractHandler(Client *client, const QJsonObject &object);
 	virtual ~AbstractHandler();
 
+	virtual bool classInit() { return true; }
 	virtual QJsonObject start(const QString &func);
 
 	static void addPermissionDenied(QJsonObject *object);

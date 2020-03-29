@@ -31,11 +31,10 @@ Page {
 
 		QButton {
 			id: button1
-			label: "SEND JSON DATA"
+			label: "Teacher MAPS"
 
 			onClicked: {
-				console.debug(cosClient.userFirstName)
-				cosClient.socketSendJson({"test": "szia", "vissza": 3})
+				JS.createPage("TeacherMaps", {}, page)
 			}
 		}
 
@@ -86,14 +85,6 @@ Page {
 			}
 		}
 	}
-
-	/* CONTENT */
-	BusyIndicator {
-		id: busy
-		anchors.centerIn: parent
-		running: false
-	}
-	/* CONTENT */
 
 	StackView.onRemoved: destroy()
 

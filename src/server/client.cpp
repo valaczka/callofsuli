@@ -29,10 +29,12 @@
 #include "client.h"
 
 #include "userinfo.h"
+#include "teachermaps.h"
 
-Client::Client(CosSql *database, QWebSocket *socket, QObject *parent)
+Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObject *parent)
 	: QObject(parent)
 	, m_db(database)
+	, m_mapDb(mapDb)
 	, m_socket(socket)
 {
 	Q_ASSERT(socket);
@@ -120,6 +122,41 @@ void Client::sendJson(const QJsonObject &object, const int &clientMsgId)
 	qDebug() << object;
 
 	ds << QJsonDocument(object).toBinaryData();
+
+	SEND_END;
+}
+
+
+/**
+ * @brief Client::sendMap
+ * @param mapid
+ * @param clientMsgId
+ */
+
+void Client::sendMap(const QString &classname, const int &mapid, const QJsonObject &jsonData, const int &clientMsgId)
+{
+	QVariantList l;
+	l << mapid;
+
+	QVariantMap mdata = m_mapDb->db()->runSimpleQuery("SELECT data FROM mapdata WHERE refid=?", l);
+
+	if (mdata["error"].toBool() || !mdata["records"].toList().count()) {
+		qWarning() << tr("Invalid map") << mapid;
+		return;
+	}
+
+	QByteArray b = mdata["records"].toList().value(0).toMap().value("data").toByteArray();
+	if (b.isEmpty()) {
+		qWarning() << tr("Map data not found") <<mapid;
+		return;
+	}
+
+	QString msgType = "map";
+	SEND_BEGIN;
+
+	qDebug() << "SEND MAP" << classname << mapid << jsonData;
+
+	ds << classname << mapid << jsonData << b;
 
 	SEND_END;
 }
@@ -440,9 +477,12 @@ void Client::parseJson(const QByteArray &data, const int &clientMsgId, const int
 	ret["func"] = func;
 	QJsonObject fdata;
 
-	if (cl == "userinfo") {
-		UserInfo u(this, cos);
-		fdata = u.start(func);
+	if (cl == "userInfo") {
+		UserInfo q(this, cos);
+		fdata = q.start(func);
+	} else if (cl == "teacherMaps") {
+		TeacherMaps q(this, cos);
+		fdata = q.start(func);
 	} else {
 		sendError("invalidClass", clientMsgId);
 		return;

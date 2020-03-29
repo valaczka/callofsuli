@@ -33,11 +33,12 @@
  */
 
 #include "map.h"
+#include "cosclient.h"
 
 #define DATETIME_JSON_FORMAT QString("yyyy-MM-dd hh:mm:ss")
 
 Map::Map(QObject *parent)
-	: AbstractActivity("mapDB", parent)
+	: AbstractDbActivity("mapDB", parent)
 {
 	m_tableNames << "info"
 				 << "intro"
@@ -77,30 +78,6 @@ Map::~Map()
 
 
 
-/**
- * @brief Map::create
- * @return
- */
-
-bool Map::create()
-{
-	Q_ASSERT (m_client);
-
-	if (!databaseOpen() || !databasePrepare()) {
-		return false;
-	}
-
-	setMapUuid(QUuid::createUuid().toString());
-	setMapTimeCreated(QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT));
-	updateMapOriginalFile("");
-
-	emit mapLoaded();
-
-	return true;
-}
-
-
-
 
 /**
  * @brief Map::save
@@ -118,6 +95,10 @@ void Map::save(const bool &binaryFormat)
 		qDebug() << tr("Adatbázis mentése");
 		emit mapSaved(data, m_mapUuid);
 	}
+
+#ifdef QT_DEBUG
+	emit mapRefreshed(saveToJson(false));
+#endif
 }
 
 
@@ -165,6 +146,10 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 	setMapTimeCreated(fileinfo["timeCreated"].toString());
 
 	emit mapLoaded();
+
+#ifdef QT_DEBUG
+	emit mapRefreshed(doc.toJson(QJsonDocument::Indented));
+#endif
 
 	return true;
 }
@@ -220,7 +205,10 @@ bool Map::loadFromBackup()
 		setMapOriginalFile(filename);
 
 		emit mapLoadedFromBackup();
-		emit mapLoaded();
+
+#ifdef QT_DEBUG
+		emit mapRefreshed(saveToJson(false));
+#endif
 		return true;
 	}
 
@@ -255,6 +243,30 @@ QByteArray Map::saveToJson(const bool &binaryFormat)
 
 	QJsonDocument d(root);
 
+
+	return binaryFormat ? d.toBinaryData() : d.toJson(QJsonDocument::Indented);
+}
+
+
+/**
+ * @brief Map::create
+ * @return
+ */
+
+QByteArray Map::create(const bool &binaryFormat)
+{
+	QJsonObject root;
+
+	QJsonObject fileinfo;
+	fileinfo["versionMajor"] = Client::clientVersionMajor();
+	fileinfo["versionMinor"] = Client::clientVersionMinor();
+	fileinfo["uuid"] = QUuid::createUuid().toString();
+	fileinfo["timeCreated"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
+	fileinfo["timeModified"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
+
+	root["callofsuli"] = fileinfo;
+
+	QJsonDocument d(root);
 
 	return binaryFormat ? d.toBinaryData() : d.toJson(QJsonDocument::Indented);
 }
@@ -306,10 +318,23 @@ void Map::updateMapOriginalFile(const QString &filename)
 {
 	QVariantMap l;
 	l["originalFile"] = filename;
-	l["uuid"] = m_mapUuid;
-	l["timeCreated"] = m_mapTimeCreated;
 	m_db->execInsertQuery("INSERT OR REPLACE INTO mapeditor (?k?) VALUES(?)", l);
 	setMapOriginalFile(filename);
+}
+
+
+/**
+ * @brief Map::updateMapServerId
+ * @param serverId
+ * @param mapId
+ */
+
+void Map::updateMapServerId(const int &serverId, const int &mapId)
+{
+	QVariantMap l;
+	l["serverid"] = serverId;
+	l["mapid"] = mapId;
+	m_db->execInsertQuery("INSERT OR REPLACE INTO mapeditor (?k?) VALUES(?)", l);
 }
 
 
@@ -505,14 +530,16 @@ bool Map::databaseCheck()
 			return true;
 		}
 
-		QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid from mapeditor");
+		QVariantMap m = m_db->runSimpleQuery("SELECT serverid, mapid, originalFile, uuid from mapeditor");
 		if (!m["error"].toBool() && m["records"].toList().count()) {
 			QVariantMap r = m["records"].toList().value(0).toMap();
+			int serverid = r.value("serverid").toInt();
+			int mapid = r.value("mapid").toInt();
 			QString filename = r.value("originalFile").toString();
 			QString uuid = r.value("uuid").toString();
 
 			if (!uuid.isEmpty()) {
-				emit mapBackupExists(filename);
+				emit mapBackupExists(filename, uuid, serverid, mapid);
 				m_db->close();
 				return true;
 			}
@@ -540,6 +567,17 @@ void Map::setMapType(Map::MapType mapType)
 {
 	if (m_mapType == mapType)
 		return;
+
+	switch (mapType) {
+		case MapEditor:
+			setDatabaseFile(Client::standardPath("tmpmapeditor.db"));
+			break;
+		case MapGame:
+			setDatabaseFile(Client::standardPath("tmpgame.db"));
+			break;
+		default:
+			break;
+	}
 
 	m_mapType = mapType;
 	emit mapTypeChanged(m_mapType);

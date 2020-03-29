@@ -10,8 +10,8 @@ import "JScript.js" as JS
 Page {
 	id: page
 
-	property string fileName: ""
-	property bool mapLoaded: false
+	property string mapName: ""
+	property alias map: map
 
 	Map {
 		id: map
@@ -19,15 +19,7 @@ Page {
 		client: cosClient
 		mapType: Map.MapEditor
 
-		onMapBackupExists: {
-			var d = JS.dialogCreate(dlgBackupExists)
-			d.item.fname = originalFile
-			d.open()
-		}
-
-		onMapLoaded: page.mapLoaded = true
-
-		onMapSaved: console.debug(data)
+		onMapRefreshed:	lblJson.text = data
 	}
 
 	header: QToolBar {
@@ -35,6 +27,18 @@ Page {
 
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
+
+		rightLoader.sourceComponent: Row {
+			QToolBusyIndicator { running: false }
+			QMenuButton {
+				MenuItem {
+					text: qsTr("SAVE")
+					onClicked:  {
+						map.save(false)
+					}
+				}
+			}
+		}
 	}
 
 	Image {
@@ -44,146 +48,24 @@ Page {
 		source: "qrc:/img/villa.png"
 	}
 
-	Column {
-		QButton {
-			label: "NEW"
-			onClicked: map.create()
-			disabled: mapLoaded
-		}
-
-		QButton {
-			label: "OPEN"
-			onClicked: {
-				var d = JS.dialogCreate(dlgFileName)
-				d.item.mode = 0
-				d.open()
-			}
-			disabled: mapLoaded
-		}
-
-
-		QButton {
-			label: "OPEN JSON"
-			onClicked: {
-				var d = JS.dialogCreate(dlgFileName)
-				d.item.mode = 1
-				d.open()
-			}
-			disabled: mapLoaded
-		}
-
-
-		QButton {
-			label: "SAVE"
-			onClicked: map.save(true)
-			disabled: !mapLoaded
-		}
-
-		QButton {
-			label: "Save json"
-			onClicked: map.save(false)
-			disabled: !mapLoaded
-		}
-
-
-		QButton {
-			label: "Save as"
-			onClicked: {
-				var d = JS.dialogCreate(dlgFileName)
-				d.item.mode = 4
-				d.open()
-			}
-			disabled: !mapLoaded
-		}
-
-
-		QButton {
-			label: "Save as JSON"
-			onClicked: {
-				var d = JS.dialogCreate(dlgFileName)
-				d.item.mode = 5
-				d.open()
-			}
-			disabled: !mapLoaded
-		}
-
-	}
-
-
-	/* CONTENT */
-	BusyIndicator {
-		id: busy
-		anchors.centerIn: parent
-		running: false
-	}
-	/* CONTENT */
-
-
-	Component {
-		id: dlgBackupExists
-
-		QDialogYesNo {
-			id: dlgYesNo
-
-			property alias fname: dlgYesNo.text
-
-			title: qsTr("Helyreállítsam automatikusan a fájlt?")
-
-			onDlgAccept: {
-				map.loadFromBackup()
-			}
-
-		}
+	Label {
+		id: lblJson
 	}
 
 
 
-	Component {
-		id: dlgFileName
 
-		QDialogTextField {
-			id: dlgYesNo
-
-			property int mode: 0
-
-			title: switch (mode) {
-				   case 0: qsTr("Megnyitás fájlból"); break
-				   case 1: qsTr("Megnyitás JSON fájlból"); break
-				   case 2: qsTr("Mentés"); break
-				   case 3: qsTr("Mentés JSON"); break
-				   case 4: qsTr("Mentés másként"); break
-				   case 5: qsTr("Mentés másként JSON"); break
-				   }
-
-			onDlgAccept: {
-				switch (mode) {
-				case 0: map.loadFromFile(data, true); break
-				case 1: map.loadFromFile(data, false); break
-				case 2: map.save(true); break
-				case 3: map.save(false); break
-				case 4: map.saveAs(data, true); break
-				case 5: map.saveAs(data, false); break
-				}
-			}
-
-		}
-	}
 
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.title = qsTr("Pályaszerkesztő")
-		/* LOAD */
+		toolbar.title = mapName
 	}
 
 	StackView.onDeactivated: {
 		/* UNLOAD */
 	}
 
-
-	Component.onCompleted: {
-		map.databaseCheck()
-	}
 
 	function stackBack() {
 		if (mainStack.depth > page.StackView.index+1) {

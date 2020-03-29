@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * teachermaps.cpp
  *
  * Created on: 2020. 03. 29.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * TeacherMaps
  *
  *  This file is part of Call of Suli.
  *
@@ -32,53 +32,65 @@
  * SOFTWARE.
  */
 
-#ifndef ABSTRACTACTIVITY_H
-#define ABSTRACTACTIVITY_H
+#include "teachermaps.h"
 
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include "cosclient.h"
-
-class Client;
-
-class AbstractActivity : public QObject
+TeacherMaps::TeacherMaps(QObject *parent)
+	: AbstractActivity(parent)
 {
-	Q_OBJECT
 
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
-	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
+}
 
 
-public:
-	explicit AbstractActivity(QObject *parent = nullptr);
+/**
+ * @brief TeacherMaps::clientSetup
+ */
 
-	Client* client() const { return m_client; }
-	bool isBusy() const { return m_isBusy; }
-	QStringList busyStack() const { return m_busyStack; }
+void TeacherMaps::clientSetup()
+{
+	connect(m_client, &Client::jsonTeacherMapsReceived, this, &TeacherMaps::onJsonReceived);
+	connect(m_client, &Client::mapTeacherMapsReceived, this, &TeacherMaps::mapReceived);
+	connect(m_client, &Client::mapTeacherMapsReceived, this, &TeacherMaps::onMapReceived);
+}
 
-public slots:
-	void send(const QJsonObject &query);
-	void setClient(Client* client);
-	void setIsBusy(bool isBusy);
-	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func);
-	void busyStackRemove(const QString &func);
 
-protected slots:
-	virtual void clientSetup() {}
+/**
+ * @brief TeacherMaps::mapGet
+ * @param data
+ */
 
-signals:
-	void clientChanged(Client* client);
-	void isBusyChanged(bool isBusy);
-	void busyStackChanged(QStringList busyStack);
+void TeacherMaps::mapGet(const QJsonObject &data)
+{
+	busyStackAdd("getMapData");
+	send(data);
+}
 
-protected:
-	Client* m_client;
-	bool m_isBusy;
-	QStringList m_busyStack;
 
-};
+/**
+ * @brief TeacherMaps::onJsonTeacherMapsReceived
+ * @param object
+ */
 
-#endif // ABSTRACTACTIVITY_H
+void TeacherMaps::onJsonReceived(const QJsonObject &object)
+{
+	QString func = object["func"].toString();
+	QJsonObject data = object["data"].toObject();
+
+	if (!func.isEmpty())
+		busyStackRemove(func);
+
+	if (func == "getAllMap")
+		emit mapListLoaded(data["list"].toArray());
+	else if (func == "createMap")
+		emit mapCreated(data);
+}
+
+/**
+ * @brief TeacherMaps::onMapReceived
+ */
+
+void TeacherMaps::onMapReceived(const int &, const QJsonObject &, const QByteArray &)
+{
+	busyStackRemove("getMapData");
+	qDebug() << "removed";
+}
+

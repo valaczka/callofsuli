@@ -97,18 +97,11 @@ Page {
 											serverId === -1)
 
 					if (Object.keys(m).length) {
-						busy.running = true
 						servers.serverInfoInsertOrUpdate(serverId, m)
 					}
 				}
 
 			}
-		}
-
-		BusyIndicator {
-			id: busy
-			anchors.centerIn: parent
-			running: false
 		}
 	}
 

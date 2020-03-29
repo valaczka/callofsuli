@@ -36,15 +36,16 @@
 #define MAP_H
 
 #include <QObject>
-#include "abstractactivity.h"
+#include "abstractdbactivity.h"
 
-class Map : public AbstractActivity
+
+class Map : public AbstractDbActivity
 {
 	Q_OBJECT
 
 public:
 
-	enum MapType { MapInvalid, MapEditor, MapGame };
+	enum MapType { MapInvalid, MapEditor, MapGame, MapCustom };
 	Q_ENUM(MapType)
 
 	Q_PROPERTY(QString mapUuid READ mapUuid WRITE setMapUuid NOTIFY mapUuidChanged)
@@ -63,31 +64,34 @@ public:
 	MapType mapType() const { return m_mapType; }
 
 public slots:
-	bool create();
 	void save(const bool &binaryFormat = true);
 	bool loadFromJson(const QByteArray &data, const bool &binaryFormat = true);
 	bool loadFromFile(const QString &filename, const bool &binaryFormat = true);
 	bool loadFromBackup();
 	QByteArray saveToJson(const bool &binaryFormat = true);
+	static QByteArray create(const bool &binaryFormat = true);
 	bool saveToFile(const QString &filename, const QByteArray &data = QByteArray());
 	void updateMapOriginalFile(const QString &filename);
+	void updateMapServerId(const int &serverId, const int &mapId);
 	bool databaseCheck();
 	bool databasePrepare();
 
 	void setMapType(MapType mapType);
-
-
-
-private slots:
 	void setMapUuid(QString mapUuid);
 	void setMapTimeCreated(QString mapTimeCreated);
 	void setMapOriginalFile(QString mapOriginalFile);
 
+
+
 signals:
-	void mapBackupExists(const QString &originalFile);
+	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);
 	void mapLoaded();
 	void mapLoadedFromBackup();
 	void mapSaved(const QByteArray &data, const QString &uuid);
+
+#ifdef QT_DEBUG
+	void mapRefreshed(const QByteArray &data);
+#endif
 
 	void mapTitleChanged(QString mapTitle);
 	void mapUuidChanged(QString mapUuid);

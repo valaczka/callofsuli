@@ -23,16 +23,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
 		abstractactivity.cpp \
+		abstractdbactivity.cpp \
 		cosclient.cpp \
 		main.cpp \
 		map.cpp \
-		servers.cpp
+		servers.cpp \
+		teachermaps.cpp
 
 HEADERS += \
 	abstractactivity.h \
+	abstractdbactivity.h \
 	cosclient.h \
 	map.h \
-	servers.h
+	servers.h \
+	teachermaps.h
 
 RESOURCES += \
 	qml/qml.qrc \

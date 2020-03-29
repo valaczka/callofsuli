@@ -32,6 +32,7 @@
 #include <QObject>
 
 #include "../common/cossql.h"
+#include "../common/maprepository.h"
 
 class Client : public QObject
 {
@@ -56,6 +57,7 @@ public:
 	Q_PROPERTY(ClientRoles clientRoles READ clientRoles WRITE setClientRoles NOTIFY clientRolesChanged)
 
 	explicit Client(CosSql *database,
+					MapRepository *mapDb,
 					 QWebSocket *socket,
 					 QObject *parent = nullptr);
 	virtual ~Client();
@@ -67,10 +69,12 @@ public:
 	QString clientUserName() const { return m_clientUserName; }
 	ClientRoles clientRoles() const { return m_clientRoles; }
 	CosSql *db() const { return m_db; }
+	MapRepository *mapDb() const { return m_mapDb; }
 
 public slots:
 	void sendError(const QString &error, const int &clientMsgId = -1);
 	void sendJson(const QJsonObject &object, const int &clientMsgId = -1);
+	void sendMap(const QString &classname, const int &mapid, const QJsonObject &jsonData = QJsonObject(), const int &clientMsgId = -1);
 	void sendFile(const QString &filename, const int &clientMsgId = -1);
 	void sendClientRoles(const ClientRoles &clientRoles);
 
@@ -97,6 +101,7 @@ private:
 
 private:
 	CosSql *m_db;
+	MapRepository* m_mapDb;
 	QWebSocket *m_socket;
 	int m_serverMsgId;
 

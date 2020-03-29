@@ -48,13 +48,13 @@ public:
 public slots:
 	void listReload();
 	QVariantMap getInfo(const int &id);
+	QVariantMap getInfoByRefId(const int &refid);
 	QByteArray getData(const int &id);
 	QByteArray getData(const QString &uuid);
 	int getId(const QString &uuid);
-	QVariantMap create(const QString &name = QString());
-
+	int getRefId(const QString &uuid);
+	QVariantMap create(const int &refid = QVariant::Invalid);
 	bool updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
-	bool updateName(const int &id, const QString &name);
 
 protected slots:
 	bool databaseInit();

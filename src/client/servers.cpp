@@ -35,7 +35,7 @@
 #include "servers.h"
 
 Servers::Servers(QObject *parent)
-	: AbstractActivity("serversDb", parent)
+	: AbstractDbActivity("serversDb", parent)
 {
 	setDatabaseFile(Client::standardPath("servers.db"));
 	m_connectedServerId = -1;
@@ -359,9 +359,9 @@ void Servers::onAuthInvalid()
 
 void Servers::onUserRolesChanged(Client::Roles userRoles)
 {
-	if (!userRoles.testFlag(Client::Student) &&
-		!userRoles.testFlag(Client::Teacher) &&
-		!userRoles.testFlag(Client::Admin))
+	if (!userRoles.testFlag(Client::RoleStudent) &&
+		!userRoles.testFlag(Client::RoleTeacher) &&
+		!userRoles.testFlag(Client::RoleAdmin))
 	{
 		serverLogOut();
 	}

@@ -30,12 +30,14 @@ SOURCES += \
 		client.cpp \
 		main.cpp \
 		server.cpp \
+		teachermaps.cpp \
 		userinfo.cpp
 
 HEADERS += \
 	abstracthandler.h \
 	client.h \
 	server.h \
+	teachermaps.h \
 	userinfo.h
 
 RESOURCES += \

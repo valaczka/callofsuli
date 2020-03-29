@@ -508,7 +508,7 @@ void Server::onNewConnection()
 {
 	QWebSocket *pSocket = m_socketServer->nextPendingConnection();
 
-	Client *handler = new Client(m_db, pSocket);
+	Client *handler = new Client(m_db, m_mapDb, pSocket);
 
 	connect(handler, SIGNAL(disconnected()), this, SLOT(onSocketDisconnected()));
 

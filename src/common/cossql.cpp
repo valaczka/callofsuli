@@ -73,6 +73,8 @@ bool CosSql::open(const QString &file, bool create)
 		return false;
 	}
 
+	m_db.exec("PRAGMA foreign_keys = ON");
+
 	qDebug().noquote() << tr("Adatbázis megnyitva: ")+m_db.databaseName();
 
 	return true;
@@ -319,7 +321,8 @@ bool CosSql::execSelectQuery(QString query, const QVariantList &args, QVariantLi
 	}
 
 	if (records) {
-		*records = r["records"].toList();
+		foreach (QVariant q, r["records"].toList())
+			(*records).append(q);
 	}
 
 	return true;
@@ -344,7 +347,8 @@ bool CosSql::execSelectQuery(QString query, const QVariantList &args, QJsonArray
 	}
 
 	if (records) {
-		*records = r["records"].toJsonArray();
+		foreach (QJsonValue q, r["records"].toJsonArray())
+			(*records).append(q);
 	}
 
 	return true;
@@ -370,7 +374,11 @@ bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QVar
 		return false;
 
 	if (record && list.count()) {
-		*record = list.value(0).toMap();
+		QVariantMap map = list.value(0).toMap();
+		QStringList keys = map.keys();
+		foreach (QString k, keys) {
+			(*record)[k] = map.value(k);
+		}
 	}
 
 	return true;
@@ -396,7 +404,11 @@ bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QJso
 		return false;
 
 	if (record && list.count()) {
-		*record = list.value(0).toJsonObject();
+		QJsonObject map = list.value(0).toJsonObject();
+		QStringList keys = map.keys();
+		foreach (QString k, keys) {
+			(*record)[k] = map.value(k);
+		}
 	}
 
 	return true;

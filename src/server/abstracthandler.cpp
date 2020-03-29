@@ -62,7 +62,12 @@ QJsonObject AbstractHandler::start(const QString &func)
 {
 	QJsonObject data;
 
-	qDebug() << QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
+	if (!classInit()) {
+		addPermissionDenied(&data);
+		return data;
+	}
+
+	QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
 							  Q_RETURN_ARG(QJsonObject, data));
 
 	return data;
