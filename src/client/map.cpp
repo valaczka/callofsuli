@@ -83,17 +83,17 @@ Map::~Map()
  * @brief Map::save
  */
 
-void Map::save(const bool &binaryFormat)
+void Map::save(const int &mapId, const bool &binaryFormat)
 {
 	QByteArray data = saveToJson(binaryFormat);
 
 	if (!m_mapOriginalFile.isEmpty()) {
 		qDebug() << tr("Adatbázis mentése fájlba: ")+m_mapOriginalFile;
 		if (saveToFile(m_mapOriginalFile, data))
-			emit mapSaved(data, m_mapUuid);
+			emit mapSaved(data, m_mapUuid, mapId);
 	} else {
 		qDebug() << tr("Adatbázis mentése");
-		emit mapSaved(data, m_mapUuid);
+		emit mapSaved(data, m_mapUuid, mapId);
 	}
 
 #ifdef QT_DEBUG

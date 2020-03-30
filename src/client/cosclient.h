@@ -32,6 +32,7 @@
 #include <QObject>
 #include <QQuickWindow>
 #include <QSettings>
+#include <QJsonObject>
 #include "../version/buildnumber.h"
 
 class Client : public QObject
@@ -119,8 +120,7 @@ public slots:
 	void logout();
 
 	int socketNextClientMsgId();
-	int socketSend(const QString &msgType, const QByteArray &data, const int &serverMsgId = -1);
-	int socketSendJson(const QJsonObject &jsonObject);
+	int socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData = QByteArray(), const int &serverMsgId = -1);
 
 
 
@@ -128,8 +128,8 @@ private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
 
-	void parseJson(const QJsonObject &object);
-	void parseMap(const QString &classname, const int &mapid, const QJsonObject &jsonData, const QByteArray &mapdata);
+	void parseJson(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	QByteArray prepareJson(const QJsonObject &jsonObject);
 
 	void onSocketConnected();
 	void onSocketDisconnected();
@@ -138,7 +138,7 @@ private slots:
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
 	void onSocketServerError(const QString &error);
 
-	void onJsonUserInfoReceived(const QJsonObject &object);
+	void onJsonUserInfoReceived(const QJsonObject &object, const QByteArray &, const int &);
 
 
 	void setUserName(QString userName);
@@ -159,11 +159,8 @@ signals:
 
 	void authInvalid();
 
-	void jsonReceived(const QJsonObject &json);
-
-	void jsonUserInfoReceived(const QJsonObject &object);
-	void jsonTeacherMapsReceived(const QJsonObject &object);
-	void mapTeacherMapsReceived(const int &mapid, const QJsonObject &jsonData, const QByteArray &mapdata);
+	void jsonUserInfoReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void jsonTeacherMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);

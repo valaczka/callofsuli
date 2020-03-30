@@ -59,12 +59,12 @@ public:
 	QStringList busyStack() const { return m_busyStack; }
 
 public slots:
-	void send(const QJsonObject &query);
+	void send(const QJsonObject &query, const QByteArray &binaryData = QByteArray());
 	void setClient(Client* client);
 	void setIsBusy(bool isBusy);
 	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func);
-	void busyStackRemove(const QString &func);
+	void busyStackAdd(const QString &func, const int &msgId);
+	void busyStackRemove(const QString &func, const int &msgId);
 
 protected slots:
 	virtual void clientSetup() {}

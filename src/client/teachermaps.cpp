@@ -48,21 +48,9 @@ TeacherMaps::TeacherMaps(QObject *parent)
 void TeacherMaps::clientSetup()
 {
 	connect(m_client, &Client::jsonTeacherMapsReceived, this, &TeacherMaps::onJsonReceived);
-	connect(m_client, &Client::mapTeacherMapsReceived, this, &TeacherMaps::mapReceived);
-	connect(m_client, &Client::mapTeacherMapsReceived, this, &TeacherMaps::onMapReceived);
 }
 
 
-/**
- * @brief TeacherMaps::mapGet
- * @param data
- */
-
-void TeacherMaps::mapGet(const QJsonObject &data)
-{
-	busyStackAdd("getMapData");
-	send(data);
-}
 
 
 /**
@@ -70,27 +58,21 @@ void TeacherMaps::mapGet(const QJsonObject &data)
  * @param object
  */
 
-void TeacherMaps::onJsonReceived(const QJsonObject &object)
+void TeacherMaps::onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
 {
 	QString func = object["func"].toString();
 	QJsonObject data = object["data"].toObject();
 
 	if (!func.isEmpty())
-		busyStackRemove(func);
+		busyStackRemove(func, clientMsgId);
 
 	if (func == "getAllMap")
 		emit mapListLoaded(data["list"].toArray());
+	else if (func == "getMap")
+		emit mapReceived(data, binaryData);
 	else if (func == "createMap")
 		emit mapCreated(data);
-}
-
-/**
- * @brief TeacherMaps::onMapReceived
- */
-
-void TeacherMaps::onMapReceived(const int &, const QJsonObject &, const QByteArray &)
-{
-	busyStackRemove("getMapData");
-	qDebug() << "removed";
+	else if (func == "updateMap")
+		emit mapUpdated(data);
 }
 

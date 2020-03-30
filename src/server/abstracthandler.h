@@ -45,17 +45,18 @@ class AbstractHandler : public QObject
 	Q_OBJECT
 
 public:
-	explicit AbstractHandler(Client *client, const QJsonObject &object);
+	explicit AbstractHandler(Client *client, const QJsonObject &object, const QByteArray &binaryData);
 	virtual ~AbstractHandler();
 
 	virtual bool classInit() { return true; }
-	virtual QJsonObject start(const QString &func);
+	virtual void start(const QString &func, QJsonObject *jsonData, QByteArray *binaryData);
 
 	static void addPermissionDenied(QJsonObject *object);
 
 protected:
 	Client *m_client;
-	QJsonObject m_object;
+	QJsonObject m_jsonData;
+	QByteArray m_binaryData;
 };
 
 #endif // ABSTRACTHANDLER_H

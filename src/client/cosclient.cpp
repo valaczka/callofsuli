@@ -87,7 +87,7 @@ Client::~Client()
 
 void Client::initialize()
 {
-/*
+	/*
 #ifndef QT_NO_DEBUG_OUTPUT
 	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
 #endif
@@ -354,9 +354,7 @@ void Client::login(const QString &username, const QString &session, const QStrin
 		{"callofsuli", d2}
 	};
 
-	QJsonDocument data(d3);
-	qDebug() << "login send" << data;
-	socketSend("json", data.toBinaryData());
+	socketSend(d3);
 }
 
 
@@ -367,9 +365,9 @@ void Client::login(const QString &username, const QString &session, const QStrin
 
 void Client::logout()
 {
-	socketSendJson({
-					   {"logout", true}
-				   });
+	socketSend({
+				   {"logout", true}
+			   });
 	setSessionToken("");
 	setUserName("");
 }
@@ -390,12 +388,15 @@ int Client::socketNextClientMsgId()
  * @param serverMsgId
  */
 
-int Client::socketSend(const QString &msgType, const QByteArray &data, const int &serverMsgId)
+int Client::socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData, const int &serverMsgId)
 {
 	if (m_connectionState != Connected && m_connectionState != Reconnected) {
 		sendMessageWarning(tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
 		return -1;
 	}
+
+	QString msgType = binaryData.isNull() ? "json" : "binary";
+
 	QByteArray d;
 	QDataStream ds(&d, QIODevice::WriteOnly);
 	ds.setVersion(QDataStream::Qt_5_14);
@@ -404,9 +405,12 @@ int Client::socketSend(const QString &msgType, const QByteArray &data, const int
 	ds << clientMsgId;
 	ds << serverMsgId;
 	ds << msgType;
-	ds << data;
+	ds << prepareJson(jsonObject);
 
-	qDebug().noquote() << tr("SEND to server ") << m_socket << clientMsgId << serverMsgId << msgType;
+	if (!binaryData.isNull())
+		ds << binaryData;
+
+	qDebug().noquote() << tr("SEND to server ") << m_socket << clientMsgId << serverMsgId << msgType << jsonObject;
 
 	m_socket->sendBinaryMessage(d);
 
@@ -420,7 +424,7 @@ int Client::socketSend(const QString &msgType, const QByteArray &data, const int
  * @return
  */
 
-int Client::socketSendJson(const QJsonObject &jsonObject)
+QByteArray Client::prepareJson(const QJsonObject &jsonObject)
 {
 	QJsonObject d;
 	QJsonObject d2 = jsonObject;
@@ -435,9 +439,11 @@ int Client::socketSendJson(const QJsonObject &jsonObject)
 	d["callofsuli"] = d2;
 
 	QJsonDocument data(d);
-	qDebug() << "send JSON" << data;
-	return socketSend("json", data.toBinaryData());
+	return data.toBinaryData();
 }
+
+
+
 
 
 
@@ -539,10 +545,10 @@ void Client::setSocket(QWebSocket *socket)
 void Client::socketPing()
 {
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
-		socketSendJson({
-						   {"class", "userInfo"},
-						   {"func", "getUser"}
-					   });
+		socketSend({
+					   {"class", "userInfo"},
+					   {"func", "getUser"}
+				   });
 	} else if (m_connectionState == Disconnected) {
 		qDebug() << "reconnect";
 		emit reconnecting();
@@ -557,7 +563,7 @@ void Client::socketPing()
  * @return
  */
 
-void Client::parseJson(const QJsonObject &object)
+void Client::parseJson(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
 {
 	if (object["session"].isObject()) {
 		QJsonObject o = object["session"].toObject();
@@ -579,10 +585,10 @@ void Client::parseJson(const QJsonObject &object)
 		setUserRoles(newRole);
 		qDebug() << "set user roles from server" <<newRole;
 
-		socketSendJson({
-						   {"class", "userInfo"},
-						   {"func", "getUser"}
-					   });
+		socketSend({
+					   {"class", "userInfo"},
+					   {"func", "getUser"}
+				   });
 	}
 
 	QString cl = object["class"].toString();
@@ -604,33 +610,13 @@ void Client::parseJson(const QJsonObject &object)
 
 	QString f = "json"+s+"Received";
 
-	QMetaObject::invokeMethod(this, f.toStdString().data(), Qt::DirectConnection, Q_ARG(QJsonObject, object));
-}
-
-
-/**
- * @brief Client::parseMap
- */
-
-void Client::parseMap(const QString &classname, const int &mapid, const QJsonObject &jsonData, const QByteArray &mapdata)
-{
-	if (classname.isEmpty())
-		return;
-
-	QString s = m_signalList.value(classname, "");
-
-	if (s.isEmpty()) {
-		qWarning() << tr("Invalid MAP class ")+classname;
-		return;
-	}
-
-	QString f = "map"+s+"Received";
-
 	QMetaObject::invokeMethod(this, f.toStdString().data(), Qt::DirectConnection,
-							  Q_ARG(int, mapid),
-							  Q_ARG(QJsonObject, jsonData),
-							  Q_ARG(QByteArray, mapdata));
+							  Q_ARG(QJsonObject, object),
+							  Q_ARG(QByteArray, binaryData),
+							  Q_ARG(int, clientMsgId)
+							  );
 }
+
 
 
 /**
@@ -642,7 +628,7 @@ void Client::onSocketConnected()
 	m_connectedUrl = m_socket->requestUrl();
 	if (m_connectionState == Connecting || m_connectionState == Standby) {
 		setConnectionState(Connected);
-		socketSendJson({{"class", "userInfo"}, {"func", "getServerName"}});
+		socketSend({{"class", "userInfo"}, {"func", "getServerName"}});
 	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
 }
@@ -679,9 +665,13 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 
 	qDebug().noquote() << tr("RECEIVED from server ") << serverMsgId << clientMsgId << msgType;
 
-	if (msgType == "json") {
+	if (msgType == "json" || msgType == "binary") {
 		QByteArray data;
+		QByteArray binaryData;
 		ds >> data;
+
+		if (msgType == "binary")
+			ds >> binaryData;
 
 		QJsonDocument doc = QJsonDocument::fromBinaryData(data);
 		if (doc.isNull()) {
@@ -693,15 +683,7 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 
 		qDebug() << obj;
 
-		parseJson(obj);
-	} else if (msgType == "map") {
-		int mapid;
-		QByteArray mapdata;
-		QString classname;
-		QJsonObject jsonData;
-		ds >> classname >> mapid >> jsonData >> mapdata;
-
-		parseMap(classname, mapid, jsonData, mapdata);
+		parseJson(obj, binaryData, clientMsgId);
 	} else {
 		QString error;
 		ds >> error;
@@ -766,7 +748,7 @@ void Client::onSocketServerError(const QString &error)
  * @param object
  */
 
-void Client::onJsonUserInfoReceived(const QJsonObject &object)
+void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray &, const int &)
 {
 	if (object["func"].toString() == "getUser") {
 		QJsonObject d = object["data"].toObject();

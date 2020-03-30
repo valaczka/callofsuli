@@ -223,24 +223,25 @@ QVariantMap MapRepository::create(const int &refid)
  * @return
  */
 
-bool MapRepository::updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite)
+QJsonObject MapRepository::updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite)
 {
-	QVariantMap orig = getInfo(id);
+	QVariantMap orig = getInfoByRefId(id);
 
 	if (orig.isEmpty()) {
 		qWarning() << tr("Ismeretlen azonosító") << id;
-		return false;
+		return QJsonObject({{"error", "unknown id"}});
 	}
 
 	QJsonDocument doc = QJsonDocument::fromBinaryData(data);
 	if (doc.isNull()) {
 		qWarning() << tr("JSON parse error");
-		return false;
+		return QJsonObject({{"error", "json"}});
 	}
 
 	QJsonObject root = doc.object();
+	QJsonObject cosdata = root["callofsuli"].toObject();
 
-	QString uuid = root["callofsuli"].toObject()["uuid"].toString();
+	QString uuid = cosdata["uuid"].toString();
 
 	QVariantMap params;
 
@@ -249,7 +250,7 @@ bool MapRepository::updateData(const int &id, const QByteArray &data, const bool
 
 		if (!uuidOverwrite) {
 			qWarning() << tr("Update map UUID error");
-			return false;
+			return QJsonObject({{"error", "uuid mismatch"}});
 		}
 
 		params["uuid"] = uuid;
@@ -261,9 +262,14 @@ bool MapRepository::updateData(const int &id, const QByteArray &data, const bool
 	params["data"] = data;
 
 	QVariantMap binds;
-	binds[":id"] = id;
+	binds[":id"] = orig["id"];
 
-	return m_db->execUpdateQuery("UPDATE mapdata set ? where id=:id", params, binds);
+	if (!m_db->execUpdateQuery("UPDATE mapdata set ? where id=:id", params, binds))
+		return QJsonObject();
+
+	cosdata["objectives"] = root["objectives"].toArray().count();
+
+	return cosdata;
 }
 
 

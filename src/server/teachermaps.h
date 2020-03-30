@@ -46,14 +46,15 @@ class TeacherMaps : public AbstractHandler
 	Q_OBJECT
 
 public:
-	explicit TeacherMaps(Client *client, const QJsonObject &object);
+	explicit TeacherMaps(Client *client, const QJsonObject &object, const QByteArray &binaryData);
 
 	bool classInit() override;
 
 public slots:
-	QJsonObject getAllMap();
-	QJsonObject getMap();
-	QJsonObject createMap();
+	void getAllMap(QJsonObject *jsonResponse, QByteArray *);
+	void getMap(QJsonObject *jsonResponse, QByteArray *binaryResponse);
+	void createMap(QJsonObject *jsonResponse, QByteArray *);
+	void updateMap(QJsonObject *jsonResponse, QByteArray *);
 
 private:
 	void updateMapInfo(const int &id, const QVariantMap &params, const bool &increaseVersion = false);

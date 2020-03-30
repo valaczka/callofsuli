@@ -74,8 +74,7 @@ public:
 public slots:
 	void sendError(const QString &error, const int &clientMsgId = -1);
 	void sendJson(const QJsonObject &object, const int &clientMsgId = -1);
-	void sendMap(const QString &classname, const int &mapid, const QJsonObject &jsonData = QJsonObject(), const int &clientMsgId = -1);
-	void sendFile(const QString &filename, const int &clientMsgId = -1);
+	void sendBinary(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId = -1);
 	void sendClientRoles(const ClientRoles &clientRoles);
 
 	void setClientState(ClientState clientState);
@@ -97,7 +96,7 @@ signals:
 	void clientRolesChanged(ClientRoles clientRoles);
 
 private:
-	void parseJson(const QByteArray &data, const int &clientMsgId, const int &serverMsgId);
+	void parseJson(const QByteArray &jsonData, const int &clientMsgId, const int &serverMsgId, const QByteArray &binaryData);
 
 private:
 	CosSql *m_db;

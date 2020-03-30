@@ -34,8 +34,8 @@
 
 #include "userinfo.h"
 
-UserInfo::UserInfo(Client *client, const QJsonObject &object)
-	: AbstractHandler(client, object)
+UserInfo::UserInfo(Client *client, const QJsonObject &object, const QByteArray &binaryData)
+	: AbstractHandler(client, object, binaryData)
 {
 
 }
@@ -46,13 +46,9 @@ UserInfo::UserInfo(Client *client, const QJsonObject &object)
  * @return
  */
 
-QJsonObject UserInfo::getServerName()
+void UserInfo::getServerName(QJsonObject *jsonResponse, QByteArray *)
 {
-	QJsonObject ret;
-
-	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), &ret);
-
-	return ret;
+	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), jsonResponse);
 }
 
 
@@ -62,25 +58,22 @@ QJsonObject UserInfo::getServerName()
  * @brief UserInfo::getUser
  */
 
-QJsonObject UserInfo::getUser()
+void UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	QJsonObject ret;
-
-	QString username = m_object["username"].toString();
+	QString username = m_jsonData["username"].toString();
 	if (username.isEmpty())
 		username = m_client->clientUserName();
 
 	if (username.isEmpty())
-		return ret;
+		return;
 
 	QVariantList l;
 	l << username;
 
 	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, email, active, "
 										  "isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
-										  "FROM userInfo where username=?", l, &ret);
+										  "FROM userInfo where username=?", l, jsonResponse);
 
-	return ret;
 }
 
 
@@ -91,17 +84,13 @@ QJsonObject UserInfo::getUser()
  * @return
  */
 
-QJsonObject UserInfo::getAllUser()
+void UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	QJsonObject ret;
-
 	QJsonArray l;
 	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "
 									"isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
 									"FROM userInfo ORDER BY firstname, lastname",
 									QVariantList(),
 									&l);
-	ret["list"] = l;
-
-	return ret;
+	(*jsonResponse)["list"] = l;
 }

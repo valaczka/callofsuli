@@ -10,8 +10,10 @@ import "JScript.js" as JS
 Page {
 	id: page
 
+	property int mapId: -1
 	property string mapName: ""
 	property alias map: map
+	property bool mapBinaryFormat: true
 
 	Map {
 		id: map
@@ -32,9 +34,9 @@ Page {
 			QToolBusyIndicator { running: false }
 			QMenuButton {
 				MenuItem {
-					text: qsTr("SAVE")
+					text: qsTr("SAVE ")+mapBinaryFormat
 					onClicked:  {
-						map.save(false)
+						map.save(mapId, mapBinaryFormat)
 					}
 				}
 			}

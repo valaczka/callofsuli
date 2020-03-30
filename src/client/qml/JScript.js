@@ -100,6 +100,7 @@ function dialogMessage(type, title, text, details) {
 		d.popupContent.item.type = type
 		d.popupContent.item.title = title
 		d.popupContent.item.text = text
+		d.popupContent.item.details = details
 
 		d.open()
 

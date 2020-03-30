@@ -47,13 +47,14 @@ AbstractActivity::AbstractActivity(QObject *parent) : QObject(parent)
  * @param query
  */
 
-void AbstractActivity::send(const QJsonObject &query)
+void AbstractActivity::send(const QJsonObject &query, const QByteArray &binaryData)
 {
+	int msgid = m_client->socketSend(query, binaryData);
+
 	QString f = query["func"].toString();
 	if (!f.isEmpty())
-		busyStackAdd(f);
+		busyStackAdd(f, msgid);
 
-	m_client->socketSendJson(query);
 }
 
 
@@ -97,12 +98,10 @@ void AbstractActivity::setBusyStack(QStringList busyStack)
  * @param func
  */
 
-void AbstractActivity::busyStackAdd(const QString &func)
+void AbstractActivity::busyStackAdd(const QString &func, const int &msgId)
 {
-	if (!m_busyStack.contains(func)) {
-		m_busyStack.append(func);
-		setIsBusy(true);
-	}
+	m_busyStack.append(QString(func).append(msgId));
+	setIsBusy(true);
 }
 
 
@@ -111,8 +110,8 @@ void AbstractActivity::busyStackAdd(const QString &func)
  * @param func
  */
 
-void AbstractActivity::busyStackRemove(const QString &func)
+void AbstractActivity::busyStackRemove(const QString &func, const int &msgId)
 {
-	m_busyStack.removeAll(func);
+	m_busyStack.removeAll(QString(func).append(msgId));
 	setIsBusy(m_busyStack.count());
 }

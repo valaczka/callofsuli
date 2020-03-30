@@ -64,7 +64,7 @@ public:
 	MapType mapType() const { return m_mapType; }
 
 public slots:
-	void save(const bool &binaryFormat = true);
+	void save(const int &mapId = -1, const bool &binaryFormat = true);
 	bool loadFromJson(const QByteArray &data, const bool &binaryFormat = true);
 	bool loadFromFile(const QString &filename, const bool &binaryFormat = true);
 	bool loadFromBackup();
@@ -87,7 +87,7 @@ signals:
 	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);
 	void mapLoaded();
 	void mapLoadedFromBackup();
-	void mapSaved(const QByteArray &data, const QString &uuid);
+	void mapSaved(const QByteArray &data, const QString &uuid, const int &mapId);
 
 #ifdef QT_DEBUG
 	void mapRefreshed(const QByteArray &data);

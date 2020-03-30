@@ -14,6 +14,7 @@ Item {
 	property string type: "info"            // info, warning, error
 	property alias title: mainRow.title
 	property alias text: labelText.text
+	property alias details: labelDetails.text
 
 	signal dlgClose()
 	signal dlgAccept(var data)
@@ -80,33 +81,66 @@ Item {
 			}
 
 
-			DropShadow {
-				anchors.fill: labelText
-				horizontalOffset: 2
-				verticalOffset: 2
-				radius: 2
-				samples: 3
-				source: labelText
-				visible: true
-			}
 
-			Label {
-				id: labelText
-				color: if (type === "info")
-						   CosStyle.colorPrimaryLighter
-					   else if (type === "warning")
-						   CosStyle.colorWarningLighter
-					   else if (type === "error")
-						   CosStyle.colorErrorLighter
+			Item {
+				id: lbls
 				anchors.top: mainRow.bottom
 				anchors.left: parent.left
 				anchors.right: parent.right
 				anchors.bottom: parent.bottom
 				anchors.margins: 30
 				anchors.topMargin: 20
-				wrapMode: Text.WordWrap
-				horizontalAlignment: Qt.AlignHCenter
-				verticalAlignment: Qt.AlignVCenter
+
+				Column {
+					width: parent.width
+					anchors.verticalCenter: parent.verticalCenter
+
+					Item {
+						width: parent.width
+						height: Math.max(shadow.height, labelText.height)
+
+						DropShadow {
+							id: shadow
+							anchors.fill: labelText
+							horizontalOffset: 2
+							verticalOffset: 2
+							radius: 2
+							samples: 3
+							source: labelText
+							visible: true
+						}
+
+						Label {
+							id: labelText
+							color: if (type === "info")
+									   CosStyle.colorPrimaryLighter
+								   else if (type === "warning")
+									   CosStyle.colorWarningLighter
+								   else if (type === "error")
+									   CosStyle.colorErrorLighter
+							width: parent.width
+							wrapMode: Text.WordWrap
+							horizontalAlignment: Qt.AlignHCenter
+							verticalAlignment: Qt.AlignVCenter
+						}
+					}
+
+					Label {
+						id: labelDetails
+						color: if (type === "info")
+								   CosStyle.colorPrimaryLighter
+							   else if (type === "warning")
+								   CosStyle.colorWarningLighter
+							   else if (type === "error")
+								   CosStyle.colorErrorLighter
+						width: parent.width
+						wrapMode: Text.WordWrap
+						horizontalAlignment: Qt.AlignHCenter
+						verticalAlignment: Qt.AlignVCenter
+						font.family: "Rajdhani"
+						//font.pixelSize: labelText.font.pixelSize*0.9
+					}
+				}
 			}
 		}
 

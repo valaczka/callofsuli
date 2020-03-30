@@ -127,39 +127,6 @@ void Client::sendJson(const QJsonObject &object, const int &clientMsgId)
 }
 
 
-/**
- * @brief Client::sendMap
- * @param mapid
- * @param clientMsgId
- */
-
-void Client::sendMap(const QString &classname, const int &mapid, const QJsonObject &jsonData, const int &clientMsgId)
-{
-	QVariantList l;
-	l << mapid;
-
-	QVariantMap mdata = m_mapDb->db()->runSimpleQuery("SELECT data FROM mapdata WHERE refid=?", l);
-
-	if (mdata["error"].toBool() || !mdata["records"].toList().count()) {
-		qWarning() << tr("Invalid map") << mapid;
-		return;
-	}
-
-	QByteArray b = mdata["records"].toList().value(0).toMap().value("data").toByteArray();
-	if (b.isEmpty()) {
-		qWarning() << tr("Map data not found") <<mapid;
-		return;
-	}
-
-	QString msgType = "map";
-	SEND_BEGIN;
-
-	qDebug() << "SEND MAP" << classname << mapid << jsonData;
-
-	ds << classname << mapid << jsonData << b;
-
-	SEND_END;
-}
 
 
 /**
@@ -168,21 +135,19 @@ void Client::sendMap(const QString &classname, const int &mapid, const QJsonObje
  * @param clientMsgId
  */
 
-void Client::sendFile(const QString &filename, const int &clientMsgId)
+void Client::sendBinary(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
 {
-	QString msgType = "file";
-	QFile f(filename);
-	f.open(QIODevice::ReadOnly);
-	QByteArray content = f.readAll();
-	f.close();
-
+	QString msgType = "binary";
 	SEND_BEGIN;
 
-	ds << filename;
-	ds << content;
+	qDebug() << object;
+
+	ds << QJsonDocument(object).toBinaryData();
+	ds << binaryData;
 
 	SEND_END;
 }
+
 
 
 /**
@@ -267,10 +232,15 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 
 	qDebug().noquote() << tr("RECEIVED from client ") << m_socket << clientMsgId << serverMsgId << msgType;
 
-	if (msgType == "json") {
+	if (msgType == "json" || msgType == "binary") {
 		QByteArray msgData;
+		QByteArray binaryData;
 		ds >> msgData;
-		parseJson(msgData, clientMsgId, serverMsgId);
+
+		if (msgType == "binary")
+			ds >> binaryData;
+
+		parseJson(msgData, clientMsgId, serverMsgId, binaryData);
 	} else {
 		sendError("invalidMessageType", clientMsgId);
 	}
@@ -440,11 +410,11 @@ void Client::updateRoles()
  * @param clientMsgId
  */
 
-void Client::parseJson(const QByteArray &data, const int &clientMsgId, const int &serverMsgId)
+void Client::parseJson(const QByteArray &jsonData, const int &clientMsgId, const int &serverMsgId, const QByteArray &binaryData)
 {
 	Q_UNUSED (serverMsgId)
 
-	QJsonDocument d = QJsonDocument::fromBinaryData(data);
+	QJsonDocument d = QJsonDocument::fromBinaryData(jsonData);
 
 	if (d.isNull()) {
 		sendError("invalidJSON", clientMsgId);
@@ -476,13 +446,14 @@ void Client::parseJson(const QByteArray &data, const int &clientMsgId, const int
 	ret["class"] = cl;
 	ret["func"] = func;
 	QJsonObject fdata;
+	QByteArray bdata;
 
 	if (cl == "userInfo") {
-		UserInfo q(this, cos);
-		fdata = q.start(func);
+		UserInfo q(this, cos, binaryData);
+		q.start(func, &fdata, &bdata);
 	} else if (cl == "teacherMaps") {
-		TeacherMaps q(this, cos);
-		fdata = q.start(func);
+		TeacherMaps q(this, cos, binaryData);
+		q.start(func, &fdata, &bdata);
 	} else {
 		sendError("invalidClass", clientMsgId);
 		return;
@@ -490,8 +461,10 @@ void Client::parseJson(const QByteArray &data, const int &clientMsgId, const int
 
 	ret["data"] = fdata;
 
-	sendJson(ret, clientMsgId);
+	if (bdata.isNull())
+		sendJson(ret, clientMsgId);
+	else
+		sendBinary(ret, bdata, clientMsgId);
 }
-
 
 

@@ -46,12 +46,12 @@ class UserInfo : public AbstractHandler
 	Q_OBJECT
 
 public:
-	explicit UserInfo(Client *client, const QJsonObject &object);
+	explicit UserInfo(Client *client, const QJsonObject &object, const QByteArray &binaryData);
 
 public slots:
-	QJsonObject getServerName();
-	QJsonObject getUser();
-	QJsonObject getAllUser();
+	void getServerName(QJsonObject *jsonResponse, QByteArray *);
+	void getUser(QJsonObject *jsonResponse, QByteArray *);
+	void getAllUser(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

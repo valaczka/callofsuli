@@ -65,14 +65,14 @@ Page {
 		QButton {
 			label: "GET USER INFO"
 			onClicked: {
-				cosClient.socketSendJson({"class": "userinfo", "func": "getUser"})
+				cosClient.socketSend({"class": "userinfo", "func": "getUser"})
 			}
 		}
 
 		QButton {
 			label: "GET USER ALL"
 			onClicked: {
-				cosClient.socketSendJson({"class": "userinfo", "func": "getAllUser"})
+				cosClient.socketSend({"class": "userinfo", "func": "getAllUser"})
 			}
 		}
 

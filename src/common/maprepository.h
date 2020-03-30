@@ -54,7 +54,7 @@ public slots:
 	int getId(const QString &uuid);
 	int getRefId(const QString &uuid);
 	QVariantMap create(const int &refid = QVariant::Invalid);
-	bool updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
+	QJsonObject updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
 
 protected slots:
 	bool databaseInit();

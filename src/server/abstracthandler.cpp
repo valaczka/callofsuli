@@ -34,10 +34,11 @@
 
 #include "abstracthandler.h"
 
-AbstractHandler::AbstractHandler(Client *client, const QJsonObject &object)
+AbstractHandler::AbstractHandler(Client *client, const QJsonObject &object, const QByteArray &binaryData)
 	: QObject(client)
 	, m_client(client)
-	, m_object(object)
+	, m_jsonData(object)
+	, m_binaryData(binaryData)
 {
 
 }
@@ -58,19 +59,17 @@ AbstractHandler::~AbstractHandler()
  * @param func
  */
 
-QJsonObject AbstractHandler::start(const QString &func)
+void AbstractHandler::start(const QString &func, QJsonObject *jsonData, QByteArray *binaryData)
 {
-	QJsonObject data;
-
 	if (!classInit()) {
-		addPermissionDenied(&data);
-		return data;
+		addPermissionDenied(jsonData);
+		return;
 	}
 
 	QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
-							  Q_RETURN_ARG(QJsonObject, data));
+							  Q_ARG(QJsonObject*, jsonData),
+							  Q_ARG(QByteArray*, binaryData));
 
-	return data;
 }
 
 

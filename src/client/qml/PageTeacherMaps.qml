@@ -16,13 +16,21 @@ Page {
 
 		onMapListLoaded: setModel(list)
 		onMapCreated: listReload()
+		onMapUpdated: {
+			if (data.error) {
+				client.sendMessageError("ADATBÁZIS", "HIBA", data.error)
+			}
+		}
+
 		onMapReceived: {
 			var o = JS.createPage("MapEditor",
 								  {
-									  mapName: jsonData["name"]
+									  mapId: jsonData["id"],
+									  mapName: jsonData["name"],
+									  mapBinaryFormat: true
 								  },
 								  page)
-			o.map.loadFromJson(mapdata)
+			o.map.loadFromJson(mapData)
 
 			o.map.mapSaved.connect(page.onMapSaved)
 		}
@@ -75,7 +83,7 @@ Page {
 			modelRightSet: true
 			modelToolTipSet: false
 
-			onClicked: teacherMaps.mapGet({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
+			onClicked: teacherMaps.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
 
 			onLongPressed: {
 				listRigthMenu.modelIndex = index
@@ -149,10 +157,8 @@ Page {
 	}
 
 
-	function onMapSaved(data, uuid) {
-		console.debug("on map saved")
-		console.debug(uuid)
-		console.debug(data)
+	function onMapSaved(data, uuid, mapid) {
+		teacherMaps.send({"class": "teacherMaps", "func": "updateMap", "id": mapid }, data)
 	}
 
 

@@ -47,17 +47,14 @@ public:
 
 	void clientSetup() override;
 
-public slots:
-	void mapGet(const QJsonObject &data);
-
 signals:
 	void mapListLoaded(const QJsonArray &list);
 	void mapCreated(const QJsonObject &map);
-	void mapReceived(const int &mapid, const QJsonObject &jsonData, const QByteArray &mapdata);
+	void mapReceived(const QJsonObject &jsonData, const QByteArray &mapData);
+	void mapUpdated(const QJsonObject &data);
 
 private slots:
-	void onJsonReceived(const QJsonObject &object);
-	void onMapReceived(const int &, const QJsonObject &, const QByteArray &);
+	void onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 };
 
 #endif // TEACHERMAPS_H
