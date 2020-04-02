@@ -16,6 +16,7 @@ CREATE TABLE intro (
 
 CREATE TABLE campaign (
 	id INTEGER PRIMARY KEY,
+	num INTEGER,
 	name TEXT
 );
 
@@ -52,6 +53,7 @@ CREATE TABLE summaryLevel (
 CREATE TABLE bindCampaignMission (
 	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	num INTEGER NOT NULL,
 	UNIQUE (campaignid, missionid)
 );
 

@@ -1,10 +1,11 @@
 QT += sql websockets quick
 CONFIG += skip_version
 
+CONFIG += c++11
+
 include(../version/version.pro)
 include(../common/common.pri)
-
-CONFIG += c++11
+include(SortFilterProxyModel/SortFilterProxyModel.pri)
 
 
 TEMPLATE = app

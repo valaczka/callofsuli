@@ -10,9 +10,12 @@ ToolBar {
 
 	property alias title: animatedTitle.str
 	property alias backButton: backButton
+	property string backButtonIcon: "M\ue5c4"
 	property alias rightLoader: rightLoader
 
 	Material.primary: CosStyle.colorPrimaryDark
+
+	onBackButtonIconChanged: JS.setIconFont(backButton, backButtonIcon)
 
 	RowLayout {
 		anchors.fill: parent
@@ -22,7 +25,7 @@ ToolBar {
 			id: backButton
 
 			Material.foreground: CosStyle.colorPrimaryLight
-			Component.onCompleted: JS.setIconFont(backButton, "M\ue5c4")
+			Component.onCompleted: JS.setIconFont(backButton, backButtonIcon)
 		}
 
 
@@ -62,6 +65,10 @@ ToolBar {
 		Loader {
 			id: rightLoader
 		}
+	}
+
+	function resetTitle() {
+		animatedTitle.resetStr()
 	}
 
 }

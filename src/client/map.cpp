@@ -58,6 +58,7 @@ Map::Map(QObject *parent)
 				 << "bindObjectiveSummary";
 
 	m_mapType = MapInvalid;
+	m_mapModified = false;
 }
 
 
@@ -89,16 +90,15 @@ void Map::save(const int &mapId, const bool &binaryFormat)
 
 	if (!m_mapOriginalFile.isEmpty()) {
 		qDebug() << tr("Adatbázis mentése fájlba: ")+m_mapOriginalFile;
-		if (saveToFile(m_mapOriginalFile, data))
+		if (saveToFile(m_mapOriginalFile, data)) {
 			emit mapSaved(data, m_mapUuid, mapId);
+			setMapModified(false);
+		}
 	} else {
 		qDebug() << tr("Adatbázis mentése");
 		emit mapSaved(data, m_mapUuid, mapId);
+		setMapModified(false);
 	}
-
-#ifdef QT_DEBUG
-	emit mapRefreshed(saveToJson(false));
-#endif
 }
 
 
@@ -145,11 +145,9 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 	setMapUuid(uuid.isEmpty() ? QUuid::createUuid().toString() : uuid);
 	setMapTimeCreated(fileinfo["timeCreated"].toString());
 
-	emit mapLoaded();
+	m_db->execSimpleQuery("INSERT INTO info SELECT '' as title WHERE NOT EXISTS(SELECT * FROM info)");
 
-#ifdef QT_DEBUG
-	emit mapRefreshed(doc.toJson(QJsonDocument::Indented));
-#endif
+	emit mapLoaded();
 
 	return true;
 }
@@ -206,9 +204,6 @@ bool Map::loadFromBackup()
 
 		emit mapLoadedFromBackup();
 
-#ifdef QT_DEBUG
-		emit mapRefreshed(saveToJson(false));
-#endif
 		return true;
 	}
 
@@ -281,9 +276,12 @@ QByteArray Map::create(const bool &binaryFormat)
 
 bool Map::saveToFile(const QString &filename, const QByteArray &data)
 {
-	QSaveFile f(filename);
+	QSaveFile f;
+
+	f.setFileName(filename);
 
 	if (!f.open(QIODevice::WriteOnly)) {
+		qWarning() << f.errorString();
 		m_client->sendMessageError(tr("Mentési hiba"), tr("Nem sikerült menteni a fájlt!"), filename);
 		return false;
 	}
@@ -302,6 +300,16 @@ bool Map::saveToFile(const QString &filename, const QByteArray &data)
 
 	return true;
 }
+
+
+/**
+ * @brief Map::saveToFile
+ * @param url
+ * @param data
+ * @return
+ */
+
+
 
 
 
@@ -346,6 +354,84 @@ void Map::setMapOriginalFile(QString mapOriginalFile)
 
 	m_mapOriginalFile = mapOriginalFile;
 	emit mapOriginalFileChanged(m_mapOriginalFile);
+}
+
+void Map::setMapModified(bool mapModified)
+{
+	if (m_mapModified == mapModified)
+		return;
+
+	m_mapModified = mapModified;
+	emit mapModifiedChanged(m_mapModified);
+}
+
+
+/**
+ * @brief Map::getInfo
+ * @return
+ */
+
+QVariantMap Map::getInfo()
+{
+	QVariantMap ret;
+	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
+
+	if (!ret.contains("title"))
+		ret["title"] = m_mapOriginalFile;
+
+	return ret;
+}
+
+
+/**
+ * @brief Map::updateInfo
+ * @param map
+ */
+
+void Map::updateInfo(const QVariantMap &map)
+{
+	m_db->execUpdateQuery("UPDATE INFO SET ?", map);
+	setMapModified(true);
+}
+
+
+
+/**
+ * @brief Map::getCampaignList
+ * @return
+ */
+
+
+QVariantList Map::getCampaignList()
+{
+	QVariantList list;
+	m_db->execSelectQuery("SELECT id, num, name FROM campaign ORDER BY num", QVariantList(), &list);
+	return list;
+}
+
+
+/**
+ * @brief Map::getMissionList
+ * @param missionId
+ * @return
+ */
+
+QVariantList Map::getMissionList(const int &campaignId)
+{
+	QVariantList list;
+
+	if (campaignId != -1) {
+		QVariantList l;
+		l << campaignId;
+		m_db->execSelectQuery("SELECT missionid, name, shuffle, num FROM bindCampaignMission "
+							  "LEFT JOIN mission ON (mission.id=bindCampaignMission.missionid) "
+							  "WHERE campaignid=? "
+							  "ORDER BY num", l, &list);
+	} else {
+		m_db->execSelectQuery("SELECT id as missionid, name, shuffle, 0 as num FROM mission ORDER BY name", QVariantList(), &list);
+	}
+
+	return list;
 }
 
 

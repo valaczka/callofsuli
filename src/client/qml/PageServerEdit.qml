@@ -30,6 +30,7 @@ Page {
 	QPagePanel {
 		id: p
 
+		anchors.fill: parent
 		maximumWidth: 600
 
 		blurSource: bgImage

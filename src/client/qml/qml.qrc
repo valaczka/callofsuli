@@ -23,7 +23,6 @@
         <file>QMenu.qml</file>
         <file>QMenuButton.qml</file>
         <file>QPagePanel.qml</file>
-        <file>QRoundButton.qml</file>
         <file>QTextField.qml</file>
         <file>QToolBar.qml</file>
         <file>JScript.js</file>
@@ -36,5 +35,13 @@
         <file>PageTeacherMaps.qml</file>
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
+        <file>QPanelLayout.qml</file>
+        <file>PageMapEditorRoot.qml</file>
+        <file>QPageHeader.qml</file>
+        <file>PageMapEditorCampaignList.qml</file>
+        <file>PageMapEditorPlaceholder.qml</file>
+        <file>QStackLayout.qml</file>
+        <file>PageMapEditorSettings.qml</file>
+        <file>PageMapEditorCampaign.qml</file>
     </qresource>
 </RCC>

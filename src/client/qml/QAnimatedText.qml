@@ -13,13 +13,7 @@ Label {
 
 
 	onStrChanged: {
-		animRew.duration = txt.text.length > 5 ? durationRewind :
-												 txt.text.length ? durationRewindShort : 0
-		animRew.from = txt.text.length
-
-		animFwd.to = str.length
-		animFwd.duration = Math.min(str.length * 75, durationForward)
-		anim.start()
+		resetStr()
 	}
 
 	on_LengthChanged: {
@@ -61,6 +55,16 @@ Label {
 			from: 0
 			to: 0
 		}
+	}
+
+	function resetStr() {
+		animRew.duration = txt.text.length > 5 ? durationRewind :
+												 txt.text.length ? durationRewindShort : 0
+		animRew.from = txt.text.length
+
+		animFwd.to = str.length
+		animFwd.duration = Math.min(str.length * 75, durationForward)
+		anim.start()
 	}
 
 }

@@ -27,6 +27,8 @@ Page {
 	header: QToolBar {
 		id: toolbar
 
+		title: qsTr("Call of Suli szerver")
+
 		backButton.visible: false
 
 		rightLoader.sourceComponent: Component {
@@ -72,15 +74,30 @@ Page {
 	QPagePanel {
 		id: p
 
+		title: "Szerverek"
+
+		anchors.fill: parent
 		maximumWidth: 600
 
 		blurSource: bgImage
 
-		QListButtonDelegate {
+		rightLoader.sourceComponent: QMenuButton {
+			MenuItem {
+				text: qsTr("Új szerver")
+			}
+		}
+
+		QListItemDelegate {
 			id: listMenu
 			anchors.fill: parent
 
-			onClicked: servers.serverConnect(listMenu.model.get(listMenu.currentIndex).id)
+			onClicked: {
+				var id = listMenu.model.get(listMenu.currentIndex).id
+				if (id === -1)
+					editServer(-1)
+				else
+					servers.serverConnect(id)
+			}
 
 			onLongPressed: {
 				listRigthMenu.modelIndex = index
@@ -100,6 +117,13 @@ Page {
 				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
 					var d = JS.dialogCreate(dlgDelete)
 					d.open()
+				} else if (event.key === Qt.Key_F1) {
+					var o = JS.createPage("MapEditor", {}, page)
+					//var b = o.map.create()
+					//o.map.loadFromJson(b)
+					o.map.loadFromFile("AAA.cosm")
+					o.map.mapOriginalFile = "AAA.cosm"
+					o.mapName = "AAA.cosm"
 				}
 			}
 
@@ -137,7 +161,6 @@ Page {
 			MenuItem {
 				text: qsTr("Automata csatlakozás")
 				onClicked: if (listRigthMenu.modelIndex !== -1) {
-							   console.debug("*******************")
 							   servers.serverSetAutoConnect(listMenu.model.get(listRigthMenu.modelIndex).id)
 						   }
 			}
@@ -193,7 +216,7 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.title = qsTr("Call of Suli szerverek")
+		toolbar.resetTitle()
 
 		if (_isFirst) {
 			var autoConnectId = servers.serverListReload()
@@ -202,6 +225,8 @@ Page {
 			if (autoConnectId !== -1)
 				servers.serverConnect(autoConnectId)
 		}
+
+		forceActiveFocus()
 	}
 
 

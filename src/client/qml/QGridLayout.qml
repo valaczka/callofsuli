@@ -22,7 +22,7 @@ Item {
 	signal accepted()
 
 	width: implicitWidth
-	height: implicitHeight
+	height: flick.contentHeight+2
 
 	Flickable {
 		id: flick

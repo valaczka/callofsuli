@@ -6,7 +6,6 @@ import "Style"
 
 QListView {
 	id: view
-	anchors.fill: parent
 
 	property bool modelTitleSet: true
 	property bool modelSubtitleSet: false

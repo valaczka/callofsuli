@@ -45,11 +45,6 @@ ApplicationWindow {
 
 		focus: true
 
-		initialItem: QCosImage {
-			maxWidth: Math.min(mainWindow.width*0.7, 800)
-			glowRadius: 6
-		}
-
 		Keys.onEscapePressed: {
 			if (depth > 2)
 				get(1).stackBack()
@@ -57,6 +52,10 @@ ApplicationWindow {
 
 		Keys.onBackPressed: back()
 
+		initialItem: QCosImage {
+			maxWidth: Math.min(mainWindow.width*0.7, 800)
+			glowRadius: 6
+		}
 
 		pushEnter: Transition {
 			SequentialAnimation {

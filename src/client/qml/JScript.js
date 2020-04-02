@@ -66,6 +66,27 @@ function createPageOnly(_qml, _prop, _parent) {
 
 
 
+function createStackLayout(_parent, _isLayout, _components) {
+	var comp = Qt.createComponent("QStackLayout.qml")
+
+	if (comp.status === Component.Ready) {
+		var obj = comp.createObject(_parent, {
+									isLayout: _isLayout,
+										components: _components
+									})
+
+		if (obj === null) {
+			console.error("Error creating object")
+			return null
+		}
+		return obj
+	} else if (comp.status === Component.Error) {
+		console.warn("Error loading component: ", comp.errorString())
+	}
+
+	return null
+}
+
 
 function dialogMessageInfo(title, text, details) {
 	return dialogMessage("info", title, text, details)
@@ -99,8 +120,8 @@ function dialogMessage(type, title, text, details) {
 	if (d) {
 		d.popupContent.item.type = type
 		d.popupContent.item.title = title
-		d.popupContent.item.text = text
-		d.popupContent.item.details = details
+		d.popupContent.item.text = text ? text : ""
+		d.popupContent.item.details = details ? details : ""
 
 		d.open()
 

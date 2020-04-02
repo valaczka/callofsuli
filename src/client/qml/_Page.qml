@@ -1,6 +1,5 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtGraphicalEffects 1.0
 import COS.Client 1.0
 import "."
 import "Style"
@@ -12,6 +11,8 @@ Page {
 
 	header: QToolBar {
 		id: toolbar
+
+		title: "PAGE"
 
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
@@ -41,7 +42,7 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.title = qsTr("Page")
+		toolbar.resetTitle()
 			/* LOAD */
 	}
 

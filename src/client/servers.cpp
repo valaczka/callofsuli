@@ -56,7 +56,7 @@ int Servers::serverListReload()
 		return -1;
 
 	QVariantList list;
-	if (!m_db->execSelectQuery("SELECT id, name as label, false as disabled, false as selected, '' as image, "
+	if (!m_db->execSelectQuery("SELECT id, name as labelTitle, "
 										  "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
 										  "FROM server "
 										  "ORDER BY name", QVariantList(), &list)) {
@@ -75,6 +75,15 @@ int Servers::serverListReload()
 		} else {
 			m["icon"] = "M\ue83a";
 		}
+		list2 << m;
+	}
+
+	if (!list2.count()) {
+		QVariantMap m;
+		m["id"] = -1;
+		m["labelTitle"] = tr("-- Új szerver hozzáadása --");
+		m["autoconnect"] = false;
+		m["icon"] = "M\ue83a";
 		list2 << m;
 	}
 
