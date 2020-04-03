@@ -25,8 +25,6 @@ Item {
 	default property Component leftPanel
 	property var components: []
 
-	property bool _isPopulated: false
-
 	Drawer {
 		id: drawer
 
@@ -93,11 +91,10 @@ Item {
 
 
 	function reset(prep) {
-		if (prep)
-			_isPopulated = true
-
 		if (noDrawer)
 			drawer.close()
+		else if (!isLayout && components.length === 0)
+			drawer.open()
 
 		componentsReset()
 	}
@@ -112,4 +109,13 @@ Item {
 		}
 	}
 
+
+	function layoutBack() {
+		if (!panel.currentItem.isLayout && panel.currentItem.swipe.currentIndex > 0) {
+			panel.currentItem.swipe.decrementCurrentIndex()
+			return true
+		}
+
+		return false
+	}
 }

@@ -107,6 +107,12 @@ Page {
 		}
 	}
 
+	Keys.onPressed: {
+		if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
+			map.save(mapId, mapBinaryFormat)
+
+	}
+
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
@@ -135,8 +141,17 @@ Page {
 	}
 
 
+	function closeDrawer() {
+		panelLayout.drawer.close()
+	}
+
+
 
 	function stackBack() {
+		if (panelLayout.layoutBack()) {
+			return true
+		}
+
 		if (mainStack.depth > pageEditor.StackView.index+1) {
 			if (!mainStack.get(pageEditor.StackView.index+1).stackBack()) {
 				if (mainStack.depth > pageEditor.StackView.index+1) {

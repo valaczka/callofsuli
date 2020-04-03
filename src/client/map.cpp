@@ -371,7 +371,7 @@ void Map::setMapModified(bool mapModified)
  * @return
  */
 
-QVariantMap Map::getInfo()
+QVariantMap Map::infoGet()
 {
 	QVariantMap ret;
 	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
@@ -388,10 +388,40 @@ QVariantMap Map::getInfo()
  * @param map
  */
 
-void Map::updateInfo(const QVariantMap &map)
+void Map::infoUpdate(const QVariantMap &map)
 {
 	m_db->execUpdateQuery("UPDATE INFO SET ?", map);
 	setMapModified(true);
+}
+
+
+/**
+ * @brief Map::getCampaign
+ * @param id
+ * @return
+ */
+
+QVariantMap Map::campaignGet(const int &id)
+{
+	QVariantList l;
+	l << id;
+	QVariantMap map;
+	m_db->execSelectQueryOneRow("SELECT num, name FROM campaign WHERE id=?", l, &map);
+
+	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, video as introVideo, "
+								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroCampaign "
+								"LEFT JOIN intro ON (bindIntroCampaign.introid=intro.id) "
+								"WHERE campaignid=?", l, &map);
+
+	m_db->execSelectQueryOneRow("SELECT id as summaryId FROM summary WHERE campaignid=?", l, &map);
+
+	if (!map.contains("introId"))
+		map["introId"] = -1;
+
+	if (!map.contains("summaryId"))
+		map["summaryId"] = -1;
+
+	return map;
 }
 
 
@@ -402,7 +432,7 @@ void Map::updateInfo(const QVariantMap &map)
  */
 
 
-QVariantList Map::getCampaignList()
+QVariantList Map::campaignListGet()
 {
 	QVariantList list;
 	m_db->execSelectQuery("SELECT id, num, name FROM campaign ORDER BY num", QVariantList(), &list);
@@ -416,7 +446,7 @@ QVariantList Map::getCampaignList()
  * @return
  */
 
-QVariantList Map::getMissionList(const int &campaignId)
+QVariantList Map::missionListGet(const int &campaignId)
 {
 	QVariantList list;
 
@@ -432,6 +462,63 @@ QVariantList Map::getMissionList(const int &campaignId)
 	}
 
 	return list;
+}
+
+
+/**
+ * @brief Map::updateCampaign
+ * @param id
+ * @param params
+ * @return
+ */
+
+bool Map::campaignUpdate(const int &id, const QVariantMap &params)
+{
+	QVariantMap bind;
+	bind[":id"] = id;
+
+	if (m_db->execUpdateQuery("UPDATE campaign SET ? WHERE id=:id", params, bind)) {
+		emit campaignUpdated(id);
+		emit campaignListUpdated();
+		setMapModified(true);
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief Map::campaignAdd
+ * @param params
+ * @return
+ */
+
+int Map::campaignAdd(const QVariantMap &params)
+{
+	QVariantMap p = params;
+
+	int num = 1;
+
+	if (p.contains("num")) {
+		num = p["num"].toInt();
+	} else {
+		QVariantMap m;
+		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM campaign", QVariantList(), &m);
+		if (m.contains("num"))
+			num = m["num"].toInt();
+	}
+
+	p["num"] = num;
+
+	int id = m_db->execInsertQuery("INSERT INTO campaign (?k?) values (?)", p);
+	if (id != -1) {
+		emit campaignListUpdated();
+		setMapModified(true);
+		return id;
+	}
+
+	return -1;
 }
 
 

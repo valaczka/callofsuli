@@ -85,11 +85,15 @@ public slots:
 	void setMapOriginalFile(QString mapOriginalFile);
 	void setMapModified(bool mapModified);
 
-	QVariantMap getInfo();
-	void updateInfo(const QVariantMap &map);
+	QVariantMap infoGet();
+	void infoUpdate(const QVariantMap &map);
 
-	QVariantList getCampaignList();
-	QVariantList getMissionList(const int &campaignId = -1);
+	QVariantMap campaignGet(const int &id);
+	QVariantList campaignListGet();
+	QVariantList missionListGet(const int &campaignId = -1);
+
+	bool campaignUpdate(const int &id, const QVariantMap &params);
+	int campaignAdd(const QVariantMap &params);
 
 signals:
 	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);
@@ -103,6 +107,12 @@ signals:
 	void mapOriginalFileChanged(QString mapOriginalFile);
 	void mapTypeChanged(MapType mapType);
 	void mapModifiedChanged(bool mapModified);
+
+
+	void campaignListUpdated();
+	void campaignUpdated(const int &id);
+	void missionListUpdated(const int &campaignId);
+	void missionUpdated(const int &id);
 
 private:
 	QJsonArray tableToJson(const QString &table, const bool &convertData = false);

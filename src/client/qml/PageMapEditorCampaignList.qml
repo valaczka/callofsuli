@@ -25,8 +25,19 @@ QPagePanel {
 
 		Column {
 			id: col
-			Label { text: "Label 1" }
-			Label { text: "Label 2" }
+			width: parent.width
+
+
+			QTextField {
+				id: newCampaignName
+				width: parent.width
+
+				placeholderText: qsTr("új hadjárat hozzáadása")
+				onAccepted: {
+					if (map.campaignAdd({ "name": newCampaignName.text }))
+						newCampaignName.clear()
+				}
+			}
 		}
 	}
 
@@ -83,20 +94,23 @@ QPagePanel {
 		}
 	}
 
+
+	Connections {
+		target: map
+		onCampaignListUpdated: getList()
+	}
+
+
+
 	Component.onCompleted: getList()
 
 	function getList() {
-		var m = map.getCampaignList()
+		var m = map.campaignListGet()
 		list.model.clear()
 		for (var i=0; i<m.length; i++) {
 			var o = m[i]
 			o.labelTitle = o.name
 			list.model.append(o)
 		}
-		list.model.append({
-							  id: -1,
-							  labelTitle: qsTr("-- új hadjárat --"),
-							  num: m.length+1
-						  })
 	}
 }

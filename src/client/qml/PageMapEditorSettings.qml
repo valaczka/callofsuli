@@ -36,7 +36,7 @@ QPagePanel {
 			var m = JS.getSqlFields([textTitle], true)
 
 			if (Object.keys(m).length && map) {
-				map.updateInfo(m)
+				map.infoUpdate(m)
 			}
 		}
 
@@ -49,7 +49,7 @@ QPagePanel {
 
 
 	Component.onCompleted: {
-		var m = map.getInfo()
+		var m = map.infoGet()
 		textTitle.setText(m.title)
 	}
 }

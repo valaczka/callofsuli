@@ -13,6 +13,8 @@ Item {
 	property bool isLayout: false
 	property var components: []
 
+	property alias swipe: swipe
+
 	focus: false
 
 	RowLayout {
@@ -73,8 +75,11 @@ Item {
 				layoutRepeater.itemAt(i).setSource(c.url, c.params)
 				swipeRepeater.itemAt(i).setSource("")
 			} else {
+				var cc = c.params
+				cc.swipeView = swipe
+				cc.swipeViewIndex = i
 				layoutRepeater.itemAt(i).setSource("")
-				swipeRepeater.itemAt(i).setSource(c.url, c.params)
+				swipeRepeater.itemAt(i).setSource(c.url, cc)
 			}
 		}
 	}

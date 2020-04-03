@@ -10,6 +10,8 @@ QPagePanel {
 
 	property Map map: null
 	property int campaignId: -1
+	property SwipeView swipeView: null
+	property int swipeViewIndex: -1
 
 	title: qsTr("Hadjárat küldetései")
 
@@ -31,6 +33,8 @@ QPagePanel {
 			QTextField {
 				id: campaignName
 				width: parent.width
+
+				onEditingFinished: map.campaignUpdate(campaignId, { "name": campaignName.text })
 			}
 		}
 	}
@@ -92,12 +96,26 @@ QPagePanel {
 
 	Connections {
 		target: pageEditor
-		onCampaignSelected: campaignId = id
+		onCampaignSelected: {
+			campaignId = id
+			swipeToCurrent()
+		}
+	}
+
+
+	Connections {
+		target: map
+		onCampaignUpdated: if (id===campaignId) get()
 	}
 
 	Component.onCompleted: get()
 
 	onCampaignIdChanged: get()
+
+	function swipeToCurrent() {
+		if (swipeView)
+			swipeView.setCurrentIndex(swipeViewIndex)
+	}
 
 	function get() {
 		if (campaignId == -1) {
@@ -106,20 +124,60 @@ QPagePanel {
 			return
 		}
 
-		var m = map.getMissionList(campaignId)
 		list.model.clear()
+
+		var p = map.campaignGet(campaignId)
+		campaignName.text = p["name"]
+
+		if (p["introId"] !== -1) {
+			list.model.append({
+								  id: -2,
+								  introId: p["introId"],
+								  labelTitle: qsTr(" -- Bevezető --"),
+								  labelRight: "",
+								  num: 0
+							  })
+		} else {
+			list.model.append({
+								  id: -2,
+								  introId: -1,
+								  labelTitle: qsTr("-- Bevezető hozzáadása --"),
+								  labelRight: "",
+								  num: 0
+							  })
+		}
+
+		var m = map.missionListGet(campaignId)
 		for (var i=0; i<m.length; i++) {
 			var o = m[i]
 			o.labelTitle = o.name
-			o.labelRight = o.num
+			o.labelRight = ""
 			list.model.append(o)
 		}
 		list.model.append({
 							  id: -1,
 							  name: "",
-							  labelTitle: qsTr("-- új küldetés --"),
+							  labelTitle: qsTr("-- küldetés hozzáadása --"),
 							  labelRight: "",
-							  num: m.length+1
+							  num: m.length+1,
 						  })
+
+		if (p["summaryId"] !== -1) {
+			list.model.append({
+								  id: -3,
+								  summaryId: p["summaryId"],
+								  labelTitle: qsTr("Összegzés"),
+								  labelRight: "",
+								  num: m.length+2
+							  })
+		} else if (m.length) {
+			list.model.append({
+								  id: -3,
+								  summaryId: -1,
+								  labelTitle: qsTr("-- Összegzés hozzáadása --"),
+								  labelRight: "",
+								  num: m.length+2
+							  })
+		}
 	}
 }

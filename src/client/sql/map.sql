@@ -82,7 +82,7 @@ CREATE TABLE objective (
 CREATE TABLE bindIntroCampaign (
 	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	UNIQUE(introid, campaignid)
+	UNIQUE(campaignid)
 );
 
 

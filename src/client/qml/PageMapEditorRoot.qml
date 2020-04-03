@@ -34,6 +34,7 @@ QListItemDelegate {
 
 
 	onClicked: {
+		pageEditor.closeDrawer()
 		switch (index) {
 		case 0: pageEditor.loadSettings(); break
 		case 1: pageEditor.loadCampaigns(); break
