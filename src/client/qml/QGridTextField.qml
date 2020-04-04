@@ -20,10 +20,6 @@ QTextField {
 
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
-	Binding on textColor {
-		when: !acceptableInput
-		value: CosStyle.colorErrorLighter
-	}
 
 	/*QImgButton {
 		id: btnApply

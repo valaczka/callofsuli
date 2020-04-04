@@ -10,15 +10,13 @@ QPagePanel {
 
 	property Map map: null
 	property int campaignId: -1
-	property SwipeView swipeView: null
-	property int swipeViewIndex: -1
 
 	title: qsTr("Hadjárat küldetései")
 
-	rightLoader.sourceComponent: QMenuButton {
-		MenuItem {
-			text: qsTr("Új küldetés")
-		}
+	rightLoader.sourceComponent: QCloseButton {
+		onClicked: if (view) {
+					   view.model.remove(modelIndex)
+				   }
 	}
 
 	QPageHeader {
@@ -34,7 +32,7 @@ QPagePanel {
 				id: campaignName
 				width: parent.width
 
-				onEditingFinished: map.campaignUpdate(campaignId, { "name": campaignName.text })
+				onEditingFinished: if (campaignId != -1) map.campaignUpdate(campaignId, { "name": campaignName.text })
 			}
 		}
 	}
@@ -51,7 +49,13 @@ QPagePanel {
 		//			modelTitleSet: true
 		//			modelSubtitleSet: true
 
-		//onClicked:
+		onClicked: {
+			var o = list.model.get(index)
+			if (o.id >= 0)
+				pageEditor.missionSelected(modelIndex, o.id)
+			else if (o.id === -3 && o.summaryId > -1)
+				pageEditor.summarySelected(modelIndex, o.id)
+		}
 
 		onLongPressed: {
 			menu.modelIndex = index
@@ -98,7 +102,6 @@ QPagePanel {
 		target: pageEditor
 		onCampaignSelected: {
 			campaignId = id
-			swipeToCurrent()
 		}
 	}
 
@@ -106,19 +109,15 @@ QPagePanel {
 	Connections {
 		target: map
 		onCampaignUpdated: if (id===campaignId) get()
+		onMissionListUpdated: if (id===campaignId) get()
 	}
 
 	Component.onCompleted: get()
 
 	onCampaignIdChanged: get()
 
-	function swipeToCurrent() {
-		if (swipeView)
-			swipeView.setCurrentIndex(swipeViewIndex)
-	}
-
 	function get() {
-		if (campaignId == -1) {
+		if (campaignId == -1 || map == null) {
 			list.model.clear()
 			campaignName.text = ""
 			return
@@ -154,6 +153,7 @@ QPagePanel {
 			o.labelRight = ""
 			list.model.append(o)
 		}
+
 		list.model.append({
 							  id: -1,
 							  name: "",

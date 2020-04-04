@@ -60,6 +60,8 @@ TextField {
 	passwordCharacter: "*"
 
 	property color textColor: CosStyle.colorAccent
+	property bool lineVisible: true
+	property bool tooltipEnabled: true
 
 	opacity: enabled ? 1 : 0.5
 	color: control.enabled ?
@@ -71,7 +73,15 @@ TextField {
 
 	placeholderTextColor: JS.setColorAlpha(CosStyle.colorPrimary, 0.7)
 
-	property bool lineVisible: true
+	ToolTip.text: placeholderText
+	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
+	ToolTip.visible: tooltipEnabled && hovered && ToolTip.text.length
+
+
+	Binding on textColor {
+		when: !acceptableInput
+		value: CosStyle.colorErrorLighter
+	}
 
 	Behavior on color {  ColorAnimation { duration: 150 } }
 

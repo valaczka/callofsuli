@@ -20,7 +20,7 @@ QCheckBox {
 	textColor: modified ? CosStyle.colorAccent : CosStyle.colorPrimary
 
 
-	onCheckStateChanged: {
+	onToggled: {
 		if (watchModification) {
 			modified = true
 			parent.modified = true

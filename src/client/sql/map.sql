@@ -60,7 +60,6 @@ CREATE TABLE bindCampaignMission (
 CREATE TABLE chapter (
 	id INTEGER PRIMARY KEY,
 	name TEXT,
-	title TEXT,
 	levelMin INTEGER CHECK(levelMin>0),
 	levelMax INTEGER CHECK(levelMax>0)
 );
@@ -68,7 +67,12 @@ CREATE TABLE chapter (
 CREATE TABLE bindMissionChapter (
 	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	num INTEGER NOT NULL
+	num INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE bindSummaryChapter (
+	summaryid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE objective (
@@ -113,12 +117,4 @@ CREATE TABLE bindObjectiveChapter (
 	levelMin INTEGER CHECK(levelMin>0),
 	levelMax INTEGER CHECK(levelMax>0),
 	UNIQUE (objectiveid, chapterid)
-);
-
-CREATE TABLE bindObjectiveSummary (
-	objectiveid INTEGER NOT NULL REFERENCES objective(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	summaryid INTEGER NOT NULL REFERENCES summary(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	levelMin INTEGER CHECK(levelMin>0),
-	levelMax INTEGER CHECK(levelMax>0),
-	UNIQUE (objectiveid, summaryid)
 );

@@ -38,6 +38,7 @@ QListItemDelegate {
 		switch (index) {
 		case 0: pageEditor.loadSettings(); break
 		case 1: pageEditor.loadCampaigns(); break
+		case 2: pageEditor.loadMissions(); break
 		}
 	}
 

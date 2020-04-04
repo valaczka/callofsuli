@@ -17,7 +17,9 @@ Page {
 	property bool mapBinaryFormat: true
 
 
-	signal campaignSelected(int id)
+	signal campaignSelected(int modelIndex, int id)
+	signal missionSelected(int modelIndex, int id)
+	signal summarySelected(int modelIndex, int id)
 
 	Map {
 		id: map
@@ -127,18 +129,41 @@ Page {
 
 
 	function loadSettings() {
-		panelLayout.components = [
+		panelLayout.model.clear()
+		panelLayout.model.append(
 					{ url: "PageMapEditorSettings.qml", params: { map: map } }
-				]
+					)
 	}
 
 
 	function loadCampaigns() {
-		panelLayout.components = [
-					{ url: "PageMapEditorCampaignList.qml", params: { map: map } },
-					{ url: "PageMapEditorCampaign.qml", params: { map: map } }
-				]
+		panelLayout.model.clear()
+		panelLayout.model.append(
+					{ url: "PageMapEditorCampaignList.qml", params: { map: map } }
+					)
 	}
+
+	function loadMissions() {
+		panelLayout.model.clear()
+		panelLayout.model.append(
+					{ url: "PageMapEditorMissionList.qml", params: { map: map } }
+					)
+	}
+
+
+
+	onCampaignSelected: panelLayout.loadPage(modelIndex, id,
+											 "PageMapEditorCampaign.qml",
+											 { map: map, campaignId: id })
+
+	onMissionSelected: panelLayout.loadPage(modelIndex, id,
+											 "PageMapEditorMission.qml",
+											 { map: map, missionId: id, isSummary: false })
+
+	onSummarySelected: panelLayout.loadPage(modelIndex, id,
+											 "PageMapEditorMission.qml",
+											 { map: map, missionId: id, isSummary: true })
+
 
 
 	function closeDrawer() {

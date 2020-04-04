@@ -15,16 +15,12 @@ ListView {
 	Keys.onLeftPressed: decrementCurrentIndex()
 	Keys.onRightPressed: incrementCurrentIndex()
 
+	height: contentHeight
 
+/*
 	add: Transition {
 		id: dispTrans
 		SequentialAnimation {
-			/*ScriptAction {
-				script: {
-					dispTrans.ViewTransition.item.x = Math.random() > 0.5 ? width : -width
-				}
-			}*/
-
 			PropertyAction {
 				property: "opacity"
 				value: 0
@@ -52,6 +48,9 @@ ListView {
 			}
 		}
 	}
+
+*/
+
 /*
 	populate: Transition {
 		id: popTrans
@@ -88,18 +87,13 @@ ListView {
 		}
 	}
 */
+
+	/*
 	remove: Transition {
 		id: remTrans
 		readonly property int toX: Math.random() > 0.5 ? width : -width
 
 		ParallelAnimation {
-			/*NumberAnimation {
-				property: "x";
-				to: remTrans.toX
-				duration: 275;
-				easing.type: Easing.InBack
-			}*/
-
 			NumberAnimation {
 				property: "scale";
 				duration: 275;
@@ -115,5 +109,5 @@ ListView {
 		}
 
 	}
-
+*/
 }

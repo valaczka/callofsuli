@@ -163,6 +163,24 @@ function dialogCreate(component) {
 
 
 
+function secToMMSS(sec) {
+	if (Number(sec)<=0)
+		return ""
+
+	var m = Math.floor(sec/60)
+	var s = sec%60
+
+	return String(m).padStart(2, "0")+":"+String(s).padStart(2, "0")
+}
+
+
+
+function mmSStoSec(text) {
+	var m = String(text).match(/([0-9]+):([0-9]+)/)
+	return Number(m[1])*60+Number(m[2])
+}
+
+
 
 
 function selectIndices(_model, _items) {

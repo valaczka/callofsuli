@@ -40,8 +40,14 @@
         <file>QPageHeader.qml</file>
         <file>PageMapEditorCampaignList.qml</file>
         <file>PageMapEditorPlaceholder.qml</file>
-        <file>QStackLayout.qml</file>
         <file>PageMapEditorSettings.qml</file>
         <file>PageMapEditorCampaign.qml</file>
+        <file>PageMapEditorMissionList.qml</file>
+        <file>PageMapEditorMission.qml</file>
+        <file>QCollapsible.qml</file>
+        <file>QAccordion.qml</file>
+        <file>QRemoveButton.qml</file>
+        <file>QSpinBox.qml</file>
+        <file>QCloseButton.qml</file>
     </qresource>
 </RCC>

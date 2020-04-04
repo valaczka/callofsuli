@@ -14,16 +14,17 @@ Item {
 
 	focus: false
 
-	property int requiredWidthToDrawer: 1080
-	property int requiredWidthToLayout: 800
+	property int requiredPanelWidth: 400
+	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
+
 	readonly property bool noDrawer: width > requiredWidthToDrawer
-	readonly property bool isLayout: width > requiredWidthToLayout
 
 	property alias drawer: drawer
 	property alias panel: panel
+	property alias model: panel.model
 
 	default property Component leftPanel
-	property var components: []
+
 
 	Drawer {
 		id: drawer
@@ -65,40 +66,63 @@ Item {
 		}
 	}
 
-	StackView {
+	ListView {
 		id: panel
 		x: noDrawer ? drawer.width : 0
 		height: parent.height
 		width: noDrawer ? control.width-drawer.width : control.width
 
-		focus: false
+		clip: true
 
-		initialItem: QCosImage {
-			maxWidth: Math.min(panel.width*0.7, 800)
-			glowRadius: 6
+		orientation: Qt.Horizontal
+		snapMode: ListView.SnapToItem
+		boundsBehavior: Flickable.StopAtBounds
+
+		model: ListModel { }
+
+		delegate: Component {
+			Loader {
+				height: panel.height
+				width: Math.max(panel.width/(Math.floor(panel.width/requiredPanelWidth)), Math.floor(panel.width/panel.model.count))
+				id: ldr
+
+				property int modelIndex: index
+				property ListView view: panel
+
+				Component.onCompleted: ldr.setSource(model.url, model.params)
+			}
+
 		}
+
 	}
 
-	onNoDrawerChanged: reset(false)
-	onIsLayoutChanged: componentsReset()
-	onComponentsChanged: componentsReset()
+	onNoDrawerChanged: reset()
 
 
-	function componentsReset() {
-		var o = JS.createStackLayout(control.parent, isLayout, components)
-		panelLayout.panel.replace(o)
-	}
-
-
-	function reset(prep) {
+	function reset() {
 		if (noDrawer)
 			drawer.close()
-		else if (!isLayout && components.length === 0)
+		else if (panel.model.count === 0)
 			drawer.open()
-
-		componentsReset()
 	}
 
+
+	function loadPage(modelIndex, id, page, _params) {
+
+		if (model.count > modelIndex+1) {
+			if (model.get(modelIndex+1).url === page) {
+				if (model.count > modelIndex+2) {
+					model.remove(modelIndex+2, model.count-(modelIndex+2))
+				}
+				return;
+			}
+
+			model.remove(modelIndex+1, model.count-(modelIndex+1))
+		}
+
+		model.append( { url: page, params: _params } )
+		panel.positionViewAtEnd();
+	}
 
 
 	function drawerToggle() {
@@ -111,8 +135,8 @@ Item {
 
 
 	function layoutBack() {
-		if (!panel.currentItem.isLayout && panel.currentItem.swipe.currentIndex > 0) {
-			panel.currentItem.swipe.decrementCurrentIndex()
+		if (!panel.atXBeginning) {
+			panel.positionViewAtBeginning()
 			return true
 		}
 

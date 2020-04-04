@@ -1,6 +1,5 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.14
 import COS.Client 1.0
 import "."
 import "Style"
@@ -12,6 +11,8 @@ Rectangle {
 	anchors.left: parent.left
 	anchors.right: parent.right
 	color: CosStyle.colorPrimaryDark
+
+	height: childrenRect.height+1
 
 	Rectangle {
 		anchors.bottom: parent.bottom
