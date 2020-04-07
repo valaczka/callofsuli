@@ -16,14 +16,20 @@ CREATE TABLE intro (
 
 CREATE TABLE campaign (
 	id INTEGER PRIMARY KEY,
-	num INTEGER,
+	num INTEGER NOT NULL DEFAULT 0,
 	name TEXT
+);
+
+CREATE TABLE campaignLock (
+	id INTEGER PRIMARY KEY,
+	campaignId INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	lockId INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	CHECK (campaignId<>lockId) UNIQUE (campaignId, lockId)
 );
 
 CREATE TABLE mission (
 	id INTEGER PRIMARY KEY,
-	name TEXT,
-	shuffle BOOL DEFAULT false
+	name TEXT
 );
 
 CREATE TABLE missionLevel (
@@ -32,6 +38,7 @@ CREATE TABLE missionLevel (
 	level INTEGER NOT NULL CHECK (level>0),
 	sec INTEGER NOT NULL CHECK (sec>0),
 	hp INTEGER NOT NULL CHECK (hp>0),
+	mode INTEGER NOT NULL DEFAULT 0 CHECK (mode>=0),
 	UNIQUE(missionid, level)
 );
 
@@ -53,15 +60,13 @@ CREATE TABLE summaryLevel (
 CREATE TABLE bindCampaignMission (
 	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	num INTEGER NOT NULL,
+	num INTEGER NOT NULL DEFAULT 0,
 	UNIQUE (campaignid, missionid)
 );
 
 CREATE TABLE chapter (
 	id INTEGER PRIMARY KEY,
-	name TEXT,
-	levelMin INTEGER CHECK(levelMin>0),
-	levelMax INTEGER CHECK(levelMax>0)
+	name TEXT
 );
 
 CREATE TABLE bindMissionChapter (
@@ -75,12 +80,6 @@ CREATE TABLE bindSummaryChapter (
 	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE TABLE objective (
-	id INTEGER PRIMARY KEY,
-	name TEXT,
-	module TEXT NOT NULL,
-	data TEXT
-);
 
 
 CREATE TABLE bindIntroCampaign (
@@ -110,11 +109,20 @@ CREATE TABLE bindIntroChapter (
 	UNIQUE(introid, chapterid)
 );
 
-
-CREATE TABLE bindObjectiveChapter (
-	objectiveid INTEGER NOT NULL REFERENCES objective(id) ON DELETE CASCADE ON UPDATE CASCADE,
+CREATE TABLE storage (
+	id INTEGER PRIMARY KEY,
 	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	levelMin INTEGER CHECK(levelMin>0),
-	levelMax INTEGER CHECK(levelMax>0),
-	UNIQUE (objectiveid, chapterid)
+	name TEXT,
+	module TEXT NOT NULL,
+	data TEXT
 );
+
+CREATE TABLE objective (
+	id INTEGER PRIMARY KEY,
+	storageid INTEGER REFERENCES storage(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	chapterid INTEGER REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	name TEXT,
+	module TEXT NOT NULL,
+	data TEXT
+);
+

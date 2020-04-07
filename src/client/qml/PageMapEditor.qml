@@ -18,8 +18,9 @@ Page {
 
 
 	signal campaignSelected(int modelIndex, int id)
-	signal missionSelected(int modelIndex, int id)
-	signal summarySelected(int modelIndex, int id)
+	signal missionSelected(int modelIndex, int id, int parentCampaignId)
+	signal summarySelected(int modelIndex, int id, int parentCampaignId)
+	signal chapterSelected(int modelIndex, int id, int parentMissionId, int parentSummaryId)
 
 	Map {
 		id: map
@@ -99,11 +100,16 @@ Page {
 		QDialogYesNo {
 			id: dlgYesNo
 
+			property bool isWindowClosing: false
+
 			title: qsTr("Biztosan eldobod a változtatásokat?")
 
 			onDlgAccept: {
 				map.mapModified = false
-				mainStack.back()
+				if (isWindowClosing)
+					mainWindow.close()
+				else
+					mainStack.back()
 			}
 
 		}
@@ -150,6 +156,13 @@ Page {
 					)
 	}
 
+	function loadChapters() {
+		panelLayout.model.clear()
+		panelLayout.model.append(
+					{ url: "PageMapEditorChapterList.qml", params: { map: map } }
+					)
+	}
+
 
 
 	onCampaignSelected: panelLayout.loadPage(modelIndex, id,
@@ -157,19 +170,32 @@ Page {
 											 { map: map, campaignId: id })
 
 	onMissionSelected: panelLayout.loadPage(modelIndex, id,
-											 "PageMapEditorMission.qml",
-											 { map: map, missionId: id, isSummary: false })
+											"PageMapEditorMission.qml",
+											{ map: map, missionId: id, isSummary: false, parentCampaignId: parentCampaignId })
 
 	onSummarySelected: panelLayout.loadPage(modelIndex, id,
-											 "PageMapEditorMission.qml",
-											 { map: map, missionId: id, isSummary: true })
+											"PageMapEditorMission.qml",
+											{ map: map, missionId: id, isSummary: true, parentCampaignId: parentCampaignId })
 
-
+	onChapterSelected: panelLayout.loadPage(modelIndex, id,
+											 "PageMapEditorChapter.qml",
+											 { map: map, chapterId: id, parentMissionId: parentMissionId, parentSummaryId: parentSummaryId })
 
 	function closeDrawer() {
 		panelLayout.drawer.close()
 	}
 
+
+	function windowClose() {
+		if (map.mapModified) {
+			var d = JS.dialogCreate(dlgModify)
+			d.item.isWindowClosing = true
+			d.open()
+			return false
+		}
+
+		return true
+	}
 
 
 	function stackBack() {

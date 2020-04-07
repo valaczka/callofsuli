@@ -34,6 +34,10 @@ QPagePanel {
 
 				onEditingFinished: if (campaignId != -1) map.campaignUpdate(campaignId, { "name": campaignName.text })
 			}
+
+			Label {
+				id: locks
+			}
 		}
 	}
 
@@ -52,9 +56,19 @@ QPagePanel {
 		onClicked: {
 			var o = list.model.get(index)
 			if (o.id >= 0)
-				pageEditor.missionSelected(modelIndex, o.id)
-			else if (o.id === -3 && o.summaryId > -1)
-				pageEditor.summarySelected(modelIndex, o.id)
+				pageEditor.missionSelected(modelIndex, o.id, campaignId)
+			else if (o.id === -1) {
+				var d = JS.dialogCreate(dlgMissionName)
+				d.open()
+			} else if (o.id === -3) {
+				if (o.summaryId > -1)
+					pageEditor.summarySelected(modelIndex, o.summaryId, campaignId)
+				else {
+					var sumId = map.campaignSummaryAdd(campaignId)
+					if (sumId !== -1)
+						pageEditor.summarySelected(modelIndex, sumId, campaignId)
+				}
+			}
 		}
 
 		onLongPressed: {
@@ -98,6 +112,26 @@ QPagePanel {
 	}
 
 
+
+	Component {
+		id: dlgMissionName
+
+		QDialogTextField {
+			id: dlgYesNo
+
+			title: qsTr("Új küldetés neve")
+
+			onDlgAccept: {
+				var misId = map.missionAdd({ "name": data })
+				if (misId !== -1) {
+					if (map.campaignMissionAdd(campaignId, misId))
+						pageEditor.missionSelected(modelIndex, misId, campaignId)
+				}
+			}
+		}
+	}
+
+
 	Connections {
 		target: pageEditor
 		onCampaignSelected: {
@@ -127,6 +161,15 @@ QPagePanel {
 
 		var p = map.campaignGet(campaignId)
 		campaignName.text = p["name"]
+
+
+		var q = "Zárolva: "
+		for (var i=0; i<p.locks.length; i++) {
+			var o = p.locks[i]
+			o.label = o.name
+			q += " "+o.name
+		}
+		locks.text = q
 
 		if (p["introId"] !== -1) {
 			list.model.append({

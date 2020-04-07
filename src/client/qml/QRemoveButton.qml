@@ -44,11 +44,11 @@ Item {
 
 	MouseArea {
 		id: area
-		enabled: label.visible
+		enabled: buttonVisible
 		anchors.fill: label
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
 
-		onClicked: control.clicked
+		onClicked: control.clicked()
 	}
 }

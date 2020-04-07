@@ -22,9 +22,6 @@ QListItemDelegate {
 			labelTitle: qsTr("Küldetések")
 		}
 		ListElement {
-			labelTitle: qsTr("Fejezetek")
-		}
-		ListElement {
 			labelTitle: qsTr("Célpontok")
 		}
 		ListElement {
@@ -39,46 +36,8 @@ QListItemDelegate {
 		case 0: pageEditor.loadSettings(); break
 		case 1: pageEditor.loadCampaigns(); break
 		case 2: pageEditor.loadMissions(); break
+		case 3: pageEditor.loadChapters(); break
 		}
 	}
 
-	onLongPressed: {
-		menu.modelIndex = index
-		menu.popup()
-	}
-
-	onRightClicked: {
-		menu.modelIndex = index
-		menu.popup()
-	}
-
-	Keys.onPressed: {
-		if (event.key === Qt.Key_Insert) {
-		} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
-		} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
-		}
-	}
-
-
-	QMenu {
-		id: menu
-
-		property int modelIndex: -1
-
-
-		MenuItem {
-			text: qsTr("Szerkesztés")
-			//onClicked:
-		}
-
-		MenuItem {
-			text: qsTr("Törlés")
-		}
-
-		MenuSeparator {}
-
-		MenuItem {
-			text: qsTr("Új küldetés")
-		}
-	}
 }

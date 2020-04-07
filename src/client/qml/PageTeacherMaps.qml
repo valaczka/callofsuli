@@ -192,6 +192,10 @@ Page {
 
 	}
 
+	function windowClose() {
+		return true
+	}
+
 	function stackBack() {
 		if (mainStack.depth > page.StackView.index+1) {
 			if (!mainStack.get(page.StackView.index+1).stackBack()) {

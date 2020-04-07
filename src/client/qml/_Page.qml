@@ -50,6 +50,9 @@ Page {
 			/* UNLOAD */
 	}
 
+	function windowClose() {
+		return true
+	}
 
 	function stackBack() {
 		if (mainStack.depth > page.StackView.index+1) {

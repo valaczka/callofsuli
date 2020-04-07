@@ -92,16 +92,32 @@ public slots:
 	QVariantList campaignListGet();
 	bool campaignUpdate(const int &id, const QVariantMap &params);
 	int campaignAdd(const QVariantMap &params);
+	bool campaignMissionAdd(const int &campaignId, const int &missionId, const int &num = -1);
+	int campaignSummaryAdd(const int &campaignId);
 
 	QVariantMap missionGet(const int &id, const bool &isSummary = false);
 	QVariantList missionListGet(const int &campaignId = -1);
-	bool missionUpdate(const int &id, const QVariantMap &params);
+	bool missionUpdate(const int &id, const QVariantMap &params, const int &campaignId = -1);
 	int missionAdd(const QVariantMap &params);
 	int missionLevelAdd(const QVariantMap &params);
 	bool missionLevelUpdate(const int &id, const int &missionId, const QVariantMap &params);
 	bool missionLevelRemove(const int &id, const int &missionId);
+	int missionChapterAdd(const QVariantMap &params);
+	bool missionChapterUpdate(const int &id, const int &missionId, const QVariantMap &params);
+	bool missionChapterRemove(const int &id, const int &missionId);
 
 	QVariantMap summaryGet(const int &id) { return missionGet(id, true); }
+	int summaryAdd(const int &campaignId);
+	int summaryLevelAdd(const QVariantMap &params);
+	bool summaryLevelUpdate(const int &id, const int &summaryId, const QVariantMap &params);
+	bool summaryLevelRemove(const int &id, const int &summaryId);
+	int summaryChapterAdd(const QVariantMap &params);
+	bool summaryChapterRemove(const int &id, const int &summaryId);
+
+	QVariantMap chapterGet(const int &id);
+	QVariantList chapterListGet(const int &missionId = -1, const int &summaryId = -1);
+	int chapterAdd(const QVariantMap &params);
+	bool chapterUpdate(const int &id, const QVariantMap &params, const int &missionId = -1, const int &summaryId = -1);
 
 signals:
 	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);
@@ -122,6 +138,8 @@ signals:
 	void missionListUpdated(const int &id);
 	void missionUpdated(const int &id);
 	void summaryUpdated(const int &id);
+	void chapterListUpdated(const int &mId, const int &sId);
+	void chapterUpdated(const int &id);
 
 private:
 	QJsonArray tableToJson(const QString &table, const bool &convertData = false);

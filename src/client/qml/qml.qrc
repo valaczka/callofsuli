@@ -39,7 +39,6 @@
         <file>PageMapEditorRoot.qml</file>
         <file>QPageHeader.qml</file>
         <file>PageMapEditorCampaignList.qml</file>
-        <file>PageMapEditorPlaceholder.qml</file>
         <file>PageMapEditorSettings.qml</file>
         <file>PageMapEditorCampaign.qml</file>
         <file>PageMapEditorMissionList.qml</file>
@@ -49,5 +48,8 @@
         <file>QRemoveButton.qml</file>
         <file>QSpinBox.qml</file>
         <file>QCloseButton.qml</file>
+        <file>QComboBox.qml</file>
+        <file>PageMapEditorChapterList.qml</file>
+        <file>PageMapEditorChapter.qml</file>
     </qresource>
 </RCC>

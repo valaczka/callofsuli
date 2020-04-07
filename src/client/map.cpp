@@ -43,6 +43,7 @@ Map::Map(QObject *parent)
 	m_tableNames << "info"
 				 << "intro"
 				 << "campaign"
+				 << "campaignLock"
 				 << "mission"
 				 << "missionLevel"
 				 << "summary"
@@ -54,7 +55,6 @@ Map::Map(QObject *parent)
 				 << "bindIntroMission"
 				 << "bindIntroSummary"
 				 << "bindIntroChapter"
-				 << "bindObjectiveChapter"
 				 << "bindSummaryChapter";
 
 	m_mapType = MapInvalid;
@@ -137,6 +137,9 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 		if (!JsonToTable(root[t].toArray(), t, false))
 			return false;
 	}
+
+	if (!JsonToTable(root["storage"].toArray(), "storage", true))
+		return false;
 
 	if (!JsonToTable(root["objective"].toArray(), "objective", true))
 		return false;
@@ -234,6 +237,7 @@ QByteArray Map::saveToJson(const bool &binaryFormat)
 		root[t] = tableToJson(t);
 	}
 
+	root["storage"] = tableToJson("storage", true);
 	root["objective"] = tableToJson("objective", true);
 
 	QJsonDocument d(root);
@@ -421,6 +425,16 @@ QVariantMap Map::campaignGet(const int &id)
 	if (!map.contains("summaryId"))
 		map["summaryId"] = -1;
 
+
+
+	QVariantList locks;
+
+	m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM campaignLock "
+						  "LEFT JOIN campaign ON (campaignLock.lockId=campaign.id) "
+						  "WHERE campaignId=?", l, &locks);
+
+	map["locks"] = locks;
+
 	return map;
 }
 
@@ -440,6 +454,89 @@ QVariantList Map::campaignListGet()
 }
 
 
+
+/**
+ * @brief Map::missionGet
+ * @param id
+ * @return
+ */
+
+QVariantMap Map::missionGet(const int &id, const bool &isSummary)
+{
+	QVariantList l;
+	l << id;
+	QVariantMap map;
+
+	if (isSummary) {
+		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, video as introVideo, "
+									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroSummary "
+									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
+									"WHERE summaryid=? AND outro=false", l, &map);
+
+		m_db->execSelectQueryOneRow("SELECT intro.id as outroId, ttext as outroText, img as outroImg, video as outroVideo, "
+									"levelMin as outroLevelMin, levelMax as outroLevelMax FROM bindIntroSummary "
+									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
+									"WHERE summaryid=? AND outro=true", l, &map);
+	} else {
+		m_db->execSelectQueryOneRow("SELECT name FROM mission WHERE id=?", l, &map);
+
+		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, video as introVideo, "
+									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroMission "
+									"LEFT JOIN intro ON (bindIntroMission.introid=intro.id) "
+									"WHERE missionid=? AND outro=false", l, &map);
+
+		m_db->execSelectQueryOneRow("SELECT intro.id as outroId, ttext as outroText, img as outroImg, video as outroVideo, "
+									"levelMin as outroLevelMin, levelMax as outroLevelMax FROM bindIntroMission "
+									"LEFT JOIN intro ON (bindIntroMission.introid=intro.id) "
+									"WHERE missionid=? AND outro=true", l, &map);
+	}
+
+	if (!map.contains("introId"))
+		map["introId"] = -1;
+
+	if (!map.contains("outroId"))
+		map["outroId"] = -1;
+
+
+
+	QVariantList campaigns;
+
+	if (isSummary) {
+		m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM summary "
+							  "LEFT JOIN campaign ON (summary.campaignid=campaign.id) "
+							  "WHERE summary.id=?", l, &campaigns);
+	} else {
+		m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM bindCampaignMission "
+							  "LEFT JOIN campaign ON (bindCampaignMission.campaignid=campaign.id) "
+							  "WHERE missionid=? ORDER BY campaign.num", l, &campaigns);
+	}
+
+
+	map["campaigns"] = campaigns;
+
+
+	QVariantList levels;
+
+	if (isSummary) {
+		m_db->execSelectQuery("SELECT id, level, sec, hp, 0 as mode FROM summaryLevel WHERE summaryid=? ORDER BY level", l, &levels);
+	} else {
+		m_db->execSelectQuery("SELECT id, level, sec, hp, mode FROM missionLevel WHERE missionid=? ORDER BY level", l, &levels);
+	}
+
+	map["levels"] = levels;
+
+
+
+	QVariantList chapters = chapterListGet(isSummary ? -1 : id, isSummary ? id : -1);
+
+	map["chapters"] = chapters;
+
+	return map;
+}
+
+
+
+
 /**
  * @brief Map::getMissionList
  * @param missionId
@@ -453,12 +550,12 @@ QVariantList Map::missionListGet(const int &campaignId)
 	if (campaignId != -1) {
 		QVariantList l;
 		l << campaignId;
-		m_db->execSelectQuery("SELECT missionid as id, name, shuffle, num FROM bindCampaignMission "
+		m_db->execSelectQuery("SELECT missionid as id, name, num FROM bindCampaignMission "
 							  "LEFT JOIN mission ON (mission.id=bindCampaignMission.missionid) "
 							  "WHERE campaignid=? "
 							  "ORDER BY num", l, &list);
 	} else {
-		m_db->execSelectQuery("SELECT id, name, shuffle, 0 as num FROM mission ORDER BY name", QVariantList(), &list);
+		m_db->execSelectQuery("SELECT id, name, 0 as num FROM mission ORDER BY name", QVariantList(), &list);
 	}
 
 	return list;
@@ -472,14 +569,14 @@ QVariantList Map::missionListGet(const int &campaignId)
  * @return
  */
 
-bool Map::missionUpdate(const int &id, const QVariantMap &params)
+bool Map::missionUpdate(const int &id, const QVariantMap &params, const int &campaignId)
 {
 	QVariantMap bind;
 	bind[":id"] = id;
 
 	if (m_db->execUpdateQuery("UPDATE mission SET ? WHERE id=:id", params, bind)) {
 		emit missionUpdated(id);
-		emit missionListUpdated(-1);
+		emit missionListUpdated(campaignId);
 		setMapModified(true);
 		return true;
 	}
@@ -518,7 +615,7 @@ int Map::missionLevelAdd(const QVariantMap &params)
 {
 	int id = m_db->execInsertQuery("INSERT INTO missionLevel (?k?) values (?)", params);
 	if (id != -1) {
-		emit missionListUpdated(params.value("campaignid", -1).toInt());
+		emit missionUpdated(params.value("missionid", -1).toInt());
 		setMapModified(true);
 		return id;
 	}
@@ -561,7 +658,385 @@ bool Map::missionLevelRemove(const int &id, const int &missionId)
 	QVariantList l;
 	l << id;
 	l << missionId;
-	return m_db->execSimpleQuery("DELETE FROM missionLevel WHERE id=? AND missionid=?", l);
+	bool r = m_db->execSimpleQuery("DELETE FROM missionLevel WHERE id=? AND missionid=?", l);
+	if (r) {
+		emit missionUpdated(missionId);
+		setMapModified(true);
+	}
+	return r;
+}
+
+/**
+ * @brief Map::missionChapterAdd
+ * @param params
+ * @return
+ */
+
+int Map::missionChapterAdd(const QVariantMap &params)
+{
+	int missionId = params.value("missionid", -1).toInt();
+	int num = params.value("num", -1).toInt();
+
+	if (num == -1) {
+		QVariantMap m;
+		QVariantList l;
+		l << missionId;
+		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionChapter WHERE missionid=?", l, &m);
+		if (m.contains("num"))
+			num = m["num"].toInt();
+		else
+			num = 1;
+	}
+
+	QVariantMap p2 = params;
+	p2["num"] = num;
+
+	int id = m_db->execInsertQuery("INSERT INTO bindMissionChapter (?k?) values (?)", p2);
+
+	if (id != -1) {
+		emit missionUpdated(missionId);
+		emit chapterListUpdated(missionId, -1);
+		setMapModified(true);
+		return id;
+	}
+
+	return -1;
+}
+
+
+
+/**
+ * @brief Map::missionChapterUpdate
+ * @param id
+ * @param missionId
+ * @param params
+ * @return
+ */
+
+bool Map::missionChapterUpdate(const int &id, const int &missionId, const QVariantMap &params)
+{
+	QVariantMap bind;
+	bind[":id"] = id;
+	bind[":missionid"] = missionId;
+
+	if (m_db->execUpdateQuery("UPDATE bindMissionChapter SET ? WHERE id=:id AND missionid=:missionid", params, bind)) {
+		emit missionUpdated(missionId);
+		emit chapterListUpdated(missionId, -1);
+		setMapModified(true);
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief Map::missionChapterRemove
+ * @param id
+ * @param missionId
+ * @return
+ */
+
+
+bool Map::missionChapterRemove(const int &id, const int &missionId)
+{
+	QVariantList l;
+	l << id;
+	l << missionId;
+	bool r = m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE id=? AND missionid=?", l);
+	if (r) {
+		emit missionUpdated(missionId);
+		emit chapterListUpdated(missionId, -1);
+		setMapModified(true);
+	}
+	return r;
+}
+
+
+/**
+ * @brief Map::summaryAdd
+ * @param params
+ * @return
+ */
+
+int Map::summaryAdd(const int &campaignId)
+{
+	QVariantMap m;
+	m["campaignid"] = campaignId;
+	int id = m_db->execInsertQuery("INSERT INTO summary (?k?) values (?)", m);
+	if (id != -1) {
+		emit campaignUpdated(campaignId);
+		setMapModified(true);
+	}
+
+	return id;
+}
+
+
+/**
+ * @brief Map::summaryLevelAdd
+ * @param params
+ * @return
+ */
+
+int Map::summaryLevelAdd(const QVariantMap &params)
+{
+	int id = m_db->execInsertQuery("INSERT INTO summaryLevel (?k?) values (?)", params);
+	if (id != -1) {
+		emit summaryUpdated(params.value("summaryid", -1).toInt());
+		setMapModified(true);
+	}
+
+	return id;
+}
+
+
+/**
+ * @brief Map::summaryLevelUpdate
+ * @param id
+ * @param missionId
+ * @param params
+ * @return
+ */
+
+bool Map::summaryLevelUpdate(const int &id, const int &summaryId, const QVariantMap &params)
+{
+	QVariantMap bind;
+	bind[":id"] = id;
+	bind[":summaryid"] = summaryId;
+
+	if (m_db->execUpdateQuery("UPDATE summaryLevel SET ? WHERE id=:id AND summaryid=:summaryid", params, bind)) {
+		emit summaryUpdated(summaryId);
+		setMapModified(true);
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief Map::summaryLevelRemove
+ * @param id
+ * @param missionId
+ * @return
+ */
+
+bool Map::summaryLevelRemove(const int &id, const int &summaryId)
+{
+	QVariantList l;
+	l << id;
+	l << summaryId;
+	bool r = m_db->execSimpleQuery("DELETE FROM summaryLevel WHERE id=? AND summaryid=?", l);
+	if (r) {
+		emit summaryUpdated(summaryId);
+		setMapModified(true);
+	}
+	return r;
+}
+
+
+/**
+ * @brief Map::summaryChapterAdd
+ * @param params
+ * @return
+ */
+
+int Map::summaryChapterAdd(const QVariantMap &params)
+{
+	int id = m_db->execInsertQuery("INSERT INTO bindSummaryChapter (?k?) values (?)", params);
+	if (id != -1) {
+		int summaryId = params.value("summaryid", -1).toInt();
+		emit summaryUpdated(summaryId);
+		emit chapterListUpdated(-1, summaryId);
+		setMapModified(true);
+		return id;
+	}
+
+	return -1;
+}
+
+
+/**
+ * @brief Map::summaryChapterRemove
+ * @param id
+ * @param missionId
+ * @return
+ */
+
+
+bool Map::summaryChapterRemove(const int &id, const int &summaryId)
+{
+	QVariantList l;
+	l << id;
+	l << summaryId;
+	bool r = m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE id=? AND summaryid=?", l);
+	if (r) {
+		emit summaryUpdated(summaryId);
+		emit chapterListUpdated(-1, summaryId);
+		setMapModified(true);
+	}
+	return r;
+}
+
+
+
+
+
+/**
+ * @brief Map::chapterGet
+ * @param id
+ * @return
+ */
+
+QVariantMap Map::chapterGet(const int &id)
+{
+	QVariantList l;
+	l << id;
+	QVariantMap map;
+
+	m_db->execSelectQueryOneRow("SELECT name FROM chapter where id=?", l, &map);
+
+	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, video as introVideo, "
+								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroChapter "
+								"LEFT JOIN intro ON (bindIntroChapter.introid=intro.id) "
+								"WHERE chapterid=?", l, &map);
+
+	if (!map.contains("introId"))
+		map["introId"] = -1;
+
+
+
+	QVariantList missions;
+
+	m_db->execSelectQuery("SELECT mission.id as id, mission.name as name FROM bindMissionChapter "
+						  "LEFT JOIN mission ON (mission.id=bindMissionChapter.missionid) "
+						  "WHERE chapterid=? ORDER BY mission.name", l, &missions);
+
+	map["missions"] = missions;
+
+
+	QVariantList campaigns;
+
+	m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM bindSummaryChapter "
+						  "LEFT JOIN summary ON (summary.id=bindSummaryChapter.summaryid) "
+						  "LEFT JOIN campaign ON (campaign.id=summary.campaignid) "
+						  "WHERE chapterid=? ORDER BY campaign.name", l, &campaigns);
+
+	map["campaigns"] = campaigns;
+
+
+
+	QVariantList storages;
+
+	m_db->execSelectQuery("SELECT id, name, module, data FROM storage WHERE storage.chapterid=? ORDER BY id", l, &storages);
+
+	map["storages"] = storages;
+
+
+	QVariantList storageObjectives;
+
+	foreach (QVariant s, storages) {
+		int sId = s.toMap().value("id", -1).toInt();
+		QVariantList p;
+		p << sId;
+		QVariantList oo;
+		m_db->execSelectQuery("SELECT id, name, module, data FROM objective WHERE objecive.storeageid=? ORDER BY id", p, &oo);
+		QVariantMap r;
+		r["id"] = sId;
+		r["objectives"] = oo;
+		storageObjectives << r;
+	}
+
+	map["storageObjectives"] = storageObjectives;
+
+
+
+	QVariantList objectives;
+
+	m_db->execSelectQuery("SELECT id, name, module, data FROM objective WHERE objective.chapterid=? ORDER BY id", l, &storages);
+
+	map["objectives"] = objectives;
+
+	return map;
+}
+
+
+/**
+ * @brief Map::chapterListGet
+ * @param missionId
+ * @param summaryId
+ * @return
+ */
+
+QVariantList Map::chapterListGet(const int &missionId, const int &summaryId)
+{
+	QVariantList list;
+
+	if (summaryId != -1) {
+		QVariantList l;
+		l << summaryId;
+		m_db->execSelectQuery("SELECT chapterid as id, name FROM bindSummaryChapter "
+							  "LEFT JOIN chapter ON (chapter.id=bindSummaryChapter.chapterid) "
+							  "WHERE summaryid=? "
+							  "ORDER BY chapterid", l, &list);
+	} else if (missionId != -1) {
+		QVariantList l;
+		l << missionId;
+		m_db->execSelectQuery("SELECT chapterid as id, name, num FROM bindMissionChapter "
+							  "LEFT JOIN chapter ON (chapter.id=bindMissionChapter.chapterid) "
+							  "WHERE missionid=? "
+							  "ORDER BY num", l, &list);
+	} else {
+		m_db->execSelectQuery("SELECT id, name, 0 as num FROM chapter ORDER BY name, id", QVariantList(), &list);
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief Map::chapterAdd
+ * @param params
+ * @return
+ */
+
+int Map::chapterAdd(const QVariantMap &params)
+{
+	int id = m_db->execInsertQuery("INSERT INTO chapter (?k?) values (?)", params);
+	if (id != -1) {
+		emit chapterListUpdated(-1, -1);
+		setMapModified(true);
+		return id;
+	}
+
+	return -1;
+}
+
+
+
+
+/**
+ * @brief Map::chapterUpdate
+ * @param id
+ * @param params
+ * @return
+ */
+
+bool Map::chapterUpdate(const int &id, const QVariantMap &params, const int &missionId, const int &summaryId)
+{
+	QVariantMap bind;
+	bind[":id"] = id;
+
+	if (m_db->execUpdateQuery("UPDATE chapter SET ? WHERE id=:id", params, bind)) {
+		emit chapterUpdated(id);
+		emit chapterListUpdated(missionId, summaryId);
+		setMapModified(true);
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -626,92 +1101,63 @@ int Map::campaignAdd(const QVariantMap &params)
 
 
 /**
- * @brief Map::missionGet
- * @param id
+ * @brief Map::campaignAddMission
+ * @param campaignId
+ * @param missionId
+ * @param num
  * @return
  */
 
-QVariantMap Map::missionGet(const int &id, const bool &isSummary)
+bool Map::campaignMissionAdd(const int &campaignId, const int &missionId, const int &num)
 {
-	QVariantList l;
-	l << id;
-	QVariantMap map;
-
-	if (isSummary) {
-		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, video as introVideo, "
-									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroSummary "
-									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
-									"WHERE summaryid=? AND outro=false", l, &map);
-
-		m_db->execSelectQueryOneRow("SELECT intro.id as outroId, ttext as outroText, img as outroImg, video as outroVideo, "
-									"levelMin as outroLevelMin, levelMax as outroLevelMax FROM bindIntroSummary "
-									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
-									"WHERE summaryid=? AND outro=true", l, &map);
-	} else {
-		m_db->execSelectQueryOneRow("SELECT name, shuffle FROM mission WHERE id=?", l, &map);
-
-		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, video as introVideo, "
-									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroMission "
-									"LEFT JOIN intro ON (bindIntroMission.introid=intro.id) "
-									"WHERE missionid=? AND outro=false", l, &map);
-
-		m_db->execSelectQueryOneRow("SELECT intro.id as outroId, ttext as outroText, img as outroImg, video as outroVideo, "
-									"levelMin as outroLevelMin, levelMax as outroLevelMax FROM bindIntroMission "
-									"LEFT JOIN intro ON (bindIntroMission.introid=intro.id) "
-									"WHERE missionid=? AND outro=true", l, &map);
+	int realnum = num;
+	if (num == -1) {
+		QVariantMap m;
+		QVariantList l;
+		l << campaignId;
+		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindCampaignMission WHERE campaignid=?", l, &m);
+		if (m.contains("num"))
+			realnum = m["num"].toInt();
+		else
+			realnum = 1;
 	}
 
-	if (!map.contains("introId"))
-		map["introId"] = -1;
+	QVariantMap m;
+	m["campaignid"] = campaignId;
+	m["missionid"] = missionId;
+	m["num"] = realnum;
 
-	if (!map.contains("outroId"))
-		map["outroId"] = -1;
+	int r = m_db->execInsertQuery("INSERT INTO bindCampaignMission (?k?) VALUES (?)", m);
 
-
-
-	QVariantList campaigns;
-
-	if (isSummary) {
-		m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM summary "
-							  "LEFT JOIN campaign ON (summary.campaignid=campaign.id) "
-							  "WHERE summary.id=?", l, &campaigns);
-	} else {
-		m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM bindCampaignMission "
-							  "LEFT JOIN campaign ON (bindCampaignMission.campaignid=campaign.id) "
-							  "WHERE missionid=? ORDER BY campaign.num", l, &campaigns);
+	if (r != -1) {
+		emit campaignUpdated(campaignId);
+		setMapModified(true);
+		return true;
 	}
 
+	return false;
+}
 
-	map["campaigns"] = campaigns;
 
+/**
+ * @brief Map::campaignSummaryAdd
+ * @param campaignId
+ * @return
+ */
 
-	QVariantList levels;
+int Map::campaignSummaryAdd(const int &campaignId)
+{
+	QVariantMap m;
+	m["campaignid"] = campaignId;
 
-	if (isSummary) {
-		m_db->execSelectQuery("SELECT id, level, sec, hp FROM summaryLevel WHERE summaryid=? ORDER BY level", l, &levels);
-	} else {
-		m_db->execSelectQuery("SELECT id, level, sec, hp FROM missionLevel WHERE missionid=? ORDER BY level", l, &levels);
+	int r = m_db->execInsertQuery("INSERT INTO summary (?k?) VALUES (?)", m);
+
+	if (r != -1) {
+		emit campaignUpdated(campaignId);
+		setMapModified(true);
 	}
 
-	map["levels"] = levels;
-
-
-
-	QVariantList chapters;
-
-	if (isSummary) {
-		m_db->execSelectQuery("SELECT chapter.id as id, name, levelMin, levelMax FROM bindSummaryChapter "
-							  "LEFT JOIN chapter ON (bindSummaryChapter.chapterid=chapter.id) "
-							  "WHERE summaryid=? ORDER BY id", l, &chapters);
-	} else {
-		m_db->execSelectQuery("SELECT chapter.id as id, name, levelMin, levelMax, num FROM bindMissionChapter "
-							  "LEFT JOIN chapter ON (bindMissionChapter.chapterid=chapter.id) "
-							  "WHERE missionid=? ORDER BY num", l, &chapters);
-	}
-
-	map["chapters"] = chapters;
-
-	return map;
+	return r;
 }
 
 

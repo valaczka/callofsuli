@@ -10,7 +10,7 @@ QPagePanel {
 
 	property Map map: null
 
-	title: qsTr("Küldetések")
+	title: qsTr("Célpontok")
 
 	rightLoader.sourceComponent: QCloseButton {
 		onClicked: if (view) {
@@ -29,13 +29,13 @@ QPagePanel {
 
 
 			QTextField {
-				id: newMissionName
+				id: newChapterName
 				width: parent.width
 
-				placeholderText: qsTr("új küldetés hozzáadása")
+				placeholderText: qsTr("új célpont hozzáadása")
 				onAccepted: {
-					if (map.missionAdd({ "name": newMissionName.text }))
-						newMissionName.clear()
+					if (map.chapterAdd({ "name": newChapterName.text }))
+						clear()
 				}
 			}
 		}
@@ -49,10 +49,7 @@ QPagePanel {
 		anchors.bottom: parent.bottom
 
 
-		//			modelTitleSet: true
-		//			modelSubtitleSet: true
-
-		onClicked: pageEditor.missionSelected(modelIndex, list.model.get(index).id, -1)
+		onClicked: pageEditor.chapterSelected(modelIndex, list.model.get(index).id, -1, -1)
 
 		onLongPressed: {
 			menu.modelIndex = index
@@ -97,7 +94,7 @@ QPagePanel {
 
 	Connections {
 		target: map
-		onMissionListUpdated: getList()
+		onChapterListUpdated: getList()
 	}
 
 
@@ -105,7 +102,7 @@ QPagePanel {
 	Component.onCompleted: getList()
 
 	function getList() {
-		var m = map.missionListGet()
+		var m = map.chapterListGet()
 		list.model.clear()
 		for (var i=0; i<m.length; i++) {
 			var o = m[i]

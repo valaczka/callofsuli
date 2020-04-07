@@ -112,6 +112,8 @@ Page {
 		QDialogYesNo {
 			id: dlgYesNo
 
+			property bool isWindowClosing: false
+
 			title: qsTr("Biztosan eldobod a változtatásokat?")
 
 			onDlgAccept: {
@@ -159,6 +161,17 @@ Page {
 		/* UNLOAD */
 	}
 
+
+	function windowClose() {
+		if (grid.modified) {
+			var d = JS.dialogCreate(dlgModify)
+			d.item.isWindowClosing = true
+			d.open()
+			return false
+		}
+
+		return true
+	}
 
 	function stackBack() {
 		if (mainStack.depth > page.StackView.index+1) {

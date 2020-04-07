@@ -12,6 +12,7 @@ QPagePanel {
 	property Map map: null
 	property int missionId: -1
 	property bool isSummary: false
+	property int parentCampaignId: -1
 
 	title: isSummary ? qsTr("Összegző küldetés") : qsTr("Küldetés")
 
@@ -46,27 +47,16 @@ QPagePanel {
 					onEditingFinished: header.missionUpdate()
 				}
 
-				QCheckBox {
-					id: missionShuffle
-					width: parent.width
-					visible: !isSummary
-
-					text: qsTr("Fejezetek összekeverve")
-
-					onToggled: header.missionUpdate()
-				}
-
 				Label {
 					id: missionCampaigns
 				}
 			}
 
 			function missionUpdate() {
-				if (missionId != -1)
+				if (missionId != -1 && !isSummary)
 					map.missionUpdate(missionId, {
-										  "name": missionName.text,
-										  "shuffle": missionShuffle.checked,
-									  })
+										  "name": missionName.text
+									  }, parentCampaignId)
 			}
 		}
 
@@ -159,36 +149,80 @@ QPagePanel {
 							onValueModified: delegateitem.missionLevelUpdate()
 						}
 
+						QComboBox {
+							id: comboMode
+
+							visible: !isSummary && spinHP.visible
+
+							ToolTip.text: qsTr("Célpontok elrendezése")
+
+							valueRole: "value"
+							textRole: "text"
+
+							model: [
+								{ value: 0, text: qsTr("[]->[]") },				// Fejezetenként egyben és egymás után
+								{ value: 1, text: qsTr("[]X") },				// Fejezetenként egyben összekeverve
+								{ value: 2, text: qsTr("XX") }					// Teljesen összekeverve
+							]
+
+							onActivated: delegateitem.missionLevelUpdate()
+						}
+
 						Item { Layout.fillWidth: true }
 
 						QRemoveButton {
 							buttonVisible: model.canRemove
 
-							onClicked: map.missionLevelRemove(model.id, missionId)
+							onClicked: if (isSummary)
+										   map.summaryLevelRemove(model.id, missionId)
+									   else
+										   map.missionLevelRemove(model.id, missionId)
 
 							Layout.fillHeight: true
 							Layout.fillWidth: false
 							Layout.leftMargin: 5
 							Layout.rightMargin: 5
 						}
+
+						Component.onCompleted: {
+							comboMode.currentIndex = comboMode.indexOfValue(model.mode)
+						}
 					}
 
 					function missionLevelUpdate() {
-						if (missionId != -1)
-							map.missionLevelUpdate(model.id, missionId, {
-													   "sec": JS.mmSStoSec(textTime.text),
-													   "hp": spinHP.value
-												   })
+						if (missionId != -1) {
+							if (isSummary)
+								map.summaryLevelUpdate(model.id, missionId, {
+														   "sec": JS.mmSStoSec(textTime.text),
+														   "hp": spinHP.value
+													   })
+							else
+								map.missionLevelUpdate(model.id, missionId, {
+														   "sec": JS.mmSStoSec(textTime.text),
+														   "hp": spinHP.value,
+														   "mode": comboMode.currentValue
+													   })
+						}
 					}
 
 					function missionLevelAdd() {
-						if (missionId != -1)
-							map.missionLevelAdd({
-													"missionid": missionId,
-													"level": model.level,
-													"sec": JS.mmSStoSec(textTime.text),
-													"hp": spinHP.value
-												})
+						if (missionId != -1) {
+							if (isSummary)
+								map.summaryLevelAdd({
+														"summaryid": missionId,
+														"level": model.level,
+														"sec": JS.mmSStoSec(textTime.text),
+														"hp": spinHP.value
+													})
+							else
+								map.missionLevelAdd({
+														"missionid": missionId,
+														"level": model.level,
+														"sec": JS.mmSStoSec(textTime.text),
+														"hp": spinHP.value,
+														"mode": comboMode.currentValue
+													})
+						}
 					}
 				}
 			}
@@ -197,28 +231,56 @@ QPagePanel {
 
 
 		QCollapsible {
-			title: "collapse3"
+			title: "Célpontok"
 
-			QListItemDelegate {
-				id: listChapters
-
+			Column {
 				width: parent.width
 
 
-				onLongPressed: {
-					menu.modelIndex = index
-					menu.popup()
+				QTextField {
+					id: newChapterName
+					width: parent.width
+
+					placeholderText: qsTr("új célpont hozzáadása")
+					onAccepted: {
+						if (missionId !== -1) {
+							var i = map.chapterAdd({ "name": newChapterName.text })
+							if (i !== -1 && isSummary)
+								map.summaryChapterAdd({ "summaryid" : missionId, "chapterid": i })
+							else if (i !== -1 && !isSummary)
+								map.missionChapterAdd({ "missionid" : missionId, "chapterid": i })
+
+							clear()
+						}
+					}
 				}
 
-				onRightClicked: {
-					menu.modelIndex = index
-					menu.popup()
-				}
+				QListItemDelegate {
+					id: listChapters
 
-				Keys.onPressed: {
-					if (event.key === Qt.Key_Insert) {
-					} else if (event.key === Qt.Key_F4 && listChapters.currentIndex !== -1) {
-					} else if (event.key === Qt.Key_Delete && listChapters.currentIndex !== -1) {
+					width: parent.width
+
+					onClicked: {
+						var o = listChapters.model.get(index)
+						if (o.id >= 0)
+							pageEditor.chapterSelected(modelIndex, o.id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
+					}
+
+					onLongPressed: {
+						menu.modelIndex = index
+						menu.popup()
+					}
+
+					onRightClicked: {
+						menu.modelIndex = index
+						menu.popup()
+					}
+
+					Keys.onPressed: {
+						if (event.key === Qt.Key_Insert) {
+						} else if (event.key === Qt.Key_F4 && listChapters.currentIndex !== -1) {
+						} else if (event.key === Qt.Key_Delete && listChapters.currentIndex !== -1) {
+						}
 					}
 				}
 			}
@@ -268,6 +330,8 @@ QPagePanel {
 		target: map
 		onMissionUpdated: if (!isSummary && id===missionId) get()
 		onSummaryUpdated: if (isSummary && id===missionId) get()
+		onChapterListUpdated: if ((!isSummary && mId===missionId) || (isSummary && sId===missionId))
+								  get()
 	}
 
 	Component.onCompleted: get()
@@ -279,7 +343,6 @@ QPagePanel {
 			listChapters.model.clear()
 			listLevels.model.clear()
 			missionName.text = ""
-			missionShuffle.checked = false
 			return
 		}
 
@@ -293,11 +356,10 @@ QPagePanel {
 		} else {
 			p = map.missionGet(missionId)
 			missionName.text = p.name
-			missionShuffle.checked = p.shuffle
 		}
 
 
-		var q = "Küldetések: "
+		var q = "Hadjáratok: "
 		for (var i=0; i<p.campaigns.length; i++) {
 			var o = p.campaigns[i]
 			o.label = o.name
@@ -311,7 +373,7 @@ QPagePanel {
 
 		for (i=0; i<levels; i++) {
 			var o2 = p.levels[i]
-			o2.canRemove = (i===levels && i>0) ? true : false
+			o2.canRemove = (i===levels-1 && i>0) ? true : false
 
 			if (o2.level>levelNum)
 				levelNum=o2.level
@@ -324,6 +386,7 @@ QPagePanel {
 									level: levelNum+1,
 									sec: 0,
 									hp: 5,
+									mode: 0,
 									canRemove: false
 								})
 
@@ -352,13 +415,6 @@ QPagePanel {
 			listChapters.model.append(o3)
 		}
 
-		listChapters.model.append({
-									  id: -1,
-									  name: "",
-									  labelTitle: qsTr("-- új fejezet hozzáadása --"),
-									  labelRight: "",
-									  num: p.chapters.length+1,
-								  })
 
 		if (p.outroId !== -1) {
 			listChapters.model.append({

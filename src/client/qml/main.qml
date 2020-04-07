@@ -188,6 +188,13 @@ ApplicationWindow {
 
 
 	onClosing: {
+		if (mainStack.depth > 2) {
+			if (!mainStack.get(mainStack.depth-1).windowClose()) {
+				close.accepted = false
+				return
+			}
+		}
+
 		cosClient.windowSaveGeometry(mainWindow)
 	}
 
