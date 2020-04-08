@@ -49,17 +49,28 @@ QPagePanel {
 		anchors.bottom: parent.bottom
 
 
-		modelRightSet: true
-		//			modelTitleSet: true
-		//			modelSubtitleSet: true
-
 		onClicked: {
 			var o = list.model.get(index)
 			if (o.id >= 0)
 				pageEditor.missionSelected(modelIndex, o.id, campaignId)
 			else if (o.id === -1) {
 				var d = JS.dialogCreate(dlgMissionName)
+				d.item.mode = 0
 				d.open()
+			} else if (o.id === -2) {
+				if (o.introId && o.introId > -1)
+					pageEditor.introSelected(modelIndex, o.introId, campaignId, Map.IntroCampaign)
+				else if (o.outroId && o.outroId > -1)
+					pageEditor.introSelected(modelIndex, o.outroId, campaignId, Map.IntroCampaign)
+				else if (o.introId && o.introId === -1) {
+					d = JS.dialogCreate(dlgMissionName)
+					d.item.mode = 1
+					d.open()
+				} else if (o.outroId && o.outroId === -1) {
+					d = JS.dialogCreate(dlgMissionName)
+					d.item.mode = 2
+					d.open()
+				}
 			} else if (o.id === -3) {
 				if (o.summaryId > -1)
 					pageEditor.summarySelected(modelIndex, o.summaryId, campaignId)
@@ -119,13 +130,27 @@ QPagePanel {
 		QDialogTextField {
 			id: dlgYesNo
 
-			title: qsTr("Új küldetés neve")
+			property int mode: 0
+
+			title: switch (mode) {
+				   case 0: qsTr("Új küldetés neve"); break
+				   case 1: qsTr("Új bevezető"); break
+				   case 2: qsTr("Új kivezető"); break
+				   }
 
 			onDlgAccept: {
-				var misId = map.missionAdd({ "name": data })
-				if (misId !== -1) {
-					if (map.campaignMissionAdd(campaignId, misId))
-						pageEditor.missionSelected(modelIndex, misId, campaignId)
+				if (mode == 0) {
+					var misId = map.missionAdd({ "name": data })
+					if (misId !== -1) {
+						if (map.campaignMissionAdd(campaignId, misId))
+							pageEditor.missionSelected(modelIndex, misId, campaignId)
+					}
+				} else if (mode == 1 || mode == 2) {
+					var intId = map.introAdd({ "ttext": data })
+					if (intId !== -1) {
+						if (map.campaignIntroAdd(campaignId, intId, (mode === 2)))
+							pageEditor.introSelected(modelIndex, intId, campaignId, Map.IntroCampaign)
+					}
 				}
 			}
 		}
@@ -144,6 +169,7 @@ QPagePanel {
 		target: map
 		onCampaignUpdated: if (id===campaignId) get()
 		onMissionListUpdated: if (id===campaignId) get()
+		onIntroListUpdated: if (type===Map.IntroCampaign && parentId===campaignId) get()
 	}
 
 	Component.onCompleted: get()
@@ -174,8 +200,8 @@ QPagePanel {
 		if (p["introId"] !== -1) {
 			list.model.append({
 								  id: -2,
-								  introId: p["introId"],
-								  labelTitle: qsTr(" -- Bevezető --"),
+								  introId: p.introId,
+								  labelTitle: p.introText,
 								  labelRight: "",
 								  num: 0
 							  })
@@ -220,6 +246,23 @@ QPagePanel {
 								  labelTitle: qsTr("-- Összegzés hozzáadása --"),
 								  labelRight: "",
 								  num: m.length+2
+							  })
+		}
+
+
+		if (p.outroId !== -1) {
+			list.model.append({
+								  id: -2,
+								  outroId: p.outroId,
+								  labelTitle: p.outroText,
+								  num: 0
+							  })
+		} else {
+			list.model.append({
+								  id: -2,
+								  outroId: -1,
+								  labelTitle: qsTr("-- Kivezető hozzáadása --"),
+								  num: 0
 							  })
 		}
 	}

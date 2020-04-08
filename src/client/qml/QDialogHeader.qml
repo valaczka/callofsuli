@@ -54,9 +54,10 @@ Item {
 			id: labelTitle
 			anchors.verticalCenter: parent.verticalCenter
 			color: CosStyle.colorPrimary
-			font.capitalization: Font.AllUppercase
-			font.weight: Font.DemiBold
-			font.pixelSize: CosStyle.pixelSize*1.2
+			/*font.capitalization: Font.AllUppercase
+			font.weight: Font.DemiBold*/
+			font.pixelSize: CosStyle.pixelSize*1.5
+			font.family: "HVD Peace"
 
 			width: Math.min(implicitWidth, item.width-mainIcon.width-mainRow.spacing-2*item.padding)
 

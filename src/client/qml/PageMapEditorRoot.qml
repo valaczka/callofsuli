@@ -37,6 +37,7 @@ QListItemDelegate {
 		case 1: pageEditor.loadCampaigns(); break
 		case 2: pageEditor.loadMissions(); break
 		case 3: pageEditor.loadChapters(); break
+		case 4: pageEditor.loadIntros(); break
 		}
 	}
 

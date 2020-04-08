@@ -57,8 +57,8 @@ public:
 
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
-	Q_PROPERTY(int clientVersionMajor READ clientVersionMajor)
-	Q_PROPERTY(int clientVersionMinor READ clientVersionMinor)
+	Q_PROPERTY(int clientVersionMajor READ clientVersionMajor NOTIFY clientVersionMajorChanged)
+	Q_PROPERTY(int clientVersionMinor READ clientVersionMinor NOTIFY clientVersionMinorChanged)
 
 	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
@@ -172,6 +172,8 @@ signals:
 	void userFirstNameChanged(QString userFirstName);
 	void userLastNameChanged(QString userLastName);
 	void serverNameChanged(QString serverName);
+	void clientVersionMajorChanged(int clientVersionMajor);
+	void clientVersionMinorChanged(int clientVersionMinor);
 
 private:
 	QWebSocket* m_socket;
@@ -189,6 +191,8 @@ private:
 	QString m_userFirstName;
 	QString m_userLastName;
 	QString m_serverName;
+	int m_clientVersionMajor;
+	int m_clientVersionMinor;
 };
 
 

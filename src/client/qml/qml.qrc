@@ -51,5 +51,10 @@
         <file>QComboBox.qml</file>
         <file>PageMapEditorChapterList.qml</file>
         <file>PageMapEditorChapter.qml</file>
+        <file>PageMapEditorIntroList.qml</file>
+        <file>PageMapEditorIntro.qml</file>
+        <file>QGridSpinBox.qml</file>
+        <file>QTextArea.qml</file>
+        <file>QGridTextArea.qml</file>
     </qresource>
 </RCC>

@@ -103,7 +103,7 @@ Item {
 				anchors.bottomMargin: mainRow.padding
 
 
-				TextField {
+				QTextField {
 					id: tfInput
 
 					anchors.left: parent.left

@@ -264,6 +264,21 @@ QPagePanel {
 						var o = listChapters.model.get(index)
 						if (o.id >= 0)
 							pageEditor.chapterSelected(modelIndex, o.id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
+						else if (o.id === -2) {
+							if (o.introId && o.introId > -1)
+								pageEditor.introSelected(modelIndex, o.introId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
+							else if (o.outroId && o.outroId > -1)
+								pageEditor.introSelected(modelIndex, o.outroId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
+							else if (o.introId && o.introId === -1) {
+								var d = JS.dialogCreate(dlgIntroName)
+								d.item.mode = 1
+								d.open()
+							} else if (o.outroId && o.outroId === -1) {
+								d = JS.dialogCreate(dlgIntroName)
+								d.item.mode = 2
+								d.open()
+							}
+						}
 					}
 
 					onLongPressed: {
@@ -310,6 +325,33 @@ QPagePanel {
 	}
 
 
+	Component {
+		id: dlgIntroName
+
+		QDialogTextField {
+			property int mode: 1
+
+			title: switch (mode) {
+				   case 1: qsTr("Új bevezető"); break
+				   case 2: qsTr("Új kivezető"); break
+				   }
+
+			onDlgAccept: {
+				var intId = map.introAdd({ "ttext": data })
+				if (isSummary) {
+					if (intId !== -1 && map.summaryIntroAdd(missionId, intId, (mode === 2)))
+						pageEditor.introSelected(modelIndex, intId, missionId, Map.IntroSummary)
+
+				} else {
+					if (intId !== -1 && map.missionIntroAdd(missionId, intId, (mode === 2)))
+						pageEditor.introSelected(modelIndex, intId, missionId, Map.IntroMission)
+
+				}
+			}
+		}
+	}
+
+
 	Connections {
 		target: pageEditor
 		onMissionSelected: {
@@ -330,6 +372,7 @@ QPagePanel {
 		target: map
 		onMissionUpdated: if (!isSummary && id===missionId) get()
 		onSummaryUpdated: if (isSummary && id===missionId) get()
+		onIntroListUpdated: if ((type===Map.IntroMission || type===Map.IntroSummary) && parentId===missionId) get()
 		onChapterListUpdated: if ((!isSummary && mId===missionId) || (isSummary && sId===missionId))
 								  get()
 	}
@@ -339,7 +382,7 @@ QPagePanel {
 	onMissionIdChanged: get()
 
 	function get() {
-		if (missionId == -1) {
+		if (missionId == -1 || !map) {
 			listChapters.model.clear()
 			listLevels.model.clear()
 			missionName.text = ""
@@ -396,7 +439,7 @@ QPagePanel {
 			listChapters.model.append({
 										  id: -2,
 										  introId: p.introId,
-										  labelTitle: qsTr(" -- Bevezető --"),
+										  labelTitle: p.introText,
 										  num: 0
 									  })
 		} else {
@@ -420,7 +463,7 @@ QPagePanel {
 			listChapters.model.append({
 										  id: -2,
 										  outroId: p.outroId,
-										  labelTitle: qsTr(" -- Kivezető --"),
+										  labelTitle: p.outroText,
 										  num: 0
 									  })
 		} else {

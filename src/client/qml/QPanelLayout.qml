@@ -108,7 +108,6 @@ Item {
 
 
 	function loadPage(modelIndex, id, page, _params) {
-
 		if (model.count > modelIndex+1) {
 			if (model.get(modelIndex+1).url === page) {
 				if (model.count > modelIndex+2) {

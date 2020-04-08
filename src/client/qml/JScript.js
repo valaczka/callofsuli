@@ -176,6 +176,8 @@ function secToMMSS(sec) {
 
 
 function mmSStoSec(text) {
+	if (!text.length)
+		return 0
 	var m = String(text).match(/([0-9]+):([0-9]+)/)
 	return Number(m[1])*60+Number(m[2])
 }

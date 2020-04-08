@@ -3,6 +3,7 @@ import QtQuick.Controls 2.12
 import QtGraphicalEffects 1.0
 import QtQuick.Controls.Material 2.3
 import QtQuick.Layouts 1.3
+import QtMultimedia 5.14
 import COS.Client 1.0
 import "."
 import "Style"
@@ -23,6 +24,28 @@ Page {
 	}
 
 	property bool isFirstRun: true
+
+	background: Rectangle {
+		color: "black"
+		Video {
+			id: bgVideo
+			anchors.fill: parent
+			source: "qrc:/vid/bg.mov"
+			autoPlay: true
+			loops: MediaPlayer.Infinite
+		}
+
+		Label {
+			anchors.right: parent.right
+			anchors.bottom: parent.bottom
+			anchors.bottomMargin: 5
+			anchors.rightMargin: 10
+			text: "Call of Suli v"+cosClient.clientVersionMajor+"."+cosClient.clientVersionMinor
+
+			color: CosStyle.colorPrimaryLighter
+			font.pixelSize: CosStyle.pixelSize*0.8
+		}
+	}
 
 	header: QToolBar {
 		id: toolbar
@@ -62,13 +85,6 @@ Page {
 		}
 	}
 
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
-
 
 
 	QPagePanel {
@@ -78,8 +94,6 @@ Page {
 
 		anchors.fill: parent
 		maximumWidth: 600
-
-		blurSource: bgImage
 
 		rightLoader.sourceComponent: QMenuButton {
 			MenuItem {
@@ -228,6 +242,7 @@ Page {
 
 		forceActiveFocus()
 	}
+
 
 
 

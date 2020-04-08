@@ -21,14 +21,11 @@ QPagePanel {
 				   }
 	}
 
-	QPageHeader {
-		id: header
+	QAccordion {
+		anchors.fill: parent
 
-		height: col.height
-
-		Column {
-			id: col
-			width: parent.width
+		QCollapsible {
+			title: qsTr("Általános")
 
 			QTextField {
 				id: chapterName
@@ -36,31 +33,55 @@ QPagePanel {
 
 				onEditingFinished: if (chapterId != -1) map.chapterUpdate(chapterId, { "name": chapterName.text }, parentMissionId, parentSummaryId)
 			}
+		}
 
-			Label {
-				id: chapterMissions
-			}
+		QCollapsible {
+			title: qsTr("Kapcsolatok")
 
-			Label {
-				id: chapterCampaigns
+			Column {
+				width: parent.width
+
+
+				Label {
+					id: chapterMissions
+				}
+
+				Label {
+					id: chapterCampaigns
+				}
 			}
 		}
-	}
 
-	QListItemDelegate {
-		id: list
-		anchors.top: header.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		QCollapsible {
+			title: qsTr("Bevezető")
+
+			QButton {
+				id: bIntro
+				property int introId: -1;
+
+				onClicked: if (introId !== -1)
+							   pageEditor.introSelected(modelIndex, introId, chapterId, Map.IntroChapter)
+						   else  {
+							   var d = JS.dialogCreate(dlgIntroName)
+							   d.open()
+						   }
+			}
+		}
+
+		QCollapsible {
+			title: qsTr("Fegyverek")
+
+			QListItemDelegate {
+				id: list
+				width: parent.width
 
 
-		//			modelTitleSet: true
-		//			modelSubtitleSet: true
+				//			modelTitleSet: true
+				//			modelSubtitleSet: true
 
-		onClicked: {
-			var o = list.model.get(index)
-			/*if (o.id >= 0)
+				onClicked: {
+					var o = list.model.get(index)
+					/*if (o.id >= 0)
 				pageEditor.missionSelected(modelIndex, o.id)
 			else if (o.id === -1) {
 				var d = JS.dialogCreate(dlgMissionName)
@@ -74,49 +95,43 @@ QPagePanel {
 						pageEditor.summarySelected(modelIndex, sumId)
 				}
 			}*/
-		}
+				}
 
-		onLongPressed: {
-			menu.modelIndex = index
-			menu.popup()
-		}
+				onLongPressed: {
+					menu.modelIndex = index
+					menu.popup()
+				}
 
-		onRightClicked: {
-			menu.modelIndex = index
-			menu.popup()
-		}
+				onRightClicked: {
+					menu.modelIndex = index
+					menu.popup()
+				}
 
-		Keys.onPressed: {
-			if (event.key === Qt.Key_Insert) {
-			} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
-			} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
+				Keys.onPressed: {
+					if (event.key === Qt.Key_Insert) {
+					} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
+					} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
+					}
+				}
+			}
+
+		}
+	}
+
+	Component {
+		id: dlgIntroName
+
+		QDialogTextField {
+			title: qsTr("Új bevezető")
+
+			onDlgAccept: {
+				var intId = map.introAdd({ "ttext": data })
+				if (intId !== -1 && map.chapterIntroAdd(chapterId, intId))
+					pageEditor.introSelected(modelIndex, intId, chapterId, Map.IntroChapter)
+
 			}
 		}
 	}
-
-	QMenu {
-		id: menu
-
-		property int modelIndex: -1
-
-
-		MenuItem {
-			text: qsTr("Szerkesztés")
-			//onClicked:
-		}
-
-		MenuItem {
-			text: qsTr("Törlés")
-		}
-
-		MenuSeparator {}
-
-		MenuItem {
-			text: qsTr("Új küldetés")
-		}
-	}
-
-
 
 	Connections {
 		target: pageEditor
@@ -166,18 +181,14 @@ QPagePanel {
 		chapterCampaigns.text = q
 
 
+
+
 		if (p.introId !== -1) {
-			list.model.append({
-								  id: -2,
-								  introId: p.introId,
-								  labelTitle: qsTr(" -- Bevezető --")
-							  })
+			bIntro.introId = p.introId
+			bIntro.label = p.introText
 		} else {
-			list.model.append({
-								  id: -2,
-								  introId: -1,
-								  labelTitle: qsTr("-- Bevezető hozzáadása --")
-							  })
+			bIntro.introId = -1
+			bIntro.label = qsTr("-- Bevezető hozzáadása --")
 		}
 
 

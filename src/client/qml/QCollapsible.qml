@@ -89,5 +89,6 @@ Rectangle {
 		height: 1
 		color: CosStyle.colorAccent
 	}
+
 }
 

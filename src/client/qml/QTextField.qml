@@ -35,7 +35,7 @@
 ****************************************************************************/
 
 import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick.Controls 2.14
 import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 import "Style"
@@ -103,13 +103,6 @@ TextField {
 		elide: Text.ElideRight
 	}*/
 
-	MouseArea {
-		id: mouseArea
-		hoverEnabled: true
-		acceptedButtons: Qt.NoButton
-		anchors.fill: control
-	}
-
 	//! [background]
 	background: Rectangle {
 		width: control.width
@@ -139,7 +132,7 @@ TextField {
 
 			property color _color: control.activeFocus ?
 									   CosStyle.colorAccentLighter :
-									   (mouseArea.containsMouse ?
+									   (control.hovered ?
 											CosStyle.colorPrimaryLighter :
 											CosStyle.colorPrimary)
 

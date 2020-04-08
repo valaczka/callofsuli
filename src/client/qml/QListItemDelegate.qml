@@ -55,6 +55,8 @@ QListView {
 				id: lblTitle
 				text: item.labelTitle
 				color: "black"
+				maximumLineCount: 1
+				elide: Text.ElideRight
 			}
 
 			Label {

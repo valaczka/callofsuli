@@ -9,9 +9,10 @@ CREATE TABLE intro (
 	id INTEGER PRIMARY KEY,
 	ttext TEXT,
 	img TEXT,
-	video TEXT,
-	levelMin INTEGER CHECK(levelMin>0),
-	levelMax INTEGER CHECK(levelMax>0)
+	media TEXT,
+	sec INTEGER NOT NULL DEFAULT 0 CHECK (sec>=0),
+	levelMin INTEGER NOT NULL DEFAULT 0 CHECK(levelMin>=0),
+	levelMax INTEGER NOT NULL DEFAULT 0 CHECK(levelMax>=0)
 );
 
 CREATE TABLE campaign (
@@ -85,7 +86,8 @@ CREATE TABLE bindSummaryChapter (
 CREATE TABLE bindIntroCampaign (
 	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	UNIQUE(campaignid)
+	outro BOOL NOT NULL DEFAULT false,
+	UNIQUE(introid, campaignid, outro)
 );
 
 

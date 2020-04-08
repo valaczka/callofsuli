@@ -137,7 +137,7 @@ Item {
 						wrapMode: Text.WordWrap
 						horizontalAlignment: Qt.AlignHCenter
 						verticalAlignment: Qt.AlignVCenter
-						font.family: "Rajdhani"
+						font.weight: Font.Light
 						//font.pixelSize: labelText.font.pixelSize*0.9
 					}
 				}

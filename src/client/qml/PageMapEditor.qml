@@ -21,6 +21,7 @@ Page {
 	signal missionSelected(int modelIndex, int id, int parentCampaignId)
 	signal summarySelected(int modelIndex, int id, int parentCampaignId)
 	signal chapterSelected(int modelIndex, int id, int parentMissionId, int parentSummaryId)
+	signal introSelected(int modelIndex, int id, int parentId, int parentType)
 
 	Map {
 		id: map
@@ -163,6 +164,13 @@ Page {
 					)
 	}
 
+	function loadIntros() {
+		panelLayout.model.clear()
+		panelLayout.model.append(
+					{ url: "PageMapEditorIntroList.qml", params: { map: map } }
+					)
+	}
+
 
 
 	onCampaignSelected: panelLayout.loadPage(modelIndex, id,
@@ -180,6 +188,10 @@ Page {
 	onChapterSelected: panelLayout.loadPage(modelIndex, id,
 											 "PageMapEditorChapter.qml",
 											 { map: map, chapterId: id, parentMissionId: parentMissionId, parentSummaryId: parentSummaryId })
+
+	onIntroSelected: panelLayout.loadPage(modelIndex, id,
+											 "PageMapEditorIntro.qml",
+											 { map: map, introId: id, parentId: parentId, parentType: parentType })
 
 	function closeDrawer() {
 		panelLayout.drawer.close()
