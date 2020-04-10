@@ -33,6 +33,7 @@
 #include <QDir>
 #include <QObject>
 #include <QQmlContext>
+#include <sqlimage.h>
 
 #include "cosclient.h"
 
@@ -43,12 +44,18 @@ int main(int argc, char *argv[])
 
 	QGuiApplication app(argc, argv);
 
-	Client::initialize();
-	Client::standardPathCreate();
-	Client::registerTypes();
-	Client::registerResource();
+	Client client;
+
+	client.initialize();
+	client.standardPathCreate();
+	client.registerTypes();
+	client.registerResource();
 
 	QQmlApplicationEngine engine;
+	QQmlContext *context = engine.rootContext();
+	context->setContextProperty("cosClient", &client);
+
+	engine.addImageProvider("sql", new SqlImage(&client));
 
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
 	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

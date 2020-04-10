@@ -133,11 +133,9 @@ Page {
 			textPort.setText(server.port)
 			checkSsl.setChecked(server.ssl)
 			grid.modified = false
-			busy.running = false
 		}
 
 		onServerInfoUpdated: {
-			busy.running = false
 			grid.modified = false
 			mainStack.back()
 		}
@@ -152,7 +150,6 @@ Page {
 					qsTr("Szerver szerkesztése")
 
 		if (serverId !== -1) {
-			busy.running = true
 			servers.serverInfoGet(serverId)
 		}
 	}

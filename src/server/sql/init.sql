@@ -30,6 +30,24 @@ CREATE TABLE user(
 	isAdmin BOOL NOT NULL DEFAULT false
 );
 
+
+CREATE TRIGGER user_email_insert
+BEFORE INSERT ON user
+BEGIN
+	SELECT CASE
+		WHEN NEW.email IS NOT NULL AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
+	END;
+END;
+
+
+CREATE TRIGGER user_email_update
+BEFORE UPDATE ON user
+BEGIN
+	SELECT CASE
+		WHEN NEW.email IS NOT NULL AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
+	END;
+END;
+
 CREATE TABLE auth(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	password TEXT,
@@ -93,6 +111,7 @@ CREATE TABLE achievement(
 CREATE TABLE rank(
 	id INTEGER PRIMARY KEY,
 	name TEXT NOT NULL,
+	level INTEGER NOT NULL DEFAULT 1,
 	xp INTEGER CHECK (xp>=0)
 );
 
@@ -144,47 +163,47 @@ BEGIN
 END;
 
 
-INSERT INTO rank VALUES (0,'közkatona',0);
+INSERT INTO rank VALUES (0,'közkatona',1,0);
 
-INSERT INTO rank VALUES (1,'őrvezető',500);
+INSERT INTO rank VALUES (1,'őrvezető',1,500);
 
-INSERT INTO rank VALUES (2,'tizedes',1150);
+INSERT INTO rank VALUES (2,'tizedes',1,1150);
 
-INSERT INTO rank VALUES (3,'szakaszvezető',1950);
+INSERT INTO rank VALUES (3,'szakaszvezető',1,1950);
 
-INSERT INTO rank VALUES (4,'őrmester',2900);
+INSERT INTO rank VALUES (4,'őrmester',1,2900);
 
-INSERT INTO rank VALUES (5,'törzsőrmester',4000);
+INSERT INTO rank VALUES (5,'törzsőrmester',1,4000);
 
-INSERT INTO rank VALUES (6,'főtörzsőrmester',5250);
+INSERT INTO rank VALUES (6,'főtörzsőrmester',1,5250);
 
-INSERT INTO rank VALUES (7,'zászlós',6650);
+INSERT INTO rank VALUES (7,'zászlós',1,6650);
 
-INSERT INTO rank VALUES (8,'törzszászlós',8200);
+INSERT INTO rank VALUES (8,'törzszászlós',1,8200);
 
-INSERT INTO rank VALUES (9,'főtörzszászlós',9900);
+INSERT INTO rank VALUES (9,'főtörzszászlós',1,9900);
 
-INSERT INTO rank VALUES (10,'alhadnagy',11750);
+INSERT INTO rank VALUES (10,'alhadnagy',1,11750);
 
-INSERT INTO rank VALUES (11,'hadnagy',13750);
+INSERT INTO rank VALUES (11,'hadnagy',1,13750);
 
-INSERT INTO rank VALUES (12,'főhadnagy',15900);
+INSERT INTO rank VALUES (12,'főhadnagy',1,15900);
 
-INSERT INTO rank VALUES (13,'százados',18200);
+INSERT INTO rank VALUES (13,'százados',1,18200);
 
-INSERT INTO rank VALUES (14,'őrnagy',20650);
+INSERT INTO rank VALUES (14,'őrnagy',1,20650);
 
-INSERT INTO rank VALUES (15,'alezredes',23250);
+INSERT INTO rank VALUES (15,'alezredes',1,23250);
 
-INSERT INTO rank VALUES (16,'ezredes',26000);
+INSERT INTO rank VALUES (16,'ezredes',1,26000);
 
-INSERT INTO rank VALUES (17,'dandártábornok',28900);
+INSERT INTO rank VALUES (17,'dandártábornok',1,28900);
 
-INSERT INTO rank VALUES (18,'vezérőrnagy',31950);
+INSERT INTO rank VALUES (18,'vezérőrnagy',1,31950);
 
-INSERT INTO rank VALUES (19,'altábornagy',35150);
+INSERT INTO rank VALUES (19,'altábornagy',1,35150);
 
-INSERT INTO rank VALUES (100,'vezérezredes',null);
+INSERT INTO rank VALUES (100,'vezérezredes',1,null);
 
 
 

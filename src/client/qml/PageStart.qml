@@ -214,16 +214,11 @@ Page {
 		target: cosClient
 
 		onConnectionStateChanged: {
-			console.debug("changed", connectionState)
 			if (connectionState === Client.Connected) {
-				JS.createPage("Connection", {}, page)
+				JS.createPage("MainMenu", {}, page)
 			} else if (connectionState === Client.Standby) {
 				mainStack.pop(page)
 			}
-		}
-
-		onUserRolesChanged: {
-			console.debug("user roles", userRoles);
 		}
 	}
 

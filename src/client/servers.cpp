@@ -198,6 +198,35 @@ void Servers::serverConnect(const int &serverId)
 		}
 	}
 
+	QString dir = QString("%1").arg(serverId);
+	QString serverDir = Client::standardPath(dir);
+	if (!QFileInfo::exists(serverDir)) {
+		QDir d(Client::standardPath());
+		if (!d.mkdir(dir)) {
+			m_client->sendMessageError(tr("Programhiba"), tr("Nem sikerült létrehozni a könyvtárt:"), serverDir);
+			return;
+		}
+	}
+
+	QString defaultResourceDb = serverDir+"/resources.db";
+	if (!QFile::exists(defaultResourceDb)) {
+		qInfo() << tr("Adatbázis létrehozása:") << defaultResourceDb;
+		QFile from(":/db/default.db");
+		if (!from.open(QIODevice::ReadOnly)) {
+			m_client->sendMessageError(tr("Programhiba"), tr("Nem sikerült megnyitni az adatbázist!"));
+			return;
+		}
+		QByteArray b = from.readAll();
+		from.close();
+		QFile f(defaultResourceDb);
+		if (f.open(QIODevice::WriteOnly)) {
+			f.write(b);
+			f.close();
+		}
+	}
+
+	m_client->setServerDataDir(serverDir);
+
 	m_client->socket()->open(url);
 }
 

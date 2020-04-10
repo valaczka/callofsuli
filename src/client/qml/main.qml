@@ -182,9 +182,6 @@ ApplicationWindow {
 	}
 
 
-	Client {
-		id: cosClient
-	}
 
 
 	onClosing: {

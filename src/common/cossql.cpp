@@ -70,6 +70,7 @@ bool CosSql::open(const QString &file, bool create)
 
 	if (!m_db.open()) {
 		qWarning().noquote() << tr("Nem sikerült megnyitni az adatbázist: ")+file;
+		qWarning().noquote() << m_db.lastError();
 		return false;
 	}
 

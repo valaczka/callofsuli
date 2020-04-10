@@ -111,6 +111,8 @@ bool Server::start()
 	if (!m_mapDb->databaseOpen())
 		return false;
 
+	if (sqlDbCreate())
+		return false;
 
 	if (!websocketServerStart())
 		return false;

@@ -28,7 +28,6 @@
         <file>JScript.js</file>
         <file>QGridCheckBox.qml</file>
         <file>QCheckBox.qml</file>
-        <file>PageConnection.qml</file>
         <file>PageOffline.qml</file>
         <file>PageMapEditor.qml</file>
         <file>QDialogTextField.qml</file>
@@ -36,25 +35,26 @@
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
         <file>QPanelLayout.qml</file>
-        <file>PageMapEditorRoot.qml</file>
+        <file>MapEditorRoot.qml</file>
         <file>QPageHeader.qml</file>
-        <file>PageMapEditorCampaignList.qml</file>
-        <file>PageMapEditorSettings.qml</file>
-        <file>PageMapEditorCampaign.qml</file>
-        <file>PageMapEditorMissionList.qml</file>
-        <file>PageMapEditorMission.qml</file>
+        <file>MapEditorCampaignList.qml</file>
+        <file>MapEditorSettings.qml</file>
+        <file>MapEditorCampaign.qml</file>
+        <file>MapEditorMissionList.qml</file>
+        <file>MapEditorMission.qml</file>
         <file>QCollapsible.qml</file>
         <file>QAccordion.qml</file>
         <file>QRemoveButton.qml</file>
         <file>QSpinBox.qml</file>
         <file>QCloseButton.qml</file>
         <file>QComboBox.qml</file>
-        <file>PageMapEditorChapterList.qml</file>
-        <file>PageMapEditorChapter.qml</file>
-        <file>PageMapEditorIntroList.qml</file>
-        <file>PageMapEditorIntro.qml</file>
+        <file>MapEditorChapterList.qml</file>
+        <file>MapEditorChapter.qml</file>
+        <file>MapEditorIntroList.qml</file>
+        <file>MapEditorIntro.qml</file>
         <file>QGridSpinBox.qml</file>
         <file>QTextArea.qml</file>
         <file>QGridTextArea.qml</file>
+        <file>PageMainMenu.qml</file>
     </qresource>
 </RCC>

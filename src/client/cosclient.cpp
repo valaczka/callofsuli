@@ -52,6 +52,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_signalList["userInfo"] = "UserInfo";
 	m_signalList["teacherMaps"] = "TeacherMaps";
 
+	m_serverDataDir = "";
+
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
@@ -350,11 +352,7 @@ void Client::login(const QString &username, const QString &session, const QStrin
 		{"auth", d}
 	};
 
-	QJsonObject d3 {
-		{"callofsuli", d2}
-	};
-
-	socketSend(d3);
+	socketSend(d2);
 }
 
 
@@ -429,7 +427,7 @@ QByteArray Client::prepareJson(const QJsonObject &jsonObject)
 	QJsonObject d;
 	QJsonObject d2 = jsonObject;
 
-	if (!m_sessionToken.isEmpty()) {
+	if (!m_sessionToken.isEmpty() && !d2.contains("auth")) {
 		QJsonObject auth {
 			{"session", m_sessionToken}
 		};
@@ -454,6 +452,15 @@ void Client::setServerName(QString serverName)
 
 	m_serverName = serverName;
 	emit serverNameChanged(m_serverName);
+}
+
+void Client::setServerDataDir(QString resourceDbName)
+{
+	if (m_serverDataDir == resourceDbName)
+		return;
+
+	m_serverDataDir = resourceDbName;
+	emit serverDataDirChanged(m_serverDataDir);
 }
 
 void Client::setUserFirstName(QString userFirstName)

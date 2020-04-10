@@ -254,7 +254,10 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 
 void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 {
+	qDebug().noquote() << tr("Client authorization");
+
 	if (!data.contains("auth")) {
+		qDebug().noquote() << tr("Missing auth object -> unauthorized");
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
 		return;
@@ -263,6 +266,7 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 	QJsonObject a = data["auth"].toObject();
 
 	if (a.contains("session")) {
+		qDebug().noquote() << tr("Auth with session");
 		QVariantList l;
 		l << a["session"].toString();
 		//		l << a["username"].toString();
@@ -273,17 +277,22 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 			m_db->runSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
 			setClientState(ClientAuthorized);
 			setClientUserName(r.value(0).toMap().value("username").toString());
+			qDebug().noquote() << tr("Update session -> authorized") << m_clientUserName;
 		} else {
+			qDebug().noquote() << tr("Invalid session -> unauthorized");
 			sendError("invalidSession", clientMsgId);
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
 		}
 	} else {
+		qDebug().noquote() << tr("Auth with password");
+
 		QString username = a["username"].toString();
 		QString password = a["password"].toString();
 
 		if (username.isEmpty() || password.isEmpty()) {
+			qDebug().noquote() << tr("User/password empty -> unauthorized");
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
@@ -300,6 +309,8 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 			QString hashedPassword = CosSql::hashPassword(password, &salt);
 
 			if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0) {
+				qDebug().noquote() << tr("Auth with password successful, create session");
+
 				QVariantMap s = m_db->runSimpleQuery("INSERT INTO session (username) VALUES (?)", l);
 				QVariant vId = s["lastInsertId"];
 				if (!m["error"].toBool() && !vId.isNull()) {
@@ -308,6 +319,7 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 					QVariantMap mToken = m_db->runSimpleQuery("SELECT token FROM session WHERE rowid=?", rl);
 					QVariantList rToken = mToken["records"].toList();
 					if (!mToken["error"].toBool() && !rToken.isEmpty()) {
+						qDebug().noquote() << tr("Send token");
 						QJsonObject json;
 						json["token"] = rToken.value(0).toMap().value("token").toString();
 						QJsonObject doc;
@@ -328,8 +340,10 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 					return;
 				}
 
+				qDebug().noquote() << tr("Authorized") << username;
 				setClientState(ClientAuthorized);
 				setClientUserName(username);
+				return;
 			} else {
 				sendError("invalidUser", clientMsgId);
 				setClientState(ClientUnauthorized);
@@ -384,6 +398,8 @@ void Client::updateRoles()
 		setClientRoles(RoleGuest);
 		return;
 	}
+
+	qDebug().noquote() << tr("Update roles");
 
 	ClientRoles newRoles;
 	newRoles.setFlag(RoleGuest);

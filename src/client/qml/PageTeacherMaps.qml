@@ -27,12 +27,14 @@ Page {
 								  {
 									  mapId: jsonData["id"],
 									  mapName: jsonData["name"],
-									  mapBinaryFormat: true
+									  mapBinaryFormat: true,
 								  },
 								  page)
 			o.map.loadFromJson(mapData)
 
 			o.map.mapSaved.connect(page.onMapSaved)
+
+			teacherMaps.isBusyChanged.connect(o.setBusy)
 		}
 	}
 
@@ -71,6 +73,8 @@ Page {
 		id: p
 
 		maximumWidth: 800
+
+		anchors.fill: parent
 
 		blurSource: bgImage
 

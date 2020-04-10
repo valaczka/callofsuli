@@ -5,7 +5,7 @@ CONFIG += c++11
 
 include(../version/version.pro)
 include(../common/common.pri)
-include(SortFilterProxyModel/SortFilterProxyModel.pri)
+#include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
 
 
 TEMPLATE = app
@@ -29,6 +29,7 @@ SOURCES += \
 		main.cpp \
 		map.cpp \
 		servers.cpp \
+		sqlimage.cpp \
 		teachermaps.cpp
 
 HEADERS += \
@@ -37,6 +38,7 @@ HEADERS += \
 	cosclient.h \
 	map.h \
 	servers.h \
+	sqlimage.h \
 	teachermaps.h
 
 RESOURCES += \

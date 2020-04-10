@@ -60,6 +60,7 @@ public:
 	Q_PROPERTY(int clientVersionMajor READ clientVersionMajor NOTIFY clientVersionMajorChanged)
 	Q_PROPERTY(int clientVersionMinor READ clientVersionMinor NOTIFY clientVersionMinorChanged)
 
+	Q_PROPERTY(QString serverDataDir READ serverDataDir WRITE setServerDataDir NOTIFY serverDataDirChanged)
 	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
@@ -99,6 +100,7 @@ public:
 	QString serverName() const { return m_serverName; }
 	static int clientVersionMajor() { return _VERSION_MAJOR; }
 	static int clientVersionMinor() { return _VERSION_MINOR; }
+	QString serverDataDir() const { return m_serverDataDir; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -121,6 +123,8 @@ public slots:
 
 	int socketNextClientMsgId();
 	int socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData = QByteArray(), const int &serverMsgId = -1);
+	void setServerDataDir(QString serverDataDir);
+
 
 
 
@@ -174,6 +178,7 @@ signals:
 	void serverNameChanged(QString serverName);
 	void clientVersionMajorChanged(int clientVersionMajor);
 	void clientVersionMinorChanged(int clientVersionMinor);
+	void serverDataDirChanged(QString serverDataDir);
 
 private:
 	QWebSocket* m_socket;
@@ -193,6 +198,7 @@ private:
 	QString m_serverName;
 	int m_clientVersionMajor;
 	int m_clientVersionMinor;
+	QString m_serverDataDir;
 };
 
 

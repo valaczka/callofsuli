@@ -15,7 +15,7 @@ Page {
 	property string mapName: ""
 	property alias map: map
 	property bool mapBinaryFormat: true
-
+	property bool isPageBusy: false
 
 	signal campaignSelected(int modelIndex, int id)
 	signal missionSelected(int modelIndex, int id, int parentCampaignId)
@@ -46,7 +46,7 @@ Page {
 		}
 
 		rightLoader.sourceComponent: Row {
-			QToolBusyIndicator { running: false }
+			QToolBusyIndicator { running: isPageBusy }
 			QMenuButton {
 				MenuItem {
 					text: qsTr("Mentés")
@@ -126,7 +126,7 @@ Page {
 
 	StackView.onActivated: {
 		toolbar.resetTitle()
-		panelLayout.reset(true)
+		panelLayout.reset()
 	}
 
 	StackView.onDeactivated: {
@@ -138,7 +138,7 @@ Page {
 	function loadSettings() {
 		panelLayout.model.clear()
 		panelLayout.model.append(
-					{ url: "PageMapEditorSettings.qml", params: { map: map } }
+					{ url: "MapEditorSettings.qml", params: { map: map } }
 					)
 	}
 
@@ -146,51 +146,51 @@ Page {
 	function loadCampaigns() {
 		panelLayout.model.clear()
 		panelLayout.model.append(
-					{ url: "PageMapEditorCampaignList.qml", params: { map: map } }
+					{ url: "MapEditorCampaignList.qml", params: { map: map } }
 					)
 	}
 
 	function loadMissions() {
 		panelLayout.model.clear()
 		panelLayout.model.append(
-					{ url: "PageMapEditorMissionList.qml", params: { map: map } }
+					{ url: "MapEditorMissionList.qml", params: { map: map } }
 					)
 	}
 
 	function loadChapters() {
 		panelLayout.model.clear()
 		panelLayout.model.append(
-					{ url: "PageMapEditorChapterList.qml", params: { map: map } }
+					{ url: "MapEditorChapterList.qml", params: { map: map } }
 					)
 	}
 
 	function loadIntros() {
 		panelLayout.model.clear()
 		panelLayout.model.append(
-					{ url: "PageMapEditorIntroList.qml", params: { map: map } }
+					{ url: "MapEditorIntroList.qml", params: { map: map } }
 					)
 	}
 
 
 
 	onCampaignSelected: panelLayout.loadPage(modelIndex, id,
-											 "PageMapEditorCampaign.qml",
+											 "MapEditorCampaign.qml",
 											 { map: map, campaignId: id })
 
 	onMissionSelected: panelLayout.loadPage(modelIndex, id,
-											"PageMapEditorMission.qml",
+											"MapEditorMission.qml",
 											{ map: map, missionId: id, isSummary: false, parentCampaignId: parentCampaignId })
 
 	onSummarySelected: panelLayout.loadPage(modelIndex, id,
-											"PageMapEditorMission.qml",
+											"MapEditorMission.qml",
 											{ map: map, missionId: id, isSummary: true, parentCampaignId: parentCampaignId })
 
 	onChapterSelected: panelLayout.loadPage(modelIndex, id,
-											 "PageMapEditorChapter.qml",
+											 "MapEditorChapter.qml",
 											 { map: map, chapterId: id, parentMissionId: parentMissionId, parentSummaryId: parentSummaryId })
 
 	onIntroSelected: panelLayout.loadPage(modelIndex, id,
-											 "PageMapEditorIntro.qml",
+											 "MapEditorIntro.qml",
 											 { map: map, introId: id, parentId: parentId, parentType: parentType })
 
 	function closeDrawer() {
@@ -209,6 +209,10 @@ Page {
 		return true
 	}
 
+
+	function setBusy(busy) {
+		pageEditor.isPageBusy=busy
+	}
 
 	function stackBack() {
 		if (panelLayout.layoutBack()) {
