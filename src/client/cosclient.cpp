@@ -35,6 +35,7 @@
 #include "servers.h"
 #include "map.h"
 #include "teachermaps.h"
+#include "adminusers.h"
 
 
 
@@ -51,6 +52,7 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_signalList["userInfo"] = "UserInfo";
 	m_signalList["teacherMaps"] = "TeacherMaps";
+	m_signalList["user"] = "User";
 
 	m_serverDataDir = "";
 
@@ -168,6 +170,7 @@ void Client::registerTypes()
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
+	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 }
 
 
@@ -463,6 +466,15 @@ void Client::setServerDataDir(QString resourceDbName)
 	emit serverDataDirChanged(m_serverDataDir);
 }
 
+void Client::setUserRankName(QString userRankName)
+{
+	if (m_userRankName == userRankName)
+		return;
+
+	m_userRankName = userRankName;
+	emit userRankNameChanged(m_userRankName);
+}
+
 void Client::setUserFirstName(QString userFirstName)
 {
 	if (m_userFirstName == userFirstName)
@@ -744,6 +756,10 @@ void Client::onSocketServerError(const QString &error)
 		setSessionToken("");
 		setUserName("");
 		emit authInvalid();
+	} else if (error == "invalid class" || error == "invalid func") {
+		sendMessageError(tr("Internal error"), tr("Érvénytelen kérés"));
+	} else if (error == "permission denied") {
+		sendMessageError(tr("Internal error"), tr("Hozzáférés megtagadva"));
 	} else {
 		sendMessageError(tr("Internal server error"), tr("Internal error"), error);
 	}
@@ -762,7 +778,8 @@ void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray 
 
 		if (d["username"].toString() == m_userName) {
 			setUserXP(d["xp"].toInt(0));
-			setUserRank(d["rank"].toInt(0));
+			setUserRank(d["rankid"].toInt(0));
+			setUserRankName(d["rankname"].toString());
 			setUserLastName(d["lastname"].toString());
 			setUserFirstName(d["firstname"].toString());
 		}

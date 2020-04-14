@@ -232,6 +232,36 @@ QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map, const QVari
 
 
 /**
+ * @brief CosSql::listQuery
+ * @param query
+ * @param map
+ * @param bindValues
+ * @return
+ */
+
+QSqlQuery CosSql::listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues) const
+{
+	QStringList l;
+
+	QSqlQuery q(m_db);
+
+	for (int i=0; i<list.count(); ++i) {
+		l << "?";
+		q.addBindValue(list.at(i));
+	}
+
+	q.prepare(query.replace(QString("?l?"), l.join(",")));
+
+	QStringList bindKeys = bindValues.keys();
+	foreach (QString k, bindKeys) {
+		q.bindValue(k, bindValues[k]);
+	}
+
+	return q;
+}
+
+
+/**
  * @brief CosSql::runQuery
  * @param query
  * @param lastInsertId

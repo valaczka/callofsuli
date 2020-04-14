@@ -17,13 +17,13 @@ Item {
 	property int requiredPanelWidth: 400
 	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
 
-	readonly property bool noDrawer: width > requiredWidthToDrawer
+	readonly property bool noDrawer: width > requiredWidthToDrawer || leftPanel === null
 
 	property alias drawer: drawer
 	property alias panel: panel
 	property alias model: panel.model
 
-	default property Component leftPanel
+	default property Component leftPanel: null
 
 
 	Drawer {
@@ -52,7 +52,7 @@ Item {
 		id: leftItem
 		width: drawer.width
 		height: parent.height
-		visible: noDrawer
+		visible: noDrawer && leftPanel !== null
 
 		Rectangle {
 			anchors.fill: parent
@@ -68,9 +68,9 @@ Item {
 
 	ListView {
 		id: panel
-		x: noDrawer ? drawer.width : 0
+		x: leftItem.visible ? leftItem.width : 0
 		height: parent.height
-		width: noDrawer ? control.width-drawer.width : control.width
+		width: leftItem.visible ? control.width-leftItem.width : control.width
 
 		clip: true
 

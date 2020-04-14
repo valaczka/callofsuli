@@ -56,5 +56,15 @@
         <file>QTextArea.qml</file>
         <file>QGridTextArea.qml</file>
         <file>PageMainMenu.qml</file>
+        <file>UserButton.qml</file>
+        <file>UserDetails.qml</file>
+        <file>PageLogin.qml</file>
+        <file>PageAdminUsers.qml</file>
+        <file>AdminUserClassList.qml</file>
+        <file>AdminUserList.qml</file>
+        <file>AdminUserData.qml</file>
+        <file>QGridComboBox.qml</file>
+        <file>QTag.qml</file>
+        <file>QDialogList.qml</file>
     </qresource>
 </RCC>

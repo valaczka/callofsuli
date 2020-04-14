@@ -27,15 +27,32 @@ CREATE TABLE user(
 	active BOOL NOT NULL DEFAULT false,
 	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	isTeacher BOOL NOT NULL DEFAULT false,
-	isAdmin BOOL NOT NULL DEFAULT false
+	isAdmin BOOL NOT NULL DEFAULT false,
+	UNIQUE (email)
 );
 
+CREATE TRIGGER user_username_insert
+BEFORE INSERT ON user
+BEGIN
+	SELECT CASE
+		WHEN NEW.username LIKE '%@%' THEN RAISE (ABORT, 'Invalid username')
+	END;
+END;
+
+
+CREATE TRIGGER user_username_update
+BEFORE UPDATE ON user
+BEGIN
+	SELECT CASE
+		WHEN NEW.username LIKE '%@%' THEN RAISE (ABORT, 'Invalid username')
+	END;
+END;
 
 CREATE TRIGGER user_email_insert
 BEFORE INSERT ON user
 BEGIN
 	SELECT CASE
-		WHEN NEW.email IS NOT NULL AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
+		WHEN NEW.email IS NOT NULL AND NEW.email<>'' AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
 	END;
 END;
 
@@ -44,7 +61,7 @@ CREATE TRIGGER user_email_update
 BEFORE UPDATE ON user
 BEGIN
 	SELECT CASE
-		WHEN NEW.email IS NOT NULL AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
+		WHEN NEW.email IS NOT NULL AND NEW.email<>'' AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
 	END;
 END;
 

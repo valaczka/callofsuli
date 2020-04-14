@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
 		abstractactivity.cpp \
 		abstractdbactivity.cpp \
+		adminusers.cpp \
 		cosclient.cpp \
 		main.cpp \
 		map.cpp \
@@ -35,6 +36,7 @@ SOURCES += \
 HEADERS += \
 	abstractactivity.h \
 	abstractdbactivity.h \
+	adminusers.h \
 	cosclient.h \
 	map.h \
 	servers.h \

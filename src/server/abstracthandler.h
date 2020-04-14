@@ -51,8 +51,6 @@ public:
 	virtual bool classInit() { return true; }
 	virtual void start(const QString &func, QJsonObject *jsonData, QByteArray *binaryData);
 
-	static void addPermissionDenied(QJsonObject *object);
-
 protected:
 	Client *m_client;
 	QJsonObject m_jsonData;

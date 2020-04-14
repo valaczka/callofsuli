@@ -699,7 +699,7 @@ int Map::missionChapterAdd(const QVariantMap &params)
 	QVariantMap p2 = params;
 	p2["num"] = num;
 
-	int id = m_db->execInsertQuery("INSERT INTO bindMissionChapter (?k?) values (?)", p2);
+	int id = m_db->execInsertQuery("INSERT OR IGNORE INTO bindMissionChapter (?k?) values (?)", p2);
 
 	if (id != -1) {
 		emit missionUpdated(missionId);
@@ -746,15 +746,15 @@ bool Map::missionChapterUpdate(const int &id, const int &missionId, const QVaria
  */
 
 
-bool Map::missionChapterRemove(const int &id, const int &missionId)
+bool Map::missionChapterRemove(const int &missionId, const int &chapterId)
 {
 	QVariantList l;
-	l << id;
+	l << chapterId;
 	l << missionId;
-	bool r = m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE id=? AND missionid=?", l);
+	bool r = m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE chapterid=? AND missionid=?", l);
 	if (r) {
 		emit missionUpdated(missionId);
-		emit chapterListUpdated(missionId, -1);
+		emit chapterUpdated(chapterId);
 		setMapModified(true);
 	}
 	return r;
@@ -881,7 +881,7 @@ bool Map::summaryLevelRemove(const int &id, const int &summaryId)
 
 int Map::summaryChapterAdd(const QVariantMap &params)
 {
-	int id = m_db->execInsertQuery("INSERT INTO bindSummaryChapter (?k?) values (?)", params);
+	int id = m_db->execInsertQuery("INSERT OR IGNORE INTO bindSummaryChapter (?k?) values (?)", params);
 	if (id != -1) {
 		int summaryId = params.value("summaryid", -1).toInt();
 		emit summaryUpdated(summaryId);
@@ -902,19 +902,21 @@ int Map::summaryChapterAdd(const QVariantMap &params)
  */
 
 
-bool Map::summaryChapterRemove(const int &id, const int &summaryId)
+bool Map::summaryChapterRemove(const int &summaryId, const int &chapterId)
 {
 	QVariantList l;
-	l << id;
+	l << chapterId;
 	l << summaryId;
-	bool r = m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE id=? AND summaryid=?", l);
+	bool r = m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE chapterid=? AND summaryid=?", l);
 	if (r) {
 		emit summaryUpdated(summaryId);
-		emit chapterListUpdated(-1, summaryId);
+		emit chapterUpdated(chapterId);
 		setMapModified(true);
 	}
 	return r;
 }
+
+
 
 
 /**
@@ -1128,6 +1130,8 @@ bool Map::chapterIntroAdd(const int &id, const int &introId)
 
 	return false;
 }
+
+
 
 
 

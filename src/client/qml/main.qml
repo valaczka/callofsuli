@@ -169,6 +169,13 @@ ApplicationWindow {
 				mainWindow.close()
 		}
 
+		function loginRequest() {
+			if ((cosClient.connectionState === Client.Connected || cosClient.connectionState === Client.Reconnected)
+				 && (cosClient.userRoles & Client.RoleGuest)) {
+				JS.createPage("Login", {}, mainWindow)
+			}
+		}
+
 	}
 
 	FastBlur {

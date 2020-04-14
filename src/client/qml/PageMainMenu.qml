@@ -9,29 +9,16 @@ import "JScript.js" as JS
 
 
 Page {
-	id: pageEditor
+	id: page
 
 	header: QToolBar {
 		id: toolbar
+		title: cosClient.serverName
 
-		title: mapName
-
-		backButtonIcon: panelLayout.noDrawer ? "M\ue5c4" : "M\ue3c7"
 		backButton.visible: true
-		backButton.onClicked: {
-			if (panelLayout.noDrawer)
-				mainStack.back()
-			else
-				panelLayout.drawerToggle()
-		}
 
-		rightLoader.sourceComponent: Row {
-			QToolBusyIndicator { running: isPageBusy }
-			Image {
-				width: 48
-				height: 28
-				source: "image://sql/rank/0.svg"
-			}
+		rightLoader.sourceComponent: UserButton {
+			userDetails: userData
 		}
 	}
 
@@ -42,28 +29,82 @@ Page {
 		source: "qrc:/img/villa.png"
 	}
 
-	QPanelLayout {
-		id: panelLayout
+	QPagePanel {
+		id: panel
+
 		anchors.fill: parent
 
-		drawer.y: toolbar.height
+		title: qsTr("Főmenü")
+		maximumWidth: 600
 
-		/*leftPanel: PageMapEditorRoot {
+		QListItemDelegate {
+			id: list
 			anchors.fill: parent
-		}*/
+
+			model: ListModel { }
+
+			onClicked: JS.createPage(model.get(index).page, model.get(index).params, page)
+		}
 	}
 
-	StackView.onRemoved: destroy()
+	UserDetails {
+		id: userData
+	}
+
+
+	Connections {
+		target: cosClient
+		onUserRolesChanged: reloadModel()
+	}
+
+
+	StackView.onRemoved: {
+		cosClient.closeConnection()
+		destroy()
+	}
 
 	StackView.onActivated: {
 		toolbar.resetTitle()
-		panelLayout.reset()
+		reloadModel()
 	}
 
 	StackView.onDeactivated: {
 		/* UNLOAD */
 	}
 
+
+	function reloadModel() {
+		list.model.clear()
+
+		list.model.append({
+							  labelTitle: qsTr("Rangsor"),
+							  page: "Score",
+							  params: {}
+						  })
+
+		if (cosClient.userRoles & Client.RoleTeacher)
+			list.model.append({
+								  labelTitle: qsTr("Pályák kezelése"),
+								  page: "TeacherMaps",
+								  params: {}
+							  })
+
+
+		if (cosClient.userRoles & Client.RoleAdmin)
+			list.model.append({
+								  labelTitle: qsTr("Felhasználók kezelése"),
+								  page: "AdminUsers",
+								  params: {}
+							  })
+
+
+		if (cosClient.userRoles & Client.RoleGuest)
+			list.model.append({
+								  labelTitle: qsTr("Bejelentkezés"),
+								  page: "Login",
+								  params: {}
+							  })
+	}
 
 
 	function windowClose() {
@@ -72,20 +113,14 @@ Page {
 
 
 	function stackBack() {
-		if (panelLayout.layoutBack()) {
-			return true
-		}
-
-		if (mainStack.depth > pageEditor.StackView.index+1) {
-			if (!mainStack.get(pageEditor.StackView.index+1).stackBack()) {
-				if (mainStack.depth > pageEditor.StackView.index+1) {
-					mainStack.pop(pageEditor)
+		if (mainStack.depth > page.StackView.index+1) {
+			if (!mainStack.get(page.StackView.index+1).stackBack()) {
+				if (mainStack.depth > page.StackView.index+1) {
+					mainStack.pop(page)
 				}
 			}
 			return true
 		}
-
-		panelLayout.drawer.close()
 
 		return false
 	}

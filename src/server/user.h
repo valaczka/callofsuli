@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.cpp
+ * user.h
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 04. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * User
  *
  *  This file is part of Call of Suli.
  *
@@ -32,50 +32,34 @@
  * SOFTWARE.
  */
 
-#include "abstractdbactivity.h"
+#ifndef USER_H
+#define USER_H
 
-AbstractDbActivity::AbstractDbActivity(const QString &connectionName, QObject *parent)
-	: COSdb(connectionName, parent)
+#include <QObject>
+#include "client.h"
+#include "abstracthandler.h"
+
+class Client;
+
+class User : public AbstractHandler
 {
-	m_client = nullptr;
-}
+	Q_OBJECT
 
+public:
+	explicit User(Client *client, const QJsonObject &object, const QByteArray &binaryData);
 
+	bool classInit() override;
 
+public slots:
+	void getAllUser(QJsonObject *jsonResponse, QByteArray *);
+	void userGet(QJsonObject *jsonResponse, QByteArray *);
+	void userCreate(QJsonObject *jsonResponse, QByteArray *);
+	void userUpdate(QJsonObject *jsonResponse, QByteArray *);
 
+	void getAllClass(QJsonObject *jsonResponse, QByteArray *);
+	void classCreate(QJsonObject *jsonResponse, QByteArray *);
+	void classUpdate(QJsonObject *jsonResponse, QByteArray *);
 
-void AbstractDbActivity::setClient(Client *client)
-{
-	if (m_client == client)
-		return;
+};
 
-	m_client = client;
-	emit clientChanged(m_client);
-
-	qDebug() << "setClient" << m_client;
-
-	if (m_client) {
-		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
-		clientSetup();
-	}
-}
-
-
-/**
- * @brief AbstractDbActivity::execSelectQuery
- * @param query
- * @param params
- * @return
- */
-
-QVariantList AbstractDbActivity::execSelectQuery(const QString &query, const QVariantList &params)
-{
-	QVariantList ret;
-
-	if (!m_db->execSelectQuery(query, params, &ret)) {
-		m_client->sendMessageError(tr("Adatbázis"), tr("Lekérdezési hiba"));
-	}
-
-	return ret;
-}
-
+#endif // USER_H

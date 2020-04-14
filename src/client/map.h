@@ -108,7 +108,7 @@ public slots:
 	bool missionLevelRemove(const int &id, const int &missionId);
 	int missionChapterAdd(const QVariantMap &params);
 	bool missionChapterUpdate(const int &id, const int &missionId, const QVariantMap &params);
-	bool missionChapterRemove(const int &id, const int &missionId);
+	bool missionChapterRemove(const int &missionId, const int &chapterId);
 	bool missionIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
 
 	QVariantMap summaryGet(const int &id) { return missionGet(id, true); }
@@ -117,7 +117,7 @@ public slots:
 	bool summaryLevelUpdate(const int &id, const int &summaryId, const QVariantMap &params);
 	bool summaryLevelRemove(const int &id, const int &summaryId);
 	int summaryChapterAdd(const QVariantMap &params);
-	bool summaryChapterRemove(const int &id, const int &summaryId);
+	bool summaryChapterRemove(const int &summaryId, const int &chapterId);
 	bool summaryIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
 
 	QVariantMap chapterGet(const int &id);

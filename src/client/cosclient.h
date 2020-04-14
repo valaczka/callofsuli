@@ -67,6 +67,7 @@ public:
 	Q_PROPERTY(Roles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
 	Q_PROPERTY(int userXP READ userXP WRITE setUserXP NOTIFY userXPChanged)
 	Q_PROPERTY(int userRank READ userRank WRITE setUserRank NOTIFY userRankChanged)
+	Q_PROPERTY(QString userRankName READ userRankName WRITE setUserRankName NOTIFY userRankNameChanged)
 	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
 
@@ -95,6 +96,7 @@ public:
 	QString sessionToken() const { return m_sessionToken; }
 	int userXP() const { return m_userXP; }
 	int userRank() const { return m_userRank; }
+	QString userRankName() const { return m_userRankName; }
 	QString userFirstName() const { return m_userFirstName; }
 	QString userLastName() const { return m_userLastName; }
 	QString serverName() const { return m_serverName; }
@@ -128,6 +130,7 @@ public slots:
 
 
 
+
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
@@ -150,6 +153,7 @@ private slots:
 	void setSessionToken(QString sessionToken);
 	void setUserXP(int userXP);
 	void setUserRank(int userRank);
+	void setUserRankName(QString userRankName);
 	void setUserFirstName(QString userFirstName);
 	void setUserLastName(QString userLastName);
 	void setServerName(QString serverName);
@@ -165,6 +169,7 @@ signals:
 
 	void jsonUserInfoReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonTeacherMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void jsonUserReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);
@@ -173,6 +178,7 @@ signals:
 	void sessionTokenChanged(QString sessionToken);
 	void userXPChanged(int userXP);
 	void userRankChanged(int userRank);
+	void userRankNameChanged(QString userRankName);
 	void userFirstNameChanged(QString userFirstName);
 	void userLastNameChanged(QString userLastName);
 	void serverNameChanged(QString serverName);
@@ -199,6 +205,7 @@ private:
 	int m_clientVersionMajor;
 	int m_clientVersionMinor;
 	QString m_serverDataDir;
+	QString m_userRankName;
 };
 
 

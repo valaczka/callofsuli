@@ -37,10 +37,12 @@
 AbstractHandler::AbstractHandler(Client *client, const QJsonObject &object, const QByteArray &binaryData)
 	: QObject(client)
 	, m_client(client)
-	, m_jsonData(object)
 	, m_binaryData(binaryData)
 {
-
+	m_jsonData = object;
+	m_jsonData.remove("auth");
+	m_jsonData.remove("class");
+	m_jsonData.remove("func");
 }
 
 
@@ -62,25 +64,14 @@ AbstractHandler::~AbstractHandler()
 void AbstractHandler::start(const QString &func, QJsonObject *jsonData, QByteArray *binaryData)
 {
 	if (!classInit()) {
-		addPermissionDenied(jsonData);
+		m_client->sendError("permission denied");
 		return;
 	}
 
-	QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
-							  Q_ARG(QJsonObject*, jsonData),
-							  Q_ARG(QByteArray*, binaryData));
-
+	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
+								   Q_ARG(QJsonObject*, jsonData),
+								   Q_ARG(QByteArray*, binaryData))) {
+		m_client->sendError("invalid func");
+	}
 }
 
-
-/**
- * @brief AbstractHandler::addPermissionDenied
- * @param object
- */
-
-void AbstractHandler::addPermissionDenied(QJsonObject *object)
-{
-	Q_ASSERT (object);
-
-	object->insert("error", "permission denied");
-}

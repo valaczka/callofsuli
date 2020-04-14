@@ -185,18 +185,16 @@ function mmSStoSec(text) {
 
 
 
-function selectIndices(_model, _items) {
-	for (var i=0; i<_model.count; i++) {
-		var m = _model.get(i)
-		m.selected = (_items.indexOf(i) > -1)
-	}
-}
-
-function getSelectedIndices(model) {
+function getSelectedIndices(model, _selected, _role) {
 	var l = []
 	for (var i=0; i<model.count; i++) {
-		if (model.get(i).selected === true)
-			l.push(i)
+		var o = model.get(i)
+		if (o.selected === _selected) {
+			if (_role && _role.length)
+				l.push(o[_role])
+			else
+				l.push(i)
+		}
 	}
 
 	return l
@@ -207,7 +205,13 @@ function getSelectedIndices(model) {
 function setModel(_model, _data) {
 	_model.clear()
 	for (var i=0; i<_data.length; i++) {
-		_model.append(_data[i])
+		var d = _data[i]
+		if (d.selected)
+			d.selected = true
+		else
+			d.selected = false
+
+		_model.append(d)
 	}
 }
 

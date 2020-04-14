@@ -90,7 +90,7 @@ Page {
 	QPagePanel {
 		id: p
 
-		title: "Szerverek"
+		title: qsTr("Szerverek")
 
 		anchors.fill: parent
 		maximumWidth: 600
@@ -237,8 +237,6 @@ Page {
 
 		forceActiveFocus()
 	}
-
-
 
 
 	function editServer(idx) {

@@ -152,6 +152,8 @@ Page {
 		if (serverId !== -1) {
 			servers.serverInfoGet(serverId)
 		}
+
+		textName.forceActiveFocus()
 	}
 
 	StackView.onDeactivated: {

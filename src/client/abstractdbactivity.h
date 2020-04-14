@@ -56,6 +56,8 @@ public:
 public slots:
 	void setClient(Client* client);
 
+	QVariantList execSelectQuery(const QString &query, const QVariantList &params = QVariantList());
+
 protected slots:
 	virtual void clientSetup() {}
 

@@ -80,7 +80,7 @@ Page {
 
 		drawer.y: toolbar.height
 
-		leftPanel: PageMapEditorRoot {
+		leftPanel: MapEditorRoot {
 			anchors.fill: parent
 		}
 	}
@@ -134,7 +134,6 @@ Page {
 	}
 
 
-
 	function loadSettings() {
 		panelLayout.model.clear()
 		panelLayout.model.append(
@@ -168,6 +167,14 @@ Page {
 		panelLayout.model.clear()
 		panelLayout.model.append(
 					{ url: "MapEditorIntroList.qml", params: { map: map } }
+					)
+	}
+
+
+	function loadTest() {
+		panelLayout.model.clear()
+		panelLayout.model.append(
+					{ url: "MapEditorTest.qml", params: { map: map } }
 					)
 	}
 

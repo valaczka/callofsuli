@@ -35,6 +35,10 @@ Page {
 			o.map.mapSaved.connect(page.onMapSaved)
 
 			teacherMaps.isBusyChanged.connect(o.setBusy)
+
+			o.Component.onDestruction.connect(function() {
+				teacherMaps.isBusyChanged.disconnect(o.setBusy)
+			})
 		}
 	}
 

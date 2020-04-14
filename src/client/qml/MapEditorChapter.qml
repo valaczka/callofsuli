@@ -41,13 +41,22 @@ QPagePanel {
 			Column {
 				width: parent.width
 
-
-				Label {
+				QTag {
 					id: chapterMissions
+					title: qsTr("Küldetések:")
+					width: parent.width
+					defaultColor: CosStyle.colorAccentLight
+					defaultBackground: CosStyle.colorAccentDark
+
+					onClicked: loadDialogMissions()
 				}
 
-				Label {
+				QTag {
+					width: parent.width
 					id: chapterCampaigns
+					title: qsTr("Hadjáratok:")
+
+					onClicked: loadDialogCampaigns()
 				}
 			}
 		}
@@ -133,6 +142,52 @@ QPagePanel {
 		}
 	}
 
+
+	Component {
+		id: dlgMissions
+
+		QDialogList {
+			id: dlgList
+			onDlgAccept: {
+				var i
+				var plus = JS.getSelectedIndices(dlgList.model, true, "id")
+				for (i=0; i<plus.length; ++i) {
+					map.missionChapterAdd({ "missionid" : plus[i], "chapterid": chapterId })
+				}
+
+				var minus = JS.getSelectedIndices(dlgList.model, false, "id")
+				for (i=0; i<minus.length; ++i) {
+					map.missionChapterRemove(minus[i], chapterId)
+				}
+
+				get()
+			}
+		}
+	}
+
+
+	Component {
+		id: dlgCampaigns
+
+		QDialogList {
+			id: dlgList
+			onDlgAccept: {
+				var i
+				var plus = JS.getSelectedIndices(dlgList.model, true, "id")
+				for (i=0; i<plus.length; ++i) {
+					map.summaryChapterAdd({ "summaryid" : plus[i], "chapterid": chapterId })
+				}
+
+				var minus = JS.getSelectedIndices(dlgList.model, false, "id")
+				for (i=0; i<minus.length; ++i) {
+					map.summaryChapterRemove(minus[i], chapterId)
+				}
+
+				get()
+			}
+		}
+	}
+
 	Connections {
 		target: pageEditor
 		onChapterSelected: {
@@ -163,24 +218,15 @@ QPagePanel {
 		chapterName.text = p["name"]
 
 
-
-		var q = "Küldetések: "
+		chapterMissions.tags.clear()
 		for (var i=0; i<p.missions.length; i++) {
-			var o = p.missions[i]
-			o.label = o.name
-			q += " "+o.name
+			chapterMissions.tags.append({text: p.missions[i].name})
 		}
-		chapterMissions.text = q
 
-		q = "Hadjáratok: "
+		chapterCampaigns.tags.clear()
 		for (i=0; i<p.campaigns.length; i++) {
-			o = p.campaigns[i]
-			o.label = o.name
-			q += " "+o.name
+			chapterCampaigns.tags.append({text: p.campaigns[i].name})
 		}
-		chapterCampaigns.text = q
-
-
 
 
 		if (p.introId !== -1) {
@@ -191,13 +237,37 @@ QPagePanel {
 			bIntro.label = qsTr("-- Bevezető hozzáadása --")
 		}
 
-
-		/*for (i=0; i<p.chapters.length; i++) {
-			var o3 = p.chapters[i]
-			o3.labelTitle = o3.name
-			listChapters.model.append(o3)
-		}*/
+	}
 
 
+	function loadDialogMissions() {
+		var ml = map.execSelectQuery("SELECT mission.id as id, mission.name as labelTitle,
+						  CASE WHEN chapterid IS NOT NULL THEN true ELSE false END as selected
+						  FROM mission LEFT JOIN bindMissionChapter ON (bindMissionChapter.missionid=mission.id AND bindMissionChapter.chapterid=?)
+						  ORDER BY selected DESC, mission.name", [chapterId])
+
+		var d = JS.dialogCreate(dlgMissions)
+		d.item.title = qsTr("Küldetések")
+		d.item.newField.visible = false
+		d.item.list.selectorSet = true
+		JS.setModel(d.item.model, ml)
+		d.open()
+	}
+
+
+	function loadDialogCampaigns() {
+		var ml = map.execSelectQuery("SELECT summary.id as id, campaign.name as labelTitle,
+									CASE WHEN chapterid IS NOT NULL THEN true ELSE false END as selected
+									FROM summary
+									LEFT JOIN campaign ON (campaign.id=summary.campaignid)
+									LEFT JOIN bindSummaryChapter ON (bindSummaryChapter.summaryid=summary.id AND bindSummaryChapter.chapterid=?)
+									ORDER BY selected DESC, campaign.name", [chapterId])
+
+		var d = JS.dialogCreate(dlgCampaigns)
+		d.item.title = qsTr("Hadjáratok")
+		d.item.newField.visible = false
+		d.item.list.selectorSet = true
+		JS.setModel(d.item.model, ml)
+		d.open()
 	}
 }

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.cpp
+ * adminusers.cpp
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 04. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * AdminUsers
  *
  *  This file is part of Call of Suli.
  *
@@ -32,50 +32,52 @@
  * SOFTWARE.
  */
 
-#include "abstractdbactivity.h"
+#include "adminusers.h"
 
-AbstractDbActivity::AbstractDbActivity(const QString &connectionName, QObject *parent)
-	: COSdb(connectionName, parent)
+AdminUsers::AdminUsers(QObject *parent)
+: AbstractActivity(parent)
 {
-	m_client = nullptr;
-}
 
-
-
-
-
-void AbstractDbActivity::setClient(Client *client)
-{
-	if (m_client == client)
-		return;
-
-	m_client = client;
-	emit clientChanged(m_client);
-
-	qDebug() << "setClient" << m_client;
-
-	if (m_client) {
-		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
-		clientSetup();
-	}
 }
 
 
 /**
- * @brief AbstractDbActivity::execSelectQuery
- * @param query
- * @param params
- * @return
+ * @brief AdminUsers::clientSetup
  */
 
-QVariantList AbstractDbActivity::execSelectQuery(const QString &query, const QVariantList &params)
+void AdminUsers::clientSetup()
 {
-	QVariantList ret;
-
-	if (!m_db->execSelectQuery(query, params, &ret)) {
-		m_client->sendMessageError(tr("Adatbázis"), tr("Lekérdezési hiba"));
-	}
-
-	return ret;
+	connect(m_client, &Client::jsonUserReceived, this, &AdminUsers::onJsonReceived);
 }
 
+
+/**
+ * @brief AdminUsers::onJsonReceived
+ * @param object
+ * @param binaryData
+ * @param clientMsgId
+ */
+
+void AdminUsers::onJsonReceived(const QJsonObject &object, const QByteArray &, const int &clientMsgId)
+{
+	QString func = object["func"].toString();
+	QJsonObject data = object["data"].toObject();
+
+	if (!func.isEmpty())
+		busyStackRemove(func, clientMsgId);
+
+	if (func == "getAllUser")
+		emit userListLoaded(data["list"].toArray());
+	else if (func == "userGet")
+		emit userLoaded(data);
+	else if (func == "userCreate")
+		emit userCreated(data);
+	else if (func == "userUpdate")
+		emit userUpdated(data);
+	else if (func == "getAllClass")
+		emit classListLoaded(data["list"].toArray());
+	else if (func == "classCreate")
+		emit classCreated(data);
+	else if (func == "classUpdate")
+		emit classUpdated(data);
+}
