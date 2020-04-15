@@ -15,6 +15,12 @@ Item {
 
 	property alias title: labelTitle.text
 
+	property bool readOnly: false
+
+	property string modelTextRole: "text"
+	property string modelColorRole: ""
+	property string modelBackgroundRole: ""
+
 	height: Math.max(flow.height, labelTitle.height)
 
 	signal clicked()
@@ -58,7 +64,7 @@ Item {
 			Rectangle {
 				id: rect
 
-				color: model.background ? model.background : control.defaultBackground
+				color: modelBackgroundRole.length && model.modelData[modelBackgroundRole] ? model.modelData[modelBackgroundRole] : control.defaultBackground
 
 				width: labelText.width+2*control.tagPadding
 				height: labelText.height
@@ -70,8 +76,8 @@ Item {
 					maximumLineCount: 1
 					font.pixelSize: CosStyle.pixelSize*0.7
 					font.weight: Font.DemiBold
-					color: model.color ? model.color : control.defaultColor
-					text: model.text
+					color: modelColorRole.length && model.modelData[modelColorRole] ? model.modelData[modelColorRole] : control.defaultColor
+					text: model.modelData[modelTextRole]
 					width: control.maxTagWidth > 0 && control.maxTagWidth<implicitWidth ? control.maxTagWidth : implicitWidth
 					elide: Text.ElideRight
 				}
@@ -84,6 +90,8 @@ Item {
 		anchors.fill: parent
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
+
+		enabled: !control.readOnly
 
 		onClicked: control.clicked()
 	}

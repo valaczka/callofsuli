@@ -48,11 +48,13 @@ QPagePanel {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
+		modelTitleRole: "name"
+
 
 		//			modelTitleSet: true
 		//			modelSubtitleSet: true
 
-		onClicked: pageEditor.missionSelected(modelIndex, list.model.get(index).id, -1)
+		onClicked: pageEditor.missionSelected(modelIndex, list.model[index].id, -1)
 
 		onLongPressed: {
 			menu.modelIndex = index
@@ -105,12 +107,6 @@ QPagePanel {
 	Component.onCompleted: getList()
 
 	function getList() {
-		var m = map.missionListGet()
-		list.model.clear()
-		for (var i=0; i<m.length; i++) {
-			var o = m[i]
-			o.labelTitle = o.name
-			list.model.append(o)
-		}
+		list.model = map.missionListGet()
 	}
 }

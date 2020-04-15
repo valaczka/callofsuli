@@ -47,9 +47,6 @@ QPagePanel {
 					onEditingFinished: header.missionUpdate()
 				}
 
-				Label {
-					id: missionCampaigns
-				}
 			}
 
 			function missionUpdate() {
@@ -59,6 +56,21 @@ QPagePanel {
 									  }, parentCampaignId)
 			}
 		}
+
+		QCollapsible {
+			title: qsTr("Kapcsolatok")
+
+			QTag {
+				id: missionCampaigns
+				title: qsTr("Küldetések:")
+				width: parent.width
+				defaultColor: CosStyle.colorAccentLight
+				defaultBackground: CosStyle.colorAccentDark
+				modelTextRole: "name"
+			}
+		}
+
+
 
 		QCollapsible {
 			id: levels
@@ -229,6 +241,23 @@ QPagePanel {
 
 		}
 
+		QCollapsible {
+			title: qsTr("Bevezető")
+
+			QButton {
+				id: bIntro
+				property int introId: -1;
+
+				onClicked: if (introId !== -1)
+							   pageEditor.introSelected(modelIndex, introId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
+						   else  {
+							   var d = JS.dialogCreate(dlgIntroName)
+							   d.item.mode = 1
+							   d.open()
+						   }
+
+			}
+		}
 
 		QCollapsible {
 			title: "Célpontok"
@@ -260,25 +289,10 @@ QPagePanel {
 
 					width: parent.width
 
+					modelTitleRole: "name"
+
 					onClicked: {
-						var o = listChapters.model.get(index)
-						if (o.id >= 0)
-							pageEditor.chapterSelected(modelIndex, o.id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
-						else if (o.id === -2) {
-							if (o.introId && o.introId > -1)
-								pageEditor.introSelected(modelIndex, o.introId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
-							else if (o.outroId && o.outroId > -1)
-								pageEditor.introSelected(modelIndex, o.outroId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
-							else if (o.introId && o.introId === -1) {
-								var d = JS.dialogCreate(dlgIntroName)
-								d.item.mode = 1
-								d.open()
-							} else if (o.outroId && o.outroId === -1) {
-								d = JS.dialogCreate(dlgIntroName)
-								d.item.mode = 2
-								d.open()
-							}
-						}
+						pageEditor.chapterSelected(modelIndex, listChapters.model[index].id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
 					}
 
 					onLongPressed: {
@@ -300,6 +314,25 @@ QPagePanel {
 				}
 			}
 		}
+
+		QCollapsible {
+			title: qsTr("Kivezető")
+
+			QButton {
+				id: bOutro
+				property int outroId: -1;
+
+				onClicked: if (outroId !== -1)
+							   pageEditor.introSelected(modelIndex, outroId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
+						   else  {
+							   var d = JS.dialogCreate(dlgIntroName)
+							   d.item.mode = 2
+							   d.open()
+						   }
+
+			}
+		}
+
 	}
 
 	QMenu {
@@ -383,13 +416,13 @@ QPagePanel {
 
 	function get() {
 		if (missionId == -1 || !map) {
-			listChapters.model.clear()
+			listChapters.model = []
 			listLevels.model.clear()
 			missionName.text = ""
 			return
 		}
 
-		listChapters.model.clear()
+		listChapters.model = []
 		listLevels.model.clear()
 
 		var p
@@ -401,20 +434,13 @@ QPagePanel {
 			missionName.text = p.name
 		}
 
-
-		var q = "Hadjáratok: "
-		for (var i=0; i<p.campaigns.length; i++) {
-			var o = p.campaigns[i]
-			o.label = o.name
-			q += " "+o.name
-		}
-		missionCampaigns.text = q
+		missionCampaigns.tags = p.campaigns
 
 
 		var levels = p.levels.length
 		var levelNum = 0;
 
-		for (i=0; i<levels; i++) {
+		for (var i=0; i<levels; i++) {
 			var o2 = p.levels[i]
 			o2.canRemove = (i===levels-1 && i>0) ? true : false
 
@@ -436,43 +462,24 @@ QPagePanel {
 
 
 		if (p.introId !== -1) {
-			listChapters.model.append({
-										  id: -2,
-										  introId: p.introId,
-										  labelTitle: p.introText,
-										  num: 0
-									  })
+			bIntro.introId = p.introId
+			bIntro.label = p.introText
 		} else {
-			listChapters.model.append({
-										  id: -2,
-										  introId: -1,
-										  labelTitle: qsTr("-- Bevezető hozzáadása --"),
-										  num: 0
-									  })
-		}
-
-
-		for (i=0; i<p.chapters.length; i++) {
-			var o3 = p.chapters[i]
-			o3.labelTitle = o3.name
-			listChapters.model.append(o3)
+			bIntro.introId = -1
+			bIntro.label = qsTr("-- Intro hozzáadása --")
 		}
 
 
 		if (p.outroId !== -1) {
-			listChapters.model.append({
-										  id: -2,
-										  outroId: p.outroId,
-										  labelTitle: p.outroText,
-										  num: 0
-									  })
+			bOutro.outroId = p.outroId
+			bOutro.label = p.outroText
 		} else {
-			listChapters.model.append({
-										  id: -2,
-										  outroId: -1,
-										  labelTitle: qsTr("-- Kivezető hozzáadása --"),
-										  num: 0
-									  })
+			bOutro.outroId = -1
+			bOutro.label = qsTr("-- Outro hozzáadása --")
 		}
+
+
+
+		listChapters.model = p.chapters
 	}
 }

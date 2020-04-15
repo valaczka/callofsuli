@@ -48,8 +48,9 @@ QPagePanel {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
+		modelTitleRole: "ttext"
 
-		onClicked: pageEditor.introSelected(modelIndex, list.model.get(index).id, -1, Map.IntroUndefined)
+		onClicked: pageEditor.introSelected(modelIndex, list.model[index].id, -1, Map.IntroUndefined)
 
 		onLongPressed: {
 			menu.modelIndex = index
@@ -102,12 +103,6 @@ QPagePanel {
 	Component.onCompleted: getList()
 
 	function getList() {
-		var m = map.introListGet()
-		list.model.clear()
-		for (var i=0; i<m.length; i++) {
-			var o = m[i]
-			o.labelTitle = o.ttext
-			list.model.append(o)
-		}
+		list.model = map.introListGet()
 	}
 }

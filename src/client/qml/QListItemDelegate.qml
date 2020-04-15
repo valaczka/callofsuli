@@ -9,14 +9,18 @@ import "JScript.js" as JS
 QListView {
 	id: view
 
-	property bool modelTitleSet: true
-	property bool modelSubtitleSet: false
-	property bool modelRightSet: false
-	property bool modelEnabledSet: false
-	property bool modelToolTipSet: false
-	property bool modelSeparatorSet: false
+	property string modelTitleRole: "labelTitle"
+	property string modelSubtitleRole: ""
+	property string modelRightRole: ""
+	property string modelEnabledRole: ""
+	property string modelToolTipRole: ""
+	property string modelSeparatorRole: ""
+	property string modelSelectedRole: "selected"
+
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
+
+	property bool isObjectModel: selectorSet || autoSelectorChange
 
 	property int selectedItemCount: 0
 
@@ -37,12 +41,25 @@ QListView {
 
 		property bool enabled: true
 
-		property string labelTitle: modelTitleSet ? model.labelTitle : ""
-		property string labelSubtitle: modelSubtitleSet ? model.labelSubtitle : ""
-		property string labelRight: modelRightSet ? model.labelRight : ""
-		property bool itemSelected: selectorSet ? model.selected: false
+		property string labelTitle: modelTitleRole.length ? (
+																isObjectModel ? model[modelTitleRole] : model.modelData[modelTitleRole]
+																) : ""
+		property string labelSubtitle: modelSubtitleRole.length ? (
+																	  isObjectModel ? model[modelSubtitleRole] :
+																					  model.modelData[modelSubtitleRole]
+																	  ) : ""
+		property string labelRight: modelRightRole.length ? (
+																isObjectModel ? model[modelRightRole] :
+																				model.modelData[modelRightRole]
+																) : ""
+		property bool itemSelected: selectorSet ? (
+													  isObjectModel ? model[modelSelectedRole] :
+																	  model.modelData[modelSelectedRole]
+													  ) : false
 
-		property bool isSeparator: modelSeparatorSet && model.separator ? true : false
+		property bool isSeparator: modelSeparatorRole.length && (isObjectModel ? model[modelSeparatorRole] :
+																				 model.modelData[modelSeparatorRole])
+								   ? true : false
 
 		color: isSeparator ? "transparent" :
 							 (area.containsMouse || item.activeFocus) ?
@@ -53,8 +70,12 @@ QListView {
 		signal rightClicked()
 		signal longPressed()
 
-		ToolTip.text: modelToolTipSet ? model.toolTip : ""
-		ToolTip.visible: (modelToolTipSet ? model.toolTip.length : false) && (area.containsMouse || area.pressed) && !isSeparator
+		ToolTip.text: modelToolTipRole.length ? ( isObjectModel ? model[modelToolTipRole] :
+																  model.modelData[modelToolTipRole]
+												 ) : ""
+		ToolTip.visible: (modelToolTipRole.length ? ( isObjectModel ? model[modelToolTipRole] :
+																	  model.modelData[modelToolTipRole].length)
+												  : false) && (area.containsMouse || area.pressed) && !isSeparator
 		ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 
 		Behavior on color { ColorAnimation { duration: 125 } }
@@ -192,7 +213,7 @@ QListView {
 					item.rightClicked()
 				else {
 					if (view.selectorSet) {
-						model.selected = !model.selected
+						model[modelSelectedRole] = !model[modelSelectedRole]
 						calculateSelectedItems()
 					} else
 						item.clicked()
@@ -226,7 +247,7 @@ QListView {
 
 		onLongPressed: {
 			if (autoSelectorChange) {
-				model.selected = true
+				model.modelData[modelSelectedRole] = true
 				selectorSet = true
 				calculateSelectedItems()
 			}
@@ -295,7 +316,7 @@ QListView {
 
 		Keys.onSpacePressed: {
 			if (selectorSet) {
-				model.selected = !model.selected
+				model.modelData[modelSelectedRole] = !model.modelData[modelSelectedRole]
 				calculateSelectedItems()
 			} else
 				mousePressAnimation.start()
@@ -313,7 +334,7 @@ QListView {
 	function calculateSelectedItems() {
 		var n = 0
 		for (var i=0; i<model.count; ++i) {
-			if (model.get(i).selected)
+			if (model.get(i)[modelSelectedRole])
 				++n
 		}
 		selectedItemCount = n

@@ -19,14 +19,12 @@ QPagePanel {
 				   }
 	}
 
-	QPageHeader {
-		id: header
 
-		height: col.height
+	QAccordion {
+		anchors.fill: parent
 
-		Column {
-			id: col
-			width: parent.width
+		QCollapsible {
+			title: qsTr("Általános")
 
 			QTextField {
 				id: campaignName
@@ -34,91 +32,138 @@ QPagePanel {
 
 				onEditingFinished: if (campaignId != -1) map.campaignUpdate(campaignId, { "name": campaignName.text })
 			}
+		}
 
-			Label {
+		QCollapsible {
+			title: qsTr("Kapcsolatok")
+
+			QTag {
 				id: locks
+				title: qsTr("Zárolja:")
+				width: parent.width
+				defaultColor: CosStyle.colorAccentLight
+				defaultBackground: CosStyle.colorAccentDark
+				readOnly: true
+				modelTextRole: "name"
 			}
 		}
-	}
 
-	QListItemDelegate {
-		id: list
-		anchors.top: header.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		QCollapsible {
+			title: qsTr("Bevezető")
+
+			QButton {
+				id: bIntro
+				property int introId: -1;
+
+				onClicked: if (introId !== -1)
+							   pageEditor.introSelected(modelIndex, introId, campaignId, Map.IntroCampaign)
+						   else  {
+							   var d = JS.dialogCreate(dlgMissionName)
+							   d.item.mode = 1
+							   d.open()
+						   }
+
+			}
+		}
+
+		QCollapsible {
+			title: qsTr("Küldetések")
 
 
-		onClicked: {
-			var o = list.model.get(index)
-			if (o.id >= 0)
-				pageEditor.missionSelected(modelIndex, o.id, campaignId)
-			else if (o.id === -1) {
-				var d = JS.dialogCreate(dlgMissionName)
-				d.item.mode = 0
-				d.open()
-			} else if (o.id === -2) {
-				if (o.introId && o.introId > -1)
-					pageEditor.introSelected(modelIndex, o.introId, campaignId, Map.IntroCampaign)
-				else if (o.outroId && o.outroId > -1)
-					pageEditor.introSelected(modelIndex, o.outroId, campaignId, Map.IntroCampaign)
-				else if (o.introId && o.introId === -1) {
-					d = JS.dialogCreate(dlgMissionName)
-					d.item.mode = 1
-					d.open()
-				} else if (o.outroId && o.outroId === -1) {
-					d = JS.dialogCreate(dlgMissionName)
-					d.item.mode = 2
-					d.open()
+			QListItemDelegate {
+				id: list
+				width: parent.width
+
+				modelTitleRole: "name"
+
+				onClicked: {
+					var o = list.model[index]
+					if (o.id >= 0)
+						pageEditor.missionSelected(modelIndex, o.id, campaignId)
+					else if (o.id === -1) {
+						var d = JS.dialogCreate(dlgMissionName)
+						d.item.mode = 0
+						d.open()
+					}
 				}
-			} else if (o.id === -3) {
-				if (o.summaryId > -1)
-					pageEditor.summarySelected(modelIndex, o.summaryId, campaignId)
-				else {
-					var sumId = map.campaignSummaryAdd(campaignId)
-					if (sumId !== -1)
-						pageEditor.summarySelected(modelIndex, sumId, campaignId)
+
+				onLongPressed: {
+					menu.modelIndex = index
+					menu.popup()
+				}
+
+				onRightClicked: {
+					menu.modelIndex = index
+					menu.popup()
+				}
+
+				Keys.onPressed: {
+					if (event.key === Qt.Key_Insert) {
+					} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
+					} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
+					}
+				}
+			}
+
+			QMenu {
+				id: menu
+
+				property int modelIndex: -1
+
+
+				MenuItem {
+					text: qsTr("Szerkesztés")
+					//onClicked:
+				}
+
+				MenuItem {
+					text: qsTr("Törlés")
+				}
+
+				MenuSeparator {}
+
+				MenuItem {
+					text: qsTr("Új küldetés")
 				}
 			}
 		}
 
-		onLongPressed: {
-			menu.modelIndex = index
-			menu.popup()
-		}
 
-		onRightClicked: {
-			menu.modelIndex = index
-			menu.popup()
-		}
+		QCollapsible {
+			title: qsTr("Összegzés")
 
-		Keys.onPressed: {
-			if (event.key === Qt.Key_Insert) {
-			} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
-			} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
+			QButton {
+				id: bSummary
+				property int summaryId: -1;
+
+				onClicked: if (summaryId !== -1)
+							   pageEditor.summarySelected(modelIndex, summaryId, campaignId)
+						   else  {
+							   var sumId = map.campaignSummaryAdd(campaignId)
+							   if (sumId !== -1)
+								   pageEditor.summarySelected(modelIndex, sumId, campaignId)
+						   }
+
 			}
 		}
-	}
-
-	QMenu {
-		id: menu
-
-		property int modelIndex: -1
 
 
-		MenuItem {
-			text: qsTr("Szerkesztés")
-			//onClicked:
-		}
+		QCollapsible {
+			title: qsTr("Kivezető")
 
-		MenuItem {
-			text: qsTr("Törlés")
-		}
+			QButton {
+				id: bOutro
+				property int outroId: -1;
 
-		MenuSeparator {}
+				onClicked: if (outroId !== -1)
+							   pageEditor.introSelected(modelIndex, outroId, campaignId, Map.IntroCampaign)
+						   else  {
+							   var d = JS.dialogCreate(dlgMissionName)
+							   d.item.mode = 2
+							   d.open()
+						   }
 
-		MenuItem {
-			text: qsTr("Új küldetés")
+			}
 		}
 	}
 
@@ -178,92 +223,55 @@ QPagePanel {
 
 	function get() {
 		if (campaignId == -1 || map == null) {
-			list.model.clear()
+			list.model=[]
 			campaignName.text = ""
 			return
 		}
 
-		list.model.clear()
+		list.model=[]
 
 		var p = map.campaignGet(campaignId)
 		campaignName.text = p["name"]
 
 
-		var q = "Zárolva: "
-		for (var i=0; i<p.locks.length; i++) {
-			var o = p.locks[i]
-			o.label = o.name
-			q += " "+o.name
-		}
-		locks.text = q
+		locks.tags = p.locks
 
-		if (p["introId"] !== -1) {
-			list.model.append({
-								  id: -2,
-								  introId: p.introId,
-								  labelTitle: p.introText,
-								  labelRight: "",
-								  num: 0
-							  })
+		if (p.introId !== -1) {
+			bIntro.introId = p.introId
+			bIntro.label = p.introText
 		} else {
-			list.model.append({
-								  id: -2,
-								  introId: -1,
-								  labelTitle: qsTr("-- Bevezető hozzáadása --"),
-								  labelRight: "",
-								  num: 0
-							  })
-		}
-
-		var m = map.missionListGet(campaignId)
-		for (var i=0; i<m.length; i++) {
-			var o = m[i]
-			o.labelTitle = o.name
-			o.labelRight = ""
-			list.model.append(o)
-		}
-
-		list.model.append({
-							  id: -1,
-							  name: "",
-							  labelTitle: qsTr("-- küldetés hozzáadása --"),
-							  labelRight: "",
-							  num: m.length+1,
-						  })
-
-		if (p["summaryId"] !== -1) {
-			list.model.append({
-								  id: -3,
-								  summaryId: p["summaryId"],
-								  labelTitle: qsTr("Összegzés"),
-								  labelRight: "",
-								  num: m.length+2
-							  })
-		} else if (m.length) {
-			list.model.append({
-								  id: -3,
-								  summaryId: -1,
-								  labelTitle: qsTr("-- Összegzés hozzáadása --"),
-								  labelRight: "",
-								  num: m.length+2
-							  })
+			bIntro.introId = -1
+			bIntro.label = qsTr("-- Intro hozzáadása --")
 		}
 
 
 		if (p.outroId !== -1) {
-			list.model.append({
-								  id: -2,
-								  outroId: p.outroId,
-								  labelTitle: p.outroText,
-								  num: 0
-							  })
+			bOutro.outroId = p.outroId
+			bOutro.label = p.outroText
 		} else {
-			list.model.append({
-								  id: -2,
-								  outroId: -1,
-								  labelTitle: qsTr("-- Kivezető hozzáadása --"),
-								  num: 0
-							  })
+			bOutro.outroId = -1
+			bOutro.label = qsTr("-- Outro hozzáadása --")
 		}
+
+
+		var l = map.missionListGet(campaignId)
+
+		l.push({
+							  id: -1,
+							  name: qsTr("-- küldetés hozzáadása --"),
+							  num: model.length+1,
+						  })
+
+		list.model = l
+
+
+		if (p.summaryId !== -1) {
+			bSummary.summaryId = p.summaryId
+			bSummary.label = qsTr("Összegzés")
+		} else {
+			bSummary.summaryId = -1
+			bSummary.label = qsTr("-- Összegzés hozzáadása --")
+		}
+
 	}
 }

@@ -47,6 +47,7 @@ QPagePanel {
 					width: parent.width
 					defaultColor: CosStyle.colorAccentLight
 					defaultBackground: CosStyle.colorAccentDark
+					modelTextRole: "name"
 
 					onClicked: loadDialogMissions()
 				}
@@ -55,6 +56,7 @@ QPagePanel {
 					width: parent.width
 					id: chapterCampaigns
 					title: qsTr("Hadjáratok:")
+					modelTextRole: "name"
 
 					onClicked: loadDialogCampaigns()
 				}
@@ -84,12 +86,13 @@ QPagePanel {
 				id: list
 				width: parent.width
 
+				modelTitleRole: "name"
 
 				//			modelTitleSet: true
 				//			modelSubtitleSet: true
 
 				onClicked: {
-					var o = list.model.get(index)
+					//var o = list.model.get(index)
 					/*if (o.id >= 0)
 				pageEditor.missionSelected(modelIndex, o.id)
 			else if (o.id === -1) {
@@ -148,6 +151,11 @@ QPagePanel {
 
 		QDialogList {
 			id: dlgList
+			title: qsTr("Küldetések")
+			newField.visible: false
+			list.selectorSet: true
+			list.modelTitleRole: "name"
+			list.modelSelectedRole: "selected"
 			onDlgAccept: {
 				var i
 				var plus = JS.getSelectedIndices(dlgList.model, true, "id")
@@ -171,6 +179,12 @@ QPagePanel {
 
 		QDialogList {
 			id: dlgList
+			title: qsTr("Hadjáratok")
+			newField.visible: false
+			list.selectorSet: true
+			list.modelTitleRole: "name"
+			list.modelSelectedRole: "selected"
+
 			onDlgAccept: {
 				var i
 				var plus = JS.getSelectedIndices(dlgList.model, true, "id")
@@ -207,27 +221,19 @@ QPagePanel {
 
 	function get() {
 		if (chapterId == -1 || map == null) {
-			list.model.clear()
+			list.model = []
 			chapterName.text = ""
 			return
 		}
 
-		list.model.clear()
+		list.model = []
 
 		var p = map.chapterGet(chapterId)
 		chapterName.text = p["name"]
 
 
-		chapterMissions.tags.clear()
-		for (var i=0; i<p.missions.length; i++) {
-			chapterMissions.tags.append({text: p.missions[i].name})
-		}
-
-		chapterCampaigns.tags.clear()
-		for (i=0; i<p.campaigns.length; i++) {
-			chapterCampaigns.tags.append({text: p.campaigns[i].name})
-		}
-
+		chapterMissions.tags = p.missions
+		chapterCampaigns.tags = p.campaigns
 
 		if (p.introId !== -1) {
 			bIntro.introId = p.introId
@@ -241,33 +247,24 @@ QPagePanel {
 
 
 	function loadDialogMissions() {
-		var ml = map.execSelectQuery("SELECT mission.id as id, mission.name as labelTitle,
+		var d = JS.dialogCreate(dlgMissions)
+		var ml = map.execSelectQuery("SELECT mission.id as id, mission.name as name,
 						  CASE WHEN chapterid IS NOT NULL THEN true ELSE false END as selected
 						  FROM mission LEFT JOIN bindMissionChapter ON (bindMissionChapter.missionid=mission.id AND bindMissionChapter.chapterid=?)
 						  ORDER BY selected DESC, mission.name", [chapterId])
-
-		var d = JS.dialogCreate(dlgMissions)
-		d.item.title = qsTr("Küldetések")
-		d.item.newField.visible = false
-		d.item.list.selectorSet = true
 		JS.setModel(d.item.model, ml)
 		d.open()
 	}
 
 
 	function loadDialogCampaigns() {
-		var ml = map.execSelectQuery("SELECT summary.id as id, campaign.name as labelTitle,
+		var d = JS.dialogCreate(dlgCampaigns)
+		d.item.model = map.execSelectQuery("SELECT summary.id as id, campaign.name as name,
 									CASE WHEN chapterid IS NOT NULL THEN true ELSE false END as selected
 									FROM summary
 									LEFT JOIN campaign ON (campaign.id=summary.campaignid)
 									LEFT JOIN bindSummaryChapter ON (bindSummaryChapter.summaryid=summary.id AND bindSummaryChapter.chapterid=?)
 									ORDER BY selected DESC, campaign.name", [chapterId])
-
-		var d = JS.dialogCreate(dlgCampaigns)
-		d.item.title = qsTr("Hadjáratok")
-		d.item.newField.visible = false
-		d.item.list.selectorSet = true
-		JS.setModel(d.item.model, ml)
 		d.open()
 	}
 }

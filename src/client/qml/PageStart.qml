@@ -19,7 +19,7 @@ Page {
 		id: servers
 		client: cosClient
 
-		onServerListLoaded: JS.setModel(listMenu.model, serverList)
+		onServerListLoaded: listMenu.model = serverList
 		onServerInfoUpdated: serverListReload()
 	}
 
@@ -106,7 +106,7 @@ Page {
 			anchors.fill: parent
 
 			onClicked: {
-				var id = listMenu.model.get(listMenu.currentIndex).id
+				var id = listMenu.model[listMenu.currentIndex].id
 				if (id === -1)
 					editServer(-1)
 				else
@@ -127,7 +127,7 @@ Page {
 				if (event.key === Qt.Key_Insert) {
 					editServer(-1)
 				} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
-					editServer(listMenu.model.get(listMenu.currentIndex).id)
+					editServer(listMenu.model[listMenu.currentIndex].id)
 				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
 					var d = JS.dialogCreate(dlgDelete)
 					d.open()
@@ -153,14 +153,14 @@ Page {
 			MenuItem {
 				text: qsTr("Csatlakozás")
 				onClicked: if (listRigthMenu.modelIndex !== -1) {
-							   servers.serverConnect(listMenu.model.get(listRigthMenu.modelIndex).id)
+							   servers.serverConnect(listMenu.model[listRigthMenu.modelIndex].id)
 						   }
 
 			}
 
 			MenuItem {
 				text: qsTr("Szerkesztés")
-				onClicked: editServer(listMenu.model.get(listRigthMenu.modelIndex).id)
+				onClicked: editServer(listMenu.model[listRigthMenu.modelIndex].id)
 			}
 
 			MenuItem {
@@ -175,7 +175,7 @@ Page {
 			MenuItem {
 				text: qsTr("Automata csatlakozás")
 				onClicked: if (listRigthMenu.modelIndex !== -1) {
-							   servers.serverSetAutoConnect(listMenu.model.get(listRigthMenu.modelIndex).id)
+							   servers.serverSetAutoConnect(listMenu.model[listRigthMenu.modelIndex].id)
 						   }
 			}
 
@@ -201,9 +201,9 @@ Page {
 
 			title: qsTr("Biztosan törlöd a szervert?")
 
-			text: idx === -1 ? "" : listMenu.model.get(idx).label
+			text: idx === -1 ? "" : listMenu.model[idx].label
 
-			onDlgAccept: servers.serverInfoDelete(listMenu.model.get(idx).id)
+			onDlgAccept: servers.serverInfoDelete(listMenu.model[idx].id)
 
 		}
 	}

@@ -11,23 +11,13 @@ QListItemDelegate {
 	id: list
 	anchors.fill: parent
 
-	model: ListModel {
-		ListElement {
-			labelTitle: qsTr("Beállítások")
-		}
-		ListElement {
-			labelTitle: qsTr("Hadjáratok")
-		}
-		ListElement {
-			labelTitle: qsTr("Küldetések")
-		}
-		ListElement {
-			labelTitle: qsTr("Célpontok")
-		}
-		ListElement {
-			labelTitle: qsTr("Bevezetők")
-		}
-	}
+	model: [
+		{labelTitle: qsTr("Beállítások")},
+		{labelTitle: qsTr("Hadjáratok")},
+		{labelTitle: qsTr("Küldetések")},
+		{labelTitle: qsTr("Célpontok")},
+		{labelTitle: qsTr("Bevezetők")}
+	]
 
 
 	onClicked: {

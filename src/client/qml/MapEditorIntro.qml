@@ -155,24 +155,46 @@ QPagePanel {
 		QCollapsible {
 			title: qsTr("Kapcsolatok")
 
-			QGridLayout {
+			Column {
 				width: parent.width
-				watchModification: false
 
+				QTag {
+					id: tagCampaigns
+					title: qsTr("Hadjáratok:")
+					width: parent.width
+					defaultColor: CosStyle.colorAccentLight
+					defaultBackground: CosStyle.colorAccentDark
+					modelTextRole: "name"
+				}
 
-				QGridLabel { text: "Hadjáratok" }
-				Label { id: labelCampaigns }
+				QTag {
+					id: tagMissions
+					title: qsTr("Küldetések:")
+					width: parent.width
+					defaultColor: CosStyle.colorAccentLight
+					defaultBackground: CosStyle.colorAccentDark
+					modelTextRole: "name"
+				}
 
-				QGridLabel { text: "Küldetések" }
-				Label { id: labelMissions }
+				QTag {
+					id: tagSummaries
+					title: qsTr("Összegzések:")
+					width: parent.width
+					defaultColor: CosStyle.colorAccentLight
+					defaultBackground: CosStyle.colorAccentDark
+					modelTextRole: "name"
+				}
 
-				QGridLabel { text: "Összegzések" }
-				Label { id: labelSummaries }
-
-				QGridLabel { text: "Célpontok" }
-				Label { id: labelChapters }
-
+				QTag {
+					id: tagChapters
+					title: qsTr("Célpontok:")
+					width: parent.width
+					defaultColor: CosStyle.colorAccentLight
+					defaultBackground: CosStyle.colorAccentDark
+					modelTextRole: "name"
+				}
 			}
+
 		}
 	}
 
@@ -201,6 +223,11 @@ QPagePanel {
 			introSec.text = ""
 			introLevelMin.value = 0
 			introLevelMax.value = 0
+
+			tagCampaigns.tags = []
+			tagMissions.tags = []
+			tagSummaries.tags = []
+			tagChapters.tags = []
 			return
 		}
 
@@ -213,38 +240,9 @@ QPagePanel {
 		introLevelMin.value = Number(p.levelMin)
 		introLevelMax.value = Number(p.levelMax)
 
-		var q = "Hadjáratok: "
-		for (var i=0; i<p.campaigns.length; i++) {
-			var o = p.campaigns[i]
-			o.label = o.name
-			q += " "+o.name
-		}
-		labelCampaigns.text = q
-
-
-		q = "Küldetések: "
-		for (i=0; i<p.missions.length; i++) {
-			o = p.missions[i]
-			o.label = o.name
-			q += " "+o.name
-		}
-		labelMissions.text = q
-
-
-		q = "Öszegzések: "
-		for (i=0; i<p.summaries.length; i++) {
-			o = p.summaries[i]
-			o.label = o.name
-			q += " "+o.name
-		}
-		labelSummaries.text = q
-
-		q = "Célpontok: "
-		for (i=0; i<p.chapters.length; i++) {
-			o = p.chapters[i]
-			o.label = o.name
-			q += " "+o.name
-		}
-		labelChapters.text = q
+		tagCampaigns.tags = p.campaigns
+		tagMissions.tags = p.missions
+		tagSummaries.tags = p.summaries
+		tagChapters.tags = p.chapters
 	}
 }
