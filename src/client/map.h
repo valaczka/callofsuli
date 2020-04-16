@@ -98,6 +98,7 @@ public slots:
 	bool campaignMissionAdd(const int &id, const int &missionId, const int &num = -1);
 	int campaignSummaryAdd(const int &id);
 	bool campaignIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
+	bool campaignLockSet(const int &id, const QVariantList &lockIdList);
 
 	QVariantMap missionGet(const int &id, const bool &isSummary = false);
 	QVariantList missionListGet(const int &campaignId = -1);
@@ -110,6 +111,7 @@ public slots:
 	bool missionChapterUpdate(const int &id, const int &missionId, const QVariantMap &params);
 	bool missionChapterRemove(const int &missionId, const int &chapterId);
 	bool missionIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
+	bool missionCampaignListSet(const int &id, const QVariantList &campaignIdList);
 
 	QVariantMap summaryGet(const int &id) { return missionGet(id, true); }
 	int summaryAdd(const int &campaignId);
@@ -125,6 +127,8 @@ public slots:
 	int chapterAdd(const QVariantMap &params);
 	bool chapterUpdate(const int &id, const QVariantMap &params, const int &missionId = -1, const int &summaryId = -1);
 	bool chapterIntroAdd(const int &id, const int &introId);
+	bool chapterMissionListSet(const int &id, const QVariantList &missionIdList);
+	bool chapterSummaryListSet(const int &id, const QVariantList &summaryIdList);
 
 	QVariantMap introGet(const int &id);
 	QVariantList introListGet(const int &parentId = -1, const IntroType &type = IntroUndefined);

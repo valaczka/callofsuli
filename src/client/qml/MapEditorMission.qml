@@ -32,6 +32,7 @@ QPagePanel {
 			id: header
 
 			title: qsTr("Általános")
+			visible: !isSummary
 
 			Column {
 				id: col
@@ -40,7 +41,6 @@ QPagePanel {
 				QTextField {
 					id: missionName
 					width: parent.width
-					visible: !isSummary
 
 					placeholderText: qsTr("Küldetés neve")
 
@@ -62,11 +62,13 @@ QPagePanel {
 
 			QTag {
 				id: missionCampaigns
-				title: qsTr("Küldetések:")
+				title: qsTr("Hadjáratok:")
 				width: parent.width
 				defaultColor: CosStyle.colorAccentLight
 				defaultBackground: CosStyle.colorAccentDark
 				modelTextRole: "name"
+
+				onClicked: loadDialogCampaigns()
 			}
 		}
 
@@ -385,6 +387,26 @@ QPagePanel {
 	}
 
 
+	Component {
+		id: dlgCampaigns
+
+		QDialogList {
+			id: dlgList
+			title: qsTr("Hadjáratok")
+			newField.visible: false
+			list.selectorSet: true
+			list.modelTitleRole: "name"
+			list.modelSelectedRole: "selected"
+
+			onDlgAccept: {
+				var camps = JS.getSelectedIndices(dlgList.model, "id")
+				map.missionCampaignListSet(missionId, camps)
+				get()
+			}
+		}
+	}
+
+
 	Connections {
 		target: pageEditor
 		onMissionSelected: {
@@ -481,5 +503,16 @@ QPagePanel {
 
 
 		listChapters.model = p.chapters
+	}
+
+
+	function loadDialogCampaigns() {
+		var d = JS.dialogCreate(dlgCampaigns)
+		var ml = map.execSelectQuery("SELECT campaign.id as id, campaign.name as name,
+						  CASE WHEN missionid IS NOT NULL THEN true ELSE false END as selected
+						  FROM campaign LEFT JOIN bindCampaignMission ON (bindCampaignMission.campaignid=campaign.id AND bindCampaignMission.missionid=?)
+						  ORDER BY selected DESC, campaign.name", [missionId])
+		JS.setModel(d.item.model, ml)
+		d.open()
 	}
 }

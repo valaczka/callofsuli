@@ -43,8 +43,9 @@ QPagePanel {
 				width: parent.width
 				defaultColor: CosStyle.colorAccentLight
 				defaultBackground: CosStyle.colorAccentDark
-				readOnly: true
 				modelTextRole: "name"
+
+				onClicked: loadDialogCampaigns()
 			}
 		}
 
@@ -202,6 +203,26 @@ QPagePanel {
 	}
 
 
+	Component {
+		id: dlgCampaigns
+
+		QDialogList {
+			id: dlgList
+			title: qsTr("Hadjáratok")
+			newField.visible: false
+			list.selectorSet: true
+			list.modelTitleRole: "name"
+			list.modelSelectedRole: "selected"
+
+			onDlgAccept: {
+				var camps = JS.getSelectedIndices(dlgList.model, "id")
+				map.campaignLockSet(campaignId, camps)
+				get()
+			}
+		}
+	}
+
+
 	Connections {
 		target: pageEditor
 		onCampaignSelected: {
@@ -257,10 +278,10 @@ QPagePanel {
 		var l = map.missionListGet(campaignId)
 
 		l.push({
-							  id: -1,
-							  name: qsTr("-- küldetés hozzáadása --"),
-							  num: model.length+1,
-						  })
+				   id: -1,
+				   name: qsTr("-- küldetés hozzáadása --"),
+				   num: model.length+1,
+			   })
 
 		list.model = l
 
@@ -273,5 +294,18 @@ QPagePanel {
 			bSummary.label = qsTr("-- Összegzés hozzáadása --")
 		}
 
+	}
+
+
+	function loadDialogCampaigns() {
+		var d = JS.dialogCreate(dlgCampaigns)
+		var ml = map.execSelectQuery("SELECT campaign.id as id, campaign.name as name,
+										CASE WHEN lockId IS NOT NULL THEN true ELSE false END as selected
+										FROM campaign
+										LEFT JOIN campaignLock ON (campaignLock.lockId=campaign.id AND campaignLock.campaignId=?)
+										WHERE campaign.id<>?
+										ORDER BY selected DESC, campaign.name ", [campaignId, campaignId])
+		JS.setModel(d.item.model, ml)
+		d.open()
 	}
 }

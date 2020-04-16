@@ -8,8 +8,11 @@ import "."
 ToolButton {
 	id: button
 
+	property string buttonLabel: "M\ue5d4"
+
 	Material.foreground: CosStyle.colorPrimaryLight
-	Component.onCompleted: JS.setIconFont(button, "M\ue5d4")
+	Component.onCompleted: JS.setIconFont(button, buttonLabel)
+	onButtonLabelChanged: JS.setIconFont(button, buttonLabel)
 
 	default property alias menuItems: menu.contentData
 

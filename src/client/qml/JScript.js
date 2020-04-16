@@ -185,11 +185,11 @@ function mmSStoSec(text) {
 
 
 
-function getSelectedIndices(model, _selected, _role) {
+function getSelectedIndices(model, _role) {
 	var l = []
 	for (var i=0; i<model.count; i++) {
 		var o = model.get(i)
-		if (o.selected === _selected) {
+		if (o.selected === true) {
 			if (_role && _role.length)
 				l.push(o[_role])
 			else

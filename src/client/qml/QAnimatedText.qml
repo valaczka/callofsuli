@@ -11,6 +11,8 @@ Label {
 
 	property int _length: 0
 
+	readonly property bool running: anim.running
+
 
 	onStrChanged: {
 		resetStr()

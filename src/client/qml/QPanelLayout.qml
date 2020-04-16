@@ -14,7 +14,7 @@ Item {
 
 	focus: false
 
-	property int requiredPanelWidth: 400
+	property int requiredPanelWidth: 600
 	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
 
 	readonly property bool noDrawer: width > requiredWidthToDrawer || leftPanel === null
@@ -93,6 +93,7 @@ Item {
 			}
 
 		}
+
 
 	}
 

@@ -35,7 +35,6 @@
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
         <file>QPanelLayout.qml</file>
-        <file>MapEditorRoot.qml</file>
         <file>QPageHeader.qml</file>
         <file>MapEditorCampaignList.qml</file>
         <file>MapEditorSettings.qml</file>

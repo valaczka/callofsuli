@@ -12,6 +12,7 @@ ToolBar {
 	property alias backButton: backButton
 	property string backButtonIcon: "M\ue5c4"
 	property alias rightLoader: rightLoader
+	property alias menuLoader: menuLoader
 
 	Material.primary: CosStyle.colorPrimaryDark
 
@@ -58,7 +59,11 @@ ToolBar {
 				font.weight: Font.Thin
 				color: CosStyle.colorPrimaryLight
 				font.pixelSize: CosStyle.pixelSize * 1.2
+			}
 
+			Loader {
+				id: menuLoader
+				visible: !animatedTitle.running
 			}
 		}
 

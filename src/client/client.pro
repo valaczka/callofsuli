@@ -5,7 +5,7 @@ CONFIG += c++11
 
 include(../version/version.pro)
 include(../common/common.pri)
-#include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
+include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
 
 
 TEMPLATE = app

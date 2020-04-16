@@ -247,7 +247,7 @@ QListView {
 
 		onLongPressed: {
 			if (autoSelectorChange) {
-				model.modelData[modelSelectedRole] = true
+				model[modelSelectedRole] = true
 				selectorSet = true
 				calculateSelectedItems()
 			}
@@ -316,7 +316,7 @@ QListView {
 
 		Keys.onSpacePressed: {
 			if (selectorSet) {
-				model.modelData[modelSelectedRole] = !model.modelData[modelSelectedRole]
+				model[modelSelectedRole] = !model[modelSelectedRole]
 				calculateSelectedItems()
 			} else
 				mousePressAnimation.start()

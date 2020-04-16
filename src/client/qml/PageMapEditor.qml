@@ -45,6 +45,35 @@ Page {
 				panelLayout.drawerToggle()
 		}
 
+
+		menuLoader.sourceComponent: QMenuButton {
+			buttonLabel: "M\ue5c5"
+			MenuItem {
+				text: qsTr("Beállítások")
+				onClicked: pageEditor.loadSettings()
+			}
+
+			MenuItem {
+				text: qsTr("Hadjáratok")
+				onClicked: pageEditor.loadCampaigns()
+			}
+
+			MenuItem {
+				text: qsTr("Küldetések")
+				onClicked: pageEditor.loadMissions()
+			}
+
+			MenuItem {
+				text: qsTr("Célpontok")
+				onClicked: pageEditor.loadChapters()
+			}
+
+			MenuItem {
+				text: qsTr("Introk/Outrok")
+				onClicked: pageEditor.loadIntros()
+			}
+		}
+
 		rightLoader.sourceComponent: Row {
 			QToolBusyIndicator { running: isPageBusy }
 			QMenuButton {
@@ -77,12 +106,6 @@ Page {
 	QPanelLayout {
 		id: panelLayout
 		anchors.fill: parent
-
-		drawer.y: toolbar.height
-
-		leftPanel: MapEditorRoot {
-			anchors.fill: parent
-		}
 	}
 
 	FileDialog {
@@ -125,8 +148,8 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		toolbar.resetTitle()
 		panelLayout.reset()
+		loadCampaigns()
 	}
 
 	StackView.onDeactivated: {
@@ -135,6 +158,7 @@ Page {
 
 
 	function loadSettings() {
+		toolbar.title = qsTr("Beállítások")
 		panelLayout.model.clear()
 		panelLayout.model.append(
 					{ url: "MapEditorSettings.qml", params: { map: map } }
@@ -143,6 +167,7 @@ Page {
 
 
 	function loadCampaigns() {
+		toolbar.title = qsTr("Hadjáratok")
 		panelLayout.model.clear()
 		panelLayout.model.append(
 					{ url: "MapEditorCampaignList.qml", params: { map: map } }
@@ -150,6 +175,7 @@ Page {
 	}
 
 	function loadMissions() {
+		toolbar.title = qsTr("Küldetések")
 		panelLayout.model.clear()
 		panelLayout.model.append(
 					{ url: "MapEditorMissionList.qml", params: { map: map } }
@@ -157,6 +183,7 @@ Page {
 	}
 
 	function loadChapters() {
+		toolbar.title = qsTr("Célpontok")
 		panelLayout.model.clear()
 		panelLayout.model.append(
 					{ url: "MapEditorChapterList.qml", params: { map: map } }
@@ -164,17 +191,10 @@ Page {
 	}
 
 	function loadIntros() {
+		toolbar.title = qsTr("Introk/Outrok")
 		panelLayout.model.clear()
 		panelLayout.model.append(
 					{ url: "MapEditorIntroList.qml", params: { map: map } }
-					)
-	}
-
-
-	function loadTest() {
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "MapEditorTest.qml", params: { map: map } }
 					)
 	}
 
@@ -193,12 +213,12 @@ Page {
 											{ map: map, missionId: id, isSummary: true, parentCampaignId: parentCampaignId })
 
 	onChapterSelected: panelLayout.loadPage(modelIndex, id,
-											 "MapEditorChapter.qml",
-											 { map: map, chapterId: id, parentMissionId: parentMissionId, parentSummaryId: parentSummaryId })
+											"MapEditorChapter.qml",
+											{ map: map, chapterId: id, parentMissionId: parentMissionId, parentSummaryId: parentSummaryId })
 
 	onIntroSelected: panelLayout.loadPage(modelIndex, id,
-											 "MapEditorIntro.qml",
-											 { map: map, introId: id, parentId: parentId, parentType: parentType })
+										  "MapEditorIntro.qml",
+										  { map: map, introId: id, parentId: parentId, parentType: parentType })
 
 	function closeDrawer() {
 		panelLayout.drawer.close()

@@ -16,6 +16,9 @@ ApplicationWindow {
 
 	title: "Call of Suli"
 
+	minimumHeight: 600
+	minimumWidth: 600
+
 	FontLoader { source: "qrc:/font/Books.ttf" }
 	FontLoader { source: "qrc:/font/Material.ttf" }
 	FontLoader { source: "qrc:/font/School.ttf" }

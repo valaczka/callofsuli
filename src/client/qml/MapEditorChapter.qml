@@ -55,7 +55,7 @@ QPagePanel {
 				QTag {
 					width: parent.width
 					id: chapterCampaigns
-					title: qsTr("Hadjáratok:")
+					title: qsTr("Összegzések:")
 					modelTextRole: "name"
 
 					onClicked: loadDialogCampaigns()
@@ -157,17 +157,8 @@ QPagePanel {
 			list.modelTitleRole: "name"
 			list.modelSelectedRole: "selected"
 			onDlgAccept: {
-				var i
-				var plus = JS.getSelectedIndices(dlgList.model, true, "id")
-				for (i=0; i<plus.length; ++i) {
-					map.missionChapterAdd({ "missionid" : plus[i], "chapterid": chapterId })
-				}
-
-				var minus = JS.getSelectedIndices(dlgList.model, false, "id")
-				for (i=0; i<minus.length; ++i) {
-					map.missionChapterRemove(minus[i], chapterId)
-				}
-
+				var missions = JS.getSelectedIndices(dlgList.model, "id")
+				map.chapterMissionListSet(chapterId, missions)
 				get()
 			}
 		}
@@ -186,17 +177,8 @@ QPagePanel {
 			list.modelSelectedRole: "selected"
 
 			onDlgAccept: {
-				var i
-				var plus = JS.getSelectedIndices(dlgList.model, true, "id")
-				for (i=0; i<plus.length; ++i) {
-					map.summaryChapterAdd({ "summaryid" : plus[i], "chapterid": chapterId })
-				}
-
-				var minus = JS.getSelectedIndices(dlgList.model, false, "id")
-				for (i=0; i<minus.length; ++i) {
-					map.summaryChapterRemove(minus[i], chapterId)
-				}
-
+				var camps = JS.getSelectedIndices(dlgList.model, "id")
+				map.chapterSummaryListSet(chapterId, camps)
 				get()
 			}
 		}
@@ -259,12 +241,13 @@ QPagePanel {
 
 	function loadDialogCampaigns() {
 		var d = JS.dialogCreate(dlgCampaigns)
-		d.item.model = map.execSelectQuery("SELECT summary.id as id, campaign.name as name,
+		var ml = map.execSelectQuery("SELECT summary.id as id, campaign.name as name,
 									CASE WHEN chapterid IS NOT NULL THEN true ELSE false END as selected
 									FROM summary
 									LEFT JOIN campaign ON (campaign.id=summary.campaignid)
 									LEFT JOIN bindSummaryChapter ON (bindSummaryChapter.summaryid=summary.id AND bindSummaryChapter.chapterid=?)
 									ORDER BY selected DESC, campaign.name", [chapterId])
+		JS.setModel(d.item.model, ml)
 		d.open()
 	}
 }

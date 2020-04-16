@@ -788,6 +788,47 @@ bool Map::missionIntroAdd(const int &id, const int &introId, const bool &isOutro
 }
 
 
+/**
+ * @brief Map::missionCampaignListSet
+ * @param id
+ * @param campaignIdList
+ * @return
+ */
+
+bool Map::missionCampaignListSet(const int &id, const QVariantList &campaignIdList)
+{
+	QStringList vl;
+	QStringList il;
+	foreach (QVariant p, campaignIdList) {
+		vl << QString("(%1)").arg(p.toInt());
+		il << QString::number(p.toInt());
+	}
+
+	QVariantList params;
+	params << id;
+
+	if (campaignIdList.isEmpty()) {
+		return m_db->execSimpleQuery("DELETE FROM bindCampaignMission WHERE missionid=?", params);
+	}
+
+	bool r1 = m_db->execSimpleQuery("DELETE FROM bindCampaignMission WHERE missionid=? AND campaignid NOT IN ("+il.join(",")+")", params);
+
+	params << id;
+
+	bool r2 = m_db->execSimpleQuery("INSERT INTO bindCampaignMission(campaignid, missionid, num) "
+									"SELECT T.id, "
+									"? as missionid, "
+									"COALESCE((SELECT MAX(num)+1 FROM bindCampaignMission WHERE campaignid=T.id), 1) as num "
+									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT campaignid from bindCampaignMission WHERE missionid=?) T",
+									params);
+
+	emit missionUpdated(id);
+	setMapModified(true);
+
+	return (r1 && r2);
+}
+
+
 
 
 /**
@@ -1132,6 +1173,87 @@ bool Map::chapterIntroAdd(const int &id, const int &introId)
 }
 
 
+/**
+ * @brief Map::chapterMissionListSet
+ * @param id
+ * @param missionIdList
+ * @return
+ */
+
+bool Map::chapterMissionListSet(const int &id, const QVariantList &missionIdList)
+{
+	QStringList vl;
+	QStringList il;
+	foreach (QVariant p, missionIdList) {
+		vl << QString("(%1)").arg(p.toInt());
+		il << QString::number(p.toInt());
+	}
+
+	QVariantList params;
+	params << id;
+
+	if (missionIdList.isEmpty()) {
+		return m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE chapterid=?", params);
+	}
+
+	bool r1 = m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE chapterid=? AND missionid NOT IN ("+il.join(",")+")", params);
+
+	params << id;
+
+	bool r2 = m_db->execSimpleQuery("INSERT INTO bindMissionChapter(missionid, chapterid, num) "
+									"SELECT T.id as missionid, "
+									"? as chapterid, "
+									"COALESCE((SELECT MAX(num)+1 FROM bindMissionChapter WHERE missionid=T.id), 1) as num "
+									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT missionid from bindMissionChapter WHERE chapterid=?) T",
+									params);
+
+	emit chapterUpdated(id);
+	setMapModified(true);
+
+	return (r1 && r2);
+}
+
+
+
+/**
+ * @brief Map::chapterCampaignListSet
+ * @param id
+ * @param missionIdList
+ * @return
+ */
+
+bool Map::chapterSummaryListSet(const int &id, const QVariantList &summaryIdList)
+{
+	QStringList vl;
+	QStringList il;
+	foreach (QVariant p, summaryIdList) {
+		vl << QString("(%1)").arg(p.toInt());
+		il << QString::number(p.toInt());
+	}
+
+	QVariantList params;
+	params << id;
+
+	if (summaryIdList.isEmpty()) {
+		return m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE chapterid=?", params);
+	}
+
+	bool r1 = m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE chapterid=? AND summaryid NOT IN ("+il.join(",")+")", params);
+
+	params << id;
+
+	bool r2 = m_db->execSimpleQuery("INSERT INTO bindSummaryChapter(summaryid, chapterid) "
+									"SELECT T.id as summaryid, ? as chapterid "
+									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT summaryid from bindSummaryChapter WHERE chapterid=?) T",
+									params);
+
+	emit chapterUpdated(id);
+	setMapModified(true);
+
+	return (r1 && r2);
+}
+
+
 
 
 
@@ -1434,6 +1556,45 @@ bool Map::campaignIntroAdd(const int &id, const int &introId, const bool &isOutr
 
 	return false;
 
+}
+
+
+/**
+ * @brief Map::campaignLockSet
+ * @param id
+ * @param lockIdList
+ * @return
+ */
+
+bool Map::campaignLockSet(const int &id, const QVariantList &lockIdList)
+{
+	QStringList vl;
+	QStringList il;
+	foreach (QVariant p, lockIdList) {
+		vl << QString("(%1)").arg(p.toInt());
+		il << QString::number(p.toInt());
+	}
+
+	QVariantList params;
+	params << id;
+
+	if (lockIdList.isEmpty()) {
+		return m_db->execSimpleQuery("DELETE FROM campaignLock WHERE campaignId=?", params);
+	}
+
+	bool r1 = m_db->execSimpleQuery("DELETE FROM campaignLock WHERE campaignId=? AND lockId NOT IN ("+il.join(",")+")", params);
+
+	params << id;
+
+	bool r2 = m_db->execSimpleQuery("INSERT INTO campaignLock(lockId, campaignId) "
+									"SELECT T.id as lockId, ? as campaignId "
+									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT lockId from campaignLock WHERE campaignId=?) T",
+									params);
+
+	emit campaignUpdated(id);
+	setMapModified(true);
+
+	return (r1 && r2);
 }
 
 

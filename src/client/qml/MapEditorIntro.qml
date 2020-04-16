@@ -165,6 +165,7 @@ QPagePanel {
 					defaultColor: CosStyle.colorAccentLight
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
+					readOnly: true
 				}
 
 				QTag {
@@ -174,6 +175,7 @@ QPagePanel {
 					defaultColor: CosStyle.colorAccentLight
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
+					readOnly: true
 				}
 
 				QTag {
@@ -183,6 +185,7 @@ QPagePanel {
 					defaultColor: CosStyle.colorAccentLight
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
+					readOnly: true
 				}
 
 				QTag {
@@ -192,6 +195,7 @@ QPagePanel {
 					defaultColor: CosStyle.colorAccentLight
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
+					readOnly: true
 				}
 			}
 
