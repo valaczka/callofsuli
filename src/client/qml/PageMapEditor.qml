@@ -48,10 +48,6 @@ Page {
 
 		menuLoader.sourceComponent: QMenuButton {
 			buttonLabel: "M\ue5c5"
-			MenuItem {
-				text: qsTr("Beállítások")
-				onClicked: pageEditor.loadSettings()
-			}
 
 			MenuItem {
 				text: qsTr("Hadjáratok")
@@ -117,27 +113,6 @@ Page {
 		onAccepted: map.saveToFile(fileUrl)
 	}
 
-
-	Component {
-		id: dlgModify
-
-		QDialogYesNo {
-			id: dlgYesNo
-
-			property bool isWindowClosing: false
-
-			title: qsTr("Biztosan eldobod a változtatásokat?")
-
-			onDlgAccept: {
-				map.mapModified = false
-				if (isWindowClosing)
-					mainWindow.close()
-				else
-					mainStack.back()
-			}
-
-		}
-	}
 
 	Keys.onPressed: {
 		if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
@@ -227,8 +202,11 @@ Page {
 
 	function windowClose() {
 		if (map.mapModified) {
-			var d = JS.dialogCreate(dlgModify)
-			d.item.isWindowClosing = true
+			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan eldobod a változtatásokat?")})
+			d.accepted.connect(function() {
+				map.mapModified = false
+				mainWindow.close()
+			})
 			d.open()
 			return false
 		}
@@ -256,7 +234,11 @@ Page {
 		}
 
 		if (map.mapModified) {
-			var d = JS.dialogCreate(dlgModify)
+			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan eldobod a változtatásokat?")})
+			d.accepted.connect(function() {
+				map.mapModified = false
+				mainStack.back()
+			})
 			d.open()
 			return true
 		}

@@ -65,5 +65,6 @@
         <file>QGridComboBox.qml</file>
         <file>QTag.qml</file>
         <file>QDialogList.qml</file>
+        <file>MapEditorIntroWidget.qml</file>
     </qresource>
 </RCC>

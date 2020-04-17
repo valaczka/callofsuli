@@ -38,6 +38,22 @@ Item {
 		x: (item.width-width)/2
 		y: (item.height-height)/2
 
+		Behavior on width {
+			NumberAnimation { duration: 125 }
+		}
+
+		Behavior on height {
+			NumberAnimation { duration: 125 }
+		}
+
+		Behavior on x {
+			NumberAnimation { duration: 125 }
+		}
+
+		Behavior on y {
+			NumberAnimation { duration: 125 }
+		}
+
 		ShaderEffectSource {
 			id: effectsource
 			anchors.fill: parent

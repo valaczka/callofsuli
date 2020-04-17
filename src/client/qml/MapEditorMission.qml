@@ -32,7 +32,6 @@ QPagePanel {
 			id: header
 
 			title: qsTr("Általános")
-			visible: !isSummary
 
 			Column {
 				id: col
@@ -42,9 +41,35 @@ QPagePanel {
 					id: missionName
 					width: parent.width
 
+					visible: !isSummary
+
 					placeholderText: qsTr("Küldetés neve")
 
 					onEditingFinished: header.missionUpdate()
+				}
+
+				QButton {
+					label: isSummary ? qsTr("Összegzés törlése") : qsTr("Küldetés törlése")
+
+					icon: "M\ue5cd"
+					bgColor: CosStyle.colorErrorDarker
+					borderColor: CosStyle.colorErrorDark
+
+					onClicked: {
+						var d = JS.dialogCreateQml("YesNo")
+						d.item.title = isSummary ? qsTr("Biztosan törlöd az összegzést?") : qsTr("Biztosan törlöd a küldetést?")
+						d.item.text = isSummary ? "" : missionName.text
+						d.accepted.connect(function () {
+							if ((isSummary && map.summaryRemove(missionId)) || (!isSummary && map.missionRemove(missionId))) {
+								missionId = -1
+								if (view) {
+									view.model.remove(modelIndex)
+								}
+							}
+						})
+
+						d.open()
+					}
 				}
 
 			}
@@ -68,7 +93,9 @@ QPagePanel {
 				defaultBackground: CosStyle.colorAccentDark
 				modelTextRole: "name"
 
-				onClicked: loadDialogCampaigns()
+				readOnly: isSummary
+
+				onClicked: if (!isSummary) loadDialogCampaigns()
 			}
 		}
 
@@ -243,22 +270,13 @@ QPagePanel {
 
 		}
 
-		QCollapsible {
-			title: qsTr("Bevezető")
+		MapEditorIntroWidget {
+			id: mIntro
 
-			QButton {
-				id: bIntro
-				property int introId: -1;
-
-				onClicked: if (introId !== -1)
-							   pageEditor.introSelected(modelIndex, introId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
-						   else  {
-							   var d = JS.dialogCreate(dlgIntroName)
-							   d.item.mode = 1
-							   d.open()
-						   }
-
-			}
+			map: panel.map
+			isOutro: false
+			parentId: missionId
+			parentType: isSummary ? Map.IntroSummary : Map.IntroMission
 		}
 
 		QCollapsible {
@@ -293,118 +311,25 @@ QPagePanel {
 
 					modelTitleRole: "name"
 
-					onClicked: {
-						pageEditor.chapterSelected(modelIndex, listChapters.model[index].id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
-					}
-
-					onLongPressed: {
-						menu.modelIndex = index
-						menu.popup()
-					}
-
-					onRightClicked: {
-						menu.modelIndex = index
-						menu.popup()
-					}
-
-					Keys.onPressed: {
-						if (event.key === Qt.Key_Insert) {
-						} else if (event.key === Qt.Key_F4 && listChapters.currentIndex !== -1) {
-						} else if (event.key === Qt.Key_Delete && listChapters.currentIndex !== -1) {
-						}
-					}
-				}
-			}
-		}
-
-		QCollapsible {
-			title: qsTr("Kivezető")
-
-			QButton {
-				id: bOutro
-				property int outroId: -1;
-
-				onClicked: if (outroId !== -1)
-							   pageEditor.introSelected(modelIndex, outroId, missionId, isSummary ? Map.IntroSummary : Map.IntroMission)
-						   else  {
-							   var d = JS.dialogCreate(dlgIntroName)
-							   d.item.mode = 2
-							   d.open()
-						   }
-
-			}
-		}
-
-	}
-
-	QMenu {
-		id: menu
-
-		property int modelIndex: -1
-
-
-		MenuItem {
-			text: qsTr("Szerkesztés")
-			//onClicked:
-		}
-
-		MenuItem {
-			text: qsTr("Törlés")
-		}
-
-		MenuSeparator {}
-
-		MenuItem {
-			text: qsTr("Új küldetés")
-		}
-	}
-
-
-	Component {
-		id: dlgIntroName
-
-		QDialogTextField {
-			property int mode: 1
-
-			title: switch (mode) {
-				   case 1: qsTr("Új bevezető"); break
-				   case 2: qsTr("Új kivezető"); break
-				   }
-
-			onDlgAccept: {
-				var intId = map.introAdd({ "ttext": data })
-				if (isSummary) {
-					if (intId !== -1 && map.summaryIntroAdd(missionId, intId, (mode === 2)))
-						pageEditor.introSelected(modelIndex, intId, missionId, Map.IntroSummary)
-
-				} else {
-					if (intId !== -1 && map.missionIntroAdd(missionId, intId, (mode === 2)))
-						pageEditor.introSelected(modelIndex, intId, missionId, Map.IntroMission)
+					onClicked: pageEditor.chapterSelected(modelIndex, listChapters.model[index].id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
 
 				}
 			}
 		}
-	}
 
+		MapEditorIntroWidget {
+			id: mOutro
 
-	Component {
-		id: dlgCampaigns
-
-		QDialogList {
-			id: dlgList
-			title: qsTr("Hadjáratok")
-			newField.visible: false
-			list.selectorSet: true
-			list.modelTitleRole: "name"
-			list.modelSelectedRole: "selected"
-
-			onDlgAccept: {
-				var camps = JS.getSelectedIndices(dlgList.model, "id")
-				map.missionCampaignListSet(missionId, camps)
-				get()
-			}
+			map: panel.map
+			isOutro: true
+			parentId: missionId
+			parentType: isSummary ? Map.IntroSummary : Map.IntroMission
 		}
+
 	}
+
+
+
 
 
 	Connections {
@@ -427,14 +352,15 @@ QPagePanel {
 		target: map
 		onMissionUpdated: if (!isSummary && id===missionId) get()
 		onSummaryUpdated: if (isSummary && id===missionId) get()
-		onIntroListUpdated: if ((type===Map.IntroMission || type===Map.IntroSummary) && parentId===missionId) get()
-		onChapterListUpdated: if ((!isSummary && mId===missionId) || (isSummary && sId===missionId))
+		onIntroListUpdated: if (parentId === -1 || ((type===Map.IntroMission || type===Map.IntroSummary) && parentId===missionId)) get()
+		onChapterListUpdated: if (mId===-1 || (!isSummary && mId===missionId) || (isSummary && sId===missionId))
 								  get()
 	}
 
 	Component.onCompleted: get()
 
 	onMissionIdChanged: get()
+
 
 	function get() {
 		if (missionId == -1 || !map) {
@@ -482,37 +408,33 @@ QPagePanel {
 								})
 
 
-
-		if (p.introId !== -1) {
-			bIntro.introId = p.introId
-			bIntro.label = p.introText
-		} else {
-			bIntro.introId = -1
-			bIntro.label = qsTr("-- Intro hozzáadása --")
-		}
-
-
-		if (p.outroId !== -1) {
-			bOutro.outroId = p.outroId
-			bOutro.label = p.outroText
-		} else {
-			bOutro.outroId = -1
-			bOutro.label = qsTr("-- Outro hozzáadása --")
-		}
-
-
+		mIntro.introId = p.introId
+		mOutro.introId = p.outroId
 
 		listChapters.model = p.chapters
 	}
 
 
 	function loadDialogCampaigns() {
-		var d = JS.dialogCreate(dlgCampaigns)
+		var d = JS.dialogCreateQml("List")
+		d.item.title = qsTr("Hadjáratok")
+		d.item.newField.visible = false
+		d.item.list.selectorSet = true
+		d.item.list.modelTitleRole = "name"
+		d.item.list.modelSelectedRole = "selected"
+
 		var ml = map.execSelectQuery("SELECT campaign.id as id, campaign.name as name,
 						  CASE WHEN missionid IS NOT NULL THEN true ELSE false END as selected
 						  FROM campaign LEFT JOIN bindCampaignMission ON (bindCampaignMission.campaignid=campaign.id AND bindCampaignMission.missionid=?)
 						  ORDER BY selected DESC, campaign.name", [missionId])
+
 		JS.setModel(d.item.model, ml)
+
+		d.accepted.connect(function() {
+			var camps = JS.getSelectedIndices(d.item.model, "id")
+			map.missionCampaignListSet(missionId, camps)
+			get()
+		})
 		d.open()
 	}
 }

@@ -161,6 +161,37 @@ function dialogCreate(component) {
 }
 
 
+function dialogCreateQml(url, params) {
+	var comp = Qt.createComponent("QDialogMain.qml", mainWindow)
+
+	if (comp.status === Component.Ready) {
+		var obj = comp.createObject(mainWindow)
+		if (obj === null) {
+			console.error("Error creating dialog object")
+			return null
+		}
+
+
+		obj.x = 0
+		obj.x = 0
+		obj.width = mainWindow.width
+		obj.height = mainWindow.height
+		obj.effectSource = mainStack
+
+		//obj.popupContent.source = "QDialog"+url+".qml"
+
+		obj.popupContent.setSource("QDialog"+url+".qml", params ? params : {})
+
+		return obj
+
+	} else if (comp.status === Component.Error) {
+		console.warn("Error loading component: ", comp.errorString())
+	}
+
+	return null
+}
+
+
 
 
 function secToMMSS(sec) {

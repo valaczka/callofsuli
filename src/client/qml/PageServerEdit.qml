@@ -106,23 +106,7 @@ Page {
 		}
 	}
 
-	Component {
-		id: dlgModify
 
-		QDialogYesNo {
-			id: dlgYesNo
-
-			property bool isWindowClosing: false
-
-			title: qsTr("Biztosan eldobod a változtatásokat?")
-
-			onDlgAccept: {
-				grid.modified = false
-				mainStack.back()
-			}
-
-		}
-	}
 
 
 	Connections {
@@ -163,8 +147,11 @@ Page {
 
 	function windowClose() {
 		if (grid.modified) {
-			var d = JS.dialogCreate(dlgModify)
-			d.item.isWindowClosing = true
+			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan eldobod a változtatásokat?")})
+			d.accepted.connect(function() {
+				grid.modified = false
+				mainWindow.close()
+			})
 			d.open()
 			return false
 		}
@@ -184,7 +171,11 @@ Page {
 
 
 		if (grid.modified) {
-			var d = JS.dialogCreate(dlgModify)
+			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan eldobod a változtatásokat?")})
+			d.accepted.connect(function() {
+				grid.modified = false
+				mainStack.back()
+			})
 			d.open()
 			return true
 		}

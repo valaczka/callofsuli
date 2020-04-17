@@ -129,8 +129,7 @@ Page {
 				} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
 					editServer(listMenu.model[listMenu.currentIndex].id)
 				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
-					var d = JS.dialogCreate(dlgDelete)
-					d.open()
+					deleteServer(listMenu.currentIndex)
 				} else if (event.key === Qt.Key_F1) {
 					var o = JS.createPage("MapEditor", {}, page)
 					//var b = o.map.create()
@@ -165,10 +164,7 @@ Page {
 
 			MenuItem {
 				text: qsTr("Törlés")
-				onClicked: {
-					var d = JS.dialogCreate(dlgDelete)
-					d.open()
-				}
+				onClicked: deleteServer(listRigthMenu.modelIndex)
 
 			}
 
@@ -189,25 +185,6 @@ Page {
 
 
 	}
-
-
-	Component {
-		id: dlgDelete
-
-		QDialogYesNo {
-			id: dlgYesNo
-
-			property int idx: listMenu.currentIndex
-
-			title: qsTr("Biztosan törlöd a szervert?")
-
-			text: idx === -1 ? "" : listMenu.model[idx].label
-
-			onDlgAccept: servers.serverInfoDelete(listMenu.model[idx].id)
-
-		}
-	}
-
 
 
 	Connections {
@@ -238,6 +215,17 @@ Page {
 		forceActiveFocus()
 	}
 
+
+	function deleteServer(idx) {
+		var d = JS.dialogCreateQml("YesNo", {
+									   title: qsTr("Biztosan törlöd a szervert?"),
+									   text: idx === -1 ? "" : listMenu.model[idx].labelTitle
+								   })
+		d.accepted.connect(function () {
+			servers.serverInfoDelete(listMenu.model[idx].id)
+		})
+		d.open()
+	}
 
 	function editServer(idx) {
 		JS.createPage("ServerEdit",

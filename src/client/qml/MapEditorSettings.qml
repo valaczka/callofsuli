@@ -42,10 +42,6 @@ QPagePanel {
 
 	}
 
-	Label {
-		text: "kljlkjl"
-		y: grid.height
-	}
 
 
 	Component.onCompleted: {

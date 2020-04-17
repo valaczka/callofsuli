@@ -13,85 +13,23 @@ QPagePanel {
 	title: qsTr("Célpontok")
 
 	rightLoader.sourceComponent: QCloseButton {
+		visible: modelIndex > 0
 		onClicked: if (view) {
 					   view.model.remove(modelIndex)
 				   }
 	}
 
-	QPageHeader {
-		id: header
-
-		height: col.height
-
-		Column {
-			id: col
-			width: parent.width
-
-
-			QTextField {
-				id: newChapterName
-				width: parent.width
-
-				placeholderText: qsTr("új célpont hozzáadása")
-				onAccepted: {
-					if (map.chapterAdd({ "name": newChapterName.text }))
-						clear()
-				}
-			}
-		}
-	}
 
 	QListItemDelegate {
 		id: list
-		anchors.top: header.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		anchors.fill: parent
 
 		modelTitleRole: "name"
 
 
 		onClicked: pageEditor.chapterSelected(modelIndex, list.model[index].id, -1, -1)
-
-		onLongPressed: {
-			menu.modelIndex = index
-			menu.popup()
-		}
-
-		onRightClicked: {
-			menu.modelIndex = index
-			menu.popup()
-		}
-
-		Keys.onPressed: {
-			if (event.key === Qt.Key_Insert) {
-			} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
-			} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
-			}
-		}
 	}
 
-	QMenu {
-		id: menu
-
-		property int modelIndex: -1
-
-
-		MenuItem {
-			text: qsTr("Szerkesztés")
-			//onClicked:
-		}
-
-		MenuItem {
-			text: qsTr("Törlés")
-		}
-
-		MenuSeparator {}
-
-		MenuItem {
-			text: qsTr("Új küldetés")
-		}
-	}
 
 
 	Connections {

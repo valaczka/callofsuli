@@ -144,8 +144,8 @@ Popup {
 		target: popupContent.item
 		onDlgClose: close()
 		onDlgAccept: {
-			accepted(data)
 			close()
+			accepted(data)
 		}
 	}
 

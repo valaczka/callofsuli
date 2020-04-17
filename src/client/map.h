@@ -99,6 +99,7 @@ public slots:
 	int campaignSummaryAdd(const int &id);
 	bool campaignIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
 	bool campaignLockSet(const int &id, const QVariantList &lockIdList);
+	bool campaignRemove(const int &id);
 
 	QVariantMap missionGet(const int &id, const bool &isSummary = false);
 	QVariantList missionListGet(const int &campaignId = -1);
@@ -112,6 +113,7 @@ public slots:
 	bool missionChapterRemove(const int &missionId, const int &chapterId);
 	bool missionIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
 	bool missionCampaignListSet(const int &id, const QVariantList &campaignIdList);
+	bool missionRemove(const int &id);
 
 	QVariantMap summaryGet(const int &id) { return missionGet(id, true); }
 	int summaryAdd(const int &campaignId);
@@ -121,6 +123,7 @@ public slots:
 	int summaryChapterAdd(const QVariantMap &params);
 	bool summaryChapterRemove(const int &summaryId, const int &chapterId);
 	bool summaryIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
+	bool summaryRemove(const int &id);
 
 	QVariantMap chapterGet(const int &id);
 	QVariantList chapterListGet(const int &missionId = -1, const int &summaryId = -1);
@@ -129,11 +132,13 @@ public slots:
 	bool chapterIntroAdd(const int &id, const int &introId);
 	bool chapterMissionListSet(const int &id, const QVariantList &missionIdList);
 	bool chapterSummaryListSet(const int &id, const QVariantList &summaryIdList);
+	bool chapterRemove(const int &id);
 
 	QVariantMap introGet(const int &id);
 	QVariantList introListGet(const int &parentId = -1, const IntroType &type = IntroUndefined);
 	int introAdd(const QVariantMap &params);
 	bool introUpdate(const int &id, const QVariantMap &params, const int &parentId = -1, const IntroType &type = IntroUndefined);
+	bool introRemove(const int &id);
 
 signals:
 	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);

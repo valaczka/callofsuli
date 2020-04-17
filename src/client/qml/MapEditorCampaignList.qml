@@ -14,6 +14,7 @@ QPagePanel {
 	title: qsTr("Hadjáratok")
 
 	rightLoader.sourceComponent: QCloseButton {
+		visible: modelIndex > 0
 		onClicked: if (view) {
 					   view.model.remove(modelIndex)
 				   }
@@ -55,45 +56,6 @@ QPagePanel {
 		//			modelSubtitleSet: true
 
 		onClicked: pageEditor.campaignSelected(modelIndex, list.model[index].id)
-
-		onLongPressed: {
-			menu.modelIndex = index
-			menu.popup()
-		}
-
-		onRightClicked: {
-			menu.modelIndex = index
-			menu.popup()
-		}
-
-		Keys.onPressed: {
-			if (event.key === Qt.Key_Insert) {
-			} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
-			} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
-			}
-		}
-	}
-
-	QMenu {
-		id: menu
-
-		property int modelIndex: -1
-
-
-		MenuItem {
-			text: qsTr("Szerkesztés")
-			//onClicked:
-		}
-
-		MenuItem {
-			text: qsTr("Törlés")
-		}
-
-		MenuSeparator {}
-
-		MenuItem {
-			text: qsTr("Új küldetés")
-		}
 	}
 
 

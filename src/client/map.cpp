@@ -829,6 +829,26 @@ bool Map::missionCampaignListSet(const int &id, const QVariantList &campaignIdLi
 }
 
 
+/**
+ * @brief Map::missionRemove
+ * @param id
+ * @return
+ */
+
+bool Map::missionRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+	bool ret = m_db->execSimpleQuery("DELETE FROM mission WHERE id=?", l);
+	if (ret) {
+		emit missionListUpdated(-1);
+		setMapModified(true);
+	}
+
+	return ret;
+}
+
+
 
 
 /**
@@ -984,6 +1004,25 @@ bool Map::summaryIntroAdd(const int &id, const int &introId, const bool &isOutro
 	}
 
 	return false;
+}
+
+
+/**
+ * @brief Map::summaryRemove
+ * @param id
+ * @return
+ */
+
+bool Map::summaryRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+	bool ret = m_db->execSimpleQuery("DELETE FROM summary WHERE id=?", l);
+	if (ret) {
+		setMapModified(true);
+	}
+
+	return ret;
 }
 
 
@@ -1254,6 +1293,26 @@ bool Map::chapterSummaryListSet(const int &id, const QVariantList &summaryIdList
 }
 
 
+/**
+ * @brief Map::chapterRemove
+ * @param id
+ * @return
+ */
+
+bool Map::chapterRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+	bool ret = m_db->execSimpleQuery("DELETE FROM chapter WHERE id=?", l);
+	if (ret) {
+		emit chapterListUpdated(-1, -1);
+		setMapModified(true);
+	}
+
+	return ret;
+}
+
+
 
 
 
@@ -1407,6 +1466,26 @@ bool Map::introUpdate(const int &id, const QVariantMap &params, const int &paren
 	}
 
 	return false;
+}
+
+
+/**
+ * @brief Map::introRemove
+ * @param id
+ * @return
+ */
+
+bool Map::introRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+	bool ret = m_db->execSimpleQuery("DELETE FROM intro WHERE id=?", l);
+	if (ret) {
+		emit introListUpdated(-1, IntroUndefined);
+		setMapModified(true);
+	}
+
+	return ret;
 }
 
 
@@ -1595,6 +1674,26 @@ bool Map::campaignLockSet(const int &id, const QVariantList &lockIdList)
 	setMapModified(true);
 
 	return (r1 && r2);
+}
+
+
+/**
+ * @brief Map::campaignRemove
+ * @param id
+ * @return
+ */
+
+bool Map::campaignRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+	bool ret = m_db->execSimpleQuery("DELETE FROM campaign WHERE id=?", l);
+	if (ret) {
+		emit campaignListUpdated();
+		setMapModified(true);
+	}
+
+	return ret;
 }
 
 

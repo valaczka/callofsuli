@@ -54,8 +54,10 @@ Page {
 				MenuItem {
 					text: qsTr("Új pálya")
 					onClicked:  {
-						var d = JS.dialogCreate(dlgMapName)
-						d.item.mode = 0
+						var d = JS.dialogCreateQml("TextField", {title: qsTr("Új pálya neve")})
+						d.accepted.connect(function(data) {
+							teacherMaps.send({"class": "teacherMaps", "func": "createMap", "name": data })
+						})
 						d.open()
 					}
 				}
@@ -86,11 +88,6 @@ Page {
 			id: listMaps
 			anchors.fill: parent
 
-			modelTitleSet: true
-			modelSubtitleSet: true
-			modelRightSet: true
-			modelToolTipSet: false
-
 			onClicked: teacherMaps.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
 
 			onLongPressed: {
@@ -109,8 +106,8 @@ Page {
 				} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
 					editServer(listMenu.model.get(listMenu.currentIndex).id)
 				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
-					var d = JS.dialogCreate(dlgDelete)
-					d.open()
+					/*var d = JS.dialogCreate(dlgDelete)
+					d.open()*/
 				}
 			}
 		}
@@ -143,26 +140,7 @@ Page {
 
 
 
-	Component {
-		id: dlgMapName
 
-		QDialogTextField {
-			id: dlgYesNo
-
-			property int mode: 0
-
-			title: switch (mode) {
-				   case 0: qsTr("Új pálya neve"); break
-				   }
-
-			onDlgAccept: {
-				switch (mode) {
-				case 0: teacherMaps.send({"class": "teacherMaps", "func": "createMap", "name": data }); break
-				}
-			}
-
-		}
-	}
 
 
 	function onMapSaved(data, uuid, mapid) {

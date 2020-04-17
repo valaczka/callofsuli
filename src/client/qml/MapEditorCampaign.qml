@@ -26,11 +26,36 @@ QPagePanel {
 		QCollapsible {
 			title: qsTr("Általános")
 
-			QTextField {
-				id: campaignName
-				width: parent.width
+			Column {
+				QTextField {
+					id: campaignName
+					width: parent.width
 
-				onEditingFinished: if (campaignId != -1) map.campaignUpdate(campaignId, { "name": campaignName.text })
+					onEditingFinished: if (campaignId != -1) map.campaignUpdate(campaignId, { "name": campaignName.text })
+				}
+
+				QButton {
+					label: qsTr("Hadjárat törlése")
+
+					icon: "M\ue5cd"
+					bgColor: CosStyle.colorErrorDarker
+					borderColor: CosStyle.colorErrorDark
+
+					onClicked: {
+						var d = JS.dialogCreateQml("YesNo")
+						d.item.title = qsTr("Biztosan törlöd a hadjáratot?")
+						d.item.text = campaignName.text
+						d.accepted.connect(function () {
+							if (map.campaignRemove(campaignId)) {
+								campaignId = -1
+								if (view) {
+									view.model.remove(modelIndex)
+								}
+							}
+						})
+						d.open()
+					}
+				}
 			}
 		}
 
@@ -49,23 +74,18 @@ QPagePanel {
 			}
 		}
 
-		QCollapsible {
-			title: qsTr("Bevezető")
 
-			QButton {
-				id: bIntro
-				property int introId: -1;
 
-				onClicked: if (introId !== -1)
-							   pageEditor.introSelected(modelIndex, introId, campaignId, Map.IntroCampaign)
-						   else  {
-							   var d = JS.dialogCreate(dlgMissionName)
-							   d.item.mode = 1
-							   d.open()
-						   }
+		MapEditorIntroWidget {
+			id: mIntro
 
-			}
+			map: panel.map
+			isOutro: false
+			parentId: campaignId
+			parentType: Map.IntroCampaign
 		}
+
+
 
 		QCollapsible {
 			title: qsTr("Küldetések")
@@ -82,145 +102,48 @@ QPagePanel {
 					if (o.id >= 0)
 						pageEditor.missionSelected(modelIndex, o.id, campaignId)
 					else if (o.id === -1) {
-						var d = JS.dialogCreate(dlgMissionName)
-						d.item.mode = 0
+						var d = JS.dialogCreateQml("TextField")
+						d.item.title = qsTr("Új küldetés neve")
+
+						d.accepted.connect(function(data) {
+							var misId = map.missionAdd({ "name": data })
+							if (misId !== -1) {
+								if (map.campaignMissionAdd(campaignId, misId))
+									pageEditor.missionSelected(modelIndex, misId, campaignId)
+							}
+						})
 						d.open()
-					}
-				}
-
-				onLongPressed: {
-					menu.modelIndex = index
-					menu.popup()
-				}
-
-				onRightClicked: {
-					menu.modelIndex = index
-					menu.popup()
-				}
-
-				Keys.onPressed: {
-					if (event.key === Qt.Key_Insert) {
-					} else if (event.key === Qt.Key_F4 && list.currentIndex !== -1) {
-					} else if (event.key === Qt.Key_Delete && list.currentIndex !== -1) {
+					} else if (o.id === -2) {
+						if (o.summaryId !== -1)
+							pageEditor.summarySelected(modelIndex, o.summaryId, campaignId)
+						else  {
+							var sumId = map.campaignSummaryAdd(campaignId)
+							if (sumId !== -1)
+								pageEditor.summarySelected(modelIndex, sumId, campaignId)
+						}
 					}
 				}
 			}
 
-			QMenu {
-				id: menu
-
-				property int modelIndex: -1
-
-
-				MenuItem {
-					text: qsTr("Szerkesztés")
-					//onClicked:
-				}
-
-				MenuItem {
-					text: qsTr("Törlés")
-				}
-
-				MenuSeparator {}
-
-				MenuItem {
-					text: qsTr("Új küldetés")
-				}
-			}
 		}
 
 
-		QCollapsible {
-			title: qsTr("Összegzés")
 
-			QButton {
-				id: bSummary
-				property int summaryId: -1;
+		MapEditorIntroWidget {
+			id: mOutro
 
-				onClicked: if (summaryId !== -1)
-							   pageEditor.summarySelected(modelIndex, summaryId, campaignId)
-						   else  {
-							   var sumId = map.campaignSummaryAdd(campaignId)
-							   if (sumId !== -1)
-								   pageEditor.summarySelected(modelIndex, sumId, campaignId)
-						   }
-
-			}
+			map: panel.map
+			isOutro: true
+			parentId: campaignId
+			parentType: Map.IntroCampaign
 		}
 
-
-		QCollapsible {
-			title: qsTr("Kivezető")
-
-			QButton {
-				id: bOutro
-				property int outroId: -1;
-
-				onClicked: if (outroId !== -1)
-							   pageEditor.introSelected(modelIndex, outroId, campaignId, Map.IntroCampaign)
-						   else  {
-							   var d = JS.dialogCreate(dlgMissionName)
-							   d.item.mode = 2
-							   d.open()
-						   }
-
-			}
-		}
 	}
 
 
 
-	Component {
-		id: dlgMissionName
-
-		QDialogTextField {
-			id: dlgYesNo
-
-			property int mode: 0
-
-			title: switch (mode) {
-				   case 0: qsTr("Új küldetés neve"); break
-				   case 1: qsTr("Új bevezető"); break
-				   case 2: qsTr("Új kivezető"); break
-				   }
-
-			onDlgAccept: {
-				if (mode == 0) {
-					var misId = map.missionAdd({ "name": data })
-					if (misId !== -1) {
-						if (map.campaignMissionAdd(campaignId, misId))
-							pageEditor.missionSelected(modelIndex, misId, campaignId)
-					}
-				} else if (mode == 1 || mode == 2) {
-					var intId = map.introAdd({ "ttext": data })
-					if (intId !== -1) {
-						if (map.campaignIntroAdd(campaignId, intId, (mode === 2)))
-							pageEditor.introSelected(modelIndex, intId, campaignId, Map.IntroCampaign)
-					}
-				}
-			}
-		}
-	}
 
 
-	Component {
-		id: dlgCampaigns
-
-		QDialogList {
-			id: dlgList
-			title: qsTr("Hadjáratok")
-			newField.visible: false
-			list.selectorSet: true
-			list.modelTitleRole: "name"
-			list.modelSelectedRole: "selected"
-
-			onDlgAccept: {
-				var camps = JS.getSelectedIndices(dlgList.model, "id")
-				map.campaignLockSet(campaignId, camps)
-				get()
-			}
-		}
-	}
 
 
 	Connections {
@@ -234,8 +157,8 @@ QPagePanel {
 	Connections {
 		target: map
 		onCampaignUpdated: if (id===campaignId) get()
-		onMissionListUpdated: if (id===campaignId) get()
-		onIntroListUpdated: if (type===Map.IntroCampaign && parentId===campaignId) get()
+		onMissionListUpdated: if (id===campaignId || id===-1) get()
+		onIntroListUpdated: if ((type===Map.IntroCampaign && parentId===campaignId) || parentId === -1) get()
 	}
 
 	Component.onCompleted: get()
@@ -257,48 +180,37 @@ QPagePanel {
 
 		locks.tags = p.locks
 
-		if (p.introId !== -1) {
-			bIntro.introId = p.introId
-			bIntro.label = p.introText
-		} else {
-			bIntro.introId = -1
-			bIntro.label = qsTr("-- Intro hozzáadása --")
-		}
-
-
-		if (p.outroId !== -1) {
-			bOutro.outroId = p.outroId
-			bOutro.label = p.outroText
-		} else {
-			bOutro.outroId = -1
-			bOutro.label = qsTr("-- Outro hozzáadása --")
-		}
-
+		mIntro.introId = p.introId
+		mOutro.introId = p.outroId
 
 		var l = map.missionListGet(campaignId)
 
 		l.push({
 				   id: -1,
 				   name: qsTr("-- küldetés hozzáadása --"),
-				   num: model.length+1,
+				   num: model.length+1
 			   })
 
+		l.push({
+				   id: -2,
+				   name: p.summaryId === -1 ? qsTr("-- összegzés hozzáadása --") : qsTr("ÖSSZEGZÉS"),
+				   num: model.length+2,
+				   summaryId: p.summaryId
+			   })
+
+
 		list.model = l
-
-
-		if (p.summaryId !== -1) {
-			bSummary.summaryId = p.summaryId
-			bSummary.label = qsTr("Összegzés")
-		} else {
-			bSummary.summaryId = -1
-			bSummary.label = qsTr("-- Összegzés hozzáadása --")
-		}
-
 	}
 
 
 	function loadDialogCampaigns() {
-		var d = JS.dialogCreate(dlgCampaigns)
+		var d = JS.dialogCreateQml("List")
+		d.item.title = qsTr("Hadjáratok")
+		d.item.newField.visible = false
+		d.item.list.selectorSet = true
+		d.item.list.modelTitleRole = "name"
+		d.item.list.modelSelectedRole = "selected"
+
 		var ml = map.execSelectQuery("SELECT campaign.id as id, campaign.name as name,
 										CASE WHEN lockId IS NOT NULL THEN true ELSE false END as selected
 										FROM campaign
@@ -306,6 +218,12 @@ QPagePanel {
 										WHERE campaign.id<>?
 										ORDER BY selected DESC, campaign.name ", [campaignId, campaignId])
 		JS.setModel(d.item.model, ml)
+
+		d.accepted.connect(function() {
+			var camps = JS.getSelectedIndices(d.item.model, "id")
+			map.campaignLockSet(campaignId, camps)
+			get()
+		})
 		d.open()
 	}
 }
