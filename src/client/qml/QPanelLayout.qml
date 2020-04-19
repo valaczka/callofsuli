@@ -18,10 +18,11 @@ Item {
 	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
 
 	readonly property bool noDrawer: width > requiredWidthToDrawer || leftPanel === null
+	property bool swipeMode: control.width-(leftItem.visible ? leftItem.width : 0) < requiredPanelWidth*panels.length
 
 	property alias drawer: drawer
-	property alias panel: panel
-	property alias model: panel.model
+
+	property var panels: []
 
 	default property Component leftPanel: null
 
@@ -66,63 +67,168 @@ Item {
 		}
 	}
 
-	ListView {
-		id: panel
-		x: leftItem.visible ? leftItem.width : 0
-		height: parent.height
-		width: leftItem.visible ? control.width-leftItem.width : control.width
 
-		clip: true
+	RowLayout {
+		id: mainRow
+		anchors.top: parent.top
+		anchors.left: leftItem.visible ? leftItem.right : parent.left
+		anchors.bottom: parent.bottom
+		anchors.right: parent.right
 
-		orientation: Qt.Horizontal
-		snapMode: ListView.SnapToItem
-		boundsBehavior: Flickable.StopAtBounds
+		visible: !swipeMode
 
-		model: ListModel { }
-
-		delegate: Component {
-			Loader {
-				height: panel.height
-				width: Math.max(panel.width/(Math.floor(panel.width/requiredPanelWidth)), Math.floor(panel.width/panel.model.count))
-				id: ldr
-
-				property int modelIndex: index
-				property ListView view: panel
-
-				Component.onCompleted: ldr.setSource(model.url, model.params)
+		Repeater {
+			id: mainRepeater
+			model: ListModel {
+				onCountChanged: {
+					if (count == 0) {
+						console.debug("reseted")
+						panelResetAfterRemove()
+					}
+				}
 			}
 
+			Loader {
+				height: parent.height
+				Layout.fillWidth: fillWidth
+				Layout.fillHeight: true
+				id: ldr
+
+				opacity: 0.0
+
+				Component.onCompleted: ldr.setSource(url, params)
+
+				ParallelAnimation {
+					id: animShow
+					running: false
+
+					NumberAnimation {
+						target: ldr
+						property: "scale"
+						from: 0.75
+						to: 1.0
+						duration: 175
+						easing.type: Easing.InOutQuad
+					}
+
+					NumberAnimation {
+						target: ldr
+						property: "opacity"
+						to: 1.0
+						duration: 75
+						easing.type: Easing.InOutQuad
+					}
+				}
+
+
+				ParallelAnimation {
+					id: animHide
+					running: false
+
+					NumberAnimation {
+						target: ldr
+						property: "scale"
+						to: 0.5
+						duration: 125
+						easing.type: Easing.InOutQuad
+					}
+
+					NumberAnimation {
+						target: ldr
+						property: "opacity"
+						to: 0.0
+						duration: 125
+						easing.type: Easing.InOutQuad
+					}
+
+					onFinished: {
+						mainRepeater.model.remove(index)
+					}
+				}
+
+				onLoaded: animShow.start()
+
+				function hide() {
+					animHide.start()
+				}
+			}
 		}
-
-
 	}
 
-	onNoDrawerChanged: reset()
+
+	SwipeView {
+		id: mainSwipe
+
+		anchors.top: parent.top
+		anchors.left: leftItem.visible ? leftItem.right : parent.left
+		anchors.bottom: parent.bottom
+		anchors.right: parent.right
+		visible: swipeMode
+	}
+
+	PageIndicator {
+		id: indicator
+
+		visible: mainSwipe.visible
+
+		count: mainSwipe.count
+		currentIndex: mainSwipe.currentIndex
+
+		anchors.bottom: mainSwipe.bottom
+		anchors.bottomMargin: 10
+		anchors.horizontalCenter: parent.horizontalCenter
+	}
 
 
-	function reset() {
+
+	onNoDrawerChanged: drawerReset()
+	onPanelsChanged: panelReset()
+	onSwipeModeChanged: panelReset()
+
+
+	function drawerReset() {
 		if (noDrawer)
 			drawer.close()
-		else if (panel.model.count === 0)
+		else if (panels.length === 0)
 			drawer.open()
 	}
 
 
-	function loadPage(modelIndex, id, page, _params) {
-		if (model.count > modelIndex+1) {
-			if (model.get(modelIndex+1).url === page) {
-				if (model.count > modelIndex+2) {
-					model.remove(modelIndex+2, model.count-(modelIndex+2))
-				}
-				return;
-			}
 
-			model.remove(modelIndex+1, model.count-(modelIndex+1))
+	function panelReset() {
+		for (var i=mainSwipe.count-1; i>=0; --i) {
+			var p = mainSwipe.itemAt(i)
+			mainSwipe.removeItem(p)
 		}
 
-		model.append( { url: page, params: _params } )
-		panel.positionViewAtEnd();
+		if (mainRepeater.model.count) {
+			for (i=mainRepeater.model.count-1; i>=0; --i) {
+				var o = mainRepeater.itemAt(i)
+				o.hide()
+			}
+
+			return
+		}
+
+		panelResetAfterRemove()
 	}
+
+
+	function panelResetAfterRemove() {
+		for (var i=0; i<panels.length; ++i) {
+			var panel = panels[i]
+			if (swipeMode) {
+				var pp = JS.createObject(panel.url, mainSwipe, panel.params)
+				if (pp) {
+					mainSwipe.addItem(pp)
+					mainSwipe.setCurrentIndex(mainSwipe.count-1)
+				}
+			} else {
+				mainRepeater.model.append(panel)
+			}
+		}
+	}
+
 
 
 	function drawerToggle() {
@@ -135,8 +241,8 @@ Item {
 
 
 	function layoutBack() {
-		if (!panel.atXBeginning) {
-			panel.positionViewAtBeginning()
+		if (swipeMode && mainSwipe.currentIndex > 0) {
+			mainSwipe.decrementCurrentIndex()
 			return true
 		}
 

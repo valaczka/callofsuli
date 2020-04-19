@@ -16,6 +16,7 @@ QListView {
 	property string modelToolTipRole: ""
 	property string modelSeparatorRole: ""
 	property string modelSelectedRole: "selected"
+	property string modelDepthRole: ""
 
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
@@ -26,7 +27,8 @@ QListView {
 
 	property Component leftComponent: null
 
-	property int delegateHeight: 48
+	property int delegateHeight: CosStyle.baseHeight
+	property int depthWidth: CosStyle.baseHeight
 
 	signal clicked(int index)
 	signal rightClicked(int index)
@@ -37,9 +39,14 @@ QListView {
 	delegate: Rectangle {
 		id: item
 		height: isSeparator ? view.delegateHeight/2 : view.delegateHeight
-		width: view.width
+		width: view.width - x
+		x: depth*view.depthWidth
 
 		property bool enabled: true
+
+		property int depth: modelDepthRole.length ? (
+														isObjectModel ? model[modelDepthRole] : model.modelData[modelDepthRole]
+														) : 0
 
 		property string labelTitle: modelTitleRole.length ? (
 																isObjectModel ? model[modelTitleRole] : model.modelData[modelTitleRole]

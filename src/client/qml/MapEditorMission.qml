@@ -16,16 +16,25 @@ QPagePanel {
 
 	title: isSummary ? qsTr("Összegző küldetés") : qsTr("Küldetés")
 
-	rightLoader.sourceComponent: QCloseButton {
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
+	Label {
+		id: noLabel
+		opacity: missionId == -1
+		visible: opacity != 0
+
+		text: qsTr("Válassz küldetést")
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
+
 
 	QAccordion {
 		id: accordion
 
 		anchors.fill: parent
+		opacity: missionId != -1
+		visible: opacity != 0
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 
 
 		QCollapsible {
@@ -62,9 +71,6 @@ QPagePanel {
 						d.accepted.connect(function () {
 							if ((isSummary && map.summaryRemove(missionId)) || (!isSummary && map.missionRemove(missionId))) {
 								missionId = -1
-								if (view) {
-									view.model.remove(modelIndex)
-								}
 							}
 						})
 
@@ -311,7 +317,7 @@ QPagePanel {
 
 					modelTitleRole: "name"
 
-					onClicked: pageEditor.chapterSelected(modelIndex, listChapters.model[index].id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
+					onClicked: pageEditor.chapterSelected(listChapters.model[index].id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
 
 				}
 			}

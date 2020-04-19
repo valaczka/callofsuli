@@ -51,12 +51,15 @@ public:
 	enum IntroType { IntroUndefined, IntroCampaign, IntroMission, IntroSummary, IntroChapter };
 	Q_ENUM(IntroType)
 
+
 	Q_PROPERTY(QString mapUuid READ mapUuid WRITE setMapUuid NOTIFY mapUuidChanged)
 	Q_PROPERTY(QString mapTimeCreated READ mapTimeCreated WRITE setMapTimeCreated NOTIFY mapTimeCreatedChanged)
 	Q_PROPERTY(QString mapOriginalFile READ mapOriginalFile WRITE setMapOriginalFile NOTIFY mapOriginalFileChanged)
 	Q_PROPERTY(MapType mapType READ mapType WRITE setMapType NOTIFY mapTypeChanged)
 	Q_PROPERTY(bool mapModified READ mapModified WRITE setMapModified NOTIFY mapModifiedChanged)
 
+	Q_PROPERTY(QVariantList storageModules READ storageModules)
+	Q_PROPERTY(QVariantList objectiveModules READ objectiveModules)
 
 	Map(QObject *parent = nullptr);
 	virtual ~Map() override;
@@ -67,6 +70,8 @@ public:
 	QString mapOriginalFile() const { return m_mapOriginalFile; }
 	MapType mapType() const { return m_mapType; }
 	bool mapModified() const { return m_mapModified; }
+	QVariantList storageModules() const { return m_storageModules; }
+	QVariantList objectiveModules() const { return m_objectiveModules; }
 
 public slots:
 	void save(const int &mapId = -1, const bool &binaryFormat = true);
@@ -81,6 +86,9 @@ public slots:
 	void updateMapServerId(const int &serverId, const int &mapId);
 	bool databaseCheck();
 	bool databasePrepare();
+	QVariantMap storageModule(const QString &type);
+	QVariantList storageObjectiveModules(const QString &type);
+	QVariantMap objectiveModule(const QString &type);
 
 	void setMapType(MapType mapType);
 	void setMapUuid(QString mapUuid);
@@ -140,6 +148,16 @@ public slots:
 	bool introUpdate(const int &id, const QVariantMap &params, const int &parentId = -1, const IntroType &type = IntroUndefined);
 	bool introRemove(const int &id);
 
+	QVariantMap storageGet(const int &id);
+	QVariantList storageListGet(const int &chapterId = -1);
+	QVariantMap storageObjectiveGet(const int &id);
+	QVariantList storageObjectiveListGet(const int &chapterId = -1);
+	int storageAdd(const QVariantMap &params);
+
+	QVariantMap objectiveGet(const int &id);
+	QVariantList objectiveListGet(const int &storageId = -1);
+	int objectiveAdd(const QVariantMap &params);
+
 signals:
 	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);
 	void mapLoaded();
@@ -163,10 +181,16 @@ signals:
 	void chapterUpdated(const int &id);
 	void introListUpdated(const int &parentId, const IntroType &type);
 	void introUpdated(const int &id);
+	void storageListUpdated();
+	void storageUpdated(const int &id);
+	void objectiveListUpdated();
+	void objectiveUpdated(const int &id);
 
 private:
 	QJsonArray tableToJson(const QString &table, const bool &convertData = false);
 	bool JsonToTable(const QJsonArray &array, const QString &table, const bool &convertData = false);
+	void setStorageModules();
+	void setObjectiveModules();
 
 	QStringList m_tableNames;
 	QString m_mapUuid;
@@ -174,6 +198,8 @@ private:
 	QString m_mapOriginalFile;
 	MapType m_mapType;
 	bool m_mapModified;
+	QVariantList m_storageModules;
+	QVariantList m_objectiveModules;
 };
 
 #endif // MAP_H

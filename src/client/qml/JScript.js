@@ -25,6 +25,29 @@ function setColorAlpha(color, alpha) {
 }
 
 
+
+function createObject(_url, _parent, _prop) {
+	var comp = Qt.createComponent(_url, _parent)
+
+	if (comp.status === Component.Ready) {
+		var obj = comp.createObject(_parent, _prop)
+		if (obj === null) {
+			console.error("Error creating object")
+			return null
+		}
+
+		return obj
+
+	} else if (comp.status === Component.Error) {
+		console.warn("Error loading component: ", comp.errorString())
+	}
+
+	return null
+}
+
+
+
+
 function createPage(_qml, _prop, _parent) {
 	var comp = Qt.createComponent("Page"+_qml+".qml")
 
@@ -65,27 +88,6 @@ function createPageOnly(_qml, _prop, _parent) {
 }
 
 
-
-function createStackLayout(_parent, _isLayout, _components) {
-	var comp = Qt.createComponent("QStackLayout.qml")
-
-	if (comp.status === Component.Ready) {
-		var obj = comp.createObject(_parent, {
-									isLayout: _isLayout,
-										components: _components
-									})
-
-		if (obj === null) {
-			console.error("Error creating object")
-			return null
-		}
-		return obj
-	} else if (comp.status === Component.Error) {
-		console.warn("Error loading component: ", comp.errorString())
-	}
-
-	return null
-}
 
 
 function dialogMessageInfo(title, text, details) {

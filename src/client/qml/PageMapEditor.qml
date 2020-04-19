@@ -16,12 +16,13 @@ Page {
 	property alias map: map
 	property bool mapBinaryFormat: true
 	property bool isPageBusy: false
+	property bool _isFirstRun: true
 
-	signal campaignSelected(int modelIndex, int id)
-	signal missionSelected(int modelIndex, int id, int parentCampaignId)
-	signal summarySelected(int modelIndex, int id, int parentCampaignId)
-	signal chapterSelected(int modelIndex, int id, int parentMissionId, int parentSummaryId)
-	signal introSelected(int modelIndex, int id, int parentId, int parentType)
+	signal campaignSelected(int id)
+	signal missionSelected(int id, int parentCampaignId)
+	signal summarySelected(int id, int parentCampaignId)
+	signal chapterSelected(int id, int parentMId, int parentSId)
+	signal introSelected(int id, int parentId, int parentType)
 
 	Map {
 		id: map
@@ -92,7 +93,7 @@ Page {
 		}
 	}
 
-	Image {
+	background: Image {
 		id: bgImage
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectCrop
@@ -123,8 +124,11 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		panelLayout.reset()
-		loadCampaigns()
+		if (_isFirstRun) {
+			panelLayout.drawerReset()
+			loadCampaigns()
+			_isFirstRun = false
+		}
 	}
 
 	StackView.onDeactivated: {
@@ -134,66 +138,55 @@ Page {
 
 	function loadSettings() {
 		toolbar.title = qsTr("Beállítások")
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "MapEditorSettings.qml", params: { map: map } }
-					)
+		panelLayout.panels = [
+					{ url: "MapEditorSettings.qml", params: { map: map }, fillWidth: true }
+				]
 	}
 
 
 	function loadCampaigns() {
 		toolbar.title = qsTr("Hadjáratok")
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "MapEditorCampaignList.qml", params: { map: map } }
-					)
+		panelLayout.panels = [
+					{ url: "MapEditorCampaignList.qml", params: { map: map }, fillWidth: false },
+					{ url: "MapEditorCampaign.qml", params: { map: map }, fillWidth: true },
+					{ url: "MapEditorMission.qml", params: { map: map }, fillWidth: true }
+				]
 	}
 
 	function loadMissions() {
 		toolbar.title = qsTr("Küldetések")
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "MapEditorMissionList.qml", params: { map: map } }
-					)
+		panelLayout.panels = [
+					{ url: "MapEditorMissionList.qml", params: { map: map }, fillWidth: false },
+					{ url: "MapEditorMission.qml", params: { map: map }, fillWidth: true }
+				]
 	}
 
 	function loadChapters() {
 		toolbar.title = qsTr("Célpontok")
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "MapEditorChapterList.qml", params: { map: map } }
-					)
+		panelLayout.panels = [
+					{ url: "MapEditorChapterList.qml", params: { map: map }, fillWidth: true }
+				]
 	}
 
 	function loadIntros() {
 		toolbar.title = qsTr("Introk/Outrok")
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "MapEditorIntroList.qml", params: { map: map } }
-					)
+		panelLayout.panels = [
+					{ url: "MapEditorIntroList.qml", params: { map: map }, fillWidth: false },
+					{ url: "MapEditorIntro.qml", params: { map: map }, fillWidth: true }
+				]
+
 	}
 
 
+	onChapterSelected: {
+		var o = JS.createPage("MapChapterEditor", {
+								  map: map,
+								  chapterId: id,
+								  parentMissionId: parentMId,
+								  parentSummaryId: parentSId
+							  }, pageEditor)
+	}
 
-	onCampaignSelected: panelLayout.loadPage(modelIndex, id,
-											 "MapEditorCampaign.qml",
-											 { map: map, campaignId: id })
-
-	onMissionSelected: panelLayout.loadPage(modelIndex, id,
-											"MapEditorMission.qml",
-											{ map: map, missionId: id, isSummary: false, parentCampaignId: parentCampaignId })
-
-	onSummarySelected: panelLayout.loadPage(modelIndex, id,
-											"MapEditorMission.qml",
-											{ map: map, missionId: id, isSummary: true, parentCampaignId: parentCampaignId })
-
-	onChapterSelected: panelLayout.loadPage(modelIndex, id,
-											"MapEditorChapter.qml",
-											{ map: map, chapterId: id, parentMissionId: parentMissionId, parentSummaryId: parentSummaryId })
-
-	onIntroSelected: panelLayout.loadPage(modelIndex, id,
-										  "MapEditorIntro.qml",
-										  { map: map, introId: id, parentId: parentId, parentType: parentType })
 
 	function closeDrawer() {
 		panelLayout.drawer.close()

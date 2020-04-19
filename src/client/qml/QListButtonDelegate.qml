@@ -8,7 +8,7 @@ QListView {
 
 	property bool labelVisible: true
 	property bool buttonAnimationEnabled: true
-	property int delegateHeight: 48
+	property int delegateHeight: CosStyle.baseHeight
 
 	signal clicked(int index)
 	signal rightClicked(int index)

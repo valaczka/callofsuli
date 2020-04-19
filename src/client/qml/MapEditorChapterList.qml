@@ -12,12 +12,7 @@ QPagePanel {
 
 	title: qsTr("Célpontok")
 
-	rightLoader.sourceComponent: QCloseButton {
-		visible: modelIndex > 0
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
-	}
+
 
 
 	QListItemDelegate {
@@ -27,7 +22,7 @@ QPagePanel {
 		modelTitleRole: "name"
 
 
-		onClicked: pageEditor.chapterSelected(modelIndex, list.model[index].id, -1, -1)
+		onClicked: pageEditor.chapterSelected(list.model[index].id, -1, -1)
 	}
 
 

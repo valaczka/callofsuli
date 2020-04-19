@@ -17,10 +17,15 @@ QPagePanel {
 
 	title: qsTr("Intro/Outro")
 
-	rightLoader.sourceComponent: QCloseButton {
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
+
+	Label {
+		id: noLabel
+		opacity: introId == -1
+		visible: opacity != 0
+
+		text: qsTr("Válassz introt/outrot")
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
 
 
@@ -28,6 +33,11 @@ QPagePanel {
 		id: accordion
 
 		anchors.fill: parent
+
+		opacity: introId != -1
+		visible: opacity != 0
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 
 		QCollapsible {
 			title: qsTr("Kapcsolatok")
@@ -94,9 +104,6 @@ QPagePanel {
 
 			onIntroRemoved: {
 				panel.introId = -1
-				if (view) {
-					view.model.remove(modelIndex)
-				}
 			}
 		}
 	}

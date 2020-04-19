@@ -13,20 +13,31 @@ QPagePanel {
 
 	title: qsTr("Hadjárat küldetései")
 
-	rightLoader.sourceComponent: QCloseButton {
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
-	}
 
+	Label {
+		id: noLabel
+		opacity: campaignId == -1
+		visible: opacity != 0
+
+		text: qsTr("Válassz hadjáratot")
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
+	}
 
 	QAccordion {
 		anchors.fill: parent
+
+		opacity: campaignId != -1
+		visible: opacity != 0
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 
 		QCollapsible {
 			title: qsTr("Általános")
 
 			Column {
+				width: parent.width
+
 				QTextField {
 					id: campaignName
 					width: parent.width
@@ -48,9 +59,6 @@ QPagePanel {
 						d.accepted.connect(function () {
 							if (map.campaignRemove(campaignId)) {
 								campaignId = -1
-								if (view) {
-									view.model.remove(modelIndex)
-								}
 							}
 						})
 						d.open()
@@ -100,7 +108,7 @@ QPagePanel {
 				onClicked: {
 					var o = list.model[index]
 					if (o.id >= 0)
-						pageEditor.missionSelected(modelIndex, o.id, campaignId)
+						pageEditor.missionSelected(o.id, campaignId)
 					else if (o.id === -1) {
 						var d = JS.dialogCreateQml("TextField")
 						d.item.title = qsTr("Új küldetés neve")
@@ -108,18 +116,32 @@ QPagePanel {
 						d.accepted.connect(function(data) {
 							var misId = map.missionAdd({ "name": data })
 							if (misId !== -1) {
+								map.missionLevelAdd({
+														missionid: misId,
+														level: 1,
+														sec: 600,
+														hp: 5,
+														mode: 0
+													})
 								if (map.campaignMissionAdd(campaignId, misId))
-									pageEditor.missionSelected(modelIndex, misId, campaignId)
+									pageEditor.missionSelected(misId, campaignId)
 							}
 						})
 						d.open()
 					} else if (o.id === -2) {
 						if (o.summaryId !== -1)
-							pageEditor.summarySelected(modelIndex, o.summaryId, campaignId)
+							pageEditor.summarySelected(o.summaryId, campaignId)
 						else  {
 							var sumId = map.campaignSummaryAdd(campaignId)
-							if (sumId !== -1)
-								pageEditor.summarySelected(modelIndex, sumId, campaignId)
+							if (sumId !== -1) {
+								map.summaryLevelAdd({
+														summaryid: sumId,
+														level: 1,
+														sec: 600,
+														hp: 5,
+													})
+								pageEditor.summarySelected(sumId, campaignId)
+							}
 						}
 					}
 				}
@@ -188,13 +210,13 @@ QPagePanel {
 		l.push({
 				   id: -1,
 				   name: qsTr("-- küldetés hozzáadása --"),
-				   num: model.length+1
+				   num: list.model.length+1
 			   })
 
 		l.push({
 				   id: -2,
 				   name: p.summaryId === -1 ? qsTr("-- összegzés hozzáadása --") : qsTr("ÖSSZEGZÉS"),
-				   num: model.length+2,
+				   num: list.model.length+2,
 				   summaryId: p.summaryId
 			   })
 

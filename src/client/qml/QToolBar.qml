@@ -14,7 +14,9 @@ ToolBar {
 	property alias rightLoader: rightLoader
 	property alias menuLoader: menuLoader
 
-	Material.primary: CosStyle.colorPrimaryDark
+	//height: CosStyle.baseHeight
+
+	Material.primary: "transparent" //CosStyle.colorPrimaryDark
 
 	onBackButtonIconChanged: JS.setIconFont(backButton, backButtonIcon)
 

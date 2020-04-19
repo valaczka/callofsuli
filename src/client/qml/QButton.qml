@@ -10,7 +10,7 @@ Item {
 	id: item
 
 	implicitHeight: Math.max(rowMain.height+10+bgRectData.anchors.bottomMargin,
-							 48)
+							 CosStyle.baseHeight)
 
 	implicitWidth: Math.max(bgRectData.anchors.rightMargin +
 							(vertical ?
@@ -20,7 +20,7 @@ Item {
 									   mainIcon.width+rowMain.spacing :
 									   0))
 							 ),
-							48)
+							CosStyle.baseHeight)
 
 
 	width: implicitWidth

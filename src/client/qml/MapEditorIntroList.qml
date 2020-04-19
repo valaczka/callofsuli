@@ -12,12 +12,7 @@ QPagePanel {
 
 	title: qsTr("Bevezetők")
 
-	rightLoader.sourceComponent: QCloseButton {
-		visible: modelIndex > 0
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
-	}
+
 
 	QListItemDelegate {
 		id: list
@@ -25,7 +20,7 @@ QPagePanel {
 
 		modelTitleRole: "ttext"
 
-		onClicked: pageEditor.introSelected(modelIndex, list.model[index].id, -1, Map.IntroUndefined)
+		onClicked: pageEditor.introSelected(list.model[index].id, -1, Map.IntroUndefined)
 
 	}
 

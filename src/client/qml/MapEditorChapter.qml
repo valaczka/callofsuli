@@ -10,19 +10,26 @@ QPagePanel {
 
 	property Map map: null
 	property int chapterId: -1
-	property int parentMissionId: -1
-	property int parentSummaryId: -1
 
 	title: qsTr("Célpont")
 
-	rightLoader.sourceComponent: QCloseButton {
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
+	Label {
+		id: noLabel
+		opacity: chapterId == -1
+		visible: opacity != 0
+
+		text: qsTr("Válassz célpontot")
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
+
 
 	QAccordion {
 		anchors.fill: parent
+		opacity: chapterId != -1
+		visible: opacity != 0
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 
 		QCollapsible {
 			title: qsTr("Általános")
@@ -33,8 +40,6 @@ QPagePanel {
 				QTextField {
 					id: chapterName
 					width: parent.width
-
-					onEditingFinished: if (chapterId != -1) map.chapterUpdate(chapterId, { "name": chapterName.text }, parentMissionId, parentSummaryId)
 				}
 
 				QButton {
@@ -44,20 +49,7 @@ QPagePanel {
 					bgColor: CosStyle.colorErrorDarker
 					borderColor: CosStyle.colorErrorDark
 
-					onClicked: {
-						var d = JS.dialogCreateQml("YesNo")
-						d.item.title = qsTr("Biztosan törlöd a célpontot?")
-						d.item.text = chapterName.text
-						d.accepted.connect(function () {
-							if (map.chapterRemove(chapterId)) {
-								chapterId = -1
-								if (view) {
-									view.model.remove(modelIndex)
-								}
-							}
-						})
-						d.open()
-					}
+					onClicked: pageChapterEditor.deleteChapter(chapterName.text)
 
 				}
 			}
@@ -103,27 +95,31 @@ QPagePanel {
 
 
 		QCollapsible {
-			title: qsTr("Fegyverek")
+			title: qsTr("Lőszerek és fegyverek")
 
 			QListItemDelegate {
 				id: list
 				width: parent.width
 
-				modelTitleRole: "name"
+				isObjectModel: true
 
+				modelTitleRole: "name"
+				modelDepthRole: "depth"
+
+				onClicked: {
+					var o = list.model.get(index)
+					if (o.sid >= 0 && o.oid === -1)
+						pageChapterEditor.storageSelected(o.sid)
+					else if (o.sid === -1 && o.oid >= 0) {
+						pageChapterEditor.objectiveSelected(o.oid)
+					} else if (o.sid >= 0 && o.oid === -2) {
+						loadDialogObjectives(o.sid, o.module)
+					} else if (o.sid === -2) {
+						loadDialogStorages()
+					}
+				}
 			}
 
-		}
-	}
-
-
-
-
-
-	Connections {
-		target: pageEditor
-		onChapterSelected: {
-			chapterId = id
 		}
 	}
 
@@ -140,22 +136,75 @@ QPagePanel {
 
 	function get() {
 		if (chapterId == -1 || map == null) {
-			list.model = []
+			list.model.clear()
 			chapterName.text = ""
 			return
 		}
 
-		list.model = []
+		list.model.clear()
 
 		var p = map.chapterGet(chapterId)
 		chapterName.text = p["name"]
-
 
 		chapterMissions.tags = p.missions
 		chapterCampaigns.tags = p.campaigns
 
 		mIntro.introId = p.introId
 
+		for (var i=0; i<p.storages.length; ++i) {
+			var s = p.storages[i]
+
+			var t = map.storageModule(s.module)
+
+			list.model.append({sid: s.id, oid: -1, name: (t ? t.label : qsTr("???")), module: s.module, depth: 0})
+
+			for (var j=0; j<s.objectives.length; ++j) {
+				var o = s.objectives[j]
+				var tt = map.objectiveModule(o.module)
+				list.model.append({sid: -1, oid: o.id, name: (tt ? tt.label : qsTr("???")), module: o.module, depth: 1})
+			}
+
+			list.model.append({sid: s.id, oid: -2, name: qsTr("-- fegyver hozzáadása --"), module: s.module, depth: 1})
+		}
+
+		list.model.append({sid: -2, oid: -1, name: qsTr("-- lőszer hozzáadása --"), module: "", depth: 0})
+	}
+
+
+
+	function loadDialogStorages() {
+		var d = JS.dialogCreateQml("List")
+		d.item.title = qsTr("Lőszerek")
+		d.item.newField.visible = false
+		d.item.simpleSelect = true
+		d.item.list.modelTitleRole = "label"
+
+		d.item.model = map.storageModules
+
+		d.accepted.connect(function(idx) {
+			var s = map.storageModules[idx]
+			map.storageAdd({chapterid: chapterId, module: s.type, data: "{}"})
+			get()
+		})
+		d.open()
+	}
+
+
+	function loadDialogObjectives(sId, sType) {
+		var d = JS.dialogCreateQml("List")
+		d.item.title = qsTr("Fegyverek")
+		d.item.newField.visible = false
+		d.item.simpleSelect = true
+		d.item.list.modelTitleRole = "label"
+
+		d.item.model = map.storageObjectiveModules(sType)
+
+		d.accepted.connect(function(idx) {
+			var s = map.objectiveModule(d.item.model[idx].type)
+			map.objectiveAdd({storageid: sId, module: s.type, data: "{}" })
+			get()
+		})
+		d.open()
 	}
 
 

@@ -15,9 +15,10 @@ Item {
 	property alias newField: tfInput
 	property alias list: list
 	property alias model: list.model
+	property bool simpleSelect: !list.selectorSet
 
 	signal dlgClose()
-	signal dlgAccept()
+	signal dlgAccept(var data)
 
 	Item {
 		id: dlgItem
@@ -89,6 +90,10 @@ Item {
 				anchors.margins: 30
 				anchors.topMargin: 0
 				anchors.bottomMargin: mainRow.padding
+
+				onClicked: if (simpleSelect) {
+							   dlgAccept(index)
+						   }
 			}
 
 		}
@@ -116,13 +121,15 @@ Item {
 
 				anchors.verticalCenter: parent.verticalCenter
 
+				visible: !simpleSelect
+
 				label: qsTr("OK")
 				icon: "M\ue5ca"
 
 				bgColor: CosStyle.colorOKDarker
 				borderColor: CosStyle.colorOKDark
 
-				onClicked: dlgAccept()
+				onClicked: dlgAccept(list.currentIndex)
 			}
 		}
 

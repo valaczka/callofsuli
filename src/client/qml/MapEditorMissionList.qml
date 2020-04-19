@@ -12,12 +12,7 @@ QPagePanel {
 
 	title: qsTr("Küldetések")
 
-	rightLoader.sourceComponent: QCloseButton {
-		visible: modelIndex > 0
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
-	}
+
 
 
 	QListItemDelegate {
@@ -26,7 +21,7 @@ QPagePanel {
 
 		modelTitleRole: "name"
 
-		onClicked: pageEditor.missionSelected(modelIndex, list.model[index].id, -1)
+		onClicked: pageEditor.missionSelected(list.model[index].id, -1)
 	}
 
 

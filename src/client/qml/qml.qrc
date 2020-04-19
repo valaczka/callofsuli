@@ -66,5 +66,7 @@
         <file>QTag.qml</file>
         <file>QDialogList.qml</file>
         <file>MapEditorIntroWidget.qml</file>
+        <file>PageMapChapterEditor.qml</file>
+        <file>MapEditorObjective.qml</file>
     </qresource>
 </RCC>

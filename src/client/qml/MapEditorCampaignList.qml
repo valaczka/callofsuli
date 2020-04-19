@@ -10,15 +10,8 @@ QPagePanel {
 
 	property Map map: null
 
-
 	title: qsTr("Hadjáratok")
 
-	rightLoader.sourceComponent: QCloseButton {
-		visible: modelIndex > 0
-		onClicked: if (view) {
-					   view.model.remove(modelIndex)
-				   }
-	}
 
 	QPageHeader {
 		id: header
@@ -52,10 +45,7 @@ QPagePanel {
 
 		modelTitleRole: "name"
 
-		//			modelTitleSet: true
-		//			modelSubtitleSet: true
-
-		onClicked: pageEditor.campaignSelected(modelIndex, list.model[index].id)
+		onClicked: pageEditor.campaignSelected(list.model[index].id)
 	}
 
 

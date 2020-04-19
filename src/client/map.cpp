@@ -59,6 +59,10 @@ Map::Map(QObject *parent)
 
 	m_mapType = MapInvalid;
 	m_mapModified = false;
+
+	setStorageModules();
+	setObjectiveModules();
+
 }
 
 
@@ -74,6 +78,66 @@ Map::~Map()
 	if (QFile::exists(m_databaseFile)) {
 		qDebug() << tr("Remove temporary map file ")+m_databaseFile << QFile::remove(m_databaseFile);
 	}
+}
+
+
+
+/**
+ * @brief Map::storageModule
+ * @param type
+ * @return
+ */
+
+
+QVariantMap Map::storageModule(const QString &type)
+{
+	foreach (QVariant v, m_storageModules) {
+		QVariantMap m = v.toMap();
+		if (m.value("type", "").toString() == type)
+			return m;
+	}
+
+	return QVariantMap();
+}
+
+
+/**
+ * @brief Map::storageObjectiveModules
+ * @param type
+ * @return
+ */
+
+QVariantList Map::storageObjectiveModules(const QString &type)
+{
+	QVariantList ret;
+
+	foreach (QVariant v, m_objectiveModules) {
+		QVariantMap m = v.toMap();
+		QStringList l = m.value("storages").toStringList();
+
+		if (l.contains(type))
+			ret << m;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Map::objectiveModule
+ * @param type
+ * @return
+ */
+
+QVariantMap Map::objectiveModule(const QString &type)
+{
+	foreach (QVariant v, m_objectiveModules) {
+		QVariantMap m = v.toMap();
+		if (m.value("type", "").toString() == type)
+			return m;
+	}
+
+	return QVariantMap();
 }
 
 
@@ -1072,37 +1136,7 @@ QVariantMap Map::chapterGet(const int &id)
 	map["campaigns"] = campaigns;
 
 
-
-	QVariantList storages;
-
-	m_db->execSelectQuery("SELECT id, name, module, data FROM storage WHERE storage.chapterid=? ORDER BY id", l, &storages);
-
-	map["storages"] = storages;
-
-
-	QVariantList storageObjectives;
-
-	foreach (QVariant s, storages) {
-		int sId = s.toMap().value("id", -1).toInt();
-		QVariantList p;
-		p << sId;
-		QVariantList oo;
-		m_db->execSelectQuery("SELECT id, name, module, data FROM objective WHERE objecive.storeageid=? ORDER BY id", p, &oo);
-		QVariantMap r;
-		r["id"] = sId;
-		r["objectives"] = oo;
-		storageObjectives << r;
-	}
-
-	map["storageObjectives"] = storageObjectives;
-
-
-
-	QVariantList objectives;
-
-	m_db->execSelectQuery("SELECT id, name, module, data FROM objective WHERE objective.chapterid=? ORDER BY id", l, &storages);
-
-	map["objectives"] = objectives;
+	map["storages"] = storageObjectiveListGet(id);
 
 	return map;
 }
@@ -1489,6 +1523,173 @@ bool Map::introRemove(const int &id)
 }
 
 
+/**
+ * @brief Map::storageGet
+ * @param id
+ * @return
+ */
+
+
+QVariantMap Map::storageGet(const int &id)
+{
+	QVariantList l;
+	l << id;
+	QVariantMap map;
+
+	m_db->execSelectQueryOneRow("SELECT id, chapterid, module, data FROM storage where id=?", l, &map);
+
+	return map;
+}
+
+
+
+/**
+ * @brief Map::storageListGet
+ * @param chapterId
+ * @return
+ */
+
+QVariantList Map::storageListGet(const int &chapterId)
+{
+	QVariantList list;
+
+	if (chapterId != -1) {
+		QVariantList l;
+		l << chapterId;
+		m_db->execSelectQuery("SELECT id, chapterid, module, data FROM storage WHERE storage.chapterid=? ORDER BY id", l, &list);
+	} else {
+		m_db->execSelectQuery("SELECT id, chapterid, module, data FROM storage ORDER BY id", QVariantList(), &list);
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief Map::storageObjectiveGet
+ * @param id
+ * @return
+ */
+
+QVariantMap Map::storageObjectiveGet(const int &id)
+{
+	QVariantMap m = storageGet(id);
+	QVariantList o = objectiveListGet(id);
+	m["objectives"] = o;
+
+	return m;
+}
+
+
+
+/**
+ * @brief Map::storageObjectiveListGet
+ * @param chapterId
+ * @return
+ */
+
+QVariantList Map::storageObjectiveListGet(const int &chapterId)
+{
+	QVariantList list = storageListGet(chapterId);
+
+	QVariantList ret;
+
+	foreach (QVariant l, list) {
+		QVariantMap m = l.toMap();
+
+		QVariantList o = objectiveListGet(m["id"].toInt());
+
+		m["objectives"] = o;
+
+		ret << m;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Map::storageAdd
+ * @param params
+ * @return
+ */
+
+int Map::storageAdd(const QVariantMap &params)
+{
+	int id = m_db->execInsertQuery("INSERT INTO storage (?k?) values (?)", params);
+	if (id != -1) {
+		emit storageListUpdated();
+		setMapModified(true);
+		return id;
+	}
+
+	return -1;
+}
+
+
+
+/**
+ * @brief Map::objectiveGet
+ * @param id
+ * @return
+ */
+
+
+QVariantMap Map::objectiveGet(const int &id)
+{
+	QVariantList l;
+	l << id;
+	QVariantMap map;
+
+	m_db->execSelectQueryOneRow("SELECT id, storageid, module, data FROM objective where id=?", l, &map);
+
+	return map;
+}
+
+
+
+
+/**
+ * @brief Map::objectiveListGet
+ * @param storageId
+ * @return
+ */
+
+QVariantList Map::objectiveListGet(const int &storageId)
+{
+	QVariantList list;
+
+	if (storageId != -1) {
+		QVariantList l;
+		l << storageId;
+		m_db->execSelectQuery("SELECT id, storageid, module, data FROM objective WHERE storageid=? ORDER BY id", l, &list);
+	} else {
+		m_db->execSelectQuery("SELECT id, storageid, module, data FROM objective ORDER BY id", QVariantList(), &list);
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief Map::objectiveAdd
+ * @param params
+ * @return
+ */
+
+int Map::objectiveAdd(const QVariantMap &params)
+{
+	int id = m_db->execInsertQuery("INSERT INTO objective (?k?) values (?)", params);
+	if (id != -1) {
+		emit objectiveListUpdated();
+		setMapModified(true);
+		return id;
+	}
+
+	return -1;
+}
+
+
 
 
 
@@ -1809,6 +2010,170 @@ bool Map::JsonToTable(const QJsonArray &array, const QString &table, const bool 
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief Map::setStorageModules
+ */
+
+void Map::setStorageModules()
+{
+	{
+		QVariantMap m;
+
+		m["type"] = "questionpair";
+		m["icon"] = "Q";
+		m["label"] = tr("Kérdés-válasz");
+
+		m_storageModules << m;
+	}
+
+	{
+		QVariantMap m;
+
+		m["type"] = "text";
+		m["icon"] = "T";
+		m["label"] = tr("Szöveg");
+
+		m_storageModules << m;
+	}
+
+	{
+		QVariantMap m;
+
+		m["type"] = "order";
+		m["icon"] = "O";
+		m["label"] = tr("Sorrend");
+
+		m_storageModules << m;
+	}
+
+	{
+		QVariantMap m;
+
+		m["type"] = "number";
+		m["icon"] = "N";
+		m["label"] = tr("Számok");
+
+		m_storageModules << m;
+	}
+
+	{
+		QVariantMap m;
+
+		m["type"] = "image";
+		m["icon"] = "I";
+		m["label"] = tr("Kép");
+
+		m_storageModules << m;
+	}
+
+	{
+		QVariantMap m;
+
+		m["type"] = "sound";
+		m["icon"] = "S";
+		m["label"] = tr("Hang");
+
+		m_storageModules << m;
+	}
+
+	{
+		QVariantMap m;
+
+		m["type"] = "video";
+		m["icon"] = "V";
+		m["label"] = tr("Videó");
+
+		m_storageModules << m;
+	}
+}
+
+
+
+/**
+ * @brief Map::setObjectiveModules
+ */
+
+void Map::setObjectiveModules()
+{
+	{
+		QVariantMap o;
+
+		o["type"] = "pair";
+		o["icon"] = "P";
+		o["label"] = tr("Párosítás");
+		o["storages"] = QStringList { "questionpair" };
+
+		m_objectiveModules << o;
+	}
+
+	{
+		QVariantMap o;
+
+		o["type"] = "memory";
+		o["icon"] = "M";
+		o["label"] = tr("Memória");
+		o["storages"] = QStringList { "questionpair" };
+
+		m_objectiveModules << o;
+	}
+
+	{
+		QVariantMap o;
+
+		o["type"] = "simplechoice";
+		o["icon"] = "S";
+		o["label"] = tr("Egyszerű választás");
+		o["storages"] = QStringList { "questionpair", "order", "image", "video", "sound" };
+
+		m_objectiveModules << o;
+	}
+
+	{
+		QVariantMap o;
+
+		o["type"] = "truefalse";
+		o["icon"] = "T";
+		o["label"] = tr("Igaz-hamis");
+		o["storages"] = QStringList { "questionpair", "image", "video", "sound" };
+
+		m_objectiveModules << o;
+	}
+
+	{
+		QVariantMap o;
+
+		o["type"] = "multichoice";
+		o["icon"] = "M";
+		o["label"] = tr("Többszörös választás");
+		o["storages"] = QStringList { "questionpair" };
+
+		m_objectiveModules << o;
+	}
+
+	{
+		QVariantMap o;
+
+		o["type"] = "ordering";
+		o["icon"] = "O";
+		o["label"] = tr("Sorbarendezés");
+		o["storages"] = QStringList { "order" };
+
+		m_objectiveModules << o;
+	}
+
+	{
+		QVariantMap o;
+
+		o["type"] = "fill";
+		o["icon"] = "F";
+		o["label"] = tr("Kiegészítés");
+		o["storages"] = QStringList { "text" };
+
+		m_objectiveModules << o;
+	}
 }
 
 

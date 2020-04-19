@@ -7,7 +7,7 @@ import "JScript.js" as JS
 Item {
 	id: item
 
-	implicitWidth: minimumWidth
+	implicitWidth: 500
 	implicitHeight: minimumHeight
 
 	property alias blurSource: effectsource.sourceItem
@@ -30,6 +30,7 @@ Item {
 	property int maximumWidth: 0
 	property int maximumHeight: 0
 
+
 	Item {
 		id: panel
 
@@ -38,21 +39,7 @@ Item {
 		x: (item.width-width)/2
 		y: (item.height-height)/2
 
-		Behavior on width {
-			NumberAnimation { duration: 125 }
-		}
 
-		Behavior on height {
-			NumberAnimation { duration: 125 }
-		}
-
-		Behavior on x {
-			NumberAnimation { duration: 125 }
-		}
-
-		Behavior on y {
-			NumberAnimation { duration: 125 }
-		}
 
 		ShaderEffectSource {
 			id: effectsource
