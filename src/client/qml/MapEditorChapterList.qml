@@ -30,6 +30,7 @@ QPagePanel {
 	Connections {
 		target: map
 		onChapterListUpdated: getList()
+		onUndone: getList()
 	}
 
 

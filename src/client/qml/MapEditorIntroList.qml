@@ -28,6 +28,7 @@ QPagePanel {
 	Connections {
 		target: map
 		onIntroListUpdated: getList()
+		onUndone: getList()
 	}
 
 

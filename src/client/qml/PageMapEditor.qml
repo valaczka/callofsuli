@@ -29,6 +29,9 @@ Page {
 
 		client: cosClient
 		mapType: Map.MapEditor
+
+		onCanUndoChanged: if (canUndo === -1)
+							  map.mapModified=false
 	}
 
 
@@ -73,6 +76,14 @@ Page {
 
 		rightLoader.sourceComponent: Row {
 			QToolBusyIndicator { running: isPageBusy }
+
+			ToolButton  {
+				text: "<-"
+				enabled: map.canUndo > -1
+
+				onClicked: map.undo(map.canUndo-1)
+			}
+
 			QMenuButton {
 				MenuItem {
 					text: qsTr("Mentés")
@@ -88,6 +99,10 @@ Page {
 				}
 				MenuItem {
 					text: qsTr("Pálya átnevezés")
+				}
+				MenuItem {
+					text: "UNDO STACK"
+					onClicked: loadDialogUndoStack()
 				}
 			}
 		}
@@ -118,7 +133,8 @@ Page {
 	Keys.onPressed: {
 		if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
 			map.save(mapId, mapBinaryFormat)
-
+		else if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
+			map.undo(map.canUndo-1)
 	}
 
 	StackView.onRemoved: destroy()
@@ -185,6 +201,27 @@ Page {
 								  parentMissionId: parentMId,
 								  parentSummaryId: parentSId
 							  }, pageEditor)
+	}
+
+
+
+	function loadDialogUndoStack() {
+		var d = JS.dialogCreateQml("List")
+		d.item.title = qsTr("UNDO STACK")
+		d.item.newField.visible = false
+		d.item.simpleSelect = true
+		d.item.list.modelTitleRole = "desc"
+		d.item.list.modelRightRole = "id"
+
+		var s = map.undoStack()
+
+		d.item.model = s.steps
+
+		d.accepted.connect(function(idx) {
+			var step = s.steps[idx].id-1
+			map.undo(step)
+		})
+		d.open()
 	}
 
 

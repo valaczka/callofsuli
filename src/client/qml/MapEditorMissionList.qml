@@ -28,6 +28,7 @@ QPagePanel {
 	Connections {
 		target: map
 		onMissionListUpdated: getList()
+		onUndone: getList()
 	}
 
 

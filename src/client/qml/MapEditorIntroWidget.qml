@@ -197,6 +197,7 @@ Column {
 	Connections {
 		target: map
 		onIntroUpdated: if (id===introId) get()
+		onUndone: get()
 	}
 
 	Component.onCompleted: get()

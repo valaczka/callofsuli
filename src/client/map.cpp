@@ -214,6 +214,15 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 
 	m_db->execSimpleQuery("INSERT INTO info SELECT '' as title WHERE NOT EXISTS(SELECT * FROM info)");
 
+	m_db->createUndoTables();
+
+	QStringList l = m_tableNames;
+	l << "objective";
+	l << "storage";
+
+	foreach (QString t, l)
+		m_db->createTrigger(t);
+
 	emit mapLoaded();
 
 	return true;

@@ -38,6 +38,10 @@ AbstractDbActivity::AbstractDbActivity(const QString &connectionName, QObject *p
 	: COSdb(connectionName, parent)
 {
 	m_client = nullptr;
+
+	m_canUndo = -1;
+
+	connect(m_db, &CosSql::canUndoChanged, this, &AbstractDbActivity::setCanUndo);
 }
 
 
@@ -77,5 +81,14 @@ QVariantList AbstractDbActivity::execSelectQuery(const QString &query, const QVa
 	}
 
 	return ret;
+}
+
+void AbstractDbActivity::setCanUndo(int canUndo)
+{
+	if (m_canUndo == canUndo)
+		return;
+
+	m_canUndo = canUndo;
+	emit canUndoChanged(m_canUndo);
 }
 

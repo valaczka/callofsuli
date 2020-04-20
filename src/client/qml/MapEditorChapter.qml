@@ -127,6 +127,7 @@ QPagePanel {
 	Connections {
 		target: map
 		onChapterUpdated: if (id===chapterId) get()
+		onUndone: get()
 	}
 
 	Component.onCompleted: get()

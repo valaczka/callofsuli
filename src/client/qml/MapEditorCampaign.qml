@@ -42,7 +42,11 @@ QPagePanel {
 					id: campaignName
 					width: parent.width
 
-					onEditingFinished: if (campaignId != -1) map.campaignUpdate(campaignId, { "name": campaignName.text })
+					onEditingFinished: if (campaignId != -1) {
+										   map.undoLogBegin(qsTr("Hadjárat módosítása"))
+										   map.campaignUpdate(campaignId, { "name": campaignName.text })
+										   map.undoLogEnd()
+									   }
 				}
 
 				QButton {
@@ -57,9 +61,11 @@ QPagePanel {
 						d.item.title = qsTr("Biztosan törlöd a hadjáratot?")
 						d.item.text = campaignName.text
 						d.accepted.connect(function () {
+							map.undoLogBegin(qsTr("Hadjárat törlése"))
 							if (map.campaignRemove(campaignId)) {
 								campaignId = -1
 							}
+							map.undoLogEnd()
 						})
 						d.open()
 					}
@@ -114,6 +120,7 @@ QPagePanel {
 						d.item.title = qsTr("Új küldetés neve")
 
 						d.accepted.connect(function(data) {
+							map.undoLogBegin(qsTr("Új küldetés hozzáadása"))
 							var misId = map.missionAdd({ "name": data })
 							if (misId !== -1) {
 								map.missionLevelAdd({
@@ -126,12 +133,14 @@ QPagePanel {
 								if (map.campaignMissionAdd(campaignId, misId))
 									pageEditor.missionSelected(misId, campaignId)
 							}
+							map.undoLogEnd()
 						})
 						d.open()
 					} else if (o.id === -2) {
 						if (o.summaryId !== -1)
 							pageEditor.summarySelected(o.summaryId, campaignId)
 						else  {
+							map.undoLogBegin(qsTr("Összegzés hozzáadása"))
 							var sumId = map.campaignSummaryAdd(campaignId)
 							if (sumId !== -1) {
 								map.summaryLevelAdd({
@@ -142,6 +151,7 @@ QPagePanel {
 													})
 								pageEditor.summarySelected(sumId, campaignId)
 							}
+							map.undoLogEnd()
 						}
 					}
 				}
@@ -181,6 +191,7 @@ QPagePanel {
 		onCampaignUpdated: if (id===campaignId) get()
 		onMissionListUpdated: if (id===campaignId || id===-1) get()
 		onIntroListUpdated: if ((type===Map.IntroCampaign && parentId===campaignId) || parentId === -1) get()
+		onUndone: get()
 	}
 
 	Component.onCompleted: get()
@@ -243,7 +254,9 @@ QPagePanel {
 
 		d.accepted.connect(function() {
 			var camps = JS.getSelectedIndices(d.item.model, "id")
+			map.undoLogBegin(qsTr("Hadjárat zárolásának módosítása"))
 			map.campaignLockSet(campaignId, camps)
+			map.undoLogEnd()
 			get()
 		})
 		d.open()

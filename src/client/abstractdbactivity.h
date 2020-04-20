@@ -47,22 +47,33 @@ class AbstractDbActivity : public COSdb
 	Q_OBJECT
 
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
+	Q_PROPERTY(int canUndo READ canUndo WRITE setCanUndo NOTIFY canUndoChanged)
+
+	int m_canUndo;
 
 public:
 	explicit AbstractDbActivity(const QString &connectionName = QString(), QObject *parent = nullptr);
 
 	Client* client() const { return m_client; }
+	int canUndo() const { return m_canUndo; }
 
 public slots:
 	void setClient(Client* client);
 
 	QVariantList execSelectQuery(const QString &query, const QVariantList &params = QVariantList());
+	void undoLogBegin(const QString &desc) { m_db->undoLogBegin(desc); }
+	void undoLogEnd() { m_db->undoLogEnd(); }
+	QVariantMap undoStack() { return m_db->undoStack(); }
+	void undo(const int &floor) { m_db->undo(floor); emit undone(); }
 
 protected slots:
+	void setCanUndo(int canUndo);
 	virtual void clientSetup() {}
 
 signals:
 	void clientChanged(Client* client);
+	void undone();
+	void canUndoChanged(int canUndo);
 
 protected:
 	Client* m_client;

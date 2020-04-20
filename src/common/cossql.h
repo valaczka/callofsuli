@@ -36,6 +36,8 @@ class CosSql : public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int canUndo READ canUndo WRITE setCanUndo NOTIFY canUndoChanged)
+
 public:
 	explicit CosSql(const QString &connectionName = QString(), QObject *parent = nullptr);
 	virtual ~CosSql();
@@ -88,15 +90,39 @@ public:
 	static QString hashPassword (const QString &password, QString *salt = nullptr,
 								 QCryptographicHash::Algorithm method = QCryptographicHash::Sha1);
 
+
+	bool createUndoTables();
+	bool createTrigger(const QString &table);
+	void undoLogBegin(const QString &desc);
+	void undoLogEnd();
+	QVariantMap undoStack();
+	void undo(const int &floor);
+
+
 	QSqlDatabase db() const { return m_db; }
 	bool dbCreated() const { return m_dbCreated; }
+	int canUndo() const { return m_canUndo; }
+
+
+private slots:
+	void setCanUndo(int canUndo)
+	{
+		if (m_canUndo == canUndo)
+			return;
+
+		m_canUndo = canUndo;
+		emit canUndoChanged(m_canUndo);
+	}
+
+
+signals:
+	void canUndoChanged(int canUndo);
 
 private:
 	QSqlDatabase m_db;
 	bool m_dbCreated;
 
-signals:
-
+	int m_canUndo;
 };
 
 #endif // COSSQL_H

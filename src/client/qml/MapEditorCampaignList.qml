@@ -29,8 +29,10 @@ QPagePanel {
 
 				placeholderText: qsTr("új hadjárat hozzáadása")
 				onAccepted: {
+					map.undoLogBegin(qsTr("Hadjárat hozzáadása"))
 					if (map.campaignAdd({ "name": newCampaignName.text }))
 						newCampaignName.clear()
+					map.undoLogEnd()
 				}
 			}
 		}
@@ -52,6 +54,7 @@ QPagePanel {
 	Connections {
 		target: map
 		onCampaignListUpdated: getList()
+		onUndone: getList()
 	}
 
 	Component.onCompleted: getList()

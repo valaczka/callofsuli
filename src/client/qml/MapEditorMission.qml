@@ -361,6 +361,7 @@ QPagePanel {
 		onIntroListUpdated: if (parentId === -1 || ((type===Map.IntroMission || type===Map.IntroSummary) && parentId===missionId)) get()
 		onChapterListUpdated: if (mId===-1 || (!isSummary && mId===missionId) || (isSummary && sId===missionId))
 								  get()
+		onUndone: get()
 	}
 
 	Component.onCompleted: get()

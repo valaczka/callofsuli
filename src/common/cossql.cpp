@@ -36,6 +36,7 @@ CosSql::CosSql(const QString &connectionName, QObject *parent)
 		m_db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
 
 	m_dbCreated = false;
+	m_canUndo = -1;
 
 	qDebug() << "m_db" << m_db;
 }
@@ -492,6 +493,206 @@ QString CosSql::hashPassword(const QString &password, QString *salt, QCryptograp
 	QByteArray hash = QCryptographicHash::hash(pwd, method);
 	return QString::fromLatin1(hash.toHex());
 }
+
+
+/**
+ * @brief CosSql::createUndoTable
+ * @return
+ */
+
+bool CosSql::createUndoTables()
+{
+	if (!execSimpleQuery("CREATE TABLE undoSettings(lastStep INTEGER, active BOOL)"))
+		return false;
+
+	if (!execSimpleQuery("INSERT INTO undoSettings(lastStep, active) VALUES(0, false)"))
+		return false;
+
+	if (!execSimpleQuery("CREATE TABLE undoStep(id INTEGER PRIMARY KEY, desc TEXT)"))
+		return false;
+
+	if (!execSimpleQuery("CREATE TABLE undoLog(seq INTEGER PRIMARY KEY, stepid INTEGER NOT NULL REFERENCES undoStep(id) ON UPDATE CASCADE ON DELETE CASCADE, cmd TEXT)"))
+		return false;
+
+	return true;
+}
+
+/**
+  DELETE FROM undoStep WHERE id>lastStep
+  INSERT INTO undoStep(desc) VALUES(???)
+
+  **/
+
+/**
+ * @brief CosSql::createTrigger
+ * @param table
+ * @return
+ */
+
+bool CosSql::createTrigger(const QString &table)
+{
+
+	QString cmd = "CREATE TRIGGER _"+table+"_it AFTER INSERT ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
+	cmd += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
+	cmd += "'DELETE FROM "+table+" WHERE rowid='||new.rowid);\n";
+	cmd += "END;";
+
+	if (!execSimpleQuery(cmd))
+		return false;
+
+
+	QVariantList l;
+	l << table;
+	QVariantList list;
+
+	if (!execSelectQuery("SELECT name from pragma_table_info(?)", l, &list))
+		return false;
+
+
+	QStringList p;
+	foreach (QVariant v, list) {
+		QString field = v.toMap().value("name").toString();
+		p << field+"='||quote(old."+field+")||'";
+
+	}
+	QString cmd2 = "CREATE TRIGGER _"+table+"_ut AFTER UPDATE ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
+	cmd2 += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
+	cmd2 += "'UPDATE "+table+" SET "+p.join(",")+" WHERE rowid='||old.rowid);\n";
+	cmd2 += "END;";
+
+	if (!execSimpleQuery(cmd2))
+		return false;
+
+
+
+	QStringList p2, p3;
+	p2 << "rowid";
+	p3 << "'||old.rowid||'";
+	foreach (QVariant v, list) {
+		QString field = v.toMap().value("name").toString();
+		p2 << field;
+		p3 << "'||quote(old."+field+")||'";
+	}
+	QString cmd3 = "CREATE TRIGGER _"+table+"_dt BEFORE DELETE ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
+	cmd3 += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
+	cmd3 += "'INSERT INTO "+table+"("+p2.join(",")+") VALUES ("+p3.join(",")+")');\n";
+	cmd3 += "END;";
+
+	if (!execSimpleQuery(cmd3))
+		return false;
+
+	return true;
+}
+
+
+/**
+ * @brief CosSql::undoLogBegin
+ * @param desc
+ * @return
+ */
+
+void CosSql::undoLogBegin(const QString &desc)
+{
+	m_db.transaction();
+
+	execSimpleQuery("DELETE FROM undoStep WHERE id>(SELECT lastStep FROM undoSettings)");
+
+	QVariantMap m;
+	m["desc"] = desc;
+	int stepid = execInsertQuery("INSERT INTO undoStep(?k?) VALUES(?)", m);
+	QVariantList l;
+	l << stepid;
+	execSimpleQuery("UPDATE undoSettings SET lastStep=?, active=true", l);
+
+	m_db.commit();
+}
+
+
+
+/**
+ * @brief CosSql::undoLogEnd
+ * @return
+ */
+
+void CosSql::undoLogEnd()
+{
+	execSimpleQuery("UPDATE undoSettings SET active=false");
+
+	QVariantMap r;
+	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep", QVariantList(), &r);
+	setCanUndo(r.value("id",-1).toInt());
+}
+
+
+/**
+ * @brief CosSql::undoStack
+ * @return
+ */
+
+QVariantMap CosSql::undoStack()
+{
+	QVariantMap ret;
+
+	m_db.transaction();
+
+	execSelectQueryOneRow("SELECT lastStep FROM undoSettings", QVariantList(), &ret);
+	execSelectQueryOneRow("SELECT COALESCE(MIN(id),-1) as minStep FROM undoStep", QVariantList(), &ret);
+	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as maxStep FROM undoStep", QVariantList(), &ret);
+
+	QVariantList l;
+	execSelectQuery("SELECT id, desc FROM undoStep ORDER BY id DESC", QVariantList(), &l);
+	ret["steps"] = l;
+
+	m_db.commit();
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief CosSql::undo
+ * @param step
+ */
+
+void CosSql::undo(const int &floor)
+{
+	m_db.transaction();
+
+	QVariantMap m;
+	execSelectQueryOneRow("SELECT lastStep FROM undoSettings", QVariantList(), &m);
+
+	int ceil = m.value("lastStep", 0).toInt();
+
+	QVariantList l;
+	l << floor;
+	l << ceil;
+
+	QVariantList steps;
+	execSelectQuery("SELECT cmd FROM undoLog WHERE stepid>? AND stepid<=? ORDER BY stepid DESC, seq", l, &steps);
+
+	foreach (QVariant v, steps) {
+		QString cmd = v.toMap().value("cmd").toString();
+
+		execSimpleQuery(cmd);
+	}
+
+	execSimpleQuery("DELETE FROM undoStep WHERE id>? AND id<=?", l);
+
+	QVariantList l2;
+	l2 << floor;
+	execSimpleQuery("UPDATE undoSettings SET lastStep=?", l2);
+
+	QVariantMap r;
+	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep", QVariantList(), &r);
+	setCanUndo(r.value("id",-1).toInt());
+
+	m_db.commit();
+}
+
+
+
 
 
 

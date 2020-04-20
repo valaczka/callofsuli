@@ -90,6 +90,7 @@ QPagePanel {
 
 	Connections {
 		target: map
+		onUndone: get()
 	}
 
 	Component.onCompleted: get()
