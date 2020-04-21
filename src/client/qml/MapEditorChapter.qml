@@ -49,7 +49,11 @@ QPagePanel {
 					bgColor: CosStyle.colorErrorDarker
 					borderColor: CosStyle.colorErrorDark
 
-					onClicked: pageChapterEditor.deleteChapter(chapterName.text)
+					onClicked: {
+						map.undoLogBegin(qsTr("Célpont törlése"))
+						pageChapterEditor.deleteChapter(chapterName.text)
+						map.undoLogEnd()
+					}
 
 				}
 			}
@@ -136,7 +140,15 @@ QPagePanel {
 
 
 	function get() {
-		if (chapterId == -1 || map == null) {
+		var p
+
+		if (map) {
+			p = map.chapterGet(chapterId)
+	//		chapterId = p.id
+		} else
+			chapterId = -1
+
+		if (chapterId == -1) {
 			list.model.clear()
 			chapterName.text = ""
 			return
@@ -144,7 +156,6 @@ QPagePanel {
 
 		list.model.clear()
 
-		var p = map.chapterGet(chapterId)
 		chapterName.text = p["name"]
 
 		chapterMissions.tags = p.missions
@@ -184,7 +195,9 @@ QPagePanel {
 
 		d.accepted.connect(function(idx) {
 			var s = map.storageModules[idx]
+			map.undoLogBegin(qsTr("Lőszer hozzáadása"))
 			map.storageAdd({chapterid: chapterId, module: s.type, data: "{}"})
+			map.undoLogEnd()
 			get()
 		})
 		d.open()
@@ -202,7 +215,9 @@ QPagePanel {
 
 		d.accepted.connect(function(idx) {
 			var s = map.objectiveModule(d.item.model[idx].type)
+			map.undoLogBegin(qsTr("Fegyver hozzáadása"))
 			map.objectiveAdd({storageid: sId, module: s.type, data: "{}" })
+			map.undoLogEnd()
 			get()
 		})
 		d.open()
@@ -225,7 +240,9 @@ QPagePanel {
 
 		d.accepted.connect(function() {
 			var missions = JS.getSelectedIndices(d.item.model, "id")
+			map.undoLogBegin(qsTr("Küldetések hozzárendelése"))
 			map.chapterMissionListSet(chapterId, missions)
+			map.undoLogEnd()
 			get()
 		})
 		d.open()
@@ -250,7 +267,9 @@ QPagePanel {
 
 		d.accepted.connect(function() {
 			var camps = JS.getSelectedIndices(d.item.model, "id")
+			map.undoLogBegin(qsTr("Hadjáratok hozzárendelése"))
 			map.chapterSummaryListSet(chapterId, camps)
+			map.undoLogEnd()
 			get()
 		})
 		d.open()

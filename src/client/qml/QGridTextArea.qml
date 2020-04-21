@@ -13,6 +13,7 @@ QTextArea {
 
 	property bool watchModification: parent.watchModification
 
+
 	placeholderText: parent.columns > 1 ? "" : fieldName
 
 	width: parent.width
@@ -21,10 +22,10 @@ QTextArea {
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
 
-	onEditingFinished: if (watchModification) {
-						   modified = true
-						   parent.modified = true
-					   }
+	onEditingFinished:  if (watchModification) {
+							   modified = true
+							   parent.modified = true
+						   }
 
 	function setText(t) {
 		text = t

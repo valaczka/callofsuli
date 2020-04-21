@@ -171,6 +171,7 @@ void Client::registerTypes()
 	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
+	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
 }
 
 

@@ -54,7 +54,7 @@ QPagePanel {
 
 					placeholderText: qsTr("Küldetés neve")
 
-					onEditingFinished: header.missionUpdate()
+					onTextModified: header.missionUpdate()
 				}
 
 				QButton {
@@ -69,9 +69,11 @@ QPagePanel {
 						d.item.title = isSummary ? qsTr("Biztosan törlöd az összegzést?") : qsTr("Biztosan törlöd a küldetést?")
 						d.item.text = isSummary ? "" : missionName.text
 						d.accepted.connect(function () {
+							map.undoLogBegin(qsTr("Összegzés/küldetés törlése"))
 							if ((isSummary && map.summaryRemove(missionId)) || (!isSummary && map.missionRemove(missionId))) {
 								missionId = -1
 							}
+							map.undoLogEnd()
 						})
 
 						d.open()
@@ -81,10 +83,13 @@ QPagePanel {
 			}
 
 			function missionUpdate() {
-				if (missionId != -1 && !isSummary)
+				if (missionId != -1 && !isSummary) {
+					map.undoLogBegin(qsTr("Összegzés/küldetés módosítása"))
 					map.missionUpdate(missionId, {
 										  "name": missionName.text
 									  }, parentCampaignId)
+					map.undoLogEnd()
+				}
 			}
 		}
 
@@ -163,7 +168,7 @@ QPagePanel {
 
 							validator: RegExpValidator { regExp: /\d\d:\d\d/ }
 
-							onEditingFinished: if (model.id !== -1 && acceptableInput)
+							onTextModified: if (model.id !== -1 && acceptableInput)
 												   delegateitem.missionLevelUpdate()
 
 							onAccepted: model.id === -1 ?
@@ -220,10 +225,15 @@ QPagePanel {
 						QRemoveButton {
 							buttonVisible: model.canRemove
 
-							onClicked: if (isSummary)
+							onClicked: if (isSummary) {
+										   map.undoLogBegin(qsTr("Összegzés szint törlése"))
 										   map.summaryLevelRemove(model.id, missionId)
-									   else
+										   map.undoLogEnd()
+									   } else {
+										   map.undoLogBegin(qsTr("Küldetés szint törlése"))
 										   map.missionLevelRemove(model.id, missionId)
+										   map.undoLogEnd()
+									   }
 
 							Layout.fillHeight: true
 							Layout.fillWidth: false
@@ -238,30 +248,38 @@ QPagePanel {
 
 					function missionLevelUpdate() {
 						if (missionId != -1) {
-							if (isSummary)
+							if (isSummary) {
+								map.undoLogBegin(qsTr("Összegzés szint módosítása"))
 								map.summaryLevelUpdate(model.id, missionId, {
 														   "sec": JS.mmSStoSec(textTime.text),
 														   "hp": spinHP.value
 													   })
-							else
+								map.undoLogEnd()
+							} else {
+								map.undoLogBegin(qsTr("Küldetés szint módosítása"))
 								map.missionLevelUpdate(model.id, missionId, {
 														   "sec": JS.mmSStoSec(textTime.text),
 														   "hp": spinHP.value,
 														   "mode": comboMode.currentValue
 													   })
+								map.undoLogEnd()
+							}
 						}
 					}
 
 					function missionLevelAdd() {
 						if (missionId != -1) {
-							if (isSummary)
+							if (isSummary) {
+								map.undoLogBegin(qsTr("Összegzés szint hozzáadása"))
 								map.summaryLevelAdd({
 														"summaryid": missionId,
 														"level": model.level,
 														"sec": JS.mmSStoSec(textTime.text),
 														"hp": spinHP.value
 													})
-							else
+								map.undoLogEnd()
+							} else {
+								map.undoLogBegin(qsTr("Küldetés szint hozzáadása"))
 								map.missionLevelAdd({
 														"missionid": missionId,
 														"level": model.level,
@@ -269,6 +287,8 @@ QPagePanel {
 														"hp": spinHP.value,
 														"mode": comboMode.currentValue
 													})
+								map.undoLogEnd()
+							}
 						}
 					}
 				}
@@ -299,12 +319,14 @@ QPagePanel {
 					placeholderText: qsTr("új célpont hozzáadása")
 					onAccepted: {
 						if (missionId !== -1) {
+							map.undoLogBegin(qsTr("Célpont hozzáadása"))
 							var i = map.chapterAdd({ "name": newChapterName.text })
 							if (i !== -1 && isSummary)
 								map.summaryChapterAdd({ "summaryid" : missionId, "chapterid": i })
 							else if (i !== -1 && !isSummary)
 								map.missionChapterAdd({ "missionid" : missionId, "chapterid": i })
 
+							map.undoLogEnd()
 							clear()
 						}
 					}
@@ -370,7 +392,19 @@ QPagePanel {
 
 
 	function get() {
-		if (missionId == -1 || !map) {
+		var p
+
+		if (map) {
+			if (isSummary) {
+				p = map.summaryGet(missionId)
+			} else {
+				p = map.missionGet(missionId)
+			}
+			missionId = p.id
+		} else
+			missionId = -1
+
+		if (missionId == -1) {
 			listChapters.model = []
 			listLevels.model.clear()
 			missionName.text = ""
@@ -380,15 +414,7 @@ QPagePanel {
 		listChapters.model = []
 		listLevels.model.clear()
 
-		var p
-
-		if (isSummary) {
-			p = map.summaryGet(missionId)
-		} else {
-			p = map.missionGet(missionId)
-			missionName.text = p.name
-		}
-
+		missionName.text = isSummary ? "" : p.name
 		missionCampaigns.tags = p.campaigns
 
 
@@ -439,7 +465,9 @@ QPagePanel {
 
 		d.accepted.connect(function() {
 			var camps = JS.getSelectedIndices(d.item.model, "id")
+			map.undoLogBegin(qsTr("Hadjáratok hozzárendelése"))
 			map.missionCampaignListSet(missionId, camps)
+			map.undoLogEnd()
 			get()
 		})
 		d.open()

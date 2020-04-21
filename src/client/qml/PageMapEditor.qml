@@ -77,11 +77,8 @@ Page {
 		rightLoader.sourceComponent: Row {
 			QToolBusyIndicator { running: isPageBusy }
 
-			ToolButton  {
-				text: "<-"
-				enabled: map.canUndo > -1
-
-				onClicked: map.undo(map.canUndo-1)
+			QUndoButton  {
+				dbActivity: map
 			}
 
 			QMenuButton {
@@ -99,10 +96,6 @@ Page {
 				}
 				MenuItem {
 					text: qsTr("Pálya átnevezés")
-				}
-				MenuItem {
-					text: "UNDO STACK"
-					onClicked: loadDialogUndoStack()
 				}
 			}
 		}
@@ -205,24 +198,6 @@ Page {
 
 
 
-	function loadDialogUndoStack() {
-		var d = JS.dialogCreateQml("List")
-		d.item.title = qsTr("UNDO STACK")
-		d.item.newField.visible = false
-		d.item.simpleSelect = true
-		d.item.list.modelTitleRole = "desc"
-		d.item.list.modelRightRole = "id"
-
-		var s = map.undoStack()
-
-		d.item.model = s.steps
-
-		d.accepted.connect(function(idx) {
-			var step = s.steps[idx].id-1
-			map.undo(step)
-		})
-		d.open()
-	}
 
 
 	function closeDrawer() {

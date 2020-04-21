@@ -483,7 +483,9 @@ QVariantMap Map::campaignGet(const int &id)
 	QVariantList l;
 	l << id;
 	QVariantMap map;
-	m_db->execSelectQueryOneRow("SELECT num, name FROM campaign WHERE id=?", l, &map);
+	map["id"] = -1;
+
+	m_db->execSelectQueryOneRow("SELECT id, num, name FROM campaign WHERE id=?", l, &map);
 
 	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroCampaign "
@@ -547,8 +549,11 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary)
 	QVariantList l;
 	l << id;
 	QVariantMap map;
+	map["id"] = -1;
 
 	if (isSummary) {
+		m_db->execSelectQueryOneRow("SELECT id FROM summary WHERE id=?", l, &map);
+
 		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroSummary "
 									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
@@ -559,7 +564,7 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary)
 									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
 									"WHERE summaryid=? AND outro=true", l, &map);
 	} else {
-		m_db->execSelectQueryOneRow("SELECT name FROM mission WHERE id=?", l, &map);
+		m_db->execSelectQueryOneRow("SELECT id, name FROM mission WHERE id=?", l, &map);
 
 		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroMission "
@@ -1113,8 +1118,9 @@ QVariantMap Map::chapterGet(const int &id)
 	QVariantList l;
 	l << id;
 	QVariantMap map;
+	map["id"] = -1;
 
-	m_db->execSelectQueryOneRow("SELECT name FROM chapter where id=?", l, &map);
+	m_db->execSelectQueryOneRow("SELECT id, name FROM chapter where id=?", l, &map);
 
 	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroChapter "
@@ -1370,8 +1376,9 @@ QVariantMap Map::introGet(const int &id)
 	QVariantList l;
 	l << id;
 	QVariantMap map;
+	map["id"] = -1;
 
-	m_db->execSelectQueryOneRow("SELECT ttext, img, media, sec, levelMin, levelMax FROM intro where id=?", l, &map);
+	m_db->execSelectQueryOneRow("SELECT id, ttext, img, media, sec, levelMin, levelMax FROM intro where id=?", l, &map);
 
 
 	QVariantList campaigns;
@@ -1498,8 +1505,6 @@ bool Map::introUpdate(const int &id, const QVariantMap &params, const int &paren
 {
 	QVariantMap bind;
 	bind[":id"] = id;
-
-	qDebug() << params;
 
 	if (m_db->execUpdateQuery("UPDATE intro SET ? WHERE id=:id", params, bind)) {
 		emit introUpdated(id);

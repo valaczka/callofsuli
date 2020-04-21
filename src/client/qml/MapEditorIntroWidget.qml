@@ -38,19 +38,27 @@ Column {
 						introId = intId
 						switch (parentType) {
 						case Map.IntroCampaign:
+							map.undoLogBegin(qsTr("Hadjárat intro/outro hozzáadása"))
 							map.campaignIntroAdd(parentId, intId, isOutro)
+							map.undoLogEnd()
 							break
 
 						case Map.IntroMission:
+							map.undoLogBegin(qsTr("Küldetés inro/outro hozzáadása"))
 							map.missionIntroAdd(parentId, intId, isOutro)
+							map.undoLogEnd()
 							break
 
 						case Map.IntroSummary:
+							map.undoLogBegin(qsTr("Összegzés intro/outro hozzáadása"))
 							map.summaryIntroAdd(parentId, intId, isOutro)
+							map.undoLogEnd()
 							break
 
 						case Map.IntroChapter:
+							map.undoLogBegin(qsTr("Célpont intro/outro hozzáadása"))
 							map.chapterIntroAdd(parentId, intId)
+							map.undoLogEnd()
 							break
 						}
 					}
@@ -70,7 +78,7 @@ Column {
 				Layout.fillWidth: false
 				placeholderText: qsTr("MM:SS")
 
-				onEditingFinished: introUpdate()
+				onTextModified: introUpdate()
 
 				validator: RegExpValidator { regExp: /^(\d\d:\d\d|)$/ }
 			}
@@ -121,10 +129,12 @@ Column {
 					d.item.title = isOutro ? qsTr("Biztosan törlöd az outrot?") : qsTr("Biztosan törlöd az introt?")
 					d.item.text = introText.text
 					d.accepted.connect(function () {
+						map.undoLogBegin(qsTr("Intro/Outro törlése"))
 						if (map.introRemove(introId)) {
 							introId = -1
 							introRemoved()
 						}
+						map.undoLogEnd()
 					})
 					d.open()
 				}
@@ -149,7 +159,7 @@ Column {
 				id: introText
 				sqlField: "ttext"
 
-				onEditingFinished: introUpdate()
+				onTextModified: introUpdate()
 			}
 		}
 	}
@@ -171,7 +181,7 @@ Column {
 				fieldName: qsTr("Kép URL")
 				sqlField: "img"
 
-				onEditingFinished: introUpdate()
+				onTextModified: introUpdate()
 
 				validator: RegExpValidator { regExp: /^((ftp|http|https):\/\/[^ "]+|)$/ }
 			}
@@ -183,7 +193,7 @@ Column {
 				fieldName: qsTr("Média URL")
 				sqlField: "media"
 
-				onEditingFinished: introUpdate()
+				onTextModified: introUpdate()
 
 				validator: RegExpValidator { regExp: /^((ftp|http|https):\/\/[^ "]+|)$/ }
 			}
@@ -218,13 +228,23 @@ Column {
 								true)
 		m.sec = JS.mmSStoSec(introSec.text)
 
+		map.undoLogBegin(qsTr("Intro/outro módosítása"))
 		map.introUpdate(introId, m, parentId, parentType)
+		map.undoLogEnd()
 	}
 
 
 
 	function get() {
-		if (introId == -1 || !map) {
+		var p
+
+		if (map) {
+			p = map.introGet(introId)
+			introId = p.id
+		} else
+			introId = -1
+
+		if (introId == -1) {
 			introText.text = ""
 			introImg.text = ""
 			introMedia.text = ""
@@ -234,8 +254,6 @@ Column {
 
 			return
 		}
-
-		var p = map.introGet(introId)
 
 		if (!p)
 			return

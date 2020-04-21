@@ -20,38 +20,12 @@ QTextField {
 
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
+	onTextEdited:  if (watchModification) {
+					   modified = true
+					   parent.modified = true
+				   }
 
-	/*QImgButton {
-		id: btnApply
-		visible: control.modified
 
-		width: 18
-		height: 18
-		anchors.verticalCenter: parent.verticalCenter
-		anchors.right: parent.right
-		anchors.rightMargin: 10
-		icon: "M\ue86c"
-		color: cosClient.color("ok", 2)
-		ToolTip.text: qsTr("Alkalmaz")
-
-		onClicked: {
-			control.applied()
-			modified = false
-		}
-	}*/
-
-	/*	onAccepted: {
-		control.applied()
-		modified = false
-	}
-*/
-
-	onTextEdited: {
-		if (watchModification) {
-			modified = true
-			parent.modified = true
-		}
-	}
 
 	onAccepted: parent.accept()
 

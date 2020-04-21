@@ -45,6 +45,7 @@ import "JScript.js" as JS
 TextField {
 	id: control
 
+
 //	implicitWidth: placeholder.implicitWidth + leftPadding + rightPadding
 	implicitHeight: CosStyle.pixelSize + topPadding + bottomPadding + 10
 
@@ -84,6 +85,22 @@ TextField {
 	}
 
 	Behavior on color {  ColorAnimation { duration: 150 } }
+
+
+	property bool _textModified: false
+
+	signal textModified()
+
+	onActiveFocusChanged: if (activeFocus)
+							  _textModified = false
+
+
+	onTextChanged: _textModified = true
+
+	onEditingFinished: if (_textModified) {
+						   textModified()
+					   }
+
 
 	/*Text {
 		id: placeholder

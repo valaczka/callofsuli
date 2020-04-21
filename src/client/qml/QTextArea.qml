@@ -42,6 +42,23 @@ TextArea {
 	wrapMode: TextEdit.WordWrap
 
 
+
+
+	property bool _textModified: false
+
+	signal textModified()
+
+	onActiveFocusChanged: if (activeFocus)
+							  _textModified = false
+
+
+	onTextChanged: _textModified = true
+
+	onEditingFinished: if (_textModified) {
+						   textModified()
+					   }
+
+
 	//! [background]
 	background: Rectangle {
 		width: control.width

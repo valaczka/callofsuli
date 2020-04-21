@@ -68,5 +68,6 @@
         <file>MapEditorIntroWidget.qml</file>
         <file>PageMapChapterEditor.qml</file>
         <file>MapEditorObjective.qml</file>
+        <file>QUndoButton.qml</file>
     </qresource>
 </RCC>

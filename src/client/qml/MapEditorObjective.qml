@@ -42,7 +42,7 @@ QPagePanel {
 					id: chapterName
 					width: parent.width
 
-					//onEditingFinished: if (chapterId != -1) map.chapterUpdate(chapterId, { "name": chapterName.text }, parentMissionId, parentSummaryId)
+					//onTextModified:  if (chapterId != -1) map.chapterUpdate(chapterId, { "name": chapterName.text }, parentMissionId, parentSummaryId)
 				}
 
 				QButton {

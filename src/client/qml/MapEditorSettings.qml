@@ -28,7 +28,7 @@ QPagePanel {
 			fieldName: qsTr("A pálya címe")
 			sqlField: "title"
 
-			onEditingFinished: grid.saveInfo()
+			onTextModified: grid.saveInfo()
 		}
 
 

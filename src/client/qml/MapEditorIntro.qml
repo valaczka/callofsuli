@@ -128,15 +128,21 @@ QPagePanel {
 	onIntroIdChanged: get()
 
 	function get() {
-		if (introId == -1 || !map) {
+		var p
+
+		if (map) {
+			p = map.introGet(introId)
+			introId = p.id
+		} else
+			introId = -1
+
+		if (introId == -1) {
 			tagCampaigns.tags = []
 			tagMissions.tags = []
 			tagSummaries.tags = []
 			tagChapters.tags = []
 			return
 		}
-
-		var p = map.introGet(introId)
 
 		tagCampaigns.tags = p.campaigns
 		tagMissions.tags = p.missions

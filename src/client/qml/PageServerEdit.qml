@@ -61,7 +61,7 @@ Page {
 				fieldName: qsTr("Cím (host)")
 				sqlField: "host"
 
-				onEditingFinished: {
+				onTextModified: {
 					if (textName.text.length === 0)
 						textName.text = textHostname.text
 				}

@@ -42,7 +42,7 @@ QPagePanel {
 					id: campaignName
 					width: parent.width
 
-					onEditingFinished: if (campaignId != -1) {
+					onTextModified: if (campaignId != -1) {
 										   map.undoLogBegin(qsTr("Hadjárat módosítása"))
 										   map.campaignUpdate(campaignId, { "name": campaignName.text })
 										   map.undoLogEnd()
@@ -199,7 +199,15 @@ QPagePanel {
 	onCampaignIdChanged: get()
 
 	function get() {
-		if (campaignId == -1 || map == null) {
+		var p
+
+		if (map) {
+			p = map.campaignGet(campaignId)
+			campaignId = p.id
+		} else
+			campaignId = -1
+
+		if (campaignId == -1) {
 			list.model=[]
 			campaignName.text = ""
 			return
@@ -207,7 +215,7 @@ QPagePanel {
 
 		list.model=[]
 
-		var p = map.campaignGet(campaignId)
+
 		campaignName.text = p["name"]
 
 
