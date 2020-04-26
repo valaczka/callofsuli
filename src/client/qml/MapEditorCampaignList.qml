@@ -16,26 +16,27 @@ QPagePanel {
 	QPageHeader {
 		id: header
 
-		height: col.height
+		isSelectorMode: list.selectorSet
 
-		Column {
-			id: col
+		labelCountText: list.selectedItemCount
+
+		leftLoader.sourceComponent:  QTextField {
+			id: newCampaignName
 			width: parent.width
 
-
-			QTextField {
-				id: newCampaignName
-				width: parent.width
-
-				placeholderText: qsTr("új hadjárat hozzáadása")
-				onAccepted: {
-					map.undoLogBegin(qsTr("Hadjárat hozzáadása"))
-					if (map.campaignAdd({ "name": newCampaignName.text }))
-						newCampaignName.clear()
-					map.undoLogEnd()
-				}
+			placeholderText: qsTr("új hadjárat hozzáadása")
+			onAccepted: {
+				map.undoLogBegin(qsTr("Hadjárat hozzáadása"))
+				if (map.campaignAdd({ "name": newCampaignName.text }))
+					newCampaignName.clear()
+				map.undoLogEnd()
 			}
 		}
+
+		rightLoader.sourceComponent: QCloseButton { }
+
+		onSelectAll: list.selectAll()
+		onDeselectAll: list.deselectAll()
 	}
 
 	QListItemDelegate {
@@ -47,7 +48,9 @@ QPagePanel {
 
 		modelTitleRole: "name"
 
-		onClicked: pageEditor.campaignSelected(list.model[index].id)
+		autoSelectorChange: true
+
+		onClicked: pageEditor.campaignSelected(list.model.get(index).id)
 	}
 
 
@@ -61,6 +64,6 @@ QPagePanel {
 
 
 	function getList() {
-		list.model = map.campaignListGet()
+		JS.setModel(list.model, map.campaignListGet())
 	}
 }

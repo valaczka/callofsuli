@@ -210,8 +210,6 @@ Column {
 		onUndone: get()
 	}
 
-	Component.onCompleted: get()
-
 	onIntroIdChanged: get()
 
 

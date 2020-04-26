@@ -1122,6 +1122,8 @@ QVariantMap Map::chapterGet(const int &id)
 
 	m_db->execSelectQueryOneRow("SELECT id, name FROM chapter where id=?", l, &map);
 
+	qDebug() << "********" << map;
+
 	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroChapter "
 								"LEFT JOIN intro ON (bindIntroChapter.introid=intro.id) "

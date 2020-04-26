@@ -123,8 +123,6 @@ QPagePanel {
 		onUndone: get()
 	}
 
-	Component.onCompleted: get()
-
 	onIntroIdChanged: get()
 
 	function get() {

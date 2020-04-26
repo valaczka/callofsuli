@@ -181,7 +181,7 @@ Item {
 
 
 
-	onNoDrawerChanged: drawerReset()
+	//onNoDrawerChanged: drawerReset()
 	onPanelsChanged: panelReset()
 	onSwipeModeChanged: panelReset()
 

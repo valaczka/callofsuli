@@ -9,7 +9,7 @@ QPagePanel {
 	id: panel
 
 	property Map map: null
-	property int chapterId: -1
+	property int chapterId: pageChapterEditor.chapterId
 
 	title: qsTr("Célpont")
 
@@ -40,6 +40,14 @@ QPagePanel {
 				QTextField {
 					id: chapterName
 					width: parent.width
+
+					onTextModified: {
+						map.undoLogBegin(qsTr("Célpont módosítása"))
+						map.chapterUpdate(chapterId, {
+											  "name": chapterName.text
+										  }, pageChapterEditor.parenMissionId, pageChapterEditor.parentSummaryId)
+						map.undoLogEnd()
+					}
 				}
 
 				QButton {
@@ -50,9 +58,7 @@ QPagePanel {
 					borderColor: CosStyle.colorErrorDark
 
 					onClicked: {
-						map.undoLogBegin(qsTr("Célpont törlése"))
 						pageChapterEditor.deleteChapter(chapterName.text)
-						map.undoLogEnd()
 					}
 
 				}
@@ -134,7 +140,6 @@ QPagePanel {
 		onUndone: get()
 	}
 
-	Component.onCompleted: get()
 
 	onChapterIdChanged: get()
 
@@ -144,9 +149,10 @@ QPagePanel {
 
 		if (map) {
 			p = map.chapterGet(chapterId)
-	//		chapterId = p.id
-		} else
+			chapterId = p.id
+		} else {
 			chapterId = -1
+		}
 
 		if (chapterId == -1) {
 			list.model.clear()

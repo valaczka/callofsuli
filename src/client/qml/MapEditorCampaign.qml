@@ -194,8 +194,6 @@ QPagePanel {
 		onUndone: get()
 	}
 
-	Component.onCompleted: get()
-
 	onCampaignIdChanged: get()
 
 	function get() {

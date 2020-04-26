@@ -346,4 +346,23 @@ QListView {
 		}
 		selectedItemCount = n
 	}
+
+
+
+	function selectAll(s) {
+		var t = true
+
+		if (s === false)
+			t = false
+
+		for (var i=0; i<model.count; ++i) {
+			model.get(i)[modelSelectedRole] = t
+		}
+
+		calculateSelectedItems()
+	}
+
+	function deselectAll() {
+		selectAll(false)
+	}
 }

@@ -22,6 +22,8 @@ Page {
 	header: QToolBar {
 		id: toolbar
 
+		title: qsTr("Célpont")
+
 		backButtonIcon: panelLayout.noDrawer ? "M\ue5c4" : "M\ue3c7"
 		backButton.visible: true
 		backButton.onClicked: {
@@ -34,6 +36,10 @@ Page {
 
 		rightLoader.sourceComponent: Row {
 			QToolBusyIndicator { running: pageEditor.isPageBusy }
+
+			QUndoButton  {
+				dbActivity: map
+			}
 		}
 	}
 
@@ -49,21 +55,22 @@ Page {
 		anchors.fill: parent
 
 		panels: [
-			{ url: "MapEditorChapter.qml", params: { map: map, chapterId: chapterId }, fillWidth: false },
+			{ url: "MapEditorChapter.qml", params: { map: map }, fillWidth: false },
 			{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
 		]
 	}
 
-
 	Keys.onPressed: {
 		if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
 			map.save(mapId, mapBinaryFormat)
-
+		else if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
+			map.undo(map.canUndo-1)
 	}
 
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
+		toolbar.resetTitle()
 		panelLayout.drawerReset()
 	}
 
@@ -77,8 +84,12 @@ Page {
 		d.item.title = qsTr("Biztosan törlöd a célpontot?")
 		d.item.text = txt
 		d.accepted.connect(function () {
+			map.undoLogBegin(qsTr("Célpont törlése"))
 			if (map.chapterRemove(chapterId)) {
+				map.undoLogEnd()
 				mainStack.back()
+			} else {
+				map.undoLogEnd()
 			}
 		})
 		d.open()
