@@ -14,16 +14,16 @@ Rectangle {
 	anchors.right: parent.right
 	color: CosStyle.colorPrimaryDark
 
-	height: Math.max(leftLoader.height, rightLoader.height, row.height)+1
+	height: Math.max(mainItem.height, rightLoader.height, row.height)+1
 
 	property bool isSelectorMode: false
 	property alias labelCountText: labelCount.text
+	property alias searchText: searchText
 
 	property alias rightLoader: rightLoader
-	property alias leftLoader: leftLoader
+	default property alias mainItemData: mainItem.data
 
 	signal selectAll()
-	signal deselectAll()
 
 	Item {
 		id: mainItem
@@ -32,69 +32,55 @@ Rectangle {
 		anchors.left: parent.left
 		anchors.right: rightLoader.left
 
-		Loader {
-			id: leftLoader
-			width: parent.width
-			anchors.verticalCenter: parent.verticalCenter
+		height: childrenRect.height
 
-			visible: opacity != 0
+		visible: opacity != 0
 
-			Behavior on opacity { NumberAnimation { duration: 125 } }
-		}
-
-		RowLayout {
-			id: row
-
-			width: parent.width
-			anchors.verticalCenter: parent.verticalCenter
-
-			opacity: 0.0
-			visible: opacity != 0
-
-			Label {
-				id: labelCount
-				text: ""
-
-				horizontalAlignment: Text.AlignLeft
-				verticalAlignment: Text.AlignVCenter
-
-				Layout.fillWidth: true
-				Layout.fillHeight: true
-			}
-
-			ToolButton {
-				id: button1
-				property string buttonLabel: "M\ue5d4"
-
-				Layout.fillWidth: false
-				Layout.fillHeight: true
-
-				Material.foreground: CosStyle.colorPrimaryLight
-				Component.onCompleted: JS.setIconFont(button1, buttonLabel)
-				onButtonLabelChanged: JS.setIconFont(button1, buttonLabel)
-
-				onClicked: control.selectAll()
-			}
-
-
-			ToolButton {
-				id: button2
-				property string buttonLabel: "M\ue5d4"
-
-				Layout.fillWidth: false
-				Layout.fillHeight: true
-
-				Material.foreground: CosStyle.colorPrimaryLight
-				Component.onCompleted: JS.setIconFont(button2, buttonLabel)
-				onButtonLabelChanged: JS.setIconFont(button2, buttonLabel)
-
-				onClicked: control.deselectAll()
-			}
-
-		}
-
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
 
+	RowLayout {
+		id: row
+
+		width: mainItem.width
+		anchors.verticalCenter: parent.verticalCenter
+
+		opacity: 0.0
+		visible: opacity != 0
+
+
+		Label {
+			id: labelCount
+			text: ""
+
+			horizontalAlignment: Text.AlignLeft
+			verticalAlignment: Text.AlignVCenter
+
+			Layout.fillWidth: false
+			Layout.fillHeight: true
+		}
+
+		QTextField {
+			id: searchText
+			Layout.fillWidth: true
+
+			placeholderText: qsTr("Keresés...")
+		}
+
+		ToolButton {
+			id: button1
+			property string buttonLabel: "M\ue162"
+
+			Layout.fillWidth: false
+			Layout.fillHeight: true
+
+			Material.foreground: CosStyle.colorPrimaryLight
+			Component.onCompleted: JS.setIconFont(button1, buttonLabel)
+			onButtonLabelChanged: JS.setIconFont(button1, buttonLabel)
+
+			onClicked: control.selectAll()
+		}
+	}
 
 	Loader {
 		id: rightLoader
@@ -121,7 +107,7 @@ Rectangle {
 				opacity: 1.0
 			}
 			PropertyChanges {
-				target: leftLoader
+				target: mainItem
 				opacity: 0.0
 			}
 		}
@@ -133,7 +119,7 @@ Rectangle {
 			to: "SELECTOR"
 			SequentialAnimation {
 				NumberAnimation {
-					target: leftLoader
+					target: mainItem
 					property: "opacity"
 					duration: 75
 					easing.type: Easing.InOutQuad
@@ -158,7 +144,7 @@ Rectangle {
 					easing.type: Easing.InOutQuad
 				}
 				NumberAnimation {
-					target: leftLoader
+					target: mainItem
 					property: "opacity"
 					duration: 75
 					easing.type: Easing.InOutQuad

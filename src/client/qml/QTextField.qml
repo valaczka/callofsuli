@@ -52,6 +52,7 @@ TextField {
 	padding: 6
 	leftPadding: padding + 2 + (activeFocus ? rect1.width : 0 )
 	bottomPadding: 2
+	rightPadding: clearLabel.width
 
 	Behavior on leftPadding { NumberAnimation { duration: 100 } }
 
@@ -101,6 +102,34 @@ TextField {
 						   textModified()
 					   }
 
+
+	Label {
+		id: clearLabel
+		Component.onCompleted: JS.setIconFont(clearLabel, "M\ue14a")
+		color: clearArea.containsMouse ? CosStyle.colorErrorLight : CosStyle.colorErrorLighter
+
+		leftPadding: 5
+		rightPadding: 5
+
+		Behavior on color { ColorAnimation { duration: 125 } }
+
+		visible: control.text.length && !control.readOnly
+
+		height: parent.height
+
+		verticalAlignment: Text.AlignVCenter
+
+		anchors.verticalCenter: parent.verticalCenter
+		anchors.right: parent.right
+	}
+
+	MouseArea {
+		id: clearArea
+		anchors.fill: clearLabel
+		hoverEnabled: true
+		acceptedButtons: Qt.LeftButton
+		onClicked: control.clear()
+	}
 
 	/*Text {
 		id: placeholder

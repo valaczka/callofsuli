@@ -30,6 +30,7 @@ Label {
 
 	Connections {
 		target: field
+		onFieldNameChanged: text = field.fieldName
 		onTextChanged: if (field && parent.columns === 1 && field.text.length == 0)
 						   label.opacity=0.0
 					   else
@@ -37,12 +38,10 @@ Label {
 	}
 
 
-
 	Binding on color {
 		when: field && !field.acceptableInput
 		value: CosStyle.colorErrorLighter
 	}
-
 
 
 	Behavior on opacity {
@@ -54,7 +53,10 @@ Label {
 	}
 
 	Component.onCompleted: {
-		if (field)
+		if (field) {
 			text = field.fieldName
+			if (parent.columns === 1 && field.text.length == 0)
+				opacity = 0
+		}
 	}
 }

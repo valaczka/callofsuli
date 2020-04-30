@@ -152,10 +152,4 @@ Popup {
 	onAboutToHide: {
 		popupContent.item.dlgClose()
 	}
-
-	/*onClosed: {
-		popupContent.sourceComponent = undefined
-		popupContent.source = ""
-		popupItem.destroy()
-	}*/
 }

@@ -66,37 +66,10 @@ void User::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 	QJsonArray l;
 	QVariantList params;
 
-	QStringList q;
 
-	if (m_jsonData.contains("classid")) {
-		params << m_jsonData["classid"].toInt();
-		q << "classid=?";
-	}
-
-	if (m_jsonData.contains("active")) {
-		params << m_jsonData["active"].toBool();
-		q << "active=?";
-	}
-
-	if (m_jsonData.contains("isTeacher")) {
-		params << m_jsonData["isTeacher"].toBool();
-		q << "isTeacher=?";
-	}
-
-	if (m_jsonData.contains("isAdmin")) {
-		params << m_jsonData["isAdmin"].toBool();
-		q << "isAdmin=?";
-	}
-
-	QString qq = "";
-
-	if (q.count())
-		qq="WHERE "+q.join(" AND ");
-
-
-	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, classid, class.name as classname, "
+	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, COALESCE(classid, -1) as classid, class.name as classname, "
 									"isTeacher, isAdmin FROM user "
-									"LEFT JOIN class ON (class.id=user.classid) "+qq,
+									"LEFT JOIN class ON (class.id=user.classid)",
 									params, &l);
 	(*jsonResponse)["list"] = l;
 
@@ -134,6 +107,9 @@ void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_jsonData.toVariantMap();
 	QString username = params["username"].toString();
 
+	if (params.value("classid", -1) == -1)
+		params["classid"] = QVariant::Invalid;
+
 	int id = m_client->db()->execInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
 
 	if (id == -1) {
@@ -166,6 +142,9 @@ void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantMap params = m_jsonData.toVariantMap();
 	params.remove("username");
+
+	if (params.value("classid", -1) == -1)
+		params["classid"] = QVariant::Invalid;
 
 	if (!m_client->db()->execUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind)) {
 		(*jsonResponse)["error"] = "user update error";

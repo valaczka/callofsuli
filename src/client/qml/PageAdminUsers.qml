@@ -61,16 +61,11 @@ Page {
 
 	StackView.onActivated: {
 		toolbar.resetTitle()
-		panelLayout.model.clear()
-		panelLayout.model.append(
-					{ url: "AdminUserClassList.qml", params: { adminUsers: adminUsers } }
-					)
-		panelLayout.model.append(
-					{ url: "AdminUserList.qml", params: { adminUsers: adminUsers } }
-					)
-		panelLayout.model.append(
-					{ url: "AdminUserData.qml", params: { adminUsers: adminUsers } }
-					)
+		panelLayout.panels = [
+					{ url: "AdminUserClassList.qml", params: { adminUsers: adminUsers }, fillWidth: false },
+					{ url: "AdminUserList.qml", params: { adminUsers: adminUsers }, fillWidth: true },
+					{ url: "AdminUserData.qml", params: { adminUsers: adminUsers }, fillWidth: true }
+				]
 	}
 
 	StackView.onDeactivated: {
@@ -93,10 +88,10 @@ Page {
 			return true
 		}
 
-		if (mainStack.depth > pageEditor.StackView.index+1) {
-			if (!mainStack.get(pageEditor.StackView.index+1).stackBack()) {
-				if (mainStack.depth > pageEditor.StackView.index+1) {
-					mainStack.pop(pageEditor)
+		if (mainStack.depth > pageAdminUsers.StackView.index+1) {
+			if (!mainStack.get(pageAdminUsers.StackView.index+1).stackBack()) {
+				if (mainStack.depth > pageAdminUsers.StackView.index+1) {
+					mainStack.pop(pageAdminUsers)
 				}
 			}
 			return true

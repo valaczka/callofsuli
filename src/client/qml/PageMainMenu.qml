@@ -41,6 +41,8 @@ Page {
 			id: list
 			anchors.fill: parent
 
+			isObjectModel: true
+
 			model: ListModel { }
 
 			onClicked: JS.createPage(model.get(index).page, model.get(index).params, page)

@@ -16,6 +16,8 @@ Item {
 	property alias title: labelTitle.text
 
 	property bool readOnly: false
+	property bool checkable: false
+	property alias checked: checkTitle.checked
 
 	property string modelTextRole: "text"
 	property string modelColorRole: ""
@@ -37,20 +39,21 @@ Item {
 		}
 	}
 
+
 	Label {
 		id: labelTitle
+
+		visible: !control.checkable && text.length
 
 		anchors.top: parent.top
 		anchors.topMargin: 5
 		anchors.left: parent.left
-
-		visible: text.length
 	}
 
 	Flow {
 		id: flow
 
-		anchors.left: labelTitle.visible ? labelTitle.right : parent.left
+		anchors.left: labelTitle.visible ? labelTitle.right : checkTitle.visible ? checkTitle.right : parent.left
 		anchors.right: parent.right
 
 		topPadding: 5
@@ -94,6 +97,14 @@ Item {
 		enabled: !control.readOnly
 
 		onClicked: control.clicked()
+	}
+
+	QCheckBox {
+		id: checkTitle
+		text: labelTitle.text
+		visible: control.checkable
+		anchors.verticalCenter: parent.verticalCenter
+		anchors.left: parent.left
 	}
 
 }

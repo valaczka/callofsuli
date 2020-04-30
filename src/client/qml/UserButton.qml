@@ -22,8 +22,6 @@ Rectangle {
 
 	property UserDetails userDetails: null
 
-	implicitHeight: imageSize
-	implicitWidth: imageSize
 
 	color: area.containsMouse ? "grey" : "transparent"
 	radius: 3

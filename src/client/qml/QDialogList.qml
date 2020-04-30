@@ -1,6 +1,7 @@
 import QtQuick 2.14
 import QtQuick.Controls 2.14
 import QtGraphicalEffects 1.0
+import SortFilterProxyModel 0.2
 import "Style"
 import "JScript.js" as JS
 import "."
@@ -14,7 +15,7 @@ Item {
 	property alias title: mainRow.title
 	property alias newField: tfInput
 	property alias list: list
-	property alias model: list.model
+	property ListModel model: ListModel {}
 	property bool simpleSelect: !list.selectorSet
 
 	signal dlgClose()
@@ -69,21 +70,40 @@ Item {
 			}
 
 
-
-
-			QTextField {
-				id: tfInput
+			QPageHeader {
+				id: header
 
 				anchors.top: mainRow.bottom
 				anchors.left: parent.left
 				anchors.right: parent.right
+
+				isSelectorMode: list.selectorSet || !tfInput.visible
+
+				labelCountText: list.selectedItemCount
+
+				QTextField {
+					id: tfInput
+					width: parent.width
+				}
+
+				onSelectAll: list.selectAll()
 			}
 
-
+			SortFilterProxyModel {
+				id: userProxyModel
+				sourceModel: item.model
+				filters:  RegExpFilter {
+					enabled: header.searchText.text.length
+					roleName: list.modelTitleRole
+					pattern: header.searchText.text
+					caseSensitivity: Qt.CaseInsensitive
+					syntax: RegExpFilter.FixedString
+				}
+			}
 
 			QListItemDelegate {
 				id: list
-				anchors.top: tfInput.visible ? tfInput.bottom : mainRow.bottom
+				anchors.top: header.bottom
 				anchors.left: parent.left
 				anchors.right: parent.right
 				anchors.bottom: parent.bottom
@@ -91,8 +111,14 @@ Item {
 				anchors.topMargin: 0
 				anchors.bottomMargin: mainRow.padding
 
+				model: userProxyModel
+				isProxyModel: true
+
 				onClicked: if (simpleSelect) {
-							   dlgAccept(index)
+							   if (isProxyModel)
+								   dlgAccept(model.mapToSource(index))
+							   else
+								   dlgAccept(index)
 						   }
 			}
 
@@ -135,7 +161,9 @@ Item {
 
 	}
 
+
 	function populated() {
+		list.calculateSelectedItems()
 		tfInput.forceActiveFocus()
 	}
 

@@ -19,7 +19,7 @@ QtObject {
 
 	readonly property color colorError: Material.color(Material.DeepOrange, Material.ShadeA700)
 	readonly property color colorErrorLighter: Material.color(Material.DeepOrange, Material.ShadeA400)
-	readonly property color colorErrorLigth: Material.color(Material.DeepOrange, Material.ShadeA100)
+	readonly property color colorErrorLight: Material.color(Material.DeepOrange, Material.ShadeA100)
 	readonly property color colorErrorDarker: Material.color(Material.Red, Material.ShadeA700)
 	readonly property color colorErrorDark: Material.color(Material.Red, Material.Shade900)
 
@@ -39,4 +39,5 @@ QtObject {
 
 	readonly property int pixelSize: 18
 	readonly property int baseHeight: Qt.platform.os === "android" ? 48 : 32
+	readonly property int twoLineHeight: 48
 }

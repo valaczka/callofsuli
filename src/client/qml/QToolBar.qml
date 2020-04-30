@@ -71,6 +71,7 @@ ToolBar {
 
 		Loader {
 			id: rightLoader
+			Layout.fillWidth: false
 		}
 	}
 

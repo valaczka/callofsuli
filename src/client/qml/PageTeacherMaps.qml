@@ -88,6 +88,12 @@ Page {
 			id: listMaps
 			anchors.fill: parent
 
+			isObjectModel: true
+
+			modelTitleRole: "name"
+			modelSubtitleRole: "labelSubtitle"
+			modelRightRole: "id"
+
 			onClicked: teacherMaps.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
 
 			onLongPressed: {
@@ -169,9 +175,7 @@ Page {
 		listMaps.model.clear()
 		for (var i=0; i<list.length; i++) {
 			var o = list[i]
-			o.labelTitle = o.name
 			o.labelSubtitle = o.timeCreated+" "+o.timeModified+" v"+o.version
-			o.labelRight = o.id
 			o.toolTip = "Objectives "+o.objectives
 			listMaps.model.append(o)
 		}

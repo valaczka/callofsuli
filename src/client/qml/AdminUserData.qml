@@ -22,17 +22,6 @@ QPagePanel {
 		width: parent.width
 		watchModification: true
 
-		QGridLabel { field: textUserName }
-
-		QGridTextField {
-			id: textUserName
-			fieldName: username.length ? qsTr("Felhasználónév") : qsTr("Új felhasználó létrehozása")
-			sqlField: "username"
-
-			readOnly: username.length
-
-			validator: RegExpValidator { regExp: /[A-Za-z0-9_-.]+/ }
-		}
 
 
 		QGridLabel { field: textFirstName }
@@ -50,8 +39,31 @@ QPagePanel {
 			id: textLastName
 			fieldName: qsTr("Keresztnév")
 			sqlField: "lastname"
+
+			onEditingFinished: if (textUserName.text.length === 0) {
+								   var l = []
+								   if (textFirstName.text.length)
+									   l.push(textFirstName.text)
+
+								   if (textLastName.text.length)
+									   l.push(textLastName.text)
+
+								   if (l.length)
+									   textUserName.text = l.join(".")
+							   }
 		}
 
+		QGridLabel { field: textUserName }
+
+		QGridTextField {
+			id: textUserName
+			fieldName: username.length ? qsTr("Felhasználónév") : qsTr("Új felhasználó létrehozása")
+			sqlField: "username"
+
+			readOnly: username.length
+
+			validator: RegExpValidator { regExp: /.+/ }
+		}
 
 		QGridLabel { field: textEmail }
 
@@ -67,6 +79,7 @@ QPagePanel {
 			id: checkActive
 			text: qsTr("Aktív")
 			sqlField: "active"
+			enabled: username !== cosClient.userName
 		}
 
 		QGridLabel { text: qsTr("Osztály") }
@@ -133,7 +146,7 @@ QPagePanel {
 		onUserLoaded: load(data)
 
 		onUserUpdated: if (data.error) {
-						   cosClient.sendMessageWarning(tr("Felhasználó módosítása"), data.error)
+						   cosClient.sendMessageWarning(qsTr("Felhasználó módosítása"), data.error)
 					   } else {
 						   username=data.updatedUserName
 					   }
@@ -196,7 +209,9 @@ QPagePanel {
 
 		if (d)
 			comboClass.setValue(d.classid ? d.classid : -1)
-		else
+		else {
 			comboClass.setValue(selectedClass)
+			textFirstName.forceActiveFocus()
+		}
 	}
 }

@@ -15,25 +15,25 @@ QPagePanel {
 	QPageHeader {
 		id: header
 
-		height: col.height
+		isSelectorMode: classList.selectorSet
 
-		Column {
-			id: col
+		labelCountText: classList.selectedItemCount
+
+		QTextField {
+			id: newClassName
 			width: parent.width
 
+			validator: RegExpValidator { regExp: /.+/ }
 
-			QTextField {
-				id: newClassName
-				width: parent.width
-
-				placeholderText: qsTr("új osztály hozzáadása")
-				onAccepted: {
-					console.debug("send "+text)
-					adminUsers.send({"class": "user", "func": "classCreate", "name": text })
-				}
+			placeholderText: qsTr("új osztály hozzáadása")
+			onAccepted: {
+				adminUsers.send({"class": "user", "func": "classCreate", "name": text })
 			}
 		}
+
+		onSelectAll: classList.selectAll()
 	}
+
 
 	QListItemDelegate {
 		id: classList
@@ -42,7 +42,12 @@ QPagePanel {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		onClicked: reloadUserList()
+		isObjectModel: true
+		modelTitleRole: "name"
+
+		autoSelectorChange: true
+
+		onClicked: pageAdminUsers.classSelected(model.get(index).id)
 	}
 
 
@@ -60,6 +65,12 @@ QPagePanel {
 		onUserUpdated: reloadUserList()
 	}
 
+	onAdminUsersChanged: {
+		if (adminUsers) {
+			reloadClassList()
+			reloadUserList()
+		}
+	}
 
 	function reloadClassList() {
 		adminUsers.send({"class": "user", "func": "getAllClass"})
@@ -67,77 +78,10 @@ QPagePanel {
 
 
 	function reloadUserList() {
-		var d = {"class": "user", "func": "getAllUser"}
-
-		var mode = -5
-
-		if (classList.currentIndex != -1) {
-			mode = classList.model.get(classList.currentIndex).id
-		}
-
-		if (mode === -1) {
-			d.classid = null
-			d.isTeacher = false
-		} else if (mode === -2) {
-			d.isTeacher = false
-		} else if (mode === -3) {
-			d.isTeacher = true
-		} else if (mode === -4) {
-			d.isAdmin = true
-		} else if (mode === -5) {
-
-		} else {
-			d.classid = mode
-			d.isTeacher = false
-		}
-
-		if (mode >= 0)
-			pageAdminUsers.classSelected(mode)
-		else
-			pageAdminUsers.classSelected(-1)
-
-		/*if (active !== null)
-			d.active = active*/
-
-		adminUsers.send(d)
+		adminUsers.send({"class": "user", "func": "getAllUser"})
 	}
 
-
-
 	function getClassList(_list) {
-		classList.model.clear()
-
-		for (var i=0; _list && i<_list.length; ++i) {
-			var o=_list[i]
-			o.labelTitle = o.name
-			classList.model.append(o)
-		}
-
-		classList.model.append({
-							  id: -1,
-							  labelTitle: qsTr("Osztály nélkül")
-						  })
-
-		classList.model.append({
-							  id: -2,
-							  labelTitle: qsTr("Minden diák")
-						  })
-
-		classList.model.append({
-							  id: -3,
-							  labelTitle: qsTr("Tanárok")
-						  })
-
-		classList.model.append({
-							  id: -4,
-							  labelTitle: qsTr("Adminok")
-						  })
-
-		classList.model.append({
-							  id: -5,
-							  labelTitle: qsTr("Mindenki")
-						  })
-
-
+		JS.setModel(classList.model, _list)
 	}
 }

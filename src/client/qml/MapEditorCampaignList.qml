@@ -20,7 +20,7 @@ QPagePanel {
 
 		labelCountText: list.selectedItemCount
 
-		leftLoader.sourceComponent:  QTextField {
+		QTextField {
 			id: newCampaignName
 			width: parent.width
 
@@ -36,7 +36,6 @@ QPagePanel {
 		rightLoader.sourceComponent: QCloseButton { }
 
 		onSelectAll: list.selectAll()
-		onDeselectAll: list.deselectAll()
 	}
 
 	QListItemDelegate {

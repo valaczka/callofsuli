@@ -9,6 +9,7 @@ ToolButton {
 	id: button
 
 	property string buttonLabel: "M\ue5d4"
+	property alias menu: menu
 
 	Material.foreground: CosStyle.colorPrimaryLight
 	Component.onCompleted: JS.setIconFont(button, buttonLabel)

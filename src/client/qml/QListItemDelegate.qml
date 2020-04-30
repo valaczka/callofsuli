@@ -14,14 +14,17 @@ QListView {
 	property string modelRightRole: ""
 	property string modelEnabledRole: ""
 	property string modelToolTipRole: ""
-	property string modelSeparatorRole: ""
 	property string modelSelectedRole: "selected"
 	property string modelDepthRole: ""
+	property string modelTitleColorRole: ""
+	property string modelSubtitleColorRole: ""
+	property string modelBackgroundRole: ""
 
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
 
-	property bool isObjectModel: selectorSet || autoSelectorChange
+	property bool isObjectModel: isProxyModel || selectorSet || autoSelectorChange
+	property bool isProxyModel: false
 
 	property int selectedItemCount: 0
 
@@ -29,6 +32,8 @@ QListView {
 
 	property int delegateHeight: CosStyle.baseHeight
 	property int depthWidth: CosStyle.baseHeight
+
+	property color currentColor: CosStyle.colorPrimaryLighter
 
 	signal clicked(int index)
 	signal rightClicked(int index)
@@ -38,7 +43,7 @@ QListView {
 
 	delegate: Rectangle {
 		id: item
-		height: isSeparator ? view.delegateHeight/2 : view.delegateHeight
+		height: view.delegateHeight
 		width: view.width - x
 		x: depth*view.depthWidth
 
@@ -64,14 +69,13 @@ QListView {
 																	  model.modelData[modelSelectedRole]
 													  ) : false
 
-		property bool isSeparator: modelSeparatorRole.length && (isObjectModel ? model[modelSeparatorRole] :
-																				 model.modelData[modelSeparatorRole])
-								   ? true : false
+		property color baseColor: modelBackgroundRole.length ? (
+																   isObjectModel ? model[modelBackgroundRole] : model.modelData[modelBackgroundRole]
+																   ) : CosStyle.colorPrimary
 
-		color: isSeparator ? "transparent" :
-							 (area.containsMouse || item.activeFocus) ?
-								 CosStyle.colorPrimaryLighter :
-								 CosStyle.colorPrimary
+		color: area.containsMouse ?
+								 (currentIndex === index ? Qt.lighter(view.currentColor, 1.3) :  Qt.lighter(baseColor, 1.3)) :
+								 (currentIndex === index ? view.currentColor :  baseColor)
 
 		signal clicked()
 		signal rightClicked()
@@ -82,7 +86,7 @@ QListView {
 												 ) : ""
 		ToolTip.visible: (modelToolTipRole.length ? ( isObjectModel ? model[modelToolTipRole] :
 																	  model.modelData[modelToolTipRole].length)
-												  : false) && (area.containsMouse || area.pressed) && !isSeparator
+												  : false) && (area.containsMouse || area.pressed)
 		ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 
 		Behavior on color { ColorAnimation { duration: 125 } }
@@ -91,8 +95,6 @@ QListView {
 
 		RowLayout {
 			anchors.fill: parent
-
-			visible: !isSeparator
 
 			Loader {
 				id: leftLoader
@@ -180,7 +182,9 @@ QListView {
 				Label {
 					id: lblTitle
 					text: item.labelTitle
-					color: "black"
+					color: modelTitleColorRole.length ? (
+															isObjectModel ? model[modelTitleColorRole] : model.modelData[modelTitleColorRole]
+															) : "black"
 					maximumLineCount: 1
 					elide: Text.ElideRight
 				}
@@ -188,7 +192,9 @@ QListView {
 				Label {
 					id: lblSubtitle
 					text: item.labelSubtitle
-					color: "black"
+					color: modelSubtitleColorRole.length ? (
+															   isObjectModel ? model[modelSubtitleColorRole] : model.modelData[modelSubtitleColorRole]
+															   ) : "black"
 				}
 			}
 
@@ -212,8 +218,6 @@ QListView {
 			anchors.fill: parent
 			hoverEnabled: true
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
-			enabled: !isSeparator
-
 
 			onClicked: {
 				if (mouse.button == Qt.RightButton)
@@ -236,15 +240,7 @@ QListView {
 		}
 
 
-		Rectangle {
-			width: parent.width*0.75
-			height: 2
 
-			visible: isSeparator
-
-			anchors.centerIn: parent
-			color: CosStyle.colorPrimaryDarker
-		}
 
 
 		onClicked: {
@@ -349,20 +345,22 @@ QListView {
 
 
 
-	function selectAll(s) {
+	function selectAll() {
 		var t = true
 
-		if (s === false)
+		if (model.count === selectedItemCount)
 			t = false
 
 		for (var i=0; i<model.count; ++i) {
-			model.get(i)[modelSelectedRole] = t
+			if (isProxyModel) {
+				var idx=model.mapToSource(i)
+				model.sourceModel.get(idx)[modelSelectedRole] = t
+			} else {
+				model.get(i)[modelSelectedRole] = t
+			}
 		}
 
 		calculateSelectedItems()
 	}
 
-	function deselectAll() {
-		selectAll(false)
-	}
 }
