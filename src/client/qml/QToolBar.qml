@@ -10,25 +10,25 @@ ToolBar {
 
 	property alias title: animatedTitle.str
 	property alias backButton: backButton
-	property string backButtonIcon: "M\ue5c4"
-	property alias rightLoader: rightLoader
+	property string backButtonIcon: CosStyle.iconBack
+	//property alias rightLoader: rightLoader
 	property alias menuLoader: menuLoader
+
+	default property alias rowContent: mainRow.data
 
 	//height: CosStyle.baseHeight
 
 	Material.primary: "transparent" //CosStyle.colorPrimaryDark
 
-	onBackButtonIconChanged: JS.setIconFont(backButton, backButtonIcon)
-
 	RowLayout {
+		id: mainRow
 		anchors.fill: parent
 		anchors.leftMargin: backButton.visible ? 0 : 10
 
-		ToolButton {
+		QToolButton {
 			id: backButton
 
-			Material.foreground: CosStyle.colorPrimaryLight
-			Component.onCompleted: JS.setIconFont(backButton, backButtonIcon)
+			icon.source: backButtonIcon
 		}
 
 
@@ -69,10 +69,10 @@ ToolBar {
 			}
 		}
 
-		Loader {
+		/*Loader {
 			id: rightLoader
 			Layout.fillWidth: false
-		}
+		}*/
 	}
 
 	function resetTitle() {

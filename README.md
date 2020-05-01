@@ -1,4 +1,4 @@
-# callofsuli
+# Call of Suli
 Call of Suli
 
 Copyright (c) 2012-2020 - Valaczka János Pál
@@ -15,5 +15,5 @@ https://github.com/oKcerG/SortFilterProxyModel
 
 # QtXlsxWriter
 
-Copyright (C) 2013-2014 Debao Zhang
+Copyright (c) 2013-2014 Debao Zhang
 https://github.com/dbzhang800/QtXlsxWriter

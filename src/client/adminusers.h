@@ -52,10 +52,12 @@ signals:
 	void userLoaded(const QJsonObject &data);
 	void userCreated(const QJsonObject &data);
 	void userUpdated(const QJsonObject &data);
+	void userBatchUpdated(const QJsonObject &data);
 
 	void classListLoaded(const QJsonArray &list);
 	void classCreated(const QJsonObject &data);
 	void classUpdated(const QJsonObject &data);
+	void classBatchRemoved(const QJsonObject &data);
 
 private slots:
 	void onJsonReceived(const QJsonObject &object, const QByteArray &, const int &clientMsgId);

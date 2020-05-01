@@ -18,8 +18,7 @@ Item {
 
 	property alias title: labelTitle.text
 	property alias color: labelTitle.color
-	property string icon: ""
-	onIconChanged: JS.setIconFont(mainIcon, icon)
+	property alias icon: mainIcon.icon
 
 	DropShadow {
 		anchors.fill: mainRow
@@ -40,14 +39,16 @@ Item {
 
 		spacing: 10
 
-		Text {
+		QFontImage {
 			id: mainIcon
 
 			anchors.verticalCenter: parent.verticalCenter
 
 			color: labelTitle.color
 
-			font.pixelSize: CosStyle.pixelSize*2.0
+			width: CosStyle.pixelSize*2.0
+			height: CosStyle.pixelSize*2.0
+			size: CosStyle.pixelSize*2.0
 		}
 
 		Label {

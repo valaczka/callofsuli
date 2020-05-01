@@ -5,13 +5,10 @@ import "Style"
 import "JScript.js" as JS
 import "."
 
-ToolButton {
+QToolButton {
 	id: button
 
-	Material.foreground: CosStyle.colorPrimaryLight
-	Component.onCompleted: JS.setIconFont(button, "M\ue14c")
+	icon.source: CosStyle.iconClose
 
 	ToolTip.text: qsTr("Bezárás")
-	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-	ToolTip.visible: hovered && ToolTip.text.length
 }

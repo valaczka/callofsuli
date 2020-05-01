@@ -65,11 +65,11 @@ Item {
 			QDialogHeader {
 				id: mainRow
 				icon: if (type === "info")
-						  "M\ue88f"
+						  CosStyle.iconDialogInfo
 					  else if (type === "warning")
-						  "M\ue002"
+						  CosStyle.iconDialogWarning
 					  else if (type === "error")
-						  "M\ue000"
+						  CosStyle.iconDialogError
 
 				color: if (type === "info")
 						   CosStyle.colorPrimary
@@ -148,8 +148,8 @@ Item {
 			id: buttonOk
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.bottom: parent.bottom
-			label: qsTr("OK")
-			icon: "M\ue5ca"
+			text: qsTr("OK")
+			icon.source: CosStyle.iconOK
 
 			onClicked: item.dlgClose()
 		}

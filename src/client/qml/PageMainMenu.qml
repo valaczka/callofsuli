@@ -16,8 +16,9 @@ Page {
 		title: cosClient.serverName
 
 		backButton.visible: true
+		backButton.onClicked: mainStack.back()
 
-		rightLoader.sourceComponent: UserButton {
+		UserButton {
 			userDetails: userData
 		}
 	}

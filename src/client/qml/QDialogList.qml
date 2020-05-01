@@ -66,7 +66,7 @@ Item {
 
 			QDialogHeader {
 				id: mainRow
-				icon: "M\ue887"
+				icon: CosStyle.iconDialogQuestion
 			}
 
 
@@ -134,9 +134,9 @@ Item {
 			QButton {
 				id: buttonNo
 				anchors.verticalCenter: parent.verticalCenter
-				label: qsTr("Mégsem")
-				icon: "M\ue5cd"
-				bgColor: CosStyle.colorErrorDarker
+				text: qsTr("Mégsem")
+				icon.source: CosStyle.iconCancel
+				backgroundColor: CosStyle.colorErrorDarker
 				borderColor: CosStyle.colorErrorDark
 
 				onClicked: dlgClose()
@@ -149,10 +149,9 @@ Item {
 
 				visible: !simpleSelect
 
-				label: qsTr("OK")
-				icon: "M\ue5ca"
-
-				bgColor: CosStyle.colorOKDarker
+				text: qsTr("OK")
+				icon.source: CosStyle.iconOK
+				backgroundColor: CosStyle.colorOKDarker
 				borderColor: CosStyle.colorOKDark
 
 				onClicked: dlgAccept(list.currentIndex)

@@ -70,10 +70,7 @@ int Servers::serverListReload()
 	foreach (QVariant v, list) {
 		QVariantMap m = v.toMap();
 		if (m["autoconnect"].toBool()) {
-			m["icon"] = "M\ue838";
 			autoconnectId = m["id"].toInt();
-		} else {
-			m["icon"] = "M\ue83a";
 		}
 		list2 << m;
 	}
@@ -82,7 +79,6 @@ int Servers::serverListReload()
 	m["id"] = -1;
 	m["labelTitle"] = tr("-- Új szerver hozzáadása --");
 	m["autoconnect"] = false;
-	m["icon"] = "M\ue83a";
 	list2 << m;
 
 	emit serverListLoaded(list2);

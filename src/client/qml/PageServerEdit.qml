@@ -88,10 +88,10 @@ Page {
 
 			QGridButton {
 				id: buttonSave
-				label: qsTr("Mentés")
-				disabled: !textName.acceptableInput ||
-						  !textHostname.acceptableInput ||
-						  !textPort.acceptableInput
+				text: qsTr("Mentés")
+				enabled: textName.acceptableInput &&
+						  textHostname.acceptableInput &&
+						  textPort.acceptableInput
 
 				onClicked: {
 					var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl],

@@ -155,6 +155,53 @@ void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief User::userBatchUpdate
+ * @param jsonResponse
+ */
+
+void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantList users = m_jsonData["users"].toArray().toVariantList();
+
+	if (!users.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantMap params = m_jsonData.toVariantMap();
+	params.remove("users");
+
+
+	QStringList paramList;
+	QVariantList dataList;
+
+
+	QMapIterator<QString, QVariant> i(params);
+	while (i.hasNext()) {
+		i.next();
+		paramList << i.key()+"=?";
+
+		QVariantList d;
+		for (int j=0; j<users.count(); ++j)
+			d << i.value();
+		QVariantMap m;
+		m["list"] = d;
+		dataList << m;
+	}
+
+	QString cmd = "UPDATE USER SET "+paramList.join(", ")+" WHERE username=?";
+	QVariantMap m;
+	m["list"] = users;
+	dataList << m;
+
+	if (m_client->db()->execBatchQuery(cmd, dataList))
+		(*jsonResponse)["updated"] = true;
+	else
+		(*jsonResponse)["error"] = "sql error";
+}
+
+
 
 /**
  * @brief User::getAllClass
@@ -211,6 +258,32 @@ void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 	(*jsonResponse)["updated"] = bind[":id"].toInt();
+}
+
+
+/**
+ * @brief User::classRemove
+ * @param jsonResponse
+ */
+
+void User::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantList list = m_jsonData["list"].toArray().toVariantList();
+
+	if (!list.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantList dataList;
+	QVariantMap m;
+	m["list"] = list;
+	dataList << m;
+
+	if (m_client->db()->execBatchQuery("DELETE FROM class WHERE id=?", dataList))
+		(*jsonResponse)["removed"] = true;
+	else
+		(*jsonResponse)["error"] = "sql error";
 }
 
 

@@ -20,28 +20,14 @@ QListView {
 		id: delegateItem
 		height: view.delegateHeight
 		width: view.width
-		animationEnabled: view.buttonAnimationEnabled
 
-		disabled: model.disabled
-		selected: model.selected
 		icon: model.icon
-		label: view.labelVisible ? model.label : ""
+		text: view.labelVisible ? model.label : ""
 		horizontalPadding: 7
-		rowCentered: !view.labelVisible
 
 		onClicked: {
 			view.currentIndex = index
 			view.clicked(index)
-		}
-
-		onLongPressed: {
-			view.currentIndex = index
-			view.longPressed(index)
-		}
-
-		onRightClicked: {
-			view.currentIndex = index
-			view.rightClicked(index)
 		}
 	}
 }

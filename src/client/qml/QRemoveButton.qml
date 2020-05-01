@@ -16,20 +16,20 @@ Item {
 	height: label.height
 	width: 48
 
-	Label {
+	QFontImage {
 		id: label
 
 		anchors.centerIn: parent
 
 		color: area.containsMouse ? CosStyle.colorErrorLighter : CosStyle.colorError
 
-		Component.onCompleted: JS.setIconFont(label, "M\ue872")
+		icon: CosStyle.iconRemove
 
 		ToolTip.text: tooltip
 		ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 		ToolTip.visible: area.containsMouse && ToolTip.text.length
 
-		font.pixelSize: CosStyle.pixelSize*1.2
+		size: CosStyle.pixelSize*1.2
 
 
 		Binding on scale {

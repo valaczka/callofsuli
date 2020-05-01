@@ -62,7 +62,7 @@ Item {
 
 			QDialogHeader {
 				id: mainRow
-				icon: "M\ue887"
+				icon: CosStyle.iconDialogQuestion
 			}
 
 			DropShadow {
@@ -100,9 +100,9 @@ Item {
 			QButton {
 				id: buttonNo
 				anchors.verticalCenter: parent.verticalCenter
-				label: qsTr("Nem")
-				icon: "M\ue5cd"
-				bgColor: CosStyle.colorErrorDarker
+				text: qsTr("Nem")
+				icon.source: CosStyle.iconCancel
+				backgroundColor: CosStyle.colorErrorDarker
 				borderColor: CosStyle.colorErrorDark
 
 				onClicked: dlgClose()
@@ -113,10 +113,9 @@ Item {
 
 				anchors.verticalCenter: parent.verticalCenter
 
-				label: qsTr("Igen")
-				icon: "M\ue5ca"
-
-				bgColor: CosStyle.colorOKDarker
+				text: qsTr("Igen")
+				icon.source: CosStyle.iconOK
+				backgroundColor: CosStyle.colorOKDarker
 				borderColor: CosStyle.colorOKDark
 
 				onClicked: dlgAccept(true)

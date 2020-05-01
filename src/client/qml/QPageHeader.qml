@@ -14,13 +14,14 @@ Rectangle {
 	anchors.right: parent.right
 	color: CosStyle.colorPrimaryDark
 
-	height: Math.max(mainItem.height, rightLoader.height, row.height)+1
+	height: Math.max(mainItem.height, rightLoader.height, col.height)+1
 
 	property bool isSelectorMode: false
 	property alias labelCountText: labelCount.text
 	property alias searchText: searchText
 
 	property alias rightLoader: rightLoader
+	property alias selectorLoader: selectorLoader
 	default property alias mainItemData: mainItem.data
 
 	signal selectAll()
@@ -39,8 +40,8 @@ Rectangle {
 		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
 
-	RowLayout {
-		id: row
+	Column {
+		id: col
 
 		width: mainItem.width
 		anchors.verticalCenter: parent.verticalCenter
@@ -48,44 +49,52 @@ Rectangle {
 		opacity: 0.0
 		visible: opacity != 0
 
+		RowLayout {
+			id: row
 
-		Label {
-			id: labelCount
-			text: ""
+			width: parent.width
 
-			horizontalAlignment: Text.AlignLeft
-			verticalAlignment: Text.AlignVCenter
+			Label {
+				id: labelCount
+				text: ""
 
-			Layout.fillWidth: false
-			Layout.fillHeight: true
+				horizontalAlignment: Text.AlignLeft
+				verticalAlignment: Text.AlignVCenter
+
+				Layout.fillWidth: false
+				Layout.fillHeight: true
+			}
+
+			QTextField {
+				id: searchText
+				Layout.fillWidth: true
+
+				placeholderText: qsTr("Keresés...")
+			}
+
+			QToolButton {
+				id: button1
+				icon.source: CosStyle.iconSelectAll
+
+				Layout.fillWidth: false
+				Layout.fillHeight: true
+
+				onClicked: control.selectAll()
+			}
 		}
 
-		QTextField {
-			id: searchText
-			Layout.fillWidth: true
+		Loader {
+			id: selectorLoader
 
-			placeholderText: qsTr("Keresés...")
-		}
-
-		ToolButton {
-			id: button1
-			property string buttonLabel: "M\ue162"
-
-			Layout.fillWidth: false
-			Layout.fillHeight: true
-
-			Material.foreground: CosStyle.colorPrimaryLight
-			Component.onCompleted: JS.setIconFont(button1, buttonLabel)
-			onButtonLabelChanged: JS.setIconFont(button1, buttonLabel)
-
-			onClicked: control.selectAll()
+			width: parent.width
 		}
 	}
+
 
 	Loader {
 		id: rightLoader
 
-		anchors.verticalCenter: parent.verticalCenter
+		anchors.top: parent.top
 		anchors.right: parent.right
 	}
 
@@ -103,7 +112,7 @@ Rectangle {
 			name: "SELECTOR"
 			when: isSelectorMode
 			PropertyChanges {
-				target: row
+				target: col
 				opacity: 1.0
 			}
 			PropertyChanges {
@@ -125,7 +134,7 @@ Rectangle {
 					easing.type: Easing.InOutQuad
 				}
 				NumberAnimation {
-					target: row
+					target: col
 					property: "opacity"
 					duration: 75
 					easing.type: Easing.InOutQuad
@@ -138,7 +147,7 @@ Rectangle {
 			to: "*"
 			SequentialAnimation {
 				NumberAnimation {
-					target: row
+					target: col
 					property: "opacity"
 					duration: 75
 					easing.type: Easing.InOutQuad

@@ -1,5 +1,5 @@
 
-
+/*
 function setIconFont(d, _icon) {
 	var f = _icon.charAt(0)
 	var c = _icon.charAt(1)
@@ -18,7 +18,7 @@ function setIconFont(d, _icon) {
 	d.text = c
 }
 
-
+*/
 
 function setColorAlpha(color, alpha) {
 	return Qt.hsla(color.hslHue, color.hslSaturation, color.hslLightness, alpha)

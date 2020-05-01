@@ -51,10 +51,10 @@ QPagePanel {
 				}
 
 				QButton {
-					label: qsTr("Célpont törlése")
+					text: qsTr("Célpont törlése")
 
-					icon: "M\ue5cd"
-					bgColor: CosStyle.colorErrorDarker
+					icon.source: CosStyle.iconDelete
+					backgroundColor: CosStyle.colorErrorDarker
 					borderColor: CosStyle.colorErrorDark
 
 					onClicked: {

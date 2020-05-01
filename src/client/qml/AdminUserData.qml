@@ -109,12 +109,13 @@ QPagePanel {
 
 		QGridButton {
 			id: buttonSave
-			label: username.length ? qsTr("Mentés") : qsTr("Létrehozás")
-			disabled: !textUserName.acceptableInput ||
-					  !textFirstName.acceptableInput ||
-					  !textLastName.acceptableInput ||
-					  !textEmail.acceptableInput ||
-					  !grid.modified
+			text: username.length ? qsTr("Mentés") : qsTr("Létrehozás")
+			icon.source: username.length ? CosStyle.iconSave : CosStyle.iconAdd
+			enabled: textUserName.acceptableInput &&
+					  textFirstName.acceptableInput &&
+					  textLastName.acceptableInput &&
+					  textEmail.acceptableInput &&
+					  grid.modified
 
 			onClicked: {
 				var m = JS.getSqlFields([textUserName, textFirstName, textLastName, textEmail, checkActive, checkTeacher, checkAdmin, comboClass],
@@ -149,6 +150,7 @@ QPagePanel {
 						   cosClient.sendMessageWarning(qsTr("Felhasználó módosítása"), data.error)
 					   } else {
 						   username=data.updatedUserName
+						   get()
 					   }
 
 		onUserCreated: {
@@ -156,6 +158,7 @@ QPagePanel {
 				cosClient.sendMessageWarning(qsTr("Felhasználó létrehozása"), data.error)
 			} else {
 				username=data.createdUserName
+				get()
 			}
 		}
 
@@ -181,13 +184,13 @@ QPagePanel {
 			username = ""
 			load()
 		}
+
 	}
 
 	onUsernameChanged: get()
 
-	Component.onCompleted: {
-		adminUsers.send({"class": "user", "func": "getAllClass"})
-		get()
+	function populated() {
+
 	}
 
 	function get() {

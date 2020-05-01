@@ -25,7 +25,7 @@ Page {
 
 		title: qsTr("Felhasználók kezelése")
 
-		backButtonIcon: panelLayout.noDrawer ? "M\ue5c4" : "M\ue3c7"
+		backButtonIcon: panelLayout.noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
 		backButton.visible: true
 		backButton.onClicked: {
 			if (panelLayout.noDrawer)
@@ -34,7 +34,7 @@ Page {
 				panelLayout.drawerToggle()
 		}
 
-		rightLoader.sourceComponent: Row {
+		Row {
 			QToolBusyIndicator { running: adminUsers.isBusy }
 			QMenuButton {
 				MenuItem {

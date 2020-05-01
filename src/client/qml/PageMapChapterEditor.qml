@@ -24,7 +24,7 @@ Page {
 
 		title: qsTr("Célpont")
 
-		backButtonIcon: panelLayout.noDrawer ? "M\ue5c4" : "M\ue3c7"
+		backButtonIcon: panelLayout.noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
 		backButton.visible: true
 		backButton.onClicked: {
 			if (panelLayout.noDrawer)
@@ -34,7 +34,7 @@ Page {
 		}
 
 
-		rightLoader.sourceComponent: Row {
+		Row {
 			QToolBusyIndicator { running: pageEditor.isPageBusy }
 
 			QUndoButton  {

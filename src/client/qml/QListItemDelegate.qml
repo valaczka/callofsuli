@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
+import QtGraphicalEffects 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -11,7 +12,6 @@ QListView {
 
 	property string modelTitleRole: "labelTitle"
 	property string modelSubtitleRole: ""
-	property string modelRightRole: ""
 	property string modelEnabledRole: ""
 	property string modelToolTipRole: ""
 	property string modelSelectedRole: "selected"
@@ -29,6 +29,7 @@ QListView {
 	property int selectedItemCount: 0
 
 	property Component leftComponent: null
+	property Component rightComponent: null
 
 	property int delegateHeight: CosStyle.baseHeight
 	property int depthWidth: CosStyle.baseHeight
@@ -60,10 +61,6 @@ QListView {
 																	  isObjectModel ? model[modelSubtitleRole] :
 																					  model.modelData[modelSubtitleRole]
 																	  ) : ""
-		property string labelRight: modelRightRole.length ? (
-																isObjectModel ? model[modelRightRole] :
-																				model.modelData[modelRightRole]
-																) : ""
 		property bool itemSelected: selectorSet ? (
 													  isObjectModel ? model[modelSelectedRole] :
 																	  model.modelData[modelSelectedRole]
@@ -74,8 +71,8 @@ QListView {
 																   ) : CosStyle.colorPrimary
 
 		color: area.containsMouse ?
-								 (currentIndex === index ? Qt.lighter(view.currentColor, 1.3) :  Qt.lighter(baseColor, 1.3)) :
-								 (currentIndex === index ? view.currentColor :  baseColor)
+				   (currentIndex === index ? Qt.lighter(view.currentColor, 1.3) :  Qt.lighter(baseColor, 1.3)) :
+				   (currentIndex === index ? view.currentColor :  baseColor)
 
 		signal clicked()
 		signal rightClicked()
@@ -103,7 +100,7 @@ QListView {
 
 				Layout.fillHeight: false
 				Layout.fillWidth: false
-				Layout.alignment: Qt.AlignCenter
+				Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
 
 				property int modelIndex: index
 				property var model: item.itemModel
@@ -122,33 +119,20 @@ QListView {
 
 				property int fontSize: 24
 
-				front: Text {
-					id: txtUnselected
-
+				front: QFontImage {
 					anchors.fill: parent
-
-					font.pixelSize: flipable.fontSize
+					icon: CosStyle.iconUnchecked
+					size: flipable.fontSize
 					color: CosStyle.colorAccent
-
-					horizontalAlignment: Text.AlignHCenter
-					verticalAlignment: Text.AlignVCenter
-
-					Component.onCompleted: JS.setIconFont(txtUnselected, "M\ue836")
 				}
 
-				back: Text {
-					id: txtSelected
-
+				back: QFontImage {
 					anchors.fill: parent
-
-					font.pixelSize: flipable.fontSize
+					icon: CosStyle.iconChecked
+					size: flipable.fontSize
 					color: CosStyle.colorAccent
-
-					horizontalAlignment: Text.AlignHCenter
-					verticalAlignment: Text.AlignVCenter
-
-					Component.onCompleted: JS.setIconFont(txtSelected, "M\ue86c")
 				}
+
 
 				transform: Rotation {
 					id: rotation
@@ -192,6 +176,8 @@ QListView {
 				Label {
 					id: lblSubtitle
 					text: item.labelSubtitle
+					font.pixelSize: CosStyle.pixelSize*0.8
+					font.weight: Font.Light
 					color: modelSubtitleColorRole.length ? (
 															   isObjectModel ? model[modelSubtitleColorRole] : model.modelData[modelSubtitleColorRole]
 															   ) : "black"
@@ -199,16 +185,17 @@ QListView {
 			}
 
 
-			Label {
-				id: lblRight
+			Loader {
+				id: rightLoader
+				sourceComponent: view.rightComponent
+				visible: view.rightComponent
 
+				Layout.fillHeight: false
 				Layout.fillWidth: false
+				Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
 
-				Layout.alignment: Qt.AlignRight | Qt.AlignBottom
-
-				text: item.labelRight
-
-				color: "black"
+				property int modelIndex: index
+				property var model: item.itemModel
 			}
 		}
 
@@ -224,7 +211,23 @@ QListView {
 					item.rightClicked()
 				else {
 					if (view.selectorSet) {
-						model[modelSelectedRole] = !model[modelSelectedRole]
+						if (mouse.modifiers & Qt.ShiftModifier && view.currentIndex != -1) {
+							var i = Math.min(view.currentIndex, index)
+							var j = Math.max(view.currentIndex, index)
+
+							for (var n=i; n<=j; ++n) {
+								if (isProxyModel) {
+									var idx=view.model.mapToSource(n)
+									view.model.sourceModel.get(idx)[modelSelectedRole] = true
+								} else {
+									view.model.get(n)[modelSelectedRole] = true
+								}
+							}
+						} else {
+							model[modelSelectedRole] = !model[modelSelectedRole]
+						}
+
+						item.clicked()
 						calculateSelectedItems()
 					} else
 						item.clicked()
@@ -345,10 +348,10 @@ QListView {
 
 
 
-	function selectAll() {
+	function selectAll(un) {
 		var t = true
 
-		if (model.count === selectedItemCount)
+		if (model.count === selectedItemCount || un === false)
 			t = false
 
 		for (var i=0; i<model.count; ++i) {

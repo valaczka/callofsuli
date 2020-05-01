@@ -27,6 +27,7 @@ SOURCES += \
 		abstractdbactivity.cpp \
 		adminusers.cpp \
 		cosclient.cpp \
+		fontimage.cpp \
 		main.cpp \
 		map.cpp \
 		servers.cpp \
@@ -38,6 +39,7 @@ HEADERS += \
 	abstractdbactivity.h \
 	adminusers.h \
 	cosclient.h \
+	fontimage.h \
 	map.h \
 	servers.h \
 	sqlimage.h \

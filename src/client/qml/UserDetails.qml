@@ -45,7 +45,7 @@ Popup {
 		}
 
 		QButton {
-			label: (cosClient.userRoles & Client.RoleGuest) ? qsTr("Bejelentkezés") : qsTr("Kijelentkezés")
+			text: (cosClient.userRoles & Client.RoleGuest) ? qsTr("Bejelentkezés") : qsTr("Kijelentkezés")
 
 			onClicked: {
 				popupItem.close()
@@ -57,7 +57,7 @@ Popup {
 		}
 
 		QButton {
-			label: qsTr("Regisztráció")
+			text: qsTr("Regisztráció")
 		}
 	}
 

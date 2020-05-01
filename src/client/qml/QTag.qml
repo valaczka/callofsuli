@@ -19,6 +19,8 @@ Item {
 	property bool checkable: false
 	property alias checked: checkTitle.checked
 
+//	property alias checkBox: checkTitle
+
 	property string modelTextRole: "text"
 	property string modelColorRole: ""
 	property string modelBackgroundRole: ""

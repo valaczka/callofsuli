@@ -103,21 +103,18 @@ TextField {
 					   }
 
 
-	Label {
+	QFontImage {
 		id: clearLabel
-		Component.onCompleted: JS.setIconFont(clearLabel, "M\ue14a")
+		icon: CosStyle.iconClear
 		color: clearArea.containsMouse ? CosStyle.colorErrorLight : CosStyle.colorErrorLighter
 
-		leftPadding: 5
-		rightPadding: 5
+
+		width: size+10
+		height: parent.height
 
 		Behavior on color { ColorAnimation { duration: 125 } }
 
 		visible: control.text.length && !control.readOnly
-
-		height: parent.height
-
-		verticalAlignment: Text.AlignVCenter
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: parent.right

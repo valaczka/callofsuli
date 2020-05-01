@@ -40,7 +40,7 @@ Page {
 
 		title: mapName
 
-		backButtonIcon: panelLayout.noDrawer ? "M\ue5c4" : "M\ue3c7"
+		backButtonIcon: panelLayout.noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
 		backButton.visible: true
 		backButton.onClicked: {
 			if (panelLayout.noDrawer)
@@ -51,7 +51,7 @@ Page {
 
 
 		menuLoader.sourceComponent: QMenuButton {
-			buttonLabel: "M\ue5c5"
+			icon.source: CosStyle.iconDown
 
 			MenuItem {
 				text: qsTr("Hadjáratok")
@@ -74,7 +74,7 @@ Page {
 			}
 		}
 
-		rightLoader.sourceComponent: Row {
+		Row {
 			QToolBusyIndicator { running: isPageBusy }
 
 			QUndoButton  {

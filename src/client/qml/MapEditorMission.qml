@@ -58,10 +58,10 @@ QPagePanel {
 				}
 
 				QButton {
-					label: isSummary ? qsTr("Összegzés törlése") : qsTr("Küldetés törlése")
+					text: isSummary ? qsTr("Összegzés törlése") : qsTr("Küldetés törlése")
 
-					icon: "M\ue5cd"
-					bgColor: CosStyle.colorErrorDarker
+					icon.source: CosStyle.iconDelete
+					backgroundColor: CosStyle.colorErrorDarker
 					borderColor: CosStyle.colorErrorDark
 
 					onClicked: {

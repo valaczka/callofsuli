@@ -315,6 +315,7 @@ QVariantMap CosSql::runQuery(QSqlQuery query)
 }
 
 
+
 /**
  * @brief CosSql::query
  * @param query
@@ -330,6 +331,34 @@ bool CosSql::execQuery(QSqlQuery query)
 		return false;
 	}
 
+	return true;
+}
+
+
+/**
+ * @brief CosSql::execBatchQuery
+ * @param query
+ * @param args
+ * @return
+ */
+
+bool CosSql::execBatchQuery(QString query, const QVariantList &args)
+{
+	QSqlQuery q(m_db);
+
+	q.prepare(query);
+	for (int i=0; i<args.count(); ++i) {
+		QVariantMap m = args.at(i).toMap();
+		q.addBindValue(m.value("list").toList());
+	}
+
+	if (!q.execBatch()) {
+		QString errText = q.lastError().text();
+		qWarning().noquote() << tr("SQL error: ")+errText;
+		return false;
+	}
+
+	qDebug().noquote() << tr("SQL command: ")+q.executedQuery();
 	return true;
 }
 

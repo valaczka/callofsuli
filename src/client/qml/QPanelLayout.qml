@@ -98,25 +98,31 @@ Item {
 
 				Component.onCompleted: ldr.setSource(url, params)
 
-				ParallelAnimation {
+				SequentialAnimation {
 					id: animShow
 					running: false
 
-					NumberAnimation {
-						target: ldr
-						property: "scale"
-						from: 0.75
-						to: 1.0
-						duration: 175
-						easing.type: Easing.InOutQuad
+					ParallelAnimation {
+						NumberAnimation {
+							target: ldr
+							property: "scale"
+							from: 0.75
+							to: 1.0
+							duration: 175
+							easing.type: Easing.InOutQuad
+						}
+
+						NumberAnimation {
+							target: ldr
+							property: "opacity"
+							to: 1.0
+							duration: 75
+							easing.type: Easing.InOutQuad
+						}
 					}
 
-					NumberAnimation {
-						target: ldr
-						property: "opacity"
-						to: 1.0
-						duration: 75
-						easing.type: Easing.InOutQuad
+					ScriptAction {
+						script: ldr.item.populated()
 					}
 				}
 

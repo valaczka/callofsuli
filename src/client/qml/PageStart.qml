@@ -54,35 +54,35 @@ Page {
 
 		backButton.visible: false
 
-		rightLoader.sourceComponent: Component {
-			QMenuButton {
-				MenuItem {
-					text: qsTr("Új szerver")
-					onClicked:  editServer(-1)
-				}
 
-				MenuItem {
-					text: qsTr("Offline mód")
-					onClicked: JS.createPage("Offline", {}, page)
-				}
+		QMenuButton {
+			MenuItem {
+				text: qsTr("Új szerver")
+				onClicked:  editServer(-1)
+			}
 
-				MenuSeparator {}
+			MenuItem {
+				text: qsTr("Offline mód")
+				onClicked: JS.createPage("Offline", {}, page)
+			}
 
-				MenuItem {
-					text: qsTr("Névjegy")
-					onClicked: {
-						JS.dialogMessageInfo("Call of Suli",
-											 qsTr("Verzió: ")+Qt.application.version+
-											 "\n© 2012-2020 Valaczka János Pál"
-											 )
-					}
-				}
-				MenuItem {
-					text: qsTr("Kilépés")
-					onClicked: mainWindow.close()
+			MenuSeparator {}
+
+			MenuItem {
+				text: qsTr("Névjegy")
+				onClicked: {
+					JS.dialogMessageInfo("Call of Suli",
+										 qsTr("Verzió: ")+Qt.application.version+
+										 "\n© 2012-2020 Valaczka János Pál"
+										 )
 				}
 			}
+			MenuItem {
+				text: qsTr("Kilépés")
+				onClicked: mainWindow.close()
+			}
 		}
+
 	}
 
 

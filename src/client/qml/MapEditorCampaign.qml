@@ -50,10 +50,10 @@ QPagePanel {
 				}
 
 				QButton {
-					label: qsTr("Hadjárat törlése")
+					text: qsTr("Hadjárat törlése")
 
-					icon: "M\ue5cd"
-					bgColor: CosStyle.colorErrorDarker
+					icon.source: CosStyle.iconDelete
+					backgroundColor: CosStyle.colorErrorDarker
 					borderColor: CosStyle.colorErrorDark
 
 					onClicked: {

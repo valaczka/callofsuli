@@ -19,6 +19,7 @@ QPagePanel {
 
 		labelCountText: classList.selectedItemCount
 
+
 		QTextField {
 			id: newClassName
 			width: parent.width
@@ -28,6 +29,16 @@ QPagePanel {
 			placeholderText: qsTr("új osztály hozzáadása")
 			onAccepted: {
 				adminUsers.send({"class": "user", "func": "classCreate", "name": text })
+			}
+		}
+
+
+		rightLoader.sourceComponent: QMenuButton {
+			id: userMenu
+			anchors.verticalCenter: parent.verticalCenter
+
+			MenuItem {
+				action: actionRemove
 			}
 		}
 
@@ -48,6 +59,22 @@ QPagePanel {
 		autoSelectorChange: true
 
 		onClicked: pageAdminUsers.classSelected(model.get(index).id)
+
+		onRightClicked: contextMenu.popup()
+
+		QMenu {
+			id: contextMenu
+
+			MenuItem { action: actionRemove }
+		}
+	}
+
+	Action {
+		id: actionRemove
+		enabled: classList.selectorSet || classList.currentIndex !== -1
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Törlés")
+		onTriggered: deleteClasses()
 	}
 
 
@@ -59,16 +86,20 @@ QPagePanel {
 		onClassCreated: {
 			newClassName.clear()
 			reloadClassList()
+			classList.selectAll(false)
 		}
 
-		onUserCreated: reloadUserList()
-		onUserUpdated: reloadUserList()
+		onClassBatchRemoved:  if (data.error)
+								  cosClient.sendMessageWarning(qsTr("Osztályok törlése"), qsTr("Szerver hiba"), data.error)
+							  else {
+								  reloadClassList()
+								  classList.selectAll(false)
+							  }
 	}
 
-	onAdminUsersChanged: {
+	function populated() {
 		if (adminUsers) {
 			reloadClassList()
-			reloadUserList()
 		}
 	}
 
@@ -76,12 +107,20 @@ QPagePanel {
 		adminUsers.send({"class": "user", "func": "getAllClass"})
 	}
 
-
-	function reloadUserList() {
-		adminUsers.send({"class": "user", "func": "getAllUser"})
-	}
-
 	function getClassList(_list) {
 		JS.setModel(classList.model, _list)
+	}
+
+	function deleteClasses() {
+		var l = []
+		if (classList.selectorSet)
+			l = JS.getSelectedIndices(classList.model, "id")
+		else if (classList.currentIndex != -1)
+			l.push(classList.model.get(classList.currentIndex).id)
+
+		if (l.length === 0)
+			return
+
+		adminUsers.send({"class": "user", "func": "classBatchRemove", "list": l})
 	}
 }

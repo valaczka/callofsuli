@@ -34,6 +34,7 @@
 #include <QObject>
 #include <QQmlContext>
 #include <sqlimage.h>
+#include <fontimage.h>
 
 #include "cosclient.h"
 
@@ -56,6 +57,7 @@ int main(int argc, char *argv[])
 	context->setContextProperty("cosClient", &client);
 
 	engine.addImageProvider("sql", new SqlImage(&client));
+	engine.addImageProvider("font", new FontImage());
 
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
 	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

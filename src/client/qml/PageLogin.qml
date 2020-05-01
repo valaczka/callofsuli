@@ -64,9 +64,9 @@ Page {
 
 			QGridButton {
 				id: buttonLogin
-				label: qsTr("Bejelentkezés")
-				disabled: !textUser.acceptableInput ||
-						  !textPassword.acceptableInput
+				text: qsTr("Bejelentkezés")
+				enabled: textUser.acceptableInput &&
+						  textPassword.acceptableInput
 
 				onClicked: cosClient.login(textUser.text, "", textPassword.text)
 

@@ -48,7 +48,7 @@ Page {
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
 
-		rightLoader.sourceComponent: Row {
+		Row {
 			QToolBusyIndicator { running: teacherMaps.isBusy }
 			QMenuButton {
 				MenuItem {

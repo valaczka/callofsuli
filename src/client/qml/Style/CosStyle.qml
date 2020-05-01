@@ -40,4 +40,27 @@ QtObject {
 	readonly property int pixelSize: 18
 	readonly property int baseHeight: Qt.platform.os === "android" ? 48 : 32
 	readonly property int twoLineHeight: 48
+
+
+	readonly property string iconMenu: "image://font/Material Icons/\ue5d4"
+	readonly property string iconClose: "image://font/Material Icons/\ue14c"
+	readonly property string iconChecked: "image://font/Material Icons/\ue86c"
+	readonly property string iconUnchecked: "image://font/Material Icons/\ue836"
+	readonly property string iconTrash: "image://font/Material Icons/\ue872"
+	readonly property string iconRemove: iconTrash
+	readonly property string iconClear: "image://font/Material Icons/\ue14a"
+	readonly property string iconBack: "image://font/Material Icons/\ue5c4"
+	readonly property string iconUndo: "image://font/Material Icons/\ue166"
+	readonly property string iconSelectAll: "image://font/Material Icons/\ue162"
+	readonly property string iconDrawer: "image://font/Material Icons/\ue3c7"
+	readonly property string iconDelete: "image://font/Material Icons/\ue5cd"
+	readonly property string iconCancel: iconDelete
+	readonly property string iconAdd: "image://font/Material Icons/\ue145"
+	readonly property string iconSave: "image://font/Material Icons/\ue161"
+	readonly property string iconOK: "image://font/Material Icons/\ue5ca"
+	readonly property string iconDown: "image://font/Material Icons/\ue5c5"
+	readonly property string iconDialogQuestion: "image://font/Material Icons/\ue887"
+	readonly property string iconDialogInfo: "image://font/Material Icons/\ue88f"
+	readonly property string iconDialogWarning: "image://font/Material Icons/\ue002"
+	readonly property string iconDialogError: "image://font/Material Icons/\ue000"
 }

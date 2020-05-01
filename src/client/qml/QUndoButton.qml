@@ -6,7 +6,7 @@ import "Style"
 import "JScript.js" as JS
 import "."
 
-ToolButton {
+QToolButton {
 	id: button
 
 	property AbstractDbActivity dbActivity: null
@@ -15,12 +15,9 @@ ToolButton {
 
 	onClicked: undo()
 
-	Material.foreground: CosStyle.colorPrimaryLight
-	Component.onCompleted: JS.setIconFont(button, "M\ue166")
+	icon.source: CosStyle.iconUndo
 
 	ToolTip.text: ""
-	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-	ToolTip.visible: hovered && ToolTip.text.length
 
 	Connections {
 		target: dbActivity

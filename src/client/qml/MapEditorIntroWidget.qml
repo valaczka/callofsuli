@@ -28,7 +28,7 @@ Column {
 			watchModification: false
 
 			QGridButton {
-				label: isOutro ? qsTr("Outro hozzáadása") : qsTr("Intro hozzáadása")
+				text: isOutro ? qsTr("Outro hozzáadása") : qsTr("Intro hozzáadása")
 				visible: introId === -1
 				enabled: parentType !== Map.IntroUndefined
 
@@ -117,11 +117,11 @@ Column {
 			}
 
 			QGridButton {
-				label: isOutro ? qsTr("Outro törlése") : qsTr("Intro törlése")
+				text: isOutro ? qsTr("Outro törlése") : qsTr("Intro törlése")
 				visible: introId !== -1
 
-				icon: "M\ue5cd"
-				bgColor: CosStyle.colorErrorDarker
+				icon.source: CosStyle.iconDelete
+				backgroundColor: CosStyle.colorErrorDarker
 				borderColor: CosStyle.colorErrorDark
 
 				onClicked: {

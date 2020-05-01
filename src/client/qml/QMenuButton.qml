@@ -5,15 +5,11 @@ import "Style"
 import "JScript.js" as JS
 import "."
 
-ToolButton {
+QToolButton {
 	id: button
 
-	property string buttonLabel: "M\ue5d4"
+	icon.source: CosStyle.iconMenu
 	property alias menu: menu
-
-	Material.foreground: CosStyle.colorPrimaryLight
-	Component.onCompleted: JS.setIconFont(button, buttonLabel)
-	onButtonLabelChanged: JS.setIconFont(button, buttonLabel)
 
 	default property alias menuItems: menu.contentData
 

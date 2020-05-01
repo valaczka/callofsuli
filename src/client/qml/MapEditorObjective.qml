@@ -46,10 +46,10 @@ QPagePanel {
 				}
 
 				QButton {
-					label: objectiveId === -1 ? qsTr("Lőszer törlése") : qsTr("Fegyver törlése")
+					text: objectiveId === -1 ? qsTr("Lőszer törlése") : qsTr("Fegyver törlése")
 
-					icon: "M\ue5cd"
-					bgColor: CosStyle.colorErrorDarker
+					icon.source: CosStyle.iconDelete
+					backgroundColor: CosStyle.colorErrorDarker
 					borderColor: CosStyle.colorErrorDark
 
 					onClicked: {

@@ -17,14 +17,14 @@ Page {
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
 
-		rightLoader.sourceComponent: Row {
-			/*QToolBusyIndicator { running: .isBusy }
+		/*Row {
+			QToolBusyIndicator { running: .isBusy }
 			QMenuButton {
 				MenuItem {
 					text:
 				}
-			}*/
-		}
+			}
+		}*/
 	}
 
 	Image {

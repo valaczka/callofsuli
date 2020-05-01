@@ -71,7 +71,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(this, &Client::jsonUserInfoReceived, this, &Client::onJsonUserInfoReceived);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	m_timer->start(5000);
+	//m_timer->start(5000);
 }
 
 /**

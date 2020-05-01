@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * user.h
+ * fontimage.h
  *
- * Created on: 2020. 04. 11.
+ * Created on: 2020. 05. 01.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * User
+ * FontImage
  *
  *  This file is part of Call of Suli.
  *
@@ -32,36 +32,21 @@
  * SOFTWARE.
  */
 
-#ifndef USER_H
-#define USER_H
+#ifndef FONTIMAGE_H
+#define FONTIMAGE_H
 
-#include <QObject>
-#include "client.h"
-#include "abstracthandler.h"
+#include <QQuickImageProvider>
+#include <QPixmap>
 
-class Client;
-
-class User : public AbstractHandler
+class FontImage : public QQuickImageProvider
 {
-	Q_OBJECT
-
 public:
-	explicit User(Client *client, const QJsonObject &object, const QByteArray &binaryData);
+	FontImage();
 
-	bool classInit() override;
-
-public slots:
-	void getAllUser(QJsonObject *jsonResponse, QByteArray *);
-	void userGet(QJsonObject *jsonResponse, QByteArray *);
-	void userCreate(QJsonObject *jsonResponse, QByteArray *);
-	void userUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void userBatchUpdate(QJsonObject *jsonResponse, QByteArray *);
-
-	void getAllClass(QJsonObject *jsonResponse, QByteArray *);
-	void classCreate(QJsonObject *jsonResponse, QByteArray *);
-	void classUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void classBatchRemove(QJsonObject *jsonResponse, QByteArray *);
-
+	QPixmap requestPixmap(const QString &id, QSize *size, const QSize &requestedSize);
 };
 
-#endif // USER_H
+
+
+
+#endif // FONTIMAGE_H

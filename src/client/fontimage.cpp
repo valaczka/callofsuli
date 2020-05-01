@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * user.h
+ * fontimage.cpp
  *
- * Created on: 2020. 04. 11.
+ * Created on: 2020. 05. 01.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * User
+ * FontImage
  *
  *  This file is part of Call of Suli.
  *
@@ -32,36 +32,57 @@
  * SOFTWARE.
  */
 
-#ifndef USER_H
-#define USER_H
+#include <QFont>
+#include <QPainter>
 
-#include <QObject>
-#include "client.h"
-#include "abstracthandler.h"
+#include "fontimage.h"
 
-class Client;
-
-class User : public AbstractHandler
+FontImage::FontImage()
+	: QQuickImageProvider(QQuickImageProvider::Pixmap)
 {
-	Q_OBJECT
 
-public:
-	explicit User(Client *client, const QJsonObject &object, const QByteArray &binaryData);
+}
 
-	bool classInit() override;
 
-public slots:
-	void getAllUser(QJsonObject *jsonResponse, QByteArray *);
-	void userGet(QJsonObject *jsonResponse, QByteArray *);
-	void userCreate(QJsonObject *jsonResponse, QByteArray *);
-	void userUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void userBatchUpdate(QJsonObject *jsonResponse, QByteArray *);
+/**
+ * @brief FontImage::requestPixmap
+ * @param id
+ * @param size
+ * @param requestedSize
+ * @return
+ */
 
-	void getAllClass(QJsonObject *jsonResponse, QByteArray *);
-	void classCreate(QJsonObject *jsonResponse, QByteArray *);
-	void classUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void classBatchRemove(QJsonObject *jsonResponse, QByteArray *);
+QPixmap FontImage::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
+{
+	QStringList path = id.split("/");
 
-};
+	QString family = path.value(0, "");
+	QString letter = path.value(1, "");
 
-#endif // USER_H
+	QSize mSize = QSize(requestedSize.width() > 0 ? requestedSize.width() : 24,
+						requestedSize.height() > 0 ? requestedSize.height() : 24);
+
+	if (size)
+		*size = mSize;
+
+	QPixmap pix(mSize);
+
+	pix.fill(Qt::transparent);
+
+	QPainter painter(&pix);
+
+	QFont font = QFont(family);
+	int drawSize = qRound(requestedSize.height() * 0.9);
+	font.setPixelSize(drawSize);
+
+	QColor penColor(Qt::black);
+
+
+	painter.save();
+	painter.setPen(QPen(penColor));
+	painter.setFont(font);
+	painter.drawText(QRect(QPoint(0,0), mSize), Qt::AlignCenter|Qt::AlignVCenter, letter);
+	painter.restore();
+
+	return pix;
+}

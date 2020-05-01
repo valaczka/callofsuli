@@ -69,5 +69,7 @@
         <file>PageMapChapterEditor.qml</file>
         <file>MapEditorObjective.qml</file>
         <file>QUndoButton.qml</file>
+        <file>QToolButton.qml</file>
+        <file>QFontImage.qml</file>
     </qresource>
 </RCC>
