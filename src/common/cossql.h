@@ -72,7 +72,7 @@ public:
 		return execQuery(simpleQuery(query, args));
 	}
 
-	bool execBatchQuery(QString query, const QVariantList &args = QVariantList());
+	bool execBatchQuery(QString query, const QVariantList &list);
 	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QVariantList *records = nullptr);
 	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QJsonArray *records = nullptr);
 	bool execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QVariantMap *record = nullptr);

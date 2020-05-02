@@ -11,14 +11,12 @@ ToolBar {
 	property alias title: animatedTitle.str
 	property alias backButton: backButton
 	property string backButtonIcon: CosStyle.iconBack
-	//property alias rightLoader: rightLoader
 	property alias menuLoader: menuLoader
 
 	default property alias rowContent: mainRow.data
 
-	//height: CosStyle.baseHeight
 
-	Material.primary: "transparent" //CosStyle.colorPrimaryDark
+	Material.primary: "transparent"
 
 	RowLayout {
 		id: mainRow
@@ -69,10 +67,6 @@ ToolBar {
 			}
 		}
 
-		/*Loader {
-			id: rightLoader
-			Layout.fillWidth: false
-		}*/
 	}
 
 	function resetTitle() {

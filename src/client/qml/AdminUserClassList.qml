@@ -1,5 +1,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
@@ -19,23 +20,22 @@ QPagePanel {
 
 		labelCountText: classList.selectedItemCount
 
+		searchText.onTextChanged: mainSearch.text = searchText.text
 
 		QTextField {
-			id: newClassName
+			id: mainSearch
 			width: parent.width
 
-			validator: RegExpValidator { regExp: /.+/ }
+			placeholderText: qsTr("Keresés...")
 
-			placeholderText: qsTr("új osztály hozzáadása")
-			onAccepted: {
-				adminUsers.send({"class": "user", "func": "classCreate", "name": text })
-			}
+			onTextChanged: header.searchText.text = mainSearch.text
 		}
 
 
 		rightLoader.sourceComponent: QMenuButton {
 			id: userMenu
 			anchors.verticalCenter: parent.verticalCenter
+			visible: classList.selectorSet
 
 			MenuItem {
 				action: actionRemove
@@ -46,6 +46,29 @@ QPagePanel {
 	}
 
 
+	ListModel {
+		id: baseClassModel
+	}
+
+	SortFilterProxyModel {
+		id: userProxyModel
+		sourceModel: baseClassModel
+		filters: [
+			RegExpFilter {
+				enabled: mainSearch.text.length
+				roleName: "name"
+				pattern: mainSearch.text
+				caseSensitivity: Qt.CaseInsensitive
+				syntax: RegExpFilter.FixedString
+			}
+		]
+		sorters: [
+			StringSorter { roleName: "name" }
+		]
+	}
+
+
+
 	QListItemDelegate {
 		id: classList
 		anchors.top: header.bottom
@@ -53,6 +76,8 @@ QPagePanel {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
+		model: userProxyModel
+		isProxyModel: true
 		isObjectModel: true
 		modelTitleRole: "name"
 
@@ -65,6 +90,7 @@ QPagePanel {
 		QMenu {
 			id: contextMenu
 
+			MenuItem { action: actionRename }
 			MenuItem { action: actionRemove }
 		}
 	}
@@ -77,6 +103,24 @@ QPagePanel {
 		onTriggered: deleteClasses()
 	}
 
+	Action {
+		id: actionRename
+		enabled: classList.currentIndex !== -1
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Átnevezés")
+		onTriggered: {
+			var item = classList.model.get(classList.currentIndex)
+			var d = JS.dialogCreateQml("TextField")
+			d.item.title = qsTr("Osztály átnevezése")
+			d.item.value = item.name
+
+			d.accepted.connect(function(data) {
+				adminUsers.send({"class": "user", "func": "classUpdate", "id": item.id, "name": data })
+			})
+			d.open()
+		}
+	}
+
 
 	Connections {
 		target: adminUsers
@@ -84,7 +128,6 @@ QPagePanel {
 		onClassListLoaded: getClassList(list)
 
 		onClassCreated: {
-			newClassName.clear()
 			reloadClassList()
 			classList.selectAll(false)
 		}
@@ -95,12 +138,32 @@ QPagePanel {
 								  reloadClassList()
 								  classList.selectAll(false)
 							  }
+
+		onClassUpdated:  if (data.error)
+							 cosClient.sendMessageWarning(qsTr("Osztály átnevezése"), qsTr("Szerver hiba"), data.error)
+						 else {
+							 reloadClassList()
+							 classList.selectAll(false)
+						 }
+	}
+
+	Connections {
+		target: pageAdminUsers
+
+		onCreateClassRequest: {
+			var d = JS.dialogCreateQml("TextField")
+			d.item.title = qsTr("Új osztály neve")
+
+			d.accepted.connect(function(data) {
+				adminUsers.send({"class": "user", "func": "classCreate", "name": data })
+			})
+			d.open()
+		}
+
 	}
 
 	function populated() {
-		if (adminUsers) {
-			reloadClassList()
-		}
+		reloadClassList()
 	}
 
 	function reloadClassList() {
@@ -108,19 +171,26 @@ QPagePanel {
 	}
 
 	function getClassList(_list) {
-		JS.setModel(classList.model, _list)
+		JS.setModel(baseClassModel, _list)
 	}
 
 	function deleteClasses() {
 		var l = []
 		if (classList.selectorSet)
-			l = JS.getSelectedIndices(classList.model, "id")
+			l = JS.getSelectedIndices(baseClassModel, "id")
 		else if (classList.currentIndex != -1)
 			l.push(classList.model.get(classList.currentIndex).id)
 
 		if (l.length === 0)
 			return
 
-		adminUsers.send({"class": "user", "func": "classBatchRemove", "list": l})
+		var d = JS.dialogCreateQml("YesNo")
+		d.item.title = qsTr("Osztályok törlése")
+		d.item.text = qsTr("Biztosan törlöd a kiválasztott %1 osztályt?").arg(l.length)
+		d.accepted.connect(function () {
+			adminUsers.send({"class": "user", "func": "classBatchRemove", "list": l})
+		})
+		d.open()
+
 	}
 }

@@ -15,6 +15,8 @@ Page {
 	header: QToolBar {
 		id: toolbar
 
+		title: qsTr("Jelszó beállítása")
+
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
 	}
@@ -49,34 +51,46 @@ Page {
 				id: textUser
 				fieldName: qsTr("Felhasználónév")
 
-				validator: RegExpValidator { regExp: /.+/ }
+				text: cosClient.userName
+
+				readOnly: true
 			}
 
 			QGridLabel { field: textPassword }
 
 			QGridTextField {
 				id: textPassword
-				fieldName: qsTr("Jelszó")
+				fieldName: qsTr("Új jelszó")
 				echoMode: TextInput.Password
 
+				validator: RegExpValidator { regExp: /.+/ }
+			}
+
+			QGridLabel { field: textPassword2 }
+
+			QGridTextField {
+				id: textPassword2
+				fieldName: qsTr("Új jelszó ismét")
+				echoMode: TextInput.Password
+
+				validator: RegExpValidator { regExp: /.+/ }
 			}
 
 			QGridButton {
 				id: buttonLogin
 				text: qsTr("Bejelentkezés")
 				enabled: textUser.acceptableInput &&
-						  textPassword.acceptableInput
+						  textPassword.acceptableInput &&
+						  textPassword2.acceptableInput &&
+						 textPassword.text === textPassword2.text
 
-				onClicked: cosClient.login(textUser.text, "", textPassword.text)
-			}
-
-			QGridButton {
-				id: buttonForgot
-				text: qsTr("Elfelejtettem a jelszavam")
-
-				onClicked: JS.createPage("PasswordRequest", {}, page)
+				onClicked: cosClient.login(textUser.text, "", textPassword.text, true)
 			}
 		}
+	}
+
+	Connections {
+		target: cosClient
 	}
 
 

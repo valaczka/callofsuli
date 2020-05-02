@@ -31,7 +31,7 @@ Rectangle {
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.left: parent.left
-		anchors.right: rightLoader.left
+		anchors.right: rightLoader.status == Loader.Ready && rightLoader.item.visible ? rightLoader.left : parent.right
 
 		height: childrenRect.height
 

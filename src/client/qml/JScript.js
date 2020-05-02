@@ -252,13 +252,11 @@ function setModel(_model, _data) {
 
 
 
-function getSqlFields(_items, _all) {
+function getSqlFields(_items) {
 	var o = {}
 
 	for (var i=0; i<_items.length; i++) {
-		if (_all === true || _items[i].modified === true) {
-			o[_items[i].sqlField] = _items[i].sqlData
-		}
+		o[_items[i].sqlField] = _items[i].sqlData
 	}
 
 	return o

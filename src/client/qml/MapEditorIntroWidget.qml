@@ -222,8 +222,7 @@ Column {
 				!introSec.acceptableInput)
 			return
 
-		var m = JS.getSqlFields([introText, introImg, introMedia, introLevelMin, introLevelMax],
-								true)
+		var m = JS.getSqlFields([introText, introImg, introMedia, introLevelMin, introLevelMax])
 		m.sec = JS.mmSStoSec(introSec.text)
 
 		map.undoLogBegin(qsTr("Intro/outro módosítása"))

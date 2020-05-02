@@ -279,7 +279,8 @@ void Servers::serverTryLogin(const int &serverId)
 	QString username = r.value("username").toString();
 	QString session = r.value("session").toString();
 
-	m_client->login(username, session);
+	if (!username.isEmpty() && !session.isEmpty())
+		m_client->login(username, session);
 }
 
 

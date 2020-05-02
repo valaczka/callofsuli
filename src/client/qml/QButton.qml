@@ -103,6 +103,9 @@ Button {
 		}
 	}
 
+	Keys.onEnterPressed: press()
+
+	Keys.onReturnPressed: press()
 
 	function press() {
 		if (control.enabled) {

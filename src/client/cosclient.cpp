@@ -337,9 +337,9 @@ void Client::closeConnection()
  * @param password
  */
 
-void Client::login(const QString &username, const QString &session, const QString &password)
+void Client::login(const QString &username, const QString &session, const QString &password, const bool &isPasswordReset)
 {
-	if (username.isEmpty() || (session.isEmpty() && password.isEmpty()))
+	if (username.isEmpty())
 		return;
 
 	QJsonObject d;
@@ -351,6 +351,9 @@ void Client::login(const QString &username, const QString &session, const QStrin
 	} else {
 		d["password"] = password;
 	}
+
+	if (isPasswordReset)
+		d["reset"] = true;
 
 	QJsonObject	d2 {
 		{"auth", d}
@@ -373,6 +376,34 @@ void Client::logout()
 	setSessionToken("");
 	setUserName("");
 }
+
+
+/**
+ * @brief Client::passwordReset
+ * @param email
+ * @param code
+ */
+
+void Client::passwordRequest(const QString &email, const QString &code)
+{
+	if (email.isEmpty())
+		return;
+
+	QJsonObject d;
+	d["username"] = email;
+	if (!code.isEmpty()) {
+		d["code"] = code;
+	}
+
+	d["passwordRequest"] = true;
+
+	QJsonObject	d2 {
+		{"auth", d}
+	};
+
+	socketSend(d2);
+}
+
 
 
 
@@ -757,10 +788,24 @@ void Client::onSocketServerError(const QString &error)
 		setSessionToken("");
 		setUserName("");
 		emit authInvalid();
+	} else if (error == "requirePasswordReset") {
+		sendMessageError(tr("Bejelentkezés"), tr("A jelszó alaphelyzetben van. Adj meg egy új jelszót!"));
+		setSessionToken("");
+		emit authRequirePasswordReset();
 	} else if (error == "invalid class" || error == "invalid func") {
 		sendMessageError(tr("Internal error"), tr("Érvénytelen kérés"));
 	} else if (error == "permission denied") {
 		sendMessageError(tr("Internal error"), tr("Hozzáférés megtagadva"));
+	} else if (error == "passwordRequestNoEmail") {
+		sendMessageError(tr("Elfelejtett jelszó"), tr("Nincs megadva email cím!"));
+	} else if (error == "passwordRequestInvalidEmail") {
+		sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen email cím!"));
+	} else if (error == "passwordRequestInvalidCode") {
+		sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen aktivációs kód!"));
+	} else if (error == "passwordRequestCodeSent") {
+		sendMessageInfo(tr("Elfelejtett jelszó"), tr("Az aktivációs kód a megadott email címre elküldve."));
+	} else if (error == "passwordRequestSuccess") {
+		emit authPasswordResetSuccess();
 	} else {
 		sendMessageError(tr("Internal server error"), tr("Internal error"), error);
 	}

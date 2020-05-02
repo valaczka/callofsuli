@@ -62,7 +62,7 @@ QPagePanel {
 
 			readOnly: username.length
 
-			validator: RegExpValidator { regExp: /.+/ }
+			validator: RegExpValidator { regExp: /[^@]+/ }
 		}
 
 		QGridLabel { field: textEmail }
@@ -118,13 +118,15 @@ QPagePanel {
 					  grid.modified
 
 			onClicked: {
-				var m = JS.getSqlFields([textUserName, textFirstName, textLastName, textEmail, checkActive, checkTeacher, checkAdmin, comboClass],
-										!username.length)
+				var m = JS.getSqlFields([textUserName, textFirstName, textLastName, textEmail, checkActive, checkTeacher, checkAdmin, comboClass])
 
 
 				if (Object.keys(m).length) {
 					if (username.length)
 						m.username = username
+
+					if (!m.email.length)
+						m.email = null
 
 					m["class"] = "user"
 
@@ -185,6 +187,10 @@ QPagePanel {
 			load()
 		}
 
+		onCreateUserRequest: {
+			username = ""
+			textFirstName.forceActiveFocus()
+		}
 	}
 
 	onUsernameChanged: get()
@@ -214,7 +220,6 @@ QPagePanel {
 			comboClass.setValue(d.classid ? d.classid : -1)
 		else {
 			comboClass.setValue(selectedClass)
-			textFirstName.forceActiveFocus()
 		}
 	}
 }

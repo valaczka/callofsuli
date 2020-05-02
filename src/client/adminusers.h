@@ -53,6 +53,7 @@ signals:
 	void userCreated(const QJsonObject &data);
 	void userUpdated(const QJsonObject &data);
 	void userBatchUpdated(const QJsonObject &data);
+	void userBatchRemoved(const QJsonObject &data);
 
 	void classListLoaded(const QJsonArray &list);
 	void classCreated(const QJsonObject &data);

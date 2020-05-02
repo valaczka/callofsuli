@@ -33,7 +33,7 @@ QPagePanel {
 
 
 		function saveInfo() {
-			var m = JS.getSqlFields([textTitle], true)
+			var m = JS.getSqlFields([textTitle])
 
 			if (Object.keys(m).length && map) {
 				map.infoUpdate(m)

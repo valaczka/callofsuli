@@ -10,8 +10,9 @@ CREATE TABLE system(
 );
 
 CREATE TABLE settings(
-	key TEXT,
-	value TEXT
+	key TEXT NOT NULL,
+	value TEXT,
+	UNIQUE (key)
 );
 
 CREATE TABLE class(
@@ -68,7 +69,8 @@ END;
 CREATE TABLE auth(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	password TEXT,
-	salt TEXT
+	salt TEXT,
+	UNIQUE (username)
 );
 
 
@@ -143,7 +145,7 @@ CREATE TABLE ranklog(
 
 CREATE TABLE score(
 	id INTEGER PRIMARY KEY,
-	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE SET NULL,
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0),
 	achievementid INTEGER REFERENCES achievement(id) ON UPDATE CASCADE ON DELETE SET NULL,
@@ -153,6 +155,23 @@ CREATE TABLE score(
 );
 
 
+CREATE TABLE registration(
+	id INTEGER PRIMARY KEY,
+	email TEXT NOT NULL,
+	firstname TEXT,
+	lastname TEXT,
+	code TEXT NOT NULL DEFAULT (upper(hex(randomblob(4)))),
+	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+	UNIQUE(email)
+);
+
+
+CREATE TABLE passwordReset(
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	code TEXT NOT NULL DEFAULT (upper(hex(randomblob(4)))),
+	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+	UNIQUE (username)
+);
 
 
 CREATE VIEW userInfo AS

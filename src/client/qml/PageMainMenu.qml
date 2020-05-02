@@ -57,7 +57,15 @@ Page {
 
 	Connections {
 		target: cosClient
-		onUserRolesChanged: reloadModel()
+		onUserRolesChanged: {
+			reloadModel()
+			mainStack.pop(page)
+		}
+
+		onAuthRequirePasswordReset: {
+			mainStack.pop(page)
+			JS.createPage("PasswordReset", {}, page)
+		}
 	}
 
 

@@ -94,8 +94,7 @@ Page {
 						  textPort.acceptableInput
 
 				onClicked: {
-					var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl],
-											serverId === -1)
+					var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl])
 
 					if (Object.keys(m).length) {
 						servers.serverInfoInsertOrUpdate(serverId, m)

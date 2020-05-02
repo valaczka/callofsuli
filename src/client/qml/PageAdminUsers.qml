@@ -13,6 +13,8 @@ Page {
 
 	signal userSelected(var name)
 	signal classSelected(var id)
+	signal createUserRequest()
+	signal createClassRequest()
 
 	AdminUsers {
 		id: adminUsers
@@ -38,7 +40,14 @@ Page {
 			QToolBusyIndicator { running: adminUsers.isBusy }
 			QMenuButton {
 				MenuItem {
-					text: qsTr("Új pálya")
+					icon.source: CosStyle.iconAdd
+					text: qsTr("Új felhasználó")
+					onClicked: pageAdminUsers.createUserRequest()
+				}
+				MenuItem {
+					icon.source: CosStyle.iconAdd
+					text: qsTr("Új osztály")
+					onClicked: pageAdminUsers.createClassRequest()
 				}
 			}
 		}

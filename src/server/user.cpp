@@ -88,10 +88,10 @@ void User::userGet(QJsonObject *jsonResponse, QByteArray *)
 	params << m_jsonData["username"].toString();
 
 	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, email, active, classid, class.name as classname, "
-									"isTeacher, isAdmin FROM user "
-									"LEFT JOIN class ON (class.id=user.classid) "
-									"WHERE username=?",
-									params, jsonResponse);
+										  "isTeacher, isAdmin FROM user "
+										  "LEFT JOIN class ON (class.id=user.classid) "
+										  "WHERE username=?",
+										  params, jsonResponse);
 }
 
 
@@ -110,18 +110,24 @@ void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
 
-	int id = m_client->db()->execInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
+	QVariantMap ret = m_client->db()->runInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
 
-	if (id == -1) {
-		(*jsonResponse)["error"] = "user create error";
+	int id = ret.value("lastInsertId", -1).toInt();
+
+	if (id == -1)
+	{
+		(*jsonResponse)["error"] = ret["errorString"].toString();
 		return;
 	}
 
 	QVariantMap m;
 	m["username"] = username;
 
-	if (m_client->db()->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", m) == -1) {
-		(*jsonResponse)["error"] = "user auth create error";
+	QVariantMap r = m_client->db()->runInsertQuery("INSERT INTO auth (?k?) VALUES (?)", m);
+
+	if (r.value("error", false).toBool() == true)
+	{
+		(*jsonResponse)["error"] = r["errorString"].toString();
 		return;
 	}
 
@@ -146,8 +152,9 @@ void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
 
-	if (!m_client->db()->execUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind)) {
-		(*jsonResponse)["error"] = "user update error";
+	QVariantMap r = m_client->db()->runUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind);
+	if (r.value("error", false).toBool() == true) {
+		(*jsonResponse)["error"] = r["errorString"].toString();
 		return;
 	}
 
@@ -174,7 +181,7 @@ void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 
 	QStringList paramList;
-	QVariantList dataList;
+	QVariantList data;
 
 
 	QMapIterator<QString, QVariant> i(params);
@@ -185,20 +192,41 @@ void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
 		QVariantList d;
 		for (int j=0; j<users.count(); ++j)
 			d << i.value();
-		QVariantMap m;
-		m["list"] = d;
-		dataList << m;
+		data << QVariant(d);
 	}
 
 	QString cmd = "UPDATE USER SET "+paramList.join(", ")+" WHERE username=?";
-	QVariantMap m;
-	m["list"] = users;
-	dataList << m;
+	data << QVariant(users);
 
-	if (m_client->db()->execBatchQuery(cmd, dataList))
+	if (m_client->db()->execBatchQuery(cmd, data))
 		(*jsonResponse)["updated"] = true;
 	else
 		(*jsonResponse)["error"] = "sql error";
+}
+
+
+/**
+ * @brief User::userBatchRemove
+ * @param jsonResponse
+ */
+
+void User::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantList list = m_jsonData["list"].toArray().toVariantList();
+
+	if (!list.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantList data;
+	data << QVariant(list);
+
+	if (m_client->db()->execBatchQuery("DELETE FROM user WHERE username=?", data))
+		(*jsonResponse)["removed"] = true;
+	else
+		(*jsonResponse)["error"] = "sql error";
+
 }
 
 
@@ -261,6 +289,7 @@ void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+
 /**
  * @brief User::classRemove
  * @param jsonResponse
@@ -275,12 +304,10 @@ void User::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 		return;
 	}
 
-	QVariantList dataList;
-	QVariantMap m;
-	m["list"] = list;
-	dataList << m;
+	QVariantList data;
+	data << QVariant(list);
 
-	if (m_client->db()->execBatchQuery("DELETE FROM class WHERE id=?", dataList))
+	if (m_client->db()->execBatchQuery("DELETE FROM class WHERE id=?", data))
 		(*jsonResponse)["removed"] = true;
 	else
 		(*jsonResponse)["error"] = "sql error";

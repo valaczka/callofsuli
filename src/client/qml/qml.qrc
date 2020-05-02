@@ -71,5 +71,7 @@
         <file>QUndoButton.qml</file>
         <file>QToolButton.qml</file>
         <file>QFontImage.qml</file>
+        <file>PagePasswordReset.qml</file>
+        <file>PagePasswordRequest.qml</file>
     </qresource>
 </RCC>

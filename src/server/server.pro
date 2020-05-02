@@ -3,6 +3,7 @@ QT += sql websockets
 
 include(../version/version.pro)
 include(../common/common.pri)
+include(../3rdparty/smtpclient/SMTPEmail.pri)
 
 CONFIG += c++11 console
 CONFIG -= app_bundle

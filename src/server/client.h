@@ -31,6 +31,7 @@
 #include <QWebSocket>
 #include <QObject>
 
+#include "../3rdparty/smtpclient/SmtpMime"
 #include "../common/cossql.h"
 #include "../common/maprepository.h"
 
@@ -86,7 +87,10 @@ private slots:
 	void onBinaryMessageReceived(const QByteArray &message);
 	void clientAuthorize(const QJsonObject &data, const int &clientMsgId = -1);
 	void clientLogout(const QJsonObject &data);
+	bool clientPasswordRequest(const QJsonObject &data, const int &clientMsgId);
 	void updateRoles();
+
+	void onSmtpError(SmtpClient::SmtpError e);
 
 signals:
 	void disconnected();
@@ -97,6 +101,7 @@ signals:
 
 private:
 	void parseJson(const QByteArray &jsonData, const int &clientMsgId, const int &serverMsgId, const QByteArray &binaryData);
+	bool emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
 
 private:
 	CosSql *m_db;

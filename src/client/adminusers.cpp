@@ -76,6 +76,8 @@ void AdminUsers::onJsonReceived(const QJsonObject &object, const QByteArray &, c
 		emit userUpdated(data);
 	else if (func == "userBatchUpdate")
 		emit userBatchUpdated(data);
+	else if (func == "userBatchRemove")
+		emit userBatchRemoved(data);
 	else if (func == "getAllClass")
 		emit classListLoaded(data["list"].toArray());
 	else if (func == "classCreate")

@@ -56,6 +56,7 @@ public slots:
 	void userCreate(QJsonObject *jsonResponse, QByteArray *);
 	void userUpdate(QJsonObject *jsonResponse, QByteArray *);
 	void userBatchUpdate(QJsonObject *jsonResponse, QByteArray *);
+	void userBatchRemove(QJsonObject *jsonResponse, QByteArray *);
 
 	void getAllClass(QJsonObject *jsonResponse, QByteArray *);
 	void classCreate(QJsonObject *jsonResponse, QByteArray *);

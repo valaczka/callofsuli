@@ -152,7 +152,6 @@ bool CosSql::batchQueryFromFile(const QString &filename)
 QSqlQuery CosSql::simpleQuery(QString query, const QVariantList &args)
 {
 	QSqlQuery q(m_db);
-	QVariantList r;
 
 	q.prepare(query);
 	for (int i=0; i<args.count(); ++i) {
@@ -342,21 +341,25 @@ bool CosSql::execQuery(QSqlQuery query)
  * @return
  */
 
-bool CosSql::execBatchQuery(QString query, const QVariantList &args)
+bool CosSql::execBatchQuery(QString query, const QVariantList &list)
 {
-	QSqlQuery q(m_db);
+	m_db.transaction();
 
+	QSqlQuery q(m_db);
 	q.prepare(query);
-	for (int i=0; i<args.count(); ++i) {
-		QVariantMap m = args.at(i).toMap();
-		q.addBindValue(m.value("list").toList());
+
+	foreach (QVariant v, list) {
+		q.addBindValue(v.toList());
 	}
 
 	if (!q.execBatch()) {
 		QString errText = q.lastError().text();
-		qWarning().noquote() << tr("SQL error: ")+errText;
+		qWarning().noquote() << tr("SQL error: ")+errText+": "+q.executedQuery();
+		m_db.rollback();
 		return false;
 	}
+
+	m_db.commit();
 
 	qDebug().noquote() << tr("SQL command: ")+q.executedQuery();
 	return true;

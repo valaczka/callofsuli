@@ -120,8 +120,9 @@ public slots:
 
 	void setConnectionState(ConnectionState connectionState);
 	void closeConnection();
-	void login(const QString &username, const QString &session, const QString &password = "");
+	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
+	void passwordRequest(const QString &email, const QString &code = "");
 
 	int socketNextClientMsgId();
 	int socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData = QByteArray(), const int &serverMsgId = -1);
@@ -166,6 +167,8 @@ signals:
 	void reconnecting();
 
 	void authInvalid();
+	void authRequirePasswordReset();
+	void authPasswordResetSuccess();
 
 	void jsonUserInfoReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonTeacherMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);

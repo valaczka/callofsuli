@@ -263,11 +263,19 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 
 	QJsonObject a = data["auth"].toObject();
 
-	if (a.contains("session")) {
+	if (a["passwordRequest"].toBool()) {
+		setClientState(ClientUnauthorized);
+		setClientUserName("");
+		clientPasswordRequest(a, clientMsgId);
+		return;
+	}
+
+
+	QString session = a["session"].toString("");
+
+	if (!session.isEmpty()) {
 		QVariantList l;
-		l << a["session"].toString();
-		//		l << a["username"].toString();
-		//		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=? AND username=?", l);
+		l << session;
 		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=?", l);
 		QVariantList r = m["records"].toList();
 		if (!m["error"].toBool() && !r.isEmpty()) {
@@ -284,11 +292,38 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 		QString username = a["username"].toString();
 		QString password = a["password"].toString();
 
-		if (username.isEmpty() || password.isEmpty()) {
+		if (username.contains("@")) {
+			QVariantList l;
+			l << username;
+			QVariantMap m = m_db->runSimpleQuery("SELECT username FROM user WHERE email=?", l);
+			QVariantList r = m["records"].toList();
+			if (!m["error"].toBool() && !r.isEmpty()) {
+				username = r.value(0).toMap().value("username").toString();
+			} else {
+				username = "";
+			}
+		}
+
+
+		if (username.isEmpty()) {
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
 		}
+
+		if (a.value("reset").toBool(false) && !password.isEmpty()) {
+			QVariantList l;
+			QString salt;
+			QString hashedPassword = CosSql::hashPassword(password, &salt);
+			l << username << hashedPassword << salt;
+			if (!m_db->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt) VALUES (?, ?, ?)", l)) {
+				sendError("password reset error", clientMsgId);
+				setClientState(ClientUnauthorized);
+				setClientUserName("");
+				return;
+			}
+		}
+
 
 		QVariantList l;
 		l << username;
@@ -299,6 +334,20 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 			QString storedPassword = r.value(0).toMap().value("password").toString();
 			QString salt = r.value(0).toMap().value("salt").toString();
 			QString hashedPassword = CosSql::hashPassword(password, &salt);
+
+			if (storedPassword.isEmpty()) {
+				sendError("requirePasswordReset", clientMsgId);
+				setClientState(ClientUnauthorized);
+				setClientUserName(username);
+				return;
+			}
+
+			if (password.isEmpty()) {
+				sendError("invalidUser", clientMsgId);
+				setClientState(ClientUnauthorized);
+				setClientUserName("");
+				return;
+			}
 
 			if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0) {
 				QVariantMap s = m_db->runSimpleQuery("INSERT INTO session (username) VALUES (?)", l);
@@ -374,6 +423,84 @@ void Client::clientLogout(const QJsonObject &data)
 }
 
 
+/**
+ * @brief Client::clientPasswordRequest
+ * @param data
+ */
+
+bool Client::clientPasswordRequest(const QJsonObject &data, const int &clientMsgId)
+{
+	QString email = data["username"].toString("");
+	QString code = data["code"].toString("");
+
+	if (email.isEmpty()) {
+		sendError("passwordRequestNoEmail", clientMsgId);
+		return false;
+	}
+
+	QVariantList l;
+	l << email;
+	QVariantMap m = m_db->runSimpleQuery("SELECT username, email, firstname, lastname FROM user WHERE active=1 AND email=?", l);
+	QVariantList r = m["records"].toList();
+
+	if (!m["error"].toBool() && !r.isEmpty()) {
+		QString username = r.value(0).toMap().value("username").toString();
+		QString storedEmail = r.value(0).toMap().value("email").toString();
+		QString firstname = r.value(0).toMap().value("firstname").toString();
+		QString lastname = r.value(0).toMap().value("lastname").toString();
+
+		QVariantList ll;
+		ll << username;
+
+		if (code.isEmpty()) {
+			if (!m_db->execSimpleQuery("INSERT OR REPLACE INTO passwordReset (username) VALUES (?)", ll)) {
+				sendError("internal error", clientMsgId);
+				return false;
+			}
+
+			QVariantMap mm;
+			if (m_db->execSelectQueryOneRow("SELECT code FROM passwordReset WHERE username=?", ll, &mm)) {
+				if (emailPasswordReset(storedEmail, firstname, lastname, mm["code"].toString())) {
+					sendError("passwordRequestCodeSent", clientMsgId);
+					return true;
+				} else {
+					sendError("passwordRequestEmailError", clientMsgId);
+					return false;
+				}
+			} else {
+				sendError("internal error", clientMsgId);
+				return false;
+			}
+		} else {
+			QVariantMap mm;
+			QVariantList cc;
+			cc << code;
+			if (m_db->execSelectQueryOneRow("SELECT username FROM passwordReset WHERE code=?", cc, &mm)) {
+				if (mm["username"].toString() == username) {
+					if (m_db->execSimpleQuery("UPDATE auth SET password=null, salt=null WHERE username=?", ll) &&
+						m_db->execSimpleQuery("DELETE FROM passwordReset WHERE username=?", ll)) {
+						sendError("passwordRequestSuccess", clientMsgId);
+						qDebug().noquote() << "Password reset:" << username;
+						return true;
+					} else {
+						sendError("internal error", clientMsgId);
+						return false;
+					}
+				} else {
+					sendError("passwordRequestInvalidCode", clientMsgId);
+					return false;
+				}
+			}
+		}
+	} else {
+		sendError("passwordRequestInvalidEmail", clientMsgId);
+		return false;
+	}
+
+	return false;
+}
+
+
 
 
 /**
@@ -404,6 +531,17 @@ void Client::updateRoles()
 	}
 
 	setClientRoles(newRoles);
+}
+
+
+/**
+ * @brief Client::onSmtpError
+ * @param e
+ */
+
+void Client::onSmtpError(SmtpClient::SmtpError e)
+{
+	qWarning().noquote() << "SMTP error" << e;
 }
 
 
@@ -471,6 +609,107 @@ void Client::parseJson(const QByteArray &jsonData, const int &clientMsgId, const
 		sendJson(ret, clientMsgId);
 	else
 		sendBinary(ret, bdata, clientMsgId);
+}
+
+
+/**
+ * @brief Client::emailPasswordReset
+ * @param email
+ * @param firstname
+ * @param lastname
+ * @param code
+ */
+
+bool Client::emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
+{
+	QVariantMap m;
+
+	m_db->execSelectQueryOneRow("SELECT value as smtpServer FROM settings WHERE key='smtp.server'", QVariantList(), &m);
+	m_db->execSelectQueryOneRow("SELECT value as smtpPort FROM settings WHERE key='smtp.port'", QVariantList(), &m);
+	m_db->execSelectQueryOneRow("SELECT value as smtpType FROM settings WHERE key='smtp.type'", QVariantList(), &m);
+	m_db->execSelectQueryOneRow("SELECT value as smtpEmail FROM settings WHERE key='smtp.email'", QVariantList(), &m);
+	m_db->execSelectQueryOneRow("SELECT value as smtpUser FROM settings WHERE key='smtp.user'", QVariantList(), &m);
+	m_db->execSelectQueryOneRow("SELECT value as smtpPassword FROM settings WHERE key='smtp.password'", QVariantList(), &m);
+
+	m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'", QVariantList(), &m);
+
+	m_db->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), &m);
+
+	bool enabled = m.value("enabled", "").toString().toInt();
+	QString server = m.value("smtpServer", "").toString();
+	int port = m.value("smtpPort", "-1").toString().toInt();
+	int type = m.value("smtpType", "0").toString().toInt();
+	QString user = m.value("smtpUser", "").toString();
+	QString password = m.value("smtpPassword", "").toString();
+
+	qDebug() << enabled << server << port << user << password;
+
+	if (!enabled ||
+		server.isEmpty() ||
+		port <= 0 ||
+		user.isEmpty() ||
+		password.isEmpty()) {
+
+		qWarning().noquote() << "Email password reset disabled!";
+
+		return false;
+	}
+
+
+	SmtpClient::ConnectionType c = SmtpClient::TcpConnection;
+
+	if (type==1)
+		c = SmtpClient::SslConnection;
+	else if (type==2)
+		c = SmtpClient::TlsConnection;
+
+	SmtpClient smtp(server, port, c);
+
+	connect(&smtp, &SmtpClient::smtpError, this, &Client::onSmtpError);
+
+	smtp.setUser(user);
+	smtp.setPassword(password);
+
+
+	QString serverName = m.value("serverName", tr("Call of Suli szerver")).toString();
+
+	MimeMessage message;
+
+	message.setSender(new EmailAddress(m.value("smtpEmail").toString(), serverName));
+	message.addRecipient(new EmailAddress(email, firstname+" "+lastname));
+	message.setSubject(tr("Call of Suli aktivációs kód"));
+
+
+	MimeText text;
+
+	text.setText(QString("Kedves %1!\n\n"
+						 "A(z) %2 email címhez tartozó fiók jelszavának alaphelyzetbe állítását kérted.\n"
+						 "Ehhez add meg az alábbi aktivációs kódot:\n\n"
+						 "%3\n\n"
+						 "%4\n"
+						 "Call of Suli")
+				 .arg(lastname)
+				 .arg(email)
+				 .arg(code)
+				 .arg(serverName)
+				 );
+
+	message.addPart(&text);
+
+	bool success = smtp.connectToHost() &&
+				   smtp.login() &&
+				   smtp.sendMail(message);
+
+	smtp.quit();
+
+	if (!success) {
+		qWarning().noquote() << tr("Nem sikerült csatlakozni az SMTP szerverhez!");
+		return false;
+	}
+
+	qInfo().noquote() << tr("Aktivációs kód elküldve: ") << email;
+
+	return true;
 }
 
 

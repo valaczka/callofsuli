@@ -15,6 +15,8 @@ Page {
 	header: QToolBar {
 		id: toolbar
 
+		title: qsTr("Elfelejtett jelszó")
+
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
 	}
@@ -41,42 +43,49 @@ Page {
 
 			watchModification: false
 
-			onAccepted: buttonLogin.press()
-
-			QGridLabel { field: textUser }
+			QGridLabel { field: textEmail }
 
 			QGridTextField {
-				id: textUser
-				fieldName: qsTr("Felhasználónév")
+				id: textEmail
+				fieldName: qsTr("E-mail cím")
 
+				onAccepted: buttonCode.press()
+
+				validator: RegExpValidator { regExp: /^(.+@..+\...+)$/ }
+			}
+
+			QGridLabel { field: textCode }
+
+			QGridTextField {
+				id: textCode
+				fieldName: qsTr("Aktivációs kód")
 				validator: RegExpValidator { regExp: /.+/ }
-			}
 
-			QGridLabel { field: textPassword }
-
-			QGridTextField {
-				id: textPassword
-				fieldName: qsTr("Jelszó")
-				echoMode: TextInput.Password
-
+				onAccepted: buttonSend.press()
 			}
 
 			QGridButton {
-				id: buttonLogin
-				text: qsTr("Bejelentkezés")
-				enabled: textUser.acceptableInput &&
-						  textPassword.acceptableInput
+				id: buttonSend
+				enabled: textEmail.acceptableInput && textCode.acceptableInput
+				text: qsTr("Küldés")
 
-				onClicked: cosClient.login(textUser.text, "", textPassword.text)
+				onClicked: cosClient.passwordRequest(textEmail.text, textCode.text)
 			}
 
 			QGridButton {
-				id: buttonForgot
-				text: qsTr("Elfelejtettem a jelszavam")
+				id: buttonCode
+				enabled: textEmail.acceptableInput && !textCode.acceptableInput
+				text: qsTr("Aktivációs kód kérése")
 
-				onClicked: JS.createPage("PasswordRequest", {}, page)
+				onClicked: cosClient.passwordRequest(textEmail.text)
 			}
 		}
+	}
+
+	Connections {
+		target: cosClient
+
+		onAuthPasswordResetSuccess: cosClient.login(textEmail.text, "", "")
 	}
 
 
@@ -84,7 +93,7 @@ Page {
 
 	StackView.onActivated: {
 		toolbar.resetTitle()
-		textUser.forceActiveFocus()
+		textEmail.forceActiveFocus()
 	}
 
 

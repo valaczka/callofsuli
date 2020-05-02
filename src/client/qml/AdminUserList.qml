@@ -29,32 +29,13 @@ QPagePanel {
 		Column {
 			width: parent.width
 
-			Row {
-				id: row
+			QTextField {
+				id: mainSearch
 				width: parent.width
-				spacing: 5
 
-				QTextField {
-					id: mainSearch
-					anchors.verticalCenter: parent.verticalCenter
-					width: row.width-row.spacing-userMenu.width
+				placeholderText: qsTr("Keresés...")
 
-					placeholderText: qsTr("Keresés...")
-
-					onTextChanged: header.searchText.text = mainSearch.text
-				}
-
-				QMenuButton {
-					id: userMenu
-					anchors.verticalCenter: parent.verticalCenter
-					MenuItem {
-						icon.source: CosStyle.iconAdd
-						text: qsTr("Új felhasználó")
-						onClicked: {
-							pageAdminUsers.userSelected("")
-						}
-					}
-				}
+				onTextChanged: header.searchText.text = mainSearch.text
 			}
 
 			Flow {
@@ -132,7 +113,7 @@ QPagePanel {
 
 
 			QMenuButton {
-				icon.source: CosStyle.iconRemove
+				icon.source: CosStyle.iconOK
 				ToolTip.text: qsTr("Osztályba sorol")
 
 				MenuItem {
@@ -150,6 +131,8 @@ QPagePanel {
 					}
 				}
 			}
+
+			QToolButton { action: actionRemove; display: flow.buttonDisplay  }
 
 
 		}
@@ -313,6 +296,8 @@ QPagePanel {
 					}
 				}
 			}
+
+			MenuItem { action: actionRemove; enabled: !contextMenu.disableOwn }
 		}
 	}
 
@@ -350,6 +335,15 @@ QPagePanel {
 		onUserBatchUpdated: {
 			if (data.error)
 				cosClient.sendMessageWarning(qsTr("Felhasználók módosítása"), qsTr("Szerver hiba"), data.error)
+			else {
+				userList.selectAll(false)
+				reloadUserList()
+			}
+		}
+
+		onUserBatchRemoved: {
+			if (data.error)
+				cosClient.sendMessageWarning(qsTr("Felhasználók törlése"), qsTr("Szerver hiba"), data.error)
 			else {
 				userList.selectAll(false)
 				reloadUserList()
@@ -400,6 +394,13 @@ QPagePanel {
 		icon.source: CosStyle.iconUnchecked
 		text: qsTr("Admin jogot töröl")
 		onTriggered: runBatchFunction("isAdmin", false)
+	}
+
+	Action {
+		id: actionRemove
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Töröl")
+		onTriggered: runBatchFunction("remove")
 	}
 
 
@@ -455,7 +456,7 @@ QPagePanel {
 		if (l.length === 0)
 			return
 
-		if (p==="active" || p==="isAdmin") {
+		if (p==="active" || p==="isAdmin" || p==="remove") {
 			var i = l.indexOf(cosClient.userName)
 			if (i !== -1)
 				l.splice(i, 1)
@@ -463,10 +464,41 @@ QPagePanel {
 
 		var d = {}
 		d["class"] = "user"
-		d["func"] ="userBatchUpdate"
-		d[p] = value
-		d["users"] = l
-		adminUsers.send(d)
+		if (p === "remove") {
+			d["func"] = "userBatchRemove"
+			d["list"] = l
+		} else {
+			d["func"] = "userBatchUpdate"
+			d[p] = value
+			d["users"] = l
+		}
+
+		var dd = JS.dialogCreateQml("YesNo")
+		dd.item.title = p === "remove" ? qsTr("Felhasználók törlése") : qsTr("Felhasználók módosítása")
+
+		var txt = ""
+		if (p === "active" && value === true)
+			txt = qsTr("aktiválod")
+		else if (p === "active" && value === false)
+			txt = qsTr("inaktiválod")
+		else if (p === "isTeacher" && value === true)
+			txt = qsTr("tanárrá teszed")
+		else if (p === "isTeacher" && value === false)
+			txt = qsTr("nem tanárrá teszed")
+		else if (p === "isAdmin" && value === true)
+			txt = qsTr("adminná teszed")
+		else if (p === "isAdmin" && value === false)
+			txt = qsTr("nem adminná teszed")
+		else if (p === "remove")
+			txt = qsTr("törlöd")
+
+		dd.item.text = qsTr("Biztosan %1 a kiválasztott %2 felhasználót?").arg(txt).arg(l.length)
+		dd.accepted.connect(function () {
+			adminUsers.send(d)
+		})
+		dd.open()
+
 	}
+
 }
 
