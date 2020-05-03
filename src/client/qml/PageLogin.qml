@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtGraphicalEffects 1.0
+import QtQuick.Layouts 1.3
 import COS.Client 1.0
 import "."
 import "Style"
@@ -10,13 +11,21 @@ import "JScript.js" as JS
 Page {
 	id: page
 
-	title: cosClient.serverName
+	property bool isBusy: false
 
 	header: QToolBar {
 		id: toolbar
 
+		title: cosClient.serverName
+
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
+
+		Row {
+			rightPadding: 5
+			Layout.fillHeight: true
+			QToolBusyIndicator { running: page.isBusy }
+		}
 	}
 
 	Image {
@@ -39,6 +48,7 @@ Page {
 
 			anchors.fill: parent
 
+			enabled: !page.isBusy
 			watchModification: false
 
 			onAccepted: buttonLogin.press()
@@ -47,7 +57,7 @@ Page {
 
 			QGridTextField {
 				id: textUser
-				fieldName: qsTr("Felhasználónév")
+				fieldName: qsTr("Felhasználónév vagy email")
 
 				validator: RegExpValidator { regExp: /.+/ }
 			}
@@ -67,18 +77,30 @@ Page {
 				enabled: textUser.acceptableInput &&
 						  textPassword.acceptableInput
 
-				onClicked: cosClient.login(textUser.text, "", textPassword.text)
+				onClicked: {
+					page.isBusy = true
+					cosClient.login(textUser.text, "", textPassword.text)
+				}
 			}
 
 			QGridButton {
 				id: buttonForgot
 				text: qsTr("Elfelejtettem a jelszavam")
 
+				enabled: cosClient.passwordResetEnabled
+				visible: cosClient.passwordResetEnabled
+
 				onClicked: JS.createPage("PasswordRequest", {}, page)
 			}
 		}
 	}
 
+
+	Connections {
+		target: cosClient
+
+		onAuthInvalid: page.isBusy = false
+	}
 
 	StackView.onRemoved: destroy()
 

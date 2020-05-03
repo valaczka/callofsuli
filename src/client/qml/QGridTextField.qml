@@ -29,7 +29,7 @@ QTextField {
 
 	onAccepted: parent.accept()
 
-	function setText(t) {
+	function setData(t) {
 		text = t
 		modified = false
 		//		_watch = true

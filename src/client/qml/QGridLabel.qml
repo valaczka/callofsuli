@@ -8,7 +8,7 @@ import "Style"
 Label {
 	id: label
 
-	property QGridTextField field: null
+	property Item field: null
 
 	Layout.alignment: parent.columns > 1 ?
 						  Qt.AlignRight | Qt.AlignVCenter :
@@ -21,7 +21,7 @@ Label {
 
 	Connections {
 		target: parent
-		onColumnsChanged: if (field && parent.columns === 1 && field.text.length == 0)
+		onColumnsChanged: if (field && parent.columns === 1 && field.text.length === 0)
 							  label.opacity=0.0
 						  else
 							  label.opacity=1.0
@@ -31,11 +31,13 @@ Label {
 	Connections {
 		target: field
 		onFieldNameChanged: text = field.fieldName
-		onTextChanged: if (field && parent.columns === 1 && field.text.length == 0)
+		onTextChanged: if (field && parent.columns === 1 && field.text.length === 0)
 						   label.opacity=0.0
 					   else
 						   label.opacity=1.0
 	}
+
+
 
 
 	Binding on color {
@@ -55,7 +57,7 @@ Label {
 	Component.onCompleted: {
 		if (field) {
 			text = field.fieldName
-			if (parent.columns === 1 && field.text.length == 0)
+			if (parent.columns === 1 && field.text.length === 0)
 				opacity = 0
 		}
 	}

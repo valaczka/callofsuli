@@ -434,7 +434,7 @@ bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QVar
 	if (!execSelectQuery(query, args, &list))
 		return false;
 
-	if (list.count()>1)
+	if (list.count() != 1)
 		return false;
 
 	if (record && list.count()) {

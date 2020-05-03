@@ -56,6 +56,10 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_serverDataDir = "";
 
+	m_registrationEnabled = false;
+	m_passwordResetEnabled = false;
+	m_registrationDomains = QVariantList();
+
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
@@ -407,6 +411,8 @@ void Client::passwordRequest(const QString &email, const QString &code)
 
 
 
+
+
 int Client::socketNextClientMsgId()
 {
 	return ++m_clientMsgId;
@@ -496,6 +502,33 @@ void Client::setServerDataDir(QString resourceDbName)
 
 	m_serverDataDir = resourceDbName;
 	emit serverDataDirChanged(m_serverDataDir);
+}
+
+void Client::setRegistrationDomains(QVariantList registrationDomains)
+{
+	if (m_registrationDomains == registrationDomains)
+		return;
+
+	m_registrationDomains = registrationDomains;
+	emit registrationDomainsChanged(m_registrationDomains);
+}
+
+void Client::setRegistrationEnabled(bool registrationEnabled)
+{
+	if (m_registrationEnabled == registrationEnabled)
+		return;
+
+	m_registrationEnabled = registrationEnabled;
+	emit registrationEnabledChanged(m_registrationEnabled);
+}
+
+void Client::setPasswordResetEnabled(bool passwordResetEnabled)
+{
+	if (m_passwordResetEnabled == passwordResetEnabled)
+		return;
+
+	m_passwordResetEnabled = passwordResetEnabled;
+	emit passwordResetEnabledChanged(m_passwordResetEnabled);
 }
 
 void Client::setUserRankName(QString userRankName)
@@ -679,7 +712,7 @@ void Client::onSocketConnected()
 	m_connectedUrl = m_socket->requestUrl();
 	if (m_connectionState == Connecting || m_connectionState == Standby) {
 		setConnectionState(Connected);
-		socketSend({{"class", "userInfo"}, {"func", "getServerName"}});
+		socketSend({{"class", "userInfo"}, {"func", "getServerInfo"}});
 	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
 }
@@ -819,9 +852,10 @@ void Client::onSocketServerError(const QString &error)
 
 void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray &, const int &)
 {
-	if (object["func"].toString() == "getUser") {
-		QJsonObject d = object["data"].toObject();
+	QString func = object["func"].toString();
+	QJsonObject d = object["data"].toObject();
 
+	if (func == "getUser") {
 		if (d["username"].toString() == m_userName) {
 			setUserXP(d["xp"].toInt(0));
 			setUserRank(d["rankid"].toInt(0));
@@ -829,9 +863,39 @@ void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray 
 			setUserLastName(d["lastname"].toString());
 			setUserFirstName(d["firstname"].toString());
 		}
-	} else if (object["func"].toString() == "getServerName") {
-		QJsonObject d = object["data"].toObject();
+	} else if (func == "getServerInfo") {
 		setServerName(d["serverName"].toString());
+		setRegistrationEnabled(d["registrationEnabled"].toString("0").toInt());
+		setPasswordResetEnabled(d["passwordResetEnabled"].toString("0").toInt());
+		setRegistrationDomains(d["registrationDomains"].toArray().toVariantList());
+	} else if (func == "registrationRequest") {
+		bool error = d["error"].toBool(false);
+
+		if (error) {
+			emit registrationRequestFailed();
+			QString errorString = d["errorString"].toString();
+
+			if (errorString == "email empty")
+				sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
+			else if (errorString == "email exists")
+				sendMessageWarning(tr("Regisztráció"), tr("A megadott email cím már regisztrálva van!"));
+			else
+				sendMessageWarning(tr("Regisztráció"), tr("Internal error"), errorString);
+		} else {
+			emit registrationRequestSuccess();
+		}
+	} else if (func == "getSettings") {
+		if (d.contains("serverName"))
+			setServerName(d["serverName"].toString());
+
+		emit settingsLoaded(d);
+	} else if (func == "setSettings") {
+		bool error = d["error"].toBool(true);
+
+		if (error)
+			emit settingsError();
+		else
+			emit settingsSuccess();
 	}
 }
 

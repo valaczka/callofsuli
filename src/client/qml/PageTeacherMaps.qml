@@ -92,7 +92,6 @@ Page {
 
 			modelTitleRole: "name"
 			modelSubtitleRole: "labelSubtitle"
-			modelRightRole: "id"
 
 			onClicked: teacherMaps.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
 

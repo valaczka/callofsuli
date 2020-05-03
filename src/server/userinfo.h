@@ -49,9 +49,13 @@ public:
 	explicit UserInfo(Client *client, const QJsonObject &object, const QByteArray &binaryData);
 
 public slots:
-	void getServerName(QJsonObject *jsonResponse, QByteArray *);
+	void getServerInfo(QJsonObject *jsonResponse, QByteArray *);
 	void getUser(QJsonObject *jsonResponse, QByteArray *);
 	void getAllUser(QJsonObject *jsonResponse, QByteArray *);
+	void registrationRequest(QJsonObject *jsonResponse, QByteArray *);
+
+	void getSettings(QJsonObject *jsonResponse, QByteArray *);
+	void setSettings(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

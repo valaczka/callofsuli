@@ -27,7 +27,7 @@ QTextArea {
 							   parent.modified = true
 						   }
 
-	function setText(t) {
+	function setData(t) {
 		text = t
 		modified = false
 	}

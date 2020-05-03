@@ -203,6 +203,79 @@ void Client::setClientRoles(ClientRoles clientRoles)
 }
 
 
+/**
+ * @brief Client::emailRegistration
+ * @param email
+ * @param firstname
+ * @param lastname
+ * @param code
+ * @return
+ */
+
+bool Client::emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
+{
+	SmtpClient smtp;
+	QString serverName;
+	QString serverEmail;
+
+	if (!emailSmptClient("registration", &smtp, &serverName, &serverEmail))
+		return false;
+
+
+	MimeMessage message;
+
+	message.setSender(new EmailAddress(serverEmail, serverName));
+	message.addRecipient(new EmailAddress(email, firstname+" "+lastname));
+	message.setSubject(tr("Call of Suli regisztráció"));
+
+	MimeText text;
+
+	text.setText(QString("Kedves %1!\n\n"
+						 "A(z) %2 szerverre a(z) %3 címmel regisztráltál.\n"
+						 "A regisztráció aktiválásához jelentkezz be a következő ideiglenes jelszóval:\n\n"
+						 "%4\n\n"
+						 "Call of Suli")
+				 .arg(lastname)
+				 .arg(serverName)
+				 .arg(email)
+				 .arg(code)
+				 );
+
+	message.addPart(&text);
+
+	smtp.sendMail(message);
+	smtp.quit();
+
+	qInfo().noquote() << tr("Regisztrációs kód elküldve: ") << email;
+
+	return true;
+}
+
+
+/**
+ * @brief Client::emailRegistrationDomainList
+ * @return
+ */
+
+QStringList Client::emailRegistrationDomainList() const
+{
+	QVariantMap m;
+
+	m_db->execSelectQueryOneRow("SELECT value as list FROM settings WHERE key='email.registrationDomains'", QVariantList(), &m);
+
+	QString s = m.value("list", "").toString();
+
+	if (s.isEmpty())
+		return QStringList();
+
+	QStringList list = s.split(",");
+	list.replaceInStrings(QRegExp("\\s"), "");
+	list.replaceInStrings(QRegExp("^([^@])"), "@\\1");
+
+	return list;
+}
+
+
 
 /**
  * @brief Handler::onDisconnected
@@ -300,12 +373,13 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 			if (!m["error"].toBool() && !r.isEmpty()) {
 				username = r.value(0).toMap().value("username").toString();
 			} else {
-				username = "";
+				username = tryRegisterUser(username, password);
 			}
 		}
 
 
 		if (username.isEmpty()) {
+			sendError("invalidUser", clientMsgId);
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
@@ -535,6 +609,62 @@ void Client::updateRoles()
 
 
 /**
+ * @brief Client::tryRegisterUser
+ * @param email
+ * @return
+ */
+
+QString Client::tryRegisterUser(const QString &email, const QString &password)
+{
+	QVariantMap m;
+
+	QVariantList l;
+	l << email;
+	l << password;
+	if (!m_db->execSelectQueryOneRow("SELECT firstname, lastname FROM registration WHERE email=? and code=?", l, &m))
+		return "";
+
+	QString username = email;
+	username.replace("@", "_");
+	username.append(".");
+
+	m_db->db().transaction();
+
+
+	QVariantList ll;
+	ll << username;
+	if (!m_db->execSelectQueryOneRow("SELECT newname FROM "
+									 "(WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt LIMIT 10000) SELECT ?||x as newname FROM cnt) "
+									 "WHERE EXISTS(SELECT * from user WHERE username=newname) is false LIMIT 1", ll, &m)) {
+		qWarning().noquote() << "Nem sikerült megfelelő felhasználónevet találni!";
+		m_db->db().rollback();
+		return "";
+	}
+
+	QJsonObject obj;
+	obj["username"] = m["newname"].toString();
+	obj["firstname"] = m["firstname"].toString();
+	obj["lastname"] = m["lastname"].toString();
+	obj["active"] = true;
+	obj["email"] = email;
+
+	QJsonObject ret;
+	User u(this, obj, QByteArray());
+	u.userCreate(&ret, nullptr);
+
+	if (ret["created"].toInt(-1) > 0) {
+		m_db->execSimpleQuery("DELETE FROM registration WHERE email=? AND code=?", l);
+		m_db->db().commit();
+		return ret["createdUserName"].toString();
+	} else {
+		m_db->db().rollback();
+		return "";
+	}
+
+}
+
+
+/**
  * @brief Client::onSmtpError
  * @param e
  */
@@ -613,15 +743,18 @@ void Client::parseJson(const QByteArray &jsonData, const int &clientMsgId, const
 
 
 /**
- * @brief Client::emailPasswordReset
- * @param email
- * @param firstname
- * @param lastname
- * @param code
+ * @brief Client::emailSmptClient
+ * @param type
+ * @return
  */
 
-bool Client::emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
+bool Client::emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverName, QString *serverEmail)
 {
+	if (!smtpClient) {
+		qWarning().noquote() << "Missing smtpClient!";
+		return false;
+	}
+
 	QVariantMap m;
 
 	m_db->execSelectQueryOneRow("SELECT value as smtpServer FROM settings WHERE key='smtp.server'", QVariantList(), &m);
@@ -631,11 +764,15 @@ bool Client::emailPasswordReset(const QString &email, const QString &firstname, 
 	m_db->execSelectQueryOneRow("SELECT value as smtpUser FROM settings WHERE key='smtp.user'", QVariantList(), &m);
 	m_db->execSelectQueryOneRow("SELECT value as smtpPassword FROM settings WHERE key='smtp.password'", QVariantList(), &m);
 
-	m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'", QVariantList(), &m);
+	if (emailType == "passwordReset")
+		m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'", QVariantList(), &m);
+	else if (emailType == "registration")
+		m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.registration'", QVariantList(), &m);
 
 	m_db->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), &m);
 
 	bool enabled = m.value("enabled", "").toString().toInt();
+
 	QString server = m.value("smtpServer", "").toString();
 	int port = m.value("smtpPort", "-1").toString().toInt();
 	int type = m.value("smtpType", "0").toString().toInt();
@@ -651,10 +788,8 @@ bool Client::emailPasswordReset(const QString &email, const QString &firstname, 
 		password.isEmpty()) {
 
 		qWarning().noquote() << "Email password reset disabled!";
-
 		return false;
 	}
-
 
 	SmtpClient::ConnectionType c = SmtpClient::TcpConnection;
 
@@ -663,22 +798,57 @@ bool Client::emailPasswordReset(const QString &email, const QString &firstname, 
 	else if (type==2)
 		c = SmtpClient::TlsConnection;
 
-	SmtpClient smtp(server, port, c);
+	if (serverName)
+		*serverName = m.value("serverName", tr("Call of Suli szerver")).toString();
 
-	connect(&smtp, &SmtpClient::smtpError, this, &Client::onSmtpError);
+	if (serverEmail)
+		*serverEmail = m.value("smtpEmail").toString();
 
-	smtp.setUser(user);
-	smtp.setPassword(password);
+	smtpClient->setHost(server);
+	smtpClient->setPort(port);
+	smtpClient->setConnectionType(c);
+	smtpClient->setUser(user);
+	smtpClient->setPassword(password);
+
+	connect(smtpClient, &SmtpClient::smtpError, this, &Client::onSmtpError);
+
+	if (!smtpClient->connectToHost()) {
+		qWarning().noquote() << "Couldn't connect to SMTP host" << server << port;
+		return false;
+	}
+
+	if (!smtpClient->login()) {
+		qWarning().noquote() << "Couldn't login to SMTP host" << user;
+		return false;
+	}
+
+	return true;
+}
 
 
-	QString serverName = m.value("serverName", tr("Call of Suli szerver")).toString();
+/**
+ * @brief Client::emailPasswordReset
+ * @param email
+ * @param firstname
+ * @param lastname
+ * @param code
+ */
+
+bool Client::emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
+{
+	SmtpClient smtp;
+	QString serverName;
+	QString serverEmail;
+
+	if (!emailSmptClient("passwordReset", &smtp, &serverName, &serverEmail))
+		return false;
+
 
 	MimeMessage message;
 
-	message.setSender(new EmailAddress(m.value("smtpEmail").toString(), serverName));
+	message.setSender(new EmailAddress(serverEmail, serverName));
 	message.addRecipient(new EmailAddress(email, firstname+" "+lastname));
 	message.setSubject(tr("Call of Suli aktivációs kód"));
-
 
 	MimeText text;
 
@@ -696,16 +866,8 @@ bool Client::emailPasswordReset(const QString &email, const QString &firstname, 
 
 	message.addPart(&text);
 
-	bool success = smtp.connectToHost() &&
-				   smtp.login() &&
-				   smtp.sendMail(message);
-
+	smtp.sendMail(message);
 	smtp.quit();
-
-	if (!success) {
-		qWarning().noquote() << tr("Nem sikerült csatlakozni az SMTP szerverhez!");
-		return false;
-	}
 
 	qInfo().noquote() << tr("Aktivációs kód elküldve: ") << email;
 

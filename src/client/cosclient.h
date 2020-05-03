@@ -63,6 +63,10 @@ public:
 	Q_PROPERTY(QString serverDataDir READ serverDataDir WRITE setServerDataDir NOTIFY serverDataDirChanged)
 	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
+	Q_PROPERTY(bool registrationEnabled READ registrationEnabled WRITE setRegistrationEnabled NOTIFY registrationEnabledChanged)
+	Q_PROPERTY(bool passwordResetEnabled READ passwordResetEnabled WRITE setPasswordResetEnabled NOTIFY passwordResetEnabledChanged)
+	Q_PROPERTY(QVariantList registrationDomains READ registrationDomains WRITE setRegistrationDomains NOTIFY registrationDomainsChanged)
+
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
 	Q_PROPERTY(Roles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
 	Q_PROPERTY(int userXP READ userXP WRITE setUserXP NOTIFY userXPChanged)
@@ -99,10 +103,14 @@ public:
 	QString userRankName() const { return m_userRankName; }
 	QString userFirstName() const { return m_userFirstName; }
 	QString userLastName() const { return m_userLastName; }
-	QString serverName() const { return m_serverName; }
 	static int clientVersionMajor() { return _VERSION_MAJOR; }
 	static int clientVersionMinor() { return _VERSION_MINOR; }
 	QString serverDataDir() const { return m_serverDataDir; }
+
+	QString serverName() const { return m_serverName; }
+	bool registrationEnabled() const { return m_registrationEnabled; }
+	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
+	QVariantList registrationDomains() const { return m_registrationDomains; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -127,10 +135,6 @@ public slots:
 	int socketNextClientMsgId();
 	int socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData = QByteArray(), const int &serverMsgId = -1);
 	void setServerDataDir(QString serverDataDir);
-
-
-
-
 
 private slots:
 	void setSocket(QWebSocket * socket);
@@ -158,6 +162,9 @@ private slots:
 	void setUserFirstName(QString userFirstName);
 	void setUserLastName(QString userLastName);
 	void setServerName(QString serverName);
+	void setRegistrationEnabled(bool registrationEnabled);
+	void setPasswordResetEnabled(bool passwordResetEnabled);
+	void setRegistrationDomains(QVariantList registrationDomains);
 
 signals:
 	void messageSent(const QString &type,
@@ -174,6 +181,14 @@ signals:
 	void jsonTeacherMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonUserReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
+	void registrationRequest();
+	void registrationRequestSuccess();
+	void registrationRequestFailed();
+
+	void settingsLoaded(const QJsonObject &data);
+	void settingsError();
+	void settingsSuccess();
+
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);
 	void userNameChanged(QString userName);
@@ -188,6 +203,9 @@ signals:
 	void clientVersionMajorChanged(int clientVersionMajor);
 	void clientVersionMinorChanged(int clientVersionMinor);
 	void serverDataDirChanged(QString serverDataDir);
+	void registrationEnabledChanged(bool registrationEnabled);
+	void passwordResetEnabledChanged(bool passwordResetEnabled);
+	void registrationDomainsChanged(QVariantList registrationDomains);
 
 private:
 	QWebSocket* m_socket;
@@ -209,6 +227,9 @@ private:
 	int m_clientVersionMinor;
 	QString m_serverDataDir;
 	QString m_userRankName;
+	bool m_registrationEnabled;
+	bool m_passwordResetEnabled;
+	QVariantList m_registrationDomains;
 };
 
 

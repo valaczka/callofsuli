@@ -82,6 +82,9 @@ public slots:
 	void setClientUserName(QString clientUserName);
 	void setClientRoles(ClientRoles clientRoles);
 
+	bool emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
+	QStringList emailRegistrationDomainList() const;
+
 private slots:
 	void onDisconnected();
 	void onBinaryMessageReceived(const QByteArray &message);
@@ -89,6 +92,7 @@ private slots:
 	void clientLogout(const QJsonObject &data);
 	bool clientPasswordRequest(const QJsonObject &data, const int &clientMsgId);
 	void updateRoles();
+	QString tryRegisterUser(const QString &email, const QString &password);
 
 	void onSmtpError(SmtpClient::SmtpError e);
 
@@ -101,6 +105,7 @@ signals:
 
 private:
 	void parseJson(const QByteArray &jsonData, const int &clientMsgId, const int &serverMsgId, const QByteArray &binaryData);
+	bool emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverName = nullptr, QString *serverEmail = nullptr);
 	bool emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
 
 private:

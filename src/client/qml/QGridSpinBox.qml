@@ -26,7 +26,7 @@ QSpinBox {
 		}
 	}
 
-	function setValue(t) {
+	function setData(t) {
 		value = t
 		modified = false
 	}

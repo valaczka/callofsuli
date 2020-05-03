@@ -23,7 +23,7 @@ QComboBox {
 		}
 	}
 
-	function setValue(t) {
+	function setData(t) {
 		var i = indexOfValue(t)
 		if (i === -1)
 			currentIndex = 0

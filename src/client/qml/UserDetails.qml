@@ -58,6 +58,13 @@ Popup {
 
 		QButton {
 			text: qsTr("Regisztráció")
+			enabled: cosClient.registrationEnabled
+			visible: cosClient.registrationEnabled
+
+			onClicked: {
+				popupItem.close()
+				cosClient.registrationRequest()
+			}
 		}
 	}
 

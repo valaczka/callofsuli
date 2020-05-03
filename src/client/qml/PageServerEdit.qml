@@ -111,10 +111,10 @@ Page {
 	Connections {
 		target: servers
 		onServerInfoLoaded: {
-			textName.setText(server.name)
-			textHostname.setText(server.host)
-			textPort.setText(server.port)
-			checkSsl.setChecked(server.ssl)
+			textName.setData(server.name)
+			textHostname.setData(server.host)
+			textPort.setData(server.port)
+			checkSsl.setData(server.ssl)
 			grid.modified = false
 		}
 

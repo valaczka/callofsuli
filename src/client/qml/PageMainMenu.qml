@@ -66,6 +66,11 @@ Page {
 			mainStack.pop(page)
 			JS.createPage("PasswordReset", {}, page)
 		}
+
+		onRegistrationRequest: {
+			mainStack.pop(page)
+			JS.createPage("Registration", {}, page)
+		}
 	}
 
 
@@ -100,6 +105,12 @@ Page {
 								  params: {}
 							  })
 
+		if (cosClient.userRoles & Client.RoleAdmin)
+			list.model.append({
+								  labelTitle: qsTr("Szerver beállításai"),
+								  page: "ServerSettings",
+								  params: {}
+							  })
 
 		if (cosClient.userRoles & Client.RoleAdmin)
 			list.model.append({

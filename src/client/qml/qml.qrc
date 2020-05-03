@@ -73,5 +73,9 @@
         <file>QFontImage.qml</file>
         <file>PagePasswordReset.qml</file>
         <file>PagePasswordRequest.qml</file>
+        <file>PageRegistration.qml</file>
+        <file>QGridTextFieldCombo.qml</file>
+        <file>PageServerSettings.qml</file>
+        <file>QGridText.qml</file>
     </qresource>
 </RCC>

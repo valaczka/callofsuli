@@ -261,3 +261,23 @@ function getSqlFields(_items) {
 
 	return o
 }
+
+
+function getModifiedSqlFields(_items) {
+	var o = {}
+
+	for (var i=0; i<_items.length; i++) {
+		if (_items[i].modified)
+			o[_items[i].sqlField] = _items[i].sqlData
+	}
+
+	return o
+}
+
+
+function setSqlFields(_items, _data) {
+	for (var i=0; i<_items.length; i++) {
+		if (Object.keys(_data).includes(_items[i].sqlField))
+			_items[i].setData(_data[_items[i].sqlField])
+	}
+}

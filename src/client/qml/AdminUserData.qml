@@ -208,18 +208,18 @@ QPagePanel {
 
 
 	function load(d) {
-		textUserName.setText(d && d.username ? d.username : "")
-		textFirstName.setText(d && d.firstname ? d.firstname : "")
-		textLastName.setText(d && d.lastname ? d.lastname: "")
-		textEmail.setText(d && d.email ? d.email : "")
-		checkActive.setChecked(d && d.active ? d.active : false)
-		checkTeacher.setChecked(d && d.isTeacher ? d.isTeacher : false)
-		checkAdmin.setChecked(d && d.isAdmin ? d.isAdmin : false)
+		textUserName.setData(d && d.username ? d.username : "")
+		textFirstName.setData(d && d.firstname ? d.firstname : "")
+		textLastName.setData(d && d.lastname ? d.lastname: "")
+		textEmail.setData(d && d.email ? d.email : "")
+		checkActive.setData(d && d.active ? d.active : false)
+		checkTeacher.setData(d && d.isTeacher ? d.isTeacher : false)
+		checkAdmin.setData(d && d.isAdmin ? d.isAdmin : false)
 
 		if (d)
-			comboClass.setValue(d.classid ? d.classid : -1)
+			comboClass.setData(d.classid ? d.classid : -1)
 		else {
-			comboClass.setValue(selectedClass)
+			comboClass.setData(selectedClass)
 		}
 	}
 }

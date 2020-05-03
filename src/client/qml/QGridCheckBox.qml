@@ -27,7 +27,7 @@ QCheckBox {
 		}
 	}
 
-	function setChecked(t) {
+	function setData(t) {
 		checked = t ? t : false
 		modified = false
 	}
