@@ -105,7 +105,7 @@ QPagePanel {
 
 
 		QCollapsible {
-			title: qsTr("Lőszerek és fegyverek")
+			title: qsTr("Töltények és fegyverek")
 
 			QListItemDelegate {
 				id: list
@@ -143,6 +143,8 @@ QPagePanel {
 
 	onChapterIdChanged: get()
 
+
+	function populated() { }
 
 	function get() {
 		var p
@@ -185,23 +187,23 @@ QPagePanel {
 			list.model.append({sid: s.id, oid: -2, name: qsTr("-- fegyver hozzáadása --"), module: s.module, depth: 1})
 		}
 
-		list.model.append({sid: -2, oid: -1, name: qsTr("-- lőszer hozzáadása --"), module: "", depth: 0})
+		list.model.append({sid: -2, oid: -1, name: qsTr("-- töltény hozzáadása --"), module: "", depth: 0})
 	}
 
 
 
 	function loadDialogStorages() {
 		var d = JS.dialogCreateQml("List")
-		d.item.title = qsTr("Lőszerek")
+		d.item.title = qsTr("Töltények")
 		d.item.newField.visible = false
 		d.item.simpleSelect = true
 		d.item.list.modelTitleRole = "label"
 
-		d.item.model = map.storageModules
+		JS.setModel(d.item.model, map.storageModules)
 
 		d.accepted.connect(function(idx) {
 			var s = map.storageModules[idx]
-			map.undoLogBegin(qsTr("Lőszer hozzáadása"))
+			map.undoLogBegin(qsTr("Töltény hozzáadása"))
 			map.storageAdd({chapterid: chapterId, module: s.type, data: "{}"})
 			map.undoLogEnd()
 			get()
@@ -217,10 +219,10 @@ QPagePanel {
 		d.item.simpleSelect = true
 		d.item.list.modelTitleRole = "label"
 
-		d.item.model = map.storageObjectiveModules(sType)
+		JS.setModel(d.item.model, map.storageObjectiveModules(sType))
 
 		d.accepted.connect(function(idx) {
-			var s = map.objectiveModule(d.item.model[idx].type)
+			var s = map.objectiveModule(d.item.model.get(idx).type)
 			map.undoLogBegin(qsTr("Fegyver hozzáadása"))
 			map.objectiveAdd({storageid: sId, module: s.type, data: "{}" })
 			map.undoLogEnd()

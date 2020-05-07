@@ -1,7 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.14
 import COS.Client 1.0
-import QtQuick.Layouts 1.12
+import QtQuick.Layouts 1.14
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -124,6 +124,8 @@ QPagePanel {
 	}
 
 	onIntroIdChanged: get()
+
+	function populated() { }
 
 	function get() {
 		var p

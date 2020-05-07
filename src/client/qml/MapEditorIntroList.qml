@@ -32,7 +32,7 @@ QPagePanel {
 	}
 
 
-	Component.onCompleted: getList()
+	function populated() { getList() }
 
 	function getList() {
 		list.model = map.introListGet()

@@ -44,7 +44,7 @@ QPagePanel {
 
 
 
-	Component.onCompleted: {
+	function populated() {
 		var m = map.infoGet()
 		textTitle.setData(m.title)
 	}

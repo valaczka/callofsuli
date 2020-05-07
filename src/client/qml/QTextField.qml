@@ -36,7 +36,7 @@
 
 import QtQuick 2.12
 import QtQuick.Controls 2.14
-import QtQuick.Layouts 1.3
+import QtQuick.Layouts 1.14
 import QtGraphicalEffects 1.0
 import "Style"
 import "JScript.js" as JS
@@ -114,7 +114,7 @@ TextField {
 
 		Behavior on color { ColorAnimation { duration: 125 } }
 
-		visible: control.text.length && !control.readOnly
+		visible: control.text.length && !control.readOnly && (control.hovered || control.activeFocus)
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: parent.right

@@ -532,7 +532,7 @@ QVariantMap Map::campaignGet(const int &id)
 QVariantList Map::campaignListGet()
 {
 	QVariantList list;
-	m_db->execSelectQuery("SELECT id, num, name FROM campaign ORDER BY num", QVariantList(), &list);
+	m_db->execSelectQuery("SELECT id, COALESCE(num, 0) as num, name FROM campaign ORDER BY num", QVariantList(), &list);
 	return list;
 }
 
@@ -1122,8 +1122,6 @@ QVariantMap Map::chapterGet(const int &id)
 
 	m_db->execSelectQueryOneRow("SELECT id, name FROM chapter where id=?", l, &map);
 
-	qDebug() << "********" << map;
-
 	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroChapter "
 								"LEFT JOIN intro ON (bindIntroChapter.introid=intro.id) "
@@ -1554,6 +1552,14 @@ QVariantMap Map::storageGet(const int &id)
 
 	m_db->execSelectQueryOneRow("SELECT id, chapterid, module, data FROM storage where id=?", l, &map);
 
+	QString data = map["data"].toString();
+	QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
+
+	QJsonObject d = doc.object();
+
+	map.remove("data");
+	map["data"] = d;
+
 	return map;
 }
 
@@ -1645,6 +1651,88 @@ int Map::storageAdd(const QVariantMap &params)
 
 
 /**
+ * @brief Map::storageDataSet
+ * @param id
+ * @param data
+ * @return
+ */
+
+bool Map::storageDataSet(const int &id, const QJsonObject &data)
+{
+	QJsonDocument doc(data);
+
+	QVariantList l;
+	l << QString(doc.toJson(QJsonDocument::Compact));
+	l << id;
+
+	if (!m_db->execSimpleQuery("UPDATE storage SET data=? where id=?", l)) {
+		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült módosítani a fegyver adatait!"));
+		return false;
+	}
+
+	QVariantMap m;
+	QVariantList ll;
+	ll << id;
+	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=?", ll, &m);
+	int chapterId = m.value("chapterid", -1).toInt();
+	if (chapterId != -1) {
+		emit chapterUpdated(chapterId);
+	}
+
+	setMapModified(true);
+
+	return true;
+}
+
+
+/**
+ * @brief Map::storageRemove
+ * @param id
+ * @return
+ */
+
+bool Map::storageRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+
+	QVariantMap m;
+	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=?", l, &m);
+	int chapterId = m.value("chapterid", -1).toInt();
+
+	bool ret = m_db->execSimpleQuery("DELETE FROM storage WHERE id=?", l);
+
+	if (ret) {
+		if (chapterId != -1) {
+			emit chapterUpdated(chapterId);
+		}
+
+		setMapModified(true);
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Map::storageInfo
+ * @param module
+ * @return
+ */
+
+QVariantMap Map::storageInfo(const QString &type) const
+{
+	foreach (QVariant v, m_storageModules) {
+		QVariantMap m = v.toMap();
+		if (m.value("type", "") == type)
+			return m;
+	}
+	return QVariantMap();
+}
+
+
+
+/**
  * @brief Map::objectiveGet
  * @param id
  * @return
@@ -1657,7 +1745,25 @@ QVariantMap Map::objectiveGet(const int &id)
 	l << id;
 	QVariantMap map;
 
-	m_db->execSelectQueryOneRow("SELECT id, storageid, module, data FROM objective where id=?", l, &map);
+	m_db->execSelectQueryOneRow("SELECT objective.id as id, objective.storageid as storageid, objective.module as module, objective.data as data, "
+								"storage.module as storageModule, storage.data as storageData "
+								"FROM objective LEFT JOIN storage ON (storage.id=objective.storageid) WHERE objective.id=?", l, &map);
+
+	QString data = map["data"].toString();
+	QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
+	QJsonObject d = doc.object();
+
+	map.remove("data");
+	map["data"] = d;
+
+
+
+	QString sdata = map["storageData"].toString();
+	QJsonDocument sdoc = QJsonDocument::fromJson(data.toUtf8());
+	QJsonObject sd = doc.object();
+
+	map.remove("storageData");
+	map["storageData"] = sd;
 
 	return map;
 }
@@ -1703,6 +1809,86 @@ int Map::objectiveAdd(const QVariantMap &params)
 	}
 
 	return -1;
+}
+
+
+
+
+/**
+ * @brief Map::objectiveDataSet
+ * @param id
+ * @param data
+ */
+
+bool Map::objectiveDataSet(const int &id, const QJsonObject &data)
+{
+	QJsonDocument doc(data);
+
+	QVariantList l;
+	l << QString(doc.toJson(QJsonDocument::Compact));
+	l << id;
+
+	if (!m_db->execSimpleQuery("UPDATE objective SET data=? where id=?", l)) {
+		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült módosítani a fegyver adatait!"));
+		return false;
+	}
+
+	QVariantMap m;
+	QVariantList ll;
+	ll << id;
+	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=(SELECT storageid FROM objective WHERE id=?)", ll, &m);
+	int chapterId = m.value("chapterid", -1).toInt();
+	if (chapterId != -1) {
+		emit chapterUpdated(chapterId);
+	}
+
+	setMapModified(true);
+
+	return true;
+}
+
+
+/**
+ * @brief Map::objectiveRemove
+ * @param id
+ * @return
+ */
+
+bool Map::objectiveRemove(const int &id)
+{
+	QVariantList l;
+	l << id;
+
+	QVariantMap m;
+	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=(SELECT storageid FROM objective WHERE id=?)", l, &m);
+	int chapterId = m.value("chapterid", -1).toInt();
+
+	bool ret = m_db->execSimpleQuery("DELETE FROM objective WHERE id=?", l);
+	if (ret) {
+		if (chapterId != -1) {
+			emit chapterUpdated(chapterId);
+		}
+		setMapModified(true);
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Map::objectiveInfo
+ * @param type
+ * @return
+ */
+
+QVariantMap Map::objectiveInfo(const QString &type) const
+{
+	foreach (QVariant v, m_objectiveModules) {
+		QVariantMap m = v.toMap();
+		if (m.value("type", "") == type)
+			return m;
+	}
+	return QVariantMap();
 }
 
 

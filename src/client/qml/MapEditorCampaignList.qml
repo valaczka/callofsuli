@@ -59,7 +59,9 @@ QPagePanel {
 		onUndone: getList()
 	}
 
-	Component.onCompleted: getList()
+	function populated() {
+		getList()
+	}
 
 
 	function getList() {

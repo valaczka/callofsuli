@@ -196,6 +196,8 @@ QPagePanel {
 
 	onCampaignIdChanged: get()
 
+	function populated() { }
+
 	function get() {
 		var p
 

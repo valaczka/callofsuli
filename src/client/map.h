@@ -153,10 +153,16 @@ public slots:
 	QVariantMap storageObjectiveGet(const int &id);
 	QVariantList storageObjectiveListGet(const int &chapterId = -1);
 	int storageAdd(const QVariantMap &params);
+	bool storageDataSet(const int &id, const QJsonObject &data);
+	bool storageRemove(const int &id);
+	QVariantMap storageInfo(const QString &type) const;
 
 	QVariantMap objectiveGet(const int &id);
 	QVariantList objectiveListGet(const int &storageId = -1);
 	int objectiveAdd(const QVariantMap &params);
+	bool objectiveDataSet(const int &id, const QJsonObject &data);
+	bool objectiveRemove(const int &id);
+	QVariantMap objectiveInfo(const QString &type) const;
 
 signals:
 	void mapBackupExists(const QString &originalFile, const QString &uuid, const int &serverid, const int &mapid);
