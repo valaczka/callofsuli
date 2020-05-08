@@ -37,6 +37,8 @@ QtObject {
 	readonly property color colorOKDarker: Material.color(Material.Green, Material.Shade700)
 	readonly property color colorOKDark: Material.color(Material.Green, Material.Shade900)
 
+	readonly property color colorBg: "#33ffffff"
+
 	readonly property int pixelSize: 18
 	readonly property int baseHeight: Qt.platform.os === "android" ? 48 : 32
 	readonly property int twoLineHeight: 48

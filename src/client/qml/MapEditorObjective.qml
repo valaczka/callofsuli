@@ -32,6 +32,12 @@ QPagePanel {
 		visible: opacity != 0
 
 		RowLayout {
+
+			Layout.fillHeight: false
+			Layout.fillWidth: true
+
+			Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+
 			Label {
 				id: labelModule
 
@@ -89,12 +95,14 @@ QPagePanel {
 		Loader {
 			id: editorLoader
 
+			Layout.fillHeight: true
+			Layout.fillWidth: true
 
-			Behavior on opacity { NumberAnimation { duration: 125 } }
 		}
 	}
 
-
+/***** TODO: csak loader source váltásnál, ill. PageMapChapterEditor stackBack() esetén ******/
+	/***** stackBacknál törölje az undoLogot ???? *-******/
 	Connections {
 		target: editorLoader.item
 		onSave: if (storageId !== -1) {
@@ -108,7 +116,6 @@ QPagePanel {
 				}
 
 	}
-
 
 
 	Connections {
@@ -140,11 +147,23 @@ QPagePanel {
 		if (storageId != -1) {
 			d = map.storageGet(storageId)
 			var i = map.storageInfo(d.module)
-			labelModule.text = i.label
+			if (Object.keys(i).length) {
+				labelModule.text = i.label
+				editorLoader.setSource("MOD"+i.type+"Editor.qml", { jsonData: d.data })
+			} else {
+				cosClient.sendMessageError(qsTr("Programhiba"), qsTr("Érvénytelen modul"), d.module)
+			}
 		} else if (objectiveId != -1) {
 			d = map.objectiveGet(objectiveId)
 			i = map.objectiveInfo(d.module)
-			labelModule.text = i.label
+			if (Object.keys(i).length) {
+				labelModule.text = i.label
+				editorLoader.setSource("MOD"+i.type+"Editor.qml", { jsonData: d.data, storageData: d.storageData })
+			} else {
+				cosClient.sendMessageError(qsTr("Programhiba"), qsTr("Érvénytelen modul"), d.module)
+			}
+		} else {
+			editorLoader.source = ""
 		}
 	}
 }

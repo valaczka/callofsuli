@@ -107,7 +107,7 @@ QListView {
 			}
 
 
-			Flipable {
+			QFlipable {
 				id: flipable
 				width: item.height
 				height: item.height
@@ -117,44 +117,10 @@ QListView {
 
 				visible: view.selectorSet
 
-				property int fontSize: 24
-
-				front: QFontImage {
-					anchors.fill: parent
-					icon: CosStyle.iconUnchecked
-					size: flipable.fontSize
-					color: CosStyle.colorAccent
-				}
-
-				back: QFontImage {
-					anchors.fill: parent
-					icon: CosStyle.iconChecked
-					size: flipable.fontSize
-					color: CosStyle.colorAccent
-				}
-
-
-				transform: Rotation {
-					id: rotation
-					origin.x: flipable.width/2
-					origin.y: flipable.height/2
-					axis.x: 0; axis.y: 1; axis.z: 0
-					angle: 0
-				}
-
-				states: State {
-					name: "back"
-					PropertyChanges { target: rotation; angle: 180 }
-					when: item.itemSelected
-				}
-
-				transitions: Transition {
-					NumberAnimation { target: rotation;
-						property: "angle";
-						duration: 225
-						easing.type: Easing.InOutCubic
-					}
-				}
+				frontIcon: CosStyle.iconUnchecked
+				backIcon: CosStyle.iconChecked
+				color: CosStyle.colorAccent
+				flipped: item.itemSelected
 			}
 
 

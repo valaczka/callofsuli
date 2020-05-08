@@ -13,6 +13,8 @@ Item {
 
 	signal clicked()
 
+	implicitWidth: width
+	implicitHeight: height
 	height: label.height
 	width: 48
 
@@ -29,7 +31,7 @@ Item {
 		ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 		ToolTip.visible: area.containsMouse && ToolTip.text.length
 
-		size: CosStyle.pixelSize*1.2
+		size: CosStyle.pixelSize*1.5
 
 
 		Binding on scale {

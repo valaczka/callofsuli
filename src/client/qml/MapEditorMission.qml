@@ -124,12 +124,10 @@ QPagePanel {
 
 				model: ListModel {}
 
-				delegate: Rectangle {
+				delegate: QRectangleBg {
 					id: delegateitem
 					width: listLevels.width
 					height: row.height+6
-
-					color: "transparent"
 
 					RowLayout {
 						id: row

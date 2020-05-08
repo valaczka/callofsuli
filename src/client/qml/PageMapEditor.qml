@@ -145,6 +145,28 @@ Page {
 	}
 
 
+
+	Action {
+		shortcut: "F2"
+		onTriggered: loadCampaigns()
+	}
+
+	Action {
+		shortcut: "F3"
+		onTriggered: loadMissions()
+	}
+
+	Action {
+		shortcut: "F4"
+		onTriggered: loadChapters()
+	}
+
+	Action {
+		shortcut: "F5"
+		onTriggered: loadIntros()
+	}
+
+
 	function loadSettings() {
 		toolbar.title = qsTr("Beállítások")
 		panelLayout.panels = [

@@ -3,7 +3,7 @@ import QtQuick.Controls 2.14
 import "Style"
 import "JScript.js" as JS
 
-Item {
+QRectangleBg {
 	id: control
 
 	property alias tags: rptr.model
@@ -29,18 +29,12 @@ Item {
 
 	signal clicked()
 
-	Rectangle {
-		id: bgRect
-		anchors.fill: parent
 
-		color: "white"
-		opacity: area.containsMouse ? 0.3 : 0.0
+	mouseArea.acceptedButtons: Qt.LeftButton
 
-		Behavior on opacity {
-			NumberAnimation { duration: 125 }
-		}
-	}
+	mouseArea.enabled: !control.readOnly
 
+	mouseArea.onClicked: control.clicked()
 
 	Label {
 		id: labelTitle
@@ -90,16 +84,6 @@ Item {
 		}
 	}
 
-	MouseArea {
-		id: area
-		anchors.fill: parent
-		hoverEnabled: true
-		acceptedButtons: Qt.LeftButton
-
-		enabled: !control.readOnly
-
-		onClicked: control.clicked()
-	}
 
 	QCheckBox {
 		id: checkTitle
