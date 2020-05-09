@@ -52,9 +52,8 @@ QPagePanel {
 				QButton {
 					text: qsTr("Hadjárat törlése")
 
+					themeColors: CosStyle.buttonThemeDelete
 					icon.source: CosStyle.iconDelete
-					backgroundColor: CosStyle.colorErrorDarker
-					borderColor: CosStyle.colorErrorDark
 
 					onClicked: {
 						var d = JS.dialogCreateQml("YesNo")

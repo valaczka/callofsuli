@@ -132,11 +132,11 @@ Page {
 					deleteServer(listMenu.currentIndex)
 				} else if (event.key === Qt.Key_F1) {
 					var o = JS.createPage("MapEditor", {}, page)
-					//var b = o.map.create()
-					//o.map.loadFromJson(b)
-					o.map.loadFromFile("AAA.cosm")
-					o.map.mapOriginalFile = "AAA.cosm"
-					o.mapName = "AAA.cosm"
+					o.pagePopulated.connect(function() {
+						o.map.loadFromFile("AAA.cosm")
+						o.map.mapOriginalFile = "AAA.cosm"
+						o.mapName = "AAA.cosm"
+					})
 				}
 			}
 

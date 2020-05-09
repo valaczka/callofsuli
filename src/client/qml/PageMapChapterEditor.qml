@@ -16,8 +16,10 @@ Page {
 	property int parentMissionId: -1
 	property int parentSummaryId: -1
 
-	signal storageSelected(int id)
-	signal objectiveSelected(int id)
+	property int storageId: -1
+	property int objectiveId: -1
+
+	signal reloadObjective()
 
 	header: QToolBar {
 		id: toolbar
@@ -43,7 +45,7 @@ Page {
 		}
 	}
 
-	Image {
+	background: Image {
 		id: bgImage
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectCrop
@@ -73,6 +75,21 @@ Page {
 		toolbar.resetTitle()
 		panelLayout.drawerReset()
 	}
+
+
+	function storageSelected(id) {
+		objectiveId = -1
+		storageId = id
+		reloadObjective()
+	}
+
+	function objectiveSelected(id) {
+		objectiveId = id
+		storageId = -1
+		reloadObjective()
+	}
+
+
 
 
 

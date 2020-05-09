@@ -8,10 +8,12 @@ import "JScript.js" as JS
 Button {
 	id: control
 
-	property color textColor: CosStyle.colorPrimaryLight
-	property color backgroundColor: CosStyle.colorPrimaryDarker
-	property color borderColor: CosStyle.colorPrimaryLighter
-	property color blinkColor: CosStyle.colorAccentDarker
+	property var themeColors: CosStyle.buttonThemeDefault
+
+	property color textColor: themeColors[0]
+	property color backgroundColor: themeColors[1]
+	property color borderColor: themeColors[2]
+	property color blinkColor: themeColors[3]
 
 	property bool animationEnabled: true
 

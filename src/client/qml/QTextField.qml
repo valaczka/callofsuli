@@ -47,17 +47,17 @@ TextField {
 
 
 //	implicitWidth: placeholder.implicitWidth + leftPadding + rightPadding
-	implicitHeight: CosStyle.pixelSize + topPadding + bottomPadding + 10
+	implicitHeight: CosStyle.pixelSize + topPadding + bottomPadding + 8
 
-	padding: 6
-	leftPadding: padding + 2 + (activeFocus ? rect1.width : 0 )
-	bottomPadding: 2
+	topPadding: 6
+	leftPadding: 8 + (activeFocus ? rect1.width : 0 )
+	bottomPadding: 0
 	rightPadding: clearLabel.width
 
 	Behavior on leftPadding { NumberAnimation { duration: 100 } }
 
 	font.family: "Special Elite"
-	font.pixelSize: CosStyle.pixelSize
+	font.pixelSize: CosStyle.pixelSize*0.95
 	font.weight: Font.Medium
 	passwordCharacter: "*"
 
@@ -125,7 +125,10 @@ TextField {
 		anchors.fill: clearLabel
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
-		onClicked: control.clear()
+		onClicked: {
+			control.clear()
+			textModified()
+		}
 	}
 
 	/*Text {
@@ -169,7 +172,7 @@ TextField {
 			y: control.height
 			width: control.width
 			height: 1
-			visible: control.enabled && !control.readOnly && control.lineVisible
+			visible: control.enabled && !control.readOnly && control.lineVisible && (control.hovered || control.activeFocus)
 			border.width: 0
 			color: "transparent"
 

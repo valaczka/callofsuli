@@ -54,8 +54,7 @@ QPagePanel {
 					text: qsTr("Célpont törlése")
 
 					icon.source: CosStyle.iconDelete
-					backgroundColor: CosStyle.colorErrorDarker
-					borderColor: CosStyle.colorErrorDark
+					themeColors: CosStyle.buttonThemeDelete
 
 					onClicked: {
 						pageChapterEditor.deleteChapter(chapterName.text)
@@ -116,6 +115,11 @@ QPagePanel {
 				modelTitleRole: "name"
 				modelDepthRole: "depth"
 
+				rightComponent: Label {
+					color: "black"
+					text: model && model.rightText ? model.rightText : ""
+				}
+
 				onClicked: {
 					var o = list.model.get(index)
 					if (o.sid >= 0 && o.oid === -1)
@@ -149,6 +153,8 @@ QPagePanel {
 	function get() {
 		var p
 
+		pageChapterEditor.reloadObjective()
+
 		if (map) {
 			p = map.chapterGet(chapterId)
 			chapterId = p.id
@@ -181,7 +187,10 @@ QPagePanel {
 			for (var j=0; j<s.objectives.length; ++j) {
 				var o = s.objectives[j]
 				var tt = map.objectiveModule(o.module)
-				list.model.append({sid: -1, oid: o.id, name: (tt ? tt.label : qsTr("???")), module: o.module, depth: 1})
+
+				var rightText = (o.isSummary ? "S" : "") + o.level
+
+				list.model.append({sid: -1, oid: o.id, name: (tt ? tt.label : qsTr("???")), module: o.module, depth: 1, rightText: rightText})
 			}
 
 			list.model.append({sid: s.id, oid: -2, name: qsTr("-- fegyver hozzáadása --"), module: s.module, depth: 1})
@@ -204,7 +213,7 @@ QPagePanel {
 		d.accepted.connect(function(idx) {
 			var s = map.storageModules[idx]
 			map.undoLogBegin(qsTr("Töltény hozzáadása"))
-			map.storageAdd({chapterid: chapterId, module: s.type, data: "{}"})
+			map.storageAdd({chapterid: chapterId, module: s.type, data: s.defaultData ? s.defaultData : "{}"})
 			map.undoLogEnd()
 			get()
 		})
@@ -224,7 +233,7 @@ QPagePanel {
 		d.accepted.connect(function(idx) {
 			var s = map.objectiveModule(d.item.model.get(idx).type)
 			map.undoLogBegin(qsTr("Fegyver hozzáadása"))
-			map.objectiveAdd({storageid: sId, module: s.type, data: "{}" })
+			map.objectiveAdd({storageid: sId, module: s.type, data: s.defaultData ? s.defaultData : "{}" })
 			map.undoLogEnd()
 			get()
 		})

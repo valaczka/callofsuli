@@ -25,13 +25,13 @@ Item {
 
 		color: area.containsMouse ? CosStyle.colorErrorLighter : CosStyle.colorError
 
-		icon: CosStyle.iconRemove
+		icon: CosStyle.iconDelete
 
 		ToolTip.text: tooltip
 		ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 		ToolTip.visible: area.containsMouse && ToolTip.text.length
 
-		size: CosStyle.pixelSize*1.5
+		size: CosStyle.pixelSize*1.3
 
 
 		Binding on scale {

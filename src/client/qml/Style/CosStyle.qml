@@ -44,6 +44,10 @@ QtObject {
 	readonly property int twoLineHeight: 48
 
 
+	readonly property var buttonThemeDefault: [colorPrimaryLight, colorPrimaryDarker, colorPrimaryLighter, colorPrimary]
+	readonly property var buttonThemeDelete: [colorPrimaryLight, colorErrorDarker, colorErrorDark, colorError]
+	readonly property var buttonThemeApply: [colorPrimaryLight, colorOKDarker, colorOKDark, colorOKLighter]
+
 	readonly property string iconMenu: "image://font/Material Icons/\ue5d4"
 	readonly property string iconClose: "image://font/Material Icons/\ue14c"
 	readonly property string iconChecked: "image://font/Material Icons/\ue86c"

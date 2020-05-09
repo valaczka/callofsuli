@@ -121,8 +121,7 @@ Column {
 				visible: introId !== -1
 
 				icon.source: CosStyle.iconDelete
-				backgroundColor: CosStyle.colorErrorDarker
-				borderColor: CosStyle.colorErrorDark
+				themeColors: CosStyle.buttonThemeDelete
 
 				onClicked: {
 					var d = JS.dialogCreateQml("YesNo")

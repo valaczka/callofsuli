@@ -10,6 +10,8 @@ Label {
 
 	property Item field: null
 
+	Layout.fillWidth: false
+
 	Layout.alignment: parent.columns > 1 ?
 						  Qt.AlignRight | Qt.AlignVCenter :
 						  Qt.AlignLeft | Qt.AlignVCenter

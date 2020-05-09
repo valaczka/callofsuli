@@ -102,8 +102,7 @@ Item {
 				anchors.verticalCenter: parent.verticalCenter
 				text: qsTr("Nem")
 				icon.source: CosStyle.iconCancel
-				backgroundColor: CosStyle.colorErrorDarker
-				borderColor: CosStyle.colorErrorDark
+				themeColors: CosStyle.buttonThemeDelete
 
 				onClicked: dlgClose()
 			}
@@ -115,8 +114,7 @@ Item {
 
 				text: qsTr("Igen")
 				icon.source: CosStyle.iconOK
-				backgroundColor: CosStyle.colorOKDarker
-				borderColor: CosStyle.colorOKDark
+				themeColors: CosStyle.buttonThemeApply
 
 				onClicked: dlgAccept(true)
 			}

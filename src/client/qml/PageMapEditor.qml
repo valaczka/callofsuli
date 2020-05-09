@@ -16,7 +16,11 @@ Page {
 	property alias map: map
 	property bool mapBinaryFormat: true
 	property bool isPageBusy: false
+
 	property bool _isFirstRun: true
+	property bool _isMapLoaded: false
+
+	signal pagePopulated()
 
 	signal campaignSelected(int id)
 	signal missionSelected(int id, int parentCampaignId)
@@ -32,6 +36,16 @@ Page {
 
 		onCanUndoChanged: if (canUndo === -1)
 							  map.mapModified=false
+
+		onMapLoadingProgress: {
+			console.debug ("progress", progress)
+			progressBar.value = progress
+		}
+
+		onMapLoaded: {
+			_isMapLoaded = true
+			loadCampaigns()
+		}
 	}
 
 
@@ -52,6 +66,8 @@ Page {
 
 		menuLoader.sourceComponent: QMenuButton {
 			icon.source: CosStyle.iconDown
+
+			visible: _isMapLoaded
 
 			MenuItem {
 				text: qsTr("Hadjáratok")
@@ -79,9 +95,12 @@ Page {
 
 			QUndoButton  {
 				dbActivity: map
+				visible: _isMapLoaded
 			}
 
 			QMenuButton {
+				visible: _isMapLoaded
+
 				MenuItem {
 					text: qsTr("Mentés")
 					onClicked:  {
@@ -108,9 +127,24 @@ Page {
 		source: "qrc:/img/villa.png"
 	}
 
+
+	Item {
+		id: loadingItem
+		anchors.fill: parent
+
+		visible: !_isMapLoaded
+
+		ProgressBar {
+			id: progressBar
+			anchors.centerIn: parent
+		}
+	}
+
 	QPanelLayout {
 		id: panelLayout
 		anchors.fill: parent
+
+		visible: _isMapLoaded
 	}
 
 	FileDialog {
@@ -123,19 +157,20 @@ Page {
 	}
 
 
-	Keys.onPressed: {
-		if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
-			map.save(mapId, mapBinaryFormat)
-		else if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
-			map.undo(map.canUndo-1)
-	}
+	Keys.onPressed: if (_isMapLoaded) {
+						if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
+							map.save(mapId, mapBinaryFormat)
+						else if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
+							map.undo(map.canUndo-1)
+					}
 
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
+		panelLayout.drawerReset()
+
 		if (_isFirstRun) {
-			panelLayout.drawerReset()
-			loadCampaigns()
+			pagePopulated()
 			_isFirstRun = false
 		}
 	}

@@ -10,155 +10,65 @@ QPagePanel {
 	id: panel
 
 	property Map map: null
-	property int storageId: -1
-	property int objectiveId: -1
 
-	title: objectiveId === -1 ? qsTr("Töltény") : qsTr("Fegyver")
+	title: pageChapterEditor.objectiveId === -1 ? qsTr("Töltény") : qsTr("Fegyver")
 
 	Label {
 		id: noLabel
-		opacity: storageId == -1 && objectiveId == -1
+		opacity: pageChapterEditor.storageId === -1 && pageChapterEditor.objectiveId === -1
 		visible: opacity != 0
 
-		text: objectiveId === -1 ? qsTr("Válassz töltényt") : qsTr("Válassz fegyvert")
+		text: pageChapterEditor.objectiveId === -1 ? qsTr("Válassz töltényt") : qsTr("Válassz fegyvert")
 
 		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
 
-	ColumnLayout {
-		id: lay
+	Loader {
+		id: editorLoader
 		anchors.fill: parent
-		opacity: (storageId != -1 || objectiveId != -1) //&& editorLoader.status === Loader.Ready
+		opacity: (pageChapterEditor.storageId !== -1 || pageChapterEditor.objectiveId !== -1) && editorLoader.status === Loader.Ready
 		visible: opacity != 0
-
-		RowLayout {
-
-			Layout.fillHeight: false
-			Layout.fillWidth: true
-
-			Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-
-			Label {
-				id: labelModule
-
-				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-				Layout.fillHeight: false
-				Layout.fillWidth: true
-			}
-
-			QButton {
-				id: buttonDelete
-				text: objectiveId != -1 ? qsTr("Fegyver törlése") : qsTr("Töltény törlése")
-
-				Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-
-				Layout.fillHeight: false
-				Layout.fillWidth: false
-
-
-				icon.source: CosStyle.iconDelete
-				backgroundColor: CosStyle.colorErrorDarker
-				borderColor: CosStyle.colorErrorDark
-				textColor: CosStyle.colorErrorLight
-
-				onClicked: {
-					var d = JS.dialogCreateQml("YesNo")
-					d.item.title = objectiveId != -1 ? qsTr("Biztosan törlöd a fegyvert?") : qsTr("Biztosan törlöd a töltényt?")
-					d.item.text = labelModule.text
-					d.accepted.connect(function () {
-						if (objectiveId != -1) {
-							map.undoLogBegin(qsTr("Fegyver törlése"))
-							if (map.objectiveRemove(objectiveId)) {
-								objectiveId = -1
-								storageId = -1
-								get()
-							}
-							map.undoLogEnd()
-						} else if (storageId != -1) {
-							map.undoLogBegin(qsTr("Töltény törlése"))
-							if (map.storageRemove(storageId)) {
-								objectiveId = -1
-								storageId = -1
-								get()
-							}
-							map.undoLogEnd()
-						}
-					})
-					d.open()
-				}
-
-			}
-		}
-
-
-		Loader {
-			id: editorLoader
-
-			Layout.fillHeight: true
-			Layout.fillWidth: true
-
-		}
-	}
-
-/***** TODO: csak loader source váltásnál, ill. PageMapChapterEditor stackBack() esetén ******/
-	/***** stackBacknál törölje az undoLogot ???? *-******/
-	Connections {
-		target: editorLoader.item
-		onSave: if (storageId !== -1) {
-					map.undoLogBegin(qsTr("Töltény módosítása"))
-					map.storageDataSet(storageId, jsondata)
-					map.undoLogEnd()
-				} else if (objectiveId !== -1) {
-					map.undoLogBegin(qsTr("Fegyver módosítása"))
-					map.objectiveDataSet(objectiveId, jsondata)
-					map.undoLogEnd()
-				}
-
 	}
 
 
 	Connections {
 		target: pageChapterEditor
-		onStorageSelected: {
-			storageId = id
-			objectiveId = -1
-			get()
-		}
-
-		onObjectiveSelected: {
-			storageId = -1
-			objectiveId = id
-			get()
-		}
+		onReloadObjective:  get()
 	}
 
-
-	Connections {
-		target: map
-		onUndone: get()
-	}
 
 	function populated() { get() }
 
 
 	function get() {
 		var d = {}
-		if (storageId != -1) {
-			d = map.storageGet(storageId)
+		if (pageChapterEditor.storageId !== -1) {
+			d = map.storageGet(pageChapterEditor.storageId)
 			var i = map.storageInfo(d.module)
 			if (Object.keys(i).length) {
-				labelModule.text = i.label
-				editorLoader.setSource("MOD"+i.type+"Editor.qml", { jsonData: d.data })
+				var qml = "MOD"+i.type+"Editor.qml"
+				if (editorLoader.source === qml)
+					editorLoader.item.jsonData = d.data
+				else
+					editorLoader.setSource(qml, { jsonData: d.data, moduleLabel: i.label })
 			} else {
 				cosClient.sendMessageError(qsTr("Programhiba"), qsTr("Érvénytelen modul"), d.module)
 			}
-		} else if (objectiveId != -1) {
-			d = map.objectiveGet(objectiveId)
+		} else if (pageChapterEditor.objectiveId !== -1) {
+			d = map.objectiveGet(pageChapterEditor.objectiveId)
+
 			i = map.objectiveInfo(d.module)
 			if (Object.keys(i).length) {
-				labelModule.text = i.label
-				editorLoader.setSource("MOD"+i.type+"Editor.qml", { jsonData: d.data, storageData: d.storageData })
+				qml = "MOD"+i.type+"Editor.qml"
+				if (editorLoader.source === qml) {
+					editorLoader.item.level = d.level
+					editorLoader.item.isSummary = d.isSummary
+					editorLoader.item.storageData = d.storageData
+					editorLoader.item.storageModule = d.storageModule
+					editorLoader.item.jsonData = d.data
+				} else
+					editorLoader.setSource(qml, { moduleLabel: i.label, storageModule: d.storageModule, storageData: d.storageData,
+											   jsonData: d.data, level: d.level, isSummary: d.isSummary })
 			} else {
 				cosClient.sendMessageError(qsTr("Programhiba"), qsTr("Érvénytelen modul"), d.module)
 			}

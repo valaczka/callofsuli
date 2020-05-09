@@ -61,8 +61,7 @@ QPagePanel {
 					text: isSummary ? qsTr("Összegzés törlése") : qsTr("Küldetés törlése")
 
 					icon.source: CosStyle.iconDelete
-					backgroundColor: CosStyle.colorErrorDarker
-					borderColor: CosStyle.colorErrorDark
+					themeColors: CosStyle.buttonThemeDelete
 
 					onClicked: {
 						var d = JS.dialogCreateQml("YesNo")

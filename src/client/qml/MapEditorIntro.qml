@@ -53,7 +53,7 @@ QPagePanel {
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
 					readOnly: true
-					visible: tags.length
+					visible: introId != -1 && tags.length
 				}
 
 				QTag {
@@ -64,7 +64,7 @@ QPagePanel {
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
 					readOnly: true
-					visible: tags.length
+					visible: introId != -1 && tags.length
 				}
 
 				QTag {
@@ -75,7 +75,7 @@ QPagePanel {
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
 					readOnly: true
-					visible: tags.length
+					visible: introId != -1 && tags.length
 				}
 
 				QTag {
@@ -86,7 +86,7 @@ QPagePanel {
 					defaultBackground: CosStyle.colorAccentDark
 					modelTextRole: "name"
 					readOnly: true
-					visible: tags.length
+					visible: introId != -1 && tags.length
 				}
 			}
 

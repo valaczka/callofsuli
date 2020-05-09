@@ -46,6 +46,8 @@ ApplicationWindow {
 		objectName: "mainStack"
 		anchors.fill: parent
 
+		readonly property int animDuration: 175
+
 		focus: true
 
 		Keys.onEscapePressed: {
@@ -68,14 +70,14 @@ ApplicationWindow {
 				}
 
 				PauseAnimation {
-					duration: 250
+					duration: mainStack.animDuration
 				}
 
 				PropertyAnimation {
 					property: "opacity"
 					from: 0.0
 					to: 1.0
-					duration: 250
+					duration: mainStack.animDuration
 				}
 
 				PropertyAnimation {
@@ -83,7 +85,7 @@ ApplicationWindow {
 					property: "radius"
 					from: 100
 					to: 0
-					duration: 250
+					duration: mainStack.animDuration
 				}
 			}
 
@@ -97,17 +99,17 @@ ApplicationWindow {
 					property: "radius"
 					from: 0
 					to: 100
-					duration: 250
+					duration: mainStack.animDuration
 				}
 
 				PropertyAnimation {
 					property: "opacity"
 					from: 1.0
 					to: 0.0
-					duration: 250
+					duration: mainStack.animDuration
 				}
 				PauseAnimation {
-					duration: 250
+					duration: mainStack.animDuration
 				}
 			}
 		}
@@ -121,14 +123,14 @@ ApplicationWindow {
 				}
 
 				PauseAnimation {
-					duration: 250
+					duration: mainStack.animDuration
 				}
 
 				PropertyAnimation {
 					property: "opacity"
 					from: 0.0
 					to: 1.0
-					duration: 250
+					duration: mainStack.animDuration
 				}
 
 				PropertyAnimation {
@@ -136,7 +138,7 @@ ApplicationWindow {
 					property: "radius"
 					from: 100
 					to: 0
-					duration: 250
+					duration: mainStack.animDuration
 				}
 			}
 
@@ -150,17 +152,17 @@ ApplicationWindow {
 					property: "radius"
 					from: 0
 					to: 100
-					duration: 250
+					duration: mainStack.animDuration
 				}
 
 				PropertyAnimation {
 					property: "opacity"
 					from: 1.0
 					to: 0.0
-					duration: 250
+					duration: mainStack.animDuration
 				}
 				PauseAnimation {
-					duration: 250
+					duration: mainStack.animDuration
 				}
 			}
 		}

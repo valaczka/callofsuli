@@ -16,7 +16,7 @@ TextArea {
 	Behavior on leftPadding { NumberAnimation { duration: 100 } }
 
 	font.family: "Special Elite"
-	font.pixelSize: CosStyle.pixelSize
+	font.pixelSize: CosStyle.pixelSize*0.95
 	font.weight: Font.Medium
 
 	property color textColor: CosStyle.colorAccent

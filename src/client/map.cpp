@@ -180,14 +180,33 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 {
 	Q_ASSERT (m_client);
 
+	double steps = m_tableNames.count()
+				   +1		// open
+				   +1		// jsonDoc
+				   +1		// storage
+				   +1		// objective
+				   +1		// undoTables
+				   +m_tableNames.count()+2;		// triggers
+
+	double currentStep = 0.0;
+
+	emit mapLoadingProgress(currentStep/steps);
+	QCoreApplication::processEvents();
+
 	if (!databaseOpen() || !databasePrepare()) {
 		return false;
 	}
+
+	emit mapLoadingProgress(++currentStep/steps);
+	QCoreApplication::processEvents();
 
 	QJsonDocument doc = binaryFormat ? QJsonDocument::fromBinaryData(data) : QJsonDocument::fromJson(data);
 
 	if (doc.isNull())
 		return false;
+
+	emit mapLoadingProgress(++currentStep/steps);
+	QCoreApplication::processEvents();
 
 	QJsonObject root = doc.object();
 
@@ -200,13 +219,21 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 	foreach (QString t, m_tableNames) {
 		if (!JsonToTable(root[t].toArray(), t, false))
 			return false;
+		emit mapLoadingProgress(++currentStep/steps);
+		QCoreApplication::processEvents();
 	}
 
 	if (!JsonToTable(root["storage"].toArray(), "storage", true))
 		return false;
 
+	emit mapLoadingProgress(++currentStep/steps);
+	QCoreApplication::processEvents();
+
 	if (!JsonToTable(root["objective"].toArray(), "objective", true))
 		return false;
+
+	emit mapLoadingProgress(++currentStep/steps);
+	QCoreApplication::processEvents();
 
 	QString uuid = fileinfo["uuid"].toString();
 	setMapUuid(uuid.isEmpty() ? QUuid::createUuid().toString() : uuid);
@@ -216,12 +243,18 @@ bool Map::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 
 	m_db->createUndoTables();
 
+	emit mapLoadingProgress(++currentStep/steps);
+	QCoreApplication::processEvents();
+
 	QStringList l = m_tableNames;
 	l << "objective";
 	l << "storage";
 
-	foreach (QString t, l)
+	foreach (QString t, l) {
 		m_db->createTrigger(t);
+		emit mapLoadingProgress(++currentStep/steps);
+		QCoreApplication::processEvents();
+	}
 
 	emit mapLoaded();
 
@@ -1651,41 +1684,6 @@ int Map::storageAdd(const QVariantMap &params)
 
 
 /**
- * @brief Map::storageDataSet
- * @param id
- * @param data
- * @return
- */
-
-bool Map::storageDataSet(const int &id, const QJsonObject &data)
-{
-	QJsonDocument doc(data);
-
-	QVariantList l;
-	l << QString(doc.toJson(QJsonDocument::Compact));
-	l << id;
-
-	if (!m_db->execSimpleQuery("UPDATE storage SET data=? where id=?", l)) {
-		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült módosítani a fegyver adatait!"));
-		return false;
-	}
-
-	QVariantMap m;
-	QVariantList ll;
-	ll << id;
-	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=?", ll, &m);
-	int chapterId = m.value("chapterid", -1).toInt();
-	if (chapterId != -1) {
-		emit chapterUpdated(chapterId);
-	}
-
-	setMapModified(true);
-
-	return true;
-}
-
-
-/**
  * @brief Map::storageRemove
  * @param id
  * @return
@@ -1711,6 +1709,40 @@ bool Map::storageRemove(const int &id)
 	}
 
 	return ret;
+}
+
+
+/**
+ * @brief Map::storageUpdate
+ * @param id
+ * @param params
+ * @param chapterId
+ * @return
+ */
+
+bool Map::storageUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData, const int &chapterId)
+{
+	QVariantMap bind;
+	bind[":id"] = id;
+
+	QVariantMap newParams = params;
+
+	if (!jsonData.isEmpty()) {
+		QJsonDocument doc(jsonData);
+		newParams["data"] = QString(doc.toJson(QJsonDocument::Compact));
+	}
+
+	if (m_db->execUpdateQuery("UPDATE storage SET ? WHERE id=:id", newParams, bind)) {
+		emit storageUpdated(id);
+
+		if (chapterId > -1)
+			emit chapterUpdated(chapterId);
+
+		setMapModified(true);
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -1746,6 +1778,7 @@ QVariantMap Map::objectiveGet(const int &id)
 	QVariantMap map;
 
 	m_db->execSelectQueryOneRow("SELECT objective.id as id, objective.storageid as storageid, objective.module as module, objective.data as data, "
+								"objective.level as level, objective.isSummary as isSummary, "
 								"storage.module as storageModule, storage.data as storageData "
 								"FROM objective LEFT JOIN storage ON (storage.id=objective.storageid) WHERE objective.id=?", l, &map);
 
@@ -1784,9 +1817,9 @@ QVariantList Map::objectiveListGet(const int &storageId)
 	if (storageId != -1) {
 		QVariantList l;
 		l << storageId;
-		m_db->execSelectQuery("SELECT id, storageid, module, data FROM objective WHERE storageid=? ORDER BY id", l, &list);
+		m_db->execSelectQuery("SELECT id, storageid, module, data, level, isSummary FROM objective WHERE storageid=? ORDER BY id", l, &list);
 	} else {
-		m_db->execSelectQuery("SELECT id, storageid, module, data FROM objective ORDER BY id", QVariantList(), &list);
+		m_db->execSelectQuery("SELECT id, storageid, module, data, level, isSummary FROM objective ORDER BY id", QVariantList(), &list);
 	}
 
 	return list;
@@ -1814,39 +1847,6 @@ int Map::objectiveAdd(const QVariantMap &params)
 
 
 
-/**
- * @brief Map::objectiveDataSet
- * @param id
- * @param data
- */
-
-bool Map::objectiveDataSet(const int &id, const QJsonObject &data)
-{
-	QJsonDocument doc(data);
-
-	QVariantList l;
-	l << QString(doc.toJson(QJsonDocument::Compact));
-	l << id;
-
-	if (!m_db->execSimpleQuery("UPDATE objective SET data=? where id=?", l)) {
-		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült módosítani a fegyver adatait!"));
-		return false;
-	}
-
-	QVariantMap m;
-	QVariantList ll;
-	ll << id;
-	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=(SELECT storageid FROM objective WHERE id=?)", ll, &m);
-	int chapterId = m.value("chapterid", -1).toInt();
-	if (chapterId != -1) {
-		emit chapterUpdated(chapterId);
-	}
-
-	setMapModified(true);
-
-	return true;
-}
-
 
 /**
  * @brief Map::objectiveRemove
@@ -1872,6 +1872,41 @@ bool Map::objectiveRemove(const int &id)
 	}
 
 	return ret;
+}
+
+
+/**
+ * @brief Map::objectiveUpdate
+ * @param id
+ * @param level
+ * @param isSummary
+ * @return
+ */
+
+bool Map::objectiveUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData, const int &chapterId)
+{
+	QVariantMap bind;
+	bind[":id"] = id;
+
+	QVariantMap newParams = params;
+
+	if (!jsonData.isEmpty()) {
+		QJsonDocument doc(jsonData);
+		newParams["data"] = QString(doc.toJson(QJsonDocument::Compact));
+	}
+
+
+	if (m_db->execUpdateQuery("UPDATE objective SET ? WHERE id=:id", newParams, bind)) {
+		emit objectiveUpdated(id);
+
+		if (chapterId > -1)
+			emit chapterUpdated(chapterId);
+
+		setMapModified(true);
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -2329,6 +2364,7 @@ void Map::setObjectiveModules()
 		o["icon"] = "S";
 		o["label"] = tr("Egyszerű választás");
 		o["storages"] = QStringList { "questionpair", "order", "image", "video", "sound" };
+		o["defaultData"] = "{\"suffix\":\"?\"}";
 
 		m_objectiveModules << o;
 	}

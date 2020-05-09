@@ -93,6 +93,8 @@ Page {
 						  textHostname.acceptableInput &&
 						  textPort.acceptableInput
 
+				themeColors: CosStyle.buttonThemeApply
+
 				onClicked: {
 					var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl])
 

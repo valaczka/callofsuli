@@ -81,5 +81,6 @@
         <file>MODabstractEditor.qml</file>
         <file>QRectangleBg.qml</file>
         <file>QFlipable.qml</file>
+        <file>MODsimplechoiceEditor.qml</file>
     </qresource>
 </RCC>
