@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * maprepository.h
+ * intro.h
  *
- * Created on: 2020. 03. 28.
+ * Created on: 2020. 05. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * MapRepository
+ * Intro
  *
  *  This file is part of Call of Suli.
  *
@@ -32,40 +32,57 @@
  * SOFTWARE.
  */
 
-#ifndef MAPREPOSITORY_H
-#define MAPREPOSITORY_H
+#ifndef INTRO_H
+#define INTRO_H
 
 #include <QObject>
-#include "cosdb.h"
+#include "abstractactivity.h"
 
-class MapRepository : public COSdb
+class Intro : public AbstractActivity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(IntroType type READ type WRITE setType NOTIFY typeChanged)
+	Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+	Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged)
+	Q_PROPERTY(QString media READ media WRITE setMedia NOTIFY mediaChanged)
+	Q_PROPERTY(int seconds READ seconds WRITE setSeconds NOTIFY secondsChanged)
+
 public:
-	MapRepository(const QString &connectionName = QString(), QObject *parent = nullptr);
+	enum IntroType {
+		IntroIntro,
+		IntroOutro
+	};
+	Q_ENUM(IntroType)
+
+	Intro(QObject *parent = nullptr);
+
+	IntroType type() const { return m_type; }
+	QString text() const { return m_text; }
+	QString image() const { return m_image; }
+	QString media() const { return m_media; }
+	int seconds() const { return m_seconds; }
 
 public slots:
-	void listReload();
-	QVariantMap getInfo(const int &id);
-	QVariantMap getInfoByRefId(const int &refid);
-	QByteArray getData(const int &id);
-	QByteArray getData(const QString &uuid);
-	int getId(const QString &uuid);
-	int getRefId(const QString &uuid);
-	QVariantMap create(const int &refid = QVariant::Invalid);
-	QJsonObject updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
-
-protected slots:
-	bool databaseInit() override;
-
-private:
-	QByteArray getDataReal(QSqlQuery q);
+	void setType(IntroType type);
+	void setText(QString text);
+	void setImage(QString image);
+	void setMedia(QString media);
+	void setSeconds(int seconds);
 
 signals:
-	void listLoaded(QVariantList list);
-	void uuidComapareError(const int &id);
+	void typeChanged(IntroType type);
+	void textChanged(QString text);
+	void imageChanged(QString image);
+	void mediaChanged(QString media);
+	void secondsChanged(int seconds);
 
+private:
+	IntroType m_type;
+	QString m_text;
+	QString m_image;
+	QString m_media;
+	int m_seconds;
 };
 
-#endif // MAPREPOSITORY_H
+#endif // INTRO_H

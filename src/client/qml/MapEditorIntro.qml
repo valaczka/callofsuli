@@ -9,7 +9,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	property Map map: null
+	property MapEditor map: null
 	property int introId: -1
 	property int parentId: -1
 	property int parentType: Map.IntroUndefined

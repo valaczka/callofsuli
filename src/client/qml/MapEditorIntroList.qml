@@ -8,7 +8,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	property Map map: null
+	property MapEditor map: null
 
 	title: qsTr("Bevezetők")
 

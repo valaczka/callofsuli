@@ -28,8 +28,11 @@ SOURCES += \
 		adminusers.cpp \
 		cosclient.cpp \
 		fontimage.cpp \
+		game.cpp \
+		intro.cpp \
 		main.cpp \
 		map.cpp \
+		mapeditor.cpp \
 		servers.cpp \
 		sqlimage.cpp \
 		teachermaps.cpp
@@ -40,7 +43,10 @@ HEADERS += \
 	adminusers.h \
 	cosclient.h \
 	fontimage.h \
+	game.h \
+	intro.h \
 	map.h \
+	mapeditor.h \
 	servers.h \
 	sqlimage.h \
 	teachermaps.h

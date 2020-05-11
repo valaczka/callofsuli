@@ -56,8 +56,6 @@ void AbstractDbActivity::setClient(Client *client)
 	m_client = client;
 	emit clientChanged(m_client);
 
-	qDebug() << "setClient" << m_client;
-
 	if (m_client) {
 		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
 		clientSetup();

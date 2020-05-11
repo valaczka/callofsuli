@@ -9,7 +9,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	property Map map: null
+	property MapEditor map: null
 
 	title: pageChapterEditor.objectiveId === -1 ? qsTr("Töltény") : qsTr("Fegyver")
 

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * maprepository.h
+ * intro.cpp
  *
- * Created on: 2020. 03. 28.
+ * Created on: 2020. 05. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * MapRepository
+ * Intro
  *
  *  This file is part of Call of Suli.
  *
@@ -32,40 +32,56 @@
  * SOFTWARE.
  */
 
-#ifndef MAPREPOSITORY_H
-#define MAPREPOSITORY_H
+#include "intro.h"
 
-#include <QObject>
-#include "cosdb.h"
-
-class MapRepository : public COSdb
+Intro::Intro(QObject *parent)
+	: AbstractActivity(parent)
 {
-	Q_OBJECT
+	m_type = IntroIntro;
+	m_seconds = 0;
+}
 
-public:
-	MapRepository(const QString &connectionName = QString(), QObject *parent = nullptr);
+void Intro::setType(Intro::IntroType type)
+{
+	if (m_type == type)
+		return;
 
-public slots:
-	void listReload();
-	QVariantMap getInfo(const int &id);
-	QVariantMap getInfoByRefId(const int &refid);
-	QByteArray getData(const int &id);
-	QByteArray getData(const QString &uuid);
-	int getId(const QString &uuid);
-	int getRefId(const QString &uuid);
-	QVariantMap create(const int &refid = QVariant::Invalid);
-	QJsonObject updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
+	m_type = type;
+	emit typeChanged(m_type);
+}
 
-protected slots:
-	bool databaseInit() override;
+void Intro::setText(QString text)
+{
+	if (m_text == text)
+		return;
 
-private:
-	QByteArray getDataReal(QSqlQuery q);
+	m_text = text;
+	emit textChanged(m_text);
+}
 
-signals:
-	void listLoaded(QVariantList list);
-	void uuidComapareError(const int &id);
+void Intro::setImage(QString image)
+{
+	if (m_image == image)
+		return;
 
-};
+	m_image = image;
+	emit imageChanged(m_image);
+}
 
-#endif // MAPREPOSITORY_H
+void Intro::setMedia(QString media)
+{
+	if (m_media == media)
+		return;
+
+	m_media = media;
+	emit mediaChanged(m_media);
+}
+
+void Intro::setSeconds(int seconds)
+{
+	if (m_seconds == seconds)
+		return;
+
+	m_seconds = seconds;
+	emit secondsChanged(m_seconds);
+}

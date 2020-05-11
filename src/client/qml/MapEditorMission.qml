@@ -9,7 +9,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	property Map map: null
+	property MapEditor map: null
 	property int missionId: -1
 	property bool isSummary: false
 	property int parentCampaignId: -1

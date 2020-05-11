@@ -9,7 +9,7 @@ import "JScript.js" as JS
 Column {
 	id: panel
 
-	property Map map: null
+	property MapEditor map: null
 	property int introId: -1
 	property bool isOutro: false
 	property int parentId: -1

@@ -28,17 +28,15 @@ Page {
 	signal chapterSelected(int id, int parentMId, int parentSId)
 	signal introSelected(int id, int parentId, int parentType)
 
-	Map {
+	MapEditor {
 		id: map
 
 		client: cosClient
-		mapType: Map.MapEditor
 
 		onCanUndoChanged: if (canUndo === -1)
 							  map.mapModified=false
 
 		onMapLoadingProgress: {
-			console.debug ("progress", progress)
 			progressBar.value = progress
 		}
 

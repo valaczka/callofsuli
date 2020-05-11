@@ -11,7 +11,7 @@ import "JScript.js" as JS
 Page {
 	id: pageChapterEditor
 
-	property Map map: null
+	property MapEditor map: null
 	property int chapterId: -1
 	property int parentMissionId: -1
 	property int parentSummaryId: -1

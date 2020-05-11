@@ -8,7 +8,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	property Map map: null
+	property MapEditor map: null
 	property int campaignId: -1
 
 	title: qsTr("Hadjárat küldetései")
