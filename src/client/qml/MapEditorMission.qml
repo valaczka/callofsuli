@@ -9,10 +9,11 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
+	implicitWidth: 700
+
 	property MapEditor map: null
 	property int missionId: -1
 	property bool isSummary: false
-	property int parentCampaignId: -1
 
 	title: isSummary ? qsTr("Összegző küldetés") : qsTr("Küldetés")
 
@@ -86,7 +87,7 @@ QPagePanel {
 					map.undoLogBegin(qsTr("Összegzés/küldetés módosítása"))
 					map.missionUpdate(missionId, {
 										  "name": missionName.text
-									  }, parentCampaignId)
+									  })
 					map.undoLogEnd()
 				}
 			}
@@ -166,7 +167,7 @@ QPagePanel {
 							validator: RegExpValidator { regExp: /\d\d:\d\d/ }
 
 							onTextModified: if (model.id !== -1 && acceptableInput)
-												   delegateitem.missionLevelUpdate()
+												delegateitem.missionLevelUpdate()
 
 							onAccepted: model.id === -1 ?
 											delegateitem.missionLevelAdd() :
@@ -218,6 +219,20 @@ QPagePanel {
 						}
 
 						Item { Layout.fillWidth: true }
+
+						QToolButton {
+							visible: spinHP.visible
+							ToolTip.text: qsTr("Lejátszás")
+							icon.source: CosStyle.iconOK
+
+							Layout.alignment: Qt.AlignVCenter
+							Layout.fillWidth: false
+
+							onClicked: {
+								map.playGame(panel.missionId, panel.isSummary, model.level)
+							}
+						}
+
 
 						QRemoveButton {
 							buttonVisible: model.canRemove
@@ -302,45 +317,25 @@ QPagePanel {
 			parentType: isSummary ? Map.IntroSummary : Map.IntroMission
 		}
 
+
 		QCollapsible {
-			title: "Célpontok"
+			title: qsTr("Célpontok")
 
-			Column {
+			MapEditorStorageWidget {
+				id: storageWidget
+
 				width: parent.width
+				map: panel.map
 
+				missionId: isSummary ? -1 : panel.missionId
+				summaryId: isSummary ? panel.missionId : -1
 
-				QTextField {
-					id: newChapterName
-					width: parent.width
-
-					placeholderText: qsTr("új célpont hozzáadása")
-					onAccepted: {
-						if (missionId !== -1) {
-							map.undoLogBegin(qsTr("Célpont hozzáadása"))
-							var i = map.chapterAdd({ "name": newChapterName.text })
-							if (i !== -1 && isSummary)
-								map.summaryChapterAdd({ "summaryid" : missionId, "chapterid": i })
-							else if (i !== -1 && !isSummary)
-								map.missionChapterAdd({ "missionid" : missionId, "chapterid": i })
-
-							map.undoLogEnd()
-							clear()
-						}
-					}
-				}
-
-				QListItemDelegate {
-					id: listChapters
-
-					width: parent.width
-
-					modelTitleRole: "name"
-
-					onClicked: pageEditor.chapterSelected(listChapters.model[index].id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
-
-				}
+				onStorageSelected: pageEditor.storageSelected(id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
+				onObjectiveSelected: pageEditor.objectiveSelected(id, isSummary ? -1 : missionId, isSummary ? missionId : -1)
 			}
 		}
+
+
 
 		MapEditorIntroWidget {
 			id: mOutro
@@ -378,7 +373,7 @@ QPagePanel {
 		onMissionUpdated: if (!isSummary && id===missionId) get()
 		onSummaryUpdated: if (isSummary && id===missionId) get()
 		onIntroListUpdated: if (parentId === -1 || ((type===Map.IntroMission || type===Map.IntroSummary) && parentId===missionId)) get()
-		onChapterListUpdated: if (mId===-1 || (!isSummary && mId===missionId) || (isSummary && sId===missionId))
+		onStorageListUpdated: if ((mId===-1 && sId===-1) || (!isSummary && mId===missionId) || (isSummary && sId===missionId))
 								  get()
 		onUndone: get()
 	}
@@ -402,13 +397,11 @@ QPagePanel {
 			missionId = -1
 
 		if (missionId == -1) {
-			listChapters.model = []
 			listLevels.model.clear()
 			missionName.text = ""
 			return
 		}
 
-		listChapters.model = []
 		listLevels.model.clear()
 
 		missionName.text = isSummary ? "" : p.name
@@ -441,7 +434,7 @@ QPagePanel {
 		mIntro.introId = p.introId
 		mOutro.introId = p.outroId
 
-		listChapters.model = p.chapters
+		storageWidget.load(p.storages)
 	}
 
 

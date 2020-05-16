@@ -189,11 +189,11 @@ MODabstractEditor {
 	}
 
 
-	onJsonDataChanged: {
+	onEditorDataChanged: {
 		listPairs.model.clear()
 
-		var pl = jsonData.pairs
-		var wl = jsonData.wrongs
+		var pl = editorData.data.pairs
+		var wl = editorData.data.wrongs
 
 		for (var i=0; pl && i<pl.length; ++i) {
 			listPairs.model.append(pl[i])

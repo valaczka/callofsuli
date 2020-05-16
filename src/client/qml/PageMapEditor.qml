@@ -25,7 +25,8 @@ Page {
 	signal campaignSelected(int id)
 	signal missionSelected(int id, int parentCampaignId)
 	signal summarySelected(int id, int parentCampaignId)
-	signal chapterSelected(int id, int parentMId, int parentSId)
+	signal storageSelected(int id, int parentMId, int parentSId)
+	signal objectiveSelected(int id, int parentMId, int parentSId)
 	signal introSelected(int id, int parentId, int parentType)
 
 	MapEditor {
@@ -79,8 +80,9 @@ Page {
 
 			MenuItem {
 				text: qsTr("Célpontok")
-				onClicked: pageEditor.loadChapters()
+				onClicked: pageEditor.loadStorages()
 			}
+
 
 			MenuItem {
 				text: qsTr("Introk/Outrok")
@@ -94,6 +96,11 @@ Page {
 			QUndoButton  {
 				dbActivity: map
 				visible: _isMapLoaded
+			}
+
+			QToolButton {
+				action: actionSave
+				display: AbstractButton.IconOnly
 			}
 
 			QMenuButton {
@@ -110,9 +117,6 @@ Page {
 					onClicked:  {
 						fileDialogSave.open()
 					}
-				}
-				MenuItem {
-					text: qsTr("Pálya átnevezés")
 				}
 			}
 		}
@@ -155,10 +159,18 @@ Page {
 	}
 
 
+	Action {
+		id: actionSave
+		icon.source: CosStyle.iconSave
+		text: qsTr("Mentés")
+		shortcut: "Ctrl+S"
+		enabled: _isMapLoaded && map.mapModified
+		onTriggered: map.save(mapId, mapBinaryFormat)
+	}
+
+
 	Keys.onPressed: if (_isMapLoaded) {
-						if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier))
-							map.save(mapId, mapBinaryFormat)
-						else if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
+						if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
 							map.undo(map.canUndo-1)
 					}
 
@@ -178,6 +190,9 @@ Page {
 	}
 
 
+	onMissionSelected: loadMission(id, false)
+	onSummarySelected: loadMission(id, true)
+
 
 	Action {
 		shortcut: "F2"
@@ -191,7 +206,7 @@ Page {
 
 	Action {
 		shortcut: "F4"
-		onTriggered: loadChapters()
+		onTriggered: loadStorages()
 	}
 
 	Action {
@@ -212,23 +227,31 @@ Page {
 		toolbar.title = qsTr("Hadjáratok")
 		panelLayout.panels = [
 					{ url: "MapEditorCampaignList.qml", params: { map: map }, fillWidth: false },
-					{ url: "MapEditorCampaign.qml", params: { map: map }, fillWidth: true },
-					{ url: "MapEditorMission.qml", params: { map: map }, fillWidth: true }
+					{ url: "MapEditorCampaign.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
 	function loadMissions() {
 		toolbar.title = qsTr("Küldetések")
 		panelLayout.panels = [
-					{ url: "MapEditorMissionList.qml", params: { map: map }, fillWidth: false },
-					{ url: "MapEditorMission.qml", params: { map: map }, fillWidth: true }
+					{ url: "MapEditorMissionList.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
-	function loadChapters() {
+
+	function loadMission(mId, isSum) {
+		toolbar.title = isSum ? qsTr("Összegzés") : qsTr("Küldetés")
+		panelLayout.panels = [
+					{ url: "MapEditorMission.qml", params: { map: map, missionId: mId, isSummary: isSum }, fillWidth: false },
+					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
+				]
+	}
+
+	function loadStorages() {
 		toolbar.title = qsTr("Célpontok")
 		panelLayout.panels = [
-					{ url: "MapEditorChapterList.qml", params: { map: map }, fillWidth: true }
+					{ url: "MapEditorStorageList.qml", params: { map: map }, fillWidth: false },
+					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
@@ -240,18 +263,6 @@ Page {
 				]
 
 	}
-
-
-	onChapterSelected: {
-		var o = JS.createPage("MapChapterEditor", {
-								  map: map,
-								  chapterId: id,
-								  parentMissionId: parentMId,
-								  parentSummaryId: parentSId
-							  }, pageEditor)
-	}
-
-
 
 
 
@@ -281,6 +292,11 @@ Page {
 
 	function stackBack() {
 		if (panelLayout.layoutBack()) {
+			return true
+		}
+
+		if (toolbar.title !== qsTr("Hadjáratok")) {
+			loadCampaigns()
 			return true
 		}
 

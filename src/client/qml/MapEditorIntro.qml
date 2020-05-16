@@ -77,17 +77,6 @@ QPagePanel {
 					readOnly: true
 					visible: introId != -1 && tags.length
 				}
-
-				QTag {
-					id: tagChapters
-					title: qsTr("Célpont:")
-					width: parent.width
-					defaultColor: CosStyle.colorAccentLight
-					defaultBackground: CosStyle.colorAccentDark
-					modelTextRole: "name"
-					readOnly: true
-					visible: introId != -1 && tags.length
-				}
 			}
 
 		}
@@ -140,13 +129,11 @@ QPagePanel {
 			tagCampaigns.tags = []
 			tagMissions.tags = []
 			tagSummaries.tags = []
-			tagChapters.tags = []
 			return
 		}
 
 		tagCampaigns.tags = p.campaigns
 		tagMissions.tags = p.missions
 		tagSummaries.tags = p.summaries
-		tagChapters.tags = p.chapters
 	}
 }

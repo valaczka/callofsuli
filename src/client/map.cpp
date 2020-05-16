@@ -35,6 +35,8 @@
 #include "map.h"
 #include "cosclient.h"
 
+QVariantList Map::m_storageModules = QVariantList();
+QVariantList Map::m_objectiveModules = QVariantList();
 
 Map::Map(const QString &connectionName, QObject *parent)
 	: AbstractDbActivity(connectionName, parent)
@@ -48,18 +50,13 @@ Map::Map(const QString &connectionName, QObject *parent)
 				 << "summary"
 				 << "summaryLevel"
 				 << "bindCampaignMission"
-				 << "chapter"
-				 << "bindMissionChapter"
+				 << "bindMissionStorage"
 				 << "bindIntroCampaign"
 				 << "bindIntroMission"
 				 << "bindIntroSummary"
-				 << "bindIntroChapter"
-				 << "bindSummaryChapter";
+				 << "bindSummaryStorage";
 
 	m_databaseInitSql = QStringList();
-
-	setStorageModules();
-	setObjectiveModules();
 
 }
 
@@ -79,6 +76,35 @@ Map::~Map()
 }
 
 
+/**
+ * @brief Map::storageModules
+ * @return
+ */
+
+
+QVariantList Map::storageModules()
+{
+	if (m_storageModules.isEmpty())
+		setStorageModules();
+
+	return m_storageModules;
+}
+
+
+/**
+ * @brief Map::objectiveModules
+ * @return
+ */
+
+QVariantList Map::objectiveModules()
+{
+	if (m_objectiveModules.isEmpty())
+		setObjectiveModules();
+
+	return m_objectiveModules;
+}
+
+
 
 /**
  * @brief Map::storageModule
@@ -89,6 +115,9 @@ Map::~Map()
 
 QVariantMap Map::storageModule(const QString &type)
 {
+	if (m_storageModules.isEmpty())
+		setStorageModules();
+
 	foreach (QVariant v, m_storageModules) {
 		QVariantMap m = v.toMap();
 		if (m.value("type", "").toString() == type)
@@ -107,6 +136,9 @@ QVariantMap Map::storageModule(const QString &type)
 
 QVariantList Map::storageObjectiveModules(const QString &type)
 {
+	if (m_objectiveModules.isEmpty())
+		setObjectiveModules();
+
 	QVariantList ret;
 
 	foreach (QVariant v, m_objectiveModules) {
@@ -129,6 +161,9 @@ QVariantList Map::storageObjectiveModules(const QString &type)
 
 QVariantMap Map::objectiveModule(const QString &type)
 {
+	if (m_objectiveModules.isEmpty())
+		setObjectiveModules();
+
 	foreach (QVariant v, m_objectiveModules) {
 		QVariantMap m = v.toMap();
 		if (m.value("type", "").toString() == type)
@@ -230,7 +265,7 @@ QVariantList Map::campaignListGet()
  * @return
  */
 
-QVariantMap Map::missionGet(const int &id, const bool &isSummary)
+QVariantMap Map::missionGet(const int &id, const bool &isSummary, const bool &fullStorage, const int &filterLevel)
 {
 	QVariantList l;
 	l << id;
@@ -298,10 +333,15 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary)
 	map["levels"] = levels;
 
 
+	if (isSummary && fullStorage) {
+		QVariantList storages = summaryStorageListGet(id, filterLevel);
 
-	QVariantList chapters = chapterListGet(isSummary ? -1 : id, isSummary ? id : -1);
+		map["storages"] = storages;
+	} else {
+		QVariantList storages = storageListGet(isSummary ? -1 : id, isSummary ? id : -1, filterLevel);
 
-	map["chapters"] = chapters;
+		map["storages"] = storages;
+	}
 
 	return map;
 }
@@ -334,88 +374,133 @@ QVariantList Map::missionListGet(const int &campaignId)
 }
 
 
-
-
 /**
- * @brief Map::chapterGet
+ * @brief Map::summaryFullStorageListGet
  * @param id
  * @return
  */
 
-QVariantMap Map::chapterGet(const int &id)
+QVariantList Map::summaryStorageListGet(const int &id, const int &filterLevel)
+{
+	QVariantList list;
+	QVariantList l;
+	l << id;
+
+	m_db->execSelectQuery("SELECT storageid as id, name, module, data FROM "
+						  "(SELECT summary.id as summaryid, storageid FROM summary "
+						  "LEFT JOIN bindCampaignMission ON (bindCampaignMission.campaignid=summary.campaignid) "
+						  "INNER JOIN bindMissionStorage ON (bindMissionStorage.missionid=bindCampaignMission.missionid) "
+						  "UNION SELECT summaryid, storageid FROM bindSummaryStorage) r "
+						  "LEFT JOIN storage ON (storage.id=r.storageid) "
+						  "WHERE summaryid=? ORDER BY storageid", l, &list);
+
+	QVariantList ret;
+
+	foreach(QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		QVariantList objs = objectiveListGet(m["id"].toInt(), filterLevel);
+		m["objectives"] = objs;
+		ret << m;
+	}
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief Map::storageGet
+ * @param id
+ * @return
+ */
+
+QVariantMap Map::storageGet(const int &id)
 {
 	QVariantList l;
 	l << id;
 	QVariantMap map;
 	map["id"] = -1;
 
-	m_db->execSelectQueryOneRow("SELECT id, name FROM chapter where id=?", l, &map);
-
-	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
-								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroChapter "
-								"LEFT JOIN intro ON (bindIntroChapter.introid=intro.id) "
-								"WHERE chapterid=?", l, &map);
-
-	if (!map.contains("introId"))
-		map["introId"] = -1;
-
+	m_db->execSelectQueryOneRow("SELECT id, name, module, data FROM storage where id=?", l, &map);
 
 
 	QVariantList missions;
 
-	m_db->execSelectQuery("SELECT mission.id as id, mission.name as name FROM bindMissionChapter "
-						  "LEFT JOIN mission ON (mission.id=bindMissionChapter.missionid) "
-						  "WHERE chapterid=? ORDER BY mission.name", l, &missions);
+	m_db->execSelectQuery("SELECT mission.id as id, mission.name as name FROM bindMissionStorage "
+						  "LEFT JOIN mission ON (mission.id=bindMissionStorage.missionid) "
+						  "WHERE storageid=? ORDER BY mission.name", l, &missions);
 
 	map["missions"] = missions;
 
 
 	QVariantList campaigns;
 
-	m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM bindSummaryChapter "
-						  "LEFT JOIN summary ON (summary.id=bindSummaryChapter.summaryid) "
+	m_db->execSelectQuery("SELECT campaign.id as id, campaign.name as name FROM bindSummaryStorage "
+						  "LEFT JOIN summary ON (summary.id=bindSummaryStorage.summaryid) "
 						  "LEFT JOIN campaign ON (campaign.id=summary.campaignid) "
-						  "WHERE chapterid=? ORDER BY campaign.name", l, &campaigns);
+						  "WHERE storageid=? ORDER BY campaign.name", l, &campaigns);
 
 	map["campaigns"] = campaigns;
 
 
-	map["storages"] = storageObjectiveListGet(id);
+	QString data = map.value("data").toString();
+	QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
+
+	QJsonObject d = doc.object();
+
+	map.remove("data");
+	map["data"] = d;
+
+
+	map["objectives"] = objectiveListGet(id);
 
 	return map;
 }
 
 
 /**
- * @brief Map::chapterListGet
+ * @brief Map::storageListGet
  * @param missionId
  * @param summaryId
  * @return
  */
 
-QVariantList Map::chapterListGet(const int &missionId, const int &summaryId)
+QVariantList Map::storageListGet(const int &missionId, const int &summaryId, const int &filterLevel)
 {
 	QVariantList list;
 
 	if (summaryId != -1) {
 		QVariantList l;
 		l << summaryId;
-		m_db->execSelectQuery("SELECT chapterid as id, name FROM bindSummaryChapter "
-							  "LEFT JOIN chapter ON (chapter.id=bindSummaryChapter.chapterid) "
+		m_db->execSelectQuery("SELECT storageid as id, 0 as num, name, module, data FROM bindSummaryStorage "
+							  "LEFT JOIN storage ON (storage.id=bindSummaryStorage.storageid) "
 							  "WHERE summaryid=? "
-							  "ORDER BY chapterid", l, &list);
+							  "ORDER BY storageid", l, &list);
 	} else if (missionId != -1) {
 		QVariantList l;
 		l << missionId;
-		m_db->execSelectQuery("SELECT chapterid as id, name, num FROM bindMissionChapter "
-							  "LEFT JOIN chapter ON (chapter.id=bindMissionChapter.chapterid) "
+		m_db->execSelectQuery("SELECT storageid as id, num, name, module, data FROM bindMissionStorage "
+							  "LEFT JOIN storage ON (storage.id=bindMissionStorage.storageid) "
 							  "WHERE missionid=? "
 							  "ORDER BY num", l, &list);
 	} else {
-		m_db->execSelectQuery("SELECT id, name, 0 as num FROM chapter ORDER BY name, id", QVariantList(), &list);
+		m_db->execSelectQuery("SELECT id, 0 as num, name, module, data FROM storage ORDER BY id", QVariantList(), &list);
 	}
 
-	return list;
+
+	QVariantList ret;
+
+	foreach(QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		QVariantList objs = objectiveListGet(m["id"].toInt(), filterLevel);
+		m["objectives"] = objs;
+		ret << m;
+	}
+
+	return ret;
 }
 
 
@@ -466,16 +551,6 @@ QVariantMap Map::introGet(const int &id)
 
 
 
-
-	QVariantList chapters;
-
-	m_db->execSelectQuery("SELECT chapter.id as id, chapter.name as name FROM bindIntroChapter "
-						  "LEFT JOIN chapter ON (chapter.id=bindIntroChapter.chapterid) "
-						  "WHERE introid=? ORDER BY chapter.name", l, &chapters);
-
-	map["chapters"] = chapters;
-
-
 	return map;
 }
 
@@ -514,111 +589,12 @@ QVariantList Map::introListGet(const int &parentId, const Map::IntroType &type)
 							  "LEFT JOIN intro ON (intro.id=bindIntroSummary.introid) "
 							  "WHERE summaryid=? "
 							  "ORDER BY introid", l, &list);
-	} else if (type == IntroChapter) {
-		QVariantList l;
-		l << parentId;
-		m_db->execSelectQuery("SELECT introid as id, ttext, img, media, sec, levelMin, levelMax FROM bindIntroChapter "
-							  "LEFT JOIN intro ON (intro.id=bindIntroChapter.introid) "
-							  "WHERE chapterid=? "
-							  "ORDER BY introid", l, &list);
 	}
 
 	return list;
 }
 
 
-
-/**
- * @brief Map::storageGet
- * @param id
- * @return
- */
-
-
-QVariantMap Map::storageGet(const int &id)
-{
-	QVariantList l;
-	l << id;
-	QVariantMap map;
-
-	m_db->execSelectQueryOneRow("SELECT id, chapterid, module, data FROM storage where id=?", l, &map);
-
-	QString data = map["data"].toString();
-	QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
-
-	QJsonObject d = doc.object();
-
-	map.remove("data");
-	map["data"] = d;
-
-	return map;
-}
-
-
-
-/**
- * @brief Map::storageListGet
- * @param chapterId
- * @return
- */
-
-QVariantList Map::storageListGet(const int &chapterId)
-{
-	QVariantList list;
-
-	if (chapterId != -1) {
-		QVariantList l;
-		l << chapterId;
-		m_db->execSelectQuery("SELECT id, chapterid, module, data FROM storage WHERE storage.chapterid=? ORDER BY id", l, &list);
-	} else {
-		m_db->execSelectQuery("SELECT id, chapterid, module, data FROM storage ORDER BY id", QVariantList(), &list);
-	}
-
-	return list;
-}
-
-
-/**
- * @brief Map::storageObjectiveGet
- * @param id
- * @return
- */
-
-QVariantMap Map::storageObjectiveGet(const int &id)
-{
-	QVariantMap m = storageGet(id);
-	QVariantList o = objectiveListGet(id);
-	m["objectives"] = o;
-
-	return m;
-}
-
-
-
-/**
- * @brief Map::storageObjectiveListGet
- * @param chapterId
- * @return
- */
-
-QVariantList Map::storageObjectiveListGet(const int &chapterId)
-{
-	QVariantList list = storageListGet(chapterId);
-
-	QVariantList ret;
-
-	foreach (QVariant l, list) {
-		QVariantMap m = l.toMap();
-
-		QVariantList o = objectiveListGet(m["id"].toInt());
-
-		m["objectives"] = o;
-
-		ret << m;
-	}
-
-	return ret;
-}
 
 
 
@@ -654,11 +630,11 @@ QVariantMap Map::objectiveGet(const int &id)
 	QVariantMap map;
 
 	m_db->execSelectQueryOneRow("SELECT objective.id as id, objective.storageid as storageid, objective.module as module, objective.data as data, "
-								"objective.level as level, objective.isSummary as isSummary, "
-								"storage.module as storageModule, storage.data as storageData "
+								"objective.level as level, "
+								"storage.module as storageModule, storage.name as storageName, storage.data as storageData "
 								"FROM objective LEFT JOIN storage ON (storage.id=objective.storageid) WHERE objective.id=?", l, &map);
 
-	QString data = map["data"].toString();
+	QString data = map.value("data").toString();
 	QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
 	QJsonObject d = doc.object();
 
@@ -667,7 +643,7 @@ QVariantMap Map::objectiveGet(const int &id)
 
 
 
-	QString sdata = map["storageData"].toString();
+	QString sdata = map.value("storageData").toString();
 	QJsonDocument sdoc = QJsonDocument::fromJson(data.toUtf8());
 	QJsonObject sd = doc.object();
 
@@ -686,40 +662,33 @@ QVariantMap Map::objectiveGet(const int &id)
  * @return
  */
 
-QVariantList Map::objectiveListGet(const int &storageId)
+QVariantList Map::objectiveListGet(const int &storageId, const int filterLevel)
 {
 	QVariantList list;
 
 	if (storageId != -1) {
 		QVariantList l;
 		l << storageId;
-		m_db->execSelectQuery("SELECT id, storageid, module, data, level, isSummary FROM objective WHERE storageid=? ORDER BY id", l, &list);
+
+		if (filterLevel != -1) {
+			l << filterLevel;
+			m_db->execSelectQuery("SELECT id, storageid, module, data, level FROM objective WHERE storageid=? AND level=? ORDER BY id", l, &list);
+		} else {
+			m_db->execSelectQuery("SELECT id, storageid, module, data, level FROM objective WHERE storageid=? ORDER BY id", l, &list);
+		}
 	} else {
-		m_db->execSelectQuery("SELECT id, storageid, module, data, level, isSummary FROM objective ORDER BY id", QVariantList(), &list);
+		if (filterLevel != -1) {
+			QVariantList l;
+			l << filterLevel;
+			m_db->execSelectQuery("SELECT id, storageid, module, data, level FROM objective WHERE level=? ORDER BY id", l, &list);
+		} else {
+			m_db->execSelectQuery("SELECT id, storageid, module, data, level FROM objective ORDER BY id", QVariantList(), &list);
+		}
 	}
 
 	return list;
 }
 
-
-/**
- * @brief Map::objectiveListGetChapter
- * @param chapterId
- * @return
- */
-
-QVariantList Map::objectiveListGetChapter(const int &chapterId)
-{
-	QVariantList list;
-
-	QVariantList l;
-	l << chapterId;
-	m_db->execSelectQuery("SELECT id, storageid, module, data, level, isSummary FROM objective "
-						  "LEFT JOIN storage ON (storage.id=objective.storageid) "
-						  "WHERE chapterid=? ORDER BY id", l, &list);
-
-	return list;
-}
 
 
 
@@ -1028,73 +997,6 @@ void Map::setObjectiveModules()
 
 
 
-
-
-/**
- * @brief Map::databaseChecio
- */
-/*
-bool Map::databaseCheck()
-{
-	Q_ASSERT(m_client);
-
-	if (m_mapType == MapInvalid) {
-		m_client->sendMessageError(tr("Internal error"), tr("Az adatbázis típusa nincs megadva!"));
-		return false;
-	}
-
-	if (m_mapType == MapEditor) {
-		setDatabaseFile(Client::standardPath("tmpmapeditor.db"));
-	} else if (m_mapType == MapGame) {
-		setDatabaseFile(Client::standardPath("tmpmapgame.db"));
-	}
-
-	if (m_mapType == MapEditor && QFile::exists(m_databaseFile)) {
-		qInfo() << tr("Létező ideiglenes adatbázis: ")+m_databaseFile;
-		if (!databaseOpen()) {
-			m_db->close();
-
-			qInfo() << tr("Nem sikerült megnyitni a fájlt, törlöm: ")+m_databaseFile;
-
-			if (!QFile::remove(m_databaseFile)) {
-				m_client->sendMessageError(tr("Internal error"), tr("Nem sikerült törölni az ideiglenes adatbázist!"), m_databaseFile);
-				return false;
-			}
-
-			return true;
-		}
-
-		QVariantMap m = m_db->runSimpleQuery("SELECT serverid, mapid, originalFile, uuid from mapeditor");
-		if (!m["error"].toBool() && m["records"].toList().count()) {
-			QVariantMap r = m["records"].toList().value(0).toMap();
-			int serverid = r.value("serverid").toInt();
-			int mapid = r.value("mapid").toInt();
-			QString filename = r.value("originalFile").toString();
-			QString uuid = r.value("uuid").toString();
-
-			if (!uuid.isEmpty()) {
-				//				emit mapBackupExists(filename, uuid, serverid, mapid);
-				m_db->close();
-				return true;
-			}
-		}
-
-		m_db->close();
-
-		qInfo() << tr("Hibás adatbázis, törlöm: ")+m_databaseFile;
-
-		if (!QFile::remove(m_databaseFile)) {
-			m_client->sendMessageError(tr("Internal error"), tr("Nem sikerült törölni az ideiglenes adatbázist!"), m_databaseFile);
-			return false;
-		}
-
-		return true;
-	}
-
-	return true;
-}
-
-*/
 /**
  * @brief Map::loadFromJson
  * @param data
@@ -1137,15 +1039,6 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 	QJsonObject root = doc.object();
 
 
-	foreach (QString t, m_tableNames) {
-		if (!JsonToTable(root[t].toArray(), t, false))
-			return QJsonObject();
-
-		if (steps && currentStep) {
-			emit mapLoadingProgress(++(*currentStep)/(*steps));
-			QCoreApplication::processEvents();
-		}
-	}
 
 	if (!JsonToTable(root["storage"].toArray(), "storage", true))
 		return QJsonObject();
@@ -1162,6 +1055,17 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 		emit mapLoadingProgress(++(*currentStep)/(*steps));
 		QCoreApplication::processEvents();
 	}
+
+	foreach (QString t, m_tableNames) {
+		if (!JsonToTable(root[t].toArray(), t, false))
+			return QJsonObject();
+
+		if (steps && currentStep) {
+			emit mapLoadingProgress(++(*currentStep)/(*steps));
+			QCoreApplication::processEvents();
+		}
+	}
+
 
 	return root;
 }

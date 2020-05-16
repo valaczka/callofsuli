@@ -15,21 +15,21 @@ QPagePanel {
 
 
 
-	QListItemDelegate {
-		id: list
-		anchors.fill: parent
+	MapEditorStorageWidget {
+		id: storageWidget
 
-		modelTitleRole: "name"
+		width: parent.width
+		map: panel.map
 
-
-		onClicked: pageEditor.chapterSelected(list.model[index].id, -1, -1)
+		onStorageSelected: pageEditor.storageSelected(id, -1, -1)
+		onObjectiveSelected: pageEditor.objectiveSelected(id, -1, -1)
 	}
 
 
 
 	Connections {
 		target: map
-		onChapterListUpdated: getList()
+		onStorageListUpdated: getList()
 		onUndone: getList()
 	}
 
@@ -38,6 +38,6 @@ QPagePanel {
 	function populated() { getList() }
 
 	function getList() {
-		list.model = map.chapterListGet()
+		storageWidget.load(map.storageListGet())
 	}
 }

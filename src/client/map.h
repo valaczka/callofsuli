@@ -45,7 +45,7 @@ class Map : public AbstractDbActivity
 
 public:
 
-	enum IntroType { IntroUndefined, IntroCampaign, IntroMission, IntroSummary, IntroChapter };
+	enum IntroType { IntroUndefined, IntroCampaign, IntroMission, IntroSummary };
 	Q_ENUM(IntroType)
 
 	Q_PROPERTY(QVariantList storageModules READ storageModules)
@@ -54,41 +54,37 @@ public:
 	explicit Map(const QString &connectionName = "mapDB", QObject *parent = nullptr);
 	virtual ~Map();
 
-	QVariantList storageModules() const { return m_storageModules; }
-	QVariantList objectiveModules() const { return m_objectiveModules; }
+	static QVariantList storageModules();
+	static QVariantList objectiveModules();
 
 public slots:
 	QJsonObject loadFromJson(const QByteArray &data, const bool &binaryFormat = true, double *steps = nullptr, double *currentStep = nullptr);
 
-	QVariantMap storageModule(const QString &type);
-	QVariantList storageObjectiveModules(const QString &type);
-	QVariantMap objectiveModule(const QString &type);
+	static QVariantMap storageModule(const QString &type);
+	static QVariantList storageObjectiveModules(const QString &type);
+	static QVariantMap objectiveModule(const QString &type);
 
 	virtual QVariantMap infoGet();
 
 	QVariantMap campaignGet(const int &id);
 	QVariantList campaignListGet();
 
-	QVariantMap missionGet(const int &id, const bool &isSummary = false);
+	QVariantMap missionGet(const int &id, const bool &isSummary = false, const bool &fullStorage = false, const int &filterLevel = -1);
 	QVariantList missionListGet(const int &campaignId = -1);
 
-	QVariantMap summaryGet(const int &id) { return missionGet(id, true); }
 
-	QVariantMap chapterGet(const int &id);
-	QVariantList chapterListGet(const int &missionId = -1, const int &summaryId = -1);
+	QVariantMap summaryGet(const int &id) { return missionGet(id, true); }
+	QVariantList summaryStorageListGet(const int &id, const int &filterLevel = -1);
+
+	QVariantMap storageGet(const int &id);
+	QVariantList storageListGet(const int &missionId = -1, const int &summaryId = -1, const int &filterLevel = -1);
+	QVariantMap storageInfo(const QString &type) const;
 
 	QVariantMap introGet(const int &id);
 	QVariantList introListGet(const int &parentId = -1, const IntroType &type = IntroUndefined);
 
-	QVariantMap storageGet(const int &id);
-	QVariantList storageListGet(const int &chapterId = -1);
-	QVariantMap storageObjectiveGet(const int &id);
-	QVariantList storageObjectiveListGet(const int &chapterId = -1);
-	QVariantMap storageInfo(const QString &type) const;
-
 	QVariantMap objectiveGet(const int &id);
-	QVariantList objectiveListGet(const int &storageId = -1);
-	QVariantList objectiveListGetChapter(const int &chapterId);
+	QVariantList objectiveListGet(const int &storageId = -1, const int filterLevel = -1);
 	QVariantMap objectiveInfo(const QString &type) const;
 
 private slots:
@@ -106,11 +102,11 @@ signals:
 	void mapLoadingProgress(const double &progress);
 
 private:
-	void setStorageModules();
-	void setObjectiveModules();
+	static void setStorageModules();
+	static void setObjectiveModules();
 
-	QVariantList m_storageModules;
-	QVariantList m_objectiveModules;
+	static QVariantList m_storageModules;
+	static QVariantList m_objectiveModules;
 };
 
 #define DATETIME_JSON_FORMAT QString("yyyy-MM-dd hh:mm:ss")

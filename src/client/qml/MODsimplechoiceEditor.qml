@@ -9,14 +9,15 @@ import "JScript.js" as JS
 MODabstractEditor {
 	id: control
 
+	property string storageModule: ""
+
 	QCollapsible {
 		title: qsTr("Kérdések készítése kérdés-válasz alapján")
 
 		visible: storageModule == "questionpair"
 
-		ButtonGroup {
-			id: grp
-		}
+		ButtonGroup { id: grp }
+		ButtonGroup { id: grp2 }
 
 		QGridLayout {
 			width: parent.width
@@ -67,6 +68,13 @@ MODabstractEditor {
 			}
 
 			QGridCheckBox {
+				id: checkRest
+				text: qsTr("A még fel nem használtakat kérdezi meg")
+				ButtonGroup.group: grp
+				onToggled: saveJson()
+			}
+
+			QGridCheckBox {
 				id: checkNumber
 				text: qsTr("Pontos darabszámot kérdez meg")
 				ButtonGroup.group: grp
@@ -95,7 +103,17 @@ MODabstractEditor {
 				id: checkFavoritesFirst
 				visible: checkNumber.checked
 				sqlField: "favoritesFirst"
+				ButtonGroup.group: grp2
 				text: qsTr("Először a kiemelteket használja fel")
+				onToggled: saveJson()
+			}
+
+			QGridCheckBox {
+				id: checkNoFavoritesFirst
+				visible: checkNumber.checked
+				sqlField: "noFavoritesFirst"
+				ButtonGroup.group: grp2
+				text: qsTr("Először a nem kiemelteket használja fel")
 				onToggled: saveJson()
 			}
 		}
@@ -185,23 +203,25 @@ MODabstractEditor {
 
 
 
-	onJsonDataChanged: {
-		console.debug("-------------------------jsdc", storageModule)
+	onEditorDataChanged: {
+		storageModule = editorData.storageModule
 		if (storageModule == "questionpair") {
-			var mode = jsonData.mode
+			var mode = editorData.data.mode
 
 			if (mode === "favorites")
 				checkFavorites.checked = true
 			else if (mode === "nofavorites")
 				checkNoFavorites.checked = true
+			else if (mode === "rest")
+				checkRest.checked = true
 			else if (mode === "number") {
 				checkNumber.checked = true
 			} else
 				checkAll.checked = true
 
-			JS.setSqlFields([textPrefix, textSuffix, spinNumber, checkFavoritesFirst], jsonData)
+			JS.setSqlFields([textPrefix, textSuffix, spinNumber, checkFavoritesFirst, checkNoFavoritesFirst], editorData.data)
 		} else if (storageModule == "order") {
-			JS.setSqlFields([spinNumber2, checkFavoritesFirst2, textMinus, textPlus, textMinimum, textMaximum], jsonData)
+			JS.setSqlFields([spinNumber2, checkFavoritesFirst2, textMinus, textPlus, textMinimum, textMaximum], editorData.data)
 		}
 
 
@@ -210,7 +230,7 @@ MODabstractEditor {
 
 	function saveJsonData() {
 		if (storageModule == "questionpair") {
-			var d = JS.getSqlFields([textPrefix, textSuffix, spinNumber, checkFavoritesFirst])
+			var d = JS.getSqlFields([textPrefix, textSuffix, spinNumber, checkFavoritesFirst, checkNoFavoritesFirst])
 
 			if (checkNumber.checked) {
 				d.mode = "number"
@@ -218,6 +238,8 @@ MODabstractEditor {
 				d.mode = "favorites"
 			} else if (checkNoFavorites.checked) {
 				d.mode = "nofavorites"
+			} else if (checkRest.checked) {
+				d.mode = "rest"
 			} else {
 				d.mode = "all"
 			}

@@ -34,6 +34,7 @@
 
 
 #include "mapeditor.h"
+#include "game.h"
 
 MapEditor::MapEditor(QObject *parent)
 	: Map("mapEditorDB", parent)
@@ -244,6 +245,29 @@ QByteArray MapEditor::create(const bool &binaryFormat)
 }
 
 
+/**
+ * @brief MapEditor::playGame
+ * @param id
+ * @param isSummary
+ * @param level
+ */
+
+void MapEditor::playGame(const int &id, const bool &isSummary, const int &level)
+{
+	Game *g = new Game;
+
+	g->setClient(m_client);
+	g->setMap(this);
+	g->setMissionId(id);
+	g->setIsSummary(isSummary);
+	g->setLevel(level);
+
+	g->prepare();
+
+	delete g;
+}
+
+
 
 /**
  * @brief MapEditor::saveToFile
@@ -387,14 +411,13 @@ void MapEditor::infoUpdate(const QVariantMap &map)
  * @return
  */
 
-bool MapEditor::missionUpdate(const int &id, const QVariantMap &params, const int &campaignId)
+bool MapEditor::missionUpdate(const int &id, const QVariantMap &params)
 {
 	QVariantMap bind;
 	bind[":id"] = id;
 
 	if (m_db->execUpdateQuery("UPDATE mission SET ? WHERE id=:id", params, bind)) {
 		emit missionUpdated(id);
-		emit missionListUpdated(campaignId);
 		setMapModified(true);
 		return true;
 	}
@@ -485,12 +508,12 @@ bool MapEditor::missionLevelRemove(const int &id, const int &missionId)
 }
 
 /**
- * @brief MapEditor::missionChapterAdd
+ * @brief MapEditor::missionStorageAdd
  * @param params
  * @return
  */
 
-int MapEditor::missionChapterAdd(const QVariantMap &params)
+int MapEditor::missionStorageAdd(const QVariantMap &params)
 {
 	int missionId = params.value("missionid", -1).toInt();
 	int num = params.value("num", -1).toInt();
@@ -499,7 +522,7 @@ int MapEditor::missionChapterAdd(const QVariantMap &params)
 		QVariantMap m;
 		QVariantList l;
 		l << missionId;
-		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionChapter WHERE missionid=?", l, &m);
+		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
 		if (m.contains("num"))
 			num = m["num"].toInt();
 		else
@@ -509,11 +532,11 @@ int MapEditor::missionChapterAdd(const QVariantMap &params)
 	QVariantMap p2 = params;
 	p2["num"] = num;
 
-	int id = m_db->execInsertQuery("INSERT OR IGNORE INTO bindMissionChapter (?k?) values (?)", p2);
+	int id = m_db->execInsertQuery("INSERT OR IGNORE INTO bindMissionStorage (?k?) values (?)", p2);
 
 	if (id != -1) {
 		emit missionUpdated(missionId);
-		emit chapterListUpdated(missionId, -1);
+		emit storageListUpdated(missionId, -1);
 		setMapModified(true);
 		return id;
 	}
@@ -524,22 +547,22 @@ int MapEditor::missionChapterAdd(const QVariantMap &params)
 
 
 /**
- * @brief MapEditor::missionChapterUpdate
+ * @brief MapEditor::missionStorageUpdate
  * @param id
  * @param missionId
  * @param params
  * @return
  */
 
-bool MapEditor::missionChapterUpdate(const int &id, const int &missionId, const QVariantMap &params)
+bool MapEditor::missionStorageUpdate(const int &id, const int &missionId, const QVariantMap &params)
 {
 	QVariantMap bind;
 	bind[":id"] = id;
 	bind[":missionid"] = missionId;
 
-	if (m_db->execUpdateQuery("UPDATE bindMissionChapter SET ? WHERE id=:id AND missionid=:missionid", params, bind)) {
+	if (m_db->execUpdateQuery("UPDATE bindMissionStorage SET ? WHERE id=:id AND missionid=:missionid", params, bind)) {
 		emit missionUpdated(missionId);
-		emit chapterListUpdated(missionId, -1);
+		emit storageListUpdated(missionId, -1);
 		setMapModified(true);
 		return true;
 	}
@@ -549,22 +572,22 @@ bool MapEditor::missionChapterUpdate(const int &id, const int &missionId, const 
 
 
 /**
- * @brief MapEditor::missionChapterRemove
+ * @brief MapEditor::missionStorageRemove
  * @param id
  * @param missionId
  * @return
  */
 
 
-bool MapEditor::missionChapterRemove(const int &missionId, const int &chapterId)
+bool MapEditor::missionStorageRemove(const int &missionId, const int &storageId)
 {
 	QVariantList l;
-	l << chapterId;
+	l << storageId;
 	l << missionId;
-	bool r = m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE chapterid=? AND missionid=?", l);
+	bool r = m_db->execSimpleQuery("DELETE FROM bindMissionStorage WHERE storageid=? AND missionid=?", l);
 	if (r) {
 		emit missionUpdated(missionId);
-		emit chapterUpdated(chapterId);
+		emit storageUpdated(storageId);
 		setMapModified(true);
 	}
 	return r;
@@ -745,18 +768,18 @@ bool MapEditor::summaryLevelRemove(const int &id, const int &summaryId)
 
 
 /**
- * @brief MapEditor::summaryChapterAdd
+ * @brief MapEditor::summaryStorageAdd
  * @param params
  * @return
  */
 
-int MapEditor::summaryChapterAdd(const QVariantMap &params)
+int MapEditor::summaryStorageAdd(const QVariantMap &params)
 {
-	int id = m_db->execInsertQuery("INSERT OR IGNORE INTO bindSummaryChapter (?k?) values (?)", params);
+	int id = m_db->execInsertQuery("INSERT OR IGNORE INTO bindSummaryStorage (?k?) values (?)", params);
 	if (id != -1) {
 		int summaryId = params.value("summaryid", -1).toInt();
 		emit summaryUpdated(summaryId);
-		emit chapterListUpdated(-1, summaryId);
+		emit storageListUpdated(-1, summaryId);
 		setMapModified(true);
 		return id;
 	}
@@ -766,22 +789,22 @@ int MapEditor::summaryChapterAdd(const QVariantMap &params)
 
 
 /**
- * @brief MapEditor::summaryChapterRemove
+ * @brief MapEditor::summaryStorageRemove
  * @param id
  * @param missionId
  * @return
  */
 
 
-bool MapEditor::summaryChapterRemove(const int &summaryId, const int &chapterId)
+bool MapEditor::summaryStorageRemove(const int &summaryId, const int &storageId)
 {
 	QVariantList l;
-	l << chapterId;
+	l << storageId;
 	l << summaryId;
-	bool r = m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE chapterid=? AND summaryid=?", l);
+	bool r = m_db->execSimpleQuery("DELETE FROM bindSummaryStorage WHERE storageid=? AND summaryid=?", l);
 	if (r) {
 		emit summaryUpdated(summaryId);
-		emit chapterUpdated(chapterId);
+		emit storageUpdated(storageId);
 		setMapModified(true);
 	}
 	return r;
@@ -840,16 +863,42 @@ bool MapEditor::summaryRemove(const int &id)
 
 
 /**
- * @brief MapEditor::chapterAdd
+ * @brief MapEditor::storageAdd
  * @param params
  * @return
  */
 
-int MapEditor::chapterAdd(const QVariantMap &params)
+int MapEditor::storageAdd(const QVariantMap &params, const int &missionId, const int &summaryId)
 {
-	int id = m_db->execInsertQuery("INSERT INTO chapter (?k?) values (?)", params);
+	int id = m_db->execInsertQuery("INSERT INTO storage (?k?) values (?)", params);
+
 	if (id != -1) {
-		emit chapterListUpdated(-1, -1);
+		if (missionId != -1) {
+			QVariantMap m;
+			QVariantList l;
+			int num = 1;
+			l << missionId;
+			m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
+			if (m.contains("num"))
+				num = m["num"].toInt();
+
+			QVariantMap p2;
+			p2["missionid"] = missionId;
+			p2["storageid"] = id;
+			p2["num"] = num;
+
+			if (m_db->execInsertQuery("INSERT OR IGNORE INTO bindMissionStorage (?k?) values (?)", p2) != -1)
+				emit missionUpdated(missionId);
+		} else if (summaryId != -1) {
+			QVariantMap p2;
+			p2["summaryid"] = summaryId;
+			p2["storageid"] = id;
+
+			if (m_db->execInsertQuery("INSERT OR IGNORE INTO bindSummaryStorage (?k?) values (?)", p2) != -1)
+				emit summaryUpdated(summaryId);
+		}
+
+		emit storageListUpdated(missionId, summaryId);
 		setMapModified(true);
 		return id;
 	}
@@ -860,21 +909,23 @@ int MapEditor::chapterAdd(const QVariantMap &params)
 
 
 
-/**
- * @brief MapEditor::chapterUpdate
- * @param id
- * @param params
- * @return
- */
 
-bool MapEditor::chapterUpdate(const int &id, const QVariantMap &params, const int &missionId, const int &summaryId)
+
+bool MapEditor::storageUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData, const int &missionId, const int &summaryId)
 {
 	QVariantMap bind;
 	bind[":id"] = id;
 
-	if (m_db->execUpdateQuery("UPDATE chapter SET ? WHERE id=:id", params, bind)) {
-		emit chapterUpdated(id);
-		emit chapterListUpdated(missionId, summaryId);
+	QVariantMap newParams = params;
+
+	if (!jsonData.isEmpty()) {
+		QJsonDocument doc(jsonData);
+		newParams["data"] = QString(doc.toJson(QJsonDocument::Compact));
+	}
+
+	if (m_db->execUpdateQuery("UPDATE storage SET ? WHERE id=:id", newParams, bind)) {
+		emit storageUpdated(id);
+		emit storageListUpdated(missionId, summaryId);
 		setMapModified(true);
 		return true;
 	}
@@ -883,40 +934,16 @@ bool MapEditor::chapterUpdate(const int &id, const QVariantMap &params, const in
 }
 
 
-/**
- * @brief MapEditor::chapterIntroAdd
- * @param id
- * @param introId
- * @param isOutro
- * @return
- */
-
-bool MapEditor::chapterIntroAdd(const int &id, const int &introId)
-{
-	QVariantMap m;
-	m["chapterid"] = id;
-	m["introid"] = introId;
-
-	int r = m_db->execInsertQuery("INSERT INTO bindIntroChapter (?k?) VALUES (?)", m);
-
-	if (r != -1) {
-		emit chapterUpdated(id);
-		setMapModified(true);
-		return true;
-	}
-
-	return false;
-}
 
 
 /**
- * @brief MapEditor::chapterMissionListSet
+ * @brief MapEditor::storageMissionListSet
  * @param id
  * @param missionIdList
  * @return
  */
 
-bool MapEditor::chapterMissionListSet(const int &id, const QVariantList &missionIdList)
+bool MapEditor::storageMissionListSet(const int &id, const QVariantList &missionIdList)
 {
 	QStringList vl;
 	QStringList il;
@@ -929,21 +956,21 @@ bool MapEditor::chapterMissionListSet(const int &id, const QVariantList &mission
 	params << id;
 
 	if (missionIdList.isEmpty()) {
-		return m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE chapterid=?", params);
+		return m_db->execSimpleQuery("DELETE FROM bindMissionStorage WHERE storageid=?", params);
 	}
 
-	bool r1 = m_db->execSimpleQuery("DELETE FROM bindMissionChapter WHERE chapterid=? AND missionid NOT IN ("+il.join(",")+")", params);
+	bool r1 = m_db->execSimpleQuery("DELETE FROM bindMissionStorage WHERE storageid=? AND missionid NOT IN ("+il.join(",")+")", params);
 
 	params << id;
 
-	bool r2 = m_db->execSimpleQuery("INSERT INTO bindMissionChapter(missionid, chapterid, num) "
+	bool r2 = m_db->execSimpleQuery("INSERT INTO bindMissionStorage(missionid, storageid, num) "
 									"SELECT T.id as missionid, "
-									"? as chapterid, "
-									"COALESCE((SELECT MAX(num)+1 FROM bindMissionChapter WHERE missionid=T.id), 1) as num "
-									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT missionid from bindMissionChapter WHERE chapterid=?) T",
+									"? as storageid, "
+									"COALESCE((SELECT MAX(num)+1 FROM bindMissionStorage WHERE missionid=T.id), 1) as num "
+									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT missionid from bindMissionStorage WHERE storageid=?) T",
 									params);
 
-	emit chapterUpdated(id);
+	emit storageUpdated(id);
 	setMapModified(true);
 
 	return (r1 && r2);
@@ -952,13 +979,13 @@ bool MapEditor::chapterMissionListSet(const int &id, const QVariantList &mission
 
 
 /**
- * @brief MapEditor::chapterCampaignListSet
+ * @brief MapEditor::storageCampaignListSet
  * @param id
  * @param missionIdList
  * @return
  */
 
-bool MapEditor::chapterSummaryListSet(const int &id, const QVariantList &summaryIdList)
+bool MapEditor::storageSummaryListSet(const int &id, const QVariantList &summaryIdList)
 {
 	QStringList vl;
 	QStringList il;
@@ -971,19 +998,19 @@ bool MapEditor::chapterSummaryListSet(const int &id, const QVariantList &summary
 	params << id;
 
 	if (summaryIdList.isEmpty()) {
-		return m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE chapterid=?", params);
+		return m_db->execSimpleQuery("DELETE FROM bindSummaryStorage WHERE storageid=?", params);
 	}
 
-	bool r1 = m_db->execSimpleQuery("DELETE FROM bindSummaryChapter WHERE chapterid=? AND summaryid NOT IN ("+il.join(",")+")", params);
+	bool r1 = m_db->execSimpleQuery("DELETE FROM bindSummaryStorage WHERE storageid=? AND summaryid NOT IN ("+il.join(",")+")", params);
 
 	params << id;
 
-	bool r2 = m_db->execSimpleQuery("INSERT INTO bindSummaryChapter(summaryid, chapterid) "
-									"SELECT T.id as summaryid, ? as chapterid "
-									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT summaryid from bindSummaryChapter WHERE chapterid=?) T",
+	bool r2 = m_db->execSimpleQuery("INSERT INTO bindSummaryStorage(summaryid, storageid) "
+									"SELECT T.id as summaryid, ? as storageid "
+									"FROM (SELECT column1 as id FROM (values "+vl.join(",")+" ) EXCEPT SELECT summaryid from bindSummaryStorage WHERE storageid=?) T",
 									params);
 
-	emit chapterUpdated(id);
+	emit storageUpdated(id);
 	setMapModified(true);
 
 	return (r1 && r2);
@@ -991,18 +1018,18 @@ bool MapEditor::chapterSummaryListSet(const int &id, const QVariantList &summary
 
 
 /**
- * @brief MapEditor::chapterRemove
+ * @brief MapEditor::storageRemove
  * @param id
  * @return
  */
 
-bool MapEditor::chapterRemove(const int &id)
+bool MapEditor::storageRemove(const int &id, const int &missionId, const int &summaryId)
 {
 	QVariantList l;
 	l << id;
-	bool ret = m_db->execSimpleQuery("DELETE FROM chapter WHERE id=?", l);
+	bool ret = m_db->execSimpleQuery("DELETE FROM storage WHERE id=?", l);
 	if (ret) {
-		emit chapterListUpdated(-1, -1);
+		emit storageListUpdated(missionId, summaryId);
 		setMapModified(true);
 	}
 
@@ -1078,88 +1105,6 @@ bool MapEditor::introRemove(const int &id)
 
 
 
-/**
- * @brief MapEditor::storageAdd
- * @param params
- * @return
- */
-
-int MapEditor::storageAdd(const QVariantMap &params)
-{
-	int id = m_db->execInsertQuery("INSERT INTO storage (?k?) values (?)", params);
-	if (id != -1) {
-		emit storageListUpdated();
-		setMapModified(true);
-		return id;
-	}
-
-	return -1;
-}
-
-
-
-/**
- * @brief MapEditor::storageRemove
- * @param id
- * @return
- */
-
-bool MapEditor::storageRemove(const int &id)
-{
-	QVariantList l;
-	l << id;
-
-	QVariantMap m;
-	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=?", l, &m);
-	int chapterId = m.value("chapterid", -1).toInt();
-
-	bool ret = m_db->execSimpleQuery("DELETE FROM storage WHERE id=?", l);
-
-	if (ret) {
-		if (chapterId != -1) {
-			emit chapterUpdated(chapterId);
-		}
-
-		setMapModified(true);
-	}
-
-	return ret;
-}
-
-
-/**
- * @brief MapEditor::storageUpdate
- * @param id
- * @param params
- * @param chapterId
- * @return
- */
-
-bool MapEditor::storageUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData, const int &chapterId)
-{
-	QVariantMap bind;
-	bind[":id"] = id;
-
-	QVariantMap newParams = params;
-
-	if (!jsonData.isEmpty()) {
-		QJsonDocument doc(jsonData);
-		newParams["data"] = QString(doc.toJson(QJsonDocument::Compact));
-	}
-
-	if (m_db->execUpdateQuery("UPDATE storage SET ? WHERE id=:id", newParams, bind)) {
-		emit storageUpdated(id);
-
-		if (chapterId > -1)
-			emit chapterUpdated(chapterId);
-
-		setMapModified(true);
-		return true;
-	}
-
-	return false;
-}
-
 
 
 
@@ -1169,11 +1114,11 @@ bool MapEditor::storageUpdate(const int &id, const QVariantMap &params, const QJ
  * @return
  */
 
-int MapEditor::objectiveAdd(const QVariantMap &params)
+int MapEditor::objectiveAdd(const QVariantMap &params, const int &missionId, const int &summaryId)
 {
 	int id = m_db->execInsertQuery("INSERT INTO objective (?k?) values (?)", params);
 	if (id != -1) {
-		emit objectiveListUpdated();
+		emit storageListUpdated(missionId, summaryId);
 		setMapModified(true);
 		return id;
 	}
@@ -1191,20 +1136,14 @@ int MapEditor::objectiveAdd(const QVariantMap &params)
  * @return
  */
 
-bool MapEditor::objectiveRemove(const int &id)
+bool MapEditor::objectiveRemove(const int &id, const int &missionId, const int &summaryId)
 {
 	QVariantList l;
 	l << id;
 
-	QVariantMap m;
-	m_db->execSelectQueryOneRow("SELECT chapterid FROM storage WHERE id=(SELECT storageid FROM objective WHERE id=?)", l, &m);
-	int chapterId = m.value("chapterid", -1).toInt();
-
 	bool ret = m_db->execSimpleQuery("DELETE FROM objective WHERE id=?", l);
 	if (ret) {
-		if (chapterId != -1) {
-			emit chapterUpdated(chapterId);
-		}
+		emit storageListUpdated(missionId, summaryId);
 		setMapModified(true);
 	}
 
@@ -1220,7 +1159,7 @@ bool MapEditor::objectiveRemove(const int &id)
  * @return
  */
 
-bool MapEditor::objectiveUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData, const int &chapterId)
+bool MapEditor::objectiveUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData, const int &missionId, const int &summaryId)
 {
 	QVariantMap bind;
 	bind[":id"] = id;
@@ -1232,12 +1171,10 @@ bool MapEditor::objectiveUpdate(const int &id, const QVariantMap &params, const 
 		newParams["data"] = QString(doc.toJson(QJsonDocument::Compact));
 	}
 
-
 	if (m_db->execUpdateQuery("UPDATE objective SET ? WHERE id=:id", newParams, bind)) {
 		emit objectiveUpdated(id);
 
-		if (chapterId > -1)
-			emit chapterUpdated(chapterId);
+		emit storageListUpdated(missionId, summaryId);
 
 		setMapModified(true);
 		return true;

@@ -16,7 +16,7 @@ QSpinBox {
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
 
-	textColor: modified ? CosStyle.colorAccent : CosStyle.colorPrimary
+	textColor: watchModification ? (modified ? CosStyle.colorAccent : CosStyle.colorPrimary) : CosStyle.colorAccent
 
 
 	onValueModified: {

@@ -7,18 +7,22 @@ import "Style"
 import "JScript.js" as JS
 
 QPagePanel {
-	id: panel
+	id: panelObjective
 
 	property MapEditor map: null
+	property int storageId: -1
+	property int objectiveId: -1
+	property int parentMissionId: -1
+	property int parentSummaryId: -1
 
-	title: pageChapterEditor.objectiveId === -1 ? qsTr("Töltény") : qsTr("Fegyver")
+	title: objectiveId === -1 ? qsTr("Célpont") : qsTr("Fegyver")
 
 	Label {
 		id: noLabel
-		opacity: pageChapterEditor.storageId === -1 && pageChapterEditor.objectiveId === -1
+		opacity: storageId === -1 && objectiveId === -1
 		visible: opacity != 0
 
-		text: pageChapterEditor.objectiveId === -1 ? qsTr("Válassz töltényt") : qsTr("Válassz fegyvert")
+		text: qsTr("Válassz célpontot vagy fegyvert")
 
 		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
@@ -26,14 +30,34 @@ QPagePanel {
 	Loader {
 		id: editorLoader
 		anchors.fill: parent
-		opacity: (pageChapterEditor.storageId !== -1 || pageChapterEditor.objectiveId !== -1) && editorLoader.status === Loader.Ready
+		opacity: (storageId !== -1 || objectiveId !== -1) && editorLoader.status === Loader.Ready
 		visible: opacity != 0
 	}
 
 
 	Connections {
-		target: pageChapterEditor
-		onReloadObjective:  get()
+		target: pageEditor
+		onStorageSelected: {
+			storageId = id
+			objectiveId = -1
+			parentMissionId = parentMId
+			parentSummaryId = parentSId
+			get()
+		}
+
+		onObjectiveSelected: {
+			objectiveId = id
+			storageId = -1
+			parentMissionId = parentMId
+			parentSummaryId = parentSId
+			get()
+		}
+	}
+
+
+	Connections {
+		target: map
+		onUndone: get()
 	}
 
 
@@ -42,35 +66,30 @@ QPagePanel {
 
 	function get() {
 		var d = {}
-		if (pageChapterEditor.storageId !== -1) {
-			d = map.storageGet(pageChapterEditor.storageId)
+		if (storageId !== -1) {
+			d = map.storageGet(storageId)
 			var i = map.storageInfo(d.module)
 			if (Object.keys(i).length) {
 				var qml = "MOD"+i.type+"Editor.qml"
 				if (editorLoader.source === qml)
-					editorLoader.item.jsonData = d.data
+					editorLoader.item.editorData = d
 				else
-					editorLoader.setSource(qml, { jsonData: d.data, moduleLabel: i.label })
+					editorLoader.setSource(qml, { editorData: d })
 			} else {
-				cosClient.sendMessageError(qsTr("Programhiba"), qsTr("Érvénytelen modul"), d.module)
+				editorLoader.source = ""
 			}
-		} else if (pageChapterEditor.objectiveId !== -1) {
-			d = map.objectiveGet(pageChapterEditor.objectiveId)
+		} else if (objectiveId !== -1) {
+			d = map.objectiveGet(objectiveId)
 
 			i = map.objectiveInfo(d.module)
 			if (Object.keys(i).length) {
 				qml = "MOD"+i.type+"Editor.qml"
 				if (editorLoader.source === qml) {
-					editorLoader.item.level = d.level
-					editorLoader.item.isSummary = d.isSummary
-					editorLoader.item.storageData = d.storageData
-					editorLoader.item.storageModule = d.storageModule
-					editorLoader.item.jsonData = d.data
+					editorLoader.item.editorData = d
 				} else
-					editorLoader.setSource(qml, { moduleLabel: i.label, storageModule: d.storageModule, storageData: d.storageData,
-											   jsonData: d.data, level: d.level, isSummary: d.isSummary })
+					editorLoader.setSource(qml, { editorData: d })
 			} else {
-				cosClient.sendMessageError(qsTr("Programhiba"), qsTr("Érvénytelen modul"), d.module)
+				editorLoader.source = ""
 			}
 		} else {
 			editorLoader.source = ""

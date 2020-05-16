@@ -39,6 +39,9 @@
 #include "abstractactivity.h"
 #include "map.h"
 #include "intro.h"
+#include "block.h"
+
+class Block;
 
 class Game : public AbstractActivity
 {
@@ -58,6 +61,10 @@ class Game : public AbstractActivity
 	Q_PROPERTY(Intro* intro READ intro WRITE setIntro NOTIFY introChanged)
 	Q_PROPERTY(Intro* outro READ outro WRITE setOutro NOTIFY outroChanged)
 
+	Q_PROPERTY(QList<Block *> blocks READ blocks WRITE setBlocks NOTIFY blocksChanged)
+	Q_PROPERTY(int currentBlock READ currentBlock WRITE setCurrentBlock NOTIFY currentBlockChanged)
+	Q_PROPERTY(int targetCount READ targetCount WRITE setTargetCount NOTIFY targetCountChanged)
+	Q_PROPERTY(int targetDone READ targetDone WRITE setTargetDone NOTIFY targetDoneChanged)
 
 public:
 
@@ -88,6 +95,8 @@ public:
 	Q_ENUM(GameMode)
 
 
+
+
 	Game(QObject *parent=nullptr);
 	~Game();
 
@@ -103,6 +112,10 @@ public:
 	GameMode gameMode() const { return m_gameMode; }
 	Intro* intro() const { return m_intro; }
 	Intro* outro() const { return m_outro; }
+	QList<Block *> blocks() const { return m_blocks; }
+	int currentBlock() const { return m_currentBlock; }
+	int targetCount() const { return m_targetCount; }
+	int targetDone() const { return m_targetDone; }
 
 public slots:
 
@@ -123,6 +136,10 @@ private slots:
 	void setGameMode(GameMode gameMode);
 	void setIntro(Intro* intro);
 	void setOutro(Intro* outro);
+	void setBlocks(QList<Block *> blocks);
+	void setCurrentBlock(int currentBlock);
+	void setTargetCount(int targetCount);
+	void setTargetDone(int targetDone);
 
 
 signals:
@@ -139,6 +156,10 @@ signals:
 	void gameModeChanged(GameMode gameMode);
 	void introChanged(Intro* intro);
 	void outroChanged(Intro* outro);
+	void blocksChanged(QList<Block *> blocks);
+	void currentBlockChanged(int currentBlock);
+	void targetCountChanged(int targetCount);
+	void targetDoneChanged(int targetDone);
 
 private:
 	Map* m_map;
@@ -152,6 +173,10 @@ private:
 	GameMode m_gameMode;
 	Intro* m_intro;
 	Intro* m_outro;
+	QList<Block *> m_blocks;
+	int m_currentBlock;
+	int m_targetCount;
+	int m_targetDone;
 };
 
 #endif // GAME_H

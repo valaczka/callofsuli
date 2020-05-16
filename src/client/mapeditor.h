@@ -64,6 +64,8 @@ public slots:
 
 	static QByteArray create(const bool &binaryFormat = true);
 
+	void playGame(const int &id, const bool &isSummary, const int &level);
+
 	QByteArray saveToJson(const bool &binaryFormat = true);
 	bool saveToFile(const QString &filename, const QByteArray &data = QByteArray());
 	bool saveToFile(const QUrl &url, const QByteArray &data = QByteArray()) { return saveToFile(url.toLocalFile(), data); }
@@ -86,14 +88,14 @@ public slots:
 	bool campaignLockSet(const int &id, const QVariantList &lockIdList);
 	bool campaignRemove(const int &id);
 
-	bool missionUpdate(const int &id, const QVariantMap &params, const int &campaignId = -1);
+	bool missionUpdate(const int &id, const QVariantMap &params);
 	int missionAdd(const QVariantMap &params);
 	int missionLevelAdd(const QVariantMap &params);
 	bool missionLevelUpdate(const int &id, const int &missionId, const QVariantMap &params);
 	bool missionLevelRemove(const int &id, const int &missionId);
-	int missionChapterAdd(const QVariantMap &params);
-	bool missionChapterUpdate(const int &id, const int &missionId, const QVariantMap &params);
-	bool missionChapterRemove(const int &missionId, const int &chapterId);
+	int missionStorageAdd(const QVariantMap &params);
+	bool missionStorageUpdate(const int &id, const int &missionId, const QVariantMap &params);
+	bool missionStorageRemove(const int &missionId, const int &storageId);
 	bool missionIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
 	bool missionCampaignListSet(const int &id, const QVariantList &campaignIdList);
 	bool missionRemove(const int &id);
@@ -102,28 +104,24 @@ public slots:
 	int summaryLevelAdd(const QVariantMap &params);
 	bool summaryLevelUpdate(const int &id, const int &summaryId, const QVariantMap &params);
 	bool summaryLevelRemove(const int &id, const int &summaryId);
-	int summaryChapterAdd(const QVariantMap &params);
-	bool summaryChapterRemove(const int &summaryId, const int &chapterId);
+	int summaryStorageAdd(const QVariantMap &params);
+	bool summaryStorageRemove(const int &summaryId, const int &storageId);
 	bool summaryIntroAdd(const int &id, const int &introId, const bool &isOutro = false);
 	bool summaryRemove(const int &id);
 
-	int chapterAdd(const QVariantMap &params);
-	bool chapterUpdate(const int &id, const QVariantMap &params, const int &missionId = -1, const int &summaryId = -1);
-	bool chapterIntroAdd(const int &id, const int &introId);
-	bool chapterMissionListSet(const int &id, const QVariantList &missionIdList);
-	bool chapterSummaryListSet(const int &id, const QVariantList &summaryIdList);
-	bool chapterRemove(const int &id);
+	int storageAdd(const QVariantMap &params, const int &missionId = -1, const int &summaryId = -1);
+	bool storageUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData = QJsonObject(), const int &missionId = -1, const int &summaryId = -1);
+	bool storageMissionListSet(const int &id, const QVariantList &missionIdList);
+	bool storageSummaryListSet(const int &id, const QVariantList &summaryIdList);
+	bool storageRemove(const int &id, const int &missionId = -1, const int &summaryId = -1);
 
 	int introAdd(const QVariantMap &params);
 	bool introUpdate(const int &id, const QVariantMap &params, const int &parentId = -1, const IntroType &type = IntroUndefined);
 	bool introRemove(const int &id);
 
-	int storageAdd(const QVariantMap &params);
-	bool storageRemove(const int &id);
-	bool storageUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData = QJsonObject(), const int &chapterId = -1);
-	int objectiveAdd(const QVariantMap &params);
-	bool objectiveRemove(const int &id);
-	bool objectiveUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData = QJsonObject(), const int &chapterId = -1);
+	int objectiveAdd(const QVariantMap &params, const int &missionId = -1, const int &summaryId = -1);
+	bool objectiveRemove(const int &id, const int &missionId = -1, const int &summaryId = -1);
+	bool objectiveUpdate(const int &id, const QVariantMap &params, const QJsonObject &jsonData = QJsonObject(), const int &missionId = -1, const int &summaryId = -1);
 
 
 signals:
@@ -144,13 +142,10 @@ signals:
 	void missionListUpdated(const int &id);
 	void missionUpdated(const int &id);
 	void summaryUpdated(const int &id);
-	void chapterListUpdated(const int &mId, const int &sId);
-	void chapterUpdated(const int &id);
+	void storageListUpdated(const int &mId, const int &sId);
+	void storageUpdated(const int &id);
 	void introListUpdated(const int &parentId, const IntroType &type);
 	void introUpdated(const int &id);
-	void storageListUpdated();
-	void storageUpdated(const int &id);
-	void objectiveListUpdated();
 	void objectiveUpdated(const int &id);
 
 private:

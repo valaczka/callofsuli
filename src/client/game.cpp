@@ -55,6 +55,10 @@ Game::Game(QObject *parent)
 	m_gameMode = GameLinear;
 	m_intro = nullptr;
 	m_outro = nullptr;
+
+	m_targetCount = 0;
+	m_targetDone = 0;
+
 }
 
 
@@ -69,6 +73,10 @@ Game::~Game()
 
 	if (m_outro)
 		delete m_outro;
+
+	qDeleteAll(m_blocks.begin(), m_blocks.end());
+	m_blocks.clear();
+
 }
 
 
@@ -81,6 +89,8 @@ Game::~Game()
 
 bool Game::prepare()
 {
+	Q_ASSERT(m_client);
+
 	if (!m_map) {
 		m_client->sendMessageWarning(tr("Játék"), tr("Nincs megadva pálya!"));
 		return false;
@@ -101,44 +111,36 @@ bool Game::prepare()
 		return false;
 	}
 
-	QVariantMap data = m_map->missionGet(m_missionId, m_isSummary);
+	QVariantMap data = m_map->missionGet(m_missionId, m_isSummary, true, m_level);
 
 	if (data.value("id", -1).toInt() == -1) {
 		m_client->sendMessageWarning(tr("Játék"), tr("Érvénytelen küldetés!"));
 		return false;
 	}
 
-	QVariantList levels = data["levels"].toList();
-
-	QMap<int, QVariantMap> levelData;
-
-	foreach (QVariant v, levels) {
-		QVariantMap m = v.toMap();
-		levelData[m.value("level", 1).toInt()] = m;
-	}
+	QVariantList levels = data.value("levels").toList();
 
 	QVariantMap foundLevel;
 
-	QMapIterator<int, QVariantMap> i(levelData);
-	i.toBack();
-	while (i.hasPrevious()) {
-		i.previous();
-		if (i.key() <= m_level)
-			foundLevel = i.value();
+	foreach (QVariant v, levels) {
+		QVariantMap m = v.toMap();
+		if (m.value("level", -1).toInt() == m_level) {
+			foundLevel = m;
+			break;
+		}
 	}
 
 	if (foundLevel.isEmpty()) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen szint sincs beállítva a játékban!"));
+		m_client->sendMessageWarning(tr("Játék"), tr("A megadott szint nincs beállítva a játékban!"));
 		return false;
 	}
 
-	qDebug().noquote() << QString(tr("Beállított szint: %d")).arg(foundLevel["level"].toInt());
 
 	setMaxSec(foundLevel.value("sec", 0).toInt());
 	setMaxHP(foundLevel.value("hp", 0).toInt());
 	int mode = foundLevel.value("mode", 0).toInt();
 
-	if (mode == 2)
+	if (mode == 2 || m_isSummary)
 		setGameMode(GameFullShuffle);
 	else if (mode == 1)
 		setGameMode(GameChapterShuffle);
@@ -174,34 +176,76 @@ bool Game::prepare()
 
 
 
-	QVariantList chapters = data["chapters"].toList();
-/****
- * target generator
- *
- * map->sql: select chapters left join storages left join objectives
- *
- * generate blocks (chapters/all-in-one)
- *   - intro
- *   - storages
- *		- data
- *		- objectives
- *		   - target count
- *		   - data
- *   - targets
- *
- * return total target count
- *
- *
- * ------
- *
- * (re)generate target per blocks
- *
- * - generate storages
- * - clear targets
- * - storage generator -> addTarget
- * - shuffle targets
- *
- ******/
+	QVariantList storages = data.value("storages").toList();
+
+
+	if (storages.isEmpty()) {
+		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen célpont sincs a játékban!"));
+		return false;
+	}
+
+
+	bool hasObjective = false;
+
+	foreach (QVariant v, storages) {
+		QVariantList l = v.toMap().value("objectives").toList();
+
+		if (!l.isEmpty())
+			hasObjective = true;
+	}
+
+
+	if (!hasObjective) {
+		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen fegyver sincs megadva ezen a szinten!"));
+		return false;
+	}
+
+
+
+	if (m_gameMode == GameFullShuffle) {
+		Block *b = new Block(this);
+
+		foreach(QVariant v, storages) {
+			b->addStorage(v.toMap());
+		}
+
+		m_blocks << b;
+	} else {
+		while (storages.count()) {
+			int idx = 0;
+			int count = storages.count();
+
+			if (count > 1 && m_gameMode == GameChapterShuffle) {
+				idx = random() % count;
+			}
+
+			QVariant m = storages.takeAt(idx);
+
+			Block *b = new Block(this);
+
+			b->addStorage(m.toMap());
+
+			m_blocks << b;
+		}
+	}
+
+
+	int targetcount = 0;
+	foreach (Block *b, m_blocks) {
+		b->resetTargets();
+		targetcount += b->targetCount();
+	}
+
+	if (!targetcount) {
+		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen feladatot sem lehet készíteni ezen a szinten!"));
+		return false;
+	}
+
+	qDebug() << "TARGETS" << targetcount;
+
+	setTargetCount(targetcount);
+	setTargetDone(0);
+	setCurrentBlock(0);
 
 	setGameState(GamePrepared);
 	return true;
@@ -250,6 +294,43 @@ void Game::setIsSummary(bool isSummary)
 
 	m_isSummary = isSummary;
 	emit isSummaryChanged(m_isSummary);
+}
+
+void Game::setTargetCount(int targetCount)
+{
+	if (m_targetCount == targetCount)
+		return;
+
+	m_targetCount = targetCount;
+	emit targetCountChanged(m_targetCount);
+}
+
+void Game::setTargetDone(int targetDone)
+{
+	if (m_targetDone == targetDone)
+		return;
+
+	m_targetDone = targetDone;
+	emit targetDoneChanged(m_targetDone);
+}
+
+void Game::setCurrentBlock(int currentBlock)
+{
+	if (m_currentBlock == currentBlock)
+		return;
+
+	m_currentBlock = currentBlock;
+	emit currentBlockChanged(m_currentBlock);
+}
+
+
+void Game::setBlocks(QList<Block*> blocks)
+{
+	if (m_blocks == blocks)
+		return;
+
+	m_blocks = blocks;
+	emit blocksChanged(m_blocks);
 }
 
 void Game::setIntro(Intro *intro)
@@ -314,4 +395,17 @@ void Game::setGameResult(Game::GameResult gameResult)
 	m_gameResult = gameResult;
 	emit gameResultChanged(m_gameResult);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 

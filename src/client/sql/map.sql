@@ -65,22 +65,24 @@ CREATE TABLE bindCampaignMission (
 	UNIQUE (campaignid, missionid)
 );
 
-CREATE TABLE chapter (
+CREATE TABLE storage (
 	id INTEGER PRIMARY KEY,
-	name TEXT
+	name TEXT,
+	module TEXT NOT NULL,
+	data TEXT
 );
 
-CREATE TABLE bindMissionChapter (
+CREATE TABLE bindMissionStorage (
 	missionid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	storageid INTEGER NOT NULL REFERENCES storage(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	num INTEGER NOT NULL DEFAULT 0,
-	UNIQUE (missionid, chapterid)
+	UNIQUE (missionid, storageid)
 );
 
-CREATE TABLE bindSummaryChapter (
+CREATE TABLE bindSummaryStorage (
 	summaryid INTEGER NOT NULL REFERENCES mission(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	UNIQUE (summaryid, chapterid)
+	storageid INTEGER NOT NULL REFERENCES storage(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	UNIQUE (summaryid, storageid)
 );
 
 
@@ -107,24 +109,11 @@ CREATE TABLE bindIntroSummary (
 	UNIQUE(introid, summaryid, outro)
 );
 
-CREATE TABLE bindIntroChapter (
-	introid INTEGER NOT NULL REFERENCES intro(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	UNIQUE(introid, chapterid)
-);
-
-CREATE TABLE storage (
-	id INTEGER PRIMARY KEY,
-	chapterid INTEGER NOT NULL REFERENCES chapter(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	module TEXT NOT NULL,
-	data TEXT
-);
 
 CREATE TABLE objective (
 	id INTEGER PRIMARY KEY,
 	storageid INTEGER REFERENCES storage(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	level INTEGER NOT NULL DEFAULT 1 CHECK(level>0),
-	isSummary BOOL NOT NULL DEFAULT FALSE,
 	module TEXT NOT NULL,
 	data TEXT
 );

@@ -37,7 +37,6 @@
         <file>QPanelLayout.qml</file>
         <file>QPageHeader.qml</file>
         <file>MapEditorCampaignList.qml</file>
-        <file>MapEditorSettings.qml</file>
         <file>MapEditorCampaign.qml</file>
         <file>MapEditorMissionList.qml</file>
         <file>MapEditorMission.qml</file>
@@ -47,8 +46,7 @@
         <file>QSpinBox.qml</file>
         <file>QCloseButton.qml</file>
         <file>QComboBox.qml</file>
-        <file>MapEditorChapterList.qml</file>
-        <file>MapEditorChapter.qml</file>
+        <file>MapEditorStorageList.qml</file>
         <file>MapEditorIntroList.qml</file>
         <file>MapEditorIntro.qml</file>
         <file>QGridSpinBox.qml</file>
@@ -66,7 +64,6 @@
         <file>QTag.qml</file>
         <file>QDialogList.qml</file>
         <file>MapEditorIntroWidget.qml</file>
-        <file>PageMapChapterEditor.qml</file>
         <file>MapEditorObjective.qml</file>
         <file>QUndoButton.qml</file>
         <file>QToolButton.qml</file>
@@ -82,5 +79,6 @@
         <file>QRectangleBg.qml</file>
         <file>QFlipable.qml</file>
         <file>MODsimplechoiceEditor.qml</file>
+        <file>MapEditorStorageWidget.qml</file>
     </qresource>
 </RCC>
