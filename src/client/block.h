@@ -50,14 +50,18 @@ public:
 	void setGame(Game *game);
 	void addStorage(const QVariantMap &storage);
 	int targetCount() const { return m_targets.count(); }
+	int currentIndex() const;
+	void setCurrentIndex(int currentIndex);
+	AbstractStorage::Target currentTarget();
 
 	void resetTargets();
+
 
 private:
 	Game* m_game;
 	QList<AbstractStorage *> m_storages;
 
-	QList<QJsonObject> m_targets;
+	QList<AbstractStorage::Target> m_targets;
 	int m_currentIndex;
 };
 

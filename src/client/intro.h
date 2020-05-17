@@ -36,9 +36,8 @@
 #define INTRO_H
 
 #include <QObject>
-#include "abstractactivity.h"
 
-class Intro : public AbstractActivity
+class Intro : public QObject
 {
 	Q_OBJECT
 

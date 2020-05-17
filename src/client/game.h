@@ -40,6 +40,7 @@
 #include "map.h"
 #include "intro.h"
 #include "block.h"
+#include "abstractstorage.h"
 
 class Block;
 
@@ -51,38 +52,48 @@ class Game : public AbstractActivity
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged)
 	Q_PROPERTY(int missionId READ missionId WRITE setMissionId NOTIFY missionIdChanged)
 	Q_PROPERTY(bool isSummary READ isSummary WRITE setIsSummary NOTIFY isSummaryChanged)
+	Q_PROPERTY(GamePlayMode gamePlayMode READ gamePlayMode WRITE setGamePlayMode NOTIFY gamePlayModeChanged)
 
-	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged)
-	Q_PROPERTY(GameResult gameResult READ gameResult WRITE setGameResult NOTIFY gameResultChanged)
-	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged)
+	Q_PROPERTY(GameState gameState READ gameState NOTIFY gameStateChanged)
+	Q_PROPERTY(GameResult gameResult READ gameResult NOTIFY gameResultChanged)
+	Q_PROPERTY(GameMode gameMode READ gameMode NOTIFY gameModeChanged)
+	Q_PROPERTY(int gameId READ gameId NOTIFY gameIdChanged)
 
-	Q_PROPERTY(int maxSec READ maxSec WRITE setMaxSec NOTIFY maxSecChanged)
-	Q_PROPERTY(int maxHP READ maxHP WRITE setMaxHP NOTIFY maxHPChanged)
-	Q_PROPERTY(Intro* intro READ intro WRITE setIntro NOTIFY introChanged)
-	Q_PROPERTY(Intro* outro READ outro WRITE setOutro NOTIFY outroChanged)
+	Q_PROPERTY(quint64 maxMSec READ maxMSec NOTIFY maxMSecChanged)
+	Q_PROPERTY(quint64 currentMSec READ currentMSec NOTIFY currentMSecChanged)
+	Q_PROPERTY(int maxHP READ maxHP NOTIFY maxHPChanged)
+	Q_PROPERTY(int currentHP READ currentHP WRITE setCurrentHP NOTIFY currentHPChanged)
+	Q_PROPERTY(Intro* intro READ intro NOTIFY introChanged)
+	Q_PROPERTY(Intro* outro READ outro NOTIFY outroChanged)
+	Q_PROPERTY(QString missionName READ missionName NOTIFY missionNameChanged)
 
-	Q_PROPERTY(QList<Block *> blocks READ blocks WRITE setBlocks NOTIFY blocksChanged)
-	Q_PROPERTY(int currentBlock READ currentBlock WRITE setCurrentBlock NOTIFY currentBlockChanged)
-	Q_PROPERTY(int targetCount READ targetCount WRITE setTargetCount NOTIFY targetCountChanged)
-	Q_PROPERTY(int targetDone READ targetDone WRITE setTargetDone NOTIFY targetDoneChanged)
+	Q_PROPERTY(int currentBlockIndex READ currentBlockIndex NOTIFY currentBlockIndexChanged)
+	Q_PROPERTY(int targetCount READ targetCount NOTIFY targetCountChanged)
+	Q_PROPERTY(int targetDone READ targetDone NOTIFY targetDoneChanged)
+	Q_PROPERTY(int targetBlockCount READ targetBlockCount NOTIFY targetBlockCountChanged)
+	Q_PROPERTY(int targetBlockDone READ targetBlockDone NOTIFY targetBlockDoneChanged)
 
 public:
 
 	enum GameState {
 		GameInvalid,
 		GamePrepared,
+		GameOpening,
+		GameRegistered,
 		GameRun,
+		GameClosing,
 		GameFinished
 	};
 	Q_ENUM(GameState)
 
 
 	enum GameResult {
-		GameInactive,
-		GameActive,
-		GameTimeout,
-		GameComplete,
-		GameCompletePerfect
+		GameResultInvalid,
+		GameResultSucceed,						// Sikerült végigcsinálni
+		GameResultFailed,						// Nem sikerült végigcsinálni
+		GameResultAborted,						// Felhasználó megszakította
+		GameResultTimeout,						// Lejárt az idő
+		GameResultCancelled						// Érvénytelenné vált
 	};
 	Q_ENUM(GameResult)
 
@@ -94,11 +105,17 @@ public:
 	};
 	Q_ENUM(GameMode)
 
+	enum GamePlayMode {
+		GamePlayOffline,
+		GamePlayOnline
+	};
+	Q_ENUM(GamePlayMode)
 
 
 
 	Game(QObject *parent=nullptr);
 	~Game();
+
 
 	Map* map() const { return m_map; }
 	int level() const { return m_level; }
@@ -107,42 +124,87 @@ public:
 
 	GameState gameState() const { return m_gameState; }
 	GameResult gameResult() const { return m_gameResult; }
-	int maxSec() const { return m_maxSec; }
-	int maxHP() const { return m_maxHP; }
+	quint64 maxMSec() const { return m_maxMSec; }
+	quint64 maxHP() const { return m_maxHP; }
 	GameMode gameMode() const { return m_gameMode; }
+	GamePlayMode gamePlayMode() const { return m_gamePlayMode; }
 	Intro* intro() const { return m_intro; }
 	Intro* outro() const { return m_outro; }
 	QList<Block *> blocks() const { return m_blocks; }
-	int currentBlock() const { return m_currentBlock; }
+	int currentBlockIndex() const { return m_currentBlockIndex; }
 	int targetCount() const { return m_targetCount; }
 	int targetDone() const { return m_targetDone; }
+	int gameId() const { return m_gameId; }
+	QString missionName() const { return m_missionName; }
+	int targetBlockCount() const { return m_targetBlockCount; }
+	int targetBlockDone() const { return m_targetBlockDone; }
+	int currentMSec() const { return m_currentMSec; }
+	int currentHP() const { return m_currentHP; }
 
 public slots:
 
 	bool prepare();
+	void abort();
+	void registerRequest();
+	void start();
+	void introDone();
+	void check(const QJsonObject &data);
+	void finish();
 
 	void setMap(Map* map);
 	void setLevel(int level);
 	void setMissionId(int missionId);
 	void setIsSummary(bool isSummary);
-
+	void setGamePlayMode(GamePlayMode gamePlayMode);
 
 private slots:
 
+	void clientSetup() override;
+	void onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void onTimerTimeout();
+
+	void timeout();
+	void nextTarget();
+	void succeed();
+	void failed();
+
 	void setGameState(GameState gameState);
 	void setGameResult(GameResult gameResult);
-	void setMaxSec(int maxSec);
+	void setMaxMSec(quint64 maxMSec);
 	void setMaxHP(int maxHP);
 	void setGameMode(GameMode gameMode);
 	void setIntro(Intro* intro);
 	void setOutro(Intro* outro);
-	void setBlocks(QList<Block *> blocks);
-	void setCurrentBlock(int currentBlock);
+	void setCurrentBlockIndex(int currentBlockIndex);
 	void setTargetCount(int targetCount);
 	void setTargetDone(int targetDone);
+	void setGameId(int gameId);
+	void setMissionName(QString missionName);
+	void setTargetBlockCount(int targetBlockCount);
+	void setTargetBlockDone(int targetBlockDone);
+	void setCurrentMSec(quint64 currentMSec);
+	void setCurrentHP(int currentHP);
+
+private:
+	void setCurrentBlockCurrentIndex(const int &index);
+	AbstractStorage::Target getCurrentBlockCurrentTarget();
 
 
 signals:
+
+	void gamePrepareError(const QString &errorString);
+	void gamePrepared();
+	void gameRegistered();
+	void gameStarted();
+	void gameSucceed();
+	void gameFailed();
+
+	void targetPopulated(const QString &module, const QJsonObject &task);
+	void introPopulated(Intro *intro);
+	void outroPopulated(Intro *outro);
+
+	void solutionCorrect();
+	void solutionFail();
 
 	void mapChanged(Map* map);
 	void levelChanged(int level);
@@ -151,15 +213,21 @@ signals:
 
 	void gameStateChanged(GameState gameState);
 	void gameResultChanged(GameResult gameResult);
-	void maxSecChanged(int maxSec);
+	void maxMSecChanged(quint64 maxMSec);
 	void maxHPChanged(int maxHP);
 	void gameModeChanged(GameMode gameMode);
+	void gamePlayModeChanged(GamePlayMode gamePlayMode);
 	void introChanged(Intro* intro);
 	void outroChanged(Intro* outro);
-	void blocksChanged(QList<Block *> blocks);
-	void currentBlockChanged(int currentBlock);
+	void currentBlockIndexChanged(int currentBlockIndex);
 	void targetCountChanged(int targetCount);
 	void targetDoneChanged(int targetDone);
+	void gameIdChanged(int gameId);
+	void missionNameChanged(QString missionName);
+	void targetBlockCountChanged(int targetBlockCount);
+	void targetBlockDoneChanged(int targetBlockDone);
+	void currentMSecChanged(quint64 currentMSec);
+	void currentHPChanged(int currentHP);
 
 private:
 	Map* m_map;
@@ -168,15 +236,24 @@ private:
 	bool m_isSummary;
 	GameState m_gameState;
 	GameResult m_gameResult;
-	int m_maxSec;
+	quint64 m_maxMSec;
 	int m_maxHP;
 	GameMode m_gameMode;
 	Intro* m_intro;
 	Intro* m_outro;
 	QList<Block *> m_blocks;
-	int m_currentBlock;
+	int m_currentBlockIndex;
 	int m_targetCount;
 	int m_targetDone;
+	GamePlayMode m_gamePlayMode;
+	int m_gameId;
+	QString m_missionName;
+	QTimer *m_timer;
+	QDateTime m_dateTimeEnd;
+	int m_targetBlockCount;
+	int m_targetBlockDone;
+	quint64 m_currentMSec;
+	int m_currentHP;
 };
 
 #endif // GAME_H

@@ -229,7 +229,15 @@ QPagePanel {
 							Layout.fillWidth: false
 
 							onClicked: {
-								map.playGame(panel.missionId, panel.isSummary, model.level)
+								var o = JS.createPage("Game", {}, page)
+								o.pagePopulated.connect(function() {
+									o.game.map = panel.map
+									o.game.missionId = panel.missionId
+									o.game.isSummary = panel.isSummary
+									o.game.level = model.level
+									o.game.gamePlayMode = Game.GamePlayOffline
+									o.game.prepare()
+								})
 							}
 						}
 

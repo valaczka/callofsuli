@@ -112,7 +112,7 @@ void AbstractStorage::setObjectives(const QVariantList &objectives)
  * @return
  */
 
-QList<QJsonObject> AbstractStorage::createTargets()
+QList<AbstractStorage::Target> AbstractStorage::createTargets()
 {
 	QVariantList origFavInd = m_containerFavoriteIndices;
 	QVariantList origNoFavInd = m_containerNoFavoriteIndices;
@@ -206,7 +206,7 @@ QList<QJsonObject> AbstractStorage::createTargets()
 	}
 
 
-	QList<QJsonObject> ret;
+	QList<AbstractStorage::Target> ret;
 
 	foreach (AbstractObjective *AO, m_objectives) {
 		Computation c = AO->computation();
@@ -264,3 +264,14 @@ QList<QJsonObject> AbstractStorage::createTargets()
 }
 
 
+
+/**
+ * @brief AbstractStorage::Target::Target
+ * @param obj
+ */
+AbstractStorage::Target::Target(AbstractObjective *objective)
+{
+	solutionFunc = nullptr;
+	if (objective)
+		module = objective->module();
+}

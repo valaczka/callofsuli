@@ -90,9 +90,9 @@ Simplechoice::Simplechoice(AbstractStorage *storage, const QJsonObject &data)
  * @return
  */
 
-QList<QJsonObject> Simplechoice::generateTargets(const QVariantList &favIndices, const QVariantList &noFavIndices)
+QList<AbstractStorage::Target> Simplechoice::generateTargets(const QVariantList &favIndices, const QVariantList &noFavIndices)
 {
-	QList<QJsonObject> ret;
+	QList<AbstractStorage::Target> ret;
 
 	switch (m_mode) {
 		case ModeQuestionpair:
@@ -115,9 +115,9 @@ QList<QJsonObject> Simplechoice::generateTargets(const QVariantList &favIndices,
  * @return
  */
 
-QList<QJsonObject> Simplechoice::generateTargetsQuestionpair(const QVariantList &favIndices, const QVariantList &noFavIndices)
+QList<AbstractStorage::Target> Simplechoice::generateTargetsQuestionpair(const QVariantList &favIndices, const QVariantList &noFavIndices)
 {
-	QList<QJsonObject> list;
+	QList<AbstractStorage::Target> list;
 
 	foreach (QVariant v, favIndices)
 		list << generateTargetQuestionpair(v.toInt());
@@ -139,10 +139,23 @@ QList<QJsonObject> Simplechoice::generateTargetsQuestionpair(const QVariantList 
  * @return
  */
 
-QList<QJsonObject> Simplechoice::generateTargetsOrder(const QVariantList &favIndices, const QVariantList &noFavIndices)
+QList<AbstractStorage::Target> Simplechoice::generateTargetsOrder(const QVariantList &favIndices, const QVariantList &noFavIndices)
 {
 
-	return QList<QJsonObject>();
+	return QList<AbstractStorage::Target>();
+}
+
+
+/**
+ * @brief Simplechoice::checkSolution
+ * @param target
+ * @param solution
+ * @return
+ */
+
+bool Simplechoice::checkSolution(const AbstractStorage::Target &target, const QJsonObject &solution)
+{
+	return (solution.value("index").toInt() == target.solution.value("index").toInt());
 }
 
 
@@ -153,15 +166,15 @@ QList<QJsonObject> Simplechoice::generateTargetsOrder(const QVariantList &favInd
  * @return
  */
 
-QJsonObject Simplechoice::generateTargetQuestionpair(const int &pairIndex)
+AbstractStorage::Target Simplechoice::generateTargetQuestionpair(const int &pairIndex)
 {
 	Questionpair *q = (Questionpair *) m_storage;
 	QJsonArray pairs = q->pairs();
 
 	QJsonObject p = pairs.takeAt(pairIndex).toObject();
 
-	QJsonObject target;
-	target["question"] = m_prefix+p.value("question").toString()+m_suffix;
+	QJsonObject task;
+	task["question"] = m_prefix+p.value("question").toString()+m_suffix;
 
 	QJsonArray answers;
 
@@ -187,14 +200,23 @@ QJsonObject Simplechoice::generateTargetQuestionpair(const int &pairIndex)
 		answers << falseAnswer;
 	}
 
+	QJsonObject solution;
 	QJsonArray ret;
 
 	while (answers.count()) {
 		int idx = random() % answers.count();
-		ret << answers.takeAt(idx);
+		QJsonObject o = answers.takeAt(idx).toObject();
+		ret << o.value("answer");
+		if (o.value("correct").toBool())
+			solution["index"] = ret.count()-1;
 	}
 
-	target["answers"] = ret;
+	task["answers"] = ret;
+
+	AbstractStorage::Target target(this);
+	target.task = task;
+	target.solution = solution;
+	target.solutionFunc = &Simplechoice::checkSolution;
 
 	return target;
 }

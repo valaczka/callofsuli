@@ -35,7 +35,7 @@
 #include "intro.h"
 
 Intro::Intro(QObject *parent)
-	: AbstractActivity(parent)
+	: QObject(parent)
 {
 	m_type = IntroIntro;
 	m_seconds = 0;

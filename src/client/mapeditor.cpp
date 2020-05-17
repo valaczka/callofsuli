@@ -245,29 +245,6 @@ QByteArray MapEditor::create(const bool &binaryFormat)
 }
 
 
-/**
- * @brief MapEditor::playGame
- * @param id
- * @param isSummary
- * @param level
- */
-
-void MapEditor::playGame(const int &id, const bool &isSummary, const int &level)
-{
-	Game *g = new Game;
-
-	g->setClient(m_client);
-	g->setMap(this);
-	g->setMissionId(id);
-	g->setIsSummary(isSummary);
-	g->setLevel(level);
-
-	g->prepare();
-
-	delete g;
-}
-
-
 
 /**
  * @brief MapEditor::saveToFile

@@ -80,5 +80,7 @@
         <file>QFlipable.qml</file>
         <file>MODsimplechoiceEditor.qml</file>
         <file>MapEditorStorageWidget.qml</file>
+        <file>PageGame.qml</file>
+        <file>PageIntro.qml</file>
     </qresource>
 </RCC>

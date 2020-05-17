@@ -38,6 +38,7 @@
 #include "teachermaps.h"
 #include "adminusers.h"
 #include "game.h"
+#include "intro.h"
 
 
 
@@ -180,6 +181,7 @@ void Client::registerTypes()
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
 	qmlRegisterType<Game>("COS.Client", 1, 0, "Game");
+	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 }
 
 

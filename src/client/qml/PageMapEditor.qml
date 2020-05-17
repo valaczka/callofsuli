@@ -291,21 +291,21 @@ Page {
 	}
 
 	function stackBack() {
-		if (panelLayout.layoutBack()) {
-			return true
-		}
-
-		if (toolbar.title !== qsTr("Hadjáratok")) {
-			loadCampaigns()
-			return true
-		}
-
 		if (mainStack.depth > pageEditor.StackView.index+1) {
 			if (!mainStack.get(pageEditor.StackView.index+1).stackBack()) {
 				if (mainStack.depth > pageEditor.StackView.index+1) {
 					mainStack.pop(pageEditor)
 				}
 			}
+			return true
+		}
+
+		if (panelLayout.layoutBack()) {
+			return true
+		}
+
+		if (toolbar.title !== qsTr("Hadjáratok")) {
+			loadCampaigns()
 			return true
 		}
 

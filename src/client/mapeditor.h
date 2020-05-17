@@ -64,8 +64,6 @@ public slots:
 
 	static QByteArray create(const bool &binaryFormat = true);
 
-	void playGame(const int &id, const bool &isSummary, const int &level);
-
 	QByteArray saveToJson(const bool &binaryFormat = true);
 	bool saveToFile(const QString &filename, const QByteArray &data = QByteArray());
 	bool saveToFile(const QUrl &url, const QByteArray &data = QByteArray()) { return saveToFile(url.toLocalFile(), data); }

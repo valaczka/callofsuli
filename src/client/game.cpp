@@ -49,17 +49,204 @@ Game::Game(QObject *parent)
 	m_isSummary = false;
 
 	m_gameState = GameInvalid;
-	m_gameResult = GameInactive;
-	m_maxSec = 0;
+	m_gameResult = GameResultInvalid;
+	m_maxMSec = 0;
 	m_maxHP = 0;
 	m_gameMode = GameLinear;
 	m_intro = nullptr;
 	m_outro = nullptr;
 
+	m_currentBlockIndex = -1;
 	m_targetCount = 0;
 	m_targetDone = 0;
 
+	m_gamePlayMode = GamePlayOffline;
+	m_gameId = -1;
+
+	m_timer = new QTimer(this);
+	m_timer->setInterval(200);
+
+	m_targetBlockCount = -1;
+	m_targetBlockDone = -1;
+
+	m_currentMSec = 0;
+	m_currentHP = 0;
+
+	connect(m_timer, &QTimer::timeout, this, &Game::onTimerTimeout);
+
 }
+
+
+/**
+ * @brief Game::clientSetup
+ */
+
+void Game::clientSetup()
+{
+	connect(m_client, &Client::jsonGameReceived, this, &Game::onJsonReceived);
+}
+
+
+
+
+/**
+ * @brief Game::onJsonReceived
+ * @param object
+ * @param binaryData
+ * @param clientMsgId
+ */
+
+void Game::onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
+{
+	Q_UNUSED(object)
+	Q_UNUSED(binaryData)
+	Q_UNUSED(clientMsgId)
+
+	// on game registered -> emit recorded
+}
+
+
+/**
+ * @brief Game::onTimerTimeout
+ */
+
+void Game::onTimerTimeout()
+{
+	qint64 sec = QDateTime::currentDateTime().msecsTo(m_dateTimeEnd);
+
+	if (sec <= 0) {
+		timeout();
+		setCurrentMSec(0);
+		return;
+	}
+
+	setCurrentMSec(sec);
+}
+
+
+
+/**
+ * @brief Game::timeout
+ */
+
+void Game::timeout()
+{
+	if (m_gameState != GameRun)
+		return;
+
+	m_timer->stop();
+	setGameResult(GameResultTimeout);
+
+	if (m_gamePlayMode == GamePlayOnline) {
+		setGameState(GameClosing);
+		// closing
+	} else {
+		setGameState(GameFinished);
+	}
+}
+
+
+
+
+/**
+ * @brief Game::nextBlockTarget
+ */
+
+void Game::nextTarget()
+{
+	if (m_currentBlockIndex == -1) {
+		setTargetDone(0);
+		setTargetBlockDone(0);
+		setCurrentBlockIndex(0);
+		setCurrentBlockCurrentIndex(-1);
+	}
+
+	while (m_currentBlockIndex < m_blocks.count()) {
+		int tc = m_blocks.value(m_currentBlockIndex)->targetCount();
+
+		setTargetBlockCount(tc);
+
+		int nextIndex = m_blocks.value(m_currentBlockIndex)->currentIndex()+1;
+
+		if (nextIndex >= tc) {
+			setTargetBlockDone(0);
+			setTargetDone(m_targetDone+tc);
+
+			int nextBlock = m_currentBlockIndex+1;
+
+			if (nextBlock >= m_blocks.count()) {
+				succeed();
+				return;
+			} else {
+				setCurrentBlockIndex(nextBlock);
+				setCurrentBlockCurrentIndex(-1);
+				setTargetBlockCount(m_blocks.value(m_currentBlockIndex)->targetCount());
+				nextIndex = -1;
+			}
+		} else {
+			setTargetBlockDone(nextIndex);
+			setCurrentBlockCurrentIndex(nextIndex);
+			qDebug() << "TARGET POPULATED" << m_currentBlockIndex << nextIndex;
+			AbstractStorage::Target t = getCurrentBlockCurrentTarget();
+			emit targetPopulated(t.module, t.task);
+			return;
+		}
+	}
+}
+
+
+/**
+ * @brief Game::succeed
+ */
+
+void Game::succeed()
+{
+	if (m_gameState != GameRun)
+		return;
+
+	m_timer->stop();
+
+	setGameResult(GameResultSucceed);
+	emit gameSucceed();
+
+	if (m_outro)
+		emit outroPopulated(m_outro);
+
+	if (m_gamePlayMode == GamePlayOnline) {
+		setGameState(GameClosing);
+		// closing
+	} else {
+		setGameState(GameClosing);
+	}
+
+}
+
+
+
+/**
+ * @brief Game::failed
+ */
+
+void Game::failed()
+{
+	if (m_gameState != GameRun)
+		return;
+
+	m_timer->stop();
+
+	setGameResult(GameResultFailed);
+	emit gameFailed();
+
+	if (m_gamePlayMode == GamePlayOnline) {
+		setGameState(GameClosing);
+		// closing
+	} else {
+		setGameState(GameFinished);
+	}
+}
+
+
+
 
 
 /**
@@ -73,6 +260,8 @@ Game::~Game()
 
 	if (m_outro)
 		delete m_outro;
+
+	delete m_timer;
 
 	qDeleteAll(m_blocks.begin(), m_blocks.end());
 	m_blocks.clear();
@@ -89,32 +278,30 @@ Game::~Game()
 
 bool Game::prepare()
 {
-	Q_ASSERT(m_client);
-
 	if (!m_map) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Nincs megadva pálya!"));
+		emit gamePrepareError(tr("Nincs megadva pálya!"));
 		return false;
 	}
 
 	if (m_level < 1) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Nincs megadva szint!"));
+		emit gamePrepareError(tr("Nincs megadva szint!"));
 		return false;
 	}
 
 	if (m_missionId < 0) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Nincs megadva küldetés!"));
+		emit gamePrepareError(tr("Nincs megadva küldetés!"));
 		return false;
 	}
 
 	if (m_gameState != GameInvalid) {
-		m_client->sendMessageWarning(tr("Játék"), tr("A játék már elő van készítve!"));
+		emit gamePrepareError(tr("A játék már elő van készítve!"));
 		return false;
 	}
 
 	QVariantMap data = m_map->missionGet(m_missionId, m_isSummary, true, m_level);
 
 	if (data.value("id", -1).toInt() == -1) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Érvénytelen küldetés!"));
+		emit gamePrepareError(tr("Érvénytelen küldetés!"));
 		return false;
 	}
 
@@ -131,13 +318,15 @@ bool Game::prepare()
 	}
 
 	if (foundLevel.isEmpty()) {
-		m_client->sendMessageWarning(tr("Játék"), tr("A megadott szint nincs beállítva a játékban!"));
+		emit gamePrepareError(tr("A megadott szint nincs beállítva a játékban!"));
 		return false;
 	}
 
 
-	setMaxSec(foundLevel.value("sec", 0).toInt());
+	setMaxMSec(foundLevel.value("sec", 0).toInt()*1000);
+	setCurrentMSec(m_maxMSec);
 	setMaxHP(foundLevel.value("hp", 0).toInt());
+	setCurrentHP(m_maxHP);
 	int mode = foundLevel.value("mode", 0).toInt();
 
 	if (mode == 2 || m_isSummary)
@@ -180,7 +369,7 @@ bool Game::prepare()
 
 
 	if (storages.isEmpty()) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen célpont sincs a játékban!"));
+		emit gamePrepareError(tr("Egyetlen célpont sincs a játékban!"));
 		return false;
 	}
 
@@ -196,7 +385,7 @@ bool Game::prepare()
 
 
 	if (!hasObjective) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen fegyver sincs megadva ezen a szinten!"));
+		emit gamePrepareError(tr("Egyetlen fegyver sincs megadva ezen a szinten!"));
 		return false;
 	}
 
@@ -237,17 +426,16 @@ bool Game::prepare()
 	}
 
 	if (!targetcount) {
-		m_client->sendMessageWarning(tr("Játék"), tr("Egyetlen feladatot sem lehet készíteni ezen a szinten!"));
+		emit gamePrepareError(tr("Egyetlen feladatot sem lehet készíteni ezen a szinten!"));
 		return false;
 	}
 
-	qDebug() << "TARGETS" << targetcount;
-
 	setTargetCount(targetcount);
 	setTargetDone(0);
-	setCurrentBlock(0);
+	setCurrentBlockIndex(-1);
 
 	setGameState(GamePrepared);
+	emit gamePrepared();
 	return true;
 }
 
@@ -296,6 +484,228 @@ void Game::setIsSummary(bool isSummary)
 	emit isSummaryChanged(m_isSummary);
 }
 
+
+/**
+ * @brief Game::abort
+ */
+
+void Game::abort()
+{
+	if (m_gameState == GameInvalid || m_gameState == GameFinished)
+		return;
+
+	if (m_gamePlayMode == GamePlayOnline) {
+		setGameState(GameClosing);
+		// closing
+	} else {
+		setGameResult(GameResultAborted);
+		setGameState(GameFinished);
+	}
+}
+
+
+
+
+/**
+ * @brief Game::recordRequest
+ */
+
+void Game::registerRequest()
+{
+	if (m_gamePlayMode != GamePlayOnline) {
+		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "recordRequest()");
+		return;
+	}
+
+	// send request
+
+	setGameState(GameOpening);
+}
+
+
+
+
+
+/**
+ * @brief Game::start
+ */
+
+void Game::start()
+{
+	if ((m_gamePlayMode == GamePlayOnline && m_gameState != GameRegistered) ||
+		(m_gamePlayMode == GamePlayOffline && m_gameState != GamePrepared)) {
+		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "start()");
+		return;
+	}
+
+	m_dateTimeEnd = QDateTime::currentDateTime().addMSecs(m_maxMSec);
+	m_timer->start();
+
+	setGameState(GameRun);
+
+	if (m_intro) {
+		emit introPopulated(m_intro);
+	} else {
+		nextTarget();
+	}
+}
+
+
+/**
+ * @brief Game::introDone
+ */
+
+void Game::introDone()
+{
+	// ez ne legyen, hanem csak start()
+	nextTarget();
+}
+
+
+
+
+/**
+ * @brief Game::targetDone
+ * @param data
+ */
+
+void Game::check(const QJsonObject &data)
+{
+	AbstractStorage::Target t = getCurrentBlockCurrentTarget();
+
+	bool solution = t.solutionFunc(t, data);
+
+	if (solution) {
+		emit solutionCorrect();
+		nextTarget();
+	} else {
+		emit solutionFail();
+
+		if (m_currentHP > 1) {
+			setCurrentHP(m_currentHP-1);
+			m_blocks[m_currentBlockIndex]->resetTargets();
+			setCurrentBlockCurrentIndex(-1);
+			setTargetBlockDone(0);
+			nextTarget();
+		} else {
+			setCurrentHP(0);
+			failed();
+		}
+	}
+}
+
+
+/**
+ * @brief Game::finish
+ */
+
+void Game::finish()
+{
+	if (m_gameState == GameClosing)
+		setGameState(GameFinished);
+}
+
+
+
+/**
+ * @brief Game::setCurrentBlockCurrentIndex
+ * @param index
+ */
+
+void Game::setCurrentBlockCurrentIndex(const int &index)
+{
+	if (m_currentBlockIndex >= 0 && m_currentBlockIndex < m_blocks.count()) {
+		m_blocks[m_currentBlockIndex]->setCurrentIndex(index);
+	}
+}
+
+
+/**
+ * @brief Game::getCurrentBlockCurrentTarget
+ * @return
+ */
+
+AbstractStorage::Target Game::getCurrentBlockCurrentTarget()
+{
+	if (m_currentBlockIndex >= 0 && m_currentBlockIndex < m_blocks.count()) {
+		return m_blocks[m_currentBlockIndex]->currentTarget();
+	}
+
+	return AbstractStorage::Target();
+}
+
+
+
+
+
+void Game::setGameId(int gameId)
+{
+	if (m_gameId == gameId)
+		return;
+
+	m_gameId = gameId;
+	emit gameIdChanged(m_gameId);
+}
+
+void Game::setGamePlayMode(Game::GamePlayMode gamePlayMode)
+{
+	if (m_gamePlayMode == gamePlayMode)
+		return;
+
+	m_gamePlayMode = gamePlayMode;
+	emit gamePlayModeChanged(m_gamePlayMode);
+}
+
+
+void Game::setCurrentMSec(quint64 currentSec)
+{
+	if (m_currentMSec == currentSec)
+		return;
+
+	m_currentMSec = currentSec;
+	emit currentMSecChanged(m_currentMSec);
+}
+
+void Game::setCurrentHP(int currentHP)
+{
+	if (m_currentHP == currentHP)
+		return;
+
+	m_currentHP = currentHP;
+	emit currentHPChanged(m_currentHP);
+}
+
+
+
+void Game::setTargetBlockCount(int targetBlockCount)
+{
+	if (m_targetBlockCount == targetBlockCount)
+		return;
+
+	m_targetBlockCount = targetBlockCount;
+	emit targetBlockCountChanged(m_targetBlockCount);
+}
+
+void Game::setTargetBlockDone(int targetBlockDone)
+{
+	if (m_targetBlockDone == targetBlockDone)
+		return;
+
+	m_targetBlockDone = targetBlockDone;
+	emit targetBlockDoneChanged(m_targetBlockDone);
+}
+
+void Game::setMissionName(QString missionName)
+{
+	if (m_missionName == missionName)
+		return;
+
+	m_missionName = missionName;
+	emit missionNameChanged(m_missionName);
+}
+
+
+
 void Game::setTargetCount(int targetCount)
 {
 	if (m_targetCount == targetCount)
@@ -314,24 +724,15 @@ void Game::setTargetDone(int targetDone)
 	emit targetDoneChanged(m_targetDone);
 }
 
-void Game::setCurrentBlock(int currentBlock)
+void Game::setCurrentBlockIndex(int currentBlock)
 {
-	if (m_currentBlock == currentBlock)
+	if (m_currentBlockIndex == currentBlock)
 		return;
 
-	m_currentBlock = currentBlock;
-	emit currentBlockChanged(m_currentBlock);
+	m_currentBlockIndex = currentBlock;
+	emit currentBlockIndexChanged(m_currentBlockIndex);
 }
 
-
-void Game::setBlocks(QList<Block*> blocks)
-{
-	if (m_blocks == blocks)
-		return;
-
-	m_blocks = blocks;
-	emit blocksChanged(m_blocks);
-}
 
 void Game::setIntro(Intro *intro)
 {
@@ -351,13 +752,13 @@ void Game::setOutro(Intro *outro)
 	emit outroChanged(m_outro);
 }
 
-void Game::setMaxSec(int maxSec)
+void Game::setMaxMSec(quint64 maxSec)
 {
-	if (m_maxSec == maxSec)
+	if (m_maxMSec == maxSec)
 		return;
 
-	m_maxSec = maxSec;
-	emit maxSecChanged(m_maxSec);
+	m_maxMSec = maxSec;
+	emit maxMSecChanged(m_maxMSec);
 }
 
 void Game::setMaxHP(int maxHP)
@@ -368,6 +769,7 @@ void Game::setMaxHP(int maxHP)
 	m_maxHP = maxHP;
 	emit maxHPChanged(m_maxHP);
 }
+
 
 void Game::setGameMode(Game::GameMode gameMode)
 {

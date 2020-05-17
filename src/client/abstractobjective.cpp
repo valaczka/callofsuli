@@ -42,4 +42,9 @@ AbstractObjective::AbstractObjective(const QString &module, AbstractStorage *sto
 
 }
 
+AbstractObjective::~AbstractObjective()
+{
+
+}
+
 

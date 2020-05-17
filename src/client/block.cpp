@@ -39,7 +39,7 @@
 Block::Block(Game *game)
 	: m_game(game)
 {
-
+	m_currentIndex = -1;
 }
 
 
@@ -69,6 +69,11 @@ void Block::addStorage(const QVariantMap &storage)
 
 	QVariantList objectives = storage.value("objectives").toList();
 
+	if (objectives.isEmpty()) {
+		qDebug() << "Empty storage skipped" << module;
+		return;
+	}
+
 	AbstractStorage *AS = nullptr;
 
 	if (module == "questionpair")
@@ -97,7 +102,7 @@ void Block::resetTargets()
 {
 	m_targets.clear();
 
-	QList<QJsonObject> list;
+	QList<AbstractStorage::Target> list;
 
 	foreach (AbstractStorage *AS, m_storages) {
 		list << AS->createTargets();
@@ -109,6 +114,32 @@ void Block::resetTargets()
 	}
 
 	qDebug() << "CREATE TARGET" << m_targets.count();
-	qDebug() << m_targets;
+	//qDebug() << m_targets;
+}
+
+
+int Block::currentIndex() const
+{
+	return m_currentIndex;
+}
+
+void Block::setCurrentIndex(int currentIndex)
+{
+	m_currentIndex = currentIndex;
+}
+
+
+/**
+ * @brief Block::currentTarget
+ * @return
+ */
+
+AbstractStorage::Target Block::currentTarget()
+{
+	if (m_currentIndex >= 0 && m_currentIndex < m_targets.count()) {
+		return m_targets.value(m_currentIndex);
+	}
+
+	return AbstractStorage::Target(nullptr);
 }
 

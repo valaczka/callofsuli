@@ -40,7 +40,6 @@
 #include <QList>
 #include <QVariant>
 
-
 class AbstractObjective;
 
 class AbstractStorage
@@ -77,6 +76,19 @@ public:
 		}
 	};
 
+	class Target
+	{
+	public:
+
+		Target(AbstractObjective *objective = nullptr);
+
+		QString module;
+		QJsonObject task;
+		QJsonObject solution;
+		bool (*solutionFunc)(const AbstractStorage::Target &target, const QJsonObject &solution);
+	};
+
+
 	AbstractStorage(const QString &module);
 	virtual ~AbstractStorage();
 
@@ -92,7 +104,7 @@ public:
 
 	QString module() const { return m_module; }
 
-	QList<QJsonObject> createTargets();
+	QList<AbstractStorage::Target> createTargets();
 
 protected:
 	QString m_module;
@@ -103,5 +115,7 @@ protected:
 	Computation m_sumComputation;
 
 };
+
+
 
 #endif // ABSTRACTSTORAGE_H

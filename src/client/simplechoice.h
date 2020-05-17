@@ -49,13 +49,15 @@ public:
 
 	Simplechoice(AbstractStorage *storage, const QJsonObject &data);
 
-	QList<QJsonObject> generateTargets(const QVariantList &favIndices, const QVariantList &noFavIndices) override;
+	QList<AbstractStorage::Target> generateTargets(const QVariantList &favIndices, const QVariantList &noFavIndices) override;
 
-	QList<QJsonObject> generateTargetsQuestionpair(const QVariantList &favIndices, const QVariantList &noFavIndices);
-	QList<QJsonObject> generateTargetsOrder(const QVariantList &favIndices, const QVariantList &noFavIndices);
+	QList<AbstractStorage::Target> generateTargetsQuestionpair(const QVariantList &favIndices, const QVariantList &noFavIndices);
+	QList<AbstractStorage::Target> generateTargetsOrder(const QVariantList &favIndices, const QVariantList &noFavIndices);
+
+	static bool checkSolution(const AbstractStorage::Target &target, const QJsonObject &solution);
 
 private:
-	QJsonObject generateTargetQuestionpair(const int &pairIndex);
+	AbstractStorage::Target generateTargetQuestionpair(const int &pairIndex);
 
 	SimplechoiceMode m_mode;
 

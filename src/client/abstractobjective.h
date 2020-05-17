@@ -37,15 +37,17 @@
 
 #include "abstractstorage.h"
 
-
 class AbstractObjective
 {
 public:
+
 	AbstractObjective(const QString &module, AbstractStorage *storage);
+	virtual ~AbstractObjective();
 
 	AbstractStorage::Computation computation() const { return m_computation; }
+	QString module() const { return m_module; }
 
-	virtual QList<QJsonObject> generateTargets(const QVariantList &favIndices, const QVariantList &noFavIndices) = 0;
+	virtual QList<AbstractStorage::Target> generateTargets(const QVariantList &favIndices, const QVariantList &noFavIndices) = 0;
 
 protected:
 	QString m_module;
