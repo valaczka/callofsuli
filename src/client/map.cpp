@@ -327,9 +327,9 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary, const bool &fu
 	QVariantList levels;
 
 	if (isSummary) {
-		m_db->execSelectQuery("SELECT id, level, sec, hp, 0 as mode FROM summaryLevel WHERE summaryid=? ORDER BY level", l, &levels);
+		m_db->execSelectQuery("SELECT id, level, sec, hp, 0 as mode, showCorrect FROM summaryLevel WHERE summaryid=? ORDER BY level", l, &levels);
 	} else {
-		m_db->execSelectQuery("SELECT id, level, sec, hp, mode FROM missionLevel WHERE missionid=? ORDER BY level", l, &levels);
+		m_db->execSelectQuery("SELECT id, level, sec, hp, mode, showCorrect FROM missionLevel WHERE missionid=? ORDER BY level", l, &levels);
 	}
 
 	map["levels"] = levels;

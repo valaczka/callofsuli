@@ -71,9 +71,11 @@ Game::Game(QObject *parent)
 
 	m_currentMSec = 0;
 	m_currentHP = 0;
+	m_showCorrect = false;
 
 	connect(m_timer, &QTimer::timeout, this, &Game::onTimerTimeout);
 
+	connect(this, &Game::gameRegistered, this, &Game::onRegistered);
 }
 
 
@@ -102,7 +104,8 @@ void Game::onJsonReceived(const QJsonObject &object, const QByteArray &binaryDat
 	Q_UNUSED(binaryData)
 	Q_UNUSED(clientMsgId)
 
-	// on game registered -> emit recorded
+	// on game registered -> emit registered
+	// on game register closed -> emit register closed
 }
 
 
@@ -124,6 +127,34 @@ void Game::onTimerTimeout()
 }
 
 
+/**
+ * @brief Game::onRegistered
+ */
+
+void Game::onRegistered()
+{
+	setGameState(GameRegistered);
+	open();
+}
+
+
+
+
+
+
+/**
+ * @brief Game::onPrepared
+ */
+
+void Game::playPrepared()
+{
+	if (m_gamePlayMode == GamePlayOnline)
+		registerRequest();
+	else
+		open();
+}
+
+
 
 /**
  * @brief Game::timeout
@@ -136,12 +167,11 @@ void Game::timeout()
 
 	m_timer->stop();
 	setGameResult(GameResultTimeout);
+	setGameState(GameClosing);
+	emit gameFailed();
 
 	if (m_gamePlayMode == GamePlayOnline) {
-		setGameState(GameClosing);
 		// closing
-	} else {
-		setGameState(GameFinished);
 	}
 }
 
@@ -154,6 +184,11 @@ void Game::timeout()
 
 void Game::nextTarget()
 {
+	if (m_gameState != GameRun) {
+		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "nextTarget()");
+		return;
+	}
+
 	if (m_currentBlockIndex == -1) {
 		setTargetDone(0);
 		setTargetBlockDone(0);
@@ -188,7 +223,7 @@ void Game::nextTarget()
 			setCurrentBlockCurrentIndex(nextIndex);
 			qDebug() << "TARGET POPULATED" << m_currentBlockIndex << nextIndex;
 			AbstractStorage::Target t = getCurrentBlockCurrentTarget();
-			emit targetPopulated(t.module, t.task);
+			emit targetPopulated(t.module, t.task, m_showCorrect ? t.solution : QJsonObject());
 			return;
 		}
 	}
@@ -207,18 +242,12 @@ void Game::succeed()
 	m_timer->stop();
 
 	setGameResult(GameResultSucceed);
-	emit gameSucceed();
-
-	if (m_outro)
-		emit outroPopulated(m_outro);
+	emit gameSucceed(m_outro);
+	setGameState(GameClosing);
 
 	if (m_gamePlayMode == GamePlayOnline) {
-		setGameState(GameClosing);
 		// closing
-	} else {
-		setGameState(GameClosing);
 	}
-
 }
 
 
@@ -235,13 +264,11 @@ void Game::failed()
 	m_timer->stop();
 
 	setGameResult(GameResultFailed);
+	setGameState(GameClosing);
 	emit gameFailed();
 
 	if (m_gamePlayMode == GamePlayOnline) {
-		setGameState(GameClosing);
 		// closing
-	} else {
-		setGameState(GameFinished);
 	}
 }
 
@@ -327,6 +354,8 @@ bool Game::prepare()
 	setCurrentMSec(m_maxMSec);
 	setMaxHP(foundLevel.value("hp", 0).toInt());
 	setCurrentHP(m_maxHP);
+	setShowCorrect(foundLevel.value("showCorrect").toBool());
+
 	int mode = foundLevel.value("mode", 0).toInt();
 
 	if (mode == 2 || m_isSummary)
@@ -494,13 +523,14 @@ void Game::abort()
 	if (m_gameState == GameInvalid || m_gameState == GameFinished)
 		return;
 
+	setGameResult(GameResultAborted);
+	setGameState(GameClosing);
+	emit gameFailed();
+
 	if (m_gamePlayMode == GamePlayOnline) {
-		setGameState(GameClosing);
 		// closing
-	} else {
-		setGameResult(GameResultAborted);
-		setGameState(GameFinished);
 	}
+
 }
 
 
@@ -513,15 +543,52 @@ void Game::abort()
 void Game::registerRequest()
 {
 	if (m_gamePlayMode != GamePlayOnline) {
-		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "recordRequest()");
+		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "registerRequest()");
 		return;
 	}
 
 	// send request
-
-	setGameState(GameOpening);
 }
 
+
+/**
+ * @brief Game::registerCloseRequest
+ */
+
+void Game::registerCloseRequest()
+{
+	if (m_gamePlayMode != GamePlayOnline) {
+		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "registerCloseRequest()");
+		return;
+	}
+
+	// send request
+}
+
+
+
+
+/**
+ * @brief Game::open
+ */
+
+void Game::open()
+{
+	if ((m_gamePlayMode == GamePlayOnline && m_gameState != GameRegistered) ||
+		(m_gamePlayMode == GamePlayOffline && m_gameState != GamePrepared)) {
+		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "open()");
+		return;
+	}
+
+	setGameState(GameOpening);
+
+	if (m_intro) {
+		emit introPopulated(m_intro);				// utána még start()
+	} else {
+		start();
+	}
+
+}
 
 
 
@@ -532,8 +599,7 @@ void Game::registerRequest()
 
 void Game::start()
 {
-	if ((m_gamePlayMode == GamePlayOnline && m_gameState != GameRegistered) ||
-		(m_gamePlayMode == GamePlayOffline && m_gameState != GamePrepared)) {
+	if (m_gameState != GameOpening) {
 		m_client->sendMessageError(tr("Játék"), tr("Érvénytelen kérés"), "start()");
 		return;
 	}
@@ -543,23 +609,11 @@ void Game::start()
 
 	setGameState(GameRun);
 
-	if (m_intro) {
-		emit introPopulated(m_intro);
-	} else {
-		nextTarget();
-	}
-}
-
-
-/**
- * @brief Game::introDone
- */
-
-void Game::introDone()
-{
-	// ez ne legyen, hanem csak start()
 	nextTarget();
 }
+
+
+
 
 
 
@@ -595,11 +649,14 @@ void Game::check(const QJsonObject &data)
 }
 
 
+
+
+
 /**
- * @brief Game::finish
+ * @brief Game::close
  */
 
-void Game::finish()
+void Game::close()
 {
 	if (m_gameState == GameClosing)
 		setGameState(GameFinished);
@@ -654,6 +711,15 @@ void Game::setGamePlayMode(Game::GamePlayMode gamePlayMode)
 
 	m_gamePlayMode = gamePlayMode;
 	emit gamePlayModeChanged(m_gamePlayMode);
+}
+
+void Game::setShowCorrect(bool showCorrect)
+{
+	if (m_showCorrect == showCorrect)
+		return;
+
+	m_showCorrect = showCorrect;
+	emit showCorrectChanged(m_showCorrect);
 }
 
 

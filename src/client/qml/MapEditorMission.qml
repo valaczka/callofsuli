@@ -218,6 +218,25 @@ QPagePanel {
 							onActivated: delegateitem.missionLevelUpdate()
 						}
 
+						QFlipable {
+							id: flipCorrect
+
+							visible: !isSummary && spinHP.visible
+
+							width: height
+							height: comboMode.height
+
+							frontIcon: CosStyle.iconUnchecked
+							backIcon: CosStyle.iconChecked
+							color: CosStyle.colorAccent
+							flipped: model.showCorrect
+
+							mouseArea.onClicked: {
+								model.showCorrect = !model.showCorrect
+								delegateitem.missionLevelUpdate()
+							}
+						}
+
 						Item { Layout.fillWidth: true }
 
 						QToolButton {
@@ -272,7 +291,8 @@ QPagePanel {
 								map.undoLogBegin(qsTr("Összegzés szint módosítása"))
 								map.summaryLevelUpdate(model.id, missionId, {
 														   "sec": JS.mmSStoSec(textTime.text),
-														   "hp": spinHP.value
+														   "hp": spinHP.value,
+														   "showCorrect": flipCorrect.flipped
 													   })
 								map.undoLogEnd()
 							} else {
@@ -280,7 +300,8 @@ QPagePanel {
 								map.missionLevelUpdate(model.id, missionId, {
 														   "sec": JS.mmSStoSec(textTime.text),
 														   "hp": spinHP.value,
-														   "mode": comboMode.currentValue
+														   "mode": comboMode.currentValue,
+														   "showCorrect": flipCorrect.flipped
 													   })
 								map.undoLogEnd()
 							}
@@ -295,7 +316,8 @@ QPagePanel {
 														"summaryid": missionId,
 														"level": model.level,
 														"sec": JS.mmSStoSec(textTime.text),
-														"hp": spinHP.value
+														"hp": spinHP.value,
+														"showCorrect": flipCorrect.flipped
 													})
 								map.undoLogEnd()
 							} else {
@@ -305,7 +327,8 @@ QPagePanel {
 														"level": model.level,
 														"sec": JS.mmSStoSec(textTime.text),
 														"hp": spinHP.value,
-														"mode": comboMode.currentValue
+														"mode": comboMode.currentValue,
+														"showCorrect": flipCorrect.flipped
 													})
 								map.undoLogEnd()
 							}
@@ -435,6 +458,7 @@ QPagePanel {
 									sec: 0,
 									hp: 5,
 									mode: 0,
+									showCorrect: false,
 									canRemove: false
 								})
 

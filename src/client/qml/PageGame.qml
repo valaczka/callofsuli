@@ -30,22 +30,32 @@ Page {
 			})
 		}
 
-		onGamePrepared: {
-			if (game.gamePlayMode == Game.GamePlayOffline)
-				game.start()
-		}
-
-		onGameRegistered: {
-			game.start()
-		}
+		onGamePrepared: game.playPrepared()
 
 		onGameStarted: {
 			console.debug("STARTED")
 		}
 
 		onGameSucceed: {
-			console.debug("MISSION COMPLETED")
-			game.finish()
+			var d = JS.dialogMessageInfo(qsTr("Játék"), "MISSION COMPLETED")
+			d.onClosedAndDestroyed.connect(function() {
+				if (outro) {
+					console.debug("OUTRO", outro)
+					var o = JS.createPage("Intro", {"intro": outro}, page)
+					o.pagePopulated.connect(function() {
+						pageGame._hasOutro = true
+					})
+				} else {
+					game.close()
+				}
+			})
+		}
+
+		onGameFailed: {
+			var d = JS.dialogMessageError(qsTr("Játék"), "MISSION FAILED")
+			d.onClosedAndDestroyed.connect(function() {
+				game.close()
+			})
 		}
 
 		onIntroPopulated:  {
@@ -56,16 +66,10 @@ Page {
 			})
 		}
 
-		onOutroPopulated:  {
-			console.debug("OUTRO", outro)
-			var o = JS.createPage("Intro", {"intro": outro}, page)
-			o.pagePopulated.connect(function() {
-				pageGame._hasOutro = true
-			})
-		}
-
 		onTargetPopulated:  {
-			console.debug("TARGET", module, task)
+			console.debug("TARGET", module, task, solution)
+			if (game.showCorrect)
+				buttonTrue.valasz = solution.index
 		}
 
 		onSolutionCorrect: {
@@ -128,12 +132,29 @@ Page {
 		anchors.left: parent.left
 		anchors.verticalCenter: parent.verticalCenter
 
-		text: qsTr("done")
+		text: qsTr("false")
 
 		visible: game.gameState == Game.GameRun
 
 		onClicked: {
-			game.check({index: 0})
+			game.check({index: -1})
+		}
+	}
+
+
+	QButton {
+		id: buttonTrue
+		anchors.left: parent.left
+		anchors.verticalCenter: parent.verticalCenter
+
+		text: qsTr("true")
+
+		visible: game.gameState == Game.GameRun
+
+		property int valasz: 0
+
+		onClicked: {
+			game.check({index: valasz})
 		}
 	}
 
@@ -165,7 +186,7 @@ Page {
 			from: "*"
 			to: "GameRun"
 			ScriptAction {
-				script: cosClient.sendMessageInfo(qsTr("Játék"), qsTr("START"))
+				script: console.debug("STARTED")
 			}
 		},
 
@@ -200,9 +221,11 @@ Page {
 			pagePopulated()
 			_isFirst = false
 		} else if (_hasIntro) {
-			game.introDone()
+			_hasIntro = false
+			game.start()
 		} else if (_hasOutro) {
-			game.outroDone()
+			_hasOutro = false
+			game.close()
 		}
 	}
 
@@ -217,7 +240,7 @@ Page {
 			})
 			d.open()
 			return false
-		} else if (game.gameState == Game.GamePrepared || game.gameState == Game.GameClosing) {
+		} else if (game.gameState == Game.GamePrepared) {
 			pageGame.hasWindowCloseRequest = true
 			game.abort()
 			return false
@@ -244,7 +267,7 @@ Page {
 			})
 			d.open()
 			return true
-		} else if (game.gameState == Game.GamePrepared || game.gameState == Game.GameClosing) {
+		} else if (game.gameState == Game.GamePrepared) {
 			game.abort()
 			return true
 		}

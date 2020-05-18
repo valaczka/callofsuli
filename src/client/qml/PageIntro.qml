@@ -23,17 +23,14 @@ Page {
 	}
 
 
-	Item {
-		id: loadingItem
-		anchors.fill: parent
+	Column {
+		anchors.centerIn: parent
 
-		BusyIndicator {
-			anchors.centerIn: parent
-			width: 100
-			height: 100
-			running: true
+		Label {
+			text: intro.text
 		}
 	}
+
 
 	QButton {
 		anchors.right: parent.right

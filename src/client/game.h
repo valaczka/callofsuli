@@ -66,6 +66,7 @@ class Game : public AbstractActivity
 	Q_PROPERTY(Intro* intro READ intro NOTIFY introChanged)
 	Q_PROPERTY(Intro* outro READ outro NOTIFY outroChanged)
 	Q_PROPERTY(QString missionName READ missionName NOTIFY missionNameChanged)
+	Q_PROPERTY(bool showCorrect READ showCorrect NOTIFY showCorrectChanged)
 
 	Q_PROPERTY(int currentBlockIndex READ currentBlockIndex NOTIFY currentBlockIndexChanged)
 	Q_PROPERTY(int targetCount READ targetCount NOTIFY targetCountChanged)
@@ -140,16 +141,16 @@ public:
 	int targetBlockDone() const { return m_targetBlockDone; }
 	int currentMSec() const { return m_currentMSec; }
 	int currentHP() const { return m_currentHP; }
+	bool showCorrect() const { return m_showCorrect; }
 
 public slots:
 
 	bool prepare();
+	void playPrepared();
 	void abort();
-	void registerRequest();
 	void start();
-	void introDone();
 	void check(const QJsonObject &data);
-	void finish();
+	void close();
 
 	void setMap(Map* map);
 	void setLevel(int level);
@@ -162,6 +163,10 @@ private slots:
 	void clientSetup() override;
 	void onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void onTimerTimeout();
+	void onRegistered();
+	void open();
+	void registerRequest();
+	void registerCloseRequest();
 
 	void timeout();
 	void nextTarget();
@@ -184,6 +189,7 @@ private slots:
 	void setTargetBlockDone(int targetBlockDone);
 	void setCurrentMSec(quint64 currentMSec);
 	void setCurrentHP(int currentHP);
+	void setShowCorrect(bool showCorrect);
 
 private:
 	void setCurrentBlockCurrentIndex(const int &index);
@@ -196,12 +202,12 @@ signals:
 	void gamePrepared();
 	void gameRegistered();
 	void gameStarted();
-	void gameSucceed();
+	void gameSucceed(Intro *outro);
 	void gameFailed();
+	void gameRegisterClosed();
 
-	void targetPopulated(const QString &module, const QJsonObject &task);
+	void targetPopulated(const QString &module, const QJsonObject &task, const QJsonObject &solution);
 	void introPopulated(Intro *intro);
-	void outroPopulated(Intro *outro);
 
 	void solutionCorrect();
 	void solutionFail();
@@ -228,6 +234,7 @@ signals:
 	void targetBlockDoneChanged(int targetBlockDone);
 	void currentMSecChanged(quint64 currentMSec);
 	void currentHPChanged(int currentHP);
+	void showCorrectChanged(bool showCorrect);
 
 private:
 	Map* m_map;
@@ -254,6 +261,7 @@ private:
 	int m_targetBlockDone;
 	quint64 m_currentMSec;
 	int m_currentHP;
+	bool m_showCorrect;
 };
 
 #endif // GAME_H

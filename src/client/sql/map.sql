@@ -40,6 +40,7 @@ CREATE TABLE missionLevel (
 	sec INTEGER NOT NULL CHECK (sec>0),
 	hp INTEGER NOT NULL CHECK (hp>0),
 	mode INTEGER NOT NULL DEFAULT 0 CHECK (mode>=0),
+	showCorrect BOOL NOT NULL DEFAULT FALSE,
 	UNIQUE(missionid, level)
 );
 
@@ -55,6 +56,7 @@ CREATE TABLE summaryLevel (
 	level INTEGER NOT NULL CHECK (level>0),
 	sec INTEGER NOT NULL CHECK (sec>0),
 	hp INTEGER NOT NULL CHECK (hp>0),
+	showCorrect BOOL NOT NULL DEFAULT FALSE,
 	UNIQUE(summaryid, level)
 );
 
