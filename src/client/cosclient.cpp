@@ -35,7 +35,7 @@
 #include "servers.h"
 #include "map.h"
 #include "mapeditor.h"
-#include "teachermaps.h"
+#include "teacher.h"
 #include "adminusers.h"
 #include "game.h"
 #include "intro.h"
@@ -55,6 +55,7 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_signalList["userInfo"] = "UserInfo";
 	m_signalList["teacherMaps"] = "TeacherMaps";
+	m_signalList["teacherGroups"] = "TeacherGroups";
 	m_signalList["user"] = "User";
 
 	m_serverDataDir = "";
@@ -177,7 +178,7 @@ void Client::registerTypes()
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
-	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
+	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
 	qmlRegisterType<Game>("COS.Client", 1, 0, "Game");
@@ -655,23 +656,23 @@ void Client::socketPing()
 
 void Client::parseJson(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
 {
-	if (object["session"].isObject()) {
-		QJsonObject o = object["session"].toObject();
+	if (object.value("session").isObject()) {
+		QJsonObject o = object.value("session").toObject();
 		if (o.contains("token")) {
-			QString token = o["token"].toString();
+			QString token = o.value("token").toString();
 			setSessionToken(token);
 			qDebug() << "new session token" <<token;
 		}
 	}
 
-	if (object["roles"].isObject()) {
-		QJsonObject o = object["roles"].toObject();
-		setUserName(o["username"].toString());
+	if (object.value("roles").isObject()) {
+		QJsonObject o = object.value("roles").toObject();
+		setUserName(o.value("username").toString());
 		Roles newRole;
-		newRole.setFlag(RoleGuest, o["guest"].toBool());
-		newRole.setFlag(RoleStudent, o["student"].toBool());
-		newRole.setFlag(RoleTeacher, o["teacher"].toBool());
-		newRole.setFlag(RoleAdmin, o["admin"].toBool());
+		newRole.setFlag(RoleGuest, o.value("guest").toBool());
+		newRole.setFlag(RoleStudent, o.value("student").toBool());
+		newRole.setFlag(RoleTeacher, o.value("teacher").toBool());
+		newRole.setFlag(RoleAdmin, o.value("admin").toBool());
 		setUserRoles(newRole);
 		qDebug() << "set user roles from server" <<newRole;
 
@@ -681,7 +682,7 @@ void Client::parseJson(const QJsonObject &object, const QByteArray &binaryData, 
 				   });
 	}
 
-	QString cl = object["class"].toString();
+	QString cl = object.value("class").toString();
 
 	if (cl.isEmpty())
 		return;
@@ -693,7 +694,7 @@ void Client::parseJson(const QJsonObject &object, const QByteArray &binaryData, 
 		return;
 	}
 
-	if (object["data"].toObject()["error"] == "permission denied") {
+	if (object.value("data").toObject()["error"] == "permission denied") {
 		sendMessageWarning(tr("Hozzáférés megtagadva"), tr("Nincs elég jogosultságod a funkció eléréshez!"));
 		return;
 	}
@@ -858,28 +859,28 @@ void Client::onSocketServerError(const QString &error)
 
 void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray &, const int &)
 {
-	QString func = object["func"].toString();
-	QJsonObject d = object["data"].toObject();
+	QString func = object.value("func").toString();
+	QJsonObject d = object.value("data").toObject();
 
 	if (func == "getUser") {
-		if (d["username"].toString() == m_userName) {
-			setUserXP(d["xp"].toInt(0));
-			setUserRank(d["rankid"].toInt(0));
-			setUserRankName(d["rankname"].toString());
-			setUserLastName(d["lastname"].toString());
-			setUserFirstName(d["firstname"].toString());
+		if (d.value("username").toString() == m_userName) {
+			setUserXP(d.value("xp").toInt(0));
+			setUserRank(d.value("rankid").toInt(0));
+			setUserRankName(d.value("rankname").toString());
+			setUserLastName(d.value("lastname").toString());
+			setUserFirstName(d.value("firstname").toString());
 		}
 	} else if (func == "getServerInfo") {
-		setServerName(d["serverName"].toString());
-		setRegistrationEnabled(d["registrationEnabled"].toString("0").toInt());
-		setPasswordResetEnabled(d["passwordResetEnabled"].toString("0").toInt());
-		setRegistrationDomains(d["registrationDomains"].toArray().toVariantList());
+		setServerName(d.value("serverName").toString());
+		setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
+		setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
+		setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
 	} else if (func == "registrationRequest") {
-		bool error = d["error"].toBool(false);
+		bool error = d.value("error").toBool(false);
 
 		if (error) {
 			emit registrationRequestFailed();
-			QString errorString = d["errorString"].toString();
+			QString errorString = d.value("errorString").toString();
 
 			if (errorString == "email empty")
 				sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
@@ -892,11 +893,11 @@ void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray 
 		}
 	} else if (func == "getSettings") {
 		if (d.contains("serverName"))
-			setServerName(d["serverName"].toString());
+			setServerName(d.value("serverName").toString());
 
 		emit settingsLoaded(d);
 	} else if (func == "setSettings") {
-		bool error = d["error"].toBool(true);
+		bool error = d.value("error").toBool(true);
 
 		if (error)
 			emit settingsError();

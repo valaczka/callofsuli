@@ -95,15 +95,15 @@ bool MapEditor::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 	if (root.isEmpty())
 		return false;
 
-	QJsonObject fileinfo = root["callofsuli"].toObject();
+	QJsonObject fileinfo = root.value("callofsuli").toObject();
 
 	if (fileinfo.isEmpty()) {
 		return false;
 	}
 
-	QString uuid = fileinfo["uuid"].toString();
+	QString uuid = fileinfo.value("uuid").toString();
 	setMapUuid(uuid.isEmpty() ? QUuid::createUuid().toString() : uuid);
-	setMapTimeCreated(fileinfo["timeCreated"].toString());
+	setMapTimeCreated(fileinfo.value("timeCreated").toString());
 
 	m_db->execSimpleQuery("INSERT INTO info SELECT '' as title WHERE NOT EXISTS(SELECT * FROM info)");
 
@@ -167,8 +167,8 @@ bool MapEditor::loadFromBackup()
 	}
 
 	QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid, timeCreated from mapeditor");
-	if (!m["error"].toBool() && m["records"].toList().count()) {
-		QVariantMap r = m["records"].toList().value(0).toMap();
+	if (!m.value("error").toBool() && m.value("records").toList().count()) {
+		QVariantMap r = m.value("records").toList().value(0).toMap();
 		QString filename = r.value("originalFile").toString();
 		QString uuid = r.value("uuid").toString();
 		QString timeCreated = r.value("timeCreated").toString();
@@ -411,7 +411,12 @@ bool MapEditor::missionUpdate(const int &id, const QVariantMap &params)
 
 int MapEditor::missionAdd(const QVariantMap &params)
 {
-	int id = m_db->execInsertQuery("INSERT INTO mission (?k?) values (?)", params);
+	QVariantMap p = params;
+
+	if (!p.contains("uuid"))
+		p["uuid"] = QUuid::createUuid().toString();
+
+	int id = m_db->execInsertQuery("INSERT INTO mission (?k?) values (?)", p);
 	if (id != -1) {
 		emit missionListUpdated(-1);
 		setMapModified(true);
@@ -501,7 +506,7 @@ int MapEditor::missionStorageAdd(const QVariantMap &params)
 		l << missionId;
 		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
 		if (m.contains("num"))
-			num = m["num"].toInt();
+			num = m.value("num").toInt();
 		else
 			num = 1;
 	}
@@ -671,6 +676,8 @@ int MapEditor::summaryAdd(const int &campaignId)
 {
 	QVariantMap m;
 	m["campaignid"] = campaignId;
+	m["uuid"] = QUuid::createUuid().toString();
+
 	int id = m_db->execInsertQuery("INSERT INTO summary (?k?) values (?)", m);
 	if (id != -1) {
 		emit campaignUpdated(campaignId);
@@ -857,7 +864,7 @@ int MapEditor::storageAdd(const QVariantMap &params, const int &missionId, const
 			l << missionId;
 			m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
 			if (m.contains("num"))
-				num = m["num"].toInt();
+				num = m.value("num").toInt();
 
 			QVariantMap p2;
 			p2["missionid"] = missionId;
@@ -1201,12 +1208,12 @@ int MapEditor::campaignAdd(const QVariantMap &params)
 	int num = 1;
 
 	if (p.contains("num")) {
-		num = p["num"].toInt();
+		num = p.value("num").toInt();
 	} else {
 		QVariantMap m;
 		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM campaign", QVariantList(), &m);
 		if (m.contains("num"))
-			num = m["num"].toInt();
+			num = m.value("num").toInt();
 	}
 
 	p["num"] = num;
@@ -1239,7 +1246,7 @@ bool MapEditor::campaignMissionAdd(const int &id, const int &missionId, const in
 		l << id;
 		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindCampaignMission WHERE campaignid=?", l, &m);
 		if (m.contains("num"))
-			realnum = m["num"].toInt();
+			realnum = m.value("num").toInt();
 		else
 			realnum = 1;
 	}

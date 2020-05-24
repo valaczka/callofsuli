@@ -40,12 +40,12 @@ Page {
 			QToolBusyIndicator { running: adminUsers.isBusy }
 			QMenuButton {
 				MenuItem {
-					icon.source: CosStyle.iconAdd
+					icon.source: CosStyle.iconUserAdd
 					text: qsTr("Új felhasználó")
 					onClicked: pageAdminUsers.createUserRequest()
 				}
 				MenuItem {
-					icon.source: CosStyle.iconAdd
+					icon.source: CosStyle.iconUsersAdd
 					text: qsTr("Új osztály")
 					onClicked: pageAdminUsers.createClassRequest()
 				}

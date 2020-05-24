@@ -85,7 +85,7 @@ void User::userGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList params;
 
-	params << m_jsonData["username"].toString();
+	params << m_jsonData.value("username").toString();
 
 	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, email, active, classid, class.name as classname, "
 										  "isTeacher, isAdmin FROM user "
@@ -105,7 +105,7 @@ void User::userGet(QJsonObject *jsonResponse, QByteArray *)
 void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_jsonData.toVariantMap();
-	QString username = params["username"].toString();
+	QString username = params.value("username").toString();
 
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
@@ -116,7 +116,7 @@ void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
 
 	if (id == -1)
 	{
-		(*jsonResponse)["error"] = ret["errorString"].toString();
+		(*jsonResponse)["error"] = ret.value("errorString").toString();
 		return;
 	}
 
@@ -127,7 +127,7 @@ void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
 
 	if (r.value("error", false).toBool() == true)
 	{
-		(*jsonResponse)["error"] = r["errorString"].toString();
+		(*jsonResponse)["error"] = r.value("errorString").toString();
 		return;
 	}
 
@@ -144,7 +144,7 @@ void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
 void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap bind;
-	bind[":username"] = m_jsonData["username"].toString();
+	bind[":username"] = m_jsonData.value("username").toString();
 
 	QVariantMap params = m_jsonData.toVariantMap();
 	params.remove("username");
@@ -154,11 +154,11 @@ void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantMap r = m_client->db()->runUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind);
 	if (r.value("error", false).toBool() == true) {
-		(*jsonResponse)["error"] = r["errorString"].toString();
+		(*jsonResponse)["error"] = r.value("errorString").toString();
 		return;
 	}
 
-	(*jsonResponse)["updatedUserName"] = bind[":username"].toString();
+	(*jsonResponse)["updatedUserName"] = bind.value(":username").toString();
 }
 
 
@@ -169,7 +169,7 @@ void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList users = m_jsonData["users"].toArray().toVariantList();
+	QVariantList users = m_jsonData.value("users").toArray().toVariantList();
 
 	if (!users.count()) {
 		(*jsonResponse)["error"] = "invalid parameters";
@@ -212,7 +212,7 @@ void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 void User::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_jsonData["list"].toArray().toVariantList();
+	QVariantList list = m_jsonData.value("list").toArray().toVariantList();
 
 	if (!list.count()) {
 		(*jsonResponse)["error"] = "invalid parameters";
@@ -253,7 +253,7 @@ void User::classCreate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap m;
 
-	m["name"] = m_jsonData["name"].toString();
+	m["name"] = m_jsonData.value("name").toString();
 
 	int id = m_client->db()->execInsertQuery("INSERT INTO class (?k?) VALUES (?)", m);
 
@@ -276,7 +276,7 @@ void User::classCreate(QJsonObject *jsonResponse, QByteArray *)
 void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap bind;
-	bind[":id"] = m_jsonData["id"].toInt();
+	bind[":id"] = m_jsonData.value("id").toInt();
 	QVariantMap params = m_jsonData.toVariantMap();
 	params.remove("id");
 
@@ -285,7 +285,7 @@ void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 		return;
 	}
 
-	(*jsonResponse)["updated"] = bind[":id"].toInt();
+	(*jsonResponse)["updated"] = bind.value(":id").toInt();
 }
 
 
@@ -297,7 +297,7 @@ void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 void User::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_jsonData["list"].toArray().toVariantList();
+	QVariantList list = m_jsonData.value("list").toArray().toVariantList();
 
 	if (!list.count()) {
 		(*jsonResponse)["error"] = "invalid parameters";

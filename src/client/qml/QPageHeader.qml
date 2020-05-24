@@ -14,7 +14,7 @@ Rectangle {
 	anchors.right: parent.right
 	color: CosStyle.colorPrimaryDark
 
-	height: Math.max(mainItem.height, rightLoader.height, col.height)+1
+	height: Math.max(mainItem.height, rightLoader.height, col.visible ? col.height : 0)+1
 
 	property bool isSelectorMode: false
 	property alias labelCountText: labelCount.text

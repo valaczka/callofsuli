@@ -84,13 +84,28 @@ CREATE TABLE session(
 CREATE TABLE studentgroup(
 	id INTEGER PRIMARY KEY,
 	name TEXT,
-	owner TEXT REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE
+	owner TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE bindGroupStudent(
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE
 );
+
+CREATE TABLE bindGroupClass(
+	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	classid INTEGER NOT NULL REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE VIEW studentGroupInfo AS
+	SELECT id, name, owner, username FROM studentgroup
+		INNER JOIN bindGroupStudent ON (bindGroupStudent.groupid = studentgroup.id)
+	UNION
+	SELECT id, name, owner, username FROM studentgroup
+		INNER JOIN bindGroupClass ON (bindGroupClass.groupid = studentgroup.id)
+		LEFT JOIN user ON (user.classid = bindGroupClass.classid);
+
+
 
 CREATE TABLE map(
 	id INTEGER PRIMARY KEY,
@@ -109,23 +124,61 @@ CREATE TABLE bindGroupMap(
 );
 
 
+
+CREATE VIEW mapGroupInfo AS
+	SELECT studentGroupInfo.id as groupid, studentGroupInfo.name as groupname, studentGroupInfo.owner as groupowner, studentGroupInfo.username as username,
+	mapid, map.name as mapname
+	FROM studentGroupInfo
+	LEFT JOIN bindGroupMap ON (bindGroupMap.groupid = studentGroupInfo.id)
+	LEFT JOIN map ON (map.id = bindGroupMap.mapid);
+
+
+CREATE TABLE mission(
+	id INTEGER PRIMARY KEY,
+	uuid TEXT NOT NULL UNIQUE,
+	mapid INTEGER REFERENCES map(id) ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+
+CREATE TABLE game(
+	id INTEGER PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	missionuuid TEXT NOT NULL REFERENCES mission(uuid) ON UPDATE CASCADE ON DELETE CASCADE,
+	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+	level INTEGER NOT NULL DEFAULT 1,
+	active BOOL NOT NULL DEFAULT TRUE,
+	hpLoss INTEGER,
+	timelength TEXT
+);
+
+
+
+CREATE TABLE level(
+	id INTEGER PRIMARY KEY
+);
+
+CREATE TABLE xpReason(
+	id INTEGER PRIMARY KEY,
+	name TEXT NOT NULL,
+	UNIQUE (name)
+);
+
 CREATE TABLE point(
-	level INTEGER PRIMARY KEY,
-	obj INTEGER NOT NULL DEFAULT 0 CHECK (obj>=0),
-	ch1 INTEGER NOT NULL DEFAULT 0 CHECK (ch1>=0),
-	chR INTEGER NOT NULL DEFAULT 0 CHECK (chR>=0),
-	m1 INTEGER NOT NULL DEFAULT 0 CHECK (m1>=0),
-	mR INTEGER NOT NULL DEFAULT 0 CHECK (mR>=0),
-	ca1 INTEGER NOT NULL DEFAULT 0 CHECK (ca1>=0),
-	caR INTEGER NOT NULL DEFAULT 0 CHECK (caR>=0)
+	id INTEGER PRIMARY KEY,
+	reason TEXT NOT NULL REFERENCES xpReason(name) ON UPDATE CASCADE ON DELETE CASCADE,
+	level INTEGER REFERENCES level(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	xp INTEGER NOT NULL DEFAULT 0,
+	UNIQUE (reason, level)
 );
 
 
-CREATE TABLE achievement(
-	id TEXT NOT NULL,
-	levelid INTEGER NOT NULL REFERENCES point(level) ON UPDATE CASCADE ON DELETE CASCADE,
-	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0)
-);
+CREATE VIEW pointInfo AS
+SELECT xpReason.name as reason, level.id as level, COALESCE(xp, 0) as xp
+	FROM xpReason
+	CROSS JOIN level
+	LEFT JOIN point ON (point.reason=xpReason.name AND point.level=level.id);
+
+
 
 CREATE TABLE rank(
 	id INTEGER PRIMARY KEY,
@@ -148,10 +201,8 @@ CREATE TABLE score(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE SET NULL,
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0),
-	achievementid INTEGER REFERENCES achievement(id) ON UPDATE CASCADE ON DELETE SET NULL,
-	mapid INTEGER REFERENCES map(id) ON UPDATE CASCADE ON DELETE SET NULL,
-	mission INTEGER,
-	level INTEGER
+	xpreasonid INTEGER REFERENCES xpReason(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 
@@ -240,15 +291,6 @@ INSERT INTO rank VALUES (18,'vezérőrnagy',1,31950);
 INSERT INTO rank VALUES (19,'altábornagy',1,35150);
 
 INSERT INTO rank VALUES (100,'vezérezredes',1,null);
-
-
-
-INSERT INTO point VALUES (1, 3, 50, 15, 200, 175, 500, 400);
-
-INSERT INTO point VALUES (2, 5, 60, 20, 250, 195, 600, 500);
-
-INSERT INTO point VALUES (3, 7, 70, 25, 300, 215, 700, 600);
-
 
 
 

@@ -69,8 +69,8 @@ int Servers::serverListReload()
 
 	foreach (QVariant v, list) {
 		QVariantMap m = v.toMap();
-		if (m["autoconnect"].toBool()) {
-			autoconnectId = m["id"].toInt();
+		if (m.value("autoconnect").toBool()) {
+			autoconnectId = m.value("id").toInt();
 		}
 		list2 << m;
 	}
@@ -175,12 +175,12 @@ void Servers::serverConnect(const int &serverId)
 	m_tryToConnectServerId = serverId;
 
 	QUrl url;
-	url.setHost(m["host"].toString());
-	url.setPort(m["port"].toInt());
-	url.setScheme(m["ssl"].toBool() ? "wss" : "ws");
+	url.setHost(m.value("host").toString());
+	url.setPort(m.value("port").toInt());
+	url.setScheme(m.value("ssl").toBool() ? "wss" : "ws");
 
 
-	QByteArray cert = m["cert"].toByteArray();
+	QByteArray cert = m.value("cert").toByteArray();
 	if (!cert.isEmpty()) {
 		QSslCertificate c(cert, QSsl::Pem);
 		if (!c.isNull()) {

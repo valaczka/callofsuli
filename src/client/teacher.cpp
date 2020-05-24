@@ -32,9 +32,9 @@
  * SOFTWARE.
  */
 
-#include "teachermaps.h"
+#include "teacher.h"
 
-TeacherMaps::TeacherMaps(QObject *parent)
+Teacher::Teacher(QObject *parent)
 	: AbstractActivity(parent)
 {
 
@@ -45,9 +45,10 @@ TeacherMaps::TeacherMaps(QObject *parent)
  * @brief TeacherMaps::clientSetup
  */
 
-void TeacherMaps::clientSetup()
+void Teacher::clientSetup()
 {
-	connect(m_client, &Client::jsonTeacherMapsReceived, this, &TeacherMaps::onJsonReceived);
+	connect(m_client, &Client::jsonTeacherMapsReceived, this, &Teacher::onJsonMapsReceived);
+	connect(m_client, &Client::jsonTeacherGroupsReceived, this, &Teacher::onJsonGroupsReceived);
 }
 
 
@@ -58,21 +59,48 @@ void TeacherMaps::clientSetup()
  * @param object
  */
 
-void TeacherMaps::onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
+void Teacher::onJsonMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
 {
-	QString func = object["func"].toString();
-	QJsonObject data = object["data"].toObject();
+	QString func = object.value("func").toString();
+	QJsonObject data = object.value("data").toObject();
 
 	if (!func.isEmpty())
 		busyStackRemove(func, clientMsgId);
 
 	if (func == "getAllMap")
-		emit mapListLoaded(data["list"].toArray());
+		emit mapListLoaded(data.value("list").toArray());
 	else if (func == "getMap")
 		emit mapReceived(data, binaryData);
 	else if (func == "createMap")
 		emit mapCreated(data);
 	else if (func == "updateMap")
 		emit mapUpdated(data);
+}
+
+
+
+/**
+ * @brief Teacher::onJsonGroupsReceived
+ * @param object
+ * @param binaryData
+ * @param clientMsgId
+ */
+
+void Teacher::onJsonGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
+{
+	QString func = object.value("func").toString();
+	QJsonObject data = object.value("data").toObject();
+
+	if (!func.isEmpty())
+		busyStackRemove(func, clientMsgId);
+
+	if (func == "getAllGroup")
+		emit groupListLoaded(data.value("list").toArray());
+	else if (func == "getGroup")
+		emit groupReceived(data);
+	else if (func == "createGroup")
+		emit groupCreated(data);
+	else if (func == "updateGroup")
+		emit groupUpdated(data);
 }
 

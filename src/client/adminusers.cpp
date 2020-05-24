@@ -60,14 +60,14 @@ void AdminUsers::clientSetup()
 
 void AdminUsers::onJsonReceived(const QJsonObject &object, const QByteArray &, const int &clientMsgId)
 {
-	QString func = object["func"].toString();
-	QJsonObject data = object["data"].toObject();
+	QString func = object.value("func").toString();
+	QJsonObject data = object.value("data").toObject();
 
 	if (!func.isEmpty())
 		busyStackRemove(func, clientMsgId);
 
 	if (func == "getAllUser")
-		emit userListLoaded(data["list"].toArray());
+		emit userListLoaded(data.value("list").toArray());
 	else if (func == "userGet")
 		emit userLoaded(data);
 	else if (func == "userCreate")
@@ -79,7 +79,7 @@ void AdminUsers::onJsonReceived(const QJsonObject &object, const QByteArray &, c
 	else if (func == "userBatchRemove")
 		emit userBatchRemoved(data);
 	else if (func == "getAllClass")
-		emit classListLoaded(data["list"].toArray());
+		emit classListLoaded(data.value("list").toArray());
 	else if (func == "classCreate")
 		emit classCreated(data);
 	else if (func == "classUpdate")

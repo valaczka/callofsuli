@@ -51,7 +51,7 @@ void AbstractActivity::send(const QJsonObject &query, const QByteArray &binaryDa
 {
 	int msgid = m_client->socketSend(query, binaryData);
 
-	QString f = query["func"].toString();
+	QString f = query.value("func").toString();
 	if (!f.isEmpty())
 		busyStackAdd(f, msgid);
 

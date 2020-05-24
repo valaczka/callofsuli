@@ -64,7 +64,7 @@ void UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 
 void UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	QString username = m_jsonData["username"].toString();
+	QString username = m_jsonData.value("username").toString();
 	if (username.isEmpty())
 		username = m_client->clientUserName();
 
@@ -107,9 +107,9 @@ void UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 
 void UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 {
-	QString email = m_jsonData["email"].toString();
-	QString firstname = m_jsonData["firstname"].toString();
-	QString lastname = m_jsonData["lastname"].toString();
+	QString email = m_jsonData.value("email").toString();
+	QString firstname = m_jsonData.value("firstname").toString();
+	QString lastname = m_jsonData.value("lastname").toString();
 
 	if (email.isEmpty()) {
 		(*jsonResponse)["error"] = true;
@@ -163,7 +163,7 @@ void UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 	ll << rowId;
 	m_client->db()->execSelectQueryOneRow("SELECT code FROM registration WHERE id=?", ll, &m);
 
-	QString code = m["code"].toString();
+	QString code = m.value("code").toString();
 
 	if (code.isEmpty()) {
 		(*jsonResponse)["error"] = true;
@@ -202,8 +202,8 @@ void UserInfo::getSettings(QJsonObject *jsonResponse, QByteArray *)
 	m_client->db()->execSelectQuery("SELECT key, value FROM settings", QVariantList(), &list);
 
 	foreach (QJsonValue d, list) {
-		QString key = d["key"].toString();
-		(*jsonResponse)[key] = d["value"];
+		QString key = d.toObject().value("key").toString();
+		(*jsonResponse)[key] = d.toObject().value("value");
 	}
 }
 

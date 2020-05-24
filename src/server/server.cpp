@@ -252,7 +252,7 @@ bool Server::databaseLoad()
 	while (true) {
 		QVariantMap r = m_db->runSimpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName, connections from system");
 
-		if (r["error"].toBool() || r["records"].toList().isEmpty()) {
+		if (r.value("error").toBool() || r.value("records").toList().isEmpty()) {
 			if (isFirst) {
 				qInfo().noquote() << tr("Az adatbázis üres vagy hibás, előkészítem...");
 
@@ -272,15 +272,15 @@ bool Server::databaseLoad()
 				return false;
 			}
 		} else {
-			QVariantMap rr = r["records"].toList().value(0).toMap();
-			setDbServerName(rr["serverName"].toString());
-			setDbVersionMajor(rr["versionMajor"].toInt());
-			setDbVersionMinor(rr["versionMinor"].toInt());
-			if (!m_isHostForced) setDbSocketHost(rr["socketHost"].toString());
-			if (!m_isPortForced) setDbSocketPort(rr["socketPort"].toInt());
+			QVariantMap rr = r.value("records").toList().value(0).toMap();
+			setDbServerName(rr.value("serverName").toString());
+			setDbVersionMajor(rr.value("versionMajor").toInt());
+			setDbVersionMinor(rr.value("versionMinor").toInt());
+			if (!m_isHostForced) setDbSocketHost(rr.value("socketHost").toString());
+			if (!m_isPortForced) setDbSocketPort(rr.value("socketPort").toInt());
 			int conn;
 			if (!m_isConnectionForced)
-				conn = rr["connections"].toInt();
+				conn = rr.value("connections").toInt();
 			else
 				conn = socketPendingConnections();
 

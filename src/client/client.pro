@@ -40,7 +40,7 @@ SOURCES += \
 		servers.cpp \
 		simplechoice.cpp \
 		sqlimage.cpp \
-		teachermaps.cpp
+		teacher.cpp
 
 HEADERS += \
 	abstractactivity.h \
@@ -59,7 +59,7 @@ HEADERS += \
 	servers.h \
 	simplechoice.h \
 	sqlimage.h \
-	teachermaps.h
+	teacher.h
 
 RESOURCES += \
 	qml/qml.qrc \

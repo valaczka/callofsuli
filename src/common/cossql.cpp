@@ -224,7 +224,7 @@ QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map, const QVari
 
 	QStringList bindKeys = bindValues.keys();
 	foreach (QString k, bindKeys) {
-		q.bindValue(k, bindValues[k]);
+		q.bindValue(k, bindValues.value(k));
 	}
 
 	return q;
@@ -239,14 +239,17 @@ QSqlQuery CosSql::updateQuery(QString query, const QVariantMap &map, const QVari
  * @return
  */
 
-QSqlQuery CosSql::listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues) const
+QSqlQuery CosSql::listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues, const bool &parenthesizeValues) const
 {
 	QStringList l;
 
 	QSqlQuery q(m_db);
 
 	for (int i=0; i<list.count(); ++i) {
-		l << "?";
+		if (parenthesizeValues)
+			l << "(?)";
+		else
+			l << "?";
 		q.addBindValue(list.at(i));
 	}
 
@@ -254,7 +257,7 @@ QSqlQuery CosSql::listQuery(QString query, const QVariantList &list, const QVari
 
 	QStringList bindKeys = bindValues.keys();
 	foreach (QString k, bindKeys) {
-		q.bindValue(k, bindValues[k]);
+		q.bindValue(k, bindValues.value(k));
 	}
 
 	return q;
@@ -325,8 +328,8 @@ bool CosSql::execQuery(QSqlQuery query)
 {
 	QVariantMap r = runQuery(query);
 
-	if (r["error"].toBool()) {
-		qWarning() << tr("SQL query error: ")+r["errorString"].toString();
+	if (r.value("error").toBool()) {
+		qWarning() << tr("SQL query error: ")+r.value("errorString").toString();
 		return false;
 	}
 
@@ -379,13 +382,13 @@ bool CosSql::execSelectQuery(QString query, const QVariantList &args, QVariantLi
 {
 	QVariantMap r = runSimpleQuery(query, args);
 
-	if (r["error"].toBool()) {
-		qWarning() << tr("SQL query error: ")+r["errorString"].toString();
+	if (r.value("error").toBool()) {
+		qWarning() << tr("SQL query error: ")+r.value("errorString").toString();
 		return false;
 	}
 
 	if (records) {
-		foreach (QVariant q, r["records"].toList())
+		foreach (QVariant q, r.value("records").toList())
 			(*records).append(q);
 	}
 
@@ -405,13 +408,13 @@ bool CosSql::execSelectQuery(QString query, const QVariantList &args, QJsonArray
 {
 	QVariantMap r = runSimpleQuery(query, args);
 
-	if (r["error"].toBool()) {
-		qWarning() << tr("SQL query error: ")+r["errorString"].toString();
+	if (r.value("error").toBool()) {
+		qWarning() << tr("SQL query error: ")+r.value("errorString").toString();
 		return false;
 	}
 
 	if (records) {
-		foreach (QJsonValue q, r["records"].toJsonArray())
+		foreach (QJsonValue q, r.value("records").toJsonArray())
 			(*records).append(q);
 	}
 
@@ -491,12 +494,12 @@ int CosSql::execInsertQuery(QString query, const QVariantMap &map)
 	QSqlQuery q = insertQuery(query, map);
 	QVariantMap m = runQuery(q);
 
-	if (m["error"].toBool()) {
-		qWarning() << tr("SQL query error: ")+m["errorString"].toString();
+	if (m.value("error").toBool()) {
+		qWarning() << tr("SQL query error: ")+m.value("errorString").toString();
 		return -1;
 	}
 
-	return m["lastInsertId"].toInt();
+	return m.value("lastInsertId").toInt();
 }
 
 

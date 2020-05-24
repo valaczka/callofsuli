@@ -305,8 +305,15 @@ QListView {
 
 	function calculateSelectedItems() {
 		var n = 0
-		for (var i=0; i<model.count; ++i) {
-			if (model.get(i)[modelSelectedRole])
+
+		var m = model
+
+		if (isProxyModel) {
+			m = model.sourceModel
+		}
+
+		for (var i=0; i<m.count; ++i) {
+			if (m.get(i)[modelSelectedRole])
 				++n
 		}
 		selectedItemCount = n

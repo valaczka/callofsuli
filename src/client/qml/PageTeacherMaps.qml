@@ -10,8 +10,8 @@ import "JScript.js" as JS
 Page {
 	id: page
 
-	TeacherMaps {
-		id: teacherMaps
+	Teacher {
+		id: teacher
 		client: cosClient
 
 		onMapListLoaded: setModel(list)
@@ -34,10 +34,10 @@ Page {
 
 			o.map.mapSaved.connect(page.onMapSaved)
 
-			teacherMaps.isBusyChanged.connect(o.setBusy)
+			teacher.isBusyChanged.connect(o.setBusy)
 
 			o.Component.onDestruction.connect(function() {
-				teacherMaps.isBusyChanged.disconnect(o.setBusy)
+				teacher.isBusyChanged.disconnect(o.setBusy)
 			})
 		}
 	}
@@ -49,14 +49,14 @@ Page {
 		backButton.onClicked: mainStack.back()
 
 		Row {
-			QToolBusyIndicator { running: teacherMaps.isBusy }
+			QToolBusyIndicator { running: teacher.isBusy }
 			QMenuButton {
 				MenuItem {
 					text: qsTr("Új pálya")
 					onClicked:  {
 						var d = JS.dialogCreateQml("TextField", {title: qsTr("Új pálya neve")})
 						d.accepted.connect(function(data) {
-							teacherMaps.send({"class": "teacherMaps", "func": "createMap", "name": data })
+							teacher.send({"class": "teacherMaps", "func": "createMap", "name": data })
 						})
 						d.open()
 					}
@@ -93,7 +93,7 @@ Page {
 			modelTitleRole: "name"
 			modelSubtitleRole: "labelSubtitle"
 
-			onClicked: teacherMaps.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
+			onClicked: teacher.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
 
 			onLongPressed: {
 				listRigthMenu.modelIndex = index
@@ -149,7 +149,7 @@ Page {
 
 
 	function onMapSaved(data, uuid, mapid) {
-		teacherMaps.send({"class": "teacherMaps", "func": "updateMap", "id": mapid }, data)
+		teacher.send({"class": "teacherMaps", "func": "updateMap", "id": mapid }, data)
 	}
 
 
@@ -166,7 +166,7 @@ Page {
 
 
 	function listReload() {
-		teacherMaps.send({"class": "teacherMaps", "func": "getAllMap"})
+		teacher.send({"class": "teacherMaps", "func": "getAllMap"})
 	}
 
 

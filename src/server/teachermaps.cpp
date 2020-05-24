@@ -67,8 +67,7 @@ void TeacherMaps::getAllMap(QJsonObject *jsonResponse, QByteArray *)
 
 	QJsonArray l;
 	m_client->db()->execSelectQuery("SELECT id, name, timeCreated, timeModified, version, objectives, "
-									"EXISTS(SELECT * FROM bindGroupMap WHERE mapid=map.id) AS hasGroup, "
-									"EXISTS(SELECT * FROM score WHERE mapid=map.id) AS hasScore "
+									"EXISTS(SELECT * FROM bindGroupMap WHERE mapid=map.id) AS hasGroup "
 									"FROM map WHERE owner=?",
 									params,
 									&l);
@@ -83,16 +82,15 @@ void TeacherMaps::getAllMap(QJsonObject *jsonResponse, QByteArray *)
 
 void TeacherMaps::getMap(QJsonObject *jsonResponse, QByteArray *binaryResponse)
 {
-	int refid = m_jsonData["id"].toInt();
+	int refid = m_jsonData.value("id").toInt();
 
 	QVariantList params;
 	params << refid;
 	params << m_client->clientUserName();
 
 	if (!m_client->db()->execSelectQueryOneRow("SELECT id, name, version, timeCreated, timeModified, objectives, "
-											   "EXISTS(SELECT * FROM bindGroupMap WHERE mapid=map.id) AS hasGroup, "
-											   "EXISTS(SELECT * FROM score WHERE mapid=map.id) AS hasScore "
-											   " FROM map WHERE id=? AND owner=?", params, jsonResponse)) {
+											   "EXISTS(SELECT * FROM bindGroupMap WHERE mapid=map.id) AS hasGroup "
+											   "FROM map WHERE id=? AND owner=?", params, jsonResponse)) {
 		(*jsonResponse)["error"] = "internal db error";
 		return;
 	}
@@ -112,7 +110,7 @@ void TeacherMaps::getMap(QJsonObject *jsonResponse, QByteArray *binaryResponse)
 
 	QVariantMap mdata = m_client->mapDb()->db()->runSimpleQuery("SELECT data FROM mapdata WHERE refid=?", l);
 
-	*binaryResponse = mdata["records"].toList().value(0).toMap().value("data").toByteArray();
+	*binaryResponse = mdata.value("records").toList().value(0).toMap().value("data").toByteArray();
 	if (binaryResponse->isEmpty()) {
 		qWarning() << tr("Map data not found") << refid;
 		(*jsonResponse)["error"] = "map not found";
@@ -128,7 +126,7 @@ void TeacherMaps::getMap(QJsonObject *jsonResponse, QByteArray *binaryResponse)
 
 void TeacherMaps::createMap(QJsonObject *jsonResponse, QByteArray *)
 {
-	QString name = m_jsonData["name"].toString();
+	QString name = m_jsonData.value("name").toString();
 
 	QVariantMap params;
 	params["name"] = name;
@@ -153,21 +151,36 @@ void TeacherMaps::createMap(QJsonObject *jsonResponse, QByteArray *)
 
 void TeacherMaps::updateMap(QJsonObject *jsonResponse, QByteArray *)
 {
-	int mapid = m_jsonData["id"].toInt();
+	int mapid = m_jsonData.value("id").toInt();
 
-	QJsonObject r = m_client->mapDb()->updateData(mapid, m_binaryData, m_jsonData["uuidOverwrite"].toBool(false));
+	QJsonObject r = m_client->mapDb()->updateData(mapid, m_binaryData, m_jsonData.value("uuidOverwrite").toBool(false));
 	if (r.contains("error")) {
-		(*jsonResponse)["error"] = r["error"].toString();
+		(*jsonResponse)["error"] = r.value("error").toString();
 		return;
 	}
 
 	QVariantMap params;
-	if (r.contains("timeCreated"))  params["timeCreated"] = r["timeCreated"].toString();
-	if (r.contains("timeModified"))  params["timeModified"] = r["timeModified"].toString();
+	if (r.contains("timeCreated"))  params["timeCreated"] = r.value("timeCreated").toString();
+	if (r.contains("timeModified"))  params["timeModified"] = r.value("timeModified").toString();
 
-	params["objectives"] = r["objectives"].toInt();
+	params["objectives"] = r.value("objectives").toInt();
 
 	updateMapInfo(mapid, params, true);
+
+	if (r.contains("uuidList")) {
+		QJsonArray list = r.value("uuidList").toArray();
+
+		foreach (QJsonValue v, list) {
+			QString u = v.toString();
+			QVariantMap params;
+			params["uuid"] = u;
+			params["mapid"] = mapid;
+
+			if (m_client->db()->execInsertQuery("INSERT OR REPLACE INTO mission (?k?) VALUES (?)", params) == -1) {
+				qWarning().noquote() << "UUID error";
+			}
+		}
+	}
 
 	(*jsonResponse)["updated"] = mapid;
 }

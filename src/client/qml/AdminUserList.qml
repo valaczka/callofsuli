@@ -11,94 +11,12 @@ QPagePanel {
 
 	property AdminUsers adminUsers: null
 
-	property var _classList: []
-	property var _selectedClasses: []
-	property string _selectedClassesRegExp: ""
-
 	title: qsTr("Felhasználók")
 
-	QPageHeader {
-		id: header
+	UserListWidget {
+		id: userListWidget
 
-		isSelectorMode: userList.selectorSet
-
-		labelCountText: userList.selectedItemCount
-
-		searchText.onTextChanged: mainSearch.text = searchText.text
-
-		Column {
-			width: parent.width
-
-			QTextField {
-				id: mainSearch
-				width: parent.width
-
-				placeholderText: qsTr("Keresés...")
-
-				onTextChanged: header.searchText.text = mainSearch.text
-			}
-
-			Flow {
-				width: parent.width
-
-				QTag {
-					id: classes
-					checkable: true
-					checked: true
-					title: qsTr("Osztály:")
-					width: parent.width
-					defaultColor: CosStyle.colorAccentLight
-					defaultBackground: CosStyle.colorAccentDark
-					modelTextRole: "name"
-
-					onClicked: loadDialogClasses()
-
-					onCheckedChanged: if (checked && checkNoClass)
-										  checkNoClass.checked = false
-				}
-
-				QCheckBox {
-					id: checkTeacher
-					text: qsTr("Tanár")
-
-					onCheckedChanged: if (checked)
-										  checkStudent.checked = false
-				}
-
-				QCheckBox {
-					id: checkStudent
-					text: qsTr("Diák")
-					onCheckedChanged: if (checked)
-										  checkTeacher.checked = false
-				}
-
-				QCheckBox {
-					id: checkAdmin
-					text: qsTr("Admin")
-				}
-
-				QCheckBox {
-					id: checkActive
-					text: qsTr("Aktív")
-					onCheckedChanged: if (checked)
-										  checkInactive.checked = false
-				}
-
-				QCheckBox {
-					id: checkInactive
-					text: qsTr("Nem aktív")
-					onCheckedChanged: if (checked)
-										  checkActive.checked = false
-				}
-
-				QCheckBox {
-					id: checkNoClass
-					text: qsTr("Osztály nélkül")
-					onCheckedChanged: if (checked && classes)
-										  classes.checked = false
-				}
-			}
-		}
+		anchors.fill: parent
 
 		selectorLoader.sourceComponent: Flow {
 			id: flow
@@ -124,7 +42,7 @@ QPagePanel {
 				MenuSeparator { }
 
 				Repeater {
-					model: _classList
+					model: userListWidget._classList
 					MenuItem {
 						text: modelData.name
 						onTriggered: runBatchFunction("classid", modelData.id)
@@ -133,135 +51,12 @@ QPagePanel {
 			}
 
 			QToolButton { action: actionRemove; display: flow.buttonDisplay  }
-
-
-		}
-
-		onSelectAll: userList.selectAll()
-	}
-
-	ListModel {
-		id: baseUserModel
-	}
-
-	SortFilterProxyModel {
-		id: userProxyModel
-		sourceModel: baseUserModel
-		filters: [
-			AnyOf {
-				enabled: mainSearch.text.length
-				RegExpFilter {
-					roleName: "lastname"
-					pattern: mainSearch.text
-					caseSensitivity: Qt.CaseInsensitive
-					syntax: RegExpFilter.FixedString
-				}
-				RegExpFilter {
-					roleName: "firstname"
-					pattern: mainSearch.text
-					caseSensitivity: Qt.CaseInsensitive
-					syntax: RegExpFilter.FixedString
-				}
-				RegExpFilter {
-					roleName: "username"
-					pattern: mainSearch.text
-					caseSensitivity: Qt.CaseInsensitive
-					syntax: RegExpFilter.FixedString
-				}
-			},
-			ValueFilter {
-				enabled: checkTeacher.checked
-				roleName: "isTeacher"
-				value: true
-			},
-			ValueFilter {
-				enabled: checkStudent.checked
-				roleName: "isTeacher"
-				value: false
-			},
-			ValueFilter {
-				enabled: checkAdmin.checked
-				roleName: "isAdmin"
-				value: true
-			},
-			ValueFilter {
-				enabled: checkActive.checked
-				roleName: "isActive"
-				value: true
-			},
-			ValueFilter {
-				enabled: checkInactive.checked
-				roleName: "isActive"
-				value: false
-			},
-			ValueFilter {
-				enabled: checkNoClass.checked
-				roleName: "classid"
-				value: -1
-			},
-			RegExpFilter {
-				enabled: classes.checked
-				roleName: "classid"
-				pattern: _selectedClassesRegExp
-			}
-
-		]
-		sorters: [
-			StringSorter { roleName: "firstname" },
-			StringSorter { roleName: "lastname" }
-		]
-
-		proxyRoles: [
-			JoinRole {
-				name: "fullname"
-				roleNames: ["firstname", "lastname"]
-			},
-			SwitchRole {
-				name: "textColor"
-				filters: ValueFilter {
-					roleName: "isActive"
-					value: false
-					SwitchRole.value: "#88000000"
-				}
-				defaultValue: "black"
-			}
-		]
-
-	}
-
-	QListItemDelegate {
-		id: userList
-		anchors.top: header.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
-
-		model: userProxyModel
-		isProxyModel: true
-
-		delegateHeight: CosStyle.twoLineHeight
-
-		isObjectModel: true
-		modelTitleRole: "fullname"
-		modelSubtitleRole: "username"
-		modelTitleColorRole: "textColor"
-		modelSubtitleColorRole: "textColor"
-
-		autoSelectorChange: true
-
-		rightComponent: Label {
-			text: model && model["classname"] ? model["classname"] : ""
-			color: "black"
-			font.weight: Font.DemiBold
-			font.pixelSize: CosStyle.pixelSize*0.9
-			leftPadding: 5
-			rightPadding: 5
 		}
 
 
-		onClicked: pageAdminUsers.userSelected(model.get(index).username)
+		delegate.onClicked: pageAdminUsers.userSelected(model.get(index).username)
 
-		onRightClicked: {
+		delegate.onRightClicked: {
 			contextMenu.disableOwn = (model.get(index).username === cosClient.userName)
 			contextMenu.popup()
 		}
@@ -289,7 +84,7 @@ QPagePanel {
 				MenuSeparator { }
 
 				Repeater {
-					model: _classList
+					model: userListWidget._classList
 					MenuItem {
 						text: modelData.name
 						onTriggered: runBatchFunction("classid", modelData.id)
@@ -304,16 +99,16 @@ QPagePanel {
 
 	Connections {
 		target: pageAdminUsers
-		onClassSelected: if (classes.checked ){
+		onClassSelected: if (userListWidget.tagClasses.checked ){
 							 var ii = []
 							 ii.push(id)
-							 _selectedClasses = ii
+							 userListWidget._selectedClasses = ii
 							 var n = []
-							 for (var i=0; i<_classList.length; ++i) {
-								 if (_classList[i].id === id) {
-									 _selectedClassesRegExp = id
-									 n.push({"name": _classList[i].name})
-									 classes.tags = n
+							 for (var i=0; i<userListWidget._classList.length; ++i) {
+								 if (userListWidget._classList[i].id === id) {
+									 userListWidget._selectedClassesRegExp = id
+									 n.push({"name": userListWidget._classList[i].name})
+									 userListWidget.tagClasses.tags = n
 									 return
 								 }
 							 }
@@ -328,7 +123,7 @@ QPagePanel {
 
 		onUserListLoaded: getList(list)
 		onClassListLoaded: {
-			_classList = list
+			userListWidget._classList = list
 			reloadUserList()
 		}
 
@@ -336,7 +131,7 @@ QPagePanel {
 			if (data.error)
 				cosClient.sendMessageWarning(qsTr("Felhasználók módosítása"), qsTr("Szerver hiba"), data.error)
 			else {
-				userList.selectAll(false)
+				userListWidget.delegate.selectAll(false)
 				reloadUserList()
 			}
 		}
@@ -345,7 +140,7 @@ QPagePanel {
 			if (data.error)
 				cosClient.sendMessageWarning(qsTr("Felhasználók törlése"), qsTr("Szerver hiba"), data.error)
 			else {
-				userList.selectAll(false)
+				userListWidget.delegate.selectAll(false)
 				reloadUserList()
 			}
 		}
@@ -415,43 +210,17 @@ QPagePanel {
 
 
 	function getList(_list) {
-		JS.setModel(baseUserModel, _list)
+		JS.setModel(userListWidget.model, _list)
 	}
 
-
-	function loadDialogClasses() {
-		var d = JS.dialogCreateQml("List")
-		d.item.title = qsTr("Szűrés osztályokra")
-		d.item.newField.visible = false
-		d.item.list.selectorSet = true
-		d.item.list.modelTitleRole = "name"
-		d.item.list.modelSelectedRole = "selected"
-
-		for (var i=0; i<_classList.length; ++i) {
-			var o = _classList[i]
-			o.selected = _selectedClasses.includes(o.id)
-			d.item.model.append(o)
-		}
-
-		d.accepted.connect(function() {
-			_selectedClasses = JS.getSelectedIndices(d.item.model, "id")
-			_selectedClassesRegExp = "("+_selectedClasses.join("|")+")"
-			var cc = JS.getSelectedIndices(d.item.model, "name")
-			var n = []
-			for (i=0; i<cc.length; ++i)
-				n.push({"name": cc[i]})
-			classes.tags = n
-		})
-		d.open()
-	}
 
 
 	function runBatchFunction(p, value) {
 		var l = []
-		if (userList.selectorSet)
-			l = JS.getSelectedIndices(baseUserModel, "username")
-		else if (userList.currentIndex != -1)
-			l.push(userList.model.get(userList.currentIndex).username)
+		if (userListWidget.delegate.selectorSet)
+			l = JS.getSelectedIndices(userListWidget.model, "username")
+		else if (userListWidget.delegate.currentIndex != -1)
+			l.push(userListWidget.delegate.model.get(userListWidget.delegate.currentIndex).username)
 
 		if (l.length === 0)
 			return

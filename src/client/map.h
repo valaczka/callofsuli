@@ -94,6 +94,8 @@ protected:
 	QJsonArray tableToJson(const QString &table, const bool &convertData = false);
 	bool JsonToTable(const QJsonArray &array, const QString &table, const bool &convertData = false);
 
+	void generateMissionUuids();
+
 	QStringList m_tableNames;
 	QStringList m_databaseInitSql;
 

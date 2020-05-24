@@ -30,6 +30,7 @@ CREATE TABLE campaignLock (
 
 CREATE TABLE mission (
 	id INTEGER PRIMARY KEY,
+	uuid TEXT,
 	name TEXT
 );
 
@@ -46,6 +47,7 @@ CREATE TABLE missionLevel (
 
 CREATE TABLE summary (
 	id INTEGER PRIMARY KEY,
+	uuid TEXT,
 	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	UNIQUE(campaignid)
 );

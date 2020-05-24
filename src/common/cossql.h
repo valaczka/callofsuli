@@ -54,7 +54,7 @@ public:
 	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
 	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
 	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) const;
-	QSqlQuery listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap()) const;
+	QSqlQuery listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false) const;
 	QVariantMap runQuery(QSqlQuery query);
 	bool execQuery(QSqlQuery query);
 
@@ -84,8 +84,8 @@ public:
 		return execQuery(updateQuery(query, map, bindValues));
 	}
 
-	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap()) {
-		return execQuery(listQuery(query, list, bindValues));
+	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false) {
+		return execQuery(listQuery(query, list, bindValues, parenthesizeValues));
 	}
 
 	static QString hashPassword (const QString &password, QString *salt = nullptr,

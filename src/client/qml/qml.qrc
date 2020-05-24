@@ -82,5 +82,6 @@
         <file>MapEditorStorageWidget.qml</file>
         <file>PageGame.qml</file>
         <file>PageIntro.qml</file>
+        <file>UserListWidget.qml</file>
     </qresource>
 </RCC>

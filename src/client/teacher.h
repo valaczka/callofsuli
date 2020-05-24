@@ -32,18 +32,18 @@
  * SOFTWARE.
  */
 
-#ifndef TEACHERMAPS_H
-#define TEACHERMAPS_H
+#ifndef TEACHER_H
+#define TEACHER_H
 
 #include <QObject>
 #include "abstractactivity.h"
 
-class TeacherMaps : public AbstractActivity
+class Teacher : public AbstractActivity
 {
 	Q_OBJECT
 
 public:
-	TeacherMaps(QObject *parent=nullptr);
+	Teacher(QObject *parent=nullptr);
 
 	void clientSetup() override;
 
@@ -53,8 +53,14 @@ signals:
 	void mapReceived(const QJsonObject &jsonData, const QByteArray &mapData);
 	void mapUpdated(const QJsonObject &data);
 
+	void groupListLoaded(const QJsonArray &list);
+	void groupCreated(const QJsonObject &groupData);
+	void groupReceived(const QJsonObject &groupData);
+	void groupUpdated(const QJsonObject &groupData);
+
 private slots:
-	void onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void onJsonMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void onJsonGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 };
 
 #endif // TEACHERMAPS_H

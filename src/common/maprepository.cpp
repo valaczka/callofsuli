@@ -204,7 +204,7 @@ QVariantMap MapRepository::create(const int &refid)
 
 	QVariantMap l;
 	l["refid"] = refid;
-	l["uuid"] = fileinfo["uuid"].toString();
+	l["uuid"] = fileinfo.value("uuid").toString();
 	l["md5"] = md5;
 	l["data"] = mapdata;
 	int id = m_db->execInsertQuery("INSERT INTO mapdata (?k?) VALUES (?)", l);
@@ -239,13 +239,13 @@ QJsonObject MapRepository::updateData(const int &id, const QByteArray &data, con
 	}
 
 	QJsonObject root = doc.object();
-	QJsonObject cosdata = root["callofsuli"].toObject();
+	QJsonObject cosdata = root.value("callofsuli").toObject();
 
-	QString uuid = cosdata["uuid"].toString();
+	QString uuid = cosdata.value("uuid").toString();
 
 	QVariantMap params;
 
-	if (uuid != orig["uuid"].toString()) {
+	if (uuid != orig.value("uuid").toString()) {
 		emit uuidComapareError(id);
 
 		if (!uuidOverwrite) {
@@ -262,12 +262,30 @@ QJsonObject MapRepository::updateData(const int &id, const QByteArray &data, con
 	params["data"] = data;
 
 	QVariantMap binds;
-	binds[":id"] = orig["id"];
+	binds[":id"] = orig.value("id");
 
 	if (!m_db->execUpdateQuery("UPDATE mapdata set ? where id=:id", params, binds))
 		return QJsonObject();
 
-	cosdata["objectives"] = root["objectives"].toArray().count();
+	cosdata["objectives"] = root.value("objectives").toArray().count();
+
+	QStringList uuidList;
+
+	QJsonArray missionList = root.value("mission").toArray();
+	foreach (QJsonValue v, missionList) {
+		QString u = v.toObject().value("uuid").toString();
+		if (!u.isEmpty())
+			uuidList << u;
+	}
+
+	QJsonArray summaryList = root.value("summary").toArray();
+	foreach (QJsonValue v, summaryList) {
+		QString u = v.toObject().value("uuid").toString();
+		if (!u.isEmpty())
+			uuidList << u;
+	}
+
+	cosdata["uuidList"] = QJsonArray::fromStringList(uuidList);
 
 	return cosdata;
 }
@@ -303,19 +321,19 @@ QByteArray MapRepository::getDataReal(QSqlQuery q)
 	QByteArray ret;
 
 	QVariantMap r = m_db->runQuery(q);
-	if (r["error"].toBool()) {
-		emit databaseError(r["errorString"].toString());
+	if (r.value("error").toBool()) {
+		emit databaseError(r.value("errorString").toString());
 		return ret;
 	}
 
-	QVariantList rl = r["records"].toList();
+	QVariantList rl = r.value("records").toList();
 
 	if (!rl.count())
 		return ret;
 
 	QVariantMap m = rl.value(0).toMap();
 
-	return m["data"].toByteArray();
+	return m.value("data").toByteArray();
 }
 
 

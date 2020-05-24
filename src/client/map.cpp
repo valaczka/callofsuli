@@ -401,7 +401,7 @@ QVariantList Map::summaryStorageListGet(const int &id, const int &filterLevel)
 	foreach(QVariant v, list) {
 		QVariantMap m = v.toMap();
 
-		QVariantList objs = objectiveListGet(m["id"].toInt(), filterLevel);
+		QVariantList objs = objectiveListGet(m.value("id").toInt(), filterLevel);
 		m["objectives"] = objs;
 		ret << m;
 	}
@@ -497,7 +497,7 @@ QVariantList Map::storageListGet(const int &missionId, const int &summaryId, con
 	foreach(QVariant v, list) {
 		QVariantMap m = v.toMap();
 
-		QVariantList objs = objectiveListGet(m["id"].toInt(), filterLevel);
+		QVariantList objs = objectiveListGet(m.value("id").toInt(), filterLevel);
 		m["objectives"] = objs;
 		ret << m;
 	}
@@ -751,14 +751,14 @@ QJsonArray Map::tableToJson(const QString &table, const bool &convertData)
 {
 	QVariantMap m = m_db->runSimpleQuery("SELECT * from "+table+" ORDER BY rowid");
 
-	if (m["error"].toBool()) {
+	if (m.value("error").toBool()) {
 		return QJsonArray();
 	}
 
 	QJsonArray list;
 
 	if (convertData) {
-		QVariantList r = m["records"].toList();
+		QVariantList r = m.value("records").toList();
 		for (int i=0; i<r.count(); ++i) {
 			QJsonObject rrObj;
 			QVariantMap rr = r.value(i).toMap();
@@ -783,7 +783,7 @@ QJsonArray Map::tableToJson(const QString &table, const bool &convertData)
 		}
 
 	} else {
-		list = m["records"].toJsonArray();
+		list = m.value("records").toJsonArray();
 	}
 
 	return list;
@@ -829,6 +829,41 @@ bool Map::JsonToTable(const QJsonArray &array, const QString &table, const bool 
 
 	return true;
 }
+
+
+/**
+ * @brief Map::generateMissionUuids
+ */
+
+void Map::generateMissionUuids()
+{
+	QVariantList list;
+
+	m_db->execSelectQuery("SELECT id FROM mission WHERE uuid IS NULL OR uuid=''", QVariantList(), &list);
+
+	foreach (QVariant v, list) {
+		QVariantList params;
+		params << QUuid::createUuid().toString();
+		params << v.toMap().value("id").toInt();
+		m_db->runSimpleQuery("UPDATE mission SET uuid=? WHERE id=?", params);
+	}
+
+
+	QVariantList listS;
+
+	m_db->execSelectQuery("SELECT id FROM summary WHERE uuid IS NULL OR uuid=''", QVariantList(), &listS);
+
+	foreach (QVariant v, listS) {
+		QVariantList params;
+		params << QUuid::createUuid().toString();
+		params << v.toMap().value("id").toInt();
+		m_db->runSimpleQuery("UPDATE summary SET uuid=? WHERE id=?", params);
+	}
+}
+
+
+
+
 
 
 /**
@@ -1015,6 +1050,7 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 		*steps += m_tableNames.count()
 				  +1		// open
 				  +1		// jsonDoc
+				  +1		// generateUuids
 				  +1		// storage
 				  +1;		// objective
 	}
@@ -1042,7 +1078,7 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 
 
 
-	if (!JsonToTable(root["storage"].toArray(), "storage", true))
+	if (!JsonToTable(root.value("storage").toArray(), "storage", true))
 		return QJsonObject();
 
 	if (steps && currentStep) {
@@ -1050,7 +1086,7 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 		QCoreApplication::processEvents();
 	}
 
-	if (!JsonToTable(root["objective"].toArray(), "objective", true))
+	if (!JsonToTable(root.value("objective").toArray(), "objective", true))
 		return QJsonObject();
 
 	if (steps && currentStep) {
@@ -1068,6 +1104,10 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 		}
 	}
 
+	generateMissionUuids();
+
+	emit mapLoadingProgress(++(*currentStep)/(*steps));
+	QCoreApplication::processEvents();
 
 	return root;
 }
