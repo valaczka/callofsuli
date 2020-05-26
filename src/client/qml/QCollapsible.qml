@@ -29,7 +29,7 @@ Rectangle {
 
 		color: "black"
 
-		Label {
+		QLabel {
 			id: title
 			anchors.left: parent.left
 			anchors.verticalCenter: parent.verticalCenter
@@ -50,7 +50,7 @@ Rectangle {
 			radius: width/2
 		}
 
-		Label {
+		QLabel {
 			id: arrow
 			anchors.right: parent.right
 			anchors.rightMargin: 2

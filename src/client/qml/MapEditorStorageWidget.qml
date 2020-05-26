@@ -25,7 +25,7 @@ QListItemDelegate {
 	modelDepthRole: "depth"
 
 
-	rightComponent: Label {
+	rightComponent: QLabel {
 		color: "black"
 		text: model && model.rightText ? model.rightText : ""
 	}

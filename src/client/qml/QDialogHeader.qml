@@ -51,7 +51,7 @@ Item {
 			size: CosStyle.pixelSize*2.0
 		}
 
-		Label {
+		QLabel {
 			id: labelTitle
 			anchors.verticalCenter: parent.verticalCenter
 			color: CosStyle.colorPrimary

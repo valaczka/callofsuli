@@ -36,7 +36,7 @@ ToolBar {
 
 			Layout.fillWidth: true
 
-			Label {
+			QLabel {
 				anchors.verticalCenter: rowAnimatedTitle.verticalCenter
 				text: "["
 				font.weight: Font.Thin
@@ -53,7 +53,7 @@ ToolBar {
 				color: CosStyle.colorAccentLighter
 			}
 
-			Label {
+			QLabel {
 				anchors.verticalCenter: rowAnimatedTitle.verticalCenter
 				text: "]"
 				font.weight: Font.Thin

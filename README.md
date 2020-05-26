@@ -17,3 +17,4 @@ https://github.com/oKcerG/SortFilterProxyModel
 
 Copyright (c) 2013-2014 Debao Zhang
 https://github.com/dbzhang800/QtXlsxWriter
+

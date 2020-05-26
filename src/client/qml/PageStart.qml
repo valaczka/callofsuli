@@ -9,7 +9,6 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-
 Page {
 	id: page
 
@@ -35,7 +34,7 @@ Page {
 			loops: MediaPlayer.Infinite
 		}
 
-		Label {
+		QLabel {
 			anchors.right: parent.right
 			anchors.bottom: parent.bottom
 			anchors.bottomMargin: 5
@@ -81,6 +80,11 @@ Page {
 				text: qsTr("Kilépés")
 				onClicked: mainWindow.close()
 			}
+
+			MenuItem {
+				text: qsTr("plus")
+				onClicked: CosStyle.pixelSize++
+			}
 		}
 
 	}
@@ -94,12 +98,6 @@ Page {
 
 		anchors.fill: parent
 		maximumWidth: 600
-
-		rightLoader.sourceComponent: QMenuButton {
-			MenuItem {
-				text: qsTr("Új szerver")
-			}
-		}
 
 		QListItemDelegate {
 			id: listMenu
@@ -185,6 +183,8 @@ Page {
 
 
 	}
+
+
 
 
 	Connections {

@@ -104,11 +104,11 @@ void TeacherGroups::getGroup(QJsonObject *jsonResponse, QByteArray *)
 
 	QJsonArray students;
 
-	m_client->mapDb()->db()->execSelectQuery("SELECT bindGroupStudent.username as username, firstname, lastname, isTeacher, classid, classname "
-											 "FROM bindGroupStudent "
-											 "LEFT JOIN user ON (user.username=bindGroupStudent.username) "
-											 "LEFT JOIN class ON (class.id=user.classid) "
-											 "WHERE groupid=? AND user.active=true ORDER BY firstname, lastname", l, &students);
+	m_client->db()->execSelectQuery("SELECT bindGroupStudent.username as username, firstname, lastname, isTeacher, active, classid, classname "
+									"FROM bindGroupStudent "
+									"LEFT JOIN user ON (user.username=bindGroupStudent.username) "
+									"LEFT JOIN class ON (class.id=user.classid) "
+									"WHERE groupid=? ORDER BY firstname, lastname", l, &students);
 
 	(*jsonResponse)["students"] = students;
 
@@ -116,12 +116,37 @@ void TeacherGroups::getGroup(QJsonObject *jsonResponse, QByteArray *)
 
 	QJsonArray classes;
 
-	m_client->mapDb()->db()->execSelectQuery("SELECT id, name "
-											 "FROM bindGroupClass "
-											 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-											 "WHERE groupid=? ORDER BY name", l, &classes);
+	m_client->db()->execSelectQuery("SELECT id, name "
+									"FROM bindGroupClass "
+									"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+									"WHERE groupid=? ORDER BY name", l, &classes);
 
 	(*jsonResponse)["classes"] = classes;
+
+
+	QJsonArray members;
+
+	m_client->db()->execSelectQuery("SELECT studentGroupInfo.name as groupName, studentGroupInfo.username as username, firstname, lastname, "
+									"isTeacher, class.id as classid, class.name as classname "
+									"FROM studentGroupInfo "
+									"LEFT JOIN user ON (studentGroupInfo.username=user.username) "
+									"LEFT JOIN class ON (class.id=user.classid) "
+									"WHERE studentGroupInfo.id=? AND studentGroupInfo.owner=? ORDER BY firstname, lastname",
+									params,
+									&members);
+
+	(*jsonResponse)["members"] = members;
+
+
+
+	QJsonArray maps;
+
+	m_client->db()->execSelectQuery("SELECT id, name, version "
+									"FROM bindGroupMap "
+									"LEFT JOIN map ON (map.id=bindGroupMap.mapid) "
+									"WHERE groupid=? ORDER BY name", l, &maps);
+
+	(*jsonResponse)["maps"] = maps;
 
 }
 
@@ -145,8 +170,6 @@ void TeacherGroups::createGroup(QJsonObject *jsonResponse, QByteArray *)
 		(*jsonResponse)["error"] = "map create error";
 		return;
 	}
-
-	QVariantMap info = m_client->mapDb()->create(id);
 
 	(*jsonResponse)["created"] = id;
 }
@@ -266,6 +289,51 @@ void TeacherGroups::updateGroup(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
+
+
+	if (m_jsonData.contains("maps")) {
+		QJsonArray maplist = m_jsonData.value("maps").toArray();
+
+		QVariantMap p1;
+		p1[":id"] = groupid;
+
+		QVariantList ul;
+
+		foreach (QJsonValue v, maplist) {
+			ul << v.toInt();
+		}
+
+		if (maplist.isEmpty()) {
+			QVariantList p;
+			p << groupid;
+			if (!m_client->db()->execSimpleQuery("DELETE FROM bindGroupMap WHERE groupid=?", p)) {
+				(*jsonResponse)["error"] = "update error";
+				m_client->db()->db().rollback();
+				return;
+			}
+		} else {
+			if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE groupid=:id AND mapid NOT IN (?l?)", ul, p1)) {
+				(*jsonResponse)["error"] = "update error";
+				m_client->db()->db().rollback();
+				return;
+			}
+		}
+
+
+		p1[":id2"] = groupid;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap(groupid, mapid) "
+										   "SELECT :id as groupid, T.mapid as mapid "
+										   "FROM (SELECT column1 as mapid FROM (values ?l? ) EXCEPT SELECT mapid from bindGroupMap WHERE groupid=:id2) T",
+										   ul, p1, true)) {
+			(*jsonResponse)["error"] = "update error";
+			m_client->db()->db().rollback();
+			return;
+		}
+	}
+
+
+
 	(*jsonResponse)["updated"] = groupid;
 
 	m_client->db()->db().commit();
@@ -294,32 +362,6 @@ void TeacherGroups::removeGroup(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["removed"] = groupid;
 }
 
-
-
-/**
- * @brief TeacherGroups::getMembers
- * @param jsonResponse
- */
-
-void TeacherGroups::getMembers(QJsonObject *jsonResponse, QByteArray *)
-{
-	int groupid = m_jsonData.value("id").toInt();
-
-	QVariantList params;
-	params << groupid;
-	params << m_client->clientUserName();
-
-	QJsonArray l;
-	m_client->db()->execSelectQuery("SELECT studentGroupInfo.name as groupName, studentGroupInfo.username as username, firstname, lastname, "
-									"isTeacher, class.id as classid, class.name as classname "
-									"FROM studentGroupInfo "
-									"LEFT JOIN user ON (studentGroupInfo.username=user.username) "
-									"LEFT JOIN class ON (class.id=user.classid) "
-									"WHERE studentGroupInfo.id=? AND studentGroupInfo.owner=? ORDER BY firstanem, lastname",
-									params,
-									&l);
-	(*jsonResponse)["list"] = l;
-}
 
 
 
@@ -363,6 +405,30 @@ void TeacherGroups::getExcludedClasses(QJsonObject *jsonResponse, QByteArray *)
 
 	QJsonArray l;
 	m_client->db()->execSelectQuery("SELECT id, name FROM class WHERE id NOT IN (SELECT classid FROM bindGroupClass WHERE groupid=?) "
+									"ORDER BY name", params, &l);
+
+	(*jsonResponse)["list"] = l;
+}
+
+
+
+
+
+/**
+ * @brief TeacherGroups::getExcludedMaps
+ * @param jsonResponse
+ */
+
+void TeacherGroups::getExcludedMaps(QJsonObject *jsonResponse, QByteArray *)
+{
+	int groupid = m_jsonData.value("id").toInt();
+
+	QVariantList params;
+	params << groupid;
+	params << m_client->clientUserName();
+
+	QJsonArray l;
+	m_client->db()->execSelectQuery("SELECT id, name, version FROM map WHERE id NOT IN (SELECT mapid FROM bindGroupMap WHERE groupid=?) AND owner=? "
 									"ORDER BY name", params, &l);
 
 	(*jsonResponse)["list"] = l;

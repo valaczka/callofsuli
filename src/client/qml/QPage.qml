@@ -1,18 +1,14 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.14
+import QtQuick.Controls 2.14
 import QtQuick.Layouts 1.14
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
-Item {
+
+Page {
 	id: control
-
-	height: 400
-	width: 400
-
-	focus: false
 
 	property int requiredPanelWidth: 600
 	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
@@ -21,10 +17,59 @@ Item {
 	property bool swipeMode: control.width-(leftItem.visible ? leftItem.width : 0) < requiredPanelWidth*panels.length
 
 	property alias drawer: drawer
+	property alias bgImage: bgImage
 
 	property var panels: []
 
-	default property Component leftPanel: null
+	property Component leftPanel: null
+
+	property alias mainSwipe: mainSwipe
+	property alias mainRow: mainRow
+	property alias mainToolBar: toolbar
+	property alias mainToolBarComponent: toolbarRight.sourceComponent
+
+	property alias mainMenu: menuButton.menu
+
+	property Menu pageContextMenu: null
+
+	property bool panelsVisible: true
+
+	background: Image {
+		id: bgImage
+		anchors.fill: parent
+		fillMode: Image.PreserveAspectCrop
+		source: "qrc:/img/villa.png"
+	}
+
+	header: QToolBar {
+		id: toolbar
+
+		backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
+		backButton.visible: true
+		backButton.onClicked: {
+			if (noDrawer)
+				mainStack.back()
+			else
+				drawerToggle()
+		}
+
+		Loader {
+			id: toolbarRight
+		}
+
+		QToolButton {
+			id: menuButton
+
+			icon.source: CosStyle.iconMenu
+			property Menu menu: null
+
+			visible: menu
+
+			onClicked: if (menu) {
+						   menu.popup(menuButton, 0, menuButton.height)
+					   }
+		}
+	}
 
 
 	Drawer {
@@ -48,6 +93,7 @@ Item {
 			sourceComponent: noDrawer ? undefined : leftPanel
 		}
 	}
+
 
 	Item {
 		id: leftItem
@@ -75,14 +121,13 @@ Item {
 		anchors.bottom: parent.bottom
 		anchors.right: parent.right
 
-		visible: !swipeMode
+		visible: panelsVisible && !swipeMode
 
 		Repeater {
 			id: mainRepeater
 			model: ListModel {
 				onCountChanged: {
 					if (count == 0) {
-						console.debug("reseted")
 						panelResetAfterRemove()
 					}
 				}
@@ -169,27 +214,59 @@ Item {
 		anchors.left: leftItem.visible ? leftItem.right : parent.left
 		anchors.bottom: parent.bottom
 		anchors.right: parent.right
-		visible: swipeMode
+		visible: panelsVisible && swipeMode
+
+		property Page parentPage: control
 	}
 
-	PageIndicator {
-		id: indicator
 
-		visible: mainSwipe.visible
+	footer: QTabBar {
+		id: tabBar
 
-		count: mainSwipe.count
+		visible: mainSwipe.visible && tabBar.count
 		currentIndex: mainSwipe.currentIndex
-
-		anchors.bottom: mainSwipe.bottom
-		anchors.bottomMargin: 10
-		anchors.horizontalCenter: parent.horizontalCenter
+		onCurrentIndexChanged: mainSwipe.currentIndex = currentIndex
 	}
 
 
-
-	//onNoDrawerChanged: drawerReset()
 	onPanelsChanged: panelReset()
 	onSwipeModeChanged: panelReset()
+
+
+	StackView.onRemoved: destroy()
+
+	StackView.onActivated: toolbar.resetTitle()
+
+
+
+	function swipeToPage(idx) {
+		if (swipeMode)
+			mainSwipe.currentIndex = idx
+	}
+
+
+	function stackBack() {
+		if (layoutBack()) {
+			return true
+		}
+
+		if (mainStack.depth > control.StackView.index+1) {
+			if (!mainStack.get(control.StackView.index+1).stackBack()) {
+				if (mainStack.depth > control.StackView.index+1) {
+					mainStack.pop(control)
+				}
+			}
+			return true
+		}
+
+		if (pageStackBack())
+			return true
+
+		drawer.close()
+
+		return false
+	}
+
 
 
 	function drawerReset() {
@@ -202,8 +279,16 @@ Item {
 
 
 	function panelReset() {
-		for (var i=mainSwipe.count-1; i>=0; --i) {
-			var p = mainSwipe.itemAt(i)
+		if (!swipeMode)
+			mainMenu = pageContextMenu
+
+		for (var i=tabBar.count-1; i>=0; --i) {
+			var p = tabBar.itemAt(i)
+			tabBar.removeItem(p)
+		}
+
+		for (i=mainSwipe.count-1; i>=0; --i) {
+			p = mainSwipe.itemAt(i)
 			mainSwipe.removeItem(p)
 		}
 
@@ -227,12 +312,21 @@ Item {
 				var pp = JS.createObject(panel.url, mainSwipe, panel.params)
 				if (pp) {
 					mainSwipe.addItem(pp)
-					mainSwipe.setCurrentIndex(0)
+					pp.populated()
 				}
+
+				var ppp = JS.createObject("QTabButton.qml", tabBar, {text: pp.title ? pp.title : "", "icon.source": pp.icon ? pp.icon : "" })
+
+				if (ppp)
+					tabBar.addItem(ppp)
+
 			} else {
 				mainRepeater.model.append(panel)
 			}
 		}
+
+		if (swipeMode)
+			tabBar.setCurrentIndex(0)
 	}
 
 
@@ -254,4 +348,5 @@ Item {
 
 		return false
 	}
+
 }

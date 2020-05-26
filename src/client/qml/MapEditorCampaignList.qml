@@ -33,8 +33,6 @@ QPagePanel {
 			}
 		}
 
-		rightLoader.sourceComponent: QCloseButton { }
-
 		onSelectAll: list.selectAll()
 	}
 

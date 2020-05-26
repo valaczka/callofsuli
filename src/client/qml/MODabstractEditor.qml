@@ -33,7 +33,7 @@ QAccordion {
 				}
 			}
 
-			Label {
+			QLabel {
 				id: labelStorageName
 
 				visible: panelObjective.objectiveId !== -1
@@ -41,7 +41,7 @@ QAccordion {
 				width: parent.width
 			}
 
-			Label {
+			QLabel {
 				id: labelModule
 
 				width: parent.width
@@ -117,7 +117,7 @@ QAccordion {
 		visible: panelObjective.objectiveId !== -1
 
 		Row {
-			Label {
+			QLabel {
 				anchors.verticalCenter: parent.verticalCenter
 				text: qsTr("Szint:")
 			}

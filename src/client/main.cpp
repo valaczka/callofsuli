@@ -42,6 +42,12 @@
 
 int main(int argc, char *argv[])
 {
+#ifdef Q_OS_ANDROID
+	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Normal");
+#else
+	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
+#endif
+
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
 	QGuiApplication app(argc, argv);
@@ -61,6 +67,7 @@ int main(int argc, char *argv[])
 
 	engine.addImageProvider("sql", new SqlImage(&client));
 	engine.addImageProvider("font", new FontImage());
+
 
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
 	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

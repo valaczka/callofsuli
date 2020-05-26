@@ -110,7 +110,7 @@ Item {
 							visible: true
 						}
 
-						Label {
+						QLabel {
 							id: labelText
 							color: if (type === "info")
 									   CosStyle.colorPrimaryLighter
@@ -125,7 +125,7 @@ Item {
 						}
 					}
 
-					Label {
+					QLabel {
 						id: labelDetails
 						color: if (type === "info")
 								   CosStyle.colorPrimaryLighter

@@ -26,7 +26,7 @@ Page {
 	Column {
 		anchors.centerIn: parent
 
-		Label {
+		QLabel {
 			text: intro.text
 		}
 	}

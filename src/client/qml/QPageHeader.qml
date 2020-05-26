@@ -54,7 +54,7 @@ Rectangle {
 
 			width: parent.width
 
-			Label {
+			QLabel {
 				id: labelCount
 				text: ""
 

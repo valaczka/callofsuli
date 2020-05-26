@@ -17,7 +17,7 @@ QPagePanel {
 
 	title: objectiveId === -1 ? qsTr("Célpont") : qsTr("Fegyver")
 
-	Label {
+	QLabel {
 		id: noLabel
 		opacity: storageId === -1 && objectiveId === -1
 		visible: opacity != 0

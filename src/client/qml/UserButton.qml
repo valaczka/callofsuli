@@ -71,7 +71,7 @@ Rectangle {
 			}
 		}
 
-		Label {
+		QLabel {
 			id: userLabel
 			font.pixelSize: CosStyle.pixelSize*0.9
 

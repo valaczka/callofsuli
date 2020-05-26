@@ -19,18 +19,21 @@ Button {
 
 	Material.foreground: textColor
 
-	background: Rectangle {
+	property color baseColor: backgroundColor
+
+	Material.background: baseColor
+
+	/*background: Rectangle {
 		id: bgRect
 		implicitWidth: 10
 		implicitHeight: 10
 
-		property color baseColor: control.backgroundColor
 
 		color: control.hovered ? Qt.lighter(baseColor, 1.3) : baseColor
 		opacity: enabled ? 1 : 0.3
 		border.color: control.borderColor
 		border.width: control.hovered
-	}
+	}*/
 
 
 
@@ -41,7 +44,7 @@ Button {
 		alwaysRunToEnd: true
 
 		ColorAnimation {
-			target: bgRect
+			target: control
 			property: "baseColor"
 			to: control.blinkColor
 			duration: 125
@@ -53,7 +56,7 @@ Button {
 
 		ColorAnimation {
 			id: animDestColor
-			target: bgRect
+			target: control
 			property: "baseColor"
 			to: control.backgroundColor
 			duration: 75

@@ -14,6 +14,7 @@ QPagePanel {
 	property int selectedClass: -1
 
 	title: qsTr("Felhasználó adatai")
+	icon: CosStyle.iconUserWhite
 
 
 	QGridLayout {

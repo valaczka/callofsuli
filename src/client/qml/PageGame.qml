@@ -101,14 +101,14 @@ Page {
 		}
 	}
 
-	Label {
+	QLabel {
 		id: ttt
 		anchors.centerIn: parent
 		text: "loaded "+game.targetBlockDone+"+("+game.targetBlockDone+"/"+game.targetCount+") / "+game.targetCount
 		visible: false
 	}
 
-	Label {
+	QLabel {
 		anchors.top: ttt.bottom
 		anchors.horizontalCenter: ttt.horizontalCenter
 		text: game.currentMSec+"/"+game.maxMSec+"    "+game.currentHP+"/"+game.maxHP

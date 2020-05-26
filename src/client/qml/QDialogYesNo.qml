@@ -75,7 +75,7 @@ Item {
 				visible: true
 			}
 
-			Label {
+			QLabel {
 				id: labelText
 				color: CosStyle.colorPrimaryLighter
 				anchors.top: mainRow.bottom

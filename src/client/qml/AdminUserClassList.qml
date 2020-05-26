@@ -12,6 +12,13 @@ QPagePanel {
 	property AdminUsers adminUsers: null
 
 	title: qsTr("Osztályok")
+	icon: CosStyle.iconUsers
+
+	pageContextMenu: QMenu {
+		MenuItem {
+			action: actionRemove
+		}
+	}
 
 	QPageHeader {
 		id: header
@@ -29,17 +36,6 @@ QPagePanel {
 			placeholderText: qsTr("Keresés...")
 
 			onTextChanged: header.searchText.text = mainSearch.text
-		}
-
-
-		rightLoader.sourceComponent: QMenuButton {
-			id: userMenu
-			anchors.verticalCenter: parent.verticalCenter
-			visible: classList.selectorSet
-
-			MenuItem {
-				action: actionRemove
-			}
 		}
 
 		onSelectAll: classList.selectAll()
@@ -83,7 +79,8 @@ QPagePanel {
 
 		autoSelectorChange: true
 
-		onClicked: pageAdminUsers.classSelected(model.get(index).id)
+		onClicked: if (!selectorSet)
+					   pageAdminUsers.classSelected(model.get(index).id)
 
 		onRightClicked: contextMenu.popup()
 

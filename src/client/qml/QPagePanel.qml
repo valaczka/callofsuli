@@ -18,9 +18,9 @@ Item {
 	property color titleBgColor: Qt.darker(borderColor)
 	property color titleColor: CosStyle.colorPrimaryLight
 
+	property string icon: ""
 	property alias title: labelTitle.text
 
-	property alias rightLoader: rightLoader
 	property alias panelData: panelData
 	default property alias panelDataData: panelData.data
 
@@ -30,12 +30,22 @@ Item {
 	property int maximumWidth: 0
 	property int maximumHeight: 0
 
+	property Menu pageContextMenu: null
+
+	property bool _isCurrent: item.SwipeView.isCurrentItem
+
+	on_IsCurrentChanged: {
+		if (_isCurrent) {
+			item.SwipeView.view.parentPage.mainMenu = pageContextMenu
+		}
+	}
+
 
 	Item {
 		id: panel
 
-		width: maximumWidth ? Math.min(maximumWidth, item.width-2*horizontalPadding) : item.width-2*horizontalPadding
-		height: maximumHeight ? Math.min(maximumHeight, item.height-2*verticalPadding) : item.height-2*verticalPadding
+		width: item.SwipeView.view ? item.width : (maximumWidth ? Math.min(maximumWidth, item.width-2*horizontalPadding) : item.width-2*horizontalPadding)
+		height: item.SwipeView.view ? item.height : (maximumHeight ? Math.min(maximumHeight, item.height-2*verticalPadding) : item.height-2*verticalPadding)
 		x: (item.width-width)/2
 		y: (item.height-height)/2
 
@@ -89,11 +99,13 @@ Item {
 				anchors.right: parent.right
 				height: labelTitle.implicitHeight*1.5
 
-				Label {
+				visible: !item.SwipeView.view
+
+				QLabel {
 					id: labelTitle
 					anchors.top: parent.top
 					anchors.left: parent.left
-					anchors.right: rightLoader.left
+					anchors.right: menuButton.left
 					anchors.bottom: parent.bottom
 					font.weight: Font.DemiBold
 					font.pixelSize: CosStyle.pixelSize*0.95
@@ -103,18 +115,26 @@ Item {
 					leftPadding: 15
 				}
 
-				Loader {
-					id: rightLoader
-					anchors.top: parent.top
+				QToolButton {
+					id: menuButton
+
+					anchors.verticalCenter: parent.verticalCenter
 					anchors.right: parent.right
-					anchors.bottom: parent.bottom
+
+					icon.source: CosStyle.iconMenu
+
+					visible: pageContextMenu
+
+					onClicked: if (pageContextMenu) {
+								   pageContextMenu.popup(menuButton, 0, menuButton.height)
+							   }
 				}
 			}
 
 
 			Item {
 				id: panelData
-				anchors.top: hdrRect.bottom
+				anchors.top: hdrRect.visible ? hdrRect.bottom : parent.top
 				anchors.left: parent.left
 				anchors.bottom: parent.bottom
 				anchors.right: parent.right
@@ -169,7 +189,7 @@ Item {
 			source: borderRectData
 			maskSource: bgRectLine
 			anchors.fill: borderRectData
-			visible: true
+			visible: !item.SwipeView.view
 		}
 	}
 }

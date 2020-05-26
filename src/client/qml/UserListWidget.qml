@@ -256,7 +256,7 @@ Item {
 
 		autoSelectorChange: true
 
-		rightComponent: Label {
+		rightComponent: QLabel {
 			text: model && model["classname"] ? model["classname"] : ""
 			color: "black"
 			font.weight: Font.DemiBold

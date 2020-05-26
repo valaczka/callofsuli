@@ -29,17 +29,17 @@ Popup {
 
 	Column {
 		anchors.centerIn: parent
-		Label {
+		QLabel {
 			text: (cosClient.userRoles & Client.RoleGuest) ? qsTr("Vendég") :
 															 cosClient.userFirstName+" "+cosClient.userLastName
 		}
 
-		Label {
+		QLabel {
 			text: cosClient.userRankName
 			visible: !(cosClient.userRoles & Client.RoleGuest)
 		}
 
-		Label {
+		QLabel {
 			text: cosClient.userXP+" XP"
 			visible: !(cosClient.userRoles & Client.RoleGuest)
 		}

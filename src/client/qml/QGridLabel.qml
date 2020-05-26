@@ -5,7 +5,7 @@ import QtQuick.Controls.Material 2.3
 import "Style"
 
 
-Label {
+QLabel {
 	id: label
 
 	property Item field: null

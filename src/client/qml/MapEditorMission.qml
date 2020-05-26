@@ -17,7 +17,7 @@ QPagePanel {
 
 	title: isSummary ? qsTr("Összegző küldetés") : qsTr("Küldetés")
 
-	Label {
+	QLabel {
 		id: noLabel
 		opacity: missionId == -1
 		visible: opacity != 0
@@ -136,7 +136,7 @@ QPagePanel {
 
 						anchors.verticalCenter: parent.verticalCenter
 
-						Label {
+						QLabel {
 							id: labelLevel
 							Layout.fillHeight: true
 							Layout.fillWidth: false
@@ -147,7 +147,7 @@ QPagePanel {
 							Layout.rightMargin: 10
 						}
 
-						Label {
+						QLabel {
 							text: model.id === -1 ? qsTr("(Új szint hozzáadása) Idő:") : qsTr("Idő:")
 							Layout.fillHeight: true
 							Layout.fillWidth: false
@@ -174,7 +174,7 @@ QPagePanel {
 											delegateitem.missionLevelUpdate()
 						}
 
-						Label {
+						QLabel {
 							visible: spinHP.visible
 							text: qsTr("HP:")
 							Layout.fillHeight: true

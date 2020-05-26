@@ -83,5 +83,9 @@
         <file>PageGame.qml</file>
         <file>PageIntro.qml</file>
         <file>UserListWidget.qml</file>
+        <file>QTabBar.qml</file>
+        <file>QTabButton.qml</file>
+        <file>QPage.qml</file>
+        <file>QLabel.qml</file>
     </qresource>
 </RCC>

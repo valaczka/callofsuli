@@ -85,8 +85,8 @@ public:
 	static void initialize();
 	static void standardPathCreate();
 
-	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window);
-	Q_INVOKABLE void windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
+	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
+	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());

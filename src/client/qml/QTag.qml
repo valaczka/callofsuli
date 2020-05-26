@@ -36,7 +36,7 @@ QRectangleBg {
 
 	mouseArea.onClicked: control.clicked()
 
-	Label {
+	QLabel {
 		id: labelTitle
 
 		visible: !control.checkable && text.length
@@ -69,7 +69,7 @@ QRectangleBg {
 				height: labelText.height
 				radius: height/2
 
-				Label {
+				QLabel {
 					id: labelText
 					anchors.centerIn: parent
 					maximumLineCount: 1

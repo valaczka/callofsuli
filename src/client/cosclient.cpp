@@ -192,7 +192,7 @@ void Client::registerTypes()
  * @param window
  */
 
-void Client::windowSaveGeometry(QQuickWindow *window)
+void Client::windowSaveGeometry(QQuickWindow *window, const int &fontSize)
 {
 #ifndef Q_OS_ANDROID
 	QSettings s;
@@ -201,6 +201,9 @@ void Client::windowSaveGeometry(QQuickWindow *window)
 	s.setValue("size", window->size());
 	s.setValue("position", window->position());
 	s.setValue("visibility", window->visibility());
+
+	if (fontSize > 0)
+		s.setValue("fontSize", fontSize);
 
 	s.endGroup();
 #else
@@ -216,12 +219,14 @@ void Client::windowSaveGeometry(QQuickWindow *window)
  * @param forceFullscreen
  */
 
-void Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen)
+int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen)
 {
-#ifndef Q_OS_ANDROID
+	int fontSize = -1;
+
 	QSettings s;
 	s.beginGroup("window");
 
+#ifndef Q_OS_ANDROID
 	window->resize(s.value("size", QSize(600, 600)).toSize());
 	window->setPosition(s.value("position", QPoint(0, 0)).toPoint());
 
@@ -239,12 +244,17 @@ void Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullsc
 			break;
 	}
 
-	s.endGroup();
 
 #else
 	Q_UNUSED(window);
 	Q_UNUSED(forceFullscreen);
 #endif
+
+	fontSize = s.value("fontSize", -1).toInt();
+
+	s.endGroup();
+
+	return fontSize;
 }
 
 

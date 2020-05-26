@@ -55,9 +55,9 @@ public slots:
 	void createGroup(QJsonObject *jsonResponse, QByteArray *);
 	void updateGroup(QJsonObject *jsonResponse, QByteArray *);
 	void removeGroup(QJsonObject *jsonResponse, QByteArray *);
-	void getMembers(QJsonObject *jsonResponse, QByteArray *);
 	void getExcludedUsers(QJsonObject *jsonResponse, QByteArray *);
 	void getExcludedClasses(QJsonObject *jsonResponse, QByteArray *);
+	void getExcludedMaps(QJsonObject *jsonResponse, QByteArray *);
 
 
 };

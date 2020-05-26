@@ -5,6 +5,7 @@ import QtGraphicalEffects 1.0
 import QtQuick.Controls.Material 2.3
 import COS.Client 1.0
 import "."
+import "Style"
 import "JScript.js" as JS
 
 
@@ -176,7 +177,7 @@ ApplicationWindow {
 
 		function loginRequest() {
 			if ((cosClient.connectionState === Client.Connected || cosClient.connectionState === Client.Reconnected)
-				 && (cosClient.userRoles & Client.RoleGuest)) {
+					&& (cosClient.userRoles & Client.RoleGuest)) {
 				JS.createPage("Login", {}, mainWindow)
 			}
 		}
@@ -195,6 +196,45 @@ ApplicationWindow {
 
 
 
+	MouseArea {
+		anchors.fill: parent
+		acceptedButtons: Qt.NoButton
+		onWheel: {
+			if (wheel.modifiers & Qt.ControlModifier) {
+				var i = wheel.angleDelta.y/120
+				if (i>0)
+					fontPlus.trigger()
+				else if (i<0)
+					fontMinus.trigger()
+
+				wheel.accepted = true
+			} else {
+				wheel.accepted = false
+			}
+		}
+	}
+
+
+	Action {
+		id: fontPlus
+		shortcut: "Ctrl++"
+		onTriggered: if (CosStyle.pixelSize < 36)
+						 CosStyle.pixelSize++
+	}
+
+	Action {
+		id: fontMinus
+		shortcut: "Ctrl+-"
+		onTriggered: if (CosStyle.pixelSize > 8)
+						 CosStyle.pixelSize--
+	}
+
+	Action {
+		id: fontNormal
+		shortcut: "Ctrl+0"
+		onTriggered: CosStyle.pixelSize = 18
+	}
+
 
 	onClosing: {
 		if (mainStack.depth > 2) {
@@ -204,13 +244,15 @@ ApplicationWindow {
 			}
 		}
 
-		cosClient.windowSaveGeometry(mainWindow)
+		cosClient.windowSaveGeometry(mainWindow, CosStyle.pixelSize)
 	}
 
 
 	Component.onCompleted: {
 		cosClient.windowSetIcon(mainWindow)
-		cosClient.windowRestoreGeometry(mainWindow)
+		var fs = cosClient.windowRestoreGeometry(mainWindow)
+		if (fs > 0)
+			CosStyle.pixelSize = fs
 		cosClient.messageSent.connect(JS.dialogMessage)
 
 		JS.createPage("Start", {}, mainWindow)

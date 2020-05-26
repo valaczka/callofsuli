@@ -18,7 +18,7 @@ QPagePanel {
 	title: qsTr("Intro/Outro")
 
 
-	Label {
+	QLabel {
 		id: noLabel
 		opacity: introId == -1
 		visible: opacity != 0

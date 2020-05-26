@@ -86,7 +86,7 @@ void Teacher::onJsonMapsReceived(const QJsonObject &object, const QByteArray &bi
  * @param clientMsgId
  */
 
-void Teacher::onJsonGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
+void Teacher::onJsonGroupsReceived(const QJsonObject &object, const QByteArray &, const int &clientMsgId)
 {
 	QString func = object.value("func").toString();
 	QJsonObject data = object.value("data").toObject();

@@ -129,7 +129,7 @@ QListView {
 
 				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
-				Label {
+				QLabel {
 					id: lblTitle
 					text: item.labelTitle
 					color: modelTitleColorRole.length ? (
@@ -139,7 +139,7 @@ QListView {
 					elide: Text.ElideRight
 				}
 
-				Label {
+				QLabel {
 					id: lblSubtitle
 					text: item.labelSubtitle
 					font.pixelSize: CosStyle.pixelSize*0.8

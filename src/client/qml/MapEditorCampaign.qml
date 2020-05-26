@@ -11,10 +11,10 @@ QPagePanel {
 	property MapEditor map: null
 	property int campaignId: -1
 
-	title: qsTr("Hadjárat küldetései")
+	text: qsTr("Hadjárat küldetései")
 
 
-	Label {
+	QLabel {
 		id: noLabel
 		opacity: campaignId == -1
 		visible: opacity != 0

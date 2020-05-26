@@ -12,6 +12,20 @@ QPagePanel {
 	property AdminUsers adminUsers: null
 
 	title: qsTr("Felhasználók")
+	icon: CosStyle.iconUser
+
+	pageContextMenu: QMenu {
+		MenuItem {
+			icon.source: CosStyle.iconUserAdd
+			text: qsTr("Context Új felhasználó")
+			onClicked: pageAdminUsers.createUserRequest()
+		}
+		MenuItem {
+			icon.source: CosStyle.iconUsersAdd
+			text: qsTr("Context Új osztály")
+			onClicked: pageAdminUsers.createClassRequest()
+		}
+	}
 
 	UserListWidget {
 		id: userListWidget
@@ -54,7 +68,8 @@ QPagePanel {
 		}
 
 
-		delegate.onClicked: pageAdminUsers.userSelected(model.get(index).username)
+		delegate.onClicked: if (!delegate.selectorSet)
+								pageAdminUsers.userSelected(model.get(index).username)
 
 		delegate.onRightClicked: {
 			contextMenu.disableOwn = (model.get(index).username === cosClient.userName)
@@ -99,7 +114,7 @@ QPagePanel {
 
 	Connections {
 		target: pageAdminUsers
-		onClassSelected: if (userListWidget.tagClasses.checked ){
+		onClassSelected: if (userListWidget.tagClasses.checked && !userListWidget.delegate.selectorSet ) {
 							 var ii = []
 							 ii.push(id)
 							 userListWidget._selectedClasses = ii

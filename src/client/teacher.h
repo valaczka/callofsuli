@@ -60,7 +60,7 @@ signals:
 
 private slots:
 	void onJsonMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void onJsonGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void onJsonGroupsReceived(const QJsonObject &object, const QByteArray &, const int &clientMsgId);
 };
 
 #endif // TEACHERMAPS_H

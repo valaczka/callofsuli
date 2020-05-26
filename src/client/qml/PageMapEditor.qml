@@ -8,17 +8,18 @@ import "Style"
 import "JScript.js" as JS
 
 
-Page {
+QPage {
 	id: pageEditor
 
 	property int mapId: -1
 	property string mapName: ""
-	property alias map: map
 	property bool mapBinaryFormat: true
 	property bool isPageBusy: false
 
 	property bool _isFirstRun: true
 	property bool _isMapLoaded: false
+
+	property int _backPool: 0
 
 	signal pagePopulated()
 
@@ -29,9 +30,11 @@ Page {
 	signal objectiveSelected(int id, int parentMId, int parentSId)
 	signal introSelected(int id, int parentId, int parentType)
 
+	property alias map: map
+
+
 	MapEditor {
 		id: map
-
 		client: cosClient
 
 		onCanUndoChanged: if (canUndo === -1)
@@ -53,13 +56,13 @@ Page {
 
 		title: mapName
 
-		backButtonIcon: panelLayout.noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
+		backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
 		backButton.visible: true
 		backButton.onClicked: {
-			if (panelLayout.noDrawer)
+			if (noDrawer)
 				mainStack.back()
 			else
-				panelLayout.drawerToggle()
+				drawerToggle()
 		}
 
 
@@ -94,6 +97,7 @@ Page {
 			QToolBusyIndicator { running: isPageBusy }
 
 			QUndoButton  {
+				id: undoButton
 				dbActivity: map
 				visible: _isMapLoaded
 			}
@@ -103,31 +107,27 @@ Page {
 				display: AbstractButton.IconOnly
 			}
 
-			QMenuButton {
+			QMenuButtonComposite {
 				visible: _isMapLoaded
 
-				MenuItem {
-					text: qsTr("Mentés")
-					onClicked:  {
-						map.save(mapId, mapBinaryFormat)
+				baseItems: [
+					MenuItem {
+						text: qsTr("Mentés")
+						onClicked:  {
+							map.save(mapId, mapBinaryFormat)
+						}
+					},
+					MenuItem {
+						text: qsTr("Exportálás")
+						onClicked:  {
+							fileDialogSave.open()
+						}
 					}
-				}
-				MenuItem {
-					text: qsTr("Exportálás")
-					onClicked:  {
-						fileDialogSave.open()
-					}
-				}
+				]
 			}
 		}
 	}
 
-	background: Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
 
 
 	Item {
@@ -142,12 +142,7 @@ Page {
 		}
 	}
 
-	QPanelLayout {
-		id: panelLayout
-		anchors.fill: parent
-
-		visible: _isMapLoaded
-	}
+	panelsVisible: _isMapLoaded
 
 	FileDialog {
 		id: fileDialogSave
@@ -169,24 +164,19 @@ Page {
 	}
 
 
-	Keys.onPressed: if (_isMapLoaded) {
-						if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier) && map.canUndo > -1)
-							map.undo(map.canUndo-1)
-					}
+	Action {
+		id: actionUndo
+		shortcut: "Ctrl+Z"
+		enabled: undoButton.enabled
+		onTriggered: undoButton.undo()
+	}
 
-	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		panelLayout.drawerReset()
-
 		if (_isFirstRun) {
 			pagePopulated()
 			_isFirstRun = false
 		}
-	}
-
-	StackView.onDeactivated: {
-		/* UNLOAD */
 	}
 
 
@@ -215,60 +205,67 @@ Page {
 	}
 
 
+	onCampaignSelected: swipeToPage(1)
+	onObjectiveSelected: swipeToPage(1)
+	onStorageSelected: swipeToPage(1)
+	onIntroSelected: swipeToPage(1)
+
+
 	function loadSettings() {
+		_backPool = 0
 		toolbar.title = qsTr("Beállítások")
-		panelLayout.panels = [
+		panels = [
 					{ url: "MapEditorSettings.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
 
 	function loadCampaigns() {
+		_backPool = 0
 		toolbar.title = qsTr("Hadjáratok")
-		panelLayout.panels = [
+		panels = [
 					{ url: "MapEditorCampaignList.qml", params: { map: map }, fillWidth: false },
 					{ url: "MapEditorCampaign.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
 	function loadMissions() {
+		_backPool = 1
 		toolbar.title = qsTr("Küldetések")
-		panelLayout.panels = [
+		panels = [
 					{ url: "MapEditorMissionList.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
 
 	function loadMission(mId, isSum) {
+		_backPool = 2
 		toolbar.title = isSum ? qsTr("Összegzés") : qsTr("Küldetés")
-		panelLayout.panels = [
+		panels = [
 					{ url: "MapEditorMission.qml", params: { map: map, missionId: mId, isSummary: isSum }, fillWidth: false },
 					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
 	function loadStorages() {
+		_backPool = 2
 		toolbar.title = qsTr("Célpontok")
-		panelLayout.panels = [
+		panels = [
 					{ url: "MapEditorStorageList.qml", params: { map: map }, fillWidth: false },
 					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
 				]
 	}
 
 	function loadIntros() {
+		_backPool = 2
 		toolbar.title = qsTr("Introk/Outrok")
-		panelLayout.panels = [
+		panels = [
 					{ url: "MapEditorIntroList.qml", params: { map: map }, fillWidth: false },
 					{ url: "MapEditorIntro.qml", params: { map: map }, fillWidth: true }
 				]
 
 	}
 
-
-
-	function closeDrawer() {
-		panelLayout.drawer.close()
-	}
 
 
 	function windowClose() {
@@ -290,21 +287,11 @@ Page {
 		pageEditor.isPageBusy=busy
 	}
 
-	function stackBack() {
-		if (mainStack.depth > pageEditor.StackView.index+1) {
-			if (!mainStack.get(pageEditor.StackView.index+1).stackBack()) {
-				if (mainStack.depth > pageEditor.StackView.index+1) {
-					mainStack.pop(pageEditor)
-				}
-			}
+	function pageStackBack() {
+		if (_backPool == 2) {
+			loadMissions()
 			return true
-		}
-
-		if (panelLayout.layoutBack()) {
-			return true
-		}
-
-		if (toolbar.title !== qsTr("Hadjáratok")) {
+		} else if (_backPool == 1) {
 			loadCampaigns()
 			return true
 		}
@@ -318,8 +305,6 @@ Page {
 			d.open()
 			return true
 		}
-
-		panelLayout.drawer.close()
 
 		return false
 	}
