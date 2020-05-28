@@ -5,7 +5,7 @@
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
         <file>_Page.qml</file>
-        <file>PageServerEdit.qml</file>
+        <file>ServerEdit.qml</file>
         <file>PageStart.qml</file>
         <file>QAnimatedText.qml</file>
         <file>QButton.qml</file>
@@ -34,7 +34,6 @@
         <file>PageTeacherMaps.qml</file>
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
-        <file>QPanelLayout.qml</file>
         <file>QPageHeader.qml</file>
         <file>MapEditorCampaignList.qml</file>
         <file>MapEditorCampaign.qml</file>
@@ -87,5 +86,6 @@
         <file>QTabButton.qml</file>
         <file>QPage.qml</file>
         <file>QLabel.qml</file>
+        <file>ServerList.qml</file>
     </qresource>
 </RCC>

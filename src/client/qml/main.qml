@@ -52,7 +52,7 @@ ApplicationWindow {
 		focus: true
 
 		Keys.onEscapePressed: {
-			if (depth > 2)
+			if (depth > 1)
 				get(1).stackBack()
 		}
 

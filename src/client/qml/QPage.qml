@@ -223,7 +223,7 @@ Page {
 	footer: QTabBar {
 		id: tabBar
 
-		visible: mainSwipe.visible && tabBar.count
+		visible: mainSwipe.visible && tabBar.count>1
 		currentIndex: mainSwipe.currentIndex
 		onCurrentIndexChanged: mainSwipe.currentIndex = currentIndex
 	}
@@ -235,7 +235,10 @@ Page {
 
 	StackView.onRemoved: destroy()
 
-	StackView.onActivated: toolbar.resetTitle()
+	StackView.onActivated: {
+		panelReset()
+		toolbar.resetTitle()
+	}
 
 
 
@@ -282,15 +285,11 @@ Page {
 		if (!swipeMode)
 			mainMenu = pageContextMenu
 
-		for (var i=tabBar.count-1; i>=0; --i) {
-			var p = tabBar.itemAt(i)
-			tabBar.removeItem(p)
-		}
+		for (var i=tabBar.count-1; i>=0; --i)
+			tabBar.removeItem(tabBar.itemAt(i))
 
-		for (i=mainSwipe.count-1; i>=0; --i) {
-			p = mainSwipe.itemAt(i)
-			mainSwipe.removeItem(p)
-		}
+		for (i=mainSwipe.count-1; i>=0; --i)
+			mainSwipe.removeItem(mainSwipe.itemAt(i))
 
 		if (mainRepeater.model.count) {
 			for (i=mainRepeater.model.count-1; i>=0; --i) {
@@ -309,7 +308,7 @@ Page {
 		for (var i=0; i<panels.length; ++i) {
 			var panel = panels[i]
 			if (swipeMode) {
-				var pp = JS.createObject(panel.url, mainSwipe, panel.params)
+				var pp = JS.createObject(panel.url, control, panel.params)
 				if (pp) {
 					mainSwipe.addItem(pp)
 					pp.populated()

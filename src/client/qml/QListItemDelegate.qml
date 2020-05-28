@@ -40,6 +40,7 @@ QListView {
 	signal rightClicked(int index)
 	signal longPressed(int index)
 
+
 	model: ListModel {	}
 
 	delegate: Rectangle {

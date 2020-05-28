@@ -9,17 +9,22 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-Page {
-	id: page
+
+QPage {
+	id: pageStart
+
+	requiredPanelWidth: 900
 
 	property bool _isFirst: true
+
+	signal serverEdit(var id)
+	signal serverConnect(var id)
+	signal serverCreate()
+	signal unloadEditor()
 
 	Servers {
 		id: servers
 		client: cosClient
-
-		onServerListLoaded: listMenu.model = serverList
-		onServerInfoUpdated: serverListReload()
 	}
 
 	property bool isFirstRun: true
@@ -46,145 +51,31 @@ Page {
 		}
 	}
 
-	header: QToolBar {
-		id: toolbar
+	mainToolBar.title: qsTr("Call of Suli")
+	mainToolBar.backButton.visible: false
 
-		title: qsTr("Call of Suli szerver")
-
-		backButton.visible: false
-
-
-		QMenuButton {
-			MenuItem {
-				text: qsTr("Új szerver")
-				onClicked:  editServer(-1)
-			}
-
-			MenuItem {
-				text: qsTr("Offline mód")
-				onClicked: JS.createPage("Offline", {}, page)
-			}
-
-			MenuSeparator {}
-
-			MenuItem {
-				text: qsTr("Névjegy")
-				onClicked: {
-					JS.dialogMessageInfo("Call of Suli",
-										 qsTr("Verzió: ")+Qt.application.version+
-										 "\n© 2012-2020 Valaczka János Pál"
-										 )
-				}
-			}
-			MenuItem {
-				text: qsTr("Kilépés")
-				onClicked: mainWindow.close()
-			}
-
-			MenuItem {
-				text: qsTr("plus")
-				onClicked: CosStyle.pixelSize++
-			}
-		}
-
+	pageContextMenu: QMenu {
+		MenuItem { action: actionAbout }
+		MenuItem { action: actionExit }
 	}
 
 
-
-	QPagePanel {
-		id: p
-
-		title: qsTr("Szerverek")
-
-		anchors.fill: parent
-		maximumWidth: 600
-
-		QListItemDelegate {
-			id: listMenu
-			anchors.fill: parent
-
-			onClicked: {
-				var id = listMenu.model[listMenu.currentIndex].id
-				if (id === -1)
-					editServer(-1)
-				else
-					servers.serverConnect(id)
-			}
-
-			onLongPressed: {
-				listRigthMenu.modelIndex = index
-				listRigthMenu.popup()
-			}
-
-			onRightClicked: {
-				listRigthMenu.modelIndex = index
-				listRigthMenu.popup()
-			}
-
-			Keys.onPressed: {
-				if (event.key === Qt.Key_Insert) {
-					editServer(-1)
-				} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
-					editServer(listMenu.model[listMenu.currentIndex].id)
-				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
-					deleteServer(listMenu.currentIndex)
-				} else if (event.key === Qt.Key_F1) {
-					var o = JS.createPage("MapEditor", {}, page)
-					o.pagePopulated.connect(function() {
-						o.map.loadFromFile("AAA.cosm")
-						o.map.mapOriginalFile = "AAA.cosm"
-						o.mapName = "AAA.cosm"
-					})
-				}
-			}
-
-
+	Action {
+		id: actionAbout
+		text: qsTr("Névjegy")
+		onTriggered: {
+			JS.dialogMessageInfo("Call of Suli",
+								 qsTr("Verzió: ")+Qt.application.version+
+								 "\n© 2012-2020 Valaczka János Pál"
+								 )
 		}
-
-		QMenu {
-			id: listRigthMenu
-
-			property int modelIndex: -1
-
-
-			MenuItem {
-				text: qsTr("Csatlakozás")
-				onClicked: if (listRigthMenu.modelIndex !== -1) {
-							   servers.serverConnect(listMenu.model[listRigthMenu.modelIndex].id)
-						   }
-
-			}
-
-			MenuItem {
-				text: qsTr("Szerkesztés")
-				onClicked: editServer(listMenu.model[listRigthMenu.modelIndex].id)
-			}
-
-			MenuItem {
-				text: qsTr("Törlés")
-				onClicked: deleteServer(listRigthMenu.modelIndex)
-
-			}
-
-			MenuItem {
-				text: qsTr("Automata csatlakozás")
-				onClicked: if (listRigthMenu.modelIndex !== -1) {
-							   servers.serverSetAutoConnect(listMenu.model[listRigthMenu.modelIndex].id)
-						   }
-			}
-
-			MenuSeparator {}
-
-			MenuItem {
-				text: qsTr("Új szerver")
-				onClicked: editServer(-1)
-			}
-		}
-
-
 	}
 
-
+	Action {
+		id: actionExit
+		text: qsTr("Kilépés")
+		onTriggered: mainWindow.close()
+	}
 
 
 	Connections {
@@ -192,18 +83,45 @@ Page {
 
 		onConnectionStateChanged: {
 			if (connectionState === Client.Connected) {
-				JS.createPage("MainMenu", {}, page)
+				panels = []
+				JS.createPage("MainMenu", {}, pageStart)
 			} else if (connectionState === Client.Standby) {
-				mainStack.pop(page)
+				mainStack.pop(pageStart)
+				onePanel()
 			}
 		}
 	}
 
-	StackView.onRemoved: destroy()
+	onServerEdit:  {
+		if (panels.length < 2)
+			panels = [
+						{ url: "ServerList.qml", params: { servers: servers }, fillWidth: false},
+						{ url: "ServerEdit.qml", params: { servers: servers, serverId: id }, fillWidth: true}
+					]
+
+		swipeToPage(1)
+	}
+
+	onServerCreate:  {
+		if (panels.length < 2)
+			panels = [
+						{ url: "ServerList.qml", params: { servers: servers }, fillWidth: false},
+						{ url: "ServerEdit.qml", params: { servers: servers, serverId: -1 }, fillWidth: true}
+					]
+		swipeToPage(1)
+	}
+
+	onUnloadEditor: onePanel()
+
+
+	onServerConnect: {
+		if (panels.length > 1)
+			serverEdit(id)
+		else
+			servers.serverConnect(id)
+	}
 
 	StackView.onActivated: {
-		toolbar.resetTitle()
-
 		if (_isFirst) {
 			var autoConnectId = servers.serverListReload()
 			_isFirst = false
@@ -212,47 +130,24 @@ Page {
 				servers.serverConnect(autoConnectId)
 		}
 
-		forceActiveFocus()
+		onePanel()
 	}
 
-
-	function deleteServer(idx) {
-		var d = JS.dialogCreateQml("YesNo", {
-									   title: qsTr("Biztosan törlöd a szervert?"),
-									   text: idx === -1 ? "" : listMenu.model[idx].labelTitle
-								   })
-		d.accepted.connect(function () {
-			servers.serverInfoDelete(listMenu.model[idx].id)
-		})
-		d.open()
-	}
-
-	function editServer(idx) {
-		JS.createPage("ServerEdit",
-					  {
-						  servers: servers,
-						  serverId: idx
-					  },
-					  page)
-
+	function onePanel() {
+		panels = [
+					{ url: "ServerList.qml", params: { servers: servers }, fillWidth: true}
+				]
 	}
 
 	function windowClose() {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
+	function pageStackBack() {
+		if (panels.length>1) {
+			onePanel()
 			return true
 		}
-
-		/* BACK */
-
 		return false
 	}
 }

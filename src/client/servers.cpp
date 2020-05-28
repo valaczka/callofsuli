@@ -56,7 +56,7 @@ int Servers::serverListReload()
 		return -1;
 
 	QVariantList list;
-	if (!m_db->execSelectQuery("SELECT id, name as labelTitle, "
+	if (!m_db->execSelectQuery("SELECT id, name, "
 							   "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
 							   "FROM server "
 							   "ORDER BY name", QVariantList(), &list)) {
@@ -74,12 +74,6 @@ int Servers::serverListReload()
 		}
 		list2 << m;
 	}
-
-	QVariantMap m;
-	m["id"] = -1;
-	m["labelTitle"] = tr("-- Új szerver hozzáadása --");
-	m["autoconnect"] = false;
-	list2 << m;
 
 	emit serverListLoaded(list2);
 

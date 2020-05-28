@@ -192,4 +192,5 @@ Item {
 			visible: !item.SwipeView.view
 		}
 	}
+
 }
