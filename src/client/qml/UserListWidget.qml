@@ -13,7 +13,6 @@ Item {
 	property var _selectedClasses: []
 	property string _selectedClassesRegExp: ""
 
-	property alias selectorLoader: header.selectorLoader
 	property alias delegate: userList
 	property alias model: baseUserModel
 
@@ -25,126 +24,129 @@ Item {
 	property alias checkInactive: checkInactive
 	property alias checkNoClass: checkNoClass
 
+	property alias filterButtonVisible: filterButton.visible
+
 	property bool filterShow: false
+
+
+	default property alias headerData: header.colData
 
 	QPageHeader {
 		id: header
+
+		width: parent.width
 
 		isSelectorMode: userList.selectorSet
 
 		labelCountText: userList.selectedItemCount
 
-		searchText.onTextChanged: mainSearch.text = searchText.text
+		mainItem: Row {
+			id: row1
+			spacing: 0
 
-		Column {
-			id: col1
 			width: parent.width
 
-			Row {
-				id: row1
-				spacing: 5
+			QTextField {
+				id: mainSearch
+				width: row1.width-filterButton.width-row1.spacing
+				lineVisible: false
 
-				QTextField {
-					id: mainSearch
-					width: header.width-filterButton.width-row1.spacing
+				anchors.verticalCenter: parent.verticalCenter
 
-					anchors.verticalCenter: parent.verticalCenter
-
-					placeholderText: qsTr("Keresés...")
-
-					onTextChanged: header.searchText.text = mainSearch.text
-				}
-
-				QToolButton {
-					id: filterButton
-
-					anchors.verticalCenter: parent.verticalCenter
-
-					icon.source: CosStyle.iconAdjust
-
-					ToolTip.text: qsTr("Szűrők")
-
-					onClicked: {
-						if (filterShow) {
-							classes.checked = false
-							checkTeacher.checked = false
-							checkStudent.checked = false
-							checkAdmin.checked = false
-							checkActive.checked = false
-							checkInactive.checked = false
-							checkNoClass.checked = false
-						}
-
-						filterShow = !filterShow
-					}
-				}
+				placeholderText: qsTr("Keresés...")
+				clearAlwaysVisible: true
 			}
 
-			Flow {
-				width: parent.width
+			QToolButton {
+				id: filterButton
 
-				visible: filterShow
+				anchors.verticalCenter: parent.verticalCenter
 
-				QTag {
-					id: classes
-					checkable: true
-					checked: true
-					title: qsTr("Osztály:")
-					width: parent.width
-					defaultColor: CosStyle.colorAccentLight
-					defaultBackground: CosStyle.colorAccentDark
-					modelTextRole: "name"
+				icon.source: CosStyle.iconAdjust
 
-					onClicked: loadDialogClasses()
+				ToolTip.text: qsTr("Szűrők")
 
-					onCheckedChanged: if (checked && checkNoClass)
-										  checkNoClass.checked = false
-				}
+				onClicked: {
+					if (filterShow) {
+						classes.checked = false
+						checkTeacher.checked = false
+						checkStudent.checked = false
+						checkAdmin.checked = false
+						checkActive.checked = false
+						checkInactive.checked = false
+						checkNoClass.checked = false
+					}
 
-				QCheckBox {
-					id: checkTeacher
-					text: qsTr("Tanár")
-
-					onCheckedChanged: if (checked)
-										  checkStudent.checked = false
-				}
-
-				QCheckBox {
-					id: checkStudent
-					text: qsTr("Diák")
-					onCheckedChanged: if (checked)
-										  checkTeacher.checked = false
-				}
-
-				QCheckBox {
-					id: checkAdmin
-					text: qsTr("Admin")
-				}
-
-				QCheckBox {
-					id: checkActive
-					text: qsTr("Aktív")
-					onCheckedChanged: if (checked)
-										  checkInactive.checked = false
-				}
-
-				QCheckBox {
-					id: checkInactive
-					text: qsTr("Nem aktív")
-					onCheckedChanged: if (checked)
-										  checkActive.checked = false
-				}
-
-				QCheckBox {
-					id: checkNoClass
-					text: qsTr("Osztály nélkül")
-					onCheckedChanged: if (checked && classes)
-										  classes.checked = false
+					filterShow = !filterShow
 				}
 			}
 		}
 
+		Flow {
+			width: parent.width
+
+			visible: filterShow
+
+			QTag {
+				id: classes
+				checkable: true
+				checked: true
+				title: qsTr("Osztály:")
+				width: parent.width
+				defaultColor: CosStyle.colorAccentLight
+				defaultBackground: CosStyle.colorAccentDark
+				modelTextRole: "name"
+
+				onClicked: loadDialogClasses()
+
+				onCheckedChanged: if (checked && checkNoClass)
+									  checkNoClass.checked = false
+			}
+
+			QCheckBox {
+				id: checkTeacher
+				text: qsTr("Tanár")
+
+				onCheckedChanged: if (checked)
+									  checkStudent.checked = false
+			}
+
+			QCheckBox {
+				id: checkStudent
+				text: qsTr("Diák")
+				onCheckedChanged: if (checked)
+									  checkTeacher.checked = false
+			}
+
+			QCheckBox {
+				id: checkAdmin
+				text: qsTr("Admin")
+			}
+
+			QCheckBox {
+				id: checkActive
+				text: qsTr("Aktív")
+				onCheckedChanged: if (checked)
+									  checkInactive.checked = false
+			}
+
+			QCheckBox {
+				id: checkInactive
+				text: qsTr("Nem aktív")
+				onCheckedChanged: if (checked)
+									  checkActive.checked = false
+			}
+
+			QCheckBox {
+				id: checkNoClass
+				text: qsTr("Osztály nélkül")
+				onCheckedChanged: if (checked && classes)
+									  classes.checked = false
+			}
+		}
+
 		onSelectAll: userList.selectAll()
+		onDeselectAll: userList.selectAll(false)
 	}
 
 	ListModel {
@@ -248,7 +250,6 @@ Item {
 
 		delegateHeight: CosStyle.twoLineHeight
 
-		isObjectModel: true
 		modelTitleRole: "fullname"
 		modelSubtitleRole: "username"
 		modelTitleColorRole: "textColor"
@@ -266,10 +267,23 @@ Item {
 		}
 	}
 
+
+	function autoCreateClassList() {
+		var l = []
+		_classList = []
+		for (var i=0; i<baseUserModel.count; ++i) {
+			var n = baseUserModel.get(i)
+			if (!l.includes(n["classid"])) {
+				l.push(n["classid"])
+				_classList.push({id: n["classid"], name: n["classname"]})
+			}
+		}
+	}
+
+
 	function loadDialogClasses() {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Szűrés osztályokra")
-		d.item.newField.visible = false
 		d.item.list.selectorSet = true
 		d.item.list.modelTitleRole = "name"
 		d.item.list.modelSelectedRole = "selected"

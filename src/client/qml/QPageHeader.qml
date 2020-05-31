@@ -9,93 +9,98 @@ import "JScript.js" as JS
 
 Rectangle {
 	id: control
-	anchors.top: parent.top
-	anchors.left: parent.left
-	anchors.right: parent.right
+
+	width: parent.width
+
 	color: CosStyle.colorPrimaryDark
 
-	height: Math.max(mainItem.height, rightLoader.height, col.visible ? col.height : 0)+1
+	height: col.height //+
+			//(selectorLoader.status == Loader.Ready && selectorLoader.item.visible ? selectorLoader.item.height : 0)+1
 
 	property bool isSelectorMode: false
 	property alias labelCountText: labelCount.text
-	property alias searchText: searchText
 
-	property alias rightLoader: rightLoader
-	property alias selectorLoader: selectorLoader
-	default property alias mainItemData: mainItem.data
+	property alias mainItem: mainItem.data
+
+	default property alias colData: col.data
 
 	signal selectAll()
-
-	Item {
-		id: mainItem
-
-		anchors.verticalCenter: parent.verticalCenter
-		anchors.left: parent.left
-		anchors.right: rightLoader.status == Loader.Ready && rightLoader.item.visible ? rightLoader.left : parent.right
-
-		height: childrenRect.height
-
-		visible: opacity != 0
-
-		Behavior on opacity { NumberAnimation { duration: 125 } }
-	}
+	signal deselectAll()
 
 	Column {
 		id: col
-
-		width: mainItem.width
-		anchors.verticalCenter: parent.verticalCenter
-
-		opacity: 0.0
-		visible: opacity != 0
+		width: parent.width
 
 		RowLayout {
-			id: row
-
+			id: mainRow
 			width: parent.width
+			height: Math.max(labelCount.height, mainItem.height, buttonSelectAll.height)
 
 			QLabel {
 				id: labelCount
 				text: ""
 
-				horizontalAlignment: Text.AlignLeft
+				visible: opacity != 0
+				opacity: isSelectorMode ? 1 : 0
+
+				Behavior on opacity { NumberAnimation { duration: 125 } }
+
+				horizontalAlignment: Text.AlignHCenter
 				verticalAlignment: Text.AlignVCenter
 
+				Layout.minimumWidth: height
+
 				Layout.fillWidth: false
 				Layout.fillHeight: true
+				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 			}
 
-			QTextField {
-				id: searchText
+			Item {
+				id: mainItem
+
+				height: childrenRect.height
 				Layout.fillWidth: true
-
-				placeholderText: qsTr("Keresés...")
+				Layout.fillHeight: true
+				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 			}
+
 
 			QToolButton {
-				id: button1
+				id: buttonSelectAll
 				icon.source: CosStyle.iconSelectAll
+
+				ToolTip.text: qsTr("Mindet kijelöl")
 
 				Layout.fillWidth: false
 				Layout.fillHeight: true
+
+				visible: opacity != 0
+				opacity: isSelectorMode ? 1 : 0
+
+				Behavior on opacity { NumberAnimation { duration: 125 } }
+
+				Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
 				onClicked: control.selectAll()
 			}
+
+			/*QToolButton {
+				id: buttonDeSelectAll
+				icon.source: CosStyle.iconClear
+
+				Layout.fillWidth: false
+				Layout.fillHeight: true
+
+				visible: opacity != 0
+				opacity: isSelectorMode ? 1 : 0
+
+				Behavior on opacity { NumberAnimation { duration: 125 } }
+
+				Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+				onClicked: control.deselectAll()
+			}*/
 		}
-
-		Loader {
-			id: selectorLoader
-
-			width: parent.width
-		}
-	}
-
-
-	Loader {
-		id: rightLoader
-
-		anchors.top: parent.top
-		anchors.right: parent.right
 	}
 
 
@@ -106,60 +111,5 @@ Rectangle {
 		color: CosStyle.colorAccent
 	}
 
-
-	states: [
-		State {
-			name: "SELECTOR"
-			when: isSelectorMode
-			PropertyChanges {
-				target: col
-				opacity: 1.0
-			}
-			PropertyChanges {
-				target: mainItem
-				opacity: 0.0
-			}
-		}
-	]
-
-	transitions: [
-		Transition {
-			from: "*"
-			to: "SELECTOR"
-			SequentialAnimation {
-				NumberAnimation {
-					target: mainItem
-					property: "opacity"
-					duration: 75
-					easing.type: Easing.InOutQuad
-				}
-				NumberAnimation {
-					target: col
-					property: "opacity"
-					duration: 75
-					easing.type: Easing.InOutQuad
-				}
-			}
-		},
-
-		Transition {
-			from: "SELECTOR"
-			to: "*"
-			SequentialAnimation {
-				NumberAnimation {
-					target: col
-					property: "opacity"
-					duration: 75
-					easing.type: Easing.InOutQuad
-				}
-				NumberAnimation {
-					target: mainItem
-					property: "opacity"
-					duration: 75
-					easing.type: Easing.InOutQuad
-				}
-			}
-		}
-	]
 }
 

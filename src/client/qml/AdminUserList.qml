@@ -32,8 +32,11 @@ QPagePanel {
 
 		anchors.fill: parent
 
-		selectorLoader.sourceComponent: Flow {
+		Flow {
 			id: flow
+
+			visible: userListWidget.delegate.selectorSet
+
 			property int buttonDisplay: AbstractButton.IconOnly
 
 			QToolButton { action: actionActiveSet; display: flow.buttonDisplay }
@@ -215,8 +218,8 @@ QPagePanel {
 
 
 
-	function populated() {
-	}
+
+	onPanelActivated: userListWidget.delegate.forceActiveFocus()
 
 
 	function reloadUserList() {

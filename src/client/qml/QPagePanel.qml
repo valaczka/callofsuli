@@ -8,7 +8,8 @@ Item {
 	id: item
 
 	implicitWidth: 500
-	implicitHeight: minimumHeight
+	implicitHeight: 200
+
 
 	property alias blurSource: effectsource.sourceItem
 	property alias blurRect: effectsource.sourceRect
@@ -32,11 +33,16 @@ Item {
 
 	property Menu pageContextMenu: null
 
+	readonly property bool swipeMode: item.SwipeView.view
 	property bool _isCurrent: item.SwipeView.isCurrentItem
+
+	signal panelActivated()
+	signal populated()
 
 	on_IsCurrentChanged: {
 		if (_isCurrent) {
 			item.SwipeView.view.parentPage.mainMenu = pageContextMenu
+			panelActivated()
 		}
 	}
 
@@ -44,8 +50,8 @@ Item {
 	Item {
 		id: panel
 
-		width: item.SwipeView.view ? item.width : (maximumWidth ? Math.min(maximumWidth, item.width-2*horizontalPadding) : item.width-2*horizontalPadding)
-		height: item.SwipeView.view ? item.height : (maximumHeight ? Math.min(maximumHeight, item.height-2*verticalPadding) : item.height-2*verticalPadding)
+		width: item.swipeMode ? item.width : (maximumWidth ? Math.min(maximumWidth, item.width-2*horizontalPadding) : item.width-2*horizontalPadding)
+		height: item.swipeMode ? item.height : (maximumHeight ? Math.min(maximumHeight, item.height-2*verticalPadding) : item.height-2*verticalPadding)
 		x: (item.width-width)/2
 		y: (item.height-height)/2
 
@@ -99,7 +105,7 @@ Item {
 				anchors.right: parent.right
 				height: labelTitle.implicitHeight*1.5
 
-				visible: !item.SwipeView.view
+				visible: !item.swipeMode
 
 				QLabel {
 					id: labelTitle
@@ -189,7 +195,7 @@ Item {
 			source: borderRectData
 			maskSource: bgRectLine
 			anchors.fill: borderRectData
-			visible: !item.SwipeView.view
+			visible: !item.swipeMode
 		}
 	}
 

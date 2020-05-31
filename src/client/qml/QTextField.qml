@@ -47,7 +47,7 @@ TextField {
 
 
 //	implicitWidth: placeholder.implicitWidth + leftPadding + rightPadding
-	implicitHeight: CosStyle.pixelSize + topPadding + bottomPadding + 8
+	implicitHeight: Math.max(CosStyle.pixelSize + topPadding + bottomPadding + 8, CosStyle.baseHeight)
 
 	topPadding: 6
 	leftPadding: 8 + (activeFocus ? rect1.width : 0 )
@@ -64,6 +64,7 @@ TextField {
 	property color textColor: CosStyle.colorAccent
 	property bool lineVisible: true
 	property bool tooltipEnabled: true
+	property bool clearAlwaysVisible: false
 
 	opacity: enabled ? 1 : 0.5
 	color: control.enabled ?
@@ -114,7 +115,7 @@ TextField {
 
 		Behavior on color { ColorAnimation { duration: 125 } }
 
-		visible: control.text.length && !control.readOnly && (control.hovered || control.activeFocus)
+		visible: control.text.length && !control.readOnly && (control.hovered || control.activeFocus || clearAlwaysVisible)
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: parent.right

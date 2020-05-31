@@ -7,41 +7,29 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-
-Page {
+QPage {
 	id: page
+
+	requiredPanelWidth: 900
+
+	title: qsTr("Regisztráció")
+
+	mainToolBarComponent: QToolBusyIndicator { running: page.isBusy }
 
 	property bool isBusy: false
 
-	header: QToolBar {
-		id: toolbar
+	onlyPanel: QPagePanel {
+		id: panel
 
-		title: qsTr("Regisztráció")
-
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
-
-		Row {
-			rightPadding: 5
-			Layout.fillHeight: true
-			QToolBusyIndicator { running: page.isBusy }
-		}
-	}
-
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
-
-	QPagePanel {
-		id: p
-
-		anchors.fill: parent
+		title: page.title
 		maximumWidth: 600
 
-		blurSource: bgImage
+		onPopulated: textEmail.forceActiveFocus()
+
+		Connections {
+			target: page
+			onPageActivated: textEmail.forceActiveFocus()
+		}
 
 		QGridLayout {
 			id: grid
@@ -136,29 +124,11 @@ Page {
 	}
 
 
-	StackView.onRemoved: destroy()
-
-	StackView.onActivated: {
-		toolbar.resetTitle()
-		textEmail.forceActiveFocus()
-	}
-
-
-
 	function windowClose() {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
+	function pageStackBack() {
 		return false
 	}
 }

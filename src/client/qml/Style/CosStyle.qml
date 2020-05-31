@@ -40,8 +40,8 @@ QtObject {
 	property color colorBg: "#33ffffff"
 
 	property int pixelSize: 18
-	property int baseHeight: Qt.platform.os === "android" ? 48 : 32
-	property int twoLineHeight: 48
+	property int baseHeight: Math.max(pixelSize * 2.2, (Qt.platform.os === "android" ? 48 : 24))
+	property int twoLineHeight: Math.max(pixelSize * 48/18, 32)
 
 
 	property var buttonThemeDefault: [colorPrimaryLight, colorPrimaryDarker, colorPrimaryLighter, colorPrimary]
@@ -53,14 +53,14 @@ QtObject {
 	property string iconChecked: "image://font/Material Icons/\ue86c"
 	property string iconUnchecked: "image://font/Material Icons/\ue836"
 	property string iconTrash: "image://font/Material Icons/\ue872"
-	property string iconRemove: iconTrash
+	property string iconRemove: iconDelete
 	property string iconClear: "image://font/Material Icons/\ue14a"
 	property string iconBack: "image://font/Material Icons/\ue5c4"
 	property string iconUndo: "image://font/Material Icons/\ue166"
 	property string iconSelectAll: "image://font/Material Icons/\ue877"
 	property string iconDrawer: "image://font/Material Icons/\ue3c7"
-	property string iconDelete: "image://font/Material Icons/\ue5cd"
-	property string iconCancel: iconDelete
+	property string iconDelete: iconTrash
+	property string iconCancel: "image://font/Material Icons/\ue5cd"
 	property string iconAdd: "image://font/Material Icons/\ue145"
 	property string iconSave: "image://font/Material Icons/\ue161"
 	property string iconSend: "image://font/Material Icons/\ue163"

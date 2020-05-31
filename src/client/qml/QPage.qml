@@ -10,11 +10,14 @@ import "JScript.js" as JS
 Page {
 	id: control
 
+	implicitWidth: 800
+	implicitHeight: 600
+
 	property int requiredPanelWidth: 600
 	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
 
 	readonly property bool noDrawer: width > requiredWidthToDrawer || leftPanel === null
-	property bool swipeMode: control.width-(leftItem.visible ? leftItem.width : 0) < requiredPanelWidth*panels.length
+	property bool swipeMode: control.width-(leftItem.visible ? leftItem.width : 0) < (onlyPanel ? requiredPanelWidth : requiredPanelWidth*panels.length)
 
 	property alias drawer: drawer
 	property alias bgImage: bgImage
@@ -22,6 +25,7 @@ Page {
 	property var panels: []
 
 	property Component leftPanel: null
+	property Component onlyPanel: null
 
 	property alias mainSwipe: mainSwipe
 	property alias mainRow: mainRow
@@ -30,9 +34,14 @@ Page {
 
 	property alias mainMenu: menuButton.menu
 
+	property alias subtitle: toolbar.subtitle
+
 	property Menu pageContextMenu: null
 
 	property bool panelsVisible: true
+
+
+	signal pageActivated()
 
 	background: Image {
 		id: bgImage
@@ -43,6 +52,8 @@ Page {
 
 	header: QToolBar {
 		id: toolbar
+
+		title: control.title
 
 		backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
 		backButton.visible: true
@@ -206,6 +217,15 @@ Page {
 		}
 	}
 
+	Loader {
+		id: onlyLoader
+		anchors.fill: mainRow
+		visible: mainRow.visible && onlyPanel
+
+		onStatusChanged: if (onlyLoader.status == Loader.Ready) item.populated()
+
+	}
+
 
 	SwipeView {
 		id: mainSwipe
@@ -229,15 +249,16 @@ Page {
 	}
 
 
-	onPanelsChanged: panelReset()
-	onSwipeModeChanged: panelReset()
+	onOnlyPanelChanged: {console.debug("onlypanelschanged", control, onlyPanel); panelReset() }
+	onPanelsChanged: {console.debug("panelschanged", control, panels); panelReset() }
+	onSwipeModeChanged: {console.debug("swipechanged", control, panels); panelReset() }
 
 
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		panelReset()
 		toolbar.resetTitle()
+		pageActivated()
 	}
 
 
@@ -282,8 +303,11 @@ Page {
 
 
 	function panelReset() {
-		if (!swipeMode)
+		if (swipeMode)
+			mainMenu = null
+		else
 			mainMenu = pageContextMenu
+
 
 		for (var i=tabBar.count-1; i>=0; --i)
 			tabBar.removeItem(tabBar.itemAt(i))
@@ -305,22 +329,39 @@ Page {
 
 
 	function panelResetAfterRemove() {
-		for (var i=0; i<panels.length; ++i) {
-			var panel = panels[i]
+		if (onlyPanel) {
 			if (swipeMode) {
-				var pp = JS.createObject(panel.url, control, panel.params)
-				if (pp) {
-					mainSwipe.addItem(pp)
-					pp.populated()
-				}
+				onlyLoader.sourceComponent = undefined
+				var o = onlyPanel.createObject(mainSwipe)
+				mainSwipe.addItem(o)
+				o.populated()
 
-				var ppp = JS.createObject("QTabButton.qml", tabBar, {text: pp.title ? pp.title : "", "icon.source": pp.icon ? pp.icon : "" })
+				var ppp = JS.createObject("QTabButton.qml", tabBar, {text: o.title ? o.title : "", "icon.source": o.icon ? o.icon : "" })
 
 				if (ppp)
 					tabBar.addItem(ppp)
 
 			} else {
-				mainRepeater.model.append(panel)
+				onlyLoader.sourceComponent = onlyPanel
+			}
+		} else {
+			for (var i=0; i<panels.length; ++i) {
+				var panel = panels[i]
+				if (swipeMode) {
+					var pp = JS.createObject(panel.url, control, panel.params)
+					if (pp) {
+						mainSwipe.addItem(pp)
+						pp.populated()
+					}
+
+					ppp = JS.createObject("QTabButton.qml", tabBar, {text: pp.title ? pp.title : "", "icon.source": pp.icon ? pp.icon : "" })
+
+					if (ppp)
+						tabBar.addItem(ppp)
+
+				} else {
+					mainRepeater.model.append(panel)
+				}
 			}
 		}
 

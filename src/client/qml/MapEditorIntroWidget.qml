@@ -22,6 +22,8 @@ Column {
 	QCollapsible {
 		title: isOutro ? qsTr("Outro beállításai") : qsTr("Intro beállításai")
 
+		collapsed: true
+
 		QGridLayout {
 			id: grid
 			width: parent.width

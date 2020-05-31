@@ -41,6 +41,12 @@ ApplicationWindow {
 		color: "black"
 	}
 
+	Action {
+		id: actionBack
+		shortcut: "Esc"
+		onTriggered: if (mainStack.depth > 1)
+			mainStack.get(1).stackBack()
+	}
 
 	StackView {
 		id: mainStack
@@ -50,11 +56,6 @@ ApplicationWindow {
 		readonly property int animDuration: 175
 
 		focus: true
-
-		Keys.onEscapePressed: {
-			if (depth > 1)
-				get(1).stackBack()
-		}
 
 		Keys.onBackPressed: back()
 
@@ -169,7 +170,7 @@ ApplicationWindow {
 		}
 
 		function back() {
-			if (depth > 2)
+			if (depth > 1)
 				get(1).stackBack()
 			else
 				mainWindow.close()
@@ -178,7 +179,7 @@ ApplicationWindow {
 		function loginRequest() {
 			if ((cosClient.connectionState === Client.Connected || cosClient.connectionState === Client.Reconnected)
 					&& (cosClient.userRoles & Client.RoleGuest)) {
-				JS.createPage("Login", {}, mainWindow)
+				JS.createPage("Login", {})
 			}
 		}
 
@@ -225,7 +226,7 @@ ApplicationWindow {
 	Action {
 		id: fontMinus
 		shortcut: "Ctrl+-"
-		onTriggered: if (CosStyle.pixelSize > 8)
+		onTriggered: if (CosStyle.pixelSize > 10)
 						 CosStyle.pixelSize--
 	}
 
@@ -255,6 +256,6 @@ ApplicationWindow {
 			CosStyle.pixelSize = fs
 		cosClient.messageSent.connect(JS.dialogMessage)
 
-		JS.createPage("Start", {}, mainWindow)
+		JS.createPage("Start", {})
 	}
 }

@@ -28,10 +28,8 @@
         <file>JScript.js</file>
         <file>QGridCheckBox.qml</file>
         <file>QCheckBox.qml</file>
-        <file>PageOffline.qml</file>
         <file>PageMapEditor.qml</file>
         <file>QDialogTextField.qml</file>
-        <file>PageTeacherMaps.qml</file>
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
         <file>QPageHeader.qml</file>
@@ -87,5 +85,17 @@
         <file>QPage.qml</file>
         <file>QLabel.qml</file>
         <file>ServerList.qml</file>
+        <file>PageTeacherGroups.qml</file>
+        <file>PageTeacherGroupEdit.qml</file>
+        <file>TeacherGroupMapList.qml</file>
+        <file>TeacherGroupClassList.qml</file>
+        <file>TeacherGroupUserList.qml</file>
+        <file>QDialogUserList.qml</file>
+        <file>TeacherGroupList.qml</file>
+        <file>TeacherGroupMenu.qml</file>
+        <file>PageTeacherMaps.qml</file>
+        <file>TeacherMapList.qml</file>
+        <file>TeacherMapMenu.qml</file>
+        <file>PageMaps.qml</file>
     </qresource>
 </RCC>

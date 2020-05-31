@@ -51,7 +51,7 @@ QPage {
 		}
 	}
 
-	mainToolBar.title: qsTr("Call of Suli")
+	title: qsTr("Call of Suli")
 	mainToolBar.backButton.visible: false
 
 	pageContextMenu: QMenu {
@@ -78,13 +78,28 @@ QPage {
 	}
 
 
+
+	Action {
+		id: test
+		shortcut: "F1"
+		onTriggered: {
+			var o = JS.createPage("MapEditor", {})
+			o.pagePopulated.connect(function() {
+				o.map.loadFromFile("AAA.cosm")
+				o.map.mapOriginalFile = "AAA.cosm"
+				o.mapName = "AAA.cosm"
+			})
+		}
+	}
+
+
 	Connections {
 		target: cosClient
 
 		onConnectionStateChanged: {
 			if (connectionState === Client.Connected) {
 				panels = []
-				JS.createPage("MainMenu", {}, pageStart)
+				JS.createPage("MainMenu", {})
 			} else if (connectionState === Client.Standby) {
 				mainStack.pop(pageStart)
 				onePanel()
@@ -121,7 +136,7 @@ QPage {
 			servers.serverConnect(id)
 	}
 
-	StackView.onActivated: {
+	onPageActivated: {
 		if (_isFirst) {
 			var autoConnectId = servers.serverListReload()
 			_isFirst = false

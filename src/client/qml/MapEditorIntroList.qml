@@ -32,7 +32,7 @@ QPagePanel {
 	}
 
 
-	function populated() { getList() }
+	onPopulated: getList()
 
 	function getList() {
 		list.model = map.introListGet()

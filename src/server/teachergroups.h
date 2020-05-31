@@ -59,6 +59,10 @@ public slots:
 	void getExcludedClasses(QJsonObject *jsonResponse, QByteArray *);
 	void getExcludedMaps(QJsonObject *jsonResponse, QByteArray *);
 
+	void addMaps(QJsonObject *jsonResponse, QByteArray *);
+	void addClasses(QJsonObject *jsonResponse, QByteArray *);
+	void addUsers(QJsonObject *jsonResponse, QByteArray *);
+
 
 };
 

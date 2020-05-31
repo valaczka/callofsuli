@@ -50,13 +50,19 @@ public:
 signals:
 	void mapListLoaded(const QJsonArray &list);
 	void mapCreated(const QJsonObject &map);
-	void mapReceived(const QJsonObject &jsonData, const QByteArray &mapData);
-	void mapUpdated(const QJsonObject &data);
+	void mapReceived(const QJsonObject &jsonData);
+	void mapDataReceived(const QJsonObject &jsonData, const QByteArray &mapData);
+	void mapUpdated(const QJsonObject &mapData);
+	void mapRemoved(const QJsonObject &mapData);
 
 	void groupListLoaded(const QJsonArray &list);
 	void groupCreated(const QJsonObject &groupData);
 	void groupReceived(const QJsonObject &groupData);
 	void groupUpdated(const QJsonObject &groupData);
+	void groupRemoved(const QJsonObject &groupData);
+	void groupExcludedMapsReceived(const QJsonObject &groupData);
+	void groupExcludedClassesReceived(const QJsonObject &groupData);
+	void groupExcludedUsersReceived(const QJsonObject &groupData);
 
 private slots:
 	void onJsonMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);

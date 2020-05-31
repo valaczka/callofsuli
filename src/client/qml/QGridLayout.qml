@@ -52,7 +52,7 @@ Item {
 				value: item.height-2
 			}
 
-			columns: item.width > 800 ? 2 : 1
+			columns: item.width > (CosStyle.pixelSize*800/18) ? 2 : 1
 			columnSpacing: 5
 			rowSpacing: columns > 1 ? 5 : 0
 

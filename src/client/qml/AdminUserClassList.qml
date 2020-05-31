@@ -24,21 +24,20 @@ QPagePanel {
 		id: header
 
 		isSelectorMode: classList.selectorSet
-
 		labelCountText: classList.selectedItemCount
 
-		searchText.onTextChanged: mainSearch.text = searchText.text
-
-		QTextField {
+		mainItem: QTextField {
 			id: mainSearch
 			width: parent.width
+			lineVisible: false
+
+			clearAlwaysVisible: true
 
 			placeholderText: qsTr("Keresés...")
-
-			onTextChanged: header.searchText.text = mainSearch.text
 		}
 
 		onSelectAll: classList.selectAll()
+		onDeselectAll: classList.selectAll(false)
 	}
 
 
@@ -74,7 +73,6 @@ QPagePanel {
 
 		model: userProxyModel
 		isProxyModel: true
-		isObjectModel: true
 		modelTitleRole: "name"
 
 		autoSelectorChange: true
@@ -159,9 +157,12 @@ QPagePanel {
 
 	}
 
-	function populated() {
+	onPopulated: {
 		reloadClassList()
+		classList.forceActiveFocus()
 	}
+
+	onPanelActivated: classList.forceActiveFocus()
 
 	function reloadClassList() {
 		adminUsers.send({"class": "user", "func": "getAllClass"})

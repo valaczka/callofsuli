@@ -123,12 +123,9 @@ QPagePanel {
 	}
 
 
-	function populated() {
-		console.debug("SERVER EDITPOPULATED")
-		servers.serverInfoGet(serverId)
-	}
+	onPopulated: servers.serverInfoGet(serverId)
 
-	on_IsCurrentChanged:  if (_isCurrent) textHostname.forceActiveFocus()
+	onPanelActivated: textHostname.forceActiveFocus()
 
 }
 

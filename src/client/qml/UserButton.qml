@@ -6,95 +6,35 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-Rectangle {
+QToolButton {
 	id: control
-
-	property int imageSize: 40
-	property alias imageSource: userImg.source
-	property alias imageSourceSize: userImg.sourceSize
-
-	property alias userName: userLabel.text
-
-	property bool isExpanded: false
-
-	property alias image: userImg
-	property alias label: userLabel
 
 	property UserDetails userDetails: null
 
+	display: Button.TextBesideIcon
 
-	color: area.containsMouse ? "grey" : "transparent"
-	radius: 3
+	icon.source: "image://sql/rank/"+cosClient.userRank+".svg"
+	icon.color: "transparent"
+	icon.width: CosStyle.pixelSize*1.9
+	icon.height: CosStyle.pixelSize*1.9
 
-	width: userRow.width+16
-	height: userRow.height+8
+	ToolTip.text: ""
 
-	scale: area.pressed ? 0.9 : 1.0
+	topPadding: 0
+	bottomPadding: 0
 
-	Behavior on scale {
-		NumberAnimation { duration: 75 }
-	}
+	font.capitalization: Font.MixedCase
 
-	signal clicked()
+	font.pixelSize: CosStyle.pixelSize*0.8
 
-	Row {
-		id: userRow
+	text: cosClient.userFirstName+"\n"+cosClient.userLastName
 
-		anchors.centerIn: parent
-
-		spacing: 10
-
-		Item {
-			width: userImg.width
-			height: userImg.height
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			Image {
-				id: userImg
-
-				source: "image://sql/rank/"+cosClient.userRank+".svg"
-
-				width: control.imageSize
-				height: control.imageSize
-
-				fillMode: Image.PreserveAspectFit
-			}
-
-			Glow {
-				anchors.fill: userImg
-				radius: 1
-				samples: 3
-				color: "yellow"
-				source: userImg
-				visible: area.containsMouse
-			}
-		}
-
-		QLabel {
-			id: userLabel
-			font.pixelSize: CosStyle.pixelSize*0.9
-
-			text: cosClient.userFirstName+"\n"+cosClient.userLastName
-
-			anchors.verticalCenter: parent.verticalCenter
-		}
-	}
-
-	MouseArea {
-		id: area
-		anchors.fill: parent
-		acceptedButtons: Qt.LeftButton
-		hoverEnabled: true
-
-		onClicked: {
-			if (userDetails && !userDetails.running) {
-				if (userDetails.opened)
-					userDetails.close()
-				else
-					userDetails.open()
-			}
-			control.clicked()
+	onClicked: {
+		if (userDetails && !userDetails.running) {
+			if (userDetails.opened)
+				userDetails.close()
+			else
+				userDetails.open()
 		}
 	}
 }

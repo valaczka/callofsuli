@@ -61,7 +61,7 @@ QPagePanel {
 	}
 
 
-	function populated() { get() }
+	onPopulated: get()
 
 
 	function get() {

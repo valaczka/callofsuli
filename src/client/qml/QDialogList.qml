@@ -13,7 +13,6 @@ Item {
 	implicitWidth: 400
 
 	property alias title: mainRow.title
-	property alias newField: tfInput
 	property alias list: list
 	property ListModel model: ListModel {}
 	property bool simpleSelect: !list.selectorSet
@@ -77,25 +76,29 @@ Item {
 				anchors.left: parent.left
 				anchors.right: parent.right
 
-				isSelectorMode: list.selectorSet || !tfInput.visible
+				isSelectorMode: list.selectorSet
 
 				labelCountText: list.selectedItemCount
 
-				QTextField {
+				mainItem: QTextField {
 					id: tfInput
 					width: parent.width
+					lineVisible: false
+					clearAlwaysVisible: true
+					placeholderText: qsTr("Keresés...")
 				}
 
 				onSelectAll: list.selectAll()
+				onDeselectAll: list.selectAll(false)
 			}
 
 			SortFilterProxyModel {
 				id: userProxyModel
 				sourceModel: item.model
 				filters:  RegExpFilter {
-					enabled: header.searchText.text.length
+					enabled: tfInput.text.length
 					roleName: list.modelTitleRole
-					pattern: header.searchText.text
+					pattern: tfInput.text
 					caseSensitivity: Qt.CaseInsensitive
 					syntax: RegExpFilter.FixedString
 				}

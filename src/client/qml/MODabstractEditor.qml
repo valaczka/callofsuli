@@ -155,7 +155,6 @@ QAccordion {
 	function loadDialogMissions() {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Küldetések")
-		d.item.newField.visible = false
 		d.item.list.selectorSet = true
 		d.item.list.modelTitleRole = "name"
 		d.item.list.modelSelectedRole = "selected"
@@ -180,7 +179,6 @@ QAccordion {
 	function loadDialogCampaigns() {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Hadjáratok")
-		d.item.newField.visible = false
 		d.item.list.selectorSet = true
 		d.item.list.modelTitleRole = "name"
 		d.item.list.modelSelectedRole = "selected"

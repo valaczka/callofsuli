@@ -8,40 +8,59 @@ import "Style"
 import "JScript.js" as JS
 
 
-Page {
+QPage {
 	id: page
+
+	requiredPanelWidth: 900
+
+	title: qsTr("Szerver beállításai")
+
+	mainToolBarComponent: Row {
+		Layout.fillHeight: true
+		QToolBusyIndicator { running: page.isBusy }
+		QToolButton { action: actionSave }
+	}
 
 	property bool isBusy: false
 
-	header: QToolBar {
-		id: toolbar
 
-		title: qsTr("Szerver beállításai")
+	signal saveRequest()
 
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
+	onlyPanel: QPagePanel {
+		id: panel
 
-		Row {
-			Layout.fillHeight: true
-			QToolBusyIndicator { running: page.isBusy }
-			QToolButton { action: actionSave }
-		}
-	}
-
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
-
-	QPagePanel {
-		id: p
-
-		anchors.fill: parent
+		title: page.title
 		maximumWidth: 800
 
-		blurSource: bgImage
+		onPanelActivated: textServerName.forceActiveFocus()
+		onPopulated: textServerName.forceActiveFocus()
+
+		Connections {
+			target: page
+			onPageActivated: textServerName.forceActiveFocus()
+			onSaveRequest: {
+				var o = JS.getModifiedSqlFields([
+													textServerName,
+													textHost,
+													textPort,
+													comboType,
+													textEmail,
+													textUser,
+													textPassword,
+													comboRegistration,
+													textDomain,
+													comboReset
+												])
+
+				if (Object.keys(o).length) {
+					isBusy = true
+					o["class"] = "userInfo"
+					o["func"] = "setSettings"
+					cosClient.socketSend(o)
+				}
+			}
+		}
+
 
 		QAccordion {
 			id: accordion
@@ -54,6 +73,8 @@ Page {
 				QGridLayout {
 					id: grid1
 					enabled: !page.isBusy
+
+					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
 
 					width: parent.width
 					watchModification: true
@@ -81,6 +102,8 @@ Page {
 
 					enabled: !page.isBusy
 
+					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+
 					width: parent.width
 					watchModification: true
 
@@ -98,7 +121,7 @@ Page {
 
 					QGridTextField {
 						id: textPort
-						fieldName: qsTr("port")
+						fieldName: qsTr("Port")
 						sqlField: "smtp.port"
 
 						validator: IntValidator { bottom: 0; top: 65535 }
@@ -169,6 +192,8 @@ Page {
 
 					enabled: !page.isBusy
 
+					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+
 					width: parent.width
 					watchModification: true
 
@@ -224,6 +249,44 @@ Page {
 			}
 		}
 
+
+
+
+		Connections {
+			target: cosClient
+
+			onSettingsLoaded: {
+				isBusy = false
+				JS.setSqlFields([
+									textServerName,
+									textHost,
+									textPort,
+									comboType,
+									textEmail,
+									textUser,
+									textPassword,
+									comboRegistration,
+									textDomain,
+									comboReset
+								], data)
+
+				grid1.modified = false
+				grid2.modified = false
+				grid3.modified = false
+			}
+
+			onSettingsSuccess: {
+				isBusy = false
+				cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
+				getSettings()
+			}
+
+			onSettingsError: {
+				isBusy = false
+				cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+			}
+		}
+
 	}
 
 
@@ -231,71 +294,12 @@ Page {
 		id: actionSave
 		icon.source: CosStyle.iconSave
 		text: qsTr("Mentés")
-		enabled: grid1.modified || grid2.modified || grid3.modified
+		enabled: false
 		shortcut: "Ctrl+S"
-		onTriggered: {
-			var o = JS.getModifiedSqlFields([
-												textServerName,
-												textHost,
-												textPort,
-												comboType,
-												textEmail,
-												textUser,
-												textPassword,
-												comboRegistration,
-												textDomain,
-												comboReset
-											])
-
-			if (Object.keys(o).length) {
-				isBusy = true
-				o["class"] = "userInfo"
-				o["func"] = "setSettings"
-				cosClient.socketSend(o)
-			}
-		}
+		onTriggered: saveRequest()
 	}
 
-	Connections {
-		target: cosClient
-
-		onSettingsLoaded: {
-			isBusy = false
-			JS.setSqlFields([
-								textServerName,
-								textHost,
-								textPort,
-								comboType,
-								textEmail,
-								textUser,
-								textPassword,
-								comboRegistration,
-								textDomain,
-								comboReset
-							], data)
-
-			grid1.modified = false
-			grid2.modified = false
-			grid3.modified = false
-		}
-
-		onSettingsSuccess: {
-			isBusy = false
-			cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
-			getSettings()
-		}
-
-		onSettingsError: {
-			isBusy = false
-			cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
-		}
-	}
-
-
-	StackView.onRemoved: destroy()
-
-	StackView.onActivated: {
-		toolbar.resetTitle()
+	onPageActivated: {
 		getSettings()
 	}
 
@@ -309,16 +313,8 @@ Page {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
+	function pageStackBack() {
 		return false
 	}
+
 }

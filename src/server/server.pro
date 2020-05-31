@@ -31,6 +31,7 @@ SOURCES += \
 		client.cpp \
 		main.cpp \
 		server.cpp \
+		student.cpp \
 		teachergroups.cpp \
 		teachermaps.cpp \
 		user.cpp \
@@ -40,6 +41,7 @@ HEADERS += \
 	abstracthandler.h \
 	client.h \
 	server.h \
+	student.h \
 	teachergroups.h \
 	teachermaps.h \
 	user.h \

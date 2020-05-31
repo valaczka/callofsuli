@@ -20,9 +20,10 @@ QPagePanel {
 
 		labelCountText: list.selectedItemCount
 
-		QTextField {
+		mainItem: QTextField {
 			id: newCampaignName
 			width: parent.width
+			lineVisible: false
 
 			placeholderText: qsTr("új hadjárat hozzáadása")
 			onAccepted: {
@@ -34,6 +35,7 @@ QPagePanel {
 		}
 
 		onSelectAll: list.selectAll()
+		onDeselectAll: list.selectAll(false)
 	}
 
 	QListItemDelegate {
@@ -57,9 +59,7 @@ QPagePanel {
 		onUndone: getList()
 	}
 
-	function populated() {
-		getList()
-	}
+	onPopulated: getList()
 
 
 	function getList() {

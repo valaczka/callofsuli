@@ -1,39 +1,24 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.14
-import QtQuick.Dialogs 1.3
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
 
-Page {
+QPage {
 	id: page
 
-	header: QToolBar {
-		id: toolbar
-		title: cosClient.serverName
+	requiredPanelWidth: 900
 
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
+	title: cosClient.serverName
 
-		UserButton {
-			userDetails: userData
-		}
+	mainToolBarComponent: UserButton {
+		userDetails: userData
 	}
 
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
-
-	QPagePanel {
+	onlyPanel: QPagePanel {
 		id: panel
-
-		anchors.fill: parent
 
 		title: qsTr("Főmenü")
 		maximumWidth: 600
@@ -42,12 +27,83 @@ Page {
 			id: list
 			anchors.fill: parent
 
-			isObjectModel: true
-
 			model: ListModel { }
 
-			onClicked: JS.createPage(model.get(index).page, model.get(index).params, page)
+			onClicked: JS.createPage(model.get(index).page, model.get(index).params)
 		}
+
+		onPanelActivated: reloadModel()
+
+		onPopulated: reloadModel()
+
+
+		function reloadModel() {
+			list.model.clear()
+
+			list.model.append({
+								  labelTitle: qsTr("Rangsor"),
+								  page: "Score",
+								  params: {}
+							  })
+
+			if (cosClient.userRoles & (Client.RoleTeacher|Client.RoleStudent))
+				list.model.append({
+									  labelTitle: qsTr("Pályák"),
+									  page: "Maps",
+									  params: {}
+								  })
+
+			if (cosClient.userRoles & Client.RoleTeacher)
+				list.model.append({
+									  labelTitle: qsTr("Pályák kezelése"),
+									  page: "TeacherMaps",
+									  params: {}
+								  })
+
+			if (cosClient.userRoles & Client.RoleTeacher)
+				list.model.append({
+									  labelTitle: qsTr("Csoportok kezelése"),
+									  page: "TeacherGroups",
+									  params: {}
+								  })
+
+			if (cosClient.userRoles & Client.RoleAdmin)
+				list.model.append({
+									  labelTitle: qsTr("Szerver beállításai"),
+									  page: "ServerSettings",
+									  params: {}
+								  })
+
+			if (cosClient.userRoles & Client.RoleAdmin)
+				list.model.append({
+									  labelTitle: qsTr("Felhasználók kezelése"),
+									  page: "AdminUsers",
+									  params: {}
+								  })
+
+
+			if (cosClient.userRoles & Client.RoleGuest)
+				list.model.append({
+									  labelTitle: qsTr("Bejelentkezés"),
+									  page: "Login",
+									  params: {}
+								  })
+
+			list.forceActiveFocus()
+		}
+
+		Connections {
+			target: cosClient
+			onUserRolesChanged: {
+				reloadModel()
+			}
+		}
+
+		Connections {
+			target: page
+			onPageActivated: list.forceActiveFocus()
+		}
+
 	}
 
 	UserDetails {
@@ -58,92 +114,35 @@ Page {
 	Connections {
 		target: cosClient
 		onUserRolesChanged: {
-			reloadModel()
 			mainStack.pop(page)
 		}
 
 		onAuthRequirePasswordReset: {
 			mainStack.pop(page)
-			JS.createPage("PasswordReset", {}, page)
+			JS.createPage("PasswordReset", {})
 		}
 
 		onRegistrationRequest: {
 			mainStack.pop(page)
-			JS.createPage("Registration", {}, page)
+			JS.createPage("Registration", {})
 		}
 	}
 
 
 	StackView.onRemoved: {
 		cosClient.closeConnection()
-		destroy()
-	}
-
-	StackView.onActivated: {
-		toolbar.resetTitle()
-		reloadModel()
-	}
-
-	StackView.onDeactivated: {
-		/* UNLOAD */
 	}
 
 
-	function reloadModel() {
-		list.model.clear()
-
-		list.model.append({
-							  labelTitle: qsTr("Rangsor"),
-							  page: "Score",
-							  params: {}
-						  })
-
-		if (cosClient.userRoles & Client.RoleTeacher)
-			list.model.append({
-								  labelTitle: qsTr("Pályák kezelése"),
-								  page: "TeacherMaps",
-								  params: {}
-							  })
-
-		if (cosClient.userRoles & Client.RoleAdmin)
-			list.model.append({
-								  labelTitle: qsTr("Szerver beállításai"),
-								  page: "ServerSettings",
-								  params: {}
-							  })
-
-		if (cosClient.userRoles & Client.RoleAdmin)
-			list.model.append({
-								  labelTitle: qsTr("Felhasználók kezelése"),
-								  page: "AdminUsers",
-								  params: {}
-							  })
-
-
-		if (cosClient.userRoles & Client.RoleGuest)
-			list.model.append({
-								  labelTitle: qsTr("Bejelentkezés"),
-								  page: "Login",
-								  params: {}
-							  })
-	}
 
 
 	function windowClose() {
 		return true
 	}
 
-
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
+	function pageStackBack() {
 		return false
 	}
 }
+
+

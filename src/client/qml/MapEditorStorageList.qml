@@ -35,7 +35,7 @@ QPagePanel {
 
 
 
-	function populated() { getList() }
+	onPopulated: getList()
 
 	function getList() {
 		storageWidget.load(map.storageListGet())

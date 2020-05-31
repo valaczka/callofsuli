@@ -102,15 +102,15 @@ void TeacherGroups::getGroup(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList l;
 	l << refid;
 
-	QJsonArray students;
+	QJsonArray users;
 
-	m_client->db()->execSelectQuery("SELECT bindGroupStudent.username as username, firstname, lastname, isTeacher, active, classid, classname "
+	m_client->db()->execSelectQuery("SELECT bindGroupStudent.username as username, firstname, lastname, isTeacher, active, classid, class.name as classname "
 									"FROM bindGroupStudent "
 									"LEFT JOIN user ON (user.username=bindGroupStudent.username) "
 									"LEFT JOIN class ON (class.id=user.classid) "
-									"WHERE groupid=? ORDER BY firstname, lastname", l, &students);
+									"WHERE groupid=? ORDER BY firstname, lastname", l, &users);
 
-	(*jsonResponse)["students"] = students;
+	(*jsonResponse)["users"] = users;
 
 
 
@@ -204,8 +204,8 @@ void TeacherGroups::updateGroup(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	if (m_jsonData.contains("students")) {
-		QJsonArray userlist = m_jsonData.value("students").toArray();
+	if (m_jsonData.contains("users")) {
+		QJsonArray userlist = m_jsonData.value("users").toArray();
 
 		QVariantMap p1;
 		p1[":id"] = groupid;
@@ -230,18 +230,19 @@ void TeacherGroups::updateGroup(QJsonObject *jsonResponse, QByteArray *)
 				m_client->db()->db().rollback();
 				return;
 			}
-		}
 
 
-		p1[":id2"] = groupid;
 
-		if (!m_client->db()->execListQuery("INSERT INTO bindGroupStudent(groupid, username) "
-										   "SELECT :id as groupid, T.username as username "
-										   "FROM (SELECT column1 as username FROM (values ?l? ) EXCEPT SELECT username from bindGroupStudent WHERE groupid=:id2) T",
-										   ul, p1, true)) {
-			(*jsonResponse)["error"] = "update error";
-			m_client->db()->db().rollback();
-			return;
+			p1[":id2"] = groupid;
+
+			if (!m_client->db()->execListQuery("INSERT INTO bindGroupStudent(groupid, username) "
+											   "SELECT :id as groupid, T.username as username "
+											   "FROM (SELECT column1 as username FROM (values ?l? ) EXCEPT SELECT username from bindGroupStudent WHERE groupid=:id2) T",
+											   ul, p1, true)) {
+				(*jsonResponse)["error"] = "update error";
+				m_client->db()->db().rollback();
+				return;
+			}
 		}
 	}
 
@@ -273,18 +274,18 @@ void TeacherGroups::updateGroup(QJsonObject *jsonResponse, QByteArray *)
 				m_client->db()->db().rollback();
 				return;
 			}
-		}
 
 
-		p1[":id2"] = groupid;
+			p1[":id2"] = groupid;
 
-		if (!m_client->db()->execListQuery("INSERT INTO bindGroupClass(groupid, classid) "
-										   "SELECT :id as groupid, T.classid as classid "
-										   "FROM (SELECT column1 as classid FROM (values ?l? ) EXCEPT SELECT classid from bindGroupClass WHERE groupid=:id2) T",
-										   ul, p1, true)) {
-			(*jsonResponse)["error"] = "update error";
-			m_client->db()->db().rollback();
-			return;
+			if (!m_client->db()->execListQuery("INSERT INTO bindGroupClass(groupid, classid) "
+											   "SELECT :id as groupid, T.classid as classid "
+											   "FROM (SELECT column1 as classid FROM (values ?l? ) EXCEPT SELECT classid from bindGroupClass WHERE groupid=:id2) T",
+											   ul, p1, true)) {
+				(*jsonResponse)["error"] = "update error";
+				m_client->db()->db().rollback();
+				return;
+			}
 		}
 	}
 
@@ -317,18 +318,18 @@ void TeacherGroups::updateGroup(QJsonObject *jsonResponse, QByteArray *)
 				m_client->db()->db().rollback();
 				return;
 			}
-		}
 
 
-		p1[":id2"] = groupid;
+			p1[":id2"] = groupid;
 
-		if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap(groupid, mapid) "
-										   "SELECT :id as groupid, T.mapid as mapid "
-										   "FROM (SELECT column1 as mapid FROM (values ?l? ) EXCEPT SELECT mapid from bindGroupMap WHERE groupid=:id2) T",
-										   ul, p1, true)) {
-			(*jsonResponse)["error"] = "update error";
-			m_client->db()->db().rollback();
-			return;
+			if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap(groupid, mapid) "
+											   "SELECT :id as groupid, T.mapid as mapid "
+											   "FROM (SELECT column1 as mapid FROM (values ?l? ) EXCEPT SELECT mapid from bindGroupMap WHERE groupid=:id2) T",
+											   ul, p1, true)) {
+				(*jsonResponse)["error"] = "update error";
+				m_client->db()->db().rollback();
+				return;
+			}
 		}
 	}
 
@@ -348,18 +349,43 @@ void TeacherGroups::updateGroup(QJsonObject *jsonResponse, QByteArray *)
 
 void TeacherGroups::removeGroup(QJsonObject *jsonResponse, QByteArray *)
 {
-	int groupid = m_jsonData.value("id").toInt();
+	int groupid = m_jsonData.value("id").toInt(-1);
 
-	QVariantList params;
-	params << groupid;
-	params << m_client->clientUserName();
+	if (groupid != -1) {
+		QVariantList params;
+		params << groupid;
+		params << m_client->clientUserName();
 
-	if (!m_client->db()->execSimpleQuery("DELETE FROM studentgroup WHERE id=? AND owner=?", params)) {
-		(*jsonResponse)["error"] = "internal db error";
+		if (!m_client->db()->execSimpleQuery("DELETE FROM studentgroup WHERE id=? AND owner=?", params)) {
+			(*jsonResponse)["error"] = "internal db error";
+			return;
+		}
+
+		(*jsonResponse)["removed"] = groupid;
 		return;
 	}
 
-	(*jsonResponse)["removed"] = groupid;
+	QVariantList list = m_jsonData.value("list").toArray().toVariantList();
+
+	if (!list.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantList ulist;
+
+	for (int i=0; i<list.count(); ++i) {
+		ulist << m_client->clientUserName();
+	}
+
+	QVariantList data;
+	data << QVariant(list);
+	data << QVariant(ulist);
+
+	if (m_client->db()->execBatchQuery("DELETE FROM studentgroup WHERE id=? AND owner=?", data))
+		(*jsonResponse)["removed"] = QJsonArray::fromVariantList(list);
+	else
+		(*jsonResponse)["error"] = "sql error";
 }
 
 
@@ -432,4 +458,142 @@ void TeacherGroups::getExcludedMaps(QJsonObject *jsonResponse, QByteArray *)
 									"ORDER BY name", params, &l);
 
 	(*jsonResponse)["list"] = l;
+}
+
+
+
+/**
+ * @brief TeacherGroups::addMaps
+ * @param jsonResponse
+ */
+
+void TeacherGroups::addMaps(QJsonObject *jsonResponse, QByteArray *)
+{
+	int groupid = m_jsonData.value("id").toInt(-1);
+	QJsonArray maplist = m_jsonData.value("list").toArray();
+
+	if (groupid == -1 || !maplist.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantMap params;
+
+	m_client->db()->db().transaction();
+
+	QVariantMap p1;
+	p1[":id"] = groupid;
+	p1[":id2"] = groupid;
+
+	QVariantList ul;
+
+	foreach (QJsonValue v, maplist) {
+		ul << v.toInt();
+	}
+
+	if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap(groupid, mapid) "
+									   "SELECT :id as groupid, T.mapid as mapid "
+									   "FROM (SELECT column1 as mapid FROM (values ?l? ) EXCEPT SELECT mapid from bindGroupMap WHERE groupid=:id2) T",
+									   ul, p1, true)) {
+		(*jsonResponse)["error"] = "update error";
+		m_client->db()->db().rollback();
+		return;
+	}
+
+
+	(*jsonResponse)["updated"] = groupid;
+
+	m_client->db()->db().commit();
+}
+
+
+/**
+ * @brief TeacherGroups::addClasses
+ * @param jsonResponse
+ */
+
+void TeacherGroups::addClasses(QJsonObject *jsonResponse, QByteArray *)
+{
+	int groupid = m_jsonData.value("id").toInt(-1);
+	QJsonArray maplist = m_jsonData.value("list").toArray();
+
+	if (groupid == -1 || !maplist.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantMap params;
+
+	m_client->db()->db().transaction();
+
+	QVariantMap p1;
+	p1[":id"] = groupid;
+	p1[":id2"] = groupid;
+
+	QVariantList ul;
+
+	foreach (QJsonValue v, maplist) {
+		ul << v.toInt();
+	}
+
+	if (!m_client->db()->execListQuery("INSERT INTO bindGroupClass(groupid, classid) "
+									   "SELECT :id as groupid, T.classid as classid "
+									   "FROM (SELECT column1 as classid FROM (values ?l? ) EXCEPT SELECT classid from bindGroupClass WHERE groupid=:id2) T",
+									   ul, p1, true)) {
+		(*jsonResponse)["error"] = "update error";
+		m_client->db()->db().rollback();
+		return;
+	}
+
+
+	(*jsonResponse)["updated"] = groupid;
+
+	m_client->db()->db().commit();
+}
+
+
+
+
+/**
+ * @brief TeacherGroups::addUsers
+ * @param jsonResponse
+ */
+
+void TeacherGroups::addUsers(QJsonObject *jsonResponse, QByteArray *)
+{
+	int groupid = m_jsonData.value("id").toInt(-1);
+	QJsonArray maplist = m_jsonData.value("list").toArray();
+
+	if (groupid == -1 || !maplist.count()) {
+		(*jsonResponse)["error"] = "invalid parameters";
+		return;
+	}
+
+	QVariantMap params;
+
+	m_client->db()->db().transaction();
+
+	QVariantMap p1;
+	p1[":id"] = groupid;
+	p1[":id2"] = groupid;
+
+	QVariantList ul;
+
+	foreach (QJsonValue v, maplist) {
+		ul << v.toString();
+	}
+
+	if (!m_client->db()->execListQuery("INSERT INTO bindGroupStudent(groupid, username) "
+									   "SELECT :id as groupid, T.username as username "
+									   "FROM (SELECT column1 as username FROM (values ?l? ) EXCEPT SELECT username from bindGroupStudent WHERE groupid=:id2) T",
+									   ul, p1, true)) {
+		(*jsonResponse)["error"] = "update error";
+		m_client->db()->db().rollback();
+		return;
+	}
+
+
+	(*jsonResponse)["updated"] = groupid;
+
+	m_client->db()->db().commit();
 }

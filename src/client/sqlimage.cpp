@@ -90,8 +90,13 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 		QByteArray outByteArray = m.value("content").toByteArray();
 		QPixmap outPixmap = QPixmap();
 		outPixmap.loadFromData(outByteArray);
-		if (!outPixmap.isNull())
-			return outPixmap;
+
+		if (!outPixmap.isNull()) {
+			QPixmap resized = outPixmap.scaled(requestedSize, Qt::KeepAspectRatio);
+			if (size)
+				*size = resized.size();
+			return resized;
+		}
 	} else {
 		int width = 100;
 		int height = 50;

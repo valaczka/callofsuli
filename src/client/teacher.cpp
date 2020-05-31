@@ -70,11 +70,17 @@ void Teacher::onJsonMapsReceived(const QJsonObject &object, const QByteArray &bi
 	if (func == "getAllMap")
 		emit mapListLoaded(data.value("list").toArray());
 	else if (func == "getMap")
-		emit mapReceived(data, binaryData);
+		emit mapReceived(data);
+	else if (func == "getMapData")
+		emit mapDataReceived(data, binaryData);
 	else if (func == "createMap")
 		emit mapCreated(data);
 	else if (func == "updateMap")
 		emit mapUpdated(data);
+	else if (func == "updateMapData")
+		emit mapUpdated(data);
+	else if (func == "removeMap")
+		emit mapRemoved(data);
 }
 
 
@@ -101,6 +107,20 @@ void Teacher::onJsonGroupsReceived(const QJsonObject &object, const QByteArray &
 	else if (func == "createGroup")
 		emit groupCreated(data);
 	else if (func == "updateGroup")
+		emit groupUpdated(data);
+	else if (func == "removeGroup")
+		emit groupRemoved(data);
+	else if (func == "getExcludedMaps")
+		emit groupExcludedMapsReceived(data);
+	else if (func == "getExcludedUsers")
+		emit groupExcludedUsersReceived(data);
+	else if (func == "getExcludedClasses")
+		emit groupExcludedClassesReceived(data);
+	else if (func == "addMaps")
+		emit groupUpdated(data);
+	else if (func == "addClasses")
+		emit groupUpdated(data);
+	else if (func == "addUsers")
 		emit groupUpdated(data);
 }
 

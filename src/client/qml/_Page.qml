@@ -6,66 +6,51 @@ import "Style"
 import "JScript.js" as JS
 
 
-Page {
+QPage {
 	id: page
 
-	header: QToolBar {
-		id: toolbar
+	//requiredPanelWidth: 900
 
-		title: "PAGE"
+	title: ""
 
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
+	mainToolBarComponent: QToolBusyIndicator { running: true }
 
-		/*Row {
-			QToolBusyIndicator { running: .isBusy }
-			QMenuButton {
-				MenuItem {
-					text:
-				}
-			}
-		}*/
-	}
-
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
+	pageContextMenu: QMenu {
+		MenuItem {
+		}
 	}
 
 
+	onlyPanel: QPagePanel {
+		id: panel
 
-	/* CONTENT */
+		title: page.title
+		maximumWidth: 600
 
+		//onPanelActivated:
+		//onPopulated:
 
-	StackView.onRemoved: destroy()
+		Connections {
+			target: page
+			//onPageActivated:
+		}
 
-	StackView.onActivated: {
-		toolbar.resetTitle()
-			/* LOAD */
 	}
 
-	StackView.onDeactivated: {
-			/* UNLOAD */
+	onPageActivated: {
+		panels = [
+					{ url: "", params: { }, fillWidth: false},
+					{ url: "", params: { }, fillWidth: true}
+				]
 	}
+
 
 	function windowClose() {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
-		/* BACK */
-
+	function pageStackBack() {
 		return false
 	}
+
 }

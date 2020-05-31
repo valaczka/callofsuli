@@ -30,10 +30,16 @@ QToolButton {
 						  }
 	}
 
+	Action {
+		id: actionUndo
+		shortcut: "Ctrl+Z"
+		enabled: button.enabled
+		onTriggered: button.undo()
+	}
+
 	onPressAndHold: {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Visszavonás")
-		d.item.newField.visible = false
 		d.item.simpleSelect = true
 		d.item.list.modelTitleRole = "desc"
 		d.item.list.modelRightRole = "id"

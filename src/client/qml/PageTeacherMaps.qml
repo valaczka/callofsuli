@@ -1,202 +1,94 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtGraphicalEffects 1.0
+import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
 
-Page {
-	id: page
+QPage {
+	id: pageTeacherMap
+
+	title: qsTr("Pályák")
+
+	mainToolBarComponent: QToolBusyIndicator { running: teacher.isBusy }
+
+	signal mapSelected(var id, var name)
 
 	Teacher {
 		id: teacher
 		client: cosClient
 
-		onMapListLoaded: setModel(list)
 		onMapCreated: listReload()
+
 		onMapUpdated: {
-			if (data.error) {
-				client.sendMessageError("ADATBÁZIS", "HIBA", data.error)
+			if (mapData.error) {
+				client.sendMessageError("ADATBÁZIS", "HIBA", mapData.error)
 			}
+			listReload()
 		}
 
-		onMapReceived: {
-			var o = JS.createPage("MapEditor",
-								  {
+		onMapRemoved: {
+			if (mapData.error) {
+				client.sendMessageError("ADATBÁZIS", "HIBA", mapData.error)
+			}
+			listReload()
+		}
+
+		onMapDataReceived: {
+			var o = JS.createPage("MapEditor", {
 									  mapId: jsonData["id"],
 									  mapName: jsonData["name"],
-									  mapBinaryFormat: true,
-								  },
-								  page)
-			o.map.loadFromJson(mapData)
+									  mapBinaryFormat: true
+								  })
+			o.pagePopulated.connect(function() {
+				/*o.map.loadFromFile("AAA.cosm")
+					o.map.mapOriginalFile = "AAA.cosm"
+					o.mapName = "AAA.cosm"*/
 
-			o.map.mapSaved.connect(page.onMapSaved)
+				o.map.loadFromJson(mapData)
 
-			teacher.isBusyChanged.connect(o.setBusy)
+				o.map.mapSaved.connect(pageTeacherMap.onMapSaved)
 
-			o.Component.onDestruction.connect(function() {
-				teacher.isBusyChanged.disconnect(o.setBusy)
+				teacher.isBusyChanged.connect(o.setBusy)
+
+				o.Component.onDestruction.connect(function() {
+					teacher.isBusyChanged.disconnect(o.setBusy)
+				})
 			})
 		}
 	}
 
-	header: QToolBar {
-		id: toolbar
-
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
-
-		Row {
-			QToolBusyIndicator { running: teacher.isBusy }
-			QMenuButton {
-				MenuItem {
-					text: qsTr("Új pálya")
-					onClicked:  {
-						var d = JS.dialogCreateQml("TextField", {title: qsTr("Új pálya neve")})
-						d.accepted.connect(function(data) {
-							teacher.send({"class": "teacherMaps", "func": "createMap", "name": data })
-						})
-						d.open()
-					}
-				}
-			}
-		}
-	}
 
 
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
+	onMapSelected: if (id !== -1)
+					   swipeToPage(1)
 
+	onPageActivated: listReload()
 
-
-	QPagePanel {
-		id: p
-
-		maximumWidth: 800
-
-		anchors.fill: parent
-
-		blurSource: bgImage
-
-		QListItemDelegate {
-			id: listMaps
-			anchors.fill: parent
-
-			isObjectModel: true
-
-			modelTitleRole: "name"
-			modelSubtitleRole: "labelSubtitle"
-
-			onClicked: teacher.send({"class": "teacherMaps", "func": "getMap", "id": model.get(index).id })
-
-			onLongPressed: {
-				listRigthMenu.modelIndex = index
-				listRigthMenu.popup()
-			}
-
-			onRightClicked: {
-				listRigthMenu.modelIndex = index
-				listRigthMenu.popup()
-			}
-
-			Keys.onPressed: {
-				if (event.key === Qt.Key_Insert) {
-					editServer(-1)
-				} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
-					editServer(listMenu.model.get(listMenu.currentIndex).id)
-				} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
-					/*var d = JS.dialogCreate(dlgDelete)
-					d.open()*/
-				}
-			}
-		}
-
-		QMenu {
-			id: listRigthMenu
-
-			property int modelIndex: -1
-
-
-			MenuItem {
-				text: qsTr("Szerkesztés")
-				//onClicked: editServer(listMenu.model.get(listRigthMenu.modelIndex).id)
-			}
-
-			MenuItem {
-				text: qsTr("Törlés")
-
-
-			}
-
-			MenuSeparator {}
-
-			MenuItem {
-				text: qsTr("Új pálya")
-			}
-		}
-
-	}
-
-
-
-
-
-
-	function onMapSaved(data, uuid, mapid) {
-		teacher.send({"class": "teacherMaps", "func": "updateMap", "id": mapid }, data)
-	}
-
-
-	StackView.onRemoved: destroy()
-
-	StackView.onActivated: {
-		toolbar.title = qsTr("Pályák")
-		listReload()
-	}
-
-	StackView.onDeactivated: {
-		/* UNLOAD */
-	}
-
-
-	function listReload() {
-		teacher.send({"class": "teacherMaps", "func": "getAllMap"})
-	}
-
-
-	function setModel(list) {
-		listMaps.model.clear()
-		for (var i=0; i<list.length; i++) {
-			var o = list[i]
-			o.labelSubtitle = o.timeCreated+" "+o.timeModified+" v"+o.version
-			o.toolTip = "Objectives "+o.objectives
-			listMaps.model.append(o)
-		}
-
-	}
+	panels: [
+		{ url: "TeacherMapList.qml", params: { teacher: teacher }, fillWidth: false},
+		{ url: "TeacherMapMenu.qml", params: { teacher: teacher }, fillWidth: true}
+		//{ url: "AdminUserData.qml", params: { adminUsers: adminUsers }, fillWidth: true}
+	]
 
 	function windowClose() {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
-		/* BACK */
-
+	function pageStackBack() {
 		return false
+	}
+
+
+	function listReload() {
+		if (teacher)
+			teacher.send({"class": "teacherMaps", "func": "getAllMap"})
+		mapSelected(-1, "")
+	}
+
+	function onMapSaved(data, uuid, mapid) {
+		teacher.send({"class": "teacherMaps", "func": "updateMapData", "id": mapid }, data)
 	}
 }

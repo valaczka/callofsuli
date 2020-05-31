@@ -7,34 +7,26 @@ import "Style"
 import "JScript.js" as JS
 
 
-Page {
+QPage {
 	id: page
 
-	title: cosClient.serverName
+	requiredPanelWidth: 900
 
-	header: QToolBar {
-		id: toolbar
+	title: qsTr("Jelszó beállítása")
 
-		title: qsTr("Jelszó beállítása")
+	onlyPanel: QPagePanel {
+		id: panel
 
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
-	}
-
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
-
-	QPagePanel {
-		id: p
-
-		anchors.fill: parent
+		title: page.title
 		maximumWidth: 600
 
-		blurSource: bgImage
+		onPopulated: textUser.forceActiveFocus()
+
+		Connections {
+			target: page
+			onPageActivated: textUser.forceActiveFocus()
+		}
+
 
 		QGridLayout {
 			id: grid
@@ -80,8 +72,8 @@ Page {
 				id: buttonLogin
 				text: qsTr("Bejelentkezés")
 				enabled: textUser.acceptableInput &&
-						  textPassword.acceptableInput &&
-						  textPassword2.acceptableInput &&
+						 textPassword.acceptableInput &&
+						 textPassword2.acceptableInput &&
 						 textPassword.text === textPassword2.text
 
 				onClicked: cosClient.login(textUser.text, "", textPassword.text, true)
@@ -89,34 +81,12 @@ Page {
 		}
 	}
 
-	Connections {
-		target: cosClient
-	}
-
-
-	StackView.onRemoved: destroy()
-
-	StackView.onActivated: {
-		toolbar.resetTitle()
-		textUser.forceActiveFocus()
-	}
-
-
-
 	function windowClose() {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
+	function pageStackBack() {
 		return false
 	}
+
 }

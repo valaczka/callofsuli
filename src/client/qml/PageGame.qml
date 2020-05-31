@@ -41,7 +41,7 @@ Page {
 			d.onClosedAndDestroyed.connect(function() {
 				if (outro) {
 					console.debug("OUTRO", outro)
-					var o = JS.createPage("Intro", {"intro": outro}, page)
+					var o = JS.createPage("Intro", {"intro": outro})
 					o.pagePopulated.connect(function() {
 						pageGame._hasOutro = true
 					})
@@ -60,7 +60,7 @@ Page {
 
 		onIntroPopulated:  {
 			console.debug("INTRO", intro)
-			var o = JS.createPage("Intro", {"intro": intro}, page)
+			var o = JS.createPage("Intro", {"intro": intro})
 			o.pagePopulated.connect(function() {
 				pageGame._hasIntro = true
 			})

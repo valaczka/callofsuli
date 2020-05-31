@@ -17,16 +17,28 @@ QPagePanel {
 	title: qsTr("Szerverek")
 	icon: CosStyle.iconUsers
 
-	pageContextMenu: QMenu {
+
+	pageContextMenu: swipeMode ? menuSwipe : menuNoSwipe
+
+	QMenu {
+		id: menuSwipe
 		MenuItem { action: actionServerNew }
 		MenuItem { action: actionConnect }
 		MenuItem { action: actionRemove }
 		MenuItem { action: actionEdit }
 
-		MenuSeparator {}
+		MenuSeparator { }
 
 		MenuItem { action: actionAbout }
 		MenuItem { action: actionExit }
+	}
+
+	QMenu {
+		id: menuNoSwipe
+		MenuItem { action: actionServerNew }
+		MenuItem { action: actionConnect }
+		MenuItem { action: actionRemove }
+		MenuItem { action: actionEdit }
 	}
 
 	QPageHeader {
@@ -36,18 +48,18 @@ QPagePanel {
 
 		labelCountText: serverList.selectedItemCount
 
-		searchText.onTextChanged: mainSearch.text = searchText.text
-
-		QTextField {
+		mainItem: QTextField {
 			id: mainSearch
 			width: parent.width
 
-			placeholderText: qsTr("Keresés...")
+			lineVisible: false
+			clearAlwaysVisible: true
 
-			onTextChanged: header.searchText.text = mainSearch.text
+			placeholderText: qsTr("Keresés...")
 		}
 
 		onSelectAll: serverList.selectAll()
+		onDeselectAll: serverList.selectAll(false)
 	}
 
 
@@ -83,7 +95,6 @@ QPagePanel {
 
 		model: userProxyModel
 		isProxyModel: true
-		isObjectModel: true
 		modelTitleRole: "name"
 
 		autoSelectorChange: false
@@ -142,7 +153,6 @@ QPagePanel {
 		id: actionServerNew
 		text: qsTr("Új szerver")
 		onTriggered: pageStart.serverCreate()
-		shortcut: "Ins"
 	}
 
 	Action {
@@ -150,8 +160,6 @@ QPagePanel {
 		text: qsTr("Csatlakozás")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: pageStart.serverConnect(serverList.model.get(serverList.currentIndex).id)
-		shortcut: "F8"
-
 
 	}
 
@@ -160,7 +168,6 @@ QPagePanel {
 		text: qsTr("Szerkesztés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: pageStart.serverEdit(serverList.model.get(serverList.currentIndex).id)
-		shortcut: "F4"
 	}
 
 	Action {
@@ -180,8 +187,6 @@ QPagePanel {
 			})
 			d.open()
 		}
-		shortcut: "Del"
-
 	}
 
 	Action {
@@ -192,22 +197,6 @@ QPagePanel {
 	}
 
 
-
-	Action {
-		id: test
-		shortcut: "F1"
-		onTriggered: {
-			var o = JS.createPage("MapEditor", {}, panel)
-			o.pagePopulated.connect(function() {
-				o.map.loadFromFile("AAA.cosm")
-				o.map.mapOriginalFile = "AAA.cosm"
-				o.mapName = "AAA.cosm"
-			})
-		}
-	}
-
-
-
 	Connections {
 		target: servers
 
@@ -215,13 +204,12 @@ QPagePanel {
 		onServerInfoUpdated: servers.serverListReload()
 	}
 
-	function populated() {
-		console.debug("SERVER LIST POPULATED")
+	onPopulated: {
 		servers.serverListReload()
 		serverList.forceActiveFocus()
 	}
 
-	on_IsCurrentChanged:  if (_isCurrent) serverList.forceActiveFocus()
+	onPanelActivated: serverList.forceActiveFocus()
 }
 
 

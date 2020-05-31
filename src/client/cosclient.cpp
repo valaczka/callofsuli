@@ -31,6 +31,7 @@
 #include <QQuickItem>
 #include <QJsonDocument>
 
+#include "../version/buildnumber.h"
 #include "cosclient.h"
 #include "servers.h"
 #include "map.h"
@@ -39,6 +40,7 @@
 #include "adminusers.h"
 #include "game.h"
 #include "intro.h"
+#include "student.h"
 
 
 
@@ -57,6 +59,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_signalList["teacherMaps"] = "TeacherMaps";
 	m_signalList["teacherGroups"] = "TeacherGroups";
 	m_signalList["user"] = "User";
+	m_signalList["student"] = "Student";
 
 	m_serverDataDir = "";
 
@@ -183,6 +186,7 @@ void Client::registerTypes()
 	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
 	qmlRegisterType<Game>("COS.Client", 1, 0, "Game");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
+	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
 }
 
 
@@ -320,6 +324,10 @@ QVariant Client::getSetting(const QString &key)
 	QSettings s;
 	return s.value(key);
 }
+
+int Client::clientVersionMajor() { return _VERSION_MAJOR; }
+
+int Client::clientVersionMinor() { return _VERSION_MINOR; }
 
 void Client::setConnectionState(Client::ConnectionState connectionState)
 {

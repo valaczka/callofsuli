@@ -63,6 +63,8 @@ QPagePanel {
 
 			readOnly: username.length
 
+			onAccepted: actionSave.trigger()
+
 			validator: RegExpValidator { regExp: /[^@]+/ }
 		}
 
@@ -109,37 +111,41 @@ QPagePanel {
 		}
 
 		QGridButton {
-			id: buttonSave
-			text: username.length ? qsTr("Mentés") : qsTr("Létrehozás")
-			icon.source: username.length ? CosStyle.iconSave : CosStyle.iconAdd
-			enabled: textUserName.acceptableInput &&
-					  textFirstName.acceptableInput &&
-					  textLastName.acceptableInput &&
-					  textEmail.acceptableInput &&
-					  grid.modified
+			action: actionSave
+		}
+	}
 
-			onClicked: {
-				var m = JS.getSqlFields([textUserName, textFirstName, textLastName, textEmail, checkActive, checkTeacher, checkAdmin, comboClass])
+	Action {
+		id: actionSave
+
+		text: username.length ? qsTr("Mentés") : qsTr("Létrehozás")
+		icon.source: username.length ? CosStyle.iconSave : CosStyle.iconAdd
+		enabled: textUserName.acceptableInput &&
+				  textFirstName.acceptableInput &&
+				  textLastName.acceptableInput &&
+				  textEmail.acceptableInput &&
+				  grid.modified
+
+		onTriggered: {
+			var m = JS.getSqlFields([textUserName, textFirstName, textLastName, textEmail, checkActive, checkTeacher, checkAdmin, comboClass])
 
 
-				if (Object.keys(m).length) {
-					if (username.length)
-						m.username = username
+			if (Object.keys(m).length) {
+				if (username.length)
+					m.username = username
 
-					if (!m.email.length)
-						m.email = null
+				if (!m.email.length)
+					m.email = null
 
-					m["class"] = "user"
+				m["class"] = "user"
 
-					if (username.length)
-						m.func = "userUpdate"
-					else
-						m.func = "userCreate"
+				if (username.length)
+					m.func = "userUpdate"
+				else
+					m.func = "userCreate"
 
-					adminUsers.send(m)
-				}
+				adminUsers.send(m)
 			}
-
 		}
 	}
 
@@ -174,6 +180,8 @@ QPagePanel {
 				var o=list[i]
 				comboClass.model.append({text: o.name, value: o.id})
 			}
+
+			comboClass.recalculate()
 		}
 	}
 
@@ -196,9 +204,6 @@ QPagePanel {
 
 	onUsernameChanged: get()
 
-	function populated() {
-
-	}
 
 	function get() {
 		if (username.length)

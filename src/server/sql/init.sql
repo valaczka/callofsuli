@@ -111,6 +111,8 @@ CREATE TABLE map(
 	id INTEGER PRIMARY KEY,
 	owner TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	name TEXT,
+	uuid TEXT NOT NULL UNIQUE,
+	md5 TEXT,
 	timeCreated TEXT NOT NULL DEFAULT (datetime('now')),
 	timeModified TEXT NOT NULL DEFAULT (datetime('now')),
 	version INTEGER NOT NULL DEFAULT 0,
@@ -127,7 +129,7 @@ CREATE TABLE bindGroupMap(
 
 CREATE VIEW mapGroupInfo AS
 	SELECT studentGroupInfo.id as groupid, studentGroupInfo.name as groupname, studentGroupInfo.owner as groupowner, studentGroupInfo.username as username,
-	mapid, map.name as mapname
+	mapid, map.name as mapname, map.uuid as uuid, map.md5 as md5, map.version as version
 	FROM studentGroupInfo
 	LEFT JOIN bindGroupMap ON (bindGroupMap.groupid = studentGroupInfo.id)
 	LEFT JOIN map ON (map.id = bindGroupMap.mapid);

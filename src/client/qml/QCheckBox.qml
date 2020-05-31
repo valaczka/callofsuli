@@ -7,6 +7,8 @@ CheckBox {
 
 	property alias textColor: content.color
 
+	font.pixelSize: CosStyle.pixelSize
+
 	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 	ToolTip.visible: hovered && ToolTip.text.length
 

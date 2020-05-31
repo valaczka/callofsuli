@@ -52,9 +52,12 @@ public:
 
 public slots:
 	void getAllMap(QJsonObject *jsonResponse, QByteArray *);
-	void getMap(QJsonObject *jsonResponse, QByteArray *binaryResponse);
+	void getMap(QJsonObject *jsonResponse, QByteArray *);
+	void getMapData(QJsonObject *jsonResponse, QByteArray *binaryResponse);
 	void createMap(QJsonObject *jsonResponse, QByteArray *);
 	void updateMap(QJsonObject *jsonResponse, QByteArray *);
+	void updateMapData(QJsonObject *jsonResponse, QByteArray *);
+	void removeMap(QJsonObject *jsonResponse, QByteArray *);
 
 private:
 	void updateMapInfo(const int &id, const QVariantMap &params, const bool &increaseVersion = false);

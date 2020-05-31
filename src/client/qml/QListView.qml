@@ -1,14 +1,17 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import "Style"
 
 ListView {
 	id: view
 
 	property int pauseDuration: 0
+	property int refreshActivateY: -150
+	property bool refreshEnabled: false
 
 	clip: true
 	focus: true
-	boundsBehavior: Flickable.StopAtBounds
+	boundsBehavior: refreshEnabled ? Flickable.DragAndOvershootBounds : Flickable.StopAtBounds
 
 	ScrollIndicator.vertical: ScrollIndicator { }
 
@@ -17,7 +20,45 @@ ListView {
 
 	height: contentHeight
 
-/*
+	signal refreshRequest()
+
+	onDragEnded: if (refreshEnabled && header.refresh) refreshRequest()
+
+	Item {
+		id: header
+		y: -view.contentY - height
+		height: 100
+		width: parent.width
+
+		property bool refresh: state == "pulled" ? true : false
+
+		QFontImage {
+			id: arrow
+			anchors.centerIn: parent
+			icon: CosStyle.iconAdjust
+			width: CosStyle.pixelSize*1.5
+			height: CosStyle.pixelSize*1.5
+			size: CosStyle.pixelSize*1.5
+			color: CosStyle.colorPrimaryLighter
+			transformOrigin: Item.Center
+			Behavior on rotation { NumberAnimation { duration: 200 } }
+		}
+
+
+		states: [
+			State {
+				name: "base"; when: view.contentY >= refreshActivateY
+				PropertyChanges { target: arrow; rotation: 180 }
+			},
+			State {
+				name: "pulled"; when: view.contentY < refreshActivateY
+				PropertyChanges { target: arrow; rotation: 0 }
+				PropertyChanges { target: arrow; color: CosStyle.colorAccentLighter }
+			}
+		]
+	}
+
+	/*
 	add: Transition {
 		id: dispTrans
 		SequentialAnimation {
@@ -51,7 +92,7 @@ ListView {
 
 */
 
-/*
+	/*
 	populate: Transition {
 		id: popTrans
 		SequentialAnimation {

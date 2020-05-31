@@ -12,7 +12,7 @@ QSpinBox {
 	property bool watchModification: parent.watchModification
 
 	Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-	Layout.fillWidth: false
+	Layout.fillWidth: true
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
 

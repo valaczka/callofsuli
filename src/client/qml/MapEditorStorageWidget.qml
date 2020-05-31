@@ -16,8 +16,6 @@ QListItemDelegate {
 	signal storageSelected(int id)
 	signal objectiveSelected(int id)
 
-	isObjectModel: true
-
 	delegateHeight: CosStyle.twoLineHeight
 
 	modelTitleRole: "name"
@@ -74,7 +72,6 @@ QListItemDelegate {
 	function loadDialogStorages() {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Célpontok")
-		d.item.newField.visible = false
 		d.item.simpleSelect = true
 		d.item.list.modelTitleRole = "label"
 
@@ -93,7 +90,6 @@ QListItemDelegate {
 	function loadDialogObjectives(sId, sType) {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Fegyverek")
-		d.item.newField.visible = false
 		d.item.simpleSelect = true
 		d.item.list.modelTitleRole = "label"
 

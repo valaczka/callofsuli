@@ -55,7 +55,7 @@ void MapRepository::listReload()
 		return;
 
 	QVariantList list;
-	if (m_db->execSelectQuery("SELECT id, refid, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
+	if (m_db->execSelectQuery("SELECT id, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
 		emit listLoaded(list);
 }
 
@@ -74,7 +74,7 @@ QVariantMap MapRepository::getInfo(const int &id)
 	QVariantMap r;
 	QVariantList l;
 	l << id;
-	m_db->execSelectQueryOneRow("SELECT id, refid, uuid, md5 FROM mapdata WHERE id=?", l, &r);
+	m_db->execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE id=?", l, &r);
 
 	return r;
 }
@@ -86,15 +86,15 @@ QVariantMap MapRepository::getInfo(const int &id)
  * @return
  */
 
-QVariantMap MapRepository::getInfoByRefId(const int &refid)
+QVariantMap MapRepository::getInfo(const QString &uuid)
 {
 	if (!databaseOpen())
 		return QVariantMap();
 
 	QVariantMap r;
 	QVariantList l;
-	l << refid;
-	m_db->execSelectQueryOneRow("SELECT id, refid, uuid, md5 FROM mapdata WHERE refid=?", l, &r);
+	l << uuid;
+	m_db->execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE uuid=?", l, &r);
 
 	return r;
 }
@@ -155,25 +155,6 @@ int MapRepository::getId(const QString &uuid)
 }
 
 
-/**
- * @brief MapRepository::getRefId
- * @param uuid
- * @return
- */
-
-int MapRepository::getRefId(const QString &uuid)
-{
-	if (!databaseOpen())
-		return -1;
-
-	QVariantMap r;
-	QVariantList l;
-	l << uuid;
-	if (!m_db->execSelectQueryOneRow("SELECT refid FROM mapdata WHERE uuid=?", l, &r))
-		return -1;
-
-	return r.value("id", -1).toInt();
-}
 
 
 /**
@@ -182,7 +163,7 @@ int MapRepository::getRefId(const QString &uuid)
  * @return
  */
 
-QVariantMap MapRepository::create(const int &refid)
+QVariantMap MapRepository::create(const QString &uuid)
 {
 	if (!databaseOpen())
 		return QVariantMap();
@@ -190,7 +171,7 @@ QVariantMap MapRepository::create(const int &refid)
 	QJsonObject root;
 
 	QJsonObject fileinfo;
-	fileinfo["uuid"] = QUuid::createUuid().toString();
+	fileinfo["uuid"] = uuid.isEmpty() ? QUuid::createUuid().toString() : uuid;
 	fileinfo["timeCreated"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
 	fileinfo["timeModified"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
 
@@ -203,7 +184,6 @@ QVariantMap MapRepository::create(const int &refid)
 	QString md5 = QCryptographicHash::hash(mapdata, QCryptographicHash::Md5).toHex();
 
 	QVariantMap l;
-	l["refid"] = refid;
 	l["uuid"] = fileinfo.value("uuid").toString();
 	l["md5"] = md5;
 	l["data"] = mapdata;
@@ -216,6 +196,56 @@ QVariantMap MapRepository::create(const int &refid)
 
 
 /**
+ * @brief MapRepository::remove
+ * @param id
+ * @return
+ */
+
+QJsonObject MapRepository::remove(const int &id)
+{
+	QVariantMap orig = getInfo(id);
+
+	if (orig.isEmpty()) {
+		qWarning() << tr("Ismeretlen azonosító") << id;
+		return QJsonObject({{"error", "unknown id"}});
+	}
+
+	QVariantList l;
+	l << id;
+	if (m_db->execSimpleQuery("DELETE FROM mapdata WHERE id=?", l)) {
+		return QJsonObject({{"removed", id}});
+	}
+
+	return QJsonObject({{"error", "remove error"}});
+}
+
+
+/**
+ * @brief MapRepository::remove
+ * @param uuid
+ * @return
+ */
+
+QJsonObject MapRepository::remove(const QString &uuid)
+{
+	QVariantMap orig = getInfo(uuid);
+
+	if (orig.isEmpty()) {
+		qWarning() << tr("Ismeretlen azonosító") << uuid;
+		return QJsonObject({{"error", "unknown id"}});
+	}
+
+	QVariantList l;
+	l << uuid;
+	if (m_db->execSimpleQuery("DELETE FROM mapdata WHERE uuid=?", l)) {
+		return QJsonObject({{"removed", uuid}});
+	}
+
+	return QJsonObject({{"error", "remove error"}});
+}
+
+
+/**
  * @brief MapRepository::updateData
  * @param id
  * @param data
@@ -223,12 +253,12 @@ QVariantMap MapRepository::create(const int &refid)
  * @return
  */
 
-QJsonObject MapRepository::updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite)
+QJsonObject MapRepository::updateData(const QString &uuid, const QByteArray &data)
 {
-	QVariantMap orig = getInfoByRefId(id);
+	QVariantMap orig = getInfo(uuid);
 
 	if (orig.isEmpty()) {
-		qWarning() << tr("Ismeretlen azonosító") << id;
+		qWarning() << tr("Ismeretlen azonosító") << uuid;
 		return QJsonObject({{"error", "unknown id"}});
 	}
 
@@ -241,19 +271,13 @@ QJsonObject MapRepository::updateData(const int &id, const QByteArray &data, con
 	QJsonObject root = doc.object();
 	QJsonObject cosdata = root.value("callofsuli").toObject();
 
-	QString uuid = cosdata.value("uuid").toString();
+	QString uuidD = cosdata.value("uuid").toString();
 
 	QVariantMap params;
 
-	if (uuid != orig.value("uuid").toString()) {
-		emit uuidComapareError(id);
-
-		if (!uuidOverwrite) {
-			qWarning() << tr("Update map UUID error");
-			return QJsonObject({{"error", "uuid mismatch"}});
-		}
-
-		params["uuid"] = uuid;
+	if (uuidD != uuid) {
+		qWarning() << tr("Update map UUID error") << uuid << uuidD;
+		return QJsonObject({{"error", "uuid mismatch"}});
 	}
 
 	QString md5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
@@ -262,9 +286,9 @@ QJsonObject MapRepository::updateData(const int &id, const QByteArray &data, con
 	params["data"] = data;
 
 	QVariantMap binds;
-	binds[":id"] = orig.value("id");
+	binds[":uuid"] = uuid;
 
-	if (!m_db->execUpdateQuery("UPDATE mapdata set ? where id=:id", params, binds))
+	if (!m_db->execUpdateQuery("UPDATE mapdata set ? where uuid=:uuid", params, binds))
 		return QJsonObject();
 
 	cosdata["objectives"] = root.value("objectives").toArray().count();

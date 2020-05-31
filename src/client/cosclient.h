@@ -33,7 +33,6 @@
 #include <QQuickWindow>
 #include <QSettings>
 #include <QJsonObject>
-#include "../version/buildnumber.h"
 
 class Client : public QObject
 {
@@ -103,8 +102,8 @@ public:
 	QString userRankName() const { return m_userRankName; }
 	QString userFirstName() const { return m_userFirstName; }
 	QString userLastName() const { return m_userLastName; }
-	static int clientVersionMajor() { return _VERSION_MAJOR; }
-	static int clientVersionMinor() { return _VERSION_MINOR; }
+	static int clientVersionMajor();
+	static int clientVersionMinor();
 	QString serverDataDir() const { return m_serverDataDir; }
 
 	QString serverName() const { return m_serverName; }
@@ -182,6 +181,7 @@ signals:
 	void jsonTeacherGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonUserReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonGameReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void jsonStudentReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
 	void registrationRequest();
 	void registrationRequestSuccess();

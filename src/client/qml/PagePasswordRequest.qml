@@ -6,35 +6,27 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-
-Page {
+QPage {
 	id: page
 
-	title: cosClient.serverName
+	requiredPanelWidth: 900
 
-	header: QToolBar {
-		id: toolbar
+	title: qsTr("Elfelejtett jelszó")
 
-		title: qsTr("Elfelejtett jelszó")
+	onlyPanel: QPagePanel {
+		id: panel
 
-		backButton.visible: true
-		backButton.onClicked: mainStack.back()
-	}
-
-	Image {
-		id: bgImage
-		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
-	}
-
-	QPagePanel {
-		id: p
-
-		anchors.fill: parent
+		title: page.title
 		maximumWidth: 600
 
-		blurSource: bgImage
+		//onPanelActivated:
+		onPopulated: textEmail.forceActiveFocus()
+
+		Connections {
+			target: page
+			onPageActivated: textEmail.forceActiveFocus()
+		}
+
 
 		QGridLayout {
 			id: grid
@@ -89,29 +81,15 @@ Page {
 	}
 
 
-	StackView.onRemoved: destroy()
-
-	StackView.onActivated: {
-		toolbar.resetTitle()
-		textEmail.forceActiveFocus()
-	}
-
-
 
 	function windowClose() {
 		return true
 	}
 
-	function stackBack() {
-		if (mainStack.depth > page.StackView.index+1) {
-			if (!mainStack.get(page.StackView.index+1).stackBack()) {
-				if (mainStack.depth > page.StackView.index+1) {
-					mainStack.pop(page)
-				}
-			}
-			return true
-		}
-
+	function pageStackBack() {
 		return false
 	}
+
 }
+
+

@@ -32,6 +32,7 @@
 #include "teachermaps.h"
 #include "teachergroups.h"
 #include "user.h"
+#include "student.h"
 
 Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObject *parent)
 	: QObject(parent)
@@ -731,6 +732,9 @@ void Client::parseJson(const QByteArray &jsonData, const int &clientMsgId, const
 		q.start(func, &fdata, &bdata);
 	} else if (cl == "user") {
 		User q(this, cos, binaryData);
+		q.start(func, &fdata, &bdata);
+	} else if (cl == "student") {
+		Student q(this, cos, binaryData);
 		q.start(func, &fdata, &bdata);
 	} else {
 		sendError("invalidClass", clientMsgId);

@@ -21,7 +21,7 @@ QPagePanel {
 
 		modelTitleRole: "name"
 
-		onClicked: pageEditor.missionSelected(list.model[index].id, -1)
+		onClicked: pageEditor.missionSelected(list.model.get(index).id, -1)
 	}
 
 
@@ -32,9 +32,9 @@ QPagePanel {
 	}
 
 
-	function populated() { getList() }
+	onPopulated: getList()
 
 	function getList() {
-		list.model = map.missionListGet()
+		JS.setModel(list.model, map.missionListGet())
 	}
 }

@@ -246,14 +246,16 @@ QSqlQuery CosSql::listQuery(QString query, const QVariantList &list, const QVari
 	QSqlQuery q(m_db);
 
 	for (int i=0; i<list.count(); ++i) {
-		if (parenthesizeValues)
-			l << "(?)";
-		else
-			l << "?";
-		q.addBindValue(list.at(i));
+		QString key = QString(":l%1").arg(i);
+		l << (parenthesizeValues ? "("+key+")" : key);
 	}
 
 	q.prepare(query.replace(QString("?l?"), l.join(",")));
+
+	for (int i=0; i<list.count(); ++i) {
+		QString key = QString(":l%1").arg(i);
+		q.bindValue(key, list.at(i));
+	}
 
 	QStringList bindKeys = bindValues.keys();
 	foreach (QString k, bindKeys) {

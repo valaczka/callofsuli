@@ -23,6 +23,9 @@ Button {
 
 	Material.background: baseColor
 
+
+	font.pixelSize: CosStyle.pixelSize
+
 	/*background: Rectangle {
 		id: bgRect
 		implicitWidth: 10

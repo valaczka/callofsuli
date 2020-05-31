@@ -48,11 +48,11 @@ function createObject(_url, _parent, _prop) {
 
 
 
-function createPage(_qml, _prop, _parent) {
+function createPage(_qml, _prop) {
 	var comp = Qt.createComponent("Page"+_qml+".qml")
 
 	if (comp.status === Component.Ready) {
-		var obj = comp.createObject(_parent, _prop)
+		var obj = comp.createObject(mainWindow, _prop)
 		if (obj === null) {
 			console.error("Error creating object")
 			return null

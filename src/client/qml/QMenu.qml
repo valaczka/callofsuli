@@ -10,5 +10,5 @@ Menu {
 	Material.foreground: CosStyle.colorPrimaryLighter
 	Material.background: JS.setColorAlpha(Qt.darker(CosStyle.colorPrimaryDark,2.5), 0.95)
 
-	onClosed: console.debug("menu closed", menu)
+	font.pixelSize: CosStyle.pixelSize
 }

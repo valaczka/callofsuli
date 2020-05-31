@@ -114,7 +114,6 @@ QPagePanel {
 
 	onIntroIdChanged: get()
 
-	function populated() { }
 
 	function get() {
 		var p

@@ -32,6 +32,55 @@ QPage {
 
 	property alias map: map
 
+	subtitle: mapName
+
+	mainToolBar.backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
+	mainToolBar.backButton.onClicked: {
+		if (noDrawer)
+			mainStack.back()
+		else
+			drawerToggle()
+	}
+
+	mainToolBarComponent: Row {
+
+		QToolBusyIndicator {
+			anchors.verticalCenter: parent.verticalCenter
+			running: isPageBusy
+		}
+
+		QUndoButton  {
+			anchors.verticalCenter: parent.verticalCenter
+			id: undoButton
+			dbActivity: map
+			visible: _isMapLoaded
+		}
+
+		QToolButton {
+			anchors.verticalCenter: parent.verticalCenter
+			action: actionSave
+			display: AbstractButton.IconOnly
+		}
+	}
+
+	pageContextMenu: _isMapLoaded ? pageMenu : null
+
+	QMenu {
+		id: pageMenu
+
+		MenuItem {
+			text: qsTr("Mentés")
+			onClicked:  {
+				map.save(mapId, mapBinaryFormat)
+			}
+		}
+		MenuItem {
+			text: qsTr("Exportálás")
+			onClicked:  {
+				fileDialogSave.open()
+			}
+		}
+	}
 
 	MapEditor {
 		id: map
@@ -51,82 +100,34 @@ QPage {
 	}
 
 
-	header: QToolBar {
-		id: toolbar
 
-		title: mapName
+	mainToolBar.menuLoader.sourceComponent: QMenuButton {
+		icon.source: CosStyle.iconDown
 
-		backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
-		backButton.visible: true
-		backButton.onClicked: {
-			if (noDrawer)
-				mainStack.back()
-			else
-				drawerToggle()
+		visible: _isMapLoaded
+
+		MenuItem {
+			text: qsTr("Hadjáratok")
+			onClicked: pageEditor.loadCampaigns()
+		}
+
+		MenuItem {
+			text: qsTr("Küldetések")
+			onClicked: pageEditor.loadMissions()
+		}
+
+		MenuItem {
+			text: qsTr("Célpontok")
+			onClicked: pageEditor.loadStorages()
 		}
 
 
-		menuLoader.sourceComponent: QMenuButton {
-			icon.source: CosStyle.iconDown
-
-			visible: _isMapLoaded
-
-			MenuItem {
-				text: qsTr("Hadjáratok")
-				onClicked: pageEditor.loadCampaigns()
-			}
-
-			MenuItem {
-				text: qsTr("Küldetések")
-				onClicked: pageEditor.loadMissions()
-			}
-
-			MenuItem {
-				text: qsTr("Célpontok")
-				onClicked: pageEditor.loadStorages()
-			}
-
-
-			MenuItem {
-				text: qsTr("Introk/Outrok")
-				onClicked: pageEditor.loadIntros()
-			}
-		}
-
-		Row {
-			QToolBusyIndicator { running: isPageBusy }
-
-			QUndoButton  {
-				id: undoButton
-				dbActivity: map
-				visible: _isMapLoaded
-			}
-
-			QToolButton {
-				action: actionSave
-				display: AbstractButton.IconOnly
-			}
-
-			QMenuButtonComposite {
-				visible: _isMapLoaded
-
-				baseItems: [
-					MenuItem {
-						text: qsTr("Mentés")
-						onClicked:  {
-							map.save(mapId, mapBinaryFormat)
-						}
-					},
-					MenuItem {
-						text: qsTr("Exportálás")
-						onClicked:  {
-							fileDialogSave.open()
-						}
-					}
-				]
-			}
+		MenuItem {
+			text: qsTr("Introk/Outrok")
+			onClicked: pageEditor.loadIntros()
 		}
 	}
+
 
 
 
@@ -164,15 +165,7 @@ QPage {
 	}
 
 
-	Action {
-		id: actionUndo
-		shortcut: "Ctrl+Z"
-		enabled: undoButton.enabled
-		onTriggered: undoButton.undo()
-	}
-
-
-	StackView.onActivated: {
+	onPageActivated: {
 		if (_isFirstRun) {
 			pagePopulated()
 			_isFirstRun = false
@@ -213,7 +206,7 @@ QPage {
 
 	function loadSettings() {
 		_backPool = 0
-		toolbar.title = qsTr("Beállítások")
+		title = qsTr("Beállítások")
 		panels = [
 					{ url: "MapEditorSettings.qml", params: { map: map }, fillWidth: true }
 				]
@@ -222,7 +215,7 @@ QPage {
 
 	function loadCampaigns() {
 		_backPool = 0
-		toolbar.title = qsTr("Hadjáratok")
+		title = qsTr("Hadjáratok")
 		panels = [
 					{ url: "MapEditorCampaignList.qml", params: { map: map }, fillWidth: false },
 					{ url: "MapEditorCampaign.qml", params: { map: map }, fillWidth: true }
@@ -231,7 +224,7 @@ QPage {
 
 	function loadMissions() {
 		_backPool = 1
-		toolbar.title = qsTr("Küldetések")
+		title = qsTr("Küldetések")
 		panels = [
 					{ url: "MapEditorMissionList.qml", params: { map: map }, fillWidth: true }
 				]
@@ -240,7 +233,7 @@ QPage {
 
 	function loadMission(mId, isSum) {
 		_backPool = 2
-		toolbar.title = isSum ? qsTr("Összegzés") : qsTr("Küldetés")
+		title = isSum ? qsTr("Összegzés") : qsTr("Küldetés")
 		panels = [
 					{ url: "MapEditorMission.qml", params: { map: map, missionId: mId, isSummary: isSum }, fillWidth: false },
 					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
@@ -249,7 +242,7 @@ QPage {
 
 	function loadStorages() {
 		_backPool = 2
-		toolbar.title = qsTr("Célpontok")
+		title = qsTr("Célpontok")
 		panels = [
 					{ url: "MapEditorStorageList.qml", params: { map: map }, fillWidth: false },
 					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
@@ -258,7 +251,7 @@ QPage {
 
 	function loadIntros() {
 		_backPool = 2
-		toolbar.title = qsTr("Introk/Outrok")
+		title = qsTr("Introk/Outrok")
 		panels = [
 					{ url: "MapEditorIntroList.qml", params: { map: map }, fillWidth: false },
 					{ url: "MapEditorIntro.qml", params: { map: map }, fillWidth: true }

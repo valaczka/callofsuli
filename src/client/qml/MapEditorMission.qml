@@ -96,6 +96,8 @@ QPagePanel {
 		QCollapsible {
 			title: qsTr("Kapcsolatok")
 
+			collapsed: true
+
 			QTag {
 				id: missionCampaigns
 				title: qsTr("Hadjáratok:")
@@ -248,7 +250,7 @@ QPagePanel {
 							Layout.fillWidth: false
 
 							onClicked: {
-								var o = JS.createPage("Game", {}, page)
+								var o = JS.createPage("Game", {})
 								o.pagePopulated.connect(function() {
 									o.game.map = panel.map
 									o.game.missionId = panel.missionId
@@ -412,8 +414,6 @@ QPagePanel {
 
 	onMissionIdChanged: get()
 
-	function populated() { }
-
 	function get() {
 		var p
 
@@ -473,7 +473,6 @@ QPagePanel {
 	function loadDialogCampaigns() {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Hadjáratok")
-		d.item.newField.visible = false
 		d.item.list.selectorSet = true
 		d.item.list.modelTitleRole = "name"
 		d.item.list.modelSelectedRole = "selected"

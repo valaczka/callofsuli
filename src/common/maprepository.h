@@ -48,13 +48,14 @@ public:
 public slots:
 	void listReload();
 	QVariantMap getInfo(const int &id);
-	QVariantMap getInfoByRefId(const int &refid);
+	QVariantMap getInfo(const QString &uuid);
 	QByteArray getData(const int &id);
 	QByteArray getData(const QString &uuid);
 	int getId(const QString &uuid);
-	int getRefId(const QString &uuid);
-	QVariantMap create(const int &refid = QVariant::Invalid);
-	QJsonObject updateData(const int &id, const QByteArray &data, const bool &uuidOverwrite = false);
+	QVariantMap create(const QString &uuid = "");
+	QJsonObject remove(const int &id);
+	QJsonObject remove(const QString &uuid);
+	QJsonObject updateData(const QString &uuid, const QByteArray &data);
 
 protected slots:
 	bool databaseInit() override;

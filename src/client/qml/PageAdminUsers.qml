@@ -40,7 +40,7 @@ QPage {
 
 
 
-	StackView.onActivated: {
+	onPageActivated: {
 		panels = [
 					{ url: "AdminUserClassList.qml", params: { adminUsers: adminUsers }, fillWidth: false},
 					{ url: "AdminUserList.qml", params: { adminUsers: adminUsers }, fillWidth: true},

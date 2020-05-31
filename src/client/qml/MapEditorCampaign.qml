@@ -11,7 +11,14 @@ QPagePanel {
 	property MapEditor map: null
 	property int campaignId: -1
 
-	text: qsTr("Hadjárat küldetései")
+	title: qsTr("Hadjárat küldetései")
+	icon: CosStyle.iconUsers
+
+	/*pageContextMenu: QMenu {
+		MenuItem {
+			action: actionRemove
+		}
+	}*/
 
 
 	QLabel {
@@ -195,7 +202,6 @@ QPagePanel {
 
 	onCampaignIdChanged: get()
 
-	function populated() { }
 
 	function get() {
 		var p
@@ -246,7 +252,6 @@ QPagePanel {
 	function loadDialogCampaigns() {
 		var d = JS.dialogCreateQml("List")
 		d.item.title = qsTr("Hadjáratok")
-		d.item.newField.visible = false
 		d.item.list.selectorSet = true
 		d.item.list.modelTitleRole = "name"
 		d.item.list.modelSelectedRole = "selected"

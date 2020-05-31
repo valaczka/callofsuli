@@ -23,7 +23,7 @@ QListView {
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
 
-	property bool isObjectModel: isProxyModel || selectorSet || autoSelectorChange
+	property bool isObjectModel: !Array.isArray(model)
 	property bool isProxyModel: false
 
 	property int selectedItemCount: 0
@@ -39,6 +39,10 @@ QListView {
 	signal clicked(int index)
 	signal rightClicked(int index)
 	signal longPressed(int index)
+	signal keyInsertPressed(int index)
+	signal keyF2Pressed(int index)
+	signal keyF4Pressed(int index)
+	signal keyDeletePressed(int index)
 
 
 	model: ListModel {	}
@@ -298,6 +302,17 @@ QListView {
 		}
 	}
 
+	Keys.onPressed: {
+		if (event.key === Qt.Key_Insert) {
+			keyInsertPressed(view.currentIndex)
+		} else if (event.key === Qt.Key_F2) {
+			keyF2Pressed(view.currentIndex)
+		} else if (event.key === Qt.Key_F4) {
+			keyF4Pressed(view.currentIndex)
+		} else if (event.key === Qt.Key_Delete) {
+			keyDeletePressed(view.currentIndex)
+		}
+	}
 
 	onSelectedItemCountChanged: {
 		if (autoSelectorChange && selectedItemCount == 0)
