@@ -41,6 +41,7 @@
 #include "game.h"
 #include "intro.h"
 #include "student.h"
+#include "studentmap.h"
 
 
 
@@ -178,6 +179,8 @@ bool Client::registerResource(const QString &filename)
 void Client::registerTypes()
 {
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
+	qmlRegisterType<CosSql>("COS.Client", 1, 0, "CosSql");
+	qmlRegisterType<COSdb>("COS.Client", 1, 0, "COSdb");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
@@ -187,6 +190,7 @@ void Client::registerTypes()
 	qmlRegisterType<Game>("COS.Client", 1, 0, "Game");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
+	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");
 }
 
 

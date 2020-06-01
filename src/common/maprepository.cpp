@@ -196,6 +196,46 @@ QVariantMap MapRepository::create(const QString &uuid)
 
 
 /**
+ * @brief MapRepository::add
+ * @param uuid
+ * @param data
+ * @param md5
+ * @return
+ */
+
+int MapRepository::add(const QString &uuid, const QByteArray &data, const QString &md5)
+{
+	if (data.isEmpty()) {
+		qWarning() << tr("Üres pálya");
+		return -1;
+	}
+
+	if (uuid.isEmpty()) {
+		qWarning() << tr("Nincs UUID megadva");
+		return -1;
+	}
+
+	QString realmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
+
+	if (!md5.isEmpty() && realmd5 != md5) {
+		qWarning() << tr("MD5 checksum error");
+		return -1;
+	}
+
+	QVariantMap params;
+	params["uuid"] = uuid;
+	params["md5"] = realmd5;
+	params["data"] = data;
+
+	int id = m_db->execInsertQuery("INSERT OR REPLACE INTO mapdata (?k?) VALUES (?)", params);
+
+	return id;
+}
+
+
+
+
+/**
  * @brief MapRepository::remove
  * @param id
  * @return
@@ -292,6 +332,7 @@ QJsonObject MapRepository::updateData(const QString &uuid, const QByteArray &dat
 		return QJsonObject();
 
 	cosdata["objectives"] = root.value("objectives").toArray().count();
+	cosdata["md5"] = md5;
 
 	QStringList uuidList;
 

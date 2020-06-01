@@ -57,7 +57,6 @@ Map::Map(const QString &connectionName, QObject *parent)
 				 << "bindSummaryStorage";
 
 	m_databaseInitSql = QStringList();
-
 }
 
 
@@ -1045,7 +1044,6 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 {
 	Q_ASSERT (m_client);
 
-
 	if (steps) {
 		*steps += m_tableNames.count()
 				  +1		// open
@@ -1066,8 +1064,9 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 
 	QJsonDocument doc = binaryFormat ? QJsonDocument::fromBinaryData(data) : QJsonDocument::fromJson(data);
 
-	if (doc.isNull())
+	if (doc.isNull()) {
 		return QJsonObject();
+	}
 
 	if (steps && currentStep) {
 		emit mapLoadingProgress(++(*currentStep)/(*steps));
@@ -1078,16 +1077,18 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 
 
 
-	if (!JsonToTable(root.value("storage").toArray(), "storage", true))
+	if (!JsonToTable(root.value("storage").toArray(), "storage", true)) {
 		return QJsonObject();
+	}
 
 	if (steps && currentStep) {
 		emit mapLoadingProgress(++(*currentStep)/(*steps));
 		QCoreApplication::processEvents();
 	}
 
-	if (!JsonToTable(root.value("objective").toArray(), "objective", true))
+	if (!JsonToTable(root.value("objective").toArray(), "objective", true)) {
 		return QJsonObject();
+	}
 
 	if (steps && currentStep) {
 		emit mapLoadingProgress(++(*currentStep)/(*steps));
@@ -1095,8 +1096,9 @@ QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, 
 	}
 
 	foreach (QString t, m_tableNames) {
-		if (!JsonToTable(root[t].toArray(), t, false))
+		if (!JsonToTable(root[t].toArray(), t, false)) {
 			return QJsonObject();
+		}
 
 		if (steps && currentStep) {
 			emit mapLoadingProgress(++(*currentStep)/(*steps));

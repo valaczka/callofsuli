@@ -50,6 +50,9 @@ public:
 
 public slots:
 	void getMaps(QJsonObject *jsonResponse, QByteArray *);
+	void getMapData(QJsonObject *jsonResponse, QByteArray *binaryResponse);
+	void getMapResult(QJsonObject *jsonResponse, QByteArray *);
+
 };
 
 #endif // STUDENT_H

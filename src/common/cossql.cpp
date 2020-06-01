@@ -45,7 +45,9 @@ CosSql::~CosSql()
 {
 	if (m_db.isOpen()) {
 		qDebug().noquote() << tr("Adatbázis bezárása: ")+m_db.databaseName();
+		m_db.close();
 	}
+
 	qDebug() << "m_db" << m_db << "destroy";
 }
 
@@ -728,6 +730,15 @@ void CosSql::undo(const int &floor)
 	m_db.commit();
 }
 
+
+void CosSql::setCanUndo(int canUndo)
+{
+	if (m_canUndo == canUndo)
+		return;
+
+	m_canUndo = canUndo;
+	emit canUndoChanged(m_canUndo);
+}
 
 
 

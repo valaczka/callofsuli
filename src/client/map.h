@@ -87,6 +87,7 @@ public slots:
 	QVariantList objectiveListGet(const int &storageId = -1, const int filterLevel = -1);
 	QVariantMap objectiveInfo(const QString &type) const;
 
+
 private slots:
 	bool databaseInit() override;
 

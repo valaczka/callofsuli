@@ -14,7 +14,6 @@ QPage {
 	property int mapId: -1
 	property string mapName: ""
 	property bool mapBinaryFormat: true
-	property bool isPageBusy: false
 
 	property bool _isFirstRun: true
 	property bool _isMapLoaded: false
@@ -34,21 +33,7 @@ QPage {
 
 	subtitle: mapName
 
-	mainToolBar.backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
-	mainToolBar.backButton.onClicked: {
-		if (noDrawer)
-			mainStack.back()
-		else
-			drawerToggle()
-	}
-
 	mainToolBarComponent: Row {
-
-		QToolBusyIndicator {
-			anchors.verticalCenter: parent.verticalCenter
-			running: isPageBusy
-		}
-
 		QUndoButton  {
 			anchors.verticalCenter: parent.verticalCenter
 			id: undoButton
@@ -275,10 +260,6 @@ QPage {
 		return true
 	}
 
-
-	function setBusy(busy) {
-		pageEditor.isPageBusy=busy
-	}
 
 	function pageStackBack() {
 		if (_backPool == 2) {

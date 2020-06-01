@@ -10,14 +10,28 @@ import "JScript.js" as JS
 QPage {
 	id: pageMaps
 
+	property bool _isFirst: true
+
 	requiredPanelWidth: 900
 
 	title: qsTr("Pályák")
 	subtitle: cosClient.serverName
 
+
+	signal loadMap(var uuid, var md5, var maptitle)
+
 	Student {
 		id: student
 		client: cosClient
+
+		onMapRepositoryOpenError: {
+			var d = JS.dialogMessageError(qsTr("Adatbázis megnyitás"), qsTr("Nem sikerült megnyitni az adatbázist!"), databaseFile)
+			d.onClosedAndDestroyed.connect(function() {
+				mainStack.back()
+			})
+		}
+
+		onMapRepositoryOpened: listReload()
 	}
 
 	mainToolBarComponent: UserButton {
@@ -71,6 +85,11 @@ QPage {
 					padding: 2
 				}
 			}
+
+			onClicked: {
+				var m = listMaps.model.get(index)
+				pageMaps.loadMap(m.uuid, m.md5, m.mapname)
+			}
 		}
 
 		onPanelActivated: listReload()
@@ -98,11 +117,28 @@ QPage {
 	}
 
 
+	onLoadMap: {
+		var o = JS.createPage("StudentMap", {
+								  student: student,
+								  title: maptitle,
+								  mapUuid: uuid,
+								  mapMd5: md5
+							  })
+	}
+
+	onPageActivated: {
+		if (_isFirst) {
+			student.mapRepositoryOpen()
+			_isFirst = false
+		}
+	}
+
 
 	function listReload() {
-		if (student)
+		if (student && student.repositoryReady)
 			student.send({"class": "student", "func": "getMaps"})
 	}
+
 
 	function windowClose() {
 		return true

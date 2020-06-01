@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * cosdb.h
+ * studentmap.h
  *
- * Created on: 2020. 03. 28.
+ * Created on: 2020. 06. 01.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * COSdb
+ * StudentMap
  *
  *  This file is part of Call of Suli.
  *
@@ -32,46 +32,52 @@
  * SOFTWARE.
  */
 
-#ifndef COSDB_H
-#define COSDB_H
+#ifndef STUDENTMAP_H
+#define STUDENTMAP_H
 
 #include <QObject>
-#include "cossql.h"
+#include "map.h"
+#include "student.h"
 
-class COSdb : public QObject
+
+class StudentMap : public Map
 {
 	Q_OBJECT
 
+	Q_PROPERTY(Student * student READ student WRITE setStudent NOTIFY studentChanged)
+
 public:
-	Q_PROPERTY(CosSql* db READ db WRITE setDb NOTIFY dbChanged)
-	Q_PROPERTY(QString databaseFile READ databaseFile WRITE setDatabaseFile NOTIFY databaseFileChanged)
+	StudentMap(QObject *parent = nullptr);
 
-	explicit COSdb(const QString &connectionName = QString(), QObject *parent = nullptr);
-	virtual ~COSdb();
-
-	CosSql* db() const { return m_db; }
-	QString databaseFile() const { return m_databaseFile; }
-	bool databaseExists() const { return (QFile::exists(m_databaseFile)); }
+	Student* student() const { return m_student; }
 
 public slots:
-	bool databaseOpen();
+	bool loadFromRepository(const QString &uuid, const QString &md5 = "");
+	void onMapDataReceived(const QJsonObject &jsonData, const QByteArray &mapData);
+	void onMapResultListLoaded(const QJsonArray &list);
+	QVariantList missionList();
 
-	void setDb(CosSql* db);
-	void setDatabaseFile(QString databaseFile);
+	void setStudent(Student * student);
 
-protected slots:
-	virtual bool databaseInit() { return true; }
+private slots:
+	void onStudentChanged(Student *);
+
+private:
+	bool isCampaignCompleted(const int &campaignId);
 
 signals:
-	void databaseError(const QString &text);
-	void dbChanged(CosSql* db);
-	void databaseFileChanged(QString databaseFile);
+	void mapLoaded(const QString &uuid);
+	void mapLoadingStarted(const QString &uuid);
+	void mapDownloadRequest(const QString &uuid);
+	void mapDownloadError();
+	void mapDownloaded(const QString &uuid);
+	void mapResultUpdated();
 
-protected:
-	CosSql* m_db;
-	QString m_databaseFile;
-	bool m_isOwnCreated;
+	void studentChanged(Student * student);
 
+private:
+	QString m_uuid;
+	Student * m_student;
 };
 
-#endif // COSDB_H
+#endif // STUDENTMAP_H

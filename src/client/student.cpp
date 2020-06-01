@@ -38,6 +38,7 @@ Student::Student(QObject *parent)
 	: AbstractActivity(parent)
 {
 	m_mapRepository = new MapRepository("studentMapDb", this);
+	m_repositoryReady = false;
 }
 
 
@@ -54,11 +55,15 @@ Student::~Student()
 }
 
 
+/**
+ * @brief Student::clientSetup
+ */
 
 
 void Student::clientSetup()
 {
 	connect(m_client, &Client::jsonStudentReceived, this, &Student::onJsonReceived);
+	m_mapRepository->setDatabaseFile(QDir::toNativeSeparators(m_client->serverDataDir()+"/maps.db"));
 }
 
 
@@ -70,16 +75,45 @@ void Student::clientSetup()
 
 void Student::mapRepositoryOpen()
 {
-	Q_ASSERT (m_client);
-
-	m_mapRepository->setDatabaseFile(QDir::toNativeSeparators(m_client->serverDataDir()+"/maps.db"));
-
+	busyStackAdd("repositoryOpen", 0);
 	if (!m_mapRepository->databaseOpen()) {
-		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült megnyitni a pályák adatbázisát!"));
+		busyStackRemove("repositoryOpen", 0);
+		emit mapRepositoryOpenError(m_mapRepository->databaseFile());
 		return;
 	}
 
-	emit mapRepositoryOpened();
+	setRepositoryReady(true);
+
+	emit mapRepositoryOpened(m_mapRepository->databaseFile());
+	busyStackRemove("repositoryOpen", 0);
+}
+
+void Student::setRepositoryReady(bool repositoryReady)
+{
+	if (m_repositoryReady == repositoryReady)
+		return;
+
+	m_repositoryReady = repositoryReady;
+	emit repositoryReadyChanged(m_repositoryReady);
+}
+
+
+/**
+ * @brief Student::mapDownload
+ * @param uuid
+ */
+
+void Student::mapDownload(const QString &uuid)
+{
+	if (uuid.isEmpty())
+		return;
+
+	QJsonObject d;
+	d["class"] = "student";
+	d["func"] = "getMapData";
+	d["uuid"] = uuid;
+
+	this->send(d);
 }
 
 
@@ -101,4 +135,8 @@ void Student::onJsonReceived(const QJsonObject &object, const QByteArray &binary
 
 	if (func == "getMaps")
 		emit mapListLoaded(data.value("list").toArray());
+	else if (func == "getMapData")
+		emit mapDataReceived(data, binaryData);
+	else if (func == "getMapResult")
+		emit mapResultListLoaded(data.value("list").toArray());
 }

@@ -53,6 +53,7 @@ public slots:
 	QByteArray getData(const QString &uuid);
 	int getId(const QString &uuid);
 	QVariantMap create(const QString &uuid = "");
+	int add(const QString &uuid, const QByteArray &data, const QString &md5 = "");
 	QJsonObject remove(const int &id);
 	QJsonObject remove(const QString &uuid);
 	QJsonObject updateData(const QString &uuid, const QByteArray &data);

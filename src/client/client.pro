@@ -1,5 +1,4 @@
 QT += sql websockets quick multimedia
-#CONFIG += skip_version
 
 CONFIG += c++11
 
@@ -41,6 +40,7 @@ SOURCES += \
 		simplechoice.cpp \
 		sqlimage.cpp \
 		student.cpp \
+		studentmap.cpp \
 		teacher.cpp
 
 HEADERS += \
@@ -61,11 +61,12 @@ HEADERS += \
 	simplechoice.h \
 	sqlimage.h \
 	student.h \
+	studentmap.h \
 	teacher.h
 
 RESOURCES += \
-	qml/qml.qrc \
-	sql.qrc
+	clientsql.qrc \
+	qml/qml.qrc
 
 
 CONFIG(release, debug|release) {

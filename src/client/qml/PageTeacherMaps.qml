@@ -51,11 +51,11 @@ QPage {
 
 				o.map.mapSaved.connect(pageTeacherMap.onMapSaved)
 
-				teacher.isBusyChanged.connect(o.setBusy)
+				/*teacher.isBusyChanged.connect(o.setBusy)
 
 				o.Component.onDestruction.connect(function() {
 					teacher.isBusyChanged.disconnect(o.setBusy)
-				})
+				})*/
 			})
 		}
 	}

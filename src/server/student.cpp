@@ -66,9 +66,84 @@ void Student::getMaps(QJsonObject *jsonResponse, QByteArray *)
 	params << m_client->clientUserName();
 
 	QJsonArray l;
-	m_client->db()->execSelectQuery("SELECT groupid, groupname, groupowner, mapid, mapname "
-									"FROM mapGroupInfo WHERE username=? ORDER BY groupname, mapname",
+	m_client->db()->execSelectQuery("SELECT groupid, groupname, groupowner, mapid, mapname, version, uuid, md5 "
+									"FROM mapGroupInfo WHERE username=?",
 									params,
 									&l);
 	(*jsonResponse)["list"] = l;
+}
+
+
+/**
+ * @brief Student::getMapData
+ * @param jsonResponse
+ * @param binaryResponse
+ */
+
+
+void Student::getMapData(QJsonObject *jsonResponse, QByteArray *binaryResponse)
+{
+	int mapid = m_jsonData.value("id").toInt(-1);
+	QString uuid = m_jsonData.value("uuid").toString();
+
+	if (mapid != -1) {
+		QVariantList params;
+		params << mapid;
+		params << m_client->clientUserName();
+
+		m_client->db()->execSelectQueryOneRow("SELECT uuid FROM mapGroupInfo WHERE mapid=? and username=? GROUP BY uuid",
+											  params, jsonResponse);
+	} else if (!uuid.isEmpty()) {
+		QVariantList params;
+		params << uuid;
+		params << m_client->clientUserName();
+
+		m_client->db()->execSelectQueryOneRow("SELECT uuid FROM mapGroupInfo WHERE uuid=? and username=? GROUP BY uuid",
+											  params, jsonResponse);
+	}
+
+	if (jsonResponse->isEmpty()) {
+		(*jsonResponse)["error"] = "map not found";
+		return;
+	}
+
+	QString realuuid = (*jsonResponse).value("uuid").toString();
+
+	QVariantList l;
+	l << realuuid;
+
+	m_client->mapDb()->db()->execSelectQueryOneRow("SELECT md5 FROM mapdata WHERE uuid=?", l, jsonResponse);
+
+	QVariantMap mdata = m_client->mapDb()->db()->runSimpleQuery("SELECT data FROM mapdata WHERE uuid=?", l);
+
+	*binaryResponse = mdata.value("records").toList().value(0).toMap().value("data").toByteArray();
+	if (binaryResponse->isEmpty()) {
+		qWarning() << tr("Map data not found") << uuid;
+		(*jsonResponse)["error"] = "map data not found";
+		return;
+	}
+}
+
+
+/**
+ * @brief Student::getMapResult
+ * @param jsonResponse
+ */
+
+void Student::getMapResult(QJsonObject *jsonResponse, QByteArray *)
+{
+	QString uuid = m_jsonData.value("uuid").toString();
+
+	QVariantList params;
+	params << uuid;
+	params << m_client->clientUserName();
+
+	QJsonArray list;
+	m_client->db()->execSelectQuery("SELECT mission.id as missionid, mission.uuid as uuid, level, attempt, success "
+									"FROM mission "
+									"LEFT JOIN missionResultInfo ON (missionResultInfo.missionid=mission.id) "
+									"WHERE mapid=(SELECT id FROM map WHERE uuid=?) and username=?",
+									params, &list);
+
+	(*jsonResponse)["list"] = list;
 }

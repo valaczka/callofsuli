@@ -97,5 +97,7 @@
         <file>TeacherMapList.qml</file>
         <file>TeacherMapMenu.qml</file>
         <file>PageMaps.qml</file>
+        <file>PageStudentMap.qml</file>
+        <file>MapMissionList.qml</file>
     </qresource>
 </RCC>

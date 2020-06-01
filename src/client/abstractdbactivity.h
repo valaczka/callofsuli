@@ -46,12 +46,10 @@ class AbstractDbActivity : public COSdb
 {
 	Q_OBJECT
 
+public:
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
 	Q_PROPERTY(int canUndo READ canUndo WRITE setCanUndo NOTIFY canUndoChanged)
 
-	int m_canUndo;
-
-public:
 	explicit AbstractDbActivity(const QString &connectionName = QString(), QObject *parent = nullptr);
 
 	Client* client() const { return m_client; }
@@ -77,6 +75,7 @@ signals:
 
 protected:
 	Client* m_client;
+	int m_canUndo;
 
 };
 

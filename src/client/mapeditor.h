@@ -42,13 +42,14 @@ class MapEditor : public Map
 {
 	Q_OBJECT
 
+public:
+
 	Q_PROPERTY(QString mapUuid READ mapUuid WRITE setMapUuid NOTIFY mapUuidChanged)
 	Q_PROPERTY(QString mapTimeCreated READ mapTimeCreated WRITE setMapTimeCreated NOTIFY mapTimeCreatedChanged)
 	Q_PROPERTY(QString mapOriginalFile READ mapOriginalFile WRITE setMapOriginalFile NOTIFY mapOriginalFileChanged)
 	Q_PROPERTY(bool mapModified READ mapModified WRITE setMapModified NOTIFY mapModifiedChanged)
 
 
-public:
 	MapEditor(QObject *parent = nullptr);
 
 	QString mapUuid() const { return m_mapUuid; }

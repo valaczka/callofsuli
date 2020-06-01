@@ -257,6 +257,7 @@ void TeacherMaps::updateMapData(QJsonObject *jsonResponse, QByteArray *)
 	if (r.contains("timeModified"))  params["timeModified"] = r.value("timeModified").toString();
 
 	params["objectives"] = r.value("objectives").toInt();
+	params["md5"] = r.value("md5").toString();
 
 	updateMapInfo(mapid, params, true);
 

@@ -104,17 +104,8 @@ public:
 	bool dbCreated() const { return m_dbCreated; }
 	int canUndo() const { return m_canUndo; }
 
-
 private slots:
-	void setCanUndo(int canUndo)
-	{
-		if (m_canUndo == canUndo)
-			return;
-
-		m_canUndo = canUndo;
-		emit canUndoChanged(m_canUndo);
-	}
-
+	void setCanUndo(int canUndo);
 
 signals:
 	void canUndoChanged(int canUndo);

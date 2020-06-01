@@ -6,5 +6,5 @@ CREATE TABLE mapeditor (
 	mapid INTEGER,
 	originalFile TEXT,
 	uuid TEXT,
-	timeCreated TEX
+	timeCreated TEXT
 );

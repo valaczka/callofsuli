@@ -149,11 +149,19 @@ CREATE TABLE game(
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	level INTEGER NOT NULL DEFAULT 1,
 	active BOOL NOT NULL DEFAULT TRUE,
+	success BOOL NOT NULL DEFAULT FALSE,
 	hpLoss INTEGER,
 	timelength TEXT
 );
 
 
+CREATE VIEW missionResultInfo AS
+	SELECT mission.id as missionid, uuid, user.username, g.level as level,
+	(SELECT COUNT(*) FROM game WHERE missionuuid=uuid AND username=user.username AND level=g.level) as attempt,
+	(SELECT COUNT(*) FROM game WHERE missionuuid=uuid AND username=user.username AND level=g.level AND success=TRUE) as success
+	FROM mission
+	LEFT JOIN user
+	LEFT JOIN (SELECT DISTINCT username, missionuuid, level FROM game) g ON (g.username=user.username AND g.missionuuid=mission.uuid);
 
 CREATE TABLE level(
 	id INTEGER PRIMARY KEY

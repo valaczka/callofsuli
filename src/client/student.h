@@ -43,6 +43,8 @@ class Student : public AbstractActivity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(bool repositoryReady READ repositoryReady NOTIFY repositoryReadyChanged)
+
 public:
 	Student(QObject *parent=nullptr);
 	~Student();
@@ -50,18 +52,29 @@ public:
 	void clientSetup() override;
 
 	MapRepository* mapRepository() const { return m_mapRepository; }
-	void mapRepositoryOpen();
 
+	bool repositoryReady() const { return m_repositoryReady; }
+
+public slots:
+	void mapRepositoryOpen();
+	void setRepositoryReady(bool repositoryReady);
+	void mapDownload(const QString &uuid);
 
 signals:
-	void mapRepositoryOpened();
+	void mapRepositoryOpened(const QString &databaseFile);
+	void mapRepositoryOpenError(const QString &databaseFile);
 	void mapListLoaded(const QJsonArray &list);
+	void mapDataReceived(const QJsonObject &jsonData, const QByteArray &mapData);
+	void mapResultListLoaded(const QJsonArray &list);
+
+	void repositoryReadyChanged(bool repositoryReady);
 
 private slots:
 	void onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
 private:
 	MapRepository* m_mapRepository;
+	bool m_repositoryReady;
 };
 
 #endif // STUDENT_H
