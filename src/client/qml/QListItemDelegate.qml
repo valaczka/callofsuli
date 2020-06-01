@@ -73,7 +73,7 @@ QListView {
 
 		property color baseColor: modelBackgroundRole.length ? (
 																   isObjectModel ? model[modelBackgroundRole] : model.modelData[modelBackgroundRole]
-																   ) : CosStyle.colorPrimary
+																   ) : "transparent"
 
 		color: area.containsMouse ?
 				   (currentIndex === index ? Qt.lighter(view.currentColor, 1.3) :  Qt.lighter(baseColor, 1.3)) :
@@ -139,9 +139,11 @@ QListView {
 					text: item.labelTitle
 					color: modelTitleColorRole.length ? (
 															isObjectModel ? model[modelTitleColorRole] : model.modelData[modelTitleColorRole]
-															) : "black"
+															) : CosStyle.colorPrimaryLighter
 					maximumLineCount: 1
 					elide: Text.ElideRight
+
+					//font.family: "HVD Peace"
 				}
 
 				QLabel {
@@ -151,7 +153,7 @@ QListView {
 					font.weight: Font.Light
 					color: modelSubtitleColorRole.length ? (
 															   isObjectModel ? model[modelSubtitleColorRole] : model.modelData[modelSubtitleColorRole]
-															   ) : "black"
+															   ) : CosStyle.colorPrimary
 				}
 			}
 

@@ -5,19 +5,14 @@ import "Style"
 import "JScript.js" as JS
 
 Item {
-	id: item
+	id: control
 
 	implicitWidth: 500
 	implicitHeight: 200
 
 
-	property alias blurSource: effectsource.sourceItem
-	property alias blurRect: effectsource.sourceRect
-	property alias blurBrightness: brightnessEffect.brightness
-
-	property color borderColor: CosStyle.colorPrimaryDark
-	property color titleBgColor: Qt.darker(borderColor)
-	property color titleColor: CosStyle.colorPrimaryLight
+	property color borderColor: CosStyle.colorWarningDark
+	property color titleColor: CosStyle.colorAccentLighter
 
 	property string icon: ""
 	property alias title: labelTitle.text
@@ -33,15 +28,15 @@ Item {
 
 	property Menu pageContextMenu: null
 
-	readonly property bool swipeMode: item.SwipeView.view
-	property bool _isCurrent: item.SwipeView.isCurrentItem
+	readonly property bool swipeMode: control.SwipeView.view
+	property bool _isCurrent: control.SwipeView.isCurrentItem
 
 	signal panelActivated()
 	signal populated()
 
 	on_IsCurrentChanged: {
 		if (_isCurrent) {
-			item.SwipeView.view.parentPage.mainMenu = pageContextMenu
+			control.SwipeView.view.parentPage.mainMenu = pageContextMenu
 			panelActivated()
 		}
 	}
@@ -50,14 +45,57 @@ Item {
 	Item {
 		id: panel
 
-		width: item.swipeMode ? item.width : (maximumWidth ? Math.min(maximumWidth, item.width-2*horizontalPadding) : item.width-2*horizontalPadding)
-		height: item.swipeMode ? item.height : (maximumHeight ? Math.min(maximumHeight, item.height-2*verticalPadding) : item.height-2*verticalPadding)
-		x: (item.width-width)/2
-		y: (item.height-height)/2
+		width: control.swipeMode ? control.width-18 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
+		height: control.swipeMode ? control.height-18 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
+		x: (control.width-width)/2
+		y: (control.height-height)/2
+
+
+		DropShadow {
+			anchors.fill: panel
+			horizontalOffset: 3
+			verticalOffset: 3
+			color: JS.setColorAlpha("black", 0.75)
+			source: border2
+		}
+
+		BorderImage {
+			id: border2
+			source: "qrc:/img/border2.svg"
+			visible: false
+
+			//sourceSize.height: 141
+			//sourceSize.width: 414
+
+			anchors.fill: panel
+			border.top: 10
+			border.left: 5
+			border.right: 80
+			border.bottom: 10
+
+			horizontalTileMode: BorderImage.Repeat
+			verticalTileMode: BorderImage.Repeat
+		}
+
+
+		Image {
+			id: metalbg
+			source: "qrc:/img/metalbg.png"
+			visible: false
+			fillMode: Image.Tile
+			anchors.fill: panel
+		}
+
+		OpacityMask {
+			id: opacity1
+			anchors.fill: panel
+			source: metalbg
+			maskSource: border2
+		}
 
 
 
-		ShaderEffectSource {
+		/*ShaderEffectSource {
 			id: effectsource
 			anchors.fill: parent
 			sourceRect: Qt.rect(parent.x, parent.y, parent.width, parent.height)
@@ -86,7 +124,7 @@ Item {
 			maskSource: bgRect
 			anchors.fill: brightnessEffect
 			visible: true
-		}
+		}*/
 
 
 
@@ -97,15 +135,29 @@ Item {
 			anchors.fill: parent
 			visible: true
 
+			anchors.topMargin: 5
+			anchors.leftMargin: 0
+			anchors.rightMargin: 0
+			anchors.bottomMargin: 10
+
 			Rectangle {
 				id: hdrRect
-				color: titleBgColor
+				color: "transparent"
 				anchors.top: parent.top
 				anchors.left: parent.left
 				anchors.right: parent.right
 				height: labelTitle.implicitHeight*1.5
 
-				visible: !item.swipeMode
+				//visible: !control.swipeMode
+
+				DropShadow {
+					anchors.fill: labelTitle
+					horizontalOffset: 2
+					verticalOffset: 2
+					radius: 1
+					color: "black"
+					source: labelTitle
+				}
 
 				QLabel {
 					id: labelTitle
@@ -113,12 +165,12 @@ Item {
 					anchors.left: parent.left
 					anchors.right: menuButton.left
 					anchors.bottom: parent.bottom
-					font.weight: Font.DemiBold
-					font.pixelSize: CosStyle.pixelSize*0.95
+					font.weight: Font.Thin
+					font.pixelSize: CosStyle.pixelSize*1.3
 					font.capitalization: Font.AllUppercase
 					color: titleColor
 					verticalAlignment: "AlignVCenter"
-					leftPadding: 15
+					leftPadding: CosStyle.pixelSize
 				}
 
 				QToolButton {
@@ -152,9 +204,35 @@ Item {
 
 
 
+
 		// BORDER
 
 		BorderImage {
+			id: border1
+			source: "qrc:/img/border1.svg"
+			visible: false
+
+			//sourceSize.height: 141
+			//sourceSize.width: 414
+
+			anchors.fill: panel
+			border.top: 15
+			border.left: 10
+			border.right: 60
+			border.bottom: 25
+
+			horizontalTileMode: BorderImage.Repeat
+			verticalTileMode: BorderImage.Repeat
+		}
+
+		ColorOverlay {
+			anchors.fill: border1
+			source: border1
+			color: borderColor
+		}
+
+
+		/*BorderImage {
 			id: bgRect
 			source: "qrc:/img/border.svg"
 			visible: false
@@ -196,7 +274,7 @@ Item {
 			maskSource: bgRectLine
 			anchors.fill: borderRectData
 			visible: !item.swipeMode
-		}
+		}*/
 	}
 
 }

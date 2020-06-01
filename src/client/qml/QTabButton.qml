@@ -10,5 +10,7 @@ TabButton {
 	font.weight: Font.DemiBold
 	font.pixelSize: CosStyle.pixelSize*0.8
 
-	Material.accent: "red"
+	display: AbstractButton.IconOnly
+
+	//Material.accent: "red"
 }

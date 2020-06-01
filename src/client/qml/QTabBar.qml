@@ -9,6 +9,5 @@ TabBar {
 
 	Material.accent: "white"
 	Material.foreground: "cyan"
-	//Material.background: "transparent"
-
+	Material.background: "#55000000"
 }
