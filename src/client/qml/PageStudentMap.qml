@@ -21,6 +21,9 @@ QPage {
 
 	property alias map: map
 
+	signal campaignSelected(int cid)
+	signal missionDataSelected(var mdata)
+
 	subtitle: cosClient.serverName
 
 	mainToolBarComponent: QToolBusyIndicator { running: map.student && map.student.isBusy }
@@ -64,12 +67,16 @@ QPage {
 	}
 
 	panels: [
-		{ url: "MapMissionList.qml", params: { studentMap: map }, fillWidth: false}
-		//{ url: "AdminUserData.qml", params: { adminUsers: adminUsers }, fillWidth: true}
+		{ url: "MapCampaignList.qml", params: { studentMap: map }, fillWidth: false},
+		{ url: "MapMissionList.qml", params: { studentMap: map }, fillWidth: false},
+		{ url: "MapMission.qml", params: { studentMap: map }, fillWidth: true}
 	]
 
 	panelsVisible: _isMapLoaded
 
+
+	onCampaignSelected: swipeToPage(1)
+	onMissionDataSelected: swipeToPage(2)
 
 	onPageActivated: {
 		if (_isFirstRun) {
@@ -80,6 +87,18 @@ QPage {
 		}
 	}
 
+
+	function playGame(mId, isSum, lev) {
+		var o = JS.createPage("Game", {})
+		o.pagePopulated.connect(function() {
+			o.game.map = map
+			o.game.missionId = mId
+			o.game.isSummary = isSum
+			o.game.level = lev
+			o.game.gamePlayMode = Game.GamePlayOnline
+			o.game.prepare()
+		})
+	}
 
 	function reloadResult() {
 		student.send({"class": "student", "func": "getMapResult", "uuid": mapUuid})

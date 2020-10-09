@@ -27,28 +27,9 @@ QPagePanel {
 		}
 	}
 
-	QLabel {
-		id: groupName
-		anchors.top: parent.top
-		width: parent.width
-		padding: 5
-		topPadding: 10
-		bottomPadding: 10
-		elide: Text.ElideRight
-		font.pixelSize: CosStyle.pixelSize*1.5
-		font.weight: Font.Thin
-		horizontalAlignment: Text.AlignHCenter
-		verticalAlignment: Text.AlignVCenter
-
-		visible: text.length
-	}
-
 	QListItemDelegate {
 		id: list
-		anchors.top: groupName.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		anchors.fill: parent
 
 		modelTitleRole: "title"
 
@@ -75,7 +56,7 @@ QPagePanel {
 		target: pageTeacherGroup
 		onGroupSelected: {
 			groupId = id
-			groupName.text = name
+			panel.title = name
 		}
 	}
 

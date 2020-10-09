@@ -1,6 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.4
 import QtQuick.Controls.Material 2.3
+import QtGraphicalEffects 1.0
 import QtQuick.Layouts 1.14
 import "Style"
 import "JScript.js" as JS
@@ -14,11 +15,63 @@ ToolBar {
 	property string backButtonIcon: CosStyle.iconBack
 	property alias menuLoader: menuLoader
 
+	rightPadding: 10
+
 	default property alias rowContent: mainRow.data
 
-	height: Math.max(CosStyle.baseHeight, 48)
+	height: Math.max(CosStyle.baseHeight, 48, mainRow.height+10)
 
 	Material.primary: "transparent"
+
+	background: Rectangle {
+		id: rect
+		color: "transparent"
+		implicitHeight: 32
+
+		DropShadow {
+			id: dropshadow
+			anchors.fill: border2
+			horizontalOffset: 3
+			verticalOffset: 3
+			color: JS.setColorAlpha("black", 0.75)
+			source: border2
+		}
+
+		BorderImage {
+			id: border2
+			source: "qrc:/img/border3.svg"
+			visible: false
+
+			//sourceSize.height: 141
+			//sourceSize.width: 414
+
+			anchors.fill: parent
+			anchors.rightMargin: dropshadow.horizontalOffset
+			border.top: 10
+			border.left: 5
+			border.right: 80
+			border.bottom: 10
+
+			horizontalTileMode: BorderImage.Repeat
+			verticalTileMode: BorderImage.Repeat
+		}
+
+
+		Image {
+			id: metalbg
+			source: "qrc:/img/metalbg2.png"
+			visible: false
+			fillMode: Image.Tile
+			anchors.fill: border2
+		}
+
+		OpacityMask {
+			id: opacity1
+			anchors.fill: border2
+			source: metalbg
+			maskSource: border2
+		}
+	}
 
 	RowLayout {
 		id: mainRow
@@ -26,6 +79,7 @@ ToolBar {
 		anchors.right: parent.right
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.leftMargin: backButton.visible ? 0 : 10
+		anchors.verticalCenterOffset: -2
 
 		QToolButton {
 			id: backButton

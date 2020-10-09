@@ -7,7 +7,7 @@ import "JScript.js" as JS
 TabBar {
 	id: control
 
-	Material.accent: "white"
-	Material.foreground: "cyan"
+	Material.accent: CosStyle.colorAccentDarker
+	Material.foreground: CosStyle.colorPrimary
 	Material.background: "#55000000"
 }

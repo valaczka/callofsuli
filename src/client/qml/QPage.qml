@@ -354,7 +354,12 @@ Page {
 						pp.populated()
 					}
 
-					ppp = JS.createObject("QTabButton.qml", tabBar, {text: pp.title ? pp.title : "", "icon.source": pp.icon ? pp.icon : "" })
+					ppp = JS.createObject("QTabButton.qml", tabBar, {
+											  text: pp.title ? pp.title : "",
+											  "icon.source": pp.icon ? pp.icon : "",
+											  iconColor: pp.borderColor ? pp.borderColor : CosStyle.colorError
+
+										  })
 
 					if (ppp)
 						tabBar.addItem(ppp)

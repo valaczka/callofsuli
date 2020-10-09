@@ -29,28 +29,6 @@ QPage {
 
 	property bool isFirstRun: true
 
-	background: Rectangle {
-		color: "black"
-		Video {
-			id: bgVideo
-			anchors.fill: parent
-			source: "qrc:/vid/bg.mov"
-			autoPlay: true
-			loops: MediaPlayer.Infinite
-		}
-
-		QLabel {
-			anchors.right: parent.right
-			anchors.bottom: parent.bottom
-			anchors.bottomMargin: 5
-			anchors.rightMargin: 10
-			text: "Call of Suli v"+cosClient.clientVersionMajor+"."+cosClient.clientVersionMinor
-
-			color: CosStyle.colorPrimaryLighter
-			font.pixelSize: CosStyle.pixelSize*0.8
-		}
-	}
-
 	title: qsTr("Call of Suli")
 	mainToolBar.backButton.visible: false
 

@@ -272,7 +272,7 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary, const bool &fu
 	map["id"] = -1;
 
 	if (isSummary) {
-		m_db->execSelectQueryOneRow("SELECT summary.id, campaign.name as name FROM summary "
+		m_db->execSelectQueryOneRow("SELECT summary.id, summary.uuid as uuid, campaign.name as name FROM summary "
 									"LEFT JOIN campaign ON (summary.campaignid=campaign.id) "
 									"WHERE summary.id=?", l, &map);
 
@@ -286,7 +286,7 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary, const bool &fu
 									"LEFT JOIN intro ON (bindIntroSummary.introid=intro.id) "
 									"WHERE summaryid=? AND outro=true", l, &map);
 	} else {
-		m_db->execSelectQueryOneRow("SELECT id, name FROM mission WHERE id=?", l, &map);
+		m_db->execSelectQueryOneRow("SELECT id, uuid, name FROM mission WHERE id=?", l, &map);
 
 		m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 									"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroMission "

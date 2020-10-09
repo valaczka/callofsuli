@@ -126,6 +126,12 @@ QPagePanel {
 		}
 
 
+		onKeyInsertPressed: actionServerNew.trigger()
+		onKeyF4Pressed: actionEdit.trigger()
+		onKeyDeletePressed: actionRemove.trigger()
+		onKeyF2Pressed: actionAutoConnect.trigger()
+
+
 
 		/*Keys.onPressed: {
 			if (event.key === Qt.Key_Insert) {

@@ -180,7 +180,6 @@ signals:
 	void jsonTeacherMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonTeacherGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonUserReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void jsonGameReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 	void jsonStudentReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
 	void registrationRequest();

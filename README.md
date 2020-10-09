@@ -3,6 +3,11 @@ Call of Suli
 
 Copyright (c) 2012-2020 - Valaczka János Pál
 
+# Build
+
+git submodule update --init --recursive
+
+
 # SMTP Client for Qt (C++) - Version 1.1
 
 Copyright (c) 2011 - Tőkés Attila

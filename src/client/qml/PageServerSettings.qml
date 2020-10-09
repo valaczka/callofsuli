@@ -74,6 +74,7 @@ QPage {
 					id: grid1
 					enabled: !page.isBusy
 
+
 					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
 
 					width: parent.width

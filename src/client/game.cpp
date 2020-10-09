@@ -85,7 +85,7 @@ Game::Game(QObject *parent)
 
 void Game::clientSetup()
 {
-	connect(m_client, &Client::jsonGameReceived, this, &Game::onJsonReceived);
+	connect(m_client, &Client::jsonStudentReceived, this, &Game::onJsonReceived);
 }
 
 
@@ -106,6 +106,7 @@ void Game::onJsonReceived(const QJsonObject &object, const QByteArray &binaryDat
 
 	// on game registered -> emit registered
 	// on game register closed -> emit register closed
+	// on game broken -> broken
 }
 
 
@@ -273,6 +274,22 @@ void Game::failed()
 }
 
 
+/**
+ * @brief Game::broken
+ */
+
+void Game::broken()
+{
+	if (m_gameState != GameRun)
+		return;
+
+	m_timer->stop();
+	setGameResult(GameResultBroken);
+	setGameState(GameClosing);
+	emit gameFailed();
+}
+
+
 
 
 
@@ -350,6 +367,7 @@ bool Game::prepare()
 	}
 
 
+	setMissionUuid(data.value("uuid").toString());
 	setMaxMSec(foundLevel.value("sec", 0).toInt()*1000);
 	setCurrentMSec(m_maxMSec);
 	setMaxHP(foundLevel.value("hp", 0).toInt());
@@ -711,6 +729,15 @@ void Game::setGamePlayMode(Game::GamePlayMode gamePlayMode)
 
 	m_gamePlayMode = gamePlayMode;
 	emit gamePlayModeChanged(m_gamePlayMode);
+}
+
+void Game::setMissionUuid(QString missionUuid)
+{
+	if (m_missionUuid == missionUuid)
+		return;
+
+	m_missionUuid = missionUuid;
+	emit missionUuidChanged(m_missionUuid);
 }
 
 void Game::setShowCorrect(bool showCorrect)

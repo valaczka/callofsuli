@@ -12,18 +12,18 @@ QPagePanel {
 
 	property StudentMap studentMap: null
 
-	title: qsTr("Küldetések")
+	title: qsTr("Hadjáratok")
 	icon: CosStyle.iconUsers
 	maximumWidth: 600
 
 
 	ListModel {
-		id: baseMissionModel
+		id: baseCampaignModel
 	}
 
 	SortFilterProxyModel {
-		id: missionProxyModel
-		sourceModel: baseMissionModel
+		id: campaignProxyModel
+		sourceModel: baseCampaignModel
 
 		proxyRoles: [
 			/*ExpressionRole {
@@ -61,11 +61,11 @@ QPagePanel {
 
 
 	QListItemDelegate {
-		id: missionList
+		id: campaignList
 
 		anchors.fill: parent
 
-		model: missionProxyModel
+		model: campaignProxyModel
 		isProxyModel: true
 		modelTitleRole: "name"
 		//modelSubtitleRole: "details"
@@ -76,9 +76,9 @@ QPagePanel {
 		//delegateHeight: CosStyle.twoLineHeight
 
 		onClicked: {
-					   var m = model.get(index)
-					   console.debug(m.type, m.locked, m.levels)
-				   }
+			var m = model.get(index)
+			pageStudentMap.campaignSelected(m.id)
+		}
 
 		refreshEnabled: true
 		onRefreshRequest: reloadModel()
@@ -87,26 +87,27 @@ QPagePanel {
 
 	onPanelActivated: {
 		reloadModel()
-		missionList.forceActiveFocus()
+		campaignList.forceActiveFocus()
 	}
 
 
 	Connections {
 		target: studentMap
 		onMapResultUpdated: reloadModel()
+		onCampaignListChanged: JS.setModel(baseCampaignModel, studentMap.campaignList)
 	}
 
 	Connections {
 		target: pageStudentMap
 		onPageActivated: {
 			reloadModel()
-			missionList.forceActiveFocus()
+			campaignList.forceActiveFocus()
 		}
 	}
 
 
 	function reloadModel() {
-		JS.setModel(baseMissionModel, studentMap.missionList())
+		studentMap.campaignListUpdate()
 	}
 }
 

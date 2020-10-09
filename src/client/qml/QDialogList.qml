@@ -114,6 +114,8 @@ Item {
 				anchors.topMargin: 0
 				anchors.bottomMargin: mainRow.padding
 
+
+
 				model: userProxyModel
 				isProxyModel: true
 

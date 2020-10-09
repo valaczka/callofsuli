@@ -11,7 +11,7 @@ Item {
 	implicitHeight: 200
 
 
-	property color borderColor: CosStyle.colorWarningDark
+	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
 
 	property string icon: ""
@@ -27,6 +27,7 @@ Item {
 	property int maximumHeight: 0
 
 	property Menu pageContextMenu: null
+
 
 	readonly property bool swipeMode: control.SwipeView.view
 	property bool _isCurrent: control.SwipeView.isCurrentItem
@@ -146,9 +147,9 @@ Item {
 				anchors.top: parent.top
 				anchors.left: parent.left
 				anchors.right: parent.right
-				height: labelTitle.implicitHeight*1.5
+				height: labelTitle.implicitHeight*1.6
 
-				//visible: !control.swipeMode
+				visible: labelTitle.text.length
 
 				DropShadow {
 					anchors.fill: labelTitle
@@ -166,7 +167,7 @@ Item {
 					anchors.right: menuButton.left
 					anchors.bottom: parent.bottom
 					font.weight: Font.Thin
-					font.pixelSize: CosStyle.pixelSize*1.3
+					font.pixelSize: CosStyle.pixelSize*1.4
 					font.capitalization: Font.AllUppercase
 					color: titleColor
 					verticalAlignment: "AlignVCenter"
@@ -181,12 +182,29 @@ Item {
 
 					icon.source: CosStyle.iconMenu
 
-					visible: pageContextMenu
+					visible: pageContextMenu && !swipeMode
 
 					onClicked: if (pageContextMenu) {
 								   pageContextMenu.popup(menuButton, 0, menuButton.height)
 							   }
 				}
+			}
+
+			Rectangle {
+				id: rectLine
+				visible: hdrRect.visible
+				anchors.top: hdrRect.bottom
+				anchors.left: parent.left
+				anchors.right: parent.right
+				height: 1
+				border.width: 0
+					gradient: Gradient {
+						orientation: Gradient.Horizontal
+						GradientStop { position: 0.0; color: "transparent" }
+						GradientStop { position: 0.3; color: control.titleColor }
+						GradientStop { position: 0.7; color: control.titleColor }
+						GradientStop { position: 1.0; color: "transparent" }
+					}
 			}
 
 
@@ -196,7 +214,7 @@ Item {
 				anchors.left: parent.left
 				anchors.bottom: parent.bottom
 				anchors.right: parent.right
-				//anchors.margins: 10
+				anchors.topMargin: 10
 				visible: true
 			}
 		}

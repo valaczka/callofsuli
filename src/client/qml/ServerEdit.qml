@@ -20,6 +20,7 @@ QPagePanel {
 		id: grid
 
 		anchors.fill: parent
+
 		watchModification: true
 
 		onAccepted: buttonSave.press()

@@ -23,7 +23,7 @@ QPage {
 		title: qsTr("Főmenü")
 		maximumWidth: 600
 
-		QListItemDelegate {
+		QMenuItemDelegate {
 			id: list
 			anchors.fill: parent
 

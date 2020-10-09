@@ -45,19 +45,23 @@ class StudentMap : public Map
 	Q_OBJECT
 
 	Q_PROPERTY(Student * student READ student WRITE setStudent NOTIFY studentChanged)
+	Q_PROPERTY(QVariantList campaignList READ campaignList NOTIFY campaignListChanged)
 
 public:
 	StudentMap(QObject *parent = nullptr);
 
 	Student* student() const { return m_student; }
+	QVariantList campaignList() const { return m_campaignList; }
 
 public slots:
 	bool loadFromRepository(const QString &uuid, const QString &md5 = "");
 	void onMapDataReceived(const QJsonObject &jsonData, const QByteArray &mapData);
 	void onMapResultListLoaded(const QJsonArray &list);
-	QVariantList missionList();
+	void campaignListUpdate();
+	QVariantList missionListGet(const int &campaignId);
 
 	void setStudent(Student * student);
+	void setCampaignList(QVariantList campaignList);
 
 private slots:
 	void onStudentChanged(Student *);
@@ -74,10 +78,12 @@ signals:
 	void mapResultUpdated();
 
 	void studentChanged(Student * student);
+	void campaignListChanged(QVariantList campaignList);
 
 private:
 	QString m_uuid;
 	Student * m_student;
+	QVariantList m_campaignList;
 };
 
 #endif // STUDENTMAP_H

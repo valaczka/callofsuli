@@ -12,7 +12,7 @@ Rectangle {
 
 	width: parent.width
 
-	color: CosStyle.colorPrimaryDark
+	color: JS.setColorAlpha(CosStyle.colorPrimaryDark, 0.2)
 
 	height: col.height //+
 			//(selectorLoader.status == Loader.Ready && selectorLoader.item.visible ? selectorLoader.item.height : 0)+1
@@ -58,6 +58,7 @@ Rectangle {
 			Item {
 				id: mainItem
 
+				implicitHeight: 10
 				height: childrenRect.height
 				Layout.fillWidth: true
 				Layout.fillHeight: true
@@ -103,13 +104,6 @@ Rectangle {
 		}
 	}
 
-
-	Rectangle {
-		anchors.bottom: parent.bottom
-		width: parent.width
-		height: 1
-		color: CosStyle.colorAccent
-	}
 
 }
 

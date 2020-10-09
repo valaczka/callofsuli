@@ -19,6 +19,9 @@ Item {
 	property alias watchModification: layout.watchModification
 	property alias modified: layout.modified
 
+	property int panelPaddingLeft: CosStyle.panelPaddingLeft
+	property int panelPaddingRight: CosStyle.panelPaddingRight
+
 	signal accepted()
 
 	width: implicitWidth
@@ -45,7 +48,8 @@ Item {
 			property bool watchModification: false
 			property bool modified: false
 
-			width: flick.width
+			width: flick.width-item.panelPaddingLeft-item.panelPaddingRight
+			x: item.panelPaddingLeft
 
 			Binding on height {
 				when: item.fillHeight

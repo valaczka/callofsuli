@@ -13,7 +13,7 @@ QPagePanel {
 	property string mapName: ""
 
 
-	title: qsTr("Lehetőségek")
+	title: mapName
 	maximumWidth: 600
 
 	Item {
@@ -28,30 +28,9 @@ QPagePanel {
 		}
 	}
 
-	QLabel {
-		id: mapNameLabel
-		anchors.top: parent.top
-		width: parent.width
-		padding: 5
-		topPadding: 10
-		bottomPadding: 10
-		elide: Text.ElideRight
-		font.pixelSize: CosStyle.pixelSize*1.5
-		font.weight: Font.Thin
-		horizontalAlignment: Text.AlignHCenter
-		verticalAlignment: Text.AlignVCenter
-
-		text: mapName
-
-		visible: text.length
-	}
-
 	QListItemDelegate {
 		id: list
-		anchors.top: mapNameLabel.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		anchors.fill: parent
 
 		modelTitleRole: "title"
 

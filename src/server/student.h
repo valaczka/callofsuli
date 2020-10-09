@@ -53,6 +53,8 @@ public slots:
 	void getMapData(QJsonObject *jsonResponse, QByteArray *binaryResponse);
 	void getMapResult(QJsonObject *jsonResponse, QByteArray *);
 
+	// gamePrepare
+
 };
 
 #endif // STUDENT_H

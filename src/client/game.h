@@ -51,6 +51,7 @@ class Game : public AbstractActivity
 	Q_PROPERTY(Map* map READ map WRITE setMap NOTIFY mapChanged)
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged)
 	Q_PROPERTY(int missionId READ missionId WRITE setMissionId NOTIFY missionIdChanged)
+	Q_PROPERTY(QString missionUuid READ missionUuid NOTIFY missionUuidChanged)
 	Q_PROPERTY(bool isSummary READ isSummary WRITE setIsSummary NOTIFY isSummaryChanged)
 	Q_PROPERTY(GamePlayMode gamePlayMode READ gamePlayMode WRITE setGamePlayMode NOTIFY gamePlayModeChanged)
 
@@ -94,7 +95,7 @@ public:
 		GameResultFailed,						// Nem sikerült végigcsinálni
 		GameResultAborted,						// Felhasználó megszakította
 		GameResultTimeout,						// Lejárt az idő
-		GameResultCancelled						// Érvénytelenné vált
+		GameResultBroken						// Érvénytelenné vált
 	};
 	Q_ENUM(GameResult)
 
@@ -142,6 +143,7 @@ public:
 	int currentMSec() const { return m_currentMSec; }
 	int currentHP() const { return m_currentHP; }
 	bool showCorrect() const { return m_showCorrect; }
+	QString missionUuid() const { return m_missionUuid; }
 
 public slots:
 
@@ -157,6 +159,7 @@ public slots:
 	void setMissionId(int missionId);
 	void setIsSummary(bool isSummary);
 	void setGamePlayMode(GamePlayMode gamePlayMode);
+	void setMissionUuid(QString missionUuid);
 
 private slots:
 
@@ -172,6 +175,7 @@ private slots:
 	void nextTarget();
 	void succeed();
 	void failed();
+	void broken();
 
 	void setGameState(GameState gameState);
 	void setGameResult(GameResult gameResult);
@@ -235,6 +239,7 @@ signals:
 	void currentMSecChanged(quint64 currentMSec);
 	void currentHPChanged(int currentHP);
 	void showCorrectChanged(bool showCorrect);
+	void missionUuidChanged(QString missionUuid);
 
 private:
 	Map* m_map;
@@ -262,6 +267,7 @@ private:
 	quint64 m_currentMSec;
 	int m_currentHP;
 	bool m_showCorrect;
+	QString m_missionUuid;
 };
 
 #endif // GAME_H

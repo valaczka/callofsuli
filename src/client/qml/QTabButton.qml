@@ -12,5 +12,7 @@ TabButton {
 
 	display: AbstractButton.IconOnly
 
-	//Material.accent: "red"
+	property color iconColor: CosStyle.colorPrimaryLighter
+
+	Material.foreground: iconColor
 }

@@ -34,7 +34,10 @@ QListView {
 	property int delegateHeight: CosStyle.baseHeight
 	property int depthWidth: CosStyle.baseHeight
 
-	property color currentColor: CosStyle.colorPrimaryLighter
+	property color currentColor: "#33EEEEEE"
+
+	property int panelPaddingLeft: CosStyle.panelPaddingLeft
+	property int panelPaddingRight: CosStyle.panelPaddingRight
 
 	signal clicked(int index)
 	signal rightClicked(int index)
@@ -97,6 +100,8 @@ QListView {
 
 		RowLayout {
 			anchors.fill: parent
+			anchors.leftMargin: view.panelPaddingLeft
+			anchors.rightMargin: view.panelPaddingRight
 
 			Loader {
 				id: leftLoader

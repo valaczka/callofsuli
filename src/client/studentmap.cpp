@@ -152,7 +152,7 @@ void StudentMap::onMapResultListLoaded(const QJsonArray &list)
  * @return
  */
 
-QVariantList StudentMap::missionList()
+void StudentMap::campaignListUpdate()
 {
 	QVariantList ret;
 
@@ -181,24 +181,12 @@ QVariantList StudentMap::missionList()
 			}
 		}
 
-		QVariantMap record;
-		record["type"] = "campaign";
-		record["id"] = cid;
-		record["uuid"] = "";
-		record["locked"] = locked;
-		record["name"] = cname;
-		record["levels"] = QVariantList();
-
-		qDebug() << record;
-
-		ret << record;
-
 
 		if (locked)
 			continue;
 
 
-
+		QVariantList missionList;
 
 		bool prevMissionCompleted = true;
 
@@ -239,7 +227,9 @@ QVariantList StudentMap::missionList()
 					if (!success && i>0)
 						break;
 
-					availableLevels << level;
+					QVariantMap lm;
+					lm["level"] = level;
+					availableLevels << lm;
 
 					if (success)
 						hasCompleteLevel = true;
@@ -254,9 +244,7 @@ QVariantList StudentMap::missionList()
 			record["name"] = mname;
 			record["levels"] = availableLevels;
 
-			qDebug() << record;
-
-			ret << record;
+			missionList << record;
 
 
 			if (!prevMissionCompleted)
@@ -295,8 +283,11 @@ QVariantList StudentMap::missionList()
 			sid = m.value("id").toInt();
 			sUuid = m.value("uuid").toString();
 
-			if (!incomplete)
-				availableSummaryLevels << level;
+			if (!incomplete) {
+				QVariantMap lm;
+				lm["level"] = level;
+				availableSummaryLevels << lm;
+			}
 
 			if (incomplete || !success)
 				break;
@@ -311,16 +302,41 @@ QVariantList StudentMap::missionList()
 			record["name"] = cname;
 			record["levels"] = availableSummaryLevels;
 
-			qDebug() << record;
-
-			ret << record;
+			missionList << record;
 		}
 
+
+		QVariantMap record;
+		record["type"] = "campaign";
+		record["id"] = cid;
+		record["uuid"] = "";
+		record["locked"] = locked;
+		record["name"] = cname;
+		record["levels"] = QVariantList();
+		record["missions"] = missionList;
+
+		ret << record;
 	}
 
-	qDebug() << ret;
+	setCampaignList(ret);
+}
 
-	return ret;
+
+/**
+ * @brief StudentMap::missionListGet
+ * @param campaignId
+ * @return
+ */
+
+QVariantList StudentMap::missionListGet(const int &campaignId)
+{
+	foreach (QVariant v, m_campaignList) {
+		QVariantMap m = v.toMap();
+		if (m.value("id", -1).toInt() == campaignId)
+			return m.value("missions").toList();
+	}
+
+	return QVariantList();
 }
 
 
@@ -340,6 +356,12 @@ void StudentMap::setStudent(Student *student)
 
 	m_student = student;
 	emit studentChanged(m_student);
+}
+
+void StudentMap::setCampaignList(QVariantList campaignList)
+{
+	m_campaignList = campaignList;
+	emit campaignListChanged(m_campaignList);
 }
 
 
