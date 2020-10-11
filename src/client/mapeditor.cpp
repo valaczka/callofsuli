@@ -37,7 +37,7 @@
 #include "game.h"
 
 MapEditor::MapEditor(QObject *parent)
-	: Map("mapEditorDB", parent)
+	: MapData("mapEditorDB", parent)
 {
 	m_databaseInitSql << ":/sql/mapeditor.sql";
 
@@ -90,7 +90,7 @@ bool MapEditor::loadFromJson(const QByteArray &data, const bool &binaryFormat)
 
 	double currentStep = 0.0;
 
-	QJsonObject root = Map::loadFromJson(data, binaryFormat, &steps, &currentStep);
+	QJsonObject root = MapData::loadFromJson(data, binaryFormat, &steps, &currentStep);
 
 	if (root.isEmpty())
 		return false;

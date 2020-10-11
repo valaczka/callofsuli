@@ -36,9 +36,9 @@
 #define MAPEDITOR_H
 
 #include <QObject>
-#include "map.h"
+#include "mapdata.h"
 
-class MapEditor : public Map
+class MapEditor : public MapData
 {
 	Q_OBJECT
 

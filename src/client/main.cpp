@@ -36,7 +36,6 @@
 #include <sqlimage.h>
 #include <fontimage.h>
 
-
 #include "cosclient.h"
 
 

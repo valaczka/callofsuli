@@ -32,13 +32,13 @@
  * SOFTWARE.
  */
 
-#include "map.h"
+#include "mapdata.h"
 #include "cosclient.h"
 
-QVariantList Map::m_storageModules = QVariantList();
-QVariantList Map::m_objectiveModules = QVariantList();
+QVariantList MapData::m_storageModules = QVariantList();
+QVariantList MapData::m_objectiveModules = QVariantList();
 
-Map::Map(const QString &connectionName, QObject *parent)
+MapData::MapData(const QString &connectionName, QObject *parent)
 	: AbstractDbActivity(connectionName, parent)
 {
 	m_tableNames << "info"
@@ -64,7 +64,7 @@ Map::Map(const QString &connectionName, QObject *parent)
  * @brief Map::~Map
  */
 
-Map::~Map()
+MapData::~MapData()
 {
 	if (m_db->isOpen())
 		m_db->close();
@@ -81,7 +81,7 @@ Map::~Map()
  */
 
 
-QVariantList Map::storageModules()
+QVariantList MapData::storageModules()
 {
 	if (m_storageModules.isEmpty())
 		setStorageModules();
@@ -95,7 +95,7 @@ QVariantList Map::storageModules()
  * @return
  */
 
-QVariantList Map::objectiveModules()
+QVariantList MapData::objectiveModules()
 {
 	if (m_objectiveModules.isEmpty())
 		setObjectiveModules();
@@ -112,7 +112,7 @@ QVariantList Map::objectiveModules()
  */
 
 
-QVariantMap Map::storageModule(const QString &type)
+QVariantMap MapData::storageModule(const QString &type)
 {
 	if (m_storageModules.isEmpty())
 		setStorageModules();
@@ -133,7 +133,7 @@ QVariantMap Map::storageModule(const QString &type)
  * @return
  */
 
-QVariantList Map::storageObjectiveModules(const QString &type)
+QVariantList MapData::storageObjectiveModules(const QString &type)
 {
 	if (m_objectiveModules.isEmpty())
 		setObjectiveModules();
@@ -158,7 +158,7 @@ QVariantList Map::storageObjectiveModules(const QString &type)
  * @return
  */
 
-QVariantMap Map::objectiveModule(const QString &type)
+QVariantMap MapData::objectiveModule(const QString &type)
 {
 	if (m_objectiveModules.isEmpty())
 		setObjectiveModules();
@@ -181,7 +181,7 @@ QVariantMap Map::objectiveModule(const QString &type)
  * @return
  */
 
-QVariantMap Map::infoGet()
+QVariantMap MapData::infoGet()
 {
 	QVariantMap ret;
 	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
@@ -198,7 +198,7 @@ QVariantMap Map::infoGet()
  * @return
  */
 
-QVariantMap Map::campaignGet(const int &id)
+QVariantMap MapData::campaignGet(const int &id)
 {
 	QVariantList l;
 	l << id;
@@ -249,7 +249,7 @@ QVariantMap Map::campaignGet(const int &id)
  */
 
 
-QVariantList Map::campaignListGet()
+QVariantList MapData::campaignListGet()
 {
 	QVariantList list;
 	m_db->execSelectQuery("SELECT id, COALESCE(num, 0) as num, name FROM campaign ORDER BY num", QVariantList(), &list);
@@ -264,7 +264,7 @@ QVariantList Map::campaignListGet()
  * @return
  */
 
-QVariantMap Map::missionGet(const int &id, const bool &isSummary, const bool &fullStorage, const int &filterLevel)
+QVariantMap MapData::missionGet(const int &id, const bool &isSummary, const bool &fullStorage, const int &filterLevel)
 {
 	QVariantList l;
 	l << id;
@@ -356,7 +356,7 @@ QVariantMap Map::missionGet(const int &id, const bool &isSummary, const bool &fu
  * @return
  */
 
-QVariantList Map::missionListGet(const int &campaignId)
+QVariantList MapData::missionListGet(const int &campaignId)
 {
 	QVariantList list;
 
@@ -381,7 +381,7 @@ QVariantList Map::missionListGet(const int &campaignId)
  * @return
  */
 
-QVariantList Map::summaryStorageListGet(const int &id, const int &filterLevel)
+QVariantList MapData::summaryStorageListGet(const int &id, const int &filterLevel)
 {
 	QVariantList list;
 	QVariantList l;
@@ -417,7 +417,7 @@ QVariantList Map::summaryStorageListGet(const int &id, const int &filterLevel)
  * @return
  */
 
-QVariantMap Map::storageGet(const int &id)
+QVariantMap MapData::storageGet(const int &id)
 {
 	QVariantList l;
 	l << id;
@@ -468,7 +468,7 @@ QVariantMap Map::storageGet(const int &id)
  * @return
  */
 
-QVariantList Map::storageListGet(const int &missionId, const int &summaryId, const int &filterLevel)
+QVariantList MapData::storageListGet(const int &missionId, const int &summaryId, const int &filterLevel)
 {
 	QVariantList list;
 
@@ -512,7 +512,7 @@ QVariantList Map::storageListGet(const int &missionId, const int &summaryId, con
  * @return
  */
 
-QVariantMap Map::introGet(const int &id)
+QVariantMap MapData::introGet(const int &id)
 {
 	QVariantList l;
 	l << id;
@@ -563,7 +563,7 @@ QVariantMap Map::introGet(const int &id)
  * @return
  */
 
-QVariantList Map::introListGet(const int &parentId, const Map::IntroType &type)
+QVariantList MapData::introListGet(const int &parentId, const MapData::IntroType &type)
 {
 	QVariantList list;
 
@@ -605,7 +605,7 @@ QVariantList Map::introListGet(const int &parentId, const Map::IntroType &type)
  * @return
  */
 
-QVariantMap Map::storageInfo(const QString &type) const
+QVariantMap MapData::storageInfo(const QString &type) const
 {
 	foreach (QVariant v, m_storageModules) {
 		QVariantMap m = v.toMap();
@@ -624,7 +624,7 @@ QVariantMap Map::storageInfo(const QString &type) const
  */
 
 
-QVariantMap Map::objectiveGet(const int &id)
+QVariantMap MapData::objectiveGet(const int &id)
 {
 	QVariantList l;
 	l << id;
@@ -663,7 +663,7 @@ QVariantMap Map::objectiveGet(const int &id)
  * @return
  */
 
-QVariantList Map::objectiveListGet(const int &storageId, const int filterLevel)
+QVariantList MapData::objectiveListGet(const int &storageId, const int filterLevel)
 {
 	QVariantList list;
 
@@ -699,7 +699,7 @@ QVariantList Map::objectiveListGet(const int &storageId, const int filterLevel)
  * @return
  */
 
-QVariantMap Map::objectiveInfo(const QString &type) const
+QVariantMap MapData::objectiveInfo(const QString &type) const
 {
 	foreach (QVariant v, m_objectiveModules) {
 		QVariantMap m = v.toMap();
@@ -716,7 +716,7 @@ QVariantMap Map::objectiveInfo(const QString &type) const
  * @return
  */
 
-bool Map::databaseInit()
+bool MapData::databaseInit()
 {
 	Q_ASSERT(m_client);
 
@@ -746,7 +746,7 @@ bool Map::databaseInit()
  */
 
 
-QJsonArray Map::tableToJson(const QString &table, const bool &convertData)
+QJsonArray MapData::tableToJson(const QString &table, const bool &convertData)
 {
 	QVariantMap m = m_db->runSimpleQuery("SELECT * from "+table+" ORDER BY rowid");
 
@@ -798,7 +798,7 @@ QJsonArray Map::tableToJson(const QString &table, const bool &convertData)
  * @return
  */
 
-bool Map::JsonToTable(const QJsonArray &array, const QString &table, const bool &convertData)
+bool MapData::JsonToTable(const QJsonArray &array, const QString &table, const bool &convertData)
 {
 	for (int i=0; i<array.count(); ++i) {
 		QJsonObject rec = array[i].toObject();
@@ -834,7 +834,7 @@ bool Map::JsonToTable(const QJsonArray &array, const QString &table, const bool 
  * @brief Map::generateMissionUuids
  */
 
-void Map::generateMissionUuids()
+void MapData::generateMissionUuids()
 {
 	QVariantList list;
 
@@ -869,7 +869,7 @@ void Map::generateMissionUuids()
  * @brief Map::setStorageModules
  */
 
-void Map::setStorageModules()
+void MapData::setStorageModules()
 {
 	{
 		QVariantMap m;
@@ -948,7 +948,7 @@ void Map::setStorageModules()
  * @brief Map::setObjectiveModules
  */
 
-void Map::setObjectiveModules()
+void MapData::setObjectiveModules()
 {
 	{
 		QVariantMap o;
@@ -1040,7 +1040,7 @@ void Map::setObjectiveModules()
  * @return
  */
 
-QJsonObject Map::loadFromJson(const QByteArray &data, const bool &binaryFormat, double *steps, double *currentStep)
+QJsonObject MapData::loadFromJson(const QByteArray &data, const bool &binaryFormat, double *steps, double *currentStep)
 {
 	Q_ASSERT (m_client);
 

@@ -19,7 +19,7 @@ Page {
 
 		TiledScene {
 			id: scene
-			//debug: true
+			debug: true
 			physics: true
 			source: "qrc:/map1/map.tmx"
 			viewport: Viewport {
@@ -169,7 +169,6 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		console.info("Game active focus")
 		//gameWindow.forceActiveFocus()
 	}
 

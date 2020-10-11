@@ -37,7 +37,7 @@
 
 #include <QObject>
 #include "abstractactivity.h"
-#include "map.h"
+#include "mapdata.h"
 #include "intro.h"
 #include "block.h"
 #include "abstractstorage.h"
@@ -48,7 +48,7 @@ class Game : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Map* map READ map WRITE setMap NOTIFY mapChanged)
+	Q_PROPERTY(MapData* map READ map WRITE setMap NOTIFY mapChanged)
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged)
 	Q_PROPERTY(int missionId READ missionId WRITE setMissionId NOTIFY missionIdChanged)
 	Q_PROPERTY(QString missionUuid READ missionUuid NOTIFY missionUuidChanged)
@@ -119,7 +119,7 @@ public:
 	~Game();
 
 
-	Map* map() const { return m_map; }
+	MapData* map() const { return m_map; }
 	int level() const { return m_level; }
 	int missionId() const { return m_missionId; }
 	bool isSummary() const { return m_isSummary; }
@@ -154,7 +154,7 @@ public slots:
 	void check(const QJsonObject &data);
 	void close();
 
-	void setMap(Map* map);
+	void setMap(MapData* map);
 	void setLevel(int level);
 	void setMissionId(int missionId);
 	void setIsSummary(bool isSummary);
@@ -216,7 +216,7 @@ signals:
 	void solutionCorrect();
 	void solutionFail();
 
-	void mapChanged(Map* map);
+	void mapChanged(MapData* map);
 	void levelChanged(int level);
 	void missionIdChanged(int missionId);
 	void isSummaryChanged(bool isSummary);
@@ -242,7 +242,7 @@ signals:
 	void missionUuidChanged(QString missionUuid);
 
 private:
-	Map* m_map;
+	MapData* m_map;
 	int m_level;
 	int m_missionId;
 	bool m_isSummary;

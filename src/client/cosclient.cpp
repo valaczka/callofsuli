@@ -34,7 +34,7 @@
 #include "../version/buildnumber.h"
 #include "cosclient.h"
 #include "servers.h"
-#include "map.h"
+#include "mapdata.h"
 #include "mapeditor.h"
 #include "teacher.h"
 #include "adminusers.h"
@@ -186,7 +186,7 @@ void Client::registerTypes()
 	qmlRegisterType<CosSql>("COS.Client", 1, 0, "CosSql");
 	qmlRegisterType<COSdb>("COS.Client", 1, 0, "COSdb");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
-	qmlRegisterType<Map>("COS.Client", 1, 0, "Map");
+	qmlRegisterType<MapData>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");

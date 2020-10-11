@@ -36,11 +36,11 @@
 #define STUDENTMAP_H
 
 #include <QObject>
-#include "map.h"
+#include "mapdata.h"
 #include "student.h"
 
 
-class StudentMap : public Map
+class StudentMap : public MapData
 {
 	Q_OBJECT
 

@@ -30,10 +30,9 @@ SOURCES += \
 		block.cpp \
 		cosclient.cpp \
 		fontimage.cpp \
-		game.cpp \
 		intro.cpp \
 		main.cpp \
-		map.cpp \
+		mapdata.cpp \
 		mapeditor.cpp \
 		questionpair.cpp \
 		servers.cpp \
@@ -42,6 +41,7 @@ SOURCES += \
 		student.cpp \
 		studentmap.cpp \
 		teacher.cpp
+
 
 HEADERS += \
 	abstractactivity.h \
@@ -52,9 +52,8 @@ HEADERS += \
 	block.h \
 	cosclient.h \
 	fontimage.h \
-	game.h \
 	intro.h \
-	map.h \
+	mapdata.h \
 	mapeditor.h \
 	questionpair.h \
 	servers.h \
@@ -79,7 +78,6 @@ QML_IMPORT_PATH =
 # Additional import path used to resolve QML modules just for Qt Quick Designer
 QML_DESIGNER_IMPORT_PATH =
 
-QTPLUGIN += bacon2d
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

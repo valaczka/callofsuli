@@ -32,14 +32,14 @@
  * SOFTWARE.
  */
 
-#ifndef MAP_H
-#define MAP_H
+#ifndef MAPDATA_H
+#define MAPDATA_H
 
 #include <QObject>
 #include "abstractdbactivity.h"
 
 
-class Map : public AbstractDbActivity
+class MapData : public AbstractDbActivity
 {
 	Q_OBJECT
 
@@ -51,8 +51,8 @@ public:
 	Q_PROPERTY(QVariantList storageModules READ storageModules)
 	Q_PROPERTY(QVariantList objectiveModules READ objectiveModules)
 
-	explicit Map(const QString &connectionName = "mapDB", QObject *parent = nullptr);
-	virtual ~Map();
+	explicit MapData(const QString &connectionName = "mapDB", QObject *parent = nullptr);
+	virtual ~MapData();
 
 	static QVariantList storageModules();
 	static QVariantList objectiveModules();

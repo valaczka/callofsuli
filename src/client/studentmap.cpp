@@ -35,7 +35,7 @@
 #include "studentmap.h"
 
 StudentMap::StudentMap(QObject *parent)
-	: Map("mapStudentDB", parent)
+	: MapData("mapStudentDB", parent)
 {
 	m_databaseInitSql << ":/sql/studentmap.sql";
 
@@ -77,7 +77,7 @@ bool StudentMap::loadFromRepository(const QString &uuid, const QString &md5)
 	double steps = 0;
 	double currentStep = 0.0;
 
-	QJsonObject root = Map::loadFromJson(mapdata, true, &steps, &currentStep);
+	QJsonObject root = MapData::loadFromJson(mapdata, true, &steps, &currentStep);
 
 	if (root.isEmpty()) {
 		qWarning() << "JSON error" << uuid;
