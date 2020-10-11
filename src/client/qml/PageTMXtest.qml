@@ -17,6 +17,8 @@ Page {
 		anchors.fill: parent
 		currentScene: scene
 
+		onGameStateChanged: console.info("game state ", gameState)
+
 		TiledScene {
 			id: scene
 			debug: true
@@ -27,6 +29,8 @@ Page {
 				width: gameWindow.width
 				height: gameWindow.height
 			}
+
+			onRunningChanged: console.info("SCENE run ", running)
 
 			layers: [
 				TiledLayer {
@@ -62,6 +66,13 @@ Page {
 					]
 				},
 
+
+				TiledLayer {
+					id: ladderLayer
+					name: "Ladders"
+					objects: TiledObject { }
+				},
+
 				TiledLayer {
 					id: coinLayer
 					name: "Coins"
@@ -92,10 +103,16 @@ Page {
 				Coin {}
 			}*/
 
+			Component {
+				id: ladderComponent
+				TMXladder {}
+			}
+
 			/**************************** INPUT HANDLING ***************************/
 			// Key handling
 			Keys.onPressed: {
 				console.debug("Key pressed ", event.key)
+				scene.forceActiveFocus()
 				switch(event.key) {
 				case Qt.Key_Left:
 					player.moveLeft()
@@ -149,16 +166,16 @@ Page {
 
 				// Create coins
 				// Loop through every "collision" of the coin object layer
-				for(var i = 0; i < coinLayer.objects.length; ++i)
+				for(i=0; i<ladderLayer.objects.length; ++i)
 				{
-					var collision = coinLayer.objects[i];
+					var collision = ladderLayer.objects[i];
 					while(collision.next())
 					{
-						var coin = coinComponent.createObject(scene);
-						coin.x = collision.x;
-						coin.y = collision.y
-						coin.width = collision.width
-						coin.height = collision.height
+						var ladder = ladderComponent.createObject(scene);
+						ladder.x = collision.x;
+						ladder.y = collision.y
+						ladder.width = collision.width
+						ladder.height = collision.height
 					}
 				}
 			}
@@ -169,7 +186,8 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		//gameWindow.forceActiveFocus()
+		console.debug("ACTIVATED", gameWindow.gameState)
+		gameWindow.gameState = Bacon2D.Running
 	}
 
 	function windowClose() {

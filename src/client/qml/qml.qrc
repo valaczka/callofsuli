@@ -104,5 +104,6 @@
         <file>MapMission.qml</file>
         <file>PageTMXtest.qml</file>
         <file>TMXplayer.qml</file>
+        <file>TMXladder.qml</file>
     </qresource>
 </RCC>

@@ -4,8 +4,8 @@ import Bacon2D 1.0
 PhysicsEntity {
 	id: root
 	sleepingAllowed: false
-	width: 100
-	height: 75
+	width: 80
+	height: 45
 	bodyType: Body.Dynamic
 	fixedRotation: true
 
@@ -17,28 +17,40 @@ PhysicsEntity {
 	readonly property int groundSensorRoom: -7
 	property int xStep: 10
 
+	property int hasLadder: 0
+
 	fixtures: [
 		Box {
-			x: 15
-			width: target.width - 40
+			x: 0
+			width: target.width
 			height: target.height - groundSensorRoom
 			density: .3
 			restitution: 0
 			friction: .7
 			categories: Box.Category1
+
+			onBeginContact: {
+				console.info("LADDER begin", other, other.x, other.y, other.height, other.direction)
+				root.hasLadder = other.direction ? other.direction : 0
+			}
+
+			onEndContact: {
+				console.info("LADDER end", other)
+				root.hasLadder = 0
+			}
 		},
 
 		// ground sensor
 		Box {
 			sensor: true
-			x: 30
+			x: 0
 			y: target.height - groundSensorRoom
-			width: 30
+			width: target.width
 			height: 2
 
 			onBeginContact: {
 				root.airborne = false
-				sprite.animation = "idle"
+				//sprite.animation = "idle"
 			}
 
 			onEndContact: {
@@ -51,9 +63,10 @@ PhysicsEntity {
 	Sprite {
 		id: sprite
 		animation: "idle"
+		anchors.centerIn: parent
 
 		animations: [
-		SpriteAnimation {
+			SpriteAnimation {
 				name: "idle"
 				source: "qrc:/character1/coin.png"
 				frames: 10
@@ -64,7 +77,7 @@ PhysicsEntity {
 		]
 	}
 
-/*
+	/*
 	fixtures: [
 		Box {
 			x: 15
@@ -79,7 +92,7 @@ PhysicsEntity {
 		// ground sensor
 		Box {
 			sensor: true
-			x: 30
+			x: 305.14.2/gcc_64/qml/Bacon2D.1.0
 			y: target.height - groundSensorRoom
 			width: 30
 			height: 2
@@ -145,7 +158,7 @@ PhysicsEntity {
 			}
 		]
 	}
-
+*/
 
 	Timer {
 		id: rMoveLeftTimer
@@ -162,11 +175,22 @@ PhysicsEntity {
 		repeat: true
 		triggeredOnStart: true
 
-		onTriggered: root.rMoveRight()
+		property int elapsed: 0
+
+		onRunningChanged: if (!running) {
+							  elapsed = 0
+							  interval = 50
+						  }
+
+		onTriggered: {
+			elapsed += interval
+			root.rMoveRight()
+		}
 	}
 
 
 	function moveLeft() {
+		console.debug ("MOVE LEFT", scene.game.gameState)
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
@@ -174,24 +198,25 @@ PhysicsEntity {
 		rMoveRightTimer.stop()
 		root.facingLeft = true
 
-		if(root.airborne && sprite.animation != "jump")
+		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
 		else
-			sprite.animation = "run"
+			sprite.animation = "run" */
 	}
 
 	// Repeat move left
 	function rMoveLeft() {
+		console.debug ("RMOVE LEFT", scene.game.gameState)
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
 		root.x -= root.xStep
 		root.facingLeft = true
 
-		if(root.airborne && sprite.animation != "jump")
+		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
 		else
-			sprite.animation = "run"
+			sprite.animation = "run" */
 	}
 
 	function stopMovingLeft() {
@@ -201,13 +226,14 @@ PhysicsEntity {
 		rMoveLeftTimer.stop()
 		root.facingLeft = true
 
-		if(root.airborne && sprite.animation != "jump")
+		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
 		else
-			sprite.animation = "idle"
+			sprite.animation = "idle" */
 	}
 
 	function moveRight() {
+		root.bodyType = Body.Dynamic
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
@@ -215,24 +241,25 @@ PhysicsEntity {
 		rMoveRightTimer.start()
 		root.facingLeft = false
 
-		if(root.airborne && sprite.animation != "jump")
+		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
 		else
-			sprite.animation = "run"
+			sprite.animation = "run" */
 	}
 
 	// Repeat move right
 	function rMoveRight() {
+		console.debug ("RMOVE RIGHT", scene.game.gameState)
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
-		root.x += root.xStep
+		root.x += (rMoveRightTimer.elapsed > 250) ? 2*root.xStep : root.xStep
 		root.facingLeft = false
 
-		if(root.airborne && sprite.animation != "jump")
+		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
 		else
-			sprite.animation = "run"
+			sprite.animation = "run" */
 	}
 
 	function stopMovingRight() {
@@ -242,16 +269,24 @@ PhysicsEntity {
 		rMoveRightTimer.stop()
 		root.facingLeft = false
 
-		if(root.airborne && sprite.animation != "jump")
+		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
 		else
-			sprite.animation = "idle"
+			sprite.animation = "idle" */
 	}
 
 	function jump() {
 		if(scene.game.gameState != Bacon2D.Running)
 			return
-		if(root.airborne)
+
+		if (root.hasLadder != 0)
+			root.y += hasLadder
+
+		/*root.bodyType = Body.Static
+
+		root.y-=50 */
+
+		/*		if(root.airborne)
 			return
 
 		if(sprite.animation == "idle" || sprite.animation == "run")
@@ -259,9 +294,9 @@ PhysicsEntity {
 		else
 			return
 
-		root.applyLinearImpulse(Qt.point(0, -root.getMass() * 10), root.getWorldCenter());
+		root.applyLinearImpulse(Qt.point(0, -root.getMass() * 10), root.getWorldCenter()); */
 	}
 
-	*/
+
 }
 

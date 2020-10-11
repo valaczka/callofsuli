@@ -3,11 +3,9 @@ Call of Suli
 
 Copyright (c) 2012-2020 - Valaczka János Pál
 
-# Bacon2D
+# Build
 
-Copyright (c) 2014-2015 - Bacon2D Project
-Copyright (c) 2012 - INdT
-https://github.com/Bacon2D/Bacon2D
+git submodule update --init --recursive
 
 # SMTP Client for Qt
 
