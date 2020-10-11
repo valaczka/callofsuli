@@ -1,0 +1,232 @@
+Main developer and maintainer:
+
+Thorbjørn Lindeijer <bjorn@lindeijer.nl>
+
+
+Other contributors:
+
+Stefan Beller
+Erik Schilling
+Samuli Tuomola
+Jeff Bland
+Petr Viktorin
+Jake Petroules
+Mamed Ibrahimov
+Mauricio Muñoz Lucero
+Yohann Ferreira
+mauve
+Alex Vega (semtiko)
+Martin Ziel
+Hiroki Utsunomiya
+Mike Thomas
+Parker Miller
+seeseekey
+Roderic Morris
+Will Luongo
+Michael Bickel
+Porfírio Ribeiro
+Sean Humeniuk
+Ben Longbons
+Jonatas de Moraes Junior
+Manu Evans
+Mikolai Fajer
+zhaosting
+Alejandro Cámara
+Oskar Wiksten
+Peter André Johansen
+Tamir Atias (KonoM)
+Tim Baker
+Hendrik Brummermann
+Mohammad Mehdi Salem Naraghi
+Omnomnobot
+wayfu
+Andrew G. Crowell
+Cheuk Yin Ng
+Clint Bellanger
+Dennis Honeyman
+Henrik Heino
+Laete Meireles
+Michael Woerister
+Sebastian Pidek
+Yehnan Chiang
+Alexander Kuhrt
+Andreas Abraham
+Bilge Theall
+Champi080
+Christian Henz
+Christoph Schnackenberg
+Christophe Conceicao
+Dale Kim
+HenryJia
+Janis Kirsteins
+Kenney Phillis
+Maus
+Nathan Tolbert
+Niek
+Pierre-David Bélanger
+Porfirio
+Przemysław Grzywacz
+Seanba
+Wodann
+juniperbrew
+nuriu
+tolbert
+zigal
+Aban
+Adam Rippon
+Ahmad Hamdani
+Alessandro Portale
+Alex Koz
+Alexei Bratuhin
+Andrew Motrenko
+Ansis Māliņš
+Antonio Ricci
+Ava Brumfield
+Bin Wu
+Brandon Dillon
+Brian Cain
+CaptainFrog
+Carisius
+Dennis Hostetler
+Dmitry Hrabrov
+Dmitry Marakasov
+Dobes Vandermeer
+Dylan Wilson
+Eduardo Medeiros Pereira
+Edward Hutchins
+Emmanuel Barroga
+Eric Kidd
+Firas Assaad
+Flyte
+Gornova
+Gregory Nickonov
+Guilherme Rodrigues Caetano
+Hanmac
+Harri Berglund
+Harry Hsiao
+Hermann Döppes
+Ian Langworth ☠
+Jack Roper
+Jared Adams
+Joel Leclerc
+Johel Ernesto Guerrero Peña
+JonesBlunt
+Juan Rodriguez
+Justas Bistrickas
+Justin Jacobs
+Kimmo Rundelin
+Kody Kurtz
+Kyle Delaney
+Lennert Raesch
+Ludolph Neethling
+MHendricks
+Mark van Rij
+Mattia Basaglia
+Michael Aquilina
+Michael Williams
+Mohammed SLIMANI
+Nikita Razdobreev
+Nuri Uzunoğlu
+Okami
+Oliver Zell
+Phil Hagelberg
+Postremus
+Prayag Verma
+Robert Maes
+Roberto Raggi
+RyanSchmittDev
+Sausage Johnson
+Sebastian Grillmaier
+Sébastien BURILLARD
+Todd Carnes
+Tom Linthwaite
+Tomasz Kubiak
+Vincent Petithory
+Vsevolod Klementjev
+Wade Brainerd
+Xenodora
+YFdyh000
+Ying-Chun Liu (PaulLiu)
+Zach Reizner
+Zachary Jia
+arntro-4
+assofohdz
+bitJericho
+buckle2000
+devnewton
+endlesstravel
+endstation
+fireraccoon
+iskolbin
+kekd.ck
+leeonix
+luan-cestari
+mhussa
+mogemimi
+nykm
+ranjak
+tomerdaniel
+
+
+Translators:
+
+Ahmad Hamdani            (Czech)
+Alex Vega                (Russian)
+Antonio Ricci            (Italian)
+Bilge Theall             (Chinese)
+Bin Wu                   (Chinese)
+Damene Abdelkader        (Arabic, Algeria)
+Eduardo Medeiros Pereira (Portuguese, Brazil)
+Gornova                  (Italian)
+Hiroki Utsunomiya        (Japanese)
+Jonatas de Moraes Junior (Portuguese, Brazil)
+jurkan                   (German)
+Jānis Kiršteins          (Latvian)
+Laete Meireles           (Portuguese, Brazil)
+Lyubomir Vasilev         (Bulgarian)
+Mauricio Muñoz Lucero    (Spanish)
+Nuri Uzunoğlu            (Turkish)
+Peter André Johansen     (Norwegian Bokmål)
+Petr Viktorin            (Czech)
+Porfírio Ribeiro         (Portuguese)
+Sebastian Grillmaier     (German)
+Sébastien Burillard      (French)
+seeseekey                (German)
+Tamir Atias (KonoM)      (Hebrew)
+Thorbjørn Lindeijer      (Dutch)
+Tomasz Kubiak            (Polish)
+Tomer Daniel             (Hebrew)
+Yohann Ferreira          (French)
+Zhao Sting               (Chinese)
+
+
+Acknowledgements:
+
+Most of the icons are from the GNOME and GIMP icon themes (GPL)
+
+Some Icons are Copyright (C) Yusuke Kamiyamane. All rights reserved.
+Licensed under a Creative Commons Attribution 3.0 license.
+See http://p.yusukekamiyamane.com/
+
+The dice icon is based on an SVG by Steaphan Greene that I found on Wikipedia:
+http://en.wikipedia.org/wiki/File:2-Dice-Icon.svg
+
+Inkscape icons by Barbara Muraus, Jakub Steiner and Josh Andler (CC-BY-SA 3.0)
+* src/tiled/images/14x14/hidden.png
+* src/tiled/images/14x14/visible.png
+* src/tiled/images/16x16/hidden.png
+* src/tiled/images/16x16/visible.png
+* src/tiled/images/24x24/hidden.png
+* src/tiled/images/24x24/visible.png
+
+
+Tilesets:
+
+perspective_walls.png - (C) Clint Bellanger, released as Public Domain
+isometric_grass_and_water.png - (C) Clint Bellanger, released as GPL2, GPL3, CC-BY-SA3
+tmw_desert_spacing.png - (C) The Mana World Development Team, GPL
+sewer_tileset.png - (C) Blues Brothers RPG developers, GPL
+Replica Island - (C) Chris Pruett and Genki Mine, Apache (except hotspots.png)
+hexmini.png - Public Domain, http://opengameart.org/content/pixel-hex-tilesets-enhanced
+buch-outdoor.png - (C) Michele "Buch" Bucelli, CC-BY 3.0, http://opengameart.org/users/buch
+examples/sticker-knight - (C) Ponywolf, CC0, http://opengameart.org/content/sticker-knight-platformer
