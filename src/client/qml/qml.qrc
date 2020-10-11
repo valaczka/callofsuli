@@ -102,5 +102,7 @@
         <file>QMenuItemDelegate.qml</file>
         <file>MapMissionList.qml</file>
         <file>MapMission.qml</file>
+        <file>PageTMXtest.qml</file>
+        <file>TMXplayer.qml</file>
     </qresource>
 </RCC>

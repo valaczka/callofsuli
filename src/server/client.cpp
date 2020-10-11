@@ -72,6 +72,9 @@ Client::~Client()
 
 int Client::nextServerMsgId()
 {
+	if (m_serverMsgId == INT_MAX)
+		m_serverMsgId=0;
+
 	return ++m_serverMsgId;
 }
 

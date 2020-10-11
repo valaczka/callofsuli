@@ -68,7 +68,6 @@ int main(int argc, char *argv[])
 	engine.addImageProvider("sql", new SqlImage(&client));
 	engine.addImageProvider("font", new FontImage());
 
-
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
 	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
 					 &app, [url](QObject *obj, const QUrl &objUrl) {

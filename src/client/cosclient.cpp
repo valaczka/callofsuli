@@ -125,6 +125,10 @@ void Client::initialize()
 
 bool Client::registerResource(const QString &filename)
 {
+	// REGISTER TEST MAP RESOURCE
+	QResource::registerResource("/home/valaczka/Projektek/callofsuli/src/maps/map1.cosm", "/map1");
+	QResource::registerResource("/home/valaczka/Projektek/callofsuli/src/characters/character1.cosc", "/character1");
+
 #ifdef Q_OS_ANDROID
 	if (QResource::registerResource("assets:/"+filename)) {
 		qDebug().noquote() << tr("Registered resource from assets") + filename;
@@ -187,7 +191,7 @@ void Client::registerTypes()
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
-	qmlRegisterType<Game>("COS.Client", 1, 0, "Game");
+	//qmlRegisterType<Game>("COS.Client", 1, 0, "GameEngine");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");

@@ -249,9 +249,9 @@ Page {
 	}
 
 
-	onOnlyPanelChanged: {console.debug("onlypanelschanged", control, onlyPanel); panelReset() }
-	onPanelsChanged: {console.debug("panelschanged", control, panels); panelReset() }
-	onSwipeModeChanged: {console.debug("swipechanged", control, panels); panelReset() }
+	onOnlyPanelChanged: { if (control.StackView.status === StackView.Active) { console.debug("onlypanelschanged", control, onlyPanel); panelReset() } }
+	onPanelsChanged: { if (control.StackView.status === StackView.Active) { console.debug("panelschanged", control, panels); panelReset() } }
+	onSwipeModeChanged: { if (control.StackView.status === StackView.Active) { console.debug("swipechanged", control, panels); panelReset() }  }
 
 
 	StackView.onRemoved: destroy()
@@ -303,6 +303,7 @@ Page {
 
 
 	function panelReset() {
+		console.debug("PANEL RESET ", control)
 		if (swipeMode)
 			mainMenu = null
 		else

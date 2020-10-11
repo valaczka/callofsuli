@@ -1,4 +1,4 @@
-RCC = /home/valaczka/usr/Qt/5.14.2/gcc_64/bin/rcc
+RCC = rcc
 
 SOURCES = $(shell find ../resources -mindepth 2 | sed "s+\.\./resources/++")
 

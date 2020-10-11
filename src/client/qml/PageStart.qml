@@ -71,6 +71,16 @@ QPage {
 	}
 
 
+
+	Action {
+		id: tmXtest
+		shortcut: "F2"
+		onTriggered: {
+			var o = JS.createPage("TMXtest", {})
+		}
+	}
+
+
 	Connections {
 		target: cosClient
 
