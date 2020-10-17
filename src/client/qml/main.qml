@@ -20,20 +20,20 @@ ApplicationWindow {
 	minimumHeight: 600
 	minimumWidth: 600
 
-	FontLoader { source: "qrc:/font/Books.ttf" }
-	FontLoader { source: "qrc:/font/Material.ttf" }
-	FontLoader { source: "qrc:/font/School.ttf" }
-	FontLoader { source: "qrc:/font/Academic.ttf" }
-	FontLoader { source: "qrc:/font/AcademicI.ttf" }
+	FontLoader { source: "qrc:/internal/font/Books.ttf" }
+	FontLoader { source: "qrc:/internal/font/Material.ttf" }
+	FontLoader { source: "qrc:/internal/font/School.ttf" }
+	FontLoader { source: "qrc:/internal/font/Academic.ttf" }
+	FontLoader { source: "qrc:/internal/font/AcademicI.ttf" }
 
-	FontLoader { source: "qrc:/font/rajdhani-bold.ttf" }
-	FontLoader { source: "qrc:/font/rajdhani-light.ttf" }
-	FontLoader { source: "qrc:/font/rajdhani-regular.ttf" }
-	FontLoader { source: "qrc:/font/rajdhani-medium.ttf" }
-	FontLoader { source: "qrc:/font/rajdhani-semibold.ttf" }
+	FontLoader { source: "qrc:/internal/font/rajdhani-bold.ttf" }
+	FontLoader { source: "qrc:/internal/font/rajdhani-light.ttf" }
+	FontLoader { source: "qrc:/internal/font/rajdhani-regular.ttf" }
+	FontLoader { source: "qrc:/internal/font/rajdhani-medium.ttf" }
+	FontLoader { source: "qrc:/internal/font/rajdhani-semibold.ttf" }
 
-	FontLoader { source: "qrc:/font/SpecialElite.ttf" }
-	FontLoader { source: "qrc:/font/HVD_Peace.ttf" }
+	FontLoader { source: "qrc:/internal/font/SpecialElite.ttf" }
+	FontLoader { source: "qrc:/internal/font/HVD_Peace.ttf" }
 
 
 

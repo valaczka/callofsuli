@@ -12,6 +12,9 @@ Page {
 
 	//color: CosStyle.colorBg
 
+	property string terrainDirName: "qrc:/terrain/"+"terrain1"
+	property var terrainData: cosClient.readJsonFile(terrainDirName+"/data.json")
+
 	Game {
 		id: gameWindow
 		anchors.fill: parent
@@ -19,13 +22,19 @@ Page {
 
 		onGameStateChanged: console.info("game state ", gameState)
 
+		onWidthChanged: setXOffset()
+
 		TiledScene {
 			id: scene
-			debug: true
+			//debug: true
 			physics: true
-			source: "qrc:/map1/map.tmx"
+			source: terrainDirName+"/"+terrainData.tmx
+
+			y: Math.max(0, gameWindow.height-scene.height)
+
 			viewport: Viewport {
-				yOffset: scene.height - gameWindow.height
+				id: vp
+				yOffset: 50 //50-player.y
 				width: gameWindow.width
 				height: gameWindow.height
 			}
@@ -94,6 +103,8 @@ Page {
 
 			TMXplayer {
 				id: player
+
+				onXChanged: setXOffset()
 			}
 
 			/*Dog { id: player }
@@ -111,13 +122,16 @@ Page {
 			/**************************** INPUT HANDLING ***************************/
 			// Key handling
 			Keys.onPressed: {
-				console.debug("Key pressed ", event.key)
 				scene.forceActiveFocus()
 				switch(event.key) {
 				case Qt.Key_Left:
+					if (player.walkElapsed > 1250)
+						player.running = true
 					player.moveLeft()
 					break;
 				case Qt.Key_Right:
+					if (player.walkElapsed > 1250)
+						player.running = true
 					player.moveRight()
 					break;
 				case Qt.Key_Up:
@@ -148,15 +162,16 @@ Page {
 				//player.x = playerObject.x;
 				//player.y = playerObject.y
 
-				var pos = 1
+				var pos = 2
 
 				for (var i =0; i<playerLayer.objects.length; ++i) {
 					var po = playerLayer.objects[i]
 					while (po.next()) {
 						var poPos = po.getProperty("position")
+						var poBlock = po.getProperty("block")
 						console.info("PLAYER "+i+": "+po.getProperty("id")+"  "+poPos)
 
-						if (poPos === pos) {
+						if (poBlock == 1 && poPos === 4) {
 							console.info("PLACE on "+poPos+"  "+po.x+","+po.y)
 							player.x = po.x
 							player.y = po.y
@@ -182,6 +197,47 @@ Page {
 		}
 	}
 
+	QLabel {
+		id: labelVP
+		anchors.top: parent.top
+		anchors.right: parent.right
+		text: "VIEWPORT "+vp.xOffset+" "+vp.yOffset+"   SCENE: "+scene.width+" "+scene.height+"   GAME: "+gameWindow.width+" "+gameWindow.height
+	}
+
+	QLabel {
+		id: labelPlay
+		anchors.top: parent.top
+		anchors.left: parent.left
+		text: player.x+" "+player.y
+	}
+
+	VirtualJoystick {
+		anchors.bottom: parent.bottom
+		anchors.left: parent.left
+		anchors.margins: 15
+
+		onJoystickMoved: {
+			if (x > 0.3) {
+				if (x > 0.9)
+					player.running = true
+				else
+					player.running = false
+				player.moveRight()
+			} else if (x < -0.3) {
+				if (x < -0.9)
+					player.running = true
+				else
+					player.running = false
+				player.moveLeft()
+			} else {
+				player.stopMovingLeft();
+				player.stopMovingRight();
+			}
+
+			if (y > 0.5)
+				player.jump()
+		}
+	}
 
 	StackView.onRemoved: destroy()
 
@@ -189,6 +245,18 @@ Page {
 		console.debug("ACTIVATED", gameWindow.gameState)
 		gameWindow.gameState = Bacon2D.Running
 	}
+
+
+	function setXOffset() {
+		if (!gameWindow.width)
+			return
+
+		if (player.facingLeft && (player.x-vp.xOffset < 500))
+			vp.xOffset = player.x-500
+		else if (!player.facingLeft && (player.x-(vp.xOffset+gameWindow.width)+500) > 0)
+			vp.xOffset = player.x - gameWindow.width + 500
+	}
+
 
 	function windowClose() {
 		return true

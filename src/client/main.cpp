@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 	client.initialize();
 	client.standardPathCreate();
 	client.registerTypes();
-	client.registerResource();
+	client.registerResources();
 
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();

@@ -47,7 +47,7 @@ Page {
 		id: bgImage
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/img/villa.png"
+		source: "qrc:/internal/img/villa.png"
 	}
 
 	header: QToolBar {

@@ -1,34 +1,21 @@
 RCC = rcc
 
-SOURCES = $(shell find ../resources -mindepth 2 | sed "s+\.\./resources/++")
+CRES_DIRS = internal terrain character
+CRES_FILES = $(addsuffix .cres,$(CRES_DIRS))
 
-all: ../resources/db/default.db callofsuli.rcc
+all: $(CRES_FILES)
 
 distclean: clean
+	cd ../resources && $(MAKE) clean
 
 clean:
-	$(RM) callofsuli.rcc
+	$(RM) -f $(CRES_FILES)
 
 
-callofsuli.rcc: ../resources/callofsuli.qrc
-	$(RCC) -binary $< -o $@
-	rm $<
-
-../resources/db/default.db: ../src/resources/default.db
+%.cres: ../resources/%.cres
 	cp $< $@
 
-../src/resources/default.db:
-	cd ../src/resources && $(MAKE) all
+../resources/%.cres: 
+	cd ../resources && $(MAKE) $(notdir $@)
 
-../resources/callofsuli.qrc:
-	echo "<!DOCTYPE RCC><RCC version=\"1.0\">" >$@
-	echo "<qresource prefix=\"/\">" >>$@	
-	for f in $(SOURCES); do \
-		echo "<file>$$f</file>" >>$@ ; \
-	done
-	echo "</qresource>" >>$@
-	echo "</RCC>" >>$@
-
-
-FORCE:
 

@@ -22,3 +22,7 @@ https://github.com/oKcerG/SortFilterProxyModel
 Copyright (c) 2013-2014 Debao Zhang
 https://github.com/dbzhang800/QtXlsxWriter
 
+# QMLVirtualJoystick
+
+Copyright (c) 2014 Aaron Snoswell
+https://github.com/aaronsnoswell/QMLVirtualJoystick

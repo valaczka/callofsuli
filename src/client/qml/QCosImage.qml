@@ -22,7 +22,7 @@ Item {
 		width: sourceSize.width
 		height: sourceSize.height
 		fillMode: Image.PreserveAspectFit
-		source: "qrc:/img/callofsuli.svg"
+		source: "qrc:/internal/img/callofsuli.svg"
 		visible: false
 	}
 

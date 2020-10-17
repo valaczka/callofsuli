@@ -1,13 +1,22 @@
-import QtQuick 2.12
 import Bacon2D 1.0
+import QtQuick 2.14
 
 PhysicsEntity {
 	id: root
 	sleepingAllowed: false
-	width: 80
-	height: 45
+	width: 100
+	height: 100
 	bodyType: Body.Dynamic
 	fixedRotation: true
+
+	enum CharState {
+		Idle,
+		Spring
+	}
+
+	gravityScale: 5
+
+	property int walkElapsed: 0
 
 	readonly property Scene scene: parent
 	property bool facingLeft: false
@@ -15,16 +24,28 @@ PhysicsEntity {
 	property bool running: false
 	property bool jumping: false
 	readonly property int groundSensorRoom: -7
-	property int xStep: 10
+
+	property int characterState: TMXplayer.CharState.Idle
 
 	property int hasLadder: 0
 
+	/*var r = cosClient.readJsonFile(":/character1/data.json")
+	console.debug(r, r.ablak, r.teszt, r.masik)*/
+
+	property string characterDirName: "qrc:/character/"+"character1"
+	property var characterData: cosClient.readJsonFile(characterDirName+"/data.json")
+
 	fixtures: [
-		Box {
-			x: 0
-			width: target.width
-			height: target.height - groundSensorRoom
-			density: .3
+		Polygon {
+			id: boxBody
+
+			vertices: [
+				Qt.point(0,0),
+				Qt.point(0,10),
+				Qt.point(10,10),
+				Qt.point(10,0)
+			]
+
 			restitution: 0
 			friction: .7
 			categories: Box.Category1
@@ -34,10 +55,6 @@ PhysicsEntity {
 				root.hasLadder = other.direction ? other.direction : 0
 			}
 
-			onEndContact: {
-				console.info("LADDER end", other)
-				root.hasLadder = 0
-			}
 		},
 
 		// ground sensor
@@ -50,7 +67,6 @@ PhysicsEntity {
 
 			onBeginContact: {
 				root.airborne = false
-				//sprite.animation = "idle"
 			}
 
 			onEndContact: {
@@ -60,7 +76,95 @@ PhysicsEntity {
 
 	]
 
-	Sprite {
+
+	onRunningChanged: if (running && (rMoveLeftTimer.running || rMoveRightTimer.running))
+						  spriteseq.goalSprite="run"
+					  else if (!running && (rMoveLeftTimer.running || rMoveRightTimer.running))
+						  spriteseq.goalSprite="walk"
+
+
+	SpriteSequence {
+		id: spriteseq
+		width: currentSprite ? characterData.sprites[currentSprite].frameWidth : 10
+		height: currentSprite ? characterData.sprites[currentSprite].frameHeight : 10
+
+		onCurrentSpriteChanged: {
+			if (!currentSprite)
+				return
+
+			if (goalSprite == currentSprite)
+				goalSprite = ""
+
+			var vertices = characterData.sprites[currentSprite].bodyVertices
+
+			var vlist = []
+
+			for (var i=0; i<vertices.length; i++) {
+				var v = vertices[i]
+				vlist.push(Qt.point(v.x, v.y))
+			}
+
+			if (root.facingLeft)
+				boxBody.vertices  = cosClient.rotatePolygon(vlist, 180, Qt.YAxis)
+			else
+				boxBody.vertices = vlist
+
+		}
+
+		transform: Rotation {
+			id: rotation
+			origin.x: spriteseq.width/2
+			origin.y: spriteseq.height/2
+			axis.x: 0; axis.y: 1; axis.z: 0     // set axis.y to 1 to rotate around y-axis
+			angle: 0    // the default angle
+		}
+
+		states: State {
+			name: "back"
+			PropertyChanges { target: rotation; angle: 180 }
+			when: root.facingLeft
+		}
+
+		transitions: Transition {
+			NumberAnimation { target: rotation; property: "angle"; duration: 150 }
+		}
+
+
+		Sprite {
+			name: "idle"
+			source: characterDirName+"/"+characterData.sprites.idle.source
+			frameCount: characterData.sprites.idle.frameCount
+			frameWidth: characterData.sprites.idle.frameWidth
+			frameHeight: characterData.sprites.idle.frameHeight
+			frameDuration: characterData.sprites.idle.frameDuration
+			frameDurationVariation: 5
+			to: {"idle": 1, "walk": 0, "run": 0}
+		}
+
+		Sprite {
+			name: "walk"
+			source: characterDirName+"/"+characterData.sprites.walk.source
+			frameCount: characterData.sprites.walk.frameCount
+			frameWidth: characterData.sprites.walk.frameWidth
+			frameHeight: characterData.sprites.walk.frameHeight
+			frameDuration: characterData.sprites.walk.frameDuration
+			to: {"idle": 0, "walk": 1, "run": 0}
+		}
+
+		Sprite {
+			name: "run"
+			source: characterDirName+"/"+characterData.sprites.run.source
+			frameCount: characterData.sprites.run.frameCount
+			frameWidth: characterData.sprites.run.frameWidth
+			frameHeight: characterData.sprites.run.frameHeight
+			frameDuration: characterData.sprites.walk.frameDuration
+			to: {"idle": 0, "walk": 0, "run": 1}
+		}
+
+	}
+
+
+	/*Sprite {
 		id: sprite
 		animation: "idle"
 		anchors.centerIn: parent
@@ -68,14 +172,14 @@ PhysicsEntity {
 		animations: [
 			SpriteAnimation {
 				name: "idle"
-				source: "qrc:/character1/coin.png"
-				frames: 10
-				duration: 1000
+				source: characterDirName+"/"+characterData.idle.source
+				frames: characterData.idle.frames
+				duration: characterData.idle.duration
 				loops: Animation.Infinite
 			}
 
 		]
-	}
+	}*/
 
 	/*
 	fixtures: [
@@ -166,7 +270,18 @@ PhysicsEntity {
 		repeat: true
 		triggeredOnStart: true
 
-		onTriggered: root.rMoveLeft()
+		onRunningChanged: if (running) {
+							  spriteseq.jumpTo(root.running ? "run" : "walk")
+						  } else {
+							  walkElapsed = 0
+							  spriteseq.goalSprite=""
+							  spriteseq.jumpTo("idle")
+						  }
+
+		onTriggered: {
+			walkElapsed += interval
+			root.rMoveLeft()
+		}
 	}
 
 	Timer {
@@ -175,22 +290,22 @@ PhysicsEntity {
 		repeat: true
 		triggeredOnStart: true
 
-		property int elapsed: 0
-
-		onRunningChanged: if (!running) {
-							  elapsed = 0
-							  interval = 50
+		onRunningChanged: if (running) {
+							  spriteseq.jumpTo(root.running ? "run" : "walk")
+						  } else {
+							  walkElapsed = 0
+							  spriteseq.goalSprite=""
+							  spriteseq.jumpTo("idle")
 						  }
 
 		onTriggered: {
-			elapsed += interval
+			walkElapsed += interval
 			root.rMoveRight()
 		}
 	}
 
 
 	function moveLeft() {
-		console.debug ("MOVE LEFT", scene.game.gameState)
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
@@ -206,11 +321,10 @@ PhysicsEntity {
 
 	// Repeat move left
 	function rMoveLeft() {
-		console.debug ("RMOVE LEFT", scene.game.gameState)
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
-		root.x -= root.xStep
+		root.x -= root.running ? root.characterData.run : root.characterData.walk
 		root.facingLeft = true
 
 		/*if(root.airborne && sprite.animation != "jump")
@@ -225,6 +339,7 @@ PhysicsEntity {
 
 		rMoveLeftTimer.stop()
 		root.facingLeft = true
+		root.running = false
 
 		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"
@@ -249,11 +364,10 @@ PhysicsEntity {
 
 	// Repeat move right
 	function rMoveRight() {
-		console.debug ("RMOVE RIGHT", scene.game.gameState)
 		if(scene.game.gameState != Bacon2D.Running)
 			return
 
-		root.x += (rMoveRightTimer.elapsed > 250) ? 2*root.xStep : root.xStep
+		root.x += root.running ? root.characterData.run : root.characterData.walk
 		root.facingLeft = false
 
 		/*if(root.airborne && sprite.animation != "jump")
@@ -268,6 +382,7 @@ PhysicsEntity {
 
 		rMoveRightTimer.stop()
 		root.facingLeft = false
+		root.running = false
 
 		/*if(root.airborne && sprite.animation != "jump")
 			sprite.animation = "freefall"

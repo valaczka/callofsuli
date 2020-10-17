@@ -33,6 +33,7 @@
 #include <QQuickWindow>
 #include <QSettings>
 #include <QJsonObject>
+#include <QUrl>
 
 class Client : public QObject
 {
@@ -79,7 +80,7 @@ public:
 	virtual ~Client();
 
 
-	static bool registerResource(const QString &filename = "callofsuli.rcc");
+	static void registerResources();
 	static void registerTypes();
 	static void initialize();
 	static void standardPathCreate();
@@ -91,6 +92,9 @@ public:
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key);
+
+	Q_INVOKABLE static QVariant readJsonFile(const QUrl &file);
+	Q_INVOKABLE QList<QPoint> rotatePolygon(const QList<QPoint> &points, const qreal &angle, Qt::Axis axis = Qt::ZAxis);
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }

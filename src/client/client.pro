@@ -6,6 +6,7 @@ include(../version/version.pro)
 include(../common/common.pri)
 include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
 
+QTPLUGIN += bacon2d
 
 TEMPLATE = app
 TARGET = callofsuli
@@ -87,5 +88,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 DISTFILES +=
 
-#QTPLUGIN += bacon2d
+
 

@@ -32,7 +32,7 @@ Item {
 
 		BorderImage {
 			id: bgRectMask
-			source: "qrc:/img/border.svg"
+			source: "qrc:/internal/img/border.svg"
 			visible: false
 
 			anchors.fill: bgRectData

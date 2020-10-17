@@ -105,5 +105,6 @@
         <file>PageTMXtest.qml</file>
         <file>TMXplayer.qml</file>
         <file>TMXladder.qml</file>
+        <file>VirtualJoystick.qml</file>
     </qresource>
 </RCC>

@@ -39,7 +39,7 @@ ToolBar {
 
 		BorderImage {
 			id: border2
-			source: "qrc:/img/border3.svg"
+			source: "qrc:/internal/img/border3.svg"
 			visible: false
 
 			//sourceSize.height: 141
@@ -59,7 +59,7 @@ ToolBar {
 
 		Image {
 			id: metalbg
-			source: "qrc:/img/metalbg2.png"
+			source: "qrc:/internal/img/metalbg2.png"
 			visible: false
 			fillMode: Image.Tile
 			anchors.fill: border2

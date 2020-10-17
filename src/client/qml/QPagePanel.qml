@@ -62,7 +62,7 @@ Item {
 
 		BorderImage {
 			id: border2
-			source: "qrc:/img/border2.svg"
+			source: "qrc:/internal/img/border2.svg"
 			visible: false
 
 			//sourceSize.height: 141
@@ -81,7 +81,7 @@ Item {
 
 		Image {
 			id: metalbg
-			source: "qrc:/img/metalbg.png"
+			source: "qrc:/internal/img/metalbg.png"
 			visible: false
 			fillMode: Image.Tile
 			anchors.fill: panel
@@ -227,7 +227,7 @@ Item {
 
 		BorderImage {
 			id: border1
-			source: "qrc:/img/border1.svg"
+			source: "qrc:/internal/img/border1.svg"
 			visible: false
 
 			//sourceSize.height: 141
@@ -252,7 +252,7 @@ Item {
 
 		/*BorderImage {
 			id: bgRect
-			source: "qrc:/img/border.svg"
+			source: "qrc:/internal/img/border.svg"
 			visible: false
 
 			width: parent.width
@@ -268,7 +268,7 @@ Item {
 
 		BorderImage {
 			id: bgRectLine
-			source: "qrc:/img/borderLine15.svg"
+			source: "qrc:/internal/img/borderLine15.svg"
 			visible: false
 
 			anchors.fill: bgRect

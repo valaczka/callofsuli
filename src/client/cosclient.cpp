@@ -123,55 +123,40 @@ void Client::initialize()
  * @return
  */
 
-bool Client::registerResource(const QString &filename)
+void Client::registerResources()
 {
-	// REGISTER TEST MAP RESOURCE
-	QResource::registerResource("/home/valaczka/Projektek/callofsuli/src/maps/map1.cosm", "/map1");
-	QResource::registerResource("/home/valaczka/Projektek/callofsuli/src/characters/character1.cosc", "/character1");
-
-#ifdef Q_OS_ANDROID
-	if (QResource::registerResource("assets:/"+filename)) {
-		qDebug().noquote() << tr("Registered resource from assets") + filename;
-		return true;
-	}
-#endif
-
-	QString binDir = QCoreApplication::applicationDirPath();
 
 	QStringList searchList;
+#ifdef Q_OS_ANDROID
+	searchList.append("assets:");
+	searchList << QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
+	searchList << QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+#else
+	QString binDir = QCoreApplication::applicationDirPath();
 
 	searchList.append(binDir);
 	searchList.append(binDir+"/share");
 	searchList.append(binDir+"/../share");
 	searchList.append(binDir+"/../../share");
-	searchList.append(binDir+"/../../../share");
-	searchList.append(binDir+"/../../../../share");
 	searchList.append(binDir+"/callofsuli/share");
 	searchList.append(binDir+"/../callofsuli/share");
 	searchList.append(binDir+"/../../callofsuli/share");
-	searchList.append(binDir+"/../../../callofsuli/share");
-	searchList.append(binDir+"/../../../../callofsuli/share");
-	searchList.append(QDir::rootPath()+"usr/local/share/callofsuli");
-	searchList.append(QDir::rootPath()+"usr/share/callofsuli");
-	searchList.append(QDir::rootPath()+"share/callofsuli");
 
-	searchList.append(QStandardPaths::displayName(QStandardPaths::HomeLocation));
+	searchList.removeDuplicates();
+
+#endif
 
 	foreach (QString dir, searchList)
 	{
-		QFile file(dir+"/"+filename);
+		qDebug().noquote() << tr("Search resources: ")+dir;
+		QDirIterator it(dir+"/", QStringList() << "*.cres");
 
-		if (file.exists())
-		{
-			QString realname=QDir(file.fileName()).canonicalPath();
+		while (it.hasNext()) {
+			QString realname = it.next();
 			qInfo().noquote() << tr("Registered resource: ")+realname;
 			QResource::registerResource(realname);
-
-			return true;
 		}
 	}
-
-	return false;
 }
 
 
@@ -277,7 +262,7 @@ int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscr
 
 void Client::windowSetIcon(QQuickWindow *window)
 {
-	window->setIcon(QIcon(":/img/cos96.png"));
+	window->setIcon(QIcon(":/internal/img/cos96.png"));
 }
 
 
@@ -332,6 +317,75 @@ QVariant Client::getSetting(const QString &key)
 	QSettings s;
 	return s.value(key);
 }
+
+
+/**
+ * @brief Client::readJsonFile
+ * @param filename
+ * @return
+ */
+
+QVariant Client::readJsonFile(const QUrl &file)
+{
+	QString filename;
+	if (file.url().startsWith("qrc:/"))
+		filename = file.url().replace("qrc:/", ":/");
+	else
+		filename = file.toLocalFile();
+
+	QFile f(filename);
+
+	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+		qWarning().noquote() << tr("A fájl nem található vagy nem olvasható!") << filename;
+		return QVariant();
+	}
+
+	QByteArray b = f.readAll();
+
+	f.close();
+
+	QJsonParseError error;
+	QJsonDocument doc = QJsonDocument::fromJson(b, &error);
+	if (error.error != QJsonParseError::NoError) {
+		qWarning().noquote() << tr("invalid JSON file '%1' at offset %2").arg(error.errorString()).arg(error.offset);
+		return QVariant();
+	}
+	return doc.toVariant();
+}
+
+
+/**
+ * @brief Client::rotatePolygon
+ * @param points
+ * @param angle
+ * @return
+ */
+
+QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &angle, Qt::Axis axis)
+{
+	QPolygon polygon;
+	foreach (QPoint p, points) {
+		polygon << p;
+	}
+
+
+	QRect rect = polygon.boundingRect();
+
+	polygon = QTransform()
+			  .translate(rect.width()/2, rect.height()/2)
+			  .rotate(angle, axis)
+			  .translate(-rect.width()/2, -rect.height()/2)
+			  .map(polygon);
+
+	QList<QPoint> list;
+
+	for (int i=0; i<polygon.count(); ++i) {
+		list.append(polygon.point(i));
+	}
+
+	return list;
+}
+
 
 int Client::clientVersionMajor() { return _VERSION_MAJOR; }
 

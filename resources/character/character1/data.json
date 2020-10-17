@@ -1,0 +1,47 @@
+{
+	"name": "test character",
+	"faceLeft": false,
+	"walk": 6,
+	"run": 15,
+	"sprites": {
+		"idle":	{
+			"source": "idle.png",
+			"frameWidth": 25,
+			"frameHeight": 60,
+			"frameCount": 8,
+			"frameDuration": 80,
+			"bodyVertices": [
+				{ "x": 0, "y": 0 },
+				{ "x": 25, "y": 0 },
+				{ "x": 25, "y": 60 },
+				{ "x": 0, "y": 60 }
+			]
+		},
+		"walk":	{
+			"source": "walk.png",
+			"frameWidth": 33,
+			"frameHeight": 61,
+			"frameCount": 8,
+			"frameDuration": 80,
+			"bodyVertices": [
+				{ "x": 8, "y": 0 },
+				{ "x": 33, "y": 0 },
+				{ "x": 33, "y": 61 },
+				{ "x": 0, "y": 61 }
+			]
+		},
+		"run":	{
+			"source": "run.png",
+			"frameWidth": 33,
+			"frameHeight": 61,
+			"frameCount": 6,
+			"frameDuration": 80,
+			"bodyVertices": [
+				{ "x": 10, "y": 0 },
+				{ "x": 33, "y": 0 },
+				{ "x": 33, "y": 61 },
+				{ "x": 0, "y": 61 }
+			]
+		}
+	}
+}
