@@ -38,10 +38,11 @@
 #include "mapeditor.h"
 #include "teacher.h"
 #include "adminusers.h"
-#include "game.h"
+//#include "gameengine.h"
 #include "intro.h"
 #include "student.h"
 #include "studentmap.h"
+#include "tiledpaintedlayer.h"
 
 
 
@@ -169,6 +170,7 @@ void Client::registerTypes()
 {
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosSql>("COS.Client", 1, 0, "CosSql");
+	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<COSdb>("COS.Client", 1, 0, "COSdb");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<MapData>("COS.Client", 1, 0, "Map");

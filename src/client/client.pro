@@ -5,11 +5,12 @@ CONFIG += c++11
 include(../version/version.pro)
 include(../common/common.pri)
 include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
-
-QTPLUGIN += bacon2d
+include(../3rdparty/Bacon2D-static/src/Bacon2D-static.pri)
 
 TEMPLATE = app
 TARGET = callofsuli
+
+LIBS += -lz
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -41,7 +42,8 @@ SOURCES += \
 		sqlimage.cpp \
 		student.cpp \
 		studentmap.cpp \
-		teacher.cpp
+		teacher.cpp \
+		tiledpaintedlayer.cpp
 
 
 HEADERS += \
@@ -62,24 +64,24 @@ HEADERS += \
 	sqlimage.h \
 	student.h \
 	studentmap.h \
-	teacher.h
+	teacher.h \
+	tiledpaintedlayer.h
 
 RESOURCES += \
 	clientsql.qrc \
 	qml/qml.qrc
 
 
+QML_IMPORT_PATH += $$PWD/../3rdparty/Bacon2D-static/src/
+
+# Additional import path used to resolve QML modules just for Qt Quick Designer
+QML_DESIGNER_IMPORT_PATH += $$PWD/../3rdparty/Bacon2D-static/src/
+
+QML2_IMPORT_PATH += $$PWD/../3rdparty/Bacon2D-static/src/
+
 CONFIG(release, debug|release) {
 	DEFINES += QT_NO_DEBUG_OUTPUT
 }
-
-# Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH = ../../lib/Bacon2D/src
-
-# Additional import path used to resolve QML modules just for Qt Quick Designer
-QML_DESIGNER_IMPORT_PATH = ../../lib/Bacon2D/src
-
-QML2_IMPORT_PATH = ../../lib/Bacon2D/src
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

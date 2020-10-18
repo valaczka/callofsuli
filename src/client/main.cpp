@@ -36,6 +36,9 @@
 #include <sqlimage.h>
 #include <fontimage.h>
 
+#include "../3rdparty/Bacon2D-static/qml-box2d/box2dplugin.h"
+#include "../3rdparty/Bacon2D-static/src/plugins.h"
+
 #include "cosclient.h"
 
 
@@ -52,6 +55,12 @@ int main(int argc, char *argv[])
 	QGuiApplication app(argc, argv);
 
 	srand(time(NULL));
+
+	Box2DPlugin box2dplugin;
+	box2dplugin.registerTypes("Box2D");
+
+	Plugins plugin;
+	plugin.registerTypes("Bacon2D");
 
 	Client client;
 

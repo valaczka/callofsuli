@@ -20,11 +20,11 @@ PhysicsEntity {
 
 			readonly property int direction: -target.height-10
 
-			onBeginContact: {
+			/*onBeginContact: {
 				rect.opacity = 0
 			}
 
-			onEndContact: rect.opacity = 0.2
+			onEndContact: rect.opacity = 0.2 */
 		},
 
 		Box {
@@ -36,11 +36,11 @@ PhysicsEntity {
 
 			readonly property int direction: target.height
 
-			onBeginContact: {
+			/*onBeginContact: {
 				rect.opacity = 0.8
 			}
 
-			onEndContact: rect.opacity = 0.2
+			onEndContact: rect.opacity = 0.2 */
 		}
 
 	]
@@ -58,13 +58,13 @@ PhysicsEntity {
 		}
 	}*/
 
-	Rectangle {
+	/*Rectangle {
 		id: rect
 		anchors.fill: parent
 		anchors.margins: 3
 		color: "yellow"
 		opacity: 0.2
-	}
+	}*/
 
 	/*onOpacityChanged: {
 		if(opacity == 0)

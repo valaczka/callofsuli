@@ -35,7 +35,7 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include "game.h"
+#include "gameengine.h"
 #include "abstractstorage.h"
 
 class Game;

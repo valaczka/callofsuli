@@ -34,7 +34,7 @@
 
 
 #include "mapeditor.h"
-#include "game.h"
+#include "gameengine.h"
 
 MapEditor::MapEditor(QObject *parent)
 	: MapData("mapEditorDB", parent)

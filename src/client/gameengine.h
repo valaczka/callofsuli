@@ -44,7 +44,7 @@
 
 class Block;
 
-class Game : public AbstractActivity
+class GameEngine : public AbstractActivity
 {
 	Q_OBJECT
 
@@ -115,8 +115,8 @@ public:
 
 
 
-	Game(QObject *parent=nullptr);
-	~Game();
+	GameEngine(QObject *parent=nullptr);
+	~GameEngine();
 
 
 	MapData* map() const { return m_map; }

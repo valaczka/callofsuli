@@ -1,7 +1,8 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import Bacon2D 1.0
-//import COS.Client 1.0
+import COS.Client 1.0
+import QtGraphicalEffects 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -98,13 +99,43 @@ Page {
 							friction: 1
 						}
 					}
+				},
+
+				TiledLayer {
+					id: ladderTilesLayer
+					name: "LadderTiles"
+
 				}
+
 			]
+
+
+			TiledPaintedLayer {
+				anchors.fill: parent
+				name: "Tiles3"
+				scene: scene
+			}
 
 			TMXplayer {
 				id: player
 
 				onXChanged: setXOffset()
+			}
+
+			TiledPaintedLayer {
+				id: tiledLayer1
+				anchors.fill: parent
+				name: "LadderTiles"
+				scene: scene
+				visible: false
+			}
+
+			Glow {
+				anchors.fill: tiledLayer1
+				radius: 3
+				samples: 7
+				color: "yellow"
+				source: tiledLayer1
 			}
 
 			/*Dog { id: player }
