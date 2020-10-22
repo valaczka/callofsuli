@@ -38,7 +38,9 @@
 #include "mapeditor.h"
 #include "teacher.h"
 #include "adminusers.h"
-//#include "gameengine.h"
+#include "cosgame.h"
+#include "gameentityprivate.h"
+#include "gameplayerprivate.h"
 #include "intro.h"
 #include "student.h"
 #include "studentmap.h"
@@ -178,7 +180,9 @@ void Client::registerTypes()
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
-	//qmlRegisterType<Game>("COS.Client", 1, 0, "GameEngine");
+	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
+	qmlRegisterType<GameEntityPrivate>("COS.Client", 1, 0, "GameEntityPrivate");
+	qmlRegisterType<GamePlayerPrivate>("COS.Client", 1, 0, "GamePlayerPrivate");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");

@@ -16,10 +16,14 @@ Page {
 	property string terrainDirName: "qrc:/terrain/"+"terrain1"
 	property var terrainData: cosClient.readJsonFile(terrainDirName+"/data.json")
 
-	Game {
+	CosGame {
 		id: gameWindow
 		anchors.fill: parent
 		currentScene: scene
+
+		playerCharacter: "character2"
+		level: 1
+
 
 		onGameStateChanged: console.info("game state ", gameState)
 
@@ -27,7 +31,7 @@ Page {
 
 		TiledScene {
 			id: scene
-			//debug: true
+			debug: true
 			physics: true
 			source: terrainDirName+"/"+terrainData.tmx
 
@@ -61,6 +65,9 @@ Page {
 								density: 1
 								restitution: 0
 								friction: 1
+								categories: Box.Category1
+								collidesWith: Box.Category1
+								property string boxType: "ground"
 							}
 						},
 
@@ -71,6 +78,11 @@ Page {
 								density: 1
 								restitution: 0
 								friction: 1
+
+								categories: Box.Category1
+								collidesWith: Box.Category1
+
+								property string boxType: "ground"
 							}
 						}
 					]
@@ -105,6 +117,19 @@ Page {
 					id: ladderTilesLayer
 					name: "LadderTiles"
 
+				},
+
+				TiledLayer {
+					id: enemyLayer
+					name: "Enemies"
+					objects: TiledObject {
+						id: enemyObjects
+						fixtures: Chain {
+							categories: Box.Category3
+							collidesWith: Box.Category3
+
+						}
+					}
 				}
 
 			]
@@ -116,11 +141,18 @@ Page {
 				scene: scene
 			}
 
-			TMXplayer {
+			Component {
+				id: enemySoldierComponent
+
+				GameEnemySoldier {  }
+			}
+
+			GamePlayer {
 				id: player
 
 				onXChanged: setXOffset()
 			}
+
 
 			TiledPaintedLayer {
 				id: tiledLayer1
@@ -156,14 +188,16 @@ Page {
 				scene.forceActiveFocus()
 				switch(event.key) {
 				case Qt.Key_Left:
-					if (player.walkElapsed > 1250)
-						player.running = true
-					player.moveLeft()
+					if (event.modifiers & Qt.ShiftModifier)
+						player.runLeft()
+					else
+						player.walkLeft()
 					break;
 				case Qt.Key_Right:
-					if (player.walkElapsed > 1250)
-						player.running = true
-					player.moveRight()
+					if (event.modifiers & Qt.ShiftModifier)
+						player.runRight()
+					else
+						player.walkRight()
 					break;
 				case Qt.Key_Up:
 					player.jump()
@@ -177,11 +211,14 @@ Page {
 				switch(event.key) {
 				case Qt.Key_Left:
 					if(!event.isAutoRepeat)
-						player.stopMovingLeft();
+						player.stopMoving();
 					break;
 				case Qt.Key_Right:
 					if(!event.isAutoRepeat)
-						player.stopMovingRight();
+						player.stopMoving();
+					break;
+				case Qt.Key_F3:
+					loadEnemies()
 					break;
 				}
 
@@ -202,10 +239,10 @@ Page {
 						var poBlock = po.getProperty("block")
 						console.info("PLAYER "+i+": "+po.getProperty("id")+"  "+poPos)
 
-						if (poBlock == 1 && poPos === 4) {
+						if (poBlock == 1 && poPos === 1) {
 							console.info("PLACE on "+poPos+"  "+po.x+","+po.y)
-							player.x = po.x
-							player.y = po.y
+							player.x = po.x-player.width
+							player.y = po.y-player.height
 						}
 					}
 				}
@@ -228,19 +265,7 @@ Page {
 		}
 	}
 
-	QLabel {
-		id: labelVP
-		anchors.top: parent.top
-		anchors.right: parent.right
-		text: "VIEWPORT "+vp.xOffset+" "+vp.yOffset+"   SCENE: "+scene.width+" "+scene.height+"   GAME: "+gameWindow.width+" "+gameWindow.height
-	}
 
-	QLabel {
-		id: labelPlay
-		anchors.top: parent.top
-		anchors.left: parent.left
-		text: player.x+" "+player.y
-	}
 
 	VirtualJoystick {
 		anchors.bottom: parent.bottom
@@ -250,19 +275,16 @@ Page {
 		onJoystickMoved: {
 			if (x > 0.3) {
 				if (x > 0.9)
-					player.running = true
+					player.runRight()
 				else
-					player.running = false
-				player.moveRight()
+					player.walkRight()
 			} else if (x < -0.3) {
 				if (x < -0.9)
-					player.running = true
+					player.runLeft()
 				else
-					player.running = false
-				player.moveLeft()
+					player.walkLeft()
 			} else {
-				player.stopMovingLeft();
-				player.stopMovingRight();
+				player.stopMoving();
 			}
 
 			if (y > 0.5)
@@ -273,7 +295,6 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		console.debug("ACTIVATED", gameWindow.gameState)
 		gameWindow.gameState = Bacon2D.Running
 	}
 
@@ -286,6 +307,56 @@ Page {
 			vp.xOffset = player.x-500
 		else if (!player.facingLeft && (player.x-(vp.xOffset+gameWindow.width)+500) > 0)
 			vp.xOffset = player.x - gameWindow.width + 500
+	}
+
+
+	function loadEnemies() {
+		var collision = enemyObjects;
+		console.debug("LOAD enemIeS", collision.count, collision)
+
+		collision.first()
+
+		while(collision.next())
+		{
+			/*var ladder = ladderComponent.createObject(scene);
+			ladder.x = collision.x;
+			ladder.y = collision.y
+			ladder.width = collision.width
+			ladder.height = collision.height */
+
+			console.debug("ENEMY", collision, collision.x, collision.y, collision.width, collision.height)
+
+			console.debug("fixtures", collision.body, collision.body.fixtures, collision.body.fixtures.length)
+
+			for (var i=0; i< collision.body.fixtures.length; ++i) {
+				var f = collision.body.fixtures[i]
+				console.debug("fixture", i, f, f.vertices)
+
+				var startx = 0
+				var endx = 0
+
+				for (var j=0; f.vertices && j<f.vertices.length; j++) {
+					var v = f.vertices[j]
+					console.debug("vertex", j, v, v.x)
+					startx = Math.min(startx, v.x)
+					endx = Math.max(endx, v.x)
+				}
+
+				if (startx != endx) {
+
+					startx += collision.x
+					endx += collision.x
+
+					console.debug("====>", startx, endx)
+
+					var enemy = enemySoldierComponent.createObject(scene);
+					enemy.x = collision.x;
+					enemy.y = collision.y-enemy.height;
+					enemy.boundLeft = startx
+					enemy.boundRight = endx
+				}
+			}
+		}
 	}
 
 

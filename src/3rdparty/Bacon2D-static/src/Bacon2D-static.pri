@@ -27,7 +27,7 @@ include($$PWD/../tiled/libtiled/libtiled-static.pri)
 include($$PWD/tmx/tmx.pri)
 
 RESOURCES += \
-	$$PWD/bacon2d-static.qrc
+	$$PWD/Bacon2D-static.qrc
 
 HEADERS += \
 	$$PWD/entity.h \

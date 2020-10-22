@@ -16,7 +16,7 @@ PhysicsEntity {
 			width: target.width
 			height: target.height
 			sensor: true
-			collidesWith: Box.Category1
+			collidesWith: Box.Category2
 
 			readonly property int direction: -target.height-10
 
@@ -32,7 +32,7 @@ PhysicsEntity {
 			height: 50
 			y: -height
 			sensor: true
-			collidesWith: Box.Category1
+			collidesWith: Box.Category2
 
 			readonly property int direction: target.height
 

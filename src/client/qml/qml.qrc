@@ -103,8 +103,10 @@
         <file>MapMissionList.qml</file>
         <file>MapMission.qml</file>
         <file>PageTMXtest.qml</file>
-        <file>TMXplayer.qml</file>
+        <file>GamePlayer.qml</file>
         <file>TMXladder.qml</file>
         <file>VirtualJoystick.qml</file>
+        <file>GameEnemySoldier.qml</file>
+        <file>GameEntity.qml</file>
     </qresource>
 </RCC>
