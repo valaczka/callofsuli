@@ -1,3 +1,4 @@
 {
-	"tmx": "terrain.tmx"
+	"tmx": "terrain.tmx",
+	"blocks": 3
 }

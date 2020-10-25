@@ -74,14 +74,83 @@ void GamePlayerPrivate::setQrcDir()
 
 
 /**
- * @brief GamePlayerPrivate::onBodyBeginContact
- * @param other
+ * @brief GamePlayerPrivate::createFixtures
  */
 
-void GamePlayerPrivate::onBodyBeginContact(Box2DFixture *other)
+void GamePlayerPrivate::createFixtures()
 {
-	qDebug() << "BEGIN" << other;
+	qDebug() << "Game player private: create fixtures()";
+
+	QVariant body = parentEntity()->property("body");
+
+	if (!body.isValid()) {
+		qWarning() << "Invalid property: body" << parentEntity();
+		return;
+	}
+
+
+	Box2DBody *b2body = qvariant_cast<Box2DBody*>(body);
+
+	if (!b2body) {
+		qWarning() << "Invalid variant cast" << body;
+		return;
+	}
+
+	QQmlListProperty<Box2DFixture> f = b2body->fixtures();
+
+
+	// Create bound box
+
+	Box2DBox *box = new Box2DBox(parentEntity());
+
+	box->setWidth(10);
+	box->setHeight(10);
+	box->setX(0);
+	box->setY(0);
+	box->setSensor(false);
+
+
+	box->setRestitution(0);
+	box->setFriction(0);
+	box->setCategories(Box2DFixture::Category1);
+	box->setCollidesWith(Box2DFixture::Category1);
+
+	f.append(&f, box);
+
+	setBoundBox(box);
+
+
+
+
+	// Create body polygon
+
+	Box2DPolygon *polygon = new Box2DPolygon(parentEntity());
+
+	polygon->setSensor(true);
+	polygon->setCategories(Box2DFixture::Category2);
+	polygon->setCollidesWith(Box2DFixture::Category2|Box2DFixture::Category3);
+
+	QVariantList l;
+	l << QVariant(QPoint(0,0))
+	  << QVariant(QPoint(10,0))
+	  << QVariant(QPoint(10,10))
+	  << QVariant(QPoint(0,10));
+
+	polygon->setVertices(l);
+
+	f.append(&f, polygon);
+
+	setBodyPolygon(polygon);
+
+
+	QQmlListProperty<Box2DFixture> f2 = b2body->fixtures();
+
+	for (int i=0; i<f2.count(&f2); ++i) {
+		qDebug() << i << f.at(&f2, i);
+	}
 }
+
+
 
 
 /**
@@ -97,42 +166,7 @@ void GamePlayerPrivate::onCosGameChanged(CosGame *)
 	setQrcDir();
 	loadQrcData();
 
-	/*QVariant body = parentEntity()->property("body");
 
-	if (!body.isValid()) {
-		qWarning() << "Invalid property: body" << parentEntity();
-		return;
-	}
-
-	Box2DBody *b2body = qvariant_cast<Box2DBody*>(body);
-
-	if (!b2body) {
-		qWarning() << "Invalid variant cast" << body;
-		return;
-	}
-
-	QQmlListProperty<Box2DFixture> f = b2body->fixtures();
-
-	for (int i=0; i<f.count(&f); ++i) {
-		qDebug() << i << f.at(&f, i);
-	}
-
-
-	Box2DBox *box = new Box2DBox(parentEntity());
-
-	box->setWidth(100);
-	box->setHeight(100);
-	box->setX(-20);
-	box->setY(-20);
-	box->setSensor(true);
-
-	f.append(&f, box);
-
-	QQmlListProperty<Box2DFixture> f2 = b2body->fixtures();
-
-	for (int i=0; i<f2.count(&f2); ++i) {
-		qDebug() << i << f.at(&f2, i);
-	} */
 }
 
 

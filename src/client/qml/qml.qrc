@@ -108,5 +108,7 @@
         <file>VirtualJoystick.qml</file>
         <file>GameEnemySoldier.qml</file>
         <file>GameEntity.qml</file>
+        <file>GameTiledScene.qml</file>
+        <file>GameLadder.qml</file>
     </qresource>
 </RCC>

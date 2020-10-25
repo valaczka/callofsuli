@@ -12,72 +12,46 @@ GameEntity {
 
 	GamePlayerPrivate {
 		id: ep
-		bodyPolygon: bodyBox
-	}
 
-	property var contactToGround: []
+		property int _fallStartY: -1
 
-	fixtures: [
+		onDie: {
+			console.debug("DIE")
+			timerPlace.start()
+		}
 
-		Box {
-			id: boundBox
-
-			width: ep.qrcData ? ep.qrcData.width : 0
-			height: ep.qrcData ? ep.qrcData.height : 0
-			x: ep.qrcData ?
-				   (root.isInverse ? root.width-width-ep.qrcData.x : ep.qrcData.x) :
-				   0
-			y: ep.qrcData ? ep.qrcData.y : 0
-
-			property int _fallStartY: -1
-
-			restitution: 0
-			friction: 1
-			categories: Box.Category1
-
-			collidesWith: Box.Category1
-
-			onEndContact: {
-				contactToGround.splice(contactToGround.indexOf(other), 1)
-				if (contactToGround.length == 0) {
-					_fallStartY = root.y
-					spriteSequence.jumpTo("fall")
-				}
-			}
-
-			onBeginContact: {
-				contactToGround.push(other)
+		onIsOnGroundChanged: {
+			if (isOnGround) {
 				if (_fallStartY == -1) {
 					spriteSequence.jumpTo("idle")
 				} else {
-					if (root.y-_fallStartY > ep.cosGame.gameData.level[ep.cosGame.level-1].deathlyFall) {
+					if (root.y-_fallStartY > ep.cosGame.gameData.level[ep.cosGame.level-1].deathlyFall || ep.isOnBaseGround) {
 						spriteSequence.jumpTo("falldeath")
 					} else {
 						spriteSequence.jumpTo("idle")
 					}
 				}
-				_fallStartY = -1
+			} else {
+				_fallStartY = root.y
+				spriteSequence.jumpTo("fall")
 			}
-		},
-
-		Polygon {
-			id: bodyBox
-
-			sensor: true
-
-			vertices: [
-				Qt.point(boundBox.x, boundBox.y),
-				Qt.point(boundBox.x+boundBox.width, boundBox.y),
-				Qt.point(boundBox.x+boundBox.width, boundBox.y+boundBox.height),
-				Qt.point(boundBox.x,boundBox.y+boundBox.height)
-			]
-
-			//restitution: 0
-			//friction: .7
-			categories: Box.Category2
 		}
+	}
 
-	]
+
+	Timer {
+		id: timerPlace
+		interval: 2000
+		running: false
+		repeat: false
+		triggeredOnStart: false
+
+		onTriggered: {
+			ep.cosGame.placePlayer()
+			ep.isAlive = true
+			spriteSequence.jumpTo("idle")
+		}
+	}
 
 
 	Timer {
@@ -142,16 +116,13 @@ GameEntity {
 
 
 	function walkRight() {
-		if(scene.game.gameState != Bacon2D.Running)
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 			return
-
-		if (isDead)
-			return
-
-		root.facingLeft = false
 
 		if (isFalling)
 			return
+
+		root.facingLeft = false
 
 		if (!root.isWalking)
 			spriteSequence.jumpTo("walk")
@@ -159,16 +130,14 @@ GameEntity {
 	}
 
 	function walkLeft() {
-		if(scene.game.gameState != Bacon2D.Running)
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 			return
 
-		if (isDead)
-			return
-
-		root.facingLeft = true
 
 		if (isFalling)
 			return
+
+		root.facingLeft = true
 
 		if (!root.isWalking)
 			spriteSequence.jumpTo("walk")
@@ -176,32 +145,28 @@ GameEntity {
 
 
 	function runRight() {
-		if(scene.game.gameState != Bacon2D.Running)
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 			return
 
-		if (isDead)
-			return
-
-		root.facingLeft = false
 
 		if (isFalling)
 			return
+
+		root.facingLeft = false
 
 		if (!root.isRunning)
 			spriteSequence.jumpTo("run")
 	}
 
 	function runLeft() {
-		if(scene.game.gameState != Bacon2D.Running)
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 			return
 
-		if (isDead)
-			return
-
-		root.facingLeft = true
 
 		if (isFalling)
 			return
+
+		root.facingLeft = true
 
 		if (!root.isRunning)
 			spriteSequence.jumpTo("run")
@@ -209,31 +174,10 @@ GameEntity {
 
 
 	function jump() {
-		if(scene.game.gameState != Bacon2D.Running)
-			return
-
-		if (isDead)
-			return
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 
 		if (isFalling)
 			return
-
-		if (root.hasLadder != 0)
-			root.y += hasLadder
-
-		/*root.bodyType = Body.Static
-
-		root.y-=50 */
-
-		/*		if(root.airborne)
-			return
-
-		if(sprite.animation == "idle" || sprite.animation == "run")
-			sprite.animation = "jump"
-		else
-			return
-
-		root.applyLinearImpulse(Qt.point(0, -root.getMass() * 10), root.getWorldCenter()); */
 	}
 
 

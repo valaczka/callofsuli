@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.h
+ * gameladder.cpp
  *
- * Created on: 2020. 10. 22.
+ * Created on: 2020. 10. 25.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * GameLadder
  *
  *  This file is part of Call of Suli.
  *
@@ -32,24 +32,14 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEPLAYERPRIVATE_H
-#define GAMEPLAYERPRIVATE_H
+#include "gameladder.h"
 
-#include "gameentityprivate.h"
-
-
-class GamePlayerPrivate : public GameEntityPrivate
+GameLadder::GameLadder(QObject *parent)
+	: QObject(parent)
+	, m_boundRect()
+	, m_active(false)
+	, m_blockTop(-1)
+	, m_blockBottom(-1)
 {
-	Q_OBJECT
 
-public:
-	GamePlayerPrivate(QQuickItem *parent = 0);
-
-	void setQrcDir() override;
-	void createFixtures() override;
-
-private slots:
-	void onCosGameChanged(CosGame *);
-};
-
-#endif // GAMEPLAYERPRIVATE_H
+}

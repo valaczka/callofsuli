@@ -257,10 +257,10 @@ Game *Scene::game() const
 	return m_game;
 }
 
-void Scene::setGame(Game *game)
-{
-	m_game = game;
-}
+//void Scene::setGame(Game *game)
+//{
+//	m_game = game;
+//}
 
 /*!
  * \qmlproperty World Scene::world

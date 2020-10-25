@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.h
+ * gameenemy.cpp
  *
- * Created on: 2020. 10. 22.
+ * Created on: 2020. 10. 23.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * GameEnemy
  *
  *  This file is part of Call of Suli.
  *
@@ -32,24 +32,53 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEPLAYERPRIVATE_H
-#define GAMEPLAYERPRIVATE_H
+#include "gameenemy.h"
 
-#include "gameentityprivate.h"
-
-
-class GamePlayerPrivate : public GameEntityPrivate
+GameEnemy::GameEnemy(QObject *parent)
+	: QObject(parent)
+	, m_boundRect()
+	, m_posY(0)
+	, m_active(false)
+	, m_block(-1)
 {
-	Q_OBJECT
 
-public:
-	GamePlayerPrivate(QQuickItem *parent = 0);
+}
 
-	void setQrcDir() override;
-	void createFixtures() override;
 
-private slots:
-	void onCosGameChanged(CosGame *);
-};
 
-#endif // GAMEPLAYERPRIVATE_H
+void GameEnemy::setPosY(int posY)
+{
+	if (m_posY == posY)
+		return;
+
+	m_posY = posY;
+	emit posYChanged(m_posY);
+}
+
+void GameEnemy::setBoundRect(QRect boundRect)
+{
+	if (m_boundRect == boundRect)
+		return;
+
+	m_boundRect = boundRect;
+	emit boundRectChanged(m_boundRect);
+}
+
+void GameEnemy::setActive(bool active)
+{
+	if (m_active == active)
+		return;
+
+	m_active = active;
+	emit activeChanged(m_active);
+}
+
+void GameEnemy::setBlock(int block)
+{
+	if (m_block == block)
+		return;
+
+	m_block = block;
+	emit blockChanged(m_block);
+}
+

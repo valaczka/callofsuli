@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.h
+ * gameblock.cpp
  *
- * Created on: 2020. 10. 22.
+ * Created on: 2020. 10. 24.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * GameBlock
  *
  *  This file is part of Call of Suli.
  *
@@ -32,24 +32,82 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEPLAYERPRIVATE_H
-#define GAMEPLAYERPRIVATE_H
+#include "gameblock.h"
 
-#include "gameentityprivate.h"
-
-
-class GamePlayerPrivate : public GameEntityPrivate
+GameBlock::GameBlock(QObject *parent) : QObject(parent)
 {
-	Q_OBJECT
 
-public:
-	GamePlayerPrivate(QQuickItem *parent = 0);
+}
 
-	void setQrcDir() override;
-	void createFixtures() override;
+GameBlock::~GameBlock()
+{
+	m_enemies.clear();
+	m_ladders.clear();
+	m_playerPosition.clear();
+}
 
-private slots:
-	void onCosGameChanged(CosGame *);
-};
 
-#endif // GAMEPLAYERPRIVATE_H
+/**
+ * @brief GameBlock::addEnemy
+ * @param enemy
+ */
+
+void GameBlock::addEnemy(GameEnemy *enemy)
+{
+	if (!enemy)
+		return;
+
+	m_enemies.append(enemy);
+	emit enemiesChanged(m_enemies);
+}
+
+
+/**
+ * @brief GameBlock::addPlayerPosition
+ * @param blockFrom
+ * @param point
+ */
+
+void GameBlock::addPlayerPosition(const int &blockFrom, const QPoint &point)
+{
+	m_playerPosition.insert(blockFrom, point);
+}
+
+
+/**
+ * @brief GameBlock::addLadder
+ * @param ladder
+ */
+
+void GameBlock::addLadder(GameLadder *ladder)
+{
+	if (!ladder)
+		return;
+
+	m_ladders.append(ladder);
+	emit laddersChanged(m_ladders);
+}
+
+
+/**
+ * @brief GameBlock::setEnemies
+ * @param enemies
+ */
+
+void GameBlock::setEnemies(QList<GameEnemy *> enemies)
+{
+	if (m_enemies == enemies)
+		return;
+
+	m_enemies = enemies;
+	emit enemiesChanged(m_enemies);
+}
+
+void GameBlock::setLadders(QList<GameLadder *> ladders)
+{
+	if (m_ladders == ladders)
+		return;
+
+	m_ladders = ladders;
+	emit laddersChanged(m_ladders);
+}

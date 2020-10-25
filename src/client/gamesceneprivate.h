@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * tiledpaintedlayer.h
+ * gamesceneprivate.h
  *
- * Created on: 2020. 10. 18.
+ * Created on: 2020. 10. 25.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TiledPaintedLayer
+ * GameScenePrivate
  *
  *  This file is part of Call of Suli.
  *
@@ -32,45 +32,61 @@
  * SOFTWARE.
  */
 
-#ifndef TILEDPAINTEDLAYER_H
-#define TILEDPAINTEDLAYER_H
+#ifndef GAMESCENEPRIVATE_H
+#define GAMESCENEPRIVATE_H
 
-#include <QQuickPaintedItem>
+#include <QObject>
+#include <QQuickItem>
 
 #include "tmxmap.h"
+#include "tiledpaintedlayer.h"
 
+class CosGame;
 
-class TiledPaintedLayer : public QQuickPaintedItem
+class GameScenePrivate : public QQuickItem
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Tiled::Map * map READ map WRITE setMap NOTIFY mapChanged)
-	Q_PROPERTY(Tiled::TileLayer * layer READ layer WRITE setLayer NOTIFY layerChanged)
+	Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
+	Q_PROPERTY(Tiled::Map * map READ map NOTIFY mapChanged)
+	Q_PROPERTY(QList<TiledPaintedLayer *> tiledLayers READ tiledLayers NOTIFY tiledLayersChanged)
+	Q_PROPERTY(CosGame * game READ game WRITE setGame NOTIFY gameChanged)
+
+
 
 public:
-	TiledPaintedLayer(QQuickItem *parent = Q_NULLPTR);
-
+	GameScenePrivate(QQuickItem *parent = 0);
+	~GameScenePrivate();
+	QUrl source() const { return m_source; }
 	Tiled::Map * map() const { return m_map; }
-	Tiled::TileLayer * layer() const { return m_layer; }
+	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }
+	CosGame * game() const { return m_game; }
 
 public slots:
-	void onParentChanged(QQuickItem *);
-	void setMap(Tiled::Map * map);
-	void setLayer(Tiled::TileLayer * layer);
-
-protected:
-	virtual void paint(QPainter *painter) override;
-
-private slots:
-	void onParentSizeChanged();
+	void setSource(QUrl source);
+	void setTiledLayers(QList<TiledPaintedLayer *> tiledLayers);
+	void setGame(CosGame * game);
 
 signals:
+	void layersLoaded();
+	void sourceChanged(QUrl source);
 	void mapChanged(Tiled::Map * map);
-	void layerChanged(Tiled::TileLayer * layer);
+	void tiledLayersChanged(QList<TiledPaintedLayer *> tiledLayers);
+	void gameChanged(CosGame * game);
 
 private:
+	bool loadMap(const QString &source);
+	void loadLayers();
+	void loadGroundLayer(Tiled::Layer *layer);
+	void loadEnemyLayer(Tiled::Layer *layer);
+	void loadPlayerLayer(Tiled::Layer *layer);
+	void loadLadderLayer(Tiled::Layer *layer);
+
+private:
+	QUrl m_source;
 	Tiled::Map * m_map;
-	Tiled::TileLayer * m_layer;
+	QList<TiledPaintedLayer *> m_tiledLayers;
+	CosGame * m_game;
 };
 
-#endif // TILEDPAINTEDLAYER_H
+#endif // GAMESCENEPRIVATE_H

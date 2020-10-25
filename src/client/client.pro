@@ -33,8 +33,13 @@ SOURCES += \
 		cosclient.cpp \
 		cosgame.cpp \
 		fontimage.cpp \
+		gameblock.cpp \
+		gameenemy.cpp \
 		gameentityprivate.cpp \
+		gameladder.cpp \
+		gameobject.cpp \
 		gameplayerprivate.cpp \
+		gamesceneprivate.cpp \
 		intro.cpp \
 		main.cpp \
 		mapdata.cpp \
@@ -59,8 +64,13 @@ HEADERS += \
 	cosclient.h \
 	cosgame.h \
 	fontimage.h \
+	gameblock.h \
+	gameenemy.h \
 	gameentityprivate.h \
+	gameladder.h \
+	gameobject.h \
 	gameplayerprivate.h \
+	gamesceneprivate.h \
 	intro.h \
 	mapdata.h \
 	mapeditor.h \

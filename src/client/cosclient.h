@@ -94,7 +94,8 @@ public:
 	Q_INVOKABLE static QVariant getSetting(const QString &key);
 
 	Q_INVOKABLE static QVariant readJsonFile(const QUrl &file);
-	Q_INVOKABLE static QList<QPoint> rotatePolygon(const QList<QPoint> &points, const qreal &angle, Qt::Axis axis = Qt::ZAxis);
+	Q_INVOKABLE static QList<QPoint> rotatePolygon(const QList<QPoint> &points, const qreal &angle, const QRect &boundRect, Qt::Axis axis = Qt::ZAxis);
+	Q_INVOKABLE static QList<QPoint> rotatePolygon(const QVariantList &points, const qreal &angle, const QRect &boundRect, Qt::Axis axis = Qt::ZAxis);
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }

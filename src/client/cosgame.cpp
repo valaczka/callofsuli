@@ -34,14 +34,176 @@
 
 #include "cosclient.h"
 
+#include "mapobject.h"
+#include "objectgroup.h"
+
 #include "cosgame.h"
 
 CosGame::CosGame(QQuickItem *parent)
 	: Game(parent)
 	, m_playerCharacter()
 	, m_level(1)
+	, m_enemies()
+	, m_player(nullptr)
+	, m_currentBlock(0)
+	, m_previousBlock(-1)
+	, m_ladders()
 {
 	loadGameData();
+}
+
+
+/**
+ * @brief CosGame::~CosGame
+ */
+
+CosGame::~CosGame()
+{
+	qDeleteAll(m_enemies.begin(), m_enemies.end());
+	m_enemies.clear();
+
+	qDeleteAll(m_blocks.begin(), m_blocks.end());
+	m_blocks.clear();
+
+	qDeleteAll(m_ladders.begin(), m_ladders.end());
+	m_ladders.clear();
+}
+
+
+
+
+/**
+ * @brief CosGame::addEnemy
+ * @param enemy
+ */
+
+void CosGame::addEnemy(GameEnemy *enemy)
+{
+	if (!enemy)
+		return;
+
+	m_enemies.append(enemy);
+
+	int blocknum = enemy->block();
+	if (blocknum > 0 && m_blocks.contains(blocknum))
+		m_blocks.value(blocknum)->addEnemy(enemy);
+
+
+	emit enemiesChanged(m_enemies);
+	emit activeEnemiesChanged(activeEnemies());
+}
+
+
+
+/**
+ * @brief CosGame::addPlayerPosition
+ */
+
+void CosGame::addPlayerPosition(const int &block, const int &blockFrom, const int &x, const int &y)
+{
+	if (!m_blocks.contains(block)) {
+		qWarning() << "Invalid block" << block;
+		return;
+	}
+
+	QPoint p(x,y);
+	m_blocks[block]->addPlayerPosition(blockFrom, p);
+}
+
+
+/**
+ * @brief CosGame::addLadder
+ * @param ladder
+ */
+
+void CosGame::addLadder(GameLadder *ladder)
+{
+	if (!ladder)
+		return;
+
+	m_ladders.append(ladder);
+
+	int blockTop = ladder->blockTop();
+	if (blockTop > 0 && m_blocks.contains(blockTop))
+		m_blocks.value(blockTop)->addLadder(ladder);
+
+	int blockBottom = ladder->blockBottom();
+	if (blockBottom > 0 && m_blocks.contains(blockBottom))
+		m_blocks.value(blockBottom)->addLadder(ladder);
+
+	emit laddersChanged(m_ladders);
+}
+
+
+
+/**
+ * @brief CosGame::activeEnemies
+ * @return
+ */
+
+int CosGame::activeEnemies() const
+{
+	int num = 0;
+	foreach (GameEnemy *e, m_enemies) {
+		if (e->active())
+			num++;
+	}
+	return num;
+}
+
+
+/**
+ * @brief CosGame::placePlayerCharacter
+ */
+
+void CosGame::placePlayer()
+{
+	qDebug() << "placePlayer()";
+
+	if (!m_player) {
+		qWarning() << "Invalid player item";
+		return;
+	}
+
+	int x = -1;
+	int y = -1;
+
+	if (m_blocks.contains(m_currentBlock)) {
+		GameBlock *block = m_blocks.value(m_currentBlock);
+
+		if (block->playerPosition().contains(m_previousBlock)) {
+			QPoint p = block->playerPosition().value(m_previousBlock);
+			x = p.x();
+			y = p.y();
+
+			qDebug() << "Player position:" << m_currentBlock << m_previousBlock << x << y;
+		}
+	}
+
+	if (x == -1 && y == -1) {
+		qInfo() << "No player position found";
+
+		foreach (GameBlock *block, m_blocks) {
+			qDebug() << "-- block" << block;
+
+			foreach (QPoint p, block->playerPosition()) {
+				qDebug() << "---- point" << p;
+				if (p.x() > -1 && p.y() > -1) {
+					x = p.x();
+					y = p.y();
+					break;
+				}
+			}
+
+			if (x>-1 && y>-1)
+				break;
+		}
+
+		qDebug() << "First available position" << x << y;
+	}
+
+	m_player->setX(x-m_player->width());
+	m_player->setY(y-m_player->height());
 }
 
 
@@ -89,6 +251,98 @@ void CosGame::setLevel(int level)
 	emit levelChanged(m_level);
 }
 
+void CosGame::setEnemies(QList<GameEnemy *> enemies)
+{
+	if (m_enemies == enemies)
+		return;
+
+	m_enemies = enemies;
+	emit enemiesChanged(m_enemies);
+	emit activeEnemiesChanged(activeEnemies());
+}
+
+void CosGame::setBlocks(QMap<int, GameBlock *> blocks)
+{
+	if (m_blocks == blocks)
+		return;
+
+	m_blocks = blocks;
+	emit blocksChanged(m_blocks);
+}
+
+void CosGame::setCurrentBlock(int currentBlock)
+{
+	if (m_currentBlock == currentBlock)
+		return;
+
+	m_currentBlock = currentBlock;
+	emit currentBlockChanged(m_currentBlock);
+}
+
+void CosGame::setPreviousBlock(int previousBlock)
+{
+	if (m_previousBlock == previousBlock)
+		return;
+
+	m_previousBlock = previousBlock;
+	emit previousBlockChanged(m_previousBlock);
+}
+
+void CosGame::setLadders(QList<GameLadder *> ladders)
+{
+	if (m_ladders == ladders)
+		return;
+
+	m_ladders = ladders;
+	emit laddersChanged(m_ladders);
+}
+
+
+/**
+ * @brief CosGame::setPlayer
+ * @param player
+ */
+
+void CosGame::setPlayer(QQuickItem *player)
+{
+	qDebug() << "set player" << player;
+
+	if (m_player == player)
+		return;
+
+	m_player = player;
+
+	placePlayer();
+
+	emit playerChanged(m_player);
+}
+
+
+
+/**
+ * @brief CosGame::setTerrain
+ * @param terrain
+ */
+
+void CosGame::setTerrain(QString terrain)
+{
+	if (m_terrain == terrain)
+		return;
+
+	m_terrain = terrain;
+	emit terrainChanged(m_terrain);
+}
+
+
+void CosGame::setTerrainData(QVariantMap terrainData)
+{
+	if (m_terrainData == terrainData)
+		return;
+
+	m_terrainData = terrainData;
+	emit terrainDataChanged(m_terrainData);
+}
+
 
 /**
  * @brief CosGame::loadGameData
@@ -107,5 +361,62 @@ void CosGame::loadGameData()
 
 	setGameData(v.toMap());
 }
+
+
+/**
+ * @brief CosGame::loadTerrainData
+ */
+
+void CosGame::loadTerrainData()
+{
+	qDebug() << "LOAD TERRAIN DATA" << m_terrain;
+	if (m_terrain.isEmpty())
+		return;
+
+	if (!m_terrainData.isEmpty()) {
+		qWarning() << "Terrain data already loaded";
+		return;
+	}
+
+	QVariant v = Client::readJsonFile(QString("qrc:/terrain/"+m_terrain+"/data.json"));
+
+	if (!v.isValid()) {
+		qWarning() << "Invalid json data";
+		return;
+	}
+
+	setTerrainData(v.toMap());
+
+	qDebug() << "Terrain Data" << m_terrainData;
+
+	loadBlocks();
+}
+
+
+/**
+ * @brief CosGame::loadBlocks
+ */
+
+void CosGame::loadBlocks()
+{
+	qDebug() << "LOAD BLOCKS";
+
+	qDeleteAll(m_blocks.begin(), m_blocks.end());
+	m_blocks.clear();
+
+	int block_count = m_terrainData.value("blocks", 0).toInt();
+
+	for (int i=0; i<block_count; i++) {
+		int num = i+1;
+
+		GameBlock *block = new GameBlock(this);
+		m_blocks.insert(num, block);
+	}
+
+	emit blocksLoaded();
+
+	qDebug() << "BLOCKS" << m_blocks;
+}
+
 
 

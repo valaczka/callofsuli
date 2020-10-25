@@ -41,6 +41,8 @@
 #include "cosgame.h"
 #include "gameentityprivate.h"
 #include "gameplayerprivate.h"
+#include "gamesceneprivate.h"
+#include "gameladder.h"
 #include "intro.h"
 #include "student.h"
 #include "studentmap.h"
@@ -183,6 +185,8 @@ void Client::registerTypes()
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
 	qmlRegisterType<GameEntityPrivate>("COS.Client", 1, 0, "GameEntityPrivate");
 	qmlRegisterType<GamePlayerPrivate>("COS.Client", 1, 0, "GamePlayerPrivate");
+	qmlRegisterType<GameScenePrivate>("COS.Client", 1, 0, "GameScenePrivate");
+	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");
@@ -367,7 +371,7 @@ QVariant Client::readJsonFile(const QUrl &file)
  * @return
  */
 
-QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &angle, Qt::Axis axis)
+QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &angle, const QRect &boundRect, Qt::Axis axis)
 {
 	QPolygon polygon;
 	foreach (QPoint p, points) {
@@ -375,12 +379,12 @@ QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &an
 	}
 
 
-	QRect rect = polygon.boundingRect();
+	//QRect rect = polygon.boundingRect();
 
 	polygon = QTransform()
-			  .translate(rect.width()/2, rect.height()/2)
+			  .translate(boundRect.width()/2, boundRect.height()/2)
 			  .rotate(angle, axis)
-			  .translate(-rect.width()/2, -rect.height()/2)
+			  .translate(-boundRect.width()/2, -boundRect.height()/2)
 			  .map(polygon);
 
 	QList<QPoint> list;
@@ -390,6 +394,26 @@ QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &an
 	}
 
 	return list;
+}
+
+
+/**
+ * @brief Client::rotatePolygon
+ * @param points
+ * @param angle
+ * @param axis
+ * @return
+ */
+
+QList<QPoint> Client::rotatePolygon(const QVariantList &points, const qreal &angle, const QRect &boundRect, Qt::Axis axis)
+{
+	QList<QPoint> pointList;
+
+	foreach (QVariant v, points)
+		pointList.append(v.toPoint());
+
+
+	return rotatePolygon(pointList, angle, boundRect, axis);
 }
 
 

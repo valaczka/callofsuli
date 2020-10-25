@@ -43,51 +43,56 @@
 
 TiledPaintedLayer::TiledPaintedLayer(QQuickItem *parent)
 	: QQuickPaintedItem(parent)
-	, m_scene(Q_NULLPTR)
+	, m_map(nullptr)
+	, m_layer(nullptr)
 {
+
+	connect(this, &TiledPaintedLayer::parentChanged, this, &TiledPaintedLayer::onParentChanged);
+
+	if (parent)
+		onParentChanged(parent);
 
 }
 
 
 /**
- * @brief TiledPaintedLayer::paintTiles
+ * @brief TiledPaintedLayer::setLayer
+ * @param layer
  */
 
-void TiledPaintedLayer::paintTiles()
+void TiledPaintedLayer::setLayer(Tiled::TileLayer *layer)
 {
-	update();
-}
-
-
-/**
- * @brief TiledPaintedLayer::setScene
- * @param scene
- */
-
-void TiledPaintedLayer::setScene(TiledScene *scene)
-{
-	if (m_scene == scene)
+	if (m_layer == layer)
 		return;
 
-	m_scene = scene;
-	emit sceneChanged(m_scene);
-
-	update();
+	m_layer = layer;
+	emit layerChanged(m_layer);
 }
 
 
-/**
- * @brief TiledPaintedLayer::setName
- * @param name
- */
 
-void TiledPaintedLayer::setName(QString name)
+void TiledPaintedLayer::onParentChanged(QQuickItem *)
 {
-	if (m_name == name)
+	QQuickItem *p = qobject_cast<QQuickItem *>(this->parent());
+
+	qDebug() << "PARENT CHANGED" << this->parent() << p;
+
+	if (p) {
+		connect(p, &QQuickItem::widthChanged, this, &TiledPaintedLayer::onParentSizeChanged);
+		connect(p, &QQuickItem::heightChanged, this, &TiledPaintedLayer::onParentSizeChanged);
+
+		setWidth(p->width());
+		setHeight(p->height());
+	}
+}
+
+void TiledPaintedLayer::setMap(Tiled::Map *map)
+{
+	if (m_map == map)
 		return;
 
-	m_name = name;
-	emit nameChanged(m_name);
+	m_map = map;
+	emit mapChanged(m_map);
 }
 
 
@@ -99,75 +104,76 @@ void TiledPaintedLayer::setName(QString name)
 
 void TiledPaintedLayer::paint(QPainter *painter)
 {
-	qDebug() << "*** PAINT" << painter << m_scene << m_scene->tiledMap();
-	if(!m_scene || !m_scene->tiledMap())
+	qDebug() << "paint" << m_map << m_layer;
+	if (!m_map || !m_layer)
 		return;
 
-	TMXMap *map = m_scene->tiledMap();
+	qDebug() << "PAINT" << m_map << m_layer->name();
 
-	qDebug() << "Look name" << m_name;
+	setOpacity(m_layer->opacity());
+	setVisible(m_layer->isVisible());
 
-	foreach(const TMXLayer &layer, m_scene->tiledMap()->layers())
+	int cellX, cellY;
+	cellX = cellY = 0;
+
+	TMXTileLayer layer = TMXTileLayer(m_layer);
+
+	foreach(const TMXCell &cell, layer.cells())
 	{
-		if(layer.name() == m_name && layer.isTileLayer())
-		{
-			TMXTileLayer tileLayer = static_cast<TMXTileLayer>(layer);
+		// Store tiles that are used from the tileset
+		if(!cell.isEmpty()) {
+			TMXTile tile = cell.tile();
+			const QPoint &pos = QPoint(cellX * m_map->tileWidth(), cellY * m_map->tileHeight() - tile.height() + m_map->tileHeight());
 
-			/*setX(tileLayer.x());
-			setY(tileLayer.y());
-			setWidth(tileLayer.width());
-			setHeight(tileLayer.height());
-			*/
+			QPainter::PixmapFragment fragment;
+			fragment.x = pos.x();
+			fragment.y = pos.y();
+			fragment.sourceLeft = 0;
+			fragment.sourceTop = 0;
+			fragment.width = tile.width();
+			fragment.height = tile.height();
+			fragment.scaleX = cell.flippedHorizontally() ? -1 : 1;
+			fragment.scaleY = cell.flippedVertically() ? -1 : 1;
+			fragment.rotation = 0;
+			fragment.opacity = 1;
 
-			qDebug() << "FOUND" << tileLayer.x() << tileLayer.y() << tileLayer.width() << tileLayer.height();
+			if (cell.flippedAntiDiagonally())
+				fragment.rotation = 90;
 
-			setOpacity(tileLayer.opacity());
-			setVisible(tileLayer.isVisible());
+			QTransform transform;
+			transform.translate(pos.x() + tile.width() * .5, pos.y() + tile.height() * .5);
+			transform.rotate(fragment.rotation);
+			transform.scale(fragment.scaleX, fragment.scaleY);
 
-			int cellX, cellY;
-			cellX = cellY = 0;
+			QRect target = QRect(pos.x(), pos.y(), tile.width(), tile.height());
+			QRect source = QRect(tile.image().rect());
+			const QPixmap &tileImage = tile.image().transformed(transform);
+			painter->drawPixmap(target, tileImage, source);
+		}
 
-			foreach(const TMXCell &cell, tileLayer.cells())
-			{
-				// Store tiles that are used from the tileset
-				if(!cell.isEmpty()) {
-					TMXTile tile = cell.tile();
-					const QPoint &pos = QPoint(cellX * map->tileWidth(), cellY * map->tileHeight() - tile.height() + map->tileHeight());
-
-					QPainter::PixmapFragment fragment;
-					fragment.x = pos.x();
-					fragment.y = pos.y();
-					fragment.sourceLeft = 0;
-					fragment.sourceTop = 0;
-					fragment.width = tile.width();
-					fragment.height = tile.height();
-					fragment.scaleX = cell.flippedHorizontally() ? -1 : 1;
-					fragment.scaleY = cell.flippedVertically() ? -1 : 1;
-					fragment.rotation = 0;
-					fragment.opacity = 1;
-
-					if (cell.flippedAntiDiagonally())
-						fragment.rotation = 90;
-
-					QTransform transform;
-					transform.translate(pos.x() + tile.width() * .5, pos.y() + tile.height() * .5);
-					transform.rotate(fragment.rotation);
-					transform.scale(fragment.scaleX, fragment.scaleY);
-
-					QRect target = QRect(pos.x(), pos.y(), tile.width(), tile.height());
-					QRect source = QRect(tile.image().rect());
-					const QPixmap &tileImage = tile.image().transformed(transform);
-					painter->drawPixmap(target, tileImage, source);
-				}
-
-				cellY++;
-				if(((cellY * map->tileHeight()) % (map->height() * map->tileHeight())) == 0) {
-					cellY = 0;
-					cellX++;
-				}
-			}
+		cellY++;
+		if(((cellY * m_map->tileHeight()) % (m_map->height() * m_map->tileHeight())) == 0) {
+			cellY = 0;
+			cellX++;
 		}
 	}
 
 	qDebug() << "*** PAINT END *******************************";
+}
+
+
+/**
+ * @brief TiledPaintedLayer::onParentSizeChanged
+ */
+
+void TiledPaintedLayer::onParentSizeChanged()
+{
+	QQuickItem *p = qobject_cast<QQuickItem *>(this->parent());
+	if (!p)
+		return;
+
+	setWidth(p->width());
+	setHeight(p->height());
+
+	qDebug() << "WH" << this << width() << height() << p->width() << p->height();
 }

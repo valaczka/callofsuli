@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.h
+ * gameblock.h
  *
- * Created on: 2020. 10. 22.
+ * Created on: 2020. 10. 24.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * GameBlock
  *
  *  This file is part of Call of Suli.
  *
@@ -32,24 +32,51 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEPLAYERPRIVATE_H
-#define GAMEPLAYERPRIVATE_H
+#ifndef GAMEBLOCK_H
+#define GAMEBLOCK_H
 
-#include "gameentityprivate.h"
+#include <QMap>
+#include <QPoint>
+#include <QObject>
 
+#include "gameenemy.h"
+#include "gameladder.h"
 
-class GamePlayerPrivate : public GameEntityPrivate
+class GameBlock : public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(QList<GameEnemy *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
+	Q_PROPERTY(QMap<int, QPoint> playerPosition READ playerPosition NOTIFY playerPositionChanged)
+	Q_PROPERTY(QList<GameLadder *> ladders READ ladders WRITE setLadders NOTIFY laddersChanged)
+
+
 public:
-	GamePlayerPrivate(QQuickItem *parent = 0);
+	explicit GameBlock(QObject *parent = nullptr);
+	~GameBlock();
 
-	void setQrcDir() override;
-	void createFixtures() override;
+	void addEnemy(GameEnemy *enemy);
+	void addPlayerPosition(const int &blockFrom, const QPoint &point);
+	void addLadder(GameLadder *ladder);
 
-private slots:
-	void onCosGameChanged(CosGame *);
+	QList<GameEnemy *> enemies() const { return m_enemies; }
+	QMap<int, QPoint> playerPosition() const { return m_playerPosition; }
+
+	QList<GameLadder *> ladders() const { return m_ladders; }
+
+public slots:
+	void setEnemies(QList<GameEnemy *> enemies);
+	void setLadders(QList<GameLadder *> ladders);
+
+signals:
+	void enemiesChanged(QList<GameEnemy *> enemies);
+	void playerPositionChanged(QMap<int, QPoint> playerPosition);
+	void laddersChanged(QList<GameLadder *> ladders);
+
+private:
+	QList<GameEnemy *> m_enemies;
+	QMap<int, QPoint> m_playerPosition;
+	QList<GameLadder *> m_ladders;
 };
 
-#endif // GAMEPLAYERPRIVATE_H
+#endif // GAMEBLOCK_H

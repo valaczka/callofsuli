@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="31" nextobjectid="57">
+<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="31" nextobjectid="63">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
@@ -40,11 +40,6 @@
    H4sIAAAAAAAAA+1WwVKDMBAllDucqu0/9OSJz9DPUAE7XnrvUT3xe9r/ADmYNfuGJQO0dKhmOtmZN0lICNm3L7sEgTdv3rx58+bNmzdvXStCN3Bpe1gEwXJhWollz3P5rG9OrrFBc96C4F5pLv4Ad+q/PXXDCs3DViMXbS7Gfc+G1oz1Xzzfv1ZYHNo8jbVyfR/PuYN85zpHZ6FpC6ufW/2sZ01mjafWgGKEMxtDXI/dia1jfH/qc3xNwEHjTXP43oOPM+rro97vWSO7UIv+Uw/fhaUh2Uq9zWmVPketEUemfdV1PInMeKNRKjOmuZ3GtyM6mcNO0dphZn+Jb3C6Y74JMXPdMM+Yuya+yfd9aPwi/9ah8ZvGpLXmAvqqmOuE9UygM6TK9GMxd236rvhey7sNv1PmhfyVNUvWtMyCrHX2O8hT+GbJeSVlvW+ibhxSjv+18U3asn0n3qF18ndqjRvLTcjfjWpzdKNajSOPJ8z5EN92rIeA2LtgFeuqFjwjn5D/0Fcl6hpyKzSKdeuwjRe4S0SuAHeVmMfaUuTrWJynHOF7igbmrkHnWiVqUy383TE/qFfQJHjDfwRqHYA4UL/hfIBnyE3YC/FBHzUD50mO1I9Kdb+b8j3BXSlFrnQlJ0HficjX4F7qC5pEbqX+RtwDcN/wHngXz2J+B3vF1rsyhnHUjf8Y341qayxyIvzB2DW+wRHyBXIDdAOO1mH7vwZd4d8GmsKc/H9GLGXsMA+eoGkZ+80RbULftTgT7see71XpGN83+ly3R7AKT1t3Cs7ZazVQ66bsM7THX9kPQlVTHRAhAAA=
   </data>
  </layer>
- <layer id="29" name="LadderTiles" width="92" height="23">
-  <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAA+3V0QmAMBBEwXRu67YQIbdscOZTMNw9hawF3ObZfMYZemdpm7XT2zc5R++sm1sm/pXTffSefX/6vCS9s9w9WTf1bpljWsueLXNMa9mzZY5pLXu2zPEXegMAfPMC3uvhNxAhAAA=
-  </data>
- </layer>
  <objectgroup color="#ffaa00" id="16" name="Ground">
   <object id="1" x="64" y="439" width="317" height="296"/>
   <object id="2" x="382" y="536" width="611" height="199"/>
@@ -58,41 +53,66 @@
  </objectgroup>
  <objectgroup color="#ff0000" id="30" name="Enemies">
   <object id="50" x="681" y="213">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
    <polyline points="0,0 259,0"/>
   </object>
   <object id="51" x="436" y="514">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
    <polyline points="0,0 241,1"/>
   </object>
   <object id="52" x="1200" y="358">
    <polyline points="0,0 455,-1"/>
+  </object>
+  <object id="57" x="2109" y="206">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="0,0 153,0"/>
+  </object>
+  <object id="58" x="1755" y="543">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="0,0 160,-2"/>
   </object>
  </objectgroup>
  <objectgroup color="#ff00ff" id="17" name="Ladders">
   <object id="5" x="298" y="257" width="17" height="182"/>
   <object id="6" x="585" y="255" width="21" height="281"/>
   <object id="7" x="1098" y="255" width="20" height="118"/>
-  <object id="14" x="1671" y="385" width="23" height="191"/>
-  <object id="15" x="1735" y="59" width="23" height="323"/>
-  <object id="16" x="1898" y="60" width="20" height="102"/>
-  <object id="45" x="2027" y="156" width="20" height="89"/>
+  <object id="14" x="1671" y="385" width="23" height="163"/>
+  <object id="15" x="1735" y="59" width="23" height="298"/>
+  <object id="16" x="1898" y="60" width="20" height="72"/>
+  <object id="45" x="2027" y="156" width="20" height="71"/>
  </objectgroup>
  <objectgroup id="18" name="Player">
-  <object id="36" x="1584" y="536" width="38" height="34">
-   <properties>
-    <property name="block" type="int" value="2"/>
-    <property name="position" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="37" x="1860" y="120" width="38" height="34">
-   <properties>
-    <property name="block" type="int" value="2"/>
-    <property name="position" type="int" value="2"/>
-   </properties>
-  </object>
-  <object id="47" x="1047" y="226">
+  <object id="47" x="120" y="410">
    <properties>
     <property name="block" type="int" value="1"/>
-    <property name="position" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="60" x="1423" y="347">
+   <properties>
+    <property name="block" type="int" value="1"/>
+    <property name="blockFrom" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="61" x="1662" y="348">
+   <properties>
+    <property name="block" type="int" value="2"/>
+    <property name="blockFrom" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="62" x="1797" y="32">
+   <properties>
+    <property name="block" type="int" value="2"/>
    </properties>
    <point/>
   </object>

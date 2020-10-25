@@ -22,24 +22,13 @@ PhysicsEntity {
 										  ((facingLeft && !entityPrivate.qrcData.facingLeft) || (!facingLeft && entityPrivate.qrcData.facingLeft)) :
 										  false
 
-	readonly property bool isWalking: spriteSequence.currentSprite == "walk" || spriteSequence.currentSprite == "walk2" || spriteSequence.currentSprite == "walk3"
-									  || spriteSequence.currentSprite == "walk4" || spriteSequence.currentSprite == "walk5"
-
-	readonly property bool isRunning: spriteSequence.currentSprite == "run" || spriteSequence.currentSprite == "run2" || spriteSequence.currentSprite == "run3"
-									  || spriteSequence.currentSprite == "run4" || spriteSequence.currentSprite == "run5"
-									  || spriteSequence.currentSprite == "runend"
-
-	readonly property bool isFalling: spriteSequence.currentSprite == "fall" || spriteSequence.currentSprite == "fall2" || spriteSequence.currentSprite == "fall3"
-									  || spriteSequence.currentSprite == "fall4" || spriteSequence.currentSprite == "fall5"
-									  || spriteSequence.currentSprite == "fallend"
-
-	readonly property bool isDead: spriteSequence.currentSprite == "dead" || spriteSequence.currentSprite == "dead2" || spriteSequence.currentSprite == "dead3"
-								   || spriteSequence.currentSprite == "dead4" || spriteSequence.currentSprite == "dead5"
-								   || spriteSequence.currentSprite == "falldeath" || spriteSequence.currentSprite == "falldead"
+	readonly property bool isWalking: Array("walk", "walk2", "walk3", "walk4", "walk5").includes(spriteSequence.currentSprite)
+	readonly property bool isRunning: Array("run", "run2", "run3", "run4", "run5", "runend").includes(spriteSequence.currentSprite)
+	readonly property bool isFalling: Array("fall", "fall2", "fall3", "fall4", "fall5", "fallend", "falldeath", "falldeath2").includes(spriteSequence.currentSprite)
 
 
-
-
+	onWidthChanged: if (entityPrivate) entityPrivate.updateFixtures(spriteSequence.currentSprite, isInverse)
+	onHeightChanged: if (entityPrivate) entityPrivate.updateFixtures(spriteSequence.currentSprite, isInverse)
 
 
 
@@ -48,10 +37,15 @@ PhysicsEntity {
 		width: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameWidth : 10
 		height: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameHeight : 10
 
-		running: entityPrivate && entityPrivate.qrcData
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.bottom: parent.bottom
 
-		onCurrentSpriteChanged: if (entityPrivate.bodyPolygon)
-									entityPrivate.setFixtureVertices(currentSprite, isInverse)
+		onCurrentSpriteChanged: if (entityPrivate) {
+									entityPrivate.updateFixtures(currentSprite, isInverse)
+
+									if (Array("dead", "dead2", "dead3", "dead4", "falldeath", "falldeath2", "falldead").includes(currentSprite))
+										entityPrivate.isAlive = false
+								}
 
 		transform: Rotation {
 			id: rotation
@@ -81,48 +75,24 @@ PhysicsEntity {
 		Sprite {  }
 	}
 
-	Behavior on x {
-		enabled: isWalking
-		NumberAnimation {
-			duration: 50
-			easing.type: Easing.InOutQuart
-		}
-	}
 
-	Behavior on x {
-		enabled: isRunning
-		NumberAnimation {
-			duration: 50
-			easing.type: Easing.Linear
-		}
-	}
-
-
-	Connections {
-		target: entityPrivate
-		onQrcDataChanged: {
-			loadSprites()
-		}
-	}
 
 
 	function loadSprites() {
-		var searchSprites = [ "idle", "idle2", "idle3", "idle4", "idle5",
-							 "walk", "walk2", "walk3", "walk4", "walk5",
-							 "run", "run2", "run3", "run4", "run5", "runend",
-							 "fall", "fall2", "fall3", "fall4", "fall5", "fallend", "falldeath", "falldeath2",
-							 "jump",
-							 "dead", "dead2", "dead3", "dead4", "falldead"
-				]
+		console.debug("Load sprites", root)
+		if (!entityPrivate || !entityPrivate.qrcData || !entityPrivate.qrcData.sprites)
+			return
 
-		for (var i=0; i<searchSprites.length; i++) {
-			var s = searchSprites[i]
-			var sdata = entityPrivate.qrcData.sprites[s]
+		var sprites = Object.keys(entityPrivate.qrcData.sprites)
+
+		for (var i=0; i<sprites.length; i++) {
+			var sname = sprites[i]
+			var sdata = entityPrivate.qrcData.sprites[sname]
 			if (!sdata)
 				continue
 
 			var obj = spriteComponent.createObject(spriteSequence)
-			obj.name = s
+			obj.name = sname
 			obj.source = entityPrivate.qrcDirName+"/"+sdata.source
 			obj.frameCount = sdata.frameCount ? sdata.frameCount : 1
 			obj.frameWidth = sdata.frameWidth ? sdata.frameWidth : 1
