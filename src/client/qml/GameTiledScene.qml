@@ -9,7 +9,7 @@ import "JScript.js" as JS
 
 Scene {
 	id: scene
-	//debug: true
+	debug: true
 	physics: true
 
 	width: scenePrivate.implicitWidth
@@ -88,8 +88,11 @@ Scene {
 					game.player.walkRight()
 				break;
 			case Qt.Key_Up:
-				game.player.jump()
-				break
+				game.player.moveUp()
+				break;
+			case Qt.Key_Down:
+				game.player.moveDown()
+				break;
 			}
 		}
 
@@ -104,6 +107,14 @@ Scene {
 					game.player.stopMoving();
 				break;
 			case Qt.Key_Right:
+				if(!event.isAutoRepeat)
+					game.player.stopMoving();
+				break;
+			case Qt.Key_Up:
+				if(!event.isAutoRepeat)
+					game.player.stopMoving();
+				break;
+			case Qt.Key_Down:
 				if(!event.isAutoRepeat)
 					game.player.stopMoving();
 				break;

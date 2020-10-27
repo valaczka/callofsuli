@@ -42,14 +42,49 @@ class GamePlayerPrivate : public GameEntityPrivate
 {
 	Q_OBJECT
 
+	Q_PROPERTY(LadderMode ladderMode READ ladderMode WRITE setLadderMode NOTIFY ladderModeChanged)
+	Q_PROPERTY(GameLadder * ladder READ ladder WRITE setLadder NOTIFY ladderChanged)
+
 public:
+	enum LadderMode {
+		LadderUnavaliable,
+		LadderUpAvailable,
+		LadderDownAvailable,
+		LadderClimb,
+		LadderClimbFinish
+	};
+
+	Q_ENUM(LadderMode)
+
 	GamePlayerPrivate(QQuickItem *parent = 0);
 
 	void setQrcDir() override;
 	void createFixtures() override;
+	Q_INVOKABLE void ladderClimbUp();
+	Q_INVOKABLE void ladderClimbDown();
+	Q_INVOKABLE void ladderClimbFinish();
+
+	LadderMode ladderMode() const { return m_ladderMode; }
+	GameLadder * ladder() const { return m_ladder; }
+
+public slots:
+	void onBodyBeginContact(Box2DFixture *other);
+	void onBodyEndContact(Box2DFixture *other);
+
+	void setLadderMode(LadderMode ladderMode);
+	void setLadder(GameLadder * ladder);
+
+signals:
+	void ladderModeChanged(LadderMode ladderMode);
+	void ladderChanged(GameLadder * ladder);
+
 
 private slots:
 	void onCosGameChanged(CosGame *);
+
+private:
+	LadderMode m_ladderMode;
+	GameLadder * m_ladder;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

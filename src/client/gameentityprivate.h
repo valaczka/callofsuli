@@ -107,7 +107,7 @@ signals:
 	void die();
 	void isOnGroundChanged(bool isOnGround);
 
-private:
+protected:
 	QList<Box2DFixture *> m_groundFixtures;
 	QString m_qrcDirName;
 	CosGame* m_cosGame;

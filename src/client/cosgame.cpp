@@ -350,8 +350,6 @@ void CosGame::setTerrainData(QVariantMap terrainData)
 
 void CosGame::loadGameData()
 {
-	qDebug() << "LOAD GAME DATA";
-
 	QVariant v = Client::readJsonFile(QString("qrc:/internal/game/parameters.json"));
 
 	if (!v.isValid()) {
@@ -369,7 +367,6 @@ void CosGame::loadGameData()
 
 void CosGame::loadTerrainData()
 {
-	qDebug() << "LOAD TERRAIN DATA" << m_terrain;
 	if (m_terrain.isEmpty())
 		return;
 
@@ -386,8 +383,6 @@ void CosGame::loadTerrainData()
 	}
 
 	setTerrainData(v.toMap());
-
-	qDebug() << "Terrain Data" << m_terrainData;
 
 	loadBlocks();
 }
@@ -414,8 +409,6 @@ void CosGame::loadBlocks()
 	}
 
 	emit blocksLoaded();
-
-	qDebug() << "BLOCKS" << m_blocks;
 }
 
 

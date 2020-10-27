@@ -14,32 +14,38 @@ PhysicsEntity {
 	bodyType: Body.Static
 
 	readonly property int fixtureHeight: 30
-	readonly property int ladderWidth: 25
+	readonly property int ladderWidth: 30
 
 
 	property GameLadderPrivate ladder: null
 
 	fixtures: [
 		Box {
-			width: ladderWidth
-			x: (root.width-ladderWidth)/2
+			width: ladderWidth-6
+			x: (root.width-ladderWidth)/2+3
 			y: 0
 			height: fixtureHeight
 			sensor: true
 			collidesWith: Box.Category2
 			categories: Box.Category3
 
+			readonly property QtObject targetObject: ladder
+			readonly property var targetData: {"direction": "down" }
+
 			onBeginContact: glow.opacity = 1.0
 			onEndContact: glow.opacity = 0
 		},
 		Box {
-			width: ladderWidth
-			x: (root.width-ladderWidth)/2
+			width: ladderWidth-6
+			x: (root.width-ladderWidth)/2+3
 			y: root.height-fixtureHeight
 			height: fixtureHeight
 			sensor: true
 			collidesWith: Box.Category2
 			categories: Box.Category3
+
+			readonly property QtObject targetObject: ladder
+			readonly property var targetData: {"direction": "up" }
 
 			onBeginContact: glow.opacity = 1.0
 			onEndContact: glow.opacity = 0

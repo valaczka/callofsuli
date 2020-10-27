@@ -43,8 +43,12 @@
 
 GamePlayerPrivate::GamePlayerPrivate(QQuickItem *parent)
 	: GameEntityPrivate(parent)
+	, m_ladderMode(LadderUnavaliable)
+	, m_ladder(nullptr)
 {
 	connect(this, &GameEntityPrivate::cosGameChanged, this, &GamePlayerPrivate::onCosGameChanged);
+	connect(this, &GamePlayerPrivate::bodyBeginContact, this, &GamePlayerPrivate::onBodyBeginContact);
+	connect(this, &GamePlayerPrivate::bodyEndContact, this, &GamePlayerPrivate::onBodyEndContact);
 }
 
 
@@ -148,6 +152,156 @@ void GamePlayerPrivate::createFixtures()
 	for (int i=0; i<f2.count(&f2); ++i) {
 		qDebug() << i << f.at(&f2, i);
 	}
+}
+
+
+/**
+ * @brief GamePlayerPrivate::ladderClimbUp
+ */
+
+void GamePlayerPrivate::ladderClimbUp()
+{
+	if (!m_ladder || !parentEntity())
+		return;
+
+	QObject *spriteSequence = qvariant_cast<QObject *>(parentEntity()->property("spriteSequence"));
+
+	if (m_ladderMode == LadderUpAvailable) {
+		int x = m_ladder->boundRect().x()+(m_ladder->boundRect().width()-parentEntity()->width())/2;
+		parentEntity()->setX(x);
+		setLadderMode(LadderClimb);
+		if (spriteSequence)
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbup"));
+	} else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
+		int y = parentEntity()->y()-m_qrcData.value("climb", 1).toInt();
+		parentEntity()->setY(y);
+		if (y < m_ladder->boundRect().top() && spriteSequence && m_ladderMode == LadderClimb) {
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbupend"));
+			setLadderMode(LadderClimbFinish);
+		}
+	}
+}
+
+
+/**
+ * @brief GamePlayerPrivate::ladderClimbDown
+ */
+
+void GamePlayerPrivate::ladderClimbDown()
+{
+	if (!m_ladder || !parentEntity())
+		return;
+
+	QObject *spriteSequence = qvariant_cast<QObject *>(parentEntity()->property("spriteSequence"));
+
+	if (m_ladderMode == LadderDownAvailable) {
+		int x = m_ladder->boundRect().x()+(m_ladder->boundRect().width()-parentEntity()->width())/2;
+		parentEntity()->setX(x);
+		setLadderMode(LadderClimb);
+		if (spriteSequence)
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdown"));
+	}  else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
+		int delta = m_qrcData.value("climb", 1).toInt();
+		int y = parentEntity()->y()+delta;
+		int height = parentEntity()->height();
+
+		if (m_ladderMode == LadderClimb) {
+			if (y+height >= m_ladder->boundRect().bottom() && spriteSequence) {
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdownend"));
+				setLadderMode(LadderClimbFinish);
+			} else {
+				parentEntity()->setY(y);
+			}
+		}
+	}
+}
+
+
+/**
+ * @brief GamePlayerPrivate::ladderClimbFinish
+ */
+
+void GamePlayerPrivate::ladderClimbFinish()
+{
+	if (!m_ladder || !parentEntity())
+		return;
+
+	setLadder(nullptr);
+	setLadderMode(LadderUnavaliable);
+}
+
+
+/**
+ * @brief GamePlayerPrivate::onBodyBeginContact
+ * @param other
+ */
+
+void GamePlayerPrivate::onBodyBeginContact(Box2DFixture *other)
+{
+	QVariant object = other->property("targetObject");
+	QVariantMap data = other->property("targetData").toMap();
+
+	if (!object.isValid())
+		return;
+
+	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
+
+	if (ladder && m_ladderMode == LadderUnavaliable) {
+		QString dir = data.value("direction").toString();
+		if (dir == "up") {
+			setLadder(ladder);
+			setLadderMode(LadderUpAvailable);
+		} else if (dir == "down") {
+			setLadder(ladder);
+			setLadderMode(LadderDownAvailable);
+		} else {
+			setLadder(nullptr);
+			setLadderMode(LadderUnavaliable);
+		}
+	}
+
+}
+
+
+/**
+ * @brief GamePlayerPrivate::onBodyEndContact
+ * @param other
+ */
+
+void GamePlayerPrivate::onBodyEndContact(Box2DFixture *other)
+{
+	QVariant object = other->property("targetObject");
+	QVariantMap data = other->property("targetData").toMap();
+
+	if (!object.isValid())
+		return;
+
+	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
+
+	if (ladder && m_ladderMode != LadderClimb) {
+		if (ladder == m_ladder) {
+			setLadder(nullptr);
+			setLadderMode(LadderUnavaliable);
+		}
+	}
+}
+
+void GamePlayerPrivate::setLadderMode(GamePlayerPrivate::LadderMode ladderMode)
+{
+	if (m_ladderMode == ladderMode)
+		return;
+
+	m_ladderMode = ladderMode;
+	emit ladderModeChanged(m_ladderMode);
+}
+
+void GamePlayerPrivate::setLadder(GameLadder *ladder)
+{
+	if (m_ladder == ladder)
+		return;
+
+	m_ladder = ladder;
+	emit ladderChanged(m_ladder);
 }
 
 

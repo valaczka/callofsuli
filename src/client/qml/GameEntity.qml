@@ -37,8 +37,8 @@ PhysicsEntity {
 		width: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameWidth : 10
 		height: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameHeight : 10
 
-		anchors.horizontalCenter: parent.horizontalCenter
-		anchors.bottom: parent.bottom
+		anchors.horizontalCenter: root.horizontalCenter
+		anchors.bottom: root.bottom
 
 		onCurrentSpriteChanged: if (entityPrivate) {
 									entityPrivate.updateFixtures(currentSprite, isInverse)
@@ -79,7 +79,6 @@ PhysicsEntity {
 
 
 	function loadSprites() {
-		console.debug("Load sprites", root)
 		if (!entityPrivate || !entityPrivate.qrcData || !entityPrivate.qrcData.sprites)
 			return
 

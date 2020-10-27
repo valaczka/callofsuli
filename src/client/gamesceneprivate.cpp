@@ -209,7 +209,7 @@ void GameScenePrivate::loadGroundLayer(Tiled::Layer *layer)
 		GameObject *item = new GameObject(this->parentItem());
 		item->setX(object->x());
 		item->setY(object->y());
-		item->setZ(107);
+		item->setZ(0);
 		item->setWidth(object->width());
 		item->setHeight(object->height());
 		item->setRotation(object->rotation());

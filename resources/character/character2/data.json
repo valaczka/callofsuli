@@ -1,12 +1,13 @@
 {
 	"name": "test character",
-	"width": 32,
+	"width": 25,
 	"height": 45,
-	"x": 5,
+	"x": 10,
 	"y": 0,
 	"facingLeft": true,
 	"walk": 3,
 	"run": 5,
+	"climb": 3,
 	"sprites": {
 		"idle":	{
 			"source": "idle.png",
@@ -34,7 +35,7 @@
 			"frameDuration": 80,
 			"to": { "idle": 0, "walk" : 0, "walk2": 1, "walk3": 0 }
 		},
-		"walk2":	{
+		"walk2": {
 			"source": "walk.png",
 			"frameWidth": 45,
 			"frameHeight": 45,
@@ -44,7 +45,7 @@
 			"frameDuration": 60,
 			"to": { "idle": 0, "walk" : 0, "walk2": 0, "walk3": 1 }
 		},
-		"walk3":	{
+		"walk3": {
 			"source": "walk.png",
 			"frameWidth": 45,
 			"frameHeight": 45,
@@ -53,6 +54,15 @@
 			"frameCount": 6,
 			"frameDuration": 60,
 			"to": { "idle": 0, "walk" : 1, "walk2": 0,  "walk3": 0 }
+		},
+		"walk4": {
+			"source": "walk.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 0,
+			"frameY": 0,
+			"frameCount": 1,
+			"frameDuration": 60
 		},
 		"run":	{
 			"source": "run.png",
@@ -129,6 +139,92 @@
 			"frameCount": 1,
 			"frameDuration": 50,
 			"to": { "falldead": 1 }
+		},
+		"climbup":	{
+			"source": "climbup.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameCount": 2,
+			"frameDuration": 80,
+			"to": { "idle": 0, "climbup" : 0, "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0 }
+		},
+		"climbup2":	{
+			"source": "climbup.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 90,
+			"frameY": 0,
+			"frameCount": 6,
+			"frameDuration": 80,
+			"to": { "climbup2": 0, "climbup3": 1, "climbpause": 0, "climbupend": 0 }
+		},
+		"climbup3":	{
+			"source": "climbup.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 135,
+			"frameY": 45,
+			"frameCount": 6,
+			"frameDuration": 80,
+			"to": { "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0 }
+		},
+		"climbpause":	{
+			"source": "climbup.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 90,
+			"frameY": 90,
+			"frameCount": 1,
+			"frameDuration": 80,
+			"to": { "climbup2": 0, "climbup3": 0, "climbdown2" : 0, "climbdown3": 0, "climbpause": 1, "climbupend": 0 }
+		},
+		"climbupend":	{
+			"source": "climbup.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 175,
+			"frameY": 90,
+			"frameCount": 10,
+			"frameDuration": 80,
+			"to": { "idle": 1, "climbupend": 0 }
+		},
+		"climbdown":	{
+			"source": "climbdown.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameCount": 10,
+			"frameDuration": 80,
+			"to": { "idle": 0, "climbdown" : 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0 }
+		},
+		"climbdown2":	{
+			"source": "climbdown.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 0,
+			"frameY": 90,
+			"frameCount": 6,
+			"frameDuration": 80,
+			"to": { "climbdown2": 0, "climbdown3": 1, "climbpause": 0, "climbdownend": 0 }
+		},
+		"climbdown3":	{
+			"source": "climbdown.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 45,
+			"frameY": 135,
+			"frameCount": 6,
+			"frameDuration": 80,
+			"to": { "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0 }
+		},
+		"climbdownend":	{
+			"source": "climbdown.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 90,
+			"frameY": 180,
+			"frameCount": 2,
+			"frameDuration": 80,
+			"to": { "idle": 1, "climbdownend": 0 }
 		}
 	}
 }

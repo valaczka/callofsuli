@@ -117,12 +117,4 @@
    <point/>
   </object>
  </objectgroup>
- <objectgroup color="#00ff7f" id="23" name="Gates">
-  <object id="21" x="1472" y="299" width="32" height="122">
-   <properties>
-    <property name="blockLeft" type="int" value="1"/>
-    <property name="blockRight" type="int" value="2"/>
-   </properties>
-  </object>
- </objectgroup>
 </map>

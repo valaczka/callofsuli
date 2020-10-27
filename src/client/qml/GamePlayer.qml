@@ -31,9 +31,18 @@ GameEntity {
 						spriteSequence.jumpTo("idle")
 					}
 				}
-			} else {
+				_fallStartY = -1
+			} else if (ladderMode != GamePlayerPrivate.LadderClimb && ladderMode != GamePlayerPrivate.LadderClimbFinish) {
 				_fallStartY = root.y
 				spriteSequence.jumpTo("fall")
+			}
+		}
+
+		onLadderModeChanged: {
+			if (ladderMode == GamePlayerPrivate.LadderClimb) {
+				root.bodyType = Body.Kinematic
+			} else if (ladderMode == GamePlayerPrivate.LadderUnavaliable) {
+				root.bodyType = Body.Dynamic
 			}
 		}
 	}
@@ -108,9 +117,45 @@ GameEntity {
 
 	}
 
+	Timer {
+		id: timerClimb
+		interval: 60
+		repeat: true
+
+		property string nextSprite: ""
+
+		triggeredOnStart: true
+
+		running: Array("climbup", "climbup2", "climbup3", "climbupend",
+					   "climbdown", "climbdown2", "climbdown3", "climbdownend").includes(spriteSequence.currentSprite)
+
+		onTriggered: {
+			if (Array("climbdown", "climbdown2", "climbdown3", "climbdownend").includes(spriteSequence.currentSprite)) {
+				ep.ladderClimbDown()
+			} else {
+				ep.ladderClimbUp()
+			}
+
+			if (ep.ladderMode == GamePlayerPrivate.LadderClimb && nextSprite != "" &&
+					spriteSequence.currentSprite != "climbup" && spriteSequence.currentSprite != "climbdown") {
+				spriteSequence.jumpTo(nextSprite)
+				nextSprite = ""
+			}
+		}
+	}
+
+
+
+	spriteSequence.onCurrentSpriteChanged: {
+		if (ep.ladderMode == GamePlayerPrivate.LadderClimbFinish && spriteSequence.currentSprite == "idle") {
+			ep.ladderClimbFinish()
+		}
+	}
+
 	function stopMoving() {
 		timerWalk.readyToStop = true
 		timerRun.readyToStop = true
+		timerClimb.nextSprite = "climbpause"
 	}
 
 
@@ -119,7 +164,9 @@ GameEntity {
 		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 			return
 
-		if (isFalling)
+		if (isFalling ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
 			return
 
 		root.facingLeft = false
@@ -134,7 +181,9 @@ GameEntity {
 			return
 
 
-		if (isFalling)
+		if (isFalling ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
 			return
 
 		root.facingLeft = true
@@ -148,8 +197,9 @@ GameEntity {
 		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
 			return
 
-
-		if (isFalling)
+		if (isFalling ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
 			return
 
 		root.facingLeft = false
@@ -163,7 +213,9 @@ GameEntity {
 			return
 
 
-		if (isFalling)
+		if (isFalling ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
 			return
 
 		root.facingLeft = true
@@ -173,11 +225,40 @@ GameEntity {
 	}
 
 
-	function jump() {
+	function moveUp() {
 		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+			return
 
 		if (isFalling)
 			return
+
+		if (ep.ladderMode == GamePlayerPrivate.LadderUpAvailable) {
+			timerClimb.nextSprite = ""
+			ep.ladderClimbUp()
+		} else if (ep.ladderMode == GamePlayerPrivate.LadderClimb) {
+			timerClimb.nextSprite = ""
+			if (spriteSequence.currentSprite != "climbup2" && spriteSequence.currentSprite != "climbup3" && spriteSequence.currentSprite != "climbupend")
+				spriteSequence.jumpTo("climbup2")
+		}
+
+	}
+
+
+	function moveDown() {
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+			return
+
+		if (isFalling)
+			return
+
+		if (ep.ladderMode == GamePlayerPrivate.LadderDownAvailable) {
+			timerClimb.nextSprite = ""
+			ep.ladderClimbDown()
+		} else if (ep.ladderMode == GamePlayerPrivate.LadderClimb) {
+			timerClimb.nextSprite = ""
+			if (spriteSequence.currentSprite != "climbdown2" && spriteSequence.currentSprite != "climbdown3" && spriteSequence.currentSprite != "climbdownend" )
+				spriteSequence.jumpTo("climbdown2")
+		}
 	}
 
 

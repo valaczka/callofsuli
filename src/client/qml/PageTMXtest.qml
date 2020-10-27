@@ -81,7 +81,9 @@ Page {
 							 }
 
 							 if (y > 0.5)
-								 game.player.jump()
+								 game.player.moveUp()
+							 else if (y < -0.5)
+								 game.player.moveDown()
 						 }
 	}
 
