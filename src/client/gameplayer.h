@@ -35,10 +35,12 @@
 #ifndef GAMEPLAYERPRIVATE_H
 #define GAMEPLAYERPRIVATE_H
 
-#include "gameentityprivate.h"
+#include "gameentity.h"
 
 
-class GamePlayerPrivate : public GameEntityPrivate
+
+
+class GamePlayer : public GameEntity
 {
 	Q_OBJECT
 
@@ -56,7 +58,7 @@ public:
 
 	Q_ENUM(LadderMode)
 
-	GamePlayerPrivate(QQuickItem *parent = 0);
+	GamePlayer(QQuickItem *parent = 0);
 
 	void setQrcDir() override;
 	void createFixtures() override;

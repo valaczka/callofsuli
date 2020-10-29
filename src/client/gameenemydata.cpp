@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameenemyprivate.cpp
+ * gameenemy.cpp
  *
- * Created on: 2020. 10. 28.
+ * Created on: 2020. 10. 23.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameEnemyPrivate
+ * GameEnemy
  *
  *  This file is part of Call of Suli.
  *
@@ -32,50 +32,78 @@
  * SOFTWARE.
  */
 
+#include <QDebug>
+#include "gameenemydata.h"
 #include "gameenemy.h"
 
-GameEnemy::GameEnemy(QQuickItem *parent)
-	: GameEntity(parent)
-	, m_moving(false)
-	, m_notice(false)
-	, m_armed(false)
-	, m_enemyData(nullptr)
+GameEnemyData::GameEnemyData(QObject *parent)
+	: QObject(parent)
+	, m_boundRect()
+	, m_active(true)
+	, m_block(-1)
+	, m_enemy(nullptr)
+	, m_enemyType(EnemySoldier)
 {
 
 }
 
-void GameEnemy::setMoving(bool moving)
+
+/**
+ * @brief GameEnemyData::enemyPrivate
+ * @return
+ */
+
+GameEnemy *GameEnemyData::enemyPrivate() const
 {
-	if (m_moving == moving)
+	return m_enemy ? qvariant_cast<GameEnemy *>(m_enemy->property("entityPrivate")) : nullptr;
+}
+
+
+
+
+
+void GameEnemyData::setBoundRect(QRect boundRect)
+{
+	if (m_boundRect == boundRect)
 		return;
 
-	m_moving = moving;
-	emit movingChanged(m_moving);
+	m_boundRect = boundRect;
+	emit boundRectChanged(m_boundRect);
 }
 
-void GameEnemy::setNotice(bool notice)
+void GameEnemyData::setActive(bool active)
 {
-	if (m_notice == notice)
+	if (m_active == active)
 		return;
 
-	m_notice = notice;
-	emit noticeChanged(m_notice);
+	m_active = active;
+	emit activeChanged(m_active);
 }
 
-void GameEnemy::setArmed(bool armed)
+void GameEnemyData::setBlock(int block)
 {
-	if (m_armed == armed)
+	if (m_block == block)
 		return;
 
-	m_armed = armed;
-	emit armedChanged(m_armed);
+	m_block = block;
+	emit blockChanged(m_block);
 }
 
-void GameEnemy::setEnemyData(GameEnemyData *enemyData)
+void GameEnemyData::setEnemy(QQuickItem *enemy)
 {
-	if (m_enemyData == enemyData)
+	if (m_enemy == enemy)
 		return;
 
-	m_enemyData = enemyData;
-	emit enemyDataChanged(m_enemyData);
+	m_enemy = enemy;
+	emit enemyChanged(m_enemy);
 }
+
+void GameEnemyData::setEnemyType(GameEnemyData::EnemyType enemyType)
+{
+	if (m_enemyType == enemyType)
+		return;
+
+	m_enemyType = enemyType;
+	emit enemyTypeChanged(m_enemyType);
+}
+

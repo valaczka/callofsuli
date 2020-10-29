@@ -7,6 +7,11 @@ Item {
 
 	signal joystickMoved(double x, double y);
 
+	onVisibleChanged: {
+						  returnAnimation.restart()
+						  joystickMoved(0, 0);
+					  }
+
 	Rectangle {
 		id: joystick
 

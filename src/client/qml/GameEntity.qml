@@ -84,11 +84,16 @@ PhysicsEntity {
 
 		var sprites = Object.keys(entityPrivate.qrcData.sprites)
 
-		for (var i=0; i<sprites.length; i++) {
-			var sname = sprites[i]
+		for (var i=-1; i<sprites.length; i++) {
+			var sname = (i === -1) ? "idle" : sprites[i]
+
+			if (sname === "idle" && i !== -1)
+				continue
+
 			var sdata = entityPrivate.qrcData.sprites[sname]
 			if (!sdata)
 				continue
+
 
 			var obj = spriteComponent.createObject(spriteSequence)
 			obj.name = sname

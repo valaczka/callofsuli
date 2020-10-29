@@ -52,7 +52,7 @@ GameBlock::~GameBlock()
  * @param enemy
  */
 
-void GameBlock::addEnemy(GameEnemy *enemy)
+void GameBlock::addEnemy(GameEnemyData *enemy)
 {
 	if (!enemy)
 		return;
@@ -94,7 +94,7 @@ void GameBlock::addLadder(GameLadder *ladder)
  * @param enemies
  */
 
-void GameBlock::setEnemies(QList<GameEnemy *> enemies)
+void GameBlock::setEnemies(QList<GameEnemyData *> enemies)
 {
 	if (m_enemies == enemies)
 		return;

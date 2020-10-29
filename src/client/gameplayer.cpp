@@ -39,16 +39,16 @@
 #include "box2dbody.h"
 #include "box2dfixture.h"
 #include "cosclient.h"
-#include "gameplayerprivate.h"
+#include "gameplayer.h"
 
-GamePlayerPrivate::GamePlayerPrivate(QQuickItem *parent)
-	: GameEntityPrivate(parent)
+GamePlayer::GamePlayer(QQuickItem *parent)
+	: GameEntity(parent)
 	, m_ladderMode(LadderUnavaliable)
 	, m_ladder(nullptr)
 {
-	connect(this, &GameEntityPrivate::cosGameChanged, this, &GamePlayerPrivate::onCosGameChanged);
-	connect(this, &GamePlayerPrivate::bodyBeginContact, this, &GamePlayerPrivate::onBodyBeginContact);
-	connect(this, &GamePlayerPrivate::bodyEndContact, this, &GamePlayerPrivate::onBodyEndContact);
+	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
+	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
+	connect(this, &GamePlayer::bodyEndContact, this, &GamePlayer::onBodyEndContact);
 }
 
 
@@ -59,7 +59,7 @@ GamePlayerPrivate::GamePlayerPrivate(QQuickItem *parent)
  * @brief GamePlayerPrivate::loadQrcData
  */
 
-void GamePlayerPrivate::setQrcDir()
+void GamePlayer::setQrcDir()
 {
 	CosGame *game = cosGame();
 
@@ -81,7 +81,7 @@ void GamePlayerPrivate::setQrcDir()
  * @brief GamePlayerPrivate::createFixtures
  */
 
-void GamePlayerPrivate::createFixtures()
+void GamePlayer::createFixtures()
 {
 	qDebug() << "Game player private: create fixtures()";
 
@@ -117,7 +117,7 @@ void GamePlayerPrivate::createFixtures()
 	box->setRestitution(0);
 	box->setFriction(0);
 	box->setCategories(Box2DFixture::Category1);
-	box->setCollidesWith(Box2DFixture::Category1);
+	box->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category4);
 
 	f.append(&f, box);
 
@@ -159,7 +159,7 @@ void GamePlayerPrivate::createFixtures()
  * @brief GamePlayerPrivate::ladderClimbUp
  */
 
-void GamePlayerPrivate::ladderClimbUp()
+void GamePlayer::ladderClimbUp()
 {
 	if (!m_ladder || !parentEntity())
 		return;
@@ -187,7 +187,7 @@ void GamePlayerPrivate::ladderClimbUp()
  * @brief GamePlayerPrivate::ladderClimbDown
  */
 
-void GamePlayerPrivate::ladderClimbDown()
+void GamePlayer::ladderClimbDown()
 {
 	if (!m_ladder || !parentEntity())
 		return;
@@ -221,7 +221,7 @@ void GamePlayerPrivate::ladderClimbDown()
  * @brief GamePlayerPrivate::ladderClimbFinish
  */
 
-void GamePlayerPrivate::ladderClimbFinish()
+void GamePlayer::ladderClimbFinish()
 {
 	if (!m_ladder || !parentEntity())
 		return;
@@ -236,7 +236,7 @@ void GamePlayerPrivate::ladderClimbFinish()
  * @param other
  */
 
-void GamePlayerPrivate::onBodyBeginContact(Box2DFixture *other)
+void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 {
 	QVariant object = other->property("targetObject");
 	QVariantMap data = other->property("targetData").toMap();
@@ -268,7 +268,7 @@ void GamePlayerPrivate::onBodyBeginContact(Box2DFixture *other)
  * @param other
  */
 
-void GamePlayerPrivate::onBodyEndContact(Box2DFixture *other)
+void GamePlayer::onBodyEndContact(Box2DFixture *other)
 {
 	QVariant object = other->property("targetObject");
 	QVariantMap data = other->property("targetData").toMap();
@@ -286,7 +286,7 @@ void GamePlayerPrivate::onBodyEndContact(Box2DFixture *other)
 	}
 }
 
-void GamePlayerPrivate::setLadderMode(GamePlayerPrivate::LadderMode ladderMode)
+void GamePlayer::setLadderMode(GamePlayer::LadderMode ladderMode)
 {
 	if (m_ladderMode == ladderMode)
 		return;
@@ -295,7 +295,7 @@ void GamePlayerPrivate::setLadderMode(GamePlayerPrivate::LadderMode ladderMode)
 	emit ladderModeChanged(m_ladderMode);
 }
 
-void GamePlayerPrivate::setLadder(GameLadder *ladder)
+void GamePlayer::setLadder(GameLadder *ladder)
 {
 	if (m_ladder == ladder)
 		return;
@@ -312,7 +312,7 @@ void GamePlayerPrivate::setLadder(GameLadder *ladder)
  * @param game
  */
 
-void GamePlayerPrivate::onCosGameChanged(CosGame *)
+void GamePlayer::onCosGameChanged(CosGame *)
 {
 	if (!cosGame())
 		return;

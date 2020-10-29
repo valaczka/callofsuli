@@ -9,7 +9,7 @@ import "JScript.js" as JS
 
 Scene {
 	id: scene
-	debug: true
+	//debug: true
 	physics: true
 
 	width: scenePrivate.implicitWidth
@@ -58,17 +58,20 @@ Scene {
 			restitution: 0
 			friction: 1
 			categories: Box.Category1
-			collidesWith: Box.Category1
+			collidesWith: (Box.Category1|Box.Category4)
 			readonly property bool baseGround: true
 		}
 	}
 
-	Component {
-		id: playerComponent
 
-		GamePlayer { }
+
+
+
+	MouseArea {
+		id: area
+		anchors.fill: parent
+		hoverEnabled: true
 	}
-
 
 
 	Keys.onPressed: {
@@ -118,8 +121,15 @@ Scene {
 				if(!event.isAutoRepeat)
 					game.player.stopMoving();
 				break;
+			case Qt.Key_X:
+				if (event.modifiers & Qt.ShiftModifier && area.containsMouse && game.player) {
+					game.player.x = area.mouseX
+					game.player.y = area.mouseY
+					game.player.entityPrivate.ladderClimbFinish()
+				}
+				break;
 			case Qt.Key_F3:
-				loadEnemies()
+				game.recreateEnemies(scene)
 				break;
 			}
 		}
@@ -136,6 +146,12 @@ Scene {
 		onHeightChanged: setYOffset()
 	}
 
+	Component {
+		id: playerComponent
+
+		GamePlayer { }
+	}
+
 
 	Component {
 		id: ladderComponent
@@ -143,20 +159,43 @@ Scene {
 		GameLadder { }
 	}
 
+	Component {
+		id: enemySoldierComponent
+
+		GameEnemySoldier { }
+	}
+
+
+	function createComponent(enemyType: int) : Item {
+		var obj = null
+
+		switch (enemyType) {
+			case GameEnemyData.EnemySoldier:
+				obj = enemySoldierComponent.createObject(scene)
+			break
+			case GameEnemyData.EnemyOther:
+				obj = enemySoldierComponent.createObject(scene)
+			break
+		}
+
+		return obj
+	}
+
 
 	function createLadders() {
 		if (!game || !game.ladders)
-			return
+		return
 
 		for (var i=0; i<game.ladders.length; i++) {
 			var l = game.ladders[i]
-			console.debug("ladder", i, l, l.boundRect)
 
 			var obj = ladderComponent.createObject(scene,{
-													   ladder: l
-												   })
+				ladder: l
+			})
 		}
 	}
+
+
 
 
 	function setXOffset() {

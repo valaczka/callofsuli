@@ -36,9 +36,9 @@
 #include "cosclient.h"
 #include "box2dbody.h"
 
-#include "gameentityprivate.h"
+#include "gameentity.h"
 
-GameEntityPrivate::GameEntityPrivate(QQuickItem *parent)
+GameEntity::GameEntity(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_groundFixtures()
 	, m_cosGame(nullptr)
@@ -51,10 +51,10 @@ GameEntityPrivate::GameEntityPrivate(QQuickItem *parent)
 	if (parent)
 		onParentChanged();
 
-	connect(this, &GameEntityPrivate::parentChanged, this, &GameEntityPrivate::onParentChanged);
+	connect(this, &GameEntity::parentChanged, this, &GameEntity::onParentChanged);
 
-	connect(this, &GameEntityPrivate::boundBeginContact, this, &GameEntityPrivate::onBoundBeginContact);
-	connect(this, &GameEntityPrivate::boundEndContact, this, &GameEntityPrivate::onBoundEndContact);
+	connect(this, &GameEntity::boundBeginContact, this, &GameEntity::onBoundBeginContact);
+	connect(this, &GameEntity::boundEndContact, this, &GameEntity::onBoundEndContact);
 
 }
 
@@ -63,7 +63,7 @@ GameEntityPrivate::GameEntityPrivate(QQuickItem *parent)
  * @brief GameEntityPrivate::~GameEntityPrivate
  */
 
-GameEntityPrivate::~GameEntityPrivate()
+GameEntity::~GameEntity()
 {
 	if (m_bodyPolygon)
 		m_bodyPolygon->deleteLater();
@@ -75,9 +75,12 @@ GameEntityPrivate::~GameEntityPrivate()
 
 
 
+/**
+ * @brief GameEntity::parentEntity
+ * @return
+ */
 
-
-Entity *GameEntityPrivate::parentEntity() const
+Entity *GameEntity::parentEntity() const
 {
 	if (this->parent()) {
 		Entity *e = qobject_cast<Entity *>(this->parent());
@@ -94,7 +97,7 @@ Entity *GameEntityPrivate::parentEntity() const
  * @return
  */
 
-bool GameEntityPrivate::isOnBaseGround() const
+bool GameEntity::isOnBaseGround() const
 {
 	foreach (Box2DFixture *f, m_groundFixtures) {
 		if (f->property("baseGround").toBool())
@@ -106,12 +109,11 @@ bool GameEntityPrivate::isOnBaseGround() const
 
 
 
-
 /**
  * @brief GameEntityPrivate::setFixtureVertices
  */
 
-void GameEntityPrivate::updateFixtures(const QString &sprite, const bool &inverse)
+void GameEntity::updateFixtures(const QString &sprite, const bool &inverse)
 {
 	if (m_qrcData.isEmpty())
 		return;
@@ -144,7 +146,7 @@ void GameEntityPrivate::updateFixtures(const QString &sprite, const bool &invers
 		if (!sprite.isEmpty()) {
 			QVariantList v = m_qrcData.value("sprites").toMap().value(sprite).toMap().value("bodyVertices").toList();
 
-			if (!vertices.isEmpty())
+			if (!v.isEmpty())
 				vertices = v;
 		}
 
@@ -185,14 +187,12 @@ void GameEntityPrivate::updateFixtures(const QString &sprite, const bool &invers
  * @brief GameEntityPrivate::loadQrcData
  */
 
-void GameEntityPrivate::loadQrcData()
+void GameEntity::loadQrcData()
 {
 	if (m_qrcDirName.isEmpty()) {
 		qWarning() << "Qrc directory name empty";
 		return;
 	}
-
-	qDebug() << "LOAD GAME ENTITY" << m_qrcDirName;
 
 	QVariant v = Client::readJsonFile(m_qrcDirName+"/data.json");
 
@@ -215,7 +215,7 @@ void GameEntityPrivate::loadQrcData()
  * @param qrcDirName
  */
 
-void GameEntityPrivate::setQrcDirName(QString qrcDirName)
+void GameEntity::setQrcDirName(QString qrcDirName)
 {
 	if (m_qrcDirName == qrcDirName)
 		return;
@@ -230,7 +230,7 @@ void GameEntityPrivate::setQrcDirName(QString qrcDirName)
  * @param qrcData
  */
 
-void GameEntityPrivate::setQrcData(QVariantMap qrcData)
+void GameEntity::setQrcData(QVariantMap qrcData)
 {
 	if (m_qrcData == qrcData)
 		return;
@@ -245,7 +245,7 @@ void GameEntityPrivate::setQrcData(QVariantMap qrcData)
  * @param bodyPolygon
  */
 
-void GameEntityPrivate::setBodyPolygon(Box2DPolygon *bodyPolygon)
+void GameEntity::setBodyPolygon(Box2DPolygon *bodyPolygon)
 {
 	if (m_bodyPolygon == bodyPolygon)
 		return;
@@ -253,8 +253,11 @@ void GameEntityPrivate::setBodyPolygon(Box2DPolygon *bodyPolygon)
 	m_bodyPolygon = bodyPolygon;
 	emit bodyPolygonChanged(m_bodyPolygon);
 
-	connect(bodyPolygon, &Box2DPolygon::beginContact, this, &GameEntityPrivate::bodyBeginContact);
-	connect(bodyPolygon, &Box2DPolygon::endContact, this, &GameEntityPrivate::bodyEndContact);
+	if (!m_bodyPolygon)
+		return;
+
+	connect(bodyPolygon, &Box2DPolygon::beginContact, this, &GameEntity::bodyBeginContact);
+	connect(bodyPolygon, &Box2DPolygon::endContact, this, &GameEntity::bodyEndContact);
 }
 
 
@@ -263,7 +266,7 @@ void GameEntityPrivate::setBodyPolygon(Box2DPolygon *bodyPolygon)
  * @param boundBox
  */
 
-void GameEntityPrivate::setBoundBox(Box2DBox *boundBox)
+void GameEntity::setBoundBox(Box2DBox *boundBox)
 {
 	if (m_boundBox == boundBox)
 		return;
@@ -271,8 +274,11 @@ void GameEntityPrivate::setBoundBox(Box2DBox *boundBox)
 	m_boundBox = boundBox;
 	emit boundBoxChanged(m_boundBox);
 
-	connect(boundBox, &Box2DBox::beginContact, this, &GameEntityPrivate::boundBeginContact);
-	connect(boundBox, &Box2DBox::endContact, this, &GameEntityPrivate::boundEndContact);
+	if (!m_boundBox)
+		return;
+
+	connect(boundBox, &Box2DBox::beginContact, this, &GameEntity::boundBeginContact);
+	connect(boundBox, &Box2DBox::endContact, this, &GameEntity::boundEndContact);
 }
 
 
@@ -281,7 +287,7 @@ void GameEntityPrivate::setBoundBox(Box2DBox *boundBox)
  * @param isAlive
  */
 
-void GameEntityPrivate::setIsAlive(bool isAlive)
+void GameEntity::setIsAlive(bool isAlive)
 {
 	if (m_isAlive == isAlive)
 		return;
@@ -299,7 +305,7 @@ void GameEntityPrivate::setIsAlive(bool isAlive)
  * @param isOnGround
  */
 
-void GameEntityPrivate::setIsOnGround(bool isOnGround)
+void GameEntity::setIsOnGround(bool isOnGround)
 {
 	if (m_isOnGround == isOnGround)
 		return;
@@ -316,14 +322,14 @@ void GameEntityPrivate::setIsOnGround(bool isOnGround)
  * @param parent
  */
 
-void GameEntityPrivate::onParentChanged()
+void GameEntity::onParentChanged()
 {
 	Entity *e = parentEntity();
 
-	if (!e)
+	if (!parent() || !e)
 		return;
 
-	connect(e, &Entity::sceneChanged, this, &GameEntityPrivate::onSceneChanged);
+	connect(e, &Entity::sceneChanged, this, &GameEntity::onSceneChanged);
 
 	createFixtures();
 }
@@ -334,7 +340,7 @@ void GameEntityPrivate::onParentChanged()
  * @brief GameEntityPrivate::onSceneChanged
  */
 
-void GameEntityPrivate::onSceneChanged()
+void GameEntity::onSceneChanged()
 {
 	Entity *entity = parentEntity();
 	if (!entity)
@@ -363,14 +369,11 @@ void GameEntityPrivate::onSceneChanged()
  * @param other
  */
 
-void GameEntityPrivate::onBoundBeginContact(Box2DFixture *other)
+void GameEntity::onBoundBeginContact(Box2DFixture *other)
 {
 	m_groundFixtures.append(other);
 
 	setIsOnGround(m_groundFixtures.count());
-
-	qDebug() << "BEGIN" << other << m_groundFixtures << other->property("baseGround").toBool();
-
 }
 
 
@@ -379,13 +382,11 @@ void GameEntityPrivate::onBoundBeginContact(Box2DFixture *other)
  * @param other
  */
 
-void GameEntityPrivate::onBoundEndContact(Box2DFixture *other)
+void GameEntity::onBoundEndContact(Box2DFixture *other)
 {
 	m_groundFixtures.removeAll(other);
 
 	setIsOnGround(m_groundFixtures.count());
-
-	qDebug() << "END" << other << m_groundFixtures;
 }
 
 

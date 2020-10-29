@@ -41,7 +41,18 @@
 #include "entity.h"
 #include "cosgame.h"
 
-class GameEntityPrivate : public QQuickItem
+
+/**
+ * COLLISION CATEGORIES
+ *
+ * Category1: ground+player bound
+ * Category2: player body (sensor)
+ * Category3: item bound (sensor)
+ * Category4: enemy bound
+ * Category5:
+ */
+
+class GameEntity : public QQuickItem
 {
 	Q_OBJECT
 
@@ -59,8 +70,8 @@ class GameEntityPrivate : public QQuickItem
 
 
 public:
-	GameEntityPrivate(QQuickItem *parent = 0);
-	~GameEntityPrivate();
+	GameEntity(QQuickItem *parent = 0);
+	~GameEntity();
 
 	virtual void setQrcDir() {}
 	virtual void createFixtures() {}

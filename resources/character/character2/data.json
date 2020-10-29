@@ -62,7 +62,8 @@
 			"frameX": 0,
 			"frameY": 0,
 			"frameCount": 1,
-			"frameDuration": 60
+			"frameDuration": 60,
+			"to": { "idle": 1 }
 		},
 		"run":	{
 			"source": "run.png",
@@ -118,7 +119,7 @@
 			"frameY": 90,
 			"frameCount": 5,
 			"frameDuration": 20,
-			"to": { "falldeath2": 1 }
+			"to": { "idle": 0, "falldeath2": 1 }
 		},
 		"falldeath2":	{
 			"source": "fall.png",
@@ -128,7 +129,7 @@
 			"frameY": 135,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "falldead": 1 }
+			"to": { "idle": 0, "falldead": 1 }
 		},
 		"falldead":	{
 			"source": "fall.png",
@@ -138,7 +139,7 @@
 			"frameY": 180,
 			"frameCount": 1,
 			"frameDuration": 50,
-			"to": { "falldead": 1 }
+			"to": { "idle": 0, "falldead": 1 }
 		},
 		"climbup":	{
 			"source": "climbup.png",
@@ -156,7 +157,7 @@
 			"frameY": 0,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "climbup2": 0, "climbup3": 1, "climbpause": 0, "climbupend": 0 }
+			"to": { "idle": 0, "climbup2": 0, "climbup3": 1, "climbpause": 0, "climbupend": 0 }
 		},
 		"climbup3":	{
 			"source": "climbup.png",
@@ -166,7 +167,7 @@
 			"frameY": 45,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0 }
+			"to": { "idle": 0, "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0 }
 		},
 		"climbpause":	{
 			"source": "climbup.png",
@@ -176,7 +177,7 @@
 			"frameY": 90,
 			"frameCount": 1,
 			"frameDuration": 80,
-			"to": { "climbup2": 0, "climbup3": 0, "climbdown2" : 0, "climbdown3": 0, "climbpause": 1, "climbupend": 0 }
+			"to": { "idle": 0, "climbup2": 0, "climbup3": 0, "climbdown2" : 0, "climbdown3": 0, "climbpause": 1, "climbupend": 0 }
 		},
 		"climbupend":	{
 			"source": "climbup.png",
@@ -204,7 +205,7 @@
 			"frameY": 90,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "climbdown2": 0, "climbdown3": 1, "climbpause": 0, "climbdownend": 0 }
+			"to": { "idle": 0, "climbdown2": 0, "climbdown3": 1, "climbpause": 0, "climbdownend": 0 }
 		},
 		"climbdown3":	{
 			"source": "climbdown.png",
@@ -214,7 +215,7 @@
 			"frameY": 135,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0 }
+			"to": { "idle": 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0 }
 		},
 		"climbdownend":	{
 			"source": "climbdown.png",

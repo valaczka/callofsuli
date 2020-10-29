@@ -39,10 +39,12 @@
 #include "teacher.h"
 #include "adminusers.h"
 #include "cosgame.h"
-#include "gameentityprivate.h"
-#include "gameplayerprivate.h"
-#include "gamesceneprivate.h"
+#include "gameentity.h"
+#include "gameplayer.h"
+#include "gamescene.h"
 #include "gameladder.h"
+#include "gameenemy.h"
+#include "gameenemysoldier.h"
 #include "intro.h"
 #include "student.h"
 #include "studentmap.h"
@@ -183,10 +185,13 @@ void Client::registerTypes()
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
-	qmlRegisterType<GameEntityPrivate>("COS.Client", 1, 0, "GameEntityPrivate");
-	qmlRegisterType<GamePlayerPrivate>("COS.Client", 1, 0, "GamePlayerPrivate");
-	qmlRegisterType<GameScenePrivate>("COS.Client", 1, 0, "GameScenePrivate");
+	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
+	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");
+	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
+	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
+	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
+	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");

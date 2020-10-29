@@ -32,7 +32,7 @@
  * SOFTWARE.
  */
 
-#include "gamesceneprivate.h"
+#include "gamescene.h"
 
 #include "mapreader.h"
 #include "map.h"
@@ -43,7 +43,7 @@
 #include "gameladder.h"
 #include "mapobject.h"
 
-GameScenePrivate::GameScenePrivate(QQuickItem *parent)
+GameScene::GameScene(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_map(nullptr)
 	, m_tiledLayers()
@@ -53,7 +53,7 @@ GameScenePrivate::GameScenePrivate(QQuickItem *parent)
 }
 
 
-GameScenePrivate::~GameScenePrivate()
+GameScene::~GameScene()
 {
 	if (m_map)
 		delete m_map;
@@ -71,7 +71,7 @@ GameScenePrivate::~GameScenePrivate()
  * @param source
  */
 
-void GameScenePrivate::setSource(QUrl source)
+void GameScene::setSource(QUrl source)
 {
 	if (m_source == source)
 		return;
@@ -101,7 +101,7 @@ void GameScenePrivate::setSource(QUrl source)
  */
 
 
-void GameScenePrivate::setTiledLayers(QList<TiledPaintedLayer *> tiledLayers)
+void GameScene::setTiledLayers(QList<TiledPaintedLayer *> tiledLayers)
 {
 	if (m_tiledLayers == tiledLayers)
 		return;
@@ -116,7 +116,7 @@ void GameScenePrivate::setTiledLayers(QList<TiledPaintedLayer *> tiledLayers)
  * @param game
  */
 
-void GameScenePrivate::setGame(CosGame *game)
+void GameScene::setGame(CosGame *game)
 {
 	if (m_game == game)
 		return;
@@ -134,7 +134,7 @@ void GameScenePrivate::setGame(CosGame *game)
  * @param source
  */
 
-bool GameScenePrivate::loadMap(const QString &source)
+bool GameScene::loadMap(const QString &source)
 {
 	Tiled::MapReader reader;
 
@@ -162,7 +162,7 @@ bool GameScenePrivate::loadMap(const QString &source)
  * @brief GameScenePrivate::loadLayers
  */
 
-void GameScenePrivate::loadLayers()
+void GameScene::loadLayers()
 {
 	foreach(Tiled::Layer *layer, m_map->layers())
 	{
@@ -194,7 +194,7 @@ void GameScenePrivate::loadLayers()
  * @param layer
  */
 
-void GameScenePrivate::loadGroundLayer(Tiled::Layer *layer)
+void GameScene::loadGroundLayer(Tiled::Layer *layer)
 {
 	qDebug() << "Load ground layer" << layer;
 
@@ -220,7 +220,7 @@ void GameScenePrivate::loadGroundLayer(Tiled::Layer *layer)
 		item->setRestitution(0);
 		item->setFriction(1);
 		item->setCategories(Box2DFixture::Category1);
-		item->setCollidesWith(Box2DFixture::Category1);
+		item->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category4);
 		item->createFixture(object);
 	}
 
@@ -233,7 +233,7 @@ void GameScenePrivate::loadGroundLayer(Tiled::Layer *layer)
  * @brief GameScenePrivate::loadEnemyLayer
  */
 
-void GameScenePrivate::loadEnemyLayer(Tiled::Layer *layer)
+void GameScene::loadEnemyLayer(Tiled::Layer *layer)
 {
 	qDebug() << "Load enemy layer" << layer;
 
@@ -255,9 +255,9 @@ void GameScenePrivate::loadEnemyLayer(Tiled::Layer *layer)
 
 		QPolygonF polygon = object->polygon();
 		QRectF rect = polygon.boundingRect();
+		rect.moveTo(object->x(), object->y());
 
-		GameEnemy *enemy = new GameEnemy(m_game);
-		enemy->setPosY(object->y());
+		GameEnemyData *enemy = new GameEnemyData(m_game);
 		enemy->setBoundRect(rect.toRect());
 
 		QVariant block = object->property("block");
@@ -276,7 +276,7 @@ void GameScenePrivate::loadEnemyLayer(Tiled::Layer *layer)
  * @param layer
  */
 
-void GameScenePrivate::loadPlayerLayer(Tiled::Layer *layer)
+void GameScene::loadPlayerLayer(Tiled::Layer *layer)
 {
 	qDebug() << "Load player layer" << layer;
 
@@ -309,7 +309,7 @@ void GameScenePrivate::loadPlayerLayer(Tiled::Layer *layer)
  * @param layer
  */
 
-void GameScenePrivate::loadLadderLayer(Tiled::Layer *layer)
+void GameScene::loadLadderLayer(Tiled::Layer *layer)
 {
 	qDebug() << "Load ladders layer" << layer;
 

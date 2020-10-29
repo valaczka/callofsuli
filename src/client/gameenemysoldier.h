@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameblock.h
+ * gameenemysoldierprivate.h
  *
- * Created on: 2020. 10. 24.
+ * Created on: 2020. 10. 28.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameBlock
+ * GameEnemySoldierPrivate
  *
  *  This file is part of Call of Suli.
  *
@@ -32,51 +32,45 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEBLOCK_H
-#define GAMEBLOCK_H
+#ifndef GAMEENEMYSOLDIERPRIVATE_H
+#define GAMEENEMYSOLDIERPRIVATE_H
 
-#include <QMap>
-#include <QPoint>
-#include <QObject>
+#include "gameenemy.h"
 
-#include "gameenemydata.h"
-#include "gameladder.h"
-
-class GameBlock : public QObject
+class GameEnemySoldier : public GameEnemy
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
-	Q_PROPERTY(QMap<int, QPoint> playerPosition READ playerPosition NOTIFY playerPositionChanged)
-	Q_PROPERTY(QList<GameLadder *> ladders READ ladders WRITE setLadders NOTIFY laddersChanged)
-
+	Q_PROPERTY(bool atBound READ atBound WRITE setAtBound NOTIFY atBoundChanged)
+	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
 
 public:
-	explicit GameBlock(QObject *parent = nullptr);
-	~GameBlock();
+	GameEnemySoldier(QQuickItem *parent = 0);
+	~GameEnemySoldier();
 
-	void addEnemy(GameEnemyData *enemy);
-	void addPlayerPosition(const int &blockFrom, const QPoint &point);
-	void addLadder(GameLadder *ladder);
+	void setQrcDir() override;
+	void createFixtures() override;
 
-	QList<GameEnemyData *> enemies() const { return m_enemies; }
-	QMap<int, QPoint> playerPosition() const { return m_playerPosition; }
-
-	QList<GameLadder *> ladders() const { return m_ladders; }
+	int msecBeforeTurn() const { return m_msecBeforeTurn; }
+	bool atBound() const { return m_atBound; }
 
 public slots:
-	void setEnemies(QList<GameEnemyData *> enemies);
-	void setLadders(QList<GameLadder *> ladders);
+	void setMsecBeforeTurn(int msecBeforeTurn);
+	void setAtBound(bool atBound);
 
 signals:
-	void enemiesChanged(QList<GameEnemyData *> enemies);
-	void playerPositionChanged(QMap<int, QPoint> playerPosition);
-	void laddersChanged(QList<GameLadder *> ladders);
+	void msecBeforeTurnChanged(int msecBeforeTurn);
+	void atBoundChanged(bool atBound);
+
+private slots:
+	void onCosGameChanged(CosGame *);
+	void onMovingTimerTimeout();
 
 private:
-	QList<GameEnemyData *> m_enemies;
-	QMap<int, QPoint> m_playerPosition;
-	QList<GameLadder *> m_ladders;
+	QTimer *m_movingTimer;
+	int m_msecBeforeTurn;
+	bool m_atBound;
+	int m_turnElapsedMsec;
 };
 
-#endif // GAMEBLOCK_H
+#endif // GAMEENEMYSOLDIERPRIVATE_H

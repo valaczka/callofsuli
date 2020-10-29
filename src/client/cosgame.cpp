@@ -32,11 +32,15 @@
  * SOFTWARE.
  */
 
+#include <QQmlEngine>
+#include <QTimer>
+
 #include "cosclient.h"
 
 #include "mapobject.h"
 #include "objectgroup.h"
 
+#include "gameenemy.h"
 #include "cosgame.h"
 
 CosGame::CosGame(QQuickItem *parent)
@@ -77,7 +81,7 @@ CosGame::~CosGame()
  * @param enemy
  */
 
-void CosGame::addEnemy(GameEnemy *enemy)
+void CosGame::addEnemy(GameEnemyData *enemy)
 {
 	if (!enemy)
 		return;
@@ -109,6 +113,105 @@ void CosGame::addPlayerPosition(const int &block, const int &blockFrom, const in
 	QPoint p(x,y);
 	m_blocks[block]->addPlayerPosition(blockFrom, p);
 }
+
+
+
+/**
+ * @brief CosGame::reloadEnemies
+ */
+
+void CosGame::recreateEnemies(QQuickItem *scene)
+{
+	if (!scene)
+		return;
+
+	qDebug() << "Recreate enemies";
+
+	foreach (GameEnemyData *data, m_enemies) {
+		if (data->enemy())
+			continue;
+
+		QQuickItem *enemy = nullptr;
+
+		QMetaObject::invokeMethod(scene, "createComponent", Qt::AutoConnection,
+								  Q_RETURN_ARG(QQuickItem *, enemy),
+								  Q_ARG(int, data->enemyType()));
+
+		if (enemy) {
+			QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
+			data->setEnemy(enemy);
+
+			if (data->enemyPrivate())
+				data->enemyPrivate()->setEnemyData(data);
+
+			resetEnemy(data);
+		}
+	}
+
+	QTimer::singleShot(1000, this, [=](){
+		setEnemiesMoving(true);
+	});
+
+}
+
+/**
+ * @brief CosGame::resetEnemy
+ * @param enemyData
+ */
+
+void CosGame::resetEnemy(GameEnemyData *enemyData)
+{
+	qDebug() << "Reset enemy" << enemyData;
+
+	if (!enemyData) {
+		qWarning() << "Invalid enemy item";
+		return;
+	}
+
+	QQuickItem *item = enemyData->enemy();
+
+	if (!item) {
+		qWarning() << "Missing enemy QQuickItem*" << enemyData;
+		return;
+	}
+
+	int x = enemyData->boundRect().left();
+	int y = enemyData->boundRect().top();
+
+	x += qrand() % enemyData->boundRect().width();
+
+	bool facingLeft = true;
+
+	if (x+item->width() > enemyData->boundRect().right()) {
+		x = enemyData->boundRect().right()-item->width();
+	} else {
+		if (qrand() % 2 == 1)
+			facingLeft = false;
+	}
+
+	item->setX(x);
+	item->setY(y-item->height());
+	item->setProperty("facingLeft", facingLeft);
+	/*QObject *spriteSequence = qvariant_cast<QObject *>(item->property("spriteSequence"));
+
+	if (spriteSequence)
+		QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "idle"));*/
+
+}
+
+
+/**
+ * @brief CosGame::setEnemiesMoving
+ * @param moving
+ */
+
+void CosGame::setEnemiesMoving(const bool &moving)
+{
+	foreach (GameEnemyData *data, m_enemies) {
+		data->enemyPrivate()->setMoving(moving);
+	}
+}
+
 
 
 /**
@@ -144,7 +247,7 @@ void CosGame::addLadder(GameLadder *ladder)
 int CosGame::activeEnemies() const
 {
 	int num = 0;
-	foreach (GameEnemy *e, m_enemies) {
+	foreach (GameEnemyData *e, m_enemies) {
 		if (e->active())
 			num++;
 	}
@@ -251,7 +354,7 @@ void CosGame::setLevel(int level)
 	emit levelChanged(m_level);
 }
 
-void CosGame::setEnemies(QList<GameEnemy *> enemies)
+void CosGame::setEnemies(QList<GameEnemyData *> enemies)
 {
 	if (m_enemies == enemies)
 		return;

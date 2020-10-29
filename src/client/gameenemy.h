@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameenemy.h
+ * gameenemyprivate.h
  *
- * Created on: 2020. 10. 23.
+ * Created on: 2020. 10. 28.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameEnemy
+ * GameEnemyPrivate
  *
  *  This file is part of Call of Suli.
  *
@@ -32,48 +32,49 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEENEMY_H
-#define GAMEENEMY_H
+#ifndef GAMEENEMYPRIVATE_H
+#define GAMEENEMYPRIVATE_H
 
-#include <QRectF>
-#include <QObject>
+#include "gameentity.h"
 
-class GameEnemy : public QObject
+class GameEnemyData;
+
+class GameEnemy : public GameEntity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int posY READ posY WRITE setPosY NOTIFY posYChanged)
-	Q_PROPERTY(QRect boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
-	Q_PROPERTY(int block READ block WRITE setBlock NOTIFY blockChanged)
-
-	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
-
+	Q_PROPERTY(bool moving READ moving WRITE setMoving NOTIFY movingChanged)
+	Q_PROPERTY(bool notice READ notice WRITE setNotice NOTIFY noticeChanged)
+	Q_PROPERTY(bool armed READ armed WRITE setArmed NOTIFY armedChanged)
+	Q_PROPERTY(GameEnemyData * enemyData READ enemyData WRITE setEnemyData NOTIFY enemyDataChanged)
 
 public:
-	explicit GameEnemy(QObject *parent = nullptr);
 
-	QRect boundRect() const { return m_boundRect; }
-	int posY() const { return m_posY; }
-	bool active() const { return m_active; }
-	int block() const { return m_block; }
+	GameEnemy(QQuickItem *parent = 0);
+
+	bool moving() const { return m_moving; }
+	bool notice() const { return m_notice; }
+	bool armed() const { return m_armed; }
+	GameEnemyData * enemyData() const { return m_enemyData; }
 
 public slots:
-	void setPosY(int posY);
-	void setBoundRect(QRect boundRect);
-	void setActive(bool active);
-	void setBlock(int block);
+	void setMoving(bool moving);
+	void setNotice(bool notice);
+	void setArmed(bool armed);
+	void setEnemyData(GameEnemyData * enemyData);
 
 signals:
-	void boundRectChanged(QRect boundRect);
-	void posYChanged(int posY);
-	void activeChanged(bool active);
-	void blockChanged(int block);
+	void movingChanged(bool moving);
+	void noticeChanged(bool notice);
+	void armedChanged(bool armed);
+	void enemyDataChanged(GameEnemyData * enemyData);
 
-private:
-	QRect m_boundRect;
-	int m_posY;
-	bool m_active;
-	int m_block;
+protected:
+	bool m_moving;
+	bool m_notice;
+	bool m_armed;
+	GameEnemyData * m_enemyData;
+
 };
 
-#endif // GAMEENEMY_H
+#endif // GAMEENEMYPRIVATE_H

@@ -35,11 +35,13 @@ SOURCES += \
 		fontimage.cpp \
 		gameblock.cpp \
 		gameenemy.cpp \
-		gameentityprivate.cpp \
+		gameenemydata.cpp \
+		gameenemysoldier.cpp \
+		gameentity.cpp \
 		gameladder.cpp \
 		gameobject.cpp \
-		gameplayerprivate.cpp \
-		gamesceneprivate.cpp \
+		gameplayer.cpp \
+		gamescene.cpp \
 		intro.cpp \
 		main.cpp \
 		mapdata.cpp \
@@ -66,11 +68,13 @@ HEADERS += \
 	fontimage.h \
 	gameblock.h \
 	gameenemy.h \
-	gameentityprivate.h \
+	gameenemydata.h \
+	gameenemysoldier.h \
+	gameentity.h \
 	gameladder.h \
 	gameobject.h \
-	gameplayerprivate.h \
-	gamesceneprivate.h \
+	gameplayer.h \
+	gamescene.h \
 	intro.h \
 	mapdata.h \
 	mapeditor.h \

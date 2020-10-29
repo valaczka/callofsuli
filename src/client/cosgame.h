@@ -35,12 +35,14 @@
 #ifndef COSGAME_H
 #define COSGAME_H
 
-#include "gameenemy.h"
+#include "gameenemydata.h"
 #include "gameblock.h"
 #include "gameladder.h"
 #include <game.h>
 
-#include "gamesceneprivate.h"
+#include "gamescene.h"
+
+class GamePlayer;
 
 class CosGame : public Game
 {
@@ -57,7 +59,7 @@ class CosGame : public Game
 
 	Q_PROPERTY(QMap<int, GameBlock *> blocks READ blocks WRITE setBlocks NOTIFY blocksChanged)
 
-	Q_PROPERTY(QList<GameEnemy *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
+	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
 	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
 
 	Q_PROPERTY(int currentBlock READ currentBlock WRITE setCurrentBlock NOTIFY currentBlockChanged)
@@ -71,8 +73,13 @@ public:
 	~CosGame();
 
 	Q_INVOKABLE void loadTerrainData();
-	void addEnemy(GameEnemy *enemy);
+
+	void addEnemy(GameEnemyData *enemy);
 	void addPlayerPosition(const int &block, const int &blockFrom, const int &x, const int &y);
+	Q_INVOKABLE void recreateEnemies(QQuickItem *scene);
+	Q_INVOKABLE void resetEnemy(GameEnemyData *enemyData);
+	Q_INVOKABLE void setEnemiesMoving(const bool &moving);
+
 	void addLadder(GameLadder *ladder);
 
 	QString playerCharacter() const { return m_playerCharacter; }
@@ -83,7 +90,7 @@ public:
 	int level() const { return m_level; }
 	QQuickItem * player() const { return m_player; }
 
-	QList<GameEnemy *> enemies() const { return m_enemies; }
+	QList<GameEnemyData *> enemies() const { return m_enemies; }
 	int activeEnemies() const;
 
 	QMap<int, GameBlock *> blocks() const { return m_blocks; }
@@ -104,7 +111,7 @@ public slots:
 	void setLevel(int level);
 	void setPlayer(QQuickItem * player);
 
-	void setEnemies(QList<GameEnemy *> enemies);
+	void setEnemies(QList<GameEnemyData *> enemies);
 	void setBlocks(QMap<int, GameBlock *> blocks);
 	void setCurrentBlock(int currentBlock);
 	void setPreviousBlock(int previousBlock);
@@ -113,6 +120,7 @@ public slots:
 
 signals:
 	void blocksLoaded();
+	void enemiesRecreated();
 
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);
@@ -121,7 +129,7 @@ signals:
 
 	void levelChanged(int level);
 
-	void enemiesChanged(QList<GameEnemy *> enemies);
+	void enemiesChanged(QList<GameEnemyData *> enemies);
 	void activeEnemiesChanged(int activeEnemies);
 	void blocksChanged(QMap<int, GameBlock *> blocks);
 	void playerChanged(QQuickItem * player);
@@ -138,7 +146,7 @@ private:
 	QVariantMap m_gameData;
 	QVariantMap m_terrainData;
 	int m_level;
-	QList<GameEnemy *> m_enemies;
+	QList<GameEnemyData *> m_enemies;
 	QMap<int, GameBlock *> m_blocks;
 	QString m_terrain;
 	QQuickItem * m_player;

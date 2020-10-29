@@ -43,7 +43,7 @@
 
 class CosGame;
 
-class GameScenePrivate : public QQuickItem
+class GameScene : public QQuickItem
 {
 	Q_OBJECT
 
@@ -55,8 +55,8 @@ class GameScenePrivate : public QQuickItem
 
 
 public:
-	GameScenePrivate(QQuickItem *parent = 0);
-	~GameScenePrivate();
+	GameScene(QQuickItem *parent = 0);
+	~GameScene();
 	QUrl source() const { return m_source; }
 	Tiled::Map * map() const { return m_map; }
 	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }

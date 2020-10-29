@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameblock.h
+ * gameenemy.h
  *
- * Created on: 2020. 10. 24.
+ * Created on: 2020. 10. 23.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameBlock
+ * GameEnemy
  *
  *  This file is part of Call of Suli.
  *
@@ -32,51 +32,67 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEBLOCK_H
-#define GAMEBLOCK_H
+#ifndef GAMEENEMY_H
+#define GAMEENEMY_H
 
-#include <QMap>
-#include <QPoint>
+#include <QRectF>
 #include <QObject>
+#include <qquickitem.h>
 
-#include "gameenemydata.h"
-#include "gameladder.h"
+class GameEnemy;
 
-class GameBlock : public QObject
+class GameEnemyData : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
-	Q_PROPERTY(QMap<int, QPoint> playerPosition READ playerPosition NOTIFY playerPositionChanged)
-	Q_PROPERTY(QList<GameLadder *> ladders READ ladders WRITE setLadders NOTIFY laddersChanged)
+	Q_PROPERTY(QRect boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
+	Q_PROPERTY(int block READ block WRITE setBlock NOTIFY blockChanged)
+
+	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
+
+	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
+	Q_PROPERTY(QQuickItem * enemy READ enemy NOTIFY enemyChanged)
 
 
 public:
-	explicit GameBlock(QObject *parent = nullptr);
-	~GameBlock();
 
-	void addEnemy(GameEnemyData *enemy);
-	void addPlayerPosition(const int &blockFrom, const QPoint &point);
-	void addLadder(GameLadder *ladder);
+	enum EnemyType {
+		EnemySoldier,
+		EnemyOther
+	};
 
-	QList<GameEnemyData *> enemies() const { return m_enemies; }
-	QMap<int, QPoint> playerPosition() const { return m_playerPosition; }
+	Q_ENUM(EnemyType)
 
-	QList<GameLadder *> ladders() const { return m_ladders; }
+	explicit GameEnemyData(QObject *parent = nullptr);
+
+	QRect boundRect() const { return m_boundRect; }
+	bool active() const { return m_active; }
+	int block() const { return m_block; }
+
+	QQuickItem * enemy() const { return m_enemy; }
+	EnemyType enemyType() const { return m_enemyType; }
+	GameEnemy * enemyPrivate() const;
 
 public slots:
-	void setEnemies(QList<GameEnemyData *> enemies);
-	void setLadders(QList<GameLadder *> ladders);
+	void setBoundRect(QRect boundRect);
+	void setActive(bool active);
+	void setBlock(int block);
+	void setEnemy(QQuickItem * enemy);
+	void setEnemyType(EnemyType enemyType);
 
 signals:
-	void enemiesChanged(QList<GameEnemyData *> enemies);
-	void playerPositionChanged(QMap<int, QPoint> playerPosition);
-	void laddersChanged(QList<GameLadder *> ladders);
+	void boundRectChanged(QRect boundRect);
+	void activeChanged(bool active);
+	void blockChanged(int block);
+	void enemyChanged(QQuickItem * enemy);
+	void enemyTypeChanged(EnemyType enemyType);
 
 private:
-	QList<GameEnemyData *> m_enemies;
-	QMap<int, QPoint> m_playerPosition;
-	QList<GameLadder *> m_ladders;
+	QRect m_boundRect;
+	bool m_active;
+	int m_block;
+	QQuickItem *m_enemy;
+	EnemyType m_enemyType;
 };
 
-#endif // GAMEBLOCK_H
+#endif // GAMEENEMY_H
