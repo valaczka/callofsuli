@@ -45,7 +45,7 @@ class GameEnemyData : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QRect boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
+	Q_PROPERTY(QRectF boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
 	Q_PROPERTY(int block READ block WRITE setBlock NOTIFY blockChanged)
 
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
@@ -65,7 +65,7 @@ public:
 
 	explicit GameEnemyData(QObject *parent = nullptr);
 
-	QRect boundRect() const { return m_boundRect; }
+	QRectF boundRect() const { return m_boundRect; }
 	bool active() const { return m_active; }
 	int block() const { return m_block; }
 
@@ -74,21 +74,22 @@ public:
 	GameEnemy * enemyPrivate() const;
 
 public slots:
-	void setBoundRect(QRect boundRect);
+	void setBoundRect(QRectF boundRect);
 	void setActive(bool active);
 	void setBlock(int block);
 	void setEnemy(QQuickItem * enemy);
 	void setEnemyType(EnemyType enemyType);
+	void enemyDied();
 
 signals:
-	void boundRectChanged(QRect boundRect);
+	void boundRectChanged(QRectF boundRect);
 	void activeChanged(bool active);
 	void blockChanged(int block);
 	void enemyChanged(QQuickItem * enemy);
 	void enemyTypeChanged(EnemyType enemyType);
 
 private:
-	QRect m_boundRect;
+	QRectF m_boundRect;
 	bool m_active;
 	int m_block;
 	QQuickItem *m_enemy;

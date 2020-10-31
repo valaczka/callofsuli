@@ -30,25 +30,25 @@
 #include "box2dworld.h"
 
 Box2DRayCast::Box2DRayCast(QObject *parent) :
-    QObject(parent),
-    mMaxFraction(-1.0f)
+	QObject(parent),
+	mMaxFraction(-1.0f)
 {
 }
 
 float32 Box2DRayCast::ReportFixture(b2Fixture *fixture,
-                                    const b2Vec2 &point,
-                                    const b2Vec2 &normal,
-                                    float32 fraction)
+									const b2Vec2 &point,
+									const b2Vec2 &normal,
+									float32 fraction)
 {
-    mMaxFraction = -1.0f;
+	mMaxFraction = -1.0f;
 
-    Box2DFixture *box2dFixture = toBox2DFixture(fixture);
-    Box2DWorld *world = box2dFixture->getBody()->world();
+	Box2DFixture *box2dFixture = toBox2DFixture(fixture);
+	Box2DWorld *world = box2dFixture->getBody()->world();
 
-    emit fixtureReported(box2dFixture,
-                         world->toPixels(point),
-                         world->toPixels(normal),
-                         fraction);
+	emit fixtureReported(box2dFixture,
+						 world->toPixels(point),
+						 world->toPixels(normal),
+						 fraction);
 
-    return mMaxFraction;
+	return mMaxFraction;
 }

@@ -11,19 +11,17 @@ import "JScript.js" as JS
 Page {
 	id: control
 
-	//color: CosStyle.colorBg
-
 	CosGame {
 		id: game
 		anchors.fill: parent
 		currentScene: mainScene
 
+		//scale: 1.5
+
 		terrain: "terrain1"
 		playerCharacter: "character2"
 		level: 1
 		currentBlock: 2
-
-		onGameStateChanged: console.info("game state ", gameState)
 
 		onWidthChanged: gameScene.setXOffset()
 
@@ -41,10 +39,10 @@ Page {
 
 
 		onBlocksLoaded: {
-			console.debug("blocks loaded")
 			gameScene.scenePrivate.source = "qrc:/terrain/"+terrain+"/"+terrainData.tmx
 			currentScene = gameScene
 		}
+
 
 		GameTiledScene {
 			id: gameScene

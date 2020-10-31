@@ -42,7 +42,7 @@ class GameLadder : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QRect boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
+	Q_PROPERTY(QRectF boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(int blockTop READ blockTop WRITE setBlockTop NOTIFY blockTopChanged)
 	Q_PROPERTY(int blockBottom READ blockBottom WRITE setBlockBottom NOTIFY blockBottomChanged)
@@ -51,7 +51,7 @@ public:
 	explicit GameLadder(QObject *parent = nullptr);
 
 
-	QRect boundRect() const
+	QRectF boundRect() const
 	{
 		return m_boundRect;
 	}
@@ -74,7 +74,7 @@ public:
 
 public slots:
 
-	void setBoundRect(QRect boundRect)
+	void setBoundRect(QRectF boundRect)
 	{
 		if (m_boundRect == boundRect)
 			return;
@@ -114,7 +114,7 @@ public slots:
 
 signals:
 
-	void boundRectChanged(QRect boundRect);
+	void boundRectChanged(QRectF boundRect);
 
 	void activeChanged(bool active);
 
@@ -123,7 +123,7 @@ signals:
 	void blockBottomChanged(int blockBottom);
 
 private:
-	QRect m_boundRect;
+	QRectF m_boundRect;
 	bool m_active;
 	int m_blockTop;
 	int m_blockBottom;

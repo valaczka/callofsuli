@@ -2,6 +2,7 @@ import Bacon2D 1.0
 import QtQuick 2.14
 import COS.Client 1.0
 import QtGraphicalEffects 1.0
+import "Style"
 
 PhysicsEntity {
 	id: root
@@ -26,8 +27,8 @@ PhysicsEntity {
 			y: 0
 			height: fixtureHeight
 			sensor: true
-			collidesWith: Box.Category2
-			categories: Box.Category3
+			collidesWith: Box.Category3
+			categories: Box.Category4
 
 			readonly property QtObject targetObject: ladder
 			readonly property var targetData: {"direction": "down" }
@@ -41,8 +42,8 @@ PhysicsEntity {
 			y: root.height-fixtureHeight
 			height: fixtureHeight
 			sensor: true
-			collidesWith: Box.Category2
-			categories: Box.Category3
+			collidesWith: Box.Category3
+			categories: Box.Category4
 
 			readonly property QtObject targetObject: ladder
 			readonly property var targetData: {"direction": "up" }
@@ -57,7 +58,7 @@ PhysicsEntity {
 		opacity: 0.0
 		visible: opacity != 0
 
-		color: "yellow"
+		color: CosStyle.colorAccentLighter
 		source: img
 		anchors.fill: img
 

@@ -38,14 +38,14 @@
 #include "gameentity.h"
 
 
-
-
 class GamePlayer : public GameEntity
 {
 	Q_OBJECT
 
 	Q_PROPERTY(LadderMode ladderMode READ ladderMode WRITE setLadderMode NOTIFY ladderModeChanged)
 	Q_PROPERTY(GameLadder * ladder READ ladder WRITE setLadder NOTIFY ladderChanged)
+	Q_PROPERTY(GameEnemy * enemy READ enemy WRITE setEnemy NOTIFY enemyChanged)
+	Q_PROPERTY(bool hasGun READ hasGun WRITE setHasGun NOTIFY hasGunChanged)
 
 public:
 	enum LadderMode {
@@ -59,34 +59,49 @@ public:
 	Q_ENUM(LadderMode)
 
 	GamePlayer(QQuickItem *parent = 0);
+	~GamePlayer();
 
 	void setQrcDir() override;
 	void createFixtures() override;
 	Q_INVOKABLE void ladderClimbUp();
 	Q_INVOKABLE void ladderClimbDown();
 	Q_INVOKABLE void ladderClimbFinish();
+	Q_INVOKABLE void attackByGun();
 
 	LadderMode ladderMode() const { return m_ladderMode; }
 	GameLadder * ladder() const { return m_ladder; }
+	GameEnemy * enemy() const { return m_enemy; }
+	bool hasGun() const { return m_hasGun; }
 
 public slots:
 	void onBodyBeginContact(Box2DFixture *other);
 	void onBodyEndContact(Box2DFixture *other);
 
+	void killedByEnemy(GameEnemy *enemy);
+	void attackSuccesful(GameEnemy *enemy);
+
 	void setLadderMode(LadderMode ladderMode);
 	void setLadder(GameLadder * ladder);
+	void setEnemy(GameEnemy * enemy);
+	void setHasGun(bool hasGun);
 
 signals:
+	void killed();
 	void ladderModeChanged(LadderMode ladderMode);
 	void ladderChanged(GameLadder * ladder);
-
+	void enemyChanged(GameEnemy * enemy);
+	void hasGunChanged(bool hasGun);
 
 private slots:
 	void onCosGameChanged(CosGame *);
+	void onRayCastReported(QMultiMap<qreal, QQuickItem *> items);
+	void onEnemyDied();
 
 private:
 	LadderMode m_ladderMode;
 	GameLadder * m_ladder;
+	GameEnemy * m_enemy;
+	bool m_hasGun;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

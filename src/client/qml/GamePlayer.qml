@@ -13,11 +13,12 @@ GameEntity {
 	GamePlayerPrivate {
 		id: ep
 
+		rayCastEnabled: ladderMode != GamePlayerPrivate.LadderClimb && ladderMode != GamePlayerPrivate.LadderClimbFinish
+
 		property int _fallStartY: -1
 
-		onDie: {
-			console.debug("DIE")
-			timerPlace.start()
+		onKilled: {
+			spriteSequence.jumpTo("falldeath")
 		}
 
 		onIsOnGroundChanged: {
@@ -25,7 +26,7 @@ GameEntity {
 				if (_fallStartY == -1) {
 					spriteSequence.jumpTo("idle")
 				} else {
-					if (root.y-_fallStartY > ep.cosGame.gameData.level[ep.cosGame.level-1].deathlyFall || ep.isOnBaseGround) {
+					if (root.y-_fallStartY > ep.cosGame.gameData.level[ep.cosGame.level].player.deathlyFall || ep.isOnBaseGround) {
 						spriteSequence.jumpTo("falldeath")
 					} else {
 						spriteSequence.jumpTo("idle")
@@ -45,22 +46,39 @@ GameEntity {
 				root.bodyType = Body.Dynamic
 			}
 		}
+
+		//onRayCastPerformed: setray(rect)
 	}
 
+	function setray(rect) {
+		var k = mapFromItem(scene, rect.x, rect.y)
 
-	Timer {
-		id: timerPlace
-		interval: 2000
-		running: false
-		repeat: false
-		triggeredOnStart: false
+		rayRect.x = k.x
+		rayRect.y = k.y
+		rayRect.width = rect.width
+		rayRect.height = Math.max(rect.height, 1)
+		rayRect.visible = true
+		timerOff.start()
 
-		onTriggered: {
-			ep.cosGame.placePlayer()
-			ep.isAlive = true
-			spriteSequence.jumpTo("idle")
+	}
+
+	Rectangle {
+		id: rayRect
+		color: "blue"
+		visible: false
+		border.width: 1
+		border.color: "blue"
+
+		Timer {
+			id: timerOff
+			interval: 200
+			triggeredOnStart: false
+			running: false
+			repeat: false
+			onTriggered: rayRect.visible = false
 		}
 	}
+
 
 
 	Timer {

@@ -63,6 +63,7 @@ signals:
 	void atBoundChanged(bool atBound);
 
 private slots:
+	void onGameDataReady(const QVariantMap &map) override;
 	void onCosGameChanged(CosGame *);
 	void onMovingTimerTimeout();
 

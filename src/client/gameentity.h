@@ -36,6 +36,7 @@
 #define GAMEENTITYPRIVATE_H
 
 #include "box2dfixture.h"
+#include "box2draycast.h"
 #include <QQuickItem>
 
 #include "entity.h"
@@ -45,11 +46,11 @@
 /**
  * COLLISION CATEGORIES
  *
- * Category1: ground+player bound
- * Category2: player body (sensor)
- * Category3: item bound (sensor)
- * Category4: enemy bound
- * Category5:
+ * Category1: ground
+ * Category2: player bound
+ * Category3: player body (sensor)
+ * Category4: item bound (sensor)
+ * Category5: enemy bound
  */
 
 class GameEntity : public QQuickItem
@@ -68,6 +69,12 @@ class GameEntity : public QQuickItem
 	Q_PROPERTY(bool isOnGround READ isOnGround WRITE setIsOnGround NOTIFY isOnGroundChanged)
 	Q_PROPERTY(bool isOnBaseGround READ isOnBaseGround)
 
+	Q_PROPERTY(Box2DRayCast * rayCast READ rayCast WRITE setRayCast NOTIFY rayCastChanged)
+	Q_PROPERTY(qreal rayCastElevation READ rayCastElevation WRITE setRayCastElevation NOTIFY rayCastElevationChanged)
+	Q_PROPERTY(qreal rayCastLength READ rayCastLength WRITE setRayCastLength NOTIFY rayCastLengthChanged)
+	Q_PROPERTY(bool rayCastEnabled READ rayCastEnabled WRITE setRayCastEnabled NOTIFY rayCastEnabledChanged)
+	Q_PROPERTY(QMultiMap<qreal, QQuickItem *> rayCastItems READ rayCastItems NOTIFY rayCastItemsChanged)
+
 
 public:
 	GameEntity(QQuickItem *parent = 0);
@@ -75,6 +82,11 @@ public:
 
 	virtual void setQrcDir() {}
 	virtual void createFixtures() {}
+
+	Q_INVOKABLE void doRayCast(const QPointF &point1, const QPointF &point2);
+	Q_INVOKABLE void doRayCast();
+	Q_INVOKABLE virtual QPair<QPointF, QPointF> getRayPoints(const qreal &width);
+	Q_INVOKABLE QPair<QPointF, QPointF> getRayPoints();
 
 	CosGame* cosGame() const { return m_cosGame; }
 	Entity *parentEntity() const;
@@ -86,6 +98,12 @@ public:
 	bool isOnGround() const { return m_isOnGround; }
 	bool isOnBaseGround() const;
 
+	Box2DRayCast * rayCast() const { return m_rayCast; }
+	qreal rayCastElevation() const { return m_rayCastElevation; }
+	qreal rayCastLength() const { return m_rayCastLength; }
+	QMultiMap<qreal, QQuickItem *> rayCastItems() const { return m_rayCastItems; }
+	bool rayCastEnabled() const { return m_rayCastEnabled; }
+
 public slots:
 	void updateFixtures(const QString &sprite, const bool &inverse = false);
 	void loadQrcData();
@@ -95,19 +113,33 @@ public slots:
 	void setBoundBox(Box2DBox* boundBox);
 	void setIsAlive(bool isAlive);
 	void setIsOnGround(bool isOnGround);
+	void setRayCast(Box2DRayCast * rayCast);
+	void setRayCastElevation(qreal rayCastElevation);
+	void setRayCastLength(qreal rayCastLength);
+	void setRayCastEnabled(bool rayCastEnabled);
+
+protected slots:
 
 private slots:
 	void onParentChanged();
 	void onSceneChanged();
 	void onBoundBeginContact(Box2DFixture *other);
 	void onBoundEndContact(Box2DFixture *other);
+	void rayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, float32 fraction);
+	void rayCastFixtureCheck();
+	void setRayCastItems(QMultiMap<qreal, QQuickItem *> rayCastItems);
+	void onGameStateChanged();
 
 signals:
+	void die();
+
 	void bodyBeginContact(Box2DFixture *other);
 	void bodyEndContact(Box2DFixture *other);
 	void boundBeginContact(Box2DFixture *other);
 	void boundEndContact(Box2DFixture *other);
+
 	void sceneReady(Scene *scene);
+
 	void spritesChanged(QVariantMap sprites);
 	void qrcDirNameChanged(QString qrcDirName);
 	void cosGameChanged(CosGame* cosGame);
@@ -115,8 +147,14 @@ signals:
 	void bodyPolygonChanged(Box2DPolygon* bodyPolygon);
 	void boundBoxChanged(Box2DBox* boundBox);
 	void isAliveChanged(bool isAlive);
-	void die();
 	void isOnGroundChanged(bool isOnGround);
+
+	void rayCastChanged(Box2DRayCast * rayCast);
+	void rayCastElevationChanged(qreal rayCastElevation);
+	void rayCastLengthChanged(qreal rayCastLength);
+	void rayCastPerformed(QRectF rect);
+	void rayCastItemsChanged(QMultiMap<qreal, QQuickItem *> rayCastItems);
+	void rayCastEnabledChanged(bool rayCastEnabled);
 
 protected:
 	QList<Box2DFixture *> m_groundFixtures;
@@ -127,6 +165,16 @@ protected:
 	Box2DBox* m_boundBox;
 	bool m_isAlive;
 	bool m_isOnGround;
+	Box2DFixture::CategoryFlag m_rayCastFlag;
+	qreal m_rayCastElevation;
+	qreal m_rayCastLength;
+	bool m_rayCastEnabled;
+
+private:
+	Box2DRayCast * m_rayCast;
+	QTimer *m_rayCastTimer;
+	QMap<float32, QList<Box2DFixture*>> m_rayCastFixtures;
+	QMultiMap<qreal, QQuickItem *> m_rayCastItems;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

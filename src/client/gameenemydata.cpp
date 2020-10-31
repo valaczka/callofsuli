@@ -62,7 +62,7 @@ GameEnemy *GameEnemyData::enemyPrivate() const
 
 
 
-void GameEnemyData::setBoundRect(QRect boundRect)
+void GameEnemyData::setBoundRect(QRectF boundRect)
 {
 	if (m_boundRect == boundRect)
 		return;
@@ -105,5 +105,16 @@ void GameEnemyData::setEnemyType(GameEnemyData::EnemyType enemyType)
 
 	m_enemyType = enemyType;
 	emit enemyTypeChanged(m_enemyType);
+}
+
+
+/**
+ * @brief GameEnemyData::enemyDied
+ */
+
+void GameEnemyData::enemyDied()
+{
+	qDebug() << this << "enemy died" << m_enemy;
+	setEnemy(nullptr);
 }
 

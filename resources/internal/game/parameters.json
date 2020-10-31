@@ -1,7 +1,20 @@
 {
-	"level": [
-		{
-			"deathlyFall": 300
+	"level": {
+		"1": {
+			"player": {
+				"deathlyFall": 300,
+				"rayCastElevation": 20,
+				"rayCastLength": 400
+			},
+			"enemy": {
+				"soldier" : {
+					"rayCastElevation": 20,
+					"rayCastLength": 250,
+					"msecBeforeTurn": 3000,
+					"castAttackFraction": 0.5,
+					"msecBeforeAttack": 3500
+				}
+			}
 		}
-	]
+	}
 }

@@ -41,6 +41,7 @@
 #include "objectgroup.h"
 
 #include "gameenemy.h"
+#include "gameplayer.h"
 #include "cosgame.h"
 
 CosGame::CosGame(QQuickItem *parent)
@@ -52,6 +53,7 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_currentBlock(0)
 	, m_previousBlock(-1)
 	, m_ladders()
+	, m_playerScene(nullptr)
 {
 	loadGameData();
 }
@@ -122,6 +124,9 @@ void CosGame::addPlayerPosition(const int &block, const int &blockFrom, const in
 
 void CosGame::recreateEnemies(QQuickItem *scene)
 {
+	if (!scene && m_playerScene)
+		scene = m_playerScene;
+
 	if (!scene)
 		return;
 
@@ -141,8 +146,11 @@ void CosGame::recreateEnemies(QQuickItem *scene)
 			QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
 			data->setEnemy(enemy);
 
-			if (data->enemyPrivate())
-				data->enemyPrivate()->setEnemyData(data);
+			GameEnemy *ep = data->enemyPrivate();
+			if (ep) {
+				ep->setEnemyData(data);
+				connect(ep, &GameEnemy::die, data, &GameEnemyData::enemyDied);
+			}
 
 			resetEnemy(data);
 		}
@@ -175,10 +183,10 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 		return;
 	}
 
-	int x = enemyData->boundRect().left();
-	int y = enemyData->boundRect().top();
+	qreal x = enemyData->boundRect().left();
+	qreal y = enemyData->boundRect().top();
 
-	x += qrand() % enemyData->boundRect().width();
+	x += qrand() % enemyData->boundRect().toRect().width();
 
 	bool facingLeft = true;
 
@@ -192,10 +200,6 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	item->setX(x);
 	item->setY(y-item->height());
 	item->setProperty("facingLeft", facingLeft);
-	/*QObject *spriteSequence = qvariant_cast<QObject *>(item->property("spriteSequence"));
-
-	if (spriteSequence)
-		QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "idle"));*/
 
 }
 
@@ -208,7 +212,9 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 void CosGame::setEnemiesMoving(const bool &moving)
 {
 	foreach (GameEnemyData *data, m_enemies) {
-		data->enemyPrivate()->setMoving(moving);
+		GameEnemy *e = data->enemyPrivate();
+		if (e)
+			e->setMoving(moving);
 	}
 }
 
@@ -256,17 +262,30 @@ int CosGame::activeEnemies() const
 
 
 /**
- * @brief CosGame::placePlayerCharacter
+ * @brief CosGame::resetPlayerCharacter
  */
 
-void CosGame::placePlayer()
+void CosGame::resetPlayer(QQuickItem *scene)
 {
-	qDebug() << "placePlayer()";
+	qDebug() << "resetPlayer()" << m_player;
 
-	if (!m_player) {
-		qWarning() << "Invalid player item";
+	if (!scene && m_playerScene)
+		scene = m_playerScene;
+
+	if (!scene || m_player) {
+		qWarning() << "Invalid scene or player exists";
 		return;
 	}
+
+	QMetaObject::invokeMethod(scene, "createPlayer", Qt::AutoConnection,
+							  Q_RETURN_ARG(QQuickItem *, m_player));
+
+	if (!m_player) {
+		qWarning() << "Cannot create player";
+		return;
+	}
+
+	m_playerScene = scene;
 
 	int x = -1;
 	int y = -1;
@@ -307,6 +326,15 @@ void CosGame::placePlayer()
 
 	m_player->setX(x-m_player->width());
 	m_player->setY(y-m_player->height());
+
+	GamePlayer *p = qvariant_cast<GamePlayer *>(m_player->property("entityPrivate"));
+	if (p) {
+		connect(p, &GamePlayer::die, this, &CosGame::onPlayerDied);
+		p->setIsAlive(true);
+	} else {
+		qWarning() << "Invalid cast" << m_player;
+	}
+
 }
 
 
@@ -354,24 +382,6 @@ void CosGame::setLevel(int level)
 	emit levelChanged(m_level);
 }
 
-void CosGame::setEnemies(QList<GameEnemyData *> enemies)
-{
-	if (m_enemies == enemies)
-		return;
-
-	m_enemies = enemies;
-	emit enemiesChanged(m_enemies);
-	emit activeEnemiesChanged(activeEnemies());
-}
-
-void CosGame::setBlocks(QMap<int, GameBlock *> blocks)
-{
-	if (m_blocks == blocks)
-		return;
-
-	m_blocks = blocks;
-	emit blocksChanged(m_blocks);
-}
 
 void CosGame::setCurrentBlock(int currentBlock)
 {
@@ -402,20 +412,29 @@ void CosGame::setLadders(QList<GameLadder *> ladders)
 
 
 /**
+ * @brief CosGame::onPlayerDied
+ */
+
+void CosGame::onPlayerDied()
+{
+	qDebug() << "Player died";
+	setPlayer(nullptr);
+	recreateEnemies();
+	resetPlayer();
+}
+
+
+/**
  * @brief CosGame::setPlayer
  * @param player
  */
 
 void CosGame::setPlayer(QQuickItem *player)
 {
-	qDebug() << "set player" << player;
-
 	if (m_player == player)
 		return;
 
 	m_player = player;
-
-	placePlayer();
 
 	emit playerChanged(m_player);
 }

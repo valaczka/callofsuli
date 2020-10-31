@@ -34,21 +34,39 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QTimer>
 
 #include "entity.h"
 #include "box2dbody.h"
 #include "box2dfixture.h"
 #include "cosclient.h"
 #include "gameplayer.h"
+#include "gameenemy.h"
 
 GamePlayer::GamePlayer(QQuickItem *parent)
 	: GameEntity(parent)
 	, m_ladderMode(LadderUnavaliable)
 	, m_ladder(nullptr)
+	, m_enemy(nullptr)
+	, m_hasGun(true)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
 	connect(this, &GamePlayer::bodyEndContact, this, &GamePlayer::onBodyEndContact);
+
+	m_rayCastFlag = Box2DFixture::Category5;
+
+	connect(this, &GamePlayer::rayCastItemsChanged, this, &GamePlayer::onRayCastReported);
+}
+
+
+/**
+ * @brief GamePlayer::~GamePlayer
+ */
+
+GamePlayer::~GamePlayer()
+{
+
 }
 
 
@@ -116,8 +134,8 @@ void GamePlayer::createFixtures()
 
 	box->setRestitution(0);
 	box->setFriction(0);
-	box->setCategories(Box2DFixture::Category1);
-	box->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category4);
+	box->setCategories(Box2DFixture::Category2);
+	box->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category5);
 
 	f.append(&f, box);
 
@@ -131,8 +149,8 @@ void GamePlayer::createFixtures()
 	Box2DPolygon *polygon = new Box2DPolygon(parentEntity());
 
 	polygon->setSensor(true);
-	polygon->setCategories(Box2DFixture::Category2);
-	polygon->setCollidesWith(Box2DFixture::Category2|Box2DFixture::Category3);
+	polygon->setCategories(Box2DFixture::Category3);
+	polygon->setCollidesWith(Box2DFixture::Category3|Box2DFixture::Category4);
 
 	QVariantList l;
 	l << QVariant(QPoint(0,0))
@@ -305,6 +323,73 @@ void GamePlayer::setLadder(GameLadder *ladder)
 }
 
 
+void GamePlayer::setEnemy(GameEnemy *enemy)
+{
+	if (m_enemy == enemy)
+		return;
+
+	if (m_enemy) {
+		disconnect(m_enemy, &GameEnemy::die, this, &GamePlayer::onEnemyDied);
+		m_enemy->setAimedByPlayer(false);
+	}
+
+	m_enemy = enemy;
+	emit enemyChanged(m_enemy);
+
+	if (m_enemy) {
+		m_enemy->setAimedByPlayer(true);
+		connect(m_enemy, &GameEnemy::die, this, &GamePlayer::onEnemyDied);
+	}
+}
+
+void GamePlayer::setHasGun(bool hasGun)
+{
+	if (m_hasGun == hasGun)
+		return;
+
+	m_hasGun = hasGun;
+	emit hasGunChanged(m_hasGun);
+}
+
+
+/**
+ * @brief GamePlayer::killByEnemy
+ * @param enemy
+ */
+
+void GamePlayer::killedByEnemy(GameEnemy *enemy)
+{
+	qDebug() << "Killed by enemy" << enemy;
+	emit killed();
+}
+
+
+/**
+ * @brief GamePlayer::attackByGun
+ */
+
+void GamePlayer::attackByGun()
+{
+	qDebug() << "Attack by gun" << m_enemy;
+
+	if (!m_enemy)
+		return;
+
+	m_enemy->tryAttack(this);
+}
+
+
+/**
+ * @brief GamePlayer::attackSuccesful
+ * @param enemy
+ */
+
+void GamePlayer::attackSuccesful(GameEnemy *enemy)
+{
+	qDebug() << "Attack successful" << enemy;
+}
+
+
 
 
 /**
@@ -320,7 +405,58 @@ void GamePlayer::onCosGameChanged(CosGame *)
 	setQrcDir();
 	loadQrcData();
 
+	QVariantMap m = m_cosGame->gameData().value("level", QVariantMap()).toMap();
+
+	if (m.isEmpty())
+		return;
+
+	m = m.value(QVariant(m_cosGame->level()).toString(), QVariantMap()).toMap();
+
+	if (m.isEmpty())
+		return;
+
+	QVariantMap me = m.value("player").toMap();
+
+	setRayCastElevation(me.value("rayCastElevation", m_rayCastElevation).toReal());
+	setRayCastLength(me.value("rayCastLength", m_rayCastLength).toReal());
 
 }
+
+
+
+
+/**
+ * @brief GamePlayer::onRayCastReported
+ * @param items
+ */
+
+void GamePlayer::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
+{
+	GameEnemy *enemy = nullptr;
+
+	foreach(QQuickItem *item, items) {
+		GameEnemy *e = qvariant_cast<GameEnemy *>(item->property("entityPrivate"));
+
+		if (e && e->isAlive()) {
+			enemy = e;
+		}
+	}
+
+	setEnemy(enemy);
+}
+
+
+/**
+ * @brief GamePlayer::onEnemyDied
+ * @param enemy
+ */
+
+void GamePlayer::onEnemyDied()
+{
+	qDebug() << this << "enemy died";
+	m_enemy = nullptr;
+	emit enemyChanged(m_enemy);
+}
+
 
 

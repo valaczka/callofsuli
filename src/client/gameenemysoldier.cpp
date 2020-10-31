@@ -35,6 +35,7 @@
 #include "gameenemysoldier.h"
 #include "box2dbody.h"
 #include "box2dfixture.h"
+#include "scene.h"
 
 #include <QTimer>
 
@@ -129,7 +130,7 @@ void GameEnemySoldier::createFixtures()
 
 	box->setRestitution(0);
 	box->setFriction(0);
-	box->setCategories(Box2DFixture::Category4);
+	box->setCategories(Box2DFixture::Category5);
 	box->setCollidesWith(Box2DFixture::Category1);
 
 	f.append(&f, box);
@@ -188,6 +189,28 @@ void GameEnemySoldier::setAtBound(bool atBound)
 
 
 /**
+ * @brief GameEnemySoldier::onGameDataReady
+ * @param map
+ */
+
+void GameEnemySoldier::onGameDataReady(const QVariantMap &map)
+{
+	if (!map.contains("soldier"))
+		return;
+
+	QVariantMap m = map.value("soldier").toMap();
+
+	setRayCastElevation(m.value("rayCastElevation", m_rayCastElevation).toReal());
+	setRayCastLength(m.value("rayCastLength", m_rayCastLength).toReal());
+	setMsecBeforeTurn(m.value("msecBeforeTurn", m_msecBeforeTurn).toInt());
+	setCastAttackFraction(m.value("castAttackFraction", m_castAttackFraction).toReal());
+	setMsecBeforeAttack(m.value("msecBeforeAttack", m_msecBeforeAttack).toInt());
+
+}
+
+
+
+/**
  * @brief GameEnemySoldier::onCosGameChanged
  */
 
@@ -215,18 +238,23 @@ void GameEnemySoldier::onMovingTimerTimeout()
 	if (m_cosGame->gameState() != Bacon2D::Running)
 		return;
 
-	bool facingLeft = parentEntity()->property("facingLeft").toBool();
+	if (m_player || m_attackRunning || !m_isAlive)
+		return;
+
+	Entity *entity = parentEntity();
+
+	bool facingLeft = entity->property("facingLeft").toBool();
 
 	if (m_atBound) {
 		m_turnElapsedMsec += m_movingTimer->interval();
 
 		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
-			parentEntity()->setProperty("facingLeft", !facingLeft);
+			entity->setProperty("facingLeft", !facingLeft);
 			setAtBound(false);
 			m_turnElapsedMsec = -1;
 		}
 	} else {
-		int x = parentEntity()->property("x").toInt();
+		int x = entity->property("x").toInt();
 		int delta = m_qrcData.value("walk", 3).toInt();
 
 		if (facingLeft) {
@@ -234,14 +262,14 @@ void GameEnemySoldier::onMovingTimerTimeout()
 				setAtBound(true);
 				m_turnElapsedMsec = 0;
 			} else {
-				parentEntity()->setX(x-delta);
+				entity->setX(x-delta);
 			}
 		} else {
-			if (x+delta > m_enemyData->boundRect().right() - parentEntity()->width()) {
+			if (x+delta > m_enemyData->boundRect().right() - entity->width()) {
 				setAtBound(true);
 				m_turnElapsedMsec = 0;
 			} else {
-				parentEntity()->setX(x+delta);
+				entity->setX(x+delta);
 			}
 		}
 	}

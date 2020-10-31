@@ -44,36 +44,75 @@ class GameEnemy : public GameEntity
 	Q_OBJECT
 
 	Q_PROPERTY(bool moving READ moving WRITE setMoving NOTIFY movingChanged)
-	Q_PROPERTY(bool notice READ notice WRITE setNotice NOTIFY noticeChanged)
 	Q_PROPERTY(bool armed READ armed WRITE setArmed NOTIFY armedChanged)
+	Q_PROPERTY(bool aimedByPlayer READ aimedByPlayer WRITE setAimedByPlayer NOTIFY aimedByPlayerChanged)
 	Q_PROPERTY(GameEnemyData * enemyData READ enemyData WRITE setEnemyData NOTIFY enemyDataChanged)
+	Q_PROPERTY(qreal castAttackFraction READ castAttackFraction WRITE setCastAttackFraction NOTIFY castAttackFractionChanged)
+	Q_PROPERTY(int msecBeforeAttack READ msecBeforeAttack WRITE setMsecBeforeAttack NOTIFY msecBeforeAttackChanged)
+	Q_PROPERTY(int msecLeftAttack READ msecLeftAttack NOTIFY msecLeftAttackChanged)
+	Q_PROPERTY(GamePlayer * player READ player WRITE setPlayer NOTIFY playerChanged)
+	Q_PROPERTY(bool attackRunning READ attackRunning WRITE setAttackRunning NOTIFY attackRunningChanged)
+
 
 public:
-
 	GameEnemy(QQuickItem *parent = 0);
+	~GameEnemy();
 
 	bool moving() const { return m_moving; }
-	bool notice() const { return m_notice; }
 	bool armed() const { return m_armed; }
 	GameEnemyData * enemyData() const { return m_enemyData; }
+	qreal castAttackFraction() const { return m_castAttackFraction; }
+	GamePlayer * player() const { return m_player; }
+	bool attackRunning() const { return m_attackRunning; }
+	int msecBeforeAttack() const { return m_msecBeforeAttack; }
+	int msecLeftAttack() const;
+	bool aimedByPlayer() const { return m_aimedByPlayer; }
 
 public slots:
+	void tryAttack(GamePlayer *player);
 	void setMoving(bool moving);
-	void setNotice(bool notice);
 	void setArmed(bool armed);
 	void setEnemyData(GameEnemyData * enemyData);
+	void setCastAttackFraction(qreal castAttackFraction);
+	void setPlayer(GamePlayer * player);
+	void setAttackRunning(bool attackRunning);
+	void setMsecBeforeAttack(int msecBeforeAttack);
+	void setAimedByPlayer(bool aimedByPlayer);
+
+protected slots:
+	void onGameChanged();
+	virtual void onGameDataReady(const QVariantMap &map) { Q_UNUSED(map); }
+	virtual void attackTimerTimeout();
+	void onRayCastReported(QMultiMap<qreal, QQuickItem *> items);
+
+private slots:
+	void onPlayerDied();
 
 signals:
+	void attackPlayer();
+	void killed();
 	void movingChanged(bool moving);
-	void noticeChanged(bool notice);
 	void armedChanged(bool armed);
 	void enemyDataChanged(GameEnemyData * enemyData);
+	void castAttackFractionChanged(qreal castAttackFraction);
+	void playerChanged(QQuickItem * player);
+	void attackRunningChanged(bool attackRunning);
+	void msecBeforeAttackChanged(int msecBeforeAttack);
+	void msecLeftAttackChanged();
+	void aimedByPlayerChanged(bool aimedByPlayer);
 
 protected:
 	bool m_moving;
-	bool m_notice;
 	bool m_armed;
 	GameEnemyData * m_enemyData;
+	QTimer *m_attackTimer;
+	int m_attackTimerElapsed;
+
+	qreal m_castAttackFraction;
+	GamePlayer * m_player;
+	bool m_attackRunning;
+	int m_msecBeforeAttack;
+	bool m_aimedByPlayer;
 
 };
 

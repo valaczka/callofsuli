@@ -376,10 +376,10 @@ QVariant Client::readJsonFile(const QUrl &file)
  * @return
  */
 
-QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &angle, const QRect &boundRect, Qt::Axis axis)
+QList<QPointF> Client::rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis)
 {
-	QPolygon polygon;
-	foreach (QPoint p, points) {
+	QPolygonF polygon;
+	foreach (QPointF p, points) {
 		polygon << p;
 	}
 
@@ -392,10 +392,10 @@ QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &an
 			  .translate(-boundRect.width()/2, -boundRect.height()/2)
 			  .map(polygon);
 
-	QList<QPoint> list;
+	QList<QPointF> list;
 
 	for (int i=0; i<polygon.count(); ++i) {
-		list.append(polygon.point(i));
+		list.append(polygon.at(i));
 	}
 
 	return list;
@@ -410,12 +410,12 @@ QList<QPoint> Client::rotatePolygon(const QList<QPoint> &points, const qreal &an
  * @return
  */
 
-QList<QPoint> Client::rotatePolygon(const QVariantList &points, const qreal &angle, const QRect &boundRect, Qt::Axis axis)
+QList<QPointF> Client::rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis)
 {
-	QList<QPoint> pointList;
+	QList<QPointF> pointList;
 
 	foreach (QVariant v, points)
-		pointList.append(v.toPoint());
+		pointList.append(v.toPointF());
 
 
 	return rotatePolygon(pointList, angle, boundRect, axis);

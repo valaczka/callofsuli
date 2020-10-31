@@ -220,7 +220,7 @@ void GameScene::loadGroundLayer(Tiled::Layer *layer)
 		item->setRestitution(0);
 		item->setFriction(1);
 		item->setCategories(Box2DFixture::Category1);
-		item->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category4);
+		item->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2|Box2DFixture::Category5);
 		item->createFixture(object);
 	}
 

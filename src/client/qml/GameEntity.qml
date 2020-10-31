@@ -1,6 +1,7 @@
 import Bacon2D 1.0
 import QtQuick 2.14
 import COS.Client 1.0
+import QtGraphicalEffects 1.0
 
 PhysicsEntity {
 	id: root
@@ -17,6 +18,9 @@ PhysicsEntity {
 
 	property bool facingLeft: false
 
+	property alias glowColor: glow.color
+	property bool glowEnabled: false
+
 
 	readonly property bool isInverse: entityPrivate && entityPrivate.qrcData ?
 										  ((facingLeft && !entityPrivate.qrcData.facingLeft) || (!facingLeft && entityPrivate.qrcData.facingLeft)) :
@@ -29,6 +33,7 @@ PhysicsEntity {
 
 	onWidthChanged: if (entityPrivate) entityPrivate.updateFixtures(spriteSequence.currentSprite, isInverse)
 	onHeightChanged: if (entityPrivate) entityPrivate.updateFixtures(spriteSequence.currentSprite, isInverse)
+
 
 
 
@@ -69,12 +74,39 @@ PhysicsEntity {
 
 	}
 
+	Glow {
+		id: glow
+		opacity: glowEnabled ? 1.0 : 0.0
+		visible: opacity != 0
+
+		source: spriteSequence
+		anchors.fill: spriteSequence
+
+		radius: 4
+		samples: 9
+
+		Behavior on opacity {
+			NumberAnimation { duration: 200 }
+		}
+
+		transform: rotation
+	}
+
+
 	Component {
 		id: spriteComponent
 
 		Sprite {  }
 	}
 
+
+	Connections {
+		target: entityPrivate ? entityPrivate : null
+		onDie: {
+			console.debug(root, "DIED")
+			root.destroy()
+		}
+	}
 
 
 

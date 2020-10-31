@@ -57,9 +57,9 @@ class CosGame : public Game
 	Q_PROPERTY(QQuickItem * player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged)
 
-	Q_PROPERTY(QMap<int, GameBlock *> blocks READ blocks WRITE setBlocks NOTIFY blocksChanged)
+	Q_PROPERTY(QMap<int, GameBlock *> blocks READ blocks NOTIFY blocksChanged)
 
-	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
+	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies NOTIFY enemiesChanged)
 	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
 
 	Q_PROPERTY(int currentBlock READ currentBlock WRITE setCurrentBlock NOTIFY currentBlockChanged)
@@ -76,7 +76,7 @@ public:
 
 	void addEnemy(GameEnemyData *enemy);
 	void addPlayerPosition(const int &block, const int &blockFrom, const int &x, const int &y);
-	Q_INVOKABLE void recreateEnemies(QQuickItem *scene);
+	Q_INVOKABLE void recreateEnemies(QQuickItem *scene = nullptr);
 	Q_INVOKABLE void resetEnemy(GameEnemyData *enemyData);
 	Q_INVOKABLE void setEnemiesMoving(const bool &moving);
 
@@ -101,7 +101,7 @@ public:
 	QList<GameLadder *> ladders() const { return m_ladders; }
 
 public slots:
-	void placePlayer();
+	void resetPlayer(QQuickItem *scene = nullptr);
 
 	void setPlayerCharacter(QString playerCharacter);
 	void setTerrain(QString terrain);
@@ -111,12 +111,13 @@ public slots:
 	void setLevel(int level);
 	void setPlayer(QQuickItem * player);
 
-	void setEnemies(QList<GameEnemyData *> enemies);
-	void setBlocks(QMap<int, GameBlock *> blocks);
 	void setCurrentBlock(int currentBlock);
 	void setPreviousBlock(int previousBlock);
 
 	void setLadders(QList<GameLadder *> ladders);
+
+private slots:
+	void onPlayerDied();
 
 signals:
 	void blocksLoaded();
@@ -153,6 +154,7 @@ private:
 	int m_currentBlock;
 	int m_previousBlock;
 	QList<GameLadder *> m_ladders;
+	QQuickItem *m_playerScene;
 };
 
 #endif // COSGAME_H

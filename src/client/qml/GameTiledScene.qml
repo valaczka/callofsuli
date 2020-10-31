@@ -23,17 +23,8 @@ Scene {
 		id: scenePrivate
 
 		onLayersLoaded: {
-			console.debug("Layers loaded")
-
 			createLadders()
-
-			if (!game.player) {
-				var p = playerComponent.createObject(scene)
-				p.onXChanged.connect(setXOffset)
-				p.onYChanged.connect(setYOffset)
-				p.loadSprites()
-				game.player = p
-			}
+			game.resetPlayer(scene)
 		}
 	}
 
@@ -58,7 +49,7 @@ Scene {
 			restitution: 0
 			friction: 1
 			categories: Box.Category1
-			collidesWith: (Box.Category1|Box.Category4)
+			collidesWith: (Box.Category2|Box.Category5)
 			readonly property bool baseGround: true
 		}
 	}
@@ -96,6 +87,9 @@ Scene {
 			case Qt.Key_Down:
 				game.player.moveDown()
 				break;
+			case Qt.Key_Space:
+				game.player.entityPrivate.attackByGun()
+				break
 			}
 		}
 
@@ -166,15 +160,27 @@ Scene {
 	}
 
 
+	function createPlayer() : Item{
+		if (!game.player) {
+			var p = playerComponent.createObject(scene)
+			p.onXChanged.connect(setXOffset)
+			p.onYChanged.connect(setYOffset)
+			p.loadSprites()
+			return p
+		}
+		return null
+	}
+
+
 	function createComponent(enemyType: int) : Item {
 		var obj = null
 
 		switch (enemyType) {
-			case GameEnemyData.EnemySoldier:
-				obj = enemySoldierComponent.createObject(scene)
+		case GameEnemyData.EnemySoldier:
+			obj = enemySoldierComponent.createObject(scene)
 			break
-			case GameEnemyData.EnemyOther:
-				obj = enemySoldierComponent.createObject(scene)
+		case GameEnemyData.EnemyOther:
+			obj = enemySoldierComponent.createObject(scene)
 			break
 		}
 
@@ -184,14 +190,14 @@ Scene {
 
 	function createLadders() {
 		if (!game || !game.ladders)
-		return
+			return
 
 		for (var i=0; i<game.ladders.length; i++) {
 			var l = game.ladders[i]
 
 			var obj = ladderComponent.createObject(scene,{
-				ladder: l
-			})
+													   ladder: l
+												   })
 		}
 	}
 
