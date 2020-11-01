@@ -1,8 +1,11 @@
-QT += sql websockets quick multimedia
+QT += sql websockets quick multimedia svg
 
 CONFIG += c++11
 
-include(../version/version.pro)
+unix:!android: {
+	include(../version/version.pro)
+}
+
 include(../common/common.pri)
 include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../3rdparty/Bacon2D-static/src/Bacon2D-static.pri)
@@ -108,7 +111,31 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-DISTFILES +=
+
+
+#win32 {
+#    VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
+#    RC_ICONS = $$PWD/../../share/student.ico
+#}
+
+
+android {
+#    QT += androidextras
+
+	DISTFILES += \
+		android/AndroidManifest.xml
+
+	ANDROID_ABIS = armeabi-v7a
+
+	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+	CommonRcc.path = /assets
+	CommonRcc.files += $$PWD/../../share/*.cres
+
+	INSTALLS += CommonRcc
+
+
+}
 
 
 

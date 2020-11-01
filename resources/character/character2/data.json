@@ -5,9 +5,9 @@
 	"x": 10,
 	"y": 0,
 	"facingLeft": true,
-	"walk": 3,
-	"run": 5,
-	"climb": 3,
+	"walk": 1.5,
+	"run": 4,
+	"climb": 2,
 	"sprites": {
 		"idle":	{
 			"source": "idle.png",

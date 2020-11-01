@@ -75,6 +75,7 @@ QPage {
 	Action {
 		id: tmXtest
 		shortcut: "F2"
+		text: "TMX"
 		onTriggered: {
 			var o = JS.createPage("TMXtest", {})
 		}

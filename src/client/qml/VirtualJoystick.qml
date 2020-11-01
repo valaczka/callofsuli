@@ -2,8 +2,10 @@ import QtQuick 2.12
 
 Item {
 	id: root
-	width: joystick.width
-	height: joystick.height
+	width: 160
+	height: 160
+
+	property real joystickScale: 0.5
 
 	signal joystickMoved(double x, double y);
 
@@ -15,9 +17,9 @@ Item {
 	Rectangle {
 		id: joystick
 
-		width: 160
-		height: 160
-		radius: 80
+		width: root.width
+		height: width
+		radius: width/2
 
 		color: "white"
 
@@ -95,9 +97,9 @@ Item {
 
 	Rectangle {
 		id: thumb
-		width: 52
-		height: 52
-		radius: 26
+		width: root.width * root.joystickScale
+		height: width
+		radius: width/2
 		color: "white"
 		anchors.centerIn: joystick
 

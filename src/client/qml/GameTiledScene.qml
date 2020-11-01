@@ -63,9 +63,9 @@ Scene {
 		hoverEnabled: true
 	}
 
+	Keys.onBackPressed: mainStack.back()
 
 	Keys.onPressed: {
-		scene.forceActiveFocus()
 		if (game.player) {
 			switch(event.key) {
 			case Qt.Key_Left:

@@ -18,7 +18,7 @@ Page {
 
 		gameScene: gameScene
 
-		//scale: 1.5
+		//scale: (Qt.platform.os === "android" ? 0.8 : 1.0)
 
 		terrain: "terrain1"
 		playerCharacter: "character2"
@@ -77,21 +77,28 @@ Page {
 	VirtualJoystick {
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.margins: 15
+		anchors.margins: 10
+
+		width: 80
+		height: 80
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
 		onJoystickMoved: if (game.player) {
-							 if (x > 0.3) {
-								 if (x > 0.9)
+							 if (x > 0.5) {
+								 if (x > 0.95)
 									 game.player.runRight()
 								 else
 									 game.player.walkRight()
-							 } else if (x < -0.3) {
-								 if (x < -0.9)
+							 } else if (x > 0.1) {
+								game.player.facingLeft = false
+							 } else if (x < -0.5) {
+								 if (x < -0.95)
 									 game.player.runLeft()
 								 else
 									 game.player.walkLeft()
+							 } else if (x < -0.1) {
+								game.player.facingLeft = true
 							 } else {
 								 game.player.stopMoving();
 							 }
@@ -101,6 +108,24 @@ Page {
 							 else if (y < -0.5)
 								 game.player.moveDown()
 						 }
+	}
+
+	Rectangle {
+		width: 50
+		height: 50
+		radius: width/2
+
+		anchors.bottom: parent.bottom
+		anchors.right: parent.right
+		anchors.margins: 10
+
+		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
+
+		MouseArea {
+			anchors.fill: parent
+			acceptedButtons: Qt.LeftButton
+			onClicked: game.player.entityPrivate.attackByGun()
+		}
 	}
 
 

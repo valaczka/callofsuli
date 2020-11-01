@@ -29,6 +29,7 @@ QPagePanel {
 
 		MenuSeparator { }
 
+		MenuItem { action: tmXtest }
 		MenuItem { action: actionAbout }
 		MenuItem { action: actionExit }
 	}
