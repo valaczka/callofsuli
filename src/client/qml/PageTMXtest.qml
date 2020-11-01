@@ -16,12 +16,15 @@ Page {
 		anchors.fill: parent
 		currentScene: mainScene
 
+		gameScene: gameScene
+
 		//scale: 1.5
 
 		terrain: "terrain1"
 		playerCharacter: "character2"
 		level: 1
-		currentBlock: 2
+		startBlock: 3
+		startHp: 5
 
 		onWidthChanged: gameScene.setXOffset()
 
@@ -38,9 +41,11 @@ Page {
 		}
 
 
-		onBlocksLoaded: {
-			gameScene.scenePrivate.source = "qrc:/terrain/"+terrain+"/"+terrainData.tmx
-			currentScene = gameScene
+		onTerrainDataChanged: {
+			if (terrainData)
+				gameScene.scenePrivate.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.tmx
+			else
+				gameScene.scenePrivate.source = null
 		}
 
 
@@ -48,12 +53,25 @@ Page {
 			id: gameScene
 			game: game
 			scenePrivate.game: game
+			scenePrivate.onLayersLoaded: game.currentScene = gameScene
 		}
 
 
 		Component.onCompleted: {
 			loadTerrainData()
 		}
+	}
+
+	ProgressBar {
+		id: progressHp
+		visible: game.player
+		anchors.top: parent.top
+		anchors.right: parent.right
+		anchors.margins: 10
+		width: 100
+		from: 0
+		to: game.player ? Math.max(game.startHp, game.player.entityPrivate.hp) : game.startHp
+		value: game.player ? game.player.entityPrivate.hp : 0
 	}
 
 	VirtualJoystick {

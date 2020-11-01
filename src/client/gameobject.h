@@ -68,6 +68,7 @@ public:
 
 	void createFixture(Tiled::MapObject *object);
 	void createRectangularFixture(Tiled::MapObject *object);
+	Box2DBox *createRectangularFixture();
 
 	float density() const { return m_density; }
 	float friction() const { return m_friction; }

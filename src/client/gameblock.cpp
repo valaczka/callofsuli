@@ -33,8 +33,17 @@
  */
 
 #include "gameblock.h"
+#include "gameenemydata.h"
+#include "gameladder.h"
 
-GameBlock::GameBlock(QObject *parent) : QObject(parent)
+
+GameBlock::GameBlock(QObject *parent)
+	: QObject(parent)
+	, m_enemies()
+	, m_playerPosition()
+	, m_ladders()
+	, m_completed(false)
+	, m_lastPosition(nullptr)
 {
 
 }
@@ -59,6 +68,8 @@ void GameBlock::addEnemy(GameEnemyData *enemy)
 
 	m_enemies.append(enemy);
 	emit enemiesChanged(m_enemies);
+
+	setCompleted(false);
 }
 
 
@@ -68,10 +79,36 @@ void GameBlock::addEnemy(GameEnemyData *enemy)
  * @param point
  */
 
-void GameBlock::addPlayerPosition(const int &blockFrom, const QPoint &point)
+Box2DBox* GameBlock::addPlayerPosition(const QPoint &point, QQuickItem *parent)
 {
-	m_playerPosition.insert(blockFrom, point);
+	GameObject *item = new GameObject(parent);
+
+	qreal w = 50;
+	qreal h = 150;
+	qreal x = point.x()-w/2;
+	qreal y = point.y()-h/2;
+
+	item->setX(x);
+	item->setY(y);
+	item->setZ(0);
+	item->setWidth(w);
+	item->setHeight(h);
+	item->setVisible(true);
+	item->setDensity(1);
+	item->setRestitution(0);
+	item->setFriction(1);
+	item->setSensor(true);
+	item->setCategories(Box2DFixture::Category6);
+	item->setCollidesWith(Box2DFixture::Category3);
+	Box2DBox *box = item->createRectangularFixture();
+
+	m_playerPosition.append(item);
+	emit playerPositionChanged(m_playerPosition);
+
+	return box;
 }
+
+
 
 
 /**
@@ -111,3 +148,55 @@ void GameBlock::setLadders(QList<GameLadder *> ladders)
 	m_ladders = ladders;
 	emit laddersChanged(m_ladders);
 }
+
+void GameBlock::setCompleted(bool completed)
+{
+	if (m_completed == completed)
+		return;
+
+	m_completed = completed;
+	emit completedChanged(m_completed);
+
+	if (m_completed) {
+		activateLadders();
+	}
+}
+
+void GameBlock::setLastPosition(GameObject *lastPosition)
+{
+	if (m_lastPosition == lastPosition)
+		return;
+
+	m_lastPosition = lastPosition;
+	emit lastPositionChanged(m_lastPosition);
+}
+
+/**
+ * @brief GameBlock::recalculateActiveEnemies
+ */
+
+void GameBlock::recalculateActiveEnemies()
+{
+	int active = 0;
+
+	foreach (GameEnemyData *enemy, m_enemies) {
+		if (enemy->active())
+			active++;
+	}
+
+	if (active == 0 && !m_enemies.isEmpty())
+		setCompleted(true);
+}
+
+
+/**
+ * @brief GameBlock::activateLadders
+ */
+
+void GameBlock::activateLadders()
+{
+	foreach (GameLadder *ladder, m_ladders) {
+		ladder->setActive(true);
+	}
+}
+

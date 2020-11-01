@@ -50,6 +50,12 @@ QtObject {
 	property var buttonThemeDelete: [colorPrimaryLight, colorErrorDarker, colorErrorDark, colorError]
 	property var buttonThemeApply: [colorPrimaryLight, colorOKDarker, colorOKDark, colorOKLighter]
 
+	property color colorPlayer: colorPrimaryLighter
+	property color colorGlowEnemy: colorError
+	property color colorGlowItem: colorAccentLighter
+	property color colorEnemyMarker: colorWarningLighter
+	property color colorEnemyMarkerAttack: colorError
+
 	property string iconMenu: "image://font/Material Icons/\ue5d4"
 	property string iconClose: "image://font/Material Icons/\ue14c"
 	property string iconChecked: "image://font/Material Icons/\ue86c"

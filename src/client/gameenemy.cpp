@@ -49,6 +49,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	, m_player(nullptr)
 	, m_attackRunning(false)
 	, m_msecBeforeAttack(5000)
+	, m_msecBetweenAttack(3000)
 	, m_aimedByPlayer(false)
 {
 	connect(this, &GameEnemy::cosGameChanged, this, &GameEnemy::onGameChanged);
@@ -84,6 +85,9 @@ int GameEnemy::msecLeftAttack() const
 {
 	if (!m_attackTimer->isActive())
 		return -1;
+
+	if (m_attackRunning)
+		return 0;
 
 	int r = m_msecBeforeAttack - m_attackTimerElapsed;
 
@@ -125,14 +129,30 @@ void GameEnemy::attackTimerTimeout()
 	m_attackTimerElapsed += m_attackTimer->interval();
 	emit msecLeftAttackChanged();
 
-	if (m_attackTimerElapsed >= m_msecBeforeAttack) {
-		m_attackTimer->stop();
-		if (m_player) {
-			emit attackPlayer();
-			m_player->killedByEnemy(this);
+	if (m_attackRunning) {
+		if (m_attackTimerElapsed >= m_msecBetweenAttack) {
+			m_attackTimerElapsed = 0;
+			attackPlayer();
+		}
+	} else {
+		if (m_attackTimerElapsed >= m_msecBeforeAttack) {
+			m_attackTimerElapsed = 0;
+			setAttackRunning(true);
 		}
 	}
+}
 
+
+/**
+ * @brief GameEnemy::attackPlayer
+ */
+
+void GameEnemy::attackPlayer()
+{
+	if (m_player) {
+		emit attack();
+		m_player->hurtByEnemy(this);
+	}
 }
 
 
@@ -161,9 +181,15 @@ void GameEnemy::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
 
 	setPlayer(player);
 
-	if (player && fraction != -1.0 && fraction < m_castAttackFraction) {
-		emit attackPlayer();
-		player->killedByEnemy(this);
+	if (player && fraction != -1.0) {
+		qreal dist = cosGame()->deathlyAttackDistance();
+		if (dist > 0 && m_rayCastLength*fraction <= dist) {
+			emit attack();
+			setAttackRunning(true);
+			m_player->killByEnemy(this);
+		} else if (fraction < m_castAttackFraction) {
+			setAttackRunning(true);
+		}
 	}
 }
 
@@ -213,6 +239,13 @@ void GameEnemy::setEnemyData(GameEnemyData *enemyData)
 
 	m_enemyData = enemyData;
 	emit enemyDataChanged(m_enemyData);
+
+	qDebug() << "SET ENEMY DATA" << this << enemyData;
+
+	if (m_enemyData) {
+		connect(this, &GameEnemy::die, m_enemyData, &GameEnemyData::enemyDied);
+		connect(this, &GameEnemy::killed, m_enemyData, &GameEnemyData::enemyKilled);
+	}
 }
 
 
@@ -239,6 +272,7 @@ void GameEnemy::setPlayer(GamePlayer *player)
 
 	m_attackTimer->stop();
 	m_attackTimerElapsed = 0;
+	setAttackRunning(false);
 	emit msecLeftAttackChanged();
 
 	if (m_player) {
@@ -255,6 +289,9 @@ void GameEnemy::setAttackRunning(bool attackRunning)
 
 	m_attackRunning = attackRunning;
 	emit attackRunningChanged(m_attackRunning);
+
+	if (m_attackRunning)
+		attackPlayer();
 }
 
 void GameEnemy::setMsecBeforeAttack(int msecBeforeAttack)
@@ -274,6 +311,15 @@ void GameEnemy::setAimedByPlayer(bool aimedByPlayer)
 
 	m_aimedByPlayer = aimedByPlayer;
 	emit aimedByPlayerChanged(m_aimedByPlayer);
+}
+
+void GameEnemy::setMsecBetweenAttack(int msecBetweenAttack)
+{
+	if (m_msecBetweenAttack == msecBetweenAttack)
+		return;
+
+	m_msecBetweenAttack = msecBetweenAttack;
+	emit msecBetweenAttackChanged(m_msecBetweenAttack);
 }
 
 

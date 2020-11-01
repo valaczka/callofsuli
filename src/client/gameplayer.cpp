@@ -49,6 +49,8 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_ladder(nullptr)
 	, m_enemy(nullptr)
 	, m_hasGun(true)
+	, m_hp(0)
+	, m_defaultHp(0)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -150,7 +152,7 @@ void GamePlayer::createFixtures()
 
 	polygon->setSensor(true);
 	polygon->setCategories(Box2DFixture::Category3);
-	polygon->setCollidesWith(Box2DFixture::Category3|Box2DFixture::Category4);
+	polygon->setCollidesWith(Box2DFixture::Category3|Box2DFixture::Category4|Box2DFixture::Category6);
 
 	QVariantList l;
 	l << QVariant(QPoint(0,0))
@@ -351,16 +353,60 @@ void GamePlayer::setHasGun(bool hasGun)
 	emit hasGunChanged(m_hasGun);
 }
 
+void GamePlayer::setHp(int hp)
+{
+	if (m_hp == hp)
+		return;
+
+	if (hp<=0)
+		hp = 0;
+
+	m_hp = hp;
+	emit hpChanged(m_hp);
+
+	qDebug() << this << "HP" << m_hp;
+
+	if (m_hp == 0)
+		setIsAlive(false);
+}
+
+void GamePlayer::setDefaultHp(int defaultHp)
+{
+	if (m_defaultHp == defaultHp)
+		return;
+
+	m_defaultHp = defaultHp;
+	emit defaultHpChanged(m_defaultHp);
+}
+
+
+
+
+/**
+ * @brief GamePlayer::hurtByEnemy
+ * @param enemy
+ */
+
+void GamePlayer::hurtByEnemy(GameEnemy *enemy)
+{
+	qDebug() << this << "Hurt by enemy" << enemy;
+	decreaseHp();
+	if (m_hp == 0)
+		emit killedByEnemy(enemy);
+	else
+		emit hurt(enemy);
+}
 
 /**
  * @brief GamePlayer::killByEnemy
  * @param enemy
  */
 
-void GamePlayer::killedByEnemy(GameEnemy *enemy)
+void GamePlayer::killByEnemy(GameEnemy *enemy)
 {
-	qDebug() << "Killed by enemy" << enemy;
-	emit killed();
+	qDebug() << this << "Kill by enemy" << enemy;
+	setHp(0);
+	emit killedByEnemy(enemy);
 }
 
 
@@ -387,6 +433,16 @@ void GamePlayer::attackByGun()
 void GamePlayer::attackSuccesful(GameEnemy *enemy)
 {
 	qDebug() << "Attack successful" << enemy;
+}
+
+
+/**
+ * @brief GamePlayer::decreaseHp
+ */
+
+void GamePlayer::decreaseHp()
+{
+	setHp(m_hp-1);
 }
 
 
@@ -439,6 +495,7 @@ void GamePlayer::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
 
 		if (e && e->isAlive()) {
 			enemy = e;
+			break;
 		}
 	}
 

@@ -37,6 +37,7 @@
 
 #include <QRect>
 #include <QObject>
+#include "gameblock.h"
 
 class GameLadder : public QObject
 {
@@ -44,89 +45,34 @@ class GameLadder : public QObject
 
 	Q_PROPERTY(QRectF boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
-	Q_PROPERTY(int blockTop READ blockTop WRITE setBlockTop NOTIFY blockTopChanged)
-	Q_PROPERTY(int blockBottom READ blockBottom WRITE setBlockBottom NOTIFY blockBottomChanged)
+	Q_PROPERTY(GameBlock * blockTop READ blockTop WRITE setBlockTop NOTIFY blockTopChanged)
+	Q_PROPERTY(GameBlock * blockBottom READ blockBottom WRITE setBlockBottom NOTIFY blockBottomChanged)
 
 public:
 	explicit GameLadder(QObject *parent = nullptr);
 
-
-	QRectF boundRect() const
-	{
-		return m_boundRect;
-	}
-
-
-	bool active() const
-	{
-		return m_active;
-	}
-
-	int blockTop() const
-	{
-		return m_blockTop;
-	}
-
-	int blockBottom() const
-	{
-		return m_blockBottom;
-	}
+	QRectF boundRect() const { return m_boundRect; }
+	bool active() const { return m_active; }
+	GameBlock * blockTop() const { return m_blockTop; }
+	GameBlock * blockBottom() const { return m_blockBottom; }
 
 public slots:
-
-	void setBoundRect(QRectF boundRect)
-	{
-		if (m_boundRect == boundRect)
-			return;
-
-		m_boundRect = boundRect;
-		emit boundRectChanged(m_boundRect);
-	}
-
-
-
-	void setActive(bool active)
-	{
-		if (m_active == active)
-			return;
-
-		m_active = active;
-		emit activeChanged(m_active);
-	}
-
-	void setBlockTop(int blockTop)
-	{
-		if (m_blockTop == blockTop)
-			return;
-
-		m_blockTop = blockTop;
-		emit blockTopChanged(m_blockTop);
-	}
-
-	void setBlockBottom(int blockBottom)
-	{
-		if (m_blockBottom == blockBottom)
-			return;
-
-		m_blockBottom = blockBottom;
-		emit blockBottomChanged(m_blockBottom);
-	}
+	void setBoundRect(QRectF boundRect);
+	void setActive(bool active);
+	void setBlockTop(GameBlock * blockTop);
+	void setBlockBottom(GameBlock * blockBottom);
 
 signals:
-
 	void boundRectChanged(QRectF boundRect);
-
 	void activeChanged(bool active);
-
-	void blockTopChanged(int blockTop);
-
-	void blockBottomChanged(int blockBottom);
+	void blockTopChanged(GameBlock * blockTop);
+	void blockBottomChanged(GameBlock * blockBottom);
 
 private:
 	QRectF m_boundRect;
 	bool m_active;
-	int m_blockTop;
-	int m_blockBottom;
+	GameBlock * m_blockTop;
+	GameBlock * m_blockBottom;
 };
 
 #endif // GAMELADDER_H

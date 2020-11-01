@@ -51,6 +51,7 @@
  * Category3: player body (sensor)
  * Category4: item bound (sensor)
  * Category5: enemy bound
+ * Category6: other sensor
  */
 
 class GameEntity : public QQuickItem

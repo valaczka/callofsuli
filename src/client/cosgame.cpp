@@ -46,17 +46,19 @@
 
 CosGame::CosGame(QQuickItem *parent)
 	: Game(parent)
+	, m_enemies()
+	, m_ladders()
 	, m_playerCharacter()
 	, m_level(1)
-	, m_enemies()
 	, m_player(nullptr)
-	, m_currentBlock(0)
-	, m_previousBlock(-1)
-	, m_ladders()
-	, m_playerScene(nullptr)
+	, m_gameScene(nullptr)
+	, m_startHp(1)
+	, m_playerStartPosition(nullptr)
+	, m_startBlock(0)
 {
 	loadGameData();
 }
+
 
 
 /**
@@ -79,81 +81,54 @@ CosGame::~CosGame()
 
 
 /**
- * @brief CosGame::addEnemy
- * @param enemy
- */
-
-void CosGame::addEnemy(GameEnemyData *enemy)
-{
-	if (!enemy)
-		return;
-
-	m_enemies.append(enemy);
-
-	int blocknum = enemy->block();
-	if (blocknum > 0 && m_blocks.contains(blocknum))
-		m_blocks.value(blocknum)->addEnemy(enemy);
-
-
-	emit enemiesChanged(m_enemies);
-	emit activeEnemiesChanged(activeEnemies());
-}
-
-
-
-/**
- * @brief CosGame::addPlayerPosition
- */
-
-void CosGame::addPlayerPosition(const int &block, const int &blockFrom, const int &x, const int &y)
-{
-	if (!m_blocks.contains(block)) {
-		qWarning() << "Invalid block" << block;
-		return;
-	}
-
-	QPoint p(x,y);
-	m_blocks[block]->addPlayerPosition(blockFrom, p);
-}
-
-
-
-/**
  * @brief CosGame::reloadEnemies
  */
 
-void CosGame::recreateEnemies(QQuickItem *scene)
+void CosGame::recreateEnemies()
 {
-	if (!scene && m_playerScene)
-		scene = m_playerScene;
-
-	if (!scene)
+	if (!m_gameScene)
 		return;
 
 	qDebug() << "Recreate enemies";
 
-	foreach (GameEnemyData *data, m_enemies) {
-		if (data->enemy())
+	QMapIterator<int, GameBlock *> i(m_blocks);
+
+	while (i.hasNext()) {
+		i.next();
+
+		GameBlock *block = i.value();
+
+		if (block->completed()) {
+			qDebug() << "Block completed" << block;
 			continue;
-
-		QQuickItem *enemy = nullptr;
-
-		QMetaObject::invokeMethod(scene, "createComponent", Qt::AutoConnection,
-								  Q_RETURN_ARG(QQuickItem *, enemy),
-								  Q_ARG(int, data->enemyType()));
-
-		if (enemy) {
-			QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
-			data->setEnemy(enemy);
-
-			GameEnemy *ep = data->enemyPrivate();
-			if (ep) {
-				ep->setEnemyData(data);
-				connect(ep, &GameEnemy::die, data, &GameEnemyData::enemyDied);
-			}
-
-			resetEnemy(data);
 		}
+
+		qDebug() << "Create enemies for block" << block;
+
+		foreach (GameEnemyData *data, block->enemies()) {
+			if (data->enemy())
+				continue;
+
+			QQuickItem *enemy = nullptr;
+
+			QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::AutoConnection,
+									  Q_RETURN_ARG(QQuickItem *, enemy),
+									  Q_ARG(int, data->enemyType()));
+
+			if (enemy) {
+				QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
+				data->setEnemy(enemy);
+
+				GameEnemy *ep = data->enemyPrivate();
+				if (ep) {
+					ep->setEnemyData(data);
+				}
+
+				resetEnemy(data);
+			}
+		}
+
+		block->recalculateActiveEnemies();
 	}
 
 	QTimer::singleShot(1000, this, [=](){
@@ -201,6 +176,7 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	item->setY(y-item->height());
 	item->setProperty("facingLeft", facingLeft);
 
+	enemyData->setActive(true);
 }
 
 
@@ -220,121 +196,90 @@ void CosGame::setEnemiesMoving(const bool &moving)
 
 
 
-/**
- * @brief CosGame::addLadder
- * @param ladder
- */
-
-void CosGame::addLadder(GameLadder *ladder)
-{
-	if (!ladder)
-		return;
-
-	m_ladders.append(ladder);
-
-	int blockTop = ladder->blockTop();
-	if (blockTop > 0 && m_blocks.contains(blockTop))
-		m_blocks.value(blockTop)->addLadder(ladder);
-
-	int blockBottom = ladder->blockBottom();
-	if (blockBottom > 0 && m_blocks.contains(blockBottom))
-		m_blocks.value(blockBottom)->addLadder(ladder);
-
-	emit laddersChanged(m_ladders);
-}
-
 
 
 /**
- * @brief CosGame::activeEnemies
+ * @brief CosGame::deathlyAttackDistance
  * @return
  */
 
-int CosGame::activeEnemies() const
+qreal CosGame::deathlyAttackDistance()
 {
-	int num = 0;
-	foreach (GameEnemyData *e, m_enemies) {
-		if (e->active())
-			num++;
-	}
-	return num;
+	QVariantMap m = m_gameData.value("level", QVariantMap()).toMap();
+
+	if (m.isEmpty())
+		return 10;
+
+	m = m.value(QVariant(m_level).toString(), QVariantMap()).toMap();
+
+	if (m.isEmpty())
+		return 10;
+
+	m = m.value("player", QVariantMap()).toMap();
+
+	if (m.isEmpty())
+		return 10;
+
+	return m.value("deathlyAttackDistance", 10).toReal();
 }
+
 
 
 /**
  * @brief CosGame::resetPlayerCharacter
  */
 
-void CosGame::resetPlayer(QQuickItem *scene)
+void CosGame::resetPlayer()
 {
-	qDebug() << "resetPlayer()" << m_player;
-
-	if (!scene && m_playerScene)
-		scene = m_playerScene;
-
-	if (!scene || m_player) {
+	if (!m_gameScene || m_player) {
 		qWarning() << "Invalid scene or player exists";
 		return;
 	}
 
-	QMetaObject::invokeMethod(scene, "createPlayer", Qt::AutoConnection,
+	QMetaObject::invokeMethod(m_gameScene, "createPlayer", Qt::AutoConnection,
 							  Q_RETURN_ARG(QQuickItem *, m_player));
 
 	if (!m_player) {
+		emit playerChanged(m_player);
 		qWarning() << "Cannot create player";
 		return;
 	}
 
-	m_playerScene = scene;
 
-	int x = -1;
-	int y = -1;
+	GameObject *item = m_playerStartPosition;
 
-	if (m_blocks.contains(m_currentBlock)) {
-		GameBlock *block = m_blocks.value(m_currentBlock);
+	if (!item && !m_blocks.isEmpty()) {
+		if (m_blocks.contains(m_startBlock)) {
+			GameBlock *block = m_blocks.value(m_startBlock);
+			if (!block->playerPosition().isEmpty())
+				item = block->playerPosition().first();
+		}
 
-		if (block->playerPosition().contains(m_previousBlock)) {
-			QPoint p = block->playerPosition().value(m_previousBlock);
-			x = p.x();
-			y = p.y();
-
-			qDebug() << "Player position:" << m_currentBlock << m_previousBlock << x << y;
+		if (!item) {
+			GameBlock *block = m_blocks.first();
+			if (!block->playerPosition().isEmpty())
+				item = block->playerPosition().first();
 		}
 	}
 
-	if (x == -1 && y == -1) {
-		qInfo() << "No player position found";
-
-		foreach (GameBlock *block, m_blocks) {
-			qDebug() << "-- block" << block;
-
-			foreach (QPoint p, block->playerPosition()) {
-				qDebug() << "---- point" << p;
-				if (p.x() > -1 && p.y() > -1) {
-					x = p.x();
-					y = p.y();
-					break;
-				}
-			}
-
-			if (x>-1 && y>-1)
-				break;
-		}
-
-		qDebug() << "First available position" << x << y;
+	if (item) {
+		m_player->setX(item->x()-m_player->width());
+		m_player->setY(item->y()-m_player->height());
+	} else {
+		qWarning() << "Available player position not found";
 	}
-
-	m_player->setX(x-m_player->width());
-	m_player->setY(y-m_player->height());
 
 	GamePlayer *p = qvariant_cast<GamePlayer *>(m_player->property("entityPrivate"));
 	if (p) {
 		connect(p, &GamePlayer::die, this, &CosGame::onPlayerDied);
+		p->setDefaultHp(m_startHp);
+		p->setHp(m_startHp);
 		p->setIsAlive(true);
 	} else {
 		qWarning() << "Invalid cast" << m_player;
 	}
 
+	emit playerChanged(m_player);
 }
 
 
@@ -383,31 +328,98 @@ void CosGame::setLevel(int level)
 }
 
 
-void CosGame::setCurrentBlock(int currentBlock)
-{
-	if (m_currentBlock == currentBlock)
-		return;
+/**
+ * @brief CosGame::setLastPosition
+ * @param object
+ */
 
-	m_currentBlock = currentBlock;
-	emit currentBlockChanged(m_currentBlock);
+void CosGame::setLastPosition()
+{
+	QObject *o = sender();
+
+	if (!o) {
+		qWarning() << "Invalid sender";
+		return;
+	}
+
+	Box2DFixture *fixture = qobject_cast<Box2DFixture *>(o);
+
+	if (!fixture) {
+		qWarning() << "Invalid fixture" << o;
+		return;
+	}
+
+	Box2DBody *body = fixture->getBody();
+
+	if (!body) {
+		qWarning() << "Invalid body" << fixture;
+		return;
+	}
+
+	GameObject *item = qobject_cast<GameObject *>(body->target());
+
+	if (!item) {
+		qWarning() << "Invalid target" << fixture;
+		return;
+	}
+
+	setPlayerStartPosition(item);
 }
 
-void CosGame::setPreviousBlock(int previousBlock)
+
+
+void CosGame::setGameScene(QQuickItem *gameScene)
 {
-	if (m_previousBlock == previousBlock)
+	if (m_gameScene == gameScene)
 		return;
 
-	m_previousBlock = previousBlock;
-	emit previousBlockChanged(m_previousBlock);
+	m_gameScene = gameScene;
+	emit gameSceneChanged(m_gameScene);
+
+	if (m_gameScene) {
+		GameScene *s = qvariant_cast<GameScene *>(m_gameScene->property("scenePrivate"));
+		if (s) {
+			connect(s, &GameScene::layersLoaded, this, &CosGame::onLayersLoaded);
+		}
+	}
 }
 
-void CosGame::setLadders(QList<GameLadder *> ladders)
+void CosGame::setPlayerStartPosition(GameObject *playerStartPosition)
 {
-	if (m_ladders == ladders)
+	if (m_playerStartPosition == playerStartPosition)
 		return;
 
-	m_ladders = ladders;
-	emit laddersChanged(m_ladders);
+	m_playerStartPosition = playerStartPosition;
+	emit playerStartPositionChanged(m_playerStartPosition);
+}
+
+void CosGame::setStartBlock(int startBlock)
+{
+	if (m_startBlock == startBlock)
+		return;
+
+	m_startBlock = startBlock;
+	emit startBlockChanged(m_startBlock);
+}
+
+void CosGame::setStartHp(int startHp)
+{
+	if (m_startHp == startHp)
+		return;
+
+	m_startHp = startHp;
+	emit startHpChanged(m_startHp);
+}
+
+
+/**
+ * @brief CosGame::onLayersLoaded
+ */
+
+void CosGame::onLayersLoaded()
+{
+	recreateEnemies();
+	resetPlayer();
 }
 
 
@@ -422,6 +434,31 @@ void CosGame::onPlayerDied()
 	recreateEnemies();
 	resetPlayer();
 }
+
+
+/**
+ * @brief CosGame::recalculateBlocks
+ */
+
+void CosGame::recalculateBlocks()
+{
+	int active = 0;
+
+	foreach (GameEnemyData *enemy, m_enemies) {
+		if (enemy->active())
+			active++;
+	}
+
+	qDebug() << "ACTIVE" << active;
+
+	if (active == 0 && !m_enemies.isEmpty()) {
+		qDebug() << "************************************* GAME OVER ********************************";
+		emit gameCompleted();
+	}
+
+}
+
+
 
 
 /**
@@ -506,32 +543,33 @@ void CosGame::loadTerrainData()
 
 	setTerrainData(v.toMap());
 
-	loadBlocks();
 }
 
 
 /**
- * @brief CosGame::loadBlocks
+ * @brief CosGame::getBlock
+ * @param num
+ * @param create
+ * @return
  */
 
-void CosGame::loadBlocks()
+GameBlock *CosGame::getBlock(const int &num, const bool &create)
 {
-	qDebug() << "LOAD BLOCKS";
+	if (m_blocks.contains(num))
+		return m_blocks.value(num);
 
-	qDeleteAll(m_blocks.begin(), m_blocks.end());
-	m_blocks.clear();
+	if (!create)
+		return nullptr;
 
-	int block_count = m_terrainData.value("blocks", 0).toInt();
+	GameBlock *block = new GameBlock(this);
+	m_blocks.insert(num, block);
 
-	for (int i=0; i<block_count; i++) {
-		int num = i+1;
+	connect(block, &GameBlock::completedChanged, this, &CosGame::recalculateBlocks);
 
-		GameBlock *block = new GameBlock(this);
-		m_blocks.insert(num, block);
-	}
-
-	emit blocksLoaded();
+	return block;
 }
+
+
 
 
 

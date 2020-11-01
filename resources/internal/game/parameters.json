@@ -3,6 +3,7 @@
 		"1": {
 			"player": {
 				"deathlyFall": 300,
+				"deathlyAttackDistance": 0,
 				"rayCastElevation": 20,
 				"rayCastLength": 400
 			},
@@ -12,7 +13,8 @@
 					"rayCastLength": 250,
 					"msecBeforeTurn": 3000,
 					"castAttackFraction": 0.5,
-					"msecBeforeAttack": 3500
+					"msecBeforeAttack": 3500,
+					"msecBetweenAttack": 2500
 				}
 			}
 		}

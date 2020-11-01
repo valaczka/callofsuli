@@ -1,6 +1,7 @@
 import Bacon2D 1.0
 import QtQuick 2.14
 import COS.Client 1.0
+import "Style"
 
 GameEntity {
 	id: root
@@ -10,6 +11,8 @@ GameEntity {
 
 	entityPrivate: ep
 
+	glowColor: CosStyle.colorPrimaryLighter
+
 	GamePlayerPrivate {
 		id: ep
 
@@ -17,7 +20,7 @@ GameEntity {
 
 		property int _fallStartY: -1
 
-		onKilled: {
+		onKilledByEnemy: {
 			spriteSequence.jumpTo("falldeath")
 		}
 

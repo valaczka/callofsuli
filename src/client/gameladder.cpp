@@ -38,8 +38,45 @@ GameLadder::GameLadder(QObject *parent)
 	: QObject(parent)
 	, m_boundRect()
 	, m_active(false)
-	, m_blockTop(-1)
-	, m_blockBottom(-1)
+	, m_blockTop(nullptr)
+	, m_blockBottom(nullptr)
 {
 
 }
+
+void GameLadder::setBoundRect(QRectF boundRect)
+{
+	if (m_boundRect == boundRect)
+		return;
+
+	m_boundRect = boundRect;
+	emit boundRectChanged(m_boundRect);
+}
+
+void GameLadder::setActive(bool active)
+{
+	if (m_active == active)
+		return;
+
+	m_active = active;
+	emit activeChanged(m_active);
+}
+
+void GameLadder::setBlockTop(GameBlock *blockTop)
+{
+	if (m_blockTop == blockTop)
+		return;
+
+	m_blockTop = blockTop;
+	emit blockTopChanged(m_blockTop);
+}
+
+void GameLadder::setBlockBottom(GameBlock *blockBottom)
+{
+	if (m_blockBottom == blockBottom)
+		return;
+
+	m_blockBottom = blockBottom;
+	emit blockBottomChanged(m_blockBottom);
+}
+

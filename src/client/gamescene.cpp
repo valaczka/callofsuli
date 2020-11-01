@@ -257,15 +257,21 @@ void GameScene::loadEnemyLayer(Tiled::Layer *layer)
 		QRectF rect = polygon.boundingRect();
 		rect.moveTo(object->x(), object->y());
 
-		GameEnemyData *enemy = new GameEnemyData(m_game);
-		enemy->setBoundRect(rect.toRect());
 
-		QVariant block = object->property("block");
+		int block = object->property("block").toInt();
 
-		if (block.isValid())
-			enemy->setBlock(block.toInt());
+		if (block > 0) {
+			GameEnemyData *enemy = new GameEnemyData(m_game);
 
-		m_game->addEnemy(enemy);
+			enemy->setBoundRect(rect.toRect());
+
+			GameBlock *b = m_game->getBlock(block);
+			enemy->setBlock(b);
+			b->addEnemy(enemy);
+
+			m_game->addEnemy(enemy);
+		}
+
 	}
 
 }
@@ -295,13 +301,22 @@ void GameScene::loadPlayerLayer(Tiled::Layer *layer)
 	foreach (Tiled::MapObject *object, objects) {
 		int x = object->x();
 		int y = object->y();
-		int block = object->property("block").isValid() ? object->property("block").toInt() : -1;
-		int blockFrom = object->property("blockFrom").isValid() ? object->property("blockFrom").toInt() : -1;
+		int block = object->property("block").toInt();
 
-		m_game->addPlayerPosition(block, blockFrom, x, y);
+		if (block > 0) {
+			GameBlock *b = m_game->getBlock(block);
+			Box2DFixture *fixture = b->addPlayerPosition(QPoint(x,y), this->parentItem());
+
+
+			if (fixture) {
+				connect(fixture, &Box2DFixture::beginContact, m_game, &CosGame::setLastPosition);
+			}
+		} else
+			qWarning() << "Invalid block" << block;
 	}
 
 }
+
 
 
 /**
@@ -337,13 +352,19 @@ void GameScene::loadLadderLayer(Tiled::Layer *layer)
 
 		GameLadder *ladder = new GameLadder(m_game);
 		ladder->setBoundRect(r);
+		ladder->setActive(true);
 
-		QVariant blockTop = object->property("blockTop");
-		QVariant blockBottom = object->property("blockBottom");
+		int blockTop = object->property("blockTop").toInt();
+		int blockBottom = object->property("blockBottom").toInt();
 
-		if (blockTop.isValid() && blockBottom.isValid()) {
-			ladder->setBlockTop(blockTop.toInt());
-			ladder->setBlockBottom(blockBottom.toInt());
+		if (blockTop > 0 && blockBottom > 0) {
+			GameBlock *bTop = m_game->getBlock(blockTop);
+			GameBlock *bBottom = m_game->getBlock(blockBottom);
+			ladder->setBlockTop(bTop);
+			ladder->setBlockBottom(bBottom);
+			bTop->addLadder(ladder);
+			bBottom->addLadder(ladder);
+			ladder->setActive(false);
 		}
 
 		m_game->addLadder(ladder);

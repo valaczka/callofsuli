@@ -149,7 +149,7 @@ QPair<QPointF, QPointF> GameEntity::getRayPoints(const qreal &width)
 		return qMakePair(QPointF(0,0), QPointF(0,0));
 	}
 
-	bool facingLeft = e->property("facingLeft").isValid() ? e->property("facingLeft").toBool() : false;
+	bool facingLeft = e->property("facingLeft").toBool();
 
 	QRectF realRect;
 

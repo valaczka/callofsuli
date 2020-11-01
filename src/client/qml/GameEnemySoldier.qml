@@ -12,7 +12,7 @@ GameEntity {
 
 	entityPrivate: ep
 
-	glowColor: CosStyle.colorError
+	glowColor: CosStyle.colorGlowEnemy
 	glowEnabled: ep.aimedByPlayer
 
 	GameEnemySoldierPrivate {
@@ -28,30 +28,30 @@ GameEntity {
 
 		onMovingChanged: setSprite()
 		onAtBoundChanged: setSprite()
-		onPlayerChanged: setSprite()
+		onPlayerChanged: {
+			setSprite()
 
-		onAttackPlayer: {
-			console.debug("ATTACK")
-			playerAttack.start()
+			if (ep.player) {
+				var o = markerComponent.createObject(root)
+				o.playerItem = ep.player.parentEntity
+			}
 		}
 
-		attackRunning: playerAttack.running
+		onAttack: {
+			console.debug("ATTACK")
+		}
 
 		//onRayCastPerformed: setray(rect)
 	}
 
-	GameEnemyMarker {
-		enemyPrivate: ep
+	Component {
+		id: markerComponent
+
+		GameEnemyMarker {
+			enemyPrivate: ep
+		}
 	}
 
-
-	Timer {
-		id: playerAttack
-		interval: 3000
-		triggeredOnStart: true
-		running: false
-		repeat: false
-	}
 
 
 	function setray(rect) {

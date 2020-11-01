@@ -39,8 +39,8 @@
 GameEnemyData::GameEnemyData(QObject *parent)
 	: QObject(parent)
 	, m_boundRect()
-	, m_active(true)
-	, m_block(-1)
+	, m_active(false)
+	, m_block(nullptr)
 	, m_enemy(nullptr)
 	, m_enemyType(EnemySoldier)
 {
@@ -80,7 +80,7 @@ void GameEnemyData::setActive(bool active)
 	emit activeChanged(m_active);
 }
 
-void GameEnemyData::setBlock(int block)
+void GameEnemyData::setBlock(GameBlock *block)
 {
 	if (m_block == block)
 		return;
@@ -114,7 +114,20 @@ void GameEnemyData::setEnemyType(GameEnemyData::EnemyType enemyType)
 
 void GameEnemyData::enemyDied()
 {
-	qDebug() << this << "enemy died" << m_enemy;
 	setEnemy(nullptr);
+	setActive(false);
+}
+
+
+/**
+ * @brief GameEnemyData::enemyKilled
+ */
+
+void GameEnemyData::enemyKilled()
+{
+	setActive(false);
+
+	if (m_block)
+		m_block->recalculateActiveEnemies();
 }
 

@@ -45,6 +45,9 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(LadderMode ladderMode READ ladderMode WRITE setLadderMode NOTIFY ladderModeChanged)
 	Q_PROPERTY(GameLadder * ladder READ ladder WRITE setLadder NOTIFY ladderChanged)
 	Q_PROPERTY(GameEnemy * enemy READ enemy WRITE setEnemy NOTIFY enemyChanged)
+	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged)
+	Q_PROPERTY(int defaultHp READ defaultHp WRITE setDefaultHp NOTIFY defaultHpChanged)
+
 	Q_PROPERTY(bool hasGun READ hasGun WRITE setHasGun NOTIFY hasGunChanged)
 
 public:
@@ -72,25 +75,34 @@ public:
 	GameLadder * ladder() const { return m_ladder; }
 	GameEnemy * enemy() const { return m_enemy; }
 	bool hasGun() const { return m_hasGun; }
+	int hp() const { return m_hp; }
+	int defaultHp() const { return m_defaultHp; }
 
 public slots:
 	void onBodyBeginContact(Box2DFixture *other);
 	void onBodyEndContact(Box2DFixture *other);
 
-	void killedByEnemy(GameEnemy *enemy);
+	void hurtByEnemy(GameEnemy *enemy);
+	void killByEnemy(GameEnemy *enemy);
 	void attackSuccesful(GameEnemy *enemy);
+	void decreaseHp();
 
 	void setLadderMode(LadderMode ladderMode);
 	void setLadder(GameLadder * ladder);
 	void setEnemy(GameEnemy * enemy);
 	void setHasGun(bool hasGun);
+	void setHp(int hp);
+	void setDefaultHp(int defaultHp);
 
 signals:
-	void killed();
+	void killedByEnemy(GameEnemy *enemy);
+	void hurt(GameEnemy *enemy);
 	void ladderModeChanged(LadderMode ladderMode);
 	void ladderChanged(GameLadder * ladder);
 	void enemyChanged(GameEnemy * enemy);
 	void hasGunChanged(bool hasGun);
+	void hpChanged(int hp);
+	void defaultHpChanged(int defaultHp);
 
 private slots:
 	void onCosGameChanged(CosGame *);
@@ -102,6 +114,8 @@ private:
 	GameLadder * m_ladder;
 	GameEnemy * m_enemy;
 	bool m_hasGun;
+	int m_hp;
+	int m_defaultHp;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

@@ -39,16 +39,22 @@
 #include <QPoint>
 #include <QObject>
 
-#include "gameenemydata.h"
-#include "gameladder.h"
+#include "gameobject.h"
+
+
+class GameEnemyData;
+class GameLadder;
+class GameEnemy;
 
 class GameBlock : public QObject
 {
 	Q_OBJECT
 
 	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
-	Q_PROPERTY(QMap<int, QPoint> playerPosition READ playerPosition NOTIFY playerPositionChanged)
+	Q_PROPERTY(QList<GameObject *> playerPosition READ playerPosition NOTIFY playerPositionChanged)
 	Q_PROPERTY(QList<GameLadder *> ladders READ ladders WRITE setLadders NOTIFY laddersChanged)
+	Q_PROPERTY(GameObject * lastPosition READ lastPosition WRITE setLastPosition NOTIFY lastPositionChanged)
+	Q_PROPERTY(bool completed READ completed WRITE setCompleted NOTIFY completedChanged)
 
 
 public:
@@ -56,27 +62,37 @@ public:
 	~GameBlock();
 
 	void addEnemy(GameEnemyData *enemy);
-	void addPlayerPosition(const int &blockFrom, const QPoint &point);
+	Box2DBox *addPlayerPosition(const QPoint &point, QQuickItem *parent);
 	void addLadder(GameLadder *ladder);
 
 	QList<GameEnemyData *> enemies() const { return m_enemies; }
-	QMap<int, QPoint> playerPosition() const { return m_playerPosition; }
+	QList<GameObject *> playerPosition() const { return m_playerPosition; }
 
 	QList<GameLadder *> ladders() const { return m_ladders; }
+	bool completed() const { return m_completed; }
+	GameObject * lastPosition() const { return m_lastPosition; }
 
 public slots:
 	void setEnemies(QList<GameEnemyData *> enemies);
 	void setLadders(QList<GameLadder *> ladders);
+	void setCompleted(bool completed);
+	void setLastPosition(GameObject * lastPosition);
+	void recalculateActiveEnemies();
+	void activateLadders();
 
 signals:
 	void enemiesChanged(QList<GameEnemyData *> enemies);
-	void playerPositionChanged(QMap<int, QPoint> playerPosition);
+	void playerPositionChanged(QList<GameObject *> playerPosition);
 	void laddersChanged(QList<GameLadder *> ladders);
+	void completedChanged(bool completed);
+	void lastPositionChanged(GameObject * lastPosition);
 
 private:
 	QList<GameEnemyData *> m_enemies;
-	QMap<int, QPoint> m_playerPosition;
+	QList<GameObject *> m_playerPosition;
 	QList<GameLadder *> m_ladders;
+	bool m_completed;
+	GameObject * m_lastPosition;
 };
 
 #endif // GAMEBLOCK_H

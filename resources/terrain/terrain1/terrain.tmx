@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="31" nextobjectid="69">
+<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="31" nextobjectid="74">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
@@ -65,11 +65,14 @@
    <polyline points="0,0 241,1"/>
   </object>
   <object id="52" x="1200" y="358">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
    <polyline points="0,0 455,-1"/>
   </object>
   <object id="57" x="2109" y="206">
    <properties>
-    <property name="block" type="int" value="2"/>
+    <property name="block" type="int" value="3"/>
    </properties>
    <polyline points="0,0 153,0"/>
   </object>
@@ -93,19 +96,19 @@
   </object>
   <object id="66" x="1998" y="112">
    <properties>
-    <property name="block" type="int" value="1"/>
+    <property name="block" type="int" value="3"/>
    </properties>
    <polyline points="0,0 70,0"/>
   </object>
   <object id="67" x="2387" y="207">
    <properties>
-    <property name="block" type="int" value="1"/>
+    <property name="block" type="int" value="3"/>
    </properties>
    <polyline points="0,0 259,0"/>
   </object>
   <object id="68" x="1841" y="13">
    <properties>
-    <property name="block" type="int" value="1"/>
+    <property name="block" type="int" value="2"/>
    </properties>
    <polyline points="0,0 98,0"/>
   </object>
@@ -113,16 +116,50 @@
  <objectgroup color="#ff00ff" id="17" name="Ladders">
   <object id="5" x="298" y="257" width="17" height="182"/>
   <object id="6" x="585" y="255" width="21" height="281"/>
-  <object id="7" x="1098" y="255" width="20" height="118"/>
+  <object id="7" x="1098" y="255" width="20" height="118">
+   <properties>
+    <property name="blockBottom" type="int" value="2"/>
+    <property name="blockTop" type="int" value="1"/>
+   </properties>
+  </object>
   <object id="14" x="1671" y="385" width="23" height="163"/>
   <object id="15" x="1735" y="59" width="23" height="298"/>
-  <object id="16" x="1898" y="60" width="20" height="72"/>
+  <object id="16" x="1898" y="60" width="20" height="72">
+   <properties>
+    <property name="blockBottom" type="int" value="3"/>
+    <property name="blockTop" type="int" value="2"/>
+   </properties>
+  </object>
   <object id="45" x="2027" y="156" width="20" height="71"/>
  </objectgroup>
  <objectgroup id="18" name="Player">
   <object id="47" x="120" y="410">
    <properties>
     <property name="block" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="69" x="728" y="523">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="70" x="999" y="228">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="72" x="1614" y="552">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="73" x="2813" y="227">
+   <properties>
+    <property name="block" type="int" value="3"/>
    </properties>
    <point/>
   </object>

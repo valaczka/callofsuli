@@ -49,6 +49,7 @@ class GameEnemy : public GameEntity
 	Q_PROPERTY(GameEnemyData * enemyData READ enemyData WRITE setEnemyData NOTIFY enemyDataChanged)
 	Q_PROPERTY(qreal castAttackFraction READ castAttackFraction WRITE setCastAttackFraction NOTIFY castAttackFractionChanged)
 	Q_PROPERTY(int msecBeforeAttack READ msecBeforeAttack WRITE setMsecBeforeAttack NOTIFY msecBeforeAttackChanged)
+	Q_PROPERTY(int msecBetweenAttack READ msecBetweenAttack WRITE setMsecBetweenAttack NOTIFY msecBetweenAttackChanged)
 	Q_PROPERTY(int msecLeftAttack READ msecLeftAttack NOTIFY msecLeftAttackChanged)
 	Q_PROPERTY(GamePlayer * player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(bool attackRunning READ attackRunning WRITE setAttackRunning NOTIFY attackRunningChanged)
@@ -67,6 +68,7 @@ public:
 	int msecBeforeAttack() const { return m_msecBeforeAttack; }
 	int msecLeftAttack() const;
 	bool aimedByPlayer() const { return m_aimedByPlayer; }
+	int msecBetweenAttack() const { return m_msecBetweenAttack; }
 
 public slots:
 	void tryAttack(GamePlayer *player);
@@ -78,18 +80,20 @@ public slots:
 	void setAttackRunning(bool attackRunning);
 	void setMsecBeforeAttack(int msecBeforeAttack);
 	void setAimedByPlayer(bool aimedByPlayer);
+	void setMsecBetweenAttack(int msecBetweenAttack);
 
 protected slots:
 	void onGameChanged();
 	virtual void onGameDataReady(const QVariantMap &map) { Q_UNUSED(map); }
 	virtual void attackTimerTimeout();
+	virtual void attackPlayer();
 	void onRayCastReported(QMultiMap<qreal, QQuickItem *> items);
 
 private slots:
 	void onPlayerDied();
 
 signals:
-	void attackPlayer();
+	void attack();
 	void killed();
 	void movingChanged(bool moving);
 	void armedChanged(bool armed);
@@ -100,6 +104,7 @@ signals:
 	void msecBeforeAttackChanged(int msecBeforeAttack);
 	void msecLeftAttackChanged();
 	void aimedByPlayerChanged(bool aimedByPlayer);
+	void msecBetweenAttackChanged(int msecBetweenAttack);
 
 protected:
 	bool m_moving;
@@ -112,6 +117,7 @@ protected:
 	GamePlayer * m_player;
 	bool m_attackRunning;
 	int m_msecBeforeAttack;
+	int m_msecBetweenAttack;
 	bool m_aimedByPlayer;
 
 };

@@ -139,6 +139,45 @@ void GameObject::createRectangularFixture(Tiled::MapObject *object)
 
 
 
+/**
+ * @brief GameObject::createRectangularFixture
+ */
+
+Box2DBox * GameObject::createRectangularFixture()
+{
+	if (m_body)
+		return nullptr;
+
+	m_body = new Box2DBody(this);
+	m_body->setBodyType(Box2DBody::Static);
+	m_body->setTarget(this);
+	m_body->setActive(true);
+	m_body->setSleepingAllowed(false);
+
+	Box2DBox *fixture = new Box2DBox(this);
+
+	fixture->setX(0);
+	fixture->setY(0);
+	fixture->setWidth(width());
+	fixture->setHeight(height());
+
+	fixture->setDensity(m_density);
+	fixture->setFriction(m_friction);
+	fixture->setRestitution(m_restitution);
+	fixture->setSensor(m_sensor);
+	fixture->setCategories(m_categories);
+	fixture->setCollidesWith(m_collidesWith);
+	fixture->setGroupIndex(m_groupIndex);
+
+	m_body->addFixture(fixture);
+
+	m_body->componentComplete();
+
+	return fixture;
+}
+
+
+
 void GameObject::setDensity(float density)
 {
 	if (qFuzzyCompare(m_density, density))

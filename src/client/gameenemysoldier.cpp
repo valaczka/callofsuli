@@ -205,6 +205,7 @@ void GameEnemySoldier::onGameDataReady(const QVariantMap &map)
 	setMsecBeforeTurn(m.value("msecBeforeTurn", m_msecBeforeTurn).toInt());
 	setCastAttackFraction(m.value("castAttackFraction", m_castAttackFraction).toReal());
 	setMsecBeforeAttack(m.value("msecBeforeAttack", m_msecBeforeAttack).toInt());
+	setMsecBetweenAttack(m.value("msecBetweenAttack", m_msecBetweenAttack).toInt());
 
 }
 

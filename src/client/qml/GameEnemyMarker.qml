@@ -5,51 +5,51 @@ import "Style"
 
 Rectangle {
 	id: root
-	visible: false
-	color: CosStyle.colorWarningLighter
+	visible: true
+	color: enemyPrivate.attackRunning ? CosStyle.colorEnemyMarkerAttack : CosStyle.colorEnemyMarker
 	height: 1.5
 	y: parent.height*0.2
 
 	property GameEnemyPrivate enemyPrivate: null
+	property Item playerItem: null
+
+	onPlayerItemChanged: playerRectSet()
 
 	Connections {
-		target: enemyPrivate && enemyPrivate.player ? enemyPrivate.player : null
+		target: enemyPrivate.player && playerItem ? playerItem : null
 		onXChanged: {
 			playerRectSet()
 		}
+
 	}
 
 	Connections {
-		target: enemyPrivate ? enemyPrivate : null
-		onPlayerChanged: {
-			playerRectSet()
-		}
-
-		onMsecLeftAttackChanged: {
-			var m = enemyPrivate.msecLeftAttack
-			if (m>0)
-				root.visible = true
-			else
-				root.visible = false
-		}
+		target: enemyPrivate
+		onPlayerChanged: if (enemyPrivate.player)
+							 playerRectSet()
+						 else {
+							 root.destroy()
+						 }
 	}
 
 	Timer {
 		id: timerBlink
-		running: enemyPrivate && enemyPrivate.msecLeftAttack <= 2000
+		running: !enemyPrivate.attackRunning && enemyPrivate.msecLeftAttack <= 2000
 		interval: 150
 		triggeredOnStart: true
 		repeat: true
 		onTriggered: {
-			root.color = root.color == CosStyle.colorWarningLighter ? CosStyle.colorError : CosStyle.colorWarningLighter
+			root.color = (root.color == CosStyle.colorEnemyMarker ? CosStyle.colorEnemyMarkerAttack : CosStyle.colorEnemyMarker)
 		}
 		onRunningChanged: if (!running)
-							  root.color = CosStyle.colorWarningLighter
+							  root.color = enemyPrivate.attackRunning ? CosStyle.colorEnemyMarkerAttack : CosStyle.colorEnemyMarker
 	}
 
+
+
+
 	function playerRectSet() {
-		if (enemyPrivate.player) {
-			var playerItem = enemyPrivate.player.parentEntity
+		if (playerItem) {
 			var rx
 
 			if (parent.facingLeft) {
@@ -61,8 +61,6 @@ Rectangle {
 				root.width = playerItem.x-rx
 				root.x = parent.width
 			}
-		} else {
-			root.visible = false
 		}
 	}
 }

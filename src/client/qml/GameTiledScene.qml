@@ -24,7 +24,6 @@ Scene {
 
 		onLayersLoaded: {
 			createLadders()
-			game.resetPlayer(scene)
 		}
 	}
 
@@ -122,9 +121,6 @@ Scene {
 					game.player.entityPrivate.ladderClimbFinish()
 				}
 				break;
-			case Qt.Key_F3:
-				game.recreateEnemies(scene)
-				break;
 			}
 		}
 
@@ -138,6 +134,15 @@ Scene {
 		target: parent
 		onWidthChanged: setXOffset()
 		onHeightChanged: setYOffset()
+	}
+
+	Connections {
+		target: game ? game : null
+		onPlayerChanged: {
+			console.debug("PLAYER CHANGED", game.player)
+			setXOffset()
+			setYOffset()
+		}
 	}
 
 	Component {
@@ -160,7 +165,7 @@ Scene {
 	}
 
 
-	function createPlayer() : Item{
+	function createPlayer() : Item {
 		if (!game.player) {
 			var p = playerComponent.createObject(scene)
 			p.onXChanged.connect(setXOffset)

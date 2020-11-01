@@ -20,6 +20,7 @@ PhysicsEntity {
 
 	property alias glowColor: glow.color
 	property bool glowEnabled: false
+	property bool _glowForced: true
 
 
 	readonly property bool isInverse: entityPrivate && entityPrivate.qrcData ?
@@ -76,7 +77,7 @@ PhysicsEntity {
 
 	Glow {
 		id: glow
-		opacity: glowEnabled ? 1.0 : 0.0
+		opacity: glowEnabled || _glowForced ? 1.0 : 0.0
 		visible: opacity != 0
 
 		source: spriteSequence
@@ -107,6 +108,16 @@ PhysicsEntity {
 			root.destroy()
 		}
 	}
+
+	Timer {
+		id: glowForcedDelay
+		interval: 1500
+		repeat: false
+		triggeredOnStart: false
+		onTriggered: _glowForced = false
+	}
+
+	Component.onCompleted: glowForcedDelay.start()
 
 
 

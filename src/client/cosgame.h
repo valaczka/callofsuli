@@ -56,16 +56,14 @@ class CosGame : public Game
 
 	Q_PROPERTY(QQuickItem * player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged)
+	Q_PROPERTY(int startHp READ startHp WRITE setStartHp NOTIFY startHpChanged)
+	Q_PROPERTY(int startBlock READ startBlock WRITE setStartBlock NOTIFY startBlockChanged)
 
 	Q_PROPERTY(QMap<int, GameBlock *> blocks READ blocks NOTIFY blocksChanged)
+	Q_PROPERTY(GameObject * playerStartPosition READ playerStartPosition WRITE setPlayerStartPosition NOTIFY playerStartPositionChanged)
+	Q_PROPERTY(QList<GameLadder *> ladders READ ladders NOTIFY laddersChanged)
 
-	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies NOTIFY enemiesChanged)
-	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
-
-	Q_PROPERTY(int currentBlock READ currentBlock WRITE setCurrentBlock NOTIFY currentBlockChanged)
-	Q_PROPERTY(int previousBlock READ previousBlock WRITE setPreviousBlock NOTIFY previousBlockChanged)
-
-	Q_PROPERTY(QList<GameLadder *> ladders READ ladders WRITE setLadders NOTIFY laddersChanged)
+	Q_PROPERTY(QQuickItem * gameScene READ gameScene WRITE setGameScene NOTIFY gameSceneChanged)
 
 
 public:
@@ -73,35 +71,37 @@ public:
 	~CosGame();
 
 	Q_INVOKABLE void loadTerrainData();
+	Q_INVOKABLE GameBlock * getBlock(const int &num, const bool &create = true);
 
-	void addEnemy(GameEnemyData *enemy);
-	void addPlayerPosition(const int &block, const int &blockFrom, const int &x, const int &y);
-	Q_INVOKABLE void recreateEnemies(QQuickItem *scene = nullptr);
+	Q_INVOKABLE void recreateEnemies();
 	Q_INVOKABLE void resetEnemy(GameEnemyData *enemyData);
 	Q_INVOKABLE void setEnemiesMoving(const bool &moving);
 
-	void addLadder(GameLadder *ladder);
+	qreal deathlyAttackDistance();
+
+	void addEnemy(GameEnemyData *enemy) { m_enemies.append(enemy); }
+	void addLadder(GameLadder *ladder) { m_ladders.append(ladder); emit laddersChanged(m_ladders); }
 
 	QString playerCharacter() const { return m_playerCharacter; }
 	QString terrain() const { return m_terrain; }
+	int level() const { return m_level; }
+	int startHp() const { return m_startHp; }
+	int startBlock() const { return m_startBlock; }
+
 	QVariantMap gameData() const { return m_gameData; }
 	QVariantMap terrainData() const { return m_terrainData; }
 
-	int level() const { return m_level; }
 	QQuickItem * player() const { return m_player; }
 
-	QList<GameEnemyData *> enemies() const { return m_enemies; }
-	int activeEnemies() const;
-
 	QMap<int, GameBlock *> blocks() const { return m_blocks; }
+	QQuickItem * gameScene() const { return m_gameScene; }
 
-	int currentBlock() const { return m_currentBlock; }
-	int previousBlock() const { return m_previousBlock; }
-
+	GameObject * playerStartPosition() const { return m_playerStartPosition; }
 	QList<GameLadder *> ladders() const { return m_ladders; }
 
 public slots:
-	void resetPlayer(QQuickItem *scene = nullptr);
+	void resetPlayer();
+	void setLastPosition();
 
 	void setPlayerCharacter(QString playerCharacter);
 	void setTerrain(QString terrain);
@@ -110,18 +110,18 @@ public slots:
 
 	void setLevel(int level);
 	void setPlayer(QQuickItem * player);
-
-	void setCurrentBlock(int currentBlock);
-	void setPreviousBlock(int previousBlock);
-
-	void setLadders(QList<GameLadder *> ladders);
+	void setStartHp(int startHp);
+	void setGameScene(QQuickItem * gameScene);
+	void setPlayerStartPosition(GameObject * playerStartPosition);
+	void setStartBlock(int startBlock);
 
 private slots:
+	void onLayersLoaded();
 	void onPlayerDied();
+	void recalculateBlocks();
 
 signals:
-	void blocksLoaded();
-	void enemiesRecreated();
+	void gameCompleted();
 
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);
@@ -129,32 +129,31 @@ signals:
 	void terrainDataChanged(QVariantMap terrainData);
 
 	void levelChanged(int level);
+	void startHpChanged(int startHp);
 
-	void enemiesChanged(QList<GameEnemyData *> enemies);
-	void activeEnemiesChanged(int activeEnemies);
 	void blocksChanged(QMap<int, GameBlock *> blocks);
 	void playerChanged(QQuickItem * player);
-	void currentBlockChanged(int currentBlock);
-	void previousBlockChanged(int previousBlock);
-
-	void laddersChanged(QList<GameLadder *> ladders);
+	void gameSceneChanged(QQuickItem * gameScene);
+	void playerStartPositionChanged(GameObject * playerStartPosition);
+	void startBlockChanged(int startBlock);
+	void laddersChanged(QList<GameLadder *> allLadder);
 
 private:
 	void loadGameData();
-	void loadBlocks();
 
+	QList<GameEnemyData *> m_enemies;
+	QList<GameLadder *>m_ladders;
 	QString m_playerCharacter;
 	QVariantMap m_gameData;
 	QVariantMap m_terrainData;
 	int m_level;
-	QList<GameEnemyData *> m_enemies;
 	QMap<int, GameBlock *> m_blocks;
 	QString m_terrain;
 	QQuickItem * m_player;
-	int m_currentBlock;
-	int m_previousBlock;
-	QList<GameLadder *> m_ladders;
-	QQuickItem *m_playerScene;
+	QQuickItem * m_gameScene;
+	int m_startHp;
+	GameObject * m_playerStartPosition;
+	int m_startBlock;
 };
 
 #endif // COSGAME_H
