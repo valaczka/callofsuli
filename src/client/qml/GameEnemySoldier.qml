@@ -87,7 +87,7 @@ GameEntity {
 
 	function setSprite() {
 		if (ep.player) {
-			spriteSequence.jumpTo("climbup")
+			//spriteSequence.jumpTo("climbup")
 		} else {
 			if (!ep.atBound && ep.moving) {
 				spriteSequence.jumpTo("walk")

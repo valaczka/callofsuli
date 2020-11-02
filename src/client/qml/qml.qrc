@@ -110,5 +110,6 @@
         <file>GameTiledScene.qml</file>
         <file>GameLadder.qml</file>
         <file>GameEnemyMarker.qml</file>
+        <file>FlickableParallax.qml</file>
     </qresource>
 </RCC>

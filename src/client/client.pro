@@ -137,5 +137,7 @@ android {
 
 }
 
+ANDROID_ABIS = armeabi-v7a
+
 
 

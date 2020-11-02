@@ -17,7 +17,7 @@ Scene {
 
 	property alias scenePrivate: scenePrivate
 
-	y: game ? Math.max(0, game.height-height) : 0
+
 
 	GameScenePrivate {
 		id: scenePrivate
@@ -25,12 +25,6 @@ Scene {
 		onLayersLoaded: {
 			createLadders()
 		}
-	}
-
-	viewport: Viewport {
-		id: vp
-		width: scene.game ? scene.game.width : scene.width
-		height: scene.game ? scene.game.height : scene.height
 	}
 
 	onRunningChanged: console.info("SCENE run ", running)
@@ -52,9 +46,6 @@ Scene {
 			readonly property bool baseGround: true
 		}
 	}
-
-
-
 
 
 	MouseArea {
@@ -129,22 +120,6 @@ Scene {
 
 
 
-
-	Connections {
-		target: parent
-		onWidthChanged: setXOffset()
-		onHeightChanged: setYOffset()
-	}
-
-	Connections {
-		target: game ? game : null
-		onPlayerChanged: {
-			console.debug("PLAYER CHANGED", game.player)
-			setXOffset()
-			setYOffset()
-		}
-	}
-
 	Component {
 		id: playerComponent
 
@@ -168,63 +143,40 @@ Scene {
 	function createPlayer() : Item {
 		if (!game.player) {
 			var p = playerComponent.createObject(scene)
-			p.onXChanged.connect(setXOffset)
-			p.onYChanged.connect(setYOffset)
 			p.loadSprites()
 			return p
 		}
-		return null
-	}
-
-
-	function createComponent(enemyType: int) : Item {
-		var obj = null
-
-		switch (enemyType) {
-		case GameEnemyData.EnemySoldier:
-			obj = enemySoldierComponent.createObject(scene)
-			break
-		case GameEnemyData.EnemyOther:
-			obj = enemySoldierComponent.createObject(scene)
-			break
+			return null
 		}
 
-		return obj
-	}
+
+			function createComponent(enemyType: int) : Item {
+				var obj = null
+
+				switch (enemyType) {
+					case GameEnemyData.EnemySoldier:
+						obj = enemySoldierComponent.createObject(scene)
+					break
+					case GameEnemyData.EnemyOther:
+						obj = enemySoldierComponent.createObject(scene)
+					break
+				}
+
+				return obj
+			}
 
 
-	function createLadders() {
-		if (!game || !game.ladders)
-			return
+				function createLadders() {
+					if (!game || !game.ladders)
+					return
 
-		for (var i=0; i<game.ladders.length; i++) {
-			var l = game.ladders[i]
+					for (var i=0; i<game.ladders.length; i++) {
+						var l = game.ladders[i]
 
-			var obj = ladderComponent.createObject(scene,{
-													   ladder: l
-												   })
-		}
-	}
+						var obj = ladderComponent.createObject(scene,{
+							ladder: l
+						})
+					}
+				}
 
-
-
-
-	function setXOffset() {
-		if (!game.width || !game.player)
-			return
-
-		if (game.player.facingLeft && (game.player.x-vp.xOffset < 500))
-			vp.xOffset = game.player.x-500
-		else if (!game.player.facingLeft && (game.player.x-(vp.xOffset+game.width)+500) > 0)
-			vp.xOffset = game.player.x - game.width + 500
-	}
-
-	function setYOffset() {
-		if (!game.height || !game.player)
-			return
-
-		// TODO //
-	}
-
-
-}
+			}

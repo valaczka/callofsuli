@@ -38,19 +38,19 @@
    horizontally or vertically showing different parts of the larger \l Scene.
 */
 Viewport::Viewport(Scene *parent)
-    : Entity(parent)
-    , m_animationEasingCurve(QEasingCurve::Linear)
-    , m_xOffset(0.0f)
-    , m_yOffset(0.0f)
-    , m_contentWidth(0.0f)
-    , m_contentHeight(0.0f)
-    , m_maxXOffset(0.0f)
-    , m_maxYOffset(0.0f)
-    , m_scene(parent)
-    , m_animationDuration(100)
+	: Entity(parent)
+	, m_animationEasingCurve(QEasingCurve::Linear)
+	, m_xOffset(0.0f)
+	, m_yOffset(0.0f)
+	, m_contentWidth(0.0f)
+	, m_contentHeight(0.0f)
+	, m_maxXOffset(0.0f)
+	, m_maxYOffset(0.0f)
+	, m_scene(parent)
+	, m_animationDuration(100)
 {
-    m_xGroupAnimation = new QParallelAnimationGroup(this);
-    m_yGroupAnimation = new QParallelAnimationGroup(this);
+	m_xGroupAnimation = new QParallelAnimationGroup(this);
+	m_yGroupAnimation = new QParallelAnimationGroup(this);
 }
 
 /*!
@@ -60,45 +60,45 @@ Viewport::Viewport(Scene *parent)
 */
 float Viewport::xOffset()
 {
-    return m_xOffset;
+	return m_xOffset;
 }
 
 void Viewport::setXOffset(float xOffset)
 {
-    xOffset = qBound<float>(0.0f, xOffset, m_maxXOffset);
+	xOffset = qBound<float>(0.0f, xOffset, m_maxXOffset);
 
-    // TODO create a heuristic function to calculate the animation duration
-    // when m_animationDuration < 0, according to this delta
-    // (bigger delta -> bigger animation duration)
-    //qreal delta = qAbs(m_xOffset - xOffset);
+	// TODO create a heuristic function to calculate the animation duration
+	// when m_animationDuration < 0, according to this delta
+	// (bigger delta -> bigger animation duration)
+	//qreal delta = qAbs(m_xOffset - xOffset);
 
-    if (m_xOffset != xOffset) {
-        m_xOffset = xOffset;
+	if (m_xOffset != xOffset) {
+		m_xOffset = xOffset;
 
-        if (m_scene) {
-            m_xGroupAnimation->clear();
+		if (m_scene) {
+			m_xGroupAnimation->clear();
 
-            QPropertyAnimation *xAnim = new QPropertyAnimation(m_scene, "x");
-            xAnim->setDuration(m_animationDuration); // TODO set duration according the offset value
-            xAnim->setEasingCurve(m_animationEasingCurve);
-            xAnim->setStartValue(m_scene->x());
-            xAnim->setEndValue(-m_xOffset);
-            m_xGroupAnimation->addAnimation(xAnim);
+			QPropertyAnimation *xAnim = new QPropertyAnimation(m_scene, "x");
+			xAnim->setDuration(m_animationDuration); // TODO set duration according the offset value
+			xAnim->setEasingCurve(m_animationEasingCurve);
+			xAnim->setStartValue(m_scene->x());
+			xAnim->setEndValue(-m_xOffset);
+			m_xGroupAnimation->addAnimation(xAnim);
 
-            /* TODO: Fix this according to current layer scheme
-            QPropertyAnimation *xLayerAnimation = new QPropertyAnimation(m_scene->gameLayers(), "xOffset"); // TODO
-            xLayerAnimation->setDuration(m_animationDuration); // TODO
-            xLayerAnimation->setEasingCurve(m_animationEasingCurve);
-            xLayerAnimation->setStartValue(m_scene->gameLayers()->xOffset());
-            xLayerAnimation->setEndValue(m_xOffset);
-            m_xGroupAnimation->addAnimation(xLayerAnimation);
-            */
+			/* TODO: Fix this according to current layer scheme
+			QPropertyAnimation *xLayerAnimation = new QPropertyAnimation(m_scene->gameLayers(), "xOffset"); // TODO
+			xLayerAnimation->setDuration(m_animationDuration); // TODO
+			xLayerAnimation->setEasingCurve(m_animationEasingCurve);
+			xLayerAnimation->setStartValue(m_scene->gameLayers()->xOffset());
+			xLayerAnimation->setEndValue(m_xOffset);
+			m_xGroupAnimation->addAnimation(xLayerAnimation);
+			*/
 
-            m_xGroupAnimation->start();
-        }
+			m_xGroupAnimation->start();
+		}
 
-        emit xOffsetChanged();
-    }
+		emit xOffsetChanged();
+	}
 }
 
 /*!
@@ -108,40 +108,40 @@ void Viewport::setXOffset(float xOffset)
 */
 float Viewport::yOffset()
 {
-    return m_yOffset;
+	return m_yOffset;
 }
 
 void Viewport::setYOffset(float yOffset)
 {
-    yOffset = qBound<float>(0.0f, yOffset, m_maxYOffset);
+	yOffset = qBound<float>(0.0f, yOffset, m_maxYOffset);
 
-    if (m_yOffset != yOffset) {
-        m_yOffset = yOffset;
+	if (m_yOffset != yOffset) {
+		m_yOffset = yOffset;
 
-        if (m_scene) {
-            m_yGroupAnimation->clear();
+		if (m_scene) {
+			m_yGroupAnimation->clear();
 
-            QPropertyAnimation *yAnim = new QPropertyAnimation(m_scene, "y");
-            yAnim->setDuration(m_animationDuration); // TODO set duration according the offset value
-            yAnim->setEasingCurve(m_animationEasingCurve);
-            yAnim->setStartValue(m_scene->y());
-            yAnim->setEndValue(-m_yOffset);
-            m_yGroupAnimation->addAnimation(yAnim);
+			QPropertyAnimation *yAnim = new QPropertyAnimation(m_scene, "y");
+			yAnim->setDuration(m_animationDuration); // TODO set duration according the offset value
+			yAnim->setEasingCurve(m_animationEasingCurve);
+			yAnim->setStartValue(m_scene->y());
+			yAnim->setEndValue(-m_yOffset);
+			m_yGroupAnimation->addAnimation(yAnim);
 
-            /* TODO: Fix this according to current layer scheme
-            QPropertyAnimation *yLayerAnimation = new QPropertyAnimation(m_scene->gameLayers(), "yOffset"); // TODO
-            yLayerAnimation->setDuration(m_animationDuration); // TODO
-            yLayerAnimation->setEasingCurve(m_animationEasingCurve);
-            yLayerAnimation->setStartValue(m_scene->gameLayers()->yOffset());
-            yLayerAnimation->setEndValue(m_yOffset);
-            m_yGroupAnimation->addAnimation(yLayerAnimation);
-            */
+			/* TODO: Fix this according to current layer scheme
+			QPropertyAnimation *yLayerAnimation = new QPropertyAnimation(m_scene->gameLayers(), "yOffset"); // TODO
+			yLayerAnimation->setDuration(m_animationDuration); // TODO
+			yLayerAnimation->setEasingCurve(m_animationEasingCurve);
+			yLayerAnimation->setStartValue(m_scene->gameLayers()->yOffset());
+			yLayerAnimation->setEndValue(m_yOffset);
+			m_yGroupAnimation->addAnimation(yLayerAnimation);
+			*/
 
-            m_yGroupAnimation->start();
-        }
+			m_yGroupAnimation->start();
+		}
 
-        emit yOffsetChanged();
-    }
+		emit yOffsetChanged();
+	}
 }
 
 /*!
@@ -150,7 +150,7 @@ void Viewport::setYOffset(float yOffset)
 */
 void Viewport::hScroll(float step)
 {
-    setXOffset(step);
+	setXOffset(step);
 }
 
 /*!
@@ -159,35 +159,35 @@ void Viewport::hScroll(float step)
 */
 void Viewport::vScroll(float step)
 {
-    setYOffset(step);
+	setYOffset(step);
 }
 
 float Viewport::contentWidth() const
 {
-    return m_contentWidth;
+	return m_contentWidth;
 }
 
 void Viewport::setContentWidth(const float &contentWidth)
 {
-    if (m_contentWidth != contentWidth) {
-        m_contentWidth = contentWidth;
+	if (m_contentWidth != contentWidth) {
+		m_contentWidth = contentWidth;
 
-        emit contentWidthChanged();
-    }
+		emit contentWidthChanged();
+	}
 }
 
 float Viewport::contentHeight() const
 {
-    return m_contentHeight;
+	return m_contentHeight;
 }
 
 void Viewport::setContentHeight(const float &contentHeight)
 {
-    if (m_contentHeight != contentHeight) {
-        m_contentHeight = contentHeight;
+	if (m_contentHeight != contentHeight) {
+		m_contentHeight = contentHeight;
 
-        emit contentHeightChanged();
-    }
+		emit contentHeightChanged();
+	}
 }
 
 /*!
@@ -199,30 +199,30 @@ void Viewport::setContentHeight(const float &contentHeight)
 */
 int Viewport::animationDuration() const
 {
-    return m_animationDuration;
+	return m_animationDuration;
 }
 
 void Viewport::setAnimationDuration(const int &animationDuration)
 {
-    if (m_animationDuration != animationDuration) {
-        m_animationDuration = animationDuration;
+	if (m_animationDuration != animationDuration) {
+		m_animationDuration = animationDuration;
 
-        emit animationDurationChanged();
-    }
+		emit animationDurationChanged();
+	}
 }
 
 void Viewport::setScene(Scene *scene)
 {
-    m_scene = scene;
-    scene->setParentItem(this);
-    setContentWidth(scene->width());
-    setContentHeight(scene->height());
-    setVisible(true);
-    updateMaxOffsets();
+	m_scene = scene;
+	scene->setParentItem(this);
+	setContentWidth(scene->width());
+	setContentHeight(scene->height());
+	setVisible(true);
+	updateMaxOffsets();
 }
 
 void Viewport::updateMaxOffsets()
 {
-    m_maxXOffset = m_contentWidth - width();
-    m_maxYOffset = m_contentHeight - height();
+	m_maxXOffset = m_contentWidth - width();
+	m_maxYOffset = m_contentHeight - height();
 }

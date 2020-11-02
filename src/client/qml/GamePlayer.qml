@@ -180,6 +180,32 @@ GameEntity {
 	}
 
 
+	function turnRight() {
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+			return
+
+		if (isFalling ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+			return
+
+		root.facingLeft = false
+	}
+
+
+	function turnLeft() {
+		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+			return
+
+
+		if (isFalling ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+			return
+
+		root.facingLeft = true
+	}
+
 
 	function walkRight() {
 		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)

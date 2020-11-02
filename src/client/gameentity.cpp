@@ -85,7 +85,6 @@ GameEntity::GameEntity(QQuickItem *parent)
 
 GameEntity::~GameEntity()
 {
-	qDebug() << "DELETE" << this;
 	if (m_bodyPolygon)
 		m_bodyPolygon->deleteLater();
 
@@ -181,11 +180,11 @@ QPair<QPointF, QPointF> GameEntity::getRayPoints(const qreal &width)
 	point2.setY(point1.y());
 
 	if (facingLeft) {
-		point1.setX(realRect.left());
-		point2.setX(point1.x()-width);
-	} else {
 		point1.setX(realRect.right());
-		point2.setX(point1.x()+width);
+		point2.setX(realRect.left()-width);
+	} else {
+		point1.setX(realRect.left());
+		point2.setX(realRect.right()+width);
 	}
 
 	point1 += QPointF(e->x(), e->y());

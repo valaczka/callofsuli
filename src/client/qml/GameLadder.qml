@@ -17,8 +17,6 @@ PhysicsEntity {
 	readonly property bool ladderActive: ladder && ladder.active
 	property int _collision: 0 //Box.Category3
 
-	onLadderActiveChanged: console.debug("lllll")
-
 	readonly property int fixtureHeight: 30
 	readonly property int ladderWidth: 30
 
