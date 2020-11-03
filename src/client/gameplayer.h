@@ -85,6 +85,7 @@ public slots:
 	void hurtByEnemy(GameEnemy *enemy);
 	void killByEnemy(GameEnemy *enemy);
 	void attackSuccesful(GameEnemy *enemy);
+	void attackFailed(GameEnemy *enemy);
 	void decreaseHp();
 
 	void setLadderMode(LadderMode ladderMode);
@@ -97,6 +98,7 @@ public slots:
 signals:
 	void killedByEnemy(GameEnemy *enemy);
 	void hurt(GameEnemy *enemy);
+	void attackSucceed(GameEnemy *enemy);
 	void ladderModeChanged(LadderMode ladderMode);
 	void ladderChanged(GameLadder * ladder);
 	void enemyChanged(GameEnemy * enemy);
@@ -111,6 +113,7 @@ private slots:
 
 private:
 	LadderMode m_ladderMode;
+	bool m_isLadderDirectionUp;
 	GameLadder * m_ladder;
 	GameEnemy * m_enemy;
 	bool m_hasGun;

@@ -41,7 +41,9 @@
 #include "objectgroup.h"
 
 #include "gameenemy.h"
+#include "gameenemydata.h"
 #include "gameplayer.h"
+#include "gamequestion.h"
 #include "cosgame.h"
 
 CosGame::CosGame(QQuickItem *parent)
@@ -55,7 +57,11 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_startHp(1)
 	, m_playerStartPosition(nullptr)
 	, m_startBlock(0)
+	, m_running(true)
+	, m_itemPage(nullptr)
+	, m_question(nullptr)
 {
+	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
 	loadGameData();
 }
 
@@ -75,6 +81,9 @@ CosGame::~CosGame()
 
 	qDeleteAll(m_ladders.begin(), m_ladders.end());
 	m_ladders.clear();
+
+	if (m_question)
+		m_question->deleteLater();
 }
 
 
@@ -108,6 +117,13 @@ void CosGame::recreateEnemies()
 		foreach (GameEnemyData *data, block->enemies()) {
 			if (data->enemy())
 				continue;
+
+			if (qrand() % 4) {
+				qDebug() << "add question";
+				QVariantMap m;
+				m.insert("szia", "szia");
+				data->setQuestionData(m);
+			}
 
 			QQuickItem *enemy = nullptr;
 
@@ -193,7 +209,6 @@ void CosGame::setEnemiesMoving(const bool &moving)
 			e->setMoving(moving);
 	}
 }
-
 
 
 
@@ -402,6 +417,33 @@ void CosGame::setStartBlock(int startBlock)
 	emit startBlockChanged(m_startBlock);
 }
 
+void CosGame::setRunning(bool running)
+{
+	if (m_running == running)
+		return;
+
+	m_running = running;
+	emit runningChanged(m_running);
+}
+
+void CosGame::setItemPage(QQuickItem *itemPage)
+{
+	if (m_itemPage == itemPage)
+		return;
+
+	m_itemPage = itemPage;
+	emit itemPageChanged(m_itemPage);
+}
+
+void CosGame::setQuestion(GameQuestion *question)
+{
+	if (m_question == question)
+		return;
+
+	m_question = question;
+	emit questionChanged(m_question);
+}
+
 void CosGame::setStartHp(int startHp)
 {
 	if (m_startHp == startHp)
@@ -433,6 +475,21 @@ void CosGame::onPlayerDied()
 	setPlayer(nullptr);
 	recreateEnemies();
 	resetPlayer();
+}
+
+
+
+/**
+ * @brief CosGame::resetRunning
+ */
+
+void CosGame::resetRunning()
+{
+	if (gameState() == Bacon2D::Running) {
+		setRunning(true);
+	} else {
+		setRunning(false);
+	}
 }
 
 
@@ -571,5 +628,36 @@ GameBlock *CosGame::getBlock(const int &num, const bool &create)
 
 
 
+
+
+
+
+/**
+ * @brief CosGame::tryAttack
+ * @param enemy
+ */
+
+void CosGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
+{
+	qDebug() << player << "--- ATTACK ---" << enemy;
+
+	if (!player || !enemy) {
+		qWarning() << "Invalid player or invalid enemy";
+		return;
+	}
+
+	if (m_question) {
+		qWarning() << "Question already exists";
+		return;
+	}
+
+	m_question = new GameQuestion(this, player, enemy, this);
+	connect(m_question, &GameQuestion::finished, this, [=]() {
+		m_question->deleteLater();
+		m_question = nullptr;
+	});
+
+	m_question->run();
+}
 
 

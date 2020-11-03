@@ -307,7 +307,6 @@ void GameScene::loadPlayerLayer(Tiled::Layer *layer)
 			GameBlock *b = m_game->getBlock(block);
 			Box2DFixture *fixture = b->addPlayerPosition(QPoint(x,y), this->parentItem());
 
-
 			if (fixture) {
 				connect(fixture, &Box2DFixture::beginContact, m_game, &CosGame::setLastPosition);
 			}

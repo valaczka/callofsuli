@@ -98,22 +98,38 @@ int GameEnemy::msecLeftAttack() const
 }
 
 
+
+
+
 /**
- * @brief GameEnemy::tryAttack
+ * @brief GameEnemy::killByPlayer
  * @param player
  */
 
-void GameEnemy::tryAttack(GamePlayer *player)
+void GameEnemy::killByPlayer(GamePlayer *player)
 {
-	// TODO: question scene
-
-	qDebug() << this << "ATTACK succesful";
+	qDebug() << "Killed by player" << this;
 
 	setAimedByPlayer(false);
 
 	emit killed();
 
 	player->attackSuccesful(this);
+}
+
+
+/**
+ * @brief GameEnemy::missedByPlayer
+ * @param player
+ */
+
+void GameEnemy::missedByPlayer(GamePlayer *player)
+{
+	qDebug() << "Missed by player" << this;
+
+	emit killMissed();
+
+	player->attackFailed(this);
 }
 
 
@@ -126,6 +142,9 @@ void GameEnemy::tryAttack(GamePlayer *player)
 
 void GameEnemy::attackTimerTimeout()
 {
+	if (!m_cosGame || !m_cosGame->running())
+		return;
+
 	m_attackTimerElapsed += m_attackTimer->interval();
 	emit msecLeftAttackChanged();
 
@@ -239,8 +258,6 @@ void GameEnemy::setEnemyData(GameEnemyData *enemyData)
 
 	m_enemyData = enemyData;
 	emit enemyDataChanged(m_enemyData);
-
-	qDebug() << "SET ENEMY DATA" << this << enemyData;
 
 	if (m_enemyData) {
 		connect(this, &GameEnemy::die, m_enemyData, &GameEnemyData::enemyDied);

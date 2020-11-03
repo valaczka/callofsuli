@@ -67,12 +67,14 @@ GameEntity::GameEntity(QQuickItem *parent)
 	connect(this, &GameEntity::boundEndContact, this, &GameEntity::onBoundEndContact);
 
 	m_rayCastTimer = new QTimer(this);
-	m_rayCastTimer->setInterval(50);
+	m_rayCastTimer->start(50);
 	connect(m_rayCastTimer, &QTimer::timeout, this, [=](){
-		rayCastFixtureCheck();
+		if (m_cosGame && m_cosGame->running()) {
+			rayCastFixtureCheck();
 
-		if (this->m_rayCastEnabled && this->isAlive())
-			doRayCast();
+			if (this->m_rayCastEnabled && this->isAlive())
+				doRayCast();
+		}
 	});
 
 
@@ -251,6 +253,9 @@ void GameEntity::updateFixtures(const QString &sprite, const bool &inverse)
 		return;
 
 	if (!parentEntity())
+		return;
+
+	if (!m_cosGame || !m_cosGame->running())
 		return;
 
 
@@ -542,33 +547,11 @@ void GameEntity::onSceneChanged()
 	if (game) {
 		m_cosGame = game;
 		emit cosGameChanged(game);
-
-		connect(m_cosGame, &CosGame::gameStateChanged, this, &GameEntity::onGameStateChanged);
-		onGameStateChanged();
-
 		return;
 	}
 
 	qWarning() << "Invalid type cast" << s->game();
 }
-
-/**
- * @brief GameEnemy::onGameStateChanged
- */
-
-void GameEntity::onGameStateChanged()
-{
-	if (!m_cosGame)
-		return;
-
-	if (m_rayCastTimer) {
-		if (m_cosGame->gameState() == Bacon2D::Running)
-			m_rayCastTimer->start();
-		else
-			m_rayCastTimer->stop();
-	}
-}
-
 
 /**
  * @brief GameEntityPrivate::onBoundBeginContact

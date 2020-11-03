@@ -83,8 +83,8 @@ Box2DBox* GameBlock::addPlayerPosition(const QPoint &point, QQuickItem *parent)
 {
 	GameObject *item = new GameObject(parent);
 
-	qreal w = 50;
-	qreal h = 150;
+	qreal w = 20;
+	qreal h = 100;
 	qreal x = point.x()-w/2;
 	qreal y = point.y()-h/2;
 

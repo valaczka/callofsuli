@@ -43,6 +43,8 @@ PhysicsEntity {
 		width: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameWidth : 10
 		height: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameHeight : 10
 
+		running: entityPrivate && entityPrivate.cosGame.running
+
 		anchors.horizontalCenter: root.horizontalCenter
 		anchors.bottom: root.bottom
 
@@ -105,9 +107,25 @@ PhysicsEntity {
 		target: entityPrivate ? entityPrivate : null
 		onDie: {
 			console.debug(root, "DIED")
-			root.destroy()
+			dieAnimation.start()
 		}
 	}
+
+	SequentialAnimation {
+		id: dieAnimation
+		running: false
+		PropertyAnimation {
+			target: root
+			property: "opacity"
+			to: 0
+			duration: 150
+		}
+		ScriptAction {
+			script: root.destroy()
+		}
+	}
+
+
 
 	Timer {
 		id: glowForcedDelay

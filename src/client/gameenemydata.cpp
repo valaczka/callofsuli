@@ -43,6 +43,7 @@ GameEnemyData::GameEnemyData(QObject *parent)
 	, m_block(nullptr)
 	, m_enemy(nullptr)
 	, m_enemyType(EnemySoldier)
+	, m_questionData()
 {
 
 }
@@ -129,5 +130,14 @@ void GameEnemyData::enemyKilled()
 
 	if (m_block)
 		m_block->recalculateActiveEnemies();
+}
+
+void GameEnemyData::setQuestionData(QVariantMap questionData)
+{
+	if (m_questionData == questionData)
+		return;
+
+	m_questionData = questionData;
+	emit questionDataChanged(m_questionData);
 }
 

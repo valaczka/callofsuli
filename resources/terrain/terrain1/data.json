@@ -1,4 +1,4 @@
 {
 	"tmx": "terrain.tmx",
-	"blocks": 3
+	"background": "bg.png"
 }

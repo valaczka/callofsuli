@@ -129,7 +129,6 @@ private slots:
 	void rayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, float32 fraction);
 	void rayCastFixtureCheck();
 	void setRayCastItems(QMultiMap<qreal, QQuickItem *> rayCastItems);
-	void onGameStateChanged();
 
 signals:
 	void die();

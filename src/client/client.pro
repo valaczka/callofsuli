@@ -44,6 +44,7 @@ SOURCES += \
 		gameladder.cpp \
 		gameobject.cpp \
 		gameplayer.cpp \
+		gamequestion.cpp \
 		gamescene.cpp \
 		intro.cpp \
 		main.cpp \
@@ -77,6 +78,7 @@ HEADERS += \
 	gameladder.h \
 	gameobject.h \
 	gameplayer.h \
+	gamequestion.h \
 	gamescene.h \
 	intro.h \
 	mapdata.h \

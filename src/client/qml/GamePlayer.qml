@@ -91,7 +91,7 @@ GameEntity {
 
 		property bool readyToStop: false
 
-		running: root.isWalking
+		running: ep.cosGame.running && root.isWalking
 
 		triggeredOnStart: true
 		onTriggered: {
@@ -119,7 +119,7 @@ GameEntity {
 
 		property bool readyToStop: false
 
-		running: root.isRunning
+		running: ep.cosGame.running && root.isRunning
 
 		triggeredOnStart: true
 		onTriggered: {
@@ -147,7 +147,8 @@ GameEntity {
 
 		triggeredOnStart: true
 
-		running: Array("climbup", "climbup2", "climbup3", "climbupend",
+		running: ep.cosGame.running &&
+				 Array("climbup", "climbup2", "climbup3", "climbupend",
 					   "climbdown", "climbdown2", "climbdown3", "climbdownend").includes(spriteSequence.currentSprite)
 
 		onTriggered: {
@@ -181,7 +182,7 @@ GameEntity {
 
 
 	function turnRight() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 		if (isFalling ||
@@ -194,7 +195,7 @@ GameEntity {
 
 
 	function turnLeft() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 
@@ -208,7 +209,7 @@ GameEntity {
 
 
 	function walkRight() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 		if (isFalling ||
@@ -224,7 +225,7 @@ GameEntity {
 	}
 
 	function walkLeft() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 
@@ -241,7 +242,7 @@ GameEntity {
 
 
 	function runRight() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 		if (isFalling ||
@@ -256,7 +257,7 @@ GameEntity {
 	}
 
 	function runLeft() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 
@@ -273,7 +274,7 @@ GameEntity {
 
 
 	function moveUp() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 		if (isFalling)
@@ -292,7 +293,7 @@ GameEntity {
 
 
 	function moveDown() {
-		if(scene.game.gameState != Bacon2D.Running || !ep.isAlive)
+		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
 		if (isFalling)

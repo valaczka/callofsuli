@@ -46,6 +46,7 @@
 GamePlayer::GamePlayer(QQuickItem *parent)
 	: GameEntity(parent)
 	, m_ladderMode(LadderUnavaliable)
+	, m_isLadderDirectionUp(false)
 	, m_ladder(nullptr)
 	, m_enemy(nullptr)
 	, m_hasGun(true)
@@ -186,6 +187,8 @@ void GamePlayer::ladderClimbUp()
 
 	QObject *spriteSequence = qvariant_cast<QObject *>(parentEntity()->property("spriteSequence"));
 
+	m_isLadderDirectionUp = true;
+
 	if (m_ladderMode == LadderUpAvailable) {
 		int x = m_ladder->boundRect().x()+(m_ladder->boundRect().width()-parentEntity()->width())/2;
 		parentEntity()->setX(x);
@@ -213,6 +216,8 @@ void GamePlayer::ladderClimbDown()
 		return;
 
 	QObject *spriteSequence = qvariant_cast<QObject *>(parentEntity()->property("spriteSequence"));
+
+	m_isLadderDirectionUp = false;
 
 	if (m_ladderMode == LadderDownAvailable) {
 		int x = m_ladder->boundRect().x()+(m_ladder->boundRect().width()-parentEntity()->width())/2;
@@ -245,6 +250,9 @@ void GamePlayer::ladderClimbFinish()
 {
 	if (!m_ladder || !parentEntity())
 		return;
+
+	if (m_isLadderDirectionUp)
+		parentEntity()->setY(m_ladder->boundRect().top()-parentEntity()->height());
 
 	setLadder(nullptr);
 	setLadderMode(LadderUnavaliable);
@@ -421,7 +429,7 @@ void GamePlayer::attackByGun()
 	if (!m_enemy)
 		return;
 
-	m_enemy->tryAttack(this);
+	m_cosGame->tryAttack(this, m_enemy);
 }
 
 
@@ -433,6 +441,19 @@ void GamePlayer::attackByGun()
 void GamePlayer::attackSuccesful(GameEnemy *enemy)
 {
 	qDebug() << "Attack successful" << enemy;
+	emit attackSucceed(enemy);
+}
+
+
+/**
+ * @brief GamePlayer::attackFailed
+ * @param enemy
+ */
+
+void GamePlayer::attackFailed(GameEnemy *enemy)
+{
+	qDebug() << "Attack failed" << enemy;
+	hurtByEnemy(enemy);
 }
 
 

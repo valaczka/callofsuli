@@ -71,7 +71,8 @@ public:
 	int msecBetweenAttack() const { return m_msecBetweenAttack; }
 
 public slots:
-	void tryAttack(GamePlayer *player);
+	void killByPlayer(GamePlayer *player);
+	void missedByPlayer(GamePlayer *player);
 	void setMoving(bool moving);
 	void setArmed(bool armed);
 	void setEnemyData(GameEnemyData * enemyData);
@@ -95,6 +96,7 @@ private slots:
 signals:
 	void attack();
 	void killed();
+	void killMissed();
 	void movingChanged(bool moving);
 	void armedChanged(bool armed);
 	void enemyDataChanged(GameEnemyData * enemyData);

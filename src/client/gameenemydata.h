@@ -51,6 +51,7 @@ class GameEnemyData : public QObject
 	Q_PROPERTY(GameBlock * block READ block WRITE setBlock NOTIFY blockChanged)
 
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
+	Q_PROPERTY(QVariantMap questionData READ questionData WRITE setQuestionData NOTIFY questionDataChanged)
 
 	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
 	Q_PROPERTY(QQuickItem * enemy READ enemy NOTIFY enemyChanged)
@@ -74,6 +75,7 @@ public:
 	QQuickItem * enemy() const { return m_enemy; }
 	EnemyType enemyType() const { return m_enemyType; }
 	GameEnemy * enemyPrivate() const;
+	QVariantMap questionData() const { return m_questionData; }
 
 public slots:
 	void setBoundRect(QRectF boundRect);
@@ -83,6 +85,7 @@ public slots:
 	void setEnemyType(EnemyType enemyType);
 	void enemyDied();
 	void enemyKilled();
+	void setQuestionData(QVariantMap questionData);
 
 signals:
 	void boundRectChanged(QRectF boundRect);
@@ -90,6 +93,7 @@ signals:
 	void blockChanged(GameBlock * block);
 	void enemyChanged(QQuickItem * enemy);
 	void enemyTypeChanged(EnemyType enemyType);
+	void questionDataChanged(QVariantMap questionData);
 
 private:
 	QRectF m_boundRect;
@@ -97,6 +101,7 @@ private:
 	GameBlock * m_block;
 	QQuickItem *m_enemy;
 	EnemyType m_enemyType;
+	QVariantMap m_questionData;
 };
 
 #endif // GAMEENEMY_H

@@ -136,37 +136,6 @@ void GameEnemySoldier::createFixtures()
 	f.append(&f, box);
 
 	setBoundBox(box);
-
-
-	/*
-
-	// Create body polygon
-
-	Box2DPolygon *polygon = new Box2DPolygon(parentEntity());
-
-	polygon->setSensor(true);
-	polygon->setCategories(Box2DFixture::Category2);
-	polygon->setCollidesWith(Box2DFixture::Category2|Box2DFixture::Category3);
-
-	QVariantList l;
-	l << QVariant(QPoint(0,0))
-	  << QVariant(QPoint(10,0))
-	  << QVariant(QPoint(10,10))
-	  << QVariant(QPoint(0,10));
-
-	polygon->setVertices(l);
-
-	f.append(&f, polygon);
-
-	setBodyPolygon(polygon);
-
-
-	QQmlListProperty<Box2DFixture> f2 = b2body->fixtures();
-
-	for (int i=0; i<f2.count(&f2); ++i) {
-		qDebug() << i << f.at(&f2, i);
-	}
-	*/
 }
 
 void GameEnemySoldier::setMsecBeforeTurn(int msecBeforeTurn)
@@ -236,7 +205,7 @@ void GameEnemySoldier::onMovingTimerTimeout()
 		return;
 	}
 
-	if (m_cosGame->gameState() != Bacon2D::Running)
+	if (!m_cosGame->running())
 		return;
 
 	if (m_player || m_attackRunning || !m_isAlive)

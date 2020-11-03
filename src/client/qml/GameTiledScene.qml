@@ -9,7 +9,7 @@ import "JScript.js" as JS
 
 Scene {
 	id: scene
-	//debug: true
+	debug: true
 	physics: true
 
 	width: scenePrivate.implicitWidth
@@ -105,6 +105,9 @@ Scene {
 				if(!event.isAutoRepeat)
 					game.player.stopMoving();
 				break;
+			case Qt.Key_F5:
+				game.loadQuestion()
+				break;
 			case Qt.Key_X:
 				if (event.modifiers & Qt.ShiftModifier && area.containsMouse && game.player) {
 					game.player.x = area.mouseX
@@ -139,44 +142,59 @@ Scene {
 		GameEnemySoldier { }
 	}
 
+	Component {
+		id: questionComponent
+
+		GameQuestion { }
+	}
+
 
 	function createPlayer() : Item {
-		if (!game.player) {
-			var p = playerComponent.createObject(scene)
-			p.loadSprites()
-			return p
+	if (!game.player) {
+		var p = playerComponent.createObject(scene)
+		p.loadSprites()
+		return p
+	}
+		return null
+	}
+
+
+	function createComponent(enemyType: int) : Item {
+		var obj = null
+
+		switch (enemyType) {
+			case GameEnemyData.EnemySoldier:
+				obj = enemySoldierComponent.createObject(scene)
+			break
+			case GameEnemyData.EnemyOther:
+				obj = enemySoldierComponent.createObject(scene)
+			break
 		}
-			return null
+
+		return obj
+	}
+
+
+	function createLadders() {
+		if (!game || !game.ladders)
+		return
+
+		for (var i=0; i<game.ladders.length; i++) {
+			var l = game.ladders[i]
+
+			var obj = ladderComponent.createObject(scene,{
+				ladder: l
+			})
 		}
+	}
 
 
-			function createComponent(enemyType: int) : Item {
-				var obj = null
+	function createQuestion(questionData: json) : Item {
+		var obj = questionComponent.createObject(game.itemPage,{
+			//ladder: l
+		})
 
-				switch (enemyType) {
-					case GameEnemyData.EnemySoldier:
-						obj = enemySoldierComponent.createObject(scene)
-					break
-					case GameEnemyData.EnemyOther:
-						obj = enemySoldierComponent.createObject(scene)
-					break
-				}
+		return obj
+	}
+}
 
-				return obj
-			}
-
-
-				function createLadders() {
-					if (!game || !game.ladders)
-					return
-
-					for (var i=0; i<game.ladders.length; i++) {
-						var l = game.ladders[i]
-
-						var obj = ladderComponent.createObject(scene,{
-							ladder: l
-						})
-					}
-				}
-
-			}

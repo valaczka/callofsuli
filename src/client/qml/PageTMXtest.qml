@@ -11,6 +11,8 @@ import "JScript.js" as JS
 Page {
 	id: control
 
+	property bool _closeEnabled: false
+
 
 	Image {
 		id: bg
@@ -19,13 +21,13 @@ Page {
 		property real scaleFactorHeight: 1.1
 
 		x: -(flick.visibleArea.xPosition/(1-flick.visibleArea.widthRatio))*(width-parent.width)
-		y: flick.contentHeight > parent.height ?
+		/*y: flick.contentHeight > parent.height ?
 			-(flick.visibleArea.yPosition/(1-flick.visibleArea.heightRatio))*(height-parent.height) :
-			   -(height-parent.height)
+			   -(height-parent.height)*/
+		y: -(height-parent.height)
 
 		onYChanged: console.debug(flick.visibleArea.yPosition, flick.visibleArea.heightRatio)
 
-		source: "qrc:/terrain/terrain1/bg.png"
 		fillMode: Image.PreserveAspectCrop
 		clip: false
 		height: parent.height*scaleFactorHeight
@@ -56,10 +58,7 @@ Page {
 			currentScene: mainScene
 
 			gameScene: gameScene
-
-			//scale: (Qt.platform.os === "android" ? 0.8 : 1.0)
-
-			// létra tetejéről leesik!!!
+			itemPage: control
 
 			terrain: "terrain1"
 			playerCharacter: "character2"
@@ -81,10 +80,13 @@ Page {
 
 
 			onTerrainDataChanged: {
-				if (terrainData)
+				if (terrainData) {
 					gameScene.scenePrivate.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.tmx
-				else
+					bg.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.background
+				} else {
 					gameScene.scenePrivate.source = null
+					bg.source = null
+				}
 			}
 
 
@@ -97,7 +99,10 @@ Page {
 
 			Connections {
 				target: game.player ? game.player : null
-				onXChanged: flick.setXOffset()
+				onXChanged: {
+					flick.setXOffset()
+					flick.setYOffset()
+				}
 				onFacingLeftChanged: flick.setXOffset()
 				onYChanged: flick.setYOffset()
 
@@ -113,8 +118,11 @@ Page {
 			}
 		}
 
-		onWidthChanged: setYOffset()
+		onWidthChanged: setXOffset()
 		onHeightChanged: setYOffset()
+		onContentWidthChanged: setXOffset()
+		onContentHeightChanged: setYOffset()
+
 
 
 		SmoothedAnimation {
@@ -135,36 +143,35 @@ Page {
 			var pw = game.player.width
 			var cx = flick.contentX
 			var cw = flick.contentWidth
-			var x = -1
+			var x = 0
+			var newX = false
 
 			if (game.player.facingLeft) {
 				if (px+pw+10 > cx+fw) {
 					x = px+pw+10-fw
-					if (x<0)
-						x = 0
+					newX = true
 				} else if (px-spaceRequired < cx) {
 					x = px-spaceRequired
-
-					if (x+fw > cw)
-						x = cw-fw
+					newX = true
 				}
+
 			} else  {
 				if (px-10 < cx) {
 					x = px-10
-					if (x<0)
-						x = 0
+					newX = true
 				} else if (px+pw+spaceRequired > (cx+fw)) {
 					x = px+pw+spaceRequired-fw
-
-					if (x+fw > cw)
-						x = cw-fw
+					newX = true
 				}
 			}
 
-			if (x > -1) {
-				if (animX.running) {
-					animX.to = x
-				} else if (Math.abs(cx-x) > 75) {
+			if (newX) {
+				if (x<0)
+					x = 0
+				if (x+fw > cw)
+					x = cw-fw
+
+				if (animX.running || Math.abs(cx-x) > 50) {
 					animX.to = x
 					animX.restart()
 				} else {
@@ -201,6 +208,7 @@ Page {
 			if (y>-1)
 				flick.contentY = y
 		}
+
 	}
 
 	/*
@@ -248,14 +256,14 @@ Page {
 
 		onJoystickMoved: if (game.player) {
 							 if (x > 0.5) {
-								 if (x > 0.95)
+								 if (x > 0.9)
 									 game.player.runRight()
 								 else
 									 game.player.walkRight()
 							 } else if (x > 0.1) {
 								 game.player.turnRight()
 							 } else if (x < -0.5) {
-								 if (x < -0.95)
+								 if (x < -0.9)
 									 game.player.runLeft()
 								 else
 									 game.player.walkLeft()
@@ -265,9 +273,9 @@ Page {
 								 game.player.stopMoving()
 							 }
 
-							 if (y > 0.95)
+							 if (y > 0.9)
 								 game.player.moveUp()
-							 else if (y < -0.95)
+							 else if (y < -0.9)
 								 game.player.moveDown()
 						 }
 	}
@@ -292,21 +300,40 @@ Page {
 
 
 
-
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		game.gameState = Bacon2D.Running
+
 	}
 
 
 
+
+
 	function windowClose() {
+		if (!_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan megszakítod a játékot?")})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainWindow.close()
+			})
+			d.open()
+			return false
+		}
 		return true
 	}
 
 
 	function stackBack() {
+		if (!_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan megszakítod a játékot?")})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
 		return false
 	}
 

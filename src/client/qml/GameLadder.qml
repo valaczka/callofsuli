@@ -17,7 +17,7 @@ PhysicsEntity {
 	readonly property bool ladderActive: ladder && ladder.active
 	property int _collision: 0 //Box.Category3
 
-	readonly property int fixtureHeight: 30
+	readonly property int fixtureHeight: 20
 	readonly property int ladderWidth: 30
 
 	property bool glowEnabled: false

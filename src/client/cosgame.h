@@ -43,6 +43,7 @@
 #include "gamescene.h"
 
 class GamePlayer;
+class GameQuestion;
 
 class CosGame : public Game
 {
@@ -64,6 +65,9 @@ class CosGame : public Game
 	Q_PROPERTY(QList<GameLadder *> ladders READ ladders NOTIFY laddersChanged)
 
 	Q_PROPERTY(QQuickItem * gameScene READ gameScene WRITE setGameScene NOTIFY gameSceneChanged)
+	Q_PROPERTY(QQuickItem * itemPage READ itemPage WRITE setItemPage NOTIFY itemPageChanged)
+	Q_PROPERTY(GameQuestion * question READ question NOTIFY questionChanged)
+	Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 
 
 public:
@@ -76,6 +80,7 @@ public:
 	Q_INVOKABLE void recreateEnemies();
 	Q_INVOKABLE void resetEnemy(GameEnemyData *enemyData);
 	Q_INVOKABLE void setEnemiesMoving(const bool &moving);
+	Q_INVOKABLE void tryAttack(GamePlayer *player, GameEnemy *enemy);
 
 	qreal deathlyAttackDistance();
 
@@ -99,6 +104,11 @@ public:
 	GameObject * playerStartPosition() const { return m_playerStartPosition; }
 	QList<GameLadder *> ladders() const { return m_ladders; }
 
+	bool running() const { return m_running; }
+
+	QQuickItem * itemPage() const { return m_itemPage; }
+	GameQuestion * question() const { return m_question; }
+
 public slots:
 	void resetPlayer();
 	void setLastPosition();
@@ -114,10 +124,14 @@ public slots:
 	void setGameScene(QQuickItem * gameScene);
 	void setPlayerStartPosition(GameObject * playerStartPosition);
 	void setStartBlock(int startBlock);
+	void setRunning(bool running);
+	void setItemPage(QQuickItem * itemPage);
+	void setQuestion(GameQuestion * question);
 
 private slots:
 	void onLayersLoaded();
 	void onPlayerDied();
+	void resetRunning();
 	void recalculateBlocks();
 
 signals:
@@ -137,6 +151,9 @@ signals:
 	void playerStartPositionChanged(GameObject * playerStartPosition);
 	void startBlockChanged(int startBlock);
 	void laddersChanged(QList<GameLadder *> allLadder);
+	void runningChanged(bool running);
+	void itemPageChanged(QQuickItem * itemPage);
+	void questionChanged(GameQuestion * question);
 
 private:
 	void loadGameData();
@@ -154,6 +171,9 @@ private:
 	int m_startHp;
 	GameObject * m_playerStartPosition;
 	int m_startBlock;
+	bool m_running;
+	QQuickItem * m_itemPage;
+	GameQuestion * m_question;
 };
 
 #endif // COSGAME_H

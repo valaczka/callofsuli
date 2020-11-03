@@ -111,5 +111,6 @@
         <file>GameLadder.qml</file>
         <file>GameEnemyMarker.qml</file>
         <file>FlickableParallax.qml</file>
+        <file>GameQuestion.qml</file>
     </qresource>
 </RCC>
