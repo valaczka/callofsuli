@@ -50,9 +50,9 @@ class AbstractActivity : public QObject
 	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
 	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
 
-
 public:
 	explicit AbstractActivity(QObject *parent = nullptr);
+	~AbstractActivity();
 
 	Client* client() const { return m_client; }
 	bool isBusy() const { return m_isBusy; }
@@ -80,5 +80,6 @@ protected:
 	QStringList m_busyStack;
 
 };
+
 
 #endif // ABSTRACTACTIVITY_H

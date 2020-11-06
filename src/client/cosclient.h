@@ -35,6 +35,7 @@
 #include <QJsonObject>
 #include <QUrl>
 
+
 class Client : public QObject
 {
 	Q_OBJECT

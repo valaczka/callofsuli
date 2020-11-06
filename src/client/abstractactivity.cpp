@@ -35,20 +35,34 @@
 #include "abstractactivity.h"
 #include "QQuickItem"
 
-AbstractActivity::AbstractActivity(QObject *parent) : QObject(parent)
+AbstractActivity::AbstractActivity(QObject *parent)
+	: QObject(parent)
+	, m_client(nullptr)
+	, m_isBusy(false)
 {
-	m_client = nullptr;
-	m_isBusy = false;
+
+}
+
+/**
+ * @brief AbstractActivity::~AbstractActivity
+ */
+
+AbstractActivity::~AbstractActivity()
+{
+
 }
 
 
 /**
- * @brief AbstractActivity::send
+ * @brief AbstractActivityPrivate::send
  * @param query
  */
 
 void AbstractActivity::send(const QJsonObject &query, const QByteArray &binaryData)
 {
+	if (!m_client)
+		return;
+
 	int msgid = m_client->socketSend(query, binaryData);
 
 	QString f = query.value("func").toString();
@@ -92,7 +106,7 @@ void AbstractActivity::setBusyStack(QStringList busyStack)
 
 
 /**
- * @brief AbstractActivity::busyStackAdd
+ * @brief AbstractActivityPrivate::busyStackAdd
  * @param func
  */
 
@@ -104,7 +118,7 @@ void AbstractActivity::busyStackAdd(const QString &func, const int &msgId)
 
 
 /**
- * @brief AbstractActivity::busyStackRemove
+ * @brief AbstractActivityPrivate::busyStackRemove
  * @param func
  */
 
@@ -113,3 +127,7 @@ void AbstractActivity::busyStackRemove(const QString &func, const int &msgId)
 	m_busyStack.removeAll(QString(func).append(msgId));
 	setIsBusy(m_busyStack.count());
 }
+
+
+
+

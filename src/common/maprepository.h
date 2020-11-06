@@ -43,7 +43,7 @@ class MapRepository : public COSdb
 	Q_OBJECT
 
 public:
-	MapRepository(const QString &connectionName = QString(), QObject *parent = nullptr);
+	MapRepository(const QString &connectionName = "mapRepository", QObject *parent = nullptr);
 
 public slots:
 	void listReload();

@@ -9,38 +9,18 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	property Servers servers: null
-
 	maximumWidth: 600
-
 
 	title: qsTr("Szerverek")
 	icon: CosStyle.iconUsers
 
-
-	pageContextMenu: swipeMode ? menuSwipe : menuNoSwipe
-
-	QMenu {
-		id: menuSwipe
-		MenuItem { action: actionServerNew }
-		MenuItem { action: actionConnect }
-		MenuItem { action: actionRemove }
-		MenuItem { action: actionEdit }
-
-		MenuSeparator { }
-
-		MenuItem { action: tmXtest }
-		MenuItem { action: actionAbout }
-		MenuItem { action: actionExit }
+	contextMenuFunc: function (m) {
+		m.addAction(actionServerNew)
+		m.addAction(actionConnect)
+		m.addAction(actionRemove)
+		m.addAction(actionEdit)
 	}
 
-	QMenu {
-		id: menuNoSwipe
-		MenuItem { action: actionServerNew }
-		MenuItem { action: actionConnect }
-		MenuItem { action: actionRemove }
-		MenuItem { action: actionEdit }
-	}
 
 	QPageHeader {
 		id: header
@@ -111,7 +91,10 @@ QPagePanel {
 			color: CosStyle.colorAccent
 		}
 
-		onClicked: pageStart.serverConnect(model.get(index).id)
+		onClicked: if (servers.editing)
+					   actionEdit.trigger()
+				   else
+					   servers.serverConnect(model.get(index).id)
 
 		onRightClicked: contextMenu.popup()
 		onLongPressed: contextMenu.popup()
@@ -131,27 +114,6 @@ QPagePanel {
 		onKeyF4Pressed: actionEdit.trigger()
 		onKeyDeletePressed: actionRemove.trigger()
 		onKeyF2Pressed: actionAutoConnect.trigger()
-
-
-
-		/*Keys.onPressed: {
-			if (event.key === Qt.Key_Insert) {
-				editServer(-1)
-			} else if (event.key === Qt.Key_F4 && listMenu.currentIndex !== -1) {
-				editServer(listMenu.model[listMenu.currentIndex].id)
-			} else if (event.key === Qt.Key_Delete && listMenu.currentIndex !== -1) {
-				deleteServer(listMenu.currentIndex)
-			} else if (event.key === Qt.Key_F1) {
-				var o = JS.createPage("MapEditor", {}, page)
-				o.pagePopulated.connect(function() {
-					o.map.loadFromFile("AAA.cosm")
-					o.map.mapOriginalFile = "AAA.cosm"
-					o.mapName = "AAA.cosm"
-				})
-			}
-		}*/
-
-
 	}
 
 
@@ -159,14 +121,17 @@ QPagePanel {
 	Action {
 		id: actionServerNew
 		text: qsTr("Új szerver")
-		onTriggered: pageStart.serverCreate()
+		onTriggered: {
+			servers.serverId = -1
+			servers.editing = true
+		}
 	}
 
 	Action {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
 		enabled: serverList.currentIndex !== -1
-		onTriggered: pageStart.serverConnect(serverList.model.get(serverList.currentIndex).id)
+		onTriggered: servers.serverConnect(serverList.model.get(serverList.currentIndex).id)
 
 	}
 
@@ -174,7 +139,10 @@ QPagePanel {
 		id: actionEdit
 		text: qsTr("Szerkesztés")
 		enabled: serverList.currentIndex !== -1
-		onTriggered: pageStart.serverEdit(serverList.model.get(serverList.currentIndex).id)
+		onTriggered: {
+			servers.serverId = serverList.model.get(serverList.currentIndex).id
+			servers.editing = true
+		}
 	}
 
 	Action {
@@ -211,12 +179,10 @@ QPagePanel {
 		onServerInfoUpdated: servers.serverListReload()
 	}
 
-	onPopulated: {
+	onPanelActivated: {
 		servers.serverListReload()
 		serverList.forceActiveFocus()
 	}
-
-	onPanelActivated: serverList.forceActiveFocus()
 }
 
 

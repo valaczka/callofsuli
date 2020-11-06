@@ -38,37 +38,31 @@
 #include <QObject>
 #include "cossql.h"
 
-class COSdb : public QObject
+class COSdb : public CosSql
 {
 	Q_OBJECT
 
 public:
-	Q_PROPERTY(CosSql* db READ db WRITE setDb NOTIFY dbChanged)
 	Q_PROPERTY(QString databaseFile READ databaseFile WRITE setDatabaseFile NOTIFY databaseFileChanged)
 
 	explicit COSdb(const QString &connectionName = QString(), QObject *parent = nullptr);
 	virtual ~COSdb();
 
-	CosSql* db() const { return m_db; }
 	QString databaseFile() const { return m_databaseFile; }
 	bool databaseExists() const { return (QFile::exists(m_databaseFile)); }
 
 public slots:
 	bool databaseOpen();
-
-	void setDb(CosSql* db);
 	void setDatabaseFile(QString databaseFile);
 
 protected slots:
-	virtual bool databaseInit() { return true; }
+	virtual bool databaseInit() = 0;
 
 signals:
 	void databaseError(const QString &text);
-	void dbChanged(CosSql* db);
 	void databaseFileChanged(QString databaseFile);
 
 protected:
-	CosSql* m_db;
 	QString m_databaseFile;
 	bool m_isOwnCreated;
 

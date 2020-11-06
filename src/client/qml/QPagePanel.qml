@@ -7,15 +7,20 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	implicitWidth: 500
+	implicitWidth: visible ? 500 : 0
 	implicitHeight: 200
 
+	visible: false
+
+	property bool panelVisible: false
 
 	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
 
+	property bool layoutFillWidth: false
 	property string icon: ""
 	property alias title: labelTitle.text
+	property QTabButton tabButton: null
 
 	property alias panelData: panelData
 	default property alias panelDataData: panelData.data
@@ -26,21 +31,28 @@ Item {
 	property int maximumWidth: 0
 	property int maximumHeight: 0
 
-	property Menu pageContextMenu: null
+	property var contextMenuFunc: null
 
 
-	readonly property bool swipeMode: control.SwipeView.view
-	property bool _isCurrent: control.SwipeView.isCurrentItem
+	readonly property bool swipeMode: parent.SwipeView.view
+	property bool _isCurrent: parent.SwipeView.isCurrentItem
 
-	signal panelActivated()
 	signal populated()
+	signal panelActivated()
 
 	on_IsCurrentChanged: {
 		if (_isCurrent) {
-			control.SwipeView.view.parentPage.mainMenu = pageContextMenu
-			panelActivated()
+			parent.SwipeView.view.parentPage.contextMenuFunc = contextMenuFunc
 		}
 	}
+
+
+	Component.onDestruction: {
+		state = ""
+		if (tabButton)
+			tabButton.destroy()
+	}
+
 
 
 	Item {
@@ -96,41 +108,6 @@ Item {
 
 
 
-		/*ShaderEffectSource {
-			id: effectsource
-			anchors.fill: parent
-			sourceRect: Qt.rect(parent.x, parent.y, parent.width, parent.height)
-			visible: false
-		}
-
-		FastBlur {
-			id: blurEffect
-			anchors.fill: effectsource
-			source: effectsource
-			radius: 30
-			visible: false
-		}
-
-		BrightnessContrast {
-			id: brightnessEffect
-			anchors.fill: blurEffect
-			source: blurEffect
-			brightness: -0.5
-			visible: false
-		}
-
-		OpacityMask {
-			id: opacityEffect
-			source: brightnessEffect
-			maskSource: bgRect
-			anchors.fill: brightnessEffect
-			visible: true
-		}*/
-
-
-
-
-
 		Item {
 			id: realContent
 			anchors.fill: parent
@@ -182,11 +159,15 @@ Item {
 
 					icon.source: CosStyle.iconMenu
 
-					visible: pageContextMenu && !swipeMode
+					visible: contextMenuFunc && !swipeMode
 
-					onClicked: if (pageContextMenu) {
-								   pageContextMenu.popup(menuButton, 0, menuButton.height)
-							   }
+					Component {
+						id: menuComponent
+						QMenu { }
+					}
+
+					onClicked: if (contextMenuFunc)
+								   JS.createMenu(menuButton, menuComponent, [contextMenuFunc])
 				}
 			}
 
@@ -198,13 +179,13 @@ Item {
 				anchors.right: parent.right
 				height: 1
 				border.width: 0
-					gradient: Gradient {
-						orientation: Gradient.Horizontal
-						GradientStop { position: 0.0; color: "transparent" }
-						GradientStop { position: 0.3; color: control.titleColor }
-						GradientStop { position: 0.7; color: control.titleColor }
-						GradientStop { position: 1.0; color: "transparent" }
-					}
+				gradient: Gradient {
+					orientation: Gradient.Horizontal
+					GradientStop { position: 0.0; color: "transparent" }
+					GradientStop { position: 0.3; color: control.titleColor }
+					GradientStop { position: 0.7; color: control.titleColor }
+					GradientStop { position: 1.0; color: "transparent" }
+				}
 			}
 
 
@@ -249,50 +230,83 @@ Item {
 			color: borderColor
 		}
 
-
-		/*BorderImage {
-			id: bgRect
-			source: "qrc:/internal/img/border.svg"
-			visible: false
-
-			width: parent.width
-			height: parent.height
-			border.left: 15; border.top: 10
-			border.right: 15; border.bottom: 10
-
-			horizontalTileMode: BorderImage.Repeat
-			verticalTileMode: BorderImage.Repeat
-		}
-
-
-
-		BorderImage {
-			id: bgRectLine
-			source: "qrc:/internal/img/borderLine15.svg"
-			visible: false
-
-			anchors.fill: bgRect
-			border.left: 15; border.top: 10
-			border.right: 15; border.bottom: 10
-
-			horizontalTileMode: BorderImage.Repeat
-			verticalTileMode: BorderImage.Repeat
-		}
-
-		Rectangle {
-			id: borderRectData
-			anchors.fill: bgRect
-			visible: false
-			color: borderColor
-		}
-
-		OpacityMask {
-			id: borderRect
-			source: borderRectData
-			maskSource: bgRectLine
-			anchors.fill: borderRectData
-			visible: !item.swipeMode
-		}*/
 	}
+
+
+	states: [
+		State {
+			name: "VISIBLE"
+			when: panelVisible || swipeMode
+		}
+	]
+
+	transitions: [
+		Transition {
+			from: "*"
+			to: "VISIBLE"
+
+			SequentialAnimation {
+				PropertyAction {
+					target: control
+					property: "visible"
+					value: true
+				}
+
+				ParallelAnimation {
+					NumberAnimation {
+						target: panel
+						property: "scale"
+						from: 0.75
+						to: 1.0
+						duration: 175
+						easing.type: Easing.InOutQuad
+					}
+
+					NumberAnimation {
+						target: panel
+						property: "opacity"
+						to: 1.0
+						duration: 75
+						easing.type: Easing.InOutQuad
+					}
+				}
+			}
+		},
+
+
+		Transition {
+			from: "VISIBLE"
+			to: "*"
+
+			SequentialAnimation {
+				ParallelAnimation {
+					NumberAnimation {
+						target: panel
+						property: "scale"
+						to: 0.5
+						duration: 125
+						easing.type: Easing.InOutQuad
+					}
+
+					NumberAnimation {
+						target: panel
+						property: "opacity"
+						to: 0.0
+						duration: 125
+						easing.type: Easing.InOutQuad
+					}
+
+				}
+
+				PropertyAction {
+					target: control
+					property: "visible"
+					value: false
+				}
+			}
+		}
+	]
+
+
 
 }

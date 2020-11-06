@@ -137,7 +137,7 @@ void Client::registerResources()
 #ifdef Q_OS_ANDROID
 	searchList.append("assets:");
 	searchList << QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
-	searchList << QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+	searchList << QStandardPaths::standardLocations(QStandardPaths::DataLocation);
 #else
 	QString binDir = QCoreApplication::applicationDirPath();
 
@@ -148,6 +148,7 @@ void Client::registerResources()
 	searchList.append(binDir+"/callofsuli/share");
 	searchList.append(binDir+"/../callofsuli/share");
 	searchList.append(binDir+"/../../callofsuli/share");
+	searchList << QStandardPaths::standardLocations(QStandardPaths::DataLocation);
 
 	searchList.removeDuplicates();
 
@@ -174,27 +175,24 @@ void Client::registerResources()
 
 void Client::registerTypes()
 {
-	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
-	qmlRegisterType<CosSql>("COS.Client", 1, 0, "CosSql");
-	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
-	qmlRegisterType<COSdb>("COS.Client", 1, 0, "COSdb");
-	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
-	qmlRegisterType<MapData>("COS.Client", 1, 0, "Map");
-	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
-	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
-	qmlRegisterType<AbstractDbActivity>("COS.Client", 1, 0, "AbstractDbActivity");
+	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
-	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
-	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");
-	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
-	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
 	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
+	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
+	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
+	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");
+	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
+	qmlRegisterType<MapData>("COS.Client", 1, 0, "Map");
+	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
+	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");
+	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
+	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 }
 
 

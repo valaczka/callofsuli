@@ -14,11 +14,11 @@ QPagePanel {
 	title: qsTr("Osztályok")
 	icon: CosStyle.iconUsers
 
-	pageContextMenu: QMenu {
+	/*pageContextMenu: QMenu {
 		MenuItem {
 			action: actionRemove
 		}
-	}
+	}*/
 
 	QPageHeader {
 		id: header

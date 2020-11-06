@@ -14,7 +14,7 @@ QPagePanel {
 	title: qsTr("Felhasználók")
 	icon: CosStyle.iconUser
 
-	pageContextMenu: QMenu {
+	/*pageContextMenu: QMenu {
 		MenuItem {
 			icon.source: CosStyle.iconUserAdd
 			text: qsTr("Context Új felhasználó")
@@ -25,7 +25,7 @@ QPagePanel {
 			text: qsTr("Context Új osztály")
 			onClicked: pageAdminUsers.createClassRequest()
 		}
-	}
+	}*/
 
 	UserListWidget {
 		id: userListWidget

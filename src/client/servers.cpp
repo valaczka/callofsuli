@@ -56,7 +56,7 @@ int Servers::serverListReload()
 		return -1;
 
 	QVariantList list;
-	if (!m_db->execSelectQuery("SELECT id, name, "
+	if (!execSelectQuery("SELECT id, name, "
 							   "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
 							   "FROM server "
 							   "ORDER BY name", QVariantList(), &list)) {
@@ -97,7 +97,7 @@ QVariantMap Servers::serverInfoGet(const int &serverId)
 	QVariantList p;
 	p << serverId;
 
-	if (!m_db->execSelectQueryOneRow("SELECT name, host, port, ssl, cert, username, session FROM server WHERE id=?", p, &server)) {
+	if (!execSelectQueryOneRow("SELECT name, host, port, ssl, cert, username, session FROM server WHERE id=?", p, &server)) {
 		return QVariantMap();
 	}
 
@@ -119,14 +119,14 @@ void Servers::serverInfoInsertOrUpdate(const int &id, const QVariantMap &map)
 		return;
 
 	if (id == -1) {
-		int newId = m_db->execInsertQuery("INSERT INTO server (?k?) VALUES (?)", map);
+		int newId = execInsertQuery("INSERT INTO server (?k?) VALUES (?)", map);
 		if (newId == -1)
 			return;
 		emit serverInfoUpdated(newId);
 	} else {
 		QVariantMap bindValues;
 		bindValues[":id"] = id;
-		if (!m_db->execUpdateQuery("UPDATE server SET ? WHERE id=:id", map, bindValues))
+		if (!execUpdateQuery("UPDATE server SET ? WHERE id=:id", map, bindValues))
 			return;
 		serverInfoUpdated(id);
 	}
@@ -145,7 +145,7 @@ void Servers::serverInfoDelete(const int &id)
 
 	QVariantList l;
 	l << id;
-	if (!m_db->execSimpleQuery("DELETE FROM server WHERE id=?", l))
+	if (!execSimpleQuery("DELETE FROM server WHERE id=?", l))
 		return;
 
 	emit serverInfoUpdated(id);
@@ -232,19 +232,19 @@ void Servers::serverSetAutoConnect(const int &serverId, const bool &value)
 		return;
 
 	if (value) {
-		if (!m_db->execSimpleQuery("DELETE FROM autoconnect"))
+		if (!execSimpleQuery("DELETE FROM autoconnect"))
 			return;
 	} else {
 		QVariantList l;
 		l << serverId;
-		if (!m_db->execSimpleQuery("DELETE FROM autoconnect WHERE serverid=", l))
+		if (!execSimpleQuery("DELETE FROM autoconnect WHERE serverid=", l))
 			return;
 	}
 
 	if (value) {
 		QVariantMap m;
 		m["serverid"] = serverId;
-		if(m_db->execInsertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m) == -1)
+		if(execInsertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m) == -1)
 			return;
 	}
 
@@ -267,7 +267,7 @@ void Servers::serverTryLogin(const int &serverId)
 
 	QVariantMap r;
 
-	if (!m_db->execSelectQueryOneRow("SELECT username, session FROM server WHERE id=?", p, &r))
+	if (!execSelectQueryOneRow("SELECT username, session FROM server WHERE id=?", p, &r))
 		return;
 
 	QString username = r.value("username").toString();
@@ -287,7 +287,7 @@ void Servers::serverLogOut()
 	if (m_connectedServerId != -1) {
 		QVariantList l;
 		l << m_connectedServerId;
-		m_db->execSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
+		execSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
 	}
 }
 
@@ -316,7 +316,7 @@ bool Servers::databaseInit()
 {
 	Q_ASSERT(m_client);
 
-	if (!m_db->batchQueryFromFile(":/sql/servers.sql")) {
+	if (!batchQueryFromFile(":/sql/servers.sql")) {
 		m_client->sendMessageError(tr("Adatbázis"), tr("Nem sikerült előkészíteni az adatbázist!"), databaseFile());
 		return false;
 	}
@@ -349,7 +349,7 @@ void Servers::onSessionTokenChanged(QString sessionToken)
 		QVariantList l;
 		l << sessionToken;
 		l << m_connectedServerId;
-		m_db->execSimpleQuery("UPDATE server SET session=? WHERE id=?", l);
+		execSimpleQuery("UPDATE server SET session=? WHERE id=?", l);
 	}
 }
 
@@ -407,6 +407,6 @@ void Servers::onUserNameChanged(QString username)
 		QVariantList l;
 		l << username;
 		l << m_connectedServerId;
-		m_db->execSimpleQuery("UPDATE server SET username=? WHERE id=?", l);
+		execSimpleQuery("UPDATE server SET username=? WHERE id=?", l);
 	}
 }

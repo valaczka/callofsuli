@@ -1,24 +1,5 @@
 
-/*
-function setIconFont(d, _icon) {
-	var f = _icon.charAt(0)
-	var c = _icon.charAt(1)
 
-	if (f === 'S')
-		d.font.family = "School"
-	else if (f === 'B')
-		d.font.family = "Books"
-	else if (f === 'A')
-		d.font.family = "Academic"
-	else if (f === 'I')
-		d.font.family = "AcademicI"
-	else
-		d.font.family = "Material Icons"
-
-	d.text = c
-}
-
-*/
 
 function setColorAlpha(color, alpha) {
 	return Qt.hsla(color.hslHue, color.hslSaturation, color.hslLightness, alpha)
@@ -191,6 +172,31 @@ function dialogCreateQml(url, params) {
 	}
 
 	return null
+}
+
+
+
+
+
+function createMenu(parent, comp, menuList) {
+	var m = comp.createObject(parent)
+
+	var hasPrevious = false
+
+	for (var i=0; i<menuList.length; i++) {
+		var mm = menuList[i]
+
+		if (mm) {
+			if (hasPrevious)
+				m.addSeparator()
+
+			mm(m)
+			hasPrevious = true
+		}
+	}
+
+	m.closed.connect(m.destroy)
+	m.popup(parent, 0, parent.height)
 }
 
 

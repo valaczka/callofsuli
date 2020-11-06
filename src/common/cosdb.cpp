@@ -35,18 +35,15 @@
 #include "cosdb.h"
 
 COSdb::COSdb(const QString &connectionName, QObject *parent)
-	: QObject(parent)
+	: CosSql(connectionName, parent)
 {
 	m_isOwnCreated = false;
-	m_db = new CosSql(connectionName, this);
 }
 
 
 
 COSdb::~COSdb()
 {
-	if (m_db)
-		delete m_db;
 }
 
 
@@ -63,13 +60,13 @@ bool COSdb::databaseOpen()
 		return false;
 	}
 
-	if (!m_db->isOpen()) {
+	if (!m_db.isOpen()) {
 		if (!QFile::exists(m_databaseFile)) {
 			qDebug() << tr("Új adatbázis létrehozása ")+m_databaseFile;
 			m_isOwnCreated = true;
 		}
 
-		if (!m_db->open(m_databaseFile, true)) {
+		if (!open(m_databaseFile, true)) {
 			qWarning().noquote() << tr("Nem lehet megnyitni az adatbázist: ")+m_databaseFile;
 			emit databaseError(tr("Nem lehet megnyitni az adatbázist: ")+m_databaseFile);
 			return false;
@@ -80,7 +77,7 @@ bool COSdb::databaseOpen()
 			emit databaseError(tr("Nem lehet létrehozni az adatbázist: ")+m_databaseFile);
 
 			qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+m_databaseFile;
-			m_db->close();
+			m_db.close();
 			if (!QFile::remove(m_databaseFile)) {
 				qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+m_databaseFile;
 			}
@@ -93,15 +90,6 @@ bool COSdb::databaseOpen()
 }
 
 
-
-void COSdb::setDb(CosSql *db)
-{
-	if (m_db == db)
-		return;
-
-	m_db = db;
-	emit dbChanged(m_db);
-}
 
 void COSdb::setDatabaseFile(QString databaseFile)
 {

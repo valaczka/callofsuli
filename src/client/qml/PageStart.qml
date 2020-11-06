@@ -1,9 +1,5 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtGraphicalEffects 1.0
-import QtQuick.Controls.Material 2.3
-import QtQuick.Layouts 1.14
-import QtMultimedia 5.14
 import COS.Client 1.0
 import "."
 import "Style"
@@ -15,26 +11,38 @@ QPage {
 
 	requiredPanelWidth: 900
 
-	property bool _isFirst: true
-
-	signal serverEdit(var id)
-	signal serverConnect(var id)
-	signal serverCreate()
-	signal unloadEditor()
+	title: qsTr("Call of Suli")
+	mainToolBar.backButton.visible: false
 
 	Servers {
 		id: servers
 		client: cosClient
+
+		property bool editing: false
+		property int serverId: -1
 	}
 
-	property bool isFirstRun: true
+	property list<Component> normalComponents: [
+		Component { ServerList {
+				panelVisible: true
+				layoutFillWidth: true
+			} }
+	]
 
-	title: qsTr("Call of Suli")
-	mainToolBar.backButton.visible: false
+	property list<Component> editComponents: [
+		Component { ServerList {
+				panelVisible: true
+				layoutFillWidth: false
+			} },
+		Component { ServerEdit { panelVisible: true } }
+	]
 
-	pageContextMenu: QMenu {
-		MenuItem { action: actionAbout }
-		MenuItem { action: actionExit }
+	panelComponents: servers.editing ? editComponents : normalComponents
+
+	mainMenuFunc: function (m) {
+		m.addAction(tmXtest)
+		m.addAction(actionAbout)
+		m.addAction(actionExit)
 	}
 
 
@@ -56,7 +64,6 @@ QPage {
 	}
 
 
-
 	Action {
 		id: test
 		shortcut: "F1"
@@ -69,7 +76,6 @@ QPage {
 			})
 		}
 	}
-
 
 
 	Action {
@@ -91,67 +97,21 @@ QPage {
 				JS.createPage("MainMenu", {})
 			} else if (connectionState === Client.Standby) {
 				mainStack.pop(pageStart)
-				onePanel()
 			}
 		}
 	}
 
-	onServerEdit:  {
-		if (panels.length < 2)
-			panels = [
-						{ url: "ServerList.qml", params: { servers: servers }, fillWidth: false},
-						{ url: "ServerEdit.qml", params: { servers: servers, serverId: id }, fillWidth: true}
-					]
-
-		swipeToPage(1)
-	}
-
-	onServerCreate:  {
-		if (panels.length < 2)
-			panels = [
-						{ url: "ServerList.qml", params: { servers: servers }, fillWidth: false},
-						{ url: "ServerEdit.qml", params: { servers: servers, serverId: -1 }, fillWidth: true}
-					]
-		swipeToPage(1)
-	}
-
-	onUnloadEditor: onePanel()
-
-
-	onServerConnect: {
-		if (panels.length > 1)
-			serverEdit(id)
-		else
-			servers.serverConnect(id)
-	}
-
-	onPageActivated: {
-		if (_isFirst) {
-			var autoConnectId = servers.serverListReload()
-			_isFirst = false
-
-			if (autoConnectId !== -1)
-				servers.serverConnect(autoConnectId)
-		}
-
-		onePanel()
-	}
-
-	function onePanel() {
-		panels = [
-					{ url: "ServerList.qml", params: { servers: servers }, fillWidth: true}
-				]
-	}
 
 	function windowClose() {
 		return true
 	}
 
 	function pageStackBack() {
-		if (panels.length>1) {
-			onePanel()
+		if (servers.editing) {
+			servers.editing = false
 			return true
 		}
+
 		return false
 	}
 }

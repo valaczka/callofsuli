@@ -10,11 +10,9 @@ import "JScript.js" as JS
 QPagePanel {
 	id: p
 
-	property Servers servers: null
-	property int serverId: -1
-
-	title: serverId == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
+	title: servers.serverId == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
 	icon: CosStyle.iconUserWhite
+	layoutFillWidth: true
 
 	QGridLayout {
 		id: grid
@@ -69,7 +67,7 @@ QPagePanel {
 
 		QGridButton {
 			id: buttonSave
-			text: serverId == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
+			text: servers.serverId == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
 			enabled: textName.acceptableInput &&
 					 textHostname.acceptableInput &&
 					 textPort.acceptableInput
@@ -81,36 +79,18 @@ QPagePanel {
 				var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl])
 
 				if (Object.keys(m).length) {
-					servers.serverInfoInsertOrUpdate(serverId, m)
+					servers.serverInfoInsertOrUpdate(servers.serverId, m)
+					if (servers.serverId == -1)
+						servers.editing = false
 				}
-
-				pageStart.unloadEditor()
 			}
 
 		}
 	}
 
-	onServerIdChanged: if (serverId==-1) {
-						   JS.setSqlFields([
-											   textName,
-											   textHostname,
-											   textPort,
-											   checkSsl
-										   ], {name:"", host:"", port:0, ssl:false})
-					   } else  {
-						   if (servers)
-							   servers.serverInfoGet(serverId)
-					   }
-
-	Connections {
-		target: pageStart
-		onServerEdit: serverId = id
-		onServerCreate: serverId = -1
-	}
-
-
 	Connections {
 		target: servers
+
 		onServerInfoLoaded: {
 			JS.setSqlFields([
 								textName,
@@ -121,12 +101,31 @@ QPagePanel {
 
 			grid.modified = false
 		}
+
+
+		onEditingChanged: loadData()
+		onServerIdChanged: loadData()
 	}
 
-
-	onPopulated: servers.serverInfoGet(serverId)
-
 	onPanelActivated: textHostname.forceActiveFocus()
+
+	Component.onCompleted: loadData()
+
+	function loadData() {
+		if (!servers.editing)
+			return
+
+		if (servers.serverId==-1) {
+			JS.setSqlFields([
+								textName,
+								textHostname,
+								textPort,
+								checkSsl
+							], {name:"", host:"", port:0, ssl:false})
+		} else  {
+			servers.serverInfoGet(servers.serverId)
+		}
+	}
 
 }
 

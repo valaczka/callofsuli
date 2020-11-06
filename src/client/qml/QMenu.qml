@@ -11,4 +11,14 @@ Menu {
 	Material.background: JS.setColorAlpha(Qt.darker(CosStyle.colorPrimaryDark,2.5), 0.95)
 
 	font.pixelSize: CosStyle.pixelSize
+
+	Component {
+		id: separatorItem
+		MenuSeparator { }
+	}
+
+	function addSeparator() {
+		var m = separatorItem.createObject(menu)
+		menu.addItem(m)
+	}
 }

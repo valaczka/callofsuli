@@ -14,34 +14,23 @@ Page {
 	implicitHeight: 600
 
 	property int requiredPanelWidth: 600
-	property int requiredWidthToDrawer: 2*requiredPanelWidth+drawer.width
 
-	readonly property bool noDrawer: width > requiredWidthToDrawer || leftPanel === null
-	property bool swipeMode: control.width-(leftItem.visible ? leftItem.width : 0) < (onlyPanel ? requiredPanelWidth : requiredPanelWidth*panels.length)
+	property bool swipeMode: control.width < requiredPanelWidth*panelComponents.length
 
-	property alias drawer: drawer
 	property alias bgImage: bgImage
-
-	property var panels: []
-
-	property Component leftPanel: null
-	property Component onlyPanel: null
-
 	property alias mainSwipe: mainSwipe
 	property alias mainRow: mainRow
 	property alias mainToolBar: toolbar
 	property alias mainToolBarComponent: toolbarRight.sourceComponent
-
-	property alias mainMenu: menuButton.menu
-
 	property alias subtitle: toolbar.subtitle
 
-	property Menu pageContextMenu: null
+	property var mainMenuFunc: null
+	property var contextMenuFunc: null
 
-	property bool panelsVisible: true
-
+	property list<Component> panelComponents
 
 	signal pageActivated()
+
 
 	background: Image {
 		id: bgImage
@@ -55,14 +44,9 @@ Page {
 
 		title: control.title
 
-		backButtonIcon: noDrawer ? CosStyle.iconBack : CosStyle.iconDrawer
+		backButtonIcon: CosStyle.iconBack
 		backButton.visible: true
-		backButton.onClicked: {
-			if (noDrawer)
-				mainStack.back()
-			else
-				drawerToggle()
-		}
+		backButton.onClicked: mainStack.back()
 
 		Loader {
 			id: toolbarRight
@@ -72,171 +56,76 @@ Page {
 			id: menuButton
 
 			icon.source: CosStyle.iconMenu
-			property Menu menu: null
 
-			visible: menu
+			visible: mainMenuFunc || contextMenuFunc
 
-			onClicked: if (menu) {
-						   menu.popup(menuButton, 0, menuButton.height)
-					   }
-		}
-	}
+			Component {
+				id: menuComponent
+				QMenu {}
+			}
 
-
-	Drawer {
-		id: drawer
-
-		width: 300
-		height: control.height
-		modal: true
-		interactive: !noDrawer
-
-		enabled: !noDrawer
-
-		background: Rectangle {
-			anchors.fill: parent
-			color: CosStyle.colorPrimaryDark
-			opacity: 0.5
-		}
-
-		Loader {
-			anchors.fill: parent
-			sourceComponent: noDrawer ? undefined : leftPanel
-		}
-	}
-
-
-	Item {
-		id: leftItem
-		width: drawer.width
-		height: parent.height
-		visible: noDrawer && leftPanel !== null
-
-		Rectangle {
-			anchors.fill: parent
-			color: CosStyle.colorPrimaryDark
-			opacity: 0.5
-		}
-
-		Loader {
-			anchors.fill: parent
-			sourceComponent: noDrawer ? leftPanel : undefined
+			onClicked: JS.createMenu(menuButton, menuComponent, [contextMenuFunc, mainMenuFunc])
 		}
 	}
 
 
 	RowLayout {
 		id: mainRow
-		anchors.top: parent.top
-		anchors.left: leftItem.visible ? leftItem.right : parent.left
-		anchors.bottom: parent.bottom
-		anchors.right: parent.right
+		anchors.fill: parent
 
-		visible: panelsVisible && !swipeMode
+		visible: !swipeMode
 
 		Repeater {
-			id: mainRepeater
-			model: ListModel {
-				onCountChanged: {
-					if (count == 0) {
-						panelResetAfterRemove()
-					}
-				}
-			}
+			model: !swipeMode ? panelComponents : null
 
 			Loader {
+				id: ldrRow
 				height: parent.height
-				Layout.fillWidth: fillWidth
+				Layout.fillWidth: item.visible && item.layoutFillWidth
 				Layout.fillHeight: true
-				id: ldr
+				sourceComponent: panelComponents[index]
 
-				opacity: 0.0
-
-				Component.onCompleted: ldr.setSource(url, params)
-
-				SequentialAnimation {
-					id: animShow
-					running: false
-
-					ParallelAnimation {
-						NumberAnimation {
-							target: ldr
-							property: "scale"
-							from: 0.75
-							to: 1.0
-							duration: 175
-							easing.type: Easing.InOutQuad
-						}
-
-						NumberAnimation {
-							target: ldr
-							property: "opacity"
-							to: 1.0
-							duration: 75
-							easing.type: Easing.InOutQuad
-						}
-					}
-
-					ScriptAction {
-						script: ldr.item.populated()
-					}
-				}
-
-
-				ParallelAnimation {
-					id: animHide
-					running: false
-
-					NumberAnimation {
-						target: ldr
-						property: "scale"
-						to: 0.5
-						duration: 125
-						easing.type: Easing.InOutQuad
-					}
-
-					NumberAnimation {
-						target: ldr
-						property: "opacity"
-						to: 0.0
-						duration: 125
-						easing.type: Easing.InOutQuad
-					}
-
-					onFinished: {
-						mainRepeater.model.remove(index)
-					}
-				}
-
-				onLoaded: animShow.start()
-
-				function hide() {
-					animHide.start()
-				}
+				onLoaded: item.panelActivated()
 			}
 		}
 	}
 
-	Loader {
-		id: onlyLoader
-		anchors.fill: mainRow
-		visible: mainRow.visible && onlyPanel
-
-		onStatusChanged: if (onlyLoader.status == Loader.Ready) item.populated()
-
-	}
 
 
 	SwipeView {
 		id: mainSwipe
 
-		anchors.top: parent.top
-		anchors.left: leftItem.visible ? leftItem.right : parent.left
-		anchors.bottom: parent.bottom
-		anchors.right: parent.right
-		visible: panelsVisible && swipeMode
-
+		anchors.fill: parent
 		property Page parentPage: control
+
+		visible: swipeMode
+
+		Repeater {
+			model: swipeMode ? panelComponents : null
+
+			Loader {
+				id: ldrSwipe
+
+				sourceComponent: panelComponents[index]
+
+				onLoaded: {
+					var item = ldrSwipe.item
+					var ppp = JS.createObject("QTabButton.qml", tabBar, {
+												  text: item.title ? item.title : "",
+												  "icon.source": item.icon ? item.icon : "",
+												  iconColor: item.borderColor ? item.borderColor : CosStyle.colorError
+
+											  })
+
+					if (ppp) {
+						tabBar.addItem(ppp)
+						item.tabButton = ppp
+					}
+
+					item.populated()
+				}
+			}
+		}
 	}
 
 
@@ -249,10 +138,7 @@ Page {
 	}
 
 
-	onOnlyPanelChanged: { if (control.StackView.status === StackView.Active) { console.debug("onlypanelschanged", control, onlyPanel); panelReset() } }
-	onPanelsChanged: { if (control.StackView.status === StackView.Active) { console.debug("panelschanged", control, panels); panelReset() } }
-	onSwipeModeChanged: { if (control.StackView.status === StackView.Active) { console.debug("swipechanged", control, panels); panelReset() }  }
-
+	onSwipeModeChanged: contextMenuFunc = null
 
 	StackView.onRemoved: destroy()
 
@@ -260,6 +146,7 @@ Page {
 		toolbar.resetTitle()
 		pageActivated()
 	}
+
 
 
 
@@ -286,104 +173,9 @@ Page {
 		if (pageStackBack())
 			return true
 
-		drawer.close()
-
 		return false
 	}
 
-
-
-	function drawerReset() {
-		if (noDrawer)
-			drawer.close()
-		else if (panels.length === 0)
-			drawer.open()
-	}
-
-
-
-	function panelReset() {
-		console.debug("PANEL RESET ", control)
-		if (swipeMode)
-			mainMenu = null
-		else
-			mainMenu = pageContextMenu
-
-
-		for (var i=tabBar.count-1; i>=0; --i)
-			tabBar.removeItem(tabBar.itemAt(i))
-
-		for (i=mainSwipe.count-1; i>=0; --i)
-			mainSwipe.removeItem(mainSwipe.itemAt(i))
-
-		if (mainRepeater.model.count) {
-			for (i=mainRepeater.model.count-1; i>=0; --i) {
-				var o = mainRepeater.itemAt(i)
-				o.hide()
-			}
-
-			return
-		}
-
-		panelResetAfterRemove()
-	}
-
-
-	function panelResetAfterRemove() {
-		if (onlyPanel) {
-			if (swipeMode) {
-				onlyLoader.sourceComponent = undefined
-				var o = onlyPanel.createObject(mainSwipe)
-				mainSwipe.addItem(o)
-				o.populated()
-
-				var ppp = JS.createObject("QTabButton.qml", tabBar, {text: o.title ? o.title : "", "icon.source": o.icon ? o.icon : "" })
-
-				if (ppp)
-					tabBar.addItem(ppp)
-
-			} else {
-				onlyLoader.sourceComponent = onlyPanel
-			}
-		} else {
-			for (var i=0; i<panels.length; ++i) {
-				var panel = panels[i]
-				if (swipeMode) {
-					var pp = JS.createObject(panel.url, control, panel.params)
-					if (pp) {
-						mainSwipe.addItem(pp)
-						pp.populated()
-					}
-
-					ppp = JS.createObject("QTabButton.qml", tabBar, {
-											  text: pp.title ? pp.title : "",
-											  "icon.source": pp.icon ? pp.icon : "",
-											  iconColor: pp.borderColor ? pp.borderColor : CosStyle.colorError
-
-										  })
-
-					if (ppp)
-						tabBar.addItem(ppp)
-
-				} else {
-					mainRepeater.model.append(panel)
-				}
-			}
-		}
-
-		if (swipeMode)
-			tabBar.setCurrentIndex(0)
-	}
-
-
-
-	function drawerToggle() {
-		if (drawer.position === 1) {
-			drawer.close()
-		} else if (!noDrawer) {
-			drawer.open()
-		}
-	}
 
 
 	function layoutBack() {

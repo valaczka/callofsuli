@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.cpp
+ * abstractdbactivity.cpp
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 11. 06.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * AbstractDbActivity
  *
  *  This file is part of Call of Suli.
  *
@@ -37,16 +37,8 @@
 AbstractDbActivity::AbstractDbActivity(const QString &connectionName, QObject *parent)
 	: COSdb(connectionName, parent)
 {
-	m_client = nullptr;
 
-	m_canUndo = -1;
-
-	connect(m_db, &CosSql::canUndoChanged, this, &AbstractDbActivity::setCanUndo);
 }
-
-
-
-
 
 void AbstractDbActivity::setClient(Client *client)
 {
@@ -61,32 +53,3 @@ void AbstractDbActivity::setClient(Client *client)
 		clientSetup();
 	}
 }
-
-
-/**
- * @brief AbstractDbActivity::execSelectQuery
- * @param query
- * @param params
- * @return
- */
-
-QVariantList AbstractDbActivity::execSelectQuery(const QString &query, const QVariantList &params)
-{
-	QVariantList ret;
-
-	if (!m_db->execSelectQuery(query, params, &ret)) {
-		m_client->sendMessageError(tr("Adatbázis"), tr("Lekérdezési hiba"));
-	}
-
-	return ret;
-}
-
-void AbstractDbActivity::setCanUndo(int canUndo)
-{
-	if (m_canUndo == canUndo)
-		return;
-
-	m_canUndo = canUndo;
-	emit canUndoChanged(m_canUndo);
-}
-

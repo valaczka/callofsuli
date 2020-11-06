@@ -728,6 +728,8 @@ void CosSql::undo(const int &floor)
 	setCanUndo(r.value("id",-1).toInt());
 
 	m_db.commit();
+
+	emit undone();
 }
 
 

@@ -48,7 +48,7 @@ QPage {
 		}
 	}
 
-	pageContextMenu: _isMapLoaded ? pageMenu : null
+	//pageContextMenu: _isMapLoaded ? pageMenu : null
 
 	QMenu {
 		id: pageMenu

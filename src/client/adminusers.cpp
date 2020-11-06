@@ -40,6 +40,11 @@ AdminUsers::AdminUsers(QObject *parent)
 
 }
 
+AdminUsers::~AdminUsers()
+{
+
+}
+
 
 /**
  * @brief AdminUsers::clientSetup
@@ -47,7 +52,7 @@ AdminUsers::AdminUsers(QObject *parent)
 
 void AdminUsers::clientSetup()
 {
-	connect(m_client, &Client::jsonUserReceived, this, &AdminUsers::onJsonReceived);
+	//connect(m_client, &Client::jsonUserReceived, this, &AdminUsers::onJsonReceived);
 }
 
 

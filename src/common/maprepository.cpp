@@ -55,7 +55,7 @@ void MapRepository::listReload()
 		return;
 
 	QVariantList list;
-	if (m_db->execSelectQuery("SELECT id, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
+	if (execSelectQuery("SELECT id, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
 		emit listLoaded(list);
 }
 
@@ -74,7 +74,7 @@ QVariantMap MapRepository::getInfo(const int &id)
 	QVariantMap r;
 	QVariantList l;
 	l << id;
-	m_db->execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE id=?", l, &r);
+	execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE id=?", l, &r);
 
 	return r;
 }
@@ -94,7 +94,7 @@ QVariantMap MapRepository::getInfo(const QString &uuid)
 	QVariantMap r;
 	QVariantList l;
 	l << uuid;
-	m_db->execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE uuid=?", l, &r);
+	execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE uuid=?", l, &r);
 
 	return r;
 }
@@ -112,7 +112,7 @@ QByteArray MapRepository::getData(const int &id)
 
 	QVariantList l;
 	l << id;
-	QSqlQuery q = m_db->simpleQuery("SELECT data FROM mapdata WHERE id=?", l);
+	QSqlQuery q = simpleQuery("SELECT data FROM mapdata WHERE id=?", l);
 	return getDataReal(q);
 }
 
@@ -130,7 +130,7 @@ QByteArray MapRepository::getData(const QString &uuid)
 
 	QVariantList l;
 	l << uuid;
-	QSqlQuery q = m_db->simpleQuery("SELECT data FROM mapdata WHERE uuid=?", l);
+	QSqlQuery q = simpleQuery("SELECT data FROM mapdata WHERE uuid=?", l);
 	return getDataReal(q);
 }
 
@@ -148,7 +148,7 @@ int MapRepository::getId(const QString &uuid)
 	QVariantMap r;
 	QVariantList l;
 	l << uuid;
-	if (!m_db->execSelectQueryOneRow("SELECT id FROM mapdata WHERE uuid=?", l, &r))
+	if (!execSelectQueryOneRow("SELECT id FROM mapdata WHERE uuid=?", l, &r))
 		return -1;
 
 	return r.value("id", -1).toInt();
@@ -187,7 +187,7 @@ QVariantMap MapRepository::create(const QString &uuid)
 	l["uuid"] = fileinfo.value("uuid").toString();
 	l["md5"] = md5;
 	l["data"] = mapdata;
-	int id = m_db->execInsertQuery("INSERT INTO mapdata (?k?) VALUES (?)", l);
+	int id = execInsertQuery("INSERT INTO mapdata (?k?) VALUES (?)", l);
 
 	fileinfo["id"] = id;
 
@@ -227,7 +227,7 @@ int MapRepository::add(const QString &uuid, const QByteArray &data, const QStrin
 	params["md5"] = realmd5;
 	params["data"] = data;
 
-	int id = m_db->execInsertQuery("INSERT OR REPLACE INTO mapdata (?k?) VALUES (?)", params);
+	int id = execInsertQuery("INSERT OR REPLACE INTO mapdata (?k?) VALUES (?)", params);
 
 	return id;
 }
@@ -252,7 +252,7 @@ QJsonObject MapRepository::remove(const int &id)
 
 	QVariantList l;
 	l << id;
-	if (m_db->execSimpleQuery("DELETE FROM mapdata WHERE id=?", l)) {
+	if (execSimpleQuery("DELETE FROM mapdata WHERE id=?", l)) {
 		return QJsonObject({{"removed", id}});
 	}
 
@@ -277,7 +277,7 @@ QJsonObject MapRepository::remove(const QString &uuid)
 
 	QVariantList l;
 	l << uuid;
-	if (m_db->execSimpleQuery("DELETE FROM mapdata WHERE uuid=?", l)) {
+	if (execSimpleQuery("DELETE FROM mapdata WHERE uuid=?", l)) {
 		return QJsonObject({{"removed", uuid}});
 	}
 
@@ -328,7 +328,7 @@ QJsonObject MapRepository::updateData(const QString &uuid, const QByteArray &dat
 	QVariantMap binds;
 	binds[":uuid"] = uuid;
 
-	if (!m_db->execUpdateQuery("UPDATE mapdata set ? where uuid=:uuid", params, binds))
+	if (!execUpdateQuery("UPDATE mapdata set ? where uuid=:uuid", params, binds))
 		return QJsonObject();
 
 	cosdata["objectives"] = root.value("objectives").toArray().count();
@@ -365,7 +365,7 @@ QJsonObject MapRepository::updateData(const QString &uuid, const QByteArray &dat
 
 bool MapRepository::databaseInit()
 {
-	if (!m_db->batchQueryFromFile(":/sql/maprepository.sql")) {
+	if (!batchQueryFromFile(":/sql/maprepository.sql")) {
 		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_databaseFile);
 		return false;
 	}
@@ -385,7 +385,7 @@ QByteArray MapRepository::getDataReal(QSqlQuery q)
 {
 	QByteArray ret;
 
-	QVariantMap r = m_db->runQuery(q);
+	QVariantMap r = runQuery(q);
 	if (r.value("error").toBool()) {
 		emit databaseError(r.value("errorString").toString());
 		return ret;

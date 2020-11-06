@@ -20,7 +20,7 @@ QPage {
 
 	mainToolBarComponent: QToolBusyIndicator { running: adminUsers.isBusy }
 
-	pageContextMenu: QMenu {
+	/*pageContextMenu: QMenu {
 		MenuItem {
 			icon.source: CosStyle.iconUserAdd
 			text: qsTr("Új felhasználó")
@@ -31,7 +31,7 @@ QPage {
 			text: qsTr("Új osztály")
 			onClicked: pageAdminUsers.createClassRequest()
 		}
-	}
+	}*/
 
 	AdminUsers {
 		id: adminUsers

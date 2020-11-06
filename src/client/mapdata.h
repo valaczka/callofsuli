@@ -37,6 +37,7 @@
 
 #include <QObject>
 #include "abstractdbactivity.h"
+#include "../common/cosdb.h"
 
 
 class MapData : public AbstractDbActivity

@@ -6,7 +6,6 @@
         <file>qtquickcontrols2.conf</file>
         <file>_Page.qml</file>
         <file>ServerEdit.qml</file>
-        <file>PageStart.qml</file>
         <file>QAnimatedText.qml</file>
         <file>QButton.qml</file>
         <file>QCosImage.qml</file>
@@ -82,7 +81,6 @@
         <file>UserListWidget.qml</file>
         <file>QTabBar.qml</file>
         <file>QTabButton.qml</file>
-        <file>QPage.qml</file>
         <file>QLabel.qml</file>
         <file>ServerList.qml</file>
         <file>PageTeacherGroups.qml</file>
@@ -112,5 +110,7 @@
         <file>GameEnemyMarker.qml</file>
         <file>FlickableParallax.qml</file>
         <file>GameQuestion.qml</file>
+        <file>QPage.qml</file>
+        <file>PageStart.qml</file>
     </qresource>
 </RCC>

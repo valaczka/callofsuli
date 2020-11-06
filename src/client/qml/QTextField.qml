@@ -76,7 +76,7 @@ TextField {
 
 	placeholderTextColor: JS.setColorAlpha(CosStyle.colorPrimaryLighter, 0.7)
 
-	ToolTip.text: placeholderText
+	//ToolTip.text: placeholderText
 	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 	ToolTip.visible: tooltipEnabled && hovered && ToolTip.text.length
 

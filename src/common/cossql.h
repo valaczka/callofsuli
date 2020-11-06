@@ -36,7 +36,7 @@ class CosSql : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int canUndo READ canUndo WRITE setCanUndo NOTIFY canUndoChanged)
+	Q_PROPERTY(int canUndo READ canUndo NOTIFY canUndoChanged)
 
 public:
 	explicit CosSql(const QString &connectionName = QString(), QObject *parent = nullptr);
@@ -109,11 +109,13 @@ private slots:
 
 signals:
 	void canUndoChanged(int canUndo);
+	void undone();
 
-private:
+protected:
 	QSqlDatabase m_db;
 	bool m_dbCreated;
 
+private:
 	int m_canUndo;
 };
 

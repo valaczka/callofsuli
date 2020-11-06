@@ -44,6 +44,7 @@ class AdminUsers : public AbstractActivity
 
 public:
 	AdminUsers(QObject *parent=nullptr);
+	~AdminUsers();
 
 	void clientSetup() override;
 

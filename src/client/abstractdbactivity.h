@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractactivity.h
+ * abstractdbactivity.h
  *
- * Created on: 2020. 03. 22.
+ * Created on: 2020. 11. 06.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractActivity
+ * AbstractDbActivity
  *
  *  This file is part of Call of Suli.
  *
@@ -35,48 +35,33 @@
 #ifndef ABSTRACTDBACTIVITY_H
 #define ABSTRACTDBACTIVITY_H
 
-#include <QObject>
-
 #include "../common/cosdb.h"
 #include "cosclient.h"
 
-class Client;
 
 class AbstractDbActivity : public COSdb
 {
 	Q_OBJECT
 
-public:
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
-	Q_PROPERTY(int canUndo READ canUndo WRITE setCanUndo NOTIFY canUndoChanged)
 
-	explicit AbstractDbActivity(const QString &connectionName = QString(), QObject *parent = nullptr);
+
+public:
+	explicit AbstractDbActivity(const QString &connectionName = "", QObject *parent = nullptr);
 
 	Client* client() const { return m_client; }
-	int canUndo() const { return m_canUndo; }
 
 public slots:
 	void setClient(Client* client);
 
-	QVariantList execSelectQuery(const QString &query, const QVariantList &params = QVariantList());
-	void undoLogBegin(const QString &desc) { m_db->undoLogBegin(desc); }
-	void undoLogEnd() { m_db->undoLogEnd(); }
-	QVariantMap undoStack() { return m_db->undoStack(); }
-	void undo(const int &floor) { m_db->undo(floor); emit undone(); }
-
 protected slots:
-	void setCanUndo(int canUndo);
 	virtual void clientSetup() {}
 
 signals:
 	void clientChanged(Client* client);
-	void undone();
-	void canUndoChanged(int canUndo);
 
 protected:
 	Client* m_client;
-	int m_canUndo;
-
 };
 
-#endif // ABSTRACTACTIVITY_H
+#endif // ABSTRACTDBACTIVITY_H
