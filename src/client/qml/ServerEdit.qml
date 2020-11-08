@@ -14,6 +14,10 @@ QPagePanel {
 	icon: CosStyle.iconUserWhite
 	layoutFillWidth: true
 
+	contextMenuFunc: servers.serverId == -1 ? null : function (m) {
+		m.addAction(actionRemove)
+	}
+
 	QGridLayout {
 		id: grid
 
@@ -80,11 +84,29 @@ QPagePanel {
 
 				if (Object.keys(m).length) {
 					servers.serverInfoInsertOrUpdate(servers.serverId, m)
-					if (servers.serverId == -1)
+					if (swipeMode)
 						servers.editing = false
 				}
 			}
 
+		}
+	}
+
+
+	Action {
+		id: actionRemove
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Törlés")
+		onTriggered: {
+			var d = JS.dialogCreateQml("YesNo", {
+										   title: qsTr("Biztosan törlöd a szervert?"),
+										   text: textName.text
+									   })
+			d.accepted.connect(function () {
+				servers.serverInfoDelete(servers.serverId)
+				servers.editing = false
+			})
+			d.open()
 		}
 	}
 
@@ -125,6 +147,10 @@ QPagePanel {
 		} else  {
 			servers.serverInfoGet(servers.serverId)
 		}
+
+		if (swipeMode)
+			parent.parentPage.swipeToPage(1)
+
 	}
 
 }

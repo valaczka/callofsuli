@@ -58,8 +58,6 @@ public:
 
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
-	Q_PROPERTY(int clientVersionMajor READ clientVersionMajor NOTIFY clientVersionMajorChanged)
-	Q_PROPERTY(int clientVersionMinor READ clientVersionMinor NOTIFY clientVersionMinorChanged)
 
 	Q_PROPERTY(QString serverDataDir READ serverDataDir WRITE setServerDataDir NOTIFY serverDataDirChanged)
 	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
@@ -108,8 +106,6 @@ public:
 	QString userRankName() const { return m_userRankName; }
 	QString userFirstName() const { return m_userFirstName; }
 	QString userLastName() const { return m_userLastName; }
-	static int clientVersionMajor();
-	static int clientVersionMinor();
 	QString serverDataDir() const { return m_serverDataDir; }
 
 	QString serverName() const { return m_serverName; }
@@ -207,8 +203,6 @@ signals:
 	void userFirstNameChanged(QString userFirstName);
 	void userLastNameChanged(QString userLastName);
 	void serverNameChanged(QString serverName);
-	void clientVersionMajorChanged(int clientVersionMajor);
-	void clientVersionMinorChanged(int clientVersionMinor);
 	void serverDataDirChanged(QString serverDataDir);
 	void registrationEnabledChanged(bool registrationEnabled);
 	void passwordResetEnabledChanged(bool passwordResetEnabled);
@@ -230,8 +224,6 @@ private:
 	QString m_userFirstName;
 	QString m_userLastName;
 	QString m_serverName;
-	int m_clientVersionMajor;
-	int m_clientVersionMinor;
 	QString m_serverDataDir;
 	QString m_userRankName;
 	bool m_registrationEnabled;

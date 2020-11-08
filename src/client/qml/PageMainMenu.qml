@@ -17,7 +17,7 @@ QPage {
 		userDetails: userData
 	}
 
-	onlyPanel: QPagePanel {
+/*	onlyPanel: QPagePanel {
 		id: panel
 
 		title: qsTr("Főmenü")
@@ -105,7 +105,7 @@ QPage {
 		}
 
 	}
-
+*/
 	UserDetails {
 		id: userData
 	}

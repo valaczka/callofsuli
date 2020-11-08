@@ -34,6 +34,7 @@
 #include "../3rdparty/smtpclient/SmtpMime"
 #include "../common/cossql.h"
 #include "../common/maprepository.h"
+#include "../common/cosmessage.h"
 
 class Client : public QObject
 {
@@ -88,6 +89,7 @@ public slots:
 private slots:
 	void onDisconnected();
 	void onBinaryMessageReceived(const QByteArray &message);
+	void onBinaryFrameReceived(const QByteArray &frame, bool isLastFrame);
 	void clientAuthorize(const QJsonObject &data, const int &clientMsgId = -1);
 	void clientLogout(const QJsonObject &data);
 	bool clientPasswordRequest(const QJsonObject &data, const int &clientMsgId);
@@ -118,6 +120,9 @@ private:
 	QString m_clientSession;
 	QString m_clientUserName;
 	ClientRoles m_clientRoles;
+
+	int m_msgSize;
+	CosMessage m_cosMessage;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Client::ClientRoles);

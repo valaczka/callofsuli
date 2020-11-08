@@ -43,6 +43,7 @@ Item {
 	on_IsCurrentChanged: {
 		if (_isCurrent) {
 			parent.SwipeView.view.parentPage.contextMenuFunc = contextMenuFunc
+			panelActivated()
 		}
 	}
 

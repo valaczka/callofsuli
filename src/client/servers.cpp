@@ -50,35 +50,20 @@ Servers::Servers(QObject *parent)
  * @brief Servers::serverListReload
  */
 
-int Servers::serverListReload()
+void Servers::serverListReload()
 {
 	if (!databaseOpen())
-		return -1;
+		return;
 
 	QVariantList list;
 	if (!execSelectQuery("SELECT id, name, "
 							   "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
 							   "FROM server "
 							   "ORDER BY name", QVariantList(), &list)) {
-		return -1;
+		return;
 	}
 
-	int autoconnectId = -1;
-
-	QVariantList list2;
-
-	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
-		if (m.value("autoconnect").toBool()) {
-			autoconnectId = m.value("id").toInt();
-		}
-		list2 << m;
-	}
-
-	emit serverListLoaded(list2);
-
-	return autoconnectId;
-
+	emit serverListLoaded(list);
 }
 
 
@@ -128,7 +113,7 @@ void Servers::serverInfoInsertOrUpdate(const int &id, const QVariantMap &map)
 		bindValues[":id"] = id;
 		if (!execUpdateQuery("UPDATE server SET ? WHERE id=:id", map, bindValues))
 			return;
-		serverInfoUpdated(id);
+		emit serverInfoUpdated(id);
 	}
 }
 
@@ -149,6 +134,8 @@ void Servers::serverInfoDelete(const int &id)
 		return;
 
 	emit serverInfoUpdated(id);
+
+	removeServerDir(id);
 }
 
 
@@ -196,7 +183,7 @@ void Servers::serverConnect(const int &serverId)
 		}
 	}
 
-	QString defaultResourceDb = serverDir+"/resources.db";
+	/*QString defaultResourceDb = serverDir+"/resources.db";
 	if (!QFile::exists(defaultResourceDb)) {
 		qInfo() << tr("Adatbázis létrehozása:") << defaultResourceDb;
 		QFile from(":/db/default.db");
@@ -211,7 +198,7 @@ void Servers::serverConnect(const int &serverId)
 			f.write(b);
 			f.close();
 		}
-	}
+	}*/
 
 	m_client->setServerDataDir(serverDir);
 
@@ -231,21 +218,15 @@ void Servers::serverSetAutoConnect(const int &serverId, const bool &value)
 	if (!databaseOpen())
 		return;
 
-	if (value) {
-		if (!execSimpleQuery("DELETE FROM autoconnect"))
-			return;
-	} else {
-		QVariantList l;
-		l << serverId;
-		if (!execSimpleQuery("DELETE FROM autoconnect WHERE serverid=", l))
-			return;
-	}
+	QVariantList l;
+	l << serverId;
+
+	execSimpleQuery("DELETE FROM autoconnect");
 
 	if (value) {
 		QVariantMap m;
 		m["serverid"] = serverId;
-		if(execInsertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m) == -1)
-			return;
+		execInsertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m);
 	}
 
 	emit serverInfoUpdated(serverId);
@@ -288,6 +269,22 @@ void Servers::serverLogOut()
 		QVariantList l;
 		l << m_connectedServerId;
 		execSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
+	}
+}
+
+
+/**
+ * @brief Servers::doAutoConnect
+ */
+
+void Servers::doAutoConnect()
+{
+	QVariantMap m;
+
+	qDebug() << "Auto connect";
+
+	if (execSelectQueryOneRow("SELECT serverid FROM autoconnect", QVariantList(), &m)) {
+		serverConnect(m.value("serverid").toInt());
 	}
 }
 
@@ -335,6 +332,21 @@ void Servers::clientSetup()
 	connect(m_client, &Client::sessionTokenChanged, this, &Servers::onSessionTokenChanged);
 	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
 	connect(m_client, &Client::authInvalid, this, &Servers::onAuthInvalid);
+}
+
+
+/**
+ * @brief Servers::removeServerDir
+ */
+
+void Servers::removeServerDir(const int &serverId)
+{
+	QString dir = QString("%1").arg(serverId);
+	QString serverDir = Client::standardPath(dir);
+
+	QDir d(serverDir);
+	if (d.exists())
+		qDebug() << tr("Remove server files") << serverDir << d.removeRecursively();
 }
 
 

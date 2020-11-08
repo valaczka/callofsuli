@@ -42,32 +42,6 @@
 
 #include "cosclient.h"
 
-class CustomClass {
-
-public:
-	CustomClass(int i) : m_int(i) {
-		b = QString("lksjféaá dléákfáafdka ").toLatin1();
-	}
-
-	friend QDataStream &operator<<(QDataStream &out, const CustomClass &cc) {
-		out << cc.m_int;
-		out << "szia";
-		return out;
-	}
-
-	friend QDebug operator<<(QDebug out, const CustomClass &cc) {
-		out << (quint16) 0x434F53;
-		out << cc.m_int;
-		out << "szia";
-		out << cc.b;
-		return out;
-	}
-
-private:
-	int m_int;
-	QByteArray b;
-};
-
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_ANDROID
@@ -88,18 +62,13 @@ int main(int argc, char *argv[])
 	Plugins plugin;
 	plugin.registerTypes("Bacon2D");
 
+
 	Client client;
 
 	client.initialize();
 	client.standardPathCreate();
 	client.registerTypes();
 	client.registerResources();
-
-	/*CustomClass c(5544);
-
-	qDebug() << c;
-
-	exit(1); */
 
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();

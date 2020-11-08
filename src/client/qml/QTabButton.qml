@@ -15,4 +15,11 @@ TabButton {
 	property color iconColor: CosStyle.colorPrimaryLighter
 
 	Material.foreground: iconColor
+
+	onClicked: {
+		var v = TabBar.tabBar.swipeView
+
+		if (v)
+			v.setCurrentIndex(TabBar.index)
+	}
 }

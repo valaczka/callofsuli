@@ -197,8 +197,8 @@ QByteArray MapEditor::saveToJson(const bool &binaryFormat)
 	QJsonObject root;
 
 	QJsonObject fileinfo;
-	fileinfo["versionMajor"] = m_client->clientVersionMajor();
-	fileinfo["versionMinor"] = m_client->clientVersionMinor();
+	//fileinfo["versionMajor"] = m_client->clientVersionMajor();
+	//fileinfo["versionMinor"] = m_client->clientVersionMinor();
 	fileinfo["uuid"] = m_mapUuid;
 	fileinfo["timeCreated"] = m_mapTimeCreated.isEmpty() ? QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT) : m_mapTimeCreated;
 	fileinfo["timeModified"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
@@ -231,8 +231,8 @@ QByteArray MapEditor::create(const bool &binaryFormat)
 	QJsonObject root;
 
 	QJsonObject fileinfo;
-	fileinfo["versionMajor"] = Client::clientVersionMajor();
-	fileinfo["versionMinor"] = Client::clientVersionMinor();
+//	fileinfo["versionMajor"] = Client::clientVersionMajor();
+//	fileinfo["versionMinor"] = Client::clientVersionMinor();
 	fileinfo["uuid"] = QUuid::createUuid().toString();
 	fileinfo["timeCreated"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);
 	fileinfo["timeModified"] = QDateTime::currentDateTime().toString(DATETIME_JSON_FORMAT);

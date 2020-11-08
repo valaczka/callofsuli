@@ -74,9 +74,9 @@ public:
 
 	bool execBatchQuery(QString query, const QVariantList &list);
 	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QVariantList *records = nullptr);
-	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QJsonArray *records = nullptr);
+	bool execSelectQuery(QString query, const QVariantList &args, QJsonArray *records);
 	bool execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QVariantMap *record = nullptr);
-	bool execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QJsonObject *record = nullptr);
+	bool execSelectQueryOneRow(QString query, const QVariantList &args, QJsonObject *record);
 
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap());
 

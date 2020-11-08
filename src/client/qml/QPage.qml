@@ -85,7 +85,9 @@ Page {
 				Layout.fillHeight: true
 				sourceComponent: panelComponents[index]
 
-				onLoaded: item.panelActivated()
+				property Page parentPage: control
+
+				onLoaded: item.populated()
 			}
 		}
 	}
@@ -98,6 +100,8 @@ Page {
 		anchors.fill: parent
 		property Page parentPage: control
 
+		onCurrentIndexChanged: tabBar.setCurrentIndex(currentIndex)
+
 		visible: swipeMode
 
 		Repeater {
@@ -105,6 +109,8 @@ Page {
 
 			Loader {
 				id: ldrSwipe
+
+				property Page parentPage: control
 
 				sourceComponent: panelComponents[index]
 
@@ -133,8 +139,12 @@ Page {
 		id: tabBar
 
 		visible: mainSwipe.visible && tabBar.count>1
-		currentIndex: mainSwipe.currentIndex
-		onCurrentIndexChanged: mainSwipe.currentIndex = currentIndex
+
+		swipeView: mainSwipe
+
+		onContentChildrenChanged: {
+			setCurrentIndex(mainSwipe.currentIndex)
+		}
 	}
 
 
@@ -151,8 +161,9 @@ Page {
 
 
 	function swipeToPage(idx) {
-		if (swipeMode)
-			mainSwipe.currentIndex = idx
+		if (swipeMode) {
+			mainSwipe.setCurrentIndex(idx)
+		}
 	}
 
 

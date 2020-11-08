@@ -51,7 +51,7 @@ public:
 	int connectedServerId() const { return m_connectedServerId; }
 
 public slots:
-	int serverListReload();
+	void serverListReload();
 	QVariantMap serverInfoGet(const int &serverId);
 	void serverInfoInsertOrUpdate(const int &id, const QVariantMap &map);
 	void serverInfoDelete(const int &id);
@@ -59,12 +59,15 @@ public slots:
 	void serverSetAutoConnect(const int &serverId, const bool &value = true);
 	void serverTryLogin(const int &serverId);
 	void serverLogOut();
+	void doAutoConnect();
 
 	void setConnectedServerId(int connectedServerId);
 
 protected slots:
 	bool databaseInit() override;
 	void clientSetup() override;
+
+	void removeServerDir(const int &serverId);
 
 
 	void onSessionTokenChanged(QString sessionToken);

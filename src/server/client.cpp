@@ -28,8 +28,8 @@
 #include <QDebug>
 #include "client.h"
 
+
 #include "userinfo.h"
-#include "teachermaps.h"
 #include "teachergroups.h"
 #include "user.h"
 #include "student.h"
@@ -39,6 +39,8 @@ Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObje
 	, m_db(database)
 	, m_mapDb(mapDb)
 	, m_socket(socket)
+	, m_msgSize(0)
+	, m_cosMessage()
 {
 	Q_ASSERT(socket);
 
@@ -50,8 +52,11 @@ Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObje
 
 	connect(m_socket, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
 	connect(m_socket, SIGNAL(binaryMessageReceived(QByteArray)), this, SLOT(onBinaryMessageReceived(QByteArray)));
+	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onBinaryFrameReceived);
 
 	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
+
+	qDebug() << m_cosMessage;
 }
 
 
@@ -300,7 +305,15 @@ void Client::onDisconnected()
 
 void Client::onBinaryMessageReceived(const QByteArray &message)
 {
+	CosMessage m;
+
 	QDataStream ds(message);
+
+	ds >> m;
+
+	qDebug() << "*********" << m;
+
+	/*QDataStream ds(message);
 	ds.setVersion(QDataStream::Qt_5_14);
 
 	int clientMsgId = -1;
@@ -322,7 +335,30 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 		parseJson(msgData, clientMsgId, serverMsgId, binaryData);
 	} else {
 		sendError("invalidMessageType", clientMsgId);
+	} */
+}
+
+
+/**
+ * @brief Client::onBinaryFrameReceived
+ * @param frame
+ * @param isLastFrame
+ */
+
+void Client::onBinaryFrameReceived(const QByteArray &frame, bool isLastFrame)
+{
+	qDebug() << "RECEIVED" << frame.size() << isLastFrame;
+
+	QDataStream ds(frame);
+	ds >> m_cosMessage;
+
+	qDebug() << m_cosMessage;
+
+	if (isLastFrame) {
+		m_cosMessage = CosMessage();
+		qDebug() << m_cosMessage;
 	}
+
 }
 
 
@@ -726,9 +762,6 @@ void Client::parseJson(const QByteArray &jsonData, const int &clientMsgId, const
 
 	if (cl == "userInfo") {
 		UserInfo q(this, cos, binaryData);
-		q.start(func, &fdata, &bdata);
-	} else if (cl == "teacherMaps") {
-		TeacherMaps q(this, cos, binaryData);
 		q.start(func, &fdata, &bdata);
 	} else if (cl == "teacherGroups") {
 		TeacherGroups q(this, cos, binaryData);

@@ -32,6 +32,7 @@
 #include <QJsonDocument>
 
 #include "../version/buildnumber.h"
+#include "../common/cosmessage.h"
 #include "cosclient.h"
 #include "servers.h"
 #include "mapdata.h"
@@ -420,10 +421,6 @@ QList<QPointF> Client::rotatePolygon(const QVariantList &points, const qreal &an
 }
 
 
-int Client::clientVersionMajor() { return _VERSION_MAJOR; }
-
-int Client::clientVersionMinor() { return _VERSION_MINOR; }
-
 void Client::setConnectionState(Client::ConnectionState connectionState)
 {
 	if (m_connectionState == connectionState)
@@ -554,6 +551,36 @@ int Client::socketSend(const QJsonObject &jsonObject, const QByteArray &binaryDa
 		return -1;
 	}
 
+
+	CosMessage m;
+
+	qDebug() << m;
+
+	QFile file("/home/valaczka/Projektek/callofsuli-resources/Blue_Light_Streaks_3Videvo.mov");
+
+	if (!file.open(QFile::ReadOnly)) {
+		qWarning().noquote() << tr("Read error: ")+file.fileName();
+		return -1;
+	}
+
+	m.setBinaryData(file.readAll());
+
+	file.close();
+
+
+	QByteArray s;
+	QDataStream writeStream(&s, QIODevice::WriteOnly);
+	writeStream << m;
+
+	qDebug() << m;
+
+	m_socket->sendBinaryMessage(s);
+
+
+	/*exit(1);
+
+
+
 	QString msgType = binaryData.isNull() ? "json" : "binary";
 
 	QByteArray d;
@@ -572,8 +599,8 @@ int Client::socketSend(const QJsonObject &jsonObject, const QByteArray &binaryDa
 	qDebug().noquote() << tr("SEND to server ") << m_socket << clientMsgId << serverMsgId << msgType << jsonObject;
 
 	m_socket->sendBinaryMessage(d);
-
-	return clientMsgId;
+*/
+	return 0;
 }
 
 
@@ -835,6 +862,9 @@ void Client::onSocketConnected()
 		socketSend({{"class", "userInfo"}, {"func", "getServerInfo"}});
 	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
+
+
+
 }
 
 

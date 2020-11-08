@@ -444,7 +444,7 @@ bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QVar
 	if (list.count() != 1)
 		return false;
 
-	if (record && list.count()) {
+	if (record) {
 		QVariantMap map = list.value(0).toMap();
 		QStringList keys = map.keys();
 		foreach (QString k, keys) {

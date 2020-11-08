@@ -42,11 +42,11 @@
 
 
 
-Server::Server(QObject *parent) : QObject(parent)
+Server::Server(QObject *parent)
+	: QObject(parent)
+	, m_serverVersionMajor(_VERSION_MAJOR)
+	, m_serverVersionMinor(_VERSION_MINOR)
 {
-	m_serverVersionMajor = _VERSION_MAJOR;
-	m_serverVersionMinor = _VERSION_MINOR;
-
 	m_isHostForced = false;
 	m_isPortForced = false;
 	m_isConnectionForced = false;

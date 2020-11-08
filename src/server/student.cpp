@@ -111,7 +111,7 @@ void Student::getMapData(QJsonObject *jsonResponse, QByteArray *binaryResponse)
 
 	QVariantList l;
 	l << realuuid;
-
+/*
 	m_client->mapDb()->db()->execSelectQueryOneRow("SELECT md5 FROM mapdata WHERE uuid=?", l, jsonResponse);
 
 	QVariantMap mdata = m_client->mapDb()->db()->runSimpleQuery("SELECT data FROM mapdata WHERE uuid=?", l);
@@ -122,6 +122,7 @@ void Student::getMapData(QJsonObject *jsonResponse, QByteArray *binaryResponse)
 		(*jsonResponse)["error"] = "map data not found";
 		return;
 	}
+	*/
 }
 
 

@@ -58,8 +58,8 @@ class Server : public QObject
 	Q_PROPERTY(QString dbResources READ dbResources WRITE setDbResources NOTIFY dbResourcesChanged)
 	Q_PROPERTY(QByteArray dbResourcesHash READ dbResourcesHash WRITE setDbResourcesHash NOTIFY dbResourcesHashChanged)
 
-	mutable int m_serverVersionMajor;
-	mutable int m_serverVersionMinor;
+	const int m_serverVersionMajor;
+	const int m_serverVersionMinor;
 	bool m_isHostForced;
 	bool m_isPortForced;
 	bool m_isConnectionForced;

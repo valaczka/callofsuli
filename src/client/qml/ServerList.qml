@@ -168,7 +168,10 @@ QPagePanel {
 		id: actionAutoConnect
 		text: qsTr("Automata csatlakozás")
 		enabled: serverList.currentIndex !== -1
-		onTriggered:  servers.serverSetAutoConnect(serverList.model.get(serverList.currentIndex).id)
+		onTriggered:  {
+			var d = serverList.model.get(serverList.currentIndex)
+			servers.serverSetAutoConnect(d.id, !d.autoconnect)
+		}
 	}
 
 
@@ -179,8 +182,11 @@ QPagePanel {
 		onServerInfoUpdated: servers.serverListReload()
 	}
 
-	onPanelActivated: {
+	onPopulated: {
 		servers.serverListReload()
+	}
+
+	onPanelActivated: {
 		serverList.forceActiveFocus()
 	}
 }

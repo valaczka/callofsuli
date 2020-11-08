@@ -7,6 +7,8 @@ import "JScript.js" as JS
 TabBar {
 	id: control
 
+	property SwipeView swipeView: null
+
 	Material.accent: CosStyle.colorAccentDarker
 	Material.foreground: CosStyle.colorPrimary
 	Material.background: "#55000000"

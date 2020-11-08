@@ -33,7 +33,6 @@ SOURCES += \
 		server.cpp \
 		student.cpp \
 		teachergroups.cpp \
-		teachermaps.cpp \
 		user.cpp \
 		userinfo.cpp
 
@@ -43,7 +42,6 @@ HEADERS += \
 	server.h \
 	student.h \
 	teachergroups.h \
-	teachermaps.h \
 	user.h \
 	userinfo.h
 

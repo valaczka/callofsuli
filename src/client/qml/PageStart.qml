@@ -14,6 +14,8 @@ QPage {
 	title: qsTr("Call of Suli")
 	mainToolBar.backButton.visible: false
 
+	property bool _firstRun: true
+
 	Servers {
 		id: servers
 		client: cosClient
@@ -22,22 +24,28 @@ QPage {
 		property int serverId: -1
 	}
 
-	property list<Component> normalComponents: [
+	property list<Component> fullComponents: [
+		Component { ServerList {
+				panelVisible: true
+				layoutFillWidth: !servers.editing
+			} },
+		Component { ServerEdit { panelVisible: servers.editing} }
+	]
+
+	property list<Component> listComponents: [
 		Component { ServerList {
 				panelVisible: true
 				layoutFillWidth: true
 			} }
 	]
 
-	property list<Component> editComponents: [
-		Component { ServerList {
-				panelVisible: true
-				layoutFillWidth: false
-			} },
-		Component { ServerEdit { panelVisible: true } }
-	]
+	swipeMode: pageStart.width < 900
 
-	panelComponents: servers.editing ? editComponents : normalComponents
+	panelComponents: if (swipeMode)
+						 servers.editing ? fullComponents : listComponents
+					 else
+						 fullComponents
+
 
 	mainMenuFunc: function (m) {
 		m.addAction(tmXtest)
@@ -93,13 +101,17 @@ QPage {
 
 		onConnectionStateChanged: {
 			if (connectionState === Client.Connected) {
-				panels = []
 				JS.createPage("MainMenu", {})
 			} else if (connectionState === Client.Standby) {
 				mainStack.pop(pageStart)
 			}
 		}
 	}
+
+	onPageActivated: if (_firstRun) {
+						 _firstRun = false
+						 servers.doAutoConnect()
+					 }
 
 
 	function windowClose() {
