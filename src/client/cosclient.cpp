@@ -70,6 +70,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_signalList["user"] = "User";
 	m_signalList["student"] = "Student";
 
+	m_cosMessage = nullptr;
+
 	m_serverDataDir = "";
 
 	m_registrationEnabled = false;
@@ -79,6 +81,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
+	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onSocketBinaryFrameReceived);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
 	connect(m_socket, &QWebSocket::sslErrors, this, &Client::onSocketSslErrors);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
@@ -102,6 +105,9 @@ Client::~Client()
 {
 	delete m_timer;
 	delete m_socket;
+
+	if (m_cosMessage)
+		delete m_cosMessage;
 }
 
 
@@ -118,7 +124,6 @@ void Client::initialize()
 */
 	QCoreApplication::setApplicationName("callofsuli");
 	QCoreApplication::setOrganizationDomain("client.callofsuli.vjp.piarista.hu");
-	//QCoreApplication::setOrganizationName("Call of Suli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
 
 }
@@ -554,8 +559,6 @@ int Client::socketSend(const QJsonObject &jsonObject, const QByteArray &binaryDa
 
 	CosMessage m;
 
-	qDebug() << m;
-
 	QFile file("/home/valaczka/Projektek/callofsuli-resources/Blue_Light_Streaks_3Videvo.mov");
 
 	if (!file.open(QFile::ReadOnly)) {
@@ -880,6 +883,32 @@ void Client::onSocketDisconnected()
 }
 
 
+/**
+ * @brief Client::onSocketBinaryFrameReceived
+ * @param message
+ * @param isLastFrame
+ */
+
+void Client::onSocketBinaryFrameReceived(const QByteArray &frame, const bool &isLastFrame)
+{
+	if (!m_cosMessage) {
+		if (isLastFrame)
+			return;
+
+		m_cosMessage = new CosMessage(frame);
+	} else
+		m_cosMessage->appendFrame(frame);
+
+	qDebug() << m_cosMessage->receivedDataRatio();
+
+	emit messageFrameReceived(*m_cosMessage);
+
+	if (isLastFrame) {
+		delete m_cosMessage;
+		m_cosMessage = nullptr;
+	}
+
+}
 
 /**
  * @brief Client::onSocketBinaryMessageReceived
@@ -888,6 +917,12 @@ void Client::onSocketDisconnected()
 
 void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
+	CosMessage m(message);
+
+	qDebug() << m;
+
+	return;  /////////////////////////////////////////////
+
 	QDataStream ds(message);
 	ds.setVersion(QDataStream::Qt_5_14);
 

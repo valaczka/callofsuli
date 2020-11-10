@@ -36,14 +36,79 @@
 
 #include <QDebug>
 
-CosMessage::CosMessage()
+int CosMessage::m_msgId = 0;
+
+/**
+ * @brief CosMessage::CosMessage
+ * @param message
+ */
+
+CosMessage::CosMessage(const QByteArray &message)
 	: m_messageType(MessageInvalid)
 	, m_messageError(NoError)
+	, m_serverError(ServerNoError)
+	, m_serverErrorDetails()
 	, m_binaryData()
 	, m_binaryDataExpectedSize(0)
-	, m_isLoading(false)
+	, m_receivedFrameSize(0)
+	, m_jsonAuth()
+	, m_clientState(ClientInvalid)
+	, m_clientRole()
+	, m_peerMsgId(0)
 {
+	if (!message.isEmpty())
+		appendFrame(message);
+}
 
+
+/**
+ * @brief CosMessage::CosMessage
+ * @param messageType
+ */
+
+CosMessage::CosMessage(const CosMessage::CosMessageType &messageType)
+	: m_messageType(messageType)
+	, m_messageError(NoError)
+	, m_serverError(ServerNoError)
+	, m_serverErrorDetails()
+	, m_binaryData()
+	, m_binaryDataExpectedSize(0)
+	, m_receivedFrameSize(0)
+	, m_jsonAuth()
+	, m_clientState(ClientInvalid)
+	, m_clientRole()
+	, m_peerMsgId(0)
+{
+	if (m_msgId == INT_MAX)
+		m_msgId = 0;
+
+	m_msgId++;
+
+}
+
+
+/**
+ * @brief CosMessage::CosMessage
+ * @param serverError
+ */
+
+CosMessage::CosMessage(const CosMessage::CosMessageServerError &serverError, const QString &details)
+	: m_messageType(MessageServerError)
+	, m_messageError(NoError)
+	, m_serverError(serverError)
+	, m_serverErrorDetails(details)
+	, m_binaryData()
+	, m_binaryDataExpectedSize(0)
+	, m_receivedFrameSize(0)
+	, m_jsonAuth()
+	, m_clientState(ClientInvalid)
+	, m_clientRole()
+	, m_peerMsgId(0)
+{
+	if (m_msgId == INT_MAX)
+		m_msgId = 0;
+
+	m_msgId++;
 }
 
 
@@ -80,6 +145,85 @@ inline quint32 CosMessage::versionNumber()
 
 
 /**
+ * @brief CosMessage::appendFrame
+ * @param frame
+ * @param isLastFrame
+ * @return
+ */
+
+CosMessage &CosMessage::appendFrame(const QByteArray &frame)
+{
+	if (m_messageType != MessageBinaryData || !m_binaryDataExpectedSize) {
+		QDataStream stream(frame);
+
+		stream.startTransaction();
+
+		quint32 magic;
+
+		stream >> magic;
+
+		if (magic != 0x434F53) {			// COS
+			m_messageType = MessageInvalid;
+			m_messageError = BadMessageFormat;
+		}
+
+		quint32 version;
+
+		stream >> version;
+
+		if (version < versionNumber()) {
+			m_messageType = MessageInvalid;
+			m_messageError = MessageTooOld;
+		}
+
+		if (version > versionNumber()) {
+			m_messageType = MessageInvalid;
+			m_messageError = MessageTooNew;
+		}
+
+		stream.setVersion(QDataStream::Qt_5_11);
+
+		CosMessageType messageType = MessageInvalid;
+
+		stream >> m_peerMsgId;
+		stream >> messageType;
+		stream >> m_clientState;
+		stream >> m_clientRole;
+		stream >> m_jsonAuth;
+
+		switch (messageType) {
+			case MessageServerError:
+				m_messageType = MessageServerError;
+				stream >> m_serverError;
+				stream >> m_serverErrorDetails;
+				break;
+			case MessageBinaryData:
+				m_messageType = MessageBinaryData;
+				stream >> m_binaryDataExpectedSize;
+				stream >> m_binaryData;
+				break;
+
+			default:
+				m_messageType = MessageInvalid;
+				m_messageError = InvalidMessageType;
+				break;
+		}
+
+		if (!stream.commitTransaction()) {
+			m_messageError = NoBinaryData;
+		}
+	}
+
+	m_receivedFrameSize += frame.size();
+
+
+	return *this;
+}
+
+
+
+
+/**
  * @brief CosMessage::binaryData
  * @return
  */
@@ -103,11 +247,11 @@ void CosMessage::setBinaryData(const QByteArray &binaryData)
 
 
 
-
-
-
-
-
+void CosMessage::setServerError(const CosMessageServerError &serverError)
+{
+	m_messageType = MessageServerError;
+	m_serverError = serverError;
+}
 
 
 
@@ -127,83 +271,22 @@ QDataStream &operator<<(QDataStream &stream, const CosMessage &cosMessage)
 
 	stream.setVersion(QDataStream::Qt_5_11);
 
+	stream << cosMessage.m_msgId;
 	stream << cosMessage.m_messageType;
+	stream << cosMessage.m_clientState;
+	stream << cosMessage.m_clientRole;
+	stream << cosMessage.m_jsonAuth;
 
 	switch (cosMessage.m_messageType) {
+		case CosMessage::MessageServerError:
+			stream << cosMessage.m_serverError;
+			stream << cosMessage.m_serverErrorDetails;
+			break;
 		case CosMessage::MessageBinaryData:
 			stream << (quint32) cosMessage.m_binaryData.size();
 			stream << cosMessage.m_binaryData;
 			break;
 		default:
-			break;
-	}
-
-	return stream;
-}
-
-
-/**
- * @brief operator >>
- * @param stream
- * @param cosMessage
- * @return
- */
-
-QDataStream &operator>>(QDataStream &stream, CosMessage &cosMessage)
-{
-	if (cosMessage.m_messageType == CosMessage::MessageBinaryData && cosMessage.m_isLoading) {
-		stream >> cosMessage.m_binaryData;
-
-		if ((quint32) cosMessage.m_binaryData.size() == cosMessage.m_binaryDataExpectedSize)
-			cosMessage.m_isLoading = false;
-
-		return stream;
-	}
-
-	quint32 magic;
-
-	stream >> magic;
-
-	if (magic != 0x434F53) {			// COS
-		cosMessage.m_messageType = CosMessage::MessageInvalid;
-		cosMessage.m_messageError = CosMessage::BadMessageFormat;
-		return stream;
-	}
-
-	quint32 version;
-
-	stream >> version;
-
-	if (version < CosMessage::versionNumber()) {
-		cosMessage.m_messageType = CosMessage::MessageInvalid;
-		cosMessage.m_messageError = CosMessage::MessageTooOld;
-		return stream;
-	}
-
-	if (version > CosMessage::versionNumber()) {
-		cosMessage.m_messageType = CosMessage::MessageInvalid;
-		cosMessage.m_messageError = CosMessage::MessageTooNew;
-		return stream;
-	}
-
-	stream.setVersion(QDataStream::Qt_5_11);
-
-	CosMessage::CosMessageType messageType = CosMessage::MessageInvalid;
-
-	stream >> messageType;
-
-	switch (messageType) {
-		case CosMessage::MessageBinaryData:
-			cosMessage.m_messageType = CosMessage::MessageBinaryData;
-			stream >> cosMessage.m_binaryDataExpectedSize;
-			stream >> cosMessage.m_binaryData;
-
-			if ((quint32) cosMessage.m_binaryData.size() < cosMessage.m_binaryDataExpectedSize)
-				cosMessage.m_isLoading = true;
-			break;
-		default:
-			cosMessage.m_messageType = CosMessage::MessageInvalid;
-			cosMessage.m_messageError = CosMessage::InvalidMessageType;
 			break;
 	}
 
@@ -222,12 +305,16 @@ QDebug operator<<(QDebug stream, const CosMessage &cosMessage)
 {
 	QDebugStateSaver saver(stream);
 
+	stream << "ID" << cosMessage.m_msgId;
+	stream << "PEERID" << cosMessage.m_peerMsgId;
 	stream << "VERSION" << CosMessage::versionNumber();
 	stream << "MESSAGE TYPE" << cosMessage.m_messageType;
+	stream << "CLIENT" << cosMessage.m_clientState << cosMessage.m_clientRole << cosMessage.m_jsonAuth;
 	stream << "MESSAGE ERROR" << cosMessage.m_messageError;
+	stream << "MESSAGE SERVER ERROR" << cosMessage.m_serverError << cosMessage.m_serverErrorDetails;
 	stream << "BINARY DATA" << cosMessage.m_binaryData.size();
 	stream << "BINARY DATA EXPECTED SIZE" << cosMessage.m_binaryDataExpectedSize;
-	stream << "BINARY DATA LOADING" << cosMessage.m_isLoading;
+	stream << "BINARY DATA RECEIVED SIZE" << cosMessage.m_receivedFrameSize;
 
 	return stream;
 }

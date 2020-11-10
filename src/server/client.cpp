@@ -39,8 +39,6 @@ Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObje
 	, m_db(database)
 	, m_mapDb(mapDb)
 	, m_socket(socket)
-	, m_msgSize(0)
-	, m_cosMessage()
 {
 	Q_ASSERT(socket);
 
@@ -50,13 +48,10 @@ Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObje
 
 	qInfo().noquote() << tr("Client connected: ") << this << m_socket->peerAddress().toString() << m_socket->peerPort();
 
-	connect(m_socket, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
-	connect(m_socket, SIGNAL(binaryMessageReceived(QByteArray)), this, SLOT(onBinaryMessageReceived(QByteArray)));
-	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onBinaryFrameReceived);
+	connect(m_socket, &QWebSocket::disconnected, this, &Client::onDisconnected);
+	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
 
 	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
-
-	qDebug() << m_cosMessage;
 }
 
 
@@ -305,61 +300,26 @@ void Client::onDisconnected()
 
 void Client::onBinaryMessageReceived(const QByteArray &message)
 {
-	CosMessage m;
+	CosMessage m(message);
 
-	QDataStream ds(message);
+	qDebug() << m;
 
-	ds >> m;
+	CosMessage m2(CosMessage::ServerInternalError, "részletek");
+	m2.setClientState(CosMessage::ClientAuthorized);
+	CosMessage::ClientRoles r = CosMessage::RoleAdmin|CosMessage::RoleGuest;
+	m2.setClientRole(r);
+	m2.clientRole().setFlag(CosMessage::RoleTeacher);
 
-	qDebug() << "*********" << m;
+	QByteArray s;
+	QDataStream writeStream(&s, QIODevice::WriteOnly);
+	writeStream << m2;
 
-	/*QDataStream ds(message);
-	ds.setVersion(QDataStream::Qt_5_14);
+	qDebug() << m2;
 
-	int clientMsgId = -1;
-	int serverMsgId = -1;
-	QString msgType;
-
-	ds >> clientMsgId >> serverMsgId >> msgType;
-
-	qDebug().noquote() << tr("RECEIVED from client ") << m_socket << clientMsgId << serverMsgId << msgType;
-
-	if (msgType == "json" || msgType == "binary") {
-		QByteArray msgData;
-		QByteArray binaryData;
-		ds >> msgData;
-
-		if (msgType == "binary")
-			ds >> binaryData;
-
-		parseJson(msgData, clientMsgId, serverMsgId, binaryData);
-	} else {
-		sendError("invalidMessageType", clientMsgId);
-	} */
+	m_socket->sendBinaryMessage(s);
 }
 
 
-/**
- * @brief Client::onBinaryFrameReceived
- * @param frame
- * @param isLastFrame
- */
-
-void Client::onBinaryFrameReceived(const QByteArray &frame, bool isLastFrame)
-{
-	qDebug() << "RECEIVED" << frame.size() << isLastFrame;
-
-	QDataStream ds(frame);
-	ds >> m_cosMessage;
-
-	qDebug() << m_cosMessage;
-
-	if (isLastFrame) {
-		m_cosMessage = CosMessage();
-		qDebug() << m_cosMessage;
-	}
-
-}
 
 
 /**

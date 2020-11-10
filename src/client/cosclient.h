@@ -34,6 +34,7 @@
 #include <QSettings>
 #include <QJsonObject>
 #include <QUrl>
+#include "../common/cosmessage.h"
 
 
 class Client : public QObject
@@ -146,6 +147,7 @@ private slots:
 
 	void onSocketConnected();
 	void onSocketDisconnected();
+	void onSocketBinaryFrameReceived(const QByteArray &frame, const bool &isLastFrame);
 	void onSocketBinaryMessageReceived(const QByteArray &message);
 	void onSocketSslErrors(const QList<QSslError> &errors);
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
@@ -173,6 +175,8 @@ signals:
 					 const QString &informativeText,
 					 const QString &detailedText);
 	void reconnecting();
+
+	void messageFrameReceived(const CosMessage &message);
 
 	void authInvalid();
 	void authRequirePasswordReset();
@@ -214,6 +218,7 @@ private:
 	QUrl m_connectedUrl;
 	int m_clientMsgId;
 	QHash<QString, QString> m_signalList;
+	CosMessage *m_cosMessage;
 
 	ConnectionState m_connectionState;
 	QString m_userName;
