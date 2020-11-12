@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * user.h
+ * serverdb.h
  *
- * Created on: 2020. 04. 11.
+ * Created on: 2020. 11. 10.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * User
+ * ServerDb
  *
  *  This file is part of Call of Suli.
  *
@@ -32,37 +32,21 @@
  * SOFTWARE.
  */
 
-#ifndef USER_H
-#define USER_H
+#ifndef SERVERDB_H
+#define SERVERDB_H
 
+#include "../common/cosdb.h"
 #include <QObject>
-#include "client.h"
-#include "abstracthandler.h"
 
-class Client;
-
-class User : public AbstractHandler
+class ServerDb : public COSdb
 {
 	Q_OBJECT
 
 public:
-	explicit User(Client *client, const QJsonObject &object, const QByteArray &binaryData);
+	ServerDb(const QString &connectionName = "serverDb", QObject *parent = nullptr);
 
-	bool classInit() override;
-
-public slots:
-	void getAllUser(QJsonObject *jsonResponse, QByteArray *);
-	void userGet(QJsonObject *jsonResponse, QByteArray *);
-	void userCreate(QJsonObject *jsonResponse, QByteArray *);
-	void userUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void userBatchUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void userBatchRemove(QJsonObject *jsonResponse, QByteArray *);
-
-	void getAllClass(QJsonObject *jsonResponse, QByteArray *);
-	void classCreate(QJsonObject *jsonResponse, QByteArray *);
-	void classUpdate(QJsonObject *jsonResponse, QByteArray *);
-	void classBatchRemove(QJsonObject *jsonResponse, QByteArray *);
-
+protected slots:
+	bool databaseInit() override;
 };
 
-#endif // USER_H
+#endif // SERVERDB_H

@@ -37,6 +37,7 @@
 
 #include <QDataStream>
 #include <QJsonObject>
+#include <QWebSocket>
 
 
 class CosMessage
@@ -56,19 +57,27 @@ public:
 		MessageTooOld,
 		MessageTooNew,
 		InvalidMessageType,
-		NoBinaryData
+		NoBinaryData,
+		PasswordRequestMissingEmail,
+		PasswordRequestInvalidEmail,
+		PasswordRequestInvalidCode,
+		PasswordRequestCodeSent,
+		PasswordRequestSuccess,
+		InvalidSession,
+		InvalidUser,
+		PasswordResetRequired,
+		InvalidClass,
+		InvalidFunction,
+		ClassPermissionDenied,
+		OtherError
 	};
 
 	enum CosMessageServerError {
 		ServerNoError,
-		ServerInternalError
+		ServerInternalError,
+		ServerSmtpError
 	};
 
-	enum ClientState {
-		ClientInvalid,
-		ClientUnauthorized,
-		ClientAuthorized
-	};
 
 	enum ClientRole {
 		RoleGuest = 0x01,
@@ -79,17 +88,32 @@ public:
 
 	Q_DECLARE_FLAGS(ClientRoles, ClientRole)
 
+
+	enum CosClass {
+		ClassInvalid,
+		ClassLogout,
+		ClassAdmin,
+		ClassUserInfo
+	};
+
+
 	CosMessage(const QByteArray &message);
 
-	CosMessage(const CosMessageType &messageType = MessageInvalid);
-	CosMessage(const CosMessageServerError &serverError, const QString &details = QString());
+	CosMessage();
+	CosMessage(const CosMessageType &messageType, const CosMessage &orig = CosMessage());
+	CosMessage(const CosMessageError &messageError, const CosMessage &orig = CosMessage());
+	CosMessage(const CosMessageServerError &serverError, const QString &details = QString(), const CosMessage &orig = CosMessage());
+	CosMessage(const QJsonObject &jsonData, const CosMessage &orig = CosMessage());
 
 	static int versionMajor();
 	static int versionMinor();
 	static quint32 versionNumber();
 
+	void send(QWebSocket *socket);
+
+	int msgId() const { return m_msgId; }
+
 	CosMessageType messageType() const { return m_messageType; }
-	CosMessageError messageError() const { return m_messageError; }
 	inline bool hasError() const { return m_messageError != NoError; }
 	inline bool valid() const { return m_messageType != MessageInvalid && m_messageError == NoError;}
 	quint32 binaryDataExpectedSize() const { return m_binaryDataExpectedSize; }
@@ -110,13 +134,24 @@ public:
 	QJsonObject jsonAuth() const { return m_jsonAuth; }
 	void setJsonAuth(const QJsonObject &jsonAuth) { m_jsonAuth = jsonAuth; }
 
-	ClientState clientState() const { return m_clientState; }
-	void setClientState(const ClientState &clientState) { m_clientState = clientState; }
-
 	ClientRoles clientRole() const { return m_clientRole; }
 	void setClientRole(const ClientRoles &clientRole) { m_clientRole = clientRole; }
 
+	CosClass cosClass() const { return m_cosClass; }
+	void setCosClass(const CosClass &cosClass) { m_cosClass = cosClass; }
+
+	QString cosFunc() const { return m_cosFunc; }
+	void setCosFunc(const QString &cosFunc) { m_cosFunc = cosFunc; }
+
+	QJsonObject jsonData() const { return m_jsonData; }
+	void setJsonData(const QJsonObject &jsonData) { m_jsonData = jsonData; }
+
+	CosMessageError messageError() const { return m_messageError; }
+	void setMessageError(const CosMessageError &messageError) { m_messageError = messageError; }
+
 private:
+	void increaseMsgId();
+
 	CosMessageType m_messageType;
 	CosMessageError m_messageError;
 	CosMessageServerError m_serverError;
@@ -126,8 +161,11 @@ private:
 	quint32 m_receivedFrameSize;
 
 	QJsonObject m_jsonAuth;
-	ClientState m_clientState;
 	ClientRoles m_clientRole;
+
+	CosClass m_cosClass;
+	QString m_cosFunc;
+	QJsonObject m_jsonData;
 
 	int m_peerMsgId;
 	static int m_msgId;

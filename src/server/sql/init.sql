@@ -3,10 +3,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE system(
 	versionMajor INTEGER,
 	versionMinor INTEGER,
-	socketHost TEXT,
-	socketPort INTEGER,
-	serverName TEXT,
-	connections INTEGER
+	serverName TEXT
 );
 
 CREATE TABLE settings(
@@ -24,47 +21,12 @@ CREATE TABLE user(
 	username TEXT NOT NULL PRIMARY KEY,
 	firstname TEXT,
 	lastname TEXT,
-	email TEXT,
 	active BOOL NOT NULL DEFAULT false,
 	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	isTeacher BOOL NOT NULL DEFAULT false,
-	isAdmin BOOL NOT NULL DEFAULT false,
-	UNIQUE (email)
+	isAdmin BOOL NOT NULL DEFAULT false
 );
 
-CREATE TRIGGER user_username_insert
-BEFORE INSERT ON user
-BEGIN
-	SELECT CASE
-		WHEN NEW.username LIKE '%@%' THEN RAISE (ABORT, 'Invalid username')
-	END;
-END;
-
-
-CREATE TRIGGER user_username_update
-BEFORE UPDATE ON user
-BEGIN
-	SELECT CASE
-		WHEN NEW.username LIKE '%@%' THEN RAISE (ABORT, 'Invalid username')
-	END;
-END;
-
-CREATE TRIGGER user_email_insert
-BEFORE INSERT ON user
-BEGIN
-	SELECT CASE
-		WHEN NEW.email IS NOT NULL AND NEW.email<>'' AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
-	END;
-END;
-
-
-CREATE TRIGGER user_email_update
-BEFORE UPDATE ON user
-BEGIN
-	SELECT CASE
-		WHEN NEW.email IS NOT NULL AND NEW.email<>'' AND NEW.email NOT LIKE '%_@__%.__%' THEN RAISE (ABORT, 'Invalid email')
-	END;
-END;
 
 CREATE TABLE auth(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -236,7 +198,7 @@ CREATE TABLE passwordReset(
 
 
 CREATE VIEW userInfo AS
-SELECT u.username, u.firstname, u.lastname, u.email, u.active, u.isTeacher, u.isAdmin, u.classid,
+SELECT u.username, u.firstname, u.lastname, u.active, u.isTeacher, u.isAdmin, u.classid,
 	c.name as classname, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as rankname
 	FROM user u
 	LEFT JOIN class c ON (c.id=u.classid)
@@ -258,52 +220,4 @@ BEGIN
 		SELECT NEW.username, rank.id, userInfo.xp FROM userInfo LEFT JOIN rank ON (rank.xp<=userInfo.xp)
 		WHERE username=NEW.username AND rank.id>userInfo.rankid ORDER BY rank.id;
 END;
-
-
-INSERT INTO rank VALUES (0,'közkatona',1,0);
-
-INSERT INTO rank VALUES (1,'őrvezető',1,500);
-
-INSERT INTO rank VALUES (2,'tizedes',1,1150);
-
-INSERT INTO rank VALUES (3,'szakaszvezető',1,1950);
-
-INSERT INTO rank VALUES (4,'őrmester',1,2900);
-
-INSERT INTO rank VALUES (5,'törzsőrmester',1,4000);
-
-INSERT INTO rank VALUES (6,'főtörzsőrmester',1,5250);
-
-INSERT INTO rank VALUES (7,'zászlós',1,6650);
-
-INSERT INTO rank VALUES (8,'törzszászlós',1,8200);
-
-INSERT INTO rank VALUES (9,'főtörzszászlós',1,9900);
-
-INSERT INTO rank VALUES (10,'alhadnagy',1,11750);
-
-INSERT INTO rank VALUES (11,'hadnagy',1,13750);
-
-INSERT INTO rank VALUES (12,'főhadnagy',1,15900);
-
-INSERT INTO rank VALUES (13,'százados',1,18200);
-
-INSERT INTO rank VALUES (14,'őrnagy',1,20650);
-
-INSERT INTO rank VALUES (15,'alezredes',1,23250);
-
-INSERT INTO rank VALUES (16,'ezredes',1,26000);
-
-INSERT INTO rank VALUES (17,'dandártábornok',1,28900);
-
-INSERT INTO rank VALUES (18,'vezérőrnagy',1,31950);
-
-INSERT INTO rank VALUES (19,'altábornagy',1,35150);
-
-INSERT INTO rank VALUES (100,'vezérezredes',1,null);
-
-
-
-
-
 

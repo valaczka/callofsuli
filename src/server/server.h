@@ -36,53 +36,36 @@
 #include <QtNetwork/QSslKey>
 #include <QtNetwork/QSslSocket>
 
-#include "../common/cossql.h"
-#include "../common/maprepository.h"
+#include "serverdb.h"
 #include "client.h"
 
 class Server : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QString sqlDbDir READ sqlDbDir WRITE setSqlDbDir NOTIFY sqlDbDirChanged)
-	Q_PROPERTY(bool sqlDbCreate READ sqlDbCreate WRITE setSqlDbCreate NOTIFY sqlDbCreateChanged)
-
-	Q_PROPERTY(int dbVersionMajor READ dbVersionMajor WRITE setDbVersionMajor NOTIFY dbVersionMajorChanged)
-	Q_PROPERTY(int dbVersionMinor READ dbVersionMinor WRITE setDbVersionMinor NOTIFY dbVersionMinorChanged)
-	Q_PROPERTY(QString dbSocketHost READ dbSocketHost WRITE setDbSocketHost NOTIFY dbSocketHostChanged)
-	Q_PROPERTY(int dbSocketPort READ dbSocketPort WRITE setDbSocketPort NOTIFY dbSocketPortChanged)
-	Q_PROPERTY(QString dbServerName READ dbServerName WRITE setDbServerName NOTIFY dbServerNameChanged)
-	Q_PROPERTY(QString socketCertFile READ socketCertFile WRITE setSocketCertFile NOTIFY socketCertFileChanged)
-	Q_PROPERTY(QString socketCertKey READ socketCertKey WRITE setSocketCertKey NOTIFY socketCertKeyChanged)
-	Q_PROPERTY(int socketPendingConnections READ socketPendingConnections WRITE setSocketPendingConnections NOTIFY socketPendingConnectionsChanged)
-	Q_PROPERTY(QString dbResources READ dbResources WRITE setDbResources NOTIFY dbResourcesChanged)
-	Q_PROPERTY(QByteArray dbResourcesHash READ dbResourcesHash WRITE setDbResourcesHash NOTIFY dbResourcesHashChanged)
+	Q_PROPERTY(QString serverDir READ serverDir WRITE setServerDir NOTIFY serverDirChanged)
+	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
+	Q_PROPERTY(ServerDb * db READ db)
 
 	const int m_serverVersionMajor;
 	const int m_serverVersionMinor;
-	bool m_isHostForced;
-	bool m_isPortForced;
-	bool m_isConnectionForced;
-
-	QWebSocketServer *m_socketServer;
-
-	QString m_sqlDbDir;
-	CosSql* m_db;
-	MapRepository* m_mapDb;
-	bool m_sqlDbCreate;
-	int m_dbVersionMajor;
-	int m_dbVersionMinor;
-	QString m_dbSocketHost;
-	int m_dbSocketPort;
-	QString m_dbServerName;
-	QString m_socketCertFile;
-	QString m_socketCertKey;
-	int m_socketPendingConnections;
-	QString m_dbResources;
-	QByteArray m_dbResourcesHash;
 
 private:
+	QWebSocketServer *m_socketServer;
+
+	QString m_serverDir;
+	int m_versionMajor;
+	int m_versionMinor;
+	QString m_host;
+	int m_port;
+	int m_pendingConnections;
+	QString m_serverName;
+	QString m_socketCert;
+	QString m_socketKey;
+	bool m_createDb;
+
 	QList<Client *> m_clients;
+	ServerDb * m_db;
 
 public:
 	explicit Server(QObject *parent = nullptr);
@@ -90,33 +73,18 @@ public:
 
 	bool start();
 	void stop();
-	void commandLineParse(QCoreApplication &app);
-	bool dbDirCheck(const QString &dirname, bool create);
+	bool commandLineParse(QCoreApplication &app);
+	bool serverDirCheck();
 	bool databaseLoad();
 	bool databaseInit();
-	bool resourcesLoad();
 
 	bool websocketServerStart();
 
-	int serverVersionMajor() const { return m_serverVersionMajor; }
-	int serverVersionMinor() const { return m_serverVersionMinor; }
-
-	QString sqlDbDir() const { return m_sqlDbDir; }
-	CosSql* db() { return m_db; }
-	bool sqlDbCreate() const { return m_sqlDbCreate; }
-	int dbVersionMajor() const { return m_dbVersionMajor; }
-	int dbVersionMinor() const { return m_dbVersionMinor; }
-	QString dbSocketHost() const { return m_dbSocketHost; }
-	int dbSocketPort() const { return m_dbSocketPort; }
-	QString dbServerName() const { return m_dbServerName; }
-	QString socketCertFile() const { return m_socketCertFile; }
-	QString socketCertKey() const { return m_socketCertKey; }
-	int socketPendingConnections() const { return m_socketPendingConnections; }
-	QString dbResources() const { return m_dbResources; }
-	QByteArray dbResourcesHash() const { return m_dbResourcesHash; }
+	QString serverDir() const { return m_serverDir; }
+	QString serverName() const { return m_serverName; }
 
 	QWebSocketServer *socketServer() const { return m_socketServer; }
-
+	ServerDb * db() const { return m_db; }
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);
@@ -124,33 +92,12 @@ private slots:
 	void onSocketDisconnected();
 
 public slots:
-	void setSqlDbDir(QString sqlDbDir);
-	void setSqlDbCreate(bool sqlDbCreate);
-	void setDbVersionMajor(int dbVersionMajor);
-	void setDbVersionMinor(int dbVersionMinor);
-	void setDbSocketHost(QString dbSocketHost);
-	void setDbSocketPort(int dbSocketPort);
-	void setDbServerName(QString dbServerName);
-	void setSocketCertFile(QString socketCertFile);
-	void setSocketCertKey(QString socketCertKey);
-	void setSocketPendingConnections(int socketPendingConnections);
-	void setDbResources(QString dbResources);
-	void setDbResourcesHash(QByteArray dbResourcesHash);
+	void setServerDir(QString serverDir);
+	void setServerName(QString serverName);
 
 signals:
-	void sqlDbDirChanged(QString sqlDbDir);
-	void readyToStartChanged(bool readyToStart);
-	void sqlDbCreateChanged(bool sqlDbCreate);
-	void dbVersionMajorChanged(int dbVersionMajor);
-	void dbVersionMinorChanged(int dbVersionMinor);
-	void dbSocketHostChanged(QString dbSocketHost);
-	void dbSocketPortChanged(int dbSocketPort);
-	void dbServerNameChanged(QString dbServerName);
-	void socketCertFileChanged(QString socketCertFile);
-	void socketCertKeyChanged(QString socketCertKey);
-	void socketPendingConnectionsChanged(int socketPendingConnections);
-	void dbResourcesChanged(QString dbResources);
-	void dbResourcesHashChanged(QByteArray dbResourcesHash);
+	void serverDirChanged(QString serverDir);
+	void serverNameChanged(QString serverName);
 };
 
 #endif // SERVER_H

@@ -69,7 +69,8 @@ int main(int argc, char *argv[])
 
 	Server s;
 
-	s.commandLineParse(app);
+	if (!s.commandLineParse(app))
+		return 1;
 
 	if (s.start())
 		app.exec();

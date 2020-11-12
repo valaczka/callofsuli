@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * userinfo.h
+ * serverdb.cpp
  *
- * Created on: 2020. 03. 26.
+ * Created on: 2020. 11. 10.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * UserInfo
+ * ServerDb
  *
  *  This file is part of Call of Suli.
  *
@@ -32,32 +32,26 @@
  * SOFTWARE.
  */
 
-#ifndef USERINFO_H
-#define USERINFO_H
+#include "serverdb.h"
 
-#include <QObject>
-#include "client.h"
-#include "abstracthandler.h"
-
-class Client;
-
-class UserInfo : public AbstractHandler
+ServerDb::ServerDb(const QString &connectionName, QObject *parent)
+	: COSdb(connectionName, parent)
 {
-	Q_OBJECT
 
-public:
-	explicit UserInfo(Client *client, const CosMessage &message);
+}
 
-	bool classInit() override { return true; }
 
-public slots:
-	bool getServerInfo(QJsonObject *jsonResponse, QByteArray *);
-	bool getUser(QJsonObject *jsonResponse, QByteArray *);
-	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
-	bool registrationRequest(QJsonObject *jsonResponse, QByteArray *);
-	bool registerUser(QJsonObject *jsonResponse, QByteArray *);
+/**
+ * @brief ServerDb::databaseInit
+ * @return
+ */
 
-	bool emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
-};
+bool ServerDb::databaseInit()
+{
+	if (!batchQueryFromFile(":/sql/init.sql")) {
+		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_databaseFile);
+		return false;
+	}
 
-#endif // USERINFO_H
+	return true;
+}

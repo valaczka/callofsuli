@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * userinfo.h
+ * user.h
  *
- * Created on: 2020. 03. 26.
+ * Created on: 2020. 04. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * UserInfo
+ * User
  *
  *  This file is part of Call of Suli.
  *
@@ -32,8 +32,8 @@
  * SOFTWARE.
  */
 
-#ifndef USERINFO_H
-#define USERINFO_H
+#ifndef ADMIN_H
+#define ADMIN_H
 
 #include <QObject>
 #include "client.h"
@@ -41,23 +41,31 @@
 
 class Client;
 
-class UserInfo : public AbstractHandler
+class Admin : public AbstractHandler
 {
 	Q_OBJECT
 
 public:
-	explicit UserInfo(Client *client, const CosMessage &message);
+	explicit Admin(Client *client, const CosMessage &message);
 
-	bool classInit() override { return true; }
+	bool classInit() override;
 
 public slots:
-	bool getServerInfo(QJsonObject *jsonResponse, QByteArray *);
-	bool getUser(QJsonObject *jsonResponse, QByteArray *);
 	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
-	bool registrationRequest(QJsonObject *jsonResponse, QByteArray *);
-	bool registerUser(QJsonObject *jsonResponse, QByteArray *);
+	bool userGet(QJsonObject *jsonResponse, QByteArray *);
+	bool userCreate(QJsonObject *jsonResponse, QByteArray *);
+	bool userUpdate(QJsonObject *jsonResponse, QByteArray *);
+	bool userBatchUpdate(QJsonObject *jsonResponse, QByteArray *);
+	bool userBatchRemove(QJsonObject *jsonResponse, QByteArray *);
 
-	bool emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
+	bool getAllClass(QJsonObject *jsonResponse, QByteArray *);
+	bool classCreate(QJsonObject *jsonResponse, QByteArray *);
+	bool classUpdate(QJsonObject *jsonResponse, QByteArray *);
+	bool classBatchRemove(QJsonObject *jsonResponse, QByteArray *);
+
+	bool getSettings(QJsonObject *jsonResponse, QByteArray *);
+	bool setSettings(QJsonObject *jsonResponse, QByteArray *);
+
 };
 
-#endif // USERINFO_H
+#endif // USER_H

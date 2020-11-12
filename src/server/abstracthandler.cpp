@@ -34,15 +34,14 @@
 
 #include "abstracthandler.h"
 
-AbstractHandler::AbstractHandler(Client *client, const QJsonObject &object, const QByteArray &binaryData)
+AbstractHandler::AbstractHandler(Client *client, const CosMessage &message, const CosMessage::CosClass &cosClass)
 	: QObject(client)
+	, m_class(cosClass)
+	, m_serverError(CosMessage::ServerNoError)
 	, m_client(client)
-	, m_binaryData(binaryData)
+	, m_message(message)
 {
-	m_jsonData = object;
-	m_jsonData.remove("auth");
-	m_jsonData.remove("class");
-	m_jsonData.remove("func");
+
 }
 
 
@@ -61,17 +60,41 @@ AbstractHandler::~AbstractHandler()
  * @param func
  */
 
-void AbstractHandler::start(const QString &func, QJsonObject *jsonData, QByteArray *binaryData)
+void AbstractHandler::start()
 {
 	if (!classInit()) {
-		m_client->sendError("permission denied");
+		CosMessage r(CosMessage::ClassPermissionDenied, m_message);
+		r.send(m_client->socket());
 		return;
 	}
 
+	QJsonObject jsonObject;
+	QByteArray binaryData;
+	bool hasError = true;
+
+	QString func = m_message.cosFunc();
+
 	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
-								   Q_ARG(QJsonObject*, jsonData),
-								   Q_ARG(QByteArray*, binaryData))) {
-		m_client->sendError("invalid func");
+								   Q_ARG(QJsonObject *, &jsonObject),
+								   Q_ARG(QByteArray *, &binaryData),
+								   Q_RETURN_ARG(bool, hasError))) {
+		CosMessage r(CosMessage::InvalidFunction, m_message);
+		r.setCosClass(m_class);
+		r.send(m_client->socket());
+		return;
 	}
+
+	CosMessage r(jsonObject, m_message);
+	r.setCosClass(m_class);
+	r.setCosFunc(func);
+
+	if (hasError || m_serverError != CosMessage::ServerNoError)
+		r.setMessageError(CosMessage::OtherError);
+
+	r.setServerError(m_serverError);
+
+	if (!binaryData.isEmpty())
+		r.setBinaryData(binaryData);
+	r.send(m_client->socket());
 }
 

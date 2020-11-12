@@ -32,11 +32,11 @@
  * SOFTWARE.
  */
 
-#include "user.h"
+#include "admin.h"
 
 
-User::User(Client *client, const QJsonObject &object, const QByteArray &binaryData)
-	: AbstractHandler(client, object, binaryData)
+Admin::Admin(Client *client, const CosMessage &message)
+	: AbstractHandler(client, message, CosMessage::ClassAdmin)
 {
 
 }
@@ -47,9 +47,9 @@ User::User(Client *client, const QJsonObject &object, const QByteArray &binaryDa
  * @return
  */
 
-bool User::classInit()
+bool Admin::classInit()
 {
-	if (!m_client->clientRoles().testFlag(Client::RoleAdmin))
+	if (!m_client->clientRoles().testFlag(CosMessage::RoleAdmin))
 		return false;
 
 	return true;
@@ -61,18 +61,19 @@ bool User::classInit()
  * @param jsonResponse
  */
 
-void User::getAllUser(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
 	QJsonArray l;
 	QVariantList params;
 
 
-	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, COALESCE(classid, -1) as classid, class.name as classname, "
+	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, class.name as classname, "
 									"isTeacher, isAdmin FROM user "
 									"LEFT JOIN class ON (class.id=user.classid)",
 									params, &l);
 	(*jsonResponse)["list"] = l;
 
+	return true;
 }
 
 
@@ -81,17 +82,19 @@ void User::getAllUser(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::userGet(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::userGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList params;
 
-	params << m_jsonData.value("username").toString();
+	params << m_message.jsonData().value("username").toString();
 
-	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, email, active, classid, class.name as classname, "
+	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, classid, class.name as classname, "
 										  "isTeacher, isAdmin FROM user "
 										  "LEFT JOIN class ON (class.id=user.classid) "
 										  "WHERE username=?",
 										  params, jsonResponse);
+
+	return true;
 }
 
 
@@ -102,37 +105,37 @@ void User::userGet(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantMap params = m_jsonData.toVariantMap();
+	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString username = params.value("username").toString();
 
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
 
-	QVariantMap ret = m_client->db()->runInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
-
-	int id = ret.value("lastInsertId", -1).toInt();
+	int id = m_client->db()->execInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
 
 	if (id == -1)
 	{
-		(*jsonResponse)["error"] = ret.value("errorString").toString();
-		return;
+		setServerError();
+		return false;
 	}
 
 	QVariantMap m;
 	m["username"] = username;
 
-	QVariantMap r = m_client->db()->runInsertQuery("INSERT INTO auth (?k?) VALUES (?)", m);
+	id = m_client->db()->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", m);
 
-	if (r.value("error", false).toBool() == true)
+	if (id == -1)
 	{
-		(*jsonResponse)["error"] = r.value("errorString").toString();
-		return;
+		setServerError();
+		return false;
 	}
 
 	(*jsonResponse)["created"] = id;
 	(*jsonResponse)["createdUserName"] = username;
+
+	return true;
 }
 
 
@@ -141,24 +144,25 @@ void User::userCreate(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap bind;
-	bind[":username"] = m_jsonData.value("username").toString();
+	bind[":username"] = m_message.jsonData().value("username").toString();
 
-	QVariantMap params = m_jsonData.toVariantMap();
+	QVariantMap params = m_message.jsonData().toVariantMap();
 	params.remove("username");
 
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
 
-	QVariantMap r = m_client->db()->runUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind);
-	if (r.value("error", false).toBool() == true) {
-		(*jsonResponse)["error"] = r.value("errorString").toString();
-		return;
+	if (!m_client->db()->execUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind)) {
+		setServerError();
+		return false;
 	}
 
 	(*jsonResponse)["updatedUserName"] = bind.value(":username").toString();
+
+	return true;
 }
 
 
@@ -167,16 +171,16 @@ void User::userUpdate(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList users = m_jsonData.value("users").toArray().toVariantList();
+	QVariantList users = m_message.jsonData().value("users").toArray().toVariantList();
 
 	if (!users.count()) {
 		(*jsonResponse)["error"] = "invalid parameters";
-		return;
+		return false;
 	}
 
-	QVariantMap params = m_jsonData.toVariantMap();
+	QVariantMap params = m_message.jsonData().toVariantMap();
 	params.remove("users");
 
 
@@ -200,8 +204,12 @@ void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 	if (m_client->db()->execBatchQuery(cmd, data))
 		(*jsonResponse)["updated"] = true;
-	else
-		(*jsonResponse)["error"] = "sql error";
+	else {
+		setServerError();
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -210,13 +218,13 @@ void User::userBatchUpdate(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_jsonData.value("list").toArray().toVariantList();
+	QVariantList list = m_message.jsonData().value("list").toArray().toVariantList();
 
 	if (!list.count()) {
 		(*jsonResponse)["error"] = "invalid parameters";
-		return;
+		return false;
 	}
 
 	QVariantList data;
@@ -224,8 +232,12 @@ void User::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 
 	if (m_client->db()->execBatchQuery("DELETE FROM user WHERE username=?", data))
 		(*jsonResponse)["removed"] = true;
-	else
-		(*jsonResponse)["error"] = "sql error";
+	else {
+		setServerError();
+		return false;
+	}
+
+	return true;
 
 }
 
@@ -236,11 +248,13 @@ void User::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::getAllClass(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::getAllClass(QJsonObject *jsonResponse, QByteArray *)
 {
 	QJsonArray l;
 	m_client->db()->execSelectQuery("SELECT id, name FROM class ORDER BY name", QVariantList(), &l);
 	(*jsonResponse)["list"] = l;
+
+	return true;
 }
 
 
@@ -249,20 +263,22 @@ void User::getAllClass(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::classCreate(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::classCreate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap m;
 
-	m["name"] = m_jsonData.value("name").toString();
+	m["name"] = m_message.jsonData().value("name").toString();
 
 	int id = m_client->db()->execInsertQuery("INSERT INTO class (?k?) VALUES (?)", m);
 
 	if (id == -1) {
-		(*jsonResponse)["error"] = "class create error";
-		return;
+		setServerError();
+		return false;
 	}
 
 	(*jsonResponse)["created"] = id;
+
+	return true;
 }
 
 
@@ -273,19 +289,21 @@ void User::classCreate(QJsonObject *jsonResponse, QByteArray *)
  */
 
 
-void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap bind;
-	bind[":id"] = m_jsonData.value("id").toInt();
-	QVariantMap params = m_jsonData.toVariantMap();
+	bind[":id"] = m_message.jsonData().value("id").toInt();
+	QVariantMap params = m_message.jsonData().toVariantMap();
 	params.remove("id");
 
 	if (!m_client->db()->execUpdateQuery("UPDATE class SET ? WHERE id=:id", params, bind)) {
-		(*jsonResponse)["error"] = "class update error";
-		return;
+		setServerError();
+		return false;
 	}
 
 	(*jsonResponse)["updated"] = bind.value(":id").toInt();
+
+	return true;
 }
 
 
@@ -295,13 +313,13 @@ void User::classUpdate(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void User::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_jsonData.value("list").toArray().toVariantList();
+	QVariantList list = m_message.jsonData().value("list").toArray().toVariantList();
 
 	if (!list.count()) {
 		(*jsonResponse)["error"] = "invalid parameters";
-		return;
+		return false;
 	}
 
 	QVariantList data;
@@ -309,8 +327,72 @@ void User::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 
 	if (m_client->db()->execBatchQuery("DELETE FROM class WHERE id=?", data))
 		(*jsonResponse)["removed"] = true;
-	else
-		(*jsonResponse)["error"] = "sql error";
+	else {
+		setServerError();
+		return false;
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief Admin::getSettings
+ * @param jsonResponse
+ * @return
+ */
+
+bool Admin::getSettings(QJsonObject *jsonResponse, QByteArray *)
+{
+	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), jsonResponse);
+
+	QJsonArray list;
+	m_client->db()->execSelectQuery("SELECT key, value FROM settings", QVariantList(), &list);
+
+	foreach (QJsonValue d, list) {
+		QString key = d.toObject().value("key").toString();
+		(*jsonResponse)[key] = d.toObject().value("value");
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief Admin::setSettings
+ * @param jsonResponse
+ * @return
+ */
+
+bool Admin::setSettings(QJsonObject *jsonResponse, QByteArray *)
+{
+	QStringList keys = m_message.jsonData().keys();
+
+	m_client->db()->db().transaction();
+	foreach (QString k, keys) {
+		bool success = false;
+		if (k == "serverName") {
+			QVariantList l;
+			l << m_message.jsonData().value(k).toString();
+			success = m_client->db()->execSimpleQuery("UPDATE system SET serverName=?", l);
+		} else {
+			QVariantList l;
+			l << k;
+			l << m_message.jsonData().value(k).toString();
+			success = m_client->db()->execSimpleQuery("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)", l);
+		}
+
+		if (!success) {
+			m_client->db()->db().rollback();
+			setServerError();
+			return false;
+		}
+	}
+
+	m_client->db()->db().commit();
+
+	(*jsonResponse)["success"] = true;
+	return true;
 }
 
 

@@ -35,34 +35,20 @@
 
 
 
-
-
-
-
-
-
-
 Server::Server(QObject *parent)
 	: QObject(parent)
 	, m_serverVersionMajor(_VERSION_MAJOR)
 	, m_serverVersionMinor(_VERSION_MINOR)
 {
-	m_isHostForced = false;
-	m_isPortForced = false;
-	m_isConnectionForced = false;
-
 	m_socketServer = nullptr;
+	m_serverDir = "";
+	m_db = new ServerDb("serverDb", this);
 
-	m_sqlDbDir = "";
-	m_db = new CosSql("mainDB", this);
-	m_mapDb = new MapRepository("mapDB", this);
-
-
-	m_sqlDbCreate = false;
-	m_dbVersionMajor = 0;
-	m_dbVersionMinor = 0;
-	m_dbSocketPort = 0;
-	m_socketPendingConnections = 30;
+	m_versionMajor = 0;
+	m_versionMinor = 0;
+	m_port = 10101;
+	m_pendingConnections = 30;
+	m_createDb = false;
 }
 
 
@@ -79,7 +65,6 @@ Server::~Server()
 
 	qDeleteAll(m_clients.begin(), m_clients.end());
 
-	delete m_mapDb;
 	delete m_db;
 }
 
@@ -92,26 +77,15 @@ Server::~Server()
 
 bool Server::start()
 {
-	if (!dbDirCheck(sqlDbDir(), sqlDbCreate()))
+	if (!serverDirCheck())
 		return false;
 
-	QString file = QDir::toNativeSeparators(sqlDbDir()+"/main.cosdb");
+	m_db->setDatabaseFile(m_serverDir+"/main.cosdb");
 
-	if (!m_db->open(file, sqlDbCreate()))
+	if (!m_db->databaseOpen())
 		return false;
 
 	if (!databaseLoad())
-		return false;
-
-	resourcesLoad();
-
-
-	m_mapDb->setDatabaseFile(QDir::toNativeSeparators(sqlDbDir()+"/maps.cosdb"));
-
-	if (!m_mapDb->databaseOpen())
-		return false;
-
-	if (sqlDbCreate())
 		return false;
 
 	if (!websocketServerStart())
@@ -119,6 +93,11 @@ bool Server::start()
 
 	return true;
 }
+
+
+/**
+ * @brief Server::stop
+ */
 
 void Server::stop()
 {
@@ -131,77 +110,62 @@ void Server::stop()
  * @brief Server::parseCommandLine
  */
 
-void Server::commandLineParse(QCoreApplication &app)
+bool Server::commandLineParse(QCoreApplication &app)
 {
 	QCoreApplication::instance()->setApplicationName("callofsuli-server");
 	QCoreApplication::instance()->setOrganizationDomain("server.callofsuli.vjp.piarista.hu");
-	//QCoreApplication::instance()->setOrganizationName("Call of Suli");
 	QCoreApplication::instance()->setApplicationVersion(_VERSION_FULL);
 
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QCoreApplication::instance()->applicationName()+
-									 QStringLiteral(" – Copyright © 2012-2020 Valaczka János Pál"));
+									 QString::fromUtf8(" – Copyright © 2012-2020 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 
-
 	parser.addPositionalArgument("dir", "Az adatbázisokat tartalmazó könyvtár");
 
-
-	QCommandLineOption dbCreate(QStringList() << "i" << "initialize",
-								QStringLiteral("Új adatbázis előkészítése"));
-	parser.addOption(dbCreate);
-
-	QCommandLineOption certFile(QStringList() << "c" << "certificate",
-								QStringLiteral("Tanúsítvány az SSL kapcsolathoz"),
-								QStringLiteral("cert"));
-	parser.addOption(certFile);
-
-	QCommandLineOption keyFile(QStringList() << "k" << "key",
-							   QStringLiteral("Kulcs az SSL kapcsolathoz"),
-							   QStringLiteral("key"));
-	parser.addOption(keyFile);
-
-	QCommandLineOption host(QStringList() << "H" << "host",
-							QStringLiteral("Host"),
-							QStringLiteral("host"));
-	parser.addOption(host);
-
-	QCommandLineOption port(QStringList() << "P" << "port",
-							QStringLiteral("Port"),
-							QStringLiteral("port"));
-	parser.addOption(port);
-
-	QCommandLineOption pend(QStringList() << "p" << "pending-connections",
-							QStringLiteral("Max. pending connections"),
-							QStringLiteral("num"));
-	parser.addOption(pend);
-
-
-
+	parser.addOption({{"i", "initialize"}, QString::fromUtf8("Új adatbázis előkészítése")});
+	parser.addOption({{"c", "certificate"}, QString::fromUtf8("Tanúsítvány az SSL kapcsolathoz <file>"), "file"});
+	parser.addOption({{"k", "key"}, QString::fromUtf8("Titkos kulcs az SSL kapcsolathoz <file>"), "file"});
+	parser.addOption({{"H", "host"}, QString::fromUtf8("A szerver <ip> címe"), "ip"});
+	parser.addOption({{"P", "port"}, QString::fromUtf8("A szerver <num> portja"), "num"});
+	parser.addOption({{"p", "pending"}, QString::fromUtf8("Maximum <num> pending-connections"), "num"});
+	parser.addOption({{"w", "write"}, QString::fromUtf8("Beállítások mentése")});
 
 	parser.process(app);
 
 	QStringList args = parser.positionalArguments();
 
-	setSqlDbDir(args.value(0));
+	setServerDir(args.value(0));
 
-	if (parser.isSet(dbCreate)) setSqlDbCreate(parser.isSet(dbCreate));
-	if (parser.isSet(certFile))	setSocketCertFile(parser.value(certFile));
-	if (parser.isSet(keyFile))	setSocketCertKey(parser.value(keyFile));
+	if (parser.isSet("initialize")) m_createDb = true;
 
-	if (parser.isSet(host)) {
-		setDbSocketHost(parser.value(host));
-		m_isHostForced = true;
+	if (!serverDirCheck())
+		return false;
+
+	QSettings settings(m_serverDir+"/settings.ini", QSettings::IniFormat);
+	if (settings.contains("host")) m_host = settings.value("host").toString();
+	if (settings.contains("port")) m_port = settings.value("port").toInt();
+	if (settings.contains("certificate")) m_socketCert = settings.value("certificate").toString();
+	if (settings.contains("key")) m_socketKey = settings.value("key").toString();
+	if (settings.contains("pendingConnections")) m_pendingConnections = settings.value("pendingConnections").toInt();
+
+	if (parser.isSet("certificate")) m_socketCert = parser.value("certificate");
+	if (parser.isSet("key")) m_socketKey = parser.value("key");
+	if (parser.isSet("host")) m_host = parser.value("host");
+	if (parser.isSet("port")) m_port = parser.value("port").toInt();
+	if (parser.isSet("pending")) m_pendingConnections = parser.value("pending").toInt();
+
+	if (parser.isSet("write")) {
+		qInfo().noquote() << tr("Beállítások mentése");
+		settings.setValue("host", m_host);
+		settings.setValue("port", m_port);
+		settings.setValue("certificate", m_socketCert);
+		settings.setValue("key", m_socketKey);
+		settings.setValue("pendingConnections", m_pendingConnections);
 	}
-	if (parser.isSet(port)) {
-		setDbSocketPort(parser.value(port).toInt());
-		m_isPortForced = true;
-	}
-	if (parser.isSet(pend)) {
-		setSocketPendingConnections(parser.value(pend).toInt());
-		m_isConnectionForced = true;
-	}
+
+	return true;
 }
 
 
@@ -210,31 +174,30 @@ void Server::commandLineParse(QCoreApplication &app)
  * @return
  */
 
-bool Server::dbDirCheck(const QString &dirname, bool create)
+bool Server::serverDirCheck()
 {
-	if (dirname.isEmpty()) {
+	if (m_serverDir.isEmpty()) {
 		qWarning().noquote() << tr("Nincs megadva adatbáziskönyvtár!");
 		return false;
 	}
 
-	QFileInfo f(dirname);
+	QFileInfo f(m_serverDir);
 
-	if (!f.isDir() || !f.isReadable()) {
-		if (create) {
-			QDir d;
-			if (d.mkdir(dirname)) {
-				qDebug().noquote() << tr("Az adatbáziskönyvtár létrehozva: ")+dirname;
-			} else {
-				qWarning().noquote() << tr("Nem sikerült létrehozni az adatbáziskönyvtárt: ")+dirname;
-				return false;
-			}
+	if (!f.isDir() && m_createDb) {
+		QDir d;
+		if (d.mkdir(m_serverDir)) {
+			qDebug().noquote() << tr("Az adatbáziskönyvtár létrehozva: ")+m_serverDir;
+			return true;
 		} else {
-			qWarning().noquote() << tr("A megadott könyvtár nem létezik vagy nem olvasható: ")+dirname;
-			return false;
+			qWarning().noquote() << tr("Nem sikerült létrehozni az adatbáziskönyvtárt: ")+m_serverDir;
 		}
 	}
 
-	return true;
+	if (f.isDir())
+		return true;
+
+	qWarning().noquote() << tr("A megadott könyvtár nem létezik vagy nem olvasható: ")+m_serverDir;
+	return false;
 }
 
 
@@ -247,119 +210,123 @@ bool Server::dbDirCheck(const QString &dirname, bool create)
 
 bool Server::databaseLoad()
 {
-	bool isFirst=true;
+	QVariantMap m;
 
-	while (true) {
-		QVariantMap r = m_db->runSimpleQuery("SELECT versionMajor, versionMinor, socketHost, socketPort, serverName, connections from system");
+	if (!m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system",
+									 QVariantList(), &m)) {
+		qWarning() << tr("Az adatbázis üres, előkészítem.");
 
-		if (r.value("error").toBool() || r.value("records").toList().isEmpty()) {
-			if (isFirst) {
-				qInfo().noquote() << tr("Az adatbázis üres vagy hibás, előkészítem...");
+		QVariantMap params;
+		params["versionMajor"] = m_serverVersionMajor;
+		params["versionMinor"] = m_serverVersionMinor;
+		params["serverName"] = tr("Call of Suli szerver");
 
-				if (!m_db->batchQueryFromFile(":/sql/init.sql") || !databaseInit()) {
-					if (m_db->dbCreated()) {
-						QString dbname = m_db->db().databaseName();
-						qDebug().noquote() << tr("Az adatbázis félkész, törlöm: ")+dbname;
-						m_db->close();
-						if (!QFile::remove(dbname)) {
-							qWarning().noquote() << tr("Nem sikerült törölni a hibás adatbázist: ")+dbname;
-						}
-					}
-					return false;
-				}
-			} else {
-				qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist!");
-				return false;
-			}
-		} else {
-			QVariantMap rr = r.value("records").toList().value(0).toMap();
-			setDbServerName(rr.value("serverName").toString());
-			setDbVersionMajor(rr.value("versionMajor").toInt());
-			setDbVersionMinor(rr.value("versionMinor").toInt());
-			if (!m_isHostForced) setDbSocketHost(rr.value("socketHost").toString());
-			if (!m_isPortForced) setDbSocketPort(rr.value("socketPort").toInt());
-			int conn;
-			if (!m_isConnectionForced)
-				conn = rr.value("connections").toInt();
-			else
-				conn = socketPendingConnections();
-
-			if (conn>0)
-				setSocketPendingConnections(conn);
-			else
-				setSocketPendingConnections(30);
+		if (m_db->execInsertQuery("INSERT INTO system(?k?) values (?)", params)==-1)
+			return false;
 
 
-			QVariantMap p;
-			if (m_isHostForced)
-				p["socketHost"] = m_dbSocketHost;
-			if (m_isPortForced)
-				p["socketPort"] = m_dbSocketPort;
-			if (m_isConnectionForced)
-				p["connections"] = m_socketPendingConnections;
+		params.clear();
+		params["username"] = "admin";
+		params["firstname"] = tr("Adminisztrátor");
+		params["active"] = true;
+		params["isTeacher"] = true;
+		params["isAdmin"] = true;
 
-			if (p.count()) {
-				m_db->execUpdateQuery("UPDATE system SET ?", p);
-			}
+		if (m_db->execInsertQuery("INSERT INTO user(?k?) values (?)", params)==-1)
+			return false;
 
-			break;
-		}
 
-		isFirst=false;
+		QString salt;
+		QString pwd = CosSql::hashPassword("admin", &salt);
+
+		params.clear();
+		params["username"] = "admin";
+		params["password"] = pwd;
+		params["salt"] = salt;
+
+		if (m_db->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params)==-1)
+			return false;
+
+		if (!databaseInit())
+			return false;
+	} else {
+		setServerName(m.value("serverName").toString());
+		m_versionMajor = m.value("versionMajor").toInt();
+		m_versionMinor = m.value("versionMinor").toInt();
 	}
 
-	qInfo().noquote() << tr("Az adatbázis betöltve: ")+dbServerName();
+	qInfo().noquote() << tr("Az adatbázis betöltve: ")+m_serverName;
 
 	return true;
 }
-
 
 
 /**
  * @brief Server::databaseInit
+ * @return
  */
 
 bool Server::databaseInit()
 {
-	QVariantMap params;
+	QStringList ranks;
 
-	params["versionMajor"] = serverVersionMajor();
-	params["versionMinor"] = serverVersionMinor();
-	params["socketHost"] = dbSocketHost();
-	params["socketPort"] = dbSocketPort();
-	params["serverName"] = tr("-- új Call of Suli szerver --");
-
-	if (m_db->execInsertQuery("INSERT INTO system(?k?) values (?)", params)==-1)
-		return false;
-
-
-
-	params.clear();
-	params["username"] = "admin";
-	params["firstname"] = tr("Adminisztrátor");
-	params["active"] = true;
-	params["isTeacher"] = true;
-	params["isAdmin"] = true;
-
-	if (m_db->execInsertQuery("INSERT INTO user(?k?) values (?)", params)==-1)
-		return false;
-
-
+	ranks << tr("közkatona")
+		  << tr("őrvezető")
+		  << tr("tizedes")
+		  << tr("szakaszvezető")
+		  << tr("őrmester")
+		  << tr("törzsőrmester")
+		  << tr("főtörzsőrmester")
+		  << tr("zászlós")
+		  << tr("törzszászlós")
+		  << tr("főtörzszászlós")
+		  << tr("alhadnagy")
+		  << tr("hadnagy")
+		  << tr("főhadnagy")
+		  << tr("százados")
+		  << tr("őrnagy")
+		  << tr("alezredes")
+		  << tr("ezredes")
+		  << tr("dandártábornok")
+		  << tr("vezérőrnagy")
+		  << tr("altábornagy");
 
 
-	QString salt;
-	QString pwd = CosSql::hashPassword("admin", &salt);
+	const int max_level = 3;
+	const int base_xp = 500;
+	const qreal rank_factor_step = 0.15;
+	qreal rank_factor = 1.0;
+	int multiply = 0;
 
-	params.clear();
-	params["username"] = "admin";
-	params["password"] = pwd;
-	params["salt"] = salt;
+	foreach (QString rank, ranks) {
+		for (int i=1; i<=max_level; i++) {
+			QVariantMap m;
+			m["name"] = rank;
+			m["level"] = i;
+			m["xp"] = (int) round(base_xp*rank_factor*multiply);
 
-	if (m_db->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params)==-1)
-		return false;
+			m_db->execInsertQuery("INSERT INTO rank (?k?) VALUES (?)", m);
+
+			multiply += 1+rank_factor_step;
+		}
+		rank_factor += rank_factor_step;
+	}
+
+	QVariantMap m;
+	m["name"] = tr("vezérezredes");
+	m["level"] = 1;
+	m["xp"] = QVariant::Invalid;
+
+	m_db->execInsertQuery("INSERT INTO rank (?k?) VALUES (?)", m);
 
 	return true;
 }
+
+
+
+
+
+
 
 
 /**
@@ -367,9 +334,10 @@ bool Server::databaseInit()
  * @return
  */
 
+/*
 bool Server::resourcesLoad()
 {
-	QString f = QDir::toNativeSeparators(sqlDbDir()+"/resources.cosdb");
+	QString f = QDir::toNativeSeparators(serverDir()+"/resources.cosdb");
 
 	if (QFile::exists(f)) {
 		QFile file(f);
@@ -395,7 +363,7 @@ bool Server::resourcesLoad()
 
 	return true;
 }
-
+*/
 
 
 
@@ -408,44 +376,25 @@ bool Server::resourcesLoad()
 
 bool Server::websocketServerStart()
 {
-	if (socketCertFile().isEmpty()) {
-		QString f = QDir::toNativeSeparators(sqlDbDir()+"/sslcert.pem");
-
-		if (QFile::exists(f)) {
-			qInfo().noquote() << tr("SSL tanúsítvány automatikus beállítása: ") << f;
-			setSocketCertFile(f);
-		}
-	}
-
-	if (socketCertKey().isEmpty()) {
-		QString f = QDir::toNativeSeparators(sqlDbDir()+"/sslkey.pem");
-
-		if (QFile::exists(f)) {
-			qInfo().noquote() << tr("SSL kulcs automatikus beállítása: ") << f;
-			setSocketCertKey(f);
-		}
-	}
-
-	if (!socketCertFile().isEmpty() && !socketCertKey().isEmpty()) {
+	if (!m_socketCert.isEmpty() && !m_socketKey.isEmpty()) {
 		if (!QSslSocket::supportsSsl()) {
 			qCritical().noquote() << tr("Platform doesn't support SSL");
 			return false;
 		}
 
-
 		m_socketServer = new QWebSocketServer("CallOfSuli server", QWebSocketServer::SecureMode);
 
 		QString base;
 
-		if (QDir::isAbsolutePath(socketCertKey()))
+		if (QDir::isAbsolutePath(m_socketKey))
 			base = "";
 		else {
-			base = QDir::currentPath()+"/";
+			base = m_serverDir+"/";
 		}
 
 
-		QFile certFile(base+socketCertFile());
-		QFile keyFile(base+socketCertKey());
+		QFile certFile(base+m_socketCert);
+		QFile keyFile(base+m_socketKey);
 
 		certFile.open(QIODevice::ReadOnly);
 		keyFile.open(QIODevice::ReadOnly);
@@ -465,19 +414,18 @@ bool Server::websocketServerStart()
 	}
 
 
-	m_socketServer->setMaxPendingConnections(socketPendingConnections());
-
+	m_socketServer->setMaxPendingConnections(m_pendingConnections);
 
 
 	connect(m_socketServer, SIGNAL(newConnection()), this, SLOT(onNewConnection()));
 	connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
 
-	quint16 port = (dbSocketPort()<=0) ? 10101 : quint16(dbSocketPort());
-	if (m_socketServer->listen(dbSocketHost().isEmpty() ? QHostAddress::Any : QHostAddress(dbSocketHost()), port))
+	quint16 port = (m_port<=0) ? 10101 : quint16(m_port);
+	if (m_socketServer->listen(m_host.isEmpty() ? QHostAddress::Any : QHostAddress(m_host), port))
 	{
-		qInfo().noquote() << tr("Listening on ")+m_socketServer->serverUrl().toString();
+		qInfo().noquote() << tr("Szerver elindult: ")+m_socketServer->serverUrl().toString();
 	} else {
-		qCritical().noquote() << QString(tr("Cannot listen on host %1 and port %2")).arg(dbSocketHost().toStdString().data()).arg(port);
+		qCritical().noquote() << QString(tr("Cannot listen on host %1 and port %2")).arg(m_host.toStdString().data()).arg(port);
 		return false;
 	}
 
@@ -510,7 +458,7 @@ void Server::onNewConnection()
 {
 	QWebSocket *pSocket = m_socketServer->nextPendingConnection();
 
-	Client *handler = new Client(m_db, m_mapDb, pSocket);
+	Client *handler = new Client(pSocket, this, this);
 
 	connect(handler, SIGNAL(disconnected()), this, SLOT(onSocketDisconnected()));
 
@@ -532,121 +480,22 @@ void Server::onSocketDisconnected()
 	}
 }
 
-
-
-
-
-/**
-	 * @brief Server::setSqlDbFile
-	 * @param sqlDbFile
-	 */
-
-void Server::setSqlDbDir(QString sqlDbFile)
+void Server::setServerDir(QString serverDir)
 {
-	if (m_sqlDbDir == sqlDbFile)
+	if (m_serverDir == serverDir)
 		return;
 
-	m_sqlDbDir = sqlDbFile;
-	emit sqlDbDirChanged(m_sqlDbDir);
+	m_serverDir = serverDir;
+	emit serverDirChanged(m_serverDir);
 }
 
-
-void Server::setSqlDbCreate(bool sqlDbCreate)
+void Server::setServerName(QString serverName)
 {
-	if (m_sqlDbCreate == sqlDbCreate)
+	if (m_serverName == serverName)
 		return;
 
-	m_sqlDbCreate = sqlDbCreate;
-	emit sqlDbCreateChanged(m_sqlDbCreate);
+	m_serverName = serverName;
+	emit serverNameChanged(m_serverName);
 }
 
-void Server::setDbVersionMajor(int dbVersionMajor)
-{
-	if (m_dbVersionMajor == dbVersionMajor)
-		return;
-
-	m_dbVersionMajor = dbVersionMajor;
-	emit dbVersionMajorChanged(m_dbVersionMajor);
-}
-
-void Server::setDbVersionMinor(int dbVersionMinor)
-{
-	if (m_dbVersionMinor == dbVersionMinor)
-		return;
-
-	m_dbVersionMinor = dbVersionMinor;
-	emit dbVersionMinorChanged(m_dbVersionMinor);
-}
-
-void Server::setDbSocketHost(QString dbSocketHost)
-{
-	if (m_dbSocketHost == dbSocketHost)
-		return;
-
-	m_dbSocketHost = dbSocketHost;
-	emit dbSocketHostChanged(m_dbSocketHost);
-}
-
-void Server::setDbSocketPort(int dbSocketPort)
-{
-	if (m_dbSocketPort == dbSocketPort)
-		return;
-
-	m_dbSocketPort = dbSocketPort;
-	emit dbSocketPortChanged(m_dbSocketPort);
-}
-
-void Server::setDbServerName(QString dbServerName)
-{
-	if (m_dbServerName == dbServerName)
-		return;
-
-	m_dbServerName = dbServerName;
-	emit dbServerNameChanged(m_dbServerName);
-}
-
-void Server::setSocketCertFile(QString socketCertFile)
-{
-	if (m_socketCertFile == socketCertFile)
-		return;
-
-	m_socketCertFile = socketCertFile;
-	emit socketCertFileChanged(m_socketCertFile);
-}
-
-void Server::setSocketCertKey(QString socketCertKey)
-{
-	if (m_socketCertKey == socketCertKey)
-		return;
-
-	m_socketCertKey = socketCertKey;
-	emit socketCertKeyChanged(m_socketCertKey);
-}
-
-void Server::setSocketPendingConnections(int socketPendingConnections)
-{
-	if (m_socketPendingConnections == socketPendingConnections)
-		return;
-
-	m_socketPendingConnections = socketPendingConnections;
-	emit socketPendingConnectionsChanged(m_socketPendingConnections);
-}
-
-void Server::setDbResources(QString dbResources)
-{
-	if (m_dbResources == dbResources)
-		return;
-
-	m_dbResources = dbResources;
-	emit dbResourcesChanged(m_dbResources);
-}
-
-void Server::setDbResourcesHash(QByteArray dbResourcesHash)
-{
-	if (m_dbResourcesHash == dbResourcesHash)
-		return;
-
-	m_dbResourcesHash = dbResourcesHash;
-	emit dbResourcesHashChanged(m_dbResourcesHash);
-}
 

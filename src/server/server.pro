@@ -28,21 +28,19 @@ CONFIG(release, debug|release) {
 
 SOURCES += \
 		abstracthandler.cpp \
+		admin.cpp \
 		client.cpp \
 		main.cpp \
 		server.cpp \
-		student.cpp \
-		teachergroups.cpp \
-		user.cpp \
+		serverdb.cpp \
 		userinfo.cpp
 
 HEADERS += \
 	abstracthandler.h \
+	admin.h \
 	client.h \
 	server.h \
-	student.h \
-	teachergroups.h \
-	user.h \
+	serverdb.h \
 	userinfo.h
 
 RESOURCES += \

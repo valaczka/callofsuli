@@ -25,28 +25,29 @@
  */
 
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <QDebug>
 #include "client.h"
-
+#include "server.h"
 
 #include "userinfo.h"
-#include "teachergroups.h"
-#include "user.h"
-#include "student.h"
+#include "admin.h"
 
-Client::Client(CosSql *database, MapRepository *mapDb, QWebSocket *socket, QObject *parent)
+
+Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 	: QObject(parent)
-	, m_db(database)
-	, m_mapDb(mapDb)
+	, m_server(server)
 	, m_socket(socket)
 {
 	Q_ASSERT(socket);
+	Q_ASSERT(server);
 
-	m_serverMsgId = 0;
+	m_db = server->db();
+
 	m_clientState = ClientInvalid;
-	m_clientRoles = RoleGuest;
+	m_clientRoles = CosMessage::RoleGuest;
 
-	qInfo().noquote() << tr("Client connected: ") << this << m_socket->peerAddress().toString() << m_socket->peerPort();
+	qInfo().noquote() << tr("Client connected: ") << m_socket->peerAddress().toString() << m_socket->peerPort();
 
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onDisconnected);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
@@ -65,115 +66,21 @@ Client::~Client()
 }
 
 
-/**
- * @brief Client::nextServerMsgId
- * @return
- */
-
-int Client::nextServerMsgId()
-{
-	if (m_serverMsgId == INT_MAX)
-		m_serverMsgId=0;
-
-	return ++m_serverMsgId;
-}
-
-
-
-
-#define SEND_BEGIN QByteArray d; \
-	QDataStream ds(&d, QIODevice::WriteOnly); \
-	ds.setVersion(QDataStream::Qt_5_14); \
-	int serverMsgId = (clientMsgId == -1 ? nextServerMsgId() : -1); \
-	ds << serverMsgId; \
-	ds << clientMsgId; \
-	ds << msgType
-
-#define SEND_END qDebug().noquote() << tr("SEND to client ") << m_socket << serverMsgId << clientMsgId << msgType; \
-	m_socket->sendBinaryMessage(d)
-
-
-
-
-/**
- * @brief Client::sendError
- * @param errorText
- * @param clientMsgId
- */
-
-void Client::sendError(const QString &error, const int &clientMsgId)
-{
-	QString msgType = "error";
-	SEND_BEGIN;
-
-	qDebug() << error;
-
-	ds << error;
-
-	SEND_END;
-}
-
-
-/**
- * @brief Client::sendJson
- * @param object
- * @param clientMsgId
- */
-
-void Client::sendJson(const QJsonObject &object, const int &clientMsgId)
-{
-	QString msgType = "json";
-	SEND_BEGIN;
-
-	qDebug() << object;
-
-	ds << QJsonDocument(object).toBinaryData();
-
-	SEND_END;
-}
-
-
-
-
-/**
- * @brief Client::sendFile
- * @param filename
- * @param clientMsgId
- */
-
-void Client::sendBinary(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
-{
-	QString msgType = "binary";
-	SEND_BEGIN;
-
-	qDebug() << object;
-
-	ds << QJsonDocument(object).toBinaryData();
-	ds << binaryData;
-
-	SEND_END;
-}
-
-
 
 /**
  * @brief Client::sendClientRoles
  * @param clientRoles
  */
 
-void Client::sendClientRoles(const ClientRoles &clientRoles)
+void Client::sendClientRoles()
 {
-	QJsonObject roles, obj;
+	QJsonObject obj;
 
-	roles["username"] = m_clientUserName;
-	roles["guest"] = clientRoles.testFlag(RoleGuest);
-	roles["student"] = clientRoles.testFlag(RoleStudent);
-	roles["teacher"] = clientRoles.testFlag(RoleTeacher);
-	roles["admin"] = clientRoles.testFlag(RoleAdmin);
+	obj["username"] = m_clientUserName;
 
-	obj["roles"] = roles;
-
-	sendJson(obj, -1);
+	CosMessage m(obj);
+	m.setClientRole(m_clientRoles);
+	m.send(m_socket);
 }
 
 
@@ -198,65 +105,6 @@ void Client::setClientUserName(QString clientUserName)
 	emit clientUserNameChanged(m_clientUserName);
 }
 
-void Client::setClientRoles(ClientRoles clientRoles)
-{
-	if (m_clientRoles == clientRoles)
-		return;
-
-	m_clientRoles = clientRoles;
-	emit clientRolesChanged(m_clientRoles);
-}
-
-
-/**
- * @brief Client::emailRegistration
- * @param email
- * @param firstname
- * @param lastname
- * @param code
- * @return
- */
-
-bool Client::emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
-{
-	SmtpClient smtp;
-	QString serverName;
-	QString serverEmail;
-
-	if (!emailSmptClient("registration", &smtp, &serverName, &serverEmail))
-		return false;
-
-
-	MimeMessage message;
-
-	message.setSender(new EmailAddress(serverEmail, serverName));
-	message.addRecipient(new EmailAddress(email, firstname+" "+lastname));
-	message.setSubject(tr("Call of Suli regisztráció"));
-
-	MimeText text;
-
-	text.setText(QString("Kedves %1!\n\n"
-						 "A(z) %2 szerverre a(z) %3 címmel regisztráltál.\n"
-						 "A regisztráció aktiválásához jelentkezz be a következő ideiglenes jelszóval:\n\n"
-						 "%4\n\n"
-						 "Call of Suli")
-				 .arg(lastname)
-				 .arg(serverName)
-				 .arg(email)
-				 .arg(code)
-				 );
-
-	message.addPart(&text);
-
-	smtp.sendMail(message);
-	smtp.quit();
-
-	qInfo().noquote() << tr("Regisztrációs kód elküldve: ") << email;
-
-	return true;
-}
-
-
 /**
  * @brief Client::emailRegistrationDomainList
  * @return
@@ -280,6 +128,20 @@ QStringList Client::emailRegistrationDomainList() const
 	return list;
 }
 
+/**
+ * @brief Client::setClientRoles
+ * @param clientRoles
+ */
+
+void Client::setClientRoles(CosMessage::ClientRoles clientRoles)
+{
+	if (m_clientRoles == clientRoles)
+		return;
+
+	m_clientRoles = clientRoles;
+	emit clientRolesChanged(m_clientRoles);
+}
+
 
 
 /**
@@ -288,7 +150,7 @@ QStringList Client::emailRegistrationDomainList() const
 
 void Client::onDisconnected()
 {
-	qInfo().noquote() << tr("Client disconnected:") << this << m_socket->peerAddress().toString() << m_socket->peerPort();
+	qInfo().noquote() << tr("Client disconnected:") << m_socket->peerAddress().toString() << m_socket->peerPort();
 	emit disconnected();
 }
 
@@ -302,21 +164,40 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 {
 	CosMessage m(message);
 
-	qDebug() << m;
+	qDebug() << "RECEIVED" << m;
 
-	CosMessage m2(CosMessage::ServerInternalError, "részletek");
-	m2.setClientState(CosMessage::ClientAuthorized);
-	CosMessage::ClientRoles r = CosMessage::RoleAdmin|CosMessage::RoleGuest;
-	m2.setClientRole(r);
-	m2.clientRole().setFlag(CosMessage::RoleTeacher);
+	if (!m.valid()) {
+		CosMessage r(CosMessage::InvalidMessageType, m);
+		r.send(m_socket);
+		return;
+	}
 
-	QByteArray s;
-	QDataStream writeStream(&s, QIODevice::WriteOnly);
-	writeStream << m2;
+	clientAuthorize(m);
+	clientLogout(m);
+	updateRoles();
 
-	qDebug() << m2;
+	switch (m.cosClass()) {
+		case CosMessage::ClassLogout: {
+				break;
+			}
+		case CosMessage::ClassAdmin: {
+				Admin u(this, m);
+				u.start();
+				break;
+			}
+		case CosMessage::ClassUserInfo: {
+				UserInfo u(this, m);
+				u.start();
+				break;
+			}
+		case CosMessage::ClassInvalid:
+		default: {
+				CosMessage r(CosMessage::InvalidClass, m);
+				r.send(m_socket);
+				return;
+			}
+	}
 
-	m_socket->sendBinaryMessage(s);
 }
 
 
@@ -327,20 +208,20 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
  * @param data
  */
 
-void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
+void Client::clientAuthorize(const CosMessage &message)
 {
-	if (!data.contains("auth")) {
+	if (message.jsonAuth().isEmpty()) {
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
 		return;
 	}
 
-	QJsonObject a = data.value("auth").toObject();
+	QJsonObject a = message.jsonAuth();
 
 	if (a.value("passwordRequest").toBool()) {
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
-		clientPasswordRequest(a, clientMsgId);
+		clientPasswordRequest(message);
 		return;
 	}
 
@@ -350,14 +231,14 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 	if (!session.isEmpty()) {
 		QVariantList l;
 		l << session;
-		QVariantMap m = m_db->runSimpleQuery("SELECT username FROM session WHERE token=?", l);
-		QVariantList r = m.value("records").toList();
-		if (!m.value("error").toBool() && !r.isEmpty()) {
+		QVariantMap m;
+		if (m_db->execSelectQueryOneRow("SELECT username FROM session WHERE token=?", l, &m)) {
 			m_db->runSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
 			setClientState(ClientAuthorized);
-			setClientUserName(r.value(0).toMap().value("username").toString());
+			setClientUserName(m.value("username").toString());
 		} else {
-			sendError("invalidSession", clientMsgId);
+			CosMessage r(CosMessage::InvalidSession, message);
+			r.send(m_socket);
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
@@ -366,21 +247,9 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 		QString username = a.value("username").toString();
 		QString password = a.value("password").toString();
 
-		if (username.contains("@")) {
-			QVariantList l;
-			l << username;
-			QVariantMap m = m_db->runSimpleQuery("SELECT username FROM user WHERE email=?", l);
-			QVariantList r = m.value("records").toList();
-			if (!m.value("error").toBool() && !r.isEmpty()) {
-				username = r.value(0).toMap().value("username").toString();
-			} else {
-				username = tryRegisterUser(username, password);
-			}
-		}
-
-
 		if (username.isEmpty()) {
-			sendError("invalidUser", clientMsgId);
+			CosMessage r(CosMessage::InvalidUser, message);
+			r.send(m_socket);
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
@@ -392,7 +261,8 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 			QString hashedPassword = CosSql::hashPassword(password, &salt);
 			l << username << hashedPassword << salt;
 			if (!m_db->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt) VALUES (?, ?, ?)", l)) {
-				sendError("password reset error", clientMsgId);
+				CosMessage r(CosMessage::ServerInternalError, "passwordReset", message);
+				r.send(m_socket);
 				setClientState(ClientUnauthorized);
 				setClientUserName("");
 				return;
@@ -402,73 +272,70 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
 
 		QVariantList l;
 		l << username;
-		QVariantMap m = m_db->runSimpleQuery("SELECT password, salt FROM auth WHERE auth.username IN "
-											 "(SELECT username FROM user WHERE active=1) AND auth.username=?", l);
-		QVariantList r = m.value("records").toList();
-		if (!m.value("error").toBool() && !r.isEmpty()) {
-			QString storedPassword = r.value(0).toMap().value("password").toString();
-			QString salt = r.value(0).toMap().value("salt").toString();
+		QVariantMap m;
+
+		if (m_db->execSelectQueryOneRow("SELECT password, salt FROM auth WHERE auth.username IN "
+										"(SELECT username FROM user WHERE active=1) AND auth.username=?", l, &m)) {
+			QString storedPassword = m.value("password").toString();
+			QString salt = m.value("salt").toString();
 			QString hashedPassword = CosSql::hashPassword(password, &salt);
 
 			if (storedPassword.isEmpty()) {
-				sendError("requirePasswordReset", clientMsgId);
+				CosMessage r(CosMessage::PasswordResetRequired, message);
+				r.send(m_socket);
 				setClientState(ClientUnauthorized);
 				setClientUserName(username);
 				return;
 			}
 
 			if (password.isEmpty()) {
-				sendError("invalidUser", clientMsgId);
+				CosMessage r(CosMessage::InvalidUser, message);
+				r.send(m_socket);
 				setClientState(ClientUnauthorized);
 				setClientUserName("");
 				return;
 			}
 
 			if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0) {
-				QVariantMap s = m_db->runSimpleQuery("INSERT INTO session (username) VALUES (?)", l);
-				QVariant vId = s.value("lastInsertId");
-				if (!m.value("error").toBool() && !vId.isNull()) {
-					QVariantList rl;
-					rl << vId.toInt();
-					QVariantMap mToken = m_db->runSimpleQuery("SELECT token FROM session WHERE rowid=?", rl);
-					QVariantList rToken = mToken.value("records").toList();
-					if (!mToken.value("error").toBool() && !rToken.isEmpty()) {
-						QJsonObject json;
-						json["token"] = rToken.value(0).toMap().value("token").toString();
-						QJsonObject doc;
-						doc["session"] = json;
-						sendJson(doc);
-					} else {
-						qWarning().noquote() << tr("Internal error ")+mToken.value("errorString").toString();
-						sendError("internalError", clientMsgId);
-						setClientState(ClientUnauthorized);
-						setClientUserName("");
-						return;
-					}
+				QVariantMap r;
+				r["username"] = username;
+				int rowId = m_db->execInsertQuery("INSERT INTO session (?k?) VALUES (?)", r);
+				QVariantMap mToken;
+				QVariantList lToken;
+				lToken << rowId;
+				if (m_db->execSelectQueryOneRow("SELECT token FROM session WHERE rowid=?", lToken, &mToken)) {
+					QJsonObject json;
+					json["token"] = mToken.value("token").toString();
+					QJsonObject doc;
+					doc["session"] = json;
+					//sendJson(doc);
 				} else {
-					qWarning().noquote() << tr("Internal error ")+m.value("errorString").toString();
-					sendError("internalError", clientMsgId);
+					CosMessage r(CosMessage::ServerInternalError, "token", message);
+					r.send(m_socket);
 					setClientState(ClientUnauthorized);
 					setClientUserName("");
 					return;
 				}
-
-				setClientState(ClientAuthorized);
-				setClientUserName(username);
-				return;
 			} else {
-				sendError("invalidUser", clientMsgId);
+				CosMessage r(CosMessage::InvalidUser, message);
+				r.send(m_socket);
 				setClientState(ClientUnauthorized);
 				setClientUserName("");
 				return;
 			}
+
+			setClientState(ClientAuthorized);
+			setClientUserName(username);
+			return;
 		} else {
-			sendError("invalidUser", clientMsgId);
+			CosMessage r(CosMessage::InvalidUser, message);
+			r.send(m_socket);
 			setClientState(ClientUnauthorized);
 			setClientUserName("");
 			return;
 		}
 	}
+
 }
 
 
@@ -478,19 +345,19 @@ void Client::clientAuthorize(const QJsonObject &data, const int &clientMsgId)
  * @param clientMsgId
  */
 
-void Client::clientLogout(const QJsonObject &data)
+void Client::clientLogout(const CosMessage &message)
 {
 	if (m_clientState != ClientAuthorized)
 		return;
 
-	if(data.value("logout").toBool()) {
-		QJsonObject a = data.value("auth").toObject();
+	if(message.cosClass() == CosMessage::ClassLogout) {
+		QJsonObject a = message.jsonAuth();
 
 		QVariantList l;
 		l << a.value("session").toString();
 		l << m_clientUserName;
 
-		QVariantMap m = m_db->runSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
+		m_db->runSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
 
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
@@ -503,47 +370,55 @@ void Client::clientLogout(const QJsonObject &data)
  * @param data
  */
 
-bool Client::clientPasswordRequest(const QJsonObject &data, const int &clientMsgId)
+bool Client::clientPasswordRequest(const CosMessage &message)
 {
-	QString email = data.value("username").toString("");
-	QString code = data.value("code").toString("");
+	if (message.jsonAuth().isEmpty())
+		return false;
 
-	if (email.isEmpty()) {
-		sendError("passwordRequestNoEmail", clientMsgId);
+	QJsonObject a = message.jsonAuth();
+
+	QString email = a.value("username").toString("");
+	QString code = a.value("code").toString("");
+
+	QRegularExpression regex("^[0-9a-zA-Z]+([0-9a-zA-Z][-._+])[0-9a-zA-Z]+@[0-9a-zA-Z]+([-.][0-9a-zA-Z]+)([0-9a-zA-Z][.])[a-zA-Z]{2,6}$");
+
+	if (email.isEmpty() || !regex.match(email).hasMatch()) {
+		CosMessage r(CosMessage::PasswordRequestMissingEmail, message);
+		r.send(m_socket);
 		return false;
 	}
 
 	QVariantList l;
 	l << email;
-	QVariantMap m = m_db->runSimpleQuery("SELECT username, email, firstname, lastname FROM user WHERE active=1 AND email=?", l);
-	QVariantList r = m.value("records").toList();
-
-	if (!m.value("error").toBool() && !r.isEmpty()) {
-		QString username = r.value(0).toMap().value("username").toString();
-		QString storedEmail = r.value(0).toMap().value("email").toString();
-		QString firstname = r.value(0).toMap().value("firstname").toString();
-		QString lastname = r.value(0).toMap().value("lastname").toString();
+	QVariantMap m;
+	if (m_db->execSelectQueryOneRow("SELECT firstname, lastname FROM user WHERE active=1 AND username=?", l, &m)) {
+		QString firstname = m.value("firstname").toString();
+		QString lastname = m.value("lastname").toString();
 
 		QVariantList ll;
-		ll << username;
+		ll << email;
 
 		if (code.isEmpty()) {
 			if (!m_db->execSimpleQuery("INSERT OR REPLACE INTO passwordReset (username) VALUES (?)", ll)) {
-				sendError("internal error", clientMsgId);
+				CosMessage r(CosMessage::ServerInternalError, "passwordReset", message);
+				r.send(m_socket);
 				return false;
 			}
 
 			QVariantMap mm;
 			if (m_db->execSelectQueryOneRow("SELECT code FROM passwordReset WHERE username=?", ll, &mm)) {
-				if (emailPasswordReset(storedEmail, firstname, lastname, mm.value("code").toString())) {
-					sendError("passwordRequestCodeSent", clientMsgId);
+				if (emailPasswordReset(email, firstname, lastname, mm.value("code").toString())) {
+					CosMessage r(CosMessage::PasswordRequestCodeSent, message);
+					r.send(m_socket);
 					return true;
 				} else {
-					sendError("passwordRequestEmailError", clientMsgId);
+					CosMessage r(CosMessage::ServerSmtpError, "sendEmail", message);
+					r.send(m_socket);
 					return false;
 				}
 			} else {
-				sendError("internal error", clientMsgId);
+				CosMessage r(CosMessage::ServerInternalError, "passwordResetCode", message);
+				r.send(m_socket);
 				return false;
 			}
 		} else {
@@ -551,24 +426,28 @@ bool Client::clientPasswordRequest(const QJsonObject &data, const int &clientMsg
 			QVariantList cc;
 			cc << code;
 			if (m_db->execSelectQueryOneRow("SELECT username FROM passwordReset WHERE code=?", cc, &mm)) {
-				if (mm.value("username").toString() == username) {
+				if (mm.value("username").toString() == email) {
 					if (m_db->execSimpleQuery("UPDATE auth SET password=null, salt=null WHERE username=?", ll) &&
 						m_db->execSimpleQuery("DELETE FROM passwordReset WHERE username=?", ll)) {
-						sendError("passwordRequestSuccess", clientMsgId);
-						qDebug().noquote() << "Password reset:" << username;
+						CosMessage r(CosMessage::PasswordRequestSuccess, message);
+						r.send(m_socket);
+						qDebug().noquote() << "Password reset:" << email;
 						return true;
 					} else {
-						sendError("internal error", clientMsgId);
+						CosMessage r(CosMessage::ServerInternalError, "passwordUpdate", message);
+						r.send(m_socket);
 						return false;
 					}
 				} else {
-					sendError("passwordRequestInvalidCode", clientMsgId);
+					CosMessage r(CosMessage::PasswordRequestInvalidCode, message);
+					r.send(m_socket);
 					return false;
 				}
 			}
 		}
 	} else {
-		sendError("passwordRequestInvalidEmail", clientMsgId);
+		CosMessage r(CosMessage::PasswordRequestInvalidEmail, message);
+		r.send(m_socket);
 		return false;
 	}
 
@@ -585,84 +464,31 @@ bool Client::clientPasswordRequest(const QJsonObject &data, const int &clientMsg
 void Client::updateRoles()
 {
 	if (m_clientState != ClientAuthorized || m_clientUserName.isEmpty()) {
-		setClientRoles(RoleGuest);
+		setClientRoles(CosMessage::RoleGuest);
 		return;
 	}
 
 	qDebug().noquote() << tr("Update roles");
 
-	ClientRoles newRoles;
+	CosMessage::ClientRoles newRoles;
 
 	QVariantList l;
 	l << m_clientUserName;
-	QVariantMap m = m_db->runSimpleQuery("SELECT isTeacher, isAdmin FROM user WHERE active=1 AND username=?", l);
-	QVariantList r = m.value("records").toList();
-	if (!m.value("error").toBool() && !m.isEmpty()) {
-		bool isTeacher = r.value(0).toMap().value("isTeacher").toBool();
-		bool isAdmin = r.value(0).toMap().value("isAdmin").toBool();
-		newRoles.setFlag(RoleStudent, !isTeacher);
-		newRoles.setFlag(RoleTeacher, isTeacher);
-		newRoles.setFlag(RoleAdmin, isAdmin);
+	QVariantMap m;
+
+	if (m_db->execSelectQueryOneRow("SELECT isTeacher, isAdmin FROM user WHERE active=1 AND username=?", l, &m)) {
+		bool isTeacher = m.value("isTeacher").toBool();
+		bool isAdmin = m.value("isAdmin").toBool();
+		newRoles.setFlag(CosMessage::RoleStudent, !isTeacher);
+		newRoles.setFlag(CosMessage::RoleTeacher, isTeacher);
+		newRoles.setFlag(CosMessage::RoleAdmin, isAdmin);
 	}
 
 	setClientRoles(newRoles);
 }
 
 
-/**
- * @brief Client::tryRegisterUser
- * @param email
- * @return
- */
 
-QString Client::tryRegisterUser(const QString &email, const QString &password)
-{
-	QVariantMap m;
-
-	QVariantList l;
-	l << email;
-	l << password;
-	if (!m_db->execSelectQueryOneRow("SELECT firstname, lastname FROM registration WHERE email=? and code=?", l, &m))
-		return "";
-
-	QString username = email;
-	username.replace("@", "_");
-	username.append(".");
-
-	m_db->db().transaction();
-
-
-	QVariantList ll;
-	ll << username;
-	if (!m_db->execSelectQueryOneRow("SELECT newname FROM "
-									 "(WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt LIMIT 10000) SELECT ?||x as newname FROM cnt) "
-									 "WHERE EXISTS(SELECT * from user WHERE username=newname) is false LIMIT 1", ll, &m)) {
-		qWarning().noquote() << "Nem sikerült megfelelő felhasználónevet találni!";
-		m_db->db().rollback();
-		return "";
-	}
-
-	QJsonObject obj;
-	obj["username"] = m.value("newname").toString();
-	obj["firstname"] = m.value("firstname").toString();
-	obj["lastname"] = m.value("lastname").toString();
-	obj["active"] = true;
-	obj["email"] = email;
-
-	QJsonObject ret;
-	User u(this, obj, QByteArray());
-	u.userCreate(&ret, nullptr);
-
-	if (ret.value("created").toInt(-1) > 0) {
-		m_db->execSimpleQuery("DELETE FROM registration WHERE email=? AND code=?", l);
-		m_db->db().commit();
-		return ret.value("createdUserName").toString();
-	} else {
-		m_db->db().rollback();
-		return "";
-	}
-
-}
 
 
 /**
@@ -675,75 +501,6 @@ void Client::onSmtpError(SmtpClient::SmtpError e)
 	qWarning().noquote() << "SMTP error" << e;
 }
 
-
-/**
- * @brief Client::parseJson
- * @param data
- * @param clientMsgId
- */
-
-void Client::parseJson(const QByteArray &jsonData, const int &clientMsgId, const int &serverMsgId, const QByteArray &binaryData)
-{
-	Q_UNUSED (serverMsgId)
-
-	QJsonDocument d = QJsonDocument::fromBinaryData(jsonData);
-
-	if (d.isNull()) {
-		sendError("invalidJSON", clientMsgId);
-		return;
-	}
-
-	QJsonObject o = d.object();
-
-	qDebug() << o;
-
-	if (!o.contains("callofsuli")) {
-		sendError("invalidMessage", clientMsgId);
-		return;
-	}
-
-	QJsonObject cos = o.value("callofsuli").toObject();
-
-	clientAuthorize(cos, clientMsgId);
-	clientLogout(cos);
-	updateRoles();
-
-	QString cl = cos.value("class").toString();
-	QString func = cos.value("func").toString();
-
-	if (cl.isEmpty() || func.isEmpty())
-		return;
-
-	QJsonObject ret;
-	ret["class"] = cl;
-	ret["func"] = func;
-	QJsonObject fdata;
-	QByteArray bdata;
-
-	if (cl == "userInfo") {
-		UserInfo q(this, cos, binaryData);
-		q.start(func, &fdata, &bdata);
-	} else if (cl == "teacherGroups") {
-		TeacherGroups q(this, cos, binaryData);
-		q.start(func, &fdata, &bdata);
-	} else if (cl == "user") {
-		User q(this, cos, binaryData);
-		q.start(func, &fdata, &bdata);
-	} else if (cl == "student") {
-		Student q(this, cos, binaryData);
-		q.start(func, &fdata, &bdata);
-	} else {
-		sendError("invalidClass", clientMsgId);
-		return;
-	}
-
-	ret["data"] = fdata;
-
-	if (bdata.isNull())
-		sendJson(ret, clientMsgId);
-	else
-		sendBinary(ret, bdata, clientMsgId);
-}
 
 
 /**
@@ -877,5 +634,7 @@ bool Client::emailPasswordReset(const QString &email, const QString &firstname, 
 
 	return true;
 }
+
+
 
 

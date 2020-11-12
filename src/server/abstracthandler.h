@@ -36,6 +36,7 @@
 #define ABSTRACTHANDLER_H
 
 #include <QObject>
+#include "../common/cosmessage.h"
 #include "client.h"
 
 class Client;
@@ -45,16 +46,19 @@ class AbstractHandler : public QObject
 	Q_OBJECT
 
 public:
-	explicit AbstractHandler(Client *client, const QJsonObject &object, const QByteArray &binaryData);
+	explicit AbstractHandler(Client *client, const CosMessage &message, const CosMessage::CosClass &cosClass);
 	virtual ~AbstractHandler();
 
-	virtual bool classInit() { return true; }
-	virtual void start(const QString &func, QJsonObject *jsonData, QByteArray *binaryData);
+	virtual bool classInit() = 0;
+	virtual void start();
+
+	void setServerError(CosMessage::CosMessageServerError serverError = CosMessage::ServerInternalError) { m_serverError = serverError; }
 
 protected:
+	CosMessage::CosClass m_class;
+	CosMessage::CosMessageServerError m_serverError;
 	Client *m_client;
-	QJsonObject m_jsonData;
-	QByteArray m_binaryData;
+	CosMessage m_message;
 };
 
 #endif // ABSTRACTHANDLER_H

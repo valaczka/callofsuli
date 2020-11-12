@@ -32,10 +32,11 @@
  * SOFTWARE.
  */
 
+#include "admin.h"
 #include "userinfo.h"
 
-UserInfo::UserInfo(Client *client, const QJsonObject &object, const QByteArray &binaryData)
-	: AbstractHandler(client, object, binaryData)
+UserInfo::UserInfo(Client *client, const CosMessage &message)
+	: AbstractHandler(client, message, CosMessage::ClassUserInfo)
 {
 
 }
@@ -46,13 +47,15 @@ UserInfo::UserInfo(Client *client, const QJsonObject &object, const QByteArray &
  * @return
  */
 
-void UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
+bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 {
 	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), jsonResponse);
 	m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as passwordResetEnabled FROM settings WHERE key='email.passwordReset'", QVariantList(), jsonResponse);
 	m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as registrationEnabled FROM settings WHERE key='email.registration'", QVariantList(), jsonResponse);
 
 	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());
+
+	return true;
 }
 
 
@@ -62,21 +65,25 @@ void UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
  * @brief UserInfo::getUser
  */
 
-void UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
+bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	QString username = m_jsonData.value("username").toString();
+	QString username = m_message.jsonData().value("username").toString();
 	if (username.isEmpty())
 		username = m_client->clientUserName();
 
-	if (username.isEmpty())
-		return;
+	if (username.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid user";
+		return false;
+	}
 
 	QVariantList l;
 	l << username;
 
-	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, email, active, "
+	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
 										  "isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
 										  "FROM userInfo where username=?", l, jsonResponse);
+
+	return true;
 
 }
 
@@ -88,7 +95,7 @@ void UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
  * @return
  */
 
-void UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
+bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
 	QJsonArray l;
 	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "
@@ -97,6 +104,8 @@ void UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 									QVariantList(),
 									&l);
 	(*jsonResponse)["list"] = l;
+
+	return true;
 }
 
 
@@ -105,28 +114,26 @@ void UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-void UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
+bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 {
-	QString email = m_jsonData.value("email").toString();
-	QString firstname = m_jsonData.value("firstname").toString();
-	QString lastname = m_jsonData.value("lastname").toString();
+	QString email = m_message.jsonData().value("email").toString();
+	QString firstname = m_message.jsonData().value("firstname").toString();
+	QString lastname = m_message.jsonData().value("lastname").toString();
 
 	if (email.isEmpty()) {
-		(*jsonResponse)["error"] = true;
-		(*jsonResponse)["errorString"] = "email empty";
-		return;
+		(*jsonResponse)["error"] = "email empty";
+		return false;
 	}
 
 	QVariantList l;
 	l << email;
 
 	QVariantMap m;
-	m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE email=?) as e", l, &m);
+	m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE username=?) as e", l, &m);
 
 	if (m.value("e", false).toBool()) {
-		(*jsonResponse)["error"] = true;
-		(*jsonResponse)["errorString"] = "email exists";
-		return;
+		(*jsonResponse)["error"] = "email exists";
+		return false;
 	}
 
 	QStringList domainList = m_client->emailRegistrationDomainList();
@@ -141,9 +148,8 @@ void UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 
 
 	if (!match) {
-		(*jsonResponse)["error"] = true;
-		(*jsonResponse)["errorString"] = "email invalid";
-		return;
+		(*jsonResponse)["error"] = "email invalid";
+		return false;
 	}
 
 	QVariantMap ins;
@@ -154,9 +160,8 @@ void UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 	int rowId = m_client->db()->execInsertQuery("INSERT OR REPLACE INTO registration (?k?) VALUES (?)", ins);
 
 	if (rowId == -1) {
-		(*jsonResponse)["error"] = true;
-		(*jsonResponse)["errorString"] = "internal error";
-		return;
+		setServerError();
+		return false;
 	}
 
 	QVariantList ll;
@@ -166,86 +171,115 @@ void UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 	QString code = m.value("code").toString();
 
 	if (code.isEmpty()) {
-		(*jsonResponse)["error"] = true;
-		(*jsonResponse)["errorString"] = "internal code error";
-		return;
+		setServerError();
+		return false;
 	}
 
-	if (m_client->emailRegistration(email, firstname, lastname, code)) {
-		(*jsonResponse)["error"] = false;
+	if (emailRegistration(email, firstname, lastname, code)) {
 		(*jsonResponse)["success"] = true;
-		return;
+		return true;
 	} else {
-		(*jsonResponse)["error"] = true;
-		(*jsonResponse)["errorString"] = "smtp error";
-		return;
-	}
-}
-
-
-
-/**
- * @brief UserInfo::getSettings
- * @param jsonResponse
- */
-
-void UserInfo::getSettings(QJsonObject *jsonResponse, QByteArray *)
-{
-	if (!m_client->clientRoles().testFlag(Client::RoleAdmin)) {
-		m_client->sendError("permission denied");
-		return;
-	}
-
-	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), jsonResponse);
-
-	QJsonArray list;
-	m_client->db()->execSelectQuery("SELECT key, value FROM settings", QVariantList(), &list);
-
-	foreach (QJsonValue d, list) {
-		QString key = d.toObject().value("key").toString();
-		(*jsonResponse)[key] = d.toObject().value("value");
+		(*jsonResponse)["error"] = "smtp error";
+		return false;
 	}
 }
 
 
 /**
- * @brief UserInfo::setSettings
+ * @brief UserInfo::registerUser
  * @param jsonResponse
+ * @return
  */
 
-void UserInfo::setSettings(QJsonObject *jsonResponse, QByteArray *)
+bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	if (!m_client->clientRoles().testFlag(Client::RoleAdmin)) {
-		m_client->sendError("permission denied");
-		return;
+	QString email = m_message.jsonData().value("email").toString();
+	QString password = m_message.jsonData().value("password").toString();
+
+	QVariantMap m;
+
+	QVariantList l;
+	l << email;
+	l << password;
+	if (!m_client->db()->execSelectQueryOneRow("SELECT firstname, lastname FROM registration WHERE email=? and code=?", l, &m)) {
+		(*jsonResponse)["error"] = "invalid email or code";
+		return false;
 	}
 
-	QStringList keys = m_jsonData.keys();
+	QVariantList ll;
+	ll << email;
 
-	m_client->db()->db().transaction();
-	foreach (QString k, keys) {
-		bool success = false;
-		if (k == "serverName") {
-			QVariantList l;
-			l << m_jsonData.value(k).toString();
-			success = m_client->db()->execSimpleQuery("UPDATE system SET serverName=?", l);
-		} else {
-			QVariantList l;
-			l << k;
-			l << m_jsonData.value(k).toString();
-			success = m_client->db()->execSimpleQuery("INSERT OR REPLACE INTO settings (key, value) VALUES(?, ?)", l);
-		}
 
-		if (!success) {
-			m_client->db()->db().rollback();
-			(*jsonResponse)["error"] = true;
-			return;
-		}
+	QJsonObject obj;
+	obj["username"] = email;
+	obj["firstname"] = m.value("firstname").toString();
+	obj["lastname"] = m.value("lastname").toString();
+	obj["active"] = true;
+
+	CosMessage m2(obj);
+
+	QJsonObject ret;
+	Admin u(m_client, m2);
+	bool isSuccess = u.userCreate(&ret, nullptr);
+
+	if (isSuccess) {
+		m_client->db()->execSimpleQuery("DELETE FROM registration WHERE email=? AND code=?", l);
+		(*jsonResponse)["createdUserName"] = ret.value("createdUserName").toString();
+		return true;
+	} else {
+		setServerError();
+		return false;
 	}
-
-	m_client->db()->db().commit();
-	(*jsonResponse)["error"] = false;
 }
 
 
 
+
+/**
+ * @brief UserInfo::emailRegistration
+ * @param email
+ * @param firstname
+ * @param lastname
+ * @param code
+ * @return
+ */
+
+
+bool UserInfo::emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
+{
+	SmtpClient smtp;
+	QString serverName;
+	QString serverEmail;
+
+	if (!m_client->emailSmptClient("registration", &smtp, &serverName, &serverEmail))
+		return false;
+
+
+	MimeMessage message;
+
+	message.setSender(new EmailAddress(serverEmail, serverName));
+	message.addRecipient(new EmailAddress(email, firstname+" "+lastname));
+	message.setSubject(tr("Call of Suli regisztráció"));
+
+	MimeText text;
+
+	text.setText(QString("Kedves %1!\n\n"
+						 "A(z) %2 szerverre a(z) %3 címmel regisztráltál.\n"
+						 "A regisztráció aktiválásához jelentkezz be a következő ideiglenes jelszóval:\n\n"
+						 "%4\n\n"
+						 "Call of Suli")
+				 .arg(lastname)
+				 .arg(serverName)
+				 .arg(email)
+				 .arg(code)
+				 );
+
+	message.addPart(&text);
+
+	smtp.sendMail(message);
+	smtp.quit();
+
+	qInfo().noquote() << tr("Regisztrációs kód elküldve: ") << email;
+
+	return true;
+}
