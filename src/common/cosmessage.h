@@ -42,6 +42,7 @@
 
 class CosMessage
 {
+	Q_GADGET
 public:
 	enum CosMessageType {
 		MessageInvalid,
@@ -50,6 +51,8 @@ public:
 		MessageBinaryData,
 		MessageOther
 	};
+
+	Q_ENUM(CosMessageType)
 
 	enum CosMessageError {
 		NoError,
@@ -72,11 +75,15 @@ public:
 		OtherError
 	};
 
+	Q_ENUM(CosMessageError)
+
 	enum CosMessageServerError {
 		ServerNoError,
 		ServerInternalError,
 		ServerSmtpError
 	};
+
+	Q_ENUM(CosMessageServerError)
 
 
 	enum ClientRole {
@@ -87,7 +94,7 @@ public:
 	};
 
 	Q_DECLARE_FLAGS(ClientRoles, ClientRole)
-
+	Q_FLAG(ClientRoles)
 
 	enum CosClass {
 		ClassInvalid,
@@ -96,6 +103,8 @@ public:
 		ClassUserInfo
 	};
 
+	Q_ENUM(CosClass)
+
 
 	CosMessage(const QByteArray &message);
 
@@ -103,7 +112,7 @@ public:
 	CosMessage(const CosMessageType &messageType, const CosMessage &orig = CosMessage());
 	CosMessage(const CosMessageError &messageError, const CosMessage &orig = CosMessage());
 	CosMessage(const CosMessageServerError &serverError, const QString &details = QString(), const CosMessage &orig = CosMessage());
-	CosMessage(const QJsonObject &jsonData, const CosMessage &orig = CosMessage());
+	CosMessage(const QJsonObject &jsonData, const CosClass &cosClass, const QString &cosFunc, const CosMessage &orig = CosMessage());
 
 	static int versionMajor();
 	static int versionMinor();
@@ -149,6 +158,10 @@ public:
 	CosMessageError messageError() const { return m_messageError; }
 	void setMessageError(const CosMessageError &messageError) { m_messageError = messageError; }
 
+	int peerMsgId() const { return m_peerMsgId; }
+
+	int responsedMsgId() const { return m_responsedMsgId; }
+
 private:
 	void increaseMsgId();
 
@@ -168,6 +181,7 @@ private:
 	QJsonObject m_jsonData;
 
 	int m_peerMsgId;
+	int m_responsedMsgId;
 	static int m_msgId;
 };
 

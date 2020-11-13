@@ -78,7 +78,7 @@ void Client::sendClientRoles()
 
 	obj["username"] = m_clientUserName;
 
-	CosMessage m(obj);
+	CosMessage m(obj, CosMessage::ClassUserInfo, "getRoles");
 	m.setClientRole(m_clientRoles);
 	m.send(m_socket);
 }
@@ -500,6 +500,8 @@ void Client::onSmtpError(SmtpClient::SmtpError e)
 {
 	qWarning().noquote() << "SMTP error" << e;
 }
+
+
 
 
 

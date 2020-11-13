@@ -12,36 +12,22 @@ QPage {
 	//requiredPanelWidth: 900
 
 	title: ""
+	subtitle: ""
 
 	mainToolBarComponent: QToolBusyIndicator { running: true }
 
-	pageContextMenu: QMenu {
-		MenuItem {
-		}
-	}
 
+	//mainMenuFunc: function(m) {}
+	//contextMenuFunc: function(m) {}
 
-	onlyPanel: QPagePanel {
-		id: panel
-
-		title: page.title
-		maximumWidth: 600
-
-		//onPanelActivated:
-		//onPopulated:
-
-		Connections {
-			target: page
-			//onPageActivated:
-		}
-
-	}
+	panelComponents: [
+		Component { QPagePanel {
+				panelVisible: true
+				layoutFillWidth: true
+			} }
+	]
 
 	onPageActivated: {
-		panels = [
-					{ url: "", params: { }, fillWidth: false},
-					{ url: "", params: { }, fillWidth: true}
-				]
 	}
 
 

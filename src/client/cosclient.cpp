@@ -78,6 +78,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_passwordResetEnabled = false;
 	m_registrationDomains = QVariantList();
 
+	m_waitForResources = QStringList();
+
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
@@ -91,10 +93,10 @@ Client::Client(QObject *parent) : QObject(parent)
 			sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
 	});
 
-	connect(this, &Client::jsonUserInfoReceived, this, &Client::onJsonUserInfoReceived);
+	connect(this, &Client::messageReceived, this, &Client::onMessageReceived);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	//m_timer->start(5000);
+	m_timer->start(5000);
 }
 
 /**
@@ -184,6 +186,11 @@ void Client::registerTypes()
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
+	qRegisterMetaType<CosMessage::CosMessageError>("CosMessageError");
+	qRegisterMetaType<CosMessage::CosMessageServerError>("CosMessageServerError");
+	qRegisterMetaType<CosMessage::CosClass>("CosClass");
+	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
+	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
 	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
@@ -296,6 +303,36 @@ void Client::standardPathCreate()
 		qInfo().noquote() << tr("Create directory ") + d.absolutePath();
 		d.mkpath(d.absolutePath());
 	}
+}
+
+
+/**
+ * @brief Client::registerServerResource
+ * @param filename
+ */
+
+void Client::registerServerResource(const QString &filename)
+{
+	if (!filename.endsWith(".cres"))
+		return;
+
+	qInfo() << tr("Register server resource:") << filename;
+	QResource::registerResource(filename);
+	m_registeredServerResources.append(filename);
+}
+
+
+/**
+ * @brief Client::unregisterServerResources
+ */
+
+void Client::unregisterServerResources()
+{
+	foreach (QString f, m_registeredServerResources) {
+		qInfo() << tr("Unregister server resource:") << f;
+		QResource::unregisterResource(f);
+	}
+	m_registeredServerResources.clear();
 }
 
 
@@ -453,6 +490,8 @@ void Client::closeConnection()
 		setUserXP(0);
 		setUserRoles(RoleGuest);
 	}
+
+	unregisterServerResources();
 }
 
 
@@ -485,7 +524,7 @@ void Client::login(const QString &username, const QString &session, const QStrin
 		{"auth", d}
 	};
 
-	socketSend(d2);
+	//socketSend(d2);
 }
 
 
@@ -496,9 +535,9 @@ void Client::login(const QString &username, const QString &session, const QStrin
 
 void Client::logout()
 {
-	socketSend({
+	/*socketSend({
 				   {"logout", true}
-			   });
+			   });*/
 	setSessionToken("");
 	setUserName("");
 }
@@ -527,83 +566,37 @@ void Client::passwordRequest(const QString &email, const QString &code)
 		{"auth", d}
 	};
 
-	socketSend(d2);
+	//socketSend(d2);
 }
 
 
 
 
-
-
-int Client::socketNextClientMsgId()
-{
-	return ++m_clientMsgId;
-}
 
 
 
 /**
  * @brief Client::socketSend
- * @param msgType
- * @param data
- * @param serverMsgId
+ * @param cosClass
+ * @param cosFunc
+ * @param jsonData
+ * @param binaryData
+ * @return
  */
 
-int Client::socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData, const int &serverMsgId)
+int Client::socketSend(CosMessage::CosClass cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
 {
 	if (m_connectionState != Connected && m_connectionState != Reconnected) {
 		sendMessageWarning(tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
 		return -1;
 	}
 
+	CosMessage m(jsonData, cosClass, cosFunc);
+	if (!binaryData.isEmpty())
+		m.setBinaryData(binaryData);
+	m.send(m_socket);
 
-	CosMessage m;
-
-	QFile file("/home/valaczka/Projektek/callofsuli-resources/Blue_Light_Streaks_3Videvo.mov");
-
-	if (!file.open(QFile::ReadOnly)) {
-		qWarning().noquote() << tr("Read error: ")+file.fileName();
-		return -1;
-	}
-
-	m.setBinaryData(file.readAll());
-
-	file.close();
-
-
-	QByteArray s;
-	QDataStream writeStream(&s, QIODevice::WriteOnly);
-	writeStream << m;
-
-	qDebug() << m;
-
-	m_socket->sendBinaryMessage(s);
-
-
-	/*exit(1);
-
-
-
-	QString msgType = binaryData.isNull() ? "json" : "binary";
-
-	QByteArray d;
-	QDataStream ds(&d, QIODevice::WriteOnly);
-	ds.setVersion(QDataStream::Qt_5_14);
-
-	int clientMsgId = (serverMsgId == -1 ? socketNextClientMsgId() : -1);
-	ds << clientMsgId;
-	ds << serverMsgId;
-	ds << msgType;
-	ds << prepareJson(jsonObject);
-
-	if (!binaryData.isNull())
-		ds << binaryData;
-
-	qDebug().noquote() << tr("SEND to server ") << m_socket << clientMsgId << serverMsgId << msgType << jsonObject;
-
-	m_socket->sendBinaryMessage(d);
-*/
-	return 0;
+	return m.msgId();
 }
 
 
@@ -653,6 +646,129 @@ void Client::setServerDataDir(QString resourceDbName)
 	m_serverDataDir = resourceDbName;
 	emit serverDataDirChanged(m_serverDataDir);
 }
+
+
+/**
+ * @brief Client::reloadServerResources
+ * @param resources
+ */
+
+void Client::reloadServerResources(QVariantMap resources)
+{
+	qDebug() << "Reload server resources" << resources;
+
+	unregisterServerResources();
+
+	m_waitForResources.clear();
+	emit waitForResourcesChanged(m_waitForResources);
+
+	QMapIterator<QString, QVariant> i(resources);
+
+	while (i.hasNext()) {
+		i.next();
+
+		QString filename = i.key();
+		QString md5 = i.value().toString();
+		QString localFile = m_serverDataDir+"/"+filename;
+
+
+		QFile f(localFile);
+		if (f.open(QIODevice::ReadOnly)) {
+			QByteArray filecontent = f.readAll();
+			f.close();
+
+			QString localmd5 = QCryptographicHash::hash(filecontent, QCryptographicHash::Md5).toHex();
+
+			if (localmd5 == md5) {
+				qDebug() << localFile << "success";
+				registerServerResource(localFile);
+				continue;
+			}
+		}
+
+		qDebug() << "Download" << localFile;
+
+		m_waitForResources.append(filename);
+		emit waitForResourcesChanged(m_waitForResources);
+
+		QJsonObject o;
+		o["filename"] = filename;
+		socketSend(CosMessage::ClassUserInfo, "downloadFile", o);
+	}
+
+	if (!m_waitForResources.count())
+		emit serverResourcesReady();
+}
+
+
+/**
+ * @brief Client::getDownloadedResource
+ * @param message
+ */
+
+void Client::getDownloadedResource(const CosMessage &message)
+{
+	QString filename = message.jsonData().value("filename").toString();
+	QString md5 = message.jsonData().value("md5").toString();
+
+	if (message.messageType() != CosMessage::MessageBinaryData) {
+		qWarning() << tr("Érvénytelen fájl érkezett") << message;
+	}
+
+	if (filename.isEmpty()) {
+		qWarning() << tr("Érvénytelen fájl érkezett") << message;
+		return;
+	}
+
+	m_waitForResources.removeAll(filename);
+	emit waitForResourcesChanged(m_waitForResources);
+
+	if (!m_waitForResources.count())
+		emit serverResourcesReady();
+
+	QByteArray data = message.binaryData();
+
+	QString localmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
+
+	if (localmd5 != md5) {
+		qWarning() << tr("MD5 hash hiba") << message;
+		return;
+	}
+
+	QString newFile = m_serverDataDir+"/"+filename;
+
+	QFile f(newFile);
+
+	if (!f.open(QIODevice::WriteOnly)) {
+		sendMessageError(tr("Fájl létrehozási hiba"), newFile, f.errorString());
+		return;
+	}
+
+	if (f.write(data) == -1) {
+		sendMessageError(tr("Fájl írási hiba"), newFile, f.errorString());
+		f.close();
+		return;
+	}
+
+	f.close();
+
+	qDebug() << tr("Fájl létrehozva") << newFile;
+
+	registerServerResource(newFile);
+}
+
+
+
+void Client::setWaitForResources(QStringList waitForResources)
+{
+	if (m_waitForResources == waitForResources)
+		return;
+
+	m_waitForResources = waitForResources;
+	emit waitForResourcesChanged(m_waitForResources);
+}
+
+
 
 void Client::setRegistrationDomains(QVariantList registrationDomains)
 {
@@ -779,10 +895,7 @@ void Client::setSocket(QWebSocket *socket)
 void Client::socketPing()
 {
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
-		socketSend({
-					   {"class", "userInfo"},
-					   {"func", "getUser"}
-				   });
+		socketSend(CosMessage::ClassUserInfo, "getUser");
 	} else if (m_connectionState == Disconnected) {
 		qDebug() << "reconnect";
 		emit reconnecting();
@@ -819,10 +932,7 @@ void Client::parseJson(const QJsonObject &object, const QByteArray &binaryData, 
 		setUserRoles(newRole);
 		qDebug() << "set user roles from server" <<newRole;
 
-		socketSend({
-					   {"class", "userInfo"},
-					   {"func", "getUser"}
-				   });
+		socketSend(CosMessage::ClassUserInfo, "getUser");
 	}
 
 	QString cl = object.value("class").toString();
@@ -862,7 +972,6 @@ void Client::onSocketConnected()
 	m_connectedUrl = m_socket->requestUrl();
 	if (m_connectionState == Connecting || m_connectionState == Standby) {
 		setConnectionState(Connected);
-		socketSend({{"class", "userInfo"}, {"func", "getServerInfo"}});
 	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
 
@@ -921,43 +1030,12 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 
 	qDebug() << m;
 
-	return;  /////////////////////////////////////////////
-
-	QDataStream ds(message);
-	ds.setVersion(QDataStream::Qt_5_14);
-
-	int serverMsgId = -1;
-	int clientMsgId = -1;
-	QString msgType;
-
-	ds >> serverMsgId >> clientMsgId >> msgType;
-
-	qDebug().noquote() << tr("RECEIVED from server ") << serverMsgId << clientMsgId << msgType;
-
-	if (msgType == "json" || msgType == "binary") {
-		QByteArray data;
-		QByteArray binaryData;
-		ds >> data;
-
-		if (msgType == "binary")
-			ds >> binaryData;
-
-		QJsonDocument doc = QJsonDocument::fromBinaryData(data);
-		if (doc.isNull()) {
-			sendMessageError(tr("Internal server error"), tr("Hibás válasz"));
-			return;
-		}
-
-		QJsonObject obj = doc.object();
-
-		qDebug() << obj;
-
-		parseJson(obj, binaryData, clientMsgId);
-	} else {
-		QString error;
-		ds >> error;
-		onSocketServerError(error);
+	if (m.valid()) {
+		emit messageReceived(message);
+		return;
 	}
+
+	///onSocketServerError(error);
 }
 
 
@@ -1035,52 +1113,58 @@ void Client::onSocketServerError(const QString &error)
  * @param object
  */
 
-void Client::onJsonUserInfoReceived(const QJsonObject &object, const QByteArray &, const int &)
+void Client::onMessageReceived(const CosMessage &message)
 {
-	QString func = object.value("func").toString();
-	QJsonObject d = object.value("data").toObject();
+	QString func = message.cosFunc();
+	QJsonObject d = message.jsonData();
 
-	if (func == "getUser") {
-		if (d.value("username").toString() == m_userName) {
-			setUserXP(d.value("xp").toInt(0));
-			setUserRank(d.value("rankid").toInt(0));
-			setUserRankName(d.value("rankname").toString());
-			setUserLastName(d.value("lastname").toString());
-			setUserFirstName(d.value("firstname").toString());
-		}
-	} else if (func == "getServerInfo") {
-		setServerName(d.value("serverName").toString());
-		setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
-		setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
-		setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
-	} else if (func == "registrationRequest") {
-		bool error = d.value("error").toBool(false);
-
-		if (error) {
-			emit registrationRequestFailed();
-			QString errorString = d.value("errorString").toString();
-
-			if (errorString == "email empty")
-				sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
-			else if (errorString == "email exists")
-				sendMessageWarning(tr("Regisztráció"), tr("A megadott email cím már regisztrálva van!"));
-			else
-				sendMessageWarning(tr("Regisztráció"), tr("Internal error"), errorString);
-		} else {
-			emit registrationRequestSuccess();
-		}
-	} else if (func == "getSettings") {
-		if (d.contains("serverName"))
+	if (message.cosClass() == CosMessage::ClassUserInfo) {
+		if (func == "getUser") {
+			if (d.value("username").toString() == m_userName) {
+				setUserXP(d.value("xp").toInt(0));
+				setUserRank(d.value("rankid").toInt(0));
+				setUserRankName(d.value("rankname").toString());
+				setUserLastName(d.value("lastname").toString());
+				setUserFirstName(d.value("firstname").toString());
+			}
+		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
+			setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
+			setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
+			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
+		} else if (func == "registrationRequest") {
+			bool error = d.value("error").toBool(false);
 
-		emit settingsLoaded(d);
-	} else if (func == "setSettings") {
-		bool error = d.value("error").toBool(true);
+			if (error) {
+				emit registrationRequestFailed();
+				QString errorString = d.value("errorString").toString();
 
-		if (error)
-			emit settingsError();
-		else
-			emit settingsSuccess();
+				if (errorString == "email empty")
+					sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
+				else if (errorString == "email exists")
+					sendMessageWarning(tr("Regisztráció"), tr("A megadott email cím már regisztrálva van!"));
+				else
+					sendMessageWarning(tr("Regisztráció"), tr("Internal error"), errorString);
+			} else {
+				emit registrationRequestSuccess();
+			}
+		} else if (func == "getSettings") {
+			if (d.contains("serverName"))
+				setServerName(d.value("serverName").toString());
+
+			emit settingsLoaded(d);
+		} else if (func == "setSettings") {
+			bool error = d.value("error").toBool(true);
+
+			if (error)
+				emit settingsError();
+			else
+				emit settingsSuccess();
+		} else if (func == "getResources") {
+			reloadServerResources(d.toVariantMap());
+		} else if (func == "downloadFile") {
+			getDownloadedResource(message);
+		}
 	}
 }
 

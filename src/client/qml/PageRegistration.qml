@@ -102,10 +102,10 @@ QPage {
 
 				onClicked: {
 					page.isBusy = true
-					cosClient.socketSend({"class": "userInfo", "func": "registrationRequest",
+					/*cosClient.socketSend({"class": "userInfo", "func": "registrationRequest",
 											 "email": (grid.domainMode ? textEmail2.text : textEmail.text),
 											 "firstname": textFirstname.text,
-											 "lastname": textLastname.text})
+											 "lastname": textLastname.text})*/
 				}
 			}
 		}

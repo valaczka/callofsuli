@@ -46,6 +46,7 @@ class Server : public QObject
 	Q_PROPERTY(QString serverDir READ serverDir WRITE setServerDir NOTIFY serverDirChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(ServerDb * db READ db)
+	Q_PROPERTY(QVariantMap resources READ resources WRITE setResources NOTIFY resourcesChanged)
 
 	const int m_serverVersionMajor;
 	const int m_serverVersionMinor;
@@ -66,6 +67,8 @@ private:
 
 	QList<Client *> m_clients;
 	ServerDb * m_db;
+	QVariantMap m_resourceMap;
+	QVariantMap m_resources;
 
 public:
 	explicit Server(QObject *parent = nullptr);
@@ -76,15 +79,21 @@ public:
 	bool commandLineParse(QCoreApplication &app);
 	bool serverDirCheck();
 	bool databaseLoad();
-	bool databaseInit();
+	bool rankInit();
+	bool resourcesInit();
 
 	bool websocketServerStart();
+	void reloadResources();
 
 	QString serverDir() const { return m_serverDir; }
 	QString serverName() const { return m_serverName; }
+	QByteArray resourceContent(const QString &filename, QString *md5 = nullptr) const;
 
 	QWebSocketServer *socketServer() const { return m_socketServer; }
 	ServerDb * db() const { return m_db; }
+	QList<Client *> clients() const { return m_clients; }
+	QVariantMap resourceMap() const { return m_resourceMap; }
+	QVariantMap resources() const { return m_resources; }
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);
@@ -94,10 +103,12 @@ private slots:
 public slots:
 	void setServerDir(QString serverDir);
 	void setServerName(QString serverName);
+	void setResources(QVariantMap resources);
 
 signals:
 	void serverDirChanged(QString serverDir);
 	void serverNameChanged(QString serverName);
+	void resourcesChanged(QVariantMap resources);
 };
 
 #endif // SERVER_H

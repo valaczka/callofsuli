@@ -58,7 +58,7 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	CosSql *db = new CosSql("sqlimageprovider");
 
 	if (m_client)
-		db->open(m_client->serverDataDir()+"/resources.db", false);
+		db->open(m_client->serverDataDir()+"/images.db", false);
 
 
 	if (!db->isValid()) {

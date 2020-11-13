@@ -128,12 +128,9 @@ QPage {
 		}
 	}
 
-
 	StackView.onRemoved: {
 		cosClient.closeConnection()
 	}
-
-
 
 
 	function windowClose() {

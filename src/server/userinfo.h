@@ -56,6 +56,8 @@ public slots:
 	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
 	bool registrationRequest(QJsonObject *jsonResponse, QByteArray *);
 	bool registerUser(QJsonObject *jsonResponse, QByteArray *);
+	bool getResources(QJsonObject *jsonResponse, QByteArray *);
+	bool downloadFile(QJsonObject *jsonResponse, QByteArray *binaryResponse);
 
 	bool emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
 };

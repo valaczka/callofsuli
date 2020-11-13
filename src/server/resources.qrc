@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>sql/init.sql</file>
+        <file>images/default.db</file>
     </qresource>
 </RCC>

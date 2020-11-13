@@ -63,12 +63,12 @@ void AbstractActivity::send(const QJsonObject &query, const QByteArray &binaryDa
 	if (!m_client)
 		return;
 
-	int msgid = m_client->socketSend(query, binaryData);
+	/*int msgid = m_client->socketSend(query, binaryData);
 
 	QString f = query.value("func").toString();
 	if (!f.isEmpty())
 		busyStackAdd(f, msgid);
-
+*/
 }
 
 

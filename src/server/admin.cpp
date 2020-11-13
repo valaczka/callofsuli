@@ -33,6 +33,8 @@
  */
 
 #include "admin.h"
+#include "server.h"
+#include "../common/cosmessage.h"
 
 
 Admin::Admin(Client *client, const CosMessage &message)
@@ -392,6 +394,34 @@ bool Admin::setSettings(QJsonObject *jsonResponse, QByteArray *)
 	m_client->db()->db().commit();
 
 	(*jsonResponse)["success"] = true;
+	return true;
+}
+
+
+/**
+ * @brief Admin::getAllClients
+ * @param jsonResponse
+ * @return
+ */
+
+bool Admin::getAllClients(QJsonObject *jsonResponse, QByteArray *)
+{
+	QList<Client *> clients = m_client->server()->clients();
+
+	QJsonArray list;
+
+	foreach (Client *c, clients) {
+		QWebSocket *socket = c->socket();
+		QJsonObject o;
+		o["state"] = c->clientState();
+		o["username"] = c->clientUserName();
+		o["roles"] = (int)(c->clientRoles());
+		o["host"] = socket->peerAddress().toString();
+		o["port"] = socket->peerPort();
+		list.append(o);
+	}
+
+	(*jsonResponse)["list"] = list;
 	return true;
 }
 

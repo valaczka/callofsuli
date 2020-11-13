@@ -59,9 +59,11 @@ public:
 	COSdb *db() const { return m_db; }
 	CosMessage::ClientRoles clientRoles() const { return m_clientRoles; }
 	QWebSocket *socket() const { return m_socket; }
+	Server *server() const { return m_server; }
 
 	bool emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverName = nullptr, QString *serverEmail = nullptr);
 	bool emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
+
 
 public slots:
 	void sendClientRoles();

@@ -70,25 +70,25 @@ void AbstractHandler::start()
 
 	QJsonObject jsonObject;
 	QByteArray binaryData;
-	bool hasError = true;
+	bool returnArg = true;
+
 
 	QString func = m_message.cosFunc();
 
 	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
+								   Q_RETURN_ARG(bool, returnArg),
 								   Q_ARG(QJsonObject *, &jsonObject),
-								   Q_ARG(QByteArray *, &binaryData),
-								   Q_RETURN_ARG(bool, hasError))) {
+								   Q_ARG(QByteArray *, &binaryData))) {
 		CosMessage r(CosMessage::InvalidFunction, m_message);
 		r.setCosClass(m_class);
 		r.send(m_client->socket());
 		return;
 	}
 
-	CosMessage r(jsonObject, m_message);
-	r.setCosClass(m_class);
-	r.setCosFunc(func);
+	CosMessage r(jsonObject, m_class, func, m_message);
 
-	if (hasError || m_serverError != CosMessage::ServerNoError)
+
+	if (!returnArg || m_serverError != CosMessage::ServerNoError)
 		r.setMessageError(CosMessage::OtherError);
 
 	r.setServerError(m_serverError);

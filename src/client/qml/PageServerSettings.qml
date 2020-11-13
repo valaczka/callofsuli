@@ -56,7 +56,7 @@ QPage {
 					isBusy = true
 					o["class"] = "userInfo"
 					o["func"] = "setSettings"
-					cosClient.socketSend(o)
+					//cosClient.socketSend(o)
 				}
 			}
 		}
@@ -306,7 +306,7 @@ QPage {
 
 	function getSettings() {
 		isBusy = true
-		cosClient.socketSend({"class": "userInfo", "func": "getSettings"})
+		//cosClient.socketSend({"class": "userInfo", "func": "getSettings"})
 	}
 
 

@@ -29,9 +29,14 @@
 #include <QtSql/QSqlDatabase>
 #include <QCommandLineParser>
 #include <QCryptographicHash>
+#include <QFile>
 
 #include "server.h"
 #include "../version/buildnumber.h"
+
+
+
+
 
 
 
@@ -80,13 +85,18 @@ bool Server::start()
 	if (!serverDirCheck())
 		return false;
 
-	m_db->setDatabaseFile(m_serverDir+"/main.cosdb");
+	m_db->setDatabaseFile(m_serverDir+"/main.db");
 
 	if (!m_db->databaseOpen())
 		return false;
 
 	if (!databaseLoad())
 		return false;
+
+	if (!resourcesInit())
+		return false;
+
+	reloadResources();
 
 	if (!websocketServerStart())
 		return false;
@@ -247,7 +257,7 @@ bool Server::databaseLoad()
 		if (m_db->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params)==-1)
 			return false;
 
-		if (!databaseInit())
+		if (!rankInit())
 			return false;
 	} else {
 		setServerName(m.value("serverName").toString());
@@ -266,7 +276,7 @@ bool Server::databaseLoad()
  * @return
  */
 
-bool Server::databaseInit()
+bool Server::rankInit()
 {
 	QStringList ranks;
 
@@ -298,11 +308,13 @@ bool Server::databaseInit()
 	qreal rank_factor = 1.0;
 	int multiply = 0;
 
-	foreach (QString rank, ranks) {
+	for (int n=0; n<ranks.size(); n++) {
+		QString rank = ranks.at(n);
 		for (int i=1; i<=max_level; i++) {
 			QVariantMap m;
 			m["name"] = rank;
 			m["level"] = i;
+			m["image"] = QString("rank/%1.svg").arg(n);
 			m["xp"] = (int) round(base_xp*rank_factor*multiply);
 
 			m_db->execInsertQuery("INSERT INTO rank (?k?) VALUES (?)", m);
@@ -315,6 +327,7 @@ bool Server::databaseInit()
 	QVariantMap m;
 	m["name"] = tr("vezérezredes");
 	m["level"] = 1;
+	m["image"] = "rank/100.svg";
 	m["xp"] = QVariant::Invalid;
 
 	m_db->execInsertQuery("INSERT INTO rank (?k?) VALUES (?)", m);
@@ -323,47 +336,39 @@ bool Server::databaseInit()
 }
 
 
-
-
-
-
-
-
 /**
- * @brief Server::resourcesLoad
+ * @brief Server::resourcesInit
  * @return
  */
 
-/*
-bool Server::resourcesLoad()
+bool Server::resourcesInit()
 {
-	QString f = QDir::toNativeSeparators(serverDir()+"/resources.cosdb");
+	m_resourceMap["images.db"] = ":/images/default.db";
 
-	if (QFile::exists(f)) {
-		QFile file(f);
-		if (file.open(QIODevice::ReadOnly)) {
-			QCryptographicHash hash(QCryptographicHash::Sha1);
-			hash.addData(&file);
-			QByteArray d = hash.result();
-			file.close();
+	QMapIterator<QString, QVariant> i(m_resourceMap);
+	while (i.hasNext()) {
+		i.next();
+		QString newName = m_serverDir+"/"+i.key();
 
-			setDbResources(f);
-			setDbResourcesHash(d);
+		if (QFile::exists(newName))
+			continue;
 
-			qInfo().noquote() << tr("Erőforrásadatbázis betöltve: ")+dbResources();
-			qDebug().noquote() << tr("Erőforrásh hash: ")+dbResourcesHash().toHex();
-		} else {
-			qWarning().noquote() << tr("Az erőforrásadtabázis nem olvasható: ")+f;
+		qDebug().noquote() << tr("Adatbázis létrehozása:") << newName;
+		if (!QFile::copy(i.value().toString(), newName)) {
+			qWarning().noquote() << tr("Nem sikerült létrehozni az adatbázist:") << newName;
 			return false;
 		}
-	} else {
-		qDebug().noquote() << tr("Az erőforrásadtabázis nem létezik: ")+f;
-		return false;
 	}
 
 	return true;
 }
-*/
+
+
+
+
+
+
+
 
 
 
@@ -435,6 +440,83 @@ bool Server::websocketServerStart()
 }
 
 
+/**
+ * @brief Server::reloadResources
+ */
+
+void Server::reloadResources()
+{
+	QStringList files;
+
+	QMapIterator<QString, QVariant> i(m_resourceMap);
+	while (i.hasNext()) {
+		i.next();
+		files << i.key();
+	}
+
+	QDirIterator it(m_serverDir+"/", QStringList() << "*.cres");
+
+	while (it.hasNext()) {
+		it.next();
+		if (!it.fileName().isEmpty())
+			files << it.fileName();
+	}
+
+	QVariantMap map;
+
+	foreach (QString f, files) {
+		QFile ff(m_serverDir+"/"+f);
+		if (!ff.open(QIODevice::ReadOnly)) {
+			qWarning().noquote() << tr("Nem sikerült megnyitni a fájlt:") << m_serverDir+"/"+f;
+			continue;
+		}
+		QByteArray data = ff.readAll();
+		ff.close();
+
+		QString md5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
+
+		qDebug().noquote() << tr("Fájl hozzáadva:") << f << md5;
+
+		map[f] = md5;
+	}
+
+	setResources(map);
+}
+
+
+/**
+ * @brief Server::resourceContent
+ * @param filename
+ * @return
+ */
+
+QByteArray Server::resourceContent(const QString &filename, QString *md5) const
+{
+	QByteArray ret;
+
+	if (!m_resources.contains(filename)) {
+		qWarning().noquote() << tr("Érvénytelen fájl:") << filename;
+		return ret;
+	}
+
+	QFile f(m_serverDir+"/"+filename);
+	if (!f.open(QIODevice::ReadOnly)) {
+		qWarning().noquote() << tr("Nem sikerült megnyitni a fájlt:") << filename;
+		return ret;
+	}
+
+	ret = f.readAll();
+
+	f.close();
+
+	if (md5) {
+		*md5 = QCryptographicHash::hash(ret, QCryptographicHash::Md5).toHex();
+	}
+
+	return ret;
+}
+
+
 
 
 
@@ -496,6 +578,15 @@ void Server::setServerName(QString serverName)
 
 	m_serverName = serverName;
 	emit serverNameChanged(m_serverName);
+}
+
+void Server::setResources(QVariantMap resources)
+{
+	if (m_resources == resources)
+		return;
+
+	m_resources = resources;
+	emit resourcesChanged(m_resources);
 }
 
 

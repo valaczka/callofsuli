@@ -75,6 +75,8 @@ public:
 	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
 
+	Q_PROPERTY(QStringList waitForResources READ waitForResources WRITE setWaitForResources NOTIFY waitForResourcesChanged)
+
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -84,6 +86,9 @@ public:
 	static void registerTypes();
 	static void initialize();
 	static void standardPathCreate();
+
+	void registerServerResource(const QString &filename);
+	void unregisterServerResources();
 
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
@@ -113,6 +118,7 @@ public:
 	bool registrationEnabled() const { return m_registrationEnabled; }
 	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
 	QVariantList registrationDomains() const { return m_registrationDomains; }
+	QStringList waitForResources() const { return m_waitForResources; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -134,9 +140,13 @@ public slots:
 	void logout();
 	void passwordRequest(const QString &email, const QString &code = "");
 
-	int socketNextClientMsgId();
-	int socketSend(const QJsonObject &jsonObject, const QByteArray &binaryData = QByteArray(), const int &serverMsgId = -1);
+	int socketSend(CosMessage::CosClass cosClass, const QString &cosFunc,
+				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
+
+	void reloadServerResources(QVariantMap resources);
+	void getDownloadedResource(const CosMessage &message);
+
 
 private slots:
 	void setSocket(QWebSocket * socket);
@@ -153,7 +163,7 @@ private slots:
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
 	void onSocketServerError(const QString &error);
 
-	void onJsonUserInfoReceived(const QJsonObject &object, const QByteArray &, const int &);
+	void onMessageReceived(const CosMessage &message);
 
 
 	void setUserName(QString userName);
@@ -168,6 +178,7 @@ private slots:
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
 	void setRegistrationDomains(QVariantList registrationDomains);
+	void setWaitForResources(QStringList waitForResources);
 
 signals:
 	void messageSent(const QString &type,
@@ -175,8 +186,10 @@ signals:
 					 const QString &informativeText,
 					 const QString &detailedText);
 	void reconnecting();
+	void serverResourcesReady();
 
 	void messageFrameReceived(const CosMessage &message);
+	void messageReceived(const CosMessage &message);
 
 	void authInvalid();
 	void authRequirePasswordReset();
@@ -211,6 +224,7 @@ signals:
 	void registrationEnabledChanged(bool registrationEnabled);
 	void passwordResetEnabledChanged(bool passwordResetEnabled);
 	void registrationDomainsChanged(QVariantList registrationDomains);
+	void waitForResourcesChanged(QStringList waitForResources);
 
 private:
 	QWebSocket* m_socket;
@@ -234,6 +248,8 @@ private:
 	bool m_registrationEnabled;
 	bool m_passwordResetEnabled;
 	QVariantList m_registrationDomains;
+	QStringList m_waitForResources;
+	QStringList m_registeredServerResources;
 };
 
 

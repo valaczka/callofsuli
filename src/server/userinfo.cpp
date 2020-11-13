@@ -34,6 +34,7 @@
 
 #include "admin.h"
 #include "userinfo.h"
+#include "server.h"
 
 UserInfo::UserInfo(Client *client, const CosMessage &message)
 	: AbstractHandler(client, message, CosMessage::ClassUserInfo)
@@ -72,8 +73,7 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 		username = m_client->clientUserName();
 
 	if (username.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid user";
-		return false;
+		return true;
 	}
 
 	QVariantList l;
@@ -216,7 +216,7 @@ bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
 	obj["lastname"] = m.value("lastname").toString();
 	obj["active"] = true;
 
-	CosMessage m2(obj);
+	CosMessage m2(obj, CosMessage::ClassInvalid, "");
 
 	QJsonObject ret;
 	Admin u(m_client, m2);
@@ -230,6 +230,51 @@ bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
 		setServerError();
 		return false;
 	}
+}
+
+
+/**
+ * @brief UserInfo::getResources
+ * @param jsonResponse
+ * @return
+ */
+
+bool UserInfo::getResources(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap resources = m_client->server()->resources();
+
+	(*jsonResponse) = QJsonObject::fromVariantMap(resources);
+
+	return true;
+}
+
+
+/**
+ * @brief UserInfo::downloadFile
+ * @param jsonResponse
+ * @param binaryResponse
+ * @return
+ */
+
+bool UserInfo::downloadFile(QJsonObject *jsonResponse, QByteArray *binaryResponse)
+{
+	QJsonObject data = m_message.jsonData();
+	QVariantMap resources = m_client->server()->resources();
+
+	QString filename = data.value("filename").toString();
+
+	if (filename.isEmpty() || !resources.contains(filename)) {
+		(*jsonResponse)["error"] = "invalid filename";
+		return false;
+	}
+
+	QString md5;
+	(*binaryResponse) = m_client->server()->resourceContent(filename, &md5);
+
+	(*jsonResponse)["filename"] = filename;
+	(*jsonResponse)["md5"] = md5;
+
+	return true;
 }
 
 

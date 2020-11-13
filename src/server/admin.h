@@ -66,6 +66,8 @@ public slots:
 	bool getSettings(QJsonObject *jsonResponse, QByteArray *);
 	bool setSettings(QJsonObject *jsonResponse, QByteArray *);
 
+	bool getAllClients(QJsonObject *jsonResponse, QByteArray *);
+
 };
 
 #endif // USER_H

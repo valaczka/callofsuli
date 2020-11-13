@@ -15,6 +15,7 @@ QPage {
 	mainToolBar.backButton.visible: false
 
 	property bool _firstRun: true
+	property bool resourcesLoading: false
 
 	Servers {
 		id: servers
@@ -51,6 +52,14 @@ QPage {
 		m.addAction(tmXtest)
 		m.addAction(actionAbout)
 		m.addAction(actionExit)
+	}
+
+
+
+	QLabel {
+		visible: resourcesLoading
+		anchors.centerIn: parent
+		text: qsTr("Betöltés...")
 	}
 
 
@@ -101,10 +110,17 @@ QPage {
 
 		onConnectionStateChanged: {
 			if (connectionState === Client.Connected) {
-				JS.createPage("MainMenu", {})
+				resourcesLoading = true
+				cosClient.socketSend(CosMessage.ClassUserInfo, "getServerInfo")
+				cosClient.socketSend(CosMessage.ClassUserInfo, "getResources")
 			} else if (connectionState === Client.Standby) {
 				mainStack.pop(pageStart)
 			}
+		}
+
+		onServerResourcesReady: {
+			resourcesLoading = false
+			JS.createPage("MainMenu", {})
 		}
 	}
 
