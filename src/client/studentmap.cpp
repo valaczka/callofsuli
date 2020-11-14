@@ -34,12 +34,12 @@
 
 #include "studentmap.h"
 
-StudentMap::StudentMap(QObject *parent)
+StudentMap::StudentMap(QQuickItem *parent)
 	: MapData("mapStudentDB", parent)
 {
 	m_databaseInitSql << ":/sql/studentmap.sql";
 
-	setDatabaseFile(Client::standardPath("tmpmap.db"));
+	//setDatabaseFile(Client::standardPath("tmpmap.db"));
 
 	m_uuid = "";
 	m_student = nullptr;
@@ -63,7 +63,7 @@ bool StudentMap::loadFromRepository(const QString &uuid, const QString &md5)
 	l << uuid;
 
 	QVariantMap r;
-	m_student->mapRepository()->execSelectQueryOneRow("SELECT data FROM mapdata WHERE uuid=?", l, &r);
+	//m_student->mapRepository()->db()->execSelectQueryOneRow("SELECT data FROM mapdata WHERE uuid=?", l, &r);
 
 	QByteArray mapdata = r.value("data").toByteArray();
 
@@ -126,7 +126,7 @@ void StudentMap::onMapDataReceived(const QJsonObject &jsonData, const QByteArray
 
 void StudentMap::onMapResultListLoaded(const QJsonArray &list)
 {
-	execSimpleQuery("DELETE FROM result");
+	m_db->execSimpleQuery("DELETE FROM result");
 
 	foreach (QJsonValue v, list) {
 		QJsonObject o = v.toObject();
@@ -137,7 +137,7 @@ void StudentMap::onMapResultListLoaded(const QJsonArray &list)
 		params["attempt"] = o.value("attempt").toInt();
 		params["success"] = o.value("success").toInt();
 
-		if (execInsertQuery("INSERT INTO result(?k?) VALUES (?)", params) == -1) {
+		if (m_db->execInsertQuery("INSERT INTO result(?k?) VALUES (?)", params) == -1) {
 			emit mapDownloadError();
 			return;
 		}
@@ -157,7 +157,7 @@ void StudentMap::campaignListUpdate()
 	QVariantList ret;
 
 	QVariantList campaigns;
-	execSelectQuery("SELECT id, name FROM campaign ORDER BY num", QVariantList(), &campaigns);
+	m_db->execSelectQuery("SELECT id, name FROM campaign ORDER BY num", QVariantList(), &campaigns);
 
 	foreach (QVariant v, campaigns) {
 		QVariantMap m = v.toMap();
@@ -169,7 +169,7 @@ void StudentMap::campaignListUpdate()
 		QVariantList l;
 		l << cid;
 		QVariantList locks;
-		execSelectQuery("SELECT lockId FROM campaignLock WHERE campaignId=?", l, &locks);
+		m_db->execSelectQuery("SELECT lockId FROM campaignLock WHERE campaignId=?", l, &locks);
 
 		foreach (QVariant v, locks) {
 			QVariantMap m = v.toMap();
@@ -191,7 +191,7 @@ void StudentMap::campaignListUpdate()
 		bool prevMissionCompleted = true;
 
 		QVariantList missions;
-		execSelectQuery("SELECT mission.id as id, uuid, mission.name FROM bindCampaignMission "
+		m_db->execSelectQuery("SELECT mission.id as id, uuid, mission.name FROM bindCampaignMission "
 							  "LEFT JOIN mission ON (mission.id=bindCampaignMission.missionid) "
 							  "WHERE campaignId=? ORDER BY num",
 							  l, &missions);
@@ -211,7 +211,7 @@ void StudentMap::campaignListUpdate()
 				p << mUuid;
 
 				QVariantList levels;
-				execSelectQuery("SELECT missionlevel.level, success "
+				m_db->execSelectQuery("SELECT missionlevel.level, success "
 									  "FROM mission "
 									  "LEFT JOIN missionLevel ON (missionLevel.missionid=mission.id) "
 									  "LEFT JOIN result ON (result.uuid=mission.uuid AND result.level=missionLevel.level) "
@@ -257,7 +257,7 @@ void StudentMap::campaignListUpdate()
 
 
 		QVariantList summaryLevels;
-		execSelectQuery("SELECT summary.id as id, summary.uuid as uuid, summaryLevel.level as level, success, "
+		m_db->execSelectQuery("SELECT summary.id as id, summary.uuid as uuid, summaryLevel.level as level, success, "
 							  "EXISTS(SELECT * FROM bindCampaignMission "
 							  "LEFT JOIN mission ON (mission.id=bindCampaignMission.missionid) "
 							  "LEFT JOIN result ON (result.uuid=mission.uuid) "
@@ -395,7 +395,7 @@ bool StudentMap::isCampaignCompleted(const int &campaignId)
 	params << campaignId;
 	params << campaignId;
 
-	execSelectQuery("SELECT r.uuid, EXISTS(SELECT * FROM result WHERE result.uuid=r.uuid AND success>0) as success "
+	m_db->execSelectQuery("SELECT r.uuid, EXISTS(SELECT * FROM result WHERE result.uuid=r.uuid AND success>0) as success "
 						  "FROM (SELECT uuid FROM bindCampaignMission "
 						  "LEFT JOIN  mission ON (mission.id=bindCampaignMission.missionid) "
 						  "WHERE campaignId=? "

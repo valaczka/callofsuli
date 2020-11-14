@@ -78,7 +78,7 @@ void Client::sendClientRoles()
 
 	obj["username"] = m_clientUserName;
 
-	CosMessage m(obj, CosMessage::ClassUserInfo, "getRoles");
+	CosMessage m(obj, CosMessage::ClassUserInfo, "newRoles");
 	m.setClientRole(m_clientRoles);
 	m.send(m_socket);
 }
@@ -306,9 +306,8 @@ void Client::clientAuthorize(const CosMessage &message)
 				if (m_db->execSelectQueryOneRow("SELECT token FROM session WHERE rowid=?", lToken, &mToken)) {
 					QJsonObject json;
 					json["token"] = mToken.value("token").toString();
-					QJsonObject doc;
-					doc["session"] = json;
-					//sendJson(doc);
+					CosMessage r(json, CosMessage::ClassUserInfo, "newSessionToken");
+					r.send(m_socket);
 				} else {
 					CosMessage r(CosMessage::ServerInternalError, "token", message);
 					r.send(m_socket);

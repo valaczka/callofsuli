@@ -15,14 +15,18 @@ QPage {
 	mainToolBar.backButton.visible: false
 
 	property bool _firstRun: true
-	property bool resourcesLoading: false
 
-	Servers {
+	activity: Servers {
 		id: servers
-		client: cosClient
 
 		property bool editing: false
-		property int serverId: -1
+		property int serverIndex: -1
+
+		onResourcesChanged: loadLabel.setText(resources)
+
+		onReadyResourcesChanged: if (readyResources) {
+									 JS.createPage("MainMenu", {})
+								 }
 	}
 
 	property list<Component> fullComponents: [
@@ -57,9 +61,19 @@ QPage {
 
 
 	QLabel {
-		visible: resourcesLoading
+		id: loadLabel
+		visible: !servers.readyResources
 		anchors.centerIn: parent
-		text: qsTr("Betöltés...")
+
+		function setText(m) {
+			var k = Object.keys(m)
+			text = ""
+			for (var i=0; i<k.length; i++) {
+				if (text.length)
+					text += "\n"
+				text += k[i]+" - "+m[k[i]]
+			}
+		}
 	}
 
 
@@ -110,7 +124,6 @@ QPage {
 
 		onConnectionStateChanged: {
 			if (connectionState === Client.Connected) {
-				resourcesLoading = true
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getServerInfo")
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getResources")
 			} else if (connectionState === Client.Standby) {
@@ -118,10 +131,6 @@ QPage {
 			}
 		}
 
-		onServerResourcesReady: {
-			resourcesLoading = false
-			JS.createPage("MainMenu", {})
-		}
 	}
 
 	onPageActivated: if (_firstRun) {

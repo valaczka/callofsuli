@@ -34,7 +34,7 @@
 
 #include "teacher.h"
 
-Teacher::Teacher(QObject *parent)
+Teacher::Teacher(QQuickItem *parent)
 	: AbstractActivity(parent)
 {
 
@@ -64,8 +64,8 @@ void Teacher::onJsonMapsReceived(const QJsonObject &object, const QByteArray &bi
 	QString func = object.value("func").toString();
 	QJsonObject data = object.value("data").toObject();
 
-	if (!func.isEmpty())
-		busyStackRemove(func, clientMsgId);
+	/*if (!func.isEmpty())
+		busyStackRemove(func, clientMsgId); */
 
 	if (func == "getAllMap")
 		emit mapListLoaded(data.value("list").toArray());
@@ -97,8 +97,8 @@ void Teacher::onJsonGroupsReceived(const QJsonObject &object, const QByteArray &
 	QString func = object.value("func").toString();
 	QJsonObject data = object.value("data").toObject();
 
-	if (!func.isEmpty())
-		busyStackRemove(func, clientMsgId);
+	/*if (!func.isEmpty())
+		busyStackRemove(func, clientMsgId);*/
 
 	if (func == "getAllGroup")
 		emit groupListLoaded(data.value("list").toArray());

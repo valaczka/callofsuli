@@ -43,14 +43,13 @@ QPagePanel {
 		onDeselectAll: serverList.selectAll(false)
 	}
 
-
 	ListModel {
 		id: baseServerModel
 	}
 
 	SortFilterProxyModel {
 		id: userProxyModel
-		sourceModel: baseServerModel
+		sourceModel: servers.serversModel
 		filters: [
 			RegExpFilter {
 				enabled: mainSearch.text.length
@@ -63,11 +62,15 @@ QPagePanel {
 		sorters: [
 			StringSorter { roleName: "name" }
 		]
+		proxyRoles: ExpressionRole {
+			name: "details"
+			expression: model.host+":"+model.port+(model.username.length ? " - "+model.username : "")
+		}
 	}
 
 
 
-	QListItemDelegate {
+	QObjectItemProxyList {
 		id: serverList
 		anchors.top: header.bottom
 		anchors.left: parent.left
@@ -75,11 +78,10 @@ QPagePanel {
 		anchors.bottom: parent.bottom
 
 		model: userProxyModel
-		isProxyModel: true
 		modelTitleRole: "name"
+		modelSubtitleRole: "details"
 
 		autoSelectorChange: false
-
 
 		leftComponent: QFontImage {
 			width: serverList.delegateHeight
@@ -94,7 +96,7 @@ QPagePanel {
 		onClicked: if (servers.editing)
 					   actionEdit.trigger()
 				   else
-					   servers.serverConnect(model.get(index).id)
+					   servers.serverConnect(sourceIndex)
 
 		onRightClicked: contextMenu.popup()
 		onLongPressed: contextMenu.popup()
@@ -122,7 +124,7 @@ QPagePanel {
 		id: actionServerNew
 		text: qsTr("Új szerver")
 		onTriggered: {
-			servers.serverId = -1
+			servers.serverIndex = -1
 			servers.editing = true
 		}
 	}
@@ -131,7 +133,7 @@ QPagePanel {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
 		enabled: serverList.currentIndex !== -1
-		onTriggered: servers.serverConnect(serverList.model.get(serverList.currentIndex).id)
+		onTriggered: servers.serverConnect(serverList.sourceIndex)
 
 	}
 
@@ -140,7 +142,7 @@ QPagePanel {
 		text: qsTr("Szerkesztés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
-			servers.serverId = serverList.model.get(serverList.currentIndex).id
+			servers.serverIndex = serverList.sourceIndex
 			servers.editing = true
 		}
 	}
@@ -151,6 +153,7 @@ QPagePanel {
 		text: qsTr("Törlés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
+			var si = serverList.sourceIndex
 			var o = serverList.model.get(serverList.currentIndex)
 
 			var d = JS.dialogCreateQml("YesNo", {
@@ -158,7 +161,8 @@ QPagePanel {
 										   text: o.name
 									   })
 			d.accepted.connect(function () {
-				servers.serverInfoDelete(o.id)
+				servers.serverDelete(si)
+				servers.serverIndex = -1
 			})
 			d.open()
 		}
@@ -169,18 +173,10 @@ QPagePanel {
 		text: qsTr("Automata csatlakozás")
 		enabled: serverList.currentIndex !== -1
 		onTriggered:  {
-			var d = serverList.model.get(serverList.currentIndex)
-			servers.serverSetAutoConnect(d.id, !d.autoconnect)
+			servers.serverSetAutoConnect(serverList.sourceIndex)
 		}
 	}
 
-
-	Connections {
-		target: servers
-
-		onServerListLoaded: JS.setModel(baseServerModel, serverList)
-		onServerInfoUpdated: servers.serverListReload()
-	}
 
 	onPopulated: {
 		servers.serverListReload()

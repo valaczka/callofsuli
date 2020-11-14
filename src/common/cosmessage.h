@@ -123,7 +123,7 @@ public:
 	int msgId() const { return m_msgId; }
 
 	CosMessageType messageType() const { return m_messageType; }
-	inline bool hasError() const { return m_messageError != NoError; }
+	inline bool hasError() const { return m_messageError != NoError || m_serverError != ServerNoError; }
 	inline bool valid() const { return m_messageType != MessageInvalid && m_messageError == NoError;}
 	quint32 binaryDataExpectedSize() const { return m_binaryDataExpectedSize; }
 	quint32 receivedFrameSize() const { return m_receivedFrameSize; }
@@ -161,6 +161,8 @@ public:
 	int peerMsgId() const { return m_peerMsgId; }
 
 	int responsedMsgId() const { return m_responsedMsgId; }
+
+	QString serverErrorDetails() const { return m_serverErrorDetails; }
 
 private:
 	void increaseMsgId();

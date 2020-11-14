@@ -10,11 +10,11 @@ import "JScript.js" as JS
 QPagePanel {
 	id: p
 
-	title: servers.serverId == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
+	title: servers.serverIndex == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
 	icon: CosStyle.iconUserWhite
 	layoutFillWidth: true
 
-	contextMenuFunc: servers.serverId == -1 ? null : function (m) {
+	contextMenuFunc: servers.serverIndex == -1 ? null : function (m) {
 		m.addAction(actionRemove)
 	}
 
@@ -71,7 +71,7 @@ QPagePanel {
 
 		QGridButton {
 			id: buttonSave
-			text: servers.serverId == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
+			text: servers.serverIndex == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
 			enabled: textName.acceptableInput &&
 					 textHostname.acceptableInput &&
 					 textPort.acceptableInput
@@ -83,7 +83,7 @@ QPagePanel {
 				var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl])
 
 				if (Object.keys(m).length) {
-					servers.serverInfoInsertOrUpdate(servers.serverId, m)
+					servers.serverInsertOrUpdate(servers.serverIndex, m)
 					if (swipeMode)
 						servers.editing = false
 				}
@@ -103,8 +103,9 @@ QPagePanel {
 										   text: textName.text
 									   })
 			d.accepted.connect(function () {
-				servers.serverInfoDelete(servers.serverId)
+				servers.serverDelete(servers.serverIndex)
 				servers.editing = false
+				servers.serverIndex = -1
 			})
 			d.open()
 		}
@@ -113,20 +114,8 @@ QPagePanel {
 	Connections {
 		target: servers
 
-		onServerInfoLoaded: {
-			JS.setSqlFields([
-								textName,
-								textHostname,
-								textPort,
-								checkSsl
-							], server)
-
-			grid.modified = false
-		}
-
-
 		onEditingChanged: loadData()
-		onServerIdChanged: loadData()
+		onServerIndexChanged: loadData()
 	}
 
 	onPanelActivated: textHostname.forceActiveFocus()
@@ -137,7 +126,7 @@ QPagePanel {
 		if (!servers.editing)
 			return
 
-		if (servers.serverId==-1) {
+		if (servers.serverIndex==-1) {
 			JS.setSqlFields([
 								textName,
 								textHostname,
@@ -145,8 +134,15 @@ QPagePanel {
 								checkSsl
 							], {name:"", host:"", port:0, ssl:false})
 		} else  {
-			servers.serverInfoGet(servers.serverId)
+			JS.setSqlFields([
+								textName,
+								textHostname,
+								textPort,
+								checkSsl
+							], servers.serversModel.get(servers.serverIndex))
 		}
+
+		grid.modified = false
 
 		if (swipeMode)
 			parent.parentPage.swipeToPage(1)

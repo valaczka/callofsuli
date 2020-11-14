@@ -61,6 +61,8 @@ void CosMessage::increaseMsgId()
 
 
 
+
+
 /**
  * @brief CosMessage::CosMessage
  * @param message

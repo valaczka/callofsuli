@@ -46,7 +46,7 @@ class Student : public AbstractActivity
 	Q_PROPERTY(bool repositoryReady READ repositoryReady NOTIFY repositoryReadyChanged)
 
 public:
-	Student(QObject *parent=nullptr);
+	Student(QQuickItem *parent=nullptr);
 	~Student();
 
 	void clientSetup() override;

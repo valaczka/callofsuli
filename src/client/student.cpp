@@ -34,7 +34,7 @@
 
 #include "student.h"
 
-Student::Student(QObject *parent)
+Student::Student(QQuickItem *parent)
 	: AbstractActivity(parent)
 {
 	m_mapRepository = new MapRepository("studentMapDb", this);
@@ -75,9 +75,9 @@ void Student::clientSetup()
 
 void Student::mapRepositoryOpen()
 {
-	busyStackAdd("repositoryOpen", 0);
+	//busyStackAdd("repositoryOpen", 0);
 	if (!m_mapRepository->databaseOpen()) {
-		busyStackRemove("repositoryOpen", 0);
+		//busyStackRemove("repositoryOpen", 0);
 		emit mapRepositoryOpenError(m_mapRepository->databaseFile());
 		return;
 	}
@@ -85,7 +85,7 @@ void Student::mapRepositoryOpen()
 	setRepositoryReady(true);
 
 	emit mapRepositoryOpened(m_mapRepository->databaseFile());
-	busyStackRemove("repositoryOpen", 0);
+	//busyStackRemove("repositoryOpen", 0);
 }
 
 void Student::setRepositoryReady(bool repositoryReady)
@@ -113,7 +113,7 @@ void Student::mapDownload(const QString &uuid)
 	d["func"] = "getMapData";
 	d["uuid"] = uuid;
 
-	this->send(d);
+	//this->send(d);
 }
 
 
@@ -130,8 +130,8 @@ void Student::onJsonReceived(const QJsonObject &object, const QByteArray &binary
 	QString func = object.value("func").toString();
 	QJsonObject data = object.value("data").toObject();
 
-	if (!func.isEmpty())
-		busyStackRemove(func, clientMsgId);
+	/*if (!func.isEmpty())
+		busyStackRemove(func, clientMsgId);*/
 
 	if (func == "getMaps")
 		emit mapListLoaded(data.value("list").toArray());

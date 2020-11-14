@@ -50,7 +50,7 @@ public:
 	Q_PROPERTY(bool mapModified READ mapModified WRITE setMapModified NOTIFY mapModifiedChanged)
 
 
-	MapEditor(QObject *parent = nullptr);
+	MapEditor(QQuickItem *parent = nullptr);
 
 	QString mapUuid() const { return m_mapUuid; }
 	QString mapTimeCreated() const { return m_mapTimeCreated; }

@@ -29,7 +29,14 @@ Page {
 
 	property list<Component> panelComponents
 
+	property AbstractActivity activity: null
+
 	signal pageActivated()
+
+
+	onActivityChanged: if (activity) {
+						   activity.client = cosClient
+					   }
 
 
 	background: Image {
@@ -47,6 +54,15 @@ Page {
 		backButtonIcon: CosStyle.iconBack
 		backButton.visible: true
 		backButton.onClicked: mainStack.back()
+
+		QToolBusyIndicator {
+			implicitHeight: CosStyle.pixelSize*1.7
+			implicitWidth: implicitHeight
+			height: implicitHeight
+			width: height
+			Layout.alignment: Qt.AlignCenter
+			running: activity && activity.isBusy
+		}
 
 		Loader {
 			id: toolbarRight

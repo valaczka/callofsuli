@@ -112,5 +112,6 @@
         <file>GameQuestion.qml</file>
         <file>QPage.qml</file>
         <file>PageStart.qml</file>
+        <file>QObjectItemProxyList.qml</file>
     </qresource>
 </RCC>

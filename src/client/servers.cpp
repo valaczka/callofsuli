@@ -34,12 +34,101 @@
 
 #include "servers.h"
 
-Servers::Servers(QObject *parent)
-	: AbstractDbActivity("serversDb", parent)
+Servers::Servers(QQuickItem *parent)
+	: AbstractActivity(parent)
 {
-	setDatabaseFile(Client::standardPath("servers.db"));
-	m_connectedServerId = -1;
-	m_tryToConnectServerId = -1;
+	m_readyResources = false;
+	m_serversModel = new QObjectModel(QStringList({"name", "host", "port", "ssl", "autoconnect", "username", "session"}));
+	m_dataFileName = Client::standardPath("servers.json");
+	m_connectedServer = nullptr;
+	m_serverTryConnect = nullptr;
+}
+
+
+/**
+ * @brief Servers::~Servers
+ */
+
+Servers::~Servers()
+{
+	unregisterResources();
+	delete m_db;
+	delete m_serversModel;
+}
+
+
+/**
+ * @brief Servers::onMessageReceived
+ * @param message
+ */
+
+void Servers::onMessageReceived(const CosMessage &message)
+{
+	QString func = message.cosFunc();
+	QJsonObject d = message.jsonData();
+
+	if (message.cosClass() == CosMessage::ClassUserInfo) {
+		if (func == "getResources") {
+			reloadResources(d.toVariantMap());
+		} else if (func == "downloadFile") {
+			getDownloadedResource(message);
+		}
+		/*if (func == "registrationRequest") {
+			bool error = d.value("error").toBool(false);
+
+			if (error) {
+				emit registrationRequestFailed();
+				QString errorString = d.value("errorString").toString();
+
+				if (errorString == "email empty")
+					sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
+				else if (errorString == "email exists")
+					sendMessageWarning(tr("Regisztráció"), tr("A megadott email cím már regisztrálva van!"));
+				else
+					sendMessageWarning(tr("Regisztráció"), tr("Internal error"), errorString);
+			} else {
+				emit registrationRequestSuccess();
+			}
+		} else if (func == "getSettings") {
+			if (d.contains("serverName"))
+				setServerName(d.value("serverName").toString());
+
+			emit settingsLoaded(d);
+		} else if (func == "setSettings") {
+			bool error = d.value("error").toBool(true);
+
+			if (error)
+				emit settingsError();
+			else
+				emit settingsSuccess();
+		} else */
+	}
+}
+
+
+/**
+ * @brief Servers::onMessageFrameReceived
+ * @param message
+ */
+
+void Servers::onMessageFrameReceived(const CosMessage &message)
+{
+	QString filename = message.jsonData().value("filename").toString();
+
+	if (filename.isEmpty())
+		return;
+
+	QString newFile = m_client->serverDataDir()+"/"+filename;
+
+	if (m_resources.contains(newFile)) {
+		qreal ratio = message.receivedDataRatio();
+		if (ratio >= 1.0)
+			ratio = 0.999999999;
+
+		m_resources[newFile] = ratio;
+
+		emit resourcesChanged(m_resources);
+	}
 }
 
 
@@ -52,128 +141,54 @@ Servers::Servers(QObject *parent)
 
 void Servers::serverListReload()
 {
-	if (!databaseOpen())
-		return;
+	m_connectedServer = nullptr;
+	m_serverTryConnect = nullptr;
+	m_serversModel->deleteAll();
 
-	QVariantList list;
-	if (!execSelectQuery("SELECT id, name, "
-							   "EXISTS(SELECT * FROM autoconnect WHERE autoconnect.serverid=server.id) as autoconnect "
-							   "FROM server "
-							   "ORDER BY name", QVariantList(), &list)) {
-		return;
+	QJsonDocument doc = Client::readJsonDocument(m_dataFileName);
+
+	int lastid = 0;
+
+	if (!doc.isEmpty()) {
+		QJsonArray list = doc.array();
+
+		foreach (QJsonValue v, list) {
+			ServerData *s = new ServerData(v.toObject(), this);
+			int id = s->id();
+			if (id<=0)
+				s->setId(++lastid);
+			else
+				lastid = id;
+
+			m_serversModel->append(s);
+		}
 	}
 
-	emit serverListLoaded(list);
-}
+	emit serverListLoaded();
 
-
-/**
- * @brief Servers::serverGet
- * @param serverId
- */
-
-QVariantMap Servers::serverInfoGet(const int &serverId)
-{
-	if (!databaseOpen())
-		return QVariantMap();
-
-	QVariantMap server;
-
-	QVariantList p;
-	p << serverId;
-
-	if (!execSelectQueryOneRow("SELECT name, host, port, ssl, cert, username, session FROM server WHERE id=?", p, &server)) {
-		return QVariantMap();
-	}
-
-	emit serverInfoLoaded(server);
-
-	return server;
-}
-
-
-
-/**
- * @brief Servers::serverInfoInsertOrUpdate
- * @param map
- */
-
-void Servers::serverInfoInsertOrUpdate(const int &id, const QVariantMap &map)
-{
-	if (!databaseOpen())
-		return;
-
-	if (id == -1) {
-		int newId = execInsertQuery("INSERT INTO server (?k?) VALUES (?)", map);
-		if (newId == -1)
-			return;
-		emit serverInfoUpdated(newId);
-	} else {
-		QVariantMap bindValues;
-		bindValues[":id"] = id;
-		if (!execUpdateQuery("UPDATE server SET ? WHERE id=:id", map, bindValues))
-			return;
-		emit serverInfoUpdated(id);
-	}
-}
-
-
-/**
- * @brief Servers::serverInfoDelete
- * @param id
- */
-
-void Servers::serverInfoDelete(const int &id)
-{
-	if (!databaseOpen())
-		return;
-
-	QVariantList l;
-	l << id;
-	if (!execSimpleQuery("DELETE FROM server WHERE id=?", l))
-		return;
-
-	emit serverInfoUpdated(id);
-
-	removeServerDir(id);
 }
 
 
 /**
  * @brief Servers::serverConnect
- * @param serverId
+ * @param id
  */
 
-void Servers::serverConnect(const int &serverId)
+
+void Servers::serverConnect(const int &index)
 {
-	Q_ASSERT (m_client);
+	m_serverTryConnect = nullptr;
 
-	QVariantMap m = serverInfoGet(serverId);
-
-	if (m.empty())
-		return;
-
-	m_tryToConnectServerId = serverId;
+	ServerData *d = serverGet(index);
 
 	QUrl url;
-	url.setHost(m.value("host").toString());
-	url.setPort(m.value("port").toInt());
-	url.setScheme(m.value("ssl").toBool() ? "wss" : "ws");
+	url.setHost(d->host());
+	url.setPort(d->port());
+	url.setScheme(d->ssl() ? "wss" : "ws");
 
 
-	QByteArray cert = m.value("cert").toByteArray();
-	if (!cert.isEmpty()) {
-		QSslCertificate c(cert, QSsl::Pem);
-		if (!c.isNull()) {
-			QList<QSslError> eList;
-			eList.append(QSslError(QSslError::SelfSignedCertificate, c));
-			eList.append(QSslError(QSslError::HostNameMismatch, c));
 
-			m_client->socket()->ignoreSslErrors(eList);
-		}
-	}
-
-	QString dir = QString("%1").arg(serverId);
+	QString dir = QString("%1").arg(d->id());
 	QString serverDir = Client::standardPath(dir);
 	if (!QFileInfo::exists(serverDir)) {
 		QDir d(Client::standardPath());
@@ -183,27 +198,82 @@ void Servers::serverConnect(const int &serverId)
 		}
 	}
 
-	/*QString defaultResourceDb = serverDir+"/resources.db";
-	if (!QFile::exists(defaultResourceDb)) {
-		qInfo() << tr("Adatbázis létrehozása:") << defaultResourceDb;
-		QFile from(":/db/default.db");
-		if (!from.open(QIODevice::ReadOnly)) {
-			m_client->sendMessageError(tr("Programhiba"), tr("Nem sikerült megnyitni az adatbázist!"));
-			return;
-		}
-		QByteArray b = from.readAll();
-		from.close();
-		QFile f(defaultResourceDb);
-		if (f.open(QIODevice::WriteOnly)) {
-			f.write(b);
+	QString certFileName = serverDir+"/cert.pem";
+
+	if (d->ssl() && QFileInfo::exists(certFileName)) {
+		QFile f(certFileName);
+		if (f.open(QIODevice::ReadOnly)) {
+			QByteArray cert = f.readAll();
+			if (!cert.isEmpty()) {
+				QSslCertificate c(cert, QSsl::Pem);
+				if (!c.isNull()) {
+					QList<QSslError> eList;
+					eList.append(QSslError(QSslError::SelfSignedCertificate, c));
+					eList.append(QSslError(QSslError::HostNameMismatch, c));
+
+					m_client->socket()->ignoreSslErrors(eList);
+				}
+			}
 			f.close();
 		}
-	}*/
+	}
 
 	m_client->setServerDataDir(serverDir);
 
+	m_serverTryConnect = d;
+
 	m_client->socket()->open(url);
 }
+
+
+/**
+ * @brief Servers::serverInsertOrUpdate
+ * @param index
+ * @param map
+ */
+
+int Servers::serverInsertOrUpdate(const int &index, const QVariantMap &map)
+{
+	if (index < 0 || index >= m_serversModel->count()) {
+		ServerData *d = new ServerData(map, this);
+		d->setId(nextId());
+		m_serversModel->append(d);
+		saveServerList();
+		return d->id();
+	} else {
+		ServerData *d = serverGet(index);
+		d->set(map);
+		m_serversModel->rowUpdated(index);
+		saveServerList();
+		return d->id();
+	}
+}
+
+
+
+
+/**
+ * @brief Servers::serverInfoDelete
+ * @param id
+ */
+
+void Servers::serverDelete(const int &index)
+{
+	ServerData *d = serverGet(index);
+
+	if (!d)
+		return;
+
+	if (m_connectedServer == d)
+		m_connectedServer = nullptr;
+
+	removeServerDir(d->id());
+
+	m_serversModel->remove(index);
+
+	saveServerList();
+}
+
 
 
 
@@ -213,23 +283,23 @@ void Servers::serverConnect(const int &serverId)
  * @param serverId
  */
 
-void Servers::serverSetAutoConnect(const int &serverId, const bool &value)
+void Servers::serverSetAutoConnect(const int &index)
 {
-	if (!databaseOpen())
-		return;
-
-	QVariantList l;
-	l << serverId;
-
-	execSimpleQuery("DELETE FROM autoconnect");
-
-	if (value) {
-		QVariantMap m;
-		m["serverid"] = serverId;
-		execInsertQuery("INSERT INTO autoconnect (?k?) VALUES (?)", m);
+	for (int i=0; i<m_serversModel->count(); i++) {
+		ServerData *d = serverGet(i);
+		if (i==index) {
+			bool old = d->autoconnect();
+			d->setAutoconnect(!old);
+			m_serversModel->rowUpdated(i);
+		} else {
+			if (d->autoconnect()) {
+				d->setAutoconnect(false);
+				m_serversModel->rowUpdated(i);
+			}
+		}
 	}
 
-	emit serverInfoUpdated(serverId);
+	saveServerList();
 }
 
 
@@ -238,24 +308,13 @@ void Servers::serverSetAutoConnect(const int &serverId, const bool &value)
  * @param serverId
  */
 
-void Servers::serverTryLogin(const int &serverId)
+void Servers::serverTryLogin(ServerData *d)
 {
-	if (!databaseOpen())
+	if (!d)
 		return;
 
-	QVariantList p;
-	p << serverId;
-
-	QVariantMap r;
-
-	if (!execSelectQueryOneRow("SELECT username, session FROM server WHERE id=?", p, &r))
-		return;
-
-	QString username = r.value("username").toString();
-	QString session = r.value("session").toString();
-
-	if (!username.isEmpty() && !session.isEmpty())
-		m_client->login(username, session);
+	if (!d->username().isEmpty() || !d->session().isEmpty())
+		m_client->login(d->username(), d->session());
 }
 
 
@@ -265,11 +324,11 @@ void Servers::serverTryLogin(const int &serverId)
 
 void Servers::serverLogOut()
 {
-	if (m_connectedServerId != -1) {
-		QVariantList l;
-		l << m_connectedServerId;
-		execSimpleQuery("UPDATE server SET session=null WHERE id=?", l);
+	if (m_connectedServer) {
+		m_connectedServer->setSession("");
+		saveServerList();
 	}
+
 }
 
 
@@ -279,47 +338,48 @@ void Servers::serverLogOut()
 
 void Servers::doAutoConnect()
 {
-	QVariantMap m;
-
-	qDebug() << "Auto connect";
-
-	if (execSelectQueryOneRow("SELECT serverid FROM autoconnect", QVariantList(), &m)) {
-		serverConnect(m.value("serverid").toInt());
+	for (int i=0; i<m_serversModel->count(); i++) {
+		ServerData *d = serverGet(i);
+		if (d->autoconnect()) {
+			serverConnect(i);
+			return;
+		}
 	}
 }
 
 
 
 
-void Servers::setConnectedServerId(int connectedServerId)
+
+
+void Servers::setReadyResources(bool readyResources)
 {
-	if (m_connectedServerId == connectedServerId)
+	if (m_readyResources == readyResources)
 		return;
 
-	m_connectedServerId = connectedServerId;
-	emit connectedServerIdChanged(m_connectedServerId);
+	m_readyResources = readyResources;
+	emit readyResourcesChanged(m_readyResources);
 }
 
-
-
-
-/**
- * @brief Servers::databaseInit
- * @return
- */
-
-
-bool Servers::databaseInit()
+void Servers::setServersModel(QObjectModel *serversModel)
 {
-	Q_ASSERT(m_client);
+	if (m_serversModel == serversModel)
+		return;
 
-	if (!batchQueryFromFile(":/sql/servers.sql")) {
-		m_client->sendMessageError(tr("Adatbázis"), tr("Nem sikerült előkészíteni az adatbázist!"), databaseFile());
-		return false;
-	}
-
-	return true;
+	m_serversModel = serversModel;
+	emit serversModelChanged(m_serversModel);
 }
+
+void Servers::setConnectedServer(ServerData *connectedServer)
+{
+	if (m_connectedServer == connectedServer)
+		return;
+
+	m_connectedServer = connectedServer;
+	emit connectedServerChanged(m_connectedServer);
+}
+
+
 
 
 /**
@@ -332,6 +392,7 @@ void Servers::clientSetup()
 	connect(m_client, &Client::sessionTokenChanged, this, &Servers::onSessionTokenChanged);
 	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
 	connect(m_client, &Client::authInvalid, this, &Servers::onAuthInvalid);
+	connect(m_client, &Client::userRolesChanged, this, &Servers::onUserRolesChanged);
 }
 
 
@@ -357,11 +418,9 @@ void Servers::removeServerDir(const int &serverId)
 
 void Servers::onSessionTokenChanged(QString sessionToken)
 {
-	if (m_connectedServerId != -1) {
-		QVariantList l;
-		l << sessionToken;
-		l << m_connectedServerId;
-		execSimpleQuery("UPDATE server SET session=? WHERE id=?", l);
+	if (m_connectedServer) {
+		m_connectedServer->setSession(sessionToken);
+		saveServerList();
 	}
 }
 
@@ -374,10 +433,12 @@ void Servers::onSessionTokenChanged(QString sessionToken)
 void Servers::onConnectionStateChanged(Client::ConnectionState state)
 {
 	if (state == Client::Connected) {
-		setConnectedServerId(m_tryToConnectServerId);
-		serverTryLogin(m_connectedServerId);
+		m_connectedServer = m_serverTryConnect;
+		m_serverTryConnect = nullptr;
+		serverTryLogin(m_connectedServer);
 	} else if (state == Client::Standby) {
-		setConnectedServerId(-1);
+		setConnectedServer(nullptr);
+		unregisterResources();
 	}
 }
 
@@ -391,16 +452,17 @@ void Servers::onAuthInvalid()
 	serverLogOut();
 }
 
+
 /**
  * @brief Servers::onUserRolesChanged
  * @param userRoles
  */
 
-void Servers::onUserRolesChanged(Client::Roles userRoles)
+void Servers::onUserRolesChanged(CosMessage::ClientRoles userRoles)
 {
-	if (!userRoles.testFlag(Client::RoleStudent) &&
-		!userRoles.testFlag(Client::RoleTeacher) &&
-		!userRoles.testFlag(Client::RoleAdmin))
+	if (!userRoles.testFlag(CosMessage::RoleStudent) &&
+		!userRoles.testFlag(CosMessage::RoleTeacher) &&
+		!userRoles.testFlag(CosMessage::RoleAdmin))
 	{
 		serverLogOut();
 	}
@@ -415,10 +477,392 @@ void Servers::onUserRolesChanged(Client::Roles userRoles)
 
 void Servers::onUserNameChanged(QString username)
 {
-	if (m_connectedServerId != -1 && !username.isEmpty()) {
-		QVariantList l;
-		l << username;
-		l << m_connectedServerId;
-		execSimpleQuery("UPDATE server SET username=? WHERE id=?", l);
+	if (m_connectedServer && !username.isEmpty()) {
+		m_connectedServer->setUsername(username);
+		saveServerList();
 	}
+}
+
+
+
+
+/**
+ * @brief Servers::reloadResources
+ * @param resources
+ */
+
+void Servers::reloadResources(QVariantMap resources)
+{
+	qDebug() << "Reload server resources" << resources;
+
+	unregisterResources();
+
+	QMapIterator<QString, QVariant> i(resources);
+
+	while (i.hasNext()) {
+		i.next();
+
+		QString filename = i.key();
+		QString md5 = i.value().toString();
+		QString localFile = m_client->serverDataDir()+"/"+filename;
+
+
+		QFile f(localFile);
+		if (f.open(QIODevice::ReadOnly)) {
+			QByteArray filecontent = f.readAll();
+			f.close();
+
+			QString localmd5 = QCryptographicHash::hash(filecontent, QCryptographicHash::Md5).toHex();
+
+			if (localmd5 == md5) {
+				qDebug() << localFile << "success";
+				m_resources[localFile] = 1.0;
+				emit resourcesChanged(m_resources);
+				registerResource(localFile);
+				continue;
+			}
+		}
+
+		qDebug() << "Download" << localFile;
+
+		m_resources[localFile] = 0.0;
+		emit resourcesChanged(m_resources);
+
+		QJsonObject o;
+		o["filename"] = filename;
+		send(CosMessage::ClassUserInfo, "downloadFile", o);
+	}
+
+	checkResources();
+}
+
+
+/**
+ * @brief Client::getDownloadedResource
+ * @param message
+ */
+
+
+void Servers::getDownloadedResource(const CosMessage &message)
+{
+	QString filename = message.jsonData().value("filename").toString();
+	QString md5 = message.jsonData().value("md5").toString();
+
+	if (message.messageType() != CosMessage::MessageBinaryData) {
+		qWarning() << tr("Érvénytelen fájl érkezett") << message;
+	}
+
+	if (filename.isEmpty()) {
+		qWarning() << tr("Érvénytelen fájl érkezett") << message;
+		return;
+	}
+
+	QByteArray data = message.binaryData();
+
+	QString localmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
+
+	if (localmd5 != md5) {
+		qWarning() << tr("MD5 hash hiba") << message;
+		return;
+	}
+
+	QString newFile = m_client->serverDataDir()+"/"+filename;
+
+	QFile f(newFile);
+
+	if (!f.open(QIODevice::WriteOnly)) {
+		m_client->sendMessageError(tr("Fájl létrehozási hiba"), newFile, f.errorString());
+		return;
+	}
+
+	if (f.write(data) == -1) {
+		m_client->sendMessageError(tr("Fájl írási hiba"), newFile, f.errorString());
+		f.close();
+		return;
+	}
+
+	f.close();
+
+	qDebug() << tr("Fájl létrehozva") << newFile;
+
+	m_resources[newFile] = 1.0;
+	registerResource(newFile);
+	checkResources();
+}
+
+
+/**
+ * @brief Servers::registerResource
+ * @param filename
+ */
+
+void Servers::registerResource(const QString &filename)
+{
+	if (!filename.endsWith(".cres"))
+		return;
+
+	qInfo() << tr("Register server resource:") << filename;
+	QResource::registerResource(filename);
+}
+
+
+
+/**
+ * @brief Servers::unregisterResources
+ */
+
+void Servers::unregisterResources()
+{
+	foreach (QString f, m_resources.keys()) {
+		qInfo() << tr("Unregister server resource:") << f;
+		QResource::unregisterResource(f);
+	}
+	m_resources.clear();
+	emit resourcesChanged(m_resources);
+	checkResources();
+}
+
+
+/**
+ * @brief Servers::checkResources
+ */
+
+void Servers::checkResources()
+{
+	bool r = !m_resources.isEmpty();
+
+	foreach (QVariant v, m_resources) {
+		if (v.toReal() < 1.0)
+			r = false;
+	}
+
+	setReadyResources(r);
+}
+
+
+/**
+ * @brief Servers::saveServerList
+ */
+
+void Servers::saveServerList()
+{
+	QJsonArray list;
+
+	foreach (QObject *o, m_serversModel->list()) {
+		ServerData *d = qobject_cast<ServerData *>(o);
+		if (!d)
+			continue;
+
+		list.append(d->asJsonObject());
+	}
+
+	QJsonDocument doc(list);
+
+	Client::saveJsonDocument(doc, m_dataFileName);
+}
+
+
+/**
+ * @brief Servers::serverGet
+ * @param index
+ */
+
+ServerData * Servers::serverGet(int index)
+{
+	QObject *o = m_serversModel->get(index);
+	return qobject_cast<ServerData *>(o);
+}
+
+
+/**
+ * @brief Servers::nextId
+ * @return
+ */
+
+int Servers::nextId()
+{
+	int nextId = 1;
+
+	for (int i=0; i<m_serversModel->count(); i++) {
+		ServerData *d = serverGet(i);
+		if (d->id() >= nextId)
+			nextId = d->id()+1;
+	}
+
+	return nextId;
+}
+
+
+
+/**
+ * @brief ServerData::ServerData
+ * @param parent
+ */
+
+ServerData::ServerData(QObject *parent)
+	: QObject(parent)
+{
+}
+
+
+/**
+ * @brief ServerData::ServerData
+ * @param object
+ * @param parent
+ */
+
+ServerData::ServerData(const QJsonObject &object, QObject *parent)
+	: QObject(parent)
+{
+	m_name = object.value("name").toString();
+	m_host = object.value("host").toString();
+	m_port = object.value("port").toInt();
+	m_ssl = object.value("ssl").toBool();
+	m_username = object.value("username").toString();
+	m_session = object.value("session").toString();
+	m_autoconnect = object.value("autoconnect").toBool();
+	m_id = object.value("id").toInt();
+}
+
+/**
+ * @brief ServerData::ServerData
+ * @param map
+ * @param parent
+ */
+
+ServerData::ServerData(const QVariantMap &map, QObject *parent)
+	: QObject(parent)
+{
+	m_name = map.value("name").toString();
+	m_host = map.value("host").toString();
+	m_port = map.value("port").toInt();
+	m_ssl = map.value("ssl").toBool();
+	m_username = map.value("username").toString();
+	m_session = map.value("session").toString();
+	m_autoconnect = map.value("autoconnect").toBool();
+	m_id = map.value("id").toInt();
+}
+
+
+/**
+ * @brief ServerData::~ServerData
+ */
+
+ServerData::~ServerData()
+{
+}
+
+
+/**
+ * @brief ServerData::asJsonObject
+ * @return
+ */
+
+QJsonObject ServerData::asJsonObject() const
+{
+	QJsonObject root;
+	root["name"] = m_name;
+	root["host"] = m_host;
+	root["port"] = m_port;
+	root["ssl"] = m_ssl;
+	root["username"] = m_username;
+	root["session"] = m_session;
+	root["autoconnect"] = m_autoconnect;
+	root["id"] = m_id;
+	return root;
+}
+
+
+/**
+ * @brief ServerData::set
+ * @param map
+ */
+
+void ServerData::set(const QVariantMap &map)
+{
+	if (map.contains("name"))	setName(map.value("name").toString());
+	if (map.contains("host"))	setHost(map.value("host").toString());
+	if (map.contains("port"))	setPort(map.value("port").toInt());
+	if (map.contains("ssl"))	setSsl(map.value("ssl").toBool());
+	if (map.contains("username"))	setUsername(map.value("username").toString());
+	if (map.contains("session"))	setSession(map.value("session").toString());
+	if (map.contains("autoconnect"))	setAutoconnect(map.value("autoconnect").toBool());
+	if (map.contains("id"))	setId(map.value("id").toInt());
+}
+
+
+
+
+
+void ServerData::setName(QString name)
+{
+	if (m_name == name)
+		return;
+
+	m_name = name;
+	emit nameChanged(m_name);
+}
+
+void ServerData::setHost(QString host)
+{
+	if (m_host == host)
+		return;
+
+	m_host = host;
+	emit hostChanged(m_host);
+}
+
+void ServerData::setPort(int port)
+{
+	if (m_port == port)
+		return;
+
+	m_port = port;
+	emit portChanged(m_port);
+}
+
+void ServerData::setSsl(bool ssl)
+{
+	if (m_ssl == ssl)
+		return;
+
+	m_ssl = ssl;
+	emit sslChanged(m_ssl);
+}
+
+void ServerData::setUsername(QString username)
+{
+	if (m_username == username)
+		return;
+
+	m_username = username;
+	emit usernameChanged(m_username);
+}
+
+void ServerData::setSession(QString session)
+{
+	if (m_session == session)
+		return;
+
+	m_session = session;
+	emit sessionChanged(m_session);
+}
+
+
+void ServerData::setAutoconnect(bool autoconnect)
+{
+	if (m_autoconnect == autoconnect)
+		return;
+
+	m_autoconnect = autoconnect;
+	emit autoconnectChanged(m_autoconnect);
+}
+
+void ServerData::setId(int id)
+{
+	if (m_id == id)
+		return;
+
+	m_id = id;
+	emit idChanged(m_id);
 }

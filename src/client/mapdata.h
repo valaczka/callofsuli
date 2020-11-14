@@ -36,11 +36,11 @@
 #define MAPDATA_H
 
 #include <QObject>
-#include "abstractdbactivity.h"
+#include "abstractactivity.h"
 #include "../common/cosdb.h"
 
 
-class MapData : public AbstractDbActivity
+class MapData : public AbstractActivity
 {
 	Q_OBJECT
 
@@ -52,7 +52,7 @@ public:
 	Q_PROPERTY(QVariantList storageModules READ storageModules)
 	Q_PROPERTY(QVariantList objectiveModules READ objectiveModules)
 
-	explicit MapData(const QString &connectionName = "mapDB", QObject *parent = nullptr);
+	explicit MapData(const QString &connectionName = "mapDB", QQuickItem *parent = nullptr);
 	virtual ~MapData();
 
 	static QVariantList storageModules();
@@ -90,7 +90,7 @@ public slots:
 
 
 private slots:
-	bool databaseInit() override;
+	//bool databaseInit() override;
 
 protected:
 	QJsonArray tableToJson(const QString &table, const bool &convertData = false);

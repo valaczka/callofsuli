@@ -36,56 +36,155 @@
 #define SERVERS_H
 
 #include <QObject>
-#include "abstractdbactivity.h"
+#include "abstractactivity.h"
+#include "qobjectmodel.h"
 
-class Servers : public AbstractDbActivity
+/**
+ * @brief The ServerData class
+ */
+
+class ServerData : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int connectedServerId READ connectedServerId WRITE setConnectedServerId NOTIFY connectedServerIdChanged)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(QString host READ host WRITE setHost NOTIFY hostChanged)
+	Q_PROPERTY(int port READ port WRITE setPort NOTIFY portChanged)
+	Q_PROPERTY(bool ssl READ ssl WRITE setSsl NOTIFY sslChanged)
+	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
+	Q_PROPERTY(QString session READ session WRITE setSession NOTIFY sessionChanged)
+	Q_PROPERTY(bool autoconnect READ autoconnect WRITE setAutoconnect NOTIFY autoconnectChanged)
+	Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
+
+public:
+	ServerData(QObject *parent = nullptr);
+	ServerData(const QJsonObject &object, QObject *parent = nullptr);
+	ServerData(const QVariantMap &map, QObject *parent = nullptr);
+	~ServerData();
+
+	QString name() const { return m_name; }
+	QString host() const { return m_host; }
+	int port() const { return m_port; }
+	bool ssl() const { return m_ssl; }
+	QString username() const { return m_username; }
+	QString session() const { return m_session; }
+	bool autoconnect() const { return m_autoconnect; }
+	int id() const { return m_id; }
+
+	QJsonObject asJsonObject() const;
+	void set(const QVariantMap &map);
+
+public slots:
+	void setName(QString name);
+	void setHost(QString host);
+	void setPort(int port);
+	void setSsl(bool ssl);
+	void setUsername(QString username);
+	void setSession(QString session);
+	void setAutoconnect(bool autoconnect);
+	void setId(int id);
+
+signals:
+	void nameChanged(QString name);
+	void hostChanged(QString host);
+	void portChanged(int port);
+	void sslChanged(bool ssl);
+	void usernameChanged(QString username);
+	void sessionChanged(QString session);
+	void autoconnectChanged(bool autoconnect);
+	void idChanged(int id);
+
+private:
+	QString m_name;
+	QString m_host;
+	int m_port;
+	bool m_ssl;
+	QString m_username;
+	QString m_session;
+	bool m_autoconnect;
+	int m_id;
+};
+
+
+/**
+ * @brief The Servers class
+ */
+
+
+class Servers : public AbstractActivity
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QVariantMap resources READ resources NOTIFY resourcesChanged)
+	Q_PROPERTY(bool readyResources READ readyResources NOTIFY readyResourcesChanged)
+	Q_PROPERTY(QObjectModel* serversModel READ serversModel WRITE setServersModel NOTIFY serversModelChanged)
+	Q_PROPERTY(ServerData* connectedServer READ connectedServer WRITE setConnectedServer NOTIFY connectedServerChanged)
 
 
 public:
-	Servers(QObject *parent = nullptr);
+	Servers(QQuickItem *parent = nullptr);
+	~Servers();
 
-	int connectedServerId() const { return m_connectedServerId; }
+	QVariantMap resources() const { return m_resources; }
+	void reloadResources(QVariantMap resources);
+	void getDownloadedResource(const CosMessage &message);
+	void registerResource(const QString &filename);
+	void unregisterResources();
+	void checkResources();
+	bool readyResources() const { return m_readyResources; }
+
+	QObjectModel* serversModel() const { return m_serversModel; }
+	ServerData *serverGet(int index);
+	int nextId();
+	ServerData* connectedServer() const { return m_connectedServer; }
+
+	void saveServerList();
+
 
 public slots:
 	void serverListReload();
-	QVariantMap serverInfoGet(const int &serverId);
-	void serverInfoInsertOrUpdate(const int &id, const QVariantMap &map);
-	void serverInfoDelete(const int &id);
-	void serverConnect(const int &serverId);
-	void serverSetAutoConnect(const int &serverId, const bool &value = true);
-	void serverTryLogin(const int &serverId);
+	void serverConnect(const int &index);
+	int serverInsertOrUpdate(const int &index, const QVariantMap &map);
+	void serverDelete(const int &index);
+	void serverSetAutoConnect(const int &index);
+	void serverTryLogin(ServerData *d);
 	void serverLogOut();
 	void doAutoConnect();
 
-	void setConnectedServerId(int connectedServerId);
+	void setReadyResources(bool readyResources);
+	void setServersModel(QObjectModel* serversModel);
+	void setConnectedServer(ServerData* connectedServer);
 
 protected slots:
-	bool databaseInit() override;
 	void clientSetup() override;
+	void onMessageReceived(const CosMessage &message) override;
+	void onMessageFrameReceived(const CosMessage &message) override;
 
 	void removeServerDir(const int &serverId);
-
 
 	void onSessionTokenChanged(QString sessionToken);
 	void onConnectionStateChanged(Client::ConnectionState state);
 	void onAuthInvalid();
-	void onUserRolesChanged(Client::Roles userRoles);
+	void onUserRolesChanged(CosMessage::ClientRoles userRoles);
 	void onUserNameChanged(QString username);
 
 signals:
-	void serverListLoaded(const QVariantList &serverList);
-	void serverInfoLoaded(const QVariantMap &server);
-	void serverInfoUpdated(const int &serverId);
+	void serverListLoaded();
 
-	void connectedServerIdChanged(int connectedServerId);
+	void resourcesChanged(QVariantMap resources);
+	void readyResourcesChanged(bool readyResources);
+	void serversModelChanged(QObjectModel* serversModel);
+	void connectedServerChanged(ServerData* connectedServer);
 
 private:
-	int m_connectedServerId;
-	int m_tryToConnectServerId;
+	QVariantMap m_resources;
+	bool m_readyResources;
+	QObjectModel* m_serversModel;
+	QString m_dataFileName;
+	ServerData* m_connectedServer;
+	ServerData* m_serverTryConnect;
 };
+
+
 
 #endif // SERVERS_H

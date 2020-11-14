@@ -36,49 +36,106 @@
 #define ABSTRACTACTIVITY_H
 
 #include <QObject>
+#include <QQuickItem>
 #include <QJsonObject>
 #include <QJsonArray>
 #include "cosclient.h"
+#include "../common/cosdb.h"
+#include "../common/cosmessage.h"
 
 class Client;
 
-class AbstractActivity : public QObject
+class ActivityDB : public COSdb
 {
 	Q_OBJECT
 
+public:
+	explicit ActivityDB(const QString &connectionName, const QString &databaseFile, QObject *parent = nullptr)
+		: COSdb(connectionName, parent)
+		, m_client(nullptr)
+	{
+		setDatabaseFile(databaseFile);
+	}
+
+public slots:
+	void setClient(Client *client) { m_client = client; }
+
+protected:
+	Client *m_client;
+};
+
+
+class AbstractActivity : public QQuickItem
+{
+	Q_OBJECT
+
+
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
+	Q_PROPERTY(ActivityDB* db READ db WRITE setDb NOTIFY dbChanged)
 	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
-	Q_PROPERTY(QStringList busyStack READ busyStack WRITE setBusyStack NOTIFY busyStackChanged)
 
 public:
-	explicit AbstractActivity(QObject *parent = nullptr);
+	struct busyData;
+
+	explicit AbstractActivity(QQuickItem *parent = nullptr);
 	~AbstractActivity();
 
 	Client* client() const { return m_client; }
 	bool isBusy() const { return m_isBusy; }
-	QStringList busyStack() const { return m_busyStack; }
+	ActivityDB* db() const { return m_db; }
 
 public slots:
-	void send(const QJsonObject &query, const QByteArray &binaryData = QByteArray());
+	void send(const CosMessage::CosClass &cosClass, const QString &cosFunc,
+			  const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setClient(Client* client);
 	void setIsBusy(bool isBusy);
-	void setBusyStack(QStringList busyStack);
-	void busyStackAdd(const QString &func, const int &msgId);
-	void busyStackRemove(const QString &func, const int &msgId);
+	void busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId);
+	void busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId);
+	void setDb(ActivityDB* db);
 
 protected slots:
+	virtual void onMessageReceived(const CosMessage &) {}
+	virtual void onMessageFrameReceived(const CosMessage &) {}
 	virtual void clientSetup() {}
+
+private slots:
+	void onMessageReceivedPrivate(const CosMessage &message);
 
 signals:
 	void clientChanged(Client* client);
 	void isBusyChanged(bool isBusy);
-	void busyStackChanged(QStringList busyStack);
+	void dbChanged(ActivityDB* db);
 
 protected:
 	Client* m_client;
+	ActivityDB* m_db;
 	bool m_isBusy;
-	QStringList m_busyStack;
+	QList<busyData> m_busyStack;
 
+
+public:
+
+	/**
+	 * @brief The busyData struct
+	 */
+
+	struct busyData {
+		CosMessage::CosClass m_cosClass;
+		QString m_cosFunc;
+		int m_msgId;
+
+		busyData(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgid)
+			: m_cosClass(cosClass)
+			, m_cosFunc(cosFunc)
+			, m_msgId(msgid)
+		{ }
+
+		friend inline bool operator== (const busyData &b1, const busyData &b2) {
+			return b1.m_cosClass == b2.m_cosClass
+					&& b1.m_cosFunc == b2.m_cosFunc
+					&& b1.m_msgId == b2.m_msgId;
+		}
+	};
 };
 
 

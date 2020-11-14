@@ -8,7 +8,6 @@ BusyIndicator {
 
 	height: parent.height
 	width: parent.height-16
-	anchors.verticalCenter: parent.verticalCenter
 	running: false
 	Material.accent: CosStyle.colorAccentDark
 }

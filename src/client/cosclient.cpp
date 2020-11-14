@@ -50,6 +50,7 @@
 #include "student.h"
 #include "studentmap.h"
 #include "tiledpaintedlayer.h"
+#include "qobjectmodel.h"
 
 
 
@@ -59,16 +60,9 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
 	m_timer = new QTimer(this);
 
-	m_clientMsgId = 0;
-	m_userRoles = RoleGuest;
+	m_userRoles = CosMessage::RoleGuest;
 	m_userXP = 0;
 	m_userRank = 0;
-
-	m_signalList["userInfo"] = "UserInfo";
-	m_signalList["teacherMaps"] = "TeacherMaps";
-	m_signalList["teacherGroups"] = "TeacherGroups";
-	m_signalList["user"] = "User";
-	m_signalList["student"] = "Student";
 
 	m_cosMessage = nullptr;
 
@@ -77,8 +71,6 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_registrationEnabled = false;
 	m_passwordResetEnabled = false;
 	m_registrationDomains = QVariantList();
-
-	m_waitForResources = QStringList();
 
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
@@ -92,8 +84,6 @@ Client::Client(QObject *parent) : QObject(parent)
 		if (m_connectionState == Standby || m_connectionState == Connecting)
 			sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
 	});
-
-	connect(this, &Client::messageReceived, this, &Client::onMessageReceived);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
 	m_timer->start(5000);
@@ -183,14 +173,15 @@ void Client::registerResources()
 
 void Client::registerTypes()
 {
+	qmlRegisterType<QObjectModel>("COS.Client", 1, 0, "QObjectModel");
+	qRegisterMetaType<CosMessage::CosClass>("CosClass");
+	qRegisterMetaType<CosMessage::CosMessageError>("CosMessageError");
+	qRegisterMetaType<CosMessage::CosMessageServerError>("CosMessageServerError");
+	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
+	qmlRegisterType<AbstractActivity>("COS.Client", 1, 0, "AbstractActivity");
 	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
-	qRegisterMetaType<CosMessage::CosMessageError>("CosMessageError");
-	qRegisterMetaType<CosMessage::CosMessageServerError>("CosMessageServerError");
-	qRegisterMetaType<CosMessage::CosClass>("CosClass");
-	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
-	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
 	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
@@ -206,6 +197,7 @@ void Client::registerTypes()
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
+	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 }
 
 
@@ -306,35 +298,6 @@ void Client::standardPathCreate()
 }
 
 
-/**
- * @brief Client::registerServerResource
- * @param filename
- */
-
-void Client::registerServerResource(const QString &filename)
-{
-	if (!filename.endsWith(".cres"))
-		return;
-
-	qInfo() << tr("Register server resource:") << filename;
-	QResource::registerResource(filename);
-	m_registeredServerResources.append(filename);
-}
-
-
-/**
- * @brief Client::unregisterServerResources
- */
-
-void Client::unregisterServerResources()
-{
-	foreach (QString f, m_registeredServerResources) {
-		qInfo() << tr("Unregister server resource:") << f;
-		QResource::unregisterResource(f);
-	}
-	m_registeredServerResources.clear();
-}
-
 
 /**
  * @brief Client::standardPath
@@ -381,19 +344,32 @@ QVariant Client::getSetting(const QString &key)
  * @return
  */
 
-QVariant Client::readJsonFile(const QUrl &file)
+QVariant Client::readJsonFile(QString filename)
 {
-	QString filename;
-	if (file.url().startsWith("qrc:/"))
-		filename = file.url().replace("qrc:/", ":/");
-	else
-		filename = file.toLocalFile();
+	QJsonDocument doc = Client::readJsonDocument(filename);
+	return doc.toVariant();
+}
+
+
+/**
+ * @brief Client::readJsonDocument
+ * @param filename
+ * @return
+ */
+
+QJsonDocument Client::readJsonDocument(QString filename)
+{
+	QJsonDocument doc;
+
+	if (filename.startsWith("qrc:/"))
+		filename.replace("qrc:/", ":/");
+
 
 	QFile f(filename);
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
 		qWarning().noquote() << tr("A fájl nem található vagy nem olvasható!") << filename;
-		return QVariant();
+		return doc;
 	}
 
 	QByteArray b = f.readAll();
@@ -401,12 +377,35 @@ QVariant Client::readJsonFile(const QUrl &file)
 	f.close();
 
 	QJsonParseError error;
-	QJsonDocument doc = QJsonDocument::fromJson(b, &error);
-	if (error.error != QJsonParseError::NoError) {
+	doc = QJsonDocument::fromJson(b, &error);
+	if (error.error != QJsonParseError::NoError)
 		qWarning().noquote() << tr("invalid JSON file '%1' at offset %2").arg(error.errorString()).arg(error.offset);
-		return QVariant();
+
+	return doc;
+}
+
+
+/**
+ * @brief Client::saveJsonDocument
+ * @param doc
+ * @param filename
+ * @return
+ */
+
+bool Client::saveJsonDocument(QJsonDocument doc, const QString &filename)
+{
+	QByteArray b = doc.toJson(QJsonDocument::Indented);
+
+	QFile f(filename);
+	if (f.open(QIODevice::WriteOnly)) {
+		f.write(b);
+		f.close();
+		return true;
+	} else {
+		qWarning() << "Write error" << f.errorString();
 	}
-	return doc.toVariant();
+
+	return false;
 }
 
 
@@ -488,10 +487,8 @@ void Client::closeConnection()
 		setUserName("");
 		setUserRank(0);
 		setUserXP(0);
-		setUserRoles(RoleGuest);
+		setUserRoles(CosMessage::RoleGuest);
 	}
-
-	unregisterServerResources();
 }
 
 
@@ -535,9 +532,7 @@ void Client::login(const QString &username, const QString &session, const QStrin
 
 void Client::logout()
 {
-	/*socketSend({
-				   {"logout", true}
-			   });*/
+	socketSend(CosMessage::ClassLogout, "");
 	setSessionToken("");
 	setUserName("");
 }
@@ -584,7 +579,7 @@ void Client::passwordRequest(const QString &email, const QString &code)
  * @return
  */
 
-int Client::socketSend(CosMessage::CosClass cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
+int Client::socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
 {
 	if (m_connectionState != Connected && m_connectionState != Reconnected) {
 		sendMessageWarning(tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
@@ -592,39 +587,20 @@ int Client::socketSend(CosMessage::CosClass cosClass, const QString &cosFunc, co
 	}
 
 	CosMessage m(jsonData, cosClass, cosFunc);
+
+	if (!m_sessionToken.isEmpty()) {
+		QJsonObject auth;
+		auth["session"] = m_sessionToken;
+		m.setJsonAuth(auth);
+	}
+
 	if (!binaryData.isEmpty())
 		m.setBinaryData(binaryData);
+
 	m.send(m_socket);
 
 	return m.msgId();
 }
-
-
-/**
- * @brief Client::socketSendJson
- * @param jsonObject
- * @return
- */
-
-QByteArray Client::prepareJson(const QJsonObject &jsonObject)
-{
-	QJsonObject d;
-	QJsonObject d2 = jsonObject;
-
-	if (!m_sessionToken.isEmpty() && !d2.contains("auth")) {
-		QJsonObject auth {
-			{"session", m_sessionToken}
-		};
-		d2["auth"] = auth;
-	}
-
-	d["callofsuli"] = d2;
-
-	QJsonDocument data(d);
-	return data.toBinaryData();
-}
-
-
 
 
 
@@ -648,124 +624,145 @@ void Client::setServerDataDir(QString resourceDbName)
 }
 
 
-/**
- * @brief Client::reloadServerResources
- * @param resources
- */
 
-void Client::reloadServerResources(QVariantMap resources)
-{
-	qDebug() << "Reload server resources" << resources;
-
-	unregisterServerResources();
-
-	m_waitForResources.clear();
-	emit waitForResourcesChanged(m_waitForResources);
-
-	QMapIterator<QString, QVariant> i(resources);
-
-	while (i.hasNext()) {
-		i.next();
-
-		QString filename = i.key();
-		QString md5 = i.value().toString();
-		QString localFile = m_serverDataDir+"/"+filename;
-
-
-		QFile f(localFile);
-		if (f.open(QIODevice::ReadOnly)) {
-			QByteArray filecontent = f.readAll();
-			f.close();
-
-			QString localmd5 = QCryptographicHash::hash(filecontent, QCryptographicHash::Md5).toHex();
-
-			if (localmd5 == md5) {
-				qDebug() << localFile << "success";
-				registerServerResource(localFile);
-				continue;
-			}
-		}
-
-		qDebug() << "Download" << localFile;
-
-		m_waitForResources.append(filename);
-		emit waitForResourcesChanged(m_waitForResources);
-
-		QJsonObject o;
-		o["filename"] = filename;
-		socketSend(CosMessage::ClassUserInfo, "downloadFile", o);
-	}
-
-	if (!m_waitForResources.count())
-		emit serverResourcesReady();
-}
 
 
 /**
- * @brief Client::getDownloadedResource
+ * @brief Client::performUserInfo
  * @param message
  */
 
-void Client::getDownloadedResource(const CosMessage &message)
+void Client::performUserInfo(const CosMessage &message)
 {
-	QString filename = message.jsonData().value("filename").toString();
-	QString md5 = message.jsonData().value("md5").toString();
+	QString func = message.cosFunc();
+	QJsonObject d = message.jsonData();
 
-	if (message.messageType() != CosMessage::MessageBinaryData) {
-		qWarning() << tr("Érvénytelen fájl érkezett") << message;
+	if (message.cosClass() == CosMessage::ClassUserInfo) {
+		if (func == "getUser") {
+			if (d.value("username").toString() == m_userName) {
+				setUserXP(d.value("xp").toInt(0));
+				setUserRank(d.value("rankid").toInt(0));
+				setUserRankName(d.value("rankname").toString());
+				setUserLastName(d.value("lastname").toString());
+				setUserFirstName(d.value("firstname").toString());
+			}
+		} else if (func == "getServerInfo") {
+			setServerName(d.value("serverName").toString());
+			setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
+			setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
+			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
+		} else if (func == "newSessionToken") {
+			QString token = d.value("token").toString();
+			setSessionToken(token);
+			qDebug() << "new session token" <<token;
+		} else if (func == "newRoles") {
+			setUserName(d.value("username").toString());
+			setUserRoles(message.clientRole());
+			qDebug() << "set user roles from server" << message.clientRole();
+
+			socketSend(CosMessage::ClassUserInfo, "getUser");
+		}
 	}
-
-	if (filename.isEmpty()) {
-		qWarning() << tr("Érvénytelen fájl érkezett") << message;
-		return;
-	}
-
-	m_waitForResources.removeAll(filename);
-	emit waitForResourcesChanged(m_waitForResources);
-
-	if (!m_waitForResources.count())
-		emit serverResourcesReady();
-
-	QByteArray data = message.binaryData();
-
-	QString localmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
-
-	if (localmd5 != md5) {
-		qWarning() << tr("MD5 hash hiba") << message;
-		return;
-	}
-
-	QString newFile = m_serverDataDir+"/"+filename;
-
-	QFile f(newFile);
-
-	if (!f.open(QIODevice::WriteOnly)) {
-		sendMessageError(tr("Fájl létrehozási hiba"), newFile, f.errorString());
-		return;
-	}
-
-	if (f.write(data) == -1) {
-		sendMessageError(tr("Fájl írási hiba"), newFile, f.errorString());
-		f.close();
-		return;
-	}
-
-	f.close();
-
-	qDebug() << tr("Fájl létrehozva") << newFile;
-
-	registerServerResource(newFile);
 }
 
 
+/**
+ * @brief Client::performError
+ * @param message
+ */
 
-void Client::setWaitForResources(QStringList waitForResources)
+void Client::performError(const CosMessage &message)
 {
-	if (m_waitForResources == waitForResources)
+	if (!message.hasError())
 		return;
 
-	m_waitForResources = waitForResources;
-	emit waitForResourcesChanged(m_waitForResources);
+	CosMessage::CosMessageServerError serverError = message.serverError();
+	CosMessage::CosMessageError error = message.messageError();
+
+	switch (serverError) {
+		case CosMessage::ServerInternalError:
+			sendMessageError(tr("Belső szerver hiba"), message.serverErrorDetails());
+			return;
+			break;
+		case CosMessage::ServerSmtpError:
+			sendMessageError(tr("SMTP hiba"), message.serverErrorDetails());
+			return;
+			break;
+		case CosMessage::ServerNoError:
+			break;
+	}
+
+	switch (error) {
+		case CosMessage::BadMessageFormat:
+			sendMessageError(tr("Belső hiba"), tr("Hibás üzenetformátum"));
+			return;
+			break;
+		case CosMessage::MessageTooOld:
+			sendMessageError(tr("Belső hiba"), tr("Elavult kliens"));
+			return;
+			break;
+		case CosMessage::MessageTooNew:
+			sendMessageError(tr("Belső hiba"), tr("Elavult szerver"));
+			return;
+			break;
+		case CosMessage::InvalidMessageType:
+			sendMessageError(tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
+			return;
+			break;
+		case CosMessage::PasswordRequestMissingEmail:
+			sendMessageError(tr("Elfelejtett jelszó"), tr("Nincs megadva email cím!"));
+			return;
+			break;
+		case CosMessage::PasswordRequestInvalidEmail:
+			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen email cím!"));
+			return;
+			break;
+		case CosMessage::PasswordRequestInvalidCode:
+			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen aktivációs kód!"));
+			return;
+			break;
+		case CosMessage::PasswordRequestCodeSent:
+			sendMessageInfo(tr("Elfelejtett jelszó"), tr("Az aktivációs kód a megadot email címre elküldve"));
+			return;
+			break;
+		case CosMessage::PasswordRequestSuccess:
+			emit authPasswordResetSuccess();
+			return;
+			break;
+		case CosMessage::InvalidSession:
+			sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
+			setSessionToken("");
+			setUserName("");
+			emit authInvalid();
+			return;
+			break;
+		case CosMessage::InvalidUser:
+			sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
+			setSessionToken("");
+			setUserName("");
+			emit authInvalid();
+			return;
+			break;
+		case CosMessage::PasswordResetRequired:
+			sendMessageWarning(tr("Bejelentkezés"), tr("A jelszó alaphelyzetben van. Adj meg egy új jelszót!"));
+			setSessionToken("");
+			emit authRequirePasswordReset();
+			return;
+			break;
+		case CosMessage::InvalidClass:
+		case CosMessage::InvalidFunction:
+			sendMessageError(tr("Belső hiba"), tr("Érvénytelen kérés"));
+			return;
+			break;
+		case CosMessage::ClassPermissionDenied:
+			sendMessageError(tr("Belső hiba"), tr("Hozzáférés megtagadva"));
+			return;
+			break;
+		case CosMessage::NoBinaryData:
+		case CosMessage::OtherError:
+		case CosMessage::NoError:
+			break;
+	}
 }
 
 
@@ -833,7 +830,7 @@ void Client::setUserName(QString userName)
 	emit userNameChanged(m_userName);
 }
 
-void Client::setUserRoles(Roles userRoles)
+void Client::setUserRoles(CosMessage::ClientRoles userRoles)
 {
 	if (m_userRoles == userRoles)
 		return;
@@ -904,64 +901,6 @@ void Client::socketPing()
 }
 
 
-/**
- * @brief Client::parseJson
- * @param object
- * @return
- */
-
-void Client::parseJson(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId)
-{
-	if (object.value("session").isObject()) {
-		QJsonObject o = object.value("session").toObject();
-		if (o.contains("token")) {
-			QString token = o.value("token").toString();
-			setSessionToken(token);
-			qDebug() << "new session token" <<token;
-		}
-	}
-
-	if (object.value("roles").isObject()) {
-		QJsonObject o = object.value("roles").toObject();
-		setUserName(o.value("username").toString());
-		Roles newRole;
-		newRole.setFlag(RoleGuest, o.value("guest").toBool());
-		newRole.setFlag(RoleStudent, o.value("student").toBool());
-		newRole.setFlag(RoleTeacher, o.value("teacher").toBool());
-		newRole.setFlag(RoleAdmin, o.value("admin").toBool());
-		setUserRoles(newRole);
-		qDebug() << "set user roles from server" <<newRole;
-
-		socketSend(CosMessage::ClassUserInfo, "getUser");
-	}
-
-	QString cl = object.value("class").toString();
-
-	if (cl.isEmpty())
-		return;
-
-	QString s = m_signalList.value(cl, "");
-
-	if (s.isEmpty()) {
-		qWarning() << tr("Invalid JSON class ")+cl;
-		return;
-	}
-
-	if (object.value("data").toObject()["error"] == "permission denied") {
-		sendMessageWarning(tr("Hozzáférés megtagadva"), tr("Nincs elég jogosultságod a funkció eléréshez!"));
-		return;
-	}
-
-	QString f = "json"+s+"Received";
-
-	QMetaObject::invokeMethod(this, f.toStdString().data(), Qt::DirectConnection,
-							  Q_ARG(QJsonObject, object),
-							  Q_ARG(QByteArray, binaryData),
-							  Q_ARG(int, clientMsgId)
-							  );
-}
-
-
 
 /**
  * @brief Client::onSocketConnected
@@ -1008,8 +947,6 @@ void Client::onSocketBinaryFrameReceived(const QByteArray &frame, const bool &is
 	} else
 		m_cosMessage->appendFrame(frame);
 
-	qDebug() << m_cosMessage->receivedDataRatio();
-
 	emit messageFrameReceived(*m_cosMessage);
 
 	if (isLastFrame) {
@@ -1030,18 +967,21 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 
 	qDebug() << m;
 
+	performUserInfo(m);
+
 	if (m.valid()) {
 		emit messageReceived(message);
 		return;
 	}
 
-	///onSocketServerError(error);
+	performError(m);
 }
 
 
 
 void Client::onSocketSslErrors(const QList<QSslError> &errors)
 {
+	sendMessageError("SSL hiba", "");
 	qDebug() << "ssl error" << errors;
 }
 
@@ -1061,111 +1001,7 @@ void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
 }
 
 
-/**
- * @brief Client::onSocketServerError
- * @param error
- */
-
-void Client::onSocketServerError(const QString &error)
-{
-	if (error == "invalidJSON") {
-		sendMessageError(tr("Internal server error"), tr("Hibás JSON"));
-	} else if (error == "invalidMessage") {
-		sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
-	} else if (error == "invalidMessageType") {
-		sendMessageError(tr("Internal server error"), tr("Hibás kérés"));
-	} else if (error == "invalidUser") {
-		sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
-		setSessionToken("");
-		setUserName("");
-		emit authInvalid();
-	} else if (error == "invalidSession") {
-		sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
-		setSessionToken("");
-		setUserName("");
-		emit authInvalid();
-	} else if (error == "requirePasswordReset") {
-		sendMessageError(tr("Bejelentkezés"), tr("A jelszó alaphelyzetben van. Adj meg egy új jelszót!"));
-		setSessionToken("");
-		emit authRequirePasswordReset();
-	} else if (error == "invalid class" || error == "invalid func") {
-		sendMessageError(tr("Internal error"), tr("Érvénytelen kérés"));
-	} else if (error == "permission denied") {
-		sendMessageError(tr("Internal error"), tr("Hozzáférés megtagadva"));
-	} else if (error == "passwordRequestNoEmail") {
-		sendMessageError(tr("Elfelejtett jelszó"), tr("Nincs megadva email cím!"));
-	} else if (error == "passwordRequestInvalidEmail") {
-		sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen email cím!"));
-	} else if (error == "passwordRequestInvalidCode") {
-		sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen aktivációs kód!"));
-	} else if (error == "passwordRequestCodeSent") {
-		sendMessageInfo(tr("Elfelejtett jelszó"), tr("Az aktivációs kód a megadott email címre elküldve."));
-	} else if (error == "passwordRequestSuccess") {
-		emit authPasswordResetSuccess();
-	} else {
-		sendMessageError(tr("Internal server error"), tr("Internal error"), error);
-	}
-}
 
 
-/**
- * @brief Client::onJsonUserInfoReceived
- * @param object
- */
-
-void Client::onMessageReceived(const CosMessage &message)
-{
-	QString func = message.cosFunc();
-	QJsonObject d = message.jsonData();
-
-	if (message.cosClass() == CosMessage::ClassUserInfo) {
-		if (func == "getUser") {
-			if (d.value("username").toString() == m_userName) {
-				setUserXP(d.value("xp").toInt(0));
-				setUserRank(d.value("rankid").toInt(0));
-				setUserRankName(d.value("rankname").toString());
-				setUserLastName(d.value("lastname").toString());
-				setUserFirstName(d.value("firstname").toString());
-			}
-		} else if (func == "getServerInfo") {
-			setServerName(d.value("serverName").toString());
-			setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
-			setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
-			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
-		} else if (func == "registrationRequest") {
-			bool error = d.value("error").toBool(false);
-
-			if (error) {
-				emit registrationRequestFailed();
-				QString errorString = d.value("errorString").toString();
-
-				if (errorString == "email empty")
-					sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
-				else if (errorString == "email exists")
-					sendMessageWarning(tr("Regisztráció"), tr("A megadott email cím már regisztrálva van!"));
-				else
-					sendMessageWarning(tr("Regisztráció"), tr("Internal error"), errorString);
-			} else {
-				emit registrationRequestSuccess();
-			}
-		} else if (func == "getSettings") {
-			if (d.contains("serverName"))
-				setServerName(d.value("serverName").toString());
-
-			emit settingsLoaded(d);
-		} else if (func == "setSettings") {
-			bool error = d.value("error").toBool(true);
-
-			if (error)
-				emit settingsError();
-			else
-				emit settingsSuccess();
-		} else if (func == "getResources") {
-			reloadServerResources(d.toVariantMap());
-		} else if (func == "downloadFile") {
-			getDownloadedResource(message);
-		}
-	}
-}
 
 

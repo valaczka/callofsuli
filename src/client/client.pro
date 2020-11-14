@@ -28,7 +28,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
 		abstractactivity.cpp \
-		abstractdbactivity.cpp \
 		abstractobjective.cpp \
 		abstractstorage.cpp \
 		adminusers.cpp \
@@ -50,6 +49,7 @@ SOURCES += \
 		main.cpp \
 		mapdata.cpp \
 		mapeditor.cpp \
+		qobjectmodel.cpp \
 		questionpair.cpp \
 		servers.cpp \
 		simplechoice.cpp \
@@ -62,7 +62,6 @@ SOURCES += \
 
 HEADERS += \
 	abstractactivity.h \
-	abstractdbactivity.h \
 	abstractobjective.h \
 	abstractstorage.h \
 	adminusers.h \
@@ -83,6 +82,7 @@ HEADERS += \
 	intro.h \
 	mapdata.h \
 	mapeditor.h \
+	qobjectmodel.h \
 	questionpair.h \
 	servers.h \
 	simplechoice.h \

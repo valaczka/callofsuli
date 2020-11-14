@@ -43,7 +43,7 @@ class AdminUsers : public AbstractActivity
 	Q_OBJECT
 
 public:
-	AdminUsers(QObject *parent=nullptr);
+	AdminUsers(QQuickItem *parent=nullptr);
 	~AdminUsers();
 
 	void clientSetup() override;

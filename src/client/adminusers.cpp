@@ -34,7 +34,7 @@
 
 #include "adminusers.h"
 
-AdminUsers::AdminUsers(QObject *parent)
+AdminUsers::AdminUsers(QQuickItem *parent)
 : AbstractActivity(parent)
 {
 
@@ -68,8 +68,8 @@ void AdminUsers::onJsonReceived(const QJsonObject &object, const QByteArray &, c
 	QString func = object.value("func").toString();
 	QJsonObject data = object.value("data").toObject();
 
-	if (!func.isEmpty())
-		busyStackRemove(func, clientMsgId);
+	/*if (!func.isEmpty())
+		busyStackRemove(func, clientMsgId);*/
 
 	if (func == "getAllUser")
 		emit userListLoaded(data.value("list").toArray());

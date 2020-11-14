@@ -43,7 +43,7 @@ class Teacher : public AbstractActivity
 	Q_OBJECT
 
 public:
-	Teacher(QObject *parent=nullptr);
+	Teacher(QQuickItem *parent=nullptr);
 
 	void clientSetup() override;
 

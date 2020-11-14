@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractdbactivity.cpp
+ * qobjectmodel.h
  *
- * Created on: 2020. 11. 06.
+ * Created on: 2020. 11. 14.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractDbActivity
+ * QObjectModel
  *
  *  This file is part of Call of Suli.
  *
@@ -32,24 +32,43 @@
  * SOFTWARE.
  */
 
-#include "abstractdbactivity.h"
+#ifndef QOBJECTMODEL_H
+#define QOBJECTMODEL_H
 
-AbstractDbActivity::AbstractDbActivity(const QString &connectionName, QObject *parent)
-	: COSdb(connectionName, parent)
+#include <QAbstractListModel>
+
+class QObjectModel : public QAbstractListModel
 {
+	Q_OBJECT
 
-}
+	Q_PROPERTY(int count READ count NOTIFY countChanged)
 
-void AbstractDbActivity::setClient(Client *client)
-{
-	if (m_client == client)
-		return;
+public:
+	explicit QObjectModel(const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
+	int count() const { return m_data.count(); }
 
-	m_client = client;
-	emit clientChanged(m_client);
+	int rowCount(const QModelIndex &) const { return m_data.size(); }
+	QVariant data(const QModelIndex &index, int role) const;
+	QHash<int, QByteArray> roleNames() const { return m_roleNames; }
 
-	if (m_client) {
-		connect(this, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
-		clientSetup();
-	}
-}
+public slots:
+	void append(QObject* o);
+	void insert(QObject* o, int i);
+	QObject* get(int i);
+	void clear();
+	void deleteAll();
+	void remove(int i);
+
+	void rowUpdated(const int &row);
+
+	QList<QObject *> list() const { return m_data; }
+
+signals:
+	void countChanged(int count);
+
+private:
+	QList<QObject *> m_data;
+	QHash<int, QByteArray> m_roleNames;
+};
+
+#endif // QOBJECTMODEL_H

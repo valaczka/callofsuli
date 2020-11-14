@@ -46,17 +46,6 @@ public:
 	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
 	Q_ENUM(ConnectionState)
 
-	enum RoleFlag {
-		RoleGuest = 0x01,
-		RoleStudent = 0x02,
-		RoleTeacher = 0x04,
-		RoleAdmin = 0x08
-	};
-	Q_ENUM (RoleFlag)
-	Q_DECLARE_FLAGS(Roles, RoleFlag)
-	Q_FLAGS(Roles)
-
-
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
 
@@ -68,15 +57,12 @@ public:
 	Q_PROPERTY(QVariantList registrationDomains READ registrationDomains WRITE setRegistrationDomains NOTIFY registrationDomainsChanged)
 
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
-	Q_PROPERTY(Roles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
+	Q_PROPERTY(CosMessage::ClientRoles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
 	Q_PROPERTY(int userXP READ userXP WRITE setUserXP NOTIFY userXPChanged)
 	Q_PROPERTY(int userRank READ userRank WRITE setUserRank NOTIFY userRankChanged)
 	Q_PROPERTY(QString userRankName READ userRankName WRITE setUserRankName NOTIFY userRankNameChanged)
 	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
-
-	Q_PROPERTY(QStringList waitForResources READ waitForResources WRITE setWaitForResources NOTIFY waitForResourcesChanged)
-
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -87,8 +73,6 @@ public:
 	static void initialize();
 	static void standardPathCreate();
 
-	void registerServerResource(const QString &filename);
-	void unregisterServerResources();
 
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
@@ -98,14 +82,16 @@ public:
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key);
 
-	Q_INVOKABLE static QVariant readJsonFile(const QUrl &file);
+	Q_INVOKABLE static QVariant readJsonFile(QString filename);
+	static QJsonDocument readJsonDocument(QString filename);
+	static bool saveJsonDocument(QJsonDocument doc, const QString &filename);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
 	QString userName() const { return m_userName; }
-	Roles userRoles() const { return m_userRoles; }
+	CosMessage::ClientRoles userRoles() const { return m_userRoles; }
 	QString sessionToken() const { return m_sessionToken; }
 	int userXP() const { return m_userXP; }
 	int userRank() const { return m_userRank; }
@@ -140,20 +126,13 @@ public slots:
 	void logout();
 	void passwordRequest(const QString &email, const QString &code = "");
 
-	int socketSend(CosMessage::CosClass cosClass, const QString &cosFunc,
+	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
-
-	void reloadServerResources(QVariantMap resources);
-	void getDownloadedResource(const CosMessage &message);
-
 
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
-
-	void parseJson(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	QByteArray prepareJson(const QJsonObject &jsonObject);
 
 	void onSocketConnected();
 	void onSocketDisconnected();
@@ -161,13 +140,9 @@ private slots:
 	void onSocketBinaryMessageReceived(const QByteArray &message);
 	void onSocketSslErrors(const QList<QSslError> &errors);
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
-	void onSocketServerError(const QString &error);
-
-	void onMessageReceived(const CosMessage &message);
-
 
 	void setUserName(QString userName);
-	void setUserRoles(Roles userRoles);
+	void setUserRoles(CosMessage::ClientRoles userRoles);
 	void setSessionToken(QString sessionToken);
 	void setUserXP(int userXP);
 	void setUserRank(int userRank);
@@ -178,7 +153,6 @@ private slots:
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
 	void setRegistrationDomains(QVariantList registrationDomains);
-	void setWaitForResources(QStringList waitForResources);
 
 signals:
 	void messageSent(const QString &type,
@@ -212,7 +186,7 @@ signals:
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);
 	void userNameChanged(QString userName);
-	void userRolesChanged(Roles userRoles);
+	void userRolesChanged(CosMessage::ClientRoles userRoles);
 	void sessionTokenChanged(QString sessionToken);
 	void userXPChanged(int userXP);
 	void userRankChanged(int userRank);
@@ -227,16 +201,17 @@ signals:
 	void waitForResourcesChanged(QStringList waitForResources);
 
 private:
+	void performUserInfo(const CosMessage &message);
+	void performError(const CosMessage &message);
+
 	QWebSocket* m_socket;
 	QTimer* m_timer;
 	QUrl m_connectedUrl;
-	int m_clientMsgId;
-	QHash<QString, QString> m_signalList;
 	CosMessage *m_cosMessage;
 
 	ConnectionState m_connectionState;
 	QString m_userName;
-	Roles m_userRoles;
+	CosMessage::ClientRoles m_userRoles;
 	QString m_sessionToken;
 	int m_userXP;
 	int m_userRank;
@@ -252,7 +227,5 @@ private:
 	QStringList m_registeredServerResources;
 };
 
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(Client::Roles);
 
 #endif // CLIENT_H

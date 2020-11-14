@@ -48,7 +48,7 @@ class StudentMap : public MapData
 	Q_PROPERTY(QVariantList campaignList READ campaignList NOTIFY campaignListChanged)
 
 public:
-	StudentMap(QObject *parent = nullptr);
+	StudentMap(QQuickItem *parent = nullptr);
 
 	Student* student() const { return m_student; }
 	QVariantList campaignList() const { return m_campaignList; }

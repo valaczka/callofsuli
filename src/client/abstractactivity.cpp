@@ -35,8 +35,8 @@
 #include "abstractactivity.h"
 #include "QQuickItem"
 
-AbstractActivity::AbstractActivity(QObject *parent)
-	: QObject(parent)
+AbstractActivity::AbstractActivity(QQuickItem *parent)
+	: QQuickItem(parent)
 	, m_client(nullptr)
 	, m_isBusy(false)
 {
@@ -54,27 +54,33 @@ AbstractActivity::~AbstractActivity()
 
 
 /**
- * @brief AbstractActivityPrivate::send
- * @param query
+ * @brief AbstractActivity::send
+ * @param cosClass
+ * @param cosFunc
+ * @param jsonData
+ * @param binaryData
  */
 
-void AbstractActivity::send(const QJsonObject &query, const QByteArray &binaryData)
+void AbstractActivity::send(const CosMessage::CosClass &cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
 {
-	if (!m_client)
+	if (!m_client) {
+		qWarning() << tr("Missing client") << this;
 		return;
+	}
 
-	/*int msgid = m_client->socketSend(query, binaryData);
+	int msgid = m_client->socketSend(cosClass, cosFunc, jsonData, binaryData);
 
-	QString f = query.value("func").toString();
-	if (!f.isEmpty())
-		busyStackAdd(f, msgid);
-*/
+	busyStackAdd(cosClass, cosFunc, msgid);
 }
+
 
 
 
 void AbstractActivity::setClient(Client *client)
 {
+	if (m_db)
+		m_db->setClient(client);
+
 	if (m_client == client)
 		return;
 
@@ -82,7 +88,13 @@ void AbstractActivity::setClient(Client *client)
 	emit clientChanged(m_client);
 
 	if (m_client) {
+		connect(m_client, &Client::messageReceived, this, &AbstractActivity::onMessageReceivedPrivate);
+		connect(m_client, &Client::messageReceived, this, &AbstractActivity::onMessageReceived);
+		connect(m_client, &Client::messageFrameReceived, this, &AbstractActivity::onMessageFrameReceived);
 		clientSetup();
+		if (m_db) {
+			connect(m_db, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
+		}
 	}
 }
 
@@ -95,24 +107,15 @@ void AbstractActivity::setIsBusy(bool isBusy)
 	emit isBusyChanged(m_isBusy);
 }
 
-void AbstractActivity::setBusyStack(QStringList busyStack)
-{
-	if (m_busyStack == busyStack)
-		return;
-
-	m_busyStack = busyStack;
-	emit busyStackChanged(m_busyStack);
-}
-
 
 /**
  * @brief AbstractActivityPrivate::busyStackAdd
  * @param func
  */
 
-void AbstractActivity::busyStackAdd(const QString &func, const int &msgId)
+void AbstractActivity::busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId)
 {
-	m_busyStack.append(QString(func).append(msgId));
+	m_busyStack.append(busyData(cosClass, cosFunc, msgId));
 	setIsBusy(true);
 }
 
@@ -122,10 +125,43 @@ void AbstractActivity::busyStackAdd(const QString &func, const int &msgId)
  * @param func
  */
 
-void AbstractActivity::busyStackRemove(const QString &func, const int &msgId)
+void AbstractActivity::busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId)
 {
-	m_busyStack.removeAll(QString(func).append(msgId));
+	m_busyStack.removeAll(busyData(cosClass, cosFunc, msgId));
 	setIsBusy(m_busyStack.count());
+}
+
+
+/**
+ * @brief AbstractActivity::setDb
+ * @param db
+ */
+
+
+void AbstractActivity::setDb(ActivityDB *db)
+{
+	if (m_db == db)
+		return;
+
+	m_db = db;
+	emit dbChanged(m_db);
+
+	if (m_db) {
+		m_db->setClient(m_client);
+		if (m_client)
+			connect(m_db, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
+	}
+}
+
+
+/**
+ * @brief AbstractActivity::onMessageReceivedPrivate
+ * @param message
+ */
+
+void AbstractActivity::onMessageReceivedPrivate(const CosMessage &message)
+{
+	busyStackRemove(message.cosClass(), message.cosFunc(), message.responsedMsgId());
 }
 
 
