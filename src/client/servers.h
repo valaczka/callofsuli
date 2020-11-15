@@ -38,6 +38,7 @@
 #include <QObject>
 #include "abstractactivity.h"
 #include "qobjectmodel.h"
+#include "qobjectdatalist.h"
 
 /**
  * @brief The ServerData class
@@ -117,7 +118,7 @@ class Servers : public AbstractActivity
 
 	Q_PROPERTY(QVariantMap resources READ resources NOTIFY resourcesChanged)
 	Q_PROPERTY(bool readyResources READ readyResources NOTIFY readyResourcesChanged)
-	Q_PROPERTY(QObjectModel* serversModel READ serversModel WRITE setServersModel NOTIFY serversModelChanged)
+	Q_PROPERTY(QObjectModel* serversModel READ serversModel NOTIFY serversModelChanged)
 	Q_PROPERTY(ServerData* connectedServer READ connectedServer WRITE setConnectedServer NOTIFY connectedServerChanged)
 
 
@@ -133,8 +134,7 @@ public:
 	void checkResources();
 	bool readyResources() const { return m_readyResources; }
 
-	QObjectModel* serversModel() const { return m_serversModel; }
-	ServerData *serverGet(int index);
+	QObjectModel *serversModel() const { return m_serversModel; }
 	int nextId();
 	ServerData* connectedServer() const { return m_connectedServer; }
 
@@ -146,13 +146,13 @@ public slots:
 	void serverConnect(const int &index);
 	int serverInsertOrUpdate(const int &index, const QVariantMap &map);
 	void serverDelete(const int &index);
+	void serverDeleteSelected(QObjectModel *model);
 	void serverSetAutoConnect(const int &index);
 	void serverTryLogin(ServerData *d);
 	void serverLogOut();
 	void doAutoConnect();
 
 	void setReadyResources(bool readyResources);
-	void setServersModel(QObjectModel* serversModel);
 	void setConnectedServer(ServerData* connectedServer);
 
 protected slots:
@@ -179,6 +179,7 @@ signals:
 private:
 	QVariantMap m_resources;
 	bool m_readyResources;
+	QObjectDataList m_serverList;
 	QObjectModel* m_serversModel;
 	QString m_dataFileName;
 	ServerData* m_connectedServer;

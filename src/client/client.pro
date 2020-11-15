@@ -49,6 +49,7 @@ SOURCES += \
 		main.cpp \
 		mapdata.cpp \
 		mapeditor.cpp \
+		qobjectdatalist.cpp \
 		qobjectmodel.cpp \
 		questionpair.cpp \
 		servers.cpp \
@@ -82,6 +83,7 @@ HEADERS += \
 	intro.h \
 	mapdata.h \
 	mapeditor.h \
+	qobjectdatalist.h \
 	qobjectmodel.h \
 	questionpair.h \
 	servers.h \

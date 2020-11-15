@@ -36,12 +36,13 @@
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(parent)
+	, m_serverList()
 {
 	m_readyResources = false;
-	m_serversModel = new QObjectModel(QStringList({"name", "host", "port", "ssl", "autoconnect", "username", "session"}));
 	m_dataFileName = Client::standardPath("servers.json");
 	m_connectedServer = nullptr;
 	m_serverTryConnect = nullptr;
+	m_serversModel = new QObjectModel(&m_serverList, QStringList({"name", "host", "port", "ssl", "autoconnect", "username", "session"}), this);
 }
 
 
@@ -52,7 +53,6 @@ Servers::Servers(QQuickItem *parent)
 Servers::~Servers()
 {
 	unregisterResources();
-	delete m_db;
 	delete m_serversModel;
 }
 
@@ -141,9 +141,15 @@ void Servers::onMessageFrameReceived(const CosMessage &message)
 
 void Servers::serverListReload()
 {
+	qDebug() << "Server list reload";
+
 	m_connectedServer = nullptr;
 	m_serverTryConnect = nullptr;
-	m_serversModel->deleteAll();
+
+	if (m_serverList.size()) {
+		qDeleteAll(m_serverList.begin(), m_serverList.end());
+		m_serverList.clear();
+	}
 
 	QJsonDocument doc = Client::readJsonDocument(m_dataFileName);
 
@@ -160,7 +166,7 @@ void Servers::serverListReload()
 			else
 				lastid = id;
 
-			m_serversModel->append(s);
+			m_serverList.append(s);
 		}
 	}
 
@@ -179,13 +185,12 @@ void Servers::serverConnect(const int &index)
 {
 	m_serverTryConnect = nullptr;
 
-	ServerData *d = serverGet(index);
+	ServerData *d = qobject_cast<ServerData *>(m_serverList.at(index));
 
 	QUrl url;
 	url.setHost(d->host());
 	url.setPort(d->port());
 	url.setScheme(d->ssl() ? "wss" : "ws");
-
 
 
 	QString dir = QString("%1").arg(d->id());
@@ -234,19 +239,20 @@ void Servers::serverConnect(const int &index)
 
 int Servers::serverInsertOrUpdate(const int &index, const QVariantMap &map)
 {
-	if (index < 0 || index >= m_serversModel->count()) {
+	if (index < 0 || index >= m_serverList.count()) {
 		ServerData *d = new ServerData(map, this);
 		d->setId(nextId());
-		m_serversModel->append(d);
+		m_serverList.append(d);
 		saveServerList();
 		return d->id();
 	} else {
-		ServerData *d = serverGet(index);
+		ServerData *d = qobject_cast<ServerData *>(m_serverList.at(index));
 		d->set(map);
-		m_serversModel->rowUpdated(index);
+		m_serverList.update(d);
 		saveServerList();
 		return d->id();
 	}
+	return -1;
 }
 
 
@@ -259,7 +265,7 @@ int Servers::serverInsertOrUpdate(const int &index, const QVariantMap &map)
 
 void Servers::serverDelete(const int &index)
 {
-	ServerData *d = serverGet(index);
+	ServerData *d = qobject_cast<ServerData *>(m_serverList.at(index));
 
 	if (!d)
 		return;
@@ -269,10 +275,33 @@ void Servers::serverDelete(const int &index)
 
 	removeServerDir(d->id());
 
-	m_serversModel->remove(index);
+	if (m_serverList.removeOne(d))
+		d->deleteLater();
+
+	saveServerList();
+
+}
+
+
+/**
+ * @brief Servers::serverDeleteSelected
+ * @param model
+ */
+
+void Servers::serverDeleteSelected(QObjectModel *model)
+{
+	Q_ASSERT(model);
+	QObjectList list = model->getSelected();
+
+	foreach (QObject *o, list) {
+		if (m_serverList.removeOne(o))
+			o->deleteLater();
+	}
 
 	saveServerList();
 }
+
+
 
 
 
@@ -285,16 +314,16 @@ void Servers::serverDelete(const int &index)
 
 void Servers::serverSetAutoConnect(const int &index)
 {
-	for (int i=0; i<m_serversModel->count(); i++) {
-		ServerData *d = serverGet(i);
+	for (int i=0; i<m_serverList.count(); i++) {
+		ServerData *d = qobject_cast<ServerData *>(m_serverList.at(i));
 		if (i==index) {
 			bool old = d->autoconnect();
 			d->setAutoconnect(!old);
-			m_serversModel->rowUpdated(i);
+			m_serverList.update(d);
 		} else {
 			if (d->autoconnect()) {
 				d->setAutoconnect(false);
-				m_serversModel->rowUpdated(i);
+				m_serverList.update(d);
 			}
 		}
 	}
@@ -338,8 +367,8 @@ void Servers::serverLogOut()
 
 void Servers::doAutoConnect()
 {
-	for (int i=0; i<m_serversModel->count(); i++) {
-		ServerData *d = serverGet(i);
+	for (int i=0; i<m_serverList.count(); i++) {
+		ServerData *d = qobject_cast<ServerData *>(m_serverList.at(i));
 		if (d->autoconnect()) {
 			serverConnect(i);
 			return;
@@ -361,14 +390,7 @@ void Servers::setReadyResources(bool readyResources)
 	emit readyResourcesChanged(m_readyResources);
 }
 
-void Servers::setServersModel(QObjectModel *serversModel)
-{
-	if (m_serversModel == serversModel)
-		return;
 
-	m_serversModel = serversModel;
-	emit serversModelChanged(m_serversModel);
-}
 
 void Servers::setConnectedServer(ServerData *connectedServer)
 {
@@ -648,7 +670,7 @@ void Servers::saveServerList()
 {
 	QJsonArray list;
 
-	foreach (QObject *o, m_serversModel->list()) {
+	foreach (QObject *o, m_serverList) {
 		ServerData *d = qobject_cast<ServerData *>(o);
 		if (!d)
 			continue;
@@ -667,11 +689,7 @@ void Servers::saveServerList()
  * @param index
  */
 
-ServerData * Servers::serverGet(int index)
-{
-	QObject *o = m_serversModel->get(index);
-	return qobject_cast<ServerData *>(o);
-}
+
 
 
 /**
@@ -683,8 +701,11 @@ int Servers::nextId()
 {
 	int nextId = 1;
 
-	for (int i=0; i<m_serversModel->count(); i++) {
-		ServerData *d = serverGet(i);
+	foreach (QObject *o, m_serverList) {
+		ServerData *d = qobject_cast<ServerData *>(o);
+		if (!d)
+			continue;
+
 		if (d->id() >= nextId)
 			nextId = d->id()+1;
 	}
@@ -702,6 +723,7 @@ int Servers::nextId()
 ServerData::ServerData(QObject *parent)
 	: QObject(parent)
 {
+	qDebug() << "CREATE" << this;
 }
 
 
@@ -722,6 +744,8 @@ ServerData::ServerData(const QJsonObject &object, QObject *parent)
 	m_session = object.value("session").toString();
 	m_autoconnect = object.value("autoconnect").toBool();
 	m_id = object.value("id").toInt();
+
+	qDebug() << "CREATE" << this;
 }
 
 /**
@@ -741,6 +765,8 @@ ServerData::ServerData(const QVariantMap &map, QObject *parent)
 	m_session = map.value("session").toString();
 	m_autoconnect = map.value("autoconnect").toBool();
 	m_id = map.value("id").toInt();
+
+	qDebug() << "CREATE" << this;
 }
 
 
@@ -750,6 +776,7 @@ ServerData::ServerData(const QVariantMap &map, QObject *parent)
 
 ServerData::~ServerData()
 {
+	qDebug() << "DELETE" << this;
 }
 
 

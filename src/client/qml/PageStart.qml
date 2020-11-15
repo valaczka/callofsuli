@@ -27,6 +27,8 @@ QPage {
 		onReadyResourcesChanged: if (readyResources) {
 									 JS.createPage("MainMenu", {})
 								 }
+
+		Component.onCompleted: serverListReload()
 	}
 
 	property list<Component> fullComponents: [
@@ -71,7 +73,7 @@ QPage {
 			for (var i=0; i<k.length; i++) {
 				if (text.length)
 					text += "\n"
-				text += k[i]+" - "+m[k[i]]
+				text += k[i]+" : "+m[k[i]]
 			}
 		}
 	}

@@ -27,7 +27,7 @@ QPagePanel {
 
 		isSelectorMode: serverList.selectorSet
 
-		labelCountText: serverList.selectedItemCount
+		labelCountText: servers.serversModel.selectedCount
 
 		mainItem: QTextField {
 			id: mainSearch
@@ -39,12 +39,7 @@ QPagePanel {
 			placeholderText: qsTr("Keresés...")
 		}
 
-		onSelectAll: serverList.selectAll()
-		onDeselectAll: serverList.selectAll(false)
-	}
-
-	ListModel {
-		id: baseServerModel
+		onSelectAll: servers.serversModel.selectAllToggle()
 	}
 
 	SortFilterProxyModel {
@@ -81,7 +76,7 @@ QPagePanel {
 		modelTitleRole: "name"
 		modelSubtitleRole: "details"
 
-		autoSelectorChange: false
+		autoSelectorChange: true
 
 		leftComponent: QFontImage {
 			width: serverList.delegateHeight
@@ -153,18 +148,30 @@ QPagePanel {
 		text: qsTr("Törlés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
-			var si = serverList.sourceIndex
-			var o = serverList.model.get(serverList.currentIndex)
+			if (servers.serversModel.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Szerverek törlése"),
+												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(servers.serversModel.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					servers.serverDeleteSelected(servers.serversModel)
+					servers.serverIndex = -1
+				})
+				dd.open()
+			} else {
+				var si = serverList.sourceIndex
+				var o = serverList.model.get(serverList.currentIndex)
 
-			var d = JS.dialogCreateQml("YesNo", {
-										   title: qsTr("Biztosan törlöd a szervert?"),
-										   text: o.name
-									   })
-			d.accepted.connect(function () {
-				servers.serverDelete(si)
-				servers.serverIndex = -1
-			})
-			d.open()
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan törlöd a szervert?"),
+											   text: o.name
+										   })
+				d.accepted.connect(function () {
+					servers.serverDelete(si)
+					servers.serverIndex = -1
+				})
+				d.open()
+			}
 		}
 	}
 
@@ -177,10 +184,6 @@ QPagePanel {
 		}
 	}
 
-
-	onPopulated: {
-		servers.serverListReload()
-	}
 
 	onPanelActivated: {
 		serverList.forceActiveFocus()

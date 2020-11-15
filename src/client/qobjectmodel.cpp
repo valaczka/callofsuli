@@ -32,20 +32,47 @@
  * SOFTWARE.
  */
 
+#include <QtDebug>
 #include "qobjectmodel.h"
+#include "qobjectdatalist.h"
 
-QObjectModel::QObjectModel(const QStringList &roleNames, QObject *parent)
+QObjectModel::QObjectModel(QObjectDataList *dataList, const QStringList &roleNames, QObject *parent)
 	: QAbstractListModel(parent)
+	, m_data(dataList)
 
 {
+	Q_ASSERT(dataList);
+
+	m_data->addModel(this);
+
 	int i = Qt::UserRole+1;
 
-	m_roleNames[i] = "dataObject";
+	m_roleNames[i++] = "dataObject";
+	m_roleNames[i++] = "selected";
 
-	foreach (QString role, roleNames) {
-		++i;
-		m_roleNames[i] = role.toLatin1();
-	}
+	foreach (QString role, roleNames)
+		m_roleNames[i++] = role.toLatin1();
+}
+
+
+/**
+ * @brief QObjectModel::~QObjectModel
+ */
+
+QObjectModel::~QObjectModel()
+{
+	m_data->removeModel(this);
+}
+
+
+/**
+ * @brief QObjectModel::rowCount
+ * @return
+ */
+
+int QObjectModel::rowCount(const QModelIndex &) const
+{
+	return m_data->size();
 }
 
 
@@ -57,54 +84,75 @@ QObjectModel::QObjectModel(const QStringList &roleNames, QObject *parent)
 
 QVariant QObjectModel::data(const QModelIndex &index, int role) const
 {
-	if (index.row() < 0 || index.row() >= m_data.size())
+	int row = index.row();
+	if (row < 0 || row >= m_data->size())
 		return QVariant();
 
 	QByteArray roleName = m_roleNames.value(role);
 
 	if (roleName == "dataObject")
-		return QVariant::fromValue(m_data[index.row()]);
+		return QVariant::fromValue(m_data->at(row));
+	if (roleName == "selected")
+		return m_selected.contains(m_data->at(row));
 	else if (!roleName.isEmpty())
-		return m_data[index.row()]->property(roleName);
+		return m_data->at(row)->property(roleName);
 
 	return QVariant();
 }
 
 
 
-
 /**
- * @brief QObjectModel::append
- * @param o
- */
-
-void QObjectModel::append(QObject *o)
-{
-	int i = m_data.size();
-	beginInsertRows(QModelIndex(), i, i);
-	m_data.append(o);
-
-	emit countChanged(count());
-
-	endInsertRows();
-}
-
-
-/**
- * @brief QObjectModel::insert
- * @param o
+ * @brief QObjectModel::beginInsertRow
  * @param i
  */
 
-void QObjectModel::insert(QObject *o, int i)
+void QObjectModel::beginInsertRow(const int &i)
 {
-	beginInsertRows(QModelIndex(), i, i);
-	m_data.insert(i, o);
-
-	emit countChanged(count());
-
-	endInsertRows();
+	QAbstractListModel::beginInsertRows(QModelIndex(), i, i);
 }
+
+
+/**
+ * @brief QObjectModel::endInsertRows
+ */
+
+void QObjectModel::endInsertRows()
+{
+	QAbstractListModel::endInsertRows();
+}
+
+
+/**
+ * @brief QObjectModel::beginRemoveRows
+ * @param from
+ * @param to
+ */
+
+void QObjectModel::beginRemoveRows(const int &from, const int &to)
+{
+	QAbstractListModel::beginRemoveRows(QModelIndex(), from, to);
+	for (int i=from; i<=to; i++) {
+		QObject *o = m_data->at(i);
+		m_selected.removeAll(o);
+		emit selectedCountChanged(selectedCount());
+	}
+}
+
+
+
+/**
+ * @brief QObjectModel::endRemoveRows
+ */
+
+void QObjectModel::endRemoveRows()
+{
+	QAbstractListModel::endRemoveRows();
+}
+
+
+
+
 
 
 /**
@@ -113,68 +161,167 @@ void QObjectModel::insert(QObject *o, int i)
  * @return
  */
 
-QObject *QObjectModel::get(int i)
+QObject *QObjectModel::get(int i) const
 {
-	Q_ASSERT(i >= 0 && i < m_data.count());
-	return m_data[i];
+	if (i<0 || i>=m_data->count())
+		return nullptr;
+	else
+		return m_data->at(i);
 }
 
 
+
+
+
+
 /**
- * @brief QObjectModel::clear
+ * @brief QObjectModel::updateObject
+ * @param o
  */
 
-void QObjectModel::clear()
+void QObjectModel::updateObject(QObject *o)
 {
-	beginRemoveRows(QModelIndex(), 0, m_data.count()-1);
-	m_data.clear();
-	emit countChanged(count());
-	endRemoveRows();
+	int from = 0;
+
+	do {
+		int row = m_data->indexOf(o, from);
+
+		if (row == -1)
+			return;
+
+		QModelIndex i1 = index(row);
+
+		emit dataChanged(i1, i1);
+
+		from = row+1;
+	} while (true);
 }
 
 
 
+
 /**
- * @brief QObjectModel::deleteAll
+ * @brief QObjectModel::select
+ * @param o
  */
-void QObjectModel::deleteAll()
+
+void QObjectModel::select(QObject *o)
 {
-	beginRemoveRows(QModelIndex(), 0, m_data.count()-1);
-	qDeleteAll(m_data.begin(), m_data.end());
-	m_data.clear();
-	emit countChanged(count());
-	endRemoveRows();
+	if (m_data->contains(o) && !m_selected.contains(o)) {
+		m_selected.append(o);
+		emit selectedCountChanged(selectedCount());
+		updateObject(o);
+	}
 }
 
 
 /**
- * @brief QObjectModel::remove
+ * @brief QObjectModel::select
  * @param i
  */
 
-void QObjectModel::remove(int i)
+void QObjectModel::select(int i)
 {
-	Q_ASSERT(i>=0 && i<m_data.size());
-	beginRemoveRows(QModelIndex(), i, i);
-	QObject *o = m_data.takeAt(i);
-	o->deleteLater();
-	emit countChanged(count());
-	endRemoveRows();
+	QObject *o = get(i);
+	if (o) select (o);
 }
 
 
 /**
- * @brief QObjectModel::objectUpdated
- * @param row
+ * @brief QObjectModel::unselect
+ * @param o
  */
 
-void QObjectModel::rowUpdated(const int &row)
+void QObjectModel::unselect(QObject *o)
 {
-	Q_ASSERT(row>=0 && row<m_data.size());
-	QModelIndex i1 = index(row);
-
-	emit dataChanged(i1, i1);
+	if (m_data->contains(o) && m_selected.contains(o)) {
+		m_selected.removeAll(o);
+		emit selectedCountChanged(selectedCount());
+		updateObject(o);
+	}
 }
+
+
+/**
+ * @brief QObjectModel::unselect
+ * @param i
+ */
+
+void QObjectModel::unselect(int i)
+{
+	QObject *o = get(i);
+	if (o) unselect (o);
+}
+
+
+/**
+ * @brief QObjectModel::selectToggle
+ * @param o
+ */
+
+void QObjectModel::selectToggle(QObject *o)
+{
+	if (m_data->contains(o)) {
+		if (m_selected.contains(o))
+			unselect(o);
+		else
+			select(o);
+	}
+}
+
+
+/**
+ * @brief QObjectModel::selectToggle
+ * @param i
+ */
+
+void QObjectModel::selectToggle(int i)
+{
+	QObject *o = get(i);
+	if (o) selectToggle(o);
+}
+
+
+/**
+ * @brief QObjectModel::selectAll
+ */
+
+void QObjectModel::selectAll()
+{
+	for (int i=0; i<m_data->size(); i++) {
+		QObject *o = m_data->at(i);
+		select(o);
+	}
+}
+
+
+/**
+ * @brief QObjectModel::unselectAll
+ */
+
+void QObjectModel::unselectAll()
+{
+	for (int i=0; i<m_data->size(); i++) {
+		QObject *o = m_data->at(i);
+		unselect(o);
+	}
+}
+
+
+/**
+ * @brief QObjectModel::selectAllToggle
+ */
+
+void QObjectModel::selectAllToggle()
+{
+	if (m_selected.size() < m_data->size())
+		selectAll();
+	else
+		unselectAll();
+}
+
+
+
 
 
 

@@ -25,7 +25,6 @@ Rectangle {
 	default property alias colData: col.data
 
 	signal selectAll()
-	signal deselectAll()
 
 	Column {
 		id: col
@@ -85,22 +84,6 @@ Rectangle {
 				onClicked: control.selectAll()
 			}
 
-			/*QToolButton {
-				id: buttonDeSelectAll
-				icon.source: CosStyle.iconClear
-
-				Layout.fillWidth: false
-				Layout.fillHeight: true
-
-				visible: opacity != 0
-				opacity: isSelectorMode ? 1 : 0
-
-				Behavior on opacity { NumberAnimation { duration: 125 } }
-
-				Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-
-				onClicked: control.deselectAll()
-			}*/
 		}
 	}
 

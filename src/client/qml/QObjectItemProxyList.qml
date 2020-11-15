@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.14
 import QtGraphicalEffects 1.0
+import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -14,7 +15,6 @@ QListView {
 	property string modelSubtitleRole: ""
 	property string modelEnabledRole: ""
 	property string modelToolTipRole: ""
-	property string modelSelectedRole: "selected"
 	property string modelDepthRole: ""
 	property string modelTitleColorRole: ""
 	property string modelSubtitleColorRole: ""
@@ -24,8 +24,7 @@ QListView {
 	property bool autoSelectorChange: false
 
 	readonly property int sourceIndex: currentIndex == -1 ? -1 : model.mapToSource(currentIndex)
-
-	property int selectedItemCount: 0
+	readonly property QObjectModel sourceObjectModel: model.sourceModel
 
 	property Component leftComponent: null
 	property Component rightComponent: null
@@ -59,7 +58,7 @@ QListView {
 		property int depth: modelDepthRole.length ? model[modelDepthRole] : 0
 		property string labelTitle: modelTitleRole.length ? model[modelTitleRole] : ""
 		property string labelSubtitle: modelSubtitleRole.length ? model[modelSubtitleRole] : ""
-		property bool itemSelected: selectorSet ? model[modelSelectedRole] : false
+		property bool itemSelected: selectorSet ? model.selected : false
 		property color baseColor: modelBackgroundRole.length ? model[modelBackgroundRole] : "transparent"
 
 		color: area.containsMouse ?
@@ -167,16 +166,12 @@ QListView {
 							var i = Math.min(view.currentIndex, index)
 							var j = Math.max(view.currentIndex, index)
 
-							for (var n=i; n<=j; ++n) {
-								var idx=view.model.mapToSource(n)
-								view.model.sourceModel.get(idx)[modelSelectedRole] = true
-							}
+							for (var n=i; n<=j; ++n)
+								sourceObjectModel.select(view.model.mapToSource(n))
 						} else {
-							model[modelSelectedRole] = !model[modelSelectedRole]
+							sourceObjectModel.selectToggle(view.model.mapToSource(index))
 						}
-
-						item.clicked(index)
-						calculateSelectedItems()
+						view.currentIndex = index
 					} else
 						item.clicked(index)
 				}
@@ -201,12 +196,13 @@ QListView {
 
 		onLongPressed: {
 			if (autoSelectorChange) {
-				model[modelSelectedRole] = true
+				sourceObjectModel.select(view.model.mapToSource(index))
 				selectorSet = true
-				calculateSelectedItems()
+				view.currentIndex = index
+			} else {
+				view.currentIndex = index
+				view.longPressed(index)
 			}
-			view.currentIndex = index
-			view.longPressed(index)
 		}
 
 		onRightClicked: {
@@ -269,13 +265,13 @@ QListView {
 		}
 
 		Keys.onSpacePressed: {
-			if (selectorSet) {
-				model[modelSelectedRole] = !model[modelSelectedRole]
-				calculateSelectedItems()
-			} else
+			if (selectorSet)
+				sourceObjectModel.selectToggle(view.model.mapToSource(index))
+			else {
 				mousePressAnimation.start()
+				clicked(index)
+			}
 
-			clicked(index)
 		}
 	}
 
@@ -291,12 +287,15 @@ QListView {
 		}
 	}
 
-	onSelectedItemCountChanged: {
-		if (autoSelectorChange && selectedItemCount == 0)
-			selectorSet=false
+	Connections {
+		target: sourceObjectModel
+		onSelectedCountChanged: {
+			if (autoSelectorChange && sourceObjectModel.selectedCount == 0)
+				selectorSet=false
+		}
 	}
 
-	function calculateSelectedItems() {
+	/*function calculateSelectedItems() {
 		var n = 0
 
 		var m = model
@@ -330,6 +329,6 @@ QListView {
 		}
 
 		calculateSelectedItems()
-	}
+	}*/
 
 }

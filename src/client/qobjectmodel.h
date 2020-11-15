@@ -36,38 +36,52 @@
 #define QOBJECTMODEL_H
 
 #include <QAbstractListModel>
+#include "qobjectdatalist.h"
+
 
 class QObjectModel : public QAbstractListModel
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int count READ count NOTIFY countChanged)
+	Q_PROPERTY(int selectedCount READ selectedCount NOTIFY selectedCountChanged)
 
 public:
-	explicit QObjectModel(const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
-	int count() const { return m_data.count(); }
+	explicit QObjectModel(QObjectDataList *dataList = nullptr, const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
+	~QObjectModel();
 
-	int rowCount(const QModelIndex &) const { return m_data.size(); }
+	int rowCount(const QModelIndex &) const;
 	QVariant data(const QModelIndex &index, int role) const;
 	QHash<int, QByteArray> roleNames() const { return m_roleNames; }
+	int selectedCount() const { return m_selected.count(); }
+
+	void beginInsertRow(const int &i);
+	void endInsertRows();
+
+	void beginRemoveRows(const int &from, const int &to);
+	void endRemoveRows();
+
+	QObjectList getSelected() const { return m_selected; }
 
 public slots:
-	void append(QObject* o);
-	void insert(QObject* o, int i);
-	QObject* get(int i);
-	void clear();
-	void deleteAll();
-	void remove(int i);
+	QObject* get(int i) const;
+	void updateObject(QObject *o);
 
-	void rowUpdated(const int &row);
-
-	QList<QObject *> list() const { return m_data; }
+	void select(QObject *o);
+	void select(int i);
+	void unselect(QObject *o);
+	void unselect(int i);
+	void selectToggle(QObject *o);
+	void selectToggle(int i);
+	void selectAll();
+	void unselectAll();
+	void selectAllToggle();
 
 signals:
-	void countChanged(int count);
+	void selectedCountChanged(int selectedCount);
 
 private:
-	QList<QObject *> m_data;
+	QObjectDataList *m_data;
+	QObjectList m_selected;
 	QHash<int, QByteArray> m_roleNames;
 };
 
