@@ -36,12 +36,14 @@
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(parent)
+	, m_resources()
+	, m_readyResources(false)
 	, m_serverList()
+	, m_serversModel(nullptr)
+	, m_dataFileName(Client::standardPath("servers.json"))
+	, m_connectedServer(nullptr)
+	, m_serverTryConnect(nullptr)
 {
-	m_readyResources = false;
-	m_dataFileName = Client::standardPath("servers.json");
-	m_connectedServer = nullptr;
-	m_serverTryConnect = nullptr;
 	m_serversModel = new QObjectModel(&m_serverList, QStringList({"name", "host", "port", "ssl", "autoconnect", "username", "session"}), this);
 }
 
@@ -53,7 +55,8 @@ Servers::Servers(QQuickItem *parent)
 Servers::~Servers()
 {
 	unregisterResources();
-	delete m_serversModel;
+	if (m_serversModel)
+		delete m_serversModel;
 }
 
 
@@ -273,6 +276,9 @@ void Servers::serverDelete(const int &index)
 	if (m_connectedServer == d)
 		m_connectedServer = nullptr;
 
+	if (m_serverTryConnect == d)
+		m_serverTryConnect = nullptr;
+
 	removeServerDir(d->id());
 
 	if (m_serverList.removeOne(d))
@@ -294,6 +300,12 @@ void Servers::serverDeleteSelected(QObjectModel *model)
 	QObjectList list = model->getSelected();
 
 	foreach (QObject *o, list) {
+		if (m_connectedServer == o)
+			m_connectedServer = nullptr;
+
+		if (m_serverTryConnect == o)
+			m_serverTryConnect = nullptr;
+
 		if (m_serverList.removeOne(o))
 			o->deleteLater();
 	}
@@ -342,7 +354,7 @@ void Servers::serverTryLogin(ServerData *d)
 	if (!d)
 		return;
 
-	if (!d->username().isEmpty() || !d->session().isEmpty())
+	if (!d->username().isEmpty() && !d->session().isEmpty())
 		m_client->login(d->username(), d->session());
 }
 
@@ -355,6 +367,8 @@ void Servers::serverLogOut()
 {
 	if (m_connectedServer) {
 		m_connectedServer->setSession("");
+		m_connectedServer->setUsername("");
+		m_serverList.update(m_connectedServer);
 		saveServerList();
 	}
 
@@ -442,6 +456,7 @@ void Servers::onSessionTokenChanged(QString sessionToken)
 {
 	if (m_connectedServer) {
 		m_connectedServer->setSession(sessionToken);
+		m_serverList.update(m_connectedServer);
 		saveServerList();
 	}
 }
@@ -501,6 +516,7 @@ void Servers::onUserNameChanged(QString username)
 {
 	if (m_connectedServer && !username.isEmpty()) {
 		m_connectedServer->setUsername(username);
+		m_serverList.update(m_connectedServer);
 		saveServerList();
 	}
 }
@@ -735,16 +751,15 @@ ServerData::ServerData(QObject *parent)
 
 ServerData::ServerData(const QJsonObject &object, QObject *parent)
 	: QObject(parent)
+	, m_name(object.value("name").toString())
+	, m_host(object.value("host").toString())
+	, m_port(object.value("port").toInt())
+	, m_ssl(object.value("ssl").toBool())
+	, m_username(object.value("username").toString())
+	, m_session(object.value("session").toString())
+	, m_autoconnect(object.value("autoconnect").toBool())
+	, m_id(object.value("id").toInt())
 {
-	m_name = object.value("name").toString();
-	m_host = object.value("host").toString();
-	m_port = object.value("port").toInt();
-	m_ssl = object.value("ssl").toBool();
-	m_username = object.value("username").toString();
-	m_session = object.value("session").toString();
-	m_autoconnect = object.value("autoconnect").toBool();
-	m_id = object.value("id").toInt();
-
 	qDebug() << "CREATE" << this;
 }
 
@@ -756,15 +771,15 @@ ServerData::ServerData(const QJsonObject &object, QObject *parent)
 
 ServerData::ServerData(const QVariantMap &map, QObject *parent)
 	: QObject(parent)
+	, m_name(map.value("name").toString())
+	, m_host(map.value("host").toString())
+	, m_port(map.value("port").toInt())
+	, m_ssl(map.value("ssl").toBool())
+	, m_username(map.value("username").toString())
+	, m_session(map.value("session").toString())
+	, m_autoconnect(map.value("autoconnect").toBool())
+	, m_id(map.value("id").toInt())
 {
-	m_name = map.value("name").toString();
-	m_host = map.value("host").toString();
-	m_port = map.value("port").toInt();
-	m_ssl = map.value("ssl").toBool();
-	m_username = map.value("username").toString();
-	m_session = map.value("session").toString();
-	m_autoconnect = map.value("autoconnect").toBool();
-	m_id = map.value("id").toInt();
 
 	qDebug() << "CREATE" << this;
 }

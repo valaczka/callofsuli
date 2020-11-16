@@ -177,6 +177,7 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 	updateRoles();
 
 	switch (m.cosClass()) {
+		case CosMessage::ClassLogin:
 		case CosMessage::ClassLogout: {
 				break;
 			}

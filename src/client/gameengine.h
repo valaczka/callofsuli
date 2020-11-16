@@ -38,8 +38,6 @@
 #include <QObject>
 #include "abstractactivity.h"
 #include "mapdata.h"
-#include "intro.h"
-#include "block.h"
 #include "abstractstorage.h"
 
 class Block;
@@ -64,8 +62,6 @@ class GameEngine : public AbstractActivity
 	Q_PROPERTY(quint64 currentMSec READ currentMSec NOTIFY currentMSecChanged)
 	Q_PROPERTY(int maxHP READ maxHP NOTIFY maxHPChanged)
 	Q_PROPERTY(int currentHP READ currentHP WRITE setCurrentHP NOTIFY currentHPChanged)
-	Q_PROPERTY(Intro* intro READ intro NOTIFY introChanged)
-	Q_PROPERTY(Intro* outro READ outro NOTIFY outroChanged)
 	Q_PROPERTY(QString missionName READ missionName NOTIFY missionNameChanged)
 	Q_PROPERTY(bool showCorrect READ showCorrect NOTIFY showCorrectChanged)
 
@@ -130,8 +126,6 @@ public:
 	quint64 maxHP() const { return m_maxHP; }
 	GameMode gameMode() const { return m_gameMode; }
 	GamePlayMode gamePlayMode() const { return m_gamePlayMode; }
-	Intro* intro() const { return m_intro; }
-	Intro* outro() const { return m_outro; }
 	QList<Block *> blocks() const { return m_blocks; }
 	int currentBlockIndex() const { return m_currentBlockIndex; }
 	int targetCount() const { return m_targetCount; }
@@ -182,8 +176,6 @@ private slots:
 	void setMaxMSec(quint64 maxMSec);
 	void setMaxHP(int maxHP);
 	void setGameMode(GameMode gameMode);
-	void setIntro(Intro* intro);
-	void setOutro(Intro* outro);
 	void setCurrentBlockIndex(int currentBlockIndex);
 	void setTargetCount(int targetCount);
 	void setTargetDone(int targetDone);
@@ -206,12 +198,12 @@ signals:
 	void gamePrepared();
 	void gameRegistered();
 	void gameStarted();
-	void gameSucceed(Intro *outro);
+	//void gameSucceed(Intro *outro);
 	void gameFailed();
 	void gameRegisterClosed();
 
 	void targetPopulated(const QString &module, const QJsonObject &task, const QJsonObject &solution);
-	void introPopulated(Intro *intro);
+	//void introPopulated(Intro *intro);
 
 	void solutionCorrect();
 	void solutionFail();
@@ -227,8 +219,8 @@ signals:
 	void maxHPChanged(int maxHP);
 	void gameModeChanged(GameMode gameMode);
 	void gamePlayModeChanged(GamePlayMode gamePlayMode);
-	void introChanged(Intro* intro);
-	void outroChanged(Intro* outro);
+	//void introChanged(Intro* intro);
+	//void outroChanged(Intro* outro);
 	void currentBlockIndexChanged(int currentBlockIndex);
 	void targetCountChanged(int targetCount);
 	void targetDoneChanged(int targetDone);
@@ -251,8 +243,6 @@ private:
 	quint64 m_maxMSec;
 	int m_maxHP;
 	GameMode m_gameMode;
-	Intro* m_intro;
-	Intro* m_outro;
 	QList<Block *> m_blocks;
 	int m_currentBlockIndex;
 	int m_targetCount;

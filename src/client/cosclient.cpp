@@ -38,7 +38,6 @@
 #include "mapdata.h"
 #include "mapeditor.h"
 #include "teacher.h"
-#include "adminusers.h"
 #include "cosgame.h"
 #include "gameentity.h"
 #include "gameplayer.h"
@@ -46,7 +45,6 @@
 #include "gameladder.h"
 #include "gameenemy.h"
 #include "gameenemysoldier.h"
-#include "intro.h"
 #include "student.h"
 #include "studentmap.h"
 #include "tiledpaintedlayer.h"
@@ -179,7 +177,6 @@ void Client::registerTypes()
 	qRegisterMetaType<CosMessage::CosMessageServerError>("CosMessageServerError");
 	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
 	qmlRegisterType<AbstractActivity>("COS.Client", 1, 0, "AbstractActivity");
-	qmlRegisterType<AdminUsers>("COS.Client", 1, 0, "AdminUsers");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
@@ -189,7 +186,6 @@ void Client::registerTypes()
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
-	qmlRegisterType<Intro>("COS.Client", 1, 0, "Intro");
 	qmlRegisterType<MapData>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
@@ -504,6 +500,8 @@ void Client::login(const QString &username, const QString &session, const QStrin
 	if (username.isEmpty())
 		return;
 
+	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
+
 	QJsonObject d;
 	d["username"] = username;
 	setUserName(username);
@@ -517,11 +515,8 @@ void Client::login(const QString &username, const QString &session, const QStrin
 	if (isPasswordReset)
 		d["reset"] = true;
 
-	QJsonObject	d2 {
-		{"auth", d}
-	};
-
-	//socketSend(d2);
+	m.setJsonAuth(d);
+	m.send(m_socket);
 }
 
 

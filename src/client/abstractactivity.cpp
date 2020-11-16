@@ -38,7 +38,9 @@
 AbstractActivity::AbstractActivity(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_client(nullptr)
+	, m_db(nullptr)
 	, m_isBusy(false)
+	, m_busyStack()
 {
 
 }

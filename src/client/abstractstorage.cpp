@@ -37,7 +37,6 @@
 #include <math.h>
 
 #include "abstractstorage.h"
-#include "simplechoice.h"
 
 
 AbstractStorage::AbstractStorage(const QString &module)
@@ -86,20 +85,8 @@ void AbstractStorage::setObjectives(const QVariantList &objectives)
 		QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
 		QJsonObject d = doc.object();
 
-		AbstractObjective *AO = nullptr;
+		qWarning() << "INVALID MODULE" << module;
 
-		if (module == "simplechoice") {
-			AO = new Simplechoice(this, d);
-		} else {
-			qWarning() << "INVALID MODULE" << module;
-
-		}
-
-		if (AO) {
-			m_sumComputation += AO->computation();
-
-			m_objectives << AO;
-		}
 	}
 }
 
@@ -208,9 +195,7 @@ QList<AbstractStorage::Target> AbstractStorage::createTargets()
 
 	QList<AbstractStorage::Target> ret;
 
-	foreach (AbstractObjective *AO, m_objectives) {
-		Computation c = AO->computation();
-
+	/*foreach (AbstractObjective *AO, m_objectives) {
 		QVariantList favIndices;
 		QVariantList noFavIndices;
 
@@ -257,7 +242,7 @@ QList<AbstractStorage::Target> AbstractStorage::createTargets()
 		}
 
 		ret << AO->generateTargets(favIndices, noFavIndices);
-	}
+	}*/
 
 	return ret;
 
@@ -272,6 +257,4 @@ QList<AbstractStorage::Target> AbstractStorage::createTargets()
 AbstractStorage::Target::Target(AbstractObjective *objective)
 {
 	solutionFunc = nullptr;
-	if (objective)
-		module = objective->module();
 }

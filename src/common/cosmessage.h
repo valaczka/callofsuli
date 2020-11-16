@@ -98,6 +98,7 @@ public:
 
 	enum CosClass {
 		ClassInvalid,
+		ClassLogin,
 		ClassLogout,
 		ClassAdmin,
 		ClassUserInfo

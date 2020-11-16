@@ -30,8 +30,6 @@ SOURCES += \
 		abstractactivity.cpp \
 		abstractobjective.cpp \
 		abstractstorage.cpp \
-		adminusers.cpp \
-		block.cpp \
 		cosclient.cpp \
 		cosgame.cpp \
 		fontimage.cpp \
@@ -45,15 +43,12 @@ SOURCES += \
 		gameplayer.cpp \
 		gamequestion.cpp \
 		gamescene.cpp \
-		intro.cpp \
 		main.cpp \
 		mapdata.cpp \
 		mapeditor.cpp \
 		qobjectdatalist.cpp \
 		qobjectmodel.cpp \
-		questionpair.cpp \
 		servers.cpp \
-		simplechoice.cpp \
 		sqlimage.cpp \
 		student.cpp \
 		studentmap.cpp \
@@ -65,8 +60,6 @@ HEADERS += \
 	abstractactivity.h \
 	abstractobjective.h \
 	abstractstorage.h \
-	adminusers.h \
-	block.h \
 	cosclient.h \
 	cosgame.h \
 	fontimage.h \
@@ -80,14 +73,11 @@ HEADERS += \
 	gameplayer.h \
 	gamequestion.h \
 	gamescene.h \
-	intro.h \
 	mapdata.h \
 	mapeditor.h \
 	qobjectdatalist.h \
 	qobjectmodel.h \
-	questionpair.h \
 	servers.h \
-	simplechoice.h \
 	sqlimage.h \
 	student.h \
 	studentmap.h \

@@ -7,7 +7,7 @@ import "JScript.js" as JS
 
 
 QPage {
-	id: pageStart
+	id: control
 
 	requiredPanelWidth: 900
 
@@ -46,7 +46,7 @@ QPage {
 			} }
 	]
 
-	swipeMode: pageStart.width < 900
+	swipeMode: control.width < 900
 
 	panelComponents: if (swipeMode)
 						 servers.editing ? fullComponents : listComponents
@@ -82,6 +82,7 @@ QPage {
 	Action {
 		id: actionAbout
 		text: qsTr("Névjegy")
+		enabled: control.isCurrentItem
 		onTriggered: {
 			JS.dialogMessageInfo("Call of Suli",
 								 qsTr("Verzió: ")+Qt.application.version+
@@ -92,6 +93,7 @@ QPage {
 
 	Action {
 		id: actionExit
+		enabled: control.isCurrentItem
 		text: qsTr("Kilépés")
 		onTriggered: mainWindow.close()
 	}
@@ -100,6 +102,7 @@ QPage {
 	Action {
 		id: test
 		shortcut: "F1"
+		enabled: control.isCurrentItem
 		onTriggered: {
 			var o = JS.createPage("MapEditor", {})
 			o.pagePopulated.connect(function() {
@@ -114,6 +117,7 @@ QPage {
 	Action {
 		id: tmXtest
 		shortcut: "F2"
+		enabled: control.isCurrentItem
 		text: "TMX"
 		onTriggered: {
 			var o = JS.createPage("TMXtest", {})
@@ -129,7 +133,7 @@ QPage {
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getServerInfo")
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getResources")
 			} else if (connectionState === Client.Standby) {
-				mainStack.pop(pageStart)
+				mainStack.pop(control)
 			}
 		}
 

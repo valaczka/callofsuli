@@ -131,7 +131,7 @@ CosMessage::CosMessage(const CosMessage::CosMessageType &messageType, const CosM
 }
 
 CosMessage::CosMessage(const CosMessage::CosMessageError &messageError, const CosMessage &orig)
-	: m_messageType(MessageInvalid)
+	: m_messageType(MessageOther)
 	, m_messageError(messageError)
 	, m_serverError(ServerNoError)
 	, m_serverErrorDetails()
@@ -326,6 +326,10 @@ CosMessage &CosMessage::appendFrame(const QByteArray &frame)
 				stream >> m_binaryDataExpectedSize;
 				stream >> m_binaryData;
 				break;
+			case MessageOther:
+				m_messageType = MessageOther;
+				stream >> m_messageError;
+				break;
 
 			default:
 				m_messageType = MessageInvalid;
@@ -418,6 +422,8 @@ QDataStream &operator<<(QDataStream &stream, const CosMessage &cosMessage)
 			stream << (quint32) cosMessage.m_binaryData.size();
 			stream << cosMessage.m_binaryData;
 			break;
+		case CosMessage::MessageOther:
+			stream << cosMessage.m_messageError;
 		default:
 			break;
 	}

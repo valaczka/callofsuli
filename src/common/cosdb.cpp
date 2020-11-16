@@ -36,8 +36,9 @@
 
 COSdb::COSdb(const QString &connectionName, QObject *parent)
 	: CosSql(connectionName, parent)
+	, m_databaseFile()
+	, m_isOwnCreated(false)
 {
-	m_isOwnCreated = false;
 }
 
 
