@@ -15,97 +15,106 @@ QPage {
 
 	mainToolBarComponent: UserButton {
 		userDetails: userData
+		userNameVisible: page.width>800
 	}
 
-/*	onlyPanel: QPagePanel {
-		id: panel
 
-		title: qsTr("Főmenü")
-		maximumWidth: 600
+	swipeMode: control.width < 900
 
-		QMenuItemDelegate {
-			id: list
-			anchors.fill: parent
+	panelComponents: Component {
+		QPagePanel {
+			panelVisible: true
+			layoutFillWidth: true
 
-			model: ListModel { }
+			id: panel
 
-			onClicked: JS.createPage(model.get(index).page, model.get(index).params)
-		}
+			title: qsTr("Főmenü")
+			maximumWidth: 600
 
-		onPanelActivated: reloadModel()
+			QMenuItemDelegate {
+				id: list
+				anchors.fill: parent
 
-		onPopulated: reloadModel()
+				model: ListModel { }
 
-
-		function reloadModel() {
-			list.model.clear()
-
-			list.model.append({
-								  labelTitle: qsTr("Rangsor"),
-								  page: "Score",
-								  params: {}
-							  })
-
-			if (cosClient.userRoles & (Client.RoleTeacher|Client.RoleStudent))
-				list.model.append({
-									  labelTitle: qsTr("Pályák"),
-									  page: "Maps",
-									  params: {}
-								  })
-
-			if (cosClient.userRoles & Client.RoleTeacher)
-				list.model.append({
-									  labelTitle: qsTr("Pályák kezelése"),
-									  page: "TeacherMaps",
-									  params: {}
-								  })
-
-			if (cosClient.userRoles & Client.RoleTeacher)
-				list.model.append({
-									  labelTitle: qsTr("Csoportok kezelése"),
-									  page: "TeacherGroups",
-									  params: {}
-								  })
-
-			if (cosClient.userRoles & Client.RoleAdmin)
-				list.model.append({
-									  labelTitle: qsTr("Szerver beállításai"),
-									  page: "ServerSettings",
-									  params: {}
-								  })
-
-			if (cosClient.userRoles & Client.RoleAdmin)
-				list.model.append({
-									  labelTitle: qsTr("Felhasználók kezelése"),
-									  page: "AdminUsers",
-									  params: {}
-								  })
-
-
-			if (cosClient.userRoles & Client.RoleGuest)
-				list.model.append({
-									  labelTitle: qsTr("Bejelentkezés"),
-									  page: "Login",
-									  params: {}
-								  })
-
-			list.forceActiveFocus()
-		}
-
-		Connections {
-			target: cosClient
-			onUserRolesChanged: {
-				reloadModel()
+				onClicked: JS.createPage(model.get(index).page, model.get(index).params)
 			}
-		}
 
-		Connections {
-			target: page
-			onPageActivated: list.forceActiveFocus()
-		}
+			onPanelActivated: reloadModel()
 
+			onPopulated: reloadModel()
+
+
+			function reloadModel() {
+				list.model.clear()
+
+				list.model.append({
+									  labelTitle: qsTr("Rangsor"),
+									  page: "Score",
+									  params: {}
+								  })
+
+				if (cosClient.userRoles & (CosMessage.RoleTeacher|CosMessage.RoleStudent))
+					list.model.append({
+										  labelTitle: qsTr("Pályák"),
+										  page: "Maps",
+										  params: {}
+									  })
+
+				if (cosClient.userRoles & CosMessage.RoleTeacher)
+					list.model.append({
+										  labelTitle: qsTr("Pályák kezelése"),
+										  page: "TeacherMaps",
+										  params: {}
+									  })
+
+				if (cosClient.userRoles & CosMessage.RoleTeacher)
+					list.model.append({
+										  labelTitle: qsTr("Csoportok kezelése"),
+										  page: "TeacherGroups",
+										  params: {}
+									  })
+
+				if (cosClient.userRoles & CosMessage.RoleAdmin)
+					list.model.append({
+										  labelTitle: qsTr("Szerver beállításai"),
+										  page: "ServerSettings",
+										  params: {}
+									  })
+
+				if (cosClient.userRoles & CosMessage.RoleAdmin)
+					list.model.append({
+										  labelTitle: qsTr("Felhasználók kezelése"),
+										  page: "AdminUsers",
+										  params: {}
+									  })
+
+
+				if (cosClient.userRoles & CosMessage.RoleGuest)
+					list.model.append({
+										  labelTitle: qsTr("Bejelentkezés"),
+										  page: "Login",
+										  params: {}
+									  })
+
+				list.forceActiveFocus()
+			}
+
+			Connections {
+				target: cosClient
+				onUserRolesChanged: {
+					reloadModel()
+				}
+			}
+
+			Connections {
+				target: page
+				onPageActivated: list.forceActiveFocus()
+			}
+
+		}
 	}
-*/
+
 	UserDetails {
 		id: userData
 	}

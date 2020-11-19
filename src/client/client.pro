@@ -2,10 +2,7 @@ QT += sql websockets quick multimedia svg
 
 CONFIG += c++11
 
-unix:!android: {
-	include(../version/version.pro)
-}
-
+include(../version/version.pro)
 include(../common/common.pri)
 include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../3rdparty/Bacon2D-static/src/Bacon2D-static.pri)
@@ -46,14 +43,14 @@ SOURCES += \
 		main.cpp \
 		mapdata.cpp \
 		mapeditor.cpp \
-		qobjectdatalist.cpp \
-		qobjectmodel.cpp \
 		servers.cpp \
 		sqlimage.cpp \
 		student.cpp \
 		studentmap.cpp \
 		teacher.cpp \
-		tiledpaintedlayer.cpp
+		tiledpaintedlayer.cpp \
+		variantmapdata.cpp \
+		variantmapmodel.cpp
 
 
 HEADERS += \
@@ -75,14 +72,14 @@ HEADERS += \
 	gamescene.h \
 	mapdata.h \
 	mapeditor.h \
-	qobjectdatalist.h \
-	qobjectmodel.h \
 	servers.h \
 	sqlimage.h \
 	student.h \
 	studentmap.h \
 	teacher.h \
-	tiledpaintedlayer.h
+	tiledpaintedlayer.h \
+	variantmapdata.h \
+	variantmapmodel.h
 
 RESOURCES += \
 	clientsql.qrc \
@@ -107,10 +104,10 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 
 
-#win32 {
-#    VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
+win32 {
+	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
 #    RC_ICONS = $$PWD/../../share/student.ico
-#}
+}
 
 
 android {
@@ -127,7 +124,6 @@ android {
 	CommonRcc.files += $$PWD/../../share/*.cres
 
 	INSTALLS += CommonRcc
-
 
 }
 

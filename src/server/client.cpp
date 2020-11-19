@@ -112,9 +112,7 @@ void Client::setClientUserName(QString clientUserName)
 
 QStringList Client::emailRegistrationDomainList() const
 {
-	QVariantMap m;
-
-	m_db->execSelectQueryOneRow("SELECT value as list FROM settings WHERE key='email.registrationDomains'", QVariantList(), &m);
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT value as list FROM settings WHERE key='email.registrationDomains'");
 
 	QString s = m.value("list", "").toString();
 
@@ -232,9 +230,9 @@ void Client::clientAuthorize(const CosMessage &message)
 	if (!session.isEmpty()) {
 		QVariantList l;
 		l << session;
-		QVariantMap m;
-		if (m_db->execSelectQueryOneRow("SELECT username FROM session WHERE token=?", l, &m)) {
-			m_db->runSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
+		QVariantMap m = m_db->execSelectQueryOneRow("SELECT username FROM session WHERE token=?", l);
+		if (!m.isEmpty()) {
+			m_db->execSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
 			setClientState(ClientAuthorized);
 			setClientUserName(m.value("username").toString());
 		} else {
@@ -273,10 +271,10 @@ void Client::clientAuthorize(const CosMessage &message)
 
 		QVariantList l;
 		l << username;
-		QVariantMap m;
+		QVariantMap m = m_db->execSelectQueryOneRow("SELECT password, salt FROM auth WHERE auth.username IN "
+													"(SELECT username FROM user WHERE active=1) AND auth.username=?", l);
 
-		if (m_db->execSelectQueryOneRow("SELECT password, salt FROM auth WHERE auth.username IN "
-										"(SELECT username FROM user WHERE active=1) AND auth.username=?", l, &m)) {
+		if (!m.isEmpty()) {
 			QString storedPassword = m.value("password").toString();
 			QString salt = m.value("salt").toString();
 			QString hashedPassword = CosSql::hashPassword(password, &salt);
@@ -301,10 +299,10 @@ void Client::clientAuthorize(const CosMessage &message)
 				QVariantMap r;
 				r["username"] = username;
 				int rowId = m_db->execInsertQuery("INSERT INTO session (?k?) VALUES (?)", r);
-				QVariantMap mToken;
 				QVariantList lToken;
 				lToken << rowId;
-				if (m_db->execSelectQueryOneRow("SELECT token FROM session WHERE rowid=?", lToken, &mToken)) {
+				QVariantMap mToken = m_db->execSelectQueryOneRow("SELECT token FROM session WHERE rowid=?", lToken);
+				if (!mToken.isEmpty()) {
 					QJsonObject json;
 					json["token"] = mToken.value("token").toString();
 					CosMessage r(json, CosMessage::ClassUserInfo, "newSessionToken");
@@ -357,7 +355,7 @@ void Client::clientLogout(const CosMessage &message)
 		l << a.value("session").toString();
 		l << m_clientUserName;
 
-		m_db->runSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
+		m_db->execSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
 
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
@@ -390,8 +388,8 @@ bool Client::clientPasswordRequest(const CosMessage &message)
 
 	QVariantList l;
 	l << email;
-	QVariantMap m;
-	if (m_db->execSelectQueryOneRow("SELECT firstname, lastname FROM user WHERE active=1 AND username=?", l, &m)) {
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT firstname, lastname FROM user WHERE active=1 AND username=?", l);
+	if (!m.isEmpty()) {
 		QString firstname = m.value("firstname").toString();
 		QString lastname = m.value("lastname").toString();
 
@@ -405,8 +403,8 @@ bool Client::clientPasswordRequest(const CosMessage &message)
 				return false;
 			}
 
-			QVariantMap mm;
-			if (m_db->execSelectQueryOneRow("SELECT code FROM passwordReset WHERE username=?", ll, &mm)) {
+			QVariantMap mm = m_db->execSelectQueryOneRow("SELECT code FROM passwordReset WHERE username=?", ll);
+			if (!mm.isEmpty()) {
 				if (emailPasswordReset(email, firstname, lastname, mm.value("code").toString())) {
 					CosMessage r(CosMessage::PasswordRequestCodeSent, message);
 					r.send(m_socket);
@@ -422,10 +420,10 @@ bool Client::clientPasswordRequest(const CosMessage &message)
 				return false;
 			}
 		} else {
-			QVariantMap mm;
 			QVariantList cc;
 			cc << code;
-			if (m_db->execSelectQueryOneRow("SELECT username FROM passwordReset WHERE code=?", cc, &mm)) {
+			QVariantMap mm = m_db->execSelectQueryOneRow("SELECT username FROM passwordReset WHERE code=?", cc);
+			if (!mm.isEmpty()) {
 				if (mm.value("username").toString() == email) {
 					if (m_db->execSimpleQuery("UPDATE auth SET password=null, salt=null WHERE username=?", ll) &&
 						m_db->execSimpleQuery("DELETE FROM passwordReset WHERE username=?", ll)) {
@@ -474,9 +472,9 @@ void Client::updateRoles()
 
 	QVariantList l;
 	l << m_clientUserName;
-	QVariantMap m;
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT isTeacher, isAdmin FROM user WHERE active=1 AND username=?", l);
 
-	if (m_db->execSelectQueryOneRow("SELECT isTeacher, isAdmin FROM user WHERE active=1 AND username=?", l, &m)) {
+	if (!m.isEmpty()) {
 		bool isTeacher = m.value("isTeacher").toBool();
 		bool isAdmin = m.value("isAdmin").toBool();
 		newRoles.setFlag(CosMessage::RoleStudent, !isTeacher);
@@ -520,19 +518,19 @@ bool Client::emailSmptClient(const QString &emailType, SmtpClient *smtpClient, Q
 
 	QVariantMap m;
 
-	m_db->execSelectQueryOneRow("SELECT value as smtpServer FROM settings WHERE key='smtp.server'", QVariantList(), &m);
-	m_db->execSelectQueryOneRow("SELECT value as smtpPort FROM settings WHERE key='smtp.port'", QVariantList(), &m);
-	m_db->execSelectQueryOneRow("SELECT value as smtpType FROM settings WHERE key='smtp.type'", QVariantList(), &m);
-	m_db->execSelectQueryOneRow("SELECT value as smtpEmail FROM settings WHERE key='smtp.email'", QVariantList(), &m);
-	m_db->execSelectQueryOneRow("SELECT value as smtpUser FROM settings WHERE key='smtp.user'", QVariantList(), &m);
-	m_db->execSelectQueryOneRow("SELECT value as smtpPassword FROM settings WHERE key='smtp.password'", QVariantList(), &m);
+	m["smtpServer"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.server'").value("v");
+	m["smtpPort"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.port'").value("v");
+	m["smtpType"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.type'").value("v");
+	m["smtpEmail"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.email'").value("v");
+	m["smtpUser"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.user'").value("v");
+	m["smtpPassword"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.password'").value("v");
 
 	if (emailType == "passwordReset")
-		m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'", QVariantList(), &m);
+		m["enabled"] = m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'").value("enabled");
 	else if (emailType == "registration")
-		m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.registration'", QVariantList(), &m);
+		m["enabled"] = m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.registration'").value("enabled");
 
-	m_db->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), &m);
+	m["serverName"] = m_db->execSelectQueryOneRow("SELECT serverName from system").value("serverName");
 
 	bool enabled = m.value("enabled", "").toString().toInt();
 

@@ -53,8 +53,8 @@ AbstractStorage::AbstractStorage(const QString &module)
 
 AbstractStorage::~AbstractStorage()
 {
-	qDeleteAll(m_objectives.begin(), m_objectives.end());
-	m_objectives.clear();
+	/*qDeleteAll(m_objectives.begin(), m_objectives.end());
+	m_objectives.clear();*/
 }
 
 
@@ -76,7 +76,7 @@ void AbstractStorage::fillContainers()
 
 void AbstractStorage::setObjectives(const QVariantList &objectives)
 {
-	foreach (QVariant v, objectives) {
+	/*foreach (QVariant v, objectives) {
 		QVariantMap m = v.toMap();
 
 		QString module = m.value("module").toString();
@@ -87,7 +87,7 @@ void AbstractStorage::setObjectives(const QVariantList &objectives)
 
 		qWarning() << "INVALID MODULE" << module;
 
-	}
+	}*/
 }
 
 
@@ -101,7 +101,7 @@ void AbstractStorage::setObjectives(const QVariantList &objectives)
 
 QList<AbstractStorage::Target> AbstractStorage::createTargets()
 {
-	QVariantList origFavInd = m_containerFavoriteIndices;
+	/*QVariantList origFavInd = m_containerFavoriteIndices;
 	QVariantList origNoFavInd = m_containerNoFavoriteIndices;
 
 	QVariantList reqFavInd;
@@ -191,7 +191,7 @@ QList<AbstractStorage::Target> AbstractStorage::createTargets()
 
 		restCount = floor((float) maxRest / (float) restNum);
 	}
-
+*/
 
 	QList<AbstractStorage::Target> ret;
 

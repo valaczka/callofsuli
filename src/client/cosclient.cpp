@@ -48,7 +48,7 @@
 #include "student.h"
 #include "studentmap.h"
 #include "tiledpaintedlayer.h"
-#include "qobjectmodel.h"
+#include "variantmapmodel.h"
 
 
 
@@ -61,6 +61,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_userRoles = CosMessage::RoleGuest;
 	m_userXP = 0;
 	m_userRank = 0;
+	m_userRankImage = "";
 
 	m_cosMessage = nullptr;
 
@@ -171,7 +172,6 @@ void Client::registerResources()
 
 void Client::registerTypes()
 {
-	qmlRegisterType<QObjectModel>("COS.Client", 1, 0, "QObjectModel");
 	qRegisterMetaType<CosMessage::CosClass>("CosClass");
 	qRegisterMetaType<CosMessage::CosMessageError>("CosMessageError");
 	qRegisterMetaType<CosMessage::CosMessageServerError>("CosMessageServerError");
@@ -193,6 +193,7 @@ void Client::registerTypes()
 	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
+	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 }
 
@@ -618,6 +619,15 @@ void Client::setServerDataDir(QString resourceDbName)
 	emit serverDataDirChanged(m_serverDataDir);
 }
 
+void Client::setUserRankImage(QString userRankImage)
+{
+	if (m_userRankImage == userRankImage)
+		return;
+
+	m_userRankImage = userRankImage;
+	emit userRankImageChanged(m_userRankImage);
+}
+
 
 
 
@@ -640,6 +650,7 @@ void Client::performUserInfo(const CosMessage &message)
 				setUserRankName(d.value("rankname").toString());
 				setUserLastName(d.value("lastname").toString());
 				setUserFirstName(d.value("firstname").toString());
+				setUserRankImage(d.value("rankimage").toString());
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());

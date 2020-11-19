@@ -79,9 +79,9 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	l << path.value(0, "");
 	l << path.value(1, "");
 
-	QVariantMap m;
+	QVariantMap m = db->execSelectQueryOneRow("SELECT content FROM resource WHERE folder=? AND file=?", l);
 
-	bool success = db->execSelectQueryOneRow("SELECT content FROM resource WHERE folder=? AND file=?", l, &m);
+	bool success = !m.isEmpty();
 
 	db->close();
 	delete db;

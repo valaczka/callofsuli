@@ -59,8 +59,8 @@ Item {
 	Item {
 		id: panel
 
-		width: control.swipeMode ? control.width-18 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
-		height: control.swipeMode ? control.height-18 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
+		width: control.swipeMode ? control.width-8 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
+		height: control.swipeMode ? control.height-8 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 

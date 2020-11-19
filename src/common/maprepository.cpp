@@ -55,8 +55,8 @@ void MapRepository::listReload()
 		return;
 
 	QVariantList list;
-	if (execSelectQuery("SELECT id, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
-		emit listLoaded(list);
+/*	if (execSelectQuery("SELECT id, uuid, md5 FROM mapdata ORDER BY name", QVariantList(), &list))
+		emit listLoaded(list);*/
 }
 
 
@@ -74,7 +74,7 @@ QVariantMap MapRepository::getInfo(const int &id)
 	QVariantMap r;
 	QVariantList l;
 	l << id;
-	execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE id=?", l, &r);
+	//execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE id=?", l, &r);
 
 	return r;
 }
@@ -94,7 +94,7 @@ QVariantMap MapRepository::getInfo(const QString &uuid)
 	QVariantMap r;
 	QVariantList l;
 	l << uuid;
-	execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE uuid=?", l, &r);
+	//execSelectQueryOneRow("SELECT id, uuid, md5 FROM mapdata WHERE uuid=?", l, &r);
 
 	return r;
 }
@@ -148,8 +148,8 @@ int MapRepository::getId(const QString &uuid)
 	QVariantMap r;
 	QVariantList l;
 	l << uuid;
-	if (!execSelectQueryOneRow("SELECT id FROM mapdata WHERE uuid=?", l, &r))
-		return -1;
+//	if (!execSelectQueryOneRow("SELECT id FROM mapdata WHERE uuid=?", l, &r))
+//		return -1;
 
 	return r.value("id", -1).toInt();
 }
@@ -385,7 +385,7 @@ QByteArray MapRepository::getDataReal(QSqlQuery q)
 {
 	QByteArray ret;
 
-	QVariantMap r = runQuery(q);
+	QVariantMap r;// = runQuery(q);
 	if (r.value("error").toBool()) {
 		emit databaseError(r.value("errorString").toString());
 		return ret;

@@ -268,38 +268,36 @@ QSqlQuery CosSql::listQuery(QString query, const QVariantList &list, const QVari
 }
 
 
+
 /**
- * @brief CosSql::runQuery
+ * @brief CosSql::query
  * @param query
- * @param lastInsertId
  * @return
  */
 
-QVariantMap CosSql::runQuery(QSqlQuery query)
+QVariantList CosSql::execQuery(QSqlQuery query, QString *errorString, QVariant *lastInsertId)
 {
 	bool success = true;
-
-	QVariantMap r;
+	QVariantList records;
 
 	if (!query.exec()) {
 		QString errText = query.lastError().text();
-		r["error"] = true;
-		r["errorString"] = errText;
-
 		qWarning().noquote() << tr("SQL error: ")+errText;
 		success = false;
+
+		if (errorString)
+			(*errorString) = errText;
 	}
 
 	qDebug().noquote() << tr("SQL command: ")+query.executedQuery();
 
 	if (!success) {
-		return r;
+		return records;
 	}
 
-	r["error"] = false;
-	r["lastInsertId"] = query.lastInsertId();
+	if (lastInsertId)
+		(*lastInsertId) = query.lastInsertId();
 
-	QVariantList records;
 
 	while (query.next()) {
 		QSqlRecord rec = query.record();
@@ -315,29 +313,28 @@ QVariantMap CosSql::runQuery(QSqlQuery query)
 		records << rr;
 	}
 
-	r["records"] = records;
-
-	return r;
+	return records;
 }
 
 
-
 /**
- * @brief CosSql::query
+ * @brief CosSql::execSimpleQuery
  * @param query
+ * @param args
+ * @param errorString
  * @return
  */
 
-bool CosSql::execQuery(QSqlQuery query)
+bool CosSql::execSimpleQuery(QString query, const QVariantList &args, QString *errorString)
 {
-	QVariantMap r = runQuery(query);
+	QString err;
 
-	if (r.value("error").toBool()) {
-		qWarning() << tr("SQL query error: ")+r.value("errorString").toString();
-		return false;
-	}
+	execQuery(simpleQuery(query, args), &err);
 
-	return true;
+	if (errorString)
+		(*errorString) = err;
+
+	return err.isEmpty();
 }
 
 
@@ -348,7 +345,7 @@ bool CosSql::execQuery(QSqlQuery query)
  * @return
  */
 
-bool CosSql::execBatchQuery(QString query, const QVariantList &list)
+bool CosSql::execBatchQuery(QString query, const QVariantList &list, QString *errorString)
 {
 	m_db.transaction();
 
@@ -362,6 +359,8 @@ bool CosSql::execBatchQuery(QString query, const QVariantList &list)
 	if (!q.execBatch()) {
 		QString errText = q.lastError().text();
 		qWarning().noquote() << tr("SQL error: ")+errText+": "+q.executedQuery();
+		if (errorString)
+			(*errorString) = errText;
 		m_db.rollback();
 		return false;
 	}
@@ -372,118 +371,29 @@ bool CosSql::execBatchQuery(QString query, const QVariantList &list)
 	return true;
 }
 
-
-
-/**
- * @brief CosSql::execSelectQuery
- * @param query
- * @param args
- * @param records
- * @return
- */
-
-bool CosSql::execSelectQuery(QString query, const QVariantList &args, QVariantList *records)
-{
-	QVariantMap r = runSimpleQuery(query, args);
-
-	if (r.value("error").toBool()) {
-		qWarning() << tr("SQL query error: ")+r.value("errorString").toString();
-		return false;
-	}
-
-	if (records) {
-		foreach (QVariant q, r.value("records").toList())
-			(*records).append(q);
-	}
-
-	return true;
-}
-
-
-/**
- * @brief CosSql::execSelectQuery
- * @param query
- * @param args
- * @param records
- * @return
- */
-
-bool CosSql::execSelectQuery(QString query, const QVariantList &args, QJsonArray *records)
-{
-	QVariantMap r = runSimpleQuery(query, args);
-
-	if (r.value("error").toBool()) {
-		qWarning() << tr("SQL query error: ")+r.value("errorString").toString();
-		return false;
-	}
-
-	if (records) {
-		foreach (QJsonValue q, r.value("records").toJsonArray())
-			(*records).append(q);
-	}
-
-	return true;
-}
-
-
 /**
  * @brief CosSql::execSelectQueryOneRow
  * @param query
  * @param args
- * @param records
+ * @param errorString
  * @return
  */
 
-bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QVariantMap *record)
+QVariantMap CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QString *errorString)
 {
-	QVariantList list;
+	QVariantList list = execQuery(simpleQuery(query, args), errorString);
 
-	if (!execSelectQuery(query, args, &list))
-		return false;
-
-	if (list.count() != 1)
-		return false;
-
-	if (record) {
-		QVariantMap map = list.value(0).toMap();
-		QStringList keys = map.keys();
-		foreach (QString k, keys) {
-			(*record)[k] = map.value(k);
-		}
+	if (list.size() > 1) {
+		if (errorString)
+			(*errorString) = "multiple records";
+		return QVariantMap();
+	} else if (list.size() < 1) {
+		return QVariantMap();
 	}
 
-	return true;
+	return list.value(0).toMap();
 }
 
-
-/**
- * @brief CosSql::execSelectQueryOneRow
- * @param query
- * @param args
- * @param record
- * @return
- */
-
-bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QJsonObject *record)
-{
-	QVariantList list;
-
-	if (!execSelectQuery(query, args, &list))
-		return false;
-
-	if (list.count()>1)
-		return false;
-
-	if (record && list.count()) {
-		QJsonObject map = list.value(0).toJsonObject();
-		QStringList keys = map.keys();
-		foreach (QString k, keys) {
-			(*record)[k] = map.value(k);
-		}
-	}
-
-	return true;
-}
 
 
 /**
@@ -493,17 +403,58 @@ bool CosSql::execSelectQueryOneRow(QString query, const QVariantList &args, QJso
  * @return
  */
 
-int CosSql::execInsertQuery(QString query, const QVariantMap &map)
+int CosSql::execInsertQuery(QString query, const QVariantMap &map, QString *errorString)
 {
-	QSqlQuery q = insertQuery(query, map);
-	QVariantMap m = runQuery(q);
+	QVariant nextId = -1;
 
-	if (m.value("error").toBool()) {
-		qWarning() << tr("SQL query error: ")+m.value("errorString").toString();
-		return -1;
-	}
+	execQuery(insertQuery(query, map), errorString, &nextId);
 
-	return m.value("lastInsertId").toInt();
+	return nextId.toInt();
+}
+
+
+/**
+ * @brief CosSql::execUpdateQuery
+ * @param query
+ * @param map
+ * @param bindValues
+ * @param errorString
+ * @return
+ */
+
+bool CosSql::execUpdateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues, QString *errorString)
+{
+	QString err;
+
+	execQuery(updateQuery(query, map, bindValues), &err);
+
+	if (errorString)
+		(*errorString) = err;
+
+	return err.isEmpty();
+}
+
+
+/**
+ * @brief CosSql::execListQuery
+ * @param query
+ * @param list
+ * @param bindValues
+ * @param parenthesizeValues
+ * @param errorString
+ * @return
+ */
+
+bool CosSql::execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues, const bool &parenthesizeValues, QString *errorString)
+{
+	QString err;
+
+	execQuery(listQuery(query, list, bindValues, parenthesizeValues), &err);
+
+	if (errorString)
+		(*errorString) = err;
+
+	return err.isEmpty();
 }
 
 
@@ -584,7 +535,9 @@ bool CosSql::createTrigger(const QString &table)
 	l << table;
 	QVariantList list;
 
-	if (!execSelectQuery("SELECT name from pragma_table_info(?)", l, &list))
+	list = execSelectQuery("SELECT name from pragma_table_info(?)", l);
+
+	if (list.isEmpty())
 		return false;
 
 
@@ -657,8 +610,7 @@ void CosSql::undoLogEnd()
 {
 	execSimpleQuery("UPDATE undoSettings SET active=false");
 
-	QVariantMap r;
-	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep", QVariantList(), &r);
+	QVariantMap r =	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep");
 	setCanUndo(r.value("id",-1).toInt());
 }
 
@@ -674,12 +626,12 @@ QVariantMap CosSql::undoStack()
 
 	m_db.transaction();
 
-	execSelectQueryOneRow("SELECT lastStep FROM undoSettings", QVariantList(), &ret);
-	execSelectQueryOneRow("SELECT COALESCE(MIN(id),-1) as minStep FROM undoStep", QVariantList(), &ret);
-	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as maxStep FROM undoStep", QVariantList(), &ret);
+	ret["lastStep"] = execSelectQueryOneRow("SELECT lastStep FROM undoSettings").value("lastStep");
+	ret["minStep"] = execSelectQueryOneRow("SELECT COALESCE(MIN(id),-1) as minStep FROM undoStep").value("minStep");
+	ret["maxStep"] = execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as maxStep FROM undoStep").value("maxStep");
 
 	QVariantList l;
-	execSelectQuery("SELECT id, desc FROM undoStep ORDER BY id DESC", QVariantList(), &l);
+	l = execSelectQuery("SELECT id, desc FROM undoStep ORDER BY id DESC");
 	ret["steps"] = l;
 
 	m_db.commit();
@@ -699,8 +651,7 @@ void CosSql::undo(const int &floor)
 {
 	m_db.transaction();
 
-	QVariantMap m;
-	execSelectQueryOneRow("SELECT lastStep FROM undoSettings", QVariantList(), &m);
+	QVariantMap m = execSelectQueryOneRow("SELECT lastStep FROM undoSettings");
 
 	int ceil = m.value("lastStep", 0).toInt();
 
@@ -708,8 +659,7 @@ void CosSql::undo(const int &floor)
 	l << floor;
 	l << ceil;
 
-	QVariantList steps;
-	execSelectQuery("SELECT cmd FROM undoLog WHERE stepid>? AND stepid<=? ORDER BY stepid DESC, seq", l, &steps);
+	QVariantList steps = execSelectQuery("SELECT cmd FROM undoLog WHERE stepid>? AND stepid<=? ORDER BY stepid DESC, seq", l);
 
 	foreach (QVariant v, steps) {
 		QString cmd = v.toMap().value("cmd").toString();
@@ -723,8 +673,7 @@ void CosSql::undo(const int &floor)
 	l2 << floor;
 	execSimpleQuery("UPDATE undoSettings SET lastStep=?", l2);
 
-	QVariantMap r;
-	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep", QVariantList(), &r);
+	QVariantMap r = execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep");
 	setCanUndo(r.value("id",-1).toInt());
 
 	m_db.commit();

@@ -157,7 +157,7 @@ void StudentMap::campaignListUpdate()
 	QVariantList ret;
 
 	QVariantList campaigns;
-	m_db->execSelectQuery("SELECT id, name FROM campaign ORDER BY num", QVariantList(), &campaigns);
+//	m_db->execSelectQuery("SELECT id, name FROM campaign ORDER BY num", QVariantList(), &campaigns);
 
 	foreach (QVariant v, campaigns) {
 		QVariantMap m = v.toMap();
@@ -169,7 +169,7 @@ void StudentMap::campaignListUpdate()
 		QVariantList l;
 		l << cid;
 		QVariantList locks;
-		m_db->execSelectQuery("SELECT lockId FROM campaignLock WHERE campaignId=?", l, &locks);
+	//	m_db->execSelectQuery("SELECT lockId FROM campaignLock WHERE campaignId=?", l, &locks);
 
 		foreach (QVariant v, locks) {
 			QVariantMap m = v.toMap();
@@ -191,10 +191,10 @@ void StudentMap::campaignListUpdate()
 		bool prevMissionCompleted = true;
 
 		QVariantList missions;
-		m_db->execSelectQuery("SELECT mission.id as id, uuid, mission.name FROM bindCampaignMission "
+	/*	m_db->execSelectQuery("SELECT mission.id as id, uuid, mission.name FROM bindCampaignMission "
 							  "LEFT JOIN mission ON (mission.id=bindCampaignMission.missionid) "
 							  "WHERE campaignId=? ORDER BY num",
-							  l, &missions);
+							  l, &missions);*/
 
 		foreach (QVariant v, missions) {
 			QVariantMap m = v.toMap();
@@ -211,12 +211,12 @@ void StudentMap::campaignListUpdate()
 				p << mUuid;
 
 				QVariantList levels;
-				m_db->execSelectQuery("SELECT missionlevel.level, success "
+	/*			m_db->execSelectQuery("SELECT missionlevel.level, success "
 									  "FROM mission "
 									  "LEFT JOIN missionLevel ON (missionLevel.missionid=mission.id) "
 									  "LEFT JOIN result ON (result.uuid=mission.uuid AND result.level=missionLevel.level) "
 									  "WHERE mission.uuid=? ORDER BY missionLevel.level",
-									  p, &levels);
+									  p, &levels);*/
 
 
 				for (int i=0; i<levels.count(); ++i) {
@@ -257,7 +257,7 @@ void StudentMap::campaignListUpdate()
 
 
 		QVariantList summaryLevels;
-		m_db->execSelectQuery("SELECT summary.id as id, summary.uuid as uuid, summaryLevel.level as level, success, "
+/*		m_db->execSelectQuery("SELECT summary.id as id, summary.uuid as uuid, summaryLevel.level as level, success, "
 							  "EXISTS(SELECT * FROM bindCampaignMission "
 							  "LEFT JOIN mission ON (mission.id=bindCampaignMission.missionid) "
 							  "LEFT JOIN result ON (result.uuid=mission.uuid) "
@@ -268,7 +268,7 @@ void StudentMap::campaignListUpdate()
 							  "LEFT JOIN summaryLevel ON (summaryLevel.summaryid=summary.id) "
 							  "LEFT JOIN result ON (result.uuid=summary.uuid AND result.level=summaryLevel.level) "
 							  "WHERE campaignId=? ORDER BY summaryLevel.level",
-							  l, &summaryLevels);
+							  l, &summaryLevels);*/
 
 
 		QVariantList availableSummaryLevels;
@@ -395,12 +395,12 @@ bool StudentMap::isCampaignCompleted(const int &campaignId)
 	params << campaignId;
 	params << campaignId;
 
-	m_db->execSelectQuery("SELECT r.uuid, EXISTS(SELECT * FROM result WHERE result.uuid=r.uuid AND success>0) as success "
+/*	m_db->execSelectQuery("SELECT r.uuid, EXISTS(SELECT * FROM result WHERE result.uuid=r.uuid AND success>0) as success "
 						  "FROM (SELECT uuid FROM bindCampaignMission "
 						  "LEFT JOIN  mission ON (mission.id=bindCampaignMission.missionid) "
 						  "WHERE campaignId=? "
 						  "UNION SELECT uuid FROM summary WHERE campaignId=?) r",
-						  params, &uuids);
+						  params, &uuids);*/
 
 	bool ret = true;
 

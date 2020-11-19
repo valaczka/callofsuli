@@ -113,5 +113,7 @@
         <file>QPage.qml</file>
         <file>PageStart.qml</file>
         <file>QObjectItemProxyList.qml</file>
+        <file>QVariantMapProxyView.qml</file>
+        <file>_PagePanel.qml</file>
     </qresource>
 </RCC>

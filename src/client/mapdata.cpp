@@ -184,7 +184,7 @@ QVariantMap MapData::objectiveModule(const QString &type)
 QVariantMap MapData::infoGet()
 {
 	QVariantMap ret;
-	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
+//	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
 
 	return ret;
 }
@@ -205,7 +205,7 @@ QVariantMap MapData::campaignGet(const int &id)
 	QVariantMap map;
 	map["id"] = -1;
 
-	m_db->execSelectQueryOneRow("SELECT id, num, name FROM campaign WHERE id=?", l, &map);
+/*	m_db->execSelectQueryOneRow("SELECT id, num, name FROM campaign WHERE id=?", l, &map);
 
 	m_db->execSelectQueryOneRow("SELECT intro.id as introId, ttext as introText, img as introImg, media as introMedia, sec as introSec, "
 								"levelMin as introLevelMin, levelMax as introLevelMax FROM bindIntroCampaign "
@@ -236,7 +236,7 @@ QVariantMap MapData::campaignGet(const int &id)
 						  "LEFT JOIN campaign ON (campaignLock.lockId=campaign.id) "
 						  "WHERE campaignId=?", l, &locks);
 
-	map["locks"] = locks;
+	map["locks"] = locks;*/
 
 	return map;
 }
@@ -252,7 +252,7 @@ QVariantMap MapData::campaignGet(const int &id)
 QVariantList MapData::campaignListGet()
 {
 	QVariantList list;
-	m_db->execSelectQuery("SELECT id, COALESCE(num, 0) as num, name FROM campaign ORDER BY num", QVariantList(), &list);
+//	m_db->execSelectQuery("SELECT id, COALESCE(num, 0) as num, name FROM campaign ORDER BY num", QVariantList(), &list);
 	return list;
 }
 
@@ -271,7 +271,7 @@ QVariantMap MapData::missionGet(const int &id, const bool &isSummary, const bool
 	QVariantMap map;
 	map["id"] = -1;
 
-	if (isSummary) {
+/*	if (isSummary) {
 		m_db->execSelectQueryOneRow("SELECT summary.id, summary.uuid as uuid, campaign.name as name FROM summary "
 									"LEFT JOIN campaign ON (summary.campaignid=campaign.id) "
 									"WHERE summary.id=?", l, &map);
@@ -342,7 +342,7 @@ QVariantMap MapData::missionGet(const int &id, const bool &isSummary, const bool
 		QVariantList storages = storageListGet(isSummary ? -1 : id, isSummary ? id : -1, filterLevel);
 
 		map["storages"] = storages;
-	}
+	}*/
 
 	return map;
 }
@@ -360,7 +360,7 @@ QVariantList MapData::missionListGet(const int &campaignId)
 {
 	QVariantList list;
 
-	if (campaignId != -1) {
+	/*if (campaignId != -1) {
 		QVariantList l;
 		l << campaignId;
 		m_db->execSelectQuery("SELECT missionid as id, name, num FROM bindCampaignMission "
@@ -369,7 +369,7 @@ QVariantList MapData::missionListGet(const int &campaignId)
 							  "ORDER BY num", l, &list);
 	} else {
 		m_db->execSelectQuery("SELECT id, name, 0 as num FROM mission ORDER BY name", QVariantList(), &list);
-	}
+	}*/
 
 	return list;
 }
@@ -387,14 +387,14 @@ QVariantList MapData::summaryStorageListGet(const int &id, const int &filterLeve
 	QVariantList l;
 	l << id;
 
-	m_db->execSelectQuery("SELECT storageid as id, name, module, data FROM "
+/*	m_db->execSelectQuery("SELECT storageid as id, name, module, data FROM "
 						  "(SELECT summary.id as summaryid, storageid FROM summary "
 						  "LEFT JOIN bindCampaignMission ON (bindCampaignMission.campaignid=summary.campaignid) "
 						  "INNER JOIN bindMissionStorage ON (bindMissionStorage.missionid=bindCampaignMission.missionid) "
 						  "UNION SELECT summaryid, storageid FROM bindSummaryStorage) r "
 						  "LEFT JOIN storage ON (storage.id=r.storageid) "
 						  "WHERE summaryid=? ORDER BY storageid", l, &list);
-
+*/
 	QVariantList ret;
 
 	foreach(QVariant v, list) {
@@ -424,7 +424,7 @@ QVariantMap MapData::storageGet(const int &id)
 	QVariantMap map;
 	map["id"] = -1;
 
-	m_db->execSelectQueryOneRow("SELECT id, name, module, data FROM storage where id=?", l, &map);
+/*	m_db->execSelectQueryOneRow("SELECT id, name, module, data FROM storage where id=?", l, &map);
 
 
 	QVariantList missions;
@@ -455,7 +455,7 @@ QVariantMap MapData::storageGet(const int &id)
 	map["data"] = d;
 
 
-	map["objectives"] = objectiveListGet(id);
+	map["objectives"] = objectiveListGet(id);*/
 
 	return map;
 }
@@ -472,7 +472,7 @@ QVariantList MapData::storageListGet(const int &missionId, const int &summaryId,
 {
 	QVariantList list;
 
-	if (summaryId != -1) {
+/*	if (summaryId != -1) {
 		QVariantList l;
 		l << summaryId;
 		m_db->execSelectQuery("SELECT storageid as id, 0 as num, name, module, data FROM bindSummaryStorage "
@@ -489,7 +489,7 @@ QVariantList MapData::storageListGet(const int &missionId, const int &summaryId,
 	} else {
 		m_db->execSelectQuery("SELECT id, 0 as num, name, module, data FROM storage ORDER BY id", QVariantList(), &list);
 	}
-
+*/
 
 	QVariantList ret;
 
@@ -519,7 +519,7 @@ QVariantMap MapData::introGet(const int &id)
 	QVariantMap map;
 	map["id"] = -1;
 
-	m_db->execSelectQueryOneRow("SELECT id, ttext, img, media, sec, levelMin, levelMax FROM intro where id=?", l, &map);
+/*	m_db->execSelectQueryOneRow("SELECT id, ttext, img, media, sec, levelMin, levelMax FROM intro where id=?", l, &map);
 
 
 	QVariantList campaigns;
@@ -549,7 +549,7 @@ QVariantMap MapData::introGet(const int &id)
 						  "WHERE introid=? ORDER BY campaign.name", l, &summaries);
 
 	map["summaries"] = summaries;
-
+*/
 
 
 	return map;
@@ -567,7 +567,7 @@ QVariantList MapData::introListGet(const int &parentId, const MapData::IntroType
 {
 	QVariantList list;
 
-	if (parentId == -1 || type == IntroUndefined) {
+/*	if (parentId == -1 || type == IntroUndefined) {
 		m_db->execSelectQuery("SELECT id, ttext, img, media, sec, levelMin, levelMax FROM intro ORDER BY id", QVariantList(), &list);
 	} else if (type == IntroCampaign) {
 		QVariantList l;
@@ -590,7 +590,7 @@ QVariantList MapData::introListGet(const int &parentId, const MapData::IntroType
 							  "LEFT JOIN intro ON (intro.id=bindIntroSummary.introid) "
 							  "WHERE summaryid=? "
 							  "ORDER BY introid", l, &list);
-	}
+	}*/
 
 	return list;
 }
@@ -630,11 +630,11 @@ QVariantMap MapData::objectiveGet(const int &id)
 	l << id;
 	QVariantMap map;
 
-	m_db->execSelectQueryOneRow("SELECT objective.id as id, objective.storageid as storageid, objective.module as module, objective.data as data, "
+/*	m_db->execSelectQueryOneRow("SELECT objective.id as id, objective.storageid as storageid, objective.module as module, objective.data as data, "
 								"objective.level as level, "
 								"storage.module as storageModule, storage.name as storageName, storage.data as storageData "
 								"FROM objective LEFT JOIN storage ON (storage.id=objective.storageid) WHERE objective.id=?", l, &map);
-
+*/
 	QString data = map.value("data").toString();
 	QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
 	QJsonObject d = doc.object();
@@ -667,7 +667,7 @@ QVariantList MapData::objectiveListGet(const int &storageId, const int filterLev
 {
 	QVariantList list;
 
-	if (storageId != -1) {
+/*	if (storageId != -1) {
 		QVariantList l;
 		l << storageId;
 
@@ -685,7 +685,7 @@ QVariantList MapData::objectiveListGet(const int &storageId, const int filterLev
 		} else {
 			m_db->execSelectQuery("SELECT id, storageid, module, data, level FROM objective ORDER BY id", QVariantList(), &list);
 		}
-	}
+	}*/
 
 	return list;
 }
@@ -748,7 +748,7 @@ bool MapData::databaseInit()
 
 QJsonArray MapData::tableToJson(const QString &table, const bool &convertData)
 {
-	QVariantMap m = m_db->runSimpleQuery("SELECT * from "+table+" ORDER BY rowid");
+	QVariantMap m;// = m_db->runSimpleQuery("SELECT * from "+table+" ORDER BY rowid");
 
 	if (m.value("error").toBool()) {
 		return QJsonArray();
@@ -836,7 +836,7 @@ bool MapData::JsonToTable(const QJsonArray &array, const QString &table, const b
 
 void MapData::generateMissionUuids()
 {
-	QVariantList list;
+/*	QVariantList list;
 
 	m_db->execSelectQuery("SELECT id FROM mission WHERE uuid IS NULL OR uuid=''", QVariantList(), &list);
 
@@ -857,7 +857,7 @@ void MapData::generateMissionUuids()
 		params << QUuid::createUuid().toString();
 		params << v.toMap().value("id").toInt();
 		m_db->runSimpleQuery("UPDATE summary SET uuid=? WHERE id=?", params);
-	}
+	}*/
 }
 
 

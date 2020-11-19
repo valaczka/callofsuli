@@ -41,10 +41,10 @@ Servers::Servers(QQuickItem *parent)
 	, m_serverList()
 	, m_serversModel(nullptr)
 	, m_dataFileName(Client::standardPath("servers.json"))
-	, m_connectedServer(nullptr)
-	, m_serverTryConnect(nullptr)
+	, m_connectedServerKey(-1)
+	, m_serverTryConnectKey(-1)
 {
-	m_serversModel = new QObjectModel(&m_serverList, QStringList({"name", "host", "port", "ssl", "autoconnect", "username", "session"}), this);
+	m_serversModel = new VariantMapModel(&m_serverList, createFullMap().keys(), this);
 }
 
 
@@ -146,34 +146,22 @@ void Servers::serverListReload()
 {
 	qDebug() << "Server list reload";
 
-	m_connectedServer = nullptr;
-	m_serverTryConnect = nullptr;
-
 	if (m_serverList.size()) {
-		qDeleteAll(m_serverList.begin(), m_serverList.end());
 		m_serverList.clear();
 	}
 
 	QJsonDocument doc = Client::readJsonDocument(m_dataFileName);
 
-	int lastid = 0;
-
-	if (!doc.isEmpty()) {
-		QJsonArray list = doc.array();
-
-		foreach (QJsonValue v, list) {
-			ServerData *s = new ServerData(v.toObject(), this);
-			int id = s->id();
-			if (id<=0)
-				s->setId(++lastid);
-			else
-				lastid = id;
-
-			m_serverList.append(s);
-		}
-	}
+	if (!doc.isEmpty())
+		m_serverList.fromJsonArray(doc.array(), "id");
 
 	emit serverListLoaded();
+
+	if (m_serverList.keyIndex(m_connectedServerKey) == -1)
+		setConnectedServerKey(-1);
+
+	if (m_serverList.keyIndex(m_serverTryConnectKey) == -1)
+		m_serverTryConnectKey = -1;
 
 }
 
@@ -186,17 +174,17 @@ void Servers::serverListReload()
 
 void Servers::serverConnect(const int &index)
 {
-	m_serverTryConnect = nullptr;
+	m_serverTryConnectKey = -1;
 
-	ServerData *d = qobject_cast<ServerData *>(m_serverList.at(index));
+	QVariantMap d = m_serverList.value(index).second;
 
 	QUrl url;
-	url.setHost(d->host());
-	url.setPort(d->port());
-	url.setScheme(d->ssl() ? "wss" : "ws");
+	url.setHost(d.value("host").toString());
+	url.setPort(d.value("port").toInt());
+	url.setScheme(d.value("ssl").toBool() ? "wss" : "ws");
 
 
-	QString dir = QString("%1").arg(d->id());
+	QString dir = d.value("id").toString();
 	QString serverDir = Client::standardPath(dir);
 	if (!QFileInfo::exists(serverDir)) {
 		QDir d(Client::standardPath());
@@ -208,7 +196,7 @@ void Servers::serverConnect(const int &index)
 
 	QString certFileName = serverDir+"/cert.pem";
 
-	if (d->ssl() && QFileInfo::exists(certFileName)) {
+	if (d.value("ssl").toBool() && QFileInfo::exists(certFileName)) {
 		QFile f(certFileName);
 		if (f.open(QIODevice::ReadOnly)) {
 			QByteArray cert = f.readAll();
@@ -228,7 +216,7 @@ void Servers::serverConnect(const int &index)
 
 	m_client->setServerDataDir(serverDir);
 
-	m_serverTryConnect = d;
+	m_serverTryConnectKey = m_serverList.value(index).first;
 
 	m_client->socket()->open(url);
 }
@@ -240,22 +228,19 @@ void Servers::serverConnect(const int &index)
  * @param map
  */
 
-int Servers::serverInsertOrUpdate(const int &index, const QVariantMap &map)
+int Servers::serverInsertOrUpdate(const int &key, const QVariantMap &map)
 {
-	if (index < 0 || index >= m_serverList.count()) {
-		ServerData *d = new ServerData(map, this);
-		d->setId(nextId());
-		m_serverList.append(d);
+	int index = m_serverList.keyIndex(key);
+	if (index != -1) {
+		QVariantMap n = createFullMap(map, m_serverList.at(index).second);
+		m_serverList.update(index, n);
 		saveServerList();
-		return d->id();
+		return key;
 	} else {
-		ServerData *d = qobject_cast<ServerData *>(m_serverList.at(index));
-		d->set(map);
-		m_serverList.update(d);
+		int nextKey = m_serverList.append(createFullMap(map));
 		saveServerList();
-		return d->id();
+		return nextKey;
 	}
-	return -1;
 }
 
 
@@ -268,24 +253,49 @@ int Servers::serverInsertOrUpdate(const int &index, const QVariantMap &map)
 
 void Servers::serverDelete(const int &index)
 {
-	ServerData *d = qobject_cast<ServerData *>(m_serverList.at(index));
-
-	if (!d)
+	if (index<0 || index>=m_serverList.size())
 		return;
 
-	if (m_connectedServer == d)
-		m_connectedServer = nullptr;
+	QVariantMap m = m_serverList.at(index).second;
+	int key = m_serverList.at(index).first;
+	int id = m.value("id", -1).toInt();
 
-	if (m_serverTryConnect == d)
-		m_serverTryConnect = nullptr;
+	if (m_connectedServerKey == key)
+		setConnectedServerKey(-1);
 
-	removeServerDir(d->id());
+	if (m_serverTryConnectKey == key)
+		m_serverTryConnectKey = -1;
 
-	if (m_serverList.removeOne(d))
-		d->deleteLater();
+	removeServerDir(id);
+
+	m_serverList.removeAt(index);
 
 	saveServerList();
 
+}
+
+
+/**
+ * @brief Servers::serverDeleteKey
+ * @param key
+ */
+
+void Servers::serverDeleteKey(const int &key)
+{
+	QVariantMap m = m_serverList.valueKey(key);
+	int id = m.value("id", -1).toInt();
+
+	if (m_connectedServerKey == key)
+		setConnectedServerKey(-1);
+
+	if (m_serverTryConnectKey == key)
+		m_serverTryConnectKey = -1;
+
+	removeServerDir(id);
+
+	m_serverList.removeKey(key);
+
+	saveServerList();
 }
 
 
@@ -294,21 +304,25 @@ void Servers::serverDelete(const int &index)
  * @param model
  */
 
-void Servers::serverDeleteSelected(QObjectModel *model)
+void Servers::serverDeleteSelected(VariantMapModel *model)
 {
 	Q_ASSERT(model);
-	QObjectList list = model->getSelected();
+	QList<int> list = model->getSelected();
 
-	foreach (QObject *o, list) {
-		if (m_connectedServer == o)
-			m_connectedServer = nullptr;
+	foreach (int i, list) {
+		if (m_serverList.keyIndex(i) == -1)
+			continue;
 
-		if (m_serverTryConnect == o)
-			m_serverTryConnect = nullptr;
+		if (m_connectedServerKey == i)
+			setConnectedServerKey(-1);
 
-		if (m_serverList.removeOne(o))
-			o->deleteLater();
+		if (m_serverTryConnectKey == i)
+			m_serverTryConnectKey = -1;
+
+		serverDeleteKey(i);
 	}
+
+	model->unselectAll();
 
 	saveServerList();
 }
@@ -326,16 +340,14 @@ void Servers::serverDeleteSelected(QObjectModel *model)
 
 void Servers::serverSetAutoConnect(const int &index)
 {
-	for (int i=0; i<m_serverList.count(); i++) {
-		ServerData *d = qobject_cast<ServerData *>(m_serverList.at(i));
+	for (int i=0; i<m_serverList.size(); i++) {
+		QVariantMap d = m_serverList.at(i).second;
 		if (i==index) {
-			bool old = d->autoconnect();
-			d->setAutoconnect(!old);
-			m_serverList.update(d);
+			bool old = d.value("autoconnect").toBool();
+			m_serverList.updateValue(i, "autoconnect", !old);
 		} else {
-			if (d->autoconnect()) {
-				d->setAutoconnect(false);
-				m_serverList.update(d);
+			if (d.value("autoconnect").toBool()) {
+				m_serverList.updateValue(i, "autoconnect", false);
 			}
 		}
 	}
@@ -349,13 +361,17 @@ void Servers::serverSetAutoConnect(const int &index)
  * @param serverId
  */
 
-void Servers::serverTryLogin(ServerData *d)
+void Servers::serverTryLogin(const int &key)
 {
-	if (!d)
+	QVariantMap d = m_serverList.valueKey(key);
+	if (d.isEmpty())
 		return;
 
-	if (!d->username().isEmpty() && !d->session().isEmpty())
-		m_client->login(d->username(), d->session());
+	QString username = d.value("username").toString();
+	QString session = d.value("session").toString();
+
+	if (!username.isEmpty() && !session.isEmpty())
+		m_client->login(username, session);
 }
 
 
@@ -365,10 +381,9 @@ void Servers::serverTryLogin(ServerData *d)
 
 void Servers::serverLogOut()
 {
-	if (m_connectedServer) {
-		m_connectedServer->setSession("");
-		m_connectedServer->setUsername("");
-		m_serverList.update(m_connectedServer);
+	if (m_connectedServerKey != -1) {
+		m_serverList.updateValueByKey(m_connectedServerKey, "session", "");
+		m_serverList.updateValueByKey(m_connectedServerKey, "username", "");
 		saveServerList();
 	}
 
@@ -381,9 +396,9 @@ void Servers::serverLogOut()
 
 void Servers::doAutoConnect()
 {
-	for (int i=0; i<m_serverList.count(); i++) {
-		ServerData *d = qobject_cast<ServerData *>(m_serverList.at(i));
-		if (d->autoconnect()) {
+	for (int i=0; i<m_serverList.size(); i++) {
+		QVariantMap d = m_serverList.at(i).second;
+		if (d.value("autoconnect").toBool()) {
 			serverConnect(i);
 			return;
 		}
@@ -405,15 +420,21 @@ void Servers::setReadyResources(bool readyResources)
 }
 
 
+/**
+ * @brief Servers::setConnectedServerKey
+ * @param connectedServerKey
+ */
 
-void Servers::setConnectedServer(ServerData *connectedServer)
+void Servers::setConnectedServerKey(int connectedServerKey)
 {
-	if (m_connectedServer == connectedServer)
+	if (m_connectedServerKey == connectedServerKey)
 		return;
 
-	m_connectedServer = connectedServer;
-	emit connectedServerChanged(m_connectedServer);
+	m_connectedServerKey = connectedServerKey;
+	emit connectedServerKeyChanged(m_connectedServerKey);
 }
+
+
 
 
 
@@ -454,9 +475,8 @@ void Servers::removeServerDir(const int &serverId)
 
 void Servers::onSessionTokenChanged(QString sessionToken)
 {
-	if (m_connectedServer) {
-		m_connectedServer->setSession(sessionToken);
-		m_serverList.update(m_connectedServer);
+	if (m_connectedServerKey != -1) {
+		m_serverList.updateValueByKey(m_connectedServerKey, "session", sessionToken);
 		saveServerList();
 	}
 }
@@ -470,11 +490,11 @@ void Servers::onSessionTokenChanged(QString sessionToken)
 void Servers::onConnectionStateChanged(Client::ConnectionState state)
 {
 	if (state == Client::Connected) {
-		m_connectedServer = m_serverTryConnect;
-		m_serverTryConnect = nullptr;
-		serverTryLogin(m_connectedServer);
+		m_connectedServerKey = m_serverTryConnectKey;
+		m_serverTryConnectKey = -1;
+		serverTryLogin(m_connectedServerKey);
 	} else if (state == Client::Standby) {
-		setConnectedServer(nullptr);
+		setConnectedServerKey(-1);
 		unregisterResources();
 	}
 }
@@ -514,9 +534,8 @@ void Servers::onUserRolesChanged(CosMessage::ClientRoles userRoles)
 
 void Servers::onUserNameChanged(QString username)
 {
-	if (m_connectedServer && !username.isEmpty()) {
-		m_connectedServer->setUsername(username);
-		m_serverList.update(m_connectedServer);
+	if (m_connectedServerKey != -1 && !username.isEmpty()) {
+		m_serverList.updateValueByKey(m_connectedServerKey, "username", username);
 		saveServerList();
 	}
 }
@@ -686,13 +705,8 @@ void Servers::saveServerList()
 {
 	QJsonArray list;
 
-	foreach (QObject *o, m_serverList) {
-		ServerData *d = qobject_cast<ServerData *>(o);
-		if (!d)
-			continue;
-
-		list.append(d->asJsonObject());
-	}
+	foreach (_MapPair p, m_serverList)
+		list.append(QJsonObject::fromVariantMap(p.second));
 
 	QJsonDocument doc(list);
 
@@ -701,210 +715,27 @@ void Servers::saveServerList()
 
 
 /**
- * @brief Servers::serverGet
- * @param index
- */
-
-
-
-
-/**
- * @brief Servers::nextId
+ * @brief Servers::createFullMap
+ * @param from
  * @return
  */
 
-int Servers::nextId()
+QVariantMap Servers::createFullMap(const QVariantMap &newData, const QVariantMap &from)
 {
-	int nextId = 1;
+	QVariantMap m = from;
 
-	foreach (QObject *o, m_serverList) {
-		ServerData *d = qobject_cast<ServerData *>(o);
-		if (!d)
-			continue;
+	foreach (QString k, newData.keys())
+		m[k] = newData.value(k);
 
-		if (d->id() >= nextId)
-			nextId = d->id()+1;
-	}
+	if (!m.contains("id")) m["id"] = m_serverList.getNextId("id");
+	if (!m.contains("name")) m["name"] = "";
+	if (!m.contains("host")) m["host"] = "";
+	if (!m.contains("port")) m["port"] = 10101;
+	if (!m.contains("ssl")) m["ssl"] = false;
+	if (!m.contains("username")) m["username"] = "";
+	if (!m.contains("session")) m["session"] = "";
+	if (!m.contains("autoconnect")) m["autoconnect"] = false;
 
-	return nextId;
+	return m;
 }
 
-
-
-/**
- * @brief ServerData::ServerData
- * @param parent
- */
-
-ServerData::ServerData(QObject *parent)
-	: QObject(parent)
-{
-	qDebug() << "CREATE" << this;
-}
-
-
-/**
- * @brief ServerData::ServerData
- * @param object
- * @param parent
- */
-
-ServerData::ServerData(const QJsonObject &object, QObject *parent)
-	: QObject(parent)
-	, m_name(object.value("name").toString())
-	, m_host(object.value("host").toString())
-	, m_port(object.value("port").toInt())
-	, m_ssl(object.value("ssl").toBool())
-	, m_username(object.value("username").toString())
-	, m_session(object.value("session").toString())
-	, m_autoconnect(object.value("autoconnect").toBool())
-	, m_id(object.value("id").toInt())
-{
-	qDebug() << "CREATE" << this;
-}
-
-/**
- * @brief ServerData::ServerData
- * @param map
- * @param parent
- */
-
-ServerData::ServerData(const QVariantMap &map, QObject *parent)
-	: QObject(parent)
-	, m_name(map.value("name").toString())
-	, m_host(map.value("host").toString())
-	, m_port(map.value("port").toInt())
-	, m_ssl(map.value("ssl").toBool())
-	, m_username(map.value("username").toString())
-	, m_session(map.value("session").toString())
-	, m_autoconnect(map.value("autoconnect").toBool())
-	, m_id(map.value("id").toInt())
-{
-
-	qDebug() << "CREATE" << this;
-}
-
-
-/**
- * @brief ServerData::~ServerData
- */
-
-ServerData::~ServerData()
-{
-	qDebug() << "DELETE" << this;
-}
-
-
-/**
- * @brief ServerData::asJsonObject
- * @return
- */
-
-QJsonObject ServerData::asJsonObject() const
-{
-	QJsonObject root;
-	root["name"] = m_name;
-	root["host"] = m_host;
-	root["port"] = m_port;
-	root["ssl"] = m_ssl;
-	root["username"] = m_username;
-	root["session"] = m_session;
-	root["autoconnect"] = m_autoconnect;
-	root["id"] = m_id;
-	return root;
-}
-
-
-/**
- * @brief ServerData::set
- * @param map
- */
-
-void ServerData::set(const QVariantMap &map)
-{
-	if (map.contains("name"))	setName(map.value("name").toString());
-	if (map.contains("host"))	setHost(map.value("host").toString());
-	if (map.contains("port"))	setPort(map.value("port").toInt());
-	if (map.contains("ssl"))	setSsl(map.value("ssl").toBool());
-	if (map.contains("username"))	setUsername(map.value("username").toString());
-	if (map.contains("session"))	setSession(map.value("session").toString());
-	if (map.contains("autoconnect"))	setAutoconnect(map.value("autoconnect").toBool());
-	if (map.contains("id"))	setId(map.value("id").toInt());
-}
-
-
-
-
-
-void ServerData::setName(QString name)
-{
-	if (m_name == name)
-		return;
-
-	m_name = name;
-	emit nameChanged(m_name);
-}
-
-void ServerData::setHost(QString host)
-{
-	if (m_host == host)
-		return;
-
-	m_host = host;
-	emit hostChanged(m_host);
-}
-
-void ServerData::setPort(int port)
-{
-	if (m_port == port)
-		return;
-
-	m_port = port;
-	emit portChanged(m_port);
-}
-
-void ServerData::setSsl(bool ssl)
-{
-	if (m_ssl == ssl)
-		return;
-
-	m_ssl = ssl;
-	emit sslChanged(m_ssl);
-}
-
-void ServerData::setUsername(QString username)
-{
-	if (m_username == username)
-		return;
-
-	m_username = username;
-	emit usernameChanged(m_username);
-}
-
-void ServerData::setSession(QString session)
-{
-	if (m_session == session)
-		return;
-
-	m_session = session;
-	emit sessionChanged(m_session);
-}
-
-
-void ServerData::setAutoconnect(bool autoconnect)
-{
-	if (m_autoconnect == autoconnect)
-		return;
-
-	m_autoconnect = autoconnect;
-	emit autoconnectChanged(m_autoconnect);
-}
-
-void ServerData::setId(int id)
-{
-	if (m_id == id)
-		return;
-
-	m_id = id;
-	emit idChanged(m_id);
-}

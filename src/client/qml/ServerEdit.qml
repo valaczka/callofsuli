@@ -10,11 +10,11 @@ import "JScript.js" as JS
 QPagePanel {
 	id: p
 
-	title: servers.serverIndex == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
+	title: servers.serverKey == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
 	icon: CosStyle.iconUserWhite
 	layoutFillWidth: true
 
-	contextMenuFunc: servers.serverIndex == -1 ? null : function (m) {
+	contextMenuFunc: servers.serverKey == -1 ? null : function (m) {
 		m.addAction(actionRemove)
 	}
 
@@ -71,7 +71,7 @@ QPagePanel {
 
 		QGridButton {
 			id: buttonSave
-			text: servers.serverIndex == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
+			text: servers.serverKey == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
 			enabled: textName.acceptableInput &&
 					 textHostname.acceptableInput &&
 					 textPort.acceptableInput
@@ -83,9 +83,11 @@ QPagePanel {
 				var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl])
 
 				if (Object.keys(m).length) {
-					servers.serverInsertOrUpdate(servers.serverIndex, m)
+					var nextK = servers.serverInsertOrUpdate(servers.serverKey, m)
 					if (swipeMode)
 						servers.editing = false
+					else if (servers.serverKey == -1)
+						servers.serverKey = nextK
 				}
 			}
 
@@ -103,9 +105,9 @@ QPagePanel {
 										   text: textName.text
 									   })
 			d.accepted.connect(function () {
-				servers.serverDelete(servers.serverIndex)
+				servers.serverDeleteKey(servers.serverKey)
 				servers.editing = false
-				servers.serverIndex = -1
+				servers.serverKey = -1
 			})
 			d.open()
 		}
@@ -115,7 +117,7 @@ QPagePanel {
 		target: servers
 
 		onEditingChanged: loadData()
-		onServerIndexChanged: loadData()
+		onServerKeyChanged: loadData()
 	}
 
 	onPanelActivated: textHostname.forceActiveFocus()
@@ -126,20 +128,20 @@ QPagePanel {
 		if (!servers.editing)
 			return
 
-		if (servers.serverIndex==-1) {
+		if (servers.serverKey==-1) {
 			JS.setSqlFields([
 								textName,
 								textHostname,
 								textPort,
 								checkSsl
-							], {name:"", host:"", port:0, ssl:false})
+							], {name:"", host:"", port:10101, ssl:false})
 		} else  {
 			JS.setSqlFields([
 								textName,
 								textHostname,
 								textPort,
 								checkSsl
-							], servers.serversModel.get(servers.serverIndex))
+							], servers.serversModel.getByKey(servers.serverKey))
 		}
 
 		grid.modified = false

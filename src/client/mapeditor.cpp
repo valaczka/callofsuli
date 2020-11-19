@@ -166,7 +166,7 @@ bool MapEditor::loadFromBackup()
 		return false;
 	}
 
-	QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid, timeCreated from mapeditor");
+	/*QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid, timeCreated from mapeditor");
 	if (!m.value("error").toBool() && m.value("records").toList().count()) {
 		QVariantMap r = m.value("records").toList().value(0).toMap();
 		QString filename = r.value("originalFile").toString();
@@ -180,7 +180,7 @@ bool MapEditor::loadFromBackup()
 		emit mapLoadedFromBackup();
 
 		return true;
-	}
+	}*/
 
 	return false;
 }
@@ -355,7 +355,7 @@ void MapEditor::setMapModified(bool mapModified)
 QVariantMap MapEditor::infoGet()
 {
 	QVariantMap ret;
-	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
+//	m_db->execSelectQueryOneRow("SELECT title FROM info", QVariantList(), &ret);
 
 	if (!ret.contains("title"))
 		ret["title"] = m_mapOriginalFile;
@@ -504,7 +504,7 @@ int MapEditor::missionStorageAdd(const QVariantMap &params)
 		QVariantMap m;
 		QVariantList l;
 		l << missionId;
-		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
+	//	m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
 		if (m.contains("num"))
 			num = m.value("num").toInt();
 		else
@@ -862,7 +862,7 @@ int MapEditor::storageAdd(const QVariantMap &params, const int &missionId, const
 			QVariantList l;
 			int num = 1;
 			l << missionId;
-			m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
+		//	m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindMissionStorage WHERE missionid=?", l, &m);
 			if (m.contains("num"))
 				num = m.value("num").toInt();
 
@@ -1211,7 +1211,7 @@ int MapEditor::campaignAdd(const QVariantMap &params)
 		num = p.value("num").toInt();
 	} else {
 		QVariantMap m;
-		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM campaign", QVariantList(), &m);
+	//	m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM campaign", QVariantList(), &m);
 		if (m.contains("num"))
 			num = m.value("num").toInt();
 	}
@@ -1244,7 +1244,7 @@ bool MapEditor::campaignMissionAdd(const int &id, const int &missionId, const in
 		QVariantMap m;
 		QVariantList l;
 		l << id;
-		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindCampaignMission WHERE campaignid=?", l, &m);
+//		m_db->execSelectQueryOneRow("SELECT MAX(num)+1 AS num FROM bindCampaignMission WHERE campaignid=?", l, &m);
 		if (m.contains("num"))
 			realnum = m.value("num").toInt();
 		else

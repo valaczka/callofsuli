@@ -220,10 +220,9 @@ bool Server::serverDirCheck()
 
 bool Server::databaseLoad()
 {
-	QVariantMap m;
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system");
 
-	if (!m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system",
-									 QVariantList(), &m)) {
+	if (m.isEmpty()) {
 		qWarning() << tr("Az adatbázis üres, előkészítem.");
 
 		QVariantMap params;

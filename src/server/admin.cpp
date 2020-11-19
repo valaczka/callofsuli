@@ -68,11 +68,11 @@ bool Admin::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 	QJsonArray l;
 	QVariantList params;
 
-
-	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, class.name as classname, "
-									"isTeacher, isAdmin FROM user "
-									"LEFT JOIN class ON (class.id=user.classid)",
-									params, &l);
+	l = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, "
+																	"class.name as classname, "
+																	"isTeacher, isAdmin FROM user "
+																	"LEFT JOIN class ON (class.id=user.classid)",
+																	params));
 	(*jsonResponse)["list"] = l;
 
 	return true;
@@ -90,11 +90,12 @@ bool Admin::userGet(QJsonObject *jsonResponse, QByteArray *)
 
 	params << m_message.jsonData().value("username").toString();
 
-	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, classid, class.name as classname, "
-										  "isTeacher, isAdmin FROM user "
-										  "LEFT JOIN class ON (class.id=user.classid) "
-										  "WHERE username=?",
-										  params, jsonResponse);
+	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
+																						"classid, class.name as classname, "
+																						"isTeacher, isAdmin FROM user "
+																						"LEFT JOIN class ON (class.id=user.classid) "
+																						"WHERE username=?",
+																						params));
 
 	return true;
 }
@@ -252,9 +253,7 @@ bool Admin::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 
 bool Admin::getAllClass(QJsonObject *jsonResponse, QByteArray *)
 {
-	QJsonArray l;
-	m_client->db()->execSelectQuery("SELECT id, name FROM class ORDER BY name", QVariantList(), &l);
-	(*jsonResponse)["list"] = l;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id, name FROM class ORDER BY name"));
 
 	return true;
 }
@@ -346,14 +345,13 @@ bool Admin::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 
 bool Admin::getSettings(QJsonObject *jsonResponse, QByteArray *)
 {
-	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), jsonResponse);
+	(*jsonResponse)["serverName"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverName from system").value("serverName"));
 
-	QJsonArray list;
-	m_client->db()->execSelectQuery("SELECT key, value FROM settings", QVariantList(), &list);
+	QVariantList list = m_client->db()->execSelectQuery("SELECT key, value FROM settings");
 
-	foreach (QJsonValue d, list) {
-		QString key = d.toObject().value("key").toString();
-		(*jsonResponse)[key] = d.toObject().value("value");
+	foreach (QVariant d, list) {
+		QString key = d.toMap().value("key").toString();
+		(*jsonResponse)[key] = QJsonValue::fromVariant(d.toMap().value("value"));
 	}
 
 	return true;

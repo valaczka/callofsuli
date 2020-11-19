@@ -19,6 +19,7 @@ QPagePanel {
 		m.addAction(actionConnect)
 		m.addAction(actionRemove)
 		m.addAction(actionEdit)
+		m.addAction(actionAutoConnect)
 	}
 
 
@@ -65,7 +66,7 @@ QPagePanel {
 
 
 
-	QObjectItemProxyList {
+	QVariantMapProxyView {
 		id: serverList
 		anchors.top: header.bottom
 		anchors.left: parent.left
@@ -119,7 +120,7 @@ QPagePanel {
 		id: actionServerNew
 		text: qsTr("Új szerver")
 		onTriggered: {
-			servers.serverIndex = -1
+			servers.serverKey = -1
 			servers.editing = true
 		}
 	}
@@ -137,7 +138,7 @@ QPagePanel {
 		text: qsTr("Szerkesztés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
-			servers.serverIndex = serverList.sourceIndex
+			servers.serverKey = serverList.sourceVariantMapModel.getKey(serverList.sourceIndex)
 			servers.editing = true
 		}
 	}
@@ -155,7 +156,7 @@ QPagePanel {
 											})
 				dd.accepted.connect(function () {
 					servers.serverDeleteSelected(servers.serversModel)
-					servers.serverIndex = -1
+					servers.serverKey = -1
 				})
 				dd.open()
 			} else {
@@ -168,7 +169,7 @@ QPagePanel {
 										   })
 				d.accepted.connect(function () {
 					servers.serverDelete(si)
-					servers.serverIndex = -1
+					servers.serverKey = -1
 				})
 				d.open()
 			}

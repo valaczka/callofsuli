@@ -51,42 +51,24 @@ public:
 
 	bool batchQuery(const QString &query);
 	bool batchQueryFromFile(const QString &filename);
+
 	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
 	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
 	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) const;
 	QSqlQuery listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false) const;
-	QVariantMap runQuery(QSqlQuery query);
-	bool execQuery(QSqlQuery query);
 
-	QVariantMap runSimpleQuery(QString query, const QVariantList &args = QVariantList()) {
-		return runQuery(simpleQuery(query, args));
-	}
-	QVariantMap runInsertQuery(QString query, const QVariantMap &map = QVariantMap()) {
-		return runQuery(insertQuery(query, map));
-	}
-	QVariantMap runUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) {
-		return runQuery(updateQuery(query, map, bindValues));
-	}
+	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 
-	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList()) {
-		return execQuery(simpleQuery(query, args));
-	}
+	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
+	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr)
+	{ return execQuery(simpleQuery(query, args), errorString); }
+	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
+	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(), QString *errorString = nullptr);
+	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false,
+					   QString *errorString = nullptr);
 
-	bool execBatchQuery(QString query, const QVariantList &list);
-	bool execSelectQuery(QString query, const QVariantList &args = QVariantList(), QVariantList *records = nullptr);
-	bool execSelectQuery(QString query, const QVariantList &args, QJsonArray *records);
-	bool execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QVariantMap *record = nullptr);
-	bool execSelectQueryOneRow(QString query, const QVariantList &args, QJsonObject *record);
-
-	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap());
-
-	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) {
-		return execQuery(updateQuery(query, map, bindValues));
-	}
-
-	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false) {
-		return execQuery(listQuery(query, list, bindValues, parenthesizeValues));
-	}
 
 	static QString hashPassword (const QString &password, QString *salt = nullptr,
 								 QCryptographicHash::Algorithm method = QCryptographicHash::Sha1);

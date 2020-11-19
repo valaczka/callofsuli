@@ -63,6 +63,7 @@ public:
 	Q_PROPERTY(QString userRankName READ userRankName WRITE setUserRankName NOTIFY userRankNameChanged)
 	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
+	Q_PROPERTY(QString userRankImage READ userRankImage WRITE setUserRankImage NOTIFY userRankImageChanged)
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -98,6 +99,7 @@ public:
 	QString userRankName() const { return m_userRankName; }
 	QString userFirstName() const { return m_userFirstName; }
 	QString userLastName() const { return m_userLastName; }
+	QString userRankImage() const { return m_userRankImage; }
 	QString serverDataDir() const { return m_serverDataDir; }
 
 	QString serverName() const { return m_serverName; }
@@ -130,6 +132,7 @@ public slots:
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
 
+
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
@@ -149,6 +152,7 @@ private slots:
 	void setUserRankName(QString userRankName);
 	void setUserFirstName(QString userFirstName);
 	void setUserLastName(QString userLastName);
+	void setUserRankImage(QString userRankImage);
 	void setServerName(QString serverName);
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
@@ -199,6 +203,7 @@ signals:
 	void passwordResetEnabledChanged(bool passwordResetEnabled);
 	void registrationDomainsChanged(QVariantList registrationDomains);
 	void waitForResourcesChanged(QStringList waitForResources);
+	void userRankImageChanged(QString userRankImage);
 
 private:
 	void performUserInfo(const CosMessage &message);
@@ -225,6 +230,7 @@ private:
 	QVariantList m_registrationDomains;
 	QStringList m_waitForResources;
 	QStringList m_registeredServerResources;
+	QString m_userRankImage;
 };
 
 

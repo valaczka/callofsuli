@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * qobjectmodel.h
+ * variantmapmodel.h
  *
- * Created on: 2020. 11. 14.
+ * Created on: 2020. 11. 18.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * QObjectModel
+ * VariantMapModel
  *
  *  This file is part of Call of Suli.
  *
@@ -32,22 +32,21 @@
  * SOFTWARE.
  */
 
-#ifndef QOBJECTMODEL_H
-#define QOBJECTMODEL_H
+#ifndef VARIANTMAPMODEL_H
+#define VARIANTMAPMODEL_H
 
 #include <QAbstractListModel>
-#include "qobjectdatalist.h"
 
+class VariantMapData;
 
-class QObjectModel : public QAbstractListModel
+class VariantMapModel : public QAbstractListModel
 {
 	Q_OBJECT
-
 	Q_PROPERTY(int selectedCount READ selectedCount NOTIFY selectedCountChanged)
 
 public:
-	explicit QObjectModel(QObjectDataList *dataList = nullptr, const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
-	~QObjectModel();
+	explicit VariantMapModel(VariantMapData *dataList = nullptr, const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
+	~VariantMapModel();
 
 	int rowCount(const QModelIndex &) const;
 	QVariant data(const QModelIndex &index, int role) const;
@@ -60,17 +59,16 @@ public:
 	void beginRemoveRows(const int &from, const int &to);
 	void endRemoveRows();
 
-	QObjectList getSelected() const { return m_selected; }
+	QList<int> getSelected() const { return m_selected; }
 
 public slots:
-	QObject* get(int i) const;
-	void updateObject(QObject *o);
+	const QVariantMap get(int i) const;
+	const QVariantMap getByKey(int key) const;
+	int getKey(int i) const;
+	void updateItem(const int &row);
 
-	void select(QObject *o);
 	void select(int i);
-	void unselect(QObject *o);
 	void unselect(int i);
-	void selectToggle(QObject *o);
 	void selectToggle(int i);
 	void selectAll();
 	void unselectAll();
@@ -80,9 +78,9 @@ signals:
 	void selectedCountChanged(int selectedCount);
 
 private:
-	QObjectDataList *m_data;
-	QObjectList m_selected;
+	VariantMapData *m_data;
+	QList<int> m_selected;
 	QHash<int, QByteArray> m_roleNames;
 };
 
-#endif // QOBJECTMODEL_H
+#endif // VARIANTMAPMODEL_H

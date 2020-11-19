@@ -50,9 +50,14 @@ UserInfo::UserInfo(Client *client, const CosMessage &message)
 
 bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 {
-	m_client->db()->execSelectQueryOneRow("SELECT serverName from system", QVariantList(), jsonResponse);
-	m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as passwordResetEnabled FROM settings WHERE key='email.passwordReset'", QVariantList(), jsonResponse);
-	m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as registrationEnabled FROM settings WHERE key='email.registration'", QVariantList(), jsonResponse);
+	(*jsonResponse)["serverName"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverName from system").value("serverName"));
+	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as passwordResetEnabled "
+																											"FROM settings WHERE key='email.passwordReset'")
+																	  .value("passwordResetEnabled"));
+	(*jsonResponse)["registraionEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as registrationEnabled "
+																										  "FROM settings WHERE key='email.registration'")
+																	.value("registraionEnabled"));
+
 
 	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());
 
@@ -79,9 +84,9 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList l;
 	l << username;
 
-	m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
-										  "isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
-										  "FROM userInfo where username=?", l, jsonResponse);
+	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
+																						"isTeacher, isAdmin, classid, classname, xp, rankid, rankname, rankimage "
+																						"FROM userInfo where username=?", l));
 
 	return true;
 
@@ -97,13 +102,9 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	QJsonArray l;
-	m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "
 									"isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
-									"FROM userInfo ORDER BY firstname, lastname",
-									QVariantList(),
-									&l);
-	(*jsonResponse)["list"] = l;
+									"FROM userInfo ORDER BY firstname, lastname"));
 
 	return true;
 }
@@ -128,8 +129,7 @@ bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList l;
 	l << email;
 
-	QVariantMap m;
-	m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE username=?) as e", l, &m);
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE username=?) as e", l);
 
 	if (m.value("e", false).toBool()) {
 		(*jsonResponse)["error"] = "email exists";
@@ -166,9 +166,8 @@ bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantList ll;
 	ll << rowId;
-	m_client->db()->execSelectQueryOneRow("SELECT code FROM registration WHERE id=?", ll, &m);
 
-	QString code = m.value("code").toString();
+	QString code = m_client->db()->execSelectQueryOneRow("SELECT code FROM registration WHERE id=?", ll).value("code").toString();
 
 	if (code.isEmpty()) {
 		setServerError();
@@ -201,7 +200,8 @@ bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList l;
 	l << email;
 	l << password;
-	if (!m_client->db()->execSelectQueryOneRow("SELECT firstname, lastname FROM registration WHERE email=? and code=?", l, &m)) {
+	m = m_client->db()->execSelectQueryOneRow("SELECT firstname, lastname FROM registration WHERE email=? and code=?", l);
+	if (m.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid email or code";
 		return false;
 	}

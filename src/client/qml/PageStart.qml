@@ -20,7 +20,7 @@ QPage {
 		id: servers
 
 		property bool editing: false
-		property int serverIndex: -1
+		property int serverKey: -1
 
 		onResourcesChanged: loadLabel.setText(resources)
 
@@ -82,7 +82,6 @@ QPage {
 	Action {
 		id: actionAbout
 		text: qsTr("Névjegy")
-		enabled: control.isCurrentItem
 		onTriggered: {
 			JS.dialogMessageInfo("Call of Suli",
 								 qsTr("Verzió: ")+Qt.application.version+
@@ -93,7 +92,6 @@ QPage {
 
 	Action {
 		id: actionExit
-		enabled: control.isCurrentItem
 		text: qsTr("Kilépés")
 		onTriggered: mainWindow.close()
 	}
@@ -117,7 +115,6 @@ QPage {
 	Action {
 		id: tmXtest
 		shortcut: "F2"
-		enabled: control.isCurrentItem
 		text: "TMX"
 		onTriggered: {
 			var o = JS.createPage("TMXtest", {})

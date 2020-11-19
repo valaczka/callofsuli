@@ -10,10 +10,13 @@ QToolButton {
 	id: control
 
 	property UserDetails userDetails: null
+	property bool userNameVisible: true
 
-	display: Button.TextBesideIcon
+	display: userNameVisible ? Button.TextBesideIcon : Button.IconOnly
 
-	icon.source: "image://sql/rank/"+cosClient.userRank+".svg"
+	icon.source: cosClient.userRankImage.length ?
+					 "image://sql/"+cosClient.userRankImage :
+					 "image://sql/rank/"+cosClient.userRank+".svg"
 	icon.color: "transparent"
 	icon.width: CosStyle.pixelSize*1.9
 	icon.height: CosStyle.pixelSize*1.9

@@ -76,6 +76,10 @@ void AbstractActivity::send(const CosMessage::CosClass &cosClass, const QString 
 }
 
 
+/**
+ * @brief AbstractActivity::setClient
+ * @param client
+ */
 
 
 void AbstractActivity::setClient(Client *client)

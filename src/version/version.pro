@@ -1,10 +1,8 @@
-requires(unix:!android)
-
 include(./version.pri)
 
 #TEMPLATE = aux
 
-!skip_version: {
+unix:!android:!skip_version: {
 	build_nr.commands = cd $$PWD && ./buildnumber $${VER_MAJ} $${VER_MIN} $${VER_MAINTENANCE}
 	build_nr.depends = FORCE
 

@@ -37,80 +37,8 @@
 
 #include <QObject>
 #include "abstractactivity.h"
-#include "qobjectmodel.h"
-#include "qobjectdatalist.h"
-
-/**
- * @brief The ServerData class
- */
-
-class ServerData : public QObject
-{
-	Q_OBJECT
-
-	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-	Q_PROPERTY(QString host READ host WRITE setHost NOTIFY hostChanged)
-	Q_PROPERTY(int port READ port WRITE setPort NOTIFY portChanged)
-	Q_PROPERTY(bool ssl READ ssl WRITE setSsl NOTIFY sslChanged)
-	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
-	Q_PROPERTY(QString session READ session WRITE setSession NOTIFY sessionChanged)
-	Q_PROPERTY(bool autoconnect READ autoconnect WRITE setAutoconnect NOTIFY autoconnectChanged)
-	Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
-
-public:
-	ServerData(QObject *parent = nullptr);
-	ServerData(const QJsonObject &object, QObject *parent = nullptr);
-	ServerData(const QVariantMap &map, QObject *parent = nullptr);
-	~ServerData();
-
-	QString name() const { return m_name; }
-	QString host() const { return m_host; }
-	int port() const { return m_port; }
-	bool ssl() const { return m_ssl; }
-	QString username() const { return m_username; }
-	QString session() const { return m_session; }
-	bool autoconnect() const { return m_autoconnect; }
-	int id() const { return m_id; }
-
-	QJsonObject asJsonObject() const;
-	void set(const QVariantMap &map);
-
-public slots:
-	void setName(QString name);
-	void setHost(QString host);
-	void setPort(int port);
-	void setSsl(bool ssl);
-	void setUsername(QString username);
-	void setSession(QString session);
-	void setAutoconnect(bool autoconnect);
-	void setId(int id);
-
-signals:
-	void nameChanged(QString name);
-	void hostChanged(QString host);
-	void portChanged(int port);
-	void sslChanged(bool ssl);
-	void usernameChanged(QString username);
-	void sessionChanged(QString session);
-	void autoconnectChanged(bool autoconnect);
-	void idChanged(int id);
-
-private:
-	QString m_name;
-	QString m_host;
-	int m_port;
-	bool m_ssl;
-	QString m_username;
-	QString m_session;
-	bool m_autoconnect;
-	int m_id;
-};
-
-
-/**
- * @brief The Servers class
- */
-
+#include "variantmapmodel.h"
+#include "variantmapdata.h"
 
 class Servers : public AbstractActivity
 {
@@ -118,8 +46,8 @@ class Servers : public AbstractActivity
 
 	Q_PROPERTY(QVariantMap resources READ resources NOTIFY resourcesChanged)
 	Q_PROPERTY(bool readyResources READ readyResources NOTIFY readyResourcesChanged)
-	Q_PROPERTY(QObjectModel* serversModel READ serversModel NOTIFY serversModelChanged)
-	Q_PROPERTY(ServerData* connectedServer READ connectedServer WRITE setConnectedServer NOTIFY connectedServerChanged)
+	Q_PROPERTY(VariantMapModel* serversModel READ serversModel NOTIFY serversModelChanged)
+	Q_PROPERTY(int connectedServerKey READ connectedServerKey WRITE setConnectedServerKey NOTIFY connectedServerKeyChanged)
 
 
 public:
@@ -134,26 +62,27 @@ public:
 	void checkResources();
 	bool readyResources() const { return m_readyResources; }
 
-	QObjectModel *serversModel() const { return m_serversModel; }
-	int nextId();
-	ServerData* connectedServer() const { return m_connectedServer; }
+	VariantMapModel *serversModel() const { return m_serversModel; }
+	int connectedServerKey() const { return m_connectedServerKey; }
 
 	void saveServerList();
+	QVariantMap createFullMap(const QVariantMap &newData = QVariantMap(), const QVariantMap &from = QVariantMap());
 
 
 public slots:
 	void serverListReload();
 	void serverConnect(const int &index);
-	int serverInsertOrUpdate(const int &index, const QVariantMap &map);
+	int serverInsertOrUpdate(const int &key, const QVariantMap &map);
 	void serverDelete(const int &index);
-	void serverDeleteSelected(QObjectModel *model);
+	void serverDeleteKey(const int &key);
+	void serverDeleteSelected(VariantMapModel *model);
 	void serverSetAutoConnect(const int &index);
-	void serverTryLogin(ServerData *d);
+	void serverTryLogin(const int &key);
 	void serverLogOut();
 	void doAutoConnect();
 
 	void setReadyResources(bool readyResources);
-	void setConnectedServer(ServerData* connectedServer);
+	void setConnectedServerKey(int connectedServerKey);
 
 protected slots:
 	void clientSetup() override;
@@ -173,17 +102,18 @@ signals:
 
 	void resourcesChanged(QVariantMap resources);
 	void readyResourcesChanged(bool readyResources);
-	void serversModelChanged(QObjectModel* serversModel);
-	void connectedServerChanged(ServerData* connectedServer);
+	void serversModelChanged(VariantMapModel* serversModel);
+
+	void connectedServerKeyChanged(int connectedServerKey);
 
 private:
 	QVariantMap m_resources;
 	bool m_readyResources;
-	QObjectDataList m_serverList;
-	QObjectModel* m_serversModel;
+	VariantMapData m_serverList;
+	VariantMapModel* m_serversModel;
 	QString m_dataFileName;
-	ServerData* m_connectedServer;
-	ServerData* m_serverTryConnect;
+	int m_connectedServerKey;
+	int m_serverTryConnectKey;
 };
 
 
