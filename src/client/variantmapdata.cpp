@@ -209,10 +209,13 @@ bool VariantMapData::removeKey(const int &key)
 
 int VariantMapData::key(const QString &field, const QVariant &value, const int &from) const
 {
-	for (int i=from; i<size(); i++) {
-		QVariantMap m = at(i).second;
+	_MapList::const_iterator it;
+
+	for (it = constBegin()+from; it != constEnd(); ++it) {
+		_MapPair p = *it;
+		QVariantMap m = p.second;
 		if (m.value(field) == value)
-			return at(i).first;
+			return p.first;
 	}
 
 	return -1;
@@ -229,10 +232,13 @@ int VariantMapData::key(const QString &field, const QVariant &value, const int &
 
 int VariantMapData::find(const QString &field, const QVariant &value, const int &from) const
 {
-	for (int i=from; i<size(); i++) {
-		QVariantMap m = at(i).second;
+	_MapList::const_iterator it;
+
+	for (it = constBegin()+from; it != constEnd(); ++it) {
+		_MapPair p = *it;
+		QVariantMap m = p.second;
 		if (m.value(field) == value)
-			return i;
+			return it-constBegin();
 	}
 
 	return -1;
@@ -250,9 +256,12 @@ int VariantMapData::find(const QString &field, const QVariant &value, const int 
 
 int VariantMapData::keyIndex(const int &key) const
 {
-	for (int i=0; i<size(); i++) {
-		if (at(i).first == key)
-			return i;
+	_MapList::const_iterator it;
+
+	for (it = constBegin(); it != constEnd(); ++it) {
+		_MapPair p = *it;
+		if (p.first == key)
+			return it-constBegin();
 	}
 
 	return -1;
@@ -267,9 +276,12 @@ int VariantMapData::keyIndex(const int &key) const
 
 QVariantMap VariantMapData::valueKey(const int &key) const
 {
-	for (int i=0; i<size(); i++) {
-		if (at(i).first == key)
-			return at(i).second;
+	_MapList::const_iterator it;
+
+	for (it = constBegin(); it != constEnd(); ++it) {
+		_MapPair p = *it;
+		if (p.first == key)
+			return p.second;
 	}
 
 	return QVariantMap();
@@ -363,8 +375,10 @@ int VariantMapData::getNextKey() const
 {
 	int nextKey = 1;
 
-	for (int i=0; i<size(); i++) {
-		_MapPair p = at(i);
+	_MapList::const_iterator it;
+
+	for (it = constBegin(); it != constEnd(); ++it) {
+		_MapPair p = *it;
 		if (p.first >= nextKey)
 			nextKey = p.first+1;
 	}
@@ -383,8 +397,11 @@ int VariantMapData::getNextId(const QString &idField)
 {
 	int nextId = 0;
 
-	for (int i=0; i<size(); i++) {
-		QVariantMap m = at(i).second;
+	_MapList::const_iterator it;
+
+	for (it = constBegin(); it != constEnd(); ++it) {
+		_MapPair p = *it;
+		QVariantMap m = p.second;
 		int n = m.value(idField, 0).toInt();
 		if (n >= nextId)
 			nextId = n+1;
@@ -420,11 +437,16 @@ void VariantMapData::fromMapList(const QVariantList &list, const QString &unique
 		}
 	}
 
-	for (int i=0; i<size(); i++) {
-		int kk = at(i).first;
+	_MapList::const_iterator it;
+
+	for (it = constBegin(); it != constEnd(); ) {
+		_MapPair p = *it;
+		int kk = p.first;
 		if (!usedKeys.contains(kk)) {
 			removeKey(kk);
-			i = -1;
+			it = constBegin();
+		} else {
+			++it;
 		}
 	}
 }
@@ -454,11 +476,16 @@ void VariantMapData::fromJsonArray(const QJsonArray &list, const QString &unique
 		}
 	}
 
-	for (int i=0; i<size(); i++) {
-		int kk = at(i).first;
+	_MapList::const_iterator it;
+
+	for (it = constBegin(); it != constEnd(); ) {
+		_MapPair p = *it;
+		int kk = p.first;
 		if (!usedKeys.contains(kk)) {
 			removeKey(kk);
-			i = -1;
+			it = constBegin();
+		} else {
+			++it;
 		}
 	}
 }

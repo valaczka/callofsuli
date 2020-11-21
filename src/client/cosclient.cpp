@@ -49,6 +49,7 @@
 #include "studentmap.h"
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
+#include "serversettings.h"
 
 
 
@@ -194,6 +195,7 @@ void Client::registerTypes()
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
+	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 }
 

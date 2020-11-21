@@ -63,8 +63,9 @@ Page {
 			terrain: "terrain1"
 			playerCharacter: "character2"
 			level: 1
-			startBlock: 3
-			startHp: 5
+			startBlock: 2
+			startHp: 3
+
 
 			Scene {
 				id: mainScene
@@ -73,18 +74,38 @@ Page {
 				height: 600
 
 				Label {
+					id: lbl
 					anchors.centerIn: parent
-					text: "Szia"
+					text: qsTr("Loading")
 				}
 			}
 
 
-			onTerrainDataChanged: {
+			Scene {
+				id: exitScene
+				width: 600
+				height: 600
+
+				Label {
+					anchors.centerIn: parent
+					text: qsTr("Exit")
+				}
+			}
+
+			onCurrentSceneChanged: {
+				console.debug("Current scene", _closeEnabled, currentScene)
+				if (currentScene == exitScene && _closeEnabled) {
+					console.debug("Game aborted")
+					mainStack.back()
+				}
+			}
+
+
+			function loadScene() {
 				if (terrainData) {
-					gameScene.scenePrivate.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.tmx
+					gameScene.scenePrivate.loadScene(":/terrain/"+game.terrain+"/"+terrainData.tmx)
 					bg.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.background
 				} else {
-					gameScene.scenePrivate.source = null
 					bg.source = null
 				}
 			}
@@ -94,7 +115,8 @@ Page {
 				id: gameScene
 				game: game
 				scenePrivate.game: game
-				scenePrivate.onLayersLoaded: game.currentScene = gameScene
+				scenePrivate.onSceneLoadStarted: lbl.text = tmxFileName
+				scenePrivate.onSceneLoadFailed: cosClient.sendMessageError(qsTr("Pálya betöltése sikertelen"), qsTr("Nem sikerült betölteni az adatokat"))
 			}
 
 			Connections {
@@ -113,9 +135,15 @@ Page {
 								 flick.setYOffset()
 							 }
 
-			Component.onCompleted: {
-				loadTerrainData()
+			onGameAbortRequest: {
+				_closeEnabled = true
+				console.debug("Abort request", _closeEnabled, currentScene)
+				if (currentScene == exitScene && _closeEnabled) {
+					console.debug("Game aborted")
+					mainStack.back()
+				}
 			}
+
 		}
 
 		onWidthChanged: setXOffset()
@@ -303,9 +331,12 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-
+		game.loadScene()
 	}
 
+	Component.onDestruction: {
+		console.debug("PAGET TXM TEST destructing")
+	}
 
 
 
@@ -314,6 +345,9 @@ Page {
 		if (!_closeEnabled) {
 			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {
+				game.currentScene = exitScene
+				bg.source = ""
+				game.abortGame()
 				_closeEnabled = true
 				mainWindow.close()
 			})
@@ -328,8 +362,9 @@ Page {
 		if (!_closeEnabled) {
 			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {
-				_closeEnabled = true
-				mainStack.back()
+				game.currentScene = exitScene
+				bg.source = ""
+				game.abortGame()
 			})
 			d.open()
 			return true

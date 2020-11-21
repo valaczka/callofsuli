@@ -174,6 +174,12 @@ void Servers::serverListReload()
 
 void Servers::serverConnect(const int &index)
 {
+	if (m_client->socket()->state() != QAbstractSocket::UnconnectedState) {
+		m_client->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
+		return;
+	}
+
+
 	m_serverTryConnectKey = -1;
 
 	QVariantMap d = m_serverList.value(index).second;

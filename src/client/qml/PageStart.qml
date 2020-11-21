@@ -46,7 +46,7 @@ QPage {
 			} }
 	]
 
-	swipeMode: control.width < 900
+	swipeMode: width < 900
 
 	panelComponents: if (swipeMode)
 						 servers.editing ? fullComponents : listComponents

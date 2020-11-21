@@ -58,8 +58,10 @@ GameObject::GameObject(QQuickItem *parent) :
 
 GameObject::~GameObject()
 {
-	if (m_body)
+	if (m_body) {
+		m_body->deleteFixtures();
 		m_body->deleteLater();
+	}
 
 	m_body = nullptr;
 }

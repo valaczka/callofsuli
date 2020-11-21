@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameladder.h
+ * serversettings.h
  *
- * Created on: 2020. 10. 25.
+ * Created on: 2020. 11. 20.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameLadder
+ * ServerSettings
  *
  *  This file is part of Call of Suli.
  *
@@ -32,48 +32,31 @@
  * SOFTWARE.
  */
 
-#ifndef GAMELADDER_H
-#define GAMELADDER_H
+#ifndef SERVERSETTINGS_H
+#define SERVERSETTINGS_H
 
-#include <QRect>
-#include <QObject>
-#include "gameblock.h"
+#include "abstractactivity.h"
 
-class GameLadder : public QObject
+class ServerSettings : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QRectF boundRect READ boundRect WRITE setBoundRect NOTIFY boundRectChanged)
-	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
-	Q_PROPERTY(GameBlock * blockTop READ blockTop WRITE setBlockTop NOTIFY blockTopChanged)
-	Q_PROPERTY(GameBlock * blockBottom READ blockBottom WRITE setBlockBottom NOTIFY blockBottomChanged)
-
 public:
-	explicit GameLadder(QObject *parent = nullptr);
-
-	QRectF boundRect() const { return m_boundRect; }
-	bool active() const { return m_active; }
-	GameBlock * blockTop() const { return m_blockTop; }
-	GameBlock * blockBottom() const { return m_blockBottom; }
+	explicit ServerSettings(QQuickItem *parent = nullptr);
+	~ServerSettings();
 
 public slots:
-	void setBoundRect(QRectF boundRect);
-	void setActive(bool active);
-	void setBlockTop(GameBlock * blockTop);
-	void setBlockBottom(GameBlock * blockBottom);
+	void settingsReload() { send(CosMessage::ClassAdmin, "getSettings"); }
+
+protected slots:
+	//void clientSetup() override;
+	void onMessageReceived(const CosMessage &message) override;
+	//void onMessageFrameReceived(const CosMessage &message) override;
 
 signals:
-	void boundRectChanged(QRectF boundRect);
-	void activeChanged(bool active);
-	void blockTopChanged(GameBlock * blockTop);
-	void blockBottomChanged(GameBlock * blockBottom);
-
-private:
-	QRectF m_boundRect;
-	bool m_active;
-	GameBlock * m_blockTop;
-	GameBlock * m_blockBottom;
+	void settingsLoaded(const QVariantMap &data);
+	void settingsUpdateSuccess();
+	void settingsUpdateFailed();
 };
 
-
-#endif // GAMELADDER_H
+#endif // SERVERSETTINGS_H

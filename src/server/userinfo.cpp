@@ -51,12 +51,12 @@ UserInfo::UserInfo(Client *client, const CosMessage &message)
 bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 {
 	(*jsonResponse)["serverName"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverName from system").value("serverName"));
-	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as passwordResetEnabled "
+	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
 																											"FROM settings WHERE key='email.passwordReset'")
-																	  .value("passwordResetEnabled"));
-	(*jsonResponse)["registraionEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as registrationEnabled "
+																	  .value("v"));
+	(*jsonResponse)["registrationEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
 																										  "FROM settings WHERE key='email.registration'")
-																	.value("registraionEnabled"));
+																	.value("v"));
 
 
 	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());

@@ -120,7 +120,7 @@ QPagePanel {
 		onServerKeyChanged: loadData()
 	}
 
-	onPanelActivated: textHostname.forceActiveFocus()
+	//onPanelActivated: textHostname.forceActiveFocus()
 
 	Component.onCompleted: loadData()
 

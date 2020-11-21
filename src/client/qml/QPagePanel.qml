@@ -59,13 +59,14 @@ Item {
 	Item {
 		id: panel
 
-		width: control.swipeMode ? control.width-8 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
-		height: control.swipeMode ? control.height-8 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
+		width: control.swipeMode ? control.width-10 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
+		height: control.swipeMode ? control.height-10 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 
 
 		DropShadow {
+			visible: !control.swipeMode
 			anchors.fill: panel
 			horizontalOffset: 3
 			verticalOffset: 3
@@ -100,10 +101,17 @@ Item {
 			anchors.fill: panel
 		}
 
+		Rectangle {
+			id: blackbg
+			color: JS.setColorAlpha("black", 0.4)
+			visible: false
+			anchors.fill: panel
+		}
+
 		OpacityMask {
 			id: opacity1
 			anchors.fill: panel
-			source: metalbg
+			source: control.swipeMode ? blackbg : metalbg
 			maskSource: border2
 		}
 

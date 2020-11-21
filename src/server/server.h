@@ -109,6 +109,7 @@ signals:
 	void serverDirChanged(QString serverDir);
 	void serverNameChanged(QString serverName);
 	void resourcesChanged(QVariantMap resources);
+	void serverInfoChanged();
 };
 
 #endif // SERVER_H

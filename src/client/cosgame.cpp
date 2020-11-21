@@ -73,15 +73,21 @@ CosGame::CosGame(QQuickItem *parent)
 
 CosGame::~CosGame()
 {
+	qDebug() << "COS GAME" << this << "DESTROY";
+
+	qDebug() << m_enemies << "enemies destroy";
 	qDeleteAll(m_enemies.begin(), m_enemies.end());
 	m_enemies.clear();
 
+	qDebug() << m_blocks << "blocks destroy";
 	qDeleteAll(m_blocks.begin(), m_blocks.end());
 	m_blocks.clear();
 
+	qDebug() << m_ladders << "ladders destroy";
 	qDeleteAll(m_ladders.begin(), m_ladders.end());
 	m_ladders.clear();
 
+	qDebug() << m_question << "question destroy";
 	if (m_question)
 		m_question->deleteLater();
 }
@@ -390,13 +396,6 @@ void CosGame::setGameScene(QQuickItem *gameScene)
 
 	m_gameScene = gameScene;
 	emit gameSceneChanged(m_gameScene);
-
-	if (m_gameScene) {
-		GameScene *s = qvariant_cast<GameScene *>(m_gameScene->property("scenePrivate"));
-		if (s) {
-			connect(s, &GameScene::layersLoaded, this, &CosGame::onLayersLoaded);
-		}
-	}
 }
 
 void CosGame::setPlayerStartPosition(GameObject *playerStartPosition)
@@ -458,10 +457,25 @@ void CosGame::setStartHp(int startHp)
  * @brief CosGame::onLayersLoaded
  */
 
-void CosGame::onLayersLoaded()
+void CosGame::startGame()
 {
+	qDebug() << "START GAME";
 	recreateEnemies();
 	resetPlayer();
+
+	emit gameStarted();
+}
+
+
+/**
+ * @brief CosGame::abortGame
+ */
+
+void CosGame::abortGame()
+{
+	qDebug() << "ABORT GAME";
+	setRunning(false);
+	emit gameAbortRequest();
 }
 
 
@@ -547,6 +561,8 @@ void CosGame::setTerrain(QString terrain)
 
 	m_terrain = terrain;
 	emit terrainChanged(m_terrain);
+
+	loadTerrainData();
 }
 
 
@@ -586,20 +602,17 @@ void CosGame::loadTerrainData()
 	if (m_terrain.isEmpty())
 		return;
 
-	if (!m_terrainData.isEmpty()) {
-		qWarning() << "Terrain data already loaded";
-		return;
-	}
+	qDebug() << "Load terrain data" << m_terrain;
 
 	QVariant v = Client::readJsonFile(QString("qrc:/terrain/"+m_terrain+"/data.json"));
 
 	if (!v.isValid()) {
 		qWarning() << "Invalid json data";
+		setTerrainData(QVariantMap());
 		return;
 	}
 
 	setTerrainData(v.toMap());
-
 }
 
 

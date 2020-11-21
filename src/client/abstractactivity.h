@@ -100,11 +100,13 @@ protected slots:
 
 private slots:
 	void onMessageReceivedPrivate(const CosMessage &message);
+	void onSocketDisconnected();
 
 signals:
 	void clientChanged(Client* client);
 	void isBusyChanged(bool isBusy);
 	void dbChanged(ActivityDB* db);
+	void socketDisconnected();
 
 protected:
 	Client* m_client;

@@ -392,6 +392,9 @@ bool Admin::setSettings(QJsonObject *jsonResponse, QByteArray *)
 	m_client->db()->db().commit();
 
 	(*jsonResponse)["success"] = true;
+
+	m_client->server()->serverInfoChanged();
+
 	return true;
 }
 

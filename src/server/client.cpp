@@ -53,6 +53,8 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
 
 	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
+
+	connect(server, &Server::serverInfoChanged, this, &Client::sendServerInfo);
 }
 
 
@@ -81,6 +83,17 @@ void Client::sendClientRoles()
 	CosMessage m(obj, CosMessage::ClassUserInfo, "newRoles");
 	m.setClientRole(m_clientRoles);
 	m.send(m_socket);
+}
+
+
+/**
+ * @brief Client::sendServerInfo
+ */
+
+void Client::sendServerInfo()
+{
+	UserInfo u(this, CosMessage(QJsonObject(), CosMessage::ClassUserInfo, "getServerInfo"));
+	u.start();
 }
 
 
@@ -516,29 +529,18 @@ bool Client::emailSmptClient(const QString &emailType, SmtpClient *smtpClient, Q
 		return false;
 	}
 
-	QVariantMap m;
-
-	m["smtpServer"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.server'").value("v");
-	m["smtpPort"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.port'").value("v");
-	m["smtpType"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.type'").value("v");
-	m["smtpEmail"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.email'").value("v");
-	m["smtpUser"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.user'").value("v");
-	m["smtpPassword"] = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.password'").value("v");
+	bool enabled = false;
 
 	if (emailType == "passwordReset")
-		m["enabled"] = m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'").value("enabled");
+		enabled = m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'").value("enabled", false).toBool();
 	else if (emailType == "registration")
-		m["enabled"] = m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.registration'").value("enabled");
+		enabled = m_db->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.registration'").value("enabled", false).toBool();
 
-	m["serverName"] = m_db->execSelectQueryOneRow("SELECT serverName from system").value("serverName");
-
-	bool enabled = m.value("enabled", "").toString().toInt();
-
-	QString server = m.value("smtpServer", "").toString();
-	int port = m.value("smtpPort", "-1").toString().toInt();
-	int type = m.value("smtpType", "0").toString().toInt();
-	QString user = m.value("smtpUser", "").toString();
-	QString password = m.value("smtpPassword", "").toString();
+	QString server =  m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.server'").value("v").toString();
+	int port = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.port'").value("v", 0).toInt();
+	int type = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.type'").value("v", 0).toInt();
+	QString user = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.user'").value("v").toString();
+	QString password = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.password'").value("v").toString();
 
 	qDebug() << enabled << server << port << user << password;
 
@@ -560,10 +562,10 @@ bool Client::emailSmptClient(const QString &emailType, SmtpClient *smtpClient, Q
 		c = SmtpClient::TlsConnection;
 
 	if (serverName)
-		*serverName = m.value("serverName", tr("Call of Suli szerver")).toString();
+		*serverName = m_db->execSelectQueryOneRow("SELECT serverName from system").value("serverName", tr("Call of Suli szerver")).toString();
 
 	if (serverEmail)
-		*serverEmail = m.value("smtpEmail").toString();
+		*serverEmail = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.email'").value("v").toString();
 
 	smtpClient->setHost(server);
 	smtpClient->setPort(port);

@@ -11,284 +11,280 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	requiredPanelWidth: 900
+	requiredPanelWidth: 700
 
 	title: qsTr("Szerver beállításai")
 
-	mainToolBarComponent: Row {
-		Layout.fillHeight: true
-		QToolBusyIndicator { running: page.isBusy }
-		QToolButton { action: actionSave }
+	mainToolBarComponent: QToolButton { action: actionSave }
+
+	activity: ServerSettings {
+		id: serverSettings
 	}
 
-	property bool isBusy: false
 
+	panelComponents: Component {
+		QPagePanel {
+			id: panel
 
-	signal saveRequest()
+			maximumWidth: 600
 
-	onlyPanel: QPagePanel {
-		id: panel
+			layoutFillWidth: true
+			panelVisible: true
 
-		title: page.title
-		maximumWidth: 800
+			QAccordion {
+				id: accordion
 
-		onPanelActivated: textServerName.forceActiveFocus()
-		onPopulated: textServerName.forceActiveFocus()
+				anchors.fill: parent
 
-		Connections {
-			target: page
-			onPageActivated: textServerName.forceActiveFocus()
-			onSaveRequest: {
-				var o = JS.getModifiedSqlFields([
-													textServerName,
-													textHost,
-													textPort,
-													comboType,
-													textEmail,
-													textUser,
-													textPassword,
-													comboRegistration,
-													textDomain,
-													comboReset
-												])
+				QCollapsible {
+					title: qsTr("Általános")
 
-				if (Object.keys(o).length) {
-					isBusy = true
-					o["class"] = "userInfo"
-					o["func"] = "setSettings"
-					//cosClient.socketSend(o)
+					QGridLayout {
+						id: grid1
+						enabled: !serverSettings.isBusy
+
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+
+						width: parent.width
+						watchModification: true
+
+						QGridLabel {
+							field: textServerName
+						}
+
+						QGridTextField {
+							id: textServerName
+							fieldName: qsTr("Szerver neve")
+							sqlField: "serverName"
+
+							validator: RegExpValidator { regExp: /.+/ }
+						}
+
+					}
 				}
-			}
-		}
+
+				QCollapsible {
+					title: qsTr("SMTP szerver")
+
+					QGridLayout {
+						id: grid2
+
+						enabled: !serverSettings.isBusy
+
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+
+						width: parent.width
+						watchModification: true
 
 
-		QAccordion {
-			id: accordion
+						QGridLabel { field: textHost }
 
-			anchors.fill: parent
+						QGridTextField {
+							id: textHost
+							fieldName: qsTr("Host")
+							sqlField: "smtp.server"
 
-			QCollapsible {
-				title: qsTr("Általános")
+						}
 
-				QGridLayout {
-					id: grid1
-					enabled: !page.isBusy
+						QGridLabel { field: textPort }
 
+						QGridTextField {
+							id: textPort
+							fieldName: qsTr("Port")
+							sqlField: "smtp.port"
 
-					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+							validator: IntValidator { bottom: 0; top: 65535 }
 
-					width: parent.width
-					watchModification: true
+						}
 
-					QGridLabel {
-						field: textServerName
-					}
+						QGridText {
+							field: comboType
+							text: qsTr("Biztonság típusa:")
+						}
 
-					QGridTextField {
-						id: textServerName
-						fieldName: qsTr("Szerver neve")
-						sqlField: "serverName"
+						QGridComboBox {
+							id: comboType
+							sqlField: "smtp.type"
 
-						validator: RegExpValidator { regExp: /.+/ }
-					}
+							valueRole: "value"
+							textRole: "text"
 
-				}
-			}
+							model: [
+								{value: "0", text: qsTr("Nincs titkosítás")},
+								{value: "1", text: qsTr("SSL titkosítás")},
+								{value: "2", text: qsTr("TLS titkosítás")}
+							]
+						}
 
-			QCollapsible {
-				title: qsTr("SMTP szerver")
+						QGridLabel { field: textEmail }
 
-				QGridLayout {
-					id: grid2
+						QGridTextField {
+							id: textEmail
+							fieldName: qsTr("Email cím")
+							sqlField: "smtp.email"
 
-					enabled: !page.isBusy
+							validator: RegExpValidator { regExp: /^((.+@..+\...+)|)$/ }
 
-					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
-
-					width: parent.width
-					watchModification: true
-
-
-					QGridLabel { field: textHost }
-
-					QGridTextField {
-						id: textHost
-						fieldName: qsTr("Host")
-						sqlField: "smtp.server"
-
-					}
-
-					QGridLabel { field: textPort }
-
-					QGridTextField {
-						id: textPort
-						fieldName: qsTr("Port")
-						sqlField: "smtp.port"
-
-						validator: IntValidator { bottom: 0; top: 65535 }
-
-					}
-
-					QGridText {
-						field: comboType
-						text: qsTr("Biztonság típusa:")
-					}
-
-					QGridComboBox {
-						id: comboType
-						sqlField: "smtp.type"
-
-						valueRole: "value"
-						textRole: "text"
-
-						model: [
-							{value: "0", text: qsTr("Nincs titkosítás")},
-							{value: "1", text: qsTr("SSL titkosítás")},
-							{value: "2", text: qsTr("TLS titkosítás")}
-						]
-					}
-
-					QGridLabel { field: textEmail }
-
-					QGridTextField {
-						id: textEmail
-						fieldName: qsTr("Email cím")
-						sqlField: "smtp.email"
-
-						validator: RegExpValidator { regExp: /^((.+@..+\...+)|)$/ }
-
-					}
+						}
 
 
-					QGridLabel { field: textUser }
+						QGridLabel { field: textUser }
 
-					QGridTextField {
-						id: textUser
-						fieldName: qsTr("Felhasználó")
-						sqlField: "smtp.user"
+						QGridTextField {
+							id: textUser
+							fieldName: qsTr("Felhasználó")
+							sqlField: "smtp.user"
 
-					}
+						}
 
 
-					QGridLabel { field: textPassword }
+						QGridLabel { field: textPassword }
 
-					QGridTextField {
-						id: textPassword
-						fieldName: qsTr("Jelszó")
-						sqlField: "smtp.password"
+						QGridTextField {
+							id: textPassword
+							fieldName: qsTr("Jelszó")
+							sqlField: "smtp.password"
 
-						echoMode: TextInput.Password
+							echoMode: TextInput.Password
+
+						}
 
 					}
 
 				}
 
-			}
+				QCollapsible {
+					title: qsTr("E-mail funkciók")
 
-			QCollapsible {
-				title: qsTr("E-mail funkciók")
+					QGridLayout {
+						id: grid3
 
-				QGridLayout {
-					id: grid3
+						enabled: !serverSettings.isBusy
 
-					enabled: !page.isBusy
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
 
-					onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+						width: parent.width
+						watchModification: true
 
-					width: parent.width
-					watchModification: true
+						QGridText {
+							field: comboRegistration
+							text: qsTr("Emailes regisztráció:")
+						}
 
-					QGridText {
-						field: comboRegistration
-						text: qsTr("Emailes regisztráció:")
-					}
+						QGridComboBox {
+							id: comboRegistration
+							sqlField: "email.registration"
 
-					QGridComboBox {
-						id: comboRegistration
-						sqlField: "email.registration"
+							valueRole: "value"
+							textRole: "text"
 
-						valueRole: "value"
-						textRole: "text"
-
-						model: [
-							{value: "0", text: qsTr("Letiltva")},
-							{value: "1", text: qsTr("Engedélyezve")},
-						]
-					}
+							model: [
+								{value: "0", text: qsTr("Letiltva")},
+								{value: "1", text: qsTr("Engedélyezve")},
+							]
+						}
 
 
-					QGridLabel { field: textDomain }
+						QGridLabel { field: textDomain }
 
-					QGridTextField {
-						id: textDomain
+						QGridTextField {
+							id: textDomain
 
-						enabled: comboRegistration.currentValue === "1"
-						fieldName: qsTr("Domain korlátozás")
-						placeholderText: qsTr("Domain korlátozás vesszővel elválasztva (pl: gmail.com, freemail.com)")
-						sqlField: "email.registrationDomains"
-					}
+							enabled: comboRegistration.currentValue === "1"
+							fieldName: qsTr("Domain korlátozás")
+							placeholderText: qsTr("Domain korlátozás vesszővel elválasztva (pl: gmail.com, freemail.com)")
+							sqlField: "email.registrationDomains"
+						}
 
 
-					QGridText {
-						field: comboReset
-						text: qsTr("Jelszó helyreállítás:")
-					}
+						QGridText {
+							field: comboReset
+							text: qsTr("Jelszó helyreállítás:")
+						}
 
-					QGridComboBox {
-						id: comboReset
-						sqlField: "email.passwordReset"
+						QGridComboBox {
+							id: comboReset
+							sqlField: "email.passwordReset"
 
-						valueRole: "value"
-						textRole: "text"
+							valueRole: "value"
+							textRole: "text"
 
-						model: [
-							{value: "0", text: qsTr("Letiltva")},
-							{value: "1", text: qsTr("Engedélyezve")},
-						]
+							model: [
+								{value: "0", text: qsTr("Letiltva")},
+								{value: "1", text: qsTr("Engedélyezve")},
+							]
+						}
 					}
 				}
 			}
-		}
 
 
 
 
-		Connections {
-			target: cosClient
+			Connections {
+				target: serverSettings
 
-			onSettingsLoaded: {
-				isBusy = false
-				JS.setSqlFields([
-									textServerName,
-									textHost,
-									textPort,
-									comboType,
-									textEmail,
-									textUser,
-									textPassword,
-									comboRegistration,
-									textDomain,
-									comboReset
-								], data)
+				onSettingsLoaded: {
+					JS.setSqlFields([
+										textServerName,
+										textHost,
+										textPort,
+										comboType,
+										textEmail,
+										textUser,
+										textPassword,
+										comboRegistration,
+										textDomain,
+										comboReset
+									], data)
 
-				grid1.modified = false
-				grid2.modified = false
-				grid3.modified = false
+					grid1.modified = false
+					grid2.modified = false
+					grid3.modified = false
+				}
+
+				onSettingsUpdateSuccess: {
+					cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
+					serverSettings.settingsReload()
+				}
+
+				/*
+				onSettingsError: {
+					isBusy = false
+					cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+				}*/
 			}
 
-			onSettingsSuccess: {
-				isBusy = false
-				cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
-				getSettings()
+			Connections {
+				target: actionSave
+				onTriggered: {
+					var o = JS.getModifiedSqlFields([
+														textServerName,
+														textHost,
+														textPort,
+														comboType,
+														textEmail,
+														textUser,
+														textPassword,
+														comboRegistration,
+														textDomain,
+														comboReset
+													])
+
+					if (Object.keys(o).length) {
+						serverSettings.send(CosMessage.ClassAdmin, "setSettings", o)
+					}
+				}
 			}
 
-			onSettingsError: {
-				isBusy = false
-				cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
-			}
+
+			Component.onCompleted: serverSettings.settingsReload()
 		}
 
 	}
+
+
+	//onPageActivated: serverSettings.serverSettingsReload()
 
 
 	Action {
@@ -297,16 +293,6 @@ QPage {
 		text: qsTr("Mentés")
 		enabled: false
 		shortcut: "Ctrl+S"
-		onTriggered: saveRequest()
-	}
-
-	onPageActivated: {
-		getSettings()
-	}
-
-	function getSettings() {
-		isBusy = true
-		//cosClient.socketSend({"class": "userInfo", "func": "getSettings"})
 	}
 
 

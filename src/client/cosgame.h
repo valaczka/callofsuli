@@ -45,6 +45,7 @@
 class GamePlayer;
 class GameQuestion;
 
+
 class CosGame : public Game
 {
 	Q_OBJECT
@@ -62,7 +63,7 @@ class CosGame : public Game
 
 	Q_PROPERTY(QMap<int, GameBlock *> blocks READ blocks NOTIFY blocksChanged)
 	Q_PROPERTY(GameObject * playerStartPosition READ playerStartPosition WRITE setPlayerStartPosition NOTIFY playerStartPositionChanged)
-	Q_PROPERTY(QList<GameLadder *> ladders READ ladders NOTIFY laddersChanged)
+	Q_PROPERTY(int ladderCount READ ladderCount)
 
 	Q_PROPERTY(QQuickItem * gameScene READ gameScene WRITE setGameScene NOTIFY gameSceneChanged)
 	Q_PROPERTY(QQuickItem * itemPage READ itemPage WRITE setItemPage NOTIFY itemPageChanged)
@@ -109,9 +110,14 @@ public:
 	QQuickItem * itemPage() const { return m_itemPage; }
 	GameQuestion * question() const { return m_question; }
 
+	int ladderCount() const { return m_ladders.count(); }
+	Q_INVOKABLE GameLadder * ladderAt(int i) { return m_ladders.value(i);}
+
 public slots:
 	void resetPlayer();
 	void setLastPosition();
+	void startGame();
+	void abortGame();
 
 	void setPlayerCharacter(QString playerCharacter);
 	void setTerrain(QString terrain);
@@ -129,13 +135,14 @@ public slots:
 	void setQuestion(GameQuestion * question);
 
 private slots:
-	void onLayersLoaded();
 	void onPlayerDied();
 	void resetRunning();
 	void recalculateBlocks();
 
 signals:
+	void gameStarted();
 	void gameCompleted();
+	void gameAbortRequest();
 
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);
@@ -159,7 +166,7 @@ private:
 	void loadGameData();
 
 	QList<GameEnemyData *> m_enemies;
-	QList<GameLadder *>m_ladders;
+	QList<GameLadder *> m_ladders;
 	QString m_playerCharacter;
 	QVariantMap m_gameData;
 	QVariantMap m_terrainData;

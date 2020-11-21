@@ -33,41 +33,34 @@ function createPage(_qml, _prop) {
 	var comp = Qt.createComponent("Page"+_qml+".qml")
 
 	if (comp.status === Component.Ready) {
-		var obj = comp.createObject(mainWindow, _prop)
+		var incubator = comp.incubateObject(mainWindow, _prop)
+		if (incubator.status !== Component.Ready) {
+			incubator.onStatusChanged = function(status) {
+				if (status === Component.Ready) {
+					console.debug("Object ", incubator.object, "ready")
+					mainStack.push(incubator.object)
+				} else if (status === Component.Error) {
+					console.warning("Component create error: ", _qml, incubator.errorString())
+				}
+			}
+		} else {
+			console.debug("Object ", incubator.object, "incubating...")
+		}
+
+		/*var obj = comp.createObject(mainWindow, _prop)
 		if (obj === null) {
 			console.error("Error creating object")
 			return null
 		}
 
 		mainStack.push(obj)
-		return obj
+		return obj*/
 	} else if (comp.status === Component.Error) {
 		console.warn("Error loading component: ", comp.errorString())
 	}
 
 	return null
 }
-
-
-
-function createPageOnly(_qml, _prop, _parent) {
-	var comp = Qt.createComponent("Page"+_qml+".qml")
-
-	if (comp.status === Component.Ready) {
-		var obj = comp.createObject(_parent, _prop)
-		if (obj === null) {
-			console.error("Error creating object")
-			return null
-		}
-
-		return obj
-	} else if (comp.status === Component.Error) {
-		console.warn("Error loading component: ", comp.errorString())
-	}
-
-	return null
-}
-
 
 
 

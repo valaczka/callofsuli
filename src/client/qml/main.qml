@@ -45,8 +45,9 @@ ApplicationWindow {
 		id: actionBack
 		shortcut: "Esc"
 		onTriggered: if (mainStack.depth > 1)
-			mainStack.get(1).stackBack()
+						 mainStack.get(1).stackBack()
 	}
+
 
 	StackView {
 		id: mainStack
@@ -57,7 +58,14 @@ ApplicationWindow {
 
 		focus: true
 
-		Keys.onBackPressed: back()
+		Keys.onReleased: {
+			if (event.key === Qt.Key_Back) {
+				console.log("back");
+				back()
+				event.accepted=true;
+			}
+		}
+
 
 		initialItem: QCosImage {
 			maxWidth: Math.min(mainWindow.width*0.7, 800)

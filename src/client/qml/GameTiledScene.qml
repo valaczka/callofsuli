@@ -11,6 +11,7 @@ Scene {
 	id: scene
 	debug: true
 	physics: true
+	focus: true
 
 	width: scenePrivate.implicitWidth
 	height: scenePrivate.implicitHeight
@@ -22,8 +23,11 @@ Scene {
 	GameScenePrivate {
 		id: scenePrivate
 
-		onLayersLoaded: {
+		onSceneLoaded: {
+			game.currentScene = gameScene
 			createLadders()
+			game.startGame()
+			scene.forceActiveFocus()
 		}
 	}
 
@@ -176,11 +180,11 @@ Scene {
 
 
 	function createLadders() {
-		if (!game || !game.ladders)
+		if (!game || !game.ladderCount)
 		return
 
-		for (var i=0; i<game.ladders.length; i++) {
-			var l = game.ladders[i]
+		for (var i=0; i<game.ladderCount; i++) {
+			var l = game.ladderAt(i)
 
 			var obj = ladderComponent.createObject(scene,{
 				ladder: l

@@ -44,6 +44,7 @@ SOURCES += \
 		mapdata.cpp \
 		mapeditor.cpp \
 		servers.cpp \
+		serversettings.cpp \
 		sqlimage.cpp \
 		student.cpp \
 		studentmap.cpp \
@@ -73,6 +74,7 @@ HEADERS += \
 	mapdata.h \
 	mapeditor.h \
 	servers.h \
+	serversettings.h \
 	sqlimage.h \
 	student.h \
 	studentmap.h \
@@ -128,6 +130,9 @@ android {
 }
 
 ANDROID_ABIS = armeabi-v7a
+
+DISTFILES += \
+	callofsuli.supp
 
 
 

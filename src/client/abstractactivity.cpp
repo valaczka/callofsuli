@@ -101,6 +101,9 @@ void AbstractActivity::setClient(Client *client)
 		if (m_db) {
 			connect(m_db, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
 		}
+
+		QWebSocket *socket = m_client->socket();
+		connect(socket, &QWebSocket::disconnected, this, &AbstractActivity::onSocketDisconnected);
 	}
 }
 
@@ -168,6 +171,19 @@ void AbstractActivity::setDb(ActivityDB *db)
 void AbstractActivity::onMessageReceivedPrivate(const CosMessage &message)
 {
 	busyStackRemove(message.cosClass(), message.cosFunc(), message.responsedMsgId());
+}
+
+
+/**
+ * @brief AbstractActivity::onSocketDisconnected
+ */
+
+void AbstractActivity::onSocketDisconnected()
+{
+	qDebug() << "Socket disconnected";
+	m_busyStack.clear();
+	setIsBusy(false);
+	emit socketDisconnected();
 }
 
 

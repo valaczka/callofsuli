@@ -32,6 +32,7 @@
  * SOFTWARE.
  */
 
+
 #include "gamescene.h"
 
 #include "mapreader.h"
@@ -48,6 +49,7 @@ GameScene::GameScene(QQuickItem *parent)
 	, m_map(nullptr)
 	, m_tiledLayers()
 	, m_game(nullptr)
+	, m_sceneLoaded(false)
 {
 
 }
@@ -55,45 +57,24 @@ GameScene::GameScene(QQuickItem *parent)
 
 GameScene::~GameScene()
 {
+	qDebug() << this << "game scene destroy";
+
 	if (m_map)
 		delete m_map;
 
+	qDebug() << m_map << "map deleted destroy";
+
 	m_map = nullptr;
+
+	qDebug() << m_tiledLayers << "tiled layers destroy";
 
 	qDeleteAll(m_tiledLayers.begin(), m_tiledLayers.end());
 	m_tiledLayers.clear();
 
+	qDebug() << this << "scene destroy end";
+
 }
 
-
-/**
- * @brief GameScenePrivate::setSource
- * @param source
- */
-
-void GameScene::setSource(QUrl source)
-{
-	if (m_source == source)
-		return;
-
-	m_source = source;
-
-	QString sourceAsString;
-	if (m_source.url().startsWith("qrc:/"))
-		sourceAsString = m_source.url().replace(QString("qrc:/"), QString(":/"));
-	else
-		sourceAsString = m_source.toLocalFile();
-
-	if (!loadMap(sourceAsString))
-		return;
-
-	setImplicitWidth(m_map->width() * m_map->tileWidth());
-	setImplicitHeight(m_map->height() * m_map->tileHeight());
-
-	loadLayers();
-
-	emit sourceChanged(m_source);
-}
 
 /**
  * @brief GameScenePrivate::setTiledLayers
@@ -126,6 +107,32 @@ void GameScene::setGame(CosGame *game)
 }
 
 
+/**
+ * @brief GameScene::loadScene
+ * @param tmxFileName
+ */
+
+void GameScene::loadScene(const QString &tmxFileName)
+{
+	if (m_sceneLoaded) {
+		qWarning() << this << "Scene already loaded";
+		return;
+	}
+
+	emit sceneLoadStarted(tmxFileName);
+
+	if (!loadMap(tmxFileName)) {
+		emit sceneLoadFailed();
+		return;
+	}
+
+	loadLayers();
+
+	emit sceneLoaded();
+}
+
+
+
 
 
 
@@ -153,6 +160,9 @@ bool GameScene::loadMap(const QString &source)
 	}
 
 	emit mapChanged(m_map);
+
+	setImplicitWidth(m_map->width() * m_map->tileWidth());
+	setImplicitHeight(m_map->height() * m_map->tileHeight());
 
 	return true;
 }
@@ -184,8 +194,6 @@ void GameScene::loadLayers()
 			loadLadderLayer(layer);
 		}
 	}
-
-	emit layersLoaded();
 }
 
 

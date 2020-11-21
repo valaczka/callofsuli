@@ -22,9 +22,19 @@ PhysicsEntity {
 	property bool glowEnabled: false
 	property bool _glowForced: true
 
+	property bool _qrcDataFacingLeft: false
 
-	readonly property bool isInverse: entityPrivate && entityPrivate.qrcData ?
-										  ((facingLeft && !entityPrivate.qrcData.facingLeft) || (!facingLeft && entityPrivate.qrcData.facingLeft)) :
+	Connections {
+		target: entityPrivate
+		onQrcDataChanged: if (entityPrivate.qrcData)
+							  _qrcDataFacingLeft = entityPrivate.qrcData.facingLeft
+	}
+
+	onEntityPrivateChanged: if (entityPrivate.qrcData)
+								_qrcDataFacingLeft = entityPrivate.qrcData.facingLeft
+
+	readonly property bool isInverse: entityPrivate ?
+										  ((facingLeft && !_qrcDataFacingLeft) || (!facingLeft && _qrcDataFacingLeft)) :
 										  false
 
 	readonly property bool isWalking: Array("walk", "walk2", "walk3", "walk4", "walk5").includes(spriteSequence.currentSprite)
@@ -40,8 +50,8 @@ PhysicsEntity {
 
 	SpriteSequence {
 		id: spriteSequence
-		width: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameWidth : 10
-		height: entityPrivate && currentSprite ? entityPrivate.qrcData.sprites[currentSprite].frameHeight : 10
+		width: 10
+		height: 10
 
 		running: entityPrivate && entityPrivate.cosGame.running
 
@@ -49,10 +59,16 @@ PhysicsEntity {
 		anchors.bottom: root.bottom
 
 		onCurrentSpriteChanged: if (entityPrivate) {
+									var d = entityPrivate.qrcData.sprites[currentSprite]
+									spriteSequence.width = d.frameWidth
+									spriteSequence.height = d.frameHeight
 									entityPrivate.updateFixtures(currentSprite, isInverse)
 
 									if (Array("dead", "dead2", "dead3", "dead4", "falldeath", "falldeath2", "falldead").includes(currentSprite))
 										entityPrivate.isAlive = false
+								} else {
+									spriteSequence.width = 10
+									spriteSequence.height = 10
 								}
 
 		transform: Rotation {
@@ -140,10 +156,15 @@ PhysicsEntity {
 
 
 	function loadSprites() {
-		if (!entityPrivate || !entityPrivate.qrcData || !entityPrivate.qrcData.sprites)
+		if (!entityPrivate)
 			return
 
-		var sprites = Object.keys(entityPrivate.qrcData.sprites)
+		var qd = entityPrivate.qrcData.sprites
+
+		if (!qd)
+			return
+
+		var sprites = Object.keys(qd)
 
 		for (var i=-1; i<sprites.length; i++) {
 			var sname = (i === -1) ? "idle" : sprites[i]
@@ -151,7 +172,7 @@ PhysicsEntity {
 			if (sname === "idle" && i !== -1)
 				continue
 
-			var sdata = entityPrivate.qrcData.sprites[sname]
+			var sdata = qd[sname]
 			if (!sdata)
 				continue
 
