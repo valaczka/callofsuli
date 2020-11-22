@@ -17,7 +17,7 @@ Rectangle {
 
 	Connections {
 		target: enemyPrivate.player && playerItem ? playerItem : null
-		onXChanged: {
+		function onXChanged(x) {
 			playerRectSet()
 		}
 
@@ -25,11 +25,13 @@ Rectangle {
 
 	Connections {
 		target: enemyPrivate
-		onPlayerChanged: if (enemyPrivate.player)
-							 playerRectSet()
-						 else {
-							 root.destroy()
-						 }
+		function onPlayerChanged(player) {
+			if (player)
+				playerRectSet()
+			else {
+				root.destroy()
+			}
+		}
 	}
 
 	Timer {
@@ -44,8 +46,6 @@ Rectangle {
 		onRunningChanged: if (!running)
 							  root.color = enemyPrivate.attackRunning ? CosStyle.colorEnemyMarkerAttack : CosStyle.colorEnemyMarker
 	}
-
-
 
 
 	function playerRectSet() {

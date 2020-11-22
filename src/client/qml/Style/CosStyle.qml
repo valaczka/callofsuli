@@ -39,7 +39,7 @@ QtObject {
 
 	property color colorBg: "#33ffffff"
 
-	property int pixelSize: 18
+	property int pixelSize: (Qt.platform.os === "android" ? 16 : 18)
 	property int baseHeight: Math.max(pixelSize * 2.2, (Qt.platform.os === "android" ? 48 : 24))
 	property int twoLineHeight: Math.max(pixelSize * 48/18, 32)
 	property int panelPaddingLeft: pixelSize * 0.5

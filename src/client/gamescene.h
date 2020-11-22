@@ -65,11 +65,11 @@ public:
 	void loadPlayerLayer(Tiled::Layer *layer);
 	void loadLadderLayer(Tiled::Layer *layer);
 
-	Q_INVOKABLE void loadScene(const QString &tmxFileName);
 
 public slots:
 	void setTiledLayers(QList<TiledPaintedLayer *> tiledLayers);
 	void setGame(CosGame * game);
+	void loadScene(const QString &tmxFileName);
 
 signals:
 	void mapChanged(Tiled::Map * map);

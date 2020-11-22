@@ -33,6 +33,8 @@ function createPage(_qml, _prop) {
 	var comp = Qt.createComponent("Page"+_qml+".qml")
 
 	if (comp.status === Component.Ready) {
+		_prop.opacity = 0.0
+
 		var incubator = comp.incubateObject(mainWindow, _prop)
 		if (incubator.status !== Component.Ready) {
 			incubator.onStatusChanged = function(status) {

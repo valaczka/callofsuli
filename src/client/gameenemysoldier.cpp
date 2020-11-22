@@ -97,8 +97,6 @@ void GameEnemySoldier::setQrcDir()
 
 void GameEnemySoldier::createFixtures()
 {
-	qDebug() << "Game enemy private: create fixtures()";
-
 	QVariant body = parentEntity()->property("body");
 
 	if (!body.isValid()) {

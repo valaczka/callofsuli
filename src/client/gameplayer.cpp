@@ -104,8 +104,6 @@ void GamePlayer::setQrcDir()
 
 void GamePlayer::createFixtures()
 {
-	qDebug() << "Game player private: create fixtures()";
-
 	QVariant body = parentEntity()->property("body");
 
 	if (!body.isValid()) {
@@ -167,12 +165,6 @@ void GamePlayer::createFixtures()
 
 	setBodyPolygon(polygon);
 
-
-	QQmlListProperty<Box2DFixture> f2 = b2body->fixtures();
-
-	for (int i=0; i<f2.count(&f2); ++i) {
-		qDebug() << i << f.at(&f2, i);
-	}
 }
 
 

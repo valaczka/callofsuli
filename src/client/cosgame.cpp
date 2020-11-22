@@ -34,6 +34,7 @@
 
 #include <QQmlEngine>
 #include <QTimer>
+#include <QRandomGenerator>
 
 #include "cosclient.h"
 
@@ -124,7 +125,7 @@ void CosGame::recreateEnemies()
 			if (data->enemy())
 				continue;
 
-			if (qrand() % 4) {
+			if (QRandomGenerator::global()->generate() % 4) {
 				qDebug() << "add question";
 				QVariantMap m;
 				m.insert("szia", "szia");
@@ -183,14 +184,14 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	qreal x = enemyData->boundRect().left();
 	qreal y = enemyData->boundRect().top();
 
-	x += qrand() % enemyData->boundRect().toRect().width();
+	x += QRandomGenerator::global()->generate() % enemyData->boundRect().toRect().width();
 
 	bool facingLeft = true;
 
 	if (x+item->width() > enemyData->boundRect().right()) {
 		x = enemyData->boundRect().right()-item->width();
 	} else {
-		if (qrand() % 2 == 1)
+		if (QRandomGenerator::global()->generate() % 2 == 1)
 			facingLeft = false;
 	}
 

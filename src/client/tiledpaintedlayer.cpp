@@ -75,8 +75,6 @@ void TiledPaintedLayer::onParentChanged(QQuickItem *)
 {
 	QQuickItem *p = qobject_cast<QQuickItem *>(this->parent());
 
-	qDebug() << "PARENT CHANGED" << this->parent() << p;
-
 	if (p) {
 		connect(p, &QQuickItem::widthChanged, this, &TiledPaintedLayer::onParentSizeChanged);
 		connect(p, &QQuickItem::heightChanged, this, &TiledPaintedLayer::onParentSizeChanged);
@@ -104,11 +102,9 @@ void TiledPaintedLayer::setMap(Tiled::Map *map)
 
 void TiledPaintedLayer::paint(QPainter *painter)
 {
-	qDebug() << "paint" << m_map << m_layer;
 	if (!m_map || !m_layer)
 		return;
 
-	qDebug() << "PAINT" << m_map << m_layer->name();
 
 	setOpacity(m_layer->opacity());
 	setVisible(m_layer->isVisible());
@@ -158,7 +154,6 @@ void TiledPaintedLayer::paint(QPainter *painter)
 		}
 	}
 
-	qDebug() << "*** PAINT END *******************************";
 }
 
 
@@ -175,5 +170,4 @@ void TiledPaintedLayer::onParentSizeChanged()
 	setWidth(p->width());
 	setHeight(p->height());
 
-	qDebug() << "WH" << this << width() << height() << p->width() << p->height();
 }

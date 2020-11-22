@@ -29,6 +29,7 @@
 #pragma once
 
 #include "maprenderer.h"
+#include <QPainterPath>
 
 namespace Tiled {
 
@@ -42,50 +43,50 @@ namespace Tiled {
 class TILEDSHARED_EXPORT IsometricRenderer : public MapRenderer
 {
 public:
-    IsometricRenderer(const Map *map) : MapRenderer(map) {}
+	IsometricRenderer(const Map *map) : MapRenderer(map) {}
 
-    QSize mapSize() const override;
+	QSize mapSize() const override;
 
-    QRect boundingRect(const QRect &rect) const override;
+	QRect boundingRect(const QRect &rect) const override;
 
-    QRectF boundingRect(const MapObject *object) const override;
-    QPainterPath shape(const MapObject *object) const override;
+	QRectF boundingRect(const MapObject *object) const override;
+	QPainterPath shape(const MapObject *object) const override;
 
-    void drawGrid(QPainter *painter, const QRectF &rect, QColor grid) const override;
+	void drawGrid(QPainter *painter, const QRectF &rect, QColor grid) const override;
 
-    void drawTileLayer(QPainter *painter, const TileLayer *layer,
-                       const QRectF &exposed = QRectF()) const override;
+	void drawTileLayer(QPainter *painter, const TileLayer *layer,
+					   const QRectF &exposed = QRectF()) const override;
 
-    void drawTileSelection(QPainter *painter,
-                           const QRegion &region,
-                           const QColor &color,
-                           const QRectF &exposed) const override;
+	void drawTileSelection(QPainter *painter,
+						   const QRegion &region,
+						   const QColor &color,
+						   const QRectF &exposed) const override;
 
-    void drawMapObject(QPainter *painter,
-                       const MapObject *object,
-                       const QColor &color) const override;
+	void drawMapObject(QPainter *painter,
+					   const MapObject *object,
+					   const QColor &color) const override;
 
-    using MapRenderer::pixelToTileCoords;
-    QPointF pixelToTileCoords(qreal x, qreal y) const override;
+	using MapRenderer::pixelToTileCoords;
+	QPointF pixelToTileCoords(qreal x, qreal y) const override;
 
-    using MapRenderer::tileToPixelCoords;
-    QPointF tileToPixelCoords(qreal x, qreal y) const override;
+	using MapRenderer::tileToPixelCoords;
+	QPointF tileToPixelCoords(qreal x, qreal y) const override;
 
-    using MapRenderer::screenToTileCoords;
-    QPointF screenToTileCoords(qreal x, qreal y) const override;
+	using MapRenderer::screenToTileCoords;
+	QPointF screenToTileCoords(qreal x, qreal y) const override;
 
-    using MapRenderer::tileToScreenCoords;
-    QPointF tileToScreenCoords(qreal x, qreal y) const override;
+	using MapRenderer::tileToScreenCoords;
+	QPointF tileToScreenCoords(qreal x, qreal y) const override;
 
-    using MapRenderer::screenToPixelCoords;
-    QPointF screenToPixelCoords(qreal x, qreal y) const override;
+	using MapRenderer::screenToPixelCoords;
+	QPointF screenToPixelCoords(qreal x, qreal y) const override;
 
-    using MapRenderer::pixelToScreenCoords;
-    QPointF pixelToScreenCoords(qreal x, qreal y) const override;
+	using MapRenderer::pixelToScreenCoords;
+	QPointF pixelToScreenCoords(qreal x, qreal y) const override;
 
 private:
-    QPolygonF pixelRectToScreenPolygon(const QRectF &rect) const;
-    QPolygonF tileRectToScreenPolygon(const QRect &rect) const;
+	QPolygonF pixelRectToScreenPolygon(const QRectF &rect) const;
+	QPolygonF tileRectToScreenPolygon(const QRect &rect) const;
 };
 
 } // namespace Tiled

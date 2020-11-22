@@ -80,7 +80,9 @@ QPage {
 
 				Connections {
 					target: control
-					onPageActivated: textUser.forceActiveFocus()
+					function onPageActivated() {
+						textUser.forceActiveFocus()
+					}
 				}
 
 				onPopulated: textUser.forceActiveFocus()

@@ -224,7 +224,7 @@ QPage {
 			Connections {
 				target: serverSettings
 
-				onSettingsLoaded: {
+				function onSettingsLoaded(data) {
 					JS.setSqlFields([
 										textServerName,
 										textHost,
@@ -243,7 +243,7 @@ QPage {
 					grid3.modified = false
 				}
 
-				onSettingsUpdateSuccess: {
+				function onSettingsUpdateSuccess() {
 					cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
 					serverSettings.settingsReload()
 				}
@@ -257,7 +257,7 @@ QPage {
 
 			Connections {
 				target: actionSave
-				onTriggered: {
+				function onTriggered() {
 					var o = JS.getModifiedSqlFields([
 														textServerName,
 														textHost,

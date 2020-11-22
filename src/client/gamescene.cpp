@@ -57,21 +57,13 @@ GameScene::GameScene(QQuickItem *parent)
 
 GameScene::~GameScene()
 {
-	qDebug() << this << "game scene destroy";
-
 	if (m_map)
 		delete m_map;
 
-	qDebug() << m_map << "map deleted destroy";
-
 	m_map = nullptr;
-
-	qDebug() << m_tiledLayers << "tiled layers destroy";
 
 	qDeleteAll(m_tiledLayers.begin(), m_tiledLayers.end());
 	m_tiledLayers.clear();
-
-	qDebug() << this << "scene destroy end";
 
 }
 

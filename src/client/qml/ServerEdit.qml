@@ -88,6 +88,7 @@ QPagePanel {
 						servers.editing = false
 					else if (servers.serverKey == -1)
 						servers.serverKey = nextK
+					loadData()
 				}
 			}
 
@@ -116,8 +117,13 @@ QPagePanel {
 	Connections {
 		target: servers
 
-		onEditingChanged: loadData()
-		onServerKeyChanged: loadData()
+		function onEditingChanged(editing) {
+			loadData()
+		}
+
+		function onServerKeyChanged(serverKey) {
+			loadData()
+		}
 	}
 
 	//onPanelActivated: textHostname.forceActiveFocus()

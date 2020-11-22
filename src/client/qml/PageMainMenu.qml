@@ -102,14 +102,16 @@ QPage {
 
 			Connections {
 				target: cosClient
-				onUserRolesChanged: {
+				function onUserRolesChanged(userRoles) {
 					reloadModel()
 				}
 			}
 
 			Connections {
 				target: page
-				onPageActivated: list.forceActiveFocus()
+				function onPageActivated() {
+					list.forceActiveFocus()
+				}
 			}
 
 		}
@@ -122,16 +124,16 @@ QPage {
 
 	Connections {
 		target: cosClient
-		onUserRolesChanged: {
+		function onUserRolesChanged(userRole) {
 			mainStack.pop(page)
 		}
 
-		onAuthRequirePasswordReset: {
+		function onAuthRequirePasswordReset() {
 			mainStack.pop(page)
 			JS.createPage("PasswordReset", {})
 		}
 
-		onRegistrationRequest: {
+		function onRegistrationRequest() {
 			mainStack.pop(page)
 			JS.createPage("Registration", {})
 		}

@@ -26,8 +26,10 @@ PhysicsEntity {
 
 	Connections {
 		target: entityPrivate
-		onQrcDataChanged: if (entityPrivate.qrcData)
-							  _qrcDataFacingLeft = entityPrivate.qrcData.facingLeft
+		function onQrcDataChanged(qrcData) {
+			if (qrcData)
+				_qrcDataFacingLeft = qrcData.facingLeft
+		}
 	}
 
 	onEntityPrivateChanged: if (entityPrivate.qrcData)
@@ -121,7 +123,7 @@ PhysicsEntity {
 
 	Connections {
 		target: entityPrivate ? entityPrivate : null
-		onDie: {
+		function onDie() {
 			console.debug(root, "DIED")
 			dieAnimation.start()
 		}

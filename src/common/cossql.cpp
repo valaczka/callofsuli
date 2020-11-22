@@ -98,7 +98,7 @@ bool CosSql::batchQuery(const QString &query)
 
 	qDebug().noquote() << "SQL batch query ----------";
 
-	QStringList list = query.split("\n\n", QString::SkipEmptyParts);
+	QStringList list = query.split("\n\n", Qt::SkipEmptyParts);
 	foreach (QString cmd, list) {
 		QString c = cmd.simplified();
 
@@ -478,7 +478,7 @@ QString CosSql::hashPassword(const QString &password, QString *salt, QCryptograp
 	}
 
 	QByteArray pwd;
-	pwd.append(password).append(_salt);
+	pwd.append(password.toUtf8()).append(_salt.toUtf8());
 
 	QByteArray hash = QCryptographicHash::hash(pwd, method);
 	return QString::fromLatin1(hash.toHex());

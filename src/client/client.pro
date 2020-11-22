@@ -1,4 +1,4 @@
-QT += sql websockets quick multimedia svg
+QT += sql websockets quick svg multimedia
 
 CONFIG += c++11
 
@@ -115,7 +115,7 @@ win32 {
 android {
 #    QT += androidextras
 
-	DISTFILES += \
+DISTFILES += \
 		android/AndroidManifest.xml
 
 	ANDROID_ABIS = armeabi-v7a
@@ -126,13 +126,6 @@ android {
 	CommonRcc.files += $$PWD/../../share/*.cres
 
 	INSTALLS += CommonRcc
-
 }
 
 ANDROID_ABIS = armeabi-v7a
-
-DISTFILES += \
-	callofsuli.supp
-
-
-

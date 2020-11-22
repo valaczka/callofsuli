@@ -92,19 +92,11 @@ Page {
 				}
 			}
 
-			onCurrentSceneChanged: {
-				console.debug("Current scene", _closeEnabled, currentScene)
-				if (currentScene == exitScene && _closeEnabled) {
-					console.debug("Game aborted")
-					mainStack.back()
-				}
-			}
-
 
 			function loadScene() {
 				if (terrainData) {
-					gameScene.scenePrivate.loadScene(":/terrain/"+game.terrain+"/"+terrainData.tmx)
 					bg.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.background
+					gameScene.scenePrivate.loadScene(":/terrain/"+game.terrain+"/"+terrainData.tmx)
 				} else {
 					bg.source = null
 				}
@@ -121,12 +113,18 @@ Page {
 
 			Connections {
 				target: game.player ? game.player : null
-				onXChanged: {
+				function onXChanged(x) {
 					flick.setXOffset()
 					flick.setYOffset()
 				}
-				onFacingLeftChanged: flick.setXOffset()
-				onYChanged: flick.setYOffset()
+
+				function onFacingLeftChanged(facingLeft) {
+					flick.setXOffset()
+				}
+
+				function onYChanged(y) {
+					flick.setYOffset()
+				}
 
 			}
 
@@ -134,15 +132,6 @@ Page {
 								 flick.setXOffset()
 								 flick.setYOffset()
 							 }
-
-			onGameAbortRequest: {
-				_closeEnabled = true
-				console.debug("Abort request", _closeEnabled, currentScene)
-				if (currentScene == exitScene && _closeEnabled) {
-					console.debug("Game aborted")
-					mainStack.back()
-				}
-			}
 
 		}
 
@@ -199,7 +188,11 @@ Page {
 				if (x+fw > cw)
 					x = cw-fw
 
-				if (animX.running || Math.abs(cx-x) > 50) {
+				if (game.player.isRunning) {
+					if (animX.running)
+						animX.stop()
+					flick.contentX = x
+				} else if (animX.running || Math.abs(cx-x) > 50) {
 					animX.to = x
 					animX.restart()
 				} else {
@@ -334,9 +327,6 @@ Page {
 		game.loadScene()
 	}
 
-	Component.onDestruction: {
-		console.debug("PAGET TXM TEST destructing")
-	}
 
 
 
@@ -365,6 +355,8 @@ Page {
 				game.currentScene = exitScene
 				bg.source = ""
 				game.abortGame()
+				_closeEnabled = true
+				mainStack.back()
 			})
 			d.open()
 			return true

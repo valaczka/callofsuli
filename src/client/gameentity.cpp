@@ -511,7 +511,7 @@ void GameEntity::onParentChanged()
 {
 	Entity *e = parentEntity();
 
-	if (!parent() || !e)
+	if (!this->parent() || !e)
 		return;
 
 	connect(e, &Entity::sceneChanged, this, &GameEntity::onSceneChanged);

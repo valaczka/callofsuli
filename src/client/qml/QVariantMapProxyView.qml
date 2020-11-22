@@ -289,7 +289,7 @@ QListView {
 
 	Connections {
 		target: sourceVariantMapModel
-		onSelectedCountChanged: {
+		function onSelectedCountChanged(selectedCount) {
 			if (autoSelectorChange && sourceVariantMapModel.selectedCount == 0)
 				selectorSet=false
 		}

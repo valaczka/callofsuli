@@ -125,7 +125,7 @@ QPage {
 	Connections {
 		target: cosClient
 
-		onConnectionStateChanged: {
+		function onConnectionStateChanged(connectionState) {
 			if (connectionState === Client.Connected) {
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getServerInfo")
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getResources")

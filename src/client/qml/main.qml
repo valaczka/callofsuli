@@ -36,6 +36,8 @@ ApplicationWindow {
 	FontLoader { source: "qrc:/internal/font/HVD_Peace.ttf" }
 
 
+	property alias blur: blur
+
 
 	background: Rectangle {
 		color: "black"
@@ -54,13 +56,13 @@ ApplicationWindow {
 		objectName: "mainStack"
 		anchors.fill: parent
 
-		readonly property int animDuration: 175
+		readonly property int animDuration: 125
 
 		focus: true
 
 		Keys.onReleased: {
 			if (event.key === Qt.Key_Back) {
-				console.log("back");
+				console.log("back", depth);
 				back()
 				event.accepted=true;
 			}
@@ -72,116 +74,88 @@ ApplicationWindow {
 			glowRadius: 6
 		}
 
-		pushEnter: Transition {
+
+		Transition {
+			id: transitionEnter
+
 			SequentialAnimation {
-				PropertyAction {
-					property: "opacity"
-					value: 0.0
-				}
-
 				PauseAnimation {
-					duration: mainStack.animDuration
+					duration: mainStack.animDuration*2
 				}
 
-				PropertyAnimation {
-					property: "opacity"
-					from: 0.0
-					to: 1.0
-					duration: mainStack.animDuration
-				}
-
-				PropertyAnimation {
-					target: blur
-					property: "radius"
-					from: 100
-					to: 0
-					duration: mainStack.animDuration
-				}
-			}
-
-
-		}
-
-		pushExit: Transition {
-			SequentialAnimation {
-				PropertyAnimation {
-					target: blur
-					property: "radius"
-					from: 0
-					to: 100
-					duration: mainStack.animDuration
-				}
-
-				PropertyAnimation {
-					property: "opacity"
-					from: 1.0
-					to: 0.0
-					duration: mainStack.animDuration
-				}
-				PauseAnimation {
-					duration: mainStack.animDuration
+				ParallelAnimation {
+					PropertyAnimation {
+						property: "opacity"
+						from: 0.0
+						to: 1.0
+						duration: mainStack.animDuration
+					}
+					PropertyAnimation {
+						target: blur
+						property: "opacity"
+						from: 1.0
+						to: 0.0
+						duration: mainStack.animDuration
+					}
+					PropertyAnimation {
+						target: blur
+						property: "radius"
+						from: 100
+						to: 0
+						duration: mainStack.animDuration
+					}
 				}
 			}
 		}
 
 
-		popEnter: Transition {
+
+		Transition {
+			id: transitionExit
+
 			SequentialAnimation {
-				PropertyAction {
-					property: "opacity"
-					value: 0.0
+				ParallelAnimation {
+					PropertyAnimation {
+						property: "opacity"
+						from: 1.0
+						to: 0.0
+						duration: mainStack.animDuration
+					}
+					PropertyAnimation {
+						target: blur
+						property: "opacity"
+						from: 0.0
+						to: 1.0
+						duration: mainStack.animDuration
+					}
+					PropertyAnimation {
+						target: blur
+						property: "radius"
+						from: 0
+						to: 100
+						duration: mainStack.animDuration
+					}
 				}
 
 				PauseAnimation {
-					duration: mainStack.animDuration
-				}
-
-				PropertyAnimation {
-					property: "opacity"
-					from: 0.0
-					to: 1.0
-					duration: mainStack.animDuration
-				}
-
-				PropertyAnimation {
-					target: blur
-					property: "radius"
-					from: 100
-					to: 0
-					duration: mainStack.animDuration
-				}
-			}
-
-
-		}
-
-		popExit: Transition {
-			SequentialAnimation {
-				PropertyAnimation {
-					target: blur
-					property: "radius"
-					from: 0
-					to: 100
-					duration: mainStack.animDuration
-				}
-
-				PropertyAnimation {
-					property: "opacity"
-					from: 1.0
-					to: 0.0
-					duration: mainStack.animDuration
-				}
-				PauseAnimation {
-					duration: mainStack.animDuration
+					duration: mainStack.animDuration*2
 				}
 			}
 		}
+
+
+		pushEnter: transitionEnter
+		pushExit: transitionExit
+		popEnter: transitionEnter
+		popExit: transitionExit
 
 		function back() {
-			if (depth > 1)
-				get(1).stackBack()
-			else
+			if (depth > 1) {
+				if (!get(1).stackBack())
+					mainWindow.close()
+			} else {
 				mainWindow.close()
+			}
 		}
 
 		function loginRequest() {
@@ -197,10 +171,18 @@ ApplicationWindow {
 		id: blur
 		anchors.fill: mainStack
 
-		radius: 0
-		visible: mainStack.busy
+		property bool blurEnabled: true
 
-		source: mainStack
+		radius: 80
+		visible: opacity != 0.0
+		opacity: 0.0
+
+		source: Image {
+			width: mainWindow.width
+			height: mainWindow.height
+			fillMode: Image.PreserveAspectCrop
+			source: "qrc:/internal/img/villa.png"
+		}
 	}
 
 
@@ -248,8 +230,7 @@ ApplicationWindow {
 	onClosing: {
 		if (mainStack.depth > 2) {
 			if (!mainStack.get(mainStack.depth-1).windowClose()) {
-				close.accepted = false
-				return
+				Qt.quit()
 			}
 		}
 

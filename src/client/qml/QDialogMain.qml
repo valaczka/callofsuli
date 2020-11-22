@@ -142,8 +142,11 @@ Popup {
 
 	Connections {
 		target: popupContent.item
-		onDlgClose: close()
-		onDlgAccept: {
+		function onDlgClose() {
+			close()
+		}
+
+		function onDlgAccept(data) {
 			close()
 			accepted(data)
 		}

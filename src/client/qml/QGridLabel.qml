@@ -21,20 +21,26 @@ QLabel {
 
 	Connections {
 		target: parent
-		onColumnsChanged: if (field && parent.columns === 1 && field.text.length === 0)
-							  label.opacity=0.0
-						  else
-							  label.opacity=1.0
+		function onColumnsChanged(columns) {
+			if (field && columns === 1 && field.text.length === 0)
+				label.opacity=0.0
+			else
+				label.opacity=1.0
+		}
 
 	}
 
 	Connections {
 		target: field
-		onFieldNameChanged: text = field.fieldName
-		onTextChanged: if (field && parent.columns === 1 && field.text.length === 0)
-						   label.opacity=0.0
-					   else
-						   label.opacity=1.0
+		function onFieldNameChanged(fieldName) {
+			label.text = fieldName
+		}
+		function onTextChanged(text) {
+			if (field && parent.columns === 1 && field.text.length === 0)
+				label.opacity=0.0
+			else
+				label.opacity=1.0
+		}
 	}
 
 
