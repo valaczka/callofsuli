@@ -9,7 +9,7 @@ import "JScript.js" as JS
 
 Scene {
 	id: scene
-	debug: true
+	//debug: true
 	physics: true
 	focus: true
 
@@ -17,7 +17,6 @@ Scene {
 	height: scenePrivate.implicitHeight
 
 	property alias scenePrivate: scenePrivate
-
 
 
 	GameScenePrivate {

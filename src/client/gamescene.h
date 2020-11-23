@@ -47,32 +47,22 @@ class GameScene : public QQuickItem
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Tiled::Map * map READ map NOTIFY mapChanged)
 	Q_PROPERTY(QList<TiledPaintedLayer *> tiledLayers READ tiledLayers NOTIFY tiledLayersChanged)
 	Q_PROPERTY(CosGame * game READ game WRITE setGame NOTIFY gameChanged)
 
 public:
 	GameScene(QQuickItem *parent = 0);
 	~GameScene();
-	Tiled::Map * map() const { return m_map; }
 	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }
 	CosGame * game() const { return m_game; }
-
-	bool loadMap(const QString &source);
-	void loadLayers();
-	void loadGroundLayer(Tiled::Layer *layer);
-	void loadEnemyLayer(Tiled::Layer *layer);
-	void loadPlayerLayer(Tiled::Layer *layer);
-	void loadLadderLayer(Tiled::Layer *layer);
 
 
 public slots:
 	void setTiledLayers(QList<TiledPaintedLayer *> tiledLayers);
 	void setGame(CosGame * game);
-	void loadScene(const QString &tmxFileName);
+	void loadScene();
 
 signals:
-	void mapChanged(Tiled::Map * map);
 	void tiledLayersChanged(QList<TiledPaintedLayer *> tiledLayers);
 	void gameChanged(CosGame * game);
 
@@ -80,13 +70,9 @@ signals:
 	void sceneLoaded();
 	void sceneLoadFailed();
 
-
-
 private:
-	Tiled::Map * m_map;
 	QList<TiledPaintedLayer *> m_tiledLayers;
 	CosGame * m_game;
-	bool m_sceneLoaded;
 };
 
 

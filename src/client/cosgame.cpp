@@ -49,8 +49,6 @@
 
 CosGame::CosGame(QQuickItem *parent)
 	: Game(parent)
-	, m_enemies()
-	, m_ladders()
 	, m_playerCharacter()
 	, m_level(1)
 	, m_player(nullptr)
@@ -61,6 +59,7 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_running(true)
 	, m_itemPage(nullptr)
 	, m_question(nullptr)
+	, m_terrainData(nullptr)
 {
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
 	loadGameData();
@@ -74,23 +73,11 @@ CosGame::CosGame(QQuickItem *parent)
 
 CosGame::~CosGame()
 {
-	qDebug() << "COS GAME" << this << "DESTROY";
-
-	qDebug() << m_enemies << "enemies destroy";
-	qDeleteAll(m_enemies.begin(), m_enemies.end());
-	m_enemies.clear();
-
-	qDebug() << m_blocks << "blocks destroy";
-	qDeleteAll(m_blocks.begin(), m_blocks.end());
-	m_blocks.clear();
-
-	qDebug() << m_ladders << "ladders destroy";
-	qDeleteAll(m_ladders.begin(), m_ladders.end());
-	m_ladders.clear();
-
-	qDebug() << m_question << "question destroy";
 	if (m_question)
 		m_question->deleteLater();
+
+	if (m_terrainData)
+		m_terrainData->deleteLater();
 }
 
 
@@ -102,18 +89,12 @@ CosGame::~CosGame()
 
 void CosGame::recreateEnemies()
 {
-	if (!m_gameScene)
+	if (!m_gameScene || !m_terrainData)
 		return;
 
 	qDebug() << "Recreate enemies";
 
-	QMapIterator<int, GameBlock *> i(m_blocks);
-
-	while (i.hasNext()) {
-		i.next();
-
-		GameBlock *block = i.value();
-
+	foreach (GameBlock *block, m_terrainData->blocks()) {
 		if (block->completed()) {
 			qDebug() << "Block completed" << block;
 			continue;
@@ -210,7 +191,10 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 
 void CosGame::setEnemiesMoving(const bool &moving)
 {
-	foreach (GameEnemyData *data, m_enemies) {
+	if (!m_terrainData)
+		return;
+
+	foreach (GameEnemyData *data, m_terrainData->enemies()) {
 		GameEnemy *e = data->enemyPrivate();
 		if (e)
 			e->setMoving(moving);
@@ -253,8 +237,8 @@ qreal CosGame::deathlyAttackDistance()
 
 void CosGame::resetPlayer()
 {
-	if (!m_gameScene || m_player) {
-		qWarning() << "Invalid scene or player exists";
+	if (!m_gameScene || !m_terrainData || m_player) {
+		qWarning() << "Invalid scene or terrain or player exists";
 		return;
 	}
 
@@ -267,36 +251,35 @@ void CosGame::resetPlayer()
 		return;
 	}
 
+	QPointF p(-1, -1);
 
-	GameObject *item = m_playerStartPosition;
-
-	if (!item && !m_blocks.isEmpty()) {
-		if (m_blocks.contains(m_startBlock)) {
-			GameBlock *block = m_blocks.value(m_startBlock);
-			if (!block->playerPosition().isEmpty())
-				item = block->playerPosition().first();
-		}
-
-		if (!item) {
-			GameBlock *block = m_blocks.first();
-			if (!block->playerPosition().isEmpty())
-				item = block->playerPosition().first();
+	if (m_playerStartPosition) {
+		p = QPointF(m_playerStartPosition->x(), m_playerStartPosition->y());
+	} else if (!m_playerStartPosition && !m_terrainData->blocks().isEmpty()) {
+		if (m_terrainData->blocks().contains(m_startBlock)) {
+			GameBlock *block = m_terrainData->blocks().value(m_startBlock);
+			if (!block->playerPositions().isEmpty())
+				p = block->playerPositions().first();
+		} else {
+			GameBlock *block = m_terrainData->blocks().first();
+			if (!block->playerPositions().isEmpty())
+				p = block->playerPositions().first();
 		}
 	}
 
-	if (item) {
-		m_player->setX(item->x()-m_player->width());
-		m_player->setY(item->y()-m_player->height());
+	if (p != QPointF(-1, -1)) {
+		m_player->setX(p.x()-m_player->width());
+		m_player->setY(p.y()-m_player->height());
 	} else {
 		qWarning() << "Available player position not found";
 	}
 
-	GamePlayer *p = qvariant_cast<GamePlayer *>(m_player->property("entityPrivate"));
-	if (p) {
-		connect(p, &GamePlayer::die, this, &CosGame::onPlayerDied);
-		p->setDefaultHp(m_startHp);
-		p->setHp(m_startHp);
-		p->setIsAlive(true);
+	GamePlayer *pl = qvariant_cast<GamePlayer *>(m_player->property("entityPrivate"));
+	if (pl) {
+		connect(pl, &GamePlayer::die, this, &CosGame::onPlayerDied);
+		pl->setDefaultHp(m_startHp);
+		pl->setHp(m_startHp);
+		pl->setIsAlive(true);
 	} else {
 		qWarning() << "Invalid cast" << m_player;
 	}
@@ -398,6 +381,8 @@ void CosGame::setGameScene(QQuickItem *gameScene)
 	m_gameScene = gameScene;
 	emit gameSceneChanged(m_gameScene);
 }
+
+
 
 void CosGame::setPlayerStartPosition(GameObject *playerStartPosition)
 {
@@ -514,20 +499,22 @@ void CosGame::resetRunning()
 
 void CosGame::recalculateBlocks()
 {
+	if (!m_terrainData)
+		return;
+
 	int active = 0;
 
-	foreach (GameEnemyData *enemy, m_enemies) {
+	foreach (GameEnemyData *enemy, m_terrainData->enemies()) {
 		if (enemy->active())
 			active++;
 	}
 
 	qDebug() << "ACTIVE" << active;
 
-	if (active == 0 && !m_enemies.isEmpty()) {
+	if (active == 0 && !m_terrainData->enemies().isEmpty()) {
 		qDebug() << "************************************* GAME OVER ********************************";
 		emit gameCompleted();
 	}
-
 }
 
 
@@ -562,19 +549,8 @@ void CosGame::setTerrain(QString terrain)
 
 	m_terrain = terrain;
 	emit terrainChanged(m_terrain);
-
-	loadTerrainData();
 }
 
-
-void CosGame::setTerrainData(QVariantMap terrainData)
-{
-	if (m_terrainData == terrainData)
-		return;
-
-	m_terrainData = terrainData;
-	emit terrainDataChanged(m_terrainData);
-}
 
 
 /**
@@ -595,49 +571,48 @@ void CosGame::loadGameData()
 
 
 /**
- * @brief CosGame::loadTerrainData
+ * @brief CosGame::setTerrainData
+ * @param terrainData
  */
 
-void CosGame::loadTerrainData()
+void CosGame::addTerrainData(QList<TiledPaintedLayer *> *tiledLayers, QQuickItem *tiledLayersParent)
 {
-	if (m_terrain.isEmpty())
-		return;
-
-	qDebug() << "Load terrain data" << m_terrain;
-
-	QVariant v = Client::readJsonFile(QString("qrc:/terrain/"+m_terrain+"/data.json"));
-
-	if (!v.isValid()) {
-		qWarning() << "Invalid json data";
-		setTerrainData(QVariantMap());
+	if (m_terrainData) {
+		qWarning() << "Terrain data already loaded";
 		return;
 	}
 
-	setTerrainData(v.toMap());
+	m_terrainData = new GameTerrain(tiledLayers, tiledLayersParent, this);
 }
 
 
 /**
- * @brief CosGame::getBlock
- * @param num
- * @param create
- * @return
+ * @brief CosGame::loadTerrainData
  */
 
-GameBlock *CosGame::getBlock(const int &num, const bool &create)
+bool CosGame::loadTerrainData()
 {
-	if (m_blocks.contains(num))
-		return m_blocks.value(num);
+	if (!m_terrainData) {
+		qWarning() << tr("Missing terrain data");
+		return false;
+	}
 
-	if (!create)
-		return nullptr;
+	if (m_terrain.isEmpty())
+		return false;
 
-	GameBlock *block = new GameBlock(this);
-	m_blocks.insert(num, block);
+	qDebug() << "Load terrain data" << m_terrain;
 
-	connect(block, &GameBlock::completedChanged, this, &CosGame::recalculateBlocks);
 
-	return block;
+	if (!m_terrainData->loadTmxFile(QString(":/terrain/"+m_terrain+"/terrain.tmx"))) {
+		qWarning() << "Terrain data load failed";
+		return false;
+	}
+
+	foreach (GameBlock *block, m_terrainData->blocks()) {
+		connect(block, &GameBlock::completedChanged, this, &CosGame::recalculateBlocks);
+	}
+
+	return true;
 }
 
 

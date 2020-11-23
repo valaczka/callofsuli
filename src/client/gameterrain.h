@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameblock.h
+ * gameterrain.h
  *
- * Created on: 2020. 10. 24.
+ * Created on: 2020. 11. 23.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameBlock
+ * GameTerrain
  *
  *  This file is part of Call of Suli.
  *
@@ -32,67 +32,61 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEBLOCK_H
-#define GAMEBLOCK_H
+#ifndef GAMETERRAIN_H
+#define GAMETERRAIN_H
 
-#include <QMap>
-#include <QPoint>
 #include <QObject>
 
-#include "gameobject.h"
+#include "gameenemydata.h"
+#include "gameladder.h"
+#include "gameblock.h"
+#include "tiledpaintedlayer.h"
 
-
-class GameEnemyData;
-class GameLadder;
-class GameEnemy;
-
-class GameBlock : public QObject
+class GameTerrain : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QList<GameEnemyData *> enemies READ enemies WRITE setEnemies NOTIFY enemiesChanged)
-	Q_PROPERTY(QList<GameLadder *> ladders READ ladders WRITE setLadders NOTIFY laddersChanged)
-	Q_PROPERTY(QList<QPointF> playerPositions READ playerPositions WRITE setPlayerPositions NOTIFY playerPositionsChanged)
-	Q_PROPERTY(bool completed READ completed WRITE setCompleted NOTIFY completedChanged)
-
-
 public:
-	explicit GameBlock(QObject *parent = nullptr);
-	~GameBlock();
-
-	void addEnemy(GameEnemyData *enemy);
-	void addPlayerPosition(const QPointF &point);
-	Box2DBox *addPlayerPosition(const QPoint &point, QQuickItem *parent);
-	void addLadder(GameLadder *ladder);
+	explicit GameTerrain(QList<TiledPaintedLayer *> *tiledLayers = nullptr, QQuickItem *tiledLayersParent = nullptr, QObject *parent = nullptr);
+	~GameTerrain();
 
 	QList<GameEnemyData *> enemies() const { return m_enemies; }
 	QList<GameLadder *> ladders() const { return m_ladders; }
-	QList<QPointF> playerPositions() const { return m_playerPositions; }
+	QMap<int, GameBlock *> blocks() const { return m_blocks; }
+	QList<QRectF> groundObjects() const { return m_groundObjects; }
 
-	bool completed() const { return m_completed; }
+	QString tmxFile() const { return m_tmxFile; }
+	Tiled::Map *map() const { return m_map; }
 
+	Q_INVOKABLE bool loadTmxFile(const QString &filename);
+	Q_INVOKABLE GameBlock *getBlock(const int &num);
 
-public slots:
-	void setEnemies(QList<GameEnemyData *> enemies);
-	void setLadders(QList<GameLadder *> ladders);
-	void setCompleted(bool completed);
-	void setPlayerPositions(QList<QPointF> playerPositions);
-	void recalculateActiveEnemies();
-	void activateLadders();
+	QList<TiledPaintedLayer *> *tiledLayers() const { return m_tiledLayers; }
+	void setTiledLayers(QList<TiledPaintedLayer *> *tiledLayers);
 
-
-signals:
-	void enemiesChanged(QList<GameEnemyData *> enemies);
-	void laddersChanged(QList<GameLadder *> ladders);
-	void playerPositionsChanged(QList<QPointF> playerPositions);
-	void completedChanged(bool completed);
+	QQuickItem *tiledLayersParent() const { return m_tiledLayersParent; }
+	void setTiledLayersParent(QQuickItem *tiledLayersParent);
 
 
 private:
+	bool loadMap();
+	void loadLayers();
+	void loadEnemyLayer(Tiled::Layer *layer);
+	void loadGroundLayer(Tiled::Layer *layer);
+	void loadPlayerLayer(Tiled::Layer *layer);
+	void loadLadderLayer(Tiled::Layer *layer);
+
 	QList<GameEnemyData *> m_enemies;
 	QList<GameLadder *> m_ladders;
-	QList<QPointF> m_playerPositions;
-	bool m_completed;
+	QMap<int, GameBlock *> m_blocks;
+	QList<QRectF> m_groundObjects;
+
+	QString m_tmxFile;
+	Tiled::Map *m_map;
+
+	QList<TiledPaintedLayer *> *m_tiledLayers;
+	QQuickItem *m_tiledLayersParent;
+
 };
 
-#endif // GAMEBLOCK_H
+#endif // GAMETERRAIN_H

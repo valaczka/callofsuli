@@ -40,10 +40,9 @@
 GameBlock::GameBlock(QObject *parent)
 	: QObject(parent)
 	, m_enemies()
-	, m_playerPosition()
 	, m_ladders()
+	, m_playerPositions()
 	, m_completed(false)
-	, m_lastPosition(nullptr)
 {
 
 }
@@ -52,7 +51,7 @@ GameBlock::~GameBlock()
 {
 	m_enemies.clear();
 	m_ladders.clear();
-	m_playerPosition.clear();
+	m_playerPositions.clear();
 }
 
 
@@ -75,39 +74,14 @@ void GameBlock::addEnemy(GameEnemyData *enemy)
 
 /**
  * @brief GameBlock::addPlayerPosition
- * @param blockFrom
  * @param point
  */
 
-Box2DBox* GameBlock::addPlayerPosition(const QPoint &point, QQuickItem *parent)
+void GameBlock::addPlayerPosition(const QPointF &point)
 {
-	GameObject *item = new GameObject(parent);
-
-	qreal w = 20;
-	qreal h = 100;
-	qreal x = point.x()-w/2;
-	qreal y = point.y()-h/2;
-
-	item->setX(x);
-	item->setY(y);
-	item->setZ(0);
-	item->setWidth(w);
-	item->setHeight(h);
-	item->setVisible(true);
-	item->setDensity(1);
-	item->setRestitution(0);
-	item->setFriction(1);
-	item->setSensor(true);
-	item->setCategories(Box2DFixture::Category6);
-	item->setCollidesWith(Box2DFixture::Category3);
-	Box2DBox *box = item->createRectangularFixture();
-
-	m_playerPosition.append(item);
-	emit playerPositionChanged(m_playerPosition);
-
-	return box;
+	m_playerPositions.append(point);
+	emit playerPositionsChanged(m_playerPositions);
 }
-
 
 
 
@@ -162,14 +136,7 @@ void GameBlock::setCompleted(bool completed)
 	}
 }
 
-void GameBlock::setLastPosition(GameObject *lastPosition)
-{
-	if (m_lastPosition == lastPosition)
-		return;
 
-	m_lastPosition = lastPosition;
-	emit lastPositionChanged(m_lastPosition);
-}
 
 /**
  * @brief GameBlock::recalculateActiveEnemies
@@ -198,5 +165,14 @@ void GameBlock::activateLadders()
 	foreach (GameLadder *ladder, m_ladders) {
 		ladder->setActive(true);
 	}
+}
+
+void GameBlock::setPlayerPositions(QList<QPointF> playerPositions)
+{
+	if (m_playerPositions == playerPositions)
+		return;
+
+	m_playerPositions = playerPositions;
+	emit playerPositionsChanged(m_playerPositions);
 }
 

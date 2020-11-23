@@ -45,6 +45,7 @@
 #include "gameladder.h"
 #include "gameenemy.h"
 #include "gameenemysoldier.h"
+#include "gameterrain.h"
 #include "student.h"
 #include "studentmap.h"
 #include "tiledpaintedlayer.h"
@@ -183,6 +184,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
 	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
+	qmlRegisterType<GameTerrain>("COS.Client", 1, 0, "GameTerrain");
 	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");

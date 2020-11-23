@@ -63,7 +63,7 @@ Page {
 			terrain: "terrain1"
 			playerCharacter: "character2"
 			level: 1
-			startBlock: 2
+			startBlock: 3
 			startHp: 3
 
 
@@ -94,9 +94,8 @@ Page {
 
 
 			function loadScene() {
-				if (terrainData) {
-					bg.source = "qrc:/terrain/"+game.terrain+"/"+terrainData.background
-					gameScene.scenePrivate.loadScene(":/terrain/"+game.terrain+"/"+terrainData.tmx)
+				if (terrain.length) {
+					gameScene.scenePrivate.loadScene()
 				} else {
 					bg.source = null
 				}
@@ -107,6 +106,7 @@ Page {
 				id: gameScene
 				game: game
 				scenePrivate.game: game
+				scenePrivate.onSceneLoaded: bg.source = "qrc:/terrain/"+game.terrain+"/bg.png"
 				scenePrivate.onSceneLoadStarted: lbl.text = tmxFileName
 				scenePrivate.onSceneLoadFailed: cosClient.sendMessageError(qsTr("Pálya betöltése sikertelen"), qsTr("Nem sikerült betölteni az adatokat"))
 			}

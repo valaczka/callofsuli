@@ -40,6 +40,7 @@ SOURCES += \
 		gameplayer.cpp \
 		gamequestion.cpp \
 		gamescene.cpp \
+		gameterrain.cpp \
 		main.cpp \
 		mapdata.cpp \
 		mapeditor.cpp \
@@ -71,6 +72,7 @@ HEADERS += \
 	gameplayer.h \
 	gamequestion.h \
 	gamescene.h \
+	gameterrain.h \
 	mapdata.h \
 	mapeditor.h \
 	servers.h \

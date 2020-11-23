@@ -46,25 +46,20 @@
 
 GameScene::GameScene(QQuickItem *parent)
 	: QQuickItem(parent)
-	, m_map(nullptr)
 	, m_tiledLayers()
 	, m_game(nullptr)
-	, m_sceneLoaded(false)
 {
 
 }
 
+/**
+ * @brief GameScene::~GameScene
+ */
 
 GameScene::~GameScene()
 {
-	if (m_map)
-		delete m_map;
-
-	m_map = nullptr;
-
 	qDeleteAll(m_tiledLayers.begin(), m_tiledLayers.end());
 	m_tiledLayers.clear();
-
 }
 
 
@@ -104,21 +99,84 @@ void GameScene::setGame(CosGame *game)
  * @param tmxFileName
  */
 
-void GameScene::loadScene(const QString &tmxFileName)
+void GameScene::loadScene()
 {
-	if (m_sceneLoaded) {
+	if (!m_game)
+		return;
+
+	if (m_game->terrainData()) {
 		qWarning() << this << "Scene already loaded";
 		return;
 	}
 
-	emit sceneLoadStarted(tmxFileName);
+	emit sceneLoadStarted(m_game->terrain());
 
-	if (!loadMap(tmxFileName)) {
+	m_game->addTerrainData(&m_tiledLayers, parentItem());
+
+	if (!m_game->loadTerrainData()) {
 		emit sceneLoadFailed();
 		return;
 	}
 
-	loadLayers();
+	GameTerrain *terrainData = m_game->terrainData();
+	auto map = terrainData->map();
+
+	setImplicitWidth(map->width() * map->tileWidth());
+	setImplicitHeight(map->height() * map->tileHeight());
+
+
+	// Ground Objects
+
+	foreach (QRectF rect, terrainData->groundObjects()) {
+		GameObject *item = new GameObject(this->parentItem());
+		item->setX(rect.x());
+		item->setY(rect.y());
+		item->setZ(0);
+		item->setWidth(rect.width());
+		item->setHeight(rect.height());
+		item->setVisible(true);
+		item->setDensity(1);
+		item->setRestitution(0);
+		item->setFriction(1);
+		item->setCategories(Box2DFixture::Category1);
+		item->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2|Box2DFixture::Category5);
+		item->createRectangularFixture();
+	}
+
+
+
+
+	// Player positions
+
+	foreach (GameBlock *block, terrainData->blocks()) {
+		foreach (QPointF point, block->playerPositions()) {
+			GameObject *item = new GameObject(this->parentItem());
+
+			qreal w = 20;
+			qreal h = 80;
+			qreal x = point.x()-w/2;
+			qreal y = point.y()-h/2;
+
+			item->setX(x);
+			item->setY(y);
+			item->setZ(0);
+			item->setWidth(w);
+			item->setHeight(h);
+			item->setVisible(true);
+			item->setDensity(1);
+			item->setRestitution(0);
+			item->setFriction(1);
+			item->setSensor(true);
+			item->setCategories(Box2DFixture::Category6);
+			item->setCollidesWith(Box2DFixture::Category3);
+
+			Box2DFixture *fixture = item->createRectangularFixture();
+
+			if (fixture) {
+				connect(fixture, &Box2DFixture::beginContact, m_game, &CosGame::setLastPosition);
+			}
+		}
+	}
 
 	emit sceneLoaded();
 }
@@ -127,247 +185,5 @@ void GameScene::loadScene(const QString &tmxFileName)
 
 
 
-
-/**
- * @brief GameScenePrivate::loadMap
- * @param source
- */
-
-bool GameScene::loadMap(const QString &source)
-{
-	Tiled::MapReader reader;
-
-	if (m_map)
-		delete m_map;
-
-	m_map = nullptr;
-
-	if(!QFile::exists(source))
-		qWarning() << source << " does not exist.";
-
-	m_map = reader.readMap(source);
-	if (!m_map) {
-		qCritical("Failed to read map: %s", qPrintable(source));
-		return false;
-	}
-
-	emit mapChanged(m_map);
-
-	setImplicitWidth(m_map->width() * m_map->tileWidth());
-	setImplicitHeight(m_map->height() * m_map->tileHeight());
-
-	return true;
-}
-
-
-/**
- * @brief GameScenePrivate::loadLayers
- */
-
-void GameScene::loadLayers()
-{
-	foreach(Tiled::Layer *layer, m_map->layers())
-	{
-		qDebug() << "Load layer" << layer->name();
-
-		if (layer->isTileLayer()) {
-			TiledPaintedLayer *paintedLayer = new TiledPaintedLayer(this->parentItem());
-			paintedLayer->setMap(m_map);
-			paintedLayer->setLayer(layer->asTileLayer());
-			paintedLayer->setZ(-1);
-			m_tiledLayers.append(paintedLayer);
-		} else if (layer->isObjectGroup() && layer->name() == "Enemies") {
-			loadEnemyLayer(layer);
-		} else if (layer->isObjectGroup() && layer->name() == "Ground") {
-			loadGroundLayer(layer);
-		} else if (layer->isObjectGroup() && layer->name() == "Player") {
-			loadPlayerLayer(layer);
-		} else if (layer->isObjectGroup() && layer->name() == "Ladders") {
-			loadLadderLayer(layer);
-		}
-	}
-}
-
-
-/**
- * @brief GameScenePrivate::loadGroundLayer
- * @param layer
- */
-
-void GameScene::loadGroundLayer(Tiled::Layer *layer)
-{
-	qDebug() << "Load ground layer" << layer;
-
-	if (!layer)
-		return;
-
-	Tiled::ObjectGroup *og = layer->asObjectGroup();
-
-	QList<Tiled::MapObject*> objects = og->objects();
-
-	foreach (Tiled::MapObject *object, objects) {
-		GameObject *item = new GameObject(this->parentItem());
-		item->setX(object->x());
-		item->setY(object->y());
-		item->setZ(0);
-		item->setWidth(object->width());
-		item->setHeight(object->height());
-		item->setRotation(object->rotation());
-		item->setVisible(object->isVisible());
-		item->setId(object->id());
-		item->setProperties(object->properties());
-		item->setDensity(1);
-		item->setRestitution(0);
-		item->setFriction(1);
-		item->setCategories(Box2DFixture::Category1);
-		item->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2|Box2DFixture::Category5);
-		item->createFixture(object);
-	}
-
-}
-
-
-
-
-/**
- * @brief GameScenePrivate::loadEnemyLayer
- */
-
-void GameScene::loadEnemyLayer(Tiled::Layer *layer)
-{
-	qDebug() << "Load enemy layer" << layer;
-
-	if (!m_game) {
-		qWarning() << "Missing game";
-		return;
-	}
-
-	if (!layer)
-		return;
-
-	Tiled::ObjectGroup *og = layer->asObjectGroup();
-
-	QList<Tiled::MapObject*> objects = og->objects();
-
-	foreach (Tiled::MapObject *object, objects) {
-		if (!object->isPolyShape())
-			continue;
-
-		QPolygonF polygon = object->polygon();
-		QRectF rect = polygon.boundingRect();
-		rect.moveTo(object->x(), object->y());
-
-
-		int block = object->property("block").toInt();
-
-		if (block > 0) {
-			GameEnemyData *enemy = new GameEnemyData(m_game);
-
-			enemy->setBoundRect(rect.toRect());
-
-			GameBlock *b = m_game->getBlock(block);
-			enemy->setBlock(b);
-			b->addEnemy(enemy);
-
-			m_game->addEnemy(enemy);
-		}
-
-	}
-
-}
-
-
-/**
- * @brief GameScenePrivate::loadPlayerLayer
- * @param layer
- */
-
-void GameScene::loadPlayerLayer(Tiled::Layer *layer)
-{
-	qDebug() << "Load player layer" << layer;
-
-	if (!m_game) {
-		qWarning() << "Missing game";
-		return;
-	}
-
-	if (!layer)
-		return;
-
-	Tiled::ObjectGroup *og = layer->asObjectGroup();
-
-	QList<Tiled::MapObject*> objects = og->objects();
-
-	foreach (Tiled::MapObject *object, objects) {
-		int x = object->x();
-		int y = object->y();
-		int block = object->property("block").toInt();
-
-		if (block > 0) {
-			GameBlock *b = m_game->getBlock(block);
-			Box2DFixture *fixture = b->addPlayerPosition(QPoint(x,y), this->parentItem());
-
-			if (fixture) {
-				connect(fixture, &Box2DFixture::beginContact, m_game, &CosGame::setLastPosition);
-			}
-		} else
-			qWarning() << "Invalid block" << block;
-	}
-
-}
-
-
-
-/**
- * @brief GameScenePrivate::loadLadderLayer
- * @param layer
- */
-
-void GameScene::loadLadderLayer(Tiled::Layer *layer)
-{
-	qDebug() << "Load ladders layer" << layer;
-
-	if (!m_game) {
-		qWarning() << "Missing game";
-		return;
-	}
-
-	if (!layer)
-		return;
-
-	Tiled::ObjectGroup *og = layer->asObjectGroup();
-
-	QList<Tiled::MapObject*> objects = og->objects();
-
-	foreach (Tiled::MapObject *object, objects) {
-		if (object->shape() != Tiled::MapObject::Rectangle)
-			continue;
-
-		QRect r;
-		r.setX(object->x());
-		r.setY(object->y());
-		r.setWidth(object->width());
-		r.setHeight(object->height());
-
-		GameLadder *ladder = new GameLadder(m_game);
-		ladder->setBoundRect(r);
-		ladder->setActive(true);
-
-		int blockTop = object->property("blockTop").toInt();
-		int blockBottom = object->property("blockBottom").toInt();
-
-		if (blockTop > 0 && blockBottom > 0) {
-			GameBlock *bTop = m_game->getBlock(blockTop);
-			GameBlock *bBottom = m_game->getBlock(blockBottom);
-			ladder->setBlockTop(bTop);
-			ladder->setBlockBottom(bBottom);
-			bTop->addLadder(ladder);
-			bBottom->addLadder(ladder);
-			ladder->setActive(false);
-		}
-
-		m_game->addLadder(ladder);
-	}
-}
 
 
