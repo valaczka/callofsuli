@@ -56,7 +56,7 @@ public:
 
 	ClientState clientState() const { return m_clientState; }
 	QString clientUserName() const { return m_clientUserName; }
-	COSdb *db() const { return m_db; }
+	CosDb *db() const { return m_db; }
 	CosMessage::ClientRoles clientRoles() const { return m_clientRoles; }
 	QWebSocket *socket() const { return m_socket; }
 	Server *server() const { return m_server; }
@@ -93,7 +93,7 @@ signals:
 
 private:
 	Server *m_server;
-	COSdb *m_db;
+	CosDb *m_db;
 	QWebSocket *m_socket;
 
 	ClientState m_clientState;

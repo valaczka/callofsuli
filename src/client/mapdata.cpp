@@ -1053,16 +1053,16 @@ QJsonObject MapData::loadFromJson(const QByteArray &data, const bool &binaryForm
 				  +1;		// objective
 	}
 
-	if (!m_db->databaseOpen()) {
+/*	if (!m_db->databaseOpen()) {
 		return QJsonObject();
 	}
-
+*/
 	if (steps && currentStep) {
 		emit mapLoadingProgress(++(*currentStep)/(*steps));
 		QCoreApplication::processEvents();
 	}
 
-	QJsonDocument doc = binaryFormat ? QJsonDocument::fromBinaryData(data) : QJsonDocument::fromJson(data);
+	QJsonDocument doc;// = binaryFormat ? QJsonDocument::fromBinaryData(data) : QJsonDocument::fromJson(data);
 
 	if (doc.isNull()) {
 		return QJsonObject();

@@ -270,7 +270,7 @@ void Client::clientAuthorize(const CosMessage &message)
 		if (a.value("reset").toBool(false) && !password.isEmpty()) {
 			QVariantList l;
 			QString salt;
-			QString hashedPassword = CosSql::hashPassword(password, &salt);
+			QString hashedPassword = CosDb::hashPassword(password, &salt);
 			l << username << hashedPassword << salt;
 			if (!m_db->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt) VALUES (?, ?, ?)", l)) {
 				CosMessage r(CosMessage::ServerInternalError, "passwordReset", message);
@@ -290,7 +290,7 @@ void Client::clientAuthorize(const CosMessage &message)
 		if (!m.isEmpty()) {
 			QString storedPassword = m.value("password").toString();
 			QString salt = m.value("salt").toString();
-			QString hashedPassword = CosSql::hashPassword(password, &salt);
+			QString hashedPassword = CosDb::hashPassword(password, &salt);
 
 			if (storedPassword.isEmpty()) {
 				CosMessage r(CosMessage::PasswordResetRequired, message);

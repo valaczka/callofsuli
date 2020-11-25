@@ -661,11 +661,15 @@ void Servers::getDownloadedResource(const CosMessage &message)
 
 void Servers::registerResource(const QString &filename)
 {
-	if (!filename.endsWith(".cres"))
-		return;
-
-	qInfo() << tr("Register server resource:") << filename;
-	QResource::registerResource(filename);
+	if (filename.endsWith(".cres")) {
+		qInfo() << tr("Register server resource:") << filename;
+		QResource::registerResource(filename);
+	} else if (filename.endsWith("/images.db")) {
+		QQmlEngine *engine = qmlEngine(this);
+		SqlImage *sqlImage = new SqlImage(m_client, "sqlimageprovider", filename);
+		engine->addImageProvider("sql", sqlImage);
+		m_sqlImageProviders.append("sql");
+	}
 }
 
 
@@ -680,6 +684,15 @@ void Servers::unregisterResources()
 		qInfo() << tr("Unregister server resource:") << f;
 		QResource::unregisterResource(f);
 	}
+
+	QQmlEngine *engine = qmlEngine(this);
+
+
+	foreach (QString s, m_sqlImageProviders)
+		engine->removeImageProvider(s);
+
+	m_sqlImageProviders.clear();
+
 	m_resources.clear();
 	emit resourcesChanged(m_resources);
 	checkResources();

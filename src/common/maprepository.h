@@ -38,7 +38,7 @@
 #include <QObject>
 #include "cosdb.h"
 
-class MapRepository : public COSdb
+class MapRepository : public CosDb
 {
 	Q_OBJECT
 

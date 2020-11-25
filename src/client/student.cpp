@@ -63,7 +63,7 @@ Student::~Student()
 void Student::clientSetup()
 {
 	connect(m_client, &Client::jsonStudentReceived, this, &Student::onJsonReceived);
-	m_mapRepository->setDatabaseFile(QDir::toNativeSeparators(m_client->serverDataDir()+"/maps.db"));
+//	m_mapRepository->setDatabaseFile(QDir::toNativeSeparators(m_client->serverDataDir()+"/maps.db"));
 }
 
 
@@ -76,15 +76,15 @@ void Student::clientSetup()
 void Student::mapRepositoryOpen()
 {
 	//busyStackAdd("repositoryOpen", 0);
-	if (!m_mapRepository->databaseOpen()) {
+/*	if (!m_mapRepository->databaseOpen()) {
 		//busyStackRemove("repositoryOpen", 0);
 		emit mapRepositoryOpenError(m_mapRepository->databaseFile());
 		return;
 	}
-
+*/
 	setRepositoryReady(true);
 
-	emit mapRepositoryOpened(m_mapRepository->databaseFile());
+//	emit mapRepositoryOpened(m_mapRepository->databaseFile());
 	//busyStackRemove("repositoryOpen", 0);
 }
 

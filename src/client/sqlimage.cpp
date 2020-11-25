@@ -34,13 +34,45 @@
 
 #include "sqlimage.h"
 
-#include "../common/cossql.h"
+#include "../common/cosdb.h"
 
-SqlImage::SqlImage(Client *client)
+SqlImage::SqlImage(Client *client, const QString &connectionName, const QString &databaseName)
 	: QQuickImageProvider(QQuickImageProvider::Pixmap)
 	, m_client(client)
+	, m_db(new CosDb(connectionName, client))
+{
+	m_db->setDatabaseName(databaseName);
+	m_db->open();
+	m_deleteRequest = true;
+}
+
+/**
+ * @brief SqlImage::SqlImage
+ * @param client
+ * @param db
+ */
+
+SqlImage::SqlImage(Client *client, CosDb *db)
+	: QQuickImageProvider(QQuickImageProvider::Pixmap)
+	, m_client(client)
+	, m_db(db)
+	, m_deleteRequest(false)
 {
 
+}
+
+
+/**
+ * @brief SqlImage::~SqlImage
+ */
+
+SqlImage::~SqlImage()
+{
+	if (m_deleteRequest) {
+		m_db->close();
+		delete m_db;
+		m_db = nullptr;
+	}
 }
 
 
@@ -53,15 +85,10 @@ SqlImage::SqlImage(Client *client)
  * @return
  */
 
+
 QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
 {
-	CosSql *db = new CosSql("sqlimageprovider");
-
-	if (m_client)
-		db->open(m_client->serverDataDir()+"/images.db", false);
-
-
-	if (!db->isValid()) {
+	if (!m_db->isValid() || !m_db->isOpen()) {
 		int width = 100;
 		int height = 50;
 
@@ -79,12 +106,9 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	l << path.value(0, "");
 	l << path.value(1, "");
 
-	QVariantMap m = db->execSelectQueryOneRow("SELECT content FROM resource WHERE folder=? AND file=?", l);
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT content FROM resource WHERE folder=? AND file=?", l);
 
 	bool success = !m.isEmpty();
-
-	db->close();
-	delete db;
 
 	if (success) {
 		QByteArray outByteArray = m.value("content").toByteArray();
@@ -116,3 +140,6 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	pixmap.fill(QColor("yellow").rgba());
 	return pixmap;
 }
+
+
+

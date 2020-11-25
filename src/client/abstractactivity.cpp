@@ -99,7 +99,7 @@ void AbstractActivity::setClient(Client *client)
 		connect(m_client, &Client::messageFrameReceived, this, &AbstractActivity::onMessageFrameReceived);
 		clientSetup();
 		if (m_db) {
-			connect(m_db, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
+			connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
 		}
 
 		QWebSocket *socket = m_client->socket();
@@ -158,7 +158,7 @@ void AbstractActivity::setDb(ActivityDB *db)
 	if (m_db) {
 		m_db->setClient(m_client);
 		if (m_client)
-			connect(m_db, &COSdb::databaseError, m_client, &Client::sendDatabaseError);
+			connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
 	}
 }
 

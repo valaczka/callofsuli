@@ -39,6 +39,7 @@
 #include "abstractactivity.h"
 #include "variantmapmodel.h"
 #include "variantmapdata.h"
+#include "sqlimage.h"
 
 class Servers : public AbstractActivity
 {
@@ -114,6 +115,7 @@ private:
 	QString m_dataFileName;
 	int m_connectedServerKey;
 	int m_serverTryConnectKey;
+	QStringList m_sqlImageProviders;
 };
 
 

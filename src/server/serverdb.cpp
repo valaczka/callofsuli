@@ -35,7 +35,7 @@
 #include "serverdb.h"
 
 ServerDb::ServerDb(const QString &connectionName, QObject *parent)
-	: COSdb(connectionName, parent)
+	: CosDb(connectionName, parent)
 {
 
 }
@@ -49,7 +49,7 @@ ServerDb::ServerDb(const QString &connectionName, QObject *parent)
 bool ServerDb::databaseInit()
 {
 	if (!batchQueryFromFile(":/sql/init.sql")) {
-		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_databaseFile);
+		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_db.databaseName());
 		return false;
 	}
 

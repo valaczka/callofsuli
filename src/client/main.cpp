@@ -42,6 +42,8 @@
 
 #include "cosclient.h"
 
+#include "../common/gamemap.h"
+
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_ANDROID
@@ -49,6 +51,24 @@ int main(int argc, char *argv[])
 #else
 	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
 #endif
+
+
+	//GameMap m = GameMap::fromDb();
+
+	QFile f("ttt.dat");
+	f.open(QIODevice::ReadOnly);
+	QByteArray d = f.readAll();
+	f.close();
+
+	GameMap *m = GameMap::fromBinaryData(d);
+
+	f.open(QIODevice::WriteOnly);
+	f.write(m->toBinaryData());
+	f.close();
+
+	delete m;
+
+	return 1;
 
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
@@ -74,7 +94,6 @@ int main(int argc, char *argv[])
 	QQmlContext *context = engine.rootContext();
 	context->setContextProperty("cosClient", &client);
 
-	engine.addImageProvider("sql", new SqlImage(&client));
 	engine.addImageProvider("font", new FontImage());
 
 	const QUrl url(QStringLiteral("qrc:/main.qml"));

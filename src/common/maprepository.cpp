@@ -37,7 +37,7 @@
 #define DATETIME_JSON_FORMAT QString("yyyy-MM-dd hh:mm:ss")
 
 MapRepository::MapRepository(const QString &connectionName, QObject *parent)
-	: COSdb(connectionName, parent)
+	: CosDb(connectionName, parent)
 {
 
 }
@@ -51,7 +51,7 @@ MapRepository::MapRepository(const QString &connectionName, QObject *parent)
 
 void MapRepository::listReload()
 {
-	if (!databaseOpen())
+	if (!open())
 		return;
 
 	QVariantList list;
@@ -68,7 +68,7 @@ void MapRepository::listReload()
 
 QVariantMap MapRepository::getInfo(const int &id)
 {
-	if (!databaseOpen())
+	if (!open())
 		return QVariantMap();
 
 	QVariantMap r;
@@ -88,7 +88,7 @@ QVariantMap MapRepository::getInfo(const int &id)
 
 QVariantMap MapRepository::getInfo(const QString &uuid)
 {
-	if (!databaseOpen())
+	if (!open())
 		return QVariantMap();
 
 	QVariantMap r;
@@ -107,7 +107,7 @@ QVariantMap MapRepository::getInfo(const QString &uuid)
 
 QByteArray MapRepository::getData(const int &id)
 {
-	if (!databaseOpen())
+	if (!open())
 		return QByteArray();
 
 	QVariantList l;
@@ -125,7 +125,7 @@ QByteArray MapRepository::getData(const int &id)
 
 QByteArray MapRepository::getData(const QString &uuid)
 {
-	if (!databaseOpen())
+	if (!open())
 		return QByteArray();
 
 	QVariantList l;
@@ -142,7 +142,7 @@ QByteArray MapRepository::getData(const QString &uuid)
 
 int MapRepository::getId(const QString &uuid)
 {
-	if (!databaseOpen())
+	if (!open())
 		return -1;
 
 	QVariantMap r;
@@ -165,7 +165,7 @@ int MapRepository::getId(const QString &uuid)
 
 QVariantMap MapRepository::create(const QString &uuid)
 {
-	if (!databaseOpen())
+	if (!open())
 		return QVariantMap();
 
 	QJsonObject root;
@@ -366,7 +366,7 @@ QJsonObject MapRepository::updateData(const QString &uuid, const QByteArray &dat
 bool MapRepository::databaseInit()
 {
 	if (!batchQueryFromFile(":/sql/maprepository.sql")) {
-		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_databaseFile);
+//		emit databaseError(tr("Nem sikerült előkészíteni az adatbázist: ")+m_databaseFile);
 		return false;
 	}
 

@@ -45,16 +45,16 @@
 
 class Client;
 
-class ActivityDB : public COSdb
+class ActivityDB : public CosDb
 {
 	Q_OBJECT
 
 public:
 	explicit ActivityDB(const QString &connectionName, const QString &databaseFile, QObject *parent = nullptr)
-		: COSdb(connectionName, parent)
+		: CosDb(connectionName, parent)
 		, m_client(nullptr)
 	{
-		setDatabaseFile(databaseFile);
+		setDatabaseName(databaseFile);
 	}
 
 public slots:

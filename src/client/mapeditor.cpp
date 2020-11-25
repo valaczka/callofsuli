@@ -162,10 +162,10 @@ bool MapEditor::loadFromBackup()
 {
 	Q_ASSERT(m_client);
 
-	if (!m_db->databaseOpen()) {
+/*	if (!m_db->databaseOpen()) {
 		return false;
 	}
-
+*/
 	/*QVariantMap m = m_db->runSimpleQuery("SELECT originalFile, uuid, timeCreated from mapeditor");
 	if (!m.value("error").toBool() && m.value("records").toList().count()) {
 		QVariantMap r = m.value("records").toList().value(0).toMap();

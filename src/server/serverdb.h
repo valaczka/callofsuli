@@ -38,7 +38,7 @@
 #include "../common/cosdb.h"
 #include <QObject>
 
-class ServerDb : public COSdb
+class ServerDb : public CosDb
 {
 	Q_OBJECT
 

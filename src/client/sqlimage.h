@@ -39,16 +39,21 @@
 #include <QPixmap>
 
 #include "cosclient.h"
+#include "../common/cosdb.h"
 
 class SqlImage : public QQuickImageProvider
 {
 public:
-	explicit SqlImage(Client *client);
+	explicit SqlImage(Client *client, const QString &connectionName, const QString &databaseName);
+	explicit SqlImage(Client *client, CosDb *db);
+	~SqlImage();
 
 	QPixmap requestPixmap(const QString &id, QSize *size, const QSize &requestedSize);
 
 private:
 	Client *m_client;
+	CosDb *m_db;
+	bool m_deleteRequest;
 };
 
 #endif // SQLIMAGE_H

@@ -85,9 +85,9 @@ bool Server::start()
 	if (!serverDirCheck())
 		return false;
 
-	m_db->setDatabaseFile(m_serverDir+"/main.db");
+	m_db->setDatabaseName(m_serverDir+"/main.db");
 
-	if (!m_db->databaseOpen())
+	if (!m_db->open())
 		return false;
 
 	if (!databaseLoad())
@@ -246,7 +246,7 @@ bool Server::databaseLoad()
 
 
 		QString salt;
-		QString pwd = CosSql::hashPassword("admin", &salt);
+		QString pwd = CosDb::hashPassword("admin", &salt);
 
 		params.clear();
 		params["username"] = "admin";

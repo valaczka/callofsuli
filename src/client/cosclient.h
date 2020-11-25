@@ -164,7 +164,6 @@ signals:
 					 const QString &informativeText,
 					 const QString &detailedText);
 	void reconnecting();
-	void serverResourcesReady();
 
 	void messageFrameReceived(const CosMessage &message);
 	void messageReceived(const CosMessage &message);
