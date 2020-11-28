@@ -37,7 +37,7 @@
 
 #include <QObject>
 #include "abstractactivity.h"
-#include "mapdata.h"
+#include "mapdataOLD.h"
 #include "abstractstorage.h"
 
 class Block;

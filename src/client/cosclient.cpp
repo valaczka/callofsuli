@@ -35,8 +35,6 @@
 #include "../common/cosmessage.h"
 #include "cosclient.h"
 #include "servers.h"
-#include "mapdata.h"
-#include "mapeditor.h"
 #include "teacher.h"
 #include "cosgame.h"
 #include "gameentity.h"
@@ -47,10 +45,10 @@
 #include "gameenemysoldier.h"
 #include "gameterrain.h"
 #include "student.h"
-#include "studentmap.h"
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
 #include "serversettings.h"
+#include "mapeditor.h"
 
 
 
@@ -189,11 +187,9 @@ void Client::registerTypes()
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
-	qmlRegisterType<MapData>("COS.Client", 1, 0, "Map");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
-	qmlRegisterType<StudentMap>("COS.Client", 1, 0, "StudentMap");
 	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");

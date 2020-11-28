@@ -55,6 +55,7 @@ QPage {
 
 
 	mainMenuFunc: function (m) {
+		m.addAction(test)
 		m.addAction(tmXtest)
 		m.addAction(actionAbout)
 		m.addAction(actionExit)
@@ -100,14 +101,10 @@ QPage {
 	Action {
 		id: test
 		shortcut: "F1"
-		enabled: control.isCurrentItem
+		text: "Map Editor"
+		enabled: isCurrentItem
 		onTriggered: {
-			var o = JS.createPage("MapEditor", {})
-			o.pagePopulated.connect(function() {
-				o.map.loadFromFile("AAA.cosm")
-				o.map.mapOriginalFile = "AAA.cosm"
-				o.mapName = "AAA.cosm"
-			})
+			var o = JS.createPage("MapEditor", { loadFileName: "/tmp/ttt.dat" })
 		}
 	}
 
@@ -116,6 +113,7 @@ QPage {
 		id: tmXtest
 		shortcut: "F2"
 		text: "TMX"
+		enabled: isCurrentItem
 		onTriggered: {
 			var o = JS.createPage("TMXtest", {})
 		}

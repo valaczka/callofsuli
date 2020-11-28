@@ -1,7 +1,5 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.14
-import QtQuick.Dialogs 1.3
 import COS.Client 1.0
 import "."
 import "Style"
@@ -9,277 +7,85 @@ import "JScript.js" as JS
 
 
 QPage {
-	id: pageEditor
+	id: page
 
-	property int mapId: -1
-	property string mapName: ""
-	property bool mapBinaryFormat: true
+	//requiredPanelWidth: 900
 
-	property bool _isFirstRun: true
-	property bool _isMapLoaded: false
+	title: qsTr("Pályszerkesztő")
+	subtitle: mapEditor.mapName
 
-	property int _backPool: 0
+	property string loadFileName: ""
 
-	signal pagePopulated()
+	//mainToolBarComponent: QToolBusyIndicator { running: true }
 
-	signal campaignSelected(int id)
-	signal missionSelected(int id, int parentCampaignId)
-	signal summarySelected(int id, int parentCampaignId)
-	signal storageSelected(int id, int parentMId, int parentSId)
-	signal objectiveSelected(int id, int parentMId, int parentSId)
-	signal introSelected(int id, int parentId, int parentType)
 
-	property alias map: map
+	activity: MapEditor {
+		id: mapEditor
 
-	subtitle: mapName
+		onBackupReady: {
+			var ld = false
+			var d = JS.dialogCreateQml("YesNo", {
+										   title: qsTr("Biztonsági másolat található"),
+										   text: qsTr("Megpróbáljuk visszaállítani a biztonsági másolatot?")
+									   })
+			d.accepted.connect(function () {
+				ld = true
+				loadFromBackup()
+			})
+			d.closedAndDestroyed.connect(function() {
+				if (!ld) {
+					var d2 = JS.dialogCreateQml("YesNo", {
+													title: qsTr("Biztonsági másolat törlése"),
+													text: qsTr("Töröljük a biztonsági másolatot?")
+												})
+					d2.accepted.connect(function () {
+						removeBackup()
+					})
+					d2.open()
+				}
+			})
 
-	mainToolBarComponent: Row {
-		QUndoButton  {
-			anchors.verticalCenter: parent.verticalCenter
-			id: undoButton
-			dbActivity: map
-			visible: _isMapLoaded
+			d.open()
 		}
 
-		QToolButton {
-			anchors.verticalCenter: parent.verticalCenter
-			action: actionSave
-			display: AbstractButton.IconOnly
-		}
-	}
-
-	//pageContextMenu: _isMapLoaded ? pageMenu : null
-
-	QMenu {
-		id: pageMenu
-
-		MenuItem {
-			text: qsTr("Mentés")
-			onClicked:  {
-				map.save(mapId, mapBinaryFormat)
+		onBackupUnavailable: {
+			if (page.loadFileName.length) {
+				loadFromFile(page.loadFileName)
 			}
 		}
-		MenuItem {
-			text: qsTr("Exportálás")
-			onClicked:  {
-				fileDialogSave.open()
-			}
-		}
-	}
 
-	MapEditor {
-		id: map
-		client: cosClient
-
-		onCanUndoChanged: if (canUndo === -1)
-							  map.mapModified=false
-
-		onMapLoadingProgress: {
-			progressBar.value = progress
-		}
-
-		onMapLoaded: {
-			_isMapLoaded = true
-			loadCampaigns()
-		}
+		onDatabaseLoaded: console.debug("---------------")
 	}
 
 
-
-	mainToolBar.menuLoader.sourceComponent: QMenuButton {
-		icon.source: CosStyle.iconDown
-
-		visible: _isMapLoaded
-
-		MenuItem {
-			text: qsTr("Hadjáratok")
-			onClicked: pageEditor.loadCampaigns()
-		}
-
-		MenuItem {
-			text: qsTr("Küldetések")
-			onClicked: pageEditor.loadMissions()
-		}
-
-		MenuItem {
-			text: qsTr("Célpontok")
-			onClicked: pageEditor.loadStorages()
-		}
-
-
-		MenuItem {
-			text: qsTr("Introk/Outrok")
-			onClicked: pageEditor.loadIntros()
-		}
+	Label {
+		anchors.centerIn: parent
+		text: "***** "+mapEditor.loadProgress
 	}
 
+	//mainMenuFunc: function(m) {}
+	//contextMenuFunc: function(m) {}
 
-
-
-	Item {
-		id: loadingItem
-		anchors.fill: parent
-
-		visible: !_isMapLoaded
-
-		ProgressBar {
-			id: progressBar
-			anchors.centerIn: parent
-		}
-	}
-
-	panelsVisible: _isMapLoaded
-
-	FileDialog {
-		id: fileDialogSave
-		title: qsTr("Exportálás")
-		selectExisting: false
-		sidebarVisible: false
-
-		onAccepted: map.saveToFile(fileUrl)
-	}
-
-
-	Action {
-		id: actionSave
-		icon.source: CosStyle.iconSave
-		text: qsTr("Mentés")
-		shortcut: "Ctrl+S"
-		enabled: _isMapLoaded && map.mapModified
-		onTriggered: map.save(mapId, mapBinaryFormat)
-	}
-
+	/*panelComponents: [
+		Component { QPagePanel {
+				panelVisible: true
+				layoutFillWidth: true
+			} }
+	]*/
 
 	onPageActivated: {
-		if (_isFirstRun) {
-			pagePopulated()
-			_isFirstRun = false
-		}
+		mapEditor.checkBackup()
 	}
-
-
-	onMissionSelected: loadMission(id, false)
-	onSummarySelected: loadMission(id, true)
-
-
-	Action {
-		shortcut: "F2"
-		onTriggered: loadCampaigns()
-	}
-
-	Action {
-		shortcut: "F3"
-		onTriggered: loadMissions()
-	}
-
-	Action {
-		shortcut: "F4"
-		onTriggered: loadStorages()
-	}
-
-	Action {
-		shortcut: "F5"
-		onTriggered: loadIntros()
-	}
-
-
-	onCampaignSelected: swipeToPage(1)
-	onObjectiveSelected: swipeToPage(1)
-	onStorageSelected: swipeToPage(1)
-	onIntroSelected: swipeToPage(1)
-
-
-	function loadSettings() {
-		_backPool = 0
-		title = qsTr("Beállítások")
-		panels = [
-					{ url: "MapEditorSettings.qml", params: { map: map }, fillWidth: true }
-				]
-	}
-
-
-	function loadCampaigns() {
-		_backPool = 0
-		title = qsTr("Hadjáratok")
-		panels = [
-					{ url: "MapEditorCampaignList.qml", params: { map: map }, fillWidth: false },
-					{ url: "MapEditorCampaign.qml", params: { map: map }, fillWidth: true }
-				]
-	}
-
-	function loadMissions() {
-		_backPool = 1
-		title = qsTr("Küldetések")
-		panels = [
-					{ url: "MapEditorMissionList.qml", params: { map: map }, fillWidth: true }
-				]
-	}
-
-
-	function loadMission(mId, isSum) {
-		_backPool = 2
-		title = isSum ? qsTr("Összegzés") : qsTr("Küldetés")
-		panels = [
-					{ url: "MapEditorMission.qml", params: { map: map, missionId: mId, isSummary: isSum }, fillWidth: false },
-					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
-				]
-	}
-
-	function loadStorages() {
-		_backPool = 2
-		title = qsTr("Célpontok")
-		panels = [
-					{ url: "MapEditorStorageList.qml", params: { map: map }, fillWidth: false },
-					{ url: "MapEditorObjective.qml", params: { map: map }, fillWidth: true }
-				]
-	}
-
-	function loadIntros() {
-		_backPool = 2
-		title = qsTr("Introk/Outrok")
-		panels = [
-					{ url: "MapEditorIntroList.qml", params: { map: map }, fillWidth: false },
-					{ url: "MapEditorIntro.qml", params: { map: map }, fillWidth: true }
-				]
-
-	}
-
 
 
 	function windowClose() {
-		if (map.mapModified) {
-			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan eldobod a változtatásokat?")})
-			d.accepted.connect(function() {
-				map.mapModified = false
-				mainWindow.close()
-			})
-			d.open()
-			return false
-		}
-
+		mapEditor.removeDatabase()
 		return true
 	}
 
-
 	function pageStackBack() {
-		if (_backPool == 2) {
-			loadMissions()
-			return true
-		} else if (_backPool == 1) {
-			loadCampaigns()
-			return true
-		}
-
-		if (map.mapModified) {
-			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan eldobod a változtatásokat?")})
-			d.accepted.connect(function() {
-				map.mapModified = false
-				mainStack.back()
-			})
-			d.open()
-			return true
-		}
-
+		mapEditor.removeDatabase()
 		return false
 	}
+
 }

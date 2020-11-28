@@ -44,6 +44,11 @@
 
 #include "../common/gamemap.h"
 
+
+#include "../common/cosdb.h"
+
+
+
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_ANDROID
@@ -52,23 +57,67 @@ int main(int argc, char *argv[])
 	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
 #endif
 
+/*
+	if (!QFile::exists("/tmp/ttt.db")) {
+		GameMap *m = GameMap::fromDb();
+		if (!m) return 1;
+		CosDb *db = new CosDb("testconn1");
+		db->setDatabaseName("/tmp/ttt.db");
+		db->open();
+		if (!m->toDb(db)) return 1;
+		m->deleteImages();
+		delete db;
+		delete m;
+	}
 
-	//GameMap m = GameMap::fromDb();
+	CosDb *db = new CosDb("testconn2");
+	db->setDatabaseName("/tmp/ttt.db");
+	db->setConnectOptions("QSQLITE_OPEN_READONLY");
+	db->open();
 
-	QFile f("ttt.dat");
-	f.open(QIODevice::ReadOnly);
-	QByteArray d = f.readAll();
-	f.close();
+	GameMap *m = GameMap::fromDb(db);
 
-	GameMap *m = GameMap::fromBinaryData(d);
+	GameMap::MissionLockHash locks = m->lockTree();
 
+	foreach (QByteArray b, locks.keys()) {
+		qDebug() << "Mission" << b << "locks:";
+		foreach (GameMap::MissionLock l, locks.value(b)) {
+			qDebug() << "   -" << l.first->uuid() << l.second;
+		}
+		qDebug() << "  ";
+	}
+
+	if (!m) return 1;
+
+*/
+
+	/*QFile f("/tmp/ttt.dat");
 	f.open(QIODevice::WriteOnly);
 	f.write(m->toBinaryData());
 	f.close();
 
+	delete db;
 	delete m;
 
-	return 1;
+
+
+	CosDb *db2 = new CosDb("testconn3");
+	db2->setDatabaseName("/tmp/ttt2.db");
+	db2->open();
+
+	QFile f2("/tmp/ttt.dat");
+
+	f2.open(QIODevice::ReadOnly);
+	QByteArray d = f2.readAll();
+	f2.close();
+	GameMap *m2 = GameMap::fromBinaryData(d);
+	if (!m2) return 1;
+	if (!m2->toDb(db2))	return 1;
+
+	delete db2;
+	delete m2;*/
+
+	//return 12;
 
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 

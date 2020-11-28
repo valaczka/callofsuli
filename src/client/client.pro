@@ -42,13 +42,11 @@ SOURCES += \
 		gamescene.cpp \
 		gameterrain.cpp \
 		main.cpp \
-		mapdata.cpp \
 		mapeditor.cpp \
 		servers.cpp \
 		serversettings.cpp \
 		sqlimage.cpp \
 		student.cpp \
-		studentmap.cpp \
 		teacher.cpp \
 		tiledpaintedlayer.cpp \
 		variantmapdata.cpp \
@@ -73,13 +71,11 @@ HEADERS += \
 	gamequestion.h \
 	gamescene.h \
 	gameterrain.h \
-	mapdata.h \
 	mapeditor.h \
 	servers.h \
 	serversettings.h \
 	sqlimage.h \
 	student.h \
-	studentmap.h \
 	teacher.h \
 	tiledpaintedlayer.h \
 	variantmapdata.h \

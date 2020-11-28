@@ -467,7 +467,7 @@ QString CosDb::hashPassword(const QString &password, QString *salt, QCryptograph
 
 bool CosDb::createUndoTables()
 {
-	if (!execSimpleQuery("CREATE TABLE undoSettings(lastStep INTEGER, active BOOL)"))
+	if (!execSimpleQuery("CREATE TABLE IF NOT EXISTS undoSettings(lastStep INTEGER, active BOOL)"))
 		return false;
 
 	m_undoTables.append("undoSettings");
@@ -475,12 +475,12 @@ bool CosDb::createUndoTables()
 	if (!execSimpleQuery("INSERT INTO undoSettings(lastStep, active) VALUES(0, false)"))
 		return false;
 
-	if (!execSimpleQuery("CREATE TABLE undoStep(id INTEGER PRIMARY KEY, desc TEXT)"))
+	if (!execSimpleQuery("CREATE TABLE IF NOT EXISTS undoStep(id INTEGER PRIMARY KEY, desc TEXT)"))
 		return false;
 
 	m_undoTables.append("undoStep");
 
-	if (!execSimpleQuery("CREATE TABLE undoLog(seq INTEGER PRIMARY KEY, stepid INTEGER NOT NULL REFERENCES undoStep(id) ON UPDATE CASCADE ON DELETE CASCADE, cmd TEXT)"))
+	if (!execSimpleQuery("CREATE TABLE IF NOT EXISTS undoLog(seq INTEGER PRIMARY KEY, stepid INTEGER NOT NULL REFERENCES undoStep(id) ON UPDATE CASCADE ON DELETE CASCADE, cmd TEXT)"))
 		return false;
 
 	m_undoTables.append("undoLog");
@@ -503,7 +503,7 @@ bool CosDb::createUndoTables()
 bool CosDb::createTrigger(const QString &table)
 {
 
-	QString cmd = "CREATE TRIGGER _"+table+"_it AFTER INSERT ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
+	QString cmd = "CREATE TRIGGER IF NOT EXISTS _"+table+"_it AFTER INSERT ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
 	cmd += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
 	cmd += "'DELETE FROM "+table+" WHERE rowid='||new.rowid);\n";
 	cmd += "END;";
@@ -530,7 +530,7 @@ bool CosDb::createTrigger(const QString &table)
 		p << field+"='||quote(old."+field+")||'";
 
 	}
-	QString cmd2 = "CREATE TRIGGER _"+table+"_ut AFTER UPDATE ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
+	QString cmd2 = "CREATE TRIGGER IF NOT EXISTS _"+table+"_ut AFTER UPDATE ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
 	cmd2 += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
 	cmd2 += "'UPDATE "+table+" SET "+p.join(",")+" WHERE rowid='||old.rowid);\n";
 	cmd2 += "END;";
@@ -549,7 +549,7 @@ bool CosDb::createTrigger(const QString &table)
 		p2 << field;
 		p3 << "'||quote(old."+field+")||'";
 	}
-	QString cmd3 = "CREATE TRIGGER _"+table+"_dt BEFORE DELETE ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
+	QString cmd3 = "CREATE TRIGGER IF NOT EXISTS _"+table+"_dt BEFORE DELETE ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
 	cmd3 += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
 	cmd3 += "'INSERT INTO "+table+"("+p2.join(",")+") VALUES ("+p3.join(",")+")');\n";
 	cmd3 += "END;";
@@ -713,6 +713,7 @@ bool CosDb::open()
 		if (!m_db.open()) {
 			qWarning() << tr("Nem sikerült megnyitni az adatbázist: ") << dbName;
 			qWarning() << m_db.lastError();
+			emit databaseError(m_db.lastError().text());
 			return false;
 		}
 	} else {
@@ -725,6 +726,7 @@ bool CosDb::open()
 			if (!m_db.open()) {
 				qWarning() << tr("Nem sikerült megnyitni az adatbázist: ") << dbName;
 				qWarning() << m_db.lastError();
+				emit databaseError(m_db.lastError().text());
 				return false;
 			}
 

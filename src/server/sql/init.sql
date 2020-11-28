@@ -69,61 +69,26 @@ CREATE VIEW studentGroupInfo AS
 
 
 
-CREATE TABLE map(
-	id INTEGER PRIMARY KEY,
-	owner TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	name TEXT,
-	uuid TEXT NOT NULL UNIQUE,
-	md5 TEXT,
-	timeCreated TEXT NOT NULL DEFAULT (datetime('now')),
-	timeModified TEXT NOT NULL DEFAULT (datetime('now')),
-	version INTEGER NOT NULL DEFAULT 0,
-	objectives INTEGER NOT NULL DEFAULT 0 CHECK (objectives>=0)
-);
-
-
 CREATE TABLE bindGroupMap(
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	mapid INTEGER NOT NULL REFERENCES map(id) ON UPDATE CASCADE ON DELETE CASCADE
+	mapid TEXT NOT NULL
 );
 
-
-
-CREATE VIEW mapGroupInfo AS
-	SELECT studentGroupInfo.id as groupid, studentGroupInfo.name as groupname, studentGroupInfo.owner as groupowner, studentGroupInfo.username as username,
-	mapid, map.name as mapname, map.uuid as uuid, map.md5 as md5, map.version as version
-	FROM studentGroupInfo
-	LEFT JOIN bindGroupMap ON (bindGroupMap.groupid = studentGroupInfo.id)
-	LEFT JOIN map ON (map.id = bindGroupMap.mapid);
-
-
-CREATE TABLE mission(
-	id INTEGER PRIMARY KEY,
-	uuid TEXT NOT NULL UNIQUE,
-	mapid INTEGER REFERENCES map(id) ON UPDATE CASCADE ON DELETE SET NULL
-);
 
 
 CREATE TABLE game(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	missionuuid TEXT NOT NULL REFERENCES mission(uuid) ON UPDATE CASCADE ON DELETE CASCADE,
+	mapid TEXT NOT NULL,
+	missionid TEXT NOT NULL,
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	level INTEGER NOT NULL DEFAULT 1,
 	active BOOL NOT NULL DEFAULT TRUE,
-	success BOOL NOT NULL DEFAULT FALSE,
-	hpLoss INTEGER,
-	timelength TEXT
+	success BOOL NOT NULL DEFAULT FALSE
 );
 
 
-CREATE VIEW missionResultInfo AS
-	SELECT mission.id as missionid, uuid, user.username, g.level as level,
-	(SELECT COUNT(*) FROM game WHERE missionuuid=uuid AND username=user.username AND level=g.level) as attempt,
-	(SELECT COUNT(*) FROM game WHERE missionuuid=uuid AND username=user.username AND level=g.level AND success=TRUE) as success
-	FROM mission
-	LEFT JOIN user
-	LEFT JOIN (SELECT DISTINCT username, missionuuid, level FROM game) g ON (g.username=user.username AND g.missionuuid=mission.uuid);
+
 
 CREATE TABLE level(
 	id INTEGER PRIMARY KEY
@@ -152,6 +117,9 @@ SELECT xpReason.name as reason, level.id as level, COALESCE(xp, 0) as xp
 
 
 
+
+
+
 CREATE TABLE rank(
 	id INTEGER PRIMARY KEY,
 	name TEXT NOT NULL,
@@ -169,6 +137,9 @@ CREATE TABLE ranklog(
 );
 
 
+
+
+
 CREATE TABLE score(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE SET NULL,
@@ -177,6 +148,9 @@ CREATE TABLE score(
 	xpreasonid INTEGER REFERENCES xpReason(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL
 );
+
+
+
 
 
 CREATE TABLE registration(

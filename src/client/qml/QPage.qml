@@ -31,7 +31,7 @@ Page {
 
 	property AbstractActivity activity: null
 
-	readonly property bool isCurrentItem: StackView.currentItem == control
+	readonly property bool isCurrentItem: StackView.view && StackView.view.currentItem == control
 
 	signal pageActivated()
 

@@ -69,7 +69,6 @@ class AbstractActivity : public QQuickItem
 {
 	Q_OBJECT
 
-
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
 	Q_PROPERTY(ActivityDB* db READ db WRITE setDb NOTIFY dbChanged)
 	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)

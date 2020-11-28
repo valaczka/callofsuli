@@ -36,7 +36,7 @@
 #define STUDENTMAP_H
 
 #include <QObject>
-#include "mapdata.h"
+#include "mapdataOLD.h"
 #include "student.h"
 
 

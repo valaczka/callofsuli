@@ -1,8 +1,9 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE mapdata (
-	id INTEGER PRIMARY KEY,
-	uuid TEXT UNIQUE,
+	uuid TEXT NOT NULL PRIMARY KEY,
+	owner TEXT,
+	name TEXT,
 	md5 TEXT,
 	data BLOB
 );
