@@ -41,6 +41,7 @@ AbstractActivity::AbstractActivity(QQuickItem *parent)
 	, m_db(nullptr)
 	, m_isBusy(false)
 	, m_busyStack()
+	, m_downloader(nullptr)
 {
 
 }
@@ -122,9 +123,9 @@ void AbstractActivity::setIsBusy(bool isBusy)
  * @param func
  */
 
-void AbstractActivity::busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId)
+void AbstractActivity::busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject)
 {
-	m_busyStack.append(busyData(cosClass, cosFunc, msgId));
+	m_busyStack.append(busyData(cosClass, cosFunc, msgId, otherObject));
 	setIsBusy(true);
 }
 
@@ -134,9 +135,9 @@ void AbstractActivity::busyStackAdd(const CosMessage::CosClass &cosClass, const 
  * @param func
  */
 
-void AbstractActivity::busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId)
+void AbstractActivity::busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject)
 {
-	m_busyStack.removeAll(busyData(cosClass, cosFunc, msgId));
+	m_busyStack.removeAll(busyData(cosClass, cosFunc, msgId, otherObject));
 	setIsBusy(m_busyStack.count());
 }
 
@@ -160,6 +161,15 @@ void AbstractActivity::setDb(ActivityDB *db)
 		if (m_client)
 			connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
 	}
+}
+
+void AbstractActivity::setDownloader(CosDownloader *downloader)
+{
+	if (m_downloader == downloader)
+		return;
+
+	m_downloader = downloader;
+	emit downloaderChanged(m_downloader);
 }
 
 

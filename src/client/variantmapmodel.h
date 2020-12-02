@@ -43,6 +43,7 @@ class VariantMapModel : public QAbstractListModel
 {
 	Q_OBJECT
 	Q_PROPERTY(int selectedCount READ selectedCount NOTIFY selectedCountChanged)
+	Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
 	explicit VariantMapModel(VariantMapData *dataList = nullptr, const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
@@ -52,6 +53,7 @@ public:
 	QVariant data(const QModelIndex &index, int role) const;
 	QHash<int, QByteArray> roleNames() const { return m_roleNames; }
 	int selectedCount() const { return m_selected.count(); }
+	int count() const;
 
 	void beginInsertRow(const int &i);
 	void endInsertRows();
@@ -60,6 +62,7 @@ public:
 	void endRemoveRows();
 
 	QList<int> getSelected() const { return m_selected; }
+
 
 public slots:
 	const QVariantMap get(int i) const;
@@ -76,6 +79,7 @@ public slots:
 
 signals:
 	void selectedCountChanged(int selectedCount);
+	void countChanged(int count);
 
 private:
 	VariantMapData *m_data;

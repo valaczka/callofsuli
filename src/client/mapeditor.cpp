@@ -34,13 +34,32 @@
 
 #include "mapeditor.h"
 #include <QtConcurrent/QtConcurrent>
+#include <QUuid>
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(parent)
 	, m_game(nullptr)
 	, m_loadProgress(0.0)
+	, m_loadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0))
+	, m_loadAbortRequest(false)
+	, m_campaignData()
 {
 	m_db = new ActivityDB("editorDB", "", this);
+
+
+	QStringList campaignRoles;
+	campaignRoles << "type";
+	campaignRoles << "cid";
+	campaignRoles << "uuid";
+	campaignRoles << "name";
+	campaignRoles << "mandatory";
+	campaignRoles << "ordNumC";
+	campaignRoles << "ordNumM";
+
+	m_campaignModel = new VariantMapModel(&m_campaignData, campaignRoles, this);
+
+	connect(this, &MapEditor::tableCampaignsChanged, this, &MapEditor::campaignListReload);
+	connect(this, &MapEditor::tableMissionsChanged, this, &MapEditor::campaignListReload);
 }
 
 
@@ -50,6 +69,9 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 MapEditor::~MapEditor()
 {
+	if (m_campaignModel)
+		delete m_campaignModel;
+
 	if (m_db)
 		delete m_db;
 
@@ -65,38 +87,50 @@ MapEditor::~MapEditor()
 
 void MapEditor::loadFromFile(const QString &filename)
 {
-	setLoadProgress(1);
-	QFile f(filename);
-
-	if (!f.exists()) {
+	if (!QFile::exists(filename)) {
 		m_client->sendMessageWarning(tr("A fájl nem található"), filename);
+		emit loadFailed();
 		return;
 	}
 
 	if (!m_db->isOpen()) {
-		if (!m_db->open())
+		if (!m_db->open()) {
+			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
+			emit loadFailed();
 			return;
+		}
 	}
 
-	f.open(QIODevice::ReadOnly);
-	QByteArray d = f.readAll();
-	f.close();
-
-	m_game = GameMap::fromBinaryData(d, this, "setLoadProgress");
-
-	if (!m_game) {
-		m_client->sendMessageError(tr("Hibás fájl"), filename);
-		m_db->close();
-		return;
-	}
-
-	qDebug() << "PREPARE START---------------------------------------------------";
 	QFutureWatcher<void> www;
-	connect(&www, &QFutureWatcher<void>::finished, this, &MapEditor::databaseLoaded);
-	QFuture<void> future = QtConcurrent::run(this, &MapEditor::databasePrepare);
+	QFuture<void> future = QtConcurrent::run(this, &MapEditor::_loadFromFile, filename);
 	www.setFuture(future);
-	qDebug() << "PREPARE END-------------------------------------------------------";
+}
 
+
+
+
+/**
+ * @brief MapEditor::createNew
+ */
+
+void MapEditor::createNew(const QString &name, const QString &uuid)
+{
+	m_db->open();
+
+	QByteArray u;
+
+	if (uuid.isEmpty()) {
+		u = QUuid::createUuid().toByteArray();
+	} else {
+		u = uuid.toUtf8();
+	}
+
+	m_game = GameMap::example(name, u);
+
+	QFutureWatcher<void> watcher;
+	//connect(&watcher, &QFutureWatcher<void>::finished, this, &MapEditor::loadFinished);
+	QFuture<void> future = QtConcurrent::run(this, &MapEditor::_loadFromNew);
+	watcher.setFuture(future);
 }
 
 
@@ -107,7 +141,7 @@ void MapEditor::loadFromFile(const QString &filename)
 
 void MapEditor::loadFromBackup()
 {
-	if (!m_db->databaseExists()) {
+	/*if (!m_db->databaseExists()) {
 		m_client->sendMessageError(tr("Backup hiba"), tr("A backup nem létezik"));
 		return;
 	}
@@ -117,7 +151,7 @@ void MapEditor::loadFromBackup()
 			return;
 	}
 
-	_prepare();
+	_prepare(); */
 }
 
 
@@ -130,12 +164,14 @@ void MapEditor::loadFromBackup()
 
 void MapEditor::checkBackup()
 {
-	if (m_db->databaseExists()) {
+	/*if (m_db->databaseExists()) {
 		emit backupReady("BACKUP", m_db->databaseName());
 		return;
 	}
 
-	emit backupUnavailable();
+	emit backupUnavailable();*/
+
+	removeBackup();
 }
 
 
@@ -172,6 +208,16 @@ void MapEditor::removeDatabase()
 
 
 /**
+ * @brief MapEditor::loadAbort
+ */
+
+void MapEditor::loadAbort()
+{
+	m_loadAbortRequest = true;
+}
+
+
+/**
  * @brief MapEditor::setMapName
  * @param mapName
  */
@@ -187,18 +233,81 @@ void MapEditor::setMapName(QString mapName)
 }
 
 
+
 /**
  * @brief MapEditor::setLoadProgress
  * @param loadProgress
  */
 
-void MapEditor::setLoadProgress(qreal loadProgress)
+bool MapEditor::setLoadProgress(qreal loadProgress)
 {
-	if (qFuzzyCompare(m_loadProgress, loadProgress))
+	m_loadProgress = m_loadProgressFraction.first+(m_loadProgressFraction.second-m_loadProgressFraction.first)*loadProgress;
+	emit loadProgressChanged(m_loadProgress);
+
+	return m_loadAbortRequest;
+}
+
+
+
+/**
+ * @brief MapEditor::setLoadProgressFraction
+ * @param loadProgressFraction
+ */
+
+void MapEditor::setLoadProgressFraction(QPair<qreal, qreal> loadProgressFraction)
+{
+	if (m_loadProgressFraction == loadProgressFraction)
 		return;
 
-	m_loadProgress = loadProgress;
-	emit loadProgressChanged(m_loadProgress);
+	m_loadProgressFraction = loadProgressFraction;
+	emit loadProgressFractionChanged(m_loadProgressFraction);
+}
+
+
+/**
+ * @brief MapEditor::campaignListReload
+ */
+
+void MapEditor::campaignListReload()
+{
+	if (m_campaignData.size()) {
+		m_campaignData.clear();
+	}
+
+	QVariantList list = m_db->execSelectQuery("SELECT 0 as type, id as cid, CAST(id as TEXT) as uuid, name, false as mandatory, "
+											  "ordNum as ordNumC, 0 as ordNumM FROM campaigns "
+											  "UNION "
+											  "SELECT 1 as type, campaign as cid, uuid, missions.name, mandatory, "
+											  "campaigns.ordNum as ordNumC, missions.ordNum as ordNumM FROM missions "
+											  "LEFT JOIN campaigns ON (campaigns.id=missions.campaign)");
+	m_campaignData.fromMapList(list, "uuid");
+}
+
+
+
+
+
+/**
+ * @brief MapEditor::setCampaignModel
+ * @param campaignModel
+ */
+
+void MapEditor::setCampaignModel(VariantMapModel *campaignModel)
+{
+	if (m_campaignModel == campaignModel)
+		return;
+
+	m_campaignModel = campaignModel;
+	emit campaignModelChanged(m_campaignModel);
+}
+
+void MapEditor::setCampaignModelKey(int campaignModelKey)
+{
+	if (m_campaignModelKey == campaignModelKey)
+		return;
+
+	m_campaignModelKey = campaignModelKey;
+	emit campaignModelKeyChanged(m_campaignModelKey);
 }
 
 
@@ -229,45 +338,122 @@ void MapEditor::onMessageReceived(const CosMessage &message)
  * @return
  */
 
-void MapEditor::databasePrepare()
+bool MapEditor::_createDatabase()
 {
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.2, 0.6));
 	m_game->setProgressFunc(this, "setLoadProgress");
 
 	if (!m_game->toDb(m_db)) {
 		m_client->sendMessageError(tr("Adatfájl hiba"), m_db->databaseName());
 		m_db->close();
-		return;
+		return false;
 	}
 
-	setLoadProgress(2);
-
-	_prepare();
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.6, 1.0));
+	return _createTriggers();
 }
 
 
 
-void MapEditor::_prepare()
+
+
+/**
+ * @brief MapEditor::_createTriggers
+ */
+
+bool MapEditor::_createTriggers()
 {
-	if (!m_db->createUndoTables())	return;
+	QStringList tableList;
+	tableList << "map";
+	tableList << "chapters";
+	tableList << "storages";
+	tableList << "campaigns";
+	tableList << "campaignLocks";
+	tableList << "missions";
+	tableList << "missionLocks";
+	tableList << "missionLevels";
+	tableList << "blockChapterMaps";
+	tableList << "blockChapterMapBlocks";
+	tableList << "blockChapterMapChapters";
+	tableList << "blockChapterMapFavorites";
+	tableList << "inventories";
+	tableList << "images";
 
-	setLoadProgress(3);
 
-	m_db->createTrigger("map");
+	qreal step = 0.0;
+	qreal maxStep = (qreal) tableList.count()+1;
 
-	setLoadProgress(4);
+	setLoadProgress(step/maxStep);
 
-	m_db->createTrigger("chapters");
+	if (!m_db->createUndoTables())	return false;
 
-	setLoadProgress(5);
+	setLoadProgress(++step/maxStep);
 
-	m_db->createTrigger("storages");
 
-	setLoadProgress(6);
+	QSqlDriver *driver = m_db->db().driver();
 
-	m_db->createTrigger("objectives");
-	m_db->createTrigger("missions");
-	m_db->createTrigger("inventories");
+	connect(driver, QOverload<const QString &, QSqlDriver::NotificationSource, const QVariant &>::of(&QSqlDriver::notification),
+			[=](const QString &name, QSqlDriver::NotificationSource, const QVariant &){
 
-	setLoadProgress(100);
+		if (tableList.contains(name)) {
+			QMetaObject::invokeMethod(this, QString("table"+name.left(1).toUpper()+name.mid(1)+"Changed").toLatin1().constData(), Qt::DirectConnection);
+		}
+	});
+
+
+	foreach (QString k, tableList) {
+		driver->subscribeToNotification(k);
+		m_db->createTrigger(k);
+		setLoadProgress(++step/maxStep);
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief MapEditor::_loadFromFile
+ */
+
+void MapEditor::_loadFromFile(QString filename)
+{
+	emit loadStarted();
+
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.2));
+	setLoadProgress(0.0);
+
+	QFile f(filename);
+	f.open(QIODevice::ReadOnly);
+	QByteArray d = f.readAll();
+	f.close();
+
+	m_game = GameMap::fromBinaryData(d, this, "setLoadProgress");
+
+	if (!m_game) {
+		m_client->sendMessageError(tr("Hibás fájl"), filename);
+		m_db->close();
+		emit loadFailed();
+		return;
+	}
+
+	if (_createDatabase())
+		emit loadFinished();
+	else
+		emit loadFailed();
+}
+
+
+/**
+ * @brief MapEditor::_loadFromNew
+ */
+
+void MapEditor::_loadFromNew()
+{
+	emit loadStarted();
+
+	if (_createDatabase())
+		emit loadFinished();
+	else
+		emit loadFailed();
 }
 

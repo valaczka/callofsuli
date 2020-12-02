@@ -9,7 +9,7 @@ import "."
 QToolButton {
 	id: button
 
-	property AbstractDbActivity dbActivity: null
+	property CosDb dbActivity: null
 
 	enabled: dbActivity && dbActivity.canUndo > -1
 
@@ -22,12 +22,14 @@ QToolButton {
 	Connections {
 		target: dbActivity
 
-		onCanUndoChanged: if (dbActivity.canUndo > -1) {
-							  var t = dbActivity.undoStack()
-							  button.ToolTip.text = qsTr("Visszavonás: ")+t.steps[0].desc
-						  } else {
-							  button.ToolTip.text = ""
-						  }
+		function onCanUndoChanged(canUndo) {
+			if (dbActivity.canUndo > -1) {
+				var t = dbActivity.undoStack()
+				button.ToolTip.text = qsTr("Visszavonás: ")+t.steps[0].desc
+			} else {
+				button.ToolTip.text = ""
+			}
+		}
 	}
 
 	Action {

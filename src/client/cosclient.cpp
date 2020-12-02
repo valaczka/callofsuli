@@ -49,6 +49,7 @@
 #include "variantmapmodel.h"
 #include "serversettings.h"
 #include "mapeditor.h"
+#include "cosdownloader.h"
 
 
 
@@ -194,7 +195,9 @@ void Client::registerTypes()
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
+	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
+	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
 }
 
 

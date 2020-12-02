@@ -33,11 +33,10 @@
  */
 
 #include "servers.h"
+#include <QtConcurrent/QtConcurrent>
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(parent)
-	, m_resources()
-	, m_readyResources(false)
 	, m_serverList()
 	, m_serversModel(nullptr)
 	, m_dataFileName(Client::standardPath("servers.json"))
@@ -57,6 +56,9 @@ Servers::~Servers()
 	unregisterResources();
 	if (m_serversModel)
 		delete m_serversModel;
+
+	if (m_downloader)
+		delete m_downloader;
 }
 
 
@@ -73,8 +75,6 @@ void Servers::onMessageReceived(const CosMessage &message)
 	if (message.cosClass() == CosMessage::ClassUserInfo) {
 		if (func == "getResources") {
 			reloadResources(d.toVariantMap());
-		} else if (func == "downloadFile") {
-			getDownloadedResource(message);
 		}
 		/*if (func == "registrationRequest") {
 			bool error = d.value("error").toBool(false);
@@ -116,22 +116,19 @@ void Servers::onMessageReceived(const CosMessage &message)
 
 void Servers::onMessageFrameReceived(const CosMessage &message)
 {
-	QString filename = message.jsonData().value("filename").toString();
 
-	if (filename.isEmpty())
-		return;
+}
 
-	QString newFile = m_client->serverDataDir()+"/"+filename;
 
-	if (m_resources.contains(newFile)) {
-		qreal ratio = message.receivedDataRatio();
-		if (ratio >= 1.0)
-			ratio = 0.999999999;
+/**
+ * @brief Servers::onOneResourceDownloaded
+ * @param item
+ * @param data
+ */
 
-		m_resources[newFile] = ratio;
-
-		emit resourcesChanged(m_resources);
-	}
+void Servers::onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &)
+{
+	registerResource(item.localFile);
 }
 
 
@@ -223,6 +220,8 @@ void Servers::serverConnect(const int &index)
 	m_client->setServerDataDir(serverDir);
 
 	m_serverTryConnectKey = m_serverList.value(index).first;
+
+	qDebug() << "CONNECT" << m_client->socket() << url;
 
 	m_client->socket()->open(url);
 }
@@ -416,14 +415,6 @@ void Servers::doAutoConnect()
 
 
 
-void Servers::setReadyResources(bool readyResources)
-{
-	if (m_readyResources == readyResources)
-		return;
-
-	m_readyResources = readyResources;
-	emit readyResourcesChanged(m_readyResources);
-}
 
 
 /**
@@ -498,7 +489,8 @@ void Servers::onConnectionStateChanged(Client::ConnectionState state)
 	if (state == Client::Connected) {
 		m_connectedServerKey = m_serverTryConnectKey;
 		m_serverTryConnectKey = -1;
-		serverTryLogin(m_connectedServerKey);
+		send(CosMessage::ClassUserInfo, "getServerInfo");
+		send(CosMessage::ClassUserInfo, "getResources");
 	} else if (state == Client::Standby) {
 		setConnectedServerKey(-1);
 		unregisterResources();
@@ -547,17 +539,13 @@ void Servers::onUserNameChanged(QString username)
 }
 
 
-
-
 /**
- * @brief Servers::reloadResources
+ * @brief Servers::_reloadResources
  * @param resources
  */
 
-void Servers::reloadResources(QVariantMap resources)
+void Servers::_reloadResources(QVariantMap resources)
 {
-	qDebug() << "Reload server resources" << resources;
-
 	unregisterResources();
 
 	QMapIterator<QString, QVariant> i(resources);
@@ -565,8 +553,10 @@ void Servers::reloadResources(QVariantMap resources)
 	while (i.hasNext()) {
 		i.next();
 
+		QVariantMap data = i.value().toMap();
+
 		QString filename = i.key();
-		QString md5 = i.value().toString();
+		QString md5 = data.value("md5").toString();
 		QString localFile = m_client->serverDataDir()+"/"+filename;
 
 
@@ -579,79 +569,64 @@ void Servers::reloadResources(QVariantMap resources)
 
 			if (localmd5 == md5) {
 				qDebug() << localFile << "success";
-				m_resources[localFile] = 1.0;
-				emit resourcesChanged(m_resources);
+				data["progress"] = 1.0;
+				data["downloaded"] = true;
+				data["remoteFile"] = filename;
+				data["localFile"] = localFile;
+
+				m_downloader->append(data);
+
 				registerResource(localFile);
 				continue;
 			}
 		}
 
-		qDebug() << "Download" << localFile;
+		data["progress"] = 0.0;
+		data["downloaded"] = false;
+		data["remoteFile"] = filename;
+		data["localFile"] = localFile;
 
-		m_resources[localFile] = 0.0;
-		emit resourcesChanged(m_resources);
-
-		QJsonObject o;
-		o["filename"] = filename;
-		send(CosMessage::ClassUserInfo, "downloadFile", o);
+		m_downloader->append(data);
 	}
 
-	checkResources();
+	if (m_downloader->hasDownloadable()) {
+		QLocale l = QLocale::system();
+		QString s = l.formattedDataSize(m_downloader->fullSize());
+		emit resourceDownloadRequest(s);
+	} else {
+		emit resourceReady();
+	}
 }
+
+
 
 
 /**
- * @brief Client::getDownloadedResource
- * @param message
+ * @brief Servers::reloadResources
+ * @param resources
  */
 
-
-void Servers::getDownloadedResource(const CosMessage &message)
+void Servers::reloadResources(QVariantMap resources)
 {
-	QString filename = message.jsonData().value("filename").toString();
-	QString md5 = message.jsonData().value("md5").toString();
+	qDebug() << "Reload server resources" << resources;
 
-	if (message.messageType() != CosMessage::MessageBinaryData) {
-		qWarning() << tr("Érvénytelen fájl érkezett") << message;
+	if (!m_downloader) {
+		setDownloader(new CosDownloader(this, CosMessage::ClassUserInfo, "downloadFile", this));
+		connect(m_downloader, &CosDownloader::oneDownloadFinished, this, &Servers::onOneResourceDownloaded);
+		connect(m_downloader, &CosDownloader::downloadFinished, this, &Servers::resourceReady);
+		connect(m_downloader, &CosDownloader::downloadFailed, m_client, &Client::closeConnection);
 	}
 
-	if (filename.isEmpty()) {
-		qWarning() << tr("Érvénytelen fájl érkezett") << message;
-		return;
-	}
+	setIsBusy(true);
 
-	QByteArray data = message.binaryData();
+	QFutureWatcher<void> www;
+	connect(&www, &QFutureWatcher<void>::finished, this, [=](){setIsBusy(false);});
+	QFuture<void> future = QtConcurrent::run(this, &Servers::_reloadResources, resources);
+	www.setFuture(future);
 
-	QString localmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
-
-	if (localmd5 != md5) {
-		qWarning() << tr("MD5 hash hiba") << message;
-		return;
-	}
-
-	QString newFile = m_client->serverDataDir()+"/"+filename;
-
-	QFile f(newFile);
-
-	if (!f.open(QIODevice::WriteOnly)) {
-		m_client->sendMessageError(tr("Fájl létrehozási hiba"), newFile, f.errorString());
-		return;
-	}
-
-	if (f.write(data) == -1) {
-		m_client->sendMessageError(tr("Fájl írási hiba"), newFile, f.errorString());
-		f.close();
-		return;
-	}
-
-	f.close();
-
-	qDebug() << tr("Fájl létrehozva") << newFile;
-
-	m_resources[newFile] = 1.0;
-	registerResource(newFile);
-	checkResources();
 }
+
+
 
 
 /**
@@ -680,40 +655,28 @@ void Servers::registerResource(const QString &filename)
 
 void Servers::unregisterResources()
 {
-	foreach (QString f, m_resources.keys()) {
-		qInfo() << tr("Unregister server resource:") << f;
-		QResource::unregisterResource(f);
+	if (!m_downloader)
+		return;
+
+	foreach (CosDownloaderItem m, m_downloader->list()) {
+		QString f = m.localFile;
+
+		if (f.endsWith(".cres")) {
+			qInfo() << tr("Unregister server resource:") << f;
+			QResource::unregisterResource(f);
+		}
 	}
 
 	QQmlEngine *engine = qmlEngine(this);
-
 
 	foreach (QString s, m_sqlImageProviders)
 		engine->removeImageProvider(s);
 
 	m_sqlImageProviders.clear();
 
-	m_resources.clear();
-	emit resourcesChanged(m_resources);
-	checkResources();
+	m_downloader->clear();
 }
 
-
-/**
- * @brief Servers::checkResources
- */
-
-void Servers::checkResources()
-{
-	bool r = !m_resources.isEmpty();
-
-	foreach (QVariant v, m_resources) {
-		if (v.toReal() < 1.0)
-			r = false;
-	}
-
-	setReadyResources(r);
-}
 
 
 /**
@@ -731,6 +694,7 @@ void Servers::saveServerList()
 
 	Client::saveJsonDocument(doc, m_dataFileName);
 }
+
 
 
 /**

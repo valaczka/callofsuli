@@ -31,9 +31,9 @@ QtObject {
 	property color colorWarningDark: Material.color(Material.Orange, Material.Shade900)
 
 
-	property color colorOK: Material.color(Material.Light, Material.Shade500)
+	property color colorOK: Material.color(Material.LightGreen, Material.Shade500)
 	property color colorOKLighter: Material.color(Material.LightGreen, Material.ShadeA700)
-	property color colorOKLigth: Material.color(Material.LightGreen, Material.ShadeA100)
+	property color colorOKLight: Material.color(Material.LightGreen, Material.ShadeA100)
 	property color colorOKDarker: Material.color(Material.Green, Material.Shade700)
 	property color colorOKDark: Material.color(Material.Green, Material.Shade900)
 

@@ -42,6 +42,7 @@
 #include "cosclient.h"
 #include "../common/cosdb.h"
 #include "../common/cosmessage.h"
+#include "cosdownloader.h"
 
 class Client;
 
@@ -72,6 +73,8 @@ class AbstractActivity : public QQuickItem
 	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
 	Q_PROPERTY(ActivityDB* db READ db WRITE setDb NOTIFY dbChanged)
 	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
+	Q_PROPERTY(CosDownloader * downloader READ downloader WRITE setDownloader NOTIFY downloaderChanged)
+
 
 public:
 	struct busyData;
@@ -82,15 +85,17 @@ public:
 	Client* client() const { return m_client; }
 	bool isBusy() const { return m_isBusy; }
 	ActivityDB* db() const { return m_db; }
+	CosDownloader * downloader() const { return m_downloader; }
 
 public slots:
 	void send(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 			  const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setClient(Client* client);
 	void setIsBusy(bool isBusy);
-	void busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId);
-	void busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId);
+	void busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject = nullptr);
+	void busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject = nullptr);
 	void setDb(ActivityDB* db);
+	void setDownloader(CosDownloader * downloader);
 
 protected slots:
 	virtual void onMessageReceived(const CosMessage &) {}
@@ -106,12 +111,14 @@ signals:
 	void isBusyChanged(bool isBusy);
 	void dbChanged(ActivityDB* db);
 	void socketDisconnected();
+	void downloaderChanged(CosDownloader * downloader);
 
 protected:
 	Client* m_client;
 	ActivityDB* m_db;
 	bool m_isBusy;
 	QList<busyData> m_busyStack;
+	CosDownloader *m_downloader;
 
 
 public:
@@ -124,17 +131,20 @@ public:
 		CosMessage::CosClass m_cosClass;
 		QString m_cosFunc;
 		int m_msgId;
+		QObject *m_otherObject;
 
-		busyData(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgid)
+		busyData(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgid, QObject *other)
 			: m_cosClass(cosClass)
 			, m_cosFunc(cosFunc)
 			, m_msgId(msgid)
+			, m_otherObject(other)
 		{ }
 
 		friend inline bool operator== (const busyData &b1, const busyData &b2) {
 			return b1.m_cosClass == b2.m_cosClass
 					&& b1.m_cosFunc == b2.m_cosFunc
-					&& b1.m_msgId == b2.m_msgId;
+					&& b1.m_msgId == b2.m_msgId
+					&& b1.m_otherObject == b2.m_otherObject;
 		}
 	};
 };

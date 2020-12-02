@@ -120,6 +120,7 @@ void VariantMapModel::beginInsertRow(const int &i)
 void VariantMapModel::endInsertRows()
 {
 	QAbstractListModel::endInsertRows();
+	emit countChanged(count());
 }
 
 
@@ -143,6 +144,17 @@ void VariantMapModel::beginRemoveRows(const int &from, const int &to)
 void VariantMapModel::endRemoveRows()
 {
 	QAbstractListModel::endRemoveRows();
+	emit countChanged(count());
+}
+
+/**
+ * @brief VariantMapModel::count
+ * @return
+ */
+
+int VariantMapModel::count() const
+{
+	return m_data->size();
 }
 
 

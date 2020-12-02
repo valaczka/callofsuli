@@ -19,6 +19,7 @@ Menu {
 
 	function addSeparator() {
 		var m = separatorItem.createObject(menu)
-		menu.addItem(m)
+		if (m)
+			menu.addItem(m)
 	}
 }

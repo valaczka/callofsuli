@@ -45,23 +45,16 @@ class Servers : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QVariantMap resources READ resources NOTIFY resourcesChanged)
-	Q_PROPERTY(bool readyResources READ readyResources NOTIFY readyResourcesChanged)
 	Q_PROPERTY(VariantMapModel* serversModel READ serversModel NOTIFY serversModelChanged)
 	Q_PROPERTY(int connectedServerKey READ connectedServerKey WRITE setConnectedServerKey NOTIFY connectedServerKeyChanged)
-
 
 public:
 	Servers(QQuickItem *parent = nullptr);
 	~Servers();
 
-	QVariantMap resources() const { return m_resources; }
 	void reloadResources(QVariantMap resources);
-	void getDownloadedResource(const CosMessage &message);
 	void registerResource(const QString &filename);
 	void unregisterResources();
-	void checkResources();
-	bool readyResources() const { return m_readyResources; }
 
 	VariantMapModel *serversModel() const { return m_serversModel; }
 	int connectedServerKey() const { return m_connectedServerKey; }
@@ -82,13 +75,13 @@ public slots:
 	void serverLogOut();
 	void doAutoConnect();
 
-	void setReadyResources(bool readyResources);
 	void setConnectedServerKey(int connectedServerKey);
 
 protected slots:
 	void clientSetup() override;
 	void onMessageReceived(const CosMessage &message) override;
 	void onMessageFrameReceived(const CosMessage &message) override;
+	void onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &);
 
 	void removeServerDir(const int &serverId);
 
@@ -100,16 +93,15 @@ protected slots:
 
 signals:
 	void serverListLoaded();
+	void resourceDownloadRequest(QString formattedDataSize);
+	void resourceReady();
 
-	void resourcesChanged(QVariantMap resources);
-	void readyResourcesChanged(bool readyResources);
 	void serversModelChanged(VariantMapModel* serversModel);
-
 	void connectedServerKeyChanged(int connectedServerKey);
 
 private:
-	QVariantMap m_resources;
-	bool m_readyResources;
+	void _reloadResources(QVariantMap resources);
+
 	VariantMapData m_serverList;
 	VariantMapModel* m_serversModel;
 	QString m_dataFileName;

@@ -1,5 +1,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import QtQuick.Controls.Material 2.12
 import COS.Client 1.0
 import "."
 import "Style"
@@ -15,6 +16,9 @@ QPage {
 	mainToolBar.backButton.visible: false
 
 	property bool _firstRun: true
+	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
+
+	mainToolBar.visible: isDisconnected
 
 	activity: Servers {
 		id: servers
@@ -22,11 +26,30 @@ QPage {
 		property bool editing: false
 		property int serverKey: -1
 
-		onResourcesChanged: loadLabel.setText(resources)
+		onResourceDownloadRequest: {
+			var d = JS.dialogCreateQml("YesNo", {
+										   title: qsTr("Letöltés"),
+										   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize)
+									   })
+			d.accepted.connect(function() {
+				var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: servers.downloader })
+				dd.closePolicy = Popup.NoAutoClose
+				dd.open()
+			})
 
-		onReadyResourcesChanged: if (readyResources) {
-									 JS.createPage("MainMenu", {})
-								 }
+			d.rejected.connect(function() {
+				cosClient.closeConnection()
+			})
+
+			d.open()
+		}
+
+
+
+		onResourceReady: {
+			JS.createPage("MainMenu", {})
+			servers.serverTryLogin(servers.connectedServerKey)
+		}
 
 		Component.onCompleted: serverListReload()
 	}
@@ -36,7 +59,9 @@ QPage {
 				panelVisible: true
 				layoutFillWidth: !servers.editing
 			} },
-		Component { ServerEdit { panelVisible: servers.editing} }
+		Component { ServerEdit {
+				panelVisible: servers.editing
+			} }
 	]
 
 	property list<Component> listComponents: [
@@ -62,22 +87,43 @@ QPage {
 	}
 
 
-
-	QLabel {
-		id: loadLabel
-		visible: !servers.readyResources
+	Column {
 		anchors.centerIn: parent
+		visible: !control.isDisconnected
 
-		function setText(m) {
-			var k = Object.keys(m)
-			text = ""
-			for (var i=0; i<k.length; i++) {
-				if (text.length)
-					text += "\n"
-				text += k[i]+" : "+m[k[i]]
+		spacing: 10
+
+		Row {
+			spacing: 10
+			anchors.horizontalCenter: parent.horizontalCenter
+
+
+			BusyIndicator {
+				anchors.verticalCenter: parent.verticalCenter
+				height: CosStyle.pixelSize*3
+				width: CosStyle.pixelSize*3
+				running: true
+				Material.accent: CosStyle.colorPrimaryLighter
 			}
+
+			QLabel {
+				anchors.verticalCenter: parent.verticalCenter
+				text: qsTr("Kapcsolódás...")
+				font.pixelSize: CosStyle.pixelSize*1.2
+				color: CosStyle.colorPrimary
+			}
+
+		}
+
+		QButton {
+			anchors.horizontalCenter: parent.horizontalCenter
+			themeColors: CosStyle.buttonThemeDelete
+			text: qsTr("Mégsem")
+			icon.source: CosStyle.iconCancel
+			onClicked: cosClient.closeConnection()
 		}
 	}
+
 
 
 	Action {
@@ -104,7 +150,7 @@ QPage {
 		text: "Map Editor"
 		enabled: isCurrentItem
 		onTriggered: {
-			var o = JS.createPage("MapEditor", { loadFileName: "/tmp/ttt.dat" })
+			var o = JS.createPage("MapEditor", {}) //loadFileName: "/tmp/ttt.dat" })
 		}
 	}
 
@@ -124,10 +170,7 @@ QPage {
 		target: cosClient
 
 		function onConnectionStateChanged(connectionState) {
-			if (connectionState === Client.Connected) {
-				cosClient.socketSend(CosMessage.ClassUserInfo, "getServerInfo")
-				cosClient.socketSend(CosMessage.ClassUserInfo, "getResources")
-			} else if (connectionState === Client.Standby) {
+			if (connectionState === Client.Standby) {
 				mainStack.pop(control)
 			}
 		}

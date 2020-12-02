@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
 #else
 	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
 #endif
-
 /*
+
 	if (!QFile::exists("/tmp/ttt.db")) {
 		GameMap *m = GameMap::fromDb();
 		if (!m) return 1;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 		db->setDatabaseName("/tmp/ttt.db");
 		db->open();
 		if (!m->toDb(db)) return 1;
-		m->deleteImages();
+		//m->deleteImages();
 		delete db;
 		delete m;
 	}
@@ -89,9 +89,9 @@ int main(int argc, char *argv[])
 
 	if (!m) return 1;
 
-*/
 
-	/*QFile f("/tmp/ttt.dat");
+
+	QFile f("/tmp/ttt.dat");
 	f.open(QIODevice::WriteOnly);
 	f.write(m->toBinaryData());
 	f.close();
@@ -99,9 +99,9 @@ int main(int argc, char *argv[])
 	delete db;
 	delete m;
 
+*/
 
-
-	CosDb *db2 = new CosDb("testconn3");
+	/*CosDb *db2 = new CosDb("testconn3");
 	db2->setDatabaseName("/tmp/ttt2.db");
 	db2->open();
 

@@ -473,10 +473,15 @@ void Server::reloadResources()
 		ff.close();
 
 		QString md5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
+		int size = data.size();
 
-		qDebug().noquote() << tr("Fájl hozzáadva:") << f << md5;
+		qDebug().noquote() << tr("Fájl hozzáadva:") << f << md5 << size;
 
-		map[f] = md5;
+		QVariantMap d;
+		d["size"] = size;
+		d["md5"] = md5;
+
+		map[f] = d;
 	}
 
 	setResources(map);

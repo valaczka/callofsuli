@@ -28,6 +28,7 @@ SOURCES += \
 		abstractobjective.cpp \
 		abstractstorage.cpp \
 		cosclient.cpp \
+		cosdownloader.cpp \
 		cosgame.cpp \
 		fontimage.cpp \
 		gameblock.cpp \
@@ -58,6 +59,7 @@ HEADERS += \
 	abstractobjective.h \
 	abstractstorage.h \
 	cosclient.h \
+	cosdownloader.h \
 	cosgame.h \
 	fontimage.h \
 	gameblock.h \

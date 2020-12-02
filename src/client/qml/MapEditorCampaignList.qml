@@ -11,25 +11,25 @@ QPagePanel {
 
 	maximumWidth: 600
 
-	title: qsTr("Szerverek")
+	title: qsTr("Hadjáratok/Küldetések")
 	icon: CosStyle.iconUsers
 
-	contextMenuFunc: function (m) {
+	/*contextMenuFunc: function (m) {
 		m.addAction(actionServerNew)
 		m.addAction(actionConnect)
 		m.addAction(actionRemove)
 		m.addAction(actionEdit)
 		m.addAction(actionAutoConnect)
-	}
+	}*/
 
 
 	QPageHeader {
 		id: header
 
-		visible: servers.serversModel.count
-		isSelectorMode: serverList.selectorSet
+		visible: mapEditor.campaignModel.count
+		isSelectorMode: list.selectorSet
 
-		labelCountText: servers.serversModel.selectedCount
+		labelCountText: mapEditor.campaignModel.selectedCount
 
 		mainItem: QTextField {
 			id: mainSearch
@@ -41,12 +41,12 @@ QPagePanel {
 			placeholderText: qsTr("Keresés...")
 		}
 
-		onSelectAll: servers.serversModel.selectAllToggle()
+		onSelectAll: mapEditor.campaignModel.selectAllToggle()
 	}
 
 	SortFilterProxyModel {
 		id: userProxyModel
-		sourceModel: servers.serversModel
+		sourceModel: mapEditor.campaignModel
 		filters: [
 			RegExpFilter {
 				enabled: mainSearch.text.length
@@ -57,33 +57,35 @@ QPagePanel {
 			}
 		]
 		sorters: [
-			StringSorter { roleName: "name" }
+			RoleSorter { roleName: "ordNumC"; priority: 1 },
+			RoleSorter { roleName: "ordNumM"; priority: 0 }
 		]
 		proxyRoles: ExpressionRole {
 			name: "details"
-			expression: model.host+":"+model.port+(model.username.length ? " - "+model.username : "")
+			expression: model.name+":"+model.ordNumC+":"+model.ordNumM
 		}
 	}
 
 
 
 	QVariantMapProxyView {
-		id: serverList
+		id: list
 		anchors.top: header.bottom
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		visible: servers.serversModel.count
+		visible: mapEditor.campaignModel.count
 
 		model: userProxyModel
 		modelTitleRole: "name"
 		modelSubtitleRole: "details"
+		modelDepthRole: "type"
 
-		autoSelectorChange: true
+		autoSelectorChange: false
 
-		leftComponent: QFontImage {
-			width: serverList.delegateHeight
+		/*leftComponent: QFontImage {
+			width: list.delegateHeight
 			height: width
 			size: Math.min(height*0.8, 32)
 
@@ -114,11 +116,11 @@ QPagePanel {
 		onKeyInsertPressed: actionServerNew.trigger()
 		onKeyF4Pressed: actionEdit.trigger()
 		onKeyDeletePressed: actionRemove.trigger()
-		onKeyF2Pressed: actionAutoConnect.trigger()
+		onKeyF2Pressed: actionAutoConnect.trigger() */
 	}
 
 
-	QToolButtonBig {
+	/*QToolButtonBig {
 		anchors.centerIn: parent
 		visible: !servers.serversModel.count
 		action: actionServerNew
@@ -138,17 +140,17 @@ QPagePanel {
 	Action {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: servers.serverConnect(serverList.sourceIndex)
+		enabled: list.currentIndex !== -1
+		onTriggered: servers.serverConnect(list.sourceIndex)
 
 	}
 
 	Action {
 		id: actionEdit
 		text: qsTr("Szerkesztés")
-		enabled: serverList.currentIndex !== -1
+		enabled: list.currentIndex !== -1
 		onTriggered: {
-			servers.serverKey = serverList.sourceVariantMapModel.getKey(serverList.sourceIndex)
+			servers.serverKey = list.sourceVariantMapModel.getKey(list.sourceIndex)
 			servers.editing = true
 		}
 	}
@@ -157,7 +159,7 @@ QPagePanel {
 		id: actionRemove
 		icon.source: CosStyle.iconRemove
 		text: qsTr("Törlés")
-		enabled: serverList.currentIndex !== -1
+		enabled: list.currentIndex !== -1
 		onTriggered: {
 			if (servers.serversModel.selectedCount) {
 				var dd = JS.dialogCreateQml("YesNo", {
@@ -170,8 +172,8 @@ QPagePanel {
 				})
 				dd.open()
 			} else {
-				var si = serverList.sourceIndex
-				var o = serverList.model.get(serverList.currentIndex)
+				var si = list.sourceIndex
+				var o = list.model.get(list.currentIndex)
 
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Biztosan törlöd a szervert?"),
@@ -189,16 +191,16 @@ QPagePanel {
 	Action {
 		id: actionAutoConnect
 		text: qsTr("Automata csatlakozás")
-		enabled: serverList.currentIndex !== -1
+		enabled: list.currentIndex !== -1
 		onTriggered:  {
-			servers.serverSetAutoConnect(serverList.sourceIndex)
+			servers.serverSetAutoConnect(list.sourceIndex)
 		}
 	}
 
 
 	onPanelActivated: {
-		serverList.forceActiveFocus()
-	}
+		list.forceActiveFocus()
+	}*/
 }
 
 

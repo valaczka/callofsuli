@@ -17,6 +17,7 @@ Popup {
 	property alias item: popupContent.item
 
 	signal accepted(var data)
+	signal rejected()
 	signal closedAndDestroyed()
 
 	background: Item {
@@ -145,14 +146,13 @@ Popup {
 		function onDlgClose() {
 			close()
 		}
-
-		function onDlgAccept(data) {
-			close()
-			accepted(data)
-		}
 	}
 
+
 	onAboutToHide: {
-		popupContent.item.dlgClose()
+		if (popupContent.item.acceptedData)
+			accepted(popupContent.item.acceptedData)
+		else
+			rejected()
 	}
 }

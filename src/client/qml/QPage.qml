@@ -24,6 +24,8 @@ Page {
 	property alias mainToolBarComponent: toolbarRight.sourceComponent
 	property alias subtitle: toolbar.subtitle
 
+	property alias menuButton: menuButton
+
 	property var mainMenuFunc: null
 	property var contextMenuFunc: null
 

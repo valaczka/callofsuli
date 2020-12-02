@@ -85,18 +85,13 @@ public:
 
 		qint32 id() const { return m_id; };
 		QString name() const { return m_name; };
-		QVector<Storage *> storages() const { return m_storages; };
 		QVector<Objective *> objectives() const { return m_objectives; };
 
-		Storage *storage(const qint32 &id) const;
-
-		Storage* addStorage(Storage *storage) { Q_ASSERT(storage); m_storages.append(storage); return storage;}
 		Objective* addObjective(Objective *objective) { Q_ASSERT(objective); m_objectives.append(objective); return objective;}
 
 	private:
 		qint32 m_id;
 		QString m_name;
-		QVector<Storage *> m_storages;
 		QVector<Objective *> m_objectives;
 	};
 
@@ -241,7 +236,7 @@ public:
 	static GameMap* fromBinaryData(const QByteArray &data, QObject *target = nullptr, const QString &func = QString());
 	QByteArray toBinaryData() const;
 
-	static GameMap* fromDb();
+	static GameMap* example(const QString &name, const QByteArray &uuid);
 
 	static GameMap* fromDb(CosDb *db, QObject *target = nullptr, const QString &func = QString());
 	bool toDb(CosDb *db) const;
@@ -254,12 +249,14 @@ public:
 	QVector<Campaign *> campaigns() const { return m_campaigns; }
 	QVector<Chapter *> chapters() const { return m_chapters; }
 	QVector<Image *> images() const { return m_images; }
+	QVector<Storage *> storages() const { return m_storages; };
 
 	Campaign *campaign(const qint32 &id) const;
 	Chapter *chapter(const qint32 &id) const;
 	Mission *mission(const QByteArray &uuid) const;
 	MissionLevel *missionLevel(const QByteArray &uuid, const qint32 &level) const;
 	Objective *objective(const QByteArray &uuid) const;
+	Storage *storage(const qint32 &id) const;
 
 	typedef QHash<QByteArray, QVector<MissionLock>> MissionLockHash;
 	MissionLockHash lockTree(bool *errPtr = nullptr) const;
@@ -267,6 +264,9 @@ public:
 	Chapter* addChapter(Chapter *chapter) { Q_ASSERT(chapter); m_chapters.append(chapter); return chapter; }
 	Campaign* addCampaign(Campaign *campaign) { Q_ASSERT(campaign); m_campaigns.append(campaign); return campaign; }
 	Image* addImage(Image *image) { Q_ASSERT(image); m_images.append(image); return image; }
+	Storage* addStorage(Storage *storage) { Q_ASSERT(storage); m_storages.append(storage); return storage;}
+
+
 
 	void setProgressFunc(QObject *target, const QString &func);
 
@@ -276,8 +276,8 @@ private:
 	void chaptersToDb(CosDb *db) const;
 	void chaptersFromDb(CosDb *db);
 
-	void storagesToStream(Chapter* chapter, QDataStream &stream) const ;
-	void storagesFromStream(Chapter* chapter, QDataStream &stream);
+	void storagesToStream(QDataStream &stream) const ;
+	void storagesFromStream(QDataStream &stream);
 	void storagesToDb(CosDb *db) const;
 	void storagesFromDb(CosDb *db);
 
@@ -315,14 +315,15 @@ private:
 	void imagesFromStream(QDataStream &stream);
 	void imagesFromDb(CosDb *db);
 
-	inline void sendProgress(const qreal &progress) const;
-	inline static void sendProgress(QObject *target, const QString &func, const qreal &progress);
+	inline bool sendProgress(const qreal &progress) const;
+	inline static bool sendProgress(QObject *target, const QString &func, const qreal &progress);
 
 	QByteArray m_uuid;
 	QString m_name;
 	QVector<Campaign *> m_campaigns;
 	QVector<Chapter *> m_chapters;
 	QVector<Image *> m_images;
+	QVector<Storage *> m_storages;
 
 	QObject *m_progressObject;
 	QString m_progressFunc;

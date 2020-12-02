@@ -37,6 +37,8 @@
 
 #include "abstractactivity.h"
 #include "../../common/gamemap.h"
+#include "variantmapmodel.h"
+#include "variantmapdata.h"
 
 class MapEditorWorker;
 
@@ -47,7 +49,10 @@ class MapEditor : public AbstractActivity
 
 	Q_PROPERTY(QString mapName READ mapName WRITE setMapName NOTIFY mapNameChanged)
 	Q_PROPERTY(qreal loadProgress READ loadProgress WRITE setLoadProgress NOTIFY loadProgressChanged)
+	Q_PROPERTY(QPair<qreal, qreal> loadProgressFraction READ loadProgressFraction WRITE setLoadProgressFraction NOTIFY loadProgressFractionChanged)
 
+	Q_PROPERTY(VariantMapModel* campaignModel READ campaignModel WRITE setCampaignModel NOTIFY campaignModelChanged)
+	Q_PROPERTY(int campaignModelKey READ campaignModelKey WRITE setCampaignModelKey NOTIFY campaignModelKeyChanged)
 
 public:
 	MapEditor(QQuickItem *parent = nullptr);
@@ -56,25 +61,59 @@ public:
 	QString mapName() const { return m_mapName; }
 
 	Q_INVOKABLE void loadFromFile(const QString &filename);
+	Q_INVOKABLE void createNew(const QString &name = QString(), const QString &uuid = QString());
 	Q_INVOKABLE void loadFromBackup();
 	Q_INVOKABLE void checkBackup();
 	Q_INVOKABLE void removeBackup();
 	Q_INVOKABLE void removeDatabase();
+	Q_INVOKABLE void loadAbort();
 
 	qreal loadProgress() const { return m_loadProgress; }
+	QPair<qreal, qreal> loadProgressFraction() const { return m_loadProgressFraction; }
+
+	VariantMapModel* campaignModel() const { return m_campaignModel; }
+	int campaignModelKey() const { return m_campaignModelKey; }
 
 public slots:
 	void setMapName(QString mapName);
-	void setLoadProgress(qreal loadProgress);
+	bool setLoadProgress(qreal loadProgress);
+	void setLoadProgressFraction(QPair<qreal, qreal> loadProgressFraction);
+
+	void campaignListReload();
+
+
+	void setCampaignModel(VariantMapModel* campaignModel);
+	void setCampaignModelKey(int campaignModelKey);
 
 signals:
 	void backupReady(QString mapName, QString details);
 	void backupUnavailable();
-	void mapNameChanged(QString mapName);
-	void prepareRequest();
-	void databaseLoaded();
 
+	void loadStarted();
+	void loadFinished();
+	void loadFailed();
+
+	void tableMapChanged();
+	void tableChaptersChanged();
+	void tableStoragesChanged();
+	void tableCampaignsChanged();
+	void tableCampaignLocksChanged();
+	void tableMissionsChanged();
+	void tableMissionLocksChanged();
+	void tableMissionLevelsChanged();
+	void tableBlockChapterMapsChanged();
+	void tableBlockChapterMapBlocksChanged();
+	void tableBlockChapterMapChaptersChanged();
+	void tableBlockChapterMapFavoritesChanged();
+	void tableInventoriesChanged();
+	void tableImagesChanged();
+
+	void mapNameChanged(QString mapName);
 	void loadProgressChanged(qreal loadProgress);
+	void loadProgressFractionChanged(QPair<qreal, qreal> loadProgressFraction);
+
+	void campaignModelChanged(VariantMapModel* campaignModel);
+	void campaignModelKeyChanged(int campaignModelKey);
 
 protected slots:
 	void clientSetup() override;
@@ -82,12 +121,19 @@ protected slots:
 	//void onMessageFrameReceived(const CosMessage &message) override;
 
 private:
-	void databasePrepare();
-	void _prepare();
+	bool _createDatabase();
+	bool _createTriggers();
+	void _loadFromFile(QString filename);
+	void _loadFromNew();
 
 	QString m_mapName;
 	GameMap *m_game;
 	qreal m_loadProgress;
+	QPair<qreal, qreal> m_loadProgressFraction;
+	bool m_loadAbortRequest;
+	VariantMapData m_campaignData;
+	VariantMapModel* m_campaignModel;
+	int m_campaignModelKey;
 };
 
 

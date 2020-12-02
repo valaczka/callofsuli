@@ -17,7 +17,7 @@ Item {
 	property alias details: labelDetails.text
 
 	signal dlgClose()
-	signal dlgAccept(var data)
+	property var acceptedData: true
 
 	Item {
 		id: dlgItem
@@ -64,19 +64,19 @@ Item {
 
 			QDialogHeader {
 				id: mainRow
-				icon: if (type === "info")
-						  CosStyle.iconDialogInfo
-					  else if (type === "warning")
+				icon: if (type === "warning")
 						  CosStyle.iconDialogWarning
 					  else if (type === "error")
 						  CosStyle.iconDialogError
+					  else
+						  CosStyle.iconDialogInfo
 
-				color: if (type === "info")
-						   CosStyle.colorPrimary
-					   else if (type === "warning")
+				color: if (type === "warning")
 						   CosStyle.colorWarning
 					   else if (type === "error")
 						   CosStyle.colorError
+					   else
+						   CosStyle.colorPrimary
 
 			}
 
@@ -112,12 +112,13 @@ Item {
 
 						QLabel {
 							id: labelText
-							color: if (type === "info")
-									   CosStyle.colorPrimaryLighter
-								   else if (type === "warning")
+							color: if (type === "warning")
 									   CosStyle.colorWarningLighter
 								   else if (type === "error")
 									   CosStyle.colorErrorLighter
+								   else
+									   CosStyle.colorPrimaryLighter
+
 							width: parent.width
 							wrapMode: Text.WordWrap
 							horizontalAlignment: Qt.AlignHCenter
@@ -127,12 +128,13 @@ Item {
 
 					QLabel {
 						id: labelDetails
-						color: if (type === "info")
-								   CosStyle.colorPrimaryLighter
-							   else if (type === "warning")
+						color: if (type === "warning")
 								   CosStyle.colorWarningLighter
 							   else if (type === "error")
 								   CosStyle.colorErrorLighter
+							   else
+								   CosStyle.colorPrimaryLighter
+
 						width: parent.width
 						wrapMode: Text.WordWrap
 						horizontalAlignment: Qt.AlignHCenter

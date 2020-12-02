@@ -62,8 +62,8 @@ Item {
 
 			width: Math.min(implicitWidth, item.width-mainIcon.width-mainRow.spacing-2*item.padding)
 
-			elide: (item.width-mainIcon.width-mainRow.spacing-2*item.padding) > implicitWidth ?
-					   Text.ElideRight : Text.ElideNone
+			/*elide: (item.width-mainIcon.width-mainRow.spacing-2*item.padding) < implicitWidth ?
+					   Text.ElideRight : Text.ElideNone*/
 		}
 	}
 }

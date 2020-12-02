@@ -85,5 +85,9 @@
         <file>QVariantMapProxyView.qml</file>
         <file>_PagePanel.qml</file>
         <file>PageMapEditor.qml</file>
+        <file>QDialogProgress.qml</file>
+        <file>QToolButtonBig.qml</file>
+        <file>MapEditorCampaignList.qml</file>
+        <file>MapEditorCampaignEdit.qml</file>
     </qresource>
 </RCC>

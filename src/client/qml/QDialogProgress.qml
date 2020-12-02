@@ -1,6 +1,8 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtGraphicalEffects 1.0
+import QtQuick.Controls.Material 2.12
+import COS.Client 1.0
 import "Style"
 import "JScript.js" as JS
 import "."
@@ -13,9 +15,31 @@ Item {
 
 	property alias title: mainRow.title
 	property alias text: labelText.text
+	property alias value: progressBar.value
+
+	property CosDownloader downloader: null
 
 	signal dlgClose()
-	property var acceptedData: false
+	property var acceptedData: true
+
+	Connections {
+		target: downloader
+		function onActiveDownloadChanged(activeDownload) {
+			labelText.text = activeDownload
+		}
+
+		function onDownloadProgressChanged(progress) {
+			setValue(progress)
+		}
+
+		function onDownloadFinished() {
+			dlgClose()
+		}
+
+		function onDownloadFailed() {
+			dlgClose()
+		}
+	}
 
 	Item {
 		id: dlgItem
@@ -57,19 +81,20 @@ Item {
 			anchors.top: parent.top
 			anchors.left: parent.left
 			anchors.right: parent.right
-			anchors.bottom: buttonRow.top
-			anchors.bottomMargin: 30
+			anchors.bottom: buttonNo.top
+			anchors.bottomMargin: 10
 
 			QDialogHeader {
 				id: mainRow
 				icon: CosStyle.iconDialogQuestion
 			}
 
+
 			DropShadow {
 				anchors.fill: labelText
 				horizontalOffset: 2
 				verticalOffset: 2
-				radius: 1
+				radius: 2
 				samples: 3
 				source: labelText
 				visible: true
@@ -78,56 +103,69 @@ Item {
 			QLabel {
 				id: labelText
 				color: CosStyle.colorPrimaryLighter
+
 				anchors.top: mainRow.bottom
 				anchors.left: parent.left
 				anchors.right: parent.right
-				anchors.bottom: parent.bottom
 				anchors.margins: 30
 				anchors.topMargin: 20
 				wrapMode: Text.WordWrap
-				horizontalAlignment: Qt.AlignHCenter
+				horizontalAlignment: Qt.AlignLeft
 				verticalAlignment: Qt.AlignVCenter
 			}
-		}
 
-		Row {
-			id: buttonRow
-			spacing: 10
 
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.bottom: parent.bottom
+			Item {
+				anchors.top: labelText.bottom
+				anchors.left: parent.left
+				anchors.right: parent.right
+				anchors.margins: 30
+				anchors.topMargin: 20
+				anchors.bottomMargin: mainRow.padding
 
-			QButton {
-				id: buttonNo
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Nem")
-				icon.source: CosStyle.iconCancel
-				themeColors: CosStyle.buttonThemeDelete
 
-				onClicked: {
-					dlgClose()
+				ProgressBar {
+					id: progressBar
+
+					anchors.left: parent.left
+					anchors.right: parent.right
+					anchors.verticalCenter: parent.verticalCenter
+
+					indeterminate: true
+
+					Material.accent: CosStyle.colorOK
 				}
 			}
 
-			QButton {
-				id: buttonYes
+		}
 
-				anchors.verticalCenter: parent.verticalCenter
+		QButton {
+			id: buttonNo
+			anchors.right: parent.right
+			anchors.bottom: parent.bottom
+			text: qsTr("Megszakítás")
+			icon.source: CosStyle.iconCancel
+			themeColors: CosStyle.buttonThemeDelete
 
-				text: qsTr("Igen")
-				icon.source: CosStyle.iconOK
-				themeColors: CosStyle.buttonThemeApply
-
-				onClicked: {
-					acceptedData = true
+			onClicked: {
+				acceptedData = false
+				if (downloader)
+					downloader.abort()
+				else
 					dlgClose()
-				}
 			}
 		}
 
 	}
 
 	function populated() {
-		buttonYes.forceActiveFocus()
+		if (downloader)
+			downloader.start()
 	}
+
+	function setValue(v) {
+		progressBar.indeterminate = false
+		progressBar.value = v
+	}
+
 }

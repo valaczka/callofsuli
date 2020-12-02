@@ -125,7 +125,8 @@ QPage {
 	Connections {
 		target: cosClient
 		function onUserRolesChanged(userRole) {
-			mainStack.pop(page)
+			if (page.StackView.view)
+				mainStack.pop(page)
 		}
 
 		function onAuthRequirePasswordReset() {
