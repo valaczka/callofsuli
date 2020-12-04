@@ -237,8 +237,9 @@ int VariantMapData::find(const QString &field, const QVariant &value, const int 
 	for (it = constBegin()+from; it != constEnd(); ++it) {
 		_MapPair p = *it;
 		QVariantMap m = p.second;
-		if (m.value(field) == value)
+		if (m.value(field) == value) {
 			return it-constBegin();
+		}
 	}
 
 	return -1;

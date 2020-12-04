@@ -112,7 +112,7 @@ QByteArray MapRepository::getData(const int &id)
 
 	QVariantList l;
 	l << id;
-	QSqlQuery q = simpleQuery("SELECT data FROM mapdata WHERE id=?", l);
+	QSqlQuery q;// = simpleQuery("SELECT data FROM mapdata WHERE id=?", l);
 	return getDataReal(q);
 }
 
@@ -130,7 +130,7 @@ QByteArray MapRepository::getData(const QString &uuid)
 
 	QVariantList l;
 	l << uuid;
-	QSqlQuery q = simpleQuery("SELECT data FROM mapdata WHERE uuid=?", l);
+	QSqlQuery q;// = simpleQuery("SELECT data FROM mapdata WHERE uuid=?", l);
 	return getDataReal(q);
 }
 

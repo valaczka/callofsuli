@@ -9,28 +9,15 @@ import "."
 QToolButton {
 	id: button
 
-	property CosDb dbActivity: null
+	property AbstractActivity activity: null
 
-	enabled: dbActivity && dbActivity.canUndo > -1
+	enabled: activity && activity.canUndo > -1 && !activity.isBusy
 
 	onClicked: undo()
 
 	icon.source: CosStyle.iconUndo
 
-	ToolTip.text: ""
-
-	Connections {
-		target: dbActivity
-
-		function onCanUndoChanged(canUndo) {
-			if (dbActivity.canUndo > -1) {
-				var t = dbActivity.undoStack()
-				button.ToolTip.text = qsTr("Visszavonás: ")+t.steps[0].desc
-			} else {
-				button.ToolTip.text = ""
-			}
-		}
-	}
+	ToolTip.text: activity ? activity.canUndoString : ""
 
 	Action {
 		id: actionUndo
@@ -46,20 +33,20 @@ QToolButton {
 		d.item.list.modelTitleRole = "desc"
 		d.item.list.modelRightRole = "id"
 
-		var s = dbActivity.undoStack()
+		/*var s = activity.db.undoStack()
 
 		d.item.model = s.steps
 
 		d.accepted.connect(function(idx) {
 			var step = s.steps[idx].id-1
-			dbActivity.undo(step)
-		})
+			activity.db.undo(step)
+		})*/
 		d.open()
 	}
 
 
 	function undo() {
-		if (dbActivity)
-			dbActivity.undo(dbActivity.canUndo-1)
+		if (activity)
+			activity.db.undo(activity.canUndo-1)
 	}
 }

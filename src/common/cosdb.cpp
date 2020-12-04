@@ -29,6 +29,7 @@
 
 CosDb::CosDb(const QString &connectionName, QObject *parent)
 	: QObject(parent)
+	, m_mutex(QMutex::Recursive)
 {
 	if (connectionName.isEmpty())
 		m_db = QSqlDatabase::addDatabase("QSQLITE");
@@ -69,6 +70,8 @@ CosDb::~CosDb()
 
 bool CosDb::batchQuery(const QString &query)
 {
+	QMutexLocker locker(&m_mutex);
+
 	QSqlQuery q(m_db);
 
 	qDebug().noquote() << "SQL batch query ----------";
@@ -88,6 +91,7 @@ bool CosDb::batchQuery(const QString &query)
 	}
 
 	qDebug().noquote() << "SQL batch query end ------";
+
 
 	return true;
 }
@@ -302,6 +306,7 @@ QVariantList CosDb::execQuery(QSqlQuery query, QString *errorString, QVariant *l
 
 bool CosDb::execSimpleQuery(QString query, const QVariantList &args, QString *errorString)
 {
+	QMutexLocker locker(&m_mutex);
 	QString err;
 
 	execQuery(simpleQuery(query, args), &err);
@@ -322,6 +327,8 @@ bool CosDb::execSimpleQuery(QString query, const QVariantList &args, QString *er
 
 bool CosDb::execBatchQuery(QString query, const QVariantList &list, QString *errorString)
 {
+	QMutexLocker locker(&m_mutex);
+
 	m_db.transaction();
 
 	QSqlQuery q(m_db);
@@ -337,13 +344,32 @@ bool CosDb::execBatchQuery(QString query, const QVariantList &list, QString *err
 		if (errorString)
 			(*errorString) = errText;
 		m_db.rollback();
+
 		return false;
 	}
 
 	m_db.commit();
 
 	qDebug().noquote() << tr("SQL command: ")+q.executedQuery();
+
 	return true;
+}
+
+
+/**
+ * @brief CosDb::execSelectQuery
+ * @param query
+ * @param args
+ * @param errorString
+ * @return
+ */
+
+QVariantList CosDb::execSelectQuery(QString query, const QVariantList &args, QString *errorString)
+{
+	QMutexLocker locker(&m_mutex);
+	QVariantList l = execQuery(simpleQuery(query, args), errorString);
+
+	return l;
 }
 
 /**
@@ -356,7 +382,9 @@ bool CosDb::execBatchQuery(QString query, const QVariantList &list, QString *err
 
 QVariantMap CosDb::execSelectQueryOneRow(QString query, const QVariantList &args, QString *errorString)
 {
+	QMutexLocker locker(&m_mutex);
 	QVariantList list = execQuery(simpleQuery(query, args), errorString);
+
 
 	if (list.size() > 1) {
 		if (errorString)
@@ -381,8 +409,9 @@ QVariantMap CosDb::execSelectQueryOneRow(QString query, const QVariantList &args
 int CosDb::execInsertQuery(QString query, const QVariantMap &map, QString *errorString)
 {
 	QVariant nextId = -1;
-
+	QMutexLocker locker(&m_mutex);
 	execQuery(insertQuery(query, map), errorString, &nextId);
+
 
 	return nextId.toInt();
 }
@@ -401,7 +430,9 @@ bool CosDb::execUpdateQuery(QString query, const QVariantMap &map, const QVarian
 {
 	QString err;
 
+	QMutexLocker locker(&m_mutex);
 	execQuery(updateQuery(query, map, bindValues), &err);
+
 
 	if (errorString)
 		(*errorString) = err;
@@ -424,7 +455,9 @@ bool CosDb::execListQuery(QString query, const QVariantList &list, const QVarian
 {
 	QString err;
 
+	QMutexLocker locker(&m_mutex);
 	execQuery(listQuery(query, list, bindValues, parenthesizeValues), &err);
+
 
 	if (errorString)
 		(*errorString) = err;
@@ -467,6 +500,8 @@ QString CosDb::hashPassword(const QString &password, QString *salt, QCryptograph
 
 bool CosDb::createUndoTables()
 {
+	QMutexLocker locker(&m_mutex);
+
 	if (!execSimpleQuery("CREATE TABLE IF NOT EXISTS undoSettings(lastStep INTEGER, active BOOL)"))
 		return false;
 
@@ -502,6 +537,7 @@ bool CosDb::createUndoTables()
 
 bool CosDb::createTrigger(const QString &table)
 {
+	QMutexLocker locker(&m_mutex);
 
 	QString cmd = "CREATE TRIGGER IF NOT EXISTS _"+table+"_it AFTER INSERT ON "+table+" WHEN 1=(SELECT active FROM undoSettings) BEGIN\n";
 	cmd += "INSERT INTO undoLog(stepid, cmd) VALUES((SELECT MAX(id) FROM undoStep), \n";
@@ -569,6 +605,7 @@ bool CosDb::createTrigger(const QString &table)
 
 void CosDb::dropUndoTables()
 {
+	QMutexLocker locker(&m_mutex);
 	foreach (QString t, m_undoTables) {
 		execSimpleQuery("DROP TABLE IF EXISTS "+t);
 	}
@@ -583,12 +620,14 @@ void CosDb::dropUndoTables()
 
 void CosDb::dropUndoTriggers()
 {
+	QMutexLocker locker(&m_mutex);
 	foreach (QString t, m_undoTriggers) {
 		execSimpleQuery("DROP TRIGGER IF EXISTS "+t);
 	}
 
 	m_undoTriggers.clear();
 }
+
 
 
 /**
@@ -599,6 +638,8 @@ void CosDb::dropUndoTriggers()
 
 void CosDb::undoLogBegin(const QString &desc)
 {
+	QMutexLocker locker(&m_mutex);
+
 	m_db.transaction();
 
 	execSimpleQuery("DELETE FROM undoStep WHERE id>(SELECT lastStep FROM undoSettings)");
@@ -611,6 +652,7 @@ void CosDb::undoLogBegin(const QString &desc)
 	execSimpleQuery("UPDATE undoSettings SET lastStep=?, active=true", l);
 
 	m_db.commit();
+
 }
 
 
@@ -622,10 +664,13 @@ void CosDb::undoLogBegin(const QString &desc)
 
 void CosDb::undoLogEnd()
 {
+	QMutexLocker locker(&m_mutex);
+
 	execSimpleQuery("UPDATE undoSettings SET active=false");
 
-	QVariantMap r =	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep");
-	setCanUndo(r.value("id",-1).toInt());
+	QVariantMap r =	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id, desc FROM undoStep");
+
+	setCanUndo(r.value("id",-1).toInt(), r.value("desc").toString());
 }
 
 
@@ -638,6 +683,7 @@ QVariantMap CosDb::undoStack()
 {
 	QVariantMap ret;
 
+	QMutexLocker locker(&m_mutex);
 	m_db.transaction();
 
 	ret["lastStep"] = execSelectQueryOneRow("SELECT lastStep FROM undoSettings").value("lastStep");
@@ -663,6 +709,7 @@ QVariantMap CosDb::undoStack()
 
 void CosDb::undo(const int &floor)
 {
+	QMutexLocker locker(&m_mutex);
 	m_db.transaction();
 
 	QVariantMap m = execSelectQueryOneRow("SELECT lastStep FROM undoSettings");
@@ -687,10 +734,11 @@ void CosDb::undo(const int &floor)
 	l2 << floor;
 	execSimpleQuery("UPDATE undoSettings SET lastStep=?", l2);
 
-	QVariantMap r = execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id FROM undoStep");
-	setCanUndo(r.value("id",-1).toInt());
-
+	QVariantMap r = execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id, desc FROM undoStep");
 	m_db.commit();
+
+
+	setCanUndo(r.value("id",-1).toInt(), r.value("desc").toString());
 
 	emit undone();
 }
@@ -772,17 +820,37 @@ void CosDb::setDatabaseName(QString databaseName)
 
 
 /**
+ * @brief CosDb::get
+ * @param rowid
+ * @param field
+ * @return
+ */
+
+QVariant CosDb::get(const int &rowid, const QString &table, const QString &field)
+{
+	QVariantList l;
+	l << rowid;
+	QVariantMap m = execSelectQueryOneRow("SELECT "+field+" FROM "+table+" WHERE rowid=?", l);
+
+	if (!m.isEmpty())
+		return m.value(field);
+
+	return QVariant::Invalid;
+}
+
+
+/**
  * @brief CosSql::setCanUndo
  * @param canUndo
  */
 
-void CosDb::setCanUndo(int canUndo)
+void CosDb::setCanUndo(int canUndo, const QString &undoString)
 {
 	if (m_canUndo == canUndo)
 		return;
 
 	m_canUndo = canUndo;
-	emit canUndoChanged(m_canUndo);
+	emit canUndoChanged(m_canUndo, undoString);
 }
 
 

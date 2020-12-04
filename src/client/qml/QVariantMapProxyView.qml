@@ -19,6 +19,7 @@ QListView {
 	property string modelTitleColorRole: ""
 	property string modelSubtitleColorRole: ""
 	property string modelBackgroundRole: ""
+	property string modelTitleWeightRole: ""
 
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
@@ -124,6 +125,8 @@ QListView {
 					color: modelTitleColorRole.length ? model[modelTitleColorRole] : CosStyle.colorPrimaryLighter
 					maximumLineCount: 1
 					elide: Text.ElideRight
+					font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : Font.Normal
+					width: Math.min(implicitWidth, parent.width)
 				}
 
 				QLabel {
@@ -132,6 +135,8 @@ QListView {
 					font.pixelSize: CosStyle.pixelSize*0.8
 					font.weight: Font.Light
 					color: modelSubtitleColorRole.length ? model[modelSubtitleColorRole] : CosStyle.colorPrimary
+					elide: Text.ElideRight
+					width: Math.min(implicitWidth, parent.width)
 				}
 			}
 

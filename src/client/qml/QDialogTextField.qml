@@ -18,7 +18,7 @@ Item {
 	property alias textField: tfInput
 
 	signal dlgClose()
-	signal dlgAccept(var data)
+	property var acceptedData: ""
 
 	Item {
 		id: dlgItem
@@ -110,7 +110,10 @@ Item {
 					anchors.right: parent.right
 					anchors.verticalCenter: parent.verticalCenter
 
-					onAccepted: dlgAccept(text)
+					onAccepted: {
+						acceptedData = text
+						dlgClose()
+					}
 				}
 			}
 
@@ -142,7 +145,10 @@ Item {
 				icon.source: CosStyle.iconOK
 				themeColors: CosStyle.buttonThemeApply
 
-				onClicked: dlgAccept(tfInput.text)
+				onClicked: {
+					acceptedData = tfInput.text
+					dlgClose()
+				}
 			}
 		}
 

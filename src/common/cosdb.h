@@ -37,7 +37,6 @@ class CosDb : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(QString databaseName READ databaseName WRITE setDatabaseName NOTIFY databaseNameChanged)
-	Q_PROPERTY(int canUndo READ canUndo NOTIFY canUndoChanged)
 
 public:
 	explicit CosDb(const QString &connectionName = QString(), QObject *parent = nullptr);
@@ -54,8 +53,49 @@ public:
 	void setConnectOptions(const QString &options = QString()) { m_db.setConnectOptions(options); }
 	QString connectOptions() const { return m_db.connectOptions(); }
 
+	static QString hashPassword (const QString &password, QString *salt = nullptr,
+								 QCryptographicHash::Algorithm method = QCryptographicHash::Sha1);
+
+
+public slots:
+
 	bool batchQuery(const QString &query);
 	bool batchQueryFromFile(const QString &filename);
+
+
+	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
+	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
+	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(), QString *errorString = nullptr);
+	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false,
+					   QString *errorString = nullptr);
+
+
+	bool createUndoTables();
+	bool createTrigger(const QString &table);
+	void dropUndoTables();
+	void dropUndoTriggers();
+
+	int canUndo() const { return m_canUndo; }
+
+	void undoLogBegin(const QString &desc);
+	void undoLogEnd();
+	void undo(const int &floor);
+	QVariantMap undoStack();
+
+	bool open();
+	void close() { m_db.close(); }
+	void setDatabaseName(QString databaseName);
+
+	QVariant get(const int &rowid, const QString &table, const QString &field);
+
+protected slots:
+	virtual bool databaseInit() { return true; };
+
+private slots:
+	void setCanUndo(int canUndo, const QString &undoString);
 
 	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
 	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
@@ -64,46 +104,8 @@ public:
 
 	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 
-	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
-	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
-	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr)
-	{ return execQuery(simpleQuery(query, args), errorString); }
-	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
-	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
-	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(), QString *errorString = nullptr);
-	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false,
-					   QString *errorString = nullptr);
-
-
-	static QString hashPassword (const QString &password, QString *salt = nullptr,
-								 QCryptographicHash::Algorithm method = QCryptographicHash::Sha1);
-
-
-	bool createUndoTables();
-	bool createTrigger(const QString &table);
-	void dropUndoTables();
-	void dropUndoTriggers();
-
-	void undoLogBegin(const QString &desc);
-	void undoLogEnd();
-	QVariantMap undoStack();
-	void undo(const int &floor);
-
-	int canUndo() const { return m_canUndo; }
-
-public slots:
-	bool open();
-	void close() { m_db.close(); }
-	void setDatabaseName(QString databaseName);
-
-protected slots:
-	virtual bool databaseInit() { return true; };
-
-private slots:
-	void setCanUndo(int canUndo);
-
 signals:
-	void canUndoChanged(int canUndo);
+	void canUndoChanged(int canUndo, const QString &undoString);
 	void undone();
 	void databaseError(const QString &text);
 	void databaseNameChanged(QString databaseName);
@@ -116,6 +118,7 @@ private:
 	bool m_isOwnCreated;
 	QStringList m_undoTables;
 	QStringList m_undoTriggers;
+	QMutex m_mutex;
 };
 
 #endif // COSSQL_H

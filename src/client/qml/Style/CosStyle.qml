@@ -94,7 +94,7 @@ QtObject {
 
 	property string iconLockAdd: "image://font/Material Icons/\ue63f"
 	property string iconLockDisabled: "image://font/Material Icons/\ue641"
-	property string iconLock: "image://font/Material Icons/\ue817"
+	property string iconLock: "image://font/Material Icons/\ue897"
 	property string iconLockOpened: "image://font/Material Icons/\ue898"
 	property string iconLockClosed: "image://font/Material Icons/\ue899"
 	property string iconUser: "image://font/Material Icons/\ue7fd"

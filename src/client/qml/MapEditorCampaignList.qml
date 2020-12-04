@@ -11,16 +11,13 @@ QPagePanel {
 
 	maximumWidth: 600
 
-	title: qsTr("Hadjáratok/Küldetések")
+	title: qsTr("Küldetések")
 	icon: CosStyle.iconUsers
 
-	/*contextMenuFunc: function (m) {
-		m.addAction(actionServerNew)
-		m.addAction(actionConnect)
-		m.addAction(actionRemove)
-		m.addAction(actionEdit)
-		m.addAction(actionAutoConnect)
-	}*/
+	contextMenuFunc: function (m) {
+		m.addAction(actionCampaignNew)
+		m.addAction(actionMissionNew)
+	}
 
 
 	QPageHeader {
@@ -57,13 +54,35 @@ QPagePanel {
 			}
 		]
 		sorters: [
-			RoleSorter { roleName: "ordNumC"; priority: 1 },
-			RoleSorter { roleName: "ordNumM"; priority: 0 }
+			StringSorter { roleName: "cname"; priority: 2 },
+			RoleSorter { roleName: "cid"; priority: 1 },
+			StringSorter { roleName: "mname"; priority: 0 }
 		]
-		proxyRoles: ExpressionRole {
-			name: "details"
-			expression: model.name+":"+model.ordNumC+":"+model.ordNumM
-		}
+		proxyRoles: [
+			ExpressionRole {
+				name: "name"
+				expression: model.type === 0 ? model.cname : model.mname
+			},
+			SwitchRole {
+				name: "textColor"
+				filters: ValueFilter {
+					roleName: "type"
+					value: 0
+					SwitchRole.value: CosStyle.colorPrimaryLight
+				}
+				defaultValue: CosStyle.colorPrimaryLighter
+			},
+			SwitchRole {
+				name: "fontWeight"
+				filters: ValueFilter {
+					roleName: "type"
+					value: 0
+					SwitchRole.value: Font.Medium
+				}
+				defaultValue: Font.Normal
+			}
+		]
+
 	}
 
 
@@ -79,25 +98,28 @@ QPagePanel {
 
 		model: userProxyModel
 		modelTitleRole: "name"
-		modelSubtitleRole: "details"
 		modelDepthRole: "type"
+		modelTitleColorRole: "textColor"
+		modelTitleWeightRole: "fontWeight"
 
 		autoSelectorChange: false
 
-		/*leftComponent: QFontImage {
-			width: list.delegateHeight
+		leftComponent: QFontImage {
+			width: list.delegateHeight*0.8
 			height: width
 			size: Math.min(height*0.8, 32)
 
-			icon: model && model.autoconnect ? CosStyle.iconFavoriteOn : CosStyle.iconFavoriteOff
+			icon: CosStyle.iconLock
 
-			color: CosStyle.colorAccent
+			visible: model && model.locked
+
+			color: CosStyle.colorPrimary
 		}
 
-		onClicked: if (servers.editing)
+		/*onClicked: if (servers.editing)
 					   actionEdit.trigger()
 				   else
-					   servers.serverConnect(sourceIndex)
+					   servers.serverConnect(sourceIndex) */
 
 		onRightClicked: contextMenu.popup()
 		onLongPressed: contextMenu.popup()
@@ -105,39 +127,84 @@ QPagePanel {
 		QMenu {
 			id: contextMenu
 
-			MenuItem { action: actionConnect }
-			MenuItem { action: actionEdit}
-			MenuItem { action: actionRemove }
-			MenuSeparator {}
-			MenuItem { action: actionAutoConnect }
+			MenuItem { action: actionCampaignNew }
+			MenuItem { action: actionCampaignRename }
+			MenuItem { action: actionMissionNew }
 		}
 
 
-		onKeyInsertPressed: actionServerNew.trigger()
-		onKeyF4Pressed: actionEdit.trigger()
-		onKeyDeletePressed: actionRemove.trigger()
-		onKeyF2Pressed: actionAutoConnect.trigger() */
+		onKeyInsertPressed: actionCampaignNew.trigger()
+		//onKeyF4Pressed: actionEdit.trigger()
+		//onKeyDeletePressed: actionRemove.trigger()
+		onKeyF2Pressed: actionMissionNew.trigger()
 	}
 
 
-	/*QToolButtonBig {
+	QToolButtonBig {
 		anchors.centerIn: parent
-		visible: !servers.serversModel.count
-		action: actionServerNew
+		visible: !mapEditor.campaignModel.count
+		action: actionCampaignNew
 	}
 
 
 	Action {
-		id: actionServerNew
-		text: qsTr("Hozzáadás")
+		id: actionCampaignNew
+		text: qsTr("Új hadjárat")
 		icon.source: CosStyle.iconAdd
+		enabled: !mapEditor.isBusy
 		onTriggered: {
-			servers.serverKey = -1
-			servers.editing = true
+			var d = JS.dialogCreateQml("TextField")
+			d.item.title = qsTr("Új hadjárat neve")
+
+			d.accepted.connect(function(data) {
+				mapEditor.run("campaignAdd", {"name": data})
+			})
+			d.open()
 		}
 	}
 
 	Action {
+		id: actionCampaignRename
+		text: qsTr("Hadjárat átnevezése")
+		icon.source: CosStyle.iconAdd
+		enabled: !mapEditor.isBusy && list.currentIndex !== -1 && list.model.get(list.currentIndex).type === 0
+		onTriggered: {
+			var o = list.model.get(list.currentIndex)
+
+			var d = JS.dialogCreateQml("TextField")
+			d.item.title = qsTr("Hadjárat neve")
+			d.item.value = o.cname
+
+			d.accepted.connect(function(data) {
+				mapEditor.run("campaignModify", {
+								  "id": o.cid,
+								  "data": {"name": data}
+							  })
+			})
+			d.open()
+		}
+	}
+
+
+	Action {
+		id: actionMissionNew
+		text: qsTr("Új küldetés")
+		icon.source: CosStyle.iconAdd
+		enabled: !mapEditor.isBusy && list.currentIndex !== -1
+		onTriggered: {
+			var d = JS.dialogCreateQml("TextField")
+			d.item.title = qsTr("Új küldetés neve")
+
+			var o = list.model.get(list.currentIndex)
+
+			d.accepted.connect(function(data) {
+				mapEditor.run("missionAdd", {"name": data, "campaign": o.cid})
+			})
+			d.open()
+		}
+	}
+
+	/*Action {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
 		enabled: list.currentIndex !== -1
@@ -187,20 +254,21 @@ QPagePanel {
 			}
 		}
 	}
+*/
 
-	Action {
-		id: actionAutoConnect
-		text: qsTr("Automata csatlakozás")
-		enabled: list.currentIndex !== -1
-		onTriggered:  {
-			servers.serverSetAutoConnect(list.sourceIndex)
+
+	Connections {
+		target: mapEditor
+
+		function onCampaignAdded(key) {
+			console.debug("ADDED", mapEditor.db.get(key, "campaigns", "name"))
 		}
 	}
 
 
 	onPanelActivated: {
 		list.forceActiveFocus()
-	}*/
+	}
 }
 
 

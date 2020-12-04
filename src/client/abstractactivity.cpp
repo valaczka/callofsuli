@@ -34,16 +34,21 @@
 
 #include "abstractactivity.h"
 #include "QQuickItem"
+#include <QtConcurrent/QtConcurrent>
 
 AbstractActivity::AbstractActivity(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_client(nullptr)
-	, m_db(nullptr)
 	, m_isBusy(false)
 	, m_busyStack()
 	, m_downloader(nullptr)
+	, m_db(nullptr)
+	, m_runId(0)
+	//, m_workerThread(nullptr)
 {
-
+	//m_db = new CosDb("testConn");
+	//m_workerThread = new QThread(this);
+	//m_db->moveToThread(m_workerThread);
 }
 
 /**
@@ -52,8 +57,19 @@ AbstractActivity::AbstractActivity(QQuickItem *parent)
 
 AbstractActivity::~AbstractActivity()
 {
+	/*if (m_workerThread) {
+		qDebug() << "stop thread" << m_workerThread;
 
+		m_workerThread->quit();
+		m_workerThread->wait();
+		delete m_workerThread;
+	}*/
+
+	if (m_db)
+		delete m_db;
 }
+
+
 
 
 /**
@@ -85,9 +101,6 @@ void AbstractActivity::send(const CosMessage::CosClass &cosClass, const QString 
 
 void AbstractActivity::setClient(Client *client)
 {
-	if (m_db)
-		m_db->setClient(client);
-
 	if (m_client == client)
 		return;
 
@@ -147,21 +160,30 @@ void AbstractActivity::busyStackRemove(const CosMessage::CosClass &cosClass, con
  * @param db
  */
 
-
+/*
 void AbstractActivity::setDb(ActivityDB *db)
 {
 	if (m_db == db)
 		return;
 
 	m_db = db;
-	emit dbChanged(m_db);
 
-	if (m_db) {
-		m_db->setClient(m_client);
-		if (m_client)
-			connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
+	if (!m_db)
+		return;
+
+	connect(m_db, &CosDb::canUndoChanged, this, &AbstractActivity::canUndoChanged);
+
+	if (!m_workerThread) {
+		m_workerThread = new QThread(this);
+		m_db->moveToThread(m_workerThread);
 	}
+
+	m_db->setClient(m_client);
+	if (m_client)
+		connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
 }
+*/
+
 
 void AbstractActivity::setDownloader(CosDownloader *downloader)
 {
@@ -171,6 +193,55 @@ void AbstractActivity::setDownloader(CosDownloader *downloader)
 	m_downloader = downloader;
 	emit downloaderChanged(m_downloader);
 }
+
+
+/**
+ * @brief AbstractActivity::canUndo
+ * @return
+ */
+
+int AbstractActivity::canUndo() const
+{
+	if (m_db)
+		return m_db->canUndo();
+	else
+		return -1;
+}
+
+
+/**
+ * @brief AbstractActivity::addDb
+ * @param db
+ */
+
+void AbstractActivity::addDb(CosDb *db)
+{
+	if (m_db) {
+		qWarning() << "COSdb already exists";
+		return;
+	}
+
+	m_db = db;
+
+	if (m_client)
+		connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
+
+	connect(m_db, &CosDb::canUndoChanged, this, [=](int canUndo, const QString &canUndoString) {
+		emit canUndoChanged(canUndo);
+		setCanUndoString(canUndoString);
+	});
+}
+
+void AbstractActivity::setCanUndoString(QString canUndoString)
+{
+	if (m_canUndoString == canUndoString)
+		return;
+
+	m_canUndoString = canUndoString;
+	emit canUndoStringChanged(m_canUndoString);
+}
+
+
 
 
 /**

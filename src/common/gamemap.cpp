@@ -1151,8 +1151,7 @@ void GameMap::campaignsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS campaigns ("
 							 "id INTEGER PRIMARY KEY,"
-							 "name TEXT,"
-							 "ordNum INTEGER"
+							 "name TEXT"
 							 ");"))
 		throw 1;
 
@@ -1167,12 +1166,10 @@ void GameMap::campaignsToDb(CosDb *db) const
 	if (!db->execSimpleQuery("DELETE FROM campaigns"))		throw 1;
 
 
-	int ord = 0;
 	foreach (Campaign *c, m_campaigns) {
 		QVariantMap l;
 		l["id"] = c->id();
 		l["name"] = c->name();
-		l["ordNum"] = ++ord;
 
 		if (db->execInsertQuery("INSERT INTO campaigns (?k?) VALUES (?)", l) == -1)
 			throw 1;
@@ -1200,7 +1197,7 @@ void GameMap::campaignsToDb(CosDb *db) const
 
 void GameMap::campaingsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT id, name FROM campaigns ORDER BY ordNum");
+	QVariantList l = db->execSelectQuery("SELECT id, name FROM campaigns");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
@@ -1332,8 +1329,7 @@ void GameMap::missionsToDb(CosDb *db) const
 							 "uuid TEXT PRIMARY KEY,"
 							 "campaign INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE,"
 							 "mandatory BOOL,"
-							 "name TEXT,"
-							 "ordNum INTEGER"
+							 "name TEXT"
 							 ");"))
 		throw 1;
 
@@ -1349,7 +1345,6 @@ void GameMap::missionsToDb(CosDb *db) const
 	if (!db->execSimpleQuery("DELETE FROM missions"))		throw 1;
 
 
-	int ord=0;
 
 	foreach (Campaign *c, m_campaigns) {
 		foreach (Mission *m, c->missions()) {
@@ -1358,7 +1353,6 @@ void GameMap::missionsToDb(CosDb *db) const
 			l["name"] = m->name();
 			l["mandatory"] = m->mandatory();
 			l["uuid"] = QString(m->uuid());
-			l["ordNum"] = ++ord;
 
 			if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
 				throw 1;
@@ -1392,7 +1386,7 @@ void GameMap::missionsToDb(CosDb *db) const
 
 void GameMap::missionsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name FROM missions ORDER BY ordNum");
+	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name FROM missions");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();

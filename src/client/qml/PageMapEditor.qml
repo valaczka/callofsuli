@@ -15,13 +15,13 @@ QPage {
 
 	title: qsTr("Pályaszerkesztő")
 
-	property string loadFileName: ""
+	property string loadFileName: "/tmp/ttt.dat"
 
 	mainToolBarComponent: Row {
 		QUndoButton  {
 			anchors.verticalCenter: parent.verticalCenter
 			id: undoButton
-			dbActivity: mapEditor.db
+			activity: mapEditor
 			visible: _isLoaded
 		}
 		QToolButton {
@@ -58,9 +58,9 @@ QPage {
 
 		onBackupUnavailable: {
 			if (page.loadFileName.length) {
-				loadFromFile(page.loadFileName)
+				mapEditor.run("loadFromFile", {filename: page.loadFileName})
 			} else {
-				createNew(qsTr("---új map---"))
+				mapEditor.run("createNew", {name: qsTr("--- ez egy új map---")})
 			}
 		}
 
@@ -76,7 +76,32 @@ QPage {
 			mapEditor.loadProgressChanged.connect(d.item.setValue)
 			mapEditor.loadFinished.connect(d.item.dlgClose)
 
+			d.onClosedAndDestroyed.connect(function() {
+				mapEditor.loadProgressChanged.disconnect(d.item.setValue)
+				mapEditor.loadFinished.disconnect(d.item.dlgClose)
+			})
+
 			d.open()
+		}
+
+
+		/*onSaveStarted: {
+			var d = JS.dialogCreateQml("Progress", { title: qsTr("Mentés") })
+			d.closePolicy = Popup.NoAutoClose
+
+			d.rejected.connect(function(data) {
+				console.debug("###########rejected")
+				mapEditor.loadAbort()
+			})
+
+			mapEditor.loadProgressChanged.connect(d.item.setValue)
+			mapEditor.saveFinished.connect(d.item.dlgClose)
+
+			d.open()
+		}*/
+
+		onSaveFinished: {
+			mapEditor.modified = false
 		}
 
 		onLoadFinished: {
@@ -101,20 +126,23 @@ QPage {
 	Action {
 		id: actionSave
 		icon.source: CosStyle.iconSave
-		enabled: false
+		enabled: mapEditor.modified
 		shortcut: "Ctrl+S"
+		onTriggered: {
+			mapEditor.run("saveToFile", {filename: page.loadFileName})
+		}
 	}
 
 
 	Action {
 		id: actionCampaigns
 
-		text: qsTr("Hadjáratok")
+		text: qsTr("Küldetések")
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
 			page.subtitle = text
 			page.panelComponents = page.cmpCampaigns
-			mapEditor.campaignListReload()
+			mapEditor.run("campaignListReload")
 		}
 	}
 
