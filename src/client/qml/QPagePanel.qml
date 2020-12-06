@@ -19,7 +19,8 @@ Item {
 
 	property bool layoutFillWidth: false
 	property string icon: ""
-	property alias title: labelTitle.text
+	property string title: ""
+	property string subtitle: ""
 	property QTabButton tabButton: null
 
 	property alias panelData: panelData
@@ -43,6 +44,8 @@ Item {
 	on_IsCurrentChanged: {
 		if (_isCurrent) {
 			parent.SwipeView.view.parentPage.contextMenuFunc = contextMenuFunc
+			parent.SwipeView.view.parentPage.title = control.title
+			parent.SwipeView.view.parentPage.subtitle = control.subtitle
 			panelActivated()
 		}
 	}
@@ -78,9 +81,6 @@ Item {
 			id: border2
 			source: "qrc:/internal/img/border2.svg"
 			visible: false
-
-			//sourceSize.height: 141
-			//sourceSize.width: 414
 
 			anchors.fill: panel
 			border.top: 10
@@ -135,7 +135,7 @@ Item {
 				anchors.right: parent.right
 				height: labelTitle.implicitHeight*1.6
 
-				visible: labelTitle.text.length
+				visible: labelTitle.text.length && !swipeMode
 
 				DropShadow {
 					anchors.fill: labelTitle
@@ -146,18 +146,38 @@ Item {
 					source: labelTitle
 				}
 
+				QFontImage {
+					id: iconImage
+
+					anchors.left: parent.left
+					anchors.leftMargin: CosStyle.pixelSize/2
+					anchors.verticalCenter: parent.verticalCenter
+
+					height: visible ? CosStyle.pixelSize*2 : 0
+					width: height
+					size: Math.min(height*0.8, 32)
+
+					icon: control.icon
+
+					visible: control.icon.length
+
+					color: titleColor
+				}
+
 				QLabel {
 					id: labelTitle
+					text: control.title
 					anchors.top: parent.top
-					anchors.left: parent.left
+					anchors.left: iconImage.right
 					anchors.right: menuButton.left
 					anchors.bottom: parent.bottom
 					font.weight: Font.Thin
 					font.pixelSize: CosStyle.pixelSize*1.4
 					font.capitalization: Font.AllUppercase
+					elide: Text.ElideRight
 					color: titleColor
 					verticalAlignment: "AlignVCenter"
-					leftPadding: CosStyle.pixelSize
+					leftPadding: iconImage.visible ? CosStyle.pixelSize/2 : CosStyle.pixelSize
 				}
 
 				QToolButton {

@@ -58,15 +58,13 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_campaignModel = new VariantMapModel(&m_campaignData, campaignRoles, this);
 
 
-
-	m_map["loadFromFile"] = &MapEditor::loadFromFile;
-	m_map["createNew"] = &MapEditor::createNew;
-	m_map["saveToFile"] = &MapEditor::saveToFile;
-
 	m_map["campaignAdd"] = &MapEditor::campaignAdd;
 	m_map["campaignModify"] = &MapEditor::campaignModify;
+	m_map["campaignRemove"] = &MapEditor::campaignRemove;
 	m_map["campaignListReload"] = &MapEditor::campaignListReload;
 	m_map["missionAdd"] = &MapEditor::missionAdd;
+	m_map["missionRemove"] = &MapEditor::missionRemove;
+	m_map["missionModify"] = &MapEditor::missionModify;
 
 
 
@@ -103,26 +101,9 @@ MapEditor::~MapEditor()
  * @param filename
  */
 
-void MapEditor::loadFromFile(QVariantMap data)
+void MapEditor::loadFromFilePrivate(QVariantMap data)
 {
 	QString filename = data.value("filename").toString();
-
-	if (filename.isEmpty() || !QFile::exists(filename)) {
-		m_client->sendMessageWarning(tr("A fájl nem található"), filename);
-		//emit loadFailed();
-		createNew(data);
-		return;
-	}
-
-	if (!db()->isOpen()) {
-		if (!db()->open()) {
-			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
-			emit loadFailed();
-			return;
-		}
-	}
-
-	emit loadStarted();
 
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.2));
 	setLoadProgress(0.0);
@@ -153,20 +134,9 @@ void MapEditor::loadFromFile(QVariantMap data)
  * @param data
  */
 
-void MapEditor::saveToFile(QVariantMap data)
+void MapEditor::saveToFilePrivate(QVariantMap data)
 {
 	QString filename = data.value("filename").toString();
-
-	if (filename.isEmpty())
-		return;
-
-	if (!db()->isOpen()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Nincs megnyitva az adatbázis!"));
-		emit saveFailed();
-		return;
-	}
-
-	emit saveStarted();
 
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.9));
 	setLoadProgress(0.0);
@@ -365,6 +335,35 @@ void MapEditor::campaignModify(QVariantMap data)
 }
 
 
+/**
+ * @brief MapEditor::campaignRemove
+ * @param data
+ */
+
+void MapEditor::campaignRemove(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+
+	if (id == -1)
+		return;
+
+	db()->undoLogBegin(tr("Hadjárat törlése"));
+
+	QVariantList l;
+	l << id;
+
+	bool ret = db()->execSimpleQuery("DELETE FROM campaigns WHERE id=?", l);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		campaignListReload();
+		setModified(true);
+		emit campaignRemoved(id);
+	}
+}
+
+
 
 
 
@@ -401,6 +400,81 @@ void MapEditor::setModified(bool modified)
 
 	m_modified = modified;
 	emit modifiedChanged(m_modified);
+}
+
+
+/**
+ * @brief MapEditor::loadFromFile
+ * @param data
+ */
+
+void MapEditor::loadFromFile(QVariantMap data)
+{
+	QString filename = data.value("filename").toString();
+
+	if (filename.isEmpty() || !QFile::exists(filename)) {
+		m_client->sendMessageWarning(tr("A fájl nem található"), filename);
+		//emit loadFailed();
+		createNew(data);
+		return;
+	}
+
+	if (!db()->isOpen()) {
+		if (!db()->open()) {
+			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
+			emit loadFailed();
+			return;
+		}
+	}
+
+	emit loadStarted();
+
+	AbstractActivity::run(&MapEditor::loadFromFilePrivate, data);
+}
+
+
+/**
+ * @brief MapEditor::saveToFile
+ * @param data
+ */
+
+void MapEditor::saveToFile(QVariantMap data)
+{
+	QString filename = data.value("filename").toString();
+
+	if (filename.isEmpty())
+		return;
+
+	if (!db()->isOpen()) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Nincs megnyitva az adatbázis!"));
+		emit saveFailed();
+		return;
+	}
+
+	emit saveStarted();
+
+	AbstractActivity::run(&MapEditor::saveToFilePrivate, data);
+}
+
+
+/**
+ * @brief MapEditor::createNew
+ * @param data
+ */
+
+void MapEditor::createNew(QVariantMap data)
+{
+	QString name = data.value("name").toString();
+	QByteArray uuid = data.value("uuid").toByteArray();
+
+	db()->open();
+
+	if (uuid.isEmpty())
+		uuid = QUuid::createUuid().toByteArray();
+
+	emit loadStarted();
+
+	AbstractActivity::run(&MapEditor::createNewPrivate, data);
 }
 
 
@@ -488,19 +562,7 @@ bool MapEditor::_createTriggers()
 	setLoadProgress(++step/maxStep);
 
 
-	/*QSqlDriver *driver = db()->db().driver();
-
-	connect(driver, QOverload<const QString &, QSqlDriver::NotificationSource, const QVariant &>::of(&QSqlDriver::notification),
-			[=](const QString &name, QSqlDriver::NotificationSource, const QVariant &){
-
-		if (tableList.contains(name)) {
-			QMetaObject::invokeMethod(this, QString("table"+name.left(1).toUpper()+name.mid(1)+"Changed").toLatin1().constData(), Qt::DirectConnection);
-		}
-	});*/
-
-
 	foreach (QString k, tableList) {
-		//driver->subscribeToNotification(k);
 		db()->createTrigger(k);
 		setLoadProgress(++step/maxStep);
 	}
@@ -514,19 +576,12 @@ bool MapEditor::_createTriggers()
  * @brief MapEditor::_loadFromNew
  */
 
-void MapEditor::createNew(QVariantMap data)
+void MapEditor::createNewPrivate(QVariantMap data)
 {
 	QString name = data.value("name").toString();
 	QByteArray uuid = data.value("uuid").toByteArray();
 
-	db()->open();
-
-	if (uuid.isEmpty())
-		uuid = QUuid::createUuid().toByteArray();
-
 	m_game = GameMap::example(name, uuid);
-
-	emit loadStarted();
 
 	if (_createDatabase())
 		emit loadFinished();
@@ -582,6 +637,65 @@ void MapEditor::missionAdd(QVariantMap data)
 	if (ret != -1) {
 		setModified(true);
 		emit missionAdded(ret);
+	}
+}
+
+
+/**
+ * @brief MapEditor::missionModify
+ * @param data
+ */
+
+void MapEditor::missionModify(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+	QVariantMap d = data.value("data").toMap();
+
+	if (uuid.isEmpty() || d.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Küldetés módosítása"));
+
+	QVariantMap bind;
+	bind[":id"] = uuid;
+
+	bool ret = db()->execUpdateQuery("UPDATE missions SET ? WHERE uuid=:id", d, bind);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		campaignListReload();
+		setModified(true);
+		emit missionModified(uuid);
+	}
+}
+
+
+/**
+ * @brief MapEditor::missionRemove
+ * @param data
+ */
+
+void MapEditor::missionRemove(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+
+	if (uuid.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Küldetés törlése"));
+
+	QVariantList l;
+	l << uuid;
+
+	bool ret = db()->execSimpleQuery("DELETE FROM missions WHERE uuid=?", l);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		campaignListReload();
+		setModified(true);
+		emit missionRemoved(uuid);
 	}
 }
 

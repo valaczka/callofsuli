@@ -11,7 +11,12 @@ ListView {
 
 	clip: true
 	focus: true
-	boundsBehavior: refreshEnabled ? Flickable.DragAndOvershootBounds : Flickable.StopAtBounds
+	activeFocusOnTab: true
+	//boundsBehavior: refreshEnabled ? Flickable.DragAndOvershootBounds : Flickable.StopAtBounds
+
+	highlightFollowsCurrentItem: false
+
+	boundsBehavior: Flickable.StopAtBounds
 
 	ScrollIndicator.vertical: ScrollIndicator { }
 
@@ -20,7 +25,7 @@ ListView {
 
 	height: contentHeight
 
-	signal refreshRequest()
+	/*signal refreshRequest()
 
 	onDragEnded: if (refreshEnabled && header.refresh) refreshRequest()
 
@@ -56,7 +61,10 @@ ListView {
 				PropertyChanges { target: arrow; color: CosStyle.colorAccentLighter }
 			}
 		]
-	}
+	}*/
+
+
+
 
 	/*
 	add: Transition {

@@ -39,6 +39,7 @@ GameEntity {
 
 		onAttack: {
 			console.debug("ATTACK")
+			spriteSequence.jumpTo("shot")
 		}
 
 		//onRayCastPerformed: setray(rect)
@@ -87,7 +88,7 @@ GameEntity {
 
 	function setSprite() {
 		if (ep.player) {
-			//spriteSequence.jumpTo("climbup")
+			spriteSequence.jumpTo("idle")
 		} else {
 			if (!ep.atBound && ep.moving) {
 				spriteSequence.jumpTo("walk")

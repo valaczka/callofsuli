@@ -85,7 +85,7 @@ void GameEnemySoldier::setQrcDir()
 	if (!game)
 		return;
 
-	QString dir = "qrc:/character/character2";			// TODO
+	QString dir = "qrc:/soldiers/soldier1";			// TODO
 
 	setQrcDirName(dir);
 }

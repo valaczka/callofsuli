@@ -1,0 +1,76 @@
+{
+	"name": "soldier1",
+	"width": 25,
+	"height": 45,
+	"x": 14,
+	"y": 0,
+	"facingLeft": false,
+	"walk": 2.5,
+	"sprites": {
+		"idle":	{
+			"source": "idle.png",
+			"frameWidth": 65,
+			"frameHeight": 45,
+			"frameCount": 8,
+			"frameDuration": 200,
+			"frameDurationVariation": 20,
+			"to": { "idle": 1, "walk" : 0, "shot" : 0 }
+		},
+		"walk":	{
+			"source": "walk.png",
+			"frameWidth": 65,
+			"frameHeight": 45,
+			"frameCount": 5,
+			"frameDuration": 80,
+			"to": { "idle": 0, "walk" : 0, "walk2": 1 }
+		},
+		"walk2": {
+			"source": "walk.png",
+			"frameWidth": 65,
+			"frameHeight": 45,
+			"frameX": 65,
+			"frameY": 45,
+			"frameCount": 5,
+			"frameDuration": 80,
+			"to": { "idle": 0, "walk" : 1, "walk2": 0 }
+		},
+		"shot":	{
+			"source": "shot.png",
+			"frameWidth": 65,
+			"frameHeight": 45,
+			"frameCount": 2,
+			"frameDuration": 80,
+			"to": { "idle": 1 }
+		},
+		"falldeath":	{
+			"source": "fall.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 0,
+			"frameY": 90,
+			"frameCount": 5,
+			"frameDuration": 20,
+			"to": { "idle": 0, "falldeath2": 1 }
+		},
+		"falldeath2":	{
+			"source": "fall.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 0,
+			"frameY": 135,
+			"frameCount": 6,
+			"frameDuration": 80,
+			"to": { "idle": 0, "falldead": 1 }
+		},
+		"falldead":	{
+			"source": "fall.png",
+			"frameWidth": 45,
+			"frameHeight": 45,
+			"frameX": 45,
+			"frameY": 180,
+			"frameCount": 1,
+			"frameDuration": 50,
+			"to": { "idle": 0, "falldead": 1 }
+		}
+	}
+}

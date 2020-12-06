@@ -23,35 +23,14 @@ QPagePanel {
 	}
 
 
-	QPageHeader {
-		id: header
-
-		visible: servers.serversModel.count
-		isSelectorMode: serverList.selectorSet
-
-		labelCountText: servers.serversModel.selectedCount
-
-		mainItem: QTextField {
-			id: mainSearch
-			width: parent.width
-
-			lineVisible: false
-			clearAlwaysVisible: true
-
-			placeholderText: qsTr("Keresés...")
-		}
-
-		onSelectAll: servers.serversModel.selectAllToggle()
-	}
-
 	SortFilterProxyModel {
 		id: userProxyModel
 		sourceModel: servers.serversModel
 		filters: [
 			RegExpFilter {
-				enabled: mainSearch.text.length
+				enabled: toolbar.searchBar.text.length
 				roleName: "name"
-				pattern: mainSearch.text
+				pattern: toolbar.searchBar.text
 				caseSensitivity: Qt.CaseInsensitive
 				syntax: RegExpFilter.FixedString
 			}
@@ -69,10 +48,7 @@ QPagePanel {
 
 	QVariantMapProxyView {
 		id: serverList
-		anchors.top: header.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		anchors.fill: parent
 
 		visible: servers.serversModel.count
 
@@ -82,15 +58,20 @@ QPagePanel {
 
 		autoSelectorChange: true
 
-		leftComponent: QFontImage {
+
+		leftComponent: QFlipable {
+			id: flipable
 			width: serverList.delegateHeight
 			height: width
-			size: Math.min(height*0.8, 32)
 
-			icon: model && model.autoconnect ? CosStyle.iconFavoriteOn : CosStyle.iconFavoriteOff
+			frontIcon: CosStyle.iconFavoriteOff
+			backIcon: CosStyle.iconFavoriteOn
+			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
+			flipped: model && model.autoconnect
 
-			color: CosStyle.colorAccent
+			mouseArea.onClicked: servers.serverSetAutoConnect(serverList.model.mapToSource(modelIndex))
 		}
+
 
 		onClicked: if (servers.editing)
 					   actionEdit.trigger()
@@ -115,6 +96,18 @@ QPagePanel {
 		onKeyF4Pressed: actionEdit.trigger()
 		onKeyDeletePressed: actionRemove.trigger()
 		onKeyF2Pressed: actionAutoConnect.trigger()
+	}
+
+	QPagePanelSearch {
+		id: toolbar
+
+		listView: serverList
+
+		enabled: servers.serversModel.count
+
+		labelCountText: servers.serversModel.selectedCount
+
+		onSelectAll: servers.serversModel.selectAllToggle()
 	}
 
 

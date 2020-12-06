@@ -314,12 +314,3 @@ void VariantMapModel::selectAllToggle()
 	else
 		unselectAll();
 }
-
-
-
-
-
-
-
-
-

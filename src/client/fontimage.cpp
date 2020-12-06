@@ -72,7 +72,7 @@ QPixmap FontImage::requestPixmap(const QString &id, QSize *size, const QSize &re
 	QPainter painter(&pix);
 
 	QFont font = QFont(family);
-	int drawSize = qRound(requestedSize.height() * 0.9);
+	int drawSize = std::max(qRound(requestedSize.height() * 0.9), 1);
 	font.setPixelSize(drawSize);
 
 	QColor penColor(Qt::black);

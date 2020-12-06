@@ -14,6 +14,53 @@ QPagePanel {
 	icon: CosStyle.iconUserWhite
 	layoutFillWidth: true
 
+	title: qsTr("Küldetések asldkfj aslékdfj alskdfj aéslkfja léskdfjowier alskdfj lask")
+
+/*	contextMenuFunc: function (m) {
+		m.addAction(actionCampaignNew)
+		m.addAction(actionMissionNew)
+	} */
+
+
+
+	/*QLabel {
+		id: noLabel
+		opacity: campaignId == -1
+		visible: opacity != 0
+
+		text: qsTr("Válassz hadjáratot")
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
+	}
+
+	QAccordion {
+		anchors.fill: parent
+
+		opacity: campaignId != -1
+		visible: opacity != 0
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
+
+		QCollapsible {
+			title: qsTr("Általános")
+
+			Column {
+				width: parent.width
+
+				QTextField {
+					id: campaignName
+					width: parent.width
+
+					onTextModified: if (campaignId != -1) {
+										map.undoLogBegin(qsTr("Hadjárat módosítása"))
+										map.campaignUpdate(campaignId, { "name": campaignName.text })
+										map.undoLogEnd()
+									}
+				}
+			}
+		}
+	}*/
+
 	/*contextMenuFunc: servers.serverKey == -1 ? null : function (m) {
 		m.addAction(actionRemove)
 	}*/

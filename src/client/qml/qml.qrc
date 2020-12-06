@@ -30,7 +30,7 @@
         <file>QDialogTextField.qml</file>
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
-        <file>QPageHeader.qml</file>
+        <file>_QPageHeaderOLD.qml</file>
         <file>QCollapsible.qml</file>
         <file>QAccordion.qml</file>
         <file>QRemoveButton.qml</file>
@@ -89,5 +89,6 @@
         <file>QToolButtonBig.qml</file>
         <file>MapEditorCampaignList.qml</file>
         <file>MapEditorCampaignEdit.qml</file>
+        <file>QPagePanelSearch.qml</file>
     </qresource>
 </RCC>

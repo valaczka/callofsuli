@@ -12,7 +12,7 @@ QPage {
 
 	requiredPanelWidth: 900
 
-	title: qsTr("Call of Suli")
+	defaultTitle: qsTr("Call of Suli")
 	mainToolBar.backButton.visible: false
 
 	property bool _firstRun: true

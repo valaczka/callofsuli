@@ -19,25 +19,6 @@ QPagePanel {
 	}*/
 
 
-	QPageHeader {
-		id: header
-
-		//isSelectorMode: serverList.selectorSet
-
-		//labelCountText: servers.serversModel.selectedCount
-
-		/*mainItem: QTextField {
-			id: mainSearch
-			width: parent.width
-
-			lineVisible: false
-			clearAlwaysVisible: true
-
-			placeholderText: qsTr("Keresés...")
-		}*/
-
-		//onSelectAll: servers.serversModel.selectAllToggle()
-	}
 
 	/*SortFilterProxyModel {
 		id: userProxyModel
@@ -60,6 +41,24 @@ QPagePanel {
 		}
 	}*/
 
+
+	/*QPagePanelSearch {
+		id: toolbar
+
+		//listView: list
+
+		//labelCountText: servers.serversModel.selectedCount
+
+		//onSelectAll: servers.serversModel.selectAllToggle()
+
+	}
+
+
+	QToolButtonBig {
+		anchors.centerIn: parent
+		visible: !serverModel.count
+		action: actionServerNew
+	}*/
 
 
 

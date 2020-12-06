@@ -92,6 +92,21 @@ public:
 		watcher->setFuture(future);
 	}
 
+	Q_INVOKABLE
+	template <typename T, typename Class>
+	T run(T (Class::*func)(QVariantMap), QVariantMap data) {
+		int id = ++m_runId;
+		busyStackAdd(CosMessage::ClassInvalid, "_run", id);
+
+		QFutureWatcher<T> *watcher = new QFutureWatcher<T>(this);
+		connect(watcher, &QFutureWatcher<T>::finished, this, [=](){
+			busyStackRemove(CosMessage::ClassInvalid, "_run", id);
+			watcher->deleteLater();
+		});
+		QFuture<T> future = QtConcurrent::run((Class *)(this), func, data);
+		watcher->setFuture(future);
+	}
+
 	Q_INVOKABLE virtual void run(const QString &, QVariantMap) {};
 
 public slots:

@@ -86,16 +86,23 @@ public slots:
 	void setCampaignModelKey(int campaignModelKey);
 	void setModified(bool modified);
 
-protected:
 	void loadFromFile(QVariantMap data);
 	void saveToFile(QVariantMap data);
 	void createNew(QVariantMap data);
 
+protected:
+	void loadFromFilePrivate(QVariantMap data);
+	void saveToFilePrivate(QVariantMap data);
+	void createNewPrivate(QVariantMap data);
+
 	void campaignAdd(QVariantMap data);
 	void campaignModify(QVariantMap data);
+	void campaignRemove(QVariantMap data);
 	void campaignListReload(QVariantMap = QVariantMap());
 
 	void missionAdd(QVariantMap data);
+	void missionModify(QVariantMap data);
+	void missionRemove(QVariantMap data);
 
 signals:
 	void backupReady(QString mapName, QString details);
@@ -112,23 +119,12 @@ signals:
 	void campaignListReloaded(const QVariantList &list);
 	void campaignAdded(const int &rowid);
 	void campaignModified(const int &id);
+	void campaignRemoved(const int &id);
 
 	void missionAdded(const int &rowid);
+	void missionModified(const QString &uuid);
+	void missionRemoved(const QString &uuid);
 
-	/*void tableMapChanged();
-	void tableChaptersChanged();
-	void tableStoragesChanged();
-	void tableCampaignsChanged();
-	void tableCampaignLocksChanged();
-	void tableMissionsChanged();
-	void tableMissionLocksChanged();
-	void tableMissionLevelsChanged();
-	void tableBlockChapterMapsChanged();
-	void tableBlockChapterMapBlocksChanged();
-	void tableBlockChapterMapChaptersChanged();
-	void tableBlockChapterMapFavoritesChanged();
-	void tableInventoriesChanged();
-	void tableImagesChanged();*/
 
 	void mapNameChanged(QString mapName);
 	void loadProgressChanged(qreal loadProgress);

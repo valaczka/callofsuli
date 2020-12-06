@@ -13,9 +13,10 @@ QPage {
 
 	//requiredPanelWidth: 900
 
-	title: qsTr("Pályaszerkesztő")
+	defaultTitle: qsTr("Pályaszerkesztő")
+	defaultSubTitle: "afasd fjaélsdfk jalskdfj alkédfj alékfj lk asjdf lakjd falésdf aklsdjfl ajdfléka jdlfkj aélsdfjk alsdfjalésdkfjaé lskdjfalé sdjfklasj fajkdf s"
 
-	property string loadFileName: "/tmp/ttt.dat"
+	property string loadFileName: cosClient.standardPath("ttt.dat")
 
 	mainToolBarComponent: Row {
 		QUndoButton  {
@@ -58,9 +59,9 @@ QPage {
 
 		onBackupUnavailable: {
 			if (page.loadFileName.length) {
-				mapEditor.run("loadFromFile", {filename: page.loadFileName})
+				mapEditor.loadFromFile({filename: page.loadFileName})
 			} else {
-				mapEditor.run("createNew", {name: qsTr("--- ez egy új map---")})
+				mapEditor.createNew({name: qsTr("--- ez egy új map---")})
 			}
 		}
 
@@ -129,7 +130,7 @@ QPage {
 		enabled: mapEditor.modified
 		shortcut: "Ctrl+S"
 		onTriggered: {
-			mapEditor.run("saveToFile", {filename: page.loadFileName})
+			mapEditor.saveToFile({filename: page.loadFileName})
 		}
 	}
 
@@ -140,7 +141,6 @@ QPage {
 		text: qsTr("Küldetések")
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
-			page.subtitle = text
 			page.panelComponents = page.cmpCampaigns
 			mapEditor.run("campaignListReload")
 		}

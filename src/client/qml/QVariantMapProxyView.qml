@@ -21,6 +21,9 @@ QListView {
 	property string modelBackgroundRole: ""
 	property string modelTitleWeightRole: ""
 
+	property int delegateHeight: CosStyle.baseHeight
+	property int depthWidth: CosStyle.baseHeight
+
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
 
@@ -29,9 +32,6 @@ QListView {
 
 	property Component leftComponent: null
 	property Component rightComponent: null
-
-	property int delegateHeight: CosStyle.baseHeight
-	property int depthWidth: CosStyle.baseHeight
 
 	property color currentColor: "#33EEEEEE"
 
@@ -46,6 +46,8 @@ QListView {
 	signal keyF4Pressed(int sourceIndex)
 	signal keyDeletePressed(int sourceIndex)
 
+
+	boundsBehavior: Flickable.StopAtBounds
 
 	model: ListModel {	}
 
@@ -78,89 +80,91 @@ QListView {
 
 		property var itemModel: model
 
-		RowLayout {
-			anchors.fill: parent
-			anchors.leftMargin: view.panelPaddingLeft
-			anchors.rightMargin: view.panelPaddingRight
-
-			Loader {
-				id: leftLoader
-				sourceComponent: view.leftComponent
-				visible: view.leftComponent && !view.selectorSet
-
-				Layout.fillHeight: false
-				Layout.fillWidth: false
-				Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-
-				property int modelIndex: index
-				property var model: item.itemModel
-			}
-
-
-			QFlipable {
-				id: flipable
-				width: item.height
-				height: item.height
-
-				Layout.fillHeight: false
-				Layout.fillWidth: false
-
-				visible: view.selectorSet
-
-				frontIcon: CosStyle.iconUnchecked
-				backIcon: CosStyle.iconChecked
-				color: CosStyle.colorAccent
-				flipped: item.itemSelected
-			}
-
-
-			Column {
-				Layout.fillWidth: true
-
-				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-				QLabel {
-					id: lblTitle
-					text: item.labelTitle
-					color: modelTitleColorRole.length ? model[modelTitleColorRole] : CosStyle.colorPrimaryLighter
-					maximumLineCount: 1
-					elide: Text.ElideRight
-					font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : Font.Normal
-					width: Math.min(implicitWidth, parent.width)
-				}
-
-				QLabel {
-					id: lblSubtitle
-					text: item.labelSubtitle
-					font.pixelSize: CosStyle.pixelSize*0.8
-					font.weight: Font.Light
-					color: modelSubtitleColorRole.length ? model[modelSubtitleColorRole] : CosStyle.colorPrimary
-					elide: Text.ElideRight
-					width: Math.min(implicitWidth, parent.width)
-				}
-			}
-
-
-			Loader {
-				id: rightLoader
-				sourceComponent: view.rightComponent
-				visible: view.rightComponent
-
-				Layout.fillHeight: false
-				Layout.fillWidth: false
-				Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-
-				property int modelIndex: index
-				property var model: item.itemModel
-			}
-		}
-
-
 		MouseArea {
 			id: area
 			anchors.fill: parent
 			hoverEnabled: true
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+
+			RowLayout {
+				anchors.fill: parent
+				anchors.leftMargin: view.panelPaddingLeft
+				anchors.rightMargin: view.panelPaddingRight
+
+				Loader {
+					id: leftLoader
+					sourceComponent: view.leftComponent
+					visible: view.leftComponent && !view.selectorSet
+
+					Layout.fillHeight: false
+					Layout.fillWidth: false
+					Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+
+					property int modelIndex: index
+					property var model: item.itemModel
+				}
+
+
+				QFlipable {
+					id: flipable
+					width: item.height
+					height: item.height
+
+					Layout.fillHeight: false
+					Layout.fillWidth: false
+
+					visible: view.selectorSet
+
+					frontIcon: CosStyle.iconUnchecked
+					backIcon: CosStyle.iconChecked
+					color: CosStyle.colorAccent
+					flipped: item.itemSelected
+				}
+
+
+				Column {
+					Layout.fillWidth: true
+
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+					QLabel {
+						id: lblTitle
+						text: item.labelTitle
+						color: modelTitleColorRole.length ? model[modelTitleColorRole] : CosStyle.colorPrimaryLighter
+						maximumLineCount: 1
+						elide: Text.ElideRight
+						font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : Font.Normal
+						width: Math.min(implicitWidth, parent.width)
+					}
+
+					QLabel {
+						id: lblSubtitle
+						text: item.labelSubtitle
+						font.pixelSize: CosStyle.pixelSize*0.8
+						font.weight: Font.Light
+						color: modelSubtitleColorRole.length ? model[modelSubtitleColorRole] : CosStyle.colorPrimary
+						elide: Text.ElideRight
+						width: Math.min(implicitWidth, parent.width)
+					}
+				}
+
+
+				Loader {
+					id: rightLoader
+					sourceComponent: view.rightComponent
+					visible: view.rightComponent
+
+					Layout.fillHeight: false
+					Layout.fillWidth: false
+					Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+
+					property int modelIndex: index
+					property var model: item.itemModel
+				}
+			}
+
+
 
 			onClicked: {
 				if (mouse.button == Qt.RightButton)
@@ -280,6 +284,10 @@ QListView {
 		}
 	}
 
+
+	highlightFollowsCurrentItem: true
+
+
 	Keys.onPressed: {
 		if (event.key === Qt.Key_Insert) {
 			keyInsertPressed(sourceIndex)
@@ -295,45 +303,9 @@ QListView {
 	Connections {
 		target: sourceVariantMapModel
 		function onSelectedCountChanged(selectedCount) {
-			if (autoSelectorChange && sourceVariantMapModel.selectedCount == 0)
+			if (sourceVariantMapModel.selectedCount == 0)
 				selectorSet=false
 		}
 	}
-
-	/*function calculateSelectedItems() {
-		var n = 0
-
-		var m = model
-
-		if (isProxyModel) {
-			m = model.sourceModel
-		}
-
-		for (var i=0; i<m.count; ++i) {
-			if (m.get(i)[modelSelectedRole])
-				++n
-		}
-		selectedItemCount = n
-	}
-
-
-
-	function selectAll(un) {
-		var t = true
-
-		if (model.count === selectedItemCount || un === false)
-			t = false
-
-		for (var i=0; i<model.count; ++i) {
-			if (isProxyModel) {
-				var idx=model.mapToSource(i)
-				model.sourceModel.get(idx)[modelSelectedRole] = t
-			} else {
-				model.get(i)[modelSelectedRole] = t
-			}
-		}
-
-		calculateSelectedItems()
-	}*/
 
 }

@@ -164,7 +164,6 @@ Item {
 	}
 
 	function setValue(v) {
-		console.debug("Set VALUE ", this, v)
 		progressBar.indeterminate = false
 		progressBar.value = v
 	}

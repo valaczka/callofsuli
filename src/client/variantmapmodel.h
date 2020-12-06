@@ -63,7 +63,6 @@ public:
 
 	QList<int> getSelected() const { return m_selected; }
 
-
 public slots:
 	const QVariantMap get(int i) const;
 	const QVariantMap getByKey(int key) const;

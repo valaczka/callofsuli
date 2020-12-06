@@ -9,7 +9,7 @@ import "JScript.js" as JS
 ToolBar {
 	id: control
 
-	property alias title: animatedTitle.str
+	property alias title: labelTitle.text
 	property alias subtitle: labelSubtitle.text
 	property alias backButton: backButton
 	property string backButtonIcon: CosStyle.iconBack
@@ -89,65 +89,45 @@ ToolBar {
 			icon.source: backButtonIcon
 		}
 
-		Column {
-			id: titleColumn
-
-			Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-			Layout.fillWidth: false
-
-			spacing: -5
-
-			Row {
-				id: rowAnimatedTitle
-				spacing: 0
-
-				QLabel {
-					anchors.verticalCenter: rowAnimatedTitle.verticalCenter
-					text: "["
-					font.weight: Font.Thin
-					font.pixelSize: CosStyle.pixelSize * 1.2
-					color: CosStyle.colorPrimaryLight
-				}
-
-				QAnimatedText {
-					id: animatedTitle
-					anchors.verticalCenter: rowAnimatedTitle.verticalCenter
-					font.pixelSize: CosStyle.pixelSize * 1.2
-					font.weight: Font.DemiBold
-					font.capitalization: Font.AllUppercase
-					color: CosStyle.colorAccentLighter
-				}
-
-				QLabel {
-					anchors.verticalCenter: rowAnimatedTitle.verticalCenter
-					text: "]"
-					font.weight: Font.Thin
-					color: CosStyle.colorPrimaryLight
-					font.pixelSize: CosStyle.pixelSize * 1.2
-				}
-			}
-
-			QLabel {
-				id: labelSubtitle
-				font.pixelSize: CosStyle.pixelSize*0.8
-				font.weight: Font.Normal
-				color: CosStyle.colorPrimaryLighter
-			}
-		}
-
-		Loader {
-			id: menuLoader
-			Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-			visible: !animatedTitle.running
-		}
-
 		Item {
+			id: titleItem
+
 			Layout.fillWidth: true
+			Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+
+			Column {
+				id: titleColumn
+
+				anchors.left: parent.left
+				anchors.verticalCenter: parent.verticalCenter
+
+				spacing: -2
+
+				QLabel {
+					id: labelTitle
+					font.pixelSize: CosStyle.pixelSize*1.1
+					font.weight: Font.Medium
+					color: CosStyle.colorAccentLighter
+					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
+					elide: Text.ElideRight
+				}
+
+				QLabel {
+					id: labelSubtitle
+					font.pixelSize: CosStyle.pixelSize*0.8
+					font.weight: Font.Normal
+					color: CosStyle.colorPrimaryLighter
+					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
+					elide: Text.ElideRight
+				}
+			}
+
+			Loader {
+				id: menuLoader
+				anchors.left: titleColumn.right
+				anchors.verticalCenter: titleColumn.verticalCenter
+			}
 		}
-	}
 
-	function resetTitle() {
-		animatedTitle.resetStr()
 	}
-
 }

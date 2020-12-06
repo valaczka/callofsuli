@@ -1,6 +1,6 @@
 RCC = rcc
 
-CRES_DIRS = internal terrain character
+CRES_DIRS = internal terrain character soldiers
 CRES_FILES = $(addsuffix .cres,$(CRES_DIRS))
 
 all: $(CRES_FILES)

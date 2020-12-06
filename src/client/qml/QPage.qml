@@ -22,7 +22,9 @@ Page {
 	property alias mainRow: mainRow
 	property alias mainToolBar: toolbar
 	property alias mainToolBarComponent: toolbarRight.sourceComponent
-	property alias subtitle: toolbar.subtitle
+	property string defaultTitle: ""
+	property string defaultSubTitle: ""
+	property string subtitle: ""
 
 	property alias menuButton: menuButton
 
@@ -53,7 +55,8 @@ Page {
 	header: QToolBar {
 		id: toolbar
 
-		title: control.title
+		title: control.title.length ? control.title : control.defaultTitle
+		subtitle: control.subtitle.length ? control.subtitle : control.defaultSubTitle
 
 		backButtonIcon: CosStyle.iconBack
 		backButton.visible: true
@@ -168,14 +171,15 @@ Page {
 	}
 
 
-	onSwipeModeChanged: contextMenuFunc = null
+	onSwipeModeChanged: {
+		contextMenuFunc = null
+		if (!swipeMode)
+			title = defaultTitle
+	}
 
 	StackView.onRemoved: destroy()
 
-	StackView.onActivated: {
-		toolbar.resetTitle()
-		pageActivated()
-	}
+	StackView.onActivated:		 pageActivated()
 
 
 

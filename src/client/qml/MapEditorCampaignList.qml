@@ -20,38 +20,41 @@ QPagePanel {
 	}
 
 
-	QPageHeader {
-		id: header
-
-		visible: mapEditor.campaignModel.count
-		isSelectorMode: list.selectorSet
-
-		labelCountText: mapEditor.campaignModel.selectedCount
-
-		mainItem: QTextField {
-			id: mainSearch
-			width: parent.width
-
-			lineVisible: false
-			clearAlwaysVisible: true
-
-			placeholderText: qsTr("Keresés...")
-		}
-
-		onSelectAll: mapEditor.campaignModel.selectAllToggle()
-	}
 
 	SortFilterProxyModel {
 		id: userProxyModel
+
 		sourceModel: mapEditor.campaignModel
 		filters: [
-			RegExpFilter {
-				enabled: mainSearch.text.length
-				roleName: "name"
-				pattern: mainSearch.text
-				caseSensitivity: Qt.CaseInsensitive
-				syntax: RegExpFilter.FixedString
+			AllOf {
+				RegExpFilter {
+					enabled: toolbar.searchBar.text.length
+					roleName: "name"
+					pattern: toolbar.searchBar.text
+					caseSensitivity: Qt.CaseInsensitive
+					syntax: RegExpFilter.FixedString
+				}
+				ValueFilter {
+					id: campaignsFilter
+					enabled: false
+					roleName: "type"
+					value: 0
+				}
+				AllOf {
+					id: missionsFilter
+					enabled: false
+					ValueFilter {
+						roleName: "type"
+						value: 1
+					}
+					ValueFilter {
+						id: missionCidFilter
+						roleName: "cid"
+						value: -1
+					}
+				}
 			}
+
 		]
 		sorters: [
 			StringSorter { roleName: "cname"; priority: 2 },
@@ -89,10 +92,7 @@ QPagePanel {
 
 	QVariantMapProxyView {
 		id: list
-		anchors.top: header.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
+		anchors.fill: parent
 
 		visible: mapEditor.campaignModel.count
 
@@ -102,10 +102,30 @@ QPagePanel {
 		modelTitleColorRole: "textColor"
 		modelTitleWeightRole: "fontWeight"
 
+		depthWidth: CosStyle.baseHeight*0.5
+
 		autoSelectorChange: false
 
-		leftComponent: QFontImage {
-			width: list.delegateHeight*0.8
+		leftComponent: QFlipable {
+			id: flipable
+			width: visible ? list.delegateHeight : 0
+			height: width
+
+			visible: model && model.type === 1
+
+			frontIcon: CosStyle.iconFavoriteOff
+			backIcon: CosStyle.iconFavoriteOn
+			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
+			flipped: model && model.mandatory
+
+			mouseArea.onClicked: mapEditor.run("missionModify", {
+												   "uuid": model.uuid,
+												   "data": {"mandatory": !model.mandatory}
+											   })
+		}
+
+		rightComponent: QFontImage {
+			width: visible ? list.delegateHeight*0.8 : 0
 			height: width
 			size: Math.min(height*0.8, 32)
 
@@ -116,27 +136,65 @@ QPagePanel {
 			color: CosStyle.colorPrimary
 		}
 
+
 		/*onClicked: if (servers.editing)
 					   actionEdit.trigger()
 				   else
 					   servers.serverConnect(sourceIndex) */
 
 		onRightClicked: contextMenu.popup()
-		onLongPressed: contextMenu.popup()
+
+		onLongPressed: {
+			if (selectorSet)
+				return
+
+			selectorSet = true
+
+			var o = list.model.get(index)
+
+			if (o.type === 0) {
+				campaignsFilter.enabled = true
+			} else if (o.type === 1) {
+				missionCidFilter.value = o.cid
+				missionsFilter.enabled = true
+			}
+
+			mapEditor.campaignModel.select(sourceIndex)
+		}
+
+		onSelectorSetChanged: {
+			if (!selectorSet) {
+				missionsFilter.enabled = false
+				campaignsFilter.enabled = false
+			}
+		}
+
 
 		QMenu {
 			id: contextMenu
 
 			MenuItem { action: actionCampaignNew }
-			MenuItem { action: actionCampaignRename }
 			MenuItem { action: actionMissionNew }
+			MenuItem { action: actionRename }
+			MenuItem { action: actionRemove }
 		}
 
 
 		onKeyInsertPressed: actionCampaignNew.trigger()
-		//onKeyF4Pressed: actionEdit.trigger()
-		//onKeyDeletePressed: actionRemove.trigger()
+		onKeyF4Pressed: actionRename.trigger()
+		onKeyDeletePressed: actionRemove.trigger()
 		onKeyF2Pressed: actionMissionNew.trigger()
+	}
+
+
+	QPagePanelSearch {
+		id: toolbar
+
+		listView: list
+
+		enabled: mapEditor.campaignModel.count
+		labelCountText: mapEditor.campaignModel.selectedCount
+		onSelectAll: mapEditor.campaignModel.selectAllToggle()
 	}
 
 
@@ -164,22 +222,33 @@ QPagePanel {
 	}
 
 	Action {
-		id: actionCampaignRename
-		text: qsTr("Hadjárat átnevezése")
+		id: actionRename
+		text: qsTr("Átnevezés")
 		icon.source: CosStyle.iconAdd
-		enabled: !mapEditor.isBusy && list.currentIndex !== -1 && list.model.get(list.currentIndex).type === 0
+		enabled: !mapEditor.isBusy && list.currentIndex !== -1
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 
 			var d = JS.dialogCreateQml("TextField")
-			d.item.title = qsTr("Hadjárat neve")
-			d.item.value = o.cname
+			if (o.type === 0) {
+				d.item.title = qsTr("Hadjárat neve")
+				d.item.value = o.cname
+			} else {
+				d.item.title = qsTr("Küldetés neve")
+				d.item.value = o.mname
+			}
 
 			d.accepted.connect(function(data) {
-				mapEditor.run("campaignModify", {
-								  "id": o.cid,
-								  "data": {"name": data}
-							  })
+				if (o.type === 0)
+					mapEditor.run("campaignModify", {
+									  "id": o.cid,
+									  "data": {"name": data}
+								  })
+				else
+					mapEditor.run("missionModify", {
+									  "uuid": o.uuid,
+									  "data": {"name": data}
+								  })
 			})
 			d.open()
 		}
@@ -204,64 +273,26 @@ QPagePanel {
 		}
 	}
 
-	/*Action {
-		id: actionConnect
-		text: qsTr("Csatlakozás")
-		enabled: list.currentIndex !== -1
-		onTriggered: servers.serverConnect(list.sourceIndex)
-
-	}
-
-	Action {
-		id: actionEdit
-		text: qsTr("Szerkesztés")
-		enabled: list.currentIndex !== -1
-		onTriggered: {
-			servers.serverKey = list.sourceVariantMapModel.getKey(list.sourceIndex)
-			servers.editing = true
-		}
-	}
-
 	Action {
 		id: actionRemove
-		icon.source: CosStyle.iconRemove
 		text: qsTr("Törlés")
-		enabled: list.currentIndex !== -1
+		icon.source: CosStyle.iconDelete
+		enabled: !mapEditor.isBusy && list.currentIndex !== -1
 		onTriggered: {
-			if (servers.serversModel.selectedCount) {
-				var dd = JS.dialogCreateQml("YesNo", {
-												title: qsTr("Szerverek törlése"),
-												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(servers.serversModel.selectedCount)
-											})
-				dd.accepted.connect(function () {
-					servers.serverDeleteSelected(servers.serversModel)
-					servers.serverKey = -1
-				})
-				dd.open()
-			} else {
-				var si = list.sourceIndex
-				var o = list.model.get(list.currentIndex)
+			var o = list.model.get(list.currentIndex)
 
-				var d = JS.dialogCreateQml("YesNo", {
-											   title: qsTr("Biztosan törlöd a szervert?"),
-											   text: o.name
-										   })
-				d.accepted.connect(function () {
-					servers.serverDelete(si)
-					servers.serverKey = -1
-				})
-				d.open()
-			}
-		}
-	}
-*/
+			var d = JS.dialogCreateQml("YesNo")
+			d.item.title = o.name
+			d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot a küldetéseivel együtt?")
+									   : qsTr("Biztosan törlöd a küldetést?")
 
-
-	Connections {
-		target: mapEditor
-
-		function onCampaignAdded(key) {
-			console.debug("ADDED", mapEditor.db.get(key, "campaigns", "name"))
+			d.accepted.connect(function(data) {
+				if (o.type === 0)
+					mapEditor.run("campaignRemove", {"id": o.cid})
+				else
+					mapEditor.run("missionRemove", {"uuid": o.uuid})
+			})
+			d.open()
 		}
 	}
 
