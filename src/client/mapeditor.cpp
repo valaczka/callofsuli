@@ -42,29 +42,17 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_loadProgress(0.0)
 	, m_loadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0))
 	, m_loadAbortRequest(false)
-	, m_campaignData()
 	, m_modified(false)
 {
-
-	QStringList campaignRoles;
-	campaignRoles << "type";
-	campaignRoles << "cid";
-	campaignRoles << "uuid";
-	campaignRoles << "cname";
-	campaignRoles << "mname";
-	campaignRoles << "mandatory";
-	campaignRoles << "locked";
-
-	m_campaignModel = new VariantMapModel(&m_campaignData, campaignRoles, this);
-
-
 	m_map["campaignAdd"] = &MapEditor::campaignAdd;
 	m_map["campaignModify"] = &MapEditor::campaignModify;
 	m_map["campaignRemove"] = &MapEditor::campaignRemove;
 	m_map["campaignListReload"] = &MapEditor::campaignListReload;
+	m_map["campaignLoad"] = &MapEditor::campaignLoad;
 	m_map["missionAdd"] = &MapEditor::missionAdd;
 	m_map["missionRemove"] = &MapEditor::missionRemove;
 	m_map["missionModify"] = &MapEditor::missionModify;
+	m_map["missionLoad"] = &MapEditor::missionLoad;
 
 
 
@@ -77,8 +65,6 @@ MapEditor::MapEditor(QQuickItem *parent)
 		run("campaignListReload");
 	});
 
-
-	connect(this, &MapEditor::campaignListReloaded, this, &MapEditor::setCampaignList);
 }
 
 
@@ -88,9 +74,6 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 MapEditor::~MapEditor()
 {
-	if (m_campaignModel)
-		delete m_campaignModel;
-
 	if (m_game)
 		delete m_game;
 }
@@ -369,29 +352,10 @@ void MapEditor::campaignRemove(QVariantMap data)
 
 
 
-
 /**
- * @brief MapEditor::setCampaignModel
- * @param campaignModel
+ * @brief MapEditor::setModified
+ * @param modified
  */
-
-void MapEditor::setCampaignModel(VariantMapModel *campaignModel)
-{
-	if (m_campaignModel == campaignModel)
-		return;
-
-	m_campaignModel = campaignModel;
-	emit campaignModelChanged(m_campaignModel);
-}
-
-void MapEditor::setCampaignModelKey(int campaignModelKey)
-{
-	if (m_campaignModelKey == campaignModelKey)
-		return;
-
-	m_campaignModelKey = campaignModelKey;
-	emit campaignModelKeyChanged(m_campaignModelKey);
-}
 
 void MapEditor::setModified(bool modified)
 {
@@ -479,7 +443,6 @@ void MapEditor::createNew(QVariantMap data)
 
 
 
-
 /**
  * @brief MapEditor::onMessageReceived
  * @param message
@@ -490,17 +453,6 @@ void MapEditor::onMessageReceived(const CosMessage &message)
 
 }
 
-
-
-/**
- * @brief MapEditor::setCampaignList
- * @param list
- */
-
-void MapEditor::setCampaignList(const QVariantList &list)
-{
-	m_campaignData.fromMapList(list, "uuid");
-}
 
 
 
@@ -613,6 +565,39 @@ void MapEditor::campaignListReload(QVariantMap)
 }
 
 
+/**
+ * @brief MapEditor::campaignLoad
+ * @param data
+ */
+
+void MapEditor::campaignLoad(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	if (id == -1) {
+		emit campaignLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantMap map = db()->execSelectQueryOneRow("SELECT id, name from campaigns WHERE id=?", l);
+
+	if (map.isEmpty()) {
+		emit campaignLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList locks = db()->execSelectQuery("SELECT lock, name from campaignLocks "
+											   "LEFT JOIN campaigns ON (campaigns.id=campaignLocks.lock) "
+											   "WHERE campaign=?", l);
+
+	map["locks"] = locks;
+
+	emit campaignLoaded(map);
+}
+
+
 
 
 
@@ -697,6 +682,17 @@ void MapEditor::missionRemove(QVariantMap data)
 		setModified(true);
 		emit missionRemoved(uuid);
 	}
+}
+
+
+/**
+ * @brief MapEditor::missionLoad
+ * @param data
+ */
+
+void MapEditor::missionLoad(QVariantMap data)
+{
+
 }
 
 

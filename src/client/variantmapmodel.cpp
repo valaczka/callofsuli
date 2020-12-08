@@ -1,5 +1,4 @@
-/*
- * ---- Call of Suli ----
+ /* ---- Call of Suli ----
  *
  * variantmapmodel.cpp
  *
@@ -38,10 +37,14 @@
 
 VariantMapModel::VariantMapModel(VariantMapData *dataList, const QStringList &roleNames, QObject *parent)
 	: QAbstractListModel(parent)
+	, m_dataDelete(false)
 	, m_data(dataList)
 
 {
-	Q_ASSERT(dataList);
+	if (!dataList) {
+		m_data = new VariantMapData();
+		m_dataDelete = true;
+	}
 
 	m_data->addModel(this);
 
@@ -55,6 +58,7 @@ VariantMapModel::VariantMapModel(VariantMapData *dataList, const QStringList &ro
 }
 
 
+
 /**
  * @brief VariantMapModel::~VariantMapModel
  */
@@ -62,7 +66,11 @@ VariantMapModel::VariantMapModel(VariantMapData *dataList, const QStringList &ro
 VariantMapModel::~VariantMapModel()
 {
 	m_data->removeModel(this);
+
+	if (m_dataDelete)
+		delete m_data;
 }
+
 
 
 /**
@@ -146,6 +154,28 @@ void VariantMapModel::endRemoveRows()
 	QAbstractListModel::endRemoveRows();
 	emit countChanged(count());
 }
+
+
+/**
+ * @brief VariantMapModel::clear
+ */
+
+void VariantMapModel::clear()
+{
+	m_data->clear();
+}
+
+
+/**
+ * @brief VariantMapModel::setVariantList
+ * @param list
+ */
+
+void VariantMapModel::setVariantList(const QVariantList &list, const QString &unique_field)
+{
+	m_data->fromMapList(list, unique_field);
+}
+
 
 /**
  * @brief VariantMapModel::count
@@ -314,3 +344,4 @@ void VariantMapModel::selectAllToggle()
 	else
 		unselectAll();
 }
+

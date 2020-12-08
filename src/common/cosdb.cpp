@@ -261,14 +261,17 @@ QVariantList CosDb::execQuery(QSqlQuery query, QString *errorString, QVariant *l
 
 	if (!query.exec()) {
 		QString errText = query.lastError().text();
+		qDebug().noquote() << tr("SQL command: ")+query.executedQuery();
 		qWarning().noquote() << tr("SQL error: ")+errText;
 		success = false;
 
 		if (errorString)
 			(*errorString) = errText;
-	}
-
+	} else {
+#ifdef COS_SQL_DEBUG
 	qDebug().noquote() << tr("SQL command: ")+query.executedQuery();
+#endif
+	}
 
 	if (!success) {
 		return records;

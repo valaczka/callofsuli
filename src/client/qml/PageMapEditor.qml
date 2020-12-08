@@ -14,7 +14,6 @@ QPage {
 	//requiredPanelWidth: 900
 
 	defaultTitle: qsTr("Pályaszerkesztő")
-	defaultSubTitle: "afasd fjaélsdfk jalskdfj alkédfj alékfj lk asjdf lakjd falésdf aklsdjfl ajdfléka jdlfkj aélsdfjk alsdfjalésdkfjaé lskdjfalé sdjfklasj fajkdf s"
 
 	property string loadFileName: cosClient.standardPath("ttt.dat")
 
@@ -142,24 +141,9 @@ QPage {
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
 			page.panelComponents = page.cmpCampaigns
-			mapEditor.run("campaignListReload")
 		}
 	}
 
-	/*Label {
-		anchors.centerIn: parent
-		text: "***** "+mapEditor.loadProgress
-	}*/
-
-	//mainMenuFunc: function(m) {}
-	//contextMenuFunc: function(m) {}
-
-	/*panelComponents: [
-		Component { QPagePanel {
-				panelVisible: true
-				layoutFillWidth: true
-			} }
-	]*/
 
 	onPageActivated: {
 		mapEditor.checkBackup()

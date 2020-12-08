@@ -223,6 +223,8 @@ void AbstractActivity::addDb(CosDb *db)
 
 	m_db = db;
 
+	emit dbChanged(m_db);
+
 	if (m_client)
 		connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
 

@@ -49,6 +49,10 @@ public:
 	explicit VariantMapModel(VariantMapData *dataList = nullptr, const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
 	~VariantMapModel();
 
+	Q_INVOKABLE static VariantMapModel *newModel(const QStringList &roleNames, QObject *parent = nullptr) {
+		return new VariantMapModel(nullptr, roleNames, parent);
+	}
+
 	int rowCount(const QModelIndex &) const;
 	QVariant data(const QModelIndex &index, int role) const;
 	QHash<int, QByteArray> roleNames() const { return m_roleNames; }
@@ -62,6 +66,10 @@ public:
 	void endRemoveRows();
 
 	QList<int> getSelected() const { return m_selected; }
+
+	Q_INVOKABLE void clear();
+	Q_INVOKABLE void setVariantList(const QVariantList &list, const QString &unique_field);
+
 
 public slots:
 	const QVariantMap get(int i) const;
@@ -79,8 +87,10 @@ public slots:
 signals:
 	void selectedCountChanged(int selectedCount);
 	void countChanged(int count);
+	void rolesChanged(QStringList roles);
 
 private:
+	bool m_dataDelete;
 	VariantMapData *m_data;
 	QList<int> m_selected;
 	QHash<int, QByteArray> m_roleNames;

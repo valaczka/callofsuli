@@ -19,12 +19,20 @@ QPagePanel {
 		m.addAction(actionMissionNew)
 	}
 
-
+	property alias campaignsModel: userProxyModel.sourceModel
 
 	SortFilterProxyModel {
 		id: userProxyModel
 
-		sourceModel: mapEditor.campaignModel
+		sourceModel: mapEditor.newModel([
+											"type",
+											"cid",
+											"uuid",
+											"cname",
+											"mname",
+											"mandatory",
+											"locked"
+										])
 		filters: [
 			AllOf {
 				RegExpFilter {
@@ -94,7 +102,7 @@ QPagePanel {
 		id: list
 		anchors.fill: parent
 
-		visible: mapEditor.campaignModel.count
+		visible: campaignsModel.count
 
 		model: userProxyModel
 		modelTitleRole: "name"
@@ -137,10 +145,13 @@ QPagePanel {
 		}
 
 
-		/*onClicked: if (servers.editing)
-					   actionEdit.trigger()
-				   else
-					   servers.serverConnect(sourceIndex) */
+		onClicked: {
+			var o = list.model.get(list.currentIndex)
+			if (o.type === 0)
+				mapEditor.run("campaignLoad", {id: o.cid})
+			else
+				mapEditor.run("missionLoad", {uuid: o.uuid})
+		}
 
 		onRightClicked: contextMenu.popup()
 
@@ -159,7 +170,7 @@ QPagePanel {
 				missionsFilter.enabled = true
 			}
 
-			mapEditor.campaignModel.select(sourceIndex)
+			campaignsModel.select(sourceIndex)
 		}
 
 		onSelectorSetChanged: {
@@ -192,15 +203,15 @@ QPagePanel {
 
 		listView: list
 
-		enabled: mapEditor.campaignModel.count
-		labelCountText: mapEditor.campaignModel.selectedCount
-		onSelectAll: mapEditor.campaignModel.selectAllToggle()
+		enabled: campaignsModel.count
+		labelCountText: campaignsModel.selectedCount
+		onSelectAll: campaignsModel.selectAllToggle()
 	}
 
 
 	QToolButtonBig {
 		anchors.centerIn: parent
-		visible: !mapEditor.campaignModel.count
+		visible: !campaignsModel.count
 		action: actionCampaignNew
 	}
 
@@ -296,6 +307,19 @@ QPagePanel {
 		}
 	}
 
+
+	Connections {
+		target: mapEditor
+
+		function onCampaignListReloaded(list) {
+			campaignsModel.setVariantList(list, "uuid");
+		}
+	}
+
+
+	Component.onCompleted: {
+		mapEditor.run("campaignListReload")
+	}
 
 	onPanelActivated: {
 		list.forceActiveFocus()

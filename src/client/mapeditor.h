@@ -53,9 +53,6 @@ class MapEditor : public AbstractActivity
 
 	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
 
-	Q_PROPERTY(VariantMapModel* campaignModel READ campaignModel WRITE setCampaignModel NOTIFY campaignModelChanged)
-	Q_PROPERTY(int campaignModelKey READ campaignModelKey WRITE setCampaignModelKey NOTIFY campaignModelKeyChanged)
-
 public:
 	MapEditor(QQuickItem *parent = nullptr);
 	~MapEditor();
@@ -72,9 +69,6 @@ public:
 	qreal loadProgress() const { return m_loadProgress; }
 	QPair<qreal, qreal> loadProgressFraction() const { return m_loadProgressFraction; }
 
-	VariantMapModel* campaignModel() const { return m_campaignModel; }
-	int campaignModelKey() const { return m_campaignModelKey; }
-
 	bool modified() const { return m_modified; }
 
 public slots:
@@ -82,8 +76,6 @@ public slots:
 	bool setLoadProgress(qreal loadProgress);
 	void setLoadProgressFraction(QPair<qreal, qreal> loadProgressFraction);
 
-	void setCampaignModel(VariantMapModel* campaignModel);
-	void setCampaignModelKey(int campaignModelKey);
 	void setModified(bool modified);
 
 	void loadFromFile(QVariantMap data);
@@ -99,10 +91,12 @@ protected:
 	void campaignModify(QVariantMap data);
 	void campaignRemove(QVariantMap data);
 	void campaignListReload(QVariantMap = QVariantMap());
+	void campaignLoad(QVariantMap data);
 
 	void missionAdd(QVariantMap data);
 	void missionModify(QVariantMap data);
 	void missionRemove(QVariantMap data);
+	void missionLoad(QVariantMap data);
 
 signals:
 	void backupReady(QString mapName, QString details);
@@ -120,18 +114,17 @@ signals:
 	void campaignAdded(const int &rowid);
 	void campaignModified(const int &id);
 	void campaignRemoved(const int &id);
+	void campaignLoaded(const QVariantMap &data);
 
 	void missionAdded(const int &rowid);
 	void missionModified(const QString &uuid);
 	void missionRemoved(const QString &uuid);
+	void missionLoaded(const QVariantMap &data);
 
 
 	void mapNameChanged(QString mapName);
 	void loadProgressChanged(qreal loadProgress);
 	void loadProgressFractionChanged(QPair<qreal, qreal> loadProgressFraction);
-
-	void campaignModelChanged(VariantMapModel* campaignModel);
-	void campaignModelKeyChanged(int campaignModelKey);
 
 	void modifiedChanged(bool modified);
 
@@ -139,8 +132,6 @@ protected slots:
 	//void clientSetup() override;
 	void onMessageReceived(const CosMessage &message) override;
 	//void onMessageFrameReceived(const CosMessage &message) override;
-
-	void setCampaignList(const QVariantList &list);
 
 private:
 	bool _createDatabase();
@@ -151,9 +142,6 @@ private:
 	qreal m_loadProgress;
 	QPair<qreal, qreal> m_loadProgressFraction;
 	bool m_loadAbortRequest;
-	VariantMapData m_campaignData;
-	VariantMapModel* m_campaignModel;
-	int m_campaignModelKey;
 	QHash<QString, void (MapEditor::*)(QVariantMap)> m_map;
 	bool m_modified;
 };

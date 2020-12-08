@@ -44,6 +44,7 @@
 #include "../common/cosdb.h"
 #include "../common/cosmessage.h"
 #include "cosdownloader.h"
+#include "variantmapmodel.h"
 
 class Client;
 
@@ -57,7 +58,7 @@ class AbstractActivity : public QQuickItem
 	Q_PROPERTY(CosDownloader * downloader READ downloader WRITE setDownloader NOTIFY downloaderChanged)
 	Q_PROPERTY(int canUndo READ canUndo NOTIFY canUndoChanged)
 	Q_PROPERTY(QString canUndoString READ canUndoString WRITE setCanUndoString NOTIFY canUndoStringChanged)
-	Q_PROPERTY(CosDb* db MEMBER m_db)
+	Q_PROPERTY(CosDb* db MEMBER m_db NOTIFY dbChanged)
 
 
 public:
@@ -109,6 +110,10 @@ public:
 
 	Q_INVOKABLE virtual void run(const QString &, QVariantMap) {};
 
+	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
+		return VariantMapModel::newModel(list, this);
+	}
+
 public slots:
 	void send(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 			  const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
@@ -140,6 +145,7 @@ signals:
 	void downloaderChanged(CosDownloader * downloader);
 	void canUndoChanged(int canUndo);
 	void canUndoStringChanged(QString canUndoString);
+	void dbChanged(CosDb *db);
 
 protected:
 	Client* m_client;
