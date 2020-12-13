@@ -106,7 +106,7 @@ Page {
 				id: gameScene
 				game: game
 				scenePrivate.game: game
-				scenePrivate.onSceneLoaded: bg.source = "qrc:/terrain/"+game.terrain+"/bg.png"
+				scenePrivate.onSceneLoaded: bg.source = "qrc:/internal/game/bg.png"
 				scenePrivate.onSceneLoadStarted: lbl.text = tmxFileName
 				scenePrivate.onSceneLoadFailed: cosClient.sendMessageError(qsTr("Pálya betöltése sikertelen"), qsTr("Nem sikerült betölteni az adatokat"))
 			}
@@ -333,7 +333,7 @@ Page {
 
 	function windowClose() {
 		if (!_closeEnabled) {
-			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan megszakítod a játékot?")})
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {
 				game.currentScene = exitScene
 				bg.source = ""
@@ -342,15 +342,15 @@ Page {
 				mainWindow.close()
 			})
 			d.open()
-			return false
+			return true
 		}
-		return true
+		return false
 	}
 
 
 	function stackBack() {
 		if (!_closeEnabled) {
-			var d = JS.dialogCreateQml("YesNo", {title: qsTr("Biztosan megszakítod a játékot?")})
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {
 				game.currentScene = exitScene
 				bg.source = ""

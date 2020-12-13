@@ -703,6 +703,20 @@ QVariantMap CosDb::undoStack()
 }
 
 
+/**
+ * @brief CosDb::clearUndo
+ */
+
+void CosDb::clearUndo()
+{
+	QMutexLocker locker(&m_mutex);
+
+	execSimpleQuery("DELETE FROM undoStep");
+	setCanUndo(-1, "");
+}
+
+
+
 
 
 /**
@@ -713,7 +727,10 @@ QVariantMap CosDb::undoStack()
 void CosDb::undo(const int &floor)
 {
 	QMutexLocker locker(&m_mutex);
+	m_db.exec("PRAGMA foreign_keys = OFF;");
+
 	m_db.transaction();
+
 
 	QVariantMap m = execSelectQueryOneRow("SELECT lastStep FROM undoSettings");
 
@@ -738,7 +755,11 @@ void CosDb::undo(const int &floor)
 	execSimpleQuery("UPDATE undoSettings SET lastStep=?", l2);
 
 	QVariantMap r = execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id, desc FROM undoStep");
+
+
 	m_db.commit();
+
+	m_db.exec("PRAGMA foreign_keys = ON;");
 
 
 	setCanUndo(r.value("id",-1).toInt(), r.value("desc").toString());

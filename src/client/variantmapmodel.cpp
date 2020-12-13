@@ -41,6 +41,7 @@ VariantMapModel::VariantMapModel(VariantMapData *dataList, const QStringList &ro
 	, m_data(dataList)
 
 {
+	qDebug() << "NEW VARIANT MAP MODEL" << this << "parent" << parent;
 	if (!dataList) {
 		m_data = new VariantMapData();
 		m_dataDelete = true;
@@ -65,6 +66,8 @@ VariantMapModel::VariantMapModel(VariantMapData *dataList, const QStringList &ro
 
 VariantMapModel::~VariantMapModel()
 {
+	qDebug() << "DELETE VARIANT MAP MODEL" << this;
+
 	m_data->removeModel(this);
 
 	if (m_dataDelete)
@@ -157,11 +160,31 @@ void VariantMapModel::endRemoveRows()
 
 
 /**
+ * @brief VariantMapModel::getSelectedData
+ * @param field
+ * @return
+ */
+
+QVariantList VariantMapModel::getSelectedData(const QString &field) const
+{
+	QVariantList list;
+
+	foreach (int key, m_selected)
+		list.append(m_data->valueKey(key).value(field));
+
+	return list;
+}
+
+
+
+
+/**
  * @brief VariantMapModel::clear
  */
 
 void VariantMapModel::clear()
 {
+	unselectAll();
 	m_data->clear();
 }
 

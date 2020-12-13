@@ -17,22 +17,15 @@ QPagePanel {
 	contextMenuFunc: function (m) {
 		m.addAction(actionCampaignNew)
 		m.addAction(actionMissionNew)
+		m.addAction(actionNormalize)
 	}
 
-	property alias campaignsModel: userProxyModel.sourceModel
 
 	SortFilterProxyModel {
 		id: userProxyModel
 
-		sourceModel: mapEditor.newModel([
-											"type",
-											"cid",
-											"uuid",
-											"cname",
-											"mname",
-											"mandatory",
-											"locked"
-										])
+		sourceModel: mapEditor.modelCampaignList
+
 		filters: [
 			AllOf {
 				RegExpFilter {
@@ -102,7 +95,7 @@ QPagePanel {
 		id: list
 		anchors.fill: parent
 
-		visible: campaignsModel.count
+		visible: mapEditor.modelCampaignList.count
 
 		model: userProxyModel
 		modelTitleRole: "name"
@@ -113,6 +106,7 @@ QPagePanel {
 		depthWidth: CosStyle.baseHeight*0.5
 
 		autoSelectorChange: false
+		autoUnselectorChange: true
 
 		leftComponent: QFlipable {
 			id: flipable
@@ -146,11 +140,14 @@ QPagePanel {
 
 
 		onClicked: {
-			var o = list.model.get(list.currentIndex)
-			if (o.type === 0)
+			var o = list.model.get(index)
+			if (o.type === 0) {
+				mapEditor.campaignSelected(o.cid)
 				mapEditor.run("campaignLoad", {id: o.cid})
-			else
+			} else {
+				mapEditor.missionSelected(o.uuid)
 				mapEditor.run("missionLoad", {uuid: o.uuid})
+			}
 		}
 
 		onRightClicked: contextMenu.popup()
@@ -170,7 +167,7 @@ QPagePanel {
 				missionsFilter.enabled = true
 			}
 
-			campaignsModel.select(sourceIndex)
+			mapEditor.modelCampaignList.select(sourceIndex)
 		}
 
 		onSelectorSetChanged: {
@@ -203,16 +200,27 @@ QPagePanel {
 
 		listView: list
 
-		enabled: campaignsModel.count
-		labelCountText: campaignsModel.selectedCount
-		onSelectAll: campaignsModel.selectAllToggle()
+		enabled: mapEditor.modelCampaignList.count
+		labelCountText: mapEditor.modelCampaignList.selectedCount
+		onSelectAll: JS.selectAllProxyModelToggle(userProxyModel)
 	}
 
 
 	QToolButtonBig {
 		anchors.centerIn: parent
-		visible: !campaignsModel.count
+		visible: !mapEditor.modelCampaignList.count
 		action: actionCampaignNew
+	}
+
+	Action {
+		id: actionNormalize
+		text: qsTr("Újraszámozás")
+		icon.source: CosStyle.iconLockAdd
+
+		onTriggered: {
+			mapEditor.run("missionLevelNormalize")
+			mapEditor.missionLoaded({})
+		}
 	}
 
 
@@ -288,20 +296,36 @@ QPagePanel {
 		id: actionRemove
 		text: qsTr("Törlés")
 		icon.source: CosStyle.iconDelete
-		enabled: !mapEditor.isBusy && list.currentIndex !== -1
+		enabled: !mapEditor.isBusy && (list.currentIndex !== -1 || mapEditor.modelCampaignList.selectedCount)
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 
 			var d = JS.dialogCreateQml("YesNo")
 			d.item.title = o.name
-			d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot a küldetéseivel együtt?")
-									   : qsTr("Biztosan törlöd a küldetést?")
+
+			var more = mapEditor.modelCampaignList.selectedCount
+
+			if (more > 0) {
+				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 hadjáratot a küldetéseivel együtt?").arg(more)
+										   : qsTr("Biztosan törlöd a kijelölt %1 küldetést?").arg(more)
+			} else {
+				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot a küldetéseivel együtt?")
+										   : qsTr("Biztosan törlöd a küldetést?")
+			}
+
 
 			d.accepted.connect(function(data) {
-				if (o.type === 0)
-					mapEditor.run("campaignRemove", {"id": o.cid})
-				else
-					mapEditor.run("missionRemove", {"uuid": o.uuid})
+				if (o.type === 0) {
+					if (more > 0)
+						mapEditor.run("campaignRemove", {"list": mapEditor.modelCampaignList.getSelectedData("cid") })
+					else
+						mapEditor.run("campaignRemove", {"id": o.cid})
+				} else {
+					if (more > 0)
+						mapEditor.run("missionRemove", {"list": mapEditor.modelCampaignList.getSelectedData("uuid")})
+					else
+						mapEditor.run("missionRemove", {"uuid": o.uuid})
+				}
 			})
 			d.open()
 		}
@@ -312,7 +336,8 @@ QPagePanel {
 		target: mapEditor
 
 		function onCampaignListReloaded(list) {
-			campaignsModel.setVariantList(list, "uuid");
+			mapEditor.modelCampaignList.unselectAll()
+			mapEditor.modelCampaignList.setVariantList(list, "uuid");
 		}
 	}
 

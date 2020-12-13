@@ -15,6 +15,7 @@ QComboBox {
 	Layout.fillWidth: false
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
+	sizeToContents: false
 
 	onActivated: {
 		if (watchModification) {

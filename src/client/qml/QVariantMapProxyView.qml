@@ -1,6 +1,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.14
+//import QtQuick.Layouts 1.14
 import QtGraphicalEffects 1.0
 import COS.Client 1.0
 import "."
@@ -26,6 +26,7 @@ QListView {
 
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
+	property bool autoUnselectorChange: autoSelectorChange
 
 	readonly property int sourceIndex: currentIndex == -1 ? -1 : model.mapToSource(currentIndex)
 	readonly property VariantMapModel sourceVariantMapModel: model.sourceModel
@@ -87,7 +88,7 @@ QListView {
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
 
 
-			RowLayout {
+			Row {
 				anchors.fill: parent
 				anchors.leftMargin: view.panelPaddingLeft
 				anchors.rightMargin: view.panelPaddingRight
@@ -97,9 +98,11 @@ QListView {
 					sourceComponent: view.leftComponent
 					visible: view.leftComponent && !view.selectorSet
 
-					Layout.fillHeight: false
+					/*Layout.fillHeight: false
 					Layout.fillWidth: false
-					Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+					Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft*/
+
+					anchors.verticalCenter: parent.verticalCenter
 
 					property int modelIndex: index
 					property var model: item.itemModel
@@ -111,10 +114,14 @@ QListView {
 					width: item.height
 					height: item.height
 
-					Layout.fillHeight: false
-					Layout.fillWidth: false
+					/*Layout.fillHeight: false
+					Layout.fillWidth: false*/
+
+					anchors.verticalCenter: parent.verticalCenter
 
 					visible: view.selectorSet
+
+					mouseArea.enabled: false
 
 					frontIcon: CosStyle.iconUnchecked
 					backIcon: CosStyle.iconChecked
@@ -124,9 +131,16 @@ QListView {
 
 
 				Column {
-					Layout.fillWidth: true
+					//Layout.fillWidth: true
 
-					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+					//Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+					anchors.verticalCenter: parent.verticalCenter
+
+					width: parent.width
+						   -(leftLoader.visible ? leftLoader.width : 0)
+						   -(flipable.visible ? flipable.width : 0)
+						   -(rightLoader.visible ? rightLoader.width : 0)
 
 					QLabel {
 						id: lblTitle
@@ -135,7 +149,8 @@ QListView {
 						maximumLineCount: 1
 						elide: Text.ElideRight
 						font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : Font.Normal
-						width: Math.min(implicitWidth, parent.width)
+						width: parent.width
+						visible: text.length
 					}
 
 					QLabel {
@@ -145,7 +160,8 @@ QListView {
 						font.weight: Font.Light
 						color: modelSubtitleColorRole.length ? model[modelSubtitleColorRole] : CosStyle.colorPrimary
 						elide: Text.ElideRight
-						width: Math.min(implicitWidth, parent.width)
+						width: parent.width
+						visible: text.length
 					}
 				}
 
@@ -155,9 +171,11 @@ QListView {
 					sourceComponent: view.rightComponent
 					visible: view.rightComponent
 
-					Layout.fillHeight: false
+					/*Layout.fillHeight: false
 					Layout.fillWidth: false
-					Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+					Layout.alignment: Qt.AlignVCenter | Qt.AlignRight */
+
+					anchors.verticalCenter: parent.verticalCenter
 
 					property int modelIndex: index
 					property var model: item.itemModel
@@ -303,7 +321,7 @@ QListView {
 	Connections {
 		target: sourceVariantMapModel
 		function onSelectedCountChanged(selectedCount) {
-			if (sourceVariantMapModel.selectedCount == 0)
+			if (sourceVariantMapModel.selectedCount == 0 && autoUnselectorChange)
 				selectorSet=false
 		}
 	}

@@ -150,7 +150,7 @@ Popup {
 
 
 	onAboutToHide: {
-		if (popupContent.item.acceptedData)
+		if (popupContent.item.acceptedData !== null)
 			accepted(popupContent.item.acceptedData)
 		else
 			rejected()

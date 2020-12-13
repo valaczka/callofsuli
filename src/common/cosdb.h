@@ -84,6 +84,7 @@ public slots:
 	void undoLogEnd();
 	void undo(const int &floor);
 	QVariantMap undoStack();
+	void clearUndo();
 
 	bool open();
 	void close() { m_db.close(); }

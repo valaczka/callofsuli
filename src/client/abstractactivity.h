@@ -81,36 +81,20 @@ public:
 			return;
 		}
 
-		int id = ++m_runId;
-		busyStackAdd(CosMessage::ClassInvalid, "_run", id);
-
-		QFutureWatcher<void> *watcher = new QFutureWatcher<void>(this);
-		connect(watcher, &QFutureWatcher<void>::finished, this, [=](){
-			busyStackRemove(CosMessage::ClassInvalid, "_run", id);
-			watcher->deleteLater();
-		});
-		QFuture<void> future = QtConcurrent::run((Class *)(this), hash.value(func), data);
-		watcher->setFuture(future);
+		QtConcurrent::run((Class *)(this), hash.value(func), data);
 	}
 
 	Q_INVOKABLE
-	template <typename T, typename Class>
-	T run(T (Class::*func)(QVariantMap), QVariantMap data) {
-		int id = ++m_runId;
-		busyStackAdd(CosMessage::ClassInvalid, "_run", id);
-
-		QFutureWatcher<T> *watcher = new QFutureWatcher<T>(this);
-		connect(watcher, &QFutureWatcher<T>::finished, this, [=](){
-			busyStackRemove(CosMessage::ClassInvalid, "_run", id);
-			watcher->deleteLater();
-		});
-		QFuture<T> future = QtConcurrent::run((Class *)(this), func, data);
-		watcher->setFuture(future);
+	template <typename Class>
+	void run(void (Class::*func)(QVariantMap), QVariantMap data) {
+		QtConcurrent::run((Class *)(this), func, data);
 	}
 
-	Q_INVOKABLE virtual void run(const QString &, QVariantMap) {};
+	Q_INVOKABLE virtual void run(const QString &, QVariantMap = QVariantMap()) {}
+
 
 	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
+		qDebug() << "NEW MODEL" << this << list;
 		return VariantMapModel::newModel(list, this);
 	}
 
@@ -137,6 +121,8 @@ protected slots:
 private slots:
 	void onMessageReceivedPrivate(const CosMessage &message);
 	void onSocketDisconnected();
+
+	void waitForFutureFinished(QFuture<void> &future, int id);
 
 signals:
 	void clientChanged(Client* client);

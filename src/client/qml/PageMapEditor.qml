@@ -17,6 +17,7 @@ QPage {
 
 	property string loadFileName: cosClient.standardPath("ttt.dat")
 
+
 	mainToolBarComponent: Row {
 		QUndoButton  {
 			anchors.verticalCenter: parent.verticalCenter
@@ -56,6 +57,17 @@ QPage {
 	activity: MapEditor {
 		id: mapEditor
 
+		property VariantMapModel modelCampaignList: newModel([
+																 "type",
+																 "cid",
+																 "uuid",
+																 "cname",
+																 "mname",
+																 "mandatory",
+																 "locked"
+															 ])
+
+
 		onBackupUnavailable: {
 			if (page.loadFileName.length) {
 				mapEditor.loadFromFile({filename: page.loadFileName})
@@ -75,10 +87,12 @@ QPage {
 
 			mapEditor.loadProgressChanged.connect(d.item.setValue)
 			mapEditor.loadFinished.connect(d.item.dlgClose)
+			mapEditor.loadFailed.connect(d.item.dlgClose)
 
 			d.onClosedAndDestroyed.connect(function() {
 				mapEditor.loadProgressChanged.disconnect(d.item.setValue)
 				mapEditor.loadFinished.disconnect(d.item.dlgClose)
+				mapEditor.loadFailed.disconnect(d.item.dlgClose)
 			})
 
 			d.open()
@@ -108,7 +122,32 @@ QPage {
 			_isLoaded = true
 			actionCampaigns.trigger()
 		}
+
+
+		function terrainList() {
+			var model = mapEditor.newModel(["details", "name"])
+
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["details", "name"],
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Terep kiválasztása"),
+										   selectorSet: false,
+										   sourceModel: model
+									   })
+
+			console.debug(cosClient.terrainList())
+
+			model.setVariantList(cosClient.terrainList(), "name")
+
+			return d
+		}
+
 	}
+
+
+
+
+
 
 
 	property list<Component> cmpCampaigns: [
@@ -134,6 +173,7 @@ QPage {
 	}
 
 
+
 	Action {
 		id: actionCampaigns
 
@@ -150,12 +190,34 @@ QPage {
 	}
 
 
+
 	function windowClose() {
+		if (mapEditor.modified) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				mapEditor.modified = false
+				mainWindow.close()
+			})
+			d.open()
+			return true
+		}
+
 		mapEditor.removeDatabase()
-		return true
+		return false
 	}
 
-	function pageStackBack() {
+
+	function stackBack() {
+		if (mapEditor.modified) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				mapEditor.modified = false
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
+
 		mapEditor.removeDatabase()
 		return false
 	}

@@ -36,10 +36,11 @@
 
 #include "../common/cosdb.h"
 
-SqlImage::SqlImage(Client *client, const QString &connectionName, const QString &databaseName)
+SqlImage::SqlImage(Client *client, const QString &connectionName, const QString &databaseName, const QString &table)
 	: QQuickImageProvider(QQuickImageProvider::Pixmap)
 	, m_client(client)
 	, m_db(new CosDb(connectionName, client))
+	, m_table(table)
 {
 	m_db->setDatabaseName(databaseName);
 	m_db->open();
@@ -52,11 +53,12 @@ SqlImage::SqlImage(Client *client, const QString &connectionName, const QString 
  * @param db
  */
 
-SqlImage::SqlImage(Client *client, CosDb *db)
+SqlImage::SqlImage(Client *client, CosDb *db, const QString &table)
 	: QQuickImageProvider(QQuickImageProvider::Pixmap)
 	, m_client(client)
 	, m_db(db)
 	, m_deleteRequest(false)
+	, m_table(table)
 {
 
 }
@@ -106,7 +108,7 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	l << path.value(0, "");
 	l << path.value(1, "");
 
-	QVariantMap m = m_db->execSelectQueryOneRow("SELECT content FROM resource WHERE folder=? AND file=?", l);
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT content FROM "+m_table+" WHERE folder=? AND file=?", l);
 
 	bool success = !m.isEmpty();
 
@@ -116,10 +118,16 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 		outPixmap.loadFromData(outByteArray);
 
 		if (!outPixmap.isNull()) {
-			QPixmap resized = outPixmap.scaled(requestedSize, Qt::KeepAspectRatio);
-			if (size)
-				*size = resized.size();
-			return resized;
+			if (requestedSize.isValid()) {
+				QPixmap resized = outPixmap.scaled(requestedSize, Qt::KeepAspectRatio);
+				if (size)
+					*size = resized.size();
+				return resized;
+			} else {
+				if (size)
+					*size = outPixmap.size();
+				return outPixmap;
+			}
 		}
 	} else {
 		int width = 100;
@@ -137,7 +145,7 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	int height = 50;
 	QPixmap pixmap(requestedSize.width() > 0 ? requestedSize.width() : width,
 				   requestedSize.height() > 0 ? requestedSize.height() : height);
-	pixmap.fill(QColor("yellow").rgba());
+	pixmap.fill(QColor("green").rgba());
 	return pixmap;
 }
 

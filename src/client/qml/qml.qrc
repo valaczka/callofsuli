@@ -9,7 +9,6 @@
         <file>QAnimatedText.qml</file>
         <file>QButton.qml</file>
         <file>QCosImage.qml</file>
-        <file>QDialogHeader.qml</file>
         <file>QDialogMain.qml</file>
         <file>QDialogMessage.qml</file>
         <file>QDialogYesNo.qml</file>
@@ -90,5 +89,6 @@
         <file>MapEditorCampaignList.qml</file>
         <file>MapEditorCampaignEdit.qml</file>
         <file>QPagePanelSearch.qml</file>
+        <file>QDialogPanel.qml</file>
     </qresource>
 </RCC>

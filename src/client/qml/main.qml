@@ -230,8 +230,12 @@ ApplicationWindow {
 	onClosing: {
 		if (mainStack.depth > 2) {
 			if (!mainStack.get(mainStack.depth-1).windowClose()) {
+				close.accepted = true
 				Qt.quit()
+			} else {
+				close.accepted = false
 			}
+
 		}
 
 		cosClient.windowSaveGeometry(mainWindow, CosStyle.pixelSize)

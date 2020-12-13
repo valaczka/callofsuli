@@ -219,34 +219,18 @@ function mmSStoSec(text) {
 
 
 
-function getSelectedIndices(model, _role) {
-	var l = []
-	for (var i=0; i<model.count; i++) {
-		var o = model.get(i)
-		if (o.selected === true) {
-			if (_role && _role.length)
-				l.push(o[_role])
-			else
-				l.push(i)
+
+function selectAllProxyModelToggle(model) {
+	var s = false
+	for (var i=0; i<model.count; ++i) {
+		if (!model.get(i).selected) {
+			model.sourceModel.select(model.mapToSource(i))
+			s = true
 		}
 	}
 
-	return l
-}
-
-
-
-function setModel(_model, _data) {
-	_model.clear()
-	for (var i=0; i<_data.length; i++) {
-		var d = _data[i]
-		if (d.selected)
-			d.selected = true
-		else
-			d.selected = false
-
-		_model.append(d)
-	}
+	if (!s)
+		model.sourceModel.unselectAll()
 }
 
 

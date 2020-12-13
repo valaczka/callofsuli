@@ -1,158 +1,85 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtGraphicalEffects 1.0
 import "Style"
 import "JScript.js" as JS
 import "."
 
-Item {
+QDialogPanel {
 	id: item
 
-	implicitHeight: 300
-	implicitWidth: 400
-
-	property alias title: mainRow.title
 	property alias text: labelText.text
-	property alias value: tfInput.text
 
+	property alias value: tfInput.text
 	property alias textField: tfInput
 
-	signal dlgClose()
-	property var acceptedData: ""
+	maximumHeight: 300
+	maximumWidth: 750
 
-	Item {
-		id: dlgItem
+
+	icon: CosStyle.iconDialogQuestion
+
+	titleColor: CosStyle.colorPrimary
+
+	Column {
 		anchors.centerIn: parent
+		width: parent.width-30
 
-		width: Math.min(parent.width*0.9, 650)
-		height: Math.min(parent.height*0.9, 300)
+		QLabel {
+			id: labelText
+			color: CosStyle.colorPrimaryLighter
 
-
-
-		BorderImage {
-			id: bgRectMask
-			source: "qrc:/internal/img/border.svg"
-			visible: false
-
-			anchors.fill: bgRectData
-
-			border.left: 15; border.top: 10
-			border.right: 15; border.bottom: 10
-
-			horizontalTileMode: BorderImage.Repeat
-			verticalTileMode: BorderImage.Repeat
+			width: parent.width
+			visible: text.length
+			wrapMode: Text.WordWrap
+			verticalAlignment: Qt.AlignVCenter
+			horizontalAlignment: Qt.AlignLeft
+			font.weight: Font.Medium
 		}
 
-		Rectangle {
-			id: bgRectData
+		QTextField {
+			id: tfInput
 
-			anchors.fill: rectBg
-			visible: false
+			width: parent.width
 
-			color: JS.setColorAlpha(CosStyle.colorPrimaryDark, 0.2)
-		}
-
-		OpacityMask {
-			id: rectBg
-			source: bgRectData
-			maskSource: bgRectMask
-
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.bottom: buttonRow.top
-			anchors.bottomMargin: 10
-
-			QDialogHeader {
-				id: mainRow
-				icon: CosStyle.iconDialogQuestion
-			}
-
-
-			DropShadow {
-				anchors.fill: labelText
-				horizontalOffset: 2
-				verticalOffset: 2
-				radius: 2
-				samples: 3
-				source: labelText
-				visible: true
-			}
-
-			QLabel {
-				id: labelText
-				color: CosStyle.colorPrimaryLighter
-
-				anchors.top: mainRow.bottom
-				anchors.left: parent.left
-				anchors.right: parent.right
-				anchors.margins: 30
-				anchors.topMargin: 20
-				wrapMode: Text.WordWrap
-				horizontalAlignment: Qt.AlignHCenter
-				verticalAlignment: Qt.AlignVCenter
-			}
-
-
-			Item {
-				anchors.top: labelText.bottom
-				anchors.left: parent.left
-				anchors.right: parent.right
-				anchors.margins: 30
-				anchors.topMargin: 20
-				anchors.bottomMargin: mainRow.padding
-
-
-				QTextField {
-					id: tfInput
-
-					anchors.left: parent.left
-					anchors.right: parent.right
-					anchors.verticalCenter: parent.verticalCenter
-
-					onAccepted: {
-						acceptedData = text
-						dlgClose()
-					}
-				}
-			}
-
-		}
-
-		Row {
-			id: buttonRow
-			spacing: 10
-
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.bottom: parent.bottom
-
-			QButton {
-				id: buttonNo
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Mégsem")
-				icon.source: CosStyle.iconCancel
-				themeColors: CosStyle.buttonThemeDelete
-
-				onClicked: dlgClose()
-			}
-
-			QButton {
-				id: buttonYes
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				text: qsTr("OK")
-				icon.source: CosStyle.iconOK
-				themeColors: CosStyle.buttonThemeApply
-
-				onClicked: {
-					acceptedData = tfInput.text
-					dlgClose()
-				}
+			onAccepted: {
+				acceptedData = text
+				dlgClose()
 			}
 		}
-
 	}
+
+	buttons: Row {
+		id: buttonRow
+		spacing: 10
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		QButton {
+			id: buttonNo
+			anchors.verticalCenter: parent.verticalCenter
+			text: qsTr("Mégsem")
+			icon.source: CosStyle.iconCancel
+			themeColors: CosStyle.buttonThemeDelete
+
+			onClicked: dlgClose()
+		}
+
+		QButton {
+			id: buttonYes
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			text: qsTr("OK")
+			icon.source: CosStyle.iconOK
+			themeColors: CosStyle.buttonThemeApply
+
+			onClicked: {
+				acceptedData = tfInput.text
+				dlgClose()
+			}
+		}
+	}
+
 
 	function populated() {
 		tfInput.forceActiveFocus()

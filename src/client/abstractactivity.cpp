@@ -270,5 +270,27 @@ void AbstractActivity::onSocketDisconnected()
 }
 
 
+/**
+ * @brief AbstractActivity::waitForFutureFinished
+ * @param future
+ * @param id
+ */
+
+void AbstractActivity::waitForFutureFinished(QFuture<void> &future, int id)
+{
+	if (future.isFinished())
+		return;
+
+	busyStackAdd(CosMessage::ClassInvalid, "_run", id);
+	qDebug() << "WAIT FOR FINISH" << id;
+
+	future.waitForFinished();
+
+	qDebug() << "FINISHED" << id;
+
+	busyStackRemove(CosMessage::ClassInvalid, "_run", id);
+}
+
+
 
 

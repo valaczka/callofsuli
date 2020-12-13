@@ -6,167 +6,102 @@ import "Style"
 import "JScript.js" as JS
 import "."
 
-Item {
+QDialogPanel {
 	id: item
 
-	implicitHeight: 300
-	implicitWidth: 400
-
-	property alias title: mainRow.title
 	property alias list: list
-	property ListModel model: ListModel {}
-	property bool simpleSelect: !list.selectorSet
+	property alias selectorSet: list.selectorSet
+	readonly property bool simpleSelect: !list.selectorSet
+	readonly property alias model: model
+	property alias sourceModel: model.sourceModel
+	property var roles: ["title"]
 
-	signal dlgClose()
-	signal dlgAccept(var data)
+	maximumHeight: 0
+	maximumWidth: 700
 
-	Item {
-		id: dlgItem
-		anchors.centerIn: parent
+	acceptedData: -1
 
-		width: Math.min(parent.width*0.9, 650)
-		height: parent.height*0.9
+	QVariantMapProxyView {
+		id: list
 
+		anchors.fill: parent
 
+		model: SortFilterProxyModel {
+			id: model
 
-		BorderImage {
-			id: bgRectMask
-			source: "qrc:/internal/img/border.svg"
-			visible: false
+			filters: [
+					RegExpFilter {
+						enabled: toolbar.searchBar.text.length
+						roleName: roles[0]
+						pattern: toolbar.searchBar.text
+						caseSensitivity: Qt.CaseInsensitive
+						syntax: RegExpFilter.FixedString
+					}
+			]
 
-			anchors.fill: bgRectData
-
-			border.left: 15; border.top: 10
-			border.right: 15; border.bottom: 10
-
-			horizontalTileMode: BorderImage.Repeat
-			verticalTileMode: BorderImage.Repeat
+			sorters: [
+				StringSorter { roleName: roles[0] }
+			]
 		}
 
-		Rectangle {
-			id: bgRectData
+		modelTitleRole: roles[0]
 
-			anchors.fill: rectBg
-			visible: false
+		autoSelectorChange: false
 
-			color: JS.setColorAlpha(CosStyle.colorPrimaryDark, 0.2)
-		}
+		onClicked: if (simpleSelect) {
+					   acceptedData = model.mapToSource(currentIndex)
+					   dlgClose()
+				   }
+	}
 
-		OpacityMask {
-			id: rectBg
-			source: bgRectData
-			maskSource: bgRectMask
+	QPagePanelSearch {
+		id: toolbar
 
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.bottom: buttonRow.top
-			anchors.bottomMargin: 10
+		listView: list
 
-			QDialogHeader {
-				id: mainRow
-				icon: CosStyle.iconDialogQuestion
-			}
-
-
-			QPageHeader {
-				id: header
-
-				anchors.top: mainRow.bottom
-				anchors.left: parent.left
-				anchors.right: parent.right
-
-				isSelectorMode: list.selectorSet
-
-				labelCountText: list.selectedItemCount
-
-				mainItem: QTextField {
-					id: tfInput
-					width: parent.width
-					lineVisible: false
-					clearAlwaysVisible: true
-					placeholderText: qsTr("Keresés...")
-				}
-
-				onSelectAll: list.selectAll()
-				onDeselectAll: list.selectAll(false)
-			}
-
-			SortFilterProxyModel {
-				id: userProxyModel
-				sourceModel: item.model
-				filters:  RegExpFilter {
-					enabled: tfInput.text.length
-					roleName: list.modelTitleRole
-					pattern: tfInput.text
-					caseSensitivity: Qt.CaseInsensitive
-					syntax: RegExpFilter.FixedString
-				}
-			}
-
-			QListItemDelegate {
-				id: list
-				anchors.top: header.bottom
-				anchors.left: parent.left
-				anchors.right: parent.right
-				anchors.bottom: parent.bottom
-				anchors.margins: 30
-				anchors.topMargin: 0
-				anchors.bottomMargin: mainRow.padding
-
-
-
-				model: userProxyModel
-				isProxyModel: true
-
-				onClicked: if (simpleSelect) {
-							   if (isProxyModel)
-								   dlgAccept(model.mapToSource(index))
-							   else
-								   dlgAccept(index)
-						   }
-			}
-
-		}
-
-		Row {
-			id: buttonRow
-			spacing: 10
-
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.bottom: parent.bottom
-
-			QButton {
-				id: buttonNo
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Mégsem")
-				icon.source: CosStyle.iconCancel
-				themeColors: CosStyle.buttonThemeDelete
-
-				onClicked: dlgClose()
-			}
-
-			QButton {
-				id: buttonYes
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				visible: !simpleSelect
-
-				text: qsTr("OK")
-				icon.source: CosStyle.iconOK
-				themeColors: CosStyle.buttonThemeApply
-
-				onClicked: dlgAccept(list.currentIndex)
-			}
-		}
-
+		enabled: model.sourceModel.count
+		labelCountText: model.sourceModel.selectedCount
+		onSelectAll: JS.selectAllProxyModelToggle(model)
 	}
 
 
+	buttons: Row {
+		id: buttonRow
+		spacing: 10
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		QButton {
+			id: buttonNo
+			anchors.verticalCenter: parent.verticalCenter
+			text: qsTr("Mégsem")
+			icon.source: CosStyle.iconCancel
+			themeColors: CosStyle.buttonThemeDelete
+
+			onClicked: dlgClose()
+		}
+
+		QButton {
+			id: buttonYes
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			visible: !simpleSelect
+
+			text: qsTr("OK")
+			icon.source: CosStyle.iconOK
+			themeColors: CosStyle.buttonThemeApply
+
+			onClicked: {
+				dlgClose()
+			}
+		}
+	}
+
+
+
 	function populated() {
-		list.calculateSelectedItems()
-		tfInput.forceActiveFocus()
+
 	}
 
 }

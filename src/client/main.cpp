@@ -139,6 +139,8 @@ int main(int argc, char *argv[])
 	client.registerTypes();
 	client.registerResources();
 
+	client.loadTerrains();
+
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();
 	context->setContextProperty("cosClient", &client);

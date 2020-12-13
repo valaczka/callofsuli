@@ -43,6 +43,20 @@ class GameMap
 {
 
 public:
+	class Image {
+	public:
+		Image(const QString &folder, const QString &file, const QByteArray &data);
+
+		QString folder() const { return m_folder;};
+		QString file() const { return  m_file; };
+		QByteArray data() const { return m_data; };
+
+	private:
+		QString m_folder;
+		QString m_file;
+		QByteArray m_data;
+	};
+
 
 	class Storage {
 	public:
@@ -138,7 +152,8 @@ public:
 	class MissionLevel {
 	public:
 		MissionLevel(const qint32 &level, const QByteArray &terrain,
-					 const qint32 &startHP, const qint32 &duration, const qint32 &startBlock);
+					 const qint32 &startHP, const qint32 &duration, const qint32 &startBlock,
+					 const QString &imageFolder, const QString &imageFile);
 		~MissionLevel();
 
 		qint32 level() const { return m_level; };
@@ -148,9 +163,13 @@ public:
 		qint32 startBlock() const { return m_startBlock; };
 		QVector<BlockChapterMap *> blockChapterMaps() const { return m_blockChapterMaps; };
 		QVector<Inventory *> inventories() const { return m_inventories; };
+		QString imageFolder() const { return m_imageFolder; }
+		QString imageFile() const { return m_imageFile; }
+
 
 		BlockChapterMap* addBlockChapterMap(BlockChapterMap *map) { Q_ASSERT(map); m_blockChapterMaps.append(map); return map;}
 		Inventory* addInvetory(Inventory *inventory) { Q_ASSERT(inventory); m_inventories.append(inventory); return inventory;}
+
 
 	private:
 		qint32 m_level;
@@ -160,6 +179,8 @@ public:
 		qint32 m_startBlock;
 		QVector<BlockChapterMap *> m_blockChapterMaps;
 		QVector<Inventory *> m_inventories;
+		QString m_imageFolder;
+		QString m_imageFile;
 	};
 
 
@@ -214,19 +235,6 @@ public:
 
 
 
-	class Image {
-	public:
-		Image(const QString &folder, const QString &file, const QByteArray &data);
-
-		QString folder() const { return m_folder;};
-		QString file() const { return  m_file; };
-		QByteArray data() const { return m_data; };
-
-	private:
-		QString m_folder;
-		QString m_file;
-		QByteArray m_data;
-	};
 
 
 
@@ -295,6 +303,7 @@ private:
 	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> missionsFromStream(Campaign* campaign, QDataStream &stream);
 	void missionsToDb(CosDb *db) const;
 	void missionsFromDb(CosDb *db);
+	void missionLocksToDb(CosDb *db) const;
 
 	void missionLevelsToStream(Mission *mission, QDataStream &stream) const;
 	void missionLevelsFromStream(Mission* mission, QDataStream &stream);

@@ -5,126 +5,66 @@ import "Style"
 import "JScript.js" as JS
 import "."
 
-Item {
+
+QDialogPanel {
 	id: item
 
-	implicitHeight: 300
-	implicitWidth: 400
-
-	property alias title: mainRow.title
+	title: qsTr("Kérdés")
 	property alias text: labelText.text
 
-	signal dlgClose()
-	property var acceptedData: false
+	maximumHeight: 250
+	maximumWidth: 650
 
-	Item {
-		id: dlgItem
+	icon: CosStyle.iconDialogQuestion
+	titleColor: CosStyle.colorPrimaryDarker
+
+
+	QLabel {
+		id: labelText
+		color: CosStyle.colorPrimaryLighter
+
+		width: parent.width
 		anchors.centerIn: parent
 
-		width: Math.min(parent.width*0.9, 650)
-		height: Math.min(parent.height*0.9, 300)
+		font.weight: Font.Medium
 
+		wrapMode: Text.WordWrap
+		horizontalAlignment: Qt.AlignHCenter
+		verticalAlignment: Qt.AlignVCenter
+	}
 
+	buttons: Row {
+		id: buttonRow
+		spacing: 10
 
-		BorderImage {
-			id: bgRectMask
-			source: "qrc:/internal/img/border.svg"
-			visible: false
+		anchors.horizontalCenter: parent.horizontalCenter
 
-			anchors.fill: bgRectData
+		QButton {
+			id: buttonNo
+			anchors.verticalCenter: parent.verticalCenter
+			text: qsTr("Nem")
+			icon.source: CosStyle.iconCancel
+			themeColors: CosStyle.buttonThemeDelete
 
-			border.left: 15; border.top: 10
-			border.right: 15; border.bottom: 10
-
-			horizontalTileMode: BorderImage.Repeat
-			verticalTileMode: BorderImage.Repeat
-		}
-
-		Rectangle {
-			id: bgRectData
-
-			anchors.fill: rectBg
-			visible: false
-
-			color: JS.setColorAlpha(CosStyle.colorPrimaryDark, 0.2)
-		}
-
-		OpacityMask {
-			id: rectBg
-			source: bgRectData
-			maskSource: bgRectMask
-
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.bottom: buttonRow.top
-			anchors.bottomMargin: 30
-
-			QDialogHeader {
-				id: mainRow
-				icon: CosStyle.iconDialogQuestion
-			}
-
-			DropShadow {
-				anchors.fill: labelText
-				horizontalOffset: 2
-				verticalOffset: 2
-				radius: 1
-				samples: 3
-				source: labelText
-				visible: true
-			}
-
-			QLabel {
-				id: labelText
-				color: CosStyle.colorPrimaryLighter
-				anchors.top: mainRow.bottom
-				anchors.left: parent.left
-				anchors.right: parent.right
-				anchors.bottom: parent.bottom
-				anchors.margins: 30
-				anchors.topMargin: 20
-				wrapMode: Text.WordWrap
-				horizontalAlignment: Qt.AlignHCenter
-				verticalAlignment: Qt.AlignVCenter
+			onClicked: {
+				dlgClose()
 			}
 		}
 
-		Row {
-			id: buttonRow
-			spacing: 10
+		QButton {
+			id: buttonYes
 
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.bottom: parent.bottom
+			anchors.verticalCenter: parent.verticalCenter
 
-			QButton {
-				id: buttonNo
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Nem")
-				icon.source: CosStyle.iconCancel
-				themeColors: CosStyle.buttonThemeDelete
+			text: qsTr("Igen")
+			icon.source: CosStyle.iconOK
+			themeColors: CosStyle.buttonThemeApply
 
-				onClicked: {
-					dlgClose()
-				}
-			}
-
-			QButton {
-				id: buttonYes
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				text: qsTr("Igen")
-				icon.source: CosStyle.iconOK
-				themeColors: CosStyle.buttonThemeApply
-
-				onClicked: {
-					acceptedData = true
-					dlgClose()
-				}
+			onClicked: {
+				acceptedData = true
+				dlgClose()
 			}
 		}
-
 	}
 
 	function populated() {

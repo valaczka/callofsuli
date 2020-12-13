@@ -86,17 +86,29 @@ protected:
 	void loadFromFilePrivate(QVariantMap data);
 	void saveToFilePrivate(QVariantMap data);
 	void createNewPrivate(QVariantMap data);
+	QStringList checkTerrains() const;
 
 	void campaignAdd(QVariantMap data);
 	void campaignModify(QVariantMap data);
 	void campaignRemove(QVariantMap data);
 	void campaignListReload(QVariantMap = QVariantMap());
 	void campaignLoad(QVariantMap data);
+	void campaignLockAdd(QVariantMap data);
+	void campaignLockRemove(QVariantMap data);
+	void campaignLockGetList(QVariantMap data);
 
 	void missionAdd(QVariantMap data);
 	void missionModify(QVariantMap data);
 	void missionRemove(QVariantMap data);
 	void missionLoad(QVariantMap data);
+	void missionLockAdd(QVariantMap data);
+	void missionLockRemove(QVariantMap data);
+	void missionLockGetList(QVariantMap data);
+	void missionLockGetLevelList(QVariantMap data);
+	void missionLockModify(QVariantMap data);
+	void missionLevelAdd(QVariantMap data);
+	void missionLevelRemove(QVariantMap data);
+	void missionLevelNormalize(QVariantMap = QVariantMap());
 
 signals:
 	void backupReady(QString mapName, QString details);
@@ -115,11 +127,16 @@ signals:
 	void campaignModified(const int &id);
 	void campaignRemoved(const int &id);
 	void campaignLoaded(const QVariantMap &data);
+	void campaignSelected(const int &id);
+	void campaignLockListLoaded(const int &id, const QVariantList &list);
 
 	void missionAdded(const int &rowid);
 	void missionModified(const QString &uuid);
 	void missionRemoved(const QString &uuid);
 	void missionLoaded(const QVariantMap &data);
+	void missionSelected(const QString &uuid);
+	void missionLockListLoaded(const QString &uuid, const QVariantList &list);
+	void missionLockLevelListLoaded(const QString &uuid, const QString &lock, const QVariantList &list);
 
 
 	void mapNameChanged(QString mapName);

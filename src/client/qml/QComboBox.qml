@@ -15,7 +15,7 @@ ComboBox {
 	property int modelWidth: 0
 	readonly property bool modelIsArray: Array.isArray(model)
 
-	implicitWidth: sizeToContents ? (modelWidth + leftPadding + rightPadding + indicator.width) : 120
+	implicitWidth: sizeToContents ? (modelWidth + leftPadding + rightPadding + indicator.width) : 400
 	implicitHeight: Math.max(CosStyle.pixelSize*2, 48)
 
 	TextMetrics {

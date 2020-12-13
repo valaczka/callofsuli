@@ -35,7 +35,10 @@
 #include <QJsonObject>
 #include <QUrl>
 #include "../common/cosmessage.h"
+#include "variantmapmodel.h"
 
+
+struct TerrainData;
 
 class Client : public QObject
 {
@@ -74,7 +77,7 @@ public:
 	static void initialize();
 	static void standardPathCreate();
 
-
+	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
@@ -88,6 +91,12 @@ public:
 	static bool saveJsonDocument(QJsonDocument doc, const QString &filename);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
+
+	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
+		return VariantMapModel::newModel(list, this);
+	}
+
+	Q_INVOKABLE static QVariantList terrainList();
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
@@ -107,6 +116,9 @@ public:
 	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
 	QVariantList registrationDomains() const { return m_registrationDomains; }
 	QStringList waitForResources() const { return m_waitForResources; }
+
+	static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
+	static TerrainData terrain(const QString &name);
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -131,7 +143,6 @@ public slots:
 	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
-
 
 private slots:
 	void setSocket(QWebSocket * socket);
@@ -230,7 +241,41 @@ private:
 	QStringList m_waitForResources;
 	QStringList m_registeredServerResources;
 	QString m_userRankImage;
+	static QList<TerrainData> m_availableTerrains;
 };
+
+
+
+/**
+ * @brief The TerrainData struct
+ */
+
+struct TerrainData {
+	Q_GADGET
+
+	Q_PROPERTY(QString name MEMBER name)
+	Q_PROPERTY(QList<int> blocks MEMBER blocks)
+	Q_PROPERTY(int enemies MEMBER enemies)
+
+public:
+
+	QString name;
+	QList<int> blocks;
+	int enemies;
+
+	TerrainData(const QString &name = "", const QList<int> &blocks = QList<int>(), const int &enemies = 0)
+		: name(name)
+		, blocks(blocks)
+		, enemies(enemies)
+	{}
+
+	friend inline bool operator== (const TerrainData &b1, const TerrainData &b2) {
+		return b1.name == b2.name
+				&& b1.blocks == b2.blocks
+				&& b1.enemies == b2.enemies;
+	}
+};
+
 
 
 #endif // CLIENT_H

@@ -51,7 +51,7 @@
 #include "mapeditor.h"
 #include "cosdownloader.h"
 
-
+QList<TerrainData> Client::m_availableTerrains = QList<TerrainData>();
 
 Client::Client(QObject *parent) : QObject(parent)
 {
@@ -460,6 +460,74 @@ QList<QPointF> Client::rotatePolygon(const QVariantList &points, const qreal &an
 
 	return rotatePolygon(pointList, angle, boundRect, axis);
 }
+
+
+/**
+ * @brief Client::terrainList
+ * @return
+ */
+
+QVariantList Client::terrainList()
+{
+	QVariantList list;
+
+	foreach (TerrainData d, m_availableTerrains) {
+		QVariantMap m;
+		m["name"] = d.name;
+		m["blocks"] = d.blocks.count();
+		m["enemies"] = d.enemies;
+		m["details"] = d.name+QString(tr(" (%1 blokk, %2 célpont)")).arg(d.blocks.count()).arg(d.enemies);
+		list.append(m);
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief Client::terrain
+ * @param name
+ * @return
+ */
+
+TerrainData Client::terrain(const QString &name)
+{
+	foreach (TerrainData d, m_availableTerrains) {
+		if (d.name == name)
+			return d;
+	}
+
+	return TerrainData();
+}
+
+
+
+/**
+ * @brief Client::availableTerrains
+ * @return
+ */
+
+void Client::loadTerrains()
+{
+	m_availableTerrains.clear();
+
+	QDirIterator it(":/terrain", {"terrain.tmx"}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		QString realname = it.next();
+
+		GameTerrain t;
+		if (t.loadTmxFile(realname)) {
+			TerrainData d(realname.section('/',-2,-2),
+						  t.blocks().keys(),
+						  t.enemies().count());
+
+			m_availableTerrains.append(d);
+		}
+	}
+}
+
+
 
 
 void Client::setConnectionState(Client::ConnectionState connectionState)

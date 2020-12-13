@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>sql/servers.sql</file>
-        <file>sql/map.sql</file>
-        <file>sql/mapeditor.sql</file>
-        <file>sql/studentmap.sql</file>
-    </qresource>
-</RCC>
