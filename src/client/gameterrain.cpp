@@ -178,7 +178,10 @@ void GameTerrain::loadLayers()
 			TiledPaintedLayer *paintedLayer = new TiledPaintedLayer(m_tiledLayersParent);
 			paintedLayer->setMap(m_map);
 			paintedLayer->setLayer(layer->asTileLayer());
-			paintedLayer->setZ(-1);
+			QVariant layerZ = layer->property("z");
+			paintedLayer->setX(layer->offset().x());
+			paintedLayer->setY(layer->offset().y());
+			paintedLayer->setZ(layerZ.isValid() ? layerZ.toInt() : -1);
 			m_tiledLayers->append(paintedLayer);
 		} else if (layer->isObjectGroup() && layer->name() == "Enemies") {
 			loadEnemyLayer(layer);

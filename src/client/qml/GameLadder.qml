@@ -11,6 +11,7 @@ PhysicsEntity {
 	height: 0
 	x: ladder ? ladder.boundRect.x : 0
 	y: ladder ? ladder.boundRect.y-fixtureHeight : 0
+	z: 5
 
 	bodyType: Body.Static
 

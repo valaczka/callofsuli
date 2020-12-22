@@ -9,6 +9,8 @@ GameEntity {
 	width: spriteSequence.width
 	height: spriteSequence.height
 
+	z: 10
+
 	entityPrivate: ep
 
 	glowColor: CosStyle.colorPrimaryLighter
@@ -29,7 +31,7 @@ GameEntity {
 				if (_fallStartY == -1) {
 					spriteSequence.jumpTo("idle")
 				} else {
-					if (root.y-_fallStartY > ep.cosGame.gameData.level[ep.cosGame.level].player.deathlyFall || ep.isOnBaseGround) {
+					if (root.y-_fallStartY > ep.cosGame.levelData.player.deathlyFall || ep.isOnBaseGround) {
 						spriteSequence.jumpTo("falldeath")
 					} else {
 						spriteSequence.jumpTo("idle")
@@ -91,18 +93,20 @@ GameEntity {
 
 		property bool readyToStop: false
 
-		running: ep.cosGame.running && root.isWalking
+		running: root.isWalking
 
 		triggeredOnStart: true
 		onTriggered: {
-			if(readyToStop) {
+			if(readyToStop || !ep.cosGame.running) {
 				spriteSequence.jumpTo("idle")
 			}
 
-			if (root.facingLeft)
-				root.x -= ep.qrcData.walk
-			else
-				root.x += ep.qrcData.walk
+			if (ep.cosGame.running) {
+				if (root.facingLeft)
+					root.x -= ep.qrcData.walk
+				else
+					root.x += ep.qrcData.walk
+			}
 		}
 
 		onRunningChanged: if (running) {
@@ -119,18 +123,20 @@ GameEntity {
 
 		property bool readyToStop: false
 
-		running: ep.cosGame.running && root.isRunning
+		running: root.isRunning
 
 		triggeredOnStart: true
 		onTriggered: {
-			if(readyToStop) {
+			if(readyToStop || !ep.cosGame.running) {
 				spriteSequence.jumpTo("runend")
 			}
 
-			if (root.facingLeft)
-				root.x -= ep.qrcData.run
-			else
-				root.x += ep.qrcData.run
+			if (ep.cosGame.running) {
+				if (root.facingLeft)
+					root.x -= ep.qrcData.run
+				else
+					root.x += ep.qrcData.run
+			}
 		}
 
 		onRunningChanged: if (running)

@@ -40,6 +40,7 @@ SOURCES += \
 		gameenemysoldier.cpp \
 		gameentity.cpp \
 		gameladder.cpp \
+		gamematch.cpp \
 		gameobject.cpp \
 		gameplayer.cpp \
 		gamequestion.cpp \
@@ -71,6 +72,7 @@ HEADERS += \
 	gameenemysoldier.h \
 	gameentity.h \
 	gameladder.h \
+	gamematch.h \
 	gameobject.h \
 	gameplayer.h \
 	gamequestion.h \

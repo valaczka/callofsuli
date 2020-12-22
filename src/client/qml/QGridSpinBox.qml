@@ -5,6 +5,8 @@ import "Style"
 
 QSpinBox {
 	id: control
+
+	//property string fieldName: ""					// nincs!
 	property string sqlField: ""
 	property alias sqlData: control.value
 	property bool modified: false
@@ -12,7 +14,7 @@ QSpinBox {
 	property bool watchModification: parent.watchModification
 
 	Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-	Layout.fillWidth: true
+	Layout.fillWidth: false
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
 

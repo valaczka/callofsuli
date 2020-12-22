@@ -39,7 +39,6 @@
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(parent)
-	, m_game(nullptr)
 	, m_loadProgress(0.0)
 	, m_loadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0))
 	, m_loadAbortRequest(false)
@@ -64,7 +63,26 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["missionLockModify"] = &MapEditor::missionLockModify;
 	m_map["missionLevelAdd"] = &MapEditor::missionLevelAdd;
 	m_map["missionLevelRemove"] = &MapEditor::missionLevelRemove;
-	m_map["missionLevelNormalize"] = &MapEditor::missionLevelNormalize;
+	m_map["chapterAdd"] = &MapEditor::chapterAdd;
+	m_map["chapterModify"] = &MapEditor::chapterModify;
+	m_map["chapterRemove"] = &MapEditor::chapterRemove;
+	m_map["chapterListReload"] = &MapEditor::chapterListReload;
+	m_map["objectiveAdd"] = &MapEditor::objectiveAdd;
+	m_map["objectiveRemove"] = &MapEditor::objectiveRemove;
+	m_map["objectiveModify"] = &MapEditor::objectiveModify;
+	m_map["objectiveLoad"] = &MapEditor::objectiveLoad;
+	m_map["levelLoad"] = &MapEditor::levelLoad;
+	m_map["levelModify"] = &MapEditor::levelModify;
+	m_map["blockChapterMapAdd"] = &MapEditor::blockChapterMapAdd;
+	m_map["blockChapterMapRemove"] = &MapEditor::blockChapterMapRemove;
+	m_map["blockChapterMapLoad"] = &MapEditor::blockChapterMapLoad;
+	m_map["blockChapterMapBlockGetList"] = &MapEditor::blockChapterMapBlockGetList;
+	m_map["blockChapterMapBlockAdd"] = &MapEditor::blockChapterMapBlockAdd;
+	m_map["blockChapterMapBlockRemove"] = &MapEditor::blockChapterMapBlockRemove;
+	m_map["blockChapterMapChapterGetList"] = &MapEditor::blockChapterMapChapterGetList;
+	m_map["blockChapterMapChapterAdd"] = &MapEditor::blockChapterMapChapterAdd;
+	m_map["blockChapterMapChapterRemove"] = &MapEditor::blockChapterMapChapterRemove;
+
 
 
 	CosDb *db = new CosDb("editorDb", this);
@@ -74,6 +92,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 	connect(db, &CosDb::undone, this, [=]() {
 		setModified(true);
 		run("campaignListReload");
+		run("chapterListReload");
 	});
 
 }
@@ -85,8 +104,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 MapEditor::~MapEditor()
 {
-	if (m_game)
-		delete m_game;
+
 }
 
 
@@ -107,24 +125,28 @@ void MapEditor::loadFromFilePrivate(QVariantMap data)
 	QByteArray d = f.readAll();
 	f.close();
 
-	m_game = GameMap::fromBinaryData(d, this, "setLoadProgress");
+	GameMap *game = GameMap::fromBinaryData(d, this, "setLoadProgress");
 
-	if (!m_game) {
+	if (!game) {
 		m_client->sendMessageError(tr("Hibás fájl"), filename);
 		db()->close();
 		emit loadFailed();
 		return;
 	}
 
-	QStringList unavailableTerrains = checkTerrains();
+	QStringList unavailableTerrains = checkTerrains(game);
 	if (!unavailableTerrains.isEmpty()) {
-		m_client->sendMessageWarning(tr("Hiba"), tr("Érvénytelen terephivatkozás!"), unavailableTerrains.join(", "));
+		m_client->sendMessageWarning(tr("Érvénytelen harcmező"),
+									 tr("Érvénytelen harcmezőválasztás a következő küldetésekben: ")
+									 .append(unavailableTerrains.join(", ")));
 	}
 
-	if (_createDatabase())
+	if (_createDatabase(game))
 		emit loadFinished();
 	else
 		emit loadFailed();
+
+	delete game;
 }
 
 
@@ -141,13 +163,23 @@ void MapEditor::saveToFilePrivate(QVariantMap data)
 	setLoadProgress(0.0);
 
 	m_loadAbortRequest = false;
-	m_game = GameMap::fromDb(db(), this, "setLoadProgress");
+	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress");
 
-	if (!m_game) {
+	if (!game) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
 		emit saveFailed();
 		return;
 	}
+
+
+
+	if (!checkGame(game)) {
+		emit saveFailed();
+		delete game;
+		return;
+	}
+
+
 
 	QFile f(filename);
 	if (!f.open(QIODevice::WriteOnly)) {
@@ -157,12 +189,14 @@ void MapEditor::saveToFilePrivate(QVariantMap data)
 	}
 
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.9, 1.0));
-	QByteArray d = m_game->toBinaryData();
+	QByteArray d = game->toBinaryData();
 
 	f.write(d);
 	f.close();
 
 	emit saveFinished();
+
+	delete game;
 }
 
 
@@ -233,6 +267,27 @@ void MapEditor::removeDatabase()
 void MapEditor::loadAbort()
 {
 	m_loadAbortRequest = true;
+}
+
+
+/**
+ * @brief MapEditor::moduleData
+ * @param module
+ * @param isObjective
+ * @return
+ */
+
+QVariantMap MapEditor::moduleData(const QString &module, const bool &isObjective) const
+{
+	QVariantMap m = isObjective ? Client::objectiveModuleMap() : Client::storageModuleMap();
+
+	if (!m.contains(module))
+		return QVariantMap({
+							   { "name", tr("Érvénytelen modul!") },
+							   { "icon", "image://font/Material Icons/\ue002" }
+						   });
+
+	return m.value(module).toMap();
 }
 
 
@@ -475,16 +530,6 @@ void MapEditor::createNew(QVariantMap data)
 
 
 
-/**
- * @brief MapEditor::onMessageReceived
- * @param message
- */
-
-void MapEditor::onMessageReceived(const CosMessage &message)
-{
-
-}
-
 
 
 
@@ -494,12 +539,12 @@ void MapEditor::onMessageReceived(const CosMessage &message)
  * @return
  */
 
-bool MapEditor::_createDatabase()
+bool MapEditor::_createDatabase(GameMap *game)
 {
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.2, 0.6));
-	m_game->setProgressFunc(this, "setLoadProgress");
+	game->setProgressFunc(this, "setLoadProgress");
 
-	if (!m_game->toDb(db())) {
+	if (!game->toDb(db())) {
 		m_client->sendMessageError(tr("Adatfájl hiba"), db()->databaseName());
 		db()->close();
 		return false;
@@ -528,6 +573,7 @@ bool MapEditor::_createTriggers()
 	tableList << "map";
 	tableList << "chapters";
 	tableList << "storages";
+	tableList << "objectives";
 	tableList << "campaigns";
 	tableList << "campaignLocks";
 	tableList << "missions";
@@ -560,6 +606,42 @@ bool MapEditor::_createTriggers()
 }
 
 
+/**
+ * @brief MapEditor::_blockChapterMapBlockGetListPrivate
+ * @param data
+ * @return
+ */
+
+QList<int> MapEditor::_blockChapterMapBlockGetListPrivate(const QString &mission, const int &level, const QString &terrain)
+{
+	TerrainData t = Client::terrain(terrain);
+
+	if (t.name.isEmpty()) {
+		return QList<int>();
+	}
+
+	QList<int> freeBlocks = t.blocks.keys();
+
+
+	QVariantList ll;
+	ll.append(mission);
+	ll.append(level);
+
+	QVariantList usedBlocks = db()->execSelectQuery("SELECT DISTINCT block "
+													"FROM blockChapterMaps "
+													"LEFT JOIN blockChapterMapBlocks ON (blockChapterMapBlocks.blockid=blockChapterMaps.id) "
+													"WHERE mission=? AND level=?", ll);
+
+	foreach (QVariant v, usedBlocks) {
+		int block = v.toMap().value("block").toInt();
+
+		freeBlocks.removeAll(block);
+	}
+
+	return freeBlocks;
+}
+
+
 
 /**
  * @brief MapEditor::_loadFromNew
@@ -573,12 +655,14 @@ void MapEditor::createNewPrivate(QVariantMap data)
 	if (uuid.isEmpty())
 		uuid = QUuid::createUuid().toByteArray();
 
-	m_game = GameMap::example(name, uuid);
+	GameMap *m_game = GameMap::example(name, uuid);
 
-	if (_createDatabase())
+	if (_createDatabase(m_game))
 		emit loadFinished();
 	else
 		emit loadFailed();
+
+	delete m_game;
 }
 
 
@@ -586,24 +670,67 @@ void MapEditor::createNewPrivate(QVariantMap data)
  * @brief MapEditor::checkTerrains
  */
 
-QStringList MapEditor::checkTerrains() const
+QStringList MapEditor::checkTerrains(GameMap *game) const
 {
-	if (!m_client || !m_game)
+	if (!m_client || !game)
 		return QStringList();
 
+	QVariantMap terrainMap = m_client->terrainMap();
 	QStringList list;
 
-	foreach (GameMap::Campaign *c, m_game->campaigns()) {
+	foreach (GameMap::Campaign *c, game->campaigns()) {
 		foreach (GameMap::Mission *m, c->missions()) {
 			foreach (GameMap::MissionLevel *l, m->levels()) {
-				if (m_client->terrain(l->terrain()).name.isEmpty())
-					list.append(l->terrain());
+				if (!terrainMap.contains(l->terrain()))
+					list.append(m->name());
 			}
 		}
 	}
 
 	return list;
 }
+
+
+
+/**
+ * @brief MapEditor::checkGame
+ * @param game
+ * @return
+ */
+
+bool MapEditor::checkGame(GameMap *game) const
+{
+	if (!game)
+		return false;
+
+	QStringList unavailableTerrains = checkTerrains(game);
+	if (!unavailableTerrains.isEmpty()) {
+		m_client->sendMessageWarning(tr("Érvénytelen harcmező"),
+									 tr("Érvénytelen harcmezőválasztás a következő küldetésekben: ")
+									 .append(unavailableTerrains.join(", ")));
+		return false;
+	}
+
+
+	GameMap::Mission *mission = nullptr;
+	game->missionLockTree(&mission);
+
+	if (mission) {
+		m_client->sendMessageWarning(tr("Körkörös zárolás"), tr("A %1 küldetés körkörösen van zárolva, javítás szükséges!").arg(mission->name()));
+		return false;
+	}
+
+	GameMap::Campaign *campaign = nullptr;
+	game->campaignLockTree(&campaign);
+
+	if (campaign) {
+		m_client->sendMessageWarning(tr("Körkörös zárolás"), tr("A %1 hadjárat körkörösen van zárolva, javítás szükséges!").arg(campaign->name()));
+		return false;
+	}
+
+	return true;
+}
+
 
 
 
@@ -921,7 +1048,7 @@ void MapEditor::missionLoad(QVariantMap data)
 
 	map["locks"] = locks;
 
-	QVariantList levels = db()->execSelectQuery("SELECT level, terrain, startHP, duration, startBlock, imageFolder, imageFile from missionLevels "
+	QVariantList levels = db()->execSelectQuery("SELECT rowid, level, terrain, startHP, duration, startBlock, imageFolder, imageFile from missionLevels "
 												"WHERE mission=?", l);
 
 	map["levels"] = levels;
@@ -1145,15 +1272,23 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 	l.append(uuid);
 	QVariantMap m = db()->execSelectQueryOneRow("SELECT COALESCE(MAX(level),0) AS level FROM missionLevels WHERE mission=?", l);
 
-	data["level"] = m.value("level", 0).toInt()+1;
+	int newLevel = m.value("level", 0).toInt()+1;
+
+	data["level"] = newLevel;
 
 	db()->undoLogBegin(tr("Új szint hozzáadása"));
 
 	int ret = db()->execInsertQuery("INSERT INTO missionLevels(?k?) values (?)", data);
 
+	QVariantMap m2;
+	m2["mission"] = uuid;
+	m2["level"] = newLevel;
+
+	int ret2 = db()->execInsertQuery("INSERT INTO blockChapterMaps(?k?) values (?)", m2);
+
 	db()->undoLogEnd();
 
-	if (ret != -1) {
+	if (ret != -1 && ret2 != -1) {
 		db()->db().commit();
 		setModified(true);
 		emit missionModified(uuid);
@@ -1176,29 +1311,19 @@ void MapEditor::missionLevelRemove(QVariantMap data)
 	if (uuid.isEmpty()) {
 		return;
 	}
+
 	bool ret = false;
 
-	if (data.contains("list")) {
-		QVariantList list = data.value("list").toList();
+	db()->undoLogBegin(tr("Szint törlése"));
 
-		QVariantMap bind;
-		bind[":id"] = uuid;
+	QVariantList l;
+	l << uuid;
 
-		db()->undoLogBegin(tr("%1 szint törlése").arg(list.count()));
-		ret = db()->execListQuery("DELETE FROM missionLevels WHERE mission=:id AND level IN (?l?)", list, bind);
+	qDebug() << l;
 
-		db()->undoLogEnd();
-	} else if (data.contains("level")) {
-		db()->undoLogBegin(tr("Szint törlése"));
+	ret = db()->execSimpleQuery("DELETE FROM missionLevels WHERE rowid = (SELECT rowid FROM missionLevels WHERE mission=? ORDER BY level DESC LIMIT 1)", l);
 
-		QVariantList l;
-		l << uuid;
-		l << data.value("level", -1).toInt();
-
-		ret = db()->execSimpleQuery("DELETE FROM missionLevels WHERE mission=? AND level=?", l);
-
-		db()->undoLogEnd();
-	}
+	db()->undoLogEnd();
 
 
 	if (ret) {
@@ -1209,40 +1334,889 @@ void MapEditor::missionLevelRemove(QVariantMap data)
 
 
 /**
- * @brief MapEditor::missionLevelNormalize
- * @param uuid
+ * @brief MapEditor::chapterAdd
+ * @param data
  */
 
-void MapEditor::missionLevelNormalize(QVariantMap)
+void MapEditor::chapterAdd(QVariantMap data)
 {
-	qInfo() << tr("Küldetés szintek újraszámozása...");
+	db()->undoLogBegin(tr("Új szakasz hozzáadása"));
 
-	db()->clearUndo();
+	int ret = db()->execInsertQuery("INSERT INTO chapters(?k?) values (?)", data);
 
-	QVariantList uuids = db()->execSelectQuery("SELECT uuid FROM missions");
+	db()->undoLogEnd();
 
-	foreach (QVariant v, uuids) {
-		QString uuid = v.toMap().value("uuid").toString();
+	chapterListReload();
 
-		QVariantList l;
-		l.append(uuid);
-		QVariantList list = db()->execSelectQuery("SELECT rowid, level FROM missionLevels WHERE mission=? ORDER BY level", l);
-
-		for (int i=0; i<list.size(); ++i) {
-			QVariantMap m = list.at(i).toMap();
-			int level = m.value("level").toInt();
-			int norm = i+1;
-
-			if (level != norm) {
-				QVariantList l;
-				l.append(norm);
-				l.append(uuid);
-				l.append(m.value("rowid").toInt());
-
-				db()->execSimpleQuery("UPDATE missionLevels SET level=? WHERE mission=? AND rowid=?", l);
-			}
-		}
+	if (ret != -1) {
+		setModified(true);
+		emit chapterAdded(ret);
 	}
 }
+
+
+/**
+ * @brief MapEditor::chapterModify
+ * @param data
+ */
+
+
+void MapEditor::chapterModify(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	QVariantMap d = data.value("data").toMap();
+
+	if (id == -1 || d.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Szakasz módosítása"));
+
+	QVariantMap bind;
+	bind[":id"] = id;
+
+	bool ret = db()->execUpdateQuery("UPDATE chapters SET ? WHERE id=:id", d, bind);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		chapterListReload();
+		setModified(true);
+		emit chapterModified(id);
+	}
+}
+
+
+
+
+
+/**
+ * @brief MapEditor::chapterRemove
+ * @param data
+ */
+
+void MapEditor::chapterRemove(QVariantMap data)
+{
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		db()->undoLogBegin(tr("%1 szakasz törlése").arg(list.count()));
+		bool ret = db()->execListQuery("DELETE FROM chapters WHERE id IN (?l?)", list);
+
+		db()->undoLogEnd();
+
+		if (ret) {
+			chapterListReload();
+			setModified(true);
+
+			foreach (QVariant v, list)
+				emit chapterRemoved(v.toInt());
+		}
+
+		return;
+	}
+
+	int id = data.value("id", -1).toInt();
+
+	if (id == -1)
+		return;
+
+	db()->undoLogBegin(tr("Szakasz törlése"));
+
+	QVariantList l;
+	l << id;
+
+	bool ret = db()->execSimpleQuery("DELETE FROM chapters WHERE id=?", l);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		chapterListReload();
+		setModified(true);
+		emit chapterRemoved(id);
+	}
+}
+
+
+
+
+
+
+/**
+ * @brief MapEditor::chapterListReload
+ */
+
+void MapEditor::chapterListReload(QVariantMap)
+{
+	QVariantList list = db()->execSelectQuery("SELECT 0 as type, id, CAST(id as TEXT) as uuid, name, "
+											  "NULL as storage, NULL as module, NULL as data "
+											  "FROM chapters "
+											  "UNION "
+											  "SELECT 1 as type, chapter as id, uuid, name, "
+											  "storage, module, data "
+											  "FROM objectives "
+											  "LEFT JOIN chapters ON (chapters.id=objectives.chapter)"
+											  );
+	emit chapterListReloaded(list);
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveAdd
+ * @param data
+ */
+
+void MapEditor::objectiveAdd(QVariantMap data)
+{
+	if (!data.contains("uuid"))	data["uuid"] = QUuid::createUuid().toString();
+
+	db()->undoLogBegin(tr("Új célpont hozzáadása"));
+
+	int ret = db()->execInsertQuery("INSERT INTO objectives(?k?) values (?)", data);
+
+	db()->undoLogEnd();
+
+	chapterListReload();
+
+	if (ret != -1) {
+		setModified(true);
+		emit objectiveAdded(ret);
+	}
+}
+
+
+/**
+ * @brief MapEditor::objectiveModify
+ * @param data
+ */
+
+void MapEditor::objectiveModify(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+	QVariantMap d = data.value("data").toMap();
+
+	if (uuid.isEmpty() || d.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Célpont módosítása"));
+
+	QVariantMap bind;
+	bind[":id"] = uuid;
+
+	bool ret = db()->execUpdateQuery("UPDATE objectives SET ? WHERE uuid=:id", d, bind);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		chapterListReload();
+		setModified(true);
+		emit objectiveModified(uuid);
+	}
+}
+
+
+/**
+ * @brief MapEditor::objectiveRemove
+ * @param data
+ */
+
+void MapEditor::objectiveRemove(QVariantMap data)
+{
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		db()->undoLogBegin(tr("%1 célpont törlése").arg(list.count()));
+		bool ret = db()->execListQuery("DELETE FROM objectives WHERE uuid IN (?l?)", list);
+
+		db()->undoLogEnd();
+
+		if (ret) {
+			chapterListReload();
+			setModified(true);
+
+			foreach (QVariant v, list)
+				emit objectiveRemoved(v.toString());
+		}
+
+		return;
+	}
+
+
+	QString uuid = data.value("uuid", "").toString();
+
+	if (uuid.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Célpont törlése"));
+
+	QVariantList l;
+	l << uuid;
+
+	bool ret = db()->execSimpleQuery("DELETE FROM objectives WHERE uuid=?", l);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		chapterListReload();
+		setModified(true);
+		emit objectiveRemoved(uuid);
+	}
+}
+
+
+/**
+ * @brief MapEditor::objectiveLoad
+ * @param data
+ */
+
+void MapEditor::objectiveLoad(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+	if (uuid.isEmpty()) {
+		emit objectiveLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList l;
+	l.append(uuid);
+
+	QVariantMap map = db()->execSelectQueryOneRow("SELECT uuid, chapter, objectives.module as objectiveModule, storage, objectives.data as objectiveData, "
+												  "storages.module as storageModule, storages.data as storageData "
+												  "FROM objectives "
+												  "LEFT JOIN storages ON (storages.id=objectives.storage) "
+												  "WHERE uuid=?", l);
+
+	if (map.isEmpty()) {
+		emit objectiveLoaded(QVariantMap());
+		return;
+	}
+
+
+	emit objectiveLoaded(map);
+}
+
+
+
+/**
+ * @brief MapEditor::levelLoad
+ * @param data
+ */
+
+void MapEditor::levelLoad(QVariantMap data)
+{
+	int id = data.value("rowid", -1).toInt();
+	if (id <= 0) {
+		emit levelLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantMap map = db()->execSelectQueryOneRow("SELECT missionLevels.rowid as rowid, mission, missions.name as name, level, terrain, startHP, "
+												  "duration, startBlock, imageFolder, imageFile "
+												  "FROM missionLevels "
+												  "LEFT JOIN missions ON (missions.uuid=missionLevels.mission) "
+												  "WHERE missionLevels.rowid=?", l);
+
+	if (map.isEmpty()) {
+		emit levelLoaded(QVariantMap());
+		return;
+	}
+
+	TerrainData t = Client::terrain(map.value("terrain").toString());
+
+	if (!t.name.isEmpty())
+		map["terrainBlocks"] = t.blocks.count();
+	else
+		map["terrainBlocks"] = 1;
+
+
+
+	QVariantList blockData;
+	QList<int> freeBlocks = t.blocks.keys();
+
+
+	QVariantList ll;
+	ll.append(map.value("mission").toString());
+	ll.append(map.value("level").toInt());
+
+	QVariantList bcmList = db()->execSelectQuery("SELECT id, maxObjective FROM blockChapterMaps WHERE mission=? AND level=?", ll);
+
+	foreach (QVariant v, bcmList) {
+		QVariantMap m = v.toMap();
+		int bcmId = m.value("id").toInt();
+		int maxObj = m.value("maxObjective").toInt();
+
+		QVariantList ll;
+		ll.append(bcmId);
+		QVariantList blockList = db()->execSelectQuery("SELECT DISTINCT block FROM blockChapterMapBlocks WHERE blockid=? ORDER BY block", ll);
+
+		int enemies = 0;
+
+		QStringList bl;
+
+		if (blockList.count()) {
+			foreach (QVariant v, blockList) {
+				int block = v.toMap().value("block").toInt();
+				bl.append(v.toMap().value("block").toString());
+
+				freeBlocks.removeAll(block);
+
+				enemies += t.blocks.value(block, 0);
+			}
+		} else {
+			enemies = t.enemies;
+			freeBlocks.clear();
+		}
+
+		if (maxObj > 0 && enemies > maxObj) {
+			enemies = maxObj;
+		}
+
+		QVariantMap bd;
+		bd["id"] = bcmId;
+		bd["enemies"] = enemies;
+		bd["blocks"] = bl.join(", ");
+		blockData.append(bd);
+	}
+
+	if (!freeBlocks.isEmpty() || bcmList.isEmpty())
+		map["canAdd"] = true;
+	else
+		map["canAdd"] = false;
+
+	map["blockDataList"] = blockData;
+
+
+
+
+	QVariantList inventory = db()->execSelectQuery("SELECT rowid, block, module, count FROM inventories WHERE mission=? AND level=?", ll);
+
+	map["inventory"] = inventory;
+
+
+	emit levelLoaded(map);
+}
+
+
+
+/**
+ * @brief MapEditor::levelModify
+ * @param data
+ */
+
+void MapEditor::levelModify(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	QVariantMap d = data.value("data").toMap();
+
+	if (rowid <= 0 || d.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Küldetésszint módosítása"));
+
+	QVariantMap bind;
+	bind[":id"] = rowid;
+
+	bool ret = db()->execUpdateQuery("UPDATE missionLevels SET ? WHERE rowid=:id", d, bind);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		levelLoad(data);
+		setModified(true);
+	}
+}
+
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapLoad
+ * @param data
+ */
+
+void MapEditor::blockChapterMapLoad(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	if (id <= 0) {
+		emit blockChapterMapLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantMap map = db()->execSelectQueryOneRow("SELECT blockChapterMaps.id as id, terrain, maxObjective "
+												  "FROM blockChapterMaps "
+												  "LEFT JOIN missionLevels ON (missionLevels.mission=blockChapterMaps.mission "
+												  "AND missionLevels.level=blockChapterMaps.level) "
+												  "WHERE blockChapterMaps.id=?", l);
+
+	if (map.isEmpty()) {
+		emit blockChapterMapLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList blockList = db()->execSelectQuery("SELECT DISTINCT block FROM blockChapterMapBlocks WHERE blockid=?", l);
+
+	QVariantList chapters = db()->execSelectQuery("SELECT chapter, name FROM blockChapterMapChapters "
+												  "LEFT JOIN chapters ON (chapters.id=blockChapterMapChapters.chapter) "
+												  "WHERE blockid=?", l);
+
+	QVariantList favorites = db()->execSelectQuery("SELECT objective FROM blockChapterMapFavorites WHERE blockid=?", l);
+
+
+	map["blocks"] = blockList;
+	map["chapters"] = chapters;
+	map["favorites"] = favorites;
+
+	emit blockChapterMapLoaded(map);
+}
+
+
+/**
+ * @brief MapEditor::blockChapterMapAdd
+ * @param data
+ */
+
+void MapEditor::blockChapterMapAdd(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	if (rowid <= 0)
+		return;
+
+	QVariantList l;
+	l.append(rowid);
+
+	QVariantMap level = db()->execSelectQueryOneRow("SELECT mission, level, terrain FROM missionLevels WHERE rowid=?", l);
+
+	if (level.isEmpty())
+		return;
+
+	QList<int> freeBlocks = _blockChapterMapBlockGetListPrivate(level.value("mission").toString(),
+																level.value("level").toInt(),
+																level.value("terrain").toString());
+
+
+	db()->undoLogBegin(tr("Elosztás hozzáadása"));
+
+	QVariantMap m;
+	m["mission"] = level.value("mission", "").toString();
+	m["level"] = level.value("level", -1).toInt();
+
+	int ret = db()->execInsertQuery("INSERT INTO blockChapterMaps(?k?) values (?)", m);
+
+	if (ret != -1 && !freeBlocks.isEmpty()) {
+		foreach (int block, freeBlocks) {
+			QVariantMap m;
+			m["blockid"] = ret;
+			m["block"] = block;
+			db()->execInsertQuery("INSERT INTO blockChapterMapBlocks(?k?) values (?)", m);
+		}
+	}
+
+	db()->undoLogEnd();
+
+	campaignListReload();
+
+	if (ret != -1) {
+		setModified(true);
+		levelLoad(data);
+	}
+}
+
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapRemove
+ * @param data
+ */
+
+void MapEditor::blockChapterMapRemove(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	if (rowid <= 0)
+		return;
+
+	QVariantList l;
+	l.append(rowid);
+
+	QVariantMap level = db()->execSelectQueryOneRow("SELECT mission, level FROM missionLevels WHERE rowid=?", l);
+
+	if (level.isEmpty())
+		return;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		QVariantMap bind;
+		bind[":mission"] = level.value("mission", "").toString();
+		bind[":level"] = level.value("level", -1).toInt();
+
+		db()->undoLogBegin(tr("%1 elosztás törlése").arg(list.count()));
+		bool ret = db()->execListQuery("DELETE FROM blockChapterMaps WHERE id IN (?l?) AND mission=:mission AND level=:level", list, bind);
+
+		db()->undoLogEnd();
+
+		if (ret) {
+			levelLoad(data);
+			setModified(true);
+			foreach (QVariant v, list)
+				emit blockChapterMapRemoved(v.toInt());
+		}
+
+		return;
+	}
+
+
+	int id = data.value("id", -1).toInt();
+
+	if (id <= 0)
+		return;
+
+	db()->undoLogBegin(tr("Elosztás törlése"));
+
+	QVariantList ll;
+	ll << id;
+	ll << level.value("mission", "").toString();
+	ll << level.value("level", -1).toInt();
+
+	bool ret = db()->execSimpleQuery("DELETE FROM blockChapterMaps WHERE id=? AND mission=? AND level=?", ll);
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		levelLoad(data);
+		setModified(true);
+		emit blockChapterMapRemoved(id);
+	}
+}
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapBlockGetList
+ * @param data
+ */
+
+void MapEditor::blockChapterMapBlockGetList(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	if (id == -1) {
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantMap level = db()->execSelectQueryOneRow("SELECT missionLevels.mission as mission, missionLevels.level as level, terrain "
+													"FROM blockChapterMaps "
+													"LEFT JOIN missionLevels ON (missionLevels.mission=blockChapterMaps.mission AND "
+													"missionLevels.level=blockChapterMaps.level) "
+													"WHERE blockChapterMaps.id=?", l);
+
+	if (level.isEmpty()) {
+		emit blockChapterMapBlockListLoaded(id, QVariantList());
+		return;
+	}
+
+	QList<int> freeBlocks = _blockChapterMapBlockGetListPrivate(level.value("mission").toString(),
+																level.value("level").toInt(),
+																level.value("terrain").toString());
+
+	if (freeBlocks.isEmpty()) {
+		emit blockChapterMapBlockListLoaded(id, QVariantList());
+		return;
+	}
+
+	QVariantList ret;
+
+	foreach (int b, freeBlocks) {
+		QVariantMap m;
+		m["block"] = b;
+		m["details"] = tr("%1. csatatér").arg(b);
+		ret.append(m);
+	}
+
+	emit blockChapterMapBlockListLoaded(id, ret);
+}
+
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapBlockAdd
+ * @param data
+ */
+
+void MapEditor::blockChapterMapBlockAdd(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	int id = data.value("id", -1).toInt();
+
+	if (rowid == -1 || id == -1)
+		return;
+
+	QVariantMap bind;
+	bind["blockid"] = id;
+
+	QVariantList queryList;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		foreach (QVariant v, list) {
+			QVariantMap m = bind;
+			m["block"] = v.toInt();
+			queryList.append(m);
+		}
+	} else if (data.contains("block")) {
+		bind["block"] = data.value("block").toInt();
+		queryList.append(bind);
+
+	}
+
+	db()->undoLogBegin(tr("%1 csatatér hozzáadása").arg(queryList.count()));
+
+	foreach (QVariant v, queryList)
+		db()->execInsertQuery("INSERT INTO blockChapterMapBlocks (?k?) VALUES (?)", v.toMap());
+
+	db()->undoLogEnd();
+
+	levelLoad(data);
+	setModified(true);
+	blockChapterMapLoad(data);
+}
+
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapBlockRemove
+ * @param data
+ */
+
+void MapEditor::blockChapterMapBlockRemove(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	int id = data.value("id", -1).toInt();
+
+	if (rowid == -1 || id == -1)
+		return;
+
+
+	QVariantList queryList;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		foreach (QVariant v, list) {
+			queryList.append(v);
+		}
+	} else if (data.contains("block")) {
+		queryList.append(data.value("block"));
+
+	}
+
+	db()->undoLogBegin(tr("%1 csatatér eltávolítása").arg(queryList.count()));
+
+	foreach (QVariant v, queryList) {
+		QVariantList l;
+		l.append(id);
+		l.append(v.toInt());
+		db()->execSimpleQuery("DELETE FROM blockChapterMapBlocks WHERE blockid=? AND block=?", l);
+	}
+
+	db()->undoLogEnd();
+
+	levelLoad(data);
+	setModified(true);
+	blockChapterMapLoad(data);
+}
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapChapterGetList
+ * @param data
+ */
+
+void MapEditor::blockChapterMapChapterGetList(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	if (id == -1) {
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantList list = db()->execSelectQuery("SELECT chapters.id as id, chapters.name as name "
+											  "FROM chapters "
+											  "WHERE chapters.id NOT IN (SELECT chapter FROM blockChapterMapChapters "
+											  "where blockid=?)", l);
+
+	emit blockChapterMapChapterListLoaded(id, list);
+}
+
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapChapterAdd
+ * @param data
+ */
+
+void MapEditor::blockChapterMapChapterAdd(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	int id = data.value("id", -1).toInt();
+
+	if (rowid == -1 || id == -1)
+		return;
+
+	QVariantMap bind;
+	bind["blockid"] = id;
+
+	QVariantList queryList;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		foreach (QVariant v, list) {
+			QVariantMap m = bind;
+			m["chapter"] = v.toInt();
+			queryList.append(m);
+		}
+	} else if (data.contains("chapter")) {
+		bind["chapter"] = data.value("chapter").toInt();
+		queryList.append(bind);
+
+	}
+
+	db()->undoLogBegin(tr("%1 szakasz hozzáadása").arg(queryList.count()));
+
+	foreach (QVariant v, queryList)
+		db()->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", v.toMap());
+
+	db()->undoLogEnd();
+
+	levelLoad(data);
+	setModified(true);
+	blockChapterMapLoad(data);
+}
+
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapChapterRemove
+ * @param data
+ */
+
+void MapEditor::blockChapterMapChapterRemove(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	int id = data.value("id", -1).toInt();
+
+	if (rowid == -1 || id == -1)
+		return;
+
+
+	QVariantList queryList;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		foreach (QVariant v, list) {
+			queryList.append(v);
+		}
+	} else if (data.contains("chapter")) {
+		queryList.append(data.value("chapter"));
+
+	}
+
+	db()->undoLogBegin(tr("%1 szakasz eltávolítása").arg(queryList.count()));
+
+	foreach (QVariant v, queryList) {
+		QVariantList l;
+		l.append(id);
+		l.append(v.toInt());
+		db()->execSimpleQuery("DELETE FROM blockChapterMapChapters WHERE blockid=? AND chapter=?", l);
+	}
+
+	db()->undoLogEnd();
+
+	levelLoad(data);
+	setModified(true);
+	blockChapterMapLoad(data);
+}
+
+
+
+/**
+ * @brief MapEditor::play
+ * @param data
+ */
+
+void MapEditor::play(QVariantMap data)
+{
+	int rowid = data.value("rowid", -1).toInt();
+	if (rowid <= 0)
+		return;
+
+	QVariantList l;
+	l.append(rowid);
+
+	QVariantMap level = db()->execSelectQueryOneRow("SELECT mission, name, level, terrain, startHP, duration, startBlock,"
+													"imageFolder, imageFile FROM missionLevels "
+													"LEFT JOIN missions ON (missions.uuid=missionLevels.mission) "
+													"WHERE missionLevels.rowid=?", l);
+	if (level.isEmpty()) {
+		emit playFailed();
+		return;
+	}
+
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0));
+	setLoadProgress(0.0);
+
+	m_loadAbortRequest = false;
+	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress", false);
+
+	if (!game) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
+		emit playFailed();
+		return;
+	}
+
+	if (!checkGame(game)) {
+		emit playFailed();
+		delete game;
+		return;
+	}
+
+	GameMatch *m_gameMatch = new GameMatch(game, this);
+	m_gameMatch->setDeleteGameMap(true);
+	m_gameMatch->setImageDbName("mapdb");
+	m_gameMatch->setName(level.value("name").toString());
+	m_gameMatch->setLevel(level.value("level").toInt());
+	m_gameMatch->setTerrain(level.value("terrain").toString());
+	m_gameMatch->setStartHp(level.value("startHP").toInt());
+	m_gameMatch->setDuration(level.value("duration").toInt());
+	m_gameMatch->setStartBlock(level.value("startBlock").toInt());
+
+	QString imageFolder = level.value("imageFolder").toString();
+	QString imageFile = level.value("imageFile").toString();
+
+	if (!imageFolder.isEmpty() && !imageFile.isEmpty())
+		m_gameMatch->setBgImage(imageFolder+"/"+imageFile);
+
+	emit playReady(m_gameMatch);
+
+}
+
 
 

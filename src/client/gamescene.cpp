@@ -99,23 +99,23 @@ void GameScene::setGame(CosGame *game)
  * @param tmxFileName
  */
 
-void GameScene::loadScene()
+bool GameScene::loadScene()
 {
 	if (!m_game)
-		return;
+		return false;
 
 	if (m_game->terrainData()) {
 		qWarning() << this << "Scene already loaded";
-		return;
+		return false;
 	}
 
-	emit sceneLoadStarted(m_game->terrain());
+	emit sceneLoadStarted();
 
 	m_game->addTerrainData(&m_tiledLayers, parentItem());
 
 	if (!m_game->loadTerrainData()) {
 		emit sceneLoadFailed();
-		return;
+		return false;
 	}
 
 	GameTerrain *terrainData = m_game->terrainData();
@@ -179,6 +179,8 @@ void GameScene::loadScene()
 	}
 
 	emit sceneLoaded();
+
+	return true;
 }
 
 

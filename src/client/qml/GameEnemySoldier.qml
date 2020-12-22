@@ -10,6 +10,8 @@ GameEntity {
 	width: spriteSequence.width
 	height: spriteSequence.height
 
+	z: 9
+
 	entityPrivate: ep
 
 	glowColor: CosStyle.colorGlowEnemy

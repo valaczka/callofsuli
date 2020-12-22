@@ -90,5 +90,13 @@
         <file>MapEditorCampaignEdit.qml</file>
         <file>QPagePanelSearch.qml</file>
         <file>QDialogPanel.qml</file>
+        <file>MapEditorChapterList.qml</file>
+        <file>MapEditorObjectiveEdit.qml</file>
+        <file>MapEditorObjectiveEdit_simplechoice.qml</file>
+        <file>MapEditorObjectiveEditHeader.qml</file>
+        <file>MapEditorLevelGeneral.qml</file>
+        <file>MapEditorLevelChapters.qml</file>
+        <file>MapEditorLevelInventory.qml</file>
+        <file>PageGame.qml</file>
     </qresource>
 </RCC>

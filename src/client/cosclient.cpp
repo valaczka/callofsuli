@@ -44,6 +44,7 @@
 #include "gameenemy.h"
 #include "gameenemysoldier.h"
 #include "gameterrain.h"
+#include "gamematch.h"
 #include "student.h"
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
@@ -196,6 +197,7 @@ void Client::registerTypes()
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
+	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
 }
@@ -410,6 +412,32 @@ bool Client::saveJsonDocument(QJsonDocument doc, const QString &filename)
 
 
 /**
+ * @brief Client::byteArrayToJsonMap
+ * @param data
+ * @return
+ */
+
+QVariantMap Client::byteArrayToJsonMap(const QByteArray &data)
+{
+	QJsonDocument doc = QJsonDocument::fromJson(data);
+	return doc.toVariant().toMap();
+}
+
+
+/**
+ * @brief Client::jsonMapToByteArray
+ * @param map
+ * @return
+ */
+
+QByteArray Client::jsonMapToByteArray(const QVariantMap &map)
+{
+	QJsonDocument doc = QJsonDocument::fromVariant(map);
+	return doc.toJson(QJsonDocument::Compact);
+}
+
+
+/**
  * @brief Client::rotatePolygon
  * @param points
  * @param angle
@@ -463,25 +491,84 @@ QList<QPointF> Client::rotatePolygon(const QVariantList &points, const qreal &an
 
 
 /**
- * @brief Client::terrainList
+ * @brief Client::mapToList
+ * @param map
  * @return
  */
 
-QVariantList Client::terrainList()
+QVariantList Client::mapToList(const QVariantMap &map, const QString &keyName)
 {
 	QVariantList list;
 
-	foreach (TerrainData d, m_availableTerrains) {
-		QVariantMap m;
-		m["name"] = d.name;
-		m["blocks"] = d.blocks.count();
-		m["enemies"] = d.enemies;
-		m["details"] = d.name+QString(tr(" (%1 blokk, %2 célpont)")).arg(d.blocks.count()).arg(d.enemies);
-		list.append(m);
+	QVariantMap::const_iterator it;
+
+	for (it = map.constBegin(); it != map.constEnd(); ++it) {
+		QVariantMap mm = it.value().toMap();
+		mm[keyName] = it.key();
+		list.append(mm);
 	}
 
 	return list;
 }
+
+
+/**
+ * @brief Client::terrainMap
+ * @return
+ */
+
+QVariantMap Client::terrainMap()
+{
+	QVariantMap map;
+
+	foreach (TerrainData d, m_availableTerrains) {
+		QVariantMap m;
+		m["blocks"] = d.blocks.count();
+		m["enemies"] = d.enemies;
+		m["details"] = d.name+QString(tr(" (%1 csatatér, %2 célpont)")).arg(d.blocks.count()).arg(d.enemies);
+		map[d.name] = m;
+	}
+
+	return map;
+}
+
+
+
+/**
+ * @brief Client::objectiveModuleMap
+ * @return
+ */
+
+QVariantMap Client::objectiveModuleMap()
+{
+	QVariantMap m;
+
+	m["simplechoice"] = QVariantMap({
+										{ "name", tr("Egyszerű választás") },
+										{ "icon", "image://font/Material Icons/\ue163" }
+									});
+
+	return m;
+}
+
+
+/**
+ * @brief Client::storageModuleList
+ * @return
+ */
+
+QVariantMap Client::storageModuleMap()
+{
+	QVariantMap m;
+
+	m["quiz"] = QVariantMap({
+								{ "name", tr("Kvíz") },
+								{ "icon", "image://font/Material Icons/\ue163" }
+							});
+
+	return m;
+}
+
 
 
 /**
@@ -518,8 +605,15 @@ void Client::loadTerrains()
 
 		GameTerrain t;
 		if (t.loadTmxFile(realname)) {
+			QMap<int, int> blockData;
+
+			QMap<int, GameBlock*>::const_iterator it;
+			for (it = t.blocks().constBegin(); it != t.blocks().constEnd(); ++it) {
+				blockData[it.key()] = it.value()->enemies().count();
+			}
+
 			TerrainData d(realname.section('/',-2,-2),
-						  t.blocks().keys(),
+						  blockData,
 						  t.enemies().count());
 
 			m_availableTerrains.append(d);

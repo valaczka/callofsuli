@@ -10,13 +10,11 @@ QPage {
 	id: page
 
 	property bool _isLoaded: false
-
-	//requiredPanelWidth: 900
+	property bool _hasBack: false
 
 	defaultTitle: qsTr("Pályaszerkesztő")
 
 	property string loadFileName: cosClient.standardPath("ttt.dat")
-
 
 	mainToolBarComponent: Row {
 		QUndoButton  {
@@ -44,13 +42,8 @@ QPage {
 		}
 
 		MenuItem {
-			text: qsTr("Küldetések")
+			action: actionChapters
 		}
-
-		MenuItem {
-			text: qsTr("Célpontok")
-		}
-
 	}
 
 
@@ -67,10 +60,25 @@ QPage {
 																 "locked"
 															 ])
 
+		property VariantMapModel modelChapterList: newModel([
+																"type",
+																"id",
+																"uuid",
+																"name",
+																"module",
+																"storage",
+																"data"
+															])
+
+		property VariantMapModel modelBlockChapterMapList: mapEditor.newModel(["id", "enemies", "blocks"])
+
+		property int selectedLevelRowID: -1
+		property int levelComponentsCompleted: 0
+		property string selectedMissionUUID: ""
 
 		onBackupUnavailable: {
-			if (page.loadFileName.length) {
-				mapEditor.loadFromFile({filename: page.loadFileName})
+			if (loadFileName.length) {
+				mapEditor.loadFromFile({filename: loadFileName})
 			} else {
 				mapEditor.createNew({name: qsTr("--- ez egy új map---")})
 			}
@@ -81,7 +89,6 @@ QPage {
 			d.closePolicy = Popup.NoAutoClose
 
 			d.rejected.connect(function(data) {
-				console.debug("###########rejected")
 				mapEditor.loadAbort()
 			})
 
@@ -124,24 +131,20 @@ QPage {
 		}
 
 
-		function terrainList() {
-			var model = mapEditor.newModel(["details", "name"])
-
-			var d = JS.dialogCreateQml("List", {
-										   roles: ["details", "name"],
-										   icon: CosStyle.iconLockAdd,
-										   title: qsTr("Terep kiválasztása"),
-										   selectorSet: false,
-										   sourceModel: model
-									   })
-
-			console.debug(cosClient.terrainList())
-
-			model.setVariantList(cosClient.terrainList(), "name")
-
-			return d
+		onLevelSelected: {
+			selectedLevelRowID = rowid
+			selectedMissionUUID = missionUuid
+			levelComponentsCompleted = 0
+			panelComponents = cmpLevel
+			_hasBack = true
 		}
 
+		onLevelComponentsCompletedChanged: {
+			if (levelComponentsCompleted == 3 && selectedLevelRowID != -1) {
+				run("levelLoad", {rowid: selectedLevelRowID})
+				levelComponentsCompleted = 0
+			}
+		}
 	}
 
 
@@ -153,13 +156,34 @@ QPage {
 	property list<Component> cmpCampaigns: [
 		Component { MapEditorCampaignList {
 				panelVisible: true
-				layoutFillWidth: false
 			} },
 		Component { MapEditorCampaignEdit {
 				panelVisible: true
 			} }
 	]
 
+
+	property list<Component> cmpChapters: [
+		Component { MapEditorChapterList {
+				panelVisible: true
+			} },
+		Component { MapEditorObjectiveEdit {
+				panelVisible: true
+			} }
+	]
+
+
+	property list<Component> cmpLevel: [
+		Component { MapEditorLevelGeneral {
+				panelVisible: true
+			} },
+		Component { MapEditorLevelChapters {
+				panelVisible: true
+			} },
+		Component { MapEditorLevelInventory {
+				panelVisible: true
+			} }
+	]
 
 
 	Action {
@@ -168,7 +192,7 @@ QPage {
 		enabled: mapEditor.modified
 		shortcut: "Ctrl+S"
 		onTriggered: {
-			mapEditor.saveToFile({filename: page.loadFileName})
+			mapEditor.saveToFile({filename: loadFileName})
 		}
 	}
 
@@ -177,16 +201,32 @@ QPage {
 	Action {
 		id: actionCampaigns
 
-		text: qsTr("Küldetések")
+		text: qsTr("Játékmenet")
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
-			page.panelComponents = page.cmpCampaigns
+			panelComponents = cmpCampaigns
+			_hasBack = false
+		}
+	}
+
+
+
+	Action {
+		id: actionChapters
+
+		text: qsTr("Feladatok")
+		icon.source: CosStyle.iconAdjust
+		onTriggered: {
+			panelComponents = cmpChapters
+			mapEditor.selectedMissionUUID = ""
+			_hasBack = true
 		}
 	}
 
 
 	onPageActivated: {
-		mapEditor.checkBackup()
+		if (!_isLoaded)
+			mapEditor.checkBackup()
 	}
 
 
@@ -207,7 +247,12 @@ QPage {
 	}
 
 
-	function stackBack() {
+	function pageStackBack() {
+		if (_hasBack) {
+			actionCampaigns.trigger()
+			return true
+		}
+
 		if (mapEditor.modified) {
 			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
 			d.accepted.connect(function() {

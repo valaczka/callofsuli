@@ -201,7 +201,7 @@ public:
 		MissionLevel* addMissionLevel(MissionLevel *level) { Q_ASSERT(level); m_levels.append(level); return level;}
 		void addLock(Mission *mission, const qint32 &level) { Q_ASSERT(mission); m_locks.append(qMakePair<Mission *, qint32>(mission, level)); }
 
-		bool getLockTree(QVector<MissionLock> *listPtr, Mission *rootMission = nullptr);
+		bool getLockTree(QVector<MissionLock> *listPtr, Mission *rootMission = nullptr) const;
 
 	private:
 		QByteArray m_uuid;
@@ -226,6 +226,8 @@ public:
 		Mission* addMission(Mission *mission) { Q_ASSERT(mission); m_missions.append(mission); return mission;}
 		void addLock(Campaign *campaign) { Q_ASSERT(campaign); m_locks.append(campaign); }
 
+		bool getLockTree(QVector<Campaign *> *listPtr, Campaign *rootCampaign = nullptr) const;
+
 	private:
 		qint32 m_id;
 		QString m_name;
@@ -246,7 +248,7 @@ public:
 
 	static GameMap* example(const QString &name, const QByteArray &uuid);
 
-	static GameMap* fromDb(CosDb *db, QObject *target = nullptr, const QString &func = QString());
+	static GameMap* fromDb(CosDb *db, QObject *target = nullptr, const QString &func = QString(), const bool &withImages = true);
 	bool toDb(CosDb *db) const;
 
 	bool imagesToDb(CosDb *db) const;
@@ -266,8 +268,10 @@ public:
 	Objective *objective(const QByteArray &uuid) const;
 	Storage *storage(const qint32 &id) const;
 
-	typedef QHash<QByteArray, QVector<MissionLock>> MissionLockHash;
-	MissionLockHash lockTree(bool *errPtr = nullptr) const;
+	typedef QHash<Campaign *, QVector<Campaign *>> CampaignLockHash;
+	typedef QHash<Mission *, QVector<MissionLock>> MissionLockHash;
+	MissionLockHash missionLockTree(Mission **errMission = nullptr) const;
+	CampaignLockHash campaignLockTree(Campaign **errCampaign = nullptr) const;
 
 	Chapter* addChapter(Chapter *chapter) { Q_ASSERT(chapter); m_chapters.append(chapter); return chapter; }
 	Campaign* addCampaign(Campaign *campaign) { Q_ASSERT(campaign); m_campaigns.append(campaign); return campaign; }

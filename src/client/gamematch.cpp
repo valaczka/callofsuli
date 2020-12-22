@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gamesceneprivate.h
+ * gamedata.cpp
  *
- * Created on: 2020. 10. 25.
+ * Created on: 2020. 12. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameScenePrivate
+ * GameData
  *
  *  This file is part of Call of Suli.
  *
@@ -32,50 +32,31 @@
  * SOFTWARE.
  */
 
-#ifndef GAMESCENEPRIVATE_H
-#define GAMESCENEPRIVATE_H
+#include "gamematch.h"
 
-#include <QObject>
-#include <QQuickItem>
-
-#include "tmxmap.h"
-#include "tiledpaintedlayer.h"
-
-class CosGame;
-
-class GameScene : public QQuickItem
+GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
+	: QObject(parent)
+	, m_gameMap(gameMap)
+	, m_deleteGameMap(false)
 {
-	Q_OBJECT
-
-	Q_PROPERTY(QList<TiledPaintedLayer *> tiledLayers READ tiledLayers NOTIFY tiledLayersChanged)
-	Q_PROPERTY(CosGame * game READ game WRITE setGame NOTIFY gameChanged)
-
-public:
-	GameScene(QQuickItem *parent = 0);
-	~GameScene();
-	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }
-	CosGame * game() const { return m_game; }
+	qDebug() << "GAME MATCH CREATED" << this;
+	setPlayerCharacter("character2");
+}
 
 
-public slots:
-	void setTiledLayers(QList<TiledPaintedLayer *> tiledLayers);
-	void setGame(CosGame * game);
-	bool loadScene();
+/**
+ * @brief GameMatch::~GameMatch
+ */
 
-signals:
-	void tiledLayersChanged(QList<TiledPaintedLayer *> tiledLayers);
-	void gameChanged(CosGame * game);
+GameMatch::~GameMatch()
+{
+	if (m_deleteGameMap && m_gameMap)
+		delete m_gameMap;
 
-	void sceneLoadStarted();
-	void sceneLoaded();
-	void sceneLoadFailed();
+	qDebug() << "GAME MATCH DESTROYED" << this;
+}
 
-private:
-	QList<TiledPaintedLayer *> m_tiledLayers;
-	CosGame * m_game;
-};
-
-
-
-
-#endif // GAMESCENEPRIVATE_H
+void GameMatch::setDeleteGameMap(bool deleteGameMap)
+{
+	m_deleteGameMap = deleteGameMap;
+}

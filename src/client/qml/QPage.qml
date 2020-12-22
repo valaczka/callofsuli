@@ -123,7 +123,7 @@ Page {
 		anchors.fill: parent
 		property Page parentPage: control
 
-		onCurrentIndexChanged: tabBar.setCurrentIndex(currentIndex)
+		currentIndex: tabBar.currentIndex
 
 		visible: swipeMode
 
@@ -163,7 +163,7 @@ Page {
 
 		visible: mainSwipe.visible && tabBar.count>1
 
-		swipeView: mainSwipe
+		currentIndex: mainSwipe.currentIndex
 
 		onContentChildrenChanged: {
 			setCurrentIndex(mainSwipe.currentIndex)
@@ -192,10 +192,6 @@ Page {
 
 
 	function stackBack() {
-		if (layoutBack()) {
-			return true
-		}
-
 		if (mainStack.depth > control.StackView.index+1) {
 			if (!mainStack.get(control.StackView.index+1).stackBack()) {
 				if (mainStack.depth > control.StackView.index+1) {
@@ -205,8 +201,13 @@ Page {
 			return true
 		}
 
-		if (pageStackBack())
+		if (layoutBack()) {
 			return true
+		}
+
+		if (pageStackBack()) {
+			return true
+		}
 
 		return false
 	}

@@ -94,8 +94,7 @@ public:
 
 
 	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
-		qDebug() << "NEW MODEL" << this << list;
-		return VariantMapModel::newModel(list, this);
+		return VariantMapModel::newModel(list, this->parentItem());
 	}
 
 public slots:

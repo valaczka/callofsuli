@@ -50,7 +50,7 @@ TextField {
 	implicitHeight: Math.max(CosStyle.pixelSize + topPadding + bottomPadding + 8, CosStyle.baseHeight)
 
 	topPadding: 6
-	leftPadding: 8 + (activeFocus ? rect1.width : 0 )
+	leftPadding: 8 + (activeFocus && !readOnly ? rect1.width : 0 )
 	bottomPadding: 0
 	rightPadding: clearLabel.width
 
@@ -99,7 +99,7 @@ TextField {
 
 	onTextChanged: _textModified = true
 
-	onEditingFinished: if (_textModified) {
+	onEditingFinished: if (_textModified && acceptableInput) {
 						   textModified()
 					   }
 
@@ -128,7 +128,8 @@ TextField {
 		acceptedButtons: Qt.LeftButton
 		onClicked: {
 			control.clear()
-			textModified()
+			if (acceptableInput)
+				textModified()
 		}
 	}
 

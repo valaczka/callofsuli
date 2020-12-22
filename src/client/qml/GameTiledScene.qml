@@ -24,13 +24,18 @@ Scene {
 
 		onSceneLoaded: {
 			game.currentScene = gameScene
-			createLadders()
-			game.startGame()
 			scene.forceActiveFocus()
 		}
 	}
 
-	onRunningChanged: console.info("SCENE run ", running)
+
+	Connections {
+		target: game
+		function onGameStarted() {
+			createLadders()
+		}
+	}
+
 
 	PhysicsEntity {
 		x: 0
@@ -193,6 +198,9 @@ Scene {
 
 
 	function createQuestion(questionData: json) : Item {
+		if (!game)
+			return
+
 		var obj = questionComponent.createObject(game.itemPage,{
 			//ladder: l
 		})

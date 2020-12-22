@@ -47,7 +47,7 @@ GameMap::GameMap(const QByteArray &uuid, const QString &name)
 	, m_progressObject(nullptr)
 	, m_progressFunc()
 {
-
+	qDebug() << this << "GAME MAP CREATED";
 }
 
 
@@ -68,6 +68,8 @@ GameMap::~GameMap()
 
 	qDeleteAll(m_images.begin(), m_images.end());
 	m_images.clear();
+
+	qDebug() << this << "GAME MAP DESTROYED";
 }
 
 
@@ -362,10 +364,10 @@ GameMap *GameMap::example(const QString &name, const QByteArray &uuid)
  * @return
  */
 
-GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func)
+GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func, const bool &withImages)
 {
 	qreal step = 0.0;
-	qreal maxStep = 10.0;
+	qreal maxStep = withImages ? 10.0 : 9.0;
 
 	if (!sendProgress(target, func, 0.0))
 		return nullptr;
@@ -412,9 +414,11 @@ GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func)
 		if (!sendProgress(target, func, ++step/maxStep))
 			throw 2;
 
-		map->imagesFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
+		if (withImages) {
+			map->imagesFromDb(db);
+			if (!sendProgress(target, func, ++step/maxStep))
+				throw 2;
+		}
 
 		return map;
 	} catch (...) {
@@ -640,7 +644,7 @@ GameMap::Objective *GameMap::objective(const QByteArray &uuid) const
  * @return
  */
 
-GameMap::MissionLockHash GameMap::lockTree(bool *errPtr) const
+GameMap::MissionLockHash GameMap::missionLockTree(Mission **errMission) const
 {
 	MissionLockHash hash;
 
@@ -649,13 +653,40 @@ GameMap::MissionLockHash GameMap::lockTree(bool *errPtr) const
 			QVector<GameMap::MissionLock> list;
 			if (!m->getLockTree(&list, m)) {
 				qWarning() << QObject::tr("Redundant locks");
-				if (errPtr)
-					*errPtr = true;
+				if (errMission)
+					*errMission = m;
 
 				return MissionLockHash();
 			}
-			hash[m->uuid()] = list;
+			hash[m] = list;
 		}
+	}
+
+	return hash;
+}
+
+
+/**
+ * @brief GameMap::campaignLockTree
+ * @param errCampaign
+ * @return
+ */
+
+GameMap::CampaignLockHash GameMap::campaignLockTree(GameMap::Campaign **errCampaign) const
+{
+	CampaignLockHash hash;
+
+	foreach (Campaign *c, m_campaigns) {
+		QVector<Campaign *> list;
+
+		if (!c->getLockTree(&list, c)) {
+			qWarning() << QObject::tr("Redundant locks");
+			if (errCampaign)
+				*errCampaign = c;
+
+			return CampaignLockHash();
+		}
+		hash[c] = list;
 	}
 
 	return hash;
@@ -1516,7 +1547,7 @@ void GameMap::missionLevelsToDb(CosDb *db) const
 							 "mission TEXT NOT NULL REFERENCES missions(uuid) ON DELETE CASCADE ON UPDATE CASCADE,"
 							 "level INTEGER NOT NULL CHECK (level>0),"
 							 "terrain TEXT,"
-							 "startHP INTEGER NOT NULL DEFAULT 1 CHECK (startHP>0),"
+							 "startHP INTEGER NOT NULL DEFAULT 5 CHECK (startHP>0),"
 							 "duration INTEGER NOT NULL DEFAULT 600 CHECK (duration>0),"
 							 "startBlock INTEGER NOT NULL DEFAULT 1 CHECK (startBlock>0),"
 							 "imageFolder TEXT,"
@@ -2329,7 +2360,7 @@ GameMap::Mission::~Mission()
  * @return
  */
 
-bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameMap::Mission *rootMission)
+bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameMap::Mission *rootMission) const
 {
 	foreach (MissionLock l, m_locks) {
 		if (l.first == rootMission)				// redundant
@@ -2388,6 +2419,30 @@ GameMap::Campaign::~Campaign()
 {
 	qDeleteAll(m_missions.begin(), m_missions.end());
 	m_missions.clear();
+}
+
+
+/**
+ * @brief GameMap::Campaign::getLockTree
+ * @param listPtr
+ * @param rootCampaign
+ * @return
+ */
+
+bool GameMap::Campaign::getLockTree(QVector<GameMap::Campaign *> *listPtr, GameMap::Campaign *rootCampaign) const
+{
+	foreach (Campaign *c, m_locks) {
+		if (c == rootCampaign)				// redundant
+			return false;
+
+		if (!listPtr->contains(c)) {
+			listPtr->append(c);
+			if (!c->getLockTree(listPtr, rootCampaign))
+				return false;
+		}
+	}
+
+	return true;
 }
 
 

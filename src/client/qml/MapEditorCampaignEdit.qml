@@ -22,6 +22,7 @@ QPagePanel {
 	property string missionUuid: ""
 
 	layoutFillWidth: true
+	maximumWidth: 700
 
 
 	title: switch (editType) {
@@ -32,7 +33,7 @@ QPagePanel {
 			   qsTr("Küldetés")
 			   break
 		   default:
-			   qsTr("Adatok")
+			   qsTr("Hadjárat/Küldetés")
 		   }
 
 
@@ -73,7 +74,8 @@ QPagePanel {
 
 	property VariantMapModel modelCampaignLock: mapEditor.newModel(["lock", "name"])
 	property VariantMapModel modelMissionLock: mapEditor.newModel(["lock", "name", "level"])
-	property VariantMapModel modelMissionLevel: mapEditor.newModel(["level", "terrain", "startHP", "duration", "startBlock", "imageFolder", "imageFile"])
+	property VariantMapModel modelMissionLevel: mapEditor.newModel(["rowid", "level", "terrain", "startHP", "duration",
+																	"startBlock", "imageFolder", "imageFile"])
 
 
 
@@ -82,13 +84,6 @@ QPagePanel {
 
 		function onCampaignSelected(id) {
 			campaignId = id
-
-			modelCampaignLock.clear()
-			JS.setSqlFields([
-								textCampaignName
-							], {
-								name: ""
-							})
 		}
 
 
@@ -162,17 +157,6 @@ QPagePanel {
 
 		function onMissionSelected(uuid) {
 			missionUuid = uuid
-
-			modelCampaignLock.clear()
-			JS.setSqlFields([
-								textMissionName,
-								checkMandatory,
-								comboCampaign
-							], {
-								name: "",
-								mandatory: false,
-								campaign: -1
-							})
 		}
 
 
@@ -332,7 +316,6 @@ QPagePanel {
 						mapEditor.run("campaignModify", {id: campaignId, data:{ name: text }})
 					}
 
-
 					validator: RegExpValidator { regExp: /.+/ }
 				}
 
@@ -365,7 +348,7 @@ QPagePanel {
 
 				modelTitleRole: "name"
 
-				width: Math.min(parent.width, 600)-locksCol.width
+				width: parent.width-locksCol.width
 			}
 
 			Column {
@@ -511,7 +494,7 @@ QPagePanel {
 
 				modelTitleRole: "fullname"
 
-				width: Math.min(parent.width, 600)-missionLocksCol.width
+				width: parent.width-missionLocksCol.width
 			}
 
 			Column {
@@ -581,7 +564,7 @@ QPagePanel {
 					]
 				}
 
-				autoSelectorChange: true
+				autoSelectorChange: false
 
 				modelTitleRole: "fullname"
 				modelTitleWeightRole: "weight"
@@ -607,7 +590,11 @@ QPagePanel {
 					}
 				}
 
-				width: Math.min(parent.width, 600)-missionLevelsCol.width
+				width: parent.width-missionLevelsCol.width
+
+				onClicked: {
+					mapEditor.levelSelected(model.get(index).rowid, missionUuid)
+				}
 
 			}
 
@@ -666,7 +653,7 @@ QPagePanel {
 		id: actionMissionLockModify
 		text: qsTr("Szint")
 		icon.source: CosStyle.iconLockDisabled
-		enabled: !mapEditor.isBusy && missionLocksView.currentIndex !== -1
+		enabled: !mapEditor.isBusy && missionLocksView.currentIndex !== -1 && !missionLocksView.selectorSet
 
 		onTriggered: {
 			var l = missionLocksView.model.get(missionLocksView.currentIndex)
@@ -687,7 +674,17 @@ QPagePanel {
 		icon.source: CosStyle.iconLockAdd
 
 		onTriggered: {
-			var d = mapEditor.terrainList()
+			var model = mapEditor.newModel(["details", "name"])
+
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["details", "name"],
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Harcmező kiválasztása"),
+										   selectorSet: false,
+										   sourceModel: model
+									   })
+
+			model.setVariantList(cosClient.mapToList(cosClient.terrainMap(), "name"), "name")
 
 			d.accepted.connect(function(data) {
 				mapEditor.run("missionLevelAdd", {mission: missionUuid, terrain: d.item.sourceModel.get(data).name })
@@ -699,17 +696,11 @@ QPagePanel {
 
 	Action {
 		id: actionMissionLevelRemove
-		text: qsTr("Eltávolítás")
+		text: qsTr("Utolsó szint eltávolítása")
 		icon.source: CosStyle.iconLockDisabled
-		enabled: !mapEditor.isBusy && (missionLevelsView.currentIndex !== -1 || modelMissionLevel.selectedCount)
+		enabled: !mapEditor.isBusy && modelMissionLevel.count
 		onTriggered: {
-			var o = missionLevelsView.model.get(missionLevelsView.currentIndex)
-			var more = modelMissionLevel.selectedCount
-
-			if (more > 0)
-				mapEditor.run("missionLevelRemove", {uuid: missionUuid, list: modelMissionLevel.getSelectedData("level") })
-			else
-				mapEditor.run("missionLevelRemove", {uuid: missionUuid, level: o.level })
+			mapEditor.run("missionLevelRemove", {uuid: missionUuid })
 		}
 	}
 
@@ -801,6 +792,15 @@ QPagePanel {
 			mapEditor.run("campaignLoad", {id: campaignId})
 		else if (editType === MapEditorCampaignEdit.Mission)
 			mapEditor.run("missionLoad", {uuid: missionUuid})
+	}
+
+
+	Component.onCompleted: {
+		if (editType === MapEditorCampaignEdit.Invalid && mapEditor.selectedMissionUUID !== "") {
+			mapEditor.missionSelected(mapEditor.selectedMissionUUID)
+			mapEditor.run("missionLoad", {uuid: mapEditor.selectedMissionUUID})
+			mapEditor.selectedMissionUUID = ""
+		}
 	}
 }
 

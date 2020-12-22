@@ -36,6 +36,9 @@
 #include <QUrl>
 #include "../common/cosmessage.h"
 #include "variantmapmodel.h"
+#include "gameblock.h"
+#include "../common/gamemap.h"
+#include "gamematch.h"
 
 
 struct TerrainData;
@@ -89,6 +92,10 @@ public:
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);
 	static bool saveJsonDocument(QJsonDocument doc, const QString &filename);
+
+	Q_INVOKABLE static QVariantMap byteArrayToJsonMap(const QByteArray &data);
+	Q_INVOKABLE static QByteArray jsonMapToByteArray(const QVariantMap &map);
+
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 
@@ -96,7 +103,10 @@ public:
 		return VariantMapModel::newModel(list, this);
 	}
 
-	Q_INVOKABLE static QVariantList terrainList();
+	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
+	Q_INVOKABLE static QVariantMap terrainMap();
+	Q_INVOKABLE static QVariantMap objectiveModuleMap();
+	Q_INVOKABLE static QVariantMap storageModuleMap();
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
@@ -254,16 +264,16 @@ struct TerrainData {
 	Q_GADGET
 
 	Q_PROPERTY(QString name MEMBER name)
-	Q_PROPERTY(QList<int> blocks MEMBER blocks)
+	Q_PROPERTY(QMap<int, int> blocks MEMBER blocks)
 	Q_PROPERTY(int enemies MEMBER enemies)
 
 public:
 
 	QString name;
-	QList<int> blocks;
+	QMap<int, int> blocks;
 	int enemies;
 
-	TerrainData(const QString &name = "", const QList<int> &blocks = QList<int>(), const int &enemies = 0)
+	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0)
 		: name(name)
 		, blocks(blocks)
 		, enemies(enemies)

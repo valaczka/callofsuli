@@ -12,19 +12,19 @@ QPagePanel {
 	maximumWidth: 600
 	layoutFillWidth: false
 
-	title: qsTr("Küldetések")
+	title: qsTr("Célpontok")
 	icon: CosStyle.iconUsers
 
 	contextMenuFunc: function (m) {
-		m.addAction(actionCampaignNew)
-		m.addAction(actionMissionNew)
+		m.addAction(actionChapterNew)
+		m.addAction(actionObjectiveNew)
 	}
 
 
 	SortFilterProxyModel {
 		id: userProxyModel
 
-		sourceModel: mapEditor.modelCampaignList
+		sourceModel: mapEditor.modelChapterList
 
 		filters: [
 			AllOf {
@@ -36,21 +36,21 @@ QPagePanel {
 					syntax: RegExpFilter.FixedString
 				}
 				ValueFilter {
-					id: campaignsFilter
+					id: chaptersFilter
 					enabled: false
 					roleName: "type"
 					value: 0
 				}
 				AllOf {
-					id: missionsFilter
+					id: objectivesFilter
 					enabled: false
 					ValueFilter {
 						roleName: "type"
 						value: 1
 					}
 					ValueFilter {
-						id: missionCidFilter
-						roleName: "cid"
+						id: objectiveIdFilter
+						roleName: "id"
 						value: -1
 					}
 				}
@@ -58,14 +58,14 @@ QPagePanel {
 
 		]
 		sorters: [
-			StringSorter { roleName: "cname"; priority: 2 },
-			RoleSorter { roleName: "cid"; priority: 1 },
-			StringSorter { roleName: "mname"; priority: 0 }
+			StringSorter { roleName: "name"; priority: 2 },
+			RoleSorter { roleName: "id"; priority: 1 },
+			StringSorter { roleName: "type"; priority: 0 }
 		]
 		proxyRoles: [
 			ExpressionRole {
-				name: "name"
-				expression: model.type === 0 ? model.cname : model.mname
+				name: "moduleName"
+				expression: model.type === 0 ? model.name : mapEditor.moduleData(model.module).name
 			},
 			SwitchRole {
 				name: "textColor"
@@ -95,10 +95,10 @@ QPagePanel {
 		id: list
 		anchors.fill: parent
 
-		visible: mapEditor.modelCampaignList.count
+		visible: mapEditor.modelChapterList.count
 
 		model: userProxyModel
-		modelTitleRole: "name"
+		modelTitleRole: "moduleName"
 		modelDepthRole: "type"
 		modelTitleColorRole: "textColor"
 		modelTitleWeightRole: "fontWeight"
@@ -108,22 +108,16 @@ QPagePanel {
 		autoSelectorChange: false
 		autoUnselectorChange: true
 
-		leftComponent: QFlipable {
-			id: flipable
-			width: visible ? list.delegateHeight : 0
+		leftComponent: QFontImage {
+			width: visible ? list.delegateHeight*0.8 : 0
 			height: width
+			size: Math.min(height*0.8, 32)
+
+			icon: model && model.module ? mapEditor.moduleData(model.module).icon : ""
 
 			visible: model && model.type === 1
 
-			frontIcon: CosStyle.iconFavoriteOff
-			backIcon: CosStyle.iconFavoriteOn
-			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
-			flipped: model && model.mandatory
-
-			mouseArea.onClicked: mapEditor.run("missionModify", {
-												   "uuid": model.uuid,
-												   "data": {"mandatory": !model.mandatory}
-											   })
+			color: CosStyle.colorPrimary
 		}
 
 		rightComponent: QFontImage {
@@ -131,22 +125,21 @@ QPagePanel {
 			height: width
 			size: Math.min(height*0.8, 32)
 
-			icon: CosStyle.iconLock
+			icon: CosStyle.iconClock1
 
-			visible: model && model.locked
+			visible: model && model.storage
 
-			color: CosStyle.colorPrimary
+			color: CosStyle.colorAccentLighter
 		}
 
 
 		onClicked: {
 			var o = list.model.get(index)
 			if (o.type === 0) {
-				mapEditor.campaignSelected(o.cid)
-				mapEditor.run("campaignLoad", {id: o.cid})
+				mapEditor.objectiveSelected("")
 			} else {
-				mapEditor.missionSelected(o.uuid)
-				mapEditor.run("missionLoad", {uuid: o.uuid})
+				mapEditor.objectiveSelected(o.uuid)
+				mapEditor.run("objectiveLoad", {uuid: o.uuid})
 			}
 		}
 
@@ -163,19 +156,19 @@ QPagePanel {
 			var o = list.model.get(index)
 
 			if (o.type === 0) {
-				campaignsFilter.enabled = true
+				chaptersFilter.enabled = true
 			} else if (o.type === 1) {
-				missionCidFilter.value = o.cid
-				missionsFilter.enabled = true
+				objectiveIdFilter.value = o.id
+				objectivesFilter.enabled = true
 			}
 
-			mapEditor.modelCampaignList.select(sourceIndex)
+			mapEditor.modelChapterList.select(sourceIndex)
 		}
 
 		onSelectorSetChanged: {
 			if (!selectorSet) {
-				missionsFilter.enabled = false
-				campaignsFilter.enabled = false
+				objectivesFilter.enabled = false
+				chaptersFilter.enabled = false
 			}
 		}
 
@@ -183,17 +176,17 @@ QPagePanel {
 		QMenu {
 			id: contextMenu
 
-			MenuItem { action: actionCampaignNew }
-			MenuItem { action: actionMissionNew }
+			MenuItem { action: actionChapterNew }
+			MenuItem { action: actionObjectiveNew }
 			MenuItem { action: actionRename }
 			MenuItem { action: actionRemove }
 		}
 
 
-		onKeyInsertPressed: actionCampaignNew.trigger()
+		onKeyInsertPressed: actionChapterNew.trigger()
 		onKeyF4Pressed: actionRename.trigger()
 		onKeyDeletePressed: actionRemove.trigger()
-		onKeyF2Pressed: actionMissionNew.trigger()
+		onKeyF2Pressed: actionObjectiveNew.trigger()
 	}
 
 
@@ -202,32 +195,32 @@ QPagePanel {
 
 		listView: list
 
-		enabled: mapEditor.modelCampaignList.count
-		labelCountText: mapEditor.modelCampaignList.selectedCount
+		enabled: mapEditor.modelChapterList.count
+		labelCountText: mapEditor.modelChapterList.selectedCount
 		onSelectAll: JS.selectAllProxyModelToggle(userProxyModel)
 	}
 
 
 	QToolButtonBig {
 		anchors.centerIn: parent
-		visible: !mapEditor.modelCampaignList.count
-		action: actionCampaignNew
+		visible: !mapEditor.modelChapterList.count
+		action: actionChapterNew
 	}
 
 
 
 
 	Action {
-		id: actionCampaignNew
-		text: qsTr("Új hadjárat")
+		id: actionChapterNew
+		text: qsTr("Új szakasz")
 		icon.source: CosStyle.iconAdd
 		enabled: !mapEditor.isBusy
 		onTriggered: {
 			var d = JS.dialogCreateQml("TextField")
-			d.item.title = qsTr("Új hadjárat neve")
+			d.item.title = qsTr("Új szakasz neve")
 
 			d.accepted.connect(function(data) {
-				mapEditor.run("campaignAdd", {"name": data})
+				mapEditor.run("chapterAdd", {"name": data})
 			})
 			d.open()
 		}
@@ -237,28 +230,18 @@ QPagePanel {
 		id: actionRename
 		text: qsTr("Átnevezés")
 		icon.source: CosStyle.iconAdd
-		enabled: !mapEditor.isBusy && list.currentIndex !== -1
+		enabled: !mapEditor.isBusy && list.currentIndex !== -1 && list.model.get(list.currentIndex).type === 0
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 
-			var d = JS.dialogCreateQml("TextField")
-			if (o.type === 0) {
-				d.item.title = qsTr("Hadjárat neve")
-				d.item.value = o.cname
-			} else {
-				d.item.title = qsTr("Küldetés neve")
-				d.item.value = o.mname
-			}
+			var d = JS.dialogCreateQml("TextField", {
+										  title: qsTr("Szakasz neve"),
+										  value: o.name
+									   })
 
 			d.accepted.connect(function(data) {
-				if (o.type === 0)
-					mapEditor.run("campaignModify", {
-									  "id": o.cid,
-									  "data": {"name": data}
-								  })
-				else
-					mapEditor.run("missionModify", {
-									  "uuid": o.uuid,
+					mapEditor.run("chapterModify", {
+									  "id": o.id,
 									  "data": {"name": data}
 								  })
 			})
@@ -268,18 +251,27 @@ QPagePanel {
 
 
 	Action {
-		id: actionMissionNew
-		text: qsTr("Új küldetés")
+		id: actionObjectiveNew
+		text: qsTr("Új célpont")
 		icon.source: CosStyle.iconAdd
 		enabled: !mapEditor.isBusy && list.currentIndex !== -1
 		onTriggered: {
-			var d = JS.dialogCreateQml("TextField")
-			d.item.title = qsTr("Új küldetés neve")
+			var model = mapEditor.newModel(["details", "name"])
 
 			var o = list.model.get(list.currentIndex)
 
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["name", "module"],
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Modul kiválasztása"),
+										   selectorSet: false,
+										   sourceModel: model
+									   })
+
+			model.setVariantList(cosClient.mapToList(cosClient.objectiveModuleMap(), "module"), "module")
+
 			d.accepted.connect(function(data) {
-				mapEditor.run("missionAdd", {"name": data, "campaign": o.cid})
+				mapEditor.run("objectiveAdd", {chapter: o.id, module: d.item.sourceModel.get(data).module })
 			})
 			d.open()
 		}
@@ -289,35 +281,35 @@ QPagePanel {
 		id: actionRemove
 		text: qsTr("Törlés")
 		icon.source: CosStyle.iconDelete
-		enabled: !mapEditor.isBusy && (list.currentIndex !== -1 || mapEditor.modelCampaignList.selectedCount)
+		enabled: !mapEditor.isBusy && (list.currentIndex !== -1 || mapEditor.modelChapterList.selectedCount)
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 
 			var d = JS.dialogCreateQml("YesNo")
 			d.item.title = o.name
 
-			var more = mapEditor.modelCampaignList.selectedCount
+			var more = mapEditor.modelChapterList.selectedCount
 
 			if (more > 0) {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 hadjáratot a küldetéseivel együtt?").arg(more)
-										   : qsTr("Biztosan törlöd a kijelölt %1 küldetést?").arg(more)
+				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 szakaszt a célpontjaival együtt?").arg(more)
+										   : qsTr("Biztosan törlöd a kijelölt %1 célpontot?").arg(more)
 			} else {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot a küldetéseivel együtt?")
-										   : qsTr("Biztosan törlöd a küldetést?")
+				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a szakaszt a célpontjaival együtt?")
+										   : qsTr("Biztosan törlöd a célpontot?")
 			}
 
 
 			d.accepted.connect(function(data) {
 				if (o.type === 0) {
 					if (more > 0)
-						mapEditor.run("campaignRemove", {"list": mapEditor.modelCampaignList.getSelectedData("cid") })
+						mapEditor.run("chapterRemove", {"list": mapEditor.modelChapterList.getSelectedData("id") })
 					else
-						mapEditor.run("campaignRemove", {"id": o.cid})
+						mapEditor.run("chapterRemove", {"id": o.cid})
 				} else {
 					if (more > 0)
-						mapEditor.run("missionRemove", {"list": mapEditor.modelCampaignList.getSelectedData("uuid")})
+						mapEditor.run("objectiveRemove", {"list": mapEditor.modelChapterList.getSelectedData("uuid")})
 					else
-						mapEditor.run("missionRemove", {"uuid": o.uuid})
+						mapEditor.run("objectiveRemove", {"uuid": o.uuid})
 				}
 			})
 			d.open()
@@ -328,15 +320,15 @@ QPagePanel {
 	Connections {
 		target: mapEditor
 
-		function onCampaignListReloaded(list) {
-			mapEditor.modelCampaignList.unselectAll()
-			mapEditor.modelCampaignList.setVariantList(list, "uuid");
+		function onChapterListReloaded(list) {
+			mapEditor.modelChapterList.unselectAll()
+			mapEditor.modelChapterList.setVariantList(list, "uuid");
 		}
 	}
 
 
 	Component.onCompleted: {
-		mapEditor.run("campaignListReload")
+		mapEditor.run("chapterListReload")
 	}
 
 	onPanelActivated: {

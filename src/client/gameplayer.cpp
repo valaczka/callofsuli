@@ -87,7 +87,7 @@ void GamePlayer::setQrcDir()
 	if (!game)
 		return;
 
-	QString playerCharacter = game->playerCharacter();
+	QString playerCharacter = game->gameMatch()->playerCharacter();
 
 	if (playerCharacter.isEmpty())
 		return;
@@ -479,7 +479,9 @@ void GamePlayer::onCosGameChanged(CosGame *)
 	if (m.isEmpty())
 		return;
 
-	m = m.value(QVariant(m_cosGame->level()).toString(), QVariantMap()).toMap();
+	int level = m_cosGame->gameMatch()->level();
+
+	m = m.value(QVariant(level).toString(), QVariantMap()).toMap();
 
 	if (m.isEmpty())
 		return;

@@ -152,8 +152,10 @@ QPagePanel {
 
 		grid.modified = false
 
-		if (swipeMode)
+
+		if (swipeMode) {
 			parent.parentPage.swipeToPage(1)
+		}
 
 	}
 

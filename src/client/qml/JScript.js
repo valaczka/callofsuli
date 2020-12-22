@@ -57,6 +57,7 @@ function createPage(_qml, _prop) {
 
 		mainStack.push(obj)
 		return obj*/
+
 	} else if (comp.status === Component.Error) {
 		console.warn("Error loading component: ", comp.errorString())
 	}

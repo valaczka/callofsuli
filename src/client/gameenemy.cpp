@@ -356,7 +356,9 @@ void GameEnemy::onGameChanged()
 	if (m.isEmpty())
 		return;
 
-	m = m.value(QVariant(m_cosGame->level()).toString(), QVariantMap()).toMap();
+	int level = m_cosGame->gameMatch()->level();
+
+	m = m.value(QVariant(level).toString(), QVariantMap()).toMap();
 
 	if (m.isEmpty())
 		return;

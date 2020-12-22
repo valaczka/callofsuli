@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="31" nextobjectid="74">
+<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="32" nextobjectid="74">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
@@ -26,6 +26,9 @@
   <tile id="1068" terrain="0,0,0,0"/>
  </tileset>
  <layer id="26" name="Tiles3" width="92" height="23">
+  <properties>
+   <property name="z" type="int" value="3"/>
+  </properties>
   <data encoding="base64" compression="gzip">
    H4sIAAAAAAAAA+3UQQrCMBAF0CR4gO603tF6CK9ZvYfUhSNx4SYLaaBQ3oPP/OzCLCYlWGcqNZfvvP68P52+5pzSvZFH3vp3+/OMnQ6Hmlf0W6n9HHOx7+6OsddTI6N7AgAAAAAAwB/e3MSVqhAhAAA=
   </data>
@@ -164,4 +167,12 @@
    <point/>
   </object>
  </objectgroup>
+ <layer id="31" name="4. csemperéteg" width="92" height="23" offsetx="-13" offsety="-10">
+  <properties>
+   <property name="z" type="int" value="11"/>
+  </properties>
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAA+3TsQ2AMBBDUUekywCwDywCG8IiMEAWgYqTaBElR8h/0jVXWZYsAQAA4EmfpCF5p6jHaF1PH+o7N9fd/QH8w257Ptj0a9ooddE7BQAA5ZqDtATvFPVYreuNvgEAKNYJN5JfBhAhAAA=
+  </data>
+ </layer>
 </map>
