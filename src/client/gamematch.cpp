@@ -38,6 +38,8 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	: QObject(parent)
 	, m_gameMap(gameMap)
 	, m_deleteGameMap(false)
+	, m_level(0)
+	, m_missionUuid()
 {
 	qDebug() << "GAME MATCH CREATED" << this;
 	setPlayerCharacter("character2");
@@ -56,7 +58,137 @@ GameMatch::~GameMatch()
 	qDebug() << "GAME MATCH DESTROYED" << this;
 }
 
+
+/**
+ * @brief GameMatch::missionLevel
+ * @return
+ */
+
+GameMap::MissionLevel* GameMatch::missionLevel() const
+{
+	if (!m_gameMap)
+		return nullptr;
+
+	if (m_missionUuid.isEmpty() || !m_level)
+		return nullptr;
+
+	return m_gameMap->missionLevel(m_missionUuid, m_level);
+}
+
+
+/**
+ * @brief GameMatch::bgImage
+ * @return
+ */
+
+QString GameMatch::bgImage() const
+{
+	if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
+		return "qrc:/internal/game/bg.png";
+	else
+		return "image://"+m_imageDbName+"/"+m_bgImage;
+}
+
+
+/**
+ * @brief GameMatch::setDeleteGameMap
+ * @param deleteGameMap
+ */
+
 void GameMatch::setDeleteGameMap(bool deleteGameMap)
 {
 	m_deleteGameMap = deleteGameMap;
 }
+
+void GameMatch::setPlayerCharacter(QString playerCharacter)
+{
+	if (m_playerCharacter == playerCharacter)
+		return;
+
+	m_playerCharacter = playerCharacter;
+	emit playerCharacterChanged(m_playerCharacter);
+}
+
+void GameMatch::setTerrain(QString terrain)
+{
+	if (m_terrain == terrain)
+		return;
+
+	m_terrain = terrain;
+	emit terrainChanged(m_terrain);
+}
+
+void GameMatch::setLevel(int level)
+{
+	if (m_level == level)
+		return;
+
+	m_level = level;
+	emit levelChanged(m_level);
+}
+
+void GameMatch::setStartHp(int startHp)
+{
+	if (m_startHp == startHp)
+		return;
+
+	m_startHp = startHp;
+	emit startHpChanged(m_startHp);
+}
+
+void GameMatch::setStartBlock(int startBlock)
+{
+	if (m_startBlock == startBlock)
+		return;
+
+	m_startBlock = startBlock;
+	emit startBlockChanged(m_startBlock);
+}
+
+void GameMatch::setBgImage(QString bgImage)
+{
+	if (m_bgImage == bgImage)
+		return;
+
+	m_bgImage = bgImage;
+	emit bgImageChanged(m_bgImage);
+}
+
+void GameMatch::setImageDbName(QString imageDbName)
+{
+	if (m_imageDbName == imageDbName)
+		return;
+
+	m_imageDbName = imageDbName;
+	emit imageDbNameChanged(m_imageDbName);
+	emit bgImageChanged(bgImage());
+}
+
+void GameMatch::setName(QString name)
+{
+	if (m_name == name)
+		return;
+
+	m_name = name;
+	emit nameChanged(m_name);
+}
+
+void GameMatch::setDuration(int duration)
+{
+	if (m_duration == duration)
+		return;
+
+	m_duration = duration;
+	emit durationChanged(m_duration);
+}
+
+void GameMatch::setMissionUuid(QByteArray missionUuid)
+{
+	if (m_missionUuid == missionUuid)
+		return;
+
+	m_missionUuid = missionUuid;
+	emit missionUuidChanged(m_missionUuid);
+}
+
+

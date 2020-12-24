@@ -29,17 +29,20 @@
 
 CosDb::CosDb(const QString &connectionName, QObject *parent)
 	: QObject(parent)
+	, m_worker(nullptr)
+	, m_workerThread()
 	, m_mutex(QMutex::Recursive)
 {
-	if (connectionName.isEmpty())
-		m_db = QSqlDatabase::addDatabase("QSQLITE");
-	else
-		m_db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+	m_worker = new CosDbWorker(connectionName);
+	m_worker->moveToThread(&m_workerThread);
+	connect(&m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
+
+	m_workerThread.start();
+
+	QMetaObject::invokeMethod(m_worker, "init", Qt::BlockingQueuedConnection);
 
 	m_canUndo = -1;
 	m_isOwnCreated = false;
-
-	qDebug() << "m_db" << m_db << connectionName;
 }
 
 
@@ -49,13 +52,104 @@ CosDb::CosDb(const QString &connectionName, QObject *parent)
 
 CosDb::~CosDb()
 {
-	if (m_db.isOpen()) {
-		qDebug().noquote() << tr("Adatbázis bezárása: ")+m_db.databaseName();
-		m_db.close();
-	}
-
-	qDebug() << "m_db" << m_db << "destroy";
+	m_workerThread.quit();
+	m_workerThread.wait();
 }
+
+
+/**
+ * @brief CosDb::databaseName
+ * @return
+ */
+
+QString CosDb::databaseName()
+{
+	QString ret;
+
+	QMetaObject::invokeMethod(m_worker, "databaseName", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QString, ret)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::isOpen
+ * @return
+ */
+
+bool CosDb::isOpen() const
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "isOpen", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::isValid
+ * @return
+ */
+
+bool CosDb::isValid() const
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "isValid", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::databaseExists
+ * @return
+ */
+
+bool CosDb::databaseExists() const
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "databaseExists", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::connectOptions
+ * @return
+ */
+
+QString CosDb::connectOptions() const
+{
+	QString ret;
+
+	QMetaObject::invokeMethod(m_worker, "connectOptions", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QString, ret)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::setConnectOptions
+ * @param options
+ */
+
+
+
+
 
 
 
@@ -70,7 +164,7 @@ CosDb::~CosDb()
 
 bool CosDb::batchQuery(const QString &query)
 {
-	QMutexLocker locker(&m_mutex);
+	/*	QMutexLocker locker(&m_mutex);
 
 	QSqlQuery q(m_db);
 
@@ -91,7 +185,7 @@ bool CosDb::batchQuery(const QString &query)
 	}
 
 	qDebug().noquote() << "SQL batch query end ------";
-
+*/
 
 	return true;
 }
@@ -123,6 +217,157 @@ bool CosDb::batchQueryFromFile(const QString &filename)
 
 
 /**
+ * @brief CosDb::execSimpleQuery
+ * @param query
+ * @param args
+ * @param errorString
+ * @return
+ */
+
+bool CosDb::execSimpleQuery(QString query, const QVariantList &args, QString *errorString)
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "execSimpleQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, args),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::execSelectQuery
+ * @param query
+ * @param args
+ * @param errorString
+ * @return
+ */
+
+QVariantList CosDb::execSelectQuery(QString query, const QVariantList &args, QString *errorString)
+{
+	QVariantList ret;
+
+	QMetaObject::invokeMethod(m_worker, "execSelectQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QVariantList, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, args),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::execSelectQueryOneRow
+ * @param query
+ * @param args
+ * @param errorString
+ * @return
+ */
+
+QVariantMap CosDb::execSelectQueryOneRow(QString query, const QVariantList &args, QString *errorString)
+{
+	QVariantMap ret;
+
+	QMetaObject::invokeMethod(m_worker, "execSelectQueryOneRow", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QVariantMap, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, args),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::execInsertQuery
+ * @param query
+ * @param map
+ * @param errorString
+ * @return
+ */
+
+int CosDb::execInsertQuery(QString query, const QVariantMap &map, QString *errorString)
+{
+	int ret = -1;
+
+	QMetaObject::invokeMethod(m_worker, "execInsertQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(int, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantMap, map),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	qDebug() << "inSERT" << ret << query << map;
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::execUpdateQuery
+ * @param query
+ * @param map
+ * @param bindValues
+ * @param errorString
+ * @return
+ */
+
+bool CosDb::execUpdateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues, QString *errorString)
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "execUpdateQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantMap, map),
+							  Q_ARG(QVariantMap, bindValues),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+
+}
+
+
+/**
+ * @brief CosDb::execListQuery
+ * @param query
+ * @param list
+ * @param bindValues
+ * @param parenthesizeValues
+ * @param errorString
+ * @return
+ */
+
+bool CosDb::execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues,
+						  const bool &parenthesizeValues, QString *errorString)
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "execListQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, list),
+							  Q_ARG(QVariantMap, bindValues),
+							  Q_ARG(bool, parenthesizeValues),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+
+
+
+/**
  * @brief CosSql::simpleQuery
  * @param query
  * @param args
@@ -130,8 +375,10 @@ bool CosDb::batchQueryFromFile(const QString &filename)
  * @return
  */
 
-QSqlQuery CosDb::simpleQuery(QString query, const QVariantList &args)
+QSqlQuery CosDbWorker::simpleQuery(QString query, const QVariantList &args)
 {
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
+
 	QSqlQuery q(m_db);
 
 	q.prepare(query);
@@ -150,7 +397,7 @@ QSqlQuery CosDb::simpleQuery(QString query, const QVariantList &args)
  * @return
  */
 
-QSqlQuery CosDb::insertQuery(QString query, const QVariantMap &map) const
+QSqlQuery CosDbWorker::insertQuery(QString query, const QVariantMap &map) const
 {
 	QStringList keys = map.keys();
 
@@ -159,6 +406,8 @@ QSqlQuery CosDb::insertQuery(QString query, const QVariantMap &map) const
 	foreach (QString k, keys) {
 		l << QString(":").append(k);
 	}
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
 	QSqlQuery q(m_db);
 	q.prepare(query
@@ -184,7 +433,7 @@ QSqlQuery CosDb::insertQuery(QString query, const QVariantMap &map) const
  * @return
  */
 
-QSqlQuery CosDb::updateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues) const
+QSqlQuery CosDbWorker::updateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues) const
 {
 	QStringList keys = map.keys();
 
@@ -193,6 +442,8 @@ QSqlQuery CosDb::updateQuery(QString query, const QVariantMap &map, const QVaria
 	foreach (QString k, keys) {
 		l << QString(k).append("=:").append(k);
 	}
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
 	QSqlQuery q(m_db);
 	q.prepare(query.replace(QString("?"), l.join(",")));
@@ -220,9 +471,11 @@ QSqlQuery CosDb::updateQuery(QString query, const QVariantMap &map, const QVaria
  * @return
  */
 
-QSqlQuery CosDb::listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues, const bool &parenthesizeValues) const
+QSqlQuery CosDbWorker::listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues, const bool &parenthesizeValues) const
 {
 	QStringList l;
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
 	QSqlQuery q(m_db);
 
@@ -248,13 +501,15 @@ QSqlQuery CosDb::listQuery(QString query, const QVariantList &list, const QVaria
 
 
 
+
+
 /**
  * @brief CosSql::query
  * @param query
  * @return
  */
 
-QVariantList CosDb::execQuery(QSqlQuery query, QString *errorString, QVariant *lastInsertId)
+QVariantList CosDbWorker::execQuery(QSqlQuery query, QString *errorString, QVariant *lastInsertId)
 {
 	bool success = true;
 	QVariantList records;
@@ -269,11 +524,12 @@ QVariantList CosDb::execQuery(QSqlQuery query, QString *errorString, QVariant *l
 			(*errorString) = errText;
 	} else {
 #ifdef COS_SQL_DEBUG
-	qDebug().noquote() << tr("SQL command: ")+query.executedQuery();
+		qDebug().noquote() << tr("SQL command: ")+query.executedQuery();
 #endif
 	}
 
 	if (!success) {
+		query.finish();
 		return records;
 	}
 
@@ -295,6 +551,8 @@ QVariantList CosDb::execQuery(QSqlQuery query, QString *errorString, QVariant *l
 		records << rr;
 	}
 
+	query.finish();
+
 	return records;
 }
 
@@ -307,7 +565,7 @@ QVariantList CosDb::execQuery(QSqlQuery query, QString *errorString, QVariant *l
  * @return
  */
 
-bool CosDb::execSimpleQuery(QString query, const QVariantList &args, QString *errorString)
+bool CosDbWorker::execSimpleQuery(QString query, const QVariantList &args, QString *errorString)
 {
 	QMutexLocker locker(&m_mutex);
 	QString err;
@@ -328,9 +586,11 @@ bool CosDb::execSimpleQuery(QString query, const QVariantList &args, QString *er
  * @return
  */
 
-bool CosDb::execBatchQuery(QString query, const QVariantList &list, QString *errorString)
+bool CosDbWorker::execBatchQuery(QString query, const QVariantList &list, QString *errorString)
 {
 	QMutexLocker locker(&m_mutex);
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
 	m_db.transaction();
 
@@ -367,7 +627,7 @@ bool CosDb::execBatchQuery(QString query, const QVariantList &list, QString *err
  * @return
  */
 
-QVariantList CosDb::execSelectQuery(QString query, const QVariantList &args, QString *errorString)
+QVariantList CosDbWorker::execSelectQuery(QString query, const QVariantList &args, QString *errorString)
 {
 	QMutexLocker locker(&m_mutex);
 	QVariantList l = execQuery(simpleQuery(query, args), errorString);
@@ -383,7 +643,7 @@ QVariantList CosDb::execSelectQuery(QString query, const QVariantList &args, QSt
  * @return
  */
 
-QVariantMap CosDb::execSelectQueryOneRow(QString query, const QVariantList &args, QString *errorString)
+QVariantMap CosDbWorker::execSelectQueryOneRow(QString query, const QVariantList &args, QString *errorString)
 {
 	QMutexLocker locker(&m_mutex);
 	QVariantList list = execQuery(simpleQuery(query, args), errorString);
@@ -409,12 +669,14 @@ QVariantMap CosDb::execSelectQueryOneRow(QString query, const QVariantList &args
  * @return
  */
 
-int CosDb::execInsertQuery(QString query, const QVariantMap &map, QString *errorString)
+int CosDbWorker::execInsertQuery(QString query, const QVariantMap &map, QString *errorString)
 {
 	QVariant nextId = -1;
 	QMutexLocker locker(&m_mutex);
-	execQuery(insertQuery(query, map), errorString, &nextId);
 
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
+
+	execQuery(insertQuery(query, map), errorString, &nextId);
 
 	return nextId.toInt();
 }
@@ -429,7 +691,7 @@ int CosDb::execInsertQuery(QString query, const QVariantMap &map, QString *error
  * @return
  */
 
-bool CosDb::execUpdateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues, QString *errorString)
+bool CosDbWorker::execUpdateQuery(QString query, const QVariantMap &map, const QVariantMap &bindValues, QString *errorString)
 {
 	QString err;
 
@@ -454,7 +716,8 @@ bool CosDb::execUpdateQuery(QString query, const QVariantMap &map, const QVarian
  * @return
  */
 
-bool CosDb::execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues, const bool &parenthesizeValues, QString *errorString)
+bool CosDbWorker::execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues,
+								const bool &parenthesizeValues, QString *errorString)
 {
 	QString err;
 
@@ -494,6 +757,8 @@ QString CosDb::hashPassword(const QString &password, QString *salt, QCryptograph
 	QByteArray hash = QCryptographicHash::hash(pwd, method);
 	return QString::fromLatin1(hash.toHex());
 }
+
+
 
 
 /**
@@ -633,15 +898,18 @@ void CosDb::dropUndoTriggers()
 
 
 
+
 /**
  * @brief CosSql::undoLogBegin
  * @param desc
  * @return
  */
 
-void CosDb::undoLogBegin(const QString &desc)
+void CosDbWorker::undoLogBegin(const QString &desc)
 {
 	QMutexLocker locker(&m_mutex);
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
 	m_db.transaction();
 
@@ -667,8 +935,6 @@ void CosDb::undoLogBegin(const QString &desc)
 
 void CosDb::undoLogEnd()
 {
-	QMutexLocker locker(&m_mutex);
-
 	execSimpleQuery("UPDATE undoSettings SET active=false");
 
 	QVariantMap r =	execSelectQueryOneRow("SELECT COALESCE(MAX(id),-1) as id, desc FROM undoStep");
@@ -677,16 +943,44 @@ void CosDb::undoLogEnd()
 }
 
 
+
+void CosDb::undo(const int &floor)
+{
+	/*QMutexLocker locker(&m_mutex);
+
+	QVariantMap r = m_worker->undo(floor);
+
+	setCanUndo(r.value("id",-1).toInt(), r.value("desc").toString());
+
+	emit undone();*/
+}
+
+
 /**
- * @brief CosSql::undoStack
+ * @brief CosDb::undoStack
  * @return
  */
 
 QVariantMap CosDb::undoStack()
 {
+
+}
+
+
+
+/**
+ * @brief CosSql::undoStack
+ * @return
+ */
+
+QVariantMap CosDbWorker::undoStack()
+{
 	QVariantMap ret;
 
 	QMutexLocker locker(&m_mutex);
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
+
 	m_db.transaction();
 
 	ret["lastStep"] = execSelectQueryOneRow("SELECT lastStep FROM undoSettings").value("lastStep");
@@ -716,6 +1010,23 @@ void CosDb::clearUndo()
 }
 
 
+/**
+ * @brief CosDb::open
+ * @return
+ */
+
+bool CosDb::open()
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "open", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret)
+							  );
+
+	return ret;
+}
+
+
 
 
 
@@ -724,9 +1035,12 @@ void CosDb::clearUndo()
  * @param step
  */
 
-void CosDb::undo(const int &floor)
+QVariantMap CosDbWorker::undo(const int &floor)
 {
 	QMutexLocker locker(&m_mutex);
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
+
 	m_db.exec("PRAGMA foreign_keys = OFF;");
 
 	m_db.transaction();
@@ -761,10 +1075,7 @@ void CosDb::undo(const int &floor)
 
 	m_db.exec("PRAGMA foreign_keys = ON;");
 
-
-	setCanUndo(r.value("id",-1).toInt(), r.value("desc").toString());
-
-	emit undone();
+	return r;
 }
 
 
@@ -776,9 +1087,16 @@ void CosDb::undo(const int &floor)
  * @return
  */
 
-bool CosDb::open()
+bool CosDbWorker::open()
 {
+	QMutexLocker locker(&m_mutex);
+
+	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
+
+	bool isOwn = false;
+
 	QString dbName = m_db.databaseName();
+
 	if (dbName.isEmpty() || dbName == ":memory:") {
 		qInfo() << m_db.connectionName() << tr("Nincs megadva fájl, belső memóriában készül adatbázis");
 
@@ -792,7 +1110,8 @@ bool CosDb::open()
 		if (!m_db.isOpen()) {
 			if (!QFile::exists(dbName)) {
 				qDebug() << tr("Új adatbázis létrehozása") << dbName;
-				m_isOwnCreated = true;
+
+				isOwn = true;
 			}
 
 			if (!m_db.open()) {
@@ -802,25 +1121,29 @@ bool CosDb::open()
 				return false;
 			}
 
-			if (m_isOwnCreated && !databaseInit()) {
+			/*if (isOwn) {
 				qWarning() << tr("Nem lehet létrehozni az adatbázist:") << dbName;
 				emit databaseError(tr("Nem lehet létrehozni az adatbázist: ")+dbName);
 
 				qInfo() << tr("Az adatbázis félkész, törlöm:") << dbName;
 				m_db.close();
 
-				if (!QFile::remove(dbName)) {
+				if (dbName != ":memory:" && !QFile::remove(dbName)) {
 					qWarning() << tr("Nem sikerült törölni a hibás adatbázist: ") << dbName;
 				}
 
 				return false;
-			}
+			}*/
 		}
 	}
 
 
+	QSqlQuery q(m_db);
 
-	m_db.exec("PRAGMA foreign_keys = ON");
+	q.exec("PRAGMA foreign_keys = ON");
+	q.finish();
+
+	qDebug() << q.isActive() << q.isValid() << q.lastError();
 
 	qDebug().noquote() << tr("Adatbázis megnyitva: ") << (dbName.isEmpty() ? ":memory:" : dbName);
 
@@ -835,11 +1158,10 @@ bool CosDb::open()
 
 void CosDb::setDatabaseName(QString databaseName)
 {
-	if (m_db.databaseName() == databaseName)
-		return;
+	QMetaObject::invokeMethod(m_worker, "setDatabaseName", Qt::BlockingQueuedConnection,
+							  Q_ARG(QString, databaseName));
 
-	m_db.setDatabaseName(databaseName);
-	emit databaseNameChanged(m_db.databaseName());
+	emit databaseNameChanged(databaseName);
 }
 
 
@@ -881,4 +1203,46 @@ void CosDb::setCanUndo(int canUndo, const QString &undoString)
 
 
 
+
+
+/**
+ * @brief CosDbWorker::CosDbWorker
+ * @param parent
+ */
+
+
+CosDbWorker::CosDbWorker(const QString &connectionName, QObject *parent)
+	: QObject(parent)
+	, m_connectionName(connectionName)
+	, m_mutex()
+{
+
+}
+
+
+
+
+/**
+ * @brief CosDbWorker::~CosDbWorker
+ */
+
+CosDbWorker::~CosDbWorker()
+{
+	QSqlDatabase::removeDatabase(m_connectionName);
+}
+
+
+
+
+/**
+ * @brief CosDbWorker::init
+ */
+
+void CosDbWorker::init()
+{
+	if (m_connectionName.isEmpty())
+		m_connectionName = "defaultCosDbWorker";
+
+	QSqlDatabase::addDatabase("QSQLITE", m_connectionName);
+}
 

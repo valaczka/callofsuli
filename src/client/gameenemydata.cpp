@@ -43,7 +43,8 @@ GameEnemyData::GameEnemyData(QObject *parent)
 	, m_block(nullptr)
 	, m_enemy(nullptr)
 	, m_enemyType(EnemySoldier)
-	, m_questionData()
+	, m_targetId(-1)
+	, m_objectiveUuid()
 {
 
 }
@@ -124,7 +125,7 @@ void GameEnemyData::enemyDied()
  * @brief GameEnemyData::enemyKilled
  */
 
-void GameEnemyData::enemyKilled()
+void GameEnemyData::enemyKilled(GameEnemy *)
 {
 	setActive(false);
 
@@ -132,12 +133,21 @@ void GameEnemyData::enemyKilled()
 		m_block->recalculateActiveEnemies();
 }
 
-void GameEnemyData::setQuestionData(QVariantMap questionData)
+void GameEnemyData::setTargetId(int targetId)
 {
-	if (m_questionData == questionData)
+	if (m_targetId == targetId)
 		return;
 
-	m_questionData = questionData;
-	emit questionDataChanged(m_questionData);
+	m_targetId = targetId;
+	emit targetIdChanged(m_targetId);
+}
+
+void GameEnemyData::setObjectiveUuid(QByteArray objectiveUuid)
+{
+	if (m_objectiveUuid == objectiveUuid)
+		return;
+
+	m_objectiveUuid = objectiveUuid;
+	emit objectiveUuidChanged(m_objectiveUuid);
 }
 

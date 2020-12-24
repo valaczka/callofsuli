@@ -68,10 +68,10 @@
 				-->
 			<meta-data android:name="android.app.extract_android_style" android:value="minimal"/>
 			<!-- extract android style -->
-			<meta-data android:name="android.app.splash_screen_drawable" android:resource="@drawable/logo"/>
-			<meta-data android:name="android.app.splash_screen_drawable_portrait" android:resource="@drawable/logo_portrait"/>
 		</activity>
 		<!-- For adding service(s) please check: https://wiki.qt.io/AndroidServices -->
 	</application>
+
+
 
 </manifest>

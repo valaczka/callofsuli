@@ -34,6 +34,7 @@ SOURCES += \
 		cosdownloader.cpp \
 		cosgame.cpp \
 		fontimage.cpp \
+		gameactivity.cpp \
 		gameblock.cpp \
 		gameenemy.cpp \
 		gameenemydata.cpp \
@@ -66,6 +67,7 @@ HEADERS += \
 	cosdownloader.h \
 	cosgame.h \
 	fontimage.h \
+	gameactivity.h \
 	gameblock.h \
 	gameenemy.h \
 	gameenemydata.h \
@@ -117,12 +119,11 @@ win32 {
 
 
 android {
-#    QT += androidextras
+#	QT += androidextras
 
 DISTFILES += \
 		android/AndroidManifest.xml
 
-	ANDROID_ABIS = armeabi-v7a
 
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
@@ -133,3 +134,12 @@ DISTFILES += \
 }
 
 ANDROID_ABIS = armeabi-v7a
+
+DISTFILES += \
+	android/build.gradle \
+	android/gradle.properties \
+	android/gradle/wrapper/gradle-wrapper.jar \
+	android/gradle/wrapper/gradle-wrapper.properties \
+	android/gradlew \
+	android/gradlew.bat \
+	android/res/values/libs.xml

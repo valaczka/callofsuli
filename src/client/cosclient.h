@@ -71,6 +71,7 @@ public:
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
 	Q_PROPERTY(QString userRankImage READ userRankImage WRITE setUserRankImage NOTIFY userRankImageChanged)
 
+
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
 
@@ -154,6 +155,8 @@ public slots:
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
 
+	void checkPermissions();
+
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
@@ -206,6 +209,9 @@ signals:
 	void settingsLoaded(const QJsonObject &data);
 	void settingsError();
 	void settingsSuccess();
+
+	void storagePermissionsGranted();
+	void storagePermissionsDenied();
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);

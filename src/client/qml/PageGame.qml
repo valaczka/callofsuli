@@ -35,6 +35,22 @@ Page {
 	on_AnimStartEndedChanged: doStep()
 	on_AnimStartReadyChanged: doStep()
 
+	GameActivity {
+		id: gameActivity
+		client: cosClient
+		game: game
+
+		onPreparedChanged: {
+			doStep()
+		}
+
+		onPrepareFailed: {
+			cosClient.sendMessageError(qsTr("Játék előkészítése sikertelen"), qsTr("Nem sikerült előkészíteni a játékot!"))
+			_closeEnabled = true
+			mainStack.back()
+		}
+	}
+
 
 	Image {
 		id: bg
@@ -93,6 +109,7 @@ Page {
 
 			gameScene: gameScene
 			itemPage: control
+			activity: gameActivity
 
 			Scene {
 				id: mainScene
@@ -160,6 +177,17 @@ Page {
 			}
 
 			onIsPreparedChanged: doStep()
+
+			onGameTimeout: {
+				setEnemiesMoving(false)
+				setRunning(false)
+
+				var d = JS.dialogMessageError(qsTr("Lejárt az idő"), qsTr("Lejárt az idő"))
+				d.rejected.connect(function() {
+					_closeEnabled = true
+					mainStack.back()
+				})
+			}
 		}
 
 
@@ -290,6 +318,21 @@ Page {
 
 		Behavior on value {
 			NumberAnimation { duration: 125; easing.type: Easing.InOutQuad }
+		}
+	}
+
+	QLabel {
+		id: timeLabel
+		anchors.top: progressHp.bottom
+		anchors.right: parent.right
+		anchors.margins: 10
+
+		property int secs: game.msecLeft/100
+
+		text: secs+" msec"
+
+		Behavior on secs {
+			NumberAnimation { duration: 50 }
 		}
 	}
 
@@ -563,6 +606,7 @@ Page {
 	StackView.onActivated: {
 		state = "start"
 		game.loadScene()
+		gameActivity.prepare()
 	}
 
 
@@ -575,13 +619,8 @@ Page {
 
 
 	function doStep() {
-		if (_sceneLoaded && _animStartReady) {
-			game.startGame()
-		}
-
-		if (_sceneLoaded && _animStartEnded && game.isPrepared) {
+		if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
 			control.state = "run"
-			game.resetPlayer()
 			game.gameStarted()
 		}
 

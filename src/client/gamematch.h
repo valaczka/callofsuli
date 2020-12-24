@@ -42,6 +42,7 @@ class GameMatch : public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(QByteArray missionUuid READ missionUuid WRITE setMissionUuid NOTIFY missionUuidChanged)
 	Q_PROPERTY(QString playerCharacter READ playerCharacter WRITE setPlayerCharacter NOTIFY playerCharacterChanged)
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
@@ -57,163 +58,44 @@ public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
 	~GameMatch();
 
-	QString playerCharacter() const
-	{
-		return m_playerCharacter;
-	}
+	GameMap::MissionLevel *missionLevel() const;
 
-	QString terrain() const
-	{
-		return m_terrain;
-	}
-
-	int level() const
-	{
-		return m_level;
-	}
-
-	int startHp() const
-	{
-		return m_startHp;
-	}
-
-	int startBlock() const
-	{
-		return m_startBlock;
-	}
-
-	QString bgImage() const
-	{
-		if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
-			return "qrc:/internal/game/bg.png";
-		else
-			return "image://"+m_imageDbName+"/"+m_bgImage;
-	}
-
-	QString imageDbName() const
-	{
-		return m_imageDbName;
-	}
-
-	void setDeleteGameMap(bool deleteGameMap);
-
-
-
-	QString name() const
-	{
-		return m_name;
-	}
-
-	int duration() const
-	{
-		return m_duration;
-	}
+	QString playerCharacter() const { return m_playerCharacter; }
+	QString terrain() const { return m_terrain; }
+	int level() const { return m_level; }
+	int startHp() const { return m_startHp; }
+	int startBlock() const { return m_startBlock; }
+	QString bgImage() const;
+	QString imageDbName() const { return m_imageDbName; }
+	QString name() const { return m_name; }
+	int duration() const { return m_duration; }
+	GameMap *gameMap() const { return m_gameMap; }
+	QByteArray missionUuid() const { return m_missionUuid; }
 
 public slots:
-	void setPlayerCharacter(QString playerCharacter)
-	{
-		if (m_playerCharacter == playerCharacter)
-			return;
-
-		m_playerCharacter = playerCharacter;
-		emit playerCharacterChanged(m_playerCharacter);
-	}
-
-	void setTerrain(QString terrain)
-	{
-		if (m_terrain == terrain)
-			return;
-
-		m_terrain = terrain;
-		emit terrainChanged(m_terrain);
-	}
-
-	void setLevel(int level)
-	{
-		if (m_level == level)
-			return;
-
-		m_level = level;
-		emit levelChanged(m_level);
-	}
-
-	void setStartHp(int startHp)
-	{
-		if (m_startHp == startHp)
-			return;
-
-		m_startHp = startHp;
-		emit startHpChanged(m_startHp);
-	}
-
-	void setStartBlock(int startBlock)
-	{
-		if (m_startBlock == startBlock)
-			return;
-
-		m_startBlock = startBlock;
-		emit startBlockChanged(m_startBlock);
-	}
-
-	void setBgImage(QString bgImage)
-	{
-		if (m_bgImage == bgImage)
-			return;
-
-		m_bgImage = bgImage;
-		emit bgImageChanged(m_bgImage);
-	}
-
-	void setImageDbName(QString imageDbName)
-	{
-		if (m_imageDbName == imageDbName)
-			return;
-
-		m_imageDbName = imageDbName;
-		emit imageDbNameChanged(m_imageDbName);
-		emit bgImageChanged(bgImage());
-	}
-
-
-
-	void setName(QString name)
-	{
-		if (m_name == name)
-			return;
-
-		m_name = name;
-		emit nameChanged(m_name);
-	}
-
-	void setDuration(int duration)
-	{
-		if (m_duration == duration)
-			return;
-
-		m_duration = duration;
-		emit durationChanged(m_duration);
-	}
+	void setDeleteGameMap(bool deleteGameMap);
+	void setPlayerCharacter(QString playerCharacter);
+	void setTerrain(QString terrain);
+	void setLevel(int level);
+	void setStartHp(int startHp);
+	void setStartBlock(int startBlock);
+	void setBgImage(QString bgImage);
+	void setImageDbName(QString imageDbName);
+	void setName(QString name);
+	void setDuration(int duration);
+	void setMissionUuid(QByteArray missionUuid);
 
 signals:
-
 	void playerCharacterChanged(QString playerCharacter);
-
 	void terrainChanged(QString terrain);
-
 	void levelChanged(int level);
-
 	void startHpChanged(int startHp);
-
 	void startBlockChanged(int startBlock);
-
 	void bgImageChanged(QString bgImage);
-
 	void imageDbNameChanged(QString imageDbName);
-
-
 	void nameChanged(QString name);
-
 	void durationChanged(int duration);
+	void missionUuidChanged(QByteArray missionUuid);
 
 private:
 	GameMap *m_gameMap;
@@ -228,6 +110,7 @@ private:
 	QString m_imageDbName;
 	QString m_name;
 	int m_duration;
+	QByteArray m_missionUuid;
 };
 
 #endif // GAMEDATA_H

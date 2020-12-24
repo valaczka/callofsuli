@@ -187,8 +187,12 @@ bool Server::commandLineParse(QCoreApplication &app)
 bool Server::serverDirCheck()
 {
 	if (m_serverDir.isEmpty()) {
-		qWarning().noquote() << tr("Nincs megadva adatbáziskönyvtár!");
-		return false;
+		qInfo().noquote() << tr("Nincs megadva adatbáziskönyvtár, az alapértelmezett lesz használva.");
+
+		QString dir = QStandardPaths::standardLocations(QStandardPaths::DataLocation).first();
+
+		setServerDir(dir);
+		m_createDb = true;
 	}
 
 	QFileInfo f(m_serverDir);

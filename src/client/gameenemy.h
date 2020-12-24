@@ -95,7 +95,7 @@ private slots:
 
 signals:
 	void attack();
-	void killed();
+	void killed(GameEnemy *enemy);
 	void killMissed();
 	void movingChanged(bool moving);
 	void armedChanged(bool armed);

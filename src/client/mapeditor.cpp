@@ -84,10 +84,9 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["blockChapterMapChapterRemove"] = &MapEditor::blockChapterMapChapterRemove;
 
 
-
 	CosDb *db = new CosDb("editorDb", this);
 	db->setDatabaseName(Client::standardPath("tmpmapeditor.db"));
-	addDb(db);
+	addDb(db, true);
 
 	connect(db, &CosDb::undone, this, [=]() {
 		setModified(true);
@@ -230,34 +229,16 @@ void MapEditor::checkBackup()
 
 void MapEditor::removeBackup()
 {
-	if (QFile::exists(db()->databaseName())) {
+	/*if (QFile::exists(db()->databaseName())) {
 		if (!QFile::remove(db()->databaseName())) {
 			m_client->sendMessageError(tr("Backup törlése"), tr("Nem sikerült törölni a fájlt"), db()->databaseName());
 			return;
 		}
-	}
+	}*/
 
 	emit backupUnavailable();
 }
 
-
-/**
- * @brief MapEditor::removeDatabase
- */
-
-void MapEditor::removeDatabase()
-{
-	qDebug() << "Remove image provider";
-	QQmlEngine *engine = qmlEngine(this);
-	engine->removeImageProvider("mapdb");
-
-	QString dbName = db()->databaseName();
-
-	if (!db()->isOpen())
-		db()->close();
-
-	QFile::remove(dbName);
-}
 
 
 /**
@@ -267,6 +248,18 @@ void MapEditor::removeDatabase()
 void MapEditor::loadAbort()
 {
 	m_loadAbortRequest = true;
+}
+
+
+/**
+ * @brief MapEditor::removeImageProvider
+ */
+
+void MapEditor::removeImageProvider()
+{
+	qDebug() << "Remove image provider";
+	QQmlEngine *engine = qmlEngine(this);
+	engine->removeImageProvider("mapdb");
 }
 
 
@@ -521,6 +514,8 @@ void MapEditor::saveToFile(QVariantMap data)
 
 void MapEditor::createNew(QVariantMap data)
 {
+	qDebug() << "create New thread" << QThread::currentThread();
+
 	db()->open();
 
 	emit loadStarted();
@@ -649,13 +644,14 @@ QList<int> MapEditor::_blockChapterMapBlockGetListPrivate(const QString &mission
 
 void MapEditor::createNewPrivate(QVariantMap data)
 {
-	QString name = data.value("name").toString();
+	qDebug() << "create New private thread" << QThread::currentThread();
+
 	QByteArray uuid = data.value("uuid").toByteArray();
 
 	if (uuid.isEmpty())
 		uuid = QUuid::createUuid().toByteArray();
 
-	GameMap *m_game = GameMap::example(name, uuid);
+	GameMap *m_game = GameMap::example(uuid);
 
 	if (_createDatabase(m_game))
 		emit loadFinished();
@@ -1266,7 +1262,7 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 		return;
 	}
 
-	db()->db().transaction();
+	db()->transaction();
 
 	QVariantList l;
 	l.append(uuid);
@@ -1289,11 +1285,11 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 	db()->undoLogEnd();
 
 	if (ret != -1 && ret2 != -1) {
-		db()->db().commit();
+		db()->commit();
 		setModified(true);
 		emit missionModified(uuid);
 	} else {
-		db()->db().rollback();
+		db()->rollback();
 		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült új szintet hozzáadni!"));
 	}
 }
@@ -2201,6 +2197,7 @@ void MapEditor::play(QVariantMap data)
 	GameMatch *m_gameMatch = new GameMatch(game, this);
 	m_gameMatch->setDeleteGameMap(true);
 	m_gameMatch->setImageDbName("mapdb");
+	m_gameMatch->setMissionUuid(level.value("mission").toByteArray());
 	m_gameMatch->setName(level.value("name").toString());
 	m_gameMatch->setLevel(level.value("level").toInt());
 	m_gameMatch->setTerrain(level.value("terrain").toString());

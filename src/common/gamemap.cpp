@@ -38,9 +38,8 @@
 #include <QDataStream>
 #include <QMetaObject>
 
-GameMap::GameMap(const QByteArray &uuid, const QString &name)
+GameMap::GameMap(const QByteArray &uuid)
 	: m_uuid(uuid)
-	, m_name(name)
 	, m_campaigns()
 	, m_chapters()
 	, m_storages()
@@ -96,11 +95,21 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data, QObject *target, const 
 		return nullptr;
 	}
 
-	qint32 version;
+	qint32 version = -1;
 
 	stream >> version;
 
 	qDebug() << "Load map data version" << version;
+
+
+	if (version < 3) {
+		qWarning() << "Invalid map version";
+		return nullptr;
+	}
+
+	if (version < GAMEMAP_CURRENT_VERSION) {
+		qInfo() << "Old version found:" << version;
+	}
 
 	stream.setVersion(QDataStream::Qt_5_11);
 
@@ -109,42 +118,43 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data, QObject *target, const 
 	qreal maxStep = 5.0;
 
 	QByteArray uuid;
-	QString	name;
 
-	stream >> uuid >> name;
+	stream >> uuid;
 
-	GameMap *map = new GameMap(uuid, name);
+	GameMap *map = new GameMap(uuid);
 
-	qDebug() << "Load map" << uuid << name;
+	qDebug() << "Load map" << uuid;
 
 	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
 	}
 
-	try {
-		map->storagesFromStream(stream);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->chaptersFromStream(stream);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->campaignsFromStream(stream);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->imagesFromStream(stream);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		return map;
-	} catch (...) {
-		qWarning() << "Invalid map data";
+	map->storagesFromStream(stream);
+	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
 	}
+
+	map->chaptersFromStream(stream);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->campaignsFromStream(stream);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->imagesFromStream(stream);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	return map;
 }
 
 
@@ -165,14 +175,15 @@ QByteArray GameMap::toBinaryData() const
 	QByteArray s;
 	QDataStream stream(&s, QIODevice::WriteOnly);
 
+	qint32 version = GAMEMAP_CURRENT_VERSION;
+
 	stream << (quint32) 0x434F53;			// COS
 	stream << QByteArray("MAP");
-	stream << (qint32) 1;
+	stream << version;
 
 	stream.setVersion(QDataStream::Qt_5_11);
 
 	stream << m_uuid;
-	stream << m_name;
 
 	if (!sendProgress(++step/maxStep))
 		return QByteArray();
@@ -207,9 +218,9 @@ QByteArray GameMap::toBinaryData() const
  * @return
  */
 
-GameMap *GameMap::example(const QString &name, const QByteArray &uuid)
+GameMap *GameMap::example(const QByteArray &uuid)
 {
-	GameMap *map = new GameMap(uuid, name);
+	GameMap *map = new GameMap(uuid);
 
 	GameMap::Chapter *ch1 = new GameMap::Chapter(19, "Fejezet 19");
 	GameMap::Chapter *ch2 = new GameMap::Chapter(20, "Fejezet 20");
@@ -277,9 +288,9 @@ GameMap *GameMap::example(const QString &name, const QByteArray &uuid)
 
 	MissionLevel *ml1 = m1->addMissionLevel(new MissionLevel(1, "oiuiuoiuouo", 12, 650, 3, "", ""));
 	MissionLevel *ml2 = m1->addMissionLevel(new MissionLevel(2, "oiuiuoiuouo", 11, 1650, 23, "", ""));
-	m1->addMissionLevel(new MissionLevel(3, "terrain1", 1, 60, 1, "bg", "guardtower.png"));
+	m1->addMissionLevel(new MissionLevel(3, "terrain1", 1, 60, 1, "", ""));
 
-	m2->addMissionLevel(new MissionLevel(2, "terrain2", 4, 600, 1, "bg", "guardtower.png"));
+	m2->addMissionLevel(new MissionLevel(2, "terrain2", 4, 600, 1, "", ""));
 
 	{
 		BlockChapterMap *b1 = new BlockChapterMap(5);
@@ -317,8 +328,8 @@ GameMap *GameMap::example(const QString &name, const QByteArray &uuid)
 	}
 
 
-	m5->addMissionLevel(new MissionLevel(1, "oiuiuoiuouo", 12, 650, 3, "etc", "adjtime"));
-	m5->addMissionLevel(new MissionLevel(2, "oiuiuoiuouo", 11, 1650, 23, "etc", "adduser.conf"));
+	m5->addMissionLevel(new MissionLevel(1, "oiuiuoiuouo", 12, 650, 3, "", ""));
+	m5->addMissionLevel(new MissionLevel(2, "oiuiuoiuouo", 11, 1650, 23, "", ""));
 	m5->addMissionLevel(new MissionLevel(3, "werweriuouo", 1, 60, 1, "", ""));
 
 	m6->addMissionLevel(new MissionLevel(11, "1oiuiuoiuouo", 112, 1650, 13, "", ""));
@@ -335,24 +346,6 @@ GameMap *GameMap::example(const QString &name, const QByteArray &uuid)
 	ml2->addInvetory(new Inventory(1, "gun", 3));
 
 
-	{
-		QFile f("/etc/adduser.conf");
-		if (f.open(QIODevice::ReadOnly)) {
-			QByteArray d = f.readAll();
-			f.close();
-			map->addImage(new Image("etc", "adduser.conf", d));
-			map->addImage(new Image("etc", "adjtime", d));
-		}
-	}
-
-	{
-		QFile f("/home/valaczka/Projektek/callofsuli-resources/guardtower.png");
-		if (f.open(QIODevice::ReadOnly)) {
-			QByteArray d = f.readAll();
-			f.close();
-			map->addImage(new Image("bg", "guardtower.png", d));
-		}
-	}
 
 	return map;
 }
@@ -376,56 +369,69 @@ GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func, const 
 	Q_ASSERT(db->isValid());
 	Q_ASSERT(db->isOpen());
 
-	QVariantMap m = db->execSelectQueryOneRow("SELECT uuid, name FROM map");
-	GameMap *map = new GameMap(m.value("uuid").toByteArray(), m.value("name").toString());
+	QVariantMap m = db->execSelectQueryOneRow("SELECT uuid FROM map");
+	GameMap *map = new GameMap(m.value("uuid").toByteArray());
 
 	sendProgress(target, func, ++step/maxStep);
 
-	try {
-		map->chaptersFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->storagesFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->objectivesFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->campaingsFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->missionsFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->missionLevelsFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->blockChapterMapsFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		map->inventoriesFromDb(db);
-		if (!sendProgress(target, func, ++step/maxStep))
-			throw 2;
-
-		if (withImages) {
-			map->imagesFromDb(db);
-			if (!sendProgress(target, func, ++step/maxStep))
-				throw 2;
-		}
-
-		return map;
-	} catch (...) {
-		qWarning() << "Invalid map database";
+	map->chaptersFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
 	}
+
+	map->storagesFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->objectivesFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->campaingsFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->missionsFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->missionLevelsFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->blockChapterMapsFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	map->inventoriesFromDb(db);
+	if (!sendProgress(target, func, ++step/maxStep)) {
+		delete map;
+		return nullptr;
+	}
+
+	if (withImages) {
+		map->imagesFromDb(db);
+		if (!sendProgress(target, func, ++step/maxStep)) {
+			delete map;
+			return nullptr;
+		}
+	}
+
+	return map;
+
 }
 
 
@@ -447,78 +453,72 @@ bool GameMap::toDb(CosDb *db) const
 	if (!sendProgress(step/maxStep))
 		return false;
 
-	try {
-		if (!db->execSimpleQuery("PRAGMA foreign_keys = ON"))
-			throw 1;
-
-		if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS map ("
-								 "uuid TEXT,"
-								 "name TEXT"
-								 ")"))
-			throw 1;
-
-
-		if (!db->execSimpleQuery("DELETE FROM map"))		throw 1;
-
-		QVariantMap l;
-		l["uuid"] = QString(m_uuid);
-		l["name"] = QString(m_name);
-
-		if (db->execInsertQuery("INSERT INTO map (?k?) VALUES (?)", l) == -1)
-			throw 1;
-
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		if (!imagesToDb(db))
-			throw 1;
-
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		chaptersToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		storagesToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		objectivesToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		campaignsToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		missionsToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		missionLevelsToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		missionLocksToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		blockChapterMapsToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-		inventoriesToDb(db);
-		if (!sendProgress(++step/maxStep))
-			throw 2;
-
-
-
-		return true;
-	} catch (...) {
-		qWarning() << "Sql table error";
+	if (!db->execSimpleQuery("PRAGMA foreign_keys = ON"))
 		return false;
-	}
+
+	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS map ("
+							 "uuid TEXT"
+							 ")"))
+		return false;
+
+
+	if (!db->execSimpleQuery("DELETE FROM map"))		return false;
+
+	QVariantMap l;
+	l["uuid"] = QString(m_uuid);
+
+	if (db->execInsertQuery("INSERT INTO map (?k?) VALUES (?)", l) == -1)
+		return false;
+
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	if (!imagesToDb(db))
+		return false;
+
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	chaptersToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	storagesToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	objectivesToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	campaignsToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	missionsToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	if (!missionLevelsToDb(db))
+		return false;
+
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	missionLocksToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	blockChapterMapsToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+	inventoriesToDb(db);
+	if (!sendProgress(++step/maxStep))
+		return false;
+
+
+	return true;
 
 }
 
@@ -734,7 +734,7 @@ void GameMap::chaptersToStream(QDataStream &stream) const
  * @param stream
  */
 
-void GameMap::chaptersFromStream(QDataStream &stream)
+bool GameMap::chaptersFromStream(QDataStream &stream)
 {
 	qDebug() << "Load chapters";
 
@@ -747,7 +747,7 @@ void GameMap::chaptersFromStream(QDataStream &stream)
 		stream >> id >> name;
 
 		if (id == -1)
-			throw 1;
+			return false;
 
 		Chapter *ch = new Chapter(id, name);
 		objectivesFromStream(ch, stream);
@@ -756,9 +756,11 @@ void GameMap::chaptersFromStream(QDataStream &stream)
 	}
 
 	if (m_chapters.size() != (int) size)
-		throw 1;
+		return false;
 
 	qDebug() << "Chapters loaded";
+
+	return true;
 }
 
 
@@ -768,16 +770,16 @@ void GameMap::chaptersFromStream(QDataStream &stream)
  * @param db
  */
 
-void GameMap::chaptersToDb(CosDb *db) const
+bool GameMap::chaptersToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS chapters ("
 							 "id INTEGER PRIMARY KEY,"
 							 "name TEXT"
 							 ");"))
-		throw 1;
+		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM chapters"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM chapters"))		return false;
 
 
 	foreach (GameMap::Chapter *ch, m_chapters) {
@@ -786,10 +788,10 @@ void GameMap::chaptersToDb(CosDb *db) const
 		l["name"] = ch->name();
 
 		if (db->execInsertQuery("INSERT INTO chapters (?k?) VALUES (?)", l) == -1)
-			throw 1;
+			return false;
 	}
 
-
+return true;
 }
 
 
@@ -843,7 +845,7 @@ void GameMap::storagesToStream(QDataStream &stream) const
  * @param stream
  */
 
-void GameMap::storagesFromStream(QDataStream &stream)
+bool GameMap::storagesFromStream(QDataStream &stream)
 {
 	quint32 size = 0;
 	stream >> size;
@@ -855,7 +857,7 @@ void GameMap::storagesFromStream(QDataStream &stream)
 		stream >> id >> module >> data;
 
 		if (id == -1)
-			throw 1;
+			return false;
 
 		Storage *s = new Storage(id, module, data);
 
@@ -863,7 +865,9 @@ void GameMap::storagesFromStream(QDataStream &stream)
 	}
 
 	if (m_storages.size() != (int) size)
-		throw 1;
+		return false;
+
+	return true;
 }
 
 
@@ -873,16 +877,16 @@ void GameMap::storagesFromStream(QDataStream &stream)
  * @param db
  */
 
-void GameMap::storagesToDb(CosDb *db) const
+bool GameMap::storagesToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS storages ("
 							 "id INTEGER PRIMARY KEY,"
 							 "module TEXT NOT NULL,"
 							 "data TEXT"
 							 ");"))
-		throw 1;
+		return false;
 
-	if (!db->execSimpleQuery("DELETE FROM storages"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM storages"))		return false;
 
 
 	foreach (GameMap::Storage *s, m_storages) {
@@ -894,8 +898,10 @@ void GameMap::storagesToDb(CosDb *db) const
 		l["data"] = QString(doc.toJson(QJsonDocument::Compact));
 
 		if (db->execInsertQuery("INSERT INTO storages (?k?) VALUES (?)", l) == -1)
-			throw 1;
+			return false;
 	}
+
+	return true;
 }
 
 
@@ -949,7 +955,7 @@ void GameMap::objectivesToStream(Chapter *chapter, QDataStream &stream) const
  * @param stream
  */
 
-void GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream)
+bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream)
 {
 	Q_ASSERT(chapter);
 
@@ -969,7 +975,9 @@ void GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream)
 	}
 
 	if (chapter->objectives().size() != (int) size)
-		throw 1;
+		return false;
+
+	return true;
 }
 
 
@@ -978,7 +986,7 @@ void GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream)
  * @param db
  */
 
-void GameMap::objectivesToDb(CosDb *db) const
+bool GameMap::objectivesToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS objectives ("
 							 "uuid TEXT NOT NULL PRIMARY KEY,"
@@ -988,9 +996,9 @@ void GameMap::objectivesToDb(CosDb *db) const
 							 "data TEXT,"
 							 "UNIQUE (uuid)"
 							 ");"))
-		throw 1;
+		return false;
 
-	if (!db->execSimpleQuery("DELETE FROM objectives"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM objectives"))		return false;
 
 
 	foreach (GameMap::Chapter *ch, m_chapters) {
@@ -1008,9 +1016,11 @@ void GameMap::objectivesToDb(CosDb *db) const
 			l["data"] = QString(doc.toJson(QJsonDocument::Compact));
 
 			if (db->execInsertQuery("INSERT INTO objectives (?k?) VALUES (?)", l) == -1)
-				throw 1;
+				return false;
 		}
 	}
+
+	return true;
 }
 
 
@@ -1019,7 +1029,7 @@ void GameMap::objectivesToDb(CosDb *db) const
  * @param db
  */
 
-void GameMap::objectivesFromDb(CosDb *db)
+bool GameMap::objectivesFromDb(CosDb *db)
 {
 	QVariantList l = db->execSelectQuery("SELECT uuid, module, data, storage, chapters.id as chapterid FROM objectives "
 										 "LEFT JOIN chapters ON (chapters.id=objectives.chapter)");
@@ -1030,7 +1040,7 @@ void GameMap::objectivesFromDb(CosDb *db)
 		Chapter *c = chapter(m.value("chapterid").toInt());
 
 		if (!c)
-			throw 1;
+			return false;
 
 		QJsonDocument doc = QJsonDocument::fromJson(m.value("data").toByteArray());
 		Objective *o = new Objective(m.value("uuid").toByteArray(), m.value("module").toByteArray(),
@@ -1039,6 +1049,8 @@ void GameMap::objectivesFromDb(CosDb *db)
 
 		c->addObjective(o);
 	}
+
+	return true;
 }
 
 
@@ -1077,7 +1089,7 @@ void GameMap::campaignsToStream(QDataStream &stream) const
  * @param stream
  */
 
-void GameMap::campaignsFromStream(QDataStream &stream)
+bool GameMap::campaignsFromStream(QDataStream &stream)
 {
 	QHash<qint32, QList<qint32>> lockList;
 	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> mLockList;
@@ -1097,7 +1109,7 @@ void GameMap::campaignsFromStream(QDataStream &stream)
 		qDebug() << "Load campaign" << id << name << lockSize;
 
 		if (id == -1)
-			throw 1;
+			return false;
 
 		Campaign *c = new Campaign(id, name);
 
@@ -1108,8 +1120,10 @@ void GameMap::campaignsFromStream(QDataStream &stream)
 			qint32 id = -1;
 			stream >> id;
 
-			if (id == -1)
-				throw 1;
+			if (id == -1) {
+				delete c;
+				return false;
+			}
 
 			ll.append(id);
 		}
@@ -1127,7 +1141,7 @@ void GameMap::campaignsFromStream(QDataStream &stream)
 	}
 
 	if (m_campaigns.size() != (int) size)
-		throw 1;
+		return false;
 
 	qDebug() << "Campaigns loaded";
 
@@ -1141,13 +1155,13 @@ void GameMap::campaignsFromStream(QDataStream &stream)
 		for (it=lockList.constBegin(); it != lockList.constEnd(); ++it) {
 			Campaign *c = campaign(it.key());
 			if (!c)
-				throw 1;
+				return false;
 
 			foreach (qint32 cid, it.value()) {
 				Campaign *cc = campaign(cid);
 
 				if (!cc)
-					throw 1;
+					return false;
 
 				c->addLock(cc);
 			}
@@ -1164,14 +1178,14 @@ void GameMap::campaignsFromStream(QDataStream &stream)
 		for (mit=mLockList.constBegin(); mit != mLockList.constEnd(); ++mit) {
 			Mission *m = mission(mit.key());
 			if (!m)
-				throw 1;
+				return false;
 
 			for (int i=0; i<mit.value().size(); ++i) {
 				Mission *mm = mission(mit.value().at(i).first);
 				qint32 level = mit.value().at(i).second;
 
 				if (!mm)
-					throw 1;
+					return false;
 
 				m->addLock(mm, level);
 			}
@@ -1179,6 +1193,8 @@ void GameMap::campaignsFromStream(QDataStream &stream)
 	}
 
 	qDebug() << "Locks loaded";
+
+	return true;
 }
 
 
@@ -1187,23 +1203,23 @@ void GameMap::campaignsFromStream(QDataStream &stream)
  * @param db
  */
 
-void GameMap::campaignsToDb(CosDb *db) const
+bool GameMap::campaignsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS campaigns ("
 							 "id INTEGER PRIMARY KEY,"
 							 "name TEXT"
 							 ");"))
-		throw 1;
+		return false;
 
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS campaignLocks ("
 							 "campaign INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE,"
 							 "lock INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE"
 							 ");"))
-		throw 1;
+		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM campaignLocks"))		throw 1;
-	if (!db->execSimpleQuery("DELETE FROM campaigns"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM campaignLocks"))		return false;
+	if (!db->execSimpleQuery("DELETE FROM campaigns"))		return false;
 
 
 	foreach (Campaign *c, m_campaigns) {
@@ -1212,7 +1228,7 @@ void GameMap::campaignsToDb(CosDb *db) const
 		l["name"] = c->name();
 
 		if (db->execInsertQuery("INSERT INTO campaigns (?k?) VALUES (?)", l) == -1)
-			throw 1;
+			return false;
 	}
 
 
@@ -1223,10 +1239,11 @@ void GameMap::campaignsToDb(CosDb *db) const
 			m["lock"] = l->id();
 
 			if (db->execInsertQuery("INSERT INTO campaignLocks (?k?) VALUES (?)", m) == -1)
-				throw 1;
+				return false;
 		}
 	}
 
+	return true;
 }
 
 
@@ -1235,7 +1252,7 @@ void GameMap::campaignsToDb(CosDb *db) const
  * @param db
  */
 
-void GameMap::campaingsFromDb(CosDb *db)
+bool GameMap::campaingsFromDb(CosDb *db)
 {
 	QVariantList l = db->execSelectQuery("SELECT id, name FROM campaigns");
 
@@ -1257,10 +1274,12 @@ void GameMap::campaingsFromDb(CosDb *db)
 		Campaign *l = campaign(m.value("lock").toInt());
 
 		if (!c || !l)
-			throw 1;
+			return false;
 
 		c->addLock(l);
 	}
+
+	return true;
 }
 
 
@@ -1272,7 +1291,7 @@ void GameMap::campaingsFromDb(CosDb *db)
  * @param stream
  */
 
-void GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream) const
+bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream) const
 {
 	Q_ASSERT(campaign);
 
@@ -1288,7 +1307,7 @@ void GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 		foreach (MissionLock p, m->locks()) {
 			Mission *mm = p.first;
 			if (!mm)
-				throw 1;
+				return false;
 
 			stream << mm->uuid();
 			stream << (qint32) p.second;
@@ -1296,6 +1315,8 @@ void GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 
 		missionLevelsToStream(m, stream);
 	}
+
+	return true;
 }
 
 
@@ -1324,7 +1345,7 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
 		stream >> uuid >> mandatory >> name >> lockSize;
 
 		if (uuid.isEmpty())
-			throw 1;
+			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
 
 		Mission *m = new Mission(uuid, mandatory, name);
 
@@ -1335,8 +1356,10 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
 			qint32 level = -1;
 			stream >> uuid >> level;
 
-			if (uuid.isEmpty())
-				throw 1;
+			if (uuid.isEmpty()) {
+				delete m;
+				return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
+			}
 
 			ll.append(qMakePair<QByteArray, qint32>(uuid, level));
 		}
@@ -1352,7 +1375,7 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
 	}
 
 	if (campaign->missions().size() != (int) size)
-		throw 1;
+		return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
 
 	return lockList;
 }
@@ -1363,7 +1386,7 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
  * @param db
  */
 
-void GameMap::missionsToDb(CosDb *db) const
+bool GameMap::missionsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS missions ("
 							 "uuid TEXT PRIMARY KEY,"
@@ -1371,10 +1394,10 @@ void GameMap::missionsToDb(CosDb *db) const
 							 "mandatory BOOL,"
 							 "name TEXT"
 							 ");"))
-		throw 1;
+		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM missions"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM missions"))		return false;
 
 
 	foreach (Campaign *c, m_campaigns) {
@@ -1386,9 +1409,11 @@ void GameMap::missionsToDb(CosDb *db) const
 			l["uuid"] = QString(m->uuid());
 
 			if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
-				throw 1;
+				return false;
 		}
 	}
+
+	return true;
 }
 
 
@@ -1399,7 +1424,7 @@ void GameMap::missionsToDb(CosDb *db) const
  * @param db
  */
 
-void GameMap::missionsFromDb(CosDb *db)
+bool GameMap::missionsFromDb(CosDb *db)
 {
 	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name FROM missions");
 
@@ -1409,7 +1434,7 @@ void GameMap::missionsFromDb(CosDb *db)
 		Campaign *c = campaign(m.value("campaign").toInt());
 
 		if (!c)
-			throw 1;
+			return false;
 
 		Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(), m.value("name").toString());
 
@@ -1427,10 +1452,12 @@ void GameMap::missionsFromDb(CosDb *db)
 		qint32 level = m.value("level").isNull() ? -1 : m.value("level").toInt();
 
 		if (!mis || !l)
-			throw 1;
+			return false;
 
 		mis->addLock(l, level);
 	}
+
+	return true;
 }
 
 
@@ -1439,7 +1466,7 @@ void GameMap::missionsFromDb(CosDb *db)
  * @param db
  */
 
-void GameMap::missionLocksToDb(CosDb *db) const
+bool GameMap::missionLocksToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS missionLocks ("
 							 "mission TEXT NOT NULL REFERENCES missions(uuid) ON DELETE CASCADE ON UPDATE CASCADE,"
@@ -1447,10 +1474,10 @@ void GameMap::missionLocksToDb(CosDb *db) const
 							 "level INTEGER,"
 							 "FOREIGN KEY(lock, level) REFERENCES missionLevels(mission, level) ON DELETE CASCADE ON UPDATE CASCADE"
 							 ");"))
-		throw 1;
+		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM missionLocks"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM missionLocks"))		return false;
 
 	foreach (Campaign *c, m_campaigns) {
 		foreach (Mission *mis, c->missions()) {
@@ -1464,10 +1491,12 @@ void GameMap::missionLocksToDb(CosDb *db) const
 					m["level"] = p.second;
 
 				if (db->execInsertQuery("INSERT INTO missionLocks (?k?) VALUES (?)", m) == -1)
-					throw 1;
+					return false;
 			}
 		}
 	}
+
+	return true;
 }
 
 
@@ -1503,7 +1532,7 @@ void GameMap::missionLevelsToStream(Mission *mission, QDataStream &stream) const
  * @param stream
  */
 
-void GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &stream)
+bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &stream)
 {
 	Q_ASSERT(mission);
 
@@ -1521,7 +1550,7 @@ void GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
 		stream >> level >> terrain >> startHP >> duration >> startBlock >> imageFolder >> imageFile;
 
 		if (level == -1 || startHP == -1 || duration == -1 || startBlock == -1)
-			throw 1;
+			return false;
 
 		MissionLevel *m = new MissionLevel(level, terrain, startHP, duration, startBlock, imageFolder, imageFile);
 
@@ -1532,7 +1561,9 @@ void GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
 	}
 
 	if (mission->levels().size() != (int) size)
-		throw 1;
+		return false;
+
+	return true;
 }
 
 
@@ -1541,7 +1572,7 @@ void GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
  * @param db
  */
 
-void GameMap::missionLevelsToDb(CosDb *db) const
+bool GameMap::missionLevelsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS missionLevels ("
 							 "mission TEXT NOT NULL REFERENCES missions(uuid) ON DELETE CASCADE ON UPDATE CASCADE,"
@@ -1555,9 +1586,9 @@ void GameMap::missionLevelsToDb(CosDb *db) const
 							 "PRIMARY KEY (mission, level),"
 							 "FOREIGN KEY (imageFolder, imageFile) REFERENCES images(folder, file) ON DELETE SET NULL ON UPDATE CASCADE"
 							 ")"))
-		throw 1;
+		return false;
 
-	if (!db->execSimpleQuery("DELETE FROM missionLevels"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM missionLevels"))		return false;
 
 
 	foreach (Campaign *c, m_campaigns) {
@@ -1581,11 +1612,14 @@ void GameMap::missionLevelsToDb(CosDb *db) const
 				else
 					l["imageFile"] = ml->imageFile();
 
-				if (db->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", l) == -1)
-					throw 1;
+				if (db->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", l) == -1) {
+					return false;
+				}
 			}
 		}
 	}
+
+	return true;
 }
 
 
@@ -1594,7 +1628,7 @@ void GameMap::missionLevelsToDb(CosDb *db) const
  * @param db
  */
 
-void GameMap::missionLevelsFromDb(CosDb *db)
+bool GameMap::missionLevelsFromDb(CosDb *db)
 {
 	QVariantList l = db->execSelectQuery("SELECT mission, level, terrain, startHP, duration, startBlock, imageFolder, imageFile FROM missionLevels");
 
@@ -1604,7 +1638,7 @@ void GameMap::missionLevelsFromDb(CosDb *db)
 		Mission *mis = mission(m.value("mission").toByteArray());
 
 		if (!mis)
-			throw 1;
+			return false;
 
 		mis->addMissionLevel(new MissionLevel(m.value("level").toInt(),
 											  m.value("terrain").toByteArray(),
@@ -1615,6 +1649,8 @@ void GameMap::missionLevelsFromDb(CosDb *db)
 											  m.value("imageFile").toString()
 											  ));
 	}
+
+	return true;
 }
 
 
@@ -1659,7 +1695,7 @@ void GameMap::blockChapterMapsToStream(GameMap::MissionLevel *level, QDataStream
  * @param stream
  */
 
-void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStream &stream)
+bool GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStream &stream)
 {
 	Q_ASSERT(level);
 
@@ -1672,7 +1708,7 @@ void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 		stream >> maxObj;
 
 		if (maxObj < 0)
-			throw 1;
+			return false;
 
 		BlockChapterMap *b = new BlockChapterMap(maxObj);
 
@@ -1684,13 +1720,13 @@ void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 				stream >> block;
 
 				if (block < 0)
-					throw 1;
+					return false;
 
 				b->addBlock(block);
 			}
 
 			if (b->blocks().size() != (int) size)
-				throw 1;
+				return false;
 		}
 
 
@@ -1702,17 +1738,17 @@ void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 				stream >> chId;
 
 				if (chId == -1)
-					throw 1;
+					return false;
 
 				Chapter *ch = chapter(chId);
 
 				if (!ch)
-					throw 1;
+					return false;
 
 				b->addChapter(ch);
 			}
 			if (b->chapters().size() != (int) size)
-				throw 1;
+				return false;
 		}
 
 
@@ -1724,17 +1760,17 @@ void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 				stream >> f;
 
 				if (f.isEmpty())
-					throw 1;
+					return false;
 
 				Objective *ch = objective(f);
 
 				if (!ch)
-					throw 1;
+					return false;
 
 				b->addFavorite(ch);
 			}
 			if (b->favorites().size() != (int) size)
-				throw 1;
+				return false;
 		}
 
 
@@ -1742,7 +1778,9 @@ void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 	}
 
 	if (level->blockChapterMaps().size() != (int) size)
-		throw 1;
+		return false;
+
+	return true;
 }
 
 
@@ -1752,7 +1790,7 @@ void GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
  * @param db
  */
 
-void GameMap::blockChapterMapsToDb(CosDb *db) const
+bool GameMap::blockChapterMapsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS blockChapterMaps ("
 							 "id INTEGER PRIMARY KEY,"
@@ -1761,31 +1799,31 @@ void GameMap::blockChapterMapsToDb(CosDb *db) const
 							 "maxObjective INTEGER NOT NULL DEFAULT 0 CHECK (maxObjective>=0),"
 							 "FOREIGN KEY (mission, level) REFERENCES missionLevels(mission, level) ON UPDATE CASCADE ON DELETE CASCADE"
 							 ")"))
-		throw 1;
+		return false;
 
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS blockChapterMapBlocks ("
 							 "blockid INTEGER NOT NULL REFERENCES blockChapterMaps(id) ON UPDATE CASCADE ON DELETE CASCADE,"
 							 "block INTEGER NOT NULL CHECK (block>0)"
 							 ")"))
-		throw 1;
+		return false;
 
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS blockChapterMapChapters ("
 							 "blockid INTEGER NOT NULL REFERENCES blockChapterMaps(id) ON UPDATE CASCADE ON DELETE CASCADE,"
 							 "chapter INTEGER NOT NULL REFERENCES chapters(id) ON UPDATE CASCADE ON DELETE CASCADE"
 							 ")"))
-		throw 1;
+		return false;
 
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS blockChapterMapFavorites ("
 							 "blockid INTEGER NOT NULL REFERENCES blockChapterMaps(id) ON UPDATE CASCADE ON DELETE CASCADE,"
 							 "objective TEXT NOT NULL REFERENCES objectives(uuid) ON UPDATE CASCADE ON DELETE CASCADE"
 							 ")"))
-		throw 1;
+		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM blockChapterMapFavorites"))		throw 1;
-	if (!db->execSimpleQuery("DELETE FROM blockChapterMapChapters"))		throw 1;
-	if (!db->execSimpleQuery("DELETE FROM blockChapterMapBlocks"))		throw 1;
-	if (!db->execSimpleQuery("DELETE FROM blockChapterMaps"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM blockChapterMapFavorites"))		return false;
+	if (!db->execSimpleQuery("DELETE FROM blockChapterMapChapters"))		return false;
+	if (!db->execSimpleQuery("DELETE FROM blockChapterMapBlocks"))		return false;
+	if (!db->execSimpleQuery("DELETE FROM blockChapterMaps"))		return false;
 
 
 	foreach (Campaign *c, m_campaigns) {
@@ -1800,7 +1838,7 @@ void GameMap::blockChapterMapsToDb(CosDb *db) const
 					int id = db->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", l);
 
 					if (id == -1)
-						throw 1;
+						return false;
 
 					foreach (qint32 bl, b->blocks()) {
 						QVariantMap l;
@@ -1808,7 +1846,7 @@ void GameMap::blockChapterMapsToDb(CosDb *db) const
 						l["block"] = bl;
 
 						if (db->execInsertQuery("INSERT INTO blockChapterMapBlocks (?k?) VALUES (?)", l) == -1)
-							throw 1;
+							return false;
 					}
 
 
@@ -1818,7 +1856,7 @@ void GameMap::blockChapterMapsToDb(CosDb *db) const
 						l["chapter"] = ch->id();
 
 						if (db->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", l) == -1)
-							throw 1;
+							return false;
 					}
 
 					foreach (Objective *o, b->favorites()) {
@@ -1827,12 +1865,14 @@ void GameMap::blockChapterMapsToDb(CosDb *db) const
 						l["objective"] = QString(o->uuid());
 
 						if (db->execInsertQuery("INSERT INTO blockChapterMapFavorites (?k?) VALUES (?)", l) == -1)
-							throw 1;
+							return false;
 					}
 				}
 			}
 		}
 	}
+
+	return true;
 }
 
 
@@ -1841,7 +1881,7 @@ void GameMap::blockChapterMapsToDb(CosDb *db) const
  * @param db
  */
 
-void GameMap::blockChapterMapsFromDb(CosDb *db)
+bool GameMap::blockChapterMapsFromDb(CosDb *db)
 {
 	QVariantList l = db->execSelectQuery("SELECT id, mission, level, maxObjective FROM blockChapterMaps");
 
@@ -1851,7 +1891,7 @@ void GameMap::blockChapterMapsFromDb(CosDb *db)
 		MissionLevel *mis = missionLevel(m.value("mission").toByteArray(), m.value("level").toInt());
 
 		if (!mis)
-			throw 1;
+			return false;
 
 		BlockChapterMap *b = mis->addBlockChapterMap(new BlockChapterMap(m.value("maxObjective").toInt()));
 
@@ -1877,7 +1917,7 @@ void GameMap::blockChapterMapsFromDb(CosDb *db)
 				Chapter *ch = chapter(m.value("chapter").toInt());
 
 				if (!ch)
-					throw 1;
+					return false;
 
 				b->addChapter(ch);
 			}
@@ -1892,12 +1932,14 @@ void GameMap::blockChapterMapsFromDb(CosDb *db)
 				Objective *ch = objective(m.value("objective").toByteArray());
 
 				if (!ch)
-					throw 1;
+					return false;
 
 				b->addFavorite(ch);
 			}
 		}
 	}
+
+	return true;
 }
 
 
@@ -1927,7 +1969,7 @@ void GameMap::inventoriesToStream(GameMap::MissionLevel *level, QDataStream &str
  * @param stream
  */
 
-void GameMap::inventoriesFromStream(GameMap::MissionLevel *level, QDataStream &stream)
+bool GameMap::inventoriesFromStream(GameMap::MissionLevel *level, QDataStream &stream)
 {
 	Q_ASSERT(level);
 
@@ -1942,13 +1984,15 @@ void GameMap::inventoriesFromStream(GameMap::MissionLevel *level, QDataStream &s
 		stream >> block >> module >> count;
 
 		if (block < 0 || module.isEmpty() || count <= 0)
-			throw 1;
+			return false;
 
 		level->addInvetory(new Inventory(block, module, count));
 	}
 
 	if (level->inventories().size() != (int) size)
-		throw 1;
+		return false;
+
+	return true;
 }
 
 
@@ -1957,7 +2001,7 @@ void GameMap::inventoriesFromStream(GameMap::MissionLevel *level, QDataStream &s
  * @param db
  */
 
-void GameMap::inventoriesToDb(CosDb *db) const
+bool GameMap::inventoriesToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS inventories ("
 							 "mission TEXT NOT NULL,"
@@ -1967,10 +2011,10 @@ void GameMap::inventoriesToDb(CosDb *db) const
 							 "count INTEGER NOT NULL DEFAULT 1 CHECK (count>0),"
 							 "FOREIGN KEY (mission, level) REFERENCES missionLevels(mission, level) ON UPDATE CASCADE ON DELETE CASCADE"
 							 ")"))
-		throw 1;
+		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM inventories"))		throw 1;
+	if (!db->execSimpleQuery("DELETE FROM inventories"))		return false;
 
 
 	foreach (Campaign *c, m_campaigns) {
@@ -1987,11 +2031,13 @@ void GameMap::inventoriesToDb(CosDb *db) const
 					int id = db->execInsertQuery("INSERT INTO inventories (?k?) VALUES (?)", l);
 
 					if (id == -1)
-						throw 1;
+						return false;
 				}
 			}
 		}
 	}
+
+	return true;
 }
 
 
@@ -2000,7 +2046,7 @@ void GameMap::inventoriesToDb(CosDb *db) const
  * @param db
  */
 
-void GameMap::inventoriesFromDb(CosDb *db)
+bool GameMap::inventoriesFromDb(CosDb *db)
 {
 	QVariantList l = db->execSelectQuery("SELECT mission, level, block, module, count FROM inventories");
 
@@ -2010,10 +2056,12 @@ void GameMap::inventoriesFromDb(CosDb *db)
 		MissionLevel *mis = missionLevel(m.value("mission").toByteArray(), m.value("level").toInt());
 
 		if (!mis)
-			throw 1;
+			return false;
 
 		mis->addInvetory(new Inventory(m.value("block").toInt(), m.value("module").toByteArray(), m.value("count").toInt()));
 	}
+
+	return true;
 }
 
 
@@ -2039,7 +2087,7 @@ void GameMap::imagesToStream(QDataStream &stream) const
  * @param stream
  */
 
-void GameMap::imagesFromStream(QDataStream &stream)
+bool GameMap::imagesFromStream(QDataStream &stream)
 {
 	qDebug() << "Load images";
 
@@ -2053,15 +2101,17 @@ void GameMap::imagesFromStream(QDataStream &stream)
 		stream >> folder >> file >> data;
 
 		if (folder.isEmpty() || file.isEmpty() || data.isEmpty())
-			throw 1;
+			return false;
 
 		addImage(new Image(folder, file, data));
 	}
 
 	if (m_images.size() != (int) size)
-		throw 1;
+		return false;
 
 	qDebug() << "Images loaded";
+
+	return true;
 }
 
 

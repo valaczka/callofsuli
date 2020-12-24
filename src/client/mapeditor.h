@@ -41,8 +41,6 @@
 #include "variantmapdata.h"
 #include "gamematch.h"
 
-class MapEditorWorker;
-
 
 class MapEditor : public AbstractActivity
 {
@@ -62,8 +60,8 @@ public:
 
 	Q_INVOKABLE void checkBackup();
 	Q_INVOKABLE void removeBackup();
-	Q_INVOKABLE void removeDatabase();
 	Q_INVOKABLE void loadAbort();
+	Q_INVOKABLE void removeImageProvider();
 
 	Q_INVOKABLE virtual void run(const QString &func, QVariantMap data = QVariantMap()) override { AbstractActivity::run(m_map, func, data); };
 

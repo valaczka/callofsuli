@@ -387,7 +387,7 @@ QByteArray MapRepository::getDataReal(QSqlQuery q)
 
 	QVariantMap r;// = runQuery(q);
 	if (r.value("error").toBool()) {
-		emit databaseError(r.value("errorString").toString());
+//		emit databaseError(r.value("errorString").toString());
 		return ret;
 	}
 

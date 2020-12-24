@@ -31,6 +31,71 @@
 #include <QtSql>
 #include <QObject>
 
+class CosDbWorker : public QObject
+{
+	Q_OBJECT
+
+public:
+	CosDbWorker(const QString &connectionName, QObject *parent = nullptr);
+	~CosDbWorker();
+
+public slots:
+	void init();
+
+	QString connectionName() const { return m_connectionName; }
+	void setDatabaseName(QString databaseName) { QSqlDatabase::database(m_connectionName, false).setDatabaseName(databaseName); }
+	QString databaseName() const { return QSqlDatabase::database(m_connectionName, false).databaseName(); }
+
+	bool isOpen() const { return QSqlDatabase::database(m_connectionName, false).isOpen(); }
+	bool isValid() const { return QSqlDatabase::database(m_connectionName, false).isValid(); }
+	void setConnectOptions(const QString &options = QString()) { QSqlDatabase::database(m_connectionName, false).setConnectOptions(options); }
+	QString connectOptions() const { return QSqlDatabase::database(m_connectionName, false).connectOptions(); }
+	bool databaseExists() const { return (QFile::exists(QSqlDatabase::database(m_connectionName, false).databaseName())); }
+
+	bool open();
+	void close() { QSqlDatabase::database(m_connectionName, false).close(); }
+	void transaction() { QSqlDatabase::database(m_connectionName, false).transaction(); }
+	void commit() { QSqlDatabase::database(m_connectionName, false).commit(); }
+	void rollback() { QSqlDatabase::database(m_connectionName, false).rollback(); }
+
+	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
+
+	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
+	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
+	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(),
+						 QString *errorString = nullptr);
+	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(),
+					   const bool &parenthesizeValues = false, QString *errorString = nullptr);
+
+	void undoLogBegin(const QString &desc);
+	QVariantMap undo(const int &floor);
+	QVariantMap undoStack();
+
+
+signals:
+	void databaseError(const QString &text);
+
+private:
+	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
+	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
+	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) const;
+	QSqlQuery listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(),
+						const bool &parenthesizeValues = false) const;
+
+
+	QString m_connectionName;
+	QRecursiveMutex m_mutex;
+};
+
+
+
+/**
+ * @brief The CosDb class
+ */
+
 
 class CosDb : public QObject
 {
@@ -42,16 +107,22 @@ public:
 	explicit CosDb(const QString &connectionName = QString(), QObject *parent = nullptr);
 	virtual ~CosDb();
 
-	QSqlDatabase db() const { return m_db; }
-	QString databaseName() const { return m_db.databaseName(); }
+	QString databaseName();
 
-	bool isOpen() const { return m_db.isOpen(); }
-	bool isValid() const { return m_db.isValid(); }
+	CosDbWorker *worker() const { return m_worker; }
 
-	bool databaseExists() const { return (QFile::exists(m_db.databaseName())); }
+	bool isOpen() const;
+	bool isValid() const;
+	void transaction() const { QMetaObject::invokeMethod(m_worker, "transaction", Qt::BlockingQueuedConnection); }
+	void commit() const { QMetaObject::invokeMethod(m_worker, "commit", Qt::BlockingQueuedConnection); }
+	void rollback() const { QMetaObject::invokeMethod(m_worker, "rollback", Qt::BlockingQueuedConnection); }
 
-	void setConnectOptions(const QString &options = QString()) { m_db.setConnectOptions(options); }
-	QString connectOptions() const { return m_db.connectOptions(); }
+	bool databaseExists() const;
+
+	void setConnectOptions(const QString &options = QString()) {
+		QMetaObject::invokeMethod(m_worker, "setConnectOptions", Qt::BlockingQueuedConnection, Q_ARG(QString, options) );
+	}
+	QString connectOptions() const;
 
 	static QString hashPassword (const QString &password, QString *salt = nullptr,
 								 QCryptographicHash::Algorithm method = QCryptographicHash::Sha1);
@@ -64,13 +135,14 @@ public slots:
 
 
 	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
-	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
+	//bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
-	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(), QString *errorString = nullptr);
-	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false,
-					   QString *errorString = nullptr);
+	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(),
+						 QString *errorString = nullptr);
+	bool execListQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(),
+					   const bool &parenthesizeValues = false, QString *errorString = nullptr);
 
 
 	bool createUndoTables();
@@ -80,14 +152,16 @@ public slots:
 
 	int canUndo() const { return m_canUndo; }
 
-	void undoLogBegin(const QString &desc);
+	void undoLogBegin(const QString &desc) {
+		QMetaObject::invokeMethod(m_worker, "undoLogBegin", Qt::BlockingQueuedConnection, Q_ARG(QString, desc) );
+	}
 	void undoLogEnd();
 	void undo(const int &floor);
 	QVariantMap undoStack();
 	void clearUndo();
 
 	bool open();
-	void close() { m_db.close(); }
+	void close() { QMetaObject::invokeMethod(m_worker, "close", Qt::BlockingQueuedConnection); }
 	void setDatabaseName(QString databaseName);
 
 	QVariant get(const int &rowid, const QString &table, const QString &field);
@@ -98,27 +172,20 @@ protected slots:
 private slots:
 	void setCanUndo(int canUndo, const QString &undoString);
 
-	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
-	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
-	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) const;
-	QSqlQuery listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(), const bool &parenthesizeValues = false) const;
-
-	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 
 signals:
 	void canUndoChanged(int canUndo, const QString &undoString);
 	void undone();
-	void databaseError(const QString &text);
 	void databaseNameChanged(QString databaseName);
 
-protected:
-	QSqlDatabase m_db;
 
 private:
 	int m_canUndo;
 	bool m_isOwnCreated;
 	QStringList m_undoTables;
 	QStringList m_undoTriggers;
+	CosDbWorker *m_worker;
+	QThread m_workerThread;
 	QMutex m_mutex;
 };
 

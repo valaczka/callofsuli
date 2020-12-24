@@ -59,6 +59,7 @@ class AbstractActivity : public QQuickItem
 	Q_PROPERTY(int canUndo READ canUndo NOTIFY canUndoChanged)
 	Q_PROPERTY(QString canUndoString READ canUndoString WRITE setCanUndoString NOTIFY canUndoStringChanged)
 	Q_PROPERTY(CosDb* db MEMBER m_db NOTIFY dbChanged)
+	Q_PROPERTY(bool removeDatabase READ removeDatabase WRITE setRemoveDatabase NOTIFY removeDatabaseChanged)
 
 
 public:
@@ -109,8 +110,8 @@ public slots:
 
 	int canUndo() const;
 
-	void addDb(CosDb *db);
-
+	void addDb(CosDb *db, const bool &removeDatabase = false);
+	void setRemoveDatabase(bool removeDatabase);
 
 protected slots:
 	virtual void onMessageReceived(const CosMessage &) {}
@@ -131,6 +132,7 @@ signals:
 	void canUndoChanged(int canUndo);
 	void canUndoStringChanged(QString canUndoString);
 	void dbChanged(CosDb *db);
+	void removeDatabaseChanged(bool removeDatabase);
 
 protected:
 	Client* m_client;
@@ -142,6 +144,7 @@ private:
 	CosDb* m_db;
 	int m_runId;
 	QString m_canUndoString;
+	bool m_removeDatabase;
 
 public:
 
@@ -172,6 +175,10 @@ public:
 	QString canUndoString() const
 	{
 		return m_canUndoString;
+	}
+	bool removeDatabase() const
+	{
+		return m_removeDatabase;
 	}
 };
 

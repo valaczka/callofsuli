@@ -37,7 +37,24 @@
 
 #include <QVariant>
 #include <QDebug>
+#include <QException>
 #include "cosdb.h"
+
+#define GAMEMAP_CURRENT_VERSION 3
+
+
+class GameMapException : public QException
+{
+public:
+	void raise() const override { throw *this; }
+	GameMapException *clone() const override { return new GameMapException(*this); }
+};
+
+
+/**
+ * @brief The GameMap class
+ */
+
 
 class GameMap
 {
@@ -240,13 +257,13 @@ public:
 
 
 
-	GameMap(const QByteArray &uuid = QByteArray(), const QString &name = QString());
+	GameMap(const QByteArray &uuid = QByteArray());
 	~GameMap();
 
 	static GameMap* fromBinaryData(const QByteArray &data, QObject *target = nullptr, const QString &func = QString());
 	QByteArray toBinaryData() const;
 
-	static GameMap* example(const QString &name, const QByteArray &uuid);
+	static GameMap* example(const QByteArray &uuid);
 
 	static GameMap* fromDb(CosDb *db, QObject *target = nullptr, const QString &func = QString(), const bool &withImages = true);
 	bool toDb(CosDb *db) const;
@@ -255,7 +272,6 @@ public:
 	void deleteImages();
 
 	QByteArray uuid() const { return m_uuid; }
-	QString name() const { return m_name; }
 	QVector<Campaign *> campaigns() const { return m_campaigns; }
 	QVector<Chapter *> chapters() const { return m_chapters; }
 	QVector<Image *> images() const { return m_images; }
@@ -284,55 +300,54 @@ public:
 
 private:
 	void chaptersToStream(QDataStream &stream) const ;
-	void chaptersFromStream(QDataStream &stream);
-	void chaptersToDb(CosDb *db) const;
+	bool chaptersFromStream(QDataStream &stream);
+	bool chaptersToDb(CosDb *db) const;
 	void chaptersFromDb(CosDb *db);
 
 	void storagesToStream(QDataStream &stream) const ;
-	void storagesFromStream(QDataStream &stream);
-	void storagesToDb(CosDb *db) const;
+	bool storagesFromStream(QDataStream &stream);
+	bool storagesToDb(CosDb *db) const;
 	void storagesFromDb(CosDb *db);
 
 	void objectivesToStream(Chapter* chapter, QDataStream &stream) const ;
-	void objectivesFromStream(Chapter* chapter, QDataStream &stream);
-	void objectivesToDb(CosDb *db) const;
-	void objectivesFromDb(CosDb *db);
+	bool objectivesFromStream(Chapter* chapter, QDataStream &stream);
+	bool objectivesToDb(CosDb *db) const;
+	bool objectivesFromDb(CosDb *db);
 
 	void campaignsToStream(QDataStream &stream) const ;
-	void campaignsFromStream(QDataStream &stream);
-	void campaignsToDb(CosDb *db) const;
-	void campaingsFromDb(CosDb *db);
+	bool campaignsFromStream(QDataStream &stream);
+	bool campaignsToDb(CosDb *db) const;
+	bool campaingsFromDb(CosDb *db);
 
-	void missionsToStream(Campaign* campaign, QDataStream &stream) const ;
+	bool missionsToStream(Campaign* campaign, QDataStream &stream) const ;
 	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> missionsFromStream(Campaign* campaign, QDataStream &stream);
-	void missionsToDb(CosDb *db) const;
-	void missionsFromDb(CosDb *db);
-	void missionLocksToDb(CosDb *db) const;
+	bool missionsToDb(CosDb *db) const;
+	bool missionsFromDb(CosDb *db);
+	bool missionLocksToDb(CosDb *db) const;
 
 	void missionLevelsToStream(Mission *mission, QDataStream &stream) const;
-	void missionLevelsFromStream(Mission* mission, QDataStream &stream);
-	void missionLevelsToDb(CosDb *db) const;
-	void missionLevelsFromDb(CosDb *db);
+	bool missionLevelsFromStream(Mission* mission, QDataStream &stream);
+	bool missionLevelsToDb(CosDb *db) const;
+	bool missionLevelsFromDb(CosDb *db);
 
 	void blockChapterMapsToStream(MissionLevel *level, QDataStream &stream) const;
-	void blockChapterMapsFromStream(MissionLevel* level, QDataStream &stream);
-	void blockChapterMapsToDb(CosDb *db) const;
-	void blockChapterMapsFromDb(CosDb *db);
+	bool blockChapterMapsFromStream(MissionLevel* level, QDataStream &stream);
+	bool blockChapterMapsToDb(CosDb *db) const;
+	bool blockChapterMapsFromDb(CosDb *db);
 
 	void inventoriesToStream(MissionLevel *level, QDataStream &stream) const;
-	void inventoriesFromStream(MissionLevel* level, QDataStream &stream);
-	void inventoriesToDb(CosDb *db) const;
-	void inventoriesFromDb(CosDb *db);
+	bool inventoriesFromStream(MissionLevel* level, QDataStream &stream);
+	bool inventoriesToDb(CosDb *db) const;
+	bool inventoriesFromDb(CosDb *db);
 
 	void imagesToStream(QDataStream &stream) const ;
-	void imagesFromStream(QDataStream &stream);
+	bool imagesFromStream(QDataStream &stream);
 	void imagesFromDb(CosDb *db);
 
 	inline bool sendProgress(const qreal &progress) const;
 	inline static bool sendProgress(QObject *target, const QString &func, const qreal &progress);
 
 	QByteArray m_uuid;
-	QString m_name;
 	QVector<Campaign *> m_campaigns;
 	QVector<Chapter *> m_chapters;
 	QVector<Image *> m_images;

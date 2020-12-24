@@ -50,7 +50,14 @@
 #include "variantmapmodel.h"
 #include "serversettings.h"
 #include "mapeditor.h"
+#include "gameactivity.h"
 #include "cosdownloader.h"
+
+/*
+#ifdef Q_OS_ANDROID
+#include <QtAndroid>
+#endif
+*/
 
 QList<TerrainData> Client::m_availableTerrains = QList<TerrainData>();
 
@@ -197,6 +204,7 @@ void Client::registerTypes()
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
+	qmlRegisterType<GameActivity>("COS.Client", 1, 0, "GameActivity");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
@@ -782,6 +790,40 @@ void Client::setServerDataDir(QString resourceDbName)
 
 	m_serverDataDir = resourceDbName;
 	emit serverDataDirChanged(m_serverDataDir);
+}
+
+
+/**
+ * @brief Client::checkPermissions
+ */
+
+void Client::checkPermissions()
+{
+	/*
+#ifdef Q_OS_ANDROID
+	QtAndroid::PermissionResult result1 = QtAndroid::checkPermission("android.permission.READ_EXTERNAL_STORAGE");
+	QtAndroid::PermissionResult result2 = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+
+	QStringList permissions;
+
+	if (result1 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.READ_EXTERNAL_STORAGE");
+
+	if (result2 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.WRITE_EXTERNAL_STORAGE");
+
+	if (!permissions.isEmpty()) {
+		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
+
+		QList<QtAndroid::PermissionResult> results = resultHash.values();
+		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
+			emit storagePermissionsDenied();
+			return;
+		}
+	}
+#endif
+*/
+	emit storagePermissionsGranted();
 }
 
 void Client::setUserRankImage(QString userRankImage)

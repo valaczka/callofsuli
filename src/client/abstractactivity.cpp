@@ -44,11 +44,9 @@ AbstractActivity::AbstractActivity(QQuickItem *parent)
 	, m_downloader(nullptr)
 	, m_db(nullptr)
 	, m_runId(0)
-	//, m_workerThread(nullptr)
+	, m_canUndoString()
+	, m_removeDatabase(false)
 {
-	//m_db = new CosDb("testConn");
-	//m_workerThread = new QThread(this);
-	//m_db->moveToThread(m_workerThread);
 }
 
 /**
@@ -57,16 +55,17 @@ AbstractActivity::AbstractActivity(QQuickItem *parent)
 
 AbstractActivity::~AbstractActivity()
 {
-	/*if (m_workerThread) {
-		qDebug() << "stop thread" << m_workerThread;
+	if (m_db) {
+		if (m_removeDatabase) {
+			QString dbName = m_db->databaseName();
 
-		m_workerThread->quit();
-		m_workerThread->wait();
-		delete m_workerThread;
-	}*/
+			if (!m_db->isOpen())
+				m_db->close();
 
-	if (m_db)
+			QFile::remove(dbName);
+		}
 		delete m_db;
+	}
 }
 
 
@@ -113,7 +112,7 @@ void AbstractActivity::setClient(Client *client)
 		connect(m_client, &Client::messageFrameReceived, this, &AbstractActivity::onMessageFrameReceived);
 		clientSetup();
 		if (m_db) {
-			connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
+			connect(m_db->worker(), &CosDbWorker::databaseError, m_client, &Client::sendDatabaseError);
 		}
 
 		QWebSocket *socket = m_client->socket();
@@ -214,7 +213,7 @@ int AbstractActivity::canUndo() const
  * @param db
  */
 
-void AbstractActivity::addDb(CosDb *db)
+void AbstractActivity::addDb(CosDb *db, const bool &removeDatabase)
 {
 	if (m_db) {
 		qWarning() << "COSdb already exists";
@@ -223,15 +222,26 @@ void AbstractActivity::addDb(CosDb *db)
 
 	m_db = db;
 
+	setRemoveDatabase(removeDatabase);
+
 	emit dbChanged(m_db);
 
 	if (m_client)
-		connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
+		connect(m_db->worker(), &CosDbWorker::databaseError, m_client, &Client::sendDatabaseError);
 
 	connect(m_db, &CosDb::canUndoChanged, this, [=](int canUndo, const QString &canUndoString) {
 		emit canUndoChanged(canUndo);
 		setCanUndoString(canUndoString);
 	});
+}
+
+void AbstractActivity::setRemoveDatabase(bool removeDatabase)
+{
+	if (m_removeDatabase == removeDatabase)
+		return;
+
+	m_removeDatabase = removeDatabase;
+	emit removeDatabaseChanged(m_removeDatabase);
 }
 
 void AbstractActivity::setCanUndoString(QString canUndoString)

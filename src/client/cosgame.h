@@ -47,7 +47,7 @@
 
 class GamePlayer;
 class GameQuestion;
-
+class GameActivity;
 
 class CosGame : public Game
 {
@@ -66,7 +66,9 @@ class CosGame : public Game
 	Q_PROPERTY(QQuickItem * gameScene READ gameScene WRITE setGameScene NOTIFY gameSceneChanged)
 	Q_PROPERTY(QQuickItem * itemPage READ itemPage WRITE setItemPage NOTIFY itemPageChanged)
 	Q_PROPERTY(GameQuestion * question READ question NOTIFY questionChanged)
+	Q_PROPERTY(GameActivity * activity READ activity WRITE setActivity NOTIFY activityChanged)
 	Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
 	Q_PROPERTY(bool isPrepared READ isPrepared WRITE setIsPrepared NOTIFY isPreparedChanged)
 
@@ -107,7 +109,8 @@ public:
 	bool isPrepared() const { return m_isPrepared; }
 
 	QVariantMap levelData() const;
-
+	GameActivity * activity() const { return m_activity; }
+	int msecLeft() const { return m_msecLeft; }
 
 public slots:
 	void resetPlayer();
@@ -125,15 +128,20 @@ public slots:
 	void setQuestion(GameQuestion * question);
 	void setGameMatch(GameMatch * gameMatch);
 	void setIsPrepared(bool isPrepared);
+	void setActivity(GameActivity * activity);
 
 private slots:
 	void onPlayerDied();
 	void resetRunning();
 	void recalculateBlocks();
+	void onTimerTimeout();
+	void onGameStarted();
 
 signals:
 	void gameStarted();
 	void gameCompleted();
+	void gameTimeout();
+	void gameLost();
 	void gameAbortRequest();
 
 	void gameSceneLoaded();
@@ -157,6 +165,8 @@ signals:
 	void gameMatchChanged(GameMatch * gameMatch);
 	void isPreparedChanged(bool isPrepared);
 	void levelDataChanged(QVariantMap levelData);
+	void activityChanged(GameActivity * activity);
+	void msecLeftChanged(int msecLeft);
 
 private:
 	void loadGameData();
@@ -171,6 +181,9 @@ private:
 	GameTerrain * m_terrainData;
 	GameMatch * m_gameMatch;
 	bool m_isPrepared;
+	GameActivity * m_activity;
+	QTimer *m_timer;
+	int m_msecLeft;
 };
 
 #endif // COSGAME_H

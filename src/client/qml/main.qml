@@ -242,13 +242,21 @@ ApplicationWindow {
 	}
 
 
+	Connections {
+		target: cosClient
+
+		function onStoragePermissionsGranted() {
+			JS.createPage("Start", {})
+		}
+	}
+
+
 	Component.onCompleted: {
 		cosClient.windowSetIcon(mainWindow)
 		var fs = cosClient.windowRestoreGeometry(mainWindow)
 		if (fs > 0)
 			CosStyle.pixelSize = fs
 		cosClient.messageSent.connect(JS.dialogMessage)
-
-		JS.createPage("Start", {})
+		cosClient.checkPermissions()
 	}
 }

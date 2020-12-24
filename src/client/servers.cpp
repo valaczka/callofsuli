@@ -617,12 +617,14 @@ void Servers::reloadResources(QVariantMap resources)
 		connect(m_downloader, &CosDownloader::downloadFailed, m_client, &Client::closeConnection);
 	}
 
-	setIsBusy(true);
+	run(&Servers::_reloadResources, resources);
+
+	/*setIsBusy(true);
 
 	QFutureWatcher<void> www;
 	connect(&www, &QFutureWatcher<void>::finished, this, [=](){setIsBusy(false);});
 	QFuture<void> future = QtConcurrent::run(this, &Servers::_reloadResources, resources);
-	www.setFuture(future);
+	www.setFuture(future);*/
 
 }
 

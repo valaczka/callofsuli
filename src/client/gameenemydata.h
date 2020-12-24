@@ -51,7 +51,8 @@ class GameEnemyData : public QObject
 	Q_PROPERTY(GameBlock * block READ block WRITE setBlock NOTIFY blockChanged)
 
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
-	Q_PROPERTY(QVariantMap questionData READ questionData WRITE setQuestionData NOTIFY questionDataChanged)
+	Q_PROPERTY(int targetId READ targetId WRITE setTargetId NOTIFY targetIdChanged)
+	Q_PROPERTY(QByteArray objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
 
 	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
 	Q_PROPERTY(QQuickItem * enemy READ enemy NOTIFY enemyChanged)
@@ -75,7 +76,9 @@ public:
 	QQuickItem * enemy() const { return m_enemy; }
 	EnemyType enemyType() const { return m_enemyType; }
 	GameEnemy * enemyPrivate() const;
-	QVariantMap questionData() const { return m_questionData; }
+	int targetId() const { return m_targetId; }
+	QByteArray objectiveUuid() const { return m_objectiveUuid;
+	}
 
 public slots:
 	void setBoundRect(QRectF boundRect);
@@ -84,8 +87,9 @@ public slots:
 	void setEnemy(QQuickItem * enemy);
 	void setEnemyType(EnemyType enemyType);
 	void enemyDied();
-	void enemyKilled();
-	void setQuestionData(QVariantMap questionData);
+	void enemyKilled(GameEnemy *);
+	void setTargetId(int targetId);
+	void setObjectiveUuid(QByteArray objectiveUuid);
 
 signals:
 	void boundRectChanged(QRectF boundRect);
@@ -93,7 +97,8 @@ signals:
 	void blockChanged(GameBlock * block);
 	void enemyChanged(QQuickItem * enemy);
 	void enemyTypeChanged(EnemyType enemyType);
-	void questionDataChanged(QVariantMap questionData);
+	void targetIdChanged(int targetId);
+	void objectiveUuidChanged(QByteArray objectiveUuid);
 
 private:
 	QRectF m_boundRect;
@@ -101,7 +106,8 @@ private:
 	GameBlock * m_block;
 	QQuickItem *m_enemy;
 	EnemyType m_enemyType;
-	QVariantMap m_questionData;
+	int m_targetId;
+	QByteArray m_objectiveUuid;
 };
 
 #endif // GAMEENEMY_H

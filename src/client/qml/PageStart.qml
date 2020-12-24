@@ -150,7 +150,9 @@ QPage {
 		text: "Map Editor"
 		enabled: isCurrentItem
 		onTriggered: {
-			var o = JS.createPage("MapEditor", {}) //loadFileName: "/tmp/ttt.dat" })
+			var o = JS.createPage("MapEditor", {
+									  mapName: "első teszt file"
+								  }) //loadFileName: "/tmp/ttt.dat" })
 		}
 	}
 

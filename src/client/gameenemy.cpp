@@ -112,7 +112,7 @@ void GameEnemy::killByPlayer(GamePlayer *player)
 
 	setAimedByPlayer(false);
 
-	emit killed();
+	emit killed(this);
 
 	player->attackSuccesful(this);
 }

@@ -79,7 +79,7 @@ void GameQuestion::run()
 		return;
 	}
 
-	if (enemyData->questionData().isEmpty()) {
+	if (enemyData->targetId() == -1) {
 		qDebug() << "Empty question";
 		m_enemy->killByPlayer(m_player);
 		emit finished();
@@ -92,9 +92,9 @@ void GameQuestion::run()
 	QQuickItem *scene = m_game->gameScene();
 	m_question = nullptr;
 
-	QMetaObject::invokeMethod(scene, "createQuestion", Qt::AutoConnection,
+	QMetaObject::invokeMethod(scene, "createQuestion", Qt::DirectConnection,
 							  Q_RETURN_ARG(QQuickItem *, m_question),
-							  Q_ARG(QVariant, enemyData->questionData()));
+							  Q_ARG(QVariant, enemyData->targetId()));
 
 
 	if (m_question) {

@@ -13,6 +13,9 @@ QPage {
 	property bool _hasBack: false
 
 	defaultTitle: qsTr("Pályaszerkesztő")
+	defaultSubTitle: mapEditor.mapName
+
+	property alias mapName: mapEditor.mapName
 
 	property string loadFileName: cosClient.standardPath("ttt.dat")
 
@@ -242,7 +245,8 @@ QPage {
 			return true
 		}
 
-		mapEditor.removeDatabase()
+		mapEditor.removeImageProvider()
+
 		return false
 	}
 
@@ -263,7 +267,8 @@ QPage {
 			return true
 		}
 
-		mapEditor.removeDatabase()
+		mapEditor.removeImageProvider()
+
 		return false
 	}
 

@@ -45,6 +45,7 @@
 #include "gameenemydata.h"
 #include "gameplayer.h"
 #include "gamequestion.h"
+#include "gameactivity.h"
 #include "cosgame.h"
 
 CosGame::CosGame(QQuickItem *parent)
@@ -58,8 +59,15 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_terrainData(nullptr)
 	, m_gameMatch(nullptr)
 	, m_isPrepared(false)
+	, m_activity(nullptr)
+	, m_timer(new QTimer(this))
+	, m_msecLeft(0)
 {
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
+	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
+
+	connect(m_timer, &QTimer::timeout, this, &CosGame::onTimerTimeout);
+
 	loadGameData();
 }
 
@@ -76,6 +84,8 @@ CosGame::~CosGame()
 
 	if (m_terrainData)
 		m_terrainData->deleteLater();
+
+	delete m_timer;
 }
 
 
@@ -106,6 +116,7 @@ void CosGame::loadScene()
 	}
 
 	emit gameSceneLoaded();
+
 }
 
 
@@ -122,28 +133,29 @@ void CosGame::recreateEnemies()
 
 	qDebug() << "Recreate enemies";
 
-	foreach (GameBlock *block, m_terrainData->blocks()) {
+	QMap<int, GameBlock *>::const_iterator it;
+
+	for (it = m_terrainData->blocks().constBegin(); it != m_terrainData->blocks().constEnd(); ++it) {
+		GameBlock *block = it.value();
+
+	//foreach (GameBlock *block, m_terrainData->blocks()) {
 		if (block->completed()) {
-			qDebug() << "Block completed" << block;
+			qDebug() << "Block completed" << it.key() << block;
 			continue;
 		}
 
-		qDebug() << "Create enemies for block" << block;
+		qDebug() << "Create enemies for block" << it.key() << block;
 
 		foreach (GameEnemyData *data, block->enemies()) {
 			if (data->enemy())
 				continue;
 
-			if (QRandomGenerator::global()->generate() % 4) {
-				qDebug() << "add question";
-				QVariantMap m;
-				m.insert("szia", "szia");
-				data->setQuestionData(m);
-			}
+			if (m_activity)
+				m_activity->createTarget(data, it.key());
 
 			QQuickItem *enemy = nullptr;
 
-			QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::AutoConnection,
+			QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::DirectConnection,
 									  Q_RETURN_ARG(QQuickItem *, enemy),
 									  Q_ARG(int, data->enemyType()));
 
@@ -154,6 +166,9 @@ void CosGame::recreateEnemies()
 				GameEnemy *ep = data->enemyPrivate();
 				if (ep) {
 					ep->setEnemyData(data);
+
+					if (m_activity)
+						connect(ep, &GameEnemy::killed, m_activity, &GameActivity::onEnemyKilled);
 				}
 
 				resetEnemy(data);
@@ -267,7 +282,7 @@ void CosGame::resetPlayer()
 		return;
 	}
 
-	QMetaObject::invokeMethod(m_gameScene, "createPlayer", Qt::AutoConnection,
+	QMetaObject::invokeMethod(m_gameScene, "createPlayer", Qt::DirectConnection,
 							  Q_RETURN_ARG(QQuickItem *, m_player));
 
 	if (!m_player) {
@@ -448,6 +463,20 @@ void CosGame::setIsPrepared(bool isPrepared)
 	emit isPreparedChanged(m_isPrepared);
 }
 
+void CosGame::setActivity(GameActivity *activity)
+{
+	if (m_activity == activity)
+		return;
+
+	m_activity = activity;
+
+	if (m_activity) {
+		connect(m_activity, &GameActivity::prepareSucceed, this, &CosGame::startGame);
+	}
+
+	emit activityChanged(m_activity);
+}
+
 
 /**
  * @brief CosGame::onLayersLoaded
@@ -456,9 +485,13 @@ void CosGame::setIsPrepared(bool isPrepared)
 void CosGame::startGame()
 {
 	qDebug() << "START GAME";
+	m_msecLeft = m_gameMatch->duration()*1000;
+	emit msecLeftChanged(m_msecLeft);
+
 	recreateEnemies();
 
 	setIsPrepared(true);
+	setRunning(true);
 }
 
 
@@ -525,6 +558,43 @@ void CosGame::recalculateBlocks()
 		emit gameCompleted();
 	}
 }
+
+
+/**
+ * @brief CosGame::onTimerTimeout
+ */
+
+void CosGame::onTimerTimeout()
+{
+	m_msecLeft -= m_timer->interval();
+
+	if (m_msecLeft <= 0) {
+		m_timer->stop();
+		m_msecLeft = 0;
+		emit gameTimeout();
+	}
+
+	emit msecLeftChanged(m_msecLeft);
+}
+
+
+
+
+/**
+ * @brief CosGame::onGameStarted
+ */
+
+void CosGame::onGameStarted()
+{
+	resetPlayer();
+	m_timer->start(100);
+
+}
+
+
+
+
+
 
 
 
