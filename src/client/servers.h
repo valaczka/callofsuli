@@ -52,9 +52,6 @@ public:
 	Servers(QQuickItem *parent = nullptr);
 	~Servers();
 
-	void reloadResources(QVariantMap resources);
-	void registerResource(const QString &filename);
-	void unregisterResources();
 
 	VariantMapModel *serversModel() const { return m_serversModel; }
 	int connectedServerKey() const { return m_connectedServerKey; }
@@ -64,6 +61,10 @@ public:
 
 
 public slots:
+	void reloadResources(QVariantMap resources);
+	void registerResource(const QString &filename);
+	void unregisterResources();
+
 	void serverListReload();
 	void serverConnect(const int &index);
 	int serverInsertOrUpdate(const int &key, const QVariantMap &map);
@@ -80,7 +81,7 @@ public slots:
 protected slots:
 	void clientSetup() override;
 	void onMessageReceived(const CosMessage &message) override;
-	void onMessageFrameReceived(const CosMessage &message) override;
+	//void onMessageFrameReceived(const CosMessage &message) override;
 	void onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &);
 
 	void removeServerDir(const int &serverId);
@@ -94,6 +95,7 @@ protected slots:
 signals:
 	void serverListLoaded();
 	void resourceDownloadRequest(QString formattedDataSize);
+	void resourceRegisterRequest(QString filename);
 	void resourceReady();
 
 	void serversModelChanged(VariantMapModel* serversModel);

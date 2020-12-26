@@ -167,6 +167,7 @@ private slots:
 	void onSocketBinaryMessageReceived(const QByteArray &message);
 	void onSocketSslErrors(const QList<QSslError> &errors);
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
+	void onSocketBytesWritten(const qint64);
 
 	void setUserName(QString userName);
 	void setUserRoles(CosMessage::ClientRoles userRoles);
@@ -209,6 +210,8 @@ signals:
 	void settingsLoaded(const QJsonObject &data);
 	void settingsError();
 	void settingsSuccess();
+
+	void socketBytesToWrite(qint64 bytes);
 
 	void storagePermissionsGranted();
 	void storagePermissionsDenied();

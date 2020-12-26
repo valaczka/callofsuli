@@ -106,7 +106,7 @@ ToolBar {
 				QLabel {
 					id: labelTitle
 					font.pixelSize: CosStyle.pixelSize*1.1
-					font.weight: Font.Medium
+					font.weight: Font.Normal
 					color: CosStyle.colorAccentLighter
 					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
 					elide: Text.ElideRight
@@ -115,7 +115,7 @@ ToolBar {
 				QLabel {
 					id: labelSubtitle
 					font.pixelSize: CosStyle.pixelSize*0.8
-					font.weight: Font.Normal
+					font.weight: Font.Medium
 					color: CosStyle.colorPrimaryLighter
 					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
 					elide: Text.ElideRight

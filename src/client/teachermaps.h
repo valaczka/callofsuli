@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * student.h
+ * teachermaps.h
  *
- * Created on: 2020. 05. 31.
+ * Created on: 2020. 12. 26.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Student
+ * TeacherMaps
  *
  *  This file is part of Call of Suli.
  *
@@ -32,49 +32,33 @@
  * SOFTWARE.
  */
 
-#ifndef STUDENT_H
-#define STUDENT_H
+#ifndef TEACHERMAPS_H
+#define TEACHERMAPS_H
 
-#include <QObject>
 #include "abstractactivity.h"
-#include "../common/maprepository.h"
 
-class Student : public AbstractActivity
+class TeacherMaps : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(bool repositoryReady READ repositoryReady NOTIFY repositoryReadyChanged)
-
 public:
-	Student(QQuickItem *parent=nullptr);
-	~Student();
+	explicit TeacherMaps(QQuickItem *parent = nullptr);
+	~TeacherMaps();
 
-	void clientSetup() override;
-
-	MapRepository* mapRepository() const { return m_mapRepository; }
-
-	bool repositoryReady() const { return m_repositoryReady; }
 
 public slots:
-	void mapRepositoryOpen();
-	void setRepositoryReady(bool repositoryReady);
-	void mapDownload(const QString &uuid);
+
+
+protected slots:
+	//void clientSetup() override;
+	void onMessageReceived(const CosMessage &message) override;
 
 signals:
-	void mapRepositoryOpened(const QString &databaseFile);
-	void mapRepositoryOpenError(const QString &databaseFile);
-	void mapListLoaded(const QJsonArray &list);
-	void mapDataReceived(const QJsonObject &jsonData, const QByteArray &mapData);
-	void mapResultListLoaded(const QJsonArray &list);
-
-	void repositoryReadyChanged(bool repositoryReady);
-
-private slots:
-	void onJsonReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
+	void mapListLoaded(const QVariantList &list);
+	void mapLoaded(const QVariantMap &map);
 
 private:
-	MapRepository* m_mapRepository;
-	bool m_repositoryReady;
+
 };
 
-#endif // STUDENT_H
+#endif // TEACHERMAPS_H

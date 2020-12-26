@@ -64,7 +64,7 @@ QPage {
 				if (cosClient.userRoles & CosMessage.RoleTeacher)
 					list.model.append({
 										  labelTitle: qsTr("Pályák kezelése"),
-										  page: "TeacherMaps",
+										  page: "TeacherMap",
 										  params: {}
 									  })
 
@@ -96,6 +96,7 @@ QPage {
 										  page: "Login",
 										  params: {}
 									  })
+
 
 				list.forceActiveFocus()
 			}
@@ -146,7 +147,7 @@ QPage {
 
 
 	function windowClose() {
-		return true
+		return false
 	}
 
 	function pageStackBack() {

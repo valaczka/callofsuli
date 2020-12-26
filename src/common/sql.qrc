@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>commonsql/maprepository.sql</file>
-    </qresource>
-</RCC>

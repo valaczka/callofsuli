@@ -33,7 +33,6 @@
 
 #include "../3rdparty/smtpclient/SmtpMime"
 #include "../common/cosdb.h"
-#include "../common/maprepository.h"
 #include "../common/cosmessage.h"
 
 class Server;
@@ -56,7 +55,8 @@ public:
 
 	ClientState clientState() const { return m_clientState; }
 	QString clientUserName() const { return m_clientUserName; }
-	CosDb *db() const { return m_db; }
+	CosDb *db() const;
+	CosDb *mapsDb() const;
 	CosMessage::ClientRoles clientRoles() const { return m_clientRoles; }
 	QWebSocket *socket() const { return m_socket; }
 	Server *server() const { return m_server; }
@@ -93,7 +93,6 @@ signals:
 
 private:
 	Server *m_server;
-	CosDb *m_db;
 	QWebSocket *m_socket;
 
 	ClientState m_clientState;

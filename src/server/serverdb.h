@@ -45,8 +45,7 @@ class ServerDb : public CosDb
 public:
 	ServerDb(const QString &connectionName = "serverDb", QObject *parent = nullptr);
 
-protected slots:
-	bool databaseInit() override;
+	bool databaseInit();
 };
 
 #endif // SERVERDB_H

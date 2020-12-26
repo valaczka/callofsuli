@@ -35,7 +35,6 @@
 #include "../common/cosmessage.h"
 #include "cosclient.h"
 #include "servers.h"
-#include "teacher.h"
 #include "cosgame.h"
 #include "gameentity.h"
 #include "gameplayer.h"
@@ -45,13 +44,13 @@
 #include "gameenemysoldier.h"
 #include "gameterrain.h"
 #include "gamematch.h"
-#include "student.h"
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
 #include "serversettings.h"
 #include "mapeditor.h"
 #include "gameactivity.h"
 #include "cosdownloader.h"
+#include "teachermaps.h"
 
 /*
 #ifdef Q_OS_ANDROID
@@ -86,6 +85,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onSocketBinaryFrameReceived);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
 	connect(m_socket, &QWebSocket::sslErrors, this, &Client::onSocketSslErrors);
+	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
 			[=](QAbstractSocket::SocketError error){
 		qDebug().noquote() << tr("Socket error") << error;
@@ -198,8 +198,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
-	qmlRegisterType<Student>("COS.Client", 1, 0, "Student");
-	qmlRegisterType<Teacher>("COS.Client", 1, 0, "Teacher");
+	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
@@ -300,7 +299,7 @@ void Client::windowSetIcon(QQuickWindow *window)
 
 void Client::standardPathCreate()
 {
-	QDir d(QStandardPaths::standardLocations(QStandardPaths::DataLocation).first());
+	QDir d(QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0));
 	if (!d.exists()) {
 		qInfo().noquote() << tr("Create directory ") + d.absolutePath();
 		d.mkpath(d.absolutePath());
@@ -317,7 +316,7 @@ void Client::standardPathCreate()
 
 QString Client::standardPath(const QString &path)
 {
-	return QStandardPaths::standardLocations(QStandardPaths::DataLocation).first()+"/"+path;
+	return QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0)+"/"+path;
 }
 
 
@@ -1211,6 +1210,17 @@ void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
 	else if (m_connectionState == Disconnected && state == QAbstractSocket::ConnectingState)
 		setConnectionState(Reconnecting);
 
+}
+
+
+/**
+ * @brief Client::onSocketBytesWritten
+ * @param bytes
+ */
+
+void Client::onSocketBytesWritten(const qint64)
+{
+	emit socketBytesToWrite(m_socket->bytesToWrite());
 }
 
 

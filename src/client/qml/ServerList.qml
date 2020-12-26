@@ -76,7 +76,7 @@ QPagePanel {
 		onClicked: if (servers.editing)
 					   actionEdit.trigger()
 				   else
-					   servers.serverConnect(sourceIndex)
+					   servers.serverConnect(serverList.model.mapToSource(index))
 
 		onRightClicked: contextMenu.popup()
 		onLongPressed: contextMenu.popup()
@@ -132,7 +132,7 @@ QPagePanel {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
 		enabled: serverList.currentIndex !== -1
-		onTriggered: servers.serverConnect(serverList.sourceIndex)
+		onTriggered: servers.serverConnect(serverList.model.mapToSource(serverList.currentIndex))
 
 	}
 
@@ -141,7 +141,7 @@ QPagePanel {
 		text: qsTr("Szerkesztés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
-			servers.serverKey = serverList.sourceVariantMapModel.getKey(serverList.sourceIndex)
+			servers.serverKey = serverList.sourceVariantMapModel.getKey(serverList.model.mapToSource(serverList.currentIndex))
 			servers.editing = true
 		}
 	}
@@ -163,7 +163,7 @@ QPagePanel {
 				})
 				dd.open()
 			} else {
-				var si = serverList.sourceIndex
+				var si = serverList.model.mapToSource(serverList.currentIndex)
 				var o = serverList.model.get(serverList.currentIndex)
 
 				var d = JS.dialogCreateQml("YesNo", {
@@ -184,7 +184,7 @@ QPagePanel {
 		text: qsTr("Automata csatlakozás")
 		enabled: serverList.currentIndex !== -1
 		onTriggered:  {
-			servers.serverSetAutoConnect(serverList.sourceIndex)
+			servers.serverSetAutoConnect(serverList.model.mapToSource(serverList.currentIndex))
 		}
 	}
 

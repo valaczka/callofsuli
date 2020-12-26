@@ -35,6 +35,7 @@ SOURCES += \
 		main.cpp \
 		server.cpp \
 		serverdb.cpp \
+		teachermap.cpp \
 		userinfo.cpp
 
 HEADERS += \
@@ -43,6 +44,7 @@ HEADERS += \
 	client.h \
 	server.h \
 	serverdb.h \
+	teachermap.h \
 	userinfo.h
 
 RESOURCES += \

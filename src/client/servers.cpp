@@ -44,6 +44,8 @@ Servers::Servers(QQuickItem *parent)
 	, m_serverTryConnectKey(-1)
 {
 	m_serversModel = new VariantMapModel(&m_serverList, createFullMap().keys(), this);
+
+	connect(this, &Servers::resourceRegisterRequest, this, &Servers::registerResource);
 }
 
 
@@ -108,16 +110,6 @@ void Servers::onMessageReceived(const CosMessage &message)
 	}
 }
 
-
-/**
- * @brief Servers::onMessageFrameReceived
- * @param message
- */
-
-void Servers::onMessageFrameReceived(const CosMessage &message)
-{
-
-}
 
 
 /**
@@ -576,7 +568,8 @@ void Servers::_reloadResources(QVariantMap resources)
 
 				m_downloader->append(data);
 
-				registerResource(localFile);
+				//registerResource(localFile);
+				emit resourceRegisterRequest(localFile);
 				continue;
 			}
 		}
@@ -671,8 +664,11 @@ void Servers::unregisterResources()
 
 	QQmlEngine *engine = qmlEngine(this);
 
-	foreach (QString s, m_sqlImageProviders)
-		engine->removeImageProvider(s);
+	qDebug() << "Remove image providers from engine" << engine << m_sqlImageProviders;
+
+	if (engine)
+		foreach (QString s, m_sqlImageProviders)
+			engine->removeImageProvider(s);
 
 	m_sqlImageProviders.clear();
 

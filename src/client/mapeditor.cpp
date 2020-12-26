@@ -195,9 +195,10 @@ void MapEditor::saveToFilePrivate(QVariantMap data)
 
 	emit saveFinished();
 
+	emit binaryDataReady(d);
+
 	delete game;
 }
-
 
 
 
@@ -259,7 +260,8 @@ void MapEditor::removeImageProvider()
 {
 	qDebug() << "Remove image provider";
 	QQmlEngine *engine = qmlEngine(this);
-	engine->removeImageProvider("mapdb");
+	if (engine)
+		engine->removeImageProvider("mapdb");
 }
 
 
@@ -514,18 +516,12 @@ void MapEditor::saveToFile(QVariantMap data)
 
 void MapEditor::createNew(QVariantMap data)
 {
-	qDebug() << "create New thread" << QThread::currentThread();
-
 	db()->open();
 
 	emit loadStarted();
 
 	AbstractActivity::run(&MapEditor::createNewPrivate, data);
 }
-
-
-
-
 
 
 

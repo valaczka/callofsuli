@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstractobjective.cpp
+ * teachermap.h
  *
- * Created on: 2020. 05. 16.
+ * Created on: 2020. 12. 26.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * AbstractObjective
+ * TeacherMap
  *
  *  This file is part of Call of Suli.
  *
@@ -32,19 +32,29 @@
  * SOFTWARE.
  */
 
-#include "abstractobjective.h"
+#ifndef TEACHERMAP_H
+#define TEACHERMAP_H
 
-AbstractObjective::AbstractObjective(const QString &module, AbstractStorage *storage)
-	: m_module(module)
-	, m_storage(storage)
-	, m_computation(0,0,0,0)
+#include "abstracthandler.h"
+#include <QObject>
+
+class Client;
+
+class TeacherMap : public AbstractHandler
 {
+	Q_OBJECT
 
-}
+public:
+	explicit TeacherMap(Client *client, const CosMessage &message);
 
-AbstractObjective::~AbstractObjective()
-{
+	bool classInit() override;
 
-}
+public slots:
+	bool uploadTest(QJsonObject *jsonResponse, QByteArray *);
+	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool mapCreate(QJsonObject *jsonResponse, QByteArray *);
+	bool mapGet(QJsonObject *jsonResponse, QByteArray *byteArrayResponse);
 
+};
 
+#endif // TEACHERMAP_H

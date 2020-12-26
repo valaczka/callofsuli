@@ -148,6 +148,7 @@ signals:
 	void saveStarted();
 	void saveFinished();
 	void saveFailed();
+	void binaryDataReady(const QByteArray &data);
 
 	void playReady(GameMatch *gameMatch);
 	void playFailed();

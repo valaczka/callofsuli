@@ -18,8 +18,6 @@ QPage {
 	property bool _firstRun: true
 	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
 
-	mainToolBar.visible: isDisconnected
-
 	activity: Servers {
 		id: servers
 
@@ -157,16 +155,6 @@ QPage {
 	}
 
 
-	Action {
-		id: tmXtest
-		shortcut: "F2"
-		text: "TMX"
-		enabled: isCurrentItem
-		onTriggered: {
-			var o = JS.createPage("TMXtest", {})
-		}
-	}
-
 
 	Connections {
 		target: cosClient
@@ -186,7 +174,7 @@ QPage {
 
 
 	function windowClose() {
-		return true
+		return false
 	}
 
 	function pageStackBack() {

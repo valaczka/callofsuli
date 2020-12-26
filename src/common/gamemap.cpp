@@ -226,7 +226,7 @@ GameMap *GameMap::example(const QByteArray &uuid)
 	GameMap::Chapter *ch2 = new GameMap::Chapter(20, "Fejezet 20");
 	GameMap::Chapter *ch3 = new GameMap::Chapter(21, "Fejezet 21");
 
-	QVariantMap m;
+	/*QVariantMap m;
 	m["szia"] = "lkjklj";
 	m["másik"] = 5;
 	m["valami"] = true;
@@ -344,8 +344,16 @@ GameMap *GameMap::example(const QByteArray &uuid)
 	ml2->addInvetory(new Inventory(0, "bullet", 3));
 	ml2->addInvetory(new Inventory(1, "weapon", 3));
 	ml2->addInvetory(new Inventory(1, "gun", 3));
+*/
 
+	QFile f("/home/valaczka/Projektek/callofsuli-resources/gate.png");
+	if (f.open(QIODevice::ReadOnly)) {
+		QByteArray b = f.readAll();
+		f.close();
 
+		for (int i=0; i<5; ++i)
+			map->addImage(new Image("test", QString("file%1").arg(i), b));
+	}
 
 	return map;
 }
@@ -791,7 +799,7 @@ bool GameMap::chaptersToDb(CosDb *db) const
 			return false;
 	}
 
-return true;
+	return true;
 }
 
 

@@ -47,7 +47,8 @@ Server::Server(QObject *parent)
 {
 	m_socketServer = nullptr;
 	m_serverDir = "";
-	m_db = new ServerDb("serverDb", this);
+	m_db = new CosDb("serverDb", this);
+	m_mapsDb = new CosDb("mapsDb", this);
 
 	m_versionMajor = 0;
 	m_versionMinor = 0;
@@ -70,6 +71,7 @@ Server::~Server()
 
 	qDeleteAll(m_clients.begin(), m_clients.end());
 
+	delete m_mapsDb;
 	delete m_db;
 }
 
@@ -86,9 +88,7 @@ bool Server::start()
 		return false;
 
 	m_db->setDatabaseName(m_serverDir+"/main.db");
-
-	if (!m_db->open())
-		return false;
+	m_mapsDb->setDatabaseName(m_serverDir+"/maps.db");
 
 	if (!databaseLoad())
 		return false;
@@ -189,7 +189,7 @@ bool Server::serverDirCheck()
 	if (m_serverDir.isEmpty()) {
 		qInfo().noquote() << tr("Nincs megadva adatbáziskönyvtár, az alapértelmezett lesz használva.");
 
-		QString dir = QStandardPaths::standardLocations(QStandardPaths::DataLocation).first();
+		QString dir = QStandardPaths::standardLocations(QStandardPaths::DataLocation).value(0);
 
 		setServerDir(dir);
 		m_createDb = true;
@@ -224,10 +224,21 @@ bool Server::serverDirCheck()
 
 bool Server::databaseLoad()
 {
+	if (!m_db->open())
+		return false;
+
+	if (!m_mapsDb->open())
+		return false;
+
 	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system");
 
 	if (m.isEmpty()) {
 		qWarning() << tr("Az adatbázis üres, előkészítem.");
+
+		if (!m_db->batchQueryFromFile(":/sql/init.sql")) {
+			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_db->databaseName());
+			return false;
+		}
 
 		QVariantMap params;
 		params["versionMajor"] = m_serverVersionMajor;
@@ -266,6 +277,18 @@ bool Server::databaseLoad()
 		setServerName(m.value("serverName").toString());
 		m_versionMajor = m.value("versionMajor").toInt();
 		m_versionMinor = m.value("versionMinor").toInt();
+	}
+
+
+	QVariantList tables = m_mapsDb->execSelectQuery("SELECT name FROM sqlite_master WHERE type ='table' AND name='maps'");
+
+	if (tables.isEmpty()) {
+		qWarning() << tr("A pályaadatbázis üres, előkészítem.");
+
+		if (!m_mapsDb->batchQueryFromFile(":/sql/maps.sql")) {
+			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_mapsDb->databaseName());
+			return false;
+		}
 	}
 
 	qInfo().noquote() << tr("Az adatbázis betöltve: ")+m_serverName;

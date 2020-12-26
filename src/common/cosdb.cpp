@@ -164,31 +164,20 @@ QString CosDb::connectOptions() const
 
 bool CosDb::batchQuery(const QString &query)
 {
-	/*	QMutexLocker locker(&m_mutex);
-
-	QSqlQuery q(m_db);
-
-	qDebug().noquote() << "SQL batch query ----------";
-
 	QStringList list = query.split("\n\n", Qt::SkipEmptyParts);
-	foreach (QString cmd, list) {
-		QString c = cmd.simplified();
 
-		if (c.isEmpty())
-			continue;
+	bool ret = false;
 
-		qDebug().noquote() << c;
-		if (!q.exec(c)) {
-			qWarning().noquote() << tr("SQL error: ")+q.lastError().text();
-			return false;
-		}
-	}
+	QMetaObject::invokeMethod(m_worker, "execSimpleQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QStringList, list),
+							  Q_ARG(QString*, nullptr)
+							  );
 
-	qDebug().noquote() << "SQL batch query end ------";
-*/
-
-	return true;
+	return ret;
 }
+
+
 
 
 /**
@@ -232,6 +221,29 @@ bool CosDb::execSimpleQuery(QString query, const QVariantList &args, QString *er
 							  Q_RETURN_ARG(bool, ret),
 							  Q_ARG(QString, query),
 							  Q_ARG(QVariantList, args),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+/**
+ * @brief CosDb::execBatchQuery
+ * @param query
+ * @param list
+ * @param errorString
+ * @return
+ */
+
+bool CosDb::execBatchQuery(QString query, const QVariantList &list, QString *errorString)
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "execBatchQuery", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, list),
 							  Q_ARG(QString*, errorString)
 							  );
 
@@ -303,8 +315,6 @@ int CosDb::execInsertQuery(QString query, const QVariantMap &map, QString *error
 							  Q_ARG(QVariantMap, map),
 							  Q_ARG(QString*, errorString)
 							  );
-
-	qDebug() << "inSERT" << ret << query << map;
 
 	return ret;
 }
@@ -577,6 +587,45 @@ bool CosDbWorker::execSimpleQuery(QString query, const QVariantList &args, QStri
 
 	return err.isEmpty();
 }
+
+
+/**
+ * @brief CosDbWorker::execSimpleQuery
+ * @param queries
+ * @param errorString
+ * @return
+ */
+
+bool CosDbWorker::execSimpleQuery(QStringList queries, QString *errorString)
+{
+	QMutexLocker locker(&m_mutex);
+
+	qDebug().noquote() << "SQL batch query ----------";
+
+	foreach (QString cmd, queries) {
+		QString c = cmd.simplified();
+
+		if (c.isEmpty())
+			continue;
+
+		QString err;
+
+		execQuery(simpleQuery(cmd), &err);
+
+		if (errorString)
+			(*errorString) = err;
+
+		if (!err.isEmpty()) {
+			qWarning().noquote() << "SQL batch query error" << err;
+			return false;
+		}
+	}
+
+	qDebug().noquote() << "SQL batch query end ------";
+	return true;
+}
+
+
 
 
 /**
@@ -944,16 +993,28 @@ void CosDb::undoLogEnd()
 
 
 
+/**
+ * @brief CosDb::undo
+ * @param floor
+ */
+
+
 void CosDb::undo(const int &floor)
 {
-	/*QMutexLocker locker(&m_mutex);
+	QVariantMap ret;
 
-	QVariantMap r = m_worker->undo(floor);
+	QMetaObject::invokeMethod(m_worker, "undo", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QVariantMap, ret),
+							  Q_ARG(int, floor)
+							  );
 
-	setCanUndo(r.value("id",-1).toInt(), r.value("desc").toString());
+	setCanUndo(ret.value("id",-1).toInt(), ret.value("desc").toString());
 
-	emit undone();*/
+	emit undone();
 }
+
+
+
 
 
 /**
@@ -963,8 +1024,16 @@ void CosDb::undo(const int &floor)
 
 QVariantMap CosDb::undoStack()
 {
+	QVariantMap ret;
 
+	QMetaObject::invokeMethod(m_worker, "undoStack", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QVariantMap, ret)
+							  );
+
+	return ret;
 }
+
+
 
 
 
@@ -1093,8 +1162,6 @@ bool CosDbWorker::open()
 
 	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
-	bool isOwn = false;
-
 	QString dbName = m_db.databaseName();
 
 	if (dbName.isEmpty() || dbName == ":memory:") {
@@ -1110,8 +1177,6 @@ bool CosDbWorker::open()
 		if (!m_db.isOpen()) {
 			if (!QFile::exists(dbName)) {
 				qDebug() << tr("Új adatbázis létrehozása") << dbName;
-
-				isOwn = true;
 			}
 
 			if (!m_db.open()) {
@@ -1120,20 +1185,6 @@ bool CosDbWorker::open()
 				emit databaseError(m_db.lastError().text());
 				return false;
 			}
-
-			/*if (isOwn) {
-				qWarning() << tr("Nem lehet létrehozni az adatbázist:") << dbName;
-				emit databaseError(tr("Nem lehet létrehozni az adatbázist: ")+dbName);
-
-				qInfo() << tr("Az adatbázis félkész, törlöm:") << dbName;
-				m_db.close();
-
-				if (dbName != ":memory:" && !QFile::remove(dbName)) {
-					qWarning() << tr("Nem sikerült törölni a hibás adatbázist: ") << dbName;
-				}
-
-				return false;
-			}*/
 		}
 	}
 
@@ -1142,8 +1193,6 @@ bool CosDbWorker::open()
 
 	q.exec("PRAGMA foreign_keys = ON");
 	q.finish();
-
-	qDebug() << q.isActive() << q.isValid() << q.lastError();
 
 	qDebug().noquote() << tr("Adatbázis megnyitva: ") << (dbName.isEmpty() ? ":memory:" : dbName);
 

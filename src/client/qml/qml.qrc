@@ -6,7 +6,6 @@
         <file>qtquickcontrols2.conf</file>
         <file>_Page.qml</file>
         <file>ServerEdit.qml</file>
-        <file>QAnimatedText.qml</file>
         <file>QButton.qml</file>
         <file>QCosImage.qml</file>
         <file>QDialogMain.qml</file>
@@ -29,12 +28,10 @@
         <file>QDialogTextField.qml</file>
         <file>QToolBusyIndicator.qml</file>
         <file>QListItemDelegate.qml</file>
-        <file>_QPageHeaderOLD.qml</file>
         <file>QCollapsible.qml</file>
         <file>QAccordion.qml</file>
         <file>QRemoveButton.qml</file>
         <file>QSpinBox.qml</file>
-        <file>QCloseButton.qml</file>
         <file>QComboBox.qml</file>
         <file>QGridSpinBox.qml</file>
         <file>QTextArea.qml</file>
@@ -68,7 +65,6 @@
         <file>QDialogUserList.qml</file>
         <file>PageMaps.qml</file>
         <file>QMenuItemDelegate.qml</file>
-        <file>PageTMXtest.qml</file>
         <file>GamePlayer.qml</file>
         <file>VirtualJoystick.qml</file>
         <file>GameEnemySoldier.qml</file>
@@ -80,7 +76,6 @@
         <file>GameQuestion.qml</file>
         <file>QPage.qml</file>
         <file>PageStart.qml</file>
-        <file>QObjectItemProxyList.qml</file>
         <file>QVariantMapProxyView.qml</file>
         <file>_PagePanel.qml</file>
         <file>PageMapEditor.qml</file>
@@ -98,5 +93,7 @@
         <file>MapEditorLevelChapters.qml</file>
         <file>MapEditorLevelInventory.qml</file>
         <file>PageGame.qml</file>
+        <file>PageTeacherMap.qml</file>
+        <file>TeacherMapList.qml</file>
     </qresource>
 </RCC>

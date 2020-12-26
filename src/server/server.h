@@ -36,7 +36,6 @@
 #include <QtNetwork/QSslKey>
 #include <QtNetwork/QSslSocket>
 
-#include "serverdb.h"
 #include "client.h"
 
 class Server : public QObject
@@ -45,7 +44,8 @@ class Server : public QObject
 
 	Q_PROPERTY(QString serverDir READ serverDir WRITE setServerDir NOTIFY serverDirChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
-	Q_PROPERTY(ServerDb * db READ db)
+	Q_PROPERTY(CosDb * db READ db)
+	Q_PROPERTY(CosDb * mapsDb READ mapsDb)
 	Q_PROPERTY(QVariantMap resources READ resources WRITE setResources NOTIFY resourcesChanged)
 
 	const int m_serverVersionMajor;
@@ -66,9 +66,12 @@ private:
 	bool m_createDb;
 
 	QList<Client *> m_clients;
-	ServerDb * m_db;
+	CosDb *m_db;
+	CosDb *m_mapsDb;
+
 	QVariantMap m_resourceMap;
 	QVariantMap m_resources;
+
 
 public:
 	explicit Server(QObject *parent = nullptr);
@@ -90,7 +93,8 @@ public:
 	QByteArray resourceContent(const QString &filename, QString *md5 = nullptr) const;
 
 	QWebSocketServer *socketServer() const { return m_socketServer; }
-	ServerDb * db() const { return m_db; }
+	CosDb * db() const { return m_db; }
+	CosDb * mapsDb() const { return m_mapsDb; }
 	QList<Client *> clients() const { return m_clients; }
 	QVariantMap resourceMap() const { return m_resourceMap; }
 	QVariantMap resources() const { return m_resources; }

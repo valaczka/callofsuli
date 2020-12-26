@@ -37,18 +37,9 @@
 
 #include <QVariant>
 #include <QDebug>
-#include <QException>
 #include "cosdb.h"
 
 #define GAMEMAP_CURRENT_VERSION 3
-
-
-class GameMapException : public QException
-{
-public:
-	void raise() const override { throw *this; }
-	GameMapException *clone() const override { return new GameMapException(*this); }
-};
 
 
 /**

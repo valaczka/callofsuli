@@ -1,9 +1,9 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermaps.h
+ * teachermaps.cpp
  *
- * Created on: 2020. 03. 29.
+ * Created on: 2020. 12. 26.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * TeacherMaps
@@ -32,41 +32,43 @@
  * SOFTWARE.
  */
 
-#ifndef TEACHER_H
-#define TEACHER_H
+#include "teachermaps.h"
 
-#include <QObject>
-#include "abstractactivity.h"
 
-class Teacher : public AbstractActivity
+TeacherMaps::TeacherMaps(QQuickItem *parent)
+	: AbstractActivity(parent)
 {
-	Q_OBJECT
 
-public:
-	Teacher(QQuickItem *parent=nullptr);
+}
 
-	void clientSetup() override;
+/**
+ * @brief TeacherMaps::~TeacherMaps
+ */
 
-signals:
-	void mapListLoaded(const QJsonArray &list);
-	void mapCreated(const QJsonObject &map);
-	void mapReceived(const QJsonObject &jsonData);
-	void mapDataReceived(const QJsonObject &jsonData, const QByteArray &mapData);
-	void mapUpdated(const QJsonObject &mapData);
-	void mapRemoved(const QJsonObject &mapData);
+TeacherMaps::~TeacherMaps()
+{
 
-	void groupListLoaded(const QJsonArray &list);
-	void groupCreated(const QJsonObject &groupData);
-	void groupReceived(const QJsonObject &groupData);
-	void groupUpdated(const QJsonObject &groupData);
-	void groupRemoved(const QJsonObject &groupData);
-	void groupExcludedMapsReceived(const QJsonObject &groupData);
-	void groupExcludedClassesReceived(const QJsonObject &groupData);
-	void groupExcludedUsersReceived(const QJsonObject &groupData);
+}
 
-private slots:
-	void onJsonMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void onJsonGroupsReceived(const QJsonObject &object, const QByteArray &, const int &clientMsgId);
-};
 
-#endif // TEACHERMAPS_H
+/**
+ * @brief TeacherMaps::onMessageReceived
+ * @param message
+ */
+
+void TeacherMaps::onMessageReceived(const CosMessage &message)
+{
+	QString func = message.cosFunc();
+	QJsonObject d = message.jsonData();
+
+	if (message.cosClass() == CosMessage::ClassTeacherMap) {
+		if (func == "mapListGet") {
+			emit mapListLoaded(d.value("list").toArray().toVariantList());
+		} else if (func == "mapCreate") {
+			if (d.value("created").toBool())
+				send(CosMessage::ClassTeacherMap, "mapListGet");
+		} else if (func == "mapGet") {
+			emit mapLoaded(d.toVariantMap());
+		}
+	}
+}

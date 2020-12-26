@@ -9,31 +9,46 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	//requiredPanelWidth: 900
-
-	title: ""
-	subtitle: ""
-
-	mainToolBarComponent: QToolBusyIndicator { running: true }
+	defaultTitle: qsTr("")
+	defaultSubTitle: ""
 
 
-	//mainMenuFunc: function(m) {}
-	//contextMenuFunc: function(m) {}
+	mainToolBarComponent: QToolButton {
+			action: actionSave
+		}
 
-	panelComponents: [
+
+	activity: AbstractActivity {
+
+	}
+
+
+	property list<Component> listComponents: [
 		Component { QPagePanel {
 				panelVisible: true
 				layoutFillWidth: true
 			} }
 	]
 
-	onPageActivated: {
+	panelComponents: listComponents
+
+
+	mainMenuFunc: function (m) {
+		m.addAction(actionSave)
 	}
+
+
+
+	onPageActivated: {
+
+	}
+
 
 
 	function windowClose() {
-		return true
+		return false
 	}
+
 
 	function pageStackBack() {
 		return false

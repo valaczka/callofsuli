@@ -61,6 +61,7 @@ public slots:
 	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 
 	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	bool execSimpleQuery(QStringList queries, QString *errorString = nullptr);
 	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
@@ -135,7 +136,7 @@ public slots:
 
 
 	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
-	//bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
+	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
@@ -166,8 +167,6 @@ public slots:
 
 	QVariant get(const int &rowid, const QString &table, const QString &field);
 
-protected slots:
-	virtual bool databaseInit() { return true; };
 
 private slots:
 	void setCanUndo(int canUndo, const QString &undoString);

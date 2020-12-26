@@ -153,36 +153,10 @@ void AbstractActivity::busyStackRemove(const CosMessage::CosClass &cosClass, con
 	setIsBusy(m_busyStack.count());
 }
 
-
 /**
- * @brief AbstractActivity::setDb
- * @param db
+ * @brief AbstractActivity::setDownloader
+ * @param downloader
  */
-
-/*
-void AbstractActivity::setDb(ActivityDB *db)
-{
-	if (m_db == db)
-		return;
-
-	m_db = db;
-
-	if (!m_db)
-		return;
-
-	connect(m_db, &CosDb::canUndoChanged, this, &AbstractActivity::canUndoChanged);
-
-	if (!m_workerThread) {
-		m_workerThread = new QThread(this);
-		m_db->moveToThread(m_workerThread);
-	}
-
-	m_db->setClient(m_client);
-	if (m_client)
-		connect(m_db, &CosDb::databaseError, m_client, &Client::sendDatabaseError);
-}
-*/
-
 
 void AbstractActivity::setDownloader(CosDownloader *downloader)
 {

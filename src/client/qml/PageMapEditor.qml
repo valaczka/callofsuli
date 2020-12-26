@@ -148,6 +148,10 @@ QPage {
 				levelComponentsCompleted = 0
 			}
 		}
+
+		onBinaryDataReady: {
+			mapEditor.send(CosMessage.ClassTeacherMap, "uploadTest", {filename: loadFileName}, data)
+		}
 	}
 
 

@@ -368,7 +368,7 @@ bool Admin::setSettings(QJsonObject *jsonResponse, QByteArray *)
 {
 	QStringList keys = m_message.jsonData().keys();
 
-	m_client->db()->db().transaction();
+	m_client->db()->transaction();
 	foreach (QString k, keys) {
 		bool success = false;
 		if (k == "serverName") {
@@ -383,13 +383,13 @@ bool Admin::setSettings(QJsonObject *jsonResponse, QByteArray *)
 		}
 
 		if (!success) {
-			m_client->db()->db().rollback();
+			m_client->db()->rollback();
 			setServerError();
 			return false;
 		}
 	}
 
-	m_client->db()->db().commit();
+	m_client->db()->commit();
 
 	(*jsonResponse)["success"] = true;
 

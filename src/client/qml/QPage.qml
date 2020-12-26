@@ -66,7 +66,7 @@ Page {
 			implicitHeight: CosStyle.pixelSize*1.7
 			implicitWidth: implicitHeight
 			height: implicitHeight
-			width: height
+			width: running ? height : 0
 			Layout.alignment: Qt.AlignCenter
 			running: activity && activity.isBusy
 		}

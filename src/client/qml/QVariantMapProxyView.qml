@@ -37,7 +37,7 @@ QListView {
 	property bool autoSelectorChange: false
 	property bool autoUnselectorChange: autoSelectorChange
 
-	readonly property int sourceIndex: currentIndex == -1 ? -1 : model.mapToSource(currentIndex)
+	//readonly property int sourceIndex: currentIndex == -1 ? -1 : model.mapToSource(currentIndex)
 	readonly property VariantMapModel sourceVariantMapModel: model.sourceModel
 
 	property Component leftComponent: null
@@ -56,6 +56,8 @@ QListView {
 	signal keyF4Pressed(int sourceIndex)
 	signal keyDeletePressed(int sourceIndex)
 
+
+	focus: true
 
 	boundsBehavior: Flickable.StopAtBounds
 
@@ -318,13 +320,13 @@ QListView {
 
 	Keys.onPressed: {
 		if (event.key === Qt.Key_Insert) {
-			keyInsertPressed(sourceIndex)
+			keyInsertPressed(view.model.mapToSource(view.currentIndex))
 		} else if (event.key === Qt.Key_F2) {
-			keyF2Pressed(sourceIndex)
+			keyF2Pressed(view.model.mapToSource(view.currentIndex))
 		} else if (event.key === Qt.Key_F4) {
-			keyF4Pressed(sourceIndex)
+			keyF4Pressed(view.model.mapToSource(view.currentIndex))
 		} else if (event.key === Qt.Key_Delete) {
-			keyDeletePressed(sourceIndex)
+			keyDeletePressed(view.model.mapToSource(view.currentIndex))
 		}
 	}
 

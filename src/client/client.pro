@@ -24,12 +24,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
-DEFINES += COS_SQL_DEBUG
+#DEFINES += COS_SQL_DEBUG
 
 SOURCES += \
 		abstractactivity.cpp \
-		abstractobjective.cpp \
-		abstractstorage.cpp \
 		cosclient.cpp \
 		cosdownloader.cpp \
 		cosgame.cpp \
@@ -52,8 +50,7 @@ SOURCES += \
 		servers.cpp \
 		serversettings.cpp \
 		sqlimage.cpp \
-		student.cpp \
-		teacher.cpp \
+		teachermaps.cpp \
 		tiledpaintedlayer.cpp \
 		variantmapdata.cpp \
 		variantmapmodel.cpp
@@ -61,8 +58,6 @@ SOURCES += \
 
 HEADERS += \
 	abstractactivity.h \
-	abstractobjective.h \
-	abstractstorage.h \
 	cosclient.h \
 	cosdownloader.h \
 	cosgame.h \
@@ -84,8 +79,7 @@ HEADERS += \
 	servers.h \
 	serversettings.h \
 	sqlimage.h \
-	student.h \
-	teacher.h \
+	teachermaps.h \
 	tiledpaintedlayer.h \
 	variantmapdata.h \
 	variantmapmodel.h
