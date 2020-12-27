@@ -125,7 +125,7 @@ QPage {
 
 
 	function windowClose() {
-		return true
+		return false
 	}
 
 	function pageStackBack() {

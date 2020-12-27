@@ -45,6 +45,7 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 
 	m_clientState = ClientInvalid;
 	m_clientRoles = CosMessage::RoleGuest;
+	m_clientSession = "";
 
 	qInfo().noquote() << tr("Client connected: ") << m_socket->peerAddress().toString() << m_socket->peerPort();
 
@@ -148,6 +149,9 @@ void Client::setClientUserName(QString clientUserName)
 
 	m_clientUserName = clientUserName;
 	emit clientUserNameChanged(m_clientUserName);
+
+	if (m_clientUserName.isEmpty())
+		setClientSession("");
 }
 
 /**
@@ -285,6 +289,7 @@ void Client::clientAuthorize(const CosMessage &message)
 			db()->execSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", l);
 			setClientState(ClientAuthorized);
 			setClientUserName(m.value("username").toString());
+			setClientSession(session);
 		} else {
 			CosMessage r(CosMessage::InvalidSession, message);
 			r.send(m_socket);
@@ -406,6 +411,8 @@ void Client::clientLogout(const CosMessage &message)
 		l << m_clientUserName;
 
 		db()->execSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
+
+		mapsDb()->execSimpleQuery("UPDATE maps SET editSession=NULL WHERE editSession=? AND owner=?", l);
 
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
@@ -547,6 +554,19 @@ void Client::updateRoles()
 void Client::onSmtpError(SmtpClient::SmtpError e)
 {
 	qWarning().noquote() << "SMTP error" << e;
+}
+
+
+
+/**
+ * @brief Client::setClientSession
+ * @param clientSession
+ */
+
+
+void Client::setClientSession(const QString &clientSession)
+{
+	m_clientSession = clientSession;
 }
 
 

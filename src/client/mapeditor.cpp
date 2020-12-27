@@ -38,11 +38,12 @@
 #include <QUuid>
 
 MapEditor::MapEditor(QQuickItem *parent)
-	: AbstractActivity(parent)
+	: AbstractActivity(CosMessage::ClassInvalid, parent)
 	, m_loadProgress(0.0)
 	, m_loadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0))
 	, m_loadAbortRequest(false)
 	, m_modified(false)
+	, m_parentActivity(nullptr)
 {
 	m_map["campaignAdd"] = &MapEditor::campaignAdd;
 	m_map["campaignModify"] = &MapEditor::campaignModify;
@@ -105,6 +106,7 @@ MapEditor::~MapEditor()
 {
 
 }
+
 
 
 /**
@@ -195,7 +197,46 @@ void MapEditor::saveToFilePrivate(QVariantMap data)
 
 	emit saveFinished();
 
-	emit binaryDataReady(d);
+	delete game;
+}
+
+
+/**
+ * @brief MapEditor::savePrivate
+ * @param data
+ */
+
+void MapEditor::saveToActivity(QVariantMap)
+{
+	if (!m_parentActivity)
+		return;
+
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.9));
+	setLoadProgress(0.0);
+
+	m_loadAbortRequest = false;
+	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress");
+
+	if (!game) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
+		emit saveFailed();
+		return;
+	}
+
+
+	if (!checkGame(game)) {
+		emit saveFailed();
+		delete game;
+		return;
+	}
+
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.9, 1.0));
+	QByteArray d = game->toBinaryData();
+
+	QMetaObject::invokeMethod(m_parentActivity, "mapEditorSaveRequest", Qt::AutoConnection,
+							  Q_ARG(MapEditor *, this),
+							  Q_ARG(QByteArray, d)
+							  );
 
 	delete game;
 }
@@ -507,6 +548,9 @@ void MapEditor::saveToFile(QVariantMap data)
 
 	AbstractActivity::run(&MapEditor::saveToFilePrivate, data);
 }
+
+
+
 
 
 /**
@@ -2209,6 +2253,60 @@ void MapEditor::play(QVariantMap data)
 
 	emit playReady(m_gameMatch);
 
+}
+
+void MapEditor::setParentActivity(AbstractActivity *parentActivity)
+{
+	if (m_parentActivity == parentActivity)
+		return;
+
+	m_parentActivity = parentActivity;
+	emit parentActivityChanged(m_parentActivity);
+}
+
+
+/**
+ * @brief MapEditor::loadFromActivity
+ * @param data
+ */
+
+void MapEditor::loadFromActivity(QVariantMap data)
+{
+	if (!db()->isOpen()) {
+		if (!db()->open()) {
+			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
+			emit loadFailed();
+			return;
+		}
+	}
+
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.2));
+	setLoadProgress(0.0);
+
+	QByteArray d = data.value("data").toByteArray();
+
+	GameMap *game = GameMap::fromBinaryData(d, this, "setLoadProgress");
+
+	if (!game) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás adat érkezett!"));
+		db()->close();
+		emit loadFailed();
+		return;
+	}
+
+	QStringList unavailableTerrains = checkTerrains(game);
+	if (!unavailableTerrains.isEmpty()) {
+		m_client->sendMessageWarning(tr("Érvénytelen harcmező"),
+									 tr("Érvénytelen harcmezőválasztás a következő küldetésekben: ")
+									 .append(unavailableTerrains.join(", ")));
+	}
+
+	if (_createDatabase(game))
+		emit loadFinished();
+	else
+		emit loadFailed();
+
+	delete game;
 }
 
 

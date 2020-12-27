@@ -19,6 +19,7 @@ QPagePanel {
 	}*/
 
 
+	//property alias list: list
 
 	/*SortFilterProxyModel {
 		id: userProxyModel

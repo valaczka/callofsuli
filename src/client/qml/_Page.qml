@@ -27,6 +27,12 @@ QPage {
 		Component { QPagePanel {
 				panelVisible: true
 				layoutFillWidth: true
+				Connections {
+					target: page
+					function onPageActivated() {
+						list.forceActiveFocus()
+					}
+				}
 			} }
 	]
 

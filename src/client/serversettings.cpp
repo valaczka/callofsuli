@@ -35,7 +35,7 @@
 #include "serversettings.h"
 
 ServerSettings::ServerSettings(QQuickItem *parent)
-	: AbstractActivity(parent)
+	: AbstractActivity(CosMessage::ClassAdmin, parent)
 {
 
 }
@@ -49,32 +49,3 @@ ServerSettings::~ServerSettings()
 
 }
 
-
-/**
- * @brief ServerSettings::serverSettingsReload
- */
-
-
-
-
-/**
- * @brief ServerSettings::onMessageReceived
- * @param message
- */
-
-void ServerSettings::onMessageReceived(const CosMessage &message)
-{
-	QString func = message.cosFunc();
-	QJsonObject d = message.jsonData();
-
-	if (message.cosClass() == CosMessage::ClassAdmin) {
-		if (func == "getSettings") {
-			emit settingsLoaded(d.toVariantMap());
-		} else if (func == "setSettings") {
-			if (d.value("success").toBool())
-				emit settingsUpdateSuccess();
-			else
-				emit settingsUpdateFailed();
-		}
-	}
-}

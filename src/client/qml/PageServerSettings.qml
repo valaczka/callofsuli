@@ -222,40 +222,6 @@ QPage {
 
 
 			Connections {
-				target: serverSettings
-
-				function onSettingsLoaded(data) {
-					JS.setSqlFields([
-										textServerName,
-										textHost,
-										textPort,
-										comboType,
-										textEmail,
-										textUser,
-										textPassword,
-										comboRegistration,
-										textDomain,
-										comboReset
-									], data)
-
-					grid1.modified = false
-					grid2.modified = false
-					grid3.modified = false
-				}
-
-				function onSettingsUpdateSuccess() {
-					cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
-					serverSettings.settingsReload()
-				}
-
-				/*
-				onSettingsError: {
-					isBusy = false
-					cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
-				}*/
-			}
-
-			Connections {
 				target: actionSave
 				function onTriggered() {
 					var o = JS.getModifiedSqlFields([
@@ -272,19 +238,48 @@ QPage {
 													])
 
 					if (Object.keys(o).length) {
-						serverSettings.send(CosMessage.ClassAdmin, "setSettings", o)
+						serverSettings.send("setSettings", o)
 					}
 				}
 			}
 
+			Connections {
+				target: serverSettings
 
-			Component.onCompleted: serverSettings.settingsReload()
+				function onGetSettings(jsonData, binaryData) {
+					JS.setSqlFields([
+										textServerName,
+										textHost,
+										textPort,
+										comboType,
+										textEmail,
+										textUser,
+										textPassword,
+										comboRegistration,
+										textDomain,
+										comboReset
+									], jsonData)
+
+					grid1.modified = false
+					grid2.modified = false
+					grid3.modified = false
+				}
+
+				function onSetSettings(jsonData, binaryData) {
+					if (jsonData.success) {
+						cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
+						serverSettings.send("getSettings")
+					} else {
+						cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+					}
+				}
+			}
+
+			Component.onCompleted: serverSettings.send("getSettings")
 		}
 
 	}
 
-
-	//onPageActivated: serverSettings.serverSettingsReload()
 
 
 	Action {
@@ -297,7 +292,7 @@ QPage {
 
 
 	function windowClose() {
-		return true
+		return false
 	}
 
 	function pageStackBack() {

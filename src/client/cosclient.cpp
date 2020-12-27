@@ -445,6 +445,20 @@ QByteArray Client::jsonMapToByteArray(const QVariantMap &map)
 
 
 /**
+ * @brief Client::formattedDataSize
+ * @param size
+ * @return
+ */
+
+QString Client::formattedDataSize(const qint64 &size)
+{
+	QLocale l = QLocale::system();
+	return l.formattedDataSize(size);
+}
+
+
+
+/**
  * @brief Client::rotatePolygon
  * @param points
  * @param angle

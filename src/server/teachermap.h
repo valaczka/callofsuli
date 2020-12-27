@@ -50,10 +50,13 @@ public:
 	bool classInit() override;
 
 public slots:
-	bool uploadTest(QJsonObject *jsonResponse, QByteArray *);
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool mapGet(QJsonObject *jsonResponse, QByteArray *byteArrayResponse);
+	bool mapEditLock(QJsonObject *jsonResponse, QByteArray *);
+	bool mapEditUnlock(QJsonObject *jsonResponse, QByteArray *);
+	bool mapUpdate(QJsonObject *jsonResponse, QByteArray *);
+	bool mapRename(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

@@ -1,12 +1,12 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE maps(
-	uuid TEXT NOT NULL,
+	uuid TEXT NOT NULL PRIMARY KEY,
 	version INTEGER NOT NULL DEFAULT 1,
 	name TEXT,
-	draft BOOL DEFAULT TRUE,
 	owner TEXT,
 	md5 TEXT,
-	data BLOB,
-	PRIMARY KEY(uuid, version)
+	lastModified TEXT NOT NULL DEFAULT (datetime('now')),
+	editSession TEXT,
+	data BLOB
 );

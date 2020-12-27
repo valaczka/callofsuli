@@ -16,8 +16,9 @@ QPage {
 	defaultSubTitle: mapEditor.mapName
 
 	property alias mapName: mapEditor.mapName
+	property alias mapEditor: mapEditor
 
-	property string loadFileName: cosClient.standardPath("ttt.dat")
+	property alias parentActivity: mapEditor.parentActivity
 
 	mainToolBarComponent: Row {
 		QUndoButton  {
@@ -79,13 +80,6 @@ QPage {
 		property int levelComponentsCompleted: 0
 		property string selectedMissionUUID: ""
 
-		onBackupUnavailable: {
-			if (loadFileName.length) {
-				mapEditor.loadFromFile({filename: loadFileName})
-			} else {
-				mapEditor.createNew({name: qsTr("--- ez egy új map---")})
-			}
-		}
 
 		onLoadStarted: {
 			var d = JS.dialogCreateQml("Progress", { title: qsTr("Betöltés") })
@@ -149,8 +143,9 @@ QPage {
 			}
 		}
 
-		onBinaryDataReady: {
-			mapEditor.send(CosMessage.ClassTeacherMap, "uploadTest", {filename: loadFileName}, data)
+		Component.onDestruction: {
+			if (parentActivity)
+				parentActivity.mapEditorCloseRequest(mapEditor)
 		}
 	}
 
@@ -196,10 +191,11 @@ QPage {
 	Action {
 		id: actionSave
 		icon.source: CosStyle.iconSave
-		enabled: mapEditor.modified
+		enabled: mapEditor.modified && mapEditor.parentActivity
 		shortcut: "Ctrl+S"
 		onTriggered: {
-			mapEditor.saveToFile({filename: loadFileName})
+			if (mapEditor.parentActivity)
+				mapEditor.saveToActivity()
 		}
 	}
 
@@ -232,9 +228,11 @@ QPage {
 
 
 	onPageActivated: {
-		if (!_isLoaded)
-			mapEditor.checkBackup()
+		if (!_isLoaded && mapEditor.parentActivity) {
+			mapEditor.parentActivity.mapEditorLoadRequest(mapEditor)
+		}
 	}
+
 
 
 

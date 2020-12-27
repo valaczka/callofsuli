@@ -14,6 +14,8 @@ QPagePanel {
 	title: qsTr("Szerverek")
 	icon: CosStyle.iconUsers
 
+	property alias serverList: serverList
+
 	contextMenuFunc: function (m) {
 		m.addAction(actionServerNew)
 		m.addAction(actionConnect)
@@ -188,10 +190,6 @@ QPagePanel {
 		}
 	}
 
-
-	onPanelActivated: {
-		serverList.forceActiveFocus()
-	}
 }
 
 

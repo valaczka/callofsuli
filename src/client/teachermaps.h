@@ -36,29 +36,44 @@
 #define TEACHERMAPS_H
 
 #include "abstractactivity.h"
+#include "mapeditor.h"
 
 class TeacherMaps : public AbstractActivity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(QString editUuid READ editUuid WRITE setEditUuid NOTIFY editUuidChanged)
+
 public:
 	explicit TeacherMaps(QQuickItem *parent = nullptr);
 	~TeacherMaps();
 
+	QString editUuid() const { return m_editUuid; }
 
 public slots:
+	void mapEditorLoadRequest(MapEditor *mapEditor);
+	void mapEditorCloseRequest(MapEditor *);
+	void mapEditorSaveRequest(MapEditor *, const QByteArray &binaryData);
 
+	void setEditUuid(QString editUuid);
 
-protected slots:
-	//void clientSetup() override;
-	void onMessageReceived(const CosMessage &message) override;
+private slots:
+	void onMapGet(QJsonObject jsonData, QByteArray binaryData);
+	void onMapUpdated(QJsonObject jsonData, QByteArray);
 
 signals:
-	void mapListLoaded(const QVariantList &list);
-	void mapLoaded(const QVariantMap &map);
+	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
+	void mapCreate(QJsonObject jsonData, QByteArray binaryData);
+	void mapGet(QJsonObject jsonData, QByteArray binaryData);
+	void mapEditLock(QJsonObject jsonData, QByteArray binaryData);
+	void mapEditUnlock(QJsonObject jsonData, QByteArray binaryData);
+	void mapUpdate(QJsonObject jsonData, QByteArray binaryData);
+
+	void editUuidChanged(QString editUuid);
 
 private:
-
+	QString m_editUuid;
+	MapEditor *m_mapEditor;
 };
 
 #endif // TEACHERMAPS_H

@@ -36,7 +36,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 Servers::Servers(QQuickItem *parent)
-	: AbstractActivity(parent)
+	: AbstractActivity(CosMessage::ClassInvalid, parent)
 	, m_serverList()
 	, m_serversModel(nullptr)
 	, m_dataFileName(Client::standardPath("servers.json"))
@@ -583,9 +583,7 @@ void Servers::_reloadResources(QVariantMap resources)
 	}
 
 	if (m_downloader->hasDownloadable()) {
-		QLocale l = QLocale::system();
-		QString s = l.formattedDataSize(m_downloader->fullSize());
-		emit resourceDownloadRequest(s);
+		emit resourceDownloadRequest(Client::formattedDataSize(m_downloader->fullSize()));
 	} else {
 		emit resourceReady();
 	}

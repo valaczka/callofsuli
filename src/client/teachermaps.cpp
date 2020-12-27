@@ -36,10 +36,14 @@
 
 
 TeacherMaps::TeacherMaps(QQuickItem *parent)
-	: AbstractActivity(parent)
+	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
+	, m_editUuid()
+	, m_mapEditor(nullptr)
 {
-
+	connect(this, &TeacherMaps::mapGet, this, &TeacherMaps::onMapGet);
+	connect(this, &TeacherMaps::mapUpdate, this, &TeacherMaps::onMapUpdated);
 }
+
 
 /**
  * @brief TeacherMaps::~TeacherMaps
@@ -51,24 +55,127 @@ TeacherMaps::~TeacherMaps()
 }
 
 
+
 /**
- * @brief TeacherMaps::onMessageReceived
- * @param message
+ * @brief TeacherMaps::mapEditorLoadRequest
+ * @param mapEditor
  */
 
-void TeacherMaps::onMessageReceived(const CosMessage &message)
+void TeacherMaps::mapEditorLoadRequest(MapEditor *mapEditor)
 {
-	QString func = message.cosFunc();
-	QJsonObject d = message.jsonData();
+	m_mapEditor = mapEditor;
 
-	if (message.cosClass() == CosMessage::ClassTeacherMap) {
-		if (func == "mapListGet") {
-			emit mapListLoaded(d.value("list").toArray().toVariantList());
-		} else if (func == "mapCreate") {
-			if (d.value("created").toBool())
-				send(CosMessage::ClassTeacherMap, "mapListGet");
-		} else if (func == "mapGet") {
-			emit mapLoaded(d.toVariantMap());
-		}
+	if (m_editUuid.isEmpty()) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Pályaazonosító nincs megadva!"));
+		return;
+	}
+
+	QJsonObject m;
+	m["uuid"] = m_editUuid;
+	send("mapGet", m);
+}
+
+
+/**
+ * @brief TeacherMaps::mapEditorCloseRequest
+ * @param mapEditor
+ */
+
+void TeacherMaps::mapEditorCloseRequest(MapEditor *)
+{
+	m_mapEditor = nullptr;
+	if (!m_editUuid.isEmpty()) {
+		QJsonObject m;
+		m["uuid"] = m_editUuid;
+		send("mapEditUnlock", m);
+		setEditUuid("");
 	}
 }
+
+
+/**
+ * @brief TeacherMaps::mapEditorSaveRequest
+ * @param mapEditor
+ * @param binaryData
+ */
+
+void TeacherMaps::mapEditorSaveRequest(MapEditor *, const QByteArray &binaryData)
+{
+	if (m_editUuid.isEmpty()) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Pályaazonosító nincs megadva!"));
+		return;
+	}
+
+	QJsonObject m;
+	m["uuid"] = m_editUuid;
+	send("mapUpdate", m, binaryData);
+}
+
+
+/**
+ * @brief TeacherMaps::setEditUuid
+ * @param editUuid
+ */
+
+void TeacherMaps::setEditUuid(QString editUuid)
+{
+	if (m_editUuid == editUuid)
+		return;
+
+	m_editUuid = editUuid;
+	emit editUuidChanged(m_editUuid);
+}
+
+
+
+/**
+ * @brief TeacherMaps::onMapGet
+ * @param jsonData
+ * @param binaryData
+ */
+
+void TeacherMaps::onMapGet(QJsonObject jsonData, QByteArray binaryData)
+{
+	if (!m_mapEditor || m_editUuid.isEmpty()) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Pályaazonosító nincs megadva!"));
+		return;
+	}
+
+	if (jsonData.value("uuid").toString() != m_editUuid) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Érvénytelen adat érkezett!"));
+		return;
+	}
+
+	QVariantMap d;
+	d["data"] = binaryData;
+
+	m_mapEditor->setMapName(jsonData.value("name").toString());
+	m_mapEditor->loadFromActivity(d);
+}
+
+
+/**
+ * @brief TeacherMaps::onMapUpdated
+ * @param jsonData
+ * @param binaryData
+ */
+
+void TeacherMaps::onMapUpdated(QJsonObject jsonData, QByteArray)
+{
+	if (!m_mapEditor || m_editUuid.isEmpty()) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Pályaazonosító nincs megadva!"));
+		return;
+	}
+
+	if (jsonData.value("uuid").toString() != m_editUuid) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Érvénytelen adat érkezett!"));
+		return;
+	}
+
+	if (jsonData.value("updated").toBool()) {
+		QMetaObject::invokeMethod(m_mapEditor, "saveFinished", Qt::AutoConnection);
+	} else {
+		QMetaObject::invokeMethod(m_mapEditor, "saveFailed", Qt::AutoConnection);
+	}
+}
+

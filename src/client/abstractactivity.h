@@ -65,7 +65,7 @@ class AbstractActivity : public QQuickItem
 public:
 	struct busyData;
 
-	explicit AbstractActivity(QQuickItem *parent = nullptr);
+	explicit AbstractActivity(const CosMessage::CosClass &defaultClass = CosMessage::ClassInvalid, QQuickItem *parent = nullptr);
 	~AbstractActivity();
 
 	Client* client() const { return m_client; }
@@ -101,6 +101,10 @@ public:
 public slots:
 	void send(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 			  const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
+	void send(const QString &cosFunc,
+			  const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray()) {
+		send(m_defaultClass, cosFunc, jsonData, binaryData);
+	}
 	void setClient(Client* client);
 	void setIsBusy(bool isBusy);
 	void busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject = nullptr);
@@ -114,13 +118,14 @@ public slots:
 	void setRemoveDatabase(bool removeDatabase);
 
 protected slots:
-	virtual void onMessageReceived(const CosMessage &) {}
+	virtual void onMessageReceived(const CosMessage &message) { autoSignalEmit(message); }
 	virtual void onMessageFrameReceived(const CosMessage &) {}
 	virtual void clientSetup() {}
 
 private slots:
 	void onMessageReceivedPrivate(const CosMessage &message);
 	void onSocketDisconnected();
+	void autoSignalEmit(const CosMessage &message);
 
 	void waitForFutureFinished(QFuture<void> &future, int id);
 
@@ -145,6 +150,7 @@ private:
 	int m_runId;
 	QString m_canUndoString;
 	bool m_removeDatabase;
+	const CosMessage::CosClass m_defaultClass;
 
 public:
 

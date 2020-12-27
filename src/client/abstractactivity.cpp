@@ -36,7 +36,7 @@
 #include "QQuickItem"
 #include <QtConcurrent/QtConcurrent>
 
-AbstractActivity::AbstractActivity(QQuickItem *parent)
+AbstractActivity::AbstractActivity(const CosMessage::CosClass &defaultClass, QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_client(nullptr)
 	, m_isBusy(false)
@@ -46,6 +46,7 @@ AbstractActivity::AbstractActivity(QQuickItem *parent)
 	, m_runId(0)
 	, m_canUndoString()
 	, m_removeDatabase(false)
+	, m_defaultClass(defaultClass)
 {
 }
 
@@ -90,6 +91,16 @@ void AbstractActivity::send(const CosMessage::CosClass &cosClass, const QString 
 
 	busyStackAdd(cosClass, cosFunc, msgid);
 }
+
+
+/**
+ * @brief AbstractActivity::send
+ * @param cosFunc
+ * @param jsonData
+ * @param binaryData
+ */
+
+
 
 
 /**
@@ -218,6 +229,13 @@ void AbstractActivity::setRemoveDatabase(bool removeDatabase)
 	emit removeDatabaseChanged(m_removeDatabase);
 }
 
+
+
+/**
+ * @brief AbstractActivity::setCanUndoString
+ * @param canUndoString
+ */
+
 void AbstractActivity::setCanUndoString(QString canUndoString)
 {
 	if (m_canUndoString == canUndoString)
@@ -251,6 +269,38 @@ void AbstractActivity::onSocketDisconnected()
 	m_busyStack.clear();
 	setIsBusy(false);
 	emit socketDisconnected();
+}
+
+
+/**
+ * @brief AbstractActivity::autoSignalEmit
+ * @param message
+ */
+
+void AbstractActivity::autoSignalEmit(const CosMessage &message)
+{
+	if (m_defaultClass == CosMessage::ClassInvalid)
+		return;
+
+	QString func = message.cosFunc();
+	QJsonObject d = message.jsonData();
+	QByteArray b = message.binaryData();
+
+	if (message.cosClass() == m_defaultClass) {
+		QByteArray normalizedSignature = QMetaObject::normalizedSignature(func.toLatin1()+"(QJsonObject, QByteArray)");
+
+		int methodIndex = this->metaObject()->indexOfSignal(normalizedSignature);
+
+		if (methodIndex == -1) {
+			qWarning() << func+" not found";
+			return;
+		}
+
+		QMetaObject::invokeMethod(this, func.toLatin1(), Qt::AutoConnection,
+								  Q_ARG(QJsonObject, d),
+								  Q_ARG(QByteArray, b)
+								  );
+	}
 }
 
 

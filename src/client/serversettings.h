@@ -45,18 +45,14 @@ public:
 	explicit ServerSettings(QQuickItem *parent = nullptr);
 	~ServerSettings();
 
-public slots:
-	void settingsReload() { send(CosMessage::ClassAdmin, "getSettings"); }
-
 protected slots:
 	//void clientSetup() override;
-	void onMessageReceived(const CosMessage &message) override;
+	//void onMessageReceived(const CosMessage &message) override;
 	//void onMessageFrameReceived(const CosMessage &message) override;
 
 signals:
-	void settingsLoaded(const QVariantMap &data);
-	void settingsUpdateSuccess();
-	void settingsUpdateFailed();
+	void getSettings(QJsonObject jsonData, QByteArray binaryData);
+	void setSettings(QJsonObject jsonData, QByteArray binaryData);
 };
 
 #endif // SERVERSETTINGS_H

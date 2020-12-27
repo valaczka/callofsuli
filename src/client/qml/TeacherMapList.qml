@@ -6,13 +6,15 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-		QPagePanel {
+QPagePanel {
 	id: panel
 
 	maximumWidth: 600
 
 	title: qsTr("Pályák")
 	icon: CosStyle.iconUsers
+
+	property alias list: list
 
 	contextMenuFunc: function (m) {
 		m.addAction(actionMapNew)
@@ -38,7 +40,7 @@ import "JScript.js" as JS
 		]
 		proxyRoles: ExpressionRole {
 			name: "details"
-			expression: model.uuid+":"+model.version+" "+model.draft
+			expression: "v"+model.version+" "+model.lastModified+" "+cosClient.formattedDataSize(Number(model.dataSize))
 		}
 	}
 
@@ -67,7 +69,7 @@ import "JScript.js" as JS
 			visible: model && model.type === 1
 
 			color: CosStyle.colorPrimary
-		}
+		}*/
 
 		rightComponent: QFontImage {
 			width: visible ? list.delegateHeight*0.8 : 0
@@ -76,15 +78,19 @@ import "JScript.js" as JS
 
 			icon: CosStyle.iconClock1
 
-			visible: model && model.storage
+			visible: model && model.editLocked
 
 			color: CosStyle.colorAccentLighter
-		}*/
+		}
 
 
 		onClicked: {
-			var o = list.model.get(index)
-			teacherMaps.send(CosMessage.ClassTeacherMap, "mapGet", {"uuid": o.uuid, "version": o.version})
+			if (teacherMaps.editUuid.length) {
+				cosClient.sendMessageWarning(qsTr("Szerkesztés"), qsTr("Már folyamatban van egy pálya szerkesztése, előbb azt be kell fejezni!"))
+			} else {
+				var o = list.model.get(index)
+				teacherMaps.send("mapEditLock", {uuid: o.uuid})
+			}
 		}
 
 		onRightClicked: contextMenu.popup()
@@ -120,9 +126,9 @@ import "JScript.js" as JS
 
 
 		onKeyInsertPressed: actionMapNew.trigger()
-		onKeyF4Pressed: actionRename.trigger()
+		onKeyF2Pressed: actionRename.trigger()
 		/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF2Pressed: actionObjectiveNew.trigger()*/
+		onKeyF4Pressed: actionObjectiveNew.trigger()*/
 	}
 
 
@@ -154,7 +160,7 @@ import "JScript.js" as JS
 			d.item.title = qsTr("Új pálya neve")
 
 			d.accepted.connect(function(data) {
-				teacherMaps.send(CosMessage.ClassTeacherMap, "mapCreate", {name: data})
+				teacherMaps.send("mapCreate", {name: data})
 			})
 			d.open()
 		}
@@ -177,6 +183,7 @@ import "JScript.js" as JS
 			d.open()
 		}
 	}
+
 }
 
 

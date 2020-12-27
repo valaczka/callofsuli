@@ -49,6 +49,7 @@ class MapEditor : public AbstractActivity
 	Q_PROPERTY(QString mapName READ mapName WRITE setMapName NOTIFY mapNameChanged)
 	Q_PROPERTY(qreal loadProgress READ loadProgress WRITE setLoadProgress NOTIFY loadProgressChanged)
 	Q_PROPERTY(QPair<qreal, qreal> loadProgressFraction READ loadProgressFraction WRITE setLoadProgressFraction NOTIFY loadProgressFractionChanged)
+	Q_PROPERTY(AbstractActivity * parentActivity READ parentActivity WRITE setParentActivity NOTIFY parentActivityChanged)
 
 	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
 
@@ -71,6 +72,7 @@ public:
 	QPair<qreal, qreal> loadProgressFraction() const { return m_loadProgressFraction; }
 
 	bool modified() const { return m_modified; }
+	AbstractActivity * parentActivity() const { return m_parentActivity; }
 
 public slots:
 	void setMapName(QString mapName);
@@ -83,6 +85,10 @@ public slots:
 	void saveToFile(QVariantMap data);
 	void createNew(QVariantMap data);
 	void play(QVariantMap data);
+	void setParentActivity(AbstractActivity * parentActivity);
+
+	void loadFromActivity(QVariantMap data);
+	void saveToActivity(QVariantMap = QVariantMap());
 
 protected:
 	void loadFromFilePrivate(QVariantMap data);
@@ -148,7 +154,6 @@ signals:
 	void saveStarted();
 	void saveFinished();
 	void saveFailed();
-	void binaryDataReady(const QByteArray &data);
 
 	void playReady(GameMatch *gameMatch);
 	void playFailed();
@@ -198,6 +203,8 @@ signals:
 	void modifiedChanged(bool modified);
 	void gameMatchChanged(GameMatch * gameMatch);
 
+	void parentActivityChanged(AbstractActivity * parentActivity);
+
 protected slots:
 	//void clientSetup() override;
 	//void onMessageReceived(const CosMessage &message) override;
@@ -214,6 +221,7 @@ private:
 	bool m_loadAbortRequest;
 	QHash<QString, void (MapEditor::*)(QVariantMap)> m_map;
 	bool m_modified;
+	AbstractActivity * m_parentActivity;
 };
 
 

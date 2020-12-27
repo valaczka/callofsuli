@@ -56,6 +56,12 @@ QPage {
 		Component { ServerList {
 				panelVisible: true
 				layoutFillWidth: !servers.editing
+				Connections {
+					target: control
+					function onPageActivated() {
+						serverList.forceActiveFocus()
+					}
+				}
 			} },
 		Component { ServerEdit {
 				panelVisible: servers.editing
@@ -66,6 +72,12 @@ QPage {
 		Component { ServerList {
 				panelVisible: true
 				layoutFillWidth: true
+				Connections {
+					target: control
+					function onPageActivated() {
+						serverList.forceActiveFocus()
+					}
+				}
 			} }
 	]
 

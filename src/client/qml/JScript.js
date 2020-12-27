@@ -49,14 +49,7 @@ function createPage(_qml, _prop) {
 			console.debug("Object ", incubator.object, "incubating...")
 		}
 
-		/*var obj = comp.createObject(mainWindow, _prop)
-		if (obj === null) {
-			console.error("Error creating object")
-			return null
-		}
-
-		mainStack.push(obj)
-		return obj*/
+		return incubator
 
 	} else if (comp.status === Component.Error) {
 		console.warn("Error loading component: ", comp.errorString())

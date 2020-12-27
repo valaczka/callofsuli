@@ -38,7 +38,7 @@
 
 
 GameActivity::GameActivity(QQuickItem *parent)
-	: AbstractActivity(parent)
+	: AbstractActivity(CosMessage::ClassInvalid, parent)
 	, m_prepared(false)
 	, m_game(nullptr)
 {

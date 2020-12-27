@@ -118,7 +118,6 @@ android {
 DISTFILES += \
 		android/AndroidManifest.xml
 
-
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	CommonRcc.path = /assets
@@ -129,11 +128,3 @@ DISTFILES += \
 
 ANDROID_ABIS = armeabi-v7a
 
-DISTFILES += \
-	android/build.gradle \
-	android/gradle.properties \
-	android/gradle/wrapper/gradle-wrapper.jar \
-	android/gradle/wrapper/gradle-wrapper.properties \
-	android/gradlew \
-	android/gradlew.bat \
-	android/res/values/libs.xml

@@ -96,6 +96,7 @@ public:
 
 	Q_INVOKABLE static QVariantMap byteArrayToJsonMap(const QByteArray &data);
 	Q_INVOKABLE static QByteArray jsonMapToByteArray(const QVariantMap &map);
+	Q_INVOKABLE static QString formattedDataSize(const qint64 &size);
 
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);

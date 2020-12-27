@@ -19,12 +19,36 @@ QPage {
 															"uuid",
 															"name",
 															"version",
-															"draft"
+															"binded",
+															"used",
+															"lastModified",
+															"dataSize",
+															"editLocked"
 														])
 
-		onMapListLoaded: {
+		onMapListGet: {
 			modelMapList.unselectAll()
-			modelMapList.setVariantList(list, "rowid");
+			modelMapList.setVariantList(jsonData.list, "rowid");
+		}
+
+		onMapCreate: {
+			if (jsonData.created)
+				send("mapListGet")
+		}
+
+		onMapEditLock: {
+			if (jsonData.locked) {
+				teacherMaps.editUuid = jsonData.uuid
+				JS.createPage("MapEditor", {
+								  parentActivity: teacherMaps
+							  })
+			}
+		}
+
+		onMapEditUnlock: {
+			if (jsonData.unlocked && jsonData.uuid === teacherMaps.editUuid) {
+				teacherMaps.editUuid = ""
+			}
 		}
 	}
 
@@ -32,6 +56,12 @@ QPage {
 	panelComponents: [
 		Component { TeacherMapList {
 				panelVisible: true
+				Connections {
+					target: page
+					function onPageActivated() {
+						list.forceActiveFocus()
+					}
+				}
 			} }
 	]
 
@@ -45,7 +75,7 @@ QPage {
 
 
 	onPageActivated: {
-		teacherMaps.send(CosMessage.ClassTeacherMap, "mapListGet")
+		teacherMaps.send("mapListGet")
 	}
 
 
