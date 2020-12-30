@@ -67,6 +67,7 @@ public:
 	QString clientSession() const { return m_clientSession; }
 	void setClientSession(const QString &clientSession);
 
+
 public slots:
 	void sendClientRoles();
 	void sendServerInfo();

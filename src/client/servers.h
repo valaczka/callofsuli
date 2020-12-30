@@ -82,7 +82,7 @@ protected slots:
 	void clientSetup() override;
 	void onMessageReceived(const CosMessage &message) override;
 	//void onMessageFrameReceived(const CosMessage &message) override;
-	void onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &);
+	void onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &, const QJsonObject &);
 
 	void removeServerDir(const int &serverId);
 

@@ -14,42 +14,27 @@ QPage {
 	activity: TeacherMaps {
 		id: teacherMaps
 
-		property VariantMapModel modelMapList: newModel([
-															"rowid",
-															"uuid",
-															"name",
-															"version",
-															"binded",
-															"used",
-															"lastModified",
-															"dataSize",
-															"editLocked"
-														])
-
-		onMapListGet: {
-			modelMapList.unselectAll()
-			modelMapList.setVariantList(jsonData.list, "rowid");
-		}
-
-		onMapCreate: {
-			if (jsonData.created)
+		onIsBusyChanged: {
+			if (!isBusy && isUploading) {
+				isUploading = false
 				send("mapListGet")
-		}
-
-		onMapEditLock: {
-			if (jsonData.locked) {
-				teacherMaps.editUuid = jsonData.uuid
-				JS.createPage("MapEditor", {
-								  parentActivity: teacherMaps
-							  })
 			}
 		}
 
-		onMapEditUnlock: {
-			if (jsonData.unlocked && jsonData.uuid === teacherMaps.editUuid) {
-				teacherMaps.editUuid = ""
-			}
+		onMapDownloadRequest: {
+			var d = JS.dialogCreateQml("YesNo", {
+										   title: qsTr("Letöltés"),
+										   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize)
+									   })
+			d.accepted.connect(function() {
+				var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: teacherMaps.downloader })
+				dd.closePolicy = Popup.NoAutoClose
+				dd.open()
+			})
+
+			d.open()
 		}
+
 	}
 
 

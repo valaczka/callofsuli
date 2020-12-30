@@ -46,10 +46,14 @@ class MapEditor : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QString mapName READ mapName WRITE setMapName NOTIFY mapNameChanged)
 	Q_PROPERTY(qreal loadProgress READ loadProgress WRITE setLoadProgress NOTIFY loadProgressChanged)
 	Q_PROPERTY(QPair<qreal, qreal> loadProgressFraction READ loadProgressFraction WRITE setLoadProgressFraction NOTIFY loadProgressFractionChanged)
-	Q_PROPERTY(AbstractActivity * parentActivity READ parentActivity WRITE setParentActivity NOTIFY parentActivityChanged)
+
+	Q_PROPERTY(QString mapName READ mapName WRITE setMapName NOTIFY mapNameChanged)
+	Q_PROPERTY(QString fileName READ fileName WRITE setFileName NOTIFY fileNameChanged)
+	Q_PROPERTY(CosDb* database READ database WRITE setDatabase NOTIFY databaseChanged)
+	Q_PROPERTY(QString databaseTable READ databaseTable WRITE setDatabaseTable NOTIFY databaseTableChanged)
+	Q_PROPERTY(QString databaseUuid READ databaseUuid WRITE setDatabaseUuid NOTIFY databaseUuidChanged)
 
 	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
 
@@ -57,7 +61,8 @@ public:
 	MapEditor(QQuickItem *parent = nullptr);
 	~MapEditor();
 
-	QString mapName() const { return m_mapName; }
+	Q_INVOKABLE bool loadDefault();
+	Q_INVOKABLE bool saveDefault();
 
 	Q_INVOKABLE void checkBackup();
 	Q_INVOKABLE void removeBackup();
@@ -72,28 +77,35 @@ public:
 	QPair<qreal, qreal> loadProgressFraction() const { return m_loadProgressFraction; }
 
 	bool modified() const { return m_modified; }
-	AbstractActivity * parentActivity() const { return m_parentActivity; }
+
+	QString mapName() const { return m_mapName; }
+	QString fileName() const { return m_fileName; }
+	CosDb* database() const { return m_database; }
+	QString databaseUuid() const { return m_databaseUuid; }
+	QString databaseTable() const { return m_databaseTable; }
 
 public slots:
-	void setMapName(QString mapName);
 	bool setLoadProgress(qreal loadProgress);
 	void setLoadProgressFraction(QPair<qreal, qreal> loadProgressFraction);
 
 	void setModified(bool modified);
 
-	void loadFromFile(QVariantMap data);
-	void saveToFile(QVariantMap data);
-	void createNew(QVariantMap data);
+	void loadFromFile(const QString &filename);
+	void saveToFile(const QString &filename);
 	void play(QVariantMap data);
-	void setParentActivity(AbstractActivity * parentActivity);
 
-	void loadFromActivity(QVariantMap data);
-	void saveToActivity(QVariantMap = QVariantMap());
+
+	void setMapName(QString mapName);
+	void setFileName(QString fileName);
+	void setDatabase(CosDb* database);
+	void setDatabaseUuid(QString databaseUuid);
+	void setDatabaseTable(QString databaseTable);
 
 protected:
 	void loadFromFilePrivate(QVariantMap data);
+	void loadFromDbPrivate(QVariantMap = QVariantMap());
 	void saveToFilePrivate(QVariantMap data);
-	void createNewPrivate(QVariantMap data);
+	void saveToDbPrivate(QVariantMap = QVariantMap());
 	QStringList checkTerrains(GameMap *game) const;
 	bool checkGame(GameMap *game) const;
 
@@ -196,14 +208,17 @@ signals:
 	void blockChapterMapBlockListLoaded(const int &id, const QVariantList &list);
 	void blockChapterMapChapterListLoaded(const int &id, const QVariantList &list);
 
-	void mapNameChanged(QString mapName);
 	void loadProgressChanged(qreal loadProgress);
 	void loadProgressFractionChanged(QPair<qreal, qreal> loadProgressFraction);
 
 	void modifiedChanged(bool modified);
 	void gameMatchChanged(GameMatch * gameMatch);
 
-	void parentActivityChanged(AbstractActivity * parentActivity);
+	void mapNameChanged(QString mapName);
+	void fileNameChanged(QString fileName);
+	void databaseChanged(CosDb* database);
+	void databaseUuidChanged(QString databaseUuid);
+	void databaseTableChanged(QString databaseTable);
 
 protected slots:
 	//void clientSetup() override;
@@ -221,7 +236,10 @@ private:
 	bool m_loadAbortRequest;
 	QHash<QString, void (MapEditor::*)(QVariantMap)> m_map;
 	bool m_modified;
-	AbstractActivity * m_parentActivity;
+	QString m_fileName;
+	CosDb* m_database;
+	QString m_databaseUuid;
+	QString m_databaseTable;
 };
 
 

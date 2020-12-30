@@ -118,7 +118,7 @@ void Servers::onMessageReceived(const CosMessage &message)
  * @param data
  */
 
-void Servers::onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &)
+void Servers::onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &, const QJsonObject &)
 {
 	registerResource(item.localFile);
 }

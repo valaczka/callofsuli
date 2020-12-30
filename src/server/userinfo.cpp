@@ -56,7 +56,7 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 																	  .value("v"));
 	(*jsonResponse)["registrationEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
 																										  "FROM settings WHERE key='email.registration'")
-																	.value("v"));
+																	 .value("v"));
 
 
 	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());
@@ -273,6 +273,41 @@ bool UserInfo::downloadFile(QJsonObject *jsonResponse, QByteArray *binaryRespons
 
 	(*jsonResponse)["filename"] = filename;
 	(*jsonResponse)["md5"] = md5;
+
+	return true;
+}
+
+
+
+/**
+ * @brief UserInfo::downloadMap
+ * @param jsonResponse
+ * @param binaryResponse
+ * @return
+ */
+
+bool UserInfo::downloadMap(QJsonObject *jsonResponse, QByteArray *binaryResponse)
+{
+	QJsonObject data = m_message.jsonData();
+	QString uuid = data.value("uuid").toString();
+
+	QVariantList m;
+	m.append(uuid);
+
+	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT data, md5, name, version, lastModified FROM maps WHERE uuid=?", m);
+
+	if (r.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid map";
+		return false;
+	}
+
+	(*binaryResponse) = r.value("data").toByteArray();
+
+	(*jsonResponse)["uuid"] = uuid;
+	(*jsonResponse)["md5"] = r.value("md5").toString();
+	(*jsonResponse)["name"] = r.value("name").toString();
+	(*jsonResponse)["version"] = r.value("version").toInt();
+	(*jsonResponse)["lastModified"] = r.value("lastModified").toString();
 
 	return true;
 }

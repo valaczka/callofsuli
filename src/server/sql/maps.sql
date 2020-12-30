@@ -7,6 +7,5 @@ CREATE TABLE maps(
 	owner TEXT,
 	md5 TEXT,
 	lastModified TEXT NOT NULL DEFAULT (datetime('now')),
-	editSession TEXT,
 	data BLOB
 );

@@ -12,6 +12,8 @@ Item {
 
 	visible: false
 
+	focus: true
+
 	property bool panelVisible: false
 
 	property color borderColor: CosStyle.colorPrimaryDarker

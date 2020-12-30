@@ -94,7 +94,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	});
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	m_timer->start(5000);
+	//m_timer->start(5000);
 }
 
 /**
@@ -628,8 +628,9 @@ void Client::loadTerrains()
 		if (t.loadTmxFile(realname)) {
 			QMap<int, int> blockData;
 
+			QMap<int, GameBlock*> b = t.blocks();
 			QMap<int, GameBlock*>::const_iterator it;
-			for (it = t.blocks().constBegin(); it != t.blocks().constEnd(); ++it) {
+			for (it = b.constBegin(); it != b.constEnd(); ++it) {
 				blockData[it.key()] = it.value()->enemies().count();
 			}
 

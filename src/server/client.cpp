@@ -33,6 +33,7 @@
 #include "userinfo.h"
 #include "admin.h"
 #include "teachermap.h"
+#include "student.h"
 
 
 Client::Client(QWebSocket *socket, Server *server, QObject *parent)
@@ -69,7 +70,6 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 
 Client::~Client()
 {
-
 }
 
 
@@ -243,6 +243,11 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 				u.start();
 				break;
 			}
+		case CosMessage::ClassStudent: {
+				Student u(this, m);
+				u.start();
+				break;
+			}
 		case CosMessage::ClassInvalid:
 		default: {
 				CosMessage r(CosMessage::InvalidClass, m);
@@ -412,8 +417,6 @@ void Client::clientLogout(const CosMessage &message)
 
 		db()->execSimpleQuery("DELETE FROM session WHERE token=? AND username=?", l);
 
-		mapsDb()->execSimpleQuery("UPDATE maps SET editSession=NULL WHERE editSession=? AND owner=?", l);
-
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
 	}
@@ -568,6 +571,8 @@ void Client::setClientSession(const QString &clientSession)
 {
 	m_clientSession = clientSession;
 }
+
+
 
 
 

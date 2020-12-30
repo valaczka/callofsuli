@@ -43,7 +43,10 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_loadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0))
 	, m_loadAbortRequest(false)
 	, m_modified(false)
-	, m_parentActivity(nullptr)
+	, m_fileName()
+	, m_database(nullptr)
+	, m_databaseUuid()
+	, m_databaseTable()
 {
 	m_map["campaignAdd"] = &MapEditor::campaignAdd;
 	m_map["campaignModify"] = &MapEditor::campaignModify;
@@ -108,6 +111,60 @@ MapEditor::~MapEditor()
 }
 
 
+/**
+ * @brief MapEditor::loadDefault
+ * @return
+ */
+
+bool MapEditor::loadDefault()
+{
+	if (!m_fileName.isEmpty()) {
+		qDebug() << "Load from file" << m_fileName;
+		loadFromFile(m_fileName);
+		return true;
+	}
+
+	if (m_database && !m_databaseUuid.isEmpty() && !m_databaseTable.isEmpty()) {
+		if (!db()->isOpen()) {
+			if (!db()->open()) {
+				m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
+				emit loadFailed();
+				return false;
+			}
+		}
+
+		qDebug() << "load from database" << m_database << m_databaseUuid;
+		AbstractActivity::run(&MapEditor::loadFromDbPrivate, QVariantMap());
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief MapEditor::saveDefault
+ * @return
+ */
+
+bool MapEditor::saveDefault()
+{
+	if (!m_fileName.isEmpty()) {
+		qDebug() << "Save to file" << m_fileName;
+		saveToFile(m_fileName);
+		return true;
+	}
+
+	if (m_database && !m_databaseUuid.isEmpty() && !m_databaseTable.isEmpty()) {
+		qDebug() << "save to database" << m_database << m_databaseUuid;
+		AbstractActivity::run(&MapEditor::saveToDbPrivate, QVariantMap());
+		return true;
+	}
+
+	return false;
+}
+
+
 
 /**
  * @brief MapEditor::loadFromFile
@@ -142,13 +199,68 @@ void MapEditor::loadFromFilePrivate(QVariantMap data)
 									 .append(unavailableTerrains.join(", ")));
 	}
 
-	if (_createDatabase(game))
+	if (_createDatabase(game)) {
 		emit loadFinished();
-	else
+		QFileInfo f(filename);
+		setMapName(f.baseName()+" ["+f.path()+"]");
+	} else
 		emit loadFailed();
 
 	delete game;
 }
+
+
+
+
+/**
+ * @brief MapEditor::loadFromDbPrivate
+ */
+
+void MapEditor::loadFromDbPrivate(QVariantMap)
+{
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.2));
+	setLoadProgress(0.0);
+
+	QVariantList l;
+	l.append(m_databaseUuid);
+	QVariantMap m = m_database->execSelectQueryOneRow("SELECT name, data FROM "+m_databaseTable+" WHERE uuid=?", l);
+
+	if (m.isEmpty()) {
+		m_client->sendMessageError(tr("Hibás adatbázis"), m_database->databaseName());
+		db()->close();
+		emit loadFailed();
+		return;
+	}
+
+	QByteArray d = m.value("data").toByteArray();
+
+	GameMap *game = GameMap::fromBinaryData(d, this, "setLoadProgress");
+
+	if (!game) {
+		m_client->sendMessageError(tr("Hibás adatbázis"), m_database->databaseName());
+		db()->close();
+		emit loadFailed();
+		return;
+	}
+
+	QStringList unavailableTerrains = checkTerrains(game);
+	if (!unavailableTerrains.isEmpty()) {
+		m_client->sendMessageWarning(tr("Érvénytelen harcmező"),
+									 tr("Érvénytelen harcmezőválasztás a következő küldetésekben: ")
+									 .append(unavailableTerrains.join(", ")));
+	}
+
+	if (_createDatabase(game)) {
+		emit loadFinished();
+		setMapName(m.value("name").toString());
+	} else
+		emit loadFailed();
+
+	delete game;
+}
+
+
+
 
 
 /**
@@ -202,15 +314,11 @@ void MapEditor::saveToFilePrivate(QVariantMap data)
 
 
 /**
- * @brief MapEditor::savePrivate
- * @param data
+ * @brief MapEditor::saveToDbPrivate
  */
 
-void MapEditor::saveToActivity(QVariantMap)
+void MapEditor::saveToDbPrivate(QVariantMap)
 {
-	if (!m_parentActivity)
-		return;
-
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.9));
 	setLoadProgress(0.0);
 
@@ -230,15 +338,61 @@ void MapEditor::saveToActivity(QVariantMap)
 		return;
 	}
 
+
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.9, 1.0));
 	QByteArray d = game->toBinaryData();
 
-	QMetaObject::invokeMethod(m_parentActivity, "mapEditorSaveRequest", Qt::AutoConnection,
-							  Q_ARG(MapEditor *, this),
-							  Q_ARG(QByteArray, d)
-							  );
+	QVariantList l;
+	l.append(d);
+	l.append(QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex()));
+	l.append(m_databaseUuid);
+	QVariantMap m = m_database->execSelectQueryOneRow("UPDATE "+m_databaseTable+" SET data=?, md5=?, lastModified=datetime('now') WHERE uuid=?", l);
+
+	emit saveFinished();
 
 	delete game;
+}
+
+
+
+
+
+
+
+void MapEditor::setFileName(QString fileName)
+{
+	if (m_fileName == fileName)
+		return;
+
+	m_fileName = fileName;
+	emit fileNameChanged(m_fileName);
+}
+
+void MapEditor::setDatabase(CosDb *database)
+{
+	if (m_database == database)
+		return;
+
+	m_database = database;
+	emit databaseChanged(m_database);
+}
+
+void MapEditor::setDatabaseUuid(QString databaseUuid)
+{
+	if (m_databaseUuid == databaseUuid)
+		return;
+
+	m_databaseUuid = databaseUuid;
+	emit databaseUuidChanged(m_databaseUuid);
+}
+
+void MapEditor::setDatabaseTable(QString databaseTable)
+{
+	if (m_databaseTable == databaseTable)
+		return;
+
+	m_databaseTable = databaseTable;
+	emit databaseTableChanged(m_databaseTable);
 }
 
 
@@ -501,14 +655,11 @@ void MapEditor::setModified(bool modified)
  * @param data
  */
 
-void MapEditor::loadFromFile(QVariantMap data)
+void MapEditor::loadFromFile(const QString &filename)
 {
-	QString filename = data.value("filename").toString();
-
 	if (filename.isEmpty() || !QFile::exists(filename)) {
 		m_client->sendMessageWarning(tr("A fájl nem található"), filename);
-		//emit loadFailed();
-		createNew(data);
+		emit loadFailed();
 		return;
 	}
 
@@ -522,8 +673,12 @@ void MapEditor::loadFromFile(QVariantMap data)
 
 	emit loadStarted();
 
+	QVariantMap data;
+	data["filename"] = filename;
+
 	AbstractActivity::run(&MapEditor::loadFromFilePrivate, data);
 }
+
 
 
 /**
@@ -531,10 +686,8 @@ void MapEditor::loadFromFile(QVariantMap data)
  * @param data
  */
 
-void MapEditor::saveToFile(QVariantMap data)
+void MapEditor::saveToFile(const QString &filename)
 {
-	QString filename = data.value("filename").toString();
-
 	if (filename.isEmpty())
 		return;
 
@@ -546,26 +699,14 @@ void MapEditor::saveToFile(QVariantMap data)
 
 	emit saveStarted();
 
+	QVariantMap data;
+	data["filename"] = filename;
+
 	AbstractActivity::run(&MapEditor::saveToFilePrivate, data);
 }
 
 
 
-
-
-/**
- * @brief MapEditor::createNew
- * @param data
- */
-
-void MapEditor::createNew(QVariantMap data)
-{
-	db()->open();
-
-	emit loadStarted();
-
-	AbstractActivity::run(&MapEditor::createNewPrivate, data);
-}
 
 
 
@@ -677,29 +818,6 @@ QList<int> MapEditor::_blockChapterMapBlockGetListPrivate(const QString &mission
 }
 
 
-
-/**
- * @brief MapEditor::_loadFromNew
- */
-
-void MapEditor::createNewPrivate(QVariantMap data)
-{
-	qDebug() << "create New private thread" << QThread::currentThread();
-
-	QByteArray uuid = data.value("uuid").toByteArray();
-
-	if (uuid.isEmpty())
-		uuid = QUuid::createUuid().toByteArray();
-
-	GameMap *m_game = GameMap::example(uuid);
-
-	if (_createDatabase(m_game))
-		emit loadFinished();
-	else
-		emit loadFailed();
-
-	delete m_game;
-}
 
 
 /**
@@ -2253,60 +2371,6 @@ void MapEditor::play(QVariantMap data)
 
 	emit playReady(m_gameMatch);
 
-}
-
-void MapEditor::setParentActivity(AbstractActivity *parentActivity)
-{
-	if (m_parentActivity == parentActivity)
-		return;
-
-	m_parentActivity = parentActivity;
-	emit parentActivityChanged(m_parentActivity);
-}
-
-
-/**
- * @brief MapEditor::loadFromActivity
- * @param data
- */
-
-void MapEditor::loadFromActivity(QVariantMap data)
-{
-	if (!db()->isOpen()) {
-		if (!db()->open()) {
-			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
-			emit loadFailed();
-			return;
-		}
-	}
-
-	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.2));
-	setLoadProgress(0.0);
-
-	QByteArray d = data.value("data").toByteArray();
-
-	GameMap *game = GameMap::fromBinaryData(d, this, "setLoadProgress");
-
-	if (!game) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás adat érkezett!"));
-		db()->close();
-		emit loadFailed();
-		return;
-	}
-
-	QStringList unavailableTerrains = checkTerrains(game);
-	if (!unavailableTerrains.isEmpty()) {
-		m_client->sendMessageWarning(tr("Érvénytelen harcmező"),
-									 tr("Érvénytelen harcmezőválasztás a következő küldetésekben: ")
-									 .append(unavailableTerrains.join(", ")));
-	}
-
-	if (_createDatabase(game))
-		emit loadFinished();
-	else
-		emit loadFailed();
-
-	delete game;
 }
 
 

@@ -1277,6 +1277,7 @@ CosDbWorker::CosDbWorker(const QString &connectionName, QObject *parent)
 
 CosDbWorker::~CosDbWorker()
 {
+	qDebug() << "REMOVE DATABASE" << m_connectionName;
 	QSqlDatabase::removeDatabase(m_connectionName);
 }
 

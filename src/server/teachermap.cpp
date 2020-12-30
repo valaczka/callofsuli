@@ -74,11 +74,9 @@ bool TeacherMap::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList params;
 
-	params.append(m_client->clientSession());
 	params.append(m_client->clientUserName());
 
-	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT rowid, uuid, name, version, lastModified, LENGTH(data) as dataSize, "
-"(editSession IS NOT NULL AND editSession<>?) AS editLocked "
+	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, version, lastModified, md5, COALESCE(LENGTH(data),0) as dataSize "
 "FROM maps WHERE owner=?",
 															   params);
 
@@ -109,168 +107,6 @@ bool TeacherMap::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
-/**
- * @brief TeacherMap::mapCreate
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::mapCreate(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	QString name = params.value("name").toString();
-
-	QUuid uuid = QUuid::createUuid();
-
-	GameMap map(uuid.toByteArray());
-
-	QVariantMap m;
-	m["uuid"] = uuid.toString();
-	m["name"] = name;
-	m["version"] = 1;
-	m["owner"] = m_client->clientUserName();
-	m["data"] = map.toBinaryData();
-
-	int id = m_client->mapsDb()->execInsertQuery("INSERT INTO maps (?k?) VALUES (?)", m);
-
-	bool ret = (id != -1);
-
-	(*jsonResponse)["created"] = ret;
-
-	return ret;
-}
-
-
-
-/**
- * @brief TeacherMap::mapGet
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::mapGet(QJsonObject *jsonResponse, QByteArray *byteArrayResponse)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	QString uuid = params.value("uuid").toString();
-
-	QVariantList m;
-
-	m.append(m_client->clientSession());
-	m.append(uuid);
-	m.append(m_client->clientUserName());
-
-
-	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, version, name, data, "
-"(editSession IS NOT NULL AND editSession<>?) AS editLocked "
-"FROM maps WHERE uuid=? AND owner=?",
-															  m);
-
-	if (r.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid map";
-		return false;
-	}
-
-	QVariantList l;
-	l.append(uuid);
-	l.append(uuid);
-	QVariantMap rr = m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM bindGroupMap WHERE mapid=?) AS binded,"
-														   "EXISTS(SELECT * FROM game WHERE mapid=?) AS used", l);
-
-
-	(*jsonResponse)["uuid"] = r.value("uuid").toString();
-	(*jsonResponse)["version"] = r.value("version").toInt();
-	(*jsonResponse)["name"] = r.value("name").toString();
-	(*jsonResponse)["editLocked"] = r.value("editLocked").toBool();
-	(*jsonResponse)["binded"] = rr.value("binded").toBool();
-	(*jsonResponse)["used"] = rr.value("used").toBool();
-
-
-	(*byteArrayResponse) = r.value("data").toByteArray();
-
-	return true;
-}
-
-
-/**
- * @brief TeacherMap::mapEditLock
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::mapEditLock(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	bool forced = params.value("forced").toBool();
-	QString uuid = params.value("uuid").toString();
-
-	QVariantList m;
-
-	m.append(uuid);
-	m.append(m_client->clientUserName());
-
-	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT editSession FROM maps WHERE uuid=? AND owner=?", m);
-
-	if (r.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid map";
-		return false;
-	}
-
-	QString editSession = r.value("editSession").toString();
-
-	if (!editSession.isEmpty() && editSession != m_client->clientSession()) {
-		(*jsonResponse)["forced"] = forced;
-
-		if (!forced)
-			return false;
-	}
-
-	m.prepend(m_client->clientSession());
-
-	if (m_client->mapsDb()->execSimpleQuery("UPDATE maps SET editSession=? WHERE uuid=? AND owner=?", m)) {
-		(*jsonResponse)["uuid"]	= uuid;
-		(*jsonResponse)["locked"] = true;
-		return true;
-	}
-
-	return false;
-}
-
-
-/**
- * @brief TeacherMap::mapEditUnlock
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::mapEditUnlock(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	QString uuid = params.value("uuid").toString();
-
-	QVariantList m;
-
-	m.append(m_client->clientSession());
-	m.append(uuid);
-	m.append(m_client->clientUserName());
-
-	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT rowid FROM maps WHERE editSession=? AND uuid=? AND owner=?", m);
-
-	if (r.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid map";
-		return false;
-	}
-
-	QVariantList ll;
-	ll.append(r.value("rowid").toInt());
-
-	if (m_client->mapsDb()->execSimpleQuery("UPDATE maps SET editSession=NULL WHERE rowid=?", ll)) {
-		(*jsonResponse)["uuid"]	= uuid;
-		(*jsonResponse)["unlocked"] = true;
-		return true;
-	}
-
-	return false;
-}
 
 
 /**
@@ -283,86 +119,113 @@ bool TeacherMap::mapUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
+	QByteArray d = m_message.binaryData();
+
+
+	if (uuid.isEmpty()) {
+		(*jsonResponse)["error"] = "missing uuid";
+		return false;
+	}
 
 	QVariantList m;
 
 	m.append(uuid);
-	m.append(m_client->clientUserName());
 
-	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT editSession FROM maps WHERE uuid=? AND owner=?", m);
+	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT owner FROM maps WHERE uuid=?", m);
 
-	if (r.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid map";
+	if (!r.isEmpty() && r.value("owner") != m_client->clientUserName()) {
+		(*jsonResponse)["error"] = "map exists";
 		return false;
 	}
 
-	QString editSession = r.value("editSession").toString();
 
-	if (!editSession.isEmpty() && editSession != m_client->clientSession()) {
-		(*jsonResponse)["error"] = "edit locked";
+	if (r.isEmpty() && d.isEmpty()) {
+		(*jsonResponse)["error"] = "insufficient parameters";
 		return false;
 	}
+
 
 	QVariantMap u;
 
-	QByteArray d = m_message.binaryData();
+	QString md5;
 
-	u["editSession"] = m_client->clientSession();
-	u["data"] = d;
-	u["md5"] = QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex();
-
-	QVariantMap uu;
-	uu[":uuid"] = uuid;
-	uu[":owner"] = m_client->clientUserName();
-
-	if (m_client->mapsDb()->execUpdateQuery("UPDATE maps SET version=version+1,? WHERE uuid=:uuid AND owner=:owner", u, uu)) {
-		(*jsonResponse)["uuid"]	= uuid;
-		(*jsonResponse)["updated"] = true;
-		return true;
+	if (!d.isEmpty()) {
+		md5 = QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex());
+		(*jsonResponse)["md5"] = md5;
+		u["data"] = d;
+		u["md5"] = md5;
 	}
+
+	if (params.contains("name")) {
+		u["name"] = params.value("name").toString();
+	}
+
+
+
+	if (r.isEmpty()) {
+		u["version"] = 1;
+		u["uuid"] = uuid;
+		u["owner"] = m_client->clientUserName();
+
+		if (m_client->mapsDb()->execInsertQuery("INSERT INTO maps (?k?) VALUES (?)", u) != -1) {
+			(*jsonResponse)["uuid"]	= uuid;
+			(*jsonResponse)["created"] = true;
+			return true;
+		}
+	} else {
+		QVariantMap uu;
+		uu[":uuid"] = uuid;
+		uu[":owner"] = m_client->clientUserName();
+
+		if (m_client->mapsDb()->execUpdateQuery("UPDATE maps SET version=version+1, lastModified=datetime('now'),? "
+												"WHERE uuid=:uuid AND owner=:owner", u, uu)) {
+			(*jsonResponse)["uuid"]	= uuid;
+			(*jsonResponse)["updated"] = true;
+			return true;
+		}
+	}
+
+	(*jsonResponse)["uuid"]	= uuid;
+	(*jsonResponse)["error"] = "sql error";
 
 	return false;
 }
 
 
+
+
+
+
 /**
- * @brief TeacherMap::mapRename
+ * @brief TeacherMap::mapRemove
  * @param jsonResponse
  * @return
  */
 
-bool TeacherMap::mapRename(QJsonObject *jsonResponse, QByteArray *)
+bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
-	QString name = params.value("name").toString();
 
 	QVariantList m;
 
 	m.append(uuid);
 	m.append(m_client->clientUserName());
 
-	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT rowid FROM maps WHERE uuid=? AND owner=?", m);
+	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid FROM maps WHERE uuid=? AND owner=?", m);
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid map";
 		return false;
 	}
 
-	if (name.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid name";
-		return false;
-	}
 
-	QVariantList ll;
-	ll.append(name);
-	ll.append(r.value("rowid").toInt());
-
-	if (m_client->mapsDb()->execSimpleQuery("UPDATE maps SET name=? WHERE rowid=?", ll)) {
+	if (m_client->mapsDb()->execSimpleQuery("DELETE FROM maps WHERE uuid=? AND owner=?", m)) {
 		(*jsonResponse)["uuid"]	= uuid;
-		(*jsonResponse)["name"] = name;
+		(*jsonResponse)["removed"] = true;
 		return true;
 	}
 
+	(*jsonResponse)["error"] = "sql error";
 	return false;
 }

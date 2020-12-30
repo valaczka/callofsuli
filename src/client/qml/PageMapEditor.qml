@@ -16,9 +16,11 @@ QPage {
 	defaultSubTitle: mapEditor.mapName
 
 	property alias mapName: mapEditor.mapName
+	property alias fileName: mapEditor.fileName
+	property alias database: mapEditor.database
+	property alias databaseUuid: mapEditor.databaseUuid
+	property alias databaseTable: mapEditor.databaseTable
 	property alias mapEditor: mapEditor
-
-	property alias parentActivity: mapEditor.parentActivity
 
 	mainToolBarComponent: Row {
 		QUndoButton  {
@@ -142,11 +144,6 @@ QPage {
 				levelComponentsCompleted = 0
 			}
 		}
-
-		Component.onDestruction: {
-			if (parentActivity)
-				parentActivity.mapEditorCloseRequest(mapEditor)
-		}
 	}
 
 
@@ -191,11 +188,10 @@ QPage {
 	Action {
 		id: actionSave
 		icon.source: CosStyle.iconSave
-		enabled: mapEditor.modified && mapEditor.parentActivity
+		enabled: mapEditor.modified
 		shortcut: "Ctrl+S"
 		onTriggered: {
-			if (mapEditor.parentActivity)
-				mapEditor.saveToActivity()
+			mapEditor.saveDefault()
 		}
 	}
 
@@ -228,8 +224,8 @@ QPage {
 
 
 	onPageActivated: {
-		if (!_isLoaded && mapEditor.parentActivity) {
-			mapEditor.parentActivity.mapEditorLoadRequest(mapEditor)
+		if (!_isLoaded) {
+			mapEditor.loadDefault()
 		}
 	}
 

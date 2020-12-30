@@ -91,7 +91,7 @@ public:
 		QtConcurrent::run((Class *)(this), func, data);
 	}
 
-	Q_INVOKABLE virtual void run(const QString &, QVariantMap = QVariantMap()) {}
+	Q_INVOKABLE virtual void run(const QString &, QVariantMap = QVariantMap()) { qWarning() << "AbstractActivity::run(QString) implementation missing!"; }
 
 
 	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermap.h
+ * student.cpp
  *
- * Created on: 2020. 12. 26.
+ * Created on: 2020. 12. 28.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMap
+ * Student
  *
  *  This file is part of Call of Suli.
  *
@@ -32,28 +32,24 @@
  * SOFTWARE.
  */
 
-#ifndef TEACHERMAP_H
-#define TEACHERMAP_H
+#include "student.h"
 
-#include "abstracthandler.h"
-#include <QObject>
-
-class Client;
-
-class TeacherMap : public AbstractHandler
+Student::Student(Client *client, const CosMessage &message)
+	: AbstractHandler(client, message, CosMessage::ClassStudent)
 {
-	Q_OBJECT
 
-public:
-	explicit TeacherMap(Client *client, const CosMessage &message);
+}
 
-	bool classInit() override;
 
-public slots:
-	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool mapUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool mapRemove(QJsonObject *jsonResponse, QByteArray *);
+/**
+ * @brief Student::classInit
+ * @return
+ */
 
-};
+bool Student::classInit()
+{
+	if (!m_client->clientRoles().testFlag(CosMessage::RoleStudent))
+		return false;
 
-#endif // TEACHERMAP_H
+	return true;
+}

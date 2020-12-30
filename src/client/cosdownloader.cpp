@@ -406,7 +406,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 
 		qDebug() << "DOWNLOADER" << this << "RECEIVED" << item.localFile;
 
-		emit oneDownloadFinished(item, data);
+		emit oneDownloadFinished(item, data, d);
 		emit downloadProgressChanged(downloadProgress());
 		emit downloadedSizeChanged(downloadedSize());
 

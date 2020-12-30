@@ -102,7 +102,8 @@ public:
 		ClassLogout,
 		ClassAdmin,
 		ClassUserInfo,
-		ClassTeacherMap
+		ClassTeacherMap,
+		ClassStudent
 	};
 
 	Q_ENUM(CosClass)

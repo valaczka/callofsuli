@@ -10,6 +10,7 @@ QPagePanel {
 	id: panel
 
 	maximumWidth: 600
+	layoutFillWidth: false
 
 	title: qsTr("Pályák")
 	icon: CosStyle.iconUsers
@@ -19,8 +20,9 @@ QPagePanel {
 	contextMenuFunc: function (m) {
 		m.addAction(actionMapNew)
 		m.addAction(actionRename)
+		m.addAction(actionDownload)
+		m.addAction(actionUpload)
 	}
-
 
 
 	SortFilterProxyModel {
@@ -38,10 +40,38 @@ QPagePanel {
 		sorters: [
 			StringSorter { roleName: "name" }
 		]
-		proxyRoles: ExpressionRole {
-			name: "details"
-			expression: "v"+model.version+" "+model.lastModified+" "+cosClient.formattedDataSize(Number(model.dataSize))
-		}
+		proxyRoles: [
+			ExpressionRole {
+				name: "details"
+				expression: (model.localLastModified !== undefined ? model.localLastModified+" " : "")
+							+"("+cosClient.formattedDataSize(Number(model.dataSize))+")"
+			},
+			SwitchRole {
+				name: "textColor"
+				filters: [
+					ValueFilter {
+						roleName: "upload"
+						value: true
+						SwitchRole.value: CosStyle.colorAccentLighter
+					},
+					ValueFilter {
+						roleName: "download"
+						value: true
+						SwitchRole.value: CosStyle.colorOKLighter
+					}
+				]
+				defaultValue: CosStyle.colorPrimaryLighter
+			},
+			SwitchRole {
+				name: "fontWeight"
+				filters: ExpressionFilter {
+					expression: model.local
+					SwitchRole.value: Font.Normal
+				}
+				defaultValue: Font.Medium
+			}
+
+		]
 	}
 
 	QVariantMapProxyView {
@@ -53,25 +83,34 @@ QPagePanel {
 		model: userProxyModel
 		modelTitleRole: "name"
 		modelSubtitleRole: "details"
-		/*modelDepthRole: "type"
 		modelTitleColorRole: "textColor"
-		modelTitleWeightRole: "fontWeight"*/
+		modelSubtitleColorRole: "textColor"
+		modelTitleWeightRole: "fontWeight"
 
 		autoSelectorChange: true
 
-		/*leftComponent: QFontImage {
-			width: visible ? list.delegateHeight*0.8 : 0
-			height: width
+		delegateHeight: CosStyle.twoLineHeight
+
+		panelPaddingLeft: 0
+
+		leftComponent: QFontImage {
+			width: visible ? list.delegateHeight : 0
+			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: model && model.module ? mapEditor.moduleData(model.module).icon : ""
+			icon: if (model && model.upload)
+					  CosStyle.iconAdd
+				  else if (model && model.download)
+					  CosStyle.iconDown
+				  else
+					  CosStyle.iconOK
 
-			visible: model && model.type === 1
+			visible: model
 
-			color: CosStyle.colorPrimary
-		}*/
+			color: model ? model.textColor : CosStyle.colorPrimary
+		}
 
-		rightComponent: QFontImage {
+		/*rightComponent: QFontImage {
 			width: visible ? list.delegateHeight*0.8 : 0
 			height: width
 			size: Math.min(height*0.8, 32)
@@ -81,15 +120,30 @@ QPagePanel {
 			visible: model && model.editLocked
 
 			color: CosStyle.colorAccentLighter
-		}
+		}*/
 
 
 		onClicked: {
-			if (teacherMaps.editUuid.length) {
-				cosClient.sendMessageWarning(qsTr("Szerkesztés"), qsTr("Már folyamatban van egy pálya szerkesztése, előbb azt be kell fejezni!"))
+			var o = list.model.get(index)
+			if (o.download) {
+				list.currentIndex = index
+				actionDownload.trigger()
+			} else if (o.upload) {
+				JS.createPage("MapEditor", {
+								  database: teacherMaps.db,
+								  databaseTable: "localmaps",
+								  databaseUuid: o.uuid
+							  })
 			} else {
-				var o = list.model.get(index)
-				teacherMaps.send("mapEditLock", {uuid: o.uuid})
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Szerkesztés"),
+											   text: qsTr("Készítsünk egy helyi másolatát a szerkesztéshez?\n%1").arg(o.name)
+										   })
+				d.accepted.connect(function() {
+					teacherMaps.mapLocalCopy({uuid: o.uuid})
+				})
+
+				d.open()
 			}
 		}
 
@@ -122,6 +176,8 @@ QPagePanel {
 
 			MenuItem { action: actionMapNew }
 			MenuItem { action: actionRename }
+			MenuItem { action: actionDownload }
+			MenuItem { action: actionUpload }
 		}
 
 
@@ -160,7 +216,8 @@ QPagePanel {
 			d.item.title = qsTr("Új pálya neve")
 
 			d.accepted.connect(function(data) {
-				teacherMaps.send("mapCreate", {name: data})
+				if (data.length)
+					teacherMaps.mapAdd({name: data})
 			})
 			d.open()
 		}
@@ -178,9 +235,45 @@ QPagePanel {
 			var d = JS.dialogCreateQml("TextField", { title: qsTr("Pálya neve"), value: o.name })
 
 			d.accepted.connect(function(data) {
-
+				if (data.length)
+					teacherMaps.mapRename({uuid: o.uuid, name: data, local: o.local})
 			})
 			d.open()
+		}
+	}
+
+
+	Action {
+		id: actionDownload
+		text: qsTr("Letöltés")
+		icon.source: CosStyle.iconDown
+		enabled: !teacherMaps.isBusy && (list.currentIndex !== -1 || teacherMaps.modelMapList.selectedCount)
+		onTriggered: {
+			var o = list.model.get(list.currentIndex)
+
+			var more = teacherMaps.modelMapList.selectedCount
+
+			if (more > 0)
+				teacherMaps.mapDownload({list: teacherMaps.modelMapList.getSelectedData("uuid") })
+			else
+				teacherMaps.mapDownload({uuid: o.uuid})
+		}
+	}
+
+	Action {
+		id: actionUpload
+		text: qsTr("Feltöltés")
+		icon.source: CosStyle.iconUnchecked
+		enabled: !teacherMaps.isBusy && (list.currentIndex !== -1 || teacherMaps.modelMapList.selectedCount)
+		onTriggered: {
+			var o = list.model.get(list.currentIndex)
+
+			var more = teacherMaps.modelMapList.selectedCount
+
+			if (more > 0)
+				teacherMaps.mapUpload({list: teacherMaps.modelMapList.getSelectedData("uuid") })
+			else
+				teacherMaps.mapUpload({uuid: o.uuid})
 		}
 	}
 

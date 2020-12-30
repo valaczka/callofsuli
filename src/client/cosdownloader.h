@@ -100,7 +100,7 @@ signals:
 	void downloadStarted();
 	void downloadFinished();
 	void downloadFailed();
-	void oneDownloadFinished(CosDownloaderItem item, const QByteArray &data);
+	void oneDownloadFinished(CosDownloaderItem item, const QByteArray &data, const QJsonObject &jsonData);
 
 	void fullSizeChanged(qreal fullSize);
 	void downloadedSizeChanged(qreal downloadedSize);
