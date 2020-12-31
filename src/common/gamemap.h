@@ -211,12 +211,24 @@ public:
 
 		bool getLockTree(QVector<MissionLock> *listPtr, Mission *rootMission = nullptr) const;
 
+		qint32 getSolvedLevel() const { return m_solvedLevel; }
+		void setSolvedLevel(const qint32 &solvedLevel) { m_solvedLevel = solvedLevel; }
+
+		bool getTried() const { return m_tried; }
+		void setTried(bool tried) { m_tried = tried; }
+
+		qint32 getLockDepth() const { return m_lockDepth; }
+		void setLockDepth(const qint32 &lockDepth) { m_lockDepth = lockDepth; }
+
 	private:
 		QByteArray m_uuid;
 		bool m_mandatory;
 		QString m_name;
 		QVector<MissionLevel *> m_levels;
 		QVector<MissionLock> m_locks;
+		qint32 m_solvedLevel;
+		bool m_tried;
+		qint32 m_lockDepth;
 	};
 
 
@@ -236,11 +248,23 @@ public:
 
 		bool getLockTree(QVector<Campaign *> *listPtr, Campaign *rootCampaign = nullptr) const;
 
+		bool getSolved() const { return m_solved; }
+		void setSolved(bool solved) { m_solved = solved; }
+
+		bool getTried() const { return m_tried; }
+		void setTried(bool tried) { m_tried = tried; }
+
+		bool getLocked() const { return m_locked; }
+		void setLocked(bool locked) { m_locked = locked; }
+
 	private:
 		qint32 m_id;
 		QString m_name;
 		QVector<Campaign *> m_locks;
 		QVector<Mission *> m_missions;
+		bool m_solved;
+		bool m_tried;
+		bool m_locked;
 	};
 
 
@@ -285,7 +309,7 @@ public:
 	Image* addImage(Image *image) { Q_ASSERT(image); m_images.append(image); return image; }
 	Storage* addStorage(Storage *storage) { Q_ASSERT(storage); m_storages.append(storage); return storage;}
 
-
+	void setSolver(const QVariantList &list);
 
 	void setProgressFunc(QObject *target, const QString &func);
 

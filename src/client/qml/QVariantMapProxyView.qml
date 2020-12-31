@@ -20,12 +20,15 @@ QListView {
 	property string modelSubtitleColorRole: ""
 	property string modelBackgroundRole: ""
 	property string modelTitleWeightRole: ""
+	property string modelTitleFamilyRole: ""
 
 	property color colorTitle: CosStyle.colorPrimaryLighter
 	property color colorSubtitle: CosStyle.colorPrimary
 
 	property real pixelSizeTitle: CosStyle.pixelSize
 	property real pixelSizeSubtitle: CosStyle.pixelSize*0.8
+
+	property string fontFamilyTitle: "Rajdhani"
 
 	property int fontWeightTitle: Font.Normal
 	property int fontWeightSubtitle: Font.Light
@@ -59,7 +62,7 @@ QListView {
 
 	focus: true
 
-	boundsBehavior: Flickable.StopAtBounds
+	//boundsBehavior: Flickable.StopAtBounds
 
 	model: ListModel {	}
 
@@ -160,6 +163,7 @@ QListView {
 						maximumLineCount: 1
 						elide: Text.ElideRight
 						font.pixelSize: pixelSizeTitle
+						font.family: modelTitleFamilyRole.length ? model[modelTitleFamilyRole] : fontFamilyTitle
 						font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : fontWeightTitle
 						width: parent.width
 						visible: text.length

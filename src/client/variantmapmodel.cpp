@@ -1,4 +1,4 @@
- /* ---- Call of Suli ----
+/* ---- Call of Suli ----
  *
  * variantmapmodel.cpp
  *
@@ -35,17 +35,13 @@
 #include "variantmapdata.h"
 
 
-VariantMapModel::VariantMapModel(VariantMapData *dataList, const QStringList &roleNames, QObject *parent)
+VariantMapModel::VariantMapModel(const QStringList &roleNames, QObject *parent)
 	: QAbstractListModel(parent)
-	, m_dataDelete(false)
-	, m_data(dataList)
+	, m_dataDelete(true)
+	, m_data(new VariantMapData())
 
 {
 	qDebug() << "NEW VARIANT MAP MODEL" << this << "parent" << parent;
-	if (!dataList) {
-		m_data = new VariantMapData();
-		m_dataDelete = true;
-	}
 
 	m_data->addModel(this);
 
@@ -68,10 +64,14 @@ VariantMapModel::~VariantMapModel()
 {
 	qDebug() << "DELETE VARIANT MAP MODEL" << this;
 
-	m_data->removeModel(this);
+	if (m_data) {
+		m_data->removeModel(this);
 
-	if (m_dataDelete)
-		delete m_data;
+		if (m_dataDelete)
+			delete m_data;
+
+		m_data = nullptr;
+	}
 }
 
 
@@ -367,4 +367,6 @@ void VariantMapModel::selectAllToggle()
 	else
 		unselectAll();
 }
+
+
 

@@ -18,6 +18,9 @@ QPage {
 		userNameVisible: page.width>800
 	}
 
+	UserDetails {
+		id: userData
+	}
 
 	swipeMode: control.width < 900
 
@@ -54,10 +57,10 @@ QPage {
 									  params: {}
 								  })
 
-				if (cosClient.userRoles & (CosMessage.RoleTeacher|CosMessage.RoleStudent))
+				if (cosClient.userRoles & CosMessage.RoleStudent)
 					list.model.append({
 										  labelTitle: qsTr("Pályák"),
-										  page: "Maps",
+										  page: "StudentMap",
 										  params: {}
 									  })
 
@@ -118,9 +121,6 @@ QPage {
 		}
 	}
 
-	UserDetails {
-		id: userData
-	}
 
 
 	Connections {

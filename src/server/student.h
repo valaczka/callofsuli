@@ -49,7 +49,13 @@ public:
 	bool classInit() override;
 
 public slots:
-	//bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
+
+	bool missionListGet(QJsonObject *jsonResponse, QByteArray *);
+
+	bool gameCreate(QJsonObject *jsonResponse, QByteArray *);
+	bool gameUpdate(QJsonObject *jsonResponse, QByteArray *);
+	bool gameFinish(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

@@ -38,10 +38,9 @@
 TeacherMaps::TeacherMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
 	, m_modelMapList(nullptr)
-	, m_modelMapData()
 	, m_isUploading(false)
 {
-	m_modelMapList = new VariantMapModel(&m_modelMapData, {
+	m_modelMapList = new VariantMapModel({
 											 "uuid",
 											 "name" ,
 											 "dataSize" ,
@@ -212,13 +211,13 @@ void TeacherMaps::mapDownload(QVariantMap data)
 
 	foreach (QVariant v, uuidList) {
 		QString uuid = v.toString();
-		int index = m_modelMapData.find("uuid2", uuid);			// Mert ha helyi, akkor uuid2 = uuid+"UP"
+		int index = m_modelMapList->variantMapData()->find("uuid2", uuid);			// Mert ha helyi, akkor uuid2 = uuid+"UP"
 		if (index == -1) {
 			qDebug() << "Skip" << uuid;
 			continue;
 		}
 
-		QVariantMap o = m_modelMapData.at(index).second;
+		QVariantMap o = m_modelMapList->variantMapData()->at(index).second;
 
 		m_downloader->append(o.value("uuid").toString(),
 							 "",
@@ -395,12 +394,12 @@ void TeacherMaps::onMapListGet(QJsonObject jsonData, QByteArray)
 		QVariantList l;
 		l.append(uuid);
 
-		QVariantMap r = db()->execSelectQueryOneRow("SELECT name, md5 FROM maps WHERE uuid=?", l);
+		QVariantMap r = db()->execSelectQueryOneRow("SELECT name, md5, COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE uuid=?", l);
 
 		if (r.isEmpty()) {
 			m["download"] = true;
 		} else {
-			if (r.value("md5").toString() != m.value("md5").toString()) {
+			if (r.value("md5").toString() != m.value("md5").toString() || m.value("dataSize").toInt() != r.value("dataSize").toInt()) {
 				m["download"] = true;
 			}
 			if (r.value("name").toString() != m.value("name").toString()) {

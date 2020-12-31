@@ -701,6 +701,117 @@ GameMap::CampaignLockHash GameMap::campaignLockTree(GameMap::Campaign **errCampa
 }
 
 
+
+/**
+ * @brief GameMap::setSolver
+ * @param list
+ */
+
+void GameMap::setSolver(const QVariantList &list)
+{
+	// Clear solver
+
+	foreach (Campaign *c, m_campaigns) {
+		c->setSolved(false);
+		c->setTried(false);
+		c->setLocked(false);
+
+		foreach (Mission *m, c->missions()) {
+			m->setSolvedLevel(-1);
+			m->setTried(false);
+			m->setLockDepth(0);
+		}
+	}
+
+
+	// Load mission solver
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		QString uuid = m.value("missionid").toString();
+		int maxLevel = m.value("maxLevel", -1).toInt();
+
+		Mission *mis = mission(uuid.toLatin1());
+		if (mis) {
+			mis->setTried(true);
+			if (maxLevel > 0)
+				mis->setSolvedLevel(maxLevel);
+		} else {
+			qWarning() << "Invalid mission uuid" << uuid;
+		}
+	}
+
+
+	// Load campaign solver
+
+	foreach (Campaign *c, m_campaigns) {
+		bool solved = true;
+		bool tried = false;
+
+		foreach (Mission *m, c->missions()) {
+			if (m->getTried())
+				tried = true;
+
+			if (m->mandatory() && m->getSolvedLevel() == -1)
+				solved = false;
+		}
+
+		c->setSolved(solved);
+		c->setTried(tried);
+	}
+
+
+	// Load locks
+
+	CampaignLockHash clh = campaignLockTree();
+	MissionLockHash mlh = missionLockTree();
+
+	foreach (Campaign *c, m_campaigns) {
+		foreach (Mission *m, c->missions()) {
+			if (!mlh.value(m).size())
+				continue;
+
+			qint32 lockDepth = 0;
+
+			QVector<MissionLock> locks = mlh.value(m);
+			foreach (MissionLock ml, locks) {
+				if ((ml.second == -1 && ml.first->getSolvedLevel() == -1) || ml.second > ml.first->getSolvedLevel()) {
+					if (mlh.value(ml.first).size() > 0) {
+						QVector<MissionLock> locks2 = mlh.value(ml.first);
+						foreach (MissionLock ml2, locks2) {
+							if ((ml2.second == -1 && ml2.first->getSolvedLevel() == -1) || ml2.second > ml2.first->getSolvedLevel()) {
+								lockDepth = 2;
+								break;
+							}
+						}
+					}
+
+					if (lockDepth < 1)
+						lockDepth = 1;
+				}
+			}
+
+			m->setLockDepth(lockDepth);
+		}
+
+		if (!clh.value(c).size())
+			continue;
+
+		QVector<Campaign *> locks = clh.value(c);
+
+		foreach (Campaign *cl, locks) {
+			if (!cl->getSolved())
+				c->setLocked(true);
+		}
+	}
+
+}
+
+
+
+
+
+
 /**
  * @brief GameMap::setProgressFunc
  * @param target
@@ -2395,6 +2506,9 @@ GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const Q
 	, m_name(name)
 	, m_levels()
 	, m_locks()
+	, m_solvedLevel(-1)
+	, m_tried(false)
+	, m_lockDepth(0)
 {
 
 }
@@ -2453,6 +2567,18 @@ bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameM
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief GameMap::Campaign::Campaign
  * @param id
@@ -2464,6 +2590,9 @@ GameMap::Campaign::Campaign(const qint32 &id, const QString &name)
 	, m_name(name)
 	, m_locks()
 	, m_missions()
+	, m_solved(false)
+	, m_tried(false)
+	, m_locked(false)
 {
 
 }
@@ -2502,6 +2631,18 @@ bool GameMap::Campaign::getLockTree(QVector<GameMap::Campaign *> *listPtr, GameM
 
 	return true;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

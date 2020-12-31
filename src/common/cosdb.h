@@ -45,6 +45,7 @@ public slots:
 	QString connectionName() const { return m_connectionName; }
 	void setDatabaseName(QString databaseName) { QSqlDatabase::database(m_connectionName, false).setDatabaseName(databaseName); }
 	QString databaseName() const { return QSqlDatabase::database(m_connectionName, false).databaseName(); }
+	bool subscribeToNotification(const QString &table);
 
 	bool isOpen() const { return QSqlDatabase::database(m_connectionName, false).isOpen(); }
 	bool isValid() const { return QSqlDatabase::database(m_connectionName, false).isValid(); }
@@ -78,6 +79,7 @@ public slots:
 
 signals:
 	void databaseError(const QString &text);
+	void notification(QString table);
 
 private:
 	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
@@ -119,6 +121,7 @@ public:
 	void rollback() const { QMetaObject::invokeMethod(m_worker, "rollback", Qt::BlockingQueuedConnection); }
 
 	bool databaseExists() const;
+	bool subscribeToNotification(const QString &table) const;
 
 	void setConnectOptions(const QString &options = QString()) {
 		QMetaObject::invokeMethod(m_worker, "setConnectOptions", Qt::BlockingQueuedConnection, Q_ARG(QString, options) );

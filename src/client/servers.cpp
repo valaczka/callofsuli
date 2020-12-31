@@ -37,13 +37,21 @@
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
-	, m_serverList()
 	, m_serversModel(nullptr)
 	, m_dataFileName(Client::standardPath("servers.json"))
 	, m_connectedServerKey(-1)
 	, m_serverTryConnectKey(-1)
 {
-	m_serversModel = new VariantMapModel(&m_serverList, createFullMap().keys(), this);
+	m_serversModel = new VariantMapModel({
+											 "id",
+											 "name",
+											 "host",
+											 "port",
+											 "ssl",
+											 "username",
+											 "session",
+											 "autoconnect"
+										 }, this);
 
 	connect(this, &Servers::resourceRegisterRequest, this, &Servers::registerResource);
 }
@@ -135,21 +143,21 @@ void Servers::serverListReload()
 {
 	qDebug() << "Server list reload";
 
-	if (m_serverList.size()) {
-		m_serverList.clear();
+	if (m_serversModel->variantMapData()->size()) {
+		m_serversModel->variantMapData()->clear();
 	}
 
 	QJsonDocument doc = Client::readJsonDocument(m_dataFileName);
 
 	if (!doc.isEmpty())
-		m_serverList.fromJsonArray(doc.array(), "id");
+		m_serversModel->variantMapData()->fromJsonArray(doc.array(), "id");
 
 	emit serverListLoaded();
 
-	if (m_serverList.keyIndex(m_connectedServerKey) == -1)
+	if (m_serversModel->variantMapData()->keyIndex(m_connectedServerKey) == -1)
 		setConnectedServerKey(-1);
 
-	if (m_serverList.keyIndex(m_serverTryConnectKey) == -1)
+	if (m_serversModel->variantMapData()->keyIndex(m_serverTryConnectKey) == -1)
 		m_serverTryConnectKey = -1;
 
 }
@@ -171,7 +179,7 @@ void Servers::serverConnect(const int &index)
 
 	m_serverTryConnectKey = -1;
 
-	QVariantMap d = m_serverList.value(index).second;
+	QVariantMap d = m_serversModel->variantMapData()->value(index).second;
 
 	QUrl url;
 	url.setHost(d.value("host").toString());
@@ -210,8 +218,9 @@ void Servers::serverConnect(const int &index)
 	}
 
 	m_client->setServerDataDir(serverDir);
+	m_client->clearSession();
 
-	m_serverTryConnectKey = m_serverList.value(index).first;
+	m_serverTryConnectKey = m_serversModel->variantMapData()->value(index).first;
 
 	qDebug() << "CONNECT" << m_client->socket() << url;
 
@@ -227,14 +236,14 @@ void Servers::serverConnect(const int &index)
 
 int Servers::serverInsertOrUpdate(const int &key, const QVariantMap &map)
 {
-	int index = m_serverList.keyIndex(key);
+	int index = m_serversModel->variantMapData()->keyIndex(key);
 	if (index != -1) {
-		QVariantMap n = createFullMap(map, m_serverList.at(index).second);
-		m_serverList.update(index, n);
+		QVariantMap n = createFullMap(map, m_serversModel->variantMapData()->at(index).second);
+		m_serversModel->variantMapData()->update(index, n);
 		saveServerList();
 		return key;
 	} else {
-		int nextKey = m_serverList.append(createFullMap(map));
+		int nextKey = m_serversModel->variantMapData()->append(createFullMap(map));
 		saveServerList();
 		return nextKey;
 	}
@@ -250,11 +259,11 @@ int Servers::serverInsertOrUpdate(const int &key, const QVariantMap &map)
 
 void Servers::serverDelete(const int &index)
 {
-	if (index<0 || index>=m_serverList.size())
+	if (index<0 || index>=m_serversModel->variantMapData()->size())
 		return;
 
-	QVariantMap m = m_serverList.at(index).second;
-	int key = m_serverList.at(index).first;
+	QVariantMap m = m_serversModel->variantMapData()->at(index).second;
+	int key = m_serversModel->variantMapData()->at(index).first;
 	int id = m.value("id", -1).toInt();
 
 	if (m_connectedServerKey == key)
@@ -265,7 +274,7 @@ void Servers::serverDelete(const int &index)
 
 	removeServerDir(id);
 
-	m_serverList.removeAt(index);
+	m_serversModel->variantMapData()->removeAt(index);
 
 	saveServerList();
 
@@ -279,7 +288,7 @@ void Servers::serverDelete(const int &index)
 
 void Servers::serverDeleteKey(const int &key)
 {
-	QVariantMap m = m_serverList.valueKey(key);
+	QVariantMap m = m_serversModel->variantMapData()->valueKey(key);
 	int id = m.value("id", -1).toInt();
 
 	if (m_connectedServerKey == key)
@@ -290,7 +299,7 @@ void Servers::serverDeleteKey(const int &key)
 
 	removeServerDir(id);
 
-	m_serverList.removeKey(key);
+	m_serversModel->variantMapData()->removeKey(key);
 
 	saveServerList();
 }
@@ -307,7 +316,7 @@ void Servers::serverDeleteSelected(VariantMapModel *model)
 	QList<int> list = model->getSelected();
 
 	foreach (int i, list) {
-		if (m_serverList.keyIndex(i) == -1)
+		if (m_serversModel->variantMapData()->keyIndex(i) == -1)
 			continue;
 
 		if (m_connectedServerKey == i)
@@ -337,14 +346,14 @@ void Servers::serverDeleteSelected(VariantMapModel *model)
 
 void Servers::serverSetAutoConnect(const int &index)
 {
-	for (int i=0; i<m_serverList.size(); i++) {
-		QVariantMap d = m_serverList.at(i).second;
+	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
+		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
 		if (i==index) {
 			bool old = d.value("autoconnect").toBool();
-			m_serverList.updateValue(i, "autoconnect", !old);
+			m_serversModel->variantMapData()->updateValue(i, "autoconnect", !old);
 		} else {
 			if (d.value("autoconnect").toBool()) {
-				m_serverList.updateValue(i, "autoconnect", false);
+				m_serversModel->variantMapData()->updateValue(i, "autoconnect", false);
 			}
 		}
 	}
@@ -360,7 +369,7 @@ void Servers::serverSetAutoConnect(const int &index)
 
 void Servers::serverTryLogin(const int &key)
 {
-	QVariantMap d = m_serverList.valueKey(key);
+	QVariantMap d = m_serversModel->variantMapData()->valueKey(key);
 	if (d.isEmpty())
 		return;
 
@@ -379,8 +388,8 @@ void Servers::serverTryLogin(const int &key)
 void Servers::serverLogOut()
 {
 	if (m_connectedServerKey != -1) {
-		m_serverList.updateValueByKey(m_connectedServerKey, "session", "");
-		m_serverList.updateValueByKey(m_connectedServerKey, "username", "");
+		m_serversModel->variantMapData()->updateValueByKey(m_connectedServerKey, "session", "");
+		m_serversModel->variantMapData()->updateValueByKey(m_connectedServerKey, "username", "");
 		saveServerList();
 	}
 
@@ -393,8 +402,8 @@ void Servers::serverLogOut()
 
 void Servers::doAutoConnect()
 {
-	for (int i=0; i<m_serverList.size(); i++) {
-		QVariantMap d = m_serverList.at(i).second;
+	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
+		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
 		if (d.value("autoconnect").toBool()) {
 			serverConnect(i);
 			return;
@@ -465,7 +474,7 @@ void Servers::removeServerDir(const int &serverId)
 void Servers::onSessionTokenChanged(QString sessionToken)
 {
 	if (m_connectedServerKey != -1) {
-		m_serverList.updateValueByKey(m_connectedServerKey, "session", sessionToken);
+		m_serversModel->variantMapData()->updateValueByKey(m_connectedServerKey, "session", sessionToken);
 		saveServerList();
 	}
 }
@@ -525,7 +534,7 @@ void Servers::onUserRolesChanged(CosMessage::ClientRoles userRoles)
 void Servers::onUserNameChanged(QString username)
 {
 	if (m_connectedServerKey != -1 && !username.isEmpty()) {
-		m_serverList.updateValueByKey(m_connectedServerKey, "username", username);
+		m_serversModel->variantMapData()->updateValueByKey(m_connectedServerKey, "username", username);
 		saveServerList();
 	}
 }
@@ -683,7 +692,7 @@ void Servers::saveServerList()
 {
 	QJsonArray list;
 
-	foreach (_MapPair p, m_serverList)
+	foreach (_MapPair p, *(m_serversModel->variantMapData()))
 		list.append(QJsonObject::fromVariantMap(p.second));
 
 	QJsonDocument doc(list);
@@ -706,7 +715,8 @@ QVariantMap Servers::createFullMap(const QVariantMap &newData, const QVariantMap
 	foreach (QString k, newData.keys())
 		m[k] = newData.value(k);
 
-	if (!m.contains("id")) m["id"] = m_serverList.getNextId("id");
+
+	if (!m.contains("id")) m["id"] = m_serversModel->variantMapData()->getNextId("id");
 	if (!m.contains("name")) m["name"] = "";
 	if (!m.contains("host")) m["host"] = "";
 	if (!m.contains("port")) m["port"] = 10101;

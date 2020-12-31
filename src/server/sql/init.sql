@@ -28,6 +28,12 @@ CREATE TABLE user(
 );
 
 
+CREATE TABLE nick(
+	username TEXT NOT NULL PRIMARY KEY REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	nickname TEXT
+);
+
+
 CREATE TABLE auth(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	password TEXT,
@@ -83,7 +89,8 @@ CREATE TABLE game(
 	missionid TEXT NOT NULL,
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	level INTEGER NOT NULL DEFAULT 1,
-	success BOOL NOT NULL DEFAULT FALSE
+	success BOOL NOT NULL DEFAULT FALSE,
+	tmpScore INTEGER
 );
 
 
@@ -172,10 +179,11 @@ CREATE TABLE passwordReset(
 
 
 CREATE VIEW userInfo AS
-SELECT u.username, u.firstname, u.lastname, u.active, u.isTeacher, u.isAdmin, u.classid,
+SELECT u.username, u.firstname, u.lastname, u.active, u.isTeacher, u.isAdmin, u.classid, n.nickname,
 	c.name as classname, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as rankname, r.image as rankimage
 	FROM user u
 	LEFT JOIN class c ON (c.id=u.classid)
+	LEFT JOIN nick n ON (n.username=u.username)
 	LEFT JOIN (SELECT username, (SELECT SUM(xp) FROM score WHERE score.username=uuu.username) as xp FROM user uuu) s ON (s.username=u.username)
 	LEFT JOIN (SELECT uu.username,
 			CASE WHEN uu.isTeacher=1 THEN COALESCE((SELECT MAX(id) FROM rank WHERE xp IS null), (SELECT MIN(id) FROM rank))

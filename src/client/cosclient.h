@@ -155,6 +155,7 @@ public slots:
 	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
+	void clearSession();
 
 	void checkPermissions();
 

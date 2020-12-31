@@ -50,6 +50,7 @@ SOURCES += \
 		servers.cpp \
 		serversettings.cpp \
 		sqlimage.cpp \
+		studentmaps.cpp \
 		teachermaps.cpp \
 		tiledpaintedlayer.cpp \
 		variantmapdata.cpp \
@@ -79,6 +80,7 @@ HEADERS += \
 	servers.h \
 	serversettings.h \
 	sqlimage.h \
+	studentmaps.h \
 	teachermaps.h \
 	tiledpaintedlayer.h \
 	variantmapdata.h \

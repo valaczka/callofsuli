@@ -169,7 +169,7 @@ QPagePanel {
 				missionsFilter.enabled = true
 			}
 
-			mapEditor.modelCampaignList.select(sourceIndex)
+			mapEditor.modelCampaignList.select(list.model.mapToSource(index))
 		}
 
 		onSelectorSetChanged: {

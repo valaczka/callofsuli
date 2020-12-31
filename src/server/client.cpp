@@ -61,6 +61,10 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
 
 	connect(server, &Server::serverInfoChanged, this, &Client::sendServerInfo);
+	connect(server->db()->worker(), &CosDbWorker::notification, this, [=](QString table) {
+		if (table == "ranklog")
+			sendUserInfo();
+	});
 }
 
 
@@ -126,6 +130,18 @@ void Client::sendClientRoles()
 void Client::sendServerInfo()
 {
 	UserInfo u(this, CosMessage(QJsonObject(), CosMessage::ClassUserInfo, "getServerInfo"));
+	u.start();
+}
+
+
+/**
+ * @brief Client::sendUserInfo
+ */
+
+
+void Client::sendUserInfo()
+{
+	UserInfo u(this, CosMessage(QJsonObject(), CosMessage::ClassUserInfo, "getUser"));
 	u.start();
 }
 

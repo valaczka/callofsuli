@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermaps.h
+ * studentmaps.h
  *
- * Created on: 2020. 12. 26.
+ * Created on: 2020. 12. 31.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMaps
+ * StudentMaps
  *
  *  This file is part of Call of Suli.
  *
@@ -32,61 +32,76 @@
  * SOFTWARE.
  */
 
-#ifndef TEACHERMAPS_H
-#define TEACHERMAPS_H
+#ifndef STUDENTMAPS_H
+#define STUDENTMAPS_H
 
 #include "abstractactivity.h"
-#include "mapeditor.h"
+#include "variantmapmodel.h"
+#include "variantmapdata.h"
 
-class TeacherMaps : public AbstractActivity
+class StudentMaps : public AbstractActivity
 {
 	Q_OBJECT
 
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
-	Q_PROPERTY(bool isUploading READ isUploading WRITE setIsUploading NOTIFY isUploadingChanged)
+	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList NOTIFY modelMissionListChanged)
 
 public:
-	explicit TeacherMaps(QQuickItem *parent = nullptr);
-	~TeacherMaps();
+	explicit StudentMaps(QQuickItem *parent = nullptr);
+	~StudentMaps();
 
-	static CosDb *teacherMapsDb(Client *client, QObject *parent = nullptr, const QString &connectionName = "teacherMapsDb");
+	static CosDb *studentMapsDb(Client *client, QObject *parent = nullptr, const QString &connectionName = "studentMapsDb");
 
 	//Q_INVOKABLE virtual void run(const QString &func, QVariantMap data = QVariantMap()) override { AbstractActivity::run(m_map, func, data); };
 
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
-	bool isUploading() const { return m_isUploading; }
+	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
+	GameMap * currentMap() const { return m_currentMap; }
 
 public slots:
-	void mapAdd(QVariantMap data);
 	void mapDownload(QVariantMap data);
-	void mapUpload(QVariantMap data);
-	void mapRename(QVariantMap data);
-	void mapLocalCopy(QVariantMap data);
-
-	void setIsUploading(bool isUploading);
+	void mapLoad(QVariantMap data);
+	void getMissionList();
+	void playGame(QVariantMap data);
 
 protected slots:
 	void clientSetup() override;
 
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
-	void onMapUpdated(QJsonObject jsonData, QByteArray);
-	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &jsonData);
+	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
+	void loadGameMap(GameMap *map, const QString &mapName = "");
+	void unloadGameMap();
 
+	void onMissionListGet(QJsonObject jsonData, QByteArray);
+	void onGameCreate(QJsonObject jsonData, QByteArray);
+	void onGameUpdate(QJsonObject jsonData, QByteArray);
+	void onGameFinish(QJsonObject jsonData, QByteArray);
 
 signals:
+	void mapListLoaded(QVariantList list);
 	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapDownloadRequest(QString formattedDataSize);
 
-	void mapUpdate(QJsonObject jsonData, QByteArray binaryData);
+	void missionListGet(QJsonObject jsonData, QByteArray binaryData);
+
+	void gameMapLoaded(const QString &mapName);
+	void gameMapUnloaded();
+
+	void gameCreate(QJsonObject jsonData, QByteArray binaryData);
+	void gameFinish(QJsonObject jsonData, QByteArray binaryData);
+	void gameUpdate(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelMapListChanged(VariantMapModel * modelMapList);
-	void isUploadingChanged(bool isUploading);
+	void modelMissionListChanged(VariantMapModel * modelMissionList);
 
 private:
-	//QHash<QString, void (TeacherMaps::*)(QVariantMap)> m_map;
-	VariantMapModel * m_modelMapList;
-	bool m_isUploading;
+	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
+	VariantMapModel *m_modelMapList;
+	VariantMapData m_modelMapData;
+	GameMap * m_currentMap;
+	CosDb *m_imageDb;
+	VariantMapModel * m_modelMissionList;
 };
 
-#endif // TEACHERMAPS_H
+#endif // STUDENTMAPS_H

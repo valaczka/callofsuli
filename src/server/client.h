@@ -71,6 +71,7 @@ public:
 public slots:
 	void sendClientRoles();
 	void sendServerInfo();
+	void sendUserInfo();
 
 	void setClientState(ClientState clientState);
 	void setClientUserName(QString clientUserName);

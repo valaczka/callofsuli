@@ -53,3 +53,214 @@ bool Student::classInit()
 
 	return true;
 }
+
+
+/**
+ * @brief Student::mapListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::mapListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	/*QVariantList params;
+
+	params.append(m_client->clientUserName()); */
+
+	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, version, lastModified, md5, COALESCE(LENGTH(data),0) as dataSize "
+"FROM maps");
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(mapList);
+
+	return true;
+}
+
+
+
+/**
+ * @brief Student::missionListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString mapuuid = params.value("map").toString();
+
+	if (mapuuid.isEmpty()) {
+		(*jsonResponse)["error"] = "missing map";
+		return false;
+	}
+
+	QVariantList l;
+
+	l.append(mapuuid);
+	l.append(m_client->clientUserName());
+
+	QVariantList r = m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
+													"(SELECT max(level) FROM game g WHERE g.missionid=game.missionid "
+													"AND g.success=true AND g.username=game.username) as maxLevel "
+													"FROM game WHERE mapid=? AND username=?", l);
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(r);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief Student::gameNew
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString mapuuid = params.value("map").toString();
+	QString missionuuid = params.value("mission").toString();
+	int level = params.value("level", -1).toInt();
+
+	if (mapuuid.isEmpty() || missionuuid.isEmpty() || level <= 0) {
+		(*jsonResponse)["error"] = "missing map or mission";
+		return false;
+	}
+
+	QVariantList l;
+
+	l.append(m_client->clientUserName());
+
+
+	// Folyamatban lévő játékok lezárása
+
+	QVariantList r = m_client->db()->execSelectQuery("SELECT id FROM game WHERE username=? AND tmpScore IS NOT NULL", l);
+
+	if (!r.isEmpty()) {
+		m_client->db()->execSimpleQuery("INSERT INTO score (username, xp, gameid) "
+										"SELECT username, tmpScore, id FROM game WHERE username=? AND tmpScore IS NOT NULL", l);
+
+		m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=null WHERE username=?", l);
+	}
+
+
+	// Új játék készítése
+
+	QVariantMap m;
+	m["username"] = m_client->clientUserName();
+	m["mapid"] = mapuuid;
+	m["missionid"] = missionuuid;
+	m["level"] = level;
+	m["success"] = false;
+	m["tmpScore"] = 0;
+
+	int rowid = m_client->db()->execInsertQuery("INSERT INTO game (?k?) VALUES (?)", m);
+
+	if (rowid == -1) {
+		(*jsonResponse)["error"] = "sql error";
+		return false;
+	}
+
+	(*jsonResponse)["created"] = true;
+	(*jsonResponse)["gameid"] = rowid;
+	(*jsonResponse)["missionid"] = missionuuid;
+	(*jsonResponse)["level"] = level;
+	return true;
+}
+
+
+
+/**
+ * @brief Student::gameUpdate
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameUpdate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int gameid = params.value("id", -1).toInt();
+	int xp = params.value("xp", -1).toInt();
+
+	if (gameid < 0 || xp < 0) {
+		(*jsonResponse)["error"] = "missing id or xp";
+		return false;
+	}
+
+	QVariantList l;
+
+	l.append(m_client->clientUserName());
+	l.append(gameid);
+
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
+
+	if (r.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid game";
+		return false;
+	}
+
+	QVariantList ll;
+	ll.append(xp);
+	ll.append(gameid);
+	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=? WHERE id=?", ll);
+
+	(*jsonResponse)["gameid"] = gameid;
+	(*jsonResponse)["updated"] = true;
+	return true;
+}
+
+
+
+
+/**
+ * @brief Student::gameFinish
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int gameid = params.value("id", -1).toInt();
+	int xp = params.value("xp", -1).toInt();
+	bool success = params.value("success", false).toBool();
+
+	if (gameid < 0 || xp < 0) {
+		(*jsonResponse)["error"] = "missing id or xp";
+		return false;
+	}
+
+	QVariantList l;
+
+	l.append(m_client->clientUserName());
+	l.append(gameid);
+
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
+
+	if (r.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid game";
+		return false;
+	}
+
+	QVariantList ll;
+	ll.append(success);
+	ll.append(gameid);
+	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=NULL, success=? WHERE id=?", ll);
+
+	QVariantMap m;
+	m["username"] = m_client->clientUserName();
+	m["xp"] = xp;
+	m["gameid"] = gameid;
+	int ret = m_client->db()->execInsertQuery("INSERT INTO score (?k?) VALUES (?)", m);
+
+	if (ret == -1) {
+		(*jsonResponse)["error"] = "sql error";
+		return false;
+	}
+
+	(*jsonResponse)["gameid"] = gameid;
+	(*jsonResponse)["finished"] = true;
+	return true;
+}

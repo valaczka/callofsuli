@@ -46,11 +46,11 @@ class VariantMapModel : public QAbstractListModel
 	Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
-	explicit VariantMapModel(VariantMapData *dataList = nullptr, const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
+	explicit VariantMapModel(const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
 	~VariantMapModel();
 
 	Q_INVOKABLE static VariantMapModel *newModel(const QStringList &roleNames, QObject *parent = nullptr) {
-		return new VariantMapModel(nullptr, roleNames, parent);
+		return new VariantMapModel(roleNames, parent);
 	}
 
 	int rowCount(const QModelIndex &) const;
@@ -72,6 +72,7 @@ public:
 	Q_INVOKABLE void clear();
 	Q_INVOKABLE void setVariantList(const QVariantList &list, const QString &unique_field);
 
+	VariantMapData *variantMapData() const { return m_data; }
 
 public slots:
 	const QVariantMap get(int i) const;

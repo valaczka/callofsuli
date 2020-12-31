@@ -63,7 +63,7 @@
         <file>QLabel.qml</file>
         <file>ServerList.qml</file>
         <file>QDialogUserList.qml</file>
-        <file>PageMaps.qml</file>
+        <file>PageStudentMap.qml</file>
         <file>QMenuItemDelegate.qml</file>
         <file>GamePlayer.qml</file>
         <file>VirtualJoystick.qml</file>
@@ -95,5 +95,8 @@
         <file>PageGame.qml</file>
         <file>PageTeacherMap.qml</file>
         <file>TeacherMapList.qml</file>
+        <file>StudentMapList.qml</file>
+        <file>PageMapMissions.qml</file>
+        <file>MapMissionList.qml</file>
     </qresource>
 </RCC>

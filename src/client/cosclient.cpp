@@ -51,6 +51,7 @@
 #include "gameactivity.h"
 #include "cosdownloader.h"
 #include "teachermaps.h"
+#include "studentmaps.h"
 
 /*
 #ifdef Q_OS_ANDROID
@@ -198,6 +199,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
+	qmlRegisterType<StudentMaps>("COS.Client", 1, 0, "StudentMaps");
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
@@ -804,6 +806,24 @@ void Client::setServerDataDir(QString resourceDbName)
 
 	m_serverDataDir = resourceDbName;
 	emit serverDataDirChanged(m_serverDataDir);
+}
+
+
+/**
+ * @brief Client::clearSession
+ */
+
+void Client::clearSession()
+{
+	setUserName("");
+	setSessionToken("");
+	setUserXP(0);
+	setUserRank(0);
+	setUserRankName("");
+	setUserLastName("");
+	setUserFirstName("");
+	setUserRankImage("");
+	setUserRoles(CosMessage::RoleGuest);
 }
 
 

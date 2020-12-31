@@ -271,6 +271,37 @@ bool Server::databaseLoad()
 		if (m_db->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", params)==-1)
 			return false;
 
+
+
+#ifdef QT_DEBUG
+		for (int i=0; i<5; i++) {
+			QString username = QString("test%1").arg(i+1);
+			qDebug() << "Create test user" << username;
+			QVariantMap p;
+			p["username"] = username;
+			p["firstname"] = QString("Teszt %1 felhasználó").arg(i+1);
+			p["active"] = true;
+			p["isTeacher"] = false;
+			p["isAdmin"] = false;
+
+			if (m_db->execInsertQuery("INSERT INTO user(?k?) values (?)", p)==-1)
+				return false;
+
+
+			QString salt;
+			QString pwd = CosDb::hashPassword(username, &salt);
+
+			p.clear();
+			p["username"] = username;
+			p["password"] = pwd;
+			p["salt"] = salt;
+
+			if (m_db->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", p)==-1)
+				return false;
+		}
+#endif
+
+
 		if (!rankInit())
 			return false;
 	} else {
@@ -290,6 +321,8 @@ bool Server::databaseLoad()
 			return false;
 		}
 	}
+
+	m_db->subscribeToNotification("ranklog");
 
 	qInfo().noquote() << tr("Az adatbázis betöltve: ")+m_serverName;
 

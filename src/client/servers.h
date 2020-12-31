@@ -104,7 +104,6 @@ signals:
 private:
 	void _reloadResources(QVariantMap resources);
 
-	VariantMapData m_serverList;
 	VariantMapModel* m_serversModel;
 	QString m_dataFileName;
 	int m_connectedServerKey;

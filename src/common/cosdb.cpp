@@ -126,6 +126,25 @@ bool CosDb::databaseExists() const
 
 
 /**
+ * @brief CosDb::subscribeToNotifications
+ * @param table
+ * @return
+ */
+
+bool CosDb::subscribeToNotification(const QString &table) const
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "subscribeToNotification", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QString, table)
+							  );
+
+	return ret;
+}
+
+
+/**
  * @brief CosDb::connectOptions
  * @return
  */
@@ -1293,6 +1312,25 @@ void CosDbWorker::init()
 	if (m_connectionName.isEmpty())
 		m_connectionName = "defaultCosDbWorker";
 
-	QSqlDatabase::addDatabase("QSQLITE", m_connectionName);
+	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", m_connectionName);
+	QSqlDriver *d = db.driver();
+	connect(d, QOverload<const QString &, QSqlDriver::NotificationSource, const QVariant &>::of(&QSqlDriver::notification),
+		[=](const QString &name, QSqlDriver::NotificationSource, const QVariant &){
+		emit this->notification(name);
+	});
+}
+
+
+
+/**
+ * @brief CosDbWorker::subscribeToNotification
+ * @param table
+ */
+
+bool CosDbWorker::subscribeToNotification(const QString &table)
+{
+	QSqlDatabase db = QSqlDatabase::database(m_connectionName, false);
+	QSqlDriver *d = db.driver();
+	return d->subscribeToNotification(table);
 }
 
