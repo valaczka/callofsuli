@@ -1,2 +1,0 @@
-for a in $(find -mindepth 1 -type d); do echo $a ; convert +append $a/*png $a.png; done
-for a in $(find -name *png); do echo $a; convert $a -resize 30% ../pngsmall/$a ; done

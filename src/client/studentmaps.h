@@ -84,9 +84,13 @@ signals:
 	void mapDownloadRequest(QString formattedDataSize);
 
 	void missionListGet(QJsonObject jsonData, QByteArray binaryData);
+	void missionSelected(const int &index);
+	void missionListChanged();
 
 	void gameMapLoaded(const QString &mapName);
 	void gameMapUnloaded();
+
+	void gamePlayReady(GameMatch *gameMatch);
 
 	void gameCreate(QJsonObject jsonData, QByteArray binaryData);
 	void gameFinish(QJsonObject jsonData, QByteArray binaryData);
@@ -98,7 +102,6 @@ signals:
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
 	VariantMapModel *m_modelMapList;
-	VariantMapData m_modelMapData;
 	GameMap * m_currentMap;
 	CosDb *m_imageDb;
 	VariantMapModel * m_modelMissionList;

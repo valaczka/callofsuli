@@ -178,7 +178,6 @@ PhysicsEntity {
 			if (!sdata)
 				continue
 
-
 			var obj = spriteComponent.createObject(spriteSequence)
 			obj.name = sname
 			obj.source = entityPrivate.qrcDirName+"/"+sdata.source

@@ -20,7 +20,7 @@ QPage {
 		id: userData
 	}
 
-	panelComponents: [
+	property list<Component> cmps: [
 		Component { MapMissionList {
 				panelVisible: true
 				Connections {
@@ -29,6 +29,9 @@ QPage {
 						list.forceActiveFocus()
 					}
 				}
+			} },
+		Component { MapMissionInfo {
+				panelVisible: true
 			} }
 	]
 
@@ -42,6 +45,8 @@ QPage {
 
 
 	onPageActivated: {
+		if (!panelComponents.length)
+			panelComponents = cmps
 		if (studentMaps)
 			studentMaps.getMissionList()
 	}

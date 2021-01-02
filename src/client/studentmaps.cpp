@@ -39,7 +39,6 @@
 StudentMaps::StudentMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassStudent, parent)
 	, m_modelMapList(nullptr)
-	, m_modelMapData()
 	, m_currentMap(nullptr)
 	, m_imageDb(nullptr)
 	, m_modelMissionList(nullptr)
@@ -63,7 +62,8 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 												 "lockDepth",
 												 "uuid",
 												 "name",
-												 "cname"
+												 "cname",
+												 "levels"
 											 },
 											 this);
 
@@ -250,12 +250,12 @@ void StudentMaps::mapDownload(QVariantMap data)
 
 	foreach (QVariant v, uuidList) {
 		QString uuid = v.toString();
-		int index = m_modelMapData.find("uuid", uuid);
+		int index = m_modelMapList->variantMapData()->find("uuid", uuid);
 		if (index == -1) {
 			continue;
 		}
 
-		QVariantMap o = m_modelMapData.at(index).second;
+		QVariantMap o = m_modelMapList->variantMapData()->at(index).second;
 
 		m_downloader->append(o.value("uuid").toString(),
 							 "",
@@ -467,6 +467,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 		m["uuid"] = "";
 		m["name"] = c->name();
 		m["cname"] = c->name();
+		m["levels"] = QVariantList();
 
 		ret.append(m);
 
@@ -490,11 +491,27 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 			m["name"] = mis->name();
 			m["cname"] = c->name();
 
+			int lMin = mis->getLockDepth() == 0 ?
+						   qMax(mis->getSolvedLevel()+1, 1) :
+						   -1;
+			QVariantList l;
+			foreach (GameMap::MissionLevel *ml, mis->levels()) {
+				QVariantMap mm;
+				mm["level"] = ml->level();
+				mm["available"] = (ml->level() <= lMin);
+				mm["solved"] = (mis->getSolvedLevel() >= ml->level());
+				l.append(mm);
+			}
+
+			m["levels"] = l;
+
 			ret.append(m);
 		}
 	}
 
 	m_modelMissionList->setVariantList(ret, "num");
+
+	emit missionListChanged();
 }
 
 
@@ -511,12 +528,31 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 {
 	qDebug() << "#### GAME CREATED" << jsonData;
 
-	QJsonObject o;
-	o["id"] = jsonData.value("gameid").toInt();
-	o["xp"] = 135;
-	o["success"] = true;
+	GameMap::MissionLevel *missionLevel = nullptr;
 
-	send("gameFinish", o);
+	if (m_currentMap)
+		missionLevel = m_currentMap->missionLevel(jsonData.value("missionid").toString().toLatin1(),
+												  jsonData.value("level").toInt());
+
+	int gameId = jsonData.value("gameid").toInt();
+
+	if (!m_currentMap || !missionLevel) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Pályaadatok nem elérhetőek!"));
+		QJsonObject o;
+		o["id"] = gameId;
+		o["xp"] = 0;
+		o["success"] = false;
+		send("gameFinish", o);
+		return;
+	}
+
+
+	GameMatch *m_gameMatch = new GameMatch(missionLevel, this);
+	m_gameMatch->setDeleteGameMap(false);
+	m_gameMatch->setImageDbName("mapimagedb");
+	m_gameMatch->setGameId(gameId);
+
+	emit gamePlayReady(m_gameMatch);
 }
 
 
@@ -529,7 +565,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 void StudentMaps::onGameUpdate(QJsonObject jsonData, QByteArray)
 {
-
+qDebug() << "#### GAME UPDATED ###";
 }
 
 
@@ -541,6 +577,6 @@ void StudentMaps::onGameUpdate(QJsonObject jsonData, QByteArray)
 
 void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 {
-qDebug() << "#### GAME FINISHED" << jsonData;
-getMissionList();
+	qDebug() << "#### GAME FINISHED" << jsonData;
+	getMissionList();
 }

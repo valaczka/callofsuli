@@ -49,7 +49,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_isLadderDirectionUp(false)
 	, m_ladder(nullptr)
 	, m_enemy(nullptr)
-	, m_hasGun(true)
+	, m_hasGun(false)
 	, m_hp(0)
 	, m_defaultHp(0)
 {
@@ -60,6 +60,9 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	m_rayCastFlag = Box2DFixture::Category5;
 
 	connect(this, &GamePlayer::rayCastItemsChanged, this, &GamePlayer::onRayCastReported);
+	connect(this, &GamePlayer::hasGunChanged, this, [=]() {
+		onRayCastReported(rayCastItems());
+	});
 }
 
 
@@ -418,6 +421,8 @@ void GamePlayer::attackByGun()
 {
 	qDebug() << "Attack by gun" << m_enemy;
 
+	emit attack();
+
 	if (!m_enemy)
 		return;
 
@@ -503,6 +508,11 @@ void GamePlayer::onCosGameChanged(CosGame *)
 
 void GamePlayer::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
 {
+	if (!m_hasGun) {
+		setEnemy(nullptr);
+		return;
+	}
+
 	GameEnemy *enemy = nullptr;
 
 	foreach(QQuickItem *item, items) {

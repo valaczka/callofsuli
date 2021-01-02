@@ -53,9 +53,13 @@ class GameMatch : public QObject
 	Q_PROPERTY(QString imageDbName READ imageDbName WRITE setImageDbName NOTIFY imageDbNameChanged)
 	Q_PROPERTY(int duration READ duration WRITE setDuration NOTIFY durationChanged)
 
+	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
+
 
 public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
+	explicit GameMatch(GameMap::MissionLevel *missionLevel, QObject *parent = nullptr);
 	~GameMatch();
 
 	GameMap::MissionLevel *missionLevel() const;
@@ -71,6 +75,8 @@ public:
 	int duration() const { return m_duration; }
 	GameMap *gameMap() const { return m_gameMap; }
 	QByteArray missionUuid() const { return m_missionUuid; }
+	int gameId() const { return m_gameId; }
+	int xp() const { return m_xp; }
 
 public slots:
 	void setDeleteGameMap(bool deleteGameMap);
@@ -84,6 +90,8 @@ public slots:
 	void setName(QString name);
 	void setDuration(int duration);
 	void setMissionUuid(QByteArray missionUuid);
+	void setGameId(int gameId);
+	void setXp(int xp);
 
 signals:
 	void playerCharacterChanged(QString playerCharacter);
@@ -96,9 +104,12 @@ signals:
 	void nameChanged(QString name);
 	void durationChanged(int duration);
 	void missionUuidChanged(QByteArray missionUuid);
+	void gameIdChanged(int gameId);
+	void xpChanged(int xp);
 
 private:
 	GameMap *m_gameMap;
+	GameMap::MissionLevel *m_missionLevel;
 	bool m_deleteGameMap;
 
 	QString m_playerCharacter;
@@ -111,6 +122,8 @@ private:
 	QString m_name;
 	int m_duration;
 	QByteArray m_missionUuid;
+	int m_gameId;
+	int m_xp;
 };
 
 #endif // GAMEDATA_H

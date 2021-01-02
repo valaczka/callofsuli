@@ -58,6 +58,7 @@ class CosGame : public Game
 
 	Q_PROPERTY(GameObject * playerStartPosition READ playerStartPosition WRITE setPlayerStartPosition NOTIFY playerStartPositionChanged)
 	Q_PROPERTY(int ladderCount READ ladderCount)
+	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
 
 	Q_PROPERTY(GameMatch * gameMatch READ gameMatch WRITE setGameMatch NOTIFY gameMatchChanged)
 	Q_PROPERTY(QVariantMap levelData READ levelData NOTIFY levelDataChanged)
@@ -71,6 +72,7 @@ class CosGame : public Game
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
 	Q_PROPERTY(bool isPrepared READ isPrepared WRITE setIsPrepared NOTIFY isPreparedChanged)
+	Q_PROPERTY(bool isStarted READ isStarted WRITE setIsStarted NOTIFY isStartedChanged)
 
 
 public:
@@ -107,10 +109,13 @@ public:
 	GameMatch * gameMatch() const { return m_gameMatch; }
 
 	bool isPrepared() const { return m_isPrepared; }
+	bool isStarted() const { return m_isStarted; }
 
 	QVariantMap levelData() const;
 	GameActivity * activity() const { return m_activity; }
 	int msecLeft() const { return m_msecLeft; }
+	int activeEnemies() const { return m_activeEnemies; }
+
 
 public slots:
 	void resetPlayer();
@@ -129,13 +134,18 @@ public slots:
 	void setGameMatch(GameMatch * gameMatch);
 	void setIsPrepared(bool isPrepared);
 	void setActivity(GameActivity * activity);
+	void setActiveEnemies(int activeEnemies);
+	void setIsStarted(bool isStarted);
 
 private slots:
 	void onPlayerDied();
 	void resetRunning();
-	void recalculateBlocks();
+	void recalculateActiveEnemies();
 	void onTimerTimeout();
+	void onGameMatchTimerTimeout();
 	void onGameStarted();
+	void onGameFinishedSuccess();
+	void onGameFinishedLost();
 
 signals:
 	void gameStarted();
@@ -167,9 +177,12 @@ signals:
 	void levelDataChanged(QVariantMap levelData);
 	void activityChanged(GameActivity * activity);
 	void msecLeftChanged(int msecLeft);
+	void activeEnemiesChanged(int activeEnemies);
+	void isStartedChanged(bool isStarted);
 
 private:
 	void loadGameData();
+	QStringList loadSoldierData();
 
 	QVariantMap m_gameData;
 	QQuickItem * m_player;
@@ -184,6 +197,9 @@ private:
 	GameActivity * m_activity;
 	QTimer *m_timer;
 	int m_msecLeft;
+	int m_activeEnemies;
+	QTimer *m_matchTimer;
+	bool m_isStarted;
 };
 
 #endif // COSGAME_H

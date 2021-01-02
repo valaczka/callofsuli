@@ -18,19 +18,39 @@ GameEntity {
 	GamePlayerPrivate {
 		id: ep
 
+		property bool wantToMove: false
+		property bool gunOn: false
+		readonly property bool gunPreparing: Array("gunon", "idlegun", "shot").includes(spriteSequence.currentSprite)
+
+		hasGun: Array("idlegun", "shot").includes(spriteSequence.currentSprite)
+
+		onGunOnChanged: {
+			console.debug("GUN ON", gunOn)
+			if (spriteSequence.currentSprite == "idle" && ep.gunOn && !ep.wantToMove)
+				spriteSequence.jumpTo("gunon")
+			else if (gunPreparing && !ep.gunOn)
+				spriteSequence.jumpTo("gunoff")
+		}
+
 		rayCastEnabled: ladderMode != GamePlayerPrivate.LadderClimb && ladderMode != GamePlayerPrivate.LadderClimbFinish
 
 		property int _fallStartY: -1
 
 		onKilledByEnemy: {
-			spriteSequence.jumpTo("falldeath")
+			spriteSequence.jumpTo("dead")
+		}
+
+		onAttack: {
+			spriteSequence.jumpTo("shot")
 		}
 
 		onIsOnGroundChanged: {
 			if (isOnGround) {
 				if (_fallStartY == -1) {
+					ep.wantToMove = false
 					spriteSequence.jumpTo("idle")
 				} else {
+					ep.wantToMove = false
 					if (root.y-_fallStartY > ep.cosGame.levelData.player.deathlyFall || ep.isOnBaseGround) {
 						spriteSequence.jumpTo("falldeath")
 					} else {
@@ -41,6 +61,7 @@ GameEntity {
 			} else if (ladderMode != GamePlayerPrivate.LadderClimb && ladderMode != GamePlayerPrivate.LadderClimbFinish) {
 				_fallStartY = root.y
 				spriteSequence.jumpTo("fall")
+				ep.wantToMove = false
 			}
 		}
 
@@ -178,12 +199,20 @@ GameEntity {
 		if (ep.ladderMode == GamePlayerPrivate.LadderClimbFinish && spriteSequence.currentSprite == "idle") {
 			ep.ladderClimbFinish()
 		}
+
+		console.debug("currentSprite changed", spriteSequence.currentSprite, ep.gunOn, ep.hasGun, ep.wantToMove)
+
+		if (spriteSequence.currentSprite == "idle") {
+			if (ep.gunOn && !ep.wantToMove)
+				spriteSequence.jumpTo("gunon")
+		}
 	}
 
 	function stopMoving() {
 		timerWalk.readyToStop = true
 		timerRun.readyToStop = true
 		timerClimb.nextSprite = "climbpause"
+		ep.wantToMove = false
 	}
 
 
@@ -225,6 +254,8 @@ GameEntity {
 
 		root.facingLeft = false
 
+		ep.wantToMove = true
+
 		if (!root.isWalking)
 			spriteSequence.jumpTo("walk")
 
@@ -241,6 +272,8 @@ GameEntity {
 			return
 
 		root.facingLeft = true
+
+		ep.wantToMove = true
 
 		if (!root.isWalking)
 			spriteSequence.jumpTo("walk")

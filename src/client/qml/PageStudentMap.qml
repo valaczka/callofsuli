@@ -50,6 +50,13 @@ QPage {
 				mainStack.pop(page)
 		}
 
+		onGamePlayReady: {
+			var o = JS.createPage("Game", {
+									  gameMatch: gameMatch,
+									  deleteGameMatch: true
+								  })
+		}
+
 	}
 
 

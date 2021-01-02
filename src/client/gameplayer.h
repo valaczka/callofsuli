@@ -98,6 +98,7 @@ public slots:
 signals:
 	void killedByEnemy(GameEnemy *enemy);
 	void hurt(GameEnemy *enemy);
+	void attack();
 	void attackSucceed(GameEnemy *enemy);
 	void ladderModeChanged(LadderMode ladderMode);
 	void ladderChanged(GameLadder * ladder);

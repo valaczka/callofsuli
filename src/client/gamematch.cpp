@@ -37,12 +37,54 @@
 GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	: QObject(parent)
 	, m_gameMap(gameMap)
+	, m_missionLevel(nullptr)
 	, m_deleteGameMap(false)
 	, m_level(0)
 	, m_missionUuid()
+	, m_gameId(-1)
+	, m_xp(0)
 {
 	qDebug() << "GAME MATCH CREATED" << this;
-	setPlayerCharacter("character2");
+	setPlayerCharacter("character3");
+}
+
+
+/**
+ * @brief GameMatch::GameMatch
+ * @param missionLevel
+ * @param parent
+ */
+
+GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, QObject *parent)
+	: QObject(parent)
+	, m_gameMap(nullptr)
+	, m_missionLevel(missionLevel)
+	, m_deleteGameMap(false)
+	, m_level(0)
+	, m_missionUuid()
+	, m_gameId(-1)
+	, m_xp(0)
+{
+	Q_ASSERT(missionLevel);
+
+	qDebug() << "GAME MATCH CREATED" << this;
+
+	setPlayerCharacter("character3");
+
+	setMissionUuid(missionLevel->mission()->uuid());
+	setName(missionLevel->mission()->name());
+	setLevel(missionLevel->level());
+	setTerrain(missionLevel->terrain());
+	setStartHp(missionLevel->startHP());
+	setDuration(missionLevel->duration());
+	setStartBlock(missionLevel->startBlock());
+
+	QString imageFolder = missionLevel->imageFolder();
+	QString imageFile = missionLevel->imageFile();
+
+	if (!imageFolder.isEmpty() && !imageFile.isEmpty())
+		setBgImage(imageFolder+"/"+imageFile);
+
 }
 
 
@@ -66,6 +108,9 @@ GameMatch::~GameMatch()
 
 GameMap::MissionLevel* GameMatch::missionLevel() const
 {
+	if (m_missionLevel)
+		return m_missionLevel;
+
 	if (!m_gameMap)
 		return nullptr;
 
@@ -189,6 +234,24 @@ void GameMatch::setMissionUuid(QByteArray missionUuid)
 
 	m_missionUuid = missionUuid;
 	emit missionUuidChanged(m_missionUuid);
+}
+
+void GameMatch::setGameId(int gameId)
+{
+	if (m_gameId == gameId)
+		return;
+
+	m_gameId = gameId;
+	emit gameIdChanged(m_gameId);
+}
+
+void GameMatch::setXp(int xp)
+{
+	if (m_xp == xp)
+		return;
+
+	m_xp = xp;
+	emit xpChanged(m_xp);
 }
 
 

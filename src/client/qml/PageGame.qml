@@ -188,6 +188,17 @@ Page {
 					mainStack.back()
 				})
 			}
+
+			onGameCompleted: {
+				setEnemiesMoving(false)
+				setRunning(false)
+
+				var d = JS.dialogMessageInfo(qsTr("Mission completed"), qsTr("Mission completed"))
+				d.rejected.connect(function() {
+					_closeEnabled = true
+					mainStack.back()
+				})
+			}
 		}
 
 
@@ -321,6 +332,24 @@ Page {
 		}
 	}
 
+
+	QLabel {
+		id: enemyLabel
+		anchors.top: parent.top
+		anchors.left: parent.left
+		anchors.margins: 10
+
+		property int enemies: game.activeEnemies
+
+		text: enemies
+
+		Behavior on enemies {
+			NumberAnimation { duration: 125 }
+		}
+	}
+
+
+
 	QLabel {
 		id: timeLabel
 		anchors.top: progressHp.bottom
@@ -373,6 +402,28 @@ Page {
 	}
 
 	Rectangle {
+		width: 35
+		height: 35
+		radius: width/2
+
+		anchors.bottom: shotButton.top
+		anchors.horizontalCenter: shotButton.horizontalCenter
+		anchors.margins: 10
+
+		color: "red"
+
+		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.gunOn
+
+		MouseArea {
+			anchors.fill: parent
+			acceptedButtons: Qt.LeftButton
+			onClicked: game.player.entityPrivate.gunOn = false
+		}
+	}
+
+
+	Rectangle {
+		id: shotButton
 		width: 50
 		height: 50
 		radius: width/2
@@ -386,7 +437,12 @@ Page {
 		MouseArea {
 			anchors.fill: parent
 			acceptedButtons: Qt.LeftButton
-			onClicked: game.player.entityPrivate.attackByGun()
+			onClicked: {
+				if (game.player.entityPrivate.hasGun)
+					game.player.entityPrivate.attackByGun()
+				else
+					game.player.entityPrivate.gunOn = true
+			}
 		}
 	}
 
@@ -426,6 +482,7 @@ Page {
 		horizontalAlignment: Text.AlignHCenter
 		x: (parent.width-width)/2
 		y: (parent.height-height)/2
+		wrapMode: Text.Wrap
 	}
 
 

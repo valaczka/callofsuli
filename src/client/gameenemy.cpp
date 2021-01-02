@@ -110,6 +110,15 @@ void GameEnemy::killByPlayer(GamePlayer *player)
 {
 	qDebug() << "Killed by player" << this;
 
+	qreal playerX = player->parentEntity()->x();
+	qreal meX = parentEntity()->x();
+	bool facingLeft = parentEntity()->property("facingLeft").toBool();
+
+	if (playerX <= meX && !facingLeft)
+		parentEntity()->setProperty("facingLeft", true);
+	else if (playerX > meX && facingLeft)
+		parentEntity()->setProperty("facingLeft", false);
+
 	setAimedByPlayer(false);
 
 	emit killed(this);
@@ -126,6 +135,15 @@ void GameEnemy::killByPlayer(GamePlayer *player)
 void GameEnemy::missedByPlayer(GamePlayer *player)
 {
 	qDebug() << "Missed by player" << this;
+
+	qreal playerX = player->parentEntity()->x();
+	qreal meX = parentEntity()->x();
+	bool facingLeft = parentEntity()->property("facingLeft").toBool();
+
+	if (playerX <= meX && !facingLeft)
+		parentEntity()->setProperty("facingLeft", true);
+	else if (playerX > meX && facingLeft)
+		parentEntity()->setProperty("facingLeft", false);
 
 	emit killMissed();
 
@@ -351,7 +369,7 @@ void GameEnemy::onGameChanged()
 		return;
 
 
-	QVariantMap m = m_cosGame->gameData().value("level", QVariantMap()).toMap();
+	/*QVariantMap m = m_cosGame->gameData().value("level", QVariantMap()).toMap();
 
 	if (m.isEmpty())
 		return;
@@ -361,9 +379,11 @@ void GameEnemy::onGameChanged()
 	m = m.value(QVariant(level).toString(), QVariantMap()).toMap();
 
 	if (m.isEmpty())
-		return;
+		return;*/
 
-	QVariantMap me = m.value("enemy").toMap();
+	QVariantMap leveldata = m_cosGame->levelData();
+
+	QVariantMap me = leveldata.value("enemy").toMap();
 
 	onGameDataReady(me);
 

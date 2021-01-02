@@ -2474,6 +2474,7 @@ GameMap::MissionLevel::MissionLevel(const qint32 &level, const QByteArray &terra
 	, m_inventories()
 	, m_imageFolder(imageFolder)
 	, m_imageFile(imageFile)
+	, m_mission(nullptr)
 {
 
 }
@@ -2491,6 +2492,8 @@ GameMap::MissionLevel::~MissionLevel()
 	qDeleteAll(m_inventories.begin(), m_inventories.end());
 	m_inventories.clear();
 }
+
+
 
 
 /**

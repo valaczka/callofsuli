@@ -20,12 +20,8 @@ GameEntity {
 	GameEnemySoldierPrivate {
 		id: ep
 
-		onDie: {
-			console.debug("DIE")
-		}
-
 		onKilled: {
-			spriteSequence.jumpTo("falldeath")
+			spriteSequence.jumpTo("dead")
 		}
 
 		onMovingChanged: setSprite()
@@ -40,7 +36,6 @@ GameEntity {
 		}
 
 		onAttack: {
-			console.debug("ATTACK")
 			spriteSequence.jumpTo("shot")
 		}
 
@@ -89,6 +84,9 @@ GameEntity {
 
 
 	function setSprite() {
+		if (!ep.isAlive)
+			return
+
 		if (ep.player) {
 			spriteSequence.jumpTo("idle")
 		} else {

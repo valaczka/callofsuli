@@ -43,6 +43,7 @@
 
 #include "gameenemy.h"
 #include "gameenemydata.h"
+#include "gameenemysoldier.h"
 #include "gameplayer.h"
 #include "gamequestion.h"
 #include "gameactivity.h"
@@ -62,11 +63,20 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_activity(nullptr)
 	, m_timer(new QTimer(this))
 	, m_msecLeft(0)
+	, m_activeEnemies(0)
+	, m_matchTimer(new QTimer(this))
+	, m_isStarted(false)
 {
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
 	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
+	connect(this, &CosGame::gameAbortRequest, this, &CosGame::onGameFinishedLost);
+	connect(this, &CosGame::gameLost, this, &CosGame::onGameFinishedLost);
+	connect(this, &CosGame::gameTimeout, this, &CosGame::onGameFinishedLost);
+	connect(this, &CosGame::gameCompleted, this, &CosGame::onGameFinishedSuccess);
 
 	connect(m_timer, &QTimer::timeout, this, &CosGame::onTimerTimeout);
+
+	connect(m_matchTimer, &QTimer::timeout, this, &CosGame::onGameMatchTimerTimeout);
 
 	loadGameData();
 }
@@ -86,6 +96,7 @@ CosGame::~CosGame()
 		m_terrainData->deleteLater();
 
 	delete m_timer;
+	delete m_matchTimer;
 }
 
 
@@ -133,12 +144,13 @@ void CosGame::recreateEnemies()
 
 	qDebug() << "Recreate enemies";
 
+	QMap<int, GameBlock *> b = m_terrainData->blocks();
 	QMap<int, GameBlock *>::const_iterator it;
 
-	for (it = m_terrainData->blocks().constBegin(); it != m_terrainData->blocks().constEnd(); ++it) {
+	for (it = b.constBegin(); it != b.constEnd(); ++it) {
 		GameBlock *block = it.value();
 
-	//foreach (GameBlock *block, m_terrainData->blocks()) {
+		//foreach (GameBlock *block, m_terrainData->blocks()) {
 		if (block->completed()) {
 			qDebug() << "Block completed" << it.key() << block;
 			continue;
@@ -157,18 +169,32 @@ void CosGame::recreateEnemies()
 
 			QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::DirectConnection,
 									  Q_RETURN_ARG(QQuickItem *, enemy),
-									  Q_ARG(int, data->enemyType()));
+									  Q_ARG(int, data->enemyType())
+									  );
 
 			if (enemy) {
-				QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
 				data->setEnemy(enemy);
 
 				GameEnemy *ep = data->enemyPrivate();
+
+				if (data->enemyType() == GameEnemyData::EnemySoldier) {
+					GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier *>(ep);
+					if (soldier) {
+						QStringList slist = m_gameData.value("soldiers").toStringList();
+						int x = QRandomGenerator::global()->bounded(slist.size());
+						soldier->setSoldierType(slist.at(x));
+					}
+				}
+
+				QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
+
 				if (ep) {
 					ep->setEnemyData(data);
 
 					if (m_activity)
 						connect(ep, &GameEnemy::killed, m_activity, &GameActivity::onEnemyKilled);
+
+					connect(ep, &GameEnemy::killed, this, &CosGame::recalculateActiveEnemies);
 				}
 
 				resetEnemy(data);
@@ -177,6 +203,8 @@ void CosGame::recreateEnemies()
 
 		block->recalculateActiveEnemies();
 	}
+
+	recalculateActiveEnemies();
 }
 
 /**
@@ -301,11 +329,11 @@ void CosGame::resetPlayer()
 		if (m_terrainData->blocks().contains(startBlock)) {
 			GameBlock *block = m_terrainData->blocks().value(startBlock);
 			if (!block->playerPositions().isEmpty())
-				p = block->playerPositions().first();
+				p = block->playerPositions().at(0);
 		} else {
 			GameBlock *block = m_terrainData->blocks().first();
 			if (!block->playerPositions().isEmpty())
-				p = block->playerPositions().first();
+				p = block->playerPositions().at(0);
 		}
 	}
 
@@ -450,9 +478,15 @@ void CosGame::setGameMatch(GameMatch *gameMatch)
 	emit gameMatchChanged(m_gameMatch);
 	emit levelDataChanged(levelData());
 
-	if (m_gameMatch)
+	if (m_gameMatch) {
 		m_gameMatch->setParent(this);
+		m_matchTimer->start(10000);
+	} else {
+		m_matchTimer->stop();
+	}
 }
+
+
 
 void CosGame::setIsPrepared(bool isPrepared)
 {
@@ -475,6 +509,24 @@ void CosGame::setActivity(GameActivity *activity)
 	}
 
 	emit activityChanged(m_activity);
+}
+
+void CosGame::setActiveEnemies(int activeEnemies)
+{
+	if (m_activeEnemies == activeEnemies)
+		return;
+
+	m_activeEnemies = activeEnemies;
+	emit activeEnemiesChanged(m_activeEnemies);
+}
+
+void CosGame::setIsStarted(bool isStarted)
+{
+	if (m_isStarted == isStarted)
+		return;
+
+	m_isStarted = isStarted;
+	emit isStartedChanged(m_isStarted);
 }
 
 
@@ -539,7 +591,7 @@ void CosGame::resetRunning()
  * @brief CosGame::recalculateBlocks
  */
 
-void CosGame::recalculateBlocks()
+void CosGame::recalculateActiveEnemies()
 {
 	if (!m_terrainData)
 		return;
@@ -551,13 +603,13 @@ void CosGame::recalculateBlocks()
 			active++;
 	}
 
-	qDebug() << "ACTIVE" << active;
+	setActiveEnemies(active);
 
 	if (active == 0 && !m_terrainData->enemies().isEmpty()) {
-		qDebug() << "************************************* GAME OVER ********************************";
 		emit gameCompleted();
 	}
 }
+
 
 
 /**
@@ -578,6 +630,29 @@ void CosGame::onTimerTimeout()
 }
 
 
+/**
+ * @brief CosGame::onGameMatchTimerTimeout
+ */
+
+void CosGame::onGameMatchTimerTimeout()
+{
+	if (!m_gameMatch || !m_activity || !m_activity->client())
+		return;
+
+	int gameId = m_gameMatch->gameId();
+
+	if (gameId == -1)
+		return;
+
+	Client *client = m_activity->client();
+
+	QJsonObject o;
+	o["id"] = gameId;
+	o["xp"] = m_gameMatch->xp();
+	client->socketSend(CosMessage::ClassStudent, "gameUpdate", o);
+}
+
+
 
 
 /**
@@ -588,7 +663,59 @@ void CosGame::onGameStarted()
 {
 	resetPlayer();
 	m_timer->start(100);
+	setIsStarted(true);
+}
 
+
+/**
+ * @brief CosGame::onGameFinishedSuccess
+ */
+
+void CosGame::onGameFinishedSuccess()
+{
+	m_matchTimer->stop();
+
+	if (!m_gameMatch || !m_activity || !m_activity->client())
+		return;
+
+	int gameId = m_gameMatch->gameId();
+
+	if (gameId == -1)
+		return;
+
+	Client *client = m_activity->client();
+
+	QJsonObject o;
+	o["id"] = gameId;
+	o["xp"] = m_gameMatch->xp();
+	o["success"] = true;
+	client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
+}
+
+
+/**
+ * @brief CosGame::onGameFinishedLost
+ */
+
+void CosGame::onGameFinishedLost()
+{
+	m_matchTimer->stop();
+
+	if (!m_gameMatch || !m_activity || !m_activity->client())
+		return;
+
+	int gameId = m_gameMatch->gameId();
+
+	if (gameId == -1)
+		return;
+
+	Client *client = m_activity->client();
+
+	QJsonObject o;
+	o["id"] = gameId;
+	o["xp"] = m_gameMatch->xp();
+	o["success"] = false;
+	client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 
 
@@ -629,8 +756,36 @@ void CosGame::loadGameData()
 		return;
 	}
 
-	setGameData(v.toMap());
+	QVariantMap m = v.toMap();
+
+	m["soldiers"] = loadSoldierData();
+
+	setGameData(m);
 }
+
+
+
+/**
+ * @brief CosGame::loadSoldierData
+ * @param map
+ */
+
+QStringList CosGame::loadSoldierData()
+{
+	QDirIterator it(":/soldiers", {"data.json"}, QDir::Files, QDirIterator::Subdirectories);
+
+	QStringList list;
+
+	while (it.hasNext()) {
+		QString realname = it.next();
+			list.append(realname.section('/',-2,-2));
+	}
+
+	return list;
+}
+
+
+
 
 
 /**
@@ -696,9 +851,9 @@ bool CosGame::loadTerrainData()
 		return false;
 	}
 
-	foreach (GameBlock *block, m_terrainData->blocks()) {
+	/*foreach (GameBlock *block, m_terrainData->blocks()) {
 		connect(block, &GameBlock::completedChanged, this, &CosGame::recalculateBlocks);
-	}
+	}*/
 
 	return true;
 }

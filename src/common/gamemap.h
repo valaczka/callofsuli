@@ -156,6 +156,7 @@ public:
 	};
 
 
+	class Mission;
 
 	class MissionLevel {
 	public:
@@ -174,6 +175,9 @@ public:
 		QString imageFolder() const { return m_imageFolder; }
 		QString imageFile() const { return m_imageFile; }
 
+		void setMission(Mission *mission) { m_mission = mission; }
+		Mission *mission() const { return m_mission; }
+
 
 		BlockChapterMap* addBlockChapterMap(BlockChapterMap *map) { Q_ASSERT(map); m_blockChapterMaps.append(map); return map;}
 		Inventory* addInvetory(Inventory *inventory) { Q_ASSERT(inventory); m_inventories.append(inventory); return inventory;}
@@ -189,10 +193,10 @@ public:
 		QVector<Inventory *> m_inventories;
 		QString m_imageFolder;
 		QString m_imageFile;
+		Mission *m_mission;
 	};
 
 
-	class Mission;
 	typedef QPair<Mission *, qint32> MissionLock;
 
 	class Mission {
@@ -206,7 +210,7 @@ public:
 		QVector<MissionLevel *> levels() const { return m_levels; };
 		QVector<MissionLock> locks() const { return m_locks; };
 
-		MissionLevel* addMissionLevel(MissionLevel *level) { Q_ASSERT(level); m_levels.append(level); return level;}
+		MissionLevel* addMissionLevel(MissionLevel *level) { Q_ASSERT(level); m_levels.append(level); level->setMission(this); return level;}
 		void addLock(Mission *mission, const qint32 &level) { Q_ASSERT(mission); m_locks.append(qMakePair<Mission *, qint32>(mission, level)); }
 
 		bool getLockTree(QVector<MissionLock> *listPtr, Mission *rootMission = nullptr) const;

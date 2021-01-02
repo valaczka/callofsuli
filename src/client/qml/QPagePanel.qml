@@ -64,8 +64,8 @@ Item {
 	Item {
 		id: panel
 
-		width: control.swipeMode ? control.width-10 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
-		height: control.swipeMode ? control.height-10 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
+		width: control.swipeMode ? control.width : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
+		height: control.swipeMode ? control.height : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 
@@ -259,6 +259,7 @@ Item {
 			anchors.fill: border1
 			source: border1
 			color: borderColor
+			visible: !control.swipeMode
 		}
 
 	}

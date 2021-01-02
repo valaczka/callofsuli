@@ -9,8 +9,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	maximumWidth: 600
-	layoutFillWidth: false
+	layoutFillWidth: true
 
 	title: qsTr("Küldetések")
 	icon: CosStyle.iconUsers
@@ -93,8 +92,6 @@ QPagePanel {
 
 		//delegateHeight: CosStyle.twoLineHeight
 
-		panelPaddingLeft: 0
-
 		leftComponent: QFontImage {
 			width: visible ? list.delegateHeight : 0
 			height: width*0.8
@@ -112,9 +109,9 @@ QPagePanel {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: CosStyle.iconLock
+			icon: model && model.type === 1 && model.tried ? CosStyle.iconClock3 : CosStyle.iconLock
 
-			visible: model && model.type === 0 && model.lockDepth>0
+			visible: model && ((model.type === 0 && model.lockDepth>0) || (model.type === 1 && model.tried && !model.solved))
 
 			color: model ? model.textColor : CosStyle.colorPrimary
 		}
@@ -125,9 +122,10 @@ QPagePanel {
 		onClicked: {
 			var o = list.model.get(index)
 			if (o.type === 1 && o.lockDepth === 0) {
-				studentMaps.playGame({uuid: o.uuid, level: 1})
+				studentMaps.missionSelected(list.model.mapToSource(list.currentIndex))
+			} else {
+				studentMaps.missionSelected(-1)
 			}
-
 		}
 
 		onLongPressed: {

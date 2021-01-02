@@ -43,6 +43,7 @@ class GameEnemySoldier : public GameEnemy
 
 	Q_PROPERTY(bool atBound READ atBound WRITE setAtBound NOTIFY atBoundChanged)
 	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
+	Q_PROPERTY(QString soldierType READ soldierType WRITE setSoldierType NOTIFY soldierTypeChanged)
 
 public:
 	GameEnemySoldier(QQuickItem *parent = 0);
@@ -53,14 +54,17 @@ public:
 
 	int msecBeforeTurn() const { return m_msecBeforeTurn; }
 	bool atBound() const { return m_atBound; }
+	QString soldierType() const { return m_soldierType; }
 
 public slots:
 	void setMsecBeforeTurn(int msecBeforeTurn);
 	void setAtBound(bool atBound);
+	void setSoldierType(QString soldierType);
 
 signals:
 	void msecBeforeTurnChanged(int msecBeforeTurn);
 	void atBoundChanged(bool atBound);
+	void soldierTypeChanged(QString soldierType);
 
 private slots:
 	void onGameDataReady(const QVariantMap &map) override;
@@ -72,6 +76,7 @@ private:
 	int m_msecBeforeTurn;
 	bool m_atBound;
 	int m_turnElapsedMsec;
+	QString m_soldierType;
 };
 
 #endif // GAMEENEMYSOLDIERPRIVATE_H

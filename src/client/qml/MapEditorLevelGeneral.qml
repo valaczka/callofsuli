@@ -53,7 +53,6 @@ QPagePanel {
 		}
 
 		function onPlayReady(gameMatch) {
-			console.debug("PLAY", gameMatch)
 			var o = JS.createPage("Game", {
 									  gameMatch: gameMatch,
 									  deleteGameMatch: true

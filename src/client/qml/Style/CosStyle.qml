@@ -81,6 +81,8 @@ QtObject {
 	property string iconDialogWarning: "image://font/Material Icons/\ue002"
 	property string iconDialogError: "image://font/Material Icons/\ue000"
 
+	property string iconPlay: "image://font/Material Icons/\ue037"
+
 	property string iconKey: "image://font/Material Icons/\ue0da"
 	property string iconClock1: "image://font/Material Icons/\ue190"
 	property string iconClock2: "image://font/Material Icons/\ue192"

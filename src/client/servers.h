@@ -40,6 +40,7 @@
 #include "variantmapmodel.h"
 #include "variantmapdata.h"
 #include "sqlimage.h"
+#include "gamematch.h"
 
 class Servers : public AbstractActivity
 {
@@ -76,6 +77,8 @@ public slots:
 	void serverLogOut();
 	void doAutoConnect();
 
+	void playTestMap(QVariantMap data);
+
 	void setConnectedServerKey(int connectedServerKey);
 
 protected slots:
@@ -100,6 +103,8 @@ signals:
 
 	void serversModelChanged(VariantMapModel* serversModel);
 	void connectedServerKeyChanged(int connectedServerKey);
+
+	void playTestMapReady(GameMatch *gameMatch);
 
 private:
 	void _reloadResources(QVariantMap resources);

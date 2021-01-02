@@ -17,6 +17,24 @@
 					"msecBetweenAttack": 2500
 				}
 			}
+		},
+		"2": {
+			"player": {
+				"deathlyFall": 300,
+				"deathlyAttackDistance": 100,
+				"rayCastElevation": 20,
+				"rayCastLength": 200
+			},
+			"enemy": {
+				"soldier" : {
+					"rayCastElevation": 20,
+					"rayCastLength": 250,
+					"msecBeforeTurn": 1000,
+					"castAttackFraction": 0.5,
+					"msecBeforeAttack": 3500,
+					"msecBetweenAttack": 1500
+				}
+			}
 		}
 	}
 }

@@ -413,6 +413,56 @@ void Servers::doAutoConnect()
 
 
 
+/**
+ * @brief Servers::playTestMap
+ * @param data
+ */
+
+void Servers::playTestMap(QVariantMap data)
+{
+	QFile f(data.value("filename").toString());
+	if (!f.open(QIODevice::ReadOnly)) {
+		qWarning() << "*** Can't open" << data.value("filename").toString();
+		return;
+	}
+
+	QByteArray b = f.readAll();
+	f.close();
+
+	GameMap *map = GameMap::fromBinaryData(b);
+
+	if (!map) {
+		qWarning() << "*** Invalid file" << data.value("filename").toString();
+		return;
+	}
+
+	GameMap::MissionLevel *ml = nullptr;
+
+	GameMap::Campaign *c = map->campaigns().at(0);
+	if (c) {
+		GameMap::Mission *m = c->missions().at(0);
+
+		if (m)
+			ml = m->levels().at(0);
+	}
+
+	if (!ml) {
+		qWarning() << "*** Invalid file" << data.value("filename").toString();
+		return;
+		delete map;
+	}
+
+	GameMatch *m_gameMatch = new GameMatch(ml, this);
+
+	m_gameMatch->setDeleteGameMap(true);
+	m_gameMatch->setBgImage("");
+	m_gameMatch->setLevel(2);
+
+	emit playTestMapReady(m_gameMatch);
+}
+
+
+
 
 
 

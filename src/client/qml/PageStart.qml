@@ -49,6 +49,13 @@ QPage {
 			servers.serverTryLogin(servers.connectedServerKey)
 		}
 
+		onPlayTestMapReady: {
+			var o = JS.createPage("Game", {
+									  gameMatch: gameMatch,
+									  deleteGameMatch: true
+								  })
+		}
+
 		Component.onCompleted: serverListReload()
 	}
 
@@ -91,7 +98,6 @@ QPage {
 
 	mainMenuFunc: function (m) {
 		m.addAction(test)
-		m.addAction(tmXtest)
 		m.addAction(actionAbout)
 		m.addAction(actionExit)
 	}
@@ -157,12 +163,10 @@ QPage {
 	Action {
 		id: test
 		shortcut: "F1"
-		text: "Map Editor"
+		text: "Game Test"
 		enabled: isCurrentItem
 		onTriggered: {
-			var o = JS.createPage("MapEditor", {
-									  mapName: "első teszt file"
-								  }) //loadFileName: "/tmp/ttt.dat" })
+			servers.playTestMap({filename: "/tmp/ttt.dat"})
 		}
 	}
 

@@ -91,8 +91,6 @@ QPagePanel {
 
 		delegateHeight: CosStyle.twoLineHeight
 
-		panelPaddingLeft: 0
-
 		leftComponent: QFontImage {
 			width: visible ? list.delegateHeight : 0
 			height: width*0.8

@@ -45,6 +45,7 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	, m_msecBeforeTurn(5000)
 	, m_atBound(false)
 	, m_turnElapsedMsec(-1)
+	, m_soldierType("soldier1")
 {
 	m_movingTimer = new QTimer(this);
 	m_movingTimer->setInterval(60);
@@ -85,7 +86,8 @@ void GameEnemySoldier::setQrcDir()
 	if (!game)
 		return;
 
-	QString dir = "qrc:/soldiers/soldier1";			// TODO
+
+	QString dir = "qrc:/soldiers/"+m_soldierType;
 
 	setQrcDirName(dir);
 }
@@ -152,6 +154,18 @@ void GameEnemySoldier::setAtBound(bool atBound)
 
 	m_atBound = atBound;
 	emit atBoundChanged(m_atBound);
+}
+
+void GameEnemySoldier::setSoldierType(QString soldierType)
+{
+	if (m_soldierType == soldierType)
+		return;
+
+	m_soldierType = soldierType;
+	emit soldierTypeChanged(m_soldierType);
+
+	setQrcDir();
+	loadQrcData();
 }
 
 
