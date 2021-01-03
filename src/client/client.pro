@@ -47,6 +47,7 @@ SOURCES += \
 		gameterrain.cpp \
 		main.cpp \
 		mapeditor.cpp \
+		question.cpp \
 		servers.cpp \
 		serversettings.cpp \
 		sqlimage.cpp \
@@ -77,6 +78,7 @@ HEADERS += \
 	gamescene.h \
 	gameterrain.h \
 	mapeditor.h \
+	question.h \
 	servers.h \
 	serversettings.h \
 	sqlimage.h \

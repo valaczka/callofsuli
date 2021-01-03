@@ -60,9 +60,9 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	m_rayCastFlag = Box2DFixture::Category5;
 
 	connect(this, &GamePlayer::rayCastItemsChanged, this, &GamePlayer::onRayCastReported);
-	connect(this, &GamePlayer::hasGunChanged, this, [=]() {
+	/*connect(this, &GamePlayer::hasGunChanged, this, [=]() {
 		onRayCastReported(rayCastItems());
-	});
+	});*/
 }
 
 
@@ -191,7 +191,7 @@ void GamePlayer::ladderClimbUp()
 		if (spriteSequence)
 			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbup"));
 	} else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
-		int y = parentEntity()->y()-m_qrcData.value("climb", 1).toInt();
+		qreal y = parentEntity()->y()-m_qrcData.value("climb", 1).toReal();
 		parentEntity()->setY(y);
 		if (y < m_ladder->boundRect().top() && spriteSequence && m_ladderMode == LadderClimb) {
 			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbupend"));
@@ -221,7 +221,7 @@ void GamePlayer::ladderClimbDown()
 		if (spriteSequence)
 			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdown"));
 	}  else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
-		int delta = m_qrcData.value("climb", 1).toInt();
+		qreal delta = m_qrcData.value("climb", 1).toReal()*1.2;
 		int y = parentEntity()->y()+delta;
 		int height = parentEntity()->height();
 
@@ -508,10 +508,10 @@ void GamePlayer::onCosGameChanged(CosGame *)
 
 void GamePlayer::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
 {
-	if (!m_hasGun) {
+	/*if (!m_hasGun) {
 		setEnemy(nullptr);
 		return;
-	}
+	}*/
 
 	GameEnemy *enemy = nullptr;
 

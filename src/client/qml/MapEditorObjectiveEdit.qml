@@ -57,10 +57,10 @@ QPagePanel {
 			reloadData()
 		}
 
-		function onObjectiveModified(uuid) {
+		/*function onObjectiveModified(uuid) {
 			if (uuid === objectiveUuid)
 				reloadData()
-		}
+		}*/
 
 	}
 

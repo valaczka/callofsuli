@@ -66,6 +66,7 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_activeEnemies(0)
 	, m_matchTimer(new QTimer(this))
 	, m_isStarted(false)
+	, m_backgroundMusicFile("qrc:/sound/music/default_bg_music.mp3")
 {
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
 	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
@@ -529,6 +530,15 @@ void CosGame::setIsStarted(bool isStarted)
 	emit isStartedChanged(m_isStarted);
 }
 
+void CosGame::setBackgroundMusicFile(QString backgroundMusicFile)
+{
+	if (m_backgroundMusicFile == backgroundMusicFile)
+		return;
+
+	m_backgroundMusicFile = backgroundMusicFile;
+	emit backgroundMusicFileChanged(m_backgroundMusicFile);
+}
+
 
 /**
  * @brief CosGame::onLayersLoaded
@@ -673,6 +683,7 @@ void CosGame::onGameStarted()
 
 void CosGame::onGameFinishedSuccess()
 {
+	m_timer->stop();
 	m_matchTimer->stop();
 
 	if (!m_gameMatch || !m_activity || !m_activity->client())
@@ -699,6 +710,7 @@ void CosGame::onGameFinishedSuccess()
 
 void CosGame::onGameFinishedLost()
 {
+	m_timer->stop();
 	m_matchTimer->stop();
 
 	if (!m_gameMatch || !m_activity || !m_activity->client())
@@ -778,7 +790,7 @@ QStringList CosGame::loadSoldierData()
 
 	while (it.hasNext()) {
 		QString realname = it.next();
-			list.append(realname.section('/',-2,-2));
+		list.append(realname.section('/',-2,-2));
 	}
 
 	return list;
@@ -849,6 +861,16 @@ bool CosGame::loadTerrainData()
 	if (!m_terrainData->loadTmxFile(QString(":/terrain/"+terrain+"/terrain.tmx"))) {
 		qWarning() << "Terrain data load failed";
 		return false;
+	}
+
+	QString datafile = ":/terrain/"+terrain+"/data.json";
+
+	if (QFile::exists(datafile)) {
+		QVariantMap m = Client::readJsonFile(datafile).toMap();
+		QString bgMusic = m.value("backgroundMusic").toString();
+
+		if (!bgMusic.isEmpty())
+			setBackgroundMusicFile("qrc:/terrain/"+terrain+"/"+bgMusic);
 	}
 
 	/*foreach (GameBlock *block, m_terrainData->blocks()) {

@@ -3,6 +3,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.14
 import QtGraphicalEffects 1.0
 import QtQuick.Controls.Material 2.3
+import QtMultimedia 5.12
 import COS.Client 1.0
 import "."
 import "Style"
@@ -35,6 +36,23 @@ ApplicationWindow {
 	FontLoader { source: "qrc:/internal/font/SpecialElite.ttf" }
 	FontLoader { source: "qrc:/internal/font/HVD_Peace.ttf" }
 
+	Audio {
+		id: gameOverWin
+		volume: CosStyle.volumeSfx
+		playlist: Playlist {
+			PlaylistItem { source: "qrc:/sound/voiceover/game_over.ogg" }
+			PlaylistItem { source: "qrc:/sound/voiceover/you_win.ogg" }
+		}
+	}
+
+	Audio {
+		id: gameOverLose
+		volume: CosStyle.volumeSfx
+		playlist: Playlist {
+			PlaylistItem { source: "qrc:/sound/voiceover/game_over.ogg" }
+			PlaylistItem { source: "qrc:/sound/voiceover/you_lose.ogg" }
+		}
+	}
 
 	property alias blur: blur
 
@@ -247,6 +265,14 @@ ApplicationWindow {
 
 		function onStoragePermissionsGranted() {
 			JS.createPage("Start", {})
+		}
+
+		function onGameWin() {
+			gameOverWin.play()
+		}
+
+		function onGameLose() {
+			gameOverLose.play()
 		}
 	}
 

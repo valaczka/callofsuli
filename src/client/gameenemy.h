@@ -54,7 +54,6 @@ class GameEnemy : public GameEntity
 	Q_PROPERTY(GamePlayer * player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(bool attackRunning READ attackRunning WRITE setAttackRunning NOTIFY attackRunningChanged)
 
-
 public:
 	GameEnemy(QQuickItem *parent = 0);
 	~GameEnemy();

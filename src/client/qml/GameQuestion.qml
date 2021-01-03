@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtGraphicalEffects 1.0
+import QtMultimedia 5.12
 import "Style"
 import "JScript.js" as JS
 
@@ -26,6 +27,13 @@ Item {
 
 	property int maximumWidth: 0
 	property int maximumHeight: 0
+
+	Audio {
+		id: openSound
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/sfx/question.ogg"
+		autoPlay: true
+	}
 
 
 	Item {
@@ -90,7 +98,9 @@ Item {
 			anchors.rightMargin: 0
 			anchors.bottomMargin: 10
 
-			Row {
+
+
+			/*Row {
 				anchors.centerIn: parent
 				spacing: 10
 
@@ -102,6 +112,23 @@ Item {
 				QButton {
 					text: "HELYTELEN"
 					onClicked: control.failed()
+				}
+			}*/
+
+			Loader {
+				id: contentLoader
+				anchors.fill: parent
+			}
+
+			Connections {
+				target: contentLoader.item
+
+				function onSucceed() {
+					succeed()
+				}
+
+				function onFailed() {
+					failed()
 				}
 			}
 
@@ -139,4 +166,11 @@ Item {
 
 	}
 
+	onQuestionDataChanged: {
+		if (questionData && questionData.module.length) {
+			contentLoader.setSource("GameQuestion_"+questionData.module+".qml", {
+										questionData: questionData
+									})
+		}
+	}
 }

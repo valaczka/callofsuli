@@ -55,9 +55,9 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
  * @param parent
  */
 
-GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, QObject *parent)
+GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObject *parent)
 	: QObject(parent)
-	, m_gameMap(nullptr)
+	, m_gameMap(gameMap)
 	, m_missionLevel(missionLevel)
 	, m_deleteGameMap(false)
 	, m_level(0)

@@ -1642,7 +1642,7 @@ void MapEditor::objectiveAdd(QVariantMap data)
 
 	if (ret != -1) {
 		setModified(true);
-		emit objectiveAdded(ret);
+		emit objectiveAdded(ret, data.value("uuid").toString());
 	}
 }
 
@@ -1752,7 +1752,6 @@ void MapEditor::objectiveLoad(QVariantMap data)
 		emit objectiveLoaded(QVariantMap());
 		return;
 	}
-
 
 	emit objectiveLoaded(map);
 }

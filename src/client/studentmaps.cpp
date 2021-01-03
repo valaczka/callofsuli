@@ -547,7 +547,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	}
 
 
-	GameMatch *m_gameMatch = new GameMatch(missionLevel, this);
+	GameMatch *m_gameMatch = new GameMatch(missionLevel, m_currentMap, this);
 	m_gameMatch->setDeleteGameMap(false);
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);

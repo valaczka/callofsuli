@@ -65,7 +65,11 @@ QPagePanel {
 		proxyRoles: [
 			ExpressionRole {
 				name: "moduleName"
-				expression: model.type === 0 ? model.name : mapEditor.moduleData(model.module).name
+				expression: model.type === 0 ? model.name : model.data
+			},
+			ExpressionRole {
+				name: "subtitle"
+				expression: model.type === 0 ? "" : mapEditor.moduleData(model.module).name
 			},
 			SwitchRole {
 				name: "textColor"
@@ -99,6 +103,7 @@ QPagePanel {
 
 		model: userProxyModel
 		modelTitleRole: "moduleName"
+		modelSubtitleRole: "subtitle"
 		modelDepthRole: "type"
 		modelTitleColorRole: "textColor"
 		modelTitleWeightRole: "fontWeight"
@@ -162,7 +167,7 @@ QPagePanel {
 				objectivesFilter.enabled = true
 			}
 
-			mapEditor.modelChapterList.select(sourceIndex)
+			mapEditor.modelChapterList.select(list.model.mapToSource(index))
 		}
 
 		onSelectorSetChanged: {
@@ -323,6 +328,11 @@ QPagePanel {
 		function onChapterListReloaded(list) {
 			mapEditor.modelChapterList.unselectAll()
 			mapEditor.modelChapterList.setVariantList(list, "uuid");
+		}
+
+		function onObjectiveAdded(rowid, uuid) {
+			mapEditor.objectiveSelected(uuid)
+			mapEditor.run("objectiveLoad", {uuid: uuid})
 		}
 	}
 

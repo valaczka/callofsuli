@@ -45,6 +45,8 @@ class GameEnemySoldier : public GameEnemy
 	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
 	Q_PROPERTY(QString soldierType READ soldierType WRITE setSoldierType NOTIFY soldierTypeChanged)
 
+	Q_PROPERTY(QString shotSoundFile READ shotSoundFile WRITE setShotSoundFile NOTIFY shotSoundFileChanged)
+
 public:
 	GameEnemySoldier(QQuickItem *parent = 0);
 	~GameEnemySoldier();
@@ -55,21 +57,26 @@ public:
 	int msecBeforeTurn() const { return m_msecBeforeTurn; }
 	bool atBound() const { return m_atBound; }
 	QString soldierType() const { return m_soldierType; }
+	QString shotSoundFile() const { return m_shotSoundFile; }
 
 public slots:
 	void setMsecBeforeTurn(int msecBeforeTurn);
 	void setAtBound(bool atBound);
 	void setSoldierType(QString soldierType);
+	void setShotSoundFile(QString shotSoundFile);
 
 signals:
 	void msecBeforeTurnChanged(int msecBeforeTurn);
 	void atBoundChanged(bool atBound);
 	void soldierTypeChanged(QString soldierType);
 
+	void shotSoundFileChanged(QString shotSoundFile);
+
 private slots:
 	void onGameDataReady(const QVariantMap &map) override;
 	void onCosGameChanged(CosGame *);
 	void onMovingTimerTimeout();
+	void onQrcDataChanged(QVariantMap);
 
 private:
 	QTimer *m_movingTimer;
@@ -77,6 +84,7 @@ private:
 	bool m_atBound;
 	int m_turnElapsedMsec;
 	QString m_soldierType;
+	QString m_shotSoundFile;
 };
 
 #endif // GAMEENEMYSOLDIERPRIVATE_H

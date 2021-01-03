@@ -452,11 +452,10 @@ void Servers::playTestMap(QVariantMap data)
 		delete map;
 	}
 
-	GameMatch *m_gameMatch = new GameMatch(ml, this);
+	GameMatch *m_gameMatch = new GameMatch(ml, map, this);
 
 	m_gameMatch->setDeleteGameMap(true);
 	m_gameMatch->setBgImage("");
-	m_gameMatch->setLevel(2);
 
 	emit playTestMapReady(m_gameMatch);
 }

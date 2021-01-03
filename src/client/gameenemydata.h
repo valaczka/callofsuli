@@ -77,8 +77,7 @@ public:
 	EnemyType enemyType() const { return m_enemyType; }
 	GameEnemy * enemyPrivate() const;
 	int targetId() const { return m_targetId; }
-	QByteArray objectiveUuid() const { return m_objectiveUuid;
-	}
+	QByteArray objectiveUuid() const { return m_objectiveUuid; }
 
 public slots:
 	void setBoundRect(QRectF boundRect);
@@ -90,6 +89,7 @@ public slots:
 	void enemyKilled(GameEnemy *);
 	void setTargetId(int targetId);
 	void setObjectiveUuid(QByteArray objectiveUuid);
+	QVariant generateQuestion();
 
 signals:
 	void boundRectChanged(QRectF boundRect);

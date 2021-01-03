@@ -124,7 +124,6 @@ PhysicsEntity {
 	Connections {
 		target: entityPrivate ? entityPrivate : null
 		function onDie() {
-			console.debug(root, "DIED")
 			dieAnimation.start()
 		}
 	}

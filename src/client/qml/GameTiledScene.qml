@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import Bacon2D 1.0
 import COS.Client 1.0
+import QtMultimedia 5.12
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -18,6 +19,23 @@ Scene {
 
 	property alias scenePrivate: scenePrivate
 
+	Audio {
+		id: startSound
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/voiceover/fight.ogg"
+	}
+
+	Audio {
+		id: successSound
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/voiceover/winner.ogg"
+	}
+
+	Audio {
+		id: failedSound
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/voiceover/loser.ogg"
+	}
 
 	GameScenePrivate {
 		id: scenePrivate
@@ -143,6 +161,17 @@ Scene {
 		event.accepted = true
 	}
 
+	Timer {
+		id: startTimer
+		interval: 750
+		running: false
+		triggeredOnStart: false
+		onTriggered: {
+			stop()
+			startSound.play()
+		}
+	}
+
 
 
 	Component {
@@ -211,13 +240,18 @@ Scene {
 				}
 
 
-				function createQuestion(questionData: json) : Item {
+				function createQuestion(questionData) : Item {
 					if (!game)
 					return
 
+					startTimer.start()
+
 					var obj = questionComponent.createObject(game.itemPage,{
-						//ladder: l
+						questionData: questionData
 					})
+
+					obj.succeed.connect(function(){successSound.play()})
+					obj.failed.connect(function(){failedSound.play()})
 
 					return obj
 				}

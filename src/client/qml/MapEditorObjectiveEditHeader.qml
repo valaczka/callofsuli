@@ -75,8 +75,6 @@ QCollapsible {
 		if (!moduleData)
 			return
 
-		console.debug("DDDD", moduleData.chapter, moduleData.storageModule)
-
 		comboChapter.setData(moduleData.chapter)
 
 		if (moduleData.storage)

@@ -94,7 +94,7 @@ void GameQuestion::run()
 
 	QMetaObject::invokeMethod(scene, "createQuestion", Qt::DirectConnection,
 							  Q_RETURN_ARG(QQuickItem *, m_question),
-							  Q_ARG(QVariant, enemyData->targetId()));
+							  Q_ARG(QVariant, enemyData->generateQuestion()));
 
 
 	if (m_question) {

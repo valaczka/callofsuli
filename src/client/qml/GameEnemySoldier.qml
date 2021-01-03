@@ -2,6 +2,7 @@ import Bacon2D 1.0
 import QtQuick 2.14
 import COS.Client 1.0
 import QtGraphicalEffects 1.0
+import QtMultimedia 5.12
 import "Style"
 
 GameEntity {
@@ -16,6 +17,12 @@ GameEntity {
 
 	glowColor: CosStyle.colorGlowEnemy
 	glowEnabled: ep.aimedByPlayer
+
+	Audio {
+		id: shotSound
+		volume: CosStyle.volumeShot
+		source: ep.shotSoundFile
+	}
 
 	GameEnemySoldierPrivate {
 		id: ep
@@ -37,6 +44,7 @@ GameEntity {
 
 		onAttack: {
 			spriteSequence.jumpTo("shot")
+			shotSound.play()
 		}
 
 		//onRayCastPerformed: setray(rect)

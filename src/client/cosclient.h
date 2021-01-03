@@ -192,6 +192,9 @@ signals:
 					 const QString &detailedText);
 	void reconnecting();
 
+	void gameWin();
+	void gameLose();
+
 	void messageFrameReceived(const CosMessage &message);
 	void messageReceived(const CosMessage &message);
 

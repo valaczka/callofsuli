@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import COS.Client 1.0
+import QtMultimedia 5.12
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -36,6 +37,12 @@ QPage {
 	]
 
 
+	Audio {
+		id: bgSound
+		source: "qrc:/sound/menu/bg.ogg"
+		loops: Audio.Infinite
+		volume: CosStyle.volumeBackgroundMusic
+	}
 
 
 	/*mainMenuFunc: function (m) {
@@ -45,6 +52,7 @@ QPage {
 
 
 	onPageActivated: {
+		bgSound.play()
 		if (!panelComponents.length)
 			panelComponents = cmps
 		if (studentMaps)
@@ -52,7 +60,9 @@ QPage {
 	}
 
 
-
+	onPageDeactivated: {
+		bgSound.stop()
+	}
 
 
 

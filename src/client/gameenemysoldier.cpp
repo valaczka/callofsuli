@@ -46,6 +46,7 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	, m_atBound(false)
 	, m_turnElapsedMsec(-1)
 	, m_soldierType("soldier1")
+	, m_shotSoundFile("qrc:/sound/sfx/enemyshot.ogg")
 {
 	m_movingTimer = new QTimer(this);
 	m_movingTimer->setInterval(60);
@@ -58,6 +59,8 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 		else
 			m_movingTimer->stop();
 	});
+
+	connect(this, &GameEntity::qrcDataChanged, this, &GameEnemySoldier::onQrcDataChanged);
 
 }
 
@@ -168,6 +171,15 @@ void GameEnemySoldier::setSoldierType(QString soldierType)
 	loadQrcData();
 }
 
+void GameEnemySoldier::setShotSoundFile(QString shotSoundFile)
+{
+	if (m_shotSoundFile == shotSoundFile)
+		return;
+
+	m_shotSoundFile = shotSoundFile;
+	emit shotSoundFileChanged(m_shotSoundFile);
+}
+
 
 /**
  * @brief GameEnemySoldier::onGameDataReady
@@ -254,5 +266,30 @@ void GameEnemySoldier::onMovingTimerTimeout()
 				entity->setX(x+delta);
 			}
 		}
+	}
+}
+
+
+
+
+/**
+ * @brief GameEnemySoldier::onQrcDataChanged
+ * @param qrcData
+ */
+
+void GameEnemySoldier::onQrcDataChanged(QVariantMap )
+{
+	QString f = m_qrcData.value("shotSound").toString();
+
+	if (f.isEmpty())
+		return;
+
+	QString shotFile = m_qrcDirName+"/"+f;
+	QString realFile = shotFile;
+	if (realFile.startsWith("qrc:/"))
+		realFile.replace("qrc:/", ":/");
+
+	if (QFile::exists(realFile)) {
+		setShotSoundFile(shotFile);
 	}
 }

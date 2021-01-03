@@ -71,6 +71,8 @@ class CosGame : public Game
 	Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
+	Q_PROPERTY(QString backgroundMusicFile READ backgroundMusicFile WRITE setBackgroundMusicFile NOTIFY backgroundMusicFileChanged)
+
 	Q_PROPERTY(bool isPrepared READ isPrepared WRITE setIsPrepared NOTIFY isPreparedChanged)
 	Q_PROPERTY(bool isStarted READ isStarted WRITE setIsStarted NOTIFY isStartedChanged)
 
@@ -115,7 +117,7 @@ public:
 	GameActivity * activity() const { return m_activity; }
 	int msecLeft() const { return m_msecLeft; }
 	int activeEnemies() const { return m_activeEnemies; }
-
+	QString backgroundMusicFile() const { return m_backgroundMusicFile; }
 
 public slots:
 	void resetPlayer();
@@ -136,6 +138,7 @@ public slots:
 	void setActivity(GameActivity * activity);
 	void setActiveEnemies(int activeEnemies);
 	void setIsStarted(bool isStarted);
+	void setBackgroundMusicFile(QString backgroundMusicFile);
 
 private slots:
 	void onPlayerDied();
@@ -179,6 +182,7 @@ signals:
 	void msecLeftChanged(int msecLeft);
 	void activeEnemiesChanged(int activeEnemies);
 	void isStartedChanged(bool isStarted);
+	void backgroundMusicFileChanged(QString backgroundMusicFile);
 
 private:
 	void loadGameData();
@@ -200,6 +204,7 @@ private:
 	int m_activeEnemies;
 	QTimer *m_matchTimer;
 	bool m_isStarted;
+	QString m_backgroundMusicFile;
 };
 
 #endif // COSGAME_H

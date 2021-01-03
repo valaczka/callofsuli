@@ -38,7 +38,7 @@ Page {
 	readonly property bool isCurrentItem: StackView.view && StackView.view.currentItem == control
 
 	signal pageActivated()
-
+	signal pageDeactivated()
 
 	onActivityChanged: if (activity) {
 						   activity.client = cosClient
@@ -180,6 +180,7 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated:		 pageActivated()
+	StackView.onDeactivated:	pageDeactivated()
 
 
 

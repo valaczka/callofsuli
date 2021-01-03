@@ -35,6 +35,7 @@
 #include <QDebug>
 #include "gameenemydata.h"
 #include "gameenemy.h"
+#include "question.h"
 
 GameEnemyData::GameEnemyData(QObject *parent)
 	: QObject(parent)
@@ -149,5 +150,55 @@ void GameEnemyData::setObjectiveUuid(QByteArray objectiveUuid)
 
 	m_objectiveUuid = objectiveUuid;
 	emit objectiveUuidChanged(m_objectiveUuid);
+}
+
+
+
+/**
+ * @brief GameEnemyData::generateTarget
+ * @return
+ */
+
+QVariant GameEnemyData::generateQuestion()
+{
+	GameEnemy *e = enemyPrivate();
+
+	qDebug() << this << "GENERATE TARGET" << m_objectiveUuid << e;
+
+	GameMap *gameMap = nullptr;
+
+	if (e) {
+		CosGame *g = e->cosGame();
+		qDebug() << "GAME" << g;
+		if (g) {
+			GameMatch *m = g->gameMatch();
+
+			qDebug() << "GAME MATCH"  << m;
+
+			if (m) {
+				gameMap = m->gameMap();
+			}
+		}
+	}
+
+	qDebug() << this << "GENERATE TARGET" << gameMap;
+
+	if (m_objectiveUuid.isEmpty() || !gameMap)
+		return QVariantMap();
+
+
+	GameMap::Objective *objective = gameMap->objective(m_objectiveUuid);
+
+	if (!objective) {
+		return QVariantMap();
+	}
+
+	Question q(objective);
+
+	QVariantMap m = q.generate();
+
+	qDebug() << m;
+
+	return m;
 }
 

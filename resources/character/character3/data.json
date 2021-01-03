@@ -7,7 +7,7 @@
 	"facingLeft": true,
 	"walk": 1.5,
 	"run": 4,
-	"climb": 2,
+	"climb": 2.6,
 	"sprites": {
 		"idle":	{
 			"source": "sprite.png",
@@ -18,7 +18,7 @@
 			"frameCount": 2,
 			"frameDuration": 200,
 			"frameDurationVariation": 20,
-			"to": { "idle": 10, "idle2": 0.5, "walk" : 0, "run" : 0 }
+			"to": { "idle": 10, "idle2": 0.5, "walk" : 0, "run" : 0, "dead": 0 }
 		},
 		"idle2": {
 			"source": "sprite.png",
@@ -29,7 +29,7 @@
 			"frameCount": 7,
 			"frameDuration": 150,
 			"frameDurationVariation": 20,
-			"to": { "idle": 5, "idle2": 1 }
+			"to": { "idle": 5, "idle2": 1, "dead": 0 }
 		},
 		"run":	{
 			"source": "sprite.png",
@@ -39,7 +39,7 @@
 			"frameY": 275,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "walk" : 0, "run": 0, "run2": 1, "runend": 0 }
+			"to": { "idle": 0, "walk" : 0, "run": 0, "run2": 1, "runend": 0, "dead": 0 }
 		},
 		"run2":	{
 			"source": "sprite.png",
@@ -49,7 +49,7 @@
 			"frameY": 330,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "walk" : 0, "run": 1, "run2": 0, "runend": 0 }
+			"to": { "idle": 0, "walk" : 0, "run": 1, "run2": 0, "runend": 0, "dead": 0 }
 		},
 		"runend":	{
 			"source": "sprite.png",
@@ -59,7 +59,7 @@
 			"frameY": 330,
 			"frameCount": 4,
 			"frameDuration": 80,
-			"to": { "idle": 1, "walk" : 0, "run": 0, "run2": 0, "runend": 0 }
+			"to": { "idle": 1, "walk" : 0, "run": 0, "run2": 0, "runend": 0, "dead": 0 }
 		},
 		"walk":	{
 			"source": "sprite.png",
@@ -69,7 +69,7 @@
 			"frameY": 440,
 			"frameCount": 2,
 			"frameDuration": 80,
-			"to": { "idle": 0, "walk" : 0, "walk2": 1, "walk3": 0 }
+			"to": { "idle": 0, "walk" : 0, "walk2": 1, "walk3": 0, "dead": 0 }
 		},
 		"walk2": {
 			"source": "sprite.png",
@@ -79,7 +79,7 @@
 			"frameY": 440,
 			"frameCount": 4,
 			"frameDuration": 60,
-			"to": { "idle": 0, "walk" : 0, "walk2": 0, "walk3": 1 }
+			"to": { "idle": 0, "walk" : 0, "walk2": 0, "walk3": 1, "dead": 0 }
 		},
 		"walk3": {
 			"source": "sprite.png",
@@ -89,7 +89,7 @@
 			"frameY": 495,
 			"frameCount": 6,
 			"frameDuration": 60,
-			"to": { "idle": 0, "walk" : 1, "walk2": 0,  "walk3": 0 }
+			"to": { "idle": 0, "walk" : 1, "walk2": 0,  "walk3": 0, "dead": 0 }
 		},
 		"fall":	{
 			"source": "sprite.png",
@@ -99,7 +99,7 @@
 			"frameY": 165,
 			"frameCount": 4,
 			"frameDuration": 50,
-			"to": { "idle": 0, "fall" : 0, "fall2": 1, "falldeath": 0 }
+			"to": { "idle": 0, "fall" : 0, "fall2": 1, "falldeath": 0, "dead": 0 }
 		},
 		"fall2": {
 			"source": "sprite.png",
@@ -109,7 +109,7 @@
 			"frameY": 165,
 			"frameCount": 7,
 			"frameDuration": 50,
-			"to": { "idle": 0, "fall" : 0, "fall2": 1, "falldeath": 0 }
+			"to": { "idle": 0, "fall" : 0, "fall2": 1, "falldeath": 0, "dead": 0 }
 		},
 		"falldeath":	{
 			"source": "sprite.png",
@@ -119,7 +119,7 @@
 			"frameY": 220,
 			"frameCount": 8,
 			"frameDuration": 20,
-			"to": { "idle": 0, "falldeath2": 1 }
+			"to": { "idle": 0, "falldeath2": 1, "dead": 0 }
 		},
 		"falldeath2":	{
 			"source": "sprite.png",
@@ -129,7 +129,7 @@
 			"frameY": 220,
 			"frameCount": 7,
 			"frameDuration": 40,
-			"to": { "idle": 0, "falldead": 1 }
+			"to": { "idle": 0, "falldead": 1, "dead": 0 }
 		},
 		"falldead":	{
 			"source": "sprite.png",
@@ -149,7 +149,7 @@
 			"frameY": 0,
 			"frameCount": 2,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbup" : 0, "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0 }
+			"to": { "idle": 0, "climbup" : 0, "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0, "dead": 0 }
 		},
 		"climbup2":	{
 			"source": "sprite.png",
@@ -159,7 +159,7 @@
 			"frameY": 0,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbup2": 0, "climbup3": 1, "climbpause": 0, "climbupend": 0 }
+			"to": { "idle": 0, "climbup2": 0, "climbup3": 1, "climbpause": 0, "climbupend": 0, "dead": 0 }
 		},
 		"climbup3":	{
 			"source": "sprite.png",
@@ -169,7 +169,7 @@
 			"frameY": 0,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0 }
+			"to": { "idle": 0, "climbup2": 1, "climbup3": 0, "climbpause": 0, "climbupend": 0, "dead": 0 }
 		},
 		"climbpause":	{
 			"source": "sprite.png",
@@ -179,7 +179,7 @@
 			"frameY": 55,
 			"frameCount": 1,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbup2": 0, "climbup3": 0, "climbdown2" : 0, "climbdown3": 0, "climbpause": 1, "climbupend": 0 }
+			"to": { "idle": 0, "climbup2": 0, "climbup3": 0, "climbdown2" : 0, "climbdown3": 0, "climbpause": 1, "climbupend": 0, "dead": 0 }
 		},
 		"climbupend":	{
 			"source": "sprite.png",
@@ -189,7 +189,7 @@
 			"frameY": 55,
 			"frameCount": 10,
 			"frameDuration": 80,
-			"to": { "idle": 1, "climbupend": 0 }
+			"to": { "idle": 1, "climbupend": 0, "dead": 0 }
 		},
 		"climbdown":	{
 			"source": "climbdown.png",
@@ -197,7 +197,7 @@
 			"frameHeight": 55,
 			"frameCount": 10,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbdown" : 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0 }
+			"to": { "idle": 0, "climbdown" : 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0, "dead": 0 }
 		},
 		"climbdown2":	{
 			"source": "climbdown.png",
@@ -207,7 +207,7 @@
 			"frameY": 55,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbdown2": 0, "climbdown3": 1, "climbpause": 0, "climbdownend": 0 }
+			"to": { "idle": 0, "climbdown2": 0, "climbdown3": 1, "climbpause": 0, "climbdownend": 0, "dead": 0 }
 		},
 		"climbdown3":	{
 			"source": "climbdown.png",
@@ -217,7 +217,7 @@
 			"frameY": 110,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0 }
+			"to": { "idle": 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0, "dead": 0 }
 		},
 		"climbdownend":	{
 			"source": "climbdown.png",
@@ -227,7 +227,7 @@
 			"frameY": 165,
 			"frameCount": 2,
 			"frameDuration": 80,
-			"to": { "idle": 1, "climbdownend": 0 }
+			"to": { "idle": 1, "climbdownend": 0, "dead": 0 }
 		},
 		"dead":	{
 			"source": "sprite.png",
@@ -257,7 +257,7 @@
 			"frameY": 440,
 			"frameCount": 6,
 			"frameDuration": 80,
-			"to": { "idle": 0, "idlegun": 1, "gunoff": 0 }
+			"to": { "idle": 0, "idlegun": 1, "gunoff": 0, "dead": 0 }
 		},
 		"idlegun":	{
 			"source": "sprite.png",

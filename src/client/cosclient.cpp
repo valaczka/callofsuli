@@ -571,6 +571,11 @@ QVariantMap Client::objectiveModuleMap()
 										{ "icon", "image://font/Material Icons/\ue163" }
 									});
 
+	m["truefalse"] = QVariantMap({
+										{ "name", tr("Igaz/hamis") },
+										{ "icon", "image://font/Material Icons/\ue163" }
+									});
+
 	return m;
 }
 

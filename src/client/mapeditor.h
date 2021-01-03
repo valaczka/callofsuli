@@ -192,7 +192,7 @@ signals:
 	void chapterRemoved(const int &id);
 	void chapterSelected(const int &id);
 
-	void objectiveAdded(const int &rowid);
+	void objectiveAdded(const int &rowid, const QString &uuid);
 	void objectiveModified(const QString &uuid);
 	void objectiveRemoved(const QString &uuid);
 	void objectiveLoaded(const QVariantMap &data);

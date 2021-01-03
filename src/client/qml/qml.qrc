@@ -99,5 +99,7 @@
         <file>PageMapMissions.qml</file>
         <file>MapMissionList.qml</file>
         <file>MapMissionInfo.qml</file>
+        <file>MapEditorObjectiveEdit_truefalse.qml</file>
+        <file>GameQuestion_truefalse.qml</file>
     </qresource>
 </RCC>

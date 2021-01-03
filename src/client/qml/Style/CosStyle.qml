@@ -57,6 +57,10 @@ QtObject {
 	property color colorEnemyMarker: colorWarningLighter
 	property color colorEnemyMarkerAttack: colorError
 
+	property real volumeBackgroundMusic: 0.2
+	property real volumeSfx: 0.8
+	property real volumeShot: 0.8
+
 	property string iconMenu: "image://font/Material Icons/\ue5d4"
 	property string iconClose: "image://font/Material Icons/\ue14c"
 	property string iconChecked: "image://font/Material Icons/\ue86c"
