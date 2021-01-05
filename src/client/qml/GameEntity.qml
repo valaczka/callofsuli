@@ -52,8 +52,8 @@ PhysicsEntity {
 
 	SpriteSequence {
 		id: spriteSequence
-		width: 10
-		height: 10
+		width: 35
+		height: 35
 
 		running: entityPrivate && entityPrivate.cosGame.running
 
@@ -69,8 +69,8 @@ PhysicsEntity {
 									if (Array("dead", "dead2", "dead3", "dead4", "falldeath", "falldeath2", "falldead").includes(currentSprite))
 										entityPrivate.isAlive = false
 								} else {
-									spriteSequence.width = 10
-									spriteSequence.height = 10
+									spriteSequence.width = 35
+									spriteSequence.height = 35
 								}
 
 		transform: Rotation {

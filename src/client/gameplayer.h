@@ -36,6 +36,7 @@
 #define GAMEPLAYERPRIVATE_H
 
 #include "gameentity.h"
+#include <QSoundEffect>
 
 
 class GamePlayer : public GameEntity
@@ -47,8 +48,7 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(GameEnemy * enemy READ enemy WRITE setEnemy NOTIFY enemyChanged)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged)
 	Q_PROPERTY(int defaultHp READ defaultHp WRITE setDefaultHp NOTIFY defaultHpChanged)
-
-	Q_PROPERTY(bool hasGun READ hasGun WRITE setHasGun NOTIFY hasGunChanged)
+	Q_PROPERTY(qreal soundEffectVolume READ soundEffectVolume WRITE setSoundEffectVolume NOTIFY soundEffectVolumeChanged)
 
 public:
 	enum LadderMode {
@@ -74,11 +74,12 @@ public:
 	LadderMode ladderMode() const { return m_ladderMode; }
 	GameLadder * ladder() const { return m_ladder; }
 	GameEnemy * enemy() const { return m_enemy; }
-	bool hasGun() const { return m_hasGun; }
 	int hp() const { return m_hp; }
 	int defaultHp() const { return m_defaultHp; }
+	qreal soundEffectVolume() const { return m_soundEffectVolume; }
 
 public slots:
+	void playSoundEffect(const QString &effect);
 	void onBodyBeginContact(Box2DFixture *other);
 	void onBodyEndContact(Box2DFixture *other);
 
@@ -91,21 +92,22 @@ public slots:
 	void setLadderMode(LadderMode ladderMode);
 	void setLadder(GameLadder * ladder);
 	void setEnemy(GameEnemy * enemy);
-	void setHasGun(bool hasGun);
 	void setHp(int hp);
 	void setDefaultHp(int defaultHp);
+	void setSoundEffectVolume(qreal soundEffectVolume);
 
 signals:
 	void killedByEnemy(GameEnemy *enemy);
+	void diedByFall();
 	void hurt(GameEnemy *enemy);
 	void attack();
 	void attackSucceed(GameEnemy *enemy);
 	void ladderModeChanged(LadderMode ladderMode);
 	void ladderChanged(GameLadder * ladder);
 	void enemyChanged(GameEnemy * enemy);
-	void hasGunChanged(bool hasGun);
 	void hpChanged(int hp);
 	void defaultHpChanged(int defaultHp);
+	void soundEffectVolumeChanged(qreal soundEffectVolume);
 
 private slots:
 	void onCosGameChanged(CosGame *);
@@ -117,9 +119,14 @@ private:
 	bool m_isLadderDirectionUp;
 	GameLadder * m_ladder;
 	GameEnemy * m_enemy;
-	bool m_hasGun;
 	int m_hp;
 	int m_defaultHp;
+	QSoundEffect *m_soundEffect;
+	int m_soundEffectRunNum;
+	int m_soundEffectClimbNum;
+	int m_soundEffectWalkNum;
+	int m_soundEffectPainNum;
+	qreal m_soundEffectVolume;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

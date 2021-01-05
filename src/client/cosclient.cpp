@@ -30,6 +30,7 @@
 #include <QResource>
 #include <QQuickItem>
 #include <QJsonDocument>
+#include <QSound>
 
 #include "../version/buildnumber.h"
 #include "../common/cosmessage.h"
@@ -39,6 +40,7 @@
 #include "gameentity.h"
 #include "gameplayer.h"
 #include "gamescene.h"
+#include "gamequestion.h"
 #include "gameladder.h"
 #include "gameenemy.h"
 #include "gameenemysoldier.h"
@@ -207,6 +209,7 @@ void Client::registerTypes()
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
 	qmlRegisterType<GameActivity>("COS.Client", 1, 0, "GameActivity");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
+	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
 }
@@ -1165,9 +1168,6 @@ void Client::onSocketConnected()
 		setConnectionState(Connected);
 	} else if (m_connectionState == Reconnecting || m_connectionState == Disconnected)
 		setConnectionState(Reconnected);
-
-
-
 }
 
 

@@ -41,6 +41,8 @@ QDialogPanel {
 
 			width: parent.width
 
+			lineVisible: true
+
 			onAccepted: {
 				acceptedData = text
 				dlgClose()

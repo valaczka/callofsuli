@@ -57,6 +57,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	m_modelMissionList = new VariantMapModel({
 												 "num",
 												 "type",
+												 "orphan",
 												 "solved",
 												 "tried",
 												 "lockDepth",
@@ -441,10 +442,15 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 	m_currentMap->setSolver(list.toVariantList());
 
-	GameMap::CampaignLockHash clock = m_currentMap->campaignLockTree();
-	GameMap::MissionLockHash mlock = m_currentMap->missionLockTree();
 
-	if (clock.isEmpty() || mlock.isEmpty()) {
+	GameMap::Campaign *cerror = nullptr;
+	GameMap::Mission *merror = nullptr;
+
+	GameMap::CampaignLockHash clock = m_currentMap->campaignLockTree(&cerror);
+	GameMap::MissionLockHash mlock = m_currentMap->missionLockTree(&merror);
+
+	if (cerror || merror) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás pálya!"));
 		m_modelMissionList->clear();
 		return;
 	}
@@ -457,6 +463,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 	foreach (GameMap::Campaign *c, m_currentMap->campaigns()) {
 		QVariantMap m;
 		m["num"] = num++;
+		m["orphan"] = false;
 		m["type"] = 0;
 		m["solved"] = c->getSolved();
 		m["tried"] = c->getTried();
@@ -480,6 +487,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 			QVariantMap m;
 			m["num"] = num++;
+			m["orphan"] = false;
 			m["type"] = 1;
 			m["lockDepth"] = mis->getLockDepth();
 			m["tried"] = mis->getTried();
@@ -508,6 +516,45 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 			ret.append(m);
 		}
 	}
+
+
+
+	foreach (GameMap::Mission *mis, m_currentMap->orphanMissions()) {
+		if (mis->getLockDepth() > 1)
+			continue;
+
+		QVariantMap m;
+		m["num"] = num++;
+		m["orphan"] = true;
+		m["type"] = 1;
+		m["lockDepth"] = mis->getLockDepth();
+		m["tried"] = mis->getTried();
+		if (mis->getSolvedLevel() > 0)
+			m["solved"] = true;
+		else
+			m["solved"] = false;
+		m["uuid"] = mis->uuid();
+		m["name"] = mis->name();
+		m["cname"] = "";
+
+		int lMin = mis->getLockDepth() == 0 ?
+					   qMax(mis->getSolvedLevel()+1, 1) :
+					   -1;
+		QVariantList l;
+		foreach (GameMap::MissionLevel *ml, mis->levels()) {
+			QVariantMap mm;
+			mm["level"] = ml->level();
+			mm["available"] = (ml->level() <= lMin);
+			mm["solved"] = (mis->getSolvedLevel() >= ml->level());
+			l.append(mm);
+		}
+
+		m["levels"] = l;
+
+		ret.append(m);
+	}
+
+
 
 	m_modelMissionList->setVariantList(ret, "num");
 

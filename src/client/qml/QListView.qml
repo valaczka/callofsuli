@@ -30,7 +30,7 @@ ListView {
 	Item {
 		id: header
 		y: -view.contentY - height
-		height: 100
+		height: 250
 		width: parent.width
 
 		property bool refresh: state == "pulled" ? true : false

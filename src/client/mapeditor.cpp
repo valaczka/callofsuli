@@ -904,16 +904,24 @@ bool MapEditor::checkGame(GameMap *game) const
 
 void MapEditor::campaignListReload(QVariantMap)
 {
-	QVariantList list = db()->execSelectQuery("SELECT 0 as type, id as cid, CAST(id as TEXT) as uuid, name as cname, "
+	QVariantList list = db()->execSelectQuery("SELECT 1 as noorphan, 0 as type, id as cid, CAST(id as TEXT) as uuid, name as cname, "
 											  "false as mandatory, '' as mname, "
 											  "EXISTS(SELECT * FROM campaignLocks WHERE campaign=campaigns.id) as locked "
 											  "FROM campaigns "
 											  "UNION "
-											  "SELECT 1 as type, campaign as cid, uuid, campaigns.name as cname, mandatory, "
+											  "SELECT 1 as noorphan, 1 as type, campaign as cid, uuid, campaigns.name as cname, mandatory, "
 											  "missions.name as mname, "
 											  "EXISTS(SELECT * FROM missionLocks WHERE mission=missions.uuid) as locked "
 											  "FROM missions "
-											  "LEFT JOIN campaigns ON (campaigns.id=missions.campaign)");
+											  "LEFT JOIN campaigns ON (campaigns.id=missions.campaign)"
+											  "UNION "
+											  "SELECT 0 as noorphan, 0 as type, -1 as cid, CAST(-1 as TEXT) as uuid, '—' as cname, "
+											  "false as mandatory, '' as mname, false as locked "
+											  "UNION "
+											  "SELECT 0 as noorphan, 1 as type, -1 as cid, uuid, '—' as cname, mandatory, "
+											  "missions.name as mname, "
+											  "EXISTS(SELECT * FROM missionLocks WHERE mission=missions.uuid) as locked "
+											  "FROM missions WHERE campaign=NULL");
 	emit campaignListReloaded(list);
 }
 
@@ -1094,7 +1102,7 @@ void MapEditor::missionAdd(QVariantMap data)
 
 	if (ret != -1) {
 		setModified(true);
-		emit missionAdded(ret);
+		emit missionAdded(ret, data.value("uuid").toString());
 	}
 }
 

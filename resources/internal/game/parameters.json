@@ -3,16 +3,17 @@
 		"1": {
 			"player": {
 				"deathlyFall": 300,
+				"hurtFall": 120,
 				"deathlyAttackDistance": 0,
 				"rayCastElevation": 20,
-				"rayCastLength": 400
+				"rayCastLength": 270
 			},
 			"enemy": {
 				"soldier" : {
 					"rayCastElevation": 20,
 					"rayCastLength": 250,
 					"msecBeforeTurn": 3000,
-					"castAttackFraction": 0.5,
+					"castAttackFraction": 0.3,
 					"msecBeforeAttack": 3500,
 					"msecBetweenAttack": 2500
 				}
@@ -21,6 +22,7 @@
 		"2": {
 			"player": {
 				"deathlyFall": 300,
+				"hurtFall": 40,
 				"deathlyAttackDistance": 100,
 				"rayCastElevation": 20,
 				"rayCastLength": 200

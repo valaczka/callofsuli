@@ -178,7 +178,7 @@ signals:
 	void campaignSelected(const int &id);
 	void campaignLockListLoaded(const int &id, const QVariantList &list);
 
-	void missionAdded(const int &rowid);
+	void missionAdded(const int &rowid, const QString &uuid);
 	void missionModified(const QString &uuid);
 	void missionRemoved(const QString &uuid);
 	void missionLoaded(const QVariantMap &data);

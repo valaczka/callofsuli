@@ -39,7 +39,7 @@
 #include <QDebug>
 #include "cosdb.h"
 
-#define GAMEMAP_CURRENT_VERSION 3
+#define GAMEMAP_CURRENT_VERSION 4
 
 
 /**
@@ -282,8 +282,6 @@ public:
 	static GameMap* fromBinaryData(const QByteArray &data, QObject *target = nullptr, const QString &func = QString());
 	QByteArray toBinaryData() const;
 
-	static GameMap* example(const QByteArray &uuid);
-
 	static GameMap* fromDb(CosDb *db, QObject *target = nullptr, const QString &func = QString(), const bool &withImages = true);
 	bool toDb(CosDb *db) const;
 
@@ -292,6 +290,7 @@ public:
 
 	QByteArray uuid() const { return m_uuid; }
 	QVector<Campaign *> campaigns() const { return m_campaigns; }
+	QVector<Mission *> orphanMissions() const { return m_orphanMissions; }
 	QVector<Chapter *> chapters() const { return m_chapters; }
 	QVector<Image *> images() const { return m_images; }
 	QVector<Storage *> storages() const { return m_storages; };
@@ -334,7 +333,7 @@ private:
 	bool objectivesFromDb(CosDb *db);
 
 	void campaignsToStream(QDataStream &stream) const ;
-	bool campaignsFromStream(QDataStream &stream);
+	bool campaignsFromStream(QDataStream &stream, const qint32 &version);
 	bool campaignsToDb(CosDb *db) const;
 	bool campaingsFromDb(CosDb *db);
 
@@ -371,6 +370,7 @@ private:
 	QVector<Chapter *> m_chapters;
 	QVector<Image *> m_images;
 	QVector<Storage *> m_storages;
+	QVector<Mission *> m_orphanMissions;
 
 	QObject *m_progressObject;
 	QString m_progressFunc;

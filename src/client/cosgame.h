@@ -132,7 +132,6 @@ public slots:
 	void setPlayerStartPosition(GameObject * playerStartPosition);
 	void setRunning(bool running);
 	void setItemPage(QQuickItem * itemPage);
-	void setQuestion(GameQuestion * question);
 	void setGameMatch(GameMatch * gameMatch);
 	void setIsPrepared(bool isPrepared);
 	void setActivity(GameActivity * activity);

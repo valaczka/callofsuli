@@ -16,6 +16,7 @@ Button {
 	property color blinkColor: themeColors[3]
 
 	property bool animationEnabled: true
+	readonly property bool _blinkActive: activeFocus && enabled && animationEnabled
 
 	Material.foreground: textColor
 
@@ -38,15 +39,31 @@ Button {
 		border.width: control.hovered
 	}*/
 
+	on_BlinkActiveChanged: {
+		if (_blinkActive)
+			blinkAnimation.start()
+		else
+			blinkAnimation.stop()
+	}
+
+	onThemeColorsChanged: {
+		blinkAnimation.alwaysRunToEnd = false
+		blinkAnimation.stop()
+		animDestColor.to = themeColors[1]
+		animBlinkColor.to = themeColors[3]
+		blinkAnimation.alwaysRunToEnd = true
+		if (_blinkActive)
+			blinkAnimation.start()
+	}
 
 
 	SequentialAnimation {
 		id: blinkAnimation
 		loops: Animation.Infinite
-		running: control.activeFocus && control.animationEnabled && control.enabled
 		alwaysRunToEnd: true
 
 		ColorAnimation {
+			id: animBlinkColor
 			target: control
 			property: "baseColor"
 			to: control.blinkColor

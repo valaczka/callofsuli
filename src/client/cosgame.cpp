@@ -232,7 +232,7 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	qreal x = enemyData->boundRect().left();
 	qreal y = enemyData->boundRect().top();
 
-	x += QRandomGenerator::global()->generate() % enemyData->boundRect().toRect().width();
+	x += enemyData->boundRect().toRect().width()/2;
 
 	bool facingLeft = true;
 
@@ -461,14 +461,7 @@ void CosGame::setItemPage(QQuickItem *itemPage)
 	emit itemPageChanged(m_itemPage);
 }
 
-void CosGame::setQuestion(GameQuestion *question)
-{
-	if (m_question == question)
-		return;
 
-	m_question = question;
-	emit questionChanged(m_question);
-}
 
 void CosGame::setGameMatch(GameMatch *gameMatch)
 {
@@ -909,7 +902,9 @@ void CosGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 	connect(m_question, &GameQuestion::finished, this, [=]() {
 		m_question->deleteLater();
 		m_question = nullptr;
+		emit questionChanged(nullptr);
 	});
+	emit questionChanged(m_question);
 
 	m_question->run();
 }

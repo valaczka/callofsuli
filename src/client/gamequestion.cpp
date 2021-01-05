@@ -99,8 +99,8 @@ void GameQuestion::run()
 
 	if (m_question) {
 		m_game->setRunning(false);
-		m_question->setProperty("maximumWidth", 400);
-		m_question->setProperty("maximumHeight", 400);
+		/*m_question->setProperty("maximumWidth", 400);
+		m_question->setProperty("maximumHeight", 400);*/
 
 		connect(m_question, &QQuickItem::destroyed, this, &GameQuestion::onDestroyed);
 		connect(m_question, SIGNAL(succeed()), this, SLOT(onSuccess()));

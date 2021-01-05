@@ -47,7 +47,7 @@ GameEntity {
 			shotSound.play()
 		}
 
-		//onRayCastPerformed: setray(rect)
+		onRayCastPerformed: setray(rect)
 	}
 
 	Component {

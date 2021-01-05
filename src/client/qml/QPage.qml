@@ -52,8 +52,87 @@ Page {
 		source: "qrc:/internal/img/villa.png"
 	}
 
-	header: QToolBar {
+
+
+
+	RowLayout {
+		id: mainRow
+		anchors.fill: parent
+		anchors.topMargin: toolbar.height
+
+		visible: !swipeMode
+
+		Repeater {
+			model: !swipeMode ? panelComponents : null
+
+			Loader {
+				id: ldrRow
+				height: parent.height
+				Layout.fillWidth: item.visible && item.layoutFillWidth
+				Layout.fillHeight: true
+				sourceComponent: panelComponents[index]
+
+				property Page parentPage: control
+
+				onLoaded: item.populated()
+			}
+		}
+	}
+
+
+
+	SwipeView {
+		id: mainSwipe
+
+		anchors.fill: parent
+		anchors.topMargin: toolbar.height-15
+
+		property Page parentPage: control
+
+		currentIndex: tabBar.currentIndex
+
+		visible: swipeMode
+
+		Repeater {
+			model: swipeMode ? panelComponents : null
+
+			Loader {
+				id: ldrSwipe
+
+				property Page parentPage: control
+
+				sourceComponent: panelComponents[index]
+
+				onLoaded: {
+					var item = ldrSwipe.item
+					var ppp = JS.createObject("QTabButton.qml", tabBar, {
+												  text: item.title ? item.title : "",
+												  "icon.source": item.icon ? item.icon : "",
+												  iconColor: item.borderColor ? item.borderColor : CosStyle.colorError
+
+											  })
+
+					if (ppp) {
+						tabBar.addItem(ppp)
+						item.tabButton = ppp
+					}
+
+					item.populated()
+				}
+			}
+		}
+	}
+
+
+
+	QToolBar {
 		id: toolbar
+
+		x: 0
+		y: 0
+		z: 10
+		width: parent.width
+
 
 		title: control.title.length ? control.title : control.defaultTitle
 		subtitle: control.subtitle.length ? control.subtitle : control.defaultSubTitle
@@ -88,72 +167,6 @@ Page {
 			}
 
 			onClicked: JS.createMenu(menuButton, menuComponent, [contextMenuFunc, mainMenuFunc])
-		}
-	}
-
-
-	RowLayout {
-		id: mainRow
-		anchors.fill: parent
-
-		visible: !swipeMode
-
-		Repeater {
-			model: !swipeMode ? panelComponents : null
-
-			Loader {
-				id: ldrRow
-				height: parent.height
-				Layout.fillWidth: item.visible && item.layoutFillWidth
-				Layout.fillHeight: true
-				sourceComponent: panelComponents[index]
-
-				property Page parentPage: control
-
-				onLoaded: item.populated()
-			}
-		}
-	}
-
-
-
-	SwipeView {
-		id: mainSwipe
-
-		anchors.fill: parent
-		property Page parentPage: control
-
-		currentIndex: tabBar.currentIndex
-
-		visible: swipeMode
-
-		Repeater {
-			model: swipeMode ? panelComponents : null
-
-			Loader {
-				id: ldrSwipe
-
-				property Page parentPage: control
-
-				sourceComponent: panelComponents[index]
-
-				onLoaded: {
-					var item = ldrSwipe.item
-					var ppp = JS.createObject("QTabButton.qml", tabBar, {
-												  text: item.title ? item.title : "",
-												  "icon.source": item.icon ? item.icon : "",
-												  iconColor: item.borderColor ? item.borderColor : CosStyle.colorError
-
-											  })
-
-					if (ppp) {
-						tabBar.addItem(ppp)
-						item.tabButton = ppp
-					}
-
-					item.populated()
-				}
-			}
 		}
 	}
 

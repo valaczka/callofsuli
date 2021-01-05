@@ -438,12 +438,16 @@ void Servers::playTestMap(QVariantMap data)
 
 	GameMap::MissionLevel *ml = nullptr;
 
-	GameMap::Campaign *c = map->campaigns().at(0);
-	if (c) {
-		GameMap::Mission *m = c->missions().at(0);
+	if (map->orphanMissions().size()) {
+		ml = map->orphanMissions().at(0)->levels().at(0);
+	} else if (map->campaigns().size()) {
+		GameMap::Campaign *c = map->campaigns().at(0);
+		if (c) {
+			GameMap::Mission *m = c->missions().at(0);
 
-		if (m)
-			ml = m->levels().at(0);
+			if (m)
+				ml = m->levels().at(0);
+		}
 	}
 
 	if (!ml) {

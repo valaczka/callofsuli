@@ -43,6 +43,7 @@ GameMap::GameMap(const QByteArray &uuid)
 	, m_campaigns()
 	, m_chapters()
 	, m_storages()
+	, m_orphanMissions()
 	, m_progressObject(nullptr)
 	, m_progressFunc()
 {
@@ -56,6 +57,9 @@ GameMap::GameMap(const QByteArray &uuid)
 
 GameMap::~GameMap()
 {
+	qDeleteAll(m_orphanMissions.begin(), m_orphanMissions.end());
+	m_orphanMissions.clear();
+
 	qDeleteAll(m_campaigns.begin(), m_campaigns.end());
 	m_campaigns.clear();
 
@@ -142,7 +146,7 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data, QObject *target, const 
 		return nullptr;
 	}
 
-	map->campaignsFromStream(stream);
+	map->campaignsFromStream(stream, version);
 	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
@@ -212,151 +216,6 @@ QByteArray GameMap::toBinaryData() const
 }
 
 
-
-/**
- * @brief GameMap::fromDb
- * @return
- */
-
-GameMap *GameMap::example(const QByteArray &uuid)
-{
-	GameMap *map = new GameMap(uuid);
-
-	GameMap::Chapter *ch1 = new GameMap::Chapter(19, "Fejezet 19");
-	GameMap::Chapter *ch2 = new GameMap::Chapter(20, "Fejezet 20");
-	GameMap::Chapter *ch3 = new GameMap::Chapter(21, "Fejezet 21");
-
-	/*QVariantMap m;
-	m["szia"] = "lkjklj";
-	m["másik"] = 5;
-	m["valami"] = true;
-	GameMap::Objective *o1 = new GameMap::Objective("xxx1", "MODULE1", nullptr, QVariantMap());
-	GameMap::Objective *o2 = new GameMap::Objective("xxx2", "MODULE2", nullptr, m);
-
-	GameMap::Storage *s1 = new GameMap::Storage(299, "stoMod1", m);
-	GameMap::Storage *s2 = new GameMap::Storage(297, "stoMod2", QVariantMap());
-	GameMap::Objective *o3 = new GameMap::Objective("xxx3", "MODULE3", s1, QVariantMap());
-
-	ch1->addObjective(o1);
-	ch2->addObjective(o2);
-	map->addStorage(s1);
-	map->addStorage(s2);
-	ch2->addObjective(o3);
-
-	map->addChapter(new GameMap::Chapter(5, "Fejezet 1"));
-	map->addChapter(new GameMap::Chapter(15, "Fejezet 12"));
-	map->addChapter(new GameMap::Chapter(4, "Fejezet 3"));
-	map->addChapter(ch1);
-	map->addChapter(ch2);
-	map->addChapter(ch3);
-
-
-	Campaign *c1 = new Campaign(1, "campaign1");
-	Campaign *c2 = new Campaign(2, "campaign2");
-	Campaign *c3 = new Campaign(3, "campaign3");
-	Campaign *c4 = new Campaign(4, "campaign4");
-
-	map->addCampaign(c1);
-	map->addCampaign(c2);
-	map->addCampaign(c3);
-	map->addCampaign(c4);
-
-	c1->addLock(c2);
-	c1->addLock(c3);
-	c1->addLock(c4);
-	c2->addLock(c3);
-	c4->addLock(c2);
-
-	Mission *m1 = new Mission("{miss1}", false, "MIssion1");
-	Mission *m2 = new Mission("{miss2}", false, "MIssion2");
-	Mission *m3 = new Mission("{miss3}", true, "MIssion3");
-	Mission *m4 = new Mission("{miss4}", true, "MIssion4");
-	Mission *m5 = new Mission("{miss5}", false, "MIssion5");
-	Mission *m6 = new Mission("{miss6}", false, "MIssion6");
-
-	c1->addMission(m1);
-	c1->addMission(m2);
-	m2->addLock(m1, 1);
-	c2->addMission(m3);
-	c2->addMission(m4);
-	m4->addLock(m2, 2);
-	m4->addLock(m1, -1);
-	m4->addLock(m3, -1);
-	c3->addMission(m5);
-	c3->addMission(m6);
-
-
-	MissionLevel *ml1 = m1->addMissionLevel(new MissionLevel(1, "oiuiuoiuouo", 12, 650, 3, "", ""));
-	MissionLevel *ml2 = m1->addMissionLevel(new MissionLevel(2, "oiuiuoiuouo", 11, 1650, 23, "", ""));
-	m1->addMissionLevel(new MissionLevel(3, "terrain1", 1, 60, 1, "", ""));
-
-	m2->addMissionLevel(new MissionLevel(2, "terrain2", 4, 600, 1, "", ""));
-
-	{
-		BlockChapterMap *b1 = new BlockChapterMap(5);
-		b1->addBlock(2);
-		b1->addBlock(4);
-		b1->addChapter(ch1);
-		b1->addChapter(ch2);
-		b1->addChapter(ch3);
-		b1->addFavorite(o1);
-		ml1->addBlockChapterMap(b1);
-	}
-
-	{
-		BlockChapterMap *b1 = new BlockChapterMap(5);
-		b1->addBlock(2);
-		b1->addBlock(4);
-		b1->addChapter(ch1);
-		b1->addChapter(ch2);
-		b1->addChapter(ch3);
-		b1->addFavorite(o1);
-		ml2->addBlockChapterMap(b1);
-	}
-
-	{
-		BlockChapterMap *b2 = new BlockChapterMap(15);
-		b2->addBlock(1);
-		b2->addBlock(2);
-		b2->addBlock(3);
-		b2->addBlock(4);
-		b2->addChapter(ch3);
-		b2->addFavorite(o1);
-		b2->addFavorite(o2);
-		b2->addFavorite(o3);
-		ml2->addBlockChapterMap(b2);
-	}
-
-
-	m5->addMissionLevel(new MissionLevel(1, "oiuiuoiuouo", 12, 650, 3, "", ""));
-	m5->addMissionLevel(new MissionLevel(2, "oiuiuoiuouo", 11, 1650, 23, "", ""));
-	m5->addMissionLevel(new MissionLevel(3, "werweriuouo", 1, 60, 1, "", ""));
-
-	m6->addMissionLevel(new MissionLevel(11, "1oiuiuoiuouo", 112, 1650, 13, "", ""));
-	m6->addMissionLevel(new MissionLevel(12, "1oiuiuoiuouo", 111, 10, 123, "", ""));
-	m6->addMissionLevel(new MissionLevel(13, "1werweriuouo", 11, 160, 11, "", ""));
-
-	ml1->addInvetory(new Inventory(1, "gun", 3));
-	ml1->addInvetory(new Inventory(0, "bullet", 13));
-	ml1->addInvetory(new Inventory(23, "weapon", 53));
-
-	ml2->addInvetory(new Inventory(1, "time", 3));
-	ml2->addInvetory(new Inventory(0, "bullet", 3));
-	ml2->addInvetory(new Inventory(1, "weapon", 3));
-	ml2->addInvetory(new Inventory(1, "gun", 3));
-*/
-
-	QFile f("/home/valaczka/Projektek/callofsuli-resources/gate.png");
-	if (f.open(QIODevice::ReadOnly)) {
-		QByteArray b = f.readAll();
-		f.close();
-
-		for (int i=0; i<5; ++i)
-			map->addImage(new Image("test", QString("file%1").arg(i), b));
-	}
-
-	return map;
-}
 
 
 /**
@@ -593,6 +452,11 @@ GameMap::Mission *GameMap::mission(const QByteArray &uuid) const
 		}
 	}
 
+	foreach(Mission *m, m_orphanMissions) {
+		if (m->uuid() == uuid)
+			return m;
+	}
+
 	return nullptr;
 }
 
@@ -616,6 +480,16 @@ GameMap::MissionLevel *GameMap::missionLevel(const QByteArray &uuid, const qint3
 					if (l->level() == level) {
 						return l;
 					}
+				}
+			}
+		}
+	}
+
+	foreach(Mission *m, m_orphanMissions) {
+		if (m->uuid() == uuid) {
+			foreach(MissionLevel *l, m->levels()) {
+				if (l->level() == level) {
+					return l;
 				}
 			}
 		}
@@ -668,6 +542,18 @@ GameMap::MissionLockHash GameMap::missionLockTree(Mission **errMission) const
 			}
 			hash[m] = list;
 		}
+	}
+
+	foreach (Mission *m, orphanMissions()) {
+		QVector<GameMap::MissionLock> list;
+		if (!m->getLockTree(&list, m)) {
+			qWarning() << QObject::tr("Redundant locks");
+			if (errMission)
+				*errMission = m;
+
+			return MissionLockHash();
+		}
+		hash[m] = list;
 	}
 
 	return hash;
@@ -1198,8 +1084,9 @@ void GameMap::campaignsToStream(QDataStream &stream) const
 		}
 
 		missionsToStream(c, stream);
-
 	}
+
+	missionsToStream(nullptr, stream);
 }
 
 
@@ -1208,7 +1095,7 @@ void GameMap::campaignsToStream(QDataStream &stream) const
  * @param stream
  */
 
-bool GameMap::campaignsFromStream(QDataStream &stream)
+bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 {
 	QHash<qint32, QList<qint32>> lockList;
 	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> mLockList;
@@ -1261,6 +1148,13 @@ bool GameMap::campaignsFromStream(QDataStream &stream)
 
 	if (m_campaigns.size() != (int) size)
 		return false;
+
+
+	if (version > 3) {
+		qDebug() << "Load orphaned missions";
+
+		mLockList.insert(missionsFromStream(nullptr, stream));
+	}
 
 	qDebug() << "Campaigns loaded";
 
@@ -1412,27 +1306,49 @@ bool GameMap::campaingsFromDb(CosDb *db)
 
 bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream) const
 {
-	Q_ASSERT(campaign);
+	if (campaign)
+	{
+		stream << (quint32) campaign->missions().size();
 
-	stream << (quint32) campaign->missions().size();
+		foreach (Mission *m, campaign->missions()) {
+			stream << m->uuid();
+			stream << m->mandatory();
+			stream << m->name();
 
-	foreach (Mission *m, campaign->missions()) {
-		stream << m->uuid();
-		stream << m->mandatory();
-		stream << m->name();
+			stream << (quint32) m->locks().size();
 
-		stream << (quint32) m->locks().size();
+			foreach (MissionLock p, m->locks()) {
+				Mission *mm = p.first;
+				if (!mm)
+					return false;
 
-		foreach (MissionLock p, m->locks()) {
-			Mission *mm = p.first;
-			if (!mm)
-				return false;
+				stream << mm->uuid();
+				stream << (qint32) p.second;
+			}
 
-			stream << mm->uuid();
-			stream << (qint32) p.second;
+			missionLevelsToStream(m, stream);
 		}
+	} else {
+		stream << (quint32) orphanMissions().size();
 
-		missionLevelsToStream(m, stream);
+		foreach (Mission *m, orphanMissions()) {
+			stream << m->uuid();
+			stream << m->mandatory();
+			stream << m->name();
+
+			stream << (quint32) m->locks().size();
+
+			foreach (MissionLock p, m->locks()) {
+				Mission *mm = p.first;
+				if (!mm)
+					return false;
+
+				stream << mm->uuid();
+				stream << (qint32) p.second;
+			}
+
+			missionLevelsToStream(m, stream);
+		}
 	}
 
 	return true;
@@ -1448,8 +1364,6 @@ bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 QHash<QByteArray, QList<QPair<QByteArray, qint32>>>
 GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
 {
-	Q_ASSERT(campaign);
-
 	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> lockList;
 
 	quint32 size = 0;
@@ -1490,11 +1404,19 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
 
 		missionLevelsFromStream(m, stream);
 
-		campaign->addMission(m);
+		if (campaign)
+			campaign->addMission(m);
+		else
+			m_orphanMissions.append(m);
 	}
 
-	if (campaign->missions().size() != (int) size)
-		return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
+	if (campaign) {
+		if (campaign->missions().size() != (int) size)
+			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
+	} else {
+		if (m_orphanMissions.size() != (int) size)
+			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
+	}
 
 	return lockList;
 }
@@ -1509,7 +1431,7 @@ bool GameMap::missionsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS missions ("
 							 "uuid TEXT PRIMARY KEY,"
-							 "campaign INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE,"
+							 "campaign INTEGER REFERENCES campaigns(id) ON DELETE SET NULL ON UPDATE CASCADE,"
 							 "mandatory BOOL,"
 							 "name TEXT"
 							 ");"))
@@ -1532,6 +1454,18 @@ bool GameMap::missionsToDb(CosDb *db) const
 		}
 	}
 
+
+	foreach (Mission *m, orphanMissions()) {
+		QVariantMap l;
+		l["campaign"] = QVariant::Invalid;
+		l["name"] = m->name();
+		l["mandatory"] = m->mandatory();
+		l["uuid"] = QString(m->uuid());
+
+		if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
+			return false;
+	}
+
 	return true;
 }
 
@@ -1550,14 +1484,20 @@ bool GameMap::missionsFromDb(CosDb *db)
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
 
-		Campaign *c = campaign(m.value("campaign").toInt());
+		if (m.value("campaign").isNull()) {
+			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(), m.value("name").toString());
 
-		if (!c)
-			return false;
+			m_orphanMissions.append(mis);
+		} else {
+			Campaign *c = campaign(m.value("campaign").toInt());
 
-		Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(), m.value("name").toString());
+			if (!c)
+				return false;
 
-		c->addMission(mis);
+			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(), m.value("name").toString());
+
+			c->addMission(mis);
+		}
 	}
 
 
@@ -1838,8 +1778,10 @@ bool GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 				qint32 block = -1;
 				stream >> block;
 
-				if (block < 0)
+				if (block < 0) {
+					delete b;
 					return false;
+				}
 
 				b->addBlock(block);
 			}

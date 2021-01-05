@@ -62,7 +62,7 @@ TextField {
 	passwordCharacter: "*"
 
 	property color textColor: CosStyle.colorAccent
-	property bool lineVisible: true
+	property bool lineVisible: false
 	property bool tooltipEnabled: true
 	property bool clearAlwaysVisible: false
 

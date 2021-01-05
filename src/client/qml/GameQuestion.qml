@@ -13,11 +13,13 @@ Item {
 
 	anchors.fill: parent
 
-
 	property var questionData: null
 
+	signal successSound()
 	signal succeed()
 	signal failed()
+
+	property bool isAnswerSuccess: false
 
 	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
@@ -25,25 +27,24 @@ Item {
 	property int horizontalPadding: 20
 	property int verticalPadding: 10
 
-	property int maximumWidth: 0
-	property int maximumHeight: 0
-
 	Audio {
 		id: openSound
 		volume: CosStyle.volumeSfx
 		source: "qrc:/sound/sfx/question.ogg"
-		autoPlay: true
+		audioRole: Audio.GameRole
 	}
 
 
 	Item {
 		id: panel
 
-		width: control.width < 500 ? control.width-18 : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
-		height: control.width < 500 ? control.height-18 : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
+		width: Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
+		height: Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.width-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 
+		opacity: 0.1
+		scale: 0.1
 
 		DropShadow {
 			anchors.fill: panel
@@ -98,22 +99,8 @@ Item {
 			anchors.rightMargin: 0
 			anchors.bottomMargin: 10
 
+			opacity: 0.0
 
-
-			/*Row {
-				anchors.centerIn: parent
-				spacing: 10
-
-				QButton {
-					text: "HELYES"
-					onClicked: control.succeed()
-				}
-
-				QButton {
-					text: "HELYTELEN"
-					onClicked: control.failed()
-				}
-			}*/
 
 			Loader {
 				id: contentLoader
@@ -124,11 +111,14 @@ Item {
 				target: contentLoader.item
 
 				function onSucceed() {
-					succeed()
+					control.successSound()
+					isAnswerSuccess = true
+					control.state = "finished"
 				}
 
 				function onFailed() {
-					failed()
+					isAnswerSuccess = false
+					control.state = "finished"
 				}
 			}
 
@@ -173,4 +163,119 @@ Item {
 									})
 		}
 	}
+
+	Component.onCompleted: state = "started"
+
+	states: [
+		State {
+			name: "started"
+
+			PropertyChanges {
+				target: panel
+				opacity: 1.0
+				scale: 1.0
+			}
+
+			PropertyChanges {
+				target: realContent
+				opacity: 1.0
+			}
+		},
+
+		State {
+			name: "finished"
+
+			PropertyChanges {
+				target: panel
+				opacity: 0.0
+				scale: 0.0
+			}
+
+			PropertyChanges {
+				target: realContent
+				opacity: 0.0
+			}
+		}
+	]
+
+	transitions: [
+		Transition {
+			from: "*"
+			to: "started"
+
+			SequentialAnimation {
+				ParallelAnimation {
+					PropertyAnimation {
+						target: panel
+						property: "opacity"
+						duration: 235
+						easing.type: Easing.OutQuad
+					}
+
+					PropertyAnimation {
+						target: panel
+						property: "scale"
+						duration: 275
+						easing.type: Easing.OutBack
+						easing.overshoot: 3
+					}
+				}
+
+				PropertyAnimation {
+					target: realContent
+					property: "opacity"
+					duration: 175
+				}
+
+				ScriptAction {
+					script: openSound.play()
+				}
+			}
+		},
+		Transition {
+			from: "started"
+			to: "finished"
+
+			SequentialAnimation {
+				PauseAnimation {
+					duration: isAnswerSuccess ? 250 : 1250
+				}
+
+				ParallelAnimation {
+					PropertyAnimation {
+						target: panel
+						property: "opacity"
+						duration: 235
+						easing.type: Easing.InQuad
+					}
+
+					PropertyAnimation {
+						target: panel
+						property: "scale"
+						duration: 275
+						easing.type: Easing.InQuad
+						easing.overshoot: 3
+					}
+
+					PropertyAnimation {
+						target: realContent
+						property: "opacity"
+						duration: 125
+						easing.type: Easing.InQuad
+					}
+				}
+
+				ScriptAction {
+					script: {
+						if (isAnswerSuccess)
+							succeed()
+						else
+							failed()
+					}
+				}
+
+			}
+		}
+	]
+
 }

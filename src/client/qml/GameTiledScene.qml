@@ -21,20 +21,30 @@ Scene {
 
 	Audio {
 		id: startSound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/fight.ogg"
+		audioRole: Audio.GameRole
+	}
+
+	Audio {
+		id: successEffect
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/sfx/correct.ogg"
+		audioRole: Audio.GameRole
 	}
 
 	Audio {
 		id: successSound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/winner.ogg"
+		audioRole: Audio.GameRole
 	}
 
 	Audio {
 		id: failedSound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/loser.ogg"
+		audioRole: Audio.GameRole
 	}
 
 	GameScenePrivate {
@@ -103,16 +113,8 @@ Scene {
 			case Qt.Key_Down:
 				game.player.moveDown()
 				break;
-			case Qt.Key_Enter:
-			case Qt.Key_Return:
-				game.player.entityPrivate.gunOn = !game.player.entityPrivate.gunOn
-				break
 			case Qt.Key_Space:
-				if (!game.player.entityPrivate.gunOn)
-					game.player.entityPrivate.gunOn = true
-				else
-					game.player.entityPrivate.attackByGun()
-				break
+				game.player.entityPrivate.attackByGun()
 			}
 		}
 
@@ -196,7 +198,9 @@ Scene {
 	Component {
 		id: questionComponent
 
-		GameQuestion { }
+		GameQuestion {
+
+		}
 	}
 
 
@@ -250,10 +254,11 @@ Scene {
 						questionData: questionData
 					})
 
+					obj.successSound.connect(function(){successEffect.play()})
 					obj.succeed.connect(function(){successSound.play()})
 					obj.failed.connect(function(){failedSound.play()})
 
-					return obj
-				}
-				}
+							return obj
+						}
+					}
 

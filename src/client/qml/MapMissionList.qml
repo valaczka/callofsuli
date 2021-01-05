@@ -21,6 +21,7 @@ QPagePanel {
 		id: userProxyModel
 		sourceModel: studentMaps.modelMissionList
 		sorters: [
+			RoleSorter { roleName: "orphan"; priority: 3; sortOrder: Qt.DescendingOrder },
 			StringSorter { roleName: "cname"; priority: 2 },
 			RoleSorter { roleName: "type"; priority: 1 },
 			StringSorter { roleName: "name"; priority: 0 }
@@ -65,7 +66,12 @@ QPagePanel {
 					SwitchRole.value: "Rajdhani"
 				}
 				defaultValue: "HVD Peace"
+			},
+			ExpressionRole {
+				name: "depth"
+				expression: model.orphan ? 0 : model.type
 			}
+
 		]
 	}
 
@@ -78,7 +84,7 @@ QPagePanel {
 
 		model: userProxyModel
 		modelTitleRole: "name"
-		modelDepthRole: "type"
+		modelDepthRole: "depth"
 		modelTitleColorRole: "textColor"
 		//modelTitleWeightRole: "fontWeight"
 		modelTitleFamilyRole: "fontFamily"

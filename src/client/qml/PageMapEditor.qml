@@ -57,6 +57,7 @@ QPage {
 		id: mapEditor
 
 		property VariantMapModel modelCampaignList: newModel([
+																 "noorphan",
 																 "type",
 																 "cid",
 																 "uuid",

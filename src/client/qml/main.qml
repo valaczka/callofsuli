@@ -37,8 +37,14 @@ ApplicationWindow {
 	FontLoader { source: "qrc:/internal/font/HVD_Peace.ttf" }
 
 	Audio {
-		id: gameOverWin
+		id: gameOverWinEffect
 		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/sfx/win.ogg"
+	}
+
+	Audio {
+		id: gameOverWin
+		volume: CosStyle.volumeVoiceover
 		playlist: Playlist {
 			PlaylistItem { source: "qrc:/sound/voiceover/game_over.ogg" }
 			PlaylistItem { source: "qrc:/sound/voiceover/you_win.ogg" }
@@ -47,7 +53,7 @@ ApplicationWindow {
 
 	Audio {
 		id: gameOverLose
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		playlist: Playlist {
 			PlaylistItem { source: "qrc:/sound/voiceover/game_over.ogg" }
 			PlaylistItem { source: "qrc:/sound/voiceover/you_lose.ogg" }
@@ -80,7 +86,6 @@ ApplicationWindow {
 
 		Keys.onReleased: {
 			if (event.key === Qt.Key_Back) {
-				console.log("back", depth);
 				back()
 				event.accepted=true;
 			}
@@ -268,6 +273,7 @@ ApplicationWindow {
 		}
 
 		function onGameWin() {
+			gameOverWinEffect.play()
 			gameOverWin.play()
 		}
 

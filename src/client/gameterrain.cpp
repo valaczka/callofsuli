@@ -226,14 +226,18 @@ void GameTerrain::loadEnemyLayer(Tiled::Layer *layer)
 
 		QPolygonF polygon = object->polygon();
 		QRectF rect = polygon.boundingRect();
-		rect.moveTo(object->x(), object->y());
+
+		qreal ox = object->x();
+		qreal oy = object->y();
+
+		rect.adjust(ox, oy, ox, oy);
 
 		int block = object->property("block").toInt();
 
 		if (block > 0) {
 			GameEnemyData *enemy = new GameEnemyData(this);
 
-			enemy->setBoundRect(rect.toRect());
+			enemy->setBoundRect(rect);
 
 			GameBlock *b = getBlock(block);
 			enemy->setBlock(b);

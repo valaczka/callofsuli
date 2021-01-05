@@ -437,9 +437,8 @@ QPagePanel {
 						]
 
 						sorters: [
-							RoleSorter {
-								roleName: "cname"
-							}
+							RoleSorter { roleName: "noorphan"; priority: 1 },
+							RoleSorter { roleName: "cname"; priority: 0 }
 						]
 					}
 
@@ -447,7 +446,11 @@ QPagePanel {
 					valueRole: "cid"
 
 					onActivated: {
-						mapEditor.run("missionModify", {uuid: missionUuid, data: { campaign: model.get(index).cid }})
+						var cid = model.get(index).cid
+						var c = null
+						if (cid !== -1)
+							c = cid
+						mapEditor.run("missionModify", {uuid: missionUuid, data: { campaign: c }})
 					}
 				}
 

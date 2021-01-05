@@ -21,6 +21,8 @@ QPagePanel {
 	}
 
 
+	readonly property bool isListVisible: mapEditor.modelCampaignList.count > 1
+
 	SortFilterProxyModel {
 		id: userProxyModel
 
@@ -54,10 +56,24 @@ QPagePanel {
 						value: -1
 					}
 				}
+				AllOf {
+					inverted: true
+					ValueFilter {
+						enabled: true
+						roleName: "type"
+						value: 0
+					}
+					ValueFilter {
+						enabled: true
+						roleName: "cid"
+						value: -1
+					}
+				}
 			}
 
 		]
 		sorters: [
+			RoleSorter { roleName: "noorphan"; priority: 3 },
 			StringSorter { roleName: "cname"; priority: 2 },
 			RoleSorter { roleName: "cid"; priority: 1 },
 			StringSorter { roleName: "mname"; priority: 0 }
@@ -65,7 +81,7 @@ QPagePanel {
 		proxyRoles: [
 			ExpressionRole {
 				name: "name"
-				expression: model.type === 0 ? model.cname : model.mname
+				expression: model.type === 0 ? model.cname  : model.mname
 			},
 			SwitchRole {
 				name: "textColor"
@@ -95,7 +111,7 @@ QPagePanel {
 		id: list
 		anchors.fill: parent
 
-		visible: mapEditor.modelCampaignList.count
+		visible: isListVisible
 
 		model: userProxyModel
 		modelTitleRole: "name"
@@ -141,10 +157,10 @@ QPagePanel {
 
 		onClicked: {
 			var o = list.model.get(index)
-			if (o.type === 0) {
+			if (o.type === 0 && o.cid !== -1) {
 				mapEditor.campaignSelected(o.cid)
 				mapEditor.run("campaignLoad", {id: o.cid})
-			} else {
+			} else if (o.type === 1) {
 				mapEditor.missionSelected(o.uuid)
 				mapEditor.run("missionLoad", {uuid: o.uuid})
 			}
@@ -160,6 +176,8 @@ QPagePanel {
 
 			selectorSet = true
 
+			var sourceIndex = list.model.mapToSource(index)
+
 			var o = list.model.get(index)
 
 			if (o.type === 0) {
@@ -169,7 +187,7 @@ QPagePanel {
 				missionsFilter.enabled = true
 			}
 
-			mapEditor.modelCampaignList.select(list.model.mapToSource(index))
+			mapEditor.modelCampaignList.select(sourceIndex)
 		}
 
 		onSelectorSetChanged: {
@@ -202,7 +220,7 @@ QPagePanel {
 
 		listView: list
 
-		enabled: mapEditor.modelCampaignList.count
+		enabled: isListVisible
 		labelCountText: mapEditor.modelCampaignList.selectedCount
 		onSelectAll: JS.selectAllProxyModelToggle(userProxyModel)
 	}
@@ -210,8 +228,8 @@ QPagePanel {
 
 	QToolButtonBig {
 		anchors.centerIn: parent
-		visible: !mapEditor.modelCampaignList.count
-		action: actionCampaignNew
+		visible: !isListVisible
+		action: actionMissionNew
 	}
 
 
@@ -271,15 +289,20 @@ QPagePanel {
 		id: actionMissionNew
 		text: qsTr("Új küldetés")
 		icon.source: CosStyle.iconAdd
-		enabled: !mapEditor.isBusy && list.currentIndex !== -1
+		enabled: !mapEditor.isBusy
 		onTriggered: {
 			var d = JS.dialogCreateQml("TextField")
 			d.item.title = qsTr("Új küldetés neve")
 
-			var o = list.model.get(list.currentIndex)
+			var cid = null
+
+			if (list.currentIndex != -1) {
+				var o = list.model.get(list.currentIndex)
+				cid = o.cid
+			}
 
 			d.accepted.connect(function(data) {
-				mapEditor.run("missionAdd", {"name": data, "campaign": o.cid})
+				mapEditor.run("missionAdd", {"name": data, "campaign": cid})
 			})
 			d.open()
 		}
@@ -299,10 +322,10 @@ QPagePanel {
 			var more = mapEditor.modelCampaignList.selectedCount
 
 			if (more > 0) {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 hadjáratot a küldetéseivel együtt?").arg(more)
+				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 hadjáratot?").arg(more)
 										   : qsTr("Biztosan törlöd a kijelölt %1 küldetést?").arg(more)
 			} else {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot a küldetéseivel együtt?")
+				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot?")
 										   : qsTr("Biztosan törlöd a küldetést?")
 			}
 
@@ -331,6 +354,28 @@ QPagePanel {
 		function onCampaignListReloaded(list) {
 			mapEditor.modelCampaignList.unselectAll()
 			mapEditor.modelCampaignList.setVariantList(list, "uuid");
+		}
+
+		function onMissionAdded(rowid, uuid) {
+			if (rowid === -1)
+				return
+
+			var model = mapEditor.newModel(["details", "name"])
+
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["details", "name"],
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Harcmező kiválasztása"),
+										   selectorSet: false,
+										   sourceModel: model
+									   })
+
+			model.setVariantList(cosClient.mapToList(cosClient.terrainMap(), "name"), "name")
+
+			d.accepted.connect(function(data) {
+				mapEditor.run("missionLevelAdd", {mission: uuid, terrain: d.item.sourceModel.get(data).name })
+			})
+			d.open()
 		}
 	}
 

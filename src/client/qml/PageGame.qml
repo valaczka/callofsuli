@@ -43,34 +43,52 @@ Page {
 		autoPlay: true
 		loops: Audio.Infinite
 		volume: CosStyle.volumeBackgroundMusic
+		audioRole: Audio.GameRole
 	}
 
 
 	Audio {
 		id: prepareSound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/prepare_yourself.ogg"
+		audioRole: Audio.GameRole
 	}
 
 	Audio {
 		id: readySound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/begin.ogg"
+		audioRole: Audio.GameRole
 	}
 
 
 	Audio {
 		id: timeSound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/time.ogg"
+		audioRole: Audio.GameRole
 	}
 
 	Audio {
 		id: finalSound
-		volume: CosStyle.volumeSfx
+		volume: CosStyle.volumeVoiceover
 		source: "qrc:/sound/voiceover/final_round.ogg"
+		audioRole: Audio.GameRole
 	}
 
+	Audio {
+		id: deadSound
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/sfx/dead.mp3"
+		audioRole: Audio.GameRole
+	}
+
+	Audio {
+		id: falldeadSound
+		volume: CosStyle.volumeSfx
+		source: "qrc:/sound/sfx/falldead.mp3"
+		audioRole: Audio.GameRole
+	}
 
 
 	SequentialAnimation {
@@ -155,6 +173,8 @@ Page {
 		contentWidth: game.width
 		contentHeight: game.height
 
+		enabled: !game.question
+
 		height: Math.min(contentHeight, parent.height)
 		width: Math.min(contentWidth, parent.width)
 		anchors.horizontalCenter: parent.horizontalCenter
@@ -226,6 +246,7 @@ Page {
 				function onYChanged(y) {
 					flick.setYOffset()
 				}
+
 			}
 
 			Connections {
@@ -233,6 +254,15 @@ Page {
 
 				function onHurt() {
 					painhudImageAnim.start()
+				}
+
+				function onKilledByEnemy(enemy) {
+					skullImageAnim.start()
+					deadSound.play()
+				}
+
+				function onDiedByFall() {
+					falldeadSound.play()
 				}
 			}
 
@@ -419,19 +449,68 @@ Page {
 			property: "opacity"
 			from: 1.0
 			to: 0.0
-			duration: 275
+			duration: 375
 			easing.type: Easing.InQuad
 		}
 	}
+
+
+
+	Image {
+		id: skullImage
+		opacity: 0.0
+		visible: opacity
+		anchors.centerIn: parent
+
+		source: "qrc:/internal/img/skull.svg"
+		sourceSize.width: 200
+		sourceSize.height: 200
+
+		width: 200
+		height: 200
+		fillMode: Image.PreserveAspectFit
+	}
+
+	ParallelAnimation {
+		id: skullImageAnim
+
+		SequentialAnimation {
+			PropertyAnimation {
+				target: skullImage
+				property: "opacity"
+				from: 0.0
+				to: 0.6
+				duration: 350
+				easing.type: Easing.InQuad
+			}
+			PropertyAnimation {
+				target: skullImage
+				property: "opacity"
+				from: 0.6
+				to: 0.0
+				duration: 600
+				easing.type: Easing.InQuad
+			}
+		}
+		PropertyAnimation {
+			target: skullImage
+			property: "scale"
+			from: 0.1
+			to: 8.0
+			duration: 950
+			easing.type: Easing.OutInQuad
+		}
+	}
+
 
 
 	ProgressBar {
 		id: progressHp
 		visible: game.player
 		anchors.top: parent.top
-		anchors.right: parent.right
-		anchors.margins: 10
-		width: 300
+		anchors.right: timeLabel.right
+		anchors.topMargin: 7
+		width: 75
 		from: 0
 		to: game.player ? game.player.entityPrivate.defaultHp : 0
 		value: game.player ? game.player.entityPrivate.hp : 0
@@ -441,7 +520,7 @@ Page {
 		property color color: CosStyle.colorErrorLighter
 
 		Behavior on value {
-			NumberAnimation { duration: 125; easing.type: Easing.InOutQuad }
+			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
 		}
 	}
 
@@ -459,9 +538,9 @@ Page {
 	Row {
 		id: enemyRow
 
-		anchors.top: parent.top
+		anchors.verticalCenter: timeLabel.verticalCenter
 		anchors.left: parent.left
-		anchors.margins: 10
+		anchors.leftMargin: timeLabel.anchors.rightMargin
 
 		spacing: 5
 
@@ -503,11 +582,13 @@ Page {
 		verticalOffset: 1
 	}
 
+
 	QLabel {
 		id: timeLabel
 		anchors.top: progressHp.bottom
 		anchors.right: parent.right
-		anchors.margins: 10
+		anchors.rightMargin: shotButton.anchors.rightMargin
+		anchors.topMargin: 5
 
 		font.family: "HVD Peace"
 		color: CosStyle.colorPrimary
@@ -516,13 +597,15 @@ Page {
 		property int secs: game.msecLeft/1000
 
 		text: JS.secToMMSS(secs)
-
-		Behavior on secs {
-			NumberAnimation { duration: 50 }
-		}
 	}
 
+
+
 	VirtualJoystick {
+		id: joystick
+
+		enabled: !game.question
+
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		anchors.margins: 10
@@ -558,39 +641,17 @@ Page {
 						 }
 	}
 
-	Rectangle {
-		width: 35
-		height: 35
-		radius: width/2
-
-		anchors.bottom: shotButton.top
-		anchors.horizontalCenter: shotButton.horizontalCenter
-		anchors.margins: 10
-
-		border.width: 1
-		border.color: "black"
-
-		color: JS.setColorAlpha(CosStyle.colorPrimaryLighter, 0.7)
-
-		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.gunOn
-
-		MouseArea {
-			anchors.fill: parent
-			acceptedButtons: Qt.LeftButton
-			onClicked: game.player.entityPrivate.gunOn = false
-		}
-	}
 
 
 	Rectangle {
 		id: shotButton
-		width: 50
-		height: 50
+		width: 60
+		height: 60
 		radius: width/2
 
-		anchors.bottom: parent.bottom
+		anchors.verticalCenter: joystick.verticalCenter
 		anchors.right: parent.right
-		anchors.margins: 10
+		anchors.rightMargin: 10+(joystick.width-width)/2
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
@@ -601,24 +662,21 @@ Page {
 		border.width: 1
 		border.color: "black"
 
+		Behavior on color { ColorAnimation { duration: 75 } }
+
 		QFontImage {
 			anchors.centerIn: parent
 			icon: "qrc:/internal/img/target1.svg"
 			color: shotButton.enemyAimed ? "white" : "black"
 			opacity: 0.6
 			size: shotButton.height*0.8
-			visible: game.player && game.player.entityPrivate && game.player.entityPrivate.hasGun
+
+			Behavior on color { ColorAnimation { duration: 75 } }
 		}
 
-		MouseArea {
-			anchors.fill: parent
-			acceptedButtons: Qt.LeftButton
-			onClicked: {
-				if (game.player.entityPrivate.hasGun)
-					game.player.entityPrivate.attackByGun()
-				else
-					game.player.entityPrivate.gunOn = true
-			}
+		TapHandler {
+			enabled: !game.question
+			onTapped: game.player.entityPrivate.attackByGun()
 		}
 	}
 
@@ -650,7 +708,7 @@ Page {
 		id: nameLabel
 		color: "white"
 		font.family: "HVD Peace"
-		font.pixelSize: 60
+		font.pixelSize: 50
 		text: game.gameMatch ? game.gameMatch.name : ""
 		opacity: 0.0
 		visible: opacity

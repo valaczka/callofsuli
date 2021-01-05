@@ -110,6 +110,8 @@ void GameEnemy::killByPlayer(GamePlayer *player)
 {
 	qDebug() << "Killed by player" << this;
 
+	setIsAlive(false);
+
 	qreal playerX = player->parentEntity()->x();
 	qreal meX = parentEntity()->x();
 	bool facingLeft = parentEntity()->property("facingLeft").toBool();
@@ -200,6 +202,11 @@ void GameEnemy::attackPlayer()
 
 void GameEnemy::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
 {
+	if (!m_isAlive) {
+		setPlayer(nullptr);
+		return;
+	}
+
 	GamePlayer *player = nullptr;
 	qreal fraction = -1.0;
 
