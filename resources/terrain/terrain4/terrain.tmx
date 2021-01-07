@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="92" height="23" tilewidth="32" tileheight="32" infinite="1" nextlayerid="33" nextobjectid="74">
+ <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
+  <image source="../tileset/hyptosis.png" width="960" height="3840"/>
+  <terraintypes>
+   <terrain name="StoneWall1" tile="505"/>
+  </terraintypes>
+  <tile id="475" terrain=",,,0"/>
+  <tile id="476" terrain=",,0,0"/>
+  <tile id="477" terrain=",,0,"/>
+  <tile id="504" terrain=",0,,0"/>
+  <tile id="505" terrain="0,0,0,0"/>
+  <tile id="506" terrain="0,,0,"/>
+  <tile id="534" terrain=",0,,"/>
+  <tile id="535" terrain="0,0,,"/>
+  <tile id="536" terrain="0,,,"/>
+ </tileset>
+ <layer id="31" name="1. csemperéteg" width="92" height="23">
+  <data encoding="base64" compression="gzip">
+   <chunk x="16" y="0" width="16" height="16">
+   H4sIAAAAAAAAA2NgGAWjYBQMdzCDg4FhJhq+CsQAzPDdigAEAAA=
+  </chunk>
+   <chunk x="32" y="0" width="16" height="16">
+   H4sIAAAAAAAAA2NgGAWjYOQBK0YGBmtG8vSGA/VFAHEkmfpLgfrKgLicTP3I4CoHBGMDK4B4JRJfFmifHBDnANm5UAwApgVAHAAEAAA=
+  </chunk>
+   <chunk x="48" y="0" width="16" height="16">
+   H4sIAAAAAAAAA2NgGAWjYOgCG0bK9EdRqJ8SsJKHoQFE+5KpX4eLgSEXSOdRoB8A9ayHMgAEAAA=
+  </chunk>
+   <chunk x="64" y="0" width="16" height="16">
+   H4sIAAAAAAAAA2NgGAWjYBSQC1bzQPAqIF7JQ7p+XS4GBj0uiH5yAEw/uQAApOOSHwAEAAA=
+  </chunk>
+   <chunk x="0" y="16" width="16" height="16">
+   H4sIAAAAAAAAA2NgGAWjYPCCqxz4MSFwh5GB4S4OfI+RsP6fQDWWQDwZC/5NhH5xJgYGCRxYkomwfloDACAWnUcABAAA
+  </chunk>
+   <chunk x="16" y="16" width="16" height="16">
+   H4sIAAAAAAAAA2NgIB5s50DFo4B8cIEDggmBXCYGhjwgzmdCZd9khGBC4BsjKibXndgwMeAX0M7JaPgXCe7IZELVC+KbM5Huj1GAHQAAwj6C2QAEAAA=
+  </chunk>
+   <chunk x="32" y="16" width="16" height="16">
+   H4sIAAAAAAAAA2NgwA1WAPFKKL0MiPmBWACIs6FYEI9eENAFYj0krA/ExwnoGWzgLgsDw200fI8FIreTiYHhAgcE4wPHgeqeA/EJJjC7ASZ+Esi/yQjB+MApoDpWZji7AVmcGICsjhL9L5jI0z/SwRxWBoa5UDyPlTS914HqbwDxTSi+hUW/ODD9SSBhcQLpERkAAP5bjAMABAAA
+  </chunk>
+   <chunk x="48" y="16" width="16" height="16">
+   H4sIAAAAAAAAA5XSSw7BUBgF4L+tTjSRMFIGzJljZsbYEnQmUbEHRliA5z6IDXgvgFqDiQkGjtzb9Kbp4zrJl7R/77lNH2kiytB/KehMUQ9f01UZG3oqm+2EuSssN4XIEbTBghE6Y24S0X9oRC+FecMFswMc4QRnYrMn9lgHWOBaVmXMiPu42fnWpBLe8T2+TvuI/idgfdIgMgy5flDErr9fQrcs9BcSfX8c9K8B7tCAJheVLUxhzi353EJvAMOYvvtN1pxMTPw3Ochr3jvZcDKpoFeFmubNZsSeYyX4PUtLkdtTvH9HYWzoS/bx/eo/7nlH6H0BTIVYRgAEAAA=
+  </chunk>
+   <chunk x="64" y="16" width="16" height="16">
+   H4sIAAAAAAAAAzNjYmAwg2JzICYVZDKh4ndAse+MDAy/GInTP4+R4QAIcwLVa0AxKeA0EJ8B4rNA/I2dgeE8adpHAYXAk4Uy/a0U6h9oEARMr8YkpllkkAvUm02BfkoBAEkS1FsABAAA
+  </chunk>
+   <chunk x="16" y="32" width="16" height="16">
+   H4sIAAAAAAAAA2NgoA5YzMXA0A7Fy6AYxgfJ9XHi1/+Rg4HhEw78mYOw/bpA8/WAWJ8TwoZhmNhgB+5cmHgUjAJaAwAPCxsRAAQAAA==
+  </chunk>
+   <chunk x="32" y="32" width="16" height="16">
+   H4sIAAAAAAAAA2NgYGBg58bEpAB/HkxMCsjnwcQgoMqNikfBKBgF1AUAZhGAIgAEAAA=
+  </chunk>
+   <chunk x="48" y="32" width="16" height="16">
+   H4sIAAAAAAAAA2NgQAV3WRgYbhOB77EwYAUPgOJhPAwNKtwMDKpADKLzeRgYzHggNAgD5XGCf0D97NyoOBSoPoQHwgbRJTj0g/T+g7qLhxuBQfqLgFgLyiakn40bFYdC1YPYIIBL/wOofn8eVFwMtb8Yyp+Ex/+jYBTQEwAATfKPswAEAAA=
+  </chunk>
+  </data>
+ </layer>
+ <layer id="32" name="2. csemperéteg" width="92" height="23">
+  <data encoding="base64" compression="gzip">
+   <chunk x="48" y="32" width="16" height="16">
+   H4sIAAAAAAAAA2NgoB34yYLJRhYbBaNgFAwsAADYWqeRAAQAAA==
+  </chunk>
+  </data>
+ </layer>
+ <objectgroup color="#ffaa00" id="16" name="Ground" visible="0">
+  <object id="1" x="64" y="439" width="317" height="296"/>
+  <object id="2" x="382" y="536" width="611" height="199"/>
+  <object id="3" x="994" y="373" width="414" height="361"/>
+  <object id="4" x="160" y="242" width="1087" height="13"/>
+  <object id="17" x="1409" y="373" width="381" height="23"/>
+  <object id="18" x="1569" y="569" width="382" height="22"/>
+  <object id="19" x="1858" y="152" width="222" height="26"/>
+  <object id="20" x="1697" y="55" width="254" height="19"/>
+  <object id="46" x="2017" y="245" width="865" height="33"/>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="30" name="Enemies" visible="0">
+  <object id="50" x="681" y="213">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="0,0 259,0"/>
+  </object>
+  <object id="51" x="436" y="514">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="0,0 241,1"/>
+  </object>
+  <object id="64" x="772" y="514">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="0,0 204,0"/>
+  </object>
+  <object id="65" x="244" y="208">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="0,0 259,0"/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ff00ff" id="17" name="Ladders" visible="0">
+  <object id="5" x="298" y="257" width="17" height="182"/>
+  <object id="6" x="585" y="255" width="21" height="281"/>
+  <object id="7" x="1098" y="255" width="20" height="118">
+   <properties>
+    <property name="blockBottom" type="int" value="2"/>
+    <property name="blockTop" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="14" x="1671" y="385" width="23" height="163"/>
+  <object id="15" x="1735" y="59" width="23" height="298"/>
+  <object id="16" x="1898" y="60" width="20" height="72">
+   <properties>
+    <property name="blockBottom" type="int" value="3"/>
+    <property name="blockTop" type="int" value="2"/>
+   </properties>
+  </object>
+  <object id="45" x="2027" y="156" width="20" height="71"/>
+ </objectgroup>
+ <objectgroup id="18" name="Player" visible="0">
+  <object id="47" x="120" y="410">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="69" x="728" y="523">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="70" x="999" y="228">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="72" x="1614" y="552">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="73" x="2813" y="227">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

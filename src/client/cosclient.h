@@ -34,11 +34,14 @@
 #include <QSettings>
 #include <QJsonObject>
 #include <QUrl>
+
 #include "../common/cosmessage.h"
 #include "variantmapmodel.h"
 #include "gameblock.h"
 #include "../common/gamemap.h"
 #include "gamematch.h"
+#include "cossound.h"
+#include "question.h"
 
 
 struct TerrainData;
@@ -51,6 +54,7 @@ class Client : public QObject
 public:
 	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
 	Q_ENUM(ConnectionState)
+
 
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
@@ -70,7 +74,6 @@ public:
 	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
 	Q_PROPERTY(QString userRankImage READ userRankImage WRITE setUserRankImage NOTIFY userRankImageChanged)
-
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -107,8 +110,9 @@ public:
 
 	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
 	Q_INVOKABLE static QVariantMap terrainMap();
-	Q_INVOKABLE static QVariantMap objectiveModuleMap();
-	Q_INVOKABLE static QVariantMap storageModuleMap();
+	Q_INVOKABLE static QVariantMap objectiveModuleMap() { return Question::objectivesMap(); }
+	Q_INVOKABLE static QVariantMap storageModuleMap() { return Question::storagesMap(); }
+
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
@@ -131,6 +135,8 @@ public:
 
 	static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
 	static TerrainData terrain(const QString &name);
+
+
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -158,6 +164,11 @@ public slots:
 	void clearSession();
 
 	void checkPermissions();
+
+	void playSound(const QString &source, const CosSound::SoundType &soundType = CosSound::GameSfx);
+	void stopSound(const QString &source, const CosSound::SoundType &soundType = CosSound::Music);
+	int volume(const CosSound::ChannelType &channel) const;
+	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
 
 private slots:
 	void setSocket(QWebSocket * socket);
@@ -191,9 +202,6 @@ signals:
 					 const QString &informativeText,
 					 const QString &detailedText);
 	void reconnecting();
-
-	void gameWin();
-	void gameLose();
 
 	void messageFrameReceived(const CosMessage &message);
 	void messageReceived(const CosMessage &message);
@@ -239,6 +247,7 @@ signals:
 	void waitForResourcesChanged(QStringList waitForResources);
 	void userRankImageChanged(QString userRankImage);
 
+
 private:
 	void performUserInfo(const CosMessage &message);
 	void performError(const CosMessage &message);
@@ -266,6 +275,8 @@ private:
 	QStringList m_registeredServerResources;
 	QString m_userRankImage;
 	static QList<TerrainData> m_availableTerrains;
+	CosSound *m_clientSound;
+	QThread m_workerThread;
 };
 
 

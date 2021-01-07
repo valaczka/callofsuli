@@ -23,13 +23,15 @@ Item {
 		id: labelQuestion
 
 		font.family: "Special Elite"
-		font.pixelSize: CosStyle.pixelSize*1.5
+		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.top: parent.top
 		anchors.left: parent.left
 		anchors.right: parent.right
 		topPadding: 50
 		bottomPadding: 50
+		leftPadding: 10
+		rightPadding: 10
 
 		horizontalAlignment: Text.AlignHCenter
 

@@ -286,7 +286,8 @@ void StudentMaps::clientSetup()
 		return;
 
 	CosDb *db = studentMapsDb(m_client, this);
-	addDb(db, false);
+	if (db)
+		addDb(db, false);
 }
 
 

@@ -14,7 +14,7 @@ QPagePanel {
 	property int selectedMissionIndex: -1
 	property var selectedData: null
 
-	title: qsTr("Küldetés")
+	title: selectedData ? qsTr("Küldetés") : ""
 	icon: CosStyle.iconUser
 
 	Connections {

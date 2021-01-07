@@ -71,7 +71,14 @@ public:
 
 	Q_INVOKABLE virtual void run(const QString &func, QVariantMap data = QVariantMap()) override { AbstractActivity::run(m_map, func, data); };
 
-	Q_INVOKABLE QVariantMap moduleData(const QString &module, const bool &isObjective = true) const;
+	Q_INVOKABLE QVariantMap storageInfo(const QString &module) const { return Question::storageInfo(module); }
+	Q_INVOKABLE QVariantMap objectiveInfo(const QString &module) const { return Question::objectiveInfo(module); }
+	Q_INVOKABLE QStringList objectiveDataToStringList(const QString &module, const QVariantMap &data,
+													  const QString &storageModule = "", const QVariantMap &storageData = QVariantMap()) const
+	{ return Question::objectiveDataToStringList(module, data, storageModule, storageData); }
+	Q_INVOKABLE QStringList objectiveDataToStringList(const QString &module, const QString &dataString,
+													  const QString &storageModule = "", const QString &storageDataString = "") const
+	{ return Question::objectiveDataToStringList(module, dataString, storageModule, storageDataString); }
 
 	qreal loadProgress() const { return m_loadProgress; }
 	QPair<qreal, qreal> loadProgressFraction() const { return m_loadProgressFraction; }

@@ -71,13 +71,13 @@ QCollapsible {
 		}
 	}
 
-	Component.onCompleted: function() {
+	Component.onCompleted: {
 		if (!moduleData)
 			return
 
 		comboChapter.setData(moduleData.chapter)
 
 		if (moduleData.storage)
-			textStorageModuleName.setData(mapEditor.moduleData(moduleData.storageModule, false).name)
+			textStorageModuleName.setData(mapEditor.storageInfo(moduleData.storageModule).name)
 	}
 }

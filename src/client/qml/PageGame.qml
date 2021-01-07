@@ -37,86 +37,6 @@ Page {
 	on_AnimStartEndedChanged: doStep()
 	on_AnimStartReadyChanged: doStep()
 
-	Audio {
-		id: bgSound
-		source: game.backgroundMusicFile
-		autoPlay: true
-		loops: Audio.Infinite
-		volume: CosStyle.volumeBackgroundMusic
-		audioRole: Audio.GameRole
-	}
-
-
-	Audio {
-		id: prepareSound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/prepare_yourself.ogg"
-		audioRole: Audio.GameRole
-	}
-
-	Audio {
-		id: readySound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/begin.ogg"
-		audioRole: Audio.GameRole
-	}
-
-
-	Audio {
-		id: timeSound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/time.ogg"
-		audioRole: Audio.GameRole
-	}
-
-	Audio {
-		id: finalSound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/final_round.ogg"
-		audioRole: Audio.GameRole
-	}
-
-	Audio {
-		id: deadSound
-		volume: CosStyle.volumeSfx
-		source: "qrc:/sound/sfx/dead.mp3"
-		audioRole: Audio.GameRole
-	}
-
-	Audio {
-		id: falldeadSound
-		volume: CosStyle.volumeSfx
-		source: "qrc:/sound/sfx/falldead.mp3"
-		audioRole: Audio.GameRole
-	}
-
-
-	SequentialAnimation {
-		id: fadeOut
-		running: false
-		PropertyAnimation {
-			target: bgSound
-			property: "volume"
-			to: 0.0
-			duration: 750
-		}
-		ScriptAction {
-			script: bgSound.stop()
-		}
-	}
-
-
-	Connections {
-		target: cosClient
-		function onGameWin() {
-			fadeOut.start()
-		}
-		function onGameLose() {
-			fadeOut.start()
-		}
-	}
-
-
 
 	GameActivity {
 		id: gameActivity
@@ -258,11 +178,12 @@ Page {
 
 				function onKilledByEnemy(enemy) {
 					skullImageAnim.start()
-					deadSound.play()
+					cosClient.playSound("qrc:/sound/sfx/dead.mp3", CosSound.PlayerVoice)
 				}
 
 				function onDiedByFall() {
-					falldeadSound.play()
+					skullImageAnim.start()
+					cosClient.playSound("qrc:/sound/sfx/falldead.mp3", CosSound.PlayerVoice)
 				}
 			}
 
@@ -286,7 +207,6 @@ Page {
 			onGameTimeout: {
 				setEnemiesMoving(false)
 				setRunning(false)
-				cosClient.gameLose()
 
 				var d = JS.dialogMessageError(qsTr("Lejárt az idő"), qsTr("Lejárt az idő"))
 				d.rejected.connect(function() {
@@ -303,12 +223,12 @@ Page {
 			onMsecLeftChanged: {
 				if (msecLeft <= 2*60*1000 && _timeSound) {
 					_timeSound = false
-					timeSound.play()
+					cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
 				}
 
 				if (msecLeft <= 60*1000 && _finalSound) {
 					_finalSound = false
-					finalSound.play()
+					cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
 				}
 			}
 		}
@@ -432,25 +352,26 @@ Page {
 		opacity: 0.0
 		visible: opacity
 		anchors.fill: parent
-	}
 
-	SequentialAnimation {
-		id: painhudImageAnim
-		PropertyAnimation {
-			target: painhudImage
-			property: "opacity"
-			from: 0.0
-			to: 1.0
-			duration: 100
-			easing.type: Easing.OutQuad
-		}
-		PropertyAnimation {
-			target: painhudImage
-			property: "opacity"
-			from: 1.0
-			to: 0.0
-			duration: 375
-			easing.type: Easing.InQuad
+
+		SequentialAnimation {
+			id: painhudImageAnim
+			PropertyAnimation {
+				target: painhudImage
+				property: "opacity"
+				from: 0.0
+				to: 1.0
+				duration: 100
+				easing.type: Easing.OutQuad
+			}
+			PropertyAnimation {
+				target: painhudImage
+				property: "opacity"
+				from: 1.0
+				to: 0.0
+				duration: 375
+				easing.type: Easing.InQuad
+			}
 		}
 	}
 
@@ -469,36 +390,36 @@ Page {
 		width: 200
 		height: 200
 		fillMode: Image.PreserveAspectFit
-	}
 
-	ParallelAnimation {
-		id: skullImageAnim
+		ParallelAnimation {
+			id: skullImageAnim
 
-		SequentialAnimation {
-			PropertyAnimation {
-				target: skullImage
-				property: "opacity"
-				from: 0.0
-				to: 0.6
-				duration: 350
-				easing.type: Easing.InQuad
+			SequentialAnimation {
+				PropertyAnimation {
+					target: skullImage
+					property: "opacity"
+					from: 0.0
+					to: 0.6
+					duration: 350
+					easing.type: Easing.InQuad
+				}
+				PropertyAnimation {
+					target: skullImage
+					property: "opacity"
+					from: 0.6
+					to: 0.0
+					duration: 600
+					easing.type: Easing.InQuad
+				}
 			}
 			PropertyAnimation {
 				target: skullImage
-				property: "opacity"
-				from: 0.6
-				to: 0.0
-				duration: 600
-				easing.type: Easing.InQuad
+				property: "scale"
+				from: 0.1
+				to: 8.0
+				duration: 950
+				easing.type: Easing.OutInQuad
 			}
-		}
-		PropertyAnimation {
-			target: skullImage
-			property: "scale"
-			from: 0.1
-			to: 8.0
-			duration: 950
-			easing.type: Easing.OutInQuad
 		}
 	}
 
@@ -508,9 +429,9 @@ Page {
 		id: progressHp
 		visible: game.player
 		anchors.top: parent.top
-		anchors.right: timeLabel.right
+		anchors.right: infoCol.right
 		anchors.topMargin: 7
-		width: 75
+		width: 85
 		from: 0
 		to: game.player ? game.player.entityPrivate.defaultHp : 0
 		value: game.player ? game.player.entityPrivate.hp : 0
@@ -525,9 +446,9 @@ Page {
 	}
 
 	DropShadow {
-		id: shadowEnemyRow
-		anchors.fill: enemyRow
-		source: enemyRow
+		id: shadowInfoCol
+		anchors.fill: infoCol
+		source: infoCol
 		color: "black"
 		radius: 2
 		samples: 5
@@ -535,70 +456,94 @@ Page {
 		verticalOffset: 1
 	}
 
-	Row {
-		id: enemyRow
 
-		anchors.verticalCenter: timeLabel.verticalCenter
-		anchors.left: parent.left
-		anchors.leftMargin: timeLabel.anchors.rightMargin
+	Column {
+		id: infoCol
 
-		spacing: 5
+		anchors.top: progressHp.bottom
+		anchors.right: parent.right
+		anchors.rightMargin: 7
+		anchors.topMargin: 7
 
-		QFontImage {
-			anchors.verticalCenter: parent.verticalCenter
-			icon: "qrc:/internal/img/target2.svg"
-			color: enemyLabel.color
-			size: CosStyle.pixelSize*1.4
-		}
+		spacing: 10
 
 		QLabel {
-			id: enemyLabel
+			id: timeLabel
 
-			anchors.verticalCenter: parent.verticalCenter
+			anchors.right: parent.right
 
 			font.family: "HVD Peace"
-			color: CosStyle.colorAccent
+			color: CosStyle.colorPrimary
 			font.pixelSize: CosStyle.pixelSize*1.5
 
-			property int enemies: game.activeEnemies
+			property int secs: game.msecLeft/1000
 
-			text: enemies
+			text: JS.secToMMSS(secs)
+		}
 
-			Behavior on enemies {
-				NumberAnimation { duration: 125 }
+		Row {
+			id: enemyRow
+
+			anchors.right: parent.right
+
+			spacing: 10
+
+			QFontImage {
+				anchors.verticalCenter: parent.verticalCenter
+				icon: "qrc:/internal/img/target2.svg"
+				color: enemyLabel.color
+				size: CosStyle.pixelSize*1.4
+			}
+
+			QLabel {
+				id: enemyLabel
+
+				anchors.verticalCenter: parent.verticalCenter
+
+				font.family: "HVD Peace"
+				color: CosStyle.colorAccent
+				font.pixelSize: CosStyle.pixelSize*1.5
+
+				property int enemies: game.activeEnemies
+
+				text: enemies
+
+				Behavior on enemies {
+					NumberAnimation { duration: 125 }
+				}
+			}
+		}
+
+		GameButton {
+			size: 30
+
+			anchors.right: parent.right
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: CosStyle.iconSetup
+			fontImage.color: CosStyle.colorAccentLighter
+			fontImageScale: 0.65
+
+			onClicked: {
+				var d = JS.dialogCreateQml("GameSound", {
+											   volumeMusic: cosClient.volume(CosSound.MusicChannel),
+											   volumeSfx: cosClient.volume(CosSound.SfxChannel),
+											   volumeVoiceover: cosClient.volume(CosSound.VoiceoverChannel)
+										   })
+
+				d.item.volumeMusicModified.connect(function(volume) { cosClient.setVolume(CosSound.MusicChannel, volume) })
+				d.item.volumeSfxModified.connect(function(volume) { cosClient.setVolume(CosSound.SfxChannel, volume) })
+				d.item.volumeVoiceoverModified.connect(function(volume) { cosClient.setVolume(CosSound.VoiceoverChannel, volume) })
+				d.closedAndDestroyed.connect(function() {
+					gameScene.forceActiveFocus()
+				})
+				d.open()
 			}
 		}
 	}
-
-
-	DropShadow {
-		id: shadowTime
-		anchors.fill: timeLabel
-		source: timeLabel
-		color: "black"
-		radius: 2
-		samples: 5
-		horizontalOffset: 1
-		verticalOffset: 1
-	}
-
-
-	QLabel {
-		id: timeLabel
-		anchors.top: progressHp.bottom
-		anchors.right: parent.right
-		anchors.rightMargin: shotButton.anchors.rightMargin
-		anchors.topMargin: 5
-
-		font.family: "HVD Peace"
-		color: CosStyle.colorPrimary
-		font.pixelSize: CosStyle.pixelSize*1.5
-
-		property int secs: game.msecLeft/1000
-
-		text: JS.secToMMSS(secs)
-	}
-
 
 
 	VirtualJoystick {
@@ -608,7 +553,7 @@ Page {
 
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.margins: 10
+		anchors.margins: 5
 
 		width: 80
 		height: 80
@@ -643,15 +588,13 @@ Page {
 
 
 
-	Rectangle {
+	GameButton {
 		id: shotButton
-		width: 60
-		height: 60
-		radius: width/2
+		size: 55
 
-		anchors.verticalCenter: joystick.verticalCenter
 		anchors.right: parent.right
-		anchors.rightMargin: 10+(joystick.width-width)/2
+		anchors.bottom: parent.bottom
+		anchors.margins: 10
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
@@ -659,25 +602,11 @@ Page {
 
 		color: enemyAimed ? JS.setColorAlpha(CosStyle.colorErrorLighter, 0.7) : JS.setColorAlpha(CosStyle.colorWarningLight, 0.7)
 
-		border.width: 1
-		border.color: "black"
-
-		Behavior on color { ColorAnimation { duration: 75 } }
-
-		QFontImage {
-			anchors.centerIn: parent
-			icon: "qrc:/internal/img/target1.svg"
-			color: shotButton.enemyAimed ? "white" : "black"
-			opacity: 0.6
-			size: shotButton.height*0.8
-
-			Behavior on color { ColorAnimation { duration: 75 } }
-		}
-
-		TapHandler {
-			enabled: !game.question
-			onTapped: game.player.entityPrivate.attackByGun()
-		}
+		fontImage.icon: "qrc:/internal/img/target1.svg"
+		fontImage.color: shotButton.enemyAimed ? "white" : "black"
+		fontImage.opacity: 0.6
+		tap.enabled: !game.question
+		tap.onTapped: game.player.entityPrivate.attackByGun()
 	}
 
 
@@ -731,7 +660,6 @@ Page {
 			stop()
 			game.setEnemiesMoving(false)
 			game.setRunning(false)
-			cosClient.gameWin()
 
 			var d = JS.dialogMessageInfo(qsTr("Mission completed"), qsTr("Mission completed"))
 			d.rejected.connect(function() {
@@ -913,7 +841,7 @@ Page {
 
 				ScriptAction {
 					script: {
-						readySound.play()
+						cosClient.playSound("qrc:/sound/voiceover/begin.ogg", CosSound.VoiceOver)
 					}
 				}
 			}
@@ -922,15 +850,21 @@ Page {
 
 
 
-	StackView.onRemoved: destroy()
+	StackView.onRemoved: {
+		cosClient.stopSound(game.backgroundMusicFile, CosSound.Music)
+		destroy()
+	}
 
 	StackView.onActivated: {
-		prepareSound.play()
 		state = "start"
+		cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
 		game.loadScene()
 		gameActivity.prepare()
 	}
 
+	Component.onCompleted: {
+		cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.ogg", CosSound.VoiceOver)
+	}
 
 	Component.onDestruction: {
 		if (deleteGameMatch && gameMatch)
@@ -954,7 +888,6 @@ Page {
 		if (!_closeEnabled) {
 			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {
-				cosClient.gameLose()
 				game.currentScene = exitScene
 				bg.source = ""
 				game.abortGame()
@@ -972,7 +905,6 @@ Page {
 		if (!_closeEnabled) {
 			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {
-				cosClient.gameLose()
 				game.currentScene = exitScene
 				bg.source = ""
 				game.abortGame()

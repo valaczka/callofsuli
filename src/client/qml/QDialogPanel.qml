@@ -19,8 +19,8 @@ Item {
 	property alias buttons: buttonData.data
 	default property alias panelDataData: panelData.data
 
-	property int horizontalPadding: 20
-	property int verticalPadding: 10
+	property int horizontalPadding: 10
+	property int verticalPadding: 5
 
 	property int maximumWidth: 0
 	property int maximumHeight: 0
@@ -101,8 +101,8 @@ Item {
 
 				DropShadow {
 					anchors.fill: labelTitle
-					horizontalOffset: 2
-					verticalOffset: 2
+					horizontalOffset: 1
+					verticalOffset: 1
 					radius: 1
 					color: "black"
 					source: labelTitle
@@ -115,7 +115,7 @@ Item {
 					anchors.leftMargin: CosStyle.pixelSize/2
 					anchors.verticalCenter: parent.verticalCenter
 
-					height: visible ? CosStyle.pixelSize*2 : 0
+					height: visible ? CosStyle.pixelSize*1.7 : 0
 					width: height
 					size: Math.min(height*0.8, 32)
 
@@ -134,7 +134,7 @@ Item {
 					anchors.right: parent.right
 					anchors.bottom: parent.bottom
 					font.weight: Font.Thin
-					font.pixelSize: CosStyle.pixelSize*1.4
+					font.pixelSize: CosStyle.pixelSize*1.2
 					font.capitalization: Font.AllUppercase
 					elide: Text.ElideRight
 					color: titleColor

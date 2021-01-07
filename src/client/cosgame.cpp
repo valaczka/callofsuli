@@ -187,7 +187,7 @@ void CosGame::recreateEnemies()
 					}
 				}
 
-				QMetaObject::invokeMethod(enemy, "loadSprites", Qt::QueuedConnection);
+				QMetaObject::invokeMethod(enemy, "loadSprites", Qt::DirectConnection);
 
 				if (ep) {
 					ep->setEnemyData(data);
@@ -682,12 +682,20 @@ void CosGame::onGameFinishedSuccess()
 	if (!m_gameMatch || !m_activity || !m_activity->client())
 		return;
 
+	Client *client = m_activity->client();
+
+	client->stopSound(m_backgroundMusicFile);
+	QTimer::singleShot(400, [=]() {
+		client->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
+		client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
+		client->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
+	});
+
 	int gameId = m_gameMatch->gameId();
 
 	if (gameId == -1)
 		return;
 
-	Client *client = m_activity->client();
 
 	QJsonObject o;
 	o["id"] = gameId;
@@ -709,12 +717,16 @@ void CosGame::onGameFinishedLost()
 	if (!m_gameMatch || !m_activity || !m_activity->client())
 		return;
 
+	Client *client = m_activity->client();
+
+	client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
+	client->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
+
 	int gameId = m_gameMatch->gameId();
 
 	if (gameId == -1)
 		return;
 
-	Client *client = m_activity->client();
 
 	QJsonObject o;
 	o["id"] = gameId;

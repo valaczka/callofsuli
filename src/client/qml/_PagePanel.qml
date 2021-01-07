@@ -64,7 +64,7 @@ QPagePanel {
 			height: width
 			size: Math.min(height*0.8, 32)
 
-			icon: model && model.module ? mapEditor.moduleData(model.module).icon : ""
+			icon: model && model.module ? mapEditor.objectiveInfo(model.module).icon : ""
 
 			visible: model && model.type === 1
 

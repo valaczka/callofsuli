@@ -468,25 +468,9 @@ void MapEditor::removeImageProvider()
 }
 
 
-/**
- * @brief MapEditor::moduleData
- * @param module
- * @param isObjective
- * @return
- */
 
-QVariantMap MapEditor::moduleData(const QString &module, const bool &isObjective) const
-{
-	QVariantMap m = isObjective ? Client::objectiveModuleMap() : Client::storageModuleMap();
 
-	if (!m.contains(module))
-		return QVariantMap({
-							   { "name", tr("Érvénytelen modul!") },
-							   { "icon", "image://font/Material Icons/\ue002" }
-						   });
 
-	return m.value(module).toMap();
-}
 
 
 /**

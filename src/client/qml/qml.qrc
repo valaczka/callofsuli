@@ -101,5 +101,7 @@
         <file>MapMissionInfo.qml</file>
         <file>MapEditorObjectiveEdit_truefalse.qml</file>
         <file>GameQuestion_truefalse.qml</file>
+        <file>QDialogGameSound.qml</file>
+        <file>GameButton.qml</file>
     </qresource>
 </RCC>

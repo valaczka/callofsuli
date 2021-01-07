@@ -37,14 +37,6 @@ QPage {
 	]
 
 
-	Audio {
-		id: bgSound
-		source: "qrc:/sound/menu/bg.ogg"
-		loops: Audio.Infinite
-		volume: CosStyle.volumeBackgroundMusic
-	}
-
-
 	/*mainMenuFunc: function (m) {
 			m.addAction(actionSave)
 		}*/
@@ -52,7 +44,7 @@ QPage {
 
 
 	onPageActivated: {
-		bgSound.play()
+		cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
 		if (!panelComponents.length)
 			panelComponents = cmps
 		if (studentMaps)
@@ -61,7 +53,7 @@ QPage {
 
 
 	onPageDeactivated: {
-		bgSound.stop()
+		cosClient.stopSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
 	}
 
 

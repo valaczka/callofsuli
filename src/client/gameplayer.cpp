@@ -51,12 +51,10 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_enemy(nullptr)
 	, m_hp(0)
 	, m_defaultHp(0)
-	, m_soundEffect(new QSoundEffect(this))
 	, m_soundEffectRunNum(1)
 	, m_soundEffectClimbNum(1)
 	, m_soundEffectWalkNum(1)
 	, m_soundEffectPainNum(1)
-	, m_soundEffectVolume(0)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -65,8 +63,6 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	m_rayCastFlag = Box2DFixture::Category5;
 
 	connect(this, &GamePlayer::rayCastItemsChanged, this, &GamePlayer::onRayCastReported);
-
-	connect(this, &GamePlayer::soundEffectVolumeChanged, m_soundEffect, &QSoundEffect::setVolume);
 }
 
 
@@ -76,7 +72,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 GamePlayer::~GamePlayer()
 {
-	delete m_soundEffect;
+
 }
 
 
@@ -379,15 +375,6 @@ void GamePlayer::setDefaultHp(int defaultHp)
 	emit defaultHpChanged(m_defaultHp);
 }
 
-void GamePlayer::setSoundEffectVolume(qreal soundEffectVolume)
-{
-	if (qFuzzyCompare(m_soundEffectVolume, soundEffectVolume))
-		return;
-
-	m_soundEffectVolume = soundEffectVolume;
-	emit soundEffectVolumeChanged(m_soundEffectVolume);
-}
-
 
 
 
@@ -444,58 +431,50 @@ void GamePlayer::attackByGun()
  * @param effect
  */
 
-void GamePlayer::playSoundEffect(const QString &effect)
+QString GamePlayer::playSoundEffect(const QString &effect)
 {
 	QString newSource = "";
 
 	if (effect == "run") {
 		if (m_soundEffectRunNum > 1) {
-			newSource = ":/sound/sfx/run2.wav";
+			newSource = "qrc:/sound/sfx/run2.ogg";
 			m_soundEffectRunNum = 1;
 		} else {
-			newSource = ":/sound/sfx/run1.wav";
+			newSource = "qrc:/sound/sfx/run1.ogg";
 			m_soundEffectRunNum = 2;
 		}
 	} else if (effect == "walk") {
 		if (m_soundEffectWalkNum > 1) {
-			newSource = ":/sound/sfx/step2.wav";
+			newSource = "qrc:/sound/sfx/step2.ogg";
 			m_soundEffectWalkNum = 1;
 		} else {
-			newSource = ":/sound/sfx/step1.wav";
+			newSource = "qrc:/sound/sfx/step1.ogg";
 			m_soundEffectWalkNum = 2;
 		}
 	} else if (effect == "climb") {
 		if (m_soundEffectClimbNum > 1) {
-			newSource = ":/sound/sfx/ladderup2.wav";
+			newSource = "qrc:/sound/sfx/ladderup2.ogg";
 			m_soundEffectClimbNum = 1;
 		} else {
-			newSource = ":/sound/sfx/ladderup1.wav";
+			newSource = "qrc:/sound/sfx/ladderup1.ogg";
 			m_soundEffectClimbNum = 2;
 		}
 	} else if (effect == "ladder") {
-		newSource = ":/sound/sfx/ladder.wav";
+		newSource = "qrc:/sound/sfx/ladder.ogg";
 	} else if (effect == "pain") {
 		if (m_soundEffectPainNum > 2) {
-			newSource = ":/sound/sfx/pain3.wav";
+			newSource = "qrc:/sound/sfx/pain3.ogg";
 			m_soundEffectClimbNum = 1;
 		} else 	if (m_soundEffectPainNum == 2) {
-			newSource = ":/sound/sfx/pain2.wav";
+			newSource = "qrc:/sound/sfx/pain2.ogg";
 			m_soundEffectPainNum = 3;
 		} else {
-			newSource = ":/sound/sfx/pain1.wav";
+			newSource = "qrc:/sound/sfx/pain1.ogg";
 			m_soundEffectPainNum = 2;
 		}
 	}
 
-
-	if (!m_soundEffectVolume || newSource.isEmpty())
-		return;
-
-	if (m_soundEffect->isPlaying())
-		m_soundEffect->stop();
-
-	m_soundEffect->setSource(QUrl::fromLocalFile(newSource));
-	m_soundEffect->play();
+	return newSource;
 }
 
 

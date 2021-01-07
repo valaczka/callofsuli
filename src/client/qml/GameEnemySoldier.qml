@@ -18,12 +18,6 @@ GameEntity {
 	glowColor: CosStyle.colorGlowEnemy
 	glowEnabled: ep.aimedByPlayer
 
-	Audio {
-		id: shotSound
-		volume: CosStyle.volumeShot
-		source: ep.shotSoundFile
-	}
-
 	GameEnemySoldierPrivate {
 		id: ep
 
@@ -44,10 +38,13 @@ GameEntity {
 
 		onAttack: {
 			spriteSequence.jumpTo("shot")
-			shotSound.play()
+			cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
 		}
 
-		onRayCastPerformed: setray(rect)
+		onRayCastPerformed: {
+			if (cosGame.gameScene.debug)
+				setray(rect)
+		}
 	}
 
 	Component {

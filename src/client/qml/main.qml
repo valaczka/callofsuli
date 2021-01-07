@@ -36,29 +36,6 @@ ApplicationWindow {
 	FontLoader { source: "qrc:/internal/font/SpecialElite.ttf" }
 	FontLoader { source: "qrc:/internal/font/HVD_Peace.ttf" }
 
-	Audio {
-		id: gameOverWinEffect
-		volume: CosStyle.volumeSfx
-		source: "qrc:/sound/sfx/win.ogg"
-	}
-
-	Audio {
-		id: gameOverWin
-		volume: CosStyle.volumeVoiceover
-		playlist: Playlist {
-			PlaylistItem { source: "qrc:/sound/voiceover/game_over.ogg" }
-			PlaylistItem { source: "qrc:/sound/voiceover/you_win.ogg" }
-		}
-	}
-
-	Audio {
-		id: gameOverLose
-		volume: CosStyle.volumeVoiceover
-		playlist: Playlist {
-			PlaylistItem { source: "qrc:/sound/voiceover/game_over.ogg" }
-			PlaylistItem { source: "qrc:/sound/voiceover/you_lose.ogg" }
-		}
-	}
 
 	property alias blur: blur
 
@@ -73,6 +50,7 @@ ApplicationWindow {
 		onTriggered: if (mainStack.depth > 1)
 						 mainStack.get(1).stackBack()
 	}
+
 
 
 	StackView {
@@ -270,15 +248,6 @@ ApplicationWindow {
 
 		function onStoragePermissionsGranted() {
 			JS.createPage("Start", {})
-		}
-
-		function onGameWin() {
-			gameOverWinEffect.play()
-			gameOverWin.play()
-		}
-
-		function onGameLose() {
-			gameOverLose.play()
 		}
 	}
 

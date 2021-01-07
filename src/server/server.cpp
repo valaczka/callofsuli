@@ -128,7 +128,7 @@ bool Server::commandLineParse(QCoreApplication &app)
 
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QCoreApplication::instance()->applicationName()+
-									 QString::fromUtf8(" – Copyright © 2012-2020 Valaczka János Pál"));
+									 QString::fromUtf8(" – Copyright © 2012-2021 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 

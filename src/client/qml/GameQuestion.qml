@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtGraphicalEffects 1.0
 import QtMultimedia 5.12
+import COS.Client 1.0
 import "Style"
 import "JScript.js" as JS
 
@@ -26,13 +27,6 @@ Item {
 
 	property int horizontalPadding: 20
 	property int verticalPadding: 10
-
-	Audio {
-		id: openSound
-		volume: CosStyle.volumeSfx
-		source: "qrc:/sound/sfx/question.ogg"
-		audioRole: Audio.GameRole
-	}
 
 
 	Item {
@@ -228,7 +222,7 @@ Item {
 				}
 
 				ScriptAction {
-					script: openSound.play()
+					script: cosClient.playSound("qrc:/sound/sfx/question.ogg")
 				}
 			}
 		},

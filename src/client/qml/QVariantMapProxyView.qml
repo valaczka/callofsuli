@@ -30,8 +30,8 @@ QListView {
 
 	property string fontFamilyTitle: "Rajdhani"
 
-	property int fontWeightTitle: Font.DemiBold
-	property int fontWeightSubtitle: Font.Medium
+	property int fontWeightTitle: Font.Medium
+	property int fontWeightSubtitle: Font.Normal
 
 	property int delegateHeight: CosStyle.baseHeight
 	property int depthWidth: CosStyle.baseHeight

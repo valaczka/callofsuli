@@ -48,7 +48,6 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(GameEnemy * enemy READ enemy WRITE setEnemy NOTIFY enemyChanged)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged)
 	Q_PROPERTY(int defaultHp READ defaultHp WRITE setDefaultHp NOTIFY defaultHpChanged)
-	Q_PROPERTY(qreal soundEffectVolume READ soundEffectVolume WRITE setSoundEffectVolume NOTIFY soundEffectVolumeChanged)
 
 public:
 	enum LadderMode {
@@ -76,10 +75,9 @@ public:
 	GameEnemy * enemy() const { return m_enemy; }
 	int hp() const { return m_hp; }
 	int defaultHp() const { return m_defaultHp; }
-	qreal soundEffectVolume() const { return m_soundEffectVolume; }
 
 public slots:
-	void playSoundEffect(const QString &effect);
+	QString playSoundEffect(const QString &effect);
 	void onBodyBeginContact(Box2DFixture *other);
 	void onBodyEndContact(Box2DFixture *other);
 
@@ -94,7 +92,6 @@ public slots:
 	void setEnemy(GameEnemy * enemy);
 	void setHp(int hp);
 	void setDefaultHp(int defaultHp);
-	void setSoundEffectVolume(qreal soundEffectVolume);
 
 signals:
 	void killedByEnemy(GameEnemy *enemy);
@@ -107,7 +104,6 @@ signals:
 	void enemyChanged(GameEnemy * enemy);
 	void hpChanged(int hp);
 	void defaultHpChanged(int defaultHp);
-	void soundEffectVolumeChanged(qreal soundEffectVolume);
 
 private slots:
 	void onCosGameChanged(CosGame *);
@@ -121,12 +117,10 @@ private:
 	GameEnemy * m_enemy;
 	int m_hp;
 	int m_defaultHp;
-	QSoundEffect *m_soundEffect;
 	int m_soundEffectRunNum;
 	int m_soundEffectClimbNum;
 	int m_soundEffectWalkNum;
 	int m_soundEffectPainNum;
-	qreal m_soundEffectVolume;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

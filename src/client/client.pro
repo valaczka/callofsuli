@@ -31,6 +31,7 @@ SOURCES += \
 		cosclient.cpp \
 		cosdownloader.cpp \
 		cosgame.cpp \
+		cossound.cpp \
 		fontimage.cpp \
 		gameactivity.cpp \
 		gameblock.cpp \
@@ -63,6 +64,7 @@ HEADERS += \
 	cosclient.h \
 	cosdownloader.h \
 	cosgame.h \
+	cossound.h \
 	fontimage.h \
 	gameactivity.h \
 	gameblock.h \

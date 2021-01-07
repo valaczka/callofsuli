@@ -65,11 +65,11 @@ QPagePanel {
 		proxyRoles: [
 			ExpressionRole {
 				name: "moduleName"
-				expression: model.type === 0 ? model.name : model.data
+				expression: model.type === 0 ? model.name : mapEditor.objectiveDataToStringList(model.module, model.data)[0]
 			},
 			ExpressionRole {
 				name: "subtitle"
-				expression: model.type === 0 ? "" : mapEditor.moduleData(model.module).name
+				expression: model.type === 0 ? "" : mapEditor.objectiveDataToStringList(model.module, model.data)[1]
 			},
 			SwitchRole {
 				name: "textColor"
@@ -110,6 +110,8 @@ QPagePanel {
 
 		depthWidth: CosStyle.baseHeight*0.5
 
+
+
 		autoSelectorChange: false
 		autoUnselectorChange: true
 
@@ -118,23 +120,40 @@ QPagePanel {
 			height: width
 			size: Math.min(height*0.8, 32)
 
-			icon: model && model.module ? mapEditor.moduleData(model.module).icon : ""
+			icon: model && model.module ? mapEditor.objectiveInfo(model.module).icon : ""
 
 			visible: model && model.type === 1
 
 			color: CosStyle.colorPrimary
 		}
 
-		rightComponent: QFontImage {
-			width: visible ? list.delegateHeight*0.8 : 0
-			height: width
-			size: Math.min(height*0.8, 32)
 
-			icon: CosStyle.iconClock1
+		rightComponent: Row {
+			visible: model && model.type === 1
+			spacing: 0
 
-			visible: model && model.storage
 
-			color: CosStyle.colorAccentLighter
+			QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				ToolTip.text: qsTr("Új üres célpont")
+
+				icon.source: CosStyle.iconAdd
+				enabled: !mapEditor.isBusy
+				onClicked: {
+					mapEditor.run("objectiveAdd", {chapter: model.id, module: model.module})
+				}
+			}
+
+			QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				ToolTip.text: qsTr("Célpont kettőzése")
+
+				icon.source: CosStyle.iconEdit
+				enabled: !mapEditor.isBusy
+				onClicked: {
+					mapEditor.run("objectiveAdd", {chapter: model.id, module: model.module, data: model.data })
+				}
+			}
 		}
 
 
@@ -240,19 +259,23 @@ QPagePanel {
 			var o = list.model.get(list.currentIndex)
 
 			var d = JS.dialogCreateQml("TextField", {
-										  title: qsTr("Szakasz neve"),
-										  value: o.name
+										   title: qsTr("Szakasz neve"),
+										   value: o.name
 									   })
 
 			d.accepted.connect(function(data) {
-					mapEditor.run("chapterModify", {
-									  "id": o.id,
-									  "data": {"name": data}
-								  })
+				mapEditor.run("chapterModify", {
+								  "id": o.id,
+								  "data": {"name": data}
+							  })
 			})
 			d.open()
 		}
 	}
+
+
+
+
 
 
 	Action {
@@ -331,6 +354,13 @@ QPagePanel {
 		}
 
 		function onObjectiveAdded(rowid, uuid) {
+			for (var i=0; i<list.model.count; i++) {
+				if (list.model.get(i).uuid === uuid) {
+					list.currentIndex = i
+					break
+				}
+			}
+
 			mapEditor.objectiveSelected(uuid)
 			mapEditor.run("objectiveLoad", {uuid: uuid})
 		}

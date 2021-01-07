@@ -30,7 +30,7 @@
 #include <QResource>
 #include <QQuickItem>
 #include <QJsonDocument>
-#include <QSound>
+#include <QMediaPlaylist>
 
 #include "../version/buildnumber.h"
 #include "../common/cosmessage.h"
@@ -82,6 +82,17 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_passwordResetEnabled = false;
 	m_registrationDomains = QVariantList();
 
+	m_clientSound = new CosSound();
+	m_clientSound->moveToThread(&m_workerThread);
+	connect(&m_workerThread, &QThread::finished, m_clientSound, &QObject::deleteLater);
+
+	m_workerThread.start();
+
+	QMetaObject::invokeMethod(m_clientSound, "init", Qt::QueuedConnection);
+
+
+
+
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
@@ -96,6 +107,7 @@ Client::Client(QObject *parent) : QObject(parent)
 			sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
 	});
 
+
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
 	//m_timer->start(5000);
 }
@@ -106,6 +118,9 @@ Client::Client(QObject *parent) : QObject(parent)
 
 Client::~Client()
 {
+	m_workerThread.quit();
+	m_workerThread.wait();
+
 	delete m_timer;
 	delete m_socket;
 
@@ -188,6 +203,8 @@ void Client::registerTypes()
 	qRegisterMetaType<CosMessage::CosMessageError>("CosMessageError");
 	qRegisterMetaType<CosMessage::CosMessageServerError>("CosMessageServerError");
 	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
+	qRegisterMetaType<CosSound::SoundType>("CosSoundType");
+	qRegisterMetaType<CosSound::ChannelType>("CosSoundChannelType");
 	qmlRegisterType<AbstractActivity>("COS.Client", 1, 0, "AbstractActivity");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
@@ -212,6 +229,7 @@ void Client::registerTypes()
 	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
+	qmlRegisterUncreatableType<CosSound>("COS.Client", 1, 0, "CosSound", "uncreatable");
 }
 
 
@@ -237,6 +255,7 @@ void Client::windowSaveGeometry(QQuickWindow *window, const int &fontSize)
 	s.endGroup();
 #else
 	Q_UNUSED(window)
+	Q_UNUSED(fontSize)
 #endif
 }
 
@@ -560,44 +579,97 @@ QVariantMap Client::terrainMap()
 
 
 
+
+
+
 /**
- * @brief Client::objectiveModuleMap
- * @return
+ * @brief Client::playSound
+ * @param source
+ * @param soundType
  */
 
-QVariantMap Client::objectiveModuleMap()
+void Client::playSound(const QString &source, const CosSound::SoundType &soundType)
 {
-	QVariantMap m;
-
-	m["simplechoice"] = QVariantMap({
-										{ "name", tr("Egyszerű választás") },
-										{ "icon", "image://font/Material Icons/\ue163" }
-									});
-
-	m["truefalse"] = QVariantMap({
-										{ "name", tr("Igaz/hamis") },
-										{ "icon", "image://font/Material Icons/\ue163" }
-									});
-
-	return m;
+	QMetaObject::invokeMethod(m_clientSound, "playSound", Qt::QueuedConnection,
+							  Q_ARG(QString, source),
+							  Q_ARG(CosSound::SoundType, soundType)
+							  );
 }
 
 
 /**
- * @brief Client::storageModuleList
+ * @brief Client::stopSound
+ * @param source
+ * @param soundType
+ */
+
+void Client::stopSound(const QString &source, const CosSound::SoundType &soundType)
+{
+	QMetaObject::invokeMethod(m_clientSound, "stopSound", Qt::QueuedConnection,
+							  Q_ARG(QString, source),
+							  Q_ARG(CosSound::SoundType, soundType)
+							  );
+}
+
+
+/**
+ * @brief Client::volume
+ * @param channel
  * @return
  */
 
-QVariantMap Client::storageModuleMap()
+
+int Client::volume(const CosSound::ChannelType &channel) const
 {
-	QVariantMap m;
+	QByteArray func;
 
-	m["quiz"] = QVariantMap({
-								{ "name", tr("Kvíz") },
-								{ "icon", "image://font/Material Icons/\ue163" }
-							});
+	switch (channel) {
+		case CosSound::MusicChannel:
+			func = "volumeMusic";
+			break;
+		case CosSound::SfxChannel:
+			func = "volumeSfx";
+			break;
+		case CosSound::VoiceoverChannel:
+			func = "volumeVoiceOver";
+			break;
+	}
 
-	return m;
+	int volume = 0;
+
+	QMetaObject::invokeMethod(m_clientSound, func, Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(int, volume)
+							  );
+
+	return volume;
+}
+
+
+/**
+ * @brief Client::setVolume
+ * @param channel
+ * @param volume
+ */
+
+void Client::setVolume(const CosSound::ChannelType &channel, const int &volume) const
+{
+	QByteArray func;
+
+	switch (channel) {
+		case CosSound::MusicChannel:
+			func = "setVolumeMusic";
+			break;
+		case CosSound::SfxChannel:
+			func = "setVolumeSfx";
+			break;
+		case CosSound::VoiceoverChannel:
+			func = "setVolumeVoiceOver";
+			break;
+	}
+
+	QMetaObject::invokeMethod(m_clientSound, func, Qt::DirectConnection,
+							  Q_ARG(int, volume)
+							  );
 }
 
 
@@ -867,6 +939,9 @@ void Client::checkPermissions()
 */
 	emit storagePermissionsGranted();
 }
+
+
+
 
 void Client::setUserRankImage(QString userRankImage)
 {

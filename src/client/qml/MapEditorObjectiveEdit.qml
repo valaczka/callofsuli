@@ -15,7 +15,7 @@ QPagePanel {
 
 	layoutFillWidth: true
 
-	title: qsTr("Célpont")
+	title: objectiveUuid.length ? qsTr("Célpont") : ""
 	icon: CosStyle.iconUsers
 
 

@@ -148,7 +148,7 @@ QPage {
 		onTriggered: {
 			JS.dialogMessageInfo("Call of Suli",
 								 qsTr("Verzió: ")+Qt.application.version+
-								 "\n© 2012-2020 Valaczka János Pál"
+								 "\n© 2012-2021 Valaczka János Pál"
 								 )
 		}
 	}

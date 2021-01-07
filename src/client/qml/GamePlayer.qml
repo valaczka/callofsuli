@@ -18,15 +18,6 @@ GameEntity {
 
 
 
-
-	Audio {
-		id: shotSound
-		volume: CosStyle.volumeShot
-		source: "qrc:/sound/sfx/shot.ogg"
-		audioRole: Audio.GameRole
-	}
-
-
 	readonly property bool isClimbing: Array("climbup", "climbup2", "climbup3",
 											 "climbdown", "climbdown2", "climbdown3").includes(spriteSequence.currentSprite)
 
@@ -36,8 +27,6 @@ GameEntity {
 
 		rayCastEnabled: ladderMode != GamePlayerPrivate.LadderClimb && ladderMode != GamePlayerPrivate.LadderClimbFinish
 
-		soundEffectVolume: CosStyle.volumeSfx
-
 		property int _fallStartY: -1
 
 		onKilledByEnemy: {
@@ -46,8 +35,7 @@ GameEntity {
 
 		onAttack: {
 			spriteSequence.jumpTo("shot")
-			shotSound.stop()
-			shotSound.play()
+			cosClient.playSound("qrc:/sound/sfx/shot.ogg", CosSound.PlayerShoot)
 		}
 
 		onHurt: playPainTimer.start()
@@ -82,7 +70,10 @@ GameEntity {
 			}
 		}
 
-		onRayCastPerformed: setray(rect)
+		onRayCastPerformed: {
+			if (cosGame.gameScene.debug)
+				setray(rect)
+		}
 	}
 
 	function setray(rect) {
@@ -214,7 +205,7 @@ GameEntity {
 
 		running: isClimbing
 
-		onTriggered: ep.playSoundEffect("climb")
+		onTriggered: cosClient.playSound(ep.playSoundEffect("climb"), CosSound.PlayerVoice)
 	}
 
 
@@ -227,7 +218,7 @@ GameEntity {
 
 		running: isWalking
 
-		onTriggered: ep.playSoundEffect("walk")
+		onTriggered: cosClient.playSound(ep.playSoundEffect("walk"), CosSound.PlayerSfx)
 	}
 
 	Timer {
@@ -239,7 +230,7 @@ GameEntity {
 
 		running: isRunning
 
-		onTriggered: ep.playSoundEffect("run")
+		onTriggered: cosClient.playSound(ep.playSoundEffect("run"), CosSound.PlayerSfx)
 	}
 
 
@@ -250,7 +241,7 @@ GameEntity {
 		}
 
 		if (spriteSequence.currentSprite == "climbupend" || spriteSequence.currentSprite == "climbdownend" ) {
-			ep.playSoundEffect("ladder")
+			cosClient.playSound(ep.playSoundEffect("ladder"), CosSound.PlayerVoice)
 		}
 	}
 
@@ -405,7 +396,7 @@ GameEntity {
 		running: false
 		triggeredOnStart: false
 
-		onTriggered: ep.playSoundEffect("pain")
+		onTriggered: cosClient.playSound(ep.playSoundEffect("pain"), CosSound.PlayerVoice)
 	}
 
 

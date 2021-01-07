@@ -609,6 +609,12 @@ void GameMap::setSolver(const QVariantList &list)
 		}
 	}
 
+	foreach (Mission *m, m_orphanMissions) {
+		m->setSolvedLevel(-1);
+		m->setTried(false);
+		m->setLockDepth(0);
+	}
+
 
 	// Load mission solver
 
@@ -689,6 +695,34 @@ void GameMap::setSolver(const QVariantList &list)
 			if (!cl->getSolved())
 				c->setLocked(true);
 		}
+	}
+
+
+	foreach (Mission *m, m_orphanMissions) {
+		if (!mlh.value(m).size())
+			continue;
+
+		qint32 lockDepth = 0;
+
+		QVector<MissionLock> locks = mlh.value(m);
+		foreach (MissionLock ml, locks) {
+			if ((ml.second == -1 && ml.first->getSolvedLevel() == -1) || ml.second > ml.first->getSolvedLevel()) {
+				if (mlh.value(ml.first).size() > 0) {
+					QVector<MissionLock> locks2 = mlh.value(ml.first);
+					foreach (MissionLock ml2, locks2) {
+						if ((ml2.second == -1 && ml2.first->getSolvedLevel() == -1) || ml2.second > ml2.first->getSolvedLevel()) {
+							lockDepth = 2;
+							break;
+						}
+					}
+				}
+
+				if (lockDepth < 1)
+					lockDepth = 1;
+			}
+		}
+
+		m->setLockDepth(lockDepth);
 	}
 
 }
@@ -1678,6 +1712,32 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 		}
 	}
 
+	foreach (Mission *m, m_orphanMissions) {
+		foreach (MissionLevel *ml, m->levels()) {
+			QVariantMap l;
+			l["mission"] = QString(m->uuid());
+			l["level"] = ml->level();
+			l["terrain"] = QString(ml->terrain());
+			l["startHP"] = ml->startHP();
+			l["duration"] = ml->duration();
+			l["startBlock"] = ml->startBlock();
+
+			if (ml->imageFolder().isEmpty())
+				l["imageFolder"] = QVariant::Invalid;
+			else
+				l["imageFolder"] = ml->imageFolder();
+
+			if (ml->imageFile().isEmpty())
+				l["imageFile"] = QVariant::Invalid;
+			else
+				l["imageFile"] = ml->imageFile();
+
+			if (db->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", l) == -1) {
+				return false;
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -1933,6 +1993,51 @@ bool GameMap::blockChapterMapsToDb(CosDb *db) const
 		}
 	}
 
+
+	foreach (Mission *m, m_orphanMissions) {
+		foreach (MissionLevel *ml, m->levels()) {
+			foreach (BlockChapterMap *b, ml->blockChapterMaps()) {
+				QVariantMap l;
+				l["mission"] = QString(m->uuid());
+				l["level"] = ml->level();
+				l["maxObjective"] = b->maxObjective();
+
+				int id = db->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", l);
+
+				if (id == -1)
+					return false;
+
+				foreach (qint32 bl, b->blocks()) {
+					QVariantMap l;
+					l["blockid"] = id;
+					l["block"] = bl;
+
+					if (db->execInsertQuery("INSERT INTO blockChapterMapBlocks (?k?) VALUES (?)", l) == -1)
+						return false;
+				}
+
+
+				foreach (Chapter *ch, b->chapters()) {
+					QVariantMap l;
+					l["blockid"] = id;
+					l["chapter"] = ch->id();
+
+					if (db->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", l) == -1)
+						return false;
+				}
+
+				foreach (Objective *o, b->favorites()) {
+					QVariantMap l;
+					l["blockid"] = id;
+					l["objective"] = QString(o->uuid());
+
+					if (db->execInsertQuery("INSERT INTO blockChapterMapFavorites (?k?) VALUES (?)", l) == -1)
+						return false;
+				}
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -2094,6 +2199,24 @@ bool GameMap::inventoriesToDb(CosDb *db) const
 					if (id == -1)
 						return false;
 				}
+			}
+		}
+	}
+
+	foreach (Mission *m, m_orphanMissions) {
+		foreach (MissionLevel *ml, m->levels()) {
+			foreach (Inventory *b, ml->inventories()) {
+				QVariantMap l;
+				l["mission"] = QString(m->uuid());
+				l["level"] = ml->level();
+				l["block"] = b->block();
+				l["module"] = QString(b->module());
+				l["count"] = b->count();
+
+				int id = db->execInsertQuery("INSERT INTO inventories (?k?) VALUES (?)", l);
+
+				if (id == -1)
+					return false;
 			}
 		}
 	}

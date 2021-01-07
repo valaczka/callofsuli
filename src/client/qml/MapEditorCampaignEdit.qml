@@ -33,7 +33,7 @@ QPagePanel {
 			   qsTr("Küldetés")
 			   break
 		   default:
-			   qsTr("Hadjárat/Küldetés")
+			   ""
 		   }
 
 

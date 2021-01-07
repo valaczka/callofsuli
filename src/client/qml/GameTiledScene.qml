@@ -19,33 +19,7 @@ Scene {
 
 	property alias scenePrivate: scenePrivate
 
-	Audio {
-		id: startSound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/fight.ogg"
-		audioRole: Audio.GameRole
-	}
 
-	Audio {
-		id: successEffect
-		volume: CosStyle.volumeSfx
-		source: "qrc:/sound/sfx/correct.ogg"
-		audioRole: Audio.GameRole
-	}
-
-	Audio {
-		id: successSound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/winner.ogg"
-		audioRole: Audio.GameRole
-	}
-
-	Audio {
-		id: failedSound
-		volume: CosStyle.volumeVoiceover
-		source: "qrc:/sound/voiceover/loser.ogg"
-		audioRole: Audio.GameRole
-	}
 
 	GameScenePrivate {
 		id: scenePrivate
@@ -170,7 +144,7 @@ Scene {
 		triggeredOnStart: false
 		onTriggered: {
 			stop()
-			startSound.play()
+			cosClient.playSound("qrc:/sound/voiceover/fight.ogg", CosSound.VoiceOver)
 		}
 	}
 
@@ -254,9 +228,9 @@ Scene {
 						questionData: questionData
 					})
 
-					obj.successSound.connect(function(){successEffect.play()})
-					obj.succeed.connect(function(){successSound.play()})
-					obj.failed.connect(function(){failedSound.play()})
+					obj.successSound.connect(function(){cosClient.playSound("qrc:/sound/sfx/correct.ogg", CosSound.GameSound)})
+					obj.succeed.connect(function(){cosClient.playSound("qrc:/sound/voiceover/winner.ogg", CosSound.VoiceOver)})
+					obj.failed.connect(function(){cosClient.playSound("qrc:/sound/voiceover/loser.ogg", CosSound.VoiceOver)})
 
 							return obj
 						}

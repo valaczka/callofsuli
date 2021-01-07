@@ -47,8 +47,20 @@ public:
 
 	QVariantMap generate() const;
 
+	static QVariantMap objectivesMap();
+	static QVariantMap storagesMap();
+	static QVariantMap objectiveInfo(const QString &module);
+	static QVariantMap storageInfo(const QString &module);
+
+	static QStringList objectiveDataToStringList(const QString &module, const QVariantMap &data,
+										const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+	static QStringList objectiveDataToStringList(const QString &module, const QString &dataString,
+										const QString &storageModule = "", const QString &storageDataString = "");
+	static QStringList objectiveDataToStringList(GameMap::Objective *objective, GameMap::Storage *storage = nullptr);
+
 protected:
 	QVariantMap generateTruefalse() const;
+	static QStringList toStringListTruefalse(const QVariantMap &data, const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
 
 	QString m_module;
 	QVariantMap m_data;

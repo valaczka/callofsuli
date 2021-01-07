@@ -33,7 +33,7 @@
  */
 
 #include "question.h"
-
+#include "cosclient.h"
 
 
 Question::Question(const QString &module, const QVariantMap &data)
@@ -74,6 +74,151 @@ QVariantMap Question::generate() const
 
 
 
+/**
+ * @brief Question::objectiveMap
+ * @return
+ */
+
+QVariantMap Question::objectivesMap()
+{
+	QVariantMap m;
+
+	m["simplechoice"] = QVariantMap({
+										{ "name", QObject::tr("Egyszerű választás") },
+										{ "icon", "image://font/Material Icons/\ue163" }
+									});
+
+	m["truefalse"] = QVariantMap({
+									 { "name", QObject::tr("Igaz/hamis") },
+									 { "icon", "image://font/Material Icons/\ue163" }
+								 });
+
+	return m;
+}
+
+
+
+
+/**
+ * @brief Question::storagesMap
+ * @return
+ */
+
+QVariantMap Question::storagesMap()
+{
+	QVariantMap m;
+
+	m["quiz"] = QVariantMap({
+								{ "name", QObject::tr("Kvíz") },
+								{ "icon", "image://font/Material Icons/\ue163" }
+							});
+
+	return m;
+}
+
+
+
+/**
+ * @brief Question::objectiveInfo
+ * @param module
+ * @return
+ */
+
+QVariantMap Question::objectiveInfo(const QString &module)
+{
+	QVariantMap m = objectivesMap().value(module).toMap();
+
+	if (m.isEmpty()) {
+		return QVariantMap({
+							   { "name", QObject::tr("Érvénytelen modul!") },
+							   { "icon", "image://font/Material Icons/\ue002" }
+						   });
+	}
+
+	return m;
+}
+
+
+/**
+ * @brief Question::storageInfo
+ * @param module
+ * @return
+ */
+
+QVariantMap Question::storageInfo(const QString &module)
+{
+	QVariantMap m = storagesMap().value(module).toMap();
+
+	if (m.isEmpty()) {
+		return QVariantMap({
+							   { "name", QObject::tr("Érvénytelen modul!") },
+							   { "icon", "image://font/Material Icons/\ue002" }
+						   });
+	}
+
+	return m;
+}
+
+
+
+
+/**
+ * @brief Question::dataToStringList
+ * @param module
+ * @param data
+ * @return
+ */
+
+QStringList Question::objectiveDataToStringList(const QString &module, const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+{
+	if (module == "truefalse")
+		return toStringListTruefalse(data, storageModule, storageData);
+
+	QStringList l;
+	l.append(QObject::tr("Érvénytelen modul!"));
+	l.append(module);
+
+	return l;
+}
+
+
+/**
+ * @brief Question::objectiveDataToStringList
+ * @param module
+ * @param dataString
+ * @param storageModule
+ * @param storageDataString
+ * @return
+ */
+
+QStringList Question::objectiveDataToStringList(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+{
+	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
+	QVariantMap storageData = storageDataString.isEmpty() ? QVariantMap() : Client::byteArrayToJsonMap(storageDataString.toUtf8());
+	return objectiveDataToStringList(module, data, storageModule, storageData);
+}
+
+
+
+
+/**
+ * @brief Question::dataToStringList
+ * @param objective
+ * @return
+ */
+
+QStringList Question::objectiveDataToStringList(GameMap::Objective *objective, GameMap::Storage *storage)
+{
+	Q_ASSERT(objective);
+
+	if (storage)
+		return objectiveDataToStringList(objective->module(), objective->data(), storage->module(), storage->data());
+	else
+		return objectiveDataToStringList(objective->module(), objective->data());
+}
+
+
+
 
 /**
  * @brief Question::generateTruefalse
@@ -87,3 +232,29 @@ QVariantMap Question::generateTruefalse() const
 
 	return m;
 }
+
+
+/**
+ * @brief Question::toStringListTruefalse
+ * @param data
+ * @param storageModule
+ * @param storageData
+ * @return
+ */
+
+QStringList Question::toStringListTruefalse(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+{
+	Q_UNUSED(storageModule)
+	Q_UNUSED(storageData)
+
+	QStringList l;
+	l.append(data.value("question").toString());
+	if (data.value("correct").toBool())
+		l.append("igaz");
+	else
+		l.append("hamis");
+
+	return l;
+}
+
+

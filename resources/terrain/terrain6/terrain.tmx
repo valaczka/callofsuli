@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="102" height="24" tilewidth="32" tileheight="32" infinite="0" nextlayerid="69" nextobjectid="203">
+ <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
+  <image source="../tileset/hyptosis.png" width="960" height="3840"/>
+  <terraintypes>
+   <terrain name="StoneWall1" tile="505"/>
+  </terraintypes>
+  <tile id="475" terrain=",,,0"/>
+  <tile id="476" terrain=",,0,0"/>
+  <tile id="477" terrain=",,0,"/>
+  <tile id="504" terrain=",0,,0"/>
+  <tile id="505" terrain="0,0,0,0"/>
+  <tile id="506" terrain="0,,0,"/>
+  <tile id="534" terrain=",0,,"/>
+  <tile id="535" terrain="0,0,,"/>
+  <tile id="536" terrain="0,,,"/>
+ </tileset>
+ <layer id="66" name="2. csemperéteg" width="102" height="24">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAA+2YQQrAIAwE/f8T+hP7ul48SDFQTTRNmAGhB7urLhG1FAAAAACAfNTWojI79ihzvVuLyuzYo8yVXP4JuaxRhW8ryEXvu2P9yEXvmyEX65r3Oo/1a3YZab71T+Zi7ZW1Xk7fX8jluz71ovMlF73eqP/KftH/Qy56vVH/lTFlqxfv8xi5yH6eeuQi+3nqkYvsZ4nXPrb7fYz7S856eQAz506nQCYAAA==
+  </data>
+ </layer>
+ <layer id="67" name="1. csemperéteg" width="102" height="24">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAA+2YYQ7CIAyFSXZZrqRTf3sFNw+niRoJvhbKwE15X9KIAdkjqY92zhFCCCFkC5yHR/jhPX5992Acr9fmWuv2UaCzIJ3xJ1rnG+tPcb3HKRHjM1LrwjhuQHeo36J9/IJ+QnpB8u04JH9d2yP/lVwPHYUxPZIsBf3XUz4h1YfIS1AtJnkM8qFeCb3BWj+1qMda1JaoFk/1J1LeSHnYcw6VsnP1861VDhFiQfOZ1D2FfIosZ+8+Pafkzgt/86vkvtdK1U1SDab1guzzZNasx3q+Kw9rCyCQyem9YKt3R5Y+QfM7C8grpbMjTTmerJ3J4tHoLpV8piZXsH+J71mfGe9T25ul/sXq0ZMyd8k+ManNbJjT1tZ+du76Ek2zMK7FvHDfG+Q2oXBAJgAA
+  </data>
+ </layer>
+ <layer id="68" name="3. csemperéteg" width="102" height="24">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAA+3DMQ0AAAgDsD34wL/KqSDhaJMmAAAAAAAAAAAAt3b8uIo0GVtAJgAA
+  </data>
+ </layer>
+ <objectgroup color="#ffaa00" id="16" name="Ground">
+  <object id="188" x="63" y="669" width="321" height="25"/>
+  <object id="189" x="33" y="609.5" width="29.5" height="92"/>
+  <object id="190" x="384" y="608" width="30.5" height="116"/>
+  <object id="191" x="292" y="573.333" width="1016" height="28.6667"/>
+  <object id="192" x="997.333" y="670" width="571.333" height="26.6667"/>
+  <object id="193" x="1570" y="604" width="30" height="101.333"/>
+  <object id="194" x="1434" y="511.333" width="646.667" height="27.3333"/>
+  <object id="195" x="2081.33" y="342.667" width="28.6667" height="212"/>
+  <object id="196" x="1410" y="428.667" width="28.6667" height="122"/>
+  <object id="197" x="1923.33" y="670" width="1145.33" height="28.6667"/>
+  <object id="198" x="2110.67" y="411.333" width="830.667" height="28.6667"/>
+  <object id="199" x="2468.67" y="156" width="728.667" height="31.3333"/>
+  <object id="200" x="1668" y="284.667" width="537.333" height="30"/>
+  <object id="201" x="291.333" y="382.667" width="1272.67" height="27.3333"/>
+  <object id="202" x="676.667" y="190" width="790.667" height="28.6667"/>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="30" name="Enemies">
+  <object id="149" x="352.209" y="533.667">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="154" x="640.139" y="532.667">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-53.681,21 319.652,21"/>
+  </object>
+  <object id="155" x="1023.22" y="532">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-44.7661,21 266.567,21"/>
+  </object>
+  <object id="156" x="1055.3" y="632">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-42.1779,21 251.155,21"/>
+  </object>
+  <object id="157" x="1298.36" y="656.79">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-43.2324,0.21 257.434,0.21"/>
+  </object>
+  <object id="158" x="1480.67" y="472">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="159" x="1809.12" y="469.333">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-43.9993,21 262,21"/>
+  </object>
+  <object id="160" x="1983.51" y="630">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-44.3827,21 264.284,21"/>
+  </object>
+  <object id="161" x="2337.1" y="649.457">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-54.6396,0.21 325.36,0.21"/>
+  </object>
+  <object id="162" x="2733.33" y="372">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="163" x="2391.52" y="373.333">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="-45.7247,21 272.275,21"/>
+  </object>
+  <object id="164" x="2159.33" y="374">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="165" x="2998" y="116.667">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="166" x="2842.67" y="116">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="167" x="2002.67" y="246.667">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="168" x="1726" y="247.333">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="169" x="1356.67" y="342.667">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="170" x="991.93" y="362.123">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-50.8053,0.21 302.528,0.21"/>
+  </object>
+  <object id="171" x="715.333" y="340.667">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="172" x="416.667" y="339.333">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="173" x="1022" y="148.667">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="174" x="1256" y="148">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ff00ff" id="17" name="Ladders">
+  <object id="178" x="318" y="567.333" width="18" height="99.3333"/>
+  <object id="179" x="911.333" y="377.333" width="18.6667" height="194">
+   <properties>
+    <property name="blockBottom" type="int" value="1"/>
+    <property name="blockTop" type="int" value="2"/>
+   </properties>
+  </object>
+  <object id="180" x="1222.67" y="568.667" width="17.3333" height="98"/>
+  <object id="182" x="1846" y="280.667" width="17.3333" height="228"/>
+  <object id="183" x="1206.5" y="185" width="20.5" height="194"/>
+  <object id="184" x="1494.67" y="504.667" width="15.3333" height="164">
+   <properties>
+    <property name="blockBottom" type="int" value="1"/>
+    <property name="blockTop" type="int" value="3"/>
+   </properties>
+  </object>
+  <object id="185" x="2844" y="153.333" width="18.6667" height="258.667"/>
+  <object id="186" x="2348" y="409" width="18" height="259">
+   <properties>
+    <property name="blockBottom" type="int" value="3"/>
+    <property name="blockTop" type="int" value="4"/>
+   </properties>
+  </object>
+  <object id="187" x="2026" y="506.667" width="18.6667" height="162"/>
+ </objectgroup>
+ <objectgroup id="18" name="Player">
+  <object id="151" x="3014.67" y="646.667">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="175" x="2506.67" y="136">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="176" x="92" y="646.667">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="177" x="733.333" y="168">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>
