@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Bacon2D 1.0
 import COS.Client 1.0
 import QtQuick.Controls.Material 2.12

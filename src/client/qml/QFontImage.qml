@@ -1,4 +1,4 @@
-import QtQuick 2.12
+import QtQuick 2.15
 import QtGraphicalEffects 1.0
 import "Style"
 
@@ -6,8 +6,8 @@ import "Style"
 Item {
 	id: control
 
-	height: CosStyle.pixelSize*1.1
-	width: CosStyle.pixelSize*1.1
+	implicitWidth: size
+	implicitHeight: size
 
 	property int size: CosStyle.pixelSize*1.1
 	property alias icon: img.source

@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
@@ -23,7 +23,6 @@ QPagePanel {
 		m.addAction(actionDownload)
 		m.addAction(actionUpload)
 	}
-
 
 	SortFilterProxyModel {
 		id: userProxyModel
@@ -176,6 +175,7 @@ QPagePanel {
 			MenuItem { action: actionRename }
 			MenuItem { action: actionDownload }
 			MenuItem { action: actionUpload }
+			MenuItem { action: actionExport }
 		}
 
 
@@ -272,6 +272,18 @@ QPagePanel {
 				teacherMaps.mapUpload({list: teacherMaps.modelMapList.getSelectedData("uuid") })
 			else
 				teacherMaps.mapUpload({uuid: o.uuid})
+		}
+	}
+
+	Action {
+		id: actionExport
+		text: qsTr("Exportálás")
+		icon.source: CosStyle.iconDrawer
+		enabled: !teacherMaps.isBusy && list.currentIndex !== -1
+		onTriggered: {
+			var o = list.model.get(list.currentIndex)
+			fileDialog.mapUuid = o.uuid
+			fileDialog.open()
 		}
 	}
 

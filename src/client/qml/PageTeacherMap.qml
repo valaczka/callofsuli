@@ -1,5 +1,6 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Dialogs 1.3
 import COS.Client 1.0
 import "."
 import "Style"
@@ -37,6 +38,21 @@ QPage {
 
 	}
 
+
+	FileDialog {
+		id: fileDialog
+		title: qsTr("Exportálás")
+		folder: shortcuts.home
+
+		property string mapUuid: ""
+
+		selectMultiple: false
+		selectExisting: false
+
+		onAccepted: {
+			teacherMaps.mapExport({uuid: mapUuid, filename: fileDialog.fileUrl})
+		}
+	}
 
 	panelComponents: [
 		Component { TeacherMapList {

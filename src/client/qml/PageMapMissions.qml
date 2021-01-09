@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import COS.Client 1.0
 import QtMultimedia 5.12
 import "."
@@ -10,9 +10,32 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
+	property bool demoMode: false
+
 	property StudentMaps studentMaps: null
 
+	StudentMaps {
+		id: demoStudentMaps
+
+		demoMode: true
+
+		onGamePlayReady: {
+			var o = JS.createPage("Game", {
+									  gameMatch: gameMatch,
+									  deleteGameMatch: true
+								  })
+		}
+
+	}
+
+	onDemoModeChanged: if (demoMode) {
+						   console.debug("Set demo mode")
+						   demoStudentMaps.client = cosClient
+						   studentMaps = demoStudentMaps
+					   }
+
 	mainToolBarComponent: UserButton {
+		visible: studentMaps && !studentMaps.demoMode
 		userDetails: userData
 		userNameVisible: page.width>800
 	}

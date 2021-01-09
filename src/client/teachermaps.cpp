@@ -34,6 +34,7 @@
 
 #include "teachermaps.h"
 
+#include <QFile>
 
 TeacherMaps::TeacherMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
@@ -274,6 +275,46 @@ void TeacherMaps::mapUpload(QVariantMap data)
 		send("mapUpdate", j, b);
 	}
 }
+
+
+/**
+ * @brief TeacherMaps::mapExport
+ * @param data
+ */
+
+void TeacherMaps::mapExport(QVariantMap data)
+{
+	QString uuid = data.value("uuid").toString();
+	QUrl filename = data.value("filename").toUrl();
+
+	if (uuid.isEmpty() || filename.isEmpty())
+		return;
+
+	QVariantList l;
+	l.append(uuid);
+	QVariantMap m = db()->execSelectQueryOneRow("SELECT data, name FROM localmaps WHERE uuid=?", l);
+
+	if (m.isEmpty()) {
+		qDebug() << "SKIP" << uuid;
+		return;
+	}
+
+	QByteArray b = m.value("data").toByteArray();
+
+	QFile f(filename.toLocalFile());
+	if (!f.open(QIODevice::WriteOnly)) {
+		qWarning() << "Open error" << filename;
+		return;
+	}
+	f.write(b);
+	f.close();
+
+	m_client->sendMessageInfo(tr("Exportálás"), tr("Az exportálás sikerült: %1").arg(filename.toString()));
+	return;
+}
+
+
+
 
 
 /**

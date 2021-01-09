@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtGraphicalEffects 1.0
 import SortFilterProxyModel 0.2
 import COS.Client 1.0
@@ -42,7 +42,6 @@ QPagePanel {
 			if (data.uuid !== objectiveUuid)
 				return
 
-
 			moduleLoader.setSource("MapEditorObjectiveEdit_"+data.objectiveModule+".qml", {
 									   objectiveUuid: objectiveUuid,
 									   moduleData: data
@@ -56,12 +55,6 @@ QPagePanel {
 		function onObjectiveRemoved() {
 			reloadData()
 		}
-
-		/*function onObjectiveModified(uuid) {
-			if (uuid === objectiveUuid)
-				reloadData()
-		}*/
-
 	}
 
 	Connections {
@@ -111,16 +104,7 @@ QPagePanel {
 		icon.source: CosStyle.iconDelete
 		enabled: !mapEditor.isBusy && objectiveUuid.length
 		onTriggered: {
-			var d = JS.dialogCreateQml("YesNo")
-
-			d.item.title = qsTr("Törlés")
-			d.item.text = qsTr("Biztosan törlöd a célpontot?")
-
-			d.accepted.connect(function(data) {
-				mapEditor.run("objectiveRemove", {"uuid": objectiveUuid})
-			})
-
-			d.open()
+			mapEditor.run("objectiveRemove", {"uuid": objectiveUuid})
 		}
 	}
 

@@ -11,7 +11,7 @@
 			"enemy": {
 				"soldier" : {
 					"rayCastElevation": 20,
-					"rayCastLength": 250,
+					"rayCastLength": 270,
 					"msecBeforeTurn": 3000,
 					"castAttackFraction": 0.3,
 					"msecBeforeAttack": 3500,
@@ -22,19 +22,38 @@
 		"2": {
 			"player": {
 				"deathlyFall": 300,
-				"hurtFall": 40,
-				"deathlyAttackDistance": 100,
+				"hurtFall": 120,
+				"deathlyAttackDistance": 0,
 				"rayCastElevation": 20,
-				"rayCastLength": 200
+				"rayCastLength": 260
 			},
 			"enemy": {
 				"soldier" : {
 					"rayCastElevation": 20,
-					"rayCastLength": 250,
-					"msecBeforeTurn": 1000,
-					"castAttackFraction": 0.5,
-					"msecBeforeAttack": 3500,
-					"msecBetweenAttack": 1500
+					"rayCastLength": 270,
+					"msecBeforeTurn": 3000,
+					"castAttackFraction": 0.6,
+					"msecBeforeAttack": 3000,
+					"msecBetweenAttack": 2500
+				}
+			}
+		},
+		"3": {
+			"player": {
+				"deathlyFall": 300,
+				"hurtFall": 120,
+				"deathlyAttackDistance": 70,
+				"rayCastElevation": 20,
+				"rayCastLength": 260
+			},
+			"enemy": {
+				"soldier" : {
+					"rayCastElevation": 20,
+					"rayCastLength": 270,
+					"msecBeforeTurn": 2500,
+					"castAttackFraction": 0.7,
+					"msecBeforeAttack": 2500,
+					"msecBetweenAttack": 2000
 				}
 			}
 		}

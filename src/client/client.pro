@@ -6,6 +6,7 @@ include(../version/version.pro)
 include(../common/common.pri)
 include(../3rdparty/SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../3rdparty/Bacon2D-static/src/Bacon2D-static.pri)
+include(../3rdparty/QtXlsxWriter/qtxlsx.pri)
 
 TEMPLATE = app
 TARGET = callofsuli
@@ -28,6 +29,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
 		abstractactivity.cpp \
+		abstractobjectiveimporter.cpp \
+		chapterimporter.cpp \
 		cosclient.cpp \
 		cosdownloader.cpp \
 		cosgame.cpp \
@@ -48,6 +51,8 @@ SOURCES += \
 		gameterrain.cpp \
 		main.cpp \
 		mapeditor.cpp \
+		objectiveimportersimplechoice.cpp \
+		objectiveimportertruefalse.cpp \
 		question.cpp \
 		servers.cpp \
 		serversettings.cpp \
@@ -61,6 +66,8 @@ SOURCES += \
 
 HEADERS += \
 	abstractactivity.h \
+	abstractobjectiveimporter.h \
+	chapterimporter.h \
 	cosclient.h \
 	cosdownloader.h \
 	cosgame.h \
@@ -80,6 +87,8 @@ HEADERS += \
 	gamescene.h \
 	gameterrain.h \
 	mapeditor.h \
+	objectiveimportersimplechoice.h \
+	objectiveimportertruefalse.h \
 	question.h \
 	servers.h \
 	serversettings.h \

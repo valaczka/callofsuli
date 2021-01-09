@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
@@ -49,14 +49,6 @@ QAccordion {
 		}
 	}
 
-
-	Connections {
-		target: mapEditor
-
-		function onObjectiveLoaded() {
-			textQuestion.forceActiveFocus()
-		}
-	}
 
 
 	function reloadData() {

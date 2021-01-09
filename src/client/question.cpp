@@ -68,6 +68,8 @@ QVariantMap Question::generate() const
 {
 	if (m_module == "truefalse")
 		return generateTruefalse();
+	else if (m_module == "simplechoice")
+		return generateSimplechoice();
 	else
 		return QVariantMap();
 }
@@ -173,6 +175,8 @@ QStringList Question::objectiveDataToStringList(const QString &module, const QVa
 {
 	if (module == "truefalse")
 		return toStringListTruefalse(data, storageModule, storageData);
+	else if (module == "simplechoice")
+		return toStringListSimplechoice(data, storageModule, storageData);
 
 	QStringList l;
 	l.append(QObject::tr("Érvénytelen modul!"));
@@ -253,6 +257,47 @@ QStringList Question::toStringListTruefalse(const QVariantMap &data, const QStri
 		l.append("igaz");
 	else
 		l.append("hamis");
+
+	return l;
+}
+
+
+
+
+/**
+ * @brief Question::generateSimplechoice
+ * @return
+ */
+
+QVariantMap Question::generateSimplechoice() const
+{
+	QVariantMap m = m_data;
+	m["module"] = "simplechoice";
+
+	return m;
+}
+
+
+
+/**
+ * @brief Question::toStringListSimplechoice
+ * @param data
+ * @param storageModule
+ * @param storageData
+ * @return
+ */
+
+QStringList Question::toStringListSimplechoice(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+{
+	Q_UNUSED(storageModule)
+	Q_UNUSED(storageData)
+
+	QStringList l;
+
+	l.append(data.value("question").toString());
+
+	QStringList answers = data.value("answers").toStringList();
+	l.append(data.value("correct").toString()+" ("+answers.join(",")+")");
 
 	return l;
 }

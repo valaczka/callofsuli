@@ -36,6 +36,7 @@
 #include "sqlimage.h"
 #include <QtConcurrent/QtConcurrent>
 #include <QUuid>
+#include "chapterimporter.h"
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -70,11 +71,13 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["chapterAdd"] = &MapEditor::chapterAdd;
 	m_map["chapterModify"] = &MapEditor::chapterModify;
 	m_map["chapterRemove"] = &MapEditor::chapterRemove;
+	m_map["chapterImport"] = &MapEditor::chapterImport;
 	m_map["chapterListReload"] = &MapEditor::chapterListReload;
 	m_map["objectiveAdd"] = &MapEditor::objectiveAdd;
 	m_map["objectiveRemove"] = &MapEditor::objectiveRemove;
 	m_map["objectiveModify"] = &MapEditor::objectiveModify;
 	m_map["objectiveLoad"] = &MapEditor::objectiveLoad;
+	m_map["objectiveImport"] = &MapEditor::objectiveImport;
 	m_map["levelLoad"] = &MapEditor::levelLoad;
 	m_map["levelModify"] = &MapEditor::levelModify;
 	m_map["blockChapterMapAdd"] = &MapEditor::blockChapterMapAdd;
@@ -1614,6 +1617,35 @@ void MapEditor::chapterListReload(QVariantMap)
 }
 
 
+/**
+ * @brief MapEditor::chapterImport
+ * @param data
+ */
+
+void MapEditor::chapterImport(QVariantMap data)
+{
+	QUrl filename = data.value("filename").toUrl();
+	int chapterid = data.value("chapterid", -1).toInt();
+
+	if (filename.isEmpty() || chapterid == -1) {
+		emit chapterImportFailed(tr("Hibás paraméterek"));
+		return;
+	}
+
+	ChapterImporter importer(filename.toLocalFile());
+
+	importer.setChapterId(chapterid);
+
+	if (!importer.import()) {
+		emit chapterImportFailed(tr("Hibás adatok"));
+		return;
+	}
+
+	QVariantList l = importer.records();
+	emit chapterImportReady(l);
+}
+
+
 
 /**
  * @brief MapEditor::objectiveAdd
@@ -1746,6 +1778,43 @@ void MapEditor::objectiveLoad(QVariantMap data)
 	}
 
 	emit objectiveLoaded(map);
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveImport
+ * @param data
+ */
+
+void MapEditor::objectiveImport(QVariantMap data)
+{
+	QVariantList list = data.value("list").toList();
+
+	if (list.isEmpty()) {
+		qDebug() << "List empty";
+		return;
+	}
+
+	db()->undoLogBegin(tr("%1 célpont importálása").arg(list.size()));
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		if (!m.contains("uuid"))	m["uuid"] = QUuid::createUuid().toString();
+
+		int ret = db()->execInsertQuery("INSERT INTO objectives(?k?) values (?)", m);
+
+		if (ret == -1) {
+			qWarning() << "Error" << m;
+		}
+	}
+
+	db()->undoLogEnd();
+
+	chapterListReload();
+
+	setModified(true);
 }
 
 

@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
@@ -18,6 +18,7 @@ QPagePanel {
 	contextMenuFunc: function (m) {
 		m.addAction(actionChapterNew)
 		m.addAction(actionObjectiveNew)
+		m.addAction(actionImportTest)
 	}
 
 
@@ -313,34 +314,32 @@ QPagePanel {
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 
-			var d = JS.dialogCreateQml("YesNo")
-			d.item.title = o.name
-
 			var more = mapEditor.modelChapterList.selectedCount
 
-			if (more > 0) {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 szakaszt a célpontjaival együtt?").arg(more)
-										   : qsTr("Biztosan törlöd a kijelölt %1 célpontot?").arg(more)
+			if (o.type === 0) {
+				if (more > 0)
+					mapEditor.run("chapterRemove", {"list": mapEditor.modelChapterList.getSelectedData("id") })
+				else
+					mapEditor.run("chapterRemove", {"id": o.cid})
 			} else {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a szakaszt a célpontjaival együtt?")
-										   : qsTr("Biztosan törlöd a célpontot?")
+				if (more > 0)
+					mapEditor.run("objectiveRemove", {"list": mapEditor.modelChapterList.getSelectedData("uuid")})
+				else
+					mapEditor.run("objectiveRemove", {"uuid": o.uuid})
 			}
+		}
+	}
 
 
-			d.accepted.connect(function(data) {
-				if (o.type === 0) {
-					if (more > 0)
-						mapEditor.run("chapterRemove", {"list": mapEditor.modelChapterList.getSelectedData("id") })
-					else
-						mapEditor.run("chapterRemove", {"id": o.cid})
-				} else {
-					if (more > 0)
-						mapEditor.run("objectiveRemove", {"list": mapEditor.modelChapterList.getSelectedData("uuid")})
-					else
-						mapEditor.run("objectiveRemove", {"uuid": o.uuid})
-				}
-			})
-			d.open()
+	Action {
+		id: actionImportTest
+		text: qsTr("Import")
+		enabled: !mapEditor.isBusy && list.currentIndex !== -1
+		onTriggered: {
+			var o = list.model.get(list.currentIndex)
+
+			importDialog.chapterId = o.id
+			importDialog.open()
 		}
 	}
 

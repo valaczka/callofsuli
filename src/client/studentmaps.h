@@ -43,6 +43,7 @@ class StudentMaps : public AbstractActivity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(bool demoMode READ demoMode WRITE setDemoMode NOTIFY demoModeChanged)
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
 	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList NOTIFY modelMissionListChanged)
 
@@ -57,12 +58,15 @@ public:
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
 	GameMap * currentMap() const { return m_currentMap; }
+	bool demoMode() const { return m_demoMode; }
 
 public slots:
 	void mapDownload(QVariantMap data);
 	void mapLoad(QVariantMap data);
+	void demoMapLoad();
 	void getMissionList();
 	void playGame(QVariantMap data);
+	void setDemoMode(bool demoMode);
 
 protected slots:
 	void clientSetup() override;
@@ -72,6 +76,8 @@ private slots:
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 	void loadGameMap(GameMap *map, const QString &mapName = "");
 	void unloadGameMap();
+
+	void onDemoGameWin(const QString &uuid, const int level);
 
 	void onMissionListGet(QJsonObject jsonData, QByteArray);
 	void onGameCreate(QJsonObject jsonData, QByteArray);
@@ -98,6 +104,7 @@ signals:
 
 	void modelMapListChanged(VariantMapModel * modelMapList);
 	void modelMissionListChanged(VariantMapModel * modelMissionList);
+	void demoModeChanged(bool demoMode);
 
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
@@ -105,6 +112,8 @@ private:
 	GameMap * m_currentMap;
 	CosDb *m_imageDb;
 	VariantMapModel * m_modelMissionList;
+	bool m_demoMode;
+	QVariantMap m_demoSolverMap;
 };
 
 #endif // STUDENTMAPS_H

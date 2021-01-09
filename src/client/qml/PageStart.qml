@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.12
 import COS.Client 1.0
 import "."
@@ -103,6 +103,7 @@ QPage {
 	}
 
 
+
 	Column {
 		anchors.centerIn: parent
 		visible: !control.isDisconnected
@@ -163,13 +164,21 @@ QPage {
 	Action {
 		id: test
 		shortcut: "F1"
-		text: "Game Test"
-		enabled: isCurrentItem
+		text: qsTr("Demo")
 		onTriggered: {
-			servers.playTestMap({filename: "/tmp/ttt.dat"})
+			JS.createPage("MapMissions", {
+							  demoMode: true,
+							  defaultTitle: qsTr("Demo mód")
+						  })
 		}
 	}
 
+
+	Action {
+		id: test2
+		shortcut: "F6"
+		onTriggered: servers.testImport()
+	}
 
 
 	Connections {

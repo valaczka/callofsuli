@@ -1,5 +1,5 @@
 import Bacon2D 1.0
-import QtQuick 2.14
+import QtQuick 2.15
 import COS.Client 1.0
 import QtMultimedia 5.15
 import "Style"

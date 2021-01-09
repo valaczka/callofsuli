@@ -42,6 +42,8 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_currentMap(nullptr)
 	, m_imageDb(nullptr)
 	, m_modelMissionList(nullptr)
+	, m_demoMode(false)
+	, m_demoSolverMap()
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
@@ -85,6 +87,11 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 
 StudentMaps::~StudentMaps()
 {
+	if (m_demoMode) {
+		QJsonDocument doc(QJsonObject::fromVariantMap(m_demoSolverMap));
+		Client::saveJsonDocument(doc, Client::standardPath("demomap.json"));
+	}
+
 	delete m_modelMapList;
 
 	unloadGameMap();
@@ -150,6 +157,9 @@ CosDb *StudentMaps::studentMapsDb(Client *client, QObject *parent, const QString
 
 void StudentMaps::mapLoad(QVariantMap data)
 {
+	if (m_demoMode)
+		return;
+
 	QString uuid = data.value("uuid").toString();
 	QString name = data.value("name").toString();
 
@@ -182,6 +192,46 @@ void StudentMaps::mapLoad(QVariantMap data)
 }
 
 
+/**
+ * @brief StudentMaps::demoMapLoad
+ */
+
+void StudentMaps::demoMapLoad()
+{
+	m_modelMissionList->clear();
+
+	QString demoMap = ":/internal/game/demo.map";
+
+	if (!QFile::exists(demoMap)) {
+		qWarning() << demoMap << "not exists";
+		unloadGameMap();
+		return;
+	}
+
+	qDebug() << "Load demo map" << demoMap;
+
+	m_demoSolverMap = Client::readJsonDocument(Client::standardPath("demomap.json")).object().toVariantMap();
+
+
+	QFile f(demoMap);
+	if (f.open(QIODevice::ReadOnly)) {
+
+		QByteArray b = f.readAll();
+
+		f.close();
+
+		GameMap *map = GameMap::fromBinaryData(b);
+
+		if (!map) {
+			m_client->sendMessageError(tr("Belső hiba"), tr("Hibás pályaadatok!"));
+			return;
+		}
+
+		loadGameMap(map, tr("Demo pálya"));
+	}
+}
+
+
 
 /**
  * @brief StudentMaps::getMissionList
@@ -191,6 +241,25 @@ void StudentMaps::getMissionList()
 {
 	if (!m_currentMap) {
 		m_modelMissionList->clear();
+		return;
+	}
+
+	if (m_demoMode) {
+		QJsonObject o;
+
+		QJsonArray list;
+
+		QVariantMap::const_iterator it;
+
+		for (it=m_demoSolverMap.constBegin(); it != m_demoSolverMap.constEnd(); ++it) {
+			QJsonObject oo;
+			oo["missionid"] = it.key();
+			oo["maxLevel"] = it.value().toInt();
+			list.append(oo);
+		}
+
+		o["list"] = list;
+		onMissionListGet(o, QByteArray());
 		return;
 	}
 
@@ -210,12 +279,34 @@ void StudentMaps::playGame(QVariantMap data)
 	if (!m_currentMap)
 		return;
 
+	if (m_demoMode) {
+		QJsonObject o;
+		o["gameid"] = -1;
+		o["missionid"] = data.value("uuid").toString();
+		o["level"] = data.value("level", 1).toInt();
+		onGameCreate(o, QByteArray());
+		return;
+	}
+
 	QJsonObject o;
 	o["map"] = QString(m_currentMap->uuid());
 	o["mission"] = data.value("uuid").toString();
 	o["level"] = data.value("level", 1).toInt();
 
 	send("gameCreate", o);
+}
+
+void StudentMaps::setDemoMode(bool demoMode)
+{
+	if (m_demoMode == demoMode)
+		return;
+
+	m_demoMode = demoMode;
+	emit demoModeChanged(m_demoMode);
+
+	if (m_demoMode && !m_currentMap) {
+		demoMapLoad();
+	}
 }
 
 
@@ -230,6 +321,10 @@ void StudentMaps::playGame(QVariantMap data)
 
 void StudentMaps::mapDownload(QVariantMap data)
 {
+	if (m_demoMode) {
+		return;
+	}
+
 	if (!m_downloader) {
 		CosDownloader *dl = new CosDownloader(this, CosMessage::ClassUserInfo, "downloadMap", this);
 		dl->setJsonKeyFileName("uuid");
@@ -285,9 +380,11 @@ void StudentMaps::clientSetup()
 	if (!m_client)
 		return;
 
-	CosDb *db = studentMapsDb(m_client, this);
-	if (db)
-		addDb(db, false);
+	if (!m_demoMode) {
+		CosDb *db = studentMapsDb(m_client, this);
+		if (db)
+			addDb(db, false);
+	}
 }
 
 
@@ -301,6 +398,9 @@ void StudentMaps::clientSetup()
 
 void StudentMaps::onMapListGet(QJsonObject jsonData, QByteArray)
 {
+	if (m_demoMode)
+		return;
+
 	m_modelMapList->unselectAll();
 
 	QJsonArray list = jsonData.value("list").toArray();
@@ -346,6 +446,9 @@ void StudentMaps::onMapListGet(QJsonObject jsonData, QByteArray)
 
 void StudentMaps::onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &)
 {
+	if (m_demoMode)
+		return;
+
 	QVariantMap m;
 	m["uuid"] = item.remoteFile;
 	m["data"] = data;
@@ -422,6 +525,25 @@ void StudentMaps::unloadGameMap()
 		m_currentMap = nullptr;
 		emit gameMapUnloaded();
 	}
+}
+
+
+
+
+/**
+ * @brief StudentMaps::onDemoMapWin
+ */
+
+void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
+{
+	int maxLevel = m_demoSolverMap.value(uuid, -1).toInt();
+
+	if (maxLevel > level)
+		return;
+
+	m_demoSolverMap[uuid] = level;
+
+	getMissionList();
 }
 
 
@@ -586,6 +708,11 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 	if (!m_currentMap || !missionLevel) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Pályaadatok nem elérhetőek!"));
+
+		if (m_demoMode) {
+			return;
+		}
+
 		QJsonObject o;
 		o["id"] = gameId;
 		o["xp"] = 0;
@@ -600,6 +727,14 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);
 
+	if (m_demoMode) {
+		if (!m_demoSolverMap.contains(m_gameMatch->missionUuid())) {
+			m_demoSolverMap[m_gameMatch->missionUuid()] = -1;
+		}
+		connect(m_gameMatch, &GameMatch::gameWin, this, &StudentMaps::onDemoGameWin);
+	}
+
+
 	emit gamePlayReady(m_gameMatch);
 }
 
@@ -613,7 +748,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 void StudentMaps::onGameUpdate(QJsonObject jsonData, QByteArray)
 {
-qDebug() << "#### GAME UPDATED ###";
+	qDebug() << "#### GAME UPDATED ###";
 }
 
 

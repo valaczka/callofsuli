@@ -238,7 +238,7 @@ inline int CosMessage::versionMinor()
 
 inline quint32 CosMessage::versionNumber()
 {
-	return (_VERSION_MAJOR*100)+_VERSION_MINOR;
+	return _VERSION_MAJOR;//(_VERSION_MAJOR*100)+_VERSION_MINOR;
 }
 
 

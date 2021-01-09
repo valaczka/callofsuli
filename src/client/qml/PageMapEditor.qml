@@ -1,5 +1,6 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Dialogs 1.3
 import COS.Client 1.0
 import "."
 import "Style"
@@ -145,6 +146,16 @@ QPage {
 				levelComponentsCompleted = 0
 			}
 		}
+
+
+		onChapterImportReady: {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("%1 tétel importálható?").arg(list.length)})
+			d.accepted.connect(function() {
+				run("objectiveImport", {list: list})
+			})
+			d.open()
+			return true
+		}
 	}
 
 
@@ -223,6 +234,24 @@ QPage {
 		}
 	}
 
+
+	FileDialog {
+		id: importDialog
+		title: qsTr("Importálás")
+		folder: shortcuts.home
+
+		nameFilters: [ qsTr("Excel fájlok")+ " (*.xlsx)" ]
+
+		property int chapterId: -1
+
+		selectMultiple: false
+		selectExisting: true
+		selectFolder: false
+
+		onAccepted: {
+			mapEditor.run("chapterImport", {chapterid: chapterId, filename: importDialog.fileUrl})
+		}
+	}
 
 	onPageActivated: {
 		if (!_isLoaded) {

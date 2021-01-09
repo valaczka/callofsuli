@@ -60,6 +60,7 @@ public slots:
 	void mapAdd(QVariantMap data);
 	void mapDownload(QVariantMap data);
 	void mapUpload(QVariantMap data);
+	void mapExport(QVariantMap data);
 	void mapRename(QVariantMap data);
 	void mapLocalCopy(QVariantMap data);
 

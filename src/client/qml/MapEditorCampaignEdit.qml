@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtGraphicalEffects 1.0
 import SortFilterProxyModel 0.2
 import COS.Client 1.0
@@ -747,22 +747,10 @@ QPagePanel {
 		icon.source: CosStyle.iconDelete
 		enabled: !mapEditor.isBusy && editType !== MapEditorCampaignEdit.Invalid
 		onTriggered: {
-			var d = JS.dialogCreateQml("YesNo")
-
 			if (editType === MapEditorCampaignEdit.Campaign) {
-				d.item.title = textCampaignName.text
-				d.item.text = qsTr("Biztosan törlöd a hadjáratot a küldetéseivel együtt?")
-
-				d.accepted.connect(function(data) {
-					mapEditor.run("campaignRemove", {"id": campaignId})
-				})
+				mapEditor.run("campaignRemove", {"id": campaignId})
 			} else if (editType === MapEditorCampaignEdit.Mission) {
-				d.item.title = textMissionName.text
-				d.item.text = qsTr("Biztosan törlöd a küldetést?")
-
-				d.accepted.connect(function(data) {
-					mapEditor.run("missionRemove", {"uuid": missionUuid})
-				})
+				mapEditor.run("missionRemove", {"uuid": missionUuid})
 			}
 
 			d.open()

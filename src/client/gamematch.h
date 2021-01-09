@@ -94,6 +94,9 @@ public slots:
 	void setXp(int xp);
 
 signals:
+	void gameLose(const QString &uuid, const int level);
+	void gameWin(const QString &uuid, const int level);
+
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);
 	void levelChanged(int level);

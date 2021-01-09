@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
@@ -316,34 +316,19 @@ QPagePanel {
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 
-			var d = JS.dialogCreateQml("YesNo")
-			d.item.title = o.name
-
 			var more = mapEditor.modelCampaignList.selectedCount
 
-			if (more > 0) {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a kijelölt %1 hadjáratot?").arg(more)
-										   : qsTr("Biztosan törlöd a kijelölt %1 küldetést?").arg(more)
+			if (o.type === 0) {
+				if (more > 0)
+					mapEditor.run("campaignRemove", {"list": mapEditor.modelCampaignList.getSelectedData("cid") })
+				else
+					mapEditor.run("campaignRemove", {"id": o.cid})
 			} else {
-				d.item.text = o.type === 0 ? qsTr("Biztosan törlöd a hadjáratot?")
-										   : qsTr("Biztosan törlöd a küldetést?")
+				if (more > 0)
+					mapEditor.run("missionRemove", {"list": mapEditor.modelCampaignList.getSelectedData("uuid")})
+				else
+					mapEditor.run("missionRemove", {"uuid": o.uuid})
 			}
-
-
-			d.accepted.connect(function(data) {
-				if (o.type === 0) {
-					if (more > 0)
-						mapEditor.run("campaignRemove", {"list": mapEditor.modelCampaignList.getSelectedData("cid") })
-					else
-						mapEditor.run("campaignRemove", {"id": o.cid})
-				} else {
-					if (more > 0)
-						mapEditor.run("missionRemove", {"list": mapEditor.modelCampaignList.getSelectedData("uuid")})
-					else
-						mapEditor.run("missionRemove", {"uuid": o.uuid})
-				}
-			})
-			d.open()
 		}
 	}
 

@@ -141,11 +141,13 @@ protected:
 	void chapterModify(QVariantMap data);
 	void chapterRemove(QVariantMap data);
 	void chapterListReload(QVariantMap = QVariantMap());
+	void chapterImport(QVariantMap data);
 
 	void objectiveAdd(QVariantMap data);
 	void objectiveModify(QVariantMap data);
 	void objectiveRemove(QVariantMap data);
 	void objectiveLoad(QVariantMap data);
+	void objectiveImport(QVariantMap data);
 
 	void levelLoad(QVariantMap data);
 	void levelModify(QVariantMap data);
@@ -198,6 +200,8 @@ signals:
 	void chapterModified(const int &id);
 	void chapterRemoved(const int &id);
 	void chapterSelected(const int &id);
+	void chapterImportFailed(const QString &errorString);
+	void chapterImportReady(const QVariantList &list);
 
 	void objectiveAdded(const int &rowid, const QString &uuid);
 	void objectiveModified(const QString &uuid);

@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Bacon2D 1.0
 import COS.Client 1.0
 import QtQuick.Controls.Material 2.12
@@ -424,94 +424,53 @@ Page {
 	}
 
 
-
-	ProgressBar {
-		id: progressHp
-		visible: game.player
-		anchors.top: parent.top
-		anchors.right: infoCol.right
-		anchors.topMargin: 7
-		width: 85
-		from: 0
-		to: game.player ? game.player.entityPrivate.defaultHp : 0
-		value: game.player ? game.player.entityPrivate.hp : 0
-
-		Material.accent: color
-
-		property color color: CosStyle.colorErrorLighter
-
-		Behavior on value {
-			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
-		}
-	}
-
-	DropShadow {
-		id: shadowInfoCol
-		anchors.fill: infoCol
-		source: infoCol
-		color: "black"
-		radius: 2
-		samples: 5
-		horizontalOffset: 1
-		verticalOffset: 1
-	}
-
-
 	Column {
-		id: infoCol
-
-		anchors.top: progressHp.bottom
 		anchors.right: parent.right
-		anchors.rightMargin: 7
-		anchors.topMargin: 7
+		anchors.top: parent.top
+		anchors.margins: 7
+		spacing: 5
 
-		spacing: 10
-
-		QLabel {
-			id: timeLabel
-
+		GameInfo {
 			anchors.right: parent.right
+			image.visible: false
+			color: CosStyle.colorErrorLighter
+			label.text: Math.floor(progressBar.value)+" HP"
+			progressBar.from: 0
+			progressBar.to: game.player ? game.player.entityPrivate.defaultHp : 0
+			progressBar.value: game.player ? game.player.entityPrivate.hp : 0
+		}
 
-			font.family: "HVD Peace"
+		GameInfo {
+			anchors.right: parent.right
 			color: CosStyle.colorPrimary
-			font.pixelSize: CosStyle.pixelSize*1.5
+			progressBar.from: 0
+			progressBar.to: 0
+			progressBar.value: secs
+			image.icon: CosStyle.iconClock1
 
 			property int secs: game.msecLeft/1000
 
-			text: JS.secToMMSS(secs)
+			onSecsChanged: if (secs>progressBar.to)
+							   progressBar.to = secs
+
+			label.text: JS.secToMMSS(secs)
 		}
 
-		Row {
-			id: enemyRow
 
+		GameInfo {
 			anchors.right: parent.right
+			color: CosStyle.colorAccentDarker
+			image.icon: "qrc:/internal/img/target2.svg"
+			label.text: Math.floor(progressBar.value)
 
-			spacing: 10
+			progressBar.from: 0
+			progressBar.to: 0
+			progressBar.value: enemies
 
-			QFontImage {
-				anchors.verticalCenter: parent.verticalCenter
-				icon: "qrc:/internal/img/target2.svg"
-				color: enemyLabel.color
-				size: CosStyle.pixelSize*1.4
-			}
+			property int enemies: game.activeEnemies
 
-			QLabel {
-				id: enemyLabel
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				font.family: "HVD Peace"
-				color: CosStyle.colorAccent
-				font.pixelSize: CosStyle.pixelSize*1.5
-
-				property int enemies: game.activeEnemies
-
-				text: enemies
-
-				Behavior on enemies {
-					NumberAnimation { duration: 125 }
-				}
-			}
+			onEnemiesChanged: if (enemies>progressBar.to)
+								  progressBar.to = enemies
 		}
 
 		GameButton {
@@ -544,6 +503,7 @@ Page {
 			}
 		}
 	}
+
 
 
 	VirtualJoystick {

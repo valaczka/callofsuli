@@ -103,5 +103,7 @@
         <file>GameQuestion_truefalse.qml</file>
         <file>QDialogGameSound.qml</file>
         <file>GameButton.qml</file>
+        <file>GameInfo.qml</file>
+        <file>QListTextFieldDelegate.qml</file>
     </qresource>
 </RCC>

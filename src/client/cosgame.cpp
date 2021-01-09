@@ -682,6 +682,8 @@ void CosGame::onGameFinishedSuccess()
 	if (!m_gameMatch || !m_activity || !m_activity->client())
 		return;
 
+	emit m_gameMatch->gameWin(m_gameMatch->missionUuid(), m_gameMatch->level());
+
 	Client *client = m_activity->client();
 
 	client->stopSound(m_backgroundMusicFile);
@@ -716,6 +718,8 @@ void CosGame::onGameFinishedLost()
 
 	if (!m_gameMatch || !m_activity || !m_activity->client())
 		return;
+
+	emit m_gameMatch->gameLose(m_gameMatch->missionUuid(), m_gameMatch->level());
 
 	Client *client = m_activity->client();
 
