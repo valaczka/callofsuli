@@ -3,22 +3,13 @@ Call of Suli
 
 Copyright (c) 2012-2021 - Valaczka János Pál
 
-# SMTP Client for Qt
+## Demo
 
-Copyright (c) 2011 - Tőkés Attila
-https://github.com/bluetiger9/SmtpClient-for-Qt
+Információk az elérhető android tesztverzióról: [Wiki/Demo](https://github.com/valaczka/callofsuli/wiki/Demo)
 
-# SortFilterProxyModel
+## References
 
-Copyright (c) 2016 - Pierre-Yves Siret
-https://github.com/oKcerG/SortFilterProxyModel
-
-# QtXlsxWriter
-
-Copyright (c) 2013-2014 Debao Zhang
-https://github.com/dbzhang800/QtXlsxWriter
-
-# QMLVirtualJoystick
-
-Copyright (c) 2014 Aaron Snoswell
-https://github.com/aaronsnoswell/QMLVirtualJoystick
+- [QMLVirtualJoystick](https://github.com/aaronsnoswell/QMLVirtualJoystick) (c) 2014 Aaron Snoswell
+- [QtXlsxWriter](https://github.com/dbzhang800/QtXlsxWriter) (c) 2013-2014 Debao Zhang
+- [SMTP Client for Qt](https://github.com/bluetiger9/SmtpClient-for-Qt) (c) 2011 - Tőkés Attila
+- [SortFilterProxyModel](https://github.com/oKcerG/SortFilterProxyModel) (c) 2016 - Pierre-Yves Siret
