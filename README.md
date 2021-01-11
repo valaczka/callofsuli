@@ -1,11 +1,7 @@
 # Call of Suli
 Call of Suli
 
-Copyright (c) 2012-2020 - Valaczka János Pál
-
-# Build
-
-git submodule update --init --recursive
+Copyright (c) 2012-2021 - Valaczka János Pál
 
 # SMTP Client for Qt
 
