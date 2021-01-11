@@ -10,7 +10,7 @@ import "Style"
 import "JScript.js" as JS
 
 
-Rectangle {
+Item {
 	id: control
 
 	property real size: 60
@@ -18,30 +18,51 @@ Rectangle {
 	property alias fontImage: fontImage
 	property alias tap: tap
 
+	property alias color: rect.color
+	property alias border: rect.border
+
+	width: rect.width
+	height: rect.height
 
 	signal clicked()
 
-	width: size
-	height: size
-	radius: size/2
+	Rectangle {
+		id: rect
 
-	border.width: 1
-	border.color: "black"
+		visible: false
 
-	color: "white"
+		width: size
+		height: size
+		radius: size/2
 
-	Behavior on color { ColorAnimation { duration: 75 } }
+		border.width: 1
+		border.color: "black"
 
-	QFontImage {
-		id: fontImage
-		anchors.centerIn: parent
-		color: "black"
-		size: control.size*fontImageScale
-		width: control.width
-		height: control.height
+		color: "white"
 
 		Behavior on color { ColorAnimation { duration: 75 } }
+
+		QFontImage {
+			id: fontImage
+			anchors.centerIn: parent
+			color: "black"
+			size: control.size*fontImageScale
+			width: control.width
+			height: control.height
+
+			Behavior on color { ColorAnimation { duration: 75 } }
+		}
 	}
+
+	Glow {
+		anchors.fill: rect
+		source: rect
+		color: "black"
+		radius: 2
+		spread: 0.3
+		samples: 5
+	}
+
 
 	TapHandler {
 		id: tap

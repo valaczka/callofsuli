@@ -12,7 +12,6 @@ Item {
 
 	property alias progressBar: progressBar
 	property alias label: label
-	//property alias shadow: shadow
 	property alias image: fontImage
 	property color color: CosStyle.colorAccent
 
@@ -30,8 +29,11 @@ Item {
 		verticalOffset: 1
 	}*/
 
+
+
 	Row {
 		id: txtRow
+		visible: false
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: progressBar.left
@@ -53,6 +55,15 @@ Item {
 			font.weight: Font.Bold
 			color: control.color
 		}
+	}
+
+	Glow {
+		anchors.fill: txtRow
+		source: txtRow
+		color: "black"
+		radius: 2
+		spread: 0.5
+		samples: 5
 	}
 
 	ProgressBar {

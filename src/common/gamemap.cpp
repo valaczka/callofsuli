@@ -1589,6 +1589,21 @@ bool GameMap::missionLocksToDb(CosDb *db) const
 		}
 	}
 
+	foreach (Mission *mis, orphanMissions()) {
+		foreach (MissionLock p, mis->locks()) {
+			QVariantMap m;
+			m["mission"] = QString(mis->uuid());
+			m["lock"] = QString(p.first->uuid());
+			if (p.second == -1)
+				m["level"] = QVariant::Invalid;
+			else
+				m["level"] = p.second;
+
+			if (db->execInsertQuery("INSERT INTO missionLocks (?k?) VALUES (?)", m) == -1)
+				return false;
+		}
+	}
+
 	return true;
 }
 

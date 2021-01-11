@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="105" height="25" tilewidth="32" tileheight="32" infinite="0" nextlayerid="79" nextobjectid="264">
+ <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
+  <image source="../tileset/hyptosis.png" width="960" height="3840"/>
+  <terraintypes>
+   <terrain name="StoneWall1" tile="475"/>
+   <terrain name="StoneWall2" tile="2457"/>
+   <terrain name="StoneWall3" tile="2644"/>
+   <terrain name="StoneWall4" tile="1094"/>
+   <terrain name="StoneWall5" tile="1097"/>
+   <terrain name="StoneWall7" tile="1774"/>
+   <terrain name="StoneWall8" tile="2554"/>
+  </terraintypes>
+  <tile id="312" terrain="0,0,0,0"/>
+  <tile id="375" terrain="0,0,0,0"/>
+  <tile id="402" terrain="0,0,0,0"/>
+  <tile id="475" terrain=",,,0"/>
+  <tile id="476" terrain=",,0,0"/>
+  <tile id="477" terrain=",,0,"/>
+  <tile id="504" terrain=",0,,0"/>
+  <tile id="505" terrain="0,0,0,0"/>
+  <tile id="506" terrain="0,,0,"/>
+  <tile id="507" terrain="0,0,0,0"/>
+  <tile id="534" terrain=",0,,"/>
+  <tile id="535" terrain="0,0,,"/>
+  <tile id="536" terrain="0,,,"/>
+  <tile id="537" terrain="0,0,0,0"/>
+  <tile id="642" terrain="0,0,0,0"/>
+  <tile id="882" terrain="0,0,0,0"/>
+  <tile id="1006" terrain="4,4,4,4"/>
+  <tile id="1036" terrain="4,4,4,4"/>
+  <tile id="1038" terrain="0,0,0,0"/>
+  <tile id="1039" terrain="0,0,0,0"/>
+  <tile id="1066" terrain="4,4,4,4"/>
+  <tile id="1068" terrain="0,0,0,0"/>
+  <tile id="1069" terrain="4,4,4,4"/>
+  <tile id="1092" terrain="3,3,3,3"/>
+  <tile id="1093" terrain="3,3,3,3"/>
+  <tile id="1094" terrain=",,,3"/>
+  <tile id="1095" terrain=",,3,3"/>
+  <tile id="1096" terrain=",,3,"/>
+  <tile id="1097" terrain=",,,4"/>
+  <tile id="1098" terrain=",,4,4"/>
+  <tile id="1099" terrain=",,4,"/>
+  <tile id="1122" terrain=",3,,"/>
+  <tile id="1123" terrain="3,3,3,3"/>
+  <tile id="1124" terrain=",3,,3"/>
+  <tile id="1126" terrain="3,,3,"/>
+  <tile id="1127" terrain=",4,,4"/>
+  <tile id="1129" terrain="4,,4,"/>
+  <tile id="1154" terrain=",3,,"/>
+  <tile id="1155" terrain="3,3,,"/>
+  <tile id="1156" terrain="3,,,"/>
+  <tile id="1157" terrain=",4,,"/>
+  <tile id="1158" terrain="4,4,,"/>
+  <tile id="1159" terrain="4,,,"/>
+  <tile id="1625" terrain="2,2,2,2"/>
+  <tile id="1626" terrain="2,,2,"/>
+  <tile id="1628" terrain=",,2,2"/>
+  <tile id="1629" terrain=",,2,"/>
+  <tile id="1655" terrain="2,2,,"/>
+  <tile id="1656" terrain="2,,,"/>
+  <tile id="1657" terrain="2,2,2,2"/>
+  <tile id="1658" terrain="2,2,2,2"/>
+  <tile id="1659" terrain=",,2,2"/>
+  <tile id="1723" terrain="4,4,4,4"/>
+  <tile id="1774" terrain=",,,5"/>
+  <tile id="1775" terrain=",,5,5"/>
+  <tile id="1776" terrain=",,5,"/>
+  <tile id="1777" terrain="5,5,5,5"/>
+  <tile id="1778" terrain="5,5,5,5"/>
+  <tile id="1804" terrain=",5,,5"/>
+  <tile id="1805" terrain="5,5,5,5"/>
+  <tile id="1806" terrain="5,,5,"/>
+  <tile id="1807" terrain="5,5,5,5"/>
+  <tile id="1808" terrain="5,5,5,5"/>
+  <tile id="1834" terrain=",5,,"/>
+  <tile id="1835" terrain="5,5,,"/>
+  <tile id="1836" terrain="5,,,"/>
+  <tile id="2289" terrain=",,6,6"/>
+  <tile id="2290" terrain=",,6,"/>
+  <tile id="2319" terrain="6,6,6,6"/>
+  <tile id="2320" terrain="6,,6,"/>
+  <tile id="2349" terrain="6,6,,"/>
+  <tile id="2350" terrain="6,,,"/>
+  <tile id="2454" terrain=",,1,1"/>
+  <tile id="2456" terrain=",,1,"/>
+  <tile id="2457" terrain=",,,1"/>
+  <tile id="2484" terrain="1,1,,"/>
+  <tile id="2485" terrain="1,1,,"/>
+  <tile id="2486" terrain="1,,,"/>
+  <tile id="2487" terrain=",1,,"/>
+  <tile id="2554" terrain=",,,6"/>
+  <tile id="2584" terrain=",6,,6"/>
+  <tile id="2614" terrain=",6,,"/>
+  <tile id="2644" terrain=",,,2"/>
+  <tile id="2674" terrain=",2,,2"/>
+  <tile id="2704" terrain=",2,,"/>
+ </tileset>
+ <layer id="76" name="1. csemperéteg" width="105" height="25">
+  <data encoding="base64" compression="zlib">
+   eJztWEFugzAQxAl3ckshb+ABvKsX3/MEvtf2H6YcyoodeUBJFSU4rdsdaWVCDNg73tm1i8JgMBgMBoMhX5z2szVktRr/Rh/0r688w/fX7z6t+tUX3r2+B/vPeHNF8X6Dfbi070/x7b+CMM2/2RXFMLWjWq/toNfSft7pp+P07pcHrd5tO+fcIBxV5Wzg5nU/t36ytpztXo4Mj+PWdf7f17LB8NuwRR1h9URaBK1FJM9J7hM7TNedm1upYTqtZZAT8X+l7aj/W55MA3DUqf9HvQZX4vtDGXlslZdBOYRVVsskQ6DYqCiWhIcz7QPAhdyrtJXnBu3nH9gTGL5HUP97qvsldsTvwlWjnIBDT3xhX4A9Qi4cbZmDn5GXwdFa08TnwlOjXPW6R+s190DzsK/OSeuCzkXmh/linba0TnFugD7Nbqn5WMttufTL1n4IqlGBOPAufh/1AvIU1wjQwhw5Yj2HxrOvURchR0PPoftn9UlbRr5T1U7BRV3DGFHTQcN6F2PMu2V9V2m/3DiCn9n38ANzwbHFuRd6z2d3QyLND8QHx89IXHXEFeoEHqfXvjlyhL0FYgr5F3qBdcrnpcwn85iqvg2kXYcyfutQxnFhHAONmfk867M5cdSQj1H7oGbivQVyFtZw72KfnjQO9VQqrUOMwvfgZnTLfS14RIxBD3LLR1uc/z/zPBX5Uzi59k3k1J7WDjTB0xrLhaPccLyBe8QyuBgphoQ77GmNo58DawNi6VLcbRnjXyEdABI=
+  </data>
+ </layer>
+ <layer id="77" name="2. csemperéteg" width="105" height="25">
+  <data encoding="base64" compression="zlib">
+   eJztWEtOwzAQdeqIbbMDO2fIoivIHVjDQdhk3yNE4nTAPVKyIKPOyBPXLs6HgNA8aWTHn3HrGc9PKYFAIBAIBAKB4G/gXiv1MIFq/du/WPBfUQ66ZQay2Jasz79LRsYbM6xvPX6ch/XW2cB++hY4vGVKvU+kj+y6nQGbMocv5y9w6Ib7OA103ClV5Ur12N8PfYttjWNAsPYz4Q5vh7V3M8nsfv5/c/C3XQbef8i2mCvEYb29vq3iLZEPkBHIoUVZkUyK3PVBbi/ayS1FRoIzptqTkA0BGcG9gywalA28l4K9H8u+m8R3JDijwzsjgvsEna+Y/tN4G7nbDtfDOwFZQNujrFpsYf6EvGJ8BGFMtfkhOz/Hb2ztLwTrw4+z/Vg7FstzfxzaayPr/b7PN+Szfb5GX/5uwTLMqTFM8d8p8X9I3lwXrL7UT3+P6MIYlGf0zHdTTtHieI+xbYrPXZIDbpkLxvIJbm9Ip9Y4x7dNIRsVq1NM8b0pPrdjca8fAxe5y1dOmLtULP4qNsxjUnVpqb6sbafWwJI8fcv4q0MdAd2g/InyYcoDUmsT351TZ04nKacAXWyysY5KbjAG5VdUl2hYXYLse433ds1vGn1ZE+HzVA+pUQfabFyjEhnF0WUu5yV9prujPLjHe5vrY8F2kYz2KIsjq43Q+6IaCZzl1+F9/xWrx8fyhJhfDe03OuyPQ7lCKNcgPDI6sPYQGI/1D2pcpyhQj0EuvGZRYZzUMf2n93bC+Za9E7JnLba0t8jdG6U5sq17nCM/vEbMleLr1j6H83/Sjp4XtKl+E3zjXB87de+Ss1J4v944Wvsc4E/6/wWJBjIG
+  </data>
+ </layer>
+ <layer id="78" name="3. csemperéteg" width="105" height="25">
+  <data encoding="base64" compression="zlib">
+   eJztmWlKxDAcxTMzwnx27uFyD5dvo97D5R4uoM4pVHD54hHsiNslagSXA/giLdaQ1LQxsaXvB4+W0iY0L/9/NiEIIYQQQgiJw/MwXNkSZb9Ap4Y61HNZeG56h3xzW2gfGbmtTuiNEyFjqY2ofmrqO6lHO6k4ULK19XT4M1aIneuZaveENAmVX5JsjlGXslxRZZxV+ehGez8v2yfftYU8T/hefyMpyf2uTDvghwux55Hk72Ffbh5cL8UjYVt/kQ4wLg7C3ddFH6vPAvql4k6fa4XKj4c9IY6gY2jSC1NHk3H10TUXhojjc/hyAV1CVwaP/nu/Rl8vhCZk7NXhDp7cQw/QI/RkiSPfNYMrseppG6/w5Q16hz46mOuaxhhxvAatQxtaTM/2hRj17d/m5y4uucAnJ+v7Kl3YAymyif/dgrahnezf5+DLPLQALZZ45EKaeWgbQ4rtXfVsrWxckoY5Vhl19+JNfU9azhLr1rOLb/agfegg+34JvixDK9Cqp0fEnU+KdmvK
+  </data>
+ </layer>
+ <objectgroup color="#ffaa00" id="16" name="Ground">
+  <object id="203" x="80.6667" y="281.333" width="1178.67" height="23.3333"/>
+  <object id="204" x="594" y="599.333" width="332.667" height="132"/>
+  <object id="205" x="756.667" y="504.667" width="1562.67" height="20"/>
+  <object id="206" x="1408" y="598" width="383.333" height="140"/>
+  <object id="207" x="923.333" y="694.667" width="484.667" height="18.6667"/>
+  <object id="208" x="1788.67" y="727.333" width="730" height="20.6667"/>
+  <object id="209" x="2638" y="728" width="647.333" height="22"/>
+  <object id="210" x="2608" y="538" width="546.667" height="19.3333"/>
+  <object id="211" x="2896" y="342.667" width="382.667" height="22.6667"/>
+  <object id="212" x="2160.67" y="344" width="606.667" height="21.3333"/>
+  <object id="213" x="1232.67" y="182.667" width="1314" height="21.3333"/>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="30" name="Enemies">
+  <object id="174" x="133.333" y="233.333">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="229" x="348.984" y="232">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-66.5262,21 396.14,21"/>
+  </object>
+  <object id="230" x="757.254" y="232">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-78.7961,21 469.203,21"/>
+  </object>
+  <object id="231" x="1556.78" y="132.333">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-57.6592,21 343.34,21"/>
+  </object>
+  <object id="232" x="1676" y="133.333">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="233" x="2014.73" y="136">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-70.9357,21 422.397,21"/>
+  </object>
+  <object id="234" x="2309.33" y="132">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="235" x="650.209" y="560">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-42.4176,21 252.582,21"/>
+  </object>
+  <object id="236" x="821.117" y="482.79">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-50.326,0.21 299.674,0.21"/>
+  </object>
+  <object id="237" x="1029.02" y="478.79">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-79.2275,0.21 471.772,0.21"/>
+  </object>
+  <object id="238" x="975" y="653">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="239" x="1200" y="651">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="240" x="1443.1" y="555">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-25.3067,21 150.693,21"/>
+  </object>
+  <object id="241" x="1704" y="458">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="242" x="2016" y="462">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="243" x="2320" y="687">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="244" x="1847" y="687">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="245" x="2200" y="306">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="249" x="2400.76" y="306">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-60.9663,21 363.033,21"/>
+  </object>
+  <object id="250" x="2954" y="488">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="251" x="2680" y="686">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+  <object id="252" x="2955.42" y="684">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-52.6266,21 313.373,21"/>
+  </object>
+  <object id="253" x="2922.47" y="300">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-16.6794,21 99.3202,21"/>
+  </object>
+  <object id="254" x="3081" y="302">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ff00ff" id="17" name="Ladders">
+  <object id="215" x="971" y="278" width="21" height="203">
+   <properties>
+    <property name="blockBottom" type="int" value="2"/>
+    <property name="blockTop" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="216" x="814" y="507" width="22" height="70"/>
+  <object id="217" x="1189" y="506" width="21" height="165"/>
+  <object id="218" x="1451" y="503" width="14" height="74"/>
+  <object id="219" x="2034" y="507" width="17" height="197"/>
+  <object id="220" x="2239" y="343" width="16" height="136">
+   <properties>
+    <property name="blockBottom" type="int" value="2"/>
+    <property name="blockTop" type="int" value="3"/>
+   </properties>
+  </object>
+  <object id="221" x="2396" y="183" width="16" height="136">
+   <properties>
+    <property name="blockBottom" type="int" value="3"/>
+    <property name="blockTop" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="222" x="2681" y="344" width="14" height="167"/>
+  <object id="224" x="2851" y="540" width="18" height="164"/>
+  <object id="225" x="3089" y="344" width="19" height="169"/>
+  <object id="228" x="1243.33" y="182.667" width="12.6667" height="72.6667"/>
+ </objectgroup>
+ <objectgroup id="18" name="Player">
+  <object id="177" x="1761.33" y="586">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="255" x="1266" y="165">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="256" x="2645" y="528">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="257" x="630.667" y="261.333">
+   <point/>
+  </object>
+  <object id="258" x="1141.33" y="681.333">
+   <point/>
+  </object>
+  <object id="259" x="1648" y="486.667">
+   <point/>
+  </object>
+  <object id="260" x="2238.67" y="166.667">
+   <point/>
+  </object>
+  <object id="261" x="2504" y="329.333">
+   <point/>
+  </object>
+  <object id="262" x="2264" y="706.667">
+   <point/>
+  </object>
+  <object id="263" x="3144" y="324">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

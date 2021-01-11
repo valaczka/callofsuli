@@ -66,12 +66,14 @@ Question::Question(GameMap::Objective *objective)
 
 QVariantMap Question::generate() const
 {
+	QVariantMap m;
 	if (m_module == "truefalse")
-		return generateTruefalse();
+		m = generateTruefalse();
 	else if (m_module == "simplechoice")
-		return generateSimplechoice();
-	else
-		return QVariantMap();
+		m = generateSimplechoice();
+
+	m["module"] = m_module;
+	return m;
 }
 
 
@@ -231,10 +233,7 @@ QStringList Question::objectiveDataToStringList(GameMap::Objective *objective, G
 
 QVariantMap Question::generateTruefalse() const
 {
-	QVariantMap m = m_data;
-	m["module"] = "truefalse";
-
-	return m;
+	return m_data;
 }
 
 
@@ -271,8 +270,51 @@ QStringList Question::toStringListTruefalse(const QVariantMap &data, const QStri
 
 QVariantMap Question::generateSimplechoice() const
 {
-	QVariantMap m = m_data;
-	m["module"] = "simplechoice";
+	QVariantMap m;
+
+	m["question"] = m_data.value("question").toString();
+
+	QString correct = m_data.value("correct").toString();
+
+	if (correct.isEmpty())
+		return m;
+
+	QStringList alist = m_data.value("answers").toStringList();
+
+	QVector<QPair<QString, bool>> options;
+	options.append(qMakePair(correct, true));
+
+	while (options.size() < 4 && alist.size()) {
+		if (alist.size() == 1) {
+			options.append(qMakePair(alist.at(0), false));
+			alist.clear();
+			break;
+		}
+
+		QString o = alist.takeAt(QRandomGenerator::global()->bounded(alist.size()));
+
+		options.append(qMakePair(o, false));
+	}
+
+	QVariantList oList;
+
+	while (options.size()) {
+		QPair<QString, bool> p;
+		if (options.size() > 1) {
+			p = options.takeAt(QRandomGenerator::global()->bounded(options.size()));
+		} else {
+			p = options.at(0);
+			options.clear();
+		}
+
+		QVariantMap o;
+		o["answer"] = p.first;
+		o["correct"] = p.second;
+		oList.append(o);
+	}
+
+
+	m["options"] = oList;
 
 	return m;
 }

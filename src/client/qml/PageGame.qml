@@ -194,6 +194,7 @@ Page {
 
 			onGameSceneLoaded: {
 				_sceneLoaded = true
+				cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
 			}
 
 			onGameSceneLoadFailed: {
@@ -621,7 +622,7 @@ Page {
 			game.setEnemiesMoving(false)
 			game.setRunning(false)
 
-			var d = JS.dialogMessageInfo(qsTr("Mission completed"), qsTr("Mission completed"))
+			var d = JS.dialogMessageInfo(qsTr("Game over"), qsTr("Mission completed"))
 			d.rejected.connect(function() {
 				_closeEnabled = true
 				mainStack.back()
@@ -817,7 +818,6 @@ Page {
 
 	StackView.onActivated: {
 		state = "start"
-		cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
 		game.loadScene()
 		gameActivity.prepare()
 	}

@@ -105,5 +105,7 @@
         <file>GameButton.qml</file>
         <file>GameInfo.qml</file>
         <file>QListTextFieldDelegate.qml</file>
+        <file>GameQuestionButton.qml</file>
+        <file>GameQuestion_simplechoice.qml</file>
     </qresource>
 </RCC>

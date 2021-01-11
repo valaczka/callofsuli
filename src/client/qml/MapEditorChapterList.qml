@@ -178,6 +178,8 @@ QPagePanel {
 
 			selectorSet = true
 
+			var sourceIndex = list.model.mapToSource(index)
+
 			var o = list.model.get(index)
 
 			if (o.type === 0) {
@@ -187,7 +189,7 @@ QPagePanel {
 				objectivesFilter.enabled = true
 			}
 
-			mapEditor.modelChapterList.select(list.model.mapToSource(index))
+			mapEditor.modelChapterList.select(sourceIndex)
 		}
 
 		onSelectorSetChanged: {

@@ -1,7 +1,7 @@
 INCLUDEPATH += $$PWD
 DEPENDPATH += $$PWD
 
-QT += core gui
+QT += core gui gui-private
 !build_xlsx_lib:DEFINES += XLSX_NO_LIB
 
 HEADERS += $$PWD/xlsxdocpropscore_p.h \

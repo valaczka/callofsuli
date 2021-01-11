@@ -13,7 +13,6 @@ Item {
 	implicitWidth: 800
 
 	property var questionData: null
-	property bool interactive: true
 
 	signal succeed()
 	signal failed()
@@ -52,25 +51,28 @@ Item {
 			anchors.centerIn: parent
 			spacing: 30
 
-			QButton {
+			property real buttonWidth: Math.min(Math.max(btnTrue.label.implicitWidth, btnFalse.label.implicitWidth, 120), control.width/2-40)
+
+			GameQuestionButton {
 				id: btnTrue
 				text: qsTr("Igaz")
-				icon.source: CosStyle.iconOK
-				onClicked: if (interactive) { answer(questionData.correct) }
+				onClicked: { answer(questionData.correct) }
+				width: row.buttonWidth
 			}
 
-			QButton {
+			GameQuestionButton {
 				id: btnFalse
 				text: qsTr("Hamis")
-				icon.source: CosStyle.iconCancel
-				onClicked: if (interactive) { answer(!questionData.correct) }
+				onClicked: { answer(!questionData.correct) }
+				width: row.buttonWidth
 			}
 		}
 	}
 
 
 	function answer(correct) {
-		interactive = false
+		btnTrue.interactive = false
+		btnFalse.interactive = false
 
 		if (correct)
 			succeed()
@@ -78,13 +80,11 @@ Item {
 			failed()
 
 		if (questionData.correct) {
-			btnTrue.themeColors = CosStyle.buttonThemeApply
-			btnFalse.enabled = false
-			btnTrue.forceActiveFocus()
+			btnTrue.type = GameQuestionButton.Correct
+			if (!correct) btnFalse.type = GameQuestionButton.Wrong
 		} else {
-			btnTrue.enabled = false
-			btnFalse.themeColors = CosStyle.buttonThemeApply
-			btnFalse.forceActiveFocus()
+			btnFalse.type = GameQuestionButton.Correct
+			if (!correct) btnTrue.type = GameQuestionButton.Wrong
 		}
 	}
 }
