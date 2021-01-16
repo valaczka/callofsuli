@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameactivity.h
+ * gamepickable.h
  *
- * Created on: 2020. 12. 23.
+ * Created on: 2021. 01. 15.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameActivity
+ * GamePickable
  *
  *  This file is part of Call of Suli.
  *
@@ -32,60 +32,44 @@
  * SOFTWARE.
  */
 
-#ifndef GAMEACTIVITY_H
-#define GAMEACTIVITY_H
+#ifndef GAMEPICKABLE_H
+#define GAMEPICKABLE_H
 
-#include "abstractactivity.h"
-#include "gameenemy.h"
-#include "gameenemydata.h"
 #include <QObject>
+#include "gameenemydata.h"
+#include "cosgame.h"
 
-class CosGame;
-
-class GameActivity : public AbstractActivity
+class GamePickable : public QObject
 {
 	Q_OBJECT
-
-	Q_PROPERTY(bool prepared READ prepared WRITE setPrepared NOTIFY preparedChanged)
+	Q_PROPERTY(GameEnemyData::PickableType type READ type WRITE setType NOTIFY typeChanged)
 	Q_PROPERTY(CosGame * game READ game WRITE setGame NOTIFY gameChanged)
-
+	Q_PROPERTY(QVariantMap data READ data WRITE setData NOTIFY dataChanged)
 
 public:
-	GameActivity(QQuickItem *parent = nullptr);
-	~GameActivity();
+	explicit GamePickable(QObject *parent = nullptr);
+	~GamePickable();
 
-	Q_INVOKABLE void prepare();
-	Q_INVOKABLE void createPickable(GameEnemy *enemy);
-
-	bool createTarget(GameEnemyData *enemyData, const int &block);
-
-	bool prepared() const { return m_prepared; }
+	GameEnemyData::PickableType type() const { return m_type; }
 	CosGame * game() const { return m_game; }
+	QVariantMap data() const { return m_data; }
 
 public slots:
-	void onEnemyKilled(GameEnemy *enemy);
-	void onEnemyKillMissed(GameEnemy *enemy);
-	void setPrepared(bool prepared);
+	void pick();
+	void setType(GameEnemyData::PickableType type);
 	void setGame(CosGame * game);
+	void setData(QVariantMap data);
 
 signals:
-	void prepareFailed();
-	void prepareSucceed();
-
-	void preparedChanged(bool prepared);
+	void picked();
+	void typeChanged(GameEnemyData::PickableType type);
 	void gameChanged(CosGame * game);
-
-protected slots:
-	//void clientSetup() override;
-	//void onMessageReceived(const CosMessage &message) override;
-	//void onMessageFrameReceived(const CosMessage &message) override;
-
-private slots:
-	void prepareDb(QVariantMap = QVariantMap());
+	void dataChanged(QVariantMap data);
 
 private:
-	bool m_prepared;
+	GameEnemyData::PickableType m_type;
 	CosGame * m_game;
+	QVariantMap m_data;
 };
 
-#endif // GAMEACTIVITY_H
+#endif // GAMEPICKABLE_H

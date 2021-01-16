@@ -178,6 +178,34 @@ bool GameScene::loadScene()
 		}
 	}
 
+	foreach (QPointF point, terrainData->playerPositions()) {
+		GameObject *item = new GameObject(this->parentItem());
+
+		qreal w = 20;
+		qreal h = 80;
+		qreal x = point.x()-w/2;
+		qreal y = point.y()-h/2;
+
+		item->setX(x);
+		item->setY(y);
+		item->setZ(0);
+		item->setWidth(w);
+		item->setHeight(h);
+		item->setVisible(true);
+		item->setDensity(1);
+		item->setRestitution(0);
+		item->setFriction(1);
+		item->setSensor(true);
+		item->setCategories(Box2DFixture::Category6);
+		item->setCollidesWith(Box2DFixture::Category3);
+
+		Box2DFixture *fixture = item->createRectangularFixture();
+
+		if (fixture) {
+			connect(fixture, &Box2DFixture::beginContact, m_game, &CosGame::setLastPosition);
+		}
+	}
+
 	emit sceneLoaded();
 
 	return true;

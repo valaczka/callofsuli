@@ -94,7 +94,7 @@ QVariantMap Question::objectivesMap()
 
 	m["truefalse"] = QVariantMap({
 									 { "name", QObject::tr("Igaz/hamis") },
-									 { "icon", "image://font/Material Icons/\ue163" }
+									 { "icon", "image://font/Academic/\uf12f" }
 								 });
 
 	return m;

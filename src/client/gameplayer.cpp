@@ -55,6 +55,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_soundEffectClimbNum(1)
 	, m_soundEffectWalkNum(1)
 	, m_soundEffectPainNum(1)
+	, m_pickable(nullptr)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -229,6 +230,7 @@ void GamePlayer::ladderClimbDown()
 			if (y+height >= m_ladder->boundRect().bottom() && spriteSequence) {
 				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdownend"));
 				setLadderMode(LadderClimbFinish);
+				parentEntity()->setY(m_ladder->boundRect().bottom()-height);
 			} else {
 				parentEntity()->setY(y);
 			}
@@ -283,6 +285,11 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 		}
 	}
 
+	GamePickable *pickable = qvariant_cast<GamePickable *>(object);
+
+	if (pickable) {
+		setPickable(pickable);
+	}
 }
 
 
@@ -306,6 +313,12 @@ void GamePlayer::onBodyEndContact(Box2DFixture *other)
 			setLadder(nullptr);
 			setLadderMode(LadderUnavaliable);
 		}
+	}
+
+	GamePickable *pickable = qvariant_cast<GamePickable *>(object);
+
+	if (pickable) {
+		setPickable(nullptr);
 	}
 }
 
@@ -373,6 +386,15 @@ void GamePlayer::setDefaultHp(int defaultHp)
 
 	m_defaultHp = defaultHp;
 	emit defaultHpChanged(m_defaultHp);
+}
+
+void GamePlayer::setPickable(GamePickable *pickable)
+{
+	if (m_pickable == pickable)
+		return;
+
+	m_pickable = pickable;
+	emit pickableChanged(m_pickable);
 }
 
 

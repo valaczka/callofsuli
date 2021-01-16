@@ -13,7 +13,7 @@ QPagePanel {
 	layoutFillWidth: false
 
 	title: qsTr("Pályák")
-	icon: CosStyle.iconUsers
+	icon: "image://font/AcademicI/\uf15f"
 
 	property alias list: list
 
@@ -96,11 +96,11 @@ QPagePanel {
 			size: Math.min(height*0.8, 32)
 
 			icon: if (model && model.upload)
-					  CosStyle.iconAdd
+					  "image://font/AcademicI/\uf114"
 				  else if (model && model.download)
-					  CosStyle.iconDown
+					  "image://font/School/\uf137"
 				  else
-					  CosStyle.iconOK
+					  "image://font/Academic/\uf118"
 
 			visible: model
 
@@ -225,7 +225,7 @@ QPagePanel {
 	Action {
 		id: actionRename
 		text: qsTr("Átnevezés")
-		icon.source: CosStyle.iconAdd
+		icon.source: CosStyle.iconRename
 		enabled: !teacherMaps.isBusy && list.currentIndex !== -1
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
@@ -244,7 +244,7 @@ QPagePanel {
 	Action {
 		id: actionDownload
 		text: qsTr("Letöltés")
-		icon.source: CosStyle.iconDown
+		icon.source: CosStyle.iconDownload
 		enabled: !teacherMaps.isBusy && (list.currentIndex !== -1 || teacherMaps.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
@@ -261,7 +261,7 @@ QPagePanel {
 	Action {
 		id: actionUpload
 		text: qsTr("Feltöltés")
-		icon.source: CosStyle.iconUnchecked
+		icon.source: CosStyle.iconUploadCloud
 		enabled: !teacherMaps.isBusy && (list.currentIndex !== -1 || teacherMaps.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)

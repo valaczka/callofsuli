@@ -45,6 +45,7 @@ GameTerrain::GameTerrain(QList<TiledPaintedLayer *> *tiledLayers, QQuickItem *ti
 	, m_ladders()
 	, m_blocks()
 	, m_groundObjects()
+	, m_playerPositions()
 	, m_tmxFile()
 	, m_map(nullptr)
 	, m_tiledLayers(tiledLayers)
@@ -299,7 +300,7 @@ void GameTerrain::loadPlayerLayer(Tiled::Layer *layer)
 			GameBlock *b = getBlock(block);
 			b->addPlayerPosition(QPointF(x, y));
 		} else
-			qWarning() << "Invalid block" << block;
+			m_playerPositions.append(QPointF(x, y));
 	}
 
 }
@@ -355,6 +356,9 @@ void GameTerrain::loadLadderLayer(Tiled::Layer *layer)
 		m_ladders.append(ladder);
 	}
 }
+
+
+
 
 
 

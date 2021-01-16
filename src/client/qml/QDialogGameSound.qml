@@ -20,7 +20,7 @@ QDialogPanel {
 
 	title: qsTr("Hangerő beállítása")
 
-	icon: CosStyle.iconSetup
+	icon: CosStyle.iconPreferences
 
 	titleColor: CosStyle.colorPrimary
 

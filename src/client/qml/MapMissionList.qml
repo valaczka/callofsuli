@@ -12,7 +12,7 @@ QPagePanel {
 	layoutFillWidth: true
 
 	title: qsTr("Küldetések")
-	icon: CosStyle.iconUsers
+	icon: "image://font/School/\uf19d"
 
 	property alias list: list
 

@@ -13,7 +13,7 @@ QPagePanel {
 	layoutFillWidth: false
 
 	title: qsTr("Célpontok")
-	icon: CosStyle.iconUsers
+	icon: "image://font/AcademicI/\uf203"
 
 	contextMenuFunc: function (m) {
 		m.addAction(actionChapterNew)

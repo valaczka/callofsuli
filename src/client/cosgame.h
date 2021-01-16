@@ -48,6 +48,7 @@
 class GamePlayer;
 class GameQuestion;
 class GameActivity;
+struct GameInventoryPickable;
 
 class CosGame : public Game
 {
@@ -125,6 +126,9 @@ public slots:
 	void startGame();
 	void abortGame();
 
+	void resetHp();
+	void addSecs(const int &secs);
+
 	void setGameData(QVariantMap gameData);
 
 	void setPlayer(QQuickItem * player);
@@ -186,6 +190,8 @@ signals:
 private:
 	void loadGameData();
 	QStringList loadSoldierData();
+	void loadPickables();
+	void setPickables(QVector<GameEnemyData *> *enemyList, const int &block);
 
 	QVariantMap m_gameData;
 	QQuickItem * m_player;
@@ -204,6 +210,34 @@ private:
 	QTimer *m_matchTimer;
 	bool m_isStarted;
 	QString m_backgroundMusicFile;
+	QMap<int, QVector<GameInventoryPickable>> m_inventoryPickableList;
+};
+
+
+/**
+ * @brief The GameInventoryPickable struct
+ */
+
+struct GameInventoryPickable {
+	GameInventoryPickable(GameEnemyData::PickableType type, QVariantMap data, int count) :
+		type(type), data(data), count(count) {};
+
+	GameInventoryPickable(GameEnemyData::PickableType type, int count) :
+		type(type), data(), count(count) {};
+
+	GameInventoryPickable(GameEnemyData::PickableType type) :
+		type(type), data(), count(1) {};
+
+	/*friend inline bool operator== (const GameInventoryPickable &b1, const GameInventoryPickable &b2) {
+		return b1.type == b2.type &&
+				b1.data == b2.data &&
+				b1.count == b2.count;
+	}*/
+
+	GameEnemyData::PickableType type;
+	QVariantMap data;
+	int count;
+
 };
 
 #endif // COSGAME_H

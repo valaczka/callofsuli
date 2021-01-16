@@ -57,6 +57,9 @@ class GameEnemyData : public QObject
 	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
 	Q_PROPERTY(QQuickItem * enemy READ enemy NOTIFY enemyChanged)
 
+	Q_PROPERTY(PickableType pickableType READ pickableType WRITE setPickableType NOTIFY pickableTypeChanged)
+	Q_PROPERTY(QVariantMap pickableData READ pickableData WRITE setPickableData NOTIFY pickableDataChanged)
+
 
 public:
 
@@ -67,7 +70,30 @@ public:
 
 	Q_ENUM(EnemyType)
 
+	enum PickableType {
+		PickableInvalid,
+		PickableHealth,
+		PickableTime
+	};
+
+	Q_ENUM(PickableType)
+
+
+	struct InventoryType {
+		InventoryType(QString name, PickableType type, QVariantMap data) :
+			name(name), type(type), data(data) {}
+
+		InventoryType() :
+			name(), type(PickableInvalid), data() {}
+
+		QString name;
+		PickableType type;
+		QVariantMap data;
+	};
+
 	explicit GameEnemyData(QObject *parent = nullptr);
+
+	static QHash<QByteArray, InventoryType> inventoryTypes();
 
 	QRectF boundRect() const { return m_boundRect; }
 	bool active() const { return m_active; }
@@ -78,6 +104,8 @@ public:
 	GameEnemy * enemyPrivate() const;
 	int targetId() const { return m_targetId; }
 	QByteArray objectiveUuid() const { return m_objectiveUuid; }
+	PickableType pickableType() const { return m_pickableType; }
+	QVariantMap pickableData() const { return m_pickableData; }
 
 public slots:
 	void setBoundRect(QRectF boundRect);
@@ -90,6 +118,8 @@ public slots:
 	void setTargetId(int targetId);
 	void setObjectiveUuid(QByteArray objectiveUuid);
 	QVariant generateQuestion();
+	void setPickableType(PickableType pickableType);
+	void setPickableData(QVariantMap pickableData);
 
 signals:
 	void boundRectChanged(QRectF boundRect);
@@ -99,6 +129,8 @@ signals:
 	void enemyTypeChanged(EnemyType enemyType);
 	void targetIdChanged(int targetId);
 	void objectiveUuidChanged(QByteArray objectiveUuid);
+	void pickableTypeChanged(PickableType pickableType);
+	void pickableDataChanged(QVariantMap pickableData);
 
 private:
 	QRectF m_boundRect;
@@ -108,6 +140,8 @@ private:
 	EnemyType m_enemyType;
 	int m_targetId;
 	QByteArray m_objectiveUuid;
+	PickableType m_pickableType;
+	QVariantMap m_pickableData;
 };
 
 #endif // GAMEENEMY_H

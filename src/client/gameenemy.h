@@ -69,6 +69,9 @@ public:
 	bool aimedByPlayer() const { return m_aimedByPlayer; }
 	int msecBetweenAttack() const { return m_msecBetweenAttack; }
 
+	int block() const { return m_block; }
+	void setBlock(int block) { m_block = block; }
+
 public slots:
 	void killByPlayer(GamePlayer *player);
 	void missedByPlayer(GamePlayer *player);
@@ -95,7 +98,7 @@ private slots:
 signals:
 	void attack();
 	void killed(GameEnemy *enemy);
-	void killMissed();
+	void killMissed(GameEnemy *enemy);
 	void movingChanged(bool moving);
 	void armedChanged(bool armed);
 	void enemyDataChanged(GameEnemyData * enemyData);
@@ -120,6 +123,7 @@ protected:
 	int m_msecBeforeAttack;
 	int m_msecBetweenAttack;
 	bool m_aimedByPlayer;
+	int m_block;
 
 };
 

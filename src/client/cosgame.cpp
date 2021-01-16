@@ -67,6 +67,7 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_matchTimer(new QTimer(this))
 	, m_isStarted(false)
 	, m_backgroundMusicFile("qrc:/sound/music/default_bg_music.mp3")
+	, m_inventoryPickableList()
 {
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
 	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
@@ -145,6 +146,8 @@ void CosGame::recreateEnemies()
 
 	qDebug() << "Recreate enemies";
 
+	QVector<GameEnemyData *> allEnemyDataList;
+
 	QMap<int, GameBlock *> b = m_terrainData->blocks();
 	QMap<int, GameBlock *>::const_iterator it;
 
@@ -158,6 +161,8 @@ void CosGame::recreateEnemies()
 		}
 
 		qDebug() << "Create enemies for block" << it.key() << block;
+
+		QVector<GameEnemyData *> enemyDataList;
 
 		foreach (GameEnemyData *data, block->enemies()) {
 			if (data->enemy())
@@ -191,19 +196,30 @@ void CosGame::recreateEnemies()
 
 				if (ep) {
 					ep->setEnemyData(data);
+					ep->setBlock(it.key());
 
-					if (m_activity)
+					if (m_activity) {
 						connect(ep, &GameEnemy::killed, m_activity, &GameActivity::onEnemyKilled);
+						connect(ep, &GameEnemy::killMissed, m_activity, &GameActivity::onEnemyKillMissed);
+					}
 
 					connect(ep, &GameEnemy::killed, this, &CosGame::recalculateActiveEnemies);
 				}
 
 				resetEnemy(data);
+
+				enemyDataList.append(data);
 			}
 		}
 
+		setPickables(&enemyDataList, it.key());
+
+		allEnemyDataList.append(enemyDataList);
+
 		block->recalculateActiveEnemies();
 	}
+
+	setPickables(&allEnemyDataList, -1);
 
 	recalculateActiveEnemies();
 }
@@ -543,6 +559,8 @@ void CosGame::startGame()
 	m_msecLeft = m_gameMatch->duration()*1000;
 	emit msecLeftChanged(m_msecLeft);
 
+	loadPickables();
+
 	recreateEnemies();
 
 	setIsPrepared(true);
@@ -560,6 +578,41 @@ void CosGame::abortGame()
 	setRunning(false);
 	emit gameAbortRequest();
 }
+
+
+/**
+ * @brief CosGame::resetHp
+ */
+
+void CosGame::resetHp()
+{
+	if (!m_player || !m_gameMatch) {
+		qWarning() << "Invalid player or game match";
+		return;
+	}
+
+	GamePlayer *pl = qvariant_cast<GamePlayer *>(m_player->property("entityPrivate"));
+	if (!pl) {
+		qWarning() << "Invalid player";
+		return;
+	}
+
+	pl->setHp(m_gameMatch->startHp());
+}
+
+
+
+/**
+ * @brief CosGame::addSecs
+ * @param secs
+ */
+
+void CosGame::addSecs(const int &secs)
+{
+	m_msecLeft += secs*1000;
+}
+
+
 
 
 /**
@@ -806,6 +859,85 @@ QStringList CosGame::loadSoldierData()
 }
 
 
+/**
+ * @brief CosGame::loadPickables
+ */
+
+void CosGame::loadPickables()
+{
+	if (!m_gameMatch)
+		return;
+
+	GameMap::MissionLevel *level = m_gameMatch->missionLevel();
+
+	if (!level)
+		return;
+
+	QHash<QByteArray, GameEnemyData::InventoryType> inventoryTypes = GameEnemyData::inventoryTypes();
+
+	foreach (GameMap::Inventory *inventory, level->inventories()) {
+		QByteArray module = inventory->module();
+		if (!inventoryTypes.contains(module)) {
+			qWarning() << "Invalid inventory module" << module;
+			continue;
+		}
+
+		int block = inventory->block();
+		int count = inventory->count();
+		GameEnemyData::InventoryType t = inventoryTypes.value(module);
+
+		if (block < 1)
+			block = -1;
+
+		if (!m_inventoryPickableList.contains(block)) {
+			m_inventoryPickableList[block] = QVector<GameInventoryPickable>();
+		}
+
+		m_inventoryPickableList[block].append(GameInventoryPickable(t.type, t.data, count));
+	}
+}
+
+
+
+/**
+ * @brief CosGame::setPickables
+ * @param enemyList
+ * @param block
+ */
+
+void CosGame::setPickables(QVector<GameEnemyData *> *enemyList, const int &block)
+{
+	if (!enemyList || !m_inventoryPickableList.contains(block))
+		return;
+
+	QVector<GameInventoryPickable> &list = m_inventoryPickableList[block];
+
+	while (!enemyList->isEmpty()) {
+		bool hasPickable = false;
+
+		for (int i=0; i<list.size() && !enemyList->isEmpty(); i++) {
+			if (!list[i].count)
+				continue;
+
+			GameEnemyData *e = enemyList->takeAt(QRandomGenerator::global()->bounded(enemyList->size()));
+
+			e->setPickableType(list[i].type);
+			e->setPickableData(list[i].data);
+
+			list[i].count--;
+
+			if (list[i].count)
+				hasPickable = true;
+		}
+
+		if (!hasPickable)
+			break;
+	}
+
+	return;
+}
+
+
 
 
 
@@ -882,10 +1014,6 @@ bool CosGame::loadTerrainData()
 			setBackgroundMusicFile("qrc:/terrain/"+terrain+"/"+bgMusic);
 	}
 
-	/*foreach (GameBlock *block, m_terrainData->blocks()) {
-		connect(block, &GameBlock::completedChanged, this, &CosGame::recalculateBlocks);
-	}*/
-
 	return true;
 }
 
@@ -924,5 +1052,6 @@ void CosGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 
 	m_question->run();
 }
+
 
 

@@ -45,6 +45,7 @@ SOURCES += \
 		gameladder.cpp \
 		gamematch.cpp \
 		gameobject.cpp \
+		gamepickable.cpp \
 		gameplayer.cpp \
 		gamequestion.cpp \
 		gamescene.cpp \
@@ -82,6 +83,7 @@ HEADERS += \
 	gameladder.h \
 	gamematch.h \
 	gameobject.h \
+	gamepickable.h \
 	gameplayer.h \
 	gamequestion.h \
 	gamescene.h \

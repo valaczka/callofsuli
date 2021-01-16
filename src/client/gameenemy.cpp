@@ -51,6 +51,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	, m_msecBeforeAttack(5000)
 	, m_msecBetweenAttack(3000)
 	, m_aimedByPlayer(false)
+	, m_block(0)
 {
 	connect(this, &GameEnemy::cosGameChanged, this, &GameEnemy::onGameChanged);
 
@@ -147,7 +148,7 @@ void GameEnemy::missedByPlayer(GamePlayer *player)
 	else if (playerX > meX && facingLeft)
 		parentEntity()->setProperty("facingLeft", false);
 
-	emit killMissed();
+	emit killMissed(this);
 
 	player->attackFailed(this);
 }
@@ -253,6 +254,10 @@ void GameEnemy::onPlayerDied()
 	m_attackTimerElapsed = 0;
 	emit msecLeftAttackChanged();
 }
+
+
+
+
 
 
 

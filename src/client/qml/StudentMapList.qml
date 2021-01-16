@@ -13,7 +13,7 @@ QPagePanel {
 	layoutFillWidth: false
 
 	title: qsTr("Pályák")
-	icon: CosStyle.iconUsers
+	icon: "image://font/School/\uf19d"
 
 	property alias list: list
 
@@ -53,9 +53,9 @@ QPagePanel {
 			size: Math.min(height*0.8, 32)
 
 			icon: if (model && model.downloaded)
-					  CosStyle.iconOK
+					  "image://font/School/\uf19d"
 				  else
-					  CosStyle.iconDown
+					  CosStyle.iconDownloadCloud
 
 			visible: model
 
@@ -132,7 +132,7 @@ QPagePanel {
 	Action {
 		id: actionDownload
 		text: qsTr("Letöltés")
-		icon.source: CosStyle.iconDown
+		icon.source: CosStyle.iconDownload
 		enabled: !studentMaps.isBusy && (list.currentIndex !== -1 || studentMaps.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)

@@ -16,7 +16,7 @@ QPagePanel {
 	layoutFillWidth: true
 
 	title: objectiveUuid.length ? qsTr("Célpont") : ""
-	icon: CosStyle.iconUsers
+	icon: "image://font/Academic/\uf1ca"
 
 
 	contextMenuFunc: function (m) {

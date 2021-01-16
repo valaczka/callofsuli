@@ -79,12 +79,18 @@ QtObject {
 	property string iconSave: "image://font/Material Icons/\ue161"
 	property string iconSend: "image://font/Material Icons/\ue163"
 	property string iconEdit: "image://font/Material Icons/\ue254"
+	property string iconRename: "image://font/Material Icons/\ue23c"
 	property string iconOK: "image://font/Material Icons/\ue5ca"
 	property string iconDown: "image://font/Material Icons/\ue5c5"
 	property string iconDialogQuestion: "image://font/Material Icons/\ue887"
 	property string iconDialogInfo: "image://font/Material Icons/\ue88f"
 	property string iconDialogWarning: "image://font/Material Icons/\ue002"
 	property string iconDialogError: "image://font/Material Icons/\ue000"
+
+	property string iconUploadCloud: "image://font/Material Icons/\ue2c3"
+	property string iconDownloadCloud: "image://font/Material Icons/\ue2c0"
+	property string iconUpload: "image://font/Material Icons/\ue2c6"
+	property string iconDownload: "image://font/Material Icons/\ue2c4"
 
 	property string iconPlay: "image://font/Material Icons/\ue037"
 

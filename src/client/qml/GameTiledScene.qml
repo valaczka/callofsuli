@@ -18,6 +18,7 @@ Scene {
 	height: scenePrivate.implicitHeight
 
 	property alias scenePrivate: scenePrivate
+	property bool showPickables: false
 
 
 
@@ -89,6 +90,17 @@ Scene {
 				break;
 			case Qt.Key_Space:
 				game.player.entityPrivate.attackByGun()
+				break;
+			case Qt.Key_Enter:
+			case Qt.Key_Return:
+				if (game.player.entityPrivate.pickable) {
+					game.player.entityPrivate.pickable.pick()
+					game.player.entityPrivate.pickable = null
+				}
+				break;
+			case Qt.Key_F10:
+				showPickables = true
+				break
 			}
 		}
 
@@ -114,6 +126,9 @@ Scene {
 				if(!event.isAutoRepeat)
 					game.player.stopMoving();
 				break;
+			case Qt.Key_F10:
+				showPickables = false
+				break
 
 
 				/* -------------------- Cheats -------------------- */
@@ -178,6 +193,18 @@ Scene {
 	}
 
 
+	Component {
+		id: pickableComponentHealth
+		GamePickableHealth { }
+	}
+
+	Component {
+		id: pickableComponentTime
+		GamePickableTime { }
+	}
+
+
+
 	function createPlayer() : Item {
 		if (!game.player) {
 			var p = playerComponent.createObject(scene)
@@ -234,5 +261,33 @@ Scene {
 
 							return obj
 						}
-					}
 
+
+
+
+	function createPickable(pickableType: int, pickableData) : Item {
+		if (!game)
+			return
+
+		var obj = null
+
+		switch (pickableType) {
+			case GameEnemyData.PickableHealth:
+				obj = pickableComponentHealth.createObject(scene, {
+															   cosGame: game,
+															   pickableData: pickableData
+														   })
+				break
+
+			case GameEnemyData.PickableTime:
+				obj = pickableComponentTime.createObject(scene, {
+															   cosGame: game,
+															   pickableData: pickableData
+														   })
+				break
+		}
+
+		return obj
+	}
+
+}

@@ -33,6 +33,7 @@
  */
 
 #include <QDebug>
+#include <qhash.h>
 #include "gameenemydata.h"
 #include "gameenemy.h"
 #include "question.h"
@@ -46,8 +47,35 @@ GameEnemyData::GameEnemyData(QObject *parent)
 	, m_enemyType(EnemySoldier)
 	, m_targetId(-1)
 	, m_objectiveUuid()
+	, m_pickableType(PickableInvalid)
+	, m_pickableData()
 {
 
+}
+
+
+/**
+ * @brief GameEnemyData::inventoryTypes
+ * @return
+ */
+
+QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
+{
+	QHash<QByteArray, GameEnemyData::InventoryType> list;
+
+	list["health"] = InventoryType(tr("HP visszatöltése"),
+								   PickableHealth,
+								   QVariantMap());
+
+	list["time1"] = InventoryType(tr("1 perc hozzáadása"),
+								  PickableTime,
+								  QVariantMap({{"text", "+01:00"}, {"secs", 60}}));
+
+	list["time2"] = InventoryType(tr("2 perc hozzáadása"),
+								  PickableTime,
+								  QVariantMap({{"text", "+02:00"}, {"secs", 120}}));
+
+	return list;
 }
 
 
@@ -163,25 +191,18 @@ QVariant GameEnemyData::generateQuestion()
 {
 	GameEnemy *e = enemyPrivate();
 
-	qDebug() << this << "GENERATE TARGET" << m_objectiveUuid << e;
-
 	GameMap *gameMap = nullptr;
 
 	if (e) {
 		CosGame *g = e->cosGame();
-		qDebug() << "GAME" << g;
 		if (g) {
 			GameMatch *m = g->gameMatch();
-
-			qDebug() << "GAME MATCH"  << m;
 
 			if (m) {
 				gameMap = m->gameMap();
 			}
 		}
 	}
-
-	qDebug() << this << "GENERATE TARGET" << gameMap;
 
 	if (m_objectiveUuid.isEmpty() || !gameMap)
 		return QVariantMap();
@@ -197,8 +218,24 @@ QVariant GameEnemyData::generateQuestion()
 
 	QVariantMap m = q.generate();
 
-	qDebug() << m;
-
 	return m;
+}
+
+void GameEnemyData::setPickableType(GameEnemyData::PickableType pickableType)
+{
+	if (m_pickableType == pickableType)
+		return;
+
+	m_pickableType = pickableType;
+	emit pickableTypeChanged(m_pickableType);
+}
+
+void GameEnemyData::setPickableData(QVariantMap pickableData)
+{
+	if (m_pickableData == pickableData)
+		return;
+
+	m_pickableData = pickableData;
+	emit pickableDataChanged(m_pickableData);
 }
 

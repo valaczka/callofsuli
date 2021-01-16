@@ -15,8 +15,10 @@ GameEntity {
 
 	entityPrivate: ep
 
-	glowColor: CosStyle.colorGlowEnemy
-	glowEnabled: ep.aimedByPlayer
+	property bool showPickable: false
+
+	glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
+	glowEnabled: ep.aimedByPlayer || showPickable
 
 	GameEnemySoldierPrivate {
 		id: ep
@@ -44,6 +46,16 @@ GameEntity {
 		onRayCastPerformed: {
 			if (cosGame.gameScene.debug)
 				setray(rect)
+		}
+
+		Connections {
+			target: ep.cosGame ? ep.cosGame.gameScene : null
+			function onShowPickablesChanged() {
+				if (ep.cosGame.gameScene.showPickables && ep.enemyData.pickableType != GameEnemyData.PickableInvalid)
+					showPickable = true
+				else
+					showPickable = false
+			}
 		}
 	}
 
@@ -103,5 +115,6 @@ GameEntity {
 			}
 		}
 	}
+
 }
 

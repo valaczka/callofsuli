@@ -107,5 +107,8 @@
         <file>QListTextFieldDelegate.qml</file>
         <file>GameQuestionButton.qml</file>
         <file>GameQuestion_simplechoice.qml</file>
+        <file>GamePickable.qml</file>
+        <file>GamePickableHealth.qml</file>
+        <file>GamePickableTime.qml</file>
     </qresource>
 </RCC>

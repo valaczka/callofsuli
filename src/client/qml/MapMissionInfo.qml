@@ -14,8 +14,8 @@ QPagePanel {
 	property int selectedMissionIndex: -1
 	property var selectedData: null
 
-	title: selectedData ? qsTr("Küldetés") : ""
-	icon: CosStyle.iconUser
+	title: selectedData ? selectedData.name : ""
+	icon: "image://font/School/\uf1c4"
 
 	Connections {
 		target: studentMaps

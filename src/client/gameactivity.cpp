@@ -157,14 +157,42 @@ void GameActivity::onEnemyKilled(GameEnemy *enemy)
 {
 	qDebug() << "ENEMY DIED" << enemy;
 
+	createPickable(enemy);
+
 	if (enemy && enemy->enemyData()) {
 		int target = enemy->enemyData()->targetId();
 		enemy->enemyData()->setTargetId(-1);
 		enemy->enemyData()->setObjectiveUuid(QByteArray());
+		enemy->enemyData()->setPickableType(GameEnemyData::PickableInvalid);
+		enemy->enemyData()->setPickableData(QVariantMap());
 
 		QVariantList l;
 		l.append(target);
 		db()->execSimpleQuery("UPDATE targets SET block=null WHERE id=?", l);
+	}
+
+
+}
+
+
+
+/**
+ * @brief GameActivity::onEnemyKillMissed
+ * @param enemy
+ */
+
+void GameActivity::onEnemyKillMissed(GameEnemy *enemy)
+{
+	if (enemy && enemy->enemyData()) {
+		GameEnemyData *data = enemy->enemyData();
+		int target = data->targetId();
+		data->setTargetId(-1);
+		data->setObjectiveUuid(QByteArray());
+		QVariantList l;
+		l.append(target);
+		db()->execSimpleQuery("UPDATE targets SET block=null WHERE id=?", l);
+
+		createTarget(data, enemy->block());
 	}
 }
 
@@ -278,4 +306,57 @@ void GameActivity::prepareDb(QVariantMap)
 	emit prepareSucceed();
 
 	setPrepared(true);
+}
+
+
+
+
+
+
+
+/**
+ * @brief GameActivity::createPickable
+ * @param data
+ */
+
+
+void GameActivity::createPickable(GameEnemy *enemy)
+{
+	if (!m_game || !enemy->enemyData())
+		return;
+
+	GameEnemyData *enemyData = enemy->enemyData();
+
+	if (enemyData->pickableType() == GameEnemyData::PickableInvalid)
+		return;
+
+	qreal x=0, y=0;
+	QVariantMap d = enemyData->pickableData();
+
+	if (enemy) {
+		Entity *p = enemy->parentEntity();
+
+		if (p) {
+			x = p->x();
+			y = p->y();
+		}
+
+		Box2DBox *box = enemy->boundBox();
+
+		if (box) {
+			x += box->x()+box->width()/2;
+			y += box->y()+box->height();
+		}
+	}
+
+	d["bottomPoint"] = QPointF(x,y);
+
+	QQuickItem *item = nullptr;
+
+	QMetaObject::invokeMethod(m_game->gameScene(), "createPickable", Qt::DirectConnection,
+							  Q_RETURN_ARG(QQuickItem *, item),
+							  Q_ARG(int, enemyData->pickableType()),
+							  Q_ARG(QVariant, d)
+							  );
+
 }

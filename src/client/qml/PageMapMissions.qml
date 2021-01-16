@@ -12,6 +12,8 @@ QPage {
 
 	property bool demoMode: false
 
+	property var _oldVisibility: null
+
 	property StudentMaps studentMaps: null
 
 	StudentMaps {
@@ -64,6 +66,16 @@ QPage {
 			m.addAction(actionSave)
 		}*/
 
+
+	Component.onCompleted: {
+		_oldVisibility = mainWindow.visibility
+		mainWindow.visibility = "FullScreen"
+	}
+
+	Component.onDestruction: {
+		if (_oldVisibility != null)
+			mainWindow.visibility = _oldVisibility
+	}
 
 
 	onPageActivated: {

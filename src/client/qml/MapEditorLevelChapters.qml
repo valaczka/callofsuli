@@ -12,7 +12,7 @@ QPagePanel {
 	layoutFillWidth: true
 
 	title: qsTr("Feladatelosztás")
-	icon: CosStyle.iconUsers
+	icon: "image://font/Academic/\uf15a"
 
 	property int mapId: -1
 

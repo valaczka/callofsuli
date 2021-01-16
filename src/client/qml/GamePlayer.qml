@@ -347,38 +347,45 @@ GameEntity {
 
 	function moveUp() {
 		if(!ep.cosGame.running || !ep.isAlive)
-			return
+			return false
 
 		if (isFalling)
-			return
+			return false
 
 		if (ep.ladderMode == GamePlayerPrivate.LadderUpAvailable) {
 			timerClimb.nextSprite = ""
 			ep.ladderClimbUp()
+			return true
 		} else if (ep.ladderMode == GamePlayerPrivate.LadderClimb) {
 			timerClimb.nextSprite = ""
 			if (spriteSequence.currentSprite != "climbup2" && spriteSequence.currentSprite != "climbup3" && spriteSequence.currentSprite != "climbupend")
 				spriteSequence.jumpTo("climbup2")
+			return true
 		}
 
+		return false
 	}
 
 
 	function moveDown() {
 		if(!ep.cosGame.running || !ep.isAlive)
-			return
+			return false
 
 		if (isFalling)
-			return
+			return false
 
 		if (ep.ladderMode == GamePlayerPrivate.LadderDownAvailable) {
 			timerClimb.nextSprite = ""
 			ep.ladderClimbDown()
+			return true
 		} else if (ep.ladderMode == GamePlayerPrivate.LadderClimb) {
 			timerClimb.nextSprite = ""
 			if (spriteSequence.currentSprite != "climbdown2" && spriteSequence.currentSprite != "climbdown3" && spriteSequence.currentSprite != "climbdownend" )
 				spriteSequence.jumpTo("climbdown2")
+			return true
 		}
+
+		return false
 	}
 
 

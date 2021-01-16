@@ -67,6 +67,7 @@ public:
 	QQuickItem *tiledLayersParent() const { return m_tiledLayersParent; }
 	void setTiledLayersParent(QQuickItem *tiledLayersParent);
 
+	QList<QPointF> playerPositions() const { return m_playerPositions; }
 
 private:
 	bool loadMap();
@@ -80,6 +81,7 @@ private:
 	QList<GameLadder *> m_ladders;
 	QMap<int, GameBlock *> m_blocks;
 	QList<QRectF> m_groundObjects;
+	QList<QPointF> m_playerPositions;
 
 	QString m_tmxFile;
 	Tiled::Map *m_map;

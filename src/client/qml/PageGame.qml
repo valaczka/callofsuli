@@ -483,9 +483,9 @@ Page {
 			border.color: fontImage.color
 			border.width: 2
 
-			fontImage.icon: CosStyle.iconSetup
+			fontImage.icon: CosStyle.iconPreferences
 			fontImage.color: CosStyle.colorAccentLighter
-			fontImageScale: 0.65
+			fontImageScale: 0.7
 
 			onClicked: {
 				var d = JS.dialogCreateQml("GameSound", {
@@ -507,6 +507,33 @@ Page {
 
 
 
+
+	GameButton {
+		id: pickButton
+		size: 50
+
+		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.pickable
+
+		anchors.horizontalCenter: joystick.horizontalCenter
+		anchors.bottom: joystick.top
+		anchors.bottomMargin: 10
+
+		color: JS.setColorAlpha(CosStyle.colorOKLighter, 0.5)
+		border.color: fontImage.color
+		border.width: 1
+
+		fontImage.icon: "image://font/Material Icons/\ue925"
+		fontImage.color: "white"
+		fontImageScale: 0.6
+		fontImage.anchors.horizontalCenterOffset: -2
+
+		onClicked: {
+			game.player.entityPrivate.pickable.pick()
+			game.player.entityPrivate.pickable = null
+		}
+	}
+
+
 	VirtualJoystick {
 		id: joystick
 
@@ -522,15 +549,26 @@ Page {
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
 		onJoystickMoved: if (game.player) {
-							 if (x > 0.5) {
-								 if (x > 0.9)
+							 if (y > 0.7) {
+								 if (game.player.moveUp())
+									 return
+							 } else if (y < -0.7) {
+								 if (game.player.moveDown())
+									 return
+							 } else if (game.player.isClimbing) {
+								 game.player.stopMoving()
+								 return
+							 }
+
+							 if (x > 0.7) {
+								 if (x > 0.98)
 									 game.player.runRight()
 								 else
 									 game.player.walkRight()
 							 } else if (x > 0.1) {
 								 game.player.turnRight()
-							 } else if (x < -0.5) {
-								 if (x < -0.9)
+							 } else if (x < -0.7) {
+								 if (x < -0.98)
 									 game.player.runLeft()
 								 else
 									 game.player.walkLeft()
@@ -540,10 +578,6 @@ Page {
 								 game.player.stopMoving()
 							 }
 
-							 if (y > 0.9)
-								 game.player.moveUp()
-							 else if (y < -0.9)
-								 game.player.moveDown()
 						 }
 	}
 
@@ -598,7 +632,7 @@ Page {
 		id: nameLabel
 		color: "white"
 		font.family: "HVD Peace"
-		font.pixelSize: 50
+		font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
 		text: game.gameMatch ? game.gameMatch.name : ""
 		opacity: 0.0
 		visible: opacity
