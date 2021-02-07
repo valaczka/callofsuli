@@ -51,7 +51,7 @@ Item {
 		QLabel {
 			id: label
 			anchors.verticalCenter: parent.verticalCenter
-			font.pixelSize: CosStyle.pixelSize*0.8
+			font.pixelSize: CosStyle.pixelSize*0.85
 			font.weight: Font.Bold
 			color: control.color
 		}

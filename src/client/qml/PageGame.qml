@@ -37,7 +37,6 @@ Page {
 	on_AnimStartEndedChanged: doStep()
 	on_AnimStartReadyChanged: doStep()
 
-
 	GameActivity {
 		id: gameActivity
 		client: cosClient
@@ -177,11 +176,13 @@ Page {
 				}
 
 				function onKilledByEnemy(enemy) {
+					messageList.message(qsTr("Your man has died"), 3)
 					skullImageAnim.start()
 					cosClient.playSound("qrc:/sound/sfx/dead.mp3", CosSound.PlayerVoice)
 				}
 
 				function onDiedByFall() {
+					messageList.message(qsTr("Your man has died"), 3)
 					skullImageAnim.start()
 					cosClient.playSound("qrc:/sound/sfx/falldead.mp3", CosSound.PlayerVoice)
 				}
@@ -222,15 +223,29 @@ Page {
 
 
 			onMsecLeftChanged: {
+				if (msecLeft > 60*1000 && !_finalSound)
+					_finalSound = true
+
+				if (msecLeft > 2*60*1000 && !_timeSound)
+					_timeSound = true
+
+
 				if (msecLeft <= 2*60*1000 && _timeSound) {
 					_timeSound = false
+					messageList.message(qsTr("You have 2 minutes left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
 				}
 
 				if (msecLeft <= 60*1000 && _finalSound) {
 					_finalSound = false
+					messageList.message(qsTr("You have 60 seconds left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
 				}
+			}
+
+
+			onGameMessageSent: {
+				messageList.message(message, colorCode)
 			}
 		}
 
@@ -508,30 +523,6 @@ Page {
 
 
 
-	GameButton {
-		id: pickButton
-		size: 50
-
-		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.pickable
-
-		anchors.horizontalCenter: joystick.horizontalCenter
-		anchors.bottom: joystick.top
-		anchors.bottomMargin: 10
-
-		color: JS.setColorAlpha(CosStyle.colorOKLighter, 0.5)
-		border.color: fontImage.color
-		border.width: 1
-
-		fontImage.icon: "image://font/Material Icons/\ue925"
-		fontImage.color: "white"
-		fontImageScale: 0.6
-		fontImage.anchors.horizontalCenterOffset: -2
-
-		onClicked: {
-			game.player.entityPrivate.pickable.pick()
-			game.player.entityPrivate.pickable = null
-		}
-	}
 
 
 	VirtualJoystick {
@@ -605,6 +596,42 @@ Page {
 	}
 
 
+
+	GameButton {
+		id: pickButton
+		size: 50
+
+		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.pickable
+
+		anchors.horizontalCenter: shotButton.horizontalCenter
+		anchors.bottom: shotButton.top
+		anchors.bottomMargin: 10
+
+		color: JS.setColorAlpha(CosStyle.colorOKLighter, 0.5)
+		border.color: fontImage.color
+		border.width: 1
+
+		fontImage.icon: "image://font/Material Icons/\ue925"
+		fontImage.color: "white"
+		fontImageScale: 0.6
+		fontImage.anchors.horizontalCenterOffset: -2
+
+		onClicked: {
+			game.player.entityPrivate.pickable.pick()
+			game.player.entityPrivate.pickable = null
+		}
+	}
+
+
+	GameMessageList {
+		id: messageList
+
+		anchors.left: parent.left
+		anchors.top: parent.top
+
+		width: Math.min(implicitWidth, control.width*0.55)
+		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
+	}
 
 
 
@@ -773,12 +800,13 @@ Page {
 						easing.type: Easing.InOutQuad;
 						duration: 1000
 					}
-					PropertyAnimation {
-						target: blackRect
-						property: "opacity"
-						easing.type: Easing.InOutQuad;
-						duration: 800
-					}
+				}
+
+				PropertyAnimation {
+					target: blackRect
+					property: "opacity"
+					easing.type: Easing.InExpo;
+					duration: 700
 				}
 
 				PropertyAnimation  {

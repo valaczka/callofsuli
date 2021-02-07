@@ -59,9 +59,11 @@ void GamePickable::pick()
 		switch (m_type) {
 			case GameEnemyData::PickableHealth:
 				m_game->resetHp();
+				emit m_game->gameMessageSent(tr("Health regained"));
 				break;
 			case GameEnemyData::PickableTime:
 				m_game->addSecs(m_data.value("secs", 60).toInt());
+				emit m_game->gameMessageSent(tr("%1 seconds gained").arg(m_data.value("secs", 60).toInt()));
 				break;
 			default:
 				break;

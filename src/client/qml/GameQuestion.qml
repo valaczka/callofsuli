@@ -25,15 +25,19 @@ Item {
 	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
 
-	property int horizontalPadding: 20
+	property int horizontalPadding: 5
 	property int verticalPadding: 10
 
+	focus: true
+
+	Keys.onPressed: if (contentLoader.item)
+						contentLoader.item.keyPressed(event.key)
 
 	Item {
 		id: panel
 
 		width: Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
-		height: Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.width-2*verticalPadding)
+		height: Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 
@@ -83,7 +87,7 @@ Item {
 		}
 
 
-		Item {
+		FocusScope {
 			id: realContent
 			anchors.fill: parent
 			visible: true
@@ -94,7 +98,6 @@ Item {
 			anchors.bottomMargin: 10
 
 			opacity: 0.0
-
 
 			Loader {
 				id: contentLoader

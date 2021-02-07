@@ -163,6 +163,8 @@ signals:
 	void gameSceneLoaded();
 	void gameSceneLoadFailed();
 
+	void gameMessageSent(QString message, int colorCode = 0);
+
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);
 	void gameDataChanged(QVariantMap gameData);

@@ -71,6 +71,8 @@ QVariantMap Question::generate() const
 		m = generateTruefalse();
 	else if (m_module == "simplechoice")
 		m = generateSimplechoice();
+	else if (m_module == "calculator")
+		m = generateCalculator();
 
 	m["module"] = m_module;
 	return m;
@@ -94,6 +96,11 @@ QVariantMap Question::objectivesMap()
 
 	m["truefalse"] = QVariantMap({
 									 { "name", QObject::tr("Igaz/hamis") },
+									 { "icon", "image://font/Academic/\uf12f" }
+								 });
+
+	m["calculator"] = QVariantMap({
+									 { "name", QObject::tr("Számolás") },
 									 { "icon", "image://font/Academic/\uf12f" }
 								 });
 
@@ -179,6 +186,8 @@ QStringList Question::objectiveDataToStringList(const QString &module, const QVa
 		return toStringListTruefalse(data, storageModule, storageData);
 	else if (module == "simplechoice")
 		return toStringListSimplechoice(data, storageModule, storageData);
+	else if (module == "calculator")
+		return toStringListCalculator(data, storageModule, storageData);
 
 	QStringList l;
 	l.append(QObject::tr("Érvénytelen modul!"));
@@ -340,6 +349,43 @@ QStringList Question::toStringListSimplechoice(const QVariantMap &data, const QS
 
 	QStringList answers = data.value("answers").toStringList();
 	l.append(data.value("correct").toString()+" ("+answers.join(",")+")");
+
+	return l;
+}
+
+
+
+
+/**
+ * @brief Question::generateCalculator
+ * @return
+ */
+
+QVariantMap Question::generateCalculator() const
+{
+	// TODO
+	return m_data;
+}
+
+
+
+/**
+ * @brief Question::toStringListCalculator
+ * @param data
+ * @param storageModule
+ * @param storageData
+ * @return
+ */
+
+QStringList Question::toStringListCalculator(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+{
+	Q_UNUSED(storageModule)
+	Q_UNUSED(storageData)
+	Q_UNUSED(data)
+
+	QStringList l;
+	l.append("Test calculator");
+	l.append("test");
 
 	return l;
 }

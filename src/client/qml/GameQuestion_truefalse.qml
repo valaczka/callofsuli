@@ -87,5 +87,11 @@ Item {
 			if (!correct) btnTrue.type = GameQuestionButton.Wrong
 		}
 	}
+
+
+	function clickBtn(t) {
+		if (key === Qt.Key_Enter || key === Qt.Key_Return)
+			btnTrue.clicked()
+	}
 }
 

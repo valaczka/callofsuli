@@ -569,8 +569,8 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 	GameMap::Campaign *cerror = nullptr;
 	GameMap::Mission *merror = nullptr;
 
-	GameMap::CampaignLockHash clock = m_currentMap->campaignLockTree(&cerror);
-	GameMap::MissionLockHash mlock = m_currentMap->missionLockTree(&merror);
+	m_currentMap->campaignLockTree(&cerror);
+	m_currentMap->missionLockTree(&merror);
 
 	if (cerror || merror) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás pálya!"));

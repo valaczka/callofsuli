@@ -94,5 +94,9 @@ Item {
 		else
 			failed()
 	}
+
+	function clickBtn(t) {
+
+	}
 }
 

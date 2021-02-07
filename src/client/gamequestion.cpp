@@ -120,6 +120,24 @@ void GameQuestion::run()
 
 
 /**
+ * @brief GameQuestion::forceDestroy
+ */
+
+void GameQuestion::forceDestroy()
+{
+	qDebug() << "FORCE DESTROY" << this;
+
+	if (m_question) {
+		m_question->setFocus(false, Qt::OtherFocusReason);
+		m_question->deleteLater();
+	}
+
+	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
+	m_game->setRunning(true);
+}
+
+
+/**
  * @brief GameQuestion::onSuccess
  */
 

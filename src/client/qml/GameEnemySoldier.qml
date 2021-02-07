@@ -16,9 +16,10 @@ GameEntity {
 	entityPrivate: ep
 
 	property bool showPickable: false
+	property bool showTarget: false
 
 	glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
-	glowEnabled: ep.aimedByPlayer || showPickable
+	glowEnabled: ep.aimedByPlayer || showPickable || showTarget
 
 	GameEnemySoldierPrivate {
 		id: ep
@@ -55,6 +56,13 @@ GameEntity {
 					showPickable = true
 				else
 					showPickable = false
+			}
+
+			function onShowTargetsChanged() {
+				if (ep.cosGame.gameScene.showTargets && ep.enemyData.targetId != -1)
+					showTarget = true
+				else
+					showTarget = false
 			}
 		}
 	}

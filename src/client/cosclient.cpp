@@ -573,6 +573,7 @@ QVariantMap Client::terrainMap()
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
 		m["details"] = d.name+QString(tr(" (%1 csatatér, %2 célpont)")).arg(d.blocks.count()).arg(d.enemies);
+		m["data"] = d.data;
 		map[d.name] = m;
 	}
 
@@ -718,9 +719,18 @@ void Client::loadTerrains()
 				blockData[it.key()] = it.value()->enemies().count();
 			}
 
-			TerrainData d(realname.section('/',-2,-2),
+
+			QString terrainName = realname.section('/',-2,-2);
+
+			QString datafile = ":/terrain/"+terrainName+"/data.json";
+			QVariantMap dataMap;
+			if (QFile::exists(datafile))
+				dataMap = Client::readJsonFile(datafile).toMap();
+
+			TerrainData d(terrainName,
 						  blockData,
-						  t.enemies().count());
+						  t.enemies().count(),
+						  dataMap);
 
 			m_availableTerrains.append(d);
 		}

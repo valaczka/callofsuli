@@ -42,9 +42,16 @@ GameActivity::GameActivity(QQuickItem *parent)
 	, m_prepared(false)
 	, m_game(nullptr)
 {
+	QString dbFile = Client::standardPath("tmptargets.db");
+
+	if (QFile::exists(dbFile)) {
+		qDebug() << tr("A fájl (%1) létezik, törlöm").arg(dbFile);
+		QFile::remove(dbFile);
+	}
+
 	CosDb *db = new CosDb("objectiveDb", this);
 
-	db->setDatabaseName(Client::standardPath(":memory:"));
+	db->setDatabaseName(dbFile);
 
 	addDb(db, true);
 }
@@ -145,6 +152,28 @@ bool GameActivity::createTarget(GameEnemyData *enemyData, const int &block)
 
 	return false;
 }
+
+
+
+
+/**
+ * @brief GameActivity::createTargets
+ * @param enemies
+ * @return
+ */
+
+bool GameActivity::createTargets(QVector<GameEnemy *> enemies)
+{
+	while (!enemies.isEmpty()) {
+		GameEnemy *e = enemies.takeAt(QRandomGenerator::global()->bounded(enemies.size()));
+
+		if (!createTarget(e->enemyData(), e->block()))
+			return false;
+	}
+
+	return true;
+}
+
 
 
 

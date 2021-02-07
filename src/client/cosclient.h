@@ -297,17 +297,20 @@ public:
 	QString name;
 	QMap<int, int> blocks;
 	int enemies;
+	QVariantMap data;
 
-	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0)
+	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0, const QVariantMap &data = QVariantMap())
 		: name(name)
 		, blocks(blocks)
 		, enemies(enemies)
+		, data(data)
 	{}
 
 	friend inline bool operator== (const TerrainData &b1, const TerrainData &b2) {
 		return b1.name == b2.name
 				&& b1.blocks == b2.blocks
-				&& b1.enemies == b2.enemies;
+				&& b1.enemies == b2.enemies
+				&& b1.data == b2.data;
 	}
 };
 

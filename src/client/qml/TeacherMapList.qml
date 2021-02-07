@@ -56,10 +56,10 @@ QPagePanel {
 					ValueFilter {
 						roleName: "download"
 						value: true
-						SwitchRole.value: CosStyle.colorOKLighter
+						SwitchRole.value: CosStyle.colorPrimaryLighter
 					}
 				]
-				defaultValue: CosStyle.colorPrimaryLighter
+				defaultValue: CosStyle.colorOKLighter
 			},
 			SwitchRole {
 				name: "fontWeight"

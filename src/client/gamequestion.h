@@ -53,6 +53,7 @@ public:
 	void run();
 
 public slots:
+	void forceDestroy();
 	void onSuccess();
 	void onFailed();
 	void onDestroyed();

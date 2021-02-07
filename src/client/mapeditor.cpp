@@ -1419,8 +1419,15 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 {
 	QString uuid = data.value("mission", "").toString();
 	QString terrain = data.value("terrain", "").toString();
+	QVariantMap terrainData = data.value("terrainData").toMap();
+
 	if (uuid.isEmpty() || terrain.isEmpty()) {
 		return;
+	}
+
+	// Az SQL miatt töröljük
+	if (data.contains("terrainData")) {
+		data.remove("terrainData");
 	}
 
 	db()->transaction();
@@ -1452,6 +1459,34 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 	} else {
 		db()->rollback();
 		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült új szintet hozzáadni!"));
+	}
+
+	if (!terrainData.isEmpty() && terrainData.contains("default")) {
+		QVariantMap d = terrainData.value("default").toMap();
+		QVariantList list = d.value("inventory").toList();
+
+		foreach (QVariant v, list) {
+			QVariantMap m = v.toMap();
+
+			QString module = m.value("module").toString();
+
+			if (module.isEmpty())
+				continue;
+
+			int count = m.value("count", 1).toInt();
+			int block = m.value("block", 0).toInt();
+
+			QVariantMap param;
+			param["mission"] = uuid;
+			param["level"] = newLevel;
+			param["module"] = module;
+			param["block"] = block;
+			param["count"] = count;
+
+			if (db()->execInsertQuery("INSERT INTO inventories(?k?) values (?)", param) == -1) {
+				qWarning() << tr("Default inventory error") << module << block << count;
+			}
+		}
 	}
 }
 

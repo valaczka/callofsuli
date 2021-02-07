@@ -58,6 +58,7 @@ public:
 	Q_INVOKABLE void createPickable(GameEnemy *enemy);
 
 	bool createTarget(GameEnemyData *enemyData, const int &block);
+	bool createTargets(QVector<GameEnemy *> enemies);
 
 	bool prepared() const { return m_prepared; }
 	CosGame * game() const { return m_game; }

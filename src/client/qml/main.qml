@@ -35,6 +35,7 @@ ApplicationWindow {
 
 	FontLoader { source: "qrc:/internal/font/SpecialElite.ttf" }
 	FontLoader { source: "qrc:/internal/font/HVD_Peace.ttf" }
+	FontLoader { source: "qrc:/internal/font/RenegadeMaster.ttf" }
 
 
 	property alias blur: blur

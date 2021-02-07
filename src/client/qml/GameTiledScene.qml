@@ -19,8 +19,7 @@ Scene {
 
 	property alias scenePrivate: scenePrivate
 	property bool showPickables: false
-
-
+	property bool showTargets: false
 
 	GameScenePrivate {
 		id: scenePrivate
@@ -101,6 +100,9 @@ Scene {
 			case Qt.Key_F10:
 				showPickables = true
 				break
+			case Qt.Key_F11:
+				showTargets = true
+				break
 			}
 		}
 
@@ -128,6 +130,9 @@ Scene {
 				break;
 			case Qt.Key_F10:
 				showPickables = false
+				break
+			case Qt.Key_F11:
+				showTargets = false
 				break
 
 
@@ -204,10 +209,17 @@ Scene {
 	}
 
 
+	Component {
+		id: playerLocatorComponent
+		GamePlayerLocator { }
+	}
+
 
 	function createPlayer() : Item {
 		if (!game.player) {
+			var r = playerLocatorComponent.createObject(scene)
 			var p = playerComponent.createObject(scene)
+			r.anchors.centerIn = p
 			p.loadSprites()
 			return p
 		}
@@ -259,8 +271,8 @@ Scene {
 					obj.succeed.connect(function(){cosClient.playSound("qrc:/sound/voiceover/winner.ogg", CosSound.VoiceOver)})
 					obj.failed.connect(function(){cosClient.playSound("qrc:/sound/voiceover/loser.ogg", CosSound.VoiceOver)})
 
-							return obj
-						}
+					return obj
+				}
 
 
 

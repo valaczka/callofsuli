@@ -42,7 +42,7 @@ Rectangle {
 					  CosStyle.buttonThemeDelete[2]
 				  }
 
-	opacity: interactive || type !== GameQuestionButton.Neutral ? 1.0 : 0.4
+	opacity: interactive || type === GameQuestionButton.Correct ? 1.0 : 0.3
 	color: if (interactive) {
 			   backgroundColor
 		   } else if (type === GameQuestionButton.Neutral) {

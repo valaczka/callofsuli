@@ -67,13 +67,13 @@ QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 								   PickableHealth,
 								   QVariantMap());
 
-	list["time1"] = InventoryType(tr("1 perc hozzáadása"),
+	list["time1"] = InventoryType(tr("30 másodperc hozzáadása"),
+								  PickableTime,
+								  QVariantMap({{"text", "+00:30"}, {"secs", 30}}));
+
+	list["time2"] = InventoryType(tr("1 perc hozzáadása"),
 								  PickableTime,
 								  QVariantMap({{"text", "+01:00"}, {"secs", 60}}));
-
-	list["time2"] = InventoryType(tr("2 perc hozzáadása"),
-								  PickableTime,
-								  QVariantMap({{"text", "+02:00"}, {"secs", 120}}));
 
 	return list;
 }

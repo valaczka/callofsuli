@@ -128,6 +128,13 @@ void CosGame::loadScene()
 		return;
 	}
 
+	foreach (GameBlock *block, m_terrainData->blocks()) {
+		connect(block, &GameBlock::completedChanged, this, [=](bool completed){
+			if (completed)
+				emit gameMessageSent(tr("Area cleared"), 1);
+		});
+	}
+
 	emit gameSceneLoaded();
 
 }
@@ -150,11 +157,11 @@ void CosGame::recreateEnemies()
 
 	QMap<int, GameBlock *> b = m_terrainData->blocks();
 	QMap<int, GameBlock *>::const_iterator it;
+	QVector<GameEnemy *> createdEnemies;
 
 	for (it = b.constBegin(); it != b.constEnd(); ++it) {
 		GameBlock *block = it.value();
 
-		//foreach (GameBlock *block, m_terrainData->blocks()) {
 		if (block->completed()) {
 			qDebug() << "Block completed" << it.key() << block;
 			continue;
@@ -167,9 +174,6 @@ void CosGame::recreateEnemies()
 		foreach (GameEnemyData *data, block->enemies()) {
 			if (data->enemy())
 				continue;
-
-			if (m_activity)
-				m_activity->createTarget(data, it.key());
 
 			QQuickItem *enemy = nullptr;
 
@@ -198,6 +202,8 @@ void CosGame::recreateEnemies()
 					ep->setEnemyData(data);
 					ep->setBlock(it.key());
 
+					createdEnemies.append(ep);
+
 					if (m_activity) {
 						connect(ep, &GameEnemy::killed, m_activity, &GameActivity::onEnemyKilled);
 						connect(ep, &GameEnemy::killMissed, m_activity, &GameActivity::onEnemyKillMissed);
@@ -221,7 +227,18 @@ void CosGame::recreateEnemies()
 
 	setPickables(&allEnemyDataList, -1);
 
+
+	if (m_activity)
+		m_activity->createTargets(createdEnemies);
+
+
+
 	recalculateActiveEnemies();
+
+	if (createdEnemies.size() > 1)
+		emit gameMessageSent(tr("%1 more objectives created").arg(createdEnemies.size()), 2);
+	else if (createdEnemies.size() == 1)
+		emit gameMessageSent(tr("1 more objective created"), 2);
 }
 
 /**
@@ -622,6 +639,10 @@ void CosGame::addSecs(const int &secs)
 void CosGame::onPlayerDied()
 {
 	qDebug() << "Player died";
+
+	if (m_question)
+		m_question->forceDestroy();
+
 	setPlayer(nullptr);
 	recreateEnemies();
 	resetPlayer();

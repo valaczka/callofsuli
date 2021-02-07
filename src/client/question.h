@@ -65,6 +65,9 @@ protected:
 	QVariantMap generateSimplechoice() const;
 	static QStringList toStringListSimplechoice(const QVariantMap &data, const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
 
+	QVariantMap generateCalculator() const;
+	static QStringList toStringListCalculator(const QVariantMap &data, const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+
 	QString m_module;
 	QVariantMap m_data;
 

@@ -7,7 +7,7 @@
 	"facingLeft": true,
 	"walk": 1.5,
 	"run": 4,
-	"climb": 2.6,
+	"climb": 4,
 	"sprites": {
 		"idle":	{
 			"source": "sprite.png",
