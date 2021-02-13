@@ -239,6 +239,10 @@ void CosGame::recreateEnemies()
 		emit gameMessageSent(tr("%1 more objectives created").arg(createdEnemies.size()), 2);
 	else if (createdEnemies.size() == 1)
 		emit gameMessageSent(tr("1 more objective created"), 2);
+
+	QTimer::singleShot(500, this, [=](){
+		setEnemiesMoving(true);
+	});
 }
 
 /**
@@ -393,7 +397,7 @@ void CosGame::resetPlayer()
 
 	emit playerChanged(m_player);
 
-	setEnemiesMoving(true);
+	//setEnemiesMoving(true);
 }
 
 
@@ -578,7 +582,7 @@ void CosGame::startGame()
 
 	loadPickables();
 
-	recreateEnemies();
+	//recreateEnemies();
 
 	setIsPrepared(true);
 	setRunning(true);
@@ -644,8 +648,8 @@ void CosGame::onPlayerDied()
 		m_question->forceDestroy();
 
 	setPlayer(nullptr);
-	recreateEnemies();
 	resetPlayer();
+	recreateEnemies();
 }
 
 
@@ -741,6 +745,8 @@ void CosGame::onGameStarted()
 	resetPlayer();
 	m_timer->start(100);
 	setIsStarted(true);
+
+	QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
 }
 
 
@@ -761,7 +767,7 @@ void CosGame::onGameFinishedSuccess()
 	Client *client = m_activity->client();
 
 	client->stopSound(m_backgroundMusicFile);
-	QTimer::singleShot(400, [=]() {
+	QTimer::singleShot(1500, [=]() {
 		client->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
 		client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
 		client->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
@@ -771,13 +777,6 @@ void CosGame::onGameFinishedSuccess()
 
 	if (gameId == -1)
 		return;
-
-
-	QJsonObject o;
-	o["id"] = gameId;
-	o["xp"] = m_gameMatch->xp();
-	o["success"] = true;
-	client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 
 
@@ -804,13 +803,6 @@ void CosGame::onGameFinishedLost()
 
 	if (gameId == -1)
 		return;
-
-
-	QJsonObject o;
-	o["id"] = gameId;
-	o["xp"] = m_gameMatch->xp();
-	o["success"] = false;
-	client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 
 
@@ -1064,6 +1056,10 @@ void CosGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 	}
 
 	m_question = new GameQuestion(this, player, enemy, this);
+
+	if (m_gameMatch)
+		connect(m_question, &GameQuestion::xpGained, m_gameMatch, &GameMatch::addXP);
+
 	connect(m_question, &GameQuestion::finished, this, [=]() {
 		m_question->deleteLater();
 		m_question = nullptr;

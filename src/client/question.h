@@ -43,7 +43,7 @@ class Question
 {
 public:
 	explicit Question(const QString &module, const QVariantMap &data);
-	explicit Question(GameMap::Objective *objective);
+	explicit Question(GameMap::Objective *objective, const int &storageNum = 0);
 
 	QVariantMap generate() const;
 
@@ -60,16 +60,22 @@ public:
 
 protected:
 	QVariantMap generateTruefalse() const;
-	static QStringList toStringListTruefalse(const QVariantMap &data, const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+	static QStringList toStringListTruefalse(const QVariantMap &data, const QString &storageModule = "",
+											 const QVariantMap &storageData = QVariantMap());
 
 	QVariantMap generateSimplechoice() const;
-	static QStringList toStringListSimplechoice(const QVariantMap &data, const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+	static QStringList toStringListSimplechoice(const QVariantMap &data, const QString &storageModule = "",
+												const QVariantMap &storageData = QVariantMap());
 
 	QVariantMap generateCalculator() const;
-	static QStringList toStringListCalculator(const QVariantMap &data, const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+	static QStringList toStringListCalculator(const QVariantMap &data, const QString &storageModule = "",
+											  const QVariantMap &storageData = QVariantMap());
+	QVariantMap generateCalculatorPlusMinus(GameMap::Storage *storage) const;
 
 	QString m_module;
 	QVariantMap m_data;
+	int m_storageNum;
+	GameMap::Objective *m_objective;
 
 };
 

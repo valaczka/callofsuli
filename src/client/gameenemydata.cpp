@@ -49,6 +49,7 @@ GameEnemyData::GameEnemyData(QObject *parent)
 	, m_objectiveUuid()
 	, m_pickableType(PickableInvalid)
 	, m_pickableData()
+	, m_storageNum(0)
 {
 
 }
@@ -214,7 +215,7 @@ QVariant GameEnemyData::generateQuestion()
 		return QVariantMap();
 	}
 
-	Question q(objective);
+	Question q(objective, m_storageNum);
 
 	QVariantMap m = q.generate();
 
@@ -237,5 +238,14 @@ void GameEnemyData::setPickableData(QVariantMap pickableData)
 
 	m_pickableData = pickableData;
 	emit pickableDataChanged(m_pickableData);
+}
+
+void GameEnemyData::setStorageNum(int storageNum)
+{
+	if (m_storageNum == storageNum)
+		return;
+
+	m_storageNum = storageNum;
+	emit storageNumChanged(m_storageNum);
 }
 

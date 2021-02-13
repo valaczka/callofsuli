@@ -54,7 +54,8 @@ class GameMatch : public QObject
 	Q_PROPERTY(int duration READ duration WRITE setDuration NOTIFY durationChanged)
 
 	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
-	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
+	Q_PROPERTY(int xp READ xp WRITE setXP NOTIFY xpChanged)
+	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
 
 
 public:
@@ -77,8 +78,10 @@ public:
 	QByteArray missionUuid() const { return m_missionUuid; }
 	int gameId() const { return m_gameId; }
 	int xp() const { return m_xp; }
+	int baseXP() const { return m_baseXP; }
 
 public slots:
+	void addXP(const qreal &factor);
 	void setDeleteGameMap(bool deleteGameMap);
 	void setPlayerCharacter(QString playerCharacter);
 	void setTerrain(QString terrain);
@@ -91,7 +94,8 @@ public slots:
 	void setDuration(int duration);
 	void setMissionUuid(QByteArray missionUuid);
 	void setGameId(int gameId);
-	void setXp(int xp);
+	void setXP(int xp);
+	void setBaseXP(int baseXP);
 
 signals:
 	void gameLose(const QString &uuid, const int level);
@@ -109,6 +113,7 @@ signals:
 	void missionUuidChanged(QByteArray missionUuid);
 	void gameIdChanged(int gameId);
 	void xpChanged(int xp);
+	void baseXPChanged(int baseXP);
 
 private:
 	GameMap *m_gameMap;
@@ -127,6 +132,7 @@ private:
 	QByteArray m_missionUuid;
 	int m_gameId;
 	int m_xp;
+	int m_baseXP;
 };
 
 #endif // GAMEDATA_H

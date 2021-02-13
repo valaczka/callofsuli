@@ -74,7 +74,7 @@ function dialogMessageError(title, text, details) {
 
 
 function dialogMessage(type, title, text, details) {
-	if (type === "info")
+	if (type === "info" || type === "success")
 		console.info(title+": "+text+" ("+details+")")
 	else if (type === "warning")
 		console.warn(title+": "+text+" ("+details+")")

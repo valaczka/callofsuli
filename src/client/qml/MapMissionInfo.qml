@@ -107,7 +107,11 @@ QPagePanel {
 					icon.source: modelData.available ? CosStyle.iconPlay : CosStyle.iconLock
 					enabled: modelData.available
 					onClicked: {
-						studentMaps.playGame({uuid: selectedData.uuid, level: modelData.level})
+						studentMaps.playGame({
+												 uuid: selectedData.uuid,
+												 level: modelData.level,
+												 hasSolved: modelData.solved
+											 })
 					}
 				}
 

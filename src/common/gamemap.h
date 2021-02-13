@@ -39,7 +39,7 @@
 #include <QDebug>
 #include "cosdb.h"
 
-#define GAMEMAP_CURRENT_VERSION 4
+#define GAMEMAP_CURRENT_VERSION 5
 
 
 /**
@@ -84,17 +84,19 @@ public:
 
 	class Objective {
 	public:
-		Objective(const QByteArray &uuid, const QByteArray &module, Storage *storage, const QVariantMap &data);
+		Objective(const QByteArray &uuid, const QByteArray &module, Storage *storage, const int &storageCount, const QVariantMap &data);
 
 		QByteArray uuid() const { return m_uuid; };
 		QByteArray module() const { return m_module; };
 		Storage *storage() const { return m_storage; };
+		int storageCount() const { return m_storageCount; };
 		QVariantMap data() const { return m_data; };
 
 	private:
 		QByteArray m_uuid;
 		QByteArray m_module;
 		Storage *m_storage;
+		int m_storageCount;
 		QVariantMap m_data;
 	};
 
@@ -318,7 +320,7 @@ public:
 
 private:
 	void chaptersToStream(QDataStream &stream) const ;
-	bool chaptersFromStream(QDataStream &stream);
+	bool chaptersFromStream(QDataStream &stream, const qint32 &version);
 	bool chaptersToDb(CosDb *db) const;
 	void chaptersFromDb(CosDb *db);
 
@@ -328,7 +330,7 @@ private:
 	void storagesFromDb(CosDb *db);
 
 	void objectivesToStream(Chapter* chapter, QDataStream &stream) const ;
-	bool objectivesFromStream(Chapter* chapter, QDataStream &stream);
+	bool objectivesFromStream(Chapter* chapter, QDataStream &stream, const qint32 &version);
 	bool objectivesToDb(CosDb *db) const;
 	bool objectivesFromDb(CosDb *db);
 

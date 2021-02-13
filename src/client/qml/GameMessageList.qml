@@ -52,7 +52,7 @@ Item {
 
 				color: switch (colorCodePrivate) {
 					   case 1:
-						   CosStyle.colorPrimaryLighter
+						   CosStyle.colorOKLighter
 						   break
 					   case 2:
 						   CosStyle.colorWarningLighter
@@ -64,7 +64,7 @@ Item {
 						   CosStyle.colorAccentLighter
 						   break
 					   case 11:
-						   CosStyle.colorPrimaryLight
+						   CosStyle.colorOKLight
 						   break
 					   case 12:
 						   CosStyle.colorWarningLight

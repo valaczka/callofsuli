@@ -54,12 +54,13 @@ public:
 
 public slots:
 	void forceDestroy();
-	void onSuccess();
+	void onSuccess(const qreal &xpFactor);
 	void onFailed();
 	void onDestroyed();
 
 signals:
 	void finished();
+	void xpGained(const qreal &factor);
 
 private:
 	CosGame *m_game;

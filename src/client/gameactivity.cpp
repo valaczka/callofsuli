@@ -108,12 +108,10 @@ bool GameActivity::createTarget(GameEnemyData *enemyData, const int &block)
 		mapAllocations[m.value("map").toInt()] = qMakePair(m.value("maxObjective").toInt(), m.value("count").toInt());
 	}
 
-	qDebug() << "Allocations" << mapAllocations;
-
 	QVariantList l;
 	l.append(block);
 
-	QVariantList list = db()->execSelectQuery("SELECT target, map, objective FROM positions "
+	QVariantList list = db()->execSelectQuery("SELECT target, map, objective, storageNum FROM positions "
 											  "LEFT JOIN targets ON (targets.id=positions.target) "
 											  "WHERE (positions.block=? OR positions.block IS NULL) AND targets.block IS NULL "
 											  "ORDER BY num, RANDOM()", l);
@@ -145,6 +143,7 @@ bool GameActivity::createTarget(GameEnemyData *enemyData, const int &block)
 			m_client->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
 		} else if (enemyData) {
 			enemyData->setTargetId(target);
+			enemyData->setStorageNum(m.value("storageNum", 0).toInt());
 			enemyData->setObjectiveUuid(m.value("objective").toByteArray());
 			return true;
 		}
@@ -269,6 +268,7 @@ void GameActivity::prepareDb(QVariantMap)
 								   "id INTEGER NOT NULL PRIMARY KEY, "
 								   "map INTEGER NOT NULL, "
 								   "objective TEXT NOT NULL, "
+								   "storageNum INTEGER NOT NULL DEFAULT 0, "
 								   "block INTEGER,"
 								   "num INTEGER NOT NULL DEFAULT 0)"))
 			throw 1;
@@ -308,17 +308,28 @@ void GameActivity::prepareDb(QVariantMap)
 						blockList.append(QVariant::Invalid);
 					}
 
-					QVariantMap m;
-					m["map"] = mapIdx;
-					m["objective"] = QString(objective->uuid());
-					int idx = db()->execInsertQuery("INSERT INTO targets(?k?) VALUES (?)", m);
+					int iFrom = 0;
+					int iTo = 1;
 
-					foreach (QVariant v, blockList) {
+					if (objective->storage()) {
+						iFrom = 1;
+						iTo = objective->storageCount()+1;
+					}
+
+					for (int i=iFrom; i<iTo; ++i) {
 						QVariantMap m;
-						m["target"] = idx;
-						m["block"] = v;
+						m["map"] = mapIdx;
+						m["objective"] = QString(objective->uuid());
+						m["storageNum"] = i;
+						int idx = db()->execInsertQuery("INSERT INTO targets(?k?) VALUES (?)", m);
 
-						db()->execInsertQuery("INSERT INTO positions(?k?) VALUES (?)", m);
+						foreach (QVariant v, blockList) {
+							QVariantMap m;
+							m["target"] = idx;
+							m["block"] = v;
+
+							db()->execInsertQuery("INSERT INTO positions(?k?) VALUES (?)", m);
+						}
 					}
 				}
 			}

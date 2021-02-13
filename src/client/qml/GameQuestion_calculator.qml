@@ -14,8 +14,8 @@ Item {
 
 	property var questionData: null
 
-	property bool twoLineMode: false
-	property bool decimalEnabled: !twoLineMode
+	property bool twoLineMode: questionData.twoLine
+	property bool decimalEnabled: questionData.decimalEnabled
 	property int activeLine: 1
 	property bool interactive: true
 
@@ -46,16 +46,19 @@ Item {
 			font.family: "Special Elite"
 			font.pixelSize: CosStyle.pixelSize*1.4
 			wrapMode: Text.Wrap
-			topPadding: 50
-			bottomPadding: 50
+			topPadding: 30
+			bottomPadding: 30
 			leftPadding: 10
 			rightPadding: 10
 
 			horizontalAlignment: Text.AlignHCenter
+			verticalAlignment: Text.AlignVCenter
 
 			color: CosStyle.colorAccent
 
-			text: "158 + 85 ="//questionData.question
+			textFormat: Text.RichText
+
+			text: questionData.question
 		}
 
 		Column {
@@ -138,19 +141,21 @@ Item {
 			Layout.fillWidth: false
 			Layout.fillHeight: true
 
-			font.family: "Special Elite"
-			font.pixelSize: CosStyle.pixelSize*1.4
+			font: labelQuestion.font
 			wrapMode: Text.Wrap
-			topPadding: 50
-			bottomPadding: 50
-			leftPadding: 10
-			rightPadding: 10
+			topPadding: labelQuestion.topPadding
+			bottomPadding: labelQuestion.bottomPadding
+			leftPadding: labelQuestion.leftPadding
+			rightPadding: labelQuestion.rightPadding
 
 			horizontalAlignment: Text.AlignHCenter
+			verticalAlignment: Text.AlignVCenter
 
-			color: CosStyle.colorAccent
+			color: labelQuestion.color
 
-			text: "mm"//questionData.question
+			textFormat: Text.RichText
+
+			text: questionData.suffix
 		}
 	}
 
@@ -254,8 +259,7 @@ Item {
 			else
 				labelNumber1.text = "0"
 		} else if (t === "=") {
-			console.debug("======", Number(labelNumber1.text), Number(labelNumber2.text))
-			answer(true)
+			answer()
 		} else if (t === "±") {
 			var t1 = String(labelNumber1.text)
 			if (t1.startsWith("-"))
@@ -304,8 +308,23 @@ Item {
 	}
 
 
-	function answer(correct) {
+	function answer() {
 		interactive = false
+
+		var correct = true
+
+		var n1 = Number(labelNumber1.text)
+
+		if (n1 !== questionData.answer)
+			correct = false
+
+		if (twoLineMode) {
+			var n2 = Number(labelNumber2.text)
+
+			if (n2 !== questionData.answer2)
+				correct = false
+		}
+
 
 		if (correct) {
 			succeed()
@@ -315,6 +334,9 @@ Item {
 			failed()
 			labelNumber1.color = CosStyle.colorErrorLighter
 			labelNumber2.color = CosStyle.colorErrorLighter
+
+			labelNumber1.text = questionData.answer
+			labelNumber2.text = questionData.answer2
 		}
 
 		/*if (questionData.correct) {

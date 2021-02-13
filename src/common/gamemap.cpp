@@ -140,7 +140,7 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data, QObject *target, const 
 		return nullptr;
 	}
 
-	map->chaptersFromStream(stream);
+	map->chaptersFromStream(stream, version);
 	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
@@ -773,7 +773,7 @@ void GameMap::chaptersToStream(QDataStream &stream) const
  * @param stream
  */
 
-bool GameMap::chaptersFromStream(QDataStream &stream)
+bool GameMap::chaptersFromStream(QDataStream &stream, const qint32 &version)
 {
 	qDebug() << "Load chapters";
 
@@ -789,7 +789,7 @@ bool GameMap::chaptersFromStream(QDataStream &stream)
 			return false;
 
 		Chapter *ch = new Chapter(id, name);
-		objectivesFromStream(ch, stream);
+		objectivesFromStream(ch, stream, version);
 
 		addChapter(ch);
 	}
@@ -983,6 +983,7 @@ void GameMap::objectivesToStream(Chapter *chapter, QDataStream &stream) const
 		stream << o->module();
 		stream << (o->storage() ? o->storage()->id() : (qint32) -1);
 		stream << o->data();
+		stream << o->storageCount();
 	}
 }
 
@@ -994,7 +995,7 @@ void GameMap::objectivesToStream(Chapter *chapter, QDataStream &stream) const
  * @param stream
  */
 
-bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream)
+bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream, const qint32 &version)
 {
 	Q_ASSERT(chapter);
 
@@ -1005,10 +1006,14 @@ bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream)
 		QByteArray uuid;
 		QByteArray module;
 		qint32 storageId;
+		qint32 storageCount = 0;
 		QVariantMap data;
 		stream >> uuid >> module >> storageId >> data;
 
-		Objective *o = new Objective(uuid, module, storage(storageId), data);
+		if (version > 4)
+			stream >> storageCount;
+
+		Objective *o = new Objective(uuid, module, storage(storageId), storageCount, data);
 
 		chapter->addObjective(o);
 	}
@@ -1032,6 +1037,7 @@ bool GameMap::objectivesToDb(CosDb *db) const
 							 "chapter INTEGER REFERENCES chapters(id) ON DELETE CASCADE ON UPDATE CASCADE,"
 							 "module TEXT NOT NULL,"
 							 "storage INTEGER REFERENCES storages(id) ON DELETE CASCADE ON UPDATE CASCADE,"
+							 "storageCount INTEGER NOT NULL DEFAULT 0, "
 							 "data TEXT,"
 							 "UNIQUE (uuid)"
 							 ");"))
@@ -1048,10 +1054,13 @@ bool GameMap::objectivesToDb(CosDb *db) const
 			l["uuid"] = QString(o->uuid());
 			l["chapter"] = ch->id();
 			l["module"] = QString(o->module());
-			if (o->storage())
+			if (o->storage()) {
 				l["storage"] = o->storage()->id();
-			else
+				l["storageCount"] = o->storageCount();
+			} else {
 				l["storage"] = QVariant::Invalid;
+				l["storageCount"] = 0;
+			}
 			l["data"] = QString(doc.toJson(QJsonDocument::Compact));
 
 			if (db->execInsertQuery("INSERT INTO objectives (?k?) VALUES (?)", l) == -1)
@@ -1070,7 +1079,7 @@ bool GameMap::objectivesToDb(CosDb *db) const
 
 bool GameMap::objectivesFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT uuid, module, data, storage, chapters.id as chapterid FROM objectives "
+	QVariantList l = db->execSelectQuery("SELECT uuid, module, data, storage, storageCount, chapters.id as chapterid FROM objectives "
 										 "LEFT JOIN chapters ON (chapters.id=objectives.chapter)");
 
 	foreach (QVariant v, l) {
@@ -1084,6 +1093,7 @@ bool GameMap::objectivesFromDb(CosDb *db)
 		QJsonDocument doc = QJsonDocument::fromJson(m.value("data").toByteArray());
 		Objective *o = new Objective(m.value("uuid").toByteArray(), m.value("module").toByteArray(),
 									 storage(m.value("storage").toInt()),
+									 m.value("storageCount").toInt(),
 									 doc.object().toVariantMap());
 
 		c->addObjective(o);
@@ -2440,10 +2450,12 @@ GameMap::Storage::Storage(const qint32 &id, const QByteArray &module, const QVar
  * @param data
  */
 
-GameMap::Objective::Objective(const QByteArray &uuid, const QByteArray &module, GameMap::Storage *storage, const QVariantMap &data)
+GameMap::Objective::Objective(const QByteArray &uuid, const QByteArray &module, GameMap::Storage *storage, const int &storageCount,
+							  const QVariantMap &data)
 	: m_uuid(uuid)
 	, m_module(module)
 	, m_storage(storage)
+	, m_storageCount(storageCount)
 	, m_data(data)
 {
 

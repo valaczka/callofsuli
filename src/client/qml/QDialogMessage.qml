@@ -7,7 +7,7 @@ import "."
 QDialogPanel {
 	id: item
 
-	property string type: "info"            // info, warning, error
+	property string type: "info"            // info, warning, error, success
 	property alias text: labelText.text
 	property alias details: labelDetails.text
 
@@ -26,6 +26,8 @@ QDialogPanel {
 					CosStyle.colorWarning
 				else if (type === "error")
 					CosStyle.colorError
+				else if (type === "success")
+					CosStyle.colorOK
 				else
 					CosStyle.colorPrimary
 
@@ -39,6 +41,8 @@ QDialogPanel {
 					   CosStyle.colorWarningLighter
 				   else if (type === "error")
 					   CosStyle.colorErrorLighter
+				   else if (type === "success")
+					   CosStyle.colorOKLighter
 				   else
 					   CosStyle.colorPrimaryLighter
 
@@ -69,6 +73,7 @@ QDialogPanel {
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("OK")
 		icon.source: CosStyle.iconOK
+		themeColors: type === "success" ? CosStyle.buttonThemeApply : CosStyle.buttonThemeDefault
 
 		onClicked: item.dlgClose()
 	}

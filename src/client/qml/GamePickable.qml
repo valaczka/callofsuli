@@ -25,7 +25,7 @@ PhysicsEntity {
 
 	property int _collision: 0 //Box.Category3
 
-	property real horizontalPadding: 10
+	property real horizontalPadding: 25
 	property real verticalPadding: 5
 
 	property bool glowEnabled: false

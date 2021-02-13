@@ -20,6 +20,7 @@ Item {
 	signal failed()
 
 	signal buttonReveal(GameQuestionButton original)
+	signal buttonPressByKey(int num)
 
 	QLabel {
 		id: labelQuestion
@@ -32,12 +33,14 @@ Item {
 		anchors.right: parent.right
 		topPadding: 50
 		bottomPadding: 50
-		leftPadding: 10
-		rightPadding: 10
+		leftPadding: 20
+		rightPadding: 20
 
 		horizontalAlignment: Text.AlignHCenter
 
 		color: CosStyle.colorAccent
+
+		textFormat: Text.RichText
 
 		text: questionData.question
 	}
@@ -79,6 +82,12 @@ Item {
 							if (modelData.correct)
 								btn.type = GameQuestionButton.Correct
 						}
+
+						function onButtonPressByKey(num) {
+							if (num-1 == index) {
+								btn.clicked()
+							}
+						}
 					}
 				}
 			}
@@ -95,8 +104,19 @@ Item {
 			failed()
 	}
 
-	function clickBtn(t) {
-
+	function keyPressed(key) {
+		if (key === Qt.Key_1 || key === Qt.Key_A)
+			buttonPressByKey(1)
+		else if (key === Qt.Key_2 || key === Qt.Key_B)
+			buttonPressByKey(2)
+		else if (key === Qt.Key_3 || key === Qt.Key_C)
+			buttonPressByKey(3)
+		else if (key === Qt.Key_4 || key === Qt.Key_D)
+			buttonPressByKey(4)
+		else if (key === Qt.Key_5 || key === Qt.Key_E)
+			buttonPressByKey(5)
+		else if (key === Qt.Key_6 || key === Qt.Key_F)
+			buttonPressByKey(6)
 	}
 }
 

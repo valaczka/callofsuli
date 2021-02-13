@@ -81,6 +81,7 @@ void GameQuestion::run()
 
 	if (enemyData->targetId() == -1) {
 		qDebug() << "Empty question";
+		emit xpGained(0.5);
 		m_enemy->killByPlayer(m_player);
 		emit finished();
 		return;
@@ -103,15 +104,13 @@ void GameQuestion::run()
 		m_question->setProperty("maximumHeight", 400);*/
 
 		connect(m_question, &QQuickItem::destroyed, this, &GameQuestion::onDestroyed);
-		connect(m_question, SIGNAL(succeed()), this, SLOT(onSuccess()));
+		connect(m_question, SIGNAL(succeed(qreal)), this, SLOT(onSuccess(qreal)));
 		connect(m_question, SIGNAL(failed()), this, SLOT(onFailed()));
 
 		scene->setFocus(false, Qt::OtherFocusReason);
 		m_question->setFocus(true, Qt::OtherFocusReason);
-
-		qDebug() << "=================== CrEAteED" << m_question;
 	} else {
-		qDebug() << "??????????????";
+		qWarning() << "Can't create question";
 		emit finished();
 		return;
 	}
@@ -141,9 +140,11 @@ void GameQuestion::forceDestroy()
  * @brief GameQuestion::onSuccess
  */
 
-void GameQuestion::onSuccess()
+void GameQuestion::onSuccess(const qreal &xpFactor)
 {
-	qDebug() << "ON SUCCESS" << this;
+	qDebug() << "ON SUCCESS" << this << xpFactor;
+
+	emit xpGained(xpFactor);
 
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);

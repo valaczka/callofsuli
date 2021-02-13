@@ -44,6 +44,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_modelMissionList(nullptr)
 	, m_demoMode(false)
 	, m_demoSolverMap()
+	, m_baseXP(100)
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
@@ -292,6 +293,7 @@ void StudentMaps::playGame(QVariantMap data)
 	o["map"] = QString(m_currentMap->uuid());
 	o["mission"] = data.value("uuid").toString();
 	o["level"] = data.value("level", 1).toInt();
+	o["hasSolved"] = data.value("hasSolved", false).toBool();
 
 	send("gameCreate", o);
 }
@@ -307,6 +309,15 @@ void StudentMaps::setDemoMode(bool demoMode)
 	if (m_demoMode && !m_currentMap) {
 		demoMapLoad();
 	}
+}
+
+void StudentMaps::setBaseXP(int baseXP)
+{
+	if (m_baseXP == baseXP)
+		return;
+
+	m_baseXP = baseXP;
+	emit baseXPChanged(m_baseXP);
 }
 
 
@@ -547,6 +558,22 @@ void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 }
 
 
+/**
+ * @brief StudentMaps::onGameLose
+ * @param uuid
+ * @param level
+ */
+
+void StudentMaps::onGameEnd(GameMatch *match, const bool &win)
+{
+	QJsonObject o;
+	o["id"] = match->gameId();
+	o["xp"] = match->xp();
+	o["success"] = win;
+	m_client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
+}
+
+
 
 
 /**
@@ -557,6 +584,10 @@ void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 {
 	QJsonArray list = jsonData.value("list").toArray();
+	int baseXP = jsonData.value("baseXP").toInt();
+
+	if (baseXP > 0)
+		setBaseXP(baseXP);
 
 	if (!m_currentMap) {
 		m_modelMissionList->clear();
@@ -726,14 +757,28 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setDeleteGameMap(false);
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);
+	m_gameMatch->setBaseXP(m_baseXP*0.1);
+
+	bool hasSolved = jsonData.value("hasSolved").toBool(false);
 
 	if (m_demoMode) {
 		if (!m_demoSolverMap.contains(m_gameMatch->missionUuid())) {
 			m_demoSolverMap[m_gameMatch->missionUuid()] = -1;
 		}
 		connect(m_gameMatch, &GameMatch::gameWin, this, &StudentMaps::onDemoGameWin);
-	}
+	} else {
+		connect(m_gameMatch, &GameMatch::gameWin, this, [=](const QString &, const int level) {
+			int xp = m_baseXP*0.5*level;
+			if (!hasSolved)
+				xp *= 2.5;
+			m_gameMatch->setXP(m_gameMatch->xp()+xp);
+			onGameEnd(m_gameMatch, true);
+		});
 
+		connect(m_gameMatch, &GameMatch::gameLose, this, [=](const QString &, const int) {
+			onGameEnd(m_gameMatch, false);
+		});
+	}
 
 	emit gamePlayReady(m_gameMatch);
 }

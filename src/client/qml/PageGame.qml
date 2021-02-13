@@ -67,8 +67,6 @@ Page {
 		x: -(flick.visibleArea.xPosition/(1-flick.visibleArea.widthRatio))*(width-parent.width)
 		y: -(height-parent.height)
 
-		onYChanged: console.debug(flick.visibleArea.yPosition, flick.visibleArea.heightRatio)
-
 		fillMode: Image.PreserveAspectCrop
 		clip: false
 		height: parent.height*scaleFactorHeight
@@ -234,12 +232,14 @@ Page {
 					_timeSound = false
 					messageList.message(qsTr("You have 2 minutes left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
+					infoTime.marked = true
 				}
 
 				if (msecLeft <= 60*1000 && _finalSound) {
 					_finalSound = false
 					messageList.message(qsTr("You have 60 seconds left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
+					infoTime.marked = true
 				}
 			}
 
@@ -440,6 +440,33 @@ Page {
 	}
 
 
+	QLabel {
+		id: labelXP
+		visible: false
+		anchors.top: parent.top
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.margins: 7
+		color: "white"
+		font.pixelSize: 25
+		font.weight: Font.Bold
+		text: String("%1 XP").arg(xp)
+
+		property int xp: game.gameMatch ? game.gameMatch.xp : 0
+
+		Behavior on xp {
+			NumberAnimation { duration: 225; easing.type: Easing.OutQuart }
+		}
+	}
+
+	Glow {
+		anchors.fill: labelXP
+		source: labelXP
+		color: "black"
+		radius: 3
+		spread: 0.6
+		samples: 7
+	}
+
 	Column {
 		anchors.right: parent.right
 		anchors.top: parent.top
@@ -447,6 +474,7 @@ Page {
 		spacing: 5
 
 		GameInfo {
+			id: infoHP
 			anchors.right: parent.right
 			image.visible: false
 			color: CosStyle.colorErrorLighter
@@ -454,15 +482,27 @@ Page {
 			progressBar.from: 0
 			progressBar.to: game.player ? game.player.entityPrivate.defaultHp : 0
 			progressBar.value: game.player ? game.player.entityPrivate.hp : 0
+			progressBar.width: control.width*0.125
+
+			Connections {
+				target: game.player ? game.player.entityPrivate : null
+
+				function onHpChanged(hp) {
+					if (hp < 3)
+						infoHP.marked = true
+				}
+			}
 		}
 
 		GameInfo {
+			id: infoTime
 			anchors.right: parent.right
 			color: CosStyle.colorPrimary
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: secs
 			image.icon: CosStyle.iconClock1
+			progressBar.width: control.width*0.125
 
 			property int secs: game.msecLeft/1000
 
@@ -474,6 +514,7 @@ Page {
 
 
 		GameInfo {
+			id: infoTarget
 			anchors.right: parent.right
 			color: CosStyle.colorAccentDarker
 			image.icon: "qrc:/internal/img/target2.svg"
@@ -482,6 +523,7 @@ Page {
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: enemies
+			progressBar.width: control.width*0.125
 
 			property int enemies: game.activeEnemies
 
@@ -675,7 +717,7 @@ Page {
 
 	Timer {
 		id: gameOverCompletedTimer
-		interval: 1000
+		interval: 2000
 		running: false
 		triggeredOnStart: false
 		onTriggered: {
@@ -683,7 +725,7 @@ Page {
 			game.setEnemiesMoving(false)
 			game.setRunning(false)
 
-			var d = JS.dialogMessageInfo(qsTr("Game over"), qsTr("Mission completed"))
+			var d = JS.dialogMessage("success", qsTr("Game over"), qsTr("MISSION COMPLETED"))
 			d.rejected.connect(function() {
 				_closeEnabled = true
 				mainStack.back()
@@ -859,6 +901,30 @@ Page {
 						properties: "desaturation";
 						easing.type: Easing.InOutQuad;
 						duration: 1000
+					}
+
+					SequentialAnimation {
+						PropertyAction {
+							target: infoHP
+							property: "marked"
+							value: true
+						}
+						PauseAnimation {
+							duration: 1000
+						}
+						PropertyAction {
+							target: infoTime
+							property: "marked"
+							value: true
+						}
+						PauseAnimation {
+							duration: 1000
+						}
+						PropertyAction {
+							target: infoTarget
+							property: "marked"
+							value: true
+						}
 					}
 				}
 

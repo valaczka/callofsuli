@@ -39,6 +39,8 @@
 Question::Question(const QString &module, const QVariantMap &data)
 	: m_module(module)
 	, m_data(data)
+	, m_storageNum(0)
+	, m_objective(nullptr)
 {
 
 
@@ -47,12 +49,14 @@ Question::Question(const QString &module, const QVariantMap &data)
 
 
 
-Question::Question(GameMap::Objective *objective)
+Question::Question(GameMap::Objective *objective, const int &storageNum)
 {
 	Q_ASSERT(objective);
 
 	m_module = objective->module();
 	m_data = objective->data();
+	m_storageNum = storageNum;
+	m_objective = objective;
 }
 
 
@@ -100,9 +104,9 @@ QVariantMap Question::objectivesMap()
 								 });
 
 	m["calculator"] = QVariantMap({
-									 { "name", QObject::tr("Számolás") },
-									 { "icon", "image://font/Academic/\uf12f" }
-								 });
+									  { "name", QObject::tr("Számolás") },
+									  { "icon", "image://font/Academic/\uf12f" }
+								  });
 
 	return m;
 }
@@ -123,6 +127,11 @@ QVariantMap Question::storagesMap()
 								{ "name", QObject::tr("Kvíz") },
 								{ "icon", "image://font/Material Icons/\ue163" }
 							});
+
+	m["plusminus"] = QVariantMap({
+									 { "name", QObject::tr("Összeadás-kivonás") },
+									 { "icon", "image://font/Material Icons/\ue163" }
+								 });
 
 	return m;
 }
@@ -242,7 +251,11 @@ QStringList Question::objectiveDataToStringList(GameMap::Objective *objective, G
 
 QVariantMap Question::generateTruefalse() const
 {
-	return m_data;
+	QVariantMap m = m_data;
+
+	m["xpFactor"] = 1.0;
+
+	return m;
 }
 
 
@@ -324,6 +337,7 @@ QVariantMap Question::generateSimplechoice() const
 
 
 	m["options"] = oList;
+	m["xpFactor"] = 1.1;
 
 	return m;
 }
@@ -363,8 +377,27 @@ QStringList Question::toStringListSimplechoice(const QVariantMap &data, const QS
 
 QVariantMap Question::generateCalculator() const
 {
-	// TODO
-	return m_data;
+	QVariantMap m;
+
+	GameMap::Storage *storage = nullptr;
+
+	if (m_objective && m_objective->storage())
+		storage = m_objective->storage();
+
+	if (storage && storage->module() == "plusminus")
+		return generateCalculatorPlusMinus(storage);
+
+
+	m["question"] = "0";
+	m["suffix"] = "";
+	m["twoLine"] = false;
+	m["decimalEnabled"] = false;
+	m["answer"] = 0;
+	m["answer2"] = 0;
+	m["xpFactor"] = 0;
+
+	return m;
+
 }
 
 
@@ -388,6 +421,100 @@ QStringList Question::toStringListCalculator(const QVariantMap &data, const QStr
 	l.append("test");
 
 	return l;
+}
+
+
+
+/**
+ * @brief Question::generateCalculatorPlusMinus
+ * @return
+ */
+
+QVariantMap Question::generateCalculatorPlusMinus(GameMap::Storage *storage) const
+{
+	Q_ASSERT(storage);
+
+	QVariantMap m;
+
+	bool isSubtract = m_data.value("subtract", false).toBool();
+	int canNegative = m_data.value("canNegative", 0).toInt();
+	bool allCanNegative = canNegative > 1;
+	int range = m_data.value("range", 1).toInt();
+	float xpFactor = 1.0;
+
+	int floor = 1, ceil = 1;
+
+	if (range >= 3) {
+		xpFactor += 0.4;
+		ceil = allCanNegative ? 100 : 101;
+		if (allCanNegative || (isSubtract && canNegative))
+			floor = -100;
+	} else if (range == 2) {
+		xpFactor += 0.3;
+		ceil = allCanNegative ? 50 : 51;
+		if (allCanNegative || (isSubtract && canNegative))
+			floor = -50;
+	} else if (range == 3) {
+		xpFactor += 0.2;
+		ceil = allCanNegative ? 20 : 21;
+		if (allCanNegative || (isSubtract && canNegative))
+			floor = -20;
+	} else {
+		xpFactor += 0.1;
+		ceil = allCanNegative ? 10 : 11;
+		if (allCanNegative || (isSubtract && canNegative))
+			floor = -10;
+	}
+
+
+	int answer = 0, number1 = 0, number2 = 0;
+
+	if (!isSubtract) {						// Összeadás
+		answer = QRandomGenerator::global()->bounded(floor+1, ceil);
+		number2 = QRandomGenerator::global()->bounded(floor, allCanNegative ? ceil : answer);
+		number1 = answer-number2;
+	} else {								// Kivonás
+		answer = QRandomGenerator::global()->bounded(floor, ceil-1);
+		if (!allCanNegative && answer < 0) {
+			number2 = qAbs(answer) < ceil-1 ?
+						  QRandomGenerator::global()->bounded(qAbs(answer)+1, ceil) :
+						  ceil-1;
+			number1 = answer+number2;  //
+		} else {
+			number1 = answer < ceil-1 ?
+						  QRandomGenerator::global()->bounded(answer+1, ceil) :
+						  ceil-1;
+			number2 = number1-answer;
+		}
+	}
+
+
+
+	if (allCanNegative)
+		xpFactor = 1.0+(xpFactor-1.0)*2;
+	else if (canNegative)
+		xpFactor += 0.1;
+
+
+	if (number2 < 0)
+		m["question"] = QString("%1 %2 (%3) =")
+						.arg(number1)
+						.arg(isSubtract ? "-" : "+")
+						.arg(number2);
+	else
+		m["question"] = QString("%1 %2 %3 =")
+						.arg(number1)
+						.arg(isSubtract ? "-" : "+")
+						.arg(number2);
+
+	m["suffix"] = "";
+	m["twoLine"] = false;
+	m["decimalEnabled"] = false;
+	m["answer"] = answer;
+	m["answer2"] = 0;
+	m["xpFactor"] = xpFactor;
+
+	return m;
 }
 
 

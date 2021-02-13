@@ -105,6 +105,15 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(r);
 
+
+	// Base XP
+
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT value FROM settings WHERE key='xp.base'");
+
+	int baseXP = m.value("value", 100).toInt();
+
+	(*jsonResponse)["baseXP"] = baseXP;
+
 	return true;
 }
 
@@ -167,6 +176,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["gameid"] = rowid;
 	(*jsonResponse)["missionid"] = missionuuid;
 	(*jsonResponse)["level"] = level;
+	(*jsonResponse)["hasSolved"] = params.value("hasSolved", false).toBool();
 	return true;
 }
 

@@ -14,6 +14,8 @@ Item {
 	property alias label: label
 	property alias image: fontImage
 	property color color: CosStyle.colorAccent
+	property real pixelSize: marked ? 32 : (Qt.platform.os === "android" ? 16 : 18)
+	property bool marked: false
 
 	implicitHeight: Math.max(txtRow.height, progressBar.implicitHeight)
 	implicitWidth: txtRow.width+progressBar.width+txtRow.anchors.rightMargin
@@ -29,7 +31,18 @@ Item {
 		verticalOffset: 1
 	}*/
 
+	Behavior on pixelSize {
+		PropertyAnimation { duration: 450 }
+	}
 
+	Timer {
+		id: resizeTimer
+		interval: 2500
+		running: marked
+		triggeredOnStart: false
+		repeat: false
+		onTriggered: marked = false
+	}
 
 	Row {
 		id: txtRow
@@ -45,13 +58,13 @@ Item {
 			id: fontImage
 			anchors.verticalCenter: parent.verticalCenter
 			color: control.color
-			size: CosStyle.pixelSize
+			size: control.pixelSize
 		}
 
 		QLabel {
 			id: label
 			anchors.verticalCenter: parent.verticalCenter
-			font.pixelSize: CosStyle.pixelSize*0.85
+			font.pixelSize: control.pixelSize*0.85
 			font.weight: Font.Bold
 			color: control.color
 		}

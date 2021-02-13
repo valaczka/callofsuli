@@ -43,6 +43,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_missionUuid()
 	, m_gameId(-1)
 	, m_xp(0)
+	, m_baseXP(0)
 {
 	qDebug() << "GAME MATCH CREATED" << this;
 	setPlayerCharacter("character3");
@@ -64,6 +65,7 @@ GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObj
 	, m_missionUuid()
 	, m_gameId(-1)
 	, m_xp(0)
+	, m_baseXP(0)
 {
 	Q_ASSERT(missionLevel);
 
@@ -132,6 +134,17 @@ QString GameMatch::bgImage() const
 		return "qrc:/internal/game/bg.png";
 	else
 		return "image://"+m_imageDbName+"/"+m_bgImage;
+}
+
+
+/**
+ * @brief GameMatch::addXP
+ * @param factor
+ */
+
+void GameMatch::addXP(const qreal &factor)
+{
+	setXP(m_xp+m_baseXP*factor);
 }
 
 
@@ -245,13 +258,22 @@ void GameMatch::setGameId(int gameId)
 	emit gameIdChanged(m_gameId);
 }
 
-void GameMatch::setXp(int xp)
+void GameMatch::setXP(int xp)
 {
 	if (m_xp == xp)
 		return;
 
 	m_xp = xp;
 	emit xpChanged(m_xp);
+}
+
+void GameMatch::setBaseXP(int baseXP)
+{
+	if (m_baseXP == baseXP)
+		return;
+
+	m_baseXP = baseXP;
+	emit baseXPChanged(m_baseXP);
 }
 
 

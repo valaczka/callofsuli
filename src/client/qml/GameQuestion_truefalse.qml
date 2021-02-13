@@ -29,12 +29,14 @@ Item {
 		anchors.right: parent.right
 		topPadding: 50
 		bottomPadding: 50
-		leftPadding: 10
-		rightPadding: 10
+		leftPadding: 20
+		rightPadding: 20
 
 		horizontalAlignment: Text.AlignHCenter
 
 		color: CosStyle.colorAccent
+
+		textFormat: Text.RichText
 
 		text: questionData.question
 	}
@@ -89,9 +91,11 @@ Item {
 	}
 
 
-	function clickBtn(t) {
-		if (key === Qt.Key_Enter || key === Qt.Key_Return)
+	function keyPressed(key) {
+		if (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)
 			btnTrue.clicked()
+		else if (key === Qt.Key_N || key === Qt.Key_H)
+			btnFalse.clicked()
 	}
 }
 

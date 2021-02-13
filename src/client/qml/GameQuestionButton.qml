@@ -7,8 +7,8 @@ import "JScript.js" as JS
 Rectangle {
 	id: control
 
-	width: Math.max(100, label.implicitWidth)
-	height: Math.max(40, label.implicitHeight)
+	implicitWidth: Math.max(100, label.implicitWidth)
+	implicitHeight: Math.max(40, label.implicitHeight)
 
 	radius: 3
 

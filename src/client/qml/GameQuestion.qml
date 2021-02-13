@@ -17,7 +17,7 @@ Item {
 	property var questionData: null
 
 	signal successSound()
-	signal succeed()
+	signal succeed(real xpFactor)
 	signal failed()
 
 	property bool isAnswerSuccess: false
@@ -265,7 +265,7 @@ Item {
 				ScriptAction {
 					script: {
 						if (isAnswerSuccess)
-							succeed()
+							succeed(questionData.xpFactor)
 						else
 							failed()
 					}
