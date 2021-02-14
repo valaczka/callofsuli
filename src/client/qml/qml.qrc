@@ -114,5 +114,6 @@
         <file>GameMessageList.qml</file>
         <file>MapEditorObjectiveEdit_calculator.qml</file>
         <file>GameQuestion_calculator.qml</file>
+        <file>PageScore.qml</file>
     </qresource>
 </RCC>

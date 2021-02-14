@@ -21,6 +21,7 @@ ApplicationWindow {
 	minimumHeight: 600
 	minimumWidth: 600
 
+	FontLoader { source: "qrc:/internal/font/ariblk.ttf" }
 	FontLoader { source: "qrc:/internal/font/Books.ttf" }
 	FontLoader { source: "qrc:/internal/font/Material.ttf" }
 	FontLoader { source: "qrc:/internal/font/School.ttf" }

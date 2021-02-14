@@ -39,7 +39,7 @@
 #include <QDebug>
 #include "cosdb.h"
 
-#define GAMEMAP_CURRENT_VERSION 5
+#define GAMEMAP_CURRENT_VERSION 6
 
 
 /**
@@ -203,12 +203,13 @@ public:
 
 	class Mission {
 	public:
-		Mission(const QByteArray &uuid, const bool &mandatory, const QString &name);
+		Mission(const QByteArray &uuid, const bool &mandatory, const QString &name, const QString &description);
 		~Mission();
 
 		QByteArray uuid() const { return m_uuid;};
 		bool mandatory() const { return m_mandatory;};
 		QString name() const { return m_name;};
+		QString description() const { return m_description; };
 		QVector<MissionLevel *> levels() const { return m_levels; };
 		QVector<MissionLock> locks() const { return m_locks; };
 
@@ -230,6 +231,7 @@ public:
 		QByteArray m_uuid;
 		bool m_mandatory;
 		QString m_name;
+		QString m_description;
 		QVector<MissionLevel *> m_levels;
 		QVector<MissionLock> m_locks;
 		qint32 m_solvedLevel;
@@ -340,7 +342,7 @@ private:
 	bool campaingsFromDb(CosDb *db);
 
 	bool missionsToStream(Campaign* campaign, QDataStream &stream) const ;
-	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> missionsFromStream(Campaign* campaign, QDataStream &stream);
+	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> missionsFromStream(Campaign* campaign, QDataStream &stream, const qint32 &version);
 	bool missionsToDb(CosDb *db) const;
 	bool missionsFromDb(CosDb *db);
 	bool missionLocksToDb(CosDb *db) const;

@@ -61,6 +61,10 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());
 
+	(*jsonResponse)["ranklist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as rankid, name as rankname,"
+"level as ranklevel, image as rankimage, xp "
+									"FROM rank ORDER BY id"));
+
 	return true;
 }
 
@@ -85,7 +89,8 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 	l << username;
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
-																						"isTeacher, isAdmin, classid, classname, xp, rankid, rankname, rankimage "
+																						"isTeacher, isAdmin, classid, classname, xp, rankid, "
+																						"rankname, rankimage, ranklevel, nickname "
 																						"FROM userInfo where username=?", l));
 
 	return true;
@@ -102,9 +107,12 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, email, active, "
-									"isTeacher, isAdmin, classid, classname, xp, rankid, rankname "
-									"FROM userInfo ORDER BY firstname, lastname"));
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, "
+									"isTeacher, isAdmin, classid, classname, xp, rankid, rankname, ranklevel, rankimage, nickname "
+									"FROM userInfo"));
+
+	(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname "
+									"FROM class"));
 
 	return true;
 }

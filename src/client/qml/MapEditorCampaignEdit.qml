@@ -176,6 +176,7 @@ QPagePanel {
 			editType = MapEditorCampaignEdit.Mission
 			JS.setSqlFields([
 								textMissionName,
+								textMissionDescription,
 								checkMandatory,
 								comboCampaign
 							], data)
@@ -461,6 +462,18 @@ QPagePanel {
 
 					onToggled: {
 						mapEditor.run("missionModify", {uuid: missionUuid, data: { mandatory: checked }})
+					}
+				}
+
+				QGridLabel { field: textMissionDescription }
+
+				QGridTextArea {
+					id: textMissionDescription
+					fieldName: qsTr("Tájékoztató:")
+					sqlField: "description"
+
+					onTextModified: {
+						mapEditor.run("missionModify", {uuid: missionUuid, data:{ description: text }})
 					}
 				}
 			}

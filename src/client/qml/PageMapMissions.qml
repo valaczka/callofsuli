@@ -31,7 +31,6 @@ QPage {
 	}
 
 	onDemoModeChanged: if (demoMode) {
-						   console.debug("Set demo mode")
 						   demoStudentMaps.client = cosClient
 						   studentMaps = demoStudentMaps
 					   }

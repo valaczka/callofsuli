@@ -14,7 +14,8 @@ Item {
 	property alias label: label
 	property alias image: fontImage
 	property color color: CosStyle.colorAccent
-	property real pixelSize: marked ? 32 : (Qt.platform.os === "android" ? 16 : 18)
+	property real pixelSize: marked ? (Qt.platform.os === "android" ? 25 : 32)
+									: (Qt.platform.os === "android" ? 16 : 18)
 	property bool marked: false
 
 	implicitHeight: Math.max(txtRow.height, progressBar.implicitHeight)

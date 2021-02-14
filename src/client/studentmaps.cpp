@@ -36,6 +36,11 @@
 #include <QQmlEngine>
 #include "sqlimage.h"
 
+
+#define XP_FACTOR_TARGET_BASE	0.1
+#define XP_FACTOR_LEVEL			0.5
+#define XP_FACTOR_NO_SOLVED		2.5
+
 StudentMaps::StudentMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassStudent, parent)
 	, m_modelMapList(nullptr)
@@ -75,7 +80,6 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
 	connect(this, &StudentMaps::gameCreate, this, &StudentMaps::onGameCreate);
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
-	connect(this, &StudentMaps::gameUpdate, this, &StudentMaps::onGameUpdate);
 }
 
 
@@ -652,6 +656,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 			m["uuid"] = mis->uuid();
 			m["name"] = mis->name();
 			m["cname"] = c->name();
+			m["description"] = mis->description();
 
 			int lMin = mis->getLockDepth() == 0 ?
 						   qMax(mis->getSolvedLevel()+1, 1) :
@@ -662,7 +667,28 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 				mm["level"] = ml->level();
 				mm["available"] = (ml->level() <= lMin);
 				mm["solved"] = (mis->getSolvedLevel() >= ml->level());
+				mm["startHP"] = ml->startHP();
+				mm["duration"] = ml->duration();
+
+				int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
+				if (mis->getSolvedLevel() < ml->level())
+					xp *= XP_FACTOR_NO_SOLVED;
+				TerrainData t = Client::terrain(ml->terrain());
+				xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+				mm["xp"] = xp;
+				mm["enemies"] = t.enemies;
+
 				l.append(mm);
+
+				if (!m.contains("backgroundImage")) {
+					QString imageFolder = ml->imageFolder();
+					QString imageFile = ml->imageFile();
+
+					if (!imageFolder.isEmpty() && !imageFile.isEmpty())
+						m["backgroundImage"] = "image://mapimagedb/"+imageFolder+"/"+imageFile;
+					else
+						m["backgroundImage"] = "qrc:/internal/game/bg.png";
+				}
 			}
 
 			m["levels"] = l;
@@ -690,6 +716,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 		m["uuid"] = mis->uuid();
 		m["name"] = mis->name();
 		m["cname"] = "";
+		m["description"] = mis->description();
 
 		int lMin = mis->getLockDepth() == 0 ?
 					   qMax(mis->getSolvedLevel()+1, 1) :
@@ -700,7 +727,28 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 			mm["level"] = ml->level();
 			mm["available"] = (ml->level() <= lMin);
 			mm["solved"] = (mis->getSolvedLevel() >= ml->level());
+			mm["startHP"] = ml->startHP();
+			mm["duration"] = ml->duration();
+
+			int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
+			if (mis->getSolvedLevel() < ml->level())
+				xp *= XP_FACTOR_NO_SOLVED;
+			TerrainData t = Client::terrain(ml->terrain());
+			xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+			mm["xp"] = xp;
+			mm["enemies"] = t.enemies;
+
 			l.append(mm);
+
+			if (!m.contains("backgroundImage")) {
+				QString imageFolder = ml->imageFolder();
+				QString imageFile = ml->imageFile();
+
+				if (!imageFolder.isEmpty() && !imageFile.isEmpty())
+					m["backgroundImage"] = "image://mapimagedb/"+imageFolder+"/"+imageFile;
+				else
+					m["backgroundImage"] = "qrc:/internal/game/bg.png";
+			}
 		}
 
 		m["levels"] = l;
@@ -757,7 +805,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setDeleteGameMap(false);
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);
-	m_gameMatch->setBaseXP(m_baseXP*0.1);
+	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
 
 	bool hasSolved = jsonData.value("hasSolved").toBool(false);
 
@@ -768,9 +816,9 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 		connect(m_gameMatch, &GameMatch::gameWin, this, &StudentMaps::onDemoGameWin);
 	} else {
 		connect(m_gameMatch, &GameMatch::gameWin, this, [=](const QString &, const int level) {
-			int xp = m_baseXP*0.5*level;
+			int xp = m_baseXP*XP_FACTOR_LEVEL*level;
 			if (!hasSolved)
-				xp *= 2.5;
+				xp *= XP_FACTOR_NO_SOLVED;
 			m_gameMatch->setXP(m_gameMatch->xp()+xp);
 			onGameEnd(m_gameMatch, true);
 		});
@@ -784,17 +832,6 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 }
 
 
-
-
-/**
- * @brief StudentMaps::onGameUpdate
- * @param jsonData
- */
-
-void StudentMaps::onGameUpdate(QJsonObject jsonData, QByteArray)
-{
-	qDebug() << "#### GAME UPDATED ###";
-}
 
 
 

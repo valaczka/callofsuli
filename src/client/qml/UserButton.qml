@@ -12,11 +12,12 @@ QToolButton {
 	property UserDetails userDetails: null
 	property bool userNameVisible: true
 
+	width: Math.min(implicitWidth, 200)
+
 	display: userNameVisible ? Button.TextBesideIcon : Button.IconOnly
 
-	icon.source: cosClient.userRankImage.length ?
-					 "image://sql/"+cosClient.userRankImage :
-					 "image://sql/rank/"+cosClient.userRank+".svg"
+	icon.source: cosClient.rankImageSource(cosClient.userRank, cosClient.userRankLevel, cosClient.userRankImage)
+
 	icon.color: "transparent"
 	icon.width: CosStyle.pixelSize*1.9
 	icon.height: CosStyle.pixelSize*1.9
@@ -30,7 +31,8 @@ QToolButton {
 
 	font.pixelSize: CosStyle.pixelSize*0.8
 
-	text: cosClient.userFirstName+"\n"+cosClient.userLastName
+	text: cosClient.userNickName.length ? cosClient.userNickName :
+										  cosClient.userFirstName+(cosClient.userLastName.length ? "\n"+cosClient.userLastName : "")
 
 	onClicked: {
 		if (userDetails && !userDetails.running) {

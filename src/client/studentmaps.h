@@ -85,7 +85,6 @@ private slots:
 
 	void onMissionListGet(QJsonObject jsonData, QByteArray);
 	void onGameCreate(QJsonObject jsonData, QByteArray);
-	void onGameUpdate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);
 
 signals:

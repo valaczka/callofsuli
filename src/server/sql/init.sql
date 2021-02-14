@@ -129,7 +129,7 @@ SELECT xpReason.name as reason, level.id as level, COALESCE(xp, 0) as xp
 CREATE TABLE rank(
 	id INTEGER PRIMARY KEY,
 	name TEXT NOT NULL,
-	level INTEGER NOT NULL DEFAULT 1,
+	level INTEGER,
 	image TEXT NOT NULL,
 	xp INTEGER CHECK (xp>=0)
 );
@@ -180,7 +180,7 @@ CREATE TABLE passwordReset(
 
 CREATE VIEW userInfo AS
 SELECT u.username, u.firstname, u.lastname, u.active, u.isTeacher, u.isAdmin, u.classid, n.nickname,
-	c.name as classname, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as rankname, r.image as rankimage
+	c.name as classname, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as rankname, r.level as ranklevel, r.image as rankimage
 	FROM user u
 	LEFT JOIN class c ON (c.id=u.classid)
 	LEFT JOIN nick n ON (n.username=u.username)
@@ -192,7 +192,7 @@ SELECT u.username, u.firstname, u.lastname, u.active, u.isTeacher, u.isAdmin, u.
 		FROM user uu
 		LEFT JOIN (SELECT username, rankid FROM ranklog GROUP BY username HAVING MAX(timestamp)) rl ON (rl.username=uu.username)) ur
 		ON (ur.username=u.username)
-	LEFT JOIN (SELECT id, name, image FROM rank) r ON (r.id=ur.rankid);
+	LEFT JOIN (SELECT id, name, level, image FROM rank) r ON (r.id=ur.rankid);
 
 
 CREATE TRIGGER rank_update

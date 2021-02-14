@@ -1183,7 +1183,7 @@ bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 
 		qDebug() << "Load missions";
 
-		mLockList.insert(missionsFromStream(c, stream));
+		mLockList.insert(missionsFromStream(c, stream, version));
 
 		addCampaign(c);
 
@@ -1197,7 +1197,7 @@ bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 	if (version > 3) {
 		qDebug() << "Load orphaned missions";
 
-		mLockList.insert(missionsFromStream(nullptr, stream));
+		mLockList.insert(missionsFromStream(nullptr, stream, version));
 	}
 
 	qDebug() << "Campaigns loaded";
@@ -1358,6 +1358,7 @@ bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 			stream << m->uuid();
 			stream << m->mandatory();
 			stream << m->name();
+			stream << m->description();
 
 			stream << (quint32) m->locks().size();
 
@@ -1379,6 +1380,7 @@ bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 			stream << m->uuid();
 			stream << m->mandatory();
 			stream << m->name();
+			stream << m->description();
 
 			stream << (quint32) m->locks().size();
 
@@ -1406,7 +1408,7 @@ bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
  */
 
 QHash<QByteArray, QList<QPair<QByteArray, qint32>>>
-GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
+GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream, const qint32 &version)
 {
 	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> lockList;
 
@@ -1417,14 +1419,20 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream)
 		QByteArray uuid;
 		bool mandatory;
 		QString name;
+		QString description;
 		quint32 lockSize = 0;
 
-		stream >> uuid >> mandatory >> name >> lockSize;
+		stream >> uuid >> mandatory >> name;
+
+		if (version > 5)
+			stream >> description;
+
+		stream >> lockSize;
 
 		if (uuid.isEmpty())
 			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
 
-		Mission *m = new Mission(uuid, mandatory, name);
+		Mission *m = new Mission(uuid, mandatory, name, description);
 
 		QList<QPair<QByteArray, qint32>> ll;
 
@@ -1477,7 +1485,8 @@ bool GameMap::missionsToDb(CosDb *db) const
 							 "uuid TEXT PRIMARY KEY,"
 							 "campaign INTEGER REFERENCES campaigns(id) ON DELETE SET NULL ON UPDATE CASCADE,"
 							 "mandatory BOOL,"
-							 "name TEXT"
+							 "name TEXT,"
+							 "description TEXT"
 							 ");"))
 		return false;
 
@@ -1490,6 +1499,7 @@ bool GameMap::missionsToDb(CosDb *db) const
 			QVariantMap l;
 			l["campaign"] = c->id();
 			l["name"] = m->name();
+			l["description"] = m->description();
 			l["mandatory"] = m->mandatory();
 			l["uuid"] = QString(m->uuid());
 
@@ -1503,6 +1513,7 @@ bool GameMap::missionsToDb(CosDb *db) const
 		QVariantMap l;
 		l["campaign"] = QVariant::Invalid;
 		l["name"] = m->name();
+		l["description"] = m->description();
 		l["mandatory"] = m->mandatory();
 		l["uuid"] = QString(m->uuid());
 
@@ -1523,13 +1534,14 @@ bool GameMap::missionsToDb(CosDb *db) const
 
 bool GameMap::missionsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name FROM missions");
+	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name, description FROM missions");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
 
 		if (m.value("campaign").isNull()) {
-			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(), m.value("name").toString());
+			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(),
+									   m.value("name").toString(), m.value("description").toString());
 
 			m_orphanMissions.append(mis);
 		} else {
@@ -1538,7 +1550,8 @@ bool GameMap::missionsFromDb(CosDb *db)
 			if (!c)
 				return false;
 
-			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(), m.value("name").toString());
+			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(),
+									   m.value("name").toString(), m.value("description").toString());
 
 			c->addMission(mis);
 		}
@@ -2595,10 +2608,11 @@ GameMap::MissionLevel::~MissionLevel()
  * @param name
  */
 
-GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const QString &name)
+GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const QString &name, const QString &description)
 	: m_uuid(uuid)
 	, m_mandatory(mandatory)
 	, m_name(name)
+	, m_description(description)
 	, m_levels()
 	, m_locks()
 	, m_solvedLevel(-1)
@@ -2655,7 +2669,6 @@ bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameM
 
 	return true;
 }
-
 
 
 

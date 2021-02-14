@@ -36,6 +36,9 @@
 
 #include "../common/cosdb.h"
 
+#include <QPainter>
+#include <QPainterPath>
+
 SqlImage::SqlImage(Client *client, const QString &connectionName, const QString &databaseName, const QString &table)
 	: QQuickImageProvider(QQuickImageProvider::Pixmap)
 	, m_client(client)
@@ -108,6 +111,8 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	l << path.value(0, "");
 	l << path.value(1, "");
 
+	QString overlayText = path.value(2, "");
+
 	QVariantMap m = m_db->execSelectQueryOneRow("SELECT content FROM "+m_table+" WHERE folder=? AND file=?", l);
 
 	bool success = !m.isEmpty();
@@ -118,16 +123,30 @@ QPixmap SqlImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 		outPixmap.loadFromData(outByteArray);
 
 		if (!outPixmap.isNull()) {
-			if (requestedSize.isValid()) {
-				QPixmap resized = outPixmap.scaled(requestedSize, Qt::KeepAspectRatio);
-				if (size)
-					*size = resized.size();
-				return resized;
-			} else {
-				if (size)
-					*size = outPixmap.size();
-				return outPixmap;
+			if (requestedSize.isValid())
+				outPixmap = outPixmap.scaled(requestedSize, Qt::KeepAspectRatio);
+
+			if (!overlayText.isEmpty()) {
+				QPainter painter(&outPixmap);
+
+				QFont font = QFont("Arial Black");
+				int drawSize = qMax(qRound(outPixmap.height() * 0.38), 5);
+				font.setPixelSize(drawSize);
+
+				painter.save();
+
+				QPainterPath path;
+
+				path.addText(outPixmap.width()*0.75, outPixmap.height()*0.95, font, overlayText);
+				painter.strokePath(path, QPen(Qt::black, 4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+				painter.fillPath(path, Qt::cyan);
+
+				painter.restore();
 			}
+
+			if (size)
+				*size = outPixmap.size();
+			return outPixmap;
 		}
 	} else {
 		int width = 100;

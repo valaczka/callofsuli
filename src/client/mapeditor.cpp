@@ -1189,7 +1189,8 @@ void MapEditor::missionLoad(QVariantMap data)
 	QVariantList l;
 	l.append(uuid);
 
-	QVariantMap map = db()->execSelectQueryOneRow("SELECT uuid, campaign, mandatory, missions.name as name, campaigns.name as campaignName "
+	QVariantMap map = db()->execSelectQueryOneRow("SELECT uuid, campaign, mandatory, missions.name as name, "
+"missions.description as description, campaigns.name as campaignName "
 												  "FROM missions "
 												  "LEFT JOIN campaigns ON (campaigns.id=missions.campaign) "
 												  "WHERE uuid=?", l);

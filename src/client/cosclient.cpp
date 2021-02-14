@@ -50,6 +50,7 @@
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
 #include "serversettings.h"
+#include "scores.h"
 #include "mapeditor.h"
 #include "gameactivity.h"
 #include "cosdownloader.h"
@@ -74,6 +75,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_userXP = 0;
 	m_userRank = 0;
 	m_userRankImage = "";
+	m_userRankLevel = -1;
+	m_userNickName = "";
 
 	m_cosMessage = nullptr;
 
@@ -225,6 +228,7 @@ void Client::registerTypes()
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
+	qmlRegisterType<Scores>("COS.Client", 1, 0, "Scores");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
 	qmlRegisterType<GameActivity>("COS.Client", 1, 0, "GameActivity");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
@@ -537,6 +541,60 @@ QList<QPointF> Client::rotatePolygon(const QVariantList &points, const qreal &an
 }
 
 
+
+/**
+ * @brief Client::rankImageSource
+ * @param rankImage
+ * @param rankLevel
+ * @return
+ */
+
+QUrl Client::rankImageSource(const int &rank, const int &rankLevel, const QString &rankImage)
+{
+	if (rankImage.isEmpty()) {
+		if (rankLevel > 0)
+			return QUrl(QString("image://sql/rank/%1.svg/%2").arg(rank).arg(rankLevel));
+		else
+			return QUrl(QString("image://sql/rank/%1.svg").arg(rank));
+	} else {
+		if (rankLevel > 0)
+			return QUrl(QString("image://sql/%1/%2").arg(rankImage).arg(rankLevel));
+		else
+			return QUrl(QString("image://sql/%1").arg(rankImage));
+	}
+}
+
+
+/**
+ * @brief Client::nextRank
+ * @param rankId
+ * @return
+ */
+
+QVariantMap Client::nextRank(const int &rankId) const
+{
+	int nextIdx = -1;
+
+	for (int i=0; i<m_rankList.size(); ++i) {
+		QVariantMap m = m_rankList.value(i).toMap();
+		if (m.value("rankid").toInt() == rankId && i < m_rankList.size()-1) {
+			nextIdx = i+1;
+			break;
+		}
+	}
+
+	if (nextIdx != -1) {
+		QVariantMap m;
+		m["current"] = m_rankList.value(nextIdx-1).toMap();
+		m["next"] = m_rankList.value(nextIdx).toMap();
+		return m;
+	}
+
+	return QVariantMap();
+}
+
+
+
 /**
  * @brief Client::mapToList
  * @param map
@@ -675,6 +733,33 @@ void Client::setVolume(const CosSound::ChannelType &channel, const int &volume) 
 							  );
 }
 
+void Client::setRankList(QVariantList rankList)
+{
+	if (m_rankList == rankList)
+		return;
+
+	m_rankList = rankList;
+	emit rankListChanged(m_rankList);
+}
+
+void Client::setUserNickName(QString userNickName)
+{
+	if (m_userNickName == userNickName)
+		return;
+
+	m_userNickName = userNickName;
+	emit userNickNameChanged(m_userNickName);
+}
+
+void Client::setUserRankLevel(int userRankLevel)
+{
+	if (m_userRankLevel == userRankLevel)
+		return;
+
+	m_userRankLevel = userRankLevel;
+	emit userRankLevelChanged(m_userRankLevel);
+}
+
 
 
 /**
@@ -763,9 +848,12 @@ void Client::closeConnection()
 		setConnectionState(Standby);
 		m_socket->close();
 		setUserName("");
+		setUserNickName("");
 		setUserRank(0);
+		setUserRankLevel(-1);
 		setUserXP(0);
 		setUserRoles(CosMessage::RoleGuest);
+		setRankList(QVariantList());
 	}
 }
 
@@ -911,11 +999,14 @@ void Client::clearSession()
 	setSessionToken("");
 	setUserXP(0);
 	setUserRank(0);
+	setUserRankLevel(-1);
 	setUserRankName("");
 	setUserLastName("");
 	setUserFirstName("");
+	setUserNickName("");
 	setUserRankImage("");
 	setUserRoles(CosMessage::RoleGuest);
+	setRankList(QVariantList());
 }
 
 
@@ -984,15 +1075,18 @@ void Client::performUserInfo(const CosMessage &message)
 				setUserXP(d.value("xp").toInt(0));
 				setUserRank(d.value("rankid").toInt(0));
 				setUserRankName(d.value("rankname").toString());
+				setUserRankLevel(d.value("ranklevel").toInt(-1));
 				setUserLastName(d.value("lastname").toString());
 				setUserFirstName(d.value("firstname").toString());
 				setUserRankImage(d.value("rankimage").toString());
+				setUserNickName(d.value("nickname").toString());
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
 			setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
 			setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
 			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
+			setRankList(d.value("ranklist").toArray().toVariantList());
 		} else if (func == "newSessionToken") {
 			QString token = d.value("token").toString();
 			setSessionToken(token);

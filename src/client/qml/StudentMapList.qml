@@ -9,8 +9,8 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	maximumWidth: 600
-	layoutFillWidth: false
+	maximumWidth: 800
+	layoutFillWidth: true
 
 	title: qsTr("Pályák")
 	icon: "image://font/School/\uf19d"

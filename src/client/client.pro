@@ -55,6 +55,7 @@ SOURCES += \
 		objectiveimportersimplechoice.cpp \
 		objectiveimportertruefalse.cpp \
 		question.cpp \
+		scores.cpp \
 		servers.cpp \
 		serversettings.cpp \
 		sqlimage.cpp \
@@ -92,6 +93,7 @@ HEADERS += \
 	objectiveimportersimplechoice.h \
 	objectiveimportertruefalse.h \
 	question.h \
+	scores.h \
 	servers.h \
 	serversettings.h \
 	sqlimage.h \

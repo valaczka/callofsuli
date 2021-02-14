@@ -445,9 +445,9 @@ Page {
 		visible: false
 		anchors.top: parent.top
 		anchors.horizontalCenter: parent.horizontalCenter
-		anchors.margins: 7
+		anchors.margins: 5
 		color: "white"
-		font.pixelSize: 25
+		font.pixelSize: 20
 		font.weight: Font.Bold
 		text: String("%1 XP").arg(xp)
 
@@ -482,7 +482,7 @@ Page {
 			progressBar.from: 0
 			progressBar.to: game.player ? game.player.entityPrivate.defaultHp : 0
 			progressBar.value: game.player ? game.player.entityPrivate.hp : 0
-			progressBar.width: control.width*0.125
+			progressBar.width: Math.min(control.width*0.125, 100)
 
 			Connections {
 				target: game.player ? game.player.entityPrivate : null
@@ -502,7 +502,7 @@ Page {
 			progressBar.to: 0
 			progressBar.value: secs
 			image.icon: CosStyle.iconClock1
-			progressBar.width: control.width*0.125
+			progressBar.width: Math.min(control.width*0.125, 100)
 
 			property int secs: game.msecLeft/1000
 
@@ -523,7 +523,7 @@ Page {
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: enemies
-			progressBar.width: control.width*0.125
+			progressBar.width: Math.min(control.width*0.125, 100)
 
 			property int enemies: game.activeEnemies
 
@@ -901,30 +901,6 @@ Page {
 						properties: "desaturation";
 						easing.type: Easing.InOutQuad;
 						duration: 1000
-					}
-
-					SequentialAnimation {
-						PropertyAction {
-							target: infoHP
-							property: "marked"
-							value: true
-						}
-						PauseAnimation {
-							duration: 1000
-						}
-						PropertyAction {
-							target: infoTime
-							property: "marked"
-							value: true
-						}
-						PauseAnimation {
-							duration: 1000
-						}
-						PropertyAction {
-							target: infoTarget
-							property: "marked"
-							value: true
-						}
 					}
 				}
 

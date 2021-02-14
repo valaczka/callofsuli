@@ -73,7 +73,10 @@ public:
 	Q_PROPERTY(QString userRankName READ userRankName WRITE setUserRankName NOTIFY userRankNameChanged)
 	Q_PROPERTY(QString userFirstName READ userFirstName WRITE setUserFirstName NOTIFY userFirstNameChanged)
 	Q_PROPERTY(QString userLastName READ userLastName WRITE setUserLastName NOTIFY userLastNameChanged)
+	Q_PROPERTY(QString userNickName READ userNickName WRITE setUserNickName NOTIFY userNickNameChanged)
 	Q_PROPERTY(QString userRankImage READ userRankImage WRITE setUserRankImage NOTIFY userRankImageChanged)
+	Q_PROPERTY(int userRankLevel READ userRankLevel WRITE setUserRankLevel NOTIFY userRankLevelChanged)
+	Q_PROPERTY(QVariantList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -104,9 +107,13 @@ public:
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 
+	Q_INVOKABLE static QUrl rankImageSource(const int &rank, const int &rankLevel = -1, const QString &rankImage = "");
+
 	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
 		return VariantMapModel::newModel(list, this);
 	}
+
+	Q_INVOKABLE QVariantMap nextRank(const int &rankId) const;
 
 	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
 	Q_INVOKABLE static QVariantMap terrainMap();
@@ -125,7 +132,10 @@ public:
 	QString userFirstName() const { return m_userFirstName; }
 	QString userLastName() const { return m_userLastName; }
 	QString userRankImage() const { return m_userRankImage; }
+	int userRankLevel() const { return m_userRankLevel; }
+	QString userNickName() const { return m_userNickName; }
 	QString serverDataDir() const { return m_serverDataDir; }
+	QVariantList rankList() const { return m_rankList; }
 
 	QString serverName() const { return m_serverName; }
 	bool registrationEnabled() const { return m_registrationEnabled; }
@@ -170,6 +180,8 @@ public slots:
 	int volume(const CosSound::ChannelType &channel) const;
 	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
 
+
+
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
@@ -188,13 +200,16 @@ private slots:
 	void setUserXP(int userXP);
 	void setUserRank(int userRank);
 	void setUserRankName(QString userRankName);
+	void setUserRankLevel(int userRankLevel);
 	void setUserFirstName(QString userFirstName);
 	void setUserLastName(QString userLastName);
+	void setUserNickName(QString userNickName);
 	void setUserRankImage(QString userRankImage);
 	void setServerName(QString serverName);
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
 	void setRegistrationDomains(QVariantList registrationDomains);
+	void setRankList(QVariantList rankList);
 
 signals:
 	void messageSent(const QString &type,
@@ -209,12 +224,6 @@ signals:
 	void authInvalid();
 	void authRequirePasswordReset();
 	void authPasswordResetSuccess();
-
-	void jsonUserInfoReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void jsonTeacherMapsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void jsonTeacherGroupsReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void jsonUserReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
-	void jsonStudentReceived(const QJsonObject &object, const QByteArray &binaryData, const int &clientMsgId);
 
 	void registrationRequest();
 	void registrationRequestSuccess();
@@ -246,7 +255,9 @@ signals:
 	void registrationDomainsChanged(QVariantList registrationDomains);
 	void waitForResourcesChanged(QStringList waitForResources);
 	void userRankImageChanged(QString userRankImage);
-
+	void userRankLevelChanged(int userRankLevel);
+	void userNickNameChanged(QString userNickName);
+	void rankListChanged(QVariantList rankList);
 
 private:
 	void performUserInfo(const CosMessage &message);
@@ -277,6 +288,9 @@ private:
 	static QList<TerrainData> m_availableTerrains;
 	CosSound *m_clientSound;
 	QThread m_workerThread;
+	int m_userRankLevel;
+	QString m_userNickName;
+	QVariantList m_rankList;
 };
 
 

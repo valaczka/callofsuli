@@ -385,7 +385,7 @@ bool Server::rankInit()
 
 	QVariantMap m;
 	m["name"] = tr("vezérezredes");
-	m["level"] = 1;
+	m["level"] = QVariant::Invalid;
 	m["image"] = "rank/100.svg";
 	m["xp"] = QVariant::Invalid;
 
