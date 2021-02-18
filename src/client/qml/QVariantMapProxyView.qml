@@ -22,6 +22,9 @@ QListView {
 	property string modelTitleWeightRole: ""
 	property string modelTitleFamilyRole: ""
 
+	property bool numbered: false
+	property int startNumber: 1
+
 	property color colorTitle: CosStyle.colorPrimaryLighter
 	property color colorSubtitle: CosStyle.colorPrimary
 
@@ -45,6 +48,8 @@ QListView {
 
 	property Component leftComponent: null
 	property Component rightComponent: null
+
+	property bool highlightCurrentItem: true
 
 	property color currentColor: "#33EEEEEE"
 
@@ -74,14 +79,15 @@ QListView {
 
 		property bool enabled: true
 		property int depth: modelDepthRole.length ? model[modelDepthRole] : 0
-		property string labelTitle: modelTitleRole.length ? model[modelTitleRole] : ""
+		property string labelTitle: (view.numbered ? "<b>"+(index+view.startNumber)+".</b> " : "")
+									+(modelTitleRole.length ? model[modelTitleRole] : "")
 		property string labelSubtitle: modelSubtitleRole.length ? model[modelSubtitleRole] : ""
 		property bool itemSelected: selectorSet ? model.selected : false
 		property color baseColor: modelBackgroundRole.length ? model[modelBackgroundRole] : "transparent"
 
 		color: area.containsMouse ?
-				   (currentIndex === index ? Qt.lighter(view.currentColor, 1.3) :  Qt.lighter(baseColor, 1.3)) :
-				   (currentIndex === index ? view.currentColor :  baseColor)
+				   (currentIndex === index && view.highlightCurrentItem ? Qt.lighter(view.currentColor, 1.3) :  Qt.lighter(baseColor, 1.3)) :
+				   (currentIndex === index && view.highlightCurrentItem ? view.currentColor :  baseColor)
 
 		signal clicked(int index)
 		signal rightClicked(int index)

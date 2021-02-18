@@ -201,6 +201,18 @@ void VariantMapModel::setVariantList(const QVariantList &list, const QString &un
 
 
 /**
+ * @brief VariantMapModel::setJsonArray
+ * @param list
+ * @param unique_field
+ */
+
+void VariantMapModel::setJsonArray(const QJsonArray &list, const QString &unique_field)
+{
+	m_data->fromJsonArray(list, unique_field);
+}
+
+
+/**
  * @brief VariantMapModel::count
  * @return
  */

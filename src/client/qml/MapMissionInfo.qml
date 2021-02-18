@@ -132,7 +132,7 @@ QPagePanel {
 					x: (flick.width-width)/2
 
 					wrapMode: Text.Wrap
-					text: selectedData.description
+					text: selectedData ? selectedData.description : ""
 
 					font.family: "Special Elite"
 					color: CosStyle.colorAccent

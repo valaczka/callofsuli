@@ -229,3 +229,201 @@ bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["error"] = "sql error";
 	return false;
 }
+
+
+
+
+/**
+ * @brief TeacherMap::groupListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantList params;
+
+	params.append(m_client->clientUserName());
+
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT id, name FROM studentgroup WHERE owner=?",
+														   params);
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(mapList);
+
+	return true;
+}
+
+
+/**
+ * @brief TeacherMap::groupAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupCreate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+
+	if (!params.contains("name")) {
+		(*jsonResponse)["error"] = "name empty";
+		return false;
+	}
+
+	params["owner"] = m_client->clientUserName();
+
+	int id = m_client->db()->execInsertQuery("INSERT INTO studentgroup (?k?) VALUES (?)", params);
+
+	if (id == -1)
+	{
+		setServerError();
+		return false;
+	}
+
+	(*jsonResponse)["created"] = id;
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupUpdate
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupUpdate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	if (id == -1) {
+		(*jsonResponse)["error"] = "missing id";
+		return false;
+	}
+
+
+	params.remove("id");
+	params.remove("owner");
+
+	QVariantMap uu;
+	uu[":id"] = id;
+	uu[":owner"] = m_client->clientUserName();
+
+	if (m_client->db()->execUpdateQuery("UPDATE studentgroup SET ? "
+											"WHERE id=:id AND owner=:owner", params, uu)) {
+		(*jsonResponse)["id"] = id;
+		(*jsonResponse)["updated"] = true;
+		return true;
+	}
+
+	(*jsonResponse)["id"]	= id;
+	(*jsonResponse)["error"] = "sql error";
+
+	return false;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	if (id == -1) {
+		(*jsonResponse)["error"] = "missing id";
+		return false;
+	}
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	if (m_client->db()->execSimpleQuery("DELETE FROM studentgroup WHERE id=? AND owner=?", m)) {
+		(*jsonResponse)["id"]	= id;
+		(*jsonResponse)["removed"] = true;
+		return true;
+	}
+
+	(*jsonResponse)["error"] = "sql error";
+	return false;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupMapListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupMapListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=? AND owner=?", m);
+
+	m.clear();
+	m.append(m_client->clientUserName());
+
+	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=?", m);
+
+	QJsonArray retList;
+
+	foreach (QVariant v, list) {
+		QVariantMap lMap = v.toMap();
+
+		foreach (QVariant vv, mapList) {
+			QVariantMap mMap = vv.toMap();
+			if (mMap.value("uuid").toString() == lMap.value("mapid").toString()) {
+				retList.append(QJsonObject::fromVariantMap(mMap));
+				break;
+			}
+		}
+	}
+
+	(*jsonResponse)["list"] = retList;
+
+	return true;
+}
+
+
+/**
+ * @brief TeacherMap::groupMemberListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.username as username, firstname, lastname, active "
+"FROM studentGroupInfo "
+"LEFT JOIN user ON (user.username=studentGroupInfo.username) "
+"WHERE studentGroupInfo.id=? AND owner=?",
+														m);
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}

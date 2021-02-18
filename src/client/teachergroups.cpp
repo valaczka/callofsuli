@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermap.h
+ * teachergroups.cpp
  *
- * Created on: 2020. 12. 26.
+ * Created on: 2021. 02. 18.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMap
+ * TeacherGroups
  *
  *  This file is part of Call of Suli.
  *
@@ -32,35 +32,56 @@
  * SOFTWARE.
  */
 
-#ifndef TEACHERMAP_H
-#define TEACHERMAP_H
+#include "teachergroups.h"
 
-#include "abstracthandler.h"
-#include <QObject>
-
-class Client;
-
-class TeacherMap : public AbstractHandler
+TeacherGroups::TeacherGroups(QQuickItem *parent)
+	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
+	, m_modelGroupList(nullptr)
 {
-	Q_OBJECT
+	m_modelGroupList = new VariantMapModel({
+											 "id",
+											 "name"
+										 },
+										 this);
 
-public:
-	explicit TeacherMap(Client *client, const CosMessage &message);
+	connect(this, &TeacherGroups::groupListGet, this, &TeacherGroups::onGroupListGet);
+}
 
-	bool classInit() override;
+/**
+ * @brief TeacherGroups::~TeacherGroups
+ */
 
-public slots:
-	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool mapUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool mapRemove(QJsonObject *jsonResponse, QByteArray *);
+TeacherGroups::~TeacherGroups()
+{
+	delete m_modelGroupList;
+}
 
-	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool groupCreate(QJsonObject *jsonResponse, QByteArray *);
-	bool groupUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool groupRemove(QJsonObject *jsonResponse, QByteArray *);
-	bool groupMapListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool groupMemberListGet(QJsonObject *jsonResponse, QByteArray *);
 
-};
+/**
+ * @brief TeacherGroups::setModelGroupList
+ * @param modelGroupList
+ */
 
-#endif // TEACHERMAP_H
+void TeacherGroups::setModelGroupList(VariantMapModel *modelGroupList)
+{
+	if (m_modelGroupList == modelGroupList)
+		return;
+
+	m_modelGroupList = modelGroupList;
+	emit modelGroupListChanged(m_modelGroupList);
+}
+
+
+/**
+ * @brief TeacherGroups::onGroupListGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onGroupListGet(QJsonObject jsonData, QByteArray)
+{
+	m_modelGroupList->unselectAll();
+
+	QJsonArray list = jsonData.value("list").toArray();
+
+	m_modelGroupList->setJsonArray(list, "id");
+}

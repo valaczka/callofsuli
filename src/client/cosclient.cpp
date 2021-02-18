@@ -55,6 +55,7 @@
 #include "gameactivity.h"
 #include "cosdownloader.h"
 #include "teachermaps.h"
+#include "teachergroups.h"
 #include "studentmaps.h"
 
 /*
@@ -225,6 +226,7 @@ void Client::registerTypes()
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<StudentMaps>("COS.Client", 1, 0, "StudentMaps");
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
+	qmlRegisterType<TeacherGroups>("COS.Client", 1, 0, "TeacherGroups");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");

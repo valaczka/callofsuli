@@ -115,5 +115,7 @@
         <file>MapEditorObjectiveEdit_calculator.qml</file>
         <file>GameQuestion_calculator.qml</file>
         <file>PageScore.qml</file>
+        <file>TeacherGroupList.qml</file>
+        <file>PageTeacherGroup.qml</file>
     </qresource>
 </RCC>

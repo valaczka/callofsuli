@@ -12,6 +12,7 @@ QTextArea {
 	property bool modified: false
 
 	property bool watchModification: parent.watchModification
+	property bool acceptableInput: true
 
 
 	placeholderText: parent.columns > 1 ? "" : fieldName

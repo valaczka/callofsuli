@@ -71,6 +71,7 @@ public:
 
 	Q_INVOKABLE void clear();
 	Q_INVOKABLE void setVariantList(const QVariantList &list, const QString &unique_field);
+	Q_INVOKABLE void setJsonArray(const QJsonArray &list, const QString &unique_field);
 
 	VariantMapData *variantMapData() const { return m_data; }
 

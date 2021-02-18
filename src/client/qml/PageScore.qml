@@ -105,6 +105,7 @@ QPage {
 
 				refreshEnabled: true
 				delegateHeight: CosStyle.twoLineHeight
+				numbered: true
 
 				leftComponent: Image {
 					source: cosClient.rankImageSource(model.rankid, model.ranklevel, model.rankimage)
@@ -126,6 +127,8 @@ QPage {
 				modelBackgroundRole: "background"
 				modelTitleColorRole: "titlecolor"
 				colorSubtitle: CosStyle.colorAccentDark
+
+				highlightCurrentItem: false
 
 				onRefreshRequest: reloadModel()
 			}

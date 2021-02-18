@@ -469,7 +469,7 @@ QPagePanel {
 
 				QGridTextArea {
 					id: textMissionDescription
-					fieldName: qsTr("Tájékoztató:")
+					fieldName: qsTr("Tájékoztató")
 					sqlField: "description"
 
 					onTextModified: {

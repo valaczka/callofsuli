@@ -74,7 +74,7 @@ QPage {
 				if (cosClient.userRoles & CosMessage.RoleTeacher)
 					list.model.append({
 										  labelTitle: qsTr("Csoportok kezelése"),
-										  page: "TeacherGroups",
+										  page: "TeacherGroup",
 										  params: {}
 									  })
 
