@@ -6,122 +6,138 @@ import "Style"
 import "JScript.js" as JS
 import "."
 
-Item {
+QDialogPanel {
 	id: item
 
-	implicitHeight: 300
-	implicitWidth: 400
+	property alias list: list
+	property alias selectorSet: list.selectorSet
+	readonly property bool simpleSelect: !list.selectorSet
+	readonly property alias model: model
+	property alias sourceModel: model.sourceModel
+	/*property var roles: [username, firstname, lastname, active, "
+"classname, classid, isTeacher, isAdmin]*/
 
-	property alias title: mainRow.title
-	property alias userListWidget: userListWidget
-	property alias list: userListWidget.delegate
-	property alias model: userListWidget.model
-	property bool simpleSelect: !userListWidget.delegate.selectorSet
+	maximumHeight: 0
+	maximumWidth: 700
 
-	signal dlgClose()
-	signal dlgAccept(var data)
+	acceptedData: -1
 
-	Item {
-		id: dlgItem
-		anchors.centerIn: parent
+	QVariantMapProxyView {
+		id: list
 
-		width: Math.min(parent.width*0.9, 650)
-		height: parent.height*0.9
+		anchors.fill: parent
 
+		Component {
+			id: sectionHeading
+			Rectangle {
+				width: list.width
+				height: childrenRect.height
+				color: CosStyle.colorPrimaryDarker
 
+				required property string section
 
-		BorderImage {
-			id: bgRectMask
-			source: "qrc:/internal/img/border.svg"
-			visible: false
+				QLabel {
+					text: parent.section
+					font.pixelSize: CosStyle.pixelSize*0.85
+					font.weight: Font.DemiBold
+					font.capitalization: Font.AllUppercase
+					color: CosStyle.colorPrimaryLight
 
-			anchors.fill: bgRectData
+					leftPadding: 5
+					topPadding: 2
+					bottomPadding: 2
+					rightPadding: 5
 
-			border.left: 15; border.top: 10
-			border.right: 15; border.bottom: 10
-
-			horizontalTileMode: BorderImage.Repeat
-			verticalTileMode: BorderImage.Repeat
-		}
-
-		Rectangle {
-			id: bgRectData
-
-			anchors.fill: rectBg
-			visible: false
-
-			color: JS.setColorAlpha(CosStyle.colorPrimaryDark, 0.2)
-		}
-
-		OpacityMask {
-			id: rectBg
-			source: bgRectData
-			maskSource: bgRectMask
-
-			anchors.top: parent.top
-			anchors.left: parent.left
-			anchors.right: parent.right
-			anchors.bottom: buttonRow.top
-			anchors.bottomMargin: 10
-
-			QDialogHeader {
-				id: mainRow
-				icon: CosStyle.iconDialogQuestion
-			}
-
-
-			UserListWidget {
-				id: userListWidget
-
-				anchors.top: mainRow.bottom
-				anchors.left: parent.left
-				anchors.right: parent.right
-				anchors.bottom: parent.bottom
-				anchors.margins: 30
-				anchors.topMargin: 0
-				anchors.bottomMargin: mainRow.padding
-
-				filterButtonVisible: false
-
-				delegate.autoSelectorChange: false
-				delegate.selectorSet: true
-			}
-
-		}
-
-		Row {
-			id: buttonRow
-			spacing: 10
-
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.bottom: parent.bottom
-
-			QButton {
-				id: buttonNo
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Mégsem")
-				icon.source: CosStyle.iconCancel
-				themeColors: CosStyle.buttonThemeDelete
-
-				onClicked: dlgClose()
-			}
-
-			QButton {
-				id: buttonYes
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				visible: !simpleSelect
-
-				text: qsTr("OK")
-				icon.source: CosStyle.iconOK
-				themeColors: CosStyle.buttonThemeApply
-
-				onClicked: dlgAccept(list.currentIndex)
+					elide: Text.ElideRight
+				}
 			}
 		}
 
+		model: SortFilterProxyModel {
+			id: model
+
+			filters: [
+				RegExpFilter {
+					enabled: toolbar.searchBar.text.length
+					roleName: "fullname"
+					pattern: toolbar.searchBar.text
+					caseSensitivity: Qt.CaseInsensitive
+					syntax: RegExpFilter.FixedString
+				}
+			]
+
+			sorters: [
+				StringSorter { roleName: "classname"; priority: 2 },
+				RoleSorter { roleName: "classid"; priority: 1 },
+				StringSorter { roleName: "fullname" }
+			]
+
+			proxyRoles: [
+				JoinRole {
+					name: "fullname"
+					roleNames: ["firstname", "lastname"]
+				}
+			]
+		}
+
+		modelTitleRole: "fullname"
+
+		autoSelectorChange: false
+
+		section.property: "classname"
+		section.criteria: ViewSection.FullString
+		section.delegate: sectionHeading
+
+		onClicked: if (simpleSelect) {
+					   acceptedData = model.mapToSource(currentIndex)
+					   dlgClose()
+				   }
 	}
+
+	QPagePanelSearch {
+		id: toolbar
+
+		listView: list
+
+		enabled: model.sourceModel.count
+		labelCountText: model.sourceModel.selectedCount
+		onSelectAll: JS.selectAllProxyModelToggle(model)
+	}
+
+
+	buttons: Row {
+		id: buttonRow
+		spacing: 10
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		QButton {
+			id: buttonNo
+			anchors.verticalCenter: parent.verticalCenter
+			text: qsTr("Mégsem")
+			icon.source: CosStyle.iconCancel
+			themeColors: CosStyle.buttonThemeDelete
+
+			onClicked: dlgClose()
+		}
+
+		QButton {
+			id: buttonYes
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			visible: !simpleSelect
+
+			text: qsTr("OK")
+			icon.source: CosStyle.iconOK
+			themeColors: CosStyle.buttonThemeApply
+
+			onClicked: {
+				dlgClose()
+			}
+		}
+	}
+
 
 
 	function populated() {

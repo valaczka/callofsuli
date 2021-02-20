@@ -9,8 +9,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	maximumWidth: 600
-	layoutFillWidth: false
+	layoutFillWidth: true
 
 	title: qsTr("Csoportok")
 	icon: "image://font/AcademicI/\uf15f"
@@ -36,8 +35,12 @@ QPagePanel {
 
 		visible: teacherGroups.modelGroupList.count
 
+		refreshEnabled: true
+		onRefreshRequest: teacherGroups.send("groupListGet")
+
 		model: userProxyModel
 		modelTitleRole: "name"
+		modelSubtitleRole: "readableClassList"
 
 		autoSelectorChange: true
 
@@ -70,26 +73,7 @@ QPagePanel {
 
 		onClicked: {
 			var o = list.model.get(index)
-			/*if (o.download) {
-				list.currentIndex = index
-				actionDownload.trigger()
-			} else if (o.upload) {
-				JS.createPage("MapEditor", {
-								  database: teacherMaps.db,
-								  databaseTable: "localmaps",
-								  databaseUuid: o.uuid
-							  })
-			} else {
-				var d = JS.dialogCreateQml("YesNo", {
-											   title: qsTr("Szerkesztés"),
-											   text: qsTr("Készítsünk egy helyi másolatát a szerkesztéshez?\n%1").arg(o.name)
-										   })
-				d.accepted.connect(function() {
-					teacherMaps.mapLocalCopy({uuid: o.uuid})
-				})
-
-				d.open()
-			}*/
+			teacherGroups.selectedGroupId = o.id
 		}
 
 		onRightClicked: contextMenu.popup()

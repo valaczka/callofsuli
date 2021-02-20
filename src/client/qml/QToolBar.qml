@@ -108,7 +108,7 @@ ToolBar {
 					font.pixelSize: CosStyle.pixelSize*1.1
 					font.weight: Font.Normal
 					color: CosStyle.colorAccentLighter
-					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
+					width: Math.min(titleItem.width-menuLoader.width, implicitWidth ? implicitWidth+1 : 0)
 					elide: Text.ElideRight
 				}
 
@@ -117,7 +117,7 @@ ToolBar {
 					font.pixelSize: CosStyle.pixelSize*0.8
 					font.weight: Font.Medium
 					color: CosStyle.colorPrimaryLighter
-					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
+					width: Math.min(titleItem.width-menuLoader.width, implicitWidth ? implicitWidth+1 : 0)
 					elide: Text.ElideRight
 				}
 			}

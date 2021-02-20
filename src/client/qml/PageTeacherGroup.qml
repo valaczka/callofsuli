@@ -14,13 +14,30 @@ QPage {
 	activity: TeacherGroups {
 		id: teacherGroups
 
+		property VariantMapModel _dialogUserModel: newModel(["username", "firstname", "lastname", "active", "classname", "classid"])
+		property VariantMapModel _dialogClassModel: newModel(["id", "name"])
+		property VariantMapModel _dialogMapModel: newModel(["uuid", "name"])
+
+
 		onGroupCreate: send("groupListGet")
-		onGroupUpdate: send("groupListGet")
+		onGroupUpdate: {
+			send("groupListGet")
+			groupSelect(selectedGroupId)
+		}
+
+		onGroupClassAdd: {
+			send("groupListGet")
+			groupSelect(selectedGroupId)
+		}
+
+		onGroupGet: {
+			page.defaultSubTitle = jsonData.name
+		}
 	}
 
 
 
-	panelComponents: [
+	property list<Component> cmps: [
 		Component { TeacherGroupList {
 				panelVisible: true
 				Connections {
@@ -29,6 +46,12 @@ QPage {
 						list.forceActiveFocus()
 					}
 				}
+			} },
+		Component { TeacherGroupMembers {
+				panelVisible: true
+			} },
+		Component { TeacherGroupMaps {
+				panelVisible: true
 			} }
 	]
 
@@ -42,6 +65,9 @@ QPage {
 
 
 	onPageActivated: {
+		if (!panelComponents.length)
+			panelComponents = cmps
+
 		teacherGroups.send("groupListGet")
 	}
 

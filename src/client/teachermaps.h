@@ -43,6 +43,10 @@ class TeacherMaps : public AbstractActivity
 	Q_OBJECT
 
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
+	Q_PROPERTY(VariantMapModel * modelGroupList READ modelGroupList WRITE setModelGroupList NOTIFY modelGroupListChanged)
+
+	Q_PROPERTY(QString selectedMapId READ selectedMapId WRITE setSelectedMapId NOTIFY selectedMapIdChanged)
+
 	Q_PROPERTY(bool isUploading READ isUploading WRITE setIsUploading NOTIFY isUploadingChanged)
 
 public:
@@ -54,9 +58,14 @@ public:
 	//Q_INVOKABLE virtual void run(const QString &func, QVariantMap data = QVariantMap()) override { AbstractActivity::run(m_map, func, data); };
 
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
+	VariantMapModel * modelGroupList() const { return m_modelGroupList; }
+
 	bool isUploading() const { return m_isUploading; }
 
+	QString selectedMapId() const { return m_selectedMapId; }
+
 public slots:
+	void mapSelect(const QString &uuid);
 	void mapAdd(QVariantMap data);
 	void mapDownload(QVariantMap data);
 	void mapUpload(QVariantMap data);
@@ -65,29 +74,38 @@ public slots:
 	void mapLocalCopy(QVariantMap data);
 
 	void setIsUploading(bool isUploading);
+	void setModelGroupList(VariantMapModel * modelGroupList);
+	void setSelectedMapId(QString selectedMapId);
 
 protected slots:
 	void clientSetup() override;
 
 private slots:
+	void onMapGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onMapUpdated(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &jsonData);
 
 
 signals:
-	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapDownloadRequest(QString formattedDataSize);
-
+	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapUpdate(QJsonObject jsonData, QByteArray binaryData);
+	void mapGet(QJsonObject jsonData, QByteArray binaryData);
+	void mapExcludedGroupListGet(QJsonObject jsonData, QByteArray binaryData);
+	void mapGroupAdd(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelMapListChanged(VariantMapModel * modelMapList);
+	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void isUploadingChanged(bool isUploading);
+	void selectedMapIdChanged(QString selectedMapId);
 
 private:
 	//QHash<QString, void (TeacherMaps::*)(QVariantMap)> m_map;
 	VariantMapModel * m_modelMapList;
 	bool m_isUploading;
+	VariantMapModel * m_modelGroupList;
+	QString m_selectedMapId;
 };
 
 #endif // TEACHERMAPS_H

@@ -40,6 +40,8 @@ TeacherMaps::TeacherMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
 	, m_modelMapList(nullptr)
 	, m_isUploading(false)
+	, m_modelGroupList(nullptr)
+	, m_selectedMapId(-1)
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
@@ -54,8 +56,18 @@ TeacherMaps::TeacherMaps(QQuickItem *parent)
 										 },
 										 this);
 
+	m_modelGroupList = new VariantMapModel({
+											   "groupid",
+											   "name",
+											   "readableClassList"
+										   },
+										   this);
+
 	connect(this, &TeacherMaps::mapListGet, this, &TeacherMaps::onMapListGet);
 	connect(this, &TeacherMaps::mapUpdate, this, &TeacherMaps::onMapUpdated);
+	connect(this, &TeacherMaps::mapGet, this, &TeacherMaps::onMapGet);
+
+	connect(this, &TeacherMaps::selectedMapIdChanged, this, &TeacherMaps::mapSelect);
 }
 
 
@@ -67,6 +79,7 @@ TeacherMaps::TeacherMaps(QQuickItem *parent)
 TeacherMaps::~TeacherMaps()
 {
 	delete m_modelMapList;
+	delete m_modelGroupList;
 
 	if (m_downloader)
 		delete m_downloader;
@@ -132,6 +145,22 @@ CosDb *TeacherMaps::teacherMapsDb(Client *client, QObject *parent, const QString
 }
 
 
+/**
+ * @brief TeacherMaps::mapSelect
+ * @param uuid
+ */
+
+void TeacherMaps::mapSelect(const QString &uuid)
+{
+	if (uuid.isEmpty())
+		return;
+
+	QJsonObject o;
+	o["uuid"]	= uuid;
+	send("mapGet", o);
+}
+
+
 
 
 
@@ -146,6 +175,22 @@ void TeacherMaps::clientSetup()
 
 	CosDb *db = teacherMapsDb(m_client, this);
 	addDb(db, false);
+}
+
+
+
+/**
+ * @brief TeacherMaps::onMapGet
+ * @param jsonData
+ */
+
+void TeacherMaps::onMapGet(QJsonObject jsonData, QByteArray)
+{
+	m_modelGroupList->unselectAll();
+
+	setSelectedMapId(jsonData.value("uuid").toString());
+
+	m_modelGroupList->setJsonArray(jsonData.value("groupList").toArray(), "groupid");
 }
 
 
@@ -400,6 +445,24 @@ void TeacherMaps::setIsUploading(bool isUploading)
 
 	m_isUploading = isUploading;
 	emit isUploadingChanged(m_isUploading);
+}
+
+void TeacherMaps::setModelGroupList(VariantMapModel *modelGroupList)
+{
+	if (m_modelGroupList == modelGroupList)
+		return;
+
+	m_modelGroupList = modelGroupList;
+	emit modelGroupListChanged(m_modelGroupList);
+}
+
+void TeacherMaps::setSelectedMapId(QString selectedMapId)
+{
+	if (m_selectedMapId == selectedMapId)
+		return;
+
+	m_selectedMapId = selectedMapId;
+	emit selectedMapIdChanged(m_selectedMapId);
 }
 
 

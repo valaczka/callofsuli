@@ -253,14 +253,6 @@ void MapEditor::loadFromDbPrivate(QVariantMap)
 									 .append(unavailableTerrains.join(", ")));
 	}
 
-#ifdef QT_DEBUG
-	qDebug() << "*** WRITE TO /tmp/ttt.dat";
-	QFile f("/tmp/ttt.dat");
-	f.open(QIODevice::WriteOnly);
-	f.write(game->toBinaryData());
-	f.close();
-#endif
-
 	if (_createDatabase(game)) {
 		emit loadFinished();
 		setMapName(m.value("name").toString());

@@ -9,8 +9,7 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	maximumWidth: 600
-	layoutFillWidth: false
+	layoutFillWidth: true
 
 	title: qsTr("Pályák")
 	icon: "image://font/AcademicI/\uf15f"
@@ -20,6 +19,7 @@ QPagePanel {
 	contextMenuFunc: function (m) {
 		m.addAction(actionMapNew)
 		m.addAction(actionRename)
+		m.addAction(actionEdit)
 		m.addAction(actionDownload)
 		m.addAction(actionUpload)
 	}
@@ -95,7 +95,9 @@ QPagePanel {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: if (model && model.upload)
+			icon: if (model && model.local)
+					  CosStyle.iconAdd
+				  else if (model && model.upload)
 					  "image://font/AcademicI/\uf114"
 				  else if (model && model.download)
 					  "image://font/School/\uf137"
@@ -120,28 +122,44 @@ QPagePanel {
 		}*/
 
 
+		rightComponent: Row {
+			visible: !teacherMaps.modelMapList.selectedCount
+			spacing: 0
+
+
+			QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				ToolTip.text: qsTr("Letöltés")
+
+				icon.source: CosStyle.iconDownload
+				visible: model && model.download
+				onClicked: {
+					list.currentIndex = modelIndex
+					actionDownload.trigger()
+				}
+			}
+
+			QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				ToolTip.text: qsTr("Szerkesztés")
+
+				icon.source: CosStyle.iconEdit
+				visible: model && model.upload
+				onClicked: {
+					list.currentIndex = modelIndex
+					actionEdit.trigger()
+				}
+			}
+		}
+
 		onClicked: {
 			var o = list.model.get(index)
-			if (o.download) {
-				list.currentIndex = index
-				actionDownload.trigger()
-			} else if (o.upload) {
-				JS.createPage("MapEditor", {
-								  database: teacherMaps.db,
-								  databaseTable: "localmaps",
-								  databaseUuid: o.uuid
-							  })
+			if (o.local) {
+				teacherMaps.selectedMapId=""
 			} else {
-				var d = JS.dialogCreateQml("YesNo", {
-											   title: qsTr("Szerkesztés"),
-											   text: qsTr("Készítsünk egy helyi másolatát a szerkesztéshez?\n%1").arg(o.name)
-										   })
-				d.accepted.connect(function() {
-					teacherMaps.mapLocalCopy({uuid: o.uuid})
-				})
-
-				d.open()
+				teacherMaps.selectedMapId= o.uuid
 			}
+
 		}
 
 		onRightClicked: contextMenu.popup()
@@ -173,6 +191,7 @@ QPagePanel {
 
 			MenuItem { action: actionMapNew }
 			MenuItem { action: actionRename }
+			MenuItem { action: actionEdit }
 			MenuItem { action: actionDownload }
 			MenuItem { action: actionUpload }
 			MenuItem { action: actionExport }
@@ -181,8 +200,8 @@ QPagePanel {
 
 		onKeyInsertPressed: actionMapNew.trigger()
 		onKeyF2Pressed: actionRename.trigger()
-		/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF4Pressed: actionObjectiveNew.trigger()*/
+		//onKeyDeletePressed: actionRemove.trigger()
+		onKeyF4Pressed: actionEdit.trigger()
 	}
 
 
@@ -275,11 +294,42 @@ QPagePanel {
 		}
 	}
 
+
+	Action {
+		id: actionEdit
+		text: qsTr("Szerkesztés")
+		icon.source: CosStyle.iconEdit
+		enabled: !teacherMaps.isBusy && list.currentIndex !== -1
+		onTriggered: {
+			var o = list.model.get(list.currentIndex)
+
+			if (o.download) {
+				actionDownload.trigger()
+			} else if (o.upload) {
+				JS.createPage("MapEditor", {
+								  database: teacherMaps.db,
+								  databaseTable: "localmaps",
+								  databaseUuid: o.uuid
+							  })
+			} else {
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Szerkesztés"),
+											   text: qsTr("Készítsünk egy helyi másolatát a szerkesztéshez?\n%1").arg(o.name)
+										   })
+				d.accepted.connect(function() {
+					teacherMaps.mapLocalCopy({uuid: o.uuid})
+				})
+
+				d.open()
+			}
+		}
+	}
+
 	Action {
 		id: actionExport
 		text: qsTr("Exportálás")
 		icon.source: CosStyle.iconDrawer
-		enabled: !teacherMaps.isBusy && list.currentIndex !== -1
+		enabled: Qt.platform.os === "linux" && !teacherMaps.isBusy && list.currentIndex !== -1
 		onTriggered: {
 			var o = list.model.get(list.currentIndex)
 			fileDialog.mapUuid = o.uuid

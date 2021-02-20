@@ -117,5 +117,8 @@
         <file>PageScore.qml</file>
         <file>TeacherGroupList.qml</file>
         <file>PageTeacherGroup.qml</file>
+        <file>TeacherGroupMembers.qml</file>
+        <file>TeacherGroupMaps.qml</file>
+        <file>TeacherMapGroups.qml</file>
     </qresource>
 </RCC>

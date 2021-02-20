@@ -232,6 +232,137 @@ bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+/**
+ * @brief TeacherMap::mapGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::mapGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString uuid = params.value("uuid").toString();
+
+	QVariantList m;
+
+	m.append(uuid);
+	m.append(m_client->clientUserName());
+
+	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, name FROM maps WHERE uuid=? AND owner=?", m);
+
+	if (r.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid map";
+		return false;
+	}
+
+
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT groupid, name, "
+"(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+"WHERE bindGroupClass.groupid=bindGroupMap.groupid) as readableClassList "
+"FROM bindGroupMap "
+"LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
+"WHERE mapid=? AND owner=?", m);
+
+
+	QVariantList l;
+	l.append(uuid);
+	l.append(uuid);
+	QVariantMap mm = m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM bindGroupMap WHERE mapid=?) AS binded,"
+														   "EXISTS(SELECT * FROM game WHERE mapid=?) AS used", l);
+
+	(*jsonResponse)["uuid"] = uuid;
+	(*jsonResponse)["name"] = r.value("name").toString();
+	(*jsonResponse)["groupList"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["binded"] = mm.value("binded").toBool();
+	(*jsonResponse)["used"] = mm.value("used").toBool();
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief TeacherMap::mapGroupAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::mapGroupAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString uuid = params.value("uuid").toString();
+
+	QVariantList m;
+
+	m.append(uuid);
+	m.append(m_client->clientUserName());
+
+	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, name FROM maps WHERE uuid=? AND owner=?", m);
+
+	if (r.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid map";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("groupList").toList())
+		list.append(v.toInt());
+
+	if (params.contains("groupid"))
+		list.append(params.value("groupid").toInt());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = uuid;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap (mapid, groupid) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["uuid"] = uuid;
+	(*jsonResponse)["added"] = list.size();
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::mapExcludedGroupListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString uuid = params.value("uuid").toString();
+
+	QVariantList l;
+	l.append(m_client->clientUserName());
+	l.append(uuid);
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT id, name, (SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+"WHERE bindGroupClass.groupid=studentgroup.id) as readableClassList FROM studentgroup "
+"WHERE owner=? AND id NOT IN (SELECT groupid FROM bindGroupMap WHERE mapid=?) ",
+														l);
+
+	(*jsonResponse)["uuid"] = uuid;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
+
 
 /**
  * @brief TeacherMap::groupListGet
@@ -245,8 +376,12 @@ bool TeacherMap::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	params.append(m_client->clientUserName());
 
-	QVariantList mapList = m_client->db()->execSelectQuery("SELECT id, name FROM studentgroup WHERE owner=?",
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT id, name, (SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+"WHERE bindGroupClass.groupid=studentgroup.id) as readableClassList FROM studentgroup "
+"WHERE owner=?",
 														   params);
+
 
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(mapList);
 
@@ -311,7 +446,7 @@ bool TeacherMap::groupUpdate(QJsonObject *jsonResponse, QByteArray *)
 	uu[":owner"] = m_client->clientUserName();
 
 	if (m_client->db()->execUpdateQuery("UPDATE studentgroup SET ? "
-											"WHERE id=:id AND owner=:owner", params, uu)) {
+										"WHERE id=:id AND owner=:owner", params, uu)) {
 		(*jsonResponse)["id"] = id;
 		(*jsonResponse)["updated"] = true;
 		return true;
@@ -358,48 +493,6 @@ bool TeacherMap::groupRemove(QJsonObject *jsonResponse, QByteArray *)
 
 
 
-/**
- * @brief TeacherMap::groupMapListGet
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::groupMapListGet(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantList list = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=? AND owner=?", m);
-
-	m.clear();
-	m.append(m_client->clientUserName());
-
-	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=?", m);
-
-	QJsonArray retList;
-
-	foreach (QVariant v, list) {
-		QVariantMap lMap = v.toMap();
-
-		foreach (QVariant vv, mapList) {
-			QVariantMap mMap = vv.toMap();
-			if (mMap.value("uuid").toString() == lMap.value("mapid").toString()) {
-				retList.append(QJsonObject::fromVariantMap(mMap));
-				break;
-			}
-		}
-	}
-
-	(*jsonResponse)["list"] = retList;
-
-	return true;
-}
-
 
 /**
  * @brief TeacherMap::groupMemberListGet
@@ -417,13 +510,338 @@ bool TeacherMap::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
 	m.append(id);
 	m.append(m_client->clientUserName());
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.username as username, firstname, lastname, active "
-"FROM studentGroupInfo "
-"LEFT JOIN user ON (user.username=studentGroupInfo.username) "
+	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.username as username, firstname, lastname, active, "
+"classname, classid, isTeacher, isAdmin FROM studentGroupInfo "
+"LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) "
 "WHERE studentGroupInfo.id=? AND owner=?",
 														m);
 
+	(*jsonResponse)["id"] = id;
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief TeacherMap::groupGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+
+
+	m.clear();
+	m.append(id);
+
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=?", m);
+
+	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
+"LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
+														 m);
+
+	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, active, classid, classname "
+"FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
+														 m);
+
+
+
+
+	m.clear();
+	m.append(m_client->clientUserName());
+
+	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=?", m);
+
+	QJsonArray mList;
+
+	foreach (QVariant v, mapList) {
+		QVariantMap lMap = v.toMap();
+
+		QJsonObject o;
+		o["uuid"] = lMap.value("mapid").toString();
+		o["name"] = lMap.value("mapid").toString();
+
+		foreach (QVariant vv, mapDataList) {
+			QVariantMap mMap = vv.toMap();
+			if (mMap.value("uuid").toString() == lMap.value("mapid").toString()) {
+				o["name"] = mMap.value("name").toString();
+				break;
+			}
+		}
+
+		mList.append(o);
+	}
+
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["name"] = group.value("name").toString();
+	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(cList);
+	(*jsonResponse)["userList"] = QJsonArray::fromVariantList(uList);
+	(*jsonResponse)["mapList"] = mList;
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupExcludedClassListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT id, name FROM class WHERE id NOT IN "
+														"(SELECT classid FROM bindGroupClass WHERE groupid=?) ",
+														l);
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupExcludedStudentListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT username, firstname, lastname, "
+																		"active, classid, classname "
+																		"FROM userInfo "
+																		"WHERE isTeacher=false AND username NOT IN "
+																		"(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
+														l);
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupExcludedMapListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=?", l);
+
+	QStringList ml;
+	foreach (QVariant v, mapList)
+		ml.append(v.toMap().value("mapid").toString());
+
+	l.clear();
+	l.append(m_client->clientUserName());
+
+	QVariantList list = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=? ", l);
+
+	QJsonArray r;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		if (ml.contains(m.value("uuid").toString()))
+			continue;
+
+		r.append(QJsonObject::fromVariantMap(m));
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = r;
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief TeacherMap::groupClassAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupClassAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("classList").toList())
+		list.append(v.toInt());
+
+	if (params.contains("classid"))
+		list.append(params.value("classid", -1).toInt());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupClass (groupid, classid) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["added"] = list.size();
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupUserAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupUserAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("userList").toList())
+		list.append(v.toString());
+
+	if (params.contains("username"))
+		list.append(params.value("username").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupStudent (groupid, username) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["added"] = list.size();
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherMap::groupMapAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool TeacherMap::groupMapAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList m;
+
+	m.append(id);
+	m.append(m_client->clientUserName());
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("mapList").toList())
+		list.append(v.toString());
+
+	if (params.contains("mapid"))
+		list.append(params.value("mapid").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap (groupid, mapid) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["added"] = list.size();
 
 	return true;
 }

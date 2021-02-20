@@ -62,7 +62,9 @@ int main(int argc, char *argv[])
 
 	QCoreApplication app(argc, argv);
 
-#ifndef QT_NO_DEBUG_OUTPUT
+#ifdef Q_OS_LINUX
+	qSetMessagePattern("\e[94m%{time hh:mm:ss}\e[39m %{if-info}\e[96m%{endif}%{if-warning}\e[91m%{endif}%{if-critical}\e[91m%{endif}%{if-fatal}\e[91m%{endif}[%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}\e[39m");
+#else
 	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
 #endif
 

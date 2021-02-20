@@ -37,14 +37,43 @@
 TeacherGroups::TeacherGroups(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
 	, m_modelGroupList(nullptr)
+	, m_modelClassList(nullptr)
+	, m_modelUserList(nullptr)
+	, m_modelMapList(nullptr)
+	, m_selectedGroupId(-1)
 {
 	m_modelGroupList = new VariantMapModel({
-											 "id",
+											   "id",
+											   "name",
+											   "readableClassList"
+										   },
+										   this);
+
+	m_modelClassList = new VariantMapModel({
+											   "classid",
+											   "name"
+										   },
+										   this);
+
+	m_modelUserList = new VariantMapModel({
+											  "username",
+											  "firstname",
+											  "lastname",
+											  "classid",
+											  "classname",
+											  "active"
+										  },
+										  this);
+
+	m_modelMapList = new VariantMapModel({
+											 "uuid",
 											 "name"
 										 },
 										 this);
 
 	connect(this, &TeacherGroups::groupListGet, this, &TeacherGroups::onGroupListGet);
+	connect(this, &TeacherGroups::groupGet, this, &TeacherGroups::onGroupGet);
+	connect(this, &TeacherGroups::selectedGroupIdChanged, this, &TeacherGroups::groupSelect);
 }
 
 /**
@@ -54,6 +83,25 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 TeacherGroups::~TeacherGroups()
 {
 	delete m_modelGroupList;
+	delete m_modelUserList;
+	delete m_modelClassList;
+	delete m_modelMapList;
+}
+
+
+/**
+ * @brief TeacherGroups::groupSelect
+ * @param groupId
+ */
+
+void TeacherGroups::groupSelect(const int &groupId)
+{
+	if (groupId == -1)
+		return;
+
+	QJsonObject o;
+	o["id"]	= groupId;
+	send("groupGet", o);
 }
 
 
@@ -71,6 +119,42 @@ void TeacherGroups::setModelGroupList(VariantMapModel *modelGroupList)
 	emit modelGroupListChanged(m_modelGroupList);
 }
 
+void TeacherGroups::setModelClassList(VariantMapModel *modelClassList)
+{
+	if (m_modelClassList == modelClassList)
+		return;
+
+	m_modelClassList = modelClassList;
+	emit modelClassListChanged(m_modelClassList);
+}
+
+void TeacherGroups::setModelUserList(VariantMapModel *modelUserList)
+{
+	if (m_modelUserList == modelUserList)
+		return;
+
+	m_modelUserList = modelUserList;
+	emit modelUserListChanged(m_modelUserList);
+}
+
+void TeacherGroups::setModelMapList(VariantMapModel *modelMapList)
+{
+	if (m_modelMapList == modelMapList)
+		return;
+
+	m_modelMapList = modelMapList;
+	emit modelMapListChanged(m_modelMapList);
+}
+
+void TeacherGroups::setSelectedGroupId(int selectedGroupId)
+{
+	if (m_selectedGroupId == selectedGroupId)
+		return;
+
+	m_selectedGroupId = selectedGroupId;
+	emit selectedGroupIdChanged(m_selectedGroupId);
+}
+
 
 /**
  * @brief TeacherGroups::onGroupListGet
@@ -84,4 +168,24 @@ void TeacherGroups::onGroupListGet(QJsonObject jsonData, QByteArray)
 	QJsonArray list = jsonData.value("list").toArray();
 
 	m_modelGroupList->setJsonArray(list, "id");
+}
+
+
+
+/**
+ * @brief TeacherGroups::onGroupGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onGroupGet(QJsonObject jsonData, QByteArray)
+{
+	m_modelClassList->unselectAll();
+	m_modelUserList->unselectAll();
+	m_modelMapList->unselectAll();
+
+	setSelectedGroupId(jsonData.value("id").toInt(-1));
+
+	m_modelClassList->setJsonArray(jsonData.value("classList").toArray(), "classid");
+	m_modelUserList->setJsonArray(jsonData.value("userList").toArray(), "username");
+	m_modelMapList->setJsonArray(jsonData.value("mapList").toArray(), "uuid");
 }

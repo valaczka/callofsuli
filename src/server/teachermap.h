@@ -53,13 +53,22 @@ public slots:
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool mapRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool mapGet(QJsonObject *jsonResponse, QByteArray *);
+	bool mapGroupAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool groupUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool groupRemove(QJsonObject *jsonResponse, QByteArray *);
-	bool groupMapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupMemberListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupClassAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool groupUserAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMapAdd(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

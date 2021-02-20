@@ -16,6 +16,10 @@ QDialogPanel {
 	property alias sourceModel: model.sourceModel
 	property var roles: ["title"]
 
+	property alias modelTitleRole: list.modelTitleRole
+	property alias modelSubTitleRole: list.modelSubtitleRole
+	property alias delegateHeight: list.delegateHeight
+
 	maximumHeight: 0
 	maximumWidth: 700
 

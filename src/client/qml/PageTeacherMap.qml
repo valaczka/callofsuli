@@ -15,6 +15,8 @@ QPage {
 	activity: TeacherMaps {
 		id: teacherMaps
 
+		property VariantMapModel _dialogGroupModel: newModel(["id", "name", "readableClassList"])
+
 		onIsBusyChanged: {
 			if (!isBusy && isUploading) {
 				isUploading = false
@@ -36,6 +38,9 @@ QPage {
 			d.open()
 		}
 
+		onMapGet: {
+			page.defaultSubTitle = jsonData.name
+		}
 	}
 
 
@@ -54,7 +59,7 @@ QPage {
 		}
 	}
 
-	panelComponents: [
+	property list<Component> cmps: [
 		Component { TeacherMapList {
 				panelVisible: true
 				Connections {
@@ -63,6 +68,9 @@ QPage {
 						list.forceActiveFocus()
 					}
 				}
+			} },
+		Component { TeacherMapGroups {
+				panelVisible: true
 			} }
 	]
 
@@ -76,6 +84,9 @@ QPage {
 
 
 	onPageActivated: {
+		if (!panelComponents.length)
+			panelComponents = cmps
+
 		teacherMaps.send("mapListGet")
 	}
 
