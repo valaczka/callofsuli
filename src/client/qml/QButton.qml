@@ -24,6 +24,8 @@ Button {
 
 	Material.background: baseColor
 
+	font.capitalization: Font.AllUppercase
+
 
 	font.pixelSize: CosStyle.pixelSize
 

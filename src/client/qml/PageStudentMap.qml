@@ -41,7 +41,7 @@ QPage {
 		onGameMapLoaded: {
 			JS.createPage("MapMissions", {
 							  studentMaps: studentMaps,
-							  defaultTitle: mapName
+							  defaultSubTitle: mapName
 						  })
 		}
 
@@ -60,8 +60,8 @@ QPage {
 	}
 
 
-	panelComponents: [
-		Component { StudentMapList {
+	property list<Component> cmps: [
+		Component { StudentGroupList {
 				panelVisible: true
 				Connections {
 					target: page
@@ -69,6 +69,10 @@ QPage {
 						list.forceActiveFocus()
 					}
 				}
+			} },
+
+		Component { StudentMapList {
+				panelVisible: true
 			} }
 	]
 
@@ -82,7 +86,10 @@ QPage {
 
 
 	onPageActivated: {
-		studentMaps.send("mapListGet")
+		if (!panelComponents.length)
+			panelComponents = cmps
+
+		studentMaps.send("groupListGet")
 	}
 
 

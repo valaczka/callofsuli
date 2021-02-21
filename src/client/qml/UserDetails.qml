@@ -17,9 +17,14 @@ Popup {
 	x: parent.width-width
 	y: 0
 
-	property int openedWidth: Math.min(600, parent.width)
-	property int openedHeight: Math.min(450, parent.height)
+	property int openedWidth: Math.min(600, parent.width-10)
+	property int openedHeight: Math.min(450, parent.height-10)
 	readonly property bool running: transEnter.running || transExit.running
+
+	readonly property real scaleFactor: if (parent.width < 600 || parent.height < 450)
+											0.75
+										else
+											1.0
 
 	background: Rectangle {
 		id: rect
@@ -102,20 +107,20 @@ Popup {
 		id: col
 		anchors.centerIn: parent
 
-		spacing: 20
+		spacing: 20*scaleFactor
 
 		Row {
 			id: row
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			spacing: 20
+			spacing: 20*scaleFactor
 
 			Image {
 				id: img
 				source: cosClient.rankImageSource(cosClient.userRank, -1, cosClient.userRankImage)
 
-				width: 90
-				height: 90
+				width: 90*scaleFactor
+				height: 90*scaleFactor
 
 				fillMode: Image.PreserveAspectFit
 
@@ -126,7 +131,7 @@ Popup {
 				anchors.verticalCenter: parent.verticalCenter
 
 				QLabel {
-					font.pixelSize: CosStyle.pixelSize*1.7
+					font.pixelSize: CosStyle.pixelSize*1.7*scaleFactor
 					font.weight: Font.Normal
 					color: CosStyle.colorAccentLight
 					text: (cosClient.userRoles & Client.RoleGuest) ? qsTr("Vendég") :
@@ -154,7 +159,7 @@ Popup {
 
 		QLabel {
 			anchors.horizontalCenter: parent.horizontalCenter
-			font.pixelSize: CosStyle.pixelSize*1.3
+			font.pixelSize: CosStyle.pixelSize*1.3*scaleFactor
 			font.weight: Font.Normal
 			color: CosStyle.colorAccentLighter
 			text: cosClient.userRankName+(cosClient.userRankLevel > 0 ? "<br><small>(lvl "+cosClient.userRankLevel+")</small>" : "")
@@ -170,7 +175,7 @@ Popup {
 			id: xpLabel
 			property int xp: 0
 			anchors.horizontalCenter: parent.horizontalCenter
-			font.pixelSize: CosStyle.pixelSize*1.8
+			font.pixelSize: CosStyle.pixelSize*1.8*scaleFactor
 			font.weight: Font.DemiBold
 			color: CosStyle.colorPrimaryLighter
 			text: xp+" XP"

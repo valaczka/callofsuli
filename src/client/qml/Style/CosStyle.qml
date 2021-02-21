@@ -48,8 +48,8 @@ QtObject {
 
 
 	property var buttonThemeDefault: [colorPrimaryLight, colorPrimaryDarker, colorPrimaryLighter, colorPrimary]
-	property var buttonThemeDelete: [colorPrimaryLight, colorErrorDarker, colorErrorDark, colorError]
-	property var buttonThemeApply: [colorPrimaryLight, colorOKDarker, colorOKDark, colorOKLighter]
+	property var buttonThemeRed: [colorPrimaryLight, colorErrorDarker, colorErrorDark, colorError]
+	property var buttonThemeGreen: [colorPrimaryLight, colorOKDarker, colorOKDark, colorOKLighter]
 
 	property color colorPlayer: colorPrimaryLighter
 	property color colorGlowEnemy: colorError
@@ -67,7 +67,7 @@ QtObject {
 	property string iconChecked: "image://font/Material Icons/\ue86c"
 	property string iconUnchecked: "image://font/Material Icons/\ue836"
 	property string iconTrash: "image://font/Material Icons/\ue872"
-	property string iconRemove: iconDelete
+	property string iconRemove: "image://font/Material Icons/\ue15b"
 	property string iconClear: "image://font/Material Icons/\ue14a"
 	property string iconBack: "image://font/Material Icons/\ue5c4"
 	property string iconUndo: "image://font/Material Icons/\ue166"
@@ -86,7 +86,9 @@ QtObject {
 	property string iconDialogInfo: "image://font/Material Icons/\ue88f"
 	property string iconDialogWarning: "image://font/Material Icons/\ue002"
 	property string iconDialogError: "image://font/Material Icons/\ue000"
+	property string iconShield: "image://font/Material Icons/\ue32a"
 
+	property string iconDeleteCloud: "image://font/Material Icons/\ue2be"
 	property string iconUploadCloud: "image://font/Material Icons/\ue2c3"
 	property string iconDownloadCloud: "image://font/Material Icons/\ue2c0"
 	property string iconUpload: "image://font/Material Icons/\ue2c6"

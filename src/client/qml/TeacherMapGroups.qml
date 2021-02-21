@@ -18,13 +18,23 @@ QPagePanel {
 
 	contextMenuFunc: function (m) {
 		m.addAction(actionGroupAdd)
+		m.addAction(actionGroupRemove)
 	}
 
 
 	Connections {
 		target: teacherMaps
 
+		function onSelectedMapIdChanged(mapId) {
+			if (mapId !== "" && swipeMode)
+				parent.parentPage.swipeToPage(1)
+		}
+
 		function onMapGroupAdd(jsonData, binaryData) {
+			teacherMaps.send("mapGet", {"uuid": teacherMaps.selectedMapId})
+		}
+
+		function onMapGroupRemove(jsonData, binaryData) {
 			teacherMaps.send("mapGet", {"uuid": teacherMaps.selectedMapId})
 		}
 
@@ -103,22 +113,54 @@ QPagePanel {
 			id: contextMenu
 
 			MenuItem { action: actionGroupAdd }
+			MenuItem { action: actionGroupRemove }
 		}
 
 
 		onKeyInsertPressed: actionGroupAdd.trigger()
-		//onKeyF2Pressed: actionRename.trigger()
-		/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF4Pressed: actionObjectiveNew.trigger()*/
+		onKeyDeletePressed: actionGroupRemove.trigger()
 	}
 
 	Action {
 		id: actionGroupAdd
-		text: qsTr("Csoport")
+		text: qsTr("Hozzáadás")
 		icon.source: CosStyle.iconAdd
 		enabled: !teacherMaps.isBusy && teacherMaps.selectedMapId.length
 		onTriggered: {
 			teacherMaps.send("mapExcludedGroupListGet", {uuid: teacherMaps.selectedMapId})
+		}
+	}
+
+
+	Action {
+		id: actionGroupRemove
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Eltávolítás")
+		enabled: !teacherMaps.isBusy && (groupList.currentIndex !== -1 || teacherMaps.modelGroupList.selectedCount)
+		onTriggered: {
+			if (teacherMaps.modelGroupList.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Csoportok eltávolítása"),
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 csoportot?")
+												.arg(teacherMaps.modelGroupList.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					teacherMaps.send("mapGroupRemove", {"uuid": teacherMaps.selectedMapId,
+										   "groupList": teacherMaps.modelGroupList.getSelectedData("groupid") })
+				})
+				dd.open()
+			} else {
+				var o = groupList.model.get(groupList.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan eltávolítod a csoportot?"),
+											   text: o.name+(o.readableClassList.length ? " ("+o.readableClassList+")" : "")
+										   })
+				d.accepted.connect(function () {
+					teacherMaps.send("mapGroupRemove", {"uuid": teacherMaps.selectedMapId, "groupid": o.groupid })
+				})
+				d.open()
+			}
 		}
 	}
 

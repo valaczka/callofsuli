@@ -148,6 +148,7 @@ Page {
 			width: running ? height : 0
 			Layout.alignment: Qt.AlignCenter
 			running: activity && activity.isBusy
+			visible: running
 		}
 
 		Loader {

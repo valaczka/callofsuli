@@ -24,7 +24,7 @@ Item {
 		interactive: false
 
 		anchors.fill: parent
-		anchors.leftMargin: 10
+		anchors.leftMargin: 7
 		anchors.rightMargin: 10
 		anchors.topMargin: 5
 		anchors.bottomMargin: 5
@@ -44,6 +44,9 @@ Item {
 				visible: false
 				width: parent.width
 				anchors.verticalCenter: parent.verticalCenter
+
+				leftPadding: 2
+				rightPadding: 2
 
 				font.pixelSize: (Qt.platform.os === "android" ? 12 : 16)
 				font.weight: Font.DemiBold

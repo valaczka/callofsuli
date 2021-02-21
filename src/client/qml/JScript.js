@@ -39,7 +39,6 @@ function createPage(_qml, _prop) {
 		if (incubator.status !== Component.Ready) {
 			incubator.onStatusChanged = function(status) {
 				if (status === Component.Ready) {
-					console.debug("Object ", incubator.object, "ready")
 					mainStack.push(incubator.object)
 				} else if (status === Component.Error) {
 					console.warning("Component create error: ", _qml, incubator.errorString())

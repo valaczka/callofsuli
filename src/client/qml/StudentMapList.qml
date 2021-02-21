@@ -9,7 +9,6 @@ import "JScript.js" as JS
 QPagePanel {
 	id: panel
 
-	maximumWidth: 800
 	layoutFillWidth: true
 
 	title: qsTr("Pályák")
@@ -17,8 +16,13 @@ QPagePanel {
 
 	property alias list: list
 
-	contextMenuFunc: function (m) {
-		m.addAction(actionDownload)
+	Connections {
+		target: studentMaps
+
+		function onSelectedGroupIdChanged(groupId) {
+			if (groupId !== -1 && swipeMode)
+				parent.parentPage.swipeToPage(1)
+		}
 	}
 
 
@@ -35,7 +39,7 @@ QPagePanel {
 		id: list
 		anchors.fill: parent
 
-		visible: studentMaps.modelMapList.count
+		visible: studentMaps.selectedGroupId != -1 && studentMaps.modelMapList.count
 
 		model: userProxyModel
 		modelTitleRole: "name"
@@ -75,7 +79,7 @@ QPagePanel {
 		}*/
 
 
-		onRefreshRequest: studentMaps.send("mapListGet")
+		onRefreshRequest: studentMaps.send("mapListGet", { groupid: studentMaps.selectedGroupId } )
 
 		onClicked: {
 			var o = list.model.get(index)
@@ -94,19 +98,6 @@ QPagePanel {
 				contextMenu.popup()
 				return
 			}
-
-			/*selectorSet = true
-
-			var o = list.model.get(index)
-
-			if (o.type === 0) {
-				chaptersFilter.enabled = true
-			} else if (o.type === 1) {
-				objectiveIdFilter.value = o.id
-				objectivesFilter.enabled = true
-			}*/
-
-			//mapEditor.modelChapterList.select(serverList.model.mapToSource(serverList.currentIndex))
 		}
 
 

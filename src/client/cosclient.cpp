@@ -114,7 +114,7 @@ Client::Client(QObject *parent) : QObject(parent)
 
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	//m_timer->start(5000);
+	m_timer->start(5000);
 }
 
 /**
@@ -1332,7 +1332,7 @@ void Client::socketPing()
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
 		socketSend(CosMessage::ClassUserInfo, "getUser");
 	} else if (m_connectionState == Disconnected) {
-		qDebug() << "reconnect";
+		qInfo() << tr("Újracsatlakozás");
 		emit reconnecting();
 		m_socket->open(m_connectedUrl);
 	}

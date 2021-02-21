@@ -73,7 +73,7 @@ QDialogPanel {
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("OK")
 		icon.source: CosStyle.iconOK
-		themeColors: type === "success" ? CosStyle.buttonThemeApply : CosStyle.buttonThemeDefault
+		themeColors: type === "success" ? CosStyle.buttonThemeGreen : CosStyle.buttonThemeDefault
 
 		onClicked: item.dlgClose()
 	}

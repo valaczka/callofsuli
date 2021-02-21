@@ -76,7 +76,7 @@ QPagePanel {
 					 textHostname.acceptableInput &&
 					 textPort.acceptableInput
 
-			themeColors: CosStyle.buttonThemeApply
+			themeColors: CosStyle.buttonThemeGreen
 			icon.source: CosStyle.iconSave
 
 			onClicked: {
@@ -98,7 +98,7 @@ QPagePanel {
 
 	Action {
 		id: actionRemove
-		icon.source: CosStyle.iconRemove
+		icon.source: CosStyle.iconDelete
 		text: qsTr("Törlés")
 		onTriggered: {
 			var d = JS.dialogCreateQml("YesNo", {

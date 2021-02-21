@@ -19,7 +19,7 @@ Item {
 	property alias buttons: buttonData.data
 	default property alias panelDataData: panelData.data
 
-	property int horizontalPadding: 10
+	property int horizontalPadding: 0
 	property int verticalPadding: 5
 
 	property int maximumWidth: 0

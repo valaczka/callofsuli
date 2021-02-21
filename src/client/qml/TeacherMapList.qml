@@ -18,10 +18,15 @@ QPagePanel {
 
 	contextMenuFunc: function (m) {
 		m.addAction(actionMapNew)
+		m.addAction(actionImport)
+		m.addSeparator()
 		m.addAction(actionRename)
-		m.addAction(actionEdit)
 		m.addAction(actionDownload)
+		m.addAction(actionRemove)
+		m.addSeparator()
+		m.addAction(actionEdit)
 		m.addAction(actionUpload)
+		m.addAction(actionLocalRemove)
 	}
 
 	SortFilterProxyModel {
@@ -48,24 +53,40 @@ QPagePanel {
 			SwitchRole {
 				name: "textColor"
 				filters: [
+					AllOf {
+						ValueFilter {
+							roleName: "used"
+							value: true
+						}
+						ValueFilter {
+							roleName: "upload"
+							value: true
+						}
+						SwitchRole.value: CosStyle.colorErrorLighter
+					},
+					ValueFilter {
+						roleName: "used"
+						value: true
+						SwitchRole.value: CosStyle.colorOKLighter
+					},
+					ValueFilter {
+						roleName: "local"
+						value: true
+						SwitchRole.value: CosStyle.colorAccent
+					},
 					ValueFilter {
 						roleName: "upload"
 						value: true
 						SwitchRole.value: CosStyle.colorAccentLighter
-					},
-					ValueFilter {
-						roleName: "download"
-						value: true
-						SwitchRole.value: CosStyle.colorPrimaryLighter
 					}
 				]
-				defaultValue: CosStyle.colorOKLighter
+				defaultValue: CosStyle.colorPrimaryLighter
 			},
 			SwitchRole {
 				name: "fontWeight"
 				filters: ExpressionFilter {
 					expression: model.local
-					SwitchRole.value: Font.Normal
+					SwitchRole.value: Font.DemiBold
 				}
 				defaultValue: Font.Medium
 			}
@@ -108,18 +129,6 @@ QPagePanel {
 
 			color: model ? model.textColor : CosStyle.colorPrimary
 		}
-
-		/*rightComponent: QFontImage {
-			width: visible ? list.delegateHeight*0.8 : 0
-			height: width
-			size: Math.min(height*0.8, 32)
-
-			icon: CosStyle.iconClock1
-
-			visible: model && model.editLocked
-
-			color: CosStyle.colorAccentLighter
-		}*/
 
 
 		rightComponent: Row {
@@ -190,17 +199,21 @@ QPagePanel {
 			id: contextMenu
 
 			MenuItem { action: actionMapNew }
+			MenuSeparator { }
 			MenuItem { action: actionRename }
-			MenuItem { action: actionEdit }
 			MenuItem { action: actionDownload }
+			MenuItem { action: actionRemove }
+			MenuSeparator { }
+			MenuItem { action: actionEdit }
 			MenuItem { action: actionUpload }
 			MenuItem { action: actionExport }
+			MenuItem { action: actionLocalRemove }
 		}
 
 
 		onKeyInsertPressed: actionMapNew.trigger()
 		onKeyF2Pressed: actionRename.trigger()
-		//onKeyDeletePressed: actionRemove.trigger()
+		onKeyDeletePressed: actionRemove.trigger()
 		onKeyF4Pressed: actionEdit.trigger()
 	}
 
@@ -334,6 +347,69 @@ QPagePanel {
 			var o = list.model.get(list.currentIndex)
 			fileDialog.mapUuid = o.uuid
 			fileDialog.open()
+		}
+	}
+
+
+	Action {
+		id: actionImport
+		text: qsTr("Importálás")
+		icon.source: CosStyle.iconDrawer
+		enabled: !teacherMaps.isBusy
+		onTriggered: {
+			teacherMaps.mapImport()
+		}
+	}
+
+
+
+	Action {
+		id: actionRemove
+		icon.source: CosStyle.iconDeleteCloud
+		text: qsTr("Törlés")
+		enabled: !teacherMaps.isBusy && (list.currentIndex !== -1 || teacherMaps.modelMapList.selectedCount)
+		onTriggered: {
+			if (teacherMaps.modelMapList.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Pályák törlése a szerveren"),
+												text: qsTr("Biztosan törlöd a szerveren a kijelölt %1 pályát?")
+												.arg(teacherMaps.modelMapList.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					teacherMaps.send("mapRemove", {"list": teacherMaps.modelMapList.getSelectedData("uuid") })
+				})
+				dd.open()
+			} else {
+				var o = list.model.get(list.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan törlöd a pályát a szerveren?"),
+											   text: o.name
+										   })
+				d.accepted.connect(function () {
+					teacherMaps.send("mapRemove", {"uuid": o.uuid })
+				})
+				d.open()
+			}
+		}
+	}
+
+	Action {
+		id: actionLocalRemove
+		icon.source: CosStyle.iconDelete
+		text: qsTr("Helyi törlés")
+		enabled: !teacherMaps.isBusy && list.currentIndex !== -1 && list.model.get(list.currentIndex).upload
+		onTriggered: {
+				var o = list.model.get(list.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan törlöd a pálya helyi példányát?"),
+											   text: o.name
+										   })
+				d.accepted.connect(function () {
+					teacherMaps.mapLocalRemove({uuid: o.uuid})
+				})
+				d.open()
 		}
 	}
 

@@ -208,6 +208,11 @@ Scene {
 		GamePickableTime { }
 	}
 
+	Component {
+		id: pickableComponentShield
+		GamePickableShield { }
+	}
+
 
 	Component {
 		id: playerLocatorComponent
@@ -293,6 +298,13 @@ Scene {
 
 			case GameEnemyData.PickableTime:
 				obj = pickableComponentTime.createObject(scene, {
+															   cosGame: game,
+															   pickableData: pickableData
+														   })
+				break
+
+			case GameEnemyData.PickableShield:
+				obj = pickableComponentShield.createObject(scene, {
 															   cosGame: game,
 															   pickableData: pickableData
 														   })

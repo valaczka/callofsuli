@@ -70,8 +70,10 @@ public slots:
 	void mapDownload(QVariantMap data);
 	void mapUpload(QVariantMap data);
 	void mapExport(QVariantMap data);
+	void mapImport(QVariantMap data = QVariantMap());
 	void mapRename(QVariantMap data);
 	void mapLocalCopy(QVariantMap data);
+	void mapLocalRemove(QVariantMap data);
 
 	void setIsUploading(bool isUploading);
 	void setModelGroupList(VariantMapModel * modelGroupList);
@@ -91,9 +93,11 @@ signals:
 	void mapDownloadRequest(QString formattedDataSize);
 	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapUpdate(QJsonObject jsonData, QByteArray binaryData);
+	void mapRemove(QJsonObject jsonData, QByteArray binaryData);
 	void mapGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapExcludedGroupListGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapGroupAdd(QJsonObject jsonData, QByteArray binaryData);
+	void mapGroupRemove(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelMapListChanged(VariantMapModel * modelMapList);
 	void modelGroupListChanged(VariantMapModel * modelGroupList);

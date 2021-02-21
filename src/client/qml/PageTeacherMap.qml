@@ -41,6 +41,10 @@ QPage {
 		onMapGet: {
 			page.defaultSubTitle = jsonData.name
 		}
+
+		onMapRemove: {
+			send("mapListGet")
+		}
 	}
 
 

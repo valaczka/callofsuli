@@ -44,7 +44,7 @@ QDialogPanel {
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Nem")
 			icon.source: CosStyle.iconCancel
-			themeColors: CosStyle.buttonThemeDelete
+			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: {
 				dlgClose()
@@ -58,7 +58,7 @@ QDialogPanel {
 
 			text: qsTr("Igen")
 			icon.source: CosStyle.iconOK
-			themeColors: CosStyle.buttonThemeApply
+			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {
 				acceptedData = true

@@ -64,17 +64,33 @@ QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 {
 	QHash<QByteArray, GameEnemyData::InventoryType> list;
 
-	list["health"] = InventoryType(tr("HP visszatöltése"),
+	list["health"] = InventoryType(tr("1 HP hozzáadása"),
 								   PickableHealth,
 								   QVariantMap());
 
 	list["time1"] = InventoryType(tr("30 másodperc hozzáadása"),
 								  PickableTime,
-								  QVariantMap({{"text", "+00:30"}, {"secs", 30}}));
+								  QVariantMap({{"text", "30"}, {"secs", 30}}));
 
 	list["time2"] = InventoryType(tr("1 perc hozzáadása"),
 								  PickableTime,
-								  QVariantMap({{"text", "+01:00"}, {"secs", 60}}));
+								  QVariantMap({{"text", "60"}, {"secs", 60}}));
+
+	list["shield1"] = InventoryType(tr("3 pajzs hozzáadása"),
+								  PickableShield,
+								  QVariantMap({{"num", 3}}));
+
+	list["shield2"] = InventoryType(tr("5 pajzs hozzáadása"),
+								  PickableShield,
+								  QVariantMap({{"num", 5}}));
+
+	list["shield3"] = InventoryType(tr("7 pajzs hozzáadása"),
+								  PickableShield,
+								  QVariantMap({{"num", 7}}));
+
+	list["shield4"] = InventoryType(tr("10 pajzs hozzáadása"),
+								  PickableShield,
+								  QVariantMap({{"num", 10}}));
 
 	return list;
 }

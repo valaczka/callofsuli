@@ -703,7 +703,8 @@ QPagePanel {
 			model.setVariantList(cosClient.mapToList(cosClient.terrainMap(), "name"), "name")
 
 			d.accepted.connect(function(data) {
-				mapEditor.run("missionLevelAdd", {mission: missionUuid, terrain: d.item.sourceModel.get(data).name })
+				var p = d.item.sourceModel.get(data)
+				mapEditor.run("missionLevelAdd", {mission: missionUuid, terrain: p.name, terrainData: p.data })
 			})
 			d.open()
 		}

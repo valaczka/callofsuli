@@ -11,7 +11,7 @@ QPage {
 
 	requiredPanelWidth: 900
 
-	title: cosClient.serverName
+	defaultTitle: cosClient.serverName
 
 	mainToolBarComponent: UserButton {
 		userDetails: userData
@@ -31,8 +31,10 @@ QPage {
 
 			id: panel
 
-			title: qsTr("Főmenü")
+			title: ""
 			maximumWidth: 600
+
+			borderColor: CosStyle.colorAccentDarker
 
 			QMenuItemDelegate {
 				id: list

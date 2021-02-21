@@ -37,9 +37,9 @@ Rectangle {
 				  } else if (type === GameQuestionButton.Neutral) {
 					  CosStyle.buttonThemeDefault[2]
 				  } else if (type === GameQuestionButton.Correct) {
-					  CosStyle.buttonThemeApply[2]
+					  CosStyle.buttonThemeGreen[2]
 				  } else {
-					  CosStyle.buttonThemeDelete[2]
+					  CosStyle.buttonThemeRed[2]
 				  }
 
 	opacity: interactive || type === GameQuestionButton.Correct ? 1.0 : 0.3
@@ -48,9 +48,9 @@ Rectangle {
 		   } else if (type === GameQuestionButton.Neutral) {
 			   CosStyle.buttonThemeDefault[1]
 		   } else if (type === GameQuestionButton.Correct) {
-			   CosStyle.buttonThemeApply[1]
+			   CosStyle.buttonThemeGreen[1]
 		   } else {
-			   CosStyle.buttonThemeDelete[1]
+			   CosStyle.buttonThemeRed[1]
 		   }
 
 	Behavior on color {
@@ -82,9 +82,9 @@ Rectangle {
 			   } else if (type === GameQuestionButton.Neutral) {
 				   CosStyle.buttonThemeDefault[0]
 			   } else if (type === GameQuestionButton.Correct) {
-				   CosStyle.buttonThemeApply[0]
+				   CosStyle.buttonThemeGreen[0]
 			   } else {
-				   CosStyle.buttonThemeDelete[0]
+				   CosStyle.buttonThemeRed[0]
 			   }
 
 		Behavior on color {

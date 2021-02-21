@@ -81,13 +81,17 @@ signals:
 	void groupGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupCreate(QJsonObject jsonData, QByteArray binaryData);
 	void groupUpdate(QJsonObject jsonData, QByteArray binaryData);
+	void groupRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupMemberListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupExcludedClassListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupExcludedUserListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupClassAdd(QJsonObject jsonData, QByteArray binaryData);
+	void groupClassRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupUserAdd(QJsonObject jsonData, QByteArray binaryData);
+	void groupUserRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupMapAdd(QJsonObject jsonData, QByteArray binaryData);
+	void groupMapRemove(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void modelClassListChanged(VariantMapModel * modelClassList);

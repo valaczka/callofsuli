@@ -495,6 +495,30 @@ Page {
 		}
 
 		GameInfo {
+			id: infoShield
+			anchors.right: parent.right
+			color: CosStyle.colorOK
+			label.text: Math.floor(progressBar.value)
+			progressBar.from: 0
+			progressBar.to: 0
+			progressBar.value: shield
+			image.icon: CosStyle.iconShield
+			progressBar.width: Math.min(control.width*0.125, 100)
+
+			property int shield: game.player ? game.player.entityPrivate.shield : 0
+
+			onShieldChanged: {
+				if (shield > progressBar.to)
+					progressBar.to = shield
+
+				if (shield < 3)
+					infoShield.marked = true
+			}
+		}
+
+
+
+		GameInfo {
 			id: infoTime
 			anchors.right: parent.right
 			color: CosStyle.colorPrimary

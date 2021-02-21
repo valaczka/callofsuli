@@ -45,7 +45,6 @@ GamePickable::GamePickable(QObject *parent)
 
 GamePickable::~GamePickable()
 {
-	qDebug() << this << "DESTROYED";
 }
 
 
@@ -58,12 +57,16 @@ void GamePickable::pick()
 	if (m_game) {
 		switch (m_type) {
 			case GameEnemyData::PickableHealth:
-				m_game->resetHp();
-				emit m_game->gameMessageSent(tr("Health regained"));
+				m_game->increaseHp();
+				emit m_game->gameMessageSent(tr("1 HP gained"));
 				break;
 			case GameEnemyData::PickableTime:
-				m_game->addSecs(m_data.value("secs", 60).toInt());
-				emit m_game->gameMessageSent(tr("%1 seconds gained").arg(m_data.value("secs", 60).toInt()));
+				m_game->addSecs(m_data.value("secs", 0).toInt());
+				emit m_game->gameMessageSent(tr("%1 seconds gained").arg(m_data.value("secs", 0).toInt()));
+				break;
+			case GameEnemyData::PickableShield:
+				m_game->increaseShield(m_data.value("num", 0).toInt());
+				emit m_game->gameMessageSent(tr("%1 shields gained").arg(m_data.value("num", 0).toInt()));
 				break;
 			default:
 				break;

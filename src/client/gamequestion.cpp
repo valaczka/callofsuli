@@ -42,7 +42,6 @@ GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, 
 	, m_enemy(enemy)
 	, m_question(nullptr)
 {
-	qDebug() << "CREATE" << this;
 }
 
 
@@ -52,7 +51,6 @@ GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, 
 
 GameQuestion::~GameQuestion()
 {
-	qDebug() << "DESTROY" << this;
 }
 
 
@@ -62,8 +60,6 @@ GameQuestion::~GameQuestion()
 
 void GameQuestion::run()
 {
-	qDebug() << "RUN" << this;
-
 	if (!m_game || !m_player || !m_enemy || m_question) {
 		qWarning() << "Invalid game or player or enemy or question already run";
 		emit finished();

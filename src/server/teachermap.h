@@ -55,6 +55,7 @@ public slots:
 	bool mapRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool mapGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapGroupAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool mapGroupRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
@@ -67,8 +68,11 @@ public slots:
 	bool groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupClassAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool groupClassRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool groupUserAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool groupUserRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool groupMapAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMapRemove(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

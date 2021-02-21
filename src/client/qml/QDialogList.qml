@@ -80,7 +80,7 @@ QDialogPanel {
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Mégsem")
 			icon.source: CosStyle.iconCancel
-			themeColors: CosStyle.buttonThemeDelete
+			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: dlgClose()
 		}
@@ -94,7 +94,7 @@ QDialogPanel {
 
 			text: qsTr("OK")
 			icon.source: CosStyle.iconOK
-			themeColors: CosStyle.buttonThemeApply
+			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {
 				dlgClose()

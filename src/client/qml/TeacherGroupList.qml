@@ -18,7 +18,9 @@ QPagePanel {
 
 	contextMenuFunc: function (m) {
 		m.addAction(actionGroupNew)
+		m.addSeparator()
 		m.addAction(actionRename)
+		m.addAction(actionRemove)
 	}
 
 	SortFilterProxyModel {
@@ -104,14 +106,16 @@ QPagePanel {
 			id: contextMenu
 
 			MenuItem { action: actionGroupNew }
+			MenuSeparator { }
 			MenuItem { action: actionRename }
+			MenuItem { action: actionRemove }
 		}
 
 
 		onKeyInsertPressed: actionGroupNew.trigger()
 		onKeyF2Pressed: actionRename.trigger()
-		/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF4Pressed: actionObjectiveNew.trigger()*/
+		onKeyDeletePressed: actionRemove.trigger()
+		//onKeyF4Pressed: actionObjectiveNew.trigger()*/
 	}
 
 
@@ -160,6 +164,37 @@ QPagePanel {
 	}
 
 
+
+	Action {
+		id: actionRemove
+		icon.source: CosStyle.iconDelete
+		text: qsTr("Törlés")
+		enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelGroupList.selectedCount)
+		onTriggered: {
+			if (teacherGroups.modelGroupList.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Csoportok törlése"),
+												text: qsTr("Biztosan törlöd a kijelölt %1 csoportot?")
+												.arg(teacherGroups.modelGroupList.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					teacherGroups.send("groupRemove", {"list": teacherGroups.modelGroupList.getSelectedData("id") })
+				})
+				dd.open()
+			} else {
+				var o = list.model.get(list.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan törlöd a csoportot?"),
+											   text: o.name
+										   })
+				d.accepted.connect(function () {
+					teacherGroups.send("groupRemove", {"id": o.id })
+				})
+				d.open()
+			}
+		}
+	}
 
 	/*Action {
 		id: actionExport

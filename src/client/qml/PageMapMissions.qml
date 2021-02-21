@@ -16,6 +16,8 @@ QPage {
 
 	property StudentMaps studentMaps: null
 
+	defaultTitle: qsTr("Küldetések")
+
 	StudentMaps {
 		id: demoStudentMaps
 
@@ -67,8 +69,10 @@ QPage {
 
 
 	Component.onCompleted: {
-		_oldVisibility = mainWindow.visibility
-		mainWindow.visibility = "FullScreen"
+		if (Qt.platform.os === "android") {
+			_oldVisibility = mainWindow.visibility
+			mainWindow.visibility = "FullScreen"
+		}
 	}
 
 	Component.onDestruction: {

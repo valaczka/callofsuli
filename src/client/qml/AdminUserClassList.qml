@@ -93,7 +93,7 @@ QPagePanel {
 	Action {
 		id: actionRemove
 		enabled: classList.selectorSet || classList.currentIndex !== -1
-		icon.source: CosStyle.iconRemove
+		icon.source: CosStyle.iconDelete
 		text: qsTr("Törlés")
 		onTriggered: deleteClasses()
 	}
@@ -101,7 +101,7 @@ QPagePanel {
 	Action {
 		id: actionRename
 		enabled: classList.currentIndex !== -1
-		icon.source: CosStyle.iconRemove
+		icon.source: CosStyle.iconRename
 		text: qsTr("Átnevezés")
 		onTriggered: {
 			var item = classList.model.get(classList.currentIndex)

@@ -50,6 +50,8 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_demoMode(false)
 	, m_demoSolverMap()
 	, m_baseXP(100)
+	, m_modelGroupList(nullptr)
+	, m_selectedGroupId(-1)
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
@@ -76,6 +78,19 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 											 },
 											 this);
 
+
+	m_modelGroupList = new VariantMapModel({
+											 "id",
+											 "name" ,
+											 "teacherfirstname",
+											 "teacherlastname",
+											 "readableClassList" ,
+											 "teacher"
+										 },
+										 this);
+
+	connect(this, &StudentMaps::selectedGroupIdChanged, this, &StudentMaps::groupSelect);
+	connect(this, &StudentMaps::groupListGet, this, &StudentMaps::onGroupListGet);
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
 	connect(this, &StudentMaps::gameCreate, this, &StudentMaps::onGameCreate);
@@ -98,6 +113,8 @@ StudentMaps::~StudentMaps()
 	}
 
 	delete m_modelMapList;
+	delete m_modelGroupList;
+	delete m_modelMissionList;
 
 	unloadGameMap();
 
@@ -151,6 +168,23 @@ CosDb *StudentMaps::studentMapsDb(Client *client, QObject *parent, const QString
 	}
 
 	return db;
+}
+
+
+
+/**
+ * @brief StudentMaps::groupSelect
+ * @param groupId
+ */
+
+void StudentMaps::groupSelect(const int &groupId)
+{
+	if (groupId == -1)
+		return;
+
+	QJsonObject o;
+	o["groupid"]	= groupId;
+	send("mapListGet", o);
 }
 
 
@@ -324,6 +358,24 @@ void StudentMaps::setBaseXP(int baseXP)
 	emit baseXPChanged(m_baseXP);
 }
 
+void StudentMaps::setModelGroupList(VariantMapModel *modelGroupList)
+{
+	if (m_modelGroupList == modelGroupList)
+		return;
+
+	m_modelGroupList = modelGroupList;
+	emit modelGroupListChanged(m_modelGroupList);
+}
+
+void StudentMaps::setSelectedGroupId(int selectedGroupId)
+{
+	if (m_selectedGroupId == selectedGroupId)
+		return;
+
+	m_selectedGroupId = selectedGroupId;
+	emit selectedGroupIdChanged(m_selectedGroupId);
+}
+
 
 
 
@@ -346,7 +398,11 @@ void StudentMaps::mapDownload(QVariantMap data)
 		setDownloader(dl);
 
 		connect(m_downloader, &CosDownloader::oneDownloadFinished, this, &StudentMaps::onOneDownloadFinished);
-		connect(m_downloader, &CosDownloader::downloadFinished, this, [=]() { send("mapListGet"); });
+		connect(m_downloader, &CosDownloader::downloadFinished, this, [=]() {
+			QJsonObject o;
+			o["groupid"] = m_selectedGroupId;
+			send("mapListGet", o);
+		});
 	}
 
 	m_downloader->clear();
@@ -379,7 +435,9 @@ void StudentMaps::mapDownload(QVariantMap data)
 	if (m_downloader->hasDownloadable()) {
 		emit mapDownloadRequest(Client::formattedDataSize(m_downloader->fullSize()));
 	} else {
-		send("mapListGet");
+		QJsonObject o;
+		o["groupid"] = m_selectedGroupId;
+		send("mapListGet", o);
 	}
 }
 
@@ -400,6 +458,23 @@ void StudentMaps::clientSetup()
 		if (db)
 			addDb(db, false);
 	}
+}
+
+
+
+
+/**
+ * @brief StudentMaps::onGroupListGet
+ * @param jsonData
+ */
+
+void StudentMaps::onGroupListGet(QJsonObject jsonData, QByteArray)
+{
+	m_modelGroupList->unselectAll();
+
+	QJsonArray list = jsonData.value("list").toArray();
+
+	m_modelGroupList->setJsonArray(list, "id");
 }
 
 

@@ -150,7 +150,7 @@ QPagePanel {
 
 	Action {
 		id: actionRemove
-		icon.source: CosStyle.iconRemove
+		icon.source: CosStyle.iconDelete
 		text: qsTr("Törlés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {

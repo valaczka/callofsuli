@@ -605,7 +605,7 @@ void CosGame::abortGame()
  * @brief CosGame::resetHp
  */
 
-void CosGame::resetHp()
+void CosGame::increaseHp()
 {
 	if (!m_player || !m_gameMatch) {
 		qWarning() << "Invalid player or game match";
@@ -618,7 +618,8 @@ void CosGame::resetHp()
 		return;
 	}
 
-	pl->setHp(m_gameMatch->startHp());
+	if (pl->hp() < m_gameMatch->startHp())
+		pl->setHp(pl->hp()+1);
 }
 
 
@@ -631,6 +632,28 @@ void CosGame::resetHp()
 void CosGame::addSecs(const int &secs)
 {
 	m_msecLeft += secs*1000;
+}
+
+
+/**
+ * @brief CosGame::increaseShield
+ * @param num
+ */
+
+void CosGame::increaseShield(const int &num)
+{
+	if (!m_player || !m_gameMatch) {
+		qWarning() << "Invalid player or game match";
+		return;
+	}
+
+	GamePlayer *pl = qvariant_cast<GamePlayer *>(m_player->property("entityPrivate"));
+	if (!pl) {
+		qWarning() << "Invalid player";
+		return;
+	}
+
+	pl->setShield(pl->shield()+num);
 }
 
 

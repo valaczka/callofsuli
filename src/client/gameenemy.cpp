@@ -191,7 +191,7 @@ void GameEnemy::attackPlayer()
 {
 	if (m_player) {
 		emit attack();
-		m_player->hurtByEnemy(this);
+		m_player->hurtByEnemy(this, true);
 	}
 }
 

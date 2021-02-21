@@ -55,6 +55,34 @@ bool Student::classInit()
 }
 
 
+
+/**
+ * @brief Student::groupListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::groupListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantList params;
+
+	params.append(m_client->clientUserName());
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.id as id, name, "
+"user.firstname as teacherfirstname, user.lastname as teacherlastname, "
+"(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+"WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
+"FROM studentGroupInfo "
+"LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
+"WHERE studentGroupInfo.username=?", params);
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
 /**
  * @brief Student::mapListGet
  * @param jsonResponse
@@ -63,14 +91,37 @@ bool Student::classInit()
 
 bool Student::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 {
-	/*QVariantList params;
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int groupid = params.value("groupid", -1).toInt();
 
-	params.append(m_client->clientUserName()); */
+	if (groupid == -1) {
+		(*jsonResponse)["list"] = QJsonArray();
+		(*jsonResponse)["error"] = "missing group";
+		return true;
+	}
 
-	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, version, lastModified, md5, COALESCE(LENGTH(data),0) as dataSize "
-"FROM maps");
+	QVariantList l;
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(mapList);
+	l.append(m_client->clientUserName());
+	l.append(groupid);
+
+	QVariantList uuidList = m_client->db()->execSelectQuery("SELECT mapid FROM studentGroupInfo "
+"LEFT JOIN bindGroupMap ON (bindGroupMap.groupid=studentGroupInfo.id) WHERE username=? AND id=?"
+, l);
+
+	QJsonArray list;
+
+	foreach (QVariant v, uuidList) {
+		QVariantList l;
+		l.append(v.toMap().value("mapid").toString());
+
+		QVariantMap map = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, name, version, lastModified, md5, "
+																	"COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE uuid=?", l);
+
+		list.append(QJsonObject::fromVariantMap(map));
+	}
+
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }

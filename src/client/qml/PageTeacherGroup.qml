@@ -30,6 +30,16 @@ QPage {
 			groupSelect(selectedGroupId)
 		}
 
+		onGroupClassRemove: {
+			send("groupListGet")
+			groupSelect(selectedGroupId)
+		}
+
+		onGroupRemove: {
+			send("groupListGet")
+			groupSelect(-1)
+		}
+
 		onGroupGet: {
 			page.defaultSubTitle = jsonData.name
 		}

@@ -361,6 +361,50 @@ void TeacherMaps::mapExport(QVariantMap data)
 
 
 
+/**
+ * @brief TeacherMaps::mapImport
+ * @param data
+ */
+
+void TeacherMaps::mapImport(QVariantMap data)
+{
+	QString filename = "/tmp/demo.map";
+
+	if (!QFile::exists(filename)) {
+		qWarning() << "Nem létező fájl" << filename;
+		return;
+	}
+
+	QFile f(filename);
+	if (!f.open(QIODevice::ReadOnly)) {
+		qWarning() << "A fájl nem olvasható" << filename;
+		return;
+	}
+
+	QByteArray b = f.readAll();
+
+	f.close();
+
+	GameMap *map = GameMap::fromBinaryData(b);
+
+	if (!map) {
+		qWarning() << "Hibás fájl" << filename;
+		return;
+	}
+
+	QVariantMap m;
+	m["uuid"] = QString(map->uuid());
+	m["name"] = data.value("name", tr("Importált pálya")).toString();
+	m["data"] = b;
+	m["md5"] = QString(QCryptographicHash::hash(b, QCryptographicHash::Md5).toHex());
+
+	db()->execInsertQuery("INSERT INTO localmaps(?k?) values (?)", m);
+	send("mapListGet");
+}
+
+
+
+
 
 /**
  * @brief TeacherMaps::mapRename
@@ -427,6 +471,24 @@ void TeacherMaps::mapLocalCopy(QVariantMap data)
 	c["data"] = mm.value("data").toByteArray();
 
 	if (db()->execInsertQuery("INSERT INTO localmaps (?k?) VALUES (?)", c) != -1) {
+		send("mapListGet");
+	}
+}
+
+
+/**
+ * @brief TeacherMaps::mapLocalRemove
+ * @param data
+ */
+
+void TeacherMaps::mapLocalRemove(QVariantMap data)
+{
+	QString uuid = data.value("uuid").toString();
+
+	QVariantList l;
+	l.append(uuid);
+
+	if (db()->execSimpleQuery("DELETE FROM localmaps WHERE uuid=?", l)) {
 		send("mapListGet");
 	}
 }

@@ -244,7 +244,7 @@ QListView {
 		}
 
 		onLongPressed: {
-			if (autoSelectorChange) {
+			if (autoSelectorChange && !selectorSet) {
 				sourceVariantMapModel.select(view.model.mapToSource(index))
 				selectorSet = true
 				view.currentIndex = index

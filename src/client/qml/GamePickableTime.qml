@@ -19,14 +19,28 @@ GamePickable {
 
 		width: lbl.width
 		height: lbl.height
-		QLabel {
+
+		Row {
 			id: lbl
-			text: pickableData ? pickableData.text : ""
-			color: CosStyle.colorOKLighter
-			font.weight: Font.Bold
-			font.pixelSize: 14
 			visible: false
+
+			QFontImage {
+				anchors.verticalCenter: parent.verticalCenter
+				color: lblText.color
+				size: lblText.font.pixelSize*1.2
+				icon: CosStyle.iconClock1
+			}
+
+			QLabel {
+				id: lblText
+				anchors.verticalCenter: parent.verticalCenter
+				text: pickableData ? pickableData.text : ""
+				color: CosStyle.colorOKLighter
+				font.weight: Font.Bold
+				font.pixelSize: 14
+			}
 		}
+
 		Glow {
 			anchors.fill: lbl
 			source: lbl
@@ -47,7 +61,7 @@ GamePickable {
 					duration: 500
 				}
 				ColorAnimation {
-					target: lbl
+					target: lblText
 					property: "color"
 					to: CosStyle.colorOKLight
 					duration: 500
@@ -61,7 +75,7 @@ GamePickable {
 					duration: 500
 				}
 				ColorAnimation {
-					target: lbl
+					target: lblText
 					property: "color"
 					to: CosStyle.colorOKLighter
 					duration: 500

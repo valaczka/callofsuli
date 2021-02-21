@@ -19,14 +19,26 @@ QPagePanel {
 	contextMenuFunc: function (m) {
 		m.addAction(actionClassAdd)
 		m.addAction(actionUserAdd)
+		m.addSeparator()
 		m.addAction(actionViewMembers)
+		m.addAction(actionClassRemove)
+		m.addAction(actionUserRemove)
 	}
 
 
 	Connections {
 		target: teacherGroups
 
+		function onSelectedGroupIdChanged(groupId) {
+			if (groupId !== -1 && swipeMode)
+				parent.parentPage.swipeToPage(1)
+		}
+
 		function onGroupUserAdd(jsonData, binaryData) {
+			teacherGroups.send("groupGet", {"id": teacherGroups.selectedGroupId})
+		}
+
+		function onGroupUserRemove(jsonData, binaryData) {
 			teacherGroups.send("groupGet", {"id": teacherGroups.selectedGroupId})
 		}
 
@@ -165,14 +177,15 @@ QPagePanel {
 				QMenu {
 					id: contextMenu
 
-					MenuItem { action: actionClassAdd }
+					MenuItem { action: actionClassAdd; text: qsTr("Hozzáadás") }
+					MenuItem { action: actionClassRemove; text: qsTr("Eltávolítás") }
 				}
 
 
 				onKeyInsertPressed: actionClassAdd.trigger()
 				//onKeyF2Pressed: actionRename.trigger()
-				/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF4Pressed: actionObjectiveNew.trigger()*/
+				onKeyDeletePressed: actionClassRemove.trigger()
+				//onKeyF4Pressed: actionObjectiveNew.trigger()*/
 			}
 		}
 
@@ -232,14 +245,14 @@ QPagePanel {
 				QMenu {
 					id: contextMenuUser
 
-					MenuItem { action: actionUserAdd }
+					MenuItem { action: actionUserAdd; text: qsTr("Hozzáadás") }
+					MenuItem { action: actionUserRemove; text: qsTr("Eltávolítás") }
 				}
 
 
 				onKeyInsertPressed: actionUserAdd.trigger()
 				//onKeyF2Pressed: actionRename.trigger()
-				/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF4Pressed: actionObjectiveNew.trigger()*/
+				onKeyDeletePressed: actionUserRemove.trigger()
 			}
 		}
 	}
@@ -276,6 +289,73 @@ QPagePanel {
 		enabled: !teacherGroups.isBusy && teacherGroups.selectedGroupId != -1
 		onTriggered: {
 			teacherGroups.send("groupMemberListGet", {id: teacherGroups.selectedGroupId})
+		}
+	}
+
+
+
+	Action {
+		id: actionClassRemove
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Osztály")
+		enabled: !teacherGroups.isBusy && (classList.currentIndex !== -1 || teacherGroups.modelClassList.selectedCount)
+		onTriggered: {
+			if (teacherGroups.modelClassList.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Osztályok eltávolítása"),
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 osztályt?")
+												.arg(teacherGroups.modelClassList.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					teacherGroups.send("groupClassRemove", {"id": teacherGroups.selectedGroupId,
+										   "classList": teacherGroups.modelClassList.getSelectedData("classid") })
+				})
+				dd.open()
+			} else {
+				var o = classList.model.get(classList.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan eltávolítod az osztályt?"),
+											   text: o.name
+										   })
+				d.accepted.connect(function () {
+					teacherGroups.send("groupClassRemove", {"id": teacherGroups.selectedGroupId, "classid": o.classid })
+				})
+				d.open()
+			}
+		}
+	}
+
+
+	Action {
+		id: actionUserRemove
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Tanuló")
+		enabled: !teacherGroups.isBusy && (userList.currentIndex !== -1 || teacherGroups.modelUserList.selectedCount)
+		onTriggered: {
+			if (teacherGroups.modelUserList.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Tanulók eltávolítása"),
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 tanulót?")
+												.arg(teacherGroups.modelUserList.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					teacherGroups.send("groupUserRemove", {"id": teacherGroups.selectedGroupId,
+										   "userList": teacherGroups.modelUserList.getSelectedData("username") })
+				})
+				dd.open()
+			} else {
+				var o = userList.model.get(userList.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan eltávolítod a tanulót?"),
+											   text: o.fullname
+										   })
+				d.accepted.connect(function () {
+					teacherGroups.send("groupUserRemove", {"id": teacherGroups.selectedGroupId, "username": o.username })
+				})
+				d.open()
+			}
 		}
 	}
 

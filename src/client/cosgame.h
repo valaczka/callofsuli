@@ -126,8 +126,9 @@ public slots:
 	void startGame();
 	void abortGame();
 
-	void resetHp();
+	void increaseHp();
 	void addSecs(const int &secs);
+	void increaseShield(const int &num);
 
 	void setGameData(QVariantMap gameData);
 

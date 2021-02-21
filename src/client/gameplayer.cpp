@@ -56,6 +56,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_soundEffectWalkNum(1)
 	, m_soundEffectPainNum(1)
 	, m_pickable(nullptr)
+	, m_shield(0)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -301,7 +302,7 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 void GamePlayer::onBodyEndContact(Box2DFixture *other)
 {
 	QVariant object = other->property("targetObject");
-	QVariantMap data = other->property("targetData").toMap();
+	//QVariantMap data = other->property("targetData").toMap();
 
 	if (!object.isValid())
 		return;
@@ -397,6 +398,15 @@ void GamePlayer::setPickable(GamePickable *pickable)
 	emit pickableChanged(m_pickable);
 }
 
+void GamePlayer::setShield(int shield)
+{
+	if (m_shield == shield)
+		return;
+
+	m_shield = shield;
+	emit shieldChanged(m_shield);
+}
+
 
 
 
@@ -405,14 +415,20 @@ void GamePlayer::setPickable(GamePickable *pickable)
  * @param enemy
  */
 
-void GamePlayer::hurtByEnemy(GameEnemy *enemy)
+void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 {
-	qDebug() << this << "Hurt by enemy" << enemy;
-	decreaseHp();
-	if (m_hp == 0)
-		emit killedByEnemy(enemy);
-	else
-		emit hurt(enemy);
+	qDebug() << this << "Hurt by enemy" << enemy << canProtect;
+
+	if (canProtect && m_shield > 0) {
+		setShield(m_shield-1);
+	} else {
+		decreaseHp();
+
+		if (m_hp == 0)
+			emit killedByEnemy(enemy);
+		else
+			emit hurt(enemy);
+	}
 }
 
 /**

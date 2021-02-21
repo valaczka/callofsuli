@@ -50,6 +50,7 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(GamePickable * pickable READ pickable WRITE setPickable NOTIFY pickableChanged)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged)
 	Q_PROPERTY(int defaultHp READ defaultHp WRITE setDefaultHp NOTIFY defaultHpChanged)
+	Q_PROPERTY(int shield READ shield WRITE setShield NOTIFY shieldChanged)
 
 public:
 	enum LadderMode {
@@ -78,13 +79,14 @@ public:
 	int hp() const { return m_hp; }
 	int defaultHp() const { return m_defaultHp; }
 	GamePickable * pickable() const { return m_pickable; }
+	int shield() const { return m_shield; }
 
 public slots:
 	QString playSoundEffect(const QString &effect);
 	void onBodyBeginContact(Box2DFixture *other);
 	void onBodyEndContact(Box2DFixture *other);
 
-	void hurtByEnemy(GameEnemy *enemy);
+	void hurtByEnemy(GameEnemy *enemy, const bool &canProtect = false);
 	void killByEnemy(GameEnemy *enemy);
 	void attackSuccesful(GameEnemy *enemy);
 	void attackFailed(GameEnemy *enemy);
@@ -96,6 +98,7 @@ public slots:
 	void setHp(int hp);
 	void setDefaultHp(int defaultHp);
 	void setPickable(GamePickable * pickable);
+	void setShield(int shield);
 
 signals:
 	void killedByEnemy(GameEnemy *enemy);
@@ -109,6 +112,7 @@ signals:
 	void hpChanged(int hp);
 	void defaultHpChanged(int defaultHp);
 	void pickableChanged(GamePickable * pickable);
+	void shieldChanged(int shield);
 
 private slots:
 	void onCosGameChanged(CosGame *);
@@ -127,6 +131,7 @@ private:
 	int m_soundEffectWalkNum;
 	int m_soundEffectPainNum;
 	GamePickable * m_pickable;
+	int m_shield;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

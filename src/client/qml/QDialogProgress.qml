@@ -73,7 +73,7 @@ QDialogPanel {
 		anchors.right: parent.right
 		text: qsTr("Megszakítás")
 		icon.source: CosStyle.iconCancel
-		themeColors: CosStyle.buttonThemeDelete
+		themeColors: CosStyle.buttonThemeRed
 
 		onClicked: {
 			acceptedData = null

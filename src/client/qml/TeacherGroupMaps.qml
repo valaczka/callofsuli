@@ -18,6 +18,7 @@ QPagePanel {
 
 	contextMenuFunc: function (m) {
 		m.addAction(actionMapAdd)
+		m.addAction(actionMapRemove)
 	}
 
 
@@ -25,6 +26,10 @@ QPagePanel {
 		target: teacherGroups
 
 		function onGroupMapAdd(jsonData, binaryData) {
+			teacherGroups.send("groupGet", {"id": teacherGroups.selectedGroupId})
+		}
+
+		function onGroupMapRemove(jsonData, binaryData) {
 			teacherGroups.send("groupGet", {"id": teacherGroups.selectedGroupId})
 		}
 
@@ -101,6 +106,7 @@ QPagePanel {
 			id: contextMenu
 
 			MenuItem { action: actionMapAdd }
+			MenuItem { action: actionMapRemove }
 		}
 
 
@@ -112,11 +118,44 @@ QPagePanel {
 
 	Action {
 		id: actionMapAdd
-		text: qsTr("Pálya")
+		text: qsTr("Hozzáadás")
 		icon.source: CosStyle.iconAdd
 		enabled: !teacherGroups.isBusy && teacherGroups.selectedGroupId != -1
 		onTriggered: {
 			teacherGroups.send("groupExcludedMapListGet", {id: teacherGroups.selectedGroupId})
+		}
+	}
+
+
+	Action {
+		id: actionMapRemove
+		icon.source: CosStyle.iconRemove
+		text: qsTr("Eltávolítás")
+		enabled: !teacherGroups.isBusy && (mapList.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
+		onTriggered: {
+			if (teacherGroups.modelMapList.selectedCount) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Pálya eltávolítása"),
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 pályát?")
+												.arg(teacherGroups.modelMapList.selectedCount)
+											})
+				dd.accepted.connect(function () {
+					teacherGroups.send("groupMapRemove", {"id": teacherGroups.selectedGroupId,
+										   "mapList": teacherGroups.modelMapList.getSelectedData("uuid") })
+				})
+				dd.open()
+			} else {
+				var o = mapList.model.get(mapList.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Biztosan eltávolítod a pályát?"),
+											   text: o.name
+										   })
+				d.accepted.connect(function () {
+					teacherGroups.send("groupMapRemove", {"id": teacherGroups.selectedGroupId, "uuid": o.uuid })
+				})
+				d.open()
+			}
 		}
 	}
 

@@ -349,7 +349,7 @@ void MapEditor::saveToDbPrivate(QVariantMap)
 	l.append(d);
 	l.append(QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex()));
 	l.append(m_databaseUuid);
-	QVariantMap m = m_database->execSelectQueryOneRow("UPDATE "+m_databaseTable+" SET data=?, md5=?, lastModified=datetime('now') WHERE uuid=?", l);
+	m_database->execSelectQueryOneRow("UPDATE "+m_databaseTable+" SET data=?, md5=?, lastModified=datetime('now') WHERE uuid=?", l);
 
 	emit saveFinished();
 
@@ -1435,6 +1435,20 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 
 	db()->undoLogBegin(tr("Új szint hozzáadása"));
 
+	QVariantList inventoryList;
+
+	if (!terrainData.isEmpty() && terrainData.contains("default")) {
+		QVariantMap d = terrainData.value("default").toMap();
+		inventoryList = d.value("inventory").toList();
+
+		if (d.contains("duration") && !data.contains("duration"))
+			data["duration"] = d.value("duration", 600).toInt();
+
+		if (d.contains("hp") && !data.contains("hp"))
+			data["startHp"] = d.value("hp", 5).toInt();
+	}
+
+
 	int ret = db()->execInsertQuery("INSERT INTO missionLevels(?k?) values (?)", data);
 
 	QVariantMap m2;
@@ -1445,6 +1459,8 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 
 	db()->undoLogEnd();
 
+
+
 	if (ret != -1 && ret2 != -1) {
 		db()->commit();
 		setModified(true);
@@ -1454,33 +1470,32 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 		m_client->sendMessageError(tr("Adatbázis hiba"), tr("Nem sikerült új szintet hozzáadni!"));
 	}
 
-	if (!terrainData.isEmpty() && terrainData.contains("default")) {
-		QVariantMap d = terrainData.value("default").toMap();
-		QVariantList list = d.value("inventory").toList();
 
-		foreach (QVariant v, list) {
-			QVariantMap m = v.toMap();
 
-			QString module = m.value("module").toString();
 
-			if (module.isEmpty())
-				continue;
+	foreach (QVariant v, inventoryList) {
+		QVariantMap m = v.toMap();
 
-			int count = m.value("count", 1).toInt();
-			int block = m.value("block", 0).toInt();
+		QString module = m.value("module").toString();
 
-			QVariantMap param;
-			param["mission"] = uuid;
-			param["level"] = newLevel;
-			param["module"] = module;
-			param["block"] = block;
-			param["count"] = count;
+		if (module.isEmpty())
+			continue;
 
-			if (db()->execInsertQuery("INSERT INTO inventories(?k?) values (?)", param) == -1) {
-				qWarning() << tr("Default inventory error") << module << block << count;
-			}
+		int count = m.value("count", 1).toInt();
+		int block = m.value("block", 0).toInt();
+
+		QVariantMap param;
+		param["mission"] = uuid;
+		param["level"] = newLevel;
+		param["module"] = module;
+		param["block"] = block;
+		param["count"] = count;
+
+		if (db()->execInsertQuery("INSERT INTO inventories(?k?) values (?)", param) == -1) {
+			qWarning() << tr("Default inventory error") << module << block << count;
 		}
 	}
+
 }
 
 

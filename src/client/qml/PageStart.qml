@@ -134,7 +134,7 @@ QPage {
 
 		QButton {
 			anchors.horizontalCenter: parent.horizontalCenter
-			themeColors: CosStyle.buttonThemeDelete
+			themeColors: CosStyle.buttonThemeRed
 			text: qsTr("Mégsem")
 			icon.source: CosStyle.iconCancel
 			onClicked: cosClient.closeConnection()
@@ -168,7 +168,7 @@ QPage {
 		onTriggered: {
 			JS.createPage("MapMissions", {
 							  demoMode: true,
-							  defaultTitle: qsTr("Demo mód")
+							  defaultSubTitle: qsTr("Demo mód")
 						  })
 		}
 	}

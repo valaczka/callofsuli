@@ -49,6 +49,7 @@ public:
 	bool classInit() override;
 
 public slots:
+	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool missionListGet(QJsonObject *jsonResponse, QByteArray *);

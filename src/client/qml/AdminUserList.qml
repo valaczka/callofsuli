@@ -211,7 +211,7 @@ QPagePanel {
 
 	Action {
 		id: actionRemove
-		icon.source: CosStyle.iconRemove
+		icon.source: CosStyle.iconDelete
 		text: qsTr("Töröl")
 		onTriggered: runBatchFunction("remove")
 	}

@@ -120,5 +120,7 @@
         <file>TeacherGroupMembers.qml</file>
         <file>TeacherGroupMaps.qml</file>
         <file>TeacherMapGroups.qml</file>
+        <file>StudentGroupList.qml</file>
+        <file>GamePickableShield.qml</file>
     </qresource>
 </RCC>

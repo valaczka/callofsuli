@@ -46,7 +46,11 @@ class StudentMaps : public AbstractActivity
 	Q_PROPERTY(bool demoMode READ demoMode WRITE setDemoMode NOTIFY demoModeChanged)
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
 	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList NOTIFY modelMissionListChanged)
+	Q_PROPERTY(VariantMapModel * modelGroupList READ modelGroupList WRITE setModelGroupList NOTIFY modelGroupListChanged)
+	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
+
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
+
 
 public:
 	explicit StudentMaps(QQuickItem *parent = nullptr);
@@ -58,11 +62,14 @@ public:
 
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
+	VariantMapModel * modelGroupList() const { return m_modelGroupList; }
 	GameMap * currentMap() const { return m_currentMap; }
 	bool demoMode() const { return m_demoMode; }
 	int baseXP() const { return m_baseXP; }
+	int selectedGroupId() const { return m_selectedGroupId; }
 
 public slots:
+	void groupSelect(const int &groupId);
 	void mapDownload(QVariantMap data);
 	void mapLoad(QVariantMap data);
 	void demoMapLoad();
@@ -70,11 +77,14 @@ public slots:
 	void playGame(QVariantMap data);
 	void setDemoMode(bool demoMode);
 	void setBaseXP(int baseXP);
+	void setModelGroupList(VariantMapModel * modelGroupList);
+	void setSelectedGroupId(int selectedGroupId);
 
 protected slots:
 	void clientSetup() override;
 
 private slots:
+	void onGroupListGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 	void loadGameMap(GameMap *map, const QString &mapName = "");
@@ -88,6 +98,8 @@ private slots:
 	void onGameFinish(QJsonObject jsonData, QByteArray);
 
 signals:
+	void groupListGet(QJsonObject jsonData, QByteArray binaryData);
+
 	void mapListLoaded(QVariantList list);
 	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void mapDownloadRequest(QString formattedDataSize);
@@ -109,6 +121,8 @@ signals:
 	void modelMissionListChanged(VariantMapModel * modelMissionList);
 	void demoModeChanged(bool demoMode);
 	void baseXPChanged(int baseXP);
+	void modelGroupListChanged(VariantMapModel * modelGroupList);
+	void selectedGroupIdChanged(int selectedGroupId);
 
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
@@ -119,6 +133,8 @@ private:
 	bool m_demoMode;
 	QVariantMap m_demoSolverMap;
 	int m_baseXP;
+	VariantMapModel * m_modelGroupList;
+	int m_selectedGroupId;
 };
 
 #endif // STUDENTMAPS_H

@@ -62,6 +62,12 @@ PhysicsEntity {
 		}
 	]
 
+
+	Loader {
+		id: itemLoader
+		anchors.centerIn: parent
+	}
+
 	Glow {
 		id: glow
 		opacity: (glowEnabled || _glowForced) ? 1.0 : 0.0
@@ -77,11 +83,6 @@ PhysicsEntity {
 		Behavior on opacity {
 			NumberAnimation { duration: 200 }
 		}
-	}
-
-	Loader {
-		id: itemLoader
-		anchors.centerIn: parent
 	}
 
 

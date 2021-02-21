@@ -74,7 +74,8 @@ public:
 	enum PickableType {
 		PickableInvalid,
 		PickableHealth,
-		PickableTime
+		PickableTime,
+		PickableShield
 	};
 
 	Q_ENUM(PickableType)
