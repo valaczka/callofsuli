@@ -1,14 +1,8 @@
 {
-	"backgroundMusic": "../../sound/music/Battle1.mp3",
 	"default": {
-		"duration": 240,
+		"duration": 300,
 		"hp": 5,
 		"inventory": [
-			{
-				"module": "health",
-				"count": 1,
-				"block": 1
-			},
 			{
 				"module": "health",
 				"count": 1,
@@ -20,8 +14,13 @@
 				"block": 3
 			},
 			{
+				"module": "health",
+				"count": 1,
+				"block": 1
+			},
+			{
 				"module": "time1",
-				"count": 2,
+				"count": 1,
 				"block": 0
 			},
 			{
@@ -31,17 +30,17 @@
 			},
 			{
 				"module": "shield2",
-				"count": 2,
+				"count": 1,
 				"block": 0
 			},
 			{
-				"module": "shield3",
+				"module": "shield4",
 				"count": 1,
 				"block": 0
 			},
 			{
 				"module": "time2",
-				"count": 1,
+				"count": 2,
 				"block": 0
 			}
 		]

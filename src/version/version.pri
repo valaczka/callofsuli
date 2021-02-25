@@ -1,6 +1,6 @@
 VER_MAJ = 2
 VER_MIN = 94
-VER_PAT = 21
+VER_PAT = 51
 VER_MAINTENANCE = "-dev"
-VERSION = "2.94.21-dev"
+VERSION = "2.94.51-dev"
 

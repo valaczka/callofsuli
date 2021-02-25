@@ -284,7 +284,7 @@ Page {
 				return
 
 			var fw = flick.width
-			var spaceRequired = Math.min(fw*0.7, 500)
+			var spaceRequired = fw*0.45
 			var px = game.player.x
 			var pw = game.player.width
 			var cx = flick.contentX
@@ -440,31 +440,16 @@ Page {
 	}
 
 
-	QLabel {
-		id: labelXP
-		visible: false
+	GameLabel {
+		id: infoHP
+
 		anchors.top: parent.top
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.margins: 5
-		color: "white"
-		font.pixelSize: 20
-		font.weight: Font.Bold
-		text: String("%1 XP").arg(xp)
-
-		property int xp: game.gameMatch ? game.gameMatch.xp : 0
-
-		Behavior on xp {
-			NumberAnimation { duration: 225; easing.type: Easing.OutQuart }
-		}
-	}
-
-	Glow {
-		anchors.fill: labelXP
-		source: labelXP
-		color: "black"
-		radius: 3
-		spread: 0.6
-		samples: 7
+		color: CosStyle.colorErrorLighter
+		text: "%1 HP"
+		value: game.player ? game.player.entityPrivate.hp : 0
+		image.visible: false
 	}
 
 	Column {
@@ -473,25 +458,15 @@ Page {
 		anchors.margins: 7
 		spacing: 5
 
-		GameInfo {
-			id: infoHP
+		GameLabel {
+			id: labelXP
 			anchors.right: parent.right
+			color: "white"
 			image.visible: false
-			color: CosStyle.colorErrorLighter
-			label.text: Math.floor(progressBar.value)+" HP"
-			progressBar.from: 0
-			progressBar.to: game.player ? game.player.entityPrivate.defaultHp : 0
-			progressBar.value: game.player ? game.player.entityPrivate.hp : 0
-			progressBar.width: Math.min(control.width*0.125, 100)
 
-			Connections {
-				target: game.player ? game.player.entityPrivate : null
+			text: "%1 XP"
 
-				function onHpChanged(hp) {
-					if (hp < 3)
-						infoHP.marked = true
-				}
-			}
+			value: game.gameMatch ? game.gameMatch.xp : 0
 		}
 
 		GameInfo {
@@ -516,25 +491,6 @@ Page {
 			}
 		}
 
-
-
-		GameInfo {
-			id: infoTime
-			anchors.right: parent.right
-			color: CosStyle.colorPrimary
-			progressBar.from: 0
-			progressBar.to: 0
-			progressBar.value: secs
-			image.icon: CosStyle.iconClock1
-			progressBar.width: Math.min(control.width*0.125, 100)
-
-			property int secs: game.msecLeft/1000
-
-			onSecsChanged: if (secs>progressBar.to)
-							   progressBar.to = secs
-
-			label.text: JS.secToMMSS(secs)
-		}
 
 
 		GameInfo {
@@ -591,6 +547,8 @@ Page {
 
 
 
+
+
 	VirtualJoystick {
 		id: joystick
 
@@ -600,16 +558,16 @@ Page {
 		anchors.left: parent.left
 		anchors.margins: 5
 
-		width: 80
-		height: 80
+		width: Math.min(200, control.width*0.5)
+		height: Math.min(120, control.width*0.4)
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
 		onJoystickMoved: if (game.player) {
-							 if (y > 0.7) {
+							 if (y > 0.6) {
 								 if (game.player.moveUp())
 									 return
-							 } else if (y < -0.7) {
+							 } else if (y < -0.6) {
 								 if (game.player.moveDown())
 									 return
 							 } else if (game.player.isClimbing) {
@@ -617,15 +575,15 @@ Page {
 								 return
 							 }
 
-							 if (x > 0.7) {
-								 if (x > 0.98)
+							 if (x > 0.3) {
+								 if (x > 0.5)
 									 game.player.runRight()
 								 else
 									 game.player.walkRight()
 							 } else if (x > 0.1) {
 								 game.player.turnRight()
-							 } else if (x < -0.7) {
-								 if (x < -0.98)
+							 } else if (x < -0.3) {
+								 if (x < -0.5)
 									 game.player.runLeft()
 								 else
 									 game.player.walkLeft()
@@ -644,6 +602,9 @@ Page {
 		id: shotButton
 		size: 55
 
+		width: Math.min(100, control.width*0.5)
+		height: Math.min(100, control.width*0.4)
+
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 		anchors.margins: 10
@@ -652,11 +613,14 @@ Page {
 
 		readonly property bool enemyAimed: game.player && game.player.entityPrivate && game.player.entityPrivate.enemy
 
-		color: enemyAimed ? JS.setColorAlpha(CosStyle.colorErrorLighter, 0.7) : JS.setColorAlpha(CosStyle.colorWarningLight, 0.7)
+		color: enemyAimed ? JS.setColorAlpha(CosStyle.colorErrorLighter, 0.7) : "transparent"
+		opacity: enemyAimed ? 1.0 : 0.6
+
+		border.color: enemyAimed ? "black" : "white"
 
 		fontImage.icon: "qrc:/internal/img/target1.svg"
-		fontImage.color: shotButton.enemyAimed ? "white" : "black"
-		fontImage.opacity: 0.6
+		fontImage.color: "white"
+		fontImage.opacity: enemyAimed ? 0.6 : 1.0
 		tap.enabled: !game.question
 		tap.onTapped: game.player.entityPrivate.attackByGun()
 	}
@@ -667,15 +631,18 @@ Page {
 		id: pickButton
 		size: 50
 
-		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.pickable
+		visible: game.currentScene == gameScene && game.player
+		enabled: game.player && game.player.entityPrivate.pickable
 
 		anchors.horizontalCenter: shotButton.horizontalCenter
 		anchors.bottom: shotButton.top
 		anchors.bottomMargin: 10
 
-		color: JS.setColorAlpha(CosStyle.colorOKLighter, 0.5)
-		border.color: fontImage.color
+		color: enabled ? JS.setColorAlpha(CosStyle.colorOKLighter, 0.5) : "transparent"
+		border.color: enabled ? fontImage.color : "white"
 		border.width: 1
+
+		opacity: enabled ? 1.0 : 0.6
 
 		fontImage.icon: "image://font/Material Icons/\ue925"
 		fontImage.color: "white"
@@ -697,6 +664,20 @@ Page {
 
 		width: Math.min(implicitWidth, control.width*0.55)
 		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
+	}
+
+	GameLabel {
+		id: infoTime
+		color: CosStyle.colorPrimary
+		image.visible: false
+
+		anchors.left: parent.left
+		anchors.top: messageList.bottom
+		anchors.margins: 5
+
+		property int secs: game.msecLeft/1000
+
+		label.text: JS.secToMMSS(secs)
 	}
 
 

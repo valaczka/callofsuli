@@ -20,6 +20,7 @@ Item {
 
 	property alias color: rect.color
 	property alias border: rect.border
+	property alias glowVisible: glow.visible
 
 	width: rect.width
 	height: rect.height
@@ -29,11 +30,13 @@ Item {
 	Rectangle {
 		id: rect
 
-		visible: false
+		visible: !glow.visible
 
 		width: size
 		height: size
 		radius: size/2
+
+		anchors.centerIn: parent
 
 		border.width: 1
 		border.color: "black"
@@ -55,6 +58,7 @@ Item {
 	}
 
 	Glow {
+		id: glow
 		anchors.fill: rect
 		source: rect
 		color: "black"

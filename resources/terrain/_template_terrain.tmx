@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="102" height="24" tilewidth="32" tileheight="32" infinite="1" nextlayerid="70" nextobjectid="203">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
-  <image source="tileset/hyptosis.png" width="960" height="3840"/>
+	 <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
    <terrain name="StoneWall1" tile="475"/>
    <terrain name="StoneWall2" tile="2457"/>

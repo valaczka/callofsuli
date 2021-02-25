@@ -122,5 +122,6 @@
         <file>TeacherMapGroups.qml</file>
         <file>StudentGroupList.qml</file>
         <file>GamePickableShield.qml</file>
+        <file>GameLabel.qml</file>
     </qresource>
 </RCC>
