@@ -1,5 +1,4 @@
 {
-	"backgroundMusic": "../../sound/music/Battle5.mp3",
 	"default": {
 		"duration": 300,
 		"hp": 5,

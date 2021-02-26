@@ -92,9 +92,8 @@ Scene {
 				break;
 			case Qt.Key_Enter:
 			case Qt.Key_Return:
-				if (game.player.entityPrivate.pickable) {
-					game.player.entityPrivate.pickable.pick()
-					game.player.entityPrivate.pickable = null
+				if (game.pickable) {
+					game.pickPickable()
 				}
 				break;
 			case Qt.Key_F10:

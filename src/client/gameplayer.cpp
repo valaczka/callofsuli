@@ -49,13 +49,11 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_isLadderDirectionUp(false)
 	, m_ladder(nullptr)
 	, m_enemy(nullptr)
-	, m_hp(0)
 	, m_defaultHp(0)
 	, m_soundEffectRunNum(1)
 	, m_soundEffectClimbNum(1)
 	, m_soundEffectWalkNum(1)
 	, m_soundEffectPainNum(1)
-	, m_pickable(nullptr)
 	, m_shield(0)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
@@ -286,10 +284,14 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 		}
 	}
 
+	if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish)
+		return;
+
+
 	GamePickable *pickable = qvariant_cast<GamePickable *>(object);
 
 	if (pickable) {
-		setPickable(pickable);
+		m_cosGame->addPickable(pickable);
 	}
 }
 
@@ -319,7 +321,7 @@ void GamePlayer::onBodyEndContact(Box2DFixture *other)
 	GamePickable *pickable = qvariant_cast<GamePickable *>(object);
 
 	if (pickable) {
-		setPickable(nullptr);
+		m_cosGame->removePickable(pickable);
 	}
 }
 
@@ -363,23 +365,6 @@ void GamePlayer::setEnemy(GameEnemy *enemy)
 
 
 
-void GamePlayer::setHp(int hp)
-{
-	if (m_hp == hp)
-		return;
-
-	if (hp<=0)
-		hp = 0;
-
-	m_hp = hp;
-	emit hpChanged(m_hp);
-
-	qDebug() << this << "HP" << m_hp;
-
-	if (m_hp == 0)
-		setIsAlive(false);
-}
-
 void GamePlayer::setDefaultHp(int defaultHp)
 {
 	if (m_defaultHp == defaultHp)
@@ -389,14 +374,6 @@ void GamePlayer::setDefaultHp(int defaultHp)
 	emit defaultHpChanged(m_defaultHp);
 }
 
-void GamePlayer::setPickable(GamePickable *pickable)
-{
-	if (m_pickable == pickable)
-		return;
-
-	m_pickable = pickable;
-	emit pickableChanged(m_pickable);
-}
 
 void GamePlayer::setShield(int shield)
 {
@@ -419,12 +396,14 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 {
 	qDebug() << this << "Hurt by enemy" << enemy << canProtect;
 
+	emit underAttack();
+
 	if (canProtect && m_shield > 0) {
 		setShield(m_shield-1);
 	} else {
 		decreaseHp();
 
-		if (m_hp == 0)
+		if (hp() == 0)
 			emit killedByEnemy(enemy);
 		else
 			emit hurt(enemy);
@@ -540,14 +519,6 @@ void GamePlayer::attackFailed(GameEnemy *enemy)
 }
 
 
-/**
- * @brief GamePlayer::decreaseHp
- */
-
-void GamePlayer::decreaseHp()
-{
-	setHp(m_hp-1);
-}
 
 
 

@@ -76,6 +76,4 @@ private:
 };
 
 
-
-
 #endif // GAMESCENEPRIVATE_H

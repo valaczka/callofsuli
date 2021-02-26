@@ -66,6 +66,8 @@ class GameEntity : public QQuickItem
 	Q_PROPERTY(QString qrcDirName READ qrcDirName WRITE setQrcDirName NOTIFY qrcDirNameChanged)
 	Q_PROPERTY(QVariantMap qrcData READ qrcData WRITE setQrcData NOTIFY qrcDataChanged)
 
+	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged)
+	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged)
 	Q_PROPERTY(bool isAlive READ isAlive WRITE setIsAlive NOTIFY isAliveChanged)
 	Q_PROPERTY(bool isOnGround READ isOnGround WRITE setIsOnGround NOTIFY isOnGroundChanged)
 	Q_PROPERTY(bool isOnBaseGround READ isOnBaseGround)
@@ -98,12 +100,16 @@ public:
 	bool isAlive() const { return m_isAlive; }
 	bool isOnGround() const { return m_isOnGround; }
 	bool isOnBaseGround() const;
+	int hp() const { return m_hp; }
+	int maxHp() const { return m_maxHp; }
 
 	Box2DRayCast * rayCast() const { return m_rayCast; }
 	qreal rayCastElevation() const { return m_rayCastElevation; }
 	qreal rayCastLength() const { return m_rayCastLength; }
 	QMultiMap<qreal, QQuickItem *> rayCastItems() const { return m_rayCastItems; }
 	bool rayCastEnabled() const { return m_rayCastEnabled; }
+
+
 
 public slots:
 	void updateFixtures(const QString &sprite, const bool &inverse = false);
@@ -118,6 +124,10 @@ public slots:
 	void setRayCastElevation(qreal rayCastElevation);
 	void setRayCastLength(qreal rayCastLength);
 	void setRayCastEnabled(bool rayCastEnabled);
+	void setHp(int hp);
+	void decreaseHp() { setHp(m_hp-1); }
+	void setMaxHp(int maxHp);
+
 
 protected slots:
 
@@ -148,6 +158,7 @@ signals:
 	void boundBoxChanged(Box2DBox* boundBox);
 	void isAliveChanged(bool isAlive);
 	void isOnGroundChanged(bool isOnGround);
+	void hpChanged(int hp);
 
 	void rayCastChanged(Box2DRayCast * rayCast);
 	void rayCastElevationChanged(qreal rayCastElevation);
@@ -155,6 +166,7 @@ signals:
 	void rayCastPerformed(QRectF rect);
 	void rayCastItemsChanged(QMultiMap<qreal, QQuickItem *> rayCastItems);
 	void rayCastEnabledChanged(bool rayCastEnabled);
+	void maxHpChanged(int maxHp);
 
 protected:
 	QList<Box2DFixture *> m_groundFixtures;
@@ -175,6 +187,8 @@ private:
 	QTimer *m_rayCastTimer;
 	QMap<float32, QList<Box2DFixture*>> m_rayCastFixtures;
 	QMultiMap<qreal, QQuickItem *> m_rayCastItems;
+	int m_hp;
+	int m_maxHp;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

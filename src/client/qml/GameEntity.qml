@@ -1,7 +1,9 @@
 import Bacon2D 1.0
 import QtQuick 2.15
+import QtQuick.Controls 2.15
 import COS.Client 1.0
 import QtGraphicalEffects 1.0
+import QtQuick.Controls.Material 2.12
 
 PhysicsEntity {
 	id: root
@@ -17,6 +19,11 @@ PhysicsEntity {
 	property alias spriteSequence: spriteSequence
 
 	property bool facingLeft: false
+
+	property alias hpProgress: hpProgress
+	property int hpValue: 0
+	property color hpColor: "white"
+	property alias hpVisible: hpProgress.visible
 
 	property alias glowColor: glow.color
 	property bool glowEnabled: false
@@ -47,7 +54,34 @@ PhysicsEntity {
 	onWidthChanged: if (entityPrivate) entityPrivate.updateFixtures(spriteSequence.currentSprite, isInverse)
 	onHeightChanged: if (entityPrivate) entityPrivate.updateFixtures(spriteSequence.currentSprite, isInverse)
 
+	onHpValueChanged: {
+		if (entityPrivate && entityPrivate.maxHp>0)
+			hpProgress.to = entityPrivate.maxHp
+		else if (hpValue>hpProgress.to)
+			hpProgress.to = hpValue
+	}
 
+	ProgressBar {
+		id: hpProgress
+		visible: false
+
+		width: entityPrivate ? entityPrivate.boundBox.width+6 : 30
+		x: entityPrivate ? entityPrivate.boundBox.x-3 : 0
+		y: entityPrivate ? entityPrivate.boundBox.y-10 : -5
+		height: 1
+
+		from: 0
+		to: (entityPrivate && entityPrivate.maxHp>0) ? entityPrivate.maxHp : 0
+		value: hpValue
+
+		Material.accent: color
+
+		property color color: hpColor
+
+		Behavior on value {
+			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+		}
+	}
 
 
 	SpriteSequence {

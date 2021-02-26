@@ -123,7 +123,7 @@ void Server::stop()
 bool Server::commandLineParse(QCoreApplication &app)
 {
 	QCoreApplication::instance()->setApplicationName("callofsuli-server");
-	QCoreApplication::instance()->setOrganizationDomain("server.callofsuli.vjp.piarista.hu");
+	QCoreApplication::instance()->setOrganizationDomain("callofsuli-server");
 	QCoreApplication::instance()->setApplicationVersion(_VERSION_FULL);
 
 	QCommandLineParser parser;

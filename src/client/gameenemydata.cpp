@@ -50,6 +50,7 @@ GameEnemyData::GameEnemyData(QObject *parent)
 	, m_pickableType(PickableInvalid)
 	, m_pickableData()
 	, m_storageNum(0)
+	, m_targetDestroyed(false)
 {
 
 }
@@ -263,5 +264,14 @@ void GameEnemyData::setStorageNum(int storageNum)
 
 	m_storageNum = storageNum;
 	emit storageNumChanged(m_storageNum);
+}
+
+void GameEnemyData::setTargetDestroyed(bool targetDestroyed)
+{
+	if (m_targetDestroyed == targetDestroyed)
+		return;
+
+	m_targetDestroyed = targetDestroyed;
+	emit targetDestroyedChanged(m_targetDestroyed);
 }
 

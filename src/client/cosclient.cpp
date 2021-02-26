@@ -65,6 +65,8 @@
 */
 
 QList<TerrainData> Client::m_availableTerrains = QList<TerrainData>();
+QVariantMap Client::m_characterData = QVariantMap();
+QStringList Client::m_musicList = QStringList();
 
 Client::Client(QObject *parent) : QObject(parent)
 {
@@ -146,7 +148,7 @@ void Client::initialize()
 #endif
 */
 	QCoreApplication::setApplicationName("callofsuli");
-	QCoreApplication::setOrganizationDomain("client.callofsuli.vjp.piarista.hu");
+	QCoreApplication::setOrganizationDomain("callofsuli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
 
 }
@@ -821,6 +823,49 @@ void Client::loadTerrains()
 
 			m_availableTerrains.append(d);
 		}
+	}
+}
+
+
+
+/**
+ * @brief Client::loadCharacters
+ */
+
+void Client::loadCharacters()
+{
+	m_characterData.clear();
+
+	QDirIterator it(":/character", {"data.json"}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		QString realname = it.next();
+
+		QString characterName = realname.section('/',-2,-2);
+
+		QVariantMap dataMap;
+		dataMap = Client::readJsonFile(realname).toMap();
+
+		QVariantMap d;
+		d["name"] = dataMap.value("name").toString();
+
+		m_characterData[characterName] = d;
+	}
+}
+
+
+/**
+ * @brief Client::loadMusics
+ */
+
+void Client::loadMusics()
+{
+	m_musicList.clear();
+
+	QDirIterator it(":/sound/music", QDir::Files);
+
+	while (it.hasNext()) {
+		m_musicList.append(it.next());
 	}
 }
 

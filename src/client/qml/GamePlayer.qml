@@ -17,6 +17,10 @@ GameEntity {
 	glowColor: CosStyle.colorPrimaryLighter
 
 
+	hpColor: ep.shield ? CosStyle.colorOK : CosStyle.colorErrorLighter
+	hpVisible: ep.enemy || hpVisibleTimer.running
+	hpValue: ep.shield ? ep.shield : ep.hp
+
 
 	readonly property bool isClimbing: Array("climbup", "climbup2", "climbup3",
 											 "climbdown", "climbdown2", "climbdown3").includes(spriteSequence.currentSprite)
@@ -29,6 +33,12 @@ GameEntity {
 
 		property int _fallStartY: -1
 
+		onShieldChanged: {
+			if (shield < 1) {
+				root.hpProgress.to = Math.max(ep.defaultHp, ep.hp)
+			}
+		}
+
 		onKilledByEnemy: {
 			spriteSequence.jumpTo("dead")
 		}
@@ -38,7 +48,13 @@ GameEntity {
 			cosClient.playSound("qrc:/sound/sfx/shot.ogg", CosSound.PlayerShoot)
 		}
 
-		onHurt: playPainTimer.start()
+		onUnderAttack: {
+			hpVisibleTimer.restart()
+		}
+
+		onHurt: {
+			playPainTimer.start()
+		}
 
 		onIsOnGroundChanged: {
 			if (isOnGround) {
@@ -406,5 +422,13 @@ GameEntity {
 		onTriggered: cosClient.playSound(ep.playSoundEffect("pain"), CosSound.PlayerVoice)
 	}
 
+
+
+	Timer {
+		id: hpVisibleTimer
+		interval: 1000
+		running: false
+		repeat: false
+	}
 
 }

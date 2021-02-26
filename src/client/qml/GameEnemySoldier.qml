@@ -21,6 +21,10 @@ GameEntity {
 	glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
 	glowEnabled: ep.aimedByPlayer || showPickable || showTarget
 
+	hpColor: CosStyle.colorWarningLighter
+	hpVisible: ep.aimedByPlayer
+	hpValue: ep.hp
+
 	GameEnemySoldierPrivate {
 		id: ep
 

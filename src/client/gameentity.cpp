@@ -57,6 +57,8 @@ GameEntity::GameEntity(QQuickItem *parent)
 	, m_rayCastTimer(nullptr)
 	, m_rayCastFixtures()
 	, m_rayCastItems()
+	, m_hp(1)
+	, m_maxHp(-1)
 {
 	if (parent)
 		onParentChanged();
@@ -489,6 +491,38 @@ void GameEntity::setRayCastEnabled(bool rayCastEnabled)
 	m_rayCastEnabled = rayCastEnabled;
 	emit rayCastEnabledChanged(m_rayCastEnabled);
 }
+
+
+/**
+ * @brief GameEntity::setHp
+ * @param hp
+ */
+
+void GameEntity::setHp(int hp)
+{
+	if (m_hp == hp)
+		return;
+
+	if (hp<=0)
+		hp = 0;
+
+	m_hp = hp;
+	emit hpChanged(m_hp);
+
+	if (m_hp == 0)
+		setIsAlive(false);
+}
+
+void GameEntity::setMaxHp(int maxHp)
+{
+	if (m_maxHp == maxHp)
+		return;
+
+	m_maxHp = maxHp;
+	emit maxHpChanged(m_maxHp);
+}
+
+
 
 void GameEntity::setRayCastItems(QMultiMap<qreal, QQuickItem *> rayCastItems)
 {

@@ -135,4 +135,6 @@ private:
 	int m_baseXP;
 };
 
+
+
 #endif // GAMEDATA_H

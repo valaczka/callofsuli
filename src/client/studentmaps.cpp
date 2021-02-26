@@ -89,6 +89,14 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 										 },
 										 this);
 
+	m_modelCharacterList = new VariantMapModel({
+											 "dir",
+											 "name"
+										 },
+										 this);
+
+	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
+
 	connect(this, &StudentMaps::selectedGroupIdChanged, this, &StudentMaps::groupSelect);
 	connect(this, &StudentMaps::groupListGet, this, &StudentMaps::onGroupListGet);
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
@@ -323,6 +331,7 @@ void StudentMaps::playGame(QVariantMap data)
 		o["gameid"] = -1;
 		o["missionid"] = data.value("uuid").toString();
 		o["level"] = data.value("level", 1).toInt();
+		o["character"] = data.value("character").toString();
 		onGameCreate(o, QByteArray());
 		return;
 	}
@@ -332,6 +341,7 @@ void StudentMaps::playGame(QVariantMap data)
 	o["mission"] = data.value("uuid").toString();
 	o["level"] = data.value("level", 1).toInt();
 	o["hasSolved"] = data.value("hasSolved", false).toBool();
+	o["character"] = data.value("character").toString();
 
 	send("gameCreate", o);
 }
@@ -374,6 +384,15 @@ void StudentMaps::setSelectedGroupId(int selectedGroupId)
 
 	m_selectedGroupId = selectedGroupId;
 	emit selectedGroupIdChanged(m_selectedGroupId);
+}
+
+void StudentMaps::setModelCharacterList(VariantMapModel *modelCharacterList)
+{
+	if (m_modelCharacterList == modelCharacterList)
+		return;
+
+	m_modelCharacterList = modelCharacterList;
+	emit modelCharacterListChanged(m_modelCharacterList);
 }
 
 
@@ -881,6 +900,10 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);
 	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
+
+	QString character = jsonData.value("character").toString();
+	if (!character.isEmpty() && Client::characterData().contains(character))
+		m_gameMatch->setPlayerCharacter(character);
 
 	bool hasSolved = jsonData.value("hasSolved").toBool(false);
 

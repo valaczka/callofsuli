@@ -95,9 +95,11 @@ void GameActivity::prepare()
  * @return
  */
 
-bool GameActivity::createTarget(GameEnemyData *enemyData, const int &block)
+bool GameActivity::createTarget(GameEnemy *enemy)
 {
 	QHash<int, QPair<int, int>> mapAllocations;
+	GameEnemyData *enemyData = enemy->enemyData();
+	int block = enemy->block();
 
 	QVariantList maplist = db()->execSelectQuery("SELECT targets.map as map, count(*) as count, maxObjective FROM targets "
 												 "LEFT JOIN maps ON (maps.map=targets.map) "
@@ -143,8 +145,11 @@ bool GameActivity::createTarget(GameEnemyData *enemyData, const int &block)
 			m_client->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
 		} else if (enemyData) {
 			enemyData->setTargetId(target);
+			enemyData->setTargetDestroyed(false);
 			enemyData->setStorageNum(m.value("storageNum", 0).toInt());
 			enemyData->setObjectiveUuid(m.value("objective").toByteArray());
+			enemy->setMaxHp(1);
+			enemy->setHp(1);
 			return true;
 		}
 	}
@@ -166,8 +171,10 @@ bool GameActivity::createTargets(QVector<GameEnemy *> enemies)
 	while (!enemies.isEmpty()) {
 		GameEnemy *e = enemies.takeAt(QRandomGenerator::global()->bounded(enemies.size()));
 
-		if (!createTarget(e->enemyData(), e->block()))
+		if (!createTarget(e))
 			return false;
+
+		QCoreApplication::processEvents();
 	}
 
 	return true;
@@ -188,6 +195,9 @@ void GameActivity::onEnemyKilled(GameEnemy *enemy)
 	createPickable(enemy);
 
 	if (enemy && enemy->enemyData()) {
+		if (m_game && m_game->gameMatch() && !enemy->xpGained())
+			m_game->gameMatch()->addXP(0.5);
+
 		int target = enemy->enemyData()->targetId();
 		enemy->enemyData()->setTargetId(-1);
 		enemy->enemyData()->setObjectiveUuid(QByteArray());
@@ -198,8 +208,6 @@ void GameActivity::onEnemyKilled(GameEnemy *enemy)
 		l.append(target);
 		db()->execSimpleQuery("UPDATE targets SET block=null WHERE id=?", l);
 	}
-
-
 }
 
 
@@ -220,7 +228,7 @@ void GameActivity::onEnemyKillMissed(GameEnemy *enemy)
 		l.append(target);
 		db()->execSimpleQuery("UPDATE targets SET block=null WHERE id=?", l);
 
-		createTarget(data, enemy->block());
+		createTarget(enemy);
 	}
 }
 

@@ -92,9 +92,9 @@ Item {
 
 
 	function keyPressed(key) {
-		if (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)
+		if (btnTrue.interactive && (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y))
 			btnTrue.clicked()
-		else if (key === Qt.Key_N || key === Qt.Key_H)
+		else if (btnFalse.interactive && (key === Qt.Key_N || key === Qt.Key_H))
 			btnFalse.clicked()
 	}
 }

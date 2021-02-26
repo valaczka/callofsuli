@@ -47,6 +47,7 @@ class StudentMaps : public AbstractActivity
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
 	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList NOTIFY modelMissionListChanged)
 	Q_PROPERTY(VariantMapModel * modelGroupList READ modelGroupList WRITE setModelGroupList NOTIFY modelGroupListChanged)
+	Q_PROPERTY(VariantMapModel * modelCharacterList READ modelCharacterList WRITE setModelCharacterList NOTIFY modelCharacterListChanged)
 	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
 
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
@@ -63,10 +64,12 @@ public:
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
 	VariantMapModel * modelGroupList() const { return m_modelGroupList; }
+	VariantMapModel * modelCharacterList() const { return m_modelCharacterList; }
 	GameMap * currentMap() const { return m_currentMap; }
 	bool demoMode() const { return m_demoMode; }
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
+
 
 public slots:
 	void groupSelect(const int &groupId);
@@ -79,6 +82,7 @@ public slots:
 	void setBaseXP(int baseXP);
 	void setModelGroupList(VariantMapModel * modelGroupList);
 	void setSelectedGroupId(int selectedGroupId);
+	void setModelCharacterList(VariantMapModel * modelCharacterList);
 
 protected slots:
 	void clientSetup() override;
@@ -123,6 +127,7 @@ signals:
 	void baseXPChanged(int baseXP);
 	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void selectedGroupIdChanged(int selectedGroupId);
+	void modelCharacterListChanged(VariantMapModel * modelCharacterList);
 
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
@@ -135,6 +140,7 @@ private:
 	int m_baseXP;
 	VariantMapModel * m_modelGroupList;
 	int m_selectedGroupId;
+	VariantMapModel * m_modelCharacterList;
 };
 
 #endif // STUDENTMAPS_H

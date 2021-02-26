@@ -75,9 +75,8 @@ void GameQuestion::run()
 		return;
 	}
 
-	if (enemyData->targetId() == -1) {
+	if (enemyData->targetId() == -1 || enemyData->targetDestroyed()) {
 		qDebug() << "Empty question";
-		emit xpGained(0.5);
 		m_enemy->killByPlayer(m_player);
 		emit finished();
 		return;
@@ -141,6 +140,9 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 	qDebug() << "ON SUCCESS" << this << xpFactor;
 
 	emit xpGained(xpFactor);
+
+	m_enemy->setXpGained(true);
+	m_enemy->enemyData()->setTargetDestroyed(true);
 
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);

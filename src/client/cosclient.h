@@ -77,6 +77,8 @@ public:
 	Q_PROPERTY(QString userRankImage READ userRankImage WRITE setUserRankImage NOTIFY userRankImageChanged)
 	Q_PROPERTY(int userRankLevel READ userRankLevel WRITE setUserRankLevel NOTIFY userRankLevelChanged)
 	Q_PROPERTY(QVariantList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
+	Q_PROPERTY(QVariantMap characterData READ characterData)
+	Q_PROPERTY(QStringList musicList READ musicList)
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -88,6 +90,8 @@ public:
 	static void standardPathCreate();
 
 	Q_INVOKABLE static void loadTerrains();
+	Q_INVOKABLE static void loadCharacters();
+	Q_INVOKABLE static void loadMusics();
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
@@ -145,8 +149,8 @@ public:
 
 	static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
 	static TerrainData terrain(const QString &name);
-
-
+	static QVariantMap characterData() { return m_characterData; }
+	static QStringList musicList() { return m_musicList; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -179,7 +183,6 @@ public slots:
 	void stopSound(const QString &source, const CosSound::SoundType &soundType = CosSound::Music);
 	int volume(const CosSound::ChannelType &channel) const;
 	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
-
 
 
 private slots:
@@ -291,6 +294,8 @@ private:
 	int m_userRankLevel;
 	QString m_userNickName;
 	QVariantList m_rankList;
+	static QVariantMap m_characterData;
+	static QStringList m_musicList;
 };
 
 

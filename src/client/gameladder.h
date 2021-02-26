@@ -75,5 +75,4 @@ private:
 	GameBlock * m_blockBottom;
 };
 
-
 #endif // GAMELADDER_H

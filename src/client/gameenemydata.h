@@ -54,6 +54,7 @@ class GameEnemyData : public QObject
 	Q_PROPERTY(int targetId READ targetId WRITE setTargetId NOTIFY targetIdChanged)
 	Q_PROPERTY(QByteArray objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
 	Q_PROPERTY(int storageNum READ storageNum WRITE setStorageNum NOTIFY storageNumChanged)
+	Q_PROPERTY(bool targetDestroyed READ targetDestroyed WRITE setTargetDestroyed NOTIFY targetDestroyedChanged)
 
 	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
 	Q_PROPERTY(QQuickItem * enemy READ enemy NOTIFY enemyChanged)
@@ -109,6 +110,8 @@ public:
 	PickableType pickableType() const { return m_pickableType; }
 	QVariantMap pickableData() const { return m_pickableData; }
 	int storageNum() const { return m_storageNum; }
+	bool targetDestroyed() const { return m_targetDestroyed; }
+
 
 public slots:
 	void setBoundRect(QRectF boundRect);
@@ -124,6 +127,7 @@ public slots:
 	void setPickableType(PickableType pickableType);
 	void setPickableData(QVariantMap pickableData);
 	void setStorageNum(int storageNum);
+	void setTargetDestroyed(bool targetDestroyed);
 
 signals:
 	void boundRectChanged(QRectF boundRect);
@@ -136,6 +140,7 @@ signals:
 	void pickableTypeChanged(PickableType pickableType);
 	void pickableDataChanged(QVariantMap pickableData);
 	void storageNumChanged(int storageNum);
+	void targetDestroyedChanged(bool targetDestroyed);
 
 private:
 	QRectF m_boundRect;
@@ -148,6 +153,7 @@ private:
 	PickableType m_pickableType;
 	QVariantMap m_pickableData;
 	int m_storageNum;
+	bool m_targetDestroyed;
 };
 
 #endif // GAMEENEMY_H

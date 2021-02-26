@@ -7,6 +7,11 @@
 	"facingLeft": false,
 	"walk": 2.2,
 	"shotSound": "shot.ogg",
+	"hp": {
+		"1": 2,
+		"2": 3,
+		"3": 4
+	},
 	"sprites": {
 		"idle":	{
 			"source": "sprite.png",

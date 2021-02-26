@@ -6,6 +6,11 @@
 	"y": 4,
 	"facingLeft": false,
 	"walk": 3.6,
+	"hp": {
+		"1": 3,
+		"2": 3,
+		"3": 4
+	},
 	"sprites": {
 		"idle":	{
 			"source": "sprite.png",

@@ -84,7 +84,7 @@ Item {
 						}
 
 						function onButtonPressByKey(num) {
-							if (num-1 == index) {
+							if (num-1 == index && btn.interactive) {
 								btn.clicked()
 							}
 						}

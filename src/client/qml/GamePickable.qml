@@ -36,16 +36,9 @@ PhysicsEntity {
 
 	default property alias contentItem: itemLoader.sourceComponent
 
-	Connections {
-		target: targetObject
-		function onPicked() {
-			cosClient.playSound("qrc:/sound/sfx/pick.ogg", CosSound.GameSound)
-			state = "picked"
-		}
-	}
-
 	fixtures: [
 		Box {
+			id: fixBox
 			width: root.width
 			height: root.height
 			x: 0
@@ -56,11 +49,29 @@ PhysicsEntity {
 
 			readonly property GamePickablePrivate targetObject: root.targetObject
 			readonly property var targetData: null
-
-			onBeginContact: glowEnabled = true
-			onEndContact: glowEnabled = false
 		}
 	]
+
+
+	Connections {
+		target: targetObject
+
+		function onPicked() {
+			_collision = 0
+			fixBox.collidesWith = 0
+			fixBox.categories = 0
+			cosClient.playSound("qrc:/sound/sfx/pick.ogg", CosSound.GameSound)
+			state = "picked"
+		}
+	}
+
+	Connections {
+		target: cosGame
+
+		function onPickableChanged(pickable) {
+			glowEnabled = (targetObject && pickable === targetObject)
+		}
+	}
 
 
 	Loader {
@@ -74,7 +85,7 @@ PhysicsEntity {
 		visible: opacity != 0
 
 		color: CosStyle.colorGlowItem
-		source: itemLoader.status == Loader.Ready ? itemLoader.item : null
+		source: itemLoader
 		anchors.fill: itemLoader
 
 		radius: 2
@@ -161,7 +172,11 @@ PhysicsEntity {
 					}
 				}
 				ScriptAction {
-					script: root.destroy()
+					script: {
+						if (cosGame && targetObject)
+							cosGame.removePickable(targetObject)
+						root.destroy()
+					}
 				}
 			}
 		}

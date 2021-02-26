@@ -86,6 +86,8 @@ int main(int argc, char *argv[])
 	client.registerResources();
 
 	client.loadTerrains();
+	client.loadCharacters();
+	client.loadMusics();
 
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();

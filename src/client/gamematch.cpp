@@ -46,7 +46,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_baseXP(0)
 {
 	qDebug() << "GAME MATCH CREATED" << this;
-	setPlayerCharacter("character3");
+	setPlayerCharacter("default");
 }
 
 
@@ -71,7 +71,7 @@ GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObj
 
 	qDebug() << "GAME MATCH CREATED" << this;
 
-	setPlayerCharacter("character3");
+	setPlayerCharacter("default");
 
 	setMissionUuid(missionLevel->mission()->uuid());
 	setName(missionLevel->mission()->name());

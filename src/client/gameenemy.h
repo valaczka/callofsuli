@@ -53,6 +53,8 @@ class GameEnemy : public GameEntity
 	Q_PROPERTY(int msecLeftAttack READ msecLeftAttack NOTIFY msecLeftAttackChanged)
 	Q_PROPERTY(GamePlayer * player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(bool attackRunning READ attackRunning WRITE setAttackRunning NOTIFY attackRunningChanged)
+	Q_PROPERTY(bool xpGained READ xpGained WRITE setXpGained NOTIFY xpGainedChanged)
+
 
 public:
 	GameEnemy(QQuickItem *parent = 0);
@@ -72,6 +74,8 @@ public:
 	int block() const { return m_block; }
 	void setBlock(int block) { m_block = block; }
 
+	bool xpGained() const { return m_xpGained; }
+
 public slots:
 	void killByPlayer(GamePlayer *player);
 	void missedByPlayer(GamePlayer *player);
@@ -84,6 +88,7 @@ public slots:
 	void setMsecBeforeAttack(int msecBeforeAttack);
 	void setAimedByPlayer(bool aimedByPlayer);
 	void setMsecBetweenAttack(int msecBetweenAttack);
+	void setXpGained(bool xpGained);
 
 protected slots:
 	void onGameChanged();
@@ -109,6 +114,7 @@ signals:
 	void msecLeftAttackChanged();
 	void aimedByPlayerChanged(bool aimedByPlayer);
 	void msecBetweenAttackChanged(int msecBetweenAttack);
+	void xpGainedChanged(bool xpGained);
 
 protected:
 	bool m_moving;
@@ -124,6 +130,7 @@ protected:
 	int m_msecBetweenAttack;
 	bool m_aimedByPlayer;
 	int m_block;
+	bool m_xpGained;
 
 };
 

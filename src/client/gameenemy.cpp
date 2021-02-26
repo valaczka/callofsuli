@@ -52,6 +52,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	, m_msecBetweenAttack(3000)
 	, m_aimedByPlayer(false)
 	, m_block(0)
+	, m_xpGained(false)
 {
 	connect(this, &GameEnemy::cosGameChanged, this, &GameEnemy::onGameChanged);
 
@@ -109,9 +110,10 @@ int GameEnemy::msecLeftAttack() const
 
 void GameEnemy::killByPlayer(GamePlayer *player)
 {
-	qDebug() << "Killed by player" << this;
+	decreaseHp();
 
-	setIsAlive(false);
+	if (isAlive())
+		return;
 
 	qreal playerX = player->parentEntity()->x();
 	qreal meX = parentEntity()->x();
@@ -367,6 +369,15 @@ void GameEnemy::setMsecBetweenAttack(int msecBetweenAttack)
 
 	m_msecBetweenAttack = msecBetweenAttack;
 	emit msecBetweenAttackChanged(m_msecBetweenAttack);
+}
+
+void GameEnemy::setXpGained(bool xpGained)
+{
+	if (m_xpGained == xpGained)
+		return;
+
+	m_xpGained = xpGained;
+	emit xpGainedChanged(m_xpGained);
 }
 
 

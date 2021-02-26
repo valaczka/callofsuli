@@ -68,7 +68,16 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_isStarted(false)
 	, m_backgroundMusicFile("qrc:/sound/music/default_bg_music.mp3")
 	, m_inventoryPickableList()
+	, m_pickableList()
 {
+	QStringList mList = Client::musicList();
+	if (!mList.isEmpty()) {
+		if (mList.size() > 1)
+			m_backgroundMusicFile = "qrc"+mList.at(QRandomGenerator::global()->bounded(mList.size()));
+		else
+			m_backgroundMusicFile = "qrc"+mList.at(0);
+	}
+
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
 	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
 	connect(this, &CosGame::gameAbortRequest, this, &CosGame::onGameFinishedLost);
@@ -196,11 +205,27 @@ void CosGame::recreateEnemies()
 					}
 				}
 
+
+
+
 				QMetaObject::invokeMethod(enemy, "loadSprites", Qt::DirectConnection);
 
 				if (ep) {
 					ep->setEnemyData(data);
 					ep->setBlock(it.key());
+
+					if (m_gameMatch) {
+						QVariantMap hpData = ep->qrcData().value("hp").toMap();
+						int level = m_gameMatch->level();
+
+						for (int l=level; l>=1; --l) {
+							QString lKey = QString("%1").arg(l);
+							if (hpData.contains(lKey)) {
+								ep->setHp(hpData.value(lKey, 7).toInt());
+								break;
+							}
+						}
+					}
 
 					createdEnemies.append(ep);
 
@@ -216,6 +241,8 @@ void CosGame::recreateEnemies()
 
 				enemyDataList.append(data);
 			}
+
+			QCoreApplication::processEvents();
 		}
 
 		setPickables(&enemyDataList, it.key());
@@ -223,6 +250,8 @@ void CosGame::recreateEnemies()
 		allEnemyDataList.append(enemyDataList);
 
 		block->recalculateActiveEnemies();
+
+		QCoreApplication::processEvents();
 	}
 
 	setPickables(&allEnemyDataList, -1);
@@ -269,7 +298,7 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	qreal x = enemyData->boundRect().left();
 	qreal y = enemyData->boundRect().top();
 
-	x += enemyData->boundRect().toRect().width()/2;
+	x += QRandomGenerator::global()->bounded(enemyData->boundRect().toRect().width());
 
 	bool facingLeft = true;
 
@@ -415,6 +444,92 @@ void CosGame::setGameData(QVariantMap gameData)
 	m_gameData = gameData;
 	emit gameDataChanged(m_gameData);
 	emit levelDataChanged(levelData());
+}
+
+
+
+
+/**
+ * @brief CosGame::addPickable
+ * @param pickable
+ */
+
+void CosGame::addPickable(GamePickable *p)
+{
+	if (!p)
+		return;
+
+	m_pickableList.prepend(p);
+
+	GamePickable *pp = nullptr;
+
+	if (!m_pickableList.isEmpty())
+		pp = m_pickableList.at(0);
+
+	qDebug() << "=+=" << m_pickableList << pp;
+
+	emit pickableChanged(pp);
+}
+
+
+
+/**
+ * @brief CosGame::removePickable
+ * @param pickable
+ */
+
+void CosGame::removePickable(GamePickable *p)
+{
+	qDebug() << "=-= REMOVE" << p;
+
+	if (!p)
+		return;
+
+	m_pickableList.removeAll(p);
+
+	GamePickable *pp = nullptr;
+
+	if (!m_pickableList.isEmpty())
+		pp = m_pickableList.at(0);
+
+	qDebug() << "=-=" << m_pickableList << pp;
+
+	emit pickableChanged(pp);
+}
+
+
+/**
+ * @brief CosGame::pickPickable
+ */
+
+void CosGame::pickPickable()
+{
+	if (m_pickableList.isEmpty())
+		return;
+
+	GamePickable *p = m_pickableList.at(0);
+	QVariantMap data = p->data();
+
+	switch (p->type()) {
+		case GameEnemyData::PickableHealth:
+			increaseHp();
+			emit gameMessageSent(tr("1 HP gained"));
+			break;
+		case GameEnemyData::PickableTime:
+			addSecs(data.value("secs", 0).toInt());
+			emit gameMessageSent(tr("%1 seconds gained").arg(data.value("secs", 0).toInt()));
+			break;
+		case GameEnemyData::PickableShield:
+			increaseShield(data.value("num", 0).toInt());
+			emit gameMessageSent(tr("%1 shields gained").arg(data.value("num", 0).toInt()));
+			break;
+		default:
+			break;
+	}
+
+	removePickable(p);
+
+	p->pick();
 }
 
 
@@ -618,8 +733,8 @@ void CosGame::increaseHp()
 		return;
 	}
 
-	if (pl->hp() < m_gameMatch->startHp())
-		pl->setHp(pl->hp()+1);
+
+	pl->setHp(pl->hp()+1);
 }
 
 

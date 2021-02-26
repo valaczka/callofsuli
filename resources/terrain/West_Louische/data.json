@@ -1,4 +1,5 @@
 {
+	"backgroundMusic": "../../sound/music/default_bg_music.mp3",
 	"default": {
 		"duration": 180,
 		"hp": 5,

@@ -477,7 +477,7 @@ Page {
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: shield
-			image.icon: CosStyle.iconShield
+			image.icon: "qrc:/internal/game/shield-blank.png"
 			progressBar.width: Math.min(control.width*0.125, 100)
 
 			property int shield: game.player ? game.player.entityPrivate.shield : 0
@@ -632,7 +632,7 @@ Page {
 		size: 50
 
 		visible: game.currentScene == gameScene && game.player
-		enabled: game.player && game.player.entityPrivate.pickable
+		enabled: game.player && game.pickable
 
 		anchors.horizontalCenter: shotButton.horizontalCenter
 		anchors.bottom: shotButton.top
@@ -650,8 +650,7 @@ Page {
 		fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			game.player.entityPrivate.pickable.pick()
-			game.player.entityPrivate.pickable = null
+			game.pickPickable()
 		}
 	}
 

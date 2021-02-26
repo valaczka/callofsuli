@@ -18,6 +18,7 @@ QPagePanel {
 	title: ""
 	icon: "image://font/School/\uf1c4"
 
+
 	Connections {
 		target: studentMaps
 
@@ -242,11 +243,34 @@ QPagePanel {
 								visible: modelData.available
 								font.pixelSize: CosStyle.pixelSize*1.4
 								onClicked: {
-									studentMaps.playGame({
-															 uuid: selectedData.uuid,
-															 level: modelData.level,
-															 hasSolved: modelData.solved
-														 })
+									var d = JS.dialogCreateQml("ImageList", {
+																   roles: ["name", "dir"],
+																   icon: CosStyle.iconUser,
+																   title: qsTr("Válassz karaktert"),
+																   selectorSet: false,
+																   delegateHeight: 80,
+																   modelImageHeight: 50,
+																   modelImageWidth: 100,
+																   modelImageRole: "dir",
+																   modelImagePattern: "qrc:/character/%1/thumbnail.png",
+																   sourceModel: studentMaps.modelCharacterList
+															   })
+
+									d.accepted.connect(function(data) {
+										if (data === -1)
+											return
+
+										var p = d.item.sourceModel.get(data)
+
+										studentMaps.playGame({
+																 uuid: selectedData.uuid,
+																 level: modelData.level,
+																 hasSolved: modelData.solved,
+																 character: p.dir
+															 })
+									})
+									d.open()
+
 								}
 							}
 

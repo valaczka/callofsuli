@@ -43,9 +43,11 @@
 #include "gamematch.h"
 #include "gamescene.h"
 #include "gameterrain.h"
+#include "gamepickable.h"
 #include "../common/gamemap.h"
 
 class GamePlayer;
+class GamePickable;
 class GameQuestion;
 class GameActivity;
 struct GameInventoryPickable;
@@ -71,6 +73,8 @@ class CosGame : public Game
 	Q_PROPERTY(GameActivity * activity READ activity WRITE setActivity NOTIFY activityChanged)
 	Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
+
+	Q_PROPERTY(GamePickable * pickable READ pickable NOTIFY pickableChanged)
 
 	Q_PROPERTY(QString backgroundMusicFile READ backgroundMusicFile WRITE setBackgroundMusicFile NOTIFY backgroundMusicFileChanged)
 
@@ -120,6 +124,8 @@ public:
 	int activeEnemies() const { return m_activeEnemies; }
 	QString backgroundMusicFile() const { return m_backgroundMusicFile; }
 
+	GamePickable * pickable() const { return m_pickableList.isEmpty() ? nullptr : m_pickableList.at(0); }
+
 public slots:
 	void resetPlayer();
 	void setLastPosition();
@@ -131,6 +137,10 @@ public slots:
 	void increaseShield(const int &num);
 
 	void setGameData(QVariantMap gameData);
+
+	void addPickable(GamePickable *p);
+	void removePickable(GamePickable *p);
+	void pickPickable();
 
 	void setPlayer(QQuickItem * player);
 	void setGameScene(QQuickItem * gameScene);
@@ -189,6 +199,7 @@ signals:
 	void activeEnemiesChanged(int activeEnemies);
 	void isStartedChanged(bool isStarted);
 	void backgroundMusicFileChanged(QString backgroundMusicFile);
+	void pickableChanged(GamePickable * pickable);
 
 private:
 	void loadGameData();
@@ -214,6 +225,7 @@ private:
 	bool m_isStarted;
 	QString m_backgroundMusicFile;
 	QMap<int, QVector<GameInventoryPickable>> m_inventoryPickableList;
+	QVector<GamePickable *> m_pickableList;
 };
 
 
