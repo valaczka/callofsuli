@@ -35,6 +35,7 @@
 #include <QtNetwork/QSslCertificate>
 #include <QtNetwork/QSslKey>
 #include <QtNetwork/QSslSocket>
+#include <QUdpSocket>
 
 #include "client.h"
 
@@ -53,6 +54,7 @@ class Server : public QObject
 
 private:
 	QWebSocketServer *m_socketServer;
+	QUdpSocket *m_udpSocket;
 
 	QString m_serverDir;
 	int m_versionMajor;
@@ -103,6 +105,7 @@ private slots:
 	void onSslErrors(const QList<QSslError> &errors);
 	void onNewConnection();
 	void onSocketDisconnected();
+	void onDatagramReady();
 
 public slots:
 	void setServerDir(QString serverDir);

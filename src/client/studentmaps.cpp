@@ -331,7 +331,6 @@ void StudentMaps::playGame(QVariantMap data)
 		o["gameid"] = -1;
 		o["missionid"] = data.value("uuid").toString();
 		o["level"] = data.value("level", 1).toInt();
-		o["character"] = data.value("character").toString();
 		onGameCreate(o, QByteArray());
 		return;
 	}
@@ -341,7 +340,6 @@ void StudentMaps::playGame(QVariantMap data)
 	o["mission"] = data.value("uuid").toString();
 	o["level"] = data.value("level", 1).toInt();
 	o["hasSolved"] = data.value("hasSolved", false).toBool();
-	o["character"] = data.value("character").toString();
 
 	send("gameCreate", o);
 }
@@ -901,9 +899,10 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setGameId(gameId);
 	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
 
-	QString character = jsonData.value("character").toString();
-	if (!character.isEmpty() && Client::characterData().contains(character))
-		m_gameMatch->setPlayerCharacter(character);
+	if (!m_client->userPlayerCharacter().isEmpty())
+		m_gameMatch->setPlayerCharacter(m_client->userPlayerCharacter());
+	else
+		m_gameMatch->setPlayerCharacter("default");
 
 	bool hasSolved = jsonData.value("hasSolved").toBool(false);
 

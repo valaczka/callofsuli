@@ -243,7 +243,7 @@ QPagePanel {
 								visible: modelData.available
 								font.pixelSize: CosStyle.pixelSize*1.4
 								onClicked: {
-									var d = JS.dialogCreateQml("ImageList", {
+									/*var d = JS.dialogCreateQml("ImageList", {
 																   roles: ["name", "dir"],
 																   icon: CosStyle.iconUser,
 																   title: qsTr("Válassz karaktert"),
@@ -261,16 +261,15 @@ QPagePanel {
 											return
 
 										var p = d.item.sourceModel.get(data)
-
+*/
 										studentMaps.playGame({
 																 uuid: selectedData.uuid,
 																 level: modelData.level,
 																 hasSolved: modelData.solved,
-																 character: p.dir
 															 })
-									})
+/*									})
 									d.open()
-
+*/
 								}
 							}
 

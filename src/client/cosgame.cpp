@@ -298,7 +298,8 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	qreal x = enemyData->boundRect().left();
 	qreal y = enemyData->boundRect().top();
 
-	x += QRandomGenerator::global()->bounded(enemyData->boundRect().toRect().width());
+	//x += QRandomGenerator::global()->bounded(enemyData->boundRect().toRect().width());
+	x += enemyData->boundRect().toRect().width()/2;
 
 	bool facingLeft = true;
 
@@ -782,8 +783,11 @@ void CosGame::onPlayerDied()
 {
 	qDebug() << "Player died";
 
-	if (m_question)
+	if (m_question) {
 		m_question->forceDestroy();
+		m_question = nullptr;
+		emit questionChanged(m_question);
+	}
 
 	setPlayer(nullptr);
 	resetPlayer();
@@ -1203,6 +1207,7 @@ void CosGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 		m_question = nullptr;
 		emit questionChanged(nullptr);
 	});
+
 	emit questionChanged(m_question);
 
 	m_question->run();

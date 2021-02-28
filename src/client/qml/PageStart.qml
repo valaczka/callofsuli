@@ -16,7 +16,6 @@ QPage {
 	mainToolBar.backButton.visible: false
 
 	property bool _firstRun: true
-	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
 
 	activity: Servers {
 		id: servers
@@ -45,6 +44,7 @@ QPage {
 
 
 		onResourceReady: {
+			cosClient.reloadGameResources()
 			JS.createPage("MainMenu", {})
 			servers.serverTryLogin(servers.connectedServerKey)
 		}
@@ -104,45 +104,6 @@ QPage {
 
 
 
-	Column {
-		anchors.centerIn: parent
-		visible: !control.isDisconnected
-
-		spacing: 10
-
-		Row {
-			spacing: 10
-			anchors.horizontalCenter: parent.horizontalCenter
-
-
-			BusyIndicator {
-				anchors.verticalCenter: parent.verticalCenter
-				height: CosStyle.pixelSize*3
-				width: CosStyle.pixelSize*3
-				running: true
-				Material.accent: CosStyle.colorPrimaryLighter
-			}
-
-			QLabel {
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Kapcsolódás...")
-				font.pixelSize: CosStyle.pixelSize*1.2
-				color: CosStyle.colorPrimary
-			}
-
-		}
-
-		QButton {
-			anchors.horizontalCenter: parent.horizontalCenter
-			themeColors: CosStyle.buttonThemeRed
-			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
-			onClicked: cosClient.closeConnection()
-		}
-	}
-
-
-
 	Action {
 		id: actionAbout
 		text: qsTr("Névjegy")
@@ -173,12 +134,6 @@ QPage {
 		}
 	}
 
-
-	Action {
-		id: test2
-		shortcut: "F6"
-		onTriggered: servers.testImport()
-	}
 
 
 	Connections {

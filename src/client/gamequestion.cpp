@@ -82,8 +82,11 @@ void GameQuestion::run()
 		return;
 	}
 
-	if (!m_game->gameScene())
+	if (!m_game->gameScene()) {
+		qWarning() << "Missing scene";
+		emit finished();
 		return;
+	}
 
 	QQuickItem *scene = m_game->gameScene();
 	m_question = nullptr;
@@ -95,8 +98,6 @@ void GameQuestion::run()
 
 	if (m_question) {
 		m_game->setRunning(false);
-		/*m_question->setProperty("maximumWidth", 400);
-		m_question->setProperty("maximumHeight", 400);*/
 
 		connect(m_question, &QQuickItem::destroyed, this, &GameQuestion::onDestroyed);
 		connect(m_question, SIGNAL(succeed(qreal)), this, SLOT(onSuccess(qreal)));
@@ -128,6 +129,8 @@ void GameQuestion::forceDestroy()
 
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
 	m_game->setRunning(true);
+
+	emit finished();
 }
 
 
@@ -137,8 +140,6 @@ void GameQuestion::forceDestroy()
 
 void GameQuestion::onSuccess(const qreal &xpFactor)
 {
-	qDebug() << "ON SUCCESS" << this << xpFactor;
-
 	emit xpGained(xpFactor);
 
 	m_enemy->setXpGained(true);
@@ -146,11 +147,8 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
-	m_game->setRunning(true);
 
 	m_enemy->killByPlayer(m_player);
-
-	m_question->deleteLater();
 }
 
 
@@ -160,15 +158,10 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 
 void GameQuestion::onFailed()
 {
-	qDebug() << "ON FAILED" << this;
-
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
-	m_game->setRunning(true);
 
 	m_enemy->missedByPlayer(m_player);
-
-	m_question->deleteLater();
 }
 
 
@@ -178,8 +171,8 @@ void GameQuestion::onFailed()
 
 void GameQuestion::onDestroyed()
 {
-	qDebug() << "ON DESTROYED" << m_question;
 	m_question = nullptr;
 
+	m_game->setRunning(true);
 	emit finished();
 }

@@ -26,6 +26,12 @@ GameEntity {
 											 "climbdown", "climbdown2", "climbdown3").includes(spriteSequence.currentSprite)
 
 
+	SoundEffect {
+		id: shotEffect
+		source: "qrc:/sound/sfx/shot.wav"
+		volume: cosClient.sfxVolume
+	}
+
 	GamePlayerPrivate {
 		id: ep
 
@@ -44,8 +50,8 @@ GameEntity {
 		}
 
 		onAttack: {
+			shotEffect.play()
 			spriteSequence.jumpTo("shot")
-			cosClient.playSound("qrc:/sound/sfx/shot.ogg", CosSound.PlayerShoot)
 		}
 
 		onUnderAttack: {

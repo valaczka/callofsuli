@@ -16,17 +16,19 @@ Item {
 
 	property var questionData: null
 
-	signal successSound()
 	signal succeed(real xpFactor)
 	signal failed()
-
-	property bool isAnswerSuccess: false
 
 	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
 
-	property int horizontalPadding: 5
-	property int verticalPadding: 10
+	property int horizontalPadding: control.width>control.height ? 40 : 5
+	property int topPadding: 5
+	property int bottomPadding: control.width>control.height ? 30 : 60
+
+	property bool isAnswerSuccess: false
+
+	enabled: false
 
 	focus: true
 
@@ -37,9 +39,9 @@ Item {
 		id: panel
 
 		width: Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
-		height: Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-2*verticalPadding)
+		height: Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-topPadding-bottomPadding)
 		x: (control.width-width)/2
-		y: (control.height-height)/2
+		y: -bottomPadding+(control.height-height)/2
 
 		opacity: 0.1
 		scale: 0.1
@@ -108,13 +110,17 @@ Item {
 				target: contentLoader.item
 
 				function onSucceed() {
-					control.successSound()
+					cosClient.playSound("qrc:/sound/sfx/correct.ogg", CosSound.GameSound)
+					cosClient.playSound("qrc:/sound/voiceover/winner.ogg", CosSound.VoiceOver)
 					isAnswerSuccess = true
+					succeed(questionData.xpFactor)
 					control.state = "finished"
 				}
 
 				function onFailed() {
+					cosClient.playSound("qrc:/sound/voiceover/loser.ogg", CosSound.VoiceOver)
 					isAnswerSuccess = false
+					failed()
 					control.state = "finished"
 				}
 			}
@@ -227,6 +233,12 @@ Item {
 				ScriptAction {
 					script: cosClient.playSound("qrc:/sound/sfx/question.ogg")
 				}
+
+				PropertyAction {
+					target: control
+					property: "enabled"
+					value: true
+				}
 			}
 		},
 		Transition {
@@ -235,21 +247,21 @@ Item {
 
 			SequentialAnimation {
 				PauseAnimation {
-					duration: isAnswerSuccess ? 250 : 1250
+					duration: isAnswerSuccess ? 0 : 1250
 				}
 
 				ParallelAnimation {
 					PropertyAnimation {
 						target: panel
 						property: "opacity"
-						duration: 235
+						duration: 125
 						easing.type: Easing.InQuad
 					}
 
 					PropertyAnimation {
 						target: panel
 						property: "scale"
-						duration: 275
+						duration: 125
 						easing.type: Easing.InQuad
 						easing.overshoot: 3
 					}
@@ -264,10 +276,7 @@ Item {
 
 				ScriptAction {
 					script: {
-						if (isAnswerSuccess)
-							succeed(questionData.xpFactor)
-						else
-							failed()
+						control.destroy()
 					}
 				}
 

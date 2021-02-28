@@ -29,6 +29,7 @@ Page {
 	property bool _sceneLoaded: false
 	property bool _animStartEnded: false
 	property bool _animStartReady: true
+	property bool _backDisabled: true
 
 	property alias gameMatch: game.gameMatch
 	property bool deleteGameMatch: false
@@ -552,8 +553,6 @@ Page {
 	VirtualJoystick {
 		id: joystick
 
-		enabled: !game.question
-
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		anchors.margins: 5
@@ -575,19 +574,19 @@ Page {
 								 return
 							 }
 
-							 if (x > 0.3) {
-								 if (x > 0.5)
+							 if (x > 0.15) {
+								 if (x > 0.4)
 									 game.player.runRight()
 								 else
 									 game.player.walkRight()
-							 } else if (x > 0.1) {
+							 } else if (x > 0) {
 								 game.player.turnRight()
-							 } else if (x < -0.3) {
-								 if (x < -0.5)
+							 } else if (x < -0.15) {
+								 if (x < -0.4)
 									 game.player.runLeft()
 								 else
 									 game.player.walkLeft()
-							 } else if (x < -0.1) {
+							 } else if (x < 0) {
 								 game.player.turnLeft()
 							 } else {
 								 game.player.stopMoving()
@@ -631,12 +630,14 @@ Page {
 		id: pickButton
 		size: 50
 
-		visible: game.currentScene == gameScene && game.player
+		width: shotButton.width
+		height: 60
+
+		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 		enabled: game.player && game.pickable
 
 		anchors.horizontalCenter: shotButton.horizontalCenter
 		anchors.bottom: shotButton.top
-		anchors.bottomMargin: 10
 
 		color: enabled ? JS.setColorAlpha(CosStyle.colorOKLighter, 0.5) : "transparent"
 		border.color: enabled ? fontImage.color : "white"
@@ -911,6 +912,7 @@ Page {
 				ScriptAction {
 					script: {
 						cosClient.playSound("qrc:/sound/voiceover/begin.ogg", CosSound.VoiceOver)
+						_backDisabled = false
 					}
 				}
 			}
@@ -970,6 +972,9 @@ Page {
 
 
 	function stackBack() {
+		if (_backDisabled)
+			return true
+
 		if (!_closeEnabled) {
 			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
 			d.accepted.connect(function() {

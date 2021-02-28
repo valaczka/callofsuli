@@ -90,7 +90,8 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
 																						"isTeacher, isAdmin, classid, classname, xp, rankid, "
-																						"rankname, rankimage, ranklevel, nickname "
+																						"rankname, rankimage, ranklevel, "
+																						"nickname, character, picture "
 																						"FROM userInfo where username=?", l));
 
 	return true;

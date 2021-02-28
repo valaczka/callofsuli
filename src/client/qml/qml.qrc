@@ -124,5 +124,6 @@
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
         <file>QDialogImageList.qml</file>
+        <file>MapEditorChapterListNew.qml</file>
     </qresource>
 </RCC>

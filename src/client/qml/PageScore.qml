@@ -10,7 +10,7 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	title: qsTr("Rangsor")
+	defaultTitle: qsTr("Rangsor")
 
 	mainToolBarComponent: UserButton {
 		userDetails: userData

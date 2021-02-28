@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
+import QtQuick.Controls.Material 2.12
 import COS.Client 1.0
 import "."
 import "Style"
@@ -16,7 +17,10 @@ QPagePanel {
 
 	property alias serverList: serverList
 
+	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
+
 	contextMenuFunc: function (m) {
+		m.addAction(actionServerSearch)
 		m.addAction(actionServerNew)
 		m.addAction(actionConnect)
 		m.addAction(actionRemove)
@@ -28,15 +32,7 @@ QPagePanel {
 	SortFilterProxyModel {
 		id: userProxyModel
 		sourceModel: servers.serversModel
-		filters: [
-			RegExpFilter {
-				enabled: toolbar.searchBar.text.length
-				roleName: "name"
-				pattern: toolbar.searchBar.text
-				caseSensitivity: Qt.CaseInsensitive
-				syntax: RegExpFilter.FixedString
-			}
-		]
+
 		sorters: [
 			StringSorter { roleName: "name" }
 		]
@@ -52,7 +48,7 @@ QPagePanel {
 		id: serverList
 		anchors.fill: parent
 
-		visible: servers.serversModel.count
+		visible: servers.serversModel.count && isDisconnected
 
 		model: userProxyModel
 		modelTitleRole: "name"
@@ -60,6 +56,7 @@ QPagePanel {
 
 		autoSelectorChange: true
 
+		delegateHeight: CosStyle.twoLineHeight
 
 		leftComponent: QFlipable {
 			id: flipable
@@ -100,24 +97,53 @@ QPagePanel {
 		onKeyF2Pressed: actionAutoConnect.trigger()
 	}
 
-	QPagePanelSearch {
-		id: toolbar
-
-		listView: serverList
-
-		enabled: servers.serversModel.count
-
-		labelCountText: servers.serversModel.selectedCount
-
-		onSelectAll: servers.serversModel.selectAllToggle()
-	}
 
 
 	QToolButtonBig {
 		anchors.centerIn: parent
 		visible: !servers.serversModel.count
-		action: actionServerNew
+		action: actionServerSearch
 	}
+
+
+
+	Column {
+		anchors.centerIn: parent
+		visible: !isDisconnected
+
+		spacing: 10
+
+		Row {
+			spacing: 10
+			anchors.horizontalCenter: parent.horizontalCenter
+
+
+			BusyIndicator {
+				anchors.verticalCenter: parent.verticalCenter
+				height: CosStyle.pixelSize*3
+				width: CosStyle.pixelSize*3
+				running: true
+				Material.accent: CosStyle.colorPrimaryLighter
+			}
+
+			QLabel {
+				anchors.verticalCenter: parent.verticalCenter
+				text: qsTr("Kapcsolódás...")
+				font.pixelSize: CosStyle.pixelSize*1.2
+				color: CosStyle.colorPrimary
+			}
+
+		}
+
+		QButton {
+			anchors.horizontalCenter: parent.horizontalCenter
+			themeColors: CosStyle.buttonThemeRed
+			text: qsTr("Mégsem")
+			icon.source: CosStyle.iconCancel
+			onClicked: cosClient.closeConnection()
+		}
+	}
+
 
 
 	Action {
@@ -187,6 +213,16 @@ QPagePanel {
 		enabled: serverList.currentIndex !== -1
 		onTriggered:  {
 			servers.serverSetAutoConnect(serverList.model.mapToSource(serverList.currentIndex))
+		}
+	}
+
+
+	Action {
+		id: actionServerSearch
+		text: qsTr("Keresés")
+		icon.source: CosStyle.iconSearch
+		onTriggered: {
+			servers.sendBroadcast()
 		}
 	}
 

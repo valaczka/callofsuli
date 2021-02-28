@@ -105,7 +105,7 @@ QDialogPanel {
 
 
 	function populated() {
-
+		list.forceActiveFocus()
 	}
 
 }

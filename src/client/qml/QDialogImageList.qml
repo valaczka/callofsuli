@@ -38,26 +38,16 @@ QDialogPanel {
 		model: SortFilterProxyModel {
 			id: model
 
-			filters: [
-					RegExpFilter {
-						enabled: toolbar.searchBar.text.length
-						roleName: roles[0]
-						pattern: toolbar.searchBar.text
-						caseSensitivity: Qt.CaseInsensitive
-						syntax: RegExpFilter.FixedString
-					}
-			]
-
 			sorters: [
 				StringSorter { roleName: roles[0] }
 			]
 		}
 
 		leftComponent: Image {
-				source: modelImagePattern.arg(model[modelImageRole])
-				width: modelImageWidth
-				height: modelImageHeight
-				fillMode: Image.PreserveAspectFit
+			source: modelImagePattern.arg(model[modelImageRole])
+			width: modelImageWidth
+			height: modelImageHeight
+			fillMode: Image.PreserveAspectFit
 		}
 
 		modelTitleRole: roles[0]
@@ -68,16 +58,6 @@ QDialogPanel {
 					   acceptedData = model.mapToSource(currentIndex)
 					   dlgClose()
 				   }
-	}
-
-	QPagePanelSearch {
-		id: toolbar
-
-		listView: list
-
-		enabled: model.sourceModel.count
-		labelCountText: model.sourceModel.selectedCount
-		onSelectAll: JS.selectAllProxyModelToggle(model)
 	}
 
 
@@ -117,7 +97,7 @@ QDialogPanel {
 
 
 	function populated() {
-
+		list.forceActiveFocus()
 	}
 
 }

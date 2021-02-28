@@ -36,6 +36,7 @@
 #define SERVERS_H
 
 #include <QObject>
+#include <QUdpSocket>
 #include "abstractactivity.h"
 #include "variantmapmodel.h"
 #include "variantmapdata.h"
@@ -77,6 +78,8 @@ public slots:
 	void serverLogOut();
 	void doAutoConnect();
 
+	void sendBroadcast();
+
 	void playTestMap(QVariantMap data);
 
 	void setConnectedServerKey(int connectedServerKey);
@@ -94,6 +97,9 @@ protected slots:
 	void onAuthInvalid();
 	void onUserRolesChanged(CosMessage::ClientRoles userRoles);
 	void onUserNameChanged(QString username);
+
+private slots:
+	void onUdpDatagramReceived();
 
 signals:
 	void serverListLoaded();
@@ -114,6 +120,7 @@ private:
 	int m_connectedServerKey;
 	int m_serverTryConnectKey;
 	QStringList m_sqlImageProviders;
+	QUdpSocket* m_udpSocket;
 };
 
 

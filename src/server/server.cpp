@@ -55,6 +55,9 @@ Server::Server(QObject *parent)
 	m_port = 10101;
 	m_pendingConnections = 30;
 	m_createDb = false;
+
+	m_udpSocket = new QUdpSocket(this);
+	connect(m_udpSocket, &QUdpSocket::readyRead, this, &Server::onDatagramReady);
 }
 
 
@@ -71,8 +74,11 @@ Server::~Server()
 
 	qDeleteAll(m_clients.begin(), m_clients.end());
 
+	m_udpSocket->close();
+
 	delete m_mapsDb;
 	delete m_db;
+	delete m_udpSocket;
 }
 
 
@@ -233,7 +239,7 @@ bool Server::databaseLoad()
 	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system");
 
 	if (m.isEmpty()) {
-		qWarning() << tr("Az adatbázis üres, előkészítem.");
+		qInfo().noquote() << tr("Az adatbázis üres, előkészítem.");
 
 		if (!m_db->batchQueryFromFile(":/sql/init.sql")) {
 			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_db->databaseName());
@@ -314,7 +320,7 @@ bool Server::databaseLoad()
 	QVariantList tables = m_mapsDb->execSelectQuery("SELECT name FROM sqlite_master WHERE type ='table' AND name='maps'");
 
 	if (tables.isEmpty()) {
-		qWarning() << tr("A pályaadatbázis üres, előkészítem.");
+		qInfo().noquote() << tr("A pályaadatbázis üres, előkészítem.");
 
 		if (!m_mapsDb->batchQueryFromFile(":/sql/maps.sql")) {
 			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_mapsDb->databaseName());
@@ -485,15 +491,29 @@ bool Server::websocketServerStart()
 	connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
 
 	quint16 port = (m_port<=0) ? 10101 : quint16(m_port);
-	if (m_socketServer->listen(m_host.isEmpty() ? QHostAddress::Any : QHostAddress(m_host), port))
-	{
-		qInfo().noquote() << tr("Szerver elindult: ")+m_socketServer->serverUrl().toString();
-	} else {
+	if (!m_socketServer->listen(m_host.isEmpty() ? QHostAddress::Any : QHostAddress(m_host), port))	{
 		qCritical().noquote() << QString(tr("Cannot listen on host %1 and port %2")).arg(m_host.toStdString().data()).arg(port);
 		return false;
 	}
 
 	qDebug("Maximum pending connections: %d", m_socketServer->maxPendingConnections());
+
+
+	qInfo().noquote() << tr("A szerver elindult, elérhető a következő címeken:");
+	qInfo().noquote() << tr("====================================================");
+
+	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
+		qInfo().noquote() << QString("%1:%2").arg(h.toString()).arg(port);
+	}
+
+	qInfo().noquote() << tr("====================================================");
+
+	quint32 udpPort = SERVER_UDP_PORT;
+
+	if (m_udpSocket->bind(udpPort, QUdpSocket::ShareAddress)) {
+		qInfo().noquote() << tr("Figyelt UDP port: %1").arg(udpPort);
+	}
+
 
 	return true;
 }
@@ -625,6 +645,54 @@ void Server::onSocketDisconnected()
 		handler->deleteLater();
 	}
 }
+
+
+/**
+ * @brief Server::onDatagramReady
+ */
+
+void Server::onDatagramReady()
+{
+	while (m_udpSocket->hasPendingDatagrams()) {
+		QNetworkDatagram d = m_udpSocket->receiveDatagram(MAX_UDP_DATAGRAM_SIZE);
+
+		if (!d.isValid())
+			continue;
+
+		CosMessage m(d.data());
+
+		if (!m.valid())
+			continue;
+
+		if (m.cosClass() == CosMessage::ClassServerInfo && m.cosFunc() == "broadcast" && d.senderPort() != -1) {
+			foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
+				if (h.isGlobal()) {
+					QJsonObject o;
+					o["name"] = serverName();
+					o["host"] = h.toString();
+					o["port"] = m_socketServer->serverPort();
+					o["ssl"] = (m_socketServer->secureMode() == QWebSocketServer::SecureMode);
+
+					CosMessage m(o, CosMessage::ClassServerInfo, "broadcastInfo");
+
+					QByteArray s;
+					QDataStream writeStream(&s, QIODevice::WriteOnly);
+					writeStream << m;
+
+					m_udpSocket->writeDatagram(s,
+											   d.senderAddress().isNull() ? QHostAddress::Broadcast : d.senderAddress(),
+											   d.senderPort()
+											   );
+
+				}
+			}
+		}
+	}
+}
+
+
+
+
 
 void Server::setServerDir(QString serverDir)
 {

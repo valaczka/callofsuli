@@ -271,10 +271,6 @@ Scene {
 						questionData: questionData
 					})
 
-					obj.successSound.connect(function(){cosClient.playSound("qrc:/sound/sfx/correct.ogg", CosSound.GameSound)})
-					obj.succeed.connect(function(){cosClient.playSound("qrc:/sound/voiceover/winner.ogg", CosSound.VoiceOver)})
-					obj.failed.connect(function(){cosClient.playSound("qrc:/sound/voiceover/loser.ogg", CosSound.VoiceOver)})
-
 					return obj
 				}
 

@@ -76,9 +76,13 @@ public:
 	Q_PROPERTY(QString userNickName READ userNickName WRITE setUserNickName NOTIFY userNickNameChanged)
 	Q_PROPERTY(QString userRankImage READ userRankImage WRITE setUserRankImage NOTIFY userRankImageChanged)
 	Q_PROPERTY(int userRankLevel READ userRankLevel WRITE setUserRankLevel NOTIFY userRankLevelChanged)
+	Q_PROPERTY(QString userPlayerCharacter READ userPlayerCharacter WRITE setUserPlayerCharacter NOTIFY userPlayerCharacterChanged)
+
 	Q_PROPERTY(QVariantList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
 	Q_PROPERTY(QVariantMap characterData READ characterData)
 	Q_PROPERTY(QStringList musicList READ musicList)
+
+	Q_PROPERTY(qreal sfxVolume READ sfxVolume WRITE setSfxVolume NOTIFY sfxVolumeChanged)
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
@@ -92,6 +96,8 @@ public:
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
 	Q_INVOKABLE static void loadMusics();
+	Q_INVOKABLE static void reloadGameResources();
+
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
@@ -140,6 +146,7 @@ public:
 	QString userNickName() const { return m_userNickName; }
 	QString serverDataDir() const { return m_serverDataDir; }
 	QVariantList rankList() const { return m_rankList; }
+	QString userPlayerCharacter() const { return m_userPlayerCharacter; }
 
 	QString serverName() const { return m_serverName; }
 	bool registrationEnabled() const { return m_registrationEnabled; }
@@ -151,6 +158,9 @@ public:
 	static TerrainData terrain(const QString &name);
 	static QVariantMap characterData() { return m_characterData; }
 	static QStringList musicList() { return m_musicList; }
+
+	qreal sfxVolume() const { return m_sfxVolume; }
+
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -183,6 +193,8 @@ public slots:
 	void stopSound(const QString &source, const CosSound::SoundType &soundType = CosSound::Music);
 	int volume(const CosSound::ChannelType &channel) const;
 	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
+	void setSfxVolume(qreal sfxVolume);
+	void setSfxVolumeInt(int sfxVolume);
 
 
 private slots:
@@ -208,6 +220,7 @@ private slots:
 	void setUserLastName(QString userLastName);
 	void setUserNickName(QString userNickName);
 	void setUserRankImage(QString userRankImage);
+	void setUserPlayerCharacter(QString userPlayerCharacter);
 	void setServerName(QString serverName);
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
@@ -259,8 +272,11 @@ signals:
 	void waitForResourcesChanged(QStringList waitForResources);
 	void userRankImageChanged(QString userRankImage);
 	void userRankLevelChanged(int userRankLevel);
+	void userPlayerCharacterChanged(QString userPlayerCharacter);
 	void userNickNameChanged(QString userNickName);
 	void rankListChanged(QVariantList rankList);
+	void sfxVolumeChanged(qreal sfxVolume);
+
 
 private:
 	void performUserInfo(const CosMessage &message);
@@ -296,6 +312,8 @@ private:
 	QVariantList m_rankList;
 	static QVariantMap m_characterData;
 	static QStringList m_musicList;
+	qreal m_sfxVolume;
+	QString m_userPlayerCharacter;
 };
 
 

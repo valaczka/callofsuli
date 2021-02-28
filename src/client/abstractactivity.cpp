@@ -292,7 +292,7 @@ void AbstractActivity::autoSignalEmit(const CosMessage &message)
 		int methodIndex = this->metaObject()->indexOfSignal(normalizedSignature);
 
 		if (methodIndex == -1) {
-			qWarning() << func+" not found";
+			qDebug() << "SIGNAL "+func+" not found";
 			return;
 		}
 

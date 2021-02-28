@@ -31,8 +31,8 @@ Item {
 		anchors.top: parent.top
 		anchors.left: parent.left
 		anchors.right: parent.right
-		topPadding: 50
-		bottomPadding: 50
+		topPadding: 30
+		bottomPadding: 30
 		leftPadding: 20
 		rightPadding: 20
 
@@ -50,13 +50,13 @@ Item {
 		anchors.right: parent.right
 		anchors.left: parent.left
 		anchors.bottom: parent.bottom
-		anchors.bottomMargin: 20
+		anchors.bottomMargin: 15
 
 		Column {
 			id: col
 
 			anchors.centerIn: parent
-			spacing: 5
+			spacing: 3
 
 			Repeater {
 				id: rptr

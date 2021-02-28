@@ -24,57 +24,74 @@ QDialogPanel {
 
 	titleColor: CosStyle.colorPrimary
 
-	Column {
-		anchors.centerIn: parent
+
+	Flickable {
 		width: parent.width-50
+		height: parent.height
+		anchors.horizontalCenter: parent.horizontalCenter
 
-		spacing: 0
+		contentWidth: col.width
+		contentHeight: col.height
 
-		QLabel {
-			font.pixelSize: CosStyle.pixelSize*0.8
-			font.weight: Font.Medium
-			anchors.left: parent.left
-			text: qsTr("Háttérzene")
-		}
+		clip: true
 
-		Slider {
-			id: sliderMusic
-			from: 0
-			to: 100
+		flickableDirection: Flickable.VerticalFlick
+		boundsBehavior: Flickable.StopAtBounds
+
+		ScrollIndicator.vertical: ScrollIndicator { }
+
+		Column {
+			id: col
 			width: parent.width
-			onMoved: volumeMusicModified(value)
-		}
 
-		QLabel {
-			font.pixelSize: CosStyle.pixelSize*0.8
-			font.weight: Font.Medium
-			anchors.left: parent.left
-			text: qsTr("Effektek")
-		}
+			spacing: 0
 
-		Slider {
-			id: sliderSfx
-			from: 0
-			to: 100
-			width: parent.width
-			onMoved: volumeSfxModified(value)
-		}
+			QLabel {
+				font.pixelSize: CosStyle.pixelSize*0.8
+				font.weight: Font.Medium
+				anchors.left: parent.left
+				text: qsTr("Háttérzene")
+			}
 
-		QLabel {
-			font.pixelSize: CosStyle.pixelSize*0.8
-			font.weight: Font.Medium
-			anchors.left: parent.left
-			text: qsTr("Szöveg")
-		}
+			Slider {
+				id: sliderMusic
+				from: 0
+				to: 100
+				width: parent.width
+				onMoved: volumeMusicModified(value)
+			}
 
-		Slider {
-			id: sliderVoiceover
-			from: 0
-			to: 100
-			width: parent.width
-			onMoved: volumeVoiceoverModified(value)
-		}
+			QLabel {
+				font.pixelSize: CosStyle.pixelSize*0.8
+				font.weight: Font.Medium
+				anchors.left: parent.left
+				text: qsTr("Effektek")
+			}
 
+			Slider {
+				id: sliderSfx
+				from: 0
+				to: 100
+				width: parent.width
+				onMoved: volumeSfxModified(value)
+			}
+
+			QLabel {
+				font.pixelSize: CosStyle.pixelSize*0.8
+				font.weight: Font.Medium
+				anchors.left: parent.left
+				text: qsTr("Szöveg")
+			}
+
+			Slider {
+				id: sliderVoiceover
+				from: 0
+				to: 100
+				width: parent.width
+				onMoved: volumeVoiceoverModified(value)
+			}
+
+		}
 	}
 
 	buttons:  QButton {

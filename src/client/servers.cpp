@@ -34,6 +34,7 @@
 
 #include "servers.h"
 #include <QtConcurrent/QtConcurrent>
+#include <QNetworkDatagram>
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -41,6 +42,7 @@ Servers::Servers(QQuickItem *parent)
 	, m_dataFileName(Client::standardPath("servers.json"))
 	, m_connectedServerKey(-1)
 	, m_serverTryConnectKey(-1)
+	, m_udpSocket(new QUdpSocket(this))
 {
 	m_serversModel = new VariantMapModel({
 											 "id",
@@ -54,6 +56,8 @@ Servers::Servers(QQuickItem *parent)
 										 }, this);
 
 	connect(this, &Servers::resourceRegisterRequest, this, &Servers::registerResource);
+
+	connect(m_udpSocket, &QUdpSocket::readyRead, this, &Servers::onUdpDatagramReceived);
 }
 
 
@@ -69,6 +73,8 @@ Servers::~Servers()
 
 	if (m_downloader)
 		delete m_downloader;
+
+	delete m_udpSocket;
 }
 
 
@@ -180,6 +186,12 @@ void Servers::serverConnect(const int &index)
 	m_serverTryConnectKey = -1;
 
 	QVariantMap d = m_serversModel->variantMapData()->value(index).second;
+
+	if (d.value("broadcast", false).toBool()) {
+		d.remove("broadcast");
+		m_serversModel->variantMapData()->update(index, d);
+		saveServerList();
+	}
 
 	QUrl url;
 	url.setHost(d.value("host").toString());
@@ -414,6 +426,38 @@ void Servers::doAutoConnect()
 
 
 /**
+ * @brief Servers::sendBroadcast
+ */
+
+void Servers::sendBroadcast()
+{
+	if (m_udpSocket->state() != QAbstractSocket::BoundState) {
+		qDebug() << "Start udp socket";
+
+		if (!m_udpSocket->bind(SERVER_UDP_PORT)) {
+			qInfo() << tr("UDP port nem elérhető: %1").arg(SERVER_UDP_PORT);
+
+			if (!m_udpSocket->bind()) {
+				m_client->sendMessageError(tr("Belső hiba"), tr("UDP socket error"));
+				return;
+			}
+		}
+	}
+
+	qInfo() << tr("UPD socket listening on port %1").arg(m_udpSocket->localPort());
+
+	CosMessage m(QJsonObject(), CosMessage::ClassServerInfo, "broadcast");
+
+	QByteArray s;
+	QDataStream writeStream(&s, QIODevice::WriteOnly);
+	writeStream << m;
+
+	m_udpSocket->writeDatagram(s, QHostAddress::Broadcast, SERVER_UDP_PORT);
+}
+
+
+
+/**
  * @brief Servers::playTestMap
  * @param data
  */
@@ -548,6 +592,7 @@ void Servers::onConnectionStateChanged(Client::ConnectionState state)
 	} else if (state == Client::Standby) {
 		setConnectedServerKey(-1);
 		unregisterResources();
+		Client::reloadGameResources();
 	}
 }
 
@@ -589,6 +634,59 @@ void Servers::onUserNameChanged(QString username)
 	if (m_connectedServerKey != -1 && !username.isEmpty()) {
 		m_serversModel->variantMapData()->updateValueByKey(m_connectedServerKey, "username", username);
 		saveServerList();
+	}
+}
+
+
+
+/**
+ * @brief Servers::onUdpDatagramReceived
+ */
+
+void Servers::onUdpDatagramReceived()
+{
+	while (m_udpSocket->hasPendingDatagrams()) {
+		QNetworkDatagram d = m_udpSocket->receiveDatagram(MAX_UDP_DATAGRAM_SIZE);
+
+		if (!d.isValid())
+			continue;
+
+		CosMessage m(d.data());
+
+		if (!m.valid())
+			continue;
+
+		if (m.cosClass() == CosMessage::ClassServerInfo && m.cosFunc() == "broadcastInfo") {
+			QJsonObject serverData = m.jsonData();
+
+			VariantMapData *md = m_serversModel->variantMapData();
+
+			_MapList::const_iterator it;
+
+			bool found = false;
+
+			for (it = md->constBegin(); it != md->constEnd(); ++it) {
+				_MapPair p = *it;
+				QVariantMap m = p.second;
+
+				if (m.value("ssl", true).toBool() == serverData.value("ssl").toBool(false) &&
+					m.value("host", "").toString() == serverData.value("host").toString("-") &&
+					m.value("port", -1).toInt() == serverData.value("port").toInt(0)) {
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				QVariantMap map;
+				map["name"] = serverData.value("name").toString();
+				map["host"] = serverData.value("host").toString();
+				map["port"] = serverData.value("port").toInt();
+				map["broadcast"] = true;
+
+				m_serversModel->variantMapData()->append(createFullMap(map));
+			}
+		}
 	}
 }
 
@@ -746,8 +844,12 @@ void Servers::saveServerList()
 {
 	QJsonArray list;
 
-	foreach (_MapPair p, *(m_serversModel->variantMapData()))
+	foreach (_MapPair p, *(m_serversModel->variantMapData())) {
+		QJsonObject o = QJsonObject::fromVariantMap(p.second);
+		if (o.contains("broadcast"))
+			continue;
 		list.append(QJsonObject::fromVariantMap(p.second));
+	}
 
 	QJsonDocument doc(list);
 

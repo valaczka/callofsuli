@@ -50,7 +50,7 @@ QPagePanel {
 			sqlField: "port"
 			inputMethodHints: Qt.ImhDigitsOnly
 
-			validator: IntValidator {bottom: 1; top: 65534}
+			validator: IntValidator {bottom: 1; top: 65535}
 		}
 
 		QGridLabel { field: textName }
@@ -84,11 +84,9 @@ QPagePanel {
 
 				if (Object.keys(m).length) {
 					var nextK = servers.serverInsertOrUpdate(servers.serverKey, m)
-					if (swipeMode)
-						servers.editing = false
-					else if (servers.serverKey == -1)
+					servers.editing = false
+					if (servers.serverKey == -1)
 						servers.serverKey = nextK
-					loadData()
 				}
 			}
 

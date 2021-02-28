@@ -35,7 +35,6 @@ Item {
 		anchors.right: parent.right
 		anchors.topMargin: 5
 
-		//height: Math.max(labelQuestion.height, col.height, labelSuffix.height)
 
 		QLabel {
 			id: labelQuestion
@@ -46,8 +45,8 @@ Item {
 			font.family: "Special Elite"
 			font.pixelSize: CosStyle.pixelSize*1.4
 			wrapMode: Text.Wrap
-			topPadding: 30
-			bottomPadding: 30
+			topPadding: 25
+			bottomPadding: 25
 			leftPadding: 10
 			rightPadding: 10
 
@@ -173,6 +172,9 @@ Item {
 			anchors.fill: parent
 			columns: 4
 
+			rowSpacing: 3
+			columnSpacing: 3
+
 			Repeater {
 				model: [
 					"7",
@@ -208,41 +210,10 @@ Item {
 	}
 
 
-	/*Item {
-		anchors.top: labelQuestion.bottom
-		anchors.right: parent.right
-		anchors.left: parent.left
-		anchors.bottom: parent.bottom
-		anchors.bottomMargin: 20
-
-		Row {
-			id: row
-			anchors.centerIn: parent
-			spacing: 30
-
-			property real buttonWidth: Math.min(Math.max(btnTrue.label.implicitWidth, btnFalse.label.implicitWidth, 120), control.width/2-40)
-
-			GameQuestionButton {
-				id: btnTrue
-				text: qsTr("Igaz")
-				onClicked: { answer(questionData.correct) }
-				width: row.buttonWidth
-			}
-
-			GameQuestionButton {
-				id: btnFalse
-				text: qsTr("Hamis")
-				onClicked: { answer(!questionData.correct) }
-				width: row.buttonWidth
-			}
-		}
-	}*/
 
 
 
 	function clickBtn(t) {
-		console.debug("CLICK ", t)
-
 		var origStr = twoLineMode && activeLine == 2 ? labelNumber2.text : labelNumber1.text
 		var newStr = origStr
 

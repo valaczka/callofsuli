@@ -128,7 +128,7 @@ QPage {
 
 		onLoadFinished: {
 			_isLoaded = true
-			actionCampaigns.trigger()
+			actionChapters.trigger()
 		}
 
 
@@ -175,12 +175,12 @@ QPage {
 
 
 	property list<Component> cmpChapters: [
-		Component { MapEditorChapterList {
+		Component { MapEditorChapterListNew {
 				panelVisible: true
-			} },
+			} }/*,
 		Component { MapEditorObjectiveEdit {
 				panelVisible: true
-			} }
+			} }*/
 	]
 
 

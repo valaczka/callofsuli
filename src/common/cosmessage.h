@@ -39,6 +39,8 @@
 #include <QJsonObject>
 #include <QWebSocket>
 
+#define SERVER_UDP_PORT 10101
+#define MAX_UDP_DATAGRAM_SIZE	2000
 
 class CosMessage
 {
@@ -98,6 +100,7 @@ public:
 
 	enum CosClass {
 		ClassInvalid,
+		ClassServerInfo,
 		ClassLogin,
 		ClassLogout,
 		ClassAdmin,

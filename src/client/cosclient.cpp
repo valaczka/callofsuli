@@ -80,10 +80,13 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_userRankImage = "";
 	m_userRankLevel = -1;
 	m_userNickName = "";
+	m_userPlayerCharacter = "";
 
 	m_cosMessage = nullptr;
 
 	m_serverDataDir = "";
+
+	m_sfxVolume = 1.0;
 
 	m_registrationEnabled = false;
 	m_passwordResetEnabled = false;
@@ -92,6 +95,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_clientSound = new CosSound();
 	m_clientSound->moveToThread(&m_workerThread);
 	connect(&m_workerThread, &QThread::finished, m_clientSound, &QObject::deleteLater);
+	connect(m_clientSound, &CosSound::volumeSfxChanged, this, &Client::setSfxVolumeInt);
 
 	m_workerThread.start();
 
@@ -737,6 +741,37 @@ void Client::setVolume(const CosSound::ChannelType &channel, const int &volume) 
 							  );
 }
 
+void Client::setSfxVolume(qreal sfxVolume)
+{
+	if (qFuzzyCompare(m_sfxVolume, sfxVolume))
+		return;
+
+	m_sfxVolume = sfxVolume;
+	emit sfxVolumeChanged(m_sfxVolume);
+}
+
+
+
+
+void Client::setSfxVolumeInt(int sfxVolume)
+{
+	qreal r = qreal(sfxVolume)/100;
+
+	setSfxVolume(r);
+}
+
+void Client::setUserPlayerCharacter(QString userPlayerCharacter)
+{
+	if (m_userPlayerCharacter == userPlayerCharacter)
+		return;
+
+	m_userPlayerCharacter = userPlayerCharacter;
+	emit userPlayerCharacterChanged(m_userPlayerCharacter);
+}
+
+
+
+
 void Client::setRankList(QVariantList rankList)
 {
 	if (m_rankList == rankList)
@@ -870,6 +905,17 @@ void Client::loadMusics()
 }
 
 
+/**
+ * @brief Client::reloadGameResources
+ */
+
+void Client::reloadGameResources()
+{
+	Client::loadCharacters();
+	Client::loadMusics();
+}
+
+
 
 
 void Client::setConnectionState(Client::ConnectionState connectionState)
@@ -896,6 +942,7 @@ void Client::closeConnection()
 		m_socket->close();
 		setUserName("");
 		setUserNickName("");
+		setUserPlayerCharacter("");
 		setUserRank(0);
 		setUserRankLevel(-1);
 		setUserXP(0);
@@ -1051,6 +1098,7 @@ void Client::clearSession()
 	setUserLastName("");
 	setUserFirstName("");
 	setUserNickName("");
+	setUserPlayerCharacter("");
 	setUserRankImage("");
 	setUserRoles(CosMessage::RoleGuest);
 	setRankList(QVariantList());
@@ -1127,6 +1175,7 @@ void Client::performUserInfo(const CosMessage &message)
 				setUserFirstName(d.value("firstname").toString());
 				setUserRankImage(d.value("rankimage").toString());
 				setUserNickName(d.value("nickname").toString());
+				setUserPlayerCharacter(d.value("character").toString());
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
