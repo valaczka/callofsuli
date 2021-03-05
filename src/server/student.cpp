@@ -286,6 +286,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int gameid = params.value("id", -1).toInt();
 	int xp = params.value("xp", -1).toInt();
+	int duration = params.value("duration", -1).toInt();
 	bool success = params.value("success", false).toBool();
 
 	if (gameid < 0 || xp < 0) {
@@ -298,7 +299,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	l.append(m_client->clientUserName());
 	l.append(gameid);
 
-	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, missionid, level FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid game";
@@ -307,8 +308,13 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantList ll;
 	ll.append(success);
+	if (duration > 0)
+		ll.append(duration);
+	else
+		ll.append(QVariant::Invalid);
 	ll.append(gameid);
-	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=NULL, success=? WHERE id=?", ll);
+
+	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=NULL, success=?, duration=? WHERE id=?", ll);
 
 	QVariantMap m;
 	m["username"] = m_client->clientUserName();
@@ -321,7 +327,88 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
+
+
+	l.clear();
+	l.append(m_client->clientUserName());
+	QVariantMap streak = m_client->db()->execSelectQueryOneRow("SELECT MAX(maxStreak) as streak FROM score WHERE username=?", l);
+	int maxStreak = streak.value("streak", 0).toInt();
+
+
+	l.append(m_client->clientUserName());
+	QVariantMap cStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+"(SELECT DISTINCT date(timestamp) AS dt "
+"FROM game WHERE username=? AND success=true) t2 "
+"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+"WHERE username=? AND success=true) t1) t GROUP BY grp) "
+"WHERE dt=date('now', 'localtime')", l);
+
+	int currentStreak = cStreak.value("streak", 0).toInt();
+
+	int streakXP = 0;
+
+
+	if (currentStreak > maxStreak && currentStreak > 1) {
+		qInfo().noquote() << tr("New streak '%1': %2").arg(m_client->clientUserName()).arg(currentStreak);
+
+		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT value FROM settings WHERE key='xp.base'");
+
+		streakXP = m.value("value", 100).toInt() * currentStreak;
+
+		QVariantMap p;
+		p["maxStreak"] = currentStreak;
+		p["xp"] = streakXP;
+		p["username"] = m_client->clientUserName();
+
+		if (m_client->db()->execInsertQuery("INSERT INTO score (?k?) VALUES (?)", p) == -1) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+
+		maxStreak = currentStreak;
+	}
+
+	QVariantList lll;
+	lll.append(m_client->clientUserName());
+	lll.append(r.value("missionid").toString());
+	lll.append(r.value("level", 0).toInt());
+
+	lll.append(m_client->clientUserName());
+	lll.append(r.value("missionid").toString());
+	lll.append(r.value("level", 0).toInt());
+
+	lll.append(m_client->clientUserName());
+	lll.append(r.value("missionid").toString());
+	lll.append(r.value("level", 0).toInt());
+
+	lll.append(m_client->clientUserName());
+	lll.append(r.value("missionid").toString());
+	lll.append(r.value("level", 0).toInt());
+
+	QVariantMap stat = m_client->db()->execSelectQueryOneRow("SELECT (SELECT count(*) FROM game WHERE username=? "
+														"AND missionid=? AND level=? AND success=true) as solved, "
+														"(SELECT count(*) FROM game WHERE username=? and missionid=? AND level=?) as tried,"
+														"(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
+														"AND level=? AND success=true) as maxDuration,"
+														"(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
+														"AND level=? AND success=true) as minDuration"
+														, lll);
+
 	(*jsonResponse)["gameid"] = gameid;
 	(*jsonResponse)["finished"] = true;
+	(*jsonResponse)["success"] = success;
+	(*jsonResponse)["xp"] = xp;
+	(*jsonResponse)["tried"] = stat.value("tried", 0).toInt();
+	(*jsonResponse)["solved"] = stat.value("solved", 0).toInt();
+	(*jsonResponse)["currentStreak"] = currentStreak;
+	(*jsonResponse)["maxStreak"] = maxStreak;
+	(*jsonResponse)["streakXP"] = streakXP;
+	(*jsonResponse)["maxDuration"] = stat.value("maxDuration", -1).toInt();
+	(*jsonResponse)["minDuration"] = stat.value("minDuration", -1).toInt();
+	(*jsonResponse)["duration"] = duration;
+
 	return true;
 }

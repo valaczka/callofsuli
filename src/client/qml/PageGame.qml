@@ -31,6 +31,8 @@ Page {
 	property bool _animStartReady: true
 	property bool _backDisabled: true
 
+	property StudentMaps studentMaps: null
+
 	property alias gameMatch: game.gameMatch
 	property bool deleteGameMatch: false
 
@@ -216,10 +218,6 @@ Page {
 				})
 			}
 
-			onGameCompleted: {
-				gameOverCompletedTimer.start()
-			}
-
 
 			onMsecLeftChanged: {
 				if (msecLeft > 60*1000 && !_finalSound)
@@ -233,14 +231,12 @@ Page {
 					_timeSound = false
 					messageList.message(qsTr("You have 2 minutes left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
-					infoTime.marked = true
 				}
 
 				if (msecLeft <= 60*1000 && _finalSound) {
 					_finalSound = false
 					messageList.message(qsTr("You have 60 seconds left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
-					infoTime.marked = true
 				}
 			}
 
@@ -550,14 +546,14 @@ Page {
 
 
 
-	VirtualJoystick {
+	GameJoystick {
 		id: joystick
 
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		anchors.margins: 5
 
-		width: Math.min(200, control.width*0.5)
+		width: Math.min(175, control.width*0.5)
 		height: Math.min(120, control.width*0.4)
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
@@ -719,18 +715,14 @@ Page {
 
 
 
+	Connections {
+		target: studentMaps
 
-	Timer {
-		id: gameOverCompletedTimer
-		interval: 2000
-		running: false
-		triggeredOnStart: false
-		onTriggered: {
-			stop()
+		function onGameFinishDialogReady(data) {
 			game.setEnemiesMoving(false)
 			game.setRunning(false)
 
-			var d = JS.dialogMessage("success", qsTr("Game over"), qsTr("MISSION COMPLETED"))
+			var d = JS.dialogMessage("success", qsTr("Game over"), qsTr("MISSION COMPLETED\nMegszerezve %1 XP\nTeljesítve: %2x\nStreak: %3/%4").arg(data.xp).arg(data.solved).arg(data.currentStreak).arg(data.maxStreak))
 			d.rejected.connect(function() {
 				_closeEnabled = true
 				mainStack.back()
@@ -937,6 +929,9 @@ Page {
 	}
 
 	Component.onDestruction: {
+		if (studentMaps)
+			studentMaps.isGameRunning = false
+
 		if (deleteGameMatch && gameMatch)
 			delete gameMatch
 	}

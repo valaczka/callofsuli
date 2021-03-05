@@ -256,19 +256,20 @@ Popup {
 						cosClient.logout()
 				}
 			}
-		}
 
-		QButton {
-			text: qsTr("Regisztráció")
-			enabled: cosClient.registrationEnabled
-			visible: (cosClient.userRoles & Client.RoleGuest) && cosClient.registrationEnabled
-			anchors.horizontalCenter: parent.horizontalCenter
+			QButton {
+				text: qsTr("Regisztráció")
+				enabled: cosClient.registrationEnabled
+				visible: (cosClient.userRoles & Client.RoleGuest) && cosClient.registrationEnabled
+				anchors.verticalCenter: parent.verticalCenter
 
-			onClicked: {
-				popupItem.close()
-				cosClient.registrationRequest()
+				onClicked: {
+					popupItem.close()
+					cosClient.registrationRequest()
+				}
 			}
 		}
+
 	}
 
 

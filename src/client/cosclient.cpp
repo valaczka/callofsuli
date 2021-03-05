@@ -91,6 +91,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_registrationEnabled = false;
 	m_passwordResetEnabled = false;
 	m_registrationDomains = QVariantList();
+	m_registrationClasses = QVariantList();
 
 	m_clientSound = new CosSound();
 	m_clientSound->moveToThread(&m_workerThread);
@@ -760,6 +761,15 @@ void Client::setSfxVolumeInt(int sfxVolume)
 	setSfxVolume(r);
 }
 
+void Client::setRegistrationClasses(QVariantList registrationClasses)
+{
+	if (m_registrationClasses == registrationClasses)
+		return;
+
+	m_registrationClasses = registrationClasses;
+	emit registrationClassesChanged(m_registrationClasses);
+}
+
 void Client::setUserPlayerCharacter(QString userPlayerCharacter)
 {
 	if (m_userPlayerCharacter == userPlayerCharacter)
@@ -1179,10 +1189,20 @@ void Client::performUserInfo(const CosMessage &message)
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
-			setRegistrationEnabled(d.value("registrationEnabled").toString("0").toInt());
-			setPasswordResetEnabled(d.value("passwordResetEnabled").toString("0").toInt());
+			setRegistrationEnabled(d.value("registrationEnabled").toBool());
+			setPasswordResetEnabled(d.value("passwordResetEnabled").toBool(false));
 			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
 			setRankList(d.value("ranklist").toArray().toVariantList());
+
+			QVariantList classList = d.value("classlist").toArray().toVariantList();
+			if (!classList.isEmpty()) {
+				QVariantMap m;
+				m["classid"] = -1;
+				m["classname"] = tr("Osztály nélkül");
+				classList.prepend(m);
+			}
+			setRegistrationClasses(classList);
+
 		} else if (func == "newSessionToken") {
 			QString token = d.value("token").toString();
 			setSessionToken(token);
@@ -1193,6 +1213,14 @@ void Client::performUserInfo(const CosMessage &message)
 			qDebug() << "set user roles from server" << message.clientRole();
 
 			socketSend(CosMessage::ClassUserInfo, "getUser");
+		} else if (func == "registrationRequest") {
+			if (d.contains("error")) {
+				emit registrationRequestFailed(d.value("error").toString());
+			} else if (d.contains("createdUserName")) {
+				login(d.value("createdUserName").toString(), "");
+			} else if (d.value("success").toBool(false)) {
+				emit registrationRequestSuccess();
+			}
 		}
 	}
 }

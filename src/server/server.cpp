@@ -503,6 +503,9 @@ bool Server::websocketServerStart()
 	qInfo().noquote() << tr("====================================================");
 
 	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
+		if (!h.isGlobal())
+			continue;
+
 		qInfo().noquote() << QString("%1:%2").arg(h.toString()).arg(port);
 	}
 

@@ -66,7 +66,7 @@
         <file>PageStudentMap.qml</file>
         <file>QMenuItemDelegate.qml</file>
         <file>GamePlayer.qml</file>
-        <file>VirtualJoystick.qml</file>
+        <file>GameJoystick.qml</file>
         <file>GameEnemySoldier.qml</file>
         <file>GameEntity.qml</file>
         <file>GameTiledScene.qml</file>

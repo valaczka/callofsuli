@@ -69,6 +69,7 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_backgroundMusicFile("qrc:/sound/music/default_bg_music.mp3")
 	, m_inventoryPickableList()
 	, m_pickableList()
+	, m_elapsedTime()
 {
 	QStringList mList = Client::musicList();
 	if (!mList.isEmpty()) {
@@ -467,8 +468,6 @@ void CosGame::addPickable(GamePickable *p)
 	if (!m_pickableList.isEmpty())
 		pp = m_pickableList.at(0);
 
-	qDebug() << "=+=" << m_pickableList << pp;
-
 	emit pickableChanged(pp);
 }
 
@@ -481,8 +480,6 @@ void CosGame::addPickable(GamePickable *p)
 
 void CosGame::removePickable(GamePickable *p)
 {
-	qDebug() << "=-= REMOVE" << p;
-
 	if (!p)
 		return;
 
@@ -492,8 +489,6 @@ void CosGame::removePickable(GamePickable *p)
 
 	if (!m_pickableList.isEmpty())
 		pp = m_pickableList.at(0);
-
-	qDebug() << "=-=" << m_pickableList << pp;
 
 	emit pickableChanged(pp);
 }
@@ -888,6 +883,8 @@ void CosGame::onGameStarted()
 	m_timer->start(100);
 	setIsStarted(true);
 
+	m_elapsedTime = QTime::currentTime();
+
 	QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
 }
 
@@ -904,6 +901,8 @@ void CosGame::onGameFinishedSuccess()
 	if (!m_gameMatch || !m_activity || !m_activity->client())
 		return;
 
+	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
+
 	emit m_gameMatch->gameWin(m_gameMatch->missionUuid(), m_gameMatch->level());
 
 	Client *client = m_activity->client();
@@ -914,11 +913,6 @@ void CosGame::onGameFinishedSuccess()
 		client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
 		client->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
 	});
-
-	int gameId = m_gameMatch->gameId();
-
-	if (gameId == -1)
-		return;
 }
 
 
@@ -934,17 +928,14 @@ void CosGame::onGameFinishedLost()
 	if (!m_gameMatch || !m_activity || !m_activity->client())
 		return;
 
+	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
+
 	emit m_gameMatch->gameLose(m_gameMatch->missionUuid(), m_gameMatch->level());
 
 	Client *client = m_activity->client();
 
 	client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
 	client->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
-
-	int gameId = m_gameMatch->gameId();
-
-	if (gameId == -1)
-		return;
 }
 
 

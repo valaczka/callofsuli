@@ -9,6 +9,7 @@ QLabel {
 	id: label
 
 	property Item field: null
+	property string forcedText: ""
 
 	Layout.alignment: parent.columns > 1 ?
 						  Qt.AlignRight | Qt.AlignVCenter :
@@ -22,7 +23,7 @@ QLabel {
 	Connections {
 		target: parent
 		function onColumnsChanged(columns) {
-			if (field && columns === 1 && field.text.length === 0)
+			if (!forcedText.length && field && columns === 1 && field.text.length === 0)
 				label.opacity=0.0
 			else
 				label.opacity=1.0
@@ -33,10 +34,11 @@ QLabel {
 	Connections {
 		target: field
 		function onFieldNameChanged(fieldName) {
-			label.text = fieldName
+			if (!forcedText.length)
+				label.text = fieldName
 		}
 		function onTextChanged(text) {
-			if (field && parent.columns === 1 && field.text.length === 0)
+			if (!forcedText.length && field && parent.columns === 1 && field.text.length === 0)
 				label.opacity=0.0
 			else
 				label.opacity=1.0
@@ -61,10 +63,12 @@ QLabel {
 	}
 
 	Component.onCompleted: {
-		if (field) {
+		if (field && !forcedText.length) {
 			text = field.fieldName
 			if (parent.columns === 1 && field.text.length === 0)
 				opacity = 0
+		} else {
+			text = forcedText
 		}
 	}
 }

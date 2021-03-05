@@ -52,6 +52,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_baseXP(100)
 	, m_modelGroupList(nullptr)
 	, m_selectedGroupId(-1)
+	, m_isGameRunning(false)
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
@@ -80,20 +81,20 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 
 
 	m_modelGroupList = new VariantMapModel({
-											 "id",
-											 "name" ,
-											 "teacherfirstname",
-											 "teacherlastname",
-											 "readableClassList" ,
-											 "teacher"
-										 },
-										 this);
+											   "id",
+											   "name" ,
+											   "teacherfirstname",
+											   "teacherlastname",
+											   "readableClassList" ,
+											   "teacher"
+										   },
+										   this);
 
 	m_modelCharacterList = new VariantMapModel({
-											 "dir",
-											 "name"
-										 },
-										 this);
+												   "dir",
+												   "name"
+											   },
+											   this);
 
 	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
 
@@ -393,7 +394,14 @@ void StudentMaps::setModelCharacterList(VariantMapModel *modelCharacterList)
 	emit modelCharacterListChanged(m_modelCharacterList);
 }
 
+void StudentMaps::setIsGameRunning(bool isGameRunning)
+{
+	if (m_isGameRunning == isGameRunning)
+		return;
 
+	m_isGameRunning = isGameRunning;
+	emit isGameRunningChanged(m_isGameRunning);
+}
 
 
 
@@ -643,6 +651,8 @@ void StudentMaps::unloadGameMap()
 
 void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 {
+	GameMatch *match = qobject_cast<GameMatch *>(sender());
+
 	int maxLevel = m_demoSolverMap.value(uuid, -1).toInt();
 
 	if (maxLevel > level)
@@ -650,7 +660,17 @@ void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 
 	m_demoSolverMap[uuid] = level;
 
-	getMissionList();
+	QJsonObject o;
+
+	if (match)
+		o["xp"] = match->xp();
+	else
+		o["xp"] = 0;
+
+	o["solved"] = 1;
+	o["success"] = true;
+
+	onGameFinish(o, QByteArray());
 }
 
 
@@ -666,6 +686,7 @@ void StudentMaps::onGameEnd(GameMatch *match, const bool &win)
 	o["id"] = match->gameId();
 	o["xp"] = match->xp();
 	o["success"] = win;
+	o["duration"] = match->elapsedTime();
 	m_client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 
@@ -939,6 +960,13 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 {
-	qDebug() << "#### GAME FINISHED" << jsonData;
+	if (jsonData.value("success").toBool(false)) {
+		QVariantMap d = jsonData.toVariantMap();
+
+		QTimer::singleShot(2000, [=]() {
+			emit gameFinishDialogReady(d);
+		});
+	}
+
 	getMissionList();
 }

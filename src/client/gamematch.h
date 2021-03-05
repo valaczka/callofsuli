@@ -80,6 +80,9 @@ public:
 	int xp() const { return m_xp; }
 	int baseXP() const { return m_baseXP; }
 
+	int elapsedTime() const { return m_elapsedTime; }
+	void setElapsedTime(int elapsedTime) { m_elapsedTime = elapsedTime; }
+
 public slots:
 	void addXP(const qreal &factor);
 	void setDeleteGameMap(bool deleteGameMap);
@@ -133,6 +136,7 @@ private:
 	int m_gameId;
 	int m_xp;
 	int m_baseXP;
+	int m_elapsedTime;
 };
 
 

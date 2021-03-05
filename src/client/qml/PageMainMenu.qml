@@ -102,6 +102,13 @@ QPage {
 										  params: {}
 									  })
 
+				if ((cosClient.userRoles & CosMessage.RoleGuest) && cosClient.registrationEnabled)
+					list.model.append({
+										  labelTitle: qsTr("Regisztráció"),
+										  page: "Registration",
+										  params: {}
+									  })
+
 
 				list.forceActiveFocus()
 			}

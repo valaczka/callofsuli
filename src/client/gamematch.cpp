@@ -44,6 +44,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_gameId(-1)
 	, m_xp(0)
 	, m_baseXP(0)
+	, m_elapsedTime(-1)
 {
 	qDebug() << "GAME MATCH CREATED" << this;
 	setPlayerCharacter("default");
@@ -66,6 +67,7 @@ GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObj
 	, m_gameId(-1)
 	, m_xp(0)
 	, m_baseXP(0)
+	, m_elapsedTime(-1)
 {
 	Q_ASSERT(missionLevel);
 
@@ -275,5 +277,9 @@ void GameMatch::setBaseXP(int baseXP)
 	m_baseXP = baseXP;
 	emit baseXPChanged(m_baseXP);
 }
+
+
+
+
 
 

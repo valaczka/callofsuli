@@ -149,6 +149,12 @@ Scene {
 				}
 				break;
 
+			case Qt.Key_T:
+				if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
+					game.addSecs(-30)
+				}
+				break;
+
 				/* ----------------- Cheats end -------------------- */
 			}
 		}

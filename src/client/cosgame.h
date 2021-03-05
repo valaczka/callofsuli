@@ -226,6 +226,7 @@ private:
 	QString m_backgroundMusicFile;
 	QMap<int, QVector<GameInventoryPickable>> m_inventoryPickableList;
 	QVector<GamePickable *> m_pickableList;
+	QTime m_elapsedTime;
 };
 
 

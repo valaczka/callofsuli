@@ -43,7 +43,7 @@ QPage {
 						id: grid1
 						enabled: !serverSettings.isBusy
 
-						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
 
 						width: parent.width
 						watchModification: true
@@ -64,6 +64,125 @@ QPage {
 				}
 
 				QCollapsible {
+					title: qsTr("Regisztráció")
+
+					QGridLayout {
+						id: grid4
+
+						enabled: !serverSettings.isBusy
+
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
+
+						width: parent.width
+						watchModification: true
+
+						QGridText {
+							field: comboRegistrationAuto
+							text: qsTr("Automatikus regisztráció:")
+						}
+
+						QGridComboBox {
+							id: comboRegistrationAuto
+							sqlField: "registration.auto"
+
+							valueRole: "value"
+							textRole: "text"
+
+							model: [
+								{value: "0", text: qsTr("Letiltva")},
+								{value: "1", text: qsTr("Engedélyezve")},
+							]
+						}
+
+
+						QGridText {
+							field: comboRegistrationClass
+							text: qsTr("Osztály kiválasztása:")
+						}
+
+						QGridComboBox {
+							id: comboRegistrationClass
+							sqlField: "registration.class"
+
+							valueRole: "value"
+							textRole: "text"
+
+							model: [
+								{value: "0", text: qsTr("Letiltva")},
+								{value: "1", text: qsTr("Engedélyezve")},
+							]
+						}
+					}
+				}
+
+
+
+				QCollapsible {
+					title: qsTr("E-mail funkciók")
+
+					QGridLayout {
+						id: grid3
+
+						enabled: !serverSettings.isBusy
+
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
+
+						width: parent.width
+						watchModification: true
+
+						QGridText {
+							field: comboRegistration
+							text: qsTr("Emailes regisztráció:")
+						}
+
+						QGridComboBox {
+							id: comboRegistration
+							sqlField: "email.registration"
+
+							valueRole: "value"
+							textRole: "text"
+
+							model: [
+								{value: "0", text: qsTr("Letiltva")},
+								{value: "1", text: qsTr("Engedélyezve")},
+							]
+						}
+
+
+						QGridLabel { field: textDomain }
+
+						QGridTextField {
+							id: textDomain
+
+							enabled: comboRegistration.currentValue === "1"
+							fieldName: qsTr("Domain korlátozás")
+							placeholderText: qsTr("Domain korlátozás vesszővel elválasztva (pl: gmail.com, freemail.com)")
+							sqlField: "email.registrationDomains"
+						}
+
+
+						QGridText {
+							field: comboReset
+							text: qsTr("Jelszó helyreállítás:")
+						}
+
+						QGridComboBox {
+							id: comboReset
+							sqlField: "email.passwordReset"
+
+							valueRole: "value"
+							textRole: "text"
+
+							model: [
+								{value: "0", text: qsTr("Letiltva")},
+								{value: "1", text: qsTr("Engedélyezve")},
+							]
+						}
+					}
+				}
+
+
+				QCollapsible {
 					title: qsTr("SMTP szerver")
 
 					QGridLayout {
@@ -71,7 +190,7 @@ QPage {
 
 						enabled: !serverSettings.isBusy
 
-						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
+						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
 
 						width: parent.width
 						watchModification: true
@@ -153,69 +272,7 @@ QPage {
 
 				}
 
-				QCollapsible {
-					title: qsTr("E-mail funkciók")
 
-					QGridLayout {
-						id: grid3
-
-						enabled: !serverSettings.isBusy
-
-						onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified
-
-						width: parent.width
-						watchModification: true
-
-						QGridText {
-							field: comboRegistration
-							text: qsTr("Emailes regisztráció:")
-						}
-
-						QGridComboBox {
-							id: comboRegistration
-							sqlField: "email.registration"
-
-							valueRole: "value"
-							textRole: "text"
-
-							model: [
-								{value: "0", text: qsTr("Letiltva")},
-								{value: "1", text: qsTr("Engedélyezve")},
-							]
-						}
-
-
-						QGridLabel { field: textDomain }
-
-						QGridTextField {
-							id: textDomain
-
-							enabled: comboRegistration.currentValue === "1"
-							fieldName: qsTr("Domain korlátozás")
-							placeholderText: qsTr("Domain korlátozás vesszővel elválasztva (pl: gmail.com, freemail.com)")
-							sqlField: "email.registrationDomains"
-						}
-
-
-						QGridText {
-							field: comboReset
-							text: qsTr("Jelszó helyreállítás:")
-						}
-
-						QGridComboBox {
-							id: comboReset
-							sqlField: "email.passwordReset"
-
-							valueRole: "value"
-							textRole: "text"
-
-							model: [
-								{value: "0", text: qsTr("Letiltva")},
-								{value: "1", text: qsTr("Engedélyezve")},
-							]
-						}
-					}
-				}
 			}
 
 
@@ -234,7 +291,9 @@ QPage {
 														textPassword,
 														comboRegistration,
 														textDomain,
-														comboReset
+														comboReset,
+														comboRegistrationAuto,
+														comboRegistrationClass
 													])
 
 					if (Object.keys(o).length) {
@@ -257,7 +316,9 @@ QPage {
 										textPassword,
 										comboRegistration,
 										textDomain,
-										comboReset
+										comboReset,
+										comboRegistrationAuto,
+										comboRegistrationClass
 									], jsonData)
 
 					grid1.modified = false

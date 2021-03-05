@@ -54,9 +54,15 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
 																											"FROM settings WHERE key='email.passwordReset'")
 																	  .value("v"));
-	(*jsonResponse)["registrationEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
-																										  "FROM settings WHERE key='email.registration'")
-																	 .value("v"));
+
+
+	bool autoRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.auto'")
+							.value("v", false).toBool();
+
+	bool emailRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='email.registration'")
+							 .value("v", false).toBool();
+
+	(*jsonResponse)["registrationEnabled"] = (autoRegistration || emailRegistration);
 
 
 	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());
@@ -64,6 +70,12 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["ranklist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as rankid, name as rankname,"
 "level as ranklevel, image as rankimage, xp "
 									"FROM rank ORDER BY id"));
+
+
+	if (m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
+											  "FROM settings WHERE key='registration.class'").value("v").toBool()) {
+		(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname FROM class ORDER BY name"));
+	}
 
 	return true;
 }
@@ -110,7 +122,7 @@ bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, "
 									"isTeacher, isAdmin, classid, classname, xp, rankid, rankname, ranklevel, rankimage, nickname "
-									"FROM userInfo"));
+									"FROM userInfo WHERE active=true"));
 
 	(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname "
 									"FROM class"));
@@ -129,6 +141,7 @@ bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 	QString email = m_message.jsonData().value("email").toString();
 	QString firstname = m_message.jsonData().value("firstname").toString();
 	QString lastname = m_message.jsonData().value("lastname").toString();
+	int classid = -1;
 
 	if (email.isEmpty()) {
 		(*jsonResponse)["error"] = "email empty";
@@ -161,34 +174,74 @@ bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	QVariantMap ins;
-	ins["email"] = email;
-	ins["firstname"] = firstname;
-	ins["lastname"] = lastname;
-
-	int rowId = m_client->db()->execInsertQuery("INSERT OR REPLACE INTO registration (?k?) VALUES (?)", ins);
-
-	if (rowId == -1) {
-		setServerError();
-		return false;
+	if (m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.class'")
+		.value("v", false).toBool()) {
+		classid = m_message.jsonData().value("classid").toInt(-1);
 	}
 
-	QVariantList ll;
-	ll << rowId;
 
-	QString code = m_client->db()->execSelectQueryOneRow("SELECT code FROM registration WHERE id=?", ll).value("code").toString();
+	bool autoRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.auto'")
+							.value("v", false).toBool();
 
-	if (code.isEmpty()) {
-		setServerError();
-		return false;
-	}
+	if (autoRegistration) {
+		QJsonObject obj;
+		obj["username"] = email;
+		obj["firstname"] = firstname;
+		obj["lastname"] = lastname;
+		obj["active"] = true;
+		obj["classid"] = classid;
 
-	if (emailRegistration(email, firstname, lastname, code)) {
-		(*jsonResponse)["success"] = true;
-		return true;
+		qInfo().noquote() << tr("Auto-register user") << email;
+
+		CosMessage m2(obj, CosMessage::ClassInvalid, "");
+
+		QJsonObject ret;
+		Admin u(m_client, m2);
+		bool isSuccess = u.userCreate(&ret, nullptr);
+
+		if (isSuccess) {
+			(*jsonResponse)["createdUserName"] = ret.value("createdUserName").toString();
+			return true;
+		} else {
+			setServerError();
+			return false;
+		}
+
 	} else {
-		(*jsonResponse)["error"] = "smtp error";
-		return false;
+
+		QVariantMap ins;
+		ins["email"] = email;
+		ins["firstname"] = firstname;
+		ins["lastname"] = lastname;
+		if (classid > 0)
+			ins["classid"] = classid;
+		else
+			ins["classid"] = QVariant::Invalid;
+
+		int rowId = m_client->db()->execInsertQuery("INSERT OR REPLACE INTO registration (?k?) VALUES (?)", ins);
+
+		if (rowId == -1) {
+			setServerError();
+			return false;
+		}
+
+		QVariantList ll;
+		ll << rowId;
+
+		QString code = m_client->db()->execSelectQueryOneRow("SELECT code FROM registration WHERE id=?", ll).value("code").toString();
+
+		if (code.isEmpty()) {
+			setServerError();
+			return false;
+		}
+
+		if (emailRegistration(email, firstname, lastname, code)) {
+			(*jsonResponse)["success"] = true;
+			return true;
+		} else {
+			(*jsonResponse)["error"] = "smtp error";
+			return false;
+		}
 	}
 }
 
@@ -209,14 +262,11 @@ bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList l;
 	l << email;
 	l << password;
-	m = m_client->db()->execSelectQueryOneRow("SELECT firstname, lastname FROM registration WHERE email=? and code=?", l);
+	m = m_client->db()->execSelectQueryOneRow("SELECT firstname, lastname, classid FROM registration WHERE email=? and code=?", l);
 	if (m.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid email or code";
 		return false;
 	}
-
-	QVariantList ll;
-	ll << email;
 
 
 	QJsonObject obj;
@@ -224,6 +274,11 @@ bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
 	obj["firstname"] = m.value("firstname").toString();
 	obj["lastname"] = m.value("lastname").toString();
 	obj["active"] = true;
+
+	int classid = m.value("classid", -1).toInt();
+	if (classid != -1) {
+		obj["classid"] = classid;
+	}
 
 	CosMessage m2(obj, CosMessage::ClassInvalid, "");
 

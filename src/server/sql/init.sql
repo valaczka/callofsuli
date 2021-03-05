@@ -87,6 +87,7 @@ CREATE TABLE game(
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	level INTEGER NOT NULL DEFAULT 1,
 	success BOOL NOT NULL DEFAULT FALSE,
+	duration INTEGER,
 	tmpScore INTEGER
 );
 
@@ -113,13 +114,13 @@ CREATE TABLE ranklog(
 
 
 
-
 CREATE TABLE score(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0),
-	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL
+	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	maxStreak INTEGER
 );
 
 
@@ -131,6 +132,7 @@ CREATE TABLE registration(
 	email TEXT NOT NULL,
 	firstname TEXT,
 	lastname TEXT,
+	classid INTEGER,
 	code TEXT NOT NULL DEFAULT (upper(hex(randomblob(4)))),
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	UNIQUE(email)

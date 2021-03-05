@@ -26,8 +26,11 @@ QPage {
 		onGamePlayReady: {
 			var o = JS.createPage("Game", {
 									  gameMatch: gameMatch,
+									  studentMaps: demoStudentMaps,
 									  deleteGameMatch: true
 								  })
+
+			isGameRunning = o ? true : false
 		}
 
 	}

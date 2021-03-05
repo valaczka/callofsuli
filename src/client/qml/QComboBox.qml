@@ -33,7 +33,12 @@ ComboBox {
 		textMetrics.font = control.font
 		if (Array.isArray(model)) {
 			for(var i = 0; i < model.length; i++){
-				textMetrics.text = model[i][textRole]
+				var t = model[i]
+				if (textRole.length)
+					textMetrics.text = t[textRole]
+				else
+					textMetrics.text = t
+
 				w = Math.max(textMetrics.width, w)
 			}
 		} else {
@@ -49,7 +54,7 @@ ComboBox {
 	delegate: ItemDelegate {
 		width: control.width
 		contentItem: Text {
-			text: modelIsArray ? model.modelData[textRole] : model[textRole]
+			text: modelIsArray ? (textRole.length ? model.modelData[textRole] : modelData) : model[textRole]
 			color: CosStyle.colorPrimaryLighter
 			font: control.font
 			elide: Text.ElideRight

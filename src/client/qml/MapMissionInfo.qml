@@ -243,7 +243,11 @@ QPagePanel {
 								visible: modelData.available
 								font.pixelSize: CosStyle.pixelSize*1.4
 								onClicked: {
-									/*var d = JS.dialogCreateQml("ImageList", {
+									if (studentMaps.gamePage) {
+										cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
+									} else {
+
+										/*var d = JS.dialogCreateQml("ImageList", {
 																   roles: ["name", "dir"],
 																   icon: CosStyle.iconUser,
 																   title: qsTr("Válassz karaktert"),
@@ -267,9 +271,10 @@ QPagePanel {
 																 level: modelData.level,
 																 hasSolved: modelData.solved,
 															 })
-/*									})
+										/*									})
 									d.open()
 */
+									}
 								}
 							}
 

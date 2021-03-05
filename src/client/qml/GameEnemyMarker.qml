@@ -5,9 +5,9 @@ import "Style"
 
 Rectangle {
 	id: root
-	visible: true
+	visible: enemyPrivate && enemyPrivate.player && enemyPrivate.player.enemy != enemyPrivate
 	color: enemyPrivate.attackRunning ? CosStyle.colorEnemyMarkerAttack : CosStyle.colorEnemyMarker
-	height: 1.5
+	height: 1
 	y: parent.height*0.2
 
 	property GameEnemyPrivate enemyPrivate: null

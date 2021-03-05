@@ -52,6 +52,8 @@ class StudentMaps : public AbstractActivity
 
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
 
+	Q_PROPERTY(bool isGameRunning READ isGameRunning WRITE setIsGameRunning NOTIFY isGameRunningChanged)
+
 
 public:
 	explicit StudentMaps(QQuickItem *parent = nullptr);
@@ -69,7 +71,7 @@ public:
 	bool demoMode() const { return m_demoMode; }
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
-
+	bool isGameRunning() const { return m_isGameRunning; }
 
 public slots:
 	void groupSelect(const int &groupId);
@@ -83,6 +85,7 @@ public slots:
 	void setModelGroupList(VariantMapModel * modelGroupList);
 	void setSelectedGroupId(int selectedGroupId);
 	void setModelCharacterList(VariantMapModel * modelCharacterList);
+	void setIsGameRunning(bool isGameRunning);
 
 protected slots:
 	void clientSetup() override;
@@ -116,6 +119,7 @@ signals:
 	void gameMapUnloaded();
 
 	void gamePlayReady(GameMatch *gameMatch);
+	void gameFinishDialogReady(QVariantMap data);
 
 	void gameCreate(QJsonObject jsonData, QByteArray binaryData);
 	void gameFinish(QJsonObject jsonData, QByteArray binaryData);
@@ -128,6 +132,7 @@ signals:
 	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void selectedGroupIdChanged(int selectedGroupId);
 	void modelCharacterListChanged(VariantMapModel * modelCharacterList);
+	void isGameRunningChanged(bool isGameRunning);
 
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
@@ -141,6 +146,7 @@ private:
 	VariantMapModel * m_modelGroupList;
 	int m_selectedGroupId;
 	VariantMapModel * m_modelCharacterList;
+	bool m_isGameRunning;
 };
 
 #endif // STUDENTMAPS_H

@@ -65,6 +65,7 @@ public:
 	Q_PROPERTY(bool registrationEnabled READ registrationEnabled WRITE setRegistrationEnabled NOTIFY registrationEnabledChanged)
 	Q_PROPERTY(bool passwordResetEnabled READ passwordResetEnabled WRITE setPasswordResetEnabled NOTIFY passwordResetEnabledChanged)
 	Q_PROPERTY(QVariantList registrationDomains READ registrationDomains WRITE setRegistrationDomains NOTIFY registrationDomainsChanged)
+	Q_PROPERTY(QVariantList registrationClasses READ registrationClasses WRITE setRegistrationClasses NOTIFY registrationClassesChanged)
 
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
 	Q_PROPERTY(CosMessage::ClientRoles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
@@ -152,6 +153,7 @@ public:
 	bool registrationEnabled() const { return m_registrationEnabled; }
 	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
 	QVariantList registrationDomains() const { return m_registrationDomains; }
+	QVariantList registrationClasses() const { return m_registrationClasses; }
 	QStringList waitForResources() const { return m_waitForResources; }
 
 	static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
@@ -160,6 +162,7 @@ public:
 	static QStringList musicList() { return m_musicList; }
 
 	qreal sfxVolume() const { return m_sfxVolume; }
+
 
 
 public slots:
@@ -197,6 +200,7 @@ public slots:
 	void setSfxVolumeInt(int sfxVolume);
 
 
+
 private slots:
 	void setSocket(QWebSocket * socket);
 	void socketPing();
@@ -225,6 +229,7 @@ private slots:
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
 	void setRegistrationDomains(QVariantList registrationDomains);
+	void setRegistrationClasses(QVariantList registrationClasses);
 	void setRankList(QVariantList rankList);
 
 signals:
@@ -243,7 +248,7 @@ signals:
 
 	void registrationRequest();
 	void registrationRequestSuccess();
-	void registrationRequestFailed();
+	void registrationRequestFailed(QString errorString);
 
 	void settingsLoaded(const QJsonObject &data);
 	void settingsError();
@@ -269,6 +274,7 @@ signals:
 	void registrationEnabledChanged(bool registrationEnabled);
 	void passwordResetEnabledChanged(bool passwordResetEnabled);
 	void registrationDomainsChanged(QVariantList registrationDomains);
+	void registrationClassesChanged(QVariantList registrationClasses);
 	void waitForResourcesChanged(QStringList waitForResources);
 	void userRankImageChanged(QString userRankImage);
 	void userRankLevelChanged(int userRankLevel);
@@ -276,6 +282,7 @@ signals:
 	void userNickNameChanged(QString userNickName);
 	void rankListChanged(QVariantList rankList);
 	void sfxVolumeChanged(qreal sfxVolume);
+
 
 
 private:
@@ -314,6 +321,7 @@ private:
 	static QStringList m_musicList;
 	qreal m_sfxVolume;
 	QString m_userPlayerCharacter;
+	QVariantList m_registrationClasses;
 };
 
 

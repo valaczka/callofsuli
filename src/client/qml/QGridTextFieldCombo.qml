@@ -17,6 +17,8 @@ Row {
 	property alias textField: field
 	property alias comboBox: combo
 
+	property alias acceptableInput: field.acceptableInput
+
 	Layout.fillWidth: true
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 

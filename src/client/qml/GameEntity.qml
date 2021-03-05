@@ -3,7 +3,6 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import COS.Client 1.0
 import QtGraphicalEffects 1.0
-import QtQuick.Controls.Material 2.12
 
 PhysicsEntity {
 	id: root
@@ -68,18 +67,34 @@ PhysicsEntity {
 		width: entityPrivate ? entityPrivate.boundBox.width+6 : 30
 		x: entityPrivate ? entityPrivate.boundBox.x-3 : 0
 		y: entityPrivate ? entityPrivate.boundBox.y-10 : -5
-		height: 1
+		height: 2
 
 		from: 0
 		to: (entityPrivate && entityPrivate.maxHp>0) ? entityPrivate.maxHp : 0
 		value: hpValue
 
-		Material.accent: color
-
-		property color color: hpColor
-
 		Behavior on value {
 			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+		}
+
+		background: Rectangle {
+			implicitWidth: 200
+			implicitHeight: 2
+			color: hpColor
+			radius: 0
+			opacity: 0.3
+		}
+
+		contentItem: Item {
+			implicitWidth: 200
+			implicitHeight: 2
+
+			Rectangle {
+				width: hpProgress.visualPosition * parent.width
+				height: parent.height
+				radius: 0
+				color: hpColor
+			}
 		}
 	}
 

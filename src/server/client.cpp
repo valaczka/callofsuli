@@ -52,11 +52,6 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onDisconnected);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
-#ifdef QT_DEBUG
-	connect(m_socket, &QWebSocket::binaryFrameReceived, this, [=](const QByteArray &frame, bool) {
-		qDebug() << "RECEIVED FRAME" << frame.size();
-	});
-#endif
 
 	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
 
@@ -177,6 +172,10 @@ void Client::setClientUserName(QString clientUserName)
 
 QStringList Client::emailRegistrationDomainList() const
 {
+	if (!db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='email.registration'")
+							 .value("v", false).toBool())
+		return QStringList();
+
 	QVariantMap m = db()->execSelectQueryOneRow("SELECT value as list FROM settings WHERE key='email.registrationDomains'");
 
 	QString s = m.value("list", "").toString();
