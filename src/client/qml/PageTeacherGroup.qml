@@ -7,9 +7,12 @@ import "JScript.js" as JS
 
 
 QPage {
-	id: page
+	id: pageTeacherGroup
 
 	defaultTitle: qsTr("Csoportok kezelése")
+
+	property alias panelMembers: panelMembers
+	property alias panelMaps: panelMaps
 
 	activity: TeacherGroups {
 		id: teacherGroups
@@ -39,33 +42,26 @@ QPage {
 			send("groupListGet")
 			groupSelect(-1)
 		}
-
-		onGroupGet: {
-			page.defaultSubTitle = jsonData.name
-		}
 	}
 
 
 
-	property list<Component> cmps: [
-		Component { TeacherGroupList {
-				panelVisible: true
-				Connections {
-					target: page
-					function onPageActivated() {
-						list.forceActiveFocus()
-					}
-				}
-			} },
-		Component { TeacherGroupMembers {
-				panelVisible: true
-			} },
-		Component { TeacherGroupMaps {
-				panelVisible: true
-			} }
+	panelComponents: [
+		Component { TeacherGroupList {  } },
+		Component { TeacherGroupMembers { } },
+		Component { TeacherGroupMaps { } }
 	]
 
 
+	Component {
+		id: panelMembers
+		TeacherGroupMembers {}
+	}
+
+	Component {
+		id: panelMaps
+		TeacherGroupMaps {}
+	}
 
 
 	/*mainMenuFunc: function (m) {
@@ -75,9 +71,6 @@ QPage {
 
 
 	onPageActivated: {
-		if (!panelComponents.length)
-			panelComponents = cmps
-
 		teacherGroups.send("groupListGet")
 	}
 

@@ -14,6 +14,8 @@ QPage {
 
 	property var _oldVisibility: null
 
+	stackMode: true
+
 	property StudentMaps studentMaps: null
 
 	defaultTitle: qsTr("Küldetések")
@@ -32,7 +34,18 @@ QPage {
 
 			isGameRunning = o ? true : false
 		}
+	}
 
+	Connections {
+		target: studentMaps
+
+		function onMissionSelected(index) {
+			if (stackMode && index !== -1) {
+				var o = addStackPanel(panelInfo)
+				o.selectedMissionIndex = index
+				o.loadMission()
+			}
+		}
 	}
 
 	onDemoModeChanged: if (demoMode) {
@@ -50,25 +63,16 @@ QPage {
 		id: userData
 	}
 
-	property list<Component> cmps: [
-		Component { MapMissionList {
-				panelVisible: true
-				Connections {
-					target: page
-					function onPageActivated() {
-						list.forceActiveFocus()
-					}
-				}
-			} },
-		Component { MapMissionInfo {
-				panelVisible: true
-			} }
+	Component {
+		id: panelInfo
+		MapMissionInfo { }
+	}
+
+	panelComponents: [
+		Component { MapMissionList { } },
+		Component { MapMissionInfo { } }
 	]
 
-
-	/*mainMenuFunc: function (m) {
-			m.addAction(actionSave)
-		}*/
 
 
 	Component.onCompleted: {
@@ -86,8 +90,6 @@ QPage {
 
 	onPageActivated: {
 		cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
-		if (!panelComponents.length)
-			panelComponents = cmps
 		if (studentMaps)
 			studentMaps.getMissionList()
 	}

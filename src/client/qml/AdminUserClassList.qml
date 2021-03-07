@@ -162,8 +162,6 @@ QPagePanel {
 		classList.forceActiveFocus()
 	}
 
-	onPanelActivated: classList.forceActiveFocus()
-
 	function reloadClassList() {
 		adminUsers.send({"class": "user", "func": "getAllClass"})
 	}

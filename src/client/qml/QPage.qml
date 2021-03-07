@@ -13,12 +13,12 @@ Page {
 	implicitWidth: 800
 	implicitHeight: 600
 
-	property int requiredPanelWidth: 600
+	property int requiredPanelWidth: 400
 
-	property bool swipeMode: control.width < requiredPanelWidth*panelComponents.length
+	property bool stackMode: control.width < requiredPanelWidth*Math.max(panelComponents.length, 2)
 
+	property alias pageStack: pageStack
 	property alias bgImage: bgImage
-	property alias mainSwipe: mainSwipe
 	property alias mainRow: mainRow
 	property alias mainToolBar: toolbar
 	property alias mainToolBarComponent: toolbarRight.sourceComponent
@@ -36,6 +36,7 @@ Page {
 	property AbstractActivity activity: null
 
 	readonly property bool isCurrentItem: StackView.view && StackView.view.currentItem == control
+
 
 	signal pageActivated()
 	signal pageDeactivated()
@@ -60,67 +61,71 @@ Page {
 		anchors.fill: parent
 		anchors.topMargin: toolbar.height
 
-		visible: !swipeMode
+		visible: !stackMode
+	}
 
-		Repeater {
-			model: !swipeMode ? panelComponents : null
 
-			Loader {
-				id: ldrRow
-				height: parent.height
-				Layout.fillWidth: item.visible && item.layoutFillWidth
-				Layout.fillHeight: true
-				sourceComponent: panelComponents[index]
+	onStackModeChanged: resetPanels()
 
-				property Page parentPage: control
+	function resetPanels() {
+		contextMenuFunc = null
+		if (!stackMode) {
+			title = defaultTitle
+			subtitle = defaultSubTitle
+			contextMenuFunc = null
+		}
 
-				onLoaded: item.populated()
+		for (var j=0; j<mainRow.children.length; j++) {
+			mainRow.children[j].destroy()
+		}
+
+		pageStack.clear()
+
+		if (stackMode) {
+			if (panelComponents.length)
+				addStackPanel(panelComponents[0])
+
+		} else {
+
+			for (var i=0; i<panelComponents.length; i++) {
+				var comp = panelComponents[i]
+
+				console.debug(control, "Create", i)
+
+				var obj = comp.createObject(mainRow, {
+												height: parent.height,
+												"Layout.fillHeight": true
+											})
+				if (obj === null) {
+					console.error("Error creating object")
+				}
 			}
 		}
 	}
 
 
-
-	SwipeView {
-		id: mainSwipe
-
+	StackView {
+		id: pageStack
 		anchors.fill: parent
 		anchors.topMargin: toolbar.height-15
 
 		property Page parentPage: control
 
-		currentIndex: tabBar.currentIndex
+		visible: stackMode
+	}
 
-		visible: swipeMode
 
-		Repeater {
-			model: swipeMode ? panelComponents : null
+	function addStackPanel(comp) {
+		var obj = comp.createObject(pageStack, {
+										stackMode: true,
+										pageStack: pageStack
+									})
+		if (obj === null)
+			console.warning("Component create error: ", comp)
+		else
+			pageStack.push(obj)
 
-			Loader {
-				id: ldrSwipe
-
-				property Page parentPage: control
-
-				sourceComponent: panelComponents[index]
-
-				onLoaded: {
-					var item = ldrSwipe.item
-					var ppp = JS.createObject("QTabButton.qml", tabBar, {
-												  text: item.title ? item.title : "",
-												  "icon.source": item.icon ? item.icon : "",
-												  iconColor: item.borderColor ? item.borderColor : CosStyle.colorError
-
-											  })
-
-					if (ppp) {
-						tabBar.addItem(ppp)
-						item.tabButton = ppp
-					}
-
-					item.populated()
-				}
-			}
-		}
+		return obj
 	}
 
 
@@ -172,38 +177,21 @@ Page {
 	}
 
 
-	footer: QTabBar {
-		id: tabBar
-
-		visible: mainSwipe.visible && tabBar.count>1
-
-		currentIndex: mainSwipe.currentIndex
-
-		onContentChildrenChanged: {
-			setCurrentIndex(mainSwipe.currentIndex)
-		}
-	}
-
-
-	onSwipeModeChanged: {
-		contextMenuFunc = null
-		if (!swipeMode)
-			title = defaultTitle
-	}
-
 	StackView.onRemoved: destroy()
 
-	StackView.onActivated:		 pageActivated()
+	StackView.onActivated: {
+		if (stackMode && pageStack.currentItem)
+			pageStack.currentItem.populated()
+		else if (!stackMode && mainRow.children.length)
+			mainRow.children[0].populated()
+
+		pageActivated()
+	}
+
 	StackView.onDeactivated:	pageDeactivated()
 
 
-
-
-	function swipeToPage(idx) {
-		if (swipeMode) {
-			mainSwipe.setCurrentIndex(idx)
-		}
-	}
+	Component.onCompleted: resetPanels()
 
 
 	function stackBack() {
@@ -216,13 +204,14 @@ Page {
 			return true
 		}
 
+		if (pageStackBack()) {
+			return true
+		}
+
 		if (layoutBack()) {
 			return true
 		}
 
-		if (pageStackBack()) {
-			return true
-		}
 
 		return false
 	}
@@ -230,8 +219,8 @@ Page {
 
 
 	function layoutBack() {
-		if (swipeMode && mainSwipe.currentIndex > 0) {
-			mainSwipe.decrementCurrentIndex()
+		if (stackMode && pageStack.depth > 1) {
+			pageStack.pop()
 			return true
 		}
 

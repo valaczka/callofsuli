@@ -30,13 +30,6 @@ QPagePanel {
 
 		filters: [
 			AllOf {
-				RegExpFilter {
-					enabled: toolbar.searchBar.text.length
-					roleName: "name"
-					pattern: toolbar.searchBar.text
-					caseSensitivity: Qt.CaseInsensitive
-					syntax: RegExpFilter.FixedString
-				}
 				ValueFilter {
 					id: campaignsFilter
 					enabled: false
@@ -215,21 +208,13 @@ QPagePanel {
 	}
 
 
-	QPagePanelSearch {
-		id: toolbar
-
-		listView: list
-
-		enabled: isListVisible
-		labelCountText: mapEditor.modelCampaignList.selectedCount
-		onSelectAll: JS.selectAllProxyModelToggle(userProxyModel)
-	}
 
 
 	QToolButtonBig {
 		anchors.centerIn: parent
 		visible: !isListVisible
 		action: actionMissionNew
+		color: CosStyle.colorOK
 	}
 
 
@@ -370,9 +355,6 @@ QPagePanel {
 		mapEditor.run("campaignListReload")
 	}
 
-	onPanelActivated: {
-		list.forceActiveFocus()
-	}
 }
 
 

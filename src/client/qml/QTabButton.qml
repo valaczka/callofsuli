@@ -10,7 +10,7 @@ TabButton {
 	font.weight: Font.DemiBold
 	font.pixelSize: CosStyle.pixelSize*0.8
 
-	display: AbstractButton.IconOnly
+	display: control.width>300 && text.length < 20 ? AbstractButton.TextBesideIcon : AbstractButton.IconOnly
 
 	property color iconColor: CosStyle.colorPrimaryLighter
 

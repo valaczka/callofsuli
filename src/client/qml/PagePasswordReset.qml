@@ -10,8 +10,6 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	requiredPanelWidth: 900
-
 	mainToolBar.title: qsTr("Jelszó beállítása")
 
 
@@ -22,7 +20,6 @@ QPage {
 
 				title: qsTr("Jelszó beállítása")
 				maximumWidth: 600
-				panelVisible: true
 				layoutFillWidth: true
 
 

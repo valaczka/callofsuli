@@ -11,7 +11,8 @@ QPagePanel {
 
 	layoutFillWidth: true
 
-	title: qsTr("Csoportok")
+	title: teacherMaps.selectedMapId.length ? qsTr("Hozzárendelt csoportok") : ""
+	subtitle: ""
 	icon: "image://font/AcademicI/\uf15f"
 
 	property alias list: groupList
@@ -24,11 +25,6 @@ QPagePanel {
 
 	Connections {
 		target: teacherMaps
-
-		function onSelectedMapIdChanged(mapId) {
-			if (mapId !== "" && swipeMode)
-				parent.parentPage.swipeToPage(1)
-		}
 
 		function onMapGroupAdd(jsonData, binaryData) {
 			teacherMaps.send("mapGet", {"uuid": teacherMaps.selectedMapId})
@@ -68,6 +64,15 @@ QPagePanel {
 			d.open()
 		}
 
+		function onMapGet(jsonData) {
+			panel.subtitle = jsonData.name
+		}
+
+		function onSelectedMapIdChanged(mapid) {
+			if (!mapid.length)
+				panel.subtitle = ""
+		}
+
 	}
 
 
@@ -77,6 +82,7 @@ QPagePanel {
 		anchors.centerIn: parent
 		action: actionGroupAdd
 		visible: teacherMaps.selectedMapId.length && !teacherMaps.modelGroupList.count
+		color: CosStyle.colorOK
 	}
 
 	QVariantMapProxyView {
@@ -164,6 +170,7 @@ QPagePanel {
 		}
 	}
 
+	onPopulated: groupList.forceActiveFocus()
 }
 
 

@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.14
 import QtGraphicalEffects 1.0
 import "Style"
 import "JScript.js" as JS
@@ -10,20 +11,19 @@ Item {
 	implicitWidth: visible ? Math.max(500, maximumWidth) : 0
 	implicitHeight: 200
 
-	visible: false
+	visible: stackMode
 
 	focus: true
 
-	property bool panelVisible: false
+	property bool panelVisible: true
 
 	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
 
-	property bool layoutFillWidth: false
+	property bool layoutFillWidth: true
 	property string icon: ""
 	property string title: ""
 	property string subtitle: ""
-	property QTabButton tabButton: null
 
 	property alias panelData: panelData
 	default property alias panelDataData: panelData.data
@@ -37,41 +37,50 @@ Item {
 	property var contextMenuFunc: null
 
 
-	readonly property bool swipeMode: parent.SwipeView.view
-	property bool _isCurrent: parent.SwipeView.isCurrentItem
+	property bool stackMode: false
+	property StackView pageStack: null
+
+	Layout.fillWidth: visible && layoutFillWidth
 
 	signal populated()
-	signal panelActivated()
-
-	on_IsCurrentChanged: {
-		if (_isCurrent) {
-			parent.SwipeView.view.parentPage.contextMenuFunc = contextMenuFunc
-			parent.SwipeView.view.parentPage.title = control.title
-			parent.SwipeView.view.parentPage.subtitle = control.subtitle
-			panelActivated()
-		}
-	}
 
 
 	Component.onDestruction: {
 		state = ""
-		if (tabButton)
-			tabButton.destroy()
 	}
 
+	StackView.onActivating: {
+		if (pageStack) {
+			pageStack.parentPage.title = control.title
+			pageStack.parentPage.subtitle = control.subtitle
+		}
+	}
 
+	onTitleChanged: if (pageStack) pageStack.parentPage.title = control.title
+	onSubtitleChanged: if (pageStack) pageStack.parentPage.subtitle = control.subtitle
+
+	StackView.onActivated: {
+		if (pageStack) {
+			pageStack.parentPage.contextMenuFunc = contextMenuFunc
+
+			if (pageStack.parentPage.isCurrentItem)
+				populated()
+		}
+	}
+
+	StackView.onRemoved: destroy()
 
 	Item {
 		id: panel
 
-		width: control.swipeMode ? control.width : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
-		height: control.swipeMode ? control.height : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
+		width: control.stackMode ? control.width : (maximumWidth ? Math.min(maximumWidth, control.width-2*horizontalPadding) : control.width-2*horizontalPadding)
+		height: control.stackMode ? control.height : (maximumHeight ? Math.min(maximumHeight, control.height-2*verticalPadding) : control.height-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 
 
 		DropShadow {
-			visible: !control.swipeMode
+			visible: !control.stackMode
 			anchors.fill: panel
 			horizontalOffset: 3
 			verticalOffset: 3
@@ -113,7 +122,7 @@ Item {
 		OpacityMask {
 			id: opacity1
 			anchors.fill: panel
-			source: control.swipeMode ? blackbg : metalbg
+			source: control.stackMode ? blackbg : metalbg
 			maskSource: border2
 		}
 
@@ -137,7 +146,7 @@ Item {
 				anchors.right: parent.right
 				height: labelTitle.implicitHeight*1.6
 
-				visible: labelTitle.text.length && !swipeMode
+				visible: labelTitle.text.length && !stackMode
 
 				DropShadow {
 					anchors.fill: labelTitle
@@ -190,7 +199,7 @@ Item {
 
 					icon.source: CosStyle.iconMenu
 
-					visible: contextMenuFunc && !swipeMode
+					visible: contextMenuFunc && !stackMode
 
 					Component {
 						id: menuComponent
@@ -259,7 +268,7 @@ Item {
 			anchors.fill: border1
 			source: border1
 			color: borderColor
-			visible: !control.swipeMode
+			visible: !control.stackMode
 		}
 
 	}
@@ -268,7 +277,7 @@ Item {
 	states: [
 		State {
 			name: "VISIBLE"
-			when: panelVisible || swipeMode
+			when: panelVisible && !stackMode
 		}
 	]
 
@@ -338,7 +347,5 @@ Item {
 			}
 		}
 	]
-
-
 
 }

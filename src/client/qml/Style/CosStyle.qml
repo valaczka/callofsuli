@@ -9,6 +9,7 @@ QtObject {
 	property color colorPrimaryLight: Material.color(materialPrimary, Material.Shade50)
 	property color colorPrimaryDarker: Material.color(materialPrimary, Material.Shade700)
 	property color colorPrimaryDark: Material.color(materialPrimary, Material.Shade900)
+	property color colorPrimaryDarkest: Qt.darker(Material.color(materialPrimary, Material.Shade900), 1.4)
 
 	property int materialAccent: Material.Amber
 	property color colorAccent: Material.color(materialAccent, Material.Shade500)
@@ -39,7 +40,7 @@ QtObject {
 
 	property color colorBg: "#33ffffff"
 
-	property int pixelSize: (Qt.platform.os === "android" ? 16 : 18)
+	property int pixelSize: (Qt.platform.os === "android" ? 17 : 18)
 	property int baseHeight: Math.max(pixelSize * 2.2, (Qt.platform.os === "android" ? 48 : 24))
 	property int twoLineHeight: Math.max(pixelSize * 48/18, 32)
 	property int halfLineHeight: Math.max(CosStyle.pixelSize*1.7, 20)
@@ -80,6 +81,7 @@ QtObject {
 	property string iconSend: "image://font/Material Icons/\ue163"
 	property string iconEdit: "image://font/Material Icons/\ue254"
 	property string iconRename: "image://font/Material Icons/\ue23c"
+	property string iconDuplicate: "image://font/Material Icons/\ue14d"
 	property string iconOK: "image://font/Material Icons/\ue5ca"
 	property string iconDown: "image://font/Material Icons/\ue5c5"
 	property string iconDialogQuestion: "image://font/Material Icons/\ue887"

@@ -21,8 +21,6 @@ QPage {
 		id: userData
 	}
 
-	swipeMode: control.width < 900
-
 
 	activity: Scores {
 		id: scores
@@ -31,7 +29,6 @@ QPage {
 
 	panelComponents: Component {
 		QPagePanel {
-			panelVisible: true
 			layoutFillWidth: true
 
 			id: panel
@@ -147,6 +144,8 @@ QPage {
 					reloadModel()
 				}
 			}
+
+			onPopulated: scoreList.forceActiveFocus()
 		}
 
 	}

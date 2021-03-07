@@ -63,12 +63,12 @@ QLabel {
 	}
 
 	Component.onCompleted: {
-		if (field && !forcedText.length) {
+		if (forcedText.length)
+			text = forcedText
+		else if (field) {
 			text = field.fieldName
 			if (parent.columns === 1 && field.text.length === 0)
 				opacity = 0
-		} else {
-			text = forcedText
 		}
 	}
 }

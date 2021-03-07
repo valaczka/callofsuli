@@ -117,8 +117,6 @@ QPagePanel {
 		mapEditor.levelComponentsCompleted++
 	}
 
-	onPanelActivated: {
-	}
 }
 
 

@@ -60,25 +60,26 @@ QPage {
 			isGameRunning = o ? true : false
 		}
 
+
+		function selectGroup(id) {
+			selectedGroupId = id
+			if (id !== -1 && stackMode) {
+				addStackPanel(panelMapList)
+			}
+		}
 	}
 
 
-	property list<Component> cmps: [
-		Component { StudentGroupList {
-				panelVisible: true
-				Connections {
-					target: page
-					function onPageActivated() {
-						list.forceActiveFocus()
-					}
-				}
-			} },
-
-		Component { StudentMapList {
-				panelVisible: true
-			} }
+	panelComponents: [
+		Component { StudentGroupList {  } },
+		Component { StudentMapList { } }
 	]
 
+
+	Component {
+		id: panelMapList
+		StudentMapList { }
+	}
 
 
 
@@ -89,9 +90,6 @@ QPage {
 
 
 	onPageActivated: {
-		if (!panelComponents.length)
-			panelComponents = cmps
-
 		studentMaps.send("groupListGet")
 	}
 

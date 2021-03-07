@@ -38,12 +38,14 @@ QPage {
 			d.open()
 		}
 
-		onMapGet: {
-			page.defaultSubTitle = jsonData.name
-		}
-
 		onMapRemove: {
 			send("mapListGet")
+		}
+
+		function mapSelect(uuid) {
+			teacherMaps.selectedMapId=uuid
+			if (uuid !== "" && stackMode)
+				addStackPanel(panelMapGroups)
 		}
 	}
 
@@ -63,22 +65,15 @@ QPage {
 		}
 	}
 
-	property list<Component> cmps: [
-		Component { TeacherMapList {
-				panelVisible: true
-				Connections {
-					target: page
-					function onPageActivated() {
-						list.forceActiveFocus()
-					}
-				}
-			} },
-		Component { TeacherMapGroups {
-				panelVisible: true
-			} }
+	panelComponents: [
+		Component { TeacherMapList {  } },
+		Component { TeacherMapGroups { } }
 	]
 
-
+	Component {
+		id: panelMapGroups
+		TeacherMapGroups { }
+	}
 
 
 	/*mainMenuFunc: function (m) {
@@ -88,9 +83,6 @@ QPage {
 
 
 	onPageActivated: {
-		if (!panelComponents.length)
-			panelComponents = cmps
-
 		teacherMaps.send("mapListGet")
 	}
 

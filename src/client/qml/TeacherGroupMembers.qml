@@ -11,7 +11,8 @@ QPagePanel {
 
 	layoutFillWidth: true
 
-	title: qsTr("Tagok")
+	title: teacherGroups.selectedGroupId == -1 ? "" : qsTr("Hozzárendelt tagok")
+	subtitle: ""
 	icon: "image://font/AcademicI/\uf15f"
 
 	property alias list: classList
@@ -20,7 +21,6 @@ QPagePanel {
 		m.addAction(actionClassAdd)
 		m.addAction(actionUserAdd)
 		m.addSeparator()
-		m.addAction(actionViewMembers)
 		m.addAction(actionClassRemove)
 		m.addAction(actionUserRemove)
 	}
@@ -28,11 +28,6 @@ QPagePanel {
 
 	Connections {
 		target: teacherGroups
-
-		function onSelectedGroupIdChanged(groupId) {
-			if (groupId !== -1 && swipeMode)
-				parent.parentPage.swipeToPage(1)
-		}
 
 		function onGroupUserAdd(jsonData, binaryData) {
 			teacherGroups.send("groupGet", {"id": teacherGroups.selectedGroupId})
@@ -103,21 +98,15 @@ QPagePanel {
 
 
 
-		function onGroupMemberListGet(jsonData, binaryData) {
-			if (jsonData.id !== teacherGroups.selectedGroupId)
-				return
 
-			var d = JS.dialogCreateQml("UserList", {
-										   icon: CosStyle.iconUsers,
-										   title: qsTr("Résztvevők"),
-										   selectorSet: false,
-										   sourceModel: teacherGroups._dialogUserModel
-									   })
 
-			teacherGroups._dialogUserModel.unselectAll()
-			teacherGroups._dialogUserModel.setVariantList(jsonData.list, "username")
+		function onGroupGet(jsonData) {
+			panel.subtitle = jsonData.name
+		}
 
-			d.open()
+		function onSelectedGroupIdChanged(groupid) {
+			if (groupid === -1)
+				panel.subtitle = ""
 		}
 	}
 
@@ -140,6 +129,7 @@ QPagePanel {
 				anchors.horizontalCenter: parent.horizontalCenter
 				action: actionClassAdd
 				visible: !teacherGroups.modelClassList.count
+				color: CosStyle.colorOK
 			}
 
 			QVariantMapProxyView {
@@ -197,6 +187,7 @@ QPagePanel {
 				anchors.horizontalCenter: parent.horizontalCenter
 				action: actionUserAdd
 				visible: !teacherGroups.modelUserList.count
+				color: CosStyle.colorOK
 			}
 
 			QVariantMapProxyView {
@@ -282,15 +273,7 @@ QPagePanel {
 
 
 
-	Action {
-		id: actionViewMembers
-		text: qsTr("Résztvevők")
-		icon.source: CosStyle.iconUsers
-		enabled: !teacherGroups.isBusy && teacherGroups.selectedGroupId != -1
-		onTriggered: {
-			teacherGroups.send("groupMemberListGet", {id: teacherGroups.selectedGroupId})
-		}
-	}
+
 
 
 
@@ -359,6 +342,7 @@ QPagePanel {
 		}
 	}
 
+	onPopulated: classList.forceActiveFocus()
 }
 
 

@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.14
-import QtGraphicalEffects 1.0
 import QtQuick.Controls.Material 2.3
 import QtMultimedia 5.12
 import COS.Client 1.0
@@ -39,8 +38,6 @@ ApplicationWindow {
 	FontLoader { source: "qrc:/internal/font/RenegadeMaster.ttf" }
 
 
-	property alias blur: blur
-
 
 	background: Rectangle {
 		color: "black"
@@ -58,8 +55,6 @@ ApplicationWindow {
 		id: mainStack
 		objectName: "mainStack"
 		anchors.fill: parent
-
-		readonly property int animDuration: 125
 
 		focus: true
 
@@ -80,34 +75,13 @@ ApplicationWindow {
 		Transition {
 			id: transitionEnter
 
-			SequentialAnimation {
-				PauseAnimation {
-					duration: mainStack.animDuration*2
-				}
-
-				ParallelAnimation {
-					PropertyAnimation {
-						property: "opacity"
-						from: 0.0
-						to: 1.0
-						duration: mainStack.animDuration
-					}
-					PropertyAnimation {
-						target: blur
-						property: "opacity"
-						from: 1.0
-						to: 0.0
-						duration: mainStack.animDuration
-					}
-					PropertyAnimation {
-						target: blur
-						property: "radius"
-						from: 100
-						to: 0
-						duration: mainStack.animDuration
-					}
-				}
+			PropertyAnimation {
+				property: "opacity"
+				from: 0.0
+				to: 1.0
 			}
+
+
 		}
 
 
@@ -115,33 +89,10 @@ ApplicationWindow {
 		Transition {
 			id: transitionExit
 
-			SequentialAnimation {
-				ParallelAnimation {
-					PropertyAnimation {
-						property: "opacity"
-						from: 1.0
-						to: 0.0
-						duration: mainStack.animDuration
-					}
-					PropertyAnimation {
-						target: blur
-						property: "opacity"
-						from: 0.0
-						to: 1.0
-						duration: mainStack.animDuration
-					}
-					PropertyAnimation {
-						target: blur
-						property: "radius"
-						from: 0
-						to: 100
-						duration: mainStack.animDuration
-					}
-				}
-
-				PauseAnimation {
-					duration: mainStack.animDuration*2
-				}
+			PropertyAnimation {
+				property: "opacity"
+				from: 1.0
+				to: 0.0
 			}
 		}
 
@@ -168,25 +119,6 @@ ApplicationWindow {
 		}
 
 	}
-
-	FastBlur {
-		id: blur
-		anchors.fill: mainStack
-
-		property bool blurEnabled: true
-
-		radius: 80
-		visible: opacity != 0.0
-		opacity: 0.0
-
-		source: Image {
-			width: mainWindow.width
-			height: mainWindow.height
-			fillMode: Image.PreserveAspectCrop
-			source: "qrc:/internal/img/villa.png"
-		}
-	}
-
 
 
 	MouseArea {

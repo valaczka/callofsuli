@@ -11,20 +11,20 @@ QPagePanel {
 
 	layoutFillWidth: true
 
-	title: qsTr("Pályák")
+	title: list.visible ? qsTr("Pályák") : ""
 	icon: "image://font/School/\uf19d"
 
-	property alias list: list
+	QLabel {
+		id: noLabel
+		opacity: !list.visible ? 0.0 : 1.0
+		visible: opacity != 0
 
-	Connections {
-		target: studentMaps
+		anchors.centerIn: parent
 
-		function onSelectedGroupIdChanged(groupId) {
-			if (groupId !== -1 && swipeMode)
-				parent.parentPage.swipeToPage(1)
-		}
+		text: qsTr("Válassz csoportot")
+
+		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
-
 
 	SortFilterProxyModel {
 		id: userProxyModel
@@ -116,8 +116,7 @@ QPagePanel {
 	}
 
 
-
-
+	onPopulated: list.forceActiveFocus()
 
 
 	Action {

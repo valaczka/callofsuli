@@ -68,9 +68,9 @@ public slots:
 	int volumeSfx() const { return m_mediaPlayerSfx ? m_mediaPlayerSfx->volume() : 0;  }
 	int volumeVoiceOver() const { return m_mediaPlayerVoiceOver ? m_mediaPlayerVoiceOver->volume() : 0; }
 
-	void setVolumeSfx(int volume) { if (m_mediaPlayerSfx) m_mediaPlayerSfx->setVolume(volume); }
-	void setVolumeMusic(int volume) { if (m_mediaPlayerMusic) m_mediaPlayerMusic->setVolume(volume); }
-	void setVolumeVoiceOver(int volume) { if (m_mediaPlayerVoiceOver) m_mediaPlayerVoiceOver->setVolume(volume); }
+	void setVolumeSfx(int volume);
+	void setVolumeMusic(int volume);
+	void setVolumeVoiceOver(int volume);
 
 private slots:
 	void musicPlay(const QString &source);
@@ -88,6 +88,7 @@ private:
 	SoundType m_soundTypeSfx;
 	QString m_musicNextSource;
 	QVariantAnimation *m_fadeAnimation;
+	int m_musicVolume;
 
 };
 

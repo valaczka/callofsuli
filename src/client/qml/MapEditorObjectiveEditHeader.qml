@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
+import QtQuick.Layouts 1.14
 import COS.Client 1.0
 import "."
 import "Style"
@@ -23,6 +24,8 @@ QCollapsible {
 
 		QGridComboBox {
 			id: comboChapter
+
+			Layout.fillWidth: true
 
 			model: SortFilterProxyModel {
 				sourceModel: mapEditor.modelChapterList

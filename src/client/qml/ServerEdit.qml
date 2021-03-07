@@ -18,6 +18,7 @@ QPagePanel {
 		m.addAction(actionRemove)
 	}
 
+
 	QGridLayout {
 		id: grid
 
@@ -26,6 +27,16 @@ QPagePanel {
 		watchModification: true
 
 		onAccepted: buttonSave.press()
+
+		QGridLabel { field: textName }
+
+		QGridTextField {
+			id: textName
+			fieldName: qsTr("Szerver elnevezése")
+			sqlField: "name"
+
+			validator: RegExpValidator { regExp: /.+/ }
+		}
 
 		QGridLabel { field: textHostname }
 
@@ -53,15 +64,6 @@ QPagePanel {
 			validator: IntValidator {bottom: 1; top: 65535}
 		}
 
-		QGridLabel { field: textName }
-
-		QGridTextField {
-			id: textName
-			fieldName: qsTr("Szerver elnevezése")
-			sqlField: "name"
-
-			validator: RegExpValidator { regExp: /.+/ }
-		}
 
 		QGridCheckBox {
 			id: checkSsl
@@ -116,7 +118,10 @@ QPagePanel {
 		target: servers
 
 		function onEditingChanged(editing) {
-			loadData()
+			if (!editing && stackMode && pageStack)
+				pageStack.pop()
+			else
+				loadData()
 		}
 
 		function onServerKeyChanged(serverKey) {
@@ -124,9 +129,10 @@ QPagePanel {
 		}
 	}
 
-	//onPanelActivated: textHostname.forceActiveFocus()
 
 	Component.onCompleted: loadData()
+
+	onPopulated: textName.forceActiveFocus()
 
 	function loadData() {
 		if (!servers.editing)
@@ -149,12 +155,6 @@ QPagePanel {
 		}
 
 		grid.modified = false
-
-
-		if (swipeMode) {
-			parent.parentPage.swipeToPage(1)
-		}
-
 	}
 
 }

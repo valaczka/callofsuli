@@ -21,6 +21,7 @@ QListView {
 	property string modelBackgroundRole: ""
 	property string modelTitleWeightRole: ""
 	property string modelTitleFamilyRole: ""
+	property string modelDelegateHeightRole: ""
 
 	property bool numbered: false
 	property int startNumber: 1
@@ -73,7 +74,7 @@ QListView {
 
 	delegate: Rectangle {
 		id: item
-		height: view.delegateHeight
+		height: modelDelegateHeightRole.length ? model[modelDelegateHeightRole] : view.delegateHeight
 		width: view.width - x
 		x: depth*view.depthWidth
 
@@ -173,6 +174,7 @@ QListView {
 						font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : fontWeightTitle
 						width: parent.width
 						visible: text.length
+						clip: true
 					}
 
 					QLabel {
@@ -184,6 +186,7 @@ QListView {
 						elide: Text.ElideRight
 						width: parent.width
 						visible: text.length
+						clip: true
 					}
 				}
 

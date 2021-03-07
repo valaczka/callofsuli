@@ -219,8 +219,6 @@ QPagePanel {
 
 
 
-	onPanelActivated: userListWidget.delegate.forceActiveFocus()
-
 
 	function reloadUserList() {
 		adminUsers.send({"class": "user", "func": "getAllUser"})

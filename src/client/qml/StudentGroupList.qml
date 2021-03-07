@@ -14,9 +14,6 @@ QPagePanel {
 	title: qsTr("Csoportok")
 	icon: "image://font/School/\uf19d"
 
-	property alias list: list
-
-
 	QVariantMapProxyView {
 		id: list
 		anchors.fill: parent
@@ -63,9 +60,11 @@ QPagePanel {
 
 		onClicked: {
 			var o = list.model.get(index)
-			studentMaps.selectedGroupId = o.id
+			studentMaps.selectGroup(o.id)
 		}
 	}
+
+	onPopulated: list.forceActiveFocus()
 }
 
 

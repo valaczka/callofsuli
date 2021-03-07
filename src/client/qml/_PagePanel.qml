@@ -19,8 +19,6 @@ QPagePanel {
 	}*/
 
 
-	//property alias list: list
-
 	/*SortFilterProxyModel {
 		id: userProxyModel
 		sourceModel: servers.serversModel
@@ -157,22 +155,32 @@ QPagePanel {
 		anchors.centerIn: parent
 		visible: !serverModel.count
 		action: actionServerNew
+		color: CosStyle.colorOK
 	}*/
 
 
 
-	Action {
+	/*Action {
 		id: actionServerNew
 		text: qsTr("Új szerver")
 		onTriggered: {
 		}
-	}
+	}*/
 
 
+	/*
+	  Connection {
+	  target: activity
+	  function onInvalid() {
+			if (stackMode && pageStack)
+				pageStack.pop()
+				}
+				}
+				*/
 
 
-	onPanelActivated: {
-	}
+	//onPopulated: list.forceActiveFocus()
+
 }
 
 

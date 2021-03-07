@@ -15,8 +15,6 @@ QPagePanel {
 	title: qsTr("Szerverek")
 	icon: CosStyle.iconUsers
 
-	property alias serverList: serverList
-
 	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
 
 	contextMenuFunc: function (m) {
@@ -103,6 +101,7 @@ QPagePanel {
 		anchors.centerIn: parent
 		visible: !servers.serversModel.count
 		action: actionServerSearch
+		color: CosStyle.colorOK
 	}
 
 
@@ -226,6 +225,8 @@ QPagePanel {
 		}
 	}
 
+
+	onPopulated: serverList.forceActiveFocus()
 }
 
 

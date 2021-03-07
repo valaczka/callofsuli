@@ -127,7 +127,7 @@ QPagePanel {
 
 		onClicked: {
 			var o = list.model.get(index)
-			if (o.type === 1 && o.lockDepth === 0) {
+			if (o.type === 1) {
 				studentMaps.missionSelected(list.model.mapToSource(list.currentIndex))
 			} else {
 				studentMaps.missionSelected(-1)
@@ -158,6 +158,7 @@ QPagePanel {
 	}
 
 
+	onPopulated: list.forceActiveFocus()
 
 }
 

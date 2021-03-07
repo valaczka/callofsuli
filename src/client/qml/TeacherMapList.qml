@@ -164,9 +164,9 @@ QPagePanel {
 		onClicked: {
 			var o = list.model.get(index)
 			if (o.local) {
-				teacherMaps.selectedMapId=""
+				teacherMaps.mapSelect("")
 			} else {
-				teacherMaps.selectedMapId= o.uuid
+				teacherMaps.mapSelect(o.uuid)
 			}
 
 		}
@@ -232,6 +232,7 @@ QPagePanel {
 		anchors.centerIn: parent
 		visible: !teacherMaps.modelMapList.count
 		action: actionMapNew
+		color: CosStyle.colorOK
 	}
 
 
@@ -413,6 +414,8 @@ QPagePanel {
 		}
 	}
 
+
+	onPopulated: list.forceActiveFocus()
 }
 
 

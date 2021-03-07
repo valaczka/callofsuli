@@ -21,6 +21,7 @@ QPagePanel {
 		m.addSeparator()
 		m.addAction(actionRename)
 		m.addAction(actionRemove)
+		m.addAction(actionViewMembers)
 	}
 
 	SortFilterProxyModel {
@@ -60,6 +61,35 @@ QPagePanel {
 			color: CosStyle.colorPrimary
 		}
 
+		rightComponent: Row {
+			visible: stackMode && pageStack
+			spacing: 0
+
+			QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				ToolTip.text: qsTr("Tagok")
+
+				icon.source: CosStyle.iconUsers
+				onClicked: {
+					list.currentIndex = modelIndex
+					teacherGroups.selectedGroupId = model.id
+					pageTeacherGroup.addStackPanel(pageTeacherGroup.panelMembers)
+				}
+			}
+
+			QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				ToolTip.text: qsTr("Pályák")
+
+				icon.source: "image://font/AcademicI/\uf15f"
+				onClicked: {
+					list.currentIndex = modelIndex
+					teacherGroups.selectedGroupId = model.id
+					pageTeacherGroup.addStackPanel(pageTeacherGroup.panelMaps)
+				}
+			}
+		}
+
 		/*rightComponent: QFontImage {
 			width: visible ? list.delegateHeight*0.8 : 0
 			height: width
@@ -76,9 +106,15 @@ QPagePanel {
 		onClicked: {
 			var o = list.model.get(index)
 			teacherGroups.selectedGroupId = o.id
+			if (stackMode)
+				actionViewMembers.trigger()
 		}
 
-		onRightClicked: contextMenu.popup()
+		onRightClicked: {
+			var o = list.model.get(index)
+			teacherGroups.selectedGroupId = o.id
+			contextMenu.popup()
+		}
 
 		onLongPressed: {
 			if (selectorSet) {
@@ -109,6 +145,7 @@ QPagePanel {
 			MenuSeparator { }
 			MenuItem { action: actionRename }
 			MenuItem { action: actionRemove }
+			MenuItem { action: actionViewMembers }
 		}
 
 
@@ -123,8 +160,31 @@ QPagePanel {
 		anchors.centerIn: parent
 		visible: !teacherGroups.modelGroupList.count
 		action: actionGroupNew
+		color: CosStyle.colorOK
 	}
 
+
+
+	Connections {
+		target: teacherGroups
+
+		function onGroupMemberListGet(jsonData, binaryData) {
+			if (jsonData.id !== teacherGroups.selectedGroupId)
+				return
+
+			var d = JS.dialogCreateQml("UserList", {
+										   icon: CosStyle.iconUsers,
+										   title: qsTr("Résztvevők"),
+										   selectorSet: false,
+										   sourceModel: teacherGroups._dialogUserModel
+									   })
+
+			teacherGroups._dialogUserModel.unselectAll()
+			teacherGroups._dialogUserModel.setVariantList(jsonData.list, "username")
+
+			d.open()
+		}
+	}
 
 
 	Action {
@@ -196,6 +256,17 @@ QPagePanel {
 		}
 	}
 
+
+	Action {
+		id: actionViewMembers
+		text: qsTr("Résztvevők")
+		icon.source: CosStyle.iconUsers
+		enabled: teacherGroups.selectedGroupId != -1
+		onTriggered: {
+			teacherGroups.send("groupMemberListGet", {id: teacherGroups.selectedGroupId})
+		}
+	}
+
 	/*Action {
 		id: actionExport
 		text: qsTr("Exportálás")
@@ -208,6 +279,7 @@ QPagePanel {
 		}
 	}*/
 
+	onPopulated: list.forceActiveFocus()
 }
 
 

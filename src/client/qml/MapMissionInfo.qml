@@ -24,31 +24,28 @@ QPagePanel {
 
 		function onMissionSelected(index) {
 			selectedMissionIndex = index
-			if (selectedMissionIndex == -1)
-				selectedData = null
-			else {
-				if (swipeMode)
-					parent.parentPage.swipeToPage(1)
-
-				var x = studentMaps.modelMissionList.get(selectedMissionIndex)
-				if (Object.keys(x).length)
-					selectedData = x
-				else
-					selectedData = null
-			}
+			loadMission()
 		}
 
 		function onMissionListChanged() {
-			if (selectedMissionIndex == -1)
+			loadMission()
+		}
+	}
+
+
+	function loadMission() {
+		if (selectedMissionIndex == -1) {
+			if (stackMode && pageStack)
+				pageStack.pop()
+			selectedData = null
+		} else {
+			var x = studentMaps.modelMissionList.get(selectedMissionIndex)
+			if (Object.keys(x).length) {
+				panel.title = x.name
+				selectedData = x
+			} else {
+				panel.title = ""
 				selectedData = null
-			else {
-				var x = studentMaps.modelMissionList.get(selectedMissionIndex)
-				if (Object.keys(x).length)
-					selectedData = x
-				else {
-					selectedData = null
-					selectedMissionIndex = -1
-				}
 			}
 		}
 	}
@@ -90,7 +87,7 @@ QPagePanel {
 	Grid {
 		id: grid
 		anchors.fill: parent
-		columns: (panel.parent.width >= panel.parent.height) ? 2 : 1
+		columns: (panel.width >= panel.height) ? 2 : 1
 		spacing: 0
 
 		opacity: selectedData ? 1.0 : 0.0
@@ -359,6 +356,8 @@ QPagePanel {
 
 		}
 	}
+
+	onPopulated: tabBar.forceActiveFocus()
 }
 
 

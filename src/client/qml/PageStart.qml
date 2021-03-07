@@ -10,10 +10,8 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	requiredPanelWidth: 900
-
 	defaultTitle: qsTr("Call of Suli")
-	mainToolBar.backButton.visible: false
+	mainToolBar.backButton.visible: pageStack.depth > 1
 
 	property bool _firstRun: true
 
@@ -41,6 +39,9 @@ QPage {
 			d.open()
 		}
 
+		onEditingChanged: if (editing && stackMode) {
+							  addStackPanel(panelEdit)
+						  }
 
 
 		onResourceReady: {
@@ -59,41 +60,27 @@ QPage {
 		Component.onCompleted: serverListReload()
 	}
 
-	property list<Component> fullComponents: [
+	panelComponents: [
 		Component { ServerList {
-				panelVisible: true
 				layoutFillWidth: !servers.editing
-				Connections {
-					target: control
-					function onPageActivated() {
-						serverList.forceActiveFocus()
-					}
-				}
 			} },
 		Component { ServerEdit {
 				panelVisible: servers.editing
 			} }
 	]
 
-	property list<Component> listComponents: [
-		Component { ServerList {
-				panelVisible: true
-				layoutFillWidth: true
-				Connections {
-					target: control
-					function onPageActivated() {
-						serverList.forceActiveFocus()
-					}
-				}
-			} }
-	]
 
-	swipeMode: width < 900
+	Component {
+		id: panelEdit
+		ServerEdit {}
+	}
 
-	panelComponents: if (swipeMode)
-						 servers.editing ? fullComponents : listComponents
-					 else
-						 fullComponents
+
+	onStackModeChanged: {
+		servers.editing = false
+		servers.serverKey = -1
+	}
+
 
 
 	mainMenuFunc: function (m) {

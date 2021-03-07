@@ -57,6 +57,9 @@ class MapEditor : public AbstractActivity
 
 	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
 
+	Q_PROPERTY(VariantMapModel * modelTerrains READ modelTerrains WRITE setModelTerrains NOTIFY modelTerrainsChanged)
+	Q_PROPERTY(VariantMapModel * modelObjectives READ modelObjectives WRITE setModelObjectives NOTIFY modelObjectivesChanged)
+
 public:
 	MapEditor(QQuickItem *parent = nullptr);
 	~MapEditor();
@@ -91,6 +94,9 @@ public:
 	QString databaseUuid() const { return m_databaseUuid; }
 	QString databaseTable() const { return m_databaseTable; }
 
+	VariantMapModel * modelTerrains() const { return m_modelTerrains; }
+	VariantMapModel * modelObjectives() const { return m_modelObjectives; }
+
 public slots:
 	bool setLoadProgress(qreal loadProgress);
 	void setLoadProgressFraction(QPair<qreal, qreal> loadProgressFraction);
@@ -107,6 +113,9 @@ public slots:
 	void setDatabase(CosDb* database);
 	void setDatabaseUuid(QString databaseUuid);
 	void setDatabaseTable(QString databaseTable);
+
+	void setModelTerrains(VariantMapModel * modelTerrains);
+	void setModelObjectives(VariantMapModel * modelObjectives);
 
 protected:
 	void loadFromFilePrivate(QVariantMap data);
@@ -231,6 +240,9 @@ signals:
 	void databaseUuidChanged(QString databaseUuid);
 	void databaseTableChanged(QString databaseTable);
 
+	void modelTerrainsChanged(VariantMapModel * modelTerrains);
+	void modelObjectivesChanged(VariantMapModel * modelObjectives);
+
 protected slots:
 	//void clientSetup() override;
 	//void onMessageReceived(const CosMessage &message) override;
@@ -251,6 +263,8 @@ private:
 	CosDb* m_database;
 	QString m_databaseUuid;
 	QString m_databaseTable;
+	VariantMapModel * m_modelTerrains;
+	VariantMapModel * m_modelObjectives;
 };
 
 

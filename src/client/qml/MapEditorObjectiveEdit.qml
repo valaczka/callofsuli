@@ -47,8 +47,6 @@ QPagePanel {
 									   moduleData: data
 								   })
 
-			if (swipeMode)
-				parent.parentPage.swipeToPage(1)
 		}
 
 

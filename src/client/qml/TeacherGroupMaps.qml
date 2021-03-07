@@ -11,7 +11,8 @@ QPagePanel {
 
 	layoutFillWidth: true
 
-	title: qsTr("Pályák")
+	title: teacherGroups.selectedGroupId == -1 ? "" : qsTr("Hozzárendelt pályák")
+	subtitle: ""
 	icon: "image://font/AcademicI/\uf15f"
 
 	property alias list: mapList
@@ -61,6 +62,16 @@ QPagePanel {
 			d.open()
 		}
 
+
+		function onGroupGet(jsonData) {
+			panel.subtitle = jsonData.name
+		}
+
+		function onSelectedGroupIdChanged(groupid) {
+			if (groupid === -1)
+				panel.subtitle = ""
+		}
+
 	}
 
 
@@ -70,6 +81,7 @@ QPagePanel {
 		anchors.centerIn: parent
 		action: actionMapAdd
 		visible: teacherGroups.selectedGroupId != -1 && !teacherGroups.modelMapList.count
+		color: CosStyle.colorOK
 	}
 
 	QVariantMapProxyView {
@@ -159,6 +171,7 @@ QPagePanel {
 		}
 	}
 
+	onPopulated: mapList.forceActiveFocus()
 }
 
 

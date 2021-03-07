@@ -9,8 +9,6 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	requiredPanelWidth: 900
-
 	title: qsTr("Elfelejtett jelszó")
 
 	onlyPanel: QPagePanel {
@@ -19,7 +17,6 @@ QPage {
 		title: page.title
 		maximumWidth: 600
 
-		//onPanelActivated:
 		onPopulated: textEmail.forceActiveFocus()
 
 		Connections {

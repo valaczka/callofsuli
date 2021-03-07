@@ -653,12 +653,6 @@ void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 {
 	GameMatch *match = qobject_cast<GameMatch *>(sender());
 
-	int maxLevel = m_demoSolverMap.value(uuid, -1).toInt();
-
-	if (maxLevel > level)
-		return;
-
-	m_demoSolverMap[uuid] = level;
 
 	QJsonObject o;
 
@@ -671,6 +665,14 @@ void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 	o["success"] = true;
 
 	onGameFinish(o, QByteArray());
+
+
+	int maxLevel = m_demoSolverMap.value(uuid, -1).toInt();
+
+	if (maxLevel > level)
+		return;
+
+	m_demoSolverMap[uuid] = level;
 }
 
 

@@ -19,6 +19,7 @@ QDialogPanel {
 	property alias modelTitleRole: list.modelTitleRole
 	property alias modelSubTitleRole: list.modelSubtitleRole
 	property alias delegateHeight: list.delegateHeight
+	property string modelIconRole: ""
 
 	maximumHeight: 0
 	maximumWidth: 700
@@ -51,6 +52,20 @@ QDialogPanel {
 		modelTitleRole: roles[0]
 
 		autoSelectorChange: false
+
+
+		leftComponent: QFontImage {
+			width: visible ? list.delegateHeight : 0
+			height: width
+			size: Math.min(height*0.8, 32)
+
+			icon: model && modelIconRole.length ? model[modelIconRole] : ""
+
+			visible: icon.length
+
+			color: list.colorTitle
+		}
+
 
 		onClicked: if (simpleSelect) {
 					   acceptedData = model.mapToSource(currentIndex)

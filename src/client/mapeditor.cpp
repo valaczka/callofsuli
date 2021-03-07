@@ -48,6 +48,8 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_database(nullptr)
 	, m_databaseUuid()
 	, m_databaseTable()
+	, m_modelTerrains(nullptr)
+	, m_modelObjectives(nullptr)
 {
 	m_map["campaignAdd"] = &MapEditor::campaignAdd;
 	m_map["campaignModify"] = &MapEditor::campaignModify;
@@ -91,6 +93,25 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["blockChapterMapChapterRemove"] = &MapEditor::blockChapterMapChapterRemove;
 
 
+	m_modelTerrains = new VariantMapModel({
+											  "details",
+											  "name"
+										  },
+										  this);
+
+	m_modelTerrains->setVariantList(Client::mapToList(Client::terrainMap(), "name"), "name");
+
+
+	m_modelObjectives = new VariantMapModel({
+												"module",
+												"icon",
+												"name"
+											},
+											this);
+
+	m_modelObjectives->setVariantList(Client::mapToList(Client::objectiveModuleMap(), "module"), "module");
+
+
 	CosDb *db = new CosDb("editorDb", this);
 	db->setDatabaseName(Client::standardPath("tmpmapeditor.db"));
 	addDb(db, true);
@@ -110,7 +131,8 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 MapEditor::~MapEditor()
 {
-
+	delete m_modelTerrains;
+	delete m_modelObjectives;
 }
 
 
@@ -396,6 +418,24 @@ void MapEditor::setDatabaseTable(QString databaseTable)
 
 	m_databaseTable = databaseTable;
 	emit databaseTableChanged(m_databaseTable);
+}
+
+void MapEditor::setModelTerrains(VariantMapModel *modelTerrains)
+{
+	if (m_modelTerrains == modelTerrains)
+		return;
+
+	m_modelTerrains = modelTerrains;
+	emit modelTerrainsChanged(m_modelTerrains);
+}
+
+void MapEditor::setModelObjectives(VariantMapModel *modelObjectives)
+{
+	if (m_modelObjectives == modelObjectives)
+		return;
+
+	m_modelObjectives = modelObjectives;
+	emit modelObjectivesChanged(m_modelObjectives);
 }
 
 
@@ -1655,6 +1695,10 @@ void MapEditor::chapterListReload(QVariantMap)
 											  "storage, module, data "
 											  "FROM objectives "
 											  "LEFT JOIN chapters ON (chapters.id=objectives.chapter)"
+
+												  /*"storages.module as storageModule, storages.data as storageData "
+												  "FROM objectives "
+												  "LEFT JOIN storages ON (storages.id=objectives.storage) "*/
 											  );
 	emit chapterListReloaded(list);
 }

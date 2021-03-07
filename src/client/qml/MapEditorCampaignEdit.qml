@@ -25,16 +25,7 @@ QPagePanel {
 	maximumWidth: 700
 
 
-	title: switch (editType) {
-		   case MapEditorCampaignEdit.Campaign:
-			   qsTr("Hadjárat")
-			   break
-		   case MapEditorCampaignEdit.Mission:
-			   qsTr("Küldetés")
-			   break
-		   default:
-			   ""
-		   }
+	title: qsTr("Adatok")
 
 
 
@@ -91,11 +82,14 @@ QPagePanel {
 			if (!Object.keys(data).length) {
 				editType = MapEditorCampaignEdit.Invalid
 				campaignId = -1
+				panel.title = ""
 				return
 			}
 
 			if (data.id !== campaignId)
 				return
+
+			panel.title = data.name
 
 			modelCampaignLock.clear()
 
@@ -107,9 +101,6 @@ QPagePanel {
 			modelCampaignLock.setVariantList(data.locks, "lock")
 
 			campaignLocksCollapsible.collapsed = !data.locks.length
-
-			if (swipeMode)
-				parent.parentPage.swipeToPage(1)
 		}
 
 
@@ -164,11 +155,14 @@ QPagePanel {
 			if (!Object.keys(data).length) {
 				editType = MapEditorCampaignEdit.Invalid
 				missionUuid = ""
+				panel.title = ""
 				return
 			}
 
 			if (data.uuid !== missionUuid)
 				return
+
+			panel.title = data.name
 
 			modelMissionLock.clear()
 			modelMissionLevel.clear()
@@ -182,13 +176,23 @@ QPagePanel {
 							], data)
 
 			modelMissionLock.setVariantList(data.locks, "lock")
-			modelMissionLevel.setVariantList(data.levels, "level")
+
+			var ll = data.levels
+			ll.push({
+						rowid: -1,
+						level: ll.length+1,
+						terrain: "",
+						startHP: 0,
+						duration: 0,
+						startBlock: 0,
+						imageFolder: "",
+						imageFile: ""
+					})
+
+			modelMissionLevel.setVariantList(ll, "level")
 
 			missionLocksCollapsible.collapsed = !data.locks.length
 
-
-			if (swipeMode)
-				parent.parentPage.swipeToPage(1)
 		}
 
 
@@ -377,6 +381,7 @@ QPagePanel {
 		QToolButtonBig {
 			anchors.horizontalCenter: parent.horizontalCenter
 			action: actionMissionNew
+			color: CosStyle.colorOK
 		}
 
 	}
@@ -541,16 +546,8 @@ QPagePanel {
 		QCollapsible {
 			title: qsTr("Szintek")
 
-			QToolButtonBig {
-				anchors.horizontalCenter: parent.horizontalCenter
-				action: actionMissionLevelAdd
-				visible: !modelMissionLevel.count
-			}
-
 			QVariantMapProxyView {
 				id: missionLevelsView
-
-				visible: modelMissionLevel.count
 
 				model: SortFilterProxyModel {
 					id: missionLevelsProxyModel
@@ -564,18 +561,24 @@ QPagePanel {
 					proxyRoles: [
 						ExpressionRole {
 							name: "img"
-							expression: model.imageFolder.length && model.imageFile.length ?
-											"image://mapdb/"+model.imageFolder+"/"+model.imageFile :
-											"qrc:/internal/game/bg.png"
+							expression: model.rowid === -1 ? "" :
+															 ( model.imageFolder.length && model.imageFile.length ?
+																  "image://mapdb/"+model.imageFolder+"/"+model.imageFile :
+																  "qrc:/internal/game/bg.png")
 
 						},
 						ExpressionRole {
 							name: "fullname"
-							expression: model.level+qsTr(". szint")
+							expression: model.rowid === -1 ? qsTr("Új szint létrehozása") : model.level+qsTr(". szint")
 						},
 						SwitchRole {
-							name: "weight"
-							defaultValue: Font.Medium
+							name: "textColor"
+							filters: ValueFilter {
+								roleName: "rowid"
+								value: -1
+								SwitchRole.value: CosStyle.colorOK
+							}
+							defaultValue: CosStyle.colorPrimary
 						}
 					]
 				}
@@ -583,8 +586,10 @@ QPagePanel {
 				autoSelectorChange: false
 
 				modelTitleRole: "fullname"
-				modelTitleWeightRole: "weight"
 				modelSubtitleRole: "terrain"
+
+				modelTitleColorRole: "textColor"
+				fontWeightTitle: Font.Medium
 
 				delegateHeight: CosStyle.pixelSize*5
 
@@ -603,34 +608,56 @@ QPagePanel {
 						anchors.verticalCenter: parent.verticalCenter
 
 						source: model && model.img ? model.img : ""
+
+						QFontImage {
+							anchors.centerIn: parent
+							icon: "image://font/AcademicI/\uf125"
+							size: CosStyle.pixelSize*1.5
+							color: model ? model.textColor : CosStyle.colorPrimary
+							visible: model && model.rowid === -1
+						}
 					}
 				}
 
-				width: parent.width-missionLevelsCol.width
+				rightComponent: QToolButton {
+					display: AbstractButton.IconOnly
+					icon.source: CosStyle.iconDelete
+					visible: modelIndex === missionLevelsView.model.count-2
+
+					ToolTip.text: qsTr("Utolsó szint törlése")
+
+					color: CosStyle.colorErrorLighter
+					onClicked: {
+						mapEditor.run("missionLevelRemove", {uuid: missionUuid })
+					}
+				}
+
+				width: parent.width
 
 				onClicked: {
-					mapEditor.levelSelected(model.get(index).rowid, missionUuid)
+					var rowid = model.get(index).rowid
+
+					if (rowid === -1) {
+						var i = CosStyle.iconLockAdd
+						var d = JS.dialogCreateQml("List", {
+													   roles: ["details", "name"],
+													   icon: i,
+													   title: qsTr("Harcmező kiválasztása"),
+													   selectorSet: false,
+													   sourceModel: mapEditor.modelTerrains
+												   })
+
+						d.accepted.connect(function(data) {
+							var p = d.item.sourceModel.get(data)
+							mapEditor.run("missionLevelAdd", {mission: missionUuid, terrain: p.name, terrainData: p.data })
+						})
+						d.open()
+					} else {
+						mapEditor.levelSelected(rowid, missionUuid)
+					}
 				}
 
 			}
-
-			Column {
-				id: missionLevelsCol
-				anchors.left: missionLevelsView.right
-
-				visible: missionLevelsView.visible
-
-				QToolButton {
-					display: AbstractButton.IconOnly
-					action: actionMissionLevelAdd
-				}
-
-				QToolButton {
-					display: AbstractButton.IconOnly
-					action: actionMissionLevelRemove
-				}
-			}
-
 		}
 
 
@@ -642,7 +669,7 @@ QPagePanel {
 	Action {
 		id: actionMissionLockAdd
 		text: qsTr("Hozzáadás")
-		icon.source: CosStyle.iconLockAdd
+		icon.source: CosStyle.iconAdd
 
 		onTriggered: mapEditor.run("missionLockGetList", {uuid: missionUuid})
 	}
@@ -650,7 +677,7 @@ QPagePanel {
 	Action {
 		id: actionMissionLockRemove
 		text: qsTr("Eltávolítás")
-		icon.source: CosStyle.iconLockDisabled
+		icon.source: CosStyle.iconRemove
 		enabled: !mapEditor.isBusy && (missionLocksView.currentIndex !== -1 || modelMissionLock.selectedCount)
 		onTriggered: {
 			var o = missionLocksView.model.get(missionLocksView.currentIndex)
@@ -668,7 +695,7 @@ QPagePanel {
 	Action {
 		id: actionMissionLockModify
 		text: qsTr("Szint")
-		icon.source: CosStyle.iconLockDisabled
+		icon.source: "image://font/School/\uf179"
 		enabled: !mapEditor.isBusy && missionLocksView.currentIndex !== -1 && !missionLocksView.selectorSet
 
 		onTriggered: {
@@ -684,42 +711,8 @@ QPagePanel {
 
 
 
-	Action {
-		id: actionMissionLevelAdd
-		text: qsTr("Hozzáadás")
-		icon.source: CosStyle.iconLockAdd
-
-		onTriggered: {
-			var model = mapEditor.newModel(["details", "name"])
-
-			var d = JS.dialogCreateQml("List", {
-										   roles: ["details", "name"],
-										   icon: CosStyle.iconLockAdd,
-										   title: qsTr("Harcmező kiválasztása"),
-										   selectorSet: false,
-										   sourceModel: model
-									   })
-
-			model.setVariantList(cosClient.mapToList(cosClient.terrainMap(), "name"), "name")
-
-			d.accepted.connect(function(data) {
-				var p = d.item.sourceModel.get(data)
-				mapEditor.run("missionLevelAdd", {mission: missionUuid, terrain: p.name, terrainData: p.data })
-			})
-			d.open()
-		}
-	}
 
 
-	Action {
-		id: actionMissionLevelRemove
-		text: qsTr("Utolsó szint eltávolítása")
-		icon.source: CosStyle.iconLockDisabled
-		enabled: !mapEditor.isBusy && modelMissionLevel.count
-		onTriggered: {
-			mapEditor.run("missionLevelRemove", {uuid: missionUuid })
-		}
-	}
 
 
 
@@ -730,7 +723,7 @@ QPagePanel {
 	Action {
 		id: actionLockAdd
 		text: qsTr("Hozzáadás")
-		icon.source: CosStyle.iconLockAdd
+		icon.source: CosStyle.iconAdd
 
 		onTriggered: mapEditor.run("campaignLockGetList", {"id": campaignId})
 	}
@@ -738,7 +731,7 @@ QPagePanel {
 	Action {
 		id: actionLockRemove
 		text: qsTr("Eltávolítás")
-		icon.source: CosStyle.iconLockDisabled
+		icon.source: CosStyle.iconRemove
 		enabled: !mapEditor.isBusy && (locksView.currentIndex !== -1 || modelCampaignLock.selectedCount)
 		onTriggered: {
 			var o = locksView.model.get(locksView.currentIndex)

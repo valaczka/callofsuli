@@ -51,8 +51,6 @@ QPagePanel {
 
 			blockCollapsible.collapsed = !data.blocks.length
 
-			if (swipeMode)
-				parent.parentPage.swipeToPage(1)
 		}
 
 
@@ -191,6 +189,7 @@ QPagePanel {
 				anchors.horizontalCenter: parent.horizontalCenter
 				action: actionChapterAdd
 				visible: !modelChapter.count
+				color: CosStyle.colorOK
 			}
 
 			QVariantMapProxyView {
@@ -332,8 +331,6 @@ QPagePanel {
 		mapEditor.levelComponentsCompleted++
 	}
 
-	onPanelActivated: {
-	}
 }
 
 

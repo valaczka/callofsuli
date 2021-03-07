@@ -166,33 +166,26 @@ QPage {
 
 	property list<Component> cmpCampaigns: [
 		Component { MapEditorCampaignList {
-				panelVisible: true
 			} },
 		Component { MapEditorCampaignEdit {
-				panelVisible: true
 			} }
 	]
 
 
 	property list<Component> cmpChapters: [
-		Component { MapEditorChapterListNew {
-				panelVisible: true
-			} }/*,
+		Component { MapEditorChapterList {
+			} },
 		Component { MapEditorObjectiveEdit {
-				panelVisible: true
-			} }*/
+			} }
 	]
 
 
 	property list<Component> cmpLevel: [
 		Component { MapEditorLevelGeneral {
-				panelVisible: true
 			} },
 		Component { MapEditorLevelChapters {
-				panelVisible: true
 			} },
 		Component { MapEditorLevelInventory {
-				panelVisible: true
 			} }
 	]
 

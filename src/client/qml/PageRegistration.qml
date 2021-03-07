@@ -11,8 +11,6 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	requiredPanelWidth: 900
-
 	mainToolBar.title: qsTr("Regisztráció")
 
 
@@ -23,7 +21,6 @@ QPage {
 
 				title: qsTr("Regisztráció")
 				maximumWidth: 600
-				panelVisible: true
 				layoutFillWidth: true
 
 				QGridLayout {
@@ -137,6 +134,7 @@ QPage {
 					}
 				}
 
+				onPopulated: grid.domainMode ? textEmail2.forceActiveFocus() : textEmail.forceActiveFocus()
 			}
 		}
 	]

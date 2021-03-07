@@ -9,8 +9,6 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	requiredPanelWidth: 900
-
 	defaultTitle: cosClient.serverName
 
 	mainToolBarComponent: UserButton {
@@ -22,113 +20,100 @@ QPage {
 		id: userData
 	}
 
-	swipeMode: control.width < 900
+	panelComponents: [
+		Component {
+			QPagePanel {
+				id: panel
 
-	panelComponents: Component {
-		QPagePanel {
-			panelVisible: true
-			layoutFillWidth: true
+				title: ""
+				maximumWidth: 600
 
-			id: panel
+				borderColor: CosStyle.colorAccentDarker
 
-			title: ""
-			maximumWidth: 600
+				QMenuItemDelegate {
+					id: list
+					anchors.fill: parent
 
-			borderColor: CosStyle.colorAccentDarker
+					model: ListModel { }
 
-			QMenuItemDelegate {
-				id: list
-				anchors.fill: parent
-
-				model: ListModel { }
-
-				onClicked: JS.createPage(model.get(index).page, model.get(index).params)
-			}
-
-			onPanelActivated: reloadModel()
-
-			onPopulated: reloadModel()
-
-
-			function reloadModel() {
-				list.model.clear()
-
-				list.model.append({
-									  labelTitle: qsTr("Rangsor"),
-									  page: "Score",
-									  params: {}
-								  })
-
-				if (cosClient.userRoles & CosMessage.RoleStudent)
-					list.model.append({
-										  labelTitle: qsTr("Pályák"),
-										  page: "StudentMap",
-										  params: {}
-									  })
-
-				if (cosClient.userRoles & CosMessage.RoleTeacher)
-					list.model.append({
-										  labelTitle: qsTr("Pályák kezelése"),
-										  page: "TeacherMap",
-										  params: {}
-									  })
-
-				if (cosClient.userRoles & CosMessage.RoleTeacher)
-					list.model.append({
-										  labelTitle: qsTr("Csoportok kezelése"),
-										  page: "TeacherGroup",
-										  params: {}
-									  })
-
-				if (cosClient.userRoles & CosMessage.RoleAdmin)
-					list.model.append({
-										  labelTitle: qsTr("Szerver beállításai"),
-										  page: "ServerSettings",
-										  params: {}
-									  })
-
-				if (cosClient.userRoles & CosMessage.RoleAdmin)
-					list.model.append({
-										  labelTitle: qsTr("Felhasználók kezelése"),
-										  page: "AdminUsers",
-										  params: {}
-									  })
-
-
-				if (cosClient.userRoles & CosMessage.RoleGuest)
-					list.model.append({
-										  labelTitle: qsTr("Bejelentkezés"),
-										  page: "Login",
-										  params: {}
-									  })
-
-				if ((cosClient.userRoles & CosMessage.RoleGuest) && cosClient.registrationEnabled)
-					list.model.append({
-										  labelTitle: qsTr("Regisztráció"),
-										  page: "Registration",
-										  params: {}
-									  })
-
-
-				list.forceActiveFocus()
-			}
-
-			Connections {
-				target: cosClient
-				function onUserRolesChanged(userRoles) {
-					reloadModel()
+					onClicked: JS.createPage(model.get(index).page, model.get(index).params)
 				}
-			}
 
-			Connections {
-				target: page
-				function onPageActivated() {
+				onPopulated: reloadModel()
+
+
+				function reloadModel() {
+					list.model.clear()
+
+					list.model.append({
+										  labelTitle: qsTr("Rangsor"),
+										  page: "Score",
+										  params: {}
+									  })
+
+					if (cosClient.userRoles & CosMessage.RoleStudent)
+						list.model.append({
+											  labelTitle: qsTr("Pályák"),
+											  page: "StudentMap",
+											  params: {}
+										  })
+
+					if (cosClient.userRoles & CosMessage.RoleTeacher)
+						list.model.append({
+											  labelTitle: qsTr("Pályák kezelése"),
+											  page: "TeacherMap",
+											  params: {}
+										  })
+
+					if (cosClient.userRoles & CosMessage.RoleTeacher)
+						list.model.append({
+											  labelTitle: qsTr("Csoportok kezelése"),
+											  page: "TeacherGroup",
+											  params: {}
+										  })
+
+					if (cosClient.userRoles & CosMessage.RoleAdmin)
+						list.model.append({
+											  labelTitle: qsTr("Szerver beállításai"),
+											  page: "ServerSettings",
+											  params: {}
+										  })
+
+					if (cosClient.userRoles & CosMessage.RoleAdmin)
+						list.model.append({
+											  labelTitle: qsTr("Felhasználók kezelése"),
+											  page: "AdminUsers",
+											  params: {}
+										  })
+
+
+					if (cosClient.userRoles & CosMessage.RoleGuest)
+						list.model.append({
+											  labelTitle: qsTr("Bejelentkezés"),
+											  page: "Login",
+											  params: {}
+										  })
+
+					if ((cosClient.userRoles & CosMessage.RoleGuest) && cosClient.registrationEnabled)
+						list.model.append({
+											  labelTitle: qsTr("Regisztráció"),
+											  page: "Registration",
+											  params: {}
+										  })
+
+
 					list.forceActiveFocus()
 				}
-			}
 
+				Connections {
+					target: cosClient
+					function onUserRolesChanged(userRoles) {
+						reloadModel()
+					}
+				}
+			}
 		}
-	}
+	]
 
 
 

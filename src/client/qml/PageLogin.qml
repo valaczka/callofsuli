@@ -11,8 +11,6 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	requiredPanelWidth: 900
-
 	mainToolBar.title: cosClient.serverName
 
 	panelComponents: [
@@ -22,10 +20,7 @@ QPage {
 
 				title: qsTr("Bejelentkezés")
 				maximumWidth: 600
-				panelVisible: true
 				layoutFillWidth: true
-
-				onPanelActivated: textUser.forceActiveFocus()
 
 				QGridLayout {
 					id: grid

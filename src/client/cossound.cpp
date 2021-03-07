@@ -44,6 +44,7 @@ CosSound::CosSound(QObject *parent)
 	, m_soundTypeSfx(GameSfx)
 	, m_musicNextSource()
 	, m_fadeAnimation(new QVariantAnimation(this))
+	, m_musicVolume(0)
 {
 	m_fadeAnimation->setDuration(750);
 	m_fadeAnimation->setEndValue(0);
@@ -64,7 +65,7 @@ CosSound::~CosSound()
 	if (m_mediaPlayerMusic && m_mediaPlayerSfx && m_mediaPlayerVoiceOver) {
 		QSettings s;
 		s.beginGroup("sound");
-		s.setValue("volumeMusic", volumeMusic());
+		s.setValue("volumeMusic", m_musicVolume);
 		s.setValue("volumeSfx", volumeSfx());
 		s.setValue("volumeVoiceOver", volumeVoiceOver());
 		s.endGroup();
@@ -95,9 +96,9 @@ void CosSound::init()
 
 	m_soundTypeSfx = GameSfx;
 
-	connect (m_mediaPlayerMusic, &QMediaPlayer::volumeChanged, this, &CosSound::volumeMusicChanged);
+	/*connect (m_mediaPlayerMusic, &QMediaPlayer::volumeChanged, this, &CosSound::volumeMusicChanged);
 	connect (m_mediaPlayerSfx, &QMediaPlayer::volumeChanged, this, &CosSound::volumeSfxChanged);
-	connect (m_mediaPlayerVoiceOver, &QMediaPlayer::volumeChanged, this, &CosSound::volumeVoiceOverChanged);
+	connect (m_mediaPlayerVoiceOver, &QMediaPlayer::volumeChanged, this, &CosSound::volumeVoiceOverChanged);*/
 
 	connect(m_mediaPlayerVoiceOver, &QMediaPlayer::stateChanged, this, [=](QMediaPlayer::State state) {
 		if (state == QMediaPlayer::StoppedState && m_mediaPlayerVoiceOver->playlist()) {
@@ -109,7 +110,7 @@ void CosSound::init()
 		m_mediaPlayerMusic->setVolume(value.toInt());
 	});
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, [=]() {
-		m_mediaPlayerMusic->setVolume(m_fadeAnimation->startValue().toInt());
+		m_mediaPlayerMusic->setVolume(m_musicVolume);
 	});
 
 	QSettings s;
@@ -228,6 +229,43 @@ void CosSound::stopSound(const QString &source, const SoundType &soundType)
 
 
 /**
+ * @brief CosSound::setVolumeSfx
+ * @param volume
+ */
+
+void CosSound::setVolumeSfx(int volume)
+{
+	if (m_mediaPlayerSfx) m_mediaPlayerSfx->setVolume(volume);
+	emit volumeSfxChanged(volume);
+}
+
+/**
+ * @brief CosSound::setVolumeMusic
+ * @param volume
+ */
+
+void CosSound::setVolumeMusic(int volume)
+{
+	if (m_mediaPlayerMusic) m_mediaPlayerMusic->setVolume(volume);
+	emit volumeMusicChanged(volume);
+	m_musicVolume = volume;
+}
+
+
+
+/**
+ * @brief CosSound::setVolumeVoiceOver
+ * @param volume
+ */
+
+void CosSound::setVolumeVoiceOver(int volume)
+{
+	if (m_mediaPlayerVoiceOver) m_mediaPlayerVoiceOver->setVolume(volume);
+	emit volumeVoiceOverChanged(volume);
+}
+
+
+/**
  * @brief CosSound::musicPlay
  * @param source
  */
@@ -266,6 +304,8 @@ void CosSound::musicLoadNextSource()
 		m_mediaPlayerMusic->stop();
 		return;
 	}
+
+	m_mediaPlayerMusic->setVolume(m_musicVolume);
 
 	QMediaPlaylist *playlist = m_mediaPlayerMusic->playlist();
 

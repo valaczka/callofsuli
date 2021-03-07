@@ -23,26 +23,18 @@ QPage {
 	}
 
 
-	property list<Component> listComponents: [
-		Component { QPagePanel {
-				panelVisible: true
-				layoutFillWidth: true
-				Connections {
-					target: page
-					function onPageActivated() {
-						list.forceActiveFocus()
-					}
-				}
-			} }
+	panelComponents: [
+		Component { QPagePanel {  } }
 	]
-
-	panelComponents: listComponents
 
 
 	mainMenuFunc: function (m) {
 		m.addAction(actionSave)
 	}
 
+	onStackModeChanged: {
+
+	}
 
 
 	onPageActivated: {

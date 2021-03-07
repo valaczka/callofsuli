@@ -31,7 +31,7 @@ QPagePanel {
 			AllOf {
 				RegExpFilter {
 					enabled: toolbar.searchBar.text.length
-					roleName: "name"
+					roleName: "data"
 					pattern: toolbar.searchBar.text
 					caseSensitivity: Qt.CaseInsensitive
 					syntax: RegExpFilter.FixedString
@@ -82,6 +82,15 @@ QPagePanel {
 				defaultValue: CosStyle.colorPrimaryLighter
 			},
 			SwitchRole {
+				name: "height"
+				filters: ValueFilter {
+					roleName: "type"
+					value: 1
+					SwitchRole.value: CosStyle.twoLineHeight*1.5
+				}
+				defaultValue: CosStyle.baseHeight
+			},
+			SwitchRole {
 				name: "fontWeight"
 				filters: ValueFilter {
 					roleName: "type"
@@ -108,6 +117,7 @@ QPagePanel {
 		modelDepthRole: "type"
 		modelTitleColorRole: "textColor"
 		modelTitleWeightRole: "fontWeight"
+		modelDelegateHeightRole: "height"
 
 		depthWidth: CosStyle.baseHeight*0.5
 
@@ -117,7 +127,7 @@ QPagePanel {
 		autoUnselectorChange: true
 
 		leftComponent: QFontImage {
-			width: visible ? list.delegateHeight*0.8 : 0
+			width: visible ? CosStyle.twoLineHeight*1.5 : 0
 			height: width
 			size: Math.min(height*0.8, 32)
 
@@ -149,7 +159,7 @@ QPagePanel {
 				anchors.verticalCenter: parent.verticalCenter
 				ToolTip.text: qsTr("Célpont kettőzése")
 
-				icon.source: CosStyle.iconEdit
+				icon.source: CosStyle.iconDuplicate
 				enabled: !mapEditor.isBusy
 				onClicked: {
 					mapEditor.run("objectiveAdd", {chapter: model.id, module: model.module, data: model.data })
@@ -232,6 +242,7 @@ QPagePanel {
 		anchors.centerIn: parent
 		visible: !mapEditor.modelChapterList.count
 		action: actionChapterNew
+		color: CosStyle.colorOK
 	}
 
 
@@ -287,19 +298,16 @@ QPagePanel {
 		icon.source: CosStyle.iconAdd
 		enabled: !mapEditor.isBusy && list.currentIndex !== -1
 		onTriggered: {
-			var model = mapEditor.newModel(["details", "name"])
-
 			var o = list.model.get(list.currentIndex)
 
 			var d = JS.dialogCreateQml("List", {
-										   roles: ["name", "module"],
+										   roles: ["name", "icon", "module"],
 										   icon: CosStyle.iconLockAdd,
 										   title: qsTr("Modul kiválasztása"),
 										   selectorSet: false,
-										   sourceModel: model
+										   sourceModel: mapEditor.modelObjectives,
+										   modelIconRole: "icon"
 									   })
-
-			model.setVariantList(cosClient.mapToList(cosClient.objectiveModuleMap(), "module"), "module")
 
 			d.accepted.connect(function(data) {
 				mapEditor.run("objectiveAdd", {chapter: o.id, module: d.item.sourceModel.get(data).module })
@@ -372,9 +380,6 @@ QPagePanel {
 		mapEditor.run("chapterListReload")
 	}
 
-	onPanelActivated: {
-		list.forceActiveFocus()
-	}
 }
 
 

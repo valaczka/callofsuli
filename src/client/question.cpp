@@ -95,17 +95,17 @@ QVariantMap Question::objectivesMap()
 
 	m["simplechoice"] = QVariantMap({
 										{ "name", QObject::tr("Egyszerű választás") },
-										{ "icon", "image://font/Material Icons/\ue163" }
+										{ "icon", "image://font/Material Icons/\ue1db" }
 									});
 
 	m["truefalse"] = QVariantMap({
 									 { "name", QObject::tr("Igaz/hamis") },
-									 { "icon", "image://font/Academic/\uf12f" }
+									 { "icon", "image://font/School/\uf124" }
 								 });
 
 	m["calculator"] = QVariantMap({
 									  { "name", QObject::tr("Számolás") },
-									  { "icon", "image://font/Academic/\uf12f" }
+									  { "icon", "image://font/AcademicI/\uf127" }
 								  });
 
 	return m;
@@ -362,7 +362,7 @@ QStringList Question::toStringListSimplechoice(const QVariantMap &data, const QS
 	l.append(data.value("question").toString());
 
 	QStringList answers = data.value("answers").toStringList();
-	l.append(data.value("correct").toString()+" ("+answers.join(",")+")");
+	l.append("<b>"+data.value("correct").toString()+"</b><br>("+answers.join(",")+")");
 
 	return l;
 }
@@ -412,13 +412,57 @@ QVariantMap Question::generateCalculator() const
 
 QStringList Question::toStringListCalculator(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
-	Q_UNUSED(storageModule)
 	Q_UNUSED(storageData)
-	Q_UNUSED(data)
+
+
+	if (storageModule == "plusminus") {
+		bool isSubtract = data.value("subtract", false).toBool();
+		int canNegative = data.value("canNegative", 0).toInt();
+		bool allCanNegative = canNegative > 1;
+		int range = data.value("range", 1).toInt();
+
+		QStringList l;
+		if (isSubtract)
+			l.append(QObject::tr("Kivonás"));
+		else
+			l.append(QObject::tr("Összeadás"));
+
+		QString details = "<b>";
+
+		if (range >= 3) {
+			if (allCanNegative)
+				details = QObject::tr("-100 és 100 között");
+			else
+				details = QObject::tr("0 és 100 között");
+		} else if (range == 2) {
+			if (allCanNegative)
+				details = QObject::tr("-50 és 50 között");
+			else
+				details = QObject::tr("0 és 50 között");
+		} else if (range == 3) {
+			if (allCanNegative)
+				details = QObject::tr("-20 és 20 között");
+			else
+				details = QObject::tr("0 és 20 között");
+		} else {
+			if (allCanNegative)
+				details = QObject::tr("-10 és 10 között");
+			else
+				details = QObject::tr("0 és 10 között");
+		}
+
+		details += "</b>";
+
+		if (!canNegative)
+			details += "<br>"+QObject::tr("nem lehet negatív eredmény");
+
+		l.append(details);
+		return l;
+	}
 
 	QStringList l;
 	l.append("Test calculator");
-	l.append("test");
+	l.append("test -- "+storageModule);
 
 	return l;
 }

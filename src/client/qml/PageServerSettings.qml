@@ -11,8 +11,6 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
-	requiredPanelWidth: 700
-
 	title: qsTr("Szerver beállításai")
 
 	mainToolBarComponent: QToolButton { action: actionSave }
@@ -29,7 +27,6 @@ QPage {
 			maximumWidth: 600
 
 			layoutFillWidth: true
-			panelVisible: true
 
 			QAccordion {
 				id: accordion
