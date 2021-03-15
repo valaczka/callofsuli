@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GameQuestion_truefalse.qml</file>
+        <file>MapEditorObjectiveEdit_truefalse.qml</file>
+    </qresource>
+</RCC>

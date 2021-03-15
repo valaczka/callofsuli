@@ -7,6 +7,10 @@ include(../../common/common.pri)
 include(../SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../Bacon2D-static/src/Bacon2D-static.pri)
 
+include(modules/simplechoice/simplechoice.pri)
+include(modules/truefalse/truefalse.pri)
+include(modules/calculator/calculator.pri)
+
 
 TEMPLATE = app
 TARGET = callofsuli
@@ -62,8 +66,6 @@ SOURCES += \
 		gameterrain.cpp \
 		main.cpp \
 		mapeditor.cpp \
-		objectiveimportersimplechoice.cpp \
-		objectiveimportertruefalse.cpp \
 		question.cpp \
 		scores.cpp \
 		servers.cpp \
@@ -101,8 +103,6 @@ HEADERS += \
 	gamescene.h \
 	gameterrain.h \
 	mapeditor.h \
-	objectiveimportersimplechoice.h \
-	objectiveimportertruefalse.h \
 	question.h \
 	scores.h \
 	servers.h \

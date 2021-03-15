@@ -87,7 +87,6 @@
         <file>QDialogPanel.qml</file>
         <file>MapEditorChapterList.qml</file>
         <file>MapEditorObjectiveEdit.qml</file>
-        <file>MapEditorObjectiveEdit_simplechoice.qml</file>
         <file>MapEditorObjectiveEditHeader.qml</file>
         <file>MapEditorLevelGeneral.qml</file>
         <file>MapEditorLevelChapters.qml</file>
@@ -99,21 +98,16 @@
         <file>PageMapMissions.qml</file>
         <file>MapMissionList.qml</file>
         <file>MapMissionInfo.qml</file>
-        <file>MapEditorObjectiveEdit_truefalse.qml</file>
-        <file>GameQuestion_truefalse.qml</file>
         <file>QDialogGameSound.qml</file>
         <file>GameButton.qml</file>
         <file>GameInfo.qml</file>
         <file>QListTextFieldDelegate.qml</file>
         <file>GameQuestionButton.qml</file>
-        <file>GameQuestion_simplechoice.qml</file>
         <file>GamePickable.qml</file>
         <file>GamePickableHealth.qml</file>
         <file>GamePickableTime.qml</file>
         <file>GamePlayerLocator.qml</file>
         <file>GameMessageList.qml</file>
-        <file>MapEditorObjectiveEdit_calculator.qml</file>
-        <file>GameQuestion_calculator.qml</file>
         <file>PageScore.qml</file>
         <file>TeacherGroupList.qml</file>
         <file>PageTeacherGroup.qml</file>

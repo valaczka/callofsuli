@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GameQuestion_simplechoice.qml</file>
+        <file>MapEditorObjectiveEdit_simplechoice.qml</file>
+    </qresource>
+</RCC>
