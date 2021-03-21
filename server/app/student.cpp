@@ -183,6 +183,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	QString mapuuid = params.value("map").toString();
 	QString missionuuid = params.value("mission").toString();
 	int level = params.value("level", -1).toInt();
+	bool deathmatch = params.value("deathmatch", false).toBool();
 
 	if (mapuuid.isEmpty() || missionuuid.isEmpty() || level <= 0) {
 		(*jsonResponse)["error"] = "missing map or mission";
@@ -214,6 +215,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	m["missionid"] = missionuuid;
 	m["level"] = level;
 	m["success"] = false;
+	m["deathmatch"] = deathmatch;
 	m["tmpScore"] = 0;
 
 	int rowid = m_client->db()->execInsertQuery("INSERT INTO game (?k?) VALUES (?)", m);
@@ -227,6 +229,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["gameid"] = rowid;
 	(*jsonResponse)["missionid"] = missionuuid;
 	(*jsonResponse)["level"] = level;
+	(*jsonResponse)["deathmatch"] = deathmatch;
 	(*jsonResponse)["hasSolved"] = params.value("hasSolved", false).toBool();
 	return true;
 }
@@ -299,7 +302,8 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	l.append(m_client->clientUserName());
 	l.append(gameid);
 
-	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, missionid, level FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, missionid, level, deathmatch FROM game "
+														"WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid game";
@@ -390,6 +394,8 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantMap stat = m_client->db()->execSelectQueryOneRow("SELECT (SELECT count(*) FROM game WHERE username=? "
 														"AND missionid=? AND level=? AND success=true) as solved, "
+														"(SELECT count(*) FROM game WHERE username=? "
+														"AND missionid=? AND level=? AND deathmatch=true AND success=true) as deathmatchSolved, "
 														"(SELECT count(*) FROM game WHERE username=? and missionid=? AND level=?) as tried,"
 														"(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
 														"AND level=? AND success=true) as maxDuration,"
@@ -401,8 +407,10 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["finished"] = true;
 	(*jsonResponse)["success"] = success;
 	(*jsonResponse)["xp"] = xp;
+	(*jsonResponse)["deathmatch"] = r.value("deathmatch", false).toBool();
 	(*jsonResponse)["tried"] = stat.value("tried", 0).toInt();
 	(*jsonResponse)["solved"] = stat.value("solved", 0).toInt();
+	(*jsonResponse)["deathmatchSolved"] = stat.value("deathmatchSolved", 0).toInt();
 	(*jsonResponse)["currentStreak"] = currentStreak;
 	(*jsonResponse)["maxStreak"] = maxStreak;
 	(*jsonResponse)["streakXP"] = streakXP;

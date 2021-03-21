@@ -12,7 +12,7 @@ QCollapsible {
 	id: control
 
 	property alias textStorageModuleName: textStorageModuleName
-	property alias comboChapter: comboChapter
+	//property alias comboChapter: comboChapter
 
 	QGridLayout {
 		width: parent.width
@@ -22,7 +22,7 @@ QCollapsible {
 
 		QGridLabel { text: qsTr("Szakasz") }
 
-		QGridComboBox {
+		/*QGridComboBox {
 			id: comboChapter
 
 			Layout.fillWidth: true
@@ -50,7 +50,7 @@ QCollapsible {
 			onActivated: {
 				mapEditor.run("objectiveModify", {uuid: objectiveUuid, data: { chapter: model.get(index).id }})
 			}
-		}
+		}*/
 
 
 		QGridLabel {
@@ -78,7 +78,7 @@ QCollapsible {
 		if (!moduleData)
 			return
 
-		comboChapter.setData(moduleData.chapter)
+		//comboChapter.setData(moduleData.chapter)
 
 		if (moduleData.storage)
 			textStorageModuleName.setData(mapEditor.storageInfo(moduleData.storageModule).name)

@@ -150,6 +150,7 @@ protected:
 	void chapterModify(QVariantMap data);
 	void chapterRemove(QVariantMap data);
 	void chapterListReload(QVariantMap = QVariantMap());
+	void chapterLoad(QVariantMap data);
 	void chapterImport(QVariantMap data);
 
 	void objectiveAdd(QVariantMap data);
@@ -168,8 +169,11 @@ protected:
 	void blockChapterMapBlockGetList(QVariantMap data);
 	void blockChapterMapBlockAdd(QVariantMap data);
 	void blockChapterMapBlockRemove(QVariantMap data);
+	void blockChapterMapMissionRemove(QVariantMap data);
+	void blockChapterMapMissionAdd(QVariantMap data);
 
 	void blockChapterMapChapterGetList(QVariantMap data);
+	void blockChapterMapMissionGetList(QVariantMap data);
 	void blockChapterMapChapterAdd(QVariantMap data);
 	void blockChapterMapChapterRemove(QVariantMap data);
 
@@ -188,13 +192,13 @@ signals:
 	void playReady(GameMatch *gameMatch);
 	void playFailed();
 
-	void campaignListReloaded(const QVariantList &list);
 	void campaignAdded(const int &rowid);
 	void campaignModified(const int &id);
 	void campaignRemoved(const int &id);
 	void campaignLoaded(const QVariantMap &data);
 	void campaignSelected(const int &id);
 	void campaignLockListLoaded(const int &id, const QVariantList &list);
+	void campaignListLoaded(const QVariantList &list);
 
 	void missionAdded(const int &rowid, const QString &uuid);
 	void missionModified(const QString &uuid);
@@ -204,13 +208,15 @@ signals:
 	void missionLockListLoaded(const QString &uuid, const QVariantList &list);
 	void missionLockLevelListLoaded(const QString &uuid, const QString &lock, const QVariantList &list);
 
-	void chapterListReloaded(const QVariantList &list);
-	void chapterAdded(const int &rowid);
+	void chapterAdded(const int &id);
 	void chapterModified(const int &id);
 	void chapterRemoved(const int &id);
+	void chapterLoaded(const QVariantMap &data);
 	void chapterSelected(const int &id);
 	void chapterImportFailed(const QString &errorString);
 	void chapterImportReady(const QVariantList &list);
+	void chapterListLoaded(const QVariantList &list);
+	void chapterMissionListLoaded(const QVariantList &list);
 
 	void objectiveAdded(const int &rowid, const QString &uuid);
 	void objectiveModified(const QString &uuid);
@@ -224,9 +230,11 @@ signals:
 	void blockChapterMapLoaded(const QVariantMap &data);
 	void blockChapterMapSelected(const int &id);
 	void blockChapterMapRemoved(const int &id);
+	void blockChapterMapListLoaded(const QVariantList &list);
 
 	void blockChapterMapBlockListLoaded(const int &id, const QVariantList &list);
 	void blockChapterMapChapterListLoaded(const int &id, const QVariantList &list);
+	void blockChapterMapMissionListLoaded(const int &id, const QVariantList &list);
 
 	void loadProgressChanged(qreal loadProgress);
 	void loadProgressFractionChanged(QPair<qreal, qreal> loadProgressFraction);

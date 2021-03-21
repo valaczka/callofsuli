@@ -87,6 +87,7 @@ CREATE TABLE game(
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	level INTEGER NOT NULL DEFAULT 1,
 	success BOOL NOT NULL DEFAULT FALSE,
+	deathmatch BOOL NOT NULL DEFAULT FALSE,
 	duration INTEGER,
 	tmpScore INTEGER
 );

@@ -15,7 +15,10 @@ Page {
 
 	property int requiredPanelWidth: 400
 
+	property real stackTopOffset: -15
+
 	property bool stackMode: control.width < requiredPanelWidth*Math.max(panelComponents.length, 2)
+	property int _oldStackMode: -1
 
 	property alias pageStack: pageStack
 	property alias bgImage: bgImage
@@ -67,47 +70,63 @@ Page {
 
 	onStackModeChanged: resetPanels()
 
-	function resetPanels() {
-		contextMenuFunc = null
-		if (!stackMode) {
-			title = defaultTitle
-			subtitle = defaultSubTitle
+	function resetPanels(forced) {
+		if (!forced && !isCurrentItem && _oldStackMode != -1)
+			return
+
+		var sm = stackMode ? 1 : 0
+
+		if (sm !== _oldStackMode || forced) {
 			contextMenuFunc = null
-		}
+			if (!stackMode) {
+				title = defaultTitle
+				subtitle = defaultSubTitle
+				contextMenuFunc = null
+			}
 
-		for (var j=0; j<mainRow.children.length; j++) {
-			mainRow.children[j].destroy()
-		}
+			for (var j=0; j<mainRow.children.length; j++) {
+				mainRow.children[j].destroy()
+			}
 
-		pageStack.clear()
+			pageStack.clear()
 
-		if (stackMode) {
-			if (panelComponents.length)
-				addStackPanel(panelComponents[0])
+			if (stackMode) {
+				if (panelComponents.length)
+					addStackPanel(panelComponents[0])
 
-		} else {
+			} else {
 
-			for (var i=0; i<panelComponents.length; i++) {
-				var comp = panelComponents[i]
+				for (var i=0; i<panelComponents.length; i++) {
+					var comp = panelComponents[i]
 
-				console.debug(control, "Create", i)
+					console.debug(control, "Create", i)
 
-				var obj = comp.createObject(mainRow, {
-												height: parent.height,
-												"Layout.fillHeight": true
-											})
-				if (obj === null) {
-					console.error("Error creating object")
+					var obj = comp.createObject(mainRow, {
+													height: parent.height,
+													"Layout.fillHeight": true
+												})
+					if (obj === null) {
+						console.error("Error creating object")
+					} else if (i === 0) {
+						obj.populated()
+					}
 				}
 			}
+		} else {
+			if (stackMode && pageStack.currentItem)
+				pageStack.currentItem.populated()
+			else if (!stackMode && mainRow.children.length)
+				mainRow.children[0].populated()
 		}
+
+		_oldStackMode = stackMode
 	}
 
 
 	StackView {
 		id: pageStack
 		anchors.fill: parent
-		anchors.topMargin: toolbar.height-15
+		anchors.topMargin: toolbar.height+stackTopOffset
 
 		property Page parentPage: control
 
@@ -180,18 +199,11 @@ Page {
 	StackView.onRemoved: destroy()
 
 	StackView.onActivated: {
-		if (stackMode && pageStack.currentItem)
-			pageStack.currentItem.populated()
-		else if (!stackMode && mainRow.children.length)
-			mainRow.children[0].populated()
-
+		resetPanels()
 		pageActivated()
 	}
 
 	StackView.onDeactivated:	pageDeactivated()
-
-
-	Component.onCompleted: resetPanels()
 
 
 	function stackBack() {
@@ -204,14 +216,13 @@ Page {
 			return true
 		}
 
-		if (pageStackBack()) {
-			return true
-		}
-
 		if (layoutBack()) {
 			return true
 		}
 
+		if (pageStackBack()) {
+			return true
+		}
 
 		return false
 	}

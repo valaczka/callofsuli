@@ -52,6 +52,7 @@ class GameMatch : public QObject
 	Q_PROPERTY(QString bgImage READ bgImage WRITE setBgImage NOTIFY bgImageChanged)
 	Q_PROPERTY(QString imageDbName READ imageDbName WRITE setImageDbName NOTIFY imageDbNameChanged)
 	Q_PROPERTY(int duration READ duration WRITE setDuration NOTIFY durationChanged)
+	Q_PROPERTY(bool deathmatch READ deathmatch WRITE setDeathmatch NOTIFY deathmatchChanged)
 
 	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXP NOTIFY xpChanged)
@@ -76,12 +77,14 @@ public:
 	int duration() const { return m_duration; }
 	GameMap *gameMap() const { return m_gameMap; }
 	QByteArray missionUuid() const { return m_missionUuid; }
+	bool deathmatch() const { return m_deathmatch; }
 	int gameId() const { return m_gameId; }
 	int xp() const { return m_xp; }
 	int baseXP() const { return m_baseXP; }
 
 	int elapsedTime() const { return m_elapsedTime; }
 	void setElapsedTime(int elapsedTime) { m_elapsedTime = elapsedTime; }
+
 
 public slots:
 	void addXP(const qreal &factor);
@@ -99,6 +102,7 @@ public slots:
 	void setGameId(int gameId);
 	void setXP(int xp);
 	void setBaseXP(int baseXP);
+	void setDeathmatch(bool deathmatch);
 
 signals:
 	void gameLose(const QString &uuid, const int level);
@@ -117,6 +121,7 @@ signals:
 	void gameIdChanged(int gameId);
 	void xpChanged(int xp);
 	void baseXPChanged(int baseXP);
+	void deathmatchChanged(bool deathmatch);
 
 private:
 	GameMap *m_gameMap;
@@ -137,6 +142,7 @@ private:
 	int m_xp;
 	int m_baseXP;
 	int m_elapsedTime;
+	bool m_deathmatch;
 };
 
 

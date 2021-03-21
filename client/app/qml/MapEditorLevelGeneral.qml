@@ -21,14 +21,19 @@ QPagePanel {
 		m.addAction(actionPlay)
 	}
 
+	property VariantMapModel modelBlockChapterMapList: mapEditor.newModel([
+																	"id",
+																	"enemies",
+																	"blocks"
+																])
+
 
 	Connections {
 		target: mapEditor
 
 		function onLevelLoaded(data) {
-			mapEditor.modelBlockChapterMapList.clear()
-
 			if (!Object.keys(data).length) {
+				modelBlockChapterMapList.clear()
 				return
 			}
 
@@ -47,9 +52,10 @@ QPagePanel {
 							], data)
 
 
-			mapEditor.modelBlockChapterMapList.setVariantList(data.blockDataList, "id")
-
 			actionMapAdd.enabled = data.canAdd
+
+			modelBlockChapterMapList.unselectAll()
+			modelBlockChapterMapList.setVariantList(data.blockDataList, "id")
 		}
 
 		function onPlayReady(gameMatch) {
@@ -70,8 +76,6 @@ QPagePanel {
 
 
 	QAccordion {
-		anchors.fill: parent
-
 		QCollapsible {
 			title: qsTr("Általános")
 
@@ -171,7 +175,7 @@ QPagePanel {
 				model: SortFilterProxyModel {
 					id: blocksProxyModel
 
-					sourceModel: mapEditor.modelBlockChapterMapList
+					sourceModel: modelBlockChapterMapList
 
 					sorters: [
 						RoleSorter { roleName: "id" }
@@ -232,17 +236,17 @@ QPagePanel {
 		id: actionMapRemove
 		text: qsTr("Elosztás törlése")
 		icon.source: CosStyle.iconDelete
-		enabled: mapEditor.modelBlockChapterMapList.count > 1 && (blocksView.currentIndex !== -1 || mapEditor.modelBlockChapterMapList.selectedCount)
+		enabled: modelBlockChapterMapList.count > 1 && (blocksView.currentIndex !== -1 || modelBlockChapterMapList.selectedCount)
 
 		onTriggered: {
 			var o = blocksView.model.get(blocksView.currentIndex)
 
-			var more = mapEditor.modelBlockChapterMapList.selectedCount
+			var more = modelBlockChapterMapList.selectedCount
 
 			if (more > 0)
 				mapEditor.run("blockChapterMapRemove", {
 								  rowid: mapEditor.selectedLevelRowID,
-								  list: mapEditor.modelBlockChapterMapList.getSelectedData("id")
+								  list: modelBlockChapterMapList.getSelectedData("id")
 							  })
 			else
 				mapEditor.run("blockChapterMapRemove", {

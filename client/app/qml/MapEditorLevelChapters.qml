@@ -124,8 +124,6 @@ QPagePanel {
 
 
 	QAccordion {
-		anchors.fill: parent
-
 		opacity: mapId != -1
 		visible: opacity != 0
 

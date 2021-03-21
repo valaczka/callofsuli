@@ -321,10 +321,7 @@ QPagePanel {
 	Connections {
 		target: mapEditor
 
-		function onCampaignListReloaded(list) {
-			mapEditor.modelCampaignList.unselectAll()
-			mapEditor.modelCampaignList.setVariantList(list, "uuid");
-		}
+
 
 		function onMissionAdded(rowid, uuid) {
 			if (rowid === -1)

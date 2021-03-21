@@ -45,8 +45,8 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_xp(0)
 	, m_baseXP(0)
 	, m_elapsedTime(-1)
+	, m_deathmatch(false)
 {
-	qDebug() << "GAME MATCH CREATED" << this;
 	setPlayerCharacter("default");
 }
 
@@ -68,10 +68,9 @@ GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObj
 	, m_xp(0)
 	, m_baseXP(0)
 	, m_elapsedTime(-1)
+	, m_deathmatch(false)
 {
 	Q_ASSERT(missionLevel);
-
-	qDebug() << "GAME MATCH CREATED" << this;
 
 	setPlayerCharacter("default");
 
@@ -100,8 +99,6 @@ GameMatch::~GameMatch()
 {
 	if (m_deleteGameMap && m_gameMap)
 		delete m_gameMap;
-
-	qDebug() << "GAME MATCH DESTROYED" << this;
 }
 
 
@@ -276,6 +273,15 @@ void GameMatch::setBaseXP(int baseXP)
 
 	m_baseXP = baseXP;
 	emit baseXPChanged(m_baseXP);
+}
+
+void GameMatch::setDeathmatch(bool deathmatch)
+{
+	if (m_deathmatch == deathmatch)
+		return;
+
+	m_deathmatch = deathmatch;
+	emit deathmatchChanged(m_deathmatch);
 }
 
 

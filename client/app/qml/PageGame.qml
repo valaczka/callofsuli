@@ -36,6 +36,17 @@ Page {
 	property alias gameMatch: game.gameMatch
 	property bool deleteGameMatch: false
 
+	property real _sceneScale: 1.0
+	readonly property real _sceneZoom: 0.3
+
+	Behavior on _sceneScale {
+		NumberAnimation {
+			easing.type: Easing.OutQuart
+			duration: 225
+		}
+	}
+
+
 	on_SceneLoadedChanged: doStep()
 	on_AnimStartEndedChanged: doStep()
 	on_AnimStartReadyChanged: doStep()
@@ -60,8 +71,8 @@ Page {
 	Image {
 		id: bg
 
-		property real scaleFactorWidth: 1.3
-		property real scaleFactorHeight: 1.1
+		property real scaleFactorWidth: 1.0+(0.3*_sceneScale)
+		property real scaleFactorHeight: 1.0+(0.1*_sceneScale)
 
 		visible: !bgSaturate.visible
 
@@ -87,6 +98,18 @@ Page {
 		desaturation: 1.0
 	}
 
+	/*PinchArea {
+		anchors.fill: parent
+
+		onPinchUpdated: {
+			console.debug("PINCH scale", pinch.scale, _sceneScale)
+			if (pinch.scale < 0.9) {
+				_sceneScale = 0.0
+			} else if (pinch.scale > 1.1) {
+				_sceneScale = 1.0
+			}
+		}
+	}*/
 
 	Flickable {
 		id: flick
@@ -150,11 +173,14 @@ Page {
 				id: gameScene
 				game: game
 				scenePrivate.game: game
+
+				scale: _sceneZoom+((1.0-_sceneZoom)*_sceneScale)
 			}
 
 			Connections {
 				target: game.player ? game.player : null
 				function onXChanged(x) {
+					_sceneScale = 1.0
 					flick.setXOffset()
 					flick.setYOffset()
 				}
@@ -164,6 +190,7 @@ Page {
 				}
 
 				function onYChanged(y) {
+					_sceneScale = 1.0
 					flick.setYOffset()
 				}
 
@@ -211,11 +238,28 @@ Page {
 				setEnemiesMoving(false)
 				setRunning(false)
 
-				var d = JS.dialogMessageError(qsTr("Lejárt az idő"), qsTr("Lejárt az idő"))
+				var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Lejárt az idő"))
 				d.rejected.connect(function() {
 					_closeEnabled = true
 					mainStack.back()
 				})
+			}
+
+
+			onGameLost: {
+				setEnemiesMoving(false)
+				setRunning(false)
+
+				var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Your man has died"))
+				d.rejected.connect(function() {
+					_closeEnabled = true
+					mainStack.back()
+				})
+			}
+
+			onGameCompletedReady: {
+				setEnemiesMoving(false)
+				setRunning(false)
 			}
 
 
@@ -260,6 +304,9 @@ Page {
 
 			Behavior on opacity { NumberAnimation { duration: 750 } }
 		}
+
+
+
 
 		onWidthChanged: setXOffset()
 		onHeightChanged: setYOffset()
@@ -435,6 +482,8 @@ Page {
 			}
 		}
 	}
+
+
 
 
 	GameLabel {
@@ -719,14 +768,8 @@ Page {
 		target: studentMaps
 
 		function onGameFinishDialogReady(data) {
-			game.setEnemiesMoving(false)
-			game.setRunning(false)
-
-			var d = JS.dialogMessage("success", qsTr("Game over"), qsTr("MISSION COMPLETED\nMegszerezve %1 XP\nTeljesítve: %2x\nStreak: %3/%4").arg(data.xp).arg(data.solved).arg(data.currentStreak).arg(data.maxStreak))
-			d.rejected.connect(function() {
-				_closeEnabled = true
-				mainStack.back()
-			})
+			_closeEnabled = true
+			mainStack.back()
 		}
 	}
 
@@ -903,7 +946,12 @@ Page {
 
 				ScriptAction {
 					script: {
-						cosClient.playSound("qrc:/sound/voiceover/begin.ogg", CosSound.VoiceOver)
+						if (gameMatch && gameMatch.deathmatch) {
+							messageList.message(qsTr("DEATHMATCH"), 3)
+							cosClient.playSound("qrc:/sound/voiceover/deathmatch.ogg", CosSound.VoiceOver)
+						} else
+							cosClient.playSound("qrc:/sound/voiceover/begin.ogg", CosSound.VoiceOver)
+
 						_backDisabled = false
 					}
 				}

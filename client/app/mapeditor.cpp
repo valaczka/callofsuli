@@ -74,6 +74,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["chapterModify"] = &MapEditor::chapterModify;
 	m_map["chapterRemove"] = &MapEditor::chapterRemove;
 	m_map["chapterImport"] = &MapEditor::chapterImport;
+	m_map["chapterLoad"] = &MapEditor::chapterLoad;
 	m_map["chapterListReload"] = &MapEditor::chapterListReload;
 	m_map["objectiveAdd"] = &MapEditor::objectiveAdd;
 	m_map["objectiveRemove"] = &MapEditor::objectiveRemove;
@@ -91,6 +92,9 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["blockChapterMapChapterGetList"] = &MapEditor::blockChapterMapChapterGetList;
 	m_map["blockChapterMapChapterAdd"] = &MapEditor::blockChapterMapChapterAdd;
 	m_map["blockChapterMapChapterRemove"] = &MapEditor::blockChapterMapChapterRemove;
+	m_map["blockChapterMapMissionAdd"] = &MapEditor::blockChapterMapMissionAdd;
+	m_map["blockChapterMapMissionRemove"] = &MapEditor::blockChapterMapMissionRemove;
+	m_map["blockChapterMapMissionGetList"] = &MapEditor::blockChapterMapMissionGetList;
 
 
 	m_modelTerrains = new VariantMapModel({
@@ -110,6 +114,10 @@ MapEditor::MapEditor(QQuickItem *parent)
 											this);
 
 	m_modelObjectives->setVariantList(Client::mapToList(Client::objectiveModuleMap(), "module"), "module");
+
+
+
+
 
 
 	CosDb *db = new CosDb("editorDb", this);
@@ -157,6 +165,8 @@ bool MapEditor::loadDefault()
 				return false;
 			}
 		}
+
+		emit loadStarted();
 
 		qDebug() << "load from database" << m_database << m_databaseUuid;
 		AbstractActivity::run(&MapEditor::loadFromDbPrivate, QVariantMap());
@@ -941,7 +951,11 @@ void MapEditor::campaignListReload(QVariantMap)
 											  "missions.name as mname, "
 											  "EXISTS(SELECT * FROM missionLocks WHERE mission=missions.uuid) as locked "
 											  "FROM missions WHERE campaign=NULL");
-	emit campaignListReloaded(list);
+
+	//m_modelCampaignList->unselectAll();
+	//m_modelCampaignList->setVariantList(list, "uuid");
+
+	emit campaignListLoaded(list);
 }
 
 
@@ -1589,8 +1603,11 @@ void MapEditor::chapterAdd(QVariantMap data)
 	chapterListReload();
 
 	if (ret != -1) {
+		QVariantList l;
+		l.append(ret);
+		int newId = db()->execSelectQueryOneRow("SELECT id FROM chapters WHERE rowid=?", l).value("id", -1).toInt();
 		setModified(true);
-		emit chapterAdded(ret);
+		emit chapterAdded(newId);
 	}
 }
 
@@ -1636,6 +1653,8 @@ void MapEditor::chapterModify(QVariantMap data)
 
 void MapEditor::chapterRemove(QVariantMap data)
 {
+	qDebug() << "*** REMOVE" << data;
+
 	if (data.contains("list")) {
 		QVariantList list = data.value("list").toList();
 
@@ -1687,20 +1706,77 @@ void MapEditor::chapterRemove(QVariantMap data)
 
 void MapEditor::chapterListReload(QVariantMap)
 {
-	QVariantList list = db()->execSelectQuery("SELECT 0 as type, id, CAST(id as TEXT) as uuid, name, "
+	/*QVariantList list = db()->execSelectQuery("SELECT 0 as type, id, CAST(id as TEXT) as uuid, name, "
 											  "NULL as storage, NULL as module, NULL as data "
 											  "FROM chapters "
 											  "UNION "
 											  "SELECT 1 as type, chapter as id, uuid, name, "
 											  "storage, module, data "
 											  "FROM objectives "
-											  "LEFT JOIN chapters ON (chapters.id=objectives.chapter)"
+											  "LEFT JOIN chapters ON (chapters.id=objectives.chapter)"*/
 
-												  /*"storages.module as storageModule, storages.data as storageData "
-												  "FROM objectives "
-												  "LEFT JOIN storages ON (storages.id=objectives.storage) "*/
+	/*"storages.module as storageModule, storages.data as storageData "
+																																												"FROM objectives "
+																																												"LEFT JOIN storages ON (storages.id=objectives.storage) "*/
+	//);
+
+	QVariantList list = db()->execSelectQuery("SELECT id, name, "
+												"(SELECT COUNT(*) FROM objectives WHERE chapter=chapters.id) as objCount, "
+												"(SELECT COUNT(*) FROM blockChapterMapChapters "
+												"LEFT JOIN blockChapterMaps ON (blockChapterMaps.id=blockChapterMapChapters.blockid) "
+												"LEFT JOIN missions ON (missions.uuid=blockChapterMaps.mission) "
+												"WHERE blockChapterMapChapters.chapter=chapters.id) as missionCount "
+												"FROM chapters "
 											  );
-	emit chapterListReloaded(list);
+
+
+
+
+
+	emit chapterListLoaded(list);
+}
+
+
+/**
+ * @brief MapEditor::chapterLoad
+ * @param data
+ */
+
+void MapEditor::chapterLoad(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	if (id == -1) {
+		emit chapterLoaded(QVariantMap());
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantMap map = db()->execSelectQueryOneRow("SELECT id, name from chapters WHERE id=?", l);
+
+	if (map.isEmpty()) {
+		emit chapterLoaded(QVariantMap());
+		return;
+	}
+
+
+	QVariantList list = db()->execSelectQuery("SELECT uuid, storage, module, data "
+											  "FROM objectives "
+											  "LEFT JOIN chapters ON (chapters.id=objectives.chapter) "
+											  "WHERE chapter=?", l);
+
+	map["objectives"] = list;
+
+
+	QVariantList missions = db()->execSelectQuery("SELECT name, level, blockid FROM blockChapterMapChapters "
+												"LEFT JOIN blockChapterMaps ON (blockChapterMaps.id=blockChapterMapChapters.blockid) "
+												"LEFT JOIN missions ON (missions.uuid=blockChapterMaps.mission) "
+												"WHERE blockChapterMapChapters.chapter=?", l);
+
+	map["missions"] = missions;
+
+	emit chapterLoaded(map);
 }
 
 
@@ -2349,6 +2425,94 @@ void MapEditor::blockChapterMapBlockRemove(QVariantMap data)
 
 
 /**
+ * @brief MapEditor::blockChapterMapMissionRemove
+ * @param data
+ */
+
+void MapEditor::blockChapterMapMissionRemove(QVariantMap data)
+{
+	int chapterid = data.value("id", -1).toInt();
+	QVariantList queryList;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		foreach (QVariant v, list) {
+			queryList.append(v);
+		}
+	} else if (data.contains("blockid")) {
+		queryList.append(data.value("blockid"));
+	}
+
+	if (chapterid == -1 || !queryList.size())
+		return;
+
+	db()->undoLogBegin(tr("%1 küldetés eltávolítása").arg(queryList.count()));
+
+	foreach (QVariant v, queryList) {
+		QVariantList l;
+		l.append(v.toInt());
+		l.append(chapterid);
+
+		db()->execSimpleQuery("DELETE FROM blockChapterMapChapters WHERE blockid=? AND chapter=?", l);
+	}
+
+	db()->undoLogEnd();
+
+	chapterListReload();
+	setModified(true);
+}
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapMissionAdd
+ * @param data
+ */
+
+void MapEditor::blockChapterMapMissionAdd(QVariantMap data)
+{
+	int chapterid = data.value("id", -1).toInt();
+	QVariantList queryList;
+
+	if (data.contains("list")) {
+		QVariantList list = data.value("list").toList();
+
+		foreach (QVariant v, list) {
+			queryList.append(v);
+		}
+	} else if (data.contains("blockid")) {
+		queryList.append(data.value("blockid"));
+	}
+
+	if (chapterid == -1 || !queryList.size())
+		return;
+
+	db()->undoLogBegin(tr("%1 küldetés hozzáadása").arg(queryList.count()));
+
+	bool ret = true;
+
+	foreach (QVariant v, queryList) {
+		QVariantMap m;
+		m["blockid"] = v.toInt();
+		m["chapter"] = chapterid;
+
+		if (db()->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES(?)", m) == -1)
+			ret = false;
+	}
+
+	db()->undoLogEnd();
+
+	if (!ret)
+		m_client->sendMessageError(tr("Belső hiba"), tr("Nem sikerült végrehajtani a kérést"));
+
+	chapterListReload();
+	setModified(true);
+}
+
+
+
+/**
  * @brief MapEditor::blockChapterMapChapterGetList
  * @param data
  */
@@ -2369,6 +2533,32 @@ void MapEditor::blockChapterMapChapterGetList(QVariantMap data)
 											  "where blockid=?)", l);
 
 	emit blockChapterMapChapterListLoaded(id, list);
+}
+
+
+
+/**
+ * @brief MapEditor::blockChapterMapMissionGetList
+ * @param data
+ */
+
+void MapEditor::blockChapterMapMissionGetList(QVariantMap data)
+{
+	int id = data.value("id", -1).toInt();
+	if (id == -1) {
+		return;
+	}
+
+	QVariantList l;
+	l.append(id);
+
+	QVariantList list = db()->execSelectQuery("SELECT id, mission, level, name FROM blockChapterMaps "
+												"LEFT JOIN missions ON (blockChapterMaps.mission=missions.uuid) "
+												"WHERE NOT EXISTS(SELECT * from blockChapterMapBlocks WHERE blockid=blockChapterMaps.id) "
+												"AND NOT EXISTS(SELECT * FROM blockChapterMapChapters "
+												"WHERE blockid=blockChapterMaps.id AND chapter=?)", l);
+
+	emit blockChapterMapMissionListLoaded(id, list);
 }
 
 

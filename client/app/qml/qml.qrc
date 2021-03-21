@@ -85,7 +85,7 @@
         <file>MapEditorCampaignEdit.qml</file>
         <file>QPagePanelSearch.qml</file>
         <file>QDialogPanel.qml</file>
-        <file>MapEditorChapterList.qml</file>
+        <file>MapEditorChapterListOLD.qml</file>
         <file>MapEditorObjectiveEdit.qml</file>
         <file>MapEditorObjectiveEditHeader.qml</file>
         <file>MapEditorLevelGeneral.qml</file>
@@ -118,5 +118,14 @@
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
         <file>QDialogImageList.qml</file>
+        <file>MapEditorChapterList.qml</file>
+        <file>QBadge.qml</file>
+        <file>MapEditorChapterEdit.qml</file>
+        <file>QDialogMissionList.qml</file>
+        <file>QSpinBoxArrow.qml</file>
+        <file>QPageSwipePanel.qml</file>
+        <file>_PageSwipePanel.qml</file>
+        <file>QSwipeContainer.qml</file>
+        <file>QSwipeButton.qml</file>
     </qresource>
 </RCC>

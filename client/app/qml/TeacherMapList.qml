@@ -70,6 +70,11 @@ QPagePanel {
 						SwitchRole.value: CosStyle.colorOKLighter
 					},
 					ValueFilter {
+						roleName: "download"
+						value: true
+						SwitchRole.value: CosStyle.colorPrimaryDarker
+					},
+					ValueFilter {
 						roleName: "local"
 						value: true
 						SwitchRole.value: CosStyle.colorAccent

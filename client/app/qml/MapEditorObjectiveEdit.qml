@@ -50,8 +50,9 @@ QPagePanel {
 		}
 
 
-		function onObjectiveRemoved() {
-			reloadData()
+		function onObjectiveRemoved(uuid) {
+			if (uuid === objectiveUuid)
+				reloadData()
 		}
 	}
 

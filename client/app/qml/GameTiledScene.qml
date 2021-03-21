@@ -71,15 +71,15 @@ Scene {
 			switch(event.key) {
 			case Qt.Key_Left:
 				if (event.modifiers & Qt.ShiftModifier)
-					game.player.runLeft()
-				else
 					game.player.walkLeft()
+				else
+					game.player.runLeft()
 				break;
 			case Qt.Key_Right:
 				if (event.modifiers & Qt.ShiftModifier)
-					game.player.runRight()
-				else
 					game.player.walkRight()
+				else
+					game.player.runRight()
 				break;
 			case Qt.Key_Up:
 				game.player.moveUp()

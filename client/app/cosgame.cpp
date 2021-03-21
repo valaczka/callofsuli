@@ -70,6 +70,7 @@ CosGame::CosGame(QQuickItem *parent)
 	, m_inventoryPickableList()
 	, m_pickableList()
 	, m_elapsedTime()
+	, m_isFinished(false)
 {
 	QStringList mList = Client::musicList();
 	if (!mList.isEmpty()) {
@@ -785,8 +786,14 @@ void CosGame::onPlayerDied()
 	}
 
 	setPlayer(nullptr);
-	resetPlayer();
-	recreateEnemies();
+
+	if (m_gameMatch && m_gameMatch->deathmatch()) {
+		m_timer->stop();
+		emit gameLost();
+	} else {
+		resetPlayer();
+		recreateEnemies();
+	}
 }
 
 
@@ -895,6 +902,11 @@ void CosGame::onGameStarted()
 
 void CosGame::onGameFinishedSuccess()
 {
+	if (m_isFinished)
+		return;
+
+	m_isFinished = true;
+
 	m_timer->stop();
 	m_matchTimer->stop();
 
@@ -908,8 +920,10 @@ void CosGame::onGameFinishedSuccess()
 	Client *client = m_activity->client();
 
 	client->stopSound(m_backgroundMusicFile);
-	QTimer::singleShot(1500, [=]() {
-		client->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
+	client->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
+
+	QTimer::singleShot(1000, [=]() {
+		emit gameCompletedReady();
 		client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
 		client->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
 	});
@@ -922,6 +936,11 @@ void CosGame::onGameFinishedSuccess()
 
 void CosGame::onGameFinishedLost()
 {
+	if (m_isFinished)
+		return;
+
+	m_isFinished = true;
+
 	m_timer->stop();
 	m_matchTimer->stop();
 
@@ -934,6 +953,7 @@ void CosGame::onGameFinishedLost()
 
 	Client *client = m_activity->client();
 
+	client->stopSound(m_backgroundMusicFile);
 	client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
 	client->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
 }

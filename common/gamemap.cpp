@@ -47,7 +47,7 @@ GameMap::GameMap(const QByteArray &uuid)
 	, m_progressObject(nullptr)
 	, m_progressFunc()
 {
-	qDebug() << this << "GAME MAP CREATED";
+
 }
 
 
@@ -71,8 +71,6 @@ GameMap::~GameMap()
 
 	qDeleteAll(m_images.begin(), m_images.end());
 	m_images.clear();
-
-	qDebug() << this << "GAME MAP DESTROYED";
 }
 
 
@@ -1454,7 +1452,7 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream, co
 
 
 
-		missionLevelsFromStream(m, stream);
+		missionLevelsFromStream(m, stream, version);
 
 		if (campaign)
 			campaign->addMission(m);
@@ -1650,6 +1648,7 @@ void GameMap::missionLevelsToStream(Mission *mission, QDataStream &stream) const
 		stream << m->startBlock();
 		stream << m->imageFolder();
 		stream << m->imageFile();
+		stream << m->canDeathmatch();
 
 		blockChapterMapsToStream(m, stream);
 		inventoriesToStream(m, stream);
@@ -1663,7 +1662,7 @@ void GameMap::missionLevelsToStream(Mission *mission, QDataStream &stream) const
  * @param stream
  */
 
-bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &stream)
+bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &stream, const qint32 &version)
 {
 	Q_ASSERT(mission);
 
@@ -1677,13 +1676,17 @@ bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
 		qint32 duration = -1;
 		qint32 startBlock = -1;
 		QString imageFolder, imageFile;
+		bool canDeathmatch = false;
 
 		stream >> level >> terrain >> startHP >> duration >> startBlock >> imageFolder >> imageFile;
 
 		if (level == -1 || startHP == -1 || duration == -1 || startBlock == -1)
 			return false;
 
-		MissionLevel *m = new MissionLevel(level, terrain, startHP, duration, startBlock, imageFolder, imageFile);
+		if (version > 6)
+			stream >> canDeathmatch;
+
+		MissionLevel *m = new MissionLevel(level, terrain, startHP, duration, startBlock, canDeathmatch, imageFolder, imageFile);
 
 		blockChapterMapsFromStream(m, stream);
 		inventoriesFromStream(m, stream);
@@ -1712,6 +1715,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 							 "startHP INTEGER NOT NULL DEFAULT 5 CHECK (startHP>0),"
 							 "duration INTEGER NOT NULL DEFAULT 600 CHECK (duration>0),"
 							 "startBlock INTEGER NOT NULL DEFAULT 1 CHECK (startBlock>0),"
+							 "deathmatch BOOL NOT NULL DEFAULT FALSE,"
 							 "imageFolder TEXT,"
 							 "imageFile TEXT,"
 							 "PRIMARY KEY (mission, level),"
@@ -1732,6 +1736,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 				l["startHP"] = ml->startHP();
 				l["duration"] = ml->duration();
 				l["startBlock"] = ml->startBlock();
+				l["deathmatch"] = ml->canDeathmatch();
 
 				if (ml->imageFolder().isEmpty())
 					l["imageFolder"] = QVariant::Invalid;
@@ -1759,6 +1764,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 			l["startHP"] = ml->startHP();
 			l["duration"] = ml->duration();
 			l["startBlock"] = ml->startBlock();
+			l["deathmatch"] = ml->canDeathmatch();
 
 			if (ml->imageFolder().isEmpty())
 				l["imageFolder"] = QVariant::Invalid;
@@ -1787,7 +1793,8 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 
 bool GameMap::missionLevelsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT mission, level, terrain, startHP, duration, startBlock, imageFolder, imageFile FROM missionLevels");
+	QVariantList l = db->execSelectQuery("SELECT mission, level, terrain, startHP, duration, startBlock, deathmatch, "
+										"imageFolder, imageFile FROM missionLevels");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
@@ -1802,6 +1809,7 @@ bool GameMap::missionLevelsFromDb(CosDb *db)
 											  m.value("startHP").toInt(),
 											  m.value("duration").toInt(),
 											  m.value("startBlock").toInt(),
+											  m.value("deathmatch").toBool(),
 											  m.value("imageFolder").toString(),
 											  m.value("imageFile").toString()
 											  ));
@@ -2568,7 +2576,7 @@ GameMap::Inventory::Inventory(const qint32 &block, const QByteArray &module, con
  */
 
 GameMap::MissionLevel::MissionLevel(const qint32 &level, const QByteArray &terrain,
-									const qint32 &startHP, const qint32 &duration, const qint32 &startBlock,
+									const qint32 &startHP, const qint32 &duration, const qint32 &startBlock, const bool &canDeathmatch,
 									const QString &imageFolder, const QString &imageFile)
 	: m_level(level)
 	, m_terrain(terrain)
@@ -2580,6 +2588,7 @@ GameMap::MissionLevel::MissionLevel(const qint32 &level, const QByteArray &terra
 	, m_imageFolder(imageFolder)
 	, m_imageFile(imageFile)
 	, m_mission(nullptr)
+	, m_canDeathmatch(canDeathmatch)
 {
 
 }

@@ -114,7 +114,6 @@ QPagePanel {
 
 	QAccordion {
 		id: accordion
-		anchors.fill: parent
 
 		opacity: teacherGroups.selectedGroupId == -1 ? 0 : 1
 		visible: opacity != 0

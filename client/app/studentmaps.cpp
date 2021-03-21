@@ -40,6 +40,7 @@
 #define XP_FACTOR_TARGET_BASE	0.1
 #define XP_FACTOR_LEVEL			0.5
 #define XP_FACTOR_NO_SOLVED		2.5
+#define XP_FACTOR_DEATHMATCH	2.3
 
 StudentMaps::StudentMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassStudent, parent)
@@ -332,6 +333,7 @@ void StudentMaps::playGame(QVariantMap data)
 		o["gameid"] = -1;
 		o["missionid"] = data.value("uuid").toString();
 		o["level"] = data.value("level", 1).toInt();
+		o["deathmatch"] = data.value("deathmatch", false).toBool();
 		onGameCreate(o, QByteArray());
 		return;
 	}
@@ -341,6 +343,7 @@ void StudentMaps::playGame(QVariantMap data)
 	o["mission"] = data.value("uuid").toString();
 	o["level"] = data.value("level", 1).toInt();
 	o["hasSolved"] = data.value("hasSolved", false).toBool();
+	o["deathmatch"] = data.value("deathmatch", false).toBool();
 
 	send("gameCreate", o);
 }
@@ -780,18 +783,37 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 			foreach (GameMap::MissionLevel *ml, mis->levels()) {
 				QVariantMap mm;
 				mm["level"] = ml->level();
-				mm["available"] = (ml->level() <= lMin);
 				mm["solved"] = (mis->getSolvedLevel() >= ml->level());
 				mm["startHP"] = ml->startHP();
 				mm["duration"] = ml->duration();
 
-				int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
-				if (mis->getSolvedLevel() < ml->level())
-					xp *= XP_FACTOR_NO_SOLVED;
 				TerrainData t = Client::terrain(ml->terrain());
-				xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
-				mm["xp"] = xp;
 				mm["enemies"] = t.enemies;
+
+				QVariantList modes;
+				{
+					QVariantMap mode;
+					int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
+					if (mis->getSolvedLevel() < ml->level())
+						xp *= XP_FACTOR_NO_SOLVED;
+					xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+					mode["type"] = "normal";
+					mode["available"] = (ml->level() <= lMin);
+					mode["xp"] = xp;
+					modes.append(mode);
+				}
+				if (ml->canDeathmatch()) {
+					QVariantMap mode;
+					int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
+					xp *= XP_FACTOR_DEATHMATCH;
+					xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+					mode["type"] = "deathmatch";
+					mode["available"] = (mis->getSolvedLevel() >= ml->level() && ml->level() <= lMin);
+					mode["xp"] = xp;
+					modes.append(mode);
+				}
+
+				mm["modes"] = modes;
 
 				l.append(mm);
 
@@ -840,18 +862,37 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 		foreach (GameMap::MissionLevel *ml, mis->levels()) {
 			QVariantMap mm;
 			mm["level"] = ml->level();
-			mm["available"] = (ml->level() <= lMin);
 			mm["solved"] = (mis->getSolvedLevel() >= ml->level());
 			mm["startHP"] = ml->startHP();
 			mm["duration"] = ml->duration();
 
-			int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
-			if (mis->getSolvedLevel() < ml->level())
-				xp *= XP_FACTOR_NO_SOLVED;
 			TerrainData t = Client::terrain(ml->terrain());
-			xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
-			mm["xp"] = xp;
 			mm["enemies"] = t.enemies;
+
+			QVariantList modes;
+			{
+				QVariantMap mode;
+				int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
+				if (mis->getSolvedLevel() < ml->level())
+					xp *= XP_FACTOR_NO_SOLVED;
+				xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+				mode["type"] = "normal";
+				mode["available"] = (ml->level() <= lMin);
+				mode["xp"] = xp;
+				modes.append(mode);
+			}
+			if (ml->canDeathmatch()) {
+				QVariantMap mode;
+				int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
+				xp *= XP_FACTOR_DEATHMATCH;
+				xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+				mode["type"] = "deathmatch";
+				mode["available"] = (mis->getSolvedLevel() >= ml->level() && ml->level() <= lMin);
+				mode["xp"] = xp;
+				modes.append(mode);
+			}
+
+			mm["modes"] = modes;
 
 			l.append(mm);
 
@@ -890,8 +931,6 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 {
-	qDebug() << "#### GAME CREATED" << jsonData;
-
 	GameMap::MissionLevel *missionLevel = nullptr;
 
 	if (m_currentMap)
@@ -921,6 +960,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);
 	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
+	m_gameMatch->setDeathmatch(jsonData.value("deathmatch").toBool(false));
 
 	if (!m_client->userPlayerCharacter().isEmpty())
 		m_gameMatch->setPlayerCharacter(m_client->userPlayerCharacter());
@@ -939,6 +979,11 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 			int xp = m_baseXP*XP_FACTOR_LEVEL*level;
 			if (!hasSolved)
 				xp *= XP_FACTOR_NO_SOLVED;
+			else if (m_gameMatch->deathmatch())
+				xp *= XP_FACTOR_DEATHMATCH;
+
+
+
 			m_gameMatch->setXP(m_gameMatch->xp()+xp);
 			onGameEnd(m_gameMatch, true);
 		});

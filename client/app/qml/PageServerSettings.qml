@@ -31,8 +31,6 @@ QPage {
 			QAccordion {
 				id: accordion
 
-				anchors.fill: parent
-
 				QCollapsible {
 					title: qsTr("Általános")
 

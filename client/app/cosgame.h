@@ -169,6 +169,7 @@ signals:
 	void gameCompleted();
 	void gameTimeout();
 	void gameLost();
+	void gameCompletedReady();
 	void gameAbortRequest();
 
 	void gameSceneLoaded();
@@ -227,6 +228,7 @@ private:
 	QMap<int, QVector<GameInventoryPickable>> m_inventoryPickableList;
 	QVector<GamePickable *> m_pickableList;
 	QTime m_elapsedTime;
+	bool m_isFinished;
 };
 
 

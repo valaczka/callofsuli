@@ -5,13 +5,21 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-Item {
+Rectangle {
 	id: control
 
 	implicitHeight: 400
 	implicitWidth: 400
 
+
+	property bool reparented: false
+	property Item reparentedParent: null
+
+	color: reparented ? JS.setColorAlpha("black", 0.4) : "transparent"
+
 	default property alias contents: col.data
+
+	anchors.fill: parent
 
 	Flickable {
 		id: flick
@@ -25,6 +33,8 @@ Item {
 
 		flickableDirection: Flickable.VerticalFlick
 
+		boundsBehavior: Flickable.StopAtBounds
+
 		Column {
 			id: col
 			width: control.width
@@ -34,5 +44,9 @@ Item {
 	}
 
 
+	states: State {
+		when: reparented
+		ParentChange { target: control; parent: reparentedParent }
+	}
 }
 

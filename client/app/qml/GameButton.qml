@@ -43,7 +43,7 @@ Item {
 
 		color: "white"
 
-		Behavior on color { ColorAnimation { duration: 75 } }
+		Behavior on color { ColorAnimation { duration: 125 } }
 
 		QFontImage {
 			id: fontImage
@@ -53,7 +53,7 @@ Item {
 			width: control.width
 			height: control.height
 
-			Behavior on color { ColorAnimation { duration: 75 } }
+			Behavior on color { ColorAnimation { duration: 125 } }
 		}
 	}
 
@@ -70,6 +70,26 @@ Item {
 
 	TapHandler {
 		id: tap
-		onTapped: control.clicked()
+		onTapped: {
+			control.clicked()
+			anim.start()
+		}
+	}
+
+	SequentialAnimation {
+		id: anim
+		running: false
+		PropertyAnimation {
+			target: control
+			property: "scale"
+			to: 0.75
+			duration: 125
+		}
+		PropertyAnimation {
+			target: control
+			property: "scale"
+			to: 1.0
+			duration: 175
+		}
 	}
 }

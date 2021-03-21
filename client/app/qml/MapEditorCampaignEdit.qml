@@ -293,7 +293,6 @@ QPagePanel {
 
 	QAccordion {
 		id: accordionCampaign
-		anchors.fill: parent
 
 		opacity: editType === MapEditorCampaignEdit.Campaign
 		visible: opacity != 0
@@ -396,7 +395,6 @@ QPagePanel {
 
 	QAccordion {
 		id: accordionMission
-		anchors.fill: parent
 
 		opacity: editType === MapEditorCampaignEdit.Mission
 		visible: opacity != 0

@@ -39,7 +39,7 @@
 #include <QDebug>
 #include "cosdb.h"
 
-#define GAMEMAP_CURRENT_VERSION 6
+#define GAMEMAP_CURRENT_VERSION 7
 
 
 /**
@@ -164,6 +164,7 @@ public:
 	public:
 		MissionLevel(const qint32 &level, const QByteArray &terrain,
 					 const qint32 &startHP, const qint32 &duration, const qint32 &startBlock,
+					 const bool &canDeathmatch,
 					 const QString &imageFolder, const QString &imageFile);
 		~MissionLevel();
 
@@ -176,6 +177,7 @@ public:
 		QVector<Inventory *> inventories() const { return m_inventories; };
 		QString imageFolder() const { return m_imageFolder; }
 		QString imageFile() const { return m_imageFile; }
+		bool canDeathmatch() const { return m_canDeathmatch; }
 
 		void setMission(Mission *mission) { m_mission = mission; }
 		Mission *mission() const { return m_mission; }
@@ -196,6 +198,7 @@ public:
 		QString m_imageFolder;
 		QString m_imageFile;
 		Mission *m_mission;
+		bool m_canDeathmatch;
 	};
 
 
@@ -348,7 +351,7 @@ private:
 	bool missionLocksToDb(CosDb *db) const;
 
 	void missionLevelsToStream(Mission *mission, QDataStream &stream) const;
-	bool missionLevelsFromStream(Mission* mission, QDataStream &stream);
+	bool missionLevelsFromStream(Mission* mission, QDataStream &stream, const qint32 &version);
 	bool missionLevelsToDb(CosDb *db) const;
 	bool missionLevelsFromDb(CosDb *db);
 

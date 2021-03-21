@@ -57,6 +57,11 @@ QPage {
 	activity: MapEditor {
 		id: mapEditor
 
+
+		property int selectedLevelRowID: -1
+		property int levelComponentsCompleted: 0
+		property string selectedMissionUUID: ""
+
 		property VariantMapModel modelCampaignList: newModel([
 																 "noorphan",
 																 "type",
@@ -69,20 +74,12 @@ QPage {
 															 ])
 
 		property VariantMapModel modelChapterList: newModel([
-																"type",
 																"id",
-																"uuid",
 																"name",
-																"module",
-																"storage",
-																"data"
+																"objCount",
+																"missionCount"
 															])
 
-		property VariantMapModel modelBlockChapterMapList: mapEditor.newModel(["id", "enemies", "blocks"])
-
-		property int selectedLevelRowID: -1
-		property int levelComponentsCompleted: 0
-		property string selectedMissionUUID: ""
 
 
 		onLoadStarted: {
@@ -137,6 +134,7 @@ QPage {
 			selectedMissionUUID = missionUuid
 			levelComponentsCompleted = 0
 			panelComponents = cmpLevel
+			resetPanels(true)
 			_hasBack = true
 		}
 
@@ -156,37 +154,85 @@ QPage {
 			d.open()
 			return true
 		}
+
+
+		onCampaignListLoaded: {
+			modelCampaignList.unselectAll()
+			modelCampaignList.setVariantList(list, "uuid")
+		}
+
+		onChapterListLoaded: {
+			mapEditor.modelChapterList.unselectAll()
+			mapEditor.modelChapterList.setVariantList(list, "id")
+		}
+
+
+		onCampaignSelected: {
+			if (stackMode && id !== -1) {
+				var o = addStackPanel(panelCampaignEdit)
+				o.editType = MapEditorCampaignEdit.Campaign
+				o.campaignId = id
+			}
+		}
+
+		onMissionSelected: {
+			if (stackMode && uuid.length) {
+				var o = addStackPanel(panelCampaignEdit)
+				o.editType = MapEditorCampaignEdit.Mission
+				o.missionUuid = uuid
+			}
+		}
+
+		onChapterSelected: {
+			if (stackMode && id !== -1) {
+				var o = addStackPanel(panelChapterEdit)
+				o.selectedChapterId = id
+			}
+		}
+
+		onObjectiveSelected: {
+			if (stackMode && uuid.length) {
+				var o = addStackPanel(panelObjectiveEdit)
+				o.objectiveUuid = uuid
+			}
+		}
 	}
 
 
+	Component {
+		id: panelCampaignEdit
+		MapEditorCampaignEdit { }
+	}
 
 
+	Component {
+		id: panelChapterEdit
+		MapEditorChapterEdit { }
+	}
 
+	Component {
+		id: panelObjectiveEdit
+		MapEditorObjectiveEdit { }
+	}
 
 
 	property list<Component> cmpCampaigns: [
-		Component { MapEditorCampaignList {
-			} },
-		Component { MapEditorCampaignEdit {
-			} }
+		Component { MapEditorCampaignList { } },
+		Component { MapEditorCampaignEdit { } }
 	]
 
 
 	property list<Component> cmpChapters: [
-		Component { MapEditorChapterList {
-			} },
-		Component { MapEditorObjectiveEdit {
-			} }
+		Component { MapEditorChapterList { } },
+		Component { MapEditorChapterEdit { } },
+		Component { MapEditorObjectiveEdit { } }
 	]
 
 
 	property list<Component> cmpLevel: [
-		Component { MapEditorLevelGeneral {
-			} },
-		Component { MapEditorLevelChapters {
-			} },
-		Component { MapEditorLevelInventory {
-			} }
+		Component { MapEditorLevelGeneral { } },
+		Component { MapEditorLevelChapters { } },
+		Component { MapEditorLevelInventory { } }
 	]
 
 
@@ -209,6 +255,7 @@ QPage {
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
 			panelComponents = cmpCampaigns
+			resetPanels(true)
 			_hasBack = false
 		}
 	}
@@ -223,6 +270,7 @@ QPage {
 		onTriggered: {
 			panelComponents = cmpChapters
 			mapEditor.selectedMissionUUID = ""
+			resetPanels(true)
 			_hasBack = true
 		}
 	}

@@ -40,8 +40,6 @@ QPagePanel {
 
 
 	QAccordion {
-		anchors.fill: parent
-
 		QCollapsible {
 			title: qsTr("Inventory")
 
