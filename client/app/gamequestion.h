@@ -48,7 +48,7 @@ class GameQuestion : public QObject
 
 public:
 	explicit GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, QObject *parent = nullptr);
-	~GameQuestion();
+	virtual ~GameQuestion();
 
 	void run();
 

@@ -6,25 +6,13 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-QPagePanel {
+QSwipeContainer {
 	id: panel
 
-	layoutFillWidth: true
-
-	title: list.visible ? qsTr("Pályák") : ""
+	title: qsTr("Pályák")
 	icon: "image://font/School/\uf19d"
 
-	QLabel {
-		id: noLabel
-		opacity: !list.visible ? 0.0 : 1.0
-		visible: opacity != 0
-
-		anchors.centerIn: parent
-
-		text: qsTr("Válassz csoportot")
-
-		Behavior on opacity { NumberAnimation { duration: 125 } }
-	}
+	property alias list: list
 
 	SortFilterProxyModel {
 		id: userProxyModel
@@ -32,20 +20,42 @@ QPagePanel {
 		sorters: [
 			StringSorter { roleName: "name" }
 		]
+
+		proxyRoles: [
+			SwitchRole {
+				name: "textColor"
+				filters: [
+					ValueFilter {
+						roleName: "active"
+						value: true
+						SwitchRole.value: CosStyle.colorOK
+					}
+				]
+				defaultValue: CosStyle.colorPrimaryLighter
+			},
+			SwitchRole {
+				name: "fontWeight"
+				filters: ExpressionFilter {
+					expression: model.active
+					SwitchRole.value: Font.DemiBold
+				}
+				defaultValue: Font.Medium
+			}
+		]
 	}
 
 
 	QVariantMapProxyView {
 		id: list
-		anchors.fill: parent
 
-		visible: studentMaps.selectedGroupId != -1 && studentMaps.modelMapList.count
+		anchors.fill: parent
 
 		model: userProxyModel
 		modelTitleRole: "name"
+		modelTitleColorRole: "textColor"
+		modelTitleWeightRole: "fontWeight"
 
 		autoSelectorChange: true
-
 
 		refreshEnabled: true
 
@@ -56,27 +66,32 @@ QPagePanel {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: if (model && model.downloaded)
-					  "image://font/School/\uf19d"
-				  else
+			icon: if (model && model.downloaded) {
+					  if (model.active)
+						  "qrc:/internal/img/battle.png"
+					  else
+						  CosStyle.iconVisible
+				  } else
 					  CosStyle.iconDownloadCloud
 
 			visible: model
 
-			color: model && model.downloaded ? CosStyle.colorPrimary : CosStyle.colorAccent
+			color: model && model.downloaded ? model.textColor : CosStyle.colorAccent
 		}
 
-		/*rightComponent: QFontImage {
-			width: visible ? list.delegateHeight*0.8 : 0
-			height: width
-			size: Math.min(height*0.8, 32)
+		rightComponent: QToolButton {
+			anchors.verticalCenter: parent.verticalCenter
+			ToolTip.text: qsTr("Részletek")
 
-			icon: CosStyle.iconClock1
+			visible: model && (model.active || !model.downloaded)
 
-			visible: model && model.editLocked
+			icon.source: CosStyle.iconVisible
 
-			color: CosStyle.colorAccentLighter
-		}*/
+			onClicked: {
+				//mapEditor.run("objectiveAdd", {chapter: model.id, module: model.module})
+			}
+		}
+
 
 
 		onRefreshRequest: studentMaps.send("mapListGet", { groupid: studentMaps.selectedGroupId } )
@@ -84,7 +99,11 @@ QPagePanel {
 		onClicked: {
 			var o = list.model.get(index)
 			if (o.downloaded) {
-				studentMaps.mapLoad({uuid: o.uuid, name: o.name})
+				if (o.active) {
+					studentMaps.mapLoad({uuid: o.uuid, name: o.name})
+				} else {
+					// view
+				}
 			} else {
 				list.currentIndex = index
 				actionDownload.trigger()
@@ -114,9 +133,6 @@ QPagePanel {
 		/*onKeyDeletePressed: actionRemove.trigger()
 		onKeyF4Pressed: actionObjectiveNew.trigger()*/
 	}
-
-
-	onPopulated: list.forceActiveFocus()
 
 
 	Action {

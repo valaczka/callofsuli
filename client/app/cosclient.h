@@ -92,12 +92,16 @@ public:
 	static void registerResources();
 	static void registerTypes();
 	static void initialize();
+	static bool commandLineParse(QCoreApplication &app);
 	static void standardPathCreate();
 
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
 	Q_INVOKABLE static void loadMusics();
+	Q_INVOKABLE static void loadMedalIcons();
 	Q_INVOKABLE static void reloadGameResources();
+	static TerrainData terrainDataFromFile(const QString &filename);
+	static QByteArray terrainDataToJson(const QString &filename);
 
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
@@ -157,9 +161,12 @@ public:
 	QStringList waitForResources() const { return m_waitForResources; }
 
 	static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
-	static TerrainData terrain(const QString &name);
 	static QVariantMap characterData() { return m_characterData; }
 	static QStringList musicList() { return m_musicList; }
+	static TerrainData terrain(const QString &name);
+
+	Q_INVOKABLE static QStringList medalIcons() { return m_medalIconList; }
+	Q_INVOKABLE static QString medalIconPath(const QString &name, const bool &qrcPrepend = true);
 
 	qreal sfxVolume() const { return m_sfxVolume; }
 
@@ -259,6 +266,8 @@ signals:
 	void storagePermissionsGranted();
 	void storagePermissionsDenied();
 
+	void myGroupListReady(const QJsonArray &list);
+
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);
 	void userNameChanged(QString userName);
@@ -319,6 +328,7 @@ private:
 	QVariantList m_rankList;
 	static QVariantMap m_characterData;
 	static QStringList m_musicList;
+	static QStringList m_medalIconList;
 	qreal m_sfxVolume;
 	QString m_userPlayerCharacter;
 	QVariantList m_registrationClasses;

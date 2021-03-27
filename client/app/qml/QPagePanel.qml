@@ -126,6 +126,15 @@ Item {
 			maskSource: border2
 		}
 
+		QImageInnerShadow {
+			width: Math.min(parent.width*0.5, parent.height*0.5)
+			height: width
+
+			anchors.centerIn: parent
+
+			image: control.icon
+			contentItem: metalbg
+		}
 
 
 		Item {

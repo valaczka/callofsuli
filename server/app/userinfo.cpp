@@ -35,6 +35,8 @@
 #include "admin.h"
 #include "userinfo.h"
 #include "server.h"
+#include "teachermap.h"
+#include "student.h"
 
 UserInfo::UserInfo(Client *client, const CosMessage &message)
 	: AbstractHandler(client, message, CosMessage::ClassUserInfo)
@@ -372,6 +374,42 @@ bool UserInfo::downloadMap(QJsonObject *jsonResponse, QByteArray *binaryResponse
 	(*jsonResponse)["name"] = r.value("name").toString();
 	(*jsonResponse)["version"] = r.value("version").toInt();
 	(*jsonResponse)["lastModified"] = r.value("lastModified").toString();
+
+	return true;
+}
+
+
+/**
+ * @brief UserInfo::getMyGroups
+ * @param jsonResponse
+ * @return
+ */
+
+bool UserInfo::getMyGroups(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonArray list;
+
+	CosMessage empty(QJsonObject(), CosMessage::ClassInvalid, "");
+
+	if (m_client->clientRoles().testFlag(CosMessage::RoleTeacher)) {
+		QJsonObject ret;
+		TeacherMap u(m_client, empty);
+		if (u.groupListGet(&ret, nullptr)) {
+			list = ret.value("list").toArray();
+		} else {
+			qWarning().noquote() << "Teacher group list get error";
+		}
+	} else if (m_client->clientRoles().testFlag(CosMessage::RoleStudent)) {
+		QJsonObject ret;
+		Student u(m_client, empty);
+		if (u.groupListGet(&ret, nullptr)) {
+			list = ret.value("list").toArray();
+		} else {
+			qWarning().noquote() << "Student group list get error";
+		}
+	}
+
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }

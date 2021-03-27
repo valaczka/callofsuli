@@ -81,7 +81,7 @@ class GameEntity : public QQuickItem
 
 public:
 	GameEntity(QQuickItem *parent = 0);
-	~GameEntity();
+	virtual ~GameEntity();
 
 	virtual void setQrcDir() {}
 	virtual void createFixtures() {}

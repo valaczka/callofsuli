@@ -50,7 +50,7 @@ class VariantMapData : public _MapList
 {
 public:
 	VariantMapData();
-	~VariantMapData();
+	virtual ~VariantMapData();
 
 	void addModel(VariantMapModel *model);
 	bool removeModel(VariantMapModel *model);

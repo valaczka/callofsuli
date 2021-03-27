@@ -11,7 +11,7 @@ QPagePanel {
 	id: p
 
 	title: servers.serverKey == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
-	icon: CosStyle.iconUserWhite
+	icon: CosStyle.iconComputerData
 	layoutFillWidth: true
 
 	contextMenuFunc: servers.serverKey == -1 ? null : function (m) {

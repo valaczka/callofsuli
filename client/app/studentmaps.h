@@ -46,8 +46,7 @@ class StudentMaps : public AbstractActivity
 	Q_PROPERTY(bool demoMode READ demoMode WRITE setDemoMode NOTIFY demoModeChanged)
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
 	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList NOTIFY modelMissionListChanged)
-	Q_PROPERTY(VariantMapModel * modelGroupList READ modelGroupList WRITE setModelGroupList NOTIFY modelGroupListChanged)
-	Q_PROPERTY(VariantMapModel * modelCharacterList READ modelCharacterList WRITE setModelCharacterList NOTIFY modelCharacterListChanged)
+	Q_PROPERTY(VariantMapModel * modelUserList READ modelUserList WRITE setModelUserList NOTIFY modelUserListChanged)
 	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
 
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
@@ -57,24 +56,21 @@ class StudentMaps : public AbstractActivity
 
 public:
 	explicit StudentMaps(QQuickItem *parent = nullptr);
-	~StudentMaps();
+	virtual ~StudentMaps();
 
 	static CosDb *studentMapsDb(Client *client, QObject *parent = nullptr, const QString &connectionName = "studentMapsDb");
 
-	//Q_INVOKABLE virtual void run(const QString &func, QVariantMap data = QVariantMap()) override { AbstractActivity::run(m_map, func, data); };
-
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
-	VariantMapModel * modelGroupList() const { return m_modelGroupList; }
-	VariantMapModel * modelCharacterList() const { return m_modelCharacterList; }
+	VariantMapModel * modelUserList() const { return m_modelUserList; }
 	GameMap * currentMap() const { return m_currentMap; }
 	bool demoMode() const { return m_demoMode; }
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
 	bool isGameRunning() const { return m_isGameRunning; }
 
+
 public slots:
-	void groupSelect(const int &groupId);
 	void mapDownload(QVariantMap data);
 	void mapLoad(QVariantMap data);
 	void demoMapLoad();
@@ -82,16 +78,15 @@ public slots:
 	void playGame(QVariantMap data);
 	void setDemoMode(bool demoMode);
 	void setBaseXP(int baseXP);
-	void setModelGroupList(VariantMapModel * modelGroupList);
 	void setSelectedGroupId(int selectedGroupId);
-	void setModelCharacterList(VariantMapModel * modelCharacterList);
 	void setIsGameRunning(bool isGameRunning);
+	void setModelUserList(VariantMapModel * modelUserList);
+
 
 protected slots:
 	void clientSetup() override;
 
 private slots:
-	void onGroupListGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 	void loadGameMap(GameMap *map, const QString &mapName = "");
@@ -101,6 +96,7 @@ private slots:
 	void onGameEnd(GameMatch *match, const bool &win = false);
 
 	void onMissionListGet(QJsonObject jsonData, QByteArray);
+	void onUserListGet(QJsonObject jsonData, QByteArray);
 	void onGameCreate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);
 
@@ -114,6 +110,8 @@ signals:
 	void missionListGet(QJsonObject jsonData, QByteArray binaryData);
 	void missionSelected(const int &index);
 	void missionListChanged();
+
+	void userListGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void gameMapLoaded(const QString &mapName);
 	void gameMapUnloaded();
@@ -129,10 +127,10 @@ signals:
 	void modelMissionListChanged(VariantMapModel * modelMissionList);
 	void demoModeChanged(bool demoMode);
 	void baseXPChanged(int baseXP);
-	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void selectedGroupIdChanged(int selectedGroupId);
-	void modelCharacterListChanged(VariantMapModel * modelCharacterList);
 	void isGameRunningChanged(bool isGameRunning);
+	void modelUserListChanged(VariantMapModel * modelUserList);
+
 
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
@@ -143,10 +141,9 @@ private:
 	bool m_demoMode;
 	QVariantMap m_demoSolverMap;
 	int m_baseXP;
-	VariantMapModel * m_modelGroupList;
 	int m_selectedGroupId;
-	VariantMapModel * m_modelCharacterList;
 	bool m_isGameRunning;
+	VariantMapModel * m_modelUserList;
 };
 
 #endif // STUDENTMAPS_H

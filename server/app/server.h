@@ -77,7 +77,7 @@ private:
 
 public:
 	explicit Server(QObject *parent = nullptr);
-	~Server();
+	virtual ~Server();
 
 	bool start();
 	void stop();

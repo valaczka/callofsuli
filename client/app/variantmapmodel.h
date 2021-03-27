@@ -47,7 +47,7 @@ class VariantMapModel : public QAbstractListModel
 
 public:
 	explicit VariantMapModel(const QStringList &roleNames = QStringList(), QObject *parent = nullptr);
-	~VariantMapModel();
+	virtual ~VariantMapModel();
 
 	Q_INVOKABLE static VariantMapModel *newModel(const QStringList &roleNames, QObject *parent = nullptr) {
 		return new VariantMapModel(roleNames, parent);

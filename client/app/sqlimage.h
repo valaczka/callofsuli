@@ -46,7 +46,7 @@ class SqlImage : public QQuickImageProvider
 public:
 	explicit SqlImage(Client *client, const QString &connectionName, const QString &databaseName, const QString &table = "resource");
 	explicit SqlImage(Client *client, CosDb *db, const QString &table = "resource");
-	~SqlImage();
+	virtual ~SqlImage();
 
 	QPixmap requestPixmap(const QString &id, QSize *size, const QSize &requestedSize);
 

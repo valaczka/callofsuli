@@ -13,7 +13,7 @@ QPagePanel {
 	maximumWidth: 600
 
 	title: qsTr("Szerverek")
-	icon: CosStyle.iconUsers
+	icon: CosStyle.iconComputer
 
 	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
 
@@ -61,8 +61,8 @@ QPagePanel {
 			width: serverList.delegateHeight
 			height: width
 
-			frontIcon: CosStyle.iconFavoriteOff
-			backIcon: CosStyle.iconFavoriteOn
+			frontIcon: CosStyle.iconUnchecked
+			backIcon: CosStyle.iconSelected
 			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
 			flipped: model && model.autoconnect
 

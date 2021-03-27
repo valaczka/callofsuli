@@ -58,7 +58,7 @@ class CosDownloader : public QObject
 public:
 	explicit CosDownloader(AbstractActivity *activity = nullptr, const CosMessage::CosClass &cosClass = CosMessage::ClassInvalid,
 						   const QString &func = QString(), QObject *parent = nullptr);
-	~CosDownloader();
+	virtual ~CosDownloader();
 
 	void append(const CosDownloaderItem &item);
 	void append(const QString &remote, const QString &local = QString(), const int &size = 0, const QString &md5 = QString(),

@@ -48,7 +48,7 @@ class GameTerrain : public QObject
 
 public:
 	explicit GameTerrain(QList<TiledPaintedLayer *> *tiledLayers = nullptr, QQuickItem *tiledLayersParent = nullptr, QObject *parent = nullptr);
-	~GameTerrain();
+	virtual ~GameTerrain();
 
 	QList<GameEnemyData *> enemies() const { return m_enemies; }
 	QList<GameLadder *> ladders() const { return m_ladders; }

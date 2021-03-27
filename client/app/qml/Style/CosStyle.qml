@@ -67,6 +67,7 @@ QtObject {
 	property string iconClose: "image://font/Material Icons/\ue14c"
 	property string iconChecked: "image://font/Material Icons/\ue86c"
 	property string iconUnchecked: "image://font/Material Icons/\ue836"
+	property string iconSelected: "image://font/Material Icons/\ue837"
 	property string iconTrash: "image://font/Material Icons/\ue872"
 	property string iconRemove: "image://font/Material Icons/\ue15b"
 	property string iconClear: "image://font/Material Icons/\ue14a"
@@ -105,6 +106,7 @@ QtObject {
 	property string iconClockAdd: "image://font/Material Icons/\ue193"
 	property string iconStopWatch: "image://font/Material Icons/\ue425"
 	property string iconStopWatchDisabled: "image://font/Material Icons/\ue426"
+	property string iconRefresh: "image://font/Material Icons/\ue028"
 	property string iconAdjust: "image://font/Material Icons/\ue429"
 	property string iconSetup: "image://font/Material Icons/\ue869"
 	property string iconPreferences: "image://font/Material Icons/\ue8b8"
@@ -124,4 +126,6 @@ QtObject {
 	property string iconFavoriteOff: "image://font/Material Icons/\ue83a"
 	property string iconVisible: "image://font/Material Icons/\ue8f4"
 	property string iconInvisible: "image://font/Material Icons/\ue8f5"
+	property string iconComputer: "image://font/Material Icons/\ue31f"
+	property string iconComputerData: "image://font/Material Icons/\ue1b2"
 }

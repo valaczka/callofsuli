@@ -52,7 +52,7 @@ class Servers : public AbstractActivity
 
 public:
 	Servers(QQuickItem *parent = nullptr);
-	~Servers();
+	virtual ~Servers();
 
 
 	VariantMapModel *serversModel() const { return m_serversModel; }
@@ -79,8 +79,6 @@ public slots:
 	void doAutoConnect();
 
 	void sendBroadcast();
-
-	void playTestMap(QVariantMap data);
 
 	void setConnectedServerKey(int connectedServerKey);
 
@@ -109,8 +107,6 @@ signals:
 
 	void serversModelChanged(VariantMapModel* serversModel);
 	void connectedServerKeyChanged(int connectedServerKey);
-
-	void playTestMapReady(GameMatch *gameMatch);
 
 private:
 	void _reloadResources(QVariantMap resources);

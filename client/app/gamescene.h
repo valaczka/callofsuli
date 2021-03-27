@@ -52,7 +52,7 @@ class GameScene : public QQuickItem
 
 public:
 	GameScene(QQuickItem *parent = 0);
-	~GameScene();
+	virtual ~GameScene();
 	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }
 	CosGame * game() const { return m_game; }
 

@@ -7,7 +7,7 @@ import "JScript.js" as JS
 import "."
 
 QDialogPanel {
-	id: item
+	id: control
 
 	property alias list: list
 	property alias selectorSet: list.selectorSet
@@ -16,8 +16,11 @@ QDialogPanel {
 	property alias sourceModel: model.sourceModel
 	property var roles: ["title"]
 
+	property real imageWidth: delegateHeight
+	property real imageHeight: delegateHeight*0.8
+
 	property alias modelTitleRole: list.modelTitleRole
-	property alias modelSubTitleRole: list.modelSubtitleRole
+	property alias modelSubtitleRole: list.modelSubtitleRole
 	property alias delegateHeight: list.delegateHeight
 	property string modelIconRole: ""
 
@@ -35,13 +38,13 @@ QDialogPanel {
 			id: model
 
 			filters: [
-					RegExpFilter {
-						enabled: toolbar.searchBar.text.length
-						roleName: roles[0]
-						pattern: toolbar.searchBar.text
-						caseSensitivity: Qt.CaseInsensitive
-						syntax: RegExpFilter.FixedString
-					}
+				RegExpFilter {
+					enabled: toolbar.searchBar.text.length
+					roleName: roles[0]
+					pattern: toolbar.searchBar.text
+					caseSensitivity: Qt.CaseInsensitive
+					syntax: RegExpFilter.FixedString
+				}
 			]
 
 			sorters: [
@@ -53,17 +56,19 @@ QDialogPanel {
 
 		autoSelectorChange: false
 
+		leftComponent: Item {
+			width: imageWidth+20
+			height: list.delegateHeight
+			anchors.verticalCenter: parent.verticalCenter
+			visible: model && modelIconRole.length
 
-		leftComponent: QFontImage {
-			width: visible ? list.delegateHeight : 0
-			height: width
-			size: Math.min(height*0.8, 32)
-
-			icon: model && modelIconRole.length ? model[modelIconRole] : ""
-
-			visible: icon.length
-
-			color: list.colorTitle
+			Image {
+				width: imageWidth
+				height: imageHeight
+				fillMode: Image.PreserveAspectFit
+				anchors.centerIn: parent
+				source: model && modelIconRole.length ? model[modelIconRole] : ""
+			}
 		}
 
 

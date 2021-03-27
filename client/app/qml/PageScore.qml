@@ -31,6 +31,9 @@ QPage {
 		QPagePanel {
 			layoutFillWidth: true
 
+			borderColor: CosStyle.colorPrimaryDark
+			icon: CosStyle.iconShield
+
 			id: panel
 
 			maximumWidth: 800
@@ -39,14 +42,6 @@ QPage {
 				id: scoreProxyModel
 				sourceModel: scores.scoreModel
 				filters: [
-					/*RegExpFilter {
-						enabled: toolbar.searchBar.text.length
-						roleName: "name"
-						pattern: toolbar.searchBar.text
-						caseSensitivity: Qt.CaseInsensitive
-						syntax: RegExpFilter.FixedString
-					}*/
-
 					AllOf {
 						ValueFilter {
 							roleName: "isTeacher"
@@ -60,8 +55,8 @@ QPage {
 				]
 
 				sorters: [
-					RoleSorter { roleName: "rankid"; sortOrder: Qt.DescendingOrder },
-					RoleSorter { roleName: "xp"; sortOrder: Qt.DescendingOrder }
+					RoleSorter { roleName: "rankid"; sortOrder: Qt.DescendingOrder; priority: 2 },
+					RoleSorter { roleName: "xp"; sortOrder: Qt.DescendingOrder; priority: 1 }
 				]
 
 				proxyRoles: [
@@ -105,7 +100,7 @@ QPage {
 				numbered: true
 
 				leftComponent: Image {
-					source: cosClient.rankImageSource(model.rankid, model.ranklevel, model.rankimage)
+					source: model ? cosClient.rankImageSource(model.rankid, model.ranklevel, model.rankimage) : ""
 					width: scoreList.delegateHeight+10
 					height: scoreList.delegateHeight*0.7
 					fillMode: Image.PreserveAspectFit
@@ -116,6 +111,7 @@ QPage {
 					font.weight: Font.Normal
 					font.pixelSize: scoreList.delegateHeight*0.5
 					color: CosStyle.colorAccent
+					leftPadding: 5
 				}
 
 				model: scoreProxyModel

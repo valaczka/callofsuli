@@ -51,6 +51,7 @@ public:
 public slots:
 	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool userListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool missionListGet(QJsonObject *jsonResponse, QByteArray *);
 

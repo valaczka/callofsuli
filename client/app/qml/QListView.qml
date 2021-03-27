@@ -6,7 +6,7 @@ ListView {
 	id: view
 
 	property int pauseDuration: 0
-	property int refreshActivateY: -150
+	property int refreshActivateY: -100
 	property bool refreshEnabled: false
 
 	clip: true
@@ -30,15 +30,16 @@ ListView {
 	Item {
 		id: header
 		y: -view.contentY - height
-		height: 250
+		height: -view.refreshActivateY/2
 		width: parent.width
 
 		property bool refresh: state == "pulled" ? true : false
 
 		QFontImage {
 			id: arrow
-			anchors.centerIn: parent
-			icon: CosStyle.iconAdjust
+			anchors.horizontalCenter: parent.horizontalCenter
+			anchors.top: parent.top
+			icon: CosStyle.iconRefresh
 			width: CosStyle.pixelSize*1.5
 			height: CosStyle.pixelSize*1.5
 			size: CosStyle.pixelSize*1.5

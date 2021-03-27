@@ -99,7 +99,9 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 	m_modelTerrains = new VariantMapModel({
 											  "details",
-											  "name"
+											  "name",
+											  "thumbnail",
+											  "readableName"
 										  },
 										  this);
 
@@ -757,6 +759,22 @@ bool MapEditor::_createDatabase(GameMap *game)
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.2, 0.6));
 	game->setProgressFunc(this, "setLoadProgress");
 
+
+	// Generate auto mission medals
+
+	foreach(GameMap::Campaign *c, game->campaigns()) {
+		foreach(GameMap::Mission *m, c->missions()) {
+			if (m->medalImage().isEmpty())
+				m->setMedalImage(Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size())));
+		}
+	}
+
+	foreach(GameMap::Mission *m, game->orphanMissions()) {
+		if (m->medalImage().isEmpty())
+			m->setMedalImage(Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size())));
+	}
+
+
 	if (!game->toDb(db())) {
 		m_client->sendMessageError(tr("Adatfájl hiba"), db()->databaseName());
 		db()->close();
@@ -934,21 +952,21 @@ bool MapEditor::checkGame(GameMap *game) const
 void MapEditor::campaignListReload(QVariantMap)
 {
 	QVariantList list = db()->execSelectQuery("SELECT 1 as noorphan, 0 as type, id as cid, CAST(id as TEXT) as uuid, name as cname, "
-											  "false as mandatory, '' as mname, "
+											  "false as mandatory, '' as mname, '' as medalImage, "
 											  "EXISTS(SELECT * FROM campaignLocks WHERE campaign=campaigns.id) as locked "
 											  "FROM campaigns "
 											  "UNION "
 											  "SELECT 1 as noorphan, 1 as type, campaign as cid, uuid, campaigns.name as cname, mandatory, "
-											  "missions.name as mname, "
+											  "missions.name as mname, missions.medalImage as medalImage, "
 											  "EXISTS(SELECT * FROM missionLocks WHERE mission=missions.uuid) as locked "
 											  "FROM missions "
 											  "LEFT JOIN campaigns ON (campaigns.id=missions.campaign)"
 											  "UNION "
 											  "SELECT 0 as noorphan, 0 as type, -1 as cid, CAST(-1 as TEXT) as uuid, '—' as cname, "
-											  "false as mandatory, '' as mname, false as locked "
+											  "false as mandatory, '' as mname, '' as medalImage, false as locked "
 											  "UNION "
 											  "SELECT 0 as noorphan, 1 as type, -1 as cid, uuid, '—' as cname, mandatory, "
-											  "missions.name as mname, "
+											  "missions.name as mname, missions.medalImage as medalImage, "
 											  "EXISTS(SELECT * FROM missionLocks WHERE mission=missions.uuid) as locked "
 											  "FROM missions WHERE campaign=NULL");
 
@@ -1124,6 +1142,7 @@ void MapEditor::missionAdd(QVariantMap data)
 {
 	if (!data.contains("uuid"))	data["uuid"] = QUuid::createUuid().toString();
 	if (!data.contains("mandatory"))	data["mandatory"] = false;
+	if (!data.contains("medalImage"))	data["medalImage"] = Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size()));
 
 	db()->undoLogBegin(tr("Új küldetés hozzáadása"));
 

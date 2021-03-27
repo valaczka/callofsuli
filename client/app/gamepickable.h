@@ -48,7 +48,7 @@ class GamePickable : public QObject
 
 public:
 	explicit GamePickable(QObject *parent = nullptr);
-	~GamePickable();
+	virtual ~GamePickable();
 
 	GameEnemyData::PickableType type() const { return m_type; }
 	CosGame * game() const { return m_game; }

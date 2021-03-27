@@ -50,12 +50,6 @@ QPage {
 			servers.serverTryLogin(servers.connectedServerKey)
 		}
 
-		onPlayTestMapReady: {
-			var o = JS.createPage("Game", {
-									  gameMatch: gameMatch,
-									  deleteGameMatch: true
-								  })
-		}
 
 		Component.onCompleted: serverListReload()
 	}
@@ -84,7 +78,7 @@ QPage {
 
 
 	mainMenuFunc: function (m) {
-		m.addAction(test)
+		m.addAction(actionDemo)
 		m.addAction(actionAbout)
 		m.addAction(actionExit)
 	}
@@ -110,8 +104,7 @@ QPage {
 
 
 	Action {
-		id: test
-		shortcut: "F1"
+		id: actionDemo
 		text: qsTr("Demo")
 		onTriggered: {
 			JS.createPage("MapMissions", {

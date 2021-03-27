@@ -36,15 +36,11 @@
 #include <sqlimage.h>
 #include <fontimage.h>
 
-
 #include "../Bacon2D-static/qml-box2d/box2dplugin.h"
 #include "../Bacon2D-static/src/plugins.h"
 
 #include "cosclient.h"
-
 #include "gamemap.h"
-
-
 #include "cosdb.h"
 
 
@@ -78,16 +74,18 @@ int main(int argc, char *argv[])
 	plugin.registerTypes("Bacon2D");
 
 
-	Client client;
 
-	client.initialize();
-	client.standardPathCreate();
-	client.registerTypes();
-	client.registerResources();
+	Client::initialize();
 
-	Client::loadTerrains();
+	if (!Client::commandLineParse(app))
+		return 0;
+
+	Client::standardPathCreate();
+	Client::registerTypes();
+	Client::registerResources();
 	Client::reloadGameResources();
 
+	Client client;
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();
 	context->setContextProperty("cosClient", &client);

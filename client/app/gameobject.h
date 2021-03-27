@@ -55,7 +55,7 @@ class GameObject : public QQuickItem
 
 public:
 	GameObject(QQuickItem *parent = 0);
-	~GameObject();
+	virtual ~GameObject();
 
 	QMap<QString, QVariant> properties() const { return m_properties; }
 	void setProperties(const QMap<QString, QVariant> &properties) { m_properties = properties; }

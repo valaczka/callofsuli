@@ -117,7 +117,7 @@ QPagePanel {
 		autoSelectorChange: false
 		autoUnselectorChange: true
 
-		leftComponent: QFlipable {
+		/*leftComponent: QFlipable {
 			id: flipable
 			width: visible ? list.delegateHeight : 0
 			height: width
@@ -133,6 +133,16 @@ QPagePanel {
 												   "uuid": model.uuid,
 												   "data": {"mandatory": !model.mandatory}
 											   })
+		}*/
+
+		leftComponent: Image {
+			width: visible ? list.delegateHeight*0.8 : 0
+			height: width
+
+			source: model && model.medalImage ? cosClient.medalIconPath(model.medalImage) : ""
+
+			visible: model && model.type === 1
+
 		}
 
 		rightComponent: QFontImage {
@@ -327,17 +337,7 @@ QPagePanel {
 			if (rowid === -1)
 				return
 
-			var model = mapEditor.newModel(["details", "name"])
-
-			var d = JS.dialogCreateQml("List", {
-										   roles: ["details", "name"],
-										   icon: CosStyle.iconLockAdd,
-										   title: qsTr("Harcmező kiválasztása"),
-										   selectorSet: false,
-										   sourceModel: model
-									   })
-
-			model.setVariantList(cosClient.mapToList(cosClient.terrainMap(), "name"), "name")
+			var d = mapEditor.createTerrainDialog()
 
 			d.accepted.connect(function(data) {
 				var p = d.item.sourceModel.get(data)

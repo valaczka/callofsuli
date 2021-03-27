@@ -5,17 +5,12 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-Rectangle {
+Item {
 	id: control
 
 	implicitHeight: 400
 	implicitWidth: 400
 
-
-	property bool reparented: false
-	property Item reparentedParent: null
-
-	color: reparented ? JS.setColorAlpha("black", 0.4) : "transparent"
 
 	default property alias contents: col.data
 
@@ -41,12 +36,6 @@ Rectangle {
 		}
 
 		ScrollIndicator.vertical: ScrollIndicator { }
-	}
-
-
-	states: State {
-		when: reparented
-		ParentChange { target: control; parent: reparentedParent }
 	}
 }
 

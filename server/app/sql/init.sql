@@ -73,8 +73,10 @@ CREATE VIEW studentGroupInfo AS
 
 
 CREATE TABLE bindGroupMap(
+	id INTEGER PRIMARY KEY,
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	mapid TEXT NOT NULL
+	mapid TEXT NOT NULL,
+	active BOOL NOT NULL DEFAULT FALSE
 );
 
 
@@ -162,6 +164,76 @@ SELECT u.username, u.firstname, u.lastname, u.active, u.isTeacher, u.isAdmin, u.
 		LEFT JOIN (SELECT username, rankid FROM ranklog GROUP BY username HAVING MAX(timestamp) AND MAX(id)) rl ON (rl.username=uu.username)) ur
 		ON (ur.username=u.username)
 	LEFT JOIN (SELECT id, name, level, image FROM rank) r ON (r.id=ur.rankid);
+
+
+
+
+CREATE VIEW userTrophy AS
+SELECT game.username, mapid, level, deathmatch, success, COUNT(*) as num, SUM(xp) as xp
+	FROM game LEFT JOIN score ON (score.gameid=game.id)
+	GROUP BY game.username, mapid, level, deathmatch, success;
+
+
+
+CREATE VIEW groupTrophy AS
+SELECT studentGroupInfo.id, studentGroupInfo.username,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND level=1 AND deathmatch=false AND success=true
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS t1,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND level=2 AND deathmatch=false AND success=true
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS t2,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND level=3 AND deathmatch=false AND success=true
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS t3,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND level=1 AND deathmatch=true AND success=true
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS d1,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND level=2 AND deathmatch=true AND success=true
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS d2,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND level=3 AND deathmatch=true AND success=true
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS d3,
+	(SELECT COALESCE(SUM(xp),0) FROM userTrophy WHERE userTrophy.username=studentGroupInfo.username
+		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
+	AS sumxp
+	FROM studentGroupInfo;
+
+
+
+
+CREATE VIEW fullTrophy AS
+SELECT user.username,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=user.username
+		AND level=1 AND deathmatch=false AND success=true)
+	AS t1,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=user.username
+		AND level=2 AND deathmatch=false AND success=true)
+	AS t2,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=user.username
+		AND level=3 AND deathmatch=false AND success=true)
+	AS t3,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=user.username
+		AND level=1 AND deathmatch=true AND success=true)
+	AS d1,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=user.username
+		AND level=2 AND deathmatch=true AND success=true)
+	AS d2,
+	(SELECT COALESCE(SUM(num),0) FROM userTrophy WHERE userTrophy.username=user.username
+		AND level=3 AND deathmatch=true AND success=true)
+	AS d3,
+	(SELECT COALESCE(SUM(xp),0) FROM userTrophy WHERE userTrophy.username=user.username)
+	AS sumxp
+	FROM user;
+
+
 
 
 CREATE TRIGGER rank_update

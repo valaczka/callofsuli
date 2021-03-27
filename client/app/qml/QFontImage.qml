@@ -12,6 +12,7 @@ Item {
 	property int size: CosStyle.pixelSize*1.1
 	property alias icon: img.source
 	property alias color: overlay.color
+	property alias fillMode: img.fillMode
 
 	Image {
 		id: img

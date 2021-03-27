@@ -56,7 +56,7 @@ public:
 	Q_ENUM(SoundType)
 
 	explicit CosSound(QObject *parent = nullptr);
-	~CosSound();
+	virtual ~CosSound();
 
 public slots:
 	void init();

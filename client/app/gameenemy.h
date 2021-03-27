@@ -58,7 +58,7 @@ class GameEnemy : public GameEntity
 
 public:
 	GameEnemy(QQuickItem *parent = 0);
-	~GameEnemy();
+	virtual ~GameEnemy();
 
 	bool moving() const { return m_moving; }
 	bool armed() const { return m_armed; }

@@ -224,8 +224,8 @@ bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
 			return false;
 		}
 
-		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE rowid IN "
-										   "(SELECT bindGroupMap.rowid FROM bindGroupMap "
+		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE id IN "
+										   "(SELECT bindGroupMap.id FROM bindGroupMap "
 										   "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
 										   "WHERE mapid IN (?l?) AND owner=:owner)",
 										   list, p, false)) {
@@ -270,7 +270,7 @@ bool TeacherMap::mapGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT groupid, name, "
+	QVariantList list = m_client->db()->execSelectQuery("SELECT groupid, name, active, "
 "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
 "WHERE bindGroupClass.groupid=bindGroupMap.groupid) as readableClassList "
@@ -384,8 +384,8 @@ bool TeacherMap::mapGroupRemove(QJsonObject *jsonResponse, QByteArray *)
 		QVariantMap p;
 		p[":id"] = uuid;
 
-		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE rowid IN "
-										   "(SELECT bindGroupMap.rowid FROM bindGroupMap "
+		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE id IN "
+										   "(SELECT bindGroupMap.id FROM bindGroupMap "
 										   "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
 										   "WHERE groupid IN (?l?) AND mapid=:id)",
 										   list, p, false)) {
@@ -625,7 +625,7 @@ bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
 	m.clear();
 	m.append(id);
 
-	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=?", m);
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid, active FROM bindGroupMap WHERE groupid=?", m);
 
 	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
 "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
@@ -651,6 +651,7 @@ bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
 		QJsonObject o;
 		o["uuid"] = lMap.value("mapid").toString();
 		o["name"] = lMap.value("mapid").toString();
+		o["active"] = lMap.value("active").toBool();
 
 		foreach (QVariant vv, mapDataList) {
 			QVariantMap mMap = vv.toMap();
@@ -1056,7 +1057,7 @@ bool TeacherMap::groupMapRemove(QJsonObject *jsonResponse, QByteArray *)
 		QVariantMap p;
 		p[":id"] = id;
 
-		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE mapid IN "
+		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE groupid=:id AND mapid IN "
 										   "(SELECT column1 FROM (values ?l? ))", list, p, true)) {
 			(*jsonResponse)["error"] = "sql error";
 			return false;

@@ -62,6 +62,7 @@ Page {
 
 		onPrepareFailed: {
 			cosClient.sendMessageError(qsTr("Játék előkészítése sikertelen"), qsTr("Nem sikerült előkészíteni a játékot!"))
+			_backDisabled = false
 			_closeEnabled = true
 			mainStack.back()
 		}
@@ -228,6 +229,7 @@ Page {
 
 			onGameSceneLoadFailed: {
 				cosClient.sendMessageError(qsTr("Játék betöltése sikertelen"), qsTr("Nem sikerült betölteni a játékot!"))
+				_backDisabled = false
 				_closeEnabled = true
 				mainStack.back()
 			}

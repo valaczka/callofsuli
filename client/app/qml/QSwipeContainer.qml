@@ -17,10 +17,10 @@ Item {
 	property int horizontalPadding: 20
 	property int verticalPadding: 10
 
-	property alias reparented: accordion.reparented
-	property alias reparentedParent: accordion.reparentedParent
+	property alias reparented: movableContent.reparented
+	property alias reparentedParent: movableContent.reparentedParent
 
-	default property alias accordionData: accordion.contents
+	default property alias movableContentData: movableContent.data
 
 	Layout.fillWidth: true
 	Layout.fillHeight: true
@@ -71,6 +71,18 @@ Item {
 			source: metalbg
 			maskSource: border2
 		}
+
+
+		QImageInnerShadow {
+			width: Math.min(parent.width*0.5, parent.height*0.5)
+			height: width
+
+			anchors.centerIn: parent
+
+			image: control.icon
+			contentItem: metalbg
+		}
+
 
 		Item {
 			id: realContent
@@ -163,8 +175,20 @@ Item {
 				anchors.topMargin: 10
 				visible: true
 
-				QAccordion {
-					id: accordion
+				Rectangle {
+					id: movableContent
+
+					anchors.fill: parent
+
+					property bool reparented: false
+					property Item reparentedParent: null
+
+					color: reparented ? JS.setColorAlpha("black", 0.4) : "transparent"
+
+					states: State {
+						when: reparented
+						ParentChange { target: movableContent; parent: reparentedParent }
+					}
 				}
 			}
 		}

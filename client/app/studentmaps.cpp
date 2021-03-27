@@ -51,13 +51,14 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_demoMode(false)
 	, m_demoSolverMap()
 	, m_baseXP(100)
-	, m_modelGroupList(nullptr)
 	, m_selectedGroupId(-1)
 	, m_isGameRunning(false)
+	, m_modelUserList(nullptr)
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
 											 "name" ,
+											 "active",
 											 "dataSize" ,
 											 "downloaded" ,
 											 "md5"
@@ -76,33 +77,37 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 												 "uuid",
 												 "name",
 												 "cname",
-												 "levels"
+												 "levels",
+												 "medalImage"
 											 },
 											 this);
 
+	m_modelUserList = new VariantMapModel({
+											  "username",
+											  "firstname",
+											  "lastname",
+											  "nickname",
+											  "rankid",
+											  "rankname",
+											  "ranklevel",
+											  "rankimage",
+											  "t1",
+											  "t2",
+											  "t3",
+											  "d1",
+											  "d2",
+											  "d3",
+											  "sumxp"
+										  },
+										  this);
 
-	m_modelGroupList = new VariantMapModel({
-											   "id",
-											   "name" ,
-											   "teacherfirstname",
-											   "teacherlastname",
-											   "readableClassList" ,
-											   "teacher"
-										   },
-										   this);
 
-	m_modelCharacterList = new VariantMapModel({
-												   "dir",
-												   "name"
-											   },
-											   this);
 
-	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
+//	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
 
-	connect(this, &StudentMaps::selectedGroupIdChanged, this, &StudentMaps::groupSelect);
-	connect(this, &StudentMaps::groupListGet, this, &StudentMaps::onGroupListGet);
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
+	connect(this, &StudentMaps::userListGet, this, &StudentMaps::onUserListGet);
 	connect(this, &StudentMaps::gameCreate, this, &StudentMaps::onGameCreate);
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
 }
@@ -123,8 +128,8 @@ StudentMaps::~StudentMaps()
 	}
 
 	delete m_modelMapList;
-	delete m_modelGroupList;
 	delete m_modelMissionList;
+	delete m_modelUserList;
 
 	unloadGameMap();
 
@@ -181,21 +186,6 @@ CosDb *StudentMaps::studentMapsDb(Client *client, QObject *parent, const QString
 }
 
 
-
-/**
- * @brief StudentMaps::groupSelect
- * @param groupId
- */
-
-void StudentMaps::groupSelect(const int &groupId)
-{
-	if (groupId == -1)
-		return;
-
-	QJsonObject o;
-	o["groupid"]	= groupId;
-	send("mapListGet", o);
-}
 
 
 
@@ -370,15 +360,6 @@ void StudentMaps::setBaseXP(int baseXP)
 	emit baseXPChanged(m_baseXP);
 }
 
-void StudentMaps::setModelGroupList(VariantMapModel *modelGroupList)
-{
-	if (m_modelGroupList == modelGroupList)
-		return;
-
-	m_modelGroupList = modelGroupList;
-	emit modelGroupListChanged(m_modelGroupList);
-}
-
 void StudentMaps::setSelectedGroupId(int selectedGroupId)
 {
 	if (m_selectedGroupId == selectedGroupId)
@@ -388,15 +369,6 @@ void StudentMaps::setSelectedGroupId(int selectedGroupId)
 	emit selectedGroupIdChanged(m_selectedGroupId);
 }
 
-void StudentMaps::setModelCharacterList(VariantMapModel *modelCharacterList)
-{
-	if (m_modelCharacterList == modelCharacterList)
-		return;
-
-	m_modelCharacterList = modelCharacterList;
-	emit modelCharacterListChanged(m_modelCharacterList);
-}
-
 void StudentMaps::setIsGameRunning(bool isGameRunning)
 {
 	if (m_isGameRunning == isGameRunning)
@@ -404,6 +376,15 @@ void StudentMaps::setIsGameRunning(bool isGameRunning)
 
 	m_isGameRunning = isGameRunning;
 	emit isGameRunningChanged(m_isGameRunning);
+}
+
+void StudentMaps::setModelUserList(VariantMapModel *modelUserList)
+{
+	if (m_modelUserList == modelUserList)
+		return;
+
+	m_modelUserList = modelUserList;
+	emit modelUserListChanged(m_modelUserList);
 }
 
 
@@ -486,23 +467,6 @@ void StudentMaps::clientSetup()
 		if (db)
 			addDb(db, false);
 	}
-}
-
-
-
-
-/**
- * @brief StudentMaps::onGroupListGet
- * @param jsonData
- */
-
-void StudentMaps::onGroupListGet(QJsonObject jsonData, QByteArray)
-{
-	m_modelGroupList->unselectAll();
-
-	QJsonArray list = jsonData.value("list").toArray();
-
-	m_modelGroupList->setJsonArray(list, "id");
 }
 
 
@@ -751,6 +715,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 		m["name"] = c->name();
 		m["cname"] = c->name();
 		m["levels"] = QVariantList();
+		m["medalImage"] = "";
 
 		ret.append(m);
 
@@ -775,6 +740,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 			m["name"] = mis->name();
 			m["cname"] = c->name();
 			m["description"] = mis->description();
+			m["medalImage"] = mis->medalImage();
 
 			int lMin = mis->getLockDepth() == 0 ?
 						   qMax(mis->getSolvedLevel()+1, 1) :
@@ -854,6 +820,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 		m["name"] = mis->name();
 		m["cname"] = "";
 		m["description"] = mis->description();
+		m["medalImage"] = mis->medalImage();
 
 		int lMin = mis->getLockDepth() == 0 ?
 					   qMax(mis->getSolvedLevel()+1, 1) :
@@ -917,6 +884,23 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 	m_modelMissionList->setVariantList(ret, "num");
 
 	emit missionListChanged();
+}
+
+
+
+
+/**
+ * @brief StudentMaps::onUserListGet
+ * @param jsonData
+ */
+
+void StudentMaps::onUserListGet(QJsonObject jsonData, QByteArray)
+{
+	if (m_demoMode)
+		return;
+
+	m_modelUserList->unselectAll();
+	m_modelUserList->setJsonArray(jsonData.value("list").toArray(), "username");
 }
 
 

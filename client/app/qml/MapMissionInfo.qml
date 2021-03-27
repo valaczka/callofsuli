@@ -153,7 +153,6 @@ QPagePanel {
 					wrapMode: Text.Wrap
 					text: selectedData ? selectedData.description : ""
 
-					font.family: "Special Elite"
 					color: CosStyle.colorAccent
 					font.pixelSize: CosStyle.pixelSize*0.95
 				}
@@ -271,8 +270,8 @@ QPagePanel {
 				Flickable {
 					id: levelItem
 
-					contentWidth: col2.width
-					contentHeight: col2.y+col2.height
+					contentWidth: row2.width
+					contentHeight: row2.y+row2.height
 
 					clip: true
 
@@ -282,29 +281,59 @@ QPagePanel {
 					boundsBehavior: Flickable.StopAtBounds
 					flickableDirection: Flickable.VerticalFlick
 
-					Column {
-						id: col2
+					Row {
+						id: row2
 
-						width: levelItem.width
+						width: bottomStack.width
 
-						y: Math.max((levelItem.height-col2.height)/2, 0)
+						y: Math.max((levelItem.height-row2.height)/2, 0)
 
-						QButton {
-							id: btn
+						Item {
+							id: img1
+							anchors.verticalCenter: parent.verticalCenter
+							width: levelItem.width*0.25
+							height: col2.height*0.9
 
-							anchors.horizontalCenter: parent.horizontalCenter
+							opacity: modeIndex != -1 && levelData.modes[modeIndex].available && !levelData.solved ? 1.0 : 0.2
 
-							themeColors: CosStyle.buttonThemeGreen
-							text: qsTr("Play")
-							enabled: levelData && modeIndex != -1 && levelData.modes[modeIndex].available
-							icon.source: enabled ? CosStyle.iconPlay : CosStyle.iconLock
-							font.pixelSize: CosStyle.pixelSize*1.4
-							onClicked: {
-								if (studentMaps.gamePage) {
-									cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
-								} else {
+							QMedalImage {
+								level: levelData.level
+								isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
+								image: selectedData ? selectedData.medalImage : ""
 
-									/*var d = JS.dialogCreateQml("ImageList", {
+								width: parent.width*0.6
+								height: parent.height*0.6
+								anchors.centerIn: parent
+							}
+
+						}
+
+						Column {
+							id: col2
+
+							z: 2
+
+							anchors.verticalCenter: parent.verticalCenter
+
+							width: row2.width-img1.width-img2.width
+
+
+							QButton {
+								id: btn
+
+								anchors.horizontalCenter: parent.horizontalCenter
+
+								themeColors: CosStyle.buttonThemeGreen
+								text: qsTr("Play")
+								enabled: levelData && modeIndex != -1 && levelData.modes[modeIndex].available
+								icon.source: enabled ? CosStyle.iconPlay : CosStyle.iconLock
+								font.pixelSize: CosStyle.pixelSize*1.4
+								onClicked: {
+									if (studentMaps.gamePage) {
+										cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
+									} else {
+
+										/*var d = JS.dialogCreateQml("ImageList", {
 														   roles: ["name", "dir"],
 														   icon: CosStyle.iconUser,
 														   title: qsTr("Válassz karaktert"),
@@ -323,91 +352,110 @@ QPagePanel {
 
 								var p = d.item.sourceModel.get(data)
 */
-									studentMaps.playGame({
-															 uuid: selectedData.uuid,
-															 level: levelData.level,
-															 hasSolved: levelData.solved,
-															 deathmatch: modeIndex != -1 && levelData.modes[modeIndex].type === "deathmatch"
-														 })
-									/*									})
+										studentMaps.playGame({
+																 uuid: selectedData.uuid,
+																 level: levelData.level,
+																 hasSolved: levelData.solved,
+																 deathmatch: modeIndex != -1 && levelData.modes[modeIndex].type === "deathmatch"
+															 })
+										/*									})
 							d.open()
 */
+									}
 								}
 							}
-						}
 
-						Item {
-							width: 20
-							height: 20
-							visible: btn.visible
-						}
+							Item {
+								width: 20
+								height: 20
+								visible: btn.visible
+							}
 
 
-						QLabel {
-							anchors.horizontalCenter: parent.horizontalCenter
-							horizontalAlignment: Text.AlignHCenter
-							wrapMode: Text.Wrap
-							width: levelItem.width*0.9
-							text: qsTr("Rendelkezésre álló idő: <b>%1</b>").arg(JS.secToMMSS(levelData.duration))
-							color: levelData.available ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-						}
-
-						QLabel {
-							anchors.horizontalCenter: parent.horizontalCenter
-							horizontalAlignment: Text.AlignHCenter
-							wrapMode: Text.Wrap
-							width: levelItem.width*0.9
-							text: qsTr("Célpontok száma: <b>%1</b>").arg(levelData.enemies)
-							color: levelData.available ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-						}
-
-						QLabel {
-							anchors.horizontalCenter: parent.horizontalCenter
-							horizontalAlignment: Text.AlignHCenter
-							wrapMode: Text.Wrap
-							width: levelItem.width*0.9
-							text: qsTr("HP: <b>%1</b>").arg(levelData.startHP)
-							color: levelData.available ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-						}
-
-						QLabel {
-							topPadding: 15
-							bottomPadding: 15
-							anchors.horizontalCenter: parent.horizontalCenter
-							horizontalAlignment: Text.AlignHCenter
-							wrapMode: Text.Wrap
-							width: levelItem.width*0.9
-							text: levelData && modeIndex != -1 ? qsTr("Megszerezhető: <b>%1 XP</b>").arg(levelData.modes[modeIndex].xp) : ""
-							color: levelData.available ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
-							font.pixelSize: CosStyle.pixelSize*1.2
-						}
-
-						Row {
-							visible: levelData.solved
-							anchors.horizontalCenter: parent.horizontalCenter
-
-							spacing: 5
-
-							QFontImage {
-								anchors.verticalCenter: parent.verticalCenter
-
-								height: CosStyle.pixelSize*2
-								width: height
-								size: CosStyle.pixelSize*0.9
-
-								icon: CosStyle.iconOK
-
-								color: CosStyle.colorOKLighter
+							QLabel {
+								width: parent.width
+								anchors.horizontalCenter: parent.horizontalCenter
+								horizontalAlignment: Text.AlignHCenter
+								wrapMode: Text.Wrap
+								text: qsTr("Rendelkezésre álló idő: <b>%1</b>").arg(JS.secToMMSS(levelData.duration))
+								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
 							}
 
 							QLabel {
-								anchors.verticalCenter: parent.verticalCenter
-								text: qsTr("Megoldva")
-								color: CosStyle.colorOK
-								font.weight: Font.Medium
+								anchors.horizontalCenter: parent.horizontalCenter
+								horizontalAlignment: Text.AlignHCenter
+								wrapMode: Text.Wrap
+								width: parent.width
+								text: qsTr("Célpontok száma: <b>%1</b>").arg(levelData.enemies)
+								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
 							}
+
+							QLabel {
+								anchors.horizontalCenter: parent.horizontalCenter
+								horizontalAlignment: Text.AlignHCenter
+								wrapMode: Text.Wrap
+								width: parent.width
+								text: qsTr("HP: <b>%1</b>").arg(levelData.startHP)
+								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
+							}
+
+							QLabel {
+								topPadding: 15
+								bottomPadding: 15
+								anchors.horizontalCenter: parent.horizontalCenter
+								horizontalAlignment: Text.AlignHCenter
+								wrapMode: Text.Wrap
+								width: parent.width
+								text: levelData && modeIndex != -1 ? qsTr("Megszerezhető: <b>%1 XP</b>").arg(levelData.modes[modeIndex].xp) : ""
+								color: btn.enabled ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
+								font.pixelSize: CosStyle.pixelSize*1.2
+							}
+
+							Row {
+								visible: levelData.solved
+								anchors.horizontalCenter: parent.horizontalCenter
+
+								spacing: 5
+
+								QFontImage {
+									anchors.verticalCenter: parent.verticalCenter
+
+									height: CosStyle.pixelSize*2
+									width: height
+									size: CosStyle.pixelSize*0.9
+
+									icon: CosStyle.iconOK
+
+									color: CosStyle.colorOKLighter
+								}
+
+								QLabel {
+									anchors.verticalCenter: parent.verticalCenter
+									text: qsTr("Megoldva")
+									color: CosStyle.colorOK
+									font.weight: Font.Medium
+								}
+							}
+
 						}
 
+						Item {
+							id: img2
+							anchors.verticalCenter: parent.verticalCenter
+							width: levelItem.width*0.25
+							height: col2.height*0.9
+
+							opacity: modeIndex != -1 && levelData.modes[modeIndex].available ? 1.0 : 0.2
+
+							QTrophyImage {
+								level: levelData.level
+								isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
+
+								width: parent.width*0.8
+								height: parent.height*0.8
+								anchors.centerIn: parent
+							}
+						}
 					}
 				}
 

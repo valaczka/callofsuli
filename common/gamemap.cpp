@@ -1357,6 +1357,7 @@ bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 			stream << m->mandatory();
 			stream << m->name();
 			stream << m->description();
+			stream << m->medalImage();
 
 			stream << (quint32) m->locks().size();
 
@@ -1379,6 +1380,7 @@ bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream)
 			stream << m->mandatory();
 			stream << m->name();
 			stream << m->description();
+			stream << m->medalImage();
 
 			stream << (quint32) m->locks().size();
 
@@ -1418,6 +1420,7 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream, co
 		bool mandatory;
 		QString name;
 		QString description;
+		QString medalImage;
 		quint32 lockSize = 0;
 
 		stream >> uuid >> mandatory >> name;
@@ -1425,12 +1428,15 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream, co
 		if (version > 5)
 			stream >> description;
 
+		if (version > 7)
+			stream >> medalImage;
+
 		stream >> lockSize;
 
 		if (uuid.isEmpty())
 			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
 
-		Mission *m = new Mission(uuid, mandatory, name, description);
+		Mission *m = new Mission(uuid, mandatory, name, description, medalImage);
 
 		QList<QPair<QByteArray, qint32>> ll;
 
@@ -1484,7 +1490,8 @@ bool GameMap::missionsToDb(CosDb *db) const
 							 "campaign INTEGER REFERENCES campaigns(id) ON DELETE SET NULL ON UPDATE CASCADE,"
 							 "mandatory BOOL,"
 							 "name TEXT,"
-							 "description TEXT"
+							 "description TEXT,"
+							 "medalImage TEXT"
 							 ");"))
 		return false;
 
@@ -1500,6 +1507,7 @@ bool GameMap::missionsToDb(CosDb *db) const
 			l["description"] = m->description();
 			l["mandatory"] = m->mandatory();
 			l["uuid"] = QString(m->uuid());
+			l["medalImage"] = m->medalImage();
 
 			if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
 				return false;
@@ -1514,6 +1522,7 @@ bool GameMap::missionsToDb(CosDb *db) const
 		l["description"] = m->description();
 		l["mandatory"] = m->mandatory();
 		l["uuid"] = QString(m->uuid());
+		l["medalImage"] = m->medalImage();
 
 		if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
 			return false;
@@ -1532,14 +1541,15 @@ bool GameMap::missionsToDb(CosDb *db) const
 
 bool GameMap::missionsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name, description FROM missions");
+	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name, description, medalImage FROM missions");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
 
 		if (m.value("campaign").isNull()) {
 			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(),
-									   m.value("name").toString(), m.value("description").toString());
+									   m.value("name").toString(), m.value("description").toString(),
+									   m.value("medalImage").toString());
 
 			m_orphanMissions.append(mis);
 		} else {
@@ -1549,7 +1559,8 @@ bool GameMap::missionsFromDb(CosDb *db)
 				return false;
 
 			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(),
-									   m.value("name").toString(), m.value("description").toString());
+									   m.value("name").toString(), m.value("description").toString(),
+									   m.value("medalImage").toString());
 
 			c->addMission(mis);
 		}
@@ -2393,6 +2404,38 @@ void GameMap::deleteImages()
 
 
 
+/**
+ * @brief GameMap::missionLevelsData
+ * @return
+ */
+
+QVector<GameMap::MissionLevelData> GameMap::missionLevelsData() const
+{
+	QVector<MissionLevelData> list;
+
+	foreach(Campaign *c, m_campaigns) {
+		foreach(Mission *m, c->missions()) {
+			foreach(MissionLevel *ml, m->levels()) {
+				list.append(MissionLevelData(ml, false));
+				if (ml->canDeathmatch())
+					list.append(MissionLevelData(ml, true));
+			}
+		}
+	}
+
+	foreach(Mission *m, m_orphanMissions) {
+		foreach(MissionLevel *ml, m->levels()) {
+			list.append(MissionLevelData(ml, false));
+			if (ml->canDeathmatch())
+				list.append(MissionLevelData(ml, true));
+		}
+	}
+
+	return list;
+}
+
+
+
 
 /**
  * @brief GameMap::imagesFromDb
@@ -2617,7 +2660,7 @@ GameMap::MissionLevel::~MissionLevel()
  * @param name
  */
 
-GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const QString &name, const QString &description)
+GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const QString &name, const QString &description, const QString &medalImage)
 	: m_uuid(uuid)
 	, m_mandatory(mandatory)
 	, m_name(name)
@@ -2627,6 +2670,7 @@ GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const Q
 	, m_solvedLevel(-1)
 	, m_tried(false)
 	, m_lockDepth(0)
+	, m_medalImage(medalImage)
 {
 
 }

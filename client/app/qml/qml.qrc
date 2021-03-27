@@ -63,8 +63,7 @@
         <file>QLabel.qml</file>
         <file>ServerList.qml</file>
         <file>QDialogUserList.qml</file>
-        <file>PageStudentMap.qml</file>
-        <file>QMenuItemDelegate.qml</file>
+        <file>PageStudentGroup.qml</file>
         <file>GamePlayer.qml</file>
         <file>GameJoystick.qml</file>
         <file>GameEnemySoldier.qml</file>
@@ -114,7 +113,6 @@
         <file>TeacherGroupMembers.qml</file>
         <file>TeacherGroupMaps.qml</file>
         <file>TeacherMapGroups.qml</file>
-        <file>StudentGroupList.qml</file>
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
         <file>QDialogImageList.qml</file>
@@ -123,9 +121,14 @@
         <file>MapEditorChapterEdit.qml</file>
         <file>QDialogMissionList.qml</file>
         <file>QSpinBoxArrow.qml</file>
-        <file>QPageSwipePanel.qml</file>
-        <file>_PageSwipePanel.qml</file>
+        <file>QSwipePage.qml</file>
+        <file>_SwipePage.qml</file>
         <file>QSwipeContainer.qml</file>
         <file>QSwipeButton.qml</file>
+        <file>MapEditorImportDialog.qml</file>
+        <file>QImageInnerShadow.qml</file>
+        <file>StudentMemberList.qml</file>
+        <file>QMedalImage.qml</file>
+        <file>QTrophyImage.qml</file>
     </qresource>
 </RCC>

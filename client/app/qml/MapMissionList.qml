@@ -12,7 +12,7 @@ QPagePanel {
 	layoutFillWidth: true
 
 	title: qsTr("Küldetések")
-	icon: "image://font/School/\uf19d"
+	icon: "qrc:/internal/img/battle.png"
 
 	property alias list: list
 
@@ -37,10 +37,6 @@ QPagePanel {
 					ExpressionFilter {
 						expression: model.type === 1 && model.lockDepth > 0
 						SwitchRole.value: JS.setColorAlpha(CosStyle.colorPrimary, 0.5)
-					},
-					ExpressionFilter {
-						expression: model.lockDepth === 0 && model.solved
-						SwitchRole.value: CosStyle.colorOKLighter
 					},
 					ExpressionFilter {
 						expression: model.type === 0 && model.lockDepth === 0
@@ -71,7 +67,6 @@ QPagePanel {
 				name: "depth"
 				expression: model.orphan ? 0 : model.type
 			}
-
 		]
 	}
 
@@ -96,18 +91,18 @@ QPagePanel {
 
 		refreshEnabled: true
 
-		//delegateHeight: CosStyle.twoLineHeight
+		delegateHeight: CosStyle.twoLineHeight
 
-		leftComponent: QFontImage {
+		leftComponent: Image {
 			width: visible ? list.delegateHeight : 0
 			height: width*0.8
-			size: Math.min(height*0.8, 32)
+			fillMode: Image.PreserveAspectFit
 
-			icon: CosStyle.iconLock
+			source: model && model.medalImage.length ? cosClient.medalIconPath(model.medalImage) : ""
 
-			visible: model && model.type === 1 && model.lockDepth>0
+			opacity: model && model.lockDepth === 0 ? 1.0 : 0.3
 
-			color: model ? model.textColor : CosStyle.colorPrimary
+			visible: model && model.medalImage.length
 		}
 
 		rightComponent: QFontImage {
@@ -115,9 +110,9 @@ QPagePanel {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: model && model.type === 1 && model.tried ? CosStyle.iconClock3 : CosStyle.iconLock
+			icon: model && model.lockDepth>0 ? CosStyle.iconLock : ""
 
-			visible: model && ((model.type === 0 && model.lockDepth>0) || (model.type === 1 && model.tried && !model.solved))
+			visible: model && model.lockDepth>0
 
 			color: model ? model.textColor : CosStyle.colorPrimary
 		}

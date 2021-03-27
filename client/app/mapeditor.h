@@ -62,7 +62,7 @@ class MapEditor : public AbstractActivity
 
 public:
 	MapEditor(QQuickItem *parent = nullptr);
-	~MapEditor();
+	virtual ~MapEditor();
 
 	Q_INVOKABLE bool loadDefault();
 	Q_INVOKABLE bool saveDefault();

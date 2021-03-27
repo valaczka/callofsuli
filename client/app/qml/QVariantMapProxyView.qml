@@ -37,8 +37,8 @@ QListView {
 	property int fontWeightTitle: Font.Medium
 	property int fontWeightSubtitle: Font.Normal
 
-	property int delegateHeight: CosStyle.baseHeight
-	property int depthWidth: CosStyle.baseHeight
+	property real delegateHeight: CosStyle.baseHeight
+	property real depthWidth: CosStyle.baseHeight
 
 	property bool selectorSet: false
 	property bool autoSelectorChange: false
@@ -174,7 +174,7 @@ QListView {
 						font.weight: modelTitleWeightRole.length ? model[modelTitleWeightRole] : fontWeightTitle
 						width: parent.width
 						visible: text.length
-						clip: true
+						//clip: true
 					}
 
 					QLabel {
@@ -186,7 +186,7 @@ QListView {
 						elide: Text.ElideRight
 						width: parent.width
 						visible: text.length
-						clip: true
+						//clip: true
 					}
 				}
 

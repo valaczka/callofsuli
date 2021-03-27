@@ -52,7 +52,7 @@ class GameActivity : public AbstractActivity
 
 public:
 	GameActivity(QQuickItem *parent = nullptr);
-	~GameActivity();
+	virtual ~GameActivity();
 
 	Q_INVOKABLE void prepare();
 	Q_INVOKABLE void createPickable(GameEnemy *enemy);

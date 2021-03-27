@@ -58,7 +58,7 @@ class GameBlock : public QObject
 
 public:
 	explicit GameBlock(QObject *parent = nullptr);
-	~GameBlock();
+	virtual ~GameBlock();
 
 	void addEnemy(GameEnemyData *enemy);
 	void addPlayerPosition(const QPointF &point);

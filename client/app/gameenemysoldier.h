@@ -49,7 +49,7 @@ class GameEnemySoldier : public GameEnemy
 
 public:
 	GameEnemySoldier(QQuickItem *parent = 0);
-	~GameEnemySoldier();
+	virtual ~GameEnemySoldier();
 
 	void setQrcDir() override;
 	void createFixtures() override;

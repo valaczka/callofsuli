@@ -70,7 +70,8 @@ QPage {
 																 "cname",
 																 "mname",
 																 "mandatory",
-																 "locked"
+																 "locked",
+																 "medalImage"
 															 ])
 
 		property VariantMapModel modelChapterList: newModel([
@@ -80,6 +81,21 @@ QPage {
 																"missionCount"
 															])
 
+
+		function createTerrainDialog() {
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["readableName", "details", "thumbnail"],
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Harcmező kiválasztása"),
+										   selectorSet: false,
+										   modelIconRole: "thumbnail",
+										   modelSubtitleRole: "details",
+										   delegateHeight: CosStyle.twoLineHeight*1.2,
+										   sourceModel: mapEditor.modelTerrains
+									   })
+
+			return d
+		}
 
 
 		onLoadStarted: {
@@ -276,22 +292,8 @@ QPage {
 	}
 
 
-	FileDialog {
+	MapEditorImportDialog {
 		id: importDialog
-		title: qsTr("Importálás")
-		folder: shortcuts.home
-
-		nameFilters: [ qsTr("Excel fájlok")+ " (*.xlsx)" ]
-
-		property int chapterId: -1
-
-		selectMultiple: false
-		selectExisting: true
-		selectFolder: false
-
-		onAccepted: {
-			mapEditor.run("chapterImport", {chapterid: chapterId, filename: importDialog.fileUrl})
-		}
 	}
 
 	onPageActivated: {

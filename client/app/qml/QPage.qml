@@ -13,11 +13,9 @@ Page {
 	implicitWidth: 800
 	implicitHeight: 600
 
-	property int requiredPanelWidth: 400
-
 	property real stackTopOffset: -15
 
-	property bool stackMode: control.width < requiredPanelWidth*Math.max(panelComponents.length, 2)
+	property bool stackMode: width<implicitWidth
 	property int _oldStackMode: -1
 
 	property alias pageStack: pageStack

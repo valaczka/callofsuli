@@ -62,7 +62,7 @@ public:
 	Q_ENUM(LadderMode)
 
 	GamePlayer(QQuickItem *parent = 0);
-	~GamePlayer();
+	virtual ~GamePlayer();
 
 	void setQrcDir() override;
 	void createFixtures() override;

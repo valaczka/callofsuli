@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
@@ -20,95 +21,230 @@ QPage {
 		id: userData
 	}
 
+	property VariantMapModel modelMenuList: cosClient.newModel([
+																   "type",
+																   "name",
+																   "details",
+																   "icon",
+																   "page",
+																   "id"
+															   ])
+
 	panelComponents: [
 		Component {
 			QPagePanel {
 				id: panel
 
 				title: ""
-				maximumWidth: 600
+				icon: "qrc:/internal/img/callofsuli.svg"
+				maximumWidth: 700
 
 				borderColor: CosStyle.colorAccentDarker
 
-				QMenuItemDelegate {
-					id: list
+				QVariantMapProxyView {
+					id: menuList
 					anchors.fill: parent
 
-					model: ListModel { }
+					model: SortFilterProxyModel {
+						sourceModel: modelMenuList
+						sorters: [
+							RoleSorter { roleName: "type"; priority: 2 },
+							StringSorter { roleName: "name"; priority: 1 }
+						]
 
-					onClicked: JS.createPage(model.get(index).page, model.get(index).params)
+						proxyRoles: [
+							SwitchRole {
+								name: "textColor"
+								filters: [
+									ValueFilter {
+										roleName: "type"
+										value: -2
+										SwitchRole.value: CosStyle.colorAccent
+									},
+									ValueFilter {
+										roleName: "type"
+										value: -1
+										SwitchRole.value: CosStyle.colorErrorLighter
+									},
+									ValueFilter {
+										roleName: "type"
+										value: 0
+										SwitchRole.value: CosStyle.colorOKLighter
+									}
+								]
+								defaultValue: CosStyle.colorPrimaryLighter
+							}
+						]
+					}
+
+
+					modelTitleRole: "name"
+					modelSubtitleRole: "details"
+					modelTitleColorRole: "textColor"
+					modelSubtitleColorRole: "textColor"
+
+					autoSelectorChange: false
+
+					refreshEnabled: true
+
+					delegateHeight: CosStyle.twoLineHeight*1.3
+
+					fontWeightTitle: Font.Medium
+					pixelSizeTitle: CosStyle.pixelSize*1.2
+
+					leftComponent: QFontImage {
+						width: visible ? menuList.delegateHeight : 0
+						height: width*0.8
+						size: Math.min(height*0.8, 32)
+
+						icon: model && model.icon ? model.icon : ""
+
+						visible: model && model.icon
+
+						color: model ? model.textColor : CosStyle.colorPrimary
+					}
+
+
+					onRefreshRequest: reloadModel()
+
+					onClicked: {
+						var o = menuList.model.get(index)
+
+						if (o.page.length) {
+							var d = {}
+
+							if (o.type === 0) {
+								d.defaultTitle = o.name
+								d.defaultSubTitle = o.details
+								d.groupId = o.id
+							}
+
+							JS.createPage(o.page, d)
+						}
+					}
 				}
+
 
 				onPopulated: reloadModel()
 
-
 				function reloadModel() {
-					list.model.clear()
-
-					list.model.append({
-										  labelTitle: qsTr("Rangsor"),
-										  page: "Score",
-										  params: {}
-									  })
-
-					if (cosClient.userRoles & CosMessage.RoleStudent)
-						list.model.append({
-											  labelTitle: qsTr("Pályák"),
-											  page: "StudentMap",
-											  params: {}
-										  })
-
-					if (cosClient.userRoles & CosMessage.RoleTeacher)
-						list.model.append({
-											  labelTitle: qsTr("Pályák kezelése"),
-											  page: "TeacherMap",
-											  params: {}
-										  })
-
-					if (cosClient.userRoles & CosMessage.RoleTeacher)
-						list.model.append({
-											  labelTitle: qsTr("Csoportok kezelése"),
-											  page: "TeacherGroup",
-											  params: {}
-										  })
-
-					if (cosClient.userRoles & CosMessage.RoleAdmin)
-						list.model.append({
-											  labelTitle: qsTr("Szerver beállításai"),
-											  page: "ServerSettings",
-											  params: {}
-										  })
-
-					if (cosClient.userRoles & CosMessage.RoleAdmin)
-						list.model.append({
-											  labelTitle: qsTr("Felhasználók kezelése"),
-											  page: "AdminUsers",
-											  params: {}
-										  })
-
-
-					if (cosClient.userRoles & CosMessage.RoleGuest)
-						list.model.append({
-											  labelTitle: qsTr("Bejelentkezés"),
-											  page: "Login",
-											  params: {}
-										  })
-
-					if ((cosClient.userRoles & CosMessage.RoleGuest) && cosClient.registrationEnabled)
-						list.model.append({
-											  labelTitle: qsTr("Regisztráció"),
-											  page: "Registration",
-											  params: {}
-										  })
-
-
-					list.forceActiveFocus()
+					cosClient.socketSend(CosMessage.ClassUserInfo, "getMyGroups")
+					menuList.forceActiveFocus()
 				}
 
 				Connections {
 					target: cosClient
 					function onUserRolesChanged(userRoles) {
 						reloadModel()
+					}
+
+
+					function onMyGroupListReady(_list) {
+						var list = []
+
+						list.push({
+									  type: -4,
+									  id: -40,
+									  name: qsTr("Összesített rangsor"),
+									  page: "Score",
+									  details: "",
+									  icon: CosStyle.iconMenu
+								  })
+
+						if (!(cosClient.userRoles & Client.RoleGuest)) {
+							list.push({
+										  type: -4,
+										  id: -41,
+										  name: qsTr("Profil"),
+										  page: "",
+										  details: "",
+										  icon: CosStyle.iconUserWhite
+									  })
+						}
+
+						if (cosClient.userRoles & CosMessage.RoleTeacher) {
+							list.push({
+										  type: -2,
+										  id: -20,
+										  name: qsTr("Pályák kezelése"),
+										  page: "TeacherMap",
+										  details: "",
+										  icon: CosStyle.iconMenu
+									  })
+
+							list.push({
+										  type: -2,
+										  id: -21,
+										  name: qsTr("Csoportok kezelése"),
+										  page: "TeacherGroup",
+										  details: "",
+										  icon: CosStyle.iconMenu
+									  })
+						}
+
+
+						if (cosClient.userRoles & CosMessage.RoleAdmin) {
+							list.push({
+										  type: -1,
+										  id: -10,
+										  name: qsTr("Szerver beállítása"),
+										  page: "ServerSettings",
+										  details: "",
+										  icon: CosStyle.iconSetup
+									  })
+
+							list.push({
+										  type: -1,
+										  id: -11,
+										  name: qsTr("Felhasználók kezelése"),
+										  page: "AdminUsers",
+										  details: "",
+										  icon: CosStyle.iconUsers
+									  })
+
+						}
+
+
+						if (cosClient.userRoles & CosMessage.RoleGuest) {
+							list.push({
+										  type: -3,
+										  id: -30,
+										  name: qsTr("Bejelentkezés"),
+										  page: "Login",
+										  details: "",
+										  icon: CosStyle.iconMenu
+									  })
+
+
+							if (cosClient.registrationEnabled)
+								list.push({
+											  type: -3,
+											  id: -31,
+											  name: qsTr("Regisztráció"),
+											  page: "Registration",
+											  details: "",
+											  icon: CosStyle.iconMenu
+										  })
+						}
+
+
+						for (var i=0; i<_list.length; i++) {
+							var o = _list[i]
+
+							list.push({
+										  type: 0,
+										  id: o.id,
+										  name: o.name,
+										  page: (cosClient.userRoles & CosMessage.RoleTeacher) ? "TeacherGroupView" : "StudentGroup",
+										  icon: CosStyle.iconMenu,
+										  details: (o.readableClassList ? o.readableClassList : "")+
+												   (o.teacherfirstname || o.teacherlastname ? " - " : "")+
+												   (o.teacherfirstname ? o.teacherfirstname : "")+
+												   (o.teacherlastname ? " "+o.teacherlastname : "")
+									  })
+						}
+
+						modelMenuList.setVariantList(list, "id")
 					}
 				}
 			}

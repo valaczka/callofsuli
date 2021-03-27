@@ -62,7 +62,7 @@ class GameMatch : public QObject
 public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
 	explicit GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
-	~GameMatch();
+	virtual ~GameMatch();
 
 	GameMap::MissionLevel *missionLevel() const;
 

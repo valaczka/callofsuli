@@ -47,7 +47,7 @@ class Scores : public AbstractActivity
 
 public:
 	explicit Scores(QQuickItem *parent = nullptr);
-	~Scores();
+	virtual ~Scores();
 
 	VariantMapModel* scoreModel() const { return m_scoreModel; }
 

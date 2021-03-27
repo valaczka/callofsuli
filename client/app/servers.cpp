@@ -92,35 +92,6 @@ void Servers::onMessageReceived(const CosMessage &message)
 		if (func == "getResources") {
 			reloadResources(d.toVariantMap());
 		}
-		/*if (func == "registrationRequest") {
-			bool error = d.value("error").toBool(false);
-
-			if (error) {
-				emit registrationRequestFailed();
-				QString errorString = d.value("errorString").toString();
-
-				if (errorString == "email empty")
-					sendMessageWarning(tr("Regisztráció"), tr("Nincs megadva email cím!"));
-				else if (errorString == "email exists")
-					sendMessageWarning(tr("Regisztráció"), tr("A megadott email cím már regisztrálva van!"));
-				else
-					sendMessageWarning(tr("Regisztráció"), tr("Internal error"), errorString);
-			} else {
-				emit registrationRequestSuccess();
-			}
-		} else if (func == "getSettings") {
-			if (d.contains("serverName"))
-				setServerName(d.value("serverName").toString());
-
-			emit settingsLoaded(d);
-		} else if (func == "setSettings") {
-			bool error = d.value("error").toBool(true);
-
-			if (error)
-				emit settingsError();
-			else
-				emit settingsSuccess();
-		} else */
 	}
 }
 
@@ -147,8 +118,6 @@ void Servers::onOneResourceDownloaded(const CosDownloaderItem &item, const QByte
 
 void Servers::serverListReload()
 {
-	qDebug() << "Server list reload";
-
 	if (m_serversModel->variantMapData()->size()) {
 		m_serversModel->variantMapData()->clear();
 	}
@@ -455,58 +424,6 @@ void Servers::sendBroadcast()
 	m_udpSocket->writeDatagram(s, QHostAddress::Broadcast, SERVER_UDP_PORT);
 }
 
-
-
-/**
- * @brief Servers::playTestMap
- * @param data
- */
-
-void Servers::playTestMap(QVariantMap data)
-{
-	QFile f(data.value("filename").toString());
-	if (!f.open(QIODevice::ReadOnly)) {
-		qWarning() << "*** Can't open" << data.value("filename").toString();
-		return;
-	}
-
-	QByteArray b = f.readAll();
-	f.close();
-
-	GameMap *map = GameMap::fromBinaryData(b);
-
-	if (!map) {
-		qWarning() << "*** Invalid file" << data.value("filename").toString();
-		return;
-	}
-
-	GameMap::MissionLevel *ml = nullptr;
-
-	if (map->orphanMissions().size()) {
-		ml = map->orphanMissions().at(0)->levels().at(0);
-	} else if (map->campaigns().size()) {
-		GameMap::Campaign *c = map->campaigns().at(0);
-		if (c) {
-			GameMap::Mission *m = c->missions().at(0);
-
-			if (m)
-				ml = m->levels().at(0);
-		}
-	}
-
-	if (!ml) {
-		qWarning() << "*** Invalid file" << data.value("filename").toString();
-		return;
-		delete map;
-	}
-
-	GameMatch *m_gameMatch = new GameMatch(ml, map, this);
-
-	m_gameMatch->setDeleteGameMap(true);
-	m_gameMatch->setBgImage("");
-
-	emit playTestMapReady(m_gameMatch);
-}
 
 
 

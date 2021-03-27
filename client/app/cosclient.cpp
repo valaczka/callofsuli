@@ -67,6 +67,7 @@
 QList<TerrainData> Client::m_availableTerrains = QList<TerrainData>();
 QVariantMap Client::m_characterData = QVariantMap();
 QStringList Client::m_musicList = QStringList();
+QStringList Client::m_medalIconList = QStringList();
 
 Client::Client(QObject *parent) : QObject(parent)
 {
@@ -158,6 +159,42 @@ void Client::initialize()
 
 }
 
+
+
+
+
+
+/**
+ * @brief Client::commandLineParse
+ * @param app
+ * @return
+ */
+
+bool Client::commandLineParse(QCoreApplication &app)
+{
+	QCommandLineParser parser;
+	parser.setApplicationDescription(QCoreApplication::instance()->applicationName()+
+									 QString::fromUtf8(" – Copyright © 2012-2021 Valaczka János Pál"));
+	parser.addHelpOption();
+	parser.addVersionOption();
+
+	parser.addPositionalArgument("dir", "Az adatbázisokat tartalmazó könyvtár");
+
+	parser.addOption({{"t", "terrain"}, QString::fromUtf8("Terepfájl <file> adatainak lekérdezése"), "file"});
+
+	parser.process(app);
+
+	if (parser.isSet("terrain")) {
+		QString tmx = parser.value("terrain");
+
+		QTextStream out(stdout);
+		out << terrainDataToJson(tmx) << Qt::endl;
+
+		return false;
+	}
+
+	return true;
+}
 
 
 /**
@@ -641,8 +678,10 @@ QVariantMap Client::terrainMap()
 		QVariantMap m;
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
-		m["details"] = d.name+QString(tr(" (%1 csatatér, %2 célpont)")).arg(d.blocks.count()).arg(d.enemies);
+		m["details"] = QString(tr("%1 csatatér, %2 célpont")).arg(d.blocks.count()).arg(d.enemies);
 		m["data"] = d.data;
+		m["readableName"] = d.data.contains("name") ? d.data.value("name").toString() : d.name;
+		m["thumbnail"] = "qrc:/terrain/"+d.name+"/thumbnail.png";
 		map[d.name] = m;
 	}
 
@@ -830,6 +869,25 @@ TerrainData Client::terrain(const QString &name)
 }
 
 
+/**
+ * @brief Client::medalIconPath
+ * @param name
+ * @param qrcPrepend
+ * @return
+ */
+
+QString Client::medalIconPath(const QString &name, const bool &qrcPrepend)
+{
+	if (!m_medalIconList.contains(name))
+		return "";
+
+	if (qrcPrepend)
+		return "qrc:/internal/medals/"+name;
+	else
+		return ":/internal/medals/"+name;
+}
+
+
 
 /**
  * @brief Client::availableTerrains
@@ -845,30 +903,51 @@ void Client::loadTerrains()
 	while (it.hasNext()) {
 		QString realname = it.next();
 
-		GameTerrain t;
-		if (t.loadTmxFile(realname)) {
-			QMap<int, int> blockData;
+		QString terrainName = realname.section('/',-2,-2);
 
-			QMap<int, GameBlock*> b = t.blocks();
-			QMap<int, GameBlock*>::const_iterator it;
-			for (it = b.constBegin(); it != b.constEnd(); ++it) {
-				blockData[it.key()] = it.value()->enemies().count();
+		QString blockfile = ":/terrain/"+terrainName+"/blocks.json";
+
+		if (QFile::exists(blockfile)) {
+			QJsonDocument doc = readJsonDocument(blockfile);
+			QJsonObject o = doc.object();
+
+			int enemies = o.value("enemies").toInt(-1);
+
+			if (enemies != -1) {
+				QMap<int, int> blist;
+
+				qDebug().noquote() << "Load block data from" << blockfile;
+
+				QJsonArray l = o.value("blocks").toArray();
+				foreach (QJsonValue v, l) {
+					QJsonObject b = v.toObject();
+					blist[b.value("num").toInt()] = b.value("enemies").toInt();
+				}
+
+				QString datafile = ":/terrain/"+terrainName+"/data.json";
+				QVariantMap dataMap;
+				if (QFile::exists(datafile))
+					dataMap = Client::readJsonFile(datafile).toMap();
+
+				TerrainData d(terrainName,
+							  blist,
+							  enemies,
+							  dataMap);
+
+				m_availableTerrains.append(d);
+
+				continue;
 			}
+		}
 
 
-			QString terrainName = realname.section('/',-2,-2);
 
-			QString datafile = ":/terrain/"+terrainName+"/data.json";
-			QVariantMap dataMap;
-			if (QFile::exists(datafile))
-				dataMap = Client::readJsonFile(datafile).toMap();
+		TerrainData d = terrainDataFromFile(realname);
 
-			TerrainData d(terrainName,
-						  blockData,
-						  t.enemies().count(),
-						  dataMap);
-
+		if (d.enemies != -1)
 			m_availableTerrains.append(d);
+		else {
+			qWarning().noquote() << "Invalid terrain map" << realname;
 		}
 	}
 }
@@ -918,13 +997,104 @@ void Client::loadMusics()
 
 
 /**
+ * @brief Client::loadMedalIcons
+ */
+
+void Client::loadMedalIcons()
+{
+	m_medalIconList.clear();
+
+	QDirIterator it(":/internal/medals", QDir::Files);
+
+	while (it.hasNext()) {
+		it.next();
+		m_medalIconList.append(it.fileName());
+	}
+}
+
+
+/**
  * @brief Client::reloadGameResources
  */
 
 void Client::reloadGameResources()
 {
+	Client::loadTerrains();
 	Client::loadCharacters();
 	Client::loadMusics();
+	Client::loadMedalIcons();
+}
+
+
+/**
+ * @brief Client::terrainDataFromFile
+ * @param filename
+ * @return
+ */
+
+TerrainData Client::terrainDataFromFile(const QString &filename)
+{
+	GameTerrain t;
+
+	if (t.loadTmxFile(filename)) {
+		QMap<int, int> blockData;
+
+		QMap<int, GameBlock*> b = t.blocks();
+		QMap<int, GameBlock*>::const_iterator it;
+		for (it = b.constBegin(); it != b.constEnd(); ++it) {
+			blockData[it.key()] = it.value()->enemies().count();
+		}
+
+
+		QString terrainName = filename.section('/',-2,-2);
+
+		QString datafile = ":/terrain/"+terrainName+"/data.json";
+		QVariantMap dataMap;
+		if (QFile::exists(datafile))
+			dataMap = Client::readJsonFile(datafile).toMap();
+
+		return TerrainData(terrainName,
+							blockData,
+							t.enemies().count(),
+							dataMap);
+	}
+
+	return TerrainData("",
+					   QMap<int,int>(),
+					   -1);
+}
+
+
+/**
+ * @brief Client::terrainDataToJson
+ * @param filename
+ * @return
+ */
+
+QByteArray Client::terrainDataToJson(const QString &filename)
+{
+	TerrainData t = terrainDataFromFile(filename);
+
+	QJsonObject o;
+
+	if (t.enemies != -1) {
+		QJsonArray blocks;
+		QMap<int, int> m = t.blocks;
+		QMap<int, int>::const_iterator it;
+		for (it = m.constBegin(); it != m.constEnd(); ++it) {
+			QJsonObject b;
+			b["num"] = it.key();
+			b["enemies"] = it.value();
+			blocks.append(b);
+		}
+
+		o["blocks"] = blocks;
+		o["enemies"] = t.enemies;
+	}
+
+	QJsonDocument doc(o);
+
+	return doc.toJson(QJsonDocument::Indented);
 }
 
 
@@ -1223,6 +1393,8 @@ void Client::performUserInfo(const CosMessage &message)
 			} else if (d.value("success").toBool(false)) {
 				emit registrationRequestSuccess();
 			}
+		} else if (func == "getMyGroups") {
+			emit myGroupListReady(d.value("list").toArray());
 		}
 	}
 }

@@ -66,7 +66,7 @@ QPagePanel {
 	property VariantMapModel modelCampaignLock: mapEditor.newModel(["lock", "name"])
 	property VariantMapModel modelMissionLock: mapEditor.newModel(["lock", "name", "level"])
 	property VariantMapModel modelMissionLevel: mapEditor.newModel(["rowid", "level", "terrain", "startHP", "duration",
-																	"startBlock", "imageFolder", "imageFile"])
+																	"startBlock", "imageFolder", "imageFile", "canDelete"])
 
 
 
@@ -178,18 +178,31 @@ QPagePanel {
 			modelMissionLock.setVariantList(data.locks, "lock")
 
 			var ll = data.levels
-			ll.push({
-						rowid: -1,
-						level: ll.length+1,
-						terrain: "",
-						startHP: 0,
-						duration: 0,
-						startBlock: 0,
-						imageFolder: "",
-						imageFile: ""
-					})
 
-			modelMissionLevel.setVariantList(ll, "level")
+			var newL = []
+
+			for (var i=0; i<ll.length; i++) {
+				var x = ll[i]
+				x.canDelete = (i === ll.length-1)
+				newL.push(x)
+			}
+
+			if (ll.length < 3) {
+				newL.push({
+							  rowid: -1,
+							  level: ll.length+1,
+							  canDelete: false,
+							  terrain: "",
+							  startHP: 0,
+							  duration: 0,
+							  startBlock: 0,
+							  imageFolder: "",
+							  imageFile: ""
+						  })
+			}
+
+
+			modelMissionLevel.setVariantList(newL, "level")
 
 			missionLocksCollapsible.collapsed = !data.locks.length
 
@@ -559,11 +572,11 @@ QPagePanel {
 					proxyRoles: [
 						ExpressionRole {
 							name: "img"
-							expression: model.rowid === -1 ? "" :
-															 ( model.imageFolder.length && model.imageFile.length ?
-																  "image://mapdb/"+model.imageFolder+"/"+model.imageFile :
-																  "qrc:/internal/game/bg.png")
-
+							expression: model.rowid === -1 ? "" : cosClient.terrainMap()[model.terrain].thumbnail
+						},
+						ExpressionRole {
+							name: "readableTerrain"
+							expression: model.terrain.length ? cosClient.terrainMap()[model.terrain].readableName : ""
 						},
 						ExpressionRole {
 							name: "fullname"
@@ -584,7 +597,7 @@ QPagePanel {
 				autoSelectorChange: false
 
 				modelTitleRole: "fullname"
-				modelSubtitleRole: "terrain"
+				modelSubtitleRole: "readableTerrain"
 
 				modelTitleColorRole: "textColor"
 				fontWeightTitle: Font.Medium
@@ -620,7 +633,7 @@ QPagePanel {
 				rightComponent: QToolButton {
 					display: AbstractButton.IconOnly
 					icon.source: CosStyle.iconDelete
-					visible: modelIndex === missionLevelsView.model.count-2
+					visible: model && model.canDelete
 
 					ToolTip.text: qsTr("Utolsó szint törlése")
 
@@ -636,14 +649,7 @@ QPagePanel {
 					var rowid = model.get(index).rowid
 
 					if (rowid === -1) {
-						var i = CosStyle.iconLockAdd
-						var d = JS.dialogCreateQml("List", {
-													   roles: ["details", "name"],
-													   icon: i,
-													   title: qsTr("Harcmező kiválasztása"),
-													   selectorSet: false,
-													   sourceModel: mapEditor.modelTerrains
-												   })
+						var d = mapEditor.createTerrainDialog()
 
 						d.accepted.connect(function(data) {
 							var p = d.item.sourceModel.get(data)

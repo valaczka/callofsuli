@@ -66,7 +66,7 @@ public:
 	struct busyData;
 
 	explicit AbstractActivity(const CosMessage::CosClass &defaultClass = CosMessage::ClassInvalid, QQuickItem *parent = nullptr);
-	~AbstractActivity();
+	virtual ~AbstractActivity();
 
 	Client* client() const { return m_client; }
 	bool isBusy() const { return m_isBusy; }

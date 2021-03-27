@@ -8,10 +8,10 @@ import "Style"
 import "JScript.js" as JS
 
 
-QPage {
+QSwipePage {
 	id: page
 
-	title: qsTr("Szerver beállításai")
+	defaultTitle: qsTr("Szerver beállításai")
 
 	mainToolBarComponent: QToolButton { action: actionSave }
 
@@ -19,18 +19,15 @@ QPage {
 		id: serverSettings
 	}
 
-
-	panelComponents: Component {
-		QPagePanel {
-			id: panel
-
-			maximumWidth: 600
-
-			layoutFillWidth: true
+	content: [
+		QSwipeContainer {
+			id: container1
+			reparented: swipeMode
+			reparentedParent: placeholder1
+			title: qsTr("Általános")
+			icon: CosStyle.iconSetup
 
 			QAccordion {
-				id: accordion
-
 				QCollapsible {
 					title: qsTr("Általános")
 
@@ -110,8 +107,18 @@ QPage {
 					}
 				}
 
+			}
 
+		}
+		,
+		QSwipeContainer {
+			id: container2
+			reparented: swipeMode
+			reparentedParent: placeholder2
+			title: qsTr("E-mail")
+			icon: CosStyle.iconPreferences
 
+			QAccordion {
 				QCollapsible {
 					title: qsTr("E-mail funkciók")
 
@@ -267,75 +274,80 @@ QPage {
 
 				}
 
-
 			}
-
-
-
-
-			Connections {
-				target: actionSave
-				function onTriggered() {
-					var o = JS.getModifiedSqlFields([
-														textServerName,
-														textHost,
-														textPort,
-														comboType,
-														textEmail,
-														textUser,
-														textPassword,
-														comboRegistration,
-														textDomain,
-														comboReset,
-														comboRegistrationAuto,
-														comboRegistrationClass
-													])
-
-					if (Object.keys(o).length) {
-						serverSettings.send("setSettings", o)
-					}
-				}
-			}
-
-			Connections {
-				target: serverSettings
-
-				function onGetSettings(jsonData, binaryData) {
-					JS.setSqlFields([
-										textServerName,
-										textHost,
-										textPort,
-										comboType,
-										textEmail,
-										textUser,
-										textPassword,
-										comboRegistration,
-										textDomain,
-										comboReset,
-										comboRegistrationAuto,
-										comboRegistrationClass
-									], jsonData)
-
-					grid1.modified = false
-					grid2.modified = false
-					grid3.modified = false
-				}
-
-				function onSetSettings(jsonData, binaryData) {
-					if (jsonData.success) {
-						cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
-						serverSettings.send("getSettings")
-					} else {
-						cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
-					}
-				}
-			}
-
-			Component.onCompleted: serverSettings.send("getSettings")
 		}
+	]
 
+	swipeContent: [
+		Item { id: placeholder1 },
+		Item { id: placeholder2 }
+	]
+
+	tabBarContent: [
+		QSwipeButton { swipeContainer: container1 },
+		QSwipeButton { swipeContainer: container2 }
+	]
+
+
+	Connections {
+		target: actionSave
+		function onTriggered() {
+			var o = JS.getModifiedSqlFields([
+												textServerName,
+												textHost,
+												textPort,
+												comboType,
+												textEmail,
+												textUser,
+												textPassword,
+												comboRegistration,
+												textDomain,
+												comboReset,
+												comboRegistrationAuto,
+												comboRegistrationClass
+											])
+
+			if (Object.keys(o).length) {
+				serverSettings.send("setSettings", o)
+			}
+		}
 	}
 
+	Connections {
+		target: serverSettings
+
+		function onGetSettings(jsonData, binaryData) {
+			JS.setSqlFields([
+								textServerName,
+								textHost,
+								textPort,
+								comboType,
+								textEmail,
+								textUser,
+								textPassword,
+								comboRegistration,
+								textDomain,
+								comboReset,
+								comboRegistrationAuto,
+								comboRegistrationClass
+							], jsonData)
+
+			grid1.modified = false
+			grid2.modified = false
+			grid3.modified = false
+		}
+
+		function onSetSettings(jsonData, binaryData) {
+			if (jsonData.success) {
+				cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
+				serverSettings.send("getSettings")
+			} else {
+				cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+			}
+		}
+	}
+
+	Component.onCompleted: serverSettings.send("getSettings")
 
 
 	Action {

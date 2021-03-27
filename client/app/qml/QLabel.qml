@@ -3,7 +3,9 @@ import QtQuick.Controls 2.15
 import "Style"
 
 
-Label {
+Text {
 	id: control
+	color: CosStyle.colorPrimaryLighter
+	font.family: "Rajdhani"
 	font.pixelSize: CosStyle.pixelSize
 }

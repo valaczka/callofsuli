@@ -43,7 +43,7 @@ class ServerSettings : public AbstractActivity
 
 public:
 	explicit ServerSettings(QQuickItem *parent = nullptr);
-	~ServerSettings();
+	virtual ~ServerSettings();
 
 protected slots:
 	//void clientSetup() override;
