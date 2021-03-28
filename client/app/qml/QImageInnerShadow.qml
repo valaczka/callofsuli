@@ -12,6 +12,8 @@ Item {
 	required property string image
 	required property Item contentItem
 
+	property alias brightness: brg.brightness
+
 	Image {
 		id: img
 		source: control.image

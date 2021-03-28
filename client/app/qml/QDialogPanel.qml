@@ -25,6 +25,8 @@ Item {
 	property int maximumWidth: 0
 	property int maximumHeight: 0
 
+	property alias metalBgTexture: metalbg
+
 	signal dlgClose()
 	property var acceptedData: null
 

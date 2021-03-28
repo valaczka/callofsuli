@@ -36,6 +36,8 @@ Item {
 
 	property var contextMenuFunc: null
 
+	property alias metalBgTexture: metalbg
+
 
 	property bool stackMode: false
 	property StackView pageStack: null

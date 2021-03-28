@@ -47,6 +47,7 @@ class StudentMaps : public AbstractActivity
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
 	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList NOTIFY modelMissionListChanged)
 	Q_PROPERTY(VariantMapModel * modelUserList READ modelUserList WRITE setModelUserList NOTIFY modelUserListChanged)
+	Q_PROPERTY(VariantMapModel * modelMedalList READ modelMedalList WRITE setModelMedalList NOTIFY modelMedalListChanged)
 	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
 
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
@@ -63,12 +64,12 @@ public:
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
 	VariantMapModel * modelUserList() const { return m_modelUserList; }
+	VariantMapModel * modelMedalList() const { return m_modelMedalList; }
 	GameMap * currentMap() const { return m_currentMap; }
 	bool demoMode() const { return m_demoMode; }
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
 	bool isGameRunning() const { return m_isGameRunning; }
-
 
 public slots:
 	void mapDownload(QVariantMap data);
@@ -81,7 +82,7 @@ public slots:
 	void setSelectedGroupId(int selectedGroupId);
 	void setIsGameRunning(bool isGameRunning);
 	void setModelUserList(VariantMapModel * modelUserList);
-
+	void setModelMedalList(VariantMapModel * modelMedalList);
 
 protected slots:
 	void clientSetup() override;
@@ -96,6 +97,7 @@ private slots:
 	void onGameEnd(GameMatch *match, const bool &win = false);
 
 	void onMissionListGet(QJsonObject jsonData, QByteArray);
+	void onMedalListGet(QJsonObject jsonData, QByteArray);
 	void onUserListGet(QJsonObject jsonData, QByteArray);
 	void onGameCreate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);
@@ -113,7 +115,9 @@ signals:
 
 	void userListGet(QJsonObject jsonData, QByteArray binaryData);
 
-	void gameMapLoaded(const QString &mapName);
+	void medalListGet(QJsonObject jsonData, QByteArray binaryData);
+
+	void gameMapLoaded(const QString &mapUuid, const QString &mapName);
 	void gameMapUnloaded();
 
 	void gamePlayReady(GameMatch *gameMatch);
@@ -130,7 +134,7 @@ signals:
 	void selectedGroupIdChanged(int selectedGroupId);
 	void isGameRunningChanged(bool isGameRunning);
 	void modelUserListChanged(VariantMapModel * modelUserList);
-
+	void modelMedalListChanged(VariantMapModel * modelMedalList);
 
 private:
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
@@ -144,6 +148,7 @@ private:
 	int m_selectedGroupId;
 	bool m_isGameRunning;
 	VariantMapModel * m_modelUserList;
+	VariantMapModel * m_modelMedalList;
 };
 
 #endif // STUDENTMAPS_H

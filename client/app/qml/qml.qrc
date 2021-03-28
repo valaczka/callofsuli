@@ -130,5 +130,6 @@
         <file>StudentMemberList.qml</file>
         <file>QMedalImage.qml</file>
         <file>QTrophyImage.qml</file>
+        <file>QDialogStudentMapInfo.qml</file>
     </qresource>
 </RCC>

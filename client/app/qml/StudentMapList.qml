@@ -18,7 +18,8 @@ QSwipeContainer {
 		id: userProxyModel
 		sourceModel: studentMaps.modelMapList
 		sorters: [
-			StringSorter { roleName: "name" }
+			RoleSorter { roleName: "active"; sortOrder: Qt.DescendingOrder; priority: 1 },
+			StringSorter { roleName: "name"; priority: 0 }
 		]
 
 		proxyRoles: [
@@ -59,7 +60,7 @@ QSwipeContainer {
 
 		refreshEnabled: true
 
-		//delegateHeight: CosStyle.twoLineHeight
+		delegateHeight: CosStyle.twoLineHeight
 
 		leftComponent: QFontImage {
 			width: visible ? list.delegateHeight : 0
@@ -70,7 +71,7 @@ QSwipeContainer {
 					  if (model.active)
 						  "qrc:/internal/img/battle.png"
 					  else
-						  CosStyle.iconVisible
+						  CosStyle.iconMedal
 				  } else
 					  CosStyle.iconDownloadCloud
 
@@ -81,14 +82,19 @@ QSwipeContainer {
 
 		rightComponent: QToolButton {
 			anchors.verticalCenter: parent.verticalCenter
-			ToolTip.text: qsTr("Részletek")
+			ToolTip.text: qsTr("Jelvények")
 
-			visible: model && (model.active || !model.downloaded)
+			visible: model && model.active && model.downloaded
 
-			icon.source: CosStyle.iconVisible
+			icon.source: CosStyle.iconMedal
 
 			onClicked: {
-				//mapEditor.run("objectiveAdd", {chapter: model.id, module: model.module})
+				var d = JS.dialogCreateQml("StudentMapInfo", {
+											   title: model.name,
+											   studentMaps: studentMaps,
+											   mapUuid: model.uuid
+										   })
+				d.open()
 			}
 		}
 
@@ -102,7 +108,13 @@ QSwipeContainer {
 				if (o.active) {
 					studentMaps.mapLoad({uuid: o.uuid, name: o.name})
 				} else {
-					// view
+					var d = JS.dialogCreateQml("StudentMapInfo", {
+												   title: o.name,
+												   studentMaps: studentMaps,
+												   mapUuid: o.uuid
+											   })
+					d.open()
+
 				}
 			} else {
 				list.currentIndex = index

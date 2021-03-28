@@ -46,7 +46,8 @@ QSwipePage {
 		onGameMapLoaded: {
 			JS.createPage("MapMissions", {
 							  studentMaps: studentMaps,
-							  defaultSubTitle: mapName
+							  defaultSubTitle: mapName,
+							  mapUuid: mapUuid
 						  })
 		}
 

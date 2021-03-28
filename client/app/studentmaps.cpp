@@ -60,7 +60,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 											 "name" ,
 											 "active",
 											 "dataSize" ,
-											 "downloaded" ,
+											 "downloaded",
 											 "md5"
 										 },
 										 this);
@@ -101,13 +101,20 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 										  },
 										  this);
 
+	m_modelMedalList = new VariantMapModel({
+											   "level",
+											   "deathmatch",
+											   "image",
+											   "solved"
+										   },
+										   this);
 
-
-//	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
+	//	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
 
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
 	connect(this, &StudentMaps::userListGet, this, &StudentMaps::onUserListGet);
+	connect(this, &StudentMaps::medalListGet, this, &StudentMaps::onMedalListGet);
 	connect(this, &StudentMaps::gameCreate, this, &StudentMaps::onGameCreate);
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
 }
@@ -130,6 +137,7 @@ StudentMaps::~StudentMaps()
 	delete m_modelMapList;
 	delete m_modelMissionList;
 	delete m_modelUserList;
+	delete m_modelMedalList;
 
 	unloadGameMap();
 
@@ -308,6 +316,12 @@ void StudentMaps::getMissionList()
 }
 
 
+
+
+
+
+
+
 /**
  * @brief StudentMaps::playGame
  * @param data
@@ -385,6 +399,15 @@ void StudentMaps::setModelUserList(VariantMapModel *modelUserList)
 
 	m_modelUserList = modelUserList;
 	emit modelUserListChanged(m_modelUserList);
+}
+
+void StudentMaps::setModelMedalList(VariantMapModel *modelMedalList)
+{
+	if (m_modelMedalList == modelMedalList)
+		return;
+
+	m_modelMedalList = modelMedalList;
+	emit modelMedalListChanged(m_modelMedalList);
 }
 
 
@@ -565,7 +588,7 @@ void StudentMaps::loadGameMap(GameMap *map, const QString &mapName)
 	map->deleteImages();
 
 	m_currentMap = map;
-	emit gameMapLoaded(mapName);
+	emit gameMapLoaded(QString(map->uuid()), mapName);
 
 
 	qDebug() << "Add sqlimage provider mapimagedb";
@@ -884,6 +907,78 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 	m_modelMissionList->setVariantList(ret, "num");
 
 	emit missionListChanged();
+}
+
+
+
+/**
+ * @brief StudentMaps::onMedalListGet
+ * @param jsonData
+ */
+
+void StudentMaps::onMedalListGet(QJsonObject jsonData, QByteArray)
+{
+	QString uuid = jsonData.value("uuid").toString();
+	QJsonArray list = jsonData.value("list").toArray();
+
+	if (uuid.isEmpty()) {
+		qWarning() << "Missing map uuid";
+		return;
+	}
+
+	QVariantList l;
+	l.append(uuid);
+	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", l);
+
+	if (r.isEmpty()) {
+		qWarning() << tr("Érvénytelen pályaazonosító") << uuid;
+		return;
+	}
+
+	QByteArray b = r.value("data").toByteArray();
+
+	GameMap *map = GameMap::fromBinaryData(b);
+
+	if (!map) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás pályaadatok!"), uuid);
+		return;
+	}
+
+	QVector<GameMap::MissionLevelData> levelData = map->missionLevelsData();
+
+	QVariantList ret;
+
+	int idx=0;
+
+	foreach (GameMap::MissionLevelData d, levelData) {
+		QVariantMap r;
+		r["index"] = idx++;
+		r["level"] = d.missionLevel()->level();
+		r["deathmatch"] = d.deathmatch();
+		r["image"] = d.mission()->medalImage();
+
+		bool solved = false;
+
+		QString missionUuid = QString(d.mission()->uuid());
+
+		foreach (QJsonValue v, list) {
+			QJsonObject o = v.toObject();
+			QString key = QString("%1%2").arg(d.deathmatch() ? "d" : "t").arg(d.missionLevel()->level());
+			if (o.value("missionid").toString() == missionUuid && o.value(key).toInt(0) > 0) {
+				solved = true;
+				break;
+			}
+		}
+
+		r["solved"] = solved;
+		ret.append(r);
+	}
+
+
+	m_modelMedalList->clear();
+	m_modelMedalList->setVariantList(ret, "index");
+
+	delete map;
 }
 
 

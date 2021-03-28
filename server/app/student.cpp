@@ -198,6 +198,50 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+/**
+ * @brief Student::medalListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::medalListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString mapuuid = params.value("map").toString();
+
+	if (mapuuid.isEmpty()) {
+		(*jsonResponse)["error"] = "missing map";
+		return false;
+	}
+
+	QVariantList l;
+
+	l.append(m_client->clientUserName());
+	l.append(mapuuid);
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
+									"FROM game WHERE username=? AND mapid=?"
+									, l));
+	(*jsonResponse)["uuid"] = mapuuid;
+
+
+	return true;
+}
+
+
+
 
 /**
  * @brief Student::gameNew

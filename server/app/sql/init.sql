@@ -174,6 +174,12 @@ SELECT game.username, mapid, level, deathmatch, success, COUNT(*) as num, SUM(xp
 	GROUP BY game.username, mapid, level, deathmatch, success;
 
 
+CREATE VIEW missionTrophy AS
+SELECT game.username, mapid, missionid, level, deathmatch, success, COUNT(*) as num, SUM(xp) as xp
+	FROM game LEFT JOIN score ON (score.gameid=game.id)
+	GROUP BY game.username, mapid, missionid, level, deathmatch, success;
+
+
 
 CREATE VIEW groupTrophy AS
 SELECT studentGroupInfo.id, studentGroupInfo.username,

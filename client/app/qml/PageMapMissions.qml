@@ -10,7 +10,10 @@ import "JScript.js" as JS
 QPage {
 	id: page
 
+	implicitWidth: 1200
+
 	property bool demoMode: false
+	property string mapUuid: ""
 
 	property var _oldVisibility: null
 
@@ -57,10 +60,32 @@ QPage {
 						   studentMaps = demoStudentMaps
 					   }
 
-	mainToolBarComponent: UserButton {
-		visible: studentMaps && !studentMaps.demoMode
-		userDetails: userData
-		userNameVisible: page.width>800
+	mainToolBarComponent: Row {
+		QToolButton {
+			anchors.verticalCenter: parent.verticalCenter
+			ToolTip.text: qsTr("Jelvények")
+
+			visible: studentMaps && !studentMaps.demoMode && mapUuid.length
+
+			icon.source: CosStyle.iconMedal
+
+			onClicked: {
+				var d = JS.dialogCreateQml("StudentMapInfo", {
+											   title: page.defaultSubTitle,
+											   studentMaps: studentMaps,
+											   mapUuid: mapUuid
+										   })
+				d.open()
+
+			}
+		}
+
+		UserButton {
+			anchors.verticalCenter: parent.verticalCenter
+			visible: studentMaps && !studentMaps.demoMode
+			userDetails: userData
+			userNameVisible: page.width>800
+		}
 	}
 
 	UserDetails {

@@ -128,4 +128,6 @@ QtObject {
 	property string iconInvisible: "image://font/Material Icons/\ue8f5"
 	property string iconComputer: "image://font/Material Icons/\ue31f"
 	property string iconComputerData: "image://font/Material Icons/\ue1b2"
+
+	property string iconMedal: "image://font/AcademicI/\uf1a8"
 }

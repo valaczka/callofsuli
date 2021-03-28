@@ -15,8 +15,8 @@ Image {
 	Image {
 		source: cosClient.medalIconPath(image)
 		anchors.centerIn: parent
-		width: parent.width*0.75
-		height: parent.height*0.75
+		width: parent.width*0.9
+		height: parent.height*0.9
 		fillMode: Image.PreserveAspectFit
 	}
 }

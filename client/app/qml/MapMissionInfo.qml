@@ -294,15 +294,34 @@ QPagePanel {
 							width: levelItem.width*0.25
 							height: col2.height*0.9
 
-							opacity: modeIndex != -1 && levelData.modes[modeIndex].available && !levelData.solved ? 1.0 : 0.2
+							//opacity: modeIndex != -1 && levelData.modes[modeIndex].available && !levelData.solved ? 1.0 : 0.2
+
+							QImageInnerShadow {
+								width: medalImage.width
+								height: medalImage.height
+
+								anchors.centerIn: parent
+
+								image: "qrc:/internal/trophy/iconBgt1.png"
+								contentItem: panel.metalBgTexture
+
+								brightness: -0.5
+
+								visible: !studentMaps.demoMode && modeIndex != -1 && !levelData.modes[modeIndex].available
+							}
 
 							QMedalImage {
+								id: medalImage
 								level: levelData.level
 								isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
 								image: selectedData ? selectedData.medalImage : ""
 
-								width: parent.width*0.6
-								height: parent.height*0.6
+								visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
+
+								//opacity: !levelData.solved ? 1.0 : 0.2
+
+								width: parent.width*0.8
+								height: Math.min(parent.height*0.8, 100)
 								anchors.centerIn: parent
 							}
 
@@ -411,32 +430,6 @@ QPagePanel {
 								font.pixelSize: CosStyle.pixelSize*1.2
 							}
 
-							Row {
-								visible: levelData.solved
-								anchors.horizontalCenter: parent.horizontalCenter
-
-								spacing: 5
-
-								QFontImage {
-									anchors.verticalCenter: parent.verticalCenter
-
-									height: CosStyle.pixelSize*2
-									width: height
-									size: CosStyle.pixelSize*0.9
-
-									icon: CosStyle.iconOK
-
-									color: CosStyle.colorOKLighter
-								}
-
-								QLabel {
-									anchors.verticalCenter: parent.verticalCenter
-									text: qsTr("Megoldva")
-									color: CosStyle.colorOK
-									font.weight: Font.Medium
-								}
-							}
-
 						}
 
 						Item {
@@ -445,14 +438,31 @@ QPagePanel {
 							width: levelItem.width*0.25
 							height: col2.height*0.9
 
-							opacity: modeIndex != -1 && levelData.modes[modeIndex].available ? 1.0 : 0.2
+							//opacity: modeIndex != -1 && levelData.modes[modeIndex].available ? 1.0 : 0.2
+
+							QImageInnerShadow {
+								width: trophyImage.width
+								height: trophyImage.height
+
+								anchors.centerIn: parent
+
+								image: "qrc:/internal/trophy/trophyt1.png"
+								contentItem: panel.metalBgTexture
+
+								brightness: -0.5
+
+								visible: !studentMaps.demoMode && modeIndex != -1 && !levelData.modes[modeIndex].available
+							}
 
 							QTrophyImage {
+								id: trophyImage
 								level: levelData.level
 								isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
 
+								visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
+
 								width: parent.width*0.8
-								height: parent.height*0.8
+								height: Math.min(parent.height*0.8, 75)
 								anchors.centerIn: parent
 							}
 						}

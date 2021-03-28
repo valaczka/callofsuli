@@ -67,16 +67,132 @@ QSwipeContainer {
 
 		rightComponent: Column {
 			QLabel {
+				anchors.right: parent.right
 				text: model.sumxp+" XP"
 				font.weight: Font.Normal
-				font.pixelSize: CosStyle.pixelSize
+				font.pixelSize: scoreList.delegateHeight*0.4
 				color: CosStyle.colorAccent
 				leftPadding: 5
 			}
-			QLabel {
-				text: model.t1+" "+model.t2+" "+model.t3+" "+model.d1+" "+model.d2+" "+model.d3
-				font.weight: Font.DemiBold
-				font.pixelSize: CosStyle.pixelSize*0.8
+			Row {
+				id: rw
+				anchors.right: parent.right
+				spacing: 3
+
+				readonly property real rowHeight: scoreList.delegateHeight*0.3
+				readonly property real fontHeight: rowHeight*0.9
+				readonly property int fontWeight: Font.DemiBold
+
+
+				Row {
+					visible: model.d3
+					QTrophyImage {
+						level: 3
+						isDeathmatch: true
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.d3
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+					}
+				}
+
+				Row {
+					visible: model.t3
+					QTrophyImage {
+						level: 3
+						isDeathmatch: false
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.t3
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+					}
+				}
+
+				Row {
+					visible: model.d2
+					QTrophyImage {
+						level: 2
+						isDeathmatch: true
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.d2
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+					}
+				}
+
+				Row {
+					visible: model.t2
+					QTrophyImage {
+						level: 2
+						isDeathmatch: false
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.t2
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+					}
+				}
+
+				Row {
+					visible: model.d1
+					QTrophyImage {
+						level: 1
+						isDeathmatch: true
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.d1
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+					}
+				}
+
+				Row {
+					visible: model.t1
+					QTrophyImage {
+						level: 1
+						isDeathmatch: false
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.t1
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+					}
+				}
+
+
 			}
 		}
 

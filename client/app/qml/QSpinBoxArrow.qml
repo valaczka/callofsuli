@@ -38,10 +38,6 @@ SpinBox {
 		anchors.verticalCenter: parent.verticalCenter
 		color: control.up.pressed || control.up.hovered ? CosStyle.colorBg : "transparent"
 
-		Behavior on color {
-			ColorAnimation { }
-		}
-
 		QLabel {
 			anchors.centerIn: parent
 			text: "»"
@@ -60,10 +56,6 @@ SpinBox {
 		implicitHeight: CosStyle.pixelSize*2
 		anchors.verticalCenter: parent.verticalCenter
 		color: control.down.pressed || control.down.hovered ? CosStyle.colorBg : "transparent"
-
-		Behavior on color {
-			ColorAnimation { }
-		}
 
 		QLabel {
 			anchors.centerIn: parent
