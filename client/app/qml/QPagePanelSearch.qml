@@ -161,5 +161,13 @@ Item {
 		}
 
 	}
+
+
+	Component.onCompleted: {
+		if (enabled)
+			show()
+		else
+			hide()
+	}
 }
 

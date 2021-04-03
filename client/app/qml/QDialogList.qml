@@ -23,34 +23,29 @@ QDialogPanel {
 	property alias modelSubtitleRole: list.modelSubtitleRole
 	property alias delegateHeight: list.delegateHeight
 	property string modelIconRole: ""
+	property string modelRightTextRole: ""
 
 	maximumHeight: 0
 	maximumWidth: 700
 
 	acceptedData: -1
 
+	SortFilterProxyModel {
+		id: model
+
+		sorters: [
+			StringSorter {
+				roleName: roles[0]
+			}
+		]
+	}
+
 	QVariantMapProxyView {
 		id: list
 
 		anchors.fill: parent
 
-		model: SortFilterProxyModel {
-			id: model
-
-			filters: [
-				RegExpFilter {
-					enabled: toolbar.searchBar.text.length
-					roleName: roles[0]
-					pattern: toolbar.searchBar.text
-					caseSensitivity: Qt.CaseInsensitive
-					syntax: RegExpFilter.FixedString
-				}
-			]
-
-			sorters: [
-				StringSorter { roleName: roles[0] }
-			]
-		}
+		model: model
 
 		modelTitleRole: roles[0]
 
@@ -71,21 +66,17 @@ QDialogPanel {
 			}
 		}
 
+		rightComponent: QLabel {
+			anchors.verticalCenter: parent.verticalCenter
+			visible: model && modelRightTextRole.length
+			text: model && modelRightTextRole.length ? model[modelRightTextRole] : ""
+		}
+
 
 		onClicked: if (simpleSelect) {
 					   acceptedData = model.mapToSource(currentIndex)
 					   dlgClose()
 				   }
-	}
-
-	QPagePanelSearch {
-		id: toolbar
-
-		listView: list
-
-		enabled: model.sourceModel.count
-		labelCountText: model.sourceModel.selectedCount
-		onSelectAll: JS.selectAllProxyModelToggle(model)
 	}
 
 

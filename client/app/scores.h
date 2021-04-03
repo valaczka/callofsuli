@@ -62,8 +62,9 @@ protected slots:
 	void onGetAllUser(QJsonObject jsonData, QByteArray);
 
 signals:
-	void getUser(QJsonObject jsonData, QByteArray binaryData);
+	void getUserScore(QJsonObject jsonData, QByteArray binaryData);
 	void getAllUser(QJsonObject jsonData, QByteArray binaryData);
+	void getUser(QJsonObject jsonData, QByteArray binaryData);
 
 
 	void scoreModelChanged(VariantMapModel* scoreModel);

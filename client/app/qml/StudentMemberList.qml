@@ -10,7 +10,7 @@ QSwipeContainer {
 	id: panel
 
 	title: qsTr("Résztvevők")
-	icon: CosStyle.iconUsers
+	icon: CosStyle.iconGroup
 
 
 	SortFilterProxyModel {

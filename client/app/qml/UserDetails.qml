@@ -178,7 +178,7 @@ Popup {
 			font.pixelSize: CosStyle.pixelSize*1.8*scaleFactor
 			font.weight: Font.DemiBold
 			color: CosStyle.colorPrimaryLighter
-			text: xp+" XP"
+			text: Number(xp).toLocaleString()+" XP"
 			visible: !(cosClient.userRoles & Client.RoleGuest)
 		}
 
@@ -199,7 +199,7 @@ Popup {
 
 			QLabel {
 				id: xpFrom
-				text: xpProgress.from+" XP"
+				text: Number(xpProgress.from).toLocaleString()+" XP"
 				anchors.left: xpProgress.left
 				anchors.top: xpProgress.bottom
 				font.pixelSize: CosStyle.pixelSize*0.7
@@ -209,7 +209,7 @@ Popup {
 
 			QLabel {
 				id: xpTo
-				text: xpProgress.to+" XP"
+				text: Number(xpProgress.to).toLocaleString()+" XP"
 				anchors.right: xpProgress.right
 				anchors.top: xpProgress.bottom
 				font.pixelSize: CosStyle.pixelSize*0.7

@@ -13,7 +13,7 @@ QPagePanel {
 
 	title: teacherMaps.selectedMapId.length ? qsTr("Hozzárendelt csoportok") : ""
 	subtitle: ""
-	icon: "image://font/AcademicI/\uf15f"
+	icon: CosStyle.iconGroupsSmall
 
 	property alias list: groupList
 

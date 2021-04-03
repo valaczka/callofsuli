@@ -31,7 +31,7 @@ Page {
 	property alias swipeContent: layoutSwipe.contentChildren
 	property alias content: layoutRow.data
 
-	property alias swipeCurrentIndex: layoutSwipe.currentIndex
+	readonly property alias swipeCurrentIndex: layoutSwipe.currentIndex
 
 	property AbstractActivity activity: null
 
@@ -178,6 +178,11 @@ Page {
 		return false
 	}
 
+
+	function swipeToPage(idx) {
+		if (swipeMode)
+			layoutSwipe.setCurrentIndex(idx)
+	}
 
 
 	function layoutBack() {

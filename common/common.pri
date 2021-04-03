@@ -10,4 +10,7 @@ HEADERS += \
 			$$PWD/cosmessage.h \
 			$$PWD/gamemap.h
 
+DISTFILES += \
+	$$PWD/license.txt
+
 

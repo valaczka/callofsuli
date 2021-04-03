@@ -39,7 +39,8 @@ QPage {
 		}
 
 		onGameFinishDialogReady: {
-			JS.dialogMessage("success", qsTr("Game over"), qsTr("MISSION COMPLETED\nMegszerezve %1 XP\nTeljesítve: %2x\nStreak: %3/%4").arg(data.xp).arg(data.solved).arg(data.currentStreak).arg(data.maxStreak))
+			var d = JS.dialogCreateQml("MissionCompleted", { gameData: data, demoMode: true })
+			d.open()
 		}
 	}
 

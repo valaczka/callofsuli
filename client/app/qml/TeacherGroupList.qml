@@ -12,7 +12,7 @@ QPagePanel {
 	layoutFillWidth: true
 
 	title: qsTr("Csoportok")
-	icon: "image://font/AcademicI/\uf15f"
+	icon: CosStyle.iconGroups
 
 	property alias list: list
 
@@ -54,7 +54,7 @@ QPagePanel {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: "image://font/Academic/\uf118"
+			icon: CosStyle.iconGroup
 
 			visible: model
 
@@ -69,7 +69,7 @@ QPagePanel {
 				anchors.verticalCenter: parent.verticalCenter
 				ToolTip.text: qsTr("Tagok")
 
-				icon.source: CosStyle.iconUsers
+				icon.source: CosStyle.iconBindPeople
 				onClicked: {
 					list.currentIndex = modelIndex
 					teacherGroups.selectedGroupId = model.id
@@ -173,7 +173,7 @@ QPagePanel {
 				return
 
 			var d = JS.dialogCreateQml("UserList", {
-										   icon: CosStyle.iconUsers,
+										   icon: CosStyle.iconGroupsSmall,
 										   title: qsTr("Résztvevők"),
 										   selectorSet: false,
 										   sourceModel: teacherGroups._dialogUserModel

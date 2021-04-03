@@ -54,6 +54,7 @@ public slots:
 	bool getServerInfo(QJsonObject *jsonResponse, QByteArray *);
 	bool getUser(QJsonObject *jsonResponse, QByteArray *);
 	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
+	bool getUserScore(QJsonObject *jsonResponse, QByteArray *);
 	bool registrationRequest(QJsonObject *jsonResponse, QByteArray *);
 	bool registerUser(QJsonObject *jsonResponse, QByteArray *);
 	bool getResources(QJsonObject *jsonResponse, QByteArray *);

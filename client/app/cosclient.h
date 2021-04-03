@@ -13,15 +13,15 @@
  *  Call of Suli is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
+ *  (at your option) any later version.
  *
- *  Call of Suli is distributed in the hope that it will be useful,
+ *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 
@@ -114,6 +114,8 @@ public:
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);
 	static bool saveJsonDocument(QJsonDocument doc, const QString &filename);
+
+	Q_INVOKABLE static QByteArray fileContent(const QString &filename);
 
 	Q_INVOKABLE static QVariantMap byteArrayToJsonMap(const QByteArray &data);
 	Q_INVOKABLE static QByteArray jsonMapToByteArray(const QVariantMap &map);

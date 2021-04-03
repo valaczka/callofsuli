@@ -131,5 +131,11 @@
         <file>QMedalImage.qml</file>
         <file>QTrophyImage.qml</file>
         <file>QDialogStudentMapInfo.qml</file>
+        <file>QDialogAbout.qml</file>
+        <file>../../../common/license.txt</file>
+        <file>../../../CREDITS.md</file>
+        <file>QDialogMissionCompleted.qml</file>
+        <file>ScoreList.qml</file>
+        <file>ScoreDetails.qml</file>
     </qresource>
 </RCC>

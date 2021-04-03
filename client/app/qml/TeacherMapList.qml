@@ -12,7 +12,7 @@ QPagePanel {
 	layoutFillWidth: true
 
 	title: qsTr("Pályák")
-	icon: "image://font/AcademicI/\uf15f"
+	icon: CosStyle.iconBooks
 
 	property alias list: list
 

@@ -7,14 +7,23 @@ import "Style"
 import "JScript.js" as JS
 
 
-QPage {
-	id: page
+QSwipePage {
+	id: control
 
 	defaultTitle: qsTr("Rangsor")
 
-	mainToolBarComponent: UserButton {
-		userDetails: userData
-		userNameVisible: page.width>800
+	implicitWidth: 1000
+
+	mainToolBarComponent: Row {
+		QToolButton {
+			action: actionRankList
+			ToolTip.text: qsTr("Ranglista")
+		}
+
+		UserButton {
+			userDetails: userData
+			userNameVisible: control.width>800
+		}
 	}
 
 	UserDetails {
@@ -24,136 +33,119 @@ QPage {
 
 	activity: Scores {
 		id: scores
-	}
+
+		property VariantMapModel modelRankList: newModel([
+															 "rankid",
+															 "rankimage",
+															 "rankname",
+															 "ranklevel",
+															 "xp"
+														 ])
 
 
-	panelComponents: Component {
-		QPagePanel {
-			layoutFillWidth: true
 
-			borderColor: CosStyle.colorPrimaryDark
-			icon: CosStyle.iconShield
-
-			id: panel
-
-			maximumWidth: 800
-
-			SortFilterProxyModel {
-				id: scoreProxyModel
-				sourceModel: scores.scoreModel
-				filters: [
-					AllOf {
-						ValueFilter {
-							roleName: "isTeacher"
-							value: false
-						}
-						ValueFilter {
-							roleName: "isAdmin"
-							value: false
-						}
-					}
-				]
-
-				sorters: [
-					RoleSorter { roleName: "rankid"; sortOrder: Qt.DescendingOrder; priority: 2 },
-					RoleSorter { roleName: "xp"; sortOrder: Qt.DescendingOrder; priority: 1 }
-				]
-
-				proxyRoles: [
-					ExpressionRole {
-						name: "details"
-						expression: model.rankname+(model.ranklevel > 0 ? " (lvl "+model.ranklevel+")": "")
-					},
-					ExpressionRole {
-						name: "name"
-						expression: model.nickname.length ? model.nickname : model.firstname+" "+model.lastname
-					},
-					SwitchRole {
-						name: "background"
-						filters: ValueFilter {
-							roleName: "username"
-							value: cosClient.userName
-							SwitchRole.value: JS.setColorAlpha(CosStyle.colorWarningDark, 0.4)
-						}
-						defaultValue: "transparent"
-					},
-					SwitchRole {
-						name: "titlecolor"
-						filters: ValueFilter {
-							roleName: "username"
-							value: cosClient.userName
-							SwitchRole.value: CosStyle.colorAccentLight
-						}
-						defaultValue: CosStyle.colorAccentLighter
-					}
-
-				]
-			}
-
-
-			QVariantMapProxyView {
-				id: scoreList
-				anchors.fill: parent
-
-				refreshEnabled: true
-				delegateHeight: CosStyle.twoLineHeight
-				numbered: true
-
-				leftComponent: Image {
-					source: model ? cosClient.rankImageSource(model.rankid, model.ranklevel, model.rankimage) : ""
-					width: scoreList.delegateHeight+10
-					height: scoreList.delegateHeight*0.7
-					fillMode: Image.PreserveAspectFit
-				}
-
-				rightComponent: QLabel {
-					text: model.xp+" XP"
-					font.weight: Font.Normal
-					font.pixelSize: scoreList.delegateHeight*0.5
-					color: CosStyle.colorAccent
-					leftPadding: 5
-				}
-
-				model: scoreProxyModel
-				modelTitleRole: "name"
-				modelSubtitleRole: "details"
-				modelBackgroundRole: "background"
-				modelTitleColorRole: "titlecolor"
-				colorSubtitle: CosStyle.colorAccentDark
-
-				highlightCurrentItem: false
-
-				onRefreshRequest: reloadModel()
-			}
-
-
-			Connections {
-				target: cosClient
-				function onUserRolesChanged(userRoles) {
-					reloadModel()
-				}
-			}
-
-			Connections {
-				target: page
-				function onPageActivated() {
-					reloadModel()
-				}
-			}
-
-			onPopulated: scoreList.forceActiveFocus()
+		onGetUserScore: {
+			details.loadUserScore(jsonData)
 		}
 
+		Component.onCompleted: {
+			modelRankList.setVariantList(cosClient.rankList, "rankid")
+		}
 	}
 
+	content: [
+		ScoreList {
+			id: container1
+			reparented: swipeMode
+			reparentedParent: placeholder1
+
+			list.onRefreshRequest: scores.send("getAllUser")
+
+			onUserSelected: {
+				scores.send("getUserScore", {username: username})
+				swipeToPage(1)
+			}
+		},
+
+		QSwipeContainer {
+			id: container2
+			reparented: swipeMode
+			reparentedParent: placeholder2
+			title: qsTr("Eredmények")
+			icon: CosStyle.iconXPgraph
+			ScoreDetails {
+				id: details
+				anchors.fill: parent
+			}
+		}
+	]
+
+	swipeContent: [
+		Item { id: placeholder1 },
+		Item { id: placeholder2 }
+	]
+
+	tabBarContent: [
+		QSwipeButton { swipeContainer: container1 },
+		QSwipeButton { swipeContainer: container2 }
+	]
 
 
-	function reloadModel() {
+
+	onPageActivated: {
 		scores.send("getAllUser")
+		container1.list.forceActiveFocus()
 	}
 
 
 
+	SortFilterProxyModel {
+		id: rankProxyModel
+
+		sourceModel: scores.modelRankList
+
+		sorters: [
+			RoleSorter { roleName: "rankid" }
+		]
+		proxyRoles: [
+			ExpressionRole {
+				name: "details"
+				expression: model.ranklevel ? "level "+model.ranklevel : ""
+			},
+			ExpressionRole {
+				name: "readableXP"
+				expression: (model.xp || model.ranklevel) ? Number(model.xp).toLocaleString() +" XP" : ""
+			},
+			ExpressionRole {
+				name: "imgSource"
+				expression: cosClient.rankImageSource(model.rankid, model.ranklevel, model.rankimage)
+			}
+		]
+	}
+
+
+
+	Action {
+		id: actionRankList
+		icon.source: CosStyle.iconRank
+		onTriggered: {
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["rankid", "rankname", "details", "imgSource"],
+										   icon: actionRankList.icon.source,
+										   title: qsTr("Ranglista"),
+										   selectorSet: false,
+										   modelTitleRole: "rankname",
+										   modelIconRole: "imgSource",
+										   modelSubtitleRole: "details",
+										   modelRightTextRole: "readableXP",
+										   delegateHeight: CosStyle.twoLineHeight,
+									   })
+
+			d.item.list.model = rankProxyModel
+
+			d.open()
+		}
+	}
 
 	function windowClose() {
 		return false
@@ -163,5 +155,4 @@ QPage {
 		return false
 	}
 }
-
 

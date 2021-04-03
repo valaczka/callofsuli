@@ -653,6 +653,8 @@ void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
 
 	o["solved"] = 1;
 	o["success"] = true;
+	o["level"] = match->level();
+	o["deathmatch"] = match->deathmatch();
 
 	onGameFinish(o, QByteArray());
 
@@ -679,6 +681,7 @@ void StudentMaps::onGameEnd(GameMatch *match, const bool &win)
 	o["xp"] = match->xp();
 	o["success"] = win;
 	o["duration"] = match->elapsedTime();
+	o["medalImage"] = match->missionLevel()->mission()->medalImage();
 	m_client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 

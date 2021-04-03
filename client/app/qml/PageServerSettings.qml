@@ -116,7 +116,7 @@ QSwipePage {
 			reparented: swipeMode
 			reparentedParent: placeholder2
 			title: qsTr("E-mail")
-			icon: CosStyle.iconPreferences
+			icon: CosStyle.iconEmail
 
 			QAccordion {
 				QCollapsible {

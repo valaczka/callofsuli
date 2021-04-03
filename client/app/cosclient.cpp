@@ -13,15 +13,15 @@
  *  Call of Suli is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
+ *  (at your option) any later version.
  *
- *  Call of Suli is distributed in the hope that it will be useful,
+ *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <QCoreApplication>
@@ -178,11 +178,21 @@ bool Client::commandLineParse(QCoreApplication &app)
 	parser.addHelpOption();
 	parser.addVersionOption();
 
-	parser.addPositionalArgument("dir", "Az adatbázisokat tartalmazó könyvtár");
-
 	parser.addOption({{"t", "terrain"}, QString::fromUtf8("Terepfájl <file> adatainak lekérdezése"), "file"});
+	parser.addOption({"license", QString::fromUtf8("Licensz")});
 
 	parser.process(app);
+
+	if (parser.isSet("license")) {
+		QFile f(":/common/license.txt");
+		f.open(QIODevice::ReadOnly);
+		QByteArray b = f.readAll();
+		f.close();
+		QTextStream out(stdout);
+		out << b << Qt::endl;
+
+		return false;
+	}
 
 	if (parser.isSet("terrain")) {
 		QString tmx = parser.value("terrain");
@@ -494,6 +504,30 @@ bool Client::saveJsonDocument(QJsonDocument doc, const QString &filename)
 
 	return false;
 }
+
+
+/**
+ * @brief Client::licenseText
+ * @return
+ */
+
+QByteArray Client::fileContent(const QString &filename)
+{
+	QFile f(filename);
+
+	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+		qWarning().noquote() << tr("A fájl nem található vagy nem olvasható!") << filename;
+		return QByteArray();
+	}
+
+	QByteArray b = f.readAll();
+
+	f.close();
+
+	return b;
+}
+
+
 
 
 /**

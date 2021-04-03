@@ -13,7 +13,7 @@ QPagePanel {
 
 	title: teacherGroups.selectedGroupId == -1 ? "" : qsTr("Hozzárendelt tagok")
 	subtitle: ""
-	icon: "image://font/AcademicI/\uf15f"
+	icon: CosStyle.iconBindPeople
 
 	property alias list: classList
 

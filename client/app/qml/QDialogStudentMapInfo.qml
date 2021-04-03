@@ -126,7 +126,7 @@ QDialogPanel {
 		text: qsTr("OK")
 		icon.source: CosStyle.iconOK
 
-		onClicked: item.dlgClose()
+		onClicked: dialogPanel.dlgClose()
 	}
 
 

@@ -147,8 +147,21 @@ bool Server::commandLineParse(QCoreApplication &app)
 	parser.addOption({{"P", "port"}, QString::fromUtf8("A szerver <num> portja"), "num"});
 	parser.addOption({{"p", "pending"}, QString::fromUtf8("Maximum <num> pending-connections"), "num"});
 	parser.addOption({{"w", "write"}, QString::fromUtf8("Beállítások mentése")});
+	parser.addOption({"license", QString::fromUtf8("Licensz")});
 
 	parser.process(app);
+
+	if (parser.isSet("license")) {
+		QFile f(":/common/license.txt");
+		f.open(QIODevice::ReadOnly);
+		QByteArray b = f.readAll();
+		f.close();
+		QTextStream out(stdout);
+		out << b << Qt::endl;
+
+		return false;
+	}
+
 
 	QStringList args = parser.positionalArguments();
 

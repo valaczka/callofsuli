@@ -10,7 +10,7 @@ QSwipeContainer {
 	id: panel
 
 	title: qsTr("Pályák")
-	icon: "image://font/School/\uf19d"
+	icon: CosStyle.iconPlanet
 
 	property alias list: list
 

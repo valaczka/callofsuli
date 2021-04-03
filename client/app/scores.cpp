@@ -60,6 +60,8 @@ Scores::Scores(QQuickItem *parent)
 									   },
 									   this);
 
+
+
 	connect(this, &Scores::getAllUser, this, &Scores::onGetAllUser);
 }
 
@@ -99,3 +101,6 @@ void Scores::onGetAllUser(QJsonObject jsonData, QByteArray)
 
 	m_scoreModel->setVariantList(list, "username");
 }
+
+
+

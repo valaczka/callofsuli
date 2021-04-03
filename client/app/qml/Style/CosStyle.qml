@@ -111,6 +111,7 @@ QtObject {
 	property string iconSetup: "image://font/Material Icons/\ue869"
 	property string iconPreferences: "image://font/Material Icons/\ue8b8"
 	property string iconSearch: "image://font/Material Icons/\ue8b6"
+	property string iconEmail: "image://font/Material Icons/\ue0e1"
 
 	property string iconLockAdd: "image://font/Material Icons/\ue63f"
 	property string iconLockDisabled: "image://font/Material Icons/\ue641"
@@ -130,4 +131,17 @@ QtObject {
 	property string iconComputerData: "image://font/Material Icons/\ue1b2"
 
 	property string iconMedal: "image://font/AcademicI/\uf1a8"
+	property string iconBooks: "image://font/AcademicI/\uf15f"
+	property string iconGroups: "image://font/AcademicI/\uf1f9"
+	property string iconGroupsSmall: "image://font/Academic/\uf203"
+	property string iconGroup: "image://font/School/\uf154"
+	property string iconBindPeople: "image://font/Academic/\uf1c3"
+	property string iconTrophy: "image://font/School/\uf114"
+	property string iconPlanet: "image://font/School/\uf19d"
+
+	property string iconRank: "image://font/AcademicI/\uf183"
+	property string iconStreakPlus: "image://font/School/\uf1c1"
+	property string iconStreak: "image://font/School/\uf1c2"
+	property string iconStreakMax: "image://font/School/\uf1c3"
+	property string iconXPgraph: "image://font/AcademicI/\uf15d"
 }

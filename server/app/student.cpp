@@ -382,6 +382,28 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
+
+	// lastStreak
+
+	l.clear();
+	l.append(m_client->clientUserName());
+	l.append(m_client->clientUserName());
+
+	int lastStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+"(SELECT DISTINCT date(timestamp) AS dt "
+"FROM game WHERE username=? AND success=true) t2 "
+"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+"WHERE username=? AND success=true) t1) t GROUP BY grp) "
+"WHERE dt=date('now', 'localtime')", l)
+					 .value("streak", 0).toInt();
+
+
+
+	// Rögzítés
+
 	QVariantList ll;
 	ll.append(success);
 	if (duration > 0)
@@ -404,24 +426,23 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	// Napi streak számítása
+	// maxStreak
 
+	l.clear();
+	l.append(m_client->clientUserName());
+
+	int maxStreak = m_client->db()->execSelectQueryOneRow("SELECT MAX(maxStreak) as maxStreak FROM score WHERE username=?", l)
+					.value("maxStreak", 0).toInt();
+
+
+
+
+	// currentStreak
 	l.clear();
 	l.append(m_client->clientUserName());
 	l.append(m_client->clientUserName());
 
-	QVariantMap streak = m_client->db()->execSelectQueryOneRow("SELECT "
-"(SELECT MAX(maxStreak) FROM score WHERE username=?) as maxStreak, "
-"(SELECT maxStreak FROM score WHERE username=? AND maxStreak IS NOT NULL ORDER BY timestamp DESC LIMIT 1) as lastStreak", l);
-
-	int maxStreak = streak.value("maxStreak", 0).toInt();
-	int lastStreak = streak.value("lastStreak", 0).toInt();
-
-
-
-	// 2x van már a clientUserName !
-
-	QVariantMap cStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+	int  currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
 "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
 "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
 "(SELECT DISTINCT date(timestamp) AS dt "
@@ -429,14 +450,14 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
 "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
 "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-"WHERE dt=date('now', 'localtime')", l);
-
-	int currentStreak = cStreak.value("streak", 0).toInt();
-
-	int streakXP = 0;
+"WHERE dt=date('now', 'localtime')", l)
+						 .value("streak", 0).toInt();
 
 
 	// Streak lépés
+
+	int streakXP = 0;
+
 
 	if (currentStreak > 1 && currentStreak > lastStreak) {
 		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT value FROM settings WHERE key='xp.base'");
@@ -467,26 +488,29 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 		//maxStreak = currentStreak;
 	}
 
+
+	int level = r.value("level", 0).toInt();
+
 	QVariantList lll;
 	lll.append(m_client->clientUserName());
 	lll.append(r.value("missionid").toString());
-	lll.append(r.value("level", 0).toInt());
+	lll.append(level);
 
 	lll.append(m_client->clientUserName());
 	lll.append(r.value("missionid").toString());
-	lll.append(r.value("level", 0).toInt());
+	lll.append(level);
 
 	lll.append(m_client->clientUserName());
 	lll.append(r.value("missionid").toString());
-	lll.append(r.value("level", 0).toInt());
+	lll.append(level);
 
 	lll.append(m_client->clientUserName());
 	lll.append(r.value("missionid").toString());
-	lll.append(r.value("level", 0).toInt());
+	lll.append(level);
 
 	lll.append(m_client->clientUserName());
 	lll.append(r.value("missionid").toString());
-	lll.append(r.value("level", 0).toInt());
+	lll.append(level);
 
 	QVariantMap stat = m_client->db()->execSelectQueryOneRow("SELECT (SELECT count(*) FROM game WHERE username=? "
 														"AND missionid=? AND level=? AND success=true) as solved, "
@@ -500,6 +524,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 														, lll);
 
 	(*jsonResponse)["gameid"] = gameid;
+	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["finished"] = true;
 	(*jsonResponse)["success"] = success;
 	(*jsonResponse)["xp"] = xp;
@@ -514,6 +539,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["maxDuration"] = stat.value("maxDuration", -1).toInt();
 	(*jsonResponse)["minDuration"] = stat.value("minDuration", -1).toInt();
 	(*jsonResponse)["duration"] = duration;
+	(*jsonResponse)["medalImage"] = params.value("medalImage").toString();
 
 	return true;
 }

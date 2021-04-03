@@ -102,11 +102,13 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList l;
 	l << username;
 
-	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
 																						"isTeacher, isAdmin, classid, classname, xp, rankid, "
 																						"rankname, rankimage, ranklevel, "
 																						"nickname, character, picture "
-																						"FROM userInfo where username=?", l));
+																						"FROM userInfo where username=?", l);
+
+	(*jsonResponse) = QJsonObject::fromVariantMap(m);
 
 	return true;
 
@@ -128,6 +130,78 @@ bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname "
 									"FROM class"));
+
+	return true;
+}
+
+
+
+/**
+ * @brief UserInfo::getUserScore
+ * @param jsonResponse
+ * @return
+ */
+
+bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
+{
+	QString username = m_message.jsonData().value("username").toString();
+	if (username.isEmpty()) {
+		(*jsonResponse)["error"] = "username empty";
+		return false;
+	}
+
+
+	QVariantList l;
+	l << username;
+
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
+																						"isTeacher, isAdmin, classid, classname, xp, rankid, "
+																						"rankname, rankimage, ranklevel, "
+																						"nickname, character, picture "
+																						"FROM userInfo where username=?", l);
+
+	m.insert(m_client->db()->execSelectQueryOneRow("SELECT (SELECT COALESCE(MAX(maxStreak), 0) FROM score WHERE score.username=u.user) as longestStreak, "
+			"(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
+			"(SELECT COALESCE(MAX(xp), 0) FROM userInfo) as maxXP, "
+			"(SELECT COALESCE(MAX(t1), 0) FROM fullTrophy) as maxT1, "
+			"(SELECT COALESCE(MAX(t2), 0) FROM fullTrophy) as maxT2, "
+			"(SELECT COALESCE(MAX(t3), 0) FROM fullTrophy) as maxT3, "
+			"(SELECT COALESCE(MAX(d1), 0) FROM fullTrophy) as maxD1, "
+			"(SELECT COALESCE(MAX(d2), 0) FROM fullTrophy) as maxD2, "
+			"(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3, "
+			"t1, t2, t3, d1, d2, d3, sumxp "
+			"FROM (SELECT ? as user) u LEFT JOIN fullTrophy ON (fullTrophy.username=u.user)", l));
+
+	l << username;
+
+	int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+		"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+		"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+		"(SELECT DISTINCT date(timestamp) AS dt "
+		"FROM game WHERE username=? AND success=true) t2 "
+		"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+		"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+		"WHERE username=? AND success=true) t1) t GROUP BY grp) "
+		"WHERE dt=date('now', 'localtime')", l)
+						 .value("streak", 0).toInt();
+
+
+	// Ha ma még nem volt megoldás, akkor a tegnapit számoljuk
+	if (currentStreak == 0)
+		currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+				"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+				"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+				"(SELECT DISTINCT date(timestamp) AS dt "
+				"FROM game WHERE username=? AND success=true) t2 "
+				"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+				"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+				"WHERE username=? AND success=true) t1) t GROUP BY grp) "
+				"WHERE dt=date('now', '-1 day', 'localtime')", l)
+								 .value("streak", 0).toInt();
+
+	m["currentStreak"] = currentStreak;
+
+	(*jsonResponse) = QJsonObject::fromVariantMap(m);
 
 	return true;
 }

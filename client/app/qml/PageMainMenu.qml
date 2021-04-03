@@ -148,7 +148,7 @@ QPage {
 									  name: qsTr("Összesített rangsor"),
 									  page: "Score",
 									  details: "",
-									  icon: CosStyle.iconMenu
+									  icon: CosStyle.iconTrophy
 								  })
 
 						if (!(cosClient.userRoles & Client.RoleGuest)) {
@@ -169,7 +169,7 @@ QPage {
 										  name: qsTr("Pályák kezelése"),
 										  page: "TeacherMap",
 										  details: "",
-										  icon: CosStyle.iconMenu
+										  icon: CosStyle.iconBooks
 									  })
 
 							list.push({
@@ -178,7 +178,7 @@ QPage {
 										  name: qsTr("Csoportok kezelése"),
 										  page: "TeacherGroup",
 										  details: "",
-										  icon: CosStyle.iconMenu
+										  icon: CosStyle.iconGroups
 									  })
 						}
 
@@ -236,7 +236,7 @@ QPage {
 										  id: o.id,
 										  name: o.name,
 										  page: (cosClient.userRoles & CosMessage.RoleTeacher) ? "TeacherGroupView" : "StudentGroup",
-										  icon: CosStyle.iconMenu,
+										  icon: (cosClient.userRoles & CosMessage.RoleTeacher) ? CosStyle.iconGroup : CosStyle.iconPlanet,
 										  details: (o.readableClassList ? o.readableClassList : "")+
 												   (o.teacherfirstname || o.teacherlastname ? " - " : "")+
 												   (o.teacherfirstname ? o.teacherfirstname : "")+
