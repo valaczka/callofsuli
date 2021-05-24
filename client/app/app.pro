@@ -7,6 +7,14 @@ include(../../common/common.pri)
 include(../SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../Bacon2D-static/src/Bacon2D-static.pri)
 
+unix:!android: {
+	include(graphviz.pri)
+}
+
+win32: {
+	include(graphviz.pri)
+}
+
 include(modules/simplechoice/simplechoice.pri)
 include(modules/truefalse/truefalse.pri)
 include(modules/calculator/calculator.pri)
@@ -158,4 +166,3 @@ DISTFILES += \
 }
 
 ANDROID_ABIS = armeabi-v7a
-

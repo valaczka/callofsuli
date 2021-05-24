@@ -35,6 +35,11 @@
 #include <QJsonObject>
 #include <QUrl>
 
+#ifdef WITH_CGRAPH
+	#include <gvc.h>
+#endif
+
+
 #include "cosmessage.h"
 #include "variantmapmodel.h"
 #include "gameblock.h"
@@ -114,6 +119,10 @@ public:
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);
 	static bool saveJsonDocument(QJsonDocument doc, const QString &filename);
+
+#ifdef WITH_CGRAPH
+	QByteArray graphvizImage(const QString &dotData, const char* format = "svg");
+#endif
 
 	Q_INVOKABLE static QByteArray fileContent(const QString &filename);
 
@@ -334,6 +343,10 @@ private:
 	qreal m_sfxVolume;
 	QString m_userPlayerCharacter;
 	QVariantList m_registrationClasses;
+
+#ifdef WITH_CGRAPH
+	GVC_t *m_gvContext;
+#endif
 };
 
 

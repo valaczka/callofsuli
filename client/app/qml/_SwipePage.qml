@@ -7,58 +7,79 @@ import "JScript.js" as JS
 
 
 
-
-QSwipePage {
+QBasePage {
 	id: control
 
 	defaultTitle: ""
 
 	//mainToolBarComponent: QToolButton { action: actionSave }
 
+	/*toolBarMenu: QMenu {
+		MenuItem {
+			text: qsTr("Pályák")
+			icon.source: CosStyle.iconBooks
+		}
+		MenuItem {
+			text: qsTr("Fejezetek")
+			icon.source: CosStyle.iconAdd
+		}
+		MenuItem {
+			text: qsTr("Storages")
+			icon.source: CosStyle.iconBooks
+		}
+	}*/
+
 	/*activity: ServerSettings {
 		id: serverSettings
 	}*/
 
-	//headerContent: QLabel {	}
 
-	content: [
-		QSwipeContainer {
-			id: container1
-			reparented: swipeMode
-			reparentedParent: placeholder1
-			title: ""
-			icon: CosStyle.iconSetup
-			QAccordion {
-				QCollapsible {
-					title: ""
+
+	QSwipeComponent {
+		id: swComponent
+		anchors.fill: parent
+
+		//headerContent: QLabel {	}
+
+		content: [
+			QSwipeContainer {
+				id: container1
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder1
+				title: ""
+				icon: CosStyle.iconSetup
+				QAccordion {
+					QCollapsible {
+						title: ""
+					}
+				}
+			},
+
+			QSwipeContainer {
+				id: container2
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder2
+				title: ""
+				icon: CosStyle.iconPreferences
+				QAccordion {
+					QCollapsible {
+						title: ""
+					}
 				}
 			}
-		},
+		]
 
-		QSwipeContainer {
-			id: container2
-			reparented: swipeMode
-			reparentedParent: placeholder2
-			title: ""
-			icon: CosStyle.iconPreferences
-			QAccordion {
-				QCollapsible {
-					title: ""
-				}
-			}
-		}
-	]
+		swipeContent: [
+			Item { id: placeholder1 },
+			Item { id: placeholder2 }
+		]
 
-	swipeContent: [
-		Item { id: placeholder1 },
-		Item { id: placeholder2 }
-	]
+		tabBarContent: [
+			QSwipeButton { swipeContainer: container1 },
+			QSwipeButton { swipeContainer: container2 }
+		]
 
-	tabBarContent: [
-		QSwipeButton { swipeContainer: container1 },
-		QSwipeButton { swipeContainer: container2 }
-	]
-
+	}
 
 
 	function windowClose() {
@@ -66,6 +87,9 @@ QSwipePage {
 	}
 
 	function pageStackBack() {
+		if (swComponent.layoutBack())
+			return true
+
 		return false
 	}
 }

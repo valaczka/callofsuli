@@ -77,19 +77,10 @@
         <file>PageStart.qml</file>
         <file>QVariantMapProxyView.qml</file>
         <file>_PagePanel.qml</file>
-        <file>PageMapEditor.qml</file>
         <file>QDialogProgress.qml</file>
         <file>QToolButtonBig.qml</file>
-        <file>MapEditorCampaignList.qml</file>
-        <file>MapEditorCampaignEdit.qml</file>
         <file>QPagePanelSearch.qml</file>
         <file>QDialogPanel.qml</file>
-        <file>MapEditorChapterListOLD.qml</file>
-        <file>MapEditorObjectiveEdit.qml</file>
-        <file>MapEditorObjectiveEditHeader.qml</file>
-        <file>MapEditorLevelGeneral.qml</file>
-        <file>MapEditorLevelChapters.qml</file>
-        <file>MapEditorLevelInventory.qml</file>
         <file>PageGame.qml</file>
         <file>PageTeacherMap.qml</file>
         <file>TeacherMapList.qml</file>
@@ -116,16 +107,13 @@
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
         <file>QDialogImageList.qml</file>
-        <file>MapEditorChapterList.qml</file>
         <file>QBadge.qml</file>
-        <file>MapEditorChapterEdit.qml</file>
         <file>QDialogMissionList.qml</file>
         <file>QSpinBoxArrow.qml</file>
-        <file>QSwipePage.qml</file>
+        <file>QBasePage.qml</file>
         <file>_SwipePage.qml</file>
         <file>QSwipeContainer.qml</file>
         <file>QSwipeButton.qml</file>
-        <file>MapEditorImportDialog.qml</file>
         <file>QImageInnerShadow.qml</file>
         <file>StudentMemberList.qml</file>
         <file>QMedalImage.qml</file>
@@ -137,5 +125,8 @@
         <file>QDialogMissionCompleted.qml</file>
         <file>ScoreList.qml</file>
         <file>ScoreDetails.qml</file>
+        <file>QToolButtonFooter.qml</file>
+        <file>PageMapEditor.qml</file>
+        <file>QSwipeComponent.qml</file>
     </qresource>
 </RCC>

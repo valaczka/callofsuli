@@ -7,7 +7,7 @@ import "Style"
 import "JScript.js" as JS
 
 
-QSwipePage {
+QBasePage {
 	id: control
 
 	defaultTitle: qsTr("Rangsor")
@@ -53,44 +53,48 @@ QSwipePage {
 		}
 	}
 
-	content: [
-		ScoreList {
-			id: container1
-			reparented: swipeMode
-			reparentedParent: placeholder1
+	QSwipeComponent {
+		id: swComponent
+		anchors.fill: parent
 
-			list.onRefreshRequest: scores.send("getAllUser")
+		content: [
+			ScoreList {
+				id: container1
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder1
 
-			onUserSelected: {
-				scores.send("getUserScore", {username: username})
-				swipeToPage(1)
+				list.onRefreshRequest: scores.send("getAllUser")
+
+				onUserSelected: {
+					scores.send("getUserScore", {username: username})
+					swComponent.swipeToPage(1)
+				}
+			},
+
+			QSwipeContainer {
+				id: container2
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder2
+				title: qsTr("Eredmények")
+				icon: CosStyle.iconXPgraph
+				ScoreDetails {
+					id: details
+					anchors.fill: parent
+				}
 			}
-		},
+		]
 
-		QSwipeContainer {
-			id: container2
-			reparented: swipeMode
-			reparentedParent: placeholder2
-			title: qsTr("Eredmények")
-			icon: CosStyle.iconXPgraph
-			ScoreDetails {
-				id: details
-				anchors.fill: parent
-			}
-		}
-	]
+		swipeContent: [
+			Item { id: placeholder1 },
+			Item { id: placeholder2 }
+		]
 
-	swipeContent: [
-		Item { id: placeholder1 },
-		Item { id: placeholder2 }
-	]
+		tabBarContent: [
+			QSwipeButton { swipeContainer: container1 },
+			QSwipeButton { swipeContainer: container2 }
+		]
 
-	tabBarContent: [
-		QSwipeButton { swipeContainer: container1 },
-		QSwipeButton { swipeContainer: container2 }
-	]
-
-
+	}
 
 	onPageActivated: {
 		scores.send("getAllUser")
@@ -152,6 +156,9 @@ QSwipePage {
 	}
 
 	function pageStackBack() {
+		if (swComponent.layoutBack())
+			return true
+
 		return false
 	}
 }

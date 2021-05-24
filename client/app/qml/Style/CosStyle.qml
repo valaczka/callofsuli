@@ -38,7 +38,7 @@ QtObject {
 	property color colorOKDarker: Material.color(Material.Green, Material.Shade700)
 	property color colorOKDark: Material.color(Material.Green, Material.Shade900)
 
-	property color colorBg: "#33ffffff"
+	property color colorBg: "#20ffffff"
 
 	property int pixelSize: (Qt.platform.os === "android" ? 17 : 18)
 	property int baseHeight: Math.max(pixelSize * 2.2, (Qt.platform.os === "android" ? 48 : 24))

@@ -25,13 +25,20 @@ ListView {
 
 	signal refreshRequest()
 
-	onDragEnded: if (refreshEnabled && header.refresh) refreshRequest()
+	onDragStarted: if (refreshEnabled)
+					   header.visible = true
+	onDragEnded: {
+		if (refreshEnabled && header.refresh)
+			refreshRequest()
+		header.visible = false
+	}
 
 	Item {
 		id: header
 		y: -view.contentY - height
 		height: -view.refreshActivateY/2
 		width: parent.width
+		visible: false
 
 		property bool refresh: state == "pulled" ? true : false
 

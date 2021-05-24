@@ -47,11 +47,11 @@
 #include "gamepickable.h"
 #include "gameterrain.h"
 #include "gamematch.h"
+#include "mapeditor.h"
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
 #include "serversettings.h"
 #include "scores.h"
-#include "mapeditor.h"
 #include "gameactivity.h"
 #include "cosdownloader.h"
 #include "teachermaps.h"
@@ -88,6 +88,10 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_serverDataDir = "";
 
 	m_sfxVolume = 1.0;
+
+#ifdef WITH_CGRAPH
+	m_gvContext = gvContext();
+#endif
 
 	m_registrationEnabled = false;
 	m_passwordResetEnabled = false;
@@ -139,6 +143,11 @@ Client::~Client()
 
 	if (m_cosMessage)
 		delete m_cosMessage;
+
+#ifdef WITH_CGRAPH
+	gvFreeContext(m_gvContext);
+	m_gvContext = NULL;
+#endif
 }
 
 
@@ -184,10 +193,8 @@ bool Client::commandLineParse(QCoreApplication &app)
 	parser.process(app);
 
 	if (parser.isSet("license")) {
-		QFile f(":/common/license.txt");
-		f.open(QIODevice::ReadOnly);
-		QByteArray b = f.readAll();
-		f.close();
+		QByteArray b = Client::fileContent(":/common/license.txt");
+
 		QTextStream out(stdout);
 		out << b << Qt::endl;
 
@@ -504,6 +511,37 @@ bool Client::saveJsonDocument(QJsonDocument doc, const QString &filename)
 
 	return false;
 }
+
+
+
+#ifdef WITH_CGRAPH
+
+/**
+ * @brief Client::graphvizImage
+ * @param dotData
+ * @return
+ */
+
+QByteArray Client::graphvizImage(const QString &dotData, const char *format)
+{
+	Agraph_t *G = agmemread(dotData.toUtf8());
+	gvLayout(m_gvContext, G, "dot");
+
+	char *result = NULL;
+	unsigned int length = 0;
+
+	gvRenderData(m_gvContext, G, format, &result, &length);
+
+	QByteArray imageData(result, length);
+
+	gvFreeLayout(m_gvContext, G);
+
+	free(result);
+
+	return imageData;
+}
+
+#endif
 
 
 /**

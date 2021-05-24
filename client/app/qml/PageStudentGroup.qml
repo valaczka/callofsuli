@@ -8,7 +8,7 @@ import "JScript.js" as JS
 
 
 
-QSwipePage {
+QBasePage {
 	id: page
 
 	defaultTitle: ""
@@ -74,31 +74,34 @@ QSwipePage {
 	}
 
 
+	QSwipeComponent {
+		id: swComponent
+		anchors.fill: parent
 
+		content: [
+			StudentMapList {
+				id: container1
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder1
+			},
+			StudentMemberList {
+				id: container2
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder2
+			}
+		]
 
-	content: [
-		StudentMapList {
-			id: container1
-			reparented: swipeMode
-			reparentedParent: placeholder1
-		},
-		StudentMemberList {
-			id: container2
-			reparented: swipeMode
-			reparentedParent: placeholder2
-		}
-	]
+		swipeContent: [
+			Item { id: placeholder1 },
+			Item { id: placeholder2 }
+		]
 
-	swipeContent: [
-		Item { id: placeholder1 },
-		Item { id: placeholder2 }
-	]
+		tabBarContent: [
+			QSwipeButton { swipeContainer: container1 },
+			QSwipeButton { swipeContainer: container2 }
+		]
 
-	tabBarContent: [
-		QSwipeButton { swipeContainer: container1 },
-		QSwipeButton { swipeContainer: container2 }
-	]
-
+	}
 
 
 	onPageActivated: {
@@ -118,6 +121,9 @@ QSwipePage {
 
 
 	function pageStackBack() {
+		if (swComponent.layoutBack())
+			return true
+
 		return false
 	}
 

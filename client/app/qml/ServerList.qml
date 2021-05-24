@@ -20,7 +20,6 @@ QPagePanel {
 	contextMenuFunc: function (m) {
 		m.addAction(actionServerSearch)
 		m.addAction(actionServerNew)
-		m.addAction(actionConnect)
 		m.addAction(actionRemove)
 		m.addAction(actionEdit)
 		m.addAction(actionAutoConnect)
@@ -68,6 +67,17 @@ QPagePanel {
 
 			mouseArea.onClicked: servers.serverSetAutoConnect(serverList.model.mapToSource(modelIndex))
 		}
+
+		footer: QToolButtonFooter {
+			width: serverList.width
+			height: Math.max(implicitHeight, serverList.delegateHeight)
+			text: qsTr("Pályaszerkesztő")
+			icon.source: "image://font/Academic/\uf118"
+			onClicked: {
+				JS.createPage("MapEditor", {})
+			}
+		}
+
 
 
 		onClicked: if (servers.editing)

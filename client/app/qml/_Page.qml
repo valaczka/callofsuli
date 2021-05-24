@@ -17,6 +17,9 @@ QPage {
 			action: actionSave
 		}
 
+	//mainToolBar.titleItem.acceptedButtons: Qt.LeftButton
+	//mainToolBar.titleItem.mouseArea.onClicked: console.debug("CLICK")
+
 
 	activity: AbstractActivity {
 

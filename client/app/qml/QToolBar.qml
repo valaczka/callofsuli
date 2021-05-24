@@ -13,7 +13,8 @@ ToolBar {
 	property alias subtitle: labelSubtitle.text
 	property alias backButton: backButton
 	property string backButtonIcon: CosStyle.iconBack
-	property alias menuLoader: menuLoader
+
+	property alias titleItem: titleItem
 
 	rightPadding: 10
 
@@ -89,11 +90,11 @@ ToolBar {
 			icon.source: backButtonIcon
 		}
 
-		Item {
+		QRectangleBg {
 			id: titleItem
 
 			Layout.fillWidth: true
-			Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+			Layout.fillHeight: true
 
 			Column {
 				id: titleColumn
@@ -108,7 +109,7 @@ ToolBar {
 					font.pixelSize: CosStyle.pixelSize*1.1
 					font.weight: Font.Normal
 					color: CosStyle.colorAccentLighter
-					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
+					width: Math.min(titleItem.width-menuImage.width, implicitWidth)
 					elide: Text.ElideRight
 				}
 
@@ -117,13 +118,18 @@ ToolBar {
 					font.pixelSize: CosStyle.pixelSize*0.8
 					font.weight: Font.Medium
 					color: CosStyle.colorPrimaryLighter
-					width: Math.min(titleItem.width-menuLoader.width, implicitWidth)
+					width: Math.min(titleItem.width-menuImage.width, implicitWidth)
 					elide: Text.ElideRight
 				}
 			}
 
-			Loader {
-				id: menuLoader
+			QFontImage {
+				id: menuImage
+				visible: titleItem.acceptedButtons != Qt.NoButton
+
+				icon: CosStyle.iconDown
+				color: CosStyle.colorPrimaryLight
+
 				anchors.left: titleColumn.right
 				anchors.verticalCenter: titleColumn.verticalCenter
 			}

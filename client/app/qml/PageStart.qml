@@ -89,11 +89,6 @@ QPage {
 		id: actionAbout
 		text: qsTr("Névjegy")
 		onTriggered: {
-			/*JS.dialogMessageInfo("Call of Suli",
-								 qsTr("Verzió: ")+Qt.application.version+
-								 "\n© 2012-2021 Valaczka János Pál"
-								 )*/
-
 			var dd = JS.dialogCreateQml("About", {})
 			dd.open()
 		}

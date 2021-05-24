@@ -36,7 +36,8 @@
 #define TEACHERMAPS_H
 
 #include "abstractactivity.h"
-#include "mapeditor.h"
+#include "variantmapmodel.h"
+#include "variantmapdata.h"
 
 class TeacherMaps : public AbstractActivity
 {

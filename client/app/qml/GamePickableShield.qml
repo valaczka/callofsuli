@@ -20,11 +20,11 @@ GamePickable {
 
 		Image {
 			id: lbl
-			source: if (pickableData.num >= 10)
+			source: if (pickableData.num >= 5)
 						"qrc:/internal/game/shield-gold.png"
-					else if (pickableData.num >= 7)
+					else if (pickableData.num >= 3)
 						"qrc:/internal/game/shield-red.png"
-					else if (pickableData.num >= 5)
+					else if (pickableData.num >= 2)
 						"qrc:/internal/game/shield-blue.png"
 					else
 						"qrc:/internal/game/shield-green.png"

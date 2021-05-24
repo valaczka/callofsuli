@@ -71,8 +71,8 @@ QDialogPanel {
 					}
 				}
 
-				cellWidth: 150
-				cellHeight: 150
+				cellWidth: 100
+				cellHeight: 100
 
 				delegate: Item {
 					id: item

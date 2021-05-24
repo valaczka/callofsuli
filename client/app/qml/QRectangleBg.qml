@@ -6,6 +6,11 @@ import "Style"
 Rectangle {
 	id: control
 
+	implicitHeight: 10
+	implicitWidth: 10
+
+	property alias acceptedButtons: area.acceptedButtons
+
 	property alias mouseArea: area
 	default property alias children: area.data
 
@@ -14,7 +19,7 @@ Rectangle {
 	states: [
 		State {
 			name: "HOVERED"
-			when: area.containsMouse
+			when: area.containsMouse || area.pressed
 			PropertyChanges {
 				target: control
 				color: CosStyle.colorBg
@@ -28,7 +33,7 @@ Rectangle {
 			to: "HOVERED"
 
 			ColorAnimation {
-				duration: 125
+				duration: 200
 			}
 		},
 		Transition {
@@ -37,15 +42,15 @@ Rectangle {
 
 			ColorAnimation {
 				duration: 275
-				easing.type: Easing.InQuad
+				easing.type: Easing.OutQuad
 			}
 		}
 	]
 
 	MouseArea {
 		id: area
-		anchors.fill: control
-		hoverEnabled: true
+		anchors.fill: parent
+		hoverEnabled: acceptedButtons != Qt.NoButton
 		acceptedButtons: Qt.NoButton
 	}
 }

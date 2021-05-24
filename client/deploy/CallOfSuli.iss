@@ -17,7 +17,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Icons]
 Name: "{userprograms}\Call of Suli"; Filename: "{app}\callofsuli.exe"
-Name: "{userprograms}\{cm:UninstallProgram,Call of Suli szerver}"; Filename: "{uninstallexe}"
+Name: "{userprograms}\{cm:UninstallProgram,Call of Suli}"; Filename: "{uninstallexe}"
 Name: "{userdesktop}\Call of Suli"; Filename: "{app}\callofsuli.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Languages]

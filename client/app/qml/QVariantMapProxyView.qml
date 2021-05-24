@@ -49,6 +49,7 @@ QListView {
 
 	property Component leftComponent: null
 	property Component rightComponent: null
+	property Component contentComponent: null
 
 	property bool highlightCurrentItem: true
 
@@ -187,6 +188,17 @@ QListView {
 						width: parent.width
 						visible: text.length
 						//clip: true
+					}
+
+					Loader {
+						id: contentLoader
+						sourceComponent: view.contentComponent
+						visible: view.contentComponent
+
+						width: parent.width
+
+						property int modelIndex: index
+						property var model: item.itemModel
 					}
 				}
 
