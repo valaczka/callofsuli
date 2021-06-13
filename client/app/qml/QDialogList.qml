@@ -22,7 +22,8 @@ QDialogPanel {
 	property alias modelTitleRole: list.modelTitleRole
 	property alias modelSubtitleRole: list.modelSubtitleRole
 	property alias delegateHeight: list.delegateHeight
-	property string modelIconRole: ""
+	property string modelImageRole: ""
+	property string modelImagePattern: "%1"
 	property string modelRightTextRole: ""
 
 	maximumHeight: 0
@@ -55,14 +56,14 @@ QDialogPanel {
 			width: imageWidth+20
 			height: list.delegateHeight
 			anchors.verticalCenter: parent.verticalCenter
-			visible: model && modelIconRole.length
+			visible: model && modelImageRole.length
 
 			Image {
 				width: imageWidth
 				height: imageHeight
 				fillMode: Image.PreserveAspectFit
 				anchors.centerIn: parent
-				source: model && modelIconRole.length ? model[modelIconRole] : ""
+				source: model && modelImageRole.length ? modelImagePattern.arg(model[modelImageRole]) : ""
 			}
 		}
 
@@ -113,6 +114,17 @@ QDialogPanel {
 		}
 	}
 
+
+	function selectCurrentItem(field, value) {
+		for (var i=0; i<list.model.count; i++) {
+			var p = list.model.get(i)
+			if (p[field] === value) {
+				list.currentIndex = i
+				list.positionViewAtIndex(i, ListView.Contain)
+				break
+			}
+		}
+	}
 
 
 	function populated() {

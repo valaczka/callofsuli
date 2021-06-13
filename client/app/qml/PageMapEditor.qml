@@ -10,14 +10,52 @@ QBasePage {
 	id: control
 
 	defaultTitle: qsTr("Pályaszerkesztő")
+	defaultSubTitle: mapEditor.loaded ? mapEditor.readableFilename : ""
 
 	//mainToolBarComponent: QToolButton { action: actionSave }
 
 	activity: MapEditor {
 		id: mapEditor
+
+		onLoadStarted: {
+			var d = JS.dialogCreateQml("Progress", { title: qsTr("Betöltés"), text: filename })
+			d.closePolicy = Popup.NoAutoClose
+
+			d.rejected.connect(function(data) {
+				mapEditor.loadAbort()
+			})
+
+			mapEditor.loadProgressChanged.connect(d.item.setValue)
+			mapEditor.loadSucceed.connect(d.item.dlgClose)
+			mapEditor.loadFailed.connect(d.item.dlgClose)
+
+			d.onClosedAndDestroyed.connect(function() {
+				mapEditor.loadProgressChanged.disconnect(d.item.setValue)
+				mapEditor.loadSucceed.disconnect(d.item.dlgClose)
+				mapEditor.loadFailed.disconnect(d.item.dlgClose)
+			})
+
+			d.open()
+		}
+
+		onLoadSucceed: {
+			getMissionList()
+			actionChapters.trigger()
+		}
+
+		onSaveSucceed: {
+			if (isCopy)
+				cosClient.sendMessageInfo(qsTr("Másolat készítése sikerült"), filename)
+		}
+
+		onSaveDialogRequest: {
+			dialogSave.isSaveAs = !isNew
+			dialogSave.open()
+		}
 	}
 
 	toolBarMenu: QMenu {
+		enabled: mapEditor.loaded
 
 		MenuItem {
 			text: qsTr("Pályák")
@@ -25,9 +63,7 @@ QBasePage {
 			//onClicked: editorLoader.sourceComponent = componentOpenSave
 		}
 		MenuItem {
-			text: qsTr("Fejezetek")
-			icon.source: CosStyle.iconAdd
-			onClicked: editorLoader.sourceComponent = componentMissions
+			action: actionChapters
 		}
 		MenuItem {
 			text: qsTr("Storages")
@@ -36,6 +72,25 @@ QBasePage {
 		}
 	}
 
+	mainToolBarComponent: Row {
+		spacing: 0
+		visible: mapEditor.loaded
+		QUndoButton {
+			anchors.verticalCenter: parent.verticalCenter
+			activity: mapEditor
+		}
+		QToolButton {
+			anchors.verticalCenter: parent.verticalCenter
+			action: actionSave
+		}
+	}
+
+
+	mainMenuFunc: function (m) {
+		m.addAction(actionSaveAs)
+		if (mapEditor.isWithGraphviz)
+			m.addAction(actionGraph)
+	}
 
 
 	Loader {
@@ -45,19 +100,17 @@ QBasePage {
 
 
 	Column {
-		visible: editorLoader.status != Loader.Ready
+		visible: editorLoader.status != Loader.Ready && !mapEditor.loaded
 
 		anchors.centerIn: parent
 		spacing: 5
 		QToolButtonBig {
 			anchors.horizontalCenter: parent.horizontalCenter
-			text: qsTr("Új")
-			icon.source: CosStyle.iconAdd
+			action: actionCreate
 		}
 		QToolButtonBig {
 			anchors.horizontalCenter: parent.horizontalCenter
-			text: qsTr("Megnyitás")
-			icon.source: CosStyle.iconAdjust
+			action: actionOpen
 		}
 	}
 
@@ -67,61 +120,110 @@ QBasePage {
 
 	Component {
 		id: componentMissions
-		QSwipeComponent {
+		MapEditorMissions {
 			id: swComponent
-			anchors.fill: parent
-
-			//headerContent: QLabel {	}
-
-			content: [
-				QSwipeContainer {
-					id: container1
-					reparented: swComponent.swipeMode
-					reparentedParent: placeholder1
-					title: "a"
-					icon: CosStyle.iconSetup
-					QAccordion {
-						QCollapsible {
-							title: ""
-						}
-					}
-				},
-
-				QSwipeContainer {
-					id: container2
-					reparented: swComponent.swipeMode
-					reparentedParent: placeholder2
-					title: "b"
-					icon: CosStyle.iconPreferences
-					QAccordion {
-						QCollapsible {
-							title: ""
-						}
-					}
-				}
-			]
-
-			swipeContent: [
-				Item { id: placeholder1 },
-				Item { id: placeholder2 }
-			]
-
-			tabBarContent: [
-				QSwipeButton { swipeContainer: container1 },
-				QSwipeButton { swipeContainer: container2 }
-			]
-
 		}
 	}
 
 
+	MapEditorDialogOpen {
+		id: dialogOpen
+	}
+
+	MapEditorDialogSave {
+		id: dialogSave
+	}
+
+
+	Action {
+		id: actionCreate
+		text: qsTr("Új")
+		icon.source: CosStyle.iconAdd
+		enabled: !mapEditor.loaded
+		onTriggered: {
+			mapEditor.create()
+		}
+	}
+
+	Action {
+		id: actionOpen
+		text: qsTr("Megnyitás")
+		enabled: !mapEditor.loaded
+		icon.source: CosStyle.iconAdjust
+		onTriggered: {
+			dialogOpen.open()
+		}
+	}
+
+
+	Action {
+		id: actionChapters
+		text: qsTr("Fejezetek")
+		icon.source: CosStyle.iconAdd
+		onTriggered: {
+			control.title = qsTr("Fejezetek")
+			editorLoader.sourceComponent = componentMissions
+		}
+	}
+
+	Action {
+		id: actionGraph
+		icon.source: CosStyle.iconAdd
+		text: qsTr("Folyamatábra")
+		enabled: mapEditor.loaded
+	}
+
+	Action {
+		id: actionSave
+		icon.source: CosStyle.iconSave
+		enabled: mapEditor.loaded && mapEditor.modified
+		shortcut: "Ctrl+S"
+		onTriggered: {
+			mapEditor.save()
+		}
+	}
+
+	Action {
+		id: actionSaveAs
+		icon.source: CosStyle.iconSave
+		text: qsTr("Másolat")
+		enabled: mapEditor.loaded
+		onTriggered: {
+			dialogSave.isSaveAs = true
+			dialogSave.open()
+		}
+	}
+
+	onPageActivated: mapEditor.openUrl("file:///home/valaczka/ddd.map")
+
 	function windowClose() {
+		if (mapEditor.modified) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				mapEditor.modified = false
+				mainWindow.close()
+			})
+			d.open()
+			return true
+		}
+
 		return false
 	}
 
 	function pageStackBack() {
 		if (editorLoader.status == Loader.Ready && editorLoader.item.layoutBack())
 			return true
+
+		if (mapEditor.modified) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				mapEditor.modified = false
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
+
 
 		return false
 	}

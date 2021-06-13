@@ -87,6 +87,7 @@ public:
 		Objective(const QByteArray &uuid, const QByteArray &module, Storage *storage, const int &storageCount, const QVariantMap &data);
 
 		QByteArray uuid() const { return m_uuid; };
+		void setUuid(const QByteArray &uuid) { m_uuid = uuid; }
 		QByteArray module() const { return m_module; };
 		Storage *storage() const { return m_storage; };
 		int storageCount() const { return m_storageCount; };
@@ -210,6 +211,8 @@ public:
 		~Mission();
 
 		QByteArray uuid() const { return m_uuid;};
+		void setUuid(const QByteArray &uuid) { m_uuid = uuid; }
+
 		bool mandatory() const { return m_mandatory;};
 		QString name() const { return m_name;};
 		QString description() const { return m_description; };
@@ -232,6 +235,7 @@ public:
 
 		qint32 getLockDepth() const { return m_lockDepth; }
 		void setLockDepth(const qint32 &lockDepth) { m_lockDepth = lockDepth; }
+
 
 	private:
 		QByteArray m_uuid;
@@ -319,6 +323,10 @@ public:
 
 	bool imagesToDb(CosDb *db) const;
 	void deleteImages();
+
+	void setUuid(const QByteArray &uuid) { m_uuid = uuid; }
+
+	void regenerateUuids();
 
 	QByteArray uuid() const { return m_uuid; }
 	QVector<Campaign *> campaigns() const { return m_campaigns; }

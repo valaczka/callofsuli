@@ -51,6 +51,7 @@ QtObject {
 	property var buttonThemeDefault: [colorPrimaryLight, colorPrimaryDarker, colorPrimaryLighter, colorPrimary]
 	property var buttonThemeRed: [colorPrimaryLight, colorErrorDarker, colorErrorDark, colorError]
 	property var buttonThemeGreen: [colorPrimaryLight, colorOKDarker, colorOKDark, colorOKLighter]
+	property var buttonThemeOrange: [colorPrimaryLight, colorWarningDarker, colorWarningLighter, colorWarning]
 
 	property color colorPlayer: colorPrimaryLighter
 	property color colorGlowEnemy: colorError

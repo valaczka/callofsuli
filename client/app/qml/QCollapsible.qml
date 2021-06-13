@@ -12,11 +12,14 @@ Rectangle {
 
 	property int contentHeight: content.childrenRect.height+10
 	property alias headerHeight: headerRect.height
+	property alias rightComponent: rightLoader.sourceComponent
 
 	height: headerRect.height
 
 	property bool collapsed: false
 	property alias title: title.text
+	property alias titleColor: title.color
+	property color backgroundColor: CosStyle.colorPrimaryDarkest
 
 	default property alias contents: content.data
 
@@ -25,35 +28,9 @@ Rectangle {
 	Rectangle {
 		id: headerRect
 		width: parent.width
-		height: Math.max(title.implicitHeight, arrow.implicitHeight, CosStyle.halfLineHeight)
+		height: Math.max(title.implicitHeight, arrow.implicitHeight, CosStyle.halfLineHeight, rightLoader.height)
 
-		color: JS.setColorAlpha(CosStyle.colorPrimaryDarkest, 0.5)
-
-		QFontImage {
-			id: arrow
-			anchors.left: parent.left
-			anchors.verticalCenter: parent.verticalCenter
-
-			size: CosStyle.pixelSize*1.4
-			color: CosStyle.colorPrimaryLighter
-
-			icon: CosStyle.iconDown
-
-			rotation: -90
-			transformOrigin: Item.Center
-		}
-
-		QLabel {
-			id: title
-			anchors.left: arrow.right
-			anchors.verticalCenter: parent.verticalCenter
-			width: parent.width-arrow.width
-			font.pixelSize: CosStyle.pixelSize*0.85
-			font.weight: Font.DemiBold
-			font.capitalization: Font.AllUppercase
-			color: CosStyle.colorAccentLighter
-			elide: Text.ElideRight
-		}
+		color: JS.setColorAlpha(backgroundColor, 0.5)
 
 		Rectangle {
 			width: parent.width
@@ -66,6 +43,40 @@ Rectangle {
 			anchors.fill: parent
 			acceptedButtons: Qt.LeftButton
 			onClicked: collapsed = !collapsed
+
+			QFontImage {
+				id: arrow
+				anchors.left: parent.left
+				anchors.verticalCenter: parent.verticalCenter
+
+				size: CosStyle.pixelSize*1.4
+				color: CosStyle.colorPrimaryLighter
+
+				icon: CosStyle.iconDown
+
+				rotation: -90
+				transformOrigin: Item.Center
+			}
+
+			QLabel {
+				id: title
+				anchors.left: arrow.right
+				anchors.verticalCenter: parent.verticalCenter
+				//width: parent.width-arrow.width
+				anchors.right: rightLoader.left
+				font.pixelSize: CosStyle.pixelSize*0.85
+				font.weight: Font.DemiBold
+				font.capitalization: Font.AllUppercase
+				color: CosStyle.colorAccentLighter
+				elide: Text.ElideRight
+			}
+
+			Loader {
+				id: rightLoader
+
+				anchors.right: parent.right
+				anchors.verticalCenter: parent.verticalCenter
+			}
 		}
 	}
 

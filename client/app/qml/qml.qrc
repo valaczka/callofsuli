@@ -106,7 +106,6 @@
         <file>TeacherMapGroups.qml</file>
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
-        <file>QDialogImageList.qml</file>
         <file>QBadge.qml</file>
         <file>QDialogMissionList.qml</file>
         <file>QSpinBoxArrow.qml</file>
@@ -128,5 +127,13 @@
         <file>QToolButtonFooter.qml</file>
         <file>PageMapEditor.qml</file>
         <file>QSwipeComponent.qml</file>
+        <file>MapEditorDialogOpen.qml</file>
+        <file>MapEditorDialogSave.qml</file>
+        <file>MapEditorMissions.qml</file>
+        <file>MapEditorMissionDetails.qml</file>
+        <file>MapEditorMissionLevel.qml</file>
+        <file>QGridImageTextField.qml</file>
+        <file>QDialogImageGrid.qml</file>
+        <file>QGridImage.qml</file>
     </qresource>
 </RCC>

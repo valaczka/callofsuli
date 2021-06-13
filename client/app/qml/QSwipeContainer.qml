@@ -185,6 +185,8 @@ Item {
 
 					color: reparented ? JS.setColorAlpha("black", 0.4) : "transparent"
 
+					visible: control.enabled
+
 					states: State {
 						when: reparented
 						ParentChange { target: movableContent; parent: reparentedParent }

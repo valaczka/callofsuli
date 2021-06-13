@@ -14,7 +14,7 @@
 **Music & SFX**
 
 - Voiceover Pack: Fighter by Kenney Vleugels (Kenney.nl) - www.kenney.nl
-- Alexandr Zhelanov (https://soundcloud.com/alexandr-zhelanov) - https://opengameart.org/content/battle-themes
+- Battle themes by Alexandr Zhelanov (https://soundcloud.com/alexandr-zhelanov) - https://opengameart.org/content/battle-themes
 - Battle theme by Alex Smith (cynicmusic) - https://opengameart.org/content/battle-theme-a
 - Copyright 2012 "Commando Team (Action)" Grégoire Lourme (http://www.jamendo.com/en/artist/560/gregoire-lourme), Copyright 2012 Iwan Gabovitch "Commando Team (Action) [loop cut]" - https://opengameart.org/content/commando-team-action-loop-cut
 - Chaingun, pistol, rifle, shotgun shots by Michel Baradari - https://opengameart.org/content/chaingun-pistol-rifle-shotgun-shots

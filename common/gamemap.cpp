@@ -2405,6 +2405,34 @@ void GameMap::deleteImages()
 
 
 /**
+ * @brief GameMap::regenerateUuids
+ */
+
+void GameMap::regenerateUuids()
+{
+	setUuid(QUuid::createUuid().toByteArray());
+
+	foreach(Campaign *c, m_campaigns) {
+		foreach(Mission *m, c->missions()) {
+			m->setUuid(QUuid::createUuid().toByteArray());
+		}
+	}
+
+	foreach(Mission *m, m_orphanMissions) {
+		m->setUuid(QUuid::createUuid().toByteArray());
+	}
+
+
+	foreach (Chapter *ch, m_chapters) {
+		foreach (Objective *o, ch->objectives()) {
+			o->setUuid(QUuid::createUuid().toByteArray());
+		}
+	}
+}
+
+
+
+/**
  * @brief GameMap::missionLevelsData
  * @return
  */
@@ -2722,6 +2750,8 @@ bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameM
 
 	return true;
 }
+
+
 
 
 

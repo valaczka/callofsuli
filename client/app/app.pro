@@ -147,7 +147,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
-#    RC_ICONS = $$PWD/../../share/student.ico
+	RC_ICONS = $$PWD/../../resources/internal/img/cos96.ico
 }
 
 

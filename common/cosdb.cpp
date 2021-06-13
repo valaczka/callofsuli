@@ -1129,10 +1129,9 @@ QVariantMap CosDbWorker::undo(const int &floor)
 
 	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
-	m_db.exec("PRAGMA foreign_keys = OFF;");
-
 	m_db.transaction();
 
+	m_db.exec("PRAGMA foreign_keys = OFF;");
 
 	QVariantMap m = execSelectQueryOneRow("SELECT lastStep FROM undoSettings");
 

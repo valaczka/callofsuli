@@ -139,7 +139,7 @@ QBasePage {
 										   title: qsTr("Ranglista"),
 										   selectorSet: false,
 										   modelTitleRole: "rankname",
-										   modelIconRole: "imgSource",
+										   modelImageRole: "imgSource",
 										   modelSubtitleRole: "details",
 										   modelRightTextRole: "readableXP",
 										   delegateHeight: CosStyle.twoLineHeight,
