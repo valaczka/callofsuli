@@ -20,6 +20,7 @@ Rectangle {
 	property alias title: title.text
 	property alias titleColor: title.color
 	property color backgroundColor: CosStyle.colorPrimaryDarkest
+	property color contentBackgroundColor: "transparent"
 
 	default property alias contents: content.data
 
@@ -78,6 +79,13 @@ Rectangle {
 				anchors.verticalCenter: parent.verticalCenter
 			}
 		}
+	}
+
+	Rectangle {
+		id: bgRect
+		color: contentBackgroundColor
+		anchors.fill: parent
+		anchors.topMargin: headerRect.height
 	}
 
 	Item {

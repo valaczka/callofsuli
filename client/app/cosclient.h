@@ -36,7 +36,7 @@
 #include <QUrl>
 
 #ifdef WITH_CGRAPH
-	#include <gvc.h>
+#include <gvc.h>
 #endif
 
 
@@ -45,6 +45,7 @@
 #include "gameblock.h"
 #include "gamemap.h"
 #include "gamematch.h"
+#include "gameenemydata.h"
 #include "cossound.h"
 #include "question.h"
 
@@ -145,6 +146,10 @@ public:
 	Q_INVOKABLE static QVariantMap terrainMap();
 	Q_INVOKABLE static QVariantMap objectiveModuleMap() { return Question::objectivesMap(); }
 	Q_INVOKABLE static QVariantMap storageModuleMap() { return Question::storagesMap(); }
+	Q_INVOKABLE static QVariantMap objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+	{ return Question::objectiveInfo(module, dataString, storageModule, storageDataString); }
+	Q_INVOKABLE static QVariantMap storageInfo(const QString &module) { return Question::storageInfo(module); }
+	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }
 
 
 	QWebSocket * socket() const { return m_socket; }

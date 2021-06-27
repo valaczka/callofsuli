@@ -83,13 +83,14 @@ public:
 
 
 	struct InventoryType {
-		InventoryType(QString name, PickableType type, QVariantMap data) :
-			name(name), type(type), data(data) {}
+		InventoryType(QString name, QString icon, PickableType type, QVariantMap data) :
+			name(name), icon(icon), type(type), data(data) {}
 
 		InventoryType() :
-			name(), type(PickableInvalid), data() {}
+			name(), icon(), type(PickableInvalid), data() {}
 
 		QString name;
+		QString icon;
 		PickableType type;
 		QVariantMap data;
 	};
@@ -97,6 +98,7 @@ public:
 	explicit GameEnemyData(QObject *parent = nullptr);
 
 	static QHash<QByteArray, InventoryType> inventoryTypes();
+	static QVariantMap inventoryInfo(const QString &module);
 
 	QRectF boundRect() const { return m_boundRect; }
 	bool active() const { return m_active; }

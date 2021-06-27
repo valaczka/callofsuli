@@ -49,27 +49,33 @@ public:
 
 	static QVariantMap objectivesMap();
 	static QVariantMap storagesMap();
-	static QVariantMap objectiveInfo(const QString &module);
+
+	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data = QVariantMap(),
+									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+	static QVariantMap objectiveInfo(const QString &module, const QString &dataString,
+									 const QString &storageModule = "", const QString &storageDataString = "");
+
 	static QVariantMap storageInfo(const QString &module);
 
-	static QStringList objectiveDataToStringList(const QString &module, const QVariantMap &data,
-										const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
-	static QStringList objectiveDataToStringList(const QString &module, const QString &dataString,
-										const QString &storageModule = "", const QString &storageDataString = "");
-	static QStringList objectiveDataToStringList(GameMap::Objective *objective, GameMap::Storage *storage = nullptr);
+
+	static QVariantMap objectiveData(const QString &module, const QVariantMap &data,
+									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+	static QVariantMap objectiveData(const QString &module, const QString &dataString,
+									 const QString &storageModule = "", const QString &storageDataString = "");
+	static QVariantMap objectiveData(GameMap::Objective *objective, GameMap::Storage *storage = nullptr);
 
 protected:
 	QVariantMap generateTruefalse() const;
-	static QStringList toStringListTruefalse(const QVariantMap &data, const QString &storageModule = "",
-											 const QVariantMap &storageData = QVariantMap());
+	static QVariantMap toMapTruefalse(const QVariantMap &data, const QString &storageModule = "",
+									  const QVariantMap &storageData = QVariantMap());
 
 	QVariantMap generateSimplechoice() const;
-	static QStringList toStringListSimplechoice(const QVariantMap &data, const QString &storageModule = "",
-												const QVariantMap &storageData = QVariantMap());
+	static QVariantMap toMapSimplechoice(const QVariantMap &data, const QString &storageModule = "",
+										 const QVariantMap &storageData = QVariantMap());
 
 	QVariantMap generateCalculator() const;
-	static QStringList toStringListCalculator(const QVariantMap &data, const QString &storageModule = "",
-											  const QVariantMap &storageData = QVariantMap());
+	static QVariantMap toMapCalculator(const QVariantMap &data, const QString &storageModule = "",
+									   const QVariantMap &storageData = QVariantMap());
 	QVariantMap generateCalculatorPlusMinus(GameMap::Storage *storage) const;
 
 	QString m_module;

@@ -40,6 +40,7 @@ QBasePage {
 
 		onLoadSucceed: {
 			getMissionList()
+			getObjectiveList()
 			actionChapters.trigger()
 		}
 

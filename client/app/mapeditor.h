@@ -53,6 +53,11 @@ class MapEditor : public AbstractActivity
 	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList WRITE setModelMissionList NOTIFY modelMissionListChanged)
 	Q_PROPERTY(VariantMapModel * modelTerrainList READ modelTerrainList WRITE setModelTerrainList NOTIFY modelTerrainListChanged)
 	Q_PROPERTY(VariantMapModel * modelLevelChapterList READ modelLevelChapterList WRITE setModelLevelChapterList NOTIFY modelLevelChapterListChanged)
+	Q_PROPERTY(VariantMapModel * modelObjectiveList READ modelObjectiveList WRITE setModelObjectiveList NOTIFY modelObjectiveListChanged)
+	Q_PROPERTY(VariantMapModel * modelInventoryList READ modelInventoryList WRITE setModelInventoryList NOTIFY modelInventoryListChanged)
+	Q_PROPERTY(VariantMapModel * modelInventoryModules READ modelInventoryModules WRITE setModelInventoryModules NOTIFY modelInventoryModulesChanged)
+	Q_PROPERTY(VariantMapModel * modelLockList READ modelLockList WRITE setModelLockList NOTIFY modelLockListChanged)
+	Q_PROPERTY(VariantMapModel * modelDialogMissionList READ modelDialogMissionList WRITE setModelDialogMissionList NOTIFY modelDialogMissionListChanged)
 
 
 public:
@@ -74,6 +79,11 @@ public:
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
 	VariantMapModel * modelTerrainList() const { return m_modelTerrainList; }
 	VariantMapModel * modelLevelChapterList() const { return m_modelLevelChapterList; }
+	VariantMapModel * modelObjectiveList() const { return m_modelObjectiveList; }
+	VariantMapModel * modelInventoryList() const { return m_modelInventoryList; }
+	VariantMapModel * modelInventoryModules() const { return m_modelInventoryModules; }
+	VariantMapModel * modelLockList() const { return m_modelLockList; }
+	VariantMapModel * modelDialogMissionList() const { return m_modelDialogMissionList; }
 
 public slots:
 	void open(const QString &filename);
@@ -94,13 +104,34 @@ public slots:
 	void setModelMissionList(VariantMapModel * modelMissionList);
 	void setModelTerrainList(VariantMapModel * modelTerrainList);
 	void setModelLevelChapterList(VariantMapModel * modelLevelChapterList);
+	void setModelObjectiveList(VariantMapModel * modelObjectiveList);
+	void setModelInventoryList(VariantMapModel * modelInventoryList);
+	void setModelInventoryModules(VariantMapModel * modelInventoryModules);
+	void setModelLockList(VariantMapModel * modelLockList);
+	void setModelDialogMissionList(VariantMapModel * modelDialogMissionList);
 
 	void getMissionList();
 	void getCurrentMissionData();
+	void getFirstMission();
+	void getObjectiveList();
 
 	void missionModify(QVariantMap data);
 	void missionRemove();
 	void missionLevelModify(QVariantMap data);
+
+	void missionLockGetList(QVariantMap data);
+	void missionLockAdd(QVariantMap data);
+	void missionLockModify(QVariantMap data);
+	void missionLockRemove(QVariantMap data);
+	void missionLockGraphUpdate();
+
+
+	void inventoryAdd(QVariantMap data);
+	void inventoryModify(QVariantMap data);
+	void inventoryRemove(QVariantMap data);
+
+
+
 
 
 signals:
@@ -121,10 +152,17 @@ signals:
 
 	void currentMissionDataChanged(QVariantMap data);
 
+	void missionLockListReady(QVariantMap data);
+
 	void currentMissionChanged(QString currentMission);
 	void modelMissionListChanged(VariantMapModel * modelMissionList);
 	void modelTerrainListChanged(VariantMapModel * modelTerrainList);
 	void modelLevelChapterListChanged(VariantMapModel * modelLevelChapterList);
+	void modelObjectiveListChanged(VariantMapModel * modelObjectiveList);
+	void modelInventoryListChanged(VariantMapModel * modelInventoryList);
+	void modelInventoryModulesChanged(VariantMapModel * modelInventoryModules);
+	void modelLockListChanged(VariantMapModel * modelLockList);
+	void modelDialogMissionListChanged(VariantMapModel * modelDialogMissionList);
 
 protected:
 	void openPrivate(QVariantMap data);
@@ -147,6 +185,11 @@ private:
 	VariantMapModel * m_modelMissionList;
 	VariantMapModel * m_modelTerrainList;
 	VariantMapModel * m_modelLevelChapterList;
+	VariantMapModel * m_modelObjectiveList;
+	VariantMapModel * m_modelInventoryList;
+	VariantMapModel * m_modelInventoryModules;
+	VariantMapModel * m_modelLockList;
+	VariantMapModel * m_modelDialogMissionList;
 };
 
 #endif // MAPEDITOR_H

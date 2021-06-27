@@ -141,10 +141,13 @@ QVariantMap Question::storagesMap()
 /**
  * @brief Question::objectiveInfo
  * @param module
+ * @param data
+ * @param storageModule
+ * @param storageData
  * @return
  */
 
-QVariantMap Question::objectiveInfo(const QString &module)
+QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
 	QVariantMap m = objectivesMap().value(module).toMap();
 
@@ -154,6 +157,34 @@ QVariantMap Question::objectiveInfo(const QString &module)
 							   { "icon", "image://font/Material Icons/\ue002" }
 						   });
 	}
+
+	m.insert(objectiveData(module, data, storageModule, storageData));
+
+	return m;
+}
+
+
+/**
+ * @brief Question::objectiveInfo
+ * @param module
+ * @param dataString
+ * @param storageModule
+ * @param storageDataString
+ * @return
+ */
+
+QVariantMap Question::objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+{
+	QVariantMap m = objectivesMap().value(module).toMap();
+
+	if (m.isEmpty()) {
+		return QVariantMap({
+							   { "name", QObject::tr("Érvénytelen modul!") },
+							   { "icon", "image://font/Material Icons/\ue002" }
+						   });
+	}
+
+	m.insert(objectiveData(module, dataString, storageModule, storageDataString));
 
 	return m;
 }
@@ -189,20 +220,21 @@ QVariantMap Question::storageInfo(const QString &module)
  * @return
  */
 
-QStringList Question::objectiveDataToStringList(const QString &module, const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+QVariantMap Question::objectiveData(const QString &module, const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
+	QVariantMap m;
+	m["title"] = "";
+	m["details"] = "";
+	m["image"] = "";
+
 	if (module == "truefalse")
-		return toStringListTruefalse(data, storageModule, storageData);
+		return toMapTruefalse(data, storageModule, storageData);
 	else if (module == "simplechoice")
-		return toStringListSimplechoice(data, storageModule, storageData);
+		return toMapSimplechoice(data, storageModule, storageData);
 	else if (module == "calculator")
-		return toStringListCalculator(data, storageModule, storageData);
+		return toMapCalculator(data, storageModule, storageData);
 
-	QStringList l;
-	l.append(QObject::tr("Érvénytelen modul!"));
-	l.append(module);
-
-	return l;
+	return m;
 }
 
 
@@ -215,11 +247,11 @@ QStringList Question::objectiveDataToStringList(const QString &module, const QVa
  * @return
  */
 
-QStringList Question::objectiveDataToStringList(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+QVariantMap Question::objectiveData(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
 {
 	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
 	QVariantMap storageData = storageDataString.isEmpty() ? QVariantMap() : Client::byteArrayToJsonMap(storageDataString.toUtf8());
-	return objectiveDataToStringList(module, data, storageModule, storageData);
+	return objectiveData(module, data, storageModule, storageData);
 }
 
 
@@ -231,14 +263,14 @@ QStringList Question::objectiveDataToStringList(const QString &module, const QSt
  * @return
  */
 
-QStringList Question::objectiveDataToStringList(GameMap::Objective *objective, GameMap::Storage *storage)
+QVariantMap Question::objectiveData(GameMap::Objective *objective, GameMap::Storage *storage)
 {
 	Q_ASSERT(objective);
 
 	if (storage)
-		return objectiveDataToStringList(objective->module(), objective->data(), storage->module(), storage->data());
+		return objectiveData(objective->module(), objective->data(), storage->module(), storage->data());
 	else
-		return objectiveDataToStringList(objective->module(), objective->data());
+		return objectiveData(objective->module(), objective->data());
 }
 
 
@@ -267,19 +299,18 @@ QVariantMap Question::generateTruefalse() const
  * @return
  */
 
-QStringList Question::toStringListTruefalse(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+QVariantMap Question::toMapTruefalse(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
 	Q_UNUSED(storageModule)
 	Q_UNUSED(storageData)
 
-	QStringList l;
-	l.append(data.value("question").toString());
-	if (data.value("correct").toBool())
-		l.append("igaz");
-	else
-		l.append("hamis");
+	QVariantMap m;
+	m["title"] = data.value("question").toString();
+	m["details"] = data.value("correct").toBool() ? QObject::tr("igaz") : QObject::tr("hamis");
+	m["image"] = "";
 
-	return l;
+	return m;
+
 }
 
 
@@ -352,19 +383,19 @@ QVariantMap Question::generateSimplechoice() const
  * @return
  */
 
-QStringList Question::toStringListSimplechoice(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+QVariantMap Question::toMapSimplechoice(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
 	Q_UNUSED(storageModule)
 	Q_UNUSED(storageData)
 
-	QStringList l;
-
-	l.append(data.value("question").toString());
-
 	QStringList answers = data.value("answers").toStringList();
-	l.append("<b>"+data.value("correct").toString()+"</b><br>("+answers.join(",")+")");
 
-	return l;
+	QVariantMap m;
+	m["title"] = data.value("question").toString();
+	m["details"] = data.value("correct").toString()+"<br>("+answers.join(", ")+")";
+	m["image"] = "";
+
+	return m;
 }
 
 
@@ -410,9 +441,11 @@ QVariantMap Question::generateCalculator() const
  * @return
  */
 
-QStringList Question::toStringListCalculator(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
+QVariantMap Question::toMapCalculator(const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
 	Q_UNUSED(storageData)
+
+	QVariantMap m;
 
 
 	if (storageModule == "plusminus") {
@@ -421,50 +454,52 @@ QStringList Question::toStringListCalculator(const QVariantMap &data, const QStr
 		bool allCanNegative = canNegative > 1;
 		int range = data.value("range", 1).toInt();
 
-		QStringList l;
 		if (isSubtract)
-			l.append(QObject::tr("Kivonás"));
+			m["title"] = QObject::tr("Kivonás");
 		else
-			l.append(QObject::tr("Összeadás"));
+			m["title"] = QObject::tr("Összeadás");
 
-		QString details = "<b>";
+		QString details = "";
 
 		if (range >= 3) {
 			if (allCanNegative)
-				details = QObject::tr("-100 és 100 között");
+				details += QObject::tr("-100 és 100 között");
 			else
-				details = QObject::tr("0 és 100 között");
+				details += QObject::tr("0 és 100 között");
 		} else if (range == 2) {
 			if (allCanNegative)
-				details = QObject::tr("-50 és 50 között");
+				details += QObject::tr("-50 és 50 között");
 			else
-				details = QObject::tr("0 és 50 között");
+				details += QObject::tr("0 és 50 között");
 		} else if (range == 3) {
 			if (allCanNegative)
-				details = QObject::tr("-20 és 20 között");
+				details += QObject::tr("-20 és 20 között");
 			else
-				details = QObject::tr("0 és 20 között");
+				details += QObject::tr("0 és 20 között");
 		} else {
 			if (allCanNegative)
-				details = QObject::tr("-10 és 10 között");
+				details += QObject::tr("-10 és 10 között");
 			else
-				details = QObject::tr("0 és 10 között");
+				details += QObject::tr("0 és 10 között");
 		}
 
-		details += "</b>";
 
 		if (!canNegative)
 			details += "<br>"+QObject::tr("nem lehet negatív eredmény");
 
-		l.append(details);
-		return l;
+		m["details"] = details;
+		m["image"] = "";
+		return m;
+
+
 	}
 
-	QStringList l;
-	l.append("Test calculator");
-	l.append("test -- "+storageModule);
 
-	return l;
+	m["title"] = "Calculator";
+	m["details"] = storageModule;
+	m["image"] = "";
+
+	return m;
 }
 
 

@@ -37,6 +37,7 @@ QtObject {
 	property color colorOKLight: Material.color(Material.LightGreen, Material.ShadeA100)
 	property color colorOKDarker: Material.color(Material.Green, Material.Shade700)
 	property color colorOKDark: Material.color(Material.Green, Material.Shade900)
+	property color colorOKDarkest: Qt.darker(Material.color(Material.Green, Material.Shade900), 1.4)
 
 	property color colorBg: "#20ffffff"
 

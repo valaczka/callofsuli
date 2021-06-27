@@ -16,6 +16,16 @@ QSwipeContainer {
 		QCollapsible {
 			title: qsTr("Alapadatok")
 
+			rightComponent: QToolButton {
+				anchors.verticalCenter: parent.verticalCenter
+				icon.source: CosStyle.iconDelete
+				color: CosStyle.colorError
+				ToolTip.text: qsTr("Küldetés törlése")
+
+				onClicked: mapEditor.missionRemove()
+			}
+
+
 			QGridLayout {
 				width: parent.width
 				watchModification: false
@@ -68,17 +78,8 @@ QSwipeContainer {
 			}
 		}
 
-		QCollapsible {
-			title: qsTr("Zárolások")
-		}
-
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			color: CosStyle.colorErrorLighter
-			icon.source: CosStyle.iconDelete
-			text: qsTr("Küldetés törlése")
-
-			onClicked: mapEditor.missionRemove()
+		MapEditorMissionLocks {
+			collapsed: true
 		}
 
 	}

@@ -26,6 +26,7 @@ QSwipeContainer {
 				spacing: 0
 				QToolButton {
 					icon.source: CosStyle.iconPlay
+					color: CosStyle.colorOKLighter
 					ToolTip.text: qsTr("Lejátszás")
 				}
 				QToolButton {
@@ -48,6 +49,9 @@ QSwipeContainer {
 					property bool _invalid: true
 
 					imageImg.width: imageTerrain.height*1.5
+
+					labelTitle.color: CosStyle.colorAccentLighter
+					labelSubtitle.color: CosStyle.colorAccent
 
 					rightComponent: QFontImage {
 						visible: imageTerrain._invalid
@@ -132,11 +136,10 @@ QSwipeContainer {
 
 		}
 
-		QCollapsible {
-			title: qsTr("Felszerelés")
+		MapEditorInventory {
 			collapsed: true
+			level: container.level
 		}
-
 
 
 
@@ -154,37 +157,8 @@ QSwipeContainer {
 				}
 			}
 
-			QCollapsible {
-				required property string name
-				required property string chapter
-				required property int missionCount
-				required property int objectiveCount
-
-				//title: "%1 (#%2)".arg(name).arg(chapter)
-				title: name
+			MapEditorChapter {
 				collapsed: true
-
-				titleColor: CosStyle.colorOKLight
-				backgroundColor: CosStyle.colorOKDark
-
-				rightComponent: Row {
-					spacing: 2
-					QBadge {
-						text: missionCount
-						color: CosStyle.colorPrimaryDark
-						anchors.verticalCenter: parent.verticalCenter
-						visible: missionCount > 1
-					}
-					QBadge {
-						text: objectiveCount
-						color: CosStyle.colorWarningDark
-						anchors.verticalCenter: parent.verticalCenter
-					}
-					QToolButton {
-						anchors.verticalCenter: parent.verticalCenter
-						icon.source: CosStyle.iconMenu
-					}
-				}
 			}
 		}
 

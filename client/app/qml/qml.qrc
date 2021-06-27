@@ -135,5 +135,8 @@
         <file>QGridImageTextField.qml</file>
         <file>QDialogImageGrid.qml</file>
         <file>QGridImage.qml</file>
+        <file>MapEditorChapter.qml</file>
+        <file>MapEditorInventory.qml</file>
+        <file>MapEditorMissionLocks.qml</file>
     </qresource>
 </RCC>

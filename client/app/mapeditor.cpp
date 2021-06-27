@@ -26,6 +26,7 @@
 
 #include "mapeditor.h"
 #include "sqlimage.h"
+#include "gameenemydata.h"
 
 
 MapEditor::MapEditor(QQuickItem *parent)
@@ -40,6 +41,11 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_modelMissionList(nullptr)
 	, m_modelTerrainList(nullptr)
 	, m_modelLevelChapterList(nullptr)
+	, m_modelObjectiveList(nullptr)
+	, m_modelInventoryList(nullptr)
+	, m_modelInventoryModules(nullptr)
+	, m_modelLockList(nullptr)
+	, m_modelDialogMissionList(nullptr)
 {
 	/*m_map["getMissionList"] = &MapEditor::getMissionList;
 	m_map["getCurrentMissionData"] = &MapEditor::getCurrentMissionData;
@@ -86,13 +92,78 @@ MapEditor::MapEditor(QQuickItem *parent)
 												  this);
 
 
+	m_modelObjectiveList = new VariantMapModel({
+												   "rid",
+												   "uuid",
+												   "sortid",
+												   "chapter",
+												   "objectiveModule",
+												   "objectiveData",
+												   "storage",
+												   "storageCount",
+												   "storageModule",
+												   "storageData"
+											   },
+											   this);
+
+	m_modelInventoryList = new VariantMapModel({
+												   "rid",
+												   "mission",
+												   "level",
+												   "module",
+												   "block",
+												   "icount"
+											   },
+											   this);
+
+
+	m_modelInventoryModules = new VariantMapModel({
+													  "module",
+													  "name",
+													  "icon"
+												  },
+												  this);
+
+
+	QHash<QByteArray, GameEnemyData::InventoryType> ilist =  GameEnemyData::inventoryTypes();
+	QHash<QByteArray, GameEnemyData::InventoryType>::const_iterator it;
+	QVariantMap im;
+
+	for (it = ilist.constBegin(); it != ilist.constEnd(); ++it) {
+		im[it.key()] = QVariantMap({
+									   { "name", it.value().name },
+									   { "icon", it.value().icon }
+								   });
+
+	}
+
+	m_modelInventoryModules->setVariantList(Client::mapToList(im, "module"), "module");
+
+
+
+	m_modelLockList = new VariantMapModel({
+											  "lock",
+											  "level",
+											  "name"
+										  },
+										  this);
+
+	m_modelDialogMissionList = new VariantMapModel({
+													   "uuid",
+													   "name",
+													   "level"
+												   },
+												   this);
+
 
 	connect(this, &MapEditor::currentMissionChanged, this, &MapEditor::getCurrentMissionData);
 
 	connect(db, &CosDb::undone, this, [=]() {
 		setModified(true);
 		getMissionList();
+		getObjectiveList();
 		getCurrentMissionData();
+		missionLockGraphUpdate();
 	});
 }
 
@@ -115,6 +186,11 @@ MapEditor::~MapEditor()
 	delete m_modelMissionList;
 	delete m_modelTerrainList;
 	delete m_modelLevelChapterList;
+	delete m_modelObjectiveList;
+	delete m_modelInventoryList;
+	delete m_modelInventoryModules;
+	delete m_modelLockList;
+	delete m_modelDialogMissionList;
 }
 
 
@@ -354,9 +430,11 @@ void MapEditor::getCurrentMissionData()
 {
 	if (!m_loaded || m_currentMission.isEmpty()) {
 		m_modelLevelChapterList->clear();
+		m_modelInventoryList->clear();
 		emit currentMissionDataChanged({{}});
 		return;
 	}
+
 
 	QVariantMap data = db()->execSelectQueryOneRow("SELECT uuid, campaign, mandatory, name, description, medalImage FROM missions WHERE uuid=?",
 												   {m_currentMission});
@@ -382,8 +460,57 @@ void MapEditor::getCurrentMissionData()
 
 	m_modelLevelChapterList->setVariantList(levelChapters, "rid");
 
+
+	QVariantList list = db()->execSelectQuery("SELECT rowid as rid, mission, level, block, module, count as icount FROM inventories "
+"WHERE mission=?", {m_currentMission});
+
+	m_modelInventoryList->setVariantList(list, "rid");
+
+
+
+
+	QVariantList missionLocks = db()->execSelectQuery("SELECT lock, level, name "
+"FROM missionLocks LEFT JOIN missions ON (missions.uuid=missionLocks.lock) "
+"WHERE mission=?", {m_currentMission});
+
+	m_modelLockList->setVariantList(missionLocks, "lock");
+
 	emit currentMissionDataChanged(data);
 }
+
+
+/**
+ * @brief MapEditor::getFirstMission
+ */
+
+void MapEditor::getFirstMission()
+{
+	QString firstUuid = db()->execSelectQueryOneRow("SELECT uuid FROM missions ORDER BY name LIMIT 1").value("uuid").toString();
+	if (!firstUuid.isEmpty())
+		setCurrentMission(firstUuid);
+}
+
+
+/**
+ * @brief MapEditor::getObjectiveList
+ */
+
+void MapEditor::getObjectiveList()
+{
+	if (!m_loaded) {
+		m_modelObjectiveList->clear();
+		return;
+	}
+
+	QVariantList objectives = db()->execSelectQuery("SELECT chapter||'-'||uuid as rid, "
+"uuid, objectives.rowid as sortid, chapter, objectives.module as objectiveModule, storage, storageCount, objectives.data as objectiveData,"
+"storages.module as storageModule, storages.data as storageData "
+"FROM chapters LEFT JOIN objectives ON (objectives.chapter=chapters.id) "
+"LEFT JOIN storages ON (storages.id=objectives.storage)");
+
+	m_modelObjectiveList->setVariantList(objectives, "rid");
+}
+
 
 
 
@@ -432,6 +559,7 @@ void MapEditor::missionModify(QVariantMap data)
 		getMissionList();
 		getCurrentMissionData();
 		setModified(true);
+		missionLockGraphUpdate();
 	}
 }
 
@@ -457,6 +585,7 @@ void MapEditor::missionRemove()
 		getMissionList();
 		getCurrentMissionData();
 		setModified(true);
+		missionLockGraphUpdate();
 	}
 }
 
@@ -487,6 +616,388 @@ void MapEditor::missionLevelModify(QVariantMap data)
 		getCurrentMissionData();
 		setModified(true);
 	}
+}
+
+
+/**
+ * @brief MapEditor::missionLockGetList
+ */
+
+void MapEditor::missionLockGetList(QVariantMap data)
+{
+	if (m_currentMission.isEmpty())
+		return;
+
+	QString lock = data.value("lock", "").toString();
+
+	QVariantList list;
+
+	if (lock.isEmpty()) {
+		list = db()->execSelectQuery("SELECT uuid, name, level FROM missions "
+"LEFT JOIN missionLevels ON (missionLevels.mission=missions.uuid) "
+"WHERE uuid<>? AND uuid NOT IN (SELECT lock FROM missionLocks WHERE mission=?)",
+									 {m_currentMission, m_currentMission});
+	} else {
+		list = db()->execSelectQuery("SELECT uuid, name, level FROM missions "
+"LEFT JOIN missionLevels ON (missionLevels.mission=missions.uuid) "
+"WHERE uuid=?",
+									 {lock});
+	}
+
+	QVariantMap response;
+	response["mission"] = m_currentMission;
+	response["lock"] = lock;
+	response["levels"] = list;
+
+	emit missionLockListReady(response);
+}
+
+
+/**
+ * @brief MapEditor::missionLockAdd
+ * @param data
+ */
+
+void MapEditor::missionLockAdd(QVariantMap data)
+{
+	if (m_currentMission.isEmpty())
+		return;
+
+	if (!data.contains("lock")) {
+		qWarning() << "Missing lock uuid";
+		return;
+	}
+
+	data["mission"] = m_currentMission;
+
+	db()->undoLogBegin(tr("Zárolás hozzáadása"));
+
+	int ret = db()->execInsertQuery("INSERT INTO missionLocks (?k?) VALUES (?)", data);
+
+	db()->undoLogEnd();
+
+	if (ret != -1) {
+		getCurrentMissionData();
+		setModified(true);
+		missionLockGraphUpdate();
+	}
+}
+
+
+
+/**
+ * @brief MapEditor::missionLockModify
+ * @param data
+ */
+
+void MapEditor::missionLockModify(QVariantMap data)
+{
+	QString lock = data.value("lock", "").toString();
+	int level = data.value("level", -1).toInt();
+
+	if (m_currentMission.isEmpty() || lock.isEmpty())
+		return;
+
+	QVariantMap d;
+	if (level > 0)
+		d["level"] = level;
+	else
+		d["level"] = QVariant::Invalid;
+
+	db()->undoLogBegin(tr("Zárolás módosítása"));
+
+	bool ret = db()->execUpdateQuery("UPDATE missionLocks SET ? WHERE mission=:id AND lock=:lock", d,
+									 {{":id", m_currentMission},
+									  {":lock", lock}}
+									 );
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		setModified(true);
+		missionLockGraphUpdate();
+	}
+}
+
+
+/**
+ * @brief MapEditor::missionLockRemove
+ * @param data
+ */
+
+void MapEditor::missionLockRemove(QVariantMap data)
+{
+	QString lock = data.value("lock", "").toString();
+
+	if (m_currentMission.isEmpty() || lock.isEmpty())
+		return;
+
+	db()->undoLogBegin(tr("Zárolás törlése"));
+
+	bool ret = db()->execSimpleQuery("DELETE FROM missionLocks WHERE mission=? AND lock=?", {m_currentMission, lock});
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		setModified(true);
+		missionLockGraphUpdate();
+	}
+}
+
+
+
+/**
+ * @brief MapEditor::missionLockGraphUpdate
+ */
+
+void MapEditor::missionLockGraphUpdate()
+{
+	QByteArray img;
+
+#ifdef WITH_CGRAPH
+	QString dot;
+	dot = "digraph missionlock {\n"
+		  "node [shape=record,fontname=\"Arial\"];\n";
+
+
+	QVariantList l = db()->execSelectQuery("SELECT uuid, name, level FROM missions "
+"LEFT JOIN missionLevels ON (missionLevels.mission=missions.uuid) ");
+
+	QHash<QString, QVariantMap> missions;
+	int num = 0;
+
+	foreach (QVariant v, l) {
+		QVariantMap m = v.toMap();
+		QString uuid = m.value("uuid").toString();
+		int level = m.value("level", -1).toInt();
+
+		if (missions.contains(uuid)) {
+			QVariantList ll = missions.value(uuid).value("levels").toList();
+			ll.append(level);
+			missions[uuid]["levels"] = ll;
+		} else {
+			QVariantList ll;
+			ll.append(level);
+			missions[uuid] = QVariantMap({{"name", m.value("name").toString()},
+										  {"levels", ll},
+										  {"code", num++}
+										 });
+		}
+	}
+
+
+
+	QHash<QString, QVariantMap>::const_iterator it;
+	for (it=missions.constBegin(); it != missions.constEnd(); ++it) {
+		QVariantMap m = it.value();
+		dot += QString("m%1 [label=\"{ %2 | {")
+			   .arg(m.value("code").toInt())
+			   .arg(m.value("name").toString());
+
+		bool isFirst = true;
+
+		foreach (QVariant v, m.value("levels").toList()) {
+			if (isFirst)
+				isFirst = false;
+			else
+				dot += " |";
+
+			dot += QString(" <l%1> %2")
+				   .arg(v.toInt())
+				   .arg(v.toInt());
+		}
+
+		dot += " } } \"];\n";
+	}
+
+
+
+	QVariantList locks = db()->execSelectQuery("SELECT mission, lock, level FROM missionLocks");
+
+	foreach (QVariant v, locks) {
+		QVariantMap m = v.toMap();
+		QString mission = m.value("mission").toString();
+		QString lock = m.value("lock").toString();
+		int level = m.value("level", -1).toInt();
+
+		if (level < 1)
+			level = 1;
+
+		QString	fromCode = QString("m%1:l%2")
+						   .arg(missions.value(lock).value("code").toInt())
+						   .arg(level);
+
+
+		QString toCode = QString("m%1")
+						 .arg(missions.value(mission).value("code").toInt());
+
+		dot += fromCode+" -> "+toCode+";\n";
+	}
+
+	dot += "}";
+
+	img = m_client->graphvizImage(dot, "png");
+
+#endif
+
+	QFile f("/tmp/g.png");
+	f.open(QIODevice::WriteOnly);
+	f.write(img);
+	f.close();
+}
+
+
+
+
+/**
+ * @brief MapEditor::inventoryAdd
+ * @param data
+ */
+
+void MapEditor::inventoryAdd(QVariantMap data)
+{
+	if (m_currentMission.isEmpty())
+		return;
+
+	if (!data.contains("level")) {
+		qWarning() << "Missing level";
+		return;
+	}
+
+	data["mission"] = m_currentMission;
+
+	db()->undoLogBegin(tr("Új felszerelés"));
+
+	int ret = db()->execInsertQuery("INSERT INTO inventories (?k?) VALUES (?)", data);
+	db()->undoLogEnd();
+
+	if (ret != -1) {
+		getCurrentMissionData();
+		setModified(true);
+	}
+}
+
+
+/**
+ * @brief MapEditor::inventoryModify
+ * @param data
+ */
+
+void MapEditor::inventoryModify(QVariantMap data)
+{
+	if (m_currentMission.isEmpty())
+		return;
+
+	int level = data.value("level", -1).toInt();
+	data.remove("level");
+
+	int rid = data.value("rid", -1).toInt();
+	data.remove("rid");
+
+	db()->undoLogBegin(tr("Felszerelés módosítása"));
+
+	bool ret = db()->execUpdateQuery("UPDATE inventories SET ? WHERE mission=:id AND level=:level AND rowid=:rid", data,
+									 {
+										 {":id", m_currentMission},
+										 {":level", level},
+										 {":rid", rid}
+									 });
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		setModified(true);
+	}
+}
+
+
+/**
+ * @brief MapEditor::inventoryRemove
+ * @param data
+ */
+
+void MapEditor::inventoryRemove(QVariantMap data)
+{
+	if (m_currentMission.isEmpty())
+		return;
+
+	int level = data.value("level", -1).toInt();
+	data.remove("level");
+
+	int rid = data.value("rid", -1).toInt();
+	data.remove("rid");
+
+	db()->undoLogBegin(tr("Felszerelés törlése"));
+
+	bool ret = db()->execUpdateQuery("DELETE FROM inventories WHERE mission=:id AND level=:level AND rowid=:rid", data,
+									 {
+										 {":id", m_currentMission},
+										 {":level", level},
+										 {":rid", rid}
+									 });
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		setModified(true);
+	}
+}
+
+void MapEditor::setModelDialogMissionList(VariantMapModel *modelDialogMissionList)
+{
+	if (m_modelDialogMissionList == modelDialogMissionList)
+		return;
+
+	m_modelDialogMissionList = modelDialogMissionList;
+	emit modelDialogMissionListChanged(m_modelDialogMissionList);
+}
+
+void MapEditor::setModelLockList(VariantMapModel *modelLockList)
+{
+	if (m_modelLockList == modelLockList)
+		return;
+
+	m_modelLockList = modelLockList;
+	emit modelLockListChanged(m_modelLockList);
+}
+
+
+
+
+
+void MapEditor::setModelInventoryModules(VariantMapModel *modelInventoryModules)
+{
+	if (m_modelInventoryModules == modelInventoryModules)
+		return;
+
+	m_modelInventoryModules = modelInventoryModules;
+	emit modelInventoryModulesChanged(m_modelInventoryModules);
+}
+
+
+
+
+
+void MapEditor::setModelInventoryList(VariantMapModel *modelInventoryList)
+{
+	if (m_modelInventoryList == modelInventoryList)
+		return;
+
+	m_modelInventoryList = modelInventoryList;
+	emit modelInventoryListChanged(m_modelInventoryList);
+}
+
+void MapEditor::setModelObjectiveList(VariantMapModel *modelObjectiveList)
+{
+	if (m_modelObjectiveList == modelObjectiveList)
+		return;
+
+	m_modelObjectiveList = modelObjectiveList;
+	emit modelObjectiveListChanged(m_modelObjectiveList);
 }
 
 void MapEditor::setModelLevelChapterList(VariantMapModel *modelLevelChapterList)

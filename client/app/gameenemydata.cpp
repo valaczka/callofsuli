@@ -66,34 +66,67 @@ QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 	QHash<QByteArray, GameEnemyData::InventoryType> list;
 
 	list["health"] = InventoryType(tr("1 HP hozzáadása"),
+								   "image://font/School/\uf124",
 								   PickableHealth,
 								   QVariantMap());
 
 	list["time1"] = InventoryType(tr("30 másodperc hozzáadása"),
+								  "image://font/School/\uf124",
 								  PickableTime,
 								  QVariantMap({{"text", "30"}, {"secs", 30}}));
 
 	list["time2"] = InventoryType(tr("1 perc hozzáadása"),
+								  "image://font/School/\uf124",
 								  PickableTime,
 								  QVariantMap({{"text", "60"}, {"secs", 60}}));
 
 	list["shield1"] = InventoryType(tr("1 pajzs hozzáadása"),
-								  PickableShield,
-								  QVariantMap({{"num", 1}}));
+									"qrc:/internal/game/shield-green.png",
+									PickableShield,
+									QVariantMap({{"num", 1}}));
 
 	list["shield2"] = InventoryType(tr("2 pajzs hozzáadása"),
-								  PickableShield,
-								  QVariantMap({{"num", 2}}));
+									"qrc:/internal/game/shield-blue.png",
+									PickableShield,
+									QVariantMap({{"num", 2}}));
 
 	list["shield3"] = InventoryType(tr("3 pajzs hozzáadása"),
-								  PickableShield,
-								  QVariantMap({{"num", 3}}));
+									"qrc:/internal/game/shield-red.png",
+									PickableShield,
+									QVariantMap({{"num", 3}}));
 
 	list["shield4"] = InventoryType(tr("5 pajzs hozzáadása"),
-								  PickableShield,
-								  QVariantMap({{"num", 5}}));
+									"qrc:/internal/game/shield-gold.png",
+									PickableShield,
+									QVariantMap({{"num", 5}}));
 
 	return list;
+}
+
+
+/**
+ * @brief GameEnemyData::inventoryInfo
+ * @param module
+ * @return
+ */
+
+QVariantMap GameEnemyData::inventoryInfo(const QString &module)
+{
+	QHash<QByteArray, InventoryType> list = inventoryTypes();
+
+	if (!list.contains(module.toLatin1())) {
+		return QVariantMap({
+							   { "name", QObject::tr("Érvénytelen modul!") },
+							   { "icon", "image://font/Material Icons/\ue002" }
+						   });
+	}
+
+	InventoryType t = list.value(module.toLatin1());
+
+	return QVariantMap({
+						   { "name", t.name },
+						   { "icon", t.icon }
+					   });
 }
 
 

@@ -213,6 +213,29 @@ void VariantMapModel::setJsonArray(const QJsonArray &list, const QString &unique
 
 
 /**
+ * @brief VariantMapModel::replaceList
+ * @param list
+ */
+
+void VariantMapModel::replaceList(const QVariantList &list)
+{
+	m_data->clear();
+	m_data->appendMapList(list);
+}
+
+/**
+ * @brief VariantMapModel::replaceJsonArray
+ * @param list
+ */
+
+void VariantMapModel::replaceJsonArray(const QJsonArray &list)
+{
+	m_data->clear();
+	m_data->appendMapList(list);
+}
+
+
+/**
  * @brief VariantMapModel::count
  * @return
  */

@@ -11,6 +11,7 @@ QDialogPanel {
 
 	property alias value: tfInput.text
 	property alias textField: tfInput
+	property alias inputMethodHints: tfInput.inputMethodHints
 
 	maximumHeight: 300
 	maximumWidth: 750

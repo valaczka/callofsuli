@@ -159,5 +159,9 @@ QSwipeComponent {
 		}
 	}
 
+	Component.onCompleted: if (mapEditor.currentMission.length === 0) {
+		mapEditor.getFirstMission()
+	}
+
 	Component.onDestruction: mapEditor.currentMission = ""
 }
