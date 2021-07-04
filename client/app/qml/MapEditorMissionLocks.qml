@@ -12,8 +12,8 @@ QCollapsible {
 	title: qsTr("Zárolások")
 
 	titleColor: CosStyle.colorAccentLight
-	backgroundColor: CosStyle.colorErrorDark
-	contentBackgroundColor: JS.setColorAlpha(CosStyle.colorErrorDark, 0.8)
+	backgroundColor: list.model.count ? CosStyle.colorErrorDark : CosStyle.colorPrimaryDarkest
+	contentBackgroundColor: list.model.count ? JS.setColorAlpha(CosStyle.colorErrorDark, 0.8) : "transparent"
 
 	QVariantMapProxyView {
 		id: list
@@ -60,7 +60,7 @@ QCollapsible {
 
 		footer: QToolButtonFooter {
 			width: list.width
-			color: CosStyle.colorAccent
+			color: list.model.count ? CosStyle.colorAccent : CosStyle.colorErrorLighter
 			text: qsTr("Új zárolás")
 			icon.source: CosStyle.iconAdd
 			onClicked: {

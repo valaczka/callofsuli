@@ -62,6 +62,19 @@ QSwipeComponent {
 			anchors.verticalCenter: parent.verticalCenter
 			display: AbstractButton.IconOnly
 			color: CosStyle.colorOKLighter
+
+			onClicked: {
+				var d = JS.dialogCreateQml("TextField", {
+											   title: qsTr("Új küldetés"),
+											   text: qsTr("Az új küldetés neve")
+										   })
+
+				d.accepted.connect(function(data) {
+					if (data.length)
+						mapEditor.missionAdd({name: data})
+				})
+				d.open()
+			}
 		}
 
 		acceptedButtons: Qt.LeftButton
@@ -157,11 +170,54 @@ QSwipeComponent {
 
 			labelMissionName._textFromData = data.name ? data.name : ""
 		}
+
+
+
+
+		function onMissionChapterListReady(data) {
+			if (data.mission !== mapEditor.currentMission)
+				return
+
+			//var isUpdate = (data.lock && data.lock.length)
+
+			if (data.chapters.length === 0) {
+				cosClient.sendMessageWarning(qsTr("Szakasz hozzáadása"), qsTr("Nincs több hozzáadható szakasz!"))
+				return
+			}
+
+
+			mapEditor.modelDialogChapterList.unselectAll()
+			mapEditor.modelDialogChapterList.replaceList(data.chapters)
+
+			var d = JS.dialogCreateQml("List", {
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Létező szakasz hozzáadása"),
+										   roles: ["name", "id"],
+										   modelTitleRole: "name",
+										   selectorSet: true,
+										   sourceModel: mapEditor.modelDialogChapterList
+									   })
+
+
+			d.accepted.connect(function(dlgdata) {
+				var l = mapEditor.modelDialogChapterList.getSelectedData("id")
+				if (l.length === 0)
+					return
+
+				mapEditor.missionLevelChapterAdd({level: data.level, list: l})
+
+			})
+			d.open()
+
+		}
+
 	}
 
 	Component.onCompleted: if (mapEditor.currentMission.length === 0) {
-		mapEditor.getFirstMission()
-	}
+							   mapEditor.getFirstMission()
+							   if (mapEditor.currentMission.length === 0)
+								   buttonMissionNew.clicked()
+						   }
 
 	Component.onDestruction: mapEditor.currentMission = ""
 }

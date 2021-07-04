@@ -41,7 +41,7 @@ QBasePage {
 		onLoadSucceed: {
 			getMissionList()
 			getObjectiveList()
-			actionChapters.trigger()
+			actionMissions.trigger()
 		}
 
 		onSaveSucceed: {
@@ -53,23 +53,32 @@ QBasePage {
 			dialogSave.isSaveAs = !isNew
 			dialogSave.open()
 		}
+
+		onPlayFailed: {
+			cosClient.sendMessageError(qsTr("Lejátszás"), qsTr("Hibás adatbázis"))
+		}
+
+		onPlayReady: {
+			var o = JS.createPage("Game", {
+									  gameMatch: gamematch,
+									  //studentMaps: studentMaps,
+									  deleteGameMatch: true
+								  })
+
+		}
 	}
 
 	toolBarMenu: QMenu {
 		enabled: mapEditor.loaded
 
 		MenuItem {
-			text: qsTr("Pályák")
-			icon.source: CosStyle.iconBooks
-			//onClicked: editorLoader.sourceComponent = componentOpenSave
+			action: actionMissions
 		}
 		MenuItem {
 			action: actionChapters
 		}
 		MenuItem {
-			text: qsTr("Storages")
-			icon.source: CosStyle.iconBooks
-			onClicked: editorLoader.sourceComponent = undefined
+			action: actionStorages
 		}
 	}
 
@@ -158,12 +167,32 @@ QBasePage {
 
 
 	Action {
-		id: actionChapters
-		text: qsTr("Fejezetek")
+		id: actionMissions
+		text: qsTr("Küldetések")
 		icon.source: CosStyle.iconAdd
 		onTriggered: {
-			control.title = qsTr("Fejezetek")
+			control.title = qsTr("Küldetések")
 			editorLoader.sourceComponent = componentMissions
+		}
+	}
+
+	Action {
+		id: actionChapters
+		text: qsTr("Szakaszok")
+		icon.source: CosStyle.iconAdd
+		onTriggered: {
+			control.title = qsTr("Szakaszok")
+			editorLoader.sourceComponent = undefined //componentMissions
+		}
+	}
+
+	Action {
+		id: actionStorages
+		text: qsTr("Storages")
+		icon.source: CosStyle.iconAdd
+		onTriggered: {
+			control.title = qsTr("Storages")
+			editorLoader.sourceComponent = undefined
 		}
 	}
 

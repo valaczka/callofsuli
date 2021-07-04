@@ -33,6 +33,7 @@ QCollapsible {
 			text: objectiveCount
 			color: CosStyle.colorWarningDark
 			anchors.verticalCenter: parent.verticalCenter
+			visible: objectiveCount > 0
 		}
 		QToolButton {
 			anchors.verticalCenter: parent.verticalCenter
@@ -165,5 +166,11 @@ QCollapsible {
 			}
 		}
 
+		QToolButtonFooter {
+			anchors.horizontalCenter: parent.horizontalCenter
+			icon.source: CosStyle.iconAdd
+			text: qsTr("Új feladat")
+			//onClicked: mapEditor.missionLevelGetChapterList(level)
+		}
 	}
 }

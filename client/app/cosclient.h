@@ -115,7 +115,7 @@ public:
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
-	Q_INVOKABLE static QVariant getSetting(const QString &key);
+	Q_INVOKABLE static QVariant getSetting(const QString &key, const QVariant &defaultValue = QVariant());
 
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);

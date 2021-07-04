@@ -44,6 +44,8 @@ QCollapsible {
 
 		modelTitleRole: "name"
 		colorTitle: CosStyle.colorAccentLighter
+		pixelSizeTitle: CosStyle.pixelSize*0.9
+
 
 		autoSelectorChange: false
 		refreshEnabled: false

@@ -28,12 +28,14 @@ QSwipeContainer {
 					icon.source: CosStyle.iconPlay
 					color: CosStyle.colorOKLighter
 					ToolTip.text: qsTr("Lejátszás")
+					onClicked: mapEditor.play({"level": level})
 				}
 				QToolButton {
 					icon.source: CosStyle.iconDelete
 					color: CosStyle.colorError
 					ToolTip.text: qsTr("Szint törlése")
 					visible: level == maxLevel && level>1
+					onClicked: mapEditor.missionLevelRemove({"level": level})
 				}
 			}
 
@@ -122,6 +124,32 @@ QSwipeContainer {
 					}
 				}
 
+
+				QGridLabel { text: qsTr("Kérdések aránya") }
+
+				QGridSpinBox {
+					id: spinQuestions
+					from: 0
+					to: 100
+					stepSize: 5
+					//editable: true
+
+					textFromValue: function(value) {
+						return String("%1%").arg(value)
+					}
+
+					/*valueFromText: function(text) {
+						return JS.mmSStoSec(text)
+					}*/
+
+					onValueModified: {
+						mapEditor.missionLevelModify({level: container.level, questions: Number(value/100)})
+					}
+				}
+
+
+
+
 				QGridCheckBox {
 					id: checkDeathmatch
 					text: qsTr("Deathmatch engedélyezve")
@@ -137,6 +165,7 @@ QSwipeContainer {
 		}
 
 		MapEditorInventory {
+			id: inventory
 			collapsed: true
 			level: container.level
 		}
@@ -162,11 +191,29 @@ QSwipeContainer {
 			}
 		}
 
+		QToolButtonFooter {
+			anchors.horizontalCenter: parent.horizontalCenter
+			icon.source: CosStyle.iconAdd
+			text: qsTr("Létező szakasz hozzáadása")
+			onClicked: mapEditor.missionLevelGetChapterList(level)
+		}
 
 		QToolButtonFooter {
 			anchors.horizontalCenter: parent.horizontalCenter
 			icon.source: CosStyle.iconAdd
-			text: qsTr("Új szakasz")
+			text: qsTr("Új szakasz létrehozása")
+			onClicked: {
+				var d = JS.dialogCreateQml("TextField", {
+											   title: qsTr("Új szakasz"),
+											   text: qsTr("Az új szakasz neve")
+											   })
+
+				d.accepted.connect(function(data) {
+					if (data.length)
+						mapEditor.missionLevelChapterAdd({level: level, name: data})
+				})
+				d.open()
+			}
 		}
 	}
 
@@ -176,6 +223,7 @@ QSwipeContainer {
 		color: CosStyle.colorAccent
 		text: qsTr("Szint hozzáadása")
 		icon.source: CosStyle.iconAdd
+		onClicked: mapEditor.missionLevelAdd({"level": level})
 	}
 
 
@@ -208,11 +256,17 @@ QSwipeContainer {
 
 					spinDuration.value = p.duration
 					spinHP.value = p.startHP
+					spinQuestions.value = p.questions*100
 					checkDeathmatch.checked = p.deathmatch
 
 					break
 				}
 			}
+		}
+
+		function onCurrentMissionChanged(m) {
+			inventory.collapsed = true
+			acc.flickable.returnToBounds()
 		}
 	}
 }

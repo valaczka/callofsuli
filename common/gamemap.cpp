@@ -997,6 +997,8 @@ bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream, const 
 {
 	Q_ASSERT(chapter);
 
+	Q_UNUSED(version);
+
 	quint32 size = 0;
 	stream >> size;
 
@@ -1006,10 +1008,7 @@ bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream, const 
 		qint32 storageId;
 		qint32 storageCount = 0;
 		QVariantMap data;
-		stream >> uuid >> module >> storageId >> data;
-
-		if (version > 4)
-			stream >> storageCount;
+		stream >> uuid >> module >> storageId >> data >> storageCount;
 
 		Objective *o = new Objective(uuid, module, storage(storageId), storageCount, data);
 
@@ -1192,11 +1191,11 @@ bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 		return false;
 
 
-	if (version > 3) {
-		qDebug() << "Load orphaned missions";
 
-		mLockList.insert(missionsFromStream(nullptr, stream, version));
-	}
+	qDebug() << "Load orphaned missions";
+
+	mLockList.insert(missionsFromStream(nullptr, stream, version));
+
 
 	qDebug() << "Campaigns loaded";
 
@@ -1423,10 +1422,7 @@ GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream, co
 		QString medalImage;
 		quint32 lockSize = 0;
 
-		stream >> uuid >> mandatory >> name;
-
-		if (version > 5)
-			stream >> description;
+		stream >> uuid >> mandatory >> name >> description;
 
 		if (version > 7)
 			stream >> medalImage;
@@ -1660,6 +1656,7 @@ void GameMap::missionLevelsToStream(Mission *mission, QDataStream &stream) const
 		stream << m->imageFolder();
 		stream << m->imageFile();
 		stream << m->canDeathmatch();
+		stream << m->questions();
 
 		blockChapterMapsToStream(m, stream);
 		inventoriesToStream(m, stream);
@@ -1688,6 +1685,7 @@ bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
 		qint32 startBlock = -1;
 		QString imageFolder, imageFile;
 		bool canDeathmatch = false;
+		qreal questions = 1.0;
 
 		stream >> level >> terrain >> startHP >> duration >> startBlock >> imageFolder >> imageFile;
 
@@ -1697,7 +1695,10 @@ bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
 		if (version > 6)
 			stream >> canDeathmatch;
 
-		MissionLevel *m = new MissionLevel(level, terrain, startHP, duration, startBlock, canDeathmatch, imageFolder, imageFile);
+		if (version > 8)
+			stream >> questions;
+
+		MissionLevel *m = new MissionLevel(level, terrain, startHP, duration, startBlock, canDeathmatch, questions, imageFolder, imageFile);
 
 		blockChapterMapsFromStream(m, stream);
 		inventoriesFromStream(m, stream);
@@ -1727,6 +1728,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 							 "duration INTEGER NOT NULL DEFAULT 600 CHECK (duration>0),"
 							 "startBlock INTEGER NOT NULL DEFAULT 1 CHECK (startBlock>0),"
 							 "deathmatch BOOL NOT NULL DEFAULT FALSE,"
+							 "questions REAL NOT NULL DEFAULT 1.0,"
 							 "imageFolder TEXT,"
 							 "imageFile TEXT,"
 							 "PRIMARY KEY (mission, level),"
@@ -1748,6 +1750,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 				l["duration"] = ml->duration();
 				l["startBlock"] = ml->startBlock();
 				l["deathmatch"] = ml->canDeathmatch();
+				l["questions"] = ml->questions();
 
 				if (ml->imageFolder().isEmpty())
 					l["imageFolder"] = QVariant::Invalid;
@@ -1776,6 +1779,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 			l["duration"] = ml->duration();
 			l["startBlock"] = ml->startBlock();
 			l["deathmatch"] = ml->canDeathmatch();
+			l["questions"] = ml->questions();
 
 			if (ml->imageFolder().isEmpty())
 				l["imageFolder"] = QVariant::Invalid;
@@ -1804,7 +1808,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 
 bool GameMap::missionLevelsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT mission, level, terrain, startHP, duration, startBlock, deathmatch, "
+	QVariantList l = db->execSelectQuery("SELECT mission, level, terrain, startHP, duration, startBlock, deathmatch, questions, "
 										"imageFolder, imageFile FROM missionLevels");
 
 	foreach (QVariant v, l) {
@@ -1821,6 +1825,7 @@ bool GameMap::missionLevelsFromDb(CosDb *db)
 											  m.value("duration").toInt(),
 											  m.value("startBlock").toInt(),
 											  m.value("deathmatch").toBool(),
+											  m.value("questions").toReal(),
 											  m.value("imageFolder").toString(),
 											  m.value("imageFile").toString()
 											  ));
@@ -2647,7 +2652,7 @@ GameMap::Inventory::Inventory(const qint32 &block, const QByteArray &module, con
  */
 
 GameMap::MissionLevel::MissionLevel(const qint32 &level, const QByteArray &terrain,
-									const qint32 &startHP, const qint32 &duration, const qint32 &startBlock, const bool &canDeathmatch,
+									const qint32 &startHP, const qint32 &duration, const qint32 &startBlock, const bool &canDeathmatch, const qreal &questions,
 									const QString &imageFolder, const QString &imageFile)
 	: m_level(level)
 	, m_terrain(terrain)
@@ -2660,6 +2665,7 @@ GameMap::MissionLevel::MissionLevel(const qint32 &level, const QByteArray &terra
 	, m_imageFile(imageFile)
 	, m_mission(nullptr)
 	, m_canDeathmatch(canDeathmatch)
+	, m_questions(questions)
 {
 
 }

@@ -39,7 +39,7 @@
 #include <QDebug>
 #include "cosdb.h"
 
-#define GAMEMAP_CURRENT_VERSION 8
+#define GAMEMAP_CURRENT_VERSION 9
 
 
 /**
@@ -165,7 +165,7 @@ public:
 	public:
 		MissionLevel(const qint32 &level, const QByteArray &terrain,
 					 const qint32 &startHP, const qint32 &duration, const qint32 &startBlock,
-					 const bool &canDeathmatch,
+					 const bool &canDeathmatch, const qreal &questions,
 					 const QString &imageFolder, const QString &imageFile);
 		~MissionLevel();
 
@@ -179,6 +179,7 @@ public:
 		QString imageFolder() const { return m_imageFolder; }
 		QString imageFile() const { return m_imageFile; }
 		bool canDeathmatch() const { return m_canDeathmatch; }
+		qreal questions() const { return m_questions; }
 
 		void setMission(Mission *mission) { m_mission = mission; }
 		Mission *mission() const { return m_mission; }
@@ -200,6 +201,7 @@ public:
 		QString m_imageFile;
 		Mission *m_mission;
 		bool m_canDeathmatch;
+		qreal m_questions;
 	};
 
 

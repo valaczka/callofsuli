@@ -262,6 +262,11 @@ Page {
 			onGameCompletedReady: {
 				setEnemiesMoving(false)
 				setRunning(false)
+
+				if (!studentMaps) {
+					_closeEnabled = true
+					mainStack.back()
+				}
 			}
 
 

@@ -12,6 +12,7 @@ Item {
 	implicitWidth: 400
 
 
+	property alias flickable: flick
 	default property alias contents: col.data
 
 	anchors.fill: parent

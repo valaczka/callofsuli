@@ -435,10 +435,10 @@ void Client::setSetting(const QString &key, const QVariant &value)
  * @return
  */
 
-QVariant Client::getSetting(const QString &key)
+QVariant Client::getSetting(const QString &key, const QVariant &defaultValue)
 {
 	QSettings s;
-	return s.value(key);
+	return s.value(key, defaultValue);
 }
 
 

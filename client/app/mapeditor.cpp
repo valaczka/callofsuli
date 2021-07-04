@@ -46,6 +46,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_modelInventoryModules(nullptr)
 	, m_modelLockList(nullptr)
 	, m_modelDialogMissionList(nullptr)
+	, m_modelDialogChapterList(nullptr)
 {
 	/*m_map["getMissionList"] = &MapEditor::getMissionList;
 	m_map["getCurrentMissionData"] = &MapEditor::getCurrentMissionData;
@@ -156,6 +157,14 @@ MapEditor::MapEditor(QQuickItem *parent)
 												   this);
 
 
+	m_modelDialogChapterList = new VariantMapModel({
+													   "id",
+													   "name"
+												   },
+												   this);
+
+
+
 	connect(this, &MapEditor::currentMissionChanged, this, &MapEditor::getCurrentMissionData);
 
 	connect(db, &CosDb::undone, this, [=]() {
@@ -191,6 +200,7 @@ MapEditor::~MapEditor()
 	delete m_modelInventoryModules;
 	delete m_modelLockList;
 	delete m_modelDialogMissionList;
+	delete m_modelDialogChapterList;
 }
 
 
@@ -206,6 +216,20 @@ bool MapEditor::isWithGraphviz() const
 #endif
 
 	return false;
+}
+
+
+/**
+ * @brief MapEditor::defaultTerrain
+ * @return
+ */
+
+TerrainData MapEditor::defaultTerrain() const
+{
+	if (!m_client)
+		return TerrainData();
+
+	return m_client->terrain(m_client->getSetting("defaultTerrain", "Canberra_Retreat").toString());
 }
 
 
@@ -440,7 +464,7 @@ void MapEditor::getCurrentMissionData()
 												   {m_currentMission});
 
 
-	data["levels"] = db()->execSelectQuery("SELECT level, terrain, startHP, duration, startBlock, deathmatch, imageFolder, imageFile FROM missionLevels "
+	data["levels"] = db()->execSelectQuery("SELECT level, terrain, startHP, duration, startBlock, deathmatch, questions, imageFolder, imageFile FROM missionLevels "
 												"WHERE mission=?", {m_currentMission});
 
 
@@ -509,6 +533,272 @@ void MapEditor::getObjectiveList()
 "LEFT JOIN storages ON (storages.id=objectives.storage)");
 
 	m_modelObjectiveList->setVariantList(objectives, "rid");
+}
+
+
+/**
+ * @brief MapEditor::play
+ * @param data
+ */
+
+void MapEditor::play(QVariantMap data)
+{
+	int level = data.value("level", -1).toInt();
+
+	if (m_currentMission.isEmpty() || level < 1)
+		return;
+
+
+
+	QVariantMap gamedata = db()->execSelectQueryOneRow("SELECT mission, name, level, terrain, startHP, duration, startBlock,"
+													"imageFolder, imageFile FROM missionLevels "
+													"LEFT JOIN missions ON (missions.uuid=missionLevels.mission) "
+													"WHERE mission=? AND level=?",
+													{m_currentMission, level});
+	if (gamedata.isEmpty()) {
+		emit playFailed();
+		return;
+	}
+
+	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0));
+	setLoadProgress(0.0);
+
+	m_loadAbortRequest = false;
+	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress", false);
+
+	if (!game) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
+		emit playFailed();
+		return;
+	}
+
+	/*if (!checkGame(game)) {
+		emit playFailed();
+		delete game;
+		return;
+	}*/
+
+	GameMatch *m_gameMatch = new GameMatch(game, this);
+	m_gameMatch->setDeleteGameMap(true);
+	m_gameMatch->setImageDbName("editorDb");
+	m_gameMatch->setMissionUuid(gamedata.value("mission").toByteArray());
+	m_gameMatch->setName(gamedata.value("name").toString());
+	m_gameMatch->setLevel(gamedata.value("level").toInt());
+	m_gameMatch->setTerrain(gamedata.value("terrain").toString());
+	m_gameMatch->setStartHp(gamedata.value("startHP").toInt());
+	m_gameMatch->setDuration(gamedata.value("duration").toInt());
+	m_gameMatch->setStartBlock(gamedata.value("startBlock").toInt());
+
+	QString imageFolder = gamedata.value("imageFolder").toString();
+	QString imageFile = gamedata.value("imageFile").toString();
+
+	if (!imageFolder.isEmpty() && !imageFile.isEmpty())
+		m_gameMatch->setBgImage(imageFolder+"/"+imageFile);
+
+	emit playReady(m_gameMatch);
+}
+
+
+/**
+ * @brief MapEditor::missionAdd
+ * @param data
+ */
+
+void MapEditor::missionAdd(QVariantMap data)
+{
+	if (!data.contains("uuid"))	data["uuid"] = QUuid::createUuid().toString();
+	if (!data.contains("mandatory"))	data["mandatory"] = false;
+	if (!data.contains("medalImage"))	data["medalImage"] = Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size()));
+
+	QString uuid = data.value("uuid").toString();
+
+	db()->undoLogBegin(tr("Új küldetés hozzáadása"));
+
+	int ret = db()->execInsertQuery("INSERT INTO missions(?k?) values (?)", data);
+
+	db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
+										{"mission", uuid},
+										{"level", 1},
+										{"terrain", defaultTerrain().name}
+									});
+
+	db()->undoLogEnd();
+
+	if (ret != -1) {
+		setCurrentMission(uuid);
+		setModified(true);
+		missionLockGraphUpdate();
+	}
+}
+
+
+
+/**
+ * @brief MapEditor::getAvailableChapterList
+ * @param level
+ */
+
+void MapEditor::missionLevelGetChapterList(int level)
+{
+	if (!m_loaded || m_currentMission.isEmpty()) {
+		m_modelDialogChapterList->clear();
+		return;
+	}
+
+	QVariantList list = db()->execSelectQuery("SELECT id, name FROM chapters WHERE id NOT IN "
+"(SELECT chapter FROM blockChapterMaps LEFT JOIN blockChapterMapChapters ON (blockChapterMapChapters.blockid = blockChapterMaps.id) "
+"WHERE mission=? AND level=?)",
+											  {m_currentMission, level});
+
+	QVariantMap response;
+	response["mission"] = m_currentMission;
+	response["level"] = level;
+	response["chapters"] = list;
+
+	emit missionChapterListReady(response);
+
+}
+
+
+/**
+ * @brief MapEditor::missionLevelAddChapter
+ * @param data
+ */
+
+void MapEditor::missionLevelChapterAdd(QVariantMap data)
+{
+	int level = data.value("level", -1).toInt();
+
+	if (m_currentMission.isEmpty() || level < 1)
+		return;
+
+	QVariantList list;
+
+	if (data.contains("chapter"))
+		list.append(data.value("chapter", 0).toInt());
+	else if (data.contains("list"))
+		list = data.value("list").toList();
+
+
+	if (data.contains("name")) {
+		QString chname = data.value("name").toString();
+		int chid = db()->execInsertQuery("INSERT INTO chapters (?k?) VALUES (?)", {
+											 {"name", chname}
+										 });
+		if (chid != -1)
+			list.append(chid);
+	}
+
+
+
+
+	if (list.isEmpty())
+		return;
+
+	int blockid = db()->execSelectQueryOneRow("SELECT id FROM blockChapterMaps WHERE mission=? AND level=? LIMIT 1",
+											  {m_currentMission, level}).value("id", -1).toInt();
+
+	db()->undoLogBegin(tr("Szakasz hozzáadása"));
+
+
+	if (blockid == -1) {
+		blockid = db()->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", {
+											{"mission", m_currentMission},
+											{"level", level}
+										});
+	}
+
+
+
+
+
+
+	// szakaszok rögzítése
+
+	int ret = -1;
+
+	foreach (QVariant v, list) {
+		ret = db()->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", {
+										{"blockid", blockid},
+										{"chapter", v.toInt()}
+									});
+
+		if (ret == -1)
+			break;
+	}
+
+	db()->undoLogEnd();
+
+	if (ret != -1) {
+		getCurrentMissionData();
+		setModified(true);
+	}
+
+}
+
+
+
+/**
+ * @brief MapEditor::levelAdd
+ * @param data
+ */
+
+void MapEditor::missionLevelAdd(QVariantMap data)
+{
+	if (m_currentMission.isEmpty())
+		return;
+
+	int level = data.value("level", 1).toInt();
+
+	if (!db()->execSelectQuery("SELECT * FROM missionLevels WHERE mission=? AND level=?",
+	{m_currentMission, level}).isEmpty()) {
+		m_client->sendMessageWarning(tr("Szint hozzáadása"), tr("A %1. szint már létezik az aktuális küldetésben!").arg(level));
+		return;
+	}
+
+
+	db()->undoLogBegin(tr("Szint hozzáadása"));
+
+	int ret = db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
+										{"mission", m_currentMission},
+										{"level", level},
+										{"terrain", defaultTerrain().name}
+									});
+
+	db()->undoLogEnd();
+
+	if (ret != -1) {
+		getCurrentMissionData();
+		setModified(true);
+		missionLockGraphUpdate();
+	}
+
+}
+
+
+/**
+ * @brief MapEditor::levelRemove
+ * @param data
+ */
+
+void MapEditor::missionLevelRemove(QVariantMap data)
+{
+	int level = data.value("level", 0).toInt();
+
+	if (m_currentMission.isEmpty() || level < 1)
+		return;
+
+	db()->undoLogBegin(tr("Szint törlése"));
+
+	bool ret = db()->execSimpleQuery("DELETE FROM missionLevels WHERE mission=? AND level=?", {m_currentMission, level});
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		setModified(true);
+		missionLockGraphUpdate();
+	}
 }
 
 
@@ -945,6 +1235,15 @@ void MapEditor::inventoryRemove(QVariantMap data)
 		getCurrentMissionData();
 		setModified(true);
 	}
+}
+
+void MapEditor::setModelDialogChapterList(VariantMapModel *modelDialogChapterList)
+{
+	if (m_modelDialogChapterList == modelDialogChapterList)
+		return;
+
+	m_modelDialogChapterList = modelDialogChapterList;
+	emit modelDialogChapterListChanged(m_modelDialogChapterList);
 }
 
 void MapEditor::setModelDialogMissionList(VariantMapModel *modelDialogMissionList)

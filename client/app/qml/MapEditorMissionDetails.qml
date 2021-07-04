@@ -79,6 +79,7 @@ QSwipeContainer {
 		}
 
 		MapEditorMissionLocks {
+			id: locks
 			collapsed: true
 		}
 
@@ -92,6 +93,10 @@ QSwipeContainer {
 			imageTextName._cv = data.medalImage ? data.medalImage : ""
 			imageTextName.textfield.text = data.name ? data.name : ""
 			areaDetails.text = data.description ? data.description: ""
+		}
+
+		function onCurrentMissionChanged(m) {
+			locks.collapsed = true
 		}
 	}
 }
