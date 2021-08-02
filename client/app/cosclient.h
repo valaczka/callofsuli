@@ -136,6 +136,8 @@ public:
 
 	Q_INVOKABLE static QUrl rankImageSource(const int &rank, const int &rankLevel = -1, const QString &rankImage = "");
 
+	Q_INVOKABLE static void openUrl(const QUrl &url);
+
 	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
 		return VariantMapModel::newModel(list, this);
 	}

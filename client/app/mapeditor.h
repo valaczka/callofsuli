@@ -90,11 +90,11 @@ public:
 	VariantMapModel * modelDialogChapterList() const { return m_modelDialogChapterList; }
 
 public slots:
-	void open(const QString &filename);
+	void createTargets(const QString &filename);
 	void create(const QString &filename = "");
 	void save(const QString &filename = "");
 	void saveCopy(const QString &filename);
-	void openUrl(const QUrl &url) { open(url.toLocalFile()); }
+	void openUrl(const QUrl &url) { createTargets(url.toLocalFile()); }
 	void saveUrl(const QUrl &url) { save(url.toLocalFile()); }
 	void saveCopyUrl(const QUrl &url) { saveCopy(url.toLocalFile()); }
 	void loadAbort();
@@ -193,6 +193,10 @@ protected slots:
 	void clientSetup() override;
 
 private:
+	QVariantMap missionLevelDefaults(const int &level);
+	int missionLevelAddPrivate(const QString &mission, const int &level);
+
+	mutable QVariantMap m_gameData;
 	qreal m_loadProgress;
 	QPair<qreal, qreal> m_loadProgressFraction;
 	bool m_loadAbortRequest;

@@ -95,53 +95,46 @@ void GameActivity::prepare()
  * @return
  */
 
-bool GameActivity::createTarget(GameEnemy *enemy)
+void GameActivity::createTarget(GameEnemy *enemy)
 {
-	QHash<int, QPair<int, int>> mapAllocations;
 	GameEnemyData *enemyData = enemy->enemyData();
 	int block = enemy->block();
 
-	QVariantList maplist = db()->execSelectQuery("SELECT targets.map as map, count(*) as count, maxObjective FROM targets "
-												 "LEFT JOIN maps ON (maps.map=targets.map) "
-												 "WHERE block IS NOT NULL GROUP by targets.map");
+	GameBlock *b = enemyData->block();
 
-	foreach (QVariant v, maplist) {
-		QVariantMap m = v.toMap();
-		mapAllocations[m.value("map").toInt()] = qMakePair(m.value("maxObjective").toInt(), m.value("count").toInt());
+	if (b) {
+		// Questions factor
+		qreal questions = 1.0;
+
+		if (m_game && m_game->gameMatch() && m_game->gameMatch()->missionLevel()) {
+			questions = m_game->gameMatch()->missionLevel()->questions();
+		}
+
+		int blockQuestions = 0;
+
+		foreach (GameEnemyData *ed, b->enemies()) {
+			if (ed->targetId() != -1 && !ed->targetDestroyed())
+				blockQuestions++;
+		}
+
+		if (blockQuestions >= qFloor(b->enemies().count()*questions)) {
+			return;
+		}
 	}
 
-	QVariantList l;
-	l.append(block);
+
 
 	QVariantList list = db()->execSelectQuery("SELECT target, map, objective, storageNum FROM positions "
 											  "LEFT JOIN targets ON (targets.id=positions.target) "
 											  "WHERE (positions.block=? OR positions.block IS NULL) AND targets.block IS NULL "
-											  "ORDER BY num, RANDOM()", l);
+											  "ORDER BY num, RANDOM()", {block});
 
 	foreach (QVariant v, list) {
 		QVariantMap m = v.toMap();
 
-		int map = m.value("map").toInt();
-		if (mapAllocations.contains(map)) {
-			int maxObj = mapAllocations.value(map).first;
-			int current = mapAllocations.value(map).second;
-
-			++current;
-
-			if (maxObj > 0 && current > maxObj) {
-				continue;
-			}
-
-			mapAllocations[map] = qMakePair(maxObj, current);
-		}
-
 		int target = m.value("target").toInt();
 
-		QVariantList ll;
-		ll.append(block);
-		ll.append(target);
-
-		if (!db()->execSimpleQuery("UPDATE targets SET block=?, num=num+1 WHERE id=?", ll)) {
+		if (!db()->execSimpleQuery("UPDATE targets SET block=?, num=num+1 WHERE id=?", {block, target})) {
 			m_client->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
 		} else if (enemyData) {
 			enemyData->setTargetId(target);
@@ -150,11 +143,9 @@ bool GameActivity::createTarget(GameEnemy *enemy)
 			enemyData->setObjectiveUuid(m.value("objective").toByteArray());
 			enemy->setMaxHp(1);
 			enemy->setHp(1);
-			return true;
+			return;
 		}
 	}
-
-	return false;
 }
 
 
@@ -171,8 +162,7 @@ bool GameActivity::createTargets(QVector<GameEnemy *> enemies)
 	while (!enemies.isEmpty()) {
 		GameEnemy *e = enemies.takeAt(QRandomGenerator::global()->bounded(enemies.size()));
 
-		if (!createTarget(e))
-			return false;
+		createTarget(e);
 
 		QCoreApplication::processEvents();
 	}
@@ -402,7 +392,7 @@ void GameActivity::createPickable(GameEnemy *enemy)
 	QQuickItem *item = nullptr;
 
 	QMetaObject::invokeMethod(m_game->gameScene(), "createPickable", Qt::DirectConnection,
-							  Q_RETURN_ARG(QQuickItem *, item),
+							  Q_RETURN_ARG(QQuickItem*, item),
 							  Q_ARG(int, enemyData->pickableType()),
 							  Q_ARG(QVariant, d)
 							  );

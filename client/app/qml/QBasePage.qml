@@ -31,10 +31,13 @@ Page {
 
 	readonly property bool isCurrentItem: StackView.view && StackView.view.currentItem == control
 
+	property bool _isFirstActivation: true
+
 	focus: true
 
 	signal pageActivated()
 	signal pageDeactivated()
+	signal pageActivatedFirst()
 
 	onActivityChanged: if (activity) {
 						   activity.client = cosClient
@@ -117,6 +120,11 @@ Page {
 
 	StackView.onActivated: {
 		pageActivated()
+
+		if (_isFirstActivation) {
+			pageActivatedFirst()
+			_isFirstActivation = false
+		}
 	}
 
 	StackView.onDeactivated:	pageDeactivated()

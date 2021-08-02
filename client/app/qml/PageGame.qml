@@ -140,7 +140,7 @@ Page {
 			itemPage: control
 			activity: gameActivity
 
-			property bool _timeSound: true
+			property bool _timeSound: false
 			property bool _finalSound: true
 
 			Scene {
@@ -271,22 +271,22 @@ Page {
 
 
 			onMsecLeftChanged: {
-				if (msecLeft > 60*1000 && !_finalSound)
+				if (msecLeft > 30*1000 && !_finalSound)
 					_finalSound = true
 
-				if (msecLeft > 2*60*1000 && !_timeSound)
+				if (msecLeft > 60*1000 && !_timeSound)
 					_timeSound = true
 
 
-				if (msecLeft <= 2*60*1000 && _timeSound) {
+				if (msecLeft <= 60*1000 && _timeSound) {
 					_timeSound = false
-					messageList.message(qsTr("You have 2 minutes left"), 1)
+					messageList.message(qsTr("You have 1 minute left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
 				}
 
-				if (msecLeft <= 60*1000 && _finalSound) {
+				if (msecLeft <= 30*1000 && _finalSound) {
 					_finalSound = false
-					messageList.message(qsTr("You have 60 seconds left"), 1)
+					messageList.message(qsTr("You have 30 seconds left"), 1)
 					cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
 				}
 			}

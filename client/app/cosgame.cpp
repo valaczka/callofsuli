@@ -181,7 +181,7 @@ void CosGame::recreateEnemies()
 			QQuickItem *enemy = nullptr;
 
 			QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::DirectConnection,
-									  Q_RETURN_ARG(QQuickItem *, enemy),
+									  Q_RETURN_ARG(QQuickItem*, enemy),
 									  Q_ARG(int, data->enemyType())
 									  );
 
@@ -373,7 +373,7 @@ void CosGame::resetPlayer()
 	}
 
 	QMetaObject::invokeMethod(m_gameScene, "createPlayer", Qt::DirectConnection,
-							  Q_RETURN_ARG(QQuickItem *, m_player));
+							  Q_RETURN_ARG(QQuickItem*, m_player));
 
 	if (!m_player) {
 		emit playerChanged(m_player);

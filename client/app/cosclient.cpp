@@ -31,6 +31,7 @@
 #include <QQuickItem>
 #include <QJsonDocument>
 #include <QMediaPlaylist>
+#include <QDesktopServices>
 
 #include "../../version/buildnumber.h"
 #include "cosmessage.h"
@@ -682,6 +683,17 @@ QUrl Client::rankImageSource(const int &rank, const int &rankLevel, const QStrin
 		else
 			return QUrl(QString("image://sql/%1").arg(rankImage));
 	}
+}
+
+
+/**
+ * @brief Client::openUrl
+ * @param url
+ */
+
+void Client::openUrl(const QUrl &url)
+{
+	QDesktopServices::openUrl(url);
 }
 
 

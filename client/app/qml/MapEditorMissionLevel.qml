@@ -125,7 +125,7 @@ QSwipeContainer {
 				}
 
 
-				QGridLabel { text: qsTr("Kérdések aránya") }
+				QGridLabel { text: qsTr("Kérdések aránya csataterenként") }
 
 				QGridSpinBox {
 					id: spinQuestions

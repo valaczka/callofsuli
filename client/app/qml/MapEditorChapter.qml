@@ -39,6 +39,28 @@ QCollapsible {
 			anchors.verticalCenter: parent.verticalCenter
 			icon.source: CosStyle.iconMenu
 			color: control.titleColor
+
+			QMenu {
+				id: chapterMenu
+				MenuItem {
+					icon.source: CosStyle.iconBooks
+					text: qsTr("Küldetések")
+				}
+				MenuItem {
+					icon.source: CosStyle.iconRename
+					text: qsTr("Átnevezés")
+				}
+				MenuItem {
+					icon.source: CosStyle.iconDuplicate
+					text: qsTr("Kettőzés")
+				}
+				MenuItem {
+					icon.source: CosStyle.iconDelete
+					text: qsTr("Törlés")
+				}
+			}
+
+			onClicked: chapterMenu.open()
 		}
 	}
 
@@ -152,6 +174,28 @@ QCollapsible {
 							id: btnMenu
 							anchors.verticalCenter: parent.verticalCenter
 							icon.source: CosStyle.iconMenu
+
+							QMenu {
+								id: objectiveMenu
+								MenuItem {
+									//icon.source: CosStyle.iconRename
+									text: qsTr("Másolás")
+								}
+								MenuItem {
+									//icon.source: CosStyle.iconBooks
+									text: qsTr("Áthelyezés")
+								}
+								MenuItem {
+									icon.source: CosStyle.iconDuplicate
+									text: qsTr("Kettőzés")
+								}
+								MenuItem {
+									icon.source: CosStyle.iconDelete
+									text: qsTr("Törlés")
+								}
+							}
+
+							onClicked: objectiveMenu.open()
 						}
 					}
 				}

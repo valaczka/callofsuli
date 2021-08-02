@@ -57,7 +57,7 @@ public:
 	Q_INVOKABLE void prepare();
 	Q_INVOKABLE void createPickable(GameEnemy *enemy);
 
-	bool createTarget(GameEnemy *enemy);
+	void createTarget(GameEnemy *enemy);
 	bool createTargets(QVector<GameEnemy *> enemies);
 
 	bool prepared() const { return m_prepared; }

@@ -31,6 +31,7 @@
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
+	, m_gameData()
 	, m_loadProgress(0.0)
 	, m_loadProgressFraction(qMakePair<qreal, qreal>(0.0, 1.0))
 	, m_loadAbortRequest(false)
@@ -53,6 +54,16 @@ MapEditor::MapEditor(QQuickItem *parent)
 	m_map["missionModify"] = &MapEditor::missionModify;
 	m_map["missionRemove"] = &MapEditor::missionRemove;
 	m_map["missionLevelModify"] = &MapEditor::missionLevelModify;*/
+
+	QVariant v = Client::readJsonFile(QString("qrc:/internal/game/parameters.json"));
+
+	if (v.isValid())
+		m_gameData = v.toMap();
+	else
+		qWarning() << "Invalid json data";
+
+
+
 
 	CosDb *db = new CosDb("editorDb", this);
 	db->setDatabaseName(Client::standardPath("tmpmapeditor.db"));
@@ -253,7 +264,7 @@ QString MapEditor::readableFilename() const
  * @param filename
  */
 
-void MapEditor::open(const QString &filename)
+void MapEditor::createTargets(const QString &filename)
 {
 	if (m_loaded) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Az adatbázis már meg van nyitva"));
@@ -554,7 +565,7 @@ void MapEditor::play(QVariantMap data)
 													"imageFolder, imageFile FROM missionLevels "
 													"LEFT JOIN missions ON (missions.uuid=missionLevels.mission) "
 													"WHERE mission=? AND level=?",
-													{m_currentMission, level});
+													   {m_currentMission, level});
 	if (gamedata.isEmpty()) {
 		emit playFailed();
 		return;
@@ -616,11 +627,7 @@ void MapEditor::missionAdd(QVariantMap data)
 
 	int ret = db()->execInsertQuery("INSERT INTO missions(?k?) values (?)", data);
 
-	db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
-										{"mission", uuid},
-										{"level", 1},
-										{"terrain", defaultTerrain().name}
-									});
+	missionLevelAddPrivate(uuid, 1);
 
 	db()->undoLogEnd();
 
@@ -757,13 +764,10 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 	}
 
 
+
 	db()->undoLogBegin(tr("Szint hozzáadása"));
 
-	int ret = db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
-										{"mission", m_currentMission},
-										{"level", level},
-										{"terrain", defaultTerrain().name}
-									});
+	int ret = missionLevelAddPrivate(m_currentMission, level);
 
 	db()->undoLogEnd();
 
@@ -1444,6 +1448,58 @@ void MapEditor::clientSetup()
 {
 	if (!m_client)
 		return;
+}
+
+
+/**
+ * @brief MapEditor::missionLevelDefaults
+ * @param level
+ * @return
+ */
+
+QVariantMap MapEditor::missionLevelDefaults(const int &level)
+{
+	return m_gameData
+			.value("level").toMap()
+			.value(QString("%1").arg(level)).toMap()
+			.value("defaults").toMap();
+}
+
+
+/**
+ * @brief MapEditor::missionLevelAddPrivate
+ * @param level
+ * @return
+ */
+
+
+int MapEditor::missionLevelAddPrivate(const QString &mission, const int &level)
+{
+	QVariantMap defaults = missionLevelDefaults(level);
+
+	int ret = db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
+									 {"mission", mission},
+									 {"level", level},
+									 {"terrain", defaultTerrain().name},
+									 {"duration", defaults.value("duration", 120).toInt()},
+									 {"startHP", defaults.value("startHP", 3).toInt()},
+									 {"questions", defaults.value("questions", 0.5).toReal()},
+									 {"deathmatch", defaults.value("deathmatch", false).toBool()}
+								 });
+
+	if (ret != -1) {
+		QVariantList l = defaults.value("inventory").toList();
+
+		foreach (QVariant v, l) {
+			QVariantMap m = v.toMap();
+			m["mission"] = mission;
+			m["level"] = level;
+
+			db()->execInsertQuery("INSERT INTO inventories (?k?) VALUES (?)", m);
+		}
+	}
+
+	return ret;
 }
 
 

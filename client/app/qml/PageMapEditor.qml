@@ -224,7 +224,7 @@ QBasePage {
 		}
 	}
 
-	onPageActivated: mapEditor.openUrl("file:///home/valaczka/ddd.map")
+	onPageActivatedFirst: mapEditor.openUrl("file:///home/valaczka/ddd.map")
 
 	function windowClose() {
 		if (mapEditor.modified) {

@@ -82,6 +82,8 @@ QDialogPanel {
 				font.pixelSize: CosStyle.pixelSize*0.8
 				textFormat: Text.MarkdownText
 				bottomPadding: 15
+
+				onLinkActivated: cosClient.openUrl(link)
 			}
 
 			QLabel {
