@@ -46,7 +46,6 @@ class MapEditor : public AbstractActivity
 
 	Q_PROPERTY(bool isWithGraphviz READ isWithGraphviz NOTIFY isWithGraphvizChanged)
 
-
 	// Missions
 
 	Q_PROPERTY(QString currentMission READ currentMission WRITE setCurrentMission NOTIFY currentMissionChanged)
@@ -59,6 +58,13 @@ class MapEditor : public AbstractActivity
 	Q_PROPERTY(VariantMapModel * modelLockList READ modelLockList WRITE setModelLockList NOTIFY modelLockListChanged)
 	Q_PROPERTY(VariantMapModel * modelDialogMissionList READ modelDialogMissionList WRITE setModelDialogMissionList NOTIFY modelDialogMissionListChanged)
 	Q_PROPERTY(VariantMapModel * modelDialogChapterList READ modelDialogChapterList WRITE setModelDialogChapterList NOTIFY modelDialogChapterListChanged)
+
+
+	// Chapters
+
+	Q_PROPERTY(VariantMapModel * modelChapterList READ modelChapterList WRITE setModelChapterList NOTIFY modelChapterListChanged)
+	Q_PROPERTY(VariantMapModel * modelDialogChapterMissionList READ modelDialogChapterMissionList WRITE setModelDialogChapterMissionList
+			   NOTIFY modelDialogChapterMissionListChanged)
 
 
 public:
@@ -88,6 +94,8 @@ public:
 	VariantMapModel * modelLockList() const { return m_modelLockList; }
 	VariantMapModel * modelDialogMissionList() const { return m_modelDialogMissionList; }
 	VariantMapModel * modelDialogChapterList() const { return m_modelDialogChapterList; }
+	VariantMapModel * modelDialogChapterMissionList() const { return m_modelDialogChapterMissionList; }
+	VariantMapModel * modelChapterList() const { return m_modelChapterList; }
 
 public slots:
 	void createTargets(const QString &filename);
@@ -104,6 +112,8 @@ public slots:
 	void setModified(bool modified);
 	void setLoaded(bool loaded);
 
+	void checkPermissions();
+
 	void setCurrentMission(QString currentMission);
 	void setModelMissionList(VariantMapModel * modelMissionList);
 	void setModelTerrainList(VariantMapModel * modelTerrainList);
@@ -114,11 +124,14 @@ public slots:
 	void setModelLockList(VariantMapModel * modelLockList);
 	void setModelDialogMissionList(VariantMapModel * modelDialogMissionList);
 	void setModelDialogChapterList(VariantMapModel * modelDialogChapterList);
+	void setModelDialogChapterMissionList(VariantMapModel * modelDialogChapterMissionList);
+	void setModelChapterList(VariantMapModel * modelChapterList);
 
 	void getMissionList();
 	void getCurrentMissionData();
 	void getFirstMission();
 	void getObjectiveList();
+	void getChapterList();
 
 	void play(QVariantMap data);
 
@@ -131,6 +144,7 @@ public slots:
 	void missionLevelModify(QVariantMap data);
 	void missionLevelGetChapterList(int level);
 	void missionLevelChapterAdd(QVariantMap data);
+	void missionLevelChapterRemove(QVariantMap data);
 
 	void missionLockGetList(QVariantMap data);
 	void missionLockAdd(QVariantMap data);
@@ -142,7 +156,18 @@ public slots:
 	void inventoryModify(QVariantMap data);
 	void inventoryRemove(QVariantMap data);
 
+	void chapterAdd(QVariantMap data);
+	void chapterModify(QVariantMap data);
+	void chapterRemove(QVariantMap data);
+	void chapterGetMissionList(QVariantMap data);
+	void chapterMissionListModify(const int &chapter, VariantMapModel *model, const QString &selectField = "used");
+	void chapterImport(QVariantMap data);
 
+	void objectiveAdd(QVariantMap data);
+	void objectiveModify(QVariantMap data);
+	void objectiveRemove(QVariantMap data);
+	void objectiveCopy(QVariantMap data);
+	void objectiveImport(QVariantMap data);
 
 
 
@@ -158,6 +183,10 @@ signals:
 	void saveSucceed(const QString &filename, const bool &isCopy);
 	void saveDialogRequest(const bool &isNew);
 
+	void storagePermissionsGranted();
+	void storagePermissionsDenied();
+
+
 	void filenameChanged(QString filename);
 	void isWithGraphvizChanged(bool isWithGraphviz);
 	void modifiedChanged(bool modified);
@@ -170,6 +199,8 @@ signals:
 
 	void missionLockListReady(QVariantMap data);
 	void missionChapterListReady(QVariantMap data);
+	void chapterMissionListReady(QVariantMap data);
+	void chapterImportReady(QVariantList records);
 
 	void currentMissionChanged(QString currentMission);
 	void modelMissionListChanged(VariantMapModel * modelMissionList);
@@ -181,6 +212,9 @@ signals:
 	void modelLockListChanged(VariantMapModel * modelLockList);
 	void modelDialogMissionListChanged(VariantMapModel * modelDialogMissionList);
 	void modelDialogChapterListChanged(VariantMapModel * modelDialogChapterList);
+	void modelDialogChapterMissionListChanged(VariantMapModel * modelDialogChapterMissionList);
+	void modelChapterListChanged(VariantMapModel * modelChapterList);
+
 
 protected:
 	void openPrivate(QVariantMap data);
@@ -195,6 +229,7 @@ protected slots:
 private:
 	QVariantMap missionLevelDefaults(const int &level);
 	int missionLevelAddPrivate(const QString &mission, const int &level);
+	int missionLevelChapterAddPrivate(const QString &mission, const int &level, const QVariantList &list);
 
 	mutable QVariantMap m_gameData;
 	qreal m_loadProgress;
@@ -213,6 +248,8 @@ private:
 	VariantMapModel * m_modelLockList;
 	VariantMapModel * m_modelDialogMissionList;
 	VariantMapModel * m_modelDialogChapterList;
+	VariantMapModel * m_modelDialogChapterMissionList;
+	VariantMapModel * m_modelChapterList;
 };
 
 #endif // MAPEDITOR_H

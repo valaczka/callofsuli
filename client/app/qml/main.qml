@@ -176,13 +176,13 @@ ApplicationWindow {
 	}
 
 
-	Connections {
+	/*Connections {
 		target: cosClient
 
 		function onStoragePermissionsGranted() {
 			JS.createPage("Start", {})
 		}
-	}
+	}*/
 
 
 	Component.onCompleted: {
@@ -191,6 +191,7 @@ ApplicationWindow {
 		if (fs > 0)
 			CosStyle.pixelSize = fs
 		cosClient.messageSent.connect(JS.dialogMessage)
-		cosClient.checkPermissions()
+		//cosClient.checkPermissions()
+		JS.createPage("Start", {})
 	}
 }

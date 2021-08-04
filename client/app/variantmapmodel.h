@@ -68,6 +68,7 @@ public:
 	QList<int> getSelected() const { return m_selected; }
 
 	Q_INVOKABLE QVariantList getSelectedData(const QString &field) const;
+	Q_INVOKABLE QVariantList getSelectedData(const QStringList &fields) const;
 
 	Q_INVOKABLE void clear();
 	Q_INVOKABLE void setVariantList(const QVariantList &list, const QString &unique_field);
@@ -89,6 +90,7 @@ public slots:
 	void selectAll();
 	void unselectAll();
 	void selectAllToggle();
+	void selectByRole(const QString &role);
 
 signals:
 	void selectedCountChanged(int selectedCount);

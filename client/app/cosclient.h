@@ -114,6 +114,7 @@ public:
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
+	Q_INVOKABLE static QString homePath(const QString &path = QString());
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key, const QVariant &defaultValue = QVariant());
 
@@ -215,8 +216,6 @@ public slots:
 	void setServerDataDir(QString serverDataDir);
 	void clearSession();
 
-	void checkPermissions();
-
 	void playSound(const QString &source, const CosSound::SoundType &soundType = CosSound::GameSfx);
 	void stopSound(const QString &source, const CosSound::SoundType &soundType = CosSound::Music);
 	int volume(const CosSound::ChannelType &channel) const;
@@ -280,9 +279,6 @@ signals:
 	void settingsSuccess();
 
 	void socketBytesToWrite(qint64 bytes);
-
-	void storagePermissionsGranted();
-	void storagePermissionsDenied();
 
 	void myGroupListReady(const QJsonArray &list);
 

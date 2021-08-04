@@ -109,6 +109,7 @@ QDialogPanel {
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {
+				acceptedData = true
 				dlgClose()
 			}
 		}

@@ -11,9 +11,10 @@ QCollapsible {
 	id: control
 
 	required property string name
-	required property string chapter
+	required property int chapter
 	required property int missionCount
 	required property int objectiveCount
+	required property int level
 
 	//title: "%1 (#%2)".arg(name).arg(chapter)
 	title: name
@@ -25,13 +26,13 @@ QCollapsible {
 		spacing: 2
 		QBadge {
 			text: missionCount
-			color: CosStyle.colorPrimaryDark
+			color: CosStyle.colorWarningDark
 			anchors.verticalCenter: parent.verticalCenter
-			visible: missionCount > 1
+			visible: missionCount > (level>0 ? 1 : 0)
 		}
 		QBadge {
 			text: objectiveCount
-			color: CosStyle.colorWarningDark
+			color: CosStyle.colorPrimaryDark
 			anchors.verticalCenter: parent.verticalCenter
 			visible: objectiveCount > 0
 		}
@@ -42,25 +43,22 @@ QCollapsible {
 
 			QMenu {
 				id: chapterMenu
-				MenuItem {
-					icon.source: CosStyle.iconBooks
-					text: qsTr("Küldetések")
-				}
-				MenuItem {
-					icon.source: CosStyle.iconRename
-					text: qsTr("Átnevezés")
-				}
-				MenuItem {
-					icon.source: CosStyle.iconDuplicate
-					text: qsTr("Kettőzés")
-				}
-				MenuItem {
-					icon.source: CosStyle.iconDelete
-					text: qsTr("Törlés")
-				}
+
+				MenuItem { action: actionChapterMissions }
+				MenuItem { action: actionChapterRename }
+				MenuSeparator { }
+				MenuItem { action: actionChapterRemove }
+
 			}
 
 			onClicked: chapterMenu.open()
+
+			Connections {
+				target: control
+				function onRightClicked() {
+					chapterMenu.open()
+				}
+			}
 		}
 	}
 
@@ -85,6 +83,7 @@ QCollapsible {
 				width: control.width
 				height: CosStyle.twoLineHeight*1.7
 
+				required property string uuid
 				required property string objectiveModule
 				required property string objectiveData
 				required property int storage
@@ -99,7 +98,7 @@ QCollapsible {
 				QRectangleBg {
 					id: rect
 					anchors.fill: parent
-					acceptedButtons: Qt.LeftButton
+					acceptedButtons: Qt.LeftButton | Qt.RightButton
 
 					QLabel {
 						id: labelName
@@ -164,7 +163,7 @@ QCollapsible {
 						QBadge {
 							id: badge
 							text: storageCount
-							color: CosStyle.colorWarningDark
+							color: CosStyle.colorPrimaryDark
 							anchors.verticalCenter: parent.verticalCenter
 							visible: storageCount > 1
 						}
@@ -180,23 +179,44 @@ QCollapsible {
 								MenuItem {
 									//icon.source: CosStyle.iconRename
 									text: qsTr("Másolás")
+
+									onClicked: control.objectiveMoveCopy(item.uuid, true)
 								}
 								MenuItem {
 									//icon.source: CosStyle.iconBooks
 									text: qsTr("Áthelyezés")
+
+									onClicked: control.objectiveMoveCopy(item.uuid, false)
 								}
 								MenuItem {
 									icon.source: CosStyle.iconDuplicate
 									text: qsTr("Kettőzés")
+
+									onClicked: mapEditor.objectiveCopy({uuid: item.uuid, chapter: control.chapter})
 								}
+
+								MenuSeparator { }
+
 								MenuItem {
 									icon.source: CosStyle.iconDelete
 									text: qsTr("Törlés")
+
+									onClicked: mapEditor.objectiveRemove({uuid: item.uuid})
 								}
 							}
 
 							onClicked: objectiveMenu.open()
 						}
+					}
+
+
+					mouseArea.onClicked: {
+						if (mouse.button === Qt.LeftButton) {
+
+						} else if (mouse.button === Qt.RightButton) {
+							objectiveMenu.open()
+						}
+
 					}
 				}
 
@@ -216,5 +236,78 @@ QCollapsible {
 			text: qsTr("Új feladat")
 			//onClicked: mapEditor.missionLevelGetChapterList(level)
 		}
+	}
+
+
+	Action {
+		id: actionChapterRename
+
+		icon.source: CosStyle.iconRename
+		text: qsTr("Átnevezés")
+
+		onTriggered: {
+			var d = JS.dialogCreateQml("TextField", { title: qsTr("Szakasz neve"), value: name })
+
+			d.accepted.connect(function(data) {
+				if (data.length)
+					mapEditor.chapterModify({chapter: chapter, name: data})
+			})
+			d.open()
+		}
+
+	}
+
+
+
+	Action {
+		id: actionChapterMissions
+
+		icon.source: CosStyle.iconBooks
+		text: qsTr("Küldetések")
+
+		onTriggered: mapEditor.chapterGetMissionList({chapter: chapter, name: name})
+	}
+
+
+
+	Action {
+		id: actionChapterRemove
+
+		icon.source: level > 0 ? CosStyle.iconRemove : CosStyle.iconDelete
+		text: level > 0 ? qsTr("Eltávolítás") : qsTr("Törlés")
+
+		onTriggered: if (level > 0)
+						 mapEditor.missionLevelChapterRemove({chapter: chapter, level: level})
+					 else
+						 mapEditor.chapterRemove({chapter: chapter})
+	}
+
+
+
+
+
+	function objectiveMoveCopy(uuid, isCopy) {
+		var d = JS.dialogCreateQml("List", {
+									   icon: CosStyle.iconLockAdd,
+									   title: isCopy ? qsTr("Feladat másolása") : qsTr("Feladat áthelyezése"),
+									   roles: ["name", "chapter"],
+									   modelTitleRole: "name",
+									   selectorSet: false,
+									   sourceModel: mapEditor.modelChapterList
+								   })
+
+
+		d.accepted.connect(function(data) {
+			if (data === -1)
+				return
+
+			var p = d.item.sourceModel.get(data)
+
+			if (isCopy)
+				mapEditor.objectiveCopy({uuid: uuid, chapter: p.chapter})
+			else
+				mapEditor.objectiveModify({uuid: uuid, chapter: p.chapter})
+		})
+		d.open()
 	}
 }

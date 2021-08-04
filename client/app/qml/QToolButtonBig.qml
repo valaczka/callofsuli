@@ -16,6 +16,7 @@ ToolButton {
 
 	font.pixelSize: CosStyle.pixelSize*1.6
 	font.weight: Font.Thin
+	font.capitalization: Font.AllUppercase
 
 	icon.height: CosStyle.pixelSize*4
 	icon.width: CosStyle.pixelSize*4

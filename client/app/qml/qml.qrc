@@ -127,8 +127,6 @@
         <file>QToolButtonFooter.qml</file>
         <file>PageMapEditor.qml</file>
         <file>QSwipeComponent.qml</file>
-        <file>MapEditorDialogOpen.qml</file>
-        <file>MapEditorDialogSave.qml</file>
         <file>MapEditorMissions.qml</file>
         <file>MapEditorMissionDetails.qml</file>
         <file>MapEditorMissionLevel.qml</file>
@@ -138,5 +136,7 @@
         <file>MapEditorChapter.qml</file>
         <file>MapEditorInventory.qml</file>
         <file>MapEditorMissionLocks.qml</file>
+        <file>MapEditorChapterList.qml</file>
+        <file>QDialogFile.qml</file>
     </qresource>
 </RCC>

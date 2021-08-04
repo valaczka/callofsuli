@@ -391,7 +391,7 @@ QPagePanel {
 							}
 
 
-							QLabel {
+							/*QLabel {
 								width: parent.width
 								anchors.horizontalCenter: parent.horizontalCenter
 								horizontalAlignment: Text.AlignHCenter
@@ -416,7 +416,7 @@ QPagePanel {
 								width: parent.width
 								text: qsTr("HP: <b>%1</b>").arg(levelData.startHP)
 								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-							}
+							}*/
 
 							QLabel {
 								topPadding: 15

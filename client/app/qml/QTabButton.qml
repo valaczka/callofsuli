@@ -9,6 +9,7 @@ TabButton {
 
 	font.weight: Font.DemiBold
 	font.pixelSize: CosStyle.pixelSize*0.9
+	font.capitalization: Font.AllUppercase
 
 	display: control.width>150 && text.length < 20 ? AbstractButton.TextBesideIcon : AbstractButton.IconOnly
 

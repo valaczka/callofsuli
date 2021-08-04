@@ -200,6 +200,9 @@ QSwipeComponent {
 
 
 			d.accepted.connect(function(dlgdata) {
+				if (dlgdata !== true)
+					return
+
 				var l = mapEditor.modelDialogChapterList.getSelectedData("id")
 				if (l.length === 0)
 					return
@@ -210,6 +213,10 @@ QSwipeComponent {
 			d.open()
 
 		}
+
+
+
+
 
 	}
 

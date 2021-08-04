@@ -177,6 +177,29 @@ QVariantList VariantMapModel::getSelectedData(const QString &field) const
 
 
 
+/**
+ * @brief VariantMapModel::getSelectedData
+ * @param fields
+ * @return
+ */
+
+QVariantList VariantMapModel::getSelectedData(const QStringList &fields) const
+{
+	QVariantList list;
+
+	foreach (int key, m_selected) {
+		QVariantMap m;
+		foreach (QString s, fields)
+			m.insert(s, m_data->valueKey(key).value(s));
+
+		list.append(m);
+	}
+
+	return list;
+}
+
+
+
 
 /**
  * @brief VariantMapModel::clear
@@ -401,6 +424,24 @@ void VariantMapModel::selectAllToggle()
 		selectAll();
 	else
 		unselectAll();
+}
+
+
+/**
+ * @brief VariantMapModel::selectByRole
+ * @param role
+ */
+
+void VariantMapModel::selectByRole(const QString &role)
+{
+	unselectAll();
+
+	for (int i=0; i<m_data->size(); i++) {
+		QVariantMap content = m_data->at(i).second;
+
+		if (content.value(role, false).toBool())
+			select(i);
+	}
 }
 
 

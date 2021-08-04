@@ -40,6 +40,7 @@ QBasePage {
 
 		onLoadSucceed: {
 			getMissionList()
+			getChapterList()
 			getObjectiveList()
 			actionMissions.trigger()
 		}
@@ -50,8 +51,23 @@ QBasePage {
 		}
 
 		onSaveDialogRequest: {
-			dialogSave.isSaveAs = !isNew
-			dialogSave.open()
+			//dialogSave.isSaveAs = !isNew
+			//dialogSave.open()
+
+			if (!mapEditor.loaded)
+				return
+
+			var d = JS.dialogCreateQml("File", {})
+			d.item.isSave = true
+
+			d.accepted.connect(function(data){
+				if (!isNew)
+					mapEditor.saveCopyUrl(data)
+				else
+					mapEditor.saveUrl(data)
+			})
+
+			d.open()
 		}
 
 		onPlayFailed: {
@@ -61,10 +77,68 @@ QBasePage {
 		onPlayReady: {
 			var o = JS.createPage("Game", {
 									  gameMatch: gamematch,
-									  //studentMaps: studentMaps,
 									  deleteGameMatch: true
 								  })
 
+		}
+
+
+
+
+
+		onChapterMissionListReady: {
+			if (data.missions.length === 0) {
+				cosClient.sendMessageWarning(qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))
+				return
+			}
+
+
+			mapEditor.modelDialogChapterMissionList.replaceList(data.missions)
+			mapEditor.modelDialogChapterMissionList.selectByRole("used")
+
+			var d = JS.dialogCreateQml("MissionList", {
+										   icon: CosStyle.iconLockAdd,
+										   title: data.chapterName.length ? data.chapterName : qsTr("Szakaszhoz tartozó küldetések"),
+										   selectorSet: true,
+										   sourceModel: mapEditor.modelDialogChapterMissionList
+									   })
+
+
+			d.accepted.connect(function(dlgdata) {
+				if (dlgdata !== true)
+					return
+
+				var l = mapEditor.modelDialogChapterMissionList.getSelectedData(["uuid", "level"])
+
+				mapEditor.chapterMissionListModify(data.chapter, mapEditor.modelDialogChapterMissionList, "used")
+
+			})
+			d.open()
+
+		}
+
+
+
+		onChapterImportReady: {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("%1 tétel importálható?").arg(records.length)})
+			d.accepted.connect(function() {
+				mapEditor.objectiveImport({list: records})
+			})
+			d.open()
+			return true
+		}
+
+
+		onStoragePermissionsDenied: {
+			console.debug("**** denied")
+			labelPermissions.text = qsTr("Írási/olvasási jogosultság hiányzik")
+			labelPermissions.color = CosStyle.colorErrorLighter
+		}
+
+		onStoragePermissionsGranted: {
+			console.debug("**** granted")
+			labelPermissions.visible = false
+			//openUrl("file:///home/valaczka/ddd.map")
 		}
 	}
 
@@ -109,8 +183,17 @@ QBasePage {
 	}
 
 
+	QLabel {
+		id: labelPermissions
+		color: CosStyle.colorWarning
+		anchors.centerIn: parent
+		anchors.margins: 10
+		text: qsTr("Jogosultságok ellenőrzése")
+	}
+
+
 	Column {
-		visible: editorLoader.status != Loader.Ready && !mapEditor.loaded
+		visible: !labelPermissions.visible && editorLoader.status != Loader.Ready && !mapEditor.loaded
 
 		anchors.centerIn: parent
 		spacing: 5
@@ -131,18 +214,16 @@ QBasePage {
 	Component {
 		id: componentMissions
 		MapEditorMissions {
-			id: swComponent
 		}
 	}
 
 
-	MapEditorDialogOpen {
-		id: dialogOpen
+	Component {
+		id: componentChapters
+		MapEditorChapterList {
+		}
 	}
 
-	MapEditorDialogSave {
-		id: dialogSave
-	}
 
 
 	Action {
@@ -161,7 +242,14 @@ QBasePage {
 		enabled: !mapEditor.loaded
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
-			dialogOpen.open()
+			var d = JS.dialogCreateQml("File", {})
+			d.item.isSave = false
+
+			d.accepted.connect(function(data){
+				mapEditor.openUrl(data)
+			})
+
+			d.open()
 		}
 	}
 
@@ -182,7 +270,7 @@ QBasePage {
 		icon.source: CosStyle.iconAdd
 		onTriggered: {
 			control.title = qsTr("Szakaszok")
-			editorLoader.sourceComponent = undefined //componentMissions
+			editorLoader.sourceComponent = componentChapters
 		}
 	}
 
@@ -224,7 +312,8 @@ QBasePage {
 		}
 	}
 
-	onPageActivatedFirst: mapEditor.openUrl("file:///home/valaczka/ddd.map")
+	onPageActivatedFirst: mapEditor.checkPermissions()
+
 
 	function windowClose() {
 		if (mapEditor.modified) {

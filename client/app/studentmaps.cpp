@@ -788,7 +788,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 					int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
 					if (mis->getSolvedLevel() < ml->level())
 						xp *= XP_FACTOR_NO_SOLVED;
-					xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+					//xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
 					mode["type"] = "normal";
 					mode["available"] = (ml->level() <= lMin);
 					mode["xp"] = xp;
@@ -798,7 +798,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 					QVariantMap mode;
 					int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
 					xp *= XP_FACTOR_DEATHMATCH;
-					xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+					//xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
 					mode["type"] = "deathmatch";
 					mode["available"] = (mis->getSolvedLevel() >= ml->level() && ml->level() <= lMin);
 					mode["xp"] = xp;
@@ -868,7 +868,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 				int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
 				if (mis->getSolvedLevel() < ml->level())
 					xp *= XP_FACTOR_NO_SOLVED;
-				xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+				//xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
 				mode["type"] = "normal";
 				mode["available"] = (ml->level() <= lMin);
 				mode["xp"] = xp;
@@ -878,7 +878,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 				QVariantMap mode;
 				int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
 				xp *= XP_FACTOR_DEATHMATCH;
-				xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
+				//xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
 				mode["type"] = "deathmatch";
 				mode["available"] = (mis->getSolvedLevel() >= ml->level() && ml->level() <= lMin);
 				mode["xp"] = xp;

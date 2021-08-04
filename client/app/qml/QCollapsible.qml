@@ -22,7 +22,11 @@ Rectangle {
 	property color backgroundColor: CosStyle.colorPrimaryDarkest
 	property color contentBackgroundColor: "transparent"
 
+	property bool interactive: true
+
 	default property alias contents: content.data
+
+	signal rightClicked()
 
 	color: "transparent"
 
@@ -42,8 +46,14 @@ Rectangle {
 
 		MouseArea {
 			anchors.fill: parent
-			acceptedButtons: Qt.LeftButton
-			onClicked: collapsed = !collapsed
+			acceptedButtons: interactive ? (Qt.LeftButton | Qt.RightButton) : Qt.RightButton
+			onClicked: {
+				if (mouse.button == Qt.LeftButton)
+					collapsed = !collapsed
+				else if (mouse.button == Qt.RightButton)
+					control.rightClicked()
+			}
+
 
 			QFontImage {
 				id: arrow

@@ -27,6 +27,12 @@
 #include "mapeditor.h"
 #include "sqlimage.h"
 #include "gameenemydata.h"
+#include "chapterimporter.h"
+
+
+#ifdef Q_OS_ANDROID
+#include <QtAndroidExtras/QtAndroid>
+#endif
 
 
 MapEditor::MapEditor(QQuickItem *parent)
@@ -48,6 +54,8 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_modelLockList(nullptr)
 	, m_modelDialogMissionList(nullptr)
 	, m_modelDialogChapterList(nullptr)
+	, m_modelDialogChapterMissionList(nullptr)
+	, m_modelChapterList(nullptr)
 {
 	/*m_map["getMissionList"] = &MapEditor::getMissionList;
 	m_map["getCurrentMissionData"] = &MapEditor::getCurrentMissionData;
@@ -175,12 +183,31 @@ MapEditor::MapEditor(QQuickItem *parent)
 												   this);
 
 
+	m_modelDialogChapterMissionList = new VariantMapModel({
+															  "uuid",
+															  "level",
+															  "name",
+															  "used"
+														  },
+														  this);
+
+
+	m_modelChapterList = new VariantMapModel({
+												 "chapter",
+												 "name",
+												 "missionCount",
+												 "objectiveCount"
+											 },
+											 this);
+
+
 
 	connect(this, &MapEditor::currentMissionChanged, this, &MapEditor::getCurrentMissionData);
 
 	connect(db, &CosDb::undone, this, [=]() {
 		setModified(true);
 		getMissionList();
+		getChapterList();
 		getObjectiveList();
 		getCurrentMissionData();
 		missionLockGraphUpdate();
@@ -212,6 +239,8 @@ MapEditor::~MapEditor()
 	delete m_modelLockList;
 	delete m_modelDialogMissionList;
 	delete m_modelDialogChapterList;
+	delete m_modelDialogChapterMissionList;
+	delete m_modelChapterList;
 }
 
 
@@ -228,6 +257,7 @@ bool MapEditor::isWithGraphviz() const
 
 	return false;
 }
+
 
 
 /**
@@ -439,6 +469,42 @@ void MapEditor::setLoaded(bool loaded)
 }
 
 
+
+
+/**
+ * @brief MapEditor::checkPermissions
+ */
+
+void MapEditor::checkPermissions()
+{
+
+#ifdef Q_OS_ANDROID
+	QtAndroid::PermissionResult result1 = QtAndroid::checkPermission("android.permission.READ_EXTERNAL_STORAGE");
+	QtAndroid::PermissionResult result2 = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+
+	QStringList permissions;
+
+	if (result1 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.READ_EXTERNAL_STORAGE");
+
+	if (result2 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.WRITE_EXTERNAL_STORAGE");
+
+	if (!permissions.isEmpty()) {
+		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
+
+		QList<QtAndroid::PermissionResult> results = resultHash.values();
+		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
+			emit storagePermissionsDenied();
+			return;
+		}
+	}
+#endif
+
+	emit storagePermissionsGranted();
+}
+
+
 /**
  * @brief MapEditor::getMissionList
  */
@@ -484,11 +550,11 @@ void MapEditor::getCurrentMissionData()
 
 	QVariantList levelChapters = db()->execSelectQuery("SELECT r.rid, r.mission, r.level, chapters.name, r.chapter, "
 "(SELECT COUNT(*) FROM "
-"(SELECT DISTINCT mission FROM chapters LEFT JOIN blockChapterMapChapters ON (blockChapterMapChapters.chapter=chapters.id) "
-"LEFT JOIN blockChapterMaps ON (blockChapterMaps.id=blockChapterMapChapters.blockid) WHERE chapters.id=r.chapter)) AS missionCount, "
+"(SELECT DISTINCT mission, level FROM chapters INNER JOIN blockChapterMapChapters ON (blockChapterMapChapters.chapter=chapters.id) "
+"INNER JOIN blockChapterMaps ON (blockChapterMaps.id=blockChapterMapChapters.blockid) WHERE chapters.id=r.chapter)) AS missionCount, "
 "(SELECT SUM(CASE WHEN storage IS NULL THEN 1 ELSE storageCount END) FROM objectives WHERE objectives.chapter=r.chapter) as objectiveCount FROM "
 "(SELECT blockChapterMaps.rowid||'-'||blockChapterMapChapters.rowid as rid,mission,level,chapter from blockChapterMaps "
-"LEFT JOIN blockChapterMapChapters ON (blockChapterMapChapters.blockid=blockChapterMaps.id)) r "
+"INNER JOIN blockChapterMapChapters ON (blockChapterMapChapters.blockid=blockChapterMaps.id)) r "
 "LEFT JOIN chapters ON (chapters.id=r.chapter) WHERE r.mission=?",
 													   {m_currentMission}
 													   );
@@ -544,6 +610,28 @@ void MapEditor::getObjectiveList()
 "LEFT JOIN storages ON (storages.id=objectives.storage)");
 
 	m_modelObjectiveList->setVariantList(objectives, "rid");
+}
+
+
+/**
+ * @brief MapEditor::getChapterList
+ */
+
+void MapEditor::getChapterList()
+{
+	if (!m_loaded) {
+		m_modelChapterList->clear();
+		return;
+	}
+
+	QVariantList list = db()->execSelectQuery("SELECT id as chapter, name, "
+"(SELECT COUNT(*) FROM "
+"(SELECT DISTINCT mission, level FROM chapters INNER JOIN blockChapterMapChapters ON (blockChapterMapChapters.chapter=chapters.id) "
+"INNER JOIN blockChapterMaps ON (blockChapterMaps.id=blockChapterMapChapters.blockid) WHERE chapters.id=c.id)) AS missionCount, "
+"(SELECT SUM(CASE WHEN storage IS NULL THEN 1 ELSE storageCount END) FROM objectives WHERE objectives.chapter=c.id) as objectiveCount FROM chapters c"
+													   );
+
+	m_modelChapterList->setVariantList(list, "chapter");
 }
 
 
@@ -653,7 +741,7 @@ void MapEditor::missionLevelGetChapterList(int level)
 	}
 
 	QVariantList list = db()->execSelectQuery("SELECT id, name FROM chapters WHERE id NOT IN "
-"(SELECT chapter FROM blockChapterMaps LEFT JOIN blockChapterMapChapters ON (blockChapterMapChapters.blockid = blockChapterMaps.id) "
+"(SELECT chapter FROM blockChapterMaps INNER JOIN blockChapterMapChapters ON (blockChapterMapChapters.blockid = blockChapterMaps.id) "
 "WHERE mission=? AND level=?)",
 											  {m_currentMission, level});
 
@@ -702,42 +790,45 @@ void MapEditor::missionLevelChapterAdd(QVariantMap data)
 	if (list.isEmpty())
 		return;
 
-	int blockid = db()->execSelectQueryOneRow("SELECT id FROM blockChapterMaps WHERE mission=? AND level=? LIMIT 1",
-											  {m_currentMission, level}).value("id", -1).toInt();
-
 	db()->undoLogBegin(tr("Szakasz hozzáadása"));
 
-
-	if (blockid == -1) {
-		blockid = db()->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", {
-											{"mission", m_currentMission},
-											{"level", level}
-										});
-	}
-
-
-
-
-
-
-	// szakaszok rögzítése
-
-	int ret = -1;
-
-	foreach (QVariant v, list) {
-		ret = db()->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", {
-										{"blockid", blockid},
-										{"chapter", v.toInt()}
-									});
-
-		if (ret == -1)
-			break;
-	}
+	int ret = missionLevelChapterAddPrivate(m_currentMission, level, list);
 
 	db()->undoLogEnd();
 
 	if (ret != -1) {
 		getCurrentMissionData();
+		getChapterList();
+		setModified(true);
+	}
+
+}
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelChapterRemove
+ * @param data
+ */
+
+void MapEditor::missionLevelChapterRemove(QVariantMap data)
+{
+	int level = data.value("level", -1).toInt();
+	int chapter = data.value("chapter", -1).toInt();
+
+
+	db()->undoLogBegin(tr("Szakasz eltávolítása"));
+
+	bool ret = db()->execSimpleQuery("DELETE FROM blockChapterMapChapters WHERE chapter=? "
+"AND blockid = (SELECT id FROM blockChapterMaps WHERE mission=? AND level=? ORDER BY id LIMIT 1)",
+									 {chapter, m_currentMission, level});
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		getChapterList();
 		setModified(true);
 	}
 
@@ -778,6 +869,7 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 	}
 
 }
+
 
 
 /**
@@ -877,6 +969,7 @@ void MapEditor::missionRemove()
 	if (ret) {
 		setCurrentMission("");
 		getMissionList();
+		getChapterList();
 		getCurrentMissionData();
 		setModified(true);
 		missionLockGraphUpdate();
@@ -1241,6 +1334,424 @@ void MapEditor::inventoryRemove(QVariantMap data)
 	}
 }
 
+
+
+/**
+ * @brief MapEditor::chapterAdd
+ * @param data
+ */
+
+void MapEditor::chapterAdd(QVariantMap data)
+{
+	QString name = data.value("name", tr("Új szakasz")).toString();
+
+	db()->undoLogBegin(tr("Új szakasz"));
+
+	int chid = db()->execInsertQuery("INSERT INTO chapters (?k?) VALUES (?)", {
+										 {"name", name}
+									 });
+
+	db()->undoLogEnd();
+
+	if (chid != -1) {
+		getChapterList();
+		setModified(true);
+	}
+}
+
+
+
+
+/**
+	 * @brief MapEditor::missionLevelChapterModify
+	 * @param data
+	 */
+
+void MapEditor::chapterModify(QVariantMap data)
+{
+	int chapter = data.value("chapter", -1).toInt();
+	data.remove("chapter");
+
+	db()->undoLogBegin(tr("Szakasz módosítása"));
+
+	bool ret = db()->execUpdateQuery("UPDATE chapters SET ? WHERE id=:id", data,
+									 {{":id", chapter}}
+									 );
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		getChapterList();
+		setModified(true);
+	}
+}
+
+
+
+/**
+ * @brief MapEditor::chapterRemove
+ * @param data
+ */
+
+void MapEditor::chapterRemove(QVariantMap data)
+{
+	int chapter = data.value("chapter", -1).toInt();
+
+	db()->undoLogBegin(tr("Szakasz törlése"));
+
+	bool ret = db()->execSimpleQuery("DELETE FROM chapters WHERE id=?", {chapter});
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getCurrentMissionData();
+		getChapterList();
+		setModified(true);
+	}
+}
+
+
+/**
+ * @brief MapEditor::chapterGetMissionList
+ * @param data
+ */
+
+void MapEditor::chapterGetMissionList(QVariantMap data)
+{
+	int chapter = data.value("chapter", -1).toInt();
+
+	if (chapter == -1) {
+		qWarning() << "Invalid chapter";
+		return;
+	}
+
+
+	QVariantList list = db()->execSelectQuery("SELECT uuid, name, level, "
+"EXISTS(SELECT mission, level FROM blockChapterMapChapters LEFT JOIN blockChapterMaps ON (blockChapterMapChapters.blockid = blockChapterMaps.id) "
+"WHERE chapter=? AND mission=missions.uuid AND level=missionLevels.level) AS used "
+"FROM missions "
+"LEFT JOIN missionLevels ON (missionLevels.mission=missions.uuid)",
+											  {chapter});
+
+
+	QVariantMap response;
+	response["chapter"] = chapter;
+	response["chapterName"] = data.value("name", "").toString();
+	response["missions"] = list;
+
+	emit chapterMissionListReady(response);
+}
+
+
+
+
+
+
+
+/**
+ * @brief MapEditor::chapterMissionListModify
+ * @param data
+ */
+
+void MapEditor::chapterMissionListModify(const int &chapter, VariantMapModel *model, const QString &selectField)
+{
+	if (!model)
+		return;
+
+	db()->undoLogBegin(tr("Szakasz küldetéseinek módosítása"));
+
+	VariantMapData *data = model->variantMapData();
+
+	for (int i=0; i<data->size(); i++) {
+		int key = data->at(i).first;
+		QVariantMap content = data->at(i).second;
+
+		bool origSelected = content.value(selectField, false).toBool();
+		bool currentSelected = model->getSelected().contains(key);
+
+
+		if (origSelected && !currentSelected) {
+			db()->execSimpleQuery("DELETE FROM blockChapterMapChapters WHERE chapter=? "
+			"AND blockid = (SELECT id FROM blockChapterMaps WHERE mission=? AND level=? ORDER BY id LIMIT 1)",
+								  {
+									  chapter,
+									  content.value("uuid", "").toString(),
+									  content.value("level", 0).toInt(),
+								  }
+								  );
+
+
+		} else if (!origSelected && currentSelected) {
+			missionLevelChapterAddPrivate(content.value("uuid", "").toString(),
+										  content.value("level", 0).toInt(),
+										  {chapter});
+		}
+
+	}
+
+	db()->undoLogEnd();
+
+	getCurrentMissionData();
+	getChapterList();
+	setModified(true);
+
+}
+
+
+/**
+ * @brief MapEditor::chapterImport
+ * @param data
+ */
+
+void MapEditor::chapterImport(QVariantMap data)
+{
+	QUrl filename = data.value("filename").toUrl();
+	int chapter = data.value("chapter", -1).toInt();
+
+	if (filename.isEmpty()) {
+		qWarning() << "Missing filename";
+		return;
+	}
+
+	if (chapter == -1) {
+		db()->undoLogBegin(tr("Új szakasz"));
+
+		chapter = db()->execInsertQuery("INSERT INTO chapters (?k?) VALUES (?)", {
+											 {"name", tr("Importált szakasz")}
+										 });
+
+		db()->undoLogEnd();
+
+		getChapterList();
+	}
+
+
+	if (chapter == -1) {
+		m_client->sendMessageError(tr("Importálás"), tr("Érvénytelen szakasz!"));
+		return;
+	}
+
+	ChapterImporter importer(filename.toLocalFile());
+
+	importer.setChapterId(chapter);
+
+	if (!importer.import()) {
+		m_client->sendMessageError(tr("Importálás"), tr("Hibás adatok"));
+		return;
+	}
+
+	QVariantList l = importer.records();
+	emit chapterImportReady(l);
+}
+
+
+
+
+/**
+ * @brief MapEditor::objectiveAdd
+ * @param data
+ */
+
+void MapEditor::objectiveAdd(QVariantMap data)
+{
+	if (!data.contains("chapter")) {
+		qWarning() << "Missing chapter";
+		return;
+	}
+
+	if (!data.contains("module")) {
+		qWarning() << "Missing module";
+		return;
+	}
+
+	QVariant storage = QVariant::Invalid;
+
+	if (data.contains("storage"))
+		storage = data.value("storage").toInt();
+
+	db()->undoLogBegin(tr("Új feladat"));
+
+	int chid = db()->execInsertQuery("INSERT INTO objectives (?k?) VALUES (?)", {
+										 { "chapter", data.value("chapter").toInt() },
+										 { "module", data.value("module").toString() },
+										 { "storage", storage },
+										 { "storageCount", data.value("storageCount", 0).toInt() },
+										 { "data", data.value("data").toString() },
+									 });
+
+	db()->undoLogEnd();
+
+	if (chid != -1) {
+		getChapterList();
+		getObjectiveList();
+		getCurrentMissionData();
+		setModified(true);
+	}
+}
+
+
+/**
+ * @brief MapEditor::objectiveModify
+ * @param data
+ */
+
+void MapEditor::objectiveModify(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+	data.remove("uuid");
+
+	db()->undoLogBegin(tr("Feladat módosítása"));
+
+	bool ret = db()->execUpdateQuery("UPDATE objectives SET ? WHERE uuid=:id", data,
+									 {{":id", uuid}}
+									 );
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getChapterList();
+		getObjectiveList();
+		getCurrentMissionData();
+		setModified(true);
+	}
+}
+
+
+/**
+ * @brief MapEditor::objectiveRemove
+ * @param data
+ */
+
+void MapEditor::objectiveRemove(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+
+	db()->undoLogBegin(tr("Feladat törlése"));
+
+	bool ret = db()->execSimpleQuery("DELETE FROM objectives WHERE uuid=?", {uuid});
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getChapterList();
+		getObjectiveList();
+		getCurrentMissionData();
+		setModified(true);
+	}
+}
+
+
+
+
+/**
+ * @brief MapEditor::objectiveCopy
+ * @param data
+ */
+
+void MapEditor::objectiveCopy(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+	int chapter = data.value("chapter", -1).toInt();
+
+	db()->undoLogBegin(tr("Feladat kettőzése"));
+
+	bool ret = db()->execSimpleQuery("INSERT INTO objectives(uuid, chapter, module, storage, storageCount, data) "
+"SELECT ?, ?, module, storage, storageCount, data FROM objectives WHERE uuid=?",
+									 {QUuid::createUuid().toString(), chapter, uuid});
+
+	db()->undoLogEnd();
+
+	if (ret) {
+		getChapterList();
+		getObjectiveList();
+		getCurrentMissionData();
+		setModified(true);
+	}
+
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveImport
+ * @param data
+ */
+
+void MapEditor::objectiveImport(QVariantMap data)
+{
+	QVariantList list = data.value("list").toList();
+
+	if (list.isEmpty()) {
+		qWarning() << "List empty";
+		return;
+	}
+
+	db()->undoLogBegin(tr("%1 célpont importálása").arg(list.size()));
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		m["uuid"] = QUuid::createUuid().toString();
+
+		int ret = db()->execInsertQuery("INSERT INTO objectives(?k?) values (?)", m);
+
+		if (ret == -1) {
+			qWarning() << "Error" << m;
+		}
+	}
+
+	db()->undoLogEnd();
+
+	getChapterList();
+	getObjectiveList();
+	getCurrentMissionData();
+	setModified(true);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void MapEditor::setModelChapterList(VariantMapModel *modelChapterList)
+{
+	if (m_modelChapterList == modelChapterList)
+		return;
+
+	m_modelChapterList = modelChapterList;
+	emit modelChapterListChanged(m_modelChapterList);
+}
+
+
+
+
+
+void MapEditor::setModelDialogChapterMissionList(VariantMapModel *modelDialogChapterMissionList)
+{
+	if (m_modelDialogChapterMissionList == modelDialogChapterMissionList)
+		return;
+
+	m_modelDialogChapterMissionList = modelDialogChapterMissionList;
+	emit modelDialogChapterMissionListChanged(m_modelDialogChapterMissionList);
+}
+
+
+
+
+
+
+
+
 void MapEditor::setModelDialogChapterList(VariantMapModel *modelDialogChapterList)
 {
 	if (m_modelDialogChapterList == modelDialogChapterList)
@@ -1478,14 +1989,14 @@ int MapEditor::missionLevelAddPrivate(const QString &mission, const int &level)
 	QVariantMap defaults = missionLevelDefaults(level);
 
 	int ret = db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
-									 {"mission", mission},
-									 {"level", level},
-									 {"terrain", defaultTerrain().name},
-									 {"duration", defaults.value("duration", 120).toInt()},
-									 {"startHP", defaults.value("startHP", 3).toInt()},
-									 {"questions", defaults.value("questions", 0.5).toReal()},
-									 {"deathmatch", defaults.value("deathmatch", false).toBool()}
-								 });
+										{"mission", mission},
+										{"level", level},
+										{"terrain", defaultTerrain().name},
+										{"duration", defaults.value("duration", 120).toInt()},
+										{"startHP", defaults.value("startHP", 3).toInt()},
+										{"questions", defaults.value("questions", 0.5).toReal()},
+										{"deathmatch", defaults.value("deathmatch", false).toBool()}
+									});
 
 	if (ret != -1) {
 		QVariantList l = defaults.value("inventory").toList();
@@ -1497,6 +2008,46 @@ int MapEditor::missionLevelAddPrivate(const QString &mission, const int &level)
 
 			db()->execInsertQuery("INSERT INTO inventories (?k?) VALUES (?)", m);
 		}
+	}
+
+	return ret;
+}
+
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelChapterAddPrivate
+ * @param mission
+ * @param level
+ * @param list
+ * @return
+ */
+
+int MapEditor::missionLevelChapterAddPrivate(const QString &mission, const int &level, const QVariantList &list)
+{
+	int blockid = db()->execSelectQueryOneRow("SELECT id FROM blockChapterMaps WHERE mission=? AND level=? ORDER BY id LIMIT 1",
+											  {mission, level}).value("id", -1).toInt();
+
+	if (blockid == -1) {
+		blockid = db()->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", {
+											{"mission", mission},
+											{"level", level}
+										});
+	}
+
+
+	int ret = -1;
+
+	foreach (QVariant v, list) {
+		ret = db()->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", {
+										{"blockid", blockid},
+										{"chapter", v.toInt()}
+									});
+
+		if (ret == -1)
+			break;
 	}
 
 	return ret;

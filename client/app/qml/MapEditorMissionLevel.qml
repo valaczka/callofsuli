@@ -188,6 +188,7 @@ QSwipeContainer {
 
 			MapEditorChapter {
 				collapsed: true
+				level: container.level
 			}
 		}
 
