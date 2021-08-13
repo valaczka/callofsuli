@@ -32,6 +32,9 @@
  * SOFTWARE.
  */
 
+#include <QJsonObject>
+#include <QJsonDocument>
+
 #include "objectiveimportertruefalse.h"
 
 

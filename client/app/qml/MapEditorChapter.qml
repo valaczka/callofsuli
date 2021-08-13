@@ -212,6 +212,7 @@ QCollapsible {
 
 					mouseArea.onClicked: {
 						if (mouse.button === Qt.LeftButton) {
+							//mapEditor.loadQuestion()
 
 						} else if (mouse.button === Qt.RightButton) {
 							objectiveMenu.open()

@@ -35,7 +35,8 @@
 #ifndef OBJECTIVEIMPORTERSIMPLECHOICE_H
 #define OBJECTIVEIMPORTERSIMPLECHOICE_H
 
-#include "abstractobjectiveimporter.h"
+#include "../../abstractobjectiveimporter.h"
+#include "../../../QtXlsxWriter/xlsxworksheet.h"
 
 class ObjectiveImporterSimplechoice : public AbstractObjectiveImporter
 {

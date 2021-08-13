@@ -192,7 +192,7 @@ signals:
 	void modifiedChanged(bool modified);
 	void loadedChanged(bool loaded);
 
-	void playFailed();
+	void playFailed(QString error);
 	void playReady(GameMatch *gamematch);
 
 	void currentMissionDataChanged(QVariantMap data);

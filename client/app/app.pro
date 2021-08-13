@@ -11,13 +11,9 @@ unix:!android: {
 	include(graphviz.pri)
 }
 
-win32: {
-	include(graphviz.pri)
-}
-
-include(modules/simplechoice/simplechoice.pri)
-include(modules/truefalse/truefalse.pri)
-include(modules/calculator/calculator.pri)
+#win32: {
+#	include(graphviz.pri)
+#}
 
 
 TEMPLATE = app
@@ -31,8 +27,22 @@ win32 {
 	LIBS += -L../QtXlsxWriter -lqtxlsx
 }
 
+
+include(modules/modules.pri)
+
+equals(MODULE_BUILD, static) {
+	LIBS += -L./modules
+
+	for(m, MODULES_LIST) {
+		LIBS += -l$$m
+	}
+}
+
+
 QMAKE_LFLAGS += -Wl,--rpath=../QtXlsxWriter
 INCLUDEPATH += ../QtXlsxWriter
+
+DESTDIR = ../..
 
 
 # The following define makes your compiler emit warnings if you use
@@ -46,6 +56,7 @@ INCLUDEPATH += ../QtXlsxWriter
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+QMAKE_CXXFLAGS += -Wno-deprecated-copy
 
 #DEFINES += COS_SQL_DEBUG
 
@@ -111,6 +122,7 @@ HEADERS += \
 	gamescene.h \
 	gameterrain.h \
 	mapeditor.h \
+	modules/interfaces.h \
 	question.h \
 	scores.h \
 	servers.h \
@@ -142,6 +154,8 @@ CONFIG(release, debug|release) {
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+
 
 
 

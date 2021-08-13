@@ -32,6 +32,7 @@
 #include <QJsonDocument>
 #include <QMediaPlaylist>
 #include <QDesktopServices>
+#include <QPluginLoader>
 
 #include "../../version/buildnumber.h"
 #include "cosmessage.h"
@@ -61,10 +62,12 @@
 
 
 
-QList<TerrainData> Client::m_availableTerrains = QList<TerrainData>();
-QVariantMap Client::m_characterData = QVariantMap();
-QStringList Client::m_musicList = QStringList();
-QStringList Client::m_medalIconList = QStringList();
+QList<TerrainData> Client::m_availableTerrains;
+QVariantMap Client::m_characterData;
+QStringList Client::m_musicList;
+QStringList Client::m_medalIconList;
+QHash<QString, ModuleInterface *> Client::m_moduleObjectiveList;
+QHash<QString, ModuleInterface *> Client::m_moduleStorageList;
 
 Client::Client(QObject *parent) : QObject(parent)
 {
@@ -163,6 +166,37 @@ void Client::initialize()
 	QCoreApplication::setOrganizationDomain("callofsuli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
 
+}
+
+
+/**
+ * @brief Client::loadModules
+ */
+
+void Client::loadModules()
+{
+	m_moduleObjectiveList.clear();
+	m_moduleStorageList.clear();
+
+	QVector<QStaticPlugin> l = QPluginLoader::staticPlugins();
+
+	foreach (QStaticPlugin ll, l) {
+		QObject *o = ll.instance();
+
+		ModuleInterface *i = qobject_cast<ModuleInterface *>(o);
+		QString name = i->name();
+
+		if (i->isStorageModule()) {
+			qDebug().noquote() << "Load storage module" << i->name();
+			m_moduleStorageList[name] = i;
+		} else {
+			qDebug().noquote() << "Load objective module" << i->name();
+			m_moduleObjectiveList[name] = i;
+		}
+	}
+
+
+	// TODO: load d
 }
 
 
@@ -1139,9 +1173,9 @@ TerrainData Client::terrainDataFromFile(const QString &filename)
 			dataMap = Client::readJsonFile(datafile).toMap();
 
 		return TerrainData(terrainName,
-							blockData,
-							t.enemies().count(),
-							dataMap);
+						   blockData,
+						   t.enemies().count(),
+						   dataMap);
 	}
 
 	return TerrainData("",
@@ -1550,6 +1584,10 @@ void Client::performError(const CosMessage &message)
 			break;
 	}
 }
+
+
+
+
 
 
 

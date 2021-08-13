@@ -14,7 +14,7 @@ Item {
 
 	anchors.fill: parent
 
-	property var questionData: null
+	property GameQuestionPrivate questionPrivate: null
 
 	signal succeed(real xpFactor)
 	signal failed()
@@ -104,6 +104,25 @@ Item {
 			Loader {
 				id: contentLoader
 				anchors.fill: parent
+
+				sourceComponent: Item {
+					id: defaultItem
+
+					implicitHeight: 300
+					implicitWidth: 400
+
+					signal succeed()
+					signal failed()
+
+					GameQuestionButton {
+						anchors.centerIn: parent
+						text: "X"
+						onClicked: {
+							interactive = false
+							defaultItem.failed()
+						}
+					}
+				}
 			}
 
 			Connections {
@@ -113,7 +132,7 @@ Item {
 					cosClient.playSound("qrc:/sound/sfx/correct.ogg", CosSound.GameSound)
 					cosClient.playSound("qrc:/sound/voiceover/winner.ogg", CosSound.VoiceOver)
 					isAnswerSuccess = true
-					succeed(questionData.xpFactor)
+					succeed(questionPrivate.questionData().xpFactor)
 					control.state = "finished"
 				}
 
@@ -159,12 +178,20 @@ Item {
 
 	}
 
-	onQuestionDataChanged: {
-		if (questionData && questionData.module.length) {
-			contentLoader.setSource("GameQuestion_"+questionData.module+".qml", {
-										questionData: questionData
+	onQuestionPrivateChanged: {
+		if (!questionPrivate)
+			return
+
+		var q = questionPrivate.questionQml()
+		if (q && q.length) {
+			contentLoader.setSource(q, {
+										questionData: questionPrivate.questionData(),
+										answerData: questionPrivate.answerData()
 									})
+		} else {
+			cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Érvénytelen kérdés"))
 		}
+
 	}
 
 	Component.onCompleted: state = "started"

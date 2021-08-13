@@ -34,6 +34,7 @@ win32 {
 	LIBS += -L../smtpclient -lsmtpclient
 }
 
+DESTDIR = ../..
 
 QMAKE_LFLAGS += -Wl,--rpath=../smtpclient
 INCLUDEPATH += ../smtpclient

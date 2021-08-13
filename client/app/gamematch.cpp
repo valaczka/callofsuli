@@ -33,6 +33,7 @@
  */
 
 #include "gamematch.h"
+#include "cosclient.h"
 
 GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	: QObject(parent)
@@ -133,6 +134,52 @@ QString GameMatch::bgImage() const
 		return "qrc:/internal/game/bg.png";
 	else
 		return "image://"+m_imageDbName+"/"+m_bgImage;
+}
+
+
+
+/**
+ * @brief GameMatch::check
+ * @return
+ */
+
+bool GameMatch::check(QString *errorString)
+{
+	GameMap::MissionLevel *ml = missionLevel();
+
+	if (!ml) {
+		if (errorString)
+			*errorString = tr("Érvénytelen küldetés!");
+		return false;
+	}
+
+
+
+	foreach(GameMap::BlockChapterMap *bcm, ml->blockChapterMaps()) {
+		foreach(GameMap::Chapter *chapter, bcm->chapters()) {
+			foreach(GameMap::Objective *objective, chapter->objectives()) {
+				QString om = objective->module();
+
+				if (!Client::moduleObjectiveList().contains(om)) {
+					if (errorString)
+						*errorString = tr("Érvénytelen modul: %1").arg(om);
+					return false;
+				}
+
+				if (objective->storage()) {
+					QString sm = objective->storage()->module();
+
+					if (!Client::moduleStorageList().contains(sm)) {
+						if (errorString)
+							*errorString = tr("Érvénytelen modul: %1").arg(sm);
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 

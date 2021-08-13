@@ -39,6 +39,7 @@
 #include <QObject>
 #include <qquickitem.h>
 
+#include "question.h"
 #include "gameblock.h"
 
 class GameEnemy;
@@ -53,7 +54,6 @@ class GameEnemyData : public QObject
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(int targetId READ targetId WRITE setTargetId NOTIFY targetIdChanged)
 	Q_PROPERTY(QByteArray objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
-	Q_PROPERTY(int storageNum READ storageNum WRITE setStorageNum NOTIFY storageNumChanged)
 	Q_PROPERTY(bool targetDestroyed READ targetDestroyed WRITE setTargetDestroyed NOTIFY targetDestroyedChanged)
 
 	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
@@ -111,7 +111,6 @@ public:
 	QByteArray objectiveUuid() const { return m_objectiveUuid; }
 	PickableType pickableType() const { return m_pickableType; }
 	QVariantMap pickableData() const { return m_pickableData; }
-	int storageNum() const { return m_storageNum; }
 	bool targetDestroyed() const { return m_targetDestroyed; }
 
 
@@ -125,10 +124,9 @@ public slots:
 	void enemyKilled(GameEnemy *);
 	void setTargetId(int targetId);
 	void setObjectiveUuid(QByteArray objectiveUuid);
-	QVariant generateQuestion();
+	Question generateQuestion();
 	void setPickableType(PickableType pickableType);
 	void setPickableData(QVariantMap pickableData);
-	void setStorageNum(int storageNum);
 	void setTargetDestroyed(bool targetDestroyed);
 
 signals:
@@ -141,7 +139,6 @@ signals:
 	void objectiveUuidChanged(QByteArray objectiveUuid);
 	void pickableTypeChanged(PickableType pickableType);
 	void pickableDataChanged(QVariantMap pickableData);
-	void storageNumChanged(int storageNum);
 	void targetDestroyedChanged(bool targetDestroyed);
 
 private:
@@ -154,7 +151,6 @@ private:
 	QByteArray m_objectiveUuid;
 	PickableType m_pickableType;
 	QVariantMap m_pickableData;
-	int m_storageNum;
 	bool m_targetDestroyed;
 };
 

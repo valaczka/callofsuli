@@ -41,6 +41,7 @@ GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, 
 	, m_player(player)
 	, m_enemy(enemy)
 	, m_question(nullptr)
+	, m_questionData()
 {
 }
 
@@ -91,9 +92,26 @@ void GameQuestion::run()
 	QQuickItem *scene = m_game->gameScene();
 	m_question = nullptr;
 
+	m_questionData = enemyData->generateQuestion();
+
+	if (!m_questionData.isValid()) {
+		qWarning() << "Invalid question";
+		emit finished();
+		return;
+	}
+
+
+	if (!m_questionData.generate()) {
+		qWarning() << "Generate() error";
+		emit finished();
+		return;
+	}
+
+
 	QMetaObject::invokeMethod(scene, "createQuestion", Qt::DirectConnection,
-							  Q_RETURN_ARG(QQuickItem *, m_question),
-							  Q_ARG(QVariant, enemyData->generateQuestion()));
+							  Q_RETURN_ARG(QQuickItem*, m_question),
+							  Q_ARG(GameQuestion*, this)
+							  );
 
 
 	if (m_question) {
@@ -111,6 +129,41 @@ void GameQuestion::run()
 		return;
 	}
 
+}
+
+
+
+/**
+ * @brief GameQuestion::questionQml
+ * @return
+ */
+
+QString GameQuestion::questionQml() const
+{
+	return m_questionData.qml();
+}
+
+
+/**
+ * @brief GameQuestion::questionData
+ * @return
+ */
+
+
+QVariantMap GameQuestion::questionData() const
+{
+	return m_questionData.question();
+}
+
+
+/**
+ * @brief GameQuestion::answerData
+ * @return
+ */
+
+QVariantMap GameQuestion::answerData() const
+{
+	return m_questionData.answer();
 }
 
 

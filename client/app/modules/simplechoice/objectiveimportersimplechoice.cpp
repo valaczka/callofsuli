@@ -32,6 +32,11 @@
  * SOFTWARE.
  */
 
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+
+
 #include "objectiveimportersimplechoice.h"
 
 ObjectiveImporterSimplechoice::ObjectiveImporterSimplechoice(QXlsx::Worksheet *worksheet)

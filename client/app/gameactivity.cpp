@@ -123,8 +123,9 @@ void GameActivity::createTarget(GameEnemy *enemy)
 	}
 
 
+	// FIXME: storageNum kell???
 
-	QVariantList list = db()->execSelectQuery("SELECT target, map, objective, storageNum FROM positions "
+	QVariantList list = db()->execSelectQuery("SELECT target, map, objective FROM positions "
 											  "LEFT JOIN targets ON (targets.id=positions.target) "
 											  "WHERE (positions.block=? OR positions.block IS NULL) AND targets.block IS NULL "
 											  "ORDER BY num, RANDOM()", {block});
@@ -139,7 +140,6 @@ void GameActivity::createTarget(GameEnemy *enemy)
 		} else if (enemyData) {
 			enemyData->setTargetId(target);
 			enemyData->setTargetDestroyed(false);
-			enemyData->setStorageNum(m.value("storageNum", 0).toInt());
 			enemyData->setObjectiveUuid(m.value("objective").toByteArray());
 			enemy->setMaxHp(1);
 			enemy->setHp(1);
@@ -266,7 +266,6 @@ void GameActivity::prepareDb(QVariantMap)
 								   "id INTEGER NOT NULL PRIMARY KEY, "
 								   "map INTEGER NOT NULL, "
 								   "objective TEXT NOT NULL, "
-								   "storageNum INTEGER NOT NULL DEFAULT 0, "
 								   "block INTEGER,"
 								   "num INTEGER NOT NULL DEFAULT 0)"))
 			throw 1;
@@ -318,7 +317,6 @@ void GameActivity::prepareDb(QVariantMap)
 						QVariantMap m;
 						m["map"] = mapIdx;
 						m["objective"] = QString(objective->uuid());
-						m["storageNum"] = i;
 						int idx = db()->execInsertQuery("INSERT INTO targets(?k?) VALUES (?)", m);
 
 						foreach (QVariant v, blockList) {

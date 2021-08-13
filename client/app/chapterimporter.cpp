@@ -29,10 +29,11 @@
 #include "xlsxabstractsheet.h"
 #include "xlsxworksheet.h"
 #include "abstractobjectiveimporter.h"
-#include "objectiveimportersimplechoice.h"
-#include "objectiveimportertruefalse.h"
+#include "modules/interfaces.h"
+#include "cosclient.h"
 #include <QObject>
 #include <QFile>
+#include <QDebug>
 
 ChapterImporter::ChapterImporter(const QString &filename)
 	: m_filename(filename)
@@ -77,15 +78,22 @@ bool ChapterImporter::import()
 			return false;
 		}
 
+		if (!Client::moduleObjectiveList().contains(name)) {
+			qInfo() << "Invalid worksheet module" << name;
+			continue;
+		}
 
-		AbstractObjectiveImporter *importer = nullptr;
+		ModuleInterface *mi = Client::moduleObjectiveList().value(name);
 
-		if (name == "simplechoice")
-			importer = new ObjectiveImporterSimplechoice(ws);
-		else if (name == "truefalse")
-			importer = new ObjectiveImporterTruefalse(ws);
-		else {
-			qInfo() << "Invalid worksheet name" << name;
+		if (!mi->canImport()) {
+			qInfo() << "Invalid worksheet module importer" << name;
+			continue;
+		}
+
+		AbstractObjectiveImporter *importer = mi->newImporter(ws);
+
+		if (!importer) {
+			qWarning() << "Invalid importer" << name;
 			continue;
 		}
 

@@ -35,7 +35,8 @@
 #ifndef OBJECTIVEIMPORTERTRUEFALSE_H
 #define OBJECTIVEIMPORTERTRUEFALSE_H
 
-#include "abstractobjectiveimporter.h"
+#include "../../abstractobjectiveimporter.h"
+#include "../../../QtXlsxWriter/xlsxworksheet.h"
 
 class ObjectiveImporterTruefalse : public AbstractObjectiveImporter
 {

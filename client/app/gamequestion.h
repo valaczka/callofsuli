@@ -41,6 +41,7 @@
 #include "gameenemy.h"
 #include "gameplayer.h"
 #include "cosgame.h"
+#include "question.h"
 
 class GameQuestion : public QObject
 {
@@ -53,6 +54,10 @@ public:
 	void run();
 
 public slots:
+	QString questionQml() const;
+	QVariantMap questionData() const;
+	QVariantMap answerData() const;
+
 	void forceDestroy();
 	void onSuccess(const qreal &xpFactor);
 	void onFailed();
@@ -67,6 +72,7 @@ private:
 	GamePlayer *m_player;
 	GameEnemy *m_enemy;
 	QQuickItem *m_question;
+	Question m_questionData;
 
 };
 

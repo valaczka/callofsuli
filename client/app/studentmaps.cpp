@@ -1038,6 +1038,26 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 
 	GameMatch *m_gameMatch = new GameMatch(missionLevel, m_currentMap, this);
+
+	QString err;
+	if (!m_gameMatch->check(&err)) {
+		m_client->sendMessageError(tr("Belső hiba"), err);
+
+		delete m_gameMatch;
+
+		if (m_demoMode) {
+			return;
+		}
+
+		QJsonObject o;
+		o["id"] = gameId;
+		o["xp"] = 0;
+		o["success"] = false;
+		send("gameFinish", o);
+		return;
+	}
+
+
 	m_gameMatch->setDeleteGameMap(false);
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);

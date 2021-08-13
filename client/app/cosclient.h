@@ -48,7 +48,7 @@
 #include "gameenemydata.h"
 #include "cossound.h"
 #include "question.h"
-
+#include "modules/interfaces.h"
 
 struct TerrainData;
 
@@ -98,6 +98,7 @@ public:
 	static void registerResources();
 	static void registerTypes();
 	static void initialize();
+	static void loadModules();
 	static bool commandLineParse(QCoreApplication &app);
 	static void standardPathCreate();
 
@@ -126,11 +127,11 @@ public:
 	QByteArray graphvizImage(const QString &dotData, const char* format = "svg");
 #endif
 
-	Q_INVOKABLE static QByteArray fileContent(const QString &filename);
+	static QByteArray fileContent(const QString &filename);
 
-	Q_INVOKABLE static QVariantMap byteArrayToJsonMap(const QByteArray &data);
-	Q_INVOKABLE static QByteArray jsonMapToByteArray(const QVariantMap &map);
-	Q_INVOKABLE static QString formattedDataSize(const qint64 &size);
+	static QVariantMap byteArrayToJsonMap(const QByteArray &data);
+	static QByteArray jsonMapToByteArray(const QVariantMap &map);
+	static QString formattedDataSize(const qint64 &size);
 
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QList<QPointF> &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
@@ -147,11 +148,9 @@ public:
 
 	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
 	Q_INVOKABLE static QVariantMap terrainMap();
-	Q_INVOKABLE static QVariantMap objectiveModuleMap() { return Question::objectivesMap(); }
-	Q_INVOKABLE static QVariantMap storageModuleMap() { return Question::storagesMap(); }
+
 	Q_INVOKABLE static QVariantMap objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
 	{ return Question::objectiveInfo(module, dataString, storageModule, storageDataString); }
-	Q_INVOKABLE static QVariantMap storageInfo(const QString &module) { return Question::storageInfo(module); }
 	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }
 
 
@@ -179,13 +178,15 @@ public:
 	QVariantList registrationClasses() const { return m_registrationClasses; }
 	QStringList waitForResources() const { return m_waitForResources; }
 
-	static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
-	static QVariantMap characterData() { return m_characterData; }
-	static QStringList musicList() { return m_musicList; }
+	Q_INVOKABLE static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
+	Q_INVOKABLE static QVariantMap characterData() { return m_characterData; }
+	Q_INVOKABLE static QStringList musicList() { return m_musicList; }
 	static TerrainData terrain(const QString &name);
 
 	Q_INVOKABLE static QStringList medalIcons() { return m_medalIconList; }
 	Q_INVOKABLE static QString medalIconPath(const QString &name, const bool &qrcPrepend = true);
+	static QHash<QString, ModuleInterface *> moduleObjectiveList() { return m_moduleObjectiveList; }
+	static QHash<QString, ModuleInterface *> moduleStorageList() { return m_moduleStorageList; }
 
 	qreal sfxVolume() const { return m_sfxVolume; }
 
@@ -346,6 +347,9 @@ private:
 	qreal m_sfxVolume;
 	QString m_userPlayerCharacter;
 	QVariantList m_registrationClasses;
+	static QHash<QString, ModuleInterface*> m_moduleObjectiveList;
+	static QHash<QString, ModuleInterface*> m_moduleStorageList;
+
 
 #ifdef WITH_CGRAPH
 	GVC_t *m_gvContext;

@@ -21,7 +21,7 @@
 			"defaults": {
 				"duration": 120,
 				"startHP": 3,
-				"questions": 0.5,
+				"questions": 0.35,
 				"deathmatch": true,
 				"inventory": [
 					{
@@ -68,7 +68,7 @@
 			"defaults": {
 				"duration": 150,
 				"startHP": 4,
-				"questions": 0.6,
+				"questions": 0.5,
 				"deathmatch": true,
 				"inventory": [
 					{
@@ -120,7 +120,7 @@
 			"defaults": {
 				"duration": 180,
 				"startHP": 5,
-				"questions": 0.75,
+				"questions": 0.6,
 				"deathmatch": true,
 				"inventory": [
 					{

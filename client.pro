@@ -5,6 +5,7 @@ unix:!android: {
 }
 
 SUBDIRS += client/QtXlsxWriter \
+		client/app/modules \
 		client/app
 
 CONFIG += ordered

@@ -87,6 +87,7 @@ public:
 
 
 public slots:
+	bool check(QString *errorString);
 	void addXP(const qreal &factor);
 	void setDeleteGameMap(bool deleteGameMap);
 	void setPlayerCharacter(QString playerCharacter);

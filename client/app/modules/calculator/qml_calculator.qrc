@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>GameQuestion_calculator.qml</file>
-        <file>MapEditorObjectiveEdit_calculator.qml</file>
+        <file>GQ_calculator.qml</file>
+        <file>ME_calculator.qml</file>
     </qresource>
 </RCC>

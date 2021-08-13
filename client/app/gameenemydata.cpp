@@ -36,7 +36,7 @@
 #include <qhash.h>
 #include "gameenemydata.h"
 #include "gameenemy.h"
-#include "question.h"
+
 
 GameEnemyData::GameEnemyData(QObject *parent)
 	: QObject(parent)
@@ -49,7 +49,6 @@ GameEnemyData::GameEnemyData(QObject *parent)
 	, m_objectiveUuid()
 	, m_pickableType(PickableInvalid)
 	, m_pickableData()
-	, m_storageNum(0)
 	, m_targetDestroyed(false)
 {
 
@@ -238,7 +237,7 @@ void GameEnemyData::setObjectiveUuid(QByteArray objectiveUuid)
  * @return
  */
 
-QVariant GameEnemyData::generateQuestion()
+Question GameEnemyData::generateQuestion()
 {
 	GameEnemy *e = enemyPrivate();
 
@@ -256,20 +255,18 @@ QVariant GameEnemyData::generateQuestion()
 	}
 
 	if (m_objectiveUuid.isEmpty() || !gameMap)
-		return QVariantMap();
+		return Question();
 
 
 	GameMap::Objective *objective = gameMap->objective(m_objectiveUuid);
 
 	if (!objective) {
-		return QVariantMap();
+		return Question();
 	}
 
-	Question q(objective, m_storageNum);
+	Question q(objective);
 
-	QVariantMap m = q.generate();
-
-	return m;
+	return q;
 }
 
 void GameEnemyData::setPickableType(GameEnemyData::PickableType pickableType)
@@ -290,14 +287,7 @@ void GameEnemyData::setPickableData(QVariantMap pickableData)
 	emit pickableDataChanged(m_pickableData);
 }
 
-void GameEnemyData::setStorageNum(int storageNum)
-{
-	if (m_storageNum == storageNum)
-		return;
 
-	m_storageNum = storageNum;
-	emit storageNumChanged(m_storageNum);
-}
 
 void GameEnemyData::setTargetDestroyed(bool targetDestroyed)
 {

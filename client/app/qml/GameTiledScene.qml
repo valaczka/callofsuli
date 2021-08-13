@@ -267,14 +267,14 @@ Scene {
 				}
 
 
-				function createQuestion(questionData) : Item {
+				function createQuestion(questionPrivate : GameQuestionPrivate) : Item {
 					if (!game)
 					return
 
 					startTimer.start()
 
 					var obj = questionComponent.createObject(game.itemPage,{
-						questionData: questionData
+						questionPrivate: questionPrivate
 					})
 
 					return obj

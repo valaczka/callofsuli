@@ -43,6 +43,7 @@
 #include "gamemap.h"
 #include "cosdb.h"
 
+#include "modules/staticmodules.h"
 
 
 int main(int argc, char *argv[])
@@ -76,6 +77,7 @@ int main(int argc, char *argv[])
 
 
 	Client::initialize();
+	Client::loadModules();
 
 	if (!Client::commandLineParse(app))
 		return 0;

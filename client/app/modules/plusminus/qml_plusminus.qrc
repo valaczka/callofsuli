@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GameQuestion_plusminus.qml</file>
+        <file>MapEditorObjectiveEdit_plusminus.qml</file>
+    </qresource>
+</RCC>

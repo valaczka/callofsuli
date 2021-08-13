@@ -655,7 +655,7 @@ void MapEditor::play(QVariantMap data)
 													"WHERE mission=? AND level=?",
 													   {m_currentMission, level});
 	if (gamedata.isEmpty()) {
-		emit playFailed();
+		emit playFailed(tr("Adatbázis hiba"));
 		return;
 	}
 
@@ -666,19 +666,13 @@ void MapEditor::play(QVariantMap data)
 	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress", false);
 
 	if (!game) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
-		emit playFailed();
+		emit playFailed(tr("Adatbázis hiba"));
 		return;
 	}
 
-	/*if (!checkGame(game)) {
-		emit playFailed();
-		delete game;
-		return;
-	}*/
+
 
 	GameMatch *m_gameMatch = new GameMatch(game, this);
-	m_gameMatch->setDeleteGameMap(true);
 	m_gameMatch->setImageDbName("editorDb");
 	m_gameMatch->setMissionUuid(gamedata.value("mission").toByteArray());
 	m_gameMatch->setName(gamedata.value("name").toString());
@@ -688,11 +682,25 @@ void MapEditor::play(QVariantMap data)
 	m_gameMatch->setDuration(gamedata.value("duration").toInt());
 	m_gameMatch->setStartBlock(gamedata.value("startBlock").toInt());
 
+
+	QString err;
+	if (!m_gameMatch->check(&err)) {
+		emit playFailed(err);
+		delete game;
+		delete m_gameMatch;
+		return;
+	}
+
+
+
+	m_gameMatch->setDeleteGameMap(true);
+
 	QString imageFolder = gamedata.value("imageFolder").toString();
 	QString imageFile = gamedata.value("imageFile").toString();
 
 	if (!imageFolder.isEmpty() && !imageFile.isEmpty())
 		m_gameMatch->setBgImage(imageFolder+"/"+imageFile);
+
 
 	emit playReady(m_gameMatch);
 }

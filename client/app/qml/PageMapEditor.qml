@@ -71,7 +71,7 @@ QBasePage {
 		}
 
 		onPlayFailed: {
-			cosClient.sendMessageError(qsTr("Lejátszás"), qsTr("Hibás adatbázis"))
+			cosClient.sendMessageError(qsTr("Lejátszási hiba"), error)
 		}
 
 		onPlayReady: {
@@ -130,16 +130,16 @@ QBasePage {
 
 
 		onStoragePermissionsDenied: {
-			console.debug("**** denied")
 			labelPermissions.text = qsTr("Írási/olvasási jogosultság hiányzik")
 			labelPermissions.color = CosStyle.colorErrorLighter
 		}
 
 		onStoragePermissionsGranted: {
-			console.debug("**** granted")
 			labelPermissions.visible = false
-			//openUrl("file:///home/valaczka/ddd.map")
+			openUrl("file:///home/valaczka/ddd.map")
 		}
+
+
 	}
 
 	toolBarMenu: QMenu {
@@ -176,10 +176,10 @@ QBasePage {
 			m.addAction(actionGraph)
 	}
 
-
 	Loader {
 		id: editorLoader
 		anchors.fill: parent
+		enabled: !questionComponent.enabled
 	}
 
 
