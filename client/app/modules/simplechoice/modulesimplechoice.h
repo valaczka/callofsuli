@@ -54,6 +54,8 @@ public:
 	inline QString qmlEditor() const override { return "ME_simplechoice.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
 
+	inline QStringList storageModules() const override { return QStringList(); }
+
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
 	QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const override;

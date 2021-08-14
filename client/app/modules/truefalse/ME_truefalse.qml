@@ -1,80 +1,61 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
 
-QAccordion {
-	id: control
+QCollapsible {
+	id: collapsible
+	title: qsTr("Igaz/hamis állítás")
 
-	property string objectiveUuid: ""
-	property var moduleData: null
+	property string moduleData: ""
+	property string storageData: ""
+	property string storageModule: ""
+	property int storageCount: 0
 
-	MapEditorObjectiveEditHeader {
-		id: header
-		title: qsTr("Igaz/hamis")
-	}
+	interactive: false
 
+	QGridLayout {
+		width: parent.width
 
-	QCollapsible {
-		id: collapsible
-		title: qsTr("Kérdés")
+		watchModification: false
 
-		QGridLayout {
-			width: parent.width
+		QGridLabel { field: textQuestion }
 
-			watchModification: false
+		QGridTextField {
+			id: textQuestion
+			fieldName: qsTr("Állítás")
+			sqlField: "question"
+			placeholderText: qsTr("Ez az állítás fog megjelenni")
 
-			QGridLabel { field: textQuestion }
-
-			QGridTextField {
-				id: textQuestion
-				fieldName: qsTr("Kérdés")
-
-				onTextModified: saveData()
-			}
-
-			QGridCheckBox {
-				id: chTrue
-				text: qsTr("Helyes-e?")
-
-				onToggled: saveData()
-			}
-
+			onTextModified: getData()
 		}
+
+		QGridCheckBox {
+			id: chTrue
+			text: qsTr("Az állítás IGAZ")
+			sqlField: "correct"
+
+			onToggled: getData()
+		}
+
 	}
 
 
-
-	function reloadData() {
-		if (!moduleData)
+	Component.onCompleted: {
+		if (moduleData == "")
 			return
 
-		var d = moduleData.objectiveData
-
-		if (d) {
-			var j=JSON.parse(d)
-			textQuestion.setData(j.question ? j.question : "")
-			chTrue.setData(j.correct ? j.correct : false)
-		}
+		JS.setSqlFields([textQuestion, chTrue], JSON.parse(moduleData))
 	}
 
 
-	function saveData() {
-		if (!objectiveUuid.length)
-			return
+	function getData() {
+		moduleData = JSON.stringify(JS.getSqlFields([textQuestion, chTrue]))
 
-		var d = {}
-
-		d.question = textQuestion.text
-		d.correct = chTrue.checked
-
-		var x = JSON.stringify(d)
-
-		mapEditor.run("objectiveModify", {uuid: objectiveUuid, data: { data: x }})
+		return moduleData
 	}
 
 }

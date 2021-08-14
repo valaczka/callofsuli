@@ -41,8 +41,6 @@ VariantMapModel::VariantMapModel(const QStringList &roleNames, QObject *parent)
 	, m_data(new VariantMapData())
 
 {
-	qDebug() << "NEW VARIANT MAP MODEL" << this << "parent" << parent;
-
 	m_data->addModel(this);
 
 	int i = Qt::UserRole+1;
@@ -62,8 +60,6 @@ VariantMapModel::VariantMapModel(const QStringList &roleNames, QObject *parent)
 
 VariantMapModel::~VariantMapModel()
 {
-	qDebug() << "DELETE VARIANT MAP MODEL" << this;
-
 	if (m_data) {
 		m_data->removeModel(this);
 

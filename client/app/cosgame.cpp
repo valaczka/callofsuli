@@ -680,7 +680,6 @@ void CosGame::setBackgroundMusicFile(QString backgroundMusicFile)
 
 void CosGame::startGame()
 {
-	qDebug() << "START GAME";
 	m_msecLeft = m_gameMatch->duration()*1000;
 	emit msecLeftChanged(m_msecLeft);
 
@@ -699,7 +698,6 @@ void CosGame::startGame()
 
 void CosGame::abortGame()
 {
-	qDebug() << "ABORT GAME";
 	setRunning(false);
 	emit gameAbortRequest();
 }
@@ -1188,8 +1186,6 @@ bool CosGame::loadTerrainData()
 
 void CosGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 {
-	qDebug() << player << "--- ATTACK ---" << enemy;
-
 	if (!player || !enemy) {
 		qWarning() << "Invalid player or invalid enemy";
 		return;

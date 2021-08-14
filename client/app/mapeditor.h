@@ -62,6 +62,8 @@ class MapEditor : public AbstractActivity
 
 	// Chapters
 
+	Q_PROPERTY(VariantMapModel * modelObjectiveModules READ modelObjectiveModules WRITE setModelObjectiveModules NOTIFY modelObjectiveModulesChanged)
+	Q_PROPERTY(VariantMapModel * modelStorageList READ modelStorageList WRITE setModelStorageList NOTIFY modelStorageListChanged)
 	Q_PROPERTY(VariantMapModel * modelChapterList READ modelChapterList WRITE setModelChapterList NOTIFY modelChapterListChanged)
 	Q_PROPERTY(VariantMapModel * modelDialogChapterMissionList READ modelDialogChapterMissionList WRITE setModelDialogChapterMissionList
 			   NOTIFY modelDialogChapterMissionListChanged)
@@ -84,6 +86,9 @@ public:
 
 	TerrainData defaultTerrain() const;
 
+	Q_INVOKABLE QString objectiveQml(const QString &module);
+	Q_INVOKABLE QString storageQml(const QString &module);
+
 	QString currentMission() const { return m_currentMission; }
 	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
 	VariantMapModel * modelTerrainList() const { return m_modelTerrainList; }
@@ -96,6 +101,8 @@ public:
 	VariantMapModel * modelDialogChapterList() const { return m_modelDialogChapterList; }
 	VariantMapModel * modelDialogChapterMissionList() const { return m_modelDialogChapterMissionList; }
 	VariantMapModel * modelChapterList() const { return m_modelChapterList; }
+	VariantMapModel * modelObjectiveModules() const { return m_modelObjectiveModules; }
+	VariantMapModel * modelStorageList() const { return m_modelStorageList; }
 
 public slots:
 	void createTargets(const QString &filename);
@@ -126,11 +133,14 @@ public slots:
 	void setModelDialogChapterList(VariantMapModel * modelDialogChapterList);
 	void setModelDialogChapterMissionList(VariantMapModel * modelDialogChapterMissionList);
 	void setModelChapterList(VariantMapModel * modelChapterList);
+	void setModelObjectiveModules(VariantMapModel * modelObjectiveModules);
+	void setModelStorageList(VariantMapModel * modelStorageModules);
 
 	void getMissionList();
 	void getCurrentMissionData();
 	void getFirstMission();
 	void getObjectiveList();
+	void getStorageList();
 	void getChapterList();
 
 	void play(QVariantMap data);
@@ -168,7 +178,7 @@ public slots:
 	void objectiveRemove(QVariantMap data);
 	void objectiveCopy(QVariantMap data);
 	void objectiveImport(QVariantMap data);
-
+	void objectiveAddOrModify(QVariantMap data);
 
 
 
@@ -214,7 +224,8 @@ signals:
 	void modelDialogChapterListChanged(VariantMapModel * modelDialogChapterList);
 	void modelDialogChapterMissionListChanged(VariantMapModel * modelDialogChapterMissionList);
 	void modelChapterListChanged(VariantMapModel * modelChapterList);
-
+	void modelObjectiveModulesChanged(VariantMapModel * modelObjectiveModules);
+	void modelStorageListChanged(VariantMapModel * modelStorageModules);
 
 protected:
 	void openPrivate(QVariantMap data);
@@ -250,6 +261,8 @@ private:
 	VariantMapModel * m_modelDialogChapterList;
 	VariantMapModel * m_modelDialogChapterMissionList;
 	VariantMapModel * m_modelChapterList;
+	VariantMapModel * m_modelObjectiveModules;
+	VariantMapModel * m_modelStorageList;
 };
 
 #endif // MAPEDITOR_H

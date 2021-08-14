@@ -148,6 +148,38 @@ QVariantMap Question::objectiveInfo(const QString &module, const QString &dataSt
 }
 
 
+/**
+ * @brief Question::storageInfo
+ * @param module
+ * @param dataString
+ * @return
+ */
+
+QVariantMap Question::storageInfo(const QString &module, const QString &dataString)
+{
+	if (!Client::moduleStorageList().contains(module)) {
+		return QVariantMap({
+							   { "name", "" },
+							   { "icon", "image://font/Material Icons/\ue002" },
+							   { "title", QObject::tr("Érvénytelen modul!") },
+							   { "details", "" },
+							   { "image", "" }
+						   });
+	}
+
+	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
+
+	ModuleInterface *mi = Client::moduleStorageList().value(module);
+
+	QVariantMap m;
+	m["name"] = mi->readableName();
+	m["icon"] = mi->icon();
+	m.insert(mi->details(data, nullptr, QVariantMap()));
+
+	return m;
+}
+
+
 
 /**
  * @brief Question::qml

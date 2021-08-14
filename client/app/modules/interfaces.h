@@ -47,6 +47,9 @@ public:
 	// A modul ikonja
 	virtual QString icon() const = 0;
 
+	// Ha objective modul, akkor a használható storage modulok listája
+	virtual QStringList storageModules() const = 0;
+
 
 	// A szerkesztőfelület (QML)
 	virtual QString qmlEditor() const = 0;

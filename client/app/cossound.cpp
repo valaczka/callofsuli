@@ -154,8 +154,6 @@ void CosSound::playSound(const QString &source, const SoundType &soundType)
 	if (!m_mediaPlayerMusic || !m_mediaPlayerSfx || !m_mediaPlayerVoiceOver)
 		return;
 
-	qDebug() << "PLAY SOUND" << source << soundType;
-
 	if (soundType == Music) {
 		musicPlay(source);
 	} else if (soundType == VoiceOver) {
@@ -221,7 +219,6 @@ void CosSound::stopSound(const QString &source, const SoundType &soundType)
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState && m_mediaPlayerMusic->currentMedia() == QUrl(source)
 		&& m_fadeAnimation->state() != QAbstractAnimation::Running)
 	{
-		qDebug("STOP");
 		m_fadeAnimation->setStartValue(m_mediaPlayerMusic->volume());
 		m_fadeAnimation->start();
 	}
@@ -297,8 +294,6 @@ void CosSound::musicLoadNextSource()
 {
 	if (!m_mediaPlayerMusic)
 		return;
-
-	qDebug() << "LOAD NEXT SOURCE" << m_musicNextSource;
 
 	if (m_musicNextSource.isEmpty()) {
 		m_mediaPlayerMusic->stop();

@@ -138,5 +138,7 @@
         <file>MapEditorMissionLocks.qml</file>
         <file>MapEditorChapterList.qml</file>
         <file>QDialogFile.qml</file>
+        <file>QDrawer.qml</file>
+        <file>MapEditorObjective.qml</file>
     </qresource>
 </RCC>

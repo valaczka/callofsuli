@@ -1,144 +1,90 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
 
-QAccordion {
-	id: control
+QCollapsible {
+	id: collapsible
+	title: qsTr("Egyszerű választás")
 
-	property string objectiveUuid: ""
-	property var moduleData: null
+	property string moduleData: ""
+	property string storageData: ""
+	property string storageModule: ""
+	property int storageCount: 0
 
-	MapEditorObjectiveEditHeader {
-		id: header
-		title: qsTr("Egyszerű választás")
-	}
+	interactive: false
 
+	QGridLayout {
+		width: parent.width
 
-	QCollapsible {
-		title: qsTr("Kérdés")
+		watchModification: false
 
-		QGridLayout {
-			width: parent.width
+		QGridLabel { field: textQuestion }
 
-			watchModification: false
+		QGridTextField {
+			id: textQuestion
+			fieldName: qsTr("Kérdés")
+			sqlField: "question"
+			placeholderText: qsTr("Ez a kérdés fog megjelenni")
 
-			QGridLabel { field: textQuestion }
-
-			QGridTextField {
-				id: textQuestion
-				fieldName: qsTr("Kérdés")
-				placeholderText: qsTr("Ez a kérdés fog megjelenni")
-
-				onTextModified: saveData()
-			}
-
-			QGridLabel { field: textCorrectAnswer }
-
-			QGridTextField {
-				id: textCorrectAnswer
-				fieldName: qsTr("Helyes válasz")
-				placeholderText: qsTr("Ez lesz a helyes válasz")
-
-				onTextModified: saveData()
-			}
-
+			onTextModified: getData()
 		}
-	}
 
-	QCollapsible {
-		title: qsTr("Helytelen válaszok")
+		QGridLabel { field: textCorrectAnswer }
 
-		QListTextFieldDelegate {
-			id: answerView
-			width: parent.width
+		QGridTextField {
+			id: textCorrectAnswer
+			fieldName: qsTr("Helyes válasz")
+			sqlField: "correct"
+			placeholderText: qsTr("Ez lesz a helyes válasz")
 
-			removeRole: "remove"
-			addRole: "add"
-
-			defaultPlaceholderText: qsTr("Ez helytelen válasz lesz")
-
-			onRemoveRequest: {
-				answerModel.remove(index)
-				saveData()
-			}
-
-			onAddRequest: addItem()
-
-			onItemAccepted: {
-				if (index == answerModel.count-2)
-					addItem()
-				else
-					answerView.forceFocus(index+1)
-
-			}
-
-			onItemModified: {
-				answerModel.set(index, { text: text })
-				saveData()
-			}
-
-			model: ListModel {
-				id: answerModel
-			}
-
-
-			function addItem() {
-				answerModel.insert(answerModel.count-1, {text: "", remove: true, add: false})
-			}
+			onTextModified: getData()
 		}
+
+		QGridLabel {
+			field: areaAnswers
+		}
+
+		QGridTextArea {
+			id: areaAnswers
+			fieldName: qsTr("Helytelen válaszok")
+			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
+			background: Item {
+				implicitWidth: 50
+				implicitHeight: CosStyle.baseHeight*2
+			}
+
+			onTextModified: getData()
+		}
+
+
 	}
 
 
-
-	function reloadData() {
-		if (!moduleData)
+	Component.onCompleted: {
+		if (moduleData == "")
 			return
 
-		answerModel.clear()
+		var d = JSON.parse(moduleData)
 
-		var d = moduleData.objectiveData
-
-		if (d) {
-			var j=JSON.parse(d)
-			textQuestion.setData(j.question ? j.question : "")
-			textCorrectAnswer.setData(j.correct ? j.correct : "")
-			if (j.answers && j.answers.length) {
-				for (var i=0; i<j.answers.length; i++) {
-					answerModel.append({text: j.answers[i], add: false, remove:true})
-				}
-			}
-		}
-
-		answerModel.append({text: "", add: true, remove: false})
+		JS.setSqlFields([textQuestion, textCorrectAnswer], d)
+		areaAnswers.setData(d.answers.join("\n"))
 	}
 
 
-	function saveData() {
-		if (!objectiveUuid.length)
-			return
+	function getData() {
+		var d = JS.getSqlFields([textQuestion, textCorrectAnswer])
+		d.answers = areaAnswers.text.split("\n")
 
-		var d = {}
-		var list = []
-
-		for (var i=0; i<answerModel.count; i++) {
-			var o = answerModel.get(i)
-			if (!o.add)
-				list.push(o.text)
-		}
-
-		d.question = textQuestion.text
-		d.correct = textCorrectAnswer.text
-		d.answers = list
-
-		var x = JSON.stringify(d)
-
-		mapEditor.run("objectiveModify", {uuid: objectiveUuid, data: { data: x }})
+		moduleData = JSON.stringify(d)
+		return moduleData
 	}
 
 }
+
+
+
 

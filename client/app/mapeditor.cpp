@@ -56,6 +56,8 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_modelDialogChapterList(nullptr)
 	, m_modelDialogChapterMissionList(nullptr)
 	, m_modelChapterList(nullptr)
+	, m_modelObjectiveModules(nullptr)
+	, m_modelStorageList(nullptr)
 {
 	/*m_map["getMissionList"] = &MapEditor::getMissionList;
 	m_map["getCurrentMissionData"] = &MapEditor::getCurrentMissionData;
@@ -161,6 +163,51 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 
 
+
+
+	m_modelObjectiveModules = new VariantMapModel({
+													  "module",
+													  "name",
+													  "icon",
+													  "storageModules"
+												  },
+												  this);
+
+
+	QHash<QString, ModuleInterface *> omlist =  Client::moduleObjectiveList();
+	QHash<QString, ModuleInterface *>::const_iterator omit;
+	QVariantMap om;
+
+	for (omit = omlist.constBegin(); omit != omlist.constEnd(); ++omit) {
+		om[omit.key()] = QVariantMap({
+										 { "name", omit.value()->readableName() },
+										 { "icon", omit.value()->icon() },
+										 { "storageModules", omit.value()->storageModules() }
+									 });
+
+	}
+
+	m_modelObjectiveModules->setVariantList(Client::mapToList(om, "module"), "module");
+
+
+
+
+
+	m_modelStorageList = new VariantMapModel({
+												 "id",
+												 "module",
+												 "name",
+												 "icon",
+												 "title",
+												 "details",
+												 "storageData",
+												 "objectiveCount"
+											 },
+											 this);
+
+
+
+
 	m_modelLockList = new VariantMapModel({
 											  "lock",
 											  "level",
@@ -209,6 +256,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 		getMissionList();
 		getChapterList();
 		getObjectiveList();
+		getStorageList();
 		getCurrentMissionData();
 		missionLockGraphUpdate();
 	});
@@ -241,6 +289,8 @@ MapEditor::~MapEditor()
 	delete m_modelDialogChapterList;
 	delete m_modelDialogChapterMissionList;
 	delete m_modelChapterList;
+	delete m_modelObjectiveModules;
+	delete m_modelStorageList;
 }
 
 
@@ -270,7 +320,41 @@ TerrainData MapEditor::defaultTerrain() const
 	if (!m_client)
 		return TerrainData();
 
-	return m_client->terrain(m_client->getSetting("defaultTerrain", "Canberra_Retreat").toString());
+	return m_client->terrain(m_client->getSetting("defaultTerrain", "West_Louische").toString());
+}
+
+
+/**
+ * @brief MapEditor::objectiveQml
+ * @param module
+ * @return
+ */
+
+QString MapEditor::objectiveQml(const QString &module)
+{
+	if (!Client::moduleObjectiveList().contains(module))
+		return "";
+
+	ModuleInterface *mi = Client::moduleObjectiveList().value(module);
+
+	return mi->qmlEditor();
+}
+
+
+/**
+ * @brief MapEditor::storageQml
+ * @param module
+ * @return
+ */
+
+QString MapEditor::storageQml(const QString &module)
+{
+	if (!Client::moduleStorageList().contains(module))
+		return "";
+
+	ModuleInterface *mi = Client::moduleStorageList().value(module);
+
+	return mi->qmlEditor();
 }
 
 
@@ -610,6 +694,58 @@ void MapEditor::getObjectiveList()
 "LEFT JOIN storages ON (storages.id=objectives.storage)");
 
 	m_modelObjectiveList->setVariantList(objectives, "rid");
+}
+
+
+/**
+ * @brief MapEditor::getStorageList
+ */
+
+void MapEditor::getStorageList()
+{
+	if (!m_loaded) {
+		m_modelStorageList->clear();
+		return;
+	}
+
+	QVariantList list;
+
+	QVariantList storages = db()->execSelectQuery("SELECT id, module, data as storageData, "
+"(SELECT COUNT(*) FROM objectives WHERE storage=storages.id) as objectiveCount "
+"FROM storages");
+
+
+	QHash<QString, ModuleInterface *> mlist =  Client::moduleStorageList();
+	QHash<QString, ModuleInterface *>::const_iterator it;
+
+	int id = -1;
+
+	for (it = mlist.constBegin(); it != mlist.constEnd(); ++it) {
+		ModuleInterface *iif = it.value();
+		QVariantMap m = {
+			{ "id", id-- },
+			{ "module", it.key() },
+			{ "name", "" },
+			{ "title", tr("Új %1").arg(iif->readableName()) },
+			{ "icon", iif->icon() },
+			{ "details", "" },
+			{ "storageData", "" },
+			{ "objectiveCount", 0 }
+		};
+
+		list.append(m);
+	}
+
+
+	foreach(QVariant v, storages) {
+		QVariantMap m = v.toMap();
+		m.insert(Client::storageInfo(m.value("module").toString(), m.value("data").toString()));
+
+		list.append(m);
+	}
+
+	m_modelStorageList->setVariantList(list, "id");
+
 }
 
 
@@ -1526,8 +1662,8 @@ void MapEditor::chapterImport(QVariantMap data)
 		db()->undoLogBegin(tr("Új szakasz"));
 
 		chapter = db()->execInsertQuery("INSERT INTO chapters (?k?) VALUES (?)", {
-											 {"name", tr("Importált szakasz")}
-										 });
+											{"name", tr("Importált szakasz")}
+										});
 
 		db()->undoLogEnd();
 
@@ -1715,6 +1851,93 @@ void MapEditor::objectiveImport(QVariantMap data)
 	getObjectiveList();
 	getCurrentMissionData();
 	setModified(true);
+}
+
+
+/**
+ * @brief MapEditor::objectiveAddOrModify
+ * @param data
+ */
+
+void MapEditor::objectiveAddOrModify(QVariantMap data)
+{
+	QString uuid = data.value("uuid", "").toString();
+	int storage = data.value("storage", 0).toInt();
+
+	if (uuid.isEmpty()) {
+		db()->undoLogBegin(tr("Feladat létrehozása"));
+
+		if (storage == -1) {
+			storage = db()->execInsertQuery("INSERT INTO storages(?k?) values (?)", {
+												{ "module", data.value("storageModule").toString() },
+												{ "data", data.value("storageData").toString() }
+											});
+		}
+
+		uuid = QUuid::createUuid().toString();
+
+		QVariant s = QVariant::Invalid;
+		if (storage > 0)
+			s = storage;
+
+		db()->execInsertQuery("INSERT INTO objectives(?k?) values (?)", {
+								  { "uuid" , uuid },
+								  { "chapter" , data.value("chapter", -1).toInt() },
+								  { "module" , data.value("module").toString() },
+								  { "storage" , s},
+								  { "storageCount" , data.value("storageCount", 0).toInt() },
+								  { "data" , data.value("data").toString() }
+							  });
+
+		db()->undoLogEnd();
+
+	} else {
+		db()->undoLogBegin(tr("Feladat módosítása"));
+
+		if (storage > 0) {
+			db()->execUpdateQuery("UPDATE storages SET ? WHERE id=:id", {
+									  { "data", data.value("storageData").toString() }
+								  }, {
+									  { ":id", storage }
+								  });
+		}
+
+		db()->execUpdateQuery("UPDATE objectives SET ? WHERE uuid=:id", {
+								  { "storageCount" , data.value("storageCount", 0).toInt() },
+								  { "data" , data.value("data").toString() }
+							  }, {
+								  { ":id", uuid }
+							  });
+
+		db()->undoLogEnd();
+	}
+
+	getChapterList();
+	getObjectiveList();
+	getStorageList();
+	getCurrentMissionData();
+	setModified(true);
+}
+
+
+
+
+void MapEditor::setModelObjectiveModules(VariantMapModel *modelObjectiveModules)
+{
+	if (m_modelObjectiveModules == modelObjectiveModules)
+		return;
+
+	m_modelObjectiveModules = modelObjectiveModules;
+	emit modelObjectiveModulesChanged(m_modelObjectiveModules);
+}
+
+void MapEditor::setModelStorageList(VariantMapModel *modelStorageModules)
+{
+	if (m_modelStorageList == modelStorageModules)
+		return;
+
+	m_modelStorageList = modelStorageModules;
+	emit modelStorageListChanged(m_modelStorageList);
 }
 
 

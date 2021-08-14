@@ -394,8 +394,6 @@ void GamePlayer::setShield(int shield)
 
 void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 {
-	qDebug() << this << "Hurt by enemy" << enemy << canProtect;
-
 	emit underAttack();
 
 	if (canProtect && m_shield > 0) {
@@ -417,7 +415,6 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 
 void GamePlayer::killByEnemy(GameEnemy *enemy)
 {
-	qDebug() << this << "Kill by enemy" << enemy;
 	setHp(0);
 	emit killedByEnemy(enemy);
 }
@@ -432,7 +429,8 @@ void GamePlayer::attackByGun()
 	if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish)
 		return;
 
-	qDebug() << "Attack by gun" << m_enemy;
+	if (!m_isAlive)
+		return;
 
 	emit attack();
 
@@ -502,7 +500,6 @@ QString GamePlayer::playSoundEffect(const QString &effect)
 
 void GamePlayer::attackSuccesful(GameEnemy *enemy)
 {
-	qDebug() << "Attack successful" << enemy;
 	emit attackSucceed(enemy);
 }
 
@@ -514,7 +511,6 @@ void GamePlayer::attackSuccesful(GameEnemy *enemy)
 
 void GamePlayer::attackFailed(GameEnemy *enemy)
 {
-	qDebug() << "Attack failed" << enemy;
 	hurtByEnemy(enemy);
 }
 
@@ -587,7 +583,6 @@ void GamePlayer::onRayCastReported(QMultiMap<qreal, QQuickItem *> items)
 
 void GamePlayer::onEnemyDied()
 {
-	qDebug() << this << "enemy died";
 	m_enemy = nullptr;
 	emit enemyChanged(m_enemy);
 }

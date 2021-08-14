@@ -1,39 +1,4 @@
 {
-	"backgroundMusic": "../../sound/music/default_bg_music.mp3",
-	"default": {
-		"duration": 180,
-		"hp": 5,
-		"inventory": [
-			{
-				"module": "health",
-				"count": 1,
-				"block": 2
-			},
-			{
-				"module": "health",
-				"count": 1,
-				"block": 3
-			},
-			{
-				"module": "time1",
-				"count": 1,
-				"block": 0
-			},
-			{
-				"module": "shield1",
-				"count": 2,
-				"block": 0
-			},
-			{
-				"module": "shield2",
-				"count": 2,
-				"block": 0
-			},
-			{
-				"module": "time2",
-				"count": 1,
-				"block": 0
-			}
-		]
-	}
+	"name": "West Louische",
+	"backgroundMusic": "../../sound/music/default_bg_music.mp3"
 }

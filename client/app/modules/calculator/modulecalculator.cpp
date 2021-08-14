@@ -62,17 +62,17 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 		QString details = "";
 
-		if (range >= 3) {
+		if (range >= 4) {
 			if (allCanNegative)
 				details += QObject::tr("-100 és 100 között");
 			else
 				details += QObject::tr("0 és 100 között");
-		} else if (range == 2) {
+		} else if (range == 3) {
 			if (allCanNegative)
 				details += QObject::tr("-50 és 50 között");
 			else
 				details += QObject::tr("0 és 50 között");
-		} else if (range == 3) {
+		} else if (range == 2) {
 			if (allCanNegative)
 				details += QObject::tr("-20 és 20 között");
 			else
@@ -161,17 +161,17 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleI
 
 	int floor = 1, ceil = 1;
 
-	if (range >= 3) {
+	if (range >= 4) {
 		xpFactor += 0.4;
 		ceil = allCanNegative ? 100 : 101;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -100;
-	} else if (range == 2) {
+	} else if (range == 3) {
 		xpFactor += 0.3;
 		ceil = allCanNegative ? 50 : 51;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -50;
-	} else if (range == 3) {
+	} else if (range == 2) {
 		xpFactor += 0.2;
 		ceil = allCanNegative ? 20 : 21;
 		if (allCanNegative || (isSubtract && canNegative))
@@ -230,7 +230,7 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleI
 	m["xpFactor"] = xpFactor;
 
 	if (answerPtr) {
-		(*answerPtr)["first"] = 0;
+		(*answerPtr)["first"] = answer;
 		(*answerPtr)["second"] = 0;
 	}
 

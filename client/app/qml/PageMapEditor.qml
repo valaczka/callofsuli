@@ -12,10 +12,10 @@ QBasePage {
 	defaultTitle: qsTr("Pályaszerkesztő")
 	defaultSubTitle: mapEditor.loaded ? mapEditor.readableFilename : ""
 
-	//mainToolBarComponent: QToolButton { action: actionSave }
-
 	activity: MapEditor {
 		id: mapEditor
+
+		property Drawer drawer: mapEditorDrawer
 
 		onLoadStarted: {
 			var d = JS.dialogCreateQml("Progress", { title: qsTr("Betöltés"), text: filename })
@@ -42,6 +42,7 @@ QBasePage {
 			getMissionList()
 			getChapterList()
 			getObjectiveList()
+			getStorageList()
 			actionMissions.trigger()
 		}
 
@@ -51,9 +52,6 @@ QBasePage {
 		}
 
 		onSaveDialogRequest: {
-			//dialogSave.isSaveAs = !isNew
-			//dialogSave.open()
-
 			if (!mapEditor.loaded)
 				return
 
@@ -151,9 +149,6 @@ QBasePage {
 		MenuItem {
 			action: actionChapters
 		}
-		MenuItem {
-			action: actionStorages
-		}
 	}
 
 	mainToolBarComponent: Row {
@@ -179,8 +174,9 @@ QBasePage {
 	Loader {
 		id: editorLoader
 		anchors.fill: parent
-		enabled: !questionComponent.enabled
+		enabled: !mapEditorDrawer.opened
 	}
+
 
 
 	QLabel {
@@ -207,6 +203,47 @@ QBasePage {
 		}
 	}
 
+	Rectangle {
+		anchors.fill: parent
+		color: "black"
+		opacity: 0.7 * mapEditorDrawer.position
+		visible: mapEditorDrawer.position
+	}
+
+
+	QDrawer {
+		id: mapEditorDrawer
+		edge: Qt.BottomEdge
+		height: control.height - control.mainToolBar.height
+		width: control.width>control.height ? Math.min(control.width*0.9, 1080) : control.width
+		x: (control.width-width)/2
+
+		property alias loader: drawerLoader
+
+		dim: false
+		interactive: false
+		modal: true
+
+		onClosed: {
+			interactive = false
+			drawerLoader.sourceComponent = undefined
+		}
+
+		onOpened: {
+			interactive = true
+		}
+
+
+		Loader {
+			id: drawerLoader
+			anchors.fill: parent
+			property Drawer drawer: mapEditorDrawer
+			property MapEditor mapEditor: mapEditor
+
+			onStatusChanged: if (drawerLoader.status == Loader.Ready)
+								 mapEditorDrawer.open()
+		}
+	}
 
 
 
@@ -274,15 +311,7 @@ QBasePage {
 		}
 	}
 
-	Action {
-		id: actionStorages
-		text: qsTr("Storages")
-		icon.source: CosStyle.iconAdd
-		onTriggered: {
-			control.title = qsTr("Storages")
-			editorLoader.sourceComponent = undefined
-		}
-	}
+
 
 	Action {
 		id: actionGraph

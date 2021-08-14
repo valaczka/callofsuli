@@ -192,7 +192,16 @@ QCollapsible {
 									icon.source: CosStyle.iconDuplicate
 									text: qsTr("Kettőzés")
 
-									onClicked: mapEditor.objectiveCopy({uuid: item.uuid, chapter: control.chapter})
+									onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+																					 uuid: "",
+																					 objectiveModule: item.objectiveModule,
+																					 objectiveData: item.objectiveData,
+																					 storage: item.storage,
+																					 storageData: item.storageData,
+																					 storageModule: item.storageModule,
+																					 storageCount: item.storageCount,
+																					 chapter: control.chapter
+																				 })
 								}
 
 								MenuSeparator { }
@@ -212,7 +221,16 @@ QCollapsible {
 
 					mouseArea.onClicked: {
 						if (mouse.button === Qt.LeftButton) {
-							//mapEditor.loadQuestion()
+							mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+																  uuid: item.uuid,
+																  objectiveModule: item.objectiveModule,
+																  objectiveData: item.objectiveData,
+																  storage: item.storage,
+																  storageData: item.storageData,
+																  storageModule: item.storageModule,
+																  storageCount: item.storageCount,
+																  chapter: control.chapter
+															  })
 
 						} else if (mouse.button === Qt.RightButton) {
 							objectiveMenu.open()
@@ -235,7 +253,16 @@ QCollapsible {
 			anchors.horizontalCenter: parent.horizontalCenter
 			icon.source: CosStyle.iconAdd
 			text: qsTr("Új feladat")
-			//onClicked: mapEditor.missionLevelGetChapterList(level)
+			onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+															 uuid: "",
+															 objectiveModule: "",
+															 objectiveData: "",
+															 storage: -1,
+															 storageData: "",
+															 storageModule: "",
+															 storageCount: 0,
+															 chapter: control.chapter
+														 })
 		}
 	}
 

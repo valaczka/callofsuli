@@ -97,8 +97,6 @@ Page {
 				for (var i=0; i<panelComponents.length; i++) {
 					var comp = panelComponents[i]
 
-					console.debug(control, "Create", i)
-
 					var obj = comp.createObject(mainRow, {
 													height: parent.height,
 													"Layout.fillHeight": true

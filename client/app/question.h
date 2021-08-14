@@ -52,6 +52,8 @@ public:
 	static QVariantMap objectiveInfo(const QString &module, const QString &dataString,
 									 const QString &storageModule = "", const QString &storageDataString = "");
 
+	static QVariantMap storageInfo(const QString &module, const QString &dataString);
+
 	QVariantMap question() const { return m_question; }
 	QVariantMap answer() const { return m_answer; }
 	QString qml() const;

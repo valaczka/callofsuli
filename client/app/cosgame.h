@@ -76,7 +76,7 @@ class CosGame : public Game
 
 public:
 	CosGame(QQuickItem *parent = 0);
-	~CosGame();
+	virtual ~CosGame();
 
 	Q_INVOKABLE void loadScene();
 

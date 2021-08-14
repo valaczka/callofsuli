@@ -191,7 +191,7 @@ void GameEnemy::attackTimerTimeout()
 
 void GameEnemy::attackPlayer()
 {
-	if (m_player) {
+	if (m_player && m_isAlive) {
 		emit attack();
 		m_player->hurtByEnemy(this, true);
 	}
