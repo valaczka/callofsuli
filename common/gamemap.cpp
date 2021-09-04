@@ -40,10 +40,9 @@
 
 GameMap::GameMap(const QByteArray &uuid)
 	: m_uuid(uuid)
-	, m_campaigns()
 	, m_chapters()
 	, m_storages()
-	, m_orphanMissions()
+	, m_missions()
 	, m_progressObject(nullptr)
 	, m_progressFunc()
 {
@@ -57,11 +56,8 @@ GameMap::GameMap(const QByteArray &uuid)
 
 GameMap::~GameMap()
 {
-	qDeleteAll(m_orphanMissions.begin(), m_orphanMissions.end());
-	m_orphanMissions.clear();
-
-	qDeleteAll(m_campaigns.begin(), m_campaigns.end());
-	m_campaigns.clear();
+	qDeleteAll(m_missions.begin(), m_missions.end());
+	m_missions.clear();
 
 	qDeleteAll(m_storages.begin(), m_storages.end());
 	m_storages.clear();
@@ -144,7 +140,11 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data, QObject *target, const 
 		return nullptr;
 	}
 
-	map->campaignsFromStream(stream, version);
+	if (version < 10) {
+		map->_deprecated_campaignsFromStream(stream, version);
+	}
+
+	map->missionsFromStream(stream, version);
 	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
@@ -200,7 +200,7 @@ QByteArray GameMap::toBinaryData() const
 	if (!sendProgress(++step/maxStep))
 		return QByteArray();
 
-	campaignsToStream(stream);
+	missionsToStream(stream);
 
 	if (!sendProgress(++step/maxStep))
 		return QByteArray();
@@ -225,7 +225,7 @@ QByteArray GameMap::toBinaryData() const
 GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func, const bool &withImages)
 {
 	qreal step = 0.0;
-	qreal maxStep = withImages ? 10.0 : 9.0;
+	qreal maxStep = withImages ? 9.0 : 8.0;
 
 	if (!sendProgress(target, func, 0.0))
 		return nullptr;
@@ -252,12 +252,6 @@ GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func, const 
 	}
 
 	map->objectivesFromDb(db);
-	if (!sendProgress(target, func, ++step/maxStep)) {
-		delete map;
-		return nullptr;
-	}
-
-	map->campaingsFromDb(db);
 	if (!sendProgress(target, func, ++step/maxStep)) {
 		delete map;
 		return nullptr;
@@ -309,7 +303,7 @@ GameMap *GameMap::fromDb(CosDb *db, QObject *target, const QString &func, const 
 bool GameMap::toDb(CosDb *db) const
 {
 	qreal step = 0.0;
-	qreal maxStep = 11.0;
+	qreal maxStep = 10.0;
 
 	Q_ASSERT(db);
 	Q_ASSERT(db->isValid());
@@ -356,10 +350,6 @@ bool GameMap::toDb(CosDb *db) const
 	if (!sendProgress(++step/maxStep))
 		return false;
 
-	campaignsToDb(db);
-	if (!sendProgress(++step/maxStep))
-		return false;
-
 	missionsToDb(db);
 	if (!sendProgress(++step/maxStep))
 		return false;
@@ -385,28 +375,6 @@ bool GameMap::toDb(CosDb *db) const
 
 	return true;
 
-}
-
-
-
-
-/**
- * @brief GameMap::campaign
- * @param id
- * @return
- */
-
-GameMap::Campaign *GameMap::campaign(const qint32 &id) const
-{
-	if (id == -1)
-		return nullptr;
-
-	foreach(GameMap::Campaign *c, m_campaigns) {
-		if (c->id() == id)
-			return c;
-	}
-
-	return nullptr;
 }
 
 
@@ -443,14 +411,7 @@ GameMap::Mission *GameMap::mission(const QByteArray &uuid) const
 	if (uuid.isEmpty())
 		return nullptr;
 
-	foreach(Campaign *c, m_campaigns) {
-		foreach(Mission *m, c->missions()) {
-			if (m->uuid() == uuid)
-				return m;
-		}
-	}
-
-	foreach(Mission *m, m_orphanMissions) {
+	foreach(Mission *m, m_missions) {
 		if (m->uuid() == uuid)
 			return m;
 	}
@@ -471,19 +432,8 @@ GameMap::MissionLevel *GameMap::missionLevel(const QByteArray &uuid, const qint3
 	if (uuid.isEmpty() || level == -1)
 		return nullptr;
 
-	foreach(Campaign *c, m_campaigns) {
-		foreach(Mission *m, c->missions()) {
-			if (m->uuid() == uuid) {
-				foreach(MissionLevel *l, m->levels()) {
-					if (l->level() == level) {
-						return l;
-					}
-				}
-			}
-		}
-	}
 
-	foreach(Mission *m, m_orphanMissions) {
+	foreach(Mission *m, m_missions) {
 		if (m->uuid() == uuid) {
 			foreach(MissionLevel *l, m->levels()) {
 				if (l->level() == level) {
@@ -528,21 +478,7 @@ GameMap::MissionLockHash GameMap::missionLockTree(Mission **errMission) const
 {
 	MissionLockHash hash;
 
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *m, c->missions()) {
-			QVector<GameMap::MissionLock> list;
-			if (!m->getLockTree(&list, m)) {
-				qWarning() << QObject::tr("Redundant locks");
-				if (errMission)
-					*errMission = m;
-
-				return MissionLockHash();
-			}
-			hash[m] = list;
-		}
-	}
-
-	foreach (Mission *m, orphanMissions()) {
+	foreach (Mission *m, missions()) {
 		QVector<GameMap::MissionLock> list;
 		if (!m->getLockTree(&list, m)) {
 			qWarning() << QObject::tr("Redundant locks");
@@ -552,33 +488,6 @@ GameMap::MissionLockHash GameMap::missionLockTree(Mission **errMission) const
 			return MissionLockHash();
 		}
 		hash[m] = list;
-	}
-
-	return hash;
-}
-
-
-/**
- * @brief GameMap::campaignLockTree
- * @param errCampaign
- * @return
- */
-
-GameMap::CampaignLockHash GameMap::campaignLockTree(GameMap::Campaign **errCampaign) const
-{
-	CampaignLockHash hash;
-
-	foreach (Campaign *c, m_campaigns) {
-		QVector<Campaign *> list;
-
-		if (!c->getLockTree(&list, c)) {
-			qWarning() << QObject::tr("Redundant locks");
-			if (errCampaign)
-				*errCampaign = c;
-
-			return CampaignLockHash();
-		}
-		hash[c] = list;
 	}
 
 	return hash;
@@ -595,19 +504,7 @@ void GameMap::setSolver(const QVariantList &list)
 {
 	// Clear solver
 
-	foreach (Campaign *c, m_campaigns) {
-		c->setSolved(false);
-		c->setTried(false);
-		c->setLocked(false);
-
-		foreach (Mission *m, c->missions()) {
-			m->setSolvedLevel(-1);
-			m->setTried(false);
-			m->setLockDepth(0);
-		}
-	}
-
-	foreach (Mission *m, m_orphanMissions) {
+	foreach (Mission *m, m_missions) {
 		m->setSolvedLevel(-1);
 		m->setTried(false);
 		m->setLockDepth(0);
@@ -632,71 +529,12 @@ void GameMap::setSolver(const QVariantList &list)
 	}
 
 
-	// Load campaign solver
-
-	foreach (Campaign *c, m_campaigns) {
-		bool solved = true;
-		bool tried = false;
-
-		foreach (Mission *m, c->missions()) {
-			if (m->getTried())
-				tried = true;
-
-			if (m->mandatory() && m->getSolvedLevel() == -1)
-				solved = false;
-		}
-
-		c->setSolved(solved);
-		c->setTried(tried);
-	}
-
-
 	// Load locks
 
-	CampaignLockHash clh = campaignLockTree();
 	MissionLockHash mlh = missionLockTree();
 
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *m, c->missions()) {
-			if (!mlh.value(m).size())
-				continue;
 
-			qint32 lockDepth = 0;
-
-			QVector<MissionLock> locks = mlh.value(m);
-			foreach (MissionLock ml, locks) {
-				if ((ml.second == -1 && ml.first->getSolvedLevel() == -1) || ml.second > ml.first->getSolvedLevel()) {
-					if (mlh.value(ml.first).size() > 0) {
-						QVector<MissionLock> locks2 = mlh.value(ml.first);
-						foreach (MissionLock ml2, locks2) {
-							if ((ml2.second == -1 && ml2.first->getSolvedLevel() == -1) || ml2.second > ml2.first->getSolvedLevel()) {
-								lockDepth = 2;
-								break;
-							}
-						}
-					}
-
-					if (lockDepth < 1)
-						lockDepth = 1;
-				}
-			}
-
-			m->setLockDepth(lockDepth);
-		}
-
-		if (!clh.value(c).size())
-			continue;
-
-		QVector<Campaign *> locks = clh.value(c);
-
-		foreach (Campaign *cl, locks) {
-			if (!cl->getSolved())
-				c->setLocked(true);
-		}
-	}
-
-
-	foreach (Mission *m, m_orphanMissions) {
+	foreach (Mission *m, m_missions) {
 		if (!mlh.value(m).size())
 			continue;
 
@@ -1104,47 +942,17 @@ bool GameMap::objectivesFromDb(CosDb *db)
 
 
 
-
-/**
- * @brief GameMap::campaignsToStream
- * @param stream
- */
-
-void GameMap::campaignsToStream(QDataStream &stream) const
-{
-	stream << (quint32) m_campaigns.size();
-
-	foreach (GameMap::Campaign *c, m_campaigns) {
-		stream << c->id();
-		stream << c->name();
-
-		stream << (quint32) c->locks().size();
-
-		foreach (GameMap::Campaign *cl, c->locks()) {
-			stream << cl->id();
-		}
-
-		missionsToStream(c, stream);
-	}
-
-	missionsToStream(nullptr, stream);
-}
-
-
 /**
  * @brief GameMap::campaignsFromStream
  * @param stream
  */
 
-bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
+bool GameMap::_deprecated_campaignsFromStream(QDataStream &stream, const qint32 &)
 {
-	QHash<qint32, QList<qint32>> lockList;
-	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> mLockList;
-
 	quint32 size = 0;
 	stream >> size;
 
-	qDebug() << "Load campaigns" << size;
+	qDebug() << "Load campaigns [DEPRECATED]" << size;
 
 	for (quint32 i=0; i<size; i++) {
 		qint32 id = -1;
@@ -1153,74 +961,131 @@ bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 
 		stream >> id >> name >> lockSize;
 
-		qDebug() << "Load campaign" << id << name << lockSize;
+		qDebug() << "Load campaign [DEPRECATED]" << id << name << lockSize;
 
 		if (id == -1)
 			return false;
-
-		Campaign *c = new Campaign(id, name);
-
-
-		QList<qint32> ll;
 
 		for (quint32 j=0; j<lockSize; j++) {
 			qint32 id = -1;
 			stream >> id;
 
 			if (id == -1) {
-				delete c;
+				return false;
+			}
+		}
+	}
+
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief GameMap::missionsToStream
+ * @param campaign
+ * @param stream
+ */
+
+bool GameMap::missionsToStream(QDataStream &stream) const
+{
+	stream << (quint32) missions().size();
+
+	foreach (Mission *m, missions()) {
+		stream << m->uuid();
+		stream << m->name();
+		stream << m->description();
+		stream << m->medalImage();
+
+		stream << (quint32) m->locks().size();
+
+		foreach (MissionLock p, m->locks()) {
+			Mission *mm = p.first;
+			if (!mm)
+				return false;
+
+			stream << mm->uuid();
+			stream << (qint32) p.second;
+		}
+
+		missionLevelsToStream(m, stream);
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief GameMap::missionsFromStream
+ * @param campaign
+ * @param stream
+ */
+
+bool GameMap::missionsFromStream(QDataStream &stream, const qint32 &version)
+{
+	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> lockList;
+
+	quint32 size = 0;
+	stream >> size;
+
+	qDebug() << "Load missions" << size;
+
+	for (quint32 i=0; i<size; i++) {
+		QByteArray uuid;
+		bool mandatory;
+		QString name;
+		QString description;
+		QString medalImage;
+		quint32 lockSize = 0;
+
+		stream >> uuid;
+
+		if (version < 10)
+			stream >> mandatory;
+
+		stream >> name >> description;
+
+		if (version > 7)
+			stream >> medalImage;
+
+		stream >> lockSize;
+
+		if (uuid.isEmpty())
+			return false;
+
+		Mission *m = new Mission(uuid, name, description, medalImage);
+
+		QList<QPair<QByteArray, qint32>> ll;
+
+		for (quint32 j=0; j<lockSize; j++) {
+			QByteArray uuid;
+			qint32 level = -1;
+			stream >> uuid >> level;
+
+			if (uuid.isEmpty()) {
+				delete m;
 				return false;
 			}
 
-			ll.append(id);
+			ll.append(qMakePair<QByteArray, qint32>(uuid, level));
 		}
 
 		if (!ll.isEmpty())
-			lockList[id] = ll;
+			lockList[uuid] = ll;
 
-		qDebug() << "Load missions";
 
-		mLockList.insert(missionsFromStream(c, stream, version));
 
-		addCampaign(c);
+		missionLevelsFromStream(m, stream, version);
 
-		qDebug() << "Campaign loaded" << id << name;
+		m_missions.append(m);
 	}
 
-	if (m_campaigns.size() != (int) size)
+
+	if (m_missions.size() != (int) size)
 		return false;
 
-
-
-	qDebug() << "Load orphaned missions";
-
-	mLockList.insert(missionsFromStream(nullptr, stream, version));
-
-
-	qDebug() << "Campaigns loaded";
-
-	// Campaign locks
-
-	qDebug() << "Load campaign locks";
-
-	{
-		QHash<qint32, QList<qint32>>::const_iterator it;
-
-		for (it=lockList.constBegin(); it != lockList.constEnd(); ++it) {
-			Campaign *c = campaign(it.key());
-			if (!c)
-				return false;
-
-			foreach (qint32 cid, it.value()) {
-				Campaign *cc = campaign(cid);
-
-				if (!cc)
-					return false;
-
-				c->addLock(cc);
-			}
-		}
-	}
 
 	qDebug() << "Load missions locks";
 
@@ -1229,7 +1094,7 @@ bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 	{
 		QHash<QByteArray, QList<QPair<QByteArray, qint32>>>::const_iterator mit;
 
-		for (mit=mLockList.constBegin(); mit != mLockList.constEnd(); ++mit) {
+		for (mit=lockList.constBegin(); mit != lockList.constEnd(); ++mit) {
 			Mission *m = mission(mit.key());
 			if (!m)
 				return false;
@@ -1253,228 +1118,6 @@ bool GameMap::campaignsFromStream(QDataStream &stream, const qint32 &version)
 
 
 /**
- * @brief GameMap::campaignsToDb
- * @param db
- */
-
-bool GameMap::campaignsToDb(CosDb *db) const
-{
-	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS campaigns ("
-							 "id INTEGER PRIMARY KEY,"
-							 "name TEXT"
-							 ");"))
-		return false;
-
-	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS campaignLocks ("
-							 "campaign INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE,"
-							 "lock INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE"
-							 ");"))
-		return false;
-
-
-	if (!db->execSimpleQuery("DELETE FROM campaignLocks"))		return false;
-	if (!db->execSimpleQuery("DELETE FROM campaigns"))		return false;
-
-
-	foreach (Campaign *c, m_campaigns) {
-		QVariantMap l;
-		l["id"] = c->id();
-		l["name"] = c->name();
-
-		if (db->execInsertQuery("INSERT INTO campaigns (?k?) VALUES (?)", l) == -1)
-			return false;
-	}
-
-
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Campaign *l, c->locks()) {
-			QVariantMap m;
-			m["campaign"] = c->id();
-			m["lock"] = l->id();
-
-			if (db->execInsertQuery("INSERT INTO campaignLocks (?k?) VALUES (?)", m) == -1)
-				return false;
-		}
-	}
-
-	return true;
-}
-
-
-/**
- * @brief GameMap::campaingsFromDb
- * @param db
- */
-
-bool GameMap::campaingsFromDb(CosDb *db)
-{
-	QVariantList l = db->execSelectQuery("SELECT id, name FROM campaigns");
-
-	foreach (QVariant v, l) {
-		QVariantMap m = v.toMap();
-		int campaignId = m.value("id").toInt();
-
-		Campaign *c = new Campaign(campaignId, m.value("name").toString());
-
-		addCampaign(c);
-	}
-
-	QVariantList ll = db->execSelectQuery("SELECT campaign, lock FROM campaignLocks");
-
-	foreach (QVariant v, ll) {
-		QVariantMap m = v.toMap();
-
-		Campaign *c = campaign(m.value("campaign").toInt());
-		Campaign *l = campaign(m.value("lock").toInt());
-
-		if (!c || !l)
-			return false;
-
-		c->addLock(l);
-	}
-
-	return true;
-}
-
-
-
-
-/**
- * @brief GameMap::missionsToStream
- * @param campaign
- * @param stream
- */
-
-bool GameMap::missionsToStream(GameMap::Campaign *campaign, QDataStream &stream) const
-{
-	if (campaign)
-	{
-		stream << (quint32) campaign->missions().size();
-
-		foreach (Mission *m, campaign->missions()) {
-			stream << m->uuid();
-			stream << m->mandatory();
-			stream << m->name();
-			stream << m->description();
-			stream << m->medalImage();
-
-			stream << (quint32) m->locks().size();
-
-			foreach (MissionLock p, m->locks()) {
-				Mission *mm = p.first;
-				if (!mm)
-					return false;
-
-				stream << mm->uuid();
-				stream << (qint32) p.second;
-			}
-
-			missionLevelsToStream(m, stream);
-		}
-	} else {
-		stream << (quint32) orphanMissions().size();
-
-		foreach (Mission *m, orphanMissions()) {
-			stream << m->uuid();
-			stream << m->mandatory();
-			stream << m->name();
-			stream << m->description();
-			stream << m->medalImage();
-
-			stream << (quint32) m->locks().size();
-
-			foreach (MissionLock p, m->locks()) {
-				Mission *mm = p.first;
-				if (!mm)
-					return false;
-
-				stream << mm->uuid();
-				stream << (qint32) p.second;
-			}
-
-			missionLevelsToStream(m, stream);
-		}
-	}
-
-	return true;
-}
-
-
-/**
- * @brief GameMap::missionsFromStream
- * @param campaign
- * @param stream
- */
-
-QHash<QByteArray, QList<QPair<QByteArray, qint32>>>
-GameMap::missionsFromStream(GameMap::Campaign *campaign, QDataStream &stream, const qint32 &version)
-{
-	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> lockList;
-
-	quint32 size = 0;
-	stream >> size;
-
-	for (quint32 i=0; i<size; i++) {
-		QByteArray uuid;
-		bool mandatory;
-		QString name;
-		QString description;
-		QString medalImage;
-		quint32 lockSize = 0;
-
-		stream >> uuid >> mandatory >> name >> description;
-
-		if (version > 7)
-			stream >> medalImage;
-
-		stream >> lockSize;
-
-		if (uuid.isEmpty())
-			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
-
-		Mission *m = new Mission(uuid, mandatory, name, description, medalImage);
-
-		QList<QPair<QByteArray, qint32>> ll;
-
-		for (quint32 j=0; j<lockSize; j++) {
-			QByteArray uuid;
-			qint32 level = -1;
-			stream >> uuid >> level;
-
-			if (uuid.isEmpty()) {
-				delete m;
-				return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
-			}
-
-			ll.append(qMakePair<QByteArray, qint32>(uuid, level));
-		}
-
-		if (!ll.isEmpty())
-			lockList[uuid] = ll;
-
-
-
-		missionLevelsFromStream(m, stream, version);
-
-		if (campaign)
-			campaign->addMission(m);
-		else
-			m_orphanMissions.append(m);
-	}
-
-	if (campaign) {
-		if (campaign->missions().size() != (int) size)
-			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
-	} else {
-		if (m_orphanMissions.size() != (int) size)
-			return QHash<QByteArray, QList<QPair<QByteArray, qint32>>>();
-	}
-
-	return lockList;
-}
-
-
-/**
  * @brief GameMap::missionsToDb
  * @param db
  */
@@ -1483,8 +1126,6 @@ bool GameMap::missionsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS missions ("
 							 "uuid TEXT PRIMARY KEY,"
-							 "campaign INTEGER REFERENCES campaigns(id) ON DELETE SET NULL ON UPDATE CASCADE,"
-							 "mandatory BOOL,"
 							 "name TEXT,"
 							 "description TEXT,"
 							 "medalImage TEXT"
@@ -1495,29 +1136,11 @@ bool GameMap::missionsToDb(CosDb *db) const
 	if (!db->execSimpleQuery("DELETE FROM missions"))		return false;
 
 
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *m, c->missions()) {
-			QVariantMap l;
-			l["campaign"] = c->id();
-			l["name"] = m->name();
-			l["description"] = m->description();
-			l["mandatory"] = m->mandatory();
-			l["uuid"] = QString(m->uuid());
-			l["medalImage"] = m->medalImage();
-
-			if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
-				return false;
-		}
-	}
-
-
-	foreach (Mission *m, orphanMissions()) {
+	foreach (Mission *m, missions()) {
 		QVariantMap l;
-		l["campaign"] = QVariant::Invalid;
+		l["uuid"] = QString(m->uuid());
 		l["name"] = m->name();
 		l["description"] = m->description();
-		l["mandatory"] = m->mandatory();
-		l["uuid"] = QString(m->uuid());
 		l["medalImage"] = m->medalImage();
 
 		if (db->execInsertQuery("INSERT INTO missions (?k?) VALUES (?)", l) == -1)
@@ -1537,29 +1160,18 @@ bool GameMap::missionsToDb(CosDb *db) const
 
 bool GameMap::missionsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT uuid, campaign, mandatory, name, description, medalImage FROM missions");
+	QVariantList l = db->execSelectQuery("SELECT uuid, name, description, medalImage FROM missions");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
 
-		if (m.value("campaign").isNull()) {
-			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(),
-									   m.value("name").toString(), m.value("description").toString(),
-									   m.value("medalImage").toString());
+		Mission *mis = new Mission(m.value("uuid").toByteArray(),
+								   m.value("name").toString(),
+								   m.value("description").toString(),
+								   m.value("medalImage").toString());
 
-			m_orphanMissions.append(mis);
-		} else {
-			Campaign *c = campaign(m.value("campaign").toInt());
+		m_missions.append(mis);
 
-			if (!c)
-				return false;
-
-			Mission *mis = new Mission(m.value("uuid").toByteArray(), m.value("mandatory").toBool(),
-									   m.value("name").toString(), m.value("description").toString(),
-									   m.value("medalImage").toString());
-
-			c->addMission(mis);
-		}
 	}
 
 
@@ -1600,24 +1212,8 @@ bool GameMap::missionLocksToDb(CosDb *db) const
 
 	if (!db->execSimpleQuery("DELETE FROM missionLocks"))		return false;
 
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *mis, c->missions()) {
-			foreach (MissionLock p, mis->locks()) {
-				QVariantMap m;
-				m["mission"] = QString(mis->uuid());
-				m["lock"] = QString(p.first->uuid());
-				if (p.second == -1)
-					m["level"] = QVariant::Invalid;
-				else
-					m["level"] = p.second;
 
-				if (db->execInsertQuery("INSERT INTO missionLocks (?k?) VALUES (?)", m) == -1)
-					return false;
-			}
-		}
-	}
-
-	foreach (Mission *mis, orphanMissions()) {
+	foreach (Mission *mis, missions()) {
 		foreach (MissionLock p, mis->locks()) {
 			QVariantMap m;
 			m["mission"] = QString(mis->uuid());
@@ -1700,7 +1296,7 @@ bool GameMap::missionLevelsFromStream(GameMap::Mission *mission, QDataStream &st
 
 		MissionLevel *m = new MissionLevel(level, terrain, startHP, duration, startBlock, canDeathmatch, questions, imageFolder, imageFile);
 
-		blockChapterMapsFromStream(m, stream);
+		blockChapterMapsFromStream(m, stream, version);
 		inventoriesFromStream(m, stream);
 
 		mission->addMissionLevel(m);
@@ -1738,38 +1334,7 @@ bool GameMap::missionLevelsToDb(CosDb *db) const
 
 	if (!db->execSimpleQuery("DELETE FROM missionLevels"))		return false;
 
-
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *m, c->missions()) {
-			foreach (MissionLevel *ml, m->levels()) {
-				QVariantMap l;
-				l["mission"] = QString(m->uuid());
-				l["level"] = ml->level();
-				l["terrain"] = QString(ml->terrain());
-				l["startHP"] = ml->startHP();
-				l["duration"] = ml->duration();
-				l["startBlock"] = ml->startBlock();
-				l["deathmatch"] = ml->canDeathmatch();
-				l["questions"] = ml->questions();
-
-				if (ml->imageFolder().isEmpty())
-					l["imageFolder"] = QVariant::Invalid;
-				else
-					l["imageFolder"] = ml->imageFolder();
-
-				if (ml->imageFile().isEmpty())
-					l["imageFile"] = QVariant::Invalid;
-				else
-					l["imageFile"] = ml->imageFile();
-
-				if (db->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", l) == -1) {
-					return false;
-				}
-			}
-		}
-	}
-
-	foreach (Mission *m, m_orphanMissions) {
+	foreach (Mission *m, m_missions) {
 		foreach (MissionLevel *ml, m->levels()) {
 			QVariantMap l;
 			l["mission"] = QString(m->uuid());
@@ -1848,8 +1413,6 @@ void GameMap::blockChapterMapsToStream(GameMap::MissionLevel *level, QDataStream
 	stream << (quint32) level->blockChapterMaps().size();
 
 	foreach (BlockChapterMap *m, level->blockChapterMaps()) {
-		stream << m->maxObjective();
-
 		stream << (quint32) m->blocks().size();
 
 		foreach (qint32 b, m->blocks())
@@ -1860,12 +1423,6 @@ void GameMap::blockChapterMapsToStream(GameMap::MissionLevel *level, QDataStream
 
 		foreach (Chapter *ch, m->chapters())
 			stream << ch->id();
-
-
-		stream << (quint32) m->favorites().size();
-
-		foreach (Objective *o, m->favorites())
-			stream << o->uuid();
 	}
 }
 
@@ -1876,7 +1433,7 @@ void GameMap::blockChapterMapsToStream(GameMap::MissionLevel *level, QDataStream
  * @param stream
  */
 
-bool GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStream &stream)
+bool GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStream &stream, const qint32 &version)
 {
 	Q_ASSERT(level);
 
@@ -1886,12 +1443,10 @@ bool GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 	for (quint32 i=0; i<size; i++) {
 		qint32 maxObj = -1;
 
-		stream >> maxObj;
+		if (version < 10)
+			stream >> maxObj;
 
-		if (maxObj < 0)
-			return false;
-
-		BlockChapterMap *b = new BlockChapterMap(maxObj);
+		BlockChapterMap *b = new BlockChapterMap();
 
 		{
 			quint32 size = 0;
@@ -1935,27 +1490,14 @@ bool GameMap::blockChapterMapsFromStream(GameMap::MissionLevel *level, QDataStre
 		}
 
 
-		{
+		if (version < 10){
 			quint32 size = 0;
 			stream >> size;
 			for (quint32 i=0; i<size; i++) {
 				QByteArray f;
 				stream >> f;
-
-				if (f.isEmpty())
-					return false;
-
-				Objective *ch = objective(f);
-
-				if (!ch)
-					return false;
-
-				b->addFavorite(ch);
 			}
-			if (b->favorites().size() != (int) size)
-				return false;
 		}
-
 
 		level->addBlockChapterMap(b);
 	}
@@ -1979,7 +1521,6 @@ bool GameMap::blockChapterMapsToDb(CosDb *db) const
 							 "id INTEGER PRIMARY KEY,"
 							 "mission TEXT NOT NULL,"
 							 "level INTEGER NOT NULL,"
-							 "maxObjective INTEGER NOT NULL DEFAULT 0 CHECK (maxObjective>=0),"
 							 "FOREIGN KEY (mission, level) REFERENCES missionLevels(mission, level) ON UPDATE CASCADE ON DELETE CASCADE"
 							 ")"))
 		return false;
@@ -1996,73 +1537,19 @@ bool GameMap::blockChapterMapsToDb(CosDb *db) const
 							 ")"))
 		return false;
 
-	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS blockChapterMapFavorites ("
-							 "blockid INTEGER NOT NULL REFERENCES blockChapterMaps(id) ON UPDATE CASCADE ON DELETE CASCADE,"
-							 "objective TEXT NOT NULL REFERENCES objectives(uuid) ON UPDATE CASCADE ON DELETE CASCADE"
-							 ")"))
-		return false;
 
 
-	if (!db->execSimpleQuery("DELETE FROM blockChapterMapFavorites"))		return false;
 	if (!db->execSimpleQuery("DELETE FROM blockChapterMapChapters"))		return false;
 	if (!db->execSimpleQuery("DELETE FROM blockChapterMapBlocks"))		return false;
 	if (!db->execSimpleQuery("DELETE FROM blockChapterMaps"))		return false;
 
 
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *m, c->missions()) {
-			foreach (MissionLevel *ml, m->levels()) {
-				foreach (BlockChapterMap *b, ml->blockChapterMaps()) {
-					QVariantMap l;
-					l["mission"] = QString(m->uuid());
-					l["level"] = ml->level();
-					l["maxObjective"] = b->maxObjective();
-
-					int id = db->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", l);
-
-					if (id == -1)
-						return false;
-
-					foreach (qint32 bl, b->blocks()) {
-						QVariantMap l;
-						l["blockid"] = id;
-						l["block"] = bl;
-
-						if (db->execInsertQuery("INSERT INTO blockChapterMapBlocks (?k?) VALUES (?)", l) == -1)
-							return false;
-					}
-
-
-					foreach (Chapter *ch, b->chapters()) {
-						QVariantMap l;
-						l["blockid"] = id;
-						l["chapter"] = ch->id();
-
-						if (db->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", l) == -1)
-							return false;
-					}
-
-					foreach (Objective *o, b->favorites()) {
-						QVariantMap l;
-						l["blockid"] = id;
-						l["objective"] = QString(o->uuid());
-
-						if (db->execInsertQuery("INSERT INTO blockChapterMapFavorites (?k?) VALUES (?)", l) == -1)
-							return false;
-					}
-				}
-			}
-		}
-	}
-
-
-	foreach (Mission *m, m_orphanMissions) {
+	foreach (Mission *m, m_missions) {
 		foreach (MissionLevel *ml, m->levels()) {
 			foreach (BlockChapterMap *b, ml->blockChapterMaps()) {
 				QVariantMap l;
 				l["mission"] = QString(m->uuid());
 				l["level"] = ml->level();
-				l["maxObjective"] = b->maxObjective();
 
 				int id = db->execInsertQuery("INSERT INTO blockChapterMaps (?k?) VALUES (?)", l);
 
@@ -2087,15 +1574,6 @@ bool GameMap::blockChapterMapsToDb(CosDb *db) const
 					if (db->execInsertQuery("INSERT INTO blockChapterMapChapters (?k?) VALUES (?)", l) == -1)
 						return false;
 				}
-
-				foreach (Objective *o, b->favorites()) {
-					QVariantMap l;
-					l["blockid"] = id;
-					l["objective"] = QString(o->uuid());
-
-					if (db->execInsertQuery("INSERT INTO blockChapterMapFavorites (?k?) VALUES (?)", l) == -1)
-						return false;
-				}
 			}
 		}
 	}
@@ -2111,7 +1589,7 @@ bool GameMap::blockChapterMapsToDb(CosDb *db) const
 
 bool GameMap::blockChapterMapsFromDb(CosDb *db)
 {
-	QVariantList l = db->execSelectQuery("SELECT id, mission, level, maxObjective FROM blockChapterMaps");
+	QVariantList l = db->execSelectQuery("SELECT id, mission, level FROM blockChapterMaps");
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
@@ -2121,7 +1599,7 @@ bool GameMap::blockChapterMapsFromDb(CosDb *db)
 		if (!mis)
 			return false;
 
-		BlockChapterMap *b = mis->addBlockChapterMap(new BlockChapterMap(m.value("maxObjective").toInt()));
+		BlockChapterMap *b = mis->addBlockChapterMap(new BlockChapterMap());
 
 		QVariantList bId;
 		bId.append(m.value("id").toInt());
@@ -2148,21 +1626,6 @@ bool GameMap::blockChapterMapsFromDb(CosDb *db)
 					return false;
 
 				b->addChapter(ch);
-			}
-		}
-
-		{
-			QVariantList l = db->execSelectQuery("SELECT objective FROM blockChapterMapFavorites WHERE blockid=?", bId);
-
-			foreach (QVariant v, l) {
-				QVariantMap m = v.toMap();
-
-				Objective *ch = objective(m.value("objective").toByteArray());
-
-				if (!ch)
-					return false;
-
-				b->addFavorite(ch);
 			}
 		}
 	}
@@ -2244,28 +1707,7 @@ bool GameMap::inventoriesToDb(CosDb *db) const
 
 	if (!db->execSimpleQuery("DELETE FROM inventories"))		return false;
 
-
-	foreach (Campaign *c, m_campaigns) {
-		foreach (Mission *m, c->missions()) {
-			foreach (MissionLevel *ml, m->levels()) {
-				foreach (Inventory *b, ml->inventories()) {
-					QVariantMap l;
-					l["mission"] = QString(m->uuid());
-					l["level"] = ml->level();
-					l["block"] = b->block();
-					l["module"] = QString(b->module());
-					l["count"] = b->count();
-
-					int id = db->execInsertQuery("INSERT INTO inventories (?k?) VALUES (?)", l);
-
-					if (id == -1)
-						return false;
-				}
-			}
-		}
-	}
-
-	foreach (Mission *m, m_orphanMissions) {
+	foreach (Mission *m, m_missions) {
 		foreach (MissionLevel *ml, m->levels()) {
 			foreach (Inventory *b, ml->inventories()) {
 				QVariantMap l;
@@ -2417,13 +1859,7 @@ void GameMap::regenerateUuids()
 {
 	setUuid(QUuid::createUuid().toByteArray());
 
-	foreach(Campaign *c, m_campaigns) {
-		foreach(Mission *m, c->missions()) {
-			m->setUuid(QUuid::createUuid().toByteArray());
-		}
-	}
-
-	foreach(Mission *m, m_orphanMissions) {
+	foreach(Mission *m, m_missions) {
 		m->setUuid(QUuid::createUuid().toByteArray());
 	}
 
@@ -2446,17 +1882,7 @@ QVector<GameMap::MissionLevelData> GameMap::missionLevelsData() const
 {
 	QVector<MissionLevelData> list;
 
-	foreach(Campaign *c, m_campaigns) {
-		foreach(Mission *m, c->missions()) {
-			foreach(MissionLevel *ml, m->levels()) {
-				list.append(MissionLevelData(ml, false));
-				if (ml->canDeathmatch())
-					list.append(MissionLevelData(ml, true));
-			}
-		}
-	}
-
-	foreach(Mission *m, m_orphanMissions) {
+	foreach(Mission *m, m_missions) {
 		foreach(MissionLevel *ml, m->levels()) {
 			list.append(MissionLevelData(ml, false));
 			if (ml->canDeathmatch())
@@ -2615,11 +2041,9 @@ GameMap::Storage *GameMap::storage(const qint32 &id) const
  * @param maxObjective
  */
 
-GameMap::BlockChapterMap::BlockChapterMap(const qint32 &maxObjective)
+GameMap::BlockChapterMap::BlockChapterMap()
 	: m_blocks()
 	, m_chapters()
-	, m_favorites()
-	, m_maxObjective(maxObjective)
 {
 
 }
@@ -2694,9 +2118,8 @@ GameMap::MissionLevel::~MissionLevel()
  * @param name
  */
 
-GameMap::Mission::Mission(const QByteArray &uuid, const bool &mandatory, const QString &name, const QString &description, const QString &medalImage)
+GameMap::Mission::Mission(const QByteArray &uuid, const QString &name, const QString &description, const QString &medalImage)
 	: m_uuid(uuid)
-	, m_mandatory(mandatory)
 	, m_name(name)
 	, m_description(description)
 	, m_levels()
@@ -2768,66 +2191,6 @@ bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameM
 
 
 
-
-
-
-
-
-
-
-
-/**
- * @brief GameMap::Campaign::Campaign
- * @param id
- * @param name
- */
-
-GameMap::Campaign::Campaign(const qint32 &id, const QString &name)
-	: m_id(id)
-	, m_name(name)
-	, m_locks()
-	, m_missions()
-	, m_solved(false)
-	, m_tried(false)
-	, m_locked(false)
-{
-
-}
-
-
-/**
- * @brief GameMap::Campaign::~Campaign
- */
-
-GameMap::Campaign::~Campaign()
-{
-	qDeleteAll(m_missions.begin(), m_missions.end());
-	m_missions.clear();
-}
-
-
-/**
- * @brief GameMap::Campaign::getLockTree
- * @param listPtr
- * @param rootCampaign
- * @return
- */
-
-bool GameMap::Campaign::getLockTree(QVector<GameMap::Campaign *> *listPtr, GameMap::Campaign *rootCampaign) const
-{
-	foreach (Campaign *c, m_locks) {
-		if (c == rootCampaign)				// redundant
-			return false;
-
-		if (!listPtr->contains(c)) {
-			listPtr->append(c);
-			if (!c->getLockTree(listPtr, rootCampaign))
-				return false;
-		}
-	}
-
-	return true;
-}
 
 
 

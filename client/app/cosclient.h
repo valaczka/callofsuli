@@ -39,6 +39,10 @@
 #include <gvc.h>
 #endif
 
+#ifdef Q_OS_ANDROID
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
+
 
 #include "cosmessage.h"
 #include "variantmapmodel.h"
@@ -226,6 +230,10 @@ public slots:
 	void setSfxVolume(qreal sfxVolume);
 	void setSfxVolumeInt(int sfxVolume);
 
+#ifdef Q_OS_ANDROID
+	void forceLandscape();
+	void resetLandscape();
+#endif
 
 
 private slots:
@@ -352,6 +360,10 @@ private:
 	static QHash<QString, ModuleInterface*> m_moduleObjectiveList;
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
 
+
+#ifdef Q_OS_ANDROID
+	jint m_screenOrientationRequest;
+#endif
 
 #ifdef WITH_CGRAPH
 	GVC_t *m_gvContext;

@@ -28,6 +28,9 @@ PhysicsEntity {
 	property bool glowEnabled: false
 	property bool _glowForced: true
 
+	property alias overlayColor: overlay.color
+	property bool overlayEnabled: false
+
 	property bool _qrcDataFacingLeft: false
 
 	Connections {
@@ -144,6 +147,7 @@ PhysicsEntity {
 
 	}
 
+
 	Glow {
 		id: glow
 		opacity: glowEnabled || _glowForced ? 1.0 : 0.0
@@ -157,6 +161,21 @@ PhysicsEntity {
 
 		Behavior on opacity {
 			NumberAnimation { duration: 200 }
+		}
+
+		transform: rotation
+	}
+
+
+	ColorOverlay {
+		id: overlay
+		source: spriteSequence
+		anchors.fill: spriteSequence
+		opacity: overlayEnabled ? 1.0 : 0.0
+		visible: opacity != 0
+
+		Behavior on opacity {
+			NumberAnimation { duration: 300 }
 		}
 
 		transform: rotation

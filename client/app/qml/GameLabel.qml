@@ -13,7 +13,7 @@ Item {
 	property alias label: label
 	property alias image: fontImage
 	property color color: CosStyle.colorAccent
-	property real pixelSize: 24
+	property real pixelSize: 18
 	property string text: "%1"
 
 	implicitHeight: txtRow.height

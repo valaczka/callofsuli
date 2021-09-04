@@ -166,6 +166,7 @@ signals:
 
 	void gameSceneLoaded();
 	void gameSceneLoadFailed();
+	void gameSceneScaleToggleRequest();
 
 	void gameMessageSent(QString message, int colorCode = 0);
 

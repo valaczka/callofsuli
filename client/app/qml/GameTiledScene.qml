@@ -20,6 +20,9 @@ Scene {
 	property alias scenePrivate: scenePrivate
 	property bool showPickables: false
 	property bool showTargets: false
+	property bool isSceneZoom: false
+
+	property alias playerLocatorComponent: playerLocatorComponent
 
 	GameScenePrivate {
 		id: scenePrivate
@@ -132,6 +135,10 @@ Scene {
 				break
 			case Qt.Key_F11:
 				showTargets = false
+				break
+
+			case Qt.Key_F3:
+				scenePrivate.game.gameSceneScaleToggleRequest()
 				break
 
 

@@ -15,7 +15,7 @@ Item {
 	property alias image: fontImage
 	property color color: CosStyle.colorAccent
 	property real pixelSize: marked ? (Qt.platform.os === "android" ? 25 : 32)
-									: (Qt.platform.os === "android" ? 16 : 18)
+									: (Qt.platform.os === "android" ? 18 : 20)
 	property bool marked: false
 
 	implicitHeight: Math.max(txtRow.height, progressBar.implicitHeight)
@@ -85,7 +85,7 @@ Item {
 		visible: true
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: parent.right
-		width: 85
+
 		from: 0
 		to: 0
 		value: 0

@@ -39,7 +39,7 @@
 #include <QDebug>
 #include "cosdb.h"
 
-#define GAMEMAP_CURRENT_VERSION 9
+#define GAMEMAP_CURRENT_VERSION 10
 
 
 /**
@@ -124,22 +124,17 @@ public:
 
 	class BlockChapterMap {
 	public:
-		BlockChapterMap(const qint32 &maxObjective);
+		BlockChapterMap();
 
 		QVector<qint32> blocks() const { return m_blocks; };
 		QVector<Chapter *> chapters() const { return m_chapters; };
-		QVector<Objective *> favorites() const { return m_favorites; };
-		qint32 maxObjective() const { return m_maxObjective; };
 
 		qint32 addBlock(const qint32 &block) { m_blocks.append(block); return block; }
 		Chapter* addChapter(Chapter *chapter) { Q_ASSERT(chapter); m_chapters.append(chapter); return chapter;}
-		Objective* addFavorite(Objective *objective) { Q_ASSERT(objective); m_favorites.append(objective); return objective;}
 
 	private:
 		QVector<qint32> m_blocks;
 		QVector<Chapter *> m_chapters;
-		QVector<Objective *> m_favorites;
-		qint32 m_maxObjective;
 	};
 
 
@@ -209,13 +204,12 @@ public:
 
 	class Mission {
 	public:
-		Mission(const QByteArray &uuid, const bool &mandatory, const QString &name, const QString &description, const QString &medalImage);
+		Mission(const QByteArray &uuid, const QString &name, const QString &description, const QString &medalImage);
 		~Mission();
 
 		QByteArray uuid() const { return m_uuid;};
 		void setUuid(const QByteArray &uuid) { m_uuid = uuid; }
 
-		bool mandatory() const { return m_mandatory;};
 		QString name() const { return m_name;};
 		QString description() const { return m_description; };
 		QVector<MissionLevel *> levels() const { return m_levels; };
@@ -226,6 +220,8 @@ public:
 
 		MissionLevel* addMissionLevel(MissionLevel *level) { Q_ASSERT(level); m_levels.append(level); level->setMission(this); return level;}
 		void addLock(Mission *mission, const qint32 &level) { Q_ASSERT(mission); m_locks.append(qMakePair<Mission *, qint32>(mission, level)); }
+
+		// TODO: átdolgozni
 
 		bool getLockTree(QVector<MissionLock> *listPtr, Mission *rootMission = nullptr) const;
 
@@ -241,7 +237,6 @@ public:
 
 	private:
 		QByteArray m_uuid;
-		bool m_mandatory;
 		QString m_name;
 		QString m_description;
 		QVector<MissionLevel *> m_levels;
@@ -252,41 +247,6 @@ public:
 		QString m_medalImage;
 	};
 
-
-
-	class Campaign {
-	public:
-		Campaign(const qint32 &id, const QString &name);
-		~Campaign();
-
-		qint32 id() const { return m_id;};
-		QString name() const { return m_name;};
-		QVector<Campaign *> locks() const { return m_locks;};
-		QVector<Mission *> missions() const { return m_missions;};
-
-		Mission* addMission(Mission *mission) { Q_ASSERT(mission); m_missions.append(mission); return mission;}
-		void addLock(Campaign *campaign) { Q_ASSERT(campaign); m_locks.append(campaign); }
-
-		bool getLockTree(QVector<Campaign *> *listPtr, Campaign *rootCampaign = nullptr) const;
-
-		bool getSolved() const { return m_solved; }
-		void setSolved(bool solved) { m_solved = solved; }
-
-		bool getTried() const { return m_tried; }
-		void setTried(bool tried) { m_tried = tried; }
-
-		bool getLocked() const { return m_locked; }
-		void setLocked(bool locked) { m_locked = locked; }
-
-	private:
-		qint32 m_id;
-		QString m_name;
-		QVector<Campaign *> m_locks;
-		QVector<Mission *> m_missions;
-		bool m_solved;
-		bool m_tried;
-		bool m_locked;
-	};
 
 
 
@@ -331,27 +291,22 @@ public:
 	void regenerateUuids();
 
 	QByteArray uuid() const { return m_uuid; }
-	QVector<Campaign *> campaigns() const { return m_campaigns; }
-	QVector<Mission *> orphanMissions() const { return m_orphanMissions; }
+	QVector<Mission *> missions() const { return m_missions; }
 	QVector<Chapter *> chapters() const { return m_chapters; }
 	QVector<Image *> images() const { return m_images; }
 	QVector<Storage *> storages() const { return m_storages; };
 	QVector<MissionLevelData> missionLevelsData() const;
 
-	Campaign *campaign(const qint32 &id) const;
 	Chapter *chapter(const qint32 &id) const;
 	Mission *mission(const QByteArray &uuid) const;
 	MissionLevel *missionLevel(const QByteArray &uuid, const qint32 &level) const;
 	Objective *objective(const QByteArray &uuid) const;
 	Storage *storage(const qint32 &id) const;
 
-	typedef QHash<Campaign *, QVector<Campaign *>> CampaignLockHash;
 	typedef QHash<Mission *, QVector<MissionLock>> MissionLockHash;
 	MissionLockHash missionLockTree(Mission **errMission = nullptr) const;
-	CampaignLockHash campaignLockTree(Campaign **errCampaign = nullptr) const;
 
 	Chapter* addChapter(Chapter *chapter) { Q_ASSERT(chapter); m_chapters.append(chapter); return chapter; }
-	Campaign* addCampaign(Campaign *campaign) { Q_ASSERT(campaign); m_campaigns.append(campaign); return campaign; }
 	Image* addImage(Image *image) { Q_ASSERT(image); m_images.append(image); return image; }
 	Storage* addStorage(Storage *storage) { Q_ASSERT(storage); m_storages.append(storage); return storage;}
 
@@ -375,13 +330,8 @@ private:
 	bool objectivesToDb(CosDb *db) const;
 	bool objectivesFromDb(CosDb *db);
 
-	void campaignsToStream(QDataStream &stream) const ;
-	bool campaignsFromStream(QDataStream &stream, const qint32 &version);
-	bool campaignsToDb(CosDb *db) const;
-	bool campaingsFromDb(CosDb *db);
-
-	bool missionsToStream(Campaign* campaign, QDataStream &stream) const ;
-	QHash<QByteArray, QList<QPair<QByteArray, qint32>>> missionsFromStream(Campaign* campaign, QDataStream &stream, const qint32 &version);
+	bool missionsToStream(QDataStream &stream) const ;
+	bool missionsFromStream(QDataStream &stream, const qint32 &version);
 	bool missionsToDb(CosDb *db) const;
 	bool missionsFromDb(CosDb *db);
 	bool missionLocksToDb(CosDb *db) const;
@@ -392,7 +342,7 @@ private:
 	bool missionLevelsFromDb(CosDb *db);
 
 	void blockChapterMapsToStream(MissionLevel *level, QDataStream &stream) const;
-	bool blockChapterMapsFromStream(MissionLevel* level, QDataStream &stream);
+	bool blockChapterMapsFromStream(MissionLevel* level, QDataStream &stream, const qint32 &version);
 	bool blockChapterMapsToDb(CosDb *db) const;
 	bool blockChapterMapsFromDb(CosDb *db);
 
@@ -405,15 +355,16 @@ private:
 	bool imagesFromStream(QDataStream &stream);
 	void imagesFromDb(CosDb *db);
 
+	bool _deprecated_campaignsFromStream(QDataStream &stream, const qint32 &);
+
 	inline bool sendProgress(const qreal &progress) const;
 	inline static bool sendProgress(QObject *target, const QString &func, const qreal &progress);
 
 	QByteArray m_uuid;
-	QVector<Campaign *> m_campaigns;
 	QVector<Chapter *> m_chapters;
 	QVector<Image *> m_images;
 	QVector<Storage *> m_storages;
-	QVector<Mission *> m_orphanMissions;
+	QVector<Mission *> m_missions;
 
 	QObject *m_progressObject;
 	QString m_progressFunc;

@@ -123,7 +123,6 @@ void GameActivity::createTarget(GameEnemy *enemy)
 	}
 
 
-	// FIXME: storageNum kell???
 
 	QVariantList list = db()->execSelectQuery("SELECT target, map, objective FROM positions "
 											  "LEFT JOIN targets ON (targets.id=positions.target) "
@@ -258,8 +257,7 @@ void GameActivity::prepareDb(QVariantMap)
 {
 	try {
 		if (!db()->execSimpleQuery("CREATE TABLE maps("
-								   "map INTEGER NOT NULL PRIMARY KEY, "
-								   "maxObjective INTEGER NOT NULL DEFAULT 0)"))
+								   "map INTEGER NOT NULL PRIMARY KEY)"))
 			throw 1;
 
 		if (!db()->execSimpleQuery("CREATE TABLE targets("
@@ -289,7 +287,6 @@ void GameActivity::prepareDb(QVariantMap)
 		foreach (GameMap::BlockChapterMap *map, level->blockChapterMaps()) {
 			QVariantMap m;
 			m["map"] = mapIdx;
-			m["maxObjective"] = map->maxObjective();
 
 			db()->execInsertQuery("INSERT INTO maps(?k?) VALUES (?)", m);
 

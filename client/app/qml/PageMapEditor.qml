@@ -134,7 +134,6 @@ QBasePage {
 
 		onStoragePermissionsGranted: {
 			labelPermissions.visible = false
-			openUrl("file:///home/valaczka/ddd.map")
 		}
 
 
@@ -336,8 +335,7 @@ QBasePage {
 		text: qsTr("Másolat")
 		enabled: mapEditor.loaded
 		onTriggered: {
-			dialogSave.isSaveAs = true
-			dialogSave.open()
+			mapEditor.saveDialogRequest(false)
 		}
 	}
 

@@ -109,12 +109,17 @@ QPage {
 		if (Qt.platform.os === "android") {
 			_oldVisibility = mainWindow.visibility
 			mainWindow.visibility = "FullScreen"
+			cosClient.forceLandscape()
 		}
 	}
 
 	Component.onDestruction: {
 		if (_oldVisibility != null)
 			mainWindow.visibility = _oldVisibility
+
+		if (Qt.platform.os === "android") {
+			cosClient.resetLandscape()
+		}
 	}
 
 

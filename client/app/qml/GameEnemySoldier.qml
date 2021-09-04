@@ -4,6 +4,7 @@ import COS.Client 1.0
 import QtGraphicalEffects 1.0
 import QtMultimedia 5.12
 import "Style"
+import "JScript.js" as JS
 
 GameEntity {
 	id: root
@@ -20,6 +21,8 @@ GameEntity {
 
 	glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
 	glowEnabled: ep.aimedByPlayer || showPickable || showTarget
+
+	overlayColor: JS.setColorAlpha(CosStyle.colorGlowEnemy, 0.8)
 
 	hpColor: CosStyle.colorWarningLighter
 	hpVisible: ep.aimedByPlayer
@@ -67,6 +70,10 @@ GameEntity {
 					showTarget = true
 				else
 					showTarget = false
+			}
+
+			function onIsSceneZoomChanged() {
+				overlayEnabled = ep.cosGame.gameScene.isSceneZoom
 			}
 		}
 	}

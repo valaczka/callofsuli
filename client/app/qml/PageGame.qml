@@ -37,15 +37,8 @@ Page {
 	property bool deleteGameMatch: false
 
 	property real _sceneScale: 1.0
-	readonly property real _sceneZoom: 0.3
-
-	Behavior on _sceneScale {
-		NumberAnimation {
-			easing.type: Easing.OutQuart
-			duration: 225
-		}
-	}
-
+	readonly property real _sceneZoom: Math.max(Math.min(control.width/gameScene.width, control.height/gameScene.height, 0.7),
+												0.35)
 
 	on_SceneLoadedChanged: doStep()
 	on_AnimStartEndedChanged: doStep()
@@ -72,20 +65,33 @@ Page {
 	Image {
 		id: bg
 
-		property real scaleFactorWidth: 1.0+(0.3*_sceneScale)
-		property real scaleFactorHeight: 1.0+(0.1*_sceneScale)
+		readonly property real reqWidth: control.width*(1.0+(0.4*_sceneScale))
+		readonly property real reqHeight: control.height*(1.0+(0.15*_sceneScale))
+		readonly property real reqScale: implicitWidth>0 && implicitHeight>0 ? Math.max(reqHeight/implicitHeight, reqWidth/implicitWidth) : 1.0
+		readonly property real horizontalRegion: reqWidth-control.width
+		readonly property real verticalRegion: reqHeight-control.height
 
-		visible: !bgSaturate.visible
+		height: implicitHeight*reqScale
+		width: implicitWidth*reqScale
+
+
 
 		source: game.gameMatch ? game.gameMatch.bgImage : ""
 
-		x: -(flick.visibleArea.xPosition/(1-flick.visibleArea.widthRatio))*(width-parent.width)
-		y: -(height-parent.height)
-
-		fillMode: Image.PreserveAspectCrop
 		clip: false
-		height: parent.height*scaleFactorHeight
-		width: parent.width*scaleFactorWidth
+
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.horizontalCenterOffset: +horizontalRegion/2
+										-(flick.visibleArea.widthRatio >= 1.0 ? 0.5
+																			  : (flick.visibleArea.xPosition/(1-flick.visibleArea.widthRatio)))
+										*horizontalRegion
+
+		anchors.bottom: parent.bottom
+		anchors.bottomMargin: -verticalRegion
+							  +(flick.visibleArea.heightRatio >= 1.0 ? 1.0
+																	 : (flick.visibleArea.yPosition/(1-flick.visibleArea.heightRatio)))
+							  *verticalRegion
+
 	}
 
 	Desaturate {
@@ -99,23 +105,12 @@ Page {
 		desaturation: 1.0
 	}
 
-	/*PinchArea {
-		anchors.fill: parent
 
-		onPinchUpdated: {
-			console.debug("PINCH scale", pinch.scale, _sceneScale)
-			if (pinch.scale < 0.9) {
-				_sceneScale = 0.0
-			} else if (pinch.scale > 1.1) {
-				_sceneScale = 1.0
-			}
-		}
-	}*/
 
 	Flickable {
 		id: flick
-		contentWidth: game.width
-		contentHeight: game.height
+		contentWidth: placeholderItem.width
+		contentHeight: placeholderItem.height
 
 		enabled: !game.question
 
@@ -127,199 +122,290 @@ Page {
 		boundsBehavior: Flickable.StopAtBounds
 		flickableDirection: Flickable.HorizontalAndVerticalFlick
 
-		CosGame {
-			id: game
-			width: currentScene.width
-			height: currentScene.height
-			currentScene: mainScene
 
-			opacity: 0.0
-			visible: false
+		Item {
+			id: placeholderItem
+			width: gameScene.width*gameScene.scale
+			height: Math.max(gameScene.height*gameScene.scale, control.height)
 
-			gameScene: gameScene
-			itemPage: control
-			activity: gameActivity
+			CosGame {
+				id: game
+				width: gameScene.width
+				height: gameScene.height
+				currentScene: mainScene
 
-			property bool _timeSound: false
-			property bool _finalSound: true
+				y: parent.height-(gameScene.height*gameScene.scale)
 
-			Scene {
-				id: mainScene
+				opacity: 0.0
+				visible: false
 
-				width: 600
-				height: 600
+				gameScene: gameScene
+				itemPage: control
+				activity: gameActivity
 
-				Label {
-					id: lbl
-					anchors.centerIn: parent
-					text: qsTr("Loading")
-				}
-			}
+				property bool _timeSound: false
+				property bool _finalSound: true
 
+				Scene {
+					id: mainScene
 
-			Scene {
-				id: exitScene
-				width: 600
-				height: 600
+					width: 600
+					height: 600
 
-				Label {
-					anchors.centerIn: parent
-					text: qsTr("Finished")
-				}
-			}
-
-
-
-			GameTiledScene {
-				id: gameScene
-				game: game
-				scenePrivate.game: game
-
-				scale: _sceneZoom+((1.0-_sceneZoom)*_sceneScale)
-			}
-
-			Connections {
-				target: game.player ? game.player : null
-				function onXChanged(x) {
-					_sceneScale = 1.0
-					flick.setXOffset()
-					flick.setYOffset()
+					Label {
+						id: lbl
+						anchors.centerIn: parent
+						text: qsTr("Loading")
+					}
 				}
 
-				function onFacingLeftChanged(facingLeft) {
-					flick.setXOffset()
+
+				Scene {
+					id: exitScene
+					width: 600
+					height: 600
+
+					Label {
+						anchors.centerIn: parent
+						text: qsTr("Finished")
+					}
 				}
 
-				function onYChanged(y) {
-					_sceneScale = 1.0
-					flick.setYOffset()
+
+
+				GameTiledScene {
+					id: gameScene
+					game: game
+					scenePrivate.game: game
+
+					scale: _sceneZoom+((1.0-_sceneZoom)*_sceneScale)
+					transformOrigin: Item.TopLeft
+
+					states: [
+						State {
+							name: "isZoom"
+							when: gameScene.isSceneZoom
+							PropertyChanges {
+								target: control
+								_sceneScale: 0.0
+							}
+							PropertyChanges {
+								target: bgSaturate
+								desaturation: 1.0
+							}
+						}
+					]
+
+
+					transitions: [
+						Transition {
+							from: "*"
+							to: "*"
+							SequentialAnimation {
+								ScriptAction {
+									script: {
+										if (animX.running)
+											animX.stop()
+									}
+								}
+
+								ParallelAnimation {
+									PropertyAnimation {
+										target: control
+										property: "_sceneScale"
+										easing.type: Easing.OutQuart
+										duration: 750
+									}
+									PropertyAnimation {
+										target: bgSaturate
+										properties: "desaturation";
+										easing.type: Easing.OutQuart;
+										duration: 750
+									}
+								}
+
+								ScriptAction {
+									script: {
+										flick.setXOffset()
+										flick.setYOffset()
+										if (gameScene.isSceneZoom && game.player) {
+											var r = gameScene.playerLocatorComponent.createObject(gameScene)
+											r.anchors.centerIn = game.player
+										}
+									}
+								}
+							}
+
+						}
+					]
 				}
 
-			}
+				Connections {
+					target: game.player ? game.player : null
+					function onXChanged(x) {
+						gameScene.isSceneZoom = false
+						flick.setXOffset()
+						flick.setYOffset()
+					}
 
-			Connections {
-				target: game.player && game.player.entityPrivate ? game.player.entityPrivate : null
+					function onFacingLeftChanged(facingLeft) {
+						flick.setXOffset()
+					}
 
-				function onHurt() {
-					painhudImageAnim.start()
+					function onYChanged(y) {
+						gameScene.isSceneZoom = false
+						flick.setYOffset()
+					}
+
 				}
 
-				function onKilledByEnemy(enemy) {
-					messageList.message(qsTr("Your man has died"), 3)
-					skullImageAnim.start()
-					cosClient.playSound("qrc:/sound/sfx/dead.mp3", CosSound.PlayerVoice)
+				Connections {
+					target: game.player && game.player.entityPrivate ? game.player.entityPrivate : null
+
+					function onHurt() {
+						painhudImageAnim.start()
+					}
+
+					function onKilledByEnemy(enemy) {
+						messageList.message(qsTr("Your man has died"), 3)
+						skullImageAnim.start()
+						cosClient.playSound("qrc:/sound/sfx/dead.mp3", CosSound.PlayerVoice)
+					}
+
+					function onDiedByFall() {
+						messageList.message(qsTr("Your man has died"), 3)
+						skullImageAnim.start()
+						cosClient.playSound("qrc:/sound/sfx/falldead.mp3", CosSound.PlayerVoice)
+					}
 				}
 
-				function onDiedByFall() {
-					messageList.message(qsTr("Your man has died"), 3)
-					skullImageAnim.start()
-					cosClient.playSound("qrc:/sound/sfx/falldead.mp3", CosSound.PlayerVoice)
+				onPlayerChanged: if (player) {
+									 flick.setXOffset()
+									 flick.setYOffset()
+								 }
+
+				onGameSceneLoaded: {
+					_sceneLoaded = true
+					cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
 				}
-			}
 
-			onPlayerChanged: if (player) {
-								 flick.setXOffset()
-								 flick.setYOffset()
-							 }
-
-			onGameSceneLoaded: {
-				_sceneLoaded = true
-				cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
-			}
-
-			onGameSceneLoadFailed: {
-				cosClient.sendMessageError(qsTr("Játék betöltése sikertelen"), qsTr("Nem sikerült betölteni a játékot!"))
-				_backDisabled = false
-				_closeEnabled = true
-				mainStack.back()
-			}
-
-			onIsPreparedChanged: doStep()
-
-			onGameTimeout: {
-				setEnemiesMoving(false)
-				setRunning(false)
-
-				var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Lejárt az idő"))
-				d.rejected.connect(function() {
+				onGameSceneLoadFailed: {
+					cosClient.sendMessageError(qsTr("Játék betöltése sikertelen"), qsTr("Nem sikerült betölteni a játékot!"))
+					_backDisabled = false
 					_closeEnabled = true
 					mainStack.back()
-				})
-			}
+				}
+
+				onIsPreparedChanged: doStep()
+
+				onGameTimeout: {
+					setEnemiesMoving(false)
+					setRunning(false)
+
+					var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Lejárt az idő"))
+					d.rejected.connect(function() {
+						_closeEnabled = true
+						mainStack.back()
+					})
+				}
 
 
-			onGameLost: {
-				setEnemiesMoving(false)
-				setRunning(false)
+				onGameLost: {
+					setEnemiesMoving(false)
+					setRunning(false)
 
-				var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Your man has died"))
-				d.rejected.connect(function() {
-					_closeEnabled = true
-					mainStack.back()
-				})
-			}
+					var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Your man has died"))
+					d.rejected.connect(function() {
+						_closeEnabled = true
+						mainStack.back()
+					})
+				}
 
-			onGameCompletedReady: {
-				setEnemiesMoving(false)
-				setRunning(false)
+				onGameCompletedReady: {
+					setEnemiesMoving(false)
+					setRunning(false)
 
-				if (!studentMaps) {
-					_closeEnabled = true
-					mainStack.back()
+					if (!studentMaps) {
+						_closeEnabled = true
+						mainStack.back()
+					}
+				}
+
+
+				onMsecLeftChanged: {
+					if (msecLeft > 30*1000 && !_finalSound)
+						_finalSound = true
+
+					if (msecLeft > 60*1000 && !_timeSound)
+						_timeSound = true
+
+
+					if (msecLeft <= 60*1000 && _timeSound) {
+						_timeSound = false
+						messageList.message(qsTr("You have 1 minute left"), 1)
+						cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
+					}
+
+					if (msecLeft <= 30*1000 && _finalSound) {
+						_finalSound = false
+						messageList.message(qsTr("You have 30 seconds left"), 1)
+						cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
+					}
+				}
+
+
+				onGameMessageSent: {
+					messageList.message(message, colorCode)
+				}
+
+				onGameSceneScaleToggleRequest: {
+					if (!_backDisabled)
+						gameScene.isSceneZoom = !gameScene.isSceneZoom
 				}
 			}
 
 
-			onMsecLeftChanged: {
-				if (msecLeft > 30*1000 && !_finalSound)
-					_finalSound = true
+			Desaturate {
+				id: gameSaturate
 
-				if (msecLeft > 60*1000 && !_timeSound)
-					_timeSound = true
+				anchors.fill: game
+				source: game
 
+				opacity: 0.0
+				visible: desaturation
 
-				if (msecLeft <= 60*1000 && _timeSound) {
-					_timeSound = false
-					messageList.message(qsTr("You have 1 minute left"), 1)
-					cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
-				}
+				desaturation: 1.0
 
-				if (msecLeft <= 30*1000 && _finalSound) {
-					_finalSound = false
-					messageList.message(qsTr("You have 30 seconds left"), 1)
-					cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
-				}
+				Behavior on opacity { NumberAnimation { duration: 750 } }
 			}
 
 
-			onGameMessageSent: {
-				messageList.message(message, colorCode)
-			}
 		}
 
 
-		Desaturate {
-			id: gameSaturate
+		PinchArea {
+			anchors.fill: parent
 
-			anchors.fill: game
-			source: game
+			MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
+				anchors.fill: parent
+			}
 
-			opacity: 0.0
-			visible: desaturation
+			enabled: !_backDisabled
 
-			desaturation: 1.0
-
-			Behavior on opacity { NumberAnimation { duration: 750 } }
+			onPinchUpdated: {
+				if (pinch.scale < 0.9) {
+					gameScene.isSceneZoom = true
+				} else if (pinch.scale > 1.1) {
+					gameScene.isSceneZoom = false
+				}
+			}
 		}
-
-
 
 
 		onWidthChanged: setXOffset()
 		onHeightChanged: setYOffset()
 		onContentWidthChanged: setXOffset()
 		onContentHeightChanged: setYOffset()
-
 
 
 		SmoothedAnimation {
@@ -336,14 +422,14 @@ Page {
 
 			var fw = flick.width
 			var spaceRequired = fw*0.45
-			var px = game.player.x
-			var pw = game.player.width
+			var px = game.player.x*gameScene.scale
+			var pw = game.player.width*gameScene.scale
 			var cx = flick.contentX
 			var cw = flick.contentWidth
 			var x = 0
 			var newX = false
 
-			if (game.player.facingLeft) {
+			if (game.player.facingLeft || gameScene.isSceneZoom) {
 				if (px+pw+10 > cx+fw) {
 					x = px+pw+10-fw
 					newX = true
@@ -388,8 +474,8 @@ Page {
 
 			var fh = flick.height
 			var spaceRequired = Math.min(fh*0.3, 250)
-			var py = game.player.y
-			var ph = game.player.height
+			var py = game.player.y*gameScene.scale
+			var ph = game.player.height*gameScene.scale
 			var cy = flick.contentY
 			var ch = flick.contentHeight
 			var y = -1
@@ -450,7 +536,7 @@ Page {
 		visible: opacity
 		anchors.centerIn: parent
 
-		source: "qrc:/internal/img/skull.svg"
+		source: "qrc:/internal/game/skull.svg"
 		sourceSize.width: 200
 		sourceSize.height: 200
 
@@ -503,6 +589,8 @@ Page {
 		text: "%1 HP"
 		value: game.player ? game.player.entityPrivate.hp : 0
 		image.visible: false
+
+		visible: !gameScene.isSceneZoom
 	}
 
 	Column {
@@ -511,11 +599,15 @@ Page {
 		anchors.margins: 7
 		spacing: 5
 
+		visible: !gameScene.isSceneZoom
+
 		GameLabel {
 			id: labelXP
 			anchors.right: parent.right
 			color: "white"
 			image.visible: false
+
+			pixelSize: 16
 
 			text: "%1 XP"
 
@@ -530,7 +622,7 @@ Page {
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: shield
-			image.icon: "qrc:/internal/game/shield-blank.png"
+			image.icon: "qrc:/internal/game/shield2.png"
 			progressBar.width: Math.min(control.width*0.125, 100)
 
 			property int shield: game.player ? game.player.entityPrivate.shield : 0
@@ -549,8 +641,8 @@ Page {
 		GameInfo {
 			id: infoTarget
 			anchors.right: parent.right
-			color: CosStyle.colorAccentDarker
-			image.icon: "qrc:/internal/img/target2.svg"
+			color: CosStyle.colorWarning
+			image.icon: "qrc:/internal/game/target.png"
 			label.text: Math.floor(progressBar.value)
 
 			progressBar.from: 0
@@ -595,6 +687,36 @@ Page {
 		}
 	}
 
+	GameMessageList {
+		id: messageList
+
+		anchors.left: parent.left
+		anchors.top: parent.top
+
+		width: Math.min(implicitWidth, control.width*0.55)
+		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
+
+		visible: !gameScene.isSceneZoom
+	}
+
+	GameLabel {
+		id: infoTime
+		color: CosStyle.colorPrimary
+		//image.visible: false
+
+		image.icon: CosStyle.iconClock1
+
+		anchors.left: parent.left
+		anchors.top: messageList.bottom
+		anchors.margins: 5
+
+		property int secs: game.msecLeft/1000
+
+		label.text: game.msecLeft>=60000 ? JS.secToMMSS(secs) : Number(game.msecLeft/1000).toFixed(1)
+
+		visible: !gameScene.isSceneZoom
+	}
+
 
 
 
@@ -613,6 +735,8 @@ Page {
 		height: Math.min(120, control.width*0.4)
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
+
+		opacity: gameScene.isSceneZoom ? 0.2 : 1.0
 
 		onJoystickMoved: if (game.player) {
 							 if (y > 0.6) {
@@ -665,11 +789,11 @@ Page {
 		readonly property bool enemyAimed: game.player && game.player.entityPrivate && game.player.entityPrivate.enemy
 
 		color: enemyAimed ? JS.setColorAlpha(CosStyle.colorErrorLighter, 0.7) : "transparent"
-		opacity: enemyAimed ? 1.0 : 0.6
+		opacity: gameScene.isSceneZoom ? 0.2 : (enemyAimed ? 1.0 : 0.6)
 
 		border.color: enemyAimed ? "black" : "white"
 
-		fontImage.icon: "qrc:/internal/img/target1.svg"
+		fontImage.icon: "qrc:/internal/game/target1.svg"
 		fontImage.color: "white"
 		fontImage.opacity: enemyAimed ? 0.6 : 1.0
 		tap.enabled: !game.question
@@ -695,7 +819,7 @@ Page {
 		border.color: enabled ? fontImage.color : "white"
 		border.width: 1
 
-		opacity: enabled ? 1.0 : 0.6
+		opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
 
 		fontImage.icon: "image://font/Material Icons/\ue925"
 		fontImage.color: "white"
@@ -708,29 +832,7 @@ Page {
 	}
 
 
-	GameMessageList {
-		id: messageList
 
-		anchors.left: parent.left
-		anchors.top: parent.top
-
-		width: Math.min(implicitWidth, control.width*0.55)
-		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
-	}
-
-	GameLabel {
-		id: infoTime
-		color: CosStyle.colorPrimary
-		image.visible: false
-
-		anchors.left: parent.left
-		anchors.top: messageList.bottom
-		anchors.margins: 5
-
-		property int secs: game.msecLeft/1000
-
-		label.text: JS.secToMMSS(secs)
-	}
 
 
 

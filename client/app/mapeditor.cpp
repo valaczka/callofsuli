@@ -84,9 +84,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 												 "uuid",
 												 "name",
 												 "description",
-												 "medalImage",
-												 "campaign",
-												 "mandatory"
+												 "medalImage"
 											 },
 											 this);
 
@@ -600,7 +598,7 @@ void MapEditor::getMissionList()
 		return;
 	}
 
-	QVariantList list = db()->execSelectQuery("SELECT uuid, campaign, mandatory, name, description, medalImage FROM missions");
+	QVariantList list = db()->execSelectQuery("SELECT uuid, name, description, medalImage FROM missions");
 	m_modelMissionList->setVariantList(list, "uuid");
 }
 
@@ -621,7 +619,7 @@ void MapEditor::getCurrentMissionData()
 	}
 
 
-	QVariantMap data = db()->execSelectQueryOneRow("SELECT uuid, campaign, mandatory, name, description, medalImage FROM missions WHERE uuid=?",
+	QVariantMap data = db()->execSelectQueryOneRow("SELECT uuid, name, description, medalImage FROM missions WHERE uuid=?",
 												   {m_currentMission});
 
 
@@ -850,7 +848,6 @@ void MapEditor::play(QVariantMap data)
 void MapEditor::missionAdd(QVariantMap data)
 {
 	if (!data.contains("uuid"))	data["uuid"] = QUuid::createUuid().toString();
-	if (!data.contains("mandatory"))	data["mandatory"] = false;
 	if (!data.contains("medalImage"))	data["medalImage"] = Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size()));
 
 	QString uuid = data.value("uuid").toString();
@@ -2303,14 +2300,7 @@ bool MapEditor::loadDatabasePrivate(GameMap *game, const QString &filename)
 
 	// Generate auto mission medals
 
-	foreach(GameMap::Campaign *c, game->campaigns()) {
-		foreach(GameMap::Mission *m, c->missions()) {
-			if (m->medalImage().isEmpty())
-				m->setMedalImage(Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size())));
-		}
-	}
-
-	foreach(GameMap::Mission *m, game->orphanMissions()) {
+	foreach(GameMap::Mission *m, game->missions()) {
 		if (m->medalImage().isEmpty())
 			m->setMedalImage(Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size())));
 	}
@@ -2353,15 +2343,12 @@ bool MapEditor::createTriggersPrivate()
 	tableList << "chapters";
 	tableList << "storages";
 	tableList << "objectives";
-	tableList << "campaigns";
-	tableList << "campaignLocks";
 	tableList << "missions";
 	tableList << "missionLocks";
 	tableList << "missionLevels";
 	tableList << "blockChapterMaps";
 	tableList << "blockChapterMapBlocks";
 	tableList << "blockChapterMapChapters";
-	tableList << "blockChapterMapFavorites";
 	tableList << "inventories";
 	tableList << "images";
 

@@ -709,13 +709,11 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 	m_currentMap->setSolver(list.toVariantList());
 
 
-	GameMap::Campaign *cerror = nullptr;
 	GameMap::Mission *merror = nullptr;
 
-	m_currentMap->campaignLockTree(&cerror);
 	m_currentMap->missionLockTree(&merror);
 
-	if (cerror || merror) {
+	if (merror) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás pálya!"));
 		m_modelMissionList->clear();
 		return;
@@ -726,109 +724,8 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 	int num = 1;
 
-	foreach (GameMap::Campaign *c, m_currentMap->campaigns()) {
-		QVariantMap m;
-		m["num"] = num++;
-		m["orphan"] = false;
-		m["type"] = 0;
-		m["solved"] = c->getSolved();
-		m["tried"] = c->getTried();
-		if (c->getLocked())
-			m["lockDepth"] = 1;
-		else
-			m["lockDepth"] = 0;
-		m["uuid"] = "";
-		m["name"] = c->name();
-		m["cname"] = c->name();
-		m["levels"] = QVariantList();
-		m["medalImage"] = "";
 
-		ret.append(m);
-
-		if (c->getLocked())
-			continue;
-
-		foreach (GameMap::Mission *mis, c->missions()) {
-			if (mis->getLockDepth() > 1)
-				continue;
-
-			QVariantMap m;
-			m["num"] = num++;
-			m["orphan"] = false;
-			m["type"] = 1;
-			m["lockDepth"] = mis->getLockDepth();
-			m["tried"] = mis->getTried();
-			if (mis->getSolvedLevel() > 0)
-				m["solved"] = true;
-			else
-				m["solved"] = false;
-			m["uuid"] = mis->uuid();
-			m["name"] = mis->name();
-			m["cname"] = c->name();
-			m["description"] = mis->description();
-			m["medalImage"] = mis->medalImage();
-
-			int lMin = mis->getLockDepth() == 0 ?
-						   qMax(mis->getSolvedLevel()+1, 1) :
-						   -1;
-			QVariantList l;
-			foreach (GameMap::MissionLevel *ml, mis->levels()) {
-				QVariantMap mm;
-				mm["level"] = ml->level();
-				mm["solved"] = (mis->getSolvedLevel() >= ml->level());
-				mm["startHP"] = ml->startHP();
-				mm["duration"] = ml->duration();
-
-				TerrainData t = Client::terrain(ml->terrain());
-				mm["enemies"] = t.enemies;
-
-				QVariantList modes;
-				{
-					QVariantMap mode;
-					int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
-					if (mis->getSolvedLevel() < ml->level())
-						xp *= XP_FACTOR_NO_SOLVED;
-					//xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
-					mode["type"] = "normal";
-					mode["available"] = (ml->level() <= lMin);
-					mode["xp"] = xp;
-					modes.append(mode);
-				}
-				if (ml->canDeathmatch()) {
-					QVariantMap mode;
-					int xp = m_baseXP*XP_FACTOR_LEVEL*ml->level();
-					xp *= XP_FACTOR_DEATHMATCH;
-					//xp += t.enemies*m_baseXP*XP_FACTOR_TARGET_BASE;
-					mode["type"] = "deathmatch";
-					mode["available"] = (mis->getSolvedLevel() >= ml->level() && ml->level() <= lMin);
-					mode["xp"] = xp;
-					modes.append(mode);
-				}
-
-				mm["modes"] = modes;
-
-				l.append(mm);
-
-				if (!m.contains("backgroundImage")) {
-					QString imageFolder = ml->imageFolder();
-					QString imageFile = ml->imageFile();
-
-					if (!imageFolder.isEmpty() && !imageFile.isEmpty())
-						m["backgroundImage"] = "image://mapimagedb/"+imageFolder+"/"+imageFile;
-					else
-						m["backgroundImage"] = "qrc:/internal/game/bg.png";
-				}
-			}
-
-			m["levels"] = l;
-
-			ret.append(m);
-		}
-	}
-
-
-
-	foreach (GameMap::Mission *mis, m_currentMap->orphanMissions()) {
+	foreach (GameMap::Mission *mis, m_currentMap->missions()) {
 		if (mis->getLockDepth() > 1)
 			continue;
 

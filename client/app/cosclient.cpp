@@ -61,6 +61,11 @@
 #include "studentmaps.h"
 
 
+#ifdef Q_OS_ANDROID
+#include <QtAndroid>
+#define FLAG_SCREEN_ORIENTATION_LANDSCAPE       0x00000000
+#endif
+
 
 QList<TerrainData> Client::m_availableTerrains;
 QVariantMap Client::m_characterData;
@@ -88,6 +93,10 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_serverDataDir = "";
 
 	m_sfxVolume = 1.0;
+
+#ifdef Q_OS_ANDROID
+	m_screenOrientationRequest = -1;
+#endif
 
 #ifdef WITH_CGRAPH
 	m_gvContext = gvContext();
@@ -920,6 +929,41 @@ void Client::setSfxVolumeInt(int sfxVolume)
 
 	setSfxVolume(r);
 }
+
+
+#ifdef Q_OS_ANDROID
+
+/**
+ * @brief Client::forceLandscape
+ */
+
+void Client::forceLandscape()
+{
+	m_screenOrientationRequest = QtAndroid::androidActivity().callMethod<jint>("getRequestedOrientation");
+
+	qDebug() << "REQ" << m_screenOrientationRequest;
+
+	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
+												  "(I)V",
+												  FLAG_SCREEN_ORIENTATION_LANDSCAPE);
+}
+#endif
+
+
+#ifdef Q_OS_ANDROID
+
+/**
+ * @brief Client::resetLandscape
+ */
+
+void Client::resetLandscape()
+{
+		QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
+													  "(I)V",
+													  m_screenOrientationRequest);
+}
+#endif
+
 
 void Client::setRegistrationClasses(QVariantList registrationClasses)
 {
