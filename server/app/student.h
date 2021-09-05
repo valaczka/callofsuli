@@ -36,6 +36,7 @@
 #define STUDENT_H
 
 #include "abstracthandler.h"
+#include "gamemap.h"
 
 class Client;
 
@@ -52,14 +53,14 @@ public slots:
 	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userListGet(QJsonObject *jsonResponse, QByteArray *);
-
 	bool missionListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool medalListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool gameCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameFinish(QJsonObject *jsonResponse, QByteArray *);
 
+private:
+	GameMap::SolverInfo missionSolverInfo(const QString &mapid, const QString &missionid) const;
 };
 
 #endif // STUDENT_H

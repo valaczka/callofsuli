@@ -59,7 +59,9 @@ DESTDIR = ../..
 unix:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy
 win32: QMAKE_CXXFLAGS += -Wno-deprecated-copy
 
-#DEFINES += COS_SQL_DEBUG
+#CONFIG(debug) {
+#	DEFINES += COS_SQL_DEBUG
+#}
 
 SOURCES += \
 		abstractactivity.cpp \
@@ -147,9 +149,6 @@ QML_DESIGNER_IMPORT_PATH += $$PWD/../Bacon2D-static/src/
 
 QML2_IMPORT_PATH += $$PWD/../Bacon2D-static/src/
 
-CONFIG(release, debug|release) {
-	DEFINES += QT_NO_DEBUG_OUTPUT
-}
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -18,5 +18,6 @@ Image {
 		width: parent.width*0.9
 		height: parent.height*0.9
 		fillMode: Image.PreserveAspectFit
+		opacity: 0.7
 	}
 }

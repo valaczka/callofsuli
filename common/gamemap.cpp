@@ -38,6 +38,26 @@
 #include <QDataStream>
 #include <QMetaObject>
 
+
+
+
+qreal GameMap::computeSolvedXpFactor(const GameMap::SolverInfo &baseSolver, const int &level, const bool &deathmatch)
+{
+	qreal xp = XP_FACTOR_LEVEL*level;
+
+	if (deathmatch)
+		xp *= XP_FACTOR_DEATHMATCH;
+
+	if (!baseSolver.hasSolved(level, deathmatch))
+		xp *= XP_FACTOR_SOLVED_FIRST;
+
+	return xp;
+}
+
+
+
+
+
 GameMap::GameMap(const QByteArray &uuid)
 	: m_uuid(uuid)
 	, m_chapters()
@@ -481,7 +501,7 @@ GameMap::MissionLockHash GameMap::missionLockTree(Mission **errMission) const
 	foreach (Mission *m, missions()) {
 		QVector<GameMap::MissionLock> list;
 		if (!m->getLockTree(&list, m)) {
-			qWarning() << QObject::tr("Redundant locks");
+			qWarning() << QObject::tr("Redundant locks") << m->uuid() << m->name();
 			if (errMission)
 				*errMission = m;
 
@@ -502,37 +522,40 @@ GameMap::MissionLockHash GameMap::missionLockTree(Mission **errMission) const
 
 void GameMap::setSolver(const QVariantList &list)
 {
-	// Clear solver
-
+	// Clear
 	foreach (Mission *m, m_missions) {
-		m->setSolvedLevel(-1);
-		m->setTried(false);
 		m->setLockDepth(0);
-	}
-
-
-	// Load mission solver
-
-	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
-		QString uuid = m.value("missionid").toString();
-		int maxLevel = m.value("maxLevel", -1).toInt();
-
-		Mission *mis = mission(uuid.toLatin1());
-		if (mis) {
-			mis->setTried(true);
-			if (maxLevel > 0)
-				mis->setSolvedLevel(maxLevel);
-		} else {
-			qWarning() << "Invalid mission uuid" << uuid;
+		foreach (MissionLevel *ml, m->levels()) {
+			ml->setIsSolvedNormal(false);
+			ml->setIsSolvedDeathmatch(false);
 		}
 	}
 
+	// Load solver
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		QByteArray id = m.value("missionid").toByteArray();
 
-	// Load locks
+		Mission *mis = mission(id);
+
+		if (!mis) {
+			qDebug() << "Invalid mission id" << id;
+			continue;
+		}
+
+		SolverInfo info(m);
+
+		foreach (MissionLevel *ml, mis->levels()) {
+			ml->setIsSolvedNormal(info.hasSolved(ml->level(), false));
+			ml->setIsSolvedDeathmatch(info.hasSolved(ml->level(), true));
+		}
+
+	}
+
+
+	// Calculate locks
 
 	MissionLockHash mlh = missionLockTree();
-
 
 	foreach (Mission *m, m_missions) {
 		if (!mlh.value(m).size())
@@ -542,11 +565,14 @@ void GameMap::setSolver(const QVariantList &list)
 
 		QVector<MissionLock> locks = mlh.value(m);
 		foreach (MissionLock ml, locks) {
-			if ((ml.second == -1 && ml.first->getSolvedLevel() == -1) || ml.second > ml.first->getSolvedLevel()) {
-				if (mlh.value(ml.first).size() > 0) {
-					QVector<MissionLock> locks2 = mlh.value(ml.first);
+			Mission *lockerMission = ml.first;
+			int lockerLevel = ml.second;
+
+			if ((lockerLevel == -1 && lockerMission->solvedLevel() < 1) || lockerLevel > lockerMission->solvedLevel()) {
+				if (mlh.value(lockerMission).size() > 0) {
+					QVector<MissionLock> locks2 = mlh.value(lockerMission);
 					foreach (MissionLock ml2, locks2) {
-						if ((ml2.second == -1 && ml2.first->getSolvedLevel() == -1) || ml2.second > ml2.first->getSolvedLevel()) {
+						if ((ml2.second == -1 && ml2.first->solvedLevel() < 1) || ml2.second > ml2.first->solvedLevel()) {
 							lockDepth = 2;
 							break;
 						}
@@ -861,7 +887,7 @@ bool GameMap::objectivesFromStream(Chapter *chapter, QDataStream &stream, const 
 
 
 /**
- * @brief GameMap::objectivesToDb
+ * @brief GamQJsonObjecttivesToDb
  * @param db
  */
 
@@ -1126,6 +1152,7 @@ bool GameMap::missionsToDb(CosDb *db) const
 {
 	if (!db->execSimpleQuery("CREATE TABLE IF NOT EXISTS missions ("
 							 "uuid TEXT PRIMARY KEY,"
+							 "num INTEGER,"
 							 "name TEXT,"
 							 "description TEXT,"
 							 "medalImage TEXT"
@@ -1136,10 +1163,13 @@ bool GameMap::missionsToDb(CosDb *db) const
 	if (!db->execSimpleQuery("DELETE FROM missions"))		return false;
 
 
+	int n = 0;
+
 	foreach (Mission *m, missions()) {
 		QVariantMap l;
 		l["uuid"] = QString(m->uuid());
 		l["name"] = m->name();
+		l["num"] = ++n;
 		l["description"] = m->description();
 		l["medalImage"] = m->medalImage();
 
@@ -2090,6 +2120,8 @@ GameMap::MissionLevel::MissionLevel(const qint32 &level, const QByteArray &terra
 	, m_mission(nullptr)
 	, m_canDeathmatch(canDeathmatch)
 	, m_questions(questions)
+	, m_solvedNormal(false)
+	, m_solvedDeathmatch(false)
 {
 
 }
@@ -2124,10 +2156,8 @@ GameMap::Mission::Mission(const QByteArray &uuid, const QString &name, const QSt
 	, m_description(description)
 	, m_levels()
 	, m_locks()
-	, m_solvedLevel(-1)
-	, m_tried(false)
-	, m_lockDepth(0)
 	, m_medalImage(medalImage)
+	, m_lockDepth(-1)
 {
 
 }
@@ -2141,6 +2171,24 @@ GameMap::Mission::~Mission()
 {
 	qDeleteAll(m_levels.begin(), m_levels.end());
 	m_levels.clear();
+}
+
+
+/**
+ * @brief GameMap::Mission::missionLevel
+ * @param level
+ * @return
+ */
+
+GameMap::MissionLevel *GameMap::Mission::missionLevel(const qint32 &level) const
+{
+	foreach(MissionLevel *l, m_levels) {
+		if (l->level() == level) {
+			return l;
+		}
+	}
+
+	return nullptr;
 }
 
 
@@ -2178,6 +2226,33 @@ bool GameMap::Mission::getLockTree(QVector<GameMap::MissionLock> *listPtr, GameM
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief GameMap::Mission::solvedLevel
+ * @return
+ */
+
+int GameMap::Mission::solvedLevel() const
+{
+	int level = 0;
+
+	foreach (MissionLevel *ml, m_levels) {
+		int n = ml->level();
+		if (ml->isSolvedNormal()) {
+			bool hasSolvedAll = true;
+			for (int i=n-1; i>0; --i) {
+				if (!missionLevel(i) || !missionLevel(i)->isSolvedNormal())
+					hasSolvedAll = false;
+			}
+
+			if (hasSolvedAll && level < n)
+				level = n;
+		}
+	}
+
+	return level;
 }
 
 

@@ -131,7 +131,7 @@ QDialogPanel {
 
 
 	function populated() {
-		studentMaps.send("medalListGet", {map: mapUuid})
+		studentMaps.send("missionListGet", {map: mapUuid})
 		buttonOk.forceActiveFocus()
 	}
 

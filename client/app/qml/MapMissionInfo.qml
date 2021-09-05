@@ -87,272 +87,222 @@ QPagePanel {
 		Behavior on opacity { NumberAnimation { duration: 125 } }
 	}
 
-	Grid {
-		id: grid
-		anchors.fill: parent
-		columns: (panel.width >= panel.height) ? 2 : 1
-		spacing: 0
+
+	QLabel {
+		id: titleLabel
+
+		anchors.top: parent.top
+		anchors.left: parent.left
+		anchors.right: parent.right
+
+		opacity: text.length ? 1.0 : 0.0
+		visible: opacity != 0
+
+		topPadding: 50
+		bottomPadding: 50
+		rightPadding: 100
+		leftPadding: 100
+
+		text: selectedData ? selectedData.name : ""
+
+		font.family: "HVD Peace"
+		font.pixelSize: CosStyle.pixelSize*1.6
+
+		color: CosStyle.colorAccentLighter
+
+		horizontalAlignment: Text.AlignHCenter
+
+		wrapMode: Text.Wrap
+	}
+
+
+
+	Item {
+		id: bottomItem
 
 		opacity: selectedData ? 1.0 : 0.0
 		visible: opacity != 0
 
+		anchors.top: titleLabel.visible ? titleLabel.bottom : parent.top
+		anchors.bottom: parent.bottom
+		anchors.left: parent.left
+		anchors.right: parent.right
 
-		Flickable {
-			id: topItem
 
-			width: (grid.columns > 1) ? grid.width/2 : grid.width
-			height: (grid.columns > 1) ? grid.height : grid.height*0.4
+		GridLayout {
+			id: bottomCol
+			columns: 2
 
-			contentWidth: col.width
-			contentHeight: col.y+col.height
+			anchors.top: parent.top
+			anchors.horizontalCenter: parent.horizontalCenter
 
-			clip: true
+			QLabel {
+				text: qsTr("Szint")
+				color: CosStyle.colorPrimary
+				Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+			}
 
-			flickableDirection: Flickable.VerticalFlick
-			boundsBehavior: Flickable.StopAtBounds
+			QSpinBoxArrow {
+				id: spinLevel
+				from: selectedData && selectedData.levels ? 0 : -1
+				to: selectedData && selectedData.levels ? selectedData.levels.length-1 : 0
+				value: -1
 
-			ScrollIndicator.vertical: ScrollIndicator { }
+				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
-			Column {
-				id: col
-				width: topItem.width
+				textFromValue: function (value) {
+					if (selectedData && selectedData.levels && selectedData.levels.length)
+						return qsTr("Level %1").arg(selectedData.levels[value].level)
+					else
+						return ""
+				}
 
-				y: Math.max((topItem.height-col.height)/2, 0)
+				onValueChanged: {
+					if (selectedData && selectedData.levels && value >= 0 && value < selectedData.levels.length) {
+						spinMode.from = 0
+						spinMode.to = selectedData.levels[value].modes.length-1
+						spinMode.value = 0
+						bottomStack.replace(levelComponent, { levelData: selectedData.levels[value], modeIndex: spinMode.value })
+					} else {
+						spinMode.from = -1
+						spinMode.to = -1
+						spinMode.value = -1
+						bottomStack.replace(emptyComponent)
+					}
 
-				QLabel {
-					id: titleLabel
+				}
+			}
 
-					anchors.horizontalCenter: parent.horizontalCenter
-					width: topItem.width*0.85
+			QLabel {
+				text: qsTr("Mód")
+				color: CosStyle.colorPrimary
 
-					opacity: text.length ? 1.0 : 0.0
-					visible: opacity != 0
+				Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+			}
 
-					topPadding: 20
-					bottomPadding: 20
+			QSpinBoxArrow {
+				id: spinMode
+				from: -1
+				to: -1
+				value: -1
 
-					text: selectedData ? selectedData.name : ""
+				Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
-					font.family: "HVD Peace"
-					font.pixelSize: CosStyle.pixelSize*1.6
-
-					color: CosStyle.colorAccentLighter
-
-					horizontalAlignment: Text.AlignHCenter
-
-					wrapMode: Text.Wrap
+				textFromValue: function (value) {
+					if (selectedData && selectedData.levels && selectedData.levels.length && spinLevel.value > -1)
+						return selectedData.levels[spinLevel.value].modes[value].type
+					else
+						return ""
 				}
 
 
-				QLabel {
-					id: detailsLabel
-
-					anchors.horizontalCenter: parent.horizontalCenter
-					width: topItem.width*0.85
-
-					wrapMode: Text.Wrap
-					text: selectedData ? selectedData.description : ""
-
-					color: CosStyle.colorAccent
-					font.pixelSize: CosStyle.pixelSize*0.95
+				onValueChanged: {
+					if (value > -1)
+						bottomStack.replace(levelComponent, { levelData: selectedData.levels[spinLevel.value], modeIndex: spinMode.value })
+					else
+						bottomStack.replace(emptyComponent)
 				}
+
 			}
 		}
 
 
-		Item {
-			id: bottomItem
+		StackView {
+			id: bottomStack
+			anchors.left: parent.left
+			anchors.top: bottomCol.bottom
+			anchors.right: parent.right
+			anchors.bottom: parent.bottom
 
-			width: (grid.columns > 1) ? grid.width/2 : grid.width
-			height: (grid.columns > 1) ? grid.height : grid.height-topItem.height
+			clip: true
 
-			GridLayout {
-				id: bottomCol
-				columns: 2
-
-				anchors.top: parent.top
-				anchors.topMargin: (grid.columns > 1) ? 10 : 0
-				anchors.horizontalCenter: parent.horizontalCenter
-
-				QLabel {
-					text: qsTr("Szint")
-					color: CosStyle.colorPrimary
-					Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-				}
-
-				QSpinBoxArrow {
-					id: spinLevel
-					from: selectedData && selectedData.levels ? 0 : -1
-					to: selectedData && selectedData.levels ? selectedData.levels.length-1 : 0
-					value: -1
-
-					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-					textFromValue: function (value) {
-						if (selectedData && selectedData.levels && selectedData.levels.length)
-							return qsTr("Level %1").arg(selectedData.levels[value].level)
-						else
-							return ""
-					}
-
-					onValueChanged: {
-						if (selectedData && selectedData.levels && value >= 0 && value < selectedData.levels.length) {
-							spinMode.from = 0
-							spinMode.to = selectedData.levels[value].modes.length-1
-							spinMode.value = 0
-							bottomStack.replace(levelComponent, { levelData: selectedData.levels[value], modeIndex: spinMode.value })
-						} else {
-							spinMode.from = -1
-							spinMode.to = -1
-							spinMode.value = -1
-							bottomStack.replace(emptyComponent)
-						}
-
-					}
-				}
-
-				QLabel {
-					text: qsTr("Mód")
-					color: CosStyle.colorPrimary
-
-					Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-				}
-
-				QSpinBoxArrow {
-					id: spinMode
-					from: -1
-					to: -1
-					value: -1
-
-					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-					textFromValue: function (value) {
-						if (selectedData && selectedData.levels && selectedData.levels.length && spinLevel.value > -1)
-							return selectedData.levels[spinLevel.value].modes[value].type
-						else
-							return ""
-					}
+			initialItem: emptyComponent
+		}
 
 
-					onValueChanged: {
-						if (value > -1)
-							bottomStack.replace(levelComponent, { levelData: selectedData.levels[spinLevel.value], modeIndex: spinMode.value })
-						else
-							bottomStack.replace(emptyComponent)
-					}
-
-				}
-			}
+		Component {
+			id: emptyComponent
+			Item {}
+		}
 
 
-			StackView {
-				id: bottomStack
-				anchors.left: parent.left
-				anchors.top: bottomCol.bottom
-				anchors.right: parent.right
-				anchors.bottom: parent.bottom
+		Component {
+			id: levelComponent
+
+			Flickable {
+				id: levelItem
+
+				contentWidth: row2.width
+				contentHeight: row2.y+row2.height
 
 				clip: true
 
-				initialItem: emptyComponent
-			}
+				property var levelData: null
+				property int modeIndex: -1
+
+				boundsBehavior: Flickable.StopAtBounds
+				flickableDirection: Flickable.VerticalFlick
+
+				Row {
+					id: row2
+
+					width: bottomStack.width
+
+					y: Math.max((levelItem.height-row2.height)/2, 0)
+
+					Item {
+						id: img1
+						anchors.verticalCenter: parent.verticalCenter
+						width: levelItem.width*0.25
+						height: col2.height*0.9
+
+						opacity: modeIndex != -1 && levelData.modes[modeIndex].available && levelData.solvedNormal ? 1.0 : 0.2
 
 
-			Component {
-				id: emptyComponent
-				Item {}
-			}
 
+						QMedalImage {
+							id: medalImage
+							level: levelData.level
+							isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
+							image: selectedData ? selectedData.medalImage : ""
 
-			Component {
-				id: levelComponent
+							visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
 
-				Flickable {
-					id: levelItem
+							//opacity: !levelData.solved ? 1.0 : 0.2
 
-					contentWidth: row2.width
-					contentHeight: row2.y+row2.height
-
-					clip: true
-
-					property var levelData: null
-					property int modeIndex: -1
-
-					boundsBehavior: Flickable.StopAtBounds
-					flickableDirection: Flickable.VerticalFlick
-
-					Row {
-						id: row2
-
-						width: bottomStack.width
-
-						y: Math.max((levelItem.height-row2.height)/2, 0)
-
-						Item {
-							id: img1
-							anchors.verticalCenter: parent.verticalCenter
-							width: levelItem.width*0.25
-							height: col2.height*0.9
-
-							//opacity: modeIndex != -1 && levelData.modes[modeIndex].available && !levelData.solved ? 1.0 : 0.2
-
-							QImageInnerShadow {
-								width: medalImage.width
-								height: medalImage.height
-
-								anchors.centerIn: parent
-
-								image: "qrc:/internal/trophy/iconBgt1.png"
-								contentItem: panel.metalBgTexture
-
-								brightness: -0.5
-
-								visible: !studentMaps.demoMode && modeIndex != -1 && !levelData.modes[modeIndex].available
-							}
-
-							QMedalImage {
-								id: medalImage
-								level: levelData.level
-								isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
-								image: selectedData ? selectedData.medalImage : ""
-
-								visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
-
-								//opacity: !levelData.solved ? 1.0 : 0.2
-
-								width: parent.width*0.8
-								height: Math.min(parent.height*0.8, 100)
-								anchors.centerIn: parent
-							}
-
+							width: parent.width*0.8
+							height: Math.min(parent.height*0.8, 100)
+							anchors.centerIn: parent
 						}
 
-						Column {
-							id: col2
+					}
 
-							z: 2
+					Column {
+						id: col2
 
-							anchors.verticalCenter: parent.verticalCenter
+						z: 2
 
-							width: row2.width-img1.width-img2.width
+						anchors.verticalCenter: parent.verticalCenter
+
+						width: row2.width-img1.width-img2.width
 
 
-							QButton {
-								id: btn
+						QButton {
+							id: btn
 
-								anchors.horizontalCenter: parent.horizontalCenter
+							anchors.horizontalCenter: parent.horizontalCenter
 
-								themeColors: CosStyle.buttonThemeGreen
-								text: qsTr("Play")
-								enabled: levelData && modeIndex != -1 && levelData.modes[modeIndex].available
-								icon.source: enabled ? CosStyle.iconPlay : CosStyle.iconLock
-								font.pixelSize: CosStyle.pixelSize*1.4
-								onClicked: {
-									if (studentMaps.gamePage) {
-										cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
-									} else {
+							themeColors: CosStyle.buttonThemeGreen
+							text: qsTr("Play")
+							enabled: levelData && modeIndex != -1 && levelData.modes[modeIndex].available
+							icon.source: enabled ? CosStyle.iconPlay : CosStyle.iconLock
+							font.pixelSize: CosStyle.pixelSize*1.4
+							onClicked: {
+								if (studentMaps.gamePage) {
+									cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
+								} else {
 
-										/*var d = JS.dialogCreateQml("ImageList", {
+									/*var d = JS.dialogCreateQml("ImageList", {
 														   roles: ["name", "dir"],
 														   icon: CosStyle.iconUser,
 														   title: qsTr("Válassz karaktert"),
@@ -371,108 +321,81 @@ QPagePanel {
 
 								var p = d.item.sourceModel.get(data)
 */
-										studentMaps.playGame({
-																 uuid: selectedData.uuid,
-																 level: levelData.level,
-																 hasSolved: levelData.solved,
-																 deathmatch: modeIndex != -1 && levelData.modes[modeIndex].type === "deathmatch"
-															 })
-										/*									})
+									studentMaps.playGame({
+															 uuid: selectedData.uuid,
+															 level: levelData.level,
+															 deathmatch: modeIndex != -1 && levelData.modes[modeIndex].type === "deathmatch"
+														 })
+									/*									})
 							d.open()
 */
-									}
 								}
 							}
-
-							Item {
-								width: 20
-								height: 20
-								visible: btn.visible
-							}
-
-
-							/*QLabel {
-								width: parent.width
-								anchors.horizontalCenter: parent.horizontalCenter
-								horizontalAlignment: Text.AlignHCenter
-								wrapMode: Text.Wrap
-								text: qsTr("Rendelkezésre álló idő: <b>%1</b>").arg(JS.secToMMSS(levelData.duration))
-								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-							}
-
-							QLabel {
-								anchors.horizontalCenter: parent.horizontalCenter
-								horizontalAlignment: Text.AlignHCenter
-								wrapMode: Text.Wrap
-								width: parent.width
-								text: qsTr("Célpontok száma: <b>%1</b>").arg(levelData.enemies)
-								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-							}
-
-							QLabel {
-								anchors.horizontalCenter: parent.horizontalCenter
-								horizontalAlignment: Text.AlignHCenter
-								wrapMode: Text.Wrap
-								width: parent.width
-								text: qsTr("HP: <b>%1</b>").arg(levelData.startHP)
-								color: btn.enabled ? CosStyle.colorPrimaryLighter : CosStyle.colorPrimaryDarker
-							}*/
-
-							QLabel {
-								topPadding: 15
-								bottomPadding: 15
-								anchors.horizontalCenter: parent.horizontalCenter
-								horizontalAlignment: Text.AlignHCenter
-								wrapMode: Text.Wrap
-								width: parent.width
-								text: levelData && modeIndex != -1 ? qsTr("Megszerezhető: <b>%1 XP</b>").arg(levelData.modes[modeIndex].xp) : ""
-								color: btn.enabled ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
-								font.pixelSize: CosStyle.pixelSize*1.2
-							}
-
 						}
 
 						Item {
-							id: img2
-							anchors.verticalCenter: parent.verticalCenter
-							width: levelItem.width*0.25
-							height: col2.height*0.9
+							width: 20
+							height: 20
+							visible: btn.visible
+						}
 
-							//opacity: modeIndex != -1 && levelData.modes[modeIndex].available ? 1.0 : 0.2
 
-							QImageInnerShadow {
-								width: trophyImage.width
-								height: trophyImage.height
 
-								anchors.centerIn: parent
+						QLabel {
+							topPadding: 15
+							bottomPadding: 15
+							anchors.horizontalCenter: parent.horizontalCenter
+							horizontalAlignment: Text.AlignHCenter
+							wrapMode: Text.Wrap
+							width: parent.width
+							text: levelData && modeIndex != -1 ? qsTr("Megszerezhető: <b>%1 XP</b>").arg(levelData.modes[modeIndex].xp) : ""
+							color: btn.enabled ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
+							font.pixelSize: CosStyle.pixelSize*1.2
+						}
 
-								image: "qrc:/internal/trophy/trophyt1.png"
-								contentItem: panel.metalBgTexture
+					}
 
-								brightness: -0.5
+					Item {
+						id: img2
+						anchors.verticalCenter: parent.verticalCenter
+						width: levelItem.width*0.25
+						height: col2.height*0.9
 
-								visible: !studentMaps.demoMode && modeIndex != -1 && !levelData.modes[modeIndex].available
-							}
+						//opacity: modeIndex != -1 && levelData.modes[modeIndex].available ? 1.0 : 0.2
 
-							QTrophyImage {
-								id: trophyImage
-								level: levelData.level
-								isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
+						QImageInnerShadow {
+							width: trophyImage.width
+							height: trophyImage.height
 
-								visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
+							anchors.centerIn: parent
 
-								width: parent.width*0.8
-								height: Math.min(parent.height*0.8, 75)
-								anchors.centerIn: parent
-							}
+							image: "qrc:/internal/trophy/trophyt1.png"
+							contentItem: panel.metalBgTexture
+
+							brightness: -0.5
+
+							visible: !studentMaps.demoMode && modeIndex != -1 && !levelData.modes[modeIndex].available
+						}
+
+						QTrophyImage {
+							id: trophyImage
+							level: levelData.level
+							isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
+
+							visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
+
+							width: parent.width*0.8
+							height: Math.min(parent.height*0.8, 75)
+							anchors.centerIn: parent
 						}
 					}
 				}
-
 			}
 
 		}
+
 	}
+
 
 	onPopulated: spinLevel.forceActiveFocus()
 }

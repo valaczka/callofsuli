@@ -34,6 +34,7 @@
 
 #include "student.h"
 
+
 Student::Student(Client *client, const CosMessage &message)
 	: AbstractHandler(client, message, CosMessage::ClassStudent)
 {
@@ -141,15 +142,14 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int groupid = params.value("groupid", -1).toInt();
 
-	QVariantList l;
-	l.append(groupid);
-
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
 									"rankid, rankname, ranklevel, rankimage, nickname,"
 									"t1, t2, t3, d1, d2, d3, sumxp "
 									"FROM studentGroupInfo LEFT JOIN userInfo ON (studentGroupInfo.username=userInfo.username) "
 									"LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username AND groupTrophy.id=studentGroupInfo.id) "
-									"WHERE active=true AND studentGroupInfo.id=?", l));
+									"WHERE active=true AND studentGroupInfo.id=?", {
+																							  groupid
+																						  }));
 
 	return true;
 }
@@ -172,17 +172,29 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	QVariantList l;
 
-	l.append(mapuuid);
-	l.append(m_client->clientUserName());
+	QVariantList list = m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
+									"FROM game WHERE username=? AND mapid=?"
+									, {
+															m_client->clientUserName(),
+															mapuuid
+														});
 
-	QVariantList r = m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
-													"(SELECT max(level) FROM game g WHERE g.missionid=game.missionid "
-													"AND g.success=true AND g.username=game.username) as maxLevel "
-													"FROM game WHERE mapid=? AND username=?", l);
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(r);
+	(*jsonResponse)["uuid"] = mapuuid;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
 
 
 	// Base XP
@@ -198,56 +210,15 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
-/**
- * @brief Student::medalListGet
- * @param jsonResponse
- * @return
- */
-
-bool Student::medalListGet(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	QString mapuuid = params.value("map").toString();
-
-	if (mapuuid.isEmpty()) {
-		(*jsonResponse)["error"] = "missing map";
-		return false;
-	}
-
-	QVariantList l;
-
-	l.append(m_client->clientUserName());
-	l.append(mapuuid);
-
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
-									"FROM game WHERE username=? AND mapid=?"
-									, l));
-	(*jsonResponse)["uuid"] = mapuuid;
-
-
-	return true;
-}
-
 
 
 
 /**
- * @brief Student::gameNew
+ * @brief Student::gameCreate
  * @param jsonResponse
  * @return
  */
+
 
 bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 {
@@ -302,7 +273,6 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["missionid"] = missionuuid;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;
-	(*jsonResponse)["hasSolved"] = params.value("hasSolved", false).toBool();
 	return true;
 }
 
@@ -351,7 +321,7 @@ bool Student::gameUpdate(QJsonObject *jsonResponse, QByteArray *)
 
 
 /**
- * @brief Student::gameFinish
+ * @brief StudeQJsonObjectish
  * @param jsonResponse
  * @return
  */
@@ -369,13 +339,12 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	QVariantList l;
 
-	l.append(m_client->clientUserName());
-	l.append(gameid);
-
-	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, missionid, level, deathmatch FROM game "
-														"WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, mapid, missionid, level, deathmatch FROM game "
+														"WHERE username=? AND id=? AND tmpScore IS NOT NULL", {
+															  m_client->clientUserName(),
+															  gameid
+														  });
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid game";
@@ -383,11 +352,34 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	// lastStreak
+	QString mapid = r.value("mapid").toString();
+	QString missionid = r.value("missionid").toString();
+	int level = r.value("level").toInt();
+	bool deathmatch = r.value("deathmatch").toBool();
 
-	l.clear();
-	l.append(m_client->clientUserName());
-	l.append(m_client->clientUserName());
+
+	QJsonObject xpObject;
+
+	// Eredeti állapot
+
+	GameMap::SolverInfo oldSolver = missionSolverInfo(mapid, missionid);
+
+	QVariantMap oldDurations = m_client->db()->execSelectQueryOneRow("SELECT "
+														"(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
+														"AND level=? AND success=true) as maxDuration,"
+														"(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
+														"AND level=? AND success=true) as minDuration"
+														, {
+																		 m_client->clientUserName(),
+																		 missionid,
+																		 level,
+																		 m_client->clientUserName(),
+																		 missionid,
+																		 level
+																	 });
+
+
+	// lastStreak
 
 	int lastStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
 "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
@@ -397,9 +389,25 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
 "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
 "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-"WHERE dt=date('now', 'localtime')", l)
+"WHERE dt=date('now', 'localtime')", {
+															   m_client->clientUserName(),
+															   m_client->clientUserName()
+														   })
 					 .value("streak", 0).toInt();
 
+
+	// maxStreak
+
+	int maxStreak = m_client->db()->execSelectQueryOneRow("SELECT MAX(maxStreak) as maxStreak FROM score WHERE username=?", {
+															  m_client->clientUserName()
+														  })
+					.value("maxStreak", 0).toInt();
+
+	// XP alap
+
+	QVariantMap mxp = m_client->db()->execSelectQueryOneRow("SELECT value FROM settings WHERE key='xp.base'");
+
+	int baseXP = mxp.value("value", 100).toInt();
 
 
 	// Rögzítés
@@ -414,9 +422,27 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=NULL, success=?, duration=? WHERE id=?", ll);
 
+
+	// Új állapot
+
+	int solvedXP = GameMap::computeSolvedXpFactor(oldSolver, level, deathmatch) * baseXP;
+	int durationXP = 0;
+
+	if (success) {
+		int shortestDuration = oldDurations.value("minDuration", -1).toInt();
+
+		if (shortestDuration > -1 && duration < shortestDuration) {
+			durationXP = (shortestDuration-duration) * baseXP * XP_FACTOR_DURATION_SEC;
+		}
+	}
+
+	xpObject["game"] = xp;
+	xpObject["solved"] = solvedXP;
+	xpObject["duration"] = durationXP;
+
 	QVariantMap m;
 	m["username"] = m_client->clientUserName();
-	m["xp"] = xp;
+	m["xp"] = xp+solvedXP+durationXP;
 	m["gameid"] = gameid;
 	int ret = m_client->db()->execInsertQuery("INSERT INTO score (?k?) VALUES (?)", m);
 
@@ -426,21 +452,11 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	// maxStreak
-
-	l.clear();
-	l.append(m_client->clientUserName());
-
-	int maxStreak = m_client->db()->execSelectQueryOneRow("SELECT MAX(maxStreak) as maxStreak FROM score WHERE username=?", l)
-					.value("maxStreak", 0).toInt();
 
 
 
 
 	// currentStreak
-	l.clear();
-	l.append(m_client->clientUserName());
-	l.append(m_client->clientUserName());
 
 	int  currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
 "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
@@ -450,26 +466,27 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
 "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
 "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-"WHERE dt=date('now', 'localtime')", l)
+"WHERE dt=date('now', 'localtime')", {
+																   m_client->clientUserName(),
+																   m_client->clientUserName()
+															   })
 						 .value("streak", 0).toInt();
+
 
 
 	// Streak lépés
 
 	int streakXP = 0;
+	int maxStreakXP = 0;
 
 
 	if (currentStreak > 1 && currentStreak > lastStreak) {
-		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT value FROM settings WHERE key='xp.base'");
-
-		int baseXP = m.value("value", 100).toInt();
-
-		streakXP = baseXP * 0.5 * currentStreak;
+		streakXP = baseXP * XP_FACTOR_STREAK * currentStreak;
 
 		if (currentStreak > maxStreak) {
 			qInfo().noquote() << tr("New longest streak '%1': %2").arg(m_client->clientUserName()).arg(currentStreak);
 
-			streakXP += baseXP * currentStreak;
+			maxStreakXP = baseXP * XP_FACTOR_NEW_STREAK * currentStreak;
 		} else {
 			qInfo().noquote() << tr("New streak '%1': %2").arg(m_client->clientUserName()).arg(currentStreak);
 		}
@@ -477,7 +494,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 		QVariantMap p;
 		p["maxStreak"] = currentStreak;
-		p["xp"] = streakXP;
+		p["xp"] = streakXP+maxStreakXP;
 		p["username"] = m_client->clientUserName();
 
 		if (m_client->db()->execInsertQuery("INSERT INTO score (?k?) VALUES (?)", p) == -1) {
@@ -485,61 +502,76 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 			return false;
 		}
 
-		//maxStreak = currentStreak;
+		xpObject["streak"] = streakXP;
+		xpObject["maxStreak"] = maxStreakXP;
 	}
 
+	QJsonObject streakObject;
+	streakObject["current"] = currentStreak;
+	streakObject["last"] = lastStreak;
+	streakObject["max"] = maxStreak;
 
-	int level = r.value("level", 0).toInt();
 
-	QVariantList lll;
-	lll.append(m_client->clientUserName());
-	lll.append(r.value("missionid").toString());
-	lll.append(level);
 
-	lll.append(m_client->clientUserName());
-	lll.append(r.value("missionid").toString());
-	lll.append(level);
 
-	lll.append(m_client->clientUserName());
-	lll.append(r.value("missionid").toString());
-	lll.append(level);
 
-	lll.append(m_client->clientUserName());
-	lll.append(r.value("missionid").toString());
-	lll.append(level);
 
-	lll.append(m_client->clientUserName());
-	lll.append(r.value("missionid").toString());
-	lll.append(level);
 
-	QVariantMap stat = m_client->db()->execSelectQueryOneRow("SELECT (SELECT count(*) FROM game WHERE username=? "
-														"AND missionid=? AND level=? AND success=true) as solved, "
-														"(SELECT count(*) FROM game WHERE username=? "
-														"AND missionid=? AND level=? AND deathmatch=true AND success=true) as deathmatchSolved, "
-														"(SELECT count(*) FROM game WHERE username=? and missionid=? AND level=?) as tried,"
-														"(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
-														"AND level=? AND success=true) as maxDuration,"
-														"(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
-														"AND level=? AND success=true) as minDuration"
-														, lll);
+
+	(*jsonResponse)["streak"] = streakObject;
+	(*jsonResponse)["xp"] = xpObject;
+
+	if (success) {
+		(*jsonResponse)["solverInfo"] = oldSolver.solve(level, deathmatch).toJsonObject();
+		(*jsonResponse)["isSolvedFirst"] = (oldSolver.solve(level, deathmatch).solved(level, deathmatch) == 1);
+		(*jsonResponse)["maxDuration"] = oldDurations.value("maxDuration", -1).toInt();
+		(*jsonResponse)["minDuration"] = oldDurations.value("minDuration", -1).toInt();
+		(*jsonResponse)["duration"] = duration;
+	}
+
 
 	(*jsonResponse)["gameid"] = gameid;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["finished"] = true;
 	(*jsonResponse)["success"] = success;
-	(*jsonResponse)["xp"] = xp;
-	(*jsonResponse)["deathmatch"] = r.value("deathmatch", false).toBool();
-	(*jsonResponse)["tried"] = stat.value("tried", 0).toInt();
-	(*jsonResponse)["solved"] = stat.value("solved", 0).toInt();
-	(*jsonResponse)["deathmatchSolved"] = stat.value("deathmatchSolved", 0).toInt();
-	(*jsonResponse)["currentStreak"] = currentStreak;
-	(*jsonResponse)["lastStreak"] = lastStreak;
-	(*jsonResponse)["maxStreak"] = maxStreak;
-	(*jsonResponse)["streakXP"] = streakXP;
-	(*jsonResponse)["maxDuration"] = stat.value("maxDuration", -1).toInt();
-	(*jsonResponse)["minDuration"] = stat.value("minDuration", -1).toInt();
-	(*jsonResponse)["duration"] = duration;
+	(*jsonResponse)["level"] = level;
+	(*jsonResponse)["deathmatch"] = deathmatch;
+
+
 	(*jsonResponse)["medalImage"] = params.value("medalImage").toString();
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief Student::missionStatGet
+ * @param mapid
+ * @param missionid
+ * @return
+ */
+
+GameMap::SolverInfo Student::missionSolverInfo(const QString &mapid, const QString &missionid) const
+{
+	return m_client->db()->execSelectQueryOneRow("SELECT "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
+									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
+									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
+									"FROM game WHERE username=? AND mapid=? AND missionid=?"
+									, {
+													 m_client->clientUserName(),
+													 mapid,
+													 missionid
+												 });
 }

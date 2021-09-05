@@ -68,7 +68,6 @@ int main(int argc, char *argv[])
 	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
 #endif
 
-
 	Server s;
 
 	if (!s.commandLineParse(app))

@@ -82,6 +82,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 
 	m_modelMissionList = new VariantMapModel({
 												 "uuid",
+												 "num",
 												 "name",
 												 "description",
 												 "medalImage"
@@ -598,7 +599,7 @@ void MapEditor::getMissionList()
 		return;
 	}
 
-	QVariantList list = db()->execSelectQuery("SELECT uuid, name, description, medalImage FROM missions");
+	QVariantList list = db()->execSelectQuery("SELECT uuid, num, name, description, medalImage FROM missions");
 	m_modelMissionList->setVariantList(list, "uuid");
 }
 
@@ -668,7 +669,7 @@ void MapEditor::getCurrentMissionData()
 
 void MapEditor::getFirstMission()
 {
-	QString firstUuid = db()->execSelectQueryOneRow("SELECT uuid FROM missions ORDER BY name LIMIT 1").value("uuid").toString();
+	QString firstUuid = db()->execSelectQueryOneRow("SELECT uuid FROM missions ORDER BY num, name LIMIT 1").value("uuid").toString();
 	if (!firstUuid.isEmpty())
 		setCurrentMission(firstUuid);
 }
@@ -2143,6 +2144,16 @@ void MapEditor::savePrivate(QVariantMap data)
 
 	if (!game) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
+		emit saveFailed();
+		return;
+	}
+
+	GameMap::Mission *merror = nullptr;
+
+	game->missionLockTree(&merror);
+
+	if (merror) {
+		m_client->sendMessageError(tr("Zárolási hiba"), tr("Körkörös zárolás: %1").arg(merror->name()));
 		emit saveFailed();
 		return;
 	}

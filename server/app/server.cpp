@@ -133,23 +133,33 @@ bool Server::commandLineParse(QCoreApplication &app)
 	QCoreApplication::instance()->setApplicationVersion(_VERSION_FULL);
 
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QCoreApplication::instance()->applicationName()+
-									 QString::fromUtf8(" – Copyright © 2012-2021 Valaczka János Pál"));
+	parser.setApplicationDescription(QString::fromUtf8("Call of Suli server – Copyright © 2012-2021 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 
-	parser.addPositionalArgument("dir", "Az adatbázisokat tartalmazó könyvtár");
+	parser.addPositionalArgument("dir", tr("Az adatbázisokat tartalmazó könyvtár"));
 
-	parser.addOption({{"i", "initialize"}, QString::fromUtf8("Új adatbázis előkészítése")});
-	parser.addOption({{"c", "certificate"}, QString::fromUtf8("Tanúsítvány az SSL kapcsolathoz <file>"), "file"});
-	parser.addOption({{"k", "key"}, QString::fromUtf8("Titkos kulcs az SSL kapcsolathoz <file>"), "file"});
-	parser.addOption({{"H", "host"}, QString::fromUtf8("A szerver <ip> címe"), "ip"});
-	parser.addOption({{"P", "port"}, QString::fromUtf8("A szerver <num> portja"), "num"});
-	parser.addOption({{"p", "pending"}, QString::fromUtf8("Maximum <num> pending-connections"), "num"});
-	parser.addOption({{"w", "write"}, QString::fromUtf8("Beállítások mentése")});
-	parser.addOption({"license", QString::fromUtf8("Licensz")});
+	parser.addOption({{"i", "initialize"}, tr("Új adatbázis előkészítése")});
+	parser.addOption({{"c", "certificate"}, tr("Tanúsítvány az SSL kapcsolathoz <file>"), "file"});
+	parser.addOption({{"k", "key"}, tr("Titkos kulcs az SSL kapcsolathoz <file>"), "file"});
+	parser.addOption({{"H", "host"}, tr("A szerver <ip> címe"), "ip"});
+	parser.addOption({{"P", "port"}, tr("A szerver <num> portja"), "num"});
+	parser.addOption({{"p", "pending"}, tr("Maximum <num> pending-connections"), "num"});
+	parser.addOption({{"w", "write"}, tr("Beállítások mentése")});
+	parser.addOption({"license", tr("Licensz")});
+
+#ifdef QT_NO_DEBUG
+	parser.addOption({"debug", tr("Hibakeresési üzenetek megjelenítése")});
+#endif
 
 	parser.process(app);
+
+#ifdef QT_NO_DEBUG
+	if (parser.isSet("debug"))
+		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
+	else
+		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
+#endif
 
 	if (parser.isSet("license")) {
 		QFile f(":/common/license.txt");

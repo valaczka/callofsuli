@@ -22,21 +22,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-DEFINES += COS_SQL_DEBUG
 
-CONFIG(release, debug|release) {
-	DEFINES += QT_NO_DEBUG_OUTPUT
+CONFIG(debug) {
+	DEFINES += COS_SQL_DEBUG
 }
 
-win32 {
-	LIBS += -L../smtpclient/release -lsmtpclient
-} else {
-	LIBS += -L../smtpclient -lsmtpclient
-}
+
+LIBS += -L../../ -lsmtpclient
 
 DESTDIR = ../..
 
-QMAKE_LFLAGS += -Wl,--rpath=../smtpclient
+QMAKE_LFLAGS += -Wl,--rpath=./,--rpath=./lib/
 INCLUDEPATH += ../smtpclient
 
 SOURCES += \

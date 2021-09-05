@@ -6,6 +6,10 @@ TEMPLATE = lib
 DEFINES += SMTP_BUILD
 win32:CONFIG += dll
 
+QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+
+DESTDIR = ../..
+
 SOURCES += \
 	$$PWD/emailaddress.cpp \
 	$$PWD/mimeattachment.cpp \

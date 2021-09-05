@@ -222,13 +222,27 @@ void Client::loadModules()
 bool Client::commandLineParse(QCoreApplication &app)
 {
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QCoreApplication::instance()->applicationName()+
-									 QString::fromUtf8(" – Copyright © 2012-2021 Valaczka János Pál"));
+	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2021 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 
-	parser.addOption({{"t", "terrain"}, QString::fromUtf8("Terepfájl <file> adatainak lekérdezése"), "file"});
-	parser.addOption({"license", QString::fromUtf8("Licensz")});
+	parser.addOption({{"t", "terrain"}, tr("Terepfájl <file> adatainak lekérdezése"), "file"});
+	parser.addOption({"license", tr("Licensz")});
+
+
+#ifdef QT_NO_DEBUG
+	parser.addOption({"debug", tr("Hibakeresési üzenetek megjelenítése")});
+#endif
+
+	parser.process(app);
+
+#ifdef QT_NO_DEBUG
+	if (parser.isSet("debug"))
+		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
+	else
+		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
+#endif
+
 
 	parser.process(app);
 

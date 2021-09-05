@@ -10,7 +10,7 @@ import "JScript.js" as JS
 Page {
 	id: control
 
-	implicitWidth: 800
+	implicitWidth: 2000
 	implicitHeight: 600
 
 	property real stackTopOffset: -15

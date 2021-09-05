@@ -97,7 +97,7 @@ private slots:
 	void onGameEnd(GameMatch *match, const bool &win = false);
 
 	void onMissionListGet(QJsonObject jsonData, QByteArray);
-	void onMedalListGet(QJsonObject jsonData, QByteArray);
+	void onMedalListGet(QJsonObject jsonData);
 	void onUserListGet(QJsonObject jsonData, QByteArray);
 	void onGameCreate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);

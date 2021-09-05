@@ -36,7 +36,7 @@ SpinBox {
 		implicitWidth: CosStyle.pixelSize*2
 		implicitHeight: CosStyle.pixelSize*2
 		anchors.verticalCenter: parent.verticalCenter
-		color: control.up.pressed || control.up.hovered ? CosStyle.colorBg : "transparent"
+		color: control.up.pressed ? CosStyle.colorBg : "transparent"
 
 		QLabel {
 			anchors.centerIn: parent
@@ -55,7 +55,7 @@ SpinBox {
 		implicitWidth: CosStyle.pixelSize*2
 		implicitHeight: CosStyle.pixelSize*2
 		anchors.verticalCenter: parent.verticalCenter
-		color: control.down.pressed || control.down.hovered ? CosStyle.colorBg : "transparent"
+		color: control.down.pressed ? CosStyle.colorBg : "transparent"
 
 		QLabel {
 			anchors.centerIn: parent

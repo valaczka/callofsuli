@@ -42,6 +42,16 @@
 #define GAMEMAP_CURRENT_VERSION 10
 
 
+
+
+#define XP_FACTOR_TARGET_BASE	0.1
+#define XP_FACTOR_LEVEL			0.5
+#define XP_FACTOR_SOLVED_FIRST	2.5
+#define XP_FACTOR_DEATHMATCH	2.3
+#define XP_FACTOR_STREAK		0.5
+#define XP_FACTOR_NEW_STREAK	1.0
+#define XP_FACTOR_DURATION_SEC	0.2
+
 /**
  * @brief The GameMap class
  */
@@ -179,6 +189,10 @@ public:
 		void setMission(Mission *mission) { m_mission = mission; }
 		Mission *mission() const { return m_mission; }
 
+		bool isSolvedNormal() const { return m_solvedNormal; }
+		void setIsSolvedNormal(const bool &solved) { m_solvedNormal = solved; }
+		bool isSolvedDeathmatch() const { return m_solvedDeathmatch; }
+		void setIsSolvedDeathmatch(const bool &solved) { m_solvedDeathmatch = solved; }
 
 		BlockChapterMap* addBlockChapterMap(BlockChapterMap *map) { Q_ASSERT(map); m_blockChapterMaps.append(map); return map;}
 		Inventory* addInvetory(Inventory *inventory) { Q_ASSERT(inventory); m_inventories.append(inventory); return inventory;}
@@ -197,6 +211,9 @@ public:
 		Mission *m_mission;
 		bool m_canDeathmatch;
 		qreal m_questions;
+
+		bool m_solvedNormal;
+		bool m_solvedDeathmatch;
 	};
 
 
@@ -215,24 +232,20 @@ public:
 		QVector<MissionLevel *> levels() const { return m_levels; };
 		QVector<MissionLock> locks() const { return m_locks; };
 
+
 		QString medalImage() const { return m_medalImage; };
 		void setMedalImage(const QString &image) { m_medalImage = image; }
 
+		MissionLevel* missionLevel(const qint32 &level) const;
 		MissionLevel* addMissionLevel(MissionLevel *level) { Q_ASSERT(level); m_levels.append(level); level->setMission(this); return level;}
 		void addLock(Mission *mission, const qint32 &level) { Q_ASSERT(mission); m_locks.append(qMakePair<Mission *, qint32>(mission, level)); }
 
-		// TODO: átdolgozni
-
 		bool getLockTree(QVector<MissionLock> *listPtr, Mission *rootMission = nullptr) const;
 
-		qint32 getSolvedLevel() const { return m_solvedLevel; }
-		void setSolvedLevel(const qint32 &solvedLevel) { m_solvedLevel = solvedLevel; }
+		int lockDepth() const { return m_lockDepth; }
+		void setLockDepth(const int &lockDepth) { m_lockDepth = lockDepth; }
 
-		bool getTried() const { return m_tried; }
-		void setTried(bool tried) { m_tried = tried; }
-
-		qint32 getLockDepth() const { return m_lockDepth; }
-		void setLockDepth(const qint32 &lockDepth) { m_lockDepth = lockDepth; }
+		int solvedLevel() const;
 
 
 	private:
@@ -241,10 +254,8 @@ public:
 		QString m_description;
 		QVector<MissionLevel *> m_levels;
 		QVector<MissionLock> m_locks;
-		qint32 m_solvedLevel;
-		bool m_tried;
-		qint32 m_lockDepth;
 		QString m_medalImage;
+		int m_lockDepth;
 	};
 
 
@@ -272,6 +283,184 @@ public:
 		}
 	};
 
+
+
+
+
+
+	struct SolverInfo {
+		int t1, t2, t3, d1, d2, d3;
+
+		SolverInfo() :
+			t1(-1),
+			t2(-1),
+			t3(-1),
+			d1(-1),
+			d2(-1),
+			d3(-1)
+		{}
+
+
+		SolverInfo(const QVariantMap &sqlRow) {
+			t1 = sqlRow.value("t1", -1).toInt();
+			t2 = sqlRow.value("t2", -1).toInt();
+			t3 = sqlRow.value("t3", -1).toInt();
+			d1 = sqlRow.value("d1", -1).toInt();
+			d2 = sqlRow.value("d2", -1).toInt();
+			d3 = sqlRow.value("d3", -1).toInt();
+		}
+
+
+		SolverInfo(const int &_t1,
+				   const int &_t2,
+				   const int &_t3,
+				   const int &_d1,
+				   const int &_d2,
+				   const int &_d3) :
+			t1(_t1),
+			t2(_t2),
+			t3(_t3),
+			d1(_d1),
+			d2(_d2),
+			d3(_d3)
+		{}
+
+
+		SolverInfo(const SolverInfo &s) {
+			t1 = s.t1;
+			t2 = s.t2;
+			t3 = s.t3;
+			d1 = s.d1;
+			d2 = s.d2;
+			d3 = s.d3;
+		}
+
+		inline int solved(const QString &field) const {
+			if (field == "t1")
+				return t1;
+			else if (field == "t2")
+				return t2;
+			else if (field == "t3")
+				return t3;
+			else if (field == "d1")
+				return d1;
+			else if (field == "d2")
+				return d2;
+			else if (field == "d3")
+				return d3;
+
+			return -1;
+		};
+
+		inline int solved(const int &level, const bool &deathmatch) const {
+			if (level == 1 && !deathmatch)
+				return t1;
+			else if (level == 2 && !deathmatch)
+				return t2;
+			else if (level == 3 && !deathmatch)
+				return t3;
+			else if (level == 1 && deathmatch)
+				return d1;
+			else if (level == 2 && deathmatch)
+				return d2;
+			else if (level == 3 && deathmatch)
+				return d3;
+
+			return -1;
+		};
+
+		inline bool hasSolved(const QString &field) const {
+			return solved(field) > 0;
+		}
+
+		inline bool hasSolved(const int &level, const bool &deathmatch) const {
+			return solved(level, deathmatch) > 0;
+		}
+
+
+		inline bool isSolvedNew(const SolverInfo &baseSolverInfo, const QString &field) const {
+			return (baseSolverInfo.solved(field) != -1 && this->solved(field) > baseSolverInfo.solved(field));
+		};
+
+		inline bool isSolvedNew(const SolverInfo &baseSolverInfo, const int &level, const bool &deathmatch) const {
+			return (baseSolverInfo.solved(level, deathmatch) != -1 && this->solved(level, deathmatch) > baseSolverInfo.solved(level, deathmatch));
+		};
+
+		inline bool isSolvedFirst(const SolverInfo &baseSolverInfo, const QString &field) const {
+			return (baseSolverInfo.solved(field) == 0 && this->solved(field) > baseSolverInfo.solved(field));
+		};
+
+		inline bool isSolvedFirst(const SolverInfo &baseSolverInfo, const int &level, const bool &deathmatch) const {
+			return (baseSolverInfo.solved(level, deathmatch) == 0 &&
+					this->solved(level, deathmatch) > baseSolverInfo.solved(level, deathmatch));
+		};
+
+
+		inline SolverInfo solve(const int &level, const bool &deathmatch) const {
+			SolverInfo p(*this);
+
+			if (level == 1 && !deathmatch)
+				p.t1++;
+			else if (level == 2 && !deathmatch)
+				p.t2++;
+			else if (level == 3 && !deathmatch)
+				p.t3++;
+			else if (level == 1 && deathmatch)
+				p.d1++;
+			else if (level == 2 && deathmatch)
+				p.d2++;
+			else if (level == 3 && deathmatch)
+				p.d3++;
+
+			return p;
+		}
+
+		inline SolverInfo solve(const QString &field) const {
+			SolverInfo p(*this);
+
+			if (field == "t1")
+				p.t1++;
+			else if (field == "t2")
+				p.t2++;
+			else if (field == "t3")
+				p.t3++;
+			else if (field == "d1")
+				p.d1++;
+			else if (field == "d2")
+				p.d2++;
+			else if (field == "d3")
+				p.d3++;
+
+			return p;
+		}
+
+
+
+		inline QJsonObject toJsonObject() const {
+			QJsonObject o;
+			o["t1"] = t1;
+			o["t2"] = t2;
+			o["t3"] = t3;
+			o["d1"] = d1;
+			o["d2"] = d2;
+			o["d3"] = d3;
+			return o;
+		};
+
+		inline QVariantMap toVariantMap() const {
+			QVariantMap o;
+			o["t1"] = t1;
+			o["t2"] = t2;
+			o["t3"] = t3;
+			o["d1"] = d1;
+			o["d2"] = d2;
+			o["d3"] = d3;
+			return o;
+		};
+	};
+
+
+	static qreal computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch);
 
 
 	GameMap(const QByteArray &uuid = QByteArray());

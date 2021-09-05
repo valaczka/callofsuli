@@ -21,9 +21,7 @@ QPagePanel {
 		id: userProxyModel
 		sourceModel: studentMaps.modelMissionList
 		sorters: [
-			RoleSorter { roleName: "orphan"; priority: 3; sortOrder: Qt.DescendingOrder },
-			StringSorter { roleName: "cname"; priority: 2 },
-			RoleSorter { roleName: "type"; priority: 1 },
+			RoleSorter { roleName: "num"; priority: 1 },
 			StringSorter { roleName: "name"; priority: 0 }
 		]
 		proxyRoles: [
@@ -31,41 +29,15 @@ QPagePanel {
 				name: "textColor"
 				filters: [
 					ExpressionFilter {
-						expression: model.type === 0 && model.lockDepth > 0
-						SwitchRole.value: JS.setColorAlpha(CosStyle.colorAccentLighter, 0.5)
+						expression: model.lockDepth === 0 && model.fullSolved
+						SwitchRole.value: CosStyle.colorOKLighter
 					},
 					ExpressionFilter {
-						expression: model.type === 1 && model.lockDepth > 0
+						expression: model.lockDepth > 0
 						SwitchRole.value: JS.setColorAlpha(CosStyle.colorPrimary, 0.5)
-					},
-					ExpressionFilter {
-						expression: model.type === 0 && model.lockDepth === 0
-						SwitchRole.value: CosStyle.colorAccentLighter
 					}
 				]
 				defaultValue: CosStyle.colorPrimary
-			},
-			SwitchRole {
-				name: "fontWeight"
-				filters: ValueFilter {
-					roleName: "type"
-					value: 0
-					SwitchRole.value: Font.Light
-				}
-				defaultValue: Font.Normal
-			},
-			SwitchRole {
-				name: "fontFamily"
-				filters: ValueFilter {
-					roleName: "type"
-					value: 0
-					SwitchRole.value: "Rajdhani"
-				}
-				defaultValue: "HVD Peace"
-			},
-			ExpressionRole {
-				name: "depth"
-				expression: model.orphan ? 0 : model.type
 			}
 		]
 	}
@@ -79,19 +51,16 @@ QPagePanel {
 
 		model: userProxyModel
 		modelTitleRole: "name"
-		modelDepthRole: "depth"
 		modelTitleColorRole: "textColor"
-		//modelTitleWeightRole: "fontWeight"
-		modelTitleFamilyRole: "fontFamily"
+		fontFamilyTitle: "HVD Peace"
 
-		depthWidth: CosStyle.baseHeight
-		pixelSizeTitle: CosStyle.pixelSize*1.2
+		pixelSizeTitle: CosStyle.pixelSize*1.3
 
 		autoSelectorChange: false
 
 		refreshEnabled: true
 
-		delegateHeight: CosStyle.twoLineHeight
+		delegateHeight: CosStyle.twoLineHeight*2
 
 		leftComponent: Image {
 			width: visible ? list.delegateHeight : 0
@@ -105,51 +74,132 @@ QPagePanel {
 			visible: model && model.medalImage.length
 		}
 
-		rightComponent: QFontImage {
-			width: visible ? list.delegateHeight : 0
-			height: width*0.8
-			size: Math.min(height*0.8, 32)
 
-			icon: model && model.lockDepth>0 ? CosStyle.iconLock : ""
-
-			visible: model && model.lockDepth>0
-
-			color: model ? model.textColor : CosStyle.colorPrimary
+		contentComponent: QLabel {
+			font.pixelSize: CosStyle.pixelSize*0.8
+			font.weight: Font.Normal
+			color: model ? model.textColor : "white"
+			visible: model && model.lockDepth === 0
+			elide: Text.ElideRight
+			maximumLineCount: 2
+			wrapMode: Text.Wrap
+			text: model ? model.description : ""
 		}
+
+		rightComponent: Column {
+			QFontImage {
+				anchors.right: parent.right
+
+				width: visible ? list.delegateHeight : 0
+				height: width*0.8
+				size: Math.min(height*0.8, 32)
+
+				icon: CosStyle.iconLock
+
+				visible: model && model.lockDepth > 0
+
+				color: model ? model.textColor : CosStyle.colorPrimary
+			}
+
+
+			Grid {
+				id: rw
+
+				spacing: 4
+
+				columns: 3
+				layoutDirection: Qt.RightToLeft
+
+				visible: model.lockDepth === 0
+
+				anchors.right: parent.right
+
+				readonly property real rowHeight: CosStyle.pixelSize*1.6
+
+				QMedalImage {
+					visible: model.d3has
+					opacity: model.d3 ? 1.0 : 0.2
+					level: 3
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: true
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.t3has
+					opacity: model.t3 ? 1.0 : 0.2
+					level: 3
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: false
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.d2has
+					opacity: model.d2 ? 1.0 : 0.2
+					level: 2
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: true
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.t2has
+					opacity: model.t2 ? 1.0 : 0.2
+					level: 2
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: false
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.d1has
+					opacity: model.d1 ? 1.0 : 0.2
+					level: 1
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: true
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.t1has
+					opacity: model.t1 ? 1.0 : 0.2
+					level: 1
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: false
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+			}
+
+		}
+
 
 
 		onRefreshRequest: studentMaps.getMissionList()
 
 		onClicked: {
-			var o = list.model.get(index)
-			if (o.type === 1) {
-				studentMaps.missionSelected(list.model.mapToSource(list.currentIndex))
-			} else {
-				studentMaps.missionSelected(-1)
-			}
+			studentMaps.missionSelected(list.model.mapToSource(index))
 		}
 
 		onLongPressed: {
-			/*selectorSet = true
-
 			var o = list.model.get(index)
 
-			if (o.type === 0) {
-				chaptersFilter.enabled = true
-			} else if (o.type === 1) {
-				objectiveIdFilter.value = o.id
-				objectivesFilter.enabled = true
-			}*/
+			var dd = JS.dialogCreateQml("Message", {
+											title: o.name,
+											text: o.description,
+											maximumHeight: panel.height*0.8
+										})
+			dd.open()
 
-			//mapEditor.modelChapterList.select(serverList.model.mapToSource(serverList.currentIndex))
 		}
 
-
-
-		//onKeyInsertPressed: actionMapNew.trigger()
-		//onKeyF2Pressed: actionRename.trigger()
-		/*onKeyDeletePressed: actionRemove.trigger()
-		onKeyF4Pressed: actionObjectiveNew.trigger()*/
 	}
 
 
