@@ -68,6 +68,17 @@ QBasePage {
 
 		onGameFinishDialogReady: {
 			var d = JS.dialogCreateQml("MissionCompleted", { gameData: data })
+			d.accepted.connect(function(m) {
+				if (studentMaps.gamePage) {
+					cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
+				} else {
+					studentMaps.playGame({
+											 uuid: m.missionid,
+											 level: m.level,
+											 deathmatch: m.deathmatch
+										 })
+				}
+			})
 			d.open()
 		}
 

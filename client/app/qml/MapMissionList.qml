@@ -21,6 +21,10 @@ QPagePanel {
 		id: userProxyModel
 		sourceModel: studentMaps.modelMissionList
 		sorters: [
+			FilterSorter {
+				ValueFilter { roleName: "lockDepth"; value: 0 }
+				priority: 2
+			},
 			RoleSorter { roleName: "num"; priority: 1 },
 			StringSorter { roleName: "name"; priority: 0 }
 		]
@@ -116,40 +120,11 @@ QPagePanel {
 
 				readonly property real rowHeight: CosStyle.pixelSize*1.6
 
-				QMedalImage {
-					visible: model.d3has
-					opacity: model.d3 ? 1.0 : 0.2
-					level: 3
-					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
-					isDeathmatch: true
-					height: rw.rowHeight
-					width: rw.rowHeight
-				}
 
 				QMedalImage {
-					visible: model.t3has
-					opacity: model.t3 ? 1.0 : 0.2
-					level: 3
-					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
-					isDeathmatch: false
-					height: rw.rowHeight
-					width: rw.rowHeight
-				}
-
-				QMedalImage {
-					visible: model.d2has
-					opacity: model.d2 ? 1.0 : 0.2
-					level: 2
-					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
-					isDeathmatch: true
-					height: rw.rowHeight
-					width: rw.rowHeight
-				}
-
-				QMedalImage {
-					visible: model.t2has
-					opacity: model.t2 ? 1.0 : 0.2
-					level: 2
+					visible: model.t1has
+					opacity: model.t1>0 ? 1.0 : 0.2
+					level: 1
 					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
 					isDeathmatch: false
 					height: rw.rowHeight
@@ -158,7 +133,7 @@ QPagePanel {
 
 				QMedalImage {
 					visible: model.d1has
-					opacity: model.d1 ? 1.0 : 0.2
+					opacity: model.d1>0 ? 1.0 : 0.2
 					level: 1
 					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
 					isDeathmatch: true
@@ -167,15 +142,44 @@ QPagePanel {
 				}
 
 				QMedalImage {
-					visible: model.t1has
-					opacity: model.t1 ? 1.0 : 0.2
-					level: 1
+					visible: model.t2has
+					opacity: model.t2>0 ? 1.0 : 0.2
+					level: 2
 					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
 					isDeathmatch: false
 					height: rw.rowHeight
 					width: rw.rowHeight
 				}
 
+				QMedalImage {
+					visible: model.d2has
+					opacity: model.d2>0 ? 1.0 : 0.2
+					level: 2
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: true
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.t3has
+					opacity: model.t3>0 ? 1.0 : 0.2
+					level: 3
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: false
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
+
+				QMedalImage {
+					visible: model.d3has
+					opacity: model.d3>0 ? 1.0 : 0.2
+					level: 3
+					image: opacity == 1.0 && model && model.medalImage.length ? model.medalImage : ""
+					isDeathmatch: true
+					height: rw.rowHeight
+					width: rw.rowHeight
+				}
 			}
 
 		}

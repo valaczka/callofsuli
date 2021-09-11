@@ -15,6 +15,7 @@ QPagePanel {
 
 	property int selectedMissionIndex: -1
 	property var selectedData: null
+	property int _currentSelectedMissionIndex: -1
 
 	title: ""
 	icon: "image://font/School/\uf1c4"
@@ -35,11 +36,16 @@ QPagePanel {
 
 
 	function loadMission() {
+		var _lValue = spinLevel.value
+		var _mValue = spinMode.value
+
 		panel.title = ""
 		selectedData = null
 		spinLevel.value = -1
 
 		if (selectedMissionIndex == -1) {
+			_currentSelectedMissionIndex = -1
+
 			if (stackMode && pageStack)
 				pageStack.pop()
 		} else {
@@ -47,8 +53,18 @@ QPagePanel {
 			if (Object.keys(x).length) {
 				panel.title = x.name
 				selectedData = x
-				spinLevel.value = 0
-				spinMode.value = 0
+
+				if (_currentSelectedMissionIndex == selectedMissionIndex) {
+					spinLevel.value = _lValue
+					spinMode.value = _mValue
+				} else {
+					spinLevel.value = 0
+					spinMode.value = 0
+				}
+
+				_currentSelectedMissionIndex = selectedMissionIndex
+			} else {
+				_currentSelectedMissionIndex = -1
 			}
 		}
 	}
@@ -123,18 +139,27 @@ QPagePanel {
 		opacity: selectedData ? 1.0 : 0.0
 		visible: opacity != 0
 
-		anchors.top: titleLabel.visible ? titleLabel.bottom : parent.top
+		/*anchors.top: titleLabel.visible ? titleLabel.bottom : parent.top
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.right: parent.right
+		anchors.right: parent.right*/
 
+		anchors.fill: parent
+
+		StackView {
+			id: bottomStack
+			anchors.fill: parent
+
+			clip: true
+
+			initialItem: emptyComponent
+		}
 
 		GridLayout {
-			id: bottomCol
+			id: grid
 			columns: 2
 
-			anchors.top: parent.top
-			anchors.horizontalCenter: parent.horizontalCenter
+			anchors.centerIn: parent
 
 			QLabel {
 				text: qsTr("Szint")
@@ -163,11 +188,15 @@ QPagePanel {
 						spinMode.to = selectedData.levels[value].modes.length-1
 						spinMode.value = 0
 						bottomStack.replace(levelComponent, { levelData: selectedData.levels[value], modeIndex: spinMode.value })
+						labelXP.xp = selectedData.levels[spinLevel.value].modes[spinMode.value].xp
+						labelXP.enabled = selectedData.levels[spinLevel.value].modes[spinMode.value].available
 					} else {
 						spinMode.from = -1
 						spinMode.to = -1
 						spinMode.value = -1
 						bottomStack.replace(emptyComponent)
+						labelXP.xp = 0
+						labelXP.enabled = false
 					}
 
 				}
@@ -197,27 +226,40 @@ QPagePanel {
 
 
 				onValueChanged: {
-					if (value > -1)
+					if (value > -1) {
 						bottomStack.replace(levelComponent, { levelData: selectedData.levels[spinLevel.value], modeIndex: spinMode.value })
-					else
+						labelXP.xp = selectedData.levels[spinLevel.value].modes[spinMode.value].xp
+						labelXP.enabled = selectedData.levels[spinLevel.value].modes[spinMode.value].available
+					} else {
 						bottomStack.replace(emptyComponent)
+						labelXP.xp = 0
+						labelXP.enabled = false
+					}
 				}
 
+			}
+
+			QLabel {
+				id: labelXP
+				Layout.columnSpan: 2
+				Layout.alignment: Qt.AlignCenter
+
+				property int xp: 0
+
+				topPadding: 15
+				bottomPadding: 15
+				horizontalAlignment: Text.AlignHCenter
+				wrapMode: Text.Wrap
+				width: parent.width
+				text: qsTr("Megszerezhető: <b>%1 XP</b>").arg(xp)
+				color: enabled ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
+				font.pixelSize: CosStyle.pixelSize*1.2
+				opacity: xp > 0 ? 1.0 : 0.0
 			}
 		}
 
 
-		StackView {
-			id: bottomStack
-			anchors.left: parent.left
-			anchors.top: bottomCol.bottom
-			anchors.right: parent.right
-			anchors.bottom: parent.bottom
 
-			clip: true
-
-			initialItem: emptyComponent
-		}
 
 
 		Component {
@@ -246,19 +288,38 @@ QPagePanel {
 				Row {
 					id: row2
 
-					width: bottomStack.width
+					width: levelItem.width
 
 					y: Math.max((levelItem.height-row2.height)/2, 0)
 
 					Item {
 						id: img1
 						anchors.verticalCenter: parent.verticalCenter
-						width: levelItem.width*0.25
-						height: col2.height*0.9
-
-						opacity: modeIndex != -1 && levelData.modes[modeIndex].available && levelData.solvedNormal ? 1.0 : 0.2
+						width: (parent.width-placeholderItem.width)/2
+						height: btn.height*2
 
 
+						QFontImage {
+							id: solvedImage
+
+							visible: icon != ""
+
+							icon: modeIndex != -1 ?
+									  (levelData.modes[modeIndex].solved ?
+										   CosStyle.iconOK :
+										   (levelData.modes[modeIndex].available ? "" : CosStyle.iconLock)) :
+									  ""
+
+							width: parent.width*0.8
+							height: Math.min(parent.height*0.8, 100)
+
+							size: height
+
+							color: icon == CosStyle.iconOK ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
+							opacity: icon == CosStyle.iconOK ? 1.0 : 0.7
+
+							anchors.centerIn: parent
+						}
 
 						QMedalImage {
 							id: medalImage
@@ -266,15 +327,21 @@ QPagePanel {
 							isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
 							image: selectedData ? selectedData.medalImage : ""
 
-							visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
-
-							//opacity: !levelData.solved ? 1.0 : 0.2
+							visible: !solvedImage.visible
 
 							width: parent.width*0.8
 							height: Math.min(parent.height*0.8, 100)
 							anchors.centerIn: parent
 						}
 
+					}
+
+
+					Item {
+						id: placeholderItem
+						width: grid.width
+						height: grid.height
+						anchors.verticalCenter: parent.verticalCenter
 					}
 
 					Column {
@@ -284,7 +351,7 @@ QPagePanel {
 
 						anchors.verticalCenter: parent.verticalCenter
 
-						width: row2.width-img1.width-img2.width
+						width: (parent.width-placeholderItem.width)/2
 
 
 						QButton {
@@ -341,54 +408,10 @@ QPagePanel {
 
 
 
-						QLabel {
-							topPadding: 15
-							bottomPadding: 15
-							anchors.horizontalCenter: parent.horizontalCenter
-							horizontalAlignment: Text.AlignHCenter
-							wrapMode: Text.Wrap
-							width: parent.width
-							text: levelData && modeIndex != -1 ? qsTr("Megszerezhető: <b>%1 XP</b>").arg(levelData.modes[modeIndex].xp) : ""
-							color: btn.enabled ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDarker
-							font.pixelSize: CosStyle.pixelSize*1.2
-						}
+
 
 					}
 
-					Item {
-						id: img2
-						anchors.verticalCenter: parent.verticalCenter
-						width: levelItem.width*0.25
-						height: col2.height*0.9
-
-						//opacity: modeIndex != -1 && levelData.modes[modeIndex].available ? 1.0 : 0.2
-
-						QImageInnerShadow {
-							width: trophyImage.width
-							height: trophyImage.height
-
-							anchors.centerIn: parent
-
-							image: "qrc:/internal/trophy/trophyt1.png"
-							contentItem: panel.metalBgTexture
-
-							brightness: -0.5
-
-							visible: !studentMaps.demoMode && modeIndex != -1 && !levelData.modes[modeIndex].available
-						}
-
-						QTrophyImage {
-							id: trophyImage
-							level: levelData.level
-							isDeathmatch: modeIndex !== -1 && levelData.modes[modeIndex].type === "deathmatch"
-
-							visible: !studentMaps.demoMode && modeIndex != -1 && levelData.modes[modeIndex].available
-
-							width: parent.width*0.8
-							height: Math.min(parent.height*0.8, 75)
-							anchors.centerIn: parent
-						}
-					}
 				}
 			}
 

@@ -591,6 +591,190 @@ void GameMap::setSolver(const QVariantList &list)
 
 
 
+/**
+ * @brief GameMap::solve
+ * @param uuid
+ * @param level
+ * @return
+ */
+
+QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QByteArray &uuid, const qint32 &level, const bool &deathmatch) const
+{
+	Mission *mis = mission(uuid);
+	MissionLevel *ml = missionLevel(uuid, level);
+	QVector<MissionLevelDeathmatch> ret;
+
+	if (!mis || !ml) {
+		qDebug() << "Invalid mission uuid" << uuid;
+		return ret;
+	}
+
+	if (deathmatch)
+		return ret;
+
+	if (ml->isSolvedNormal())
+		return ret;
+
+
+	// Unlock deathmatch
+
+	if (!deathmatch && ml->canDeathmatch()) {
+		ret.append(qMakePair(ml, true));
+	}
+
+	// Unlock next level
+
+	MissionLevel *nextlevel = missionLevel(uuid, level+1);
+	if (nextlevel) {
+		ret.append(qMakePair(nextlevel, false));
+	}
+
+
+	// Locks
+
+	QVector<Mission *> lockedMissions;
+
+	MissionLockHash mlh = missionLockTree();
+	MissionLockHash::const_iterator it;
+
+	for (it = mlh.constBegin(); it != mlh.constEnd(); ++it) {
+		Mission *lm = it.key();
+		QVector<MissionLock> locks = it.value();
+
+		foreach (MissionLock l, locks) {
+			if (l.first == mis && (l.second == level || l.second == -1))
+				if (!lockedMissions.contains(lm))
+					lockedMissions.append(lm);
+		}
+	}
+
+
+
+	if (lockedMissions.isEmpty())
+		return ret;
+
+
+
+	// Calculate unlocks
+
+	foreach (Mission *m, lockedMissions) {
+		qint32 oldLockDepth = m->lockDepth();
+
+		if (oldLockDepth < 1)
+			continue;
+
+		bool locked = false;
+
+		QVector<MissionLock> locks = mlh.value(m);
+		foreach (MissionLock ml, locks) {
+			Mission *lockerMission = ml.first;
+			int lockerLevel = ml.second;
+			int solvedLevel = lockerMission->solvedLevel();
+
+
+			// Emulate solved level
+
+			if (lockerMission == mis && solvedLevel < level)
+				solvedLevel = level;
+
+
+			if ((lockerLevel == -1 && solvedLevel < 1) || lockerLevel > solvedLevel) {
+				locked = true;
+			}
+		}
+
+		if (oldLockDepth > 0 && !locked) {
+			ret.append(qMakePair(m->missionLevel(1), false));
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief GameMap::getNextMissionLevel
+ * @param uuid
+ * @param level
+ * @param deathmatch
+ * @return
+ */
+
+GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QByteArray &uuid, const qint32 &level, const bool &deathmatch) const
+{
+	Mission *mis = mission(uuid);
+	MissionLevel *ml = missionLevel(uuid, level);
+
+	if (!mis || !ml) {
+		qDebug() << "Invalid mission uuid" << uuid;
+		return qMakePair(nullptr, false);
+	}
+
+
+	// Check next level
+
+	MissionLevel *nextlevel = missionLevel(uuid, level+1);
+	if (nextlevel && !nextlevel->isSolvedNormal())
+		return qMakePair(nextlevel, false);
+
+
+	// Check deathmatch
+
+	if (!deathmatch && ml->canDeathmatch() && !ml->isSolvedDeathmatch())
+		return qMakePair(ml, true);
+
+
+	// Check current mission
+
+	for (int i=1; MissionLevel *l = mis->missionLevel(i); i++) {
+		if (l == ml)
+			continue;
+
+		if (!l->isSolvedNormal())
+			return qMakePair(l, false);
+
+		if (l->canDeathmatch() && !l->isSolvedDeathmatch())
+			return qMakePair(l, true);
+	}
+
+
+	// Check other missions for normal levels
+
+	foreach (Mission *m, missions()) {
+		if (m == mis)
+			continue;
+
+		if (m->lockDepth() > 0)
+			continue;
+
+		for (int i=1; MissionLevel *l = m->missionLevel(i); i++) {
+			if (!l->isSolvedNormal())
+				return qMakePair(l, false);
+		}
+	}
+
+
+	// Check all missions for deathmatch levels
+
+	foreach (Mission *m, missions()) {
+		if (m == mis)
+			continue;
+
+		if (m->lockDepth() > 0)
+			continue;
+
+		for (int i=1; MissionLevel *l = m->missionLevel(i); i++) {
+			if (l->canDeathmatch() && !l->isSolvedDeathmatch())
+				return qMakePair(l, true);
+		}
+	}
+
+	return qMakePair(nullptr, false);
+}
+
+
+
 
 
 

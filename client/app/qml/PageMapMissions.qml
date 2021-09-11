@@ -40,6 +40,17 @@ QPage {
 
 		onGameFinishDialogReady: {
 			var d = JS.dialogCreateQml("MissionCompleted", { gameData: data, demoMode: true })
+			d.accepted.connect(function(m) {
+				if (demoStudentMaps.gamePage) {
+					cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
+				} else {
+					demoStudentMaps.playGame({
+											 uuid: m.missionid,
+											 level: m.level,
+											 deathmatch: m.deathmatch
+										 })
+				}
+			})
 			d.open()
 		}
 	}
@@ -66,15 +77,14 @@ QPage {
 			anchors.verticalCenter: parent.verticalCenter
 			ToolTip.text: qsTr("Jelvények")
 
-			visible: studentMaps && !studentMaps.demoMode && mapUuid.length
+			visible: studentMaps
 
 			icon.source: CosStyle.iconMedal
 
 			onClicked: {
 				var d = JS.dialogCreateQml("StudentMapInfo", {
 											   title: page.defaultSubTitle,
-											   studentMaps: studentMaps,
-											   mapUuid: mapUuid
+											   studentMaps: studentMaps
 										   })
 				d.open()
 
@@ -135,6 +145,26 @@ QPage {
 	}
 
 
+	Connections {
+		target: Qt.application
+		function onStateChanged() {
+			if (Qt.platform.os !== "android")
+				return
+
+
+			switch (Qt.application.state) {
+			case Qt.ApplicationSuspended:
+			case Qt.ApplicationHidden:
+				if (page.isCurrentItem)
+					cosClient.stopSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+				break
+			case Qt.ApplicationActive:
+				if (page.isCurrentItem)
+					cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+				break
+			}
+		}
+	}
 
 	function windowClose() {
 		return false

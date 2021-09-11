@@ -13,7 +13,7 @@ QDialogPanel {
 	icon: CosStyle.iconMedal
 
 	required property StudentMaps studentMaps
-	required property string mapUuid
+	property string mapUuid: ""
 
 
 	QAccordion {
@@ -131,7 +131,10 @@ QDialogPanel {
 
 
 	function populated() {
-		studentMaps.send("missionListGet", {map: mapUuid})
+		if (mapUuid.length)
+			studentMaps.send("missionListGet", {map: mapUuid})
+		else
+			studentMaps.getMissionList()
 		buttonOk.forceActiveFocus()
 	}
 

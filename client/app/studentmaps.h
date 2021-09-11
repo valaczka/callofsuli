@@ -90,10 +90,10 @@ protected slots:
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
-	void loadGameMap(GameMap *map, const QString &mapName = "");
+	bool loadGameMap(GameMap *map, const QString &mapName = "");
 	void unloadGameMap();
 
-	void onDemoGameWin(const QString &uuid, const int level);
+	void onDemoGameWin();
 	void onGameEnd(GameMatch *match, const bool &win = false);
 
 	void onMissionListGet(QJsonObject jsonData, QByteArray);
@@ -115,8 +115,6 @@ signals:
 
 	void userListGet(QJsonObject jsonData, QByteArray binaryData);
 
-	void medalListGet(QJsonObject jsonData, QByteArray binaryData);
-
 	void gameMapLoaded(const QString &mapUuid, const QString &mapName);
 	void gameMapUnloaded();
 
@@ -137,6 +135,7 @@ signals:
 	void modelMedalListChanged(VariantMapModel * modelMedalList);
 
 private:
+	const QString m_demoMapFile;
 	//QHash<QString, void (StudentMaps::*)(QVariantMap)> m_map;
 	VariantMapModel *m_modelMapList;
 	GameMap * m_currentMap;

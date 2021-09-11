@@ -905,7 +905,7 @@ void CosGame::onGameFinishedSuccess()
 
 	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
 
-	emit m_gameMatch->gameWin(m_gameMatch->missionUuid(), m_gameMatch->level());
+	emit m_gameMatch->gameWin();
 
 	Client *client = m_activity->client();
 
@@ -939,7 +939,7 @@ void CosGame::onGameFinishedLost()
 
 	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
 
-	emit m_gameMatch->gameLose(m_gameMatch->missionUuid(), m_gameMatch->level());
+	emit m_gameMatch->gameLose();
 
 	Client *client = m_activity->client();
 

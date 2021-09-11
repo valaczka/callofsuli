@@ -19,7 +19,7 @@ Rectangle {
 	property bool collapsed: false
 	property alias title: title.text
 	property alias titleColor: title.color
-	property color backgroundColor: CosStyle.colorPrimaryDarkest
+	property color backgroundColor: JS.setColorAlpha(CosStyle.colorPrimaryDarkest, 0.5)
 	property color contentBackgroundColor: "transparent"
 
 	property bool interactive: true
@@ -35,7 +35,7 @@ Rectangle {
 		width: parent.width
 		height: Math.max(title.implicitHeight, arrow.implicitHeight, CosStyle.halfLineHeight, rightLoader.height)
 
-		color: JS.setColorAlpha(backgroundColor, 0.5)
+		color: backgroundColor
 
 		Rectangle {
 			width: parent.width

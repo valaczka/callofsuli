@@ -50,7 +50,7 @@
 #define XP_FACTOR_DEATHMATCH	2.3
 #define XP_FACTOR_STREAK		0.5
 #define XP_FACTOR_NEW_STREAK	1.0
-#define XP_FACTOR_DURATION_SEC	0.2
+#define XP_FACTOR_DURATION_SEC	0.05
 
 /**
  * @brief The GameMap class
@@ -292,22 +292,22 @@ public:
 		int t1, t2, t3, d1, d2, d3;
 
 		SolverInfo() :
-			t1(-1),
-			t2(-1),
-			t3(-1),
-			d1(-1),
-			d2(-1),
-			d3(-1)
+			t1(0),
+			t2(0),
+			t3(0),
+			d1(0),
+			d2(0),
+			d3(0)
 		{}
 
 
 		SolverInfo(const QVariantMap &sqlRow) {
-			t1 = sqlRow.value("t1", -1).toInt();
-			t2 = sqlRow.value("t2", -1).toInt();
-			t3 = sqlRow.value("t3", -1).toInt();
-			d1 = sqlRow.value("d1", -1).toInt();
-			d2 = sqlRow.value("d2", -1).toInt();
-			d3 = sqlRow.value("d3", -1).toInt();
+			t1 = sqlRow.value("t1", 0).toInt();
+			t2 = sqlRow.value("t2", 0).toInt();
+			t3 = sqlRow.value("t3", 0).toInt();
+			d1 = sqlRow.value("d1", 0).toInt();
+			d2 = sqlRow.value("d2", 0).toInt();
+			d3 = sqlRow.value("d3", 0).toInt();
 		}
 
 
@@ -499,7 +499,11 @@ public:
 	Image* addImage(Image *image) { Q_ASSERT(image); m_images.append(image); return image; }
 	Storage* addStorage(Storage *storage) { Q_ASSERT(storage); m_storages.append(storage); return storage;}
 
+	typedef QPair<MissionLevel *, bool> MissionLevelDeathmatch;
+
 	void setSolver(const QVariantList &list);
+	QVector<MissionLevelDeathmatch> getUnlocks(const QByteArray &uuid, const qint32 &level, const bool &deathmatch) const;
+	MissionLevelDeathmatch getNextMissionLevel(const QByteArray &uuid, const qint32 &level, const bool &deathmatch) const;
 
 	void setProgressFunc(QObject *target, const QString &func);
 

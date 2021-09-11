@@ -106,8 +106,8 @@ public slots:
 	void setDeathmatch(bool deathmatch);
 
 signals:
-	void gameLose(const QString &uuid, const int level);
-	void gameWin(const QString &uuid, const int level);
+	void gameLose();
+	void gameWin();
 
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);

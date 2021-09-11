@@ -515,30 +515,26 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 
 
-
-
-
 	(*jsonResponse)["streak"] = streakObject;
 	(*jsonResponse)["xp"] = xpObject;
 
 	if (success) {
-		(*jsonResponse)["solverInfo"] = oldSolver.solve(level, deathmatch).toJsonObject();
-		(*jsonResponse)["isSolvedFirst"] = (oldSolver.solve(level, deathmatch).solved(level, deathmatch) == 1);
 		(*jsonResponse)["maxDuration"] = oldDurations.value("maxDuration", -1).toInt();
 		(*jsonResponse)["minDuration"] = oldDurations.value("minDuration", -1).toInt();
 		(*jsonResponse)["duration"] = duration;
 	}
 
 
+	(*jsonResponse)["mapid"] = mapid;
+	(*jsonResponse)["missionid"] = missionid;
 	(*jsonResponse)["gameid"] = gameid;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["finished"] = true;
 	(*jsonResponse)["success"] = success;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;
+	(*jsonResponse)["solvedCount"] = oldSolver.solve(level, deathmatch).solved(level, deathmatch);
 
-
-	(*jsonResponse)["medalImage"] = params.value("medalImage").toString();
 
 	return true;
 }
@@ -555,23 +551,26 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 GameMap::SolverInfo Student::missionSolverInfo(const QString &mapid, const QString &missionid) const
 {
-	return m_client->db()->execSelectQueryOneRow("SELECT "
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT "
 									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
+									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t1, "
 									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
+									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t2, "
 									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
+									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t3, "
 									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
+									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d1, "
 									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
+									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d2, "
 									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
-									"FROM game WHERE username=? AND mapid=? AND missionid=?"
+									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d3 "
+									"FROM (SELECT ? as username, ? as mapid, ? as missionid) AS g"
 									, {
 													 m_client->clientUserName(),
 													 mapid,
 													 missionid
 												 });
+
+	qInfo() << "m" << m;
+	return GameMap::SolverInfo(m);
 }

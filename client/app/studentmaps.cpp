@@ -36,9 +36,9 @@
 #include <QQmlEngine>
 #include "sqlimage.h"
 
-
 StudentMaps::StudentMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassStudent, parent)
+	, m_demoMapFile(":/internal/game/demo.map")
 	, m_modelMapList(nullptr)
 	, m_currentMap(nullptr)
 	, m_imageDb(nullptr)
@@ -118,7 +118,6 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
 	connect(this, &StudentMaps::userListGet, this, &StudentMaps::onUserListGet);
-	connect(this, &StudentMaps::medalListGet, this, &StudentMaps::onMedalListGet);
 	connect(this, &StudentMaps::gameCreate, this, &StudentMaps::onGameCreate);
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
 }
@@ -249,7 +248,8 @@ void StudentMaps::mapLoad(QVariantMap data)
 	}
 
 
-	loadGameMap(map, name);
+	if (!loadGameMap(map, name))
+		delete map;
 }
 
 
@@ -261,20 +261,18 @@ void StudentMaps::demoMapLoad()
 {
 	m_modelMissionList->clear();
 
-	QString demoMap = ":/internal/game/demo.map";
-
-	if (!QFile::exists(demoMap)) {
-		qWarning() << demoMap << "doesn't exists";
+	if (!QFile::exists(m_demoMapFile)) {
+		qWarning() << m_demoMapFile << "doesn't exists";
 		unloadGameMap();
 		return;
 	}
 
-	qDebug() << "Load demo map" << demoMap;
+	qDebug() << "Load demo map" << m_demoMapFile;
 
 	m_demoSolverMap = Client::readJsonDocument(Client::standardPath("demomap.json")).object().toVariantMap();
 
 
-	QFile f(demoMap);
+	QFile f(m_demoMapFile);
 	if (f.open(QIODevice::ReadOnly)) {
 
 		QByteArray b = f.readAll();
@@ -297,7 +295,8 @@ void StudentMaps::demoMapLoad()
 			return;
 		}
 
-		loadGameMap(map, tr("Demo pálya"));
+		if (!loadGameMap(map, tr("Demo pálya")))
+			delete map;
 	}
 }
 
@@ -322,9 +321,16 @@ void StudentMaps::getMissionList()
 		QVariantMap::const_iterator it;
 
 		for (it=m_demoSolverMap.constBegin(); it != m_demoSolverMap.constEnd(); ++it) {
+			QVariantMap m = it.value().toMap();
+
 			QJsonObject oo;
 			oo["missionid"] = it.key();
-			oo["maxLevel"] = it.value().toInt();
+			oo["t1"] = m.value("t1", 0).toInt();
+			oo["t2"] = m.value("t2", 0).toInt();
+			oo["t3"] = m.value("t3", 0).toInt();
+			oo["d1"] = m.value("d1", 0).toInt();
+			oo["d2"] = m.value("d2", 0).toInt();
+			oo["d3"] = m.value("d3", 0).toInt();
 			list.append(oo);
 		}
 
@@ -589,12 +595,12 @@ void StudentMaps::onOneDownloadFinished(const CosDownloaderItem &item, const QBy
  * @param map
  */
 
-void StudentMaps::loadGameMap(GameMap *map, const QString &mapName)
+bool StudentMaps::loadGameMap(GameMap *map, const QString &mapName)
 {
 	unloadGameMap();
 
 	if (!map)
-		return;
+		return false;
 
 	m_imageDb = new CosDb("tmpmapimagedb", this);
 	m_imageDb->setDatabaseName(Client::standardPath("tmpmapimage.db"));
@@ -604,7 +610,7 @@ void StudentMaps::loadGameMap(GameMap *map, const QString &mapName)
 		m_client->sendMessageError(tr("Belső hiba"), tr("Nem sikerült elkészíteni a képadatbázist!"));
 		delete m_imageDb;
 		m_imageDb = nullptr;
-		return;
+		return false;
 	}
 
 	map->deleteImages();
@@ -617,6 +623,8 @@ void StudentMaps::loadGameMap(GameMap *map, const QString &mapName)
 	QQmlEngine *engine = qmlEngine(this);
 	SqlImage *sqlImage = new SqlImage(m_client, m_imageDb, "images");
 	engine->addImageProvider("mapimagedb", sqlImage);
+
+	return true;
 }
 
 
@@ -643,7 +651,8 @@ void StudentMaps::unloadGameMap()
 		delete m_imageDb;
 		m_imageDb = nullptr;
 
-		QFile::remove(db);
+		if (QFile::exists(db))
+			QFile::remove(db);
 	}
 
 	if (m_currentMap) {
@@ -661,32 +670,39 @@ void StudentMaps::unloadGameMap()
  * @brief StudentMaps::onDemoMapWin
  */
 
-void StudentMaps::onDemoGameWin(const QString &uuid, const int level)
+void StudentMaps::onDemoGameWin()
 {
 	GameMatch *match = qobject_cast<GameMatch *>(sender());
 
+	Q_ASSERT(match);
+
+	QString uuid = QString::fromLatin1(match->missionUuid());
+
+	GameMap::SolverInfo oldSolver = m_demoSolverMap.value(uuid).toMap();
+	int solvedXP = GameMap::computeSolvedXpFactor(oldSolver, match->level(), match->deathmatch()) * m_baseXP;
+
+	GameMap::SolverInfo newSolver = oldSolver.solve(match->level(), match->deathmatch());
+	m_demoSolverMap[uuid] = newSolver.toVariantMap();
+
 
 	QJsonObject o;
-
-	if (match)
-		o["xp"] = match->xp();
-	else
-		o["xp"] = 0;
-
-	o["solved"] = 1;
+	o["finished"] = true;
 	o["success"] = true;
+	o["missionid"] = uuid;
 	o["level"] = match->level();
 	o["deathmatch"] = match->deathmatch();
+	o["solvedCount"] = newSolver.solved(match->level(), match->deathmatch());
+
+	o["xp"] = QJsonObject::fromVariantMap({
+											  { "game", match->xp() },
+											  { "solved", solvedXP }
+										  });
+
+	o["duration"] = match->elapsedTime();
+
 
 	onGameFinish(o, QByteArray());
 
-
-	int maxLevel = m_demoSolverMap.value(uuid, -1).toInt();
-
-	if (maxLevel > level)
-		return;
-
-	m_demoSolverMap[uuid] = level;
 }
 
 
@@ -703,7 +719,6 @@ void StudentMaps::onGameEnd(GameMatch *match, const bool &win)
 	o["xp"] = match->xp();
 	o["success"] = win;
 	o["duration"] = match->elapsedTime();
-	o["medalImage"] = match->missionLevel()->mission()->medalImage();
 	m_client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 
@@ -726,7 +741,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 	onMedalListGet(jsonData);
 
-	if (!m_currentMap || m_currentMap->uuid() != jsonData.value("uuid").toString().toLatin1()) {
+	if (!m_currentMap || (!m_demoMode && m_currentMap->uuid() != jsonData.value("uuid").toString().toLatin1())) {
 		qWarning() << "Missing current map or invalid uuid";
 		m_modelMissionList->clear();
 		return;
@@ -789,8 +804,8 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 		m["d3has"] = false;
 
 		const int lMin = mis->lockDepth() == 0 ?
-					   qMax(mis->solvedLevel()+1, 1) :
-					   -1;
+							 qMax(mis->solvedLevel()+1, 1) :
+							 -1;
 
 		bool isFullSolved = true;
 
@@ -820,6 +835,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 				mode["type"] = "normal";
 				mode["available"] = (ml->level() <= lMin);
 				mode["xp"] = xp;
+				mode["solved"] = ml->isSolvedNormal();
 				modes.append(mode);
 			}
 
@@ -830,6 +846,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 				mode["type"] = "deathmatch";
 				mode["available"] = (mis->solvedLevel() >= ml->level() && ml->level() <= lMin);
 				mode["xp"] = xp;
+				mode["solved"] = ml->isSolvedDeathmatch();
 				modes.append(mode);
 			}
 
@@ -873,23 +890,30 @@ void StudentMaps::onMedalListGet(QJsonObject jsonData)
 	QString uuid = jsonData.value("uuid").toString();
 	QJsonArray list = jsonData.value("list").toArray();
 
-	if (uuid.isEmpty()) {
-		qWarning() << "Missing map uuid";
-		return;
+	GameMap *map = nullptr;
+
+	if (m_demoMode) {
+		map = m_currentMap;
+
+	} else {
+		if (uuid.isEmpty()) {
+			qWarning() << "Missing map uuid";
+			return;
+		}
+
+		QVariantList l;
+		l.append(uuid);
+		QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", l);
+
+		if (r.isEmpty()) {
+			qWarning() << tr("Érvénytelen pályaazonosító") << uuid;
+			return;
+		}
+
+		QByteArray b = r.value("data").toByteArray();
+
+		map = GameMap::fromBinaryData(b);
 	}
-
-	QVariantList l;
-	l.append(uuid);
-	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", l);
-
-	if (r.isEmpty()) {
-		qWarning() << tr("Érvénytelen pályaazonosító") << uuid;
-		return;
-	}
-
-	QByteArray b = r.value("data").toByteArray();
-
-	GameMap *map = GameMap::fromBinaryData(b);
 
 	if (!map) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Hibás pályaadatok!"), uuid);
@@ -930,7 +954,8 @@ void StudentMaps::onMedalListGet(QJsonObject jsonData)
 	m_modelMedalList->clear();
 	m_modelMedalList->setVariantList(ret, "index");
 
-	delete map;
+	if (!m_demoMode)
+		delete map;
 }
 
 
@@ -965,11 +990,14 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 {
 	GameMap::MissionLevel *missionLevel = nullptr;
 
+
+
 	if (m_currentMap)
 		missionLevel = m_currentMap->missionLevel(jsonData.value("missionid").toString().toLatin1(),
 												  jsonData.value("level").toInt());
 
 	int gameId = jsonData.value("gameid").toInt();
+	bool deathmatch = jsonData.value("deathmatch").toBool();
 
 	if (!m_currentMap || !missionLevel) {
 		m_client->sendMessageError(tr("Belső hiba"), tr("Pályaadatok nem elérhetőek!"));
@@ -1012,35 +1040,23 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setImageDbName("mapimagedb");
 	m_gameMatch->setGameId(gameId);
 	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
-	m_gameMatch->setDeathmatch(jsonData.value("deathmatch").toBool(false));
+	m_gameMatch->setDeathmatch(deathmatch);
 
 	if (!m_client->userPlayerCharacter().isEmpty())
 		m_gameMatch->setPlayerCharacter(m_client->userPlayerCharacter());
 	else
 		m_gameMatch->setPlayerCharacter("default");
 
-	bool hasSolved = jsonData.value("hasSolved").toBool(false);
 
 	if (m_demoMode) {
-		if (!m_demoSolverMap.contains(m_gameMatch->missionUuid())) {
-			m_demoSolverMap[m_gameMatch->missionUuid()] = -1;
-		}
 		connect(m_gameMatch, &GameMatch::gameWin, this, &StudentMaps::onDemoGameWin);
 	} else {
-		connect(m_gameMatch, &GameMatch::gameWin, this, [=](const QString &, const int level) {
-			/*int xp = m_baseXP*XP_FACTOR_LEVEL*level;
-			if (!hasSolved)
-				xp *= XP_FACTOR_NO_SOLVED;
-			else if (m_gameMatch->deathmatch())
-				xp *= XP_FACTOR_DEATHMATCH;*/
-
-
-
+		connect(m_gameMatch, &GameMatch::gameWin, this, [=]() {
 			m_gameMatch->setXP(m_gameMatch->xp());
 			onGameEnd(m_gameMatch, true);
 		});
 
-		connect(m_gameMatch, &GameMatch::gameLose, this, [=](const QString &, const int) {
+		connect(m_gameMatch, &GameMatch::gameLose, this, [=]() {
 			onGameEnd(m_gameMatch, false);
 		});
 	}
@@ -1061,9 +1077,60 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.value("success").toBool(false)) {
 		QVariantMap d = jsonData.toVariantMap();
+		QVariantMap info = d;
+
+		if (m_currentMap) {
+			QByteArray missionid = d.value("missionid").toString().toLatin1();
+			int level = d.value("level").toInt();
+			bool deathmatch = d.value("deathmatch").toBool();
+
+			GameMap::MissionLevel *missionLevel = m_currentMap->missionLevel(missionid, level);
+
+			info["name"] = missionLevel->mission()->name();
+
+			QVector<GameMap::MissionLevelDeathmatch> unlockedLevels = m_currentMap->getUnlocks(missionid, level, deathmatch);
+
+			if (deathmatch && !missionLevel->isSolvedDeathmatch()) {
+				info["medalImage"] = missionLevel->mission()->medalImage();
+			} else if (!deathmatch && !missionLevel->isSolvedNormal()) {
+				info["medalImage"] = missionLevel->mission()->medalImage();
+			}
+
+			QVariantList list;
+
+			foreach(GameMap::MissionLevelDeathmatch d, unlockedLevels) {
+				GameMap::MissionLevel *ml = d.first;
+				bool isDeathmatch = d.second;
+
+				list.append(QVariantMap({
+											{ "missionid", QString::fromLatin1(ml->mission()->uuid()) },
+											{ "level", ml->level() },
+											{ "name", ml->mission()->name() },
+											{ "image", ml->mission()->medalImage() },
+											{ "deathmatch", isDeathmatch }
+										}));
+			}
+
+			info["unlocks"] = list;
+
+			if (unlockedLevels.isEmpty()) {
+				GameMap::MissionLevelDeathmatch nextLevel = m_currentMap->getNextMissionLevel(missionid, level, deathmatch);
+
+				if (nextLevel.first) {
+					GameMap::MissionLevel *ml = nextLevel.first;
+					info["next"] = QVariantMap({
+												   { "missionid", QString::fromLatin1(ml->mission()->uuid()) },
+												   { "level", ml->level() },
+												   { "name", ml->mission()->name() },
+												   { "image", ml->mission()->medalImage() },
+												   { "deathmatch", nextLevel.second }
+											   });
+				}
+			}
+		}
 
 		QTimer::singleShot(2000, [=]() {
-			emit gameFinishDialogReady(d);
+			emit gameFinishDialogReady(info);
 		});
 	}
 

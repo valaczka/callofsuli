@@ -1055,6 +1055,7 @@ Page {
 
 				ScriptAction {
 					script: {
+						messageList.message(qsTr("LEVEL %1").arg(gameMatch.level))
 						if (gameMatch && gameMatch.deathmatch) {
 							messageList.message(qsTr("DEATHMATCH"), 3)
 							cosClient.playSound("qrc:/sound/voiceover/deathmatch.ogg", CosSound.VoiceOver)
