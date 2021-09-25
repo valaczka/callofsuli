@@ -61,6 +61,7 @@ public slots:
 
 private:
 	GameMap::SolverInfo missionSolverInfo(const QString &mapid, const QString &missionid) const;
+	void updateStatistics(const QVariantList &list);
 };
 
 #endif // STUDENT_H

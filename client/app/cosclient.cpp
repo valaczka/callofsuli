@@ -52,6 +52,7 @@
 #include "mapeditor.h"
 #include "tiledpaintedlayer.h"
 #include "variantmapmodel.h"
+#include "gamemapmodel.h"
 #include "serversettings.h"
 #include "scores.h"
 #include "gameactivity.h"
@@ -346,6 +347,7 @@ void Client::registerTypes()
 	qmlRegisterType<TeacherGroups>("COS.Client", 1, 0, "TeacherGroups");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
+	qmlRegisterType<GameMapModel>("COS.Client", 1, 0, "GameMapModel");
 	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
 	qmlRegisterType<Scores>("COS.Client", 1, 0, "Scores");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");

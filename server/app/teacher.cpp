@@ -32,8 +32,9 @@
  * SOFTWARE.
  */
 
-#include "teachermap.h"
+#include "teacher.h"
 #include "gamemap.h"
+#include "server.h"
 
 /**
  * @brief TeacherMap::TeacherMap
@@ -41,8 +42,8 @@
  * @param message
  */
 
-TeacherMap::TeacherMap(Client *client, const CosMessage &message)
-	: AbstractHandler(client, message, CosMessage::ClassTeacherMap)
+Teacher::Teacher(Client *client, const CosMessage &message)
+	: AbstractHandler(client, message, CosMessage::ClassTeacher)
 {
 
 }
@@ -53,7 +54,7 @@ TeacherMap::TeacherMap(Client *client, const CosMessage &message)
  * @return
  */
 
-bool TeacherMap::classInit()
+bool Teacher::classInit()
 {
 	if (!m_client->clientRoles().testFlag(CosMessage::RoleTeacher))
 		return false;
@@ -68,9 +69,9 @@ bool TeacherMap::classInit()
  * @brief TeacherMap::getMapList
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapListGet(QJsonObject *jsonResponse, QByteArray *)
+
+bool Teacher::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList params;
 
@@ -101,7 +102,7 @@ bool TeacherMap::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	return true;
 }
-
+*/
 
 
 
@@ -113,9 +114,8 @@ bool TeacherMap::mapListGet(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::mapUpdate
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapUpdate(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::mapUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
@@ -192,7 +192,7 @@ bool TeacherMap::mapUpdate(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
-
+*/
 
 
 
@@ -200,9 +200,8 @@ bool TeacherMap::mapUpdate(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::mapRemove
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::mapRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 
@@ -241,7 +240,7 @@ bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 
 
@@ -249,9 +248,8 @@ bool TeacherMap::mapRemove(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::mapGet
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::mapGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
@@ -294,16 +292,15 @@ bool TeacherMap::mapGet(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 
 /**
  * @brief TeacherMap::mapGroupAdd
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapGroupAdd(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::mapGroupAdd(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
@@ -347,15 +344,16 @@ bool TeacherMap::mapGroupAdd(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
+*/
+
 
 
 /**
  * @brief TeacherMap::mapGroupRemove
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapGroupRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::mapGroupRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
@@ -400,15 +398,15 @@ bool TeacherMap::mapGroupRemove(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
+*/
 
 
 /**
  * @brief TeacherMap::mapExcludedGroupListGet
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString uuid = params.value("uuid").toString();
@@ -429,7 +427,7 @@ bool TeacherMap::mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *
 	return true;
 }
 
-
+*/
 
 
 /**
@@ -438,7 +436,7 @@ bool TeacherMap::mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *
  * @return
  */
 
-bool TeacherMap::groupListGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList params;
 
@@ -461,9 +459,9 @@ bool TeacherMap::groupListGet(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::groupAdd
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupCreate(QJsonObject *jsonResponse, QByteArray *)
+
+bool Teacher::groupCreate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 
@@ -487,15 +485,14 @@ bool TeacherMap::groupCreate(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 /**
  * @brief TeacherMap::groupUpdate
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupUpdate(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -526,15 +523,16 @@ bool TeacherMap::groupUpdate(QJsonObject *jsonResponse, QByteArray *)
 	return false;
 }
 
+*/
+
 
 
 /**
  * @brief TeacherMap::groupRemove
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 
@@ -564,16 +562,15 @@ bool TeacherMap::groupRemove(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 
 /**
  * @brief TeacherMap::groupMemberListGet
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -595,7 +592,7 @@ bool TeacherMap::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 
 /**
@@ -604,17 +601,14 @@ bool TeacherMap::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
  * @return
  */
 
-bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
 
-	QVariantList m;
 
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
 	if (group.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid id";
 		return false;
@@ -622,26 +616,23 @@ bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
-	m.clear();
-	m.append(id);
-
-	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid, active FROM bindGroupMap WHERE groupid=?", m);
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid, active FROM bindGroupMap WHERE groupid=?", {id});
 
 	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
 "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
-														 m);
+														 {id});
 
-	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, active, classid, classname "
+	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
+"rankid, ranklevel, rankimage, picture, "
+"active, classid, classname "
 "FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
-														 m);
+														 {id});
 
 
 
-
-	m.clear();
-	m.append(m_client->clientUserName());
-
-	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=?", m);
+	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, md5, "
+																"COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE owner=?",
+																{m_client->clientUserName()});
 
 	QJsonArray mList;
 
@@ -657,6 +648,8 @@ bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
 			QVariantMap mMap = vv.toMap();
 			if (mMap.value("uuid").toString() == lMap.value("mapid").toString()) {
 				o["name"] = mMap.value("name").toString();
+				o["md5"] = mMap.value("md5").toString();
+				o["dataSize"] = mMap.value("dataSize").toInt();
 				break;
 			}
 		}
@@ -665,11 +658,193 @@ bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
+
+	QJsonArray userList;
+
+	foreach (QVariant v, uList) {
+		QVariantMap m = v.toMap();
+		m["activeClient"] = m_client->server()->isClientActive(m.value("username").toString());
+		QJsonObject o = QJsonObject::fromVariantMap(m);
+		userList.append(o);
+	}
+
+
 	(*jsonResponse)["id"] = id;
 	(*jsonResponse)["name"] = group.value("name").toString();
 	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(cList);
-	(*jsonResponse)["userList"] = QJsonArray::fromVariantList(uList);
+	(*jsonResponse)["userList"] = userList;
 	(*jsonResponse)["mapList"] = mList;
+
+	return true;
+}
+
+
+/**
+ * @brief Teacher::groupMapAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupMapAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toString());
+
+	if (params.contains("uuid"))
+		list.append(params.value("uuid").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap (groupid, mapid) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["added"] = true;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupMapActivate
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupMapActivate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+	bool active = params.value("active", false).toBool();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toString());
+
+	if (params.contains("uuid"))
+		list.append(params.value("uuid").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+		p[":active"] = active;
+
+		if (!m_client->db()->execListQuery("UPDATE bindGroupMap SET active=:active WHERE groupid=:id AND mapid IN (?l?)", list, p)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["updated"] = true;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupMapRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupMapRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toString());
+
+	if (params.contains("uuid"))
+		list.append(params.value("uuid").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("DELETE FROM bindGroupMap WHERE groupid=:id AND mapid IN (?l?)", list, p)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["removed"] = true;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupExcludedMapListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=?", {id});
+
+	QStringList ml;
+	foreach (QVariant v, mapList)
+		ml.append(v.toMap().value("mapid").toString());
+
+	QVariantList list = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=? ", {m_client->clientUserName()});
+
+	QJsonArray r;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		if (ml.contains(m.value("uuid").toString()))
+			continue;
+
+		r.append(QJsonObject::fromVariantMap(m));
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = r;
 
 	return true;
 }
@@ -680,9 +855,8 @@ bool TeacherMap::groupGet(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::groupExcludedClassListGet
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -700,15 +874,14 @@ bool TeacherMap::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray
 	return true;
 }
 
-
+*/
 
 /**
  * @brief TeacherMap::groupExcludedStudentListGet
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -729,49 +902,7 @@ bool TeacherMap::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray 
 	return true;
 }
 
-
-
-/**
- * @brief TeacherMap::groupExcludedMapListGet
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList l;
-	l.append(id);
-
-	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid FROM bindGroupMap WHERE groupid=?", l);
-
-	QStringList ml;
-	foreach (QVariant v, mapList)
-		ml.append(v.toMap().value("mapid").toString());
-
-	l.clear();
-	l.append(m_client->clientUserName());
-
-	QVariantList list = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps WHERE owner=? ", l);
-
-	QJsonArray r;
-
-	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
-		if (ml.contains(m.value("uuid").toString()))
-			continue;
-
-		r.append(QJsonObject::fromVariantMap(m));
-	}
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["list"] = r;
-
-	return true;
-}
-
+*/
 
 
 
@@ -779,9 +910,8 @@ bool TeacherMap::groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *
  * @brief TeacherMap::groupClassAdd
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupClassAdd(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupClassAdd(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -822,15 +952,16 @@ bool TeacherMap::groupClassAdd(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
+*/
+
 
 
 /**
  * @brief TeacherMap::groupClassRemove
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupClassRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupClassRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -870,7 +1001,7 @@ bool TeacherMap::groupClassRemove(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 
 
@@ -878,9 +1009,8 @@ bool TeacherMap::groupClassRemove(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::groupUserAdd
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupUserAdd(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupUserAdd(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -921,16 +1051,15 @@ bool TeacherMap::groupUserAdd(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
+*/
 
 
 /**
  * @brief TeacherMap::groupUserRemove
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupUserRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupUserRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -970,56 +1099,7 @@ bool TeacherMap::groupUserRemove(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
-
-/**
- * @brief TeacherMap::groupMapAdd
- * @param jsonResponse
- * @return
- */
-
-bool TeacherMap::groupMapAdd(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
-	if (group.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid id";
-		return false;
-	}
-
-	QVariantList list;
-
-	foreach (QVariant v, params.value("mapList").toList())
-		list.append(v.toString());
-
-	if (params.contains("mapid"))
-		list.append(params.value("mapid").toString());
-
-	if (list.size()) {
-		QVariantMap p;
-		p[":id"] = id;
-
-		if (!m_client->db()->execListQuery("INSERT INTO bindGroupMap (groupid, mapid) SELECT :id, T.id FROM "
-										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
-			(*jsonResponse)["error"] = "sql error";
-			return false;
-		}
-	}
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["added"] = list.size();
-
-	return true;
-}
-
-
+*/
 
 
 
@@ -1027,9 +1107,8 @@ bool TeacherMap::groupMapAdd(QJsonObject *jsonResponse, QByteArray *)
  * @brief TeacherMap::groupMapRemove
  * @param jsonResponse
  * @return
- */
 
-bool TeacherMap::groupMapRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::groupMapRemove(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
@@ -1069,3 +1148,5 @@ bool TeacherMap::groupMapRemove(QJsonObject *jsonResponse, QByteArray *)
 
 	return true;
 }
+
+*/

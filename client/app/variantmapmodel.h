@@ -53,9 +53,9 @@ public:
 		return new VariantMapModel(roleNames, parent);
 	}
 
-	int rowCount(const QModelIndex &) const;
-	QVariant data(const QModelIndex &index, int role) const;
-	QHash<int, QByteArray> roleNames() const { return m_roleNames; }
+	int rowCount(const QModelIndex &) const override;
+	QVariant data(const QModelIndex &index, int role) const override;
+	QHash<int, QByteArray> roleNames() const override { return m_roleNames; }
 	int selectedCount() const { return m_selected.count(); }
 	int count() const;
 

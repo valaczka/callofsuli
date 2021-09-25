@@ -750,19 +750,19 @@ Page {
 								 return
 							 }
 
-							 if (x > 0.15) {
-								 if (x > 0.4)
+							 if (x > 0.2) {
+								 if (x > 0.6)
 									 game.player.runRight()
 								 else
 									 game.player.walkRight()
 							 } else if (x > 0) {
 								 game.player.turnRight()
-							 } else if (x < -0.15) {
-								 if (x < -0.4)
+							 } else if (x < -0.2) {
+								 if (x < -0.6)
 									 game.player.runLeft()
 								 else
 									 game.player.walkLeft()
-							 } else if (x < 0) {
+							 } else if (x < 0.1) {
 								 game.player.turnLeft()
 							 } else {
 								 game.player.stopMoving()
@@ -1055,7 +1055,7 @@ Page {
 
 				ScriptAction {
 					script: {
-						messageList.message(qsTr("LEVEL %1").arg(gameMatch.level))
+						messageList.message(qsTr("LEVEL %1").arg(gameMatch.level), 3)
 						if (gameMatch && gameMatch.deathmatch) {
 							messageList.message(qsTr("DEATHMATCH"), 3)
 							cosClient.playSound("qrc:/sound/voiceover/deathmatch.ogg", CosSound.VoiceOver)

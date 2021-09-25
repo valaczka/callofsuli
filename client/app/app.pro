@@ -79,6 +79,7 @@ SOURCES += \
 		gameenemysoldier.cpp \
 		gameentity.cpp \
 		gameladder.cpp \
+		gamemapmodel.cpp \
 		gamematch.cpp \
 		gameobject.cpp \
 		gamepickable.cpp \
@@ -117,6 +118,7 @@ HEADERS += \
 	gameenemysoldier.h \
 	gameentity.h \
 	gameladder.h \
+	gamemapmodel.h \
 	gamematch.h \
 	gameobject.h \
 	gamepickable.h \

@@ -719,6 +719,7 @@ void StudentMaps::onGameEnd(GameMatch *match, const bool &win)
 	o["xp"] = match->xp();
 	o["success"] = win;
 	o["duration"] = match->elapsedTime();
+	o["stat"] = match->takeStatistics();
 	m_client->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 

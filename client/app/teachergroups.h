@@ -36,13 +36,13 @@
 #define TEACHERGROUPS_H
 
 #include "abstractactivity.h"
+#include "gamemapmodel.h"
 
 class TeacherGroups : public AbstractActivity
 {
 	Q_OBJECT
 
 	Q_PROPERTY(VariantMapModel * modelGroupList READ modelGroupList WRITE setModelGroupList NOTIFY modelGroupListChanged)
-	Q_PROPERTY(VariantMapModel * modelClassList READ modelClassList WRITE setModelClassList NOTIFY modelClassListChanged)
 	Q_PROPERTY(VariantMapModel * modelUserList READ modelUserList WRITE setModelUserList NOTIFY modelUserListChanged)
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList WRITE setModelMapList NOTIFY modelMapListChanged)
 
@@ -54,7 +54,6 @@ public:
 	~TeacherGroups();
 
 	VariantMapModel * modelGroupList() const { return m_modelGroupList; }
-	VariantMapModel * modelClassList() const { return m_modelClassList; }
 	VariantMapModel * modelUserList() const { return m_modelUserList; }
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 
@@ -62,49 +61,46 @@ public:
 
 public slots:
 	void groupSelect(const int &groupId);
+	void groupReload(QJsonObject = QJsonObject(), QByteArray = QByteArray());
 	void setModelGroupList(VariantMapModel * modelGroupList);
-	void setModelClassList(VariantMapModel * modelClassList);
 	void setModelUserList(VariantMapModel * modelUserList);
 	void setModelMapList(VariantMapModel * modelMapList);
 	void setSelectedGroupId(int selectedGroupId);
+	void mapDownload(QVariantMap data);
+	void mapDownloadInfoReload();
+	bool loadMapDataToModel(const QString &uuid, GameMapModel *model);
 
 protected slots:
-	//void clientSetup() override;
+	void clientSetup() override;
 
 private slots:
 	void onGroupListGet(QJsonObject jsonData, QByteArray);
 	void onGroupGet(QJsonObject jsonData, QByteArray);
+	void onGroupMapListGet(const QJsonArray &list);
 
+	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 
 signals:
+	void mapDownloadRequest(QString formattedDataSize);
+
 	void groupListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupGet(QJsonObject jsonData, QByteArray binaryData);
-	void groupCreate(QJsonObject jsonData, QByteArray binaryData);
-	void groupUpdate(QJsonObject jsonData, QByteArray binaryData);
-	void groupRemove(QJsonObject jsonData, QByteArray binaryData);
-	void groupMemberListGet(QJsonObject jsonData, QByteArray binaryData);
-	void groupExcludedClassListGet(QJsonObject jsonData, QByteArray binaryData);
-	void groupExcludedUserListGet(QJsonObject jsonData, QByteArray binaryData);
-	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
-	void groupClassAdd(QJsonObject jsonData, QByteArray binaryData);
-	void groupClassRemove(QJsonObject jsonData, QByteArray binaryData);
-	void groupUserAdd(QJsonObject jsonData, QByteArray binaryData);
-	void groupUserRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupMapAdd(QJsonObject jsonData, QByteArray binaryData);
+	void groupMapActivate(QJsonObject jsonData, QByteArray binaryData);
 	void groupMapRemove(QJsonObject jsonData, QByteArray binaryData);
+	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelGroupListChanged(VariantMapModel * modelGroupList);
-	void modelClassListChanged(VariantMapModel * modelClassList);
 	void modelUserListChanged(VariantMapModel * modelUserList);
 	void modelMapListChanged(VariantMapModel * modelMapList);
 	void selectedGroupIdChanged(int selectedGroupId);
 
 private:
 	VariantMapModel * m_modelGroupList;
-	VariantMapModel * m_modelClassList;
 	VariantMapModel * m_modelUserList;
 	VariantMapModel * m_modelMapList;
 	int m_selectedGroupId;
+	QVariantMap m_mapDownloadInfo;
 };
 
 #endif // TEACHERGROUPS_H

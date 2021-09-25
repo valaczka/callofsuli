@@ -47,6 +47,7 @@ class Server : public QObject
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(CosDb * db READ db)
 	Q_PROPERTY(CosDb * mapsDb READ mapsDb)
+	Q_PROPERTY(CosDb * statDb READ statDb)
 	Q_PROPERTY(QVariantMap resources READ resources WRITE setResources NOTIFY resourcesChanged)
 
 	const int m_serverVersionMajor;
@@ -70,6 +71,7 @@ private:
 	QList<Client *> m_clients;
 	CosDb *m_db;
 	CosDb *m_mapsDb;
+	CosDb *m_statDb;
 
 	QVariantMap m_resourceMap;
 	QVariantMap m_resources;
@@ -97,9 +99,12 @@ public:
 	QWebSocketServer *socketServer() const { return m_socketServer; }
 	CosDb * db() const { return m_db; }
 	CosDb * mapsDb() const { return m_mapsDb; }
+	CosDb * statDb() const { return m_statDb; }
 	QList<Client *> clients() const { return m_clients; }
 	QVariantMap resourceMap() const { return m_resourceMap; }
 	QVariantMap resources() const { return m_resources; }
+
+	bool isClientActive(const QString &username) const;
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);

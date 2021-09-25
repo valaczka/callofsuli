@@ -99,10 +99,9 @@
         <file>GamePlayerLocator.qml</file>
         <file>GameMessageList.qml</file>
         <file>PageScore.qml</file>
-        <file>TeacherGroupList.qml</file>
-        <file>PageTeacherGroup.qml</file>
-        <file>TeacherGroupMembers.qml</file>
-        <file>TeacherGroupMaps.qml</file>
+        <file>OLDTeacherGroupList.qml</file>
+        <file>OLDTeacherGroupMembers.qml</file>
+        <file>OLDTeacherGroupMaps.qml</file>
         <file>TeacherMapGroups.qml</file>
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
@@ -140,5 +139,9 @@
         <file>QDialogFile.qml</file>
         <file>QDrawer.qml</file>
         <file>MapEditorObjective.qml</file>
+        <file>PageTeacherGroup.qml</file>
+        <file>TeacherGroupUserList.qml</file>
+        <file>TeacherGroupMapList.qml</file>
+        <file>PageTeacherGroupMapView.qml</file>
     </qresource>
 </RCC>

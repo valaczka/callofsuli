@@ -35,7 +35,7 @@
 #include "admin.h"
 #include "userinfo.h"
 #include "server.h"
-#include "teachermap.h"
+#include "teacher.h"
 #include "student.h"
 
 UserInfo::UserInfo(Client *client, const CosMessage &message)
@@ -467,7 +467,7 @@ bool UserInfo::getMyGroups(QJsonObject *jsonResponse, QByteArray *)
 
 	if (m_client->clientRoles().testFlag(CosMessage::RoleTeacher)) {
 		QJsonObject ret;
-		TeacherMap u(m_client, empty);
+		Teacher u(m_client, empty);
 		if (u.groupListGet(&ret, nullptr)) {
 			list = ret.value("list").toArray();
 		} else {

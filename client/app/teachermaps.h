@@ -65,6 +65,10 @@ public:
 
 	QString selectedMapId() const { return m_selectedMapId; }
 
+	static QVariantMap mapDownloadInfo(CosDb *db);
+	static void mapDownloadPrivate(const QVariantMap &data, CosDownloader *downloader, VariantMapModel *mapModel);
+	static void mapDownloadFinished(CosDb *db, const CosDownloaderItem &item, const QByteArray &data);
+
 public slots:
 	void mapSelect(const QString &uuid);
 	void mapAdd(QVariantMap data);
@@ -87,7 +91,7 @@ private slots:
 	void onMapGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onMapUpdated(QJsonObject jsonData, QByteArray);
-	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &jsonData);
+	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 
 
 signals:

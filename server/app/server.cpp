@@ -49,6 +49,7 @@ Server::Server(QObject *parent)
 	m_serverDir = "";
 	m_db = new CosDb("serverDb", this);
 	m_mapsDb = new CosDb("mapsDb", this);
+	m_statDb = new CosDb("statDb", this);
 
 	m_versionMajor = 0;
 	m_versionMinor = 0;
@@ -78,6 +79,7 @@ Server::~Server()
 
 	delete m_mapsDb;
 	delete m_db;
+	delete m_statDb;
 	delete m_udpSocket;
 }
 
@@ -95,6 +97,7 @@ bool Server::start()
 
 	m_db->setDatabaseName(m_serverDir+"/main.db");
 	m_mapsDb->setDatabaseName(m_serverDir+"/maps.db");
+	m_statDb->setDatabaseName(m_serverDir+"/stat.db");
 
 	if (!databaseLoad())
 		return false;
@@ -117,6 +120,8 @@ bool Server::start()
 
 void Server::stop()
 {
+	m_statDb->close();
+	m_mapsDb->close();
 	m_db->close();
 }
 
@@ -259,6 +264,9 @@ bool Server::databaseLoad()
 	if (!m_mapsDb->open())
 		return false;
 
+	if (!m_statDb->open())
+		return false;
+
 	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system");
 
 	if (m.isEmpty()) {
@@ -340,6 +348,9 @@ bool Server::databaseLoad()
 	}
 
 
+
+	// MapsDb
+
 	QVariantList tables = m_mapsDb->execSelectQuery("SELECT name FROM sqlite_master WHERE type ='table' AND name='maps'");
 
 	if (tables.isEmpty()) {
@@ -350,6 +361,24 @@ bool Server::databaseLoad()
 			return false;
 		}
 	}
+
+
+
+
+	// StatDb
+
+	QVariantList stables = m_statDb->execSelectQuery("SELECT name FROM sqlite_master WHERE type ='table' AND name='stat'");
+
+	if (stables.isEmpty()) {
+		qInfo().noquote() << tr("A statisztika adatbázis üres, előkészítem.");
+
+		if (!m_statDb->batchQueryFromFile(":/sql/stat.sql")) {
+			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_statDb->databaseName());
+			return false;
+		}
+	}
+
+
 
 	m_db->subscribeToNotification("ranklog");
 
@@ -624,6 +653,23 @@ QByteArray Server::resourceContent(const QString &filename, QString *md5) const
 	}
 
 	return ret;
+}
+
+
+/**
+ * @brief Server::isClientActive
+ * @param username
+ * @return
+ */
+
+bool Server::isClientActive(const QString &username) const
+{
+	foreach (Client *c, m_clients) {
+		if (c->clientUserName() == username)
+			return true;
+	}
+
+	return false;
 }
 
 

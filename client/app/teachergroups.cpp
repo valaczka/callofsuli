@@ -33,11 +33,11 @@
  */
 
 #include "teachergroups.h"
+#include "teachermaps.h"
 
 TeacherGroups::TeacherGroups(QQuickItem *parent)
-	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
+	: AbstractActivity(CosMessage::ClassTeacher, parent)
 	, m_modelGroupList(nullptr)
-	, m_modelClassList(nullptr)
 	, m_modelUserList(nullptr)
 	, m_modelMapList(nullptr)
 	, m_selectedGroupId(-1)
@@ -49,31 +49,38 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 										   },
 										   this);
 
-	m_modelClassList = new VariantMapModel({
-											   "classid",
-											   "name"
-										   },
-										   this);
-
 	m_modelUserList = new VariantMapModel({
 											  "username",
 											  "firstname",
 											  "lastname",
 											  "classid",
 											  "classname",
-											  "active"
+											  "active",
+											  "rankid",
+											  "ranklevel",
+											  "rankimage",
+											  "nickname",
+											  "picture",
+											  "activeClient"
 										  },
 										  this);
 
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
-											 "name"
+											 "name",
+											 "downloaded",
+											 "md5",
+											 "dataSize",
+											 "active"
 										 },
 										 this);
 
 	connect(this, &TeacherGroups::groupListGet, this, &TeacherGroups::onGroupListGet);
 	connect(this, &TeacherGroups::groupGet, this, &TeacherGroups::onGroupGet);
 	connect(this, &TeacherGroups::selectedGroupIdChanged, this, &TeacherGroups::groupSelect);
+	connect(this, &TeacherGroups::groupMapActivate, this, &TeacherGroups::groupReload);
+	connect(this, &TeacherGroups::groupMapRemove, this, &TeacherGroups::groupReload);
+	connect(this, &TeacherGroups::groupMapAdd, this, &TeacherGroups::groupReload);
 }
 
 /**
@@ -84,7 +91,6 @@ TeacherGroups::~TeacherGroups()
 {
 	delete m_modelGroupList;
 	delete m_modelUserList;
-	delete m_modelClassList;
 	delete m_modelMapList;
 }
 
@@ -99,9 +105,18 @@ void TeacherGroups::groupSelect(const int &groupId)
 	if (groupId == -1)
 		return;
 
-	QJsonObject o;
-	o["id"]	= groupId;
-	send("groupGet", o);
+	send("groupGet", {{"id", groupId}});
+}
+
+
+/**
+ * @brief TeacherGroups::groupReload
+ */
+
+void TeacherGroups::groupReload(QJsonObject, QByteArray)
+{
+	if (m_selectedGroupId != -1)
+		send("groupGet", {{"id", m_selectedGroupId}});
 }
 
 
@@ -117,15 +132,6 @@ void TeacherGroups::setModelGroupList(VariantMapModel *modelGroupList)
 
 	m_modelGroupList = modelGroupList;
 	emit modelGroupListChanged(m_modelGroupList);
-}
-
-void TeacherGroups::setModelClassList(VariantMapModel *modelClassList)
-{
-	if (m_modelClassList == modelClassList)
-		return;
-
-	m_modelClassList = modelClassList;
-	emit modelClassListChanged(m_modelClassList);
 }
 
 void TeacherGroups::setModelUserList(VariantMapModel *modelUserList)
@@ -157,6 +163,111 @@ void TeacherGroups::setSelectedGroupId(int selectedGroupId)
 
 
 /**
+ * @brief TeacherGroups::mapDownload
+ * @param data
+ */
+
+void TeacherGroups::mapDownload(QVariantMap data)
+{
+	if (!m_downloader) {
+		CosDownloader *dl = new CosDownloader(this, CosMessage::ClassUserInfo, "downloadMap", this);
+		dl->setJsonKeyFileName("uuid");
+		setDownloader(dl);
+
+		connect(m_downloader, &CosDownloader::oneDownloadFinished, this, &TeacherGroups::onOneDownloadFinished);
+		connect(m_downloader, &CosDownloader::downloadFinished, this, [=](){
+			mapDownloadInfoReload();
+			groupReload();
+		});
+	}
+
+	m_downloader->clear();
+
+	TeacherMaps::mapDownloadPrivate(data, m_downloader, m_modelMapList);
+
+	if (m_downloader->hasDownloadable()) {
+		emit mapDownloadRequest(Client::formattedDataSize(m_downloader->fullSize()));
+	} else {
+		groupReload();
+	}
+}
+
+
+/**
+ * @brief TeacherGroups::mapDownloadInfoReload
+ */
+
+void TeacherGroups::mapDownloadInfoReload()
+{
+	if (db())
+		m_mapDownloadInfo = TeacherMaps::mapDownloadInfo(db());
+	else
+		m_mapDownloadInfo.clear();
+}
+
+
+/**
+ * @brief TeacherGroups::loadMapDataToModel
+ * @param uuid
+ * @param model
+ */
+
+bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
+{
+	if (!model) {
+		qWarning() << "Missing game map model";
+		return false;
+	}
+
+	if (uuid.isEmpty()) {
+		model->clear();
+		return false;
+	}
+
+	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
+
+	if (r.isEmpty()) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
+		return false;
+	}
+
+	QByteArray b = r.value("data").toByteArray();
+
+	GameMap *map = GameMap::fromBinaryData(b);
+
+	model->setGameMap(map);
+
+	delete map;
+
+
+	for (int i=0; i<m_modelUserList->variantMapData()->size(); i++) {
+		QVariantMap m = m_modelUserList->variantMapData()->at(i).second;
+		model->appendUser(m.value("username").toString(), m.value("firstname").toString(), m.value("lastname").toString());
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief TeacherGroups::clientSetup
+ */
+
+void TeacherGroups::clientSetup()
+{
+	if (!m_client)
+		return;
+
+	CosDb *db = TeacherMaps::teacherMapsDb(m_client, this);
+
+	if (db) {
+		addDb(db, false);
+		mapDownloadInfoReload();
+	}
+}
+
+
+/**
  * @brief TeacherGroups::onGroupListGet
  * @param jsonData
  */
@@ -179,13 +290,56 @@ void TeacherGroups::onGroupListGet(QJsonObject jsonData, QByteArray)
 
 void TeacherGroups::onGroupGet(QJsonObject jsonData, QByteArray)
 {
-	m_modelClassList->unselectAll();
 	m_modelUserList->unselectAll();
-	m_modelMapList->unselectAll();
 
 	setSelectedGroupId(jsonData.value("id").toInt(-1));
 
-	m_modelClassList->setJsonArray(jsonData.value("classList").toArray(), "classid");
 	m_modelUserList->setJsonArray(jsonData.value("userList").toArray(), "username");
-	m_modelMapList->setJsonArray(jsonData.value("mapList").toArray(), "uuid");
+
+	onGroupMapListGet(jsonData.value("mapList").toArray());
+}
+
+
+
+
+/**
+ * @brief TeacherGroups::onGroupMapListGet
+ * @param list
+ */
+
+void TeacherGroups::onGroupMapListGet(const QJsonArray &list)
+{
+	m_modelMapList->unselectAll();
+
+	QJsonArray ret;
+
+	foreach (QJsonValue v, list) {
+		QJsonObject m = v.toObject();
+		QString uuid = m.value("uuid").toString();
+
+		m["downloaded"] = false;
+
+		if (m_mapDownloadInfo.contains(uuid)) {
+			QVariantMap dm = m_mapDownloadInfo.value(uuid).toMap();
+			if (m.value("md5") == dm.value("md5") && m.value("dataSize") == dm.value("dataSize"))
+				m["downloaded"] = true;
+		}
+
+		ret.append(m);
+	}
+
+	m_modelMapList->setJsonArray(ret, "uuid");
+}
+
+
+
+/**
+ * @brief TeacherGroups::onOneDownloadFinished
+ * @param item
+ * @param data
+ */
+
+void TeacherGroups::onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &)
+{
+	TeacherMaps::mapDownloadFinished(db(), item, data);
 }

@@ -864,6 +864,7 @@ void CosGame::onGameMatchTimerTimeout()
 	QJsonObject o;
 	o["id"] = gameId;
 	o["xp"] = m_gameMatch->xp();
+	o["stat"] = m_gameMatch->takeStatistics();
 	client->socketSend(CosMessage::ClassStudent, "gameUpdate", o);
 }
 
@@ -1134,6 +1135,8 @@ QVariantMap CosGame::levelData() const
 
 	return QVariantMap();
 }
+
+
 
 
 /**

@@ -64,6 +64,27 @@ public:
 	explicit GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	virtual ~GameMatch();
 
+	struct Statistics {
+		uint index;
+		QString objective;
+		bool success;
+		int elapsed;
+
+		Statistics(const QString &m_objective, const bool &m_success, const int &m_elapsed) :
+			index(++m_index),
+			objective(m_objective),
+			success(m_success),
+			elapsed(m_elapsed)
+		{}
+
+		friend inline bool operator== (const Statistics &b1, const Statistics &b2) {
+			return (b1.index == b2.index);
+		}
+
+	private:
+		static uint m_index;
+	};
+
 	GameMap::MissionLevel *missionLevel() const;
 
 	QString playerCharacter() const { return m_playerCharacter; }
@@ -85,6 +106,9 @@ public:
 	int elapsedTime() const { return m_elapsedTime; }
 	void setElapsedTime(int elapsedTime) { m_elapsedTime = elapsedTime; }
 
+	void addStatistics(const Statistics &data);
+	void addStatistics(const QString &objective, const bool &success, const int &elapsed);
+	QJsonArray takeStatistics();
 
 public slots:
 	bool check(QString *errorString);
@@ -144,6 +168,7 @@ private:
 	int m_baseXP;
 	int m_elapsedTime;
 	bool m_deathmatch;
+	QVector<Statistics> m_statData;
 };
 
 

@@ -32,7 +32,7 @@
 
 #include "userinfo.h"
 #include "admin.h"
-#include "teachermap.h"
+#include "teacher.h"
 #include "student.h"
 
 
@@ -95,6 +95,20 @@ CosDb *Client::mapsDb() const
 {
 	if (m_server)
 		return m_server->mapsDb();
+	else
+		return nullptr;
+}
+
+
+/**
+ * @brief Client::statDb
+ * @return
+ */
+
+CosDb *Client::statDb() const
+{
+	if (m_server)
+		return m_server->statDb();
 	else
 		return nullptr;
 }
@@ -253,8 +267,8 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 				u.start();
 				break;
 			}
-		case CosMessage::ClassTeacherMap: {
-				TeacherMap u(this, m);
+		case CosMessage::ClassTeacher: {
+				Teacher u(this, m);
 				u.start();
 				break;
 			}

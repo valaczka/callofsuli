@@ -9,7 +9,7 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	implicitWidth: 800
+	implicitWidth: 1200
 	implicitHeight: 400
 
 	property bool swipeMode: width < implicitWidth

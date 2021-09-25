@@ -37,7 +37,7 @@
 #include <QFile>
 
 TeacherMaps::TeacherMaps(QQuickItem *parent)
-	: AbstractActivity(CosMessage::ClassTeacherMap, parent)
+	: AbstractActivity(CosMessage::ClassTeacher, parent)
 	, m_modelMapList(nullptr)
 	, m_isUploading(false)
 	, m_modelGroupList(nullptr)
@@ -116,22 +116,6 @@ CosDb *TeacherMaps::teacherMapsDb(Client *client, QObject *parent, const QString
 
 		if (!db->execSimpleQuery("CREATE TABLE maps("
 								 "uuid TEXT NOT NULL PRIMARY KEY,"
-								 "name TEXT NOT NULL,"
-								 "md5 TEXT NOT NULL,"
-								 "lastModified TEXT NOT NULL,"
-								 "data BLOB NOT NULL"
-								 ")")) {
-			qWarning() << tr("Nem sikerült előkészíteni az adatbázist:") << dbname;
-			db->close();
-			delete db;
-			return nullptr;
-		}
-
-		if (!db->execSimpleQuery("CREATE TABLE localmaps("
-								 "uuid TEXT NOT NULL PRIMARY KEY,"
-								 "name TEXT NOT NULL,"
-								 "md5 TEXT NOT NULL,"
-								 "lastModified TEXT NOT NULL DEFAULT (datetime('now')),"
 								 "data BLOB NOT NULL"
 								 ")")) {
 			qWarning() << tr("Nem sikerült előkészíteni az adatbázist:") << dbname;
@@ -142,6 +126,73 @@ CosDb *TeacherMaps::teacherMapsDb(Client *client, QObject *parent, const QString
 	}
 
 	return db;
+}
+
+
+
+/**
+ * @brief TeacherMaps::mapDownloadInfoReload
+ */
+
+QVariantMap TeacherMaps::mapDownloadInfo(CosDb *db)
+{
+	Q_ASSERT(db);
+
+	QVariantMap ret;
+
+	QVariantList list = db->execSelectQuery("SELECT uuid, data FROM maps");
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		QByteArray d = m.value("data").toByteArray();
+		QString uuid = m.value("uuid").toString();
+
+		ret[uuid] = QVariantMap({
+									  { "md5", QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex()) },
+									  { "dataSize", d.size() }
+								  });
+	}
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief TeacherMaps::mapDownloadPrivate
+ * @return
+ */
+
+void TeacherMaps::mapDownloadPrivate(const QVariantMap &data, CosDownloader *downloader, VariantMapModel *mapModel)
+{
+	Q_ASSERT(downloader);
+	Q_ASSERT(mapModel);
+
+	QVariantList uuidList;
+
+	if (data.contains("list")) {
+		uuidList = data.value("list").toList();
+	} else if (data.contains("uuid")) {
+		uuidList.append(data.value("uuid"));
+	}
+
+	foreach (QVariant v, uuidList) {
+		QString uuid = v.toString();
+		int index = mapModel->variantMapData()->find("uuid", uuid);
+		if (index == -1) {
+			continue;
+		}
+
+		QVariantMap o = mapModel->variantMapData()->at(index).second;
+
+		downloader->append(o.value("uuid").toString(),
+						   "",
+						   o.value("dataSize").toInt(),
+						   o.value("md5").toString(),
+						   false,
+						   0.0);
+	}
 }
 
 
@@ -236,6 +287,7 @@ void TeacherMaps::mapAdd(QVariantMap data)
 
 void TeacherMaps::mapDownload(QVariantMap data)
 {
+	//!!!!!! map download private !!!!!!!/
 	if (!m_downloader) {
 		CosDownloader *dl = new CosDownloader(this, CosMessage::ClassUserInfo, "downloadMap", this);
 		dl->setJsonKeyFileName("uuid");
@@ -652,6 +704,19 @@ void TeacherMaps::onMapUpdated(QJsonObject jsonData, QByteArray)
 }
 
 
+/**
+ * @brief TeacherMaps::onOneDownloadFinished
+ * @param item
+ * @param data
+ * @param jsonData
+ */
+
+void TeacherMaps::onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &)
+{
+	mapDownloadFinished(db(), item, data);
+}
+
+
 
 /**
  * @brief TeacherMaps::onOneDownloadFinished
@@ -659,15 +724,14 @@ void TeacherMaps::onMapUpdated(QJsonObject jsonData, QByteArray)
  * @param data
  */
 
-void TeacherMaps::onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &jsonData)
+void TeacherMaps::mapDownloadFinished(CosDb *db, const CosDownloaderItem &item, const QByteArray &data)
 {
+	Q_ASSERT(db);
+
 	QVariantMap m;
 	m["uuid"] = item.remoteFile;
-	m["name"] = jsonData.value("name");
-	m["md5"] = jsonData.value("md5");
-	m["lastModified"] = jsonData.value("lastModified");
 	m["data"] = data;
 
-	db()->execInsertQuery("INSERT OR REPLACE INTO maps (?k?) VALUES (?)", m);
+	db->execInsertQuery("INSERT OR REPLACE INTO maps (?k?) VALUES (?)", m);
 }
 

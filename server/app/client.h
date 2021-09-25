@@ -57,6 +57,7 @@ public:
 	QString clientUserName() const { return m_clientUserName; }
 	CosDb *db() const;
 	CosDb *mapsDb() const;
+	CosDb *statDb() const;
 	CosMessage::ClientRoles clientRoles() const { return m_clientRoles; }
 	QWebSocket *socket() const { return m_socket; }
 	Server *server() const { return m_server; }

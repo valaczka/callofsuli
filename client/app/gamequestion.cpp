@@ -34,6 +34,7 @@
 
 #include "gamequestion.h"
 #include "gameenemydata.h"
+#include "gamematch.h"
 
 GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, QObject *parent)
 	: QObject(parent)
@@ -42,6 +43,7 @@ GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, 
 	, m_enemy(enemy)
 	, m_question(nullptr)
 	, m_questionData()
+	, m_elapsedTime()
 {
 }
 
@@ -116,6 +118,7 @@ void GameQuestion::run()
 
 	if (m_question) {
 		m_game->setRunning(false);
+		m_elapsedTime = QTime::currentTime();
 
 		connect(m_question, &QQuickItem::destroyed, this, &GameQuestion::onDestroyed);
 		connect(m_question, SIGNAL(succeed(qreal)), this, SLOT(onSuccess(qreal)));
@@ -193,6 +196,9 @@ void GameQuestion::forceDestroy()
 
 void GameQuestion::onSuccess(const qreal &xpFactor)
 {
+	if (m_game->gameMatch())
+		m_game->gameMatch()->addStatistics(m_enemy->enemyData()->objectiveUuid(), true, m_elapsedTime.msecsTo(QTime::currentTime()));
+
 	emit xpGained(xpFactor);
 
 	m_enemy->setXpGained(true);
@@ -202,6 +208,7 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
 
 	m_enemy->killByPlayer(m_player);
+
 }
 
 
@@ -211,6 +218,9 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 
 void GameQuestion::onFailed()
 {
+	if (m_game->gameMatch())
+		m_game->gameMatch()->addStatistics(m_enemy->enemyData()->objectiveUuid(), false, m_elapsedTime.msecsTo(QTime::currentTime()));
+
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
 

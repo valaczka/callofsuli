@@ -105,7 +105,7 @@ public:
 		ClassLogout,
 		ClassAdmin,
 		ClassUserInfo,
-		ClassTeacherMap,
+		ClassTeacher,
 		ClassStudent
 	};
 

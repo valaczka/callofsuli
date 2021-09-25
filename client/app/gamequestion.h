@@ -73,6 +73,7 @@ private:
 	GameEnemy *m_enemy;
 	QQuickItem *m_question;
 	Question m_questionData;
+	QTime m_elapsedTime;
 
 };
 

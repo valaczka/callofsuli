@@ -37,6 +37,7 @@
 
 #include <QVariant>
 #include <QDebug>
+#include <QStandardItemModel>
 #include "cosdb.h"
 
 #define GAMEMAP_CURRENT_VERSION 10

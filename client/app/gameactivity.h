@@ -69,6 +69,7 @@ public slots:
 	void setPrepared(bool prepared);
 	void setGame(CosGame * game);
 
+
 signals:
 	void prepareFailed();
 	void prepareSucceed();

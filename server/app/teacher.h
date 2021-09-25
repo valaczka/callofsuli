@@ -32,48 +32,50 @@
  * SOFTWARE.
  */
 
-#ifndef TEACHERMAP_H
-#define TEACHERMAP_H
+#ifndef TEACHER_H
+#define TEACHER_H
 
 #include "abstracthandler.h"
 #include <QObject>
 
 class Client;
 
-class TeacherMap : public AbstractHandler
+class Teacher : public AbstractHandler
 {
 	Q_OBJECT
 
 public:
-	explicit TeacherMap(Client *client, const CosMessage &message);
+	explicit Teacher(Client *client, const CosMessage &message);
 
 	bool classInit() override;
 
 public slots:
-	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
+	/*bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool mapRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool mapGet(QJsonObject *jsonResponse, QByteArray *);
 	bool mapGroupAdd(QJsonObject *jsonResponse, QByteArray *);
 	bool mapGroupRemove(QJsonObject *jsonResponse, QByteArray *);
-	bool mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *);*/
 
 	bool groupListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool groupCreate(QJsonObject *jsonResponse, QByteArray *);
-	bool groupUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool groupRemove(QJsonObject *jsonResponse, QByteArray *);
-	bool groupMemberListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMapAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMapActivate(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMapRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *);
+
+	/*bool groupCreate(QJsonObject *jsonResponse, QByteArray *);
+	bool groupUpdate(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMemberListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *);
-	bool groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool groupClassAdd(QJsonObject *jsonResponse, QByteArray *);
 	bool groupClassRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool groupUserAdd(QJsonObject *jsonResponse, QByteArray *);
 	bool groupUserRemove(QJsonObject *jsonResponse, QByteArray *);
-	bool groupMapAdd(QJsonObject *jsonResponse, QByteArray *);
-	bool groupMapRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool groupMapRemove(QJsonObject *jsonResponse, QByteArray *);*/
 
 };
 
-#endif // TEACHERMAP_H
+#endif // TEACHER_H

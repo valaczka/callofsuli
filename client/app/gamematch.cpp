@@ -35,6 +35,8 @@
 #include "gamematch.h"
 #include "cosclient.h"
 
+uint GameMatch::Statistics::m_index = 0;
+
 GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	: QObject(parent)
 	, m_gameMap(gameMap)
@@ -47,6 +49,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_baseXP(0)
 	, m_elapsedTime(-1)
 	, m_deathmatch(false)
+	, m_statData()
 {
 	setPlayerCharacter("default");
 }
@@ -134,6 +137,55 @@ QString GameMatch::bgImage() const
 		return "qrc:/internal/game/bg.png";
 	else
 		return "image://"+m_imageDbName+"/"+m_bgImage;
+}
+
+
+/**
+ * @brief GameMatch::addStatistics
+ * @param data
+ */
+
+void GameMatch::addStatistics(const GameMatch::Statistics &data)
+{
+	m_statData.append(data);
+}
+
+
+/**
+ * @brief GameMatch::addStatistics
+ * @param map
+ * @param objective
+ * @param success
+ * @param elapsed
+ */
+
+void GameMatch::addStatistics(const QString &objective, const bool &success, const int &elapsed)
+{
+	m_statData.append(Statistics(objective, success, elapsed));
+}
+
+
+/**
+ * @brief GameMatch::takeStatistics
+ * @return
+ */
+
+QJsonArray GameMatch::takeStatistics()
+{
+	QJsonArray r;
+
+	foreach (Statistics s, m_statData) {
+		QJsonObject o;
+		o["map"] = m_gameMap ? QString::fromLatin1(m_gameMap->uuid()) : "";
+		o["objective"] = s.objective;
+		o["success"] = s.success;
+		o["elapsed"] = s.elapsed;
+		r.append(o);
+	}
+
+	m_statData.clear();
+
+	return r;
 }
 
 

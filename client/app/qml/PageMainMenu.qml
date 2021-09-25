@@ -58,17 +58,17 @@ QPage {
 								filters: [
 									ValueFilter {
 										roleName: "type"
-										value: -2
+										value: 2										// Teacher
 										SwitchRole.value: CosStyle.colorAccent
 									},
 									ValueFilter {
 										roleName: "type"
-										value: -1
+										value: 3										// Admin
 										SwitchRole.value: CosStyle.colorErrorLighter
 									},
 									ValueFilter {
 										roleName: "type"
-										value: 0
+										value: 0										// Teacher/Student groups
 										SwitchRole.value: CosStyle.colorOKLighter
 									}
 								]
@@ -143,7 +143,7 @@ QPage {
 						var list = []
 
 						list.push({
-									  type: -4,
+									  type: 1,
 									  id: -40,
 									  name: qsTr("Összesített rangsor"),
 									  page: "Score",
@@ -153,7 +153,7 @@ QPage {
 
 						if (!(cosClient.userRoles & Client.RoleGuest)) {
 							list.push({
-										  type: -4,
+										  type: 1,
 										  id: -41,
 										  name: qsTr("Profil"),
 										  page: "",
@@ -164,7 +164,7 @@ QPage {
 
 						if (cosClient.userRoles & CosMessage.RoleTeacher) {
 							list.push({
-										  type: -2,
+										  type: 2,
 										  id: -20,
 										  name: qsTr("Pályák kezelése"),
 										  page: "TeacherMap",
@@ -173,10 +173,10 @@ QPage {
 									  })
 
 							list.push({
-										  type: -2,
+										  type: 2,
 										  id: -21,
 										  name: qsTr("Csoportok kezelése"),
-										  page: "TeacherGroup",
+										  page: "TeacherGroupEdit",
 										  details: "",
 										  icon: CosStyle.iconGroups
 									  })
@@ -185,7 +185,7 @@ QPage {
 
 						if (cosClient.userRoles & CosMessage.RoleAdmin) {
 							list.push({
-										  type: -1,
+										  type: 3,
 										  id: -10,
 										  name: qsTr("Szerver beállítása"),
 										  page: "ServerSettings",
@@ -194,7 +194,7 @@ QPage {
 									  })
 
 							list.push({
-										  type: -1,
+										  type: 3,
 										  id: -11,
 										  name: qsTr("Felhasználók kezelése"),
 										  page: "AdminUsers",
@@ -207,7 +207,7 @@ QPage {
 
 						if (cosClient.userRoles & CosMessage.RoleGuest) {
 							list.push({
-										  type: -3,
+										  type: 4,
 										  id: -30,
 										  name: qsTr("Bejelentkezés"),
 										  page: "Login",
@@ -218,7 +218,7 @@ QPage {
 
 							if (cosClient.registrationEnabled)
 								list.push({
-											  type: -3,
+											  type: 4,
 											  id: -31,
 											  name: qsTr("Regisztráció"),
 											  page: "Registration",
@@ -235,7 +235,7 @@ QPage {
 										  type: 0,
 										  id: o.id,
 										  name: o.name,
-										  page: (cosClient.userRoles & CosMessage.RoleTeacher) ? "TeacherGroupView" : "StudentGroup",
+										  page: (cosClient.userRoles & CosMessage.RoleTeacher) ? "TeacherGroup" : "StudentGroup",
 										  icon: (cosClient.userRoles & CosMessage.RoleTeacher) ? CosStyle.iconGroup : CosStyle.iconPlanet,
 										  details: (o.readableClassList ? o.readableClassList : "")+
 												   (o.teacherfirstname || o.teacherlastname ? " - " : "")+

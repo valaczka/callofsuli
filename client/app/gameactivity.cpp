@@ -36,7 +36,6 @@
 #include "gamematch.h"
 #include "cosgame.h"
 
-
 GameActivity::GameActivity(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
 	, m_prepared(false)
@@ -168,6 +167,7 @@ bool GameActivity::createTargets(QVector<GameEnemy *> enemies)
 
 	return true;
 }
+
 
 
 

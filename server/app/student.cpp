@@ -295,22 +295,18 @@ bool Student::gameUpdate(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	QVariantList l;
+	updateStatistics(params.value("stat").toList());
 
-	l.append(m_client->clientUserName());
-	l.append(gameid);
 
-	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL", l);
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id FROM game WHERE username=? AND id=? AND tmpScore IS NOT NULL",
+														  {m_client->clientUserName(), gameid});
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid game";
 		return false;
 	}
 
-	QVariantList ll;
-	ll.append(xp);
-	ll.append(gameid);
-	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=? WHERE id=?", ll);
+	m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=? WHERE id=?", {xp, gameid});
 
 	(*jsonResponse)["gameid"] = gameid;
 	(*jsonResponse)["updated"] = true;
@@ -571,6 +567,29 @@ GameMap::SolverInfo Student::missionSolverInfo(const QString &mapid, const QStri
 													 missionid
 												 });
 
-	qInfo() << "m" << m;
+
 	return GameMap::SolverInfo(m);
+}
+
+
+
+/**
+ * @brief Student::updateStatistics
+ * @param list
+ * @return
+ */
+
+void Student::updateStatistics(const QVariantList &list)
+{
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		m_client->statDb()->execInsertQuery("INSERT INTO stat(?k?) VALUES (?)", {
+												{ "username", m_client->clientUserName()},
+												{ "map", m.value("map", "").toString() },
+												{ "objective", m.value("objective", "").toString() },
+												{ "success", m.value("success", false).toBool() },
+												{ "elapsed", m.value("elapsed", 0).toInt() }
+											});
+	}
 }

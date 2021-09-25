@@ -4,5 +4,6 @@
         <file>images/default.db</file>
         <file>sql/maps.sql</file>
         <file>../../common/license.txt</file>
+        <file>sql/stat.sql</file>
     </qresource>
 </RCC>
