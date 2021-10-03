@@ -109,6 +109,9 @@ public slots:
 	void addDb(CosDb *db, const bool &removeDatabase = false);
 	void setRemoveDatabase(bool removeDatabase);
 
+protected:
+	void setDefaultClass(const CosMessage::CosClass &defaultClass);
+
 protected slots:
 	virtual void onMessageReceived(const CosMessage &message) { autoSignalEmit(message); }
 	virtual void onMessageFrameReceived(const CosMessage &) {}
@@ -142,7 +145,7 @@ private:
 	int m_runId;
 	QString m_canUndoString;
 	bool m_removeDatabase;
-	const CosMessage::CosClass m_defaultClass;
+	CosMessage::CosClass m_defaultClass;
 
 public:
 

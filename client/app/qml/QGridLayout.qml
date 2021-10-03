@@ -4,67 +4,30 @@ import QtQuick.Layouts 1.14
 import "Style"
 import "JScript.js" as JS
 
-Item {
+
+GridLayout {
 	id: item
 
-	implicitHeight: 300
-	implicitWidth: 600
+	property real requiredWidth: 800
 
-	property alias columns: layout.columns
-	default property alias _data: layout.data
-
-	property bool verticalCentered: false
-	property bool fillHeight: false
-
-	property alias watchModification: layout.watchModification
-	property alias modified: layout.modified
+	property bool watchModification: false
+	property bool modified: false
+	property bool acceptable: true
 
 	property int panelPaddingLeft: CosStyle.panelPaddingLeft
 	property int panelPaddingRight: CosStyle.panelPaddingRight
 
 	signal accepted()
 
-	width: implicitWidth
-	height: flick.contentHeight+2
+	width: parent.width-panelPaddingLeft-panelPaddingRight
+	x: panelPaddingLeft
 
-	Flickable {
-		id: flick
+	columns: item.width < item.requiredWidth ? 1 : 2
+	columnSpacing: 5
+	rowSpacing: columns > 1 ? 5 : 0
 
-		boundsBehavior: Flickable.StopAtBounds
-		flickableDirection: Flickable.VerticalFlick
-		width: item.width
-		height: Math.min(contentHeight+2, item.height)
-
-		anchors.verticalCenter: item.verticalCentered ? parent.verticalCenter : undefined
-
-		clip: true
-
-		contentWidth: layout.width
-		contentHeight: layout.height
-
-		GridLayout {
-			id: layout
-
-			property bool watchModification: false
-			property bool modified: false
-
-			width: flick.width-item.panelPaddingLeft-item.panelPaddingRight
-			x: item.panelPaddingLeft
-
-			Binding on height {
-				when: item.fillHeight
-				value: item.height-2
-			}
-
-			columns: item.width < item.implicitWidth ? 1 : 2
-			columnSpacing: 5
-			rowSpacing: columns > 1 ? 5 : 0
-
-			function accept() {
-				item.accepted()
-			}
-		}
+	function accept() {
+		item.accepted()
 	}
-
-
 }
+

@@ -132,6 +132,10 @@ QtObject {
 	property string iconComputer: "image://font/Material Icons/\ue31f"
 	property string iconComputerData: "image://font/Material Icons/\ue1b2"
 
+	property string iconRegistration: "image://font/Academic/\uf184"
+	property string iconLogin: "image://font/Academic/\uf207"
+	property string iconLogout: "image://font/Academic/\uf1b7"
+
 	property string iconMedal: "image://font/AcademicI/\uf1a8"
 	property string iconBooks: "image://font/AcademicI/\uf15f"
 	property string iconGroups: "image://font/AcademicI/\uf1f9"

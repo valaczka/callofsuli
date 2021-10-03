@@ -23,10 +23,10 @@ QPage {
 				layoutFillWidth: true
 
 
-				QGridLayout {
+				QGridLayoutFlickable {
 					id: grid
 
-					anchors.fill: parent
+					verticalCentered: true
 
 					watchModification: false
 

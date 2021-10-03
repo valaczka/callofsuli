@@ -240,13 +240,15 @@ Popup {
 				visible: !(cosClient.userRoles & Client.RoleGuest)
 
 				onClicked: {
-					cosClient.sendMessageInfo("Erre még várni kell", "Ez a funkció még nem elérhető... :(")
+					popupItem.close()
+					JS.createPage("Profile", {})
 				}
 			}
 
 			QButton {
 				anchors.verticalCenter: parent.verticalCenter
 				text: (cosClient.userRoles & Client.RoleGuest) ? qsTr("Bejelentkezés") : qsTr("Kijelentkezés")
+				icon.source: (cosClient.userRoles & Client.RoleGuest) ? CosStyle.iconLogin : CosStyle.iconLogout
 
 				onClicked: {
 					popupItem.close()
@@ -259,6 +261,7 @@ Popup {
 
 			QButton {
 				text: qsTr("Regisztráció")
+				icon.source: CosStyle.iconRegistration
 				enabled: cosClient.registrationEnabled
 				visible: (cosClient.userRoles & Client.RoleGuest) && cosClient.registrationEnabled
 				anchors.verticalCenter: parent.verticalCenter
@@ -335,7 +338,7 @@ Popup {
 			NumberAnimation {
 				target: xpLabel
 				property: "xp"
-				duration: 1750
+				duration: 750
 				to: cosClient.userXP
 				easing.type: Easing.OutQuart
 			}

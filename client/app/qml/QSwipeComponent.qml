@@ -49,7 +49,7 @@ Item {
 
 		currentIndex: layoutSwipe.currentIndex
 
-		visible: swipeMode && contentChildren.length
+		visible: swipeMode && contentChildren.length > 1
 	}
 
 	SwipeView {

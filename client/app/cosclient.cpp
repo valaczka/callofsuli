@@ -60,6 +60,7 @@
 #include "teachermaps.h"
 #include "teachergroups.h"
 #include "studentmaps.h"
+#include "profile.h"
 
 
 #ifdef Q_OS_ANDROID
@@ -352,6 +353,7 @@ void Client::registerTypes()
 	qmlRegisterType<Scores>("COS.Client", 1, 0, "Scores");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
 	qmlRegisterType<GameActivity>("COS.Client", 1, 0, "GameActivity");
+	qmlRegisterType<Profile>("COS.Client", 1, 0, "Profile");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
 	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
@@ -1846,7 +1848,7 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
 	CosMessage m(message);
 
-	qDebug() << m;
+	//qDebug() << m;
 
 	performUserInfo(m);
 

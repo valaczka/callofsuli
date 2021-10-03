@@ -156,7 +156,7 @@ QPage {
 										  type: 1,
 										  id: -41,
 										  name: qsTr("Profil"),
-										  page: "",
+										  page: "Profile",
 										  details: "",
 										  icon: CosStyle.iconUserWhite
 									  })
@@ -212,7 +212,7 @@ QPage {
 										  name: qsTr("Bejelentkezés"),
 										  page: "Login",
 										  details: "",
-										  icon: CosStyle.iconMenu
+										  icon: CosStyle.iconLogin
 									  })
 
 
@@ -223,7 +223,7 @@ QPage {
 											  name: qsTr("Regisztráció"),
 											  page: "Registration",
 											  details: "",
-											  icon: CosStyle.iconMenu
+											  icon: CosStyle.iconRegistration
 										  })
 						}
 

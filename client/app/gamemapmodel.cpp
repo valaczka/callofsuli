@@ -24,30 +24,30 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QRandomGenerator>
 #include "gamemapmodel.h"
+#include "variantmapdata.h"
 
 
 GameMapModel::GameMapModel(QObject *parent)
-	: QAbstractTableModel(parent)
-	, m_roleNames()
+	: VariantMapModel({
+					  "username",
+					  "firstname",
+					  "lastname",
+					  "active",
+					  "xp",
+					  "displayData",
+					  "userInfo"
+					  }, parent)
 	, m_missions()
 	, m_users()
-	, m_headerModelTop(nullptr)
-	, m_headerModelLeft(nullptr)
+	, m_levelCount(0)
+	, m_missionData()
 {
-	m_roleNames[Qt::DisplayRole] = "display";
-
-	int i = Qt::UserRole+1;
-
-	m_roleNames[i++] = "mission";
-	m_roleNames[i++] = "level";
-	m_roleNames[i++] = "deathmatch";
-	m_roleNames[i++] = "success";
-	m_roleNames[i++] = "fullname";
-	m_roleNames[i++] = "xp";
-
-	m_headerModelTop = new GameMapHeaderModel(this, Qt::Horizontal);
-	m_headerModelLeft = new GameMapHeaderModel(this, Qt::Vertical);
+	m_missionData = {
+		{ "missions", {} },
+		{ "levels", {} }
+	};
 }
 
 
@@ -57,155 +57,8 @@ GameMapModel::GameMapModel(QObject *parent)
 
 GameMapModel::~GameMapModel()
 {
-	foreach (GameMapHeaderModel *model, m_headerModels) {
-		model->onDeleteParent();
-	}
 
-	if (m_headerModelTop)
-		delete m_headerModelTop;
-
-	if (m_headerModelLeft)
-		delete m_headerModelLeft;
 }
-
-
-/**
- * @brief GameMapModel::rowCount
- * @return
- */
-
-int GameMapModel::rowCount(const QModelIndex &) const
-{
-	return m_users.count();
-}
-
-
-/**
- * @brief GameMapModel::columnCount
- * @return
- */
-
-int GameMapModel::columnCount(const QModelIndex &) const
-{
-	int count = 0;
-
-	foreach (GameMapModel::Mission m, m_missions)
-		count += m.levels.count();
-
-	return count;
-}
-
-
-
-/**
- * @brief GameMapModel::data
- * @param index
- * @param role
- * @return
- */
-
-QVariant GameMapModel::data(const QModelIndex &index, int role) const
-{
-	int col = index.column();
-	int row = index.row();
-
-	QByteArray roleName = m_roleNames.value(role);
-
-	if (roleName == "display") {
-		GameMapModel::User u = m_users.at(row);
-		GameMapModel::MissionLevel ml = u.getLevelData(missionLevelAt(col));
-		return ml.level > -1 ? QVariant(ml.num) : QVariant("");
-	} else if (roleName == "success") {
-		GameMapModel::User u = m_users.at(row);
-		GameMapModel::MissionLevel ml = u.getLevelData(missionLevelAt(col));
-		return ml.level > -1 ? ml.success : false;
-	}
-	else if (roleName == "mission")
-		return missionAt(col).name;
-	else if (roleName == "level")
-		return missionLevelAt(col).level;
-	else if (roleName == "deathmatch")
-		return missionLevelAt(col).deathmatch;
-	else if (roleName == "fullname") {
-		GameMapModel::User u = m_users.at(row);
-		return u.firstname+" "+u.lastname;
-	} else if (roleName == "xp") {
-		GameMapModel::User u = m_users.at(row);
-		return u.xp;
-	}
-
-
-	return QVariant();
-}
-
-
-
-/**
- * @brief GameMapModel::missions
- * @return
- */
-
-QVector<GameMapModel::Mission> GameMapModel::missions() const
-{
-	return m_missions;
-}
-
-
-/**
- * @brief GameMapModel::missionAt
- * @param col
- * @return
- */
-
-GameMapModel::Mission GameMapModel::missionAt(const int &col) const
-{
-	int i = 0;
-
-	foreach (GameMapModel::Mission m, m_missions) {
-		for (int j=0; j<m.levels.count(); j++) {
-			if (i == col)
-				return m;
-			i++;
-		}
-	}
-
-	GameMapModel::Mission m;
-	m.name = "";
-	m.uuid = "";
-	m.levels = QVector<GameMapModel::MissionLevel>();
-
-	return m;
-}
-
-
-/**
- * @brief GameMapModel::missionLevelAt
- * @param col
- * @return
- */
-
-GameMapModel::MissionLevel GameMapModel::missionLevelAt(const int &col) const
-{
-	int i = 0;
-
-	foreach (GameMapModel::Mission m, m_missions) {
-		foreach (GameMapModel::MissionLevel ml, m.levels) {
-			if (i == col)
-				return ml;
-			i++;
-		}
-	}
-
-	GameMapModel::MissionLevel ml;
-	ml.uuid = "";
-	ml.level = -1;
-	ml.deathmatch = false;
-	ml.success = false;
-	ml.num = 0;
-
-	return ml;
-}
-
 
 /**
  * @brief GameMapModel::setGameMap
@@ -214,11 +67,21 @@ GameMapModel::MissionLevel GameMapModel::missionLevelAt(const int &col) const
 
 void GameMapModel::setGameMap(GameMap *map)
 {
-	clear();
+	m_missions.clear();
+	m_missionData.clear();
 
-	if (!map)
+	if (!map) {
+		setlevelCount(0);
+		setMissionData({
+						   { "missions", {} },
+						   { "levels", {} }
+					   });
+		refreshUsers();
 		return;
+	}
 
+	QVariantList mdata;
+	QVariantList ldata;
 	int cols = 0;
 
 	foreach(GameMap::Mission *m, map->missions()) {
@@ -246,12 +109,22 @@ void GameMapModel::setGameMap(GameMap *map)
 		}
 
 		if (n) {
-			doBeginInsertColumns(cols, cols+n-1);
 			m_missions.append(mis);
+			mdata.append(mis.toMap());
+
+			foreach(GameMapModel::MissionLevel ml, mis.levels)
+				ldata.append(ml.toMap());
+
 			cols += n;
-			doEndInsertColumns();
 		}
 	}
+
+	setMissionData({
+					   { "missions", mdata },
+					   { "levels", ldata }
+				   });
+	setlevelCount(cols);
+	refreshUsers();
 }
 
 
@@ -261,12 +134,10 @@ void GameMapModel::setGameMap(GameMap *map)
  */
 
 
-void GameMapModel::appendUser(const GameMapModel::User &user)
+void GameMapModel::appendUser(const QString &username, const GameMapModel::User &user)
 {
-	int i = m_users.size();
-	doBeginInsertRows(i, i);
-	m_users.append(user);
-	doEndInsertRows();
+	m_users[username] = user;
+	updateUser(username);
 }
 
 
@@ -277,222 +148,327 @@ void GameMapModel::appendUser(const GameMapModel::User &user)
  * @param lastname
  */
 
-void GameMapModel::appendUser(const QString &username, const QString &firstname, const QString &lastname)
+void GameMapModel::appendUser(const QString &username, const QString &firstname, const QString &lastname, const bool &active, const int &xp)
 {
 	GameMapModel::User u;
-	u.username = username;
+
 	u.firstname = firstname;
 	u.lastname = lastname;
-	u.xp = 0;
-	u.levelData = QVector<GameMapModel::MissionLevel>();
-	appendUser(u);
+	u.xp = xp;
+	u.active = active;
+
+	appendUser(username, u);
 }
 
 
 
+
 /**
- * @brief GameMapModel::clear
+ * @brief GameMapModel::setUser
+ * @param username
+ * @param firstname
+ * @param lastname
+ * @param xp
  */
 
-void GameMapModel::clear()
+void GameMapModel::setUser(const QString &username, const QString &firstname, const QString &lastname, const bool &active, const int &xp)
 {
-	doBeginRemoveRows(0, rowCount(QModelIndex()));
-	doBeginRemoveColumns(0, columnCount(QModelIndex()));
-
-	m_users.clear();
-	m_missions.clear();
-
-	doEndRemoveColumns();
-	doEndRemoveRows();
+	if (!m_users.contains(username))
+		appendUser(username, firstname, lastname, active, xp);
+	else {
+		m_users[username].firstname = firstname;
+		m_users[username].lastname = lastname;
+		m_users[username].xp = xp;
+		updateUser(username);
+	}
 }
 
 
-
 /**
- * @brief GameMapModel::missionsData
- * @return
+ * @brief GameMapModel::setUser
+ * @param username
+ * @param xp
  */
 
-QVariantList GameMapModel::missionsData() const
+void GameMapModel::setUser(const QString &username, const int &xp)
 {
-	QVariantList ret;
-
-	foreach (GameMapModel::Mission m, m_missions) {
-		QVariantMap r;
-		r["name"] = m.name;
-		r["levels"] = m.levels.size();
-		ret.append(r);
+	if (!m_users.contains(username)) {
+		qWarning() << "Invalid user" << username;
+		return;
 	}
 
-	return ret;
+	m_users[username].xp = xp;
+	updateUser(username);
 }
-
-
 
 
 
 /**
- * @brief GameMapModel::addHeaderModel
- * @param model
+ * @brief GameMapModel::setUser
+ * @param data
  */
 
-void GameMapModel::addHeaderModel(GameMapHeaderModel *model)
+void GameMapModel::setUser(const QJsonObject &data)
 {
-	m_headerModels.append(model);
-}
+	QString username = data.value("username").toString();
 
-
-/**
- * @brief GameMapModel::deleteHeaderModel
- * @param model
- */
-
-void GameMapModel::deleteHeaderModel(GameMapHeaderModel *model)
-{
-	m_headerModels.removeAll(model);
-}
-
-
-void GameMapModel::setHeaderModelTop(GameMapHeaderModel *headerModelTop)
-{
-	if (m_headerModelTop == headerModelTop)
+	if (username.isEmpty())
 		return;
 
-	m_headerModelTop = headerModelTop;
-	emit headerModelTopChanged(m_headerModelTop);
+	if (!m_users.contains(username))
+		appendUser(username,
+				   data.value("firstname").toString(),
+				   data.value("lastname").toString(),
+				   data.value("active").toBool(),
+				   data.value("xp").toInt());
+
+
+	if (data.contains("xp"))
+		m_users[username].xp = data.value("xp").toInt();
+
+	if (data.contains("active"))
+		m_users[username].active = data.value("active").toBool();
+
+	if (data.contains("firstname"))
+		m_users[username].firstname = data.value("firstname").toString();
+
+	if (data.contains("lastname"))
+		m_users[username].lastname = data.value("lastname").toString();
+
+
+	QVariantMap info = m_users.value(username).userInfo;
+
+	if (data.contains("nickname"))
+		info["nickname"] = data.value("nickname").toString();
+
+	if (data.contains("rankid"))
+		info["rankid"] = data.value("rankid").toInt();
+
+	if (data.contains("ranklevel"))
+		info["ranklevel"] = data.value("ranklevel").toInt();
+
+	if (data.contains("rankimage"))
+		info["rankimage"] = data.value("rankimage").toString();
+
+	if (data.contains("picture"))
+		info["picture"] = data.value("picture").toString();
+
+	if (data.contains("classname"))
+		info["classname"] = data.value("classname").toString();
+
+	if (data.contains("classid"))
+		info["classid"] = data.value("classid").toInt();
+
+	if (data.contains("mapid"))
+		info["mapid"] = data.value("mapid").toString();
+
+	if (data.contains("missionid"))
+		info["missionid"] = data.value("missionid").toString();
+
+	if (data.contains("level"))
+		info["level"] = data.value("level").toInt();
+
+	if (data.contains("deathmatch"))
+		info["deathmatch"] = data.value("deathmatch").toInt();
+
+
+	m_users[username].userInfo = info;
+
+	updateUser(username);
 }
 
-void GameMapModel::setHeaderModelLeft(GameMapHeaderModel *headerModelLeft)
+
+/**
+ * @brief GameMapModel::setUserLevelData
+ * @param data
+ */
+void GameMapModel::setUserLevelData(const QJsonObject &data)
 {
-	if (m_headerModelLeft == headerModelLeft)
+	QString username = data.value("username").toString();
+	QString uuid = data.value("missionid").toString();
+	int level = data.value("level").toInt(-1);
+	bool deathmatch = data.value("deathmatch").toInt(0) > 0;
+	bool success = data.value("success").toInt(0) > 0;
+	int num = data.value("num").toInt();
+
+	if (username.isEmpty() || !m_users.contains(username) || uuid.isEmpty() || level == -1)
 		return;
 
-	m_headerModelLeft = headerModelLeft;
-	emit headerModelLeftChanged(m_headerModelLeft);
+	QVector<MissionLevel> levelData = m_users.value(username).levelData;
+
+	int index = -1;
+
+
+	for (int i=0; i<levelData.size(); ++i) {
+		MissionLevel l = levelData.value(i);
+		if (l.uuid == uuid && l.level == level && l.deathmatch == deathmatch) {
+			index = i;
+			break;
+		}
+	}
+
+	if (index == -1) {
+		MissionLevel d;
+		d.success = success;
+		d.num = num;
+		d.uuid = uuid;
+		d.level = level;
+		d.deathmatch = deathmatch;
+
+		levelData.append(d);
+	} else {
+		MissionLevel *d = levelData.data();
+
+		if (d[index].success) {
+			if (success)
+				d[index].num = num;
+		} else {
+			d[index].success = success;
+			d[index].num = num;
+		}
+	}
+
+	m_users[username].levelData = levelData;
+	updateUser(username);
 }
 
 
+
 /**
- * @brief GameMapModel::doBeginRemoveRows
- * @param first
- * @param last
+ * @brief GameMapModel::refreshUsers
  */
 
-
-void GameMapModel::doBeginRemoveRows(const int &first, const int &last)
+void GameMapModel::refreshUsers()
 {
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onBeginRemoveRows(first, last);
-
-	beginRemoveRows(QModelIndex(), first, last);
+	foreach(QString u, m_users.keys())
+		updateUser(u);
 }
 
 
 /**
- * @brief GameMapModel::doEndRemoveRows
+ * @brief GameMapModel::loadFromServer
+ * @param jsonData
  */
 
-void GameMapModel::doEndRemoveRows()
+void GameMapModel::loadFromServer(const QJsonObject &jsonData, const QByteArray &)
 {
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onEndRemoveRows();
+	QJsonArray uList = jsonData.value("users").toArray();
 
-	endRemoveRows();
+	foreach (QJsonValue v, uList) {
+		QJsonObject o = v.toObject();
+
+		if (!o.contains("username"))
+			continue;
+
+		setUser(o);
+	}
+
+
+
+	QJsonArray list = jsonData.value("list").toArray();
+
+	foreach (QJsonValue v, list) {
+		QJsonObject o = v.toObject();
+
+		if (!o.contains("username"))
+			continue;
+
+		setUserLevelData(o);
+	}
 }
 
 
+
+
 /**
- * @brief GameMapModel::doBeginRemoveColumns
- * @param first
- * @param last
+ * @brief GameMapModel::setlevelCount
+ * @param levelCount
  */
 
-void GameMapModel::doBeginRemoveColumns(const int &first, const int &last)
+void GameMapModel::setlevelCount(int levelCount)
 {
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onBeginRemoveColumns(first, last);
+	if (m_levelCount == levelCount)
+		return;
 
-	beginRemoveColumns(QModelIndex(), first, last);
+	m_levelCount = levelCount;
+	emit levelCountChanged(m_levelCount);
 }
 
 
+void GameMapModel::setMissionData(QVariantMap missionData)
+{
+	if (m_missionData == missionData)
+		return;
+
+	m_missionData = missionData;
+	emit missionDataChanged(m_missionData);
+}
+
+
+
 /**
- * @brief GameMapModel::doEndRemoveColumns
+ * @brief GameMapModel::updateUser
+ * @param username
  */
 
-void GameMapModel::doEndRemoveColumns()
+void GameMapModel::updateUser(const QString &username)
 {
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onEndRemoveColumns();
+	if (!m_users.contains(username)) {
+		qWarning() << "Invalid user" << username;
+		return;
+	}
 
-	endRemoveColumns();
+	GameMapModel::User user = m_users.value(username);
+
+	VariantMapData *mapdata = variantMapData();
+	int index = mapdata->find("username", username);
+
+	QVariantMap m;
+	m["username"] = username;
+	m["firstname"] = user.firstname;
+	m["lastname"] = user.lastname;
+	m["xp"] = user.xp;
+	m["active"] = user.active;
+	m["displayData"] = getUserData(user);
+	m["userInfo"] = user.userInfo;
+
+	if (index == -1) {
+		mapdata->append(m);
+	} else {
+		mapdata->update(index, m);
+	}
 }
 
 
 /**
- * @brief GameMapModel::doBeginInsertRows
- * @param first
- * @param last
- */
-
-void GameMapModel::doBeginInsertRows(const int &first, const int &last)
-{
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onBeginInsertRows(first, last);
-
-	beginInsertRows(QModelIndex(), first, last);
-}
-
-
-/**
- * @brief GameMapModel::doEndInsertRows
- */
-
-void GameMapModel::doEndInsertRows()
-{
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onEndInsertRows();
-
-	endInsertRows();
-}
-
-/**
- * @brief GameMapModel::doBeginInsertColumns
- * @param first
- * @param last
- */
-
-void GameMapModel::doBeginInsertColumns(const int &first, const int &last)
-{
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onBeginInsertColumns(first, last);
-
-	beginInsertColumns(QModelIndex(), first, last);
-}
-
-
-/**
- * @brief GameMapModel::doEndInsertColumns
- */
-
-void GameMapModel::doEndInsertColumns()
-{
-	foreach (GameMapHeaderModel *model, m_headerModels)
-		model->onEndInsertColumns();
-
-	endInsertColumns();
-}
-
-
-/**
- * @brief GameMapModel::users
+ * @brief GameMapModel::getUserData
+ * @param username
  * @return
  */
 
-QVector<GameMapModel::User> GameMapModel::users() const
+QVariantList GameMapModel::getUserData(const User &user) const
 {
-	return m_users;
+	QVariantList l;
+
+	foreach(GameMapModel::Mission m, m_missions)
+		foreach(GameMapModel::MissionLevel ml, m.levels) {
+			QVariantMap r = user.getLevelData(ml).toMap();
+			QVariantMap u = user.userInfo;
+
+			if (u.contains("missionid") && u.value("missionid").toString() == r.value("uuid").toString() &&
+				u.contains("level") && u.value("level").toInt() == r.value("level").toInt() &&
+				u.contains("deathmatch") && u.value("deathmatch").toInt() == r.value("deathmatch").toInt())
+				r["isCurrent"] = true;
+			else
+				r["isCurrent"] = false;
+
+			l.append(r);
+		}
+
+	return l;
 }
+
+
 
 
 /**
@@ -509,13 +485,7 @@ GameMapModel::MissionLevel GameMapModel::User::getLevelData(const QString &uuid,
 			return l;
 	}
 
-	GameMapModel::MissionLevel l;
-	l.uuid = "";
-	l.level = -1;
-	l.deathmatch = false;
-	l.success = false;
-	l.num = 0;
-	return l;
+	return GameMapModel::MissionLevel();
 }
 
 
@@ -532,238 +502,41 @@ GameMapModel::MissionLevel GameMapModel::User::getLevelData(const GameMapModel::
 			return l;
 	}
 
-	GameMapModel::MissionLevel l;
-	l.uuid = "";
-	l.level = -1;
-	l.deathmatch = false;
-	l.success = false;
-	l.num = 0;
-	return l;
+	return GameMapModel::MissionLevel();
 }
 
 
 
-/**
- * @brief GameMapHeaderModel::GameMapHeaderModel
- * @param parent
- */
-GameMapHeaderModel::GameMapHeaderModel(GameMapModel *parent, const Qt::Orientation &orientation)
-	: QAbstractTableModel(parent)
-	, m_mapModel(parent)
-	, m_orientation(orientation)
-{
-
-}
-
 
 /**
- * @brief GameMapHeaderModel::~GameMapHeaderModel
- */
-
-GameMapHeaderModel::~GameMapHeaderModel()
-{
-	if (m_mapModel)
-		m_mapModel->deleteHeaderModel(this);
-}
-
-
-/**
- * @brief GameMapHeaderModel::rowCount
+ * @brief GameMapModel::MissionLevel::toMap
  * @return
  */
 
-int GameMapHeaderModel::rowCount(const QModelIndex &modelIndex) const
+QVariantMap GameMapModel::MissionLevel::toMap() const
 {
-	if (m_mapModel) {
-		if (m_orientation == Qt::Horizontal)
-			return 1;
-		else
-			return m_mapModel->rowCount(modelIndex);
-	} else
-		return 0;
+	QVariantMap m;
+	m["uuid"] = uuid;
+	m["level"] = level;
+	m["deathmatch"] = deathmatch;
+	m["success"] = success;
+	m["num"] = num;
+
+	return m;
 }
 
 
 /**
- * @brief GameMapHeaderModel::columnCount
+ * @brief GameMapModel::Mission::toMap
  * @return
  */
 
-int GameMapHeaderModel::columnCount(const QModelIndex &modelIndex) const
+QVariantMap GameMapModel::Mission::toMap() const
 {
-	if (m_mapModel) {
-		if (m_orientation == Qt::Vertical)
-			return 1;
-		else
-			return m_mapModel->columnCount(modelIndex);
-	} else
-		return 0;
-}
+	QVariantMap m;
+	m["uuid"] = uuid;
+	m["name"] = name;
+	m["levels"] = levels.size();
 
-
-/**
- * @brief GameMapHeaderModel::data
- * @param index
- * @param role
- * @return
- */
-
-QVariant GameMapHeaderModel::data(const QModelIndex &index, int role) const
-{
-	int col = index.column();
-	int row = index.row();
-
-	QHash<int, QByteArray> roles = roleNames();
-
-	if (roles.isEmpty() || !m_mapModel)
-		return QVariant();
-
-	QByteArray roleName = roles.value(role);
-
-	if (roleName == "display") {
-		if (m_orientation == Qt::Horizontal) {
-			GameMapModel::MissionLevel ml = m_mapModel->missionLevelAt(col);
-			QVariantMap r;
-			r["level"] = ml.level;
-			r["deathmatch"] = ml.deathmatch;
-			return r;
-		} else {
-			if (row >= 0 && row < m_mapModel->users().size()) {
-				QVariantMap r;
-				GameMapModel::User u = m_mapModel->users().at(row);
-				r["firstname"] = u.firstname;
-				r["lastname"] = u.lastname;
-				r["xp"] = u.xp;
-				return r;
-			}
-		}
-	}
-
-
-	return QVariant();
-}
-
-
-/**
- * @brief GameMapHeaderModel::roleNames
- * @return
- */
-
-QHash<int, QByteArray> GameMapHeaderModel::roleNames() const
-{
-	if (m_mapModel)
-		return m_mapModel->roleNames();
-	else
-		return QHash<int, QByteArray>();
-}
-
-
-
-/**
- * @brief GameMapHeaderModel::onDeleteParent
- */
-
-void GameMapHeaderModel::onDeleteParent()
-{
-	m_mapModel = nullptr;
-}
-
-
-
-
-/**
- * @brief GameMapHeaderModel::onRemoveRows
- * @param first
- * @param last
- */
-
-void GameMapHeaderModel::onBeginRemoveRows(const int &first, const int &last)
-{
-	if (m_orientation == Qt::Vertical)
-		beginRemoveRows(QModelIndex(), first, last);
-}
-
-
-/**
- * @brief GameMapHeaderModel::onEndRemoveRows
- * @param first
- * @param last
- */
-
-void GameMapHeaderModel::onEndRemoveRows()
-{
-	if (m_orientation == Qt::Vertical)
-		endRemoveRows();
-}
-
-
-
-/**
- * @brief GameMapHeaderModel::onBeginRemoveColumns
- * @param first
- * @param last
- */
-
-void GameMapHeaderModel::onBeginRemoveColumns(const int &first, const int &last)
-{
-	if (m_orientation == Qt::Horizontal)
-		beginRemoveColumns(QModelIndex(), first, last);
-}
-
-
-/**
- * @brief GameMapHeaderModel::onEndRemoveColumns
- */
-
-void GameMapHeaderModel::onEndRemoveColumns()
-{
-	if (m_orientation == Qt::Horizontal)
-		endRemoveColumns();
-}
-
-
-/**
- * @brief GameMapHeaderModel::onBeginInsertRows
- * @param first
- * @param last
- */
-
-void GameMapHeaderModel::onBeginInsertRows(const int &first, const int &last)
-{
-	if (m_orientation == Qt::Vertical)
-		beginInsertRows(QModelIndex(), first, last);
-}
-
-
-/**
- * @brief GameMapHeaderModel::onEndInsertRows
- */
-
-void GameMapHeaderModel::onEndInsertRows()
-{
-	if (m_orientation == Qt::Vertical)
-		endInsertRows();
-}
-
-
-/**
- * @brief GameMapHeaderModel::onBeginInsertColumns
- * @param first
- * @param last
- */
-
-void GameMapHeaderModel::onBeginInsertColumns(const int &first, const int &last)
-{
-	if (m_orientation == Qt::Horizontal)
-		beginInsertColumns(QModelIndex(), first, last);
-}
-
-/**
- * @brief GameMapHeaderModel::onEndInsertColumns
- */
-
-void GameMapHeaderModel::onEndInsertColumns()
-{
-	if (m_orientation == Qt::Horizontal)
-		endInsertColumns();
+	return m;
 }

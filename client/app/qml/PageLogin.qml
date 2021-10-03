@@ -19,13 +19,14 @@ QPage {
 				id: panel
 
 				title: qsTr("Bejelentkezés")
+				icon: CosStyle.iconLogin
 				maximumWidth: 600
 				layoutFillWidth: true
 
-				QGridLayout {
+				QGridLayoutFlickable {
 					id: grid
 
-					anchors.fill: parent
+					verticalCentered: true
 
 					//enabled: !page.isBusy
 					watchModification: false
@@ -53,6 +54,7 @@ QPage {
 					QGridButton {
 						id: buttonLogin
 						text: qsTr("Bejelentkezés")
+						icon.source: CosStyle.iconLogin
 						enabled: textUser.acceptableInput &&
 								 textPassword.acceptableInput
 

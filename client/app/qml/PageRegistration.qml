@@ -20,15 +20,16 @@ QPage {
 				id: panel
 
 				title: qsTr("Regisztráció")
+				icon: CosStyle.iconRegistration
 				maximumWidth: 600
 				layoutFillWidth: true
 
-				QGridLayout {
+				QGridLayoutFlickable {
 					id: grid
 
 					property bool domainMode: cosClient.registrationDomains.length
 
-					anchors.fill: parent
+					verticalCentered: true
 
 					watchModification: false
 

@@ -76,7 +76,7 @@ TextField {
 	selectedTextColor: color
 	verticalAlignment: TextInput.AlignVCenter
 
-	placeholderTextColor: JS.setColorAlpha(CosStyle.colorPrimary, 0.7)
+	placeholderTextColor: CosStyle.colorPrimaryDarker
 
 	//ToolTip.text: placeholderText
 	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval

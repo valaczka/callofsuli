@@ -89,6 +89,7 @@ signals:
 	void groupMapActivate(QJsonObject jsonData, QByteArray binaryData);
 	void groupMapRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
+	void groupTrophyGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void modelUserListChanged(VariantMapModel * modelUserList);

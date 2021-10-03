@@ -239,12 +239,6 @@ bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
 
 	delete map;
 
-
-	for (int i=0; i<m_modelUserList->variantMapData()->size(); i++) {
-		QVariantMap m = m_modelUserList->variantMapData()->at(i).second;
-		model->appendUser(m.value("username").toString(), m.value("firstname").toString(), m.value("lastname").toString());
-	}
-
 	return true;
 }
 

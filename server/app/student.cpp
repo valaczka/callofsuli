@@ -33,6 +33,8 @@
  */
 
 #include "student.h"
+#include "admin.h"
+#include "userinfo.h"
 
 
 Student::Student(Client *client, const CosMessage &message)
@@ -536,6 +538,73 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief Student::userGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::userGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject o = m_message.jsonData();
+
+	if (!o.contains("withTrophy"))
+		o["withTrophy"] = true;
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	UserInfo u(m_client, m2);
+	return u.getUser(jsonResponse, nullptr);
+}
+
+
+
+/**
+ * @brief Student::userModify
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::userModify(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	bool disabledNameModification = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
+							.value("v", false).toBool();
+
+	QJsonObject o;
+
+	QStringList p;
+	p.append("nickname");
+	p.append("character");
+	p.append("picture");
+
+	if (!disabledNameModification) {
+		p.append("firstname");
+		p.append("lastname");
+	}
+
+	foreach (QString s, p) {
+		if (params.contains(s))
+			o[s] = params.value(s);
+	}
+
+	if (o.isEmpty()) {
+		(*jsonResponse)["error"] = "missing parameter";
+		return false;
+	}
+
+	o["username"] = m_client->clientUserName();
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Admin u(m_client, m2);
+	return u.userModify(jsonResponse, nullptr);
+}
+
+
 
 
 /**
@@ -562,10 +631,10 @@ GameMap::SolverInfo Student::missionSolverInfo(const QString &mapid, const QStri
 									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d3 "
 									"FROM (SELECT ? as username, ? as mapid, ? as missionid) AS g"
 									, {
-													 m_client->clientUserName(),
-													 mapid,
-													 missionid
-												 });
+															  m_client->clientUserName(),
+															  mapid,
+															  missionid
+														  });
 
 
 	return GameMap::SolverInfo(m);

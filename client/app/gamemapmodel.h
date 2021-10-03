@@ -27,17 +27,17 @@
 #ifndef GAMEMAPMODEL_H
 #define GAMEMAPMODEL_H
 
-#include <QAbstractTableModel>
+#include "variantmapmodel.h"
 #include "gamemap.h"
 
-class GameMapHeaderModel;
 
-class GameMapModel : public QAbstractTableModel
+class GameMapModel : public VariantMapModel
 {
 	Q_OBJECT
 
-	Q_PROPERTY(GameMapHeaderModel * headerModelTop READ headerModelTop WRITE setHeaderModelTop NOTIFY headerModelTopChanged)
-	Q_PROPERTY(GameMapHeaderModel * headerModelLeft READ headerModelLeft WRITE setHeaderModelLeft NOTIFY headerModelLeftChanged)
+	Q_PROPERTY(int levelCount READ levelCount WRITE setlevelCount NOTIFY levelCountChanged)
+	Q_PROPERTY(QVariantMap missionData READ missionData WRITE setMissionData NOTIFY missionDataChanged)
+
 
 public:
 	explicit GameMapModel(QObject *parent = nullptr);
@@ -49,107 +49,71 @@ public:
 		bool deathmatch;
 		bool success;
 		int num;
+
+		MissionLevel() : uuid(), level(-1), deathmatch(false), success(false), num(-1) {}
+
+		QVariantMap toMap() const;
 	};
 
 	struct Mission {
 		QString uuid;
 		QString name;
 		QVector<MissionLevel> levels;
+
+		Mission() : uuid(), name(), levels() {}
+
+		QVariantMap toMap() const;
 	};
 
 	struct User {
-		QString username;
 		QString firstname;
 		QString lastname;
 		int xp;
+		QVariantMap userInfo;
 		QVector<MissionLevel> levelData;
+		bool active;
+
+		User() : firstname(), lastname(), xp(0), userInfo(), levelData(), active(true) {}
 
 		MissionLevel getLevelData(const QString &uuid, const int &level, const bool &deathmatch) const;
 		MissionLevel getLevelData(const MissionLevel &missionLevel) const;
 	};
 
-	int rowCount(const QModelIndex &) const override;
-	int columnCount(const QModelIndex &) const override;
-	QVariant data(const QModelIndex &index, int role) const override;
-	QHash<int, QByteArray> roleNames() const override { return m_roleNames; }
-
-	QVector<User> users() const;
-	QVector<Mission> missions() const;
-	inline Mission missionAt(const int &col) const;
-	inline MissionLevel missionLevelAt(const int &col) const;
-
 	void setGameMap(GameMap *map);
-	void appendUser(const User &user);
-	void appendUser(const QString &username, const QString &firstname, const QString &lastname);
 
-	Q_INVOKABLE void clear();
-	Q_INVOKABLE QVariantList missionsData() const;
+	void appendUser(const QString &username, const User &user);
+	void appendUser(const QString &username, const QString &firstname, const QString &lastname, const bool &active, const int &xp);
 
-	void addHeaderModel(GameMapHeaderModel *model);
-	void deleteHeaderModel(GameMapHeaderModel *model);
+	void setUser(const QString &username, const QString &firstname, const QString &lastname, const bool &active, const int &xp);
+	void setUser(const QString &username, const int &xp);
+	void setUser(const QJsonObject &data);
+	void setUserLevelData(const QJsonObject &data);
 
-	GameMapHeaderModel * headerModelTop() const { return m_headerModelTop; }
-	GameMapHeaderModel * headerModelLeft() const { return m_headerModelLeft; }
+	void refreshUsers();
+
+	int levelCount() const { return m_levelCount; }
+	QVariantMap missionData() const { return m_missionData; }
+
 
 public slots:
-	void setHeaderModelTop(GameMapHeaderModel * headerModelTop);
-	void setHeaderModelLeft(GameMapHeaderModel * headerModelLeft);
+	void loadFromServer(const QJsonObject &jsonData, const QByteArray &);
+	void setlevelCount(int levelCount);
+	void setMissionData(QVariantMap missionData);
 
 signals:
-	void headerModelTopChanged(GameMapHeaderModel * headerModelTop);
-	void headerModelLeftChanged(GameMapHeaderModel * headerModelLeft);
-
+	void levelCountChanged(int levelCount);
+	void missionDataChanged(QVariantMap missionData);
 
 private:
-	void doBeginRemoveRows(const int &first, const int &last);
-	void doEndRemoveRows();
-	void doBeginRemoveColumns(const int &first, const int &last);
-	void doEndRemoveColumns();
-	void doBeginInsertRows(const int &first, const int &last);
-	void doEndInsertRows();
-	void doBeginInsertColumns(const int &first, const int &last);
-	void doEndInsertColumns();
+	void updateUser(const QString &username);
+	QVariantList getUserData(const User &user) const;
 
-	QHash<int, QByteArray> m_roleNames;
 	QVector<Mission> m_missions;
-	QVector<User> m_users;
-	QVector<GameMapHeaderModel *> m_headerModels;
-	GameMapHeaderModel * m_headerModelTop;
-	GameMapHeaderModel * m_headerModelLeft;
+	QHash<QString, User> m_users;
+	int m_levelCount;
+	QVariantMap m_missionData;
 };
 
 
-/**
- * @brief The GameMapHeaderModel class
- */
-
-class GameMapHeaderModel : public QAbstractTableModel
-{
-	Q_OBJECT
-
-public:
-	explicit GameMapHeaderModel(GameMapModel *parent, const Qt::Orientation &orientation);
-	virtual ~GameMapHeaderModel();
-
-	int rowCount(const QModelIndex &modelIndex) const override;
-	int columnCount(const QModelIndex &modelIndex) const override;
-	QVariant data(const QModelIndex &index, int role) const override;
-	QHash<int, QByteArray> roleNames() const override;
-
-	void onDeleteParent();
-	void onBeginRemoveRows(const int &first, const int &last);
-	void onEndRemoveRows();
-	void onBeginRemoveColumns(const int &first, const int &last);
-	void onEndRemoveColumns();
-	void onBeginInsertRows(const int &first, const int &last);
-	void onEndInsertRows();
-	void onBeginInsertColumns(const int &first, const int &last);
-	void onEndInsertColumns();
-
-private:
-	GameMapModel *m_mapModel;
-	Qt::Orientation m_orientation;
-
-};
 
 #endif // GAMEMAPMODEL_H

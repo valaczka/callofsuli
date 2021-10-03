@@ -8,7 +8,7 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	implicitWidth: visible ? Math.max(500, maximumWidth) : 0
+	implicitWidth: visible ? Math.max(500, maximumWidth+100) : 0
 	implicitHeight: 200
 
 	visible: stackMode

@@ -89,6 +89,7 @@ SOURCES += \
 		gameterrain.cpp \
 		main.cpp \
 		mapeditor.cpp \
+		profile.cpp \
 		question.cpp \
 		scores.cpp \
 		servers.cpp \
@@ -128,6 +129,7 @@ HEADERS += \
 	gameterrain.h \
 	mapeditor.h \
 	modules/interfaces.h \
+	profile.h \
 	question.h \
 	scores.h \
 	servers.h \

@@ -5,9 +5,10 @@ Image {
 	required property bool isDeathmatch
 	required property int level
 
-	source: "qrc:/internal/trophy/trophy"+
-			(isDeathmatch ? "d" : "t")+
-			level+".png"
+	source: level < 0 ? "qrc:/internal/trophy/trophy0.png"
+					  : "qrc:/internal/trophy/trophy"+
+						(isDeathmatch ? "d" : "t")+
+						level+".png"
 
 	fillMode: Image.PreserveAspectFit
 }

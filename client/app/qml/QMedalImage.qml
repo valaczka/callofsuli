@@ -3,14 +3,18 @@ import QtQuick.Controls 2.15
 import QtGraphicalEffects 1.0
 
 Image {
-
+	id: control
 	required property bool isDeathmatch
 	required property int level
 	required property string image
+	property alias text: label.text
 
-	source: "qrc:/internal/trophy/iconBg"+
-			(isDeathmatch ? "d" : "t")+
-			level+".png"
+	opacity: level < 1 ? 0.6 : 1.0
+
+	source: level < 1 ? "qrc:/internal/trophy/iconBgEmpty.png"
+					  : "qrc:/internal/trophy/iconBg"+
+						(isDeathmatch ? "d" : "t")+
+						level+".png"
 	fillMode: Image.PreserveAspectFit
 
 	Image {
@@ -39,5 +43,33 @@ Image {
 
 		lightness: -0.5
 		opacity: 0.8
+	}
+
+	Text {
+		id: label
+		color: "white"
+		font.family: "Rajdhani"
+		font.weight: Font.Bold
+		font.pixelSize: parent.height * 0.75
+		anchors.centerIn: parent
+		visible: level <= 0 && text.length
+	}
+
+	Colorize {
+		source: label
+		anchors.fill: label
+		visible: level > 0
+		hue: switch (level) {
+			 case 1:
+				 0.4
+				 break
+			 case 2:
+				 0.1
+				 break
+			 default:
+				 0.2
+			 }
+
+		lightness: -0.5
 	}
 }

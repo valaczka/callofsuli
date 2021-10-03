@@ -318,5 +318,16 @@ void AbstractActivity::waitForFutureFinished(QFuture<void> &future, int id)
 }
 
 
+/**
+ * @brief AbstractActivity::setDefaultClass
+ * @param defaultClass
+ */
+
+void AbstractActivity::setDefaultClass(const CosMessage::CosClass &defaultClass)
+{
+	m_defaultClass = defaultClass;
+}
+
+
 
 

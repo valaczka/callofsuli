@@ -147,7 +147,7 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-bool Admin::userUpdate(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::userModify(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap bind;
 	bind[":username"] = m_message.jsonData().value("username").toString();
@@ -163,7 +163,7 @@ bool Admin::userUpdate(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	(*jsonResponse)["updatedUserName"] = bind.value(":username").toString();
+	(*jsonResponse)["modified"] = bind.value(":username").toString();
 
 	return true;
 }

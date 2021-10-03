@@ -143,5 +143,10 @@
         <file>TeacherGroupUserList.qml</file>
         <file>TeacherGroupMapList.qml</file>
         <file>PageTeacherGroupMapView.qml</file>
+        <file>PageProfile.qml</file>
+        <file>ProfileDetails.qml</file>
+        <file>QGridLayoutFlickable.qml</file>
+        <file>QImageSpinBox.qml</file>
+        <file>QGridImageSpinBox.qml</file>
     </qresource>
 </RCC>

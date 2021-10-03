@@ -174,11 +174,24 @@ QDialogPanel {
 						ProgressBar {
 							id: barDuration
 
+							readonly property bool _isFaster: gameData.duration !== undefined &&
+															  gameData.minDuration !== undefined &&
+															  gameData.duration < gameData.minDuration
+
+							LayoutMirroring.enabled: _isFaster
+
 							anchors.verticalCenter: parent.verticalCenter
 							width: collapsibleGame.width/2-labelDuration.width-labelDurationMin.width
 							from: 0
-							to: gameData.minDuration !== undefined ? gameData.minDuration : 0
-							value: gameData.duration !== undefined ? gameData.duration : 0
+							to: if (_isFaster)
+									gameData.minDuration !== undefined ? gameData.minDuration : 0
+								else
+									gameData.duration !== undefined ? gameData.duration : 0
+
+							value: if (_isFaster)
+									   gameData.duration !== undefined ? gameData.minDuration-gameData.duration : 0
+								   else
+									   gameData.minDuration !== undefined ? gameData.minDuration : 0
 
 							Material.accent: labelDuration.color
 
@@ -342,6 +355,38 @@ QDialogPanel {
 							color: labelStreak.color
 						}
 
+					}
+
+					Row {
+						spacing: 0
+
+						QLabel {
+							width: collapsibleGame.width/2
+							text: qsTr("Streak kezdete:")
+							font.pixelSize: contentPixelSize
+							font.weight: contentFontWeight
+							anchors.verticalCenter: parent.verticalCenter
+							color: labelStreak.color
+						}
+
+						QLabel {
+							property date _d: new Date()
+							property int _streak: gameData.streak !== undefined ? gameData.streak.current-1 : 0
+
+							width: collapsibleGame.width/2
+							horizontalAlignment: Text.AlignLeft
+							font.pixelSize: contentPixelSize
+							font.weight: contentDataFontWeight
+							anchors.verticalCenter: parent.verticalCenter
+							elide: Text.ElideRight
+							color: labelStreak.color
+
+							on_StreakChanged: {
+								var t = new Date(_d)
+								t.setDate(_d.getDate()-_streak)
+								text = t.toLocaleDateString(Qt.locale(), "yyyy. MMMM d. ddd")
+							}
+						}
 					}
 
 					Row {

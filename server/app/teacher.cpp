@@ -35,6 +35,8 @@
 #include "teacher.h"
 #include "gamemap.h"
 #include "server.h"
+#include "admin.h"
+#include "userinfo.h"
 
 /**
  * @brief TeacherMap::TeacherMap
@@ -60,6 +62,69 @@ bool Teacher::classInit()
 		return false;
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief Teacher::userGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::userGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject o = m_message.jsonData();
+
+	if (!o.contains("withTrophy"))
+		o["withTrophy"] = true;
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	UserInfo u(m_client, m2);
+	return u.getUser(jsonResponse, nullptr);
+}
+
+
+
+/**
+ * @brief Teacher::userModify
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::userModify(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	QJsonObject o;
+
+	QStringList p;
+	p.append("nickname");
+	p.append("character");
+	p.append("picture");
+	p.append("firstname");
+	p.append("lastname");
+
+	foreach (QString s, p) {
+		if (params.contains(s))
+			o[s] = params.value(s);
+	}
+
+	if (o.isEmpty()) {
+		(*jsonResponse)["error"] = "missing parameter";
+		return false;
+	}
+
+	o["username"] = m_client->clientUserName();
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Admin u(m_client, m2);
+	return u.userModify(jsonResponse, nullptr);
 }
 
 
@@ -623,7 +688,7 @@ bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 														 {id});
 
 	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
-"rankid, ranklevel, rankimage, picture, "
+"rankid, ranklevel, rankimage, picture, xp, "
 "active, classid, classname "
 "FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
 														 {id});
@@ -632,7 +697,7 @@ bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, md5, "
 																"COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE owner=?",
-																{m_client->clientUserName()});
+																   {m_client->clientUserName()});
 
 	QJsonArray mList;
 
@@ -845,6 +910,75 @@ bool Teacher::groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["id"] = id;
 	(*jsonResponse)["list"] = r;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupTrophyGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList queryParams;
+
+	QString query = "SELECT username, mapid, missionid, level, deathmatch, success, num FROM missionTrophy "
+"WHERE username IN (SELECT username FROM studentGroupInfo where id=?)";
+	queryParams.append(id);
+
+	if (params.contains("map")) {
+		query += " AND mapid=?";
+		queryParams.append(params.value("map").toString());
+	}
+
+	if (params.contains("mission")) {
+		query += " AND missionid=?";
+		queryParams.append(params.value("mission").toString());
+	}
+
+	QVariantList tList = m_client->db()->execSelectQuery(query, queryParams);
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(tList);
+
+
+
+	if (params.value("withUsers", false).toBool()) {
+		QVariantList queryParams;
+		QString query = "SELECT userInfo.username as username, firstname, lastname, nickname, "
+			"rankid, ranklevel, rankimage, picture, xp, "
+			"active, classid, classname ";
+
+		if (params.value("withCurrentGame", false).toBool()) {
+			query += ", mapid, missionid, level, deathmatch ";
+		}
+
+		query += " FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) ";
+
+		if (params.value("withCurrentGame", false).toBool()) {
+			query += " LEFT JOIN (SELECT username, mapid, missionid, level, deathmatch FROM game WHERE tmpScore IS NOT NULL GROUP BY username) g "
+"ON (g.username = userInfo.username)";
+		}
+
+		query += " WHERE groupid=?";
+		queryParams.append(id);
+
+		QVariantList uList = m_client->db()->execSelectQuery(query, queryParams);
+		(*jsonResponse)["users"] = QJsonArray::fromVariantList(uList);
+	}
 
 	return true;
 }

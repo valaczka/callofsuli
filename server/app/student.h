@@ -59,6 +59,9 @@ public slots:
 	bool gameUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameFinish(QJsonObject *jsonResponse, QByteArray *);
 
+	bool userGet(QJsonObject *jsonResponse, QByteArray *);
+	bool userModify(QJsonObject *jsonResponse, QByteArray *);
+
 private:
 	GameMap::SolverInfo missionSolverInfo(const QString &mapid, const QString &missionid) const;
 	void updateStatistics(const QVariantList &list);

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest package="hu.piarista.vjp.callofsuli.demo" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.97.509-demo" android:versionCode="16" android:installLocation="auto">
+<manifest package="hu.piarista.vjp.callofsuli.demo" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.98.4-demo" android:versionCode="17" android:installLocation="auto">
 	<!-- The following comment will be replaced upon deployment with default permissions based on the dependencies of the application.
 		 Remove the comment if you do not require these default permissions. -->
 	<!-- %%INSERT_PERMISSIONS -->

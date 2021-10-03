@@ -99,14 +99,46 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 		return true;
 	}
 
-	QVariantList l;
-	l << username;
-
-	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, "
 																						"isTeacher, isAdmin, classid, classname, xp, rankid, "
 																						"rankname, rankimage, ranklevel, "
 																						"nickname, character, picture "
-																						"FROM userInfo where username=?", l);
+																						"FROM userInfo WHERE active IS TRUE AND username=?", {username});
+
+	if (m_message.jsonData().contains("withTrophy")) {
+		m.insert(m_client->db()->execSelectQueryOneRow("SELECT (SELECT COALESCE(MAX(maxStreak), 0) FROM score WHERE score.username=?) as longestStreak, "
+			"t1, t2, t3, d1, d2, d3 FROM fullTrophy WHERE username=?", {username, username}));
+
+		int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+		"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+		"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+		"(SELECT DISTINCT date(timestamp) AS dt "
+		"FROM game WHERE username=? AND success=true) t2 "
+		"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+		"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+		"WHERE username=? AND success=true) t1) t GROUP BY grp) "
+		"WHERE dt=date('now', 'localtime')", {username, username})
+							.value("streak", 0).toInt();
+
+
+		// Ha ma még nem volt megoldás, akkor a tegnapit számoljuk
+		if (currentStreak == 0)
+			currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+				"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+				"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+				"(SELECT DISTINCT date(timestamp) AS dt "
+				"FROM game WHERE username=? AND success=true) t2 "
+				"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+				"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+				"WHERE username=? AND success=true) t1) t GROUP BY grp) "
+				"WHERE dt=date('now', '-1 day', 'localtime')", {username, username})
+							.value("streak", 0).toInt();
+
+		m["currentStreak"] = currentStreak;
+	}
+
+	m["nameModificationDisabled"] = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
+							.value("v", false).toBool();
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m);
 
@@ -183,7 +215,7 @@ bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
 		"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
 		"WHERE username=? AND success=true) t1) t GROUP BY grp) "
 		"WHERE dt=date('now', 'localtime')", l)
-						 .value("streak", 0).toInt();
+						.value("streak", 0).toInt();
 
 
 	// Ha ma még nem volt megoldás, akkor a tegnapit számoljuk
@@ -197,7 +229,7 @@ bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
 				"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
 				"WHERE username=? AND success=true) t1) t GROUP BY grp) "
 				"WHERE dt=date('now', '-1 day', 'localtime')", l)
-								 .value("streak", 0).toInt();
+						.value("streak", 0).toInt();
 
 	m["currentStreak"] = currentStreak;
 
@@ -487,6 +519,7 @@ bool UserInfo::getMyGroups(QJsonObject *jsonResponse, QByteArray *)
 
 	return true;
 }
+
 
 
 

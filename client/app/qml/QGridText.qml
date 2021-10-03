@@ -9,6 +9,10 @@ QLabel {
 	id: label
 
 	property Item field: null
+	property string sqlField: ""
+	property string sqlData: text
+
+	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
 	Layout.fillWidth: false
 
@@ -22,5 +26,10 @@ QLabel {
 
 	Behavior on color {
 		ColorAnimation { duration: 125 }
+	}
+
+
+	function setData(t) {
+		text = t
 	}
 }
