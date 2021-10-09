@@ -12,10 +12,10 @@ import "JScript.js" as JS
 ApplicationWindow {
 	id: mainWindow
 	visible: true
-	width: 640
-	height: 480
+	width: 320//640
+	height: 240//480
 
-	title: "Call of Suli"
+	title: (cosClient.connectionState != Client.Standby && cosClient.serverName.length ? cosClient.serverName+" - " : "") + "Call of Suli"
 
 	minimumHeight: 600
 	minimumWidth: 600

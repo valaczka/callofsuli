@@ -20,7 +20,7 @@ Item {
 	default property alias panelDataData: panelData.data
 
 	property int horizontalPadding: 0
-	property int verticalPadding: 5
+	property int verticalPadding: Qt.platform.os == "android" ? 0 : 5
 
 	property int maximumWidth: 0
 	property int maximumHeight: 0

@@ -22,6 +22,7 @@ Popup {
 
 	background: Item {
 		anchors.fill: parent
+
 		ShaderEffectSource {
 			id: effectsource
 			anchors.fill: parent
@@ -137,6 +138,8 @@ Popup {
 
 	Loader {
 		id: popupContent
+		/*width: popupItem.width
+		height: popupItem.height*/
 		anchors.fill: parent
 		opacity: 0.0
 	}

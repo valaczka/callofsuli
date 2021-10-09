@@ -51,6 +51,25 @@ QPage {
 		}
 
 
+		onCertificateError: {
+			var d = JS.dialogCreateQml("YesNoFlickable", {
+										   title: qsTr("Hibás tanúsítvány"),
+										   text: data.errorStrings.join("\n")
+												 +qsTr("\n\nEnnek ellenére megbízol a tanúsítványban?\n\nTanúsítvány részletei:\n")
+												 +data.info
+									   })
+
+			d.item.titleColor = CosStyle.colorWarningLighter
+			d.item.textColor = CosStyle.colorWarningLight
+
+			d.accepted.connect(function() {
+				servers.acceptCertificate(data.serverKey, certificate, data.errorCodes)
+			})
+
+			d.open()
+		}
+
+
 		Component.onCompleted: serverListReload()
 	}
 

@@ -29,8 +29,6 @@ QPage {
 
 					property bool domainMode: cosClient.registrationDomains.length
 
-					verticalCentered: true
-
 					watchModification: false
 
 					onAccepted: buttonRegistration.press()

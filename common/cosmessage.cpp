@@ -445,11 +445,9 @@ QDebug operator<<(QDebug stream, const CosMessage &cosMessage)
 
 	stream << cosMessage.m_messageType;
 	stream << "#" << cosMessage.m_msgId;
-	stream << "<" << cosMessage.m_peerMsgId;
-	stream << ">" << cosMessage.m_responsedMsgId;
 	stream << cosMessage.m_messageError;
 	stream << cosMessage.m_serverError << cosMessage.m_serverErrorDetails;
-	stream << cosMessage.m_clientRole << cosMessage.m_jsonAuth;
+	stream << cosMessage.m_jsonAuth;
 	stream << cosMessage.m_cosClass << cosMessage.m_cosFunc << cosMessage.m_jsonData;
 	stream << "BINARY DATA" << cosMessage.m_binaryData.size();
 	stream << "BINARY DATA EXPECTED SIZE" << cosMessage.m_binaryDataExpectedSize;

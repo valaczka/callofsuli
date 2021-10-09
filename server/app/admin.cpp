@@ -155,7 +155,7 @@ bool Admin::userModify(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	params.remove("username");
 
-	if (params.value("classid", -1) == -1)
+	if (params.contains("classid") && params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
 
 	if (!m_client->db()->execUpdateQuery("UPDATE user SET ? WHERE username=:username", params, bind)) {

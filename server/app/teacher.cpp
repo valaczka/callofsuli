@@ -690,7 +690,7 @@ bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
 "rankid, ranklevel, rankimage, picture, xp, "
 "active, classid, classname "
-"FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
+"FROM studentGroupInfo LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) WHERE id=?",
 														 {id});
 
 
@@ -966,14 +966,14 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 			query += ", mapid, missionid, level, deathmatch ";
 		}
 
-		query += " FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) ";
+		query += " FROM studentGroupInfo LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) ";
 
 		if (params.value("withCurrentGame", false).toBool()) {
 			query += " LEFT JOIN (SELECT username, mapid, missionid, level, deathmatch FROM game WHERE tmpScore IS NOT NULL GROUP BY username) g "
 "ON (g.username = userInfo.username)";
 		}
 
-		query += " WHERE groupid=?";
+		query += " WHERE id=?";
 		queryParams.append(id);
 
 		QVariantList uList = m_client->db()->execSelectQuery(query, queryParams);

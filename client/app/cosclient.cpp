@@ -61,6 +61,7 @@
 #include "teachergroups.h"
 #include "studentmaps.h"
 #include "profile.h"
+#include "abstractactivity.h"
 
 
 #ifdef Q_OS_ANDROID
@@ -109,6 +110,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_registrationDomains = QVariantList();
 	m_registrationClasses = QVariantList();
 
+	m_sslErrorSignalHandlerConnected = false;
+
 	m_clientSound = new CosSound();
 	m_clientSound->moveToThread(&m_workerThread);
 	connect(&m_workerThread, &QThread::finished, m_clientSound, &QObject::deleteLater);
@@ -119,21 +122,13 @@ Client::Client(QObject *parent) : QObject(parent)
 	QMetaObject::invokeMethod(m_clientSound, "init", Qt::QueuedConnection);
 
 
-
-
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onSocketBinaryFrameReceived);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
-	connect(m_socket, &QWebSocket::sslErrors, this, &Client::onSocketSslErrors);
 	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
-	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
-			[=](QAbstractSocket::SocketError error){
-		qDebug().noquote() << tr("Socket error") << error;
-		if (m_connectionState == Standby || m_connectionState == Connecting)
-			sendMessageError(m_socket->errorString(), m_socket->requestUrl().toString());
-	});
+	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
 
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
@@ -824,7 +819,16 @@ QVariantMap Client::terrainMap()
 		QVariantMap m;
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
-		m["details"] = QString(tr("%1 csatatér, %2 célpont")).arg(d.blocks.count()).arg(d.enemies);
+		if (d.level != -1)
+			m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
+						   .arg(d.level)
+						   .arg(d.blocks.count())
+						   .arg(d.enemies);
+		else
+			m["details"] = QString(tr("%1 csatatér, %2 célpont"))
+						   .arg(d.blocks.count())
+						   .arg(d.enemies);
+
 		m["data"] = d.data;
 		m["readableName"] = d.data.contains("name") ? d.data.value("name").toString() : d.name;
 		m["thumbnail"] = "qrc:/terrain/"+d.name+"/thumbnail.png";
@@ -976,9 +980,9 @@ void Client::forceLandscape()
 
 void Client::resetLandscape()
 {
-		QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
-													  "(I)V",
-													  m_screenOrientationRequest);
+	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
+												  "(I)V",
+												  m_screenOrientationRequest);
 }
 #endif
 
@@ -1067,6 +1071,22 @@ QString Client::medalIconPath(const QString &name, const bool &qrcPrepend)
 	else
 		return ":/internal/medals/"+name;
 }
+
+
+
+/**
+ * @brief Client::connectSslErrorSignalHandler
+ * @param handler
+ */
+
+void Client::connectSslErrorSignalHandler(QObject *handler)
+{
+	if (handler)
+		m_sslErrorSignalHandlerConnected = true;
+	else
+		m_sslErrorSignalHandlerConnected = false;
+}
+
 
 
 
@@ -1848,8 +1868,6 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
 	CosMessage m(message);
 
-	//qDebug() << m;
-
 	performUserInfo(m);
 
 	if (m.valid()) {
@@ -1862,11 +1880,6 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 
 
 
-void Client::onSocketSslErrors(const QList<QSslError> &errors)
-{
-	sendMessageError("SSL hiba", "");
-	qDebug() << "ssl error" << errors;
-}
 
 
 /**
@@ -1892,6 +1905,24 @@ void Client::onSocketStateChanged(QAbstractSocket::SocketState state)
 void Client::onSocketBytesWritten(const qint64)
 {
 	emit socketBytesToWrite(m_socket->bytesToWrite());
+}
+
+
+
+/**
+ * @brief Client::onSocketError
+ * @param error
+ */
+
+void Client::onSocketError(const QAbstractSocket::SocketError &error)
+{
+	qDebug().noquote() << tr("Socket error") << error;
+
+	if (m_sslErrorSignalHandlerConnected && error == QAbstractSocket::SslHandshakeFailedError)
+		return;
+
+	if (m_connectionState == Standby || m_connectionState == Connecting)
+		sendMessageError(tr("Hiba"), QString("%1\n%2").arg(m_socket->errorString()).arg(m_socket->requestUrl().toString()));
 }
 
 

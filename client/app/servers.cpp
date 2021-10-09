@@ -75,6 +75,9 @@ Servers::~Servers()
 		delete m_downloader;
 
 	delete m_udpSocket;
+
+	if (m_client)
+		m_client->connectSslErrorSignalHandler(nullptr);
 }
 
 
@@ -144,7 +147,7 @@ void Servers::serverListReload()
  */
 
 
-void Servers::serverConnect(const int &index)
+void Servers::serverConnect(const int &key)
 {
 	if (m_client->socket()->state() != QAbstractSocket::UnconnectedState) {
 		m_client->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
@@ -154,11 +157,11 @@ void Servers::serverConnect(const int &index)
 
 	m_serverTryConnectKey = -1;
 
-	QVariantMap d = m_serversModel->variantMapData()->value(index).second;
+	QVariantMap d = m_serversModel->variantMapData()->valueKey(key);
 
 	if (d.value("broadcast", false).toBool()) {
 		d.remove("broadcast");
-		m_serversModel->variantMapData()->update(index, d);
+		m_serversModel->variantMapData()->updateKey(key, d);
 		saveServerList();
 	}
 
@@ -166,7 +169,6 @@ void Servers::serverConnect(const int &index)
 	url.setHost(d.value("host").toString());
 	url.setPort(d.value("port").toInt());
 	url.setScheme(d.value("ssl").toBool() ? "wss" : "ws");
-
 
 	QString dir = d.value("id").toString();
 	QString serverDir = Client::standardPath(dir);
@@ -184,24 +186,28 @@ void Servers::serverConnect(const int &index)
 		QFile f(certFileName);
 		if (f.open(QIODevice::ReadOnly)) {
 			QByteArray cert = f.readAll();
+			f.close();
 			if (!cert.isEmpty()) {
 				QSslCertificate c(cert, QSsl::Pem);
 				if (!c.isNull()) {
 					QList<QSslError> eList;
-					eList.append(QSslError(QSslError::SelfSignedCertificate, c));
-					eList.append(QSslError(QSslError::HostNameMismatch, c));
+
+					foreach (QVariant v, d.value("ignoredErrors").toList()) {
+						QSslError::SslError error = static_cast<QSslError::SslError>(v.toInt());
+						QSslError certError = QSslError(error, c);
+						eList.append(certError);
+					}
 
 					m_client->socket()->ignoreSslErrors(eList);
 				}
 			}
-			f.close();
 		}
 	}
 
 	m_client->setServerDataDir(serverDir);
 	m_client->clearSession();
 
-	m_serverTryConnectKey = m_serversModel->variantMapData()->value(index).first;
+	m_serverTryConnectKey = key;
 
 	qDebug() << "CONNECT" << m_client->socket() << url;
 
@@ -386,7 +392,7 @@ void Servers::doAutoConnect()
 	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
 		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
 		if (d.value("autoconnect").toBool()) {
-			serverConnect(i);
+			serverConnect(m_serversModel->variantMapData()->at(i).first);
 			return;
 		}
 	}
@@ -447,6 +453,130 @@ void Servers::setConnectedServerKey(int connectedServerKey)
 }
 
 
+/**
+ * @brief Servers::acceptCertificate
+ * @param cert
+ * @param errorList
+ */
+
+void Servers::acceptCertificate(const int &serverKey, const QSslCertificate &cert, const QVariantList &errorList)
+{
+	if (cert.isNull()) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen tanúsítvány"));
+		return;
+	}
+
+	if (serverKey < 1) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"));
+		return;
+	}
+
+	QVariantMap data = m_serversModel->variantMapData()->valueKey(serverKey);
+
+	if (data.isEmpty()) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"));
+		return;
+	}
+
+
+	QString dir = data.value("id").toString();
+	QString serverDir = Client::standardPath(dir);
+	QString certFileName = serverDir+"/cert.pem";
+
+	QFile f(certFileName);
+	f.open(QIODevice::WriteOnly);
+	f.write(cert.toPem());
+	f.close();
+
+	QVariantList list = data.value("ignoredErrors").toList();
+
+	list.append(errorList);
+
+	QVariantList _toList;
+	foreach (QVariant v, list)
+		if (!_toList.contains(v))
+			_toList.append(v);
+
+	data["ignoredErrors"] = _toList;
+
+	m_serversModel->variantMapData()->updateKey(serverKey, data);
+	saveServerList();
+
+	serverConnect(serverKey);
+}
+
+
+
+
+
+/**
+ * @brief Servers::onSocketSslErrors
+ * @param errors
+ */
+
+void Servers::onSocketSslErrors(QList<QSslError> errors)
+{
+	QVariantMap data = m_serversModel->variantMapData()->valueKey(m_serverTryConnectKey);
+
+	if (data.isEmpty()) {
+		qWarning() << "Invalid server key";
+		return;
+	}
+
+	QString dir = data.value("id").toString();
+	QString serverDir = Client::standardPath(dir);
+	QString certFileName = serverDir+"/cert.pem";
+
+	if (data.value("ssl").toBool() && QFileInfo::exists(certFileName)) {
+		QFile f(certFileName);
+		if (f.open(QIODevice::ReadOnly)) {
+			QByteArray cert = f.readAll();
+			f.close();
+
+			if (!cert.isEmpty()) {
+				QSslCertificate c(cert, QSsl::Pem);
+				if (!c.isNull()) {
+					foreach (QVariant v, data.value("ignoredErrors").toList()) {
+						QSslError::SslError error = static_cast<QSslError::SslError>(v.toInt());
+						QSslError certError = QSslError(error, c);
+						errors.removeAll(certError);
+					}
+				}
+			}
+		}
+	}
+
+	if (errors.isEmpty())
+		return;
+
+
+	QVariantList eList;
+	QStringList errorStringList;
+	QSslCertificate cert;
+
+	foreach(QSslError e, errors) {
+		if (!e.certificate().isNull()) {
+			if (!cert.isNull() && e.certificate() != cert) {
+				m_client->sendMessageError(tr("SSL hiba"), tr("Többféle tanúsítvány található!"));
+				return;
+			}
+
+			cert = e.certificate();
+		}
+		eList.append(e.error());
+		errorStringList.append(e.errorString());
+	}
+
+	QVariantMap d;
+	d["errorCodes"] = eList;
+	d["errorStrings"] = errorStringList;
+	d["serverKey"] = m_serverTryConnectKey;
+	d["info"] = cert.toText();
+
+	emit certificateError(cert, d);
+}
+
+
 
 
 
@@ -462,6 +592,9 @@ void Servers::clientSetup()
 	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
 	connect(m_client, &Client::authInvalid, this, &Servers::onAuthInvalid);
 	connect(m_client, &Client::userRolesChanged, this, &Servers::onUserRolesChanged);
+
+	connect(m_client->socket(), &QWebSocket::sslErrors, this, &Servers::onSocketSslErrors);
+	m_client->connectSslErrorSignalHandler(this);
 }
 
 
@@ -599,6 +732,7 @@ void Servers::onUdpDatagramReceived()
 				map["name"] = serverData.value("name").toString();
 				map["host"] = serverData.value("host").toString();
 				map["port"] = serverData.value("port").toInt();
+				map["ssl"] = serverData.value("ssl").toBool();
 				map["broadcast"] = true;
 
 				m_serversModel->variantMapData()->append(createFullMap(map));
@@ -645,7 +779,6 @@ void Servers::_reloadResources(QVariantMap resources)
 
 				m_downloader->append(data);
 
-				//registerResource(localFile);
 				emit resourceRegisterRequest(localFile);
 				continue;
 			}
@@ -797,6 +930,7 @@ QVariantMap Servers::createFullMap(const QVariantMap &newData, const QVariantMap
 	if (!m.contains("username")) m["username"] = "";
 	if (!m.contains("session")) m["session"] = "";
 	if (!m.contains("autoconnect")) m["autoconnect"] = false;
+	if (!m.contains("ignoredErrors")) m["ignoredErrors"] = QVariantList();
 
 	return m;
 }

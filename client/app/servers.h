@@ -81,6 +81,8 @@ public slots:
 	void sendBroadcast();
 
 	void setConnectedServerKey(int connectedServerKey);
+	void acceptCertificate(const int &serverKey, const QSslCertificate &cert, const QVariantList &errorList);
+
 
 protected slots:
 	void clientSetup() override;
@@ -98,6 +100,7 @@ protected slots:
 
 private slots:
 	void onUdpDatagramReceived();
+	void onSocketSslErrors(QList<QSslError> errors);
 
 signals:
 	void serverListLoaded();
@@ -107,6 +110,8 @@ signals:
 
 	void serversModelChanged(VariantMapModel* serversModel);
 	void connectedServerKeyChanged(int connectedServerKey);
+
+	void certificateError(const QSslCertificate &certificate, const QVariantMap &data);
 
 private:
 	void _reloadResources(QVariantMap resources);

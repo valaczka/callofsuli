@@ -83,7 +83,7 @@ QPagePanel {
 		onClicked: if (servers.editing)
 					   actionEdit.trigger()
 				   else
-					   servers.serverConnect(serverList.model.mapToSource(index))
+					   servers.serverConnect(serverList.model.get(index).id)
 
 		onRightClicked: contextMenu.popup()
 		onLongPressed: contextMenu.popup()
@@ -169,7 +169,7 @@ QPagePanel {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
 		enabled: serverList.currentIndex !== -1
-		onTriggered: servers.serverConnect(serverList.model.mapToSource(serverList.currentIndex))
+		onTriggered: servers.serverConnect(serverList.model.get(serverList.currentIndex).id)
 
 	}
 

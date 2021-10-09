@@ -197,6 +197,8 @@ public:
 	qreal sfxVolume() const { return m_sfxVolume; }
 
 
+	void connectSslErrorSignalHandler(QObject *handler);
+
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -244,9 +246,9 @@ private slots:
 	void onSocketDisconnected();
 	void onSocketBinaryFrameReceived(const QByteArray &frame, const bool &isLastFrame);
 	void onSocketBinaryMessageReceived(const QByteArray &message);
-	void onSocketSslErrors(const QList<QSslError> &errors);
 	void onSocketStateChanged(QAbstractSocket::SocketState state);
 	void onSocketBytesWritten(const qint64);
+	void onSocketError(const QAbstractSocket::SocketError &error);
 
 	void setUserName(QString userName);
 	void setUserRoles(CosMessage::ClientRoles userRoles);
@@ -359,6 +361,7 @@ private:
 	QVariantList m_registrationClasses;
 	static QHash<QString, ModuleInterface*> m_moduleObjectiveList;
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
+	bool m_sslErrorSignalHandlerConnected;
 
 
 #ifdef Q_OS_ANDROID
@@ -382,6 +385,7 @@ struct TerrainData {
 	Q_PROPERTY(QString name MEMBER name)
 	Q_PROPERTY(QMap<int, int> blocks MEMBER blocks)
 	Q_PROPERTY(int enemies MEMBER enemies)
+	Q_PROPERTY(int level MEMBER level)
 
 public:
 
@@ -389,19 +393,23 @@ public:
 	QMap<int, int> blocks;
 	int enemies;
 	QVariantMap data;
+	int level;
 
-	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0, const QVariantMap &data = QVariantMap())
+	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0, const QVariantMap &data = QVariantMap(),
+				const int &level = -1)
 		: name(name)
 		, blocks(blocks)
 		, enemies(enemies)
 		, data(data)
+		, level(level)
 	{}
 
 	friend inline bool operator== (const TerrainData &b1, const TerrainData &b2) {
 		return b1.name == b2.name
 				&& b1.blocks == b2.blocks
 				&& b1.enemies == b2.enemies
-				&& b1.data == b2.data;
+				&& b1.data == b2.data
+				&& b1.level == b2.level;
 	}
 };
 

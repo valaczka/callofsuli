@@ -16,6 +16,8 @@ unix:!android: {
 #}
 
 
+android: include(../android_openssl/openssl.pri)
+
 TEMPLATE = app
 TARGET = callofsuli
 

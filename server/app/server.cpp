@@ -499,12 +499,13 @@ bool Server::resourcesInit()
 bool Server::websocketServerStart()
 {
 	if (!m_socketCert.isEmpty() && !m_socketKey.isEmpty()) {
+		qDebug().noquote() << "Start secure mode";
 		if (!QSslSocket::supportsSsl()) {
 			qCritical().noquote() << tr("Platform doesn't support SSL");
 			return false;
 		}
 
-		m_socketServer = new QWebSocketServer("CallOfSuli server", QWebSocketServer::SecureMode);
+		m_socketServer = new QWebSocketServer("CallOfSuli server", QWebSocketServer::SecureMode, this);
 
 		QString base;
 
@@ -518,21 +519,49 @@ bool Server::websocketServerStart()
 		QFile certFile(base+m_socketCert);
 		QFile keyFile(base+m_socketKey);
 
+		if (!certFile.exists()) {
+			qCritical().noquote() << tr("Server certificate doesn't exists: %1").arg(certFile.fileName());
+			return false;
+		}
+
+		if (!keyFile.exists()) {
+			qCritical().noquote() << tr("Server key doesn't exists: %1").arg(keyFile.fileName());
+			return false;
+		}
+
 		certFile.open(QIODevice::ReadOnly);
 		keyFile.open(QIODevice::ReadOnly);
 
-		QSslConfiguration config;
-		config.setLocalCertificate(QSslCertificate(&certFile, QSsl::Pem));
-		config.setPrivateKey(QSslKey(&keyFile, QSsl::Rsa, QSsl::Pem));
-		config.setPeerVerifyMode(QSslSocket::VerifyNone);
-		m_socketServer->setSslConfiguration(config);
+		QSslCertificate cert(&certFile, QSsl::Pem);
+		QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);
 
 		certFile.close();
 		keyFile.close();
 
+		if (cert.isNull()) {
+			qCritical().noquote() << tr("Invalid server certificate: %1").arg(certFile.fileName());
+			return false;
+		}
+
+		if (key.isNull()) {
+			qCritical().noquote() << tr("Invalid key: %1").arg(keyFile.fileName());
+			return false;
+		}
+
+		qInfo().noquote() << tr("Szerver tanúsítvány: %1").arg(certFile.fileName());
+		qInfo().noquote() << tr("Szerver kulcs: %1").arg(keyFile.fileName());
+
+
+		QSslConfiguration config;
+		config.setLocalCertificate(cert);
+		config.setPrivateKey(key);
+		config.setPeerVerifyMode(QSslSocket::VerifyNone);
+		m_socketServer->setSslConfiguration(config);
+
+
 	}
 	else {
-		m_socketServer = new QWebSocketServer("CallOfSuli server", QWebSocketServer::NonSecureMode);
+		m_socketServer = new QWebSocketServer("CallOfSuli server", QWebSocketServer::NonSecureMode, this);
 	}
 
 
@@ -540,7 +569,8 @@ bool Server::websocketServerStart()
 
 
 	connect(m_socketServer, SIGNAL(newConnection()), this, SLOT(onNewConnection()));
-	connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
+	//connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
+	connect(m_socketServer, &QWebSocketServer::sslErrors, this, &Server::onSslErrors);
 
 	quint16 port = (m_port<=0) ? 10101 : quint16(m_port);
 	if (!m_socketServer->listen(m_host.isEmpty() ? QHostAddress::Any : QHostAddress(m_host), port))	{
@@ -558,7 +588,10 @@ bool Server::websocketServerStart()
 		if (!h.isGlobal())
 			continue;
 
-		qInfo().noquote() << QString("%1:%2").arg(h.toString()).arg(port);
+		qInfo().noquote() << QString("%1://%2:%3")
+							 .arg(m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "wss" : "ws")
+							 .arg(h.toString())
+							 .arg(port);
 	}
 
 	qInfo().noquote() << tr("====================================================");
@@ -743,7 +776,7 @@ void Server::onDatagramReady()
 					o["name"] = serverName();
 					o["host"] = h.toString();
 					o["port"] = m_socketServer->serverPort();
-					o["ssl"] = (m_socketServer->secureMode() == QWebSocketServer::SecureMode);
+					o["ssl"] = (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? true : false);
 
 					CosMessage m(o, CosMessage::ClassServerInfo, "broadcastInfo");
 

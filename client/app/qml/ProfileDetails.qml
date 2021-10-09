@@ -25,8 +25,6 @@ QSwipeContainer {
 
 		watchModification: true
 
-		verticalCentered: true
-
 		acceptable: (!textFirstname.enabled || textFirstname.acceptableInput)
 					&& (!textLastname.enabled || textLastname.acceptableInput)
 					&& textNickname.acceptableInput

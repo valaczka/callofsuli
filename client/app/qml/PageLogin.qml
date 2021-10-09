@@ -26,8 +26,6 @@ QPage {
 				QGridLayoutFlickable {
 					id: grid
 
-					verticalCentered: true
-
 					//enabled: !page.isBusy
 					watchModification: false
 

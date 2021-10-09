@@ -3,9 +3,9 @@
 #ifndef BUILD_NUMBER_H_ 
 #define BUILD_NUMBER_H_ 
 
-#define BUILDNUMBER 8
+#define BUILDNUMBER 164
 #define _VERSION_MAJOR 2
 #define _VERSION_MINOR 98
 #define _VERSION_MAINTENANCE "-demo"
-#define _VERSION_FULL "2.98.8-demo"
+#define _VERSION_FULL "2.98.164-demo"
 #endif /* BUILD_NUMBER_H_ */

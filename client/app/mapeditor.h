@@ -85,6 +85,7 @@ public:
 	bool loaded() const { return m_loaded; }
 
 	TerrainData defaultTerrain() const;
+	TerrainData randomTerrain(const int &level) const;
 
 	Q_INVOKABLE QString objectiveQml(const QString &module);
 	Q_INVOKABLE QString storageQml(const QString &module);

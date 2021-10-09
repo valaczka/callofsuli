@@ -324,6 +324,31 @@ TerrainData MapEditor::defaultTerrain() const
 
 
 /**
+ * @brief MapEditor::randomTerrain
+ * @return
+ */
+
+TerrainData MapEditor::randomTerrain(const int &level) const
+{
+	if (!m_client || !m_client->availableTerrains().size())
+		return defaultTerrain();
+
+	QVector<TerrainData> list;
+
+	foreach (TerrainData d, m_client->availableTerrains()) {
+		if (level == -1 || d.level == -1 || d.level == level)
+			list.append(d);
+	}
+
+	if (list.size())
+		return list.at(QRandomGenerator::global()->bounded(0, list.size()));
+	else
+		return defaultTerrain();
+
+}
+
+
+/**
  * @brief MapEditor::objectiveQml
  * @param module
  * @return
@@ -2230,7 +2255,7 @@ int MapEditor::missionLevelAddPrivate(const QString &mission, const int &level)
 	int ret = db()->execInsertQuery("INSERT INTO missionLevels (?k?) VALUES (?)", {
 										{"mission", mission},
 										{"level", level},
-										{"terrain", defaultTerrain().name},
+										{"terrain", randomTerrain(level).name},
 										{"duration", defaults.value("duration", 120).toInt()},
 										{"startHP", defaults.value("startHP", 3).toInt()},
 										{"questions", defaults.value("questions", 0.5).toReal()},

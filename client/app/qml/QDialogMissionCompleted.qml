@@ -27,12 +27,16 @@ QDialogPanel {
 	readonly property int contentFontWeight: Font.Medium
 	readonly property int contentDataFontWeight: Font.DemiBold
 
+	readonly property bool _isSmall: height < 600
+
+	property real _xp: 0
+
 	Column {
 		id: headerColumn
 		anchors.top: parent.top
 		anchors.horizontalCenter: parent.horizontalCenter
 
-		topPadding: 20
+		topPadding: _isSmall ? 10 : 20
 
 		spacing: 5
 
@@ -43,7 +47,7 @@ QDialogPanel {
 			spacing: 15
 
 			QTrophyImage {
-				height: CosStyle.pixelSize*3.5
+				height: _isSmall ? CosStyle.pixelSize*2.5 : CosStyle.pixelSize*3.5
 				width: height
 
 				anchors.verticalCenter: parent.verticalCenter
@@ -56,14 +60,14 @@ QDialogPanel {
 				anchors.verticalCenter: parent.verticalCenter
 				text: qsTr("Mission completed")
 				font.family: "HVD Peace"
-				font.pixelSize: CosStyle.pixelSize*1.75
+				font.pixelSize: _isSmall ? CosStyle.pixelSize*1.3 : CosStyle.pixelSize*1.75
 				color: CosStyle.colorOKLighter
 			}
 
 			QMedalImage {
 				anchors.verticalCenter: parent.verticalCenter
 				visible: gameData.medalImage !== undefined && gameData.medalImage.length
-				height: CosStyle.pixelSize*3.5
+				height: _isSmall ? CosStyle.pixelSize*2.5 : CosStyle.pixelSize*3.5
 				width: height
 				level: gameData.level
 				isDeathmatch: gameData.deathmatch
@@ -76,21 +80,18 @@ QDialogPanel {
 			anchors.horizontalCenter: parent.horizontalCenter
 			id: xpLabel
 			text: Math.floor(xp)+" XP"
-			font.pixelSize: CosStyle.pixelSize*1.5
+			font.pixelSize: _isSmall ? CosStyle.pixelSize : CosStyle.pixelSize*1.5
 			font.weight: Font.DemiBold
 			color: CosStyle.colorOKLighter
 			bottomPadding: 10
 
 			property real xp: 0
-
-			Behavior on xp {
-				NumberAnimation { duration: 750; easing.type: Easing.OutQuad }
-			}
 		}
 	}
 
 
 	Flickable {
+		id: flick
 		width: parent.width-20
 		height: Math.min(parent.height-headerColumn.height, contentHeight)
 		anchors.centerIn: parent
@@ -569,6 +570,47 @@ QDialogPanel {
 	}
 
 
+
+	states: [
+		State {
+			name: "VISIBLED"
+			PropertyChanges {
+				target: xpLabel
+				xp: _xp
+			}
+			PropertyChanges {
+				target: collapsibleGame
+				collapsed: false
+			}
+			PropertyChanges {
+				target: collapsibleStreak
+				collapsed: false
+			}
+		}
+	]
+
+	transitions: [
+		Transition {
+			from: "*"
+			to: "VISIBLED"
+
+			SequentialAnimation {
+				NumberAnimation {
+					target: xpLabel
+					property: "xp"
+					duration: 1450
+					easing.type: Easing.OutQuad
+				}
+
+				PropertyAction {
+					targets: [collapsibleGame, collapsibleStreak]
+					property: "collapsed"
+				}
+			}
+		}
+	]
+
+
 	buttons: QButton {
 		id: buttonOk
 		anchors.horizontalCenter: parent.horizontalCenter
@@ -582,8 +624,8 @@ QDialogPanel {
 	function populated() {
 		buttonOk.forceActiveFocus()
 
-		collapsibleGame.collapsed = false
-		collapsibleStreak.collapsed = false
+		//collapsibleGame.collapsed = false
+		//collapsibleStreak.collapsed = false
 
 		var xp = 0
 		if (gameData.xp) {
@@ -603,7 +645,9 @@ QDialogPanel {
 				xp += gameData.xp.maxStreak
 		}
 
-		xpLabel.xp = xp
+		//xpLabel.xp = xp
+		_xp = xp
+		state = "VISIBLED"
 	}
 }
 
