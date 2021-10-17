@@ -43,6 +43,10 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
+#ifndef Q_OS_ANDROID
+#include <qsingleinstance.h>
+#endif
+
 
 #include "cosmessage.h"
 #include "variantmapmodel.h"
@@ -72,6 +76,7 @@ public:
 	Q_PROPERTY(QString serverDataDir READ serverDataDir WRITE setServerDataDir NOTIFY serverDataDirChanged)
 	Q_PROPERTY(QString sessionToken READ sessionToken WRITE setSessionToken NOTIFY sessionTokenChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
+	Q_PROPERTY(QString serverUuid READ serverUuid WRITE setServerUuid NOTIFY serverUuidChanged)
 	Q_PROPERTY(bool registrationEnabled READ registrationEnabled WRITE setRegistrationEnabled NOTIFY registrationEnabledChanged)
 	Q_PROPERTY(bool passwordResetEnabled READ passwordResetEnabled WRITE setPasswordResetEnabled NOTIFY passwordResetEnabledChanged)
 	Q_PROPERTY(QVariantList registrationDomains READ registrationDomains WRITE setRegistrationDomains NOTIFY registrationDomainsChanged)
@@ -95,6 +100,8 @@ public:
 
 	Q_PROPERTY(qreal sfxVolume READ sfxVolume WRITE setSfxVolume NOTIFY sfxVolumeChanged)
 
+	Q_PROPERTY(bool forcedLandscape READ forcedLandscape NOTIFY forcedLandscapeChanged)
+
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
 
@@ -103,8 +110,9 @@ public:
 	static void registerTypes();
 	static void initialize();
 	static void loadModules();
-	static bool commandLineParse(QCoreApplication &app);
 	static void standardPathCreate();
+
+	bool commandLineParse(QCoreApplication &app);
 
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
@@ -117,6 +125,9 @@ public:
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
 	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
+	Q_INVOKABLE void textToClipboard(const QString &text) const;
+
+	Q_INVOKABLE QString connectionInfo(const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static QString homePath(const QString &path = QString());
@@ -159,6 +170,8 @@ public:
 	{ return Question::storageInfo(module, dataString); }
 	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }
 
+	Q_INVOKABLE QStringList takePositionalArgumentsToProcess();
+	Q_INVOKABLE void setPositionalArgumentsToProcess(const QStringList &list) { m_positionalArgumentsToProcess = list; }
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
@@ -198,7 +211,14 @@ public:
 
 
 	void connectSslErrorSignalHandler(QObject *handler);
+	bool forcedLandscape() const { return m_forcedLandscape; }
 
+#ifndef Q_OS_ANDROID
+	QSingleInstance *getSingleInstance() const { return m_singleInstance; }
+	void setSingleInstance(QSingleInstance *singleInstance);
+#endif
+
+	QString serverUuid() const { return m_serverUuid; }
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -231,11 +251,13 @@ public slots:
 	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
 	void setSfxVolume(qreal sfxVolume);
 	void setSfxVolumeInt(int sfxVolume);
+	void setForcedLandscape(bool forcedLandscape);
 
 #ifdef Q_OS_ANDROID
 	void forceLandscape();
 	void resetLandscape();
 #endif
+
 
 
 private slots:
@@ -263,6 +285,7 @@ private slots:
 	void setUserRankImage(QString userRankImage);
 	void setUserPlayerCharacter(QString userPlayerCharacter);
 	void setServerName(QString serverName);
+	void setServerUuid(QString serverUuid);
 	void setRegistrationEnabled(bool registrationEnabled);
 	void setPasswordResetEnabled(bool passwordResetEnabled);
 	void setRegistrationDomains(QVariantList registrationDomains);
@@ -281,7 +304,10 @@ signals:
 
 	void authInvalid();
 	void authRequirePasswordReset();
-	void authPasswordResetSuccess();
+
+	void resetPasswordEmailSent();
+	void resetPasswordSuccess();
+	void resetPasswordFailed();
 
 	void registrationRequest();
 	void registrationRequestSuccess();
@@ -290,6 +316,8 @@ signals:
 	void settingsLoaded(const QJsonObject &data);
 	void settingsError();
 	void settingsSuccess();
+
+	void urlsToProcessReady(const QStringList &list);
 
 	void socketBytesToWrite(qint64 bytes);
 
@@ -318,12 +346,12 @@ signals:
 	void userNickNameChanged(QString userNickName);
 	void rankListChanged(QVariantList rankList);
 	void sfxVolumeChanged(qreal sfxVolume);
-
-
+	void forcedLandscapeChanged(bool forcedLandscape);
+	void serverUuidChanged(QString serverUuid);
 
 private:
 	void performUserInfo(const CosMessage &message);
-	void performError(const CosMessage &message);
+	bool checkError(const CosMessage &message);
 
 	QWebSocket* m_socket;
 	QTimer* m_timer;
@@ -362,6 +390,9 @@ private:
 	static QHash<QString, ModuleInterface*> m_moduleObjectiveList;
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
 	bool m_sslErrorSignalHandlerConnected;
+	bool m_forcedLandscape;
+	QStringList m_positionalArgumentsToProcess;
+	QString m_serverUuid;
 
 
 #ifdef Q_OS_ANDROID
@@ -370,6 +401,10 @@ private:
 
 #ifdef WITH_CGRAPH
 	GVC_t *m_gvContext;
+#endif
+
+#ifndef Q_OS_ANDROID
+	QSingleInstance *m_singleInstance;
 #endif
 };
 

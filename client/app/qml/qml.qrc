@@ -19,7 +19,7 @@
         <file>QListView.qml</file>
         <file>QMenu.qml</file>
         <file>QMenuButton.qml</file>
-        <file>QPagePanel.qml</file>
+        <file>_QPagePanel.qml</file>
         <file>QTextField.qml</file>
         <file>QToolBar.qml</file>
         <file>JScript.js</file>
@@ -73,7 +73,7 @@
         <file>GameEnemyMarker.qml</file>
         <file>FlickableParallax.qml</file>
         <file>GameQuestion.qml</file>
-        <file>QPage.qml</file>
+        <file>_QPage.qml</file>
         <file>PageStart.qml</file>
         <file>QVariantMapProxyView.qml</file>
         <file>_PagePanel.qml</file>
@@ -88,7 +88,7 @@
         <file>PageMapMissions.qml</file>
         <file>MapMissionList.qml</file>
         <file>MapMissionInfo.qml</file>
-        <file>QDialogGameSound.qml</file>
+        <file>QDialogGameSettings.qml</file>
         <file>GameButton.qml</file>
         <file>GameInfo.qml</file>
         <file>QListTextFieldDelegate.qml</file>
@@ -149,5 +149,9 @@
         <file>QImageSpinBox.qml</file>
         <file>QGridImageSpinBox.qml</file>
         <file>QDialogYesNoFlickable.qml</file>
+        <file>QStackComponent.qml</file>
+        <file>QSimpleContainer.qml</file>
+        <file>_StackPage.qml</file>
+        <file>PageConnectionInfo.qml</file>
     </qresource>
 </RCC>

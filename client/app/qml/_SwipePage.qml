@@ -39,6 +39,8 @@ QBasePage {
 		id: swComponent
 		anchors.fill: parent
 
+		basePage: control
+
 		//headerContent: QLabel {	}
 
 		content: [
@@ -53,6 +55,12 @@ QBasePage {
 						title: ""
 					}
 				}
+
+				/*menuComponent: QToolButton {
+					id: menuButton
+					action: actionA
+					display: AbstractButton.IconOnly
+				}*/
 			},
 
 			QSwipeContainer {
@@ -71,7 +79,11 @@ QBasePage {
 
 		swipeContent: [
 			Item { id: placeholder1 },
-			Item { id: placeholder2 }
+			Item { id: placeholder2
+				/*property var contextMenuFunc: function (m) {
+					m.addAction(actionA)
+				}*/
+			}
 		]
 
 		tabBarContent: [

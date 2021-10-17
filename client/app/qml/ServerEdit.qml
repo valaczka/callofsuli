@@ -7,14 +7,15 @@ import "Style"
 import "JScript.js" as JS
 
 
-QPagePanel {
+QSimpleContainer {
 	id: p
 
-	title: servers.serverKey == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
-	icon: CosStyle.iconComputerData
-	layoutFillWidth: true
+	property int serverKey: -1
 
-	contextMenuFunc: servers.serverKey == -1 ? null : function (m) {
+	title: serverKey == -1 ? qsTr("Új szerver adatai") : qsTr("Szerver adatai")
+	icon: CosStyle.iconComputerData
+
+	property var contextMenuFunc: serverKey == -1 ? null : function (m) {
 		m.addAction(actionRemove)
 	}
 
@@ -22,7 +23,7 @@ QPagePanel {
 	QGridLayout {
 		id: grid
 
-		anchors.fill: parent
+		width: parent.width
 
 		watchModification: true
 
@@ -73,7 +74,7 @@ QPagePanel {
 
 		QGridButton {
 			id: buttonSave
-			text: servers.serverKey == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
+			text: serverKey == -1 ? qsTr("Hozzáadás") : qsTr("Mentés")
 			enabled: textName.acceptableInput &&
 					 textHostname.acceptableInput &&
 					 textPort.acceptableInput
@@ -85,10 +86,8 @@ QPagePanel {
 				var m = JS.getSqlFields([textName, textHostname, textPort, checkSsl])
 
 				if (Object.keys(m).length) {
-					var nextK = servers.serverInsertOrUpdate(servers.serverKey, m)
-					servers.editing = false
-					if (servers.serverKey == -1)
-						servers.serverKey = nextK
+					servers.serverInsertOrUpdate(serverKey, m)
+					servers.uiBack()
 				}
 			}
 
@@ -100,32 +99,21 @@ QPagePanel {
 		id: actionRemove
 		icon.source: CosStyle.iconDelete
 		text: qsTr("Törlés")
+
+		enabled: serverId != -1
+
+		property int serverId: -1
+
 		onTriggered: {
 			var d = JS.dialogCreateQml("YesNo", {
-										   title: qsTr("Biztosan törlöd a szervert?"),
-										   text: textName.text
+										   title: qsTr("Szerver törlése"),
+										   text: qsTr("Biztosan törlöd a szervert?\n%1").arg(textName.text)
 									   })
 			d.accepted.connect(function () {
-				servers.serverDeleteKey(servers.serverKey)
-				servers.editing = false
-				servers.serverKey = -1
+				servers.serverDelete({id: serverId})
+				servers.uiBack()
 			})
 			d.open()
-		}
-	}
-
-	Connections {
-		target: servers
-
-		function onEditingChanged(editing) {
-			if (!editing && stackMode && pageStack)
-				pageStack.pop()
-			else
-				loadData()
-		}
-
-		function onServerKeyChanged(serverKey) {
-			loadData()
 		}
 	}
 
@@ -135,10 +123,7 @@ QPagePanel {
 	onPopulated: textName.forceActiveFocus()
 
 	function loadData() {
-		if (!servers.editing)
-			return
-
-		if (servers.serverKey==-1) {
+		if (serverKey == -1) {
 			JS.setSqlFields([
 								textName,
 								textHostname,
@@ -146,12 +131,14 @@ QPagePanel {
 								checkSsl
 							], {name:"", host:"", port:10101, ssl:false})
 		} else  {
+			var o = servers.serversModel.getByKey(serverKey)
 			JS.setSqlFields([
 								textName,
 								textHostname,
 								textPort,
 								checkSsl
-							], servers.serversModel.getByKey(servers.serverKey))
+							], o)
+			actionRemove.serverId = o.id
 		}
 
 		grid.modified = false

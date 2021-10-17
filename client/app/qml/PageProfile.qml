@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.14
 import COS.Client 1.0
 import "."
 import "Style"
@@ -61,12 +62,18 @@ QBasePage {
 				reparented: swComponent.swipeMode
 				reparentedParent: placeholder1
 
+				Layout.fillWidth: false
+				Layout.preferredWidth: 800
+				Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+
 				flickable.onAccepted: actionSave.trigger()
 			}
 		]
 
 		swipeContent: [
-			Item { id: placeholder1 }
+			Item { id: placeholder1
+				property string title: container1.title
+			}
 			//Item { id: placeholder2 }
 		]
 

@@ -7,17 +7,13 @@ import "Style"
 import "JScript.js" as JS
 
 
-QPage {
+QBasePage {
 	id: page
-
-	implicitWidth: 1200
 
 	property bool demoMode: false
 	property string mapUuid: ""
 
 	property var _oldVisibility: null
-
-	//stackMode: true
 
 	property StudentMaps studentMaps: null
 
@@ -45,25 +41,13 @@ QPage {
 					cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
 				} else {
 					demoStudentMaps.playGame({
-											 uuid: m.missionid,
-											 level: m.level,
-											 deathmatch: m.deathmatch
-										 })
+												 uuid: m.missionid,
+												 level: m.level,
+												 deathmatch: m.deathmatch
+											 })
 				}
 			})
 			d.open()
-		}
-	}
-
-	Connections {
-		target: studentMaps
-
-		function onMissionSelected(index) {
-			if (stackMode && index !== -1) {
-				var o = addStackPanel(panelInfo)
-				o.selectedMissionIndex = index
-				o.loadMission()
-			}
 		}
 	}
 
@@ -108,10 +92,28 @@ QPage {
 		MapMissionInfo { }
 	}
 
-	panelComponents: [
-		Component { MapMissionList { } },
-		Component { MapMissionInfo { } }
-	]
+
+
+	QStackComponent {
+		id: stack
+		anchors.fill: parent
+
+		requiredWidth: 1200
+
+		initialItem: MapMissionList {}
+
+		Connections {
+			target: studentMaps
+
+			function onMissionSelected(index) {
+				var o = stack.pushComponent(panelInfo, {selectedMissionIndex: index})
+				o.loadMission()
+			}
+		}
+
+
+	}
+
 
 
 
@@ -172,6 +174,9 @@ QPage {
 
 
 	function pageStackBack() {
+		if (stack.layoutBack())
+			return true
+
 		return false
 	}
 

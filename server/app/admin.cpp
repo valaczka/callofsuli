@@ -116,11 +116,13 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
 
+	qDebug() << "CREATE USER" << params;
+
 	int id = m_client->db()->execInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
 
 	if (id == -1)
 	{
-		setServerError();
+		(*jsonResponse)["error"] = "create";
 		return false;
 	}
 
@@ -131,7 +133,7 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 
 	if (id == -1)
 	{
-		setServerError();
+		(*jsonResponse)["error"] = "create auth";
 		return false;
 	}
 
@@ -242,6 +244,38 @@ bool Admin::userBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 
 	return true;
 
+}
+
+
+/**
+ * @brief Admin::userPasswordChange
+ * @param jsonResponse
+ * @return
+ */
+
+bool Admin::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString username = params.value("username").toString();
+	QString password = params.value("password").toString();
+
+	if (username.isEmpty()) {
+		(*jsonResponse)["error"] = "missing username";
+		return false;
+	}
+
+	QString salt;
+	QString hashedPassword = CosDb::hashPassword(password, &salt);
+
+	if (!m_client->db()->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt) VALUES (?, ?, ?)",
+	{username, hashedPassword, salt})) {
+		setServerError();
+		return false;
+	}
+
+	(*jsonResponse)["username"] = username;
+	(*jsonResponse)["passwordChanged"] = true;
+	return true;
 }
 
 

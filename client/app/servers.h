@@ -61,6 +61,9 @@ public:
 	void saveServerList();
 	QVariantMap createFullMap(const QVariantMap &newData = QVariantMap(), const QVariantMap &from = QVariantMap());
 
+	int findServer(const QString &host, const int &port, const bool &ssl);
+	int findServer(const QString &username, const QString &host, const int &port, const bool &ssl);
+
 
 public slots:
 	void reloadResources(QVariantMap resources);
@@ -68,15 +71,15 @@ public slots:
 	void unregisterResources();
 
 	void serverListReload();
-	void serverConnect(const int &index);
+	void serverConnect(const int &id);
 	int serverInsertOrUpdate(const int &key, const QVariantMap &map);
-	void serverDelete(const int &index);
-	void serverDeleteKey(const int &key);
-	void serverDeleteSelected(VariantMapModel *model);
+	void serverDelete(const QVariantMap &params);
 	void serverSetAutoConnect(const int &index);
 	void serverTryLogin(const int &key);
 	void serverLogOut();
-	void doAutoConnect();
+	void doAutoConnect(const QStringList &arguments = QStringList());
+	bool parseUrls(const QStringList &urls);
+	bool parseUrl(const QString &url);
 
 	void sendBroadcast();
 
@@ -122,6 +125,7 @@ private:
 	int m_serverTryConnectKey;
 	QStringList m_sqlImageProviders;
 	QUdpSocket* m_udpSocket;
+	QStringList m_urlsToProcess;
 };
 
 

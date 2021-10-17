@@ -21,6 +21,8 @@ Item {
 
 	readonly property alias swipeCurrentIndex: layoutSwipe.currentIndex
 
+	property QBasePage basePage: null
+
 	Item {
 		id: header
 		width: parent.width
@@ -63,8 +65,24 @@ Item {
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
+
+		onCurrentItemChanged: if (basePage) {
+								  if (currentItem && currentItem.contextMenuFunc)
+									  basePage.contextMenuFunc = currentItem.contextMenuFunc
+								  else
+									  basePage.contextMenuFunc = null
+
+								  currentItem.populated()
+							  }
 	}
 
+
+	onSwipeModeChanged: if (basePage) {
+		if (swipeMode && layoutSwipe.currentItem && layoutSwipe.currentItem.contextMenuFunc)
+			basePage.contextMenuFunc = layoutSwipe.currentItem.contextMenuFunc
+		else
+			basePage.contextMenuFunc = null
+	}
 
 	function swipeToPage(idx) {
 		if (swipeMode)

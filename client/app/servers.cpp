@@ -35,6 +35,7 @@
 #include "servers.h"
 #include <QtConcurrent/QtConcurrent>
 #include <QNetworkDatagram>
+#include "androidshareutils.h"
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -43,6 +44,7 @@ Servers::Servers(QQuickItem *parent)
 	, m_connectedServerKey(-1)
 	, m_serverTryConnectKey(-1)
 	, m_udpSocket(new QUdpSocket(this))
+	, m_urlsToProcess()
 {
 	m_serversModel = new VariantMapModel({
 											 "id",
@@ -52,7 +54,8 @@ Servers::Servers(QQuickItem *parent)
 											 "ssl",
 											 "username",
 											 "session",
-											 "autoconnect"
+											 "autoconnect",
+											 "broadcast"
 										 }, this);
 
 	connect(this, &Servers::resourceRegisterRequest, this, &Servers::registerResource);
@@ -147,13 +150,21 @@ void Servers::serverListReload()
  */
 
 
-void Servers::serverConnect(const int &key)
+void Servers::serverConnect(const int &id)
 {
 	if (m_client->socket()->state() != QAbstractSocket::UnconnectedState) {
 		m_client->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
 		return;
 	}
 
+	qDebug() << "id" << id;
+
+	int key =  m_serversModel->variantMapData()->key("id", id);
+
+	if (key == -1) {
+		m_client->sendMessageWarning(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"), "key == -1");
+		return;
+	}
 
 	m_serverTryConnectKey = -1;
 
@@ -228,11 +239,12 @@ int Servers::serverInsertOrUpdate(const int &key, const QVariantMap &map)
 		QVariantMap n = createFullMap(map, m_serversModel->variantMapData()->at(index).second);
 		m_serversModel->variantMapData()->update(index, n);
 		saveServerList();
-		return key;
+		return n.value("id").toInt();
 	} else {
-		int nextKey = m_serversModel->variantMapData()->append(createFullMap(map));
+		QVariantMap n = createFullMap(map);
+		m_serversModel->variantMapData()->append(n);
 		saveServerList();
-		return nextKey;
+		return n.value("id").toInt();
 	}
 }
 
@@ -244,84 +256,45 @@ int Servers::serverInsertOrUpdate(const int &key, const QVariantMap &map)
  * @param id
  */
 
-void Servers::serverDelete(const int &index)
+void Servers::serverDelete(const QVariantMap &params)
 {
-	if (index<0 || index>=m_serversModel->variantMapData()->size())
+	int id = params.value("id", -1).toInt();
+
+	QList<int> list;
+
+	if (id != -1)
+		list.append(id);
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toInt());
+
+	if (list.isEmpty())
 		return;
 
-	QVariantMap m = m_serversModel->variantMapData()->at(index).second;
-	int key = m_serversModel->variantMapData()->at(index).first;
-	int id = m.value("id", -1).toInt();
-
-	if (m_connectedServerKey == key)
-		setConnectedServerKey(-1);
-
-	if (m_serverTryConnectKey == key)
-		m_serverTryConnectKey = -1;
-
-	removeServerDir(id);
-
-	m_serversModel->variantMapData()->removeAt(index);
-
-	saveServerList();
-
-}
 
 
-/**
- * @brief Servers::serverDeleteKey
- * @param key
- */
+	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
+		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
+		int key = m_serversModel->variantMapData()->at(i).first;
 
-void Servers::serverDeleteKey(const int &key)
-{
-	QVariantMap m = m_serversModel->variantMapData()->valueKey(key);
-	int id = m.value("id", -1).toInt();
+		if (list.contains(d.value("id").toInt())) {
 
-	if (m_connectedServerKey == key)
-		setConnectedServerKey(-1);
+			if (m_connectedServerKey == key)
+				setConnectedServerKey(-1);
 
-	if (m_serverTryConnectKey == key)
-		m_serverTryConnectKey = -1;
+			if (m_serverTryConnectKey == key)
+				m_serverTryConnectKey = -1;
 
-	removeServerDir(id);
+			removeServerDir(id);
 
-	m_serversModel->variantMapData()->removeKey(key);
-
-	saveServerList();
-}
-
-
-/**
- * @brief Servers::serverDeleteSelected
- * @param model
- */
-
-void Servers::serverDeleteSelected(VariantMapModel *model)
-{
-	Q_ASSERT(model);
-	QList<int> list = model->getSelected();
-
-	foreach (int i, list) {
-		if (m_serversModel->variantMapData()->keyIndex(i) == -1)
-			continue;
-
-		if (m_connectedServerKey == i)
-			setConnectedServerKey(-1);
-
-		if (m_serverTryConnectKey == i)
-			m_serverTryConnectKey = -1;
-
-		serverDeleteKey(i);
+			m_serversModel->variantMapData()->removeAt(i);
+			i = -1;
+		}
 	}
 
-	model->unselectAll();
-
 	saveServerList();
+
 }
-
-
-
 
 
 
@@ -331,11 +304,11 @@ void Servers::serverDeleteSelected(VariantMapModel *model)
  * @param serverId
  */
 
-void Servers::serverSetAutoConnect(const int &index)
+void Servers::serverSetAutoConnect(const int &id)
 {
 	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
 		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
-		if (i==index) {
+		if (d.value("id", -1).toInt() == id) {
 			bool old = d.value("autoconnect").toBool();
 			m_serversModel->variantMapData()->updateValue(i, "autoconnect", !old);
 		} else {
@@ -356,6 +329,13 @@ void Servers::serverSetAutoConnect(const int &index)
 
 void Servers::serverTryLogin(const int &key)
 {
+	if (!m_urlsToProcess.isEmpty()) {
+		QStringList u = m_urlsToProcess;
+		m_urlsToProcess.clear();
+		if (parseUrls(u))
+			return;
+	}
+
 	QVariantMap d = m_serversModel->variantMapData()->valueKey(key);
 	if (d.isEmpty())
 		return;
@@ -387,8 +367,14 @@ void Servers::serverLogOut()
  * @brief Servers::doAutoConnect
  */
 
-void Servers::doAutoConnect()
+void Servers::doAutoConnect(const QStringList &arguments)
 {
+	if (parseUrls(arguments))
+		return;
+
+	if (AndroidShareUtils::instance()->checkPendingIntents())
+		return;
+
 	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
 		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
 		if (d.value("autoconnect").toBool()) {
@@ -397,6 +383,124 @@ void Servers::doAutoConnect()
 		}
 	}
 }
+
+
+
+
+/**
+ * @brief Servers::parseUrls
+ * @param urls
+ */
+
+bool Servers::parseUrls(const QStringList &urls)
+{
+	foreach (QString u, urls) {
+		QUrl url(u);
+
+		qInfo() << "URL" << url;
+
+		if (url.scheme() != "callofsuli") {
+			continue;
+		}
+
+
+		QString host = url.host();
+		int port = url.port(10101);
+		QString username = url.userName();
+
+		QString path = url.path();
+		bool ssl = false;
+		int _section = 1;
+
+		if (path.section('/', _section, _section) == "ssl") {
+			_section = 2;
+			ssl = true;
+		}
+
+		QString func = path.section('/', _section, _section);
+
+		int serverKey = username.isEmpty() ? findServer(host, port, ssl) : findServer(username, host, port, ssl);
+
+		QUrlQuery q(url);
+		QString serverUuid = q.queryItemValue("server", QUrl::FullyDecoded);
+
+		if (func == "connect" && m_client->connectionState() != Client::Standby) {
+			m_client->sendMessageWarning(tr("Hiba"), tr("Nem lehet új szerverhez csatlakozni, előbb jelentkezz ki!"));
+			return true;
+		}
+
+		if (func == "connect" || m_client->connectionState() == Client::Standby) {
+			QString name = q.queryItemValue("name", QUrl::FullyDecoded);
+			QVariantMap map;
+
+			qDebug() << "Connect to " << name;
+
+			if (func != "connect")
+				m_urlsToProcess = QStringList({u});
+
+			if (serverKey == -1)
+				map["name"] = (name.isEmpty() ? QString("%1:%2").arg(host).arg(port) : name);
+
+			map["host"] = host;
+			map["port"] = port;
+			map["ssl"] = ssl;
+			int serverId = serverInsertOrUpdate(serverKey, map);
+			serverConnect(serverId);
+
+			return true;
+		}
+
+		if (m_client->connectionState() != Client::Connected && m_client->connectionState() != Client::Reconnected) {
+			m_client->sendMessageWarning(tr("Hiba"), tr("A szerver nem elérhető, ismételd meg a kérést!"));
+			return true;
+		}
+
+		if (serverUuid != m_client->serverUuid()) {
+			m_client->sendMessageWarning(tr("Hiba"), tr("A kérés nem az aktuális kapcsolatra vonatkozik!"));
+			return true;
+		}
+
+		if (func == "register") {
+			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
+			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
+
+			qDebug() << "REIGSTER" << user << code;
+
+			if (user.isEmpty() || code.isEmpty())
+				return true;
+
+			m_client->login(user, "", code);
+		} else if (func == "reset") {
+			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
+			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
+
+			qDebug() << "RESET" << user << code;
+
+			if (user.isEmpty() || code.isEmpty())
+				return true;
+
+			m_client->passwordRequest(user, code);
+		}
+
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief Servers::parseUrl
+ * @param url
+ * @return
+ */
+
+bool Servers::parseUrl(const QString &url)
+{
+	return parseUrls({url});
+}
+
+
+
 
 
 
@@ -466,19 +570,20 @@ void Servers::acceptCertificate(const int &serverKey, const QSslCertificate &cer
 		return;
 	}
 
-	if (serverKey < 1) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"));
+	if (serverKey < 0) {
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"), "serverKey < 0");
 		return;
 	}
 
 	QVariantMap data = m_serversModel->variantMapData()->valueKey(serverKey);
 
 	if (data.isEmpty()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"));
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerverkulcs"), "empty data");
 		return;
 	}
 
 
+	int id = data.value("id").toInt();
 	QString dir = data.value("id").toString();
 	QString serverDir = Client::standardPath(dir);
 	QString certFileName = serverDir+"/cert.pem";
@@ -502,7 +607,7 @@ void Servers::acceptCertificate(const int &serverKey, const QSslCertificate &cer
 	m_serversModel->variantMapData()->updateKey(serverKey, data);
 	saveServerList();
 
-	serverConnect(serverKey);
+	serverConnect(id);
 }
 
 
@@ -516,6 +621,8 @@ void Servers::acceptCertificate(const int &serverKey, const QSslCertificate &cer
 
 void Servers::onSocketSslErrors(QList<QSslError> errors)
 {
+	qDebug() << "SSL socket errors" << errors << m_serverTryConnectKey;
+
 	QVariantMap data = m_serversModel->variantMapData()->valueKey(m_serverTryConnectKey);
 
 	if (data.isEmpty()) {
@@ -592,6 +699,9 @@ void Servers::clientSetup()
 	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
 	connect(m_client, &Client::authInvalid, this, &Servers::onAuthInvalid);
 	connect(m_client, &Client::userRolesChanged, this, &Servers::onUserRolesChanged);
+	connect(m_client, &Client::urlsToProcessReady, this, &Servers::parseUrls);
+
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::urlSelected, this, &Servers::parseUrl);
 
 	connect(m_client->socket(), &QWebSocket::sslErrors, this, &Servers::onSocketSslErrors);
 	m_client->connectSslErrorSignalHandler(this);
@@ -933,5 +1043,60 @@ QVariantMap Servers::createFullMap(const QVariantMap &newData, const QVariantMap
 	if (!m.contains("ignoredErrors")) m["ignoredErrors"] = QVariantList();
 
 	return m;
+}
+
+
+
+/**
+ * @brief Servers::findServer
+ * @param host
+ * @param port
+ * @param ssl
+ * @param username
+ * @return
+ */
+
+int Servers::findServer(const QString &host, const int &port, const bool &ssl)
+{
+	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
+		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
+
+		if (d.value("host").toString() == host &&
+			d.value("port").toInt() == port &&
+			d.value("ssl").toBool() == ssl)
+		{
+			return m_serversModel->variantMapData()->at(i).first;
+		}
+	}
+
+	return -1;
+}
+
+
+
+/**
+ * @brief Servers::findServer
+ * @param username
+ * @param host
+ * @param port
+ * @param ssl
+ * @return
+ */
+
+int Servers::findServer(const QString &username, const QString &host, const int &port, const bool &ssl)
+{
+	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
+		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
+
+		if (d.value("host").toString() == host &&
+			d.value("port").toInt() == port &&
+			d.value("ssl").toBool() == ssl &&
+			d.value("username").toString() == username)
+		{
+			return m_serversModel->variantMapData()->at(i).first;
+		}
+	}
+
+	return -1;
 }
 

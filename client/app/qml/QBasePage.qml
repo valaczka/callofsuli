@@ -23,6 +23,7 @@ Page {
 	property alias menuButton: menuButton
 
 	property var mainMenuFunc: null
+	property var contextMenuFunc: null
 
 	property AbstractActivity activity: null
 	property Menu toolBarMenu: null
@@ -97,14 +98,14 @@ Page {
 
 			icon.source: CosStyle.iconMenu
 
-			visible: mainMenuFunc
+			visible: mainMenuFunc || contextMenuFunc
 
 			Component {
 				id: menuComponent
 				QMenu {}
 			}
 
-			onClicked: JS.createMenu(menuButton, menuComponent, [mainMenuFunc])
+			onClicked: JS.createMenu(menuButton, menuComponent, [contextMenuFunc, mainMenuFunc])
 		}
 	}
 

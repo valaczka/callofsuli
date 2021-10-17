@@ -545,7 +545,7 @@ QVariantList CosDbWorker::execQuery(QSqlQuery query, QString *errorString, QVari
 
 	if (!query.exec()) {
 		QString errText = query.lastError().text();
-		qDebug().noquote() << tr("SQL command: \e[91m")+query.executedQuery();
+		qDebug().noquote() << tr("SQL query: \e[91m")+query.executedQuery();
 		qWarning().noquote() << tr("SQL error: ")+errText;
 		success = false;
 
@@ -553,7 +553,7 @@ QVariantList CosDbWorker::execQuery(QSqlQuery query, QString *errorString, QVari
 			(*errorString) = errText;
 	} else {
 #ifdef COS_SQL_DEBUG
-		qDebug().noquote() << tr("SQL command: \e[95m")+query.executedQuery();
+		qDebug().noquote() << tr("SQL query: \e[95m")+query.executedQuery();
 #endif
 	}
 
@@ -681,7 +681,7 @@ bool CosDbWorker::execBatchQuery(QString query, const QVariantList &list, QStrin
 
 	m_db.commit();
 
-	qDebug().noquote() << tr("SQL command: \e[95m")+q.executedQuery();
+	qDebug().noquote() << tr("SQL query: \e[95m")+q.executedQuery();
 
 	return true;
 }

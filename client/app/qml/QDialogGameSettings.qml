@@ -18,7 +18,7 @@ QDialogPanel {
 	maximumHeight: 500
 	maximumWidth: 700
 
-	title: qsTr("Hangerő beállítása")
+	title: qsTr("Beállítások")
 
 	icon: CosStyle.iconPreferences
 
@@ -89,6 +89,22 @@ QDialogPanel {
 				to: 100
 				width: parent.width
 				onMoved: volumeVoiceoverModified(value)
+			}
+
+			QCheckBox {
+				id: checkLandscape
+				font.pixelSize: CosStyle.pixelSize*0.8
+				font.weight: Font.Medium
+				anchors.left: parent.left
+				text: qsTr("Fekvő orientáció")
+				checked: cosClient.forcedLandscape
+
+				visible: Qt.platform.os == "android"
+
+				onToggled: if (checked)
+							   cosClient.forceLandscape()
+						   else
+							   cosClient.resetLandscape()
 			}
 
 		}

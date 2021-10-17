@@ -1,0 +1,124 @@
+/*
+ * ---- Call of Suli ----
+ *
+ * androidshareutils.cpp
+ *
+ * Created on: 2021. 10. 16.
+ *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
+ *
+ * AndroidShareUtils
+ *
+ *  This file is part of Call of Suli.
+ *
+ *  Call of Suli is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <QDebug>
+
+#ifdef Q_OS_ANDROID
+#include <jni.h>
+#include <QtAndroid>
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
+
+#include "androidshareutils.h"
+
+AndroidShareUtils* AndroidShareUtils::m_instance = nullptr;
+
+AndroidShareUtils::AndroidShareUtils(QObject *parent)
+	: QObject(parent)
+	, m_pendingIntentsChecked(false)
+{
+	Q_ASSERT(m_instance == nullptr);
+
+	m_instance = this;
+}
+
+
+/**
+ * @brief AndroidShareUtils::~AndroidShareUtils
+ */
+
+AndroidShareUtils::~AndroidShareUtils()
+{
+	m_instance = nullptr;
+}
+
+
+
+/**
+ * @brief AndroidShareUtils::instance
+ * @return
+ */
+
+AndroidShareUtils *AndroidShareUtils::instance()
+{
+	if (!m_instance)
+		m_instance = new AndroidShareUtils;
+	return m_instance;
+}
+
+
+/**
+ * @brief AndroidShareUtils::onApplicationStateChanged
+ * @param applicationState
+ */
+
+bool AndroidShareUtils::checkPendingIntents()
+{
+	if (!m_pendingIntentsChecked) {
+		m_pendingIntentsChecked = true;
+
+#ifdef Q_OS_ANDROID
+		QAndroidJniObject activity = QtAndroid::androidActivity();
+		if (activity.isValid())  {
+			jboolean ret = activity.callMethod<jboolean>("checkPendingIntents","()Z");
+			qDebug() << "checkPendingIntents: " << ret;
+
+			if (ret)
+				return true;
+		} else {
+			qDebug() << "checkPendingIntents: Activity not valid";
+		}
+#endif
+	}
+
+	return false;
+}
+
+
+
+#ifdef Q_OS_ANDROID
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+JNIEXPORT void JNICALL
+Java_hu_piarista_vjp_callofsuli_ClientActivity_setUrl(JNIEnv *env,
+													  jobject ,
+													  jstring url)
+{
+	const char *urlStr = env->GetStringUTFChars(url, NULL);
+	emit AndroidShareUtils::instance()->urlSelected(urlStr);
+
+	env->ReleaseStringUTFChars(url, urlStr);
+	return;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

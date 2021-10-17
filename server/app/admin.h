@@ -57,6 +57,7 @@ public slots:
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);
 	bool userBatchUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool userBatchRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool userPasswordChange(QJsonObject *jsonResponse, QByteArray *);
 
 	bool getAllClass(QJsonObject *jsonResponse, QByteArray *);
 	bool classCreate(QJsonObject *jsonResponse, QByteArray *);

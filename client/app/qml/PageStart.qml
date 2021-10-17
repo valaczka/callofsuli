@@ -7,19 +7,14 @@ import "Style"
 import "JScript.js" as JS
 
 
-QPage {
+QBasePage {
 	id: control
 
 	defaultTitle: qsTr("Call of Suli")
-	mainToolBar.backButton.visible: pageStack.depth > 1
-
-	property bool _firstRun: true
+	mainToolBar.backButton.visible: stackComponent.stackView.depth > 1
 
 	activity: Servers {
 		id: servers
-
-		property bool editing: false
-		property int serverKey: -1
 
 		onResourceDownloadRequest: {
 			var d = JS.dialogCreateQml("YesNo", {
@@ -39,15 +34,12 @@ QPage {
 			d.open()
 		}
 
-		onEditingChanged: if (editing && stackMode) {
-							  addStackPanel(panelEdit)
-						  }
-
 
 		onResourceReady: {
 			cosClient.reloadGameResources()
-			JS.createPage("MainMenu", {})
-			servers.serverTryLogin(servers.connectedServerKey)
+			JS.createPage("MainMenu", {
+							  servers: servers
+						  })
 		}
 
 
@@ -70,17 +62,20 @@ QPage {
 		}
 
 
+		function uiEdit(key) {
+			stackComponent.pushComponent(panelEdit, {serverKey: key})
+		}
+
+		function uiAdd() {
+			stackComponent.pushComponent(panelEdit, {serverKey: -1})
+		}
+
+		function uiBack() {
+			stackComponent.layoutBack()
+		}
+
 		Component.onCompleted: serverListReload()
 	}
-
-	panelComponents: [
-		Component { ServerList {
-				layoutFillWidth: !servers.editing
-			} },
-		Component { ServerEdit {
-				panelVisible: servers.editing
-			} }
-	]
 
 
 	Component {
@@ -89,17 +84,25 @@ QPage {
 	}
 
 
-	onStackModeChanged: {
-		servers.editing = false
-		servers.serverKey = -1
-	}
-
-
 
 	mainMenuFunc: function (m) {
 		m.addAction(actionDemo)
 		m.addAction(actionAbout)
 		m.addAction(actionExit)
+	}
+
+
+	QStackComponent {
+		id: stackComponent
+		anchors.fill: parent
+		basePage: control
+
+		//requiredWidth: 500
+
+		//headerContent: QLabel {	}
+
+		initialItem: ServerList {  }
+
 	}
 
 
@@ -144,10 +147,7 @@ QPage {
 
 	}
 
-	onPageActivated: if (_firstRun) {
-						 _firstRun = false
-						 servers.doAutoConnect()
-					 }
+	onPageActivatedFirst:  servers.doAutoConnect(cosClient.takePositionalArgumentsToProcess())
 
 
 	function windowClose() {
@@ -155,10 +155,8 @@ QPage {
 	}
 
 	function pageStackBack() {
-		if (servers.editing) {
-			servers.editing = false
+		if (stackComponent.layoutBack())
 			return true
-		}
 
 		return false
 	}

@@ -271,6 +271,9 @@ QSwipeContainer {
 		function onUserGet(jsonData, binaryData) {
 			flickable.visible = true
 
+			if (jsonData.character.length === 0)
+				jsonData.character = "default"
+
 			imgRank.source = cosClient.rankImageSource(jsonData.rankid, -1, jsonData.rankimage)
 
 			labelName.text = jsonData.nickname.length && !forceFullName ? jsonData.nickname : jsonData.firstname+" "+jsonData.lastname

@@ -8,6 +8,9 @@ import "JScript.js" as JS
 Item {
 	id: control
 
+	implicitWidth: 400
+	implicitHeight: 400
+
 	property color borderColor: CosStyle.colorPrimaryDarker
 	property color titleColor: CosStyle.colorAccentLighter
 
@@ -16,20 +19,29 @@ Item {
 
 	property int horizontalPadding: 20
 	property int verticalPadding: 10
+	property real maximumWidth: -1
 
 	property alias reparented: movableContent.reparented
 	property alias reparentedParent: movableContent.reparentedParent
+	property bool isPanelVisible: true
+
+	property alias menuComponent: menuLoader.sourceComponent
 
 	default property alias movableContentData: movableContent.data
 
 	Layout.fillWidth: true
 	Layout.fillHeight: true
 
+	signal populated()
+
+	onReparentedChanged: if (!reparented)
+							 populated()
+
 	Item {
 		id: panel
 
-		width: control.width-2*horizontalPadding
-		height: control.height-2*verticalPadding
+		width: isPanelVisible ? (maximumWidth>0 ? Math.min(control.width-2*horizontalPadding, maximumWidth) : control.width-2*horizontalPadding) : control.width
+		height: isPanelVisible ? control.height-2*verticalPadding : control.height
 
 		anchors.centerIn: parent
 
@@ -39,6 +51,7 @@ Item {
 			verticalOffset: 3
 			color: JS.setColorAlpha("black", 0.75)
 			source: border2
+			visible: isPanelVisible
 		}
 
 		BorderImage {
@@ -70,6 +83,7 @@ Item {
 			anchors.fill: panel
 			source: metalbg
 			maskSource: border2
+			visible: isPanelVisible
 		}
 
 
@@ -81,6 +95,8 @@ Item {
 
 			image: control.icon
 			contentItem: metalbg
+
+			visible: isPanelVisible
 		}
 
 
@@ -89,10 +105,10 @@ Item {
 			anchors.fill: parent
 			visible: true
 
-			anchors.topMargin: 5
+			anchors.topMargin: isPanelVisible ? 5 : 0
 			anchors.leftMargin: 0
 			anchors.rightMargin: 0
-			anchors.bottomMargin: 10
+			anchors.bottomMargin: isPanelVisible ? 10 : 0
 
 			Rectangle {
 				id: hdrRect
@@ -102,7 +118,7 @@ Item {
 				anchors.right: parent.right
 				height: labelTitle.implicitHeight*1.6
 
-				visible: labelTitle.text.length
+				visible: labelTitle.text.length && isPanelVisible
 
 				DropShadow {
 					anchors.fill: labelTitle
@@ -136,7 +152,7 @@ Item {
 					text: control.title
 					anchors.top: parent.top
 					anchors.left: iconImage.right
-					anchors.right: parent.right
+					anchors.right: menuLoader.status == Loader.Ready ? menuLoader.left : parent.right
 					anchors.bottom: parent.bottom
 					font.weight: Font.Thin
 					font.pixelSize: CosStyle.pixelSize*1.4
@@ -145,6 +161,12 @@ Item {
 					color: titleColor
 					verticalAlignment: "AlignVCenter"
 					leftPadding: iconImage.visible ? CosStyle.pixelSize/2 : CosStyle.pixelSize
+				}
+
+				Loader {
+					id: menuLoader
+					anchors.verticalCenter: parent.verticalCenter
+					anchors.right: parent.right
 				}
 			}
 
@@ -172,7 +194,7 @@ Item {
 				anchors.left: parent.left
 				anchors.bottom: parent.bottom
 				anchors.right: parent.right
-				anchors.topMargin: 10
+				anchors.topMargin: isPanelVisible ? 10 : 0
 				visible: true
 
 				Rectangle {
@@ -183,7 +205,7 @@ Item {
 					property bool reparented: false
 					property Item reparentedParent: null
 
-					color: reparented ? JS.setColorAlpha("black", 0.4) : "transparent"
+					color: reparented || !isPanelVisible ? JS.setColorAlpha("black", 0.4) : "transparent"
 
 					//visible: control.enabled
 
@@ -218,8 +240,10 @@ Item {
 			anchors.fill: border1
 			source: border1
 			color: borderColor
+			visible: isPanelVisible
 		}
 
 	}
+
 
 }

@@ -7,84 +7,92 @@ import "JScript.js" as JS
 
 
 
-QPage {
-	id: page
+QBasePage {
+	id: control
 
-	mainToolBar.title: qsTr("Jelszó beállítása")
+	defaultTitle: qsTr("Új jelszó beállítása")
+
+	QStackComponent {
+		id: stackComponent
+		anchors.fill: parent
+		basePage: control
+
+		//requiredWidth: 500
+
+		//headerContent: QLabel {	}
+
+		initialItem: QSimpleContainer {
+			id: panel
+
+			title: qsTr("Új jelszó")
+			icon: CosStyle.iconRegistration
+			maximumWidth: 600
+
+			onPopulated: textUser.forceActiveFocus()
 
 
-	panelComponents: [
-		Component {
-			QPagePanel {
-				id: panel
+			QGridLayoutFlickable {
+				id: grid
 
-				title: qsTr("Jelszó beállítása")
-				maximumWidth: 600
-				layoutFillWidth: true
+				watchModification: false
 
+				onAccepted: buttonLogin.press()
 
-				QGridLayoutFlickable {
-					id: grid
+				QGridLabel { field: textUser }
 
-					verticalCentered: true
+				QGridTextField {
+					id: textUser
+					fieldName: qsTr("Felhasználónév")
 
-					watchModification: false
+					text: cosClient.userName
 
-					onAccepted: buttonLogin.press()
+					readOnly: true
+				}
 
-					QGridLabel { field: textUser }
+				QGridLabel { field: textPassword }
 
-					QGridTextField {
-						id: textUser
-						fieldName: qsTr("Felhasználónév")
+				QGridTextField {
+					id: textPassword
+					fieldName: qsTr("Új jelszó")
+					echoMode: TextInput.Password
 
-						text: cosClient.userName
+					validator: RegExpValidator { regExp: /.+/ }
+				}
 
-						readOnly: true
-					}
+				QGridLabel { field: textPassword2 }
 
-					QGridLabel { field: textPassword }
+				QGridTextField {
+					id: textPassword2
+					fieldName: qsTr("Új jelszó ismét")
+					echoMode: TextInput.Password
 
-					QGridTextField {
-						id: textPassword
-						fieldName: qsTr("Új jelszó")
-						echoMode: TextInput.Password
+					validator: RegExpValidator { regExp: /.+/ }
+				}
 
-						validator: RegExpValidator { regExp: /.+/ }
-					}
+				QGridButton {
+					id: buttonLogin
+					text: qsTr("Bejelentkezés")
+					enabled: textUser.acceptableInput &&
+							 textPassword.acceptableInput &&
+							 textPassword2.acceptableInput &&
+							 textPassword.text === textPassword2.text
 
-					QGridLabel { field: textPassword2 }
-
-					QGridTextField {
-						id: textPassword2
-						fieldName: qsTr("Új jelszó ismét")
-						echoMode: TextInput.Password
-
-						validator: RegExpValidator { regExp: /.+/ }
-					}
-
-					QGridButton {
-						id: buttonLogin
-						text: qsTr("Bejelentkezés")
-						enabled: textUser.acceptableInput &&
-								 textPassword.acceptableInput &&
-								 textPassword2.acceptableInput &&
-								 textPassword.text === textPassword2.text
-
-						onClicked: cosClient.login(textUser.text, "", textPassword.text, true)
-					}
+					onClicked: cosClient.login(textUser.text, "", textPassword.text, true)
 				}
 			}
 		}
-	]
+	}
 
+	onPageActivated: textUser.forceActiveFocus()
 
 	function windowClose() {
 		return false
 	}
 
 	function pageStackBack() {
+		if (stackComponent.layoutBack())
+			return true
+
 		return false
 	}
-
 }

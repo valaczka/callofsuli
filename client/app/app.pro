@@ -7,6 +7,8 @@ include(../../common/common.pri)
 include(../SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../Bacon2D-static/src/Bacon2D-static.pri)
 
+!android: include(../QSingleInstance/QSingleInstance.pri)
+
 unix:!android: {
 	include(graphviz.pri)
 }
@@ -59,7 +61,6 @@ DESTDIR = ../..
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 unix:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy
-win32: QMAKE_CXXFLAGS += -Wno-deprecated-copy
 
 #CONFIG(debug) {
 #	DEFINES += COS_SQL_DEBUG
@@ -68,6 +69,7 @@ win32: QMAKE_CXXFLAGS += -Wno-deprecated-copy
 SOURCES += \
 		abstractactivity.cpp \
 		abstractobjectiveimporter.cpp \
+		androidshareutils.cpp \
 		chapterimporter.cpp \
 		cosclient.cpp \
 		cosdownloader.cpp \
@@ -108,6 +110,7 @@ SOURCES += \
 HEADERS += \
 	abstractactivity.h \
 	abstractobjectiveimporter.h \
+	androidshareutils.h \
 	chapterimporter.h \
 	cosclient.h \
 	cosdownloader.h \
@@ -175,7 +178,8 @@ android {
 	QT += androidextras
 
 DISTFILES += \
-		android/AndroidManifest.xml
+		android/AndroidManifest.xml \
+		android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
 
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 

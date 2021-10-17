@@ -39,6 +39,12 @@
 #include "../Bacon2D-static/qml-box2d/box2dplugin.h"
 #include "../Bacon2D-static/src/plugins.h"
 
+
+#ifndef Q_OS_ANDROID
+#include <qsingleinstance.h>
+#endif
+
+
 #include "cosclient.h"
 #include "gamemap.h"
 #include "cosdb.h"
@@ -66,6 +72,16 @@ int main(int argc, char *argv[])
 
 	QGuiApplication app(argc, argv);
 
+
+#ifndef Q_OS_ANDROID
+	QSingleInstance instance;
+
+	if (!instance.process()) {
+		qInfo() << QObject::tr("Már fut az alkalmazás egy példánya");
+		return 0;
+	}
+#endif
+
 	srand(time(NULL));
 
 	Box2DPlugin box2dplugin;
@@ -79,7 +95,9 @@ int main(int argc, char *argv[])
 	Client::initialize();
 	Client::loadModules();
 
-	if (!Client::commandLineParse(app))
+	Client client;
+
+	if (!client.commandLineParse(app))
 		return 0;
 
 	Client::standardPathCreate();
@@ -87,7 +105,6 @@ int main(int argc, char *argv[])
 	Client::registerResources();
 	Client::reloadGameResources();
 
-	Client client;
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();
 	context->setContextProperty("cosClient", &client);
@@ -101,6 +118,11 @@ int main(int argc, char *argv[])
 			QCoreApplication::exit(-1);
 	}, Qt::QueuedConnection);
 	engine.load(url);
+
+#ifndef Q_OS_ANDROID
+	instance.setNotifyWindow(QGuiApplication::topLevelWindows().at(0));
+	client.setSingleInstance(&instance);
+#endif
 
 	return app.exec();
 }

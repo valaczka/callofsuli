@@ -62,11 +62,13 @@ public:
 	QWebSocket *socket() const { return m_socket; }
 	Server *server() const { return m_server; }
 
-	bool emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverName = nullptr, QString *serverEmail = nullptr);
+	bool emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverEmail = nullptr);
 	bool emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
 
 	QString clientSession() const { return m_clientSession; }
 	void setClientSession(const QString &clientSession);
+
+	bool registerUser(const QString &email, const QString &code);
 
 
 public slots:

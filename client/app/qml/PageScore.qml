@@ -57,6 +57,8 @@ QBasePage {
 		id: swComponent
 		anchors.fill: parent
 
+		basePage: control
+
 		content: [
 			ScoreList {
 				id: container1
@@ -81,11 +83,18 @@ QBasePage {
 					id: details
 					anchors.fill: parent
 				}
+
+				menuComponent: QToolButton {
+					id: menuButton
+					action: actionA
+					display: AbstractButton.IconOnly
+				}
+
 			}
 		]
 
 		swipeContent: [
-			Item { id: placeholder1 },
+			Item { id: placeholder1  },
 			Item { id: placeholder2 }
 		]
 
@@ -101,6 +110,12 @@ QBasePage {
 		container1.list.forceActiveFocus()
 	}
 
+
+	Action {
+		id: actionA
+		icon.source: CosStyle.iconBindPeople
+		text: "lkjkljlk"
+	}
 
 
 	SortFilterProxyModel {

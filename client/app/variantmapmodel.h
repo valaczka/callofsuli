@@ -82,6 +82,7 @@ public slots:
 	const QVariantMap get(int i) const;
 	const QVariantMap getByKey(int key) const;
 	int getKey(int i) const;
+	int findKey(const QString &field, const QVariant &value) const;
 	void updateItem(const int &row);
 
 	void select(int i);

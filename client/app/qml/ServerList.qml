@@ -7,7 +7,7 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-QPagePanel {
+QSimpleContainer {
 	id: panel
 
 	maximumWidth: 600
@@ -17,12 +17,9 @@ QPagePanel {
 
 	readonly property bool isDisconnected: cosClient.connectionState == Client.Standby || cosClient.connectionState == Client.Disconnected
 
-	contextMenuFunc: function (m) {
-		m.addAction(actionServerSearch)
+	property var contextMenuFunc: function (m) {
 		m.addAction(actionServerNew)
-		m.addAction(actionRemove)
-		m.addAction(actionEdit)
-		m.addAction(actionAutoConnect)
+		m.addAction(actionServerSearch)
 	}
 
 
@@ -35,7 +32,8 @@ QPagePanel {
 		]
 		proxyRoles: ExpressionRole {
 			name: "details"
-			expression: model.host+":"+model.port+(model.username.length ? " - "+model.username : "")
+			expression: (model.ssl ? "wss://" : "ws://") + model.host+":"+model.port+(model.username.length ? " - "+model.username : "")
+						+(model.broadcast ? qsTr(" (auto)") : "")
 		}
 	}
 
@@ -65,10 +63,10 @@ QPagePanel {
 			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
 			flipped: model && model.autoconnect
 
-			mouseArea.onClicked: servers.serverSetAutoConnect(serverList.model.mapToSource(modelIndex))
+			mouseArea.onClicked: servers.serverSetAutoConnect(model.id)
 		}
 
-		footer: QToolButtonFooter {
+		/*footer: QToolButtonFooter {
 			width: serverList.width
 			height: Math.max(implicitHeight, serverList.delegateHeight)
 			text: qsTr("Pályaszerkesztő")
@@ -76,14 +74,16 @@ QPagePanel {
 			onClicked: {
 				JS.createPage("MapEditor", {})
 			}
+		}*/
+
+		footer: QToolButtonFooter {
+			width: serverList.width
+			action: actionServerNew
 		}
 
 
 
-		onClicked: if (servers.editing)
-					   actionEdit.trigger()
-				   else
-					   servers.serverConnect(serverList.model.get(index).id)
+		onClicked: servers.serverConnect(serverList.model.get(index).id)
 
 		onRightClicked: contextMenu.popup()
 		onLongPressed: contextMenu.popup()
@@ -160,8 +160,7 @@ QPagePanel {
 		text: qsTr("Hozzáadás")
 		icon.source: CosStyle.iconAdd
 		onTriggered: {
-			servers.serverKey = -1
-			servers.editing = true
+			servers.uiAdd()
 		}
 	}
 
@@ -178,8 +177,8 @@ QPagePanel {
 		text: qsTr("Szerkesztés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
-			servers.serverKey = serverList.sourceVariantMapModel.getKey(serverList.model.mapToSource(serverList.currentIndex))
-			servers.editing = true
+			var key = servers.serversModel.findKey("id", serverList.model.get(serverList.currentIndex).id)
+			servers.uiEdit(key)
 		}
 	}
 
@@ -189,39 +188,41 @@ QPagePanel {
 		text: qsTr("Törlés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
-			if (servers.serversModel.selectedCount) {
+			var more = servers.serversModel.selectedCount
+
+			if (more > 0) {
 				var dd = JS.dialogCreateQml("YesNo", {
 												title: qsTr("Szerverek törlése"),
-												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(servers.serversModel.selectedCount)
+												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(more)
 											})
 				dd.accepted.connect(function () {
-					servers.serverDeleteSelected(servers.serversModel)
-					servers.serverKey = -1
+					servers.serverDelete({list: servers.serversModel.getSelectedData("id")})
+					servers.serversModel.unselectAll()
 				})
 				dd.open()
 			} else {
-				var si = serverList.model.mapToSource(serverList.currentIndex)
 				var o = serverList.model.get(serverList.currentIndex)
 
 				var d = JS.dialogCreateQml("YesNo", {
-											   title: qsTr("Biztosan törlöd a szervert?"),
-											   text: o.name
+											   title: qsTr("Szerver törlése"),
+											   text: qsTr("Biztosan törlöd a szervert?\n%1").arg(o.name)
 										   })
 				d.accepted.connect(function () {
-					servers.serverDelete(si)
-					servers.serverKey = -1
+					servers.serverDelete({id: o.id})
+					servers.serversModel.unselectAll()
 				})
 				d.open()
 			}
 		}
 	}
 
+
 	Action {
 		id: actionAutoConnect
 		text: qsTr("Automata csatlakozás")
 		enabled: serverList.currentIndex !== -1
 		onTriggered:  {
-			servers.serverSetAutoConnect(serverList.model.mapToSource(serverList.currentIndex))
+			servers.serverSetAutoConnect(serverList.model.get(serverList.currentIndex).id)
 		}
 	}
 

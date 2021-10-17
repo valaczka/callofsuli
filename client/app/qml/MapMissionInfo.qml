@@ -8,10 +8,11 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-QPagePanel {
+QSimpleContainer {
 	id: panel
 
-	layoutFillWidth: true
+	maximumWidth: -1
+	isPanelVisible: false
 
 	property int selectedMissionIndex: -1
 	property var selectedData: null
@@ -369,33 +370,12 @@ QPagePanel {
 									cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
 								} else {
 
-									/*var d = JS.dialogCreateQml("ImageList", {
-														   roles: ["name", "dir"],
-														   icon: CosStyle.iconUser,
-														   title: qsTr("Válassz karaktert"),
-														   selectorSet: false,
-														   delegateHeight: 80,
-														   modelImageHeight: 50,
-														   modelImageWidth: 100,
-														   modelImageRole: "dir",
-														   modelImagePattern: "qrc:/character/%1/thumbnail.png",
-														   sourceModel: studentMaps.modelCharacterList
-													   })
-
-							d.accepted.connect(function(data) {
-								if (data === -1)
-									return
-
-								var p = d.item.sourceModel.get(data)
-*/
 									studentMaps.playGame({
 															 uuid: selectedData.uuid,
 															 level: levelData.level,
 															 deathmatch: modeIndex != -1 && levelData.modes[modeIndex].type === "deathmatch"
 														 })
-									/*									})
-							d.open()
-*/
+
 								}
 							}
 						}
@@ -405,10 +385,6 @@ QPagePanel {
 							height: 20
 							visible: btn.visible
 						}
-
-
-
-
 
 					}
 

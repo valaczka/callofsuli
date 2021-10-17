@@ -6,10 +6,11 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-QPagePanel {
+QSimpleContainer {
 	id: panel
 
-	layoutFillWidth: true
+	isPanelVisible: false
+	maximumWidth: -1
 
 	title: qsTr("Küldetések")
 	icon: "qrc:/internal/img/battle.png"

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest package="hu.piarista.vjp.callofsuli.demo" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.98.24-demo" android:versionCode="18" android:installLocation="auto">
+<manifest package="hu.piarista.vjp.callofsuli" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.98.24-demo" android:versionCode="20" android:installLocation="auto">
 	<!-- The following comment will be replaced upon deployment with default permissions based on the dependencies of the application.
 		 Remove the comment if you do not require these default permissions. -->
 	<!-- %%INSERT_PERMISSIONS -->
@@ -10,7 +10,7 @@
 
 	<supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
 	<application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="Call of Suli" android:extractNativeLibs="true" android:icon="@drawable/icon">
-		<activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density" android:name="org.qtproject.qt5.android.bindings.QtActivity" android:label="Call of Suli" android:screenOrientation="unspecified" android:launchMode="singleTop">
+		<activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density" android:name="hu.piarista.vjp.callofsuli.ClientActivity" android:label="Call of Suli" android:screenOrientation="unspecified" android:launchMode="singleInstance" android:taskAffinity="">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN"/>
 				<category android:name="android.intent.category.LAUNCHER"/>
@@ -68,6 +68,12 @@
 				-->
 			<meta-data android:name="android.app.extract_android_style" android:value="minimal"/>
 			<!-- extract android style -->
+			<intent-filter>
+							<action android:name="android.intent.action.VIEW"/>
+							<category android:name="android.intent.category.DEFAULT"/>
+							<category android:name="android.intent.category.BROWSABLE"/>
+							<data android:scheme="callofsuli"/>
+						</intent-filter>
 		</activity>
 		<!-- For adding service(s) please check: https://wiki.qt.io/AndroidServices -->
 	</application>

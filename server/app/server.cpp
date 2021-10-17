@@ -40,10 +40,17 @@
 
 
 
+
+
+
+
 Server::Server(QObject *parent)
 	: QObject(parent)
 	, m_serverVersionMajor(_VERSION_MAJOR)
 	, m_serverVersionMinor(_VERSION_MINOR)
+	, m_serverDir()
+	, m_serverName()
+	, m_serverUuid()
 {
 	m_socketServer = nullptr;
 	m_serverDir = "";
@@ -267,7 +274,7 @@ bool Server::databaseLoad()
 	if (!m_statDb->open())
 		return false;
 
-	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName from system");
+	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName, serverUuid from system");
 
 	if (m.isEmpty()) {
 		qInfo().noquote() << tr("Az adatbázis üres, előkészítem.");
@@ -277,10 +284,15 @@ bool Server::databaseLoad()
 			return false;
 		}
 
+		setServerUuid(QUuid::createUuid().toString());
+		setServerName(tr("Call of Suli szerver"));
+
 		QVariantMap params;
 		params["versionMajor"] = m_serverVersionMajor;
 		params["versionMinor"] = m_serverVersionMinor;
-		params["serverName"] = tr("Call of Suli szerver");
+		params["serverName"] = m_serverName;
+		params["serverUuid"] = m_serverUuid;
+
 
 		if (m_db->execInsertQuery("INSERT INTO system(?k?) values (?)", params)==-1)
 			return false;
@@ -342,6 +354,7 @@ bool Server::databaseLoad()
 		if (!rankInit())
 			return false;
 	} else {
+		setServerUuid(m.value("serverUuid").toString());
 		setServerName(m.value("serverName").toString());
 		m_versionMajor = m.value("versionMajor").toInt();
 		m_versionMinor = m.value("versionMinor").toInt();
@@ -572,9 +585,11 @@ bool Server::websocketServerStart()
 	//connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
 	connect(m_socketServer, &QWebSocketServer::sslErrors, this, &Server::onSslErrors);
 
-	quint16 port = (m_port<=0) ? 10101 : quint16(m_port);
-	if (!m_socketServer->listen(m_host.isEmpty() ? QHostAddress::Any : QHostAddress(m_host), port))	{
-		qCritical().noquote() << QString(tr("Cannot listen on host %1 and port %2")).arg(m_host.toStdString().data()).arg(port);
+	if (m_port <= 0)
+		m_port = 10101;
+
+	if (!m_socketServer->listen(QHostAddress::Any, m_port))	{
+		qCritical().noquote() << QString(tr("Cannot listen on port %1")).arg(m_port);
 		return false;
 	}
 
@@ -591,10 +606,17 @@ bool Server::websocketServerStart()
 		qInfo().noquote() << QString("%1://%2:%3")
 							 .arg(m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "wss" : "ws")
 							 .arg(h.toString())
-							 .arg(port);
+							 .arg(m_port);
+
+		if (m_host.isEmpty()) {
+			m_host = h.toString();
+		}
+
 	}
 
 	qInfo().noquote() << tr("====================================================");
+
+	qInfo().noquote() << tr("Szerver hoszt: %1").arg(m_host);
 
 	quint32 udpPort = SERVER_UDP_PORT;
 
@@ -770,31 +792,26 @@ void Server::onDatagramReady()
 			continue;
 
 		if (m.cosClass() == CosMessage::ClassServerInfo && m.cosFunc() == "broadcast" && d.senderPort() != -1) {
-			foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
-				if (h.isGlobal()) {
-					QJsonObject o;
-					o["name"] = serverName();
-					o["host"] = h.toString();
-					o["port"] = m_socketServer->serverPort();
-					o["ssl"] = (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? true : false);
+			QJsonObject o;
+			o["name"] = serverName();
+			o["host"] = m_host;
+			o["port"] = m_port;
+			o["ssl"] = (m_socketServer->secureMode() == QWebSocketServer::SecureMode ? true : false);
 
-					CosMessage m(o, CosMessage::ClassServerInfo, "broadcastInfo");
+			CosMessage m(o, CosMessage::ClassServerInfo, "broadcastInfo");
 
-					QByteArray s;
-					QDataStream writeStream(&s, QIODevice::WriteOnly);
-					writeStream << m;
+			QByteArray s;
+			QDataStream writeStream(&s, QIODevice::WriteOnly);
+			writeStream << m;
 
-					m_udpSocket->writeDatagram(s,
-											   d.senderAddress().isNull() ? QHostAddress::Broadcast : d.senderAddress(),
-											   d.senderPort()
-											   );
+			m_udpSocket->writeDatagram(s,
+									   d.senderAddress().isNull() ? QHostAddress::Broadcast : d.senderAddress(),
+									   d.senderPort()
+									   );
 
-				}
-			}
 		}
 	}
 }
-
 
 
 
@@ -824,6 +841,15 @@ void Server::setResources(QVariantMap resources)
 
 	m_resources = resources;
 	emit resourcesChanged(m_resources);
+}
+
+void Server::setServerUuid(QString serverUuid)
+{
+	if (m_serverUuid == serverUuid)
+		return;
+
+	m_serverUuid = serverUuid;
+	emit serverUuidChanged(m_serverUuid);
 }
 
 

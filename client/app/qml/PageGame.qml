@@ -670,7 +670,7 @@ Page {
 			fontImageScale: 0.7
 
 			onClicked: {
-				var d = JS.dialogCreateQml("GameSound", {
+				var d = JS.dialogCreateQml("GameSettings", {
 											   volumeMusic: cosClient.volume(CosSound.MusicChannel),
 											   volumeSfx: cosClient.volume(CosSound.SfxChannel),
 											   volumeVoiceover: cosClient.volume(CosSound.VoiceoverChannel)

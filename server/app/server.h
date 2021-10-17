@@ -45,6 +45,7 @@ class Server : public QObject
 
 	Q_PROPERTY(QString serverDir READ serverDir WRITE setServerDir NOTIFY serverDirChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
+	Q_PROPERTY(QString serverUuid READ serverUuid WRITE setServerUuid NOTIFY serverUuidChanged)
 	Q_PROPERTY(CosDb * db READ db)
 	Q_PROPERTY(CosDb * mapsDb READ mapsDb)
 	Q_PROPERTY(CosDb * statDb READ statDb)
@@ -75,7 +76,7 @@ private:
 
 	QVariantMap m_resourceMap;
 	QVariantMap m_resources;
-
+	QString m_serverUuid;
 
 public:
 	explicit Server(QObject *parent = nullptr);
@@ -106,6 +107,10 @@ public:
 
 	bool isClientActive(const QString &username) const;
 
+	QString host() const { return m_host; }
+	int port() const { return m_port; }
+	QString serverUuid() const { return m_serverUuid; }
+
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);
 	void onNewConnection();
@@ -116,12 +121,14 @@ public slots:
 	void setServerDir(QString serverDir);
 	void setServerName(QString serverName);
 	void setResources(QVariantMap resources);
+	void setServerUuid(QString serverUuid);
 
 signals:
 	void serverDirChanged(QString serverDir);
 	void serverNameChanged(QString serverName);
 	void resourcesChanged(QVariantMap resources);
 	void serverInfoChanged();
+	void serverUuidChanged(QString serverUuid);
 };
 
 #endif // SERVER_H

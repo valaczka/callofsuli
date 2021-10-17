@@ -312,11 +312,16 @@ int VariantMapModel::getKey(int i) const
 
 
 /**
- * @brief VariantMapModel::getByKey
- * @param key
+ * @brief VariantMapModel::findKey
+ * @param field
+ * @param value
  * @return
  */
 
+int VariantMapModel::findKey(const QString &field, const QVariant &value) const
+{
+	return m_data->key(field, value);
+}
 
 
 

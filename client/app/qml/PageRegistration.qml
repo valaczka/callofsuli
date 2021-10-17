@@ -8,136 +8,143 @@ import "JScript.js" as JS
 
 
 
-QPage {
+QBasePage {
 	id: control
 
-	mainToolBar.title: qsTr("Regisztráció")
+	defaultTitle: qsTr("Regisztráció")
 
+	QStackComponent {
+		id: stackComponent
+		anchors.fill: parent
+		basePage: control
 
-	panelComponents: [
-		Component {
-			QPagePanel {
-				id: panel
+		//requiredWidth: 500
 
-				title: qsTr("Regisztráció")
-				icon: CosStyle.iconRegistration
-				maximumWidth: 600
-				layoutFillWidth: true
+		//headerContent: QLabel {	}
 
-				QGridLayoutFlickable {
-					id: grid
+		initialItem: QSimpleContainer {
+			id: panel
 
-					property bool domainMode: cosClient.registrationDomains.length
+			title: qsTr("Regisztráció")
+			icon: CosStyle.iconRegistration
+			maximumWidth: 600
 
-					watchModification: false
+			QGridLayoutFlickable {
+				id: grid
 
-					onAccepted: buttonRegistration.press()
+				property bool domainMode: cosClient.registrationDomains.length
 
-					QGridLabel {
-						field: textEmail
-						visible: !grid.domainMode
-					}
+				watchModification: false
 
-					QGridTextField {
-						id: textEmail
-						fieldName: qsTr("E-mail cím")
+				onAccepted: buttonRegistration.press()
 
-						visible: !grid.domainMode
-
-						validator: RegExpValidator { regExp: /^(.+@..+\...+)$/ }
-					}
-
-					QGridLabel {
-						field: textEmail2
-						visible: grid.domainMode
-						forcedText: qsTr("E-mail cím")
-					}
-
-					QGridTextFieldCombo {
-						id: textEmail2
-
-						visible: grid.domainMode
-
-						textField.validator: RegExpValidator { regExp: /[^@]+/ }
-
-						comboBox.model: cosClient.registrationDomains
-					}
-
-					QGridLabel { field: textFirstname }
-
-					QGridTextField {
-						id: textFirstname
-						fieldName: qsTr("Vezetéknév")
-
-						validator: RegExpValidator { regExp: /.+/ }
-					}
-
-					QGridLabel { field: textLastname }
-
-					QGridTextField {
-						id: textLastname
-						fieldName: qsTr("Keresztnév")
-
-						validator: RegExpValidator { regExp: /.+/ }
-					}
-
-					QGridText {
-						field: comboClass
-						text: qsTr("Osztály:")
-						visible: comboClass.visible
-					}
-
-					QGridComboBox {
-						id: comboClass
-						sqlField: "classid"
-
-						visible: cosClient.registrationClasses.length
-
-						valueRole: "classid"
-						textRole: "classname"
-
-						model: cosClient.registrationClasses
-					}
-
-					QGridButton {
-						id: buttonRegistration
-						text: qsTr("Regisztráció")
-						enabled: (grid.domainMode || textEmail.acceptableInput) &&
-								 (!grid.domainMode || textEmail2.textField.acceptableInput) &&
-								 textFirstname.acceptableInput &&
-								 textLastname.acceptableInput
-
-						onClicked: {
-							cosClient.socketSend(CosMessage.ClassUserInfo, "registrationRequest",
-												 {
-													 "email": (grid.domainMode ? textEmail2.text : textEmail.text),
-													 "firstname": textFirstname.text,
-													 "lastname": textLastname.text,
-													 "classid": comboClass.visible ? comboClass.sqlData : -1
-												 })
-						}
-					}
+				QGridLabel {
+					field: textEmail
+					visible: !grid.domainMode
 				}
 
+				QGridTextField {
+					id: textEmail
+					fieldName: qsTr("E-mail cím")
 
-				Connections {
-					target: cosClient
+					visible: !grid.domainMode
 
-					function onRegistrationRequestSuccess() {
-						cosClient.sendMessageInfo(qsTr("Regisztráció"), qsTr("A regisztráció aktiválásához az ideiglenes jelszót elküldtük a megadott email címre."))
-						mainStack.back()
-					}
-
-					function onRegistrationRequestFailed(errorString) {
-						cosClient.sendMessageError(qsTr("Sikertelen regisztráció"), errorString)
-					}
+					validator: RegExpValidator { regExp: /^(.+@..+\...+)$/ }
 				}
 
-				onPopulated: grid.domainMode ? textEmail2.forceActiveFocus() : textEmail.forceActiveFocus()
+				QGridLabel {
+					field: textEmail2
+					visible: grid.domainMode
+					forcedText: qsTr("E-mail cím")
+				}
+
+				QGridTextFieldCombo {
+					id: textEmail2
+
+					visible: grid.domainMode
+
+					textField.validator: RegExpValidator { regExp: /[^@]+/ }
+
+					comboBox.model: cosClient.registrationDomains
+				}
+
+				QGridLabel { field: textFirstname }
+
+				QGridTextField {
+					id: textFirstname
+					fieldName: qsTr("Vezetéknév")
+
+					validator: RegExpValidator { regExp: /.+/ }
+				}
+
+				QGridLabel { field: textLastname }
+
+				QGridTextField {
+					id: textLastname
+					fieldName: qsTr("Keresztnév")
+
+					validator: RegExpValidator { regExp: /.+/ }
+				}
+
+				QGridText {
+					field: comboClass
+					text: qsTr("Osztály:")
+					visible: comboClass.visible
+				}
+
+				QGridComboBox {
+					id: comboClass
+					sqlField: "classid"
+
+					visible: cosClient.registrationClasses.length
+
+					valueRole: "classid"
+					textRole: "classname"
+
+					model: cosClient.registrationClasses
+				}
+
+				QGridButton {
+					id: buttonRegistration
+					text: qsTr("Regisztráció")
+					enabled: (grid.domainMode || textEmail.acceptableInput) &&
+							 (!grid.domainMode || textEmail2.textField.acceptableInput) &&
+							 textFirstname.acceptableInput &&
+							 textLastname.acceptableInput
+
+					onClicked: {
+						grid.enabled = false
+						cosClient.socketSend(CosMessage.ClassUserInfo, "registrationRequest",
+											 {
+												 "email": (grid.domainMode ? textEmail2.text : textEmail.text),
+												 "firstname": textFirstname.text,
+												 "lastname": textLastname.text,
+												 "classid": comboClass.visible ? comboClass.sqlData : -1
+											 })
+					}
+				}
 			}
-		}
-	]
 
+
+			Connections {
+				target: cosClient
+
+				function onRegistrationRequestSuccess() {
+					cosClient.sendMessageInfo(qsTr("Regisztráció"), qsTr("A regisztráció aktiválásához az ideiglenes jelszót elküldtük a megadott email címre."))
+					mainStack.back()
+				}
+
+				function onRegistrationRequestFailed(errorString) {
+					grid.enabled = true
+					cosClient.sendMessageError(qsTr("Sikertelen regisztráció"), errorString)
+				}
+			}
+
+			onPopulated: grid.domainMode ? textEmail2.forceActiveFocus() : textEmail.forceActiveFocus()
+		}
+
+
+	}
 
 
 	function windowClose() {
@@ -145,10 +152,12 @@ QPage {
 	}
 
 	function pageStackBack() {
+		if (stackComponent.layoutBack())
+			return true
+
 		return false
 	}
 }
-
 
 
 

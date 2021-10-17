@@ -3,7 +3,8 @@
 - Bacon2D - 2D Game Engine for QML (https://github.com/Bacon2D/Bacon2D)
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - SMTP Client for Qt - (c) 2011 - Tőkés Attila (https://github.com/bluetiger9/SmtpClient-for-Qt)
-- SortFilterProxyModel - (c) 2016 - Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
+- SortFilterProxyModel - (c) 2016 - Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel
+- QSingleInstance - (c) 2015 - Felix Barz (https://github.com/Skycoder42/QSingleInstance)
 
 **Image**
 

@@ -8,82 +8,93 @@ import "JScript.js" as JS
 
 
 
-QPage {
+
+
+QBasePage {
 	id: control
 
-	mainToolBar.title: cosClient.serverName
+	defaultTitle: cosClient.serverName
+	defaultSubTitle: qsTr("Bejelentkezés")
 
-	panelComponents: [
-		Component {
-			QPagePanel {
-				id: panel
 
-				title: qsTr("Bejelentkezés")
-				icon: CosStyle.iconLogin
-				maximumWidth: 600
-				layoutFillWidth: true
+	QStackComponent {
+		id: stackComponent
+		anchors.fill: parent
+		basePage: control
 
-				QGridLayoutFlickable {
-					id: grid
+		//requiredWidth: 500
 
-					//enabled: !page.isBusy
-					watchModification: false
+		//headerContent: QLabel {	}
 
-					onAccepted: buttonLogin.press()
+		initialItem: QSimpleContainer {
+			id: panel
 
-					QGridLabel { field: textUser }
+			title: qsTr("Bejelentkezés")
+			icon: CosStyle.iconLogin
+			maximumWidth: 600
 
-					QGridTextField {
-						id: textUser
-						fieldName: qsTr("Felhasználónév")
+			QGridLayoutFlickable {
+				id: grid
 
-						validator: RegExpValidator { regExp: /.+/ }
-					}
+				//enabled: !page.isBusy
+				watchModification: false
 
-					QGridLabel { field: textPassword }
+				onAccepted: buttonLogin.press()
 
-					QGridTextField {
-						id: textPassword
-						fieldName: qsTr("Jelszó")
-						echoMode: TextInput.Password
+				QGridLabel { field: textUser }
 
-					}
+				QGridTextField {
+					id: textUser
+					fieldName: qsTr("Felhasználónév")
 
-					QGridButton {
-						id: buttonLogin
-						text: qsTr("Bejelentkezés")
-						icon.source: CosStyle.iconLogin
-						enabled: textUser.acceptableInput &&
-								 textPassword.acceptableInput
+					validator: RegExpValidator { regExp: /.+/ }
+				}
 
-						onClicked: {
-							cosClient.login(textUser.text, "", textPassword.text)
-						}
-					}
+				QGridLabel { field: textPassword }
 
-					QGridButton {
-						id: buttonForgot
-						text: qsTr("Elfelejtettem a jelszavam")
+				QGridTextField {
+					id: textPassword
+					fieldName: qsTr("Jelszó")
+					echoMode: TextInput.Password
 
-						enabled: cosClient.passwordResetEnabled
-						visible: cosClient.passwordResetEnabled
+				}
 
-						onClicked: JS.createPage("PasswordRequest", {})
+				QGridButton {
+					id: buttonLogin
+					text: qsTr("Bejelentkezés")
+					icon.source: CosStyle.iconLogin
+					enabled: textUser.acceptableInput &&
+							 textPassword.acceptableInput
+
+					onClicked: {
+						cosClient.login(textUser.text, "", textPassword.text)
 					}
 				}
 
-				Connections {
-					target: control
-					function onPageActivated() {
-						textUser.forceActiveFocus()
-					}
-				}
+				QGridButton {
+					id: buttonForgot
+					text: qsTr("Elfelejtettem a jelszavam")
 
-				onPopulated: textUser.forceActiveFocus()
+					enabled: cosClient.passwordResetEnabled
+					visible: cosClient.passwordResetEnabled
+
+					onClicked: JS.createPage("PasswordRequest", {})
+				}
 			}
-		}
-	]
 
+			Connections {
+				target: control
+				function onPageActivated() {
+					textUser.forceActiveFocus()
+				}
+			}
+
+			onPopulated: textUser.forceActiveFocus()
+
+		}
+
+
+	}
 
 
 	function windowClose() {
@@ -91,6 +102,9 @@ QPage {
 	}
 
 	function pageStackBack() {
+		if (stackComponent.layoutBack())
+			return true
+
 		return false
 	}
 }

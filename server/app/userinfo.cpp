@@ -53,9 +53,10 @@ UserInfo::UserInfo(Client *client, const CosMessage &message)
 bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 {
 	(*jsonResponse)["serverName"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverName from system").value("serverName"));
-	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
+	(*jsonResponse)["serverUuid"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverUuid from system").value("serverUuid"));
+	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, '0') as v "
 																											"FROM settings WHERE key='email.passwordReset'")
-																	  .value("v"));
+																	  .value("v", false).toBool());
 
 
 	bool autoRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.auto'")
@@ -347,57 +348,6 @@ bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 
 
 /**
- * @brief UserInfo::registerUser
- * @param jsonResponse
- * @return
- */
-
-bool UserInfo::registerUser(QJsonObject *jsonResponse, QByteArray *)
-{
-	QString email = m_message.jsonData().value("email").toString();
-	QString password = m_message.jsonData().value("password").toString();
-
-	QVariantMap m;
-
-	QVariantList l;
-	l << email;
-	l << password;
-	m = m_client->db()->execSelectQueryOneRow("SELECT firstname, lastname, classid FROM registration WHERE email=? and code=?", l);
-	if (m.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid email or code";
-		return false;
-	}
-
-
-	QJsonObject obj;
-	obj["username"] = email;
-	obj["firstname"] = m.value("firstname").toString();
-	obj["lastname"] = m.value("lastname").toString();
-	obj["active"] = true;
-
-	int classid = m.value("classid", -1).toInt();
-	if (classid != -1) {
-		obj["classid"] = classid;
-	}
-
-	CosMessage m2(obj, CosMessage::ClassInvalid, "");
-
-	QJsonObject ret;
-	Admin u(m_client, m2);
-	bool isSuccess = u.userCreate(&ret, nullptr);
-
-	if (isSuccess) {
-		m_client->db()->execSimpleQuery("DELETE FROM registration WHERE email=? AND code=?", l);
-		(*jsonResponse)["createdUserName"] = ret.value("createdUserName").toString();
-		return true;
-	} else {
-		setServerError();
-		return false;
-	}
-}
-
-
-/**
  * @brief UserInfo::getResources
  * @param jsonResponse
  * @return
@@ -529,36 +479,67 @@ bool UserInfo::getMyGroups(QJsonObject *jsonResponse, QByteArray *)
 bool UserInfo::emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
 {
 	SmtpClient smtp;
-	QString serverName;
+	QString serverName = m_client->server()->serverName();
 	QString serverEmail;
 
-	if (!m_client->emailSmptClient("registration", &smtp, &serverName, &serverEmail))
+	if (!m_client->emailSmptClient("registration", &smtp, &serverEmail))
 		return false;
+
+	QUrl url;
+	url.setHost(m_client->server()->host());
+	url.setPort(m_client->server()->port());
+	url.setScheme("callofsuli");
+
+	QString path = "";
+	if (m_client->server()->socketServer()->secureMode() == QWebSocketServer::SecureMode)
+		path += "/ssl";
+
+	path += "/register";
+
+	QUrlQuery query;
+	if (!serverName.isEmpty())
+		query.addQueryItem("name", QUrl::toPercentEncoding(serverName));
+
+	query.addQueryItem("server", QUrl::toPercentEncoding(m_client->server()->serverUuid()));
+	query.addQueryItem("user", QUrl::toPercentEncoding(email.trimmed()));
+	query.addQueryItem("code", QUrl::toPercentEncoding(code));
+
+
+	url.setPath(path);
+	url.setQuery(query);
 
 
 	MimeMessage message;
 
 	message.setSender(new EmailAddress(serverEmail, serverName));
-	message.addRecipient(new EmailAddress(email, firstname+" "+lastname));
+	message.addRecipient(new EmailAddress(email.trimmed(), QStringList({firstname, lastname}).join(" ")));
 	message.setSubject(tr("Call of Suli regisztráció"));
 
-	MimeText text;
 
-	text.setText(QString("Kedves %1!\n\n"
-						 "A(z) %2 szerverre a(z) %3 címmel regisztráltál.\n"
-						 "A regisztráció aktiválásához jelentkezz be a következő ideiglenes jelszóval:\n\n"
-						 "%4\n\n"
-						 "Call of Suli")
+	MimeHtml html;
+
+	html.setHtml(tr("<h2>Kedves %1!</h2>"
+						 "<p>A(z) %2 szerverre a(z) %3 címmel regisztráltál.</p>"
+						 "<p>A regisztráció aktiválásához kattints a következő linkre: <a href=\"%4\">%4</a></p>"
+						 "<p>Ha nem működik, akkor jelentkezz be a következő ideiglenes jelszóval:</p>"
+						 "<h2>%5</h2>"
+						 "<hr />"
+						 "<p><i>%2</i><br/>"
+						 "Call of Suli</p>")
 				 .arg(lastname)
 				 .arg(serverName)
-				 .arg(email)
+				 .arg(email.trimmed())
+				 .arg(url.toString(QUrl::FullyEncoded))
 				 .arg(code)
 				 );
 
-	message.addPart(&text);
+	message.addPart(&html);
 
-	smtp.sendMail(message);
+	bool ret = smtp.sendMail(message);
 	smtp.quit();
+
+	if (!ret)
+		return false;
 
 	qInfo().noquote() << tr("Regisztrációs kód elküldve: ") << email;
 

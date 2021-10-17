@@ -3,7 +3,8 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE system(
 	versionMajor INTEGER,
 	versionMinor INTEGER,
-	serverName TEXT
+	serverName TEXT,
+	serverUuid TEXT
 );
 
 CREATE TABLE settings(

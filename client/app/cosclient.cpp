@@ -25,6 +25,7 @@
  */
 
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QStandardPaths>
 #include <QDir>
 #include <QResource>
@@ -33,6 +34,7 @@
 #include <QMediaPlaylist>
 #include <QDesktopServices>
 #include <QPluginLoader>
+#include <QClipboard>
 
 #include "../../version/buildnumber.h"
 #include "cosmessage.h"
@@ -62,6 +64,7 @@
 #include "studentmaps.h"
 #include "profile.h"
 #include "abstractactivity.h"
+#include "androidshareutils.h"
 
 
 #ifdef Q_OS_ANDROID
@@ -111,6 +114,13 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_registrationClasses = QVariantList();
 
 	m_sslErrorSignalHandlerConnected = false;
+	m_forcedLandscape = false;
+	m_positionalArgumentsToProcess = QStringList();
+	m_serverUuid = "";
+
+#ifndef Q_OS_ANDROID
+	m_singleInstance = nullptr;
+#endif
 
 	m_clientSound = new CosSound();
 	m_clientSound->moveToThread(&m_workerThread);
@@ -129,7 +139,6 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
 	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
-
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
 	m_timer->start(5000);
@@ -260,6 +269,9 @@ bool Client::commandLineParse(QCoreApplication &app)
 
 		return false;
 	}
+
+
+	m_positionalArgumentsToProcess = parser.positionalArguments();
 
 	return true;
 }
@@ -438,6 +450,50 @@ int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscr
 void Client::windowSetIcon(QQuickWindow *window)
 {
 	window->setIcon(QIcon(":/internal/img/cos96.png"));
+}
+
+
+/**
+ * @brief Client::textToClipboard
+ * @param text
+ */
+
+void Client::textToClipboard(const QString &text) const
+{
+	QClipboard *clipboard = QGuiApplication::clipboard();
+	clipboard->setText(text);
+}
+
+
+/**
+ * @brief Client::connectionInfoToClipboard
+ */
+
+QString Client::connectionInfo(const QUrl::FormattingOptions &format) const
+{
+	if (m_connectionState == Client::Standby)
+		return "";
+
+	QUrl url;
+	url.setHost(m_socket->requestUrl().host());
+	url.setPort(m_socket->requestUrl().port());
+	url.setScheme("callofsuli");
+
+	QString path = "";
+	if (m_socket->requestUrl().scheme() == "wss")
+		path += "/ssl";
+
+	path += "/connect";
+
+	QUrlQuery query;
+	if (!m_serverName.isEmpty())
+		query.addQueryItem("name", m_serverName);
+
+
+	url.setPath(path);
+	url.setQuery(query);
+
+	return url.toString(format);
 }
 
 
@@ -839,6 +895,19 @@ QVariantMap Client::terrainMap()
 }
 
 
+/**
+ * @brief Client::takePositionalArgumentsToProcess
+ * @return
+ */
+
+QStringList Client::takePositionalArgumentsToProcess()
+{
+	QStringList l = m_positionalArgumentsToProcess;
+	m_positionalArgumentsToProcess.clear();
+	return l;
+}
+
+
 
 
 
@@ -952,6 +1021,24 @@ void Client::setSfxVolumeInt(int sfxVolume)
 	setSfxVolume(r);
 }
 
+void Client::setForcedLandscape(bool forcedLandscape)
+{
+	if (m_forcedLandscape == forcedLandscape)
+		return;
+
+	m_forcedLandscape = forcedLandscape;
+	emit forcedLandscapeChanged(m_forcedLandscape);
+}
+
+void Client::setServerUuid(QString serverUuid)
+{
+	if (m_serverUuid == serverUuid)
+		return;
+
+	m_serverUuid = serverUuid;
+	emit serverUuidChanged(m_serverUuid);
+}
+
 
 #ifdef Q_OS_ANDROID
 
@@ -963,11 +1050,11 @@ void Client::forceLandscape()
 {
 	m_screenOrientationRequest = QtAndroid::androidActivity().callMethod<jint>("getRequestedOrientation");
 
-	qDebug() << "REQ" << m_screenOrientationRequest;
-
 	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
 												  "(I)V",
 												  FLAG_SCREEN_ORIENTATION_LANDSCAPE);
+
+	setForcedLandscape(true);
 }
 #endif
 
@@ -983,6 +1070,8 @@ void Client::resetLandscape()
 	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
 												  "(I)V",
 												  m_screenOrientationRequest);
+
+	setForcedLandscape(false);
 }
 #endif
 
@@ -1392,18 +1481,17 @@ void Client::passwordRequest(const QString &email, const QString &code)
 		return;
 
 	QJsonObject d;
-	d["username"] = email;
+	d["user"] = email;
 	if (!code.isEmpty()) {
 		d["code"] = code;
 	}
 
 	d["passwordRequest"] = true;
 
-	QJsonObject	d2 {
-		{"auth", d}
-	};
+	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
 
-	//socketSend(d2);
+	m.setJsonAuth(d);
+	m.send(m_socket);
 }
 
 
@@ -1529,6 +1617,7 @@ void Client::performUserInfo(const CosMessage &message)
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
+			setServerUuid(d.value("serverUuid").toString());
 			setRegistrationEnabled(d.value("registrationEnabled").toBool());
 			setPasswordResetEnabled(d.value("passwordResetEnabled").toBool(false));
 			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
@@ -1573,10 +1662,10 @@ void Client::performUserInfo(const CosMessage &message)
  * @param message
  */
 
-void Client::performError(const CosMessage &message)
+bool Client::checkError(const CosMessage &message)
 {
 	if (!message.hasError())
-		return;
+		return false;
 
 	CosMessage::CosMessageServerError serverError = message.serverError();
 	CosMessage::CosMessageError error = message.messageError();
@@ -1584,91 +1673,104 @@ void Client::performError(const CosMessage &message)
 	switch (serverError) {
 		case CosMessage::ServerInternalError:
 			sendMessageError(tr("Belső szerver hiba"), message.serverErrorDetails());
-			return;
 			break;
 		case CosMessage::ServerSmtpError:
 			sendMessageError(tr("SMTP hiba"), message.serverErrorDetails());
-			return;
 			break;
 		case CosMessage::ServerNoError:
 			break;
 	}
 
+	if (serverError != CosMessage::ServerNoError)
+		return true;
+
 	switch (error) {
 		case CosMessage::BadMessageFormat:
 			sendMessageError(tr("Belső hiba"), tr("Hibás üzenetformátum"));
-			return;
 			break;
 		case CosMessage::MessageTooOld:
 			sendMessageError(tr("Belső hiba"), tr("Elavult kliens"));
-			return;
 			break;
 		case CosMessage::MessageTooNew:
 			sendMessageError(tr("Belső hiba"), tr("Elavult szerver"));
-			return;
 			break;
 		case CosMessage::InvalidMessageType:
 			sendMessageError(tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
-			return;
 			break;
 		case CosMessage::PasswordRequestMissingEmail:
 			sendMessageError(tr("Elfelejtett jelszó"), tr("Nincs megadva email cím!"));
-			return;
+			emit resetPasswordFailed();
 			break;
 		case CosMessage::PasswordRequestInvalidEmail:
 			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen email cím!"));
-			return;
+			emit resetPasswordFailed();
 			break;
 		case CosMessage::PasswordRequestInvalidCode:
 			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen aktivációs kód!"));
-			return;
+			emit resetPasswordFailed();
 			break;
 		case CosMessage::PasswordRequestCodeSent:
 			sendMessageInfo(tr("Elfelejtett jelszó"), tr("Az aktivációs kód a megadot email címre elküldve"));
-			return;
+			emit resetPasswordEmailSent();
 			break;
 		case CosMessage::PasswordRequestSuccess:
-			emit authPasswordResetSuccess();
-			return;
+			emit resetPasswordSuccess();
 			break;
 		case CosMessage::InvalidSession:
 			sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
 			setSessionToken("");
 			setUserName("");
 			emit authInvalid();
-			return;
 			break;
 		case CosMessage::InvalidUser:
 			sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
 			setSessionToken("");
 			setUserName("");
 			emit authInvalid();
-			return;
 			break;
 		case CosMessage::PasswordResetRequired:
-			sendMessageWarning(tr("Bejelentkezés"), tr("A jelszó alaphelyzetben van. Adj meg egy új jelszót!"));
 			setSessionToken("");
 			emit authRequirePasswordReset();
-			return;
 			break;
 		case CosMessage::InvalidClass:
 		case CosMessage::InvalidFunction:
 			sendMessageError(tr("Belső hiba"), tr("Érvénytelen kérés"));
-			return;
 			break;
 		case CosMessage::ClassPermissionDenied:
 			sendMessageError(tr("Belső hiba"), tr("Hozzáférés megtagadva"));
-			return;
 			break;
 		case CosMessage::NoBinaryData:
 		case CosMessage::OtherError:
+			sendMessageError(tr("Belső hiba"), message.serverErrorDetails());
+			break;
 		case CosMessage::NoError:
 			break;
 	}
+
+	if (error != CosMessage::NoError)
+		return true;
+
+	return false;
 }
 
 
 
+#ifndef Q_OS_ANDROID
+
+/**
+ * @brief Client::setSingleInstance
+ * @param singleInstance
+ */
+
+void Client::setSingleInstance(QSingleInstance *singleInstance)
+{
+	m_singleInstance = singleInstance;
+
+	if (m_singleInstance)
+		connect(m_singleInstance, &QSingleInstance::instanceMessage, this, &Client::urlsToProcessReady);
+}
+
+#endif
 
 
 
@@ -1868,14 +1970,12 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
 	CosMessage m(message);
 
+	if (checkError(m))
+		return;
+
 	performUserInfo(m);
 
-	if (m.valid()) {
-		emit messageReceived(message);
-		return;
-	}
-
-	performError(m);
+	emit messageReceived(message);
 }
 
 
