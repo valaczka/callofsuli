@@ -61,6 +61,7 @@ public slots:
 
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);
+	bool userPasswordChange(QJsonObject *jsonResponse, QByteArray *);
 
 private:
 	GameMap::SolverInfo missionSolverInfo(const QString &mapid, const QString &missionid) const;

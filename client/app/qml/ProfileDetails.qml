@@ -17,23 +17,22 @@ QSwipeContainer {
 	property real detailsSize: CosStyle.pixelSize*2.2
 	property int detailsFontWeight: Font.Light
 
-	property alias flickable: flickable
+	property int fieldNameWidth: Math.min(width*0.4, 350)
 
-	QGridLayoutFlickable {
-		id: flickable
+	property bool modificationEnabled: false
+	readonly property bool acceptable: layout1.acceptable && layout2.acceptable && layout3.acceptable
+	readonly property bool modified: layout1.modified || layout2.modified || layout3.modified
+
+	signal accepted()
+
+	QAccordion {
+		id: accordion
+
 		visible: false
-
-		watchModification: true
-
-		acceptable: (!textFirstname.enabled || textFirstname.acceptableInput)
-					&& (!textLastname.enabled || textLastname.acceptableInput)
-					&& textNickname.acceptableInput
 
 		Column {
 			id: col
-
-			Layout.columnSpan: parent.columns
-			Layout.fillWidth: true
+			width: parent.width
 
 			spacing: 10
 
@@ -88,177 +87,261 @@ QSwipeContainer {
 
 		}
 
-		QGridLabel { field: textFirstname }
 
-		QGridTextField {
-			id: textFirstname
-			fieldName: qsTr("Vezetéknév")
-			sqlField: "firstname"
-			placeholderText: qsTr("Adj meg vezetéknevet")
 
-			validator: RegExpValidator { regExp: /.+/ }
-		}
+		QCollapsible {
+			title: qsTr("Alapadatok")
 
-		QGridLabel { field: textLastname }
+			QGridLayout {
+				id: layout1
 
-		QGridTextField {
-			id: textLastname
-			fieldName: qsTr("Keresztnév")
-			sqlField: "lastname"
-			placeholderText: qsTr("Adj meg keresztnevet")
+				watchModification: true
 
-			validator: RegExpValidator { regExp: /.+/ }
-		}
+				acceptable: (!textFirstname.enabled || textFirstname.acceptableInput)
+							&& (!textLastname.enabled || textLastname.acceptableInput)
+							&& textNickname.acceptableInput
 
-		QGridLabel { field: textNickname }
+				onAccepted: control.accepted()
 
-		QGridTextField {
-			id: textNickname
-			fieldName: qsTr("Becenév")
-			sqlField: "nickname"
-			placeholderText: qsTr("Adj meg becenevet")
-		}
+				QGridText {
+					Layout.minimumWidth: fieldNameWidth
+					text: qsTr("Felhasználó")
+				}
 
-		QGridText { text: qsTr("Karakter") }
+				QGridTextField {
+					readOnly: true
+					text: cosClient.userName
+				}
 
-		QGridImageSpinBox {
-			id: spinCharacter
-			from: 0
-			to: profile.characterList.length-1
-			sqlField: "character"
-			sqlData: profile.characterList[value].dir
+				QGridLabel {
+					field: textFirstname
+				}
 
-			imageSize: CosStyle.pixelSize*3
+				QGridTextField {
+					id: textFirstname
+					fieldName: qsTr("Vezetéknév")
+					sqlField: "firstname"
+					placeholderText: qsTr("Adj meg vezetéknevet")
+					readOnly: !modificationEnabled
 
-			textFromValue: function(value) {
-				return profile.characterList[value].name
+					validator: RegExpValidator { regExp: /.+/ }
+				}
+
+				QGridLabel { field: textLastname }
+
+				QGridTextField {
+					id: textLastname
+					fieldName: qsTr("Keresztnév")
+					sqlField: "lastname"
+					placeholderText: qsTr("Adj meg keresztnevet")
+					readOnly: !modificationEnabled
+
+					validator: RegExpValidator { regExp: /.+/ }
+				}
+
+				QGridLabel { field: textNickname }
+
+				QGridTextField {
+					id: textNickname
+					fieldName: qsTr("Becenév")
+					sqlField: "nickname"
+					placeholderText: qsTr("Adj meg becenevet")
+					readOnly: !modificationEnabled
+				}
+
+
+				QGridButton {
+					id: buttonPassword
+					text: qsTr("Jelszó változtatás")
+					icon.source: CosStyle.iconEdit
+					display: AbstractButton.TextBesideIcon
+
+					onClicked: {
+						var d = JS.dialogCreateQml("PasswordChange", { username: cosClient.userName })
+
+						d.accepted.connect(function(data) {
+							if (data === 1) {
+								var pwd = d.item.password
+								var opwd = d.item.oldPassword
+								profile.send("userPasswordChange", {oldPassword: opwd, password: pwd})
+							}
+						})
+						d.open()
+					}
+				}
+
 			}
-
-			imageFromValue: function(value) {
-				return "qrc:/character/%1/thumbnail.png".arg(profile.characterList[value].dir)
-			}
-
-			function setData(t) {
-				value = profile.findCharacter(t)
-				modified = false
-			}
-
 		}
 
+		QCollapsible {
+			title: qsTr("Játék beállításai")
 
-		QGridText { text: qsTr("XP") }
+			QGridLayout {
+				id: layout2
+				watchModification: true
 
-		QGridText {
-			id: labelXP
-			sqlField: "xp"
-			font.weight: detailsFontWeight
-			color: detailsColor
-			font.pixelSize: detailsSize
-			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-			leftPadding: parent.columns > 1 ? 10 : 0
+				onAccepted: control.accepted()
 
-			function setData(t) {
-				text = "%1 XP".arg(Number(t).toLocaleString())
-			}
-		}
+				QGridText {
+					Layout.minimumWidth: fieldNameWidth
+					text: qsTr("Karakter")
+				}
 
-		QGridText { text: qsTr("Streak") }
+				QGridImageSpinBox {
+					id: spinCharacter
+					from: 0
+					to: profile.characterList.length-1
+					sqlField: "character"
+					sqlData: profile.characterList[value].dir
 
-		QGridText {
-			id: labelStreak
-			sqlField: "currentStreak"
-			font.weight: detailsFontWeight
-			color: detailsColor
-			font.pixelSize: detailsSize
-			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-			leftPadding: parent.columns > 1 ? 10 : 0
-		}
+					enabled: modificationEnabled
 
-		QGridText { text: qsTr("Leghosszabb streak") }
+					imageSize: CosStyle.pixelSize*3
 
-		QGridText {
-			id: labelLongestStreak
-			sqlField: "longestStreak"
-			font.weight: detailsFontWeight
-			color: detailsColor
-			font.pixelSize: detailsSize
-			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-			leftPadding: parent.columns > 1 ? 10 : 0
-		}
+					textFromValue: function(value) {
+						return profile.characterList[value].name
+					}
 
-		QGridText { text: qsTr("Megszerzett trófeák") }
+					imageFromValue: function(value) {
+						return "qrc:/character/%1/thumbnail.png".arg(profile.characterList[value].dir)
+					}
 
-		Flow {
-			id: gridTrophy
+					function setData(t) {
+						value = profile.findCharacter(t)
+						modified = false
+					}
 
-			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-			Layout.fillWidth: true
-			Layout.bottomMargin: parent.columns === 1 ? 10 : 0
-
-			spacing: 5
-
-			property real imageSize: CosStyle.pixelSize*2.5
-
-			Repeater {
-				id: gridRepeaterT1
-				Image {
-					source: "qrc:/internal/trophy/trophyt1.png"
-					width: gridTrophy.imageSize
-					height: gridTrophy.imageSize
-					fillMode: Image.PreserveAspectFit
 				}
 			}
+		}
 
-			Repeater {
-				id: gridRepeaterD1
-				Image {
-					source: "qrc:/internal/trophy/trophyd1.png"
-					width: gridTrophy.imageSize
-					height: gridTrophy.imageSize
-					fillMode: Image.PreserveAspectFit
+
+		QCollapsible {
+			title: qsTr("Eredmények")
+
+			QGridLayout {
+				id: layout3
+
+				onAccepted: control.accepted()
+
+				QGridText {
+					Layout.minimumWidth: fieldNameWidth
+					text: qsTr("XP")
+				}
+
+				QGridText {
+					id: labelXP
+					sqlField: "xp"
+					font.weight: detailsFontWeight
+					color: detailsColor
+					font.pixelSize: detailsSize
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+					leftPadding: parent.columns > 1 ? 10 : 0
+
+					function setData(t) {
+						text = "%1 XP".arg(Number(t).toLocaleString())
+					}
+				}
+
+				QGridText { text: qsTr("Streak") }
+
+				QGridText {
+					id: labelStreak
+					sqlField: "currentStreak"
+					font.weight: detailsFontWeight
+					color: detailsColor
+					font.pixelSize: detailsSize
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+					leftPadding: parent.columns > 1 ? 10 : 0
+				}
+
+				QGridText { text: qsTr("Leghosszabb streak") }
+
+				QGridText {
+					id: labelLongestStreak
+					sqlField: "longestStreak"
+					font.weight: detailsFontWeight
+					color: detailsColor
+					font.pixelSize: detailsSize
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+					leftPadding: parent.columns > 1 ? 10 : 0
+				}
+
+				QGridText { text: qsTr("Megszerzett trófeák") }
+
+				Flow {
+					id: gridTrophy
+
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+					Layout.fillWidth: true
+					Layout.bottomMargin: parent.columns === 1 ? 10 : 0
+
+					spacing: 5
+
+					property real imageSize: CosStyle.pixelSize*2.5
+
+					Repeater {
+						id: gridRepeaterT1
+						Image {
+							source: "qrc:/internal/trophy/trophyt1.png"
+							width: gridTrophy.imageSize
+							height: gridTrophy.imageSize
+							fillMode: Image.PreserveAspectFit
+						}
+					}
+
+					Repeater {
+						id: gridRepeaterD1
+						Image {
+							source: "qrc:/internal/trophy/trophyd1.png"
+							width: gridTrophy.imageSize
+							height: gridTrophy.imageSize
+							fillMode: Image.PreserveAspectFit
+						}
+					}
+
+					Repeater {
+						id: gridRepeaterT2
+						Image {
+							source: "qrc:/internal/trophy/trophyt2.png"
+							width: gridTrophy.imageSize
+							height: gridTrophy.imageSize
+							fillMode: Image.PreserveAspectFit
+						}
+					}
+
+					Repeater {
+						id: gridRepeaterD2
+						Image {
+							source: "qrc:/internal/trophy/trophyd2.png"
+							width: gridTrophy.imageSize
+							height: gridTrophy.imageSize
+							fillMode: Image.PreserveAspectFit
+						}
+					}
+
+					Repeater {
+						id: gridRepeaterT3
+						Image {
+							source: "qrc:/internal/trophy/trophyt3.png"
+							width: gridTrophy.imageSize
+							height: gridTrophy.imageSize
+							fillMode: Image.PreserveAspectFit
+						}
+					}
+
+					Repeater {
+						id: gridRepeaterD3
+						Image {
+							source: "qrc:/internal/trophy/trophyd3.png"
+							width: gridTrophy.imageSize
+							height: gridTrophy.imageSize
+							fillMode: Image.PreserveAspectFit
+						}
+					}
+
 				}
 			}
-
-			Repeater {
-				id: gridRepeaterT2
-				Image {
-					source: "qrc:/internal/trophy/trophyt2.png"
-					width: gridTrophy.imageSize
-					height: gridTrophy.imageSize
-					fillMode: Image.PreserveAspectFit
-				}
-			}
-
-			Repeater {
-				id: gridRepeaterD2
-				Image {
-					source: "qrc:/internal/trophy/trophyd2.png"
-					width: gridTrophy.imageSize
-					height: gridTrophy.imageSize
-					fillMode: Image.PreserveAspectFit
-				}
-			}
-
-			Repeater {
-				id: gridRepeaterT3
-				Image {
-					source: "qrc:/internal/trophy/trophyt3.png"
-					width: gridTrophy.imageSize
-					height: gridTrophy.imageSize
-					fillMode: Image.PreserveAspectFit
-				}
-			}
-
-			Repeater {
-				id: gridRepeaterD3
-				Image {
-					source: "qrc:/internal/trophy/trophyd3.png"
-					width: gridTrophy.imageSize
-					height: gridTrophy.imageSize
-					fillMode: Image.PreserveAspectFit
-				}
-			}
-
 		}
 
 	}
@@ -269,7 +352,7 @@ QSwipeContainer {
 		target: profile
 
 		function onUserGet(jsonData, binaryData) {
-			flickable.visible = true
+			accordion.visible = true
 
 			if (jsonData.character.length === 0)
 				jsonData.character = "default"
@@ -280,8 +363,8 @@ QSwipeContainer {
 			labelRank.text = jsonData.rankname+(jsonData.ranklevel > 0 ? qsTr(" (lvl %1)").arg(jsonData.ranklevel) : "")
 
 			if (jsonData.nameModificationDisabled) {
-				textFirstname.enabled = false
-				textLastname.enabled = false
+				textFirstname.readOnly = true
+				textLastname.readOnly = true
 			}
 
 			JS.setSqlFields([
@@ -306,7 +389,9 @@ QSwipeContainer {
 		function onUserModify(jsonData, binaryData) {
 			if (jsonData.error === undefined) {
 				profile.send("userGet", {})
-				flickable.modified = false
+				layout1.modified = false
+				layout2.modified = false
+				layout3.modified = false
 			}
 		}
 	}

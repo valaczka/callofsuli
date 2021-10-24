@@ -15,6 +15,9 @@ QLabel {
 						  Qt.AlignRight | Qt.AlignVCenter :
 						  Qt.AlignLeft | Qt.AlignVCenter
 
+	horizontalAlignment: parent.columns > 1 ? Text.AlignRight : Text.AlignLeft
+	verticalAlignment: Text.AlignVCenter
+
 	font.pixelSize: CosStyle.pixelSize*0.9
 
 	color: (field && field.modified) ? CosStyle.colorAccent : CosStyle.colorPrimary

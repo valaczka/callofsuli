@@ -128,6 +128,157 @@ bool Teacher::userModify(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief Teacher::userPasswordChange
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+	QString password = params.value("password").toString();
+
+	if (password.isEmpty()) {
+		(*jsonResponse)["error"] = "missing password";
+		return false;
+	}
+
+	QJsonObject o;
+
+	o["username"] = m_client->clientUserName();
+	o["password"] = password;
+	o["oldPassword"] = params.value("oldPassword").toString();
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Admin u(m_client, m2);
+	return u.userPasswordChange(jsonResponse, nullptr);
+}
+
+
+
+/**
+ * @brief Teacher::groupCreate
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupCreate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+
+	if (!params.contains("name")) {
+		(*jsonResponse)["error"] = "name empty";
+		return false;
+	}
+
+	params["owner"] = m_client->clientUserName();
+
+	int id = m_client->db()->execInsertQuery("INSERT INTO studentgroup (?k?) VALUES (?)", params);
+
+	if (id == -1)
+	{
+		setServerError();
+		return false;
+	}
+
+	(*jsonResponse)["created"] = id;
+
+	return true;
+}
+
+
+/**
+ * @brief Teacher::groupRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	if (id != -1) {
+		QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?",
+																  {id, m_client->clientUserName()});
+		if (group.isEmpty()) {
+			(*jsonResponse)["error"] = "invalid id";
+			return false;
+		}
+	}
+
+	QVariantList list;
+
+	if (id != -1)
+		list.append(id);
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toInt());
+
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":owner"] = m_client->clientUserName();
+
+		if (!m_client->db()->execListQuery("DELETE FROM studentgroup WHERE owner=:owner AND id IN (?l?)", list, p)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+
+		(*jsonResponse)["removed"] = true;
+
+	} else {
+		(*jsonResponse)["error"] = "missing id";
+		return false;
+	}
+
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupUserGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupUserGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
+"LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
+														 {id});
+
+	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
+"rankid, ranklevel, rankimage, picture, xp, "
+"active, classid, classname "
+"FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
+														 {id});
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["name"] = group.value("name").toString();
+	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(cList);
+	(*jsonResponse)["userList"] = QJsonArray::fromVariantList(uList);
+
+	return true;
+}
+
+
 
 
 /**
@@ -519,38 +670,6 @@ bool Teacher::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 	return true;
 }
 
-
-/**
- * @brief TeacherMap::groupAdd
- * @param jsonResponse
- * @return
-
-
-bool Teacher::groupCreate(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-
-	if (!params.contains("name")) {
-		(*jsonResponse)["error"] = "name empty";
-		return false;
-	}
-
-	params["owner"] = m_client->clientUserName();
-
-	int id = m_client->db()->execInsertQuery("INSERT INTO studentgroup (?k?) VALUES (?)", params);
-
-	if (id == -1)
-	{
-		setServerError();
-		return false;
-	}
-
-	(*jsonResponse)["created"] = id;
-
-	return true;
-}
-
-*/
 
 /**
  * @brief TeacherMap::groupUpdate

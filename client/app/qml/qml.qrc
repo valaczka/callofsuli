@@ -153,5 +153,7 @@
         <file>QSimpleContainer.qml</file>
         <file>_StackPage.qml</file>
         <file>PageConnectionInfo.qml</file>
+        <file>QDialogPasswordChange.qml</file>
+        <file>PageTeacherGroupUsers.qml</file>
     </qresource>
 </RCC>

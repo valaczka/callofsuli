@@ -382,7 +382,10 @@ QDialogPanel {
 							elide: Text.ElideRight
 							color: labelStreak.color
 
-							on_StreakChanged: {
+							on_StreakChanged: setStreak()
+							Component.onCompleted: setStreak()
+
+							function setStreak() {
 								var t = new Date(_d)
 								t.setDate(_d.getDate()-_streak)
 								text = t.toLocaleDateString(Qt.locale(), "yyyy. MMMM d. ddd")

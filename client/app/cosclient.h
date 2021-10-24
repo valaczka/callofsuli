@@ -301,6 +301,7 @@ signals:
 
 	void messageFrameReceived(const CosMessage &message);
 	void messageReceived(const CosMessage &message);
+	void messageReceivedError(const CosMessage &message);
 
 	void authInvalid();
 	void authRequirePasswordReset();

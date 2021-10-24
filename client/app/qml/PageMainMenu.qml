@@ -25,10 +25,12 @@ QBasePage {
 
 	property VariantMapModel modelMenuList: cosClient.newModel([
 																   "type",
+																   "subtype",
 																   "name",
 																   "details",
 																   "icon",
 																   "page",
+																   "func",
 																   "id"
 															   ])
 
@@ -51,7 +53,7 @@ QBasePage {
 					sourceModel: modelMenuList
 					sorters: [
 						RoleSorter { roleName: "type"; priority: 3 },
-						RoleSorter { roleName: "id"; priority: 2 },
+						RoleSorter { roleName: "subtype"; priority: 2 },
 						StringSorter { roleName: "name"; priority: 1 }
 					]
 
@@ -116,7 +118,7 @@ QBasePage {
 					if (o.page.length) {
 						var d = {}
 
-						if (o.type === 0) {
+						if (o.type === 0 && o.subtype === 0) {
 							d.defaultTitle = o.name
 							d.defaultSubTitle = o.details
 							d.groupId = o.id
@@ -124,8 +126,14 @@ QBasePage {
 
 						JS.createPage(o.page, d)
 					}
+
+					if (o.func === "createGroup") {
+						createGroup()
+					}
 				}
+
 			}
+
 
 			function reloadModel() {
 				cosClient.socketSend(CosMessage.ClassUserInfo, "getMyGroups")
@@ -141,22 +149,27 @@ QBasePage {
 
 				function onMyGroupListReady(_list) {
 					var list = []
+					var _id = -1
 
 					list.push({
 								  type: 1,
-								  id: -10,
+								  subtype: 0,
+								  id: _id--,
 								  name: qsTr("Összesített rangsor"),
 								  page: "Score",
+								  func: null,
 								  details: "",
 								  icon: CosStyle.iconTrophy
 							  })
 
 					if (!(cosClient.userRoles & Client.RoleGuest)) {
 						list.push({
-									  type: 1,
-									  id: -11,
+									  type: -1,
+									  subtype: 0,
+									  id: _id--,
 									  name: qsTr("Profil"),
 									  page: "Profile",
+									  func: null,
 									  details: "",
 									  icon: CosStyle.iconUserWhite
 								  })
@@ -165,28 +178,34 @@ QBasePage {
 					if (cosClient.userRoles & CosMessage.RoleTeacher) {
 						list.push({
 									  type: 2,
-									  id: -22,
+									  subtype: 0,
+									  id: _id--,
 									  name: qsTr("Pályák kezelése"),
 									  page: "TeacherMap",
+									  func: null,
 									  details: "",
 									  icon: CosStyle.iconBooks
 								  })
 
 						list.push({
-									  type: 2,
-									  id: -21,
-									  name: qsTr("Csoportok kezelése"),
-									  page: "TeacherGroupEdit",
+									  type: 0,
+									  subtype: 1,
+									  id: _id--,
+									  name: qsTr("Csoport létrehozása"),
+									  page: "",
+									  func: "createGroup",
 									  details: "",
-									  icon: CosStyle.iconGroups
+									  icon: CosStyle.iconAdd
 								  })
 
 
 						list.push({
 									  type: 4,
-									  id: -41,
+									  subtype: 0,
+									  id: _id--,
 									  name: qsTr("Csatlakozás információk"),
 									  page: "ConnectionInfo",
+									  func: null,
 									  details: "",
 									  icon: CosStyle.iconComputerData
 								  })
@@ -196,18 +215,22 @@ QBasePage {
 					if (cosClient.userRoles & CosMessage.RoleAdmin) {
 						list.push({
 									  type: 3,
-									  id: -32,
+									  subtype: 0,
+									  id: _id--,
 									  name: qsTr("Szerver beállítása"),
 									  page: "ServerSettings",
+									  func: null,
 									  details: "",
 									  icon: CosStyle.iconSetup
 								  })
 
 						list.push({
 									  type: 3,
-									  id: -31,
+									  subtype: 0,
+									  id: _id--,
 									  name: qsTr("Felhasználók kezelése"),
 									  page: "AdminUsers",
+									  func: null,
 									  details: "",
 									  icon: CosStyle.iconUsers
 								  })
@@ -218,9 +241,11 @@ QBasePage {
 					if (cosClient.userRoles & CosMessage.RoleGuest) {
 						list.push({
 									  type: 4,
-									  id: -43,
+									  subtype: 0,
+									  id: _id--,
 									  name: qsTr("Bejelentkezés"),
 									  page: "Login",
+									  func: null,
 									  details: "",
 									  icon: CosStyle.iconLogin
 								  })
@@ -229,9 +254,11 @@ QBasePage {
 						if (cosClient.registrationEnabled)
 							list.push({
 										  type: 4,
-										  id: -42,
+										  subtype: 0,
+										  id: _id--,
 										  name: qsTr("Regisztráció"),
 										  page: "Registration",
+										  func: null,
 										  details: "",
 										  icon: CosStyle.iconRegistration
 									  })
@@ -244,8 +271,10 @@ QBasePage {
 
 						list.push({
 									  type: 0,
+									  subtype: 0,
 									  id: o.id,
 									  name: o.name,
+									  func: null,
 									  page: (cosClient.userRoles & CosMessage.RoleTeacher) ? "TeacherGroup" : "StudentGroup",
 									  icon: (cosClient.userRoles & CosMessage.RoleTeacher) ? CosStyle.iconGroup : CosStyle.iconPlanet,
 									  details: (o.readableClassList ? o.readableClassList : "")+
@@ -292,6 +321,17 @@ QBasePage {
 	onPageActivatedFirst: if (servers)
 							  servers.serverTryLogin(servers.connectedServerKey)
 
+
+
+	function createGroup() {
+		var d = JS.dialogCreateQml("TextField", { title: qsTr("Új csoport létrehozása"), text: qsTr("Új csoport neve:") })
+
+		d.accepted.connect(function(data) {
+			if (data.length && servers)
+				cosClient.socketSend(CosMessage.ClassTeacher, "groupCreate", {name: data})
+		})
+		d.open()
+	}
 
 	function windowClose() {
 		return false

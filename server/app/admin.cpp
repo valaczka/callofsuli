@@ -264,6 +264,27 @@ bool Admin::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
+
+	if (params.contains("oldPassword")) {
+		QString oldPassword = params.value("oldPassword").toString();
+		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT password, salt FROM auth WHERE username=?", {username});
+
+		if (!m.isEmpty()) {
+			QString storedPassword = m.value("password").toString();
+			QString salt = m.value("salt").toString();
+			QString hashedPassword = CosDb::hashPassword(oldPassword, &salt);
+
+			if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) != 0) {
+				(*jsonResponse)["error"] = "invalid password";
+				return false;
+			}
+		} else {
+			(*jsonResponse)["error"] = "invalid password";
+			return false;
+		}
+	}
+
+
 	QString salt;
 	QString hashedPassword = CosDb::hashPassword(password, &salt);
 

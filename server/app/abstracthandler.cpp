@@ -77,10 +77,11 @@ void AbstractHandler::start()
 
 	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection,
 								   Q_RETURN_ARG(bool, returnArg),
-								   Q_ARG(QJsonObject *, &jsonObject),
-								   Q_ARG(QByteArray *, &binaryData))) {
+								   Q_ARG(QJsonObject*, &jsonObject),
+								   Q_ARG(QByteArray*, &binaryData))) {
 		CosMessage r(CosMessage::InvalidFunction, m_message);
 		r.setCosClass(m_class);
+		r.setCosFunc(func);
 		r.send(m_client->socket());
 		return;
 	}

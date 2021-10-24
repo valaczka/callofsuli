@@ -30,22 +30,30 @@ QBasePage {
 
 	mainToolBarComponent: Row {
 		QToolButton {
-			action: actionSave
+			action: container1.modificationEnabled ? actionSave : actionEdit
 			display: AbstractButton.IconOnly
 		}
 
-		UserButton {
+		/*UserButton {
 			userDetails: userData
 			userNameVisible: control.width>800
-		}
+		}*/
 	}
 
-	UserDetails {
+	/*UserDetails {
 		id: userData
-	}
+	}*/
 
 	activity: Profile {
 		id: profile
+
+		onUserPasswordChange: {
+			if (jsonData.error && jsonData.error.length) {
+				cosClient.sendMessageWarning(qsTr("Jelszó változtatás"), qsTr("A jelszó változtatás sikertelen"), jsonData.error)
+			} else {
+				cosClient.sendMessageInfo(qsTr("Jelszó változtatás"), qsTr("A jelszót sikeresen megváltozott"))
+			}
+		}
 	}
 
 
@@ -63,10 +71,10 @@ QBasePage {
 				reparentedParent: placeholder1
 
 				Layout.fillWidth: false
-				Layout.preferredWidth: 800
+				Layout.preferredWidth: 1200
 				Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
 
-				flickable.onAccepted: actionSave.trigger()
+				onAccepted: actionSave.trigger()
 			}
 		]
 
@@ -92,10 +100,19 @@ QBasePage {
 		id: actionSave
 		icon.source: CosStyle.iconSave
 		text: qsTr("Mentés")
-		enabled: container1.flickable.modified && container1.flickable.acceptable
+		enabled: container1.modificationEnabled && container1.modified && container1.acceptable
 		shortcut: "Ctrl+S"
 
 		onTriggered: container1.save()
+	}
+
+	Action {
+		id: actionEdit
+		icon.source: CosStyle.iconEdit
+		text: qsTr("Szerkesztés")
+		shortcut: "F4"
+
+		onTriggered: container1.modificationEnabled = true
 	}
 
 

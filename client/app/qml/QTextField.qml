@@ -63,7 +63,7 @@ TextField {
 
 	passwordMaskDelay: Qt.platform.os == "android" ? 100 : 0
 
-	property color textColor: CosStyle.colorAccent
+	property color textColor: readOnly ? CosStyle.colorPrimaryLighter : CosStyle.colorAccent
 	property bool lineVisible: false
 	property bool tooltipEnabled: true
 	property bool clearAlwaysVisible: false

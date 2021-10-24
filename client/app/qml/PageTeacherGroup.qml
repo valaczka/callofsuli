@@ -19,14 +19,14 @@ QBasePage {
 		userNameVisible: page.width>800
 	}
 
+	mainMenuFunc: function (m) {
+		m.addAction(actionGroupDelete)
+	}
+
 	UserDetails {
 		id: userData
 	}
 
-
-	mainMenuFunc: function (m) {
-		m.addAction(actionMapAdd)
-	}
 
 	activity: TeacherGroups {
 		id: teacherGroups
@@ -84,6 +84,21 @@ QBasePage {
 			d.open()
 		}
 
+
+		onGroupRemove: {
+			if (jsonData.error === undefined) {
+				var i = mainStack.get(page.StackView.index-1)
+
+				if (i)
+					mainStack.pop(i)
+			}
+		}
+
+
+		onGroupModify: {
+			if (jsonData.error === undefined && jsonData.id === selectedGroupId)
+				send("groupGet", {id: selectedGroupId})
+		}
 	}
 
 
@@ -91,11 +106,17 @@ QBasePage {
 		id: swComponent
 		anchors.fill: parent
 
+		basePage: page
+
 		content: [
 			TeacherGroupUserList {
 				id: container1
 				reparented: swComponent.swipeMode
 				reparentedParent: placeholder1
+				menuComponent: QToolButton {
+					action: actionUserEdit
+					display: AbstractButton.IconOnly
+				}
 			},
 			TeacherGroupMapList {
 				id: container2
@@ -105,8 +126,19 @@ QBasePage {
 		]
 
 		swipeContent: [
-			Item { id: placeholder1 },
-			Item { id: placeholder2 }
+			Item {
+				id: placeholder1
+				property var contextMenuFunc: function (m) {
+					m.addAction(actionUserEdit)
+				}
+			},
+			Item {
+				id: placeholder2
+
+				property var contextMenuFunc: function (m) {
+					m.addAction(actionMapAdd)
+				}
+			}
 		]
 
 		tabBarContent: [
@@ -118,13 +150,59 @@ QBasePage {
 
 
 	Action {
+		id: actionGroupDelete
+		text: qsTr("Csoport törlése")
+		icon.source: CosStyle.iconDelete
+		enabled: teacherGroups.selectedGroupId > -1
+		onTriggered: {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan törlöd a csoportot?\n%1").arg(defaultTitle)})
+			d.accepted.connect(function() {
+				teacherGroups.send("groupRemove", {id: teacherGroups.selectedGroupId})
+			})
+			d.open()
+		}
+	}
+
+	Action {
+		id: actionGrouRename
+		text: qsTr("Átnevezés")
+		icon.source: CosStyle.iconRename
+		enabled: teacherGroups.selectedGroupId > -1
+		onTriggered: {
+			var d = JS.dialogCreateQml("TextField", { title: qsTr("Csoport átnevezése"), text: qsTr("Csoport neve:") })
+
+			d.accepted.connect(function(data) {
+				if (data.length)
+					teacherGroups.send("groupModify", {id: teacherGroups.selectedGroupId, name: data})
+			})
+			d.open()
+		}
+	}
+
+	Action {
 		id: actionMapAdd
 		text: qsTr("Pálya hozzáadása")
 		icon.source: CosStyle.iconAdd
+		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
-			if (teacherGroups.selectedGroupId > -1) {
-				teacherGroups.send("groupExcludedMapListGet", {id: teacherGroups.selectedGroupId})
-			}
+			teacherGroups.send("groupExcludedMapListGet", {id: teacherGroups.selectedGroupId})
+		}
+	}
+
+
+
+
+	Action {
+		id: actionUserEdit
+		text: qsTr("Résztvevők szerkesztése")
+		icon.source: CosStyle.iconEdit
+		enabled: teacherGroups.selectedGroupId > -1
+		onTriggered: {
+			//teacherGroups.send("groupExcludedMapListGet", {id: teacherGroups.selectedGroupId})
+			JS.createPage("TeacherGroupUsers", {
+							  teacherGroups: teacherGroups,
+							  groupId: groupId
+						  })
 		}
 	}
 

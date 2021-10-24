@@ -54,6 +54,7 @@ protected slots:
 signals:
 	void userGet(QJsonObject jsonData, QByteArray binaryData);
 	void userModify(QJsonObject jsonData, QByteArray binaryData);
+	void userPasswordChange(QJsonObject jsonData, QByteArray binaryData);
 	void characterListChanged(QVariantList characterList);
 
 private:

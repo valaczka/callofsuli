@@ -11,7 +11,7 @@ SpinBox {
 	implicitWidth: implicitHeight*5
 	implicitHeight: imageSize+10
 
-	property color textColor: CosStyle.colorAccent
+	property color textColor: readOnly ? CosStyle.colorPrimaryLighter : CosStyle.colorAccent
 	property color buttonColor: CosStyle.colorPrimaryLighter
 
 	property real imageSize: CosStyle.pixelSize*2

@@ -72,7 +72,7 @@ Item {
 								  else
 									  basePage.contextMenuFunc = null
 
-								  currentItem.populated()
+								  //currentItem.populated()
 							  }
 	}
 

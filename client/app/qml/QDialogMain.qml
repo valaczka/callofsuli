@@ -159,4 +159,15 @@ Popup {
 			rejected()
 	}
 
+	Connections {
+		target: mainWindow
+
+		function onWidthChanged(w) {
+			popupItem.width = w
+		}
+
+		function onHeightChanged(h) {
+			popupItem.height = h
+		}
+	}
 }

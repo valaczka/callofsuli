@@ -111,6 +111,7 @@ void AbstractActivity::setClient(Client *client)
 
 	if (m_client) {
 		connect(m_client, &Client::messageReceived, this, &AbstractActivity::onMessageReceivedPrivate);
+		connect(m_client, &Client::messageReceivedError, this, &AbstractActivity::onMessageReceivedPrivate);
 		connect(m_client, &Client::messageReceived, this, &AbstractActivity::onMessageReceived);
 		connect(m_client, &Client::messageFrameReceived, this, &AbstractActivity::onMessageFrameReceived);
 		clientSetup();

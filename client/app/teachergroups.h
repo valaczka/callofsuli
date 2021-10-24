@@ -85,6 +85,11 @@ signals:
 
 	void groupListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupGet(QJsonObject jsonData, QByteArray binaryData);
+	void groupRemove(QJsonObject jsonData, QByteArray binaryData);
+	void groupModify(QJsonObject jsonData, QByteArray binaryData);
+
+	void groupUserGet(QJsonObject jsonData, QByteArray binaryData);
+
 	void groupMapAdd(QJsonObject jsonData, QByteArray binaryData);
 	void groupMapActivate(QJsonObject jsonData, QByteArray binaryData);
 	void groupMapRemove(QJsonObject jsonData, QByteArray binaryData);

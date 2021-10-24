@@ -6,7 +6,7 @@ ListView {
 	id: view
 
 	property int pauseDuration: 0
-	property int refreshActivateY: -100
+	property int refreshActivateY: -50
 	property bool refreshEnabled: false
 
 	clip: true

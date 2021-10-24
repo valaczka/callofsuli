@@ -98,6 +98,12 @@ void Servers::onMessageReceived(const CosMessage &message)
 		if (func == "getResources") {
 			reloadResources(d.toVariantMap());
 		}
+	} else if (message.cosClass() == CosMessage::ClassTeacher) {
+		if (func == "groupCreate") {
+			send(CosMessage::ClassUserInfo, "getMyGroups");
+		} else if (func == "groupRemove") {
+			send(CosMessage::ClassUserInfo, "getMyGroups");
+		}
 	}
 }
 
@@ -336,7 +342,9 @@ void Servers::serverTryLogin(const int &key)
 			return;
 	}
 
+
 	QVariantMap d = m_serversModel->variantMapData()->valueKey(key);
+
 	if (d.isEmpty())
 		return;
 
@@ -378,7 +386,7 @@ void Servers::doAutoConnect(const QStringList &arguments)
 	for (int i=0; i<m_serversModel->variantMapData()->size(); i++) {
 		QVariantMap d = m_serversModel->variantMapData()->at(i).second;
 		if (d.value("autoconnect").toBool()) {
-			serverConnect(m_serversModel->variantMapData()->at(i).first);
+			serverConnect(d.value("id").toInt());
 			return;
 		}
 	}
@@ -464,7 +472,7 @@ bool Servers::parseUrls(const QStringList &urls)
 			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
 			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
 
-			qDebug() << "REIGSTER" << user << code;
+			qDebug() << "REGISTER" << user << code;
 
 			if (user.isEmpty() || code.isEmpty())
 				return true;

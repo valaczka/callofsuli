@@ -1970,8 +1970,10 @@ void Client::onSocketBinaryMessageReceived(const QByteArray &message)
 {
 	CosMessage m(message);
 
-	if (checkError(m))
+	if (checkError(m)) {
+		emit messageReceivedError(message);
 		return;
+	}
 
 	performUserInfo(m);
 

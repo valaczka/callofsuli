@@ -102,7 +102,9 @@ Page {
 
 			Component {
 				id: menuComponent
-				QMenu {}
+				QMenu {
+					width: 275
+				}
 			}
 
 			onClicked: JS.createMenu(menuButton, menuComponent, [contextMenuFunc, mainMenuFunc])

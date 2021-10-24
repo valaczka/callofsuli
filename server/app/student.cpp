@@ -606,6 +606,37 @@ bool Student::userModify(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+/**
+ * @brief Student::userPasswordChange
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+	QString password = params.value("password").toString();
+
+	if (password.isEmpty()) {
+		(*jsonResponse)["error"] = "missing password";
+		return false;
+	}
+
+	QJsonObject o;
+
+	o["username"] = m_client->clientUserName();
+	o["password"] = password;
+	o["oldPassword"] = params.value("oldPassword").toString();
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Admin u(m_client, m2);
+	return u.userPasswordChange(jsonResponse, nullptr);
+}
+
+
+
 
 /**
  * @brief Student::missionStatGet
