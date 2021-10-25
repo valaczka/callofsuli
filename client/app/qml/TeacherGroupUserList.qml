@@ -13,14 +13,44 @@ QSwipeContainer {
 	icon: CosStyle.iconGroup
 
 	property alias list: userList
+	property alias buttonEditAction: buttonEdit.action
 
 	QVariantMapProxyView {
 		id: userList
 		anchors.fill: parent
 
+		visible: teacherGroups.modelUserList.count
+
 		refreshEnabled: true
 		delegateHeight: CosStyle.twoLineHeight
-		//numbered: true
+
+		section.property: "classname"
+		section.criteria: ViewSection.FullString
+		section.delegate: Component {
+			Rectangle {
+				width: userList.width
+				height: childrenRect.height
+				color: CosStyle.colorPrimaryDark
+
+				required property string section
+
+				QLabel {
+					text: parent.section
+					font.pixelSize: CosStyle.pixelSize*0.8
+					font.weight: Font.DemiBold
+					font.capitalization: Font.AllUppercase
+					color: "white"
+
+					leftPadding: 5
+					topPadding: 2
+					bottomPadding: 2
+					rightPadding: 5
+
+					elide: Text.ElideRight
+				}
+			}
+		}
+
 
 		leftComponent: Image {
 			source: model ? cosClient.rankImageSource(model.rankid, model.ranklevel, model.rankimage) : ""
@@ -30,11 +60,12 @@ QSwipeContainer {
 		}
 
 		model: SortFilterProxyModel {
-			id: scoreProxyModel
+			id: userProxyModel
 			sourceModel: teacherGroups.modelUserList
 
 			sorters: [
-				StringSorter { roleName: "name" }
+				StringSorter { roleName: "classname"; priority: 2 },
+				StringSorter { roleName: "name"; priority: 1 }
 			]
 
 			proxyRoles: [
@@ -64,7 +95,11 @@ QSwipeContainer {
 		onRefreshRequest: teacherGroups.send("groupGet", { id: teacherGroups.selectedGroupId })
 	}
 
-
+	QToolButtonBig {
+		id: buttonEdit
+		anchors.centerIn: parent
+		visible: !userList.visible
+	}
 
 }
 

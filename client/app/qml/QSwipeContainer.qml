@@ -27,6 +27,9 @@ Item {
 
 	property alias menuComponent: menuLoader.sourceComponent
 
+	readonly property alias panelWidth: panel.width
+	readonly property alias panelHeight: panel.height
+
 	default property alias movableContentData: movableContent.data
 
 	Layout.fillWidth: true

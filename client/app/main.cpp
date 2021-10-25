@@ -35,10 +35,13 @@
 #include <QQmlContext>
 #include <sqlimage.h>
 #include <fontimage.h>
+#include "qrimage.h"
 
 #include "../Bacon2D-static/qml-box2d/box2dplugin.h"
 #include "../Bacon2D-static/src/plugins.h"
 
+#define QZXING_QML
+#include <QZXing.h>
 
 #ifndef Q_OS_ANDROID
 #include <qsingleinstance.h>
@@ -91,6 +94,7 @@ int main(int argc, char *argv[])
 	plugin.registerTypes("Bacon2D");
 
 
+	QZXing::registerQMLTypes();
 
 	Client::initialize();
 	Client::loadModules();
@@ -110,6 +114,7 @@ int main(int argc, char *argv[])
 	context->setContextProperty("cosClient", &client);
 
 	engine.addImageProvider("font", new FontImage());
+	engine.addImageProvider("qrcode", new QrImage());
 
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
 	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
@@ -126,3 +131,6 @@ int main(int argc, char *argv[])
 
 	return app.exec();
 }
+
+
+

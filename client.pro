@@ -5,6 +5,7 @@ unix:!android: {
 }
 
 SUBDIRS += client/QtXlsxWriter \
+		client/QZXing-static \
 		client/app/modules \
 		client/app
 

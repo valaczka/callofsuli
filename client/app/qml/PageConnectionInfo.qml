@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import COS.Client 1.0
+import QZXing 3.2
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -14,59 +15,48 @@ QBasePage {
 
 	mainToolBarComponent: QToolButton { action: actionCopy; display: AbstractButton.IconOnly }
 
-	/*toolBarMenu: QMenu {
-		MenuItem {
-			text: qsTr("Pályák")
-			icon.source: CosStyle.iconBooks
-		}
-		MenuItem {
-			text: qsTr("Fejezetek")
-			icon.source: CosStyle.iconAdd
-		}
-		MenuItem {
-			text: qsTr("Storages")
-			icon.source: CosStyle.iconBooks
-		}
-	}*/
-
-	/*activity: ServerSettings {
-		id: serverSettings
-	}*/
-
-
-
 
 	QStackComponent {
 		id: stackComponent
 		anchors.fill: parent
 		basePage: control
 
-		//requiredWidth: 500
-
-		//headerContent: QLabel {	}
-
 		initialItem: QSimpleContainer {
 			id: panel
 
 			title: cosClient.serverName
-			icon: CosStyle.iconSetup
+			icon: CosStyle.iconComputerData
 
-			QLabel {
-				id: labelUrl
-				text: cosClient.connectionInfo()
-				font.pixelSize: CosStyle.pixelSize*1.5
-				wrapMode: Text.Wrap
+			Column {
+				spacing: 20
+				anchors.centerIn: parent
+
+				QLabel {
+					id: label
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: cosClient.connectionInfo()
+					font.pixelSize: CosStyle.pixelSize*0.9
+					font.weight: Font.Medium
+					width: panel.panelWidth*0.8
+					wrapMode: Text.Wrap
+					horizontalAlignment: Text.AlignHCenter
+				}
+
+				Image {
+					anchors.horizontalCenter: parent.horizontalCenter
+
+					source: label.text.length ? "image://qrcode/"+Qt.btoa(label.text) : ""
+
+					width: Math.min(panel.panelWidth*0.8, panel.panelHeight*0.7)
+					height: Math.min(panel.panelWidth*0.8, panel.panelHeight*0.7)
+
+					fillMode: Image.PreserveAspectFit
+
+					sourceSize.width: 500
+					sourceSize.height: 500
+				}
 			}
 
-			/*menuComponent: QToolButton {
-					id: menuButton
-					action: actionA
-					display: AbstractButton.IconOnly
-				}*/
-
-			/*property var contextMenuFunc: function (m) {
-					m.addAction(actionA)
-				}*/
 		}
 
 
@@ -76,9 +66,7 @@ QBasePage {
 	Action {
 		id: actionCopy
 		text: qsTr("Másolás")
-		ToolTip.text: qsTr("Másolás a vágólapra")
-		icon.source: CosStyle.iconBooks
-
+		icon.source: CosStyle.iconDuplicate
 		onTriggered: {
 			cosClient.textToClipboard(cosClient.connectionInfo())
 		}

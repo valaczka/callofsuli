@@ -59,6 +59,20 @@ QBasePage {
 																   "active"
 															   ])
 
+	property VariantMapModel _modelDialogClassList: cosClient.newModel([
+																		   "id",
+																		   "name"
+																	   ])
+
+	property VariantMapModel _modelDialogUserList: cosClient.newModel([
+																		  "username",
+																		  "firstname",
+																		  "lastname",
+																		  "classname",
+																		  "classid",
+																		  "active"
+																	  ])
+
 	Connections {
 		target: teacherGroups
 
@@ -74,7 +88,39 @@ QBasePage {
 		}
 
 
-		/*function onGroupExcludedUserListGet(jsonData, binaryData) {
+		function onGroupExcludedClassListGet(jsonData, binaryData) {
+			if (jsonData.id !== teacherGroups.selectedGroupId)
+				return
+
+			if (!jsonData.list.length) {
+				cosClient.sendMessageWarning(qsTr("Osztály hozzáadása"), qsTr("Nincs több hozzáadható osztály!"))
+				return
+			}
+
+			var d = JS.dialogCreateQml("List", {
+										   roles: ["name", "id"],
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("Osztály hozzáadása"),
+										   selectorSet: true,
+										   sourceModel: _modelDialogClassList
+									   })
+
+			_modelDialogClassList.unselectAll()
+			_modelDialogClassList.setVariantList(jsonData.list, "id")
+
+			d.accepted.connect(function(data) {
+				teacherGroups.send("groupClassAdd", {
+									   id: teacherGroups.selectedGroupId,
+									   list: _modelDialogClassList.getSelectedData("id")
+								   })
+			})
+
+			d.open()
+		}
+
+
+
+		function onGroupExcludedUserListGet(jsonData, binaryData) {
 			if (jsonData.id !== teacherGroups.selectedGroupId)
 				return
 
@@ -87,19 +133,26 @@ QBasePage {
 										   icon: CosStyle.iconLockAdd,
 										   title: qsTr("Diák hozzáadása"),
 										   selectorSet: true,
-										   sourceModel: teacherGroups._dialogUserModel
+										   sourceModel: _modelDialogUserList
 									   })
 
-			teacherGroups._dialogUserModel.unselectAll()
-			teacherGroups._dialogUserModel.setVariantList(jsonData.list, "username")
+			_modelDialogUserList.unselectAll()
+			_modelDialogUserList.setVariantList(jsonData.list, "username")
 
 			d.accepted.connect(function(data) {
-				teacherGroups.send("groupUserAdd", {"id": teacherGroups.selectedGroupId,
-									   "userList": teacherGroups._dialogUserModel.getSelectedData("username") })
+				teacherGroups.send("groupUserAdd", {
+									   id: teacherGroups.selectedGroupId,
+									   list: _modelDialogUserList.getSelectedData("username")
+								   })
 			})
 
 			d.open()
-		}*/
+		}
+
+		function onGroupUserAdd(jsonData, binaryData) { reloadGroup() }
+		function onGroupUserRemove(jsonData, binaryData) { reloadGroup() }
+		function onGroupClassAdd(jsonData, binaryData) { reloadGroup() }
+		function onGroupClassRemove(jsonData, binaryData) { reloadGroup() }
 	}
 
 
@@ -125,7 +178,6 @@ QBasePage {
 
 					refreshEnabled: true
 					delegateHeight: CosStyle.baseHeight
-					//numbered: true
 
 					leftComponent: QFontImage {
 						icon: CosStyle.iconGroup
@@ -144,7 +196,7 @@ QBasePage {
 
 					modelTitleRole: "name"
 
-					highlightCurrentItem: false
+					highlightCurrentItem: true
 
 					autoSelectorChange: true
 
@@ -154,6 +206,18 @@ QBasePage {
 						width: classList.width
 						action: actionClassAdd
 					}
+
+					onRightClicked: contextMenuClass.popup()
+					onLongPressed: contextMenuClass.popup()
+
+					QMenu {
+						id: contextMenuClass
+
+						MenuItem { action: actionClassRemove }
+					}
+
+					onKeyInsertPressed: actionClassAdd.trigger()
+					onKeyDeletePressed: actionClassRemove.trigger()
 				}
 
 
@@ -178,7 +242,6 @@ QBasePage {
 
 					refreshEnabled: true
 					delegateHeight: CosStyle.twoLineHeight
-					//numbered: true
 
 					section.property: "fullclassname"
 					section.criteria: ViewSection.FullString
@@ -248,7 +311,7 @@ QBasePage {
 					modelTitleColorRole: "titlecolor"
 					modelSubtitleColorRole: "titlecolor"
 
-					highlightCurrentItem: false
+					highlightCurrentItem: true
 
 					autoSelectorChange: true
 
@@ -258,16 +321,36 @@ QBasePage {
 						width: userList.width
 						action: actionUserAdd
 					}
+
+					onRightClicked: contextMenuUser.popup()
+					onLongPressed: contextMenuUser.popup()
+
+					QMenu {
+						id: contextMenuUser
+
+						MenuItem { action: actionUserRemove }
+					}
+
+					onKeyInsertPressed: actionUserAdd.trigger()
+					onKeyDeletePressed: actionUserRemove.trigger()
 				}
 			}
 		]
 
 		swipeContent: [
-			Item { id: placeholder1 },
-			Item { id: placeholder2
-				/*property var contextMenuFunc: function (m) {
-					m.addAction(actionA)
-				}*/
+			Item {
+				id: placeholder1
+				property var contextMenuFunc: function (m) {
+					m.addAction(actionClassAdd)
+					m.addAction(actionClassRemove)
+				}
+			},
+			Item {
+				id: placeholder2
+				property var contextMenuFunc: function (m) {
+					m.addAction(actionUserAdd)
+					m.addAction(actionUserRemove)
+				}
 			}
 		]
 
@@ -285,6 +368,41 @@ QBasePage {
 		id: actionUserAdd
 		text: qsTr("Tanuló hozzáadása")
 		icon.source: CosStyle.iconUserAdd
+		onTriggered: teacherGroups.send("groupExcludedUserListGet", {id: teacherGroups.selectedGroupId})
+	}
+
+	Action {
+		id: actionUserRemove
+		text: qsTr("Tanuló eltávolítása")
+		icon.source: CosStyle.iconRemove
+		enabled: userList.currentIndex !== -1
+		onTriggered: {
+			var more = modelUserList.selectedCount
+
+			if (more > 0) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Tanulók eltávolítása"),
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 tanulót?").arg(more)
+											})
+				dd.accepted.connect(function () {
+					teacherGroups.send("groupUserRemove", { id: teacherGroups.selectedGroupId, list: modelUserList.getSelectedData("username")})
+					modelUserList.unselectAll()
+				})
+				dd.open()
+			} else {
+				var o = userList.model.get(userList.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Tanuló eltávolítása"),
+											   text: qsTr("Biztosan eltávolítod a tanulót?\n%1").arg(o.name)
+										   })
+				d.accepted.connect(function () {
+					teacherGroups.send("groupUserRemove", { id: teacherGroups.selectedGroupId, username: o.username })
+					modelUserList.unselectAll()
+				})
+				d.open()
+			}
+		}
 	}
 
 
@@ -292,6 +410,42 @@ QBasePage {
 		id: actionClassAdd
 		text: qsTr("Osztály hozzáadása")
 		icon.source: CosStyle.iconAdd
+		onTriggered: teacherGroups.send("groupExcludedClassListGet", {id: teacherGroups.selectedGroupId})
+	}
+
+
+	Action {
+		id: actionClassRemove
+		text: qsTr("Osztály eltávolítása")
+		icon.source: CosStyle.iconRemove
+		enabled: classList.currentIndex !== -1
+		onTriggered: {
+			var more = modelClassList.selectedCount
+
+			if (more > 0) {
+				var dd = JS.dialogCreateQml("YesNo", {
+												title: qsTr("Osztályok eltávolítása"),
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 osztályt?").arg(more)
+											})
+				dd.accepted.connect(function () {
+					teacherGroups.send("groupClassRemove", { id: teacherGroups.selectedGroupId, list: modelClassList.getSelectedData("classid")})
+					modelClassList.unselectAll()
+				})
+				dd.open()
+			} else {
+				var o = classList.model.get(classList.currentIndex)
+
+				var d = JS.dialogCreateQml("YesNo", {
+											   title: qsTr("Osztály eltávolítása"),
+											   text: qsTr("Biztosan eltávolítod az osztályt?\n%1").arg(o.name)
+										   })
+				d.accepted.connect(function () {
+					teacherGroups.send("groupClassRemove", { id: teacherGroups.selectedGroupId, classid: o.classid})
+					modelClassList.unselectAll()
+				})
+				d.open()
+			}
+		}
 	}
 
 

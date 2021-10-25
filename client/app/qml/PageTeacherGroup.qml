@@ -117,6 +117,7 @@ QBasePage {
 					action: actionUserEdit
 					display: AbstractButton.IconOnly
 				}
+				buttonEditAction: actionUserEdit
 			},
 			TeacherGroupMapList {
 				id: container2
@@ -198,7 +199,6 @@ QBasePage {
 		icon.source: CosStyle.iconEdit
 		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
-			//teacherGroups.send("groupExcludedMapListGet", {id: teacherGroups.selectedGroupId})
 			JS.createPage("TeacherGroupUsers", {
 							  teacherGroups: teacherGroups,
 							  groupId: groupId

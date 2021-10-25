@@ -26,9 +26,9 @@ TARGET = callofsuli
 LIBS += -lz
 
 win32 {
-	LIBS += -L../QtXlsxWriter/release -lqtxlsx
+	LIBS += -L../QtXlsxWriter/release -lqtxlsx -L../QZXing-static/release -lQZXing
 } else {
-	LIBS += -L../QtXlsxWriter -lqtxlsx
+	LIBS += -L../QtXlsxWriter -lqtxlsx -L../QZXing-static -lQZXing
 }
 
 
@@ -43,8 +43,9 @@ equals(MODULE_BUILD, static) {
 }
 
 
-QMAKE_LFLAGS += -Wl,--rpath=../QtXlsxWriter
-INCLUDEPATH += ../QtXlsxWriter
+QMAKE_LFLAGS += -Wl,--rpath=../QtXlsxWriter,--rpath=../QZXing-static
+INCLUDEPATH += ../QtXlsxWriter \
+				../qzxing/src
 
 DESTDIR = ../..
 
@@ -94,6 +95,7 @@ SOURCES += \
 		main.cpp \
 		mapeditor.cpp \
 		profile.cpp \
+		qrimage.cpp \
 		question.cpp \
 		scores.cpp \
 		servers.cpp \
@@ -135,6 +137,7 @@ HEADERS += \
 	mapeditor.h \
 	modules/interfaces.h \
 	profile.h \
+	qrimage.h \
 	question.h \
 	scores.h \
 	servers.h \

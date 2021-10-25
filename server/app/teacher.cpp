@@ -282,6 +282,235 @@ bool Teacher::groupUserGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 /**
+ * @brief Teacher::groupUserAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupUserAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toString());
+
+	if (params.contains("username"))
+		list.append(params.value("username").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupStudent (groupid, username) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["added"] = list.size();
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupUserRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupUserRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toString());
+
+	if (params.contains("username"))
+		list.append(params.value("username").toString());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("DELETE FROM bindGroupStudent WHERE groupid=:id AND username IN (?l?)", list, p, false)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["removed"] = list.size();
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupExcludedUserListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT username, firstname, lastname, "
+																		"active, classid, classname "
+																		"FROM userInfo "
+																		"WHERE isTeacher=false AND username NOT IN "
+																		"(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
+														{id});
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupClassAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupClassAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toInt());
+
+	if (params.contains("classid"))
+		list.append(params.value("classid", -1).toInt());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("INSERT INTO bindGroupClass (groupid, classid) SELECT :id, T.id FROM "
+										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["added"] = list.size();
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief Teacher::groupClassRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupClassRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?",
+															  {id, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	QVariantList list;
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toInt());
+
+	if (params.contains("classid"))
+		list.append(params.value("classid", -1).toInt());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":id"] = id;
+
+		if (!m_client->db()->execListQuery("DELETE FROM bindGroupClass WHERE groupid=:id AND classid IN (?l?)", list, p, false)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["removed"] = list.size();
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::groupExcludedClassListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int id = params.value("id", -1).toInt();
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT id, name FROM class WHERE id NOT IN "
+														"(SELECT classid FROM bindGroupClass WHERE groupid=?) ",
+														{id});
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+
+	return true;
+}
+
+
+
+
+/**
  * @brief TeacherMap::getMapList
  * @param jsonResponse
  * @return
@@ -671,112 +900,7 @@ bool Teacher::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
-/**
- * @brief TeacherMap::groupUpdate
- * @param jsonResponse
- * @return
 
-bool Teacher::groupUpdate(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	if (id == -1) {
-		(*jsonResponse)["error"] = "missing id";
-		return false;
-	}
-
-
-	params.remove("id");
-	params.remove("owner");
-
-	QVariantMap uu;
-	uu[":id"] = id;
-	uu[":owner"] = m_client->clientUserName();
-
-	if (m_client->db()->execUpdateQuery("UPDATE studentgroup SET ? "
-										"WHERE id=:id AND owner=:owner", params, uu)) {
-		(*jsonResponse)["id"] = id;
-		(*jsonResponse)["updated"] = true;
-		return true;
-	}
-
-	(*jsonResponse)["id"]	= id;
-	(*jsonResponse)["error"] = "sql error";
-
-	return false;
-}
-
-*/
-
-
-
-/**
- * @brief TeacherMap::groupRemove
- * @param jsonResponse
- * @return
-
-bool Teacher::groupRemove(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-
-	QVariantList list;
-
-	foreach (QVariant v, params.value("list").toList())
-		list.append(v.toInt());
-
-	if (params.contains("id"))
-		list.append(params.value("id", -1).toInt());
-
-
-	if (list.size()) {
-		QVariantMap p;
-		p[":owner"] = m_client->clientUserName();
-
-		if (!m_client->db()->execListQuery("DELETE FROM studentgroup WHERE owner=:owner AND id IN (?l?)", list, p, false)) {
-			(*jsonResponse)["error"] = "sql error";
-			return false;
-		}
-
-		(*jsonResponse)["removed"] = true;
-	} else {
-		(*jsonResponse)["removed"] = false;
-	}
-
-	return true;
-}
-
-*/
-
-
-/**
- * @brief TeacherMap::groupMemberListGet
- * @param jsonResponse
- * @return
-
-bool Teacher::groupMemberListGet(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.username as username, firstname, lastname, active, "
-"classname, classid, isTeacher, isAdmin FROM studentGroupInfo "
-"LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) "
-"WHERE studentGroupInfo.id=? AND owner=?",
-														m);
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
-
-	return true;
-}
-
-*/
 
 
 /**
@@ -1103,256 +1227,6 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
-
-/**
- * @brief TeacherMap::groupExcludedClassListGet
- * @param jsonResponse
- * @return
-
-bool Teacher::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList l;
-	l.append(id);
-
-	QVariantList list = m_client->db()->execSelectQuery("SELECT id, name FROM class WHERE id NOT IN "
-														"(SELECT classid FROM bindGroupClass WHERE groupid=?) ",
-														l);
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
-
-	return true;
-}
-
-*/
-
-/**
- * @brief TeacherMap::groupExcludedStudentListGet
- * @param jsonResponse
- * @return
-
-bool Teacher::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList l;
-	l.append(id);
-
-	QVariantList list = m_client->db()->execSelectQuery("SELECT username, firstname, lastname, "
-																		"active, classid, classname "
-																		"FROM userInfo "
-																		"WHERE isTeacher=false AND username NOT IN "
-																		"(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
-														l);
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
-
-	return true;
-}
-
-*/
-
-
-
-/**
- * @brief TeacherMap::groupClassAdd
- * @param jsonResponse
- * @return
-
-bool Teacher::groupClassAdd(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
-	if (group.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid id";
-		return false;
-	}
-
-	QVariantList list;
-
-	foreach (QVariant v, params.value("classList").toList())
-		list.append(v.toInt());
-
-	if (params.contains("classid"))
-		list.append(params.value("classid", -1).toInt());
-
-	if (list.size()) {
-		QVariantMap p;
-		p[":id"] = id;
-
-		if (!m_client->db()->execListQuery("INSERT INTO bindGroupClass (groupid, classid) SELECT :id, T.id FROM "
-										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
-			(*jsonResponse)["error"] = "sql error";
-			return false;
-		}
-	}
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["added"] = list.size();
-
-	return true;
-}
-
-*/
-
-
-
-/**
- * @brief TeacherMap::groupClassRemove
- * @param jsonResponse
- * @return
-
-bool Teacher::groupClassRemove(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?", m);
-	if (group.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid id";
-		return false;
-	}
-
-	QVariantList list;
-
-	foreach (QVariant v, params.value("classList").toList())
-		list.append(v.toInt());
-
-	if (params.contains("classid"))
-		list.append(params.value("classid", -1).toInt());
-
-	if (list.size()) {
-		QVariantMap p;
-		p[":id"] = id;
-
-		if (!m_client->db()->execListQuery("DELETE FROM bindGroupClass WHERE groupid=:id AND classid IN (?l?)", list, p, false)) {
-			(*jsonResponse)["error"] = "sql error";
-			return false;
-		}
-	}
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["removed"] = true;
-
-	return true;
-}
-
-*/
-
-
-
-/**
- * @brief TeacherMap::groupUserAdd
- * @param jsonResponse
- * @return
-
-bool Teacher::groupUserAdd(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id, name FROM studentgroup WHERE id=? AND owner=?", m);
-	if (group.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid id";
-		return false;
-	}
-
-	QVariantList list;
-
-	foreach (QVariant v, params.value("userList").toList())
-		list.append(v.toString());
-
-	if (params.contains("username"))
-		list.append(params.value("username").toString());
-
-	if (list.size()) {
-		QVariantMap p;
-		p[":id"] = id;
-
-		if (!m_client->db()->execListQuery("INSERT INTO bindGroupStudent (groupid, username) SELECT :id, T.id FROM "
-										   "(SELECT column1 as id FROM (values ?l? )) T", list, p, true)) {
-			(*jsonResponse)["error"] = "sql error";
-			return false;
-		}
-	}
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["added"] = list.size();
-
-	return true;
-}
-
-*/
-
-
-/**
- * @brief TeacherMap::groupUserRemove
- * @param jsonResponse
- * @return
-
-bool Teacher::groupUserRemove(QJsonObject *jsonResponse, QByteArray *)
-{
-	QVariantMap params = m_message.jsonData().toVariantMap();
-	int id = params.value("id", -1).toInt();
-
-	QVariantList m;
-
-	m.append(id);
-	m.append(m_client->clientUserName());
-
-	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?", m);
-	if (group.isEmpty()) {
-		(*jsonResponse)["error"] = "invalid id";
-		return false;
-	}
-
-	QVariantList list;
-
-	foreach (QVariant v, params.value("userList").toList())
-		list.append(v.toString());
-
-	if (params.contains("username"))
-		list.append(params.value("username").toString());
-
-	if (list.size()) {
-		QVariantMap p;
-		p[":id"] = id;
-
-		if (!m_client->db()->execListQuery("DELETE FROM bindGroupStudent WHERE groupid=:id AND username IN (?l?)", list, p, false)) {
-			(*jsonResponse)["error"] = "sql error";
-			return false;
-		}
-	}
-
-	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["removed"] = true;
-
-	return true;
-}
-
-*/
 
 
 

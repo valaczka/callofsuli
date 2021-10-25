@@ -203,7 +203,7 @@ QBasePage {
 									  type: 4,
 									  subtype: 0,
 									  id: _id--,
-									  name: qsTr("Csatlakozás információk"),
+									  name: qsTr("Csatlakozási információk"),
 									  page: "ConnectionInfo",
 									  func: null,
 									  details: "",

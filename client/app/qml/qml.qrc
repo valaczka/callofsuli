@@ -4,7 +4,6 @@
         <file>Style/qmldir</file>
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
-        <file>_Page.qml</file>
         <file>ServerEdit.qml</file>
         <file>QButton.qml</file>
         <file>QCosImage.qml</file>
@@ -19,7 +18,6 @@
         <file>QListView.qml</file>
         <file>QMenu.qml</file>
         <file>QMenuButton.qml</file>
-        <file>_QPagePanel.qml</file>
         <file>QTextField.qml</file>
         <file>QToolBar.qml</file>
         <file>JScript.js</file>
@@ -73,10 +71,8 @@
         <file>GameEnemyMarker.qml</file>
         <file>FlickableParallax.qml</file>
         <file>GameQuestion.qml</file>
-        <file>_QPage.qml</file>
         <file>PageStart.qml</file>
         <file>QVariantMapProxyView.qml</file>
-        <file>_PagePanel.qml</file>
         <file>QDialogProgress.qml</file>
         <file>QToolButtonBig.qml</file>
         <file>QPagePanelSearch.qml</file>
