@@ -101,13 +101,20 @@ Page {
 			visible: mainMenuFunc || contextMenuFunc
 
 			Component {
-				id: menuComponent
+				id: menuDesktopComponent
 				QMenu {
-					width: 275
+					width: 250
 				}
 			}
 
-			onClicked: JS.createMenu(menuButton, menuComponent, [contextMenuFunc, mainMenuFunc])
+			Component {
+				id: menuComponent
+				QMenu {  }
+			}
+
+			onClicked: JS.createMenu(menuButton,
+									 Qt.platform.os == "android" ? menuComponent : menuDesktopComponent,
+									 [contextMenuFunc, mainMenuFunc] )
 		}
 	}
 

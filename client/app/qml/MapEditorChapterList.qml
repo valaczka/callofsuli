@@ -101,12 +101,15 @@ ListView {
 				text: qsTr("Importálás")
 
 				onClicked: {
-					var d = JS.dialogCreateQml("File", {})
-					d.item.isSave = false
+					var d = JS.dialogCreateQml("File", {
+												   isSave: false,
+												   folder: cosClient.getSetting("mapFolder", ""),
+											   })
 					d.item.filters = ["*.xlsx", "*.xls"]
 
 					d.accepted.connect(function(data){
 						mapEditor.chapterImport({filename: data})
+						cosClient.setSetting("mapFolder", d.item.modelFolder)
 					})
 
 					d.open()

@@ -27,8 +27,8 @@ QDialogPanel {
 
 	Flickable {
 		width: parent.width-50
-		height: parent.height
-		anchors.horizontalCenter: parent.horizontalCenter
+		height: Math.min(parent.height, contentHeight)
+		anchors.centerIn: parent
 
 		contentWidth: col.width
 		contentHeight: col.height

@@ -47,6 +47,9 @@
 #include <qsingleinstance.h>
 #endif
 
+#ifdef Q_OS_ANDROID
+#include <QtAndroid>
+#endif
 
 #include "cosclient.h"
 #include "gamemap.h"
@@ -121,6 +124,10 @@ int main(int argc, char *argv[])
 					 &app, [url](QObject *obj, const QUrl &objUrl) {
 		if (!obj && url == objUrl)
 			QCoreApplication::exit(-1);
+
+#ifdef Q_OS_ANDROID
+		QtAndroid::hideSplashScreen();
+#endif
 	}, Qt::QueuedConnection);
 	engine.load(url);
 

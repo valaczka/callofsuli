@@ -170,7 +170,11 @@ QBasePage {
 		icon.source: CosStyle.iconRename
 		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
-			var d = JS.dialogCreateQml("TextField", { title: qsTr("Csoport átnevezése"), text: qsTr("Csoport neve:") })
+			var d = JS.dialogCreateQml("TextField", {
+										   title: qsTr("Csoport átnevezése"),
+										   text: qsTr("Csoport neve:"),
+										   value: defaultTitle
+									   })
 
 			d.accepted.connect(function(data) {
 				if (data.length)

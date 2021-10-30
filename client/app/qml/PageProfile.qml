@@ -93,7 +93,10 @@ QBasePage {
 	}
 
 
-	onPageActivated: profile.send("userGet", {})
+	onPageActivated: profile.send("userGet", {
+									  withTrophy: true,
+									  withRanklog: true
+								  })
 
 
 	Action {

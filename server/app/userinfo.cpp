@@ -112,14 +112,15 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 		// Max trophy
 
-		m.insert(m_client->db()->execSelectQueryOneRow("(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
+		/*m.insert(m_client->db()->execSelectQueryOneRow("SELECT "
+				"(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
 				"(SELECT COALESCE(MAX(xp), 0) FROM userInfo) as maxXP, "
 				"(SELECT COALESCE(MAX(t1), 0) FROM fullTrophy) as maxT1, "
 				"(SELECT COALESCE(MAX(t2), 0) FROM fullTrophy) as maxT2, "
 				"(SELECT COALESCE(MAX(t3), 0) FROM fullTrophy) as maxT3, "
 				"(SELECT COALESCE(MAX(d1), 0) FROM fullTrophy) as maxD1, "
 				"(SELECT COALESCE(MAX(d2), 0) FROM fullTrophy) as maxD2, "
-				"(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3"));
+				"(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3"));*/
 
 		int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
 		"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
@@ -148,6 +149,16 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 		m["currentStreak"] = currentStreak;
 	}
+
+
+	if (m_message.jsonData().contains("withRanklog")) {
+		QVariantList rList = m_client->db()->execSelectQuery("SELECT rankid, datetime(timestamp, 'localtime') as timestamp, ranklog.xp, name, level, image "
+															"FROM ranklog LEFT JOIN rank ON (rank.id=ranklog.rankid) "
+															"WHERE username=?", {username});
+		m["ranklog"] = QJsonArray::fromVariantList(rList);
+	}
+
+
 
 	m["nameModificationDisabled"] = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
 									.value("v", false).toBool();
@@ -200,9 +211,9 @@ bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
 
 
 	QVariantList queryParams;
-	QString query = "SELECT id, mapid, missionid, timestamp, level, success, deathmatch, xp "
+	QString query = "SELECT game.id, mapid, missionid, datetime(game.timestamp, 'localtime') AS timestamp, level, success, deathmatch, xp "
 "FROM game LEFT JOIN score ON (score.gameid=game.id) "
-"WHERE username=? AND tmpScore IS NULL ";
+"WHERE game.username=? AND tmpScore IS NULL ";
 
 	queryParams.append(username);
 
@@ -408,7 +419,8 @@ bool UserInfo::downloadMap(QJsonObject *jsonResponse, QByteArray *binaryResponse
 	QVariantList m;
 	m.append(uuid);
 
-	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT data, md5, name, version, lastModified FROM maps WHERE uuid=?", m);
+	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT data, md5, name, version, datetime(lastModified, 'localtime') as lastModified "
+															"FROM maps WHERE uuid=?", m);
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid map";

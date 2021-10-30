@@ -39,35 +39,23 @@
 TeacherMaps::TeacherMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassTeacher, parent)
 	, m_modelMapList(nullptr)
-	, m_isUploading(false)
-	, m_modelGroupList(nullptr)
-	, m_selectedMapId(-1)
+	, m_selectedMapId("")
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
 											 "name" ,
+											 "version",
 											 "dataSize" ,
 											 "binded" ,
 											 "used" ,
-											 "upload" ,
-											 "download" ,
-											 "local",
+											 "downloaded" ,
+											 "md5",
 											 "lastModified"
 										 },
 										 this);
 
-	m_modelGroupList = new VariantMapModel({
-											   "groupid",
-											   "name",
-											   "readableClassList"
-										   },
-										   this);
-
 	connect(this, &TeacherMaps::mapListGet, this, &TeacherMaps::onMapListGet);
-	connect(this, &TeacherMaps::mapUpdate, this, &TeacherMaps::onMapUpdated);
-	connect(this, &TeacherMaps::mapGet, this, &TeacherMaps::onMapGet);
-
-	connect(this, &TeacherMaps::selectedMapIdChanged, this, &TeacherMaps::mapSelect);
+	connect(this, &TeacherMaps::selectedMapIdChanged, this, &TeacherMaps::onMapSelected);
 }
 
 
@@ -79,10 +67,10 @@ TeacherMaps::TeacherMaps(QQuickItem *parent)
 TeacherMaps::~TeacherMaps()
 {
 	delete m_modelMapList;
-	delete m_modelGroupList;
 
 	if (m_downloader)
 		delete m_downloader;
+
 }
 
 
@@ -148,9 +136,9 @@ QVariantMap TeacherMaps::mapDownloadInfo(CosDb *db)
 		QString uuid = m.value("uuid").toString();
 
 		ret[uuid] = QVariantMap({
-									  { "md5", QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex()) },
-									  { "dataSize", d.size() }
-								  });
+									{ "md5", QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex()) },
+									{ "dataSize", d.size() }
+								});
 	}
 
 	return ret;
@@ -196,21 +184,6 @@ void TeacherMaps::mapDownloadPrivate(const QVariantMap &data, CosDownloader *dow
 }
 
 
-/**
- * @brief TeacherMaps::mapSelect
- * @param uuid
- */
-
-void TeacherMaps::mapSelect(const QString &uuid)
-{
-	if (uuid.isEmpty())
-		return;
-
-	QJsonObject o;
-	o["uuid"]	= uuid;
-	send("mapGet", o);
-}
-
 
 
 
@@ -230,53 +203,6 @@ void TeacherMaps::clientSetup()
 
 
 
-/**
- * @brief TeacherMaps::onMapGet
- * @param jsonData
- */
-
-void TeacherMaps::onMapGet(QJsonObject jsonData, QByteArray)
-{
-	m_modelGroupList->unselectAll();
-
-	setSelectedMapId(jsonData.value("uuid").toString());
-
-	m_modelGroupList->setJsonArray(jsonData.value("groupList").toArray(), "groupid");
-}
-
-
-
-
-
-
-
-
-/**
- * @brief TeacherMaps::mapAdd
- * @param data
- */
-
-void TeacherMaps::mapAdd(QVariantMap data)
-{
-	if (data.value("name").toString().isEmpty())
-		return;
-
-	QUuid uuid = QUuid::createUuid();
-
-	GameMap map(uuid.toByteArray());
-	QByteArray b = map.toBinaryData();
-
-	QVariantMap m;
-	m["uuid"] = uuid.toString();
-	m["name"] = data.value("name").toString();
-	m["data"] = b;
-	m["md5"] = QString(QCryptographicHash::hash(b, QCryptographicHash::Md5).toHex());
-
-	db()->execInsertQuery("INSERT INTO localmaps(?k?) values (?)", m);
-	send("mapListGet");
-}
-
-
 
 
 
@@ -287,43 +213,20 @@ void TeacherMaps::mapAdd(QVariantMap data)
 
 void TeacherMaps::mapDownload(QVariantMap data)
 {
-	//!!!!!! map download private !!!!!!!/
 	if (!m_downloader) {
 		CosDownloader *dl = new CosDownloader(this, CosMessage::ClassUserInfo, "downloadMap", this);
 		dl->setJsonKeyFileName("uuid");
 		setDownloader(dl);
 
 		connect(m_downloader, &CosDownloader::oneDownloadFinished, this, &TeacherMaps::onOneDownloadFinished);
-		connect(m_downloader, &CosDownloader::downloadFinished, this, [=]() { send("mapListGet"); });
+		connect(m_downloader, &CosDownloader::downloadFinished, this, [=](){
+			send("mapListGet");
+		});
 	}
 
 	m_downloader->clear();
 
-	QVariantList uuidList;
-
-	if (data.contains("list")) {
-		uuidList = data.value("list").toList();
-	} else if (data.contains("uuid")) {
-		uuidList.append(data.value("uuid"));
-	}
-
-	foreach (QVariant v, uuidList) {
-		QString uuid = v.toString();
-		int index = m_modelMapList->variantMapData()->find("uuid2", uuid);			// Mert ha helyi, akkor uuid2 = uuid+"UP"
-		if (index == -1) {
-			qDebug() << "Skip" << uuid;
-			continue;
-		}
-
-		QVariantMap o = m_modelMapList->variantMapData()->at(index).second;
-
-		m_downloader->append(o.value("uuid").toString(),
-							 "",
-							 o.value("dataSize").toInt(),
-							 o.value("md5").toString(),
-							 false,
-							 0.0);
-	}
+	mapDownloadPrivate(data, m_downloader, m_modelMapList);
 
 	if (m_downloader->hasDownloadable()) {
 		emit mapDownloadRequest(Client::formattedDataSize(m_downloader->fullSize()));
@@ -340,38 +243,81 @@ void TeacherMaps::mapDownload(QVariantMap data)
  * @param data
  */
 
-void TeacherMaps::mapUpload(QVariantMap data)
+void TeacherMaps::mapUpload(const QUrl &url)
 {
-	QVariantList uuidList;
+	QFile f(url.toLocalFile());
 
-	if (data.contains("list")) {
-		uuidList = data.value("list").toList();
-	} else if (data.contains("uuid")) {
-		uuidList.append(data.value("uuid"));
+	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+		m_client->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		return;
 	}
 
-	foreach (QVariant v, uuidList) {
-		QString uuid = v.toString();
+	QByteArray content = f.readAll();
 
-		QVariantList l;
-		l.append(uuid);
-		QVariantMap m = db()->execSelectQueryOneRow("SELECT data, name FROM localmaps WHERE uuid=?", l);
-
-		if (m.isEmpty()) {
-			qDebug() << "SKIP" << uuid;
-			continue;
-		}
-
-		QByteArray b = m.value("data").toByteArray();
-
-		QJsonObject j;
-		j["uuid"] = uuid;
-		j["name"] = m.value("name").toString();
-
-		setIsUploading(true);
-		send("mapUpdate", j, b);
+	GameMap *map = GameMap::fromBinaryData(content);
+	if (!map) {
+		m_client->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		return;
 	}
+
+	delete map;
+
+	QString name = url.fileName();
+	if (name.endsWith(".map"))
+		name.chop(4);
+
+	f.close();
+
+	send("mapAdd", {{"name", name}}, content);
 }
+
+
+
+/**
+ * @brief TeacherMaps::mapOverride
+ * @param uuid
+ * @param url
+ */
+
+void TeacherMaps::mapOverride(const QUrl &url)
+{
+	if (m_selectedMapId.isEmpty())
+		return;
+
+	QFile f(url.toLocalFile());
+
+	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+		m_client->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		return;
+	}
+
+	QByteArray content = f.readAll();
+
+	GameMap *map = GameMap::fromBinaryData(content);
+	if (!map) {
+		m_client->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		return;
+	}
+
+	QString fuuid = map->uuid();
+
+	delete map;
+
+	if (fuuid != m_selectedMapId) {
+		m_client->sendMessageWarning(tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
+		return;
+	}
+
+	QString name = url.fileName();
+	if (name.endsWith(".map"))
+		name.chop(4);
+
+	f.close();
+
+	send("mapModify", {{"uuid", m_selectedMapId}}, content);
+}
+
+
 
 
 /**
@@ -379,196 +325,36 @@ void TeacherMaps::mapUpload(QVariantMap data)
  * @param data
  */
 
-void TeacherMaps::mapExport(QVariantMap data)
+void TeacherMaps::mapExport(const QUrl &url)
 {
-	QString uuid = data.value("uuid").toString();
-	QUrl filename = data.value("filename").toUrl();
-
-	if (uuid.isEmpty() || filename.isEmpty())
+	if (m_selectedMapId.isEmpty())
 		return;
 
-	QVariantList l;
-	l.append(uuid);
-	QVariantMap m = db()->execSelectQueryOneRow("SELECT data, name FROM localmaps WHERE uuid=?", l);
+	QVariantMap m = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {m_selectedMapId});
 
 	if (m.isEmpty()) {
-		qDebug() << "SKIP" << uuid;
+		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
 		return;
 	}
 
 	QByteArray b = m.value("data").toByteArray();
 
-	QFile f(filename.toLocalFile());
+	QFile f(url.toLocalFile());
 	if (!f.open(QIODevice::WriteOnly)) {
-		qWarning() << "Open error" << filename;
+		m_client->sendMessageError(tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
 		return;
 	}
 	f.write(b);
 	f.close();
 
-	m_client->sendMessageInfo(tr("Exportálás"), tr("Az exportálás sikerült: %1").arg(filename.toString()));
+	m_client->sendMessageInfo(tr("Exportálás"), tr("Az exportálás sikerült: %1").arg(f.fileName()));
 	return;
 }
 
 
 
 
-/**
- * @brief TeacherMaps::mapImport
- * @param data
- */
 
-void TeacherMaps::mapImport(QVariantMap data)
-{
-	QString filename = "/tmp/demo.map";
-
-	if (!QFile::exists(filename)) {
-		qWarning() << "Nem létező fájl" << filename;
-		return;
-	}
-
-	QFile f(filename);
-	if (!f.open(QIODevice::ReadOnly)) {
-		qWarning() << "A fájl nem olvasható" << filename;
-		return;
-	}
-
-	QByteArray b = f.readAll();
-
-	f.close();
-
-	GameMap *map = GameMap::fromBinaryData(b);
-
-	if (!map) {
-		qWarning() << "Hibás fájl" << filename;
-		return;
-	}
-
-	QVariantMap m;
-	m["uuid"] = QString(map->uuid());
-	m["name"] = data.value("name", tr("Importált pálya")).toString();
-	m["data"] = b;
-	m["md5"] = QString(QCryptographicHash::hash(b, QCryptographicHash::Md5).toHex());
-
-	db()->execInsertQuery("INSERT INTO localmaps(?k?) values (?)", m);
-	send("mapListGet");
-}
-
-
-
-
-
-/**
- * @brief TeacherMaps::mapRename
- * @param data
- */
-
-void TeacherMaps::mapRename(QVariantMap data)
-{
-	QString uuid = data.value("uuid").toString();
-	QString name = data.value("name").toString();
-	bool local = data.value("local").toBool();
-
-	if (uuid.isEmpty() || name.isEmpty())
-		return;
-
-	if (!local) {
-		QJsonObject j;
-		j["uuid"] = uuid;
-		j["name"] = name;
-		setIsUploading(true);
-		send("mapUpdate", j);
-	} else {
-		QVariantList l;
-		l.append(name);
-		l.append(uuid);
-		db()->execSimpleQuery("UPDATE localmaps SET name=? WHERE uuid=?", l);
-		send("mapListGet");
-	}
-}
-
-
-
-
-/**
- * @brief TeacherMaps::mapLocalCopy
- * @param data
- */
-
-void TeacherMaps::mapLocalCopy(QVariantMap data)
-{
-	QString uuid = data.value("uuid").toString();
-
-	QVariantList l;
-	l.append(uuid);
-
-	QVariantMap m = db()->execSelectQueryOneRow("SELECT name FROM localmaps WHERE uuid=?", l);
-
-	if (!m.isEmpty()) {
-		m_client->sendMessageWarning(tr("Szerkesztés"), tr("Már létezik egy helyi példány a pályából!"));
-		return;
-	}
-
-	QVariantMap mm = db()->execSelectQueryOneRow("SELECT data, name, md5 FROM maps WHERE uuid=?", l);
-
-	if (mm.isEmpty()) {
-		m_client->sendMessageError(tr("Szerkesztés"), tr("Érvénytelen azonosító!"));
-		return;
-	}
-
-	QVariantMap c;
-	c["uuid"] = uuid;
-	c["name"] = mm.value("name").toString();
-	c["md5"] = mm.value("md5").toString();
-	c["data"] = mm.value("data").toByteArray();
-
-	if (db()->execInsertQuery("INSERT INTO localmaps (?k?) VALUES (?)", c) != -1) {
-		send("mapListGet");
-	}
-}
-
-
-/**
- * @brief TeacherMaps::mapLocalRemove
- * @param data
- */
-
-void TeacherMaps::mapLocalRemove(QVariantMap data)
-{
-	QString uuid = data.value("uuid").toString();
-
-	QVariantList l;
-	l.append(uuid);
-
-	if (db()->execSimpleQuery("DELETE FROM localmaps WHERE uuid=?", l)) {
-		send("mapListGet");
-	}
-}
-
-
-
-/**
- * @brief TeacherMaps::setIsUploading
- * @param isUploading
- */
-
-void TeacherMaps::setIsUploading(bool isUploading)
-{
-	if (m_isUploading == isUploading)
-		return;
-
-	m_isUploading = isUploading;
-	emit isUploadingChanged(m_isUploading);
-}
-
-void TeacherMaps::setModelGroupList(VariantMapModel *modelGroupList)
-{
-	if (m_modelGroupList == modelGroupList)
-		return;
-
-	m_modelGroupList = modelGroupList;
-	emit modelGroupListChanged(m_modelGroupList);
-}
 
 void TeacherMaps::setSelectedMapId(QString selectedMapId)
 {
@@ -593,114 +379,30 @@ void TeacherMaps::onMapListGet(QJsonObject jsonData, QByteArray)
 {
 	m_modelMapList->unselectAll();
 
+	QJsonArray ret;
+
+	QVariantMap info = mapDownloadInfo(db());
+
 	QJsonArray list = jsonData.value("list").toArray();
 
-	QVariantList ret;
-	QStringList usedUuids;
-
 	foreach (QJsonValue v, list) {
-		QVariantMap m = v.toObject().toVariantMap();
+		QJsonObject m = v.toObject();
 		QString uuid = m.value("uuid").toString();
 
-		usedUuids.append(uuid);
+		m["downloaded"] = false;
 
-		m["uuid2"] = uuid;
-		m["download"] = false;
-		m["upload"] = false;
-		m["local"] = false;
-
-		QVariantList l;
-		l.append(uuid);
-
-		QVariantMap r = db()->execSelectQueryOneRow("SELECT name, md5, COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE uuid=?", l);
-
-		if (r.isEmpty()) {
-			m["download"] = true;
-		} else {
-			if (r.value("md5").toString() != m.value("md5").toString() || m.value("dataSize").toInt() != r.value("dataSize").toInt()) {
-				m["download"] = true;
-			}
-			if (r.value("name").toString() != m.value("name").toString()) {
-				QVariantList ll = l;
-				ll.prepend(m.value("name").toString());
-				db()->execSimpleQuery("UPDATE maps SET name=? WHERE uuid=?", ll);
-			}
-		}
-
-
-		QVariantMap rl = db()->execSelectQueryOneRow("SELECT md5 FROM localmaps WHERE uuid=?", l);
-
-		if (!rl.isEmpty()) {
-			if (m.value("download").toBool()) {
-				QVariantMap m2 = m;
-				m2["uuid2"] = uuid+"UP";
-				m2["upload"] = true;
-				ret.append(m2);
-			} else {
-				m["upload"] = true;
-			}
+		if (info.contains(uuid)) {
+			QVariantMap dm = info.value(uuid).toMap();
+			if (m.value("md5") == dm.value("md5") && m.value("dataSize") == dm.value("dataSize"))
+				m["downloaded"] = true;
 		}
 
 		ret.append(m);
 	}
 
+	m_modelMapList->setJsonArray(ret, "uuid");
 
-
-	QVariantList l = db()->execSelectQuery("SELECT uuid, name, md5, lastModified, COALESCE(LENGTH(data),0) as dataSize FROM localmaps");
-
-	foreach (QVariant v, l) {
-		QVariantMap m = v.toMap();
-		QString uuid = m.value("uuid").toString();
-
-		if (usedUuids.contains(uuid))
-			continue;
-
-		m["version"] = 0;
-		m["binded"] = false;
-		m["used"] = false;
-		m["uuid2"] = uuid+"UP";
-		m["download"] = false;
-		m["upload"] = true;
-		m["local"] = true;
-
-		ret.append(m);
-	}
-
-	m_modelMapList->setVariantList(ret, "uuid2");
-}
-
-
-
-/**
- * @brief TeacherMaps::onMapUpdated
- * @param jsonData
- */
-
-void TeacherMaps::onMapUpdated(QJsonObject jsonData, QByteArray)
-{
-	QString uuid = jsonData.value("uuid").toString();
-	QString md5 = jsonData.value("md5").toString();
-
-	if (jsonData.contains("error")) {
-		m_client->sendMessageError(tr("Hiba"), jsonData.value("error").toString());
-		return;
-	}
-
-	if (!uuid.isEmpty() && !md5.isEmpty() && (jsonData.value("created").toBool() || jsonData.value("updated").toBool())) {
-		QVariantList l;
-		l.append(uuid);
-		l.append(md5);
-		QVariantMap m = db()->execSelectQueryOneRow("SELECT data FROM localmaps WHERE uuid=? AND md5=?", l);
-
-		if (!m.isEmpty()) {
-			QVariantList ll;
-			ll.append(m.value("data").toByteArray());
-			ll.append(md5);
-			ll.append(uuid);
-			db()->execSimpleQuery("UPDATE maps SET data=?, md5=? WHERE uuid=?", ll);
-			db()->execSimpleQuery("DELETE FROM localmaps WHERE uuid=? AND md5=?", l);
-		}
-	}
+	onMapSelected();
 }
 
 
@@ -714,6 +416,53 @@ void TeacherMaps::onMapUpdated(QJsonObject jsonData, QByteArray)
 void TeacherMaps::onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &)
 {
 	mapDownloadFinished(db(), item, data);
+}
+
+
+/**
+ * @brief TeacherMaps::onMapSelected
+ */
+
+void TeacherMaps::onMapSelected(const QString &)
+{
+	QVariantMap mapdata;
+	mapdata["uuid"] = m_selectedMapId;
+	mapdata["mapReady"] = false;
+
+	if (!m_selectedMapId.isEmpty()) {
+		int key = m_modelMapList->findKey("uuid", m_selectedMapId);
+		if (key == -1) {
+			setSelectedMapId("");
+			return;
+		}
+
+		QVariantMap d = m_modelMapList->getByKey(key);
+		mapdata.insert(d);
+
+		bool dl = d.value("downloaded").toBool();
+
+		if (dl) {
+			QByteArray data = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {m_selectedMapId}).value("data").toByteArray();
+
+			if (!data.isEmpty()) {
+				GameMap *m = GameMap::fromBinaryData(data);
+
+				if (m) {
+					QVariantList mlist;
+					foreach (GameMap::Mission *mis, m->missions()) {
+						mlist.append(mis->name());
+					}
+					mapdata["mapReady"] = true;
+					mapdata["missionList"] = mlist;
+
+					delete m;
+				}
+			}
+		}
+	}
+
+
+	emit mapDataReady(mapdata);
 }
 
 

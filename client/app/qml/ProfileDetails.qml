@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.14
+import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
@@ -24,6 +25,15 @@ QSwipeContainer {
 	readonly property bool modified: layout1.modified || layout2.modified || layout3.modified
 
 	signal accepted()
+
+	property VariantMapModel modelRankList: cosClient.newModel([
+																   "rankid",
+																   "timestamp",
+																   "xp",
+																   "name",
+																   "level",
+																   "image"
+															   ])
 
 	QAccordion {
 		id: accordion
@@ -344,6 +354,71 @@ QSwipeContainer {
 			}
 		}
 
+
+		QCollapsible {
+			title: qsTr("Ranglista")
+
+			QVariantMapProxyView {
+				id: rankList
+				width: parent.width
+
+				model: SortFilterProxyModel {
+					sourceModel: modelRankList
+
+					sorters: [
+						StringSorter {
+							roleName: "timestamp"
+							sortOrder: Qt.DescendingOrder
+						}
+					]
+				}
+
+				autoSelectorChange: false
+				highlightCurrentItem: false
+
+				delegateHeight: CosStyle.halfLineHeight
+
+				leftComponent: Image {
+					source: model ? cosClient.rankImageSource(model.rankid, model.level, model.image) : ""
+					width: rankList.delegateHeight+10
+					height: rankList.delegateHeight*0.8
+					fillMode: Image.PreserveAspectFit
+				}
+
+				rightComponent: QLabel {
+					text: model ? "%1 XP".arg(Number(model.xp).toLocaleString()) : ""
+					font.weight: Font.Normal
+					font.pixelSize: rankList.delegateHeight*0.8
+					color: CosStyle.colorAccentLight
+					leftPadding: 5
+				}
+
+				contentComponent: Row {
+					spacing: 10
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						width: Math.min(implicitWidth, parent.width/2)
+						elide: Text.ElideRight
+						font.pixelSize: CosStyle.pixelSize*0.9
+						font.weight: Font.Medium
+						color: CosStyle.colorPrimaryLight
+						text: model ? qsTr("%1 (level %2)").arg(model.name).arg(model.level) : ""
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						width: Math.min(implicitWidth, parent.width/2)
+						elide: Text.ElideRight
+						leftPadding: 5
+						font.pixelSize: CosStyle.pixelSize*0.8
+						font.weight: Font.Normal
+						color: CosStyle.colorPrimaryLight
+						text: model ? model.timestamp : ""
+					}
+				}
+
+			}
+		}
 	}
 
 
@@ -383,12 +458,20 @@ QSwipeContainer {
 			gridRepeaterD1.model = jsonData.d1
 			gridRepeaterD2.model = jsonData.d2
 			gridRepeaterD3.model = jsonData.d3
+
+			if (jsonData.ranklog)
+				modelRankList.replaceList(jsonData.ranklog)
+			else
+				modelRankList.clear()
 		}
 
 
 		function onUserModify(jsonData, binaryData) {
 			if (jsonData.error === undefined) {
-				profile.send("userGet", {})
+				profile.send("userGet", {
+								 withTrophy: true,
+								 withRanklog: true
+							 })
 				layout1.modified = false
 				layout2.modified = false
 				layout3.modified = false

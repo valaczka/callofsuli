@@ -26,19 +26,21 @@
 
 #include <QDebug>
 
-#ifdef Q_OS_ANDROID
-#include <jni.h>
-#include <QtAndroid>
-#include <QtAndroidExtras/QAndroidJniObject>
-#endif
-
 #include "androidshareutils.h"
 
+#define FLAG_SCREEN_ORIENTATION_LANDSCAPE       0x00000000
+
 AndroidShareUtils* AndroidShareUtils::m_instance = nullptr;
+
+
 
 AndroidShareUtils::AndroidShareUtils(QObject *parent)
 	: QObject(parent)
 	, m_pendingIntentsChecked(false)
+	#ifdef Q_OS_ANDROID
+	, m_screenOrientationRequest(-1)
+	#endif
+
 {
 	Q_ASSERT(m_instance == nullptr);
 
@@ -67,6 +69,46 @@ AndroidShareUtils *AndroidShareUtils::instance()
 	if (!m_instance)
 		m_instance = new AndroidShareUtils;
 	return m_instance;
+}
+
+
+/**
+ * @brief AndroidShareUtils::forceLandscape
+ * @return
+ */
+
+bool AndroidShareUtils::forceLandscape()
+{
+#ifdef Q_OS_ANDROID
+	m_screenOrientationRequest = QtAndroid::androidActivity().callMethod<jint>("getRequestedOrientation");
+
+	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
+												  "(I)V",
+												  FLAG_SCREEN_ORIENTATION_LANDSCAPE);
+
+	return true;
+#endif
+
+	return false;
+}
+
+
+/**
+ * @brief AndroidShareUtils::resetLandscape
+ * @return
+ */
+
+bool AndroidShareUtils::resetLandscape()
+{
+#ifdef Q_OS_ANDROID
+	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
+												  "(I)V",
+												  m_screenOrientationRequest);
+
+	return true;
+#endif
+
+	return false;
 }
 
 

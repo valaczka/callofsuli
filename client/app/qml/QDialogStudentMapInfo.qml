@@ -15,6 +15,8 @@ QDialogPanel {
 	required property StudentMaps studentMaps
 	property string mapUuid: ""
 
+	maximumWidth: 1200
+
 
 	QAccordion {
 		id: accordion

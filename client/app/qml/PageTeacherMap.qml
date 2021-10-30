@@ -1,27 +1,40 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Dialogs 1.3
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
 
-QPage {
+QBasePage {
 	id: page
 
 	defaultTitle: qsTr("Pályák kezelése")
+	defaultSubTitle: ""
+
+	mainToolBarComponent: UserButton {
+		userDetails: userData
+		userNameVisible: page.width>800
+	}
+
+	mainMenuFunc: function (m) {
+		m.addAction(actionUpload)
+		m.addSeparator()
+		m.addAction(actionMapEditor)
+	}
+
+	UserDetails {
+		id: userData
+	}
+
 
 	activity: TeacherMaps {
 		id: teacherMaps
 
-		property VariantMapModel _dialogGroupModel: newModel(["id", "name", "readableClassList"])
 
-		onIsBusyChanged: {
-			if (!isBusy && isUploading) {
-				isUploading = false
-				send("mapListGet")
-			}
+		onSelectedMapIdChanged: {
+			if (selectedMapId != "")
+				swComponent.swipeToPage(1)
 		}
 
 		onMapDownloadRequest: {
@@ -38,54 +51,104 @@ QPage {
 			d.open()
 		}
 
+		onMapAdd: {
+			if (jsonData.error !== undefined) {
+				cosClient.sendMessageWarning(qsTr("Hiba"), qsTr("Sikertelen feltöltés:\n%1").arg(jsonData.error))
+			} else {
+				send("mapListGet");
+			}
+		}
+
+		onMapModify: {
+			if (jsonData.error !== undefined) {
+				cosClient.sendMessageWarning(qsTr("Hiba"), qsTr("Sikertelen módosítás:\n%1").arg(jsonData.error))
+			} else {
+				send("mapListGet");
+			}
+		}
+
 		onMapRemove: {
-			send("mapListGet")
-		}
-
-		function mapSelect(uuid) {
-			teacherMaps.selectedMapId=uuid
-			if (uuid !== "" && stackMode)
-				addStackPanel(panelMapGroups)
+			if (jsonData.error !== undefined) {
+				cosClient.sendMessageWarning(qsTr("Hiba"), qsTr("Sikertelen törlés:\n%1").arg(jsonData.error))
+			} else {
+				send("mapListGet");
+			}
 		}
 	}
 
 
-	FileDialog {
-		id: fileDialog
-		title: qsTr("Exportálás")
-		folder: shortcuts.home
+	QSwipeComponent {
+		id: swComponent
+		anchors.fill: parent
 
-		property string mapUuid: ""
+		basePage: page
 
-		selectMultiple: false
-		selectExisting: false
+		content: [
+			TeacherMapList {
+				id: container1
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder1
+				buttonUpload.action: actionUpload
+			},
+			TeacherMapInfo {
+				id: container2
+				reparented: swComponent.swipeMode
+				reparentedParent: placeholder2
+			}
+		]
 
-		onAccepted: {
-			teacherMaps.mapExport({uuid: mapUuid, filename: fileDialog.fileUrl})
+		swipeContent: [
+			Item {
+				id: placeholder1
+			},
+			Item {
+				id: placeholder2
+			}
+		]
+
+		tabBarContent: [
+			QSwipeButton { swipeContainer: container1 },
+			QSwipeButton { swipeContainer: container2 }
+		]
+
+	}
+
+
+	Action {
+		id: actionUpload
+		text: qsTr("Feltöltés")
+		icon.source: CosStyle.iconUpload
+		onTriggered: {
+			var d = JS.dialogCreateQml("File", {
+										   isSave: false,
+										   folder: cosClient.getSetting("mapFolder", ""),
+										   title: qsTr("Feltöltés")
+									   })
+			d.accepted.connect(function(data){
+				teacherMaps.mapUpload(data)
+				cosClient.setSetting("mapFolder", d.item.modelFolder)
+			})
+
+			d.open()
 		}
 	}
 
-	panelComponents: [
-		Component { TeacherMapList {  } },
-		Component { TeacherMapGroups { } }
-	]
 
-	Component {
-		id: panelMapGroups
-		TeacherMapGroups { }
+	Action {
+		id: actionMapEditor
+		text: qsTr("Pályaszerkesztő")
+		icon.source: CosStyle.iconEdit
+		onTriggered: {
+			JS.createPage("MapEditor", { })
+		}
 	}
-
-
-	/*mainMenuFunc: function (m) {
-		m.addAction(actionSave)
-	}*/
-
 
 
 	onPageActivated: {
-		teacherMaps.send("mapListGet")
-	}
+		teacherMaps.send("mapListGet", {})
 
+		container1.list.forceActiveFocus()
+	}
 
 
 	function windowClose() {
@@ -94,7 +157,15 @@ QPage {
 
 
 	function pageStackBack() {
+		if (swComponent.layoutBack()) {
+			return true
+		} else if (teacherMaps.modelMapList.selectedCount > 0) {
+			teacherMaps.modelMapList.unselectAll()
+			return true
+		}
+
 		return false
 	}
 
 }
+

@@ -39,10 +39,6 @@
 #include <gvc.h>
 #endif
 
-#ifdef Q_OS_ANDROID
-#include <QtAndroidExtras/QAndroidJniObject>
-#endif
-
 #ifndef Q_OS_ANDROID
 #include <qsingleinstance.h>
 #endif
@@ -253,12 +249,8 @@ public slots:
 	void setSfxVolumeInt(int sfxVolume);
 	void setForcedLandscape(bool forcedLandscape);
 
-#ifdef Q_OS_ANDROID
 	void forceLandscape();
 	void resetLandscape();
-#endif
-
-
 
 private slots:
 	void setSocket(QWebSocket * socket);
@@ -396,9 +388,6 @@ private:
 	QString m_serverUuid;
 
 
-#ifdef Q_OS_ANDROID
-	jint m_screenOrientationRequest;
-#endif
 
 #ifdef WITH_CGRAPH
 	GVC_t *m_gvContext;

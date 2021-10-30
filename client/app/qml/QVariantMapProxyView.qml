@@ -11,7 +11,7 @@ import "JScript.js" as JS
 QListView {
 	id: view
 
-	property string modelTitleRole: "labelTitle"
+	property string modelTitleRole: ""
 	property string modelSubtitleRole: ""
 	property string modelEnabledRole: ""
 	property string modelToolTipRole: ""

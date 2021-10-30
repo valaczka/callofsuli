@@ -55,14 +55,17 @@ QBasePage {
 			if (!mapEditor.loaded)
 				return
 
-			var d = JS.dialogCreateQml("File", {})
-			d.item.isSave = true
+			var d = JS.dialogCreateQml("File", {
+										   isSave: true,
+										   folder: cosClient.getSetting("mapFolder", "")
+									   })
 
 			d.accepted.connect(function(data){
 				if (!isNew)
 					mapEditor.saveCopyUrl(data)
 				else
 					mapEditor.saveUrl(data)
+				cosClient.setSetting("mapFolder", d.item.modelFolder)
 			})
 
 			d.open()
@@ -278,11 +281,14 @@ QBasePage {
 		enabled: !mapEditor.loaded
 		icon.source: CosStyle.iconAdjust
 		onTriggered: {
-			var d = JS.dialogCreateQml("File", {})
-			d.item.isSave = false
+			var d = JS.dialogCreateQml("File", {
+										   isSave: false,
+										   folder: cosClient.getSetting("mapFolder", "")
+									   })
 
 			d.accepted.connect(function(data){
 				mapEditor.openUrl(data)
+				cosClient.setSetting("mapFolder", d.item.modelFolder)
 			})
 
 			d.open()

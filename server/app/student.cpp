@@ -119,7 +119,7 @@ bool Student::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 		QVariantList l;
 		l.append(m.value("mapid").toString());
 
-		QVariantMap map = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, name, version, lastModified, md5, "
+		QVariantMap map = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, name, version, datetime(lastModified, 'localtime') as lastModified, md5, "
 																	"COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE uuid=?", l);
 
 		map["active"] = m.value("active").toBool();
@@ -547,9 +547,6 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 bool Student::userGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QJsonObject o = m_message.jsonData();
-
-	if (!o.contains("withTrophy"))
-		o["withTrophy"] = true;
 
 	CosMessage m2(o, CosMessage::ClassInvalid, "");
 

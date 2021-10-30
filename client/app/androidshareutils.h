@@ -29,6 +29,13 @@
 
 #include <QObject>
 
+#ifdef Q_OS_ANDROID
+#include <jni.h>
+#include <QtAndroid>
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
+
+
 class AndroidShareUtils : public QObject
 {
 	Q_OBJECT
@@ -39,6 +46,9 @@ public:
 
 	static AndroidShareUtils *instance();
 
+	bool forceLandscape();
+	bool resetLandscape();
+
 public slots:
 	bool checkPendingIntents();
 
@@ -48,6 +58,11 @@ signals:
 private:
 	static AndroidShareUtils *m_instance;
 	bool m_pendingIntentsChecked;
+
+#ifdef Q_OS_ANDROID
+	jint m_screenOrientationRequest;
+#endif
+
 
 };
 

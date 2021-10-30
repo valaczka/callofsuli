@@ -38,17 +38,15 @@
 #include "abstractactivity.h"
 #include "variantmapmodel.h"
 #include "variantmapdata.h"
+#include "gamemap.h"
 
 class TeacherMaps : public AbstractActivity
 {
 	Q_OBJECT
 
 	Q_PROPERTY(VariantMapModel * modelMapList READ modelMapList NOTIFY modelMapListChanged)
-	Q_PROPERTY(VariantMapModel * modelGroupList READ modelGroupList WRITE setModelGroupList NOTIFY modelGroupListChanged)
 
 	Q_PROPERTY(QString selectedMapId READ selectedMapId WRITE setSelectedMapId NOTIFY selectedMapIdChanged)
-
-	Q_PROPERTY(bool isUploading READ isUploading WRITE setIsUploading NOTIFY isUploadingChanged)
 
 public:
 	explicit TeacherMaps(QQuickItem *parent = nullptr);
@@ -56,64 +54,45 @@ public:
 
 	static CosDb *teacherMapsDb(Client *client, QObject *parent = nullptr, const QString &connectionName = "teacherMapsDb");
 
-	//Q_INVOKABLE virtual void run(const QString &func, QVariantMap data = QVariantMap()) override { AbstractActivity::run(m_map, func, data); };
-
-	VariantMapModel * modelMapList() const { return m_modelMapList; }
-	VariantMapModel * modelGroupList() const { return m_modelGroupList; }
-
-	bool isUploading() const { return m_isUploading; }
-
-	QString selectedMapId() const { return m_selectedMapId; }
 
 	static QVariantMap mapDownloadInfo(CosDb *db);
 	static void mapDownloadPrivate(const QVariantMap &data, CosDownloader *downloader, VariantMapModel *mapModel);
 	static void mapDownloadFinished(CosDb *db, const CosDownloaderItem &item, const QByteArray &data);
 
-public slots:
-	void mapSelect(const QString &uuid);
-	void mapAdd(QVariantMap data);
-	void mapDownload(QVariantMap data);
-	void mapUpload(QVariantMap data);
-	void mapExport(QVariantMap data);
-	void mapImport(QVariantMap data = QVariantMap());
-	void mapRename(QVariantMap data);
-	void mapLocalCopy(QVariantMap data);
-	void mapLocalRemove(QVariantMap data);
+	VariantMapModel * modelMapList() const { return m_modelMapList; }
+	QString selectedMapId() const { return m_selectedMapId; }
 
-	void setIsUploading(bool isUploading);
-	void setModelGroupList(VariantMapModel * modelGroupList);
+public slots:
+	void mapDownload(QVariantMap data);
+	void mapUpload(const QUrl &url);
+	void mapOverride(const QUrl &url);
+	void mapExport(const QUrl &url);
+
 	void setSelectedMapId(QString selectedMapId);
 
 protected slots:
 	void clientSetup() override;
 
 private slots:
-	void onMapGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
-	void onMapUpdated(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
+	void onMapSelected(const QString & = QString());
 
 
 signals:
 	void mapDownloadRequest(QString formattedDataSize);
-	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
-	void mapUpdate(QJsonObject jsonData, QByteArray binaryData);
-	void mapRemove(QJsonObject jsonData, QByteArray binaryData);
-	void mapGet(QJsonObject jsonData, QByteArray binaryData);
-	void mapExcludedGroupListGet(QJsonObject jsonData, QByteArray binaryData);
-	void mapGroupAdd(QJsonObject jsonData, QByteArray binaryData);
-	void mapGroupRemove(QJsonObject jsonData, QByteArray binaryData);
 
+	void mapListGet(QJsonObject jsonData, QByteArray binaryData);
+	void mapRemove(QJsonObject jsonData, QByteArray binaryData);
+	void mapModify(QJsonObject jsonData, QByteArray binaryData);
+	void mapAdd(QJsonObject jsonData, QByteArray binaryData);
+
+	void mapDataReady(const QVariantMap data);
 	void modelMapListChanged(VariantMapModel * modelMapList);
-	void modelGroupListChanged(VariantMapModel * modelGroupList);
-	void isUploadingChanged(bool isUploading);
 	void selectedMapIdChanged(QString selectedMapId);
 
 private:
-	//QHash<QString, void (TeacherMaps::*)(QVariantMap)> m_map;
 	VariantMapModel * m_modelMapList;
-	bool m_isUploading;
-	VariantMapModel * m_modelGroupList;
 	QString m_selectedMapId;
 };
 

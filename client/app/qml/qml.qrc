@@ -14,7 +14,6 @@
         <file>QGridLabel.qml</file>
         <file>QGridLayout.qml</file>
         <file>QGridTextField.qml</file>
-        <file>QListButtonDelegate.qml</file>
         <file>QListView.qml</file>
         <file>QMenu.qml</file>
         <file>QMenuButton.qml</file>
@@ -25,7 +24,6 @@
         <file>QCheckBox.qml</file>
         <file>QDialogTextField.qml</file>
         <file>QToolBusyIndicator.qml</file>
-        <file>QListItemDelegate.qml</file>
         <file>QCollapsible.qml</file>
         <file>QAccordion.qml</file>
         <file>QRemoveButton.qml</file>
@@ -87,7 +85,6 @@
         <file>QDialogGameSettings.qml</file>
         <file>GameButton.qml</file>
         <file>GameInfo.qml</file>
-        <file>QListTextFieldDelegate.qml</file>
         <file>GameQuestionButton.qml</file>
         <file>GamePickable.qml</file>
         <file>GamePickableHealth.qml</file>
@@ -95,10 +92,6 @@
         <file>GamePlayerLocator.qml</file>
         <file>GameMessageList.qml</file>
         <file>PageScore.qml</file>
-        <file>OLDTeacherGroupList.qml</file>
-        <file>OLDTeacherGroupMembers.qml</file>
-        <file>OLDTeacherGroupMaps.qml</file>
-        <file>TeacherMapGroups.qml</file>
         <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
         <file>QBadge.qml</file>
@@ -151,5 +144,6 @@
         <file>PageConnectionInfo.qml</file>
         <file>QDialogPasswordChange.qml</file>
         <file>PageTeacherGroupUsers.qml</file>
+        <file>TeacherMapInfo.qml</file>
     </qresource>
 </RCC>

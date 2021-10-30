@@ -17,6 +17,8 @@ QDialogPanel {
 	property bool isSave: false
 	property alias filters: folderListModel.nameFilters
 
+	property alias modelFolder: folderListModel.folder
+
 
 	maximumWidth: 750
 
@@ -46,15 +48,27 @@ QDialogPanel {
 			}
 		}
 
-		QLabel {
+		Flow {
 			id: filePath
-			elide: Text.ElideMiddle
-			wrapMode: Text.Wrap
-			verticalAlignment: Text.AlignVCenter
-
+			spacing: 5
 			anchors.verticalCenter: parent.verticalCenter
-
 			width: parent.width-button.width-5
+
+			Repeater {
+				model: ListModel { id: filePathModel }
+
+				QLabel {
+					text: _text
+					color: (url && url.length && index != 0) ? CosStyle.colorPrimaryLighter : CosStyle.colorAccent
+
+					MouseArea {
+						anchors.fill: parent
+						acceptedButtons: Qt.LeftButton
+						enabled: url.length
+						onClicked: folderListModel.folder = url
+					}
+				}
+			}
 		}
 	}
 
@@ -71,7 +85,28 @@ QDialogPanel {
 
 			showDirsFirst: true
 
-			onFolderChanged: filePath.text = folder.toString().replace("file:///", "► ").replace(new RegExp("/",'g'), " ► ")
+			onFolderChanged: setFilePath()
+
+			Component.onCompleted: setFilePath()
+
+			function setFilePath() {
+				filePathModel.clear()
+				var l = folder.toString().replace("file:///", "").split("/")
+
+				var u = "file:///"
+				filePathModel.append({ _text: "►", url: u})
+
+				for (var i=0; i<l.length; i++) {
+					if (i>0) {
+						filePathModel.append({ _text: "►", url: ""})
+						u += "/"
+					}
+
+					u += l[i]
+					filePathModel.append({ _text: l[i], url: u })
+				}
+
+			}
 
 			/*showDotAndDotDot: picker.showDotAndDotDot
 			showHidden: picker.showHidden
@@ -181,12 +216,14 @@ QDialogPanel {
 	}
 
 
-	function populated() {
+	Component.onCompleted: {
 		if (folder != "")
 			folderListModel.folder = folder
 		else if (Qt.platform.os == "android")
 			folderListModel.folder = "file:///sdcard"
+	}
 
+	function populated() {
 		if (isSave)
 			tfFile.forceActiveFocus()
 		else

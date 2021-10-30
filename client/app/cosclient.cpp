@@ -67,12 +67,6 @@
 #include "androidshareutils.h"
 
 
-#ifdef Q_OS_ANDROID
-#include <QtAndroid>
-#define FLAG_SCREEN_ORIENTATION_LANDSCAPE       0x00000000
-#endif
-
-
 QList<TerrainData> Client::m_availableTerrains;
 QVariantMap Client::m_characterData;
 QStringList Client::m_musicList;
@@ -99,10 +93,6 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_serverDataDir = "";
 
 	m_sfxVolume = 1.0;
-
-#ifdef Q_OS_ANDROID
-	m_screenOrientationRequest = -1;
-#endif
 
 #ifdef WITH_CGRAPH
 	m_gvContext = gvContext();
@@ -1040,26 +1030,16 @@ void Client::setServerUuid(QString serverUuid)
 }
 
 
-#ifdef Q_OS_ANDROID
-
 /**
  * @brief Client::forceLandscape
  */
 
 void Client::forceLandscape()
 {
-	m_screenOrientationRequest = QtAndroid::androidActivity().callMethod<jint>("getRequestedOrientation");
-
-	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
-												  "(I)V",
-												  FLAG_SCREEN_ORIENTATION_LANDSCAPE);
-
-	setForcedLandscape(true);
+	if (AndroidShareUtils::instance()->forceLandscape())
+		setForcedLandscape(true);
 }
-#endif
 
-
-#ifdef Q_OS_ANDROID
 
 /**
  * @brief Client::resetLandscape
@@ -1067,13 +1047,9 @@ void Client::forceLandscape()
 
 void Client::resetLandscape()
 {
-	QtAndroid::androidActivity().callMethod<void>("setRequestedOrientation",
-												  "(I)V",
-												  m_screenOrientationRequest);
-
-	setForcedLandscape(false);
+	if (AndroidShareUtils::instance()->resetLandscape())
+		setForcedLandscape(false);
 }
-#endif
 
 
 void Client::setRegistrationClasses(QVariantList registrationClasses)
