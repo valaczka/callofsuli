@@ -1097,4 +1097,204 @@ bool Teacher::mapModify(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief Teacher::studentGameListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString username = params.value("username").toString();
+
+	if (username.isEmpty()) {
+		(*jsonResponse)["error"] = "missing username";
+		return false;
+	}
+
+
+	QVariantList list;
+
+	if (params.contains("groupid")) {
+		int groupid = params.value("groupid", -1).toInt();
+		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
+"level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND game.username=? "
+"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
+											   {username, groupid});
+		(*jsonResponse)["groupid"] = groupid;
+
+	} else if (params.contains("myGroups")) {
+		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
+"level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND game.username=? "
+"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid IN (SELECT id FROM studentGroup WHERE owner=?))",
+											   {username, m_client->clientUserName()});
+
+	} else if (params.contains("allGroups")) {
+		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
+"level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND game.username=? ",
+											   {username});
+	}
+
+
+	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps");
+
+	QHash<QString, QString> mapHash;
+
+	foreach (QVariant v, mapDataList) {
+		QVariantMap m = v.toMap();
+		mapHash.insert(m.value("uuid").toString(), m.value("name").toString());
+	}
+
+	QJsonArray ret;
+
+	foreach (QVariant v, list) {
+		QJsonObject m = v.toJsonObject();
+		m["mapname"] = mapHash.value(m.value("mapid").toString());
+		ret.append(m);
+	}
+
+
+	(*jsonResponse)["list"] = ret;
+	(*jsonResponse)["username"] = username;
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief Teacher::gameListGroupGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::gameListGroupGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	int groupid = params.value("groupid", -1).toInt();
+
+	if (groupid == -1) {
+		(*jsonResponse)["error"] = "missing groupid";
+		return false;
+	}
+
+	QVariantList list;
+
+	if (params.contains("username")) {
+		QString username = params.value("username").toString();
+		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
+"level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND game.username=? "
+"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
+											   {username, groupid});
+		(*jsonResponse)["username"] = username;
+
+	} else {
+		list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, "
+"mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN userInfo ON (userInfo.username=game.username) "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
+											   {groupid});
+	}
+
+
+	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps");
+
+	QHash<QString, QString> mapHash;
+
+	foreach (QVariant v, mapDataList) {
+		QVariantMap m = v.toMap();
+		mapHash.insert(m.value("uuid").toString(), m.value("name").toString());
+	}
+
+	QJsonArray ret;
+
+	foreach (QVariant v, list) {
+		QJsonObject m = v.toJsonObject();
+		m["mapname"] = mapHash.value(m.value("mapid").toString());
+		ret.append(m);
+	}
+
+
+	(*jsonResponse)["list"] = ret;
+	(*jsonResponse)["groupid"] = groupid;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::gameListMapGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString mapid = params.value("mapid").toString();
+
+	if (mapid.isEmpty()) {
+		(*jsonResponse)["error"] = "missing mapid";
+		return false;
+	}
+
+	QVariantList list;
+
+	if (params.contains("username")) {
+		QString username = params.value("username").toString();
+		list = m_client->db()->execSelectQuery("SELECT missionid, datetime(game.timestamp, 'localtime') as timestamp, "
+"level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND game.username=? "
+"AND mapid=?",
+											   {username, mapid});
+		(*jsonResponse)["username"] = username;
+
+	} else {
+		list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, "
+"missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
+"LEFT JOIN userInfo ON (userInfo.username=game.username) "
+"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+"AND mapid=?",
+											   {mapid});
+	}
+
+
+	/*QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps");
+
+	QHash<QString, QString> mapHash;
+
+	foreach (QVariant v, mapDataList) {
+		QVariantMap m = v.toMap();
+		mapHash.insert(m.value("uuid").toString(), m.value("name").toString());
+	}
+
+	QJsonArray ret;
+
+	foreach (QVariant v, list) {
+		QJsonObject m = v.toJsonObject();
+		m["mapname"] = mapHash.value(m.value("mapid").toString());
+		ret.append(m);
+	}*/
+
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["mapid"] = mapid;
+
+	return true;
+}
+
+
 

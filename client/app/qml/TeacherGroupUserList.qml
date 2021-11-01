@@ -14,6 +14,7 @@ QSwipeContainer {
 
 	property alias list: userList
 	property alias buttonEditAction: buttonEdit.action
+	property string groupName: ""
 
 	QVariantMapProxyView {
 		id: userList
@@ -93,6 +94,17 @@ QSwipeContainer {
 		highlightCurrentItem: false
 
 		onRefreshRequest: teacherGroups.send("groupGet", { id: teacherGroups.selectedGroupId })
+
+		onClicked: {
+			var o = userList.model.get(index)
+			JS.createPage("TeacherGroupUserView", {
+							  teacherGroups: teacherGroups,
+							  defaultSubTitle: groupName,
+							  defaultTitle: o.name,
+							  username: o.username,
+							  groupid: teacherGroups.selectedGroupId
+						  })
+		}
 	}
 
 	QToolButtonBig {

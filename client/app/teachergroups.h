@@ -77,6 +77,8 @@ private slots:
 	void onGroupListGet(QJsonObject jsonData, QByteArray);
 	void onGroupGet(QJsonObject jsonData, QByteArray);
 	void onGroupMapListGet(const QJsonArray &list);
+	void onGameListUserGet(QJsonObject jsonData, QByteArray);
+	void onGameListMapGet(QJsonObject jsonData, QByteArray);
 
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 
@@ -103,6 +105,11 @@ signals:
 	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupTrophyGet(QJsonObject jsonData, QByteArray binaryData);
 
+	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
+	void gameListUserReady(const QVariantList &list, const QString &username);
+	void gameListMapGet(QJsonObject jsonData, QByteArray binaryData);
+	void gameListMapReady(const QVariantList &list, const QString &mapid, const QString &username);
+
 	void modelGroupListChanged(VariantMapModel * modelGroupList);
 	void modelUserListChanged(VariantMapModel * modelUserList);
 	void modelMapListChanged(VariantMapModel * modelMapList);
@@ -114,6 +121,7 @@ private:
 	VariantMapModel * m_modelMapList;
 	int m_selectedGroupId;
 	QVariantMap m_mapDownloadInfo;
+	QVariantMap m_missionNameMap;
 };
 
 #endif // TEACHERGROUPS_H

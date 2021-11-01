@@ -484,3 +484,41 @@ void TeacherMaps::mapDownloadFinished(CosDb *db, const CosDownloaderItem &item, 
 	db->execInsertQuery("INSERT OR REPLACE INTO maps (?k?) VALUES (?)", m);
 }
 
+
+/**
+ * @brief TeacherMaps::missionNames
+ * @param db
+ * @return
+ */
+
+QVariantMap TeacherMaps::missionNames(CosDb *db)
+{
+	Q_ASSERT(db);
+
+	QVariantList list = db->execSelectQuery("SELECT uuid, data FROM maps");
+
+	QVariantMap ret;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		QByteArray b = m.value("data").toByteArray();
+
+		GameMap *map = GameMap::fromBinaryData(b);
+		QVariantMap r;
+
+		if (map) {
+			foreach(GameMap::Mission *mis, map->missions()) {
+				QString missionid = QString::fromLatin1(mis->uuid());
+				QString name = mis->name();
+
+				r[missionid] = name;
+			}
+		}
+
+		ret[m.value("uuid").toString()] = r;
+	}
+
+	return ret;
+}
+

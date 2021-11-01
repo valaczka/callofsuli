@@ -1,3 +1,5 @@
+include(CuteLogger/CuteLogger.pri)
+
 INCLUDEPATH += $$PWD
 
 SOURCES += \

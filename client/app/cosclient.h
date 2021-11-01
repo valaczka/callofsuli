@@ -169,6 +169,8 @@ public:
 	Q_INVOKABLE QStringList takePositionalArgumentsToProcess();
 	Q_INVOKABLE void setPositionalArgumentsToProcess(const QStringList &list) { m_positionalArgumentsToProcess = list; }
 
+	Q_INVOKABLE void checkPermissions() const;
+
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
 	QString userName() const { return m_userName; }
@@ -315,6 +317,9 @@ signals:
 	void socketBytesToWrite(qint64 bytes);
 
 	void myGroupListReady(const QJsonArray &list);
+
+	void storagePermissionsGranted();
+	void storagePermissionsDenied();
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(ConnectionState connectionState);

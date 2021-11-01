@@ -51,9 +51,12 @@ public:
 
 public slots:
 	bool checkPendingIntents();
+	void checkPermissions();
 
 signals:
 	void urlSelected(const QString &ulr);
+	void storagePermissionsDenied();
+	void storagePermissionsGranted();
 
 private:
 	static AndroidShareUtils *m_instance;

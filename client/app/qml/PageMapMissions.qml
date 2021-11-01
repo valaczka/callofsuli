@@ -56,7 +56,31 @@ QBasePage {
 						   studentMaps = demoStudentMaps
 					   }
 
+	property int _currentLevel: -1
+	property bool _currentDeathmatch: false
+	property bool _currenPageIsInfo: false
+	property int _currenMissionIndex: -1
+
+
 	mainToolBarComponent: Row {
+		QToolButton {
+			id: buttonInfo
+			anchors.verticalCenter: parent.verticalCenter
+			icon.source: CosStyle.iconXPgraph
+
+			visible: _currenPageIsInfo && _currentLevel > 0
+
+			ToolTip.text: qsTr("Eredmények")
+			onClicked: {
+				var o = stack.pushComponent(panelUserView, {
+												missionIndex: _currenMissionIndex,
+												level: _currentLevel,
+												deathmatch: _currentDeathmatch
+											})
+				o.reloadData()
+			}
+		}
+
 		QToolButton {
 			anchors.verticalCenter: parent.verticalCenter
 			ToolTip.text: qsTr("Jelvények")
@@ -92,6 +116,10 @@ QBasePage {
 		MapMissionInfo { }
 	}
 
+	Component {
+		id: panelUserView
+		MapMissionUserView { }
+	}
 
 
 	QStackComponent {
@@ -106,8 +134,12 @@ QBasePage {
 			target: studentMaps
 
 			function onMissionSelected(index) {
-				var o = stack.pushComponent(panelInfo, {selectedMissionIndex: index})
+				var o = stack.pushComponent(panelInfo, {
+												selectedMissionIndex: index,
+												basePage: page
+											})
 				o.loadMission()
+				_currenMissionIndex = index
 			}
 		}
 

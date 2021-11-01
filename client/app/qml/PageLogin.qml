@@ -8,8 +8,6 @@ import "JScript.js" as JS
 
 
 
-
-
 QBasePage {
 	id: control
 

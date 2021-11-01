@@ -35,6 +35,7 @@
 #include "student.h"
 #include "admin.h"
 #include "userinfo.h"
+#include "teacher.h"
 
 
 Student::Student(Client *client, const CosMessage &message)
@@ -539,6 +540,72 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 
 /**
+ * @brief Student::gameListUserGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	QString username = params.value("username").toString();
+	if (username.isEmpty())
+		username = m_client->clientUserName();
+
+	QJsonObject o;
+
+	o["username"] = username;
+	o["groupid"] = params.value("groupid").toInt(-1);
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Teacher u(m_client, m2);
+	return u.gameListUserGet(jsonResponse, nullptr);
+}
+
+
+
+/**
+ * @brief Student::gameListUserMissionGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+	QString missionid = params.value("missionid").toString();
+	int level = params.value("level", -1).toInt();
+	bool deathmatch = params.value("deathmatch", false).toBool();
+
+	if (missionid.isEmpty() || level < 0) {
+		(*jsonResponse)["error"] = "missing missionid or level";
+		return false;
+	}
+
+
+	QVariantList list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, rankid, ranklevel, rankimage, rankname,"
+"max(duration) as duration, count(*) as success FROM game "
+"LEFT JOIN userInfo ON (userInfo.username=game.username) "
+"WHERE missionid=? AND level=? AND deathmatch=? "
+"AND success=true AND tmpScore IS NULL "
+"GROUP BY game.username",
+														{missionid, level, deathmatch}
+														);
+
+
+	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["missionid"] = missionid;
+	(*jsonResponse)["level"] = level;
+	(*jsonResponse)["deathmatch"] = deathmatch;
+
+	return true;
+}
+
+
+/**
  * @brief Student::userGet
  * @param jsonResponse
  * @return
@@ -568,7 +635,7 @@ bool Student::userModify(QJsonObject *jsonResponse, QByteArray *)
 	QJsonObject params = m_message.jsonData();
 
 	bool disabledNameModification = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
-							.value("v", false).toBool();
+									.value("v", false).toBool();
 
 	QJsonObject o;
 

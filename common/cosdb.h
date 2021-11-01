@@ -31,6 +31,8 @@
 #include <QtSql>
 #include <QObject>
 
+Q_DECLARE_LOGGING_CATEGORY(sql)
+
 class CosDbWorker : public QObject
 {
 	Q_OBJECT

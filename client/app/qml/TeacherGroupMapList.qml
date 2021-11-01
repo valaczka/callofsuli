@@ -13,6 +13,7 @@ QSwipeContainer {
 	icon: CosStyle.iconPlanet
 
 	property alias list: list
+	property string groupName: ""
 
 
 	QVariantMapProxyView {
@@ -110,8 +111,9 @@ QSwipeContainer {
 			else
 				JS.createPage("TeacherGroupMapView", {
 								  teacherGroups: teacherGroups,
-								  defaultTitle: o.name,
-								  mapUuid: o.uuid
+								  defaultSubTitle: groupName,
+								  mapUuid: o.uuid,
+								  mapName: o.name
 							  })
 		}
 

@@ -59,8 +59,9 @@ public:
 		QString uuid;
 		QString name;
 		QVector<MissionLevel> levels;
+		QString medalImage;
 
-		Mission() : uuid(), name(), levels() {}
+		Mission() : uuid(), name(), levels(), medalImage() {}
 
 		QVariantMap toMap() const;
 	};

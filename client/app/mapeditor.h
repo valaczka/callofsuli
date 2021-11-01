@@ -120,8 +120,6 @@ public slots:
 	void setModified(bool modified);
 	void setLoaded(bool loaded);
 
-	void checkPermissions();
-
 	void setCurrentMission(QString currentMission);
 	void setModelMissionList(VariantMapModel * modelMissionList);
 	void setModelTerrainList(VariantMapModel * modelTerrainList);
@@ -193,9 +191,6 @@ signals:
 	void saveFailed();
 	void saveSucceed(const QString &filename, const bool &isCopy);
 	void saveDialogRequest(const bool &isNew);
-
-	void storagePermissionsGranted();
-	void storagePermissionsDenied();
 
 
 	void filenameChanged(QString filename);

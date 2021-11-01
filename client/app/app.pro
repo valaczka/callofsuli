@@ -63,8 +63,8 @@ DESTDIR = ../..
 
 unix:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy
 
-#CONFIG(debug) {
-#	DEFINES += COS_SQL_DEBUG
+#CONFIG(debug, debug|release) {
+#	DEFINES += SQL_DEBUG
 #}
 
 SOURCES += \

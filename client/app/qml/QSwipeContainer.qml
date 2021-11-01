@@ -40,6 +40,9 @@ Item {
 	onReparentedChanged: if (!reparented)
 							 populated()
 
+	StackView.onActivated: populated()
+	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) populated()
+
 	Item {
 		id: panel
 

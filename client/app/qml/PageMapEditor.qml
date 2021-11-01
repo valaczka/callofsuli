@@ -129,17 +129,6 @@ QBasePage {
 			return true
 		}
 
-
-		onStoragePermissionsDenied: {
-			labelPermissions.text = qsTr("Írási/olvasási jogosultság hiányzik")
-			labelPermissions.color = CosStyle.colorErrorLighter
-		}
-
-		onStoragePermissionsGranted: {
-			labelPermissions.visible = false
-		}
-
-
 	}
 
 	toolBarMenu: QMenu {
@@ -345,7 +334,22 @@ QBasePage {
 		}
 	}
 
-	onPageActivatedFirst: mapEditor.checkPermissions()
+	onPageActivatedFirst: cosClient.checkPermissions()
+
+
+	Connections {
+		target: cosClient
+
+		function onStoragePermissionsDenied() {
+			labelPermissions.text = qsTr("Írási/olvasási jogosultság hiányzik")
+			labelPermissions.color = CosStyle.colorErrorLighter
+		}
+
+		function onStoragePermissionsGranted() {
+			labelPermissions.visible = false
+		}
+
+	}
 
 
 	function windowClose() {

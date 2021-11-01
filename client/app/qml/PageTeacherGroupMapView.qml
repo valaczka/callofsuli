@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import SortFilterProxyModel 0.2
+import QtGraphicalEffects 1.0
 import COS.Client 1.0
 import "."
 import "Style"
@@ -11,21 +12,52 @@ import "JScript.js" as JS
 QBasePage {
 	id: page
 
-	defaultTitle: ""
+	defaultTitle: qsTr("Eredmények")
 	defaultSubTitle: ""
 
 	property TeacherGroups teacherGroups: null
 	property string mapUuid: ""
 
+	property alias mapName: labelMapName.text
+
 	property int delegateHeight: CosStyle.twoLineHeight
 	property int delegateWidth: 60
 	property real delegateSpacing: 3
 
+	property string _field: "xp"
 	property int _order: Qt.DescendingOrder
+	property bool _fullname: false
 
-	mainToolBarComponent: UserButton {
-		userDetails: userData
-		userNameVisible: page.width>800
+	mainToolBarComponent: Row {
+		spacing: 0
+		UserButton {
+			userDetails: userData
+			userNameVisible: page.width>800
+			anchors.verticalCenter: parent.verticalCenter
+		}
+
+		QMenuButton {
+			anchors.verticalCenter: parent.verticalCenter
+			QMenu {
+				title: qsTr("Rendezés")
+
+				QMenu {
+					title: qsTr("Név")
+
+					MenuItem { action: actionSortNameAsc }
+					MenuItem { action: actionSortNameDesc }
+				}
+
+				QMenu {
+					title: qsTr("XP")
+
+					MenuItem { action: actionSortXPAsc }
+					MenuItem { action: actionSortXPDesc }
+				}
+			}
+
+			MenuItem { action: actionFullName }
+		}
 	}
 
 	UserDetails {
@@ -37,11 +69,6 @@ QBasePage {
 	}
 
 
-	/*mainMenuFunc: function (m) {
-		m.addAction(actionMapAdd)
-	}*/
-
-
 
 
 	SortFilterProxyModel {
@@ -50,13 +77,25 @@ QBasePage {
 		sourceModel: mapModel
 
 		sorters: [
-			RoleSorter { roleName: "xp"; ascendingOrder: _order }
+			RoleSorter {
+				enabled: _field == "xp"
+				roleName: "xp"
+				sortOrder: _order
+				priority: 2
+			},
+			StringSorter {
+				roleName: "details"
+				sortOrder: _field == "name" ? _order : Qt.AscendingOrder
+				priority: 1
+			}
 		]
 
 		proxyRoles: [
 			ExpressionRole {
 				name: "details"
-				expression: model.firstname+" "+model.lastname
+				expression: !_fullname && model.userInfo && model.userInfo.nickname && model.userInfo.nickname.length
+							? model.userInfo.nickname
+							: model.firstname+"\n"+model.lastname
 			}
 		]
 	}
@@ -133,6 +172,24 @@ QBasePage {
 	}
 
 
+	QLabel {
+		id: labelMapName
+		anchors.top: parent.top
+		anchors.bottom: leftHeaderView.top
+		anchors.left: parent.left
+		anchors.right: topHeaderView.left
+
+		elide: Text.ElideRight
+		horizontalAlignment: Text.AlignHCenter
+		verticalAlignment: Text.AlignVCenter
+		font.pixelSize: CosStyle.pixelSize*1.2
+		font.weight: Font.Medium
+		color: CosStyle.colorAccentLight
+		wrapMode: Text.Wrap
+
+		leftPadding: 10
+		rightPadding: 10
+	}
 
 	Flickable {
 		id: topHeaderView
@@ -146,7 +203,7 @@ QBasePage {
 		boundsBehavior: Flickable.StopAtBounds
 		flickableDirection: Flickable.HorizontalFlick
 
-		contentHeight: rwH.height
+		contentHeight: rwH.height+rwL.height
 		contentWidth: rwH.width
 
 		Column {
@@ -159,14 +216,47 @@ QBasePage {
 				Repeater {
 					model: mapModel.missionData.missions
 
-					Rectangle {
+					Item {
+						id: missionItem
 						width: modelData.levels*delegateWidth+delegateSpacing*(modelData.levels-1)
 						height: delegateHeight
-						color: "yellow"
 
-						QLabel {
+						Row {
+							id: row2
 							anchors.centerIn: parent
-							text: modelData.name
+							spacing: 5
+
+							Image {
+								id: imgMedal
+								height: delegateHeight*0.8
+								width: height
+								anchors.verticalCenter: parent.verticalCenter
+								source: modelData.medalImage.length ? cosClient.medalIconPath(modelData.medalImage) : ""
+								fillMode: Image.PreserveAspectFit
+							}
+
+							QLabel {
+								anchors.verticalCenter: parent.verticalCenter
+								text: modelData.name
+								width: Math.min(implicitWidth, missionItem.width-imgMedal.width-row2.spacing)
+								elide: Text.ElideRight
+								color: CosStyle.colorWarningLight
+								font.weight: Font.DemiBold
+								font.pixelSize: CosStyle.pixelSize*1.1
+							}
+						}
+
+						Rectangle {
+							anchors.bottom: parent.bottom
+							width: parent.width
+							height: 1
+							gradient: Gradient {
+								orientation: Gradient.Horizontal
+								GradientStop { position: 0.0; color: "transparent" }
+								GradientStop { position: 0.3; color: CosStyle.colorWarningLight }
+								GradientStop { position: 0.7; color: CosStyle.colorWarningLight }
+								GradientStop { position: 1.0; color: "transparent" }
+							}
 						}
 					}
 				}
@@ -179,24 +269,25 @@ QBasePage {
 				Repeater {
 					model: mapModel.missionData.levels
 
-					Rectangle {
+					Item {
 						anchors.verticalCenter: parent.verticalCenter
 
 						height: delegateHeight
 						width: delegateWidth
 
-						color: "green"
-
-						QLabel {
+						Loader {
 							anchors.centerIn: parent
-							text: modelData.level+(modelData.deathmatch ? "D" : "")
+							sourceComponent: QTrophyImage {
+								width: delegateWidth*0.8
+								height: delegateHeight*0.6
+								level: modelData.level
+								isDeathmatch: modelData.deathmatch
+							}
 						}
 					}
 				}
 			}
 		}
-
-
 
 		onContentXChanged: {
 			if (!view.moving)
@@ -208,45 +299,72 @@ QBasePage {
 
 
 
-	ListView {
+	QVariantMapProxyView {
 		id: leftHeaderView
 		anchors.left: parent.left
 		anchors.top: topHeaderView.bottom
 		anchors.bottom: parent.bottom
 
-		width: 400
+		width: Math.min(parent.width*0.4, 400)
 
 		boundsBehavior: Flickable.StopAtBounds
 
-		clip: true
-
 		model: mapProxyModel
 
-		delegate: Rectangle {
-			implicitHeight: delegateHeight
-			implicitWidth: leftHeaderView.width
-			color: "blue"
+		delegateHeight: page.delegateHeight
 
-			Image {
-				source: cosClient.rankImageSource(userInfo.rankid, userInfo.ranklevel, userInfo.rankimage)
-				width: parent.height+10
-				height: parent.height*0.7
-				fillMode: Image.PreserveAspectFit
+		highlightCurrentItem: false
+		mouseAreaEnabled: true
+		autoSelectorChange: false
 
-				anchors.verticalCenter: parent.verticalCenter
-			}
-
-			QLabel {
-				anchors.centerIn: parent
-				text: details+" "+xp+" XP"
-			}
+		leftComponent: Image {
+			source: cosClient.rankImageSource(model.userInfo.rankid, model.userInfo.ranklevel, model.userInfo.rankimage)
+			width: delegateHeight+5
+			height: delegateHeight*0.8
+			fillMode: Image.PreserveAspectFit
 		}
+
+		rightComponent: QLabel {
+			horizontalAlignment: Text.AlignRight
+			text: "%1 XP".arg(Number(model.xp).toLocaleString())
+			font.pixelSize: CosStyle.pixelSize*1.1
+			font.weight: Font.Normal
+			color: CosStyle.colorAccentLighter
+			rightPadding: 10
+			leftPadding: 5
+		}
+
+		contentComponent: QLabel {
+			text: model.details
+			wrapMode: Text.Wrap
+			maximumLineCount: 2
+			elide: Text.ElideRight
+			font.pixelSize: CosStyle.pixelSize*0.9
+			font.weight: Font.DemiBold
+			color: CosStyle.colorPrimaryLight
+		}
+
 
 		onContentYChanged: {
 			if (!view.moving)
 				view.contentY = contentY
 		}
+
+
+		onClicked: {
+			var o = leftHeaderView.model.get(index)
+			JS.createPage("TeacherGroupMapViewUser", {
+							  teacherGroups: teacherGroups,
+							  defaultSubTitle: String(o.details).replace("\n", " "),
+							  defaultTitle: labelMapName.text,
+							  username: o.username,
+							  mapUuid: mapUuid,
+							  groupid: teacherGroups.selectedGroupId
+						  })
+		}
+
 	}
+
 
 
 
@@ -287,6 +405,39 @@ QBasePage {
 	}
 
 
+
+	Rectangle {
+		anchors.left: leftHeaderView.right
+		anchors.top: leftHeaderView.top
+		height: leftHeaderView.height
+		width: 1
+		border.width: 0
+		gradient: Gradient {
+			orientation: Gradient.Vertical
+			GradientStop { position: 0.0; color: "transparent" }
+			GradientStop { position: 0.25; color: CosStyle.colorPrimary }
+			GradientStop { position: 0.75; color: CosStyle.colorPrimary }
+			GradientStop { position: 1.0; color: "transparent" }
+		}
+	}
+
+	Rectangle {
+		anchors.top: topHeaderView.bottom
+		anchors.left: topHeaderView.left
+		width: topHeaderView.width
+		height: 1
+		border.width: 0
+		gradient: Gradient {
+			orientation: Gradient.Horizontal
+			GradientStop { position: 0.0; color: "transparent" }
+			GradientStop { position: 0.25; color: CosStyle.colorPrimary }
+			GradientStop { position: 0.75; color: CosStyle.colorPrimary }
+			GradientStop { position: 1.0; color: "transparent" }
+		}
+	}
+
+
+
 	Timer {
 		interval: 3000
 		repeat: true
@@ -303,6 +454,61 @@ QBasePage {
 		}
 	}
 
+
+
+	Action {
+		id: actionSortNameAsc
+		text: qsTr("Növekvő")
+		checkable: true
+		checked: _field == "name" && _order == Qt.AscendingOrder
+		onTriggered: {
+			_field = "name"
+			_order = Qt.AscendingOrder
+		}
+	}
+
+	Action {
+		id: actionSortNameDesc
+		text: qsTr("Csökkenő")
+		checkable: true
+		checked: _field == "name" && _order == Qt.DescendingOrder
+		onTriggered: {
+			_field = "name"
+			_order = Qt.DescendingOrder
+		}
+	}
+
+	Action {
+		id: actionSortXPAsc
+		text: qsTr("Növekvő")
+		checkable: true
+		checked: _field == "xp" && _order == Qt.AscendingOrder
+		onTriggered: {
+			_field = "xp"
+			_order = Qt.AscendingOrder
+		}
+	}
+
+	Action {
+		id: actionSortXPDesc
+		text: qsTr("Csökkenő")
+		checkable: true
+		checked: _field == "xp" && _order == Qt.DescendingOrder
+		onTriggered: {
+			_field = "xp"
+			_order = Qt.DescendingOrder
+		}
+	}
+
+	Action {
+		id: actionFullName
+		text: qsTr("Teljes névvel")
+		checkable: true
+		checked: _fullname
+		onTriggered: {
+			_fullname = !_fullname
+		}
+	}
 
 
 	onMapUuidChanged: {

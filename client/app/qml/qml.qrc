@@ -145,5 +145,10 @@
         <file>QDialogPasswordChange.qml</file>
         <file>PageTeacherGroupUsers.qml</file>
         <file>TeacherMapInfo.qml</file>
+        <file>PageTeacherGroupUserView.qml</file>
+        <file>TrophyView.qml</file>
+        <file>PageTeacherGroupMapViewUser.qml</file>
+        <file>PageStudentGroupUserView.qml</file>
+        <file>MapMissionUserView.qml</file>
     </qresource>
 </RCC>

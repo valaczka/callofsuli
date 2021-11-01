@@ -27,6 +27,8 @@
 
 #include "cosdb.h"
 
+Q_LOGGING_CATEGORY(sql, "sql")
+
 CosDb::CosDb(const QString &connectionName, QObject *parent)
 	: QObject(parent)
 	, m_worker(nullptr)
@@ -545,16 +547,14 @@ QVariantList CosDbWorker::execQuery(QSqlQuery query, QString *errorString, QVari
 
 	if (!query.exec()) {
 		QString errText = query.lastError().text();
-		qDebug().noquote() << tr("SQL query: \e[91m")+query.executedQuery();
+		qCDebug(sql).noquote() << tr("SQL query: ")+query.executedQuery();
 		qWarning().noquote() << tr("SQL error: ")+errText;
 		success = false;
 
 		if (errorString)
 			(*errorString) = errText;
 	} else {
-#ifdef COS_SQL_DEBUG
-		qDebug().noquote() << tr("SQL query: \e[95m")+query.executedQuery();
-#endif
+		qCDebug(sql).noquote() << tr("SQL query: ")+query.executedQuery();
 	}
 
 	if (!success) {
@@ -681,7 +681,7 @@ bool CosDbWorker::execBatchQuery(QString query, const QVariantList &list, QStrin
 
 	m_db.commit();
 
-	qDebug().noquote() << tr("SQL query: \e[95m")+q.executedQuery();
+	qCDebug(sql).noquote() << tr("SQL query: ")+q.executedQuery();
 
 	return true;
 }

@@ -12,6 +12,8 @@ QSwipeContainer {
 	title: qsTr("Résztvevők")
 	icon: CosStyle.iconGroup
 
+	property string groupName: ""
+
 
 	SortFilterProxyModel {
 		id: scoreProxyModel
@@ -66,9 +68,10 @@ QSwipeContainer {
 		}
 
 		rightComponent: Column {
+			readonly property bool _showNumbers: scoreList.width > 700
 			QLabel {
 				anchors.right: parent.right
-				text: model.sumxp+" XP"
+				text: "%1 XP".arg(Number(model.sumxp).toLocaleString())
 				font.weight: Font.Normal
 				font.pixelSize: scoreList.delegateHeight*0.4
 				color: CosStyle.colorAccent
@@ -99,6 +102,7 @@ QSwipeContainer {
 						text: model.d3
 						font.weight: rw.fontWeight
 						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
 					}
 				}
 
@@ -117,6 +121,7 @@ QSwipeContainer {
 						text: model.t3
 						font.weight: rw.fontWeight
 						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
 					}
 				}
 
@@ -135,6 +140,7 @@ QSwipeContainer {
 						text: model.d2
 						font.weight: rw.fontWeight
 						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
 					}
 				}
 
@@ -153,6 +159,7 @@ QSwipeContainer {
 						text: model.t2
 						font.weight: rw.fontWeight
 						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
 					}
 				}
 
@@ -171,6 +178,7 @@ QSwipeContainer {
 						text: model.d1
 						font.weight: rw.fontWeight
 						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
 					}
 				}
 
@@ -189,6 +197,7 @@ QSwipeContainer {
 						text: model.t1
 						font.weight: rw.fontWeight
 						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
 					}
 				}
 
@@ -203,6 +212,17 @@ QSwipeContainer {
 		colorSubtitle: CosStyle.colorAccentDark
 
 		highlightCurrentItem: false
+
+		onClicked: {
+			var o = scoreList.model.get(index)
+			JS.createPage("StudentGroupUserView", {
+							  studentMaps: studentMaps,
+							  defaultSubTitle: groupName,
+							  defaultTitle: o.name,
+							  username: o.username,
+							  groupid: studentMaps.selectedGroupId
+						  })
+		}
 
 		onRefreshRequest: studentMaps.send("userListGet", { groupid: studentMaps.selectedGroupId })
 	}

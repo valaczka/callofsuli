@@ -18,6 +18,13 @@ QSimpleContainer {
 	property var selectedData: null
 	property int _currentSelectedMissionIndex: -1
 
+	property QBasePage basePage: null
+
+	property bool _isCurrentPage: StackView.view ? StackView.status == StackView.Active : false
+
+	on_IsCurrentPageChanged: if (basePage)
+								 basePage._currenPageIsInfo = _isCurrentPage
+
 	title: ""
 	icon: "image://font/School/\uf1c4"
 
@@ -191,6 +198,10 @@ QSimpleContainer {
 						bottomStack.replace(levelComponent, { levelData: selectedData.levels[value], modeIndex: spinMode.value })
 						labelXP.xp = selectedData.levels[spinLevel.value].modes[spinMode.value].xp
 						labelXP.enabled = selectedData.levels[spinLevel.value].modes[spinMode.value].available
+						if (basePage) {
+							basePage._currentLevel = selectedData.levels[spinLevel.value].level
+							basePage._currentDeathmatch = selectedData.levels[spinLevel.value].modes[spinMode.value].mode === "deathmatch"
+						}
 					} else {
 						spinMode.from = -1
 						spinMode.to = -1
@@ -198,6 +209,10 @@ QSimpleContainer {
 						bottomStack.replace(emptyComponent)
 						labelXP.xp = 0
 						labelXP.enabled = false
+						if (basePage) {
+							basePage._currentLevel = -1
+							basePage._currentDeathmatch = false
+						}
 					}
 
 				}
@@ -231,10 +246,18 @@ QSimpleContainer {
 						bottomStack.replace(levelComponent, { levelData: selectedData.levels[spinLevel.value], modeIndex: spinMode.value })
 						labelXP.xp = selectedData.levels[spinLevel.value].modes[spinMode.value].xp
 						labelXP.enabled = selectedData.levels[spinLevel.value].modes[spinMode.value].available
+						if (basePage) {
+							basePage._currentLevel = selectedData.levels[spinLevel.value].level
+							basePage._currentDeathmatch = selectedData.levels[spinLevel.value].modes[spinMode.value].mode === "deathmatch"
+						}
 					} else {
 						bottomStack.replace(emptyComponent)
 						labelXP.xp = 0
 						labelXP.enabled = false
+						if (basePage) {
+							basePage._currentLevel = -1
+							basePage._currentDeathmatch = false
+						}
 					}
 				}
 
@@ -394,6 +417,8 @@ QSimpleContainer {
 		}
 
 	}
+
+
 
 
 	onPopulated: spinLevel.forceActiveFocus()

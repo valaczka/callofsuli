@@ -122,6 +122,10 @@ Client::Client(QObject *parent) : QObject(parent)
 	QMetaObject::invokeMethod(m_clientSound, "init", Qt::QueuedConnection);
 
 
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsDenied, this, &Client::storagePermissionsDenied);
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsGranted, this, &Client::storagePermissionsGranted);
+
+
 	connect(m_socket, &QWebSocket::connected, this, &Client::onSocketConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &Client::onSocketDisconnected);
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
@@ -231,6 +235,12 @@ bool Client::commandLineParse(QCoreApplication &app)
 #endif
 
 	parser.process(app);
+
+#ifdef SQL_DEBUG
+	QLoggingCategory::setFilterRules(QStringLiteral("sql.debug=true"));
+#else
+	QLoggingCategory::setFilterRules(QStringLiteral("sql.debug=false"));
+#endif
 
 #ifdef QT_NO_DEBUG
 	if (parser.isSet("debug"))
@@ -895,6 +905,17 @@ QStringList Client::takePositionalArgumentsToProcess()
 	QStringList l = m_positionalArgumentsToProcess;
 	m_positionalArgumentsToProcess.clear();
 	return l;
+}
+
+
+
+/**
+ * @brief Client::checkPermissions
+ */
+
+void Client::checkPermissions() const
+{
+	AndroidShareUtils::instance()->checkPermissions();
 }
 
 

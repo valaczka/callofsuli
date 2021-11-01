@@ -12,13 +12,13 @@ import "JScript.js" as JS
 ApplicationWindow {
 	id: mainWindow
 	visible: true
-	width: 320//640
-	height: 240//480
+	width: 640
+	height: 480
 
 	title: (cosClient.connectionState != Client.Standby && cosClient.serverName.length ? cosClient.serverName+" - " : "") + "Call of Suli"
 
-	minimumHeight: 600
-	minimumWidth: 600
+	minimumWidth: 640
+	minimumHeight: 480
 
 	FontLoader { source: "qrc:/internal/font/ariblk.ttf" }
 	FontLoader { source: "qrc:/internal/font/Books.ttf" }

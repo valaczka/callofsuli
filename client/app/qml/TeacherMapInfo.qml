@@ -32,6 +32,7 @@ QSwipeContainer {
 				color: CosStyle.colorAccentLight
 
 				anchors.horizontalCenter: parent.horizontalCenter
+				horizontalAlignment: Text.AlignHCenter
 
 				wrapMode: Text.Wrap
 				width: Math.min(implicitWidth, col.width)

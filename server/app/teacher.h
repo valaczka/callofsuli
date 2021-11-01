@@ -81,11 +81,9 @@ public slots:
 	bool mapRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool mapModify(QJsonObject *jsonResponse, QByteArray *);
 
-	/*bool mapUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool mapGet(QJsonObject *jsonResponse, QByteArray *);
-	bool mapGroupAdd(QJsonObject *jsonResponse, QByteArray *);
-	bool mapGroupRemove(QJsonObject *jsonResponse, QByteArray *);
-	bool mapExcludedGroupListGet(QJsonObject *jsonResponse, QByteArray *);*/
+	bool gameListUserGet(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListGroupGet(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListMapGet(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

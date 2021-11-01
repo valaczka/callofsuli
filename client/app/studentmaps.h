@@ -101,6 +101,7 @@ private slots:
 	void onUserListGet(QJsonObject jsonData, QByteArray);
 	void onGameCreate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);
+	void onGameListUserGet(QJsonObject jsonData, QByteArray);
 
 signals:
 	void groupListGet(QJsonObject jsonData, QByteArray binaryData);
@@ -125,6 +126,10 @@ signals:
 	void gameFinish(QJsonObject jsonData, QByteArray binaryData);
 	void gameUpdate(QJsonObject jsonData, QByteArray binaryData);
 
+	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
+	void gameListUserReady(const QVariantList &list, const QString &username);
+	void gameListUserMissionGet(QJsonObject jsonData, QByteArray binaryData);
+
 	void modelMapListChanged(VariantMapModel * modelMapList);
 	void modelMissionListChanged(VariantMapModel * modelMissionList);
 	void demoModeChanged(bool demoMode);
@@ -148,6 +153,7 @@ private:
 	bool m_isGameRunning;
 	VariantMapModel * m_modelUserList;
 	VariantMapModel * m_modelMedalList;
+	QVariantMap m_missionNameMap;
 };
 
 #endif // STUDENTMAPS_H

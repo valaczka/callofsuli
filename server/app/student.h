@@ -58,6 +58,8 @@ public slots:
 	bool gameCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameFinish(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListUserGet(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);

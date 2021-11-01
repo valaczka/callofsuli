@@ -33,6 +33,8 @@ QDialogPanel {
 		anchors.right: parent.right
 		height: Math.max(CosStyle.halfLineHeight, button.height, filePath.height)
 
+		visible: !labelNoPermissions.visible
+
 		QButton {
 			id: button
 			text: ".."
@@ -79,6 +81,8 @@ QDialogPanel {
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: tfFile.top
+
+		visible: !labelNoPermissions.visible
 
 		model: FolderListModel {
 			id:  folderListModel
@@ -172,7 +176,7 @@ QDialogPanel {
 		lineVisible: true
 		placeholderText: qsTr("fájl neve")
 
-		visible: isSave
+		visible: isSave && !labelNoPermissions.visible
 
 		onAccepted: {
 			acceptedData = folderListModel.folder+"/"+text
@@ -180,6 +184,12 @@ QDialogPanel {
 		}
 	}
 
+
+	QLabel {
+		id: labelNoPermissions
+		anchors.centerIn: parent
+		text: qsTr("Írási/olvasási jogosultság ellenőrzése")
+	}
 
 	buttons: Row {
 		id: buttonRow
@@ -206,7 +216,7 @@ QDialogPanel {
 			icon.source: CosStyle.iconSave
 			themeColors: CosStyle.buttonThemeGreen
 
-			visible: isSave
+			visible: isSave && !labelNoPermissions.visible
 
 			onClicked: {
 				acceptedData = folderListModel.folder+"/"+tfFile.text
@@ -216,11 +226,25 @@ QDialogPanel {
 	}
 
 
+	Connections {
+		target: cosClient
+
+		function onStoragePermissionsGranted() {
+			labelNoPermissions.visible = false
+
+			if (folder != "")
+				folderListModel.folder = folder
+			else if (Qt.platform.os == "android")
+				folderListModel.folder = "file:///sdcard"
+		}
+
+		function onStoragePermissionsDenied() {
+			labelNoPermissions.text = qsTr("Írási/olvasási jogosultság hiányzik")
+		}
+	}
+
 	Component.onCompleted: {
-		if (folder != "")
-			folderListModel.folder = folder
-		else if (Qt.platform.os == "android")
-			folderListModel.folder = "file:///sdcard"
+		cosClient.checkPermissions()
 	}
 
 	function populated() {

@@ -99,6 +99,7 @@ QBasePage {
 				id: container2
 				reparented: swComponent.swipeMode
 				reparentedParent: placeholder2
+				groupName: "%1 (%2)".arg(defaultTitle).arg(defaultSubTitle)
 			}
 		]
 

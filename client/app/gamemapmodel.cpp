@@ -88,6 +88,7 @@ void GameMapModel::setGameMap(GameMap *map)
 		GameMapModel::Mission mis;
 		mis.uuid = QString::fromLatin1(m->uuid());
 		mis.name = m->name();
+		mis.medalImage = m->medalImage();
 
 		int n = 0;
 
@@ -537,6 +538,7 @@ QVariantMap GameMapModel::Mission::toMap() const
 	m["uuid"] = uuid;
 	m["name"] = name;
 	m["levels"] = levels.size();
+	m["medalImage"] = medalImage;
 
 	return m;
 }

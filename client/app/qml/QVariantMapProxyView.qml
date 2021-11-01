@@ -44,6 +44,8 @@ QListView {
 	property bool autoSelectorChange: false
 	property bool autoUnselectorChange: autoSelectorChange
 
+	property bool mouseAreaEnabled: true
+
 	//readonly property int sourceIndex: currentIndex == -1 ? -1 : model.mapToSource(currentIndex)
 	readonly property VariantMapModel sourceVariantMapModel: model.sourceModel
 
@@ -108,6 +110,7 @@ QListView {
 			anchors.fill: parent
 			hoverEnabled: true
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
+			enabled: mouseAreaEnabled
 
 
 			Row {

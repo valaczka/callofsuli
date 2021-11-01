@@ -362,6 +362,8 @@ QSwipeContainer {
 				id: rankList
 				width: parent.width
 
+				mouseAreaEnabled: false
+
 				model: SortFilterProxyModel {
 					sourceModel: modelRankList
 

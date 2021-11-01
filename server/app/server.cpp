@@ -30,6 +30,7 @@
 #include <QCommandLineParser>
 #include <QCryptographicHash>
 #include <QFile>
+#include <RollingFileAppender.h>
 
 #include "server.h"
 #include "../version/buildnumber.h"
@@ -158,6 +159,7 @@ bool Server::commandLineParse(QCoreApplication &app)
 	parser.addOption({{"P", "port"}, tr("A szerver <num> portja"), "num"});
 	parser.addOption({{"p", "pending"}, tr("Maximum <num> pending-connections"), "num"});
 	parser.addOption({{"w", "write"}, tr("Beállítások mentése")});
+	parser.addOption({{"l", "log"}, tr("Naplózás <file> fájlba"), "file"});
 	parser.addOption({"license", tr("Licensz")});
 
 #ifdef QT_NO_DEBUG
@@ -165,6 +167,12 @@ bool Server::commandLineParse(QCoreApplication &app)
 #endif
 
 	parser.process(app);
+
+#ifdef SQL_DEBUG
+	QLoggingCategory::setFilterRules(QStringLiteral("sql.debug=true"));
+#else
+	QLoggingCategory::setFilterRules(QStringLiteral("sql.debug=false"));
+#endif
 
 #ifdef QT_NO_DEBUG
 	if (parser.isSet("debug"))
@@ -194,26 +202,38 @@ bool Server::commandLineParse(QCoreApplication &app)
 	if (!serverDirCheck())
 		return false;
 
+	QString logFile;
+
 	QSettings settings(m_serverDir+"/settings.ini", QSettings::IniFormat);
 	if (settings.contains("host")) m_host = settings.value("host").toString();
 	if (settings.contains("port")) m_port = settings.value("port").toInt();
 	if (settings.contains("certificate")) m_socketCert = settings.value("certificate").toString();
 	if (settings.contains("key")) m_socketKey = settings.value("key").toString();
 	if (settings.contains("pendingConnections")) m_pendingConnections = settings.value("pendingConnections").toInt();
+	if (settings.contains("log")) logFile = settings.value("log").toString();
 
 	if (parser.isSet("certificate")) m_socketCert = parser.value("certificate");
 	if (parser.isSet("key")) m_socketKey = parser.value("key");
 	if (parser.isSet("host")) m_host = parser.value("host");
 	if (parser.isSet("port")) m_port = parser.value("port").toInt();
 	if (parser.isSet("pending")) m_pendingConnections = parser.value("pending").toInt();
+	if (parser.isSet("log")) logFile = parser.value("log");
 
 	if (parser.isSet("write")) {
 		qInfo().noquote() << tr("Beállítások mentése");
 		settings.setValue("host", m_host);
 		settings.setValue("port", m_port);
+		settings.setValue("log", logFile);
 		settings.setValue("certificate", m_socketCert);
 		settings.setValue("key", m_socketKey);
 		settings.setValue("pendingConnections", m_pendingConnections);
+	}
+
+	if (!logFile.isEmpty()) {
+		RollingFileAppender* appender = new RollingFileAppender(logFile);
+		appender->setFormat("%{time}{yyyy-MM-dd hh:mm:ss} [%{TypeOne}] %{message}\n");
+		appender->setDatePattern(RollingFileAppender::DailyRollover);
+		cuteLogger->registerAppender(appender);
 	}
 
 	return true;

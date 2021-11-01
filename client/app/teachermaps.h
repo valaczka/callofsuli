@@ -58,6 +58,7 @@ public:
 	static QVariantMap mapDownloadInfo(CosDb *db);
 	static void mapDownloadPrivate(const QVariantMap &data, CosDownloader *downloader, VariantMapModel *mapModel);
 	static void mapDownloadFinished(CosDb *db, const CosDownloaderItem &item, const QByteArray &data);
+	static QVariantMap missionNames(CosDb *db);
 
 	VariantMapModel * modelMapList() const { return m_modelMapList; }
 	QString selectedMapId() const { return m_selectedMapId; }

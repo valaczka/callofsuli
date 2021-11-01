@@ -35,6 +35,7 @@
 #include "studentmaps.h"
 #include <QQmlEngine>
 #include "sqlimage.h"
+#include "teachermaps.h"
 
 StudentMaps::StudentMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassStudent, parent)
@@ -49,6 +50,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_selectedGroupId(-1)
 	, m_isGameRunning(false)
 	, m_modelUserList(nullptr)
+	, m_missionNameMap()
 {
 	m_modelMapList = new VariantMapModel({
 											 "uuid",
@@ -113,13 +115,13 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 										   },
 										   this);
 
-	//	m_modelCharacterList->setVariantList(Client::mapToList(Client::characterData(), "dir"), "dir");
-
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
 	connect(this, &StudentMaps::userListGet, this, &StudentMaps::onUserListGet);
 	connect(this, &StudentMaps::gameCreate, this, &StudentMaps::onGameCreate);
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
+
+	connect(this, &StudentMaps::gameListUserGet, this, &StudentMaps::onGameListUserGet);
 }
 
 
@@ -1136,4 +1138,44 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 	}
 
 	getMissionList();
+}
+
+
+
+
+/**
+ * @brief StudentMaps::onGameListUserGet
+ * @param jsonData
+ */
+
+void StudentMaps::onGameListUserGet(QJsonObject jsonData, QByteArray)
+{
+	if (jsonData.value("groupid").toInt() != m_selectedGroupId) {
+		qDebug() << "Invalid groupid";
+		return;
+	}
+
+	if (jsonData.contains("error")) {
+		m_client->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		return;
+	}
+
+	QJsonArray list = jsonData.value("list").toArray();
+	QVariantList ret;
+
+	if (m_missionNameMap.isEmpty()) {
+		m_missionNameMap = TeacherMaps::missionNames(db());
+	}
+
+	foreach (QJsonValue v, list) {
+		QVariantMap m = v.toObject().toVariantMap();
+		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+							  .value(m.value("missionid").toString()).toString();
+
+		m["missionname"] = missionname;
+		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
+		ret.append(m);
+	}
+
+	emit gameListUserReady(ret, jsonData.value("username").toString());
 }
