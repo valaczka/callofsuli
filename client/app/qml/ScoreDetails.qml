@@ -1,28 +1,18 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.3
+import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
+QSwipeContainer {
+	id: panel
 
-Item {
-	id: control
-
-	implicitWidth: 300
-	implicitHeight: 300
-
-	property bool forceFullName: false
-
-
-	ListModel {
-		id: progressModel
-	}
-
+	title: qsTr("Eredmények")
+	icon: CosStyle.iconXPgraph
 
 	QLabel {
-		id: lblSelect
 		visible: !flickable.visible
 		anchors.centerIn: parent
 		text: qsTr("Válassz felhasználót")
@@ -52,55 +42,24 @@ Item {
 
 			spacing: 10
 
-			topPadding: 20
-			bottomPadding: 20
+			ProfileDetailsUser {
+				id: user
 
-			Row {
-				id: row
 				anchors.horizontalCenter: parent.horizontalCenter
 
-				spacing: 15
-
-				Image {
-					id: imgRank
-					source: ""
-
-					width: 75
-					height: 75
-
-					fillMode: Image.PreserveAspectFit
-
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				QLabel {
-					id: labelName
-					font.pixelSize: CosStyle.pixelSize*1.7
-					font.weight: Font.Normal
-					color: CosStyle.colorAccentLight
-
-					anchors.verticalCenter: parent.verticalCenter
-
-					elide: Text.ElideRight
-					width: Math.min(implicitWidth, col.width-row.spacing-imgRank.width)
-				}
+				width: parent.width
 			}
 
-			QLabel {
-				id: labelRank
+
+			ProfileDetailsTrophies {
+				id: trophies
+
 				anchors.horizontalCenter: parent.horizontalCenter
-				font.pixelSize: CosStyle.pixelSize*1.3
-				font.weight: Font.Normal
-				color: CosStyle.colorAccentLighter
 
-				horizontalAlignment: Text.AlignHCenter
-
-				elide: Text.ElideRight
-				width: Math.min(implicitWidth, col.width)
-
-				bottomPadding: 35
+				width: Math.min(parent.width, 600)
 			}
 
+/*
 			Repeater {
 				model: progressModel
 
@@ -190,13 +149,13 @@ Item {
 					}
 				}
 			}
-
+*/
 		}
 	}
 
 
 	Component.onCompleted: {
-		progressModel.append({ field: "xp", iicon: CosStyle.iconXPgraph, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false })
+/*		progressModel.append({ field: "xp", iicon: CosStyle.iconXPgraph, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false })
 		progressModel.append({ field: "cStreak", iicon: CosStyle.iconStreak, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false})
 		progressModel.append({ field: "lStreak", iicon: CosStyle.iconStreakMax, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false})
 		progressModel.append({ field: "t1", iicon: "", min: 0, max: 1, v: 0, ilevel: 1, ideathmatch: false})
@@ -204,18 +163,25 @@ Item {
 		progressModel.append({ field: "t2", iicon: "", min: 0, max: 1, v: 0, ilevel: 2, ideathmatch: false})
 		progressModel.append({ field: "d2", iicon: "", min: 0, max: 1, v: 0, ilevel: 2, ideathmatch: true})
 		progressModel.append({ field: "t3", iicon: "", min: 0, max: 1, v: 0, ilevel: 3, ideathmatch: false})
-		progressModel.append({ field: "d3", iicon: "", min: 0, max: 1, v: 0, ilevel: 3, ideathmatch: true})
+		progressModel.append({ field: "d3", iicon: "", min: 0, max: 1, v: 0, ilevel: 3, ideathmatch: true}) */
 	}
 
 	function loadUserScore(jsonData) {
 		flickable.visible = true
 
-		imgRank.source = cosClient.rankImageSource(jsonData.rankid, -1, jsonData.rankimage)
+		user.image = cosClient.rankImageSource(jsonData.rankid, -1, jsonData.rankimage)
 
-		labelName.text = jsonData.nickname.length && !forceFullName ? jsonData.nickname : jsonData.firstname+" "+jsonData.lastname
-		labelRank.text = jsonData.rankname+(jsonData.ranklevel > 0 ? qsTr(" (lvl %1)").arg(jsonData.ranklevel) : "")
+		user.username = jsonData.nickname.length ? jsonData.nickname : jsonData.firstname+" "+jsonData.lastname
+		user.rankname = jsonData.rankname+(jsonData.ranklevel > 0 ? qsTr(" (lvl %1)").arg(jsonData.ranklevel) : "")
 
-		progressModel.setProperty(0, "max", jsonData.maxXP)
+		trophies.t1 = jsonData.t1
+		trophies.t2 = jsonData.t2
+		trophies.t3 = jsonData.t3
+		trophies.d1 = jsonData.d1
+		trophies.d2 = jsonData.d2
+		trophies.d3 = jsonData.d3
+
+		/*progressModel.setProperty(0, "max", jsonData.maxXP)
 		progressModel.setProperty(0, "v", jsonData.xp)
 
 		progressModel.setProperty(1, "max", jsonData.maxStreak)
@@ -240,6 +206,6 @@ Item {
 		progressModel.setProperty(7, "v", jsonData.t3)
 
 		progressModel.setProperty(8, "max", jsonData.maxD3)
-		progressModel.setProperty(8, "v", jsonData.d3)
+		progressModel.setProperty(8, "v", jsonData.d3)*/
 	}
 }

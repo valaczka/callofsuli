@@ -1,6 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
+TARGET = truefalse_$${QT_ARCH}
+
 include(../common.pri)
 
 SOURCES += \

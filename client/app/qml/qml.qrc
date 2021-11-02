@@ -150,5 +150,7 @@
         <file>PageTeacherGroupMapViewUser.qml</file>
         <file>PageStudentGroupUserView.qml</file>
         <file>MapMissionUserView.qml</file>
+        <file>ProfileDetailsUser.qml</file>
+        <file>ProfileDetailsTrophies.qml</file>
     </qresource>
 </RCC>

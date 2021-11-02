@@ -5,15 +5,15 @@ QT += core gui gui-private
 
 CONFIG += build_xlsx_lib
 
-TARGET = qtxlsx
+TARGET = qtxlsx_$${QT_ARCH}
+
 DEFINES += XLSX_NO_LIB
+
 TEMPLATE = lib
+
 win32 {
 	CONFIG += dll
-} else {
-	CONFIG += staticlib
 }
-
 
 HEADERS += $$PWD/xlsxdocpropscore_p.h \
 	$$PWD/xlsxdocpropsapp_p.h \

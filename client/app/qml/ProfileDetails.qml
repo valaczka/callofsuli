@@ -40,61 +40,9 @@ QSwipeContainer {
 
 		visible: false
 
-		Column {
-			id: col
+		ProfileDetailsUser {
+			id: user
 			width: parent.width
-
-			spacing: 10
-
-			topPadding: 20
-			bottomPadding: 20
-
-			Row {
-				id: row
-				anchors.horizontalCenter: parent.horizontalCenter
-
-				spacing: 15
-
-				Image {
-					id: imgRank
-					source: ""
-
-					width: 75
-					height: 75
-
-					fillMode: Image.PreserveAspectFit
-
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				QLabel {
-					id: labelName
-					font.pixelSize: CosStyle.pixelSize*1.7
-					font.weight: Font.Normal
-					color: CosStyle.colorAccentLight
-
-					anchors.verticalCenter: parent.verticalCenter
-
-					elide: Text.ElideRight
-					width: Math.min(implicitWidth, col.width-row.spacing-imgRank.width)
-				}
-			}
-
-			QLabel {
-				id: labelRank
-				anchors.horizontalCenter: parent.horizontalCenter
-				font.pixelSize: CosStyle.pixelSize*1.3
-				font.weight: Font.Normal
-				color: CosStyle.colorAccentLighter
-
-				horizontalAlignment: Text.AlignHCenter
-
-				elide: Text.ElideRight
-				width: Math.min(implicitWidth, col.width)
-
-				bottomPadding: 35
-			}
-
 		}
 
 
@@ -279,76 +227,12 @@ QSwipeContainer {
 
 				QGridText { text: qsTr("Megszerzett trófeák") }
 
-				Flow {
-					id: gridTrophy
+				ProfileDetailsTrophies {
+					id: trophies
 
-					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 					Layout.fillWidth: true
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 					Layout.bottomMargin: parent.columns === 1 ? 10 : 0
-
-					spacing: 5
-
-					property real imageSize: CosStyle.pixelSize*2.5
-
-					Repeater {
-						id: gridRepeaterT1
-						Image {
-							source: "qrc:/internal/trophy/trophyt1.png"
-							width: gridTrophy.imageSize
-							height: gridTrophy.imageSize
-							fillMode: Image.PreserveAspectFit
-						}
-					}
-
-					Repeater {
-						id: gridRepeaterD1
-						Image {
-							source: "qrc:/internal/trophy/trophyd1.png"
-							width: gridTrophy.imageSize
-							height: gridTrophy.imageSize
-							fillMode: Image.PreserveAspectFit
-						}
-					}
-
-					Repeater {
-						id: gridRepeaterT2
-						Image {
-							source: "qrc:/internal/trophy/trophyt2.png"
-							width: gridTrophy.imageSize
-							height: gridTrophy.imageSize
-							fillMode: Image.PreserveAspectFit
-						}
-					}
-
-					Repeater {
-						id: gridRepeaterD2
-						Image {
-							source: "qrc:/internal/trophy/trophyd2.png"
-							width: gridTrophy.imageSize
-							height: gridTrophy.imageSize
-							fillMode: Image.PreserveAspectFit
-						}
-					}
-
-					Repeater {
-						id: gridRepeaterT3
-						Image {
-							source: "qrc:/internal/trophy/trophyt3.png"
-							width: gridTrophy.imageSize
-							height: gridTrophy.imageSize
-							fillMode: Image.PreserveAspectFit
-						}
-					}
-
-					Repeater {
-						id: gridRepeaterD3
-						Image {
-							source: "qrc:/internal/trophy/trophyd3.png"
-							width: gridTrophy.imageSize
-							height: gridTrophy.imageSize
-							fillMode: Image.PreserveAspectFit
-						}
-					}
 
 				}
 			}
@@ -434,10 +318,10 @@ QSwipeContainer {
 			if (jsonData.character.length === 0)
 				jsonData.character = "default"
 
-			imgRank.source = cosClient.rankImageSource(jsonData.rankid, -1, jsonData.rankimage)
+			user.image = cosClient.rankImageSource(jsonData.rankid, -1, jsonData.rankimage)
 
-			labelName.text = jsonData.nickname.length && !forceFullName ? jsonData.nickname : jsonData.firstname+" "+jsonData.lastname
-			labelRank.text = jsonData.rankname+(jsonData.ranklevel > 0 ? qsTr(" (lvl %1)").arg(jsonData.ranklevel) : "")
+			user.username = jsonData.nickname.length && !forceFullName ? jsonData.nickname : jsonData.firstname+" "+jsonData.lastname
+			user.rankname = jsonData.rankname+(jsonData.ranklevel > 0 ? qsTr(" (lvl %1)").arg(jsonData.ranklevel) : "")
 
 			if (jsonData.nameModificationDisabled) {
 				textFirstname.readOnly = true
@@ -454,12 +338,12 @@ QSwipeContainer {
 								labelLongestStreak
 							], jsonData)
 
-			gridRepeaterT1.model = jsonData.t1
-			gridRepeaterT2.model = jsonData.t2
-			gridRepeaterT3.model = jsonData.t3
-			gridRepeaterD1.model = jsonData.d1
-			gridRepeaterD2.model = jsonData.d2
-			gridRepeaterD3.model = jsonData.d3
+			trophies.t1 = jsonData.t1
+			trophies.t2 = jsonData.t2
+			trophies.t3 = jsonData.t3
+			trophies.d1 = jsonData.d1
+			trophies.d2 = jsonData.d2
+			trophies.d3 = jsonData.d3
 
 			if (jsonData.ranklog)
 				modelRankList.replaceList(jsonData.ranklog)

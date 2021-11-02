@@ -110,17 +110,6 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 		m.insert(m_client->db()->execSelectQueryOneRow("SELECT (SELECT COALESCE(MAX(maxStreak), 0) FROM score WHERE score.username=?) as longestStreak, "
 			"t1, t2, t3, d1, d2, d3 FROM fullTrophy WHERE username=?", {username, username}));
 
-		// Max trophy
-
-		/*m.insert(m_client->db()->execSelectQueryOneRow("SELECT "
-				"(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
-				"(SELECT COALESCE(MAX(xp), 0) FROM userInfo) as maxXP, "
-				"(SELECT COALESCE(MAX(t1), 0) FROM fullTrophy) as maxT1, "
-				"(SELECT COALESCE(MAX(t2), 0) FROM fullTrophy) as maxT2, "
-				"(SELECT COALESCE(MAX(t3), 0) FROM fullTrophy) as maxT3, "
-				"(SELECT COALESCE(MAX(d1), 0) FROM fullTrophy) as maxD1, "
-				"(SELECT COALESCE(MAX(d2), 0) FROM fullTrophy) as maxD2, "
-				"(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3"));*/
 
 		int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
 		"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
@@ -200,44 +189,33 @@ bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
 {
 	QJsonObject params = m_message.jsonData();
-	QString username = params.value("username").toString();
-	if (username.isEmpty())
-		username = m_client->clientUserName();
 
-	if (username.isEmpty()) {
-		return true;
+	if (!params.contains("withTrophy")) {
+		params["withTrophy"] = true;
+		m_message.setJsonData(params);
 	}
 
+	if (!getUser(jsonResponse, nullptr))
+		return false;
 
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT "
+			"(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
+			"(SELECT COALESCE(MAX(xp), 0) FROM userInfo) as maxXP, "
+			"(SELECT COALESCE(MAX(t1), 0) FROM fullTrophy) as maxT1, "
+			"(SELECT COALESCE(MAX(t2), 0) FROM fullTrophy) as maxT2, "
+			"(SELECT COALESCE(MAX(t3), 0) FROM fullTrophy) as maxT3, "
+			"(SELECT COALESCE(MAX(d1), 0) FROM fullTrophy) as maxD1, "
+			"(SELECT COALESCE(MAX(d2), 0) FROM fullTrophy) as maxD2, "
+			"(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3");
 
-	QVariantList queryParams;
-	QString query = "SELECT game.id, mapid, missionid, datetime(game.timestamp, 'localtime') AS timestamp, level, success, deathmatch, xp "
-"FROM game LEFT JOIN score ON (score.gameid=game.id) "
-"WHERE game.username=? AND tmpScore IS NULL ";
-
-	queryParams.append(username);
-
-
-
-	if (params.contains("group")) {
-		int gid = params.value("group").toInt(-1);
-		query += "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?) ";
-		queryParams.append(gid);
-		(*jsonResponse)["group"] = gid;
-	}
-
-	if (params.contains("map")) {
-		QString map = params.value("map").toString();
-		query += "AND mapid=? ";
-		queryParams.append(map);
-		(*jsonResponse)["map"] = map;
-	}
-
-
-	QVariantList list = m_client->db()->execSelectQuery(query, queryParams);
-
-	(*jsonResponse)["username"] = username;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["maxStreak"] = m.value("maxStreak").toInt();
+	(*jsonResponse)["maxXP"] = m.value("maxXP").toInt();
+	(*jsonResponse)["maxT1"] = m.value("maxT1").toInt();
+	(*jsonResponse)["maxT2"] = m.value("maxT2").toInt();
+	(*jsonResponse)["maxT3"] = m.value("maxT3").toInt();
+	(*jsonResponse)["maxD1"] = m.value("maxD1").toInt();
+	(*jsonResponse)["maxD2"] = m.value("maxD2").toInt();
+	(*jsonResponse)["maxD3"] = m.value("maxD3").toInt();
 
 	return true;
 }

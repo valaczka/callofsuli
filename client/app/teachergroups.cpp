@@ -62,7 +62,14 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 											  "rankimage",
 											  "nickname",
 											  "picture",
-											  "activeClient"
+											  "activeClient",
+											  "t1",
+											  "t2",
+											  "t3",
+											  "d1",
+											  "d2",
+											  "d3",
+											  "sumxp"
 										  },
 										  this);
 

@@ -5,18 +5,22 @@ CONFIG += \
 		  #enable_decoder_aztec \
 		  #enable_decoder_pdf17 \
 		  enable_encoder_qr_code \
-		  staticlib \
 		  qzxing_qml \
 		  #qzxing_multimedia \
+		  #staticlib \
+
+win32 {
+	CONFIG += dll
+}
 
 VERSION = 3.2
 
-TARGET = QZXing
-TEMPLATE = lib
+TARGET = QZXing_$${QT_ARCH}
 
-include(../qzxing/src/QZXing-components.pri)
+TEMPLATE = lib
 
 DEFINES -= DISABLE_LIBRARY_FEATURES
 
+include(QZXing-components.pri)
 
 QMAKE_CXXFLAGS += -Wno-sign-compare

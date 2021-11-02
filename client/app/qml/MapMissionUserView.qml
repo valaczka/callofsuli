@@ -46,6 +46,12 @@ QSimpleContainer {
 				RoleSorter {
 					roleName: "duration"
 					sortOrder: Qt.AscendingOrder
+					priority: 2
+				},
+				RoleSorter {
+					roleName: "success"
+					sortOrder: Qt.DescendingOrder
+					priority: 1
 				}
 			]
 
@@ -56,7 +62,7 @@ QSimpleContainer {
 				},
 				ExpressionRole {
 					name: "durationReadable"
-					expression: "%1:%2".arg(String(Math.floor(model.duration/60)).padStart(2, "0")).arg(String(model.duration%60).padStart(2, "0"))
+					expression: "(%1x)   %2:%3".arg(model.success).arg(String(Math.floor(model.duration/60)).padStart(2, "0")).arg(String(model.duration%60).padStart(2, "0"))
 				},
 				SwitchRole {
 					name: "background"

@@ -45,7 +45,7 @@ QBasePage {
 
 
 		onGetUserScore: {
-			details.loadUserScore(jsonData)
+			container2.loadUserScore(jsonData)
 		}
 
 		Component.onCompleted: {
@@ -68,28 +68,15 @@ QBasePage {
 				list.onRefreshRequest: scores.send("getAllUser")
 
 				onUserSelected: {
-					scores.send("getUserScore", {username: username})
+					scores.send("getUserScore", { username: username  })
 					swComponent.swipeToPage(1)
 				}
 			},
 
-			QSwipeContainer {
+			ScoreDetails {
 				id: container2
 				reparented: swComponent.swipeMode
 				reparentedParent: placeholder2
-				title: qsTr("Eredmények")
-				icon: CosStyle.iconXPgraph
-				ScoreDetails {
-					id: details
-					anchors.fill: parent
-				}
-
-				menuComponent: QToolButton {
-					id: menuButton
-					action: actionA
-					display: AbstractButton.IconOnly
-				}
-
 			}
 		]
 
@@ -110,12 +97,6 @@ QBasePage {
 		container1.list.forceActiveFocus()
 	}
 
-
-	Action {
-		id: actionA
-		icon.source: CosStyle.iconBindPeople
-		text: "lkjkljlk"
-	}
 
 
 	SortFilterProxyModel {

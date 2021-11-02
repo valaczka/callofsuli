@@ -26,9 +26,9 @@ TARGET = callofsuli
 LIBS += -lz
 
 win32 {
-	LIBS += -L../QtXlsxWriter/release -lqtxlsx -L../QZXing-static/release -lQZXing
+	LIBS += -L../QtXlsxWriter/release -lqtxlsx_$${QT_ARCH} -L../QZXing/release -lQZXing_$${QT_ARCH}
 } else {
-	LIBS += -L../QtXlsxWriter -lqtxlsx -L../QZXing-static -lQZXing
+	LIBS += -L../QtXlsxWriter -lqtxlsx_$${QT_ARCH} -L../QZXing -lQZXing_$${QT_ARCH}
 }
 
 
@@ -38,14 +38,15 @@ equals(MODULE_BUILD, static) {
 	LIBS += -L./modules
 
 	for(m, MODULES_LIST) {
-		LIBS += -l$$m
+		LIBS += -l$${m}_$${QT_ARCH}
 	}
 }
 
 
-QMAKE_LFLAGS += -Wl,--rpath=../QtXlsxWriter,--rpath=../QZXing-static
+QMAKE_LFLAGS += -Wl,--rpath=../QtXlsxWriter,--rpath=../QZXing
+
 INCLUDEPATH += ../QtXlsxWriter \
-				../qzxing/src
+				../QZXing
 
 DESTDIR = ../..
 
@@ -169,8 +170,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 
 
-
-
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
 	RC_ICONS = $$PWD/../../resources/internal/img/cos96.ico
@@ -182,6 +181,8 @@ android {
 
 DISTFILES += \
 		android/AndroidManifest.xml \
+		android/build.gradle \
+		android/res/drawable/splashscreen.xml \
 		android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
 
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
@@ -191,5 +192,3 @@ DISTFILES += \
 
 	INSTALLS += CommonRcc
 }
-
-ANDROID_ABIS = armeabi-v7a

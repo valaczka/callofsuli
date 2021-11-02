@@ -261,13 +261,13 @@ bool Teacher::groupUserGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
-"LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
+														 "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
 														 {id});
 
 	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
-"rankid, ranklevel, rankimage, picture, xp, "
-"active, classid, classname "
-"FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
+														 "rankid, ranklevel, rankimage, picture, xp, "
+														 "active, classid, classname "
+														 "FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
 														 {id});
 
 	(*jsonResponse)["id"] = id;
@@ -382,10 +382,10 @@ bool Teacher::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
 	int id = params.value("id", -1).toInt();
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT username, firstname, lastname, "
-																		"active, classid, classname "
-																		"FROM userInfo "
-																		"WHERE isTeacher=false AND username NOT IN "
-																		"(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
+														"active, classid, classname "
+														"FROM userInfo "
+														"WHERE isTeacher=false AND username NOT IN "
+														"(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
 														{id});
 
 	(*jsonResponse)["id"] = id;
@@ -525,9 +525,9 @@ bool Teacher::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
 bool Teacher::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList mapList = m_client->db()->execSelectQuery("SELECT id, name, (SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-"WHERE bindGroupClass.groupid=studentgroup.id) as readableClassList FROM studentgroup "
-"WHERE owner=?",
+														   "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+														   "WHERE bindGroupClass.groupid=studentgroup.id) as readableClassList FROM studentgroup "
+														   "WHERE owner=?",
 														   {m_client->clientUserName()});
 
 
@@ -564,19 +564,23 @@ bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid, active FROM bindGroupMap WHERE groupid=?", {id});
 
 	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
-"LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
+														 "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
 														 {id});
 
 	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
-"rankid, ranklevel, rankimage, picture, xp, "
-"active, classid, classname "
-"FROM studentGroupInfo LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) WHERE id=?",
+														 "rankid, ranklevel, rankimage, picture, xp, "
+														 "active, classid, classname, "
+														 "t1, t2, t3, d1, d2, d3, sumxp "
+														 "FROM studentGroupInfo LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) "
+														 "LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username "
+														 "AND groupTrophy.id=studentGroupInfo.id) "
+														 "WHERE studentGroupInfo.id=?",
 														 {id});
 
 
 
 	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, md5, "
-																"COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE owner=?",
+																   "COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE owner=?",
 																   {m_client->clientUserName()});
 
 	QJsonArray mList;
@@ -817,7 +821,7 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList queryParams;
 
 	QString query = "SELECT username, mapid, missionid, level, deathmatch, success, num FROM missionTrophy "
-"WHERE username IN (SELECT username FROM studentGroupInfo where id=?)";
+					"WHERE username IN (SELECT username FROM studentGroupInfo where id=?)";
 	queryParams.append(id);
 
 	if (params.contains("map")) {
@@ -839,8 +843,8 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.value("withUsers", false).toBool()) {
 		QVariantList queryParams;
 		QString query = "SELECT userInfo.username as username, firstname, lastname, nickname, "
-			"rankid, ranklevel, rankimage, picture, xp, "
-			"active, classid, classname ";
+						"rankid, ranklevel, rankimage, picture, xp, "
+						"active, classid, classname ";
 
 		if (params.value("withCurrentGame", false).toBool()) {
 			query += ", mapid, missionid, level, deathmatch ";
@@ -850,7 +854,7 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 
 		if (params.value("withCurrentGame", false).toBool()) {
 			query += " LEFT JOIN (SELECT username, mapid, missionid, level, deathmatch FROM game WHERE tmpScore IS NOT NULL GROUP BY username) g "
-"ON (g.username = userInfo.username)";
+					 "ON (g.username = userInfo.username)";
 		}
 
 		query += " WHERE id=?";
@@ -874,8 +878,8 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 bool Teacher::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantList mapList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name, version, datetime(lastModified, 'localtime') as lastModified, "
-																"md5, COALESCE(LENGTH(data),0) as dataSize "
-																"FROM maps WHERE owner=?",
+															   "md5, COALESCE(LENGTH(data),0) as dataSize "
+															   "FROM maps WHERE owner=?",
 															   {m_client->clientUserName()});
 
 	QJsonArray retList;
@@ -889,12 +893,12 @@ bool Teacher::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 														  {uuid}).value("used").toInt();
 
 		o["binded"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT groupid, name, active, "
-				  "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-				  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-				  "WHERE bindGroupClass.groupid=bindGroupMap.groupid) as readableClassList "
-				  "FROM bindGroupMap "
-				  "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
-				  "WHERE mapid=? AND owner=?", {uuid, m_client->clientUserName()}));
+																				  "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+																				  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+																				  "WHERE bindGroupClass.groupid=bindGroupMap.groupid) as readableClassList "
+																				  "FROM bindGroupMap "
+																				  "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
+																				  "WHERE mapid=? AND owner=?", {uuid, m_client->clientUserName()}));
 		retList.append(o);
 	}
 
@@ -1119,26 +1123,26 @@ bool Teacher::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.contains("groupid")) {
 		int groupid = params.value("groupid", -1).toInt();
 		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-"level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND game.username=? "
-"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
+											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND game.username=? "
+											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
 											   {username, groupid});
 		(*jsonResponse)["groupid"] = groupid;
 
 	} else if (params.contains("myGroups")) {
 		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-"level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND game.username=? "
-"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid IN (SELECT id FROM studentGroup WHERE owner=?))",
+											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND game.username=? "
+											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid IN (SELECT id FROM studentGroup WHERE owner=?))",
 											   {username, m_client->clientUserName()});
 
 	} else if (params.contains("allGroups")) {
 		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-"level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND game.username=? ",
+											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND game.username=? ",
 											   {username});
 	}
 
@@ -1191,19 +1195,19 @@ bool Teacher::gameListGroupGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.contains("username")) {
 		QString username = params.value("username").toString();
 		list = m_client->db()->execSelectQuery("SELECT mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-"level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND game.username=? "
-"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
+											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND game.username=? "
+											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
 											   {username, groupid});
 		(*jsonResponse)["username"] = username;
 
 	} else {
 		list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, "
-"mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN userInfo ON (userInfo.username=game.username) "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
+											   "mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN userInfo ON (userInfo.username=game.username) "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)",
 											   {groupid});
 	}
 
@@ -1255,19 +1259,19 @@ bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.contains("username")) {
 		QString username = params.value("username").toString();
 		list = m_client->db()->execSelectQuery("SELECT missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-"level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND game.username=? "
-"AND mapid=?",
+											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND game.username=? "
+											   "AND mapid=?",
 											   {username, mapid});
 		(*jsonResponse)["username"] = username;
 
 	} else {
 		list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, "
-"missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
-"LEFT JOIN userInfo ON (userInfo.username=game.username) "
-"LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-"AND mapid=?",
+											   "missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
+											   "LEFT JOIN userInfo ON (userInfo.username=game.username) "
+											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
+											   "AND mapid=?",
 											   {mapid});
 	}
 

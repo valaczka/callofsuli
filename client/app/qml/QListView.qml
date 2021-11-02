@@ -6,7 +6,7 @@ ListView {
 	id: view
 
 	property int pauseDuration: 0
-	property int refreshActivateY: -75
+	property int refreshActivateY: -50
 	property bool refreshEnabled: false
 
 	clip: true
@@ -36,7 +36,7 @@ ListView {
 	Item {
 		id: header
 		y: -view.contentY - height
-		height: -view.refreshActivateY/2
+		height: -view.refreshActivateY
 		width: parent.width
 		visible: false
 

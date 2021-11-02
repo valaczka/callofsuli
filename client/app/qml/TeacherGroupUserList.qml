@@ -60,6 +60,147 @@ QSwipeContainer {
 			fillMode: Image.PreserveAspectFit
 		}
 
+
+		rightComponent: Column {
+			readonly property bool _showNumbers: userList.width > 700
+			QLabel {
+				anchors.right: parent.right
+				text: "%1 XP".arg(Number(model.sumxp).toLocaleString())
+				font.weight: Font.Normal
+				font.pixelSize: userList.delegateHeight*0.4
+				color: CosStyle.colorAccent
+				leftPadding: 5
+			}
+			Row {
+				id: rw
+				anchors.right: parent.right
+				spacing: 3
+
+				readonly property real rowHeight: userList.delegateHeight*0.3
+				readonly property real fontHeight: rowHeight*0.9
+				readonly property int fontWeight: Font.DemiBold
+
+
+				Row {
+					visible: model.d3
+					QTrophyImage {
+						level: 3
+						isDeathmatch: true
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.d3
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
+					}
+				}
+
+				Row {
+					visible: model.t3
+					QTrophyImage {
+						level: 3
+						isDeathmatch: false
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.t3
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
+					}
+				}
+
+				Row {
+					visible: model.d2
+					QTrophyImage {
+						level: 2
+						isDeathmatch: true
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.d2
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
+					}
+				}
+
+				Row {
+					visible: model.t2
+					QTrophyImage {
+						level: 2
+						isDeathmatch: false
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.t2
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
+					}
+				}
+
+				Row {
+					visible: model.d1
+					QTrophyImage {
+						level: 1
+						isDeathmatch: true
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.d1
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
+					}
+				}
+
+				Row {
+					visible: model.t1
+					QTrophyImage {
+						level: 1
+						isDeathmatch: false
+						anchors.verticalCenter: parent.verticalCenter
+						height: rw.rowHeight
+						width: rw.rowHeight
+					}
+
+					QLabel {
+						anchors.verticalCenter: parent.verticalCenter
+						text: model.t1
+						font.weight: rw.fontWeight
+						font.pixelSize: rw.fontHeight
+						visible: _showNumbers
+					}
+				}
+
+
+			}
+		}
+
+
+
 		model: SortFilterProxyModel {
 			id: userProxyModel
 			sourceModel: teacherGroups.modelUserList

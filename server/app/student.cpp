@@ -578,7 +578,7 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString missionid = params.value("missionid").toString();
 	int level = params.value("level", -1).toInt();
-	bool deathmatch = params.value("deathmatch", false).toBool();
+	//bool deathmatch = params.value("deathmatch", false).toBool();
 
 	if (missionid.isEmpty() || level < 0) {
 		(*jsonResponse)["error"] = "missing missionid or level";
@@ -587,19 +587,19 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, rankid, ranklevel, rankimage, rankname,"
-"max(duration) as duration, count(*) as success FROM game "
+"min(duration) as duration, count(*) as success FROM game "
 "LEFT JOIN userInfo ON (userInfo.username=game.username) "
-"WHERE missionid=? AND level=? AND deathmatch=? "
+"WHERE missionid=? AND level=? "
 "AND success=true AND tmpScore IS NULL "
 "GROUP BY game.username",
-														{missionid, level, deathmatch}
+														{missionid, level}
 														);
 
 
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
 	(*jsonResponse)["missionid"] = missionid;
 	(*jsonResponse)["level"] = level;
-	(*jsonResponse)["deathmatch"] = deathmatch;
+	//(*jsonResponse)["deathmatch"] = deathmatch;
 
 	return true;
 }

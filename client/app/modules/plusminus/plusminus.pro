@@ -1,6 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
+TARGET = plusminus_$${QT_ARCH}
+
 include(../common.pri)
 
 RESOURCES += \
