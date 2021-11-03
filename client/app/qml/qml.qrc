@@ -152,5 +152,6 @@
         <file>MapMissionUserView.qml</file>
         <file>ProfileDetailsUser.qml</file>
         <file>ProfileDetailsTrophies.qml</file>
+        <file>ProfileDetailsProgressBar.qml</file>
     </qresource>
 </RCC>

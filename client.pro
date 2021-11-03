@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 
 #CONFIG += skip_version
 
-unix:!android: {
+!skip_version:unix:!android: {
 	SUBDIRS = version
 }
 

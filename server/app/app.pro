@@ -2,7 +2,7 @@ QT -= gui
 QT += sql websockets
 
 
-include(../../version/version.pro)
+include(../../version/version.pri)
 include(../../common/common.pri)
 
 CONFIG += c++11 console

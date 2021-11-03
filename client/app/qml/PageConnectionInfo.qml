@@ -32,6 +32,20 @@ QBasePage {
 				anchors.centerIn: parent
 
 				QLabel {
+					property var _d: cosClient.connectionInfoMap()
+
+					textFormat: Text.StyledText
+
+					text: qsTr("Host: <b>%1</b><br>Port: <b>%2</b><br>SSL: <b>%3</b>")
+					.arg(_d.host).arg(_d.port).arg(_d.ssl ? qsTr("IGEN") : qsTr("Nem"))
+
+					color: CosStyle.colorPrimaryLighter
+					font.pixelSize: CosStyle.pixelSize*1.4
+
+					anchors.horizontalCenter: parent.horizontalCenter
+				}
+
+				QLabel {
 					id: label
 					anchors.horizontalCenter: parent.horizontalCenter
 					text: cosClient.connectionInfo()

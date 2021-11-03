@@ -1,12 +1,12 @@
 [Setup]
 AppName=Call of Suli
-AppVersion=2.99.321
+AppVersion=3.0.0
 DefaultDirName={commonpf}\Call of Suli
 UninstallDisplayIcon={app}\callofsuli.exe
 SolidCompression=yes
 AllowNoIcons=yes
 OutputDir=.\
-OutputBaseFilename=CallOfSuli_2.9.321_install
+OutputBaseFilename=CallOfSuli_3.0.0_install
 PrivilegesRequired=lowest
 
 [Files]

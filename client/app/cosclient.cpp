@@ -497,6 +497,26 @@ QString Client::connectionInfo(const QUrl::FormattingOptions &format) const
 }
 
 
+
+/**
+ * @brief Client::connectionInfoMap
+ * @return
+ */
+
+QVariantMap Client::connectionInfoMap() const
+{
+	if (m_connectionState == Client::Standby)
+		return QVariantMap();
+
+	QVariantMap m;
+	m["host"] = m_socket->requestUrl().host();
+	m["port"] = m_socket->requestUrl().port();
+	m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
+
+	return m;
+}
+
+
 /**
  * @brief Client::standardPathCreate
  */

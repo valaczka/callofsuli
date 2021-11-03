@@ -124,6 +124,7 @@ public:
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
 
 	Q_INVOKABLE QString connectionInfo(const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
+	Q_INVOKABLE QVariantMap connectionInfoMap() const;
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static QString homePath(const QString &path = QString());

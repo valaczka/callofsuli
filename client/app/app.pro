@@ -2,7 +2,7 @@ QT += sql websockets quick svg multimedia
 
 CONFIG += c++11
 
-include(../../version/version.pro)
+include(../../version/version.pri)
 include(../../common/common.pri)
 include(../SortFilterProxyModel/SortFilterProxyModel.pri)
 include(../Bacon2D-static/src/Bacon2D-static.pri)

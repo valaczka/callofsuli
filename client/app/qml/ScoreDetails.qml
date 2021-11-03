@@ -36,6 +36,8 @@ QSwipeContainer {
 
 		ScrollIndicator.vertical: ScrollIndicator { }
 
+		readonly property real _contentWidth: Math.min(width, 600)
+
 		Column {
 			id: col
 			width: flickable.width
@@ -50,121 +52,127 @@ QSwipeContainer {
 				width: parent.width
 			}
 
+			ProfileDetailsProgressBar {
+				id: barXP
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				icon: CosStyle.iconXPgraph
+				color: CosStyle.colorPrimaryLighter
+				labelFormat: "%1 XP"
+			}
+
+			ProfileDetailsProgressBar {
+				id: barStreak
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				icon: CosStyle.iconStreak
+				color: CosStyle.colorAccent
+			}
+
+			ProfileDetailsProgressBar {
+				id: barStreakMax
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				icon: CosStyle.iconStreakMax
+				color: CosStyle.colorAccentLighter
+			}
+
+			QLabel {
+				id: labelTitle
+				text: qsTr("Trófeák")
+
+				color: CosStyle.colorPrimaryLight
+				font.pixelSize: CosStyle.pixelSize*0.9
+				font.weight: Font.DemiBold
+				font.capitalization: Font.AllUppercase
+
+				anchors.horizontalCenter: parent.horizontalCenter
+				topPadding: 30
+
+				opacity: 0.3
+			}
 
 			ProfileDetailsTrophies {
 				id: trophies
 
+				topPadding: 10
+				bottomPadding: 25
+
+				imageSize: CosStyle.pixelSize*2
+
+				width: barStreakMax.barWidth
 				anchors.horizontalCenter: parent.horizontalCenter
-
-				width: Math.min(parent.width, 600)
 			}
 
-/*
-			Repeater {
-				model: progressModel
 
-				Row {
-					required property string field
-					required property string iicon
-					required property int ilevel
-					required property bool ideathmatch
+			ProfileDetailsProgressBar {
+				id: barT1
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
 
-					required property real min
-					required property real max
-					required property real v
-
-					property color icolor: switch (field) {
-										   case "xp": CosStyle.colorPrimaryLighter
-											   break
-										   case "cStreak": CosStyle.colorAccent
-											   break
-										   case "lStreak": CosStyle.colorWarning
-											   break
-										   case "t1": "goldenrod"
-											   break
-										   case "d1": "crimson"
-											   break
-										   case "t2": "limegreen"
-											   break
-										   case "d2": "dodgerblue"
-											   break
-										   case "t3": "gold"
-											   break
-										   case "d3": "orchid"
-											   break
-										   default:
-											   CosStyle.colorPrimary
-										   }
-
-					spacing: 10
-
-					property int imageSize: 35
-
-					anchors.horizontalCenter: parent.horizontalCenter
-
-					QFontImage {
-						icon: iicon
-						visible: iicon.length
-						size: imageSize
-						color: icolor
-						anchors.verticalCenter: parent.verticalCenter
-						width: lblNum.width
-					}
-
-					QTrophyImage {
-						visible: ilevel > 0
-						level: Math.max(ilevel, 1)
-						isDeathmatch: ideathmatch
-						anchors.verticalCenter: parent.verticalCenter
-						height: imageSize*0.6
-						width: lblNum.width
-						opacity: v > 0 ? 1.0 : 0.3
-					}
-
-					ProgressBar {
-						id: bar
-						width: ilevel > 0 ? Math.min(col.width-4*(lblNum.width+10), 400-2*(lblNum.width+10))
-										  : Math.min(col.width-2*(lblNum.width+10), 400)
-						from: min
-						to: max
-						value: v
-						Material.accent: icolor
-
-						anchors.verticalCenter: parent.verticalCenter
-
-						Behavior on value {
-							NumberAnimation { duration: 450; easing.type: Easing.OutQuad }
-						}
-					}
-
-					QLabel {
-						id: lblNum
-						width: 75
-						font.pixelSize: 18
-						font.weight: Font.DemiBold
-						text: Math.floor(bar.value)+(field == "xp" ? " XP" : "")
-						color: icolor
-						anchors.verticalCenter: parent.verticalCenter
-						horizontalAlignment: Label.AlignHCenter
-					}
-				}
+				level: 1
+				deathmatch: false
+				color: "limegreen"
 			}
-*/
+
+			ProfileDetailsProgressBar {
+				id: barD1
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				level: 1
+				deathmatch: true
+				color: "lime"
+			}
+
+
+			ProfileDetailsProgressBar {
+				id: barT2
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				level: 2
+				deathmatch: false
+				color: "peru"
+			}
+
+			ProfileDetailsProgressBar {
+				id: barD2
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				level: 2
+				deathmatch: true
+				color: "sandybrown"
+			}
+
+
+			ProfileDetailsProgressBar {
+				id: barT3
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				level: 3
+				deathmatch: false
+				color: "goldenrod"
+			}
+
+			ProfileDetailsProgressBar {
+				id: barD3
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: flickable._contentWidth
+
+				level: 3
+				deathmatch: true
+				color: "gold"
+			}
 		}
+
 	}
 
-
-	Component.onCompleted: {
-/*		progressModel.append({ field: "xp", iicon: CosStyle.iconXPgraph, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false })
-		progressModel.append({ field: "cStreak", iicon: CosStyle.iconStreak, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false})
-		progressModel.append({ field: "lStreak", iicon: CosStyle.iconStreakMax, min: 0, max: 1, v: 0, ilevel: 0, ideathmatch: false})
-		progressModel.append({ field: "t1", iicon: "", min: 0, max: 1, v: 0, ilevel: 1, ideathmatch: false})
-		progressModel.append({ field: "d1", iicon: "", min: 0, max: 1, v: 0, ilevel: 1, ideathmatch: true})
-		progressModel.append({ field: "t2", iicon: "", min: 0, max: 1, v: 0, ilevel: 2, ideathmatch: false})
-		progressModel.append({ field: "d2", iicon: "", min: 0, max: 1, v: 0, ilevel: 2, ideathmatch: true})
-		progressModel.append({ field: "t3", iicon: "", min: 0, max: 1, v: 0, ilevel: 3, ideathmatch: false})
-		progressModel.append({ field: "d3", iicon: "", min: 0, max: 1, v: 0, ilevel: 3, ideathmatch: true}) */
-	}
 
 	function loadUserScore(jsonData) {
 		flickable.visible = true
@@ -181,31 +189,33 @@ QSwipeContainer {
 		trophies.d2 = jsonData.d2
 		trophies.d3 = jsonData.d3
 
-		/*progressModel.setProperty(0, "max", jsonData.maxXP)
-		progressModel.setProperty(0, "v", jsonData.xp)
+		if (jsonData.t1+jsonData.t2+jsonData.t3+jsonData.d1+jsonData.d2+jsonData.d3)
+			labelTitle.opacity = 1.0
+		else
+			labelTitle.opacity = 0.3
 
-		progressModel.setProperty(1, "max", jsonData.maxStreak)
-		progressModel.setProperty(1, "v", jsonData.currentStreak)
+		barXP.to = jsonData.maxXP
+		barXP.value = jsonData.xp
 
-		progressModel.setProperty(2, "max", jsonData.maxStreak)
-		progressModel.setProperty(2, "v", jsonData.longestStreak)
+		barStreak.to = jsonData.maxStreak
+		barStreak.value = jsonData.currentStreak
 
-		progressModel.setProperty(3, "max", jsonData.maxT1)
-		progressModel.setProperty(3, "v", jsonData.t1)
+		barStreakMax.to = jsonData.maxStreak
+		barStreakMax.value = jsonData.longestStreak
 
-		progressModel.setProperty(4, "max", jsonData.maxD1)
-		progressModel.setProperty(4, "v", jsonData.d1)
+		barT1.to = jsonData.maxT1
+		barT2.to = jsonData.maxT2
+		barT3.to = jsonData.maxT3
+		barD1.to = jsonData.maxD1
+		barD2.to = jsonData.maxD2
+		barD3.to = jsonData.maxD3
 
-		progressModel.setProperty(5, "max", jsonData.maxT2)
-		progressModel.setProperty(5, "v", jsonData.t2)
+		barT1.value = jsonData.t1
+		barT2.value = jsonData.t2
+		barT3.value = jsonData.t3
 
-		progressModel.setProperty(6, "max", jsonData.maxD2)
-		progressModel.setProperty(6, "v", jsonData.d2)
-
-		progressModel.setProperty(7, "max", jsonData.maxT3)
-		progressModel.setProperty(7, "v", jsonData.t3)
-
-		progressModel.setProperty(8, "max", jsonData.maxD3)
-		progressModel.setProperty(8, "v", jsonData.d3)*/
+		barD1.value = jsonData.d1
+		barD2.value = jsonData.d2
+		barD3.value = jsonData.d3
 	}
 }
