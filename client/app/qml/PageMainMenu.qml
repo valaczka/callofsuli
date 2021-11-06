@@ -129,6 +129,10 @@ QBasePage {
 
 					if (o.func === "createGroup") {
 						createGroup()
+					} else if (o.func === "Login") {
+						JS.createPage("Login", {
+										  servers: servers
+									  })
 					}
 				}
 
@@ -244,8 +248,8 @@ QBasePage {
 									  subtype: 0,
 									  id: _id--,
 									  name: qsTr("Bejelentkezés"),
-									  page: "Login",
-									  func: null,
+									  page: "",
+									  func: "Login",
 									  details: "",
 									  icon: CosStyle.iconLogin
 								  })

@@ -30,6 +30,7 @@
 
 #include <QWebSocket>
 #include <QObject>
+#include <QNetworkAccessManager>
 
 #include "SmtpMime"
 #include "cosdb.h"
@@ -90,6 +91,7 @@ private slots:
 	bool clientPasswordRequest(const CosMessage &message);
 	void updateRoles();
 	void onSmtpError(SmtpClient::SmtpError e);
+	void onOAuth2UserinfoReceived(const QJsonObject &data);
 
 signals:
 	void disconnected();
@@ -98,7 +100,10 @@ signals:
 	void clientUserNameChanged(QString clientUserName);
 	void clientRolesChanged(CosMessage::ClientRoles clientRoles);
 
+	void oauth2UserinfoReceived(const QJsonObject &data);
+
 private:
+	void getOAuth2Userinfo(const QString &token);
 	Server *m_server;
 	QWebSocket *m_socket;
 
@@ -106,6 +111,9 @@ private:
 	QString m_clientSession;
 	QString m_clientUserName;
 	CosMessage::ClientRoles m_clientRoles;
+	QNetworkAccessManager m_networkAccessManager;
+	bool m_oauthTokenInitilized;
+	bool m_oauthRequestSent;
 };
 
 #endif // CLIENT_H

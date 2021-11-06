@@ -54,6 +54,15 @@ class Server : public QObject
 	const int m_serverVersionMajor;
 	const int m_serverVersionMinor;
 
+public:
+	struct VersionUpgrade {
+		int major;
+		int minor;
+		QString file;
+
+		VersionUpgrade(const int &maj, const int &min, const QString &f) : major(maj), minor(min), file(f) {}
+	};
+
 private:
 	QWebSocketServer *m_socketServer;
 	QUdpSocket *m_udpSocket;
@@ -77,6 +86,8 @@ private:
 	QVariantMap m_resourceMap;
 	QVariantMap m_resources;
 	QString m_serverUuid;
+
+	static QList<VersionUpgrade> m_versionUpgrades;
 
 public:
 	explicit Server(QObject *parent = nullptr);

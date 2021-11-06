@@ -42,6 +42,7 @@
 #include "variantmapdata.h"
 #include "sqlimage.h"
 #include "gamematch.h"
+#include "googleoauth2.h"
 
 class Servers : public AbstractActivity
 {
@@ -49,6 +50,7 @@ class Servers : public AbstractActivity
 
 	Q_PROPERTY(VariantMapModel* serversModel READ serversModel NOTIFY serversModelChanged)
 	Q_PROPERTY(int connectedServerKey READ connectedServerKey WRITE setConnectedServerKey NOTIFY connectedServerKeyChanged)
+	Q_PROPERTY(GoogleOAuth2 * googleOAuth2 READ googleOAuth2 WRITE setGoogleOAuth2 NOTIFY googleOAuth2Changed)
 
 public:
 	Servers(QQuickItem *parent = nullptr);
@@ -64,6 +66,10 @@ public:
 	int findServer(const QString &host, const int &port, const bool &ssl);
 	int findServer(const QString &username, const QString &host, const int &port, const bool &ssl);
 
+
+	GoogleOAuth2 *googleOAuth2() const;
+	void setGoogleOAuth2(GoogleOAuth2 *newGoogleOAuth2);
+	void setGoogleOAuth2(const QString &id, const QString &key, const qint16 &port);
 
 public slots:
 	void reloadResources(QVariantMap resources);
@@ -113,8 +119,10 @@ signals:
 
 	void serversModelChanged(VariantMapModel* serversModel);
 	void connectedServerKeyChanged(int connectedServerKey);
+	void googleOAuth2Changed();
 
 	void certificateError(const QSslCertificate &certificate, const QVariantMap &data);
+
 
 private:
 	void _reloadResources(QVariantMap resources);
@@ -126,6 +134,7 @@ private:
 	QStringList m_sqlImageProviders;
 	QUdpSocket* m_udpSocket;
 	QStringList m_urlsToProcess;
+	GoogleOAuth2 *m_googleOAuth2;
 };
 
 

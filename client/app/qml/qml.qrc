@@ -153,5 +153,6 @@
         <file>ProfileDetailsUser.qml</file>
         <file>ProfileDetailsTrophies.qml</file>
         <file>ProfileDetailsProgressBar.qml</file>
+        <file>OAuthContainer.qml</file>
     </qresource>
 </RCC>

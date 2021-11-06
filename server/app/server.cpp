@@ -36,12 +36,9 @@
 #include "../version/buildnumber.h"
 
 
-
-
-
-
-
-
+QList<Server::VersionUpgrade> Server::m_versionUpgrades = {
+	Server::VersionUpgrade(3, 0, ":/sql/upgrade_3.0.sql")
+};
 
 
 
@@ -393,6 +390,8 @@ bool Server::databaseLoad()
 			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_mapsDb->databaseName());
 			return false;
 		}
+	} else {
+		// UPDATES
 	}
 
 
@@ -409,8 +408,33 @@ bool Server::databaseLoad()
 			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_statDb->databaseName());
 			return false;
 		}
+	} else {
+		// UPDATES
 	}
 
+
+	if (m_versionMajor < m_serverVersionMajor || m_versionMinor < m_serverVersionMinor) {
+		foreach (Server::VersionUpgrade upgrade, m_versionUpgrades) {
+			if (m_versionMajor < upgrade.major || (m_versionMajor == upgrade.major && m_versionMinor < upgrade.minor)) {
+				qInfo() << tr("Adatbázis frissítése %1.%2 -> %3.%4").arg(m_versionMajor)
+						   .arg(m_versionMinor)
+						   .arg(upgrade.major)
+						   .arg(upgrade.minor);
+
+				m_db->transaction();
+				if (!m_db->batchQueryFromFile(upgrade.file)) {
+					qWarning() << tr("A frissítés sikertelen!");
+					m_db->rollback();
+					return false;
+				}
+				m_db->commit();
+			}
+		}
+
+		QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor FROM system");
+		m_versionMajor = m.value("versionMajor").toInt();
+		m_versionMinor = m.value("versionMinor").toInt();
+	}
 
 
 	m_db->subscribeToNotification("ranklog");

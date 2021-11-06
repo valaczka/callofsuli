@@ -76,10 +76,10 @@ QSimpleContainer {
 			}
 		}*/
 
-		footer: QToolButtonFooter {
+		/*footer: QToolButtonFooter {
 			width: serverList.width
 			action: actionServerNew
-		}
+		}*/
 
 
 

@@ -67,6 +67,7 @@
 #include "androidshareutils.h"
 
 
+
 QList<TerrainData> Client::m_availableTerrains;
 QVariantMap Client::m_characterData;
 QStringList Client::m_musicList;
@@ -112,7 +113,6 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_singleInstance = nullptr;
 #endif
 
-	qDebug() << "Databases" << QSqlDatabase::connectionNames();
 
 	QStringList dbList = {"objectiveDb", "editorDb", "tmpmapimagedb"};
 
@@ -175,15 +175,9 @@ Client::~Client()
 
 void Client::initialize()
 {
-	/*
-#ifndef QT_NO_DEBUG_OUTPUT
-	qSetMessagePattern("%{time hh:mm:ss} [%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{message}");
-#endif
-*/
 	QCoreApplication::setApplicationName("callofsuli");
 	QCoreApplication::setOrganizationDomain("callofsuli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
-
 }
 
 
@@ -308,10 +302,10 @@ void Client::registerResources()
 	searchList.append(binDir+"/../share");
 	searchList.append(binDir+"/../../share");
 	searchList.append(binDir+"/../../../share");
-	/*searchList.append(binDir+"/callofsuli/share");
+
+#ifndef QT_NO_DEBUG
 	searchList.append(binDir+"/../callofsuli/share");
-	searchList.append(binDir+"/../../callofsuli/share");
-	searchList.append(binDir+"/../../../callofsuli/share");*/
+#endif
 	searchList << QStandardPaths::standardLocations(QStandardPaths::DataLocation);
 
 	searchList.removeDuplicates();
@@ -1137,6 +1131,9 @@ void Client::setRankList(QVariantList rankList)
 	emit rankListChanged(m_rankList);
 }
 
+
+
+
 void Client::setUserNickName(QString userNickName)
 {
 	if (m_userNickName == userNickName)
@@ -1501,6 +1498,22 @@ void Client::logout()
 
 
 /**
+ * @brief Client::oauth2Login
+ * @param accessToken
+ */
+
+void Client::oauth2Login(const QString &accessToken)
+{
+	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
+
+	QJsonObject d;
+	d["oauth2Token"] = accessToken;
+	m.setJsonAuth(d);
+	m.send(m_socket);
+}
+
+
+/**
  * @brief Client::passwordReset
  * @param email
  * @param code
@@ -1806,6 +1819,7 @@ void Client::setSingleInstance(QSingleInstance *singleInstance)
 
 
 
+
 void Client::setRegistrationDomains(QVariantList registrationDomains)
 {
 	if (m_registrationDomains == registrationDomains)
@@ -2057,8 +2071,6 @@ void Client::onSocketError(const QAbstractSocket::SocketError &error)
 	if (m_connectionState == Standby || m_connectionState == Connecting)
 		sendMessageError(tr("Hiba"), QString("%1\n%2").arg(m_socket->errorString()).arg(m_socket->requestUrl().toString()));
 }
-
-
 
 
 

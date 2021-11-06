@@ -80,6 +80,20 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 		(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname FROM class ORDER BY name"));
 	}
 
+
+	QString googleId = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleID'")
+									.value("v").toString();
+	QString googleKey = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleKey'")
+									.value("v").toString();
+	int googlePort = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googlePort'")
+									.value("v").toInt();
+
+	if (!googleId.isEmpty() && !googleKey.isEmpty() && googlePort > 0) {
+		(*jsonResponse)["googleOAuth2id"] = googleId;
+		(*jsonResponse)["googleOAuth2key"] = googleKey;
+		(*jsonResponse)["googleOAuth2port"] = googlePort;
+	}
+
 	return true;
 }
 

@@ -35,6 +35,7 @@
 #include <QQmlContext>
 #include <Logger.h>
 #include <ColorConsoleAppender.h>
+#include <QtWebView/QtWebView>
 #include <sqlimage.h>
 #include <fontimage.h>
 #include "qrimage.h"
@@ -69,6 +70,16 @@ int main(int argc, char *argv[])
 	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
 #endif
 
+	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
+
+	for (int i = 0; i < paths.size(); ++i)
+	{
+		QDir dir(paths.at(i) + "/QtWebEngine");
+		if (dir.isReadable())
+			dir.removeRecursively();
+	}
+
+	QtWebView::initialize();
 
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 

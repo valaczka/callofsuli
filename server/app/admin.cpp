@@ -112,9 +112,18 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	QString username = params.value("username").toString();
+	QString oauthToken;
 
 	if (params.value("classid", -1) == -1)
 		params["classid"] = QVariant::Invalid;
+
+	if (params.contains("oauthToken")) {
+		oauthToken = params.value("oauthToken").toString();
+		params.remove("oauthToken");
+	}
+
+	if (!params.contains("character"))
+		params["character"] = "default";
 
 	qDebug() << "CREATE USER" << params;
 
@@ -128,6 +137,11 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantMap m;
 	m["username"] = username;
+
+	if (!oauthToken.isEmpty()) {
+		m["oauthToken"] = oauthToken;
+		m["password"] = "*";
+	}
 
 	id = m_client->db()->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", m);
 

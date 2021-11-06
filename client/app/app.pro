@@ -1,4 +1,4 @@
-QT += sql websockets quick svg multimedia
+QT += sql websockets quick svg multimedia network networkauth webview
 
 CONFIG += c++11
 
@@ -127,6 +127,7 @@ SOURCES += \
 		gamequestion.cpp \
 		gamescene.cpp \
 		gameterrain.cpp \
+		googleoauth2.cpp \
 		main.cpp \
 		mapeditor.cpp \
 		profile.cpp \
@@ -169,6 +170,7 @@ HEADERS += \
 	gamequestion.h \
 	gamescene.h \
 	gameterrain.h \
+	googleoauth2.h \
 	mapeditor.h \
 	modules/interfaces.h \
 	profile.h \

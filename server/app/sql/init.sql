@@ -28,7 +28,8 @@ CREATE TABLE user(
 	isAdmin BOOL NOT NULL DEFAULT false,
 	nickname TEXT,
 	character TEXT,
-	picture TEXT
+	picture TEXT,
+	UNIQUE (username)
 );
 
 
@@ -36,6 +37,7 @@ CREATE TABLE auth(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	password TEXT,
 	salt TEXT,
+	oauthToken TEXT,
 	UNIQUE (username)
 );
 

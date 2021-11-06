@@ -14,6 +14,7 @@ QBasePage {
 	defaultTitle: cosClient.serverName
 	defaultSubTitle: qsTr("Bejelentkezés")
 
+	property Servers servers: null
 
 	QStackComponent {
 		id: stackComponent
@@ -65,6 +66,7 @@ QBasePage {
 							 textPassword.acceptableInput
 
 					onClicked: {
+						panel.enabled = false
 						cosClient.login(textUser.text, "", textPassword.text)
 					}
 				}
@@ -78,6 +80,19 @@ QBasePage {
 
 					onClicked: JS.createPage("PasswordRequest", {})
 				}
+
+				QGridButton {
+					id: buttonGoogle
+					text: qsTr("Google")
+
+					enabled: servers && servers.googleOAuth2
+					visible: servers && servers.googleOAuth2
+
+					onClicked: {
+						panel.enabled = false
+						servers.googleOAuth2.grant()
+					}
+				}
 			}
 
 			Connections {
@@ -87,13 +102,32 @@ QBasePage {
 				}
 			}
 
-			onPopulated: textUser.forceActiveFocus()
+			//onPopulated: textUser.forceActiveFocus()
 
 		}
 
 
 	}
 
+
+	Component {
+		id: oauthContainer
+		OAuthContainer {  }
+	}
+
+	Connections {
+		target: servers.googleOAuth2
+
+		function onBrowserRequest(url) {
+			stackComponent.pushComponent(oauthContainer, {url: url})
+		}
+
+		function onAuthenticated(token) {
+			panel.enabled = false
+			stackComponent.layoutBack()
+			cosClient.oauth2Login(token)
+		}
+	}
 
 	function windowClose() {
 		return false

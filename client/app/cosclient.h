@@ -98,6 +98,7 @@ public:
 
 	Q_PROPERTY(bool forcedLandscape READ forcedLandscape NOTIFY forcedLandscapeChanged)
 
+
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
 
@@ -191,6 +192,7 @@ public:
 	QString userPlayerCharacter() const { return m_userPlayerCharacter; }
 
 	QString serverName() const { return m_serverName; }
+	QString serverUuid() const { return m_serverUuid; }
 	bool registrationEnabled() const { return m_registrationEnabled; }
 	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
 	QVariantList registrationDomains() const { return m_registrationDomains; }
@@ -218,8 +220,6 @@ public:
 	void setSingleInstance(QSingleInstance *singleInstance);
 #endif
 
-	QString serverUuid() const { return m_serverUuid; }
-
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
 		emit messageSent("warning", title, informativeText, detailedText);
@@ -238,6 +238,7 @@ public slots:
 	void closeConnection();
 	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
+	void oauth2Login(const QString &accessToken);
 	void passwordRequest(const QString &email, const QString &code = "");
 
 	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,
@@ -393,6 +394,7 @@ private:
 	bool m_forcedLandscape;
 	QStringList m_positionalArgumentsToProcess;
 	QString m_serverUuid;
+
 
 
 

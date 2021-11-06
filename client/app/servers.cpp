@@ -45,6 +45,7 @@ Servers::Servers(QQuickItem *parent)
 	, m_serverTryConnectKey(-1)
 	, m_udpSocket(new QUdpSocket(this))
 	, m_urlsToProcess()
+	, m_googleOAuth2(nullptr)
 {
 	m_serversModel = new VariantMapModel({
 											 "id",
@@ -81,6 +82,9 @@ Servers::~Servers()
 
 	if (m_client)
 		m_client->connectSslErrorSignalHandler(nullptr);
+
+	if (m_googleOAuth2)
+		delete m_googleOAuth2;
 }
 
 
@@ -97,6 +101,11 @@ void Servers::onMessageReceived(const CosMessage &message)
 	if (message.cosClass() == CosMessage::ClassUserInfo) {
 		if (func == "getResources") {
 			reloadResources(d.toVariantMap());
+		} else if (func == "getServerInfo") {
+			qDebug() << "GET SERVER INFO";
+			setGoogleOAuth2(d.value("googleOAuth2id").toString(),
+							d.value("googleOAuth2key").toString(),
+							d.value("googleOAuth2port").toInt(-1));
 		}
 	} else if (message.cosClass() == CosMessage::ClassTeacher) {
 		if (func == "groupCreate") {
@@ -162,8 +171,6 @@ void Servers::serverConnect(const int &id)
 		m_client->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
 		return;
 	}
-
-	qDebug() << "id" << id;
 
 	int key =  m_serversModel->variantMapData()->key("id", id);
 
@@ -1108,3 +1115,57 @@ int Servers::findServer(const QString &username, const QString &host, const int 
 	return -1;
 }
 
+
+
+/**
+ * @brief Servers::googleOAuth2
+ * @return
+ */
+
+GoogleOAuth2 *Servers::googleOAuth2() const
+{
+	return m_googleOAuth2;
+}
+
+
+/**
+ * @brief Servers::setGoogleOAuth2
+ * @param newGoogleOAuth2
+ */
+
+void Servers::setGoogleOAuth2(GoogleOAuth2 *newGoogleOAuth2)
+{
+	if (m_googleOAuth2 == newGoogleOAuth2)
+		return;
+
+	if (m_googleOAuth2 && !newGoogleOAuth2) {
+		delete m_googleOAuth2;
+	}
+
+	m_googleOAuth2 = newGoogleOAuth2;
+	emit googleOAuth2Changed();
+}
+
+
+/**
+ * @brief Servers::setGoogleOAuth2
+ * @param id
+ * @param key
+ * @param port
+ */
+
+void Servers::setGoogleOAuth2(const QString &id, const QString &key, const qint16 &port)
+{
+	if (m_googleOAuth2) {
+		if (m_googleOAuth2->id() == id && m_googleOAuth2->key() == key && m_googleOAuth2->handlerPort() == port)
+			return;
+
+		setGoogleOAuth2(nullptr);
+	}
+
+	if (!id.isEmpty() && !key.isEmpty() && port > 0) {
+		setGoogleOAuth2(new GoogleOAuth2(this));
+		m_googleOAuth2->setClient(id, key);
+		m_googleOAuth2->setHandlerPort(port);
+	}
+}

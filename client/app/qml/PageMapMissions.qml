@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import COS.Client 1.0
 import QtMultimedia 5.12
+import QtQuick.Window 2.15
 import "."
 import "Style"
 import "JScript.js" as JS
@@ -153,7 +154,7 @@ QBasePage {
 		if (Qt.platform.os === "android") {
 			_oldVisibility = mainWindow.visibility
 			mainWindow.visibility = "FullScreen"
-			cosClient.forceLandscape()
+			//cosClient.forceLandscape()
 		}
 	}
 
@@ -161,11 +162,17 @@ QBasePage {
 		if (_oldVisibility != null)
 			mainWindow.visibility = _oldVisibility
 
-		if (Qt.platform.os === "android") {
+		/*if (Qt.platform.os === "android") {
 			cosClient.resetLandscape()
-		}
+		}*/
 	}
 
+
+	onPageActivatedFirst: {
+		if (Qt.platform.os === "android" && height>width) {
+			cosClient.sendMessageInfo(qsTr("Képernyő tájolása"), qsTr("Fektesd el a képernyőt"))
+		}
+	}
 
 	onPageActivated: {
 		cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
