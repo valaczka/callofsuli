@@ -5,7 +5,8 @@ QT += core gui gui-private
 
 CONFIG += build_xlsx_lib
 
-TARGET = qtxlsx_$${QT_ARCH}
+android: TARGET = qtxlsx_$${QT_ARCH}
+else: TARGET = qtxlsx
 
 DEFINES += XLSX_NO_LIB
 
@@ -14,6 +15,11 @@ TEMPLATE = lib
 win32 {
 	CONFIG += dll
 }
+
+win32: target.path = $${OUT_PWD}/../../build
+else: target.path = $${OUT_PWD}/../../build/lib
+
+INSTALLS += target
 
 HEADERS += $$PWD/xlsxdocpropscore_p.h \
 	$$PWD/xlsxdocpropsapp_p.h \

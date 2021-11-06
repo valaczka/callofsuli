@@ -31,10 +31,10 @@ Item {
 
 	RowLayout {
 		id: row
-		anchors.top: parent.top
+		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		anchors.right: parent.right
-		anchors.topMargin: 5
+		anchors.bottomMargin: 5
 
 
 		QLabel {
@@ -160,14 +160,14 @@ Item {
 	}
 
 	Item {
-		anchors.top: row.bottom
+		anchors.bottom: row.top
 		anchors.right: parent.right
 		anchors.left: parent.left
-		anchors.bottom: parent.bottom
+		anchors.top: parent.top
 		anchors.bottomMargin: 20
 		anchors.leftMargin: 10
 		anchors.rightMargin: 10
-		anchors.topMargin: 10
+		anchors.topMargin: 20
 
 		GridLayout {
 			anchors.fill: parent

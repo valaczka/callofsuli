@@ -23,8 +23,7 @@ Item {
 	property color titleColor: CosStyle.colorAccentLighter
 
 	property int horizontalPadding: control.width>control.height ? 40 : 5
-	property int topPadding: 5
-	property int bottomPadding: control.width>control.height ? 30 : 60
+	property int verticalPadding: 5
 
 	property bool isAnswerSuccess: false
 
@@ -38,10 +37,14 @@ Item {
 	Item {
 		id: panel
 
-		width: Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
-		height: Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-topPadding-bottomPadding)
+		readonly property bool _isFullscreen: (control.width>control.height && Qt.platform.os == "android") || control.height < 800
+
+		width: _isFullscreen ? control.width-4 :
+									Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
+		height: _isFullscreen ? control.height-4 :
+									 Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-2*verticalPadding)
 		x: (control.width-width)/2
-		y: -bottomPadding+(control.height-height)/2
+		y: (control.height-height)/2
 
 		opacity: 0.1
 		scale: 0.1
@@ -194,7 +197,9 @@ Item {
 
 	}
 
-	Component.onCompleted: state = "started"
+	Component.onCompleted: {
+		state = "started"
+	}
 
 	states: [
 		State {

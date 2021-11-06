@@ -1,16 +1,19 @@
 [Setup]
 AppName=Call of Suli
-AppVersion=3.0.0
-DefaultDirName={commonpf}\Call of Suli
+AppVersion=%VERSION%
+DefaultDirName={usercf}\Call of Suli
 UninstallDisplayIcon={app}\callofsuli.exe
 SolidCompression=yes
 AllowNoIcons=yes
 OutputDir=.\
-OutputBaseFilename=CallOfSuli_3.0.0_install
+OutputBaseFilename=CallOfSuli_%VERSION%_install
 PrivilegesRequired=lowest
+LicenseFile=.\build\LICENSE
+AppCopyright=Copyright (C) 2012-2021 Valaczka János Pál
 
 [Files]
-Source: ".\out\*"; DestDir: "{app}"; Flags: recursesubdirs
+Source: ".\build\*"; DestDir: "{app}"; Flags: recursesubdirs
+
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

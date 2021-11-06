@@ -92,6 +92,7 @@ void GameQuestion::run()
 	}
 
 	QQuickItem *scene = m_game->gameScene();
+	QQuickItem *gamePage = m_game->itemPage();
 	m_question = nullptr;
 
 	m_questionData = enemyData->generateQuestion();
@@ -110,7 +111,7 @@ void GameQuestion::run()
 	}
 
 
-	QMetaObject::invokeMethod(scene, "createQuestion", Qt::DirectConnection,
+	QMetaObject::invokeMethod(gamePage, "createQuestion", Qt::DirectConnection,
 							  Q_RETURN_ARG(QQuickItem*, m_question),
 							  Q_ARG(GameQuestion*, this)
 							  );

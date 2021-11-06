@@ -9,18 +9,22 @@ CONFIG += \
 		  #qzxing_multimedia \
 		  #staticlib \
 
-win32 {
-	CONFIG += dll
-}
+win32: CONFIG += dll
 
-VERSION = 3.2
+#VERSION = 3.2
 
-TARGET = QZXing_$${QT_ARCH}
+android: TARGET = QZXing_$${QT_ARCH}
+else: TARGET = QZXing
 
 TEMPLATE = lib
 
-DEFINES -= DISABLE_LIBRARY_FEATURES
+#DEFINES -= DISABLE_LIBRARY_FEATURES
 
 include(QZXing-components.pri)
 
 QMAKE_CXXFLAGS += -Wno-sign-compare
+
+win32: target.path = $${OUT_PWD}/../../build
+else: target.path = $${OUT_PWD}/../../build/lib
+
+INSTALLS += target

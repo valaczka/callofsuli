@@ -498,6 +498,7 @@ Page {
 
 	}
 
+	property alias painhudImage: painhudImage
 
 	Image {
 		id: painhudImage
@@ -506,9 +507,11 @@ Page {
 		visible: opacity
 		anchors.fill: parent
 
+		z: 10
 
 		SequentialAnimation {
 			id: painhudImageAnim
+
 			PropertyAnimation {
 				target: painhudImage
 				property: "opacity"
@@ -535,6 +538,8 @@ Page {
 		opacity: 0.0
 		visible: opacity
 		anchors.centerIn: parent
+
+		z: 9
 
 		source: "qrc:/internal/game/skull.svg"
 		sourceSize.width: 200
@@ -1068,6 +1073,43 @@ Page {
 			}
 		}
 	]
+
+
+	Timer {
+		id: startTimer
+		interval: 750
+		running: false
+		triggeredOnStart: false
+		onTriggered: {
+			stop()
+			cosClient.playSound("qrc:/sound/voiceover/fight.ogg", CosSound.VoiceOver)
+		}
+	}
+
+	Component {
+		id: questionComponent
+
+		GameQuestion {  }
+	}
+
+	Item {
+		id: questionPlaceholder
+		anchors.fill: parent
+		visible: game.question
+
+		z: 5
+	}
+
+	function createQuestion(questionPrivate : GameQuestionPrivate) : Item {
+		startTimer.start()
+		questionPlaceholder.visible = true
+
+		var obj = questionComponent.createObject(questionPlaceholder,{
+			questionPrivate: questionPrivate
+		})
+
+		return obj
+	}
 
 
 

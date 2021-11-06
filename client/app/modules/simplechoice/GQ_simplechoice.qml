@@ -29,7 +29,7 @@ Item {
 		font.family: "Special Elite"
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
-		anchors.top: parent.top
+		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		anchors.right: parent.right
 		topPadding: 30
@@ -47,11 +47,11 @@ Item {
 	}
 
 	Item {
-		anchors.top: labelQuestion.bottom
 		anchors.right: parent.right
 		anchors.left: parent.left
-		anchors.bottom: parent.bottom
-		anchors.bottomMargin: 15
+		anchors.top: parent.top
+		anchors.bottom: labelQuestion.top
+		anchors.topMargin: 15
 
 		Column {
 			id: col

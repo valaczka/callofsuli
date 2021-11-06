@@ -112,6 +112,15 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_singleInstance = nullptr;
 #endif
 
+	qDebug() << "Databases" << QSqlDatabase::connectionNames();
+
+	QStringList dbList = {"objectiveDb", "editorDb", "tmpmapimagedb"};
+
+	foreach (QString s, dbList) {
+		if (QSqlDatabase::contains(s))
+			QSqlDatabase::removeDatabase(s);
+	}
+
 	m_clientSound = new CosSound();
 	m_clientSound->moveToThread(&m_workerThread);
 	connect(&m_workerThread, &QThread::finished, m_clientSound, &QObject::deleteLater);
@@ -299,10 +308,10 @@ void Client::registerResources()
 	searchList.append(binDir+"/../share");
 	searchList.append(binDir+"/../../share");
 	searchList.append(binDir+"/../../../share");
-	searchList.append(binDir+"/callofsuli/share");
+	/*searchList.append(binDir+"/callofsuli/share");
 	searchList.append(binDir+"/../callofsuli/share");
 	searchList.append(binDir+"/../../callofsuli/share");
-	searchList.append(binDir+"/../../../callofsuli/share");
+	searchList.append(binDir+"/../../../callofsuli/share");*/
 	searchList << QStandardPaths::standardLocations(QStandardPaths::DataLocation);
 
 	searchList.removeDuplicates();
@@ -546,6 +555,11 @@ QString Client::standardPath(const QString &path)
 QString Client::homePath(const QString &path)
 {
 	return QStandardPaths::standardLocations(QStandardPaths::HomeLocation).at(0)+"/"+path;
+}
+
+QString Client::genericDataPath(const QString &path)
+{
+	return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/"+path;
 }
 
 

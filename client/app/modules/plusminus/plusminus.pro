@@ -1,7 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
-TARGET = plusminus_$${QT_ARCH}
+android: TARGET = plusminus_$${QT_ARCH}
+else: TARGET = plusminus
 
 include(../common.pri)
 

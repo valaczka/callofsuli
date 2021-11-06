@@ -128,6 +128,7 @@ public:
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static QString homePath(const QString &path = QString());
+	Q_INVOKABLE static QString genericDataPath(const QString &path = QString());
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key, const QVariant &defaultValue = QVariant());
 

@@ -1,7 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
-TARGET = calculator_$${QT_ARCH}
+android: TARGET = calculator_$${QT_ARCH}
+else: TARGET = calculator
 
 include(../common.pri)
 

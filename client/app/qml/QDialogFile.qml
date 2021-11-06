@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import Qt.labs.folderlistmodel 2.15
+import COS.Client 1.0
 import "Style"
 import "JScript.js" as JS
 import "."
@@ -232,10 +233,10 @@ QDialogPanel {
 		function onStoragePermissionsGranted() {
 			labelNoPermissions.visible = false
 
-			if (folder != "")
+			if (Qt.platform.os == "android")
+				folderListModel.folder = cosClient.genericDataPath() //"file:///sdcard"
+			else if (folder != "")
 				folderListModel.folder = folder
-			else if (Qt.platform.os == "android")
-				folderListModel.folder = "file:///sdcard"
 		}
 
 		function onStoragePermissionsDenied() {

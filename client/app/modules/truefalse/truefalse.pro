@@ -1,7 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
-TARGET = truefalse_$${QT_ARCH}
+android: TARGET = truefalse_$${QT_ARCH}
+else: TARGET = truefalse
 
 include(../common.pri)
 

@@ -169,16 +169,7 @@ Scene {
 		event.accepted = true
 	}
 
-	Timer {
-		id: startTimer
-		interval: 750
-		running: false
-		triggeredOnStart: false
-		onTriggered: {
-			stop()
-			cosClient.playSound("qrc:/sound/voiceover/fight.ogg", CosSound.VoiceOver)
-		}
-	}
+
 
 
 
@@ -201,13 +192,7 @@ Scene {
 		GameEnemySoldier { }
 	}
 
-	Component {
-		id: questionComponent
 
-		GameQuestion {
-
-		}
-	}
 
 
 	Component {
@@ -274,18 +259,6 @@ Scene {
 				}
 
 
-				function createQuestion(questionPrivate : GameQuestionPrivate) : Item {
-					if (!game)
-					return
-
-					startTimer.start()
-
-					var obj = questionComponent.createObject(game.itemPage,{
-						questionPrivate: questionPrivate
-					})
-
-					return obj
-				}
 
 
 

@@ -51,6 +51,7 @@
 
 #ifdef Q_OS_ANDROID
 #include <QtAndroid>
+#include "AndroidAppender.h"
 #endif
 
 #include "cosclient.h"
@@ -74,12 +75,27 @@ int main(int argc, char *argv[])
 	QGuiApplication app(argc, argv);
 
 	ColorConsoleAppender* consoleAppender = new ColorConsoleAppender;
+#ifdef Q_OS_ANDROID
+	AndroidAppender* androidAppender = new AndroidAppender;
+#endif
+
+
 #ifndef QT_NO_DEBUG
 	consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{message} <%{function}>\n");
+#ifdef Q_OS_ANDROID
+	androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{message} <%{function}>\n");
+#endif
 #else
 	consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{message}\n");
+#ifdef Q_OS_ANDROID
+	androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{message}\n");
 #endif
+#endif
+
 	cuteLogger->registerAppender(consoleAppender);
+#ifdef Q_OS_ANDROID
+	cuteLogger->registerAppender(androidAppender);
+#endif
 
 
 #ifndef Q_OS_ANDROID

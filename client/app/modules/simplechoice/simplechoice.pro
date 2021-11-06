@@ -1,7 +1,8 @@
 TEMPLATE = lib
 CONFIG += plugin
 
-TARGET = simplechoice_$${QT_ARCH}
+android: TARGET = simplechoice_$${QT_ARCH}
+else: TARGET = simplechoice
 
 include(../common.pri)
 

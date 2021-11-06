@@ -68,7 +68,7 @@ QBasePage {
 			anchors.verticalCenter: parent.verticalCenter
 			icon.source: CosStyle.iconXPgraph
 
-			visible: _currenPageIsInfo && _currentLevel > 0
+			visible: !demoMode && _currenPageIsInfo && _currentLevel > 0
 
 			ToolTip.text: qsTr("Eredmények")
 			onClicked: {

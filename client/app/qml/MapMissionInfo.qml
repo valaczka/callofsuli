@@ -122,8 +122,8 @@ QSimpleContainer {
 		opacity: text.length ? 1.0 : 0.0
 		visible: opacity != 0
 
-		topPadding: 50
-		bottomPadding: 50
+		topPadding: parent.height > 500 ? 50 : 20
+		bottomPadding: topPadding
 		rightPadding: 100
 		leftPadding: 100
 
