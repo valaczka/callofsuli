@@ -3,8 +3,9 @@ Call of Suli
 
 Copyright (c) 2012-2021 - Valaczka János Pál
 
-## Demo
+## Kliens letöltés
 
-Információk az elérhető android tesztverzióról: [Wiki/Demo](https://github.com/valaczka/callofsuli/wiki/Demo)
+- https://github.com/valaczka/callofsuli/releases
+- [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/hu_badge_web_generic.png" width=250>](https://play.google.com/store/apps/details?id=hu.piarista.vjp.callofsuli)
 
 ## [Credits](CREDITS.md)
