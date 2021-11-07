@@ -205,6 +205,8 @@ void Client::loadModules()
 			qDebug().noquote() << "Load objective module" << i->name();
 			m_moduleObjectiveList[name] = i;
 		}
+
+		i->registerQmlTypes();
 	}
 
 

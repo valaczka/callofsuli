@@ -73,13 +73,13 @@ bool Student::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 	params.append(m_client->clientUserName());
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.id as id, name, "
-"user.firstname as teacherfirstname, user.lastname as teacherlastname, "
-"(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-"WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
-"FROM studentGroupInfo "
-"LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
-"WHERE studentGroupInfo.username=?", params);
+														"user.firstname as teacherfirstname, user.lastname as teacherlastname, "
+														"(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+														"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+														"WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
+														"FROM studentGroupInfo "
+														"LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
+														"WHERE studentGroupInfo.username=?", params);
 
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
 
@@ -110,8 +110,8 @@ bool Student::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 	l.append(groupid);
 
 	QVariantList uuidList = m_client->db()->execSelectQuery("SELECT mapid, active FROM studentGroupInfo "
-"LEFT JOIN bindGroupMap ON (bindGroupMap.groupid=studentGroupInfo.id) WHERE username=? AND studentGroupInfo.id=?"
-, l);
+															"LEFT JOIN bindGroupMap ON (bindGroupMap.groupid=studentGroupInfo.id) WHERE username=? AND studentGroupInfo.id=?"
+															, l);
 
 	QJsonArray list;
 
@@ -146,11 +146,11 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 	int groupid = params.value("groupid", -1).toInt();
 
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
-									"rankid, rankname, ranklevel, rankimage, nickname,"
-									"t1, t2, t3, d1, d2, d3, sumxp "
-									"FROM studentGroupInfo LEFT JOIN userInfo ON (studentGroupInfo.username=userInfo.username) "
-									"LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username AND groupTrophy.id=studentGroupInfo.id) "
-									"WHERE active=true AND studentGroupInfo.id=?", {
+																						  "rankid, rankname, ranklevel, rankimage, nickname,"
+																						  "t1, t2, t3, d1, d2, d3, sumxp "
+																						  "FROM studentGroupInfo LEFT JOIN userInfo ON (studentGroupInfo.username=userInfo.username) "
+																						  "LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username AND groupTrophy.id=studentGroupInfo.id) "
+																						  "WHERE active=true AND studentGroupInfo.id=?", {
 																							  groupid
 																						  }));
 
@@ -177,20 +177,20 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
-									"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
-									"FROM game WHERE username=? AND mapid=?"
-									, {
+														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
+														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
+														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
+														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
+														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
+														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
+														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
+														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
+														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
+														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
+														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
+														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
+														"FROM game WHERE username=? AND mapid=?"
+														, {
 															m_client->clientUserName(),
 															mapuuid
 														});
@@ -340,7 +340,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 
 	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, mapid, missionid, level, deathmatch FROM game "
-														"WHERE username=? AND id=? AND tmpScore IS NOT NULL", {
+														  "WHERE username=? AND id=? AND tmpScore IS NOT NULL", {
 															  m_client->clientUserName(),
 															  gameid
 														  });
@@ -364,11 +364,11 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	GameMap::SolverInfo oldSolver = missionSolverInfo(mapid, missionid);
 
 	QVariantMap oldDurations = m_client->db()->execSelectQueryOneRow("SELECT "
-														"(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
-														"AND level=? AND success=true) as maxDuration,"
-														"(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
-														"AND level=? AND success=true) as minDuration"
-														, {
+																	 "(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
+																	 "AND level=? AND success=true) as maxDuration,"
+																	 "(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
+																	 "AND level=? AND success=true) as minDuration"
+																	 , {
 																		 m_client->clientUserName(),
 																		 missionid,
 																		 level,
@@ -381,14 +381,14 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	// lastStreak
 
 	int lastStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-"(SELECT DISTINCT date(timestamp) AS dt "
-"FROM game WHERE username=? AND success=true) t2 "
-"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-"WHERE username=? AND success=true) t1) t GROUP BY grp) "
-"WHERE dt=date('now', 'localtime')", {
+														   "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+														   "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+														   "(SELECT DISTINCT date(timestamp) AS dt "
+														   "FROM game WHERE username=? AND success=true) t2 "
+														   "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+														   "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+														   "WHERE username=? AND success=true) t1) t GROUP BY grp) "
+														   "WHERE dt=date('now', 'localtime')", {
 															   m_client->clientUserName(),
 															   m_client->clientUserName()
 														   })
@@ -458,14 +458,14 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	// currentStreak
 
 	int  currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-"(SELECT DISTINCT date(timestamp) AS dt "
-"FROM game WHERE username=? AND success=true) t2 "
-"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-"WHERE username=? AND success=true) t1) t GROUP BY grp) "
-"WHERE dt=date('now', 'localtime')", {
+															   "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+															   "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+															   "(SELECT DISTINCT date(timestamp) AS dt "
+															   "FROM game WHERE username=? AND success=true) t2 "
+															   "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+															   "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+															   "WHERE username=? AND success=true) t1) t GROUP BY grp) "
+															   "WHERE dt=date('now', 'localtime')", {
 																   m_client->clientUserName(),
 																   m_client->clientUserName()
 															   })
@@ -587,11 +587,11 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, rankid, ranklevel, rankimage, rankname,"
-"min(duration) as duration, count(*) as success FROM game "
-"LEFT JOIN userInfo ON (userInfo.username=game.username) "
-"WHERE missionid=? AND level=? "
-"AND success=true AND tmpScore IS NULL "
-"GROUP BY game.username",
+														"min(duration) as duration, count(*) as success FROM game "
+														"LEFT JOIN userInfo ON (userInfo.username=game.username) "
+														"WHERE missionid=? AND level=? "
+														"AND success=true AND tmpScore IS NULL "
+														"GROUP BY game.username",
 														{missionid, level}
 														);
 
@@ -637,14 +637,19 @@ bool Student::userModify(QJsonObject *jsonResponse, QByteArray *)
 	bool disabledNameModification = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
 									.value("v", false).toBool();
 
+	bool oauth2Account = m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {m_client->clientUserName()})
+						 .value("v", false).toBool();
+
 	QJsonObject o;
 
 	QStringList p;
 	p.append("nickname");
 	p.append("character");
-	p.append("picture");
 
-	if (!disabledNameModification) {
+	if (!oauth2Account)
+		p.append("picture");
+
+	if (!disabledNameModification && !oauth2Account) {
 		p.append("firstname");
 		p.append("lastname");
 	}
@@ -686,6 +691,12 @@ bool Student::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
+	if (m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {m_client->clientUserName()})
+						 .value("v", false).toBool()) {
+		(*jsonResponse)["error"] = "oauth2 account";
+		return false;
+	}
+
 	QJsonObject o;
 
 	o["username"] = m_client->clientUserName();
@@ -712,20 +723,20 @@ bool Student::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 GameMap::SolverInfo Student::missionSolverInfo(const QString &mapid, const QString &missionid) const
 {
 	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
-									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t1, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
-									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t2, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
-									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t3, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
-									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d1, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
-									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d2, "
-									"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
-									"AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d3 "
-									"FROM (SELECT ? as username, ? as mapid, ? as missionid) AS g"
-									, {
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
+														  "AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t1, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
+														  "AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t2, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
+														  "AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as t3, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
+														  "AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d1, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
+														  "AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d2, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
+														  "AND success=true AND username=g.username AND mapid=g.mapid AND missionid=g.missionid) as d3 "
+														  "FROM (SELECT ? as username, ? as mapid, ? as missionid) AS g"
+														  , {
 															  m_client->clientUserName(),
 															  mapid,
 															  missionid

@@ -61,6 +61,7 @@ public:
 
 	QVariantMap generatePlusminus(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const;
 
+	void registerQmlTypes() const override {};
 signals:
 
 };

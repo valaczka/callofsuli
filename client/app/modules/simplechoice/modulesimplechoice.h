@@ -63,6 +63,8 @@ public:
 	inline bool canImport() const override { return true; }
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterSimplechoice(worksheet); }
 
+	void registerQmlTypes() const override {};
+
 signals:
 
 };

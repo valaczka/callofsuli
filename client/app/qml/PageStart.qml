@@ -47,8 +47,8 @@ QBasePage {
 			var d = JS.dialogCreateQml("YesNoFlickable", {
 										   title: qsTr("Hibás tanúsítvány"),
 										   text: data.errorStrings.join("\n")
-												 +qsTr("\n\nEnnek ellenére megbízol a tanúsítványban?\n\nTanúsítvány részletei:\n")
-												 +data.info
+												 +qsTr("\n\nEnnek ellenére megbízol a tanúsítványban?"),
+										   details: qsTr("Tanúsítvány részletei:\n")+data.info
 									   })
 
 			d.item.titleColor = CosStyle.colorWarningLighter
@@ -102,7 +102,6 @@ QBasePage {
 		//headerContent: QLabel {	}
 
 		initialItem: ServerList {  }
-
 	}
 
 

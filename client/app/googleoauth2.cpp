@@ -50,14 +50,11 @@ GoogleOAuth2::GoogleOAuth2(QObject *parent)
 		if (stage == QAbstractOAuth::Stage::RequestingAccessToken) {
 			QByteArray code = parameters->value("code").toByteArray();
 			(*parameters)["code"] = QUrl::fromPercentEncoding(code);
-		}
-
-		/*if (stage == QAbstractOAuth::Stage::RequestingAuthorization)
-			parameters->insert("duration", "permanent");*/
+		} else if (stage == QAbstractOAuth::Stage::RequestingAuthorization)
+			parameters->insert("duration", "permanent");
 	});
 
 	connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, this, &GoogleOAuth2::browserRequest);
-	//connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, &QDesktopServices::openUrl);
 }
 
 
@@ -120,29 +117,22 @@ qint16 GoogleOAuth2::handlerPort() const
  * @param key
  */
 
-void GoogleOAuth2::setClient(const QString &id, const QString &key)
+void GoogleOAuth2::setClient(const QString &id, const QString &key, const qint16 &port)
 {
 	m_oauth.setClientIdentifier(id);
 	m_oauth.setClientIdentifierSharedKey(key);
-}
-
-
-/**
- * @brief GoogleOAuth2::setHandlerPort
- * @param port
- */
-
-void GoogleOAuth2::setHandlerPort(const qint16 &port)
-{
-	m_oauth.setReplyHandler(nullptr);
-
-	if (m_handler)
-		delete m_handler;
-
-	m_handler = new QOAuthHttpServerReplyHandler(port, this);
+	if (!m_handler) {
+		if (port > 0)
+			m_handler = new QOAuthHttpServerReplyHandler(port, this);
+		else
+			m_handler = new QOAuthHttpServerReplyHandler(this);
+	}
 
 	m_oauth.setReplyHandler(m_handler);
+
+	qDebug() << "Listen on port" << m_handler->port();
 }
+
 
 
 /**

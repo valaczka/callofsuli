@@ -39,7 +39,7 @@ QBasePage {
 							id: grid1
 							enabled: !serverSettings.isBusy
 
-							onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
+							onModifiedChanged: updateSaveEnabled()
 
 							width: parent.width
 							watchModification: true
@@ -67,7 +67,7 @@ QBasePage {
 
 							enabled: !serverSettings.isBusy
 
-							onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
+							onModifiedChanged: updateSaveEnabled()
 
 							width: parent.width
 							watchModification: true
@@ -108,6 +108,77 @@ QBasePage {
 									{value: "1", text: qsTr("Engedélyezve")},
 								]
 							}
+
+							QGridText {
+								field: comboDefaultClass
+								text: qsTr("Alapértelmezett osztály:")
+							}
+
+							QGridComboBox {
+								id: comboDefaultClass
+								sqlField: "registration.defaultClass"
+
+								valueRole: "value"
+								textRole: "text"
+
+								model: []
+							}
+						}
+					}
+
+
+
+					QCollapsible {
+						title: qsTr("OAuth2")
+
+						QGridLayout {
+							id: grid5
+
+							enabled: !serverSettings.isBusy
+
+							onModifiedChanged: updateSaveEnabled()
+
+							width: parent.width
+							watchModification: true
+
+							QGridLabel {
+								field: textOAuth2Id
+							}
+
+							QGridTextField {
+								id: textOAuth2Id
+								fieldName: qsTr("Google Client ID")
+								sqlField: "oauth2.googleID"
+							}
+
+							QGridLabel {
+								field: textOAuth2Key
+							}
+
+							QGridTextField {
+								id: textOAuth2Key
+								fieldName: qsTr("Google Client Secret")
+								sqlField: "oauth2.googleKey"
+							}
+
+							QGridText {
+								field: comboOAuth2RegistrationAuto
+								text: qsTr("Automatikus regisztráció:")
+							}
+
+							QGridComboBox {
+								id: comboOAuth2RegistrationAuto
+								sqlField: "oauth2.registration"
+
+								valueRole: "value"
+								textRole: "text"
+
+								model: [
+									{value: "0", text: qsTr("Letiltva")},
+									{value: "1", text: qsTr("Engedélyezve")},
+								]
+							}
+
 						}
 					}
 
@@ -131,7 +202,7 @@ QBasePage {
 
 							enabled: !serverSettings.isBusy
 
-							onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
+							onModifiedChanged: updateSaveEnabled()
 
 							width: parent.width
 							watchModification: true
@@ -196,7 +267,7 @@ QBasePage {
 
 							enabled: !serverSettings.isBusy
 
-							onModifiedChanged: actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified
+							onModifiedChanged: updateSaveEnabled()
 
 							width: parent.width
 							watchModification: true
@@ -310,7 +381,11 @@ QBasePage {
 												textDomain,
 												comboReset,
 												comboRegistrationAuto,
-												comboRegistrationClass
+												comboRegistrationClass,
+												textOAuth2Id,
+												textOAuth2Key,
+												comboOAuth2RegistrationAuto,
+												comboDefaultClass
 											])
 
 			if (Object.keys(o).length) {
@@ -323,6 +398,28 @@ QBasePage {
 		target: serverSettings
 
 		function onGetSettings(jsonData, binaryData) {
+
+
+			var newModel = []
+
+
+			if (jsonData.classList) {
+				for (var i=0; i<jsonData.classList.length; i++) {
+					var c = jsonData.classList[i]
+					newModel.push({value: String(c.id), text: c.name})
+					console.debug("push", c.id, c.name)
+				}
+			}
+
+			newModel.push({value: String(-1), text: qsTr("-- Osztály nélkül --")})
+
+			comboDefaultClass.model = newModel
+
+			var dc = jsonData["registration.defaultClass"]
+
+			if (!dc || dc < 1)
+				jsonData["registration.defaultClass"] = -1
+
 			JS.setSqlFields([
 								textServerName,
 								textHost,
@@ -335,7 +432,11 @@ QBasePage {
 								textDomain,
 								comboReset,
 								comboRegistrationAuto,
-								comboRegistrationClass
+								comboRegistrationClass,
+								textOAuth2Id,
+								textOAuth2Key,
+								comboOAuth2RegistrationAuto,
+								comboDefaultClass
 							], jsonData)
 
 			grid1.modified = false
@@ -362,6 +463,11 @@ QBasePage {
 		text: qsTr("Mentés")
 		enabled: false
 		shortcut: "Ctrl+S"
+	}
+
+
+	function updateSaveEnabled() {
+		actionSave.enabled = grid1.modified || grid2.modified || grid3.modified || grid4.modified || grid5.modified
 	}
 
 

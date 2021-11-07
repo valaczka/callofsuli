@@ -59,6 +59,8 @@ public:
 
 	QVariantMap generate(const QVariantMap &, ModuleInterface *, const QVariantMap &, QVariantMap *) const override { return QVariantMap(); }
 
+	void registerQmlTypes() const override {};
+
 signals:
 
 };

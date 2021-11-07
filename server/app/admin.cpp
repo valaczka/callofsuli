@@ -114,8 +114,17 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 	QString username = params.value("username").toString();
 	QString oauthToken;
 
-	if (params.value("classid", -1) == -1)
-		params["classid"] = QVariant::Invalid;
+	if (params.value("classid", -1) == -1) {
+		int defaultClassid = m_client->db()->execSelectQueryOneRow("SELECT id FROM class WHERE id="
+																   "(SELECT value FROM settings WHERE key='registration.defaultClass')")
+							 .value("id", -1).toInt();
+
+		if (defaultClassid != -1)
+			params["classid"] = defaultClassid;
+		else
+			params["classid"] = QVariant::Invalid;
+
+	}
 
 	if (params.contains("oauthToken")) {
 		oauthToken = params.value("oauthToken").toString();
@@ -415,6 +424,8 @@ bool Admin::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
 bool Admin::getSettings(QJsonObject *jsonResponse, QByteArray *)
 {
 	(*jsonResponse)["serverName"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverName from system").value("serverName"));
+
+	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id, name FROM class"));
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT key, value FROM settings");
 

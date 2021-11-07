@@ -29,8 +29,8 @@ else: LIBS += -L../QtXlsxWriter -lqtxlsx -L../QZXing -lQZXing
 
 !android: QMAKE_LFLAGS += -Wl,--rpath=../lib,--rpath=../QtXlsxWriter,--rpath=../QZXing
 
-unix:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy
-win32: QMAKE_CXX += -Wno-strict-aliasing
+unix:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy -Wno-deprecated-declarations
+win32: QMAKE_CXX += -Wno-strict-aliasing -Wno-deprecated-declarations
 
 
 
@@ -51,6 +51,7 @@ QML_IMPORT_PATH += $$PWD/../Bacon2D-static/src/
 QML_DESIGNER_IMPORT_PATH += $$PWD/../Bacon2D-static/src/
 QML2_IMPORT_PATH += $$PWD/../Bacon2D-static/src/
 
+QML_IMPORT_PATH += $$PWD/modules/fillout
 
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}

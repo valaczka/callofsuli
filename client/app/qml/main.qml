@@ -182,6 +182,7 @@ ApplicationWindow {
 		if (fs > 0)
 			CosStyle.pixelSize = fs
 		cosClient.messageSent.connect(JS.dialogMessage)
-		JS.createPage("Start", {})
+		//JS.createPage("Start", {})
+		JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/ddd.map"})
 	}
 }

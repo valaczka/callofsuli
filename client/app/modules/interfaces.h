@@ -67,6 +67,9 @@ public:
 	// Objective importer
 	virtual bool canImport() const = 0;
 	virtual AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const = 0;
+
+	// QML-type register
+	virtual void registerQmlTypes() const = 0;
 };
 
 QT_BEGIN_NAMESPACE

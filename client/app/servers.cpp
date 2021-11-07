@@ -105,7 +105,8 @@ void Servers::onMessageReceived(const CosMessage &message)
 			qDebug() << "GET SERVER INFO";
 			setGoogleOAuth2(d.value("googleOAuth2id").toString(),
 							d.value("googleOAuth2key").toString(),
-							d.value("googleOAuth2port").toInt(-1));
+							-1);
+							//d.value("googleOAuth2port").toInt(-1));
 		}
 	} else if (message.cosClass() == CosMessage::ClassTeacher) {
 		if (func == "groupCreate") {
@@ -1157,15 +1158,14 @@ void Servers::setGoogleOAuth2(GoogleOAuth2 *newGoogleOAuth2)
 void Servers::setGoogleOAuth2(const QString &id, const QString &key, const qint16 &port)
 {
 	if (m_googleOAuth2) {
-		if (m_googleOAuth2->id() == id && m_googleOAuth2->key() == key && m_googleOAuth2->handlerPort() == port)
+		if (m_googleOAuth2->id() == id && m_googleOAuth2->key() == key && (port == -1 || m_googleOAuth2->handlerPort() == port))
 			return;
 
 		setGoogleOAuth2(nullptr);
 	}
 
-	if (!id.isEmpty() && !key.isEmpty() && port > 0) {
+	if (!id.isEmpty() && !key.isEmpty()) {
 		setGoogleOAuth2(new GoogleOAuth2(this));
-		m_googleOAuth2->setClient(id, key);
-		m_googleOAuth2->setHandlerPort(port);
+		m_googleOAuth2->setClient(id, key, port);
 	}
 }

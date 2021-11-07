@@ -114,6 +114,8 @@ QSwipeContainer {
 					icon.source: CosStyle.iconEdit
 					display: AbstractButton.TextBesideIcon
 
+					visible: false
+
 					onClicked: {
 						var d = JS.dialogCreateQml("PasswordChange", { username: cosClient.userName })
 
@@ -323,10 +325,16 @@ QSwipeContainer {
 			user.username = jsonData.nickname.length && !forceFullName ? jsonData.nickname : jsonData.firstname+" "+jsonData.lastname
 			user.rankname = jsonData.rankname+(jsonData.ranklevel > 0 ? qsTr(" (lvl %1)").arg(jsonData.ranklevel) : "")
 
-			if (jsonData.nameModificationDisabled) {
+			if (jsonData.nameModificationDisabled || jsonData.oauth2Account) {
 				textFirstname.readOnly = true
 				textLastname.readOnly = true
 			}
+
+			if (jsonData.oauth2Account)
+				buttonPassword.visible = false
+			else
+				buttonPassword.visible = true
+
 
 			JS.setSqlFields([
 								textFirstname,

@@ -45,8 +45,7 @@ public:
 	qint16 handlerPort() const;
 
 public slots:
-	void setClient(const QString &id, const QString &key);
-	void setHandlerPort(const qint16 &port);
+	void setClient(const QString &id, const QString &key, const qint16 &port = 0);
 	void grant();
 
 signals:

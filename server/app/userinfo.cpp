@@ -85,13 +85,13 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 									.value("v").toString();
 	QString googleKey = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleKey'")
 									.value("v").toString();
-	int googlePort = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googlePort'")
-									.value("v").toInt();
+	/*int googlePort = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googlePort'")
+									.value("v").toInt();*/
 
-	if (!googleId.isEmpty() && !googleKey.isEmpty() && googlePort > 0) {
+	if (!googleId.isEmpty() && !googleKey.isEmpty()) {
 		(*jsonResponse)["googleOAuth2id"] = googleId;
 		(*jsonResponse)["googleOAuth2key"] = googleKey;
-		(*jsonResponse)["googleOAuth2port"] = googlePort;
+		//(*jsonResponse)["googleOAuth2port"] = googlePort;
 	}
 
 	return true;
@@ -162,9 +162,12 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-
 	m["nameModificationDisabled"] = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
 									.value("v", false).toBool();
+
+	m["oauth2Account"] = m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {username})
+									.value("v", false).toBool();
+
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m);
 

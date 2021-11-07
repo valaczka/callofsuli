@@ -99,14 +99,20 @@ bool Teacher::userModify(QJsonObject *jsonResponse, QByteArray *)
 {
 	QJsonObject params = m_message.jsonData();
 
+	bool oauth2Account = m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {m_client->clientUserName()})
+						 .value("v", false).toBool();
+
 	QJsonObject o;
 
 	QStringList p;
 	p.append("nickname");
 	p.append("character");
-	p.append("picture");
-	p.append("firstname");
-	p.append("lastname");
+
+	if (!oauth2Account) {
+		p.append("picture");
+		p.append("firstname");
+		p.append("lastname");
+	}
 
 	foreach (QString s, p) {
 		if (params.contains(s))
@@ -141,6 +147,12 @@ bool Teacher::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 
 	if (password.isEmpty()) {
 		(*jsonResponse)["error"] = "missing password";
+		return false;
+	}
+
+	if (m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {m_client->clientUserName()})
+						 .value("v", false).toBool()) {
+		(*jsonResponse)["error"] = "oauth2 account";
 		return false;
 	}
 

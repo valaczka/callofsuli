@@ -95,12 +95,12 @@ QBasePage {
 				}
 			}
 
-			Connections {
+			/*Connections {
 				target: control
 				function onPageActivated() {
 					textUser.forceActiveFocus()
 				}
-			}
+			}*/
 
 			//onPopulated: textUser.forceActiveFocus()
 
@@ -116,7 +116,7 @@ QBasePage {
 	}
 
 	Connections {
-		target: servers.googleOAuth2
+		target: servers && servers.googleOAuth2 ? servers.googleOAuth2 : null
 
 		function onBrowserRequest(url) {
 			stackComponent.pushComponent(oauthContainer, {url: url})

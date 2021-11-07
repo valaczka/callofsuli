@@ -12,6 +12,8 @@ QBasePage {
 	defaultTitle: qsTr("Pályaszerkesztő")
 	defaultSubTitle: mapEditor.loaded ? mapEditor.readableFilename : ""
 
+	property url fileToOpen: ""
+
 	activity: MapEditor {
 		id: mapEditor
 
@@ -347,6 +349,10 @@ QBasePage {
 
 		function onStoragePermissionsGranted() {
 			labelPermissions.visible = false
+
+			if (fileToOpen != "") {
+				mapEditor.openUrl(fileToOpen)
+			}
 		}
 
 	}

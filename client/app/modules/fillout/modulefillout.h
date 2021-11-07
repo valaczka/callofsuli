@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * moduletruefalse.h
+ * modulefillout.h
  *
- * Created on: 2021. 08. 06.
+ * Created on: 2021. 11. 07.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ModuleTruefalse
+ * ModuleFillout
  *
  *  This file is part of Call of Suli.
  *
@@ -24,35 +24,34 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MODULETRUEFALSE_H
-#define MODULETRUEFALSE_H
+#ifndef MODULEFILLOUT_H
+#define MODULEFILLOUT_H
 
 #include "../interfaces.h"
 #include <QObject>
 #include <QtPlugin>
 
 #include "../../abstractobjectiveimporter.h"
-#include "../../../QtXlsxWriter/xlsxworksheet.h"
-#include "objectiveimportertruefalse.h"
+//#include "objectiveimportertruefalse.h"
 
 
-class ModuleTruefalse : public QObject, public ModuleInterface
+class ModuleFillout : public QObject, public ModuleInterface
 {
 	Q_OBJECT
 
-	Q_PLUGIN_METADATA(IID "org.callofsuli.Modules.truefalse")
+	Q_PLUGIN_METADATA(IID "org.callofsuli.Modules.fillout")
 	Q_INTERFACES(ModuleInterface)
 
 public:
-	explicit ModuleTruefalse(QObject *parent = nullptr);
+	explicit ModuleFillout(QObject *parent = nullptr);
 
-	inline QString name() const override { return "truefalse"; }
+	inline QString name() const override { return "fillout"; }
 	inline bool isStorageModule() const override { return false; }
-	inline QString readableName() const override { return tr("Igaz/hamis"); }
+	inline QString readableName() const override { return tr("Szövegkitöltés"); }
 	inline QString icon() const override { return "image://font/School/\uf124"; }
 
-	inline QString qmlEditor() const override { return "ME_truefalse.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_truefalse.qml"; }
+	inline QString qmlEditor() const override { return "ME_fillout.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_fillout.qml"; }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 
@@ -60,15 +59,18 @@ public:
 
 	QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const override;
 
-	inline bool canImport() const override { return true; }
-	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterTruefalse(worksheet); }
+	inline bool canImport() const override { return false; }
+	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
 
-	void registerQmlTypes() const override {};
+	void registerQmlTypes() const override;
+
+	static const QRegularExpression &expressionWord();
+
 signals:
+
+private:
+	static const QRegularExpression m_expressionWord;
 
 };
 
-
-
-
-#endif // MODULETRUEFALSE_H
+#endif // MODULEFILLOUT_H

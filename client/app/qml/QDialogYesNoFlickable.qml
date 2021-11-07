@@ -12,6 +12,10 @@ QDialogPanel {
 	title: qsTr("Kérdés")
 	property alias text: labelText.text
 	property alias textFormat: labelText.textFormat
+	property alias textColor: labelText.color
+	property alias details: labelDetails.text
+	property alias detailsFormat: labelDetails.textFormat
+	property alias detailsColor: labelText.color
 
 	//maximumHeight: 250
 	maximumWidth: 700
@@ -21,7 +25,6 @@ QDialogPanel {
 
 	icon: CosStyle.iconDialogQuestion
 	titleColor: CosStyle.colorPrimaryDarker
-	property alias textColor: labelText.color
 
 
 	Flickable {
@@ -33,19 +36,40 @@ QDialogPanel {
 
 		clip: true
 
-		contentWidth: labelText.width
-		contentHeight: labelText.height
+		contentWidth: columnText.width
+		contentHeight: columnText.height
 
 		boundsBehavior: Flickable.StopAtBounds
 		flickableDirection: Flickable.VerticalFlick
 
-		QLabel {
-			id: labelText
+		Column {
+			id: columnText
 
 			width: flick.width-item.panelPaddingLeft-item.panelPaddingRight
 			x: item.panelPaddingLeft
 
-			wrapMode: Text.Wrap
+			spacing: 10
+
+			QLabel {
+				id: labelText
+
+				width: parent.width
+				anchors.horizontalCenter: parent.horizontalCenter
+
+				wrapMode: Text.Wrap
+			}
+
+			QLabel {
+				id: labelDetails
+
+				width: parent.width
+				anchors.horizontalCenter: parent.horizontalCenter
+
+				font.pixelSize: CosStyle.pixelSize*0.8
+				font.weight: Font.Normal
+
+				wrapMode: Text.Wrap
+			}
 		}
 	}
 
