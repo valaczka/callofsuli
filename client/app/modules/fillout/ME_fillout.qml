@@ -54,7 +54,7 @@ QCollapsible {
 		QGridTextArea {
 			id: areaAnswers
 			fieldName: qsTr("Helytelen válaszok")
-			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
+			placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
 			background: Item {
 				implicitWidth: 50
 				implicitHeight: CosStyle.baseHeight*2
@@ -63,6 +63,27 @@ QCollapsible {
 			onTextModified: getData()
 		}
 
+		QGridText { text: qsTr("Max. kiegészítendő helyek:") }
+
+		QGridSpinBox {
+			id: spinCount
+			from: 1
+			value: 3
+			to: 99
+			editable: true
+			sqlField: "count"
+		}
+
+		QGridText { text: qsTr("Max. válaszlehetőség:") }
+
+		QGridSpinBox {
+			id: spinOptions
+			from: spinCount.value
+			value: 5
+			to: 99
+			editable: true
+			sqlField: "optionsCount"
+		}
 
 	}
 
@@ -73,14 +94,14 @@ QCollapsible {
 
 		var d = JSON.parse(moduleData)
 
-		JS.setSqlFields([area], d)
-		areaAnswers.setData(d.answers.join("\n"))
+		JS.setSqlFields([area, areaAnswers, spinCount, spinOptions], d)
+		areaAnswers.setData(d.options.join("\n"))
 	}
 
 
 	function getData() {
-		var d = JS.getSqlFields([area])
-		d.answers = areaAnswers.text.split("\n")
+		var d = JS.getSqlFields([area, areaAnswers, spinCount, spinOptions])
+		d.options = areaAnswers.text.split("\n")
 
 		moduleData = JSON.stringify(d)
 		return moduleData

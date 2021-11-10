@@ -154,5 +154,9 @@
         <file>ProfileDetailsTrophies.qml</file>
         <file>ProfileDetailsProgressBar.qml</file>
         <file>OAuthContainer.qml</file>
+        <file>PageTEST.qml</file>
+        <file>GameQuestionTileDrop.qml</file>
+        <file>GameQuestionTileDrag.qml</file>
+        <file>GameQuestionTileContainer.qml</file>
     </qresource>
 </RCC>

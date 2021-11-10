@@ -26,7 +26,7 @@
 
 #include "modulefillout.h"
 #include "fillouthighlighter.h"
-#include <QQmlEngine>
+#include <QRandomGenerator>
 
 const QRegularExpression ModuleFillout::m_expressionWord("(?<!\\\\)%((?:[^%\\\\]|\\\\.)+)%");
 
@@ -75,7 +75,118 @@ QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *st
 	Q_UNUSED(storage)
 	Q_UNUSED(storageData)
 
-	return QVariantMap();
+	QString text = data.value("text").toString();
+
+	if (text.isEmpty())
+		return QVariantMap();
+
+
+	struct ItemStruct {
+		QString text;
+		bool isQuestion;
+
+		ItemStruct(const QString &t, const bool &q) : text(t), isQuestion(q) {}
+	};
+
+	QVector<ItemStruct> items;
+
+	QRegularExpressionMatchIterator i = m_expressionWord.globalMatch(text);
+
+	int _cptrd = 0;
+
+
+	while (i.hasNext())
+	{
+		QRegularExpressionMatch match = i.next();
+
+		int _s = match.capturedStart();
+		if (_s > _cptrd) {
+			foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+				items.append(ItemStruct(s.replace("\\%", "%"), false));
+		}
+		_cptrd = match.capturedStart()+match.capturedLength();
+
+		QString q = text.mid(match.capturedStart(1), match.capturedLength(1)).replace("\\%", "%");
+
+		items.append(ItemStruct(q, true));
+	}
+
+
+	foreach (QString s, text.mid(_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+		items.append(ItemStruct(s.replace("\\%", "%"), false));
+
+	qDebug() << "ITEMS";
+	qDebug() << "-----------------------";
+
+	foreach (ItemStruct i, items) {
+		qDebug() << i.text << i.isQuestion;
+	}
+
+
+	int maxQuestion = qMax(data.value("count", -1).toInt(), 1);
+
+	QVector<int> questionIndexList;
+
+	for (int i=0; i<items.size(); ++i) {
+		if (items.at(i).isQuestion)
+			questionIndexList.append(i);
+	}
+
+	QVector<int> usedIndexList;
+	QStringList options;
+
+	while (questionIndexList.size() && usedIndexList.size() < maxQuestion) {
+		int idx = questionIndexList.takeAt(QRandomGenerator::global()->bounded(questionIndexList.size()));
+		usedIndexList.append(idx);
+		options.append(items.at(idx).text);
+	}
+
+
+	int maxOptions = qMax(data.value("optionsCount", -1).toInt(), options.size()+1);
+
+	QStringList oList = data.value("options").toStringList();
+
+	while (oList.size() && options.size() < maxOptions) {
+		options.append(oList.takeAt(QRandomGenerator::global()->bounded(oList.size())));
+	}
+
+
+
+	QVariantList words;
+
+	for (int i=0; i<items.size(); ++i) {
+		if (usedIndexList.contains(i)) {
+			QString id = QString("%1").arg(i);
+
+			if (answer)
+				answer->insert(id, items.at(i).text);
+
+			words.append(QVariantMap({{"q", id}}));
+		} else {
+			words.append(QVariantMap({{"w", items.at(i).text}}));
+		}
+	}
+
+
+	QStringList optList;
+
+	while (options.size())
+		optList.append(options.takeAt(QRandomGenerator::global()->bounded(options.size())));
+
+
+
+	QVariantMap ret;
+	ret["list"] = words;
+	ret["options"] = optList;
+	ret["xpFactor"] = 3.0;
+
+
+	qDebug() << "<<<<<<";
+	qDebug() << ret;
+	if (answer)
+		qDebug() << (*answer);
+
+	return ret;
 }
 
 

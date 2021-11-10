@@ -18,6 +18,7 @@ Rectangle {
 		Wrong
 	}
 
+	property bool isDrag: false
 	property bool interactive: true
 	property int type: GameQuestionButton.Neutral
 
@@ -104,8 +105,8 @@ Rectangle {
 	MouseArea {
 		id: area
 		anchors.fill: parent
-		enabled: control.interactive
-		acceptedButtons: Qt.LeftButton
+		enabled: !isDrag && control.interactive
+		acceptedButtons: isDrag ? Qt.NoButton : Qt.LeftButton
 		onClicked: {
 			control.clicked()
 		}

@@ -389,6 +389,7 @@ QSimpleContainer {
 							icon.source: enabled ? CosStyle.iconPlay : CosStyle.iconLock
 							font.pixelSize: CosStyle.pixelSize*1.4
 							onClicked: {
+								enabled = false
 								if (studentMaps.gamePage) {
 									cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Már folyamatban van egy játék!"))
 								} else {

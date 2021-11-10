@@ -142,7 +142,7 @@ Scene {
 				break
 
 
-				/* -------------------- Cheats -------------------- */
+				/* -------------------- Cheats -------------------- *
 			case Qt.Key_N:
 				if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
 					game.gameCompleted()
@@ -162,7 +162,7 @@ Scene {
 				}
 				break;
 
-				/* ----------------- Cheats end -------------------- */
+				* ----------------- Cheats end -------------------- */
 			}
 		}
 

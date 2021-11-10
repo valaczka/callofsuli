@@ -19,7 +19,7 @@
 				}
 			},
 			"defaults": {
-				"duration": 120,
+				"duration": 240,
 				"startHP": 3,
 				"questions": 0.35,
 				"deathmatch": true,
@@ -31,12 +31,12 @@
 					},
 					{
 						"module": "time1",
-						"count": 1,
+						"count": 2,
 						"block": 0
 					},
 					{
 						"module": "shield1",
-						"count": 2,
+						"count": 3,
 						"block": 0
 					},
 					{
@@ -66,7 +66,7 @@
 				}
 			},
 			"defaults": {
-				"duration": 150,
+				"duration": 210,
 				"startHP": 4,
 				"questions": 0.5,
 				"deathmatch": true,
@@ -78,12 +78,12 @@
 					},
 					{
 						"module": "time1",
-						"count": 2,
+						"count": 3,
 						"block": 0
 					},
 					{
 						"module": "shield1",
-						"count": 2,
+						"count": 3,
 						"block": 0
 					},
 					{
@@ -118,19 +118,19 @@
 				}
 			},
 			"defaults": {
-				"duration": 180,
+				"duration": 210,
 				"startHP": 5,
 				"questions": 0.6,
 				"deathmatch": true,
 				"inventory": [
 					{
 						"module": "health",
-						"count": 2,
+						"count": 3,
 						"block": 0
 					},
 					{
 						"module": "time1",
-						"count": 2,
+						"count": 3,
 						"block": 0
 					},
 					{

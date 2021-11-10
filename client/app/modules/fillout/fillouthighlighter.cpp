@@ -67,35 +67,6 @@ void FilloutSyntaxHighlighter::highlightBlock(const QString &text)
 		setFormat(match.capturedStart(1)-1, match.capturedLength(1)+2, m_highlighter->m_fmtWord);
 	}
 
-	/*QTextCharFormat myClassFormat;
-	myClassFormat.setBackground(Qt::darkCyan);
-	myClassFormat.setForeground(Qt::magenta);
-
-	QRegularExpression expression("%((?:[^%\\\\]|\\\\.)+)%");
-	QRegularExpressionMatchIterator i = expression.globalMatch(text);
-
-	int _cptrd = 0;
-
-	qDebug() << "------------";
-
-	while (i.hasNext())
-	{
-		QRegularExpressionMatch match = i.next();
-		setFormat(match.capturedStart(1)-1, match.capturedLength(1)+2, myClassFormat);
-
-		int _s = match.capturedStart();
-		if (_s > _cptrd)
-			qDebug() << "-" << text.mid(_cptrd, _s-_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts);
-		_cptrd = match.capturedStart()+match.capturedLength();
-
-		qDebug() << "+" << text.mid(match.capturedStart(1), match.capturedLength(1)).replace("\\%", "%");
-	}
-
-	qDebug() << "-" << text.mid(_cptrd).split(QRegExp("\\s+"));
-
-	qDebug() << "------------";*/
-
-
 }
 
 
