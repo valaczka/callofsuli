@@ -9,7 +9,7 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	implicitHeight: labelQuestion.implicitHeight+col.implicitHeight+25
+	implicitHeight: labelQuestion.implicitHeight+col.implicitHeight+35
 	implicitWidth: 700
 
 	required property var questionData
@@ -53,39 +53,59 @@ Item {
 		anchors.bottom: labelQuestion.top
 		anchors.topMargin: 15
 
-		Column {
-			id: col
+		Flickable {
+			id: flick
 
+			width: parent.width
+			height: Math.min(parent.height, flick.contentHeight)
 			anchors.centerIn: parent
-			spacing: 3
 
-			Repeater {
-				id: rptr
-				model: questionData.options
+			clip: true
 
-				GameQuestionButton {
-					id: btn
-					text: modelData
-					width: buttonWidth
+			contentWidth: col.width
+			contentHeight: col.height
 
-					onClicked: answer(index, btn)
+			boundsBehavior: Flickable.StopAtBounds
+			flickableDirection: Flickable.VerticalFlick
+
+			ScrollIndicator.vertical: ScrollIndicator { }
+
+			Column {
+				id: col
+
+				width: flick.width
+				spacing: 3
+
+				Repeater {
+					id: rptr
+					model: questionData.options
+
+					GameQuestionButton {
+						id: btn
+						text: modelData
+						width: buttonWidth
+
+						anchors.horizontalCenter: parent.horizontalCenter
+
+						onClicked: answer(index, btn)
 
 
-					Connections {
-						target: control
-						function onButtonReveal(original) {
-							btn.interactive = false
+						Connections {
+							target: control
+							function onButtonReveal(original) {
+								btn.interactive = false
 
-							if (original === btn && index !== answerData.index)
-								btn.type = GameQuestionButton.Wrong
+								if (original === btn && index !== answerData.index)
+									btn.type = GameQuestionButton.Wrong
 
-							if (index === answerData.index)
-								btn.type = GameQuestionButton.Correct
-						}
+								if (index === answerData.index)
+									btn.type = GameQuestionButton.Correct
+							}
 
-						function onButtonPressByKey(num) {
-							if (num-1 == index && btn.interactive) {
-								btn.clicked()
+							function onButtonPressByKey(num) {
+								if (num-1 == index && btn.interactive) {
+									btn.clicked()
+								}
 							}
 						}
 					}

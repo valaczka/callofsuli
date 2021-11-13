@@ -30,6 +30,7 @@ Item {
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: buttonRow.top
+		anchors.margins: 1
 	}
 
 

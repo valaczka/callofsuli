@@ -40,7 +40,6 @@ QSwipeContainer {
 			}
 
 			QGridLayout {
-				width: parent.width
 				watchModification: false
 
 				QGridImage {

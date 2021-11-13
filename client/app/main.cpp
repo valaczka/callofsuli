@@ -140,6 +140,12 @@ int main(int argc, char *argv[])
 	engine.addImageProvider("font", new FontImage());
 	engine.addImageProvider("qrcode", new QrImage());
 
+#ifdef QT_NO_DEBUG
+	context->setContextProperty("DEBUG_MODE", QVariant(false));
+#else
+	context->setContextProperty("DEBUG_MODE", QVariant(true));
+#endif
+
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
 	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
 					 &app, [url](QObject *obj, const QUrl &objUrl) {

@@ -158,5 +158,8 @@
         <file>GameQuestionTileDrop.qml</file>
         <file>GameQuestionTileDrag.qml</file>
         <file>GameQuestionTileContainer.qml</file>
+        <file>QGridDoubleTextField.qml</file>
+        <file>QGridDoubleTextFields.qml</file>
+        <file>GameQuestionTileLayout.qml</file>
     </qresource>
 </RCC>

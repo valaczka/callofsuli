@@ -27,7 +27,6 @@ QSwipeContainer {
 
 
 			QGridLayout {
-				width: parent.width
 				watchModification: false
 
 				QGridImageTextField {
@@ -68,10 +67,7 @@ QSwipeContainer {
 					id: areaDetails
 					fieldName: qsTr("Leírás")
 					placeholderText: qsTr("Rövid ismertető leírás a küldetésről")
-					background: Item {
-						implicitWidth: 50
-						implicitHeight: CosStyle.baseHeight*2
-					}
+					minimumHeight: CosStyle.baseHeight*2
 
 					onTextModified: mapEditor.missionModify({description: text})
 				}

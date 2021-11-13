@@ -48,7 +48,7 @@ Item {
 				leftPadding: 2
 				rightPadding: 2
 
-				font.pixelSize: (Qt.platform.os === "android" ? 14 : 18)
+				font.pixelSize: (Qt.platform.os === "android" ? 15 : 20)
 				font.weight: Font.DemiBold
 
 				property int colorCodePrivate: textColor

@@ -10,7 +10,7 @@ Drawer {
 
 	property color borderColor: CosStyle.colorPrimaryDarker
 
-	topPadding: 5
+	topPadding: 10
 	bottomPadding: 10
 
 	background: Item {

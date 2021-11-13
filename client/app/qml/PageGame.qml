@@ -341,18 +341,23 @@ Page {
 
 
 					if (msecLeft <= 60*1000 && _timeSound) {
+						infoTime.marked = true
 						_timeSound = false
 						messageList.message(qsTr("You have 1 minute left"), 1)
 						cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
 					}
 
 					if (msecLeft <= 30*1000 && _finalSound) {
+						infoTime.marked = true
 						_finalSound = false
 						messageList.message(qsTr("You have 30 seconds left"), 1)
 						cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
 					}
 				}
 
+				onGameSecondsAdded: {
+					infoTime.marked = true
+				}
 
 				onGameMessageSent: {
 					messageList.message(message, colorCode)
@@ -596,6 +601,8 @@ Page {
 		image.visible: false
 
 		visible: !gameScene.isSceneZoom
+
+		onValueChanged: marked = true
 	}
 
 	Column {
@@ -636,7 +643,6 @@ Page {
 				if (shield > progressBar.to)
 					progressBar.to = shield
 
-				if (shield < 3)
 					infoShield.marked = true
 			}
 		}
@@ -657,8 +663,11 @@ Page {
 
 			property int enemies: game.activeEnemies
 
-			onEnemiesChanged: if (enemies>progressBar.to)
+			onEnemiesChanged: {
+				infoTarget.marked = true
+				if (enemies>progressBar.to)
 								  progressBar.to = enemies
+			}
 		}
 
 		GameButton {

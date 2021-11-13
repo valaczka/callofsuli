@@ -15,6 +15,7 @@ Item {
 	property color color: CosStyle.colorAccent
 	property real pixelSize: 18
 	property string text: "%1"
+	property bool marked: false
 
 	implicitHeight: txtRow.height
 	implicitWidth: txtRow.width
@@ -24,6 +25,26 @@ Item {
 	Behavior on value {
 		NumberAnimation { duration: 225; easing.type: Easing.OutQuart }
 	}
+
+
+
+	property real _realSize: marked ? pixelSize*1.6 : pixelSize
+
+
+	Behavior on _realSize {
+		PropertyAnimation { duration: 450 }
+	}
+
+	Timer {
+		id: resizeTimer
+		interval: 2500
+		running: marked
+		triggeredOnStart: false
+		repeat: false
+		onTriggered: marked = false
+	}
+
+
 
 	Row {
 		id: txtRow
@@ -37,13 +58,13 @@ Item {
 			id: fontImage
 			anchors.verticalCenter: parent.verticalCenter
 			color: control.color
-			size: control.pixelSize*1.1
+			size: control._realSize*1.1
 		}
 
 		QLabel {
 			id: label
 			anchors.verticalCenter: parent.verticalCenter
-			font.pixelSize: control.pixelSize
+			font.pixelSize: control._realSize
 			font.weight: Font.Bold
 			color: control.color
 			text: control.text.arg(control.value)

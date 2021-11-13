@@ -19,22 +19,31 @@ Rectangle {
 	}
 
 	property bool isDrag: false
+	property bool isToggle: false
 	property bool interactive: true
 	property int type: GameQuestionButton.Neutral
 
 	property color textColor: CosStyle.buttonThemeDefault[0]
 	property color backgroundColor: CosStyle.buttonThemeDefault[1]
 	property color borderColor: CosStyle.buttonThemeDefault[2]
+	property color flipColor: CosStyle.colorAccentLighter
 	property alias label: label
 	property alias text: label.text
 
 
+	property bool selected: false
+
+	property alias flipped: flipable.flipped
 
 	signal clicked()
+	signal toggled()
 
 	border.width: 1
 	border.color: if (interactive) {
-					  borderColor
+					  if (isToggle && selected)
+						  CosStyle.buttonThemeOrange[2]
+					  else
+						  borderColor
 				  } else if (type === GameQuestionButton.Neutral) {
 					  CosStyle.buttonThemeDefault[2]
 				  } else if (type === GameQuestionButton.Correct) {
@@ -45,7 +54,10 @@ Rectangle {
 
 	opacity: interactive || type === GameQuestionButton.Correct ? 1.0 : 0.3
 	color: if (interactive) {
-			   backgroundColor
+			   if (isToggle && selected)
+				   CosStyle.buttonThemeOrange[1]
+			   else
+				   backgroundColor
 		   } else if (type === GameQuestionButton.Neutral) {
 			   CosStyle.buttonThemeDefault[1]
 		   } else if (type === GameQuestionButton.Correct) {
@@ -62,9 +74,26 @@ Rectangle {
 		NumberAnimation { duration: 175 }
 	}
 
+	QFlipable {
+		id: flipable
+		width: implicitWidth*2
+
+		anchors.left: parent.left
+		anchors.verticalCenter: parent.verticalCenter
+
+		visible: control.isToggle
+
+		mouseArea.enabled: false
+
+		frontIcon: CosStyle.iconUnchecked
+		backIcon: CosStyle.iconChecked
+		color: flipColor
+		flipped: control.selected
+	}
+
 	QLabel {
 		id: label
-		anchors.left: parent.left
+		anchors.left: control.isToggle ? flipable.right : parent.left
 		anchors.right: parent.right
 		anchors.verticalCenter: parent.verticalCenter
 		topPadding: 5
@@ -108,7 +137,12 @@ Rectangle {
 		enabled: !isDrag && control.interactive
 		acceptedButtons: isDrag ? Qt.NoButton : Qt.LeftButton
 		onClicked: {
-			control.clicked()
+			if (control.isToggle) {
+				control.selected = !control.selected
+				control.toggled()
+			} else {
+				control.clicked()
+			}
 		}
 	}
 }

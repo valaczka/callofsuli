@@ -115,13 +115,6 @@ QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *st
 	foreach (QString s, text.mid(_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
 		items.append(ItemStruct(s.replace("\\%", "%"), false));
 
-	qDebug() << "ITEMS";
-	qDebug() << "-----------------------";
-
-	foreach (ItemStruct i, items) {
-		qDebug() << i.text << i.isQuestion;
-	}
-
 
 	int maxQuestion = qMax(data.value("count", -1).toInt(), 1);
 
@@ -179,12 +172,6 @@ QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *st
 	ret["list"] = words;
 	ret["options"] = optList;
 	ret["xpFactor"] = 3.0;
-
-
-	qDebug() << "<<<<<<";
-	qDebug() << ret;
-	if (answer)
-		qDebug() << (*answer);
 
 	return ret;
 }

@@ -169,6 +169,7 @@ signals:
 	void gameSceneScaleToggleRequest();
 
 	void gameMessageSent(QString message, int colorCode = 0);
+	void gameSecondsAdded(const int &sec);
 
 	void playerCharacterChanged(QString playerCharacter);
 	void terrainChanged(QString terrain);

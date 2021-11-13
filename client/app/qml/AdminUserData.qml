@@ -20,10 +20,7 @@ QPagePanel {
 	QGridLayout {
 		id: grid
 
-		width: parent.width
 		watchModification: true
-
-
 
 		QGridLabel { field: textFirstName }
 

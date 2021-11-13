@@ -12,7 +12,11 @@ QTextField {
 
 	property bool watchModification: parent.watchModification
 
+	lineVisible: true
+
 	//	signal applied()
+
+	implicitWidth: 100
 
 	Layout.fillWidth: true
 

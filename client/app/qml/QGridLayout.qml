@@ -8,6 +8,8 @@ import "JScript.js" as JS
 GridLayout {
 	id: item
 
+	// !!! WIDTH
+
 	property real requiredWidth: 800
 
 	property bool watchModification: false

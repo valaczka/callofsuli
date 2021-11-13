@@ -39,10 +39,7 @@ QCollapsible {
 			sqlField: "text"
 			placeholderText: qsTr("Ide kell írni a szöveget, amiből a hiányzó szavakat ki kell egészíteniük. A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni. (Pl: A %hiányzó% szó, vagy a %hiányzó kifejezések%.)\n Amennyiben %-jelet szeretnénk megjeleníteni ezt kell írni helyette: \\%")
 
-			background: Item {
-				implicitWidth: 50
-				implicitHeight: CosStyle.baseHeight*3
-			}
+			minimumHeight: CosStyle.baseHeight*3
 
 			onTextModified: getData()
 		}
@@ -55,15 +52,13 @@ QCollapsible {
 			id: areaAnswers
 			fieldName: qsTr("Helytelen válaszok")
 			placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
-			background: Item {
-				implicitWidth: 50
-				implicitHeight: CosStyle.baseHeight*2
-			}
+
+			minimumHeight: CosStyle.baseHeight*2
 
 			onTextModified: getData()
 		}
 
-		QGridText { text: qsTr("Max. kiegészítendő helyek:") }
+		QGridText { text: qsTr("Kiegészítendő helyek száma:") }
 
 		QGridSpinBox {
 			id: spinCount
@@ -74,7 +69,7 @@ QCollapsible {
 			sqlField: "count"
 		}
 
-		QGridText { text: qsTr("Max. válaszlehetőség:") }
+		QGridText { text: qsTr("Válaszlehetőségek száma:") }
 
 		QGridSpinBox {
 			id: spinOptions

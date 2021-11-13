@@ -23,8 +23,6 @@ QSimpleContainer {
 	QGridLayout {
 		id: grid
 
-		width: parent.width
-
 		watchModification: true
 
 		onAccepted: buttonSave.press()

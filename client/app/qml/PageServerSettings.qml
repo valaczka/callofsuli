@@ -41,7 +41,6 @@ QBasePage {
 
 							onModifiedChanged: updateSaveEnabled()
 
-							width: parent.width
 							watchModification: true
 
 							QGridLabel {
@@ -69,7 +68,6 @@ QBasePage {
 
 							onModifiedChanged: updateSaveEnabled()
 
-							width: parent.width
 							watchModification: true
 
 							QGridText {
@@ -138,7 +136,6 @@ QBasePage {
 
 							onModifiedChanged: updateSaveEnabled()
 
-							width: parent.width
 							watchModification: true
 
 							QGridLabel {
@@ -204,7 +201,6 @@ QBasePage {
 
 							onModifiedChanged: updateSaveEnabled()
 
-							width: parent.width
 							watchModification: true
 
 							QGridText {
@@ -269,7 +265,6 @@ QBasePage {
 
 							onModifiedChanged: updateSaveEnabled()
 
-							width: parent.width
 							watchModification: true
 
 

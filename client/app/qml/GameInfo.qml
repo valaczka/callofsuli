@@ -14,25 +14,16 @@ Item {
 	property alias label: label
 	property alias image: fontImage
 	property color color: CosStyle.colorAccent
-	property real pixelSize: marked ? (Qt.platform.os === "android" ? 25 : 32)
-									: (Qt.platform.os === "android" ? 18 : 20)
+	property real pixelSize: (Qt.platform.os === "android" ? 18 : 24)
 	property bool marked: false
 
 	implicitHeight: Math.max(txtRow.height, progressBar.implicitHeight)
 	implicitWidth: txtRow.width+progressBar.width+txtRow.anchors.rightMargin
 
-	/*DropShadow {
-		id: shadow
-		anchors.fill: txtRow
-		source: txtRow
-		color: "black"
-		radius: 2
-		samples: 5
-		horizontalOffset: 1
-		verticalOffset: 1
-	}*/
+	property real _realSize: marked ? pixelSize*1.6 : pixelSize
 
-	Behavior on pixelSize {
+
+	Behavior on _realSize {
 		PropertyAnimation { duration: 450 }
 	}
 
@@ -59,13 +50,13 @@ Item {
 			id: fontImage
 			anchors.verticalCenter: parent.verticalCenter
 			color: control.color
-			size: control.pixelSize
+			size: control._realSize
 		}
 
 		QLabel {
 			id: label
 			anchors.verticalCenter: parent.verticalCenter
-			font.pixelSize: control.pixelSize*0.85
+			font.pixelSize: control._realSize*0.85
 			font.weight: Font.Bold
 			color: control.color
 		}

@@ -79,46 +79,32 @@ QVariantMap ModuleSimplechoice::generate(const QVariantMap &data, ModuleInterfac
 	QString correct = data.value("correct").toString();
 
 	if (correct.isEmpty())
-		return m;
+		correct = " ";
 
 	QStringList alist = data.value("answers").toStringList();
 
 	QVector<QPair<QString, bool>> options;
 	options.append(qMakePair(correct, true));
 
-	while (options.size() < 4 && alist.size()) {
-		if (alist.size() == 1) {
-			options.append(qMakePair(alist.at(0), false));
-			alist.clear();
-			break;
-		}
-
-		QString o = alist.takeAt(QRandomGenerator::global()->bounded(alist.size()));
-
-		options.append(qMakePair(o, false));
+	while (alist.size() && options.size() < 4) {
+		options.append(qMakePair(alist.takeAt(QRandomGenerator::global()->bounded(alist.size())), false));
 	}
 
-	QStringList oList;
 
 	int correctIdx = -1;
 
-	while (options.size()) {
-		QPair<QString, bool> p;
-		if (options.size() > 1) {
-			p = options.takeAt(QRandomGenerator::global()->bounded(options.size()));
-		} else {
-			p = options.at(0);
-			options.clear();
-		}
+	QStringList optList;
 
-		oList.append(p.first);
+	while (options.size()) {
+		QPair<QString, bool> p = options.takeAt(QRandomGenerator::global()->bounded(options.size()));
+		optList.append(p.first);
 
 		if (p.second)
-			correctIdx = oList.size()-1;
+			correctIdx = optList.size()-1;
 	}
 
 
-	m["options"] = oList;
+	m["options"] = optList;
 	m["xpFactor"] = 1.1;
 
 	if (answer) {

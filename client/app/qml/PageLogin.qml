@@ -83,7 +83,8 @@ QBasePage {
 
 				QGridButton {
 					id: buttonGoogle
-					text: qsTr("Google")
+					text: qsTr("Google fiók")
+					icon.source: "qrc:/internal/img/google.svg"
 
 					enabled: servers && servers.googleOAuth2
 					visible: servers && servers.googleOAuth2
@@ -102,7 +103,7 @@ QBasePage {
 				}
 			}*/
 
-			//onPopulated: textUser.forceActiveFocus()
+			onPopulated: panel.enabled = true
 
 		}
 

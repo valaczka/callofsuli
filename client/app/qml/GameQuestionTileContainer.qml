@@ -47,6 +47,8 @@ DropArea {
 			boundsBehavior: Flickable.StopAtBounds
 			flickableDirection: Flickable.VerticalFlick
 
+			ScrollIndicator.vertical: ScrollIndicator { }
+
 
 			Flow {
 				id: flow

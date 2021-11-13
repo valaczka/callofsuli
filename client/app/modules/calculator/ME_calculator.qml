@@ -36,8 +36,6 @@ QCollapsible {
 		id: cmpPlusminus
 
 		QGridLayout {
-			width: parent.width
-
 			watchModification: false
 
 			QGridText {

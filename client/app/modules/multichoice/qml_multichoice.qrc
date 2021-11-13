@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GQ_multichoice.qml</file>
+        <file>ME_multichoice.qml</file>
+    </qresource>
+</RCC>

@@ -18,6 +18,7 @@ DropArea {
 	property GameQuestionTileDrag currentDrag: null
 	property string tileKeys: "fillout"
 	property bool isWrong: false
+	property bool autoResize: true
 
 	keys: currentDrag ? ["-"] : tileKeys
 
@@ -46,13 +47,21 @@ DropArea {
 	states: [
 		State {
 			name: "DRAG"
-			when: target.children.length
+			when: autoResize && target.children.length
 			PropertyChanges {
 				target: control
-				width: Math.max(target.children[0].width, control.implicitWidth)
+				width: Math.max(target.children[0].implicitWidth, control.implicitWidth)
 				height: Math.max(target.children[0].height, control.implicitHeight)
 			}
-		}
+		}/*,
+		State {
+			name: "DRAGNOAUTO"
+			when: !autoResize && target.children.length
+			PropertyChanges {
+				target: control
+				width: Math.max(target.children[0].height, control.implicitHeight)
+			}
+		}*/
 	]
 
 	transitions: [
@@ -73,6 +82,11 @@ DropArea {
 		obj.parent.dragOut()
 		obj.parent = target
 		obj.anchors.centerIn = target
+		if (!autoResize) {
+			console.debug("RESIZE", obj, obj.width, "->", target.width)
+			obj.width = target.width
+		}
+
 		currentDrag = obj
 	}
 

@@ -18,8 +18,6 @@ QCollapsible {
 	interactive: false
 
 	QGridLayout {
-		width: parent.width
-
 		watchModification: false
 
 		QGridLabel { field: textQuestion }

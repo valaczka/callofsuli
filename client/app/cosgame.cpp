@@ -734,6 +734,7 @@ void CosGame::increaseHp()
 void CosGame::addSecs(const int &secs)
 {
 	m_msecLeft += secs*1000;
+	emit gameSecondsAdded(secs);
 }
 
 

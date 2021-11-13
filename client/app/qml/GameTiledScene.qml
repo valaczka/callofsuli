@@ -140,29 +140,33 @@ Scene {
 			case Qt.Key_F3:
 				scenePrivate.game.gameSceneScaleToggleRequest()
 				break
+			}
 
 
-				/* -------------------- Cheats -------------------- *
-			case Qt.Key_N:
-				if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
-					game.gameCompleted()
+			if (DEBUG_MODE) {
+				switch(event.key) {
+
+				case Qt.Key_N:
+					if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
+						game.gameCompleted()
+					}
+					break;
+				case Qt.Key_X:
+					if (event.modifiers & Qt.ShiftModifier && area.containsMouse && game.player && game.isStarted) {
+						game.player.x = area.mouseX
+						game.player.y = area.mouseY
+						game.player.entityPrivate.ladderClimbFinish()
+					}
+					break;
+
+				case Qt.Key_T:
+					if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
+						game.addSecs(-30)
+					}
+					break;
+
+
 				}
-				break;
-			case Qt.Key_X:
-				if (event.modifiers & Qt.ShiftModifier && area.containsMouse && game.player && game.isStarted) {
-					game.player.x = area.mouseX
-					game.player.y = area.mouseY
-					game.player.entityPrivate.ladderClimbFinish()
-				}
-				break;
-
-			case Qt.Key_T:
-				if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
-					game.addSecs(-30)
-				}
-				break;
-
-				* ----------------- Cheats end -------------------- */
 			}
 		}
 

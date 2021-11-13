@@ -18,8 +18,6 @@ QCollapsible {
 	interactive: false
 
 	QGridLayout {
-		width: parent.width
-
 		watchModification: false
 
 		QGridLabel { field: textQuestion }
@@ -52,10 +50,7 @@ QCollapsible {
 			id: areaAnswers
 			fieldName: qsTr("Helytelen válaszok")
 			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
-			background: Item {
-				implicitWidth: 50
-				implicitHeight: CosStyle.baseHeight*2
-			}
+			minimumHeight: CosStyle.baseHeight*2
 
 			onTextModified: getData()
 		}

@@ -13,6 +13,7 @@ MouseArea {
 	width: tile.implicitWidth
 	height: tile.implicitHeight
 
+
 	drag.target: tile
 
 	property Flow dropFlow: null
@@ -38,8 +39,8 @@ MouseArea {
 	GameQuestionButton {
 		id: tile
 
-		width: implicitWidth
-		height: implicitHeight
+		width: control.width
+		height: control.height
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.horizontalCenter: parent.horizontalCenter
@@ -54,6 +55,7 @@ MouseArea {
 
 		states: State {
 			when: control.drag.active
+
 			ParentChange {
 				target: tile
 				parent: mainContainer

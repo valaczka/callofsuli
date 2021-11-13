@@ -9,7 +9,7 @@ TextArea {
 	id: control
 
 	padding: 6
-	leftPadding: padding + 2 + rect1.width
+	leftPadding: padding + 2 //+ rect1.width
 	bottomPadding: 2
 	rightPadding: padding + 2
 
@@ -22,6 +22,7 @@ TextArea {
 	property color textColor: CosStyle.colorAccent
 	property bool lineVisible: true
 	property bool tooltipEnabled: true
+	property alias minimumHeight: bgRect.implicitHeight
 
 	opacity: enabled ? 1 : 0.5
 	color: control.enabled ?
@@ -61,30 +62,32 @@ TextArea {
 
 	//! [background]
 	background: Rectangle {
+		id: bgRect
 		width: control.width
 		height: control.height
 		color: "transparent"
 		border.width: 0
 
-		Rectangle {
+		implicitWidth: 50
+
+		/*Rectangle {
 			id: rect1
 			x: 0
 			height: rectLine.y
 			width: 5
 
-			visible: control.activeFocus && !control.readOnly && control.lineVisible
+			visible: !control.readOnly && control.lineVisible //control.activeFocus &&
 			color: CosStyle.colorAccent
-		}
+		}*/
 
 		Rectangle {
 			id: rectLine
-			x: 0
-			y: control.height
-			width: control.width
-			height: 1
+			anchors.left: parent.left
+			anchors.top: parent.top
+			width: 1
+			height: control.height
 			visible: control.enabled && !control.readOnly && control.lineVisible
 			border.width: 0
-			color: "transparent"
 
 			property color _color: control.activeFocus ?
 									   CosStyle.colorAccentLighter :
@@ -94,16 +97,13 @@ TextArea {
 
 			Behavior on _color {  ColorAnimation { duration: 150 } }
 
-			LinearGradient {
-				anchors.fill: parent
-				start: Qt.point(0, 0)
-				end: Qt.point(width, 0)
-				gradient: Gradient {
-					GradientStop { position: 0.0; color: "transparent" }
-					GradientStop { position: 0.3; color: rectLine._color }
-					GradientStop { position: 0.7; color: rectLine._color }
-					GradientStop { position: 1.0; color: "transparent" }
-				}
+
+			gradient: Gradient {
+				orientation: Gradient.Vertical
+				GradientStop { position: 0.0; color: "transparent" }
+				GradientStop { position: 0.3; color: rectLine._color }
+				GradientStop { position: 0.7; color: rectLine._color }
+				GradientStop { position: 1.0; color: "transparent" }
 			}
 		}
 	}

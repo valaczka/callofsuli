@@ -61,87 +61,36 @@ Item {
 
 
 
-	GridLayout {
+	GameQuestionTileLayout {
 		id: grid
 		anchors.bottom: labelQuestion.top
-		anchors.right: parent.right
 		anchors.left: parent.left
+		anchors.right: parent.right
 		anchors.top: parent.top
 		anchors.topMargin: 20
 
+		flick.contentHeight: wordFlow.height
+		flick.contentWidth: wordFlow.width
 
-		columns: control.width > control.height ? 2 : 1
+		Flow {
+			id: wordFlow
+			width: grid.flick.width
+			parent: grid.flick.contentItem
 
-		Item {
-			Layout.fillWidth: true
-			Layout.fillHeight: true
+			spacing: 5
 
-			implicitHeight: 50
-			implicitWidth: 50
-
-			Flickable {
-				id: flick
-
-				width: parent.width-20
-				height: Math.min(parent.height-10, flick.contentHeight)
-				anchors.centerIn: parent
-
-				clip: true
-
-				contentWidth: wordFlow.width
-				contentHeight: wordFlow.height
-
-				boundsBehavior: Flickable.StopAtBounds
-				flickableDirection: Flickable.VerticalFlick
-
-
-				Flow {
-					id: wordFlow
-					width: flick.width
-
-					spacing: 5
-
-					Behavior on height {
-						SmoothedAnimation { duration: 125 }
-					}
-
-					Behavior on width {
-						SmoothedAnimation { duration: 125 }
-					}
-
-					move: Transition {
-						NumberAnimation { properties: "x,y"; duration: 125; easing.type: Easing.OutQuad }
-					}
-				}
+			Behavior on height {
+				SmoothedAnimation { duration: 125 }
 			}
 
-			Rectangle {
-				id: rectLine
-				anchors.top: grid.columns > 1 ? parent.top : parent.bottom
-				anchors.left: grid.columns > 1 ? parent.right : parent.left
-				height: grid.columns > 1 ? parent.height : 1
-				width: grid.columns > 1 ? 1 : parent.width
+			Behavior on width {
+				SmoothedAnimation { duration: 125 }
+			}
 
-				gradient: Gradient {
-					orientation: grid.columns > 1 ? Gradient.Vertical : Gradient.Horizontal
-					GradientStop { position: 0.0; color: "transparent" }
-					GradientStop { position: 0.1; color: CosStyle.colorAccent }
-					GradientStop { position: 0.9; color: CosStyle.colorAccent }
-					GradientStop { position: 1.0; color: "transparent" }
-				}
+			move: Transition {
+				NumberAnimation { properties: "x,y"; duration: 125; easing.type: Easing.OutQuad }
 			}
 		}
-
-
-
-		GameQuestionTileContainer {
-			id: container
-			Layout.fillWidth: !(grid.columns > 1)
-			Layout.maximumWidth: (grid.columns > 1) ? Math.min(Math.max(implicitWidth, control.width*0.2), control.width*0.4) : -1
-			Layout.fillHeight: (grid.columns > 1)
-			Layout.maximumHeight: (grid.columns > 1) ? -1 : Math.min(Math.max(implicitHeight, control.height*0.3), control.height*0.4)
-		}
-
 	}
 
 	Component {
@@ -168,7 +117,7 @@ Item {
 		id: componentTileDrag
 
 		GameQuestionTileDrag {
-			dropFlow: container.flow
+			dropFlow: grid.container.flow
 			mainContainer: control
 			interactive: _dragInteractive
 		}
@@ -202,7 +151,7 @@ Item {
 
 		for (i=0; i<questionData.options.length; i++) {
 			var t = questionData.options[i]
-			componentTileDrag.createObject(container.flow, {
+			componentTileDrag.createObject(grid.container.flow, {
 											   tileData: t,
 											   text: t
 										   })
