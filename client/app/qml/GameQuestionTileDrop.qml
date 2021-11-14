@@ -12,24 +12,26 @@ DropArea {
 	width: implicitWidth
 	height: implicitHeight
 
-	implicitWidth: CosStyle.pixelSize*3
+	implicitWidth: CosStyle.pixelSize*5
 	implicitHeight: 20
 
 	property GameQuestionTileDrag currentDrag: null
 	property string tileKeys: "fillout"
 	property bool isWrong: false
-	property bool autoResize: true
+	property alias autoResize: target.autoResize
 
 	keys: currentDrag ? ["-"] : tileKeys
 
 	Rectangle {
 		id: target
 		anchors.fill: parent
-		color: (control.currentDrag && !control.currentDrag.drag.active) ? "transparent"
-																		 : (isWrong ? CosStyle.colorErrorDarker : CosStyle.colorAccentDarker)
+		color: (control.currentDrag && !control.currentDrag.dragActive) ? "transparent"
+																		: (isWrong ? CosStyle.colorErrorDarker : CosStyle.colorAccentDarker)
 		border.width: control.currentDrag ? 0 : 1
 		border.color: CosStyle.colorAccentLight
 		radius: 2
+
+		property bool autoResize: true
 
 		states: State {
 			when: control.containsDrag
@@ -44,50 +46,53 @@ DropArea {
 		}
 	}
 
-	states: [
-		State {
-			name: "DRAG"
-			when: autoResize && target.children.length
-			PropertyChanges {
-				target: control
-				width: Math.max(target.children[0].implicitWidth, control.implicitWidth)
-				height: Math.max(target.children[0].height, control.implicitHeight)
-			}
-		}/*,
-		State {
-			name: "DRAGNOAUTO"
-			when: !autoResize && target.children.length
-			PropertyChanges {
-				target: control
-				width: Math.max(target.children[0].height, control.implicitHeight)
-			}
-		}*/
-	]
-
-	transitions: [
-		Transition {
-			from: "*"
-			to: "*"
-			PropertyAnimation {
-				target: control
-				properties: "width, height"
-				duration: 125
-				easing.type: Easing.OutQuad
-			}
+	Behavior on width {
+		NumberAnimation {
+			duration: 125
+			easing.type: Easing.OutQuad
 		}
-	]
+	}
 
+	Behavior on height {
+		NumberAnimation {
+			duration: 125
+			easing.type: Easing.OutQuad
+		}
+	}
+
+
+	Connections {
+		target: currentDrag
+
+		function onParentAnimationFinished() {
+			if (autoResize)
+				control.width = currentDrag.width
+		}
+
+		function onWidthChanged() {
+			if (autoResize)
+				control.width = currentDrag.width
+		}
+
+		function onHeightChanged() {
+			control.height = currentDrag.height
+		}
+	}
+
+	onCurrentDragChanged: if (!currentDrag) {
+							  height = implicitHeight
+							  if (autoResize)
+								  width = implicitWidth
+						  }
 
 	function dropIn(obj) {
 		obj.parent.dragOut()
+		obj.fillParentWidth = !autoResize
 		obj.parent = target
 		obj.anchors.centerIn = target
-		if (!autoResize) {
-			console.debug("RESIZE", obj, obj.width, "->", target.width)
-			obj.width = target.width
-		}
 
 		currentDrag = obj
 	}
+
 
 }

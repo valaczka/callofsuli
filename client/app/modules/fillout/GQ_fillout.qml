@@ -67,7 +67,6 @@ Item {
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.top: parent.top
-		anchors.topMargin: 20
 
 		flick.contentHeight: wordFlow.height
 		flick.contentWidth: wordFlow.width

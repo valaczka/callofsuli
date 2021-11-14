@@ -35,8 +35,14 @@ Rectangle {
 
 	property alias flipped: flipable.flipped
 
+	Drag.active: area.drag.active
+	Drag.hotSpot.x: width/2
+	Drag.hotSpot.y: height/2
+
+
 	signal clicked()
 	signal toggled()
+	signal dragReleased()
 
 	border.width: 1
 	border.color: if (interactive) {
@@ -122,7 +128,7 @@ Rectangle {
 		}
 	}
 
-	scale: area.pressed ? 0.85 : 1.0
+	scale: !isDrag && area.pressed ? 0.85 : 1.0
 
 	Behavior on scale {
 		NumberAnimation {
@@ -134,15 +140,21 @@ Rectangle {
 	MouseArea {
 		id: area
 		anchors.fill: parent
-		enabled: !isDrag && control.interactive
-		acceptedButtons: isDrag ? Qt.NoButton : Qt.LeftButton
-		onClicked: {
-			if (control.isToggle) {
-				control.selected = !control.selected
-				control.toggled()
-			} else {
-				control.clicked()
-			}
-		}
+		enabled: control.interactive
+
+		drag.target: isDrag ? control : null
+
+		onClicked: if (!isDrag) {
+					   if (control.isToggle) {
+						   control.selected = !control.selected
+						   control.toggled()
+					   } else {
+						   control.clicked()
+					   }
+				   }
+
+		onReleased: if (isDrag) dragReleased()
 	}
+
+
 }

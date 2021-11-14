@@ -22,7 +22,7 @@ QSwipeContainer {
 	Flickable {
 		id: flickable
 		visible: false
-		width: parent.width-20
+		width: parent.width
 		height: Math.min(parent.height, contentHeight)
 		anchors.centerIn: parent
 
@@ -36,7 +36,7 @@ QSwipeContainer {
 
 		ScrollIndicator.vertical: ScrollIndicator { }
 
-		readonly property real _contentWidth: Math.min(width, 600)
+		readonly property real _contentWidth: Math.min(width-10, 600)
 
 		Column {
 			id: col
@@ -103,7 +103,7 @@ QSwipeContainer {
 
 				imageSize: CosStyle.pixelSize*2
 
-				width: barStreakMax.barWidth
+				width: flickable._contentWidth*0.75
 				anchors.horizontalCenter: parent.horizontalCenter
 			}
 

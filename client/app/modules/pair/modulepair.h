@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "pair"; }
 	inline bool isStorageModule() const override { return false; }
 	inline QString readableName() const override { return tr("Párosítás"); }
-	inline QString icon() const override { return "image://font/Material Icons/\ue1db"; }
+	inline QString icon() const override { return "image://font/Material Icons/\ue915"; }
 
 	inline QString qmlEditor() const override { return "ME_pair.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_pair.qml"; }

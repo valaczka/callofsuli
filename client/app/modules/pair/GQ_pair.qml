@@ -9,7 +9,7 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	implicitHeight: labelQuestion.implicitHeight+col.implicitHeight+35
+	implicitHeight: labelQuestion.height+col.height+35
 	implicitWidth: 700
 
 	required property var questionData
@@ -23,6 +23,7 @@ Item {
 
 	property var _drops: []
 	property bool _dragInteractive: true
+
 
 	QLabel {
 		id: labelQuestion
@@ -69,7 +70,6 @@ Item {
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.top: parent.top
-		anchors.topMargin: 20
 
 		flick.contentWidth: col.width
 		flick.contentHeight: col.height
@@ -78,6 +78,7 @@ Item {
 			id: col
 			width: grid.flick.width
 			parent: grid.flick.contentItem
+			spacing: 5
 
 		}
 	}
@@ -103,12 +104,11 @@ Item {
 
 				anchors.verticalCenter: parent.verticalCenter
 				anchors.left: parent.left
-				width: parent.width/2
+				width: (parent.width-labelSeparator.width)/2
 
 				color: CosStyle.colorPrimaryLighter
 				font.weight: Font.Medium
 
-				rightPadding: 10
 				leftPadding: 5
 
 				horizontalAlignment: Text.AlignRight
@@ -117,16 +117,33 @@ Item {
 				wrapMode: Text.Wrap
 			}
 
+			QLabel {
+				id: labelSeparator
+
+				anchors.centerIn: parent
+
+				text: "—"
+
+				color: CosStyle.colorPrimaryLighter
+				font.weight: Font.Medium
+
+				rightPadding: 10
+				leftPadding: 10
+
+				horizontalAlignment: Text.AlignHCenter
+				verticalAlignment: Text.AlignVCenter
+			}
+
 			GameQuestionTileDrop {
 				id: drop
 				implicitHeight: 40
 				autoResize: false
-				width: parent.width/2
+				width: (parent.width-labelSeparator.width)/2
 
 				anchors.verticalCenter: parent.verticalCenter
 				anchors.right: parent.right
 
-				//onCurrentDragChanged: recalculate()
+				onCurrentDragChanged: recalculate()
 			}
 		}
 	}
@@ -150,13 +167,13 @@ Item {
 			var p = questionData.list[i]
 
 
-			var o = componentTileDrop.createObject(col, {text: p+" —"})
+			var o = componentTileDrop.createObject(col, {text: p})
 			var d = {}
 			d.item = o
 			d.correct = null
 
-			if (answerData && answerData.list && answerData.list.length>=i)
-				d.correct = answerData[i]
+			if (answerData && answerData.list && answerData.list.length>i)
+				d.correct = answerData.list[i]
 
 			_drops.push(d)
 		}
@@ -176,19 +193,53 @@ Item {
 
 
 
+
+	function recalculate() {
+		if (!_drops.length || btnOk.enabled)
+			return
+
+		var s = true
+
+		for (var i=0; i<_drops.length; i++) {
+			var p = _drops[i]
+			if (!p.item.drop.currentDrag) {
+				s = false
+				break
+			}
+		}
+
+		if (s)
+			btnOk.enabled = true
+	}
+
+
 	function answer() {
-		buttonReveal()
 		btnOk.enabled = false
+		_dragInteractive = false
 
 		var success = true
 
-		for (var i=0; i<_buttons.length; i++) {
-			var p = _buttons[i]
+		for (var i=0; i<_drops.length; i++) {
+			var p = _drops[i]
 
-			var correct = answerData.indices.includes(i)
+			if (p.item && p.correct) {
+				var drag = p.item.drop.currentDrag
 
-			if ((correct && !p.selected) || (!correct && p.selected))
-				success = false
+				if (drag) {
+					var data = drag.tileData
+
+					if (data === p.correct) {
+						drag.type = GameQuestionButton.Correct
+					} else {
+						drag.type = GameQuestionButton.Wrong
+						success = false
+					}
+				} else {
+					p.item.drop.isWrong = true
+					success = false
+				}
+
+			}
 		}
 
 		if (success)
@@ -203,22 +254,5 @@ Item {
 			btnOk.press()
 	}
 
-
-	function buttonReveal() {
-		for (var i=0; i<_buttons.length; i++) {
-			var btn = _buttons[i]
-
-			btn.interactive = false
-
-			var correct = answerData.indices.includes(i)
-			btn.flipped = correct
-
-			if (correct && btn.selected)
-				btn.type = GameQuestionButton.Correct
-			else if ((!correct && btn.selected) || (correct && !btn.selected))
-				btn.type = GameQuestionButton.Wrong
-		}
-
-	}
 }
 

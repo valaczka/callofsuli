@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "multichoice"; }
 	inline bool isStorageModule() const override { return false; }
 	inline QString readableName() const override { return tr("Többszörös választás"); }
-	inline QString icon() const override { return "image://font/Material Icons/\ue1db"; }
+	inline QString icon() const override { return "image://font/Academic/\uf155"; }
 
 	inline QString qmlEditor() const override { return "ME_multichoice.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_multichoice.qml"; }

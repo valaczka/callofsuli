@@ -71,8 +71,9 @@ DropArea {
 
 				function dropIn(obj) {
 					obj.parent.dragOut()
-					obj.parent = flow
 					obj.anchors.centerIn = undefined
+					obj.fillParentWidth = false
+					obj.parent = flow
 				}
 
 				function dragOut() {

@@ -15,8 +15,6 @@ GridLayout {
 	property alias flick: flick
 	property alias container: container
 
-	//default property alias flickContent: flick.contentItem
-
 	Item {
 		Layout.fillWidth: true
 		Layout.fillHeight: true
@@ -33,15 +31,10 @@ GridLayout {
 
 			clip: true
 
-			/*contentWidth: ctItem.width
-			contentHeight: ctItem.height*/
-
 			boundsBehavior: Flickable.StopAtBounds
 			flickableDirection: Flickable.VerticalFlick
 
 			ScrollIndicator.vertical: ScrollIndicator { }
-
-
 
 		}
 

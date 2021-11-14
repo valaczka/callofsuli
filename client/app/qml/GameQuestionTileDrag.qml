@@ -7,14 +7,14 @@ import "Style"
 import "JScript.js" as JS
 
 
-MouseArea {
+Item {
 	id: control
 
-	width: tile.implicitWidth
-	height: tile.implicitHeight
+	width: tile.width
+	height: tile.height
 
-
-	drag.target: tile
+	implicitWidth: tile.implicitWidth
+	implicitHeight: tile.implicitHeight
 
 	property Flow dropFlow: null
 	property Item mainContainer: null
@@ -25,54 +25,75 @@ MouseArea {
 	property alias text: tile.text
 	property alias type: tile.type
 	property alias interactive: tile.interactive
+	property bool fillParentWidth: false
+
+	readonly property bool dragActive: tile.Drag.active
+
+	signal parentAnimationFinished()
 
 	enabled: tile.interactive
 
-	onReleased: {
-		if (tile.Drag.target) {
-			tile.Drag.target.dropIn(control)
-		} else if (dropFlow) {
-			dropFlow.dropIn(control)
+	Connections {
+		target: parent
+
+		function onWidthChanged() {
+			if (parent.width > 0 && !parent.autoResize) {
+				tile.width = fillParentWidth ? parent.width : Math.min(tile.implicitWidth, parent.width)
+			}
 		}
 	}
 
 	GameQuestionButton {
 		id: tile
 
-		width: control.width
-		height: control.height
-
-		anchors.verticalCenter: parent.verticalCenter
-		anchors.horizontalCenter: parent.horizontalCenter
+		width: implicitWidth
+		height: implicitHeight
 
 		isDrag: true
-
-		Drag.active: control.drag.active
-		Drag.hotSpot.x: width/2
-		Drag.hotSpot.y: height/2
 		Drag.keys: tileKeys
 
+		onDragReleased: {
+			if (tile.Drag.target) {
+				tile.Drag.target.dropIn(control)
+			} else if (dropFlow) {
+				dropFlow.dropIn(control)
+			}
+		}
 
 		states: State {
-			when: control.drag.active
+			name: "DragActive"
+			when: tile.Drag.active
 
 			ParentChange {
 				target: tile
 				parent: mainContainer
 			}
+		}
 
-			AnchorChanges {
-				target: tile
-				anchors.verticalCenter: undefined
-				anchors.horizontalCenter: undefined
+		transitions: [
+			Transition {
+				from: "DragActive"
+				to: ""
+
+				SequentialAnimation {
+					ParentAnimation {
+
+					}
+
+					ScriptAction {
+						script: {
+							if (control.parent.width > 0 && !control.parent.autoResize) {
+								tile.width = fillParentWidth ? control.parent.width : Math.min(tile.implicitWidth, control.parent.width)
+							} else {
+								tile.width = tile.implicitWidth
+							}
+							parentAnimationFinished()
+						}
+					}
+				}
+
 			}
-		}
-	}
-
-	transitions: Transition {
-		ParentAnimation {
-			NumberAnimation { properties: "x,y"; duration: 600 }
-		}
+		]
 	}
 
 }
