@@ -16,9 +16,10 @@ Item {
 	property color color: CosStyle.colorAccent
 	property real pixelSize: (Qt.platform.os === "android" ? 18 : 24)
 	property bool marked: false
+	property real horizontalPadding: 5
 
 	implicitHeight: Math.max(txtRow.height, progressBar.implicitHeight)
-	implicitWidth: txtRow.width+progressBar.width+txtRow.anchors.rightMargin
+	implicitWidth: txtRow.width+progressBar.width+txtRow.anchors.rightMargin+2*horizontalPadding
 
 	property real _realSize: marked ? pixelSize*1.6 : pixelSize
 
@@ -34,6 +35,16 @@ Item {
 		triggeredOnStart: false
 		repeat: false
 		onTriggered: marked = false
+	}
+
+	Rectangle {
+		anchors.fill: parent
+		color: control.marked ? control.color : "transparent"
+		radius: 5
+		opacity: 0.7
+		Behavior on color {
+			ColorAnimation { duration: 350 }
+		}
 	}
 
 	Row {
@@ -76,6 +87,7 @@ Item {
 		visible: true
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: parent.right
+		anchors.rightMargin: control.horizontalPadding
 
 		from: 0
 		to: 0

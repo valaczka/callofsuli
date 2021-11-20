@@ -135,6 +135,8 @@ QString GameMatch::bgImage() const
 {
 	if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
 		return "qrc:/internal/game/bg.png";
+	else if (m_bgImage.startsWith("qrc:/"))
+		return m_bgImage;
 	else
 		return "image://"+m_imageDbName+"/"+m_bgImage;
 }

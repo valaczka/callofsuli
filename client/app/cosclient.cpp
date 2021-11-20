@@ -555,6 +555,11 @@ QString Client::homePath(const QString &path)
 
 QString Client::genericDataPath(const QString &path)
 {
+#ifdef Q_OS_ANDROID
+	QAndroidJniObject mediaDir = QAndroidJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
+	QAndroidJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
+	return "file://"+mediaPath.toString();
+#endif
 	return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/"+path;
 }
 

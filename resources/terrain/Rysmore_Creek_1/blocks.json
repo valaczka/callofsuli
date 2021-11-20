@@ -1,11 +1,11 @@
 {
     "blocks": [
         {
-            "enemies": 5,
+            "enemies": 4,
             "num": 1
         },
         {
-            "enemies": 5,
+            "enemies": 6,
             "num": 2
         },
         {

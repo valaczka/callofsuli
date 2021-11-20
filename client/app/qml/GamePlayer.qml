@@ -135,20 +135,22 @@ GameEntity {
 		repeat: true
 
 		property bool readyToStop: false
+		readonly property real _walk: ep && ep.qrcData ? ep.qrcData.walk : 0
 
 		running: root.isWalking
 
 		triggeredOnStart: true
 		onTriggered: {
-			if(readyToStop || !ep.cosGame.running) {
+			var r = ep.cosGame.running
+			if(readyToStop || !r) {
 				spriteToIdle()
 			}
 
-			if (ep.cosGame.running) {
+			if (r) {
 				if (root.facingLeft)
-					root.x -= ep.qrcData.walk
+					root.x -= _walk
 				else
-					root.x += ep.qrcData.walk
+					root.x += _walk
 			}
 		}
 
@@ -164,21 +166,24 @@ GameEntity {
 		interval: 30
 		repeat: true
 
+		readonly property real _run: ep && ep.qrcData ? ep.qrcData.run : 0
+
 		property bool readyToStop: false
 
 		running: root.isRunning
 
 		triggeredOnStart: true
 		onTriggered: {
-			if(readyToStop || !ep.cosGame.running) {
+			var r = ep.cosGame.running
+			if(readyToStop || !r) {
 				spriteSequence.jumpTo("runend")
 			}
 
-			if (ep.cosGame.running) {
+			if (r) {
 				if (root.facingLeft)
-					root.x -= ep.qrcData.run
+					root.x -= _run
 				else
-					root.x += ep.qrcData.run
+					root.x += _run
 			}
 		}
 

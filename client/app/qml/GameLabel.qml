@@ -16,9 +16,10 @@ Item {
 	property real pixelSize: 18
 	property string text: "%1"
 	property bool marked: false
+	property real horizontalPadding: 5
 
 	implicitHeight: txtRow.height
-	implicitWidth: txtRow.width
+	implicitWidth: txtRow.width+2*horizontalPadding
 
 	property int value: 0
 
@@ -44,6 +45,16 @@ Item {
 		onTriggered: marked = false
 	}
 
+
+	Rectangle {
+		anchors.fill: parent
+		color: control.marked ? control.color : "transparent"
+		radius: 5
+		opacity: 0.7
+		Behavior on color {
+			ColorAnimation { duration: 350 }
+		}
+	}
 
 
 	Row {

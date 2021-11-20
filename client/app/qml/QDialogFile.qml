@@ -234,7 +234,7 @@ QDialogPanel {
 			labelNoPermissions.visible = false
 
 			if (Qt.platform.os == "android")
-				folderListModel.folder = cosClient.genericDataPath() //"file:///sdcard"
+				folderListModel.folder = cosClient.genericDataPath()
 			else if (folder != "")
 				folderListModel.folder = folder
 		}

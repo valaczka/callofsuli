@@ -5,14 +5,18 @@
             "num": 1
         },
         {
-            "enemies": 10,
+            "enemies": 4,
             "num": 2
         },
         {
-            "enemies": 7,
+            "enemies": 6,
             "num": 3
+        },
+        {
+            "enemies": 9,
+            "num": 4
         }
     ],
-    "enemies": 24
+    "enemies": 26
 }
 

@@ -74,6 +74,7 @@ Page {
 		height: implicitHeight*reqScale
 		width: implicitWidth*reqScale
 
+		cache: false
 
 
 		source: game.gameMatch ? game.gameMatch.bgImage : ""

@@ -1172,6 +1172,11 @@ bool CosGame::loadTerrainData()
 
 		if (!bgMusic.isEmpty())
 			setBackgroundMusicFile("qrc:/terrain/"+terrain+"/"+bgMusic);
+
+		QString bgImage = m.value("backgroundImage").toString();
+
+		if (!bgImage.isEmpty())
+			m_gameMatch->setBgImage("qrc:/terrain/"+terrain+"/"+bgImage);
 	}
 
 	return true;
