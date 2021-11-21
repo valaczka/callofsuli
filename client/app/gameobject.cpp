@@ -46,7 +46,8 @@ GameObject::GameObject(QQuickItem *parent) :
 	m_categories(),
 	m_collidesWith(),
 	m_sensor(false),
-	m_groupIndex(0)
+	m_groupIndex(0),
+	m_extra()
 {
 
 }
@@ -241,4 +242,17 @@ void GameObject::setGroupIndex(int groupIndex)
 
 	m_groupIndex = groupIndex;
 	emit groupIndexChanged(m_groupIndex);
+}
+
+const QVariantMap &GameObject::extra() const
+{
+	return m_extra;
+}
+
+void GameObject::setExtra(const QVariantMap &newExtra)
+{
+	if (m_extra == newExtra)
+		return;
+	m_extra = newExtra;
+	emit extraChanged();
 }

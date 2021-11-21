@@ -296,6 +296,8 @@ void GameMatch::setStartHp(int startHp)
 
 void GameMatch::setStartBlock(int startBlock)
 {
+	qDebug() << "setStartBlock is DEPRECATED";
+
 	if (m_startBlock == startBlock)
 		return;
 

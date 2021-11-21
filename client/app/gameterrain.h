@@ -69,6 +69,8 @@ public:
 
 	QList<QPointF> playerPositions() const { return m_playerPositions; }
 
+	QPointF startPosition() const { return m_startPosition; }
+
 private:
 	bool loadMap();
 	void loadLayers();
@@ -82,6 +84,7 @@ private:
 	QMap<int, GameBlock *> m_blocks;
 	QList<QRectF> m_groundObjects;
 	QList<QPointF> m_playerPositions;
+	QPointF m_startPosition;
 
 	QString m_tmxFile;
 	Tiled::Map *m_map;

@@ -46,6 +46,7 @@ GameTerrain::GameTerrain(QList<TiledPaintedLayer *> *tiledLayers, QQuickItem *ti
 	, m_blocks()
 	, m_groundObjects()
 	, m_playerPositions()
+	, m_startPosition()
 	, m_tmxFile()
 	, m_map(nullptr)
 	, m_tiledLayers(tiledLayers)
@@ -287,6 +288,8 @@ void GameTerrain::loadPlayerLayer(Tiled::Layer *layer)
 	if (!layer)
 		return;
 
+	QPointF defaultStartPosition, firstStartPosition;
+
 	Tiled::ObjectGroup *og = layer->asObjectGroup();
 
 	QList<Tiled::MapObject*> objects = og->objects();
@@ -296,12 +299,26 @@ void GameTerrain::loadPlayerLayer(Tiled::Layer *layer)
 		qreal y = object->y();
 		int block = object->property("block").toInt();
 
+		if (firstStartPosition.isNull())
+			firstStartPosition = QPointF(x,y);
+
+		if (object->property("start").toBool())
+			defaultStartPosition = QPointF(x,y);
+
 		if (block > 0) {
 			GameBlock *b = getBlock(block);
 			b->addPlayerPosition(QPointF(x, y));
 		} else
 			m_playerPositions.append(QPointF(x, y));
 	}
+
+	qDebug() << "FIRST available player position" << firstStartPosition;
+	qDebug() << "DEFAULT available player position" << defaultStartPosition;
+
+	if (!defaultStartPosition.isNull())
+		m_startPosition = defaultStartPosition;
+	else
+		m_startPosition = firstStartPosition;
 
 }
 
@@ -356,6 +373,8 @@ void GameTerrain::loadLadderLayer(Tiled::Layer *layer)
 		m_ladders.append(ladder);
 	}
 }
+
+
 
 
 

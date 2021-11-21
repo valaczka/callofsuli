@@ -148,7 +148,12 @@ bool GameScene::loadScene()
 
 	// Player positions
 
-	foreach (GameBlock *block, terrainData->blocks()) {
+	QMap<int, GameBlock *>::const_iterator it;
+
+	for (it = terrainData->blocks().constBegin(); it != terrainData->blocks().constEnd(); ++it) {
+		GameBlock *block = it.value();
+		int blockNum = it.key();
+
 		foreach (QPointF point, block->playerPositions()) {
 			GameObject *item = new GameObject(this->parentItem());
 
@@ -169,6 +174,7 @@ bool GameScene::loadScene()
 			item->setSensor(true);
 			item->setCategories(Box2DFixture::Category6);
 			item->setCollidesWith(Box2DFixture::Category3);
+			item->setExtra({{"block", blockNum}});
 
 			Box2DFixture *fixture = item->createRectangularFixture();
 
@@ -177,6 +183,7 @@ bool GameScene::loadScene()
 			}
 		}
 	}
+
 
 	foreach (QPointF point, terrainData->playerPositions()) {
 		GameObject *item = new GameObject(this->parentItem());

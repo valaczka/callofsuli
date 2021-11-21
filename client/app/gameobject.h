@@ -52,6 +52,7 @@ class GameObject : public QQuickItem
 	Q_PROPERTY(Box2DFixture::CategoryFlags categories READ categories WRITE setCategories NOTIFY categoriesChanged)
 	Q_PROPERTY(Box2DFixture::CategoryFlags collidesWith READ collidesWith WRITE setCollidesWith NOTIFY collidesWithChanged)
 	Q_PROPERTY(int groupIndex READ groupIndex WRITE setGroupIndex NOTIFY groupIndexChanged)
+	Q_PROPERTY(QVariantMap extra READ extra WRITE setExtra NOTIFY extraChanged)
 
 public:
 	GameObject(QQuickItem *parent = 0);
@@ -78,6 +79,9 @@ public:
 	bool sensor() const { return m_sensor; }
 	int groupIndex() const { return m_groupIndex; }
 
+	const QVariantMap &extra() const;
+	void setExtra(const QVariantMap &newExtra);
+
 public slots:
 	void setDensity(float density);
 	void setFriction(float friction);
@@ -95,6 +99,7 @@ signals:
 	void collidesWithChanged(Box2DFixture::CategoryFlags collidesWith);
 	void sensorChanged(bool sensor);
 	void groupIndexChanged(int groupIndex);
+	void extraChanged();
 
 private:
 	int m_id;
@@ -107,6 +112,7 @@ private:
 	Box2DFixture::CategoryFlags m_collidesWith;
 	bool m_sensor;
 	int m_groupIndex;
+	QVariantMap m_extra;
 };
 
 #endif // GAMEOBJECT_H

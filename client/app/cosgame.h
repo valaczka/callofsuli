@@ -51,7 +51,6 @@ class CosGame : public Game
 	Q_PROPERTY(QVariantMap gameData READ gameData WRITE setGameData NOTIFY gameDataChanged)
 	Q_PROPERTY(QQuickItem * player READ player WRITE setPlayer NOTIFY playerChanged)
 
-	Q_PROPERTY(GameObject * playerStartPosition READ playerStartPosition WRITE setPlayerStartPosition NOTIFY playerStartPositionChanged)
 	Q_PROPERTY(int ladderCount READ ladderCount)
 	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
 
@@ -93,7 +92,7 @@ public:
 	QVariantMap gameData() const { return m_gameData; }
 	QQuickItem * player() const { return m_player; }
 	QQuickItem * gameScene() const { return m_gameScene; }
-	GameObject * playerStartPosition() const { return m_playerStartPosition; }
+	QVector<GameObject *> playerStartPositions() const { return m_playerStartPositions; }
 	bool running() const { return m_running; }
 
 	GameTerrain * terrainData() const { return m_terrainData; }
@@ -136,7 +135,7 @@ public slots:
 
 	void setPlayer(QQuickItem * player);
 	void setGameScene(QQuickItem * gameScene);
-	void setPlayerStartPosition(GameObject * playerStartPosition);
+	void appendPlayerStartPosition(GameObject * playerStartPosition);
 	void setRunning(bool running);
 	void setItemPage(QQuickItem * itemPage);
 	void setGameMatch(GameMatch * gameMatch);
@@ -180,7 +179,6 @@ signals:
 
 	void playerChanged(QQuickItem * player);
 	void gameSceneChanged(QQuickItem * gameScene);
-	void playerStartPositionChanged(GameObject * playerStartPosition);
 	void startBlockChanged(int startBlock);
 	void runningChanged(bool running);
 	void itemPageChanged(QQuickItem * itemPage);
@@ -205,7 +203,7 @@ private:
 	QVariantMap m_gameData;
 	QQuickItem * m_player;
 	QQuickItem * m_gameScene;
-	GameObject * m_playerStartPosition;
+	QVector<GameObject *> m_playerStartPositions;
 	bool m_running;
 	QQuickItem * m_itemPage;
 	GameQuestion * m_question;

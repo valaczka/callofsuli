@@ -91,7 +91,7 @@ public:
 	QString terrain() const { return m_terrain; }
 	int level() const { return m_level; }
 	int startHp() const { return m_startHp; }
-	int startBlock() const { return m_startBlock; }
+	int startBlock() const { return m_startBlock; }			// DEPRECATED
 	QString bgImage() const;
 	QString imageDbName() const { return m_imageDbName; }
 	QString name() const { return m_name; }

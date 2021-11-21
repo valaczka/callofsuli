@@ -45,7 +45,7 @@ CosGame::CosGame(QQuickItem *parent)
 	: Game(parent)
 	, m_player(nullptr)
 	, m_gameScene(nullptr)
-	, m_playerStartPosition(nullptr)
+	, m_playerStartPositions()
 	, m_running(true)
 	, m_itemPage(nullptr)
 	, m_question(nullptr)
@@ -102,6 +102,8 @@ CosGame::~CosGame()
 
 	delete m_timer;
 	delete m_matchTimer;
+
+	m_playerStartPositions.clear();
 }
 
 
@@ -381,25 +383,25 @@ void CosGame::resetPlayer()
 		return;
 	}
 
-	QPointF p(-1, -1);
+	QPointF p;
 
-	int startBlock = m_gameMatch->startBlock();
+	for (int i=m_playerStartPositions.size()-1; i>=0; --i) {
+		GameObject *pos = m_playerStartPositions.at(i);
 
-	if (m_playerStartPosition) {
-		p = QPointF(m_playerStartPosition->x(), m_playerStartPosition->y());
-	} else if (!m_playerStartPosition && !m_terrainData->blocks().isEmpty()) {
-		if (m_terrainData->blocks().contains(startBlock)) {
-			GameBlock *block = m_terrainData->blocks().value(startBlock);
-			if (!block->playerPositions().isEmpty())
-				p = block->playerPositions().at(0);
-		} else {
-			GameBlock *block = m_terrainData->blocks().first();
-			if (!block->playerPositions().isEmpty())
-				p = block->playerPositions().at(0);
+		if (pos->extra().contains("block")) {
+			int posB = pos->extra().value("block", -1).toInt();
+			GameBlock *block = m_terrainData->blocks().value(posB);
+			if (block && block->completed()) {
+				p = QPointF(pos->x(), pos->y());
+				break;
+			}
 		}
 	}
 
-	if (p != QPointF(-1, -1)) {
+	if (p.isNull())
+		p = m_terrainData->startPosition();
+
+	if (!p.isNull()) {
 		m_player->setX(p.x()-m_player->width());
 		m_player->setY(p.y()-m_player->height());
 	} else {
@@ -559,7 +561,7 @@ void CosGame::setLastPosition()
 		return;
 	}
 
-	setPlayerStartPosition(item);
+	appendPlayerStartPosition(item);
 }
 
 
@@ -575,13 +577,10 @@ void CosGame::setGameScene(QQuickItem *gameScene)
 
 
 
-void CosGame::setPlayerStartPosition(GameObject *playerStartPosition)
+void CosGame::appendPlayerStartPosition(GameObject *playerStartPosition)
 {
-	if (m_playerStartPosition == playerStartPosition)
-		return;
-
-	m_playerStartPosition = playerStartPosition;
-	emit playerStartPositionChanged(m_playerStartPosition);
+	qDebug() << "APPEND position" << m_playerStartPositions.size() << playerStartPosition->x() << playerStartPosition->y();
+	m_playerStartPositions.append(playerStartPosition);
 }
 
 void CosGame::setRunning(bool running)

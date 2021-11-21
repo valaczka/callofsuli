@@ -5,7 +5,7 @@ import "Style"
 
 Rectangle {
 	id: root
-	visible: enemyPrivate && enemyPrivate.player && enemyPrivate.player.enemy != enemyPrivate
+	visible: enemyPrivate && enemyPrivate.player //&& enemyPrivate.player.enemy != enemyPrivate
 	color: enemyPrivate.attackRunning ? CosStyle.colorEnemyMarkerAttack : CosStyle.colorEnemyMarker
 	height: 1
 	y: parent.height*0.2
