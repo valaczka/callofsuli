@@ -40,6 +40,7 @@
 
 #include "tmxmap.h"
 #include "tiledpaintedlayer.h"
+#include "gameterrain.h"
 
 class CosGame;
 
@@ -71,6 +72,12 @@ signals:
 	void sceneLoadFailed();
 
 private:
+	void loadGroundObjects(GameTerrain *terrainData);
+	void loadPlayerPositions(GameTerrain *terrainData);
+	void loadFires(GameTerrain *terrainData);
+	void loadItems(GameTerrain *terrainData);
+	void loadFences(GameTerrain *terrainData);
+
 	QList<TiledPaintedLayer *> m_tiledLayers;
 	CosGame * m_game;
 };

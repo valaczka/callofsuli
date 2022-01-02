@@ -142,6 +142,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsDenied, this, &Client::storagePermissionsDenied);
 	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsGranted, this, &Client::storagePermissionsGranted);
 
+	qRegisterMetaType<QAbstractSocket::SocketError>();
 	qRegisterMetaType<QAbstractSocket::SocketState>();
 	qRegisterMetaType<QList<QSslError>>();
 
@@ -243,7 +244,7 @@ void Client::loadModules()
 bool Client::commandLineParse(QCoreApplication &app)
 {
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2021 Valaczka János Pál"));
+	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2022 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 
@@ -393,7 +394,6 @@ void Client::registerTypes()
 	qmlRegisterUncreatableType<ObjectListModel>("COS.Client", 1, 0, "ObjectListModel", "uncreatable");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
 	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
-
 }
 
 

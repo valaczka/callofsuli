@@ -183,5 +183,8 @@
         <file>QObjectListView.qml</file>
         <file>QListBusyIndicator.qml</file>
         <file>GameFire.qml</file>
+        <file>GamePickablePliers.qml</file>
+        <file>GamePickableWater.qml</file>
+        <file>GameFence.qml</file>
     </qresource>
 </RCC>

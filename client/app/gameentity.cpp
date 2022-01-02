@@ -58,12 +58,9 @@ GameEntity::GameEntity(QQuickItem *parent)
 	, m_rayCastFixtures()
 	, m_hp(1)
 	, m_maxHp(-1)
+	, m_fixturesUpdated(false)
+	, m_inverse(false)
 {
-	if (parent) {
-		qWarning() << "!!! PARENT CHANGED ON CONSTRUCTION" << this;
-		onParentChanged();
-	}
-
 	connect(this, &GameEntity::parentChanged, this, &GameEntity::onParentChanged);
 
 	connect(this, &GameEntity::boundBeginContact, this, &GameEntity::onBoundBeginContact);
@@ -245,6 +242,21 @@ bool GameEntity::isOnBaseGround() const
 }
 
 
+/**
+ * @brief GameEntity::checkGrounds
+ */
+
+void GameEntity::removeGround(Box2DFixture *fixture)
+{
+	if (!m_groundFixtures.contains(fixture))
+		return;
+
+	m_groundFixtures.removeAll(fixture);
+
+	setIsOnGround(!m_groundFixtures.isEmpty());
+}
+
+
 
 /**
  * @brief GameEntityPrivate::setFixtureVertices
@@ -260,6 +272,11 @@ void GameEntity::updateFixtures(const QString &sprite, const bool &inverse)
 
 	if (!m_cosGame || !m_cosGame->running())
 		return;
+
+	if (inverse != m_inverse)
+		m_fixturesUpdated = true;
+
+	m_inverse = inverse;
 
 	QVariantMap spriteData = m_qrcData.value("sprites").toMap().value(sprite).toMap();
 
@@ -335,6 +352,7 @@ void GameEntity::updateFixtures(const QString &sprite, const bool &inverse)
 
 		m_bodyPolygon->setVertices(verticesList);
 	}
+
 }
 
 
@@ -589,6 +607,7 @@ void GameEntity::onSceneChanged()
 	if (game) {
 		m_cosGame = game;
 		emit cosGameChanged(game);
+		connect(m_cosGame, &CosGame::fixturesReadyToDestroy, this, &GameEntity::onFixturesReadyToDestroy);
 		return;
 	}
 
@@ -604,7 +623,10 @@ void GameEntity::onBoundBeginContact(Box2DFixture *other)
 {
 	m_groundFixtures.append(other);
 
-	setIsOnGround(m_groundFixtures.count());
+	setIsOnGround(!m_groundFixtures.isEmpty());
+
+	if (m_fixturesUpdated)
+		m_fixturesUpdated = false;
 }
 
 
@@ -617,7 +639,10 @@ void GameEntity::onBoundEndContact(Box2DFixture *other)
 {
 	m_groundFixtures.removeAll(other);
 
-	setIsOnGround(m_groundFixtures.count());
+	if (m_fixturesUpdated)
+		m_fixturesUpdated = false;
+	else
+		setIsOnGround(!m_groundFixtures.isEmpty());
 }
 
 
@@ -641,12 +666,13 @@ void GameEntity::rayCastFixtureReported(Box2DFixture *fixture, const QPointF &, 
 	if (e && !e->isAlive())
 		return;
 
+	QPointer<Box2DFixture> p = fixture;
+
 	if (m_rayCastFixtures.contains(fraction)) {
-		if (!m_rayCastFixtures.value(fraction).contains(fixture))
-			m_rayCastFixtures[fraction].append(fixture);
+		if (!m_rayCastFixtures.value(fraction).contains(p))
+			m_rayCastFixtures[fraction].append(p);
 	} else {
-		QPointer<Box2DFixture> p = fixture;
-		QList<Box2DFixture *> list;
+		QList<QPointer<Box2DFixture>> list;
 		list.append(p);
 		m_rayCastFixtures.insert(fraction, list);
 	}
@@ -659,7 +685,7 @@ void GameEntity::rayCastFixtureReported(Box2DFixture *fixture, const QPointF &, 
 
 void GameEntity::rayCastFixtureCheck()
 {
-	QMapIterator<float32, QList<Box2DFixture*>> i(m_rayCastFixtures);
+	QMapIterator<float32, QList<QPointer<Box2DFixture>>> i(m_rayCastFixtures);
 
 	bool active = true;
 
@@ -672,8 +698,9 @@ void GameEntity::rayCastFixtureCheck()
 			if (!fixture)
 				continue;
 
+
 			Box2DFixture::CategoryFlags categories = fixture->categories();
-			if (categories.testFlag(Box2DFixture::Category1)) {
+			if (categories.testFlag(Box2DFixture::Category1) && !fixture->property("invisible").toBool()) {
 				active = false;
 			}
 
@@ -694,6 +721,18 @@ void GameEntity::rayCastFixtureCheck()
 
 	rayCastItemsReported(items);
 	m_rayCastFixtures.clear();
+}
+
+
+/**
+ * @brief GameEntity::onFixturesReadyToDestroy
+ * @param list
+ */
+
+void GameEntity::onFixturesReadyToDestroy(QList<Box2DFixture *> list)
+{
+	foreach (Box2DFixture *fixture, list)
+		removeGround(fixture);
 }
 
 

@@ -61,11 +61,6 @@ Scene {
 	}
 
 
-	GameFire {
-		x: 200
-		y: 160
-	}
-
 	MouseArea {
 		id: area
 		anchors.fill: parent
@@ -198,23 +193,30 @@ Scene {
 
 	Component {
 		id: playerComponent
-
 		GamePlayer { }
 	}
 
 
 	Component {
 		id: ladderComponent
-
 		GameLadder { }
 	}
 
 	Component {
 		id: enemySoldierComponent
-
 		GameEnemySoldier { }
 	}
 
+
+	Component {
+		id: fireComponent
+		GameFire {}
+	}
+
+	Component {
+		id: fenceComponent
+		GameFence {}
+	}
 
 
 
@@ -231,6 +233,16 @@ Scene {
 	Component {
 		id: pickableComponentShield
 		GamePickableShield { }
+	}
+
+	Component {
+		id: pickableComponentPliers
+		GamePickablePliers { }
+	}
+
+	Component {
+		id: pickableComponentWater
+		GamePickableWater { }
 	}
 
 
@@ -290,22 +302,36 @@ Scene {
 		var obj = null
 
 		switch (pickableType) {
-			case GamePickable.PickableHealth:
+			case GamePickablePrivate.PickableHealth:
 				obj = pickableComponentHealth.createObject(scene, {
 															   cosGame: game,
 															   pickableData: pickableData
 														   })
 				break
 
-			case GamePickable.PickableTime:
+			case GamePickablePrivate.PickableTime:
 				obj = pickableComponentTime.createObject(scene, {
 															   cosGame: game,
 															   pickableData: pickableData
 														   })
 				break
 
-			case GamePickable.PickableShield:
+			case GamePickablePrivate.PickableShield:
 				obj = pickableComponentShield.createObject(scene, {
+															   cosGame: game,
+															   pickableData: pickableData
+														   })
+				break
+
+			case GamePickablePrivate.PickablePliers:
+				obj = pickableComponentPliers.createObject(scene, {
+															   cosGame: game,
+															   pickableData: pickableData
+														   })
+				break
+
+			case GamePickablePrivate.PickableWater:
+				obj = pickableComponentWater.createObject(scene, {
 															   cosGame: game,
 															   pickableData: pickableData
 														   })
@@ -315,4 +341,16 @@ Scene {
 		return obj
 	}
 
+
+	function createFire() : Item {
+		var obj = fireComponent.createObject(scene)
+		return obj
+	}
+
+	function createFence() : Item {
+		var obj = fenceComponent.createObject(scene, {
+					cosGame: game
+				})
+		return obj
+	}
 }

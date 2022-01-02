@@ -50,6 +50,12 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(int defaultHp READ defaultHp WRITE setDefaultHp NOTIFY defaultHpChanged)
 	Q_PROPERTY(int shield READ shield WRITE setShield NOTIFY shieldChanged)
 
+	Q_PROPERTY(QPointF moveToPoint READ moveToPoint WRITE setMoveToPoint NOTIFY moveToPointChanged)
+	Q_PROPERTY(QQuickItem* moveToItem READ moveToItem WRITE setMoveToItem NOTIFY moveToItemChanged)
+
+	Q_PROPERTY(QQuickItem* fire READ fire WRITE setFire NOTIFY fireChanged)
+	Q_PROPERTY(QQuickItem* fence READ fence WRITE setFence NOTIFY fenceChanged)
+
 public:
 	enum LadderMode {
 		LadderUnavaliable,
@@ -61,6 +67,7 @@ public:
 
 	Q_ENUM(LadderMode)
 
+
 	GamePlayer(QQuickItem *parent = 0);
 	virtual ~GamePlayer();
 
@@ -71,6 +78,9 @@ public:
 	Q_INVOKABLE void ladderClimbFinish();
 	Q_INVOKABLE void attackByGun();
 
+	Q_INVOKABLE void operate(QQuickItem *item);
+	Q_INVOKABLE void autoMove();
+
 	LadderMode ladderMode() const { return m_ladderMode; }
 	GameLadder * ladder() const { return m_ladder; }
 	GameEnemy * enemy() const { return m_enemy; }
@@ -78,6 +88,18 @@ public:
 	int shield() const { return m_shield; }
 
 	void rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items) override;
+
+	QPointF moveToPoint() const;
+	void setMoveToPoint(QPointF newMoveToPoint);
+
+	QQuickItem *moveToItem() const;
+	void setMoveToItem(QQuickItem *newMoveToItem);
+
+	QQuickItem *fire() const;
+	void setFire(QQuickItem *newFire);
+
+	QQuickItem *fence() const;
+	void setFence(QQuickItem *newFence);
 
 public slots:
 	QString playSoundEffect(const QString &effect);
@@ -109,12 +131,20 @@ signals:
 	void hpChanged(int hp);
 	void defaultHpChanged(int defaultHp);
 	void shieldChanged(int shield);
+	void moveToPointChanged();
+	void moveToItemChanged();
+	void autoMoveWalkRequest(const bool &moveLeft);
+	void operateRequest(QQuickItem *item);
+	void fireChanged();
+	void fenceChanged();
 
 private slots:
 	void onCosGameChanged(CosGame *);
 	void onEnemyDied();
 
 private:
+	void operateReal(QQuickItem *item);
+
 	LadderMode m_ladderMode;
 	bool m_isLadderDirectionUp;
 	GameLadder * m_ladder;
@@ -125,6 +155,10 @@ private:
 	int m_soundEffectWalkNum;
 	int m_soundEffectPainNum;
 	int m_shield;
+	QPointF m_moveToPoint;
+	QPointer<QQuickItem> m_moveToItem;
+	QPointer<QQuickItem> m_fire;
+	QPointer<QQuickItem> m_fence;
 };
 
 

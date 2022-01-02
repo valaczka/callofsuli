@@ -6,7 +6,7 @@ import "Style"
 
 PhysicsEntity {
 	id: root
-	sleepingAllowed: false
+	sleepingAllowed: true
 	width: ladder ? ladder.boundRect.width : 10
 	height: 0
 	x: ladder ? ladder.boundRect.x : 0

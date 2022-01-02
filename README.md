@@ -1,5 +1,5 @@
 # Call of Suli
-Call of Suli - (c) 2012-2021 Valaczka János Pál
+Call of Suli - (c) 2012-2022 Valaczka János Pál
 
 A Call of Suli egy olyan alkalmazás, amellyel a tanárok feladatlapokat tudnak egyszerűen összeállítani, és ezeket a tanulók (játékosok) egy akciójáték keretében tudják megoldani.
 

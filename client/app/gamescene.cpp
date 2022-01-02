@@ -99,34 +99,8 @@ void GameScene::setGame(CosGame *game)
  * @param tmxFileName
  */
 
-bool GameScene::loadScene()
+void GameScene::loadGroundObjects(GameTerrain *terrainData)
 {
-	if (!m_game)
-		return false;
-
-	if (m_game->terrainData()) {
-		qWarning() << this << "Scene already loaded";
-		return false;
-	}
-
-	emit sceneLoadStarted();
-
-	m_game->addTerrainData(&m_tiledLayers, parentItem());
-
-	if (!m_game->loadTerrainData()) {
-		emit sceneLoadFailed();
-		return false;
-	}
-
-	GameTerrain *terrainData = m_game->terrainData();
-	auto map = terrainData->map();
-
-	setImplicitWidth(map->width() * map->tileWidth());
-	setImplicitHeight(map->height() * map->tileHeight());
-
-
-	// Ground Objects
-
 	foreach (QRectF rect, terrainData->groundObjects()) {
 		GameObject *item = new GameObject(this->parentItem());
 		item->setX(rect.x());
@@ -142,12 +116,18 @@ bool GameScene::loadScene()
 		item->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2|Box2DFixture::Category5);
 		item->createRectangularFixture();
 	}
+}
 
 
 
+/**
+ * @brief GameScene::loadScene
+ * @return
+ */
 
-	// Player positions
 
+void GameScene::loadPlayerPositions(GameTerrain *terrainData)
+{
 	QMap<int, GameBlock *>::const_iterator it;
 
 	for (it = terrainData->blocks().constBegin(); it != terrainData->blocks().constEnd(); ++it) {
@@ -212,6 +192,118 @@ bool GameScene::loadScene()
 			connect(fixture, &Box2DFixture::beginContact, m_game, &CosGame::setLastPosition);
 		}
 	}
+}
+
+
+/**
+ * @brief GameScene::loadFires
+ * @param terrainData
+ */
+
+void GameScene::loadFires(GameTerrain *terrainData)
+{
+	foreach (QPointF point, terrainData->fires()) {
+		QQuickItem *item = nullptr;
+
+		QMetaObject::invokeMethod(m_game->gameScene(), "createFire", Qt::DirectConnection,
+								  Q_RETURN_ARG(QQuickItem*, item)
+								  );
+
+		if (!item) {
+			qWarning() << "Can't create fire at" << point;
+			continue;
+		}
+
+		item->setX(point.x()-(item->width()/2));
+		item->setY(point.y()-item->height()+10);			// +10: az animáció korrekciója miatt lejjebb kell tenni
+	}
+}
+
+
+
+
+/**
+ * @brief GameScene::loadItems
+ * @param terrainData
+ */
+
+void GameScene::loadItems(GameTerrain *terrainData)
+{
+	foreach (GameTerrainItem t, terrainData->items()) {
+		QVariantMap m;
+		m["bottomPoint"] = t.first;
+
+		QMetaObject::invokeMethod(m_game->gameScene(), "createPickable", Qt::QueuedConnection,
+								  Q_ARG(int, t.second),
+								  Q_ARG(QVariant, m)
+								  );
+	}
+}
+
+
+/**
+ * @brief GameScene::loadFences
+ * @param terrainData
+ */
+
+void GameScene::loadFences(GameTerrain *terrainData)
+{
+	foreach (QPointF point, terrainData->fences()) {
+		QQuickItem *item = nullptr;
+
+		QMetaObject::invokeMethod(m_game->gameScene(), "createFence", Qt::DirectConnection,
+								  Q_RETURN_ARG(QQuickItem*, item)
+								  );
+
+		if (!item) {
+			qWarning() << "Can't create fence at" << point;
+			continue;
+		}
+
+		item->setX(point.x()-(item->width()/2));
+		item->setY(point.y()-item->height());
+	}
+}
+
+
+
+/**
+ * @brief GameScene::loadScene
+ * @return
+ */
+
+bool GameScene::loadScene()
+{
+	if (!m_game)
+		return false;
+
+	if (m_game->terrainData()) {
+		qWarning() << this << "Scene already loaded";
+		return false;
+	}
+
+	emit sceneLoadStarted();
+
+	m_game->addTerrainData(&m_tiledLayers, parentItem());
+
+	if (!m_game->loadTerrainData()) {
+		emit sceneLoadFailed();
+		return false;
+	}
+
+	GameTerrain *terrainData = m_game->terrainData();
+	auto map = terrainData->map();
+
+	setImplicitWidth(map->width() * map->tileWidth());
+	setImplicitHeight(map->height() * map->tileHeight());
+
+
+	loadGroundObjects(terrainData);
+	loadPlayerPositions(terrainData);
+	loadFires(terrainData);
+	loadFences(terrainData);
+	loadItems(terrainData);
+
 
 	emit sceneLoaded();
 

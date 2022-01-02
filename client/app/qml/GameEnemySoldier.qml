@@ -52,14 +52,14 @@ GameEntity {
 		}
 
 		onRayCastPerformed: {
-			if (cosGame.gameScene.debug)
-				setray(rect)
+			/*if (cosGame.gameScene.debug)
+				setray(rect)*/
 		}
 
 		Connections {
 			target: ep.cosGame ? ep.cosGame.gameScene : null
 			function onShowPickablesChanged() {
-				if (ep.cosGame.gameScene.showPickables && ep.enemyData.pickableType !== GamePickable.PickableInvalid)
+				if (ep.cosGame.gameScene.showPickables && ep.enemyData.pickableType !== GamePickablePrivate.PickableInvalid)
 					showPickable = true
 				else
 					showPickable = false

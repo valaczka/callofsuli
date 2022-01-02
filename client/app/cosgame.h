@@ -126,6 +126,8 @@ public slots:
 	void increaseHp();
 	void addSecs(const int &secs);
 	void increaseShield(const int &num);
+	void increasePliers(const int &num);
+	void increaseWater(const int &num);
 
 	void setGameData(QVariantMap gameData);
 
@@ -176,6 +178,8 @@ signals:
 
 	void levelChanged(int level);
 	void startHpChanged(int startHp);
+
+	void fixturesReadyToDestroy(QList<Box2DFixture*> list);
 
 	void playerChanged(QQuickItem * player);
 	void gameSceneChanged(QQuickItem * gameScene);

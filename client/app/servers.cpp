@@ -296,11 +296,15 @@ void Servers::serverDeleteList(const QObjectList &list)
 
 void Servers::serverSetAutoConnect(ServerObject *server)
 {
-	foreach (ServerObject *s, m_serversModel->objects())
-		s->setAutoconnect(false);
+	if (server && server->autoconnect())
+		server->setAutoconnect(false);
+	else {
+		foreach (ServerObject *s, m_serversModel->objects())
+			s->setAutoconnect(false);
 
-	if (server)
-		server->setAutoconnect(true);
+		if (server)
+			server->setAutoconnect(true);
+	}
 
 	saveServerList();
 }

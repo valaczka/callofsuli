@@ -6,7 +6,7 @@ import "Style"
 
 PhysicsEntity {
 	id: root
-	sleepingAllowed: false
+	sleepingAllowed: true
 	width: itemLoader.status == Loader.Ready ? itemLoader.item.width+(2*horizontalPadding) : 10
 	height: itemLoader.status == Loader.Ready ? itemLoader.item.height+(2*verticalPadding) : 10
 	z: 6

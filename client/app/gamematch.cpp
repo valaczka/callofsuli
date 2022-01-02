@@ -50,6 +50,8 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_elapsedTime(-1)
 	, m_deathmatch(false)
 	, m_statData()
+	, m_water(0)
+	, m_pliers(0)
 {
 	setPlayerCharacter("default");
 }
@@ -73,6 +75,8 @@ GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObj
 	, m_baseXP(0)
 	, m_elapsedTime(-1)
 	, m_deathmatch(false)
+	, m_water(0)
+	, m_pliers(0)
 {
 	Q_ASSERT(missionLevel);
 
@@ -392,3 +396,29 @@ void GameMatch::setDeathmatch(bool deathmatch)
 
 
 
+
+int GameMatch::water() const
+{
+	return m_water;
+}
+
+void GameMatch::setWater(int newWater)
+{
+	if (m_water == newWater)
+		return;
+	m_water = newWater;
+	emit waterChanged();
+}
+
+int GameMatch::pliers() const
+{
+	return m_pliers;
+}
+
+void GameMatch::setPliers(int newPliers)
+{
+	if (m_pliers == newPliers)
+		return;
+	m_pliers = newPliers;
+	emit pliersChanged();
+}

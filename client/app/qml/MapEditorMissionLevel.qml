@@ -69,7 +69,7 @@ QSwipeContainer {
 													   modelImageRole: "thumbnail",
 													   modelSubtitleRole: "details",
 													   delegateHeight: CosStyle.twoLineHeight*1.2,
-													   sourceModel: mapEditor.modelTerrainList
+													   model: mapEditor.modelTerrainList
 												   })
 
 						if (_terrain.length)
@@ -79,7 +79,7 @@ QSwipeContainer {
 							if (data === -1)
 								return
 
-							var p = d.item.sourceModel.get(data)
+							var p = d.item.list.modelObject(data)
 							mapEditor.missionLevelModify({level: container.level, terrain: p.name})
 
 						})

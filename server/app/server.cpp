@@ -143,7 +143,7 @@ bool Server::commandLineParse(QCoreApplication &app)
 	QCoreApplication::instance()->setApplicationVersion(_VERSION_FULL);
 
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QString::fromUtf8("Call of Suli server – Copyright © 2012-2021 Valaczka János Pál"));
+	parser.setApplicationDescription(QString::fromUtf8("Call of Suli server – Copyright © 2012-2022 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 

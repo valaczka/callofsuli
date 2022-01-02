@@ -53,7 +53,9 @@ public:
 		PickableInvalid,
 		PickableHealth,
 		PickableTime,
-		PickableShield
+		PickableShield,
+		PickableWater,
+		PickablePliers
 	};
 
 	Q_ENUM(PickableType)

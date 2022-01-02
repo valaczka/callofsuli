@@ -650,7 +650,7 @@ Page {
 				if (shield > progressBar.to)
 					progressBar.to = shield
 
-					infoShield.marked = true
+				infoShield.marked = true
 			}
 		}
 
@@ -673,11 +673,49 @@ Page {
 			onEnemiesChanged: {
 				infoTarget.marked = true
 				if (enemies>progressBar.to)
-								  progressBar.to = enemies
+					progressBar.to = enemies
 			}
 		}
 
+		Grid {
+			id: itemGrid
+			anchors.right: parent.right
+			width: infoShield.width
+			layoutDirection: Qt.RightToLeft
+			horizontalItemAlignment: Grid.AlignHCenter
+			verticalItemAlignment: Grid.AlignVCenter
+
+			bottomPadding: 10
+
+			property real size: CosStyle.pixelSize*1.3
+
+			spacing: 5
+
+			columns: Math.floor(width/size)
+
+			QFontImage {
+				size: itemGrid.size
+				icon: CosStyle.iconSetup
+				color: "brown"
+				visible: game.gameMatch.pliers
+			}
+
+			Repeater {
+				model: game.gameMatch.water
+
+				QFontImage {
+					size: itemGrid.size
+					icon: CosStyle.iconDrawer
+					color: "blue"
+				}
+			}
+		}
+
+
+
+
 		GameButton {
+			id: setttingsButton
 			size: 30
 
 			anchors.right: parent.right
@@ -781,6 +819,9 @@ Page {
 
 		opacity: gameScene.isSceneZoom ? 0.2 : 1.0
 
+		onHasTouchChanged: if (!hasTouch && game.player)
+							   game.player.stopMoving()
+
 		onJoystickMoved: if (game.player) {
 							 if (y > 0.6) {
 								 if (game.player.moveUp())
@@ -874,6 +915,70 @@ Page {
 		}
 	}
 
+
+	Column {
+		anchors.bottom: shotButton.bottom
+		anchors.bottomMargin: (shotButton.height-pliersButton.height)/2
+		anchors.right: shotButton.left
+
+		spacing: 30
+
+		GameButton {
+			id: pliersButton
+			size: 50
+
+			width: size
+			height: size
+
+			enabled: game.gameMatch.pliers
+			visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.fence
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			color: enabled ? "#7FFF7F50" : "transparent"
+			border.color: enabled ? fontImage.color : "white"
+			border.width: 1
+
+			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
+
+			fontImage.icon: CosStyle.iconSetup
+			fontImage.color: "white"
+			fontImageScale: 0.6
+			fontImage.anchors.horizontalCenterOffset: -2
+
+			onClicked: {
+				game.player.entityPrivate.operate(game.player.entityPrivate.fence)
+			}
+		}
+
+		GameButton {
+			id: waterButton
+			size: 50
+
+			width: size
+			height: size
+
+			enabled: game.gameMatch.water
+			visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.fire
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			color: enabled ? "#7F4169E1" : "transparent"
+			border.color: enabled ? fontImage.color : "white"
+			border.width: 1
+
+			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
+
+			fontImage.icon: CosStyle.iconCancel
+			fontImage.color: "white"
+			fontImageScale: 0.6
+			fontImage.anchors.horizontalCenterOffset: -2
+
+			onClicked: {
+				game.player.entityPrivate.operate(game.player.entityPrivate.fire)
+			}
+		}
+	}
 
 
 

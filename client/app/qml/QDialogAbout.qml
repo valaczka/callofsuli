@@ -35,7 +35,7 @@ QDialogPanel {
 
 				padding: 20
 
-				text: qsTr("Verzió: ")+Qt.application.version+"\n© 2012-2021 Valaczka János Pál"
+				text: qsTr("Verzió: ")+Qt.application.version+"\n© 2012-2022 Valaczka János Pál"
 			}
 		}
 	}

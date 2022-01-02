@@ -9,7 +9,7 @@ GamePickable {
 	id: item
 
 	targetObject: GamePickablePrivate {
-		type: GamePickable.PickableTime
+		type: GamePickablePrivate.PickableTime
 		game: cosGame
 		data: pickableData
 	}

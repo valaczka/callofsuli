@@ -108,6 +108,8 @@ public:
 	qreal rayCastLength() const { return m_rayCastLength; }
 	bool rayCastEnabled() const { return m_rayCastEnabled; }
 
+	void removeGround(Box2DFixture *fixture);
+
 
 
 public slots:
@@ -137,6 +139,7 @@ private slots:
 	void onBoundEndContact(Box2DFixture *other);
 	void rayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, float32 fraction);
 	void rayCastFixtureCheck();
+	void onFixturesReadyToDestroy(QList<Box2DFixture*> list);
 
 signals:
 	void die();
@@ -166,7 +169,7 @@ signals:
 	void maxHpChanged(int maxHp);
 
 protected:
-	QList<Box2DFixture *> m_groundFixtures;
+	QList<QPointer<Box2DFixture>> m_groundFixtures;
 	QString m_qrcDirName;
 	CosGame* m_cosGame;
 	QVariantMap m_qrcData;
@@ -182,9 +185,11 @@ protected:
 private:
 	Box2DRayCast * m_rayCast;
 	QTimer *m_rayCastTimer;
-	QMap<float32, QList<Box2DFixture*>> m_rayCastFixtures;
+	QMap<float32, QList<QPointer<Box2DFixture>>> m_rayCastFixtures;
 	int m_hp;
 	int m_maxHp;
+	bool m_fixturesUpdated;
+	bool m_inverse;
 };
 
 #endif // GAMEPLAYERPRIVATE_H

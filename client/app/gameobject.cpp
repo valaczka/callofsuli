@@ -118,7 +118,7 @@ void GameObject::createRectangularFixture(Tiled::MapObject *object)
 	m_body->setBodyType(Box2DBody::Static);
 	m_body->setTarget(this);
 	m_body->setActive(true);
-	m_body->setSleepingAllowed(false);
+	m_body->setSleepingAllowed(true);
 
 	Box2DBox *fixture = new Box2DBox(this);
 
@@ -155,7 +155,7 @@ Box2DBox * GameObject::createRectangularFixture()
 	m_body->setBodyType(Box2DBody::Static);
 	m_body->setTarget(this);
 	m_body->setActive(true);
-	m_body->setSleepingAllowed(false);
+	m_body->setSleepingAllowed(true);
 
 	Box2DBox *fixture = new Box2DBox(this);
 

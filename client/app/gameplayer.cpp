@@ -35,6 +35,9 @@
 #include <QDebug>
 #include <QDir>
 #include <QTimer>
+#include <QQmlListReference>
+#include <QQmlProperty>
+
 
 #include "entity.h"
 #include "box2dbody.h"
@@ -55,6 +58,10 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_soundEffectWalkNum(1)
 	, m_soundEffectPainNum(1)
 	, m_shield(0)
+	, m_moveToPoint(0,0)
+	, m_moveToItem(nullptr)
+	, m_fire(nullptr)
+	, m_fence(nullptr)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -266,6 +273,17 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 	if (!object.isValid())
 		return;
 
+	if (data.value("fireDie", false).toBool()) {
+		emit diedByBurn();
+		return;
+	} else if (data.value("fire", false).toBool()) {
+		setFire(qvariant_cast<QQuickItem*>(object));
+		return;
+	} else if (data.value("fence", false).toBool()) {
+		setFence(qvariant_cast<QQuickItem*>(object));
+		return;
+	}
+
 	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
 
 	if (ladder && m_ladderMode == LadderUnavaliable) {
@@ -302,10 +320,22 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 void GamePlayer::onBodyEndContact(Box2DFixture *other)
 {
 	QVariant object = other->property("targetObject");
-	//QVariantMap data = other->property("targetData").toMap();
+	QVariantMap data = other->property("targetData").toMap();
 
 	if (!object.isValid())
 		return;
+
+	if (data.value("fire", false).toBool()) {
+		QQuickItem *i = qvariant_cast<QQuickItem*>(object);
+		if (m_fire == i)
+			setFire(nullptr);
+		return;
+	} else 	if (data.value("fence", false).toBool()) {
+		QQuickItem *i = qvariant_cast<QQuickItem*>(object);
+		if (m_fence == i)
+			setFence(nullptr);
+		return;
+	}
 
 	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
 
@@ -436,6 +466,77 @@ void GamePlayer::attackByGun()
 		return;
 
 	m_cosGame->tryAttack(this, m_enemy);
+}
+
+
+/**
+ * @brief GamePlayer::operateFire
+ */
+
+void GamePlayer::operate(QQuickItem *item)
+{
+	if (!item || !parentEntity())
+		return;
+
+	if (!m_isAlive)
+		return;
+
+	if (m_cosGame && !m_cosGame->running())
+		return;
+
+	setMoveToPoint(QPointF(0,0));
+	setMoveToItem(nullptr);
+
+	QPointF left = item->property("operatingPointLeft").toPointF() + item->position();
+	QPointF right = item->property("operatingPointRight").toPointF() + item->position();
+
+	qreal myLeft = parentEntity()->x()+m_boundBox->x();
+	qreal myRight = parentEntity()->x()+m_boundBox->x()+m_boundBox->width();
+
+	if (myRight < left.x()) {
+		setMoveToItem(item);
+		setMoveToPoint(left);
+		autoMove();
+	} else if (myLeft > right.x()) {
+		setMoveToItem(item);
+		setMoveToPoint(right);
+		autoMove();
+	} else {
+		operateReal(item);
+	}
+
+}
+
+
+/**
+ * @brief GamePlayer::autoMoveUpdate
+ * @param item
+ */
+
+void GamePlayer::autoMove()
+{
+	if (m_moveToPoint == QPointF(0,0))
+		return;
+
+	if (!parentEntity())
+		return;
+
+	qreal realX = parentEntity()->x()+m_boundBox->x();
+
+	if (m_moveToPoint.x() < realX) {
+		qreal distance = realX - m_moveToPoint.x();
+		if (distance <= 5) {
+			operateReal(m_moveToItem);
+		} else
+			emit autoMoveWalkRequest(true);
+	} else {
+		qreal distance = m_moveToPoint.x() - (realX+m_boundBox->width());
+		if (distance <= 5) {
+			operateReal(m_moveToItem);
+		} else
+			emit autoMoveWalkRequest(false);
+	}
+
 }
 
 
@@ -586,4 +687,102 @@ void GamePlayer::onEnemyDied()
 }
 
 
+/**
+ * @brief GamePlayer::operateReal
+ * @param item
+ */
 
+void GamePlayer::operateReal(QQuickItem *item)
+{
+	if (!item)
+		return;
+
+	if (!m_cosGame)
+		return;
+
+	GameMatch *match = m_cosGame->gameMatch();
+
+	if (!match)
+		return;
+
+	setMoveToItem(nullptr);
+	setMoveToPoint(QPointF(0,0));
+
+	if (item == m_fire) {
+		if (match->water() < 1)
+			return;
+		setFire(nullptr);
+		match->setWater(qMax(match->water()-1, 0));
+	} else if (item == m_fence) {
+		if (match->pliers() < 1)
+			return;
+		setFence(nullptr);
+	} else {
+		return;
+	}
+
+	emit operateRequest(item);
+	QMetaObject::invokeMethod(item, "operate", Qt::QueuedConnection);
+
+	return;
+}
+
+
+
+
+QPointF GamePlayer::moveToPoint() const
+{
+	return m_moveToPoint;
+}
+
+void GamePlayer::setMoveToPoint(QPointF newMoveToPoint)
+{
+	if (m_moveToPoint == newMoveToPoint)
+		return;
+
+	m_moveToPoint = newMoveToPoint;
+	emit moveToPointChanged();
+
+	if (newMoveToPoint == QPointF(0,0)) {
+		setMoveToItem(nullptr);
+	}
+}
+
+QQuickItem *GamePlayer::moveToItem() const
+{
+	return m_moveToItem;
+}
+
+void GamePlayer::setMoveToItem(QQuickItem *newMoveToItem)
+{
+	if (m_moveToItem == newMoveToItem)
+		return;
+	m_moveToItem = newMoveToItem;
+	emit moveToItemChanged();
+}
+
+QQuickItem *GamePlayer::fire() const
+{
+	return m_fire;
+}
+
+void GamePlayer::setFire(QQuickItem *newFire)
+{
+	if (m_fire == newFire)
+		return;
+	m_fire = newFire;
+	emit fireChanged();
+}
+
+QQuickItem *GamePlayer::fence() const
+{
+	return m_fence;
+}
+
+void GamePlayer::setFence(QQuickItem *newFence)
+{
+	if (m_fence == newFence)
+		return;
+	m_fence = newFence;
+	emit fenceChanged();
+}

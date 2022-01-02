@@ -15,6 +15,8 @@
 - Hyptosis tileset by Daniel Harris "Hyptosis" - http://opengameart.org/users/hyptosis, http://www.lorestrome.com/pixel_archive/main.htm
 - Game-icons.net by Lorc, Delapouite & contributors - https://opengameart.org/content/700-rpg-icons, https://game-icons.net
 - Free Game Assets - https://mobilegamegraphics.com/product/airplane-dogfight-assets-free-assets/
+- WrathGames Studio - https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog
+- Sprites: Snk/Playmore, Black Zellyo3, Dk, Ivo, Ragey  - https://www.spriters-resource.com
 
 **Music & SFX**
 

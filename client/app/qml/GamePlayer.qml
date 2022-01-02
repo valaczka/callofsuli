@@ -22,6 +22,9 @@ GameEntity {
 	hpValue: ep.shield ? ep.shield : ep.hp
 
 
+	readonly property bool isWalking: Array("walk", "walk2", "walk3", "walk4", "walk5").includes(spriteSequence.currentSprite)
+	readonly property bool isRunning: Array("run", "run2", "run3", "run4", "run5", "runend").includes(spriteSequence.currentSprite)
+	readonly property bool isFalling: ep._fallStartY != -1 || Array("fall", "fall2", "fall3", "fall4", "fall5", "fallend", "falldeath", "falldeath2").includes(spriteSequence.currentSprite)
 	readonly property bool isClimbing: Array("climbup", "climbup2", "climbup3",
 											 "climbdown", "climbdown2", "climbdown3").includes(spriteSequence.currentSprite)
 
@@ -48,10 +51,12 @@ GameEntity {
 		}
 
 		onKilledByEnemy: {
+			ep.moveToPoint = Qt.point(0,0)
 			spriteSequence.jumpTo("dead")
 		}
 
 		onAttack: {
+			ep.moveToPoint = Qt.point(0,0)
 			shotEffect.play()
 			spriteSequence.jumpTo("shot")
 		}
@@ -65,6 +70,7 @@ GameEntity {
 		}
 
 		onIsOnGroundChanged: {
+			console.debug("ISONGROUND", isOnGround)
 			if (!isBurning) {
 				if (isOnGround) {
 					if (_fallStartY == -1) {
@@ -96,13 +102,28 @@ GameEntity {
 			}
 		}
 
-		onRayCastPerformed: {
+		/*onRayCastPerformed: {
 			if (cosGame.gameScene.debug)
 				setray(rect)
-		}
+		}*/
 
 		onDiedByBurn: {
+			ep.moveToPoint = Qt.point(0,0)
 			spriteSequence.jumpTo("burn")
+		}
+
+		onAutoMoveWalkRequest: {
+			root.facingLeft = moveLeft
+
+			if (!root.isWalking) {
+				spriteSequence.jumpTo("walk")
+			}
+		}
+
+		onOperateRequest: {
+			timerWalk.stop()
+			timerRun.stop()
+			spriteSequence.jumpTo("operate")
 		}
 	}
 
@@ -160,6 +181,8 @@ GameEntity {
 					root.x -= _walk
 				else
 					root.x += _walk
+
+				ep.autoMove(Qt.point(root.x, root.y))
 			}
 		}
 
@@ -200,6 +223,9 @@ GameEntity {
 							  readyToStop = false
 
 	}
+
+
+
 
 	Timer {
 		id: timerClimb
@@ -284,6 +310,7 @@ GameEntity {
 
 
 	function stopMoving() {
+		ep.moveToPoint = Qt.point(0,0)
 		timerWalk.readyToStop = true
 		timerRun.readyToStop = true
 		timerClimb.nextSprite = "climbpause"
@@ -293,6 +320,8 @@ GameEntity {
 	function turnRight() {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return
+
+		ep.moveToPoint = Qt.point(0,0)
 
 		if (isFalling || isOperating ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
@@ -307,6 +336,7 @@ GameEntity {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
+		ep.moveToPoint = Qt.point(0,0)
 
 		if (isFalling || isOperating ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
@@ -320,6 +350,8 @@ GameEntity {
 	function walkRight() {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return
+
+		ep.moveToPoint = Qt.point(0,0)
 
 		if (isFalling || isOperating ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
@@ -336,6 +368,7 @@ GameEntity {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
+		ep.moveToPoint = Qt.point(0,0)
 
 		if (isFalling || isOperating ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
@@ -353,6 +386,8 @@ GameEntity {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
+		ep.moveToPoint = Qt.point(0,0)
+
 		if (isFalling || isOperating ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
@@ -368,6 +403,7 @@ GameEntity {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return
 
+		ep.moveToPoint = Qt.point(0,0)
 
 		if (isFalling || isOperating ||
 				ep.ladderMode == GamePlayerPrivate.LadderClimb ||
@@ -384,6 +420,8 @@ GameEntity {
 	function moveUp() {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return false
+
+		ep.moveToPoint = Qt.point(0,0)
 
 		if (isFalling || isOperating)
 			return false
@@ -407,6 +445,8 @@ GameEntity {
 		if(!ep.cosGame.running || !ep.isAlive)
 			return false
 
+		ep.moveToPoint = Qt.point(0,0)
+
 		if (isFalling || isOperating)
 			return false
 
@@ -425,13 +465,6 @@ GameEntity {
 	}
 
 
-	function operate() {
-		if(!ep.cosGame.running || !ep.isAlive || spriteSequence.currentSprite !== "idle")
-			return false
-
-		spriteSequence.jumpTo("operate")
-		return true
-	}
 
 	function spriteToIdle() {
 		if(!ep.isAlive)

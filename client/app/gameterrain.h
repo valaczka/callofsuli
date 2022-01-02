@@ -41,6 +41,9 @@
 #include "gameladder.h"
 #include "gameblock.h"
 #include "tiledpaintedlayer.h"
+#include "gamepickable.h"
+
+typedef QPair<QPointF, GamePickable::PickableType> GameTerrainItem;
 
 class GameTerrain : public QObject
 {
@@ -71,6 +74,10 @@ public:
 
 	QPointF startPosition() const { return m_startPosition; }
 
+	const QList<QPointF> &fires() const;
+	const QList<QPointF> &fences() const;
+	const QList<GameTerrainItem> &items() const;
+
 private:
 	bool loadMap();
 	void loadLayers();
@@ -78,6 +85,9 @@ private:
 	void loadGroundLayer(Tiled::Layer *layer);
 	void loadPlayerLayer(Tiled::Layer *layer);
 	void loadLadderLayer(Tiled::Layer *layer);
+	void loadFireLayer(Tiled::Layer *layer);
+	void loadFenceLayer(Tiled::Layer *layer);
+	void loadItemLayer(Tiled::Layer *layer);
 
 	QList<GameEnemyData *> m_enemies;
 	QList<GameLadder *> m_ladders;
@@ -85,6 +95,9 @@ private:
 	QList<QRectF> m_groundObjects;
 	QList<QPointF> m_playerPositions;
 	QPointF m_startPosition;
+	QList<QPointF> m_fires;
+	QList<QPointF> m_fences;
+	QList<GameTerrainItem> m_items;
 
 	QString m_tmxFile;
 	Tiled::Map *m_map;

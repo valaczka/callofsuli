@@ -58,6 +58,9 @@ class GameMatch : public QObject
 	Q_PROPERTY(int xp READ xp WRITE setXP NOTIFY xpChanged)
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
 
+	Q_PROPERTY(int water READ water WRITE setWater NOTIFY waterChanged)
+	Q_PROPERTY(int pliers READ pliers WRITE setPliers NOTIFY pliersChanged)
+
 
 public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
@@ -110,6 +113,12 @@ public:
 	void addStatistics(const QString &objective, const bool &success, const int &elapsed);
 	QJsonArray takeStatistics();
 
+	int water() const;
+	void setWater(int newWater);
+
+	int pliers() const;
+	void setPliers(int newPliers);
+
 public slots:
 	bool check(QString *errorString);
 	void addXP(const qreal &factor);
@@ -147,6 +156,8 @@ signals:
 	void xpChanged(int xp);
 	void baseXPChanged(int baseXP);
 	void deathmatchChanged(bool deathmatch);
+	void waterChanged();
+	void pliersChanged();
 
 private:
 	GameMap *m_gameMap;
@@ -169,6 +180,8 @@ private:
 	int m_elapsedTime;
 	bool m_deathmatch;
 	QVector<Statistics> m_statData;
+	int m_water;
+	int m_pliers;
 };
 
 

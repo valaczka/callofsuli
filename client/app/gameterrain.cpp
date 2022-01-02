@@ -47,6 +47,8 @@ GameTerrain::GameTerrain(QList<TiledPaintedLayer *> *tiledLayers, QQuickItem *ti
 	, m_groundObjects()
 	, m_playerPositions()
 	, m_startPosition()
+	, m_fires()
+	, m_fences()
 	, m_tmxFile()
 	, m_map(nullptr)
 	, m_tiledLayers(tiledLayers)
@@ -193,6 +195,12 @@ void GameTerrain::loadLayers()
 			loadPlayerLayer(layer);
 		} else if (layer->isObjectGroup() && layer->name() == "Ladders") {
 			loadLadderLayer(layer);
+		} else if (layer->isObjectGroup() && layer->name() == "Fires") {
+			loadFireLayer(layer);
+		} else if (layer->isObjectGroup() && layer->name() == "Fences") {
+			loadFenceLayer(layer);
+		} else if (layer->isObjectGroup() && layer->name() == "Items") {
+			loadItemLayer(layer);
 		}
 	}
 }
@@ -369,6 +377,121 @@ void GameTerrain::loadLadderLayer(Tiled::Layer *layer)
 
 		m_ladders.append(ladder);
 	}
+}
+
+
+/**
+ * @brief GameTerrain::loadFireLayer
+ * @param layer
+ */
+
+void GameTerrain::loadFireLayer(Tiled::Layer *layer)
+{
+	qDebug() << "Load fire layer" << layer;
+
+	if (!layer)
+		return;
+
+	Tiled::ObjectGroup *og = layer->asObjectGroup();
+
+	QList<Tiled::MapObject*> objects = og->objects();
+
+	foreach (Tiled::MapObject *object, objects) {
+		qreal x = object->x();
+		qreal y = object->y();
+
+		m_fires.append(QPointF(x, y));
+	}
+}
+
+
+/**
+ * @brief GameTerrain::loadFenceLayer
+ * @param layer
+ */
+
+void GameTerrain::loadFenceLayer(Tiled::Layer *layer)
+{
+	qDebug() << "Load fence layer" << layer;
+
+	if (!layer)
+		return;
+
+	Tiled::ObjectGroup *og = layer->asObjectGroup();
+
+	QList<Tiled::MapObject*> objects = og->objects();
+
+	foreach (Tiled::MapObject *object, objects) {
+		qreal x = object->x();
+		qreal y = object->y();
+
+		m_fences.append(QPointF(x, y));
+	}
+}
+
+
+/**
+ * @brief GameTerrain::loadItemLayer
+ * @param layer
+ */
+
+void GameTerrain::loadItemLayer(Tiled::Layer *layer)
+{
+	qDebug() << "Load item layer" << layer;
+
+	if (!layer)
+		return;
+
+	Tiled::ObjectGroup *og = layer->asObjectGroup();
+
+	QList<Tiled::MapObject*> objects = og->objects();
+
+	foreach (Tiled::MapObject *object, objects) {
+		qreal x = object->x();
+		qreal y = object->y();
+		QString type = object->type();
+
+		GamePickable::PickableType pickableType = GamePickable::PickableInvalid;
+
+		if (type == "water")
+			pickableType = GamePickable::PickableWater;
+		else if (type == "pliers")
+			pickableType = GamePickable::PickablePliers;
+
+		if (pickableType == GamePickable::PickableInvalid) {
+			qWarning() << "Invalid item" << type;
+			continue;
+		}
+		m_items.append(GameTerrainItem(QPointF(x, y), pickableType));
+	}
+}
+
+
+/**
+ * @brief GameTerrain::items
+ * @return
+ */
+
+const QList<GameTerrainItem> &GameTerrain::items() const
+{
+	return m_items;
+}
+
+
+
+/**
+ * @brief GameTerrain::fences
+ * @return
+ */
+
+const QList<QPointF> &GameTerrain::fences() const
+{
+	return m_fences;
+}
+
+const QList<QPointF> &GameTerrain::fires() const
+{
+	return m_fires;
 }
 
 

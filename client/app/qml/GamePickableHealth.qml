@@ -7,7 +7,7 @@ GamePickable {
 	id: item
 
 	targetObject: GamePickablePrivate {
-		type: GamePickable.PickableHealth
+		type: GamePickablePrivate.PickableHealth
 		game: cosGame
 		data: pickableData
 	}

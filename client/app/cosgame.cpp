@@ -514,6 +514,15 @@ void CosGame::pickPickable()
 			increaseShield(data.value("num", 0).toInt());
 			emit gameMessageSent(tr("%1 shields gained").arg(data.value("num", 0).toInt()));
 			break;
+		case GamePickable::PickableWater:
+			increaseWater(1);
+			emit gameMessageSent(tr("1 water gained"));
+			break;
+		case GamePickable::PickablePliers:
+			increasePliers(1);
+			emit gameMessageSent(tr("1 pliers gained"));
+			break;
+
 		default:
 			break;
 	}
@@ -757,6 +766,39 @@ void CosGame::increaseShield(const int &num)
 
 	pl->setShield(pl->shield()+num);
 }
+
+
+/**
+ * @brief CosGame::increasePliers
+ * @param num
+ */
+
+void CosGame::increasePliers(const int &num)
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid game match";
+		return;
+	}
+
+	m_gameMatch->setPliers(m_gameMatch->pliers()+num);
+}
+
+
+/**
+ * @brief CosGame::increaseWater
+ * @param num
+ */
+
+void CosGame::increaseWater(const int &num)
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid game match";
+		return;
+	}
+
+	m_gameMatch->setWater(m_gameMatch->water()+num);
+}
+
 
 
 
