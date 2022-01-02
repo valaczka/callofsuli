@@ -36,6 +36,9 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QNetworkDatagram>
 #include "androidshareutils.h"
+#include <iostream>
+
+#include "gamemapnew.h"
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -579,6 +582,25 @@ void Servers::acceptCertificate(ServerObject *server, const QSslCertificate &cer
 	server->setIgnoredErrors(_toList);
 	saveServerList();
 	serverConnect(server);
+}
+
+
+
+
+/**
+ * @brief Servers::testMap
+ */
+
+void Servers::testMap()
+{
+	GameMapNew *map = GameMapNew::fromBinaryData(Client::fileContent(":/internal/game/demo.map"));
+
+	qDebug() << "MAP" << map;
+	if (map) {
+		std::cerr << map->toJsonDocument().toJson(QJsonDocument::Indented).data();
+	}
+
+	delete map;
 }
 
 

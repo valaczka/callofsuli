@@ -112,6 +112,8 @@ QTabPage {
 			mainWindow.visibility = "FullScreen"
 		}
 		pushContent(panelList)
+
+		servers.testMap()
 	}
 
 	onPageActivatedFirst:  servers.doAutoConnect(cosClient.takePositionalArgumentsToProcess())
