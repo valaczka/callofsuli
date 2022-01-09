@@ -44,7 +44,7 @@ class StudentMaps : public AbstractActivity
 	Q_OBJECT
 
 	Q_PROPERTY(ObjectGenericListModel<MapListObject> *modelMapList READ modelMapList NOTIFY modelMapListChanged)
-	Q_PROPERTY(bool demoMode READ demoMode WRITE setDemoMode NOTIFY demoModeChanged)
+	Q_PROPERTY(bool demoMode READ demoMode NOTIFY demoModeChanged)
 	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
 
@@ -60,6 +60,8 @@ public:
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
 
+	Q_INVOKABLE void init(const bool &demoMode);
+
 	ObjectGenericListModel<MapListObject> *modelMapList() const;
 
 public slots:
@@ -70,12 +72,8 @@ public slots:
 	void getMissionList();
 	void getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch);
 	void playGame(const QString &uuid, const int &level, const bool &deathmatch);
-	void setDemoMode(bool demoMode);
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
-
-protected slots:
-	void clientSetup() override;
 
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
@@ -133,7 +131,6 @@ private:
 	const QString m_demoMapFile;
 	ObjectGenericListModel<MapListObject> *m_modelMapList;
 	GameMap * m_currentMap;
-	CosDb *m_imageDb;
 	bool m_demoMode;
 	QVariantMap m_demoSolverMap;
 	int m_baseXP;

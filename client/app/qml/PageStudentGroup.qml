@@ -80,6 +80,8 @@ QTabPage {
 				mainStack.pop(control)
 		}
 
+		Component.onCompleted: init(false)
+
 	}
 
 	Component {

@@ -91,10 +91,7 @@ public slots:
 
 	void acceptCertificate(ServerObject *server, const QSslCertificate &cert, const QList<int> &errorList);
 
-	void testMap();
-
 protected slots:
-	void clientSetup() override;
 	void onMessageReceived(const CosMessage &message) override;
 	void onOneResourceDownloaded(const CosDownloaderItem &item, const QByteArray &, const QJsonObject &);
 

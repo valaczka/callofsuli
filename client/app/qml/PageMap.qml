@@ -21,11 +21,7 @@ QTabPage {
 	compact: true
 
 
-	StudentMaps {
-		id: demoStudentMaps
 
-		demoMode: true
-	}
 
 
 	Component {
@@ -46,16 +42,21 @@ QTabPage {
 	}
 
 
+	Component {
+		id: demoStudentMapsComponent
+
+		StudentMaps {
+			Component.onCompleted: init(true)
+		}
+	}
 
 	onDemoModeChanged: if (demoMode) {
-						   demoStudentMaps.client = cosClient
-						   studentMaps = demoStudentMaps
+						   studentMaps = demoStudentMapsComponent.createObject(control)
 					   }
 
 
-
 	onPageActivatedFirst: {
-		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true)) {
+		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true) === false) {
 			cosClient.sendMessageInfo(qsTr("Képernyő tájolása"), qsTr("Fektesd el a képernyőt"))
 			cosClient.setSetting("notification/gameLandscape", false)
 		}
@@ -74,7 +75,7 @@ QTabPage {
 	Connections {
 		target: Qt.application
 		function onStateChanged() {
-			if (Qt.platform.os !== "android")
+			if (Qt.platform.os !== "android" && Qt.platform.os !== "ios")
 				return
 
 			switch (Qt.application.state) {
@@ -92,7 +93,9 @@ QTabPage {
 	}
 
 
-	Component.onCompleted: pushContent(componentMissionList)
+	Component.onCompleted: {
+		pushContent(componentMissionList)
+	}
 
 
 	function loadMissionLevel(uuid, level, deathmatch) {

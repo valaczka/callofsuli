@@ -46,7 +46,6 @@ Page {
 
 	GameActivity {
 		id: gameActivity
-		client: cosClient
 		game: game
 
 		onPreparedChanged: {

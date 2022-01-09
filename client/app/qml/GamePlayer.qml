@@ -70,7 +70,6 @@ GameEntity {
 		}
 
 		onIsOnGroundChanged: {
-			console.debug("ISONGROUND", isOnGround)
 			if (!isBurning) {
 				if (isOnGround) {
 					if (_fallStartY == -1) {

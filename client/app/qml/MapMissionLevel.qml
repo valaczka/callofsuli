@@ -178,7 +178,7 @@ QTabContainer {
 				height: CosStyle.pixelSize*3
 				width: CosStyle.pixelSize*3
 				running: true
-				Material.accent: CosStyle.colorErrorLighter
+				Material.accent: CosStyle.colorWarningLighter
 			}
 
 			QLabel {
@@ -186,7 +186,7 @@ QTabContainer {
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Betöltés...")
 				font.pixelSize: CosStyle.pixelSize*1.2
-				color: CosStyle.colorErrorLighter
+				color: CosStyle.colorWarningLighter
 				topPadding: 20
 			}
 
@@ -453,13 +453,14 @@ QTabContainer {
 		target: studentMaps
 
 		function onLevelInfoReady(info) {
-			console.debug("!!!")
 			buttonPlay.enabled = info.available
 			labelTitle.text = info.name
 			labelDescription.text = info.description/*+"\n\n"+
 					qsTr("HP: %1\n").arg(info.hp)+
 					qsTr("Idő: %1\n").arg(JS.secToMMSS(info.duration))+
 					qsTr("Ellenfelek: %1").arg(info.enemies)*/
+
+			console.debug("LEVEL INFO READY", control, autoPlay, info.available)
 
 			if (autoPlay && info.available) {
 				_state = 1

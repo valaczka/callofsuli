@@ -146,8 +146,8 @@ MapEditor::MapEditor(QQuickItem *parent)
 												  this);
 
 
-	QHash<QByteArray, GameEnemyData::InventoryType> ilist =  GameEnemyData::inventoryTypes();
-	QHash<QByteArray, GameEnemyData::InventoryType>::const_iterator it;
+	QHash<QString, GameEnemyData::InventoryType> ilist =  GameEnemyData::inventoryTypes();
+	QHash<QString, GameEnemyData::InventoryType>::const_iterator it;
 	QVariantMap im;
 
 	for (it = ilist.constBegin(); it != ilist.constEnd(); ++it) {
@@ -271,9 +271,7 @@ MapEditor::~MapEditor()
 {
 	if (m_loaded) {
 		qDebug() << "Remove image provider";
-		QQmlEngine *engine = qmlEngine(this);
-		if (engine)
-			engine->removeImageProvider("mapdb");
+			Client::clientInstance()->rootEngine()->removeImageProvider("mapdb");
 	}
 
 
@@ -316,10 +314,7 @@ bool MapEditor::isWithGraphviz() const
 
 TerrainData MapEditor::defaultTerrain() const
 {
-	if (!m_client)
-		return TerrainData();
-
-	return m_client->terrain(m_client->getSetting("defaultTerrain", "West_Louische").toString());
+	return Client::clientInstance()->terrain(Client::clientInstance()->getSetting("defaultTerrain", "West_Louische").toString());
 }
 
 
@@ -330,12 +325,12 @@ TerrainData MapEditor::defaultTerrain() const
 
 TerrainData MapEditor::randomTerrain(const int &level) const
 {
-	if (!m_client || !m_client->availableTerrains().size())
+	if (!Client::clientInstance()->availableTerrains().size())
 		return defaultTerrain();
 
 	QVector<TerrainData> list;
 
-	foreach (TerrainData d, m_client->availableTerrains()) {
+	foreach (TerrainData d, Client::clientInstance()->availableTerrains()) {
 		if (level == -1 || d.level == -1 || d.level == level)
 			list.append(d);
 	}
@@ -405,19 +400,19 @@ QString MapEditor::readableFilename() const
 void MapEditor::createTargets(const QString &filename)
 {
 	if (m_loaded) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Az adatbázis már meg van nyitva"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Az adatbázis már meg van nyitva"));
 		return;
 	}
 
 	if (filename.isEmpty() || !QFile::exists(filename)) {
-		m_client->sendMessageWarning(tr("A fájl nem található"), filename);
+		Client::clientInstance()->sendMessageWarning(tr("A fájl nem található"), filename);
 		emit loadFailed();
 		return;
 	}
 
 	if (!db()->isOpen()) {
 		if (!db()->open()) {
-			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
+			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
 			emit loadFailed();
 			return;
 		}
@@ -437,18 +432,18 @@ void MapEditor::createTargets(const QString &filename)
 void MapEditor::create(const QString &filename)
 {
 	if (m_loaded) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Az adatbázis már meg van nyitva"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Az adatbázis már meg van nyitva"));
 		return;
 	}
 
 	if (!filename.isEmpty() && QFile::exists(filename)) {
-		m_client->sendMessageWarning(tr("A fájl már létezik"), filename);
+		Client::clientInstance()->sendMessageWarning(tr("A fájl már létezik"), filename);
 		return;
 	}
 
 	if (!db()->isOpen()) {
 		if (!db()->open()) {
-			m_client->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
+			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem lehet előkészíteni az adatbázist!"));
 			emit loadFailed();
 			return;
 		}
@@ -468,7 +463,7 @@ void MapEditor::create(const QString &filename)
 void MapEditor::save(const QString &filename)
 {
 	if (!m_loaded || !db()->isOpen()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Az adatbázis nincs megnyitva!"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Az adatbázis nincs megnyitva!"));
 		emit saveFailed();
 		return;
 	}
@@ -490,13 +485,13 @@ void MapEditor::save(const QString &filename)
 void MapEditor::saveCopy(const QString &filename)
 {
 	if (!m_loaded || !db()->isOpen()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Az adatbázis nincs megnyitva!"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Az adatbázis nincs megnyitva!"));
 		emit saveFailed();
 		return;
 	}
 
 	if (filename.isEmpty()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Nincs fájlnév megadva!"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nincs fájlnév megadva!"));
 		emit saveFailed();
 		return;
 	}
@@ -790,7 +785,7 @@ void MapEditor::play(QVariantMap data)
 	setLoadProgress(0.0);
 
 	m_loadAbortRequest = false;
-	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress", false);
+	GameMap *game = nullptr; //GameMap::fromDb(db(), this, "setLoadProgress", false);
 
 	if (!game) {
 		emit playFailed(tr("Adatbázis hiba"));
@@ -807,7 +802,7 @@ void MapEditor::play(QVariantMap data)
 	m_gameMatch->setTerrain(gamedata.value("terrain").toString());
 	m_gameMatch->setStartHp(gamedata.value("startHP").toInt());
 	m_gameMatch->setDuration(gamedata.value("duration").toInt());
-	m_gameMatch->setStartBlock(gamedata.value("startBlock").toInt());
+	//m_gameMatch->setStartBlock(gamedata.value("startBlock").toInt());
 
 
 	QString err;
@@ -984,7 +979,7 @@ void MapEditor::missionLevelAdd(QVariantMap data)
 
 	if (!db()->execSelectQuery("SELECT * FROM missionLevels WHERE mission=? AND level=?",
 	{m_currentMission, level}).isEmpty()) {
-		m_client->sendMessageWarning(tr("Szint hozzáadása"), tr("A %1. szint már létezik az aktuális küldetésben!").arg(level));
+		Client::clientInstance()->sendMessageWarning(tr("Szint hozzáadása"), tr("A %1. szint már létezik az aktuális küldetésben!").arg(level));
 		return;
 	}
 
@@ -1359,7 +1354,7 @@ void MapEditor::missionLockGraphUpdate()
 
 	dot += "}";
 
-	img = m_client->graphvizImage(dot, "png");
+	img = Client::clientInstance()->graphvizImage(dot, "png");
 
 #endif
 
@@ -1662,7 +1657,7 @@ void MapEditor::chapterImport(QVariantMap data)
 
 
 	if (chapter == -1) {
-		m_client->sendMessageError(tr("Importálás"), tr("Érvénytelen szakasz!"));
+		Client::clientInstance()->sendMessageError(tr("Importálás"), tr("Érvénytelen szakasz!"));
 		return;
 	}
 
@@ -1671,7 +1666,7 @@ void MapEditor::chapterImport(QVariantMap data)
 	importer.setChapterId(chapter);
 
 	if (!importer.import()) {
-		m_client->sendMessageError(tr("Importálás"), tr("Hibás adatok"));
+		Client::clientInstance()->sendMessageError(tr("Importálás"), tr("Hibás adatok"));
 		return;
 	}
 
@@ -2074,10 +2069,10 @@ void MapEditor::openPrivate(QVariantMap data)
 
 	QByteArray d = Client::fileContent(filename);
 
-	GameMap *game = GameMap::fromBinaryData(d, this, "setLoadProgress");
+	GameMap *game = GameMap::fromBinaryData(d);//, "setLoadProgress");
 
 	if (!game) {
-		m_client->sendMessageError(tr("Hibás fájl"), filename);
+		Client::clientInstance()->sendMessageError(tr("Hibás fájl"), filename);
 		db()->close();
 		emit loadFailed();
 		return;
@@ -2103,8 +2098,9 @@ void MapEditor::createPrivate(QVariantMap data)
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.0, 0.2));
 	setLoadProgress(0.0);
 
-	QUuid uuid = QUuid::createUuid();
-	GameMap map(uuid.toByteArray());
+	//QUuid uuid = QUuid::createUuid();
+	GameMap map;
+	//map.setUuid(uuid.toString());
 
 	if (loadDatabasePrivate(&map, filename)) {
 		setModified(true);
@@ -2132,20 +2128,18 @@ void MapEditor::savePrivate(QVariantMap data)
 	setLoadProgress(0.0);
 
 	m_loadAbortRequest = false;
-	GameMap *game = GameMap::fromDb(db(), this, "setLoadProgress");
+	GameMap *game = nullptr; //GameMap::fromDb(db(), this, "setLoadProgress");
 
 	if (!game) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Adatbázis hiba"));
 		emit saveFailed();
 		return;
 	}
 
-	GameMap::Mission *merror = nullptr;
-
-	game->missionLockTree(&merror);
+	GameMapMissionIface *merror = game->checkLockTree();
 
 	if (merror) {
-		m_client->sendMessageError(tr("Zárolási hiba"), tr("Körkörös zárolás: %1").arg(merror->name()));
+		//Client::clientInstance()->sendMessageError(tr("Zárolási hiba"), tr("Körkörös zárolás: %1").arg(merror->name()));
 		emit saveFailed();
 		return;
 	}
@@ -2156,7 +2150,7 @@ void MapEditor::savePrivate(QVariantMap data)
 
 	QFile f(filename);
 	if (!f.open(QIODevice::WriteOnly)) {
-		m_client->sendMessageError(tr("Írási hiba"), filename);
+		Client::clientInstance()->sendMessageError(tr("Írási hiba"), filename);
 		emit saveFailed();
 		return;
 	}
@@ -2181,16 +2175,6 @@ void MapEditor::savePrivate(QVariantMap data)
 
 
 
-
-/**
- * @brief MapEditor::clientSetup
- */
-
-void MapEditor::clientSetup()
-{
-	if (!m_client)
-		return;
-}
 
 
 /**
@@ -2298,31 +2282,30 @@ int MapEditor::missionLevelChapterAddPrivate(const QString &mission, const int &
 bool MapEditor::loadDatabasePrivate(GameMap *game, const QString &filename)
 {
 	setLoadProgressFraction(qMakePair<qreal, qreal>(0.2, 0.6));
-	game->setProgressFunc(this, "setLoadProgress");
+	//game->setProgressFunc(this, "setLoadProgress");
 
 
 	// Generate auto mission medals
 
-	foreach(GameMap::Mission *m, game->missions()) {
+	/*foreach(GameMapMission *m, game->missions()) {
 		if (m->medalImage().isEmpty())
 			m->setMedalImage(Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size())));
-	}
+	}*/
 
 
-	if (!game->toDb(db())) {
-		m_client->sendMessageError(tr("Adatfájl hiba"), db()->databaseName());
+	//if (!game->toDb(db())) {
+		Client::clientInstance()->sendMessageError(tr("Adatfájl hiba"), db()->databaseName());
 		db()->close();
 		return false;
-	}
+	//}
 
-	setLoadProgressFraction(qMakePair<qreal, qreal>(0.6, 1.0));
+	//setLoadProgressFraction(qMakePair<qreal, qreal>(0.6, 1.0));
 	if (!createTriggersPrivate())
 		return false;
 
 	qDebug() << "Add sqlimage provider";
-	QQmlEngine *engine = qmlEngine(this);
 	SqlImage *sqlImage = new SqlImage(db(), "images");
-	engine->addImageProvider("mapdb", sqlImage);
+	Client::clientInstance()->rootEngine()->addImageProvider("mapdb", sqlImage);
 	setFilename(filename);
 	setLoaded(true);
 

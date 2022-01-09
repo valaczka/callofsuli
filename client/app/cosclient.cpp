@@ -71,7 +71,7 @@
 #include "variantmapmodel.h"
 
 
-
+Client* Client::m_clientInstance = nullptr;
 QList<TerrainData> Client::m_availableTerrains;
 QVariantMap Client::m_characterData;
 QStringList Client::m_musicList;
@@ -1818,6 +1818,21 @@ bool Client::checkError(const CosMessage &message)
 }
 
 
+/**
+ * @brief Client::clientInstance
+ * @return
+ */
+
+Client *Client::clientInstance()
+{
+	if (!m_clientInstance) {
+		m_clientInstance = new Client();
+	}
+
+	return m_clientInstance;
+}
+
+
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 
@@ -2099,6 +2114,11 @@ void Client::setRootContext(QQmlContext *newRootContext)
 		return;
 	m_rootContext = newRootContext;
 	emit rootContextChanged();
+}
+
+QQmlEngine *Client::rootEngine() const
+{
+	return m_rootContext->engine();
 }
 
 const QUrl &Client::userPicture() const

@@ -132,9 +132,9 @@ int main(int argc, char *argv[])
 	Client::initialize();
 	Client::loadModules();
 
-	Client client;
+	Client* client = Client::clientInstance();
 
-	if (!client.commandLineParse(app))
+	if (!client->commandLineParse(app))
 		return 0;
 
 	Client::standardPathCreate();
@@ -144,8 +144,8 @@ int main(int argc, char *argv[])
 
 	QQmlApplicationEngine engine;
 	QQmlContext *context = engine.rootContext();
-	context->setContextProperty("cosClient", &client);
-	client.setRootContext(context);
+	context->setContextProperty("cosClient", client);
+	client->setRootContext(context);
 
 	engine.addImageProvider("font", new FontImage());
 	engine.addImageProvider("qrcode", new QrImage());
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	instance.setNotifyWindow(QGuiApplication::topLevelWindows().at(0));
-	client.setSingleInstance(&instance);
+	client->setSingleInstance(&instance);
 #endif
 
 	return app.exec();

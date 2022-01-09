@@ -34,6 +34,7 @@
 #include <QSettings>
 #include <QJsonObject>
 #include <QUrl>
+#include <QThread>
 
 #include "cosmessage.h"
 #include "variantmapmodel.h"
@@ -56,12 +57,6 @@ struct TerrainData;
 class Client : public QObject
 {
 	Q_OBJECT
-
-
-public:
-	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
-	Q_ENUM(ConnectionState)
-
 
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
@@ -97,10 +92,12 @@ public:
 
 	Q_PROPERTY(QQmlContext* rootContext READ rootContext WRITE setRootContext NOTIFY rootContextChanged)
 
+public:
+	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
+	Q_ENUM(ConnectionState)
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
-
 
 	static void registerResources();
 	static void registerTypes();
@@ -221,9 +218,12 @@ public:
 
 	QQmlContext *rootContext() const;
 	void setRootContext(QQmlContext *newRootContext);
+	QQmlEngine *rootEngine() const;
 
 	const QUrl &userPicture() const;
 	void setUserPicture(const QUrl &newUserPicture);
+
+	static Client *clientInstance();
 
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
@@ -402,6 +402,7 @@ private:
 	QString m_serverUuid;
 	QQmlContext *m_rootContext;
 
+	static Client *m_clientInstance;
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	QSingleInstance *m_singleInstance;

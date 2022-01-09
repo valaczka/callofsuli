@@ -228,9 +228,6 @@ protected:
 	bool loadDatabasePrivate(GameMap *game, const QString &filename = "");
 	bool createTriggersPrivate();
 
-protected slots:
-	void clientSetup() override;
-
 private:
 	QVariantMap missionLevelDefaults(const int &level);
 	int missionLevelAddPrivate(const QString &mission, const int &level);

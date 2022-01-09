@@ -60,9 +60,9 @@ GameEnemyData::GameEnemyData(QObject *parent)
  * @return
  */
 
-QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
+QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 {
-	QHash<QByteArray, GameEnemyData::InventoryType> list;
+	QHash<QString, GameEnemyData::InventoryType> list;
 
 	list["health"] = InventoryType(tr("1 HP hozzáadása"),
 								   "image://font/School/\uf124",
@@ -111,16 +111,16 @@ QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 
 QVariantMap GameEnemyData::inventoryInfo(const QString &module)
 {
-	QHash<QByteArray, InventoryType> list = inventoryTypes();
+	QHash<QString, InventoryType> list = inventoryTypes();
 
-	if (!list.contains(module.toLatin1())) {
+	if (!list.contains(module)) {
 		return QVariantMap({
 							   { "name", QObject::tr("Érvénytelen modul!") },
 							   { "icon", "image://font/Material Icons/\ue002" }
 						   });
 	}
 
-	InventoryType t = list.value(module.toLatin1());
+	InventoryType t = list.value(module);
 
 	return QVariantMap({
 						   { "name", t.name },
@@ -221,7 +221,7 @@ void GameEnemyData::setTargetId(int targetId)
 	emit targetIdChanged(m_targetId);
 }
 
-void GameEnemyData::setObjectiveUuid(QByteArray objectiveUuid)
+void GameEnemyData::setObjectiveUuid(QString objectiveUuid)
 {
 	if (m_objectiveUuid == objectiveUuid)
 		return;
@@ -258,7 +258,7 @@ Question GameEnemyData::generateQuestion()
 		return Question();
 
 
-	GameMap::Objective *objective = gameMap->objective(m_objectiveUuid);
+	GameMapObjective *objective = gameMap->objective(m_objectiveUuid);
 
 	if (!objective) {
 		return Question();

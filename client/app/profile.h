@@ -53,9 +53,6 @@ public slots:
 
 	void scoreModelUpdate(const QJsonArray &list);
 
-protected slots:
-	void clientSetup() override;
-
 signals:
 	void userGet(QJsonObject jsonData, QByteArray binaryData);
 	void userModify(QJsonObject jsonData, QByteArray binaryData);

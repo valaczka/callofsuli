@@ -110,7 +110,7 @@ QTabContainer {
 		onClicked: {
 			_mapWaitForDownload = null
 			var o = list.modelObject(index)
-			console.debug("OBJECT", o)
+
 			if (o.downloaded) {
 				studentMaps.mapLoad(o)
 			} else {

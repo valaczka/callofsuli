@@ -84,15 +84,15 @@ void GameMapModel::setGameMap(GameMap *map)
 	QVariantList ldata;
 	int cols = 0;
 
-	foreach(GameMap::Mission *m, map->missions()) {
+	foreach(GameMapMission *m, map->missions()) {
 		GameMapModel::Mission mis;
-		mis.uuid = QString::fromLatin1(m->uuid());
+		mis.uuid = m->uuid();
 		mis.name = m->name();
 		mis.medalImage = m->medalImage();
 
 		int n = 0;
 
-		foreach(GameMap::MissionLevel *ml, m->levels()) {
+		foreach(GameMapMissionLevel *ml, m->levels()) {
 			GameMapModel::MissionLevel misLevel;
 			misLevel.uuid = mis.uuid;
 			misLevel.level = ml->level();

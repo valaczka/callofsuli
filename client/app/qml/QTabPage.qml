@@ -50,10 +50,6 @@ Page {
 	signal pageDeactivated()
 	signal pageActivatedFirst()
 
-	onActivityChanged: if (activity) {
-						   activity.client = cosClient
-					   }
-
 
 	background: Item {
 		anchors.fill: parent

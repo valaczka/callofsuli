@@ -38,7 +38,7 @@
 
 
 
-Question::Question(GameMap::Objective *objective)
+Question::Question(GameMapObjective *objective)
 {
 	m_objective = objective;
 }

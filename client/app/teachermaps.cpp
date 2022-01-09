@@ -42,6 +42,9 @@ TeacherMaps::TeacherMaps(QQuickItem *parent)
 	, m_selectedMapId("")
 {
 	connect(this, &TeacherMaps::mapListGet, this, &TeacherMaps::onMapListGet);
+
+	CosDb *db = teacherMapsDb(Client::clientInstance(), this);
+	addDb(db, false);
 }
 
 
@@ -173,20 +176,6 @@ void TeacherMaps::mapDownloadPrivate(const QVariantMap &data, CosDownloader *dow
 
 
 
-/**
- * @brief TeacherMaps::clientSetup
- */
-
-void TeacherMaps::clientSetup()
-{
-	if (!m_client)
-		return;
-
-	CosDb *db = teacherMapsDb(m_client, this);
-	addDb(db, false);
-}
-
-
 
 
 
@@ -233,7 +222,7 @@ void TeacherMaps::mapUpload(const QUrl &url)
 	QFile f(url.toLocalFile());
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-		m_client->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -241,7 +230,7 @@ void TeacherMaps::mapUpload(const QUrl &url)
 
 	GameMap *map = GameMap::fromBinaryData(content);
 	if (!map) {
-		m_client->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -272,7 +261,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 	QFile f(url.toLocalFile());
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-		m_client->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -280,7 +269,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 
 	GameMap *map = GameMap::fromBinaryData(content);
 	if (!map) {
-		m_client->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -289,7 +278,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 	delete map;
 
 	if (fuuid != m_selectedMapId) {
-		m_client->sendMessageWarning(tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -318,7 +307,7 @@ void TeacherMaps::mapExport(const QUrl &url)
 	QVariantMap m = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {m_selectedMapId});
 
 	if (m.isEmpty()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
 		return;
 	}
 
@@ -326,13 +315,13 @@ void TeacherMaps::mapExport(const QUrl &url)
 
 	QFile f(url.toLocalFile());
 	if (!f.open(QIODevice::WriteOnly)) {
-		m_client->sendMessageError(tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageError(tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
 		return;
 	}
 	f.write(b);
 	f.close();
 
-	m_client->sendMessageInfo(tr("Exportálás"), tr("Az exportálás sikerült: %1").arg(f.fileName()));
+	Client::clientInstance()->sendMessageInfo(tr("Exportálás"), tr("Az exportálás sikerült: %1").arg(f.fileName()));
 	return;
 }
 
@@ -429,7 +418,7 @@ void TeacherMaps::getSelectedMapInfo()
 				GameMap *m = GameMap::fromBinaryData(data);
 
 				if (m) {
-					foreach (GameMap::Mission *mis, m->missions()) {
+					foreach (GameMapMission *mis, m->missions()) {
 						mlist.append(mis->name());
 					}
 					mapReady = true;
@@ -487,8 +476,8 @@ QVariantMap TeacherMaps::missionNames(CosDb *db)
 		QVariantMap r;
 
 		if (map) {
-			foreach(GameMap::Mission *mis, map->missions()) {
-				QString missionid = QString::fromLatin1(mis->uuid());
+			foreach(GameMapMission *mis, map->missions()) {
+				QString missionid = mis->uuid();
 				QString name = mis->name();
 
 				r[missionid] = name;

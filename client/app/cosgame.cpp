@@ -588,7 +588,6 @@ void CosGame::setGameScene(QQuickItem *gameScene)
 
 void CosGame::appendPlayerStartPosition(GameObject *playerStartPosition)
 {
-	qDebug() << "APPEND position" << m_playerStartPositions.size() << playerStartPosition->x() << playerStartPosition->y();
 	m_playerStartPositions.append(playerStartPosition);
 }
 
@@ -893,7 +892,7 @@ void CosGame::onTimerTimeout()
 
 void CosGame::onGameMatchTimerTimeout()
 {
-	if (!m_gameMatch || !m_activity || !m_activity->client())
+	if (!m_gameMatch || !m_activity)
 		return;
 
 	int gameId = m_gameMatch->gameId();
@@ -901,13 +900,11 @@ void CosGame::onGameMatchTimerTimeout()
 	if (gameId == -1)
 		return;
 
-	Client *client = m_activity->client();
-
 	QJsonObject o;
 	o["id"] = gameId;
 	o["xp"] = m_gameMatch->xp();
 	o["stat"] = m_gameMatch->takeStatistics();
-	client->socketSend(CosMessage::ClassStudent, "gameUpdate", o);
+	Client::clientInstance()->socketSend(CosMessage::ClassStudent, "gameUpdate", o);
 }
 
 
@@ -943,22 +940,20 @@ void CosGame::onGameFinishedSuccess()
 	m_timer->stop();
 	m_matchTimer->stop();
 
-	if (!m_gameMatch || !m_activity || !m_activity->client())
+	if (!m_gameMatch || !m_activity)
 		return;
 
 	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
 
 	emit m_gameMatch->gameWin();
 
-	Client *client = m_activity->client();
-
-	client->stopSound(m_backgroundMusicFile);
-	client->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
+	Client::clientInstance()->stopSound(m_backgroundMusicFile);
+	Client::clientInstance()->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
 
 	QTimer::singleShot(1000, [=]() {
 		emit gameCompletedReady();
-		client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
-		client->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
 	});
 }
 
@@ -977,18 +972,16 @@ void CosGame::onGameFinishedLost()
 	m_timer->stop();
 	m_matchTimer->stop();
 
-	if (!m_gameMatch || !m_activity || !m_activity->client())
+	if (!m_gameMatch || !m_activity)
 		return;
 
 	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
 
 	emit m_gameMatch->gameLose();
 
-	Client *client = m_activity->client();
-
-	client->stopSound(m_backgroundMusicFile);
-	client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
-	client->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
+	Client::clientInstance()->stopSound(m_backgroundMusicFile);
+	Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
+	Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
 }
 
 
@@ -1067,15 +1060,15 @@ void CosGame::loadPickables()
 	if (!m_gameMatch)
 		return;
 
-	GameMap::MissionLevel *level = m_gameMatch->missionLevel();
+	GameMapMissionLevel *level = m_gameMatch->missionLevel();
 
 	if (!level)
 		return;
 
-	QHash<QByteArray, GameEnemyData::InventoryType> inventoryTypes = GameEnemyData::inventoryTypes();
+	QHash<QString, GameEnemyData::InventoryType> inventoryTypes = GameEnemyData::inventoryTypes();
 
-	foreach (GameMap::Inventory *inventory, level->inventories()) {
-		QByteArray module = inventory->module();
+	foreach (GameMapInventory *inventory, level->inventories()) {
+		QString module = inventory->module();
 		if (!inventoryTypes.contains(module)) {
 			qWarning() << "Invalid inventory module" << module;
 			continue;

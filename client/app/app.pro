@@ -153,6 +153,7 @@ SOURCES += \
 		googleoauth2.cpp \
 		main.cpp \
 		mapeditor.cpp \
+		mapimage.cpp \
 		maplistobject.cpp \
 		objectlistmodel.cpp \
 		objectlistmodelobject.cpp \
@@ -200,6 +201,7 @@ HEADERS += \
 	gameterrain.h \
 	googleoauth2.h \
 	mapeditor.h \
+	mapimage.h \
 	maplistobject.h \
 	modules/interfaces.h \
 	objectlistmodel.h \

@@ -42,7 +42,7 @@
 class Question
 {
 public:
-	explicit Question(GameMap::Objective *objective = nullptr);
+	explicit Question(GameMapObjective *objective = nullptr);
 
 	bool isValid() const;
 	QString module() const;
@@ -59,7 +59,7 @@ public:
 	QString qml() const;
 
 private:
-	GameMap::Objective *m_objective;
+	GameMapObjective *m_objective;
 	QVariantMap m_question;
 	QVariantMap m_answer;
 

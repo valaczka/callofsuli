@@ -23,8 +23,6 @@ QBasePage {
 	StudentMaps {
 		id: demoStudentMaps
 
-		demoMode: true
-
 		onGamePlayReady: {
 			var o = JS.createPage("Game", {
 									  gameMatch: gameMatch,
@@ -50,6 +48,8 @@ QBasePage {
 			})
 			d.open()
 		}
+
+		Component.onCompleted: init(true)
 	}
 
 	onDemoModeChanged: if (demoMode) {
