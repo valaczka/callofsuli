@@ -304,15 +304,9 @@ bool GameScene::loadScene()
 	loadFences(terrainData);
 	loadItems(terrainData);
 
-
 	emit sceneLoaded();
 
 	return true;
 }
-
-
-
-
-
 
 

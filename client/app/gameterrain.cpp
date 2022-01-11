@@ -201,6 +201,8 @@ void GameTerrain::loadLayers()
 			loadFenceLayer(layer);
 		} else if (layer->isObjectGroup() && layer->name() == "Items") {
 			loadItemLayer(layer);
+		} else if (layer->isObjectGroup() && layer->name() == "Preview") {
+			loadPreviewLayer(layer);
 		}
 	}
 }
@@ -396,12 +398,8 @@ void GameTerrain::loadFireLayer(Tiled::Layer *layer)
 
 	QList<Tiled::MapObject*> objects = og->objects();
 
-	foreach (Tiled::MapObject *object, objects) {
-		qreal x = object->x();
-		qreal y = object->y();
-
-		m_fires.append(QPointF(x, y));
-	}
+	foreach (Tiled::MapObject *object, objects)
+		m_fires.append(object->position());
 }
 
 
@@ -421,12 +419,8 @@ void GameTerrain::loadFenceLayer(Tiled::Layer *layer)
 
 	QList<Tiled::MapObject*> objects = og->objects();
 
-	foreach (Tiled::MapObject *object, objects) {
-		qreal x = object->x();
-		qreal y = object->y();
-
-		m_fences.append(QPointF(x, y));
-	}
+	foreach (Tiled::MapObject *object, objects)
+		m_fences.append(object->position());
 }
 
 
@@ -447,8 +441,6 @@ void GameTerrain::loadItemLayer(Tiled::Layer *layer)
 	QList<Tiled::MapObject*> objects = og->objects();
 
 	foreach (Tiled::MapObject *object, objects) {
-		qreal x = object->x();
-		qreal y = object->y();
 		QString type = object->type();
 
 		GamePickable::PickableType pickableType = GamePickable::PickableInvalid;
@@ -462,9 +454,34 @@ void GameTerrain::loadItemLayer(Tiled::Layer *layer)
 			qWarning() << "Invalid item" << type;
 			continue;
 		}
-		m_items.append(GameTerrainItem(QPointF(x, y), pickableType));
+		m_items.append(GameTerrainItem(object->position(), pickableType));
 	}
 }
+
+
+/**
+ * @brief GameTerrain::loadPreviewLayer
+ * @param layer
+ */
+
+void GameTerrain::loadPreviewLayer(Tiled::Layer *layer)
+{
+	qDebug() << "Load preview layer" << layer;
+
+	if (!layer)
+		return;
+
+	Tiled::ObjectGroup *og = layer->asObjectGroup();
+
+	QList<Tiled::MapObject*> objects = og->objects();
+
+	foreach (Tiled::MapObject *object, objects)
+		m_preview.append(PreviewData(object->position(), object->property("text").toString()));
+
+	emit previewChanged();
+}
+
+
 
 
 /**
@@ -532,3 +549,16 @@ void GameTerrain::setTiledLayers(QList<TiledPaintedLayer *> *tiledLayers)
 
 
 
+
+const QList<GameTerrain::PreviewData> &GameTerrain::preview() const
+{
+	return m_preview;
+}
+
+void GameTerrain::setPreview(const QList<PreviewData> &newPreview)
+{
+	if (m_preview == newPreview)
+		return;
+	m_preview = newPreview;
+	emit previewChanged();
+}

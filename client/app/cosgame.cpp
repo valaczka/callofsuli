@@ -73,7 +73,6 @@ CosGame::CosGame(QQuickItem *parent)
 	}
 
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
-	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
 	connect(this, &CosGame::gameAbortRequest, this, &CosGame::onGameFinishedLost);
 	connect(this, &CosGame::gameLost, this, &CosGame::onGameFinishedLost);
 	connect(this, &CosGame::gameTimeout, this, &CosGame::onGameFinishedLost);

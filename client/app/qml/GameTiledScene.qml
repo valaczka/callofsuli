@@ -138,8 +138,18 @@ Scene {
 				showTargets = false
 				break
 
-			case Qt.Key_F3:
+			case Qt.Key_F3:				// Pinch zoom
 				scenePrivate.game.gameSceneScaleToggleRequest()
+				break
+
+			case Qt.Key_W:				// Water
+				if (game.player && game.player.entityPrivate.fire)
+					game.player.entityPrivate.operate(game.player.entityPrivate.fire)
+				break
+
+			case Qt.Key_P:				// Pliers
+				if (game.player && game.player.entityPrivate.fence)
+					game.player.entityPrivate.operate(game.player.entityPrivate.fence)
 				break
 			}
 
@@ -165,14 +175,6 @@ Scene {
 						game.addSecs(-30)
 					}
 					break;
-
-
-				case Qt.Key_O:
-					if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
-						game.player.operate()
-					}
-					break;
-
 
 				case Qt.Key_B:
 					if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {

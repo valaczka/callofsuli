@@ -13,12 +13,22 @@ GamePickable {
 		data: pickableData
 	}
 
-	contentItem: QFontImage {
+	contentItem: Item {
 		id: root
-		icon: CosStyle.iconDrawer
-		width: 25
-		height: 25
-		color: "blue"
+
+		width: lbl.width
+		height: lbl.height
+
+		Image {
+			id: lbl
+			source: "qrc:/internal/game/water.svg"
+			width: 30
+			height: 30
+			sourceSize.width: 50
+			sourceSize.height: 50
+			fillMode: Image.PreserveAspectFit
+		}
+
 
 		SequentialAnimation {
 			running: true

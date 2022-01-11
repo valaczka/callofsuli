@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="84" nextobjectid="255">
+<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="85" nextobjectid="260">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
@@ -177,6 +177,32 @@
     <property name="block" type="int" value="4"/>
    </properties>
    <polyline points="-32.0648,0.21 190.934,0.21"/>
+  </object>
+  <object id="259" x="1282" y="210">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="-32.2086,21 191.791,21"/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ffffff" id="84" name="Preview">
+  <object id="255" x="625.653" y="109.466">
+   <properties>
+    <property name="text" value="Kerítés"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="257" x="1596.69" y="554.878">
+   <properties>
+    <property name="text" value="Víz"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="258" x="362.369" y="626.597">
+   <properties>
+    <property name="text" value="Tűz"/>
+   </properties>
+   <point/>
   </object>
  </objectgroup>
  <objectgroup color="#0055ff" id="82" name="Fences">
