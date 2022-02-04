@@ -134,6 +134,8 @@ SOURCES += \
 		cosdownloader.cpp \
 		cosgame.cpp \
 		cossound.cpp \
+		editoraction.cpp \
+		editorundostack.cpp \
 		fontimage.cpp \
 		gameactivity.cpp \
 		gameblock.cpp \
@@ -142,6 +144,7 @@ SOURCES += \
 		gameenemysoldier.cpp \
 		gameentity.cpp \
 		gameladder.cpp \
+		gamemapeditor.cpp \
 		gamemapmodel.cpp \
 		gamematch.cpp \
 		gameobject.cpp \
@@ -153,6 +156,7 @@ SOURCES += \
 		googleoauth2.cpp \
 		main.cpp \
 		mapeditor.cpp \
+		mapeditoraction.cpp \
 		mapimage.cpp \
 		maplistobject.cpp \
 		objectlistmodel.cpp \
@@ -183,6 +187,8 @@ HEADERS += \
 	cosdownloader.h \
 	cosgame.h \
 	cossound.h \
+	editoraction.h \
+	editorundostack.h \
 	fontimage.h \
 	gameactivity.h \
 	gameblock.h \
@@ -191,6 +197,7 @@ HEADERS += \
 	gameenemysoldier.h \
 	gameentity.h \
 	gameladder.h \
+	gamemapeditor.h \
 	gamemapmodel.h \
 	gamematch.h \
 	gameobject.h \
@@ -201,6 +208,7 @@ HEADERS += \
 	gameterrain.h \
 	googleoauth2.h \
 	mapeditor.h \
+	mapeditoraction.h \
 	mapimage.h \
 	maplistobject.h \
 	modules/interfaces.h \

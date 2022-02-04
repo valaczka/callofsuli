@@ -246,7 +246,7 @@ private:
 class GameMapMissionLockIface
 {
 public:
-	explicit GameMapMissionLockIface() {}
+	explicit GameMapMissionLockIface() : m_level(-1) {}
 	virtual ~GameMapMissionLockIface() {}
 
 	virtual GameMapMissionIface *mission() const = 0;
