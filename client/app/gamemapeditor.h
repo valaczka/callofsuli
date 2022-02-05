@@ -128,11 +128,14 @@ class GameMapEditorObjective : public ObjectListModelObject, public GameMapObjec
 	Q_PROPERTY(qint32 storageCount READ storageCount WRITE setStorageCount NOTIFY storageCountChanged)
 	Q_PROPERTY(QVariantMap data READ data WRITE setData NOTIFY dataChanged)
 
+	Q_PROPERTY(QString storageModule READ storageModule NOTIFY storageModuleChanged)
+	Q_PROPERTY(QVariantMap storageData READ storageData NOTIFY storageDataChanged)
+
 public:
 	explicit GameMapEditorObjective(const QString &uuid, const QString &module,
 							  const qint32 &storageId, const qint32 &storageCount,
 							  const QVariantMap &data, GameMapEditor *map, QObject *parent = nullptr);
-	virtual ~GameMapEditorObjective() { qDebug() << "DESTROYED" << this; }
+	virtual ~GameMapEditorObjective() { }
 
 	const QString &uuid() const;
 	void setUuid(const QString &newUuid);
@@ -149,15 +152,21 @@ public:
 	const QVariantMap &data() const;
 	void setData(const QVariantMap &newData);
 
+	const QString storageModule() const;
+	const QVariantMap storageData() const;
+
 signals:
 	void uuidChanged();
 	void moduleChanged();
 	void storageIdChanged();
 	void storageCountChanged();
 	void dataChanged();
+	void storageModuleChanged();
+	void storageDataChanged();
 
 private:
 	GameMapEditor *m_map;
+	QVariantMap m_storageData;
 };
 
 Q_DECLARE_METATYPE(ObjectGenericListModel<GameMapEditorObjective>*);
@@ -181,6 +190,9 @@ class GameMapEditorChapter : public ObjectListModelObject, public GameMapChapter
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 	Q_PROPERTY(ObjectGenericListModel<GameMapEditorObjective> *objectives READ objectives CONSTANT)
 
+	Q_PROPERTY(int missionCount READ missionCount NOTIFY missionCountChanged)
+	Q_PROPERTY(int objectiveCount READ objectiveCount NOTIFY objectiveCountChanged)
+
 public:
 	explicit GameMapEditorChapter(const qint32 &id, const QString &name, GameMapEditor *map, QObject *parent = nullptr);
 	virtual ~GameMapEditorChapter() {}
@@ -193,9 +205,16 @@ public:
 	const QString &name() const;
 	void setName(const QString &newName);
 
+	int missionCount();
+	int objectiveCount() const;
+
+	void recalculateCounts();
+
 signals:
 	void idChanged();
 	void nameChanged();
+	void missionCountChanged();
+	void objectiveCountChanged();
 
 protected:
 	QList<GameMapObjectiveIface*> ifaceObjectives() const override
@@ -465,6 +484,7 @@ public:
 
 	GameMapEditorChapter *chapter(const qint32 &id) const;
 	GameMapEditorMission *mission(const QString &uuid) const;
+	GameMapEditorStorage *storage(const qint32 &id) const;
 
 	static GameMapEditor *fromBinaryData(const QByteArray &data, QObject *parent = nullptr);
 

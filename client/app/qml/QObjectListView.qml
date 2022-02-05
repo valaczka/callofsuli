@@ -147,7 +147,7 @@ QListView {
 					/*Layout.fillHeight: false
 					Layout.fillWidth: false*/
 
-					anchors.verticalCenter: parent.verticalCenterobject
+					anchors.verticalCenter: parent.verticalCenter
 
 					visible: view.selectorSet
 

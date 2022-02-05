@@ -22,7 +22,10 @@ QObject *QObjectListModel::object(const QModelIndex &index) const
 
 QObject *QObjectListModel::object(int index) const
 {
-	return _objects[index];
+	if (index>=0 && index<_objects.size())
+		return _objects[index];
+	else
+		return nullptr;
 }
 
 QObject *QObjectListModel::takeObject(const QModelIndex &index)

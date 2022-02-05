@@ -1,20 +1,18 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
 
-
 QTabContainer {
 	id: control
 
-	title: qsTr("Feladatok")
+	title: qsTr("Küldetések")
 	icon: CosStyle.iconComputer
 
-	readonly property int contextAction: (MapEditorAction.ActionTypeChapterList | MapEditorAction.ActionTypeChapter)
+	property int contextAction: (MapEditorAction.ActionTypeChapterList | MapEditorAction.ActionTypeChapter)
 
 	/*SortFilterProxyModel {
 		id: userProxyModel
@@ -29,126 +27,25 @@ QTabContainer {
 	}*/
 
 
-	QObjectListDelegateView {
-		id: chapterList
-		anchors.fill: parent
-
-		selectorSet: model.selectedCount
-
-		model: mapEditor.editor.chapters
-
-		delegate: MapEditorChapter {
-			required property int index
-			collapsed: true
-			level: -1
-			selectorSet: chapterList.selectorSet
-			onLongClicked: chapterList.onDelegateLongClicked(index)
-			onSelectToggled: chapterList.onDelegateClicked(index, withShift)
-			//self: chapterList.modelObject(index)
-			Component.onCompleted: self = chapterList.modelObject(index)
-		}
-
-		header: QTabHeader {
-			tabContainer: control
-			isPlaceholder: true
-		}
-
-		/*QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconAdd
-			text: qsTr("Létező szakasz hozzáadása")
-			onClicked: mapEditor.missionLevelGetChapterList(level)
-		}
-
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconAdd
-			text: qsTr("Új szakasz létrehozása")
-			onClicked: {
-				var d = JS.dialogCreateQml("TextField", {
-											   title: qsTr("Új szakasz"),
-											   text: qsTr("Az új szakasz neve")
-											   })
-
-				d.accepted.connect(function(data) {
-					if (data.length)
-						mapEditor.missionLevelChapterAdd({level: level, name: data})
-				})
-				d.open()
-			}
-		}*/
-
-
-		/*footer: Item {
-			width: Math.min(control.implicitWidth, control.width)
-			height: control.height
-
-			Column {
-				anchors.centerIn: parent
-
-				QToolButtonBig {
-					anchors.horizontalCenter: parent.horizontalCenter
-					icon.source: CosStyle.iconAdd
-					text: qsTr("Hozzáadás")
-
-					onClicked: {
-						var d = JS.dialogCreateQml("TextField", {
-													   title: qsTr("Új szakasz"),
-													   text: qsTr("Az új szakasz neve")
-												   })
-
-						d.accepted.connect(function(data) {
-							if (data.length)
-								mapEditor.chapterAdd({name: data})
-						})
-						d.open()
-					}
-				}
-
-				QToolButtonBig {
-					anchors.horizontalCenter: parent.horizontalCenter
-					icon.source: CosStyle.iconAdd
-					text: qsTr("Importálás")
-
-					onClicked: {
-						var d = JS.dialogCreateQml("File", {
-													   isSave: false,
-													   folder: cosClient.getSetting("mapFolder", ""),
-												   })
-						d.item.filters = ["*.xlsx", "*.xls"]
-
-						d.accepted.connect(function(data){
-							mapEditor.chapterImport({filename: data})
-							cosClient.setSetting("mapFolder", d.item.modelFolder)
-						})
-
-						d.open()
-					}
-				}
-
-			}
-		}*/
-
-
-		/*
 
 	QObjectListView {
-		id: chapterList
+		id: missionList
 		anchors.fill: parent
 
 		//visible: isDisconnected
 
 		model: mapEditor.editor.chapters
 		modelTitleRole: "name"
+		modelSubtitleRole: "id"
 
 		header: QTabHeader {
-			tabContainer: panel
+			tabContainer: control
 			isPlaceholder: true
 		}
 
 		autoSelectorChange: true
 
-		delegateHeight: CosStyle.twoLineHeight
+		/*delegateHeight: CosStyle.twoLineHeight
 
 		leftComponent: QFlipable {
 			id: flipable
@@ -194,7 +91,7 @@ QTabContainer {
 		color: CosStyle.colorOK
 	}
 
-	/*
+/*
 
 	Column {
 		anchors.centerIn: parent
@@ -348,15 +245,5 @@ QTabContainer {
 */
 
 
-	onPopulated: chapterList.forceActiveFocus()
+	onPopulated: missionList.forceActiveFocus()
 }
-
-
-/*
-
-
-	function layoutBack() {
-		return false
-	}
-}
-*/

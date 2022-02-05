@@ -28,65 +28,57 @@
 #define EDITORACTION_H
 
 #include <QList>
+#include <QObject>
 
 
-class EditorAction
+class EditorAction : public QObject
 {
+	Q_OBJECT
+
+	Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
+	Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
+	Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
 
 public:
-	EditorAction(void *data = nullptr);
-	EditorAction(const std::function<void(EditorAction *)> &undoFunc, void *data = nullptr);
-	EditorAction(const std::function<void(EditorAction *)> &undoFunc,
-				 const std::function<void(EditorAction *)> &redoFunc,
-				 void *data = nullptr);
+	EditorAction(QObject *parent = nullptr);
+	EditorAction(const std::function<void(void)> &undoFunc,
+				 QObject *parent = nullptr);
+	EditorAction(const std::function<void(void)> &undoFunc,
+				 const std::function<void(void)> &redoFunc,
+				 QObject *parent = nullptr);
 	virtual ~EditorAction();
+
+	void setUndoFunc(const std::function<void(void)> &newUndoFunc);
+	void setRedoFunc(const std::function<void(void)> &newRedoFunc);
+
+	void undo();
+	void redo();
 
 	const QString &description() const;
 	void setDescription(const QString &newDescription);
 
-	void setUndoFunc(const std::function<void(EditorAction *)> &newUndoFunc);
-	void setRedoFunc(const std::function<void(EditorAction *)> &newRedoFunc);
-
-	void addSubUndoAction(EditorAction *action);
-	void addSubRedoAction(EditorAction *action);
-
-	void *data() const;
-	void setData(void *newData);
-
-	void undo(EditorAction *parent = nullptr);
-	void redo(EditorAction *parent = nullptr);
-
-
-	bool operator==(const EditorAction &other) const;
-
 	bool canUndo() const;
+	void setCanUndo(bool newCanUndo);
+
 	bool canRedo() const;
+	void setCanRedo(bool newCanRedo);
+
+signals:
+	void descriptionChanged();
+	void canUndoChanged();
+	void canRedoChanged();
 
 protected:
-	std::function<void(EditorAction *)> m_undoFunc;
-	std::function<void(EditorAction *)> m_redoFunc;
+	std::function<void(void)> m_undoFunc;
+	std::function<void(void)> m_redoFunc;
 
 private:
 	QString m_description;
-	QList<EditorAction*> m_subUndoActions;
-	QList<EditorAction*> m_subRedoActions;
-	void *m_data;
 	bool m_canUndo;
 	bool m_canRedo;
 };
 
 
-/**
- * @brief EditorAction::operator ==
- * @param other
- * @return
- */
-
-inline bool EditorAction::operator==(const EditorAction &other) const
-{
-	return m_subUndoActions == other.m_subUndoActions && m_subRedoActions == other.m_subRedoActions
-			&& m_description == other.m_description;
-}
 
 
 #endif // EDITORACTION_H

@@ -32,12 +32,10 @@
  * @param data
  */
 
-EditorAction::EditorAction(void *data)
-	: m_undoFunc(nullptr)
+EditorAction::EditorAction(QObject *parent)
+	: QObject(parent)
+	, m_undoFunc(nullptr)
 	, m_redoFunc(nullptr)
-	, m_subUndoActions()
-	, m_subRedoActions()
-	, m_data(data)
 	, m_canUndo(false)
 	, m_canRedo(true)
 {
@@ -51,12 +49,10 @@ EditorAction::EditorAction(void *data)
  * @param data
  */
 
-EditorAction::EditorAction(const std::function<void (EditorAction *)> &undoFunc, void *data)
-	: m_undoFunc(undoFunc)
+EditorAction::EditorAction(const std::function<void ()> &undoFunc, QObject *parent)
+	: QObject(parent)
+	, m_undoFunc(undoFunc)
 	, m_redoFunc(nullptr)
-	, m_subUndoActions()
-	, m_subRedoActions()
-	, m_data(data)
 	, m_canUndo(false)
 	, m_canRedo(true)
 {
@@ -71,12 +67,10 @@ EditorAction::EditorAction(const std::function<void (EditorAction *)> &undoFunc,
  * @param data
  */
 
-EditorAction::EditorAction(const std::function<void (EditorAction *)> &undoFunc, const std::function<void (EditorAction *)> &redoFunc, void *data)
-	: m_undoFunc(undoFunc)
+EditorAction::EditorAction(const std::function<void ()> &undoFunc, const std::function<void ()> &redoFunc, QObject *parent)
+	: QObject(parent)
+	, m_undoFunc(undoFunc)
 	, m_redoFunc(redoFunc)
-	, m_subUndoActions()
-	, m_subRedoActions()
-	, m_data(data)
 	, m_canUndo(false)
 	, m_canRedo(true)
 {
@@ -86,41 +80,7 @@ EditorAction::EditorAction(const std::function<void (EditorAction *)> &undoFunc,
 
 EditorAction::~EditorAction()
 {
-	qDeleteAll(m_subUndoActions);
-	qDeleteAll(m_subRedoActions);
 
-	m_subUndoActions.clear();
-	m_subRedoActions.clear();
-}
-
-/**
- * @brief EditorAction::addSubUndoAction
- * @param action
- */
-
-void EditorAction::addSubUndoAction(EditorAction *action)
-{
-	m_subUndoActions.append(action);
-}
-
-/**
- * @brief EditorAction::addSubRedoAction
- * @param action
- */
-
-void EditorAction::addSubRedoAction(EditorAction *action)
-{
-	m_subRedoActions.append(action);
-}
-
-void *EditorAction::data() const
-{
-	return m_data;
-}
-
-void EditorAction::setData(void *newData)
-{
-	m_data = newData;
 }
 
 
@@ -131,7 +91,10 @@ const QString &EditorAction::description() const
 
 void EditorAction::setDescription(const QString &newDescription)
 {
+	if (m_description == newDescription)
+		return;
 	m_description = newDescription;
+	emit descriptionChanged();
 }
 
 bool EditorAction::canUndo() const
@@ -139,17 +102,36 @@ bool EditorAction::canUndo() const
 	return m_canUndo;
 }
 
+void EditorAction::setCanUndo(bool newCanUndo)
+{
+	if (m_canUndo == newCanUndo)
+		return;
+	m_canUndo = newCanUndo;
+	emit canUndoChanged();
+}
+
 bool EditorAction::canRedo() const
 {
 	return m_canRedo;
 }
 
-void EditorAction::setUndoFunc(const std::function<void (EditorAction *)> &newUndoFunc)
+void EditorAction::setCanRedo(bool newCanRedo)
+{
+	if (m_canRedo == newCanRedo)
+		return;
+	m_canRedo = newCanRedo;
+	emit canRedoChanged();
+}
+
+
+
+
+void EditorAction::setUndoFunc(const std::function<void ()> &newUndoFunc)
 {
 	m_undoFunc = newUndoFunc;
 }
 
-void EditorAction::setRedoFunc(const std::function<void (EditorAction *)> &newRedoFunc)
+void EditorAction::setRedoFunc(const std::function<void ()> &newRedoFunc)
 {
 	m_redoFunc = newRedoFunc;
 }
@@ -162,26 +144,22 @@ void EditorAction::setRedoFunc(const std::function<void (EditorAction *)> &newRe
  * @param parent
  */
 
-void EditorAction::undo(EditorAction *parent)
+void EditorAction::undo()
 {
 	if (!m_canUndo) {
 		qWarning() << "Can't undo" << m_description;
 		return;
 	}
 
-	qDebug() << "UNDO" << this << "PARENT" << parent;
+	qDebug() << "UNDO" << this;
 
 	if (m_undoFunc != nullptr) {
 		qDebug() << "CALL UNDO FUNC" << this;
-		m_undoFunc(parent);
+		m_undoFunc();
 	}
 
-	foreach (EditorAction *action, m_subUndoActions) {
-		action->undo(this);
-	}
-
-	m_canUndo = false;
-	m_canRedo = true;
+	setCanUndo(false);
+	setCanRedo(true);
 }
 
 
@@ -190,26 +168,22 @@ void EditorAction::undo(EditorAction *parent)
  * @param parent
  */
 
-void EditorAction::redo(EditorAction *parent)
+void EditorAction::redo()
 {
 	if (!m_canRedo) {
 		qWarning() << "Can't redo" << m_description;
 		return;
 	}
 
-	qDebug() << "REDO" << this << "PARENT" <<  parent << m_data;
+	qDebug() << "REDO" << this;
 
 	if (m_redoFunc != nullptr) {
 		qDebug() << "CALL REDO FUNC" << this;
-		m_redoFunc(parent);
+		m_redoFunc();
 	}
 
-	foreach (EditorAction *action, m_subRedoActions) {
-		action->redo(this);
-	}
-
-	m_canRedo = false;
-	m_canUndo = true;
+	setCanUndo(true);
+	setCanRedo(false);
 }
 
 

@@ -49,7 +49,6 @@ public:
 	bool selected() const;
 	void setSelected(bool newSelected);
 
-
 	template <typename TObject>
 	static TObject* fromJsonObject(const QJsonObject &jsonObject, QObject *parent = nullptr)
 	{
@@ -91,7 +90,6 @@ public:
 				metaproperty.write(this, metaproperty.read(other));
 		}
 	}
-
 
 
 signals:

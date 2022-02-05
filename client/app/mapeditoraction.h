@@ -27,30 +27,47 @@
 #ifndef MAPEDITORACTION_H
 #define MAPEDITORACTION_H
 
+#include <QObject>
+#include "editorundostack.h"
 #include "editoraction.h"
 #include "gamemapeditor.h"
 #include "gamemapreaderiface.h"
 
 class MapEditorAction : public EditorAction
 {
+	Q_OBJECT
+
+	Q_PROPERTY(MapEditorActionType type READ type WRITE setType NOTIFY typeChanged)
+	Q_PROPERTY(QVariant contextId READ contextId WRITE setContextId NOTIFY contextIdChanged)
 
 public:
 	enum MapEditorActionType {
-		ActionTypeInvalid,
-		ActionTypeChapterList,
-		ActionTypeChapter,
-		ActionTypeMissionList,
-		ActionTypeMission,
-		ActionTypeMissionLevel,
-		ActionTypeInventory,
-		ActionTypeImageList,
-		ActionTypeImage
+		ActionTypeInvalid		= 0,
+		ActionTypeChapterList	= 0x01,
+		ActionTypeChapter		= 0x02,
+		ActionTypeMissionList	= 0x04,
+		ActionTypeMission		= 0x08,
+		ActionTypeMissionLevel	= 0x10,
+		ActionTypeInventory		= 0x20,
+		ActionTypeImageList		= 0x40,
+		ActionTypeImage			= 0x80
 	};
 
-	explicit MapEditorAction(GameMapEditor *editor, const MapEditorActionType &type, void *data = nullptr);
+	Q_ENUM(MapEditorActionType);
+	Q_DECLARE_FLAGS(MapEditorActionTypes, MapEditorActionType)
+	Q_FLAG(MapEditorActionTypes)
 
-	MapEditorActionType type() const;
-	void setType(MapEditorActionType newType);
+	explicit MapEditorAction(GameMapEditor *editor, const MapEditorActionType &type, const QVariant &contextId = QVariant::Invalid);
+
+	const MapEditorActionType &type() const;
+	void setType(const MapEditorActionType &newType);
+
+	const QVariant &contextId() const;
+	void setContextId(const QVariant &newContextId);
+
+signals:
+	void typeChanged();
+	void contextIdChanged();
 
 protected:
 	void chapterAdd(GameMapEditorChapter *chapter);
@@ -60,9 +77,11 @@ protected:
 	void objectiveRemove(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
 
 	MapEditorActionType m_type;
+	QVariant m_contextId;
 	GameMapEditor *m_editor;
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(MapEditorAction::MapEditorActionTypes)
 
 
 
@@ -73,18 +92,18 @@ protected:
 
 class MapEditorActionObjectiveNew : public MapEditorAction
 {
+	Q_OBJECT
+
 public:
-	explicit MapEditorActionObjectiveNew(GameMapEditor *editor,
+	explicit MapEditorActionObjectiveNew(GameMapEditor *editor, GameMapEditorChapter *parentChapter,
+										 const QString &uuid,
 										 const QString &module, const qint32 &storageId,
 										 const qint32 &storageCount, const QVariantMap &data);
+	virtual ~MapEditorActionObjectiveNew();
 
 private:
-	QString m_uuid;
-	QString m_module;
-	qint32 m_storageId;
-	qint32 m_storageCount;
-	QVariantMap m_data;
 	GameMapEditorObjective *m_objective;
+	GameMapEditorChapter *m_parentChapter;
 
 };
 
@@ -97,11 +116,13 @@ private:
 
 class MapEditorActionChapterNew : public MapEditorAction
 {
+	Q_OBJECT
+
 public:
-	explicit MapEditorActionChapterNew(GameMapEditor *editor, const QString &name);
+	explicit MapEditorActionChapterNew(GameMapEditor *editor, const qint32 &id, const QString &name);
+	virtual ~MapEditorActionChapterNew();
 
 private:
-	QString m_name;
 	GameMapEditorChapter *m_chapter;
 
 };
@@ -113,12 +134,15 @@ private:
 
 class MapEditorActionChapterRemove : public MapEditorAction
 {
+	Q_OBJECT
+
 public:
 	explicit MapEditorActionChapterRemove(GameMapEditor *editor, GameMapEditorChapter *chapter);
+	virtual ~MapEditorActionChapterRemove();
 
 private:
-	QString m_name;
 	GameMapEditorChapter *m_chapter;
+	QList<QPointer<GameMapEditorMissionLevel>> m_levels;
 
 };
 

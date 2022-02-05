@@ -151,6 +151,7 @@ protected slots:
 
 
 
+
 template<typename T>
 void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::onSelectedChanged()
 {

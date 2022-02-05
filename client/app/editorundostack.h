@@ -36,23 +36,46 @@ class EditorUndoStack : public QObject
 
 	Q_PROPERTY(QList<EditorAction*> actions READ actions NOTIFY actionsChanged)
 	Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
+	Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
+	Q_PROPERTY(int size READ size NOTIFY sizeChanged)
+	Q_PROPERTY(int step READ step NOTIFY stepChanged)
+	Q_PROPERTY(int savedStep READ savedStep WRITE setSavedStep NOTIFY savedStepChanged)
 
 public:
 	explicit EditorUndoStack(QObject *parent = nullptr);
+	virtual ~EditorUndoStack();
 
 	const QList<EditorAction*> &actions() const;
 
-	EditorAction *call(EditorAction *action);
-	bool undo();
+	int size() const;
+	int step() const;
+	virtual bool canUndo() const;
+	virtual bool canRedo() const;
 
-	bool canUndo() const;
+	int savedStep() const;
+	void setSavedStep(int newSavedStep);
+
+public slots:
+	EditorAction *call(EditorAction *action);
+	bool undo(const int &steps = 1);
+	bool redo(const int &steps = 1);
+	void clear();
 
 signals:
-	void actionsChanged();
-	void canUndoChanged();
+	void undoCompleted();
+	void redoCompleted();
 
-private:
+	void actionsChanged();
+	void sizeChanged();
+	void canUndoChanged();
+	void canRedoChanged();
+	void stepChanged();
+	void savedStepChanged();
+
+protected:
 	QList<EditorAction *> m_actions;
+	int m_step;
+	int m_savedStep;
 };
 
 #endif // EDITORUNDOSTACK_H

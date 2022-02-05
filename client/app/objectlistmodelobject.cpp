@@ -69,5 +69,3 @@ void ObjectListModelObject::setSelected(bool newSelected)
 }
 
 
-
-

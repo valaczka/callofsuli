@@ -30,7 +30,7 @@
 #include <QObject>
 #include "abstractactivity.h"
 #include "gamemapeditor.h"
-#include "editorundostack.h"
+#include "mapeditoraction.h"
 
 class MapEditor : public AbstractActivity
 {
@@ -38,6 +38,8 @@ class MapEditor : public AbstractActivity
 
 	Q_PROPERTY(GameMapEditor* editor READ editor WRITE setEditor NOTIFY editorChanged)
 	Q_PROPERTY(EditorUndoStack *undoStack READ undoStack WRITE setUndoStack NOTIFY undoStackChanged)
+	Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
+	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
 
 public:
 	explicit MapEditor(QQuickItem *parent = nullptr);
@@ -51,14 +53,39 @@ public:
 	EditorUndoStack *undoStack() const;
 	void setUndoStack(EditorUndoStack *newUndoStack);
 
-signals:
-	void editorChanged();
 
+	Q_INVOKABLE void open(const QUrl &url);
+	Q_INVOKABLE void create();
+	Q_INVOKABLE void close();
+
+	Q_INVOKABLE void addTest();
+	Q_INVOKABLE void removeTest();
+
+	const QUrl &url() const;
+	void setUrl(const QUrl &newUrl);
+
+	const QString &displayName() const;
+	void setDisplayName(const QString &newDisplayName);
+
+public slots:
+	void chapterRemove(GameMapEditorChapter *chapter);
+
+private slots:
+	void onUndoRedoCompleted();
+
+signals:
+	void actionContextUpdated(const MapEditorAction::MapEditorActionType &type, const QVariant &contextId);
+	void editorChanged();
 	void undoStackChanged();
+	void urlChanged();
+	void displayNameChanged();
 
 private:
 	GameMapEditor *m_editor;
 	EditorUndoStack *m_undoStack;
+	QUrl m_url;
+	QString m_displayName;
+
 };
 
 #endif // MAPEDITOR_H

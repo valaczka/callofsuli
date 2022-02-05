@@ -77,6 +77,23 @@ GameMapEditorMission *GameMapEditor::mission(const QString &uuid) const
 
 
 /**
+ * @brief GameMapEditor::storage
+ * @param id
+ * @return
+ */
+
+GameMapEditorStorage *GameMapEditor::storage(const qint32 &id) const
+{
+	foreach (GameMapEditorStorage *ch, m_storages->objects()) {
+		if (ch->id() == id)
+			return ch;
+	}
+
+	return nullptr;
+}
+
+
+/**
  * @brief GameMapEditor::fromBinaryData
  * @param data
  * @return
@@ -319,6 +336,9 @@ GameMapEditorObjective::GameMapEditorObjective(const QString &uuid, const QStrin
 	m_storageCount = storageCount;
 	m_data = data;
 	m_map = map;
+
+	connect(this, &GameMapEditorObjective::storageIdChanged, this, &GameMapEditorObjective::storageDataChanged);
+	connect(this, &GameMapEditorObjective::storageIdChanged, this, &GameMapEditorObjective::storageModuleChanged);
 }
 
 
@@ -904,4 +924,94 @@ GameMapMissionLockIface *GameMapEditorMission::ifaceAddLock(const QString &uuid,
 ObjectGenericListModel<GameMapEditorMission> *GameMapEditor::missions() const
 {
 	return m_missions;
+}
+
+
+/**
+ * @brief GameMapEditorObjective::storageModule
+ * @return
+ */
+
+const QString GameMapEditorObjective::storageModule() const
+{
+	if (m_map) {
+		GameMapEditorStorage *s = m_map->storage(m_storageId);
+		if (s)
+			return s->module();
+	}
+
+	return "";
+}
+
+
+/**
+ * @brief GameMapEditorObjective::storageData
+ * @return
+ */
+
+const QVariantMap GameMapEditorObjective::storageData() const
+{
+	if (m_map) {
+		GameMapEditorStorage *s = m_map->storage(m_storageId);
+		if (s)
+			return s->data();
+	}
+
+	return QVariantMap();
+}
+
+
+/**
+ * @brief GameMapEditorChapter::missionCount
+ * @return
+ */
+
+int GameMapEditorChapter::missionCount()
+{
+	if (!m_map)
+		return 0;
+
+	int ret = 0;
+
+	foreach (GameMapEditorMission *m, m_map->missions()->objects()) {
+		foreach (GameMapEditorMissionLevel *ml, m->levels()->objects()) {
+			if (ml->chapters()->objects().contains(this)) {
+				++ret;
+				break;
+			}
+		}
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief GameMapEditorChapter::objectivesCount
+ * @return
+ */
+
+int GameMapEditorChapter::objectiveCount() const
+{
+	int ret = 0;
+
+	foreach (GameMapEditorObjective *o, m_objectives->objects()) {
+		if (o->storageId() != -1)
+			ret += o->storageCount();
+		else
+			++ret;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief GameMapEditorChapter::recalculateCounts
+ */
+
+void GameMapEditorChapter::recalculateCounts()
+{
+	emit missionCountChanged();
+	emit objectiveCountChanged();
 }

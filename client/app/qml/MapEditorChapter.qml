@@ -10,17 +10,22 @@ import "JScript.js" as JS
 QCollapsible {
 	id: control
 
-	required property string name
-	required property int chapter
+	//required property string name
+	required property int id
 	required property int missionCount
 	required property int objectiveCount
 	required property int level
+	//required property ObjectListModel objectives
+	required property bool selected
 
-	//title: "%1 (#%2)".arg(name).arg(chapter)
-	title: name
+	property GameMapEditorChapter self: null
+
+	//title: "%1 (#%2)".arg(name).arg(id)
+	title: self.name
 	titleColor: CosStyle.colorOKLight
 	backgroundColor: CosStyle.colorOKDark
 	contentBackgroundColor: JS.setColorAlpha(CosStyle.colorOKDarkest, 0.8)
+	itemSelected: selected
 
 	rightComponent: Row {
 		spacing: 2
@@ -63,20 +68,10 @@ QCollapsible {
 	}
 
 	Column {
-
+/*
 		Repeater {
-			model: SortFilterProxyModel {
-				sourceModel: mapEditor.modelObjectiveList
+			model: objectives
 
-				filters: ValueFilter {
-					roleName: "chapter"
-					value: control.chapter
-				}
-
-				sorters: RoleSorter {
-					roleName: "sortid"
-				}
-			}
 
 			Item {
 				id: item
@@ -84,16 +79,16 @@ QCollapsible {
 				height: CosStyle.twoLineHeight*1.7
 
 				required property string uuid
-				required property string objectiveModule
+				required property string module
 				required property string objectiveData
-				required property int storage
+				required property int storageId
 				required property int storageCount
 				required property string storageData
 				required property string storageModule
 
-				readonly property var _info: cosClient.objectiveInfo(objectiveModule, objectiveData, storageModule, storageData)
+				readonly property var _info: cosClient.objectiveInfo(module, objectiveData, storageModule, storageData)
 
-				readonly property color mainColor: storage ? CosStyle.colorAccent : CosStyle.colorWarningLight
+				readonly property color mainColor: storageId ? CosStyle.colorAccent : CosStyle.colorWarningLight
 
 				QRectangleBg {
 					id: rect
@@ -194,13 +189,13 @@ QCollapsible {
 
 									onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
 																					 uuid: "",
-																					 objectiveModule: item.objectiveModule,
+																					 objectiveModule: item.module,
 																					 objectiveData: item.objectiveData,
-																					 storage: item.storage,
+																					 storage: item.storageId,
 																					 storageData: item.storageData,
 																					 storageModule: item.storageModule,
 																					 storageCount: item.storageCount,
-																					 chapter: control.chapter
+																					 chapter: control.id
 																				 })
 								}
 
@@ -223,13 +218,13 @@ QCollapsible {
 						if (mouse.button === Qt.LeftButton) {
 							mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
 																  uuid: item.uuid,
-																  objectiveModule: item.objectiveModule,
+																  objectiveModule: item.module,
 																  objectiveData: item.objectiveData,
-																  storage: item.storage,
+																  storage: item.storageId,
 																  storageData: item.storageData,
 																  storageModule: item.storageModule,
 																  storageCount: item.storageCount,
-																  chapter: control.chapter
+																  chapter: control.id
 															  })
 
 						} else if (mouse.button === Qt.RightButton) {
@@ -248,7 +243,7 @@ QCollapsible {
 				}
 			}
 		}
-
+*/
 		QToolButtonFooter {
 			anchors.horizontalCenter: parent.horizontalCenter
 			icon.source: CosStyle.iconAdd
@@ -261,7 +256,7 @@ QCollapsible {
 															 storageData: "",
 															 storageModule: "",
 															 storageCount: 0,
-															 chapter: control.chapter
+															 chapter: control.id
 														 })
 		}
 	}
@@ -274,11 +269,12 @@ QCollapsible {
 		text: qsTr("Átnevezés")
 
 		onTriggered: {
-			var d = JS.dialogCreateQml("TextField", { title: qsTr("Szakasz neve"), value: name })
+			var d = JS.dialogCreateQml("TextField", { title: qsTr("Szakasz neve"), value: self.name })
 
 			d.accepted.connect(function(data) {
 				if (data.length)
-					mapEditor.chapterModify({chapter: chapter, name: data})
+					name = data
+					//mapEditor.chapterModify({chapter: chapter, name: data})
 			})
 			d.open()
 		}
@@ -306,8 +302,9 @@ QCollapsible {
 
 		onTriggered: if (level > 0)
 						 mapEditor.missionLevelChapterRemove({chapter: chapter, level: level})
-					 else
-						 mapEditor.chapterRemove({chapter: chapter})
+					 else {
+						 mapEditor.chapterRemove(self)
+					 }
 	}
 
 

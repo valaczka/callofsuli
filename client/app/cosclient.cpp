@@ -377,6 +377,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<GameTerrain>("COS.Client", 1, 0, "GameTerrain");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
+	qmlRegisterType<GameMapEditor>("COS.Client", 1, 0, "GameMapEditor");
 	qmlRegisterType<MapListObject>("COS.Client", 1, 0, "MapListObject");
 	qmlRegisterType<ObjectListModelObject>("COS.Client", 1, 0, "ObjectListModelObject");
 	qmlRegisterType<Profile>("COS.Client", 1, 0, "Profile");
@@ -388,12 +389,16 @@ void Client::registerTypes()
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
+	qmlRegisterType<EditorUndoStack>("COS.Client", 1, 0, "EditorUndoStack");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosSound>("COS.Client", 1, 0, "CosSound", "uncreatable");
 	qmlRegisterUncreatableType<ObjectListModel>("COS.Client", 1, 0, "ObjectListModel", "uncreatable");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
 	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
+	qmlRegisterUncreatableType<MapEditorAction>("COS.Client", 1, 0, "MapEditorAction", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorChapter>("COS.Client", 1, 0, "GameMapEditorChapter", "uncreatable");
+	qRegisterMetaType<MapEditorAction::MapEditorActionType>("MapEditorActionType");
 }
 
 

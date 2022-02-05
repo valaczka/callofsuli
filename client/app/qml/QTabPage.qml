@@ -28,6 +28,7 @@ Page {
 	property alias labelTitle: labelTitle
 	property alias stack: stack
 	property alias toolButtonAction: toolButton.action
+	property alias toolbarLoaderComponent: toolbarLoader.sourceComponent
 
 	property color backgroundColor: "black"
 	property color backgroundImageColor: JS.setColorAlpha(backgroundColor, 0.4)
@@ -304,9 +305,10 @@ Page {
 			id: labelTitle
 			anchors.left: backButton.visible ? backButton.right : parent.left
 			anchors.right: indicator.visible ? indicator.left :
-											   toolButton.visible ? toolButton.left :
-																	menuButton.visible ? menuButton.left :
-																						 parent.right
+											   toolbarLoader.item ? toolbarLoader.left :
+																	toolButton.visible ? toolButton.left :
+																						 menuButton.visible ? menuButton.left :
+																											  parent.right
 			anchors.verticalCenter: parent.verticalCenter
 			anchors.verticalCenterOffset: compact ? 0 : -2
 
@@ -332,6 +334,15 @@ Page {
 			width: running ? height : 0
 			running: activity && activity.isBusy
 			visible: running
+			anchors.right: toolbarLoader.item ? toolbarLoader.left :
+												toolButton.visible ? toolButton.left :
+																	 menuButton.visible ? menuButton.left : parent.right
+			anchors.verticalCenter: parent.verticalCenter
+			anchors.verticalCenterOffset: compact ? 0 : -2
+		}
+
+		Loader {
+			id: toolbarLoader
 			anchors.right: toolButton.visible ? toolButton.left :
 												menuButton.visible ? menuButton.left : parent.right
 			anchors.verticalCenter: parent.verticalCenter
