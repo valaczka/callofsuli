@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gamemapmissionlevel.h
+ * mapimage.h
  *
- * Created on: 2022. 01. 02.
+ * Created on: 2022. 01. 05.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameMapMissionLevel
+ * MapImage
  *
  *  This file is part of Call of Suli.
  *
@@ -24,19 +24,25 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GAMEMAPMISSIONLEVEL_H
-#define GAMEMAPMISSIONLEVEL_H
+#ifndef MAPIMAGE_H
+#define MAPIMAGE_H
 
-#include <QObject>
+#include <QQuickImageProvider>
+#include <QPixmap>
+#include "gamemapreaderiface.h"
 
-class GameMapMissionLevel : public QObject
+class MapImage : public QQuickImageProvider
 {
-	Q_OBJECT
 public:
-	explicit GameMapMissionLevel(QObject *parent = nullptr);
+	MapImage(GameMapReaderIface *map = nullptr);
 
-signals:
+	QPixmap requestPixmap(const QString &id, QSize *size, const QSize &requestedSize);
 
+	GameMapReaderIface *map() const { return m_map; }
+	void setMap(GameMapReaderIface *newMap) { m_map = newMap; }
+
+private:
+	GameMapReaderIface *m_map;
 };
 
-#endif // GAMEMAPMISSIONLEVEL_H
+#endif // MAPIMAGE_H
