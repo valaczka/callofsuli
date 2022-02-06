@@ -9,7 +9,7 @@ Flipable {
 	implicitHeight: implicitWidth
 	implicitWidth: fontSize+8
 
-	property int fontSize: 24
+	property real fontSize: 24
 
 	property string frontIcon: CosStyle.iconUnchecked
 	property string backIcon: CosStyle.iconChecked

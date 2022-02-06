@@ -20,6 +20,7 @@ Rectangle {
 	property alias title: title.text
 	property alias titleColor: title.color
 	property color backgroundColor: JS.setColorAlpha(CosStyle.colorPrimaryDarkest, 0.5)
+	property color lineColor: CosStyle.colorPrimaryDark
 	property color contentBackgroundColor: "transparent"
 
 	property bool interactive: true
@@ -46,7 +47,7 @@ Rectangle {
 			width: parent.width
 			height: 1
 			anchors.bottom: parent.bottom
-			color: CosStyle.colorPrimaryDark
+			color: lineColor
 		}
 
 		MouseArea {

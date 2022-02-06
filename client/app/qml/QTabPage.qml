@@ -24,17 +24,17 @@ Page {
 
 	property alias menuButton: menuButton
 	property alias backButtonVisible: backButton.visible
-	property alias toolbarVisible: toolbar.visible
+	property alias tabBarVisible: tabbar.visible
 	property alias labelTitle: labelTitle
 	property alias stack: stack
 	property alias toolButtonAction: toolButton.action
-	property alias toolbarLoaderComponent: toolbarLoader.sourceComponent
+	property alias toolBarLoaderComponent: toolbarLoader.sourceComponent
 
 	property color backgroundColor: "black"
 	property color backgroundImageColor: JS.setColorAlpha(backgroundColor, 0.4)
 	property color buttonColor: CosStyle.colorPrimaryDark
 	property color buttonActiveColor: CosStyle.colorAccent
-	property alias buttonBackgroundColor: toolbar.color
+	property alias buttonBackgroundColor: tabbar.color
 
 	property var pageBackCallbackFunction: null
 	property var closeCallbackFunction: windowCloseFunction
@@ -50,6 +50,8 @@ Page {
 	signal pageActivated()
 	signal pageDeactivated()
 	signal pageActivatedFirst()
+
+	signal activateButton(int index)
 
 
 	background: Item {
@@ -76,7 +78,7 @@ Page {
 		anchors.top: compact ? parent.top : header.bottom
 		anchors.left: parent.left
 		anchors.right: parent.right
-		anchors.bottom: toolbar.visible ? toolbar.top : parent.bottom
+		anchors.bottom: tabbar.visible ? tabbar.top : parent.bottom
 		opacity: compact ? 0.0 : 1.0
 
 		property real maximumPanelWidth: 600
@@ -371,16 +373,16 @@ Page {
 
 	DropShadow {
 		id: dropshadow2
-		anchors.fill: toolbar
+		anchors.fill: tabbar
 		horizontalOffset: -3
 		verticalOffset: -3
 		color: JS.setColorAlpha("black", 0.75)
-		source: toolbar
-		visible: toolbar.visible
+		source: tabbar
+		visible: tabbar.visible
 	}
 
 	Rectangle {
-		id: toolbar
+		id: tabbar
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
@@ -429,7 +431,16 @@ Page {
 											  model.func()
 									  }
 
-					width: rptr.count ? toolbar.width/rptr.count : implicitWidth
+					width: rptr.count ? tabbar.width/rptr.count : implicitWidth
+
+					Connections {
+						target: control
+
+						function onActivateButton(idx) {
+							if (idx === index)
+								checked = true
+						}
+					}
 				}
 			}
 		}

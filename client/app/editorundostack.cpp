@@ -33,7 +33,7 @@ EditorUndoStack::EditorUndoStack(QObject *parent)
 	, m_step(-1)
 	, m_savedStep(-1)
 {
-
+	connect(this, &EditorUndoStack::stepChanged, this, &EditorUndoStack::onStepChanged);
 }
 
 /**
@@ -94,19 +94,20 @@ bool EditorUndoStack::undo(const int &steps)
 	if (!canUndo())
 		return false;
 
+	int lastUndoStep = -1;
+
 	for (int i=0; i<steps && m_step >= 0; ++i) {
 		EditorAction *a = m_actions.at(m_step);
 
-		qDebug() << "UNDO STACK UNDO" << a << m_step;
 		a->undo();
 
-		--m_step;
+		lastUndoStep = m_step--;
 	}
 
 	emit stepChanged();
 	emit canUndoChanged();
 	emit canRedoChanged();
-	emit undoCompleted();
+	emit undoCompleted(lastUndoStep);
 
 	return true;
 }
@@ -122,11 +123,14 @@ bool EditorUndoStack::redo(const int &steps)
 	if (!canRedo())
 		return false;
 
+	int lastRedoStep = -1;
+
 	for (int i=0; i<steps && m_step<m_actions.size()-1; ++i) {
 		EditorAction *a = m_actions.at(m_step+1);
 
-		qDebug() << "REDO STACK REDO" << a << m_step;
 		a->redo();
+
+		lastRedoStep = m_step+1;
 
 		++m_step;
 	}
@@ -134,7 +138,7 @@ bool EditorUndoStack::redo(const int &steps)
 	emit stepChanged();
 	emit canUndoChanged();
 	emit canRedoChanged();
-	emit redoCompleted();
+	emit redoCompleted(lastRedoStep);
 
 	return true;
 }
@@ -156,6 +160,51 @@ void EditorUndoStack::clear()
 	emit stepChanged();
 	emit canUndoChanged();
 	emit canRedoChanged();
+}
+
+
+/**
+ * @brief EditorUndoStack::onStepChanged
+ */
+
+void EditorUndoStack::onStepChanged()
+{
+	if (m_step>=0 && m_step<m_actions.size())
+		setUndoText(m_actions.at(m_step)->description());
+	else
+		setUndoText("");
+
+	if (m_step>=-1 && m_step<m_actions.size()-1)
+		setRedoText(m_actions.at(m_step+1)->description());
+	else
+		setRedoText("");
+}
+
+
+const QString &EditorUndoStack::redoText() const
+{
+	return m_redoText;
+}
+
+void EditorUndoStack::setRedoText(const QString &newRedoText)
+{
+	if (m_redoText == newRedoText)
+		return;
+	m_redoText = newRedoText;
+	emit redoTextChanged();
+}
+
+const QString &EditorUndoStack::undoText() const
+{
+	return m_undoText;
+}
+
+void EditorUndoStack::setUndoText(const QString &newUndoText)
+{
+	if (m_undoText == newUndoText)
+		return;
+	m_undoText = newUndoText;
+	emit undoTextChanged();
 }
 
 

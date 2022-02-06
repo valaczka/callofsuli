@@ -15,37 +15,59 @@ QTabContainer {
 	icon: CosStyle.iconComputer
 
 	readonly property int contextAction: (MapEditorAction.ActionTypeChapterList | MapEditorAction.ActionTypeChapter)
+	property int actionContextType: -1
+	property var actionContextId: null
 
-	/*SortFilterProxyModel {
-		id: userProxyModel
-		sourceModel: servers.serversModel
-
-		proxyRoles: [
-			ExpressionRole {
-				name: "displayName"
-				expression: model.host+":"+model.port+(model.ssl ? " (SSL)" : "")+(model.broadcast ? qsTr(" [auto]") : "")
-			}
-		]
-	}*/
-
+	signal forceChapterOpen(int chapterid)
 
 	QObjectListDelegateView {
 		id: chapterList
 		anchors.fill: parent
 
-		selectorSet: model.selectedCount
+		selectorSet: mapEditor.editor.chapters.selectedCount
 
-		model: mapEditor.editor.chapters
+		model: SortFilterProxyModel {
+			sourceModel: mapEditor.editor.chapters
+
+			sorters: RoleSorter {
+				roleName: "id"
+			}
+		}
 
 		delegate: MapEditorChapter {
+			id: chapterItem
 			required property int index
 			collapsed: true
 			level: -1
 			selectorSet: chapterList.selectorSet
 			onLongClicked: chapterList.onDelegateLongClicked(index)
 			onSelectToggled: chapterList.onDelegateClicked(index, withShift)
-			//self: chapterList.modelObject(index)
-			Component.onCompleted: self = chapterList.modelObject(index)
+			self: chapterList.modelObject(index)
+
+			onSelfChanged: if (!self) {
+							   delete chapterItem
+						   }
+
+			onChapterRemove: {
+				if (mapEditor.editor.chapters.selectedCount > 0) {
+					mapEditor.chapterRemoveList(mapEditor.editor.chapters.getSelected())
+				} else {
+					mapEditor.chapterRemove(self)
+				}
+			}
+
+			Connections {
+				target: control
+				function onForceChapterOpen(chid) {
+					if (!chapterItem.self)
+						return
+
+					if (chid === chapterItem.self.id)
+						chapterItem.collapsed = false
+					else
+						chapterItem.collapsed = true
+				}
+			}
 		}
 
 		header: QTabHeader {
@@ -53,310 +75,85 @@ QTabContainer {
 			isPlaceholder: true
 		}
 
-		/*QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconAdd
-			text: qsTr("Létező szakasz hozzáadása")
-			onClicked: mapEditor.missionLevelGetChapterList(level)
-		}
 
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconAdd
-			text: qsTr("Új szakasz létrehozása")
-			onClicked: {
-				var d = JS.dialogCreateQml("TextField", {
-											   title: qsTr("Új szakasz"),
-											   text: qsTr("Az új szakasz neve")
+		footer: Column {
+			width: chapterList.width
+
+			QToolButtonFooter {
+				anchors.horizontalCenter: parent.horizontalCenter
+				action: actionChapterNew
+			}
+
+			QToolButtonFooter {
+				anchors.horizontalCenter: parent.horizontalCenter
+				icon.source: CosStyle.iconAdd
+				text: qsTr("Importálás")
+
+				onClicked: {
+					var d = JS.dialogCreateQml("File", {
+												   isSave: false,
+												   folder: cosClient.getSetting("mapFolder", ""),
 											   })
+					d.item.filters = ["*.xlsx", "*.xls"]
 
-				d.accepted.connect(function(data) {
-					if (data.length)
-						mapEditor.missionLevelChapterAdd({level: level, name: data})
-				})
-				d.open()
-			}
-		}*/
+					d.accepted.connect(function(data){
+						mapEditor.chapterImport({filename: data})
+						cosClient.setSetting("mapFolder", d.item.modelFolder)
+					})
 
-
-		/*footer: Item {
-			width: Math.min(control.implicitWidth, control.width)
-			height: control.height
-
-			Column {
-				anchors.centerIn: parent
-
-				QToolButtonBig {
-					anchors.horizontalCenter: parent.horizontalCenter
-					icon.source: CosStyle.iconAdd
-					text: qsTr("Hozzáadás")
-
-					onClicked: {
-						var d = JS.dialogCreateQml("TextField", {
-													   title: qsTr("Új szakasz"),
-													   text: qsTr("Az új szakasz neve")
-												   })
-
-						d.accepted.connect(function(data) {
-							if (data.length)
-								mapEditor.chapterAdd({name: data})
-						})
-						d.open()
-					}
+					d.open()
 				}
-
-				QToolButtonBig {
-					anchors.horizontalCenter: parent.horizontalCenter
-					icon.source: CosStyle.iconAdd
-					text: qsTr("Importálás")
-
-					onClicked: {
-						var d = JS.dialogCreateQml("File", {
-													   isSave: false,
-													   folder: cosClient.getSetting("mapFolder", ""),
-												   })
-						d.item.filters = ["*.xlsx", "*.xls"]
-
-						d.accepted.connect(function(data){
-							mapEditor.chapterImport({filename: data})
-							cosClient.setSetting("mapFolder", d.item.modelFolder)
-						})
-
-						d.open()
-					}
-				}
-
 			}
-		}*/
-
-
-		/*
-
-	QObjectListView {
-		id: chapterList
-		anchors.fill: parent
-
-		//visible: isDisconnected
-
-		model: mapEditor.editor.chapters
-		modelTitleRole: "name"
-
-		header: QTabHeader {
-			tabContainer: panel
-			isPlaceholder: true
-		}
-
-		autoSelectorChange: true
-
-		delegateHeight: CosStyle.twoLineHeight
-
-		leftComponent: QFlipable {
-			id: flipable
-			width: serverList.delegateHeight
-			height: width
-
-			frontIcon: CosStyle.iconComputer
-			backIcon: CosStyle.iconComputer
-			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
-			flipped: model.autoconnect
-
-			mouseArea.onClicked: servers.serverSetAutoConnect(serverList.modelObject(modelIndex))
-		}
-
-		onClicked: servers.serverConnect(serverList.modelObject(index))
-
-		onRightClicked: contextMenu.popup()
-		onLongPressed: contextMenu.popup()
-
-		QMenu {
-			id: contextMenu
-
-			MenuItem { action: actionConnect }
-			MenuItem { action: actionEdit}
-			MenuItem { action: actionRemove }
-			MenuSeparator {}
-			MenuItem { action: actionAutoConnect }
-		}
-
-
-		onKeyInsertPressed: actionServerNew.trigger()
-		onKeyF4Pressed: actionEdit.trigger()
-		onKeyDeletePressed: actionRemove.trigger()
-		onKeyF2Pressed: actionAutoConnect.trigger()*/
-	}
-
-
-
-	QToolButtonBig {
-		anchors.centerIn: parent
-		visible: !mapEditor.editor.chapters.count
-		//action: actionServerNew
-		color: CosStyle.colorOK
-	}
-
-	/*
-
-	Column {
-		anchors.centerIn: parent
-		visible: !isDisconnected
-
-		spacing: 10
-
-		Row {
-			spacing: 10
-			anchors.horizontalCenter: parent.horizontalCenter
-
-
-			BusyIndicator {
-				anchors.verticalCenter: parent.verticalCenter
-				height: CosStyle.pixelSize*3
-				width: CosStyle.pixelSize*3
-				running: true
-				Material.accent: CosStyle.colorPrimaryLighter
-			}
-
-			QLabel {
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Kapcsolódás...")
-				font.pixelSize: CosStyle.pixelSize*1.2
-				color: CosStyle.colorPrimary
-			}
-
-		}
-
-		QButton {
-			anchors.horizontalCenter: parent.horizontalCenter
-			themeColors: CosStyle.buttonThemeRed
-			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
-			onClicked: cosClient.closeConnection()
 		}
 	}
-
 
 
 	Action {
-		id: actionServerNew
-		text: qsTr("Hozzáadás")
+		id: actionChapterNew
 		icon.source: CosStyle.iconAdd
+		text: qsTr("Új szakasz")
+
 		onTriggered: {
-			servers.uiAdd()
+			var d = JS.dialogCreateQml("TextField", {
+										   title: qsTr("Új szakasz"),
+										   text: qsTr("Az új szakasz neve")
+									   })
+
+			d.accepted.connect(function(data) {
+				if (data.length)
+					mapEditor.chapterAdd({name: data})
+			})
+			d.open()
 		}
 	}
 
-	Action {
-		id: actionConnect
-		text: qsTr("Csatlakozás")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: servers.serverConnect(serverList.modelObject(serverList.currentIndex))
+	onPopulated: {
+		chapterList.forceActiveFocus()
 
+		loadContextId(actionContextType, actionContextId)
+		actionContextType = -1
+		actionContextId = null
 	}
 
-	Action {
-		id: actionEdit
-		text: qsTr("Szerkesztés")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: {
-			servers.uiEdit(serverList.modelObject(serverList.currentIndex))
+
+	function loadContextId(type, id) {
+		if (type === MapEditorAction.ActionTypeChapterList)
+			forceChapterOpen(-1)
+		else if (type === MapEditorAction.ActionTypeChapter)
+			forceChapterOpen(id)
+	}
+
+
+	backCallbackFunction: function () {
+		if (mapEditor.chapterModelUnselectObjectives(mapEditor.editor.chapters))
+			return true
+
+		if (mapEditor.editor.chapters.selectedCount) {
+			mapEditor.editor.chapters.unselectAll()
+			return true
 		}
-	}
 
-	Action {
-		id: actionRemove
-		icon.source: CosStyle.iconDelete
-		text: qsTr("Törlés")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: {
-			var more = servers.serversModel.selectedCount
-
-			if (more > 0) {
-				var dd = JS.dialogCreateQml("YesNo", {
-												title: qsTr("Szerverek törlése"),
-												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(more)
-											})
-				dd.accepted.connect(function () {
-					servers.serverDeleteList(servers.serversModel.getSelected())
-					servers.serversModel.unselectAll()
-				})
-				dd.open()
-			} else {
-				var o = serverList.modelObject(serverList.currentIndex)
-
-				var d = JS.dialogCreateQml("YesNo", {
-											   title: qsTr("Szerver törlése"),
-											   text: qsTr("Biztosan törlöd a szervert?\n%1").arg(o.name)
-										   })
-				d.accepted.connect(function () {
-					servers.serverDelete(serverList.modelObject(serverList.currentIndex))
-					servers.serversModel.unselectAll()
-				})
-				d.open()
-			}
-		}
-	}
-
-
-	Action {
-		id: actionAutoConnect
-		text: qsTr("Automata csatlakozás")
-		enabled: serverList.currentIndex !== -1
-		onTriggered:  {
-			servers.serverSetAutoConnect(serverList.modelObject(serverList.currentIndex))
-		}
-	}
-
-
-	Action {
-		id: actionServerSearch
-		text: qsTr("Keresés")
-		icon.source: CosStyle.iconSearch
-		onTriggered: {
-			servers.sendBroadcast()
-		}
-	}
-
-
-
-
-	Action {
-		id: actionAbout
-		text: qsTr("Névjegy")
-		onTriggered: {
-			var dd = JS.dialogCreateQml("About", {})
-			dd.open()
-		}
-	}
-
-	Action {
-		id: actionExit
-		text: qsTr("Kilépés")
-		onTriggered: mainWindow.close()
-	}
-
-
-	Action {
-		id: actionDemo
-		text: qsTr("Demo")
-		onTriggered: {
-			JS.createPage("Map", {
-							  demoMode: true,
-							  title: qsTr("Demo mód"),
-							  readOnly: false
-						  })
-		}
-	}
-*/
-
-
-	onPopulated: chapterList.forceActiveFocus()
-}
-
-
-/*
-
-
-	function layoutBack() {
 		return false
 	}
 }
-*/
+

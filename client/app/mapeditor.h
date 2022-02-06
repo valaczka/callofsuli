@@ -47,19 +47,8 @@ public:
 	GameMapEditor *editor() const;
 	void setEditor(GameMapEditor *newEditor);
 
-	Q_INVOKABLE void loadTest();
-	Q_INVOKABLE void unloadTest();
-
 	EditorUndoStack *undoStack() const;
 	void setUndoStack(EditorUndoStack *newUndoStack);
-
-
-	Q_INVOKABLE void open(const QUrl &url);
-	Q_INVOKABLE void create();
-	Q_INVOKABLE void close();
-
-	Q_INVOKABLE void addTest();
-	Q_INVOKABLE void removeTest();
 
 	const QUrl &url() const;
 	void setUrl(const QUrl &newUrl);
@@ -67,11 +56,25 @@ public:
 	const QString &displayName() const;
 	void setDisplayName(const QString &newDisplayName);
 
+
 public slots:
+	void open(const QUrl &url);
+	void create();
+	void close();
+
+	void chapterAdd(QVariantMap data);
 	void chapterRemove(GameMapEditorChapter *chapter);
+	void chapterRemoveList(const QList<GameMapEditorChapter*> &list);
+	void chapterModify(GameMapEditorChapter *chapter, const QVariantMap &data);
+	bool chapterModelUnselectObjectives(ObjectGenericListModel<GameMapEditorChapter> *model);
+
+	void objectiveAdd(GameMapEditorChapter *chapter, QVariantMap data);
+	void objectiveRemove(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
+	void objectiveRemoveList(GameMapEditorChapter *chapter, const QList<GameMapEditorObjective*> &list);
+	void objectiveModify(GameMapEditorObjective *objective, const QVariantMap &data);
 
 private slots:
-	void onUndoRedoCompleted();
+	void onUndoRedoCompleted(const int &lastStep);
 
 signals:
 	void actionContextUpdated(const MapEditorAction::MapEditorActionType &type, const QVariant &contextId);

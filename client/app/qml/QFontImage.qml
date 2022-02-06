@@ -9,7 +9,7 @@ Item {
 	implicitWidth: size
 	implicitHeight: size
 
-	property int size: CosStyle.pixelSize*1.1
+	property real size: CosStyle.pixelSize*1.1
 	property alias icon: img.source
 	property alias color: overlay.color
 	property alias fillMode: img.fillMode

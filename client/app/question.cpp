@@ -122,7 +122,7 @@ bool Question::generate()
  * @return
  */
 
-QVariantMap Question::objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
 	if (!Client::moduleObjectiveList().contains(module)) {
 		return QVariantMap({
@@ -133,9 +133,6 @@ QVariantMap Question::objectiveInfo(const QString &module, const QString &dataSt
 							   { "image", "" }
 						   });
 	}
-
-	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
-	QVariantMap storageData = storageDataString.isEmpty() ? QVariantMap() : Client::byteArrayToJsonMap(storageDataString.toUtf8());
 
 	ModuleInterface *mi = Client::moduleObjectiveList().value(module);
 
@@ -155,7 +152,7 @@ QVariantMap Question::objectiveInfo(const QString &module, const QString &dataSt
  * @return
  */
 
-QVariantMap Question::storageInfo(const QString &module, const QString &dataString)
+QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data)
 {
 	if (!Client::moduleStorageList().contains(module)) {
 		return QVariantMap({
@@ -166,8 +163,6 @@ QVariantMap Question::storageInfo(const QString &module, const QString &dataStri
 							   { "image", "" }
 						   });
 	}
-
-	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
 
 	ModuleInterface *mi = Client::moduleStorageList().value(module);
 

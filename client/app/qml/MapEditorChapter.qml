@@ -10,36 +10,29 @@ import "JScript.js" as JS
 QCollapsible {
 	id: control
 
-	//required property string name
-	required property int id
-	required property int missionCount
-	required property int objectiveCount
 	required property int level
-	//required property ObjectListModel objectives
 	required property bool selected
 
 	property GameMapEditorChapter self: null
 
-	//title: "%1 (#%2)".arg(name).arg(id)
-	title: self.name
-	titleColor: CosStyle.colorOKLight
-	backgroundColor: CosStyle.colorOKDark
-	contentBackgroundColor: JS.setColorAlpha(CosStyle.colorOKDarkest, 0.8)
+	signal chapterRemove()
+
+	title: self ? self.name : ""
 	itemSelected: selected
 
 	rightComponent: Row {
 		spacing: 2
 		QBadge {
-			text: missionCount
-			color: CosStyle.colorWarningDark
+			text: self ? self.missionCount : ""
+			color: CosStyle.colorAccentDark
 			anchors.verticalCenter: parent.verticalCenter
-			visible: missionCount > (level>0 ? 1 : 0)
+			visible: self && self.missionCount > (level>0 ? 1 : 0)
 		}
 		QBadge {
-			text: objectiveCount
-			color: CosStyle.colorPrimaryDark
+			text: self ? self.objectiveCount : ""
+			color: CosStyle.colorPrimaryDarker
 			anchors.verticalCenter: parent.verticalCenter
-			visible: objectiveCount > 0
+			visible: self && self.objectiveCount > 0
 		}
 		QToolButton {
 			anchors.verticalCenter: parent.verticalCenter
@@ -67,156 +60,209 @@ QCollapsible {
 		}
 	}
 
-	Column {
-/*
-		Repeater {
-			model: objectives
+
+	QObjectListDelegateView {
+		id: objectiveList
+		width: parent.width
+
+		selectorSet: self && self.objectives.selectedCount
+
+		model: self ? self.objectives : null
+
+		/*delegate: MapEditorChapter {
+			required property int index
+			collapsed: true
+			level: -1
+			selectorSet: chapterList.selectorSet
+			onLongClicked: chapterList.onDelegateLongClicked(index)
+			onSelectToggled: chapterList.onDelegateClicked(index, withShift)
+			Component.onCompleted: self = chapterList.modelObject(index)
+
+			onChapterRemove: {
+				if (mapEditor.editor.chapters.selectedCount > 0) {
+					mapEditor.chapterRemoveList(mapEditor.editor.chapters.getSelected())
+				} else {
+					mapEditor.chapterRemove(self)
+				}
+			}
+		}*/
+
+		delegate: Item {
+			id: item
+			width: objectiveList.width
+			height: CosStyle.twoLineHeight*1.7
+
+			required property bool selected
+			required property int index
+
+			property GameMapEditorObjective objectiveSelf: objectiveList.modelObject(index)
+
+			readonly property color mainColor: objectiveSelf && objectiveSelf.storageId > 0 ?
+												   CosStyle.colorOKLighter :
+												   CosStyle.colorAccent
+
+			property bool selectorSet: objectiveList.selectorSet
 
 
-			Item {
-				id: item
-				width: control.width
-				height: CosStyle.twoLineHeight*1.7
+			onObjectiveSelfChanged: if (!objectiveSelf) {
+							   delete item
+						   }
 
-				required property string uuid
-				required property string module
-				required property string objectiveData
-				required property int storageId
-				required property int storageCount
-				required property string storageData
-				required property string storageModule
+			QRectangleBg {
+				id: rect
+				anchors.fill: parent
+				acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-				readonly property var _info: cosClient.objectiveInfo(module, objectiveData, storageModule, storageData)
+				QLabel {
+					id: labelName
+					text: objectiveSelf ? objectiveSelf.info[0] : ""
+					color: mainColor
+					font.weight: Font.DemiBold
+					font.pixelSize: CosStyle.pixelSize*0.6
+					font.capitalization: Font.AllUppercase
+					anchors.left: parent.left
+					anchors.top: parent.top
+					anchors.leftMargin: 3
+					anchors.topMargin: 1
+				}
 
-				readonly property color mainColor: storageId ? CosStyle.colorAccent : CosStyle.colorWarningLight
+				Row {
+					anchors.verticalCenter: parent.verticalCenter
 
-				QRectangleBg {
-					id: rect
-					anchors.fill: parent
-					acceptedButtons: Qt.LeftButton | Qt.RightButton
+					spacing: 0
 
-					QLabel {
-						id: labelName
-						text: _info.name
+					QFontImage {
+						id: imgModule
+						width: Math.max(rect.height*0.5, size*1.1)
+						size: CosStyle.pixelSize*1.5
+						anchors.verticalCenter: parent.verticalCenter
+						icon: objectiveSelf ? objectiveSelf.info[1] : ""
 						color: mainColor
-						font.weight: Font.DemiBold
-						font.pixelSize: CosStyle.pixelSize*0.6
-						font.capitalization: Font.AllUppercase
-						anchors.left: parent.left
-						anchors.top: parent.top
-						anchors.leftMargin: 3
-						anchors.topMargin: 1
+						visible: !item.selectorSet
 					}
 
-					Row {
+					QFlipable {
+						id: flipable
+						width: imgModule.width
+						height: fontSize*1.1
+						fontSize: CosStyle.pixelSize*1.5
+
 						anchors.verticalCenter: parent.verticalCenter
 
-						spacing: 0
+						visible: item.selectorSet
 
-						QFontImage {
-							id: imgModule
-							width: Math.max(rect.height*0.5, size*1.1)
-							size: CosStyle.pixelSize*1.5
-							anchors.verticalCenter: parent.verticalCenter
-							icon: _info.icon
-							color: mainColor
-						}
+						mouseArea.enabled: false
 
-
-						Column {
-							anchors.verticalCenter: parent.verticalCenter
-							anchors.verticalCenterOffset: (labelName.height/2)*(subtitle.lineCount-1)/3
-
-							QLabel {
-								id: title
-								anchors.left: parent.left
-								width: rect.width-imgModule.width-btnMenu.width
-									   -(badge.visible ? badge.width : 0)
-								text: _info.title
-								color: mainColor
-								font.pixelSize: CosStyle.pixelSize*1.1
-								font.weight: Font.Normal
-								maximumLineCount: 1
-								lineHeight: 0.9
-								elide: Text.ElideRight
-							}
-							QLabel {
-								id: subtitle
-								anchors.left: parent.left
-								width: title.width
-								text: _info.details
-								color: mainColor
-								font.pixelSize: CosStyle.pixelSize*0.75
-								font.weight: Font.Light
-								maximumLineCount: 3
-								lineHeight: 0.8
-								wrapMode: Text.Wrap
-								elide: Text.ElideRight
-							}
-						}
-
-						QBadge {
-							id: badge
-							text: storageCount
-							color: CosStyle.colorPrimaryDark
-							anchors.verticalCenter: parent.verticalCenter
-							visible: storageCount > 1
-						}
-
-
-						QToolButton {
-							id: btnMenu
-							anchors.verticalCenter: parent.verticalCenter
-							icon.source: CosStyle.iconMenu
-
-							QMenu {
-								id: objectiveMenu
-								MenuItem {
-									//icon.source: CosStyle.iconRename
-									text: qsTr("Másolás")
-
-									onClicked: control.objectiveMoveCopy(item.uuid, true)
-								}
-								MenuItem {
-									//icon.source: CosStyle.iconBooks
-									text: qsTr("Áthelyezés")
-
-									onClicked: control.objectiveMoveCopy(item.uuid, false)
-								}
-								MenuItem {
-									icon.source: CosStyle.iconDuplicate
-									text: qsTr("Kettőzés")
-
-									onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																					 uuid: "",
-																					 objectiveModule: item.module,
-																					 objectiveData: item.objectiveData,
-																					 storage: item.storageId,
-																					 storageData: item.storageData,
-																					 storageModule: item.storageModule,
-																					 storageCount: item.storageCount,
-																					 chapter: control.id
-																				 })
-								}
-
-								MenuSeparator { }
-
-								MenuItem {
-									icon.source: CosStyle.iconDelete
-									text: qsTr("Törlés")
-
-									onClicked: mapEditor.objectiveRemove({uuid: item.uuid})
-								}
-							}
-
-							onClicked: objectiveMenu.open()
-						}
+						frontIcon: CosStyle.iconUnchecked
+						backIcon: CosStyle.iconChecked
+						color: CosStyle.colorAccent
+						flipped: item.selected
 					}
 
 
-					mouseArea.onClicked: {
-						if (mouse.button === Qt.LeftButton) {
-							mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+					Column {
+						anchors.verticalCenter: parent.verticalCenter
+						anchors.verticalCenterOffset: (labelName.height/2)*(subtitle.lineCount-1)/3
+
+						QLabel {
+							id: title
+							anchors.left: parent.left
+							width: rect.width-imgModule.width-btnMenu.width
+								   -(badge.visible ? badge.width : 0)
+							text: objectiveSelf ? objectiveSelf.info[2] : ""
+							color: mainColor
+							font.pixelSize: CosStyle.pixelSize*1.1
+							font.weight: Font.Normal
+							maximumLineCount: 1
+							lineHeight: 0.9
+							elide: Text.ElideRight
+						}
+						QLabel {
+							id: subtitle
+							anchors.left: parent.left
+							width: title.width
+							text: objectiveSelf ? objectiveSelf.info[3] : ""
+							color: mainColor
+							font.pixelSize: CosStyle.pixelSize*0.75
+							font.weight: Font.Light
+							maximumLineCount: 3
+							lineHeight: 0.8
+							wrapMode: Text.Wrap
+							elide: Text.ElideRight
+						}
+					}
+
+					QBadge {
+						id: badge
+						text: objectiveSelf ? objectiveSelf.storageCount : ""
+						color: CosStyle.colorPrimaryDarker
+						anchors.verticalCenter: parent.verticalCenter
+						visible: objectiveSelf && objectiveSelf.storageCount > 1
+					}
+
+
+					QToolButton {
+						id: btnMenu
+						anchors.verticalCenter: parent.verticalCenter
+						icon.source: CosStyle.iconMenu
+
+						QMenu {
+							id: objectiveMenu
+							MenuItem {
+								//icon.source: CosStyle.iconRename
+								text: qsTr("Másolás")
+
+								onClicked: control.objectiveMoveCopy(item.uuid, true)
+							}
+							MenuItem {
+								//icon.source: CosStyle.iconBooks
+								text: qsTr("Áthelyezés")
+
+								onClicked: control.objectiveMoveCopy(item.uuid, false)
+							}
+							MenuItem {
+								icon.source: CosStyle.iconDuplicate
+								text: qsTr("Kettőzés")
+
+								onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+																				 uuid: "",
+																				 objectiveModule: item.module,
+																				 objectiveData: item.objectiveData,
+																				 storage: item.storageId,
+																				 storageData: item.storageData,
+																				 storageModule: item.storageModule,
+																				 storageCount: item.storageCount,
+																				 chapter: control.id
+																			 })
+							}
+
+							MenuSeparator { }
+
+							MenuItem {
+								icon.source: CosStyle.iconDelete
+								text: qsTr("Törlés")
+
+								onClicked: {
+									if (self.objectives.selectedCount > 0) {
+										mapEditor.objectiveRemoveList(self, self.objectives.getSelected())
+									} else {
+										mapEditor.objectiveRemove(self, objectiveSelf)
+									}
+								}
+							}
+						}
+
+						onClicked: objectiveMenu.open()
+					}
+				}
+
+
+				mouseArea.onClicked: {
+					if (mouse.button === Qt.LeftButton) {
+						if (item.selectorSet)
+							objectiveList.onDelegateClicked(index, mouse.modifiers & Qt.ShiftModifier)
+						else {
+							/*mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
 																  uuid: item.uuid,
 																  objectiveModule: item.module,
 																  objectiveData: item.objectiveData,
@@ -225,30 +271,31 @@ QCollapsible {
 																  storageModule: item.storageModule,
 																  storageCount: item.storageCount,
 																  chapter: control.id
-															  })
-
-						} else if (mouse.button === Qt.RightButton) {
-							objectiveMenu.open()
+															  })*/
 						}
 
+					} else if (mouse.button === Qt.RightButton) {
+						objectiveMenu.open()
 					}
 				}
 
-				Rectangle {
-					anchors.bottom: parent.bottom
-					anchors.left: parent.left
-					width: parent.width
-					height: 1
-					color: CosStyle.colorOKDark
+
+
+				mouseArea.onPressAndHold: {
+					if (mouse.button === Qt.LeftButton) {
+						objectiveList.onDelegateLongClicked(index)
+					}
 				}
 			}
 		}
-*/
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
+
+
+		footer: QToolButtonFooter {
+			width: objectiveList.width
 			icon.source: CosStyle.iconAdd
 			text: qsTr("Új feladat")
-			onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+			color: CosStyle.colorAccentLighter
+			/*onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
 															 uuid: "",
 															 objectiveModule: "",
 															 objectiveData: "",
@@ -257,9 +304,11 @@ QCollapsible {
 															 storageModule: "",
 															 storageCount: 0,
 															 chapter: control.id
-														 })
+														 })*/
 		}
 	}
+
+
 
 
 	Action {
@@ -273,8 +322,7 @@ QCollapsible {
 
 			d.accepted.connect(function(data) {
 				if (data.length)
-					name = data
-					//mapEditor.chapterModify({chapter: chapter, name: data})
+					mapEditor.chapterModify(self, {name: data})
 			})
 			d.open()
 		}
@@ -289,7 +337,7 @@ QCollapsible {
 		icon.source: CosStyle.iconBooks
 		text: qsTr("Küldetések")
 
-		onTriggered: mapEditor.chapterGetMissionList({chapter: chapter, name: name})
+		//onTriggered: mapEditor.chapterGetMissionList({chapter: chapter, name: name})
 	}
 
 
@@ -300,11 +348,7 @@ QCollapsible {
 		icon.source: level > 0 ? CosStyle.iconRemove : CosStyle.iconDelete
 		text: level > 0 ? qsTr("Eltávolítás") : qsTr("Törlés")
 
-		onTriggered: if (level > 0)
-						 mapEditor.missionLevelChapterRemove({chapter: chapter, level: level})
-					 else {
-						 mapEditor.chapterRemove(self)
-					 }
+		onTriggered: control.chapterRemove()
 	}
 
 

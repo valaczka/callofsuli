@@ -12,7 +12,7 @@ QTabContainer {
 	title: qsTr("Küldetések")
 	icon: CosStyle.iconComputer
 
-	property int contextAction: (MapEditorAction.ActionTypeChapterList | MapEditorAction.ActionTypeChapter)
+	property int contextAction: (MapEditorAction.ActionTypeMissionList | MapEditorAction.ActionTypeMission)
 
 	/*SortFilterProxyModel {
 		id: userProxyModel

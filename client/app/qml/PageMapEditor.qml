@@ -11,19 +11,30 @@ QTabPage {
 
 	property bool _closeEnabled: false
 	property bool _isSmall: width < 800
+	property bool _permissionsGranted: false
+	property bool _permissionsDenied: false
+
+	property int _actionContextType: -1
+	property var _actionContextId: null
+
+	property url fileToOpen: ""
 
 	title: mapEditor.displayName
 
-	toolbarLoaderComponent: Row {
+	toolBarLoaderComponent: Row {
 		QToolButton {
 			action: actionUndo
 			anchors.verticalCenter: parent.verticalCenter
 			visible: !_isSmall
+			text: qsTr("Vissza: %1").arg(mapEditor.undoStack.undoText)
+			display: AbstractButton.IconOnly
 		}
 		QToolButton {
 			action: actionRedo
 			anchors.verticalCenter: parent.verticalCenter
 			visible: !_isSmall
+			text: qsTr("Ismét: %1").arg(mapEditor.undoStack.redoText)
+			display: AbstractButton.IconOnly
 		}
 		QToolButton {
 			action: actionSave
@@ -39,7 +50,6 @@ QTabPage {
 		id: menuWide
 		MenuItem { action: actionOpen }
 		MenuItem { action: actionSaveAs }
-		MenuItem { action: actionClose }
 	}
 
 	QMenu {
@@ -49,7 +59,6 @@ QTabPage {
 		MenuSeparator {}
 		MenuItem { action: actionOpen }
 		MenuItem { action: actionSaveAs }
-		MenuItem { action: actionClose }
 	}
 
 
@@ -57,36 +66,30 @@ QTabPage {
 		id: mapEditor
 
 		onEditorChanged: if (editor) {
-							 buttonModel = modelMain
 							 loadComponent()
 						 } else {
 							 replaceContent(componentMain)
-							 buttonModel = null
 						 }
 
-		onActionContextUpdated: {
-			console.debug("UPDATED", type, contextId)
-			loadComponent(type, contextId)
-		}
+		onActionContextUpdated: loadComponent(type, contextId)
 	}
 
-	buttonModel: null
 
-	ListModel {
-		id: modelMain
+	tabBarVisible: mapEditor.editor
 
+	buttonModel: ListModel {
 		ListElement {
 			title: qsTr("Küldetések")
 			icon: "image://font/Academic/\uf207"
 			//iconColor: "chartreuse"
-			func: function() { replaceContent(componentMissions) }
-			checked: true
+			func: function() { loadComponentReal(componentMissions) }
+			checked: false
 		}
 		ListElement {
 			title: qsTr("Feladatok")
 			icon: "image://font/Academic/\uf207"
 			//iconColor: "chartreuse"
-			func: function() { replaceContent(componentChapters) }
+			func: function() { loadComponentReal(componentChapters) }
 		}
 		ListElement {
 			title: qsTr("Storages")
@@ -104,29 +107,11 @@ QTabPage {
 	}
 
 
-	Component {
-		id: componentTest
-		Item {
-			implicitWidth: 200
-			implicitHeight: 200
-
-			//property int contextAction: (MapEditorAction.ActionTypeChapterList | MapEditorAction.ActionTypeChapter)
-
-			Column {
-				anchors.centerIn: parent
-				QLabel {
-					text: "Step: %1 / %2\nSaved: %3".arg(mapEditor.undoStack.step).arg(mapEditor.undoStack.size).arg(mapEditor.undoStack.savedStep)
-				}
-				QButton {
-					text: "add"
-					onClicked: mapEditor.addTest()
-				}
-				QButton {
-					text: "remove"
-					onClicked: mapEditor.removeTest()
-				}
-			}
-		}
+	enum Components {
+		Missions = 0,
+		Chapters,
+		Storages,
+		Images
 	}
 
 
@@ -135,7 +120,6 @@ QTabPage {
 		id: componentMissions
 		MapEditorMissionList {}
 	}
-
 
 	Component {
 		id: componentChapters
@@ -148,13 +132,26 @@ QTabPage {
 			implicitWidth: 200
 			implicitHeight: 200
 
+			QLabel {
+				id: labelPermissions
+				color: _permissionsDenied ? CosStyle.colorErrorLighter : CosStyle.colorWarning
+				anchors.centerIn: parent
+				anchors.margins: 10
+				text: _permissionsDenied ? qsTr("Írási/olvasási jogosultság hiányzik") : qsTr("Jogosultságok ellenőrzése")
+				visible: !_permissionsGranted
+			}
+
 
 			Column {
+				visible: _permissionsGranted
 				anchors.centerIn: parent
+				spacing: 5
 				QToolButtonBig {
+					anchors.horizontalCenter: parent.horizontalCenter
 					action: actionNew
 				}
 				QToolButtonBig {
+					anchors.horizontalCenter: parent.horizontalCenter
 					action: actionOpen
 				}
 			}
@@ -175,6 +172,7 @@ QTabPage {
 		icon.source: CosStyle.iconUndo
 		enabled: mapEditor.editor && mapEditor.undoStack.canUndo
 		onTriggered: mapEditor.undoStack.undo()
+		shortcut: "Ctrl+Z"
 	}
 
 
@@ -183,6 +181,7 @@ QTabPage {
 		icon.source: CosStyle.iconSend
 		enabled: mapEditor.editor && mapEditor.undoStack.canRedo
 		onTriggered: mapEditor.undoStack.redo()
+		shortcut: "Ctrl+Shitf+Z"
 	}
 
 
@@ -199,7 +198,19 @@ QTabPage {
 		icon.source: CosStyle.iconPreferences
 		text: qsTr("Megnyitás")
 		enabled: !mapEditor.editor
-		onTriggered: mapEditor.open("file:///home/valaczka/ddd.map")
+		onTriggered: {
+			var d = JS.dialogCreateQml("File", {
+										   isSave: false,
+										   folder: cosClient.getSetting("mapFolder", "")
+									   })
+
+			d.accepted.connect(function(data){
+				mapEditor.open(data)
+				cosClient.setSetting("mapFolder", d.item.modelFolder)
+			})
+
+			d.open()
+		}
 	}
 
 
@@ -213,14 +224,6 @@ QTabPage {
 
 
 	Action {
-		id: actionClose
-		icon.source: CosStyle.iconClose
-		text: qsTr("Bezárás")
-		enabled: mapEditor.editor
-		onTriggered: mapEditor.close()
-	}
-
-	Action {
 		id: actionSaveAs
 		icon.source: CosStyle.iconSearch
 		text: qsTr("Mentés másként")
@@ -228,72 +231,68 @@ QTabPage {
 		//onTriggered: mapEditor.undoStack.undo()
 	}
 
-	/*function checkRoles() {
-		if (cosClient.userRoles & Client.RoleAdmin) {
-			if (buttonModel !== modelAdmin)
-				replaceContent()
-			buttonModel = modelAdmin
-			title = ""
-			buttonColor = CosStyle.colorPrimaryLight
-			buttonBackgroundColor = "#5e0000"
-		} else if (cosClient.userRoles & Client.RoleTeacher) {
-			if (buttonModel !== modelTeacher)
-				replaceContent()
-			buttonModel = modelTeacher
-			title = ""
-			buttonColor = CosStyle.colorPrimaryLighter
-			buttonBackgroundColor = "#33220c"
-		} else if (cosClient.userRoles & Client.RoleStudent) {
-			if (buttonModel !== modelStudent)
-				replaceContent()
-			buttonModel = modelStudent
-			title = ""
-			buttonColor = CosStyle.colorPrimary
-			buttonBackgroundColor = "#111147"
-		} else {
-			if (buttonModel !== modelGuest)
-				replaceContent()
-			buttonModel = modelGuest
-			title = cosClient.serverName
-			buttonColor = CosStyle.colorPrimaryDark
-			buttonBackgroundColor = "black"
-		}
-	}*/
-
 
 
 	Component.onCompleted: replaceContent(componentMain)
+
+	onPageActivatedFirst: cosClient.checkPermissions()
+
+
+	Connections {
+		target: cosClient
+
+		function onStoragePermissionsDenied() {
+			_permissionsDenied = true
+		}
+
+		function onStoragePermissionsGranted() {
+			_permissionsGranted = true
+
+			if (fileToOpen != "") {
+				mapEditor.open(fileToOpen)
+			}
+		}
+
+	}
 
 
 	function loadComponent(contextAction, contextId) {
 		if (!mapEditor.editor)
 			return
 
-		console.debug("LOAD COMPONENT", contextAction, contextId, stack.currentItem.contextAction)
-
 		if (stack.currentItem && stack.currentItem.contextAction && (stack.currentItem.contextAction & contextAction)) {
-			stack.currentItem.loadContextId(contextId)
+			stack.currentItem.loadContextId(contextAction, contextId)
 		} else {
-			var cmp = componentTest
+			var cmp = PageMapEditor.Components.Missions
 
 			switch (contextAction) {
 			case MapEditorAction.ActionTypeChapterList:
 			case MapEditorAction.ActionTypeChapter:
-				cmp = componentMissions
+				cmp = PageMapEditor.Components.Chapters
 				break
 			}
 
-			console.debug("**** REPLACE CONTENT", cmp, contextAction, contextId)
+			_actionContextType = contextAction ? contextAction : -1
+			_actionContextId = contextId ? contextId : null
 
-			replaceContent(cmp, {contextId: contextId})
+			activateButton(cmp)
 		}
 	}
 
 
+	function loadComponentReal(cmp) {
+		replaceContent(cmp, {
+						   actionContextType: _actionContextType,
+						   actionContextId: _actionContextId
+					   })
+		_actionContextType = -1
+		_actionContextId = null
+	}
 
 
-	function loadContextId(id) {
-		console.debug("MAIN LOAD", id)
+
+	function loadContextId(type, id) {
+		console.debug("MAIN LOAD", type, id)
 	}
 
 

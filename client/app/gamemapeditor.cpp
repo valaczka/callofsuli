@@ -25,6 +25,7 @@
  */
 
 #include "gamemapeditor.h"
+#include "question.h"
 
 GameMapEditor::GameMapEditor(QObject *parent)
 	: QObject{parent}
@@ -339,6 +340,8 @@ GameMapEditorObjective::GameMapEditorObjective(const QString &uuid, const QStrin
 
 	connect(this, &GameMapEditorObjective::storageIdChanged, this, &GameMapEditorObjective::storageDataChanged);
 	connect(this, &GameMapEditorObjective::storageIdChanged, this, &GameMapEditorObjective::storageModuleChanged);
+	connect(this, &GameMapEditorObjective::storageIdChanged, this, &GameMapEditorObjective::infoChanged);
+	connect(this, &GameMapEditorObjective::dataChanged, this, &GameMapEditorObjective::infoChanged);
 }
 
 
@@ -959,6 +962,37 @@ const QVariantMap GameMapEditorObjective::storageData() const
 
 	return QVariantMap();
 }
+
+
+/**
+ * @brief GameMapEditorObjective::info
+ * @return
+ */
+
+const QStringList GameMapEditorObjective::info() const
+{
+	QVariantMap m = Question::objectiveInfo(m_module, m_data, storageModule(), storageData());
+
+	QStringList list;
+	list << m.value("name").toString()
+		 << m.value("icon").toString()
+		 << m.value("title").toString()
+		 << m.value("details").toString()
+		 << m.value("image").toString();
+
+	return list;
+}
+
+
+/**
+ * @brief GameMapEditorObjective::storageDataChanged
+ */
+
+void GameMapEditorObjective::storageDataReload()
+{
+	emit infoChanged();
+}
+
 
 
 /**

@@ -40,6 +40,8 @@ class EditorUndoStack : public QObject
 	Q_PROPERTY(int size READ size NOTIFY sizeChanged)
 	Q_PROPERTY(int step READ step NOTIFY stepChanged)
 	Q_PROPERTY(int savedStep READ savedStep WRITE setSavedStep NOTIFY savedStepChanged)
+	Q_PROPERTY(QString undoText READ undoText NOTIFY undoTextChanged)
+	Q_PROPERTY(QString redoText READ redoText NOTIFY redoTextChanged)
 
 public:
 	explicit EditorUndoStack(QObject *parent = nullptr);
@@ -55,15 +57,24 @@ public:
 	int savedStep() const;
 	void setSavedStep(int newSavedStep);
 
+	const QString &undoText() const;
+	void setUndoText(const QString &newUndoText);
+
+	const QString &redoText() const;
+	void setRedoText(const QString &newRedoText);
+
 public slots:
 	EditorAction *call(EditorAction *action);
 	bool undo(const int &steps = 1);
 	bool redo(const int &steps = 1);
 	void clear();
 
+private slots:
+	void onStepChanged();
+
 signals:
-	void undoCompleted();
-	void redoCompleted();
+	void undoCompleted(const int &lastStep);
+	void redoCompleted(const int &lastStep);
 
 	void actionsChanged();
 	void sizeChanged();
@@ -71,11 +82,17 @@ signals:
 	void canRedoChanged();
 	void stepChanged();
 	void savedStepChanged();
+	void undoTextChanged();
+	void redoTextChanged();
 
 protected:
 	QList<EditorAction *> m_actions;
 	int m_step;
 	int m_savedStep;
+
+private:
+	QString m_undoText;
+	QString m_redoText;
 };
 
 #endif // EDITORUNDOSTACK_H

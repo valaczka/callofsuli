@@ -70,6 +70,10 @@ signals:
 	void contextIdChanged();
 
 protected:
+	QVariantMap variantMapSave(QObject *source, const QStringList &keys) const;
+	QVariantMap variantMapSave(QObject *source, const QVariantMap &map) const;
+	void variantMapSet(QObject *target, const QVariantMap &map) const;
+
 	void chapterAdd(GameMapEditorChapter *chapter);
 	void chapterRemove(GameMapEditorChapter *chapter);
 
@@ -95,10 +99,7 @@ class MapEditorActionObjectiveNew : public MapEditorAction
 	Q_OBJECT
 
 public:
-	explicit MapEditorActionObjectiveNew(GameMapEditor *editor, GameMapEditorChapter *parentChapter,
-										 const QString &uuid,
-										 const QString &module, const qint32 &storageId,
-										 const qint32 &storageCount, const QVariantMap &data);
+	explicit MapEditorActionObjectiveNew(GameMapEditor *editor, GameMapEditorChapter *parentChapter, const QVariantMap &data);
 	virtual ~MapEditorActionObjectiveNew();
 
 private:
@@ -107,6 +108,28 @@ private:
 
 };
 
+
+
+/**
+ * @brief The MapEditorActionObjectiveRemove class
+ */
+
+class MapEditorActionObjectiveRemove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionObjectiveRemove(GameMapEditor *editor, GameMapEditorChapter *parentChapter, GameMapEditorObjective *objective);
+	explicit MapEditorActionObjectiveRemove(GameMapEditor *editor, GameMapEditorChapter *parentChapter, const QList<GameMapEditorObjective *> &list);
+	virtual ~MapEditorActionObjectiveRemove();
+
+private:
+	void _undo();
+	void _redo();
+
+	GameMapEditorChapter *m_parentChapter;
+	QList<QPointer<GameMapEditorObjective>> m_list;
+};
 
 
 /**
@@ -119,7 +142,7 @@ class MapEditorActionChapterNew : public MapEditorAction
 	Q_OBJECT
 
 public:
-	explicit MapEditorActionChapterNew(GameMapEditor *editor, const qint32 &id, const QString &name);
+	explicit MapEditorActionChapterNew(GameMapEditor *editor, const QVariantMap &data);
 	virtual ~MapEditorActionChapterNew();
 
 private:
@@ -138,12 +161,49 @@ class MapEditorActionChapterRemove : public MapEditorAction
 
 public:
 	explicit MapEditorActionChapterRemove(GameMapEditor *editor, GameMapEditorChapter *chapter);
+	explicit MapEditorActionChapterRemove(GameMapEditor *editor, const QList<GameMapEditorChapter *> &list);
 	virtual ~MapEditorActionChapterRemove();
 
 private:
-	GameMapEditorChapter *m_chapter;
-	QList<QPointer<GameMapEditorMissionLevel>> m_levels;
+	void addChapter(GameMapEditorChapter *chapter);
+	void _undo();
+	void _redo();
 
+	struct ChapterList {
+		ChapterList(GameMapEditorChapter *_chapter) :
+			chapter(_chapter), levels()
+		{}
+
+		ChapterList(GameMapEditorChapter *_chapter, QList<QPointer<GameMapEditorMissionLevel>> _levels) :
+			chapter(_chapter), levels(_levels)
+		{}
+
+		void append(GameMapEditorMissionLevel *level) {
+			levels.append(level);
+		}
+
+		GameMapEditorChapter *chapter;
+		QList<QPointer<GameMapEditorMissionLevel>> levels;
+	};
+
+	QList<ChapterList> m_list;
+
+};
+
+
+
+class MapEditorActionChapterModify : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionChapterModify(GameMapEditor *editor, GameMapEditorChapter *chapter, const QVariantMap &data);
+	virtual ~MapEditorActionChapterModify();
+
+private:
+	GameMapEditorChapter *m_chapter;
+	QVariantMap m_dataSource;
+	QVariantMap m_dataTarget;
 };
 
 #endif // MAPEDITORACTION_H

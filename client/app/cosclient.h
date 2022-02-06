@@ -159,11 +159,11 @@ public:
 	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
 	Q_INVOKABLE static QVariantMap terrainMap();
 
-	Q_INVOKABLE static QVariantMap objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+	/*Q_INVOKABLE static QVariantMap objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
 	{ return Question::objectiveInfo(module, dataString, storageModule, storageDataString); }
 	Q_INVOKABLE static QVariantMap storageInfo(const QString &module, const QString &dataString)
 	{ return Question::storageInfo(module, dataString); }
-	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }
+	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }*/
 
 	Q_INVOKABLE QStringList takePositionalArgumentsToProcess();
 	Q_INVOKABLE void setPositionalArgumentsToProcess(const QStringList &list) { m_positionalArgumentsToProcess = list; }

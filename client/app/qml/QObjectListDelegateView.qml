@@ -15,9 +15,12 @@ QListView {
 	property bool autoSelectorChange: true
 	property bool autoUnselectorChange: autoSelectorChange
 
-	readonly property ObjectListModel sourceObjectListModel: model.sourceModel && (model.sourceModel instanceof ObjectListModel) ?
+	readonly property ObjectListModel sourceObjectListModel: model && model.sourceModel && (model.sourceModel instanceof ObjectListModel) ?
 																 model.sourceModel :
 																 null
+
+	readonly property ObjectListModel objectModel: sourceObjectListModel ? sourceObjectListModel :
+																		   (model instanceof ObjectListModel) ? model : null
 
 	focus: true
 
@@ -29,10 +32,10 @@ QListView {
 				var j = Math.max(view.currentIndex, index)
 
 				for (var n=i; n<=j; ++n)
-					model.select(normalizedIndex(n))
+					objectModel.select(normalizedIndex(n))
 
 			} else {
-				model.selectToggle(normalizedIndex(index))
+				objectModel.selectToggle(normalizedIndex(index))
 			}
 
 			view.currentIndex = index
@@ -42,7 +45,7 @@ QListView {
 
 	function onDelegateLongClicked(index) {
 		if (autoSelectorChange && !selectorSet) {
-			model.select(normalizedIndex(index))
+			objectModel.select(normalizedIndex(index))
 			selectorSet = true
 			view.currentIndex = index
 		}
@@ -52,10 +55,10 @@ QListView {
 
 
 	Connections {
-		target: model
+		target: objectModel
 
 		function onSelectedCountChanged() {
-			if (model.selectedCount === 0 && autoUnselectorChange)
+			if (objectModel.selectedCount === 0 && autoUnselectorChange)
 				selectorSet=false
 		}
 	}
@@ -71,6 +74,6 @@ QListView {
 	}
 
 	function modelObject(index) {
-		return model.object(normalizedIndex(index))
+		return objectModel ? objectModel.object(normalizedIndex(index)) : null
 	}
 }

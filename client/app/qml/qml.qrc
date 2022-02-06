@@ -41,7 +41,6 @@
         <file>AdminUserData.qml</file>
         <file>QGridComboBox.qml</file>
         <file>QDialogList.qml</file>
-        <file>QUndoButton.qml</file>
         <file>QToolButton.qml</file>
         <file>QFontImage.qml</file>
         <file>OLD_PagePasswordReset.qml</file>

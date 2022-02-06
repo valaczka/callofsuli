@@ -130,6 +130,7 @@ class GameMapEditorObjective : public ObjectListModelObject, public GameMapObjec
 
 	Q_PROPERTY(QString storageModule READ storageModule NOTIFY storageModuleChanged)
 	Q_PROPERTY(QVariantMap storageData READ storageData NOTIFY storageDataChanged)
+	Q_PROPERTY(QStringList info READ info NOTIFY infoChanged)
 
 public:
 	explicit GameMapEditorObjective(const QString &uuid, const QString &module,
@@ -154,6 +155,10 @@ public:
 
 	const QString storageModule() const;
 	const QVariantMap storageData() const;
+	const QStringList info() const;
+
+public slots:
+	void storageDataReload();
 
 signals:
 	void uuidChanged();
@@ -163,10 +168,10 @@ signals:
 	void dataChanged();
 	void storageModuleChanged();
 	void storageDataChanged();
+	void infoChanged();
 
 private:
 	GameMapEditor *m_map;
-	QVariantMap m_storageData;
 };
 
 Q_DECLARE_METATYPE(ObjectGenericListModel<GameMapEditorObjective>*);

@@ -49,10 +49,10 @@ public:
 
 	bool generate();
 
-	static QVariantMap objectiveInfo(const QString &module, const QString &dataString,
-									 const QString &storageModule = "", const QString &storageDataString = "");
+	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data,
+									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
 
-	static QVariantMap storageInfo(const QString &module, const QString &dataString);
+	static QVariantMap storageInfo(const QString &module, const QVariantMap &data);
 
 	QVariantMap question() const { return m_question; }
 	QVariantMap answer() const { return m_answer; }

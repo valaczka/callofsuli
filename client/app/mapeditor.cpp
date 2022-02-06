@@ -60,67 +60,6 @@ void MapEditor::setEditor(GameMapEditor *newEditor)
 	emit editorChanged();
 }
 
-/**
- * @brief MapEditor::loadTest
- */
-
-void MapEditor::loadTest()
-{
-	GameMapEditor *e = GameMapEditor::fromBinaryData(Client::fileContent("/home/valaczka/ddd.map"), this);
-	setEditor(e);
-
-	{
-		qDebug() << "-------";
-		foreach (GameMapEditorChapter *ch, e->chapters()->objects()) {
-			qDebug() << ch->id() << ch->name();
-		}
-		qDebug() << "-------";
-	}
-
-	m_undoStack->call(new MapEditorActionChapterNew(e, 199, "nulladik chapter"));
-
-	for (int i=0; i<2; ++i) {
-		auto ch = e->chapters()->objects();
-		if (!ch.isEmpty()) {
-			m_undoStack->call(new MapEditorActionChapterRemove(e, ch.first()));
-		}
-	}
-
-	m_undoStack->call(new MapEditorActionChapterNew(e, 195, "első chapter"));
-	m_undoStack->call(new MapEditorActionChapterNew(e, 196, "második chapter"));
-	m_undoStack->call(new MapEditorActionChapterNew(e, 197, "harmadik chapter"));
-
-	{
-		qDebug() << "-------";
-		foreach (GameMapEditorChapter *ch, e->chapters()->objects()) {
-			qDebug() << ch->id() << ch->name();
-		}
-		qDebug() << "-------";
-	}
-}
-
-void MapEditor::unloadTest()
-{
-	int i=3;
-
-	while (m_undoStack->canUndo() && i-->0) {
-		m_undoStack->undo();
-	}
-
-	if (m_editor) {
-		{
-			qDebug() << "-------";
-			foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects()) {
-				qDebug() << ch->id() << ch->name();
-			}
-			qDebug() << "-------";
-		}
-
-
-		m_editor->deleteLater();
-		setEditor(nullptr);
-	}
-}
 
 EditorUndoStack *MapEditor::undoStack() const
 {
@@ -199,37 +138,6 @@ void MapEditor::close()
 	}
 }
 
-void MapEditor::addTest()
-{
-	m_undoStack->call(new MapEditorActionChapterNew(m_editor, m_editor->chapters()->objects().size()+100, "nulladik chapter"));
-
-	{
-		qDebug() << "-------";
-		foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects()) {
-			qDebug() << ch->id() << ch->name();
-		}
-		qDebug() << "-------";
-	}
-
-
-}
-
-void MapEditor::removeTest()
-{
-	auto ch = m_editor->chapters()->objects();
-	if (!ch.isEmpty()) {
-		m_undoStack->call(new MapEditorActionChapterRemove(m_editor, ch.first()));
-	}
-
-	{
-		qDebug() << "-------";
-		foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects()) {
-			qDebug() << ch->id() << ch->name();
-		}
-		qDebug() << "-------";
-	}
-}
-
 
 /**
  * @brief MapEditor::url
@@ -263,6 +171,26 @@ void MapEditor::setDisplayName(const QString &newDisplayName)
 }
 
 
+
+/**
+ * @brief MapEditor::chapterAdd
+ * @param data
+ */
+
+void MapEditor::chapterAdd(QVariantMap data)
+{
+	int id = 1;
+
+	foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects())
+		id = qMax(ch->id()+1, id);
+
+	data.insert("id", id);
+
+	m_undoStack->call(new MapEditorActionChapterNew(m_editor, data));
+
+}
+
+
 /**
  * @brief MapEditor::chapterRemove
  * @param chapter
@@ -277,13 +205,121 @@ void MapEditor::chapterRemove(GameMapEditorChapter *chapter)
 }
 
 
+/**
+ * @brief MapEditor::chapterRemove
+ * @param list
+ */
+
+void MapEditor::chapterRemoveList(const QList<GameMapEditorChapter *> &list)
+{
+	if (list.isEmpty())
+		return;
+
+	m_undoStack->call(new MapEditorActionChapterRemove(m_editor, list));
+}
+
+/**
+ * @brief MapEditor::chapterModify
+ * @param chapter
+ * @param data
+ */
+
+void MapEditor::chapterModify(GameMapEditorChapter *chapter, const QVariantMap &data)
+{
+	if (!chapter)
+		return;
+
+	m_undoStack->call(new MapEditorActionChapterModify(m_editor, chapter, data));
+}
+
+
+
+/**
+ * @brief MapEditor::chapterModelUnselectAll
+ * @param model
+ * @return
+ */
+
+bool MapEditor::chapterModelUnselectObjectives(ObjectGenericListModel<GameMapEditorChapter> *model)
+{
+	if (!model)
+		return false;
+
+	bool hasUnselect = false;
+
+	foreach (GameMapEditorChapter *ch, model->objects()) {
+		if (ch->objectives()->selectedCount()) {
+			hasUnselect = true;
+			ch->objectives()->unselectAll();
+		}
+	}
+
+	return hasUnselect;
+}
+
+
+/**
+ * @brief MapEditor::objectiveAdd
+ * @param chapter
+ * @param data
+ */
+
+void MapEditor::objectiveAdd(GameMapEditorChapter *chapter, QVariantMap data)
+{
+
+}
+
+
+/**
+ * @brief MapEditor::objectiveRemove
+ * @param chapter
+ * @param objective
+ */
+
+void MapEditor::objectiveRemove(GameMapEditorChapter *chapter, GameMapEditorObjective *objective)
+{
+	if (!chapter || !objective)
+		return;
+
+	m_undoStack->call(new MapEditorActionObjectiveRemove(m_editor, chapter, objective));
+}
+
+
+/**
+ * @brief MapEditor::objectiveRemoveList
+ * @param chapter
+ * @param list
+ */
+
+void MapEditor::objectiveRemoveList(GameMapEditorChapter *chapter, const QList<GameMapEditorObjective *> &list)
+{
+	if (!chapter || list.isEmpty())
+		return;
+
+	m_undoStack->call(new MapEditorActionObjectiveRemove(m_editor, chapter, list));
+}
+
+
+/**
+ * @brief MapEditor::objectiveModify
+ * @param objective
+ * @param data
+ */
+
+void MapEditor::objectiveModify(GameMapEditorObjective *objective, const QVariantMap &data)
+{
+
+}
+
+
+
 
 /**
  * @brief MapEditor::onStepChanged
  */
 
 
-void MapEditor::onUndoRedoCompleted()
+void MapEditor::onUndoRedoCompleted(const int &lastStep)
 {
 	if (m_editor) {
 		{
@@ -300,7 +336,7 @@ void MapEditor::onUndoRedoCompleted()
 		return;
 	}
 
-	int s = qMin(qMax(m_undoStack->step(),0), m_undoStack->actions().size());
+	int s = qMin(qMax(lastStep, 0), m_undoStack->actions().size());
 
 	EditorAction *a = m_undoStack->actions().at(s);
 	MapEditorAction *ma = qobject_cast<MapEditorAction*>(a);
