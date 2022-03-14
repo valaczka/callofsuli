@@ -80,6 +80,9 @@ protected:
 	void objectiveAdd(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
 	void objectiveRemove(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
 
+	void storageAdd(GameMapEditorStorage *storage);
+	void storageRemove(GameMapEditorStorage *storage);
+
 	MapEditorActionType m_type;
 	QVariant m_contextId;
 	GameMapEditor *m_editor;
@@ -99,12 +102,18 @@ class MapEditorActionObjectiveNew : public MapEditorAction
 	Q_OBJECT
 
 public:
-	explicit MapEditorActionObjectiveNew(GameMapEditor *editor, GameMapEditorChapter *parentChapter, const QVariantMap &data);
+	explicit MapEditorActionObjectiveNew(GameMapEditor *editor, GameMapEditorChapter *parentChapter,
+										 const QVariantMap &data, const QVariantMap &storageData = QVariantMap());
 	virtual ~MapEditorActionObjectiveNew();
 
 private:
 	GameMapEditorObjective *m_objective;
 	GameMapEditorChapter *m_parentChapter;
+	GameMapEditorStorage *m_storage;
+
+	GameMapEditorStorage *m_storageEdited;
+	QVariantMap m_storageDataSource;
+	QVariantMap m_storageDataTarget;
 
 };
 
@@ -130,6 +139,69 @@ private:
 	GameMapEditorChapter *m_parentChapter;
 	QList<QPointer<GameMapEditorObjective>> m_list;
 };
+
+
+
+/**
+ * @brief The MapEditorActionObjectiveModify class
+ */
+
+class MapEditorActionObjectiveModify : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionObjectiveModify(GameMapEditor *editor, GameMapEditorChapter *chapter,
+											GameMapEditorObjective *objective, const QVariantMap &data,
+											GameMapEditorStorage *storage = nullptr, const QVariantMap &storageData = QVariantMap());
+	virtual ~MapEditorActionObjectiveModify();
+
+private:
+	GameMapEditorChapter *m_parentChapter;
+	GameMapEditorObjective *m_objective;
+	QVariantMap m_dataSource;
+	QVariantMap m_dataTarget;
+
+	GameMapEditorStorage *m_storage;
+	QVariantMap m_storageDataSource;
+	QVariantMap m_storageDataTarget;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionObjectiveMove class
+ */
+
+class MapEditorActionObjectiveMove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionObjectiveMove(GameMapEditor *editor, GameMapEditorChapter *parentChapter, GameMapEditorObjective *objective,
+										  const bool &isCopy, const QVariantMap &targetChapterData);
+	explicit MapEditorActionObjectiveMove(GameMapEditor *editor, GameMapEditorChapter *parentChapter, const QList<GameMapEditorObjective *> &list,
+										  const bool &isCopy, const QVariantMap &targetChapterData);
+	virtual ~MapEditorActionObjectiveMove();
+
+private:
+	void _undo();
+	void _redo();
+	void _setTarget(const QVariantMap &targetChapterData);
+
+	GameMapEditorChapter *m_parentChapter;
+	QList<QPointer<GameMapEditorObjective>> m_list;
+	bool m_isCopy;
+
+	GameMapEditorChapter *m_targetChapter;
+	bool m_isNewChapter;
+};
+
+
+
+
+
 
 
 /**
@@ -191,6 +263,10 @@ private:
 };
 
 
+
+/**
+ * @brief The MapEditorActionChapterModify class
+ */
 
 class MapEditorActionChapterModify : public MapEditorAction
 {

@@ -10,8 +10,8 @@ QCollapsible {
 	id: collapsible
 	title: qsTr("Egyszerű választás")
 
-	property string moduleData: ""
-	property string storageData: ""
+	property var moduleData: null
+	property var storageData: null
 	property string storageModule: ""
 	property int storageCount: 0
 
@@ -60,13 +60,11 @@ QCollapsible {
 
 
 	Component.onCompleted: {
-		if (moduleData == "")
+		if (!moduleData)
 			return
 
-		var d = JSON.parse(moduleData)
-
-		JS.setSqlFields([textQuestion, textCorrectAnswer], d)
-		areaAnswers.setData(d.answers.join("\n"))
+		JS.setSqlFields([textQuestion, textCorrectAnswer], moduleData)
+		areaAnswers.setData(moduleData.answers.join("\n"))
 	}
 
 
@@ -74,7 +72,7 @@ QCollapsible {
 		var d = JS.getSqlFields([textQuestion, textCorrectAnswer])
 		d.answers = areaAnswers.text.split("\n")
 
-		moduleData = JSON.stringify(d)
+		moduleData = d
 		return moduleData
 	}
 

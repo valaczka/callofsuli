@@ -489,6 +489,7 @@ public:
 
 	GameMapEditorChapter *chapter(const qint32 &id) const;
 	GameMapEditorMission *mission(const QString &uuid) const;
+	GameMapEditorMissionLevel *missionLevel(const QString &uuid, const qint32 &level) const;
 	GameMapEditorStorage *storage(const qint32 &id) const;
 
 	static GameMapEditor *fromBinaryData(const QByteArray &data, QObject *parent = nullptr);

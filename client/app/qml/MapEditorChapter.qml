@@ -69,24 +69,6 @@ QCollapsible {
 
 		model: self ? self.objectives : null
 
-		/*delegate: MapEditorChapter {
-			required property int index
-			collapsed: true
-			level: -1
-			selectorSet: chapterList.selectorSet
-			onLongClicked: chapterList.onDelegateLongClicked(index)
-			onSelectToggled: chapterList.onDelegateClicked(index, withShift)
-			Component.onCompleted: self = chapterList.modelObject(index)
-
-			onChapterRemove: {
-				if (mapEditor.editor.chapters.selectedCount > 0) {
-					mapEditor.chapterRemoveList(mapEditor.editor.chapters.getSelected())
-				} else {
-					mapEditor.chapterRemove(self)
-				}
-			}
-		}*/
-
 		delegate: Item {
 			id: item
 			width: objectiveList.width
@@ -105,8 +87,8 @@ QCollapsible {
 
 
 			onObjectiveSelfChanged: if (!objectiveSelf) {
-							   delete item
-						   }
+										delete item
+									}
 
 			QRectangleBg {
 				id: rect
@@ -206,33 +188,77 @@ QCollapsible {
 						anchors.verticalCenter: parent.verticalCenter
 						icon.source: CosStyle.iconMenu
 
+						SortFilterProxyModel {
+							id: _filteredChaptersModel
+							sourceModel: mapEditor.editor.chapters
+
+							filters: ValueFilter {
+								roleName: "id"
+								value: self.id
+								inverted: true
+							}
+						}
+
 						QMenu {
 							id: objectiveMenu
-							MenuItem {
-								//icon.source: CosStyle.iconRename
-								text: qsTr("Másolás")
 
-								onClicked: control.objectiveMoveCopy(item.uuid, true)
-							}
-							MenuItem {
-								//icon.source: CosStyle.iconBooks
-								text: qsTr("Áthelyezés")
+							QMenu {
+								id: submenuCopy
+								title: qsTr("Másolás")
 
-								onClicked: control.objectiveMoveCopy(item.uuid, false)
+								MenuItem {
+									text: "Új szakasz"
+									onClicked: objectiveMoveCopy(-1, true, item.objectiveSelf)
+								}
+
+								MenuSeparator { }
+
+								Instantiator {
+									model: _filteredChaptersModel
+
+									MenuItem {
+										text: model.name
+										onClicked: objectiveMoveCopy(model.id, true, item.objectiveSelf)
+									}
+
+									onObjectAdded: submenuCopy.insertItem(index+2, object)
+									onObjectRemoved: submenuCopy.removeItem(object)
+								}
 							}
+
+							QMenu {
+								id: submenuMove
+								title: qsTr("Áthelyezés")
+
+								MenuItem {
+									text: "Új szakasz"
+									onClicked: objectiveMoveCopy(-1, false, item.objectiveSelf)
+								}
+
+								MenuSeparator { }
+
+								Instantiator {
+									model: _filteredChaptersModel
+
+									MenuItem {
+										text: model.name
+										onClicked: objectiveMoveCopy(model.id, false, item.objectiveSelf)
+									}
+
+									onObjectAdded: submenuMove.insertItem(index+2, object)
+									onObjectRemoved: submenuMove.removeItem(object)
+								}
+							}
+
 							MenuItem {
 								icon.source: CosStyle.iconDuplicate
 								text: qsTr("Kettőzés")
+								enabled: self.objectives.selectedCount === 0
 
 								onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																				 uuid: "",
-																				 objectiveModule: item.module,
-																				 objectiveData: item.objectiveData,
-																				 storage: item.storageId,
-																				 storageData: item.storageData,
-																				 storageModule: item.storageModule,
-																				 storageCount: item.storageCount,
-																				 chapter: control.id
+																				 objective: item.objectiveSelf,
+																				 chapter: control.self,
+																				 duplicate: true
 																			 })
 							}
 
@@ -253,6 +279,7 @@ QCollapsible {
 						}
 
 						onClicked: objectiveMenu.open()
+
 					}
 				}
 
@@ -262,16 +289,10 @@ QCollapsible {
 						if (item.selectorSet)
 							objectiveList.onDelegateClicked(index, mouse.modifiers & Qt.ShiftModifier)
 						else {
-							/*mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																  uuid: item.uuid,
-																  objectiveModule: item.module,
-																  objectiveData: item.objectiveData,
-																  storage: item.storageId,
-																  storageData: item.storageData,
-																  storageModule: item.storageModule,
-																  storageCount: item.storageCount,
-																  chapter: control.id
-															  })*/
+							mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+																  objective: item.objectiveSelf,
+																  chapter: control.self
+															  })
 						}
 
 					} else if (mouse.button === Qt.RightButton) {
@@ -295,16 +316,9 @@ QCollapsible {
 			icon.source: CosStyle.iconAdd
 			text: qsTr("Új feladat")
 			color: CosStyle.colorAccentLighter
-			/*onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-															 uuid: "",
-															 objectiveModule: "",
-															 objectiveData: "",
-															 storage: -1,
-															 storageData: "",
-															 storageModule: "",
-															 storageCount: 0,
-															 chapter: control.id
-														 })*/
+			onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
+															 chapter: control.self
+														 })
 		}
 	}
 
@@ -337,7 +351,31 @@ QCollapsible {
 		icon.source: CosStyle.iconBooks
 		text: qsTr("Küldetések")
 
-		//onTriggered: mapEditor.chapterGetMissionList({chapter: chapter, name: name})
+		onTriggered: {
+
+			mapEditor.updateMissionLevelModel(self)
+
+			if (mapEditor.missionLevelModel.count < 1) {
+				cosClient.sendMessageWarning(qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))
+				return
+			}
+
+
+			var d = JS.dialogCreateQml("MissionList", {
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("%1 - Küldetések").arg(self.name),
+										   selectorSet: true,
+										   sourceModel: mapEditor.missionLevelModel
+									   })
+
+			d.accepted.connect(function(dlgdata) {
+				if (dlgdata !== true)
+					return
+
+				mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
+			})
+			d.open()
+		}
 	}
 
 
@@ -355,28 +393,33 @@ QCollapsible {
 
 
 
-	function objectiveMoveCopy(uuid, isCopy) {
-		var d = JS.dialogCreateQml("List", {
-									   icon: CosStyle.iconLockAdd,
-									   title: isCopy ? qsTr("Feladat másolása") : qsTr("Feladat áthelyezése"),
-									   roles: ["name", "chapter"],
-									   modelTitleRole: "name",
-									   selectorSet: false,
-									   sourceModel: mapEditor.modelChapterList
-								   })
+	function objectiveMoveCopy(chapterId, isCopy, objective) {
+		if (chapterId === -1) {
+			var d = JS.dialogCreateQml("TextField", {
+										   title: isCopy ? qsTr("Másolás új szakaszba") : qsTr("Áthelyezés új szakaszba"),
+										   text: qsTr("Az új szakasz neve")
+									   })
 
+			d.accepted.connect(function(data) {
+				if (data.length) {
+					if (self.objectives.selectedCount > 0) {
+						mapEditor.objectiveMoveCopyList(self, isCopy, self.objectives.getSelected(), -1, data)
+					} else {
+						mapEditor.objectiveMoveCopy(self, isCopy, objective, -1, data)
+					}
 
-		d.accepted.connect(function(data) {
-			if (data === -1)
-				return
+					self.objectives.unselectAll()
+				}
+			})
+			d.open()
+		} else {
+			if (self.objectives.selectedCount > 0) {
+				mapEditor.objectiveMoveCopyList(self, isCopy, self.objectives.getSelected(), chapterId)
+			} else {
+				mapEditor.objectiveMoveCopy(self, isCopy, objective, chapterId)
+			}
 
-			var p = d.item.sourceModel.get(data)
-
-			if (isCopy)
-				mapEditor.objectiveCopy({uuid: uuid, chapter: p.chapter})
-			else
-				mapEditor.objectiveModify({uuid: uuid, chapter: p.chapter})
-		})
-		d.open()
+			self.objectives.unselectAll()
+		}
 	}
 }

@@ -65,6 +65,8 @@ QTabPage {
 	activity: MapEditor {
 		id: mapEditor
 
+		property Drawer drawer: mapEditorDrawer
+
 		onEditorChanged: if (editor) {
 							 loadComponent()
 						 } else {
@@ -159,11 +161,41 @@ QTabPage {
 	}
 
 
-	Component {
-		id: componentRegistration
-		Registration {}
-	}
 
+
+	QDrawer {
+		id: mapEditorDrawer
+		edge: Qt.BottomEdge
+		height: control.height - control.stack.y - control.headerPadding
+		width: control.width>control.height ? Math.min(control.width*0.9, 1080) : control.width
+		x: (control.width-width)/2
+
+		property alias loader: drawerLoader
+
+		dim: false
+		interactive: false
+		modal: true
+
+		onClosed: {
+			interactive = false
+			drawerLoader.sourceComponent = undefined
+		}
+
+		onOpened: {
+			interactive = true
+		}
+
+
+		Loader {
+			id: drawerLoader
+			anchors.fill: parent
+			property Drawer drawer: mapEditorDrawer
+			property MapEditor mapEditor: mapEditor
+
+			onStatusChanged: if (drawerLoader.status == Loader.Ready)
+								 mapEditorDrawer.open()
+		}
+	}
 
 
 

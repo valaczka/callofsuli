@@ -10,7 +10,7 @@ QCollapsible {
 	id: collapsible
 	title: qsTr("Egész számok összeadása, kivonása")
 
-	property string moduleData: ""
+	property var moduleData: null
 
 	/*property bool editable: false
 
@@ -29,7 +29,8 @@ QCollapsible {
 
 
 	function getData() {
-		return moduleData
+		var r = {}
+		return r
 	}
 
 }

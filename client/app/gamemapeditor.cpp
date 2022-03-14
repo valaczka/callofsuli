@@ -78,6 +78,28 @@ GameMapEditorMission *GameMapEditor::mission(const QString &uuid) const
 
 
 /**
+ * @brief GameMapEditor::missionLevel
+ * @param uuid
+ * @param level
+ * @return
+ */
+
+GameMapEditorMissionLevel *GameMapEditor::missionLevel(const QString &uuid, const qint32 &level) const
+{
+	foreach (GameMapEditorMission *m, m_missions->objects()) {
+		if (m->uuid() == uuid) {
+			foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
+				if (l->level() == level)
+					return l;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+
+/**
  * @brief GameMapEditor::storage
  * @param id
  * @return

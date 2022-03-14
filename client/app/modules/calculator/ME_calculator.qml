@@ -12,8 +12,8 @@ QCollapsible {
 
 	interactive: false
 
-	property string moduleData: ""
-	property string storageData: ""
+	property var moduleData: null
+	property var storageData: null
 	property string storageModule: ""
 	property int storageCount: 0
 
@@ -22,7 +22,7 @@ QCollapsible {
 		width: parent.width
 		color: CosStyle.colorErrorLighter
 		wrapMode: Text.Wrap
-		text: qsTr("Érvénytelen storage modul!")
+		text: qsTr("Érvénytelen előállító modul!")
 		visible: ldr.sourceComponent == undefined
 	}
 
@@ -120,16 +120,16 @@ QCollapsible {
 
 
 			Component.onCompleted: {
-				if (moduleData == "")
+				if (!moduleData)
 					return
 
-				JS.setSqlFields([comboSubtract, comboRange, comboNegative], JSON.parse(moduleData))
+				JS.setSqlFields([comboSubtract, comboRange, comboNegative], moduleData)
 				spinCount.setData(storageCount)
 
 			}
 
 			function getData() {
-				moduleData = JSON.stringify(JS.getSqlFields([comboSubtract, comboRange, comboNegative]))
+				moduleData = JS.getSqlFields([comboSubtract, comboRange, comboNegative])
 
 				return moduleData
 			}

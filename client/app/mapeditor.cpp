@@ -35,9 +35,36 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_editor(nullptr)
 	, m_undoStack(new EditorUndoStack(this))
 	, m_url()
+	, m_availableObjectives()
+	, m_missionLevelModel(new ObjectGenericListModel<MapEditorMissionLevelObject>(this))
 {
+	// Load available objectives
+
+	QHash<QString, ModuleInterface *> omlist =  Client::moduleObjectiveList();
+	QHash<QString, ModuleInterface *>::const_iterator omit;
+
+	for (omit = omlist.constBegin(); omit != omlist.constEnd(); ++omit) {
+		m_availableObjectives.append(QVariantMap({
+													 { "module", omit.key() },
+													 { "name", omit.value()->readableName() },
+													 { "icon", omit.value()->icon() },
+													 { "storageModules", omit.value()->storageModules() }
+												 }));
+	}
+
+
 	connect(m_undoStack, &EditorUndoStack::undoCompleted, this, &MapEditor::onUndoRedoCompleted);
 	connect(m_undoStack, &EditorUndoStack::redoCompleted, this, &MapEditor::onUndoRedoCompleted);
+}
+
+
+/**
+ * @brief MapEditor::~MapEditor
+ */
+
+MapEditor::~MapEditor()
+{
+	delete m_missionLevelModel;
 }
 
 
@@ -259,14 +286,32 @@ bool MapEditor::chapterModelUnselectObjectives(ObjectGenericListModel<GameMapEdi
 
 
 /**
+ * @brief MapEditor::chapterModifyMissionLevels
+ * @param chapter
+ * @param list
+ */
+
+void MapEditor::chapterModifyMissionLevels(GameMapEditorChapter *chapter, const QList<MapEditorMissionLevelObject *> &list)
+{
+	QList<GameMapEditorMissionLevel*> ml = toMissionLevelList(list);
+
+	// TODO: MapEditorActionChapterMissionLevels
+
+}
+
+
+/**
  * @brief MapEditor::objectiveAdd
  * @param chapter
  * @param data
  */
 
-void MapEditor::objectiveAdd(GameMapEditorChapter *chapter, QVariantMap data)
+void MapEditor::objectiveAdd(GameMapEditorChapter *chapter, const QVariantMap &data, const QVariantMap &storageData)
 {
+	if (!chapter)
+		return;
 
+	m_undoStack->call(new MapEditorActionObjectiveNew(m_editor, chapter, data, storageData));
 }
 
 
@@ -306,9 +351,59 @@ void MapEditor::objectiveRemoveList(GameMapEditorChapter *chapter, const QList<G
  * @param data
  */
 
-void MapEditor::objectiveModify(GameMapEditorObjective *objective, const QVariantMap &data)
+void MapEditor::objectiveModify(GameMapEditorChapter *chapter, GameMapEditorObjective *objective,
+								const QVariantMap &data, const QVariantMap &storageData)
 {
+	if (!objective)
+		return;
 
+	if (objective->storageId() != -1 && !storageData.isEmpty())
+		m_undoStack->call(new MapEditorActionObjectiveModify(m_editor, chapter, objective, data,
+															 m_editor->storage(objective->storageId()), storageData));
+	else
+		m_undoStack->call(new MapEditorActionObjectiveModify(m_editor, chapter, objective, data));
+}
+
+
+/**
+ * @brief MapEditor::objectiveMoveCopy
+ * @param chapter
+ * @param isCopy
+ * @param objective
+ * @param targetChapterId
+ * @param newChapterName
+ */
+void MapEditor::objectiveMoveCopy(GameMapEditorChapter *chapter, const bool &isCopy, GameMapEditorObjective *objective,
+								  const int &targetChapterId, const QString &newChapterName)
+{
+	if (!objective)
+		return;
+
+	QVariantMap d;
+	d.insert("id", targetChapterId);
+	d.insert("name", newChapterName);
+
+	m_undoStack->call(new MapEditorActionObjectiveMove(m_editor, chapter, objective, isCopy, d));
+}
+
+
+/**
+ * @brief MapEditor::objectiveMoveCopyList
+ * @param chapter
+ * @param isCopy
+ * @param list
+ * @param targetChapterId
+ * @param newChapterName
+ */
+
+void MapEditor::objectiveMoveCopyList(GameMapEditorChapter *chapter, const bool &isCopy, const QList<GameMapEditorObjective *> &list,
+									  const int &targetChapterId, const QString &newChapterName)
+{
+	QVariantMap d;
+	d.insert("id", targetChapterId);
+	d.insert("name", newChapterName);
+
+	m_undoStack->call(new MapEditorActionObjectiveMove(m_editor, chapter, list, isCopy, d));
 }
 
 
@@ -348,3 +443,231 @@ void MapEditor::onUndoRedoCompleted(const int &lastStep)
 
 	emit actionContextUpdated(ma->type(), ma->contextId());
 }
+
+
+/**
+ * @brief MapEditor::toMissionLevelList
+ * @param list
+ * @return
+ */
+
+QList<GameMapEditorMissionLevel *> MapEditor::toMissionLevelList(const QList<MapEditorMissionLevelObject *> &list)
+{
+	QList<GameMapEditorMissionLevel *> ret;
+
+	if (!m_editor)
+		return ret;
+
+	ret.reserve(list.size());
+
+	foreach (MapEditorMissionLevelObject *o, list) {
+		GameMapEditorMissionLevel *ml = m_editor->missionLevel(o->uuid(), o->level());
+
+		ret.append(ml);
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief MapEditor::missionLevelModel
+ * @return
+ */
+
+ObjectGenericListModel<MapEditorMissionLevelObject> *MapEditor::missionLevelModel() const
+{
+	return m_missionLevelModel;
+}
+
+
+/**
+ * @brief MapEditor::updateMissionLevelModel
+ * @param chapter
+ */
+
+void MapEditor::updateMissionLevelModel(GameMapEditorChapter *chapter)
+{
+	if (!m_editor)
+		return;
+
+	QList<MapEditorMissionLevelObject*> list;
+
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
+		foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
+			MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l->level(), this);
+			if (chapter && l->chapters()->objects().contains(chapter))
+				obj->setSelected(true);
+			list.append(obj);
+		}
+	}
+
+	m_missionLevelModel->resetModel(list);
+
+}
+
+
+/**
+ * @brief MapEditor::availableObjectives
+ * @return
+ */
+
+const QVariantList &MapEditor::availableObjectives() const
+{
+	return m_availableObjectives;
+}
+
+
+
+/**
+ * @brief MapEditor::getStorages
+ * @return
+ */
+
+QVariantList MapEditor::getStorages() const
+{
+	QVariantList list;
+
+	if (!m_editor)
+		return list;
+
+	QHash<QString, ModuleInterface *> mlist =  Client::moduleStorageList();
+	QHash<QString, ModuleInterface *>::const_iterator it;
+
+	int id = -1;
+
+	for (it = mlist.constBegin(); it != mlist.constEnd(); ++it) {
+		ModuleInterface *iif = it.value();
+		list.append(QVariantMap ({
+									 { "id", id-- },
+									 { "module", it.key() },
+									 { "name", "" },
+									 { "title", tr("Új %1").arg(iif->readableName()) },
+									 { "icon", iif->icon() },
+									 { "details", "" },
+									 { "storageData", QVariantMap() },
+									 { "objectiveCount", 0 }
+								 }));
+	}
+
+	QList<GameMapEditorStorage *> storages = m_editor->storages()->objects();
+
+	foreach(GameMapEditorStorage *s, storages) {
+		QVariantMap m = Question::storageInfo(s->module(), s->data());
+		/*
+								   { "name", "" },
+							   { "icon", "image://font/Material Icons/\ue002" },
+							   { "title", QObject::tr("Érvénytelen modul!") },
+							   { "details", "" },
+							   { "image", "" }
+							   */
+
+		m.insert("id", s->id());
+		m.insert("module", s->module());
+		m.insert("storageData", s->data());
+
+		// objectiveCount
+
+		int objectiveCount = 0;
+
+		foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects()) {
+			foreach (GameMapEditorObjective *o, ch->objectives()->objects()) {
+				if (o->storageId() == s->id())
+					objectiveCount++;
+			}
+		}
+
+		m.insert("objectiveCount", objectiveCount);
+
+		list.append(m);
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveQml
+ * @param module
+ * @return
+ */
+
+QString MapEditor::objectiveQml(const QString &module) const
+{
+	if (!Client::moduleObjectiveList().contains(module))
+		return "";
+
+	ModuleInterface *mi = Client::moduleObjectiveList().value(module);
+
+	return mi->qmlEditor();
+}
+
+
+
+
+/**
+ * @brief MapEditor::storageQml
+ * @param module
+ * @return
+ */
+
+QString MapEditor::storageQml(const QString &module) const
+{
+	if (!Client::moduleStorageList().contains(module))
+		return "";
+
+	ModuleInterface *mi = Client::moduleStorageList().value(module);
+
+	return mi->qmlEditor();
+}
+
+
+
+/**
+ * @brief MapEditorMissionLevelObject::MapEditorMissionLevelObject
+ * @param parent
+ */
+
+MapEditorMissionLevelObject::MapEditorMissionLevelObject(QObject *parent)
+	: ObjectListModelObject(parent)
+	, m_uuid()
+	, m_name()
+	, m_level(0)
+{
+
+}
+
+MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &name, QObject *parent)
+	: ObjectListModelObject(parent)
+	, m_uuid()
+	, m_name(name)
+	, m_level(1)
+{
+
+}
+
+MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &uuid, const QString &name, QObject *parent)
+	: ObjectListModelObject(parent)
+	, m_uuid(uuid)
+	, m_name(name)
+	, m_level(1)
+{
+
+}
+
+MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &uuid, const QString &name, const int &level, QObject *parent)
+	: ObjectListModelObject(parent)
+	, m_uuid(uuid)
+	, m_name(name)
+	, m_level(level)
+{
+
+}
+
+MapEditorMissionLevelObject::~MapEditorMissionLevelObject()
+{
+
+}
+

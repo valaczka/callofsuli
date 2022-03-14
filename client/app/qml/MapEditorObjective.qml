@@ -10,19 +10,25 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	required property string uuid
-	required property string objectiveModule
-	required property string objectiveData
-	required property int storage
-	required property string storageData
-	required property string storageModule
-	required property int storageCount
-	required property int chapter
+	required property GameMapEditorChapter chapter
+	property GameMapEditorObjective objective: null
+	property bool duplicate: false
 
-	property var _availableStorageModules: []
+	property string objectiveModule: ""
+	property int storageId: -1
+	property string storageModule: ""
+	property int storageCount: 0
+	property var objectiveData: null
+	property var storageData: null
+
 
 	property Drawer drawer: parent.drawer
 	property MapEditor mapEditor: parent.mapEditor
+
+	property ListModel availableObjectiveModel: ListModel {}
+	property ListModel availableStorageModel: ListModel {}
+
+	property var _availableStorageModules: []
 
 	StackView {
 		id: stack
@@ -74,11 +80,11 @@ Item {
 	Component {
 		id: cmpObjectiveModules
 
-		QVariantMapProxyView {
+		QObjectListView {
 			id: list
 
 			model: SortFilterProxyModel {
-				sourceModel: mapEditor.modelObjectiveModules
+				sourceModel: availableObjectiveModel
 
 				sorters: StringSorter {
 					roleName: "name"
@@ -98,13 +104,25 @@ Item {
 
 			onClicked: {
 				var d = model.get(index)
-				objectiveModule = d.module
-				_availableStorageModules = d.storageModules
 
-				if (_availableStorageModules.length)
+				objectiveModule = d.module
+				_availableStorageModules = []
+
+				var i=0
+
+				while (true) {
+					if (!d.storageModules[i])
+						break
+
+					_availableStorageModules.push(d.storageModules[i])
+
+					i++
+				}
+
+				if (_availableStorageModules.length) {
 					stack.replace(cmpStorages)
-				else {
-					storage = 0
+				} else {
+					storageId = -1
 					stack.replace(cmpEdit)
 				}
 			}
@@ -121,7 +139,7 @@ Item {
 			id: slist
 
 			model: SortFilterProxyModel {
-				sourceModel: mapEditor.modelStorageList
+				sourceModel: availableStorageModel
 
 				filters: ExpressionFilter {
 					expression: _availableStorageModules.includes(model.module)
@@ -166,7 +184,7 @@ Item {
 				required property string title
 				required property string details
 				required property int objectiveCount
-				required property string storageData
+				required property var storageData
 				required property bool isNew
 
 
@@ -254,8 +272,8 @@ Item {
 
 
 					mouseArea.onClicked: {
-						storage = item.id > 0 ? item.id : -1
-						storageData = item.storageData
+						storageId = item.id > 0 ? item.id : -1
+						control.storageData = item.storageData
 						storageModule = item.module
 						stack.replace(cmpEdit)
 					}
@@ -272,13 +290,13 @@ Item {
 
 			header: QToolButtonFooter {
 				icon.source: CosStyle.iconAdd
-				text: qsTr("Storage nélkül")
+				text: qsTr("Előállító nélkül")
 				width: slist.width
 				height: CosStyle.twoLineHeight*1.7
 
 				onClicked: {
-					storage = 0
-					storageData = ""
+					storageId = -1
+					control.storageData = null
 					storageModule = ""
 					stack.replace(cmpEdit)
 				}
@@ -311,7 +329,7 @@ Item {
 				if (storageModule != "") {
 					var q = mapEditor.storageQml(storageModule)
 					storageLoader.setSource(q, {
-												moduleData: storageData
+												moduleData: control.storageData
 											})
 
 				}
@@ -320,7 +338,7 @@ Item {
 					var q2 = mapEditor.objectiveQml(objectiveModule)
 					objectiveLoader.setSource(q2, {
 												  moduleData: objectiveData,
-												  storageData: storageData,
+												  storageData: control.storageData,
 												  storageModule: storageModule,
 												  storageCount: storageCount
 											  })
@@ -332,7 +350,7 @@ Item {
 				target: storageLoader.item
 
 				function onModuleDataChanged(d) {
-					storageData = d
+					control.storageData = d
 				}
 			}
 
@@ -341,7 +359,7 @@ Item {
 
 				function onStorageDataChanged(sd) {
 					if (objectiveLoader.status == Loader.Ready)
-						objectiveLoader.item.setStorageData(storageData)
+						objectiveLoader.item.setStorageData(control.storageData)
 				}
 			}
 
@@ -373,10 +391,30 @@ Item {
 
 
 	Component.onCompleted: {
-		if(objectiveModule == "")
-			stack.replace(cmpObjectiveModules)
-		else {
+		var l = mapEditor.availableObjectives
+
+		for (var i=0; i<l.length; i++) {
+			availableObjectiveModel.append(l[i])
+		}
+
+
+		var sl = mapEditor.getStorages()
+
+		for (var j=0; j<sl.length; j++) {
+			availableStorageModel.append(sl[j])
+		}
+
+		if (objective) {
+			objectiveModule = objective.module
+			storageId = objective.storageId
+			storageModule = objective.storageModule
+			storageCount = objective.storageCount
+			objectiveData = objective.data
+			control.storageData = objective.storageData
+
 			stack.replace(cmpEdit)
+		} else {
+			stack.replace(cmpObjectiveModules)
 		}
 	}
 
@@ -386,16 +424,27 @@ Item {
 		var sdata = stack.currentItem.getStorageData()
 		var sc = stack.currentItem.getStorageCount()
 
-		mapEditor.objectiveAddOrModify({
-										   uuid: uuid,
-										   module: objectiveModule,
-										   data: odata,
-										   storage: storage,
-										   storageCount: sc,
-										   storageData: sdata,
-										   storageModule: storageModule,
-										   chapter: chapter
-									   })
+		if (objective && !duplicate) {
+			mapEditor.objectiveModify(chapter, objective,
+									  {
+										  data: odata,
+										  storageCount: sc
+									  },
+									  sdata)
+		} else {
+			mapEditor.objectiveAdd(chapter,
+								   {
+									   module: objectiveModule,
+									   data: odata,
+									   storageCount: sc
+								   },
+								   {
+									   id: storageId,
+									   module: storageModule,
+									   data: sdata
+								   })
+
+		}
 	}
 
 }

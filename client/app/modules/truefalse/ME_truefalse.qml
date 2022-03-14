@@ -10,8 +10,8 @@ QCollapsible {
 	id: collapsible
 	title: qsTr("Igaz/hamis állítás")
 
-	property string moduleData: ""
-	property string storageData: ""
+	property var moduleData: null
+	property var storageData: null
 	property string storageModule: ""
 	property int storageCount: 0
 
@@ -43,15 +43,15 @@ QCollapsible {
 
 
 	Component.onCompleted: {
-		if (moduleData == "")
+		if (!moduleData)
 			return
 
-		JS.setSqlFields([textQuestion, chTrue], JSON.parse(moduleData))
+		JS.setSqlFields([textQuestion, chTrue], moduleData)
 	}
 
 
 	function getData() {
-		moduleData = JSON.stringify(JS.getSqlFields([textQuestion, chTrue]))
+		moduleData = JS.getSqlFields([textQuestion, chTrue])
 
 		return moduleData
 	}
