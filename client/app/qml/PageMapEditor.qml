@@ -48,7 +48,7 @@ QTabPage {
 
 	QMenu {
 		id: menuWide
-		MenuItem { action: actionOpen }
+		//MenuItem { action: actionOpen }
 		MenuItem { action: actionSaveAs }
 	}
 
@@ -57,7 +57,7 @@ QTabPage {
 		MenuItem { action: actionUndo; text: qsTr("Visszavonás") }
 		MenuItem { action: actionRedo; text: qsTr("Ismét") }
 		MenuSeparator {}
-		MenuItem { action: actionOpen }
+		//MenuItem { action: actionOpen }
 		MenuItem { action: actionSaveAs }
 	}
 
@@ -94,7 +94,7 @@ QTabPage {
 			func: function() { loadComponentReal(componentChapters) }
 		}
 		ListElement {
-			title: qsTr("Storages")
+			title: qsTr("Előállítók")
 			icon: "image://font/Academic/\uf207"
 			//iconColor: "chartreuse"
 			func: function() { replaceContent(null) }
@@ -221,7 +221,13 @@ QTabPage {
 		id: actionSave
 		icon.source: CosStyle.iconSave
 		enabled: mapEditor.editor && mapEditor.undoStack.savedStep !== mapEditor.undoStack.step
-		//onTriggered: mapEditor.undoStack.undo()
+		shortcut: "Ctrl+S"
+		onTriggered: {
+			if (mapEditor.url.toString() != "")
+				mapEditor.save()
+			else
+				actionSaveAs.trigger()
+		}
 	}
 
 
@@ -260,7 +266,19 @@ QTabPage {
 		icon.source: CosStyle.iconSearch
 		text: qsTr("Mentés másként")
 		enabled: mapEditor.editor
-		//onTriggered: mapEditor.undoStack.undo()
+		onTriggered:  {
+			var d = JS.dialogCreateQml("File", {
+										   isSave: true,
+										   folder: cosClient.getSetting("mapFolder", "")
+									   })
+
+			d.accepted.connect(function(data){
+				mapEditor.save(data)
+				cosClient.setSetting("mapFolder", d.item.modelFolder)
+			})
+
+			d.open()
+		}
 	}
 
 
@@ -280,12 +298,15 @@ QTabPage {
 		function onStoragePermissionsGranted() {
 			_permissionsGranted = true
 
-			if (fileToOpen != "") {
+			if (!mapEditor.editor && fileToOpen != "") {
 				mapEditor.open(fileToOpen)
+				fileToOpen = ""
 			}
 		}
 
 	}
+
+
 
 
 	function loadComponent(contextAction, contextId) {
@@ -298,6 +319,10 @@ QTabPage {
 			var cmp = PageMapEditor.Components.Missions
 
 			switch (contextAction) {
+			case MapEditorAction.ActionTypeMissionList:
+			case MapEditorAction.ActionTypeMission:
+				cmp = PageMapEditor.Components.Missions
+				break
 			case MapEditorAction.ActionTypeChapterList:
 			case MapEditorAction.ActionTypeChapter:
 				cmp = PageMapEditor.Components.Chapters

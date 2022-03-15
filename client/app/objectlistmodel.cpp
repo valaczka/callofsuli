@@ -43,6 +43,29 @@ ObjectListModel::ObjectListModel(const QMetaObject *objectType, QObject *parent)
 }
 
 
+/**
+ * @brief ObjectListModel::ObjectListModel
+ * @param objectType
+ * @param isOwner
+ * @param parent
+ */
+
+ObjectListModel::ObjectListModel(const QMetaObject *objectType, const bool &isOwner, QObject *parent)
+	: QObjectListModel{objectType, isOwner, parent}
+	, m_selectedCount{0}
+	, m_processing(false)
+{
+	setEditable(true);
+
+	auto roleIndex = Qt::UserRole + 1;
+	for(auto i = 0; i < objectType->propertyCount(); i++) {
+		auto prop = objectType->property(i);
+		if(prop.hasNotifySignal())
+			registerSignalHelper(roleIndex, prop.notifySignal());
+		roleIndex++;
+	}
+}
+
 
 
 /**

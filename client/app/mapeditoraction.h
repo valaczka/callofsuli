@@ -282,4 +282,30 @@ private:
 	QVariantMap m_dataTarget;
 };
 
+
+
+
+
+
+/**
+ * @brief The MapEditorActionChapterModify class
+ */
+
+class MapEditorActionChapterMissionLevels : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionChapterMissionLevels(GameMapEditor *editor, GameMapEditorChapter *chapter,
+												 const QList<GameMapEditorMissionLevel*> &levels);
+	virtual ~MapEditorActionChapterMissionLevels();
+
+private:
+	void updateMissionLevels(const QList<QPointer<GameMapEditorMissionLevel>> &list);
+
+	GameMapEditorChapter *m_chapter;
+	QList<QPointer<GameMapEditorMissionLevel>> m_listSource;
+	QList<QPointer<GameMapEditorMissionLevel>> m_listTarget;
+};
+
 #endif // MAPEDITORACTION_H

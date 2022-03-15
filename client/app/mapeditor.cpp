@@ -141,6 +141,7 @@ void MapEditor::create()
 	}
 
 	GameMapEditor *e = new GameMapEditor(this);
+	e->setUuid(QUuid::createUuid().toString());
 	setEditor(e);
 	setUrl(QUrl());
 	m_undoStack->clear();
@@ -163,6 +164,61 @@ void MapEditor::close()
 		m_editor->deleteLater();
 		setEditor(nullptr);
 	}
+}
+
+
+
+
+
+
+/**
+ * @brief MapEditor::save
+ * @param newUrl
+ */
+
+void MapEditor::save(const QUrl &newUrl)
+{
+	if (!m_editor)
+		return;
+
+	if (m_url.isEmpty() && newUrl.isEmpty()) {
+		qWarning() << "Missing file url";
+		return;
+	}
+
+
+	QString filename;
+
+	if (newUrl.isEmpty())
+		filename = m_url.toLocalFile();
+	else
+		filename = newUrl.toLocalFile();
+
+	qInfo() << tr("Mentés ide: %1").arg(filename);
+
+	QFile f(filename);
+
+	if (!f.open(QIODevice::WriteOnly)) {
+		Client::clientInstance()->sendMessageWarning(tr("Mentés"), tr("Nem lehet menteni a fájlt!"), filename);
+		return;
+	}
+
+	if (!newUrl.isEmpty())
+		m_editor->regenerateUuids();
+
+	QByteArray b = m_editor->toBinaryData();
+
+	f.write(b);
+
+	f.close();
+
+	if (!newUrl.isEmpty()) {
+		setUrl(newUrl);
+		setDisplayName(filename);
+	}
+
+	m_undoStack->setSavedStep(m_undoStack->step());
+
 }
 
 
@@ -295,8 +351,7 @@ void MapEditor::chapterModifyMissionLevels(GameMapEditorChapter *chapter, const 
 {
 	QList<GameMapEditorMissionLevel*> ml = toMissionLevelList(list);
 
-	// TODO: MapEditorActionChapterMissionLevels
-
+	m_undoStack->call(new MapEditorActionChapterMissionLevels(m_editor, chapter, ml));
 }
 
 

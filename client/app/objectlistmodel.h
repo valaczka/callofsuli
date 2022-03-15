@@ -40,6 +40,7 @@ class ObjectListModel : public QObjectListModel
 
 public:
 	explicit ObjectListModel(const QMetaObject *objectType, QObject *parent = nullptr);
+	explicit ObjectListModel(const QMetaObject *objectType, const bool &isOwner, QObject *parent = nullptr);
 
 	int selectedCount() const;
 	void setSelectedCount(int newSelectedCount);
@@ -115,6 +116,7 @@ class ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>> : publi
 {
 public:
 	explicit ObjectGenericListModel(QObject *parent = nullptr);
+	explicit ObjectGenericListModel(const bool &isOwner, QObject *parent = nullptr);
 
 	QList<T*> objects() const;
 	T *object(const QModelIndex &index) const;
@@ -168,6 +170,14 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::onSelec
 template<typename T>
 ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::ObjectGenericListModel(QObject *parent)
 	: ObjectListModel{&T::staticMetaObject, parent}
+{
+
+}
+
+
+template<typename T>
+ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::ObjectGenericListModel(const bool &isOwner, QObject *parent)
+	: ObjectListModel{&T::staticMetaObject, isOwner, parent}
 {
 
 }

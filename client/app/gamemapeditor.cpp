@@ -590,7 +590,7 @@ GameMapEditorMissionLevel::GameMapEditorMissionLevel(const qint32 &level, const 
 													 GameMapEditor *map, QObject *parent)
 	: ObjectListModelObject(parent)
 	, GameMapMissionLevelIface()
-	, m_chapters(new ObjectGenericListModel<GameMapEditorChapter>(this))
+	, m_chapters(new ObjectGenericListModel<GameMapEditorChapter>(false, this))
 	, m_inventories(new ObjectGenericListModel<GameMapEditorInventory>(this))
 	, m_mission(mission)
 	, m_map(map)
@@ -837,7 +837,7 @@ GameMapEditorMission::GameMapEditorMission(const QByteArray &uuid, const QString
 	, GameMapMissionIface()
 	, m_map(map)
 	, m_levels(new ObjectGenericListModel<GameMapEditorMissionLevel>(this))
-	, m_locks(new ObjectGenericListModel<GameMapEditorMissionLock>(this))
+	, m_locks(new ObjectGenericListModel<GameMapEditorMissionLock>(false, this))
 {
 	m_uuid = uuid;
 	m_name = name;

@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import SortFilterProxyModel 0.2
 import COS.Client 1.0
 import "."
 import "Style"
@@ -13,237 +14,130 @@ QTabContainer {
 	icon: CosStyle.iconComputer
 
 	property int contextAction: (MapEditorAction.ActionTypeMissionList | MapEditorAction.ActionTypeMission)
+	property int actionContextType: -1
+	property var actionContextId: null
 
-	/*SortFilterProxyModel {
-		id: userProxyModel
-		sourceModel: servers.serversModel
-
-		proxyRoles: [
-			ExpressionRole {
-				name: "displayName"
-				expression: model.host+":"+model.port+(model.ssl ? " (SSL)" : "")+(model.broadcast ? qsTr(" [auto]") : "")
-			}
-		]
-	}*/
-
-
+	signal forceMissionOpen(string missionuuid)
 
 	QObjectListView {
 		id: missionList
 		anchors.fill: parent
 
-		//visible: isDisconnected
+		visible: mapEditor.editor.missions.count
 
-		model: mapEditor.editor.chapters
+		selectorSet: mapEditor.editor.missions.selectedCount
+
+		model: SortFilterProxyModel {
+			sourceModel: mapEditor.editor.missions
+
+			sorters: StringSorter {
+				roleName: "name"
+			}
+		}
+
 		modelTitleRole: "name"
-		modelSubtitleRole: "id"
+
+		/*delegate: MapEditorChapter {
+			id: chapterItem
+			required property int index
+			collapsed: true
+			level: -1
+			selectorSet: missionList.selectorSet
+			onLongClicked: missionList.onDelegateLongClicked(index)
+			onSelectToggled: missionList.onDelegateClicked(index, withShift)
+			self: missionList.modelObject(index)
+
+			onSelfChanged: if (!self) {
+							   delete chapterItem
+						   }
+
+			onChapterRemove: {
+				if (mapEditor.editor.missions.selectedCount > 0) {
+					mapEditor.chapterRemoveList(mapEditor.editor.missions.getSelected())
+				} else {
+					mapEditor.chapterRemove(self)
+				}
+			}
+
+			Connections {
+				target: control
+				function onforceMissionOpen(chid) {
+					if (!chapterItem.self)
+						return
+
+					if (chid === chapterItem.self.id)
+						chapterItem.collapsed = false
+					else
+						chapterItem.collapsed = true
+				}
+			}
+		}*/
 
 		header: QTabHeader {
 			tabContainer: control
 			isPlaceholder: true
 		}
 
-		autoSelectorChange: true
 
-		/*delegateHeight: CosStyle.twoLineHeight
-
-		leftComponent: QFlipable {
-			id: flipable
-			width: serverList.delegateHeight
-			height: width
-
-			frontIcon: CosStyle.iconComputer
-			backIcon: CosStyle.iconComputer
-			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
-			flipped: model.autoconnect
-
-			mouseArea.onClicked: servers.serverSetAutoConnect(serverList.modelObject(modelIndex))
+		footer: QToolButtonFooter {
+			width: missionList.width
+			anchors.horizontalCenter: parent.horizontalCenter
+			action: actionMissionNew
 		}
-
-		onClicked: servers.serverConnect(serverList.modelObject(index))
-
-		onRightClicked: contextMenu.popup()
-		onLongPressed: contextMenu.popup()
-
-		QMenu {
-			id: contextMenu
-
-			MenuItem { action: actionConnect }
-			MenuItem { action: actionEdit}
-			MenuItem { action: actionRemove }
-			MenuSeparator {}
-			MenuItem { action: actionAutoConnect }
-		}
-
-
-		onKeyInsertPressed: actionServerNew.trigger()
-		onKeyF4Pressed: actionEdit.trigger()
-		onKeyDeletePressed: actionRemove.trigger()
-		onKeyF2Pressed: actionAutoConnect.trigger()*/
 	}
-
-
 
 	QToolButtonBig {
 		anchors.centerIn: parent
-		visible: !mapEditor.editor.chapters.count
-		//action: actionServerNew
-		color: CosStyle.colorOK
+		visible: !mapEditor.editor.missions.count
+		action: actionMissionNew
+		color: CosStyle.colorOKLighter
 	}
-
-/*
-
-	Column {
-		anchors.centerIn: parent
-		visible: !isDisconnected
-
-		spacing: 10
-
-		Row {
-			spacing: 10
-			anchors.horizontalCenter: parent.horizontalCenter
-
-
-			BusyIndicator {
-				anchors.verticalCenter: parent.verticalCenter
-				height: CosStyle.pixelSize*3
-				width: CosStyle.pixelSize*3
-				running: true
-				Material.accent: CosStyle.colorPrimaryLighter
-			}
-
-			QLabel {
-				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Kapcsolódás...")
-				font.pixelSize: CosStyle.pixelSize*1.2
-				color: CosStyle.colorPrimary
-			}
-
-		}
-
-		QButton {
-			anchors.horizontalCenter: parent.horizontalCenter
-			themeColors: CosStyle.buttonThemeRed
-			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
-			onClicked: cosClient.closeConnection()
-		}
-	}
-
-
 
 	Action {
-		id: actionServerNew
-		text: qsTr("Hozzáadás")
+		id: actionMissionNew
 		icon.source: CosStyle.iconAdd
+		text: qsTr("Új küldetés")
+
 		onTriggered: {
-			servers.uiAdd()
+			var d = JS.dialogCreateQml("TextField", {
+										   title: qsTr("Új küldetés"),
+										   text: qsTr("Az új küldetés neve")
+									   })
+
+			d.accepted.connect(function(data) {
+				/*if (data.length)
+					mapEditor.chapterAdd({name: data})*/
+			})
+			d.open()
 		}
 	}
 
-	Action {
-		id: actionConnect
-		text: qsTr("Csatlakozás")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: servers.serverConnect(serverList.modelObject(serverList.currentIndex))
+	onPopulated: {
+		missionList.forceActiveFocus()
 
+		loadContextId(actionContextType, actionContextId)
+		actionContextType = -1
+		actionContextId = null
 	}
 
-	Action {
-		id: actionEdit
-		text: qsTr("Szerkesztés")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: {
-			servers.uiEdit(serverList.modelObject(serverList.currentIndex))
+
+	function loadContextId(type, id) {
+		if (type === MapEditorAction.ActionTypeMissionList)
+			forceMissionOpen("")
+		else if (type === MapEditorAction.ActionTypeMission)
+			forceMissionOpen(id)
+	}
+
+
+	backCallbackFunction: function () {
+		/*if (mapEditor.chapterModelUnselectObjectives(mapEditor.editor.missions))
+			return true*/
+
+		if (mapEditor.editor.missions.selectedCount) {
+			mapEditor.editor.missions.unselectAll()
+			return true
 		}
+
+		return false
 	}
-
-	Action {
-		id: actionRemove
-		icon.source: CosStyle.iconDelete
-		text: qsTr("Törlés")
-		enabled: serverList.currentIndex !== -1
-		onTriggered: {
-			var more = servers.serversModel.selectedCount
-
-			if (more > 0) {
-				var dd = JS.dialogCreateQml("YesNo", {
-												title: qsTr("Szerverek törlése"),
-												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(more)
-											})
-				dd.accepted.connect(function () {
-					servers.serverDeleteList(servers.serversModel.getSelected())
-					servers.serversModel.unselectAll()
-				})
-				dd.open()
-			} else {
-				var o = serverList.modelObject(serverList.currentIndex)
-
-				var d = JS.dialogCreateQml("YesNo", {
-											   title: qsTr("Szerver törlése"),
-											   text: qsTr("Biztosan törlöd a szervert?\n%1").arg(o.name)
-										   })
-				d.accepted.connect(function () {
-					servers.serverDelete(serverList.modelObject(serverList.currentIndex))
-					servers.serversModel.unselectAll()
-				})
-				d.open()
-			}
-		}
-	}
-
-
-	Action {
-		id: actionAutoConnect
-		text: qsTr("Automata csatlakozás")
-		enabled: serverList.currentIndex !== -1
-		onTriggered:  {
-			servers.serverSetAutoConnect(serverList.modelObject(serverList.currentIndex))
-		}
-	}
-
-
-	Action {
-		id: actionServerSearch
-		text: qsTr("Keresés")
-		icon.source: CosStyle.iconSearch
-		onTriggered: {
-			servers.sendBroadcast()
-		}
-	}
-
-
-
-
-	Action {
-		id: actionAbout
-		text: qsTr("Névjegy")
-		onTriggered: {
-			var dd = JS.dialogCreateQml("About", {})
-			dd.open()
-		}
-	}
-
-	Action {
-		id: actionExit
-		text: qsTr("Kilépés")
-		onTriggered: mainWindow.close()
-	}
-
-
-	Action {
-		id: actionDemo
-		text: qsTr("Demo")
-		onTriggered: {
-			JS.createPage("Map", {
-							  demoMode: true,
-							  title: qsTr("Demo mód"),
-							  readOnly: false
-						  })
-		}
-	}
-*/
-
-
-	onPopulated: missionList.forceActiveFocus()
 }

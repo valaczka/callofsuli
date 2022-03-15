@@ -110,6 +110,7 @@ public slots:
 	void open(const QUrl &url);
 	void create();
 	void close();
+	void save(const QUrl &newUrl = QUrl());
 
 	void chapterAdd(QVariantMap data);
 	void chapterRemove(GameMapEditorChapter *chapter);

@@ -845,3 +845,92 @@ void MapEditorActionObjectiveMove::_setTarget(const QVariantMap &targetChapterDa
 		setContextId(chapterId);
 	}
 }
+
+
+/**
+ * @brief MapEditorActionChapterMissionLevels::MapEditorActionChapterMissionLevels
+ * @param editor
+ * @param chapter
+ * @param levels
+ */
+
+MapEditorActionChapterMissionLevels::MapEditorActionChapterMissionLevels(GameMapEditor *editor, GameMapEditorChapter *chapter,
+																		 const QList<GameMapEditorMissionLevel *> &levels)
+	: MapEditorAction(editor, ActionTypeChapter, chapter->id())
+	, m_chapter(chapter)
+	, m_listSource()
+	, m_listTarget()
+{
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()){
+		foreach (GameMapEditorMissionLevel *ml, m->levels()->objects()) {
+			if (ml->chapters()->objects().contains(chapter))
+				m_listSource.append(ml);
+		}
+	}
+
+	m_listTarget.reserve(levels.size());
+	foreach (GameMapEditorMissionLevel *ml, levels) {
+		m_listTarget.append(ml);
+	}
+
+	setDescription(QObject::tr("Szakasz küldetéseinek módosítása: %1").arg(chapter->name()));
+
+	setUndoFunc([this](){
+		updateMissionLevels(m_listSource);
+		m_chapter->recalculateCounts();
+	});
+
+	setRedoFunc([this](){
+		updateMissionLevels(m_listTarget);
+		m_chapter->recalculateCounts();
+	});
+}
+
+
+/**
+ * @brief MapEditorActionChapterMissionLevels::~MapEditorActionChapterMissionLevels
+ */
+
+MapEditorActionChapterMissionLevels::~MapEditorActionChapterMissionLevels()
+{
+
+}
+
+
+/**
+ * @brief MapEditorActionChapterMissionLevels::updateMissionLevels
+ * @param list
+ */
+
+void MapEditorActionChapterMissionLevels::updateMissionLevels(const QList<QPointer<GameMapEditorMissionLevel> > &list)
+{
+	if (!m_chapter)
+		return;
+
+	// Remove
+
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
+		foreach (GameMapEditorMissionLevel *ml, m->levels()->objects()) {
+			if (!ml)
+				continue;
+
+			if (list.contains(ml))
+				continue;
+
+			for (int i=ml->chapters()->index(m_chapter); i != -1; i=ml->chapters()->index(m_chapter)) {
+				ml->chapters()->removeObject(i);
+			}
+		}
+	}
+
+
+	// Append
+
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
+		foreach (GameMapEditorMissionLevel *ml, m->levels()->objects()) {
+			if (list.contains(ml) && !ml->chapters()->objects().contains(m_chapter))
+				ml->chapters()->addObject(m_chapter);
+		}
+	}
+
+}

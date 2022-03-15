@@ -24,6 +24,8 @@ QTabContainer {
 		id: chapterList
 		anchors.fill: parent
 
+		visible: mapEditor.editor.chapters.count
+
 		selectorSet: mapEditor.editor.chapters.selectedCount
 
 		model: SortFilterProxyModel {
@@ -107,6 +109,12 @@ QTabContainer {
 		}
 	}
 
+	QToolButtonBig {
+		anchors.centerIn: parent
+		visible: !mapEditor.editor.chapters.count
+		action: actionChapterNew
+		color: CosStyle.colorOKLighter
+	}
 
 	Action {
 		id: actionChapterNew
