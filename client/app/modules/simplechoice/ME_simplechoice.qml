@@ -6,57 +6,50 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Egyszerű választás")
+QGridLayout {
+	watchModification: false
 
 	property var moduleData: null
 	property var storageData: null
 	property string storageModule: ""
 	property int storageCount: 0
 
-	interactive: false
+	QGridLabel { field: textQuestion }
 
-	QGridLayout {
-		watchModification: false
+	QGridTextField {
+		id: textQuestion
+		fieldName: qsTr("Kérdés")
+		sqlField: "question"
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
 
-		QGridLabel { field: textQuestion }
-
-		QGridTextField {
-			id: textQuestion
-			fieldName: qsTr("Kérdés")
-			sqlField: "question"
-			placeholderText: qsTr("Ez a kérdés fog megjelenni")
-
-			onTextModified: getData()
-		}
-
-		QGridLabel { field: textCorrectAnswer }
-
-		QGridTextField {
-			id: textCorrectAnswer
-			fieldName: qsTr("Helyes válasz")
-			sqlField: "correct"
-			placeholderText: qsTr("Ez lesz a helyes válasz")
-
-			onTextModified: getData()
-		}
-
-		QGridLabel {
-			field: areaAnswers
-		}
-
-		QGridTextArea {
-			id: areaAnswers
-			fieldName: qsTr("Helytelen válaszok")
-			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
-			minimumHeight: CosStyle.baseHeight*2
-
-			onTextModified: getData()
-		}
-
-
+		onTextModified: getData()
 	}
+
+	QGridLabel { field: textCorrectAnswer }
+
+	QGridTextField {
+		id: textCorrectAnswer
+		fieldName: qsTr("Helyes válasz")
+		sqlField: "correct"
+		placeholderText: qsTr("Ez lesz a helyes válasz")
+
+		onTextModified: getData()
+	}
+
+	QGridLabel {
+		field: areaAnswers
+	}
+
+	QGridTextArea {
+		id: areaAnswers
+		fieldName: qsTr("Helytelen válaszok")
+		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
+		minimumHeight: CosStyle.baseHeight*2
+
+		onTextModified: getData()
+	}
+
+
 
 
 	Component.onCompleted: {

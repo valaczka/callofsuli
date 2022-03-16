@@ -6,30 +6,29 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Számítási feladat")
-
-	interactive: false
+Loader {
+	id: ldr
+	width: parent.width
 
 	property var moduleData: null
 	property var storageData: null
 	property string storageModule: ""
 	property int storageCount: 0
 
-	QLabel {
-		padding: 20
-		width: parent.width
-		color: CosStyle.colorErrorLighter
-		wrapMode: Text.Wrap
-		text: qsTr("Érvénytelen előállító modul!")
-		visible: ldr.sourceComponent == undefined
-	}
+	Component {
+		id: cmpLabel
 
+		QLabel {
+			padding: 20
+			width: parent.width
+			color: CosStyle.colorErrorLighter
+			wrapMode: Text.Wrap
+			text: qsTr("Érvénytelen előállító modul!")
 
-	Loader {
-		id: ldr
-		width: parent.width
+			function getData() {
+				return null
+			}
+		}
 	}
 
 	Component {
@@ -140,6 +139,8 @@ QCollapsible {
 	Component.onCompleted: {
 		if (storageModule == "plusminus")
 			ldr.sourceComponent = cmpPlusminus
+		else
+			ldr.sourceComponent = cmpLabel
 	}
 
 

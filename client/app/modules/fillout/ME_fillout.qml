@@ -6,10 +6,7 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Szövegkitöltés")
-
+QGridLayout {
 	property var moduleData: null
 	property var storageData: null
 	property string storageModule: ""
@@ -23,63 +20,55 @@ QCollapsible {
 		wordBackground: CosStyle.colorWarningLight
 	}
 
+	watchModification: false
 
-	interactive: false
+	QGridLabel { field: area }
 
-	QGridLayout {
-		width: parent.width
+	QGridTextArea {
+		id: area
+		fieldName: qsTr("Szöveg")
+		sqlField: "text"
+		placeholderText: qsTr("Ide kell írni a szöveget, amiből a hiányzó szavakat ki kell egészíteniük. A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni. (Pl: A %hiányzó% szó, vagy a %hiányzó kifejezések%.)\n Amennyiben %-jelet szeretnénk megjeleníteni ezt kell írni helyette: \\%")
 
-		watchModification: false
+		minimumHeight: CosStyle.baseHeight*3
 
-		QGridLabel { field: area }
+		onTextModified: getData()
+	}
 
-		QGridTextArea {
-			id: area
-			fieldName: qsTr("Szöveg")
-			sqlField: "text"
-			placeholderText: qsTr("Ide kell írni a szöveget, amiből a hiányzó szavakat ki kell egészíteniük. A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni. (Pl: A %hiányzó% szó, vagy a %hiányzó kifejezések%.)\n Amennyiben %-jelet szeretnénk megjeleníteni ezt kell írni helyette: \\%")
+	QGridLabel {
+		field: areaAnswers
+	}
 
-			minimumHeight: CosStyle.baseHeight*3
+	QGridTextArea {
+		id: areaAnswers
+		fieldName: qsTr("Helytelen válaszok")
+		placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
 
-			onTextModified: getData()
-		}
+		minimumHeight: CosStyle.baseHeight*2
 
-		QGridLabel {
-			field: areaAnswers
-		}
+		onTextModified: getData()
+	}
 
-		QGridTextArea {
-			id: areaAnswers
-			fieldName: qsTr("Helytelen válaszok")
-			placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
+	QGridText { text: qsTr("Kiegészítendő helyek száma:") }
 
-			minimumHeight: CosStyle.baseHeight*2
+	QGridSpinBox {
+		id: spinCount
+		from: 1
+		value: 3
+		to: 99
+		editable: true
+		sqlField: "count"
+	}
 
-			onTextModified: getData()
-		}
+	QGridText { text: qsTr("Válaszlehetőségek száma:") }
 
-		QGridText { text: qsTr("Kiegészítendő helyek száma:") }
-
-		QGridSpinBox {
-			id: spinCount
-			from: 1
-			value: 3
-			to: 99
-			editable: true
-			sqlField: "count"
-		}
-
-		QGridText { text: qsTr("Válaszlehetőségek száma:") }
-
-		QGridSpinBox {
-			id: spinOptions
-			from: spinCount.value
-			value: 5
-			to: 99
-			editable: true
-			sqlField: "optionsCount"
-		}
-
+	QGridSpinBox {
+		id: spinOptions
+		from: spinCount.value
+		value: 5
+		to: 99
+		editable: true
+		sqlField: "optionsCount"
 	}
 
 

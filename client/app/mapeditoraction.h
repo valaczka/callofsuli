@@ -50,7 +50,8 @@ public:
 		ActionTypeMissionLevel	= 0x10,
 		ActionTypeInventory		= 0x20,
 		ActionTypeImageList		= 0x40,
-		ActionTypeImage			= 0x80
+		ActionTypeImage			= 0x80,
+		ActionTypeObjective		= 0x100
 	};
 
 	Q_ENUM(MapEditorActionType);

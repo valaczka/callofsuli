@@ -188,15 +188,8 @@ QCollapsible {
 						anchors.verticalCenter: parent.verticalCenter
 						icon.source: CosStyle.iconMenu
 
-						SortFilterProxyModel {
+						ListModel {
 							id: _filteredChaptersModel
-							sourceModel: mapEditor.editor.chapters
-
-							filters: ValueFilter {
-								roleName: "id"
-								value: self.id
-								inverted: true
-							}
 						}
 
 						QMenu {
@@ -255,11 +248,11 @@ QCollapsible {
 								text: qsTr("Kettőzés")
 								enabled: self.objectives.selectedCount === 0
 
-								onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																				 objective: item.objectiveSelf,
-																				 chapter: control.self,
-																				 duplicate: true
-																			 })
+								onClicked: mapEditor.openObjective({
+																	   objective: item.objectiveSelf,
+																	   chapter: control.self,
+																	   duplicate: true
+																   })
 							}
 
 							MenuSeparator { }
@@ -278,7 +271,16 @@ QCollapsible {
 							}
 						}
 
-						onClicked: objectiveMenu.open()
+						onClicked: {
+							_filteredChaptersModel.clear()
+							for (var i=0; i<mapEditor.editor.chapters.count; i++) {
+								var d=mapEditor.editor.chapters.object(i)
+								if (d.id !== self.id)
+									_filteredChaptersModel.append({id: d.id, name: d.name})
+							}
+
+							objectiveMenu.open()
+						}
 
 					}
 				}
@@ -289,14 +291,14 @@ QCollapsible {
 						if (item.selectorSet)
 							objectiveList.onDelegateClicked(index, mouse.modifiers & Qt.ShiftModifier)
 						else {
-							mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																  objective: item.objectiveSelf,
-																  chapter: control.self
-															  })
+							mapEditor.openObjective({
+														objective: item.objectiveSelf,
+														chapter: control.self
+													})
 						}
 
 					} else if (mouse.button === Qt.RightButton) {
-						objectiveMenu.open()
+						btnMenu.clicked()
 					}
 				}
 
@@ -316,9 +318,9 @@ QCollapsible {
 			icon.source: CosStyle.iconAdd
 			text: qsTr("Új feladat")
 			color: CosStyle.colorAccentLighter
-			onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-															 chapter: control.self
-														 })
+			onClicked: mapEditor.openObjective({
+												   chapter: control.self
+											   })
 		}
 	}
 

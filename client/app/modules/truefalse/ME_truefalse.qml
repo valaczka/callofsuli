@@ -6,39 +6,31 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Igaz/hamis állítás")
+QGridLayout {
+	watchModification: false
 
 	property var moduleData: null
 	property var storageData: null
 	property string storageModule: ""
 	property int storageCount: 0
 
-	interactive: false
+	QGridLabel { field: textQuestion }
 
-	QGridLayout {
-		watchModification: false
+	QGridTextField {
+		id: textQuestion
+		fieldName: qsTr("Állítás")
+		sqlField: "question"
+		placeholderText: qsTr("Ez az állítás fog megjelenni")
 
-		QGridLabel { field: textQuestion }
+		onTextModified: getData()
+	}
 
-		QGridTextField {
-			id: textQuestion
-			fieldName: qsTr("Állítás")
-			sqlField: "question"
-			placeholderText: qsTr("Ez az állítás fog megjelenni")
+	QGridCheckBox {
+		id: chTrue
+		text: qsTr("Az állítás IGAZ")
+		sqlField: "correct"
 
-			onTextModified: getData()
-		}
-
-		QGridCheckBox {
-			id: chTrue
-			text: qsTr("Az állítás IGAZ")
-			sqlField: "correct"
-
-			onToggled: getData()
-		}
-
+		onToggled: getData()
 	}
 
 

@@ -65,15 +65,21 @@ QTabPage {
 	activity: MapEditor {
 		id: mapEditor
 
-		property Drawer drawer: mapEditorDrawer
-
 		onEditorChanged: if (editor) {
 							 loadComponent()
 						 } else {
 							 replaceContent(componentMain)
 						 }
 
-		onActionContextUpdated: loadComponent(type, contextId)
+		////onActionContextUpdated: loadComponent(type, contextId)				//// UNDO-REDO
+
+		function openObjective(params) {
+			pushContent(componentObjective, params)
+		}
+
+		function openMissionLevel(params) {
+			pushContent(componentMissionLevel, params)
+		}
 	}
 
 
@@ -129,6 +135,21 @@ QTabPage {
 	}
 
 	Component {
+		id: componentObjective
+		MapEditorObjective {
+			_mapEditor: mapEditor
+			onClose: stack.pop()
+		}
+	}
+
+	Component {
+		id: componentMissionLevel
+		MapEditorMissionLevel {
+			_mapEditor: mapEditor
+		}
+	}
+
+	Component {
 		id: componentMain
 		Item {
 			implicitWidth: 200
@@ -161,41 +182,6 @@ QTabPage {
 	}
 
 
-
-
-	QDrawer {
-		id: mapEditorDrawer
-		edge: Qt.BottomEdge
-		height: control.height - control.stack.y - control.headerPadding
-		width: control.width>control.height ? Math.min(control.width*0.9, 1080) : control.width
-		x: (control.width-width)/2
-
-		property alias loader: drawerLoader
-
-		dim: false
-		interactive: false
-		modal: true
-
-		onClosed: {
-			interactive = false
-			drawerLoader.sourceComponent = undefined
-		}
-
-		onOpened: {
-			interactive = true
-		}
-
-
-		Loader {
-			id: drawerLoader
-			anchors.fill: parent
-			property Drawer drawer: mapEditorDrawer
-			property MapEditor mapEditor: mapEditor
-
-			onStatusChanged: if (drawerLoader.status == Loader.Ready)
-								 mapEditorDrawer.open()
-		}
-	}
 
 
 
@@ -347,10 +333,6 @@ QTabPage {
 	}
 
 
-
-	function loadContextId(type, id) {
-		console.debug("MAIN LOAD", type, id)
-	}
 
 
 	pageBackCallbackFunction: function () {

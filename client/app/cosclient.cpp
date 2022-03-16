@@ -398,8 +398,10 @@ void Client::registerTypes()
 	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
 	qmlRegisterUncreatableType<MapEditorAction>("COS.Client", 1, 0, "MapEditorAction", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorChapter>("COS.Client", 1, 0, "GameMapEditorChapter", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorMissionLevel>("COS.Client", 1, 0, "GameMapEditorMissionLevel", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorObjective>("COS.Client", 1, 0, "GameMapEditorObjective", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorStorage>("COS.Client", 1, 0, "GameMapEditorStorage", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorMission>("COS.Client", 1, 0, "GameMapEditorMission", "uncreatable");
 	qRegisterMetaType<MapEditorAction::MapEditorActionType>("MapEditorActionType");
 }
 

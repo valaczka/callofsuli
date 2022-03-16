@@ -19,7 +19,7 @@ QTabContainer {
 
 	signal forceMissionOpen(string missionuuid)
 
-	QObjectListView {
+	QObjectListDelegateView {
 		id: missionList
 		anchors.fill: parent
 
@@ -35,43 +35,44 @@ QTabContainer {
 			}
 		}
 
-		modelTitleRole: "name"
+		delegate: MapEditorMission {
+			id: missionItem
 
-		/*delegate: MapEditorChapter {
-			id: chapterItem
 			required property int index
+
 			collapsed: true
-			level: -1
 			selectorSet: missionList.selectorSet
+
 			onLongClicked: missionList.onDelegateLongClicked(index)
 			onSelectToggled: missionList.onDelegateClicked(index, withShift)
 			self: missionList.modelObject(index)
 
 			onSelfChanged: if (!self) {
-							   delete chapterItem
+							   delete missionItem
 						   }
 
-			onChapterRemove: {
+			onMissionRemove: {
 				if (mapEditor.editor.missions.selectedCount > 0) {
-					mapEditor.chapterRemoveList(mapEditor.editor.missions.getSelected())
+					mapEditor.missionRemoveList(mapEditor.editor.missions.getSelected())
 				} else {
-					mapEditor.chapterRemove(self)
+					mapEditor.missionRemove(self)
 				}
 			}
 
-			Connections {
+			/*Connections {
 				target: control
 				function onforceMissionOpen(chid) {
-					if (!chapterItem.self)
+					if (!missionItem.self)
 						return
 
-					if (chid === chapterItem.self.id)
-						chapterItem.collapsed = false
+					if (chid === missionItem.self.uuid)
+						missionItem.collapsed = false
 					else
-						chapterItem.collapsed = true
+						missionItem.collapsed = true
 				}
-			}
-		}*/
+			}*/
+		}
+
 
 		header: QTabHeader {
 			tabContainer: control

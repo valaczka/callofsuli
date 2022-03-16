@@ -187,5 +187,6 @@
         <file>GameFence.qml</file>
         <file>MapEditorMissionList.qml</file>
         <file>QObjectListDelegateView.qml</file>
+        <file>MapEditorMission.qml</file>
     </qresource>
 </RCC>
