@@ -22,23 +22,37 @@ QTabContainer {
 	property GameMapEditorMissionLevel missionLevel: null
 	property bool canDelete: false
 
+	property ListModel availableTerrainModel: ListModel {}
+
+
 	onMissionLevelChanged: {
-		if (missionLevel && missionLevel.mission) {
-			var mx = 2
-
-			for (var i=0; i<missionLevel.mission.levels.count; i++) {
-				var ml = missionLevel.mission.levels.object(i)
-				if (ml.level > mx)
-					mx = ml.level
-			}
-
-			canDelete = (missionLevel.level === mx)
-
-		} else {
+		if (missionLevel && missionLevel.mission)
+			canDelete = missionLevel.isLastLevel() && missionLevel.level > 1
+		else
 			canDelete = false
-		}
 	}
 
+	SortFilterProxyModel {
+		id: terrainProxyModel
+
+		sourceModel: availableTerrainModel
+
+		sorters: [
+			StringSorter {
+				roleName: "readableName"
+				priority: 2
+			},
+			RoleSorter {
+				roleName: "level"
+				priority: 1
+			}
+		]
+
+		proxyRoles: ExpressionRole {
+			name: "readableLevel"
+			expression: "Level %1".arg(model.level)
+		}
+	}
 
 	QAccordion {
 		visible: missionLevel
@@ -98,7 +112,7 @@ QTabContainer {
 
 				icon.source: CosStyle.iconPlay
 				text: qsTr("Lejátszás")
-				onClicked: mapEditor.play({"level": level})
+				onClicked: mapEditor.missionLevelPlay(missionLevel)
 			}
 
 
@@ -110,55 +124,61 @@ QTabContainer {
 
 				text: qsTr("Törlés")
 				icon.source: CosStyle.iconDelete
-				onClicked: mapEditor.missionLevelRemove({"level": level})
+				onClicked: mapEditor.missionLevelRemove(missionLevel)
 			}
 		}
 
 		QGridLayout {
 			watchModification: false
 
+			QGridText { text: qsTr("Harcmező") }
+
 			QGridImage {
 				id: imageTerrain
-				fieldName: qsTr("Harcmező")
+				Layout.columnSpan: 1
 
-				property string _terrain: ""
+				property var _terrainData: missionLevel ? cosClient.terrainMap()[missionLevel.terrain] : null
 				property bool _invalid: true
+
+				title: _terrainData ? _terrainData.readableName : (missionLevel ? missionLevel.terrain : "")
+				subtitle: _terrainData ? "Level %1".arg(_terrainData.level) : ""
+
+				image: _terrainData ? _terrainData.thumbnail : ""
 
 				imageImg.width: imageTerrain.height*1.5
 
 				labelTitle.color: CosStyle.colorAccentLighter
-				labelSubtitle.color: CosStyle.colorAccent
+				labelSubtitle.color: CosStyle.colorAccentLighter
 
 				rightComponent: QFontImage {
-					visible: imageTerrain._invalid
+					visible: !imageTerrain._terrainData
 					color: CosStyle.colorWarning
 					icon: CosStyle.iconDialogWarning
+					size: CosStyle.pixelSize*1.2
+					width: size*2
 				}
 
 				mouseArea.onClicked: {
-					var d = JS.dialogCreateQml("List", {
-												   roles: ["readableName", "details", "thumbnail"],
-												   icon: CosStyle.iconLockAdd,
-												   title: qsTr("Harcmező kiválasztása"),
-												   selectorSet: false,
-												   modelImageRole: "thumbnail",
-												   modelSubtitleRole: "details",
-												   delegateHeight: CosStyle.twoLineHeight*1.2,
-												   model: mapEditor.modelTerrainList
-											   })
+					var dd = JS.dialogCreateQml("List", {
+													icon: CosStyle.iconLockAdd,
+													title: qsTr("Harcmező kiválasztása"),
+													selectorSet: false,
+													modelTitleRole: "readableName",
+													modelImageRole: "thumbnail",
+													modelSubtitleRole: "readableLevel",
+													delegateHeight: CosStyle.twoLineHeight*1.5,
+													model: terrainProxyModel
+												})
 
-					if (_terrain.length)
-						d.item.selectCurrentItem("name", _terrain)
+					if (_terrainData)
+						dd.item.selectCurrentItem("terrain", missionLevel.terrain)
 
-					d.accepted.connect(function(data) {
-						if (data === -1)
-							return
-
-						var p = d.item.list.modelObject(data)
-						mapEditor.missionLevelModify({level: container.level, terrain: p.name})
-
+					dd.accepted.connect(function(data) {
+						if (data)
+							mapEditor.missionLevelModify(missionLevel, {terrain: data.terrain})
 					})
-					d.open()
+					dd.open()
+
 				}
 			}
 
@@ -172,6 +192,8 @@ QTabContainer {
 				stepSize: 30
 				//editable: true
 
+				value: missionLevel ? missionLevel.duration : 0
+
 				textFromValue: function(value) {
 					return JS.secToMMSS(value)
 				}
@@ -181,7 +203,7 @@ QTabContainer {
 				}
 
 				onValueModified: {
-					mapEditor.missionLevelModify({level: container.level, duration: value})
+					mapEditor.missionLevelModify(missionLevel, {duration: value})
 				}
 			}
 
@@ -193,13 +215,15 @@ QTabContainer {
 				from: 1
 				to: 99
 
+				value: missionLevel ? missionLevel.startHP : 0
+
 				onValueModified: {
-					mapEditor.missionLevelModify({level: container.level, startHP: value})
+					mapEditor.missionLevelModify(missionLevel, {startHP: value})
 				}
 			}
 
 
-			QGridLabel { text: qsTr("Kérdések aránya csataterenként") }
+			QGridLabel { text: qsTr("Kérdések aránya") }
 
 			QGridSpinBox {
 				id: spinQuestions
@@ -207,6 +231,8 @@ QTabContainer {
 				to: 100
 				stepSize: 5
 				//editable: true
+
+				value: missionLevel ? missionLevel.questions*100 : 0
 
 				textFromValue: function(value) {
 					return String("%1%").arg(value)
@@ -217,10 +243,9 @@ QTabContainer {
 					}*/
 
 				onValueModified: {
-					mapEditor.missionLevelModify({level: container.level, questions: Number(value/100)})
+					mapEditor.missionLevelModify(missionLevel, {questions: Number(value/100)})
 				}
 			}
-
 
 
 
@@ -228,11 +253,10 @@ QTabContainer {
 				id: checkDeathmatch
 				text: qsTr("Sudden death engedélyezve")
 
-				Layout.fillWidth: false
-				Layout.alignment: Qt.AlignHCenter
+				checked: missionLevel ? missionLevel.canDeathmatch : false
 
 				onToggled: {
-					mapEditor.missionLevelModify({level: container.level, deathmatch: checked})
+					mapEditor.missionLevelModify(missionLevel, {canDeathmatch: checked})
 				}
 			}
 
@@ -314,4 +338,11 @@ QTabContainer {
 		}
 	}
 
+	Component.onCompleted: {
+		var l = mapEditor.availableTerrains
+
+		for (var i=0; i<l.length; i++) {
+			availableTerrainModel.append(l[i])
+		}
+	}
 }

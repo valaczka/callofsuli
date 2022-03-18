@@ -49,15 +49,13 @@ QCollapsible {
 
 	onRightClicked: contextMenu.open()
 
-	Item {
+	Column {
 		id: controlContent
 		width: parent.width
-		height: contentLayout.height+levelRow.height
 
 		QGridLayout {
 			id: contentLayout
 			watchModification: false
-			anchors.top: parent.top
 
 			QGridImageTextField {
 				id: imageTextName
@@ -67,7 +65,7 @@ QCollapsible {
 				textfield.font.pixelSize: CosStyle.pixelSize*1.5
 				textfield.textColor: CosStyle.colorWarningLighter
 				textfield.readOnly: !control.editable
-				textfield.onTextModified: mapEditor.missionModify({name: textfield.text})
+				textfield.onTextModified: mapEditor.missionModify(self, {name: textfield.text})
 
 				text: self ? self.name : ""
 
@@ -85,7 +83,8 @@ QCollapsible {
 											   })
 
 					d.accepted.connect(function(data) {
-						mapEditor.missionModify({medalImage: data})
+						if (data)
+							mapEditor.missionModify(self, {medalImage: data})
 					})
 
 					d.open()
@@ -106,14 +105,13 @@ QCollapsible {
 
 				text: self ? self.description : ""
 
-				onTextModified: mapEditor.missionModify({description: text})
+				onTextModified: mapEditor.missionModify(self, {description: text})
 			}
 		}
 
 
 		Row {
 			id: levelRow
-			anchors.top: contentLayout.bottom
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 5
 
@@ -131,19 +129,6 @@ QCollapsible {
 					width: height
 
 					backgroundColor: CosStyle.colorAccent
-
-					/*onClicked: {
-						if (cosClient.userRoles & Client.RoleTeacher)
-							JS.createPage("TeacherGroup", {
-											  groupId: modelData.id
-										  })
-						else
-							JS.createPage("StudentGroup", {
-											  title: modelData.name+(modelData.readableClassList !== "" ? " | "+modelData.readableClassList : ""),
-											  groupId: modelData.id,
-											  profile: profile
-										  })
-					}*/
 
 					required property int index
 
@@ -168,7 +153,7 @@ QCollapsible {
 							color: "white"
 							font.weight: Font.DemiBold
 							font.pixelSize: CosStyle.pixelSize*2
-							text: levelItem.levelSelf.level
+							text: levelItem.levelSelf ? levelItem.levelSelf.level : ""
 						}
 
 						QLabel {
@@ -200,6 +185,7 @@ QCollapsible {
 					text: "+"
 				}
 
+				onClicked: mapEditor.missionLevelAdd(self, {})
 
 			}
 		}
@@ -207,14 +193,154 @@ QCollapsible {
 
 
 		Rectangle {
-			anchors.bottom: parent.bottom
-			anchors.left: parent.left
+			id: lockBgRect
+
 			width: parent.width
-			height: 0.5
-			color: Qt.darker(CosStyle.colorAccentDark)
+			height: lockRow.height
+
+			color: JS.setColorAlpha(CosStyle.colorErrorDark, 0.3)
+
+			Row {
+				id: lockRow
+
+				width: parent.width
+
+				QFontImage {
+					id: lockImage
+					size: CosStyle.pixelSize*2
+					icon: CosStyle.iconLock
+					color: CosStyle.colorErrorLighter
+					width: size*2
+					anchors.verticalCenter: parent.verticalCenter
+				}
+
+
+				QObjectListView {
+					id: list
+
+					anchors.verticalCenter: parent.verticalCenter
+
+					width: parent.width-lockImage.width
+
+					model: SortFilterProxyModel {
+						sourceModel: self ? self.locks : null
+
+						proxyRoles: ExpressionRole {
+							name: "name"
+							expression: model.mission.name
+						}
+
+						sorters: StringSorter {
+							roleName: "name"
+						}
+					}
+
+					modelTitleRole: "name"
+					colorTitle: CosStyle.colorAccentLighter
+
+					autoSelectorChange: false
+					refreshEnabled: false
+
+					delegateHeight: CosStyle.baseHeight
+
+
+					leftComponent: Item {
+						width: list.delegateHeight
+						height: width
+
+						QBadge {
+							anchors.centerIn: parent
+							text: model && model.level ? model.level : ""
+							color: CosStyle.colorWarningDarker
+						}
+					}
+
+					rightComponent: QToolButton {
+						anchors.verticalCenter: parent.verticalCenter
+						icon.source: CosStyle.iconDelete
+						color: CosStyle.colorErrorLighter
+						onClicked: {
+							mapEditor.missionLockRemove({lock: model.lock})
+						}
+					}
+
+
+					footer: QToolButtonFooter {
+						width: list.width
+						color: CosStyle.colorAccentLight
+						text: qsTr("Zárolás hozzáadása")
+						icon.source: CosStyle.iconAdd
+						onClicked: {
+							mapEditor.updateMissionLevelModelMission(self)
+
+							if (mapEditor.missionLevelModel.count < 1) {
+								cosClient.sendMessageWarning(qsTr("Zárolások"), qsTr("Nincs hozzáadható küldetés!"))
+								return
+							}
+
+
+							var d = JS.dialogCreateQml("MissionList", {
+														   icon: CosStyle.iconLockAdd,
+														   title: qsTr("%1 - Zárolás").arg(self.name),
+														   selectorSet: false,
+														   sourceModel: mapEditor.missionLevelModel
+													   })
+
+							d.accepted.connect(function(dlgdata) {
+								console.debug("RET", dlgdata)
+								if (dlgdata < 0)
+									return
+
+								//mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
+							})
+							d.open()
+						}
+					}
+
+
+					onClicked: {
+						var o = modelObject(index)
+						console.debug("OM", o)
+
+						mapEditor.updateMissionLevelModelLock(o)
+
+						if (mapEditor.missionLevelModel.count < 1) {
+							cosClient.sendMessageWarning(qsTr("Zárolás"), qsTr("A kiválasztott szintet nincs mire módosítani!"))
+							return
+						}
+
+
+						var d = JS.dialogCreateQml("MissionList", {
+													   icon: CosStyle.iconLockAdd,
+													   title: qsTr("%1 - Zárolás").arg(self.name),
+													   selectorSet: false,
+													   sourceModel: mapEditor.missionLevelModel
+												   })
+
+						d.accepted.connect(function(dlgdata) {
+							console.debug("RET", dlgdata)
+							if (dlgdata < 0)
+								return
+
+							//mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
+						})
+						d.open()
+					}
+
+				}
+
+			}
+
 		}
 	}
 
+	Rectangle {
+		anchors.bottom: controlContent.bottom
+		anchors.left: controlContent.left
+		width: controlContent.width
+		height: 0.5
+		color: Qt.darker(CosStyle.colorAccentDark)
+	}
 
 
 

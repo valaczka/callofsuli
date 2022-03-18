@@ -63,7 +63,6 @@ GameMap::GameMap()
 		QtJsonSerializer::SerializerBase::registerListConverters<GameMapObjective*>();
 		QtJsonSerializer::SerializerBase::registerListConverters<GameMapMission*>();
 		QtJsonSerializer::SerializerBase::registerListConverters<GameMapMissionLevel*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapMissionLock*>();
 		QtJsonSerializer::SerializerBase::registerListConverters<GameMapInventory*>();
 		QtJsonSerializer::SerializerBase::registerListConverters<GameMapImage*>();
 		m_isConvertersRegistered = true;
@@ -240,9 +239,9 @@ void GameMap::setSolver(const QVariantList &list)
 	foreach (GameMapMission *m, m_missions) {
 		qint32 lockDepth = 0;
 
-		QVector<GameMapMissionLockIface*> locks = missionLockTree(m);
-		foreach (GameMapMissionLockIface *mli, locks) {
-			GameMapMissionLock *ml = dynamic_cast<GameMapMissionLock*>(mli);
+		QVector<GameMapMissionLevelIface*> locks = missionLockTree(m);
+		foreach (GameMapMissionLevelIface *mli, locks) {
+			GameMapMissionLevel *ml = dynamic_cast<GameMapMissionLevel*>(mli);
 
 			Q_ASSERT(ml);
 
@@ -253,17 +252,16 @@ void GameMap::setSolver(const QVariantList &list)
 			qint32 lockerLevel = ml->level();
 
 			if ((lockerLevel == -1 && lockerMission->solvedLevel() < 1) || lockerLevel > lockerMission->solvedLevel()) {
-				QVector<GameMapMissionLockIface*> lockerLocks = missionLockTree(lockerMission);
+				QVector<GameMapMissionLevelIface*> lockerLocks = missionLockTree(lockerMission);
 				if (lockerLocks.size() > 0) {
-					foreach (GameMapMissionLockIface* mli2, lockerLocks) {
-						GameMapMissionLock *ml2 = dynamic_cast<GameMapMissionLock*>(mli2);
+					foreach (GameMapMissionLevelIface* mli2, lockerLocks) {
+						GameMapMissionLevel *ml2 = dynamic_cast<GameMapMissionLevel*>(mli2);
 
 						Q_ASSERT(ml2);
 
 						GameMapMission *locker2Mission = dynamic_cast<GameMapMission*>(ml2->mission());
 
 						Q_ASSERT(locker2Mission);
-
 
 						if ((ml2->level() == -1 && locker2Mission->solvedLevel() < 1) || ml2->level() > locker2Mission->solvedLevel()) {
 							lockDepth = 2;
@@ -330,13 +328,13 @@ QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QString &uuid
 	QVector<GameMapMission *> lockedMissions;
 
 	foreach(GameMapMission *lm, m_missions) {
-		QVector<GameMapMissionLockIface*> locks = missionLockTree(lm);
+		QVector<GameMapMissionLevelIface*> locks = missionLockTree(lm);
 
 		if (locks.isEmpty())
 			continue;
 
-		foreach (GameMapMissionLockIface *mli, locks) {
-			GameMapMissionLock *l = dynamic_cast<GameMapMissionLock*>(mli);
+		foreach (GameMapMissionLevelIface *mli, locks) {
+			GameMapMissionLevel *l = dynamic_cast<GameMapMissionLevel*>(mli);
 
 			Q_ASSERT(l);
 
@@ -363,9 +361,9 @@ QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QString &uuid
 
 		bool locked = false;
 
-		QVector<GameMapMissionLockIface*> locks = missionLockTree(m);
-		foreach (GameMapMissionLockIface *mli, locks) {
-			GameMapMissionLock *ml = dynamic_cast<GameMapMissionLock*>(mli);
+		QVector<GameMapMissionLevelIface*> locks = missionLockTree(m);
+		foreach (GameMapMissionLevelIface *mli, locks) {
+			GameMapMissionLevel *ml = dynamic_cast<GameMapMissionLevel*>(mli);
 
 			Q_ASSERT(ml);
 
@@ -716,7 +714,7 @@ const QList<GameMapMissionLevel *> &GameMapMission::levels() const
 	return m_levels;
 }
 
-const QList<GameMapMissionLock *> &GameMapMission::locks() const
+const QList<GameMapMissionLevel *> &GameMapMission::locks() const
 {
 	return m_locks;
 }
@@ -798,9 +796,17 @@ GameMapMissionLevelIface *GameMapMission::ifaceAddLevel(const qint32 &level, con
  * @return
  */
 
-GameMapMissionLockIface *GameMapMission::ifaceAddLock(const QString &uuid, const qint32 &level)
+GameMapMissionLevelIface *GameMapMission::ifaceAddLock(const QString &uuid, const qint32 &level)
 {
-	GameMapMissionLock *l = new GameMapMissionLock(uuid, level, m_map);
+	if (!m_map)
+		return nullptr;
+
+	GameMapMission *m = m_map->mission(uuid);
+
+	if (!m)
+		return nullptr;
+
+	GameMapMissionLevel *l = m->level(level);
 	m_locks.append(l);
 	return l;
 }
@@ -889,41 +895,6 @@ GameMapStorage *GameMapObjective::storage() const
 	return m_map->storage(m_storageId);
 }
 
-
-/**
- * @brief GameMapMissionLock::GameMapMissionLock
- * @param uuid
- * @param level
- */
-
-GameMapMissionLock::GameMapMissionLock(const QString &uuid, const qint32 &level, GameMap *map)
-	: m_map(map)
-{
-	m_uuid = uuid;
-	m_level = level;
-}
-
-
-/**
- * @brief GameMapMissionLock::mission
- * @return
- */
-
-GameMapMissionIface *GameMapMissionLock::mission() const
-{
-	return m_map->mission(m_uuid);
-}
-
-
-const QString &GameMapMissionLock::uuid() const
-{
-	return m_uuid;
-}
-
-qint32 GameMapMissionLock::level() const
-{
-	return m_level;
-}
 
 
 /**

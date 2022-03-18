@@ -1383,7 +1383,8 @@ Page {
 		if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
 			control.state = "run"
 			game.gameStarted()
-			studentMaps.gameStarted()
+			if (studentMaps)
+				studentMaps.gameStarted()
 		}
 
 	}

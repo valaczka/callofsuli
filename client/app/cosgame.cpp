@@ -160,10 +160,11 @@ void CosGame::recreateEnemies()
 	QVector<GameEnemyData *> allEnemyDataList;
 
 	QMap<int, GameBlock *> b = m_terrainData->blocks();
-	QMap<int, GameBlock *>::const_iterator it;
+	QMapIterator<int, GameBlock *> it(b);
 	QVector<GameEnemy *> createdEnemies;
 
-	for (it = b.constBegin(); it != b.constEnd(); ++it) {
+	while (it.hasNext()) {
+		it.next();
 		GameBlock *block = it.value();
 
 		if (block->completed()) {
@@ -1189,10 +1190,13 @@ bool CosGame::loadTerrainData()
 
 	QString terrain = m_gameMatch->terrain();
 
-	qDebug() << "Load terrain data" << terrain;
+	QString terrainDir = terrain.section("/", 0, -2);
+	int terrainLevel = terrain.section("/", -1, -1).toInt();
+
+	qDebug() << "Load terrain data" << terrainDir << "level" << terrainLevel;
 
 
-	if (!m_terrainData->loadTmxFile(QString(":/terrain/"+terrain+"/terrain.tmx"))) {
+	if (!m_terrainData->loadTmxFile(QString(":/terrain/%1/level%2.tmx").arg(terrainDir).arg(terrainLevel))) {
 		qWarning() << "Terrain data load failed";
 		return false;
 	}

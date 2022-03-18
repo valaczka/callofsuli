@@ -29,6 +29,7 @@
 #include "mapeditor.h"
 #include "editoraction.h"
 #include "mapeditoraction.h"
+#include "mapimage.h"
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -36,20 +37,33 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_undoStack(new EditorUndoStack(this))
 	, m_url()
 	, m_availableObjectives()
+	, m_availableTerrains()
 	, m_missionLevelModel(new ObjectGenericListModel<MapEditorMissionLevelObject>(this))
 {
 	// Load available objectives
 
 	QHash<QString, ModuleInterface *> omlist =  Client::moduleObjectiveList();
-	QHash<QString, ModuleInterface *>::const_iterator omit;
+	QHashIterator<QString, ModuleInterface *> omit(omlist);
 
-	for (omit = omlist.constBegin(); omit != omlist.constEnd(); ++omit) {
+	while (omit.hasNext()) {
+		omit.next();
 		m_availableObjectives.append(QVariantMap({
 													 { "module", omit.key() },
 													 { "name", omit.value()->readableName() },
 													 { "icon", omit.value()->icon() },
 													 { "storageModules", omit.value()->storageModules() }
 												 }));
+	}
+
+
+	QVariantMap tmap = Client::terrainMap();
+	QMapIterator<QString, QVariant> it(tmap);
+
+	while (it.hasNext()) {
+		it.next();
+		QVariantMap m = it.value().toMap();
+		m.insert("terrain", it.key());
+		m_availableTerrains.append(m);
 	}
 
 
@@ -462,6 +476,207 @@ void MapEditor::objectiveMoveCopyList(GameMapEditorChapter *chapter, const bool 
 }
 
 
+/**
+ * @brief MapEditor::missionAdd
+ * @param data
+ */
+
+void MapEditor::missionAdd(const QVariantMap &data, const QString &terrain)
+{
+	auto a = new MapEditorActionMissionNew(m_editor, data, terrain);
+	m_undoStack->call(a);
+
+	emit missionOpenRequest(a->mission());
+	emit missionLevelOpenRequest(a->missionLevel());
+}
+
+
+/**
+ * @brief MapEditor::missionRemove
+ * @param mission
+ */
+
+void MapEditor::missionRemove(GameMapEditorMission *mission)
+{
+	if (!mission)
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionRemove(m_editor, mission));
+}
+
+/**
+ * @brief MapEditor::missionRemoveList
+ * @param list
+ */
+
+void MapEditor::missionRemoveList(const QList<GameMapEditorMission *> &list)
+{
+	if (list.isEmpty())
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionRemove(m_editor, list));
+}
+
+
+/**
+ * @brief MapEditor::missionModify
+ * @param mission
+ * @param data
+ */
+
+void MapEditor::missionModify(GameMapEditorMission *mission, const QVariantMap &data)
+{
+	if (!mission)
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionModify(m_editor, mission, data));
+}
+
+
+
+
+
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelAdd
+ * @param mission
+ * @param data
+ */
+
+void MapEditor::missionLevelAdd(GameMapEditorMission *mission, QVariantMap data)
+{
+	if (!mission)
+		return;
+
+	GameMapEditorMissionLevel *lastLevel = mission->lastLevel();
+
+	if (!data.contains("level") && lastLevel)
+		data.insert("level", lastLevel->level()+1);
+
+	if (!data.contains("terrain") && lastLevel) {
+		QString terrain = lastLevel->terrain().section("/", 0, -2);
+		int terrainLevel = lastLevel->terrain().section("/", -1, -1).toInt()+1;
+
+		QVariantMap terrainMap = Client::terrainMap();
+
+		for (int i=terrainLevel; i>=1; --i) {
+			QString t = QString("%1/%2").arg(terrain).arg(i);
+			if (terrainMap.contains(t)) {
+				data.insert("terrain", t);
+				break;
+			}
+		}
+	}
+
+	auto a = new MapEditorActionMissionLevelNew(m_editor, mission, data);
+
+	m_undoStack->call(a);
+
+	emit missionLevelOpenRequest(a->missionLevel());
+}
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelRemove
+ * @param mission
+ * @param missionLevel
+ */
+
+void MapEditor::missionLevelRemove(GameMapEditorMissionLevel *missionLevel)
+{
+	if (!missionLevel || !missionLevel->editorMission())
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionLevelRemove(m_editor, missionLevel->editorMission(), missionLevel));
+
+	emit missionLevelRemoved(missionLevel);
+}
+
+
+
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelModify
+ * @param missionLevel
+ * @param data
+ */
+
+void MapEditor::missionLevelModify(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data)
+{
+	if (!missionLevel)
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionLevelModify(m_editor, missionLevel, data));
+}
+
+
+/**
+ * @brief MapEditor::missionLevelPlay
+ * @param missionLevel
+ */
+
+void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel)
+{
+	GameMap *map = GameMap::fromBinaryData(m_editor->toBinaryData());
+	GameMatch *m_gameMatch = new GameMatch(missionLevel, map, this);
+	m_gameMatch->setDeleteGameMap(true);
+
+	QString err;
+	if (!m_gameMatch->check(&err)) {
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), err);
+
+		delete m_gameMatch;
+		return;
+	}
+
+	qDebug() << "Add mapimage provider";
+	MapImage *mapImage = new MapImage(map);
+	Client::clientInstance()->rootEngine()->addImageProvider("mapimage", mapImage);
+
+
+	m_gameMatch->setImageDbName("mapimage");
+	m_gameMatch->setDeathmatch(false);
+
+	if (!Client::clientInstance()->userPlayerCharacter().isEmpty())
+		m_gameMatch->setPlayerCharacter(Client::clientInstance()->userPlayerCharacter());
+	else
+		m_gameMatch->setPlayerCharacter("default");
+
+
+	connect(m_gameMatch, &GameMatch::gameWin, this, [=]() {
+		QQmlEngine *engine = Client::clientInstance()->rootEngine();
+
+		if (!engine) {
+			qWarning() << "Invalid engine" << this;
+		} else if (engine->imageProvider("mapimage")) {
+			qDebug() << "Remove image provider mapimage";
+			engine->removeImageProvider("mapimage");
+		}
+	});
+
+	connect(m_gameMatch, &GameMatch::gameLose, this, [=]() {
+		QQmlEngine *engine = Client::clientInstance()->rootEngine();
+
+		if (!engine) {
+			qWarning() << "Invalid engine" << this;
+		} else if (engine->imageProvider("mapimage")) {
+			qDebug() << "Remove image provider mapimage";
+			engine->removeImageProvider("mapimage");
+		}
+	});
+
+	emit gamePlayReady(m_gameMatch);
+}
+
+
 
 
 /**
@@ -471,16 +686,6 @@ void MapEditor::objectiveMoveCopyList(GameMapEditorChapter *chapter, const bool 
 
 void MapEditor::onUndoRedoCompleted(const int &lastStep)
 {
-	if (m_editor) {
-		{
-			qDebug() << "=========";
-			foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects()) {
-				qDebug() << ch->id() << ch->name();
-			}
-			qDebug() << "=========";
-		}
-	}
-
 	if (m_undoStack->actions().isEmpty()) {
 		emit actionContextUpdated(MapEditorAction::ActionTypeInvalid, QVariant::Invalid);
 		return;
@@ -542,12 +747,15 @@ ObjectGenericListModel<MapEditorMissionLevelObject> *MapEditor::missionLevelMode
  * @param chapter
  */
 
-void MapEditor::updateMissionLevelModel(GameMapEditorChapter *chapter)
+void MapEditor::updateMissionLevelModelChapter(GameMapEditorChapter *chapter)
 {
-	if (!m_editor)
-		return;
-
 	QList<MapEditorMissionLevelObject*> list;
+
+	if (!m_editor) {
+		m_missionLevelModel->resetModel(list);
+		return;
+	}
+
 
 	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
 		foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
@@ -561,6 +769,78 @@ void MapEditor::updateMissionLevelModel(GameMapEditorChapter *chapter)
 	m_missionLevelModel->resetModel(list);
 
 }
+
+
+/**
+ * @brief MapEditor::updateMissionLevelModel
+ * @param mission
+ */
+
+void MapEditor::updateMissionLevelModelMission(GameMapEditorMission *mission)
+{
+	QList<MapEditorMissionLevelObject*> list;
+
+	if (!m_editor || !mission) {
+		m_missionLevelModel->resetModel(list);
+		return;
+	}
+
+
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
+		if (m == mission)
+			continue;
+
+		bool hasFound = false;
+
+		foreach (GameMapEditorMissionLevel *l, mission->locks()->objects()) {
+			if (l->mission() == m) {
+				hasFound = true;
+				break;
+			}
+		}
+
+		if (hasFound)
+			continue;
+
+		foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
+			MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l->level(), this);
+			list.append(obj);
+		}
+	}
+
+	m_missionLevelModel->resetModel(list);
+}
+
+
+/**
+ * @brief MapEditor::updateMissionLevelModel
+ * @param mission
+ */
+
+void MapEditor::updateMissionLevelModelLock(GameMapEditorMissionLevel *lock)
+{
+	QList<MapEditorMissionLevelObject*> list;
+
+	if (!m_editor || !lock || !lock->editorMission()) {
+		m_missionLevelModel->resetModel(list);
+		return;
+	}
+
+	GameMapEditorMission *m = lock->editorMission();
+
+	foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
+		if (l == lock)
+			continue;
+
+		MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l->level(), this);
+		list.append(obj);
+	}
+
+	m_missionLevelModel->resetModel(list);
+}
+
+
+
 
 
 /**
@@ -588,11 +868,12 @@ QVariantList MapEditor::getStorages() const
 		return list;
 
 	QHash<QString, ModuleInterface *> mlist =  Client::moduleStorageList();
-	QHash<QString, ModuleInterface *>::const_iterator it;
+	QHashIterator<QString, ModuleInterface *> it(mlist);
 
 	int id = -1;
 
-	for (it = mlist.constBegin(); it != mlist.constEnd(); ++it) {
+	while (it.hasNext()) {
+		it.next();
 		ModuleInterface *iif = it.value();
 		list.append(QVariantMap ({
 									 { "id", id-- },
@@ -726,3 +1007,8 @@ MapEditorMissionLevelObject::~MapEditorMissionLevelObject()
 
 }
 
+
+const QVariantList &MapEditor::availableTerrains() const
+{
+	return m_availableTerrains;
+}

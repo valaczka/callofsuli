@@ -128,9 +128,11 @@ void GameScene::loadGroundObjects(GameTerrain *terrainData)
 
 void GameScene::loadPlayerPositions(GameTerrain *terrainData)
 {
-	QMap<int, GameBlock *>::const_iterator it;
+	QMapIterator<int, GameBlock *> it(terrainData->blocks());
 
-	for (it = terrainData->blocks().constBegin(); it != terrainData->blocks().constEnd(); ++it) {
+	while (it.hasNext()) {
+		it.next();
+
 		GameBlock *block = it.value();
 		int blockNum = it.key();
 
@@ -230,11 +232,11 @@ void GameScene::loadFires(GameTerrain *terrainData)
 void GameScene::loadItems(GameTerrain *terrainData)
 {
 	foreach (GameTerrainItem t, terrainData->items()) {
-		QVariantMap m;
+		QVariantMap m = t.second.data;
 		m["bottomPoint"] = t.first;
 
 		QMetaObject::invokeMethod(m_game->gameScene(), "createPickable", Qt::QueuedConnection,
-								  Q_ARG(int, t.second),
+								  Q_ARG(int, t.second.type),
 								  Q_ARG(QVariant, m)
 								  );
 	}

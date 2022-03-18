@@ -436,6 +436,11 @@ void GameTerrain::loadItemLayer(Tiled::Layer *layer)
 	if (!layer)
 		return;
 
+
+	QHash<QString, GameEnemyData::InventoryType> inventoryTypes = GameEnemyData::inventoryTypes();
+
+
+
 	Tiled::ObjectGroup *og = layer->asObjectGroup();
 
 	QList<Tiled::MapObject*> objects = og->objects();
@@ -443,18 +448,12 @@ void GameTerrain::loadItemLayer(Tiled::Layer *layer)
 	foreach (Tiled::MapObject *object, objects) {
 		QString type = object->type();
 
-		GamePickable::PickableType pickableType = GamePickable::PickableInvalid;
-
-		if (type == "water")
-			pickableType = GamePickable::PickableWater;
-		else if (type == "pliers")
-			pickableType = GamePickable::PickablePliers;
-
-		if (pickableType == GamePickable::PickableInvalid) {
+		if (!inventoryTypes.contains(type)) {
 			qWarning() << "Invalid item" << type;
 			continue;
 		}
-		m_items.append(GameTerrainItem(object->position(), pickableType));
+
+		m_items.append(GameTerrainItem(object->position(), inventoryTypes.value(type)));
 	}
 }
 

@@ -17,7 +17,23 @@ QTabContainer {
 	property int actionContextType: -1
 	property var actionContextId: null
 
-	signal forceMissionOpen(string missionuuid)
+	property ListModel availableTerrainModel: ListModel {}
+
+	SortFilterProxyModel {
+		id: terrainProxyModel
+
+		sourceModel: availableTerrainModel
+
+		filters: ValueFilter {
+			roleName: "level"
+			value: 1
+		}
+
+		sorters: StringSorter {
+			roleName: "readableName"
+		}
+	}
+
 
 	QObjectListDelegateView {
 		id: missionList
@@ -26,6 +42,8 @@ QTabContainer {
 		visible: mapEditor.editor.missions.count
 
 		selectorSet: mapEditor.editor.missions.selectedCount
+
+		property GameMapEditorMission _openRequest: null
 
 		model: SortFilterProxyModel {
 			sourceModel: mapEditor.editor.missions
@@ -47,7 +65,12 @@ QTabContainer {
 			onSelectToggled: missionList.onDelegateClicked(index, withShift)
 			self: missionList.modelObject(index)
 
-			onSelfChanged: if (!self) {
+			onSelfChanged: if (self) {
+							   if (missionList._openRequest == self) {
+								   collapsed = false
+								   missionList._openRequest = null
+							   }
+						   } else {
 							   delete missionItem
 						   }
 
@@ -59,18 +82,13 @@ QTabContainer {
 				}
 			}
 
-			/*Connections {
-				target: control
-				function onforceMissionOpen(chid) {
-					if (!missionItem.self)
-						return
+			Connections {
+				target: mapEditor
 
-					if (chid === missionItem.self.uuid)
-						missionItem.collapsed = false
-					else
-						missionItem.collapsed = true
+				function onMissionOpenRequest(mis) {
+					missionItem.collapsed = !(mis === self)
 				}
-			}*/
+			}
 		}
 
 
@@ -84,6 +102,14 @@ QTabContainer {
 			width: missionList.width
 			anchors.horizontalCenter: parent.horizontalCenter
 			action: actionMissionNew
+		}
+
+		Connections {
+			target: mapEditor
+
+			function onMissionOpenRequest(mis) {
+				missionList._openRequest = mis
+			}
 		}
 	}
 
@@ -106,9 +132,26 @@ QTabContainer {
 									   })
 
 			d.accepted.connect(function(data) {
-				/*if (data.length)
-					mapEditor.chapterAdd({name: data})*/
+				var dd = JS.dialogCreateQml("List", {
+											   icon: CosStyle.iconLockAdd,
+											   title: qsTr("Harcmező kiválasztása"),
+											   selectorSet: false,
+											   modelTitleRole: "readableName",
+											   modelImageRole: "thumbnail",
+											   delegateHeight: CosStyle.twoLineHeight*1.5,
+											   model: terrainProxyModel
+										   })
+
+
+				dd.accepted.connect(function(data2) {
+					if (!data2)
+						return
+
+					mapEditor.missionAdd({name: data}, data2.terrain)
+				})
+				dd.open()
 			})
+
 			d.open()
 		}
 	}
@@ -123,17 +166,19 @@ QTabContainer {
 
 
 	function loadContextId(type, id) {
-		if (type === MapEditorAction.ActionTypeMissionList)
-			forceMissionOpen("")
-		else if (type === MapEditorAction.ActionTypeMission)
-			forceMissionOpen(id)
+
 	}
 
 
-	backCallbackFunction: function () {
-		/*if (mapEditor.chapterModelUnselectObjectives(mapEditor.editor.missions))
-			return true*/
+	Component.onCompleted: {
+		var l = mapEditor.availableTerrains
 
+		for (var i=0; i<l.length; i++) {
+			availableTerrainModel.append(l[i])
+		}
+	}
+
+	backCallbackFunction: function () {
 		if (mapEditor.editor.missions.selectedCount) {
 			mapEditor.editor.missions.unselectAll()
 			return true

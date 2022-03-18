@@ -43,7 +43,7 @@
 #include "tiledpaintedlayer.h"
 #include "gamepickable.h"
 
-typedef QPair<QPointF, GamePickable::PickableType> GameTerrainItem;
+typedef QPair<QPointF, GameEnemyData::InventoryType> GameTerrainItem;
 
 class GameTerrain : public QObject
 {

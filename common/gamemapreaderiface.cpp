@@ -94,7 +94,7 @@ void GameMapReaderIface::regenerateUuids()
 GameMapMissionIface *GameMapReaderIface::checkLockTree() const
 {
 	foreach(GameMapMissionIface *m, ifaceMissions()) {
-		QVector<GameMapMissionLockIface*> list;
+		QVector<GameMapMissionLevelIface*> list;
 		if (!m->getLockTree(&list, m)) {
 			qWarning() << QObject::tr("Redundant locks") << m->m_uuid << m->m_name << m;
 			return m;
@@ -111,12 +111,12 @@ GameMapMissionIface *GameMapReaderIface::checkLockTree() const
  * @return
  */
 
-QVector<GameMapMissionLockIface *> GameMapReaderIface::missionLockTree(GameMapMissionIface *mission) const
+QVector<GameMapMissionLevelIface *> GameMapReaderIface::missionLockTree(GameMapMissionIface *mission) const
 {
-	QVector<GameMapMissionLockIface*> list;
+	QVector<GameMapMissionLevelIface*> list;
 	if (!mission->getLockTree(&list, mission)) {
 		qWarning() << QObject::tr("Redundant locks") << mission->m_uuid << mission->m_name;
-		return QVector<GameMapMissionLockIface*>();
+		return QVector<GameMapMissionLevelIface*>();
 	}
 
 	return list;
@@ -421,12 +421,12 @@ void GameMapReaderIface::missionsToStream(QDataStream &stream, const QList<GameM
 		stream << m->m_description;
 		stream << m->m_medalImage;
 
-		const QList<GameMapMissionLockIface *> locks = m->ifaceLocks();
+		const QList<GameMapMissionLevelIface *> locks = m->ifaceLocks();
 
 		stream << (quint32) locks.size();
 
-		foreach (GameMapMissionLockIface *p, locks) {
-			stream << p->m_uuid.toLatin1();
+		foreach (GameMapMissionLevelIface *p, locks) {
+			stream << p->mission()->m_uuid.toLatin1();
 			stream << p->m_level;
 		}
 
@@ -688,15 +688,15 @@ void GameMapChapterIface::objectivesToStream(QDataStream &stream) const
  * @param stream
  */
 
-bool GameMapMissionIface::getLockTree(QVector<GameMapMissionLockIface *> *listPtr, GameMapMissionIface *rootMission) const
+bool GameMapMissionIface::getLockTree(QVector<GameMapMissionLevelIface *> *listPtr, GameMapMissionIface *rootMission) const
 {
-	foreach (GameMapMissionLockIface *l, ifaceLocks()) {
+	foreach (GameMapMissionLevelIface *l, ifaceLocks()) {
 		if (l->mission() == rootMission)				// redundant
 			return false;
 
 		bool contains = false;
 
-		foreach (GameMapMissionLockIface *it, *listPtr) {
+		foreach (GameMapMissionLevelIface *it, *listPtr) {
 			if (it->mission() == l->mission()) {
 				if (l->m_level > it->m_level)
 					it->m_level = l->m_level;

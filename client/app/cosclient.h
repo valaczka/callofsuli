@@ -112,7 +112,10 @@ public:
 	Q_INVOKABLE static void loadMusics();
 	Q_INVOKABLE static void loadMedalIcons();
 	Q_INVOKABLE static void reloadGameResources();
-	static TerrainData terrainDataFromFile(const QString &filename);
+	static TerrainData terrainDataFromFile(const QString &filename,
+										   const QString &terrainName = "",
+										   const QVariantMap &dataMap = QVariantMap(),
+										   const int &level = -1);
 	static QByteArray terrainDataToJson(const QString &filename);
 
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
@@ -198,7 +201,7 @@ public:
 	Q_INVOKABLE static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
 	Q_INVOKABLE static QVariantMap characterData() { return m_characterData; }
 	Q_INVOKABLE static QStringList musicList() { return m_musicList; }
-	static TerrainData terrain(const QString &name);
+	static TerrainData terrain(const QString &name, const int &level);
 
 	Q_INVOKABLE static QStringList medalIcons() { return m_medalIconList; }
 	Q_INVOKABLE static QString medalIconPath(const QString &name, const bool &qrcPrepend = true);

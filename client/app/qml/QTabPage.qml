@@ -437,8 +437,10 @@ Page {
 						target: control
 
 						function onActivateButton(idx) {
-							if (idx === index)
+							if (idx === index) {
+								checked = false
 								checked = true
+							}
 						}
 					}
 				}

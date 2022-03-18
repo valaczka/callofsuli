@@ -114,14 +114,14 @@
         <file>PageMapEditor.qml</file>
         <file>QSwipeComponent.qml</file>
         <file>OLD_MapEditorMissions.qml</file>
-        <file>MapEditorMissionDetails.qml</file>
+        <file>OLD_MapEditorMissionDetails.qml</file>
         <file>MapEditorMissionLevel.qml</file>
         <file>QGridImageTextField.qml</file>
         <file>QDialogImageGrid.qml</file>
         <file>QGridImage.qml</file>
         <file>MapEditorChapter.qml</file>
         <file>MapEditorInventory.qml</file>
-        <file>MapEditorMissionLocks.qml</file>
+        <file>OLD_MapEditorMissionLocks.qml</file>
         <file>MapEditorChapterList.qml</file>
         <file>QDialogFile.qml</file>
         <file>QDrawer.qml</file>

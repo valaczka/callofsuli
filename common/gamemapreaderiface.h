@@ -40,7 +40,6 @@ class GameMapStorageIface;
 class GameMapObjectiveIface;
 class GameMapMissionIface;
 class GameMapMissionLevelIface;
-class GameMapMissionLockIface;
 class GameMapImageIface;
 class GameMapInventoryIface;
 
@@ -60,7 +59,7 @@ public:
 
 	void regenerateUuids();
 	GameMapMissionIface *checkLockTree() const;
-	QVector<GameMapMissionLockIface*> missionLockTree(GameMapMissionIface *mission) const;
+	QVector<GameMapMissionLevelIface*> missionLockTree(GameMapMissionIface *mission) const;
 
 	QByteArray toBinaryData() const;
 
@@ -213,7 +212,7 @@ protected:
 	friend class GameMapReaderIface;
 
 	virtual QList<GameMapMissionLevelIface*> ifaceLevels() const = 0;
-	virtual QList<GameMapMissionLockIface*> ifaceLocks() const = 0;
+	virtual QList<GameMapMissionLevelIface*> ifaceLocks() const = 0;
 
 	virtual GameMapMissionLevelIface* ifaceAddLevel(const qint32 &level,
 													const QByteArray &terrain,
@@ -222,9 +221,9 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const QString &image) = 0;
-	virtual GameMapMissionLockIface* ifaceAddLock(const QString &uuid, const qint32 &level) = 0;
+	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) = 0;
 
-	bool getLockTree(QVector<GameMapMissionLockIface *> *listPtr, GameMapMissionIface *rootMission) const;
+	bool getLockTree(QVector<GameMapMissionLevelIface *> *listPtr, GameMapMissionIface *rootMission) const;
 
 	QString m_uuid;
 	QString m_name;
@@ -236,27 +235,6 @@ private:
 	void levelsToStream(QDataStream &stream) const;
 };
 
-
-
-/**
- * @brief The GameMapMissionLockIface class
- */
-
-
-class GameMapMissionLockIface
-{
-public:
-	explicit GameMapMissionLockIface() : m_level(-1) {}
-	virtual ~GameMapMissionLockIface() {}
-
-	virtual GameMapMissionIface *mission() const = 0;
-
-protected:
-	friend class GameMapReaderIface;
-	friend class GameMapMissionIface;
-	QString m_uuid;
-	qint32 m_level;
-};
 
 
 
@@ -276,6 +254,8 @@ public:
 protected:
 	friend class GameMapReaderIface;
 	friend class GameMapMissionIface;
+
+	virtual GameMapMissionIface *mission() const = 0;
 
 	virtual QList<GameMapChapterIface*> ifaceChapters() const = 0;
 	virtual QList<GameMapInventoryIface*> ifaceInventories() const = 0;

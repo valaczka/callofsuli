@@ -28,6 +28,8 @@ QDialogPanel {
 	maximumHeight: 0
 	maximumWidth: 700
 
+	acceptedData: null
+
 	QObjectListView {
 		id: list
 

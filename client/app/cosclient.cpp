@@ -122,7 +122,7 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_socketThread.start();
 
-	QStringList dbList = {"objectiveDb", "editorDb", "tmpmapimagedb"};
+	QStringList dbList = {"objectiveDb"};
 
 	foreach (QString s, dbList) {
 		if (QSqlDatabase::contains(s))
@@ -152,7 +152,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onSocketBinaryFrameReceived);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
-//	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
+	//	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
@@ -904,9 +904,10 @@ QVariantList Client::mapToList(const QVariantMap &map, const QString &keyName)
 {
 	QVariantList list;
 
-	QVariantMap::const_iterator it;
+	QMapIterator<QString, QVariant> it(map);
 
-	for (it = map.constBegin(); it != map.constEnd(); ++it) {
+	while (it.hasNext()) {
+		it.next();
 		QVariantMap mm = it.value().toMap();
 		mm[keyName] = it.key();
 		list.append(mm);
@@ -929,24 +930,22 @@ QVariantMap Client::terrainMap()
 		QVariantMap m;
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
-		if (d.level != -1)
-			m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
-						   .arg(d.level)
-						   .arg(d.blocks.count())
-						   .arg(d.enemies);
-		else
-			m["details"] = QString(tr("%1 csatatér, %2 célpont"))
-						   .arg(d.blocks.count())
-						   .arg(d.enemies);
+		m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
+					   .arg(d.level)
+					   .arg(d.blocks.count())
+					   .arg(d.enemies);
 
 		m["data"] = d.data;
+		m["level"] = d.level;
 		m["readableName"] = d.data.contains("name") ? d.data.value("name").toString() : d.name;
 		m["thumbnail"] = "qrc:/terrain/"+d.name+"/thumbnail.png";
-		map[d.name] = m;
+		map[QString("%1/%2").arg(d.name).arg(d.level)] = m;
 	}
 
 	return map;
 }
+
+
 
 
 /**
@@ -1186,10 +1185,10 @@ void Client::setUserRankLevel(int userRankLevel)
  * @return
  */
 
-TerrainData Client::terrain(const QString &name)
+TerrainData Client::terrain(const QString &name, const int &level)
 {
 	foreach (TerrainData d, m_availableTerrains) {
-		if (d.name == name)
+		if (d.name == name && d.level == level)
 			return d;
 	}
 
@@ -1242,56 +1241,66 @@ void Client::loadTerrains()
 {
 	m_availableTerrains.clear();
 
-	QDirIterator it(":/terrain", {"terrain.tmx"}, QDir::Files, QDirIterator::Subdirectories);
+	QDirIterator it(":/terrain", {"level1.tmx"}, QDir::Files, QDirIterator::Subdirectories);
 
 	while (it.hasNext()) {
 		QString realname = it.next();
 
 		QString terrainName = realname.section('/',-2,-2);
 
-		QString blockfile = ":/terrain/"+terrainName+"/blocks.json";
+		QString terrainDir = ":/terrain/"+terrainName;
+		QString datafile = terrainDir+"/data.json";
 
-		if (QFile::exists(blockfile)) {
-			QJsonDocument doc = readJsonDocument(blockfile);
-			QJsonObject o = doc.object();
+		QVariantMap dataMap;
+		if (QFile::exists(datafile))
+			dataMap = Client::readJsonFile(datafile).toMap();
 
-			int enemies = o.value("enemies").toInt(-1);
+		for (int level=1; level<=3; level++) {
+			QString tmxFile = QString("%1/level%2.tmx").arg(terrainDir).arg(level);
 
-			if (enemies != -1) {
-				QMap<int, int> blist;
-
-				qDebug().noquote() << "Load block data from" << blockfile;
-
-				QJsonArray l = o.value("blocks").toArray();
-				foreach (QJsonValue v, l) {
-					QJsonObject b = v.toObject();
-					blist[b.value("num").toInt()] = b.value("enemies").toInt();
-				}
-
-				QString datafile = ":/terrain/"+terrainName+"/data.json";
-				QVariantMap dataMap;
-				if (QFile::exists(datafile))
-					dataMap = Client::readJsonFile(datafile).toMap();
-
-				TerrainData d(terrainName,
-							  blist,
-							  enemies,
-							  dataMap);
-
-				m_availableTerrains.append(d);
-
+			if (!QFile::exists(tmxFile))
 				continue;
+
+			qInfo() << "Load terrain" << terrainName << "level" << level;
+
+			QString blockfile = QString("%1/blocks%2.json").arg(terrainDir).arg(level);
+
+			if (QFile::exists(blockfile)) {
+				QJsonDocument doc = readJsonDocument(blockfile);
+				QJsonObject o = doc.object();
+
+				int enemies = o.value("enemies").toInt(-1);
+
+				if (enemies != -1) {
+					QMap<int, int> blist;
+
+					qDebug().noquote() << "Load block data from" << blockfile;
+
+					QJsonArray l = o.value("blocks").toArray();
+					foreach (QJsonValue v, l) {
+						QJsonObject b = v.toObject();
+						blist[b.value("num").toInt()] = b.value("enemies").toInt();
+					}
+
+					TerrainData d(terrainName,
+								  blist,
+								  enemies,
+								  dataMap,
+								  level);
+
+					m_availableTerrains.append(d);
+					continue;
+				}
 			}
-		}
 
+			TerrainData d = terrainDataFromFile(tmxFile, terrainName, dataMap, level);
 
+			if (d.enemies != -1)
+				m_availableTerrains.append(d);
+			else {
+				qWarning().noquote() << "Invalid terrain map" << tmxFile;
+			}
 
-		TerrainData d = terrainDataFromFile(realname);
-
-		if (d.enemies != -1)
-			m_availableTerrains.append(d);
-		else {
-			qWarning().noquote() << "Invalid terrain map" << realname;
 		}
 	}
 }
@@ -1376,7 +1385,10 @@ void Client::reloadGameResources()
  * @return
  */
 
-TerrainData Client::terrainDataFromFile(const QString &filename)
+TerrainData Client::terrainDataFromFile(const QString &filename,
+										const QString &terrainName,
+										const QVariantMap &dataMap,
+										const int &level)
 {
 	GameTerrain t;
 
@@ -1384,23 +1396,17 @@ TerrainData Client::terrainDataFromFile(const QString &filename)
 		QMap<int, int> blockData;
 
 		QMap<int, GameBlock*> b = t.blocks();
-		QMap<int, GameBlock*>::const_iterator it;
-		for (it = b.constBegin(); it != b.constEnd(); ++it) {
+		QMapIterator<int, GameBlock*> it(b);
+		while (it.hasNext()) {
+			it.next();
 			blockData[it.key()] = it.value()->enemies().count();
 		}
-
-
-		QString terrainName = filename.section('/',-2,-2);
-
-		QString datafile = ":/terrain/"+terrainName+"/data.json";
-		QVariantMap dataMap;
-		if (QFile::exists(datafile))
-			dataMap = Client::readJsonFile(datafile).toMap();
 
 		return TerrainData(terrainName,
 						   blockData,
 						   t.enemies().count(),
-						   dataMap);
+						   dataMap,
+						   level);
 	}
 
 	return TerrainData("",
@@ -1424,8 +1430,9 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 	if (t.enemies != -1) {
 		QJsonArray blocks;
 		QMap<int, int> m = t.blocks;
-		QMap<int, int>::const_iterator it;
-		for (it = m.constBegin(); it != m.constEnd(); ++it) {
+		QMapIterator<int, int> it (m);
+		while (it.hasNext()) {
+			it.next();
 			QJsonObject b;
 			b["num"] = it.key();
 			b["enemies"] = it.value();

@@ -26,6 +26,7 @@
 
 #include "gamemapeditor.h"
 #include "question.h"
+#include "cosclient.h"
 
 GameMapEditor::GameMapEditor(QObject *parent)
 	: QObject{parent}
@@ -34,9 +35,16 @@ GameMapEditor::GameMapEditor(QObject *parent)
 	, m_images(new ObjectGenericListModel<GameMapEditorImage>(this))
 	, m_chapters(new ObjectGenericListModel<GameMapEditorChapter>(this))
 	, m_missions(new ObjectGenericListModel<GameMapEditorMission>(this))
+	, m_gameData()
 {
+	QVariant v = Client::readJsonFile(QString("qrc:/internal/game/parameters.json"));
+
+	if (v.isValid())
+		m_gameData = v.toMap();
 
 }
+
+
 
 GameMapEditor::~GameMapEditor()
 {
@@ -198,6 +206,11 @@ GameMapImageIface *GameMapEditor::ifaceAddImage(const QString &file, const QByte
 	GameMapEditorImage *s = new GameMapEditorImage(file, data, this);
 	m_images->addObject(s);
 	return s;
+}
+
+const QVariantMap &GameMapEditor::gameData() const
+{
+	return m_gameData;
 }
 
 const QString &GameMapEditor::uuid() const
@@ -615,7 +628,12 @@ ObjectGenericListModel<GameMapEditorInventory> *GameMapEditorMissionLevel::inven
 	return m_inventories;
 }
 
-GameMapEditorMission *GameMapEditorMissionLevel::mission() const
+GameMapMissionIface *GameMapEditorMissionLevel::mission() const
+{
+	return m_mission;
+}
+
+GameMapEditorMission *GameMapEditorMissionLevel::editorMission() const
 {
 	return m_mission;
 }
@@ -713,6 +731,25 @@ void GameMapEditorMissionLevel::setQuestions(qreal newQuestions)
 
 
 /**
+ * @brief GameMapEditorMissionLevel::isLastLevel
+ * @return
+ */
+
+bool GameMapEditorMissionLevel::isLastLevel() const
+{
+	if (!m_mission)
+		return false;
+
+	int maxLevel = -1;
+
+	foreach (GameMapEditorMissionLevel *l, m_mission->levels()->objects())
+		maxLevel = qMax(maxLevel, l->level());
+
+	return (m_level == maxLevel);
+}
+
+
+/**
  * @brief GameMapEditorMissionLevel::ifaceAddChapter
  * @param chapterId
  * @return
@@ -751,74 +788,6 @@ GameMapInventoryIface *GameMapEditorMissionLevel::ifaceAddInventory(const qint32
 }
 
 
-/**
- * @brief GameMapEditorMissionLock::GameMapEditorMissionLock
- * @param uuid
- * @param level
- * @param map
- * @param parent
- */
-
-GameMapEditorMissionLock::GameMapEditorMissionLock(GameMapEditorMission *mission, const qint32 &level,
-												   GameMapEditor *map, QObject *parent)
-	: ObjectListModelObject(parent)
-	, GameMapMissionLockIface()
-	, m_map(map)
-	, m_mission(mission)
-{
-	m_level = level;
-	m_uuid = m_mission ? m_mission->uuid() : "";
-}
-
-
-/**
- * @brief GameMapEditorMissionLock::mission
- * @return
- */
-
-GameMapMissionIface *GameMapEditorMissionLock::mission() const
-{
-	return m_mission;
-}
-
-
-/**
- * @brief GameMapEditorMissionLock::mission
- * @return
- */
-GameMapEditorMission *GameMapEditorMissionLock::mission()
-{
-	return m_mission;
-}
-
-
-
-qint32 GameMapEditorMissionLock::level() const
-{
-	return m_level;
-}
-
-void GameMapEditorMissionLock::setLevel(qint32 newLevel)
-{
-	if (m_level == newLevel)
-		return;
-	m_level = newLevel;
-	emit levelChanged();
-}
-
-void GameMapEditorMissionLock::setMission(GameMapEditorMission *newMission)
-{
-	if (m_mission == newMission)
-		return;
-	m_mission = newMission;
-	emit missionChanged();
-
-	if (m_mission)
-		m_uuid = m_mission->uuid();
-	else
-		m_uuid = -1;
-}
-
 
 /**
  * @brief GameMapEditorMission::GameMapEditorMission
@@ -837,7 +806,7 @@ GameMapEditorMission::GameMapEditorMission(const QByteArray &uuid, const QString
 	, GameMapMissionIface()
 	, m_map(map)
 	, m_levels(new ObjectGenericListModel<GameMapEditorMissionLevel>(this))
-	, m_locks(new ObjectGenericListModel<GameMapEditorMissionLock>(false, this))
+	, m_locks(new ObjectGenericListModel<GameMapEditorMissionLevel>(false, this))
 {
 	m_uuid = uuid;
 	m_name = name;
@@ -902,10 +871,51 @@ ObjectGenericListModel<GameMapEditorMissionLevel> *GameMapEditorMission::levels(
 	return m_levels;
 }
 
-ObjectGenericListModel<GameMapEditorMissionLock> *GameMapEditorMission::locks() const
+ObjectGenericListModel<GameMapEditorMissionLevel> *GameMapEditorMission::locks() const
 {
 	return m_locks;
 }
+
+
+/**
+ * @brief GameMapEditorMission::level
+ * @param num
+ * @return
+ */
+
+GameMapEditorMissionLevel *GameMapEditorMission::level(const qint32 &num) const
+{
+	foreach (GameMapEditorMissionLevel *l, m_levels->objects()) {
+		if (l->level() == num)
+			return l;
+	}
+
+	return nullptr;
+}
+
+
+/**
+ * @brief GameMapEditorMission::lastLevel
+ * @return
+ */
+
+GameMapEditorMissionLevel *GameMapEditorMission::lastLevel() const
+{
+	GameMapEditorMissionLevel *ret = nullptr;
+
+	int maxLevel = -1;
+
+	foreach (GameMapEditorMissionLevel *l, m_levels->objects()) {
+		if (l->level() > maxLevel) {
+			maxLevel = l->level();
+			ret = l;
+		}
+	}
+
+	return ret;
+}
+
+
 
 /**
  * @brief GameMapEditorMission::ifaceAddLevel
@@ -931,7 +941,7 @@ GameMapMissionLevelIface *GameMapEditorMission::ifaceAddLevel(const qint32 &leve
 }
 
 
-GameMapMissionLockIface *GameMapEditorMission::ifaceAddLock(const QString &uuid, const qint32 &level)
+GameMapMissionLevelIface *GameMapEditorMission::ifaceAddLock(const QString &uuid, const qint32 &level)
 {
 	if (!m_map)
 		return nullptr;
@@ -941,7 +951,7 @@ GameMapMissionLockIface *GameMapEditorMission::ifaceAddLock(const QString &uuid,
 	if (!m)
 		return nullptr;
 
-	GameMapEditorMissionLock *s = new GameMapEditorMissionLock(m, level, m_map, this);
+	GameMapEditorMissionLevel *s = m->level(level);
 	m_locks->addObject(s);
 	return s;
 }

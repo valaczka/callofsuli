@@ -26,6 +26,7 @@
 
 #include "mapeditoraction.h"
 #include "question.h"
+#include "cosclient.h"
 
 
 MapEditorAction::MapEditorAction(GameMapEditor *editor, const MapEditorActionType &type, const QVariant &contextId)
@@ -227,6 +228,62 @@ void MapEditorAction::storageRemove(GameMapEditorStorage *storage)
 	m_editor->m_storages->unselectAll();
 	storage->setParent(this);
 	m_editor->m_storages->removeObject(index);
+}
+
+
+/**
+ * @brief MapEditorAction::missionAdd
+ * @param mission
+ */
+
+void MapEditorAction::missionAdd(GameMapEditorMission *mission)
+{
+	m_editor->m_missions->addObject(mission);
+	mission->setParent(m_editor);
+}
+
+
+/**
+ * @brief MapEditorAction::missionRemove
+ * @param mission
+ */
+
+void MapEditorAction::missionRemove(GameMapEditorMission *mission)
+{
+	int index = m_editor->m_missions->index(mission);
+	Q_ASSERT(index != -1);
+	m_editor->m_missions->unselectAll();
+	mission->setParent(this);
+	m_editor->m_missions->removeObject(index);
+}
+
+
+/**
+ * @brief MapEditorAction::missionLevelAdd
+ * @param mission
+ * @param level
+ */
+
+void MapEditorAction::missionLevelAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level)
+{
+	mission->levels()->addObject(level);
+	level->setParent(mission);
+}
+
+
+/**
+ * @brief MapEditorAction::missionLevelRemove
+ * @param mission
+ * @param level
+ */
+
+void MapEditorAction::missionLevelRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level)
+{
+	int index = mission->levels()->index(level);
+	Q_ASSERT(index != -1);
+	mission->levels()->unselectAll();
+	level->setParent(this);
+	mission->levels()->removeObject(index);
 }
 
 
@@ -932,5 +989,411 @@ void MapEditorActionChapterMissionLevels::updateMissionLevels(const QList<QPoint
 				ml->chapters()->addObject(m_chapter);
 		}
 	}
+
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionNew::MapEditorActionMissionNew
+ * @param editor
+ * @param data
+ * @param terrain
+ */
+
+MapEditorActionMissionNew::MapEditorActionMissionNew(GameMapEditor *editor, const QVariantMap &data, const QString &terrain)
+	: MapEditorAction(editor, ActionTypeMissionList)
+	, m_mission(nullptr)
+	, m_missionLevel(nullptr)
+{
+	QString medalImage = data.value("medalImage",
+									Client::medalIcons().at(QRandomGenerator::global()->bounded(Client::medalIcons().size()))).toString();
+	QByteArray uuid = data.value("uuid", QUuid::createUuid().toByteArray()).toByteArray();
+
+	m_mission = new GameMapEditorMission(uuid,
+										 data.value("name").toString(),
+										 data.value("description").toString(),
+										 medalImage,
+										 m_editor, this);
+
+	setDescription(QObject::tr("Új küldetés hozzáadása: %1").arg(m_mission->name()));
+
+	QVariantMap defaults = m_editor->gameData()
+						   .value("level").toMap()
+						   .value("1").toMap()
+						   .value("defaults").toMap();
+
+	m_missionLevel = new GameMapEditorMissionLevel(1,
+												   terrain.isEmpty() ?
+													   defaults.value("terrain", "West_Louische/1").toByteArray() :
+													   terrain.toLatin1(),
+												   defaults.value("startHP", 5).toInt(),
+												   defaults.value("duration", 300).toInt(),
+												   defaults.value("deathmatch", true).toBool(),
+												   defaults.value("questions", 0.5).toReal(),
+												   defaults.value("image", "").toString(),
+												   m_mission,
+												   m_editor, this);
+
+	missionLevelAdd(m_mission, m_missionLevel);
+
+	setUndoFunc([this](){
+		missionRemove(m_mission);
+	});
+
+	setRedoFunc([this](){
+		missionAdd(m_mission);
+	});
+}
+
+/**
+ * @brief MapEditorActionMissionNew::~MapEditorActionMissionNew
+ */
+
+MapEditorActionMissionNew::~MapEditorActionMissionNew()
+{
+	if (m_mission && m_mission->parent() == this) {
+		m_mission->deleteLater();
+		m_mission = nullptr;
+	}
+
+	if (m_missionLevel && m_missionLevel->parent() == this) {
+		m_missionLevel->deleteLater();
+		m_missionLevel = nullptr;
+	}
+}
+
+/**
+ * @brief MapEditorActionMissionNew::missionLevel
+ * @return
+ */
+
+GameMapEditorMissionLevel *MapEditorActionMissionNew::missionLevel() const
+{
+	return m_missionLevel;
+}
+
+GameMapEditorMission *MapEditorActionMissionNew::mission() const
+{
+	return m_mission;
+}
+
+
+/**
+ * @brief MapEditorActionMissionRemove::MapEditorActionMissionRemove
+ * @param editor
+ * @param mission
+ */
+
+MapEditorActionMissionRemove::MapEditorActionMissionRemove(GameMapEditor *editor, GameMapEditorMission *mission)
+	: MapEditorAction(editor, ActionTypeMissionList)
+	, m_list()
+{
+	setDescription(QObject::tr("Küldetés törlése: %1").arg(mission->name()));
+
+	addMission(mission);
+
+	m_undoFunc = std::bind(&MapEditorActionMissionRemove::_undo, this);
+	m_redoFunc = std::bind(&MapEditorActionMissionRemove::_redo, this);
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionRemove::MapEditorActionMissionRemove
+ * @param editor
+ * @param list
+ */
+
+MapEditorActionMissionRemove::MapEditorActionMissionRemove(GameMapEditor *editor, const QList<GameMapEditorMission *> &list)
+	: MapEditorAction(editor, ActionTypeMissionList)
+	, m_list()
+{
+	setDescription(QObject::tr("%1 küldetés törlése").arg(list.size()));
+
+	foreach (GameMapEditorMission *ch, list)
+		addMission(ch);
+
+	m_undoFunc = std::bind(&MapEditorActionMissionRemove::_undo, this);
+	m_redoFunc = std::bind(&MapEditorActionMissionRemove::_redo, this);
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionRemove::~MapEditorActionMissionRemove
+ */
+
+MapEditorActionMissionRemove::~MapEditorActionMissionRemove()
+{
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionRemove::addMission
+ * @param mission
+ */
+
+void MapEditorActionMissionRemove::addMission(GameMapEditorMission *mission)
+{
+	MissionList l(mission);
+
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
+		foreach (GameMapEditorMissionLevel *ml, m->locks()->objects()) {
+			if (mission->levels()->objects().contains(ml))
+				l.append(m, ml);
+		}
+	}
+
+	m_list.append(l);
+}
+
+
+/**
+ * @brief MapEditorActionMissionRemove::_undo
+ */
+
+void MapEditorActionMissionRemove::_undo()
+{
+	foreach (const MissionList &l, m_list) {
+		missionAdd(l.mission);
+
+		for (int i=0; i<l.locks.size(); i++) {
+			const QPair<GameMapEditorMission*, GameMapEditorMissionLevel*> &p = l.locks.value(i);
+			if (p.first && p.second)
+				p.first->locks()->addObject(p.second);
+		}
+	}
+}
+
+
+/**
+ * @brief MapEditorActionMissionRemove::_redo
+ */
+
+void MapEditorActionMissionRemove::_redo()
+{
+	foreach (const MissionList &l, m_list) {
+		for (int i=0; i<l.locks.size(); i++) {
+			const QPair<GameMapEditorMission*, GameMapEditorMissionLevel*> &p = l.locks.value(i);
+
+			if (p.first && p.second) {
+				auto list = p.first->locks();
+
+				for (int j=list->index(p.second); j != -1; j=list->index(p.second)) {
+					list->removeObject(j);
+				}
+			}
+		}
+
+		missionRemove(l.mission);
+	}
+}
+
+
+
+
+
+/**
+ * @brief MapEditorActionMissionModify::MapEditorActionMissionModify
+ * @param editor
+ * @param mission
+ * @param data
+ */
+
+MapEditorActionMissionModify::MapEditorActionMissionModify(GameMapEditor *editor, GameMapEditorMission *mission, const QVariantMap &data)
+	: MapEditorAction(editor, ActionTypeMission, mission->uuid())
+{
+	m_mission = mission;
+	m_dataSource = variantMapSave(mission, data);
+	m_dataTarget = data;
+
+	setDescription(QObject::tr("Küldetés módosítása: %1").arg(mission->name()));
+
+	setUndoFunc([this](){
+		variantMapSet(m_mission, m_dataSource);
+	});
+
+	setRedoFunc([this](){
+		variantMapSet(m_mission, m_dataTarget);
+	});
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionModify::~MapEditorActionMissionModify
+ */
+
+MapEditorActionMissionModify::~MapEditorActionMissionModify()
+{
+
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionLevelNew::MapEditorActionMissionLevelNew
+ * @param editor
+ * @param parentMission
+ * @param data
+ */
+
+MapEditorActionMissionLevelNew::MapEditorActionMissionLevelNew(GameMapEditor *editor, GameMapEditorMission *parentMission, const QVariantMap &data)
+	: MapEditorAction(editor, ActionTypeMission, parentMission->uuid())
+	, m_mission(parentMission)
+{
+	int level = data.value("level", 1).toInt();
+
+	setDescription(QObject::tr("Új szint hozzáadása: %1").arg(m_mission->name()));
+
+
+	QVariantMap defaults = m_editor->gameData()
+						   .value("level").toMap()
+						   .value(QString("%1").arg(level)).toMap()
+						   .value("defaults").toMap();
+
+	m_missionLevel = new GameMapEditorMissionLevel(level,
+												   data.contains("terrain") ?
+													   data.value("terrain").toByteArray() :
+													   defaults.value("terrain", "West_Louische/1").toByteArray(),
+												   data.contains("startHP") ?
+													   data.value("startHP").toInt() :
+													   defaults.value("startHP", 5).toInt(),
+												   data.contains("duration") ?
+													   data.value("duration").toInt() :
+													   defaults.value("duration", 300).toInt(),
+												   data.contains("deathmatch") ?
+													   data.value("deathmatch").toBool() :
+													   defaults.value("deathmatch", true).toBool(),
+												   data.contains("questions") ?
+													   data.value("questions").toReal() :
+													   defaults.value("questions", 0.5).toReal(),
+												   data.contains("image") ?
+													   data.value("image").toString() :
+													   defaults.value("image", "").toString(),
+												   m_mission,
+												   m_editor, this);
+
+	setUndoFunc([this](){
+		missionLevelRemove(m_mission, m_missionLevel);
+	});
+
+	setRedoFunc([this](){
+		missionLevelAdd(m_mission, m_missionLevel);
+	});
+
+}
+
+/**
+ * @brief MapEditorActionMissionLevelNew::~MapEditorActionMissionLevelNew
+ */
+
+MapEditorActionMissionLevelNew::~MapEditorActionMissionLevelNew()
+{
+	if (m_missionLevel && m_missionLevel->parent() == this) {
+		m_missionLevel->deleteLater();
+		m_missionLevel = nullptr;
+	}
+}
+
+GameMapEditorMissionLevel *MapEditorActionMissionLevelNew::missionLevel() const
+{
+	return m_missionLevel;
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionLevelRemove::MapEditorActionMissionLevelRemove
+ * @param editor
+ * @param missionLevel
+ */
+
+MapEditorActionMissionLevelRemove::MapEditorActionMissionLevelRemove(GameMapEditor *editor,
+																	 GameMapEditorMission *parentMission,
+																	 GameMapEditorMissionLevel *missionLevel)
+	: MapEditorAction(editor, ActionTypeMission, parentMission->uuid())
+	, m_mission(parentMission)
+	, m_missionLevel(missionLevel)
+	, m_locks()
+{
+	setDescription(QObject::tr("Szint törlése: %1 (%2)").arg(m_mission->name()).arg(m_missionLevel->level()));
+
+	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
+		if (m->locks()->objects().contains(m_missionLevel))
+			m_locks.append(m);
+	}
+
+
+	setUndoFunc([this](){
+		missionLevelAdd(m_mission, m_missionLevel);
+
+		foreach (GameMapEditorMission *m, m_locks)
+			m->locks()->addObject(m_missionLevel);
+	});
+
+	setRedoFunc([this]() {
+		foreach (GameMapEditorMission *m, m_locks) {
+			for (int j=m->locks()->index(m_missionLevel); j != -1; j=m->locks()->index(m_missionLevel))
+				m->locks()->removeObject(j);
+		}
+
+		missionLevelRemove(m_mission, m_missionLevel);
+	});
+
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionLevelRemove::~MapEditorActionMissionLevelRemove
+ */
+
+MapEditorActionMissionLevelRemove::~MapEditorActionMissionLevelRemove()
+{
+	if (m_missionLevel && m_missionLevel->parent() == this) {
+		m_missionLevel->deleteLater();
+		m_missionLevel = nullptr;
+	}
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionLevelModify::MapEditorActionMissionLevelModify
+ * @param editor
+ * @param missionLevel
+ * @param data
+ */
+
+MapEditorActionMissionLevelModify::MapEditorActionMissionLevelModify(GameMapEditor *editor,
+																	 GameMapEditorMissionLevel *missionLevel,
+																	 const QVariantMap &data)
+	: MapEditorAction(editor, ActionTypeMissionLevel)
+	, m_missionLevel(missionLevel)
+{
+	m_dataSource = variantMapSave(missionLevel, data);
+	m_dataTarget = data;
+
+	setDescription(QObject::tr("Szint módosítása: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+
+	setUndoFunc([this](){
+		variantMapSet(m_missionLevel, m_dataSource);
+	});
+
+	setRedoFunc([this](){
+		variantMapSet(m_missionLevel, m_dataTarget);
+	});
+}
+
+
+/**
+ * @brief MapEditorActionMissionLevelModify::~MapEditorActionMissionLevelModify
+ */
+
+MapEditorActionMissionLevelModify::~MapEditorActionMissionLevelModify()
+{
 
 }

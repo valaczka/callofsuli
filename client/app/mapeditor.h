@@ -79,6 +79,7 @@ class MapEditor : public AbstractActivity
 	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
 
 	Q_PROPERTY(QVariantList availableObjectives READ availableObjectives CONSTANT)
+	Q_PROPERTY(QVariantList availableTerrains READ availableTerrains CONSTANT)
 	Q_PROPERTY(ObjectGenericListModel<MapEditorMissionLevelObject>* missionLevelModel READ missionLevelModel CONSTANT)
 
 public:
@@ -98,13 +99,17 @@ public:
 	void setDisplayName(const QString &newDisplayName);
 
 	const QVariantList &availableObjectives() const;
+	const QVariantList &availableTerrains() const;
 
 	Q_INVOKABLE QVariantList getStorages() const;
 	Q_INVOKABLE QString objectiveQml(const QString &module) const;
 	Q_INVOKABLE QString storageQml(const QString &module) const;
 
 	ObjectGenericListModel<MapEditorMissionLevelObject> *missionLevelModel() const;
-	Q_INVOKABLE void updateMissionLevelModel(GameMapEditorChapter *chapter);
+	Q_INVOKABLE void updateMissionLevelModelChapter(GameMapEditorChapter *chapter);
+	Q_INVOKABLE void updateMissionLevelModelMission(GameMapEditorMission *mission);
+	Q_INVOKABLE void updateMissionLevelModelLock(GameMapEditorMissionLevel *lock);
+
 
 public slots:
 	void open(const QUrl &url);
@@ -130,6 +135,18 @@ public slots:
 							   const int &targetChapterId, const QString &newChapterName = "");
 
 
+	void missionAdd(const QVariantMap &data, const QString &terrain = "");
+	void missionRemove(GameMapEditorMission *mission);
+	void missionRemoveList(const QList<GameMapEditorMission*> &list);
+	void missionModify(GameMapEditorMission *mission, const QVariantMap &data);
+
+	void missionLevelAdd(GameMapEditorMission *mission, QVariantMap data);
+	void missionLevelRemove(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelModify(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
+	void missionLevelPlay(GameMapEditorMissionLevel *missionLevel);
+
+
+
 private slots:
 	void onUndoRedoCompleted(const int &lastStep);
 
@@ -140,6 +157,12 @@ signals:
 	void urlChanged();
 	void displayNameChanged();
 
+	void missionOpenRequest(GameMapEditorMission *mission);
+	void missionLevelOpenRequest(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelRemoved(GameMapEditorMissionLevel *missionLevel);
+
+	void gamePlayReady(GameMatch *gameMatch);
+
 private:
 	QList<GameMapEditorMissionLevel*> toMissionLevelList(const QList<MapEditorMissionLevelObject*> &list);
 
@@ -148,6 +171,7 @@ private:
 	QUrl m_url;
 	QString m_displayName;
 	QVariantList m_availableObjectives;
+	QVariantList m_availableTerrains;
 	ObjectGenericListModel<MapEditorMissionLevelObject> *m_missionLevelModel;
 };
 

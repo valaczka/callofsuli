@@ -190,6 +190,12 @@ void StudentMaps::mapLoad(MapListObject *map)
 		return;
 	}
 
+	QString errT;
+	if (!StudentMaps::checkTerrains(gmap, &errT)) {
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"), errT);
+		return;
+	}
+
 
 	if (!loadGameMap(gmap, map))
 		delete gmap;
@@ -238,6 +244,12 @@ void StudentMaps::demoMapLoad()
 			return;
 		}
 
+		QString errT;
+		if (!StudentMaps::checkTerrains(map, &errT)) {
+			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"), errT);
+			return;
+		}
+
 		if (!loadGameMap(map, demoMapObject))
 			delete map;
 	}
@@ -260,9 +272,10 @@ void StudentMaps::getMissionList()
 
 		QJsonArray list;
 
-		QVariantMap::const_iterator it;
+		QMapIterator<QString, QVariant> it(m_demoSolverMap);
 
-		for (it=m_demoSolverMap.constBegin(); it != m_demoSolverMap.constEnd(); ++it) {
+		while (it.hasNext()) {
+			it.next();
 			QVariantMap m = it.value().toMap();
 
 			QJsonObject oo;
@@ -338,7 +351,7 @@ void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool
 		ret["available"] = (missionLevel->level() <= lMin);
 
 
-	ret["enemies"] = Client::terrain(missionLevel->terrain()).enemies;
+	ret["enemies"] = Client::terrain(missionLevel->terrain(), level).enemies;
 	ret["hp"] = missionLevel->startHP();
 	ret["duration"] = missionLevel->duration();
 
@@ -850,7 +863,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 
 	m_gameMatch->setDeleteGameMap(false);
-	m_gameMatch->setImageDbName("mapimagedb");
+	m_gameMatch->setImageDbName("mapimage");
 	m_gameMatch->setGameId(gameId);
 	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
 	m_gameMatch->setDeathmatch(deathmatch);
@@ -1035,4 +1048,34 @@ void StudentMaps::_createDownloader()
 ObjectGenericListModel<MapListObject> *StudentMaps::modelMapList() const
 {
 	return m_modelMapList;
+}
+
+
+/**
+ * @brief StudentMaps::checkTerrains
+ * @param map
+ * @param terrainList
+ * @param err
+ * @return
+ */
+
+bool StudentMaps::checkTerrains(GameMap *map, QString *err)
+{
+	if (!map)
+		return false;
+
+	QVariantMap terrainMap = Client::terrainMap();
+
+	foreach (GameMapMission *m, map->missions()) {
+		foreach (GameMapMissionLevel *ml, m->levels()) {
+			QString t = ml->terrain();
+			if (!terrainMap.contains(t)) {
+				if (err)
+					*err = t;
+				return false;
+			}
+		}
+	}
+
+	return true;
 }

@@ -354,8 +354,7 @@ QCollapsible {
 		text: qsTr("Küldetések")
 
 		onTriggered: {
-
-			mapEditor.updateMissionLevelModel(self)
+			mapEditor.updateMissionLevelModelChapter(self)
 
 			if (mapEditor.missionLevelModel.count < 1) {
 				cosClient.sendMessageWarning(qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))

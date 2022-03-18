@@ -98,6 +98,46 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 
 
 /**
+ * @brief GameMatch::GameMatch
+ * @param missionLevel
+ * @param gameMap
+ * @param parent
+ */
+
+GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, QObject *parent)
+	: QObject(parent)
+	, m_gameMap(gameMap)
+	, m_missionLevel(nullptr)
+	, m_deleteGameMap(false)
+	, m_level(0)
+	, m_missionUuid()
+	, m_gameId(-1)
+	, m_xp(0)
+	, m_baseXP(0)
+	, m_elapsedTime(-1)
+	, m_deathmatch(false)
+	, m_water(0)
+	, m_pliers(0)
+{
+	setPlayerCharacter("default");
+
+	setMissionUuid(missionLevel->editorMission()->uuid());
+	setName(missionLevel->editorMission()->name());
+	setLevel(missionLevel->level());
+	setTerrain(missionLevel->terrain());
+	setStartHp(missionLevel->startHP());
+	setDuration(missionLevel->duration());
+
+	QString image = missionLevel->image();
+
+	if (!image.isEmpty())
+		setBgImage(image);
+
+}
+
+
+
+/**
  * @brief GameMatch::~GameMatch
  */
 
@@ -209,6 +249,11 @@ bool GameMatch::check(QString *errorString)
 		return false;
 	}
 
+	if (!Client::terrainMap().contains(ml->terrain())) {
+		if (errorString)
+			*errorString = tr("Érvénytelen harcmező!");
+		return false;
+	}
 
 	//foreach(GameMap::BlockChapterMap *bcm, ml->blockChapterMaps()) {
 		foreach(GameMapChapter *chapter, ml->chapters()) {

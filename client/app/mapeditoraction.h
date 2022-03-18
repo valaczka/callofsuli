@@ -84,6 +84,12 @@ protected:
 	void storageAdd(GameMapEditorStorage *storage);
 	void storageRemove(GameMapEditorStorage *storage);
 
+	void missionAdd(GameMapEditorMission *mission);
+	void missionRemove(GameMapEditorMission *mission);
+
+	void missionLevelAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+	void missionLevelRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+
 	MapEditorActionType m_type;
 	QVariant m_contextId;
 	GameMapEditor *m_editor;
@@ -309,4 +315,162 @@ private:
 	QList<QPointer<GameMapEditorMissionLevel>> m_listTarget;
 };
 
+
+
+/**
+ * @brief The MapEditorActionMissionNew class
+ */
+
+class MapEditorActionMissionNew : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionNew(GameMapEditor *editor, const QVariantMap &data, const QString &terrain = "");
+	virtual ~MapEditorActionMissionNew();
+
+	GameMapEditorMission *mission() const;
+	GameMapEditorMissionLevel *missionLevel() const;
+
+
+private:
+	GameMapEditorMission *m_mission;
+	GameMapEditorMissionLevel *m_missionLevel;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionMissonRemove class
+ */
+
+class MapEditorActionMissionRemove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionRemove(GameMapEditor *editor, GameMapEditorMission *mission);
+	explicit MapEditorActionMissionRemove(GameMapEditor *editor, const QList<GameMapEditorMission *> &list);
+	virtual ~MapEditorActionMissionRemove();
+
+private:
+	void addMission(GameMapEditorMission *mission);
+	void _undo();
+	void _redo();
+
+	struct MissionList {
+		MissionList(GameMapEditorMission *_mission) :
+			mission(_mission), locks()
+		{}
+
+		MissionList(GameMapEditorMission *_mission, QList<QPair<QPointer<GameMapEditorMission>, QPointer<GameMapEditorMissionLevel>>> _locks) :
+			mission(_mission), locks(_locks)
+		{}
+
+		void append(GameMapEditorMission *mission, GameMapEditorMissionLevel *lock) {
+			locks.append(qMakePair<GameMapEditorMission *, GameMapEditorMissionLevel*>(mission, lock));
+		}
+
+		GameMapEditorMission *mission;
+		QList<QPair<QPointer<GameMapEditorMission>, QPointer<GameMapEditorMissionLevel>>> locks;
+	};
+
+	QList<MissionList> m_list;
+
+};
+
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionModify class
+ */
+
+class MapEditorActionMissionModify : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionModify(GameMapEditor *editor, GameMapEditorMission *mission, const QVariantMap &data);
+	virtual ~MapEditorActionMissionModify();
+
+private:
+	GameMapEditorMission *m_mission;
+	QVariantMap m_dataSource;
+	QVariantMap m_dataTarget;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLevelNew class
+ */
+
+class MapEditorActionMissionLevelNew : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLevelNew(GameMapEditor *editor, GameMapEditorMission *parentMission, const QVariantMap &data);
+	virtual ~MapEditorActionMissionLevelNew();
+
+	GameMapEditorMissionLevel *missionLevel() const;
+
+private:
+	GameMapEditorMission *m_mission;
+	GameMapEditorMissionLevel *m_missionLevel;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLevelRemove class
+ */
+
+class MapEditorActionMissionLevelRemove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLevelRemove(GameMapEditor *editor, GameMapEditorMission *parentMission, GameMapEditorMissionLevel *missionLevel);
+	virtual ~MapEditorActionMissionLevelRemove();
+
+private:
+	GameMapEditorMission *m_mission;
+	GameMapEditorMissionLevel *m_missionLevel;
+	QList<QPointer<GameMapEditorMission>> m_locks;
+};
+
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLevelModify class
+ */
+
+class MapEditorActionMissionLevelModify : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLevelModify(GameMapEditor *editor, GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
+	virtual ~MapEditorActionMissionLevelModify();
+
+private:
+	GameMapEditorMissionLevel *m_missionLevel;
+	QVariantMap m_dataSource;
+	QVariantMap m_dataTarget;
+};
+
+
+
 #endif // MAPEDITORACTION_H
+
+
+
+

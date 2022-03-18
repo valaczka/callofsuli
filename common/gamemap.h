@@ -50,7 +50,6 @@ class GameMapChapter;
 class GameMapObjective;
 class GameMapMission;
 class GameMapMissionLevel;
-class GameMapMissionLock;
 class GameMapInventory;
 
 
@@ -284,7 +283,7 @@ class GameMapMission : public GameMapMissionIface
 	Q_PROPERTY(QString description MEMBER m_description)
 	Q_PROPERTY(QString medalImage MEMBER m_medalImage)
 	Q_PROPERTY(QList<GameMapMissionLevel *> levels MEMBER m_levels)
-	Q_PROPERTY(QList<GameMapMissionLock *> locks MEMBER m_locks)
+	Q_PROPERTY(QList<GameMapMissionLevel *> locks MEMBER m_locks)
 
 public:
 	explicit GameMapMission(const QByteArray &uuid, const QString &name, const QString &description, const QString &medalImage, GameMap *map);
@@ -295,7 +294,7 @@ public:
 	const QString &description() const;
 	const QString &medalImage() const;
 	const QList<GameMapMissionLevel *> &levels() const;
-	const QList<GameMapMissionLock *> &locks() const;
+	const QList<GameMapMissionLevel *> &locks() const;
 
 	GameMapMissionLevel *level(const qint32 &num) const;
 
@@ -308,8 +307,8 @@ protected:
 	QList<GameMapMissionLevelIface*> ifaceLevels() const override
 	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLevelIface, GameMapMissionLevel>(m_levels);	}
 
-	QList<GameMapMissionLockIface*> ifaceLocks() const override
-	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLockIface, GameMapMissionLock>(m_locks); }
+	QList<GameMapMissionLevelIface*> ifaceLocks() const override
+	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLevelIface, GameMapMissionLevel>(m_locks); }
 
 	virtual GameMapMissionLevelIface* ifaceAddLevel(const qint32 &level,
 													const QByteArray &terrain,
@@ -318,43 +317,16 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const QString &image) override;
-	virtual GameMapMissionLockIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
+	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
 
 private:
 	QList<GameMapMissionLevel *> m_levels;
-	QList<GameMapMissionLock *> m_locks;
+	QList<GameMapMissionLevel *> m_locks;
 	GameMap *m_map;
 	int m_lockDepth;
 };
 
 
-
-
-
-
-/**
- * @brief The GameMapMissionLock class
- */
-
-class GameMapMissionLock : public GameMapMissionLockIface
-{
-	Q_GADGET
-
-	Q_PROPERTY(QString uuid MEMBER m_uuid)
-	Q_PROPERTY(qint32 level MEMBER m_level)
-
-public:
-	explicit GameMapMissionLock(const QString &uuid, const qint32 &level, GameMap *map);
-	virtual ~GameMapMissionLock() {}
-
-	GameMapMissionIface *mission() const override;
-
-	const QString &uuid() const;
-	qint32 level() const;
-
-private:
-	GameMap *m_map;
-};
 
 
 

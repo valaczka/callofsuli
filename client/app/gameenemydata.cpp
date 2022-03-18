@@ -99,6 +99,16 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 5}}));
 
+	list["water"] = InventoryType(tr("1 víz hozzáadása"),
+								   "qrc:/internal/game/water.svg",
+								   GamePickable::PickableWater,
+								   QVariantMap());
+
+	list["pliers"] = InventoryType(tr("1 fogó hozzáadása"),
+								   "qrc:/internal/game/pliers.png",
+								   GamePickable::PickableWater,
+								   QVariantMap());
+
 	return list;
 }
 

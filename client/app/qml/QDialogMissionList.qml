@@ -75,6 +75,13 @@ QDialogPanel {
 		section.delegate: sectionHeading
 
 		colorTitle: CosStyle.colorWarningLight
+
+		onClicked: {
+			if (!selectorSet) {
+				acceptedData = index
+				dlgClose()
+			}
+		}
 	}
 
 
@@ -97,6 +104,8 @@ QDialogPanel {
 		QButton {
 			id: buttonYes
 
+			visible: selectorSet
+
 			anchors.verticalCenter: parent.verticalCenter
 
 			text: qsTr("OK")
@@ -104,7 +113,7 @@ QDialogPanel {
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {
-				acceptedData = true
+				acceptedData = 1
 				dlgClose()
 			}
 		}

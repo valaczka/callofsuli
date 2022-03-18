@@ -38,6 +38,7 @@
 #include <QObject>
 #include <QJsonArray>
 #include "gamemap.h"
+#include "gamemapeditor.h"
 
 class GameMatch : public QObject
 {
@@ -65,6 +66,7 @@ class GameMatch : public QObject
 public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
 	explicit GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
+	explicit GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	virtual ~GameMatch();
 
 	struct Statistics {

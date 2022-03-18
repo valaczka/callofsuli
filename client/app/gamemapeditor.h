@@ -294,7 +294,7 @@ class GameMapEditorMissionLevel : public ObjectListModelObject, public GameMapMi
 	Q_PROPERTY(qreal questions READ questions WRITE setQuestions NOTIFY questionsChanged)
 	Q_PROPERTY(ObjectGenericListModel<GameMapEditorChapter> *chapters READ chapters CONSTANT)
 	Q_PROPERTY(ObjectGenericListModel<GameMapEditorInventory> *inventories READ inventories CONSTANT)
-	Q_PROPERTY(GameMapEditorMission *mission READ mission CONSTANT)
+	Q_PROPERTY(GameMapEditorMission *mission READ editorMission CONSTANT)
 
 public:
 	explicit GameMapEditorMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
@@ -306,7 +306,8 @@ public:
 
 	ObjectGenericListModel<GameMapEditorInventory> *inventories() const;
 
-	GameMapEditorMission *mission() const;
+	GameMapMissionIface *mission() const;
+	GameMapEditorMission *editorMission() const;
 
 	qint32 level() const;
 	void setLevel(qint32 newLevel);
@@ -328,6 +329,8 @@ public:
 
 	qreal questions() const;
 	void setQuestions(qreal newQuestions);
+
+	Q_INVOKABLE bool isLastLevel() const;
 
 signals:
 	void levelChanged();
@@ -358,40 +361,6 @@ Q_DECLARE_METATYPE(ObjectGenericListModel<GameMapEditorMissionLevel>*);
 
 
 
-/**
- * @brief The GameMapEditorMissionLock class
- */
-
-class GameMapEditorMissionLock : public ObjectListModelObject, public GameMapMissionLockIface
-{
-	Q_OBJECT
-
-	Q_PROPERTY(GameMapEditorMission *mission READ mission WRITE setMission NOTIFY missionChanged)
-	Q_PROPERTY(qint32 level READ level WRITE setLevel NOTIFY levelChanged)
-
-public:
-	explicit GameMapEditorMissionLock(GameMapEditorMission *mission, const qint32 &level, GameMapEditor *map, QObject *parent = nullptr);
-	virtual ~GameMapEditorMissionLock() {}
-
-	GameMapMissionIface *mission() const override;
-	GameMapEditorMission *mission();
-	void setMission(GameMapEditorMission *newMission);
-
-	qint32 level() const;
-	void setLevel(qint32 newLevel);
-
-signals:
-	void levelChanged();
-	void missionChanged();
-
-private:
-	GameMapEditor *m_map;
-	GameMapEditorMission *m_mission;
-};
-
-Q_DECLARE_METATYPE(ObjectGenericListModel<GameMapEditorMissionLock>*);
-
-
 
 /**
  * @brief The GameMapEditorMission class
@@ -406,7 +375,7 @@ class GameMapEditorMission : public ObjectListModelObject, public GameMapMission
 	Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
 	Q_PROPERTY(QString medalImage READ medalImage WRITE setMedalImage NOTIFY medalImageChanged)
 	Q_PROPERTY(ObjectGenericListModel<GameMapEditorMissionLevel> *levels READ levels CONSTANT)
-	Q_PROPERTY(ObjectGenericListModel<GameMapEditorMissionLock> *locks READ locks CONSTANT)
+	Q_PROPERTY(ObjectGenericListModel<GameMapEditorMissionLevel> *locks READ locks CONSTANT)
 
 public:
 	explicit GameMapEditorMission(const QByteArray &uuid, const QString &name, const QString &description,
@@ -427,7 +396,11 @@ public:
 	void setMedalImage(const QString &newMedalImage);
 
 	ObjectGenericListModel<GameMapEditorMissionLevel> *levels() const;
-	ObjectGenericListModel<GameMapEditorMissionLock> *locks() const;
+	ObjectGenericListModel<GameMapEditorMissionLevel> *locks() const;
+
+	GameMapEditorMissionLevel *level(const qint32 &num) const;
+
+	GameMapEditorMissionLevel *lastLevel() const;
 
 signals:
 	void uuidChanged();
@@ -439,8 +412,8 @@ protected:
 	QList<GameMapMissionLevelIface*> ifaceLevels() const override
 	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLevelIface, GameMapEditorMissionLevel>(m_levels->objects());	}
 
-	QList<GameMapMissionLockIface*> ifaceLocks() const override
-	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLockIface, GameMapEditorMissionLock>(m_locks->objects()); }
+	QList<GameMapMissionLevelIface*> ifaceLocks() const override
+	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLevelIface, GameMapEditorMissionLevel>(m_locks->objects()); }
 
 	virtual GameMapMissionLevelIface* ifaceAddLevel(const qint32 &level,
 													const QByteArray &terrain,
@@ -449,12 +422,12 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const QString &image) override;
-	virtual GameMapMissionLockIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
+	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
 
 private:
 	GameMapEditor *m_map;
 	ObjectGenericListModel<GameMapEditorMissionLevel> *m_levels;
-	ObjectGenericListModel<GameMapEditorMissionLock> *m_locks;
+	ObjectGenericListModel<GameMapEditorMissionLevel> *m_locks;
 };
 
 Q_DECLARE_METATYPE(ObjectGenericListModel<GameMapEditorMission>*);
@@ -502,6 +475,8 @@ public:
 	const QString &uuid() const;
 	void setUuid(const QString &newUuid);
 
+	const QVariantMap &gameData() const;
+
 signals:
 	void uuidChanged();
 
@@ -529,6 +504,8 @@ private:
 	ObjectGenericListModel<GameMapEditorImage> *m_images;
 	ObjectGenericListModel<GameMapEditorChapter> *m_chapters;
 	ObjectGenericListModel<GameMapEditorMission> *m_missions;
+
+	QVariantMap m_gameData;
 
 	friend class MapEditorAction;
 };

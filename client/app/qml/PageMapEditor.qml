@@ -66,12 +66,12 @@ QTabPage {
 		id: mapEditor
 
 		onEditorChanged: if (editor) {
-							 loadComponent()
+							 activateButton(PageMapEditor.Components.Missions)
 						 } else {
 							 replaceContent(componentMain)
 						 }
 
-		////onActionContextUpdated: loadComponent(type, contextId)				//// UNDO-REDO
+		onActionContextUpdated: loadComponent(type, contextId)
 
 		function openObjective(params) {
 			pushContent(componentObjective, params)
@@ -79,6 +79,20 @@ QTabPage {
 
 		function openMissionLevel(params) {
 			pushContent(componentMissionLevel, params)
+		}
+
+		onMissionLevelOpenRequest: pushContent(componentMissionLevel, {
+												   missionLevel: missionLevel
+											   })
+
+		onMissionLevelRemoved: if (stack.currentItem.contextAction === MapEditorAction.ActionTypeMissionLevel)
+								   stack.pop()
+
+		onGamePlayReady: {
+			var o = JS.createPage("Game", {
+									  gameMatch: gameMatch,
+									  deleteGameMatch: true
+								  })
 		}
 	}
 
@@ -199,7 +213,7 @@ QTabPage {
 		icon.source: CosStyle.iconSend
 		enabled: mapEditor.editor && mapEditor.undoStack.canRedo
 		onTriggered: mapEditor.undoStack.redo()
-		shortcut: "Ctrl+Shitf+Z"
+		shortcut: "Ctrl+Shift+Z"
 	}
 
 
@@ -299,27 +313,12 @@ QTabPage {
 		if (!mapEditor.editor)
 			return
 
-		if (stack.currentItem && stack.currentItem.contextAction && (stack.currentItem.contextAction & contextAction)) {
-			stack.currentItem.loadContextId(contextAction, contextId)
-		} else {
-			var cmp = PageMapEditor.Components.Missions
-
-			switch (contextAction) {
-			case MapEditorAction.ActionTypeMissionList:
-			case MapEditorAction.ActionTypeMission:
-				cmp = PageMapEditor.Components.Missions
-				break
-			case MapEditorAction.ActionTypeChapterList:
-			case MapEditorAction.ActionTypeChapter:
-				cmp = PageMapEditor.Components.Chapters
-				break
-			}
-
-			_actionContextType = contextAction ? contextAction : -1
-			_actionContextId = contextId ? contextId : null
-
-			activateButton(cmp)
-		}
+		if (stack.currentItem.contextAction === MapEditorAction.ActionTypeObjective &&
+				contextAction !== MapEditorAction.ActionTypeObjective)
+			activateButton(PageMapEditor.Components.Chapters)
+		else if (stack.currentItem.contextAction === MapEditorAction.ActionTypeMissionLevel &&
+				 contextAction !== MapEditorAction.ActionTypeMissionLevel)
+			activateButton(PageMapEditor.Components.Missions)
 	}
 
 
