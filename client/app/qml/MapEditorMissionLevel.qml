@@ -18,7 +18,6 @@ QTabContainer {
 	property int actionContextType: -1
 	property var actionContextId: null
 
-	property MapEditor _mapEditor: null
 	property GameMapEditorMissionLevel missionLevel: null
 	property bool canDelete: false
 
@@ -264,14 +263,6 @@ QTabContainer {
 		}
 
 
-		/*MapEditorInventory {
-		id: inventory
-		collapsed: true
-		level: container.level
-	}*/
-
-
-
 
 		QObjectListDelegateView {
 			id: chapterList
@@ -302,11 +293,11 @@ QTabContainer {
 							   }
 
 				onChapterRemove: {
-					/*if (mapEditor.editor.chapters.selectedCount > 0) {
-						mapEditor.chapterRemoveList(mapEditor.editor.chapters.getSelected())
+					if (missionLevel.chapters.selectedCount > 0) {
+						mapEditor.missionLevelRemoveChapterList(missionLevel, missionLevel.chapters.getSelected())
 					} else {
-						mapEditor.chapterRemove(self)
-					}*/
+						mapEditor.missionLevelRemoveChapter(missionLevel, self)
+					}
 				}
 			}
 
@@ -314,9 +305,42 @@ QTabContainer {
 
 		QToolButtonFooter {
 			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconAdd
-			text: qsTr("Létező szakasz hozzáadása")
-			onClicked: mapEditor.missionLevelGetChapterList(level)
+			icon.source: CosStyle.iconEdit
+			text: qsTr("Szakaszok kiválasztása")
+			onClicked: {
+				mapEditor.updateChapterModelMissionLevel(missionLevel)
+
+				if (mapEditor.editor.chapters.count < 1) {
+					cosClient.sendMessageWarning(qsTr("Szakaszok"), qsTr("Még nincsen egyetlen szakasz sem!"))
+					return
+				}
+
+
+				var d = JS.dialogCreateQml("List", {
+											   icon: CosStyle.iconLockAdd,
+											   title: qsTr("%1 - Szakaszok").arg(labelTitle.text),
+											   selectorSet: true,
+											   modelTitleRole: "name",
+											   delegateHeight: CosStyle.baseHeight,
+											   model: mapEditor.editor.chapters
+										   })
+
+				d.accepted.connect(function(dlgdata) {
+					var l = mapEditor.editor.chapters.getSelected()
+					mapEditor.editor.chapters.unselectAll()
+
+					if (!dlgdata)
+						return
+
+					mapEditor.missionLevelModifyChapters(missionLevel, l)
+				})
+
+				d.rejected.connect(function() {
+					mapEditor.editor.chapters.unselectAll()
+				})
+
+				d.open()
+			}
 		}
 
 		QToolButtonFooter {
@@ -331,11 +355,19 @@ QTabContainer {
 
 				d.accepted.connect(function(data) {
 					if (data.length)
-						mapEditor.missionLevelChapterAdd({level: level, name: data})
+						mapEditor.chapterAdd({name: data}, missionLevel)
 				})
 				d.open()
 			}
 		}
+
+
+		MapEditorInventory {
+			id: inventory
+			collapsed: true
+			missionLevel: control.missionLevel
+		}
+
 	}
 
 	Component.onCompleted: {

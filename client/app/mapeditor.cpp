@@ -38,6 +38,7 @@ MapEditor::MapEditor(QQuickItem *parent)
 	, m_url()
 	, m_availableObjectives()
 	, m_availableTerrains()
+	, m_availableInventories()
 	, m_missionLevelModel(new ObjectGenericListModel<MapEditorMissionLevelObject>(this))
 {
 	// Load available objectives
@@ -66,6 +67,18 @@ MapEditor::MapEditor(QQuickItem *parent)
 		m_availableTerrains.append(m);
 	}
 
+
+	QHash<QString, GameEnemyData::InventoryType> ilist =  GameEnemyData::inventoryTypes();
+	QHashIterator<QString, GameEnemyData::InventoryType> iit(ilist);
+
+	while (iit.hasNext()) {
+		iit.next();
+		m_availableInventories.append(QVariantMap({
+													  { "module", iit.key() },
+													  { "name", iit.value().name },
+													  { "icon", iit.value().icon }
+												  }));
+	}
 
 	connect(m_undoStack, &EditorUndoStack::undoCompleted, this, &MapEditor::onUndoRedoCompleted);
 	connect(m_undoStack, &EditorUndoStack::redoCompleted, this, &MapEditor::onUndoRedoCompleted);
@@ -274,7 +287,7 @@ void MapEditor::setDisplayName(const QString &newDisplayName)
  * @param data
  */
 
-void MapEditor::chapterAdd(QVariantMap data)
+void MapEditor::chapterAdd(QVariantMap data, GameMapEditorMissionLevel *missionLevel)
 {
 	int id = 1;
 
@@ -283,7 +296,7 @@ void MapEditor::chapterAdd(QVariantMap data)
 
 	data.insert("id", id);
 
-	m_undoStack->call(new MapEditorActionChapterNew(m_editor, data));
+	m_undoStack->call(new MapEditorActionChapterNew(m_editor, data, missionLevel));
 
 }
 
@@ -473,6 +486,37 @@ void MapEditor::objectiveMoveCopyList(GameMapEditorChapter *chapter, const bool 
 	d.insert("name", newChapterName);
 
 	m_undoStack->call(new MapEditorActionObjectiveMove(m_editor, chapter, list, isCopy, d));
+}
+
+
+/**
+ * @brief MapEditor::objectiveGeneratePreview
+ * @param objectiveModule
+ * @param objectiveData
+ * @param storageModule
+ * @param storageData
+ * @return
+ */
+
+QVariantMap MapEditor::objectiveGeneratePreview(const QString &objectiveModule, const QVariantMap &objectiveData,
+												const QString &storageModule, const QVariantMap &storageData)
+{
+
+	if (!Client::moduleObjectiveList().contains(objectiveModule)) {
+		QVariantMap m;
+		m["text"] = tr("Érvénytelen modul: %1").arg(objectiveModule);
+		return m;
+	}
+
+	ModuleInterface *storage = nullptr;
+
+	if (Client::moduleStorageList().contains(storageModule)) {
+		storage = Client::moduleStorageList().value(storageModule);
+	}
+
+	ModuleInterface *objective = Client::moduleObjectiveList().value(objectiveModule);
+
+	return objective->preview(objective->generateAll(objectiveData, storage, storageData));
 }
 
 
@@ -674,6 +718,100 @@ void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel)
 	});
 
 	emit gamePlayReady(m_gameMatch);
+}
+
+
+/**
+ * @brief MapEditor::missionLevelRemoveChapter
+ * @param missionLevel
+ * @param chapter
+ */
+
+void MapEditor::missionLevelRemoveChapter(GameMapEditorMissionLevel *missionLevel, GameMapEditorChapter *chapter)
+{
+	QList<GameMapEditorChapter *> list;
+
+	foreach (GameMapEditorChapter *ch, missionLevel->chapters()->objects()) {
+		if (ch != chapter)
+			list.append(ch);
+	}
+	m_undoStack->call(new MapEditorActionMissionLevelChapters(m_editor, missionLevel, list));
+}
+
+
+/**
+ * @brief MapEditor::missionLevelRemoveChapterList
+ * @param missionLevel
+ * @param list
+ */
+
+void MapEditor::missionLevelRemoveChapterList(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter *> &chapterList)
+{
+	QList<GameMapEditorChapter *> list;
+
+	foreach (GameMapEditorChapter *ch, missionLevel->chapters()->objects()) {
+		if (!chapterList.contains(ch))
+			list.append(ch);
+	}
+	m_undoStack->call(new MapEditorActionMissionLevelChapters(m_editor, missionLevel, list));
+}
+
+
+
+/**
+ * @brief MapEditor::missionLevelModifyChapters
+ * @param missionLevel
+ * @param list
+ */
+
+void MapEditor::missionLevelModifyChapters(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter *> &list)
+{
+	m_undoStack->call(new MapEditorActionMissionLevelChapters(m_editor, missionLevel, list));
+}
+
+
+/**
+ * @brief MapEditor::inventoryAdd
+ * @param missionLevel
+ * @param data
+ */
+
+void MapEditor::inventoryAdd(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data)
+{
+	if (!missionLevel)
+		return;
+
+	m_undoStack->call(new MapEditorActionInventoryNew(m_editor, missionLevel, data));
+}
+
+
+/**
+ * @brief MapEditor::inventoryRemove
+ * @param missionLevel
+ * @param inventory
+ */
+
+void MapEditor::inventoryRemove(GameMapEditorMissionLevel *missionLevel, GameMapEditorInventory *inventory)
+{
+	if (!missionLevel || !inventory)
+		return;
+
+	m_undoStack->call(new MapEditorActionInventoryRemove(m_editor, missionLevel, inventory));
+}
+
+
+/**
+ * @brief MapEditor::inventoryModify
+ * @param inventory
+ * @param data
+ */
+
+void MapEditor::inventoryModify(GameMapEditorInventory *inventory, const QVariantMap &data)
+{
+	if (!inventory)
+		return;
+
+	m_undoStack->call(new MapEditorActionInventoryModify(m_editor, inventory, data));
 }
 
 
@@ -959,6 +1097,11 @@ QString MapEditor::storageQml(const QString &module) const
 	return mi->qmlEditor();
 }
 
+QVariantMap MapEditor::inventoryInfo(const QString &module) const
+{
+	return GameEnemyData::inventoryInfo(module);
+}
+
 
 
 /**
@@ -1011,4 +1154,24 @@ MapEditorMissionLevelObject::~MapEditorMissionLevelObject()
 const QVariantList &MapEditor::availableTerrains() const
 {
 	return m_availableTerrains;
+}
+
+
+/**
+ * @brief MapEditor::updateChapterModelMissionLevel
+ * @param lock
+ */
+
+void MapEditor::updateChapterModelMissionLevel(GameMapEditorMissionLevel *missionLevel)
+{
+	if (!m_editor)
+		return;
+
+	foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects())
+		ch->setSelected(missionLevel && missionLevel->chapters()->objects().contains(ch));
+}
+
+const QVariantList &MapEditor::availableInventories() const
+{
+	return m_availableInventories;
 }

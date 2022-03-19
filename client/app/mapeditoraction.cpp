@@ -287,6 +287,92 @@ void MapEditorAction::missionLevelRemove(GameMapEditorMission *mission, GameMapE
 }
 
 
+/**
+ * @brief MapEditorAction::missionLevelAddChapter
+ * @param level
+ * @param chapter
+ */
+
+void MapEditorAction::missionLevelAddChapter(GameMapEditorMissionLevel *level, GameMapEditorChapter *chapter)
+{
+	level->chapters()->addObject(chapter);
+}
+
+
+
+
+/**
+ * @brief MapEditorAction::missionLevelRemoveChapter
+ * @param level
+ * @param chapter
+ */
+
+void MapEditorAction::missionLevelRemoveChapter(GameMapEditorMissionLevel *level, GameMapEditorChapter *chapter)
+{
+	int index = level->chapters()->index(chapter);
+	Q_ASSERT(index != -1);
+	level->chapters()->unselectAll();
+	level->chapters()->removeObject(index);
+}
+
+
+/**
+ * @brief MapEditorAction::inventoryAdd
+ * @param level
+ * @param inventory
+ */
+
+void MapEditorAction::inventoryAdd(GameMapEditorMissionLevel *level, GameMapEditorInventory *inventory)
+{
+	level->inventories()->addObject(inventory);
+	inventory->setParent(level);
+}
+
+
+/**
+ * @brief MapEditorAction::inventoryRemove
+ * @param level
+ * @param inventory
+ */
+
+void MapEditorAction::inventoryRemove(GameMapEditorMissionLevel *level, GameMapEditorInventory *inventory)
+{
+	int index = level->inventories()->index(inventory);
+	Q_ASSERT(index != -1);
+	level->inventories()->unselectAll();
+	inventory->setParent(this);
+	level->inventories()->removeObject(index);
+}
+
+
+/**
+ * @brief MapEditorAction::addDefaultInventories
+ * @param level
+ * @param list
+ */
+
+void MapEditorAction::addDefaultInventories(GameMapEditorMissionLevel *level, const QVariantList &list)
+{
+	if (!level)
+		return;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+
+		QString module = m.value("module").toString();
+		int count = m.value("count", 1).toInt();
+		int block = m.value("block", 0).toInt();
+
+		if (!GameEnemyData::inventoryTypes().contains(module))
+			continue;
+
+		GameMapEditorInventory *inventory = new GameMapEditorInventory(block, module, count, this);
+
+		inventoryAdd(level, inventory);
+	}
+}
+
+
 
 
 
@@ -303,8 +389,9 @@ void MapEditorAction::missionLevelRemove(GameMapEditorMission *mission, GameMapE
  * @param name
  */
 
-MapEditorActionChapterNew::MapEditorActionChapterNew(GameMapEditor *editor, const QVariantMap &data)
+MapEditorActionChapterNew::MapEditorActionChapterNew(GameMapEditor *editor, const QVariantMap &data, GameMapEditorMissionLevel *missionLevel)
 	: MapEditorAction(editor, ActionTypeChapterList)
+	, m_missionLevel(missionLevel)
 {
 	m_chapter = new GameMapEditorChapter(data.value("id").toInt(),
 										 data.value("name").toString(),
@@ -313,11 +400,15 @@ MapEditorActionChapterNew::MapEditorActionChapterNew(GameMapEditor *editor, cons
 	setDescription(QObject::tr("Új szakasz hozzáadása: %1").arg(m_chapter->name()));
 
 	setUndoFunc([this](){
+		if (m_missionLevel)
+			missionLevelRemoveChapter(m_missionLevel, m_chapter);
 		chapterRemove(m_chapter);
 	});
 
 	setRedoFunc([this](){
 		chapterAdd(m_chapter);
+		if (m_missionLevel)
+			missionLevelAddChapter(m_missionLevel, m_chapter);
 	});
 
 }
@@ -462,12 +553,12 @@ MapEditorActionObjectiveNew::MapEditorActionObjectiveNew(GameMapEditor *editor, 
 
 	m_parentChapter = parentChapter;
 
-
 	int storageId = storageData.value("id", -1).toInt();
 	QString storageModule = storageData.value("module").toString();
 
 	QString module = data.value("module").toString();
 	QVariantMap objectiveData = data.value("data").toMap();
+	QVariantMap realStorageData = storageData.value("data").toMap();
 
 	QString readableName = Question::objectiveInfo(module, objectiveData).value("name").toString();
 
@@ -477,7 +568,7 @@ MapEditorActionObjectiveNew::MapEditorActionObjectiveNew(GameMapEditor *editor, 
 		foreach (GameMapEditorStorage *s, m_editor->storages()->objects())
 			id = qMax(s->id()+1, id);
 
-		m_storage = new GameMapEditorStorage(id, storageModule, storageData.value("data").toMap(), this);
+		m_storage = new GameMapEditorStorage(id, storageModule, realStorageData, this);
 
 		storageId = id;
 
@@ -485,10 +576,10 @@ MapEditorActionObjectiveNew::MapEditorActionObjectiveNew(GameMapEditor *editor, 
 	} else {
 		setDescription(QObject::tr("Új feladat hozzáadása: %1").arg(readableName));
 
-		if (storageId != -1) {
+		if (storageId != -1 && !realStorageData.isEmpty()) {
 			m_storageEdited = m_editor->storage(storageId);
-			m_storageDataSource = variantMapSave(m_storageEdited, storageData.value("data").toMap());
-			m_storageDataTarget = storageData.value("data").toMap();
+			m_storageDataSource = variantMapSave(m_storageEdited, {{ "data", realStorageData }});
+			m_storageDataTarget = {{ "data", realStorageData }};
 		}
 	}
 
@@ -679,8 +770,8 @@ MapEditorActionObjectiveModify::MapEditorActionObjectiveModify(GameMapEditor *ed
 	QString readableName = Question::objectiveInfo(objective->module(), objective->data()).value("name").toString();
 
 	if (m_storage) {
-		m_storageDataSource = variantMapSave(m_storage, storageData);
-		m_storageDataTarget = storageData;
+		m_storageDataSource = variantMapSave(m_storage, {{ "data", storageData }});
+		m_storageDataTarget = {{ "data", storageData }};
 
 		setDescription(QObject::tr("Feladat+előállító módosítása: %1").arg(readableName));
 	} else {
@@ -1035,6 +1126,8 @@ MapEditorActionMissionNew::MapEditorActionMissionNew(GameMapEditor *editor, cons
 												   m_mission,
 												   m_editor, this);
 
+	addDefaultInventories(m_missionLevel, defaults.value("inventory").toList());
+
 	missionLevelAdd(m_mission, m_missionLevel);
 
 	setUndoFunc([this](){
@@ -1276,6 +1369,10 @@ MapEditorActionMissionLevelNew::MapEditorActionMissionLevelNew(GameMapEditor *ed
 												   m_mission,
 												   m_editor, this);
 
+
+	addDefaultInventories(m_missionLevel, defaults.value("inventory").toList());
+
+
 	setUndoFunc([this](){
 		missionLevelRemove(m_mission, m_missionLevel);
 	});
@@ -1302,6 +1399,8 @@ GameMapEditorMissionLevel *MapEditorActionMissionLevelNew::missionLevel() const
 {
 	return m_missionLevel;
 }
+
+
 
 
 
@@ -1394,6 +1493,202 @@ MapEditorActionMissionLevelModify::MapEditorActionMissionLevelModify(GameMapEdit
  */
 
 MapEditorActionMissionLevelModify::~MapEditorActionMissionLevelModify()
+{
+
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionLevelChapters::MapEditorActionMissionLevelChapters
+ * @param editor
+ * @param missionLevel
+ * @param chapters
+ */
+
+MapEditorActionMissionLevelChapters::MapEditorActionMissionLevelChapters(GameMapEditor *editor,
+																		 GameMapEditorMissionLevel *missionLevel,
+																		 const QList<GameMapEditorChapter *> &chapters)
+	: MapEditorAction(editor, ActionTypeMissionLevel)
+	, m_missionLevel(missionLevel)
+	, m_listSource()
+	, m_listTarget()
+	, m_listUpdated()
+{
+	m_listSource.reserve(m_missionLevel->chapters()->count());
+
+	foreach (GameMapEditorChapter *ch, m_missionLevel->chapters()->objects()) {
+		m_listSource.append(ch);
+		m_listUpdated.append(ch);
+	}
+
+
+	m_listTarget.reserve(chapters.size());
+	foreach (GameMapEditorChapter *ch, chapters) {
+		m_listTarget.append(ch);
+		if (!m_listUpdated.contains(ch))
+			m_listUpdated.append(ch);
+	}
+
+	setDescription(QObject::tr("Szint szakaszainak módosítása: %1 (%2)").arg(m_missionLevel->editorMission()->name())
+				   .arg(m_missionLevel->level()));
+
+	setUndoFunc([this](){
+		updateChapters(m_listSource);
+	});
+
+	setRedoFunc([this](){
+		updateChapters(m_listTarget);
+	});
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionLevelChapters::~MapEditorActionMissionLevelChapters
+ */
+
+MapEditorActionMissionLevelChapters::~MapEditorActionMissionLevelChapters()
+{
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionLevelChapters::updateChapters
+ * @param list
+ */
+
+void MapEditorActionMissionLevelChapters::updateChapters(const QList<QPointer<GameMapEditorChapter> > &list)
+{
+	if (!m_missionLevel)
+		return;
+
+	QList<GameMapEditorChapter *> model;
+
+	model.reserve(list.size());
+	foreach (GameMapEditorChapter *ch, list) {
+		if (ch)
+			model.append(ch);
+	}
+
+	m_missionLevel->chapters()->resetModel(model);
+
+	foreach (GameMapEditorChapter *ch, m_listUpdated) {
+		if (ch)
+			ch->recalculateCounts();
+	}
+}
+
+
+/**
+ * @brief MapEditorActionInventoryNew::MapEditorActionInventoryNew
+ * @param editor
+ * @param parentMissionLevel
+ * @param data
+ */
+
+MapEditorActionInventoryNew::MapEditorActionInventoryNew(GameMapEditor *editor,
+														 GameMapEditorMissionLevel *parentMissionLevel,
+														 const QVariantMap &data)
+	: MapEditorAction(editor, ActionTypeInventory)
+	, m_missionLevel(parentMissionLevel)
+{
+	m_inventory = new GameMapEditorInventory(data.value("block", 0).toInt(),
+											 data.value("module").toString(),
+											 data.value("count", 1).toInt(),
+											 this);
+
+	setDescription(QObject::tr("Új felszerelés hozzáadása: %1").arg(GameEnemyData::inventoryTypes().value(m_inventory->module()).name));
+
+	setUndoFunc([this](){
+		inventoryRemove(m_missionLevel, m_inventory);
+	});
+
+	setRedoFunc([this](){
+		inventoryAdd(m_missionLevel, m_inventory);
+	});
+}
+
+
+/**
+ * @brief MapEditorActionInventoryNew::~MapEditorActionInventoryNew
+ */
+
+MapEditorActionInventoryNew::~MapEditorActionInventoryNew()
+{
+	if (m_inventory && m_inventory->parent() == this) {
+		m_inventory->deleteLater();
+		m_inventory = nullptr;
+	}
+}
+
+
+/**
+ * @brief MapEditorActionInventoryRemove::MapEditorActionInventoryRemove
+ * @param editor
+ * @param parentMissionLevel
+ * @param inventory
+ */
+
+MapEditorActionInventoryRemove::MapEditorActionInventoryRemove(GameMapEditor *editor,
+															   GameMapEditorMissionLevel *parentMissionLevel,
+															   GameMapEditorInventory *inventory)
+	: MapEditorAction(editor, ActionTypeInventory)
+	, m_missionLevel(parentMissionLevel)
+	, m_inventory(inventory)
+{
+	setDescription(QObject::tr("Felszerelés törlése: %1").arg(GameEnemyData::inventoryTypes().value(m_inventory->module()).name));
+
+	setUndoFunc([this](){
+		inventoryAdd(m_missionLevel, m_inventory);
+	});
+
+	setRedoFunc([this]() {
+		inventoryRemove(m_missionLevel, m_inventory);
+	});
+}
+
+
+/**
+ * @brief MapEditorActionInventoryRemove::~MapEditorActionInventoryRemove
+ */
+
+MapEditorActionInventoryRemove::~MapEditorActionInventoryRemove()
+{
+
+}
+
+
+/**
+ * @brief MapEditorActionInventoryModify::MapEditorActionInventoryModify
+ * @param editor
+ * @param inventory
+ * @param data
+ */
+
+MapEditorActionInventoryModify::MapEditorActionInventoryModify(GameMapEditor *editor,
+															   GameMapEditorInventory *inventory,
+															   const QVariantMap &data)
+	: MapEditorAction(editor, ActionTypeInventory)
+	, m_inventory(inventory)
+{
+	m_dataSource = variantMapSave(inventory, data);
+	m_dataTarget = data;
+
+	setDescription(QObject::tr("Felszerelés módosítása: %1").arg(GameEnemyData::inventoryTypes().value(m_inventory->module()).name));
+
+	setUndoFunc([this](){
+		variantMapSet(m_inventory, m_dataSource);
+	});
+
+	setRedoFunc([this](){
+		variantMapSet(m_inventory, m_dataTarget);
+	});
+
+}
+
+MapEditorActionInventoryModify::~MapEditorActionInventoryModify()
 {
 
 }

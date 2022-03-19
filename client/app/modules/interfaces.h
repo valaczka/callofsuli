@@ -60,9 +60,14 @@ public:
 	// Információk a szerkesztőfelülethez
 	virtual QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const = 0;
 
-	// Kérdés/feladat elkészítése
-	virtual QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const = 0;
+	// Az összes kérdés/feladat elkészítése
+	virtual QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const = 0;
 
+	// XP faktor
+	virtual qreal xpFactor() const = 0;
+
+	// Előnézet készítése
+	virtual QVariantMap preview(const QVariantList &generatedList) const = 0;
 
 	// Objective importer
 	virtual bool canImport() const = 0;

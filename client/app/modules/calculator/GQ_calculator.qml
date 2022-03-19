@@ -13,7 +13,6 @@ Item {
 	implicitWidth: Math.max(500, (labelQuestion.implicitWidth+labelSuffix.implicitWidth)*2)
 
 	required property var questionData
-	required property var answerData
 
 	property bool twoLineMode: questionData.twoLine
 	property bool decimalEnabled: questionData.decimalEnabled
@@ -287,13 +286,13 @@ Item {
 
 		var n1 = Number(labelNumber1.text)
 
-		if (n1 !== answerData.first)
+		if (n1 !== questionData.answer.first)
 			correct = false
 
 		if (twoLineMode) {
 			var n2 = Number(labelNumber2.text)
 
-			if (n2 !== answerData.second)
+			if (n2 !== questionData.answer.second)
 				correct = false
 		}
 
@@ -307,8 +306,8 @@ Item {
 			labelNumber1.color = CosStyle.colorErrorLighter
 			labelNumber2.color = CosStyle.colorErrorLighter
 
-			labelNumber1.text = answerData.first
-			labelNumber2.text = answerData.second
+			labelNumber1.text = questionData.answer.first
+			labelNumber2.text = questionData.answer.second
 		}
 
 		/*if (questionData.correct) {

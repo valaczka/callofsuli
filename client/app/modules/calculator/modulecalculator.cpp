@@ -105,37 +105,47 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 
 
-
-
-
 /**
- * @brief ModuleCalculator::generate
+ * @brief ModuleCalculator::generateAll
  * @param data
  * @param storage
+ * @param storageData
  * @return
  */
 
-QVariantMap ModuleCalculator::generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const
+QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	QVariantMap m;
+	Q_UNUSED(storageData)
 
-	if (storage && storage->name() == "plusminus")
-		return generatePlusminus(data, storage, storageData, answerPtr);
+	if (!storage) {
+		QVariantList list;
+		QVariantMap m;
 
+		m["question"] = "0";
+		m["suffix"] = "";
+		m["twoLine"] = false;
+		m["decimalEnabled"] = false;
+		m["answer"] = QVariantMap({{"first", 0}, {"second", 0}});
 
-	m["question"] = "0";
-	m["suffix"] = "";
-	m["twoLine"] = false;
-	m["decimalEnabled"] = false;
-	m["xpFactor"] = 0;
+		list.append(m);
 
-	if (answerPtr) {
-		(*answerPtr)["first"] = 0;
-		(*answerPtr)["second"] = 0;
+		return list;
 	}
 
-	return m;
+	if (storage->name() == "plusminus") {
+		QVariantList list;
+
+		for (int i=0; i<20; ++i)
+			list.append(generatePlusminus(data));
+
+		return list;
+	}
+
+	return QVariantList();
 }
+
+
+
 
 
 
@@ -146,11 +156,8 @@ QVariantMap ModuleCalculator::generate(const QVariantMap &data, ModuleInterface 
  * @return
  */
 
-QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const
+QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
-
 	QVariantMap m;
 
 	bool isSubtract = data.value("subtract", false).toBool();
@@ -227,12 +234,8 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleI
 	m["suffix"] = "";
 	m["twoLine"] = false;
 	m["decimalEnabled"] = false;
-	m["xpFactor"] = xpFactor;
+	m["answer"] = QVariantMap({{"first", answer}, {"second", 0}});
 
-	if (answerPtr) {
-		(*answerPtr)["first"] = answer;
-		(*answerPtr)["second"] = 0;
-	}
 
 	return m;
 }

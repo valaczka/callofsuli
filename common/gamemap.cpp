@@ -838,6 +838,7 @@ GameMapObjective::GameMapObjective(const QString &uuid, const QString &module,
 								   const QVariantMap &data, GameMap *map)
 	: GameMapObjectiveIface()
 	, m_map(map)
+	, m_generatedQuestions()
 {
 	m_uuid = uuid;
 	m_module = module;
@@ -893,6 +894,43 @@ GameMapStorage *GameMapObjective::storage() const
 		return nullptr;
 
 	return m_map->storage(m_storageId);
+}
+
+
+/**
+ * @brief GameMapObjective::setGeneratedQuestions
+ * @param newGeneratedQuestions
+ */
+
+void GameMapObjective::setGeneratedQuestions(const QVariantList &newGeneratedQuestions)
+{
+	m_generatedQuestions = newGeneratedQuestions;
+}
+
+
+/**
+ * @brief GameMapObjective::hasGeneratedQuestion
+ * @return
+ */
+
+bool GameMapObjective::hasGeneratedQuestion() const
+{
+	return m_generatedQuestions.size() > 0;
+}
+
+
+/**
+ * @brief GameMapObjective::takeQuestion
+ * @return
+ */
+
+QVariantMap GameMapObjective::takeQuestion()
+{
+	if (m_generatedQuestions.isEmpty())
+		return QVariantMap();
+
+	QVariant v = m_generatedQuestions.takeAt(QRandomGenerator::global()->bounded(m_generatedQuestions.size()));
+	return v.toMap();
 }
 
 

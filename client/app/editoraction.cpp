@@ -151,10 +151,7 @@ void EditorAction::undo()
 		return;
 	}
 
-	qDebug() << "UNDO" << this;
-
 	if (m_undoFunc != nullptr) {
-		qDebug() << "CALL UNDO FUNC" << this;
 		m_undoFunc();
 	}
 
@@ -175,10 +172,7 @@ void EditorAction::redo()
 		return;
 	}
 
-	qDebug() << "REDO" << this;
-
 	if (m_redoFunc != nullptr) {
-		qDebug() << "CALL REDO FUNC" << this;
 		m_redoFunc();
 	}
 

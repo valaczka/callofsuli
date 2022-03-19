@@ -60,15 +60,12 @@ const QList<EditorAction *> &EditorUndoStack::actions() const
 
 EditorAction* EditorUndoStack::call(EditorAction *action)
 {
-	qDebug() << "ADD ACTION" << m_actions.size() << m_step;
-
 	if (m_savedStep > m_step)
 		m_savedStep = -1;
 
 	while (m_step < m_actions.size()-1) {
 		EditorAction *a = m_actions.takeLast();
 		a->deleteLater();
-		qDebug() << "TRUNCATED" << m_actions.size();
 	}
 
 	m_actions.append(action);

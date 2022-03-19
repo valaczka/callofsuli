@@ -15,10 +15,14 @@ Column {
 	property int initialCount: 5
 	property string separator: "—"
 
+	property bool readOnly: false
+
 	Layout.fillWidth: true
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
 	spacing: 5
+
+	signal textFieldsModified()
 
 	Column {
 		id: fieldColumn
@@ -33,7 +37,9 @@ Column {
 				id: field
 				width: parent.width
 				separator: control.separator
-				canDelete: parent.children && parent.children.length > 1
+				canDelete: parent.children && parent.children.length > 1 && !control.readOnly
+				first.readOnly: control.readOnly
+				second.readOnly: control.readOnly
 
 				watchModification: control.watchModification
 
@@ -43,6 +49,8 @@ Column {
 
 					if (control.watchModification)
 						control.modified = true
+
+					textFieldsModified()
 				}
 
 				onAcceptAction: if (parent.children && parent.children.length > 1) {
@@ -57,9 +65,14 @@ Column {
 										}
 									}
 
+									textFieldsModified()
+
 								} else {
 									addField()
+									textFieldsModified()
 								}
+
+				onModifyAction: textFieldsModified()
 
 			}
 		}
@@ -69,7 +82,11 @@ Column {
 		width: parent.width
 		icon.source: CosStyle.iconAdd
 		text: qsTr("Hozzáadás")
-		onClicked: addField()
+		visible: !control.readOnly
+		onClicked: {
+			addField()
+			textFieldsModified()
+		}
 	}
 
 

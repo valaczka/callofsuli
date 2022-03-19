@@ -80,6 +80,7 @@ class MapEditor : public AbstractActivity
 
 	Q_PROPERTY(QVariantList availableObjectives READ availableObjectives CONSTANT)
 	Q_PROPERTY(QVariantList availableTerrains READ availableTerrains CONSTANT)
+	Q_PROPERTY(QVariantList availableInventories READ availableInventories CONSTANT)
 	Q_PROPERTY(ObjectGenericListModel<MapEditorMissionLevelObject>* missionLevelModel READ missionLevelModel CONSTANT)
 
 public:
@@ -100,15 +101,20 @@ public:
 
 	const QVariantList &availableObjectives() const;
 	const QVariantList &availableTerrains() const;
+	const QVariantList &availableInventories() const;
 
 	Q_INVOKABLE QVariantList getStorages() const;
 	Q_INVOKABLE QString objectiveQml(const QString &module) const;
 	Q_INVOKABLE QString storageQml(const QString &module) const;
 
+	Q_INVOKABLE QVariantMap inventoryInfo(const QString &module) const;
+
 	ObjectGenericListModel<MapEditorMissionLevelObject> *missionLevelModel() const;
 	Q_INVOKABLE void updateMissionLevelModelChapter(GameMapEditorChapter *chapter);
 	Q_INVOKABLE void updateMissionLevelModelMission(GameMapEditorMission *mission);
 	Q_INVOKABLE void updateMissionLevelModelLock(GameMapEditorMissionLevel *lock);
+
+	Q_INVOKABLE void updateChapterModelMissionLevel(GameMapEditorMissionLevel *missionLevel);
 
 
 public slots:
@@ -117,7 +123,7 @@ public slots:
 	void close();
 	void save(const QUrl &newUrl = QUrl());
 
-	void chapterAdd(QVariantMap data);
+	void chapterAdd(QVariantMap data, GameMapEditorMissionLevel *missionLevel = nullptr);
 	void chapterRemove(GameMapEditorChapter *chapter);
 	void chapterRemoveList(const QList<GameMapEditorChapter*> &list);
 	void chapterModify(GameMapEditorChapter *chapter, const QVariantMap &data);
@@ -134,6 +140,10 @@ public slots:
 	void objectiveMoveCopyList(GameMapEditorChapter *chapter, const bool &isCopy, const QList<GameMapEditorObjective*> &list,
 							   const int &targetChapterId, const QString &newChapterName = "");
 
+	QVariantMap objectiveGeneratePreview(const QString &objectiveModule,
+										 const QVariantMap &objectiveData,
+										 const QString &storageModule,
+										 const QVariantMap &storageData);
 
 	void missionAdd(const QVariantMap &data, const QString &terrain = "");
 	void missionRemove(GameMapEditorMission *mission);
@@ -144,7 +154,13 @@ public slots:
 	void missionLevelRemove(GameMapEditorMissionLevel *missionLevel);
 	void missionLevelModify(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
 	void missionLevelPlay(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelRemoveChapter(GameMapEditorMissionLevel *missionLevel, GameMapEditorChapter* chapter);
+	void missionLevelRemoveChapterList(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter*> &chapterList);
+	void missionLevelModifyChapters(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter*> &list);
 
+	void inventoryAdd(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
+	void inventoryRemove(GameMapEditorMissionLevel *missionLevel, GameMapEditorInventory *inventory);
+	void inventoryModify(GameMapEditorInventory *inventory, const QVariantMap &data);
 
 
 private slots:
@@ -172,6 +188,7 @@ private:
 	QString m_displayName;
 	QVariantList m_availableObjectives;
 	QVariantList m_availableTerrains;
+	QVariantList m_availableInventories;
 	ObjectGenericListModel<MapEditorMissionLevelObject> *m_missionLevelModel;
 };
 

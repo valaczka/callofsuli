@@ -10,8 +10,8 @@ Loader {
 	id: ldr
 	width: parent.width
 
-	property var moduleData: null
-	property var storageData: null
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
@@ -53,8 +53,6 @@ Loader {
 					{value: true, text: qsTr("Kivonás")},
 				]
 
-				onActivated: getData()
-
 			}
 
 
@@ -77,8 +75,6 @@ Loader {
 					{value: 4, text: qsTr("0-100 között")}
 				]
 
-				onActivated: getData()
-
 			}
 
 
@@ -99,9 +95,6 @@ Loader {
 					{value: 1, text: qsTr("Az eredmény lehet negatív")},
 					{value: 2, text: qsTr("Az eredmény és a feladat is lehet negatív")},
 				]
-
-				onActivated: getData()
-
 			}
 
 
@@ -148,7 +141,7 @@ Loader {
 		if (ldr.status == Loader.Ready)
 			return ldr.item.getData()
 
-		return ""
+		return {}
 	}
 
 }

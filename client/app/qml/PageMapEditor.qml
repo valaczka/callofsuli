@@ -158,9 +158,7 @@ QTabPage {
 
 	Component {
 		id: componentMissionLevel
-		MapEditorMissionLevel {
-			_mapEditor: mapEditor
-		}
+		MapEditorMissionLevel { }
 	}
 
 	Component {
@@ -317,7 +315,7 @@ QTabPage {
 				contextAction !== MapEditorAction.ActionTypeObjective)
 			activateButton(PageMapEditor.Components.Chapters)
 		else if (stack.currentItem.contextAction === MapEditorAction.ActionTypeMissionLevel &&
-				 contextAction !== MapEditorAction.ActionTypeMissionLevel)
+				 contextAction !== MapEditorAction.ActionTypeMissionLevel && contextAction !== MapEditorAction.ActionTypeInventory)
 			activateButton(PageMapEditor.Components.Missions)
 	}
 

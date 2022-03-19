@@ -39,12 +39,13 @@ RowLayout {
 		lineVisible: true
 
 		onTextEdited:  {
-			modifyAction()
 			if (control.watchModification) {
 				control.modified = true
 				control.parent.modified = true
 			}
 		}
+
+		onTextModified: modifyAction()
 
 		onAccepted: field2.forceActiveFocus()
 	}
@@ -78,12 +79,13 @@ RowLayout {
 		lineVisible: true
 
 		onTextEdited:  {
-			modifyAction()
 			if (control.watchModification) {
 				control.modified = true
 				control.parent.modified = true
 			}
 		}
+
+		onTextModified: modifyAction()
 
 		onAccepted: acceptAction()
 	}

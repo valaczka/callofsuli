@@ -6,84 +6,84 @@ import "Style"
 import "JScript.js" as JS
 
 
+Item {
+	width: parent.width
+	height: layout.height
 
-QGridLayout {
-	property var moduleData: null
-	property var storageData: null
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
-	watchModification: false
+	QGridLayout {
+		id: layout
 
-	QGridLabel { field: textQuestion }
+		watchModification: false
 
-	QGridTextField {
-		id: textQuestion
-		fieldName: qsTr("Kérdés")
-		sqlField: "question"
-		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		QGridLabel { field: textQuestion }
 
-		onTextModified: getData()
+		QGridTextField {
+			id: textQuestion
+			fieldName: qsTr("Kérdés")
+			sqlField: "question"
+			placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		}
+
+		QGridLabel { field: areaCorrectAnswers }
+
+		QGridTextArea {
+			id: areaCorrectAnswers
+			fieldName: qsTr("Helyes válaszok")
+
+			placeholderText: qsTr("A helyes válaszok (soronként)")
+			minimumHeight: CosStyle.baseHeight*2
+		}
+
+		QGridLabel {
+			field: areaAnswers
+		}
+
+		QGridTextArea {
+			id: areaAnswers
+			fieldName: qsTr("Helytelen válaszok")
+			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
+			minimumHeight: CosStyle.baseHeight*2
+		}
+
+		QGridText { text: qsTr("Min. helyes válasz:") }
+
+		QGridSpinBox {
+			id: spinCourrectMin
+			from: 2
+			value: 2
+			to: 99
+			editable: true
+			sqlField: "correctMin"
+		}
+
+		QGridText { text: qsTr("Max. helyes válasz:") }
+
+		QGridSpinBox {
+			id: spinCourrectMax
+			from: spinCourrectMin.value
+			value: 4
+			to: 99
+			editable: true
+			sqlField: "correctMax"
+		}
+
+		QGridText { text: qsTr("Max. lehetőség:") }
+
+		QGridSpinBox {
+			id: spinCount
+			from: spinCourrectMax.value+1
+			value: 5
+			to: 99
+			editable: true
+			sqlField: "count"
+		}
+
 	}
-
-	QGridLabel { field: areaCorrectAnswers }
-
-	QGridTextArea {
-		id: areaCorrectAnswers
-		fieldName: qsTr("Helyes válaszok")
-
-		placeholderText: qsTr("A helyes válaszok (soronként)")
-		minimumHeight: CosStyle.baseHeight*2
-
-		onTextModified: getData()
-	}
-
-	QGridLabel {
-		field: areaAnswers
-	}
-
-	QGridTextArea {
-		id: areaAnswers
-		fieldName: qsTr("Helytelen válaszok")
-		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
-		minimumHeight: CosStyle.baseHeight*2
-
-		onTextModified: getData()
-	}
-
-	QGridText { text: qsTr("Min. helyes válasz:") }
-
-	QGridSpinBox {
-		id: spinCourrectMin
-		from: 2
-		value: 2
-		to: 99
-		editable: true
-		sqlField: "correctMin"
-	}
-
-	QGridText { text: qsTr("Max. helyes válasz:") }
-
-	QGridSpinBox {
-		id: spinCourrectMax
-		from: spinCourrectMin.value
-		value: 4
-		to: 99
-		editable: true
-		sqlField: "correctMax"
-	}
-
-	QGridText { text: qsTr("Max. lehetőség:") }
-
-	QGridSpinBox {
-		id: spinCount
-		from: spinCourrectMax.value+1
-		value: 5
-		to: 99
-		editable: true
-		sqlField: "count"
-	}
-
 
 	Component.onCompleted: {
 		if (!moduleData)

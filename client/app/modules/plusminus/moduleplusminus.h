@@ -57,7 +57,11 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantMap generate(const QVariantMap &, ModuleInterface *, const QVariantMap &, QVariantMap *) const override { return QVariantMap(); }
+	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &) const override { return QVariantList(); }
+
+	qreal xpFactor() const override { return 0.0; };
+
+	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
 
 	void registerQmlTypes() const override {};
 

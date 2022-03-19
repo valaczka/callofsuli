@@ -188,8 +188,7 @@ Item {
 		var q = questionPrivate.questionQml()
 		if (q && q.length) {
 			contentLoader.setSource(q, {
-										questionData: questionPrivate.questionData(),
-										answerData: questionPrivate.answerData()
+										questionData: questionPrivate.questionData()
 									})
 		} else {
 			cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Érvénytelen kérdés"))

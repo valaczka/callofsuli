@@ -56,7 +56,6 @@ public:
 public slots:
 	QString questionQml() const;
 	QVariantMap questionData() const;
-	QVariantMap answerData() const;
 
 	void forceDestroy();
 	void onSuccess(const qreal &xpFactor);

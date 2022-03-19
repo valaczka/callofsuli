@@ -5,34 +5,37 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
+Item {
+	width: parent.width
+	height: layout.height
 
-QGridLayout {
-	watchModification: false
-
-	property var moduleData: null
-	property var storageData: null
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
-	QGridLabel { field: textQuestion }
+	QGridLayout {
+		id: layout
 
-	QGridTextField {
-		id: textQuestion
-		fieldName: qsTr("Állítás")
-		sqlField: "question"
-		placeholderText: qsTr("Ez az állítás fog megjelenni")
+		watchModification: false
 
-		onTextModified: getData()
+
+		QGridLabel { field: textQuestion }
+
+		QGridTextField {
+			id: textQuestion
+			fieldName: qsTr("Állítás")
+			sqlField: "question"
+			placeholderText: qsTr("Ez az állítás fog megjelenni")
+		}
+
+		QGridCheckBox {
+			id: chTrue
+			text: qsTr("Az állítás IGAZ")
+			sqlField: "correct"
+		}
+
 	}
-
-	QGridCheckBox {
-		id: chTrue
-		text: qsTr("Az állítás IGAZ")
-		sqlField: "correct"
-
-		onToggled: getData()
-	}
-
 
 	Component.onCompleted: {
 		if (!moduleData)

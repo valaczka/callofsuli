@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * moduletruefalse.h
+ * modulepair.h
  *
- * Created on: 2021. 08. 06.
+ * Created on: 2021. 11. 13.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ModuleTruefalse
+ * ModulePair
  *
  *  This file is part of Call of Suli.
  *
@@ -24,55 +24,50 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MODULETRUEFALSE_H
-#define MODULETRUEFALSE_H
+#ifndef MODULEBINDING_H
+#define MODULEBINDING_H
 
 #include "../interfaces.h"
 #include <QObject>
 #include <QtPlugin>
 
-#include "../../abstractobjectiveimporter.h"
-#include "../../../QtXlsxWriter/xlsxworksheet.h"
-#include "objectiveimportertruefalse.h"
 
-
-class ModuleTruefalse : public QObject, public ModuleInterface
+class ModuleBinding : public QObject, public ModuleInterface
 {
 	Q_OBJECT
 
-	Q_PLUGIN_METADATA(IID "org.callofsuli.Modules.truefalse")
+	Q_PLUGIN_METADATA(IID "org.callofsuli.Modules.binding")
 	Q_INTERFACES(ModuleInterface)
 
 public:
-	explicit ModuleTruefalse(QObject *parent = nullptr);
+	explicit ModuleBinding(QObject *parent = nullptr);
 
-	inline QString name() const override { return "truefalse"; }
-	inline bool isStorageModule() const override { return false; }
-	inline QString readableName() const override { return tr("Igaz/hamis"); }
-	inline QString icon() const override { return "image://font/School/\uf124"; }
+	inline QString name() const override { return "binding"; }
+	inline bool isStorageModule() const override { return true; }
+	inline QString readableName() const override { return tr("Összerendelés"); }
+	inline QString icon() const override { return "image://font/Academic/\uf21c"; }
 
-	inline QString qmlEditor() const override { return "ME_truefalse.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_truefalse.qml"; }
+	inline QString qmlEditor() const override { return "ME_binding.qml"; }
+	inline QString qmlQuestion() const override { return ""; }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &) const override { return QVariantList(); }
 
-	qreal xpFactor() const override { return 1.0; };
+	qreal xpFactor() const override { return 0; };
 
 	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
 
-	inline bool canImport() const override { return true; }
-	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterTruefalse(worksheet); }
+	inline bool canImport() const override { return false; }
+	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
 
 	void registerQmlTypes() const override {};
+
 signals:
 
 };
 
 
-
-
-#endif // MODULETRUEFALSE_H
+#endif // MODULEPAIR_H

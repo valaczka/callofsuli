@@ -261,8 +261,13 @@ public:
 
 	GameMapStorage *storage() const;
 
+	void setGeneratedQuestions(const QVariantList &newGeneratedQuestions);
+	bool hasGeneratedQuestion() const;
+	QVariantMap takeQuestion();
+
 private:
 	GameMap *m_map;
+	QVariantList m_generatedQuestions;
 };
 
 

@@ -1041,10 +1041,8 @@ int GameMapEditorChapter::missionCount()
 
 	foreach (GameMapEditorMission *m, m_map->missions()->objects()) {
 		foreach (GameMapEditorMissionLevel *ml, m->levels()->objects()) {
-			if (ml->chapters()->objects().contains(this)) {
+			if (ml->chapters()->objects().contains(this))
 				++ret;
-				break;
-			}
 		}
 	}
 

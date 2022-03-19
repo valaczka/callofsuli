@@ -11,33 +11,34 @@ QCollapsible {
 	id: control
 	title: qsTr("Felszerelés")
 
-	required property int level
+	required property GameMapEditorMissionLevel missionLevel
 
-	QVariantMapProxyView {
+	property ListModel availableInventoryModel: ListModel {}
+
+	backgroundColor: "darkblue"
+	contentBackgroundColor: "midnightblue"
+
+
+	QObjectListView {
 		id: list
 
 		width: parent.width
 
 		model: SortFilterProxyModel {
-			sourceModel: mapEditor.modelInventoryList
+			sourceModel: missionLevel.inventories
 
-			filters: ValueFilter {
-				roleName: "level"
-				value: control.level
-			}
-
-			sorters: RoleSorter {
-				roleName: "rid"
+			sorters: StringSorter {
+				roleName: "module"
 			}
 
 			proxyRoles: [
 				ExpressionRole {
 					name: "icon"
-					expression: cosClient.inventoryInfo(model.module).icon
+					expression: mapEditor.inventoryInfo(model.module).icon
 				},
 				ExpressionRole {
 					name: "name"
-					expression: cosClient.inventoryInfo(model.module).name
+					expression: mapEditor.inventoryInfo(model.module).name
 				}
 			]
 		}
@@ -45,7 +46,6 @@ QCollapsible {
 		modelTitleRole: "name"
 		colorTitle: CosStyle.colorAccentLighter
 		pixelSizeTitle: CosStyle.pixelSize*0.9
-
 
 		autoSelectorChange: false
 		refreshEnabled: false
@@ -78,7 +78,8 @@ QCollapsible {
 				icon.source: CosStyle.iconDelete
 				color: CosStyle.colorErrorLighter
 				onClicked: {
-					mapEditor.inventoryRemove({level: control.level, rid: model.rid})
+					var i = list.modelObject(modelIndex)
+					mapEditor.inventoryRemove(missionLevel, i)
 				}
 			}
 		}
@@ -90,12 +91,13 @@ QCollapsible {
 				from: 1
 				to: 99
 				stepSize: 1
-				value: model ? model.icount : 0
+				value: model ? model.count : 0
 				editable: true
 				width: 120
 
 				onValueModified: {
-					mapEditor.inventoryModify({level: control.level, rid: model.rid, count: value})
+					var i = list.modelObject(modelIndex)
+					mapEditor.inventoryModify(i, {count: value})
 				}
 			}
 		}
@@ -103,29 +105,26 @@ QCollapsible {
 
 		footer: QToolButtonFooter {
 			width: list.width
-			//height: Math.max(implicitHeight, CosStyle.twoLineHeight)
-			text: qsTr("Új felszerelés")
+			text: qsTr("Felszerelés")
 			icon.source: CosStyle.iconAdd
+			color: "lightskyblue"
 			onClicked: {
 				var d = JS.dialogCreateQml("List", {
-											   roles: ["name", "icon"],
 											   icon: CosStyle.iconLockAdd,
 											   title: qsTr("Felszerelés hozzáadása"),
 											   selectorSet: false,
+											   modelTitleRole: "name",
 											   modelImageRole: "icon",
-											   delegateHeight: CosStyle.twoLineHeight,
-											   sourceModel: mapEditor.modelInventoryModules
+											   delegateHeight: CosStyle.baseHeight,
+											   model: availableInventoryModel
 										   })
 
 
 				d.accepted.connect(function(data) {
-					if (data === -1)
+					if (!data)
 						return
 
-					var p = d.item.sourceModel.get(data)
-					mapEditor.inventoryAdd({level: container.level, module: p.module})
-					//mapEditor.missionLevelModify({level: container.level, terrain: p.name})
-
+					mapEditor.inventoryAdd(missionLevel, { module: data.module })
 				})
 				d.open()
 			}
@@ -133,7 +132,7 @@ QCollapsible {
 
 
 		onClicked: {
-			var o = list.model.get(index)
+			var o = list.modelObject(index)
 			var b = o.block > 0 ? o.block : ""
 			var d = JS.dialogCreateQml("TextField", {
 										   title: qsTr("Csatatér"),
@@ -143,12 +142,21 @@ QCollapsible {
 
 			d.accepted.connect(function(data) {
 				if (data.length)
-					mapEditor.inventoryModify({level: control.level, rid: o.rid, block: Number(data)})
+					mapEditor.inventoryModify(o, { block: Number(data) })
 				else
-					mapEditor.inventoryModify({level: control.level, rid: o.rid, block: 0})
+					mapEditor.inventoryModify(o, { block: 0 })
 			})
 			d.open()
 		}
 
+	}
+
+
+	Component.onCompleted: {
+		var l = mapEditor.availableInventories
+
+		for (var i=0; i<l.length; i++) {
+			availableInventoryModel.append(l[i])
+		}
 	}
 }

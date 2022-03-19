@@ -215,7 +215,7 @@ QTabContainer {
 										   -(badge.visible ? badge.width : 0)
 									text: item.title
 									color: item.isNew ? CosStyle.colorAccentLighter : CosStyle.colorPrimaryLighter
-									font.pixelSize: CosStyle.pixelSize*1.1
+									font.pixelSize: CosStyle.pixelSize
 									font.weight: Font.Normal
 									maximumLineCount: 1
 									lineHeight: 0.9
@@ -229,7 +229,7 @@ QTabContainer {
 									color: CosStyle.colorPrimary
 									font.pixelSize: CosStyle.pixelSize*0.75
 									font.weight: Font.Light
-									maximumLineCount: 3
+									maximumLineCount: 1
 									lineHeight: 0.8
 									wrapMode: Text.Wrap
 									elide: Text.ElideRight
@@ -330,7 +330,8 @@ QTabContainer {
 				if (storageModule != "") {
 					var q = _mapEditor.storageQml(storageModule)
 					storageLoader.setSource(q, {
-												moduleData: control.storageData
+												moduleData: control.storageData,
+												editable: (control.storageId == -1)
 											})
 
 				}
@@ -338,6 +339,7 @@ QTabContainer {
 				if (objectiveModule != "") {
 					var q2 = _mapEditor.objectiveQml(objectiveModule)
 					objectiveLoader.setSource(q2, {
+												  mapEditor: _mapEditor,
 												  moduleData: objectiveData,
 												  storageData: control.storageData,
 												  storageModule: storageModule,
@@ -350,17 +352,18 @@ QTabContainer {
 			Connections {
 				target: storageLoader.item
 
-				function onModuleDataChanged(d) {
-					control.storageData = d
+				function onModuleDataChanged() {
+					control.storageData = storageLoader.item.moduleData
 				}
 			}
 
 			Connections {
 				target: control
 
-				function onStorageDataChanged(sd) {
-					if (objectiveLoader.status == Loader.Ready)
-						objectiveLoader.item.setStorageData(control.storageData)
+				function onStorageDataChanged() {
+					if (objectiveLoader.status == Loader.Ready) {
+						objectiveLoader.item.setStorageData(control.storageData ? control.storageData : {})
+					}
 				}
 			}
 

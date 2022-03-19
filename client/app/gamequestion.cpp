@@ -104,13 +104,6 @@ void GameQuestion::run()
 	}
 
 
-	if (!m_questionData.generate()) {
-		qWarning() << "Generate() error";
-		emit finished();
-		return;
-	}
-
-
 	QMetaObject::invokeMethod(gamePage, "createQuestion", Qt::DirectConnection,
 							  Q_RETURN_ARG(QQuickItem*, m_question),
 							  Q_ARG(GameQuestion*, this)
@@ -160,15 +153,6 @@ QVariantMap GameQuestion::questionData() const
 }
 
 
-/**
- * @brief GameQuestion::answerData
- * @return
- */
-
-QVariantMap GameQuestion::answerData() const
-{
-	return m_questionData.answer();
-}
 
 
 /**

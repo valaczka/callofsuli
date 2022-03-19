@@ -39,8 +39,10 @@
 
 
 Question::Question(GameMapObjective *objective)
+	: m_objective (objective)
+	, m_question()
 {
-	m_objective = objective;
+
 }
 
 
@@ -52,7 +54,7 @@ Question::Question(GameMapObjective *objective)
 
 bool Question::isValid() const
 {
-	if (m_objective)
+	if (m_objective && !m_question.isEmpty())
 		return true;
 
 	return false;
@@ -105,7 +107,11 @@ bool Question::generate()
 		std = m_objective->storage()->data();
 	}
 
-	m_question = mi->generate(m_objective->data(), st, std, &m_answer);
+	if (!m_objective->hasGeneratedQuestion())
+		m_objective->setGeneratedQuestions(mi->generateAll(m_objective->data(), st, std));
+
+	m_question = m_objective->takeQuestion();
+	m_question.insert("xpFactor", mi->xpFactor());
 
 	return true;
 }

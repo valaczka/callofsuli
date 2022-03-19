@@ -55,13 +55,11 @@ public:
 	static QVariantMap storageInfo(const QString &module, const QVariantMap &data);
 
 	QVariantMap question() const { return m_question; }
-	QVariantMap answer() const { return m_answer; }
 	QString qml() const;
 
 private:
 	GameMapObjective *m_objective;
 	QVariantMap m_question;
-	QVariantMap m_answer;
 
 };
 

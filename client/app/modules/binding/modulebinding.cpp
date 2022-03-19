@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * moduletruefalse.cpp
+ * modulepair.cpp
  *
- * Created on: 2021. 08. 06.
+ * Created on: 2021. 11. 13.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ModuleTruefalse
+ * ModulePair
  *
  *  This file is part of Call of Suli.
  *
@@ -24,62 +24,40 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "moduletruefalse.h"
+#include "modulebinding.h"
+#include <QRandomGenerator>
 
-ModuleTruefalse::ModuleTruefalse(QObject *parent) : QObject(parent)
+ModuleBinding::ModuleBinding(QObject *parent) : QObject(parent)
 {
 
 }
 
 
 /**
- * @brief ModuleTruefalse::details
+ * @brief ModulePair::details
  * @param data
  * @param storage
  * @param storageData
  * @return
  */
 
-QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantMap ModuleBinding::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
 	Q_UNUSED(storage)
 	Q_UNUSED(storageData)
 
+	QStringList list;
+
+	QVariantList l = data.value("bindings").toList();
+	foreach (QVariant v, l) {
+		QVariantMap m = v.toMap();
+		list.append(QString("%1 — %2").arg(m.value("first").toString()).arg(m.value("second").toString()));
+	}
+
 	QVariantMap m;
-	m["title"] = data.value("question").toString();
-	m["details"] = data.value("correct").toBool() ? QObject::tr("igaz") : QObject::tr("hamis");
+	m["title"] = list.join(", ");
+	m["details"] = "";
 	m["image"] = "";
 
 	return m;
 }
-
-
-
-/**
- * @brief ModuleTruefalse::generateAll
- * @param data
- * @param storage
- * @param storageData
- * @return
- */
-
-QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
-{
-	Q_UNUSED(storageData)
-
-	if (!storage) {
-		QVariantList list;
-		QVariantMap m = data;
-
-		m.insert("answer", data.value("correct").toBool());
-
-		list.append(m);
-
-		return list;
-	}
-
-	return QVariantList();
-}
-
-
-

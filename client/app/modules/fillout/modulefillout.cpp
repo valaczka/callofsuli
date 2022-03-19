@@ -62,6 +62,28 @@ QVariantMap ModuleFillout::details(const QVariantMap &data, ModuleInterface *sto
 
 
 /**
+ * @brief ModuleFillout::generateAll
+ * @param data
+ * @param storage
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+{
+	Q_UNUSED(storage)
+	Q_UNUSED(storageData)
+
+	QVariantList list;
+
+	list.append(generateOne(data));
+
+	return list;
+}
+
+
+
+/**
  * @brief ModuleFillout::generate
  * @param data
  * @param storage
@@ -70,11 +92,8 @@ QVariantMap ModuleFillout::details(const QVariantMap &data, ModuleInterface *sto
  * @return
  */
 
-QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const
+QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
-
 	QString text = data.value("text").toString();
 
 	if (text.isEmpty())
@@ -144,6 +163,7 @@ QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *st
 	}
 
 
+	QVariantMap answer;
 
 	QVariantList words;
 
@@ -151,8 +171,7 @@ QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *st
 		if (usedIndexList.contains(i)) {
 			QString id = QString("%1").arg(i);
 
-			if (answer)
-				answer->insert(id, items.at(i).text);
+			answer.insert(id, items.at(i).text);
 
 			words.append(QVariantMap({{"q", id}}));
 		} else {
@@ -171,7 +190,7 @@ QVariantMap ModuleFillout::generate(const QVariantMap &data, ModuleInterface *st
 	QVariantMap ret;
 	ret["list"] = words;
 	ret["options"] = optList;
-	ret["xpFactor"] = 3.0;
+	ret["answer"] = answer;
 
 	return ret;
 }

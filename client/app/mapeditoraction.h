@@ -90,6 +90,13 @@ protected:
 	void missionLevelAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
 	void missionLevelRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
 
+	void missionLevelAddChapter(GameMapEditorMissionLevel *level, GameMapEditorChapter *chapter);
+	void missionLevelRemoveChapter(GameMapEditorMissionLevel *level, GameMapEditorChapter *chapter);
+
+	void inventoryAdd(GameMapEditorMissionLevel *level, GameMapEditorInventory *inventory);
+	void inventoryRemove(GameMapEditorMissionLevel *level, GameMapEditorInventory *inventory);
+	void addDefaultInventories(GameMapEditorMissionLevel *level, const QVariantList &list);
+
 	MapEditorActionType m_type;
 	QVariant m_contextId;
 	GameMapEditor *m_editor;
@@ -221,11 +228,12 @@ class MapEditorActionChapterNew : public MapEditorAction
 	Q_OBJECT
 
 public:
-	explicit MapEditorActionChapterNew(GameMapEditor *editor, const QVariantMap &data);
+	explicit MapEditorActionChapterNew(GameMapEditor *editor, const QVariantMap &data, GameMapEditorMissionLevel *missionLevel = nullptr);
 	virtual ~MapEditorActionChapterNew();
 
 private:
 	GameMapEditorChapter *m_chapter;
+	GameMapEditorMissionLevel *m_missionLevel;
 
 };
 
@@ -463,6 +471,94 @@ public:
 
 private:
 	GameMapEditorMissionLevel *m_missionLevel;
+	QVariantMap m_dataSource;
+	QVariantMap m_dataTarget;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLevelChapters class
+ */
+
+class MapEditorActionMissionLevelChapters : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLevelChapters(GameMapEditor *editor, GameMapEditorMissionLevel *missionLevel,
+												 const QList<GameMapEditorChapter*> &chapters);
+	virtual ~MapEditorActionMissionLevelChapters();
+
+private:
+	void updateChapters(const QList<QPointer<GameMapEditorChapter>> &list);
+
+	GameMapEditorMissionLevel *m_missionLevel;
+	QList<QPointer<GameMapEditorChapter>> m_listSource;
+	QList<QPointer<GameMapEditorChapter>> m_listTarget;
+	QList<QPointer<GameMapEditorChapter>> m_listUpdated;
+};
+
+
+
+
+
+
+/**
+ * @brief The MapEditorActionInventoryNew class
+ */
+
+class MapEditorActionInventoryNew : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionInventoryNew(GameMapEditor *editor, GameMapEditorMissionLevel *parentMissionLevel, const QVariantMap &data);
+	virtual ~MapEditorActionInventoryNew();
+
+private:
+	GameMapEditorMissionLevel *m_missionLevel;
+	GameMapEditorInventory *m_inventory;
+};
+
+
+
+/**
+ * @brief The MapEditorActionInventoryRemove class
+ */
+
+class MapEditorActionInventoryRemove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionInventoryRemove(GameMapEditor *editor, GameMapEditorMissionLevel *parentMissionLevel,
+											GameMapEditorInventory *inventory);
+	virtual ~MapEditorActionInventoryRemove();
+
+private:
+	GameMapEditorMissionLevel *m_missionLevel;
+	GameMapEditorInventory *m_inventory;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionInventoryModify class
+ */
+
+class MapEditorActionInventoryModify : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionInventoryModify(GameMapEditor *editor, GameMapEditorInventory *inventory, const QVariantMap &data);
+	virtual ~MapEditorActionInventoryModify();
+
+private:
+	GameMapEditorInventory *m_inventory;
 	QVariantMap m_dataSource;
 	QVariantMap m_dataTarget;
 };

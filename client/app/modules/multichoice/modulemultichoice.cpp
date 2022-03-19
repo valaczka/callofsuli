@@ -54,6 +54,33 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 }
 
 
+
+/**
+ * @brief ModuleMultichoice::generateAll
+ * @param data
+ * @param storage
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+{
+	Q_UNUSED(storageData)
+
+	if (!storage) {
+		QVariantList list;
+
+		for (int i=0; i<5; ++i)
+			list.append(generateOne(data));
+
+		return list;
+	}
+
+
+	return QVariantList();
+}
+
+
 /**
  * @brief ModuleMultichoice::generate
  * @param data
@@ -63,11 +90,8 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
  * @return
  */
 
-QVariantMap ModuleMultichoice::generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const
+QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
-
 	QVariantMap m;
 
 	m["question"] = data.value("question").toString();
@@ -100,7 +124,6 @@ QVariantMap ModuleMultichoice::generate(const QVariantMap &data, ModuleInterface
 
 
 
-
 	QVariantList correctIdx;
 
 	QStringList optList;
@@ -115,12 +138,7 @@ QVariantMap ModuleMultichoice::generate(const QVariantMap &data, ModuleInterface
 
 
 	m["options"] = optList;
-	m["xpFactor"] = 1.5;
-
-	if (answer) {
-		(*answer)["indices"] = correctIdx;
-	}
-
+	m["answer"] = QVariantMap({{"indices", correctIdx}});
 
 	return m;
 }

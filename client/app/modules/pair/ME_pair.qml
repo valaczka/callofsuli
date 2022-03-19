@@ -5,76 +5,81 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
+Item {
+	width: parent.width
+	height: layout.height
 
-QGridLayout {
-	watchModification: false
-
-	property var moduleData: null
-	property var storageData: null
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
-	QGridLabel { field: textQuestion }
+	QGridLayout {
+		id: layout
+		watchModification: false
 
-	QGridTextField {
-		id: textQuestion
-		fieldName: qsTr("Kérdés")
-		sqlField: "question"
-		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		QGridLabel { field: textQuestion }
 
-		text: qsTr("Rendezd össze a párokat!")
-	}
+		QGridTextField {
+			id: textQuestion
+			fieldName: qsTr("Kérdés")
+			sqlField: "question"
+			placeholderText: qsTr("Ez a kérdés fog megjelenni")
 
-
-	QGridText { text: qsTr("Párok") }
-
-	QGridDoubleTextFields {
-		id: fields
-		sqlField: "pairs"
-
-	}
-
-	QGridText { text: qsTr("Párok száma:") }
-
-	QGridSpinBox {
-		id: spinCount
-		from: 2
-		value: 4
-		to: 99
-		editable: true
-		sqlField: "count"
-	}
+			text: qsTr("Rendezd össze a párokat!")
+		}
 
 
-	QGridText { text: qsTr("Válaszlehetőségek száma:") }
+		QGridText { text: qsTr("Párok") }
 
-	QGridSpinBox {
-		id: spinOptions
-		from: spinCount.value
-		value: 5
-		to: 99
-		editable: true
-		sqlField: "optionsCount"
-	}
+		QGridDoubleTextFields {
+			id: fields
+			sqlField: "pairs"
 
-	QGridText {
-		field: comboMode
-		text: qsTr("Párok készítése:")
-	}
+		}
 
-	QGridComboBox {
-		id: comboMode
-		sqlField: "mode"
+		QGridText { text: qsTr("Párok száma:") }
 
-		valueRole: "value"
-		textRole: "text"
+		QGridSpinBox {
+			id: spinCount
+			from: 2
+			value: 4
+			to: 99
+			editable: true
+			sqlField: "count"
+		}
 
-		model: [
-			{value: "first", text: qsTr("Bal oldaliakhoz")},
-			{value: "second", text: qsTr("Jobb oldaliakhoz")},
-			{value: "both", text: qsTr("Véletlenszerű oldaliakhoz")},
-			{value: "shuffle", text: qsTr("Keverve")}
-		]
+
+		QGridText { text: qsTr("Válaszlehetőségek száma:") }
+
+		QGridSpinBox {
+			id: spinOptions
+			from: spinCount.value
+			value: 5
+			to: 99
+			editable: true
+			sqlField: "optionsCount"
+		}
+
+		QGridText {
+			field: comboMode
+			text: qsTr("Párok készítése:")
+		}
+
+		QGridComboBox {
+			id: comboMode
+			sqlField: "mode"
+
+			valueRole: "value"
+			textRole: "text"
+
+			model: [
+				{value: "first", text: qsTr("Bal oldaliakhoz")},
+				{value: "second", text: qsTr("Jobb oldaliakhoz")},
+				{value: "both", text: qsTr("Véletlenszerű oldaliakhoz")},
+				{value: "shuffle", text: qsTr("Keverve")}
+			]
+		}
 	}
 
 
@@ -93,8 +98,6 @@ QGridLayout {
 		return moduleData
 	}
 
+
 }
-
-
-
 

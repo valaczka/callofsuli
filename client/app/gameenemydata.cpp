@@ -64,47 +64,47 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 {
 	QHash<QString, GameEnemyData::InventoryType> list;
 
-	list["health"] = InventoryType(tr("1 HP hozzáadása"),
+	list["health"] = InventoryType(tr("1 HP"),
 								   "image://font/School/\uf124",
 								   GamePickable::PickableHealth,
 								   QVariantMap());
 
-	list["time1"] = InventoryType(tr("30 másodperc hozzáadása"),
+	list["time1"] = InventoryType(tr("30 másodperc"),
 								  "image://font/School/\uf124",
 								  GamePickable::PickableTime,
 								  QVariantMap({{"text", "30"}, {"secs", 30}}));
 
-	list["time2"] = InventoryType(tr("1 perc hozzáadása"),
+	list["time2"] = InventoryType(tr("1 perc"),
 								  "image://font/School/\uf124",
 								  GamePickable::PickableTime,
 								  QVariantMap({{"text", "60"}, {"secs", 60}}));
 
-	list["shield1"] = InventoryType(tr("1 pajzs hozzáadása"),
+	list["shield1"] = InventoryType(tr("1 pajzs"),
 									"qrc:/internal/game/shield-green.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 1}}));
 
-	list["shield2"] = InventoryType(tr("2 pajzs hozzáadása"),
+	list["shield2"] = InventoryType(tr("2 pajzs"),
 									"qrc:/internal/game/shield-blue.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 2}}));
 
-	list["shield3"] = InventoryType(tr("3 pajzs hozzáadása"),
+	list["shield3"] = InventoryType(tr("3 pajzs"),
 									"qrc:/internal/game/shield-red.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 3}}));
 
-	list["shield4"] = InventoryType(tr("5 pajzs hozzáadása"),
+	list["shield4"] = InventoryType(tr("5 pajzs"),
 									"qrc:/internal/game/shield-gold.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 5}}));
 
-	list["water"] = InventoryType(tr("1 víz hozzáadása"),
+	list["water"] = InventoryType(tr("1 víz"),
 								   "qrc:/internal/game/water.svg",
 								   GamePickable::PickableWater,
 								   QVariantMap());
 
-	list["pliers"] = InventoryType(tr("1 fogó hozzáadása"),
+	list["pliers"] = InventoryType(tr("1 fogó"),
 								   "qrc:/internal/game/pliers.png",
 								   GamePickable::PickableWater,
 								   QVariantMap());
@@ -276,8 +276,12 @@ Question GameEnemyData::generateQuestion()
 
 	Question q(objective);
 
+	q.generate();
+
 	return q;
 }
+
+
 
 void GameEnemyData::setPickableType(GamePickable::PickableType pickableType)
 {

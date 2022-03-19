@@ -13,7 +13,6 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
-	required property var answerData
 
 	property real buttonWidth: width-60
 
@@ -172,8 +171,8 @@ Item {
 			d.item = o
 			d.correct = null
 
-			if (answerData && answerData.list && answerData.list.length>i)
-				d.correct = answerData.list[i]
+			if (questionData.answer && questionData.answer.list && questionData.answer.list.length>i)
+				d.correct = questionData.answer.list[i]
 
 			_drops.push(d)
 		}

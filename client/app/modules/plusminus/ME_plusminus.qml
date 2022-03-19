@@ -9,7 +9,7 @@ import "JScript.js" as JS
 QLabel {
 	id: label
 
-	property var moduleData: null
+	property var moduleData: ({})
 
 	padding: 10
 	width: parent.width

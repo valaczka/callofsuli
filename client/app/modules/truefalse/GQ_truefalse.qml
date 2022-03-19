@@ -13,7 +13,6 @@ Item {
 	implicitWidth: 800
 
 	required property var questionData
-	required property var answerData
 
 	signal succeed()
 	signal failed()
@@ -77,12 +76,12 @@ Item {
 		btnTrue.interactive = false
 		btnFalse.interactive = false
 
-		if (correct === answerData.correct)
+		if (correct === questionData.answer)
 			succeed()
 		else
 			failed()
 
-		if (answerData.correct) {
+		if (questionData.answer) {
 			btnTrue.type = GameQuestionButton.Correct
 			if (!correct) btnFalse.type = GameQuestionButton.Wrong
 		} else {

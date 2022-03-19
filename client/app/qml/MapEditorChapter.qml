@@ -370,7 +370,7 @@ QCollapsible {
 									   })
 
 			d.accepted.connect(function(dlgdata) {
-				if (dlgdata !== true)
+				if (!dlgdata)
 					return
 
 				mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
