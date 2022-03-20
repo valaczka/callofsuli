@@ -14,9 +14,6 @@ QTabPage {
 	property bool _permissionsGranted: false
 	property bool _permissionsDenied: false
 
-	property int _actionContextType: -1
-	property var _actionContextId: null
-
 	property url fileToOpen: ""
 
 	title: mapEditor.displayName
@@ -102,29 +99,29 @@ QTabPage {
 	buttonModel: ListModel {
 		ListElement {
 			title: qsTr("Küldetések")
-			icon: "image://font/Academic/\uf207"
-			//iconColor: "chartreuse"
-			func: function() { loadComponentReal(componentMissions) }
+			icon: "image://font/School/\uf19d"
+			iconColor: "orange"
+			func: function() { replaceContent(componentMissions) }
 			checked: false
 		}
 		ListElement {
 			title: qsTr("Feladatok")
-			icon: "image://font/Academic/\uf207"
-			//iconColor: "chartreuse"
-			func: function() { loadComponentReal(componentChapters) }
+			icon: "image://font/AcademicI/\uf170"
+			iconColor: "chartreuse"
+			func: function() { replaceContent(componentChapters) }
 		}
 		ListElement {
-			title: qsTr("Előállítók")
-			icon: "image://font/Academic/\uf207"
-			//iconColor: "chartreuse"
-			func: function() { replaceContent(null) }
+			title: qsTr("Adatbankok")
+			icon: "image://font/Academic/\uf1a3"
+			iconColor: "deepskyblue"
+			func: function() { replaceContent(componentStorages) }
 		}
-		ListElement {
+		/*ListElement {
 			title: qsTr("Képek")
 			icon: "image://font/Academic/\uf207"
 			//iconColor: "chartreuse"
 			func: function() { replaceContent(null) }
-		}
+		}*/
 
 	}
 
@@ -132,8 +129,8 @@ QTabPage {
 	enum Components {
 		Missions = 0,
 		Chapters,
-		Storages,
-		Images
+		Storages
+		//Images
 	}
 
 
@@ -160,6 +157,14 @@ QTabPage {
 		id: componentMissionLevel
 		MapEditorMissionLevel { }
 	}
+
+	Component {
+		id: componentStorages
+		MapEditorStorageList {}
+	}
+
+
+
 
 	Component {
 		id: componentMain
@@ -317,23 +322,41 @@ QTabPage {
 		else if (stack.currentItem.contextAction === MapEditorAction.ActionTypeMissionLevel &&
 				 contextAction !== MapEditorAction.ActionTypeMissionLevel && contextAction !== MapEditorAction.ActionTypeInventory)
 			activateButton(PageMapEditor.Components.Missions)
-	}
-
-
-	function loadComponentReal(cmp) {
-		replaceContent(cmp, {
-						   actionContextType: _actionContextType,
-						   actionContextId: _actionContextId
-					   })
-		_actionContextType = -1
-		_actionContextId = null
+		else if (stack.currentItem.contextAction === MapEditorAction.ActionTypeObjective &&
+				 contextAction === MapEditorAction.ActionTypeObjective)
+			stack.currentItem.loadContextId(contextId)
 	}
 
 
 
 
 	pageBackCallbackFunction: function () {
-		if (_closeEnabled || !mapEditor.editor || !actionSave.enabled)
+		if (_closeEnabled || !mapEditor.editor)
+			return false
+
+
+		var err = mapEditor.checkMap()
+
+		if (err !== "") {
+			var dd = JS.dialogCreateQml("YesNoFlickable", {
+										   title: qsTr("Hibás pálya"),
+										   text: qsTr("Ennek ellenére bezárod a szerkesztőt?"),
+										   details: err
+									   })
+
+			dd.item.titleColor = CosStyle.colorWarningLighter
+			dd.item.textColor = CosStyle.colorWarningLight
+
+			dd.accepted.connect(function() {
+				_closeEnabled = true
+				mainStack.back()
+			})
+
+			dd.open()
+			return true
+		}
+
+		if (!actionSave.enabled)
 			return false
 
 		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
@@ -345,8 +368,36 @@ QTabPage {
 		return true
 	}
 
-	property var closeCallbackFunction: function () {
-		if (_closeEnabled || !mapEditor.editor || !actionSave.enabled)
+	closeCallbackFunction: function () {
+		if (windowCloseFunction())
+			return true
+
+		if (_closeEnabled || !mapEditor.editor)
+			return false
+
+		var err = mapEditor.checkMap()
+
+		if (err !== "") {
+			var dd = JS.dialogCreateQml("YesNoFlickable", {
+										   title: qsTr("Hibás pálya"),
+										   text: qsTr("Ennek ellenére bezárod a szerkesztőt?"),
+										   details: err
+									   })
+
+			dd.item.titleColor = CosStyle.colorWarningLighter
+			dd.item.textColor = CosStyle.colorWarningLight
+
+			dd.accepted.connect(function() {
+				_closeEnabled = true
+				mainWindow.close()
+			})
+
+			dd.open()
+			return true
+		}
+
+
+		if (!actionSave.enabled)
 			return false
 
 		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})

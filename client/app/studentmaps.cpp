@@ -190,9 +190,8 @@ void StudentMaps::mapLoad(MapListObject *map)
 		return;
 	}
 
-	QString errT;
-	if (!StudentMaps::checkTerrains(gmap, &errT)) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"), errT);
+	if (!StudentMaps::checkTerrains(gmap)) {
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"));
 		return;
 	}
 
@@ -244,9 +243,8 @@ void StudentMaps::demoMapLoad()
 			return;
 		}
 
-		QString errT;
-		if (!StudentMaps::checkTerrains(map, &errT)) {
-			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"), errT);
+		if (!StudentMaps::checkTerrains(map)) {
+			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"));
 			return;
 		}
 
@@ -1059,10 +1057,12 @@ ObjectGenericListModel<MapListObject> *StudentMaps::modelMapList() const
  * @return
  */
 
-bool StudentMaps::checkTerrains(GameMap *map, QString *err)
+bool StudentMaps::checkTerrains(GameMap *map, QList<GameMapMissionLevel *> *levelList)
 {
 	if (!map)
 		return false;
+
+	bool ret = true;
 
 	QVariantMap terrainMap = Client::terrainMap();
 
@@ -1070,12 +1070,12 @@ bool StudentMaps::checkTerrains(GameMap *map, QString *err)
 		foreach (GameMapMissionLevel *ml, m->levels()) {
 			QString t = ml->terrain();
 			if (!terrainMap.contains(t)) {
-				if (err)
-					*err = t;
-				return false;
+				if (levelList)
+					levelList->append(ml);
+				ret = false;
 			}
 		}
 	}
 
-	return true;
+	return ret;
 }

@@ -43,12 +43,16 @@ ModulePair::ModulePair(QObject *parent) : QObject(parent)
 
 QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
 
 	QStringList list;
 
-	QVariantList l = data.value("pairs").toList();
+	QVariantList l;
+
+	if (!storage)
+		l = data.value("pairs").toList();
+	else if (storage->name() == "binding")
+		l = storageData.value("bindings").toList();
+
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
 		list.append(QString("%1 — %2").arg(m.value("first").toString()).arg(m.value("second").toString()));
@@ -74,26 +78,24 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 
 QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storageData)
+	QVariantList list;
+	QVariantMap m;
 
-	if (!storage) {
-		QVariantList list;
-		QVariantMap m;
+	m["question"] = data.value("question").toString();
 
-		m["question"] = data.value("question").toString();
+	QVariantList alist;
 
+	if (!storage)
+		alist = data.value("pairs").toList();
+	else if (storage->name() == "binding")
+		alist = storageData.value("bindings").toList();
 
-		QVariantList alist = data.value("pairs").toList();
+	m.insert(generateOne(data, alist));
 
-		m.insert(generateOne(data, alist));
+	list.append(m);
 
-		list.append(m);
+	return list;
 
-		return list;
-	}
-
-	/*if (storage->name() == "binding")
-		return generateBinding(data, storageData);*/
 
 	return QVariantList();
 }

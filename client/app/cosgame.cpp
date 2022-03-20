@@ -1201,19 +1201,19 @@ bool CosGame::loadTerrainData()
 		return false;
 	}
 
-	QString datafile = ":/terrain/"+terrain+"/data.json";
+	QString datafile = ":/terrain/"+terrainDir+"/data.json";
 
 	if (QFile::exists(datafile)) {
 		QVariantMap m = Client::readJsonFile(datafile).toMap();
 		QString bgMusic = m.value("backgroundMusic").toString();
 
 		if (!bgMusic.isEmpty())
-			setBackgroundMusicFile("qrc:/terrain/"+terrain+"/"+bgMusic);
+			setBackgroundMusicFile("qrc:/terrain/"+terrainDir+"/"+bgMusic);
 
 		QString bgImage = m.value("backgroundImage").toString();
 
 		if (!bgImage.isEmpty())
-			m_gameMatch->setBgImage("qrc:/terrain/"+terrain+"/"+bgImage);
+			m_gameMatch->setBgImage("qrc:/terrain/"+terrainDir+"/"+bgImage);
 	}
 
 	return true;

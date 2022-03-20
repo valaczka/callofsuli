@@ -52,8 +52,11 @@ class GameMapEditorStorage : public ObjectListModelObject, public GameMapStorage
 	Q_PROPERTY(QString module READ module WRITE setModule NOTIFY moduleChanged)
 	Q_PROPERTY(QVariantMap data READ data WRITE setData NOTIFY dataChanged)
 
+	Q_PROPERTY(int objectiveCount READ objectiveCount NOTIFY objectiveCountChanged)
+
 public:
-	explicit GameMapEditorStorage(const qint32 &id, const QString &module, const QVariantMap &data, QObject *parent = nullptr);
+	explicit GameMapEditorStorage(const qint32 &id, const QString &module, const QVariantMap &data,
+								  GameMapEditor *editor, QObject *parent = nullptr);
 	virtual ~GameMapEditorStorage() {}
 
 	qint32 id() const;
@@ -65,10 +68,18 @@ public:
 	const QVariantMap &data() const;
 	void setData(const QVariantMap &newData);
 
+	int objectiveCount() const;
+
+	void recalculateCounts();
+
 signals:
 	void idChanged();
 	void moduleChanged();
 	void dataChanged();
+	void objectiveCountChanged();
+
+private:
+	GameMapEditor *m_editor;
 
 };
 

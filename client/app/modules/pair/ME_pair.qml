@@ -6,6 +6,8 @@ import "Style"
 import "JScript.js" as JS
 
 Item {
+	id: control
+
 	width: parent.width
 	height: layout.height
 
@@ -14,9 +16,14 @@ Item {
 	property string storageModule: ""
 	property int storageCount: 0
 
+	signal modified()
+
 	QGridLayout {
 		id: layout
-		watchModification: false
+
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 		QGridLabel { field: textQuestion }
 
@@ -30,15 +37,21 @@ Item {
 		}
 
 
-		QGridText { text: qsTr("Párok") }
+		QGridText {
+			text: qsTr("Párok")
+			field: fields
+			visible: fields.visible
+		}
 
 		QGridDoubleTextFields {
 			id: fields
 			sqlField: "pairs"
-
 		}
 
-		QGridText { text: qsTr("Párok száma:") }
+		QGridText {
+			text: qsTr("Párok száma:")
+			field: spinCount
+		}
 
 		QGridSpinBox {
 			id: spinCount
@@ -50,7 +63,10 @@ Item {
 		}
 
 
-		QGridText { text: qsTr("Válaszlehetőségek száma:") }
+		QGridText {
+			text: qsTr("Válaszlehetőségek száma:")
+			field: spinOptions
+		}
 
 		QGridSpinBox {
 			id: spinOptions
@@ -84,18 +100,31 @@ Item {
 
 
 	Component.onCompleted: {
+		if (storageModule == "binding")
+			fields.visible = false
+
 		if (!moduleData)
 			return
 
-		JS.setSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode], moduleData)
+		if (storageModule == "binding")
+			JS.setSqlFields([textQuestion, spinCount, spinOptions, comboMode], moduleData)
+		else
+			JS.setSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode], moduleData)
 
 	}
 
 
 	function getData() {
-		moduleData = JS.getSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode])
+		if (storageModule == "binding")
+			moduleData = JS.getSqlFields([textQuestion, spinCount, spinOptions, comboMode])
+		else
+			moduleData = JS.getSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode])
 
 		return moduleData
+	}
+
+	function setStorageData(data) {
+		storageData = data
 	}
 
 

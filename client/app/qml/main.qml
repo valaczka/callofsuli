@@ -187,9 +187,9 @@ ApplicationWindow {
 
 
 		cosClient.messageSent.connect(JS.dialogMessage)
-		//JS.createPage("Start", {})
-		JS.createPage("MapEditor", {})
-		//JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/ddd.map"})
+		JS.createPage("Start", {})
+		//JS.createPage("MapEditor", {})
+		//JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/normal_teszt.map"})
 		//JS.createPage("TEST", {})
 	}
 }

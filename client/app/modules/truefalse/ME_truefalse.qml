@@ -6,6 +6,8 @@ import "Style"
 import "JScript.js" as JS
 
 Item {
+	id: control
+
 	width: parent.width
 	height: layout.height
 
@@ -14,10 +16,14 @@ Item {
 	property string storageModule: ""
 	property int storageCount: 0
 
+	signal modified()
+
 	QGridLayout {
 		id: layout
 
-		watchModification: false
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 
 		QGridLabel { field: textQuestion }

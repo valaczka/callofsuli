@@ -51,7 +51,9 @@ public:
 		ActionTypeInventory		= 0x20,
 		ActionTypeImageList		= 0x40,
 		ActionTypeImage			= 0x80,
-		ActionTypeObjective		= 0x100
+		ActionTypeObjective		= 0x100,
+		ActionTypeStorage		= 0x200,
+		ActionTypeStorageList	= 0x400
 	};
 
 	Q_ENUM(MapEditorActionType);
@@ -80,6 +82,7 @@ protected:
 
 	void objectiveAdd(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
 	void objectiveRemove(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
+	void objectiveRecalculate(GameMapEditorObjective *objective);
 
 	void storageAdd(GameMapEditorStorage *storage);
 	void storageRemove(GameMapEditorStorage *storage);
@@ -562,6 +565,27 @@ private:
 	QVariantMap m_dataSource;
 	QVariantMap m_dataTarget;
 };
+
+
+
+
+
+/**
+ * @brief The MapEditorActionStorageRemove class
+ */
+
+class MapEditorActionStorageRemove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionStorageRemove(GameMapEditor *editor, GameMapEditorStorage *storage);
+	virtual ~MapEditorActionStorageRemove();
+
+private:
+	GameMapEditorStorage *m_storage;
+};
+
 
 
 

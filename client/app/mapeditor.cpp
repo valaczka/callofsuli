@@ -30,6 +30,7 @@
 #include "editoraction.h"
 #include "mapeditoraction.h"
 #include "mapimage.h"
+#include "studentmaps.h"
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -815,6 +816,20 @@ void MapEditor::inventoryModify(GameMapEditorInventory *inventory, const QVarian
 }
 
 
+/**
+ * @brief MapEditor::storageRemove
+ * @param storage
+ */
+
+void MapEditor::storageRemove(GameMapEditorStorage *storage)
+{
+	if (!storage)
+		return;
+
+	m_undoStack->call(new MapEditorActionStorageRemove(m_editor, storage));
+}
+
+
 
 
 /**
@@ -1097,9 +1112,31 @@ QString MapEditor::storageQml(const QString &module) const
 	return mi->qmlEditor();
 }
 
+
+/**
+ * @brief MapEditor::inventoryInfo
+ * @param module
+ * @return
+ */
+
 QVariantMap MapEditor::inventoryInfo(const QString &module) const
 {
 	return GameEnemyData::inventoryInfo(module);
+}
+
+
+/**
+ * @brief MapEditor::storageInfo
+ * @param module
+ * @return
+ */
+
+QVariantMap MapEditor::storageInfo(GameMapEditorStorage *storage) const
+{
+	if (storage)
+		return Question::storageInfo(storage->module(), storage->data());
+	else
+		return Question::storageInfo("", {{}});
 }
 
 
@@ -1170,6 +1207,86 @@ void MapEditor::updateChapterModelMissionLevel(GameMapEditorMissionLevel *missio
 	foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects())
 		ch->setSelected(missionLevel && missionLevel->chapters()->objects().contains(ch));
 }
+
+
+
+/**
+ * @brief MapEditor::checkMap
+ * @return
+ */
+
+QString MapEditor::checkMap() const
+{
+	QString errorString;
+
+	GameMap *map = GameMap::fromBinaryData(m_editor->toBinaryData());
+
+	if (!map) {
+		errorString = tr("Hibás adatfájl\n");
+		return errorString;
+	}
+
+	// Check locks
+
+	QList<GameMapMission*> lockList;
+
+	foreach(GameMapMission *m, map->missions()) {
+		QVector<GameMapMissionLevelIface*> list;
+		if (!m->getLockTree(&list, m))
+			lockList.append(m);
+	}
+
+
+	if (!lockList.isEmpty()) {
+		foreach (GameMapMission *m, lockList)
+			errorString += tr("Körkörös zárolás: %1\n").arg(m->name());
+	}
+
+
+	// Check terrains
+
+	QList<GameMapMissionLevel*> levelList;
+
+	if (!StudentMaps::checkTerrains(map, &levelList)) {
+		foreach (GameMapMissionLevel *ml, levelList)
+			errorString += tr("Érvénytelen harcmező: %1 (%2 level %3)\n")
+						   .arg(ml->terrain())
+						   .arg(ml->mission()->name())
+						   .arg(ml->level());
+	}
+
+
+	// Modules
+
+	foreach(GameMapChapter *chapter, map->chapters()) {
+		foreach(GameMapObjective *objective, chapter->objectives()) {
+			QString om = objective->module();
+
+			if (!Client::moduleObjectiveList().contains(om))
+				errorString += tr("Érvénytelen modul: %1 (%2 szakasz)\n")
+							   .arg(om)
+							   .arg(chapter->name());
+
+		}
+	}
+
+	foreach(GameMapStorage *storage, map->storages()) {
+		QString sm = storage->module();
+
+		if (!Client::moduleStorageList().contains(sm))
+			errorString += tr("Érvénytelen adatbank modul: %1\n")
+						   .arg(sm);
+
+	}
+
+	return errorString;
+}
+
+
+/**
+ * @brief MapEditor::availableInventories
+ * @return
+ */
 
 const QVariantList &MapEditor::availableInventories() const
 {

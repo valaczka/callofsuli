@@ -15,6 +15,8 @@ QCollapsible {
 
 	property bool editable: false
 
+	signal modified()
+
 	title: qsTr("Összerendelések")
 
 	rightComponent: QToolButton {
@@ -28,18 +30,24 @@ QCollapsible {
 	QGridLayout {
 		id: layout
 
-		watchModification: false
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 		QGridDoubleTextFields {
 			id: fields
 			sqlField: "bindings"
+
+			watchModification: true
 
 			readOnly: !control.editable
 
 			Layout.fillWidth: true
 			Layout.columnSpan: layout.columns
 
-			onTextFieldsModified: getData()
+			onModifiedChanged: if (modified)
+								   getData()
+
 		}
 	}
 

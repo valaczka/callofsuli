@@ -185,6 +185,7 @@ void MapEditorAction::objectiveAdd(GameMapEditorChapter *chapter, GameMapEditorO
 	chapter->m_objectives->addObject(objective);
 	objective->setParent(chapter);
 	chapter->recalculateCounts();
+	objectiveRecalculate(objective);
 }
 
 
@@ -201,6 +202,22 @@ void MapEditorAction::objectiveRemove(GameMapEditorChapter *chapter, GameMapEdit
 	objective->setParent(this);
 	chapter->m_objectives->removeObject(index);
 	chapter->recalculateCounts();
+	objectiveRecalculate(objective);
+}
+
+
+/**
+ * @brief MapEditorAction::objectiveRecalculate
+ * @param objective
+ */
+
+void MapEditorAction::objectiveRecalculate(GameMapEditorObjective *objective)
+{
+	if (objective && objective->storageId() != -1) {
+		GameMapEditorStorage *s = m_editor->storage(objective->storageId());
+		if (s)
+			s->recalculateCounts();
+	}
 }
 
 
@@ -490,7 +507,6 @@ void MapEditorActionChapterRemove::addChapter(GameMapEditorChapter *chapter)
 	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
 		foreach (GameMapEditorMissionLevel *ml, m->levels()->objects()) {
 			if (ml->chapters()->objects().contains(chapter)) {
-				qDebug() << "*** FOUND" << m->name() << ml->level();
 				l.append(ml);
 			}
 		}
@@ -509,8 +525,14 @@ void MapEditorActionChapterRemove::_undo()
 		chapterAdd(l.chapter);
 
 		foreach (GameMapEditorMissionLevel *ml, l.levels)
-			if (ml)
+			if (ml) {
 				ml->chapters()->objects().append(l.chapter);
+				if (!ml->chapters()->objects().contains(l.chapter))
+					ml->chapters()->addObject(l.chapter);
+			}
+
+		foreach (GameMapEditorObjective *o, l.chapter->objectives()->objects())
+			objectiveRecalculate(o);
 	}
 }
 
@@ -523,10 +545,17 @@ void MapEditorActionChapterRemove::_redo()
 {
 	foreach (const ChapterList &l, m_list) {
 		foreach (GameMapEditorMissionLevel *ml, l.levels)
-			if (ml)
-				ml->chapters()->objects().removeAll(l.chapter);
+			if (ml) {
+				for (int i=ml->chapters()->index(l.chapter); i != -1; i=ml->chapters()->index(l.chapter)) {
+					ml->chapters()->removeObject(i);
+				}
+			}
 
 		chapterRemove(l.chapter);
+
+
+		foreach (GameMapEditorObjective *o, l.chapter->objectives()->objects())
+			objectiveRecalculate(o);
 	}
 }
 
@@ -568,11 +597,11 @@ MapEditorActionObjectiveNew::MapEditorActionObjectiveNew(GameMapEditor *editor, 
 		foreach (GameMapEditorStorage *s, m_editor->storages()->objects())
 			id = qMax(s->id()+1, id);
 
-		m_storage = new GameMapEditorStorage(id, storageModule, realStorageData, this);
+		m_storage = new GameMapEditorStorage(id, storageModule, realStorageData, m_editor, this);
 
 		storageId = id;
 
-		setDescription(QObject::tr("Új feladat+előállító hozzáadása: %1").arg(readableName));
+		setDescription(QObject::tr("Új feladat+adatbank hozzáadása: %1").arg(readableName));
 	} else {
 		setDescription(QObject::tr("Új feladat hozzáadása: %1").arg(readableName));
 
@@ -730,8 +759,9 @@ MapEditorActionObjectiveRemove::~MapEditorActionObjectiveRemove()
 
 void MapEditorActionObjectiveRemove::_undo()
 {
-	foreach (GameMapEditorObjective *o, m_list)
+	foreach (GameMapEditorObjective *o, m_list) {
 		objectiveAdd(m_parentChapter, o);
+	}
 }
 
 /**
@@ -740,8 +770,9 @@ void MapEditorActionObjectiveRemove::_undo()
 
 void MapEditorActionObjectiveRemove::_redo()
 {
-	foreach (GameMapEditorObjective *o, m_list)
+	foreach (GameMapEditorObjective *o, m_list) {
 		objectiveRemove(m_parentChapter, o);
+	}
 }
 
 
@@ -758,7 +789,7 @@ void MapEditorActionObjectiveRemove::_redo()
 MapEditorActionObjectiveModify::MapEditorActionObjectiveModify(GameMapEditor *editor, GameMapEditorChapter *chapter,
 															   GameMapEditorObjective *objective, const QVariantMap &data,
 															   GameMapEditorStorage *storage, const QVariantMap &storageData)
-	: MapEditorAction(editor, ActionTypeChapter, chapter->id())
+	: MapEditorAction(editor, ActionTypeObjective, objective->uuid())
 {
 	m_parentChapter = chapter;
 	m_objective = objective;
@@ -773,7 +804,7 @@ MapEditorActionObjectiveModify::MapEditorActionObjectiveModify(GameMapEditor *ed
 		m_storageDataSource = variantMapSave(m_storage, {{ "data", storageData }});
 		m_storageDataTarget = {{ "data", storageData }};
 
-		setDescription(QObject::tr("Feladat+előállító módosítása: %1").arg(readableName));
+		setDescription(QObject::tr("Feladat+adatbank módosítása: %1").arg(readableName));
 	} else {
 		setDescription(QObject::tr("Feladat módosítása: %1").arg(readableName));
 	}
@@ -1689,6 +1720,40 @@ MapEditorActionInventoryModify::MapEditorActionInventoryModify(GameMapEditor *ed
 }
 
 MapEditorActionInventoryModify::~MapEditorActionInventoryModify()
+{
+
+}
+
+
+
+
+/**
+ * @brief MapEditorActionStorageRemove::MapEditorActionStorageRemove
+ * @param editor
+ * @param storage
+ */
+
+MapEditorActionStorageRemove::MapEditorActionStorageRemove(GameMapEditor *editor, GameMapEditorStorage *storage)
+	: MapEditorAction(editor, ActionTypeStorageList, storage->id())
+	, m_storage(storage)
+{
+	setDescription(QObject::tr("Adatbank törlése: %1").arg(Question::storageInfo(storage->module(), storage->data()).value("name").toString()));
+
+	setUndoFunc([this](){
+		storageAdd(m_storage);
+	});
+
+	setRedoFunc([this]() {
+		storageRemove(m_storage);
+	});
+}
+
+
+/**
+ * @brief MapEditorActionStorageRemove::~MapEditorActionStorageRemove
+ */
+
+MapEditorActionStorageRemove::~MapEditorActionStorageRemove()
 {
 
 }

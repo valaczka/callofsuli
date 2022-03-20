@@ -188,5 +188,6 @@
         <file>MapEditorMissionList.qml</file>
         <file>QObjectListDelegateView.qml</file>
         <file>MapEditorMission.qml</file>
+        <file>MapEditorStorageList.qml</file>
     </qresource>
 </RCC>

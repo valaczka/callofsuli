@@ -108,6 +108,7 @@ public:
 	Q_INVOKABLE QString storageQml(const QString &module) const;
 
 	Q_INVOKABLE QVariantMap inventoryInfo(const QString &module) const;
+	Q_INVOKABLE QVariantMap storageInfo(GameMapEditorStorage *storage) const;
 
 	ObjectGenericListModel<MapEditorMissionLevelObject> *missionLevelModel() const;
 	Q_INVOKABLE void updateMissionLevelModelChapter(GameMapEditorChapter *chapter);
@@ -115,6 +116,8 @@ public:
 	Q_INVOKABLE void updateMissionLevelModelLock(GameMapEditorMissionLevel *lock);
 
 	Q_INVOKABLE void updateChapterModelMissionLevel(GameMapEditorMissionLevel *missionLevel);
+
+	Q_INVOKABLE QString checkMap() const;
 
 
 public slots:
@@ -161,6 +164,8 @@ public slots:
 	void inventoryAdd(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
 	void inventoryRemove(GameMapEditorMissionLevel *missionLevel, GameMapEditorInventory *inventory);
 	void inventoryModify(GameMapEditorInventory *inventory, const QVariantMap &data);
+
+	void storageRemove(GameMapEditorStorage *storage);
 
 
 private slots:

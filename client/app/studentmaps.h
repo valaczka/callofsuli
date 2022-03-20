@@ -64,7 +64,7 @@ public:
 
 	ObjectGenericListModel<MapListObject> *modelMapList() const;
 
-	static bool checkTerrains(GameMap *map, QString *err = nullptr);
+	static bool checkTerrains(GameMap *map, QList<GameMapMissionLevel *> *levelList = nullptr);
 
 public slots:
 	void mapDownload(MapListObject *map);

@@ -91,17 +91,24 @@ void GameMapReaderIface::regenerateUuids()
  * @return
  */
 
-GameMapMissionIface *GameMapReaderIface::checkLockTree() const
+GameMapMissionIface *GameMapReaderIface::checkLockTree(QList<GameMapMissionIface*> *listPtr) const
 {
 	foreach(GameMapMissionIface *m, ifaceMissions()) {
 		QVector<GameMapMissionLevelIface*> list;
 		if (!m->getLockTree(&list, m)) {
-			qWarning() << QObject::tr("Redundant locks") << m->m_uuid << m->m_name << m;
-			return m;
+			if (listPtr) {
+				listPtr->append(m);
+			} else {
+				qWarning() << QObject::tr("Redundant locks") << m->m_uuid << m->m_name << m;
+				return m;
+			}
 		}
 	}
 
-	return nullptr;
+	if (listPtr && !listPtr->isEmpty())
+		return listPtr->at(0);
+	else
+		return nullptr;
 }
 
 
@@ -455,7 +462,7 @@ bool GameMapReaderIface::imagesFromStream(QDataStream &stream)
 
 		if (m_version < 11) {
 			QString folder;
-		stream >> folder;
+			stream >> folder;
 		}
 
 		stream >> file >> data;

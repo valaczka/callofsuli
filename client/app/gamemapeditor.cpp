@@ -155,7 +155,7 @@ GameMapEditor *GameMapEditor::fromBinaryData(const QByteArray &data, QObject *pa
 
 GameMapStorageIface *GameMapEditor::ifaceAddStorage(const qint32 &id, const QString &module, const QVariantMap &data)
 {
-	GameMapEditorStorage *s = new GameMapEditorStorage(id, module, data, this);
+	GameMapEditorStorage *s = new GameMapEditorStorage(id, module, data, this, this);
 	m_storages->addObject(s);
 	return s;
 }
@@ -250,9 +250,10 @@ ObjectGenericListModel<GameMapEditorStorage> *GameMapEditor::storages() const
  * @return
  */
 
-GameMapEditorStorage::GameMapEditorStorage(const qint32 &id, const QString &module, const QVariantMap &data, QObject *parent)
+GameMapEditorStorage::GameMapEditorStorage(const qint32 &id, const QString &module, const QVariantMap &data, GameMapEditor *editor, QObject *parent)
 	: ObjectListModelObject(parent)
 	, GameMapStorageIface()
+	, m_editor(editor)
 {
 	m_id = id;
 	m_module = module;
@@ -296,6 +297,41 @@ void GameMapEditorStorage::setData(const QVariantMap &newData)
 		return;
 	m_data = newData;
 	emit dataChanged();
+}
+
+
+
+
+/**
+ * @brief GameMapEditorStorage::objectiveCount
+ * @return
+ */
+
+int GameMapEditorStorage::objectiveCount() const
+{
+	if (!m_editor)
+		return 0;
+
+	int ret = 0;
+
+	foreach (GameMapEditorChapter *ch, m_editor->chapters()->objects()) {
+		foreach (GameMapEditorObjective *o, ch->objectives()->objects()) {
+			if (o->storageId() == m_id)
+				ret++;
+		}
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief GameMapEditorStorage::recalculateCounts
+ */
+
+void GameMapEditorStorage::recalculateCounts()
+{
+	emit objectiveCountChanged();
 }
 
 

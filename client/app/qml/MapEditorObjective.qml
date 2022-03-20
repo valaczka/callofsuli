@@ -30,6 +30,9 @@ QTabContainer {
 	property var objectiveData: null
 	property var storageData: null
 
+	property bool modified: false
+	property bool _closeEnabled: false
+
 	signal close()
 
 	property ListModel availableObjectiveModel: ListModel {}
@@ -172,8 +175,8 @@ QTabContainer {
 					Item {
 						id: rect
 						anchors.fill: parent
-						anchors.leftMargin: 5
-						anchors.rightMargin: 5
+						anchors.leftMargin: 10
+						anchors.rightMargin: 20
 
 
 						QLabel {
@@ -273,7 +276,7 @@ QTabContainer {
 				}
 				QToolButtonFooter {
 					icon.source: CosStyle.iconAdd
-					text: qsTr("Előállító nélkül")
+					text: qsTr("Adatbank nélkül")
 					width: slist.width
 					height: CosStyle.twoLineHeight*1.7
 
@@ -303,11 +306,25 @@ QTabContainer {
 			Loader {
 				id: storageLoader
 				width: parent.width
+
+				Connections {
+					target: storageLoader.item
+					function onModified() {
+						control.modified = true
+					}
+				}
 			}
 
 			Loader {
 				id: objectiveLoader
 				width: parent.width
+
+				Connections {
+					target: objectiveLoader.item
+					function onModified() {
+						control.modified = true
+					}
+				}
 			}
 
 			QButton {
@@ -408,21 +425,69 @@ QTabContainer {
 			availableStorageModel.append(sl[j])
 		}
 
-		if (objective) {
-			objectiveModule = objective.module
-			storageId = objective.storageId
-			storageModule = objective.storageModule
-			storageCount = objective.storageCount
-			objectiveData = objective.data
-			control.storageData = objective.storageData
-
-			title = objective.info[0]
-			icon = objective.info[1]
-
-			stack.replace(cmpEdit)
-		} else {
+		if (objective)
+			loadObjective()
+		else {
 			stack.replace(cmpObjectiveModules)
 		}
+	}
+
+
+	function loadObjective() {
+		if (!objective)
+			return
+
+		objectiveModule = objective.module
+		storageId = objective.storageId
+		storageModule = objective.storageModule
+		storageCount = objective.storageCount
+		objectiveData = objective.data
+		control.storageData = objective.storageData
+
+		title = objective.info[0]
+		icon = objective.info[1]
+
+		stack.replace(cmpEdit)
+
+		modified = false
+	}
+
+
+	backCallbackFunction: function () {
+		if (modified && !_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
+
+		return false
+	}
+
+
+	closeCallbackFunction: function () {
+		if (modified && !_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainWindow.close()
+			})
+			d.open()
+			return true
+		}
+
+		return false
+	}
+
+
+	function loadContextId(uuid) {
+		if (objective && objective.uuid === uuid) {
+			loadObjective()
+		}
+
 	}
 
 
@@ -452,6 +517,8 @@ QTabContainer {
 									})
 
 		}
+
+		modified = false
 	}
 
 }

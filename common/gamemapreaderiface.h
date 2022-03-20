@@ -58,7 +58,7 @@ public:
 	QPixmap imagePixmap(const QString &name) const;
 
 	void regenerateUuids();
-	GameMapMissionIface *checkLockTree() const;
+	GameMapMissionIface *checkLockTree(QList<GameMapMissionIface *> *listPtr = nullptr) const;
 	QVector<GameMapMissionLevelIface*> missionLockTree(GameMapMissionIface *mission) const;
 
 	QByteArray toBinaryData() const;
@@ -207,6 +207,7 @@ public:
 	explicit GameMapMissionIface() {}
 	virtual ~GameMapMissionIface() {}
 
+	bool getLockTree(QVector<GameMapMissionLevelIface *> *listPtr, GameMapMissionIface *rootMission) const;
 
 protected:
 	friend class GameMapReaderIface;
@@ -223,7 +224,6 @@ protected:
 													const QString &image) = 0;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) = 0;
 
-	bool getLockTree(QVector<GameMapMissionLevelIface *> *listPtr, GameMapMissionIface *rootMission) const;
 
 	QString m_uuid;
 	QString m_name;

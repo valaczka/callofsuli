@@ -50,7 +50,7 @@ public:
 	inline QString qmlEditor() const override { return "ME_pair.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_pair.qml"; }
 
-	inline QStringList storageModules() const override { return QStringList(); }
+	inline QStringList storageModules() const override { return { "binding" }; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 

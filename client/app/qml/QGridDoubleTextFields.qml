@@ -22,13 +22,19 @@ Column {
 
 	spacing: 5
 
-	signal textFieldsModified()
-
 	Column {
 		id: fieldColumn
 		width: parent.width
 
 		spacing: 0
+
+		property bool modified: false
+		property bool watchModification: control.watchModification
+
+		onModifiedChanged: if (control.watchModification) {
+							   control.modified = true
+							   control.parent.modified = true
+						   }
 
 		Component {
 			id: fieldComponent
@@ -41,16 +47,12 @@ Column {
 				first.readOnly: control.readOnly
 				second.readOnly: control.readOnly
 
-				watchModification: control.watchModification
-
 
 				onDeleteAction: {
+					if (parent.watchModification)
+						parent.modified = true
+
 					destroy()
-
-					if (control.watchModification)
-						control.modified = true
-
-					textFieldsModified()
 				}
 
 				onAcceptAction: if (parent.children && parent.children.length > 1) {
@@ -65,14 +67,9 @@ Column {
 										}
 									}
 
-									textFieldsModified()
-
 								} else {
 									addField()
-									textFieldsModified()
 								}
-
-				onModifyAction: textFieldsModified()
 
 			}
 		}
@@ -85,7 +82,10 @@ Column {
 		visible: !control.readOnly
 		onClicked: {
 			addField()
-			textFieldsModified()
+			if (control.watchModification) {
+				control.modified = true
+				control.parent.modified = true
+			}
 		}
 	}
 
@@ -99,8 +99,8 @@ Column {
 	function addField(text1, text2) {
 		var o = fieldComponent.createObject(fieldColumn)
 
-		if (control.watchModification)
-			control.modified = true
+		/*if (control.watchModification)
+			control.modified = true*/
 
 		if (text1)
 			o.first.setData(text1)
@@ -108,7 +108,8 @@ Column {
 		if (text2)
 			o.second.setData(text2)
 
-		o.first.forceActiveFocus()
+		if (!readOnly)
+			o.first.forceActiveFocus()
 	}
 
 
@@ -118,12 +119,14 @@ Column {
 			var o=list[i]
 
 			if (fieldColumn.children && fieldColumn.children.length > i) {
-				fieldColumn.children[i].first.text = o.first
-				fieldColumn.children[i].second.text = o.second
+				fieldColumn.children[i].first.setData(o.first)
+				fieldColumn.children[i].second.setData(o.second)
 			} else {
 				addField(o.first, o.second)
 			}
 		}
+
+		control.modified = false
 	}
 
 	function _generateData() {

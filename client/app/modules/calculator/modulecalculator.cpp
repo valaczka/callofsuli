@@ -164,27 +164,22 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 	int canNegative = data.value("canNegative", 0).toInt();
 	bool allCanNegative = canNegative > 1;
 	int range = data.value("range", 1).toInt();
-	float xpFactor = 1.0;
 
 	int floor = 1, ceil = 1;
 
 	if (range >= 4) {
-		xpFactor += 0.4;
 		ceil = allCanNegative ? 100 : 101;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -100;
 	} else if (range == 3) {
-		xpFactor += 0.3;
 		ceil = allCanNegative ? 50 : 51;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -50;
 	} else if (range == 2) {
-		xpFactor += 0.2;
 		ceil = allCanNegative ? 20 : 21;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -20;
 	} else {
-		xpFactor += 0.1;
 		ceil = allCanNegative ? 10 : 11;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -10;
@@ -213,13 +208,6 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 	}
 
 
-
-	if (allCanNegative)
-		xpFactor = 1.0+(xpFactor-1.0)*2;
-	else if (canNegative)
-		xpFactor += 0.1;
-
-
 	if (number2 < 0)
 		m["question"] = QString("%1 %2 (%3) =")
 						.arg(number1)
@@ -236,6 +224,33 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 	m["decimalEnabled"] = false;
 	m["answer"] = QVariantMap({{"first", answer}, {"second", 0}});
 
+
+	return m;
+}
+
+
+
+
+
+/**
+ * @brief ModuleCalculator::preview
+ * @param generatedList
+ * @return
+ */
+
+QVariantMap ModuleCalculator::preview(const QVariantList &generatedList) const
+{
+	QVariantMap m;
+	QString s;
+
+	foreach (QVariant v, generatedList) {
+		QVariantMap m = v.toMap();
+
+		s.append(QString("- %1 **%2**\n").arg(m.value("question").toString())
+				 .arg(m.value("answer").toMap().value("first").toInt()));
+	}
+
+	m["text"] = s;
 
 	return m;
 }

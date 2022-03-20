@@ -11,6 +11,8 @@ QLabel {
 
 	property var moduleData: ({})
 
+	signal modified()
+
 	padding: 10
 	width: parent.width
 	wrapMode: Text.Wrap

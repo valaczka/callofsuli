@@ -46,11 +46,6 @@ QTabContainer {
 				priority: 1
 			}
 		]
-
-		proxyRoles: ExpressionRole {
-			name: "readableLevel"
-			expression: "Level %1".arg(model.level)
-		}
 	}
 
 	QAccordion {
@@ -140,7 +135,7 @@ QTabContainer {
 				property bool _invalid: true
 
 				title: _terrainData ? _terrainData.readableName : (missionLevel ? missionLevel.terrain : "")
-				subtitle: _terrainData ? "Level %1".arg(_terrainData.level) : ""
+				subtitle: _terrainData ? _terrainData.details : ""
 
 				image: _terrainData ? _terrainData.thumbnail : ""
 
@@ -164,7 +159,7 @@ QTabContainer {
 													selectorSet: false,
 													modelTitleRole: "readableName",
 													modelImageRole: "thumbnail",
-													modelSubtitleRole: "readableLevel",
+													modelSubtitleRole: "details",
 													delegateHeight: CosStyle.twoLineHeight*1.5,
 													model: terrainProxyModel
 												})

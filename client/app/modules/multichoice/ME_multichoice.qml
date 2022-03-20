@@ -7,6 +7,8 @@ import "JScript.js" as JS
 
 
 Item {
+	id: control
+
 	width: parent.width
 	height: layout.height
 
@@ -15,10 +17,14 @@ Item {
 	property string storageModule: ""
 	property int storageCount: 0
 
+	signal modified()
+
 	QGridLayout {
 		id: layout
 
-		watchModification: false
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 		QGridLabel { field: textQuestion }
 
@@ -50,7 +56,10 @@ Item {
 			minimumHeight: CosStyle.baseHeight*2
 		}
 
-		QGridText { text: qsTr("Min. helyes válasz:") }
+		QGridText {
+			text: qsTr("Min. helyes válasz:")
+			field: spinCourrectMin
+		}
 
 		QGridSpinBox {
 			id: spinCourrectMin
@@ -61,7 +70,10 @@ Item {
 			sqlField: "correctMin"
 		}
 
-		QGridText { text: qsTr("Max. helyes válasz:") }
+		QGridText {
+			text: qsTr("Max. helyes válasz:")
+			field: spinCourrectMax
+		}
 
 		QGridSpinBox {
 			id: spinCourrectMax
@@ -72,7 +84,10 @@ Item {
 			sqlField: "correctMax"
 		}
 
-		QGridText { text: qsTr("Max. lehetőség:") }
+		QGridText {
+			text: qsTr("Max. lehetőség:")
+			field: spinCount
+		}
 
 		QGridSpinBox {
 			id: spinCount

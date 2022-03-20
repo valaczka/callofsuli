@@ -61,7 +61,8 @@ public:
 
 	qreal xpFactor() const override { return 1.5; };
 
-	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
+	QVariantMap preview(const QVariantList &generatedList) const;
+
 
 	QVariantMap generatePlusminus(const QVariantMap &data) const;
 

@@ -19,11 +19,17 @@ Loader {
 	property string storageModule: ""
 	property int storageCount: 0
 
+	signal modified()
+
 	Component {
 		id: cmpNone
 
 		QGridLayout {
-			watchModification: false
+			id: layout
+
+			watchModification: true
+			onModifiedChanged: if (layout.modified)
+								   ldr.modified()
 
 			QGridLabel { field: textQuestion }
 
@@ -84,9 +90,11 @@ Loader {
 
 		Column {
 
-
 			QGridLayout {
-				watchModification: false
+				id: layout2
+				watchModification: true
+				onModifiedChanged: if (layout2.modified)
+									   ldr.modified()
 
 				QGridText {
 					field: comboMode
@@ -122,7 +130,10 @@ Loader {
 				}
 
 
-				QGridText { text: qsTr("Feladatok száma:") }
+				QGridText {
+					text: qsTr("Feladatok száma:")
+					field: spinCount
+				}
 
 				QGridSpinBox {
 					id: spinCount

@@ -7,6 +7,8 @@ import "JScript.js" as JS
 
 
 Item {
+	id: control
+
 	width: parent.width
 	height: layout.height
 
@@ -15,9 +17,15 @@ Item {
 	property string storageModule: ""
 	property int storageCount: 0
 
+	signal modified()
+
 	QGridLayout {
 		id: layout
 
+
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 		FilloutHighlighter {
 			id: hl
@@ -27,7 +35,6 @@ Item {
 			wordBackground: CosStyle.colorWarningLight
 		}
 
-		watchModification: false
 
 		QGridLabel { field: area }
 
@@ -53,7 +60,10 @@ Item {
 
 		}
 
-		QGridText { text: qsTr("Kiegészítendő helyek száma:") }
+		QGridText {
+			text: qsTr("Kiegészítendő helyek száma:")
+			field: spinCount
+		}
 
 		QGridSpinBox {
 			id: spinCount
@@ -64,7 +74,10 @@ Item {
 			sqlField: "count"
 		}
 
-		QGridText { text: qsTr("Válaszlehetőségek száma:") }
+		QGridText {
+			text: qsTr("Válaszlehetőségek száma:")
+			field: spinOptions
+		}
 
 		QGridSpinBox {
 			id: spinOptions
