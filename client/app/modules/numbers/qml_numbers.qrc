@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ME_numbers.qml</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GQ_order.qml</file>
+        <file>ME_order.qml</file>
+    </qresource>
+</RCC>

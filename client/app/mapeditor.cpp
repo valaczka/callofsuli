@@ -580,6 +580,55 @@ void MapEditor::missionModify(GameMapEditorMission *mission, const QVariantMap &
 
 
 
+/**
+ * @brief MapEditor::missionLockAdd
+ * @param mission
+ * @param level
+ */
+
+void MapEditor::missionLockAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level)
+{
+	if (!mission || !level)
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionLockNew(m_editor, mission, level));
+}
+
+
+
+/**
+ * @brief MapEditor::missionLockRemove
+ * @param mission
+ * @param level
+ */
+
+void MapEditor::missionLockRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level)
+{
+	if (!mission || !level)
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionLockRemove(m_editor, mission, level));
+}
+
+
+/**
+ * @brief MapEditor::missionLockReplace
+ * @param mission
+ * @param levelOld
+ * @param levelNew
+ */
+
+void MapEditor::missionLockReplace(GameMapEditorMission *mission, GameMapEditorMissionLevel *levelOld, GameMapEditorMissionLevel *levelNew)
+{
+	if (!mission || !levelOld || !levelNew)
+		return;
+
+	m_undoStack->call(new MapEditorActionMissionLockReplace(m_editor, mission, levelOld, levelNew));
+}
+
+
+
+
 
 
 
@@ -912,7 +961,7 @@ void MapEditor::updateMissionLevelModelChapter(GameMapEditorChapter *chapter)
 
 	foreach (GameMapEditorMission *m, m_editor->missions()->objects()) {
 		foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
-			MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l->level(), this);
+			MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l, this);
 			if (chapter && l->chapters()->objects().contains(chapter))
 				obj->setSelected(true);
 			list.append(obj);
@@ -956,7 +1005,7 @@ void MapEditor::updateMissionLevelModelMission(GameMapEditorMission *mission)
 			continue;
 
 		foreach (GameMapEditorMissionLevel *l, m->levels()->objects()) {
-			MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l->level(), this);
+			MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l, this);
 			list.append(obj);
 		}
 	}
@@ -985,7 +1034,7 @@ void MapEditor::updateMissionLevelModelLock(GameMapEditorMissionLevel *lock)
 		if (l == lock)
 			continue;
 
-		MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l->level(), this);
+		MapEditorMissionLevelObject *obj = new MapEditorMissionLevelObject(m->uuid(), m->name(), l, this);
 		list.append(obj);
 	}
 
@@ -1151,6 +1200,7 @@ MapEditorMissionLevelObject::MapEditorMissionLevelObject(QObject *parent)
 	, m_uuid()
 	, m_name()
 	, m_level(0)
+	, m_missionLevel(nullptr)
 {
 
 }
@@ -1160,6 +1210,7 @@ MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &name, QO
 	, m_uuid()
 	, m_name(name)
 	, m_level(1)
+	, m_missionLevel(nullptr)
 {
 
 }
@@ -1169,15 +1220,17 @@ MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &uuid, co
 	, m_uuid(uuid)
 	, m_name(name)
 	, m_level(1)
+	, m_missionLevel(nullptr)
 {
 
 }
 
-MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &uuid, const QString &name, const int &level, QObject *parent)
+MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &uuid, const QString &name, GameMapEditorMissionLevel *missionLevel, QObject *parent)
 	: ObjectListModelObject(parent)
 	, m_uuid(uuid)
 	, m_name(name)
-	, m_level(level)
+	, m_level(missionLevel ? missionLevel->level() : 1)
+	, m_missionLevel(missionLevel)
 {
 
 }
@@ -1185,6 +1238,11 @@ MapEditorMissionLevelObject::MapEditorMissionLevelObject(const QString &uuid, co
 MapEditorMissionLevelObject::~MapEditorMissionLevelObject()
 {
 
+}
+
+GameMapEditorMissionLevel *MapEditorMissionLevelObject::missionLevel() const
+{
+	return m_missionLevel;
 }
 
 

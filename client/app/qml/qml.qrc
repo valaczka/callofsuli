@@ -32,10 +32,6 @@
         <file>QGridSpinBox.qml</file>
         <file>QTextArea.qml</file>
         <file>QGridTextArea.qml</file>
-        <file>OLD_PageMainMenu.qml</file>
-        <file>OLD_UserButton.qml</file>
-        <file>OLD_UserDetails.qml</file>
-        <file>OLD_PageLogin.qml</file>
         <file>AdminUserClassList.qml</file>
         <file>AdminUserList.qml</file>
         <file>AdminUserData.qml</file>
@@ -43,15 +39,10 @@
         <file>QDialogList.qml</file>
         <file>QToolButton.qml</file>
         <file>QFontImage.qml</file>
-        <file>OLD_PagePasswordReset.qml</file>
-        <file>OLS_PagePasswordRequest.qml</file>
-        <file>OLD_PageRegistration.qml</file>
         <file>QGridTextFieldCombo.qml</file>
-        <file>OLD_PageServerSettings.qml</file>
         <file>QGridText.qml</file>
         <file>QRectangleBg.qml</file>
         <file>QFlipable.qml</file>
-        <file>OLD_UserListWidget.qml</file>
         <file>QTabBar.qml</file>
         <file>QTabButton.qml</file>
         <file>QLabel.qml</file>
@@ -74,23 +65,17 @@
         <file>QPagePanelSearch.qml</file>
         <file>QDialogPanel.qml</file>
         <file>PageGame.qml</file>
-        <file>OLD_PageTeacherMap.qml</file>
         <file>TeacherMapList.qml</file>
         <file>StudentMapList.qml</file>
         <file>PageMap.qml</file>
-        <file>OLD_MapMissionList.qml</file>
-        <file>OLD_MapMissionInfo.qml</file>
         <file>QDialogGameSettings.qml</file>
         <file>GameButton.qml</file>
         <file>GameInfo.qml</file>
         <file>GameQuestionButton.qml</file>
         <file>GamePickable.qml</file>
         <file>GamePickableHealth.qml</file>
-        <file>GamePickableTime.qml</file>
         <file>GamePlayerLocator.qml</file>
         <file>GameMessageList.qml</file>
-        <file>OLD_PageScore.qml</file>
-        <file>GamePickableShield.qml</file>
         <file>GameLabel.qml</file>
         <file>QBadge.qml</file>
         <file>QDialogMissionList.qml</file>
@@ -113,15 +98,12 @@
         <file>QToolButtonFooter.qml</file>
         <file>PageMapEditor.qml</file>
         <file>QSwipeComponent.qml</file>
-        <file>OLD_MapEditorMissions.qml</file>
-        <file>OLD_MapEditorMissionDetails.qml</file>
         <file>MapEditorMissionLevel.qml</file>
         <file>QGridImageTextField.qml</file>
         <file>QDialogImageGrid.qml</file>
         <file>QGridImage.qml</file>
         <file>MapEditorChapter.qml</file>
         <file>MapEditorInventory.qml</file>
-        <file>OLD_MapEditorMissionLocks.qml</file>
         <file>MapEditorChapterList.qml</file>
         <file>QDialogFile.qml</file>
         <file>QDrawer.qml</file>
@@ -130,8 +112,6 @@
         <file>TeacherGroupUserList.qml</file>
         <file>TeacherGroupMapList.qml</file>
         <file>TeacherGroupMapView.qml</file>
-        <file>OLD_PageProfile.qml</file>
-        <file>OLD_ProfileDetails.qml</file>
         <file>QGridLayoutFlickable.qml</file>
         <file>QImageSpinBox.qml</file>
         <file>QGridImageSpinBox.qml</file>
@@ -145,7 +125,6 @@
         <file>TeacherMapInfo.qml</file>
         <file>TrophyView.qml</file>
         <file>OLD_PageTeacherGroupMapViewUser.qml</file>
-        <file>OLD_PageStudentGroupUserView.qml</file>
         <file>MapMissionUserView.qml</file>
         <file>ProfileDetailsUser.qml</file>
         <file>ProfileDetailsTrophies.qml</file>
@@ -167,7 +146,6 @@
         <file>ProfileDetailsProgress.qml</file>
         <file>QCard.qml</file>
         <file>QTabHeader.qml</file>
-        <file>OLD_PageMapMissions.qml</file>
         <file>MapMissionList.qml</file>
         <file>MapMissionLevel.qml</file>
         <file>QIconEmpty.qml</file>
@@ -182,12 +160,14 @@
         <file>QObjectListView.qml</file>
         <file>QListBusyIndicator.qml</file>
         <file>GameFire.qml</file>
-        <file>GamePickablePliers.qml</file>
-        <file>GamePickableWater.qml</file>
         <file>GameFence.qml</file>
         <file>MapEditorMissionList.qml</file>
         <file>QObjectListDelegateView.qml</file>
         <file>MapEditorMission.qml</file>
         <file>MapEditorStorageList.qml</file>
+        <file>GamePickableGeneral.qml</file>
+        <file>QGridDoubleNumberField.qml</file>
+        <file>QGridDoubleNumberFields.qml</file>
+        <file>MapEditorObjectivePreview.qml</file>
     </qresource>
 </RCC>

@@ -65,17 +65,17 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 	QHash<QString, GameEnemyData::InventoryType> list;
 
 	list["health"] = InventoryType(tr("1 HP"),
-								   "image://font/School/\uf124",
+								   "qrc:/internal/game/powerup.gif",
 								   GamePickable::PickableHealth,
 								   QVariantMap());
 
 	list["time1"] = InventoryType(tr("30 másodperc"),
-								  "image://font/School/\uf124",
+								  "qrc:/internal/game/time-30.png",
 								  GamePickable::PickableTime,
 								  QVariantMap({{"text", "30"}, {"secs", 30}}));
 
 	list["time2"] = InventoryType(tr("1 perc"),
-								  "image://font/School/\uf124",
+								  "qrc:/internal/game/time-60.png",
 								  GamePickable::PickableTime,
 								  QVariantMap({{"text", "60"}, {"secs", 60}}));
 
@@ -106,7 +106,7 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 
 	list["pliers"] = InventoryType(tr("1 fogó"),
 								   "qrc:/internal/game/pliers.png",
-								   GamePickable::PickableWater,
+								   GamePickable::PickablePliers,
 								   QVariantMap());
 
 	return list;

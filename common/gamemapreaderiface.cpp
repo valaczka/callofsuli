@@ -359,6 +359,17 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 
 	qDebug() << "Load missions" << size;
 
+	struct lockStruct {
+		GameMapMissionIface *mission;
+		QByteArray lockMission;
+		qint32 lockLevel;
+
+		lockStruct(GameMapMissionIface *m, const QByteArray &lm, const qint32 &ll) :
+			mission(m), lockMission(lm), lockLevel(ll) {}
+	};
+
+	QList<lockStruct> lockList;
+
 	for (quint32 i=0; i<size; i++) {
 		QByteArray uuid;
 		bool mandatory;		// DEPRECATED
@@ -394,14 +405,23 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 			qint32 level = -1;
 			stream >> uuid >> level;
 
-			if (!m->ifaceAddLock(uuid, level))
-				return false;
+			lockList.append(lockStruct(m, uuid, level));
+
+			/*if (!m->ifaceAddLock(uuid, level))
+				return false;*/
 		}
 
 
 		missionLevelsFromStream(stream, m);
 	}
 
+
+	qDebug() << "Load locks";
+
+	foreach (lockStruct s, lockList) {
+		if (!s.mission || !s.mission->ifaceAddLock(s.lockMission, s.lockLevel))
+			return false;
+	}
 
 	qDebug() << "Locks loaded";
 

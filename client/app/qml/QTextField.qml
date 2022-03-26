@@ -94,6 +94,7 @@ TextField {
 	property bool _textModified: false
 
 	signal textModified()
+	signal textCleared()
 
 	onActiveFocusChanged: if (activeFocus)
 							  _textModified = false
@@ -130,6 +131,7 @@ TextField {
 		acceptedButtons: Qt.LeftButton
 		onClicked: {
 			control.clear()
+			textCleared()
 			textModified()
 		}
 	}

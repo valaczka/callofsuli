@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "plusminus"; }
 	inline bool isStorageModule() const override { return true; }
 	inline QString readableName() const override { return tr("Összeadás-kivonás"); }
-	inline QString icon() const override { return "image://font/AcademicI/\uf125"; }
+	inline QString icon() const override { return "image://font/Special Elite/\u00b1"; }
 
 	inline QString qmlEditor() const override { return "ME_plusminus.qml"; }
 	inline QString qmlQuestion() const override { return ""; }

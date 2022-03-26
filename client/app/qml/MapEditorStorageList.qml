@@ -40,7 +40,7 @@ QTabContainer {
 		delegate: Item {
 			id: item
 			width: storageList.width
-			height: CosStyle.twoLineHeight*1.7
+			height: CosStyle.twoLineHeight*1.2
 
 			required property bool selected
 			required property int index
@@ -111,12 +111,14 @@ QTabContainer {
 								maximumLineCount: 1
 								lineHeight: 0.9
 								elide: Text.ElideRight
+								leftPadding: 10
 							}
 							QLabel {
 								id: subtitle
 								anchors.left: parent.left
 								width: title.width
 								text: storageInfo ? storageInfo.details : ""
+								visible: text.length
 								color: CosStyle.colorPrimary
 								font.pixelSize: CosStyle.pixelSize*0.75
 								font.weight: Font.Light
@@ -124,6 +126,7 @@ QTabContainer {
 								lineHeight: 0.8
 								wrapMode: Text.Wrap
 								elide: Text.ElideRight
+								leftPadding: 10
 							}
 						}
 

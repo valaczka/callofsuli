@@ -51,8 +51,8 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		m["image"] = "";
 
 		return m;
-	} else if (storage->name() == "binding") {
-		QStringList answers = data.value("answers").toStringList();
+	} else if (storage->name() == "binding" || storage->name() == "numbers") {
+		QStringList answers;
 
 		bool isBindToRight = data.value("mode").toString() == "right";
 
@@ -73,7 +73,6 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		m["image"] = "";
 
 		return m;
-
 	}
 
 	return QVariantMap({{"title", ""},
@@ -115,8 +114,9 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 		return list;
 	}
 
-	if (storage->name() == "binding")
+	if (storage->name() == "binding" || storage->name() == "numbers")
 		return generateBinding(data, storageData);
+
 
 	return QVariantList();
 }
@@ -149,7 +149,9 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 
 		QVariantMap retMap;
 
-		if (question.contains("%1"))
+		if (question.isEmpty())
+			retMap["question"] = (isBindToRight ? right : left);
+		else if (question.contains("%1"))
 			retMap["question"] = question.arg(isBindToRight ? right : left);
 		else
 			retMap["question"] = question;

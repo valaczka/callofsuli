@@ -96,6 +96,9 @@ protected:
 	void missionLevelAddChapter(GameMapEditorMissionLevel *level, GameMapEditorChapter *chapter);
 	void missionLevelRemoveChapter(GameMapEditorMissionLevel *level, GameMapEditorChapter *chapter);
 
+	void missionLockAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+	void missionLockRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+
 	void inventoryAdd(GameMapEditorMissionLevel *level, GameMapEditorInventory *inventory);
 	void inventoryRemove(GameMapEditorMissionLevel *level, GameMapEditorInventory *inventory);
 	void addDefaultInventories(GameMapEditorMissionLevel *level, const QVariantList &list);
@@ -412,6 +415,81 @@ private:
 	QVariantMap m_dataSource;
 	QVariantMap m_dataTarget;
 };
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLockNew class
+ */
+
+class MapEditorActionMissionLockNew : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLockNew(GameMapEditor *editor, GameMapEditorMission *parentMission, GameMapEditorMissionLevel *level);
+	virtual ~MapEditorActionMissionLockNew();
+
+private:
+	GameMapEditorMission *m_mission;
+	GameMapEditorMissionLevel *m_missionLevel;
+};
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLockRemove class
+ */
+
+class MapEditorActionMissionLockRemove : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLockRemove(GameMapEditor *editor, GameMapEditorMission *parentMission, GameMapEditorMissionLevel *level);
+	virtual ~MapEditorActionMissionLockRemove();
+
+private:
+	GameMapEditorMission *m_mission;
+	GameMapEditorMissionLevel *m_missionLevel;
+};
+
+
+
+
+
+
+
+/**
+ * @brief The MapEditorActionMissionLockReplace class
+ */
+
+class MapEditorActionMissionLockReplace : public MapEditorAction
+{
+	Q_OBJECT
+
+public:
+	explicit MapEditorActionMissionLockReplace(GameMapEditor *editor, GameMapEditorMission *parentMission,
+											   GameMapEditorMissionLevel *oldLevel,
+											   GameMapEditorMissionLevel *newLevel);
+	virtual ~MapEditorActionMissionLockReplace();
+
+private:
+	GameMapEditorMission *m_mission;
+	GameMapEditorMissionLevel *m_missionLevelOld;
+	GameMapEditorMissionLevel *m_missionLevelNew;
+};
+
+
 
 
 

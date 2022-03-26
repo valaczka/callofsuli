@@ -260,7 +260,7 @@ QCollapsible {
 						icon.source: CosStyle.iconDelete
 						color: CosStyle.colorErrorLighter
 						onClicked: {
-							mapEditor.missionLockRemove({lock: model.lock})
+							mapEditor.missionLockRemove(self, list.modelObject(modelIndex))
 						}
 					}
 
@@ -287,11 +287,10 @@ QCollapsible {
 													   })
 
 							d.accepted.connect(function(dlgdata) {
-								console.debug("RET", dlgdata)
 								if (dlgdata < 0)
 									return
 
-								//mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
+								mapEditor.missionLockAdd(self, d.item.list.modelObject(dlgdata).missionLevel)
 							})
 							d.open()
 						}
@@ -300,7 +299,6 @@ QCollapsible {
 
 					onClicked: {
 						var o = modelObject(index)
-						console.debug("OM", o)
 
 						mapEditor.updateMissionLevelModelLock(o)
 
@@ -318,11 +316,10 @@ QCollapsible {
 												   })
 
 						d.accepted.connect(function(dlgdata) {
-							console.debug("RET", dlgdata)
 							if (dlgdata < 0)
 								return
 
-							//mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
+							mapEditor.missionLockReplace(self, o, d.item.list.modelObject(dlgdata).missionLevel)
 						})
 						d.open()
 					}

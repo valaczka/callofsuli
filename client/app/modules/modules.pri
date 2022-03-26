@@ -5,4 +5,7 @@ MODULES_LIST = truefalse \
 				multichoice \
 				pair \
 				fillout \
-				binding
+				binding \
+				numbers \
+				sequence \
+				order

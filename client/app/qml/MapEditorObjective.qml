@@ -155,7 +155,7 @@ QTabContainer {
 			delegate: Item {
 				id: item
 				width: slist.width
-				height: CosStyle.twoLineHeight*1.7
+				height: CosStyle.twoLineHeight*1.2
 
 				required property int id
 				required property string module
@@ -223,12 +223,14 @@ QTabContainer {
 									maximumLineCount: 1
 									lineHeight: 0.9
 									elide: Text.ElideRight
+									leftPadding: 10
 								}
 								QLabel {
 									id: subtitle
 									anchors.left: parent.left
 									width: title.width
 									text: item.details
+									visible: text.length
 									color: CosStyle.colorPrimary
 									font.pixelSize: CosStyle.pixelSize*0.75
 									font.weight: Font.Light
@@ -236,6 +238,7 @@ QTabContainer {
 									lineHeight: 0.8
 									wrapMode: Text.Wrap
 									elide: Text.ElideRight
+									leftPadding: 10
 								}
 							}
 
@@ -275,7 +278,7 @@ QTabContainer {
 					visible: control.compact
 				}
 				QToolButtonFooter {
-					icon.source: CosStyle.iconAdd
+					icon.source: "image://font/Material Icons/\ue06f"
 					text: qsTr("Adatbank nélkül")
 					width: slist.width
 					height: CosStyle.twoLineHeight*1.7

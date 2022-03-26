@@ -44,21 +44,25 @@ class MapEditorMissionLevelObject : public ObjectListModelObject
 	Q_PROPERTY(QString uuid MEMBER m_uuid)
 	Q_PROPERTY(QString name MEMBER m_name)
 	Q_PROPERTY(int level MEMBER m_level)
+	Q_PROPERTY(GameMapEditorMissionLevel *missionLevel MEMBER m_missionLevel)
 
 public:
 	explicit MapEditorMissionLevelObject(QObject *parent = nullptr);
 	explicit MapEditorMissionLevelObject(const QString &name, QObject *parent = nullptr);
 	explicit MapEditorMissionLevelObject(const QString &uuid, const QString &name, QObject *parent = nullptr);
-	explicit MapEditorMissionLevelObject(const QString &uuid, const QString &name, const int &level, QObject *parent = nullptr);
+	explicit MapEditorMissionLevelObject(const QString &uuid, const QString &name, GameMapEditorMissionLevel *missionLevel, QObject *parent = nullptr);
 	virtual ~MapEditorMissionLevelObject();
 
 	const QString &uuid() const { return m_uuid; }
 	const int &level() const { return m_level; }
 
+	GameMapEditorMissionLevel *missionLevel() const;
+
 private:
 	QString m_uuid;
 	QString m_name;
 	int m_level;
+	GameMapEditorMissionLevel *m_missionLevel;
 };
 
 Q_DECLARE_METATYPE(ObjectGenericListModel<MapEditorMissionLevelObject>*);
@@ -152,6 +156,10 @@ public slots:
 	void missionRemove(GameMapEditorMission *mission);
 	void missionRemoveList(const QList<GameMapEditorMission*> &list);
 	void missionModify(GameMapEditorMission *mission, const QVariantMap &data);
+
+	void missionLockAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+	void missionLockRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+	void missionLockReplace(GameMapEditorMission *mission, GameMapEditorMissionLevel *levelOld, GameMapEditorMissionLevel *levelNew);
 
 	void missionLevelAdd(GameMapEditorMission *mission, QVariantMap data);
 	void missionLevelRemove(GameMapEditorMissionLevel *missionLevel);

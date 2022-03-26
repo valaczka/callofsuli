@@ -48,8 +48,14 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 	QVariantMap m;
 
+	if (!storage) {
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = QString("%1 %2").arg(data.value("answer").toString()).arg(data.value("suffix").toString());
+		m["image"] = "";
 
-	if (storage && storage->name() == "plusminus") {
+		return m;
+	} else if (storage->name() == "plusminus") {
 		bool isSubtract = data.value("subtract", false).toBool();
 		int canNegative = data.value("canNegative", 0).toInt();
 		bool allCanNegative = canNegative > 1;
@@ -91,7 +97,26 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		m["details"] = details;
 		m["image"] = "";
 		return m;
+	} else if (storage->name() == "numbers") {
+		QStringList answers;
 
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap m = v.toMap();
+			QString left = m.value("first").toString();
+			QString right = m.value("second").toString();
+
+			if (left.isEmpty() || right.isEmpty())
+				continue;
+
+			answers.append(QString("%1 — %2").arg(left).arg(right));
+		}
+
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = answers.join(", ");
+		m["image"] = "";
+
+		return m;
 
 	}
 
@@ -115,17 +140,17 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storageData)
-
 	if (!storage) {
 		QVariantList list;
 		QVariantMap m;
 
-		m["question"] = "0";
-		m["suffix"] = "";
+		bool decimals = data.value("decimals", false).toBool();
+
+		m["question"] = data.value("question").toString();
+		m["suffix"] = data.value("suffix").toString();
 		m["twoLine"] = false;
-		m["decimalEnabled"] = false;
-		m["answer"] = QVariantMap({{"first", 0}, {"second", 0}});
+		m["decimalEnabled"] = decimals;
+		m["answer"] = QVariantMap({{"first", decimals ? data.value("answer").toReal() : data.value("answer").toInt()}, {"second", 0}});
 
 		list.append(m);
 
@@ -140,6 +165,10 @@ QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterf
 
 		return list;
 	}
+
+
+	if (storage->name() == "numbers")
+		return generateNumbers(data, storageData);
 
 	return QVariantList();
 }
@@ -230,6 +259,54 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 
 
 
+/**
+ * @brief ModuleCalculator::generateNumbers
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleCalculator::generateNumbers(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	QString question = data.value("question").toString();
+
+	foreach (QVariant v, storageData.value("bindings").toList()) {
+		QVariantMap m = v.toMap();
+		QString left = m.value("first").toString();
+		QString right = m.value("second").toString();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		if (question.isEmpty())
+			retMap["question"] = left;
+		else if (question.contains("%1"))
+			retMap["question"] = question.arg(left);
+		else
+			retMap["question"] = question;
+
+		qreal r = m.value("second").toReal();
+		/*qreal ri = floor(r);
+		bool decimal = !(r-ri == 0.0);*/
+
+
+		retMap["suffix"] = data.value("suffix").toString();
+		retMap["twoLine"] = false;
+		retMap["decimalEnabled"] = true;
+		retMap["answer"] = QVariantMap({{"first", r}, {"second", 0}});
+
+		ret.append(retMap);
+	}
+
+	return ret;
+}
+
+
+
 
 
 /**
@@ -246,8 +323,9 @@ QVariantMap ModuleCalculator::preview(const QVariantList &generatedList) const
 	foreach (QVariant v, generatedList) {
 		QVariantMap m = v.toMap();
 
-		s.append(QString("- %1 **%2**\n").arg(m.value("question").toString())
-				 .arg(m.value("answer").toMap().value("first").toInt()));
+		s.append(QString("- %1 <b>%2 %3</b>\n").arg(m.value("question").toString())
+				 .arg(m.value("answer").toMap().value("first").toReal())
+				 .arg(m.value("suffix").toString()));
 	}
 
 	m["text"] = s;

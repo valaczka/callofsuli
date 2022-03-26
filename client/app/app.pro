@@ -178,7 +178,6 @@ SOURCES += \
 
 
 HEADERS += \
-	ODL_objectlistmodel.h \
 	abstractactivity.h \
 	abstractobjectiveimporter.h \
 	androidshareutils.h \

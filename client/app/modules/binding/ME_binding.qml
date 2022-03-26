@@ -45,8 +45,7 @@ QCollapsible {
 			Layout.fillWidth: true
 			Layout.columnSpan: layout.columns
 
-			onModifiedChanged: if (modified)
-								   getData()
+			onModification: getData()
 
 		}
 	}

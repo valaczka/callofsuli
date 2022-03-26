@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QRandomGenerator>
 #include "moduletruefalse.h"
 
 ModuleTruefalse::ModuleTruefalse(QObject *parent) : QObject(parent)
@@ -42,15 +43,36 @@ ModuleTruefalse::ModuleTruefalse(QObject *parent) : QObject(parent)
 
 QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
+	if (!storage) {
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = data.value("correct").toBool() ? QObject::tr("igaz") : QObject::tr("hamis");
+		m["image"] = "";
+		return m;
 
-	QVariantMap m;
-	m["title"] = data.value("question").toString();
-	m["details"] = data.value("correct").toBool() ? QObject::tr("igaz") : QObject::tr("hamis");
-	m["image"] = "";
+	} else if (storage->name() == "binding" || storage->name() == "numbers") {
+		QStringList answers;
 
-	return m;
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap m = v.toMap();
+			QString left = m.value("first").toString();
+			QString right = m.value("second").toString();
+
+			answers.append(QString("%1 — %2").arg(left).arg(right));
+		}
+
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = answers.join(", ");
+		m["image"] = "";
+
+		return m;
+	}
+
+	return QVariantMap({{"title", ""},
+						{"details", ""},
+						{"image", ""}
+					   });
 }
 
 
@@ -65,8 +87,6 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 
 QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storageData)
-
 	if (!storage) {
 		QVariantList list;
 		QVariantMap m = data;
@@ -78,7 +98,140 @@ QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterfa
 		return list;
 	}
 
+	if (storage->name() == "binding" || storage->name() == "numbers")
+		return generateBinding(data, storageData);
+
+
 	return QVariantList();
+}
+
+
+
+
+/**
+ * @brief ModuleTruefalse::generateBinding
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	QString mode = data.value("mode").toString();
+
+	if (mode == "left" || mode == "right") {
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap m = v.toMap();
+			QString left = m.value("first").toString();
+			QString right = m.value("second").toString();
+
+
+			if (!left.isEmpty()) {
+				QVariantMap retMap;
+				retMap["question"] = left;
+				retMap["answer"] = (mode == "left");
+				ret.append(retMap);
+			}
+
+			if (!right.isEmpty()) {
+				QVariantMap retMap;
+				retMap["question"] = right;
+				retMap["answer"] = (mode == "right");
+				ret.append(retMap);
+			}
+		}
+	} else if (mode == "generateLeft" || mode == "generateRight") {
+		QString question = data.value("question").toString();
+		bool isBindToRight = mode == "generateRight";
+
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap m = v.toMap();
+			QString left = m.value("first").toString();
+			QString right = m.value("second").toString();
+
+			if (left.isEmpty() || right.isEmpty())
+				continue;
+
+			bool isCorrect = (QRandomGenerator::global()->generate() % 2 == 1);
+
+			QString questionPart = isBindToRight ? right : left;
+			QString answerPart;
+
+			if (isCorrect)
+				answerPart = isBindToRight ? left : right;
+			else {
+				QStringList alist;
+
+				foreach (QVariant v, storageData.value("bindings").toList()) {
+					QVariantMap mm = v.toMap();
+					QString f1 = mm.value("first").toString();
+					QString f2 = mm.value("second").toString();
+
+					if ((isBindToRight && right == f2) || (!isBindToRight && left == f1))
+						continue;
+
+					if ((isBindToRight && f1.isEmpty()) || (!isBindToRight && f2.isEmpty()))
+						continue;
+
+					alist.append(isBindToRight ? f1 : f2);
+				}
+
+				if (alist.size() > 1)
+					answerPart = alist.at(QRandomGenerator::global()->bounded(alist.size()));
+				else if (alist.size())
+					answerPart = alist.at(0);
+				else {
+					answerPart = isBindToRight ? left : right;
+					isCorrect = true;
+				}
+			}
+
+			QVariantMap retMap;
+
+			if (question.contains("%1") && question.contains("%2"))
+				retMap["question"] = question.arg(questionPart).arg(answerPart);
+			else if (question.contains("%1"))
+				retMap["question"] = question.arg(questionPart)+" "+answerPart;
+			else if (question.isEmpty())
+				retMap["question"] = questionPart+" "+answerPart;
+			else
+				retMap["question"] = question+" "+questionPart+" "+answerPart;
+
+			retMap["answer"] = isCorrect;
+
+			ret.append(retMap);
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief ModuleTruefalse::preview
+ * @return
+ */
+
+QVariantMap ModuleTruefalse::preview(const QVariantList &generatedList) const
+{
+	QVariantMap m;
+	QString s;
+
+	foreach (QVariant v, generatedList) {
+		QVariantMap m = v.toMap();
+
+		if (m.value("answer").toBool())
+			s.append(QString("- [x] **%1**\n").arg(m.value("question").toString()));
+		else
+			s.append(QString("- [ ] %1\n").arg(m.value("question").toString()));
+	}
+
+	m["text"] = s;
+
+	return m;
 }
 
 

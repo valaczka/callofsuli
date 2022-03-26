@@ -113,7 +113,7 @@ Loader {
 						{value: "right", text: qsTr("Jobb oldaliakhoz")}
 					]
 
-					onActivated: textPreview.refresh()
+					onActivated: preview.refresh()
 				}
 
 
@@ -126,7 +126,7 @@ Loader {
 					sqlField: "question"
 					placeholderText: qsTr("Ez a kérdés fog megjelenni. \%1 az összerendelésből kiválasztott tételre cserélődik ki.")
 
-					onTextModified: textPreview.refresh()
+					onTextModified: preview.refresh()
 				}
 
 
@@ -158,39 +158,19 @@ Loader {
 
 			}
 
-			QCollapsible {
-				id: collapsiblePreview
+			MapEditorObjectivePreview {
+				id: preview
 
-				title: qsTr("Előnézet")
-				collapsed: true
-				visible: mapEditor
+				refreshFunc: function() { return mapEditor.objectiveGeneratePreview("simplechoice", getData(), storageModule, storageData) }
 
-				onCollapsedChanged: textPreview.refresh()
-
-				QLabel {
-					id: textPreview
-					width: parent.width
-					wrapMode: Text.Wrap
-					textFormat: Text.MarkdownText
-					leftPadding: 20
-					rightPadding: 20
-
-					Connections {
-						target: ldr
-						function onStorageDataChanged() {
-							textPreview.refresh()
-						}
-					}
-
-					function refresh() {
-						if (collapsiblePreview.collapsed)
-							return
-
-						var d = mapEditor.objectiveGeneratePreview("simplechoice", getData(), storageModule, storageData)
-						text = d.text
+				Connections {
+					target: ldr
+					function onStorageDataChanged() {
+						preview.refresh()
 					}
 				}
 			}
+
 
 			function getData() {
 				moduleData = JS.getSqlFields([comboMode, textQuestion2])
@@ -201,7 +181,7 @@ Loader {
 	}
 
 	Component.onCompleted: {
-		if (storageModule == "binding")
+		if (storageModule == "binding" || storageModule == "numbers")
 			ldr.sourceComponent = cmpBinding
 		else
 			ldr.sourceComponent = cmpNone

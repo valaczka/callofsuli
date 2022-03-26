@@ -50,7 +50,7 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 
 	if (!storage)
 		l = data.value("pairs").toList();
-	else if (storage->name() == "binding")
+	else if (storage->name() == "binding" || storage->name() == "numbers")
 		l = storageData.value("bindings").toList();
 
 	foreach (QVariant v, l) {
@@ -87,7 +87,7 @@ QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *s
 
 	if (!storage)
 		alist = data.value("pairs").toList();
-	else if (storage->name() == "binding")
+	else if (storage->name() == "binding" || storage->name() == "numbers")
 		alist = storageData.value("bindings").toList();
 
 	m.insert(generateOne(data, alist));

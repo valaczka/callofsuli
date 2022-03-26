@@ -211,10 +211,11 @@ Page {
 			icon.source: CosStyle.iconBack
 
 			onClicked: {
-				if (stack.depth > 1)
+				/*if (stack.depth > 1)
 					stack.pop()
 				else if (backFunction)
-					backFunction()
+					backFunction()*/
+				mainStack.back()
 			}
 
 			states: State {

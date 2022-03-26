@@ -17,6 +17,8 @@ Column {
 
 	property bool readOnly: false
 
+	signal modification()
+
 	Layout.fillWidth: true
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
@@ -49,6 +51,8 @@ Column {
 
 
 				onDeleteAction: {
+					modification()
+
 					if (parent.watchModification)
 						parent.modified = true
 
@@ -56,9 +60,10 @@ Column {
 				}
 
 				onAcceptAction: if (parent.children && parent.children.length > 1) {
-									if (parent.children[parent.children.length-1] === field)
+									if (parent.children[parent.children.length-1] === field) {
 										addField()
-									else {
+										modification()
+									} else {
 										for (var i=0; i<parent.children.length; i++) {
 											if (parent.children[i] === field) {
 												parent.children[i+1].first.forceActiveFocus()
@@ -69,7 +74,10 @@ Column {
 
 								} else {
 									addField()
+									modification()
 								}
+
+				onModifyAction: modification()
 
 			}
 		}
@@ -82,6 +90,7 @@ Column {
 		visible: !control.readOnly
 		onClicked: {
 			addField()
+			modification()
 			if (control.watchModification) {
 				control.modified = true
 				control.parent.modified = true

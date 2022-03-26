@@ -334,6 +334,34 @@ void MapEditorAction::missionLevelRemoveChapter(GameMapEditorMissionLevel *level
 
 
 /**
+ * @brief MapEditorAction::missionLockAdd
+ * @param mission
+ * @param level
+ */
+
+void MapEditorAction::missionLockAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level)
+{
+	mission->locks()->addObject(level);
+}
+
+
+/**
+ * @brief MapEditorAction::missionLockRemove
+ * @param mission
+ * @param level
+ */
+
+void MapEditorAction::missionLockRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level)
+{
+	int index = mission->locks()->index(level);
+	Q_ASSERT(index != -1);
+	mission->locks()->unselectAll();
+	mission->locks()->removeObject(index);
+}
+
+
+
+/**
  * @brief MapEditorAction::inventoryAdd
  * @param level
  * @param inventory
@@ -1754,6 +1782,109 @@ MapEditorActionStorageRemove::MapEditorActionStorageRemove(GameMapEditor *editor
  */
 
 MapEditorActionStorageRemove::~MapEditorActionStorageRemove()
+{
+
+}
+
+
+
+/**
+ * @brief MapEditorActionMissionLockNew::MapEditorActionMissionLockNew
+ * @param editor
+ * @param parentMission
+ * @param level
+ */
+
+MapEditorActionMissionLockNew::MapEditorActionMissionLockNew(GameMapEditor *editor, GameMapEditorMission *parentMission, GameMapEditorMissionLevel *level)
+	: MapEditorAction(editor, ActionTypeMission, parentMission->uuid())
+	, m_mission(parentMission)
+	, m_missionLevel(level)
+{
+	setDescription(QObject::tr("Zárolás hozzáadása: %1").arg(parentMission->name()));
+
+	setUndoFunc([this](){
+		missionLockRemove(m_mission, m_missionLevel);
+	});
+
+	setRedoFunc([this](){
+		missionLockAdd(m_mission, m_missionLevel);
+	});
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionLockNew::~MapEditorActionMissionLockNew
+ */
+
+MapEditorActionMissionLockNew::~MapEditorActionMissionLockNew()
+{
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionLockRemove::MapEditorActionMissionLockRemove
+ * @param editor
+ * @param parentMission
+ * @param level
+ */
+
+MapEditorActionMissionLockRemove::MapEditorActionMissionLockRemove(GameMapEditor *editor, GameMapEditorMission *parentMission,
+																   GameMapEditorMissionLevel *level)
+	: MapEditorAction(editor, ActionTypeMission, parentMission->uuid())
+	, m_mission(parentMission)
+	, m_missionLevel(level)
+{
+	setDescription(QObject::tr("Zárolás eltávolítása: %1").arg(parentMission->name()));
+
+	setUndoFunc([this](){
+		missionLockAdd(m_mission, m_missionLevel);
+	});
+
+	setRedoFunc([this](){
+		missionLockRemove(m_mission, m_missionLevel);
+	});
+
+}
+
+MapEditorActionMissionLockRemove::~MapEditorActionMissionLockRemove()
+{
+
+}
+
+
+/**
+ * @brief MapEditorActionMissionLockReplace::MapEditorActionMissionLockReplace
+ * @param editor
+ * @param parentMission
+ * @param oldLevel
+ * @param newLevel
+ */
+
+MapEditorActionMissionLockReplace::MapEditorActionMissionLockReplace(GameMapEditor *editor, GameMapEditorMission *parentMission,
+																	 GameMapEditorMissionLevel *oldLevel,
+																	 GameMapEditorMissionLevel *newLevel)
+	: MapEditorAction(editor, ActionTypeMission, parentMission->uuid())
+	, m_mission(parentMission)
+	, m_missionLevelOld(oldLevel)
+	, m_missionLevelNew(newLevel)
+{
+	setDescription(QObject::tr("Zárolás módosítása: %1").arg(parentMission->name()));
+
+	setUndoFunc([this](){
+		missionLockRemove(m_mission, m_missionLevelNew);
+		missionLockAdd(m_mission, m_missionLevelOld);
+	});
+
+	setRedoFunc([this](){
+		missionLockRemove(m_mission, m_missionLevelOld);
+		missionLockAdd(m_mission, m_missionLevelNew);
+	});
+
+}
+
+MapEditorActionMissionLockReplace::~MapEditorActionMissionLockReplace()
 {
 
 }

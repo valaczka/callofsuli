@@ -96,26 +96,49 @@ Item {
 				{value: "shuffle", text: qsTr("Keverve")}
 			]
 		}
+
+
+		QGridText {
+			text: qsTr("Feladatok száma:")
+			field: sCount
+			visible: sCount.visible
+		}
+
+		QGridSpinBox {
+			id: sCount
+			from: 1
+			to: 99
+			editable: true
+
+			onValueModified: {
+				storageCount = value
+			}
+		}
+
 	}
 
 
 	Component.onCompleted: {
-		if (storageModule == "binding")
+		if (storageModule == "binding" || storageModule == "numbers") {
 			fields.visible = false
+		} else {
+			sCount.visible = false
+		}
 
 		if (!moduleData)
 			return
 
-		if (storageModule == "binding")
+		if (storageModule == "binding" || storageModule == "numbers") {
 			JS.setSqlFields([textQuestion, spinCount, spinOptions, comboMode], moduleData)
-		else
+			sCount.setData(storageCount)
+		} else
 			JS.setSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode], moduleData)
 
 	}
 
 
 	function getData() {
-		if (storageModule == "binding")
+		if (storageModule == "binding" || storageModule == "numbers")
 			moduleData = JS.getSqlFields([textQuestion, spinCount, spinOptions, comboMode])
 		else
 			moduleData = JS.getSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode])

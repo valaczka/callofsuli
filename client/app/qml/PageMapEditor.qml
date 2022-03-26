@@ -213,7 +213,7 @@ QTabPage {
 
 	Action {
 		id: actionRedo
-		icon.source: CosStyle.iconSend
+		icon.source: CosStyle.iconRedo
 		enabled: mapEditor.editor && mapEditor.undoStack.canRedo
 		onTriggered: mapEditor.undoStack.redo()
 		shortcut: "Ctrl+Shift+Z"
@@ -236,7 +236,7 @@ QTabPage {
 
 	Action {
 		id: actionOpen
-		icon.source: CosStyle.iconPreferences
+		icon.source: CosStyle.iconOpen
 		text: qsTr("Megnyitás")
 		enabled: !mapEditor.editor
 		onTriggered: {
@@ -257,7 +257,7 @@ QTabPage {
 
 	Action {
 		id: actionNew
-		icon.source: CosStyle.iconAdd
+		icon.source: CosStyle.iconNew
 		text: qsTr("Új pálya")
 		enabled: !mapEditor.editor
 		onTriggered: mapEditor.create()
@@ -266,7 +266,7 @@ QTabPage {
 
 	Action {
 		id: actionSaveAs
-		icon.source: CosStyle.iconSearch
+		icon.source: "image://font/Material Icons/\ue02e"
 		text: qsTr("Mentés másként")
 		enabled: mapEditor.editor
 		onTriggered:  {
@@ -334,15 +334,24 @@ QTabPage {
 		if (_closeEnabled || !mapEditor.editor)
 			return false
 
+		if (actionSave.enabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
 
 		var err = mapEditor.checkMap()
 
 		if (err !== "") {
 			var dd = JS.dialogCreateQml("YesNoFlickable", {
-										   title: qsTr("Hibás pálya"),
-										   text: qsTr("Ennek ellenére bezárod a szerkesztőt?"),
-										   details: err
-									   })
+											title: qsTr("Hibás pálya"),
+											text: qsTr("A pálya hibákat tartalmaz.\nEnnek ellenére bezárod a szerkesztőt?"),
+											details: err
+										})
 
 			dd.item.titleColor = CosStyle.colorWarningLighter
 			dd.item.textColor = CosStyle.colorWarningLight
@@ -356,16 +365,7 @@ QTabPage {
 			return true
 		}
 
-		if (!actionSave.enabled)
-			return false
-
-		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
-		d.accepted.connect(function() {
-			_closeEnabled = true
-			mainStack.back()
-		})
-		d.open()
-		return true
+		return false
 	}
 
 	closeCallbackFunction: function () {
@@ -375,14 +375,24 @@ QTabPage {
 		if (_closeEnabled || !mapEditor.editor)
 			return false
 
+		if (actionSave.enabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainWindow.close()
+			})
+			d.open()
+			return true
+		}
+
 		var err = mapEditor.checkMap()
 
 		if (err !== "") {
 			var dd = JS.dialogCreateQml("YesNoFlickable", {
-										   title: qsTr("Hibás pálya"),
-										   text: qsTr("Ennek ellenére bezárod a szerkesztőt?"),
-										   details: err
-									   })
+											title: qsTr("Hibás pálya"),
+											text: qsTr("A pálya hibákat tartalmaz.\nEnnek ellenére bezárod a szerkesztőt?"),
+											details: err
+										})
 
 			dd.item.titleColor = CosStyle.colorWarningLighter
 			dd.item.textColor = CosStyle.colorWarningLight
@@ -397,15 +407,6 @@ QTabPage {
 		}
 
 
-		if (!actionSave.enabled)
-			return false
-
-		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
-		d.accepted.connect(function() {
-			_closeEnabled = true
-			mainWindow.close()
-		})
-		d.open()
-		return true
+		return false
 	}
 }

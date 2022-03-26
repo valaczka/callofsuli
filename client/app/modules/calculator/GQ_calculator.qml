@@ -9,8 +9,8 @@ import "JScript.js" as JS
 Item {
 	id: control
 
-	implicitHeight: labelQuestion.height+(implicitButtonSize*4)+25
-	implicitWidth: Math.max(500, (labelQuestion.implicitWidth+labelSuffix.implicitWidth)*2)
+	implicitHeight: labelQuestion.implicitHeight+(implicitButtonSize*4)+25
+	implicitWidth: Math.max(500, (labelQuestion.implicitWidth+labelSuffix.implicitWidth+200))			// 200 -> labelNumber1.width
 
 	required property var questionData
 
