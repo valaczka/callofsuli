@@ -348,13 +348,13 @@ bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 			return false;
 		}
 
-		if (emailRegistration(email, firstname, lastname, code)) {
+		/*if (emailRegistration(email, firstname, lastname, code)) {
 			(*jsonResponse)["success"] = true;
 			return true;
-		} else {
+		} else {*/
 			(*jsonResponse)["error"] = "smtp error";
 			return false;
-		}
+		/*}*/
 	}
 }
 
@@ -476,85 +476,3 @@ bool UserInfo::getMyGroups(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
-
-
-
-/**
- * @brief UserInfo::emailRegistration
- * @param email
- * @param firstname
- * @param lastname
- * @param code
- * @return
- */
-
-
-bool UserInfo::emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
-{
-	SmtpClient smtp;
-	QString serverName = m_client->server()->serverName();
-	QString serverEmail;
-
-	if (!m_client->emailSmptClient("registration", &smtp, &serverEmail))
-		return false;
-
-	QUrl url;
-	url.setHost(m_client->server()->host());
-	url.setPort(m_client->server()->port());
-	url.setScheme("callofsuli");
-
-	QString path = "";
-	if (m_client->server()->socketServer()->secureMode() == QWebSocketServer::SecureMode)
-		path += "/ssl";
-
-	path += "/register";
-
-	QUrlQuery query;
-	if (!serverName.isEmpty())
-		query.addQueryItem("name", QUrl::toPercentEncoding(serverName));
-
-	query.addQueryItem("server", QUrl::toPercentEncoding(m_client->server()->serverUuid()));
-	query.addQueryItem("user", QUrl::toPercentEncoding(email.trimmed()));
-	query.addQueryItem("code", QUrl::toPercentEncoding(code));
-
-
-	url.setPath(path);
-	url.setQuery(query);
-
-
-	MimeMessage message;
-
-	message.setSender(new EmailAddress(serverEmail, serverName));
-	message.addRecipient(new EmailAddress(email.trimmed(), QStringList({firstname, lastname}).join(" ")));
-	message.setSubject(tr("Call of Suli regisztráció"));
-
-
-	MimeHtml html;
-
-	html.setHtml(tr("<h2>Kedves %1!</h2>"
-						 "<p>A(z) %2 szerverre a(z) %3 címmel regisztráltál.</p>"
-						 "<p>A regisztráció aktiválásához kattints a következő linkre: <a href=\"%4\">%4</a></p>"
-						 "<p>Ha nem működik, akkor jelentkezz be a következő ideiglenes jelszóval:</p>"
-						 "<h2>%5</h2>"
-						 "<hr />"
-						 "<p><i>%2</i><br/>"
-						 "Call of Suli</p>")
-				 .arg(lastname)
-				 .arg(serverName)
-				 .arg(email.trimmed())
-				 .arg(url.toString(QUrl::FullyEncoded))
-				 .arg(code)
-				 );
-
-	message.addPart(&html);
-
-	bool ret = smtp.sendMail(message);
-	smtp.quit();
-
-	if (!ret)
-		return false;
-
-	qInfo().noquote() << tr("Regisztrációs kód elküldve: ") << email;
-
-	return true;
-}

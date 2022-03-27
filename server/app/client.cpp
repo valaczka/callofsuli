@@ -309,12 +309,12 @@ void Client::clientAuthorize(const CosMessage &message)
 
 	QJsonObject a = message.jsonAuth();
 
-	if (a.value("passwordRequest").toBool()) {
+	/*if (a.value("passwordRequest").toBool()) {
 		setClientState(ClientUnauthorized);
 		setClientUserName("");
 		clientPasswordRequest(message);
 		return;
-	}
+	}*/
 
 
 	QString session = a.value("session").toString("");
@@ -530,86 +530,6 @@ void Client::clientLogout(const CosMessage &message)
 }
 
 
-/**
- * @brief Client::clientPasswordRequest
- * @param data
- */
-
-bool Client::clientPasswordRequest(const CosMessage &message)
-{
-	if (message.jsonAuth().isEmpty())
-		return false;
-
-	QJsonObject a = message.jsonAuth();
-
-	QString email = a.value("user").toString();
-	QString code = a.value("code").toString();
-
-	//QRegularExpression regex("^[0-9a-zA-Z]+([0-9a-zA-Z][-._+])[0-9a-zA-Z]+@[0-9a-zA-Z]+([-.][0-9a-zA-Z]+)([0-9a-zA-Z][.])[a-zA-Z]{2,6}$");
-
-	if (email.isEmpty()) { //|| !regex.match(email).hasMatch()) {
-		CosMessage r(CosMessage::PasswordRequestMissingEmail, message);
-		r.send(m_socket);
-		return false;
-	}
-
-	QVariantMap m = db()->execSelectQueryOneRow("SELECT firstname, lastname FROM user WHERE active=1 AND username=?", {email});
-	if (!m.isEmpty()) {
-		QString firstname = m.value("firstname").toString();
-		QString lastname = m.value("lastname").toString();
-
-		if (code.isEmpty()) {
-			if (!db()->execSimpleQuery("INSERT OR REPLACE INTO passwordReset (username) VALUES (?)", {email})) {
-				CosMessage r(CosMessage::ServerInternalError, "passwordReset", message);
-				r.send(m_socket);
-				return false;
-			}
-
-			QVariantMap mm = db()->execSelectQueryOneRow("SELECT code FROM passwordReset WHERE username=?", {email});
-			if (!mm.isEmpty()) {
-				if (emailPasswordReset(email, firstname, lastname, mm.value("code").toString())) {
-					CosMessage r(CosMessage::PasswordRequestCodeSent, message);
-					r.send(m_socket);
-					return true;
-				} else {
-					CosMessage r(CosMessage::ServerSmtpError, "sendEmail", message);
-					r.send(m_socket);
-					return false;
-				}
-			} else {
-				CosMessage r(CosMessage::ServerInternalError, "passwordResetCode", message);
-				r.send(m_socket);
-				return false;
-			}
-		} else {
-			QVariantMap mm = db()->execSelectQueryOneRow("SELECT username FROM passwordReset WHERE code=? AND username=?", {code, email});
-			if (!mm.isEmpty()) {
-				if (db()->execSimpleQuery("UPDATE auth SET password=null, salt=null WHERE username=?", {email}) &&
-					db()->execSimpleQuery("DELETE FROM passwordReset WHERE username=?", {email})) {
-					CosMessage r(CosMessage::PasswordRequestSuccess, message);
-					r.send(m_socket);
-					qInfo().noquote() << "Password reset:" << email;
-					return true;
-				} else {
-					CosMessage r(CosMessage::ServerInternalError, "passwordUpdate", message);
-					r.send(m_socket);
-					return false;
-				}
-			} else {
-				CosMessage r(CosMessage::PasswordRequestInvalidCode, message);
-				r.send(m_socket);
-				return false;
-			}
-		}
-	} else {
-		CosMessage r(CosMessage::PasswordRequestInvalidEmail, message);
-		r.send(m_socket);
-		return false;
-	}
-
-	return false;
-}
-
 
 
 
@@ -643,17 +563,6 @@ void Client::updateRoles()
 
 
 
-
-
-/**
- * @brief Client::onSmtpError
- * @param e
- */
-
-void Client::onSmtpError(SmtpClient::SmtpError e)
-{
-	qWarning().noquote() << "SMTP error" << e;
-}
 
 
 
@@ -711,7 +620,7 @@ void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
 			bool isSuccess = u.userCreate(&ret, nullptr);
 
 			if (isSuccess) {
-				qInfo().noquote() << tr("User registered") << user;
+				qInfo().noquote() << tr("User registered (automatic)") << user;
 			} else {
 				CosMessage r(CosMessage::ServerInternalError, "oauth2 registration");
 				r.send(m_socket);
@@ -870,158 +779,6 @@ bool Client::registerUser(const QString &email, const QString &code)
 	} else {
 		return false;
 	}
-}
-
-
-
-
-
-
-
-/**
- * @brief Client::emailSmptClient
- * @param type
- * @return
- */
-
-bool Client::emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverEmail)
-{
-	if (!smtpClient) {
-		qWarning().noquote() << "Missing smtpClient!";
-		return false;
-	}
-
-	bool enabled = false;
-
-	if (emailType == "passwordReset")
-		enabled = db()->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.passwordReset'").value("enabled", false).toBool();
-	else if (emailType == "registration")
-		enabled = db()->execSelectQueryOneRow("SELECT value as enabled FROM settings WHERE key='email.registration'").value("enabled", false).toBool();
-
-	QString server =  db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.server'").value("v").toString();
-	int port = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.port'").value("v", 0).toInt();
-	int type = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.type'").value("v", 0).toInt();
-	QString user = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.user'").value("v").toString();
-	QString password = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.password'").value("v").toString();
-
-	if (!enabled ||
-		server.isEmpty() ||
-		port <= 0 ||
-		user.isEmpty() ||
-		password.isEmpty()) {
-
-		qWarning().noquote() << "Email password reset disabled!";
-		return false;
-	}
-
-	SmtpClient::ConnectionType c = SmtpClient::TcpConnection;
-
-	if (type==1)
-		c = SmtpClient::SslConnection;
-	else if (type==2)
-		c = SmtpClient::TlsConnection;
-
-	if (serverEmail)
-		*serverEmail = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='smtp.email'").value("v").toString();
-
-	smtpClient->setHost(server);
-	smtpClient->setPort(port);
-	smtpClient->setConnectionType(c);
-	smtpClient->setUser(user);
-	smtpClient->setPassword(password);
-
-	connect(smtpClient, &SmtpClient::smtpError, this, &Client::onSmtpError);
-
-	if (!smtpClient->connectToHost()) {
-		qWarning().noquote() << "Couldn't connect to SMTP host" << server << port;
-		return false;
-	}
-
-	if (!smtpClient->login()) {
-		qWarning().noquote() << "Couldn't login to SMTP host" << user;
-		return false;
-	}
-
-	return true;
-}
-
-
-/**
- * @brief Client::emailPasswordReset
- * @param email
- * @param firstname
- * @param lastname
- * @param code
- */
-
-bool Client::emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
-{
-	SmtpClient smtp;
-	QString serverName = server()->serverName();
-	QString serverEmail;
-
-	if (!emailSmptClient("passwordReset", &smtp, &serverEmail))
-		return false;
-
-
-	QUrl url;
-	url.setHost(server()->host());
-	url.setPort(server()->port());
-	url.setScheme("callofsuli");
-
-	QString path = "";
-	if (server()->socketServer()->secureMode() == QWebSocketServer::SecureMode)
-		path += "/ssl";
-
-	path += "/reset";
-
-	QUrlQuery query;
-	if (!serverName.isEmpty())
-		query.addQueryItem("name", QUrl::toPercentEncoding(serverName));
-
-	query.addQueryItem("server", QUrl::toPercentEncoding(server()->serverUuid()));
-	query.addQueryItem("user", QUrl::toPercentEncoding(email.trimmed()));
-	query.addQueryItem("code", QUrl::toPercentEncoding(code));
-
-
-	url.setPath(path);
-	url.setQuery(query);
-
-
-	MimeMessage message;
-
-	message.setSender(new EmailAddress(serverEmail, serverName));
-	message.addRecipient(new EmailAddress(email.trimmed(), QStringList({firstname, lastname}).join(" ")));
-	message.setSubject(tr("Call of Suli aktivációs kód"));
-
-	MimeHtml html;
-
-	html.setHtml(tr("<h2>Kedves %1!</h2>"
-					"<p>A(z) %2 email címhez tartozó fiók jelszavának alaphelyzetbe állítását kérted.</p>"
-					"<p>Új jelszó megadásához kattints a következő linkre: <a href=\"%3\">%3</a></p>"
-					"<p>Ha nem működik, akkor add meg az alábbi aktivációs kódot:</p>"
-					"<h2>%4</h2>"
-					"<hr />"
-					"<p><i>%5</i><br/>"
-					"Call of Suli</p>")
-				 .arg(lastname)
-				 .arg(email)
-				 .arg(url.toString(QUrl::FullyEncoded))
-				 .arg(code)
-				 .arg(serverName)
-				 );
-
-	message.addPart(&html);
-
-	bool ret = smtp.sendMail(message);
-	smtp.quit();
-
-	if (!ret)
-		return false;
-
-	qInfo().noquote() << tr("Aktivációs kód elküldve: ") << email;
-
-	return true;
 }
 
 

@@ -7,7 +7,6 @@
 - QtJsonSerializer - (c) 2015 - Felix Barz (https://github.com/Skycoder42/QtJsonSerializer)
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - qzxing (https://github.com/ftylitak/qzxing) 
-- SMTP Client for Qt - (c) 2011 - Tőkés Attila (https://github.com/bluetiger9/SmtpClient-for-Qt)
 - SortFilterProxyModel - (c) 2016 - Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel
 
 **Image**

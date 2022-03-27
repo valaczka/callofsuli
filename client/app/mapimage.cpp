@@ -47,7 +47,14 @@ QPixmap MapImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 	if (m_map) {
 		QStringList path = id.split("/");
 
-		QPixmap outPixmap = m_map->imagePixmap(path.value(0, ""));
+		QPixmap outPixmap;// = m_map->imagePixmap();
+
+		foreach (GameMapImageIface *i, m_map->ifaceImages()) {
+			if (i->m_name == path.value(0, "")) {
+				outPixmap.loadFromData(i->m_data);
+			}
+		}
+
 
 		if (!outPixmap.isNull()) {
 			if (requestedSize.isValid())

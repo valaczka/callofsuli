@@ -6,7 +6,6 @@ TEMPLATE = subdirs
 	SUBDIRS = version
 }
 
-SUBDIRS += server/smtpclient \
-	server/app
+SUBDIRS += server/app
 
 CONFIG += ordered

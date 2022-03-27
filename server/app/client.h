@@ -32,7 +32,6 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 
-#include "SmtpMime"
 #include "cosdb.h"
 #include "cosmessage.h"
 
@@ -63,9 +62,6 @@ public:
 	QWebSocket *socket() const { return m_socket; }
 	Server *server() const { return m_server; }
 
-	bool emailSmptClient(const QString &emailType, SmtpClient *smtpClient, QString *serverEmail = nullptr);
-	bool emailPasswordReset(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
-
 	QString clientSession() const { return m_clientSession; }
 	void setClientSession(const QString &clientSession);
 
@@ -88,9 +84,7 @@ private slots:
 	void onBinaryMessageReceived(const QByteArray &message);
 	void clientAuthorize(const CosMessage &message);
 	void clientLogout(const CosMessage &message);
-	bool clientPasswordRequest(const CosMessage &message);
 	void updateRoles();
-	void onSmtpError(SmtpClient::SmtpError e);
 	void onOAuth2UserinfoReceived(const QJsonObject &data);
 
 signals:

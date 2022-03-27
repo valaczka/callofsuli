@@ -32,7 +32,6 @@
 
 #include <QDataStream>
 #include <QVariantMap>
-#include <QPixmap>
 
 
 class GameMapChapterIface;
@@ -55,8 +54,6 @@ public:
 	explicit GameMapReaderIface();
 	virtual ~GameMapReaderIface();
 
-	QPixmap imagePixmap(const QString &name) const;
-
 	void regenerateUuids();
 	GameMapMissionIface *checkLockTree(QList<GameMapMissionIface *> *listPtr = nullptr) const;
 	QVector<GameMapMissionLevelIface*> missionLockTree(GameMapMissionIface *mission) const;
@@ -72,6 +69,7 @@ public:
 			list.append(s);
 		return list;
 	}
+
 
 protected:
 	bool readBinaryData(const QByteArray &data);
@@ -90,6 +88,9 @@ protected:
 
 
 	QString m_uuid;
+
+
+	friend class MapImage;
 
 private:
 	bool storagesFromStream(QDataStream &stream);
@@ -311,10 +312,9 @@ public:
 	explicit GameMapImageIface() {}
 	virtual ~GameMapImageIface() {}
 
-	QPixmap toPixmap() const;
-
 protected:
 	friend class GameMapReaderIface;
+	friend class MapImage;
 	QString m_name;
 	QByteArray m_data;
 

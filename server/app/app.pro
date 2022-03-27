@@ -28,12 +28,9 @@ CONFIG(debug, debug|release) {
 }
 
 
-LIBS += -L../../ -lsmtpclient
-
 DESTDIR = ../..
 
 QMAKE_LFLAGS += -Wl,--rpath=./,--rpath=./lib/
-INCLUDEPATH += ../smtpclient
 
 SOURCES += \
 		abstracthandler.cpp \

@@ -25,11 +25,9 @@
  */
 
 #include <QDebug>
-#include <QtJsonSerializer>
-
+#include <QRandomGenerator>
 #include "gamemap.h"
 
-bool GameMap::m_isConvertersRegistered = false;
 
 /**
  * @brief GameMapXX::computeSolvedXpFactor
@@ -38,35 +36,12 @@ bool GameMap::m_isConvertersRegistered = false;
  * @param deathmatch
  * @return
  */
-/*
-qreal GameMapXX::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch)
-{
-	qreal xp = XP_FACTOR_LEVEL*level;
-
-	if (deathmatch)
-		xp *= XP_FACTOR_DEATHMATCH;
-
-	if (!baseSolver.hasSolved(level, deathmatch))
-		xp *= XP_FACTOR_SOLVED_FIRST;
-
-	return xp;
-}
-*/
 
 
 GameMap::GameMap()
 	: GameMapReaderIface()
 {
-	if (!m_isConvertersRegistered) {
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapStorage*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapChapter*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapObjective*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapMission*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapMissionLevel*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapInventory*>();
-		QtJsonSerializer::SerializerBase::registerListConverters<GameMapImage*>();
-		m_isConvertersRegistered = true;
-	}
+
 }
 
 
@@ -183,17 +158,6 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data)
 }
 
 
-/**
- * @brief GameMap::toBinaryData
- * @return
- */
-
-QJsonDocument GameMap::toJsonDocument() const
-{
-	QtJsonSerializer::JsonSerializer serializer;
-	QJsonValue json = serializer.serialize(this);
-	return QJsonDocument(json.toObject());
-}
 
 
 /**

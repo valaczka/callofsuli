@@ -47,23 +47,6 @@ GameMapReaderIface::~GameMapReaderIface()
 }
 
 
-/**
- * @brief GameMapReaderIface::imagePixmap
- * @param name
- * @return
- */
-
-QPixmap GameMapReaderIface::imagePixmap(const QString &name) const
-{
-	foreach (GameMapImageIface *i, ifaceImages()) {
-		if (i->m_name == name) {
-			return i->toPixmap();
-		}
-	}
-
-	return QPixmap();
-}
-
 
 /**
  * @brief GameMapReaderIface::regenerateUuids
@@ -796,18 +779,6 @@ void GameMapMissionLevelIface::inventoriesToStream(QDataStream &stream) const
 	}
 }
 
-
-/**
- * @brief GameMapImageIface::toPixmap
- * @return
- */
-
-QPixmap GameMapImageIface::toPixmap() const
-{
-	QPixmap outPixmap = QPixmap();
-	outPixmap.loadFromData(m_data);
-	return outPixmap;
-}
 
 
 

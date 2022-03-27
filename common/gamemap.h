@@ -89,8 +89,6 @@ public:
 
 	static GameMap *fromBinaryData(const QByteArray &data);
 
-	QJsonDocument toJsonDocument() const;
-
 
 	// Solver methods
 
@@ -135,8 +133,6 @@ private:
 	QList<GameMapImage *> m_images;
 	QList<GameMapChapter *> m_chapters;
 	QList<GameMapMission *> m_missions;
-
-	static bool m_isConvertersRegistered;
 };
 
 
