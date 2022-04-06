@@ -304,3 +304,4 @@ void ObjectListModel::setProcessing(bool newProcessing)
 	m_processing = newProcessing;
 	emit processingChanged();
 }
+

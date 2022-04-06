@@ -105,7 +105,7 @@ public:
 	static void loadModules();
 	static void standardPathCreate();
 
-	bool commandLineParse(QCoreApplication &app);
+	QString commandLineParse(QCoreApplication &app);
 
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
@@ -118,8 +118,8 @@ public:
 										   const int &level = -1);
 	static QByteArray terrainDataToJson(const QString &filename);
 
-	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
-	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
+	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window);
+	Q_INVOKABLE void windowRestoreGeometry(QQuickWindow *window);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
 

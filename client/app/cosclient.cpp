@@ -241,7 +241,7 @@ void Client::loadModules()
  * @return
  */
 
-bool Client::commandLineParse(QCoreApplication &app)
+QString Client::commandLineParse(QCoreApplication &app)
 {
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2022 Valaczka János Pál"));
@@ -265,23 +265,19 @@ bool Client::commandLineParse(QCoreApplication &app)
 #endif
 
 #ifdef QT_NO_DEBUG
-	if (parser.isSet("debug"))
+	if (parser.isSet("debug")) {
 		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
-	else
+		qInfo() << "DEBUG TRUE";
+	} else
 		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
 #endif
 
 
 	parser.process(app);
 
-	if (parser.isSet("license")) {
-		QByteArray b = Client::fileContent(":/common/license.txt");
+	if (parser.isSet("license"))
+		return "license";
 
-		QTextStream out(stdout);
-		out << b << Qt::endl;
-
-		return false;
-	}
 
 	if (parser.isSet("terrain")) {
 		QString tmx = parser.value("terrain");
@@ -289,13 +285,13 @@ bool Client::commandLineParse(QCoreApplication &app)
 		QTextStream out(stdout);
 		out << terrainDataToJson(tmx) << Qt::endl;
 
-		return false;
+		return "terrain";
 	}
 
 
 	m_positionalArgumentsToProcess = parser.positionalArguments();
 
-	return true;
+	return "";
 }
 
 
@@ -412,24 +408,19 @@ void Client::registerTypes()
  * @param window
  */
 
-void Client::windowSaveGeometry(QQuickWindow *window, const int &fontSize)
+void Client::windowSaveGeometry(QQuickWindow *window)
 {
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	QSettings s;
 	s.beginGroup("window");
 
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	s.setValue("size", window->size());
 	s.setValue("position", window->position());
-	s.setValue("visibility", window->visibility());
-
-	if (fontSize > 0)
-		s.setValue("fontSize", fontSize);
-
-	s.endGroup();
 #else
 	Q_UNUSED(window)
-	Q_UNUSED(fontSize)
 #endif
+
+	s.endGroup();
 }
 
 
@@ -440,10 +431,8 @@ void Client::windowSaveGeometry(QQuickWindow *window, const int &fontSize)
  * @param forceFullscreen
  */
 
-int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen)
+void Client::windowRestoreGeometry(QQuickWindow *window)
 {
-	int fontSize = -1;
-
 	QSettings s;
 	s.beginGroup("window");
 
@@ -451,31 +440,11 @@ int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscr
 	window->resize(s.value("size", QSize(600, 600)).toSize());
 	window->setPosition(s.value("position", QPoint(0, 0)).toPoint());
 
-	int v = s.value("visibility", QWindow::AutomaticVisibility).toInt();
-
-	if (forceFullscreen)
-		v = QWindow::FullScreen;
-
-	switch (v) {
-		case QWindow::Windowed:
-		case QWindow::Maximized:
-		case QWindow::FullScreen:
-		case QWindow::AutomaticVisibility:
-			window->setVisibility(static_cast<QWindow::Visibility>(v));
-			break;
-	}
-
-
 #else
 	Q_UNUSED(window);
-	Q_UNUSED(forceFullscreen);
 #endif
 
-	fontSize = s.value("fontSize", -1).toInt();
-
 	s.endGroup();
-
-	return fontSize;
 }
 
 

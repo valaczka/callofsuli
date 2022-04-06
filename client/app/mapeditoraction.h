@@ -28,6 +28,8 @@
 #define MAPEDITORACTION_H
 
 #include <QObject>
+#include <QList>
+#include <QPointer>
 #include "editorundostack.h"
 #include "editoraction.h"
 #include "gamemapeditor.h"

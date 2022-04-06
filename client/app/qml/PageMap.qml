@@ -63,12 +63,12 @@ QTabPage {
 	}
 
 	onPageActivated: {
-		cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+		cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 	}
 
 
 	onPageDeactivated: {
-		cosClient.stopSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+		cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 	}
 
 
@@ -82,11 +82,11 @@ QTabPage {
 			case Qt.ApplicationSuspended:
 			case Qt.ApplicationHidden:
 				if (control.isCurrentItem)
-					cosClient.stopSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+					cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			case Qt.ApplicationActive:
 				if (control.isCurrentItem)
-					cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+					cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			}
 		}

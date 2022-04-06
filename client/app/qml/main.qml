@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.14
+import QtQuick.Window 2.15
 import QtQuick.Controls.Material 2.3
 import QtMultimedia 5.12
 import COS.Client 1.0
@@ -11,7 +12,7 @@ import "JScript.js" as JS
 
 ApplicationWindow {
 	id: mainWindow
-	visible: true
+	visible: false
 	width: 640
 	height: 480
 
@@ -19,6 +20,7 @@ ApplicationWindow {
 
 	minimumWidth: 640
 	minimumHeight: 480
+
 
 	FontLoader { source: "qrc:/internal/font/ariblk.ttf" }
 	FontLoader { source: "qrc:/internal/font/Books.ttf" }
@@ -161,32 +163,49 @@ ApplicationWindow {
 	}
 
 
+	Action {
+		id: actionFullscreen
+		shortcut: "Ctrl+F11"
+		onTriggered: {
+			if (mainWindow.visibility == Window.FullScreen)
+				mainWindow.showMaximized()
+			else
+				mainWindow.showFullScreen()
+		}
+	}
+
 	onClosing: {
 		if (mainStack.currentItem && mainStack.currentItem.closeCallbackFunction) {
-				if (!mainStack.currentItem.closeCallbackFunction()) {
-					close.accepted = true
-					cosClient.windowSaveGeometry(mainWindow, CosStyle.pixelSize)
-					Qt.quit()
-				} else {
-					close.accepted = false
-				}
+			if (!mainStack.currentItem.closeCallbackFunction()) {
+				close.accepted = true
+				cosClient.windowSaveGeometry(mainWindow, CosStyle.pixelSize)
+				Qt.quit()
+			} else {
+				close.accepted = false
+			}
 
 		} else {
 			close.accepted = true
-			cosClient.windowSaveGeometry(mainWindow, CosStyle.pixelSize)
+			cosClient.windowSaveGeometry(mainWindow)
+			cosClient.setSetting("window/fontSize", CosStyle.pixelSize)
 			Qt.quit()
 		}
 	}
 
 
+
 	Component.onCompleted: {
+		cosClient.messageSent.connect(JS.dialogMessage)
+
 		cosClient.windowSetIcon(mainWindow)
-		var fs = cosClient.windowRestoreGeometry(mainWindow)
+
+		var fs = cosClient.getSetting("window/fontSize", 0)
 		if (fs > 0)
 			CosStyle.pixelSize = fs
 
+		if (!DEBUG_MODE)
+			showFullScreen()
 
-		cosClient.messageSent.connect(JS.dialogMessage)
 		JS.createPage("Start", {})
 		//JS.createPage("MapEditor", {})
 		//JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/ddd.map"})

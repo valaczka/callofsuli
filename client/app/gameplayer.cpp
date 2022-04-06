@@ -551,39 +551,39 @@ QString GamePlayer::playSoundEffect(const QString &effect)
 
 	if (effect == "run") {
 		if (m_soundEffectRunNum > 1) {
-			newSource = "qrc:/sound/sfx/run2.ogg";
+			newSource = "qrc:/sound/sfx/run2.mp3";
 			m_soundEffectRunNum = 1;
 		} else {
-			newSource = "qrc:/sound/sfx/run1.ogg";
+			newSource = "qrc:/sound/sfx/run1.mp3";
 			m_soundEffectRunNum = 2;
 		}
 	} else if (effect == "walk") {
 		if (m_soundEffectWalkNum > 1) {
-			newSource = "qrc:/sound/sfx/step2.ogg";
+			newSource = "qrc:/sound/sfx/step2.mp3";
 			m_soundEffectWalkNum = 1;
 		} else {
-			newSource = "qrc:/sound/sfx/step1.ogg";
+			newSource = "qrc:/sound/sfx/step1.mp3";
 			m_soundEffectWalkNum = 2;
 		}
 	} else if (effect == "climb") {
 		if (m_soundEffectClimbNum > 1) {
-			newSource = "qrc:/sound/sfx/ladderup2.ogg";
+			newSource = "qrc:/sound/sfx/ladderup2.mp3";
 			m_soundEffectClimbNum = 1;
 		} else {
-			newSource = "qrc:/sound/sfx/ladderup1.ogg";
+			newSource = "qrc:/sound/sfx/ladderup1.mp3";
 			m_soundEffectClimbNum = 2;
 		}
 	} else if (effect == "ladder") {
-		newSource = "qrc:/sound/sfx/ladder.ogg";
+		newSource = "qrc:/sound/sfx/ladder.mp3";
 	} else if (effect == "pain") {
 		if (m_soundEffectPainNum > 2) {
-			newSource = "qrc:/sound/sfx/pain3.ogg";
+			newSource = "qrc:/sound/sfx/pain3.mp3";
 			m_soundEffectClimbNum = 1;
 		} else 	if (m_soundEffectPainNum == 2) {
-			newSource = "qrc:/sound/sfx/pain2.ogg";
+			newSource = "qrc:/sound/sfx/pain2.mp3";
 			m_soundEffectPainNum = 3;
 		} else {
-			newSource = "qrc:/sound/sfx/pain1.ogg";
+			newSource = "qrc:/sound/sfx/pain1.mp3";
 			m_soundEffectPainNum = 2;
 		}
 	}

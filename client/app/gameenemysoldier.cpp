@@ -46,7 +46,7 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	, m_atBound(false)
 	, m_turnElapsedMsec(-1)
 	, m_soldierType("soldier1")
-	, m_shotSoundFile("qrc:/sound/sfx/enemyshot.ogg")
+	, m_shotSoundFile("qrc:/sound/sfx/enemyshot.mp3")
 {
 	m_movingTimer = new QTimer(this);
 	m_movingTimer->setInterval(60);

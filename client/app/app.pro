@@ -1,4 +1,4 @@
-QT += sql websockets quick svg multimedia network networkauth jsonserializer
+QT += sql websockets quick svg multimedia network networkauth
 
 android|ios|linux: QT += webview
 
@@ -27,6 +27,8 @@ INCLUDEPATH += ../Bacon2D-static/qml-box2d
 INCLUDEPATH += ../Bacon2D-static/qml-box2d/Box2D
 INCLUDEPATH += ../Bacon2D-static/tiled/
 INCLUDEPATH += ../Bacon2D-static/tiled/libtiled
+
+DEFINES += TILED_LIBRARY
 
 !android: DESTDIR = ../..
 
@@ -70,6 +72,9 @@ QML_IMPORT_PATH += $$PWD/modules/fillout
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
 	RC_ICONS = $$PWD/../../resources/internal/img/cos96.ico
+	RC_LANG = hu
+	QMAKE_TARGET_COPYRIGHT = Valaczka Janos Pal
+	QMAKE_TARGET_DESCRIPTION = Call of Suli kliens
 }
 
 

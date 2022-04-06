@@ -27,6 +27,7 @@
 #ifndef OBJECTLISTMODEL_H
 #define OBJECTLISTMODEL_H
 
+#include <QCoreApplication>
 #include "qobjectlistmodel.h"
 #include "objectlistmodelobject.h"
 
@@ -148,8 +149,6 @@ public:
 protected slots:
 	void onSelectedChanged();
 };
-
-
 
 
 
@@ -365,11 +364,8 @@ QJsonArray ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::t
 {
 	QJsonArray array;
 	const QList<T*> objs = objects();
-	for(T* obj : objs) {
-		QtJsonSerializer::JsonSerializer serializer;
-		QJsonValue json = serializer.serialize(obj);
-		array.append(json);
-	}
+	for(T* obj : objs)
+		array.append(obj->toJsonObject());
 	return array;
 }
 
@@ -379,11 +375,9 @@ template<typename T>
 QJsonArray ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::toJsonArray(QList<T *> list)
 {
 	QJsonArray array;
-	for(T* obj : list) {
-		QtJsonSerializer::JsonSerializer serializer;
-		QJsonValue json = serializer.serialize(obj);
-		array.append(json);
-	}
+	for(T* obj : list)
+		array.append(obj->toJsonObject());
+
 	return array;
 }
 
@@ -413,5 +407,8 @@ QList<T *> ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::f
 		list.append(qobject_cast<T*>(obj));
 	return list;
 }
+
+
+
 
 #endif // OBJECTLISTMODEL_H

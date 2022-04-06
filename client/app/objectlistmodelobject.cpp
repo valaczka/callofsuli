@@ -69,3 +69,71 @@ void ObjectListModelObject::setSelected(bool newSelected)
 }
 
 
+
+/**
+ * @brief ObjectListModelObject::toJsonObject
+ * @return
+ */
+
+QJsonObject ObjectListModelObject::toJsonObject() const
+{
+	QJsonObject jsonObject;
+
+	const QMetaObject *metaobject = this->metaObject();
+
+	int count = metaobject->propertyCount();
+	for (int i=0; i<count; ++i) {
+		QMetaProperty metaproperty = metaobject->property(i);
+		if (metaproperty.isReadable() && metaproperty.isStored() && metaproperty.name() != QStringLiteral("objectName"))
+			jsonObject.insert(metaproperty.name(), QJsonValue::fromVariant(metaproperty.read(this)));
+	}
+
+	return jsonObject;
+}
+
+
+
+
+/**
+ * @brief ObjectListModelObject::updateProperties
+ * @param other
+ */
+
+void ObjectListModelObject::updateProperties(QObject *other)
+{
+	const QMetaObject *metaobject = this->metaObject();
+
+	int count = metaobject->propertyCount();
+	for (int i=0; i<count; ++i) {
+		QMetaProperty metaproperty = metaobject->property(i);
+		if (metaproperty.isWritable())
+			metaproperty.write(this, metaproperty.read(other));
+	}
+}
+
+
+/**
+ * @brief ObjectListModelObject::fromJsonObjectPrivate
+ * @param objectType
+ * @param jsonObject
+ * @param parent
+ * @return
+ */
+
+QObject *ObjectListModelObject::fromJsonObjectPrivate(const QMetaObject objectType, const QJsonObject &jsonObject, QObject *parent)
+{
+	QObject* object = objectType.newInstance(Q_ARG(QObject*, parent));
+
+	int count = objectType.propertyCount();
+	for (int i=0; i<count; ++i) {
+		QMetaProperty metaproperty = objectType.property(i);
+		const char *propName = metaproperty.name();
+
+		if (jsonObject.contains(propName) && metaproperty.isWritable())
+			metaproperty.write(object, jsonObject.value(propName).toVariant());
+	}
+
+	return object;
+}
+
+

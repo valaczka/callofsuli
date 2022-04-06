@@ -35,6 +35,7 @@
 #include <QQmlContext>
 #include <Logger.h>
 #include <ColorConsoleAppender.h>
+#include <RollingFileAppender.h>
 #include <sqlimage.h>
 #include <fontimage.h>
 #include "qrimage.h"
@@ -78,10 +79,66 @@ int main(int argc, char *argv[])
 	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
 #endif
 
-
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
 
 	QGuiApplication app(argc, argv);
+
+
+#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
+	QSingleInstance instance;
+
+	if (!instance.process()) {
+		qInfo() << QObject::tr("Már fut az alkalmazás egy példánya");
+		return 0;
+	}
+#endif
+
+	srand(time(NULL));
+
+	Box2DPlugin box2dplugin;
+	box2dplugin.registerTypes("Box2D");
+
+	Plugins plugin;
+	plugin.registerTypes("Bacon2D");
+
+	Q_INIT_RESOURCE(Bacon2D_static);
+
+	Client* client = Client::clientInstance();
+
+	QString cmdLine = client->commandLineParse(app);
+
+	if (cmdLine == "terrain")
+		return 0;
+
+#ifdef Q_OS_WIN32
+	FILE *streamO = NULL;
+	FILE *streamE = NULL;
+
+	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+		streamO = freopen("CONOUT$", "w", stdout);
+		streamE = freopen("CONOUT$", "w", stderr);
+	}
+#endif
+
+	if (cmdLine == "license")
+	{
+		QTextStream out(stdout);
+		out << Client::fileContent(":/common/license.txt") << Qt::endl;
+
+#ifdef Q_OS_WIN32
+		if (streamO != NULL)
+			fclose(streamO);
+		if (streamE != NULL)
+			fclose(streamE);
+#endif
+
+		return 0;
+	}
+
+
+
 
 	ColorConsoleAppender* consoleAppender = new ColorConsoleAppender;
 #ifdef Q_OS_ANDROID
@@ -107,48 +164,35 @@ int main(int argc, char *argv[])
 #endif
 
 
-#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
-	QSingleInstance instance;
 
-	if (!instance.process()) {
-		qInfo() << QObject::tr("Már fut az alkalmazás egy példánya");
-		return 0;
-	}
+#ifdef Q_OS_WIN32
+	RollingFileAppender* appender = new RollingFileAppender("log.txt");
+	appender->setFormat("%{time}{yyyy-MM-dd hh:mm:ss} [%{TypeOne}] %{message}\n");
+	appender->setDatePattern(RollingFileAppender::DailyRollover);
+	cuteLogger->registerAppender(appender);
 #endif
 
-	srand(time(NULL));
 
-	Box2DPlugin box2dplugin;
-	box2dplugin.registerTypes("Box2D");
 
-	Plugins plugin;
-	plugin.registerTypes("Bacon2D");
 
-	Q_INIT_RESOURCE(Bacon2D_static);
 
 
 	QZXing::registerQMLTypes();
 
 	Client::initialize();
 	Client::loadModules();
-
-	Client* client = Client::clientInstance();
-
-	if (!client->commandLineParse(app))
-		return 0;
-
 	Client::standardPathCreate();
 	Client::registerTypes();
 	Client::registerResources();
 	Client::reloadGameResources();
 
-	QQmlApplicationEngine engine;
-	QQmlContext *context = engine.rootContext();
+	QQmlApplicationEngine *engine = new QQmlApplicationEngine();
+	QQmlContext *context = engine->rootContext();
 	context->setContextProperty("cosClient", client);
 	client->setRootContext(context);
 
-	engine.addImageProvider("font", new FontImage());
-	engine.addImageProvider("qrcode", new QrImage());
+	engine->addImageProvider("font", new FontImage());
+	engine->addImageProvider("qrcode", new QrImage());
 
 #ifdef QT_NO_DEBUG
 	context->setContextProperty("DEBUG_MODE", QVariant(false));
@@ -157,7 +201,7 @@ int main(int argc, char *argv[])
 #endif
 
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
-	QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+	QObject::connect(engine, &QQmlApplicationEngine::objectCreated,
 					 &app, [url](QObject *obj, const QUrl &objUrl) {
 		if (!obj && url == objUrl)
 			QCoreApplication::exit(-1);
@@ -166,14 +210,28 @@ int main(int argc, char *argv[])
 		QtAndroid::hideSplashScreen();
 #endif
 	}, Qt::QueuedConnection);
-	engine.load(url);
+	engine->load(url);
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	instance.setNotifyWindow(QGuiApplication::topLevelWindows().at(0));
 	client->setSingleInstance(&instance);
 #endif
 
-	return app.exec();
+	int ret = app.exec();
+
+	delete engine;
+
+	qInfo() << "Exit with code" << ret;
+
+#ifdef Q_OS_WIN32
+	if (streamO != NULL)
+		fclose(streamO);
+	if (streamE != NULL)
+		fclose(streamE);
+#endif
+
+
+	return ret;
 }
 
 

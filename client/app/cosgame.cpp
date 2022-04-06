@@ -948,12 +948,12 @@ void CosGame::onGameFinishedSuccess()
 	emit m_gameMatch->gameWin();
 
 	Client::clientInstance()->stopSound(m_backgroundMusicFile);
-	Client::clientInstance()->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
+	Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
 
 	QTimer::singleShot(1000, [=]() {
 		emit gameCompletedReady();
-		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
-		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
 	});
 }
 
@@ -980,8 +980,8 @@ void CosGame::onGameFinishedLost()
 	emit m_gameMatch->gameLose();
 
 	Client::clientInstance()->stopSound(m_backgroundMusicFile);
-	Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
-	Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
+	Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+	Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
 }
 
 

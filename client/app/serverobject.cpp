@@ -143,12 +143,12 @@ void ServerObject::setBroadcast(bool newBroadcast)
 	emit broadcastChanged();
 }
 
-const QList<int> &ServerObject::ignoredErrors() const
+const QVariantList &ServerObject::ignoredErrors() const
 {
 	return m_ignoredErrors;
 }
 
-void ServerObject::setIgnoredErrors(const QList<int> &newIgnoredErrors)
+void ServerObject::setIgnoredErrors(const QVariantList &newIgnoredErrors)
 {
 	if (m_ignoredErrors == newIgnoredErrors)
 		return;

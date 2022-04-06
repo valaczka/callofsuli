@@ -205,8 +205,8 @@ void Servers::serverConnect(ServerObject *server)
 				if (!c.isNull()) {
 					QList<QSslError> eList;
 
-					foreach (int v, server->ignoredErrors()) {
-						QSslError::SslError error = static_cast<QSslError::SslError>(v);
+					foreach (QVariant v, server->ignoredErrors()) {
+						QSslError::SslError error = static_cast<QSslError::SslError>(v.toInt());
 						QSslError certError = QSslError(error, c);
 						eList.append(certError);
 					}
@@ -238,7 +238,7 @@ void Servers::serverConnect(ServerObject *server)
 
 ServerObject *Servers::serverCreate(const QJsonObject &json)
 {
-	ServerObject *newServer = ServerObject::fromJsonObject<ServerObject>(json);
+	ServerObject *newServer = ObjectListModelObject::fromJsonObject<ServerObject>(json);
 	newServer->setId(m_serversModel->nextIntValue("id"));
 	m_serversModel->addObject(newServer);
 	saveServerList();
@@ -581,14 +581,16 @@ void Servers::acceptCertificate(ServerObject *server, const QSslCertificate &cer
 	f.write(cert.toPem());
 	f.close();
 
-	QList<int> list = server->ignoredErrors();
+	QVariantList list = server->ignoredErrors();
+	list.reserve(errorList.size());
 
-	list.append(errorList);
+	foreach (int i, errorList)
+	list.append(i);
 
-	QList<int> _toList;
-	foreach (int i, list)
-		if (!_toList.contains(i))
-			_toList.append(i);
+	QVariantList _toList;
+	foreach (QVariant v, list)
+		if (!_toList.contains(v))
+			_toList.append(v);
 
 	server->setIgnoredErrors(_toList);
 	saveServerList();
@@ -626,7 +628,8 @@ void Servers::onSocketSslErrors(QList<QSslError> errors)
 			if (!cert.isEmpty()) {
 				QSslCertificate c(cert, QSsl::Pem);
 				if (!c.isNull()) {
-					foreach (int i, m_serverTryToConnect->ignoredErrors()) {
+					foreach (QVariant v, m_serverTryToConnect->ignoredErrors()) {
+						int i = v.toInt();
 						QSslError::SslError error = static_cast<QSslError::SslError>(i);
 						QSslError certError = QSslError(error, c);
 						errors.removeAll(certError);

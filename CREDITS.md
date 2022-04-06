@@ -4,7 +4,6 @@
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - QObjectListModel - (c) 2017 - Felix Barz (https://github.com/Skycoder42/QObjectListModel)
 - QSingleInstance - (c) 2015 - Felix Barz (https://github.com/Skycoder42/QSingleInstance)
-- QtJsonSerializer - (c) 2015 - Felix Barz (https://github.com/Skycoder42/QtJsonSerializer)
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - qzxing (https://github.com/ftylitak/qzxing) 
 - SortFilterProxyModel - (c) 2016 - Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel

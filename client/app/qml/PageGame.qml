@@ -351,14 +351,14 @@ Page {
 						infoTime.marked = true
 						_timeSound = false
 						messageList.message(qsTr("You have 1 minute left"), 1)
-						cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
+						cosClient.playSound("qrc:/sound/voiceover/time.mp3", CosSound.VoiceOver)
 					}
 
 					if (msecLeft <= 30*1000 && _finalSound) {
 						infoTime.marked = true
 						_finalSound = false
 						messageList.message(qsTr("You have 30 seconds left"), 1)
-						cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
+						cosClient.playSound("qrc:/sound/voiceover/final_round.mp3", CosSound.VoiceOver)
 					}
 				}
 
@@ -1277,9 +1277,9 @@ Page {
 				if (previewAnimation.num >= game.terrainData.preview.length) {
 					if (gameMatch && gameMatch.deathmatch) {
 						messageList.message(qsTr("SUDDEN DEATH"), 3)
-						cosClient.playSound("qrc:/sound/voiceover/sudden_death.ogg", CosSound.VoiceOver)
+						cosClient.playSound("qrc:/sound/voiceover/sudden_death.mp3", CosSound.VoiceOver)
 					} else
-						cosClient.playSound("qrc:/sound/voiceover/begin.ogg", CosSound.VoiceOver)
+						cosClient.playSound("qrc:/sound/voiceover/begin.mp3", CosSound.VoiceOver)
 
 					previewAnimation.stop()
 					flick.interactive = true
@@ -1325,7 +1325,7 @@ Page {
 		triggeredOnStart: false
 		onTriggered: {
 			stop()
-			cosClient.playSound("qrc:/sound/voiceover/fight.ogg", CosSound.VoiceOver)
+			cosClient.playSound("qrc:/sound/voiceover/fight.mp3", CosSound.VoiceOver)
 		}
 	}
 
@@ -1368,7 +1368,7 @@ Page {
 	}
 
 	Component.onCompleted: {
-		cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.ogg", CosSound.VoiceOver)
+		cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
 	}
 
 	Component.onDestruction: {

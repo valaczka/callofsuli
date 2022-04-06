@@ -24,8 +24,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QtJsonSerializer>
-
 #include "mapeditor.h"
 #include "editoraction.h"
 #include "mapeditoraction.h"

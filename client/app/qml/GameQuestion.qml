@@ -132,15 +132,15 @@ Item {
 				target: contentLoader.item
 
 				function onSucceed() {
-					cosClient.playSound("qrc:/sound/sfx/correct.ogg", CosSound.GameSound)
-					cosClient.playSound("qrc:/sound/voiceover/winner.ogg", CosSound.VoiceOver)
+					cosClient.playSound("qrc:/sound/sfx/correct.mp3", CosSound.GameSound)
+					cosClient.playSound("qrc:/sound/voiceover/winner.mp3", CosSound.VoiceOver)
 					isAnswerSuccess = true
 					succeed(questionPrivate.questionData().xpFactor)
 					control.state = "finished"
 				}
 
 				function onFailed() {
-					cosClient.playSound("qrc:/sound/voiceover/loser.ogg", CosSound.VoiceOver)
+					cosClient.playSound("qrc:/sound/voiceover/loser.mp3", CosSound.VoiceOver)
 					isAnswerSuccess = false
 					failed()
 					control.state = "finished"
@@ -262,7 +262,7 @@ Item {
 				}
 
 				ScriptAction {
-					script: cosClient.playSound("qrc:/sound/sfx/question.ogg")
+					script: cosClient.playSound("qrc:/sound/sfx/question.mp3")
 				}
 
 				PropertyAction {

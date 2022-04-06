@@ -24,6 +24,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QRandomGenerator>
+
 #include "mapeditoraction.h"
 #include "question.h"
 #include "cosclient.h"

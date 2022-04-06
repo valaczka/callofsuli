@@ -1,16 +1,16 @@
 
 [Setup]
 AppName=Call of Suli
-AppVersion=COSversion
+AppVersion={#COSversion}
 DefaultDirName={usercf}\Call of Suli
 UninstallDisplayIcon={app}\callofsuli.exe
 SolidCompression=yes
 AllowNoIcons=yes
 OutputDir=.\
-OutputBaseFilename=COSexe
+OutputBaseFilename={#COSexe}
 PrivilegesRequired=lowest
 LicenseFile=.\build\LICENSE
-AppCopyright=Copyright (C) 2012-2021 Valaczka János Pál
+AppCopyright=Copyright (C) 2012-2022 Valaczka János Pál
 
 [Files]
 Source: ".\build\*"; DestDir: "{app}"; Flags: recursesubdirs
