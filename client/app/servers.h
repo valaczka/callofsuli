@@ -116,6 +116,7 @@ signals:
 
 	void serversModelChanged();
 	void googleOAuth2Changed();
+	void registrationRequest(const QJsonObject &jsonData);
 
 	void certificateError(ServerObject *server, const QSslCertificate &certificate, const QVariantMap &data);
 

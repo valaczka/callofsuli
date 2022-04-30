@@ -36,6 +36,7 @@
 #include <QQmlEngine>
 #include "mapimage.h"
 #include "teachermaps.h"
+#include "cosmessage.h"
 
 StudentMaps::StudentMaps(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassStudent, parent)
@@ -193,6 +194,10 @@ void StudentMaps::mapLoad(MapListObject *map)
 	if (!StudentMaps::checkTerrains(gmap)) {
 		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"));
 		return;
+	}
+
+	if (gmap->appVersion() > 0 && gmap->appVersion() > CosMessage::versionNumber()) {
+		Client::clientInstance()->sendMessageWarning(tr("Frissítés szükséges"), tr("A pálya az alkalmazásnál magasabb verziószámmal készült, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
 	}
 
 
@@ -520,8 +525,6 @@ void StudentMaps::onMapListGet(QJsonObject jsonData, QByteArray)
 
 		m["downloaded"] = false;
 
-		qDebug() << "ONMAPLISTGET" << db();
-
 		QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
 
 		QByteArray d = r.value("data").toByteArray();
@@ -580,8 +583,8 @@ bool StudentMaps::loadGameMap(GameMap *map, MapListObject *mapObject)
 
 
 	qDebug() << "Add mapimage provider";
-		MapImage *mapImage = new MapImage(map);
-		Client::clientInstance()->rootEngine()->addImageProvider("mapimage", mapImage);
+	MapImage *mapImage = new MapImage(map);
+	Client::clientInstance()->rootEngine()->addImageProvider("mapimage", mapImage);
 
 	return true;
 }
@@ -956,7 +959,7 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			}
 		}
 
-		QTimer::singleShot(2000, [=]() {
+		QTimer::singleShot(2000, this, [=]() {
 			emit gameFinishDialogReady(info);
 		});
 	}

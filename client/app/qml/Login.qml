@@ -175,7 +175,7 @@ QTabContainer {
 		target: servers && servers.googleOAuth2 ? servers.googleOAuth2 : null
 
 		function onBrowserRequest(url) {
-			if (Qt.platform.os == "android"  || Qt.platform.os === "ios" || Qt.platform.os === "linux") {
+			if (Qt.platform.os == "android"  || Qt.platform.os === "ios") {
 				tabPage.pushContent(oauthContainer, {url: url})
 			} else {
 				cosClient.openUrl(url)

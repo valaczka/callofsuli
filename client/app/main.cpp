@@ -35,10 +35,13 @@
 #include <QQmlContext>
 #include <Logger.h>
 #include <ColorConsoleAppender.h>
-#include <RollingFileAppender.h>
 #include <sqlimage.h>
 #include <fontimage.h>
 #include "qrimage.h"
+
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#include <QtWebView/QtWebView>
+#endif
 
 #include "../Bacon2D-static/qml-box2d/box2dplugin.h"
 #include "../Bacon2D-static/src/plugins.h"
@@ -55,9 +58,6 @@
 #include "AndroidAppender.h"
 #endif
 
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(Q_OS_LINUX)
-#include <QtWebView/QtWebView>
-#endif
 
 
 #include "cosclient.h"
@@ -69,7 +69,7 @@
 
 int main(int argc, char *argv[])
 {
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(Q_OS_LINUX)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 	QtWebView::initialize();
 #endif
 
@@ -162,16 +162,6 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_ANDROID
 	cuteLogger->registerAppender(androidAppender);
 #endif
-
-
-
-#ifdef Q_OS_WIN32
-	RollingFileAppender* appender = new RollingFileAppender("log.txt");
-	appender->setFormat("%{time}{yyyy-MM-dd hh:mm:ss} [%{TypeOne}] %{message}\n");
-	appender->setDatePattern(RollingFileAppender::DailyRollover);
-	cuteLogger->registerAppender(appender);
-#endif
-
 
 
 

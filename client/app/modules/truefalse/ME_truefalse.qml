@@ -172,9 +172,116 @@ Loader {
 
 
 
+
+
+
+
+	Component {
+		id: cmpNumbers
+
+		Column {
+
+			QGridLayout {
+				id: layout3
+				watchModification: true
+				onModifiedChanged: if (layout3.modified)
+									   ldr.modified()
+
+				QGridText {
+					field: comboMode2
+					text: qsTr("Kérdések készítése:")
+				}
+
+				QGridComboBox {
+					id: comboMode2
+					sqlField: "mode"
+
+					valueRole: "value"
+					textRole: "text"
+
+					model: [
+						{value: "generateLeft", text: qsTr("Készítés a bal oldaliakhoz")},
+						{value: "generateRight", text: qsTr("Készítés a jobb oldaliakhoz")}
+					]
+
+					onActivated: preview2.refresh()
+				}
+
+
+
+				QGridLabel {
+					field: textQuestion3
+				}
+
+				QGridTextField {
+					id: textQuestion3
+					fieldName: qsTr("Kérdés")
+					sqlField: "question"
+					placeholderText: qsTr("Ez a kérdés fog megjelenni. \%1 az összerendelésből a kérdés oldali, \%2 a válasz oldali részre cserélődik.")
+
+					onTextModified: preview2.refresh()
+				}
+
+
+				QGridText {
+					text: qsTr("Feladatok száma:")
+					field: spinCount2
+				}
+
+				QGridSpinBox {
+					id: spinCount2
+					from: 1
+					to: 99
+					editable: true
+
+					onValueModified: {
+						storageCount = value
+					}
+				}
+
+
+				Component.onCompleted: {
+					if (!moduleData)
+						return
+
+					JS.setSqlFields([comboMode2, textQuestion3], moduleData)
+					spinCount2.setData(storageCount)
+
+				}
+
+			}
+
+			MapEditorObjectivePreview {
+				id: preview2
+
+				refreshFunc: function() { return mapEditor.objectiveGeneratePreview("truefalse", getData(), storageModule, storageData) }
+
+				Connections {
+					target: ldr
+					function onStorageDataChanged() {
+						preview2.refresh()
+					}
+				}
+			}
+
+
+
+			function getData() {
+				moduleData = JS.getSqlFields([comboMode2, textQuestion3])
+
+				return moduleData
+			}
+		}
+	}
+
+
+
+
 	Component.onCompleted: {
-		if (storageModule == "binding" || storageModule == "numbers")
+		if (storageModule == "binding")
 			ldr.sourceComponent = cmpBinding
+		else if (storageModule == "numbers")
+			ldr.sourceComponent = cmpNumbers
 		else
 			ldr.sourceComponent = cmpNone
 	}

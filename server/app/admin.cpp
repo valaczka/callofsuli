@@ -58,6 +58,8 @@ bool Admin::classInit()
 }
 
 
+
+
 /**
  * @brief User::getAllUser
  * @param jsonResponse
@@ -165,6 +167,10 @@ bool Admin::userCreate(QJsonObject *jsonResponse, QByteArray *)
 
 	return true;
 }
+
+
+
+
 
 
 /**
@@ -308,11 +314,7 @@ bool Admin::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	QString salt;
-	QString hashedPassword = CosDb::hashPassword(password, &salt);
-
-	if (!m_client->db()->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt) VALUES (?, ?, ?)",
-	{username, hashedPassword, salt})) {
+	if (!userPasswordChangeReal(username, password)) {
 		setServerError();
 		return false;
 	}
@@ -427,6 +429,10 @@ bool Admin::getSettings(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id, name FROM class"));
 
+	(*jsonResponse)["codeList"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT classid, code, name FROM classRegistration "
+																							  "LEFT JOIN class ON (classRegistration.classid=class.id) "
+																							  "ORDER BY name"));
+
 	QVariantList list = m_client->db()->execSelectQuery("SELECT key, value FROM settings");
 
 	foreach (QVariant d, list) {
@@ -479,6 +485,60 @@ bool Admin::setSettings(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+
+/**
+ * @brief Admin::classRegistration
+ * @param jsonResponse
+ * @return
+ */
+
+bool Admin::classRegistration(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	if (params.value("refresh").toBool()) {
+		const QString characters = "ABCDEFGHJKLMNPRSTUVWXYZ123456789";
+		QVariantList list = m_client->db()->execSelectQuery("SELECT id FROM class");
+
+		QVariantList codes;
+
+		while (codes.size() < list.size()+1) {
+			QString code;
+
+			for (int i=0; i<6; i++)
+				code.append(characters.at(QRandomGenerator::global()->bounded(characters.size())));
+
+			if (!codes.contains(code))
+				codes.append(code);
+		}
+
+		QVariantList classids;
+
+		foreach (QVariant v, list)
+			classids.append(v.toMap().value("id").toInt());
+
+		classids.append(QVariant::Invalid);
+
+		if (!m_client->db()->execSimpleQuery("DELETE FROM classRegistration") ||
+			!m_client->db()->execBatchQuery("INSERT INTO classRegistration (classid, code) VALUES (?,?)", {classids, codes})) {
+			(*jsonResponse)["error"] = "sql";
+			return false;
+		}
+
+		(*jsonResponse)["success"] = true;
+		return true;
+	}
+
+	m_client->db()->transaction();
+
+
+	m_client->db()->commit();
+
+
+	return false;
+}
+
+
 /**
  * @brief Admin::getAllClients
  * @param jsonResponse
@@ -509,3 +569,108 @@ bool Admin::getAllClients(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+
+/**
+ * @brief Admin::userCreateReal
+ * @param username
+ * @param classCode
+ * @param oauthToken
+ * @param character
+ * @param isTeacher
+ */
+
+
+QString Admin::userCreateReal(const QString &username,
+							  const QString &firstname,
+							  const QString &lastname,
+							  const bool &isTeacher,
+							  const QString &classCode,
+							  const QString &oauthToken,
+							  const QString &picture,
+							  const QString &character)
+{
+	if (username.isEmpty())
+		return "missing username";
+
+	if (m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE username=?) as v", {username})
+		.value("v", false).toBool()) {
+		return "username exists";
+	}
+
+
+	QVariantMap params;
+
+
+	int forcedClassid = m_client->db()->execSelectQueryOneRow("SELECT id FROM class WHERE id="
+															  "(SELECT value FROM settings WHERE key='registration.forced')")
+						.value("id", -1).toInt();
+
+	if (forcedClassid != -1) {
+		params["classid"] = forcedClassid;
+	} else {
+		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT code, classid FROM classRegistration WHERE code=?", {classCode});
+
+		if (m.isEmpty())
+			return "invalid code";
+
+		int classId = m.value("classid", -1).toInt();
+
+		if (classId > 0)
+			params["classid"] = classId;
+		else
+			params["classid"] = QVariant::Invalid;
+	}
+
+
+	params["username"] = username;
+	params["firstname"] = firstname;
+	params["lastname"] = lastname;
+	params["isTeacher"] = isTeacher;
+	params["picture"] = picture;
+	params["character"] = character;
+	params["active"] = true;
+
+	qDebug() << "CREATE USER" << params;
+
+	int id = m_client->db()->execInsertQuery("INSERT INTO user (?k?) VALUES (?)", params);
+
+	if (id == -1) {
+		qWarning() << "Error create user" << username;
+		return "create error";
+	}
+
+	QVariantMap m;
+	m["username"] = username;
+
+	if (!oauthToken.isEmpty()) {
+		m["oauthToken"] = oauthToken;
+		m["password"] = "*";
+	}
+
+	id = m_client->db()->execInsertQuery("INSERT INTO auth (?k?) VALUES (?)", m);
+
+	if (id == -1)
+		qWarning() << "Error create auth for" << username;
+
+	return "";
+}
+
+
+
+
+
+/**
+ * @brief Admin::userPasswordChangeReal
+ * @param username
+ * @param password
+ * @return
+ */
+
+bool Admin::userPasswordChangeReal(const QString &username, const QString &password)
+{
+	QString salt;
+	QString hashedPassword = CosDb::hashPassword(password, &salt);
+
+	return m_client->db()->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt, oauthToken) VALUES (?, ?, ?, NULL)",
+										   {username, hashedPassword, salt});
+}

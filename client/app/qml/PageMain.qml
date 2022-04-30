@@ -26,12 +26,12 @@ QTabPage {
 	ListModel {
 		id: modelGuest
 
-		/*ListElement {
+		ListElement {
 			title: qsTr("Regisztráció")
 			icon: "image://font/Academic/\uf184"
 			iconColor: "darkorange"
 			func: function() { replaceContent(componentRegistration) }
-		}*/
+		}
 		ListElement {
 			title: qsTr("Bejelentkezés")
 			icon: "image://font/Academic/\uf207"
@@ -143,7 +143,9 @@ QTabPage {
 
 	Component {
 		id: componentRegistration
-		Registration {}
+		Registration {
+			servers: control.servers
+		}
 	}
 
 	Component {

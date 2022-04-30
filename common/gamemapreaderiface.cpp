@@ -25,6 +25,7 @@
  */
 
 #include "gamemapreaderiface.h"
+#include "cosmessage.h"
 
 #include <QDebug>
 #include <QUuid>
@@ -32,6 +33,7 @@
 GameMapReaderIface::GameMapReaderIface()
 	: m_uuid()
 	, m_version(0)
+	, m_appVersion(0)
 {
 
 }
@@ -163,6 +165,9 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 	qDebug() << "Load map" << m_uuid;
 
 	try {
+		if (version > 11)
+			stream >> m_appVersion;
+
 		if (!storagesFromStream(stream))
 			throw 1;
 
@@ -206,6 +211,7 @@ QByteArray GameMapReaderIface::toBinaryData() const
 	stream.setVersion(QDataStream::Qt_5_11);
 
 	stream << m_uuid.toLatin1();
+	stream << CosMessage::versionNumber();
 
 	storagesToStream(stream, ifaceStorages());
 	chaptersToStream(stream, ifaceChapters());
@@ -664,6 +670,17 @@ bool GameMapReaderIface::inventoriesFromStream(QDataStream &stream, GameMapMissi
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief GameMapReaderIface::appVersion
+ * @return
+ */
+
+quint32 GameMapReaderIface::appVersion() const
+{
+	return m_appVersion;
 }
 
 

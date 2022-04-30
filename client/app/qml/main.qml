@@ -203,11 +203,19 @@ ApplicationWindow {
 		if (fs > 0)
 			CosStyle.pixelSize = fs
 
-		if (!DEBUG_MODE)
+		if (DEBUG_MODE)
+			showMaximized()
+		else
 			showFullScreen()
 
-		JS.createPage("Start", {})
-		//JS.createPage("MapEditor", {})
+
+		var g = cosClient.guiLoad()
+
+		if (g === "map")
+			JS.createPage("MapEditor", {})
+		else
+			JS.createPage("Start", {})
+
 		//JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/ddd.map"})
 		//JS.createPage("TEST", {})
 	}

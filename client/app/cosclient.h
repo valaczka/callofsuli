@@ -66,9 +66,6 @@ class Client : public QObject
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QString serverUuid READ serverUuid WRITE setServerUuid NOTIFY serverUuidChanged)
 	Q_PROPERTY(bool registrationEnabled READ registrationEnabled WRITE setRegistrationEnabled NOTIFY registrationEnabledChanged)
-	Q_PROPERTY(bool passwordResetEnabled READ passwordResetEnabled WRITE setPasswordResetEnabled NOTIFY passwordResetEnabledChanged)
-	Q_PROPERTY(QVariantList registrationDomains READ registrationDomains WRITE setRegistrationDomains NOTIFY registrationDomainsChanged)
-	Q_PROPERTY(QVariantList registrationClasses READ registrationClasses WRITE setRegistrationClasses NOTIFY registrationClassesChanged)
 
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
 	Q_PROPERTY(CosMessage::ClientRoles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
@@ -193,9 +190,6 @@ public:
 	QString serverName() const { return m_serverName; }
 	QString serverUuid() const { return m_serverUuid; }
 	bool registrationEnabled() const { return m_registrationEnabled; }
-	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
-	QVariantList registrationDomains() const { return m_registrationDomains; }
-	QVariantList registrationClasses() const { return m_registrationClasses; }
 	QStringList waitForResources() const { return m_waitForResources; }
 
 	Q_INVOKABLE static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
@@ -228,6 +222,8 @@ public:
 
 	static Client *clientInstance();
 
+	Q_INVOKABLE QString guiLoad() const;
+
 public slots:
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
 		emit messageSent("warning", title, informativeText, detailedText);
@@ -242,7 +238,7 @@ public slots:
 		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "");
 	}
 
-	void setConnectionState(ConnectionState connectionState);
+	void setConnectionState(Client::ConnectionState connectionState);
 	void closeConnection();
 	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
@@ -291,9 +287,6 @@ private slots:
 	void setServerName(QString serverName);
 	void setServerUuid(QString serverUuid);
 	void setRegistrationEnabled(bool registrationEnabled);
-	void setPasswordResetEnabled(bool passwordResetEnabled);
-	void setRegistrationDomains(QVariantList registrationDomains);
-	void setRegistrationClasses(QVariantList registrationClasses);
 	void setRankList(QVariantList rankList);
 
 signals:
@@ -309,18 +302,6 @@ signals:
 
 	void authInvalid();
 	void authRequirePasswordReset();
-
-	void resetPasswordEmailSent();
-	void resetPasswordSuccess();
-	void resetPasswordFailed();
-
-	void registrationRequest();
-	void registrationRequestSuccess();
-	void registrationRequestFailed(QString errorString);
-
-	void settingsLoaded(const QJsonObject &data);
-	void settingsError();
-	void settingsSuccess();
 
 	void urlsToProcessReady(const QStringList &list);
 
@@ -355,7 +336,6 @@ signals:
 	void forcedLandscapeChanged(bool forcedLandscape);
 	void serverUuidChanged(QString serverUuid);
 	void rootContextChanged();
-
 	void userPictureChanged();
 
 private:
@@ -367,6 +347,8 @@ private:
 	QTimer* m_timer;
 	QUrl m_connectedUrl;
 	CosMessage *m_cosMessage;
+
+	QString m_guiLoad;
 
 	ConnectionState m_connectionState;
 	QString m_userName;
@@ -380,8 +362,6 @@ private:
 	QString m_serverDataDir;
 	QString m_userRankName;
 	bool m_registrationEnabled;
-	bool m_passwordResetEnabled;
-	QVariantList m_registrationDomains;
 	QStringList m_waitForResources;
 	QStringList m_registeredServerResources;
 	QString m_userRankImage;
@@ -396,7 +376,6 @@ private:
 	static QStringList m_medalIconList;
 	qreal m_sfxVolume;
 	QString m_userPlayerCharacter;
-	QVariantList m_registrationClasses;
 	static QHash<QString, ModuleInterface*> m_moduleObjectiveList;
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
 	bool m_sslErrorSignalHandlerConnected;

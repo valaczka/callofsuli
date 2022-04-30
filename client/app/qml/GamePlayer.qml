@@ -207,7 +207,8 @@ GameEntity {
 		onTriggered: {
 			var r = ep.cosGame.running
 			if(readyToStop || !r) {
-				spriteSequence.jumpTo("runend")
+				spriteToIdle()
+				//spriteSequence.jumpTo("runend")
 			}
 
 			if (r) {

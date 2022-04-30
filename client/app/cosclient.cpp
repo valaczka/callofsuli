@@ -36,6 +36,7 @@
 #include <QQuickItem>
 #include <QResource>
 #include <QStandardPaths>
+#include <RollingFileAppender.h>
 
 #include "../../version/buildnumber.h"
 #include "abstractactivity.h"
@@ -85,6 +86,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest);
 	m_timer = new QTimer(this);
 
+	m_guiLoad = "";
+
 	m_userRoles = CosMessage::RoleGuest;
 	m_userXP = 0;
 	m_userRank = 0;
@@ -101,9 +104,6 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_sfxVolume = 1.0;
 
 	m_registrationEnabled = false;
-	m_passwordResetEnabled = false;
-	m_registrationDomains = QVariantList();
-	m_registrationClasses = QVariantList();
 
 	m_sslErrorSignalHandlerConnected = false;
 	m_forcedLandscape = false;
@@ -250,6 +250,8 @@ QString Client::commandLineParse(QCoreApplication &app)
 
 	parser.addOption({{"t", "terrain"}, tr("Terepfájl <file> adatainak lekérdezése"), "file"});
 	parser.addOption({"license", tr("Licensz")});
+	parser.addOption({{"l", "log"}, tr("Naplózás <file> fájlba"), "file"});
+	parser.addOption({{"m", "map"}, tr("Pályszerkesztő indítása")});
 
 
 #ifdef QT_NO_DEBUG
@@ -288,6 +290,22 @@ QString Client::commandLineParse(QCoreApplication &app)
 		return "terrain";
 	}
 
+	QString logFile;
+
+	if (parser.isSet("log")) logFile = parser.value("log");
+
+
+	if (!logFile.isEmpty()) {
+		RollingFileAppender* appender = new RollingFileAppender(logFile);
+		appender->setFormat("%{time}{yyyy-MM-dd hh:mm:ss} [%{TypeOne}] %{message}\n");
+		appender->setDatePattern(RollingFileAppender::DailyRollover);
+		cuteLogger->registerAppender(appender);
+	}
+
+
+
+	if (parser.isSet("map"))
+		m_guiLoad = "map";
 
 	m_positionalArgumentsToProcess = parser.positionalArguments();
 
@@ -455,7 +473,7 @@ void Client::windowRestoreGeometry(QQuickWindow *window)
 
 void Client::windowSetIcon(QQuickWindow *window)
 {
-	window->setIcon(QIcon(":/internal/img/cos96.png"));
+	window->setIcon(QIcon(":/internal/img/cos.png"));
 }
 
 
@@ -1095,15 +1113,6 @@ void Client::resetLandscape()
 }
 
 
-void Client::setRegistrationClasses(QVariantList registrationClasses)
-{
-	if (m_registrationClasses == registrationClasses)
-		return;
-
-	m_registrationClasses = registrationClasses;
-	emit registrationClassesChanged(m_registrationClasses);
-}
-
 void Client::setUserPlayerCharacter(QString userPlayerCharacter)
 {
 	if (m_userPlayerCharacter == userPlayerCharacter)
@@ -1420,7 +1429,7 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 
 
 
-void Client::setConnectionState(Client::ConnectionState connectionState)
+void Client::setConnectionState(ConnectionState connectionState)
 {
 	if (m_connectionState == connectionState)
 		return;
@@ -1668,19 +1677,7 @@ void Client::performUserInfo(const CosMessage &message)
 			setServerName(d.value("serverName").toString());
 			setServerUuid(d.value("serverUuid").toString());
 			setRegistrationEnabled(d.value("registrationEnabled").toBool());
-			setPasswordResetEnabled(d.value("passwordResetEnabled").toBool(false));
-			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
 			setRankList(d.value("ranklist").toArray().toVariantList());
-
-			QVariantList classList = d.value("classlist").toArray().toVariantList();
-			if (!classList.isEmpty()) {
-				QVariantMap m;
-				m["classid"] = -1;
-				m["classname"] = tr("Osztály nélkül");
-				classList.prepend(m);
-			}
-			setRegistrationClasses(classList);
-
 		} else if (func == "newSessionToken") {
 			QString token = d.value("token").toString();
 			setSessionToken(token);
@@ -1691,14 +1688,6 @@ void Client::performUserInfo(const CosMessage &message)
 			qDebug() << "set user roles from server" << message.clientRole();
 
 			socketSend(CosMessage::ClassUserInfo, "getUser");
-		} else if (func == "registrationRequest") {
-			if (d.contains("error")) {
-				emit registrationRequestFailed(d.value("error").toString());
-			} else if (d.contains("createdUserName")) {
-				login(d.value("createdUserName").toString(), "");
-			} else if (d.value("success").toBool(false)) {
-				emit registrationRequestSuccess();
-			}
 		} else if (func == "getMyGroups") {
 			emit myGroupListReady(d.value("list").toArray());
 		}
@@ -1737,33 +1726,8 @@ bool Client::checkError(const CosMessage &message)
 		case CosMessage::BadMessageFormat:
 			sendMessageError(tr("Belső hiba"), tr("Hibás üzenetformátum"));
 			break;
-		case CosMessage::MessageTooOld:
-			sendMessageError(tr("Belső hiba"), tr("Elavult kliens"));
-			break;
-		case CosMessage::MessageTooNew:
-			sendMessageError(tr("Belső hiba"), tr("Elavult szerver"));
-			break;
 		case CosMessage::InvalidMessageType:
 			sendMessageError(tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
-			break;
-		case CosMessage::PasswordRequestMissingEmail:
-			sendMessageError(tr("Elfelejtett jelszó"), tr("Nincs megadva email cím!"));
-			emit resetPasswordFailed();
-			break;
-		case CosMessage::PasswordRequestInvalidEmail:
-			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen email cím!"));
-			emit resetPasswordFailed();
-			break;
-		case CosMessage::PasswordRequestInvalidCode:
-			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen aktivációs kód!"));
-			emit resetPasswordFailed();
-			break;
-		case CosMessage::PasswordRequestCodeSent:
-			sendMessageInfo(tr("Elfelejtett jelszó"), tr("Az aktivációs kód a megadot email címre elküldve"));
-			emit resetPasswordEmailSent();
-			break;
-		case CosMessage::PasswordRequestSuccess:
-			emit resetPasswordSuccess();
 			break;
 		case CosMessage::InvalidSession:
 			sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
@@ -1804,6 +1768,17 @@ bool Client::checkError(const CosMessage &message)
 
 
 /**
+ * @brief Client::guiLoad
+ * @return
+ */
+
+QString Client::guiLoad() const
+{
+	return m_guiLoad;
+}
+
+
+/**
  * @brief Client::clientInstance
  * @return
  */
@@ -1838,17 +1813,6 @@ void Client::setSingleInstance(QSingleInstance *singleInstance)
 
 
 
-
-
-void Client::setRegistrationDomains(QVariantList registrationDomains)
-{
-	if (m_registrationDomains == registrationDomains)
-		return;
-
-	m_registrationDomains = registrationDomains;
-	emit registrationDomainsChanged(m_registrationDomains);
-}
-
 void Client::setRegistrationEnabled(bool registrationEnabled)
 {
 	if (m_registrationEnabled == registrationEnabled)
@@ -1856,15 +1820,6 @@ void Client::setRegistrationEnabled(bool registrationEnabled)
 
 	m_registrationEnabled = registrationEnabled;
 	emit registrationEnabledChanged(m_registrationEnabled);
-}
-
-void Client::setPasswordResetEnabled(bool passwordResetEnabled)
-{
-	if (m_passwordResetEnabled == passwordResetEnabled)
-		return;
-
-	m_passwordResetEnabled = passwordResetEnabled;
-	emit passwordResetEnabledChanged(m_passwordResetEnabled);
 }
 
 void Client::setUserRankName(QString userRankName)

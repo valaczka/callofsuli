@@ -61,33 +61,14 @@ QTabContainer {
 
 				watchModification: true
 
-				/*QGridText {
-								field: comboRegistrationAuto
-								text: qsTr("Automatikus regisztráció:")
-							}
-
-							QGridComboBox {
-								id: comboRegistrationAuto
-								sqlField: "registration.auto"
-
-								valueRole: "value"
-								textRole: "text"
-
-								model: [
-									{value: "0", text: qsTr("Letiltva")},
-									{value: "1", text: qsTr("Engedélyezve")},
-								]
-							}*/
-
-
 				QGridText {
-					field: comboRegistrationClass
-					text: qsTr("Osztály kiválasztása:")
+					field: comboRegistration
+					text: qsTr("Regisztráció engedélyezése")
 				}
 
 				QGridComboBox {
-					id: comboRegistrationClass
-					sqlField: "registration.class"
+					id: comboRegistration
+					sqlField: "registration.enabled"
 
 					valueRole: "value"
 					textRole: "text"
@@ -99,13 +80,13 @@ QTabContainer {
 				}
 
 				QGridText {
-					field: comboDefaultClass
-					text: qsTr("Alapértelmezett osztály:")
+					field: comboForcedClass
+					text: qsTr("Osztályba sorolás")
 				}
 
 				QGridComboBox {
-					id: comboDefaultClass
-					sqlField: "registration.defaultClass"
+					id: comboForcedClass
+					sqlField: "registration.forced"
 
 					valueRole: "value"
 					textRole: "text"
@@ -116,6 +97,42 @@ QTabContainer {
 		}
 
 
+		QCollapsible {
+			title: qsTr("Hitelesítési kódok")
+
+			QGridLayout {
+				id: grid6
+				enabled: !serverSettings.isBusy
+
+				onModifiedChanged: updateSaveEnabled()
+
+				watchModification: true
+
+				QGridLabel {
+					field: textClassCodes
+				}
+
+				QGridTextArea {
+					id: textClassCodes
+					fieldName: qsTr("Osztályok kódjai")
+					minimumHeight: CosStyle.baseHeight*3
+					readOnly: true
+				}
+
+				QGridButton {
+					id: buttonRegenerateCodes
+					text: qsTr("Újak generálása")
+					icon.source: CosStyle.iconRefresh
+					display: AbstractButton.TextBesideIcon
+
+					onClicked: {
+						buttonRegenerateCodes.enabled = false
+						serverSettings.send("classRegistration", {refresh: true})
+					}
+				}
+
+			}
+		}
 
 		QCollapsible {
 			title: qsTr("OAuth2")
@@ -151,7 +168,7 @@ QTabContainer {
 
 				QGridText {
 					field: comboOAuth2RegistrationAuto
-					text: qsTr("Automatikus regisztráció:")
+					text: qsTr("Regisztráció Google fiókkal")
 				}
 
 				QGridComboBox {
@@ -167,6 +184,34 @@ QTabContainer {
 					]
 				}
 
+				QGridText {
+					field: comboOAuth2RegistrationForced
+					text: qsTr("Google fiókos regisztráció kényszerítése")
+				}
+
+				QGridComboBox {
+					id: comboOAuth2RegistrationForced
+					sqlField: "oauth2.forced"
+
+					valueRole: "value"
+					textRole: "text"
+
+					model: [
+						{value: "0", text: qsTr("Letiltva")},
+						{value: "1", text: qsTr("Engedélyezve")},
+					]
+				}
+
+				QGridLabel {
+					field: textOAuth2Domains
+				}
+
+				QGridTextField {
+					id: textOAuth2Domains
+					fieldName: qsTr("Domain korlátozás")
+					sqlField: "oauth2.domains"
+				}
+
 			}
 		}
 	}
@@ -177,11 +222,13 @@ QTabContainer {
 		function onTriggered() {
 			var o = JS.getModifiedSqlFields([
 												textServerName,
-												comboRegistrationClass,
+												comboRegistration,
 												textOAuth2Id,
 												textOAuth2Key,
 												comboOAuth2RegistrationAuto,
-												comboDefaultClass
+												comboOAuth2RegistrationForced,
+												comboForcedClass,
+												textOAuth2Domains
 											])
 
 			if (Object.keys(o).length) {
@@ -203,35 +250,69 @@ QTabContainer {
 				}
 			}
 
-			newModel.push({value: String(-1), text: qsTr("-- Osztály nélkül --")})
+			newModel.push({value: String(-1), text: qsTr("-- Hitelesítési kód alapján --")})
 
-			comboDefaultClass.model = newModel
+			comboForcedClass.model = newModel
 
-			var dc = jsonData["registration.defaultClass"]
+			var dc = jsonData["registration.forced"]
 
 			if (!dc || dc < 1)
-				jsonData["registration.defaultClass"] = -1
+				jsonData["registration.forced"] = -1
 
 			JS.setSqlFields([
 								textServerName,
-								comboRegistrationClass,
+								comboRegistration,
 								textOAuth2Id,
 								textOAuth2Key,
 								comboOAuth2RegistrationAuto,
-								comboDefaultClass
+								comboOAuth2RegistrationForced,
+								comboForcedClass,
+								textOAuth2Domains
 							], jsonData)
+
+
+			textClassCodes.clear()
+
+			var t = ""
+
+			if (jsonData.codeList) {
+				for (i=0; i<jsonData.codeList.length; i++) {
+					c = jsonData.codeList[i]
+
+					if (c.classid > 0)
+						t += c.name
+					else
+						t = qsTr("Osztály nélkül")
+
+					t += ": "+c.code+"\n"
+				}
+			}
+
+			textClassCodes.text = t
 
 			grid1.modified = false
 			grid4.modified = false
 			grid5.modified = false
+			grid6.modified = false
 		}
 
 		function onSetSettings(jsonData, binaryData) {
 			if (jsonData.success) {
-				cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
+				//cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
 				serverSettings.send("getSettings")
 			} else {
 				cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+			}
+		}
+
+
+		function onClassRegistration(jsonData, binaryData) {
+			buttonRegenerateCodes.enabled = true
+			if (jsonData.success) {
+				//cosClient.sendMessageInfo(qsTr("Hitelesítési kódok"), qsTr("A hitelesítési kódok sikeresen módosultak."))
+				serverSettings.send("getSettings")
+			} else {
+				cosClient.sendMessageWarning(qsTr("Hitelesítési kódok"), qsTr("Nem sikerült módosítani a hitelesítési kódokat."))
 			}
 		}
 	}
@@ -249,7 +330,7 @@ QTabContainer {
 
 
 	function updateSaveEnabled() {
-		actionSave.enabled = grid1.modified || grid4.modified || grid5.modified
+		actionSave.enabled = grid1.modified || grid4.modified || grid5.modified || grid6.modified
 	}
 
 

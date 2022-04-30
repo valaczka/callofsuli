@@ -99,3 +99,15 @@ void AbstractHandler::start()
 	r.send(m_client->socket());
 }
 
+
+
+/**
+ * @brief AbstractHandler::startHttpReply
+ * @param reply
+ */
+
+void AbstractHandler::startHttpReply(QNetworkReply *reply, void *data)
+{
+	qDebug() << "Http reply" << reply << data;
+}
+

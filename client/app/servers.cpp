@@ -104,11 +104,26 @@ void Servers::onMessageReceived(const CosMessage &message)
 		if (func == "getResources") {
 			reloadResources(d.toVariantMap());
 		} else if (func == "getServerInfo") {
-			qDebug() << "GET SERVER INFO";
 			setGoogleOAuth2(d.value("googleOAuth2id").toString(),
 							d.value("googleOAuth2key").toString(),
 							-1);
-			//d.value("googleOAuth2port").toInt(-1));
+
+			quint32 appVersion = message.appVersion();
+			if (m_connectedServer && appVersion > CosMessage::versionNumber() && !m_connectedServer->hasErrorAndNotified()) {
+				Client::clientInstance()->sendMessageWarning(tr("Frissítés szükséges"), tr("A szerverhez képest az alkalmazás elavult, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
+				m_connectedServer->setHasErrorAndNotified(true);
+			}
+
+		} else if (func == "registrationRequest") {
+			qDebug() << "REGISTRATION" << d;
+			/*if (d.contains("error")) {
+				emit registrationRequestFailed(d.value("error").toString());
+			} else if (d.contains("createdUserName")) {
+				login(d.value("createdUserName").toString(), "");
+			} else if (d.value("success").toBool(false)) {
+				emit registrationRequestSuccess();
+			}*/
+			emit registrationRequest(d);
 		}
 	} else if (message.cosClass() == CosMessage::ClassTeacher) {
 		if (func == "groupCreate") {

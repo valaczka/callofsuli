@@ -50,6 +50,12 @@ public:
 
 	bool classInit() override;
 
+	QString userCreateReal(const QString &username, const QString &firstname, const QString &lastname, const bool &isTeacher = false,
+						const QString &classCode = "", const QString &oauthToken = "",
+						const QString &picture = "", const QString &character = "default");
+
+	bool userPasswordChangeReal(const QString &username, const QString &password);
+
 public slots:
 	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
@@ -66,6 +72,8 @@ public slots:
 
 	bool getSettings(QJsonObject *jsonResponse, QByteArray *);
 	bool setSettings(QJsonObject *jsonResponse, QByteArray *);
+
+	bool classRegistration(QJsonObject *jsonResponse, QByteArray *);
 
 	bool getAllClients(QJsonObject *jsonResponse, QByteArray *);
 

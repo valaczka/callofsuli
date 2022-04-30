@@ -950,7 +950,7 @@ void CosGame::onGameFinishedSuccess()
 	Client::clientInstance()->stopSound(m_backgroundMusicFile);
 	Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
 
-	QTimer::singleShot(1000, [=]() {
+	QTimer::singleShot(1000, this, [=]() {
 		emit gameCompletedReady();
 		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
 		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);

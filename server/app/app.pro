@@ -30,6 +30,9 @@ CONFIG(debug, debug|release) {
 
 DESTDIR = ../..
 
+INSTALL_DIR = $${OUT_PWD}/$${DESTDIR}
+
+
 QMAKE_LFLAGS += -Wl,--rpath=./,--rpath=./lib/
 
 SOURCES += \
@@ -57,7 +60,23 @@ RESOURCES += \
 	resources.qrc
 
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
+win32: target.path = $${INSTALL_DIR}/build
+else:linux:!android: target.path = $${INSTALL_DIR}/build/bin
+
 !isEmpty(target.path): INSTALLS += target
+
+
+win32 {
+	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
+	RC_ICONS = cos_server.ico
+	RC_LANG = 0x040E
+	QMAKE_TARGET_COPYRIGHT = Valaczka Janos Pal
+	QMAKE_TARGET_DESCRIPTION = Call of Suli szerver
+
+	license.path = $${INSTALL_DIR}/build
+	license.files = $$PWD/../../LICENSE
+
+	INSTALLS += license
+
+	include(innosetup.pri)
+}

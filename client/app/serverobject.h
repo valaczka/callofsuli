@@ -74,6 +74,9 @@ public:
 	const QVariantList &ignoredErrors() const;
 	void setIgnoredErrors(const QVariantList &newIgnoredErrors);
 
+	bool hasErrorAndNotified() const;
+	void setHasErrorAndNotified(bool newHasErrorAndNotified);
+
 signals:
 	void idChanged();
 	void hostChanged();
@@ -82,9 +85,7 @@ signals:
 	void usernameChanged();
 	void sessionChanged();
 	void autoconnectChanged();
-
 	void broadcastChanged();
-
 	void ignoredErrorsChanged();
 
 private:
@@ -97,6 +98,7 @@ private:
 	bool m_autoconnect;
 	bool m_broadcast;
 	QVariantList m_ignoredErrors;
+	bool m_hasErrorAndNotified;
 };
 
 Q_DECLARE_METATYPE(ObjectGenericListModel<ServerObject>*);

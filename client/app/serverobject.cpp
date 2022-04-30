@@ -34,6 +34,7 @@ ServerObject::ServerObject(QObject *parent)
 	, m_autoconnect(false)
 	, m_broadcast(false)
 	, m_ignoredErrors()
+	, m_hasErrorAndNotified(false)
 {
 
 }
@@ -154,4 +155,14 @@ void ServerObject::setIgnoredErrors(const QVariantList &newIgnoredErrors)
 		return;
 	m_ignoredErrors = newIgnoredErrors;
 	emit ignoredErrorsChanged();
+}
+
+bool ServerObject::hasErrorAndNotified() const
+{
+	return m_hasErrorAndNotified;
+}
+
+void ServerObject::setHasErrorAndNotified(bool newHasErrorAndNotified)
+{
+	m_hasErrorAndNotified = newHasErrorAndNotified;
 }

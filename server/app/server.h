@@ -36,6 +36,7 @@
 #include <QtNetwork/QSslKey>
 #include <QtNetwork/QSslSocket>
 #include <QUdpSocket>
+#include <QNetworkAccessManager>
 
 #include "client.h"
 
@@ -46,13 +47,10 @@ class Server : public QObject
 	Q_PROPERTY(QString serverDir READ serverDir WRITE setServerDir NOTIFY serverDirChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QString serverUuid READ serverUuid WRITE setServerUuid NOTIFY serverUuidChanged)
-	Q_PROPERTY(CosDb * db READ db)
-	Q_PROPERTY(CosDb * mapsDb READ mapsDb)
-	Q_PROPERTY(CosDb * statDb READ statDb)
+	Q_PROPERTY(CosDb * db READ db CONSTANT)
+	Q_PROPERTY(CosDb * mapsDb READ mapsDb CONSTANT)
+	Q_PROPERTY(CosDb * statDb READ statDb CONSTANT)
 	Q_PROPERTY(QVariantMap resources READ resources WRITE setResources NOTIFY resourcesChanged)
-
-	const int m_serverVersionMajor;
-	const int m_serverVersionMinor;
 
 public:
 	struct VersionUpgrade {
@@ -66,10 +64,9 @@ public:
 private:
 	QWebSocketServer *m_socketServer;
 	QUdpSocket *m_udpSocket;
+	QNetworkAccessManager m_networkAccessManager;
 
 	QString m_serverDir;
-	int m_versionMajor;
-	int m_versionMinor;
 	QString m_host;
 	int m_port;
 	int m_pendingConnections;
@@ -121,6 +118,8 @@ public:
 	QString host() const { return m_host; }
 	int port() const { return m_port; }
 	QString serverUuid() const { return m_serverUuid; }
+
+	QNetworkReply *networkRequestGet(const QNetworkRequest &request);
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);

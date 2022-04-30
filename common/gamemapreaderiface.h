@@ -28,7 +28,7 @@
 #define GAMEMAPREADERIFACE_H
 
 
-#define GAMEMAP_CURRENT_VERSION 11
+#define GAMEMAP_CURRENT_VERSION 12
 
 #include <QDataStream>
 #include <QVariantMap>
@@ -70,6 +70,7 @@ public:
 		return list;
 	}
 
+	quint32 appVersion() const;
 
 protected:
 	bool readBinaryData(const QByteArray &data);
@@ -84,7 +85,6 @@ protected:
 	virtual GameMapMissionIface* ifaceAddMission(const QByteArray &uuid, const QString &name,
 												 const QString &description, const QString &medalImage) = 0;
 	virtual GameMapImageIface* ifaceAddImage(const QString &file, const QByteArray &data) = 0;
-
 
 
 	QString m_uuid;
@@ -110,6 +110,7 @@ private:
 	bool inventoriesFromStream(QDataStream &stream, GameMapMissionLevelIface *chapter);
 
 	qint32 m_version;
+	quint32 m_appVersion;
 };
 
 

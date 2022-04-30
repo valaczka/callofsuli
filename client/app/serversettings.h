@@ -51,6 +51,7 @@ public:
 signals:
 	void getSettings(QJsonObject jsonData, QByteArray binaryData);
 	void setSettings(QJsonObject jsonData, QByteArray binaryData);
+	void classRegistration(QJsonObject jsonData, QByteArray binaryData);
 };
 
 

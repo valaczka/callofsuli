@@ -30,7 +30,7 @@
 
 #include <QWebSocket>
 #include <QObject>
-#include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 #include "cosdb.h"
 #include "cosmessage.h"
@@ -65,19 +65,18 @@ public:
 	QString clientSession() const { return m_clientSession; }
 	void setClientSession(const QString &clientSession);
 
-	bool registerUser(const QString &email, const QString &code);
-
+	void httpGet(QNetworkRequest request, const CosMessage &message, void *data);
+	void httpReply(QNetworkReply *reply);
 
 public slots:
 	void sendClientRoles();
 	void sendServerInfo();
 	void sendUserInfo();
 
-	void setClientState(ClientState clientState);
+	void setClientState(Client::ClientState clientState);
 	void setClientUserName(QString clientUserName);
 	void setClientRoles(CosMessage::ClientRoles clientRoles);
 
-	QStringList emailRegistrationDomainList() const;
 
 private slots:
 	void onDisconnected();
@@ -85,12 +84,12 @@ private slots:
 	void clientAuthorize(const CosMessage &message);
 	void clientLogout(const CosMessage &message);
 	void updateRoles();
-	void onOAuth2UserinfoReceived(const QJsonObject &data);
+	void onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data);
 
 signals:
 	void disconnected();
 
-	void clientStateChanged(ClientState clientState);
+	void clientStateChanged(Client::ClientState clientState);
 	void clientUserNameChanged(QString clientUserName);
 	void clientRolesChanged(CosMessage::ClientRoles clientRoles);
 
@@ -105,9 +104,15 @@ private:
 	QString m_clientSession;
 	QString m_clientUserName;
 	CosMessage::ClientRoles m_clientRoles;
-	QNetworkAccessManager m_networkAccessManager;
-	bool m_oauthTokenInitilized;
-	bool m_oauthRequestSent;
+	bool m_oauthTokenInitialized;
+
+	struct HttpRequestMap {
+		QNetworkReply *reply;
+		CosMessage message;
+		void *data;
+	};
+
+	QList<HttpRequestMap> m_httpRequestList;
 };
 
 #endif // CLIENT_H

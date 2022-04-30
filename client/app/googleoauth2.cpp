@@ -38,7 +38,7 @@ GoogleOAuth2::GoogleOAuth2(QObject *parent)
 	m_oauth.setAccessTokenUrl(QUrl("https://oauth2.googleapis.com/token"));
 	m_oauth.setScope("email profile");
 
-	connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::statusChanged, [=](QAbstractOAuth::Status status) {
+	connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::statusChanged, this, [=](QAbstractOAuth::Status status) {
 		if (status == QAbstractOAuth::Status::Granted) {
 			const QString token = m_oauth.token();
 			emit authenticated(token);

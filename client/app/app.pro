@@ -1,6 +1,7 @@
 QT += sql websockets quick svg multimedia network networkauth
 
-android|ios|linux: QT += webview
+android|ios: QT += webview
+
 
 CONFIG += c++17
 
@@ -14,9 +15,7 @@ linux|win32|mac: include(../QSingleInstance/QSingleInstance.pri)
 
 TEMPLATE = app
 TARGET = callofsuli
-
 win32: CONFIG += windows
-
 
 INCLUDEPATH += ../QtXlsxWriter \
 				../QZXing \
@@ -71,8 +70,8 @@ QML_IMPORT_PATH += $$PWD/modules/fillout
 
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
-	RC_ICONS = $$PWD/../../resources/internal/img/cos96.ico
-	RC_LANG = hu
+	RC_ICONS = $$PWD/../../resources/internal/img/cos.ico
+	RC_LANG = 0x040E
 	QMAKE_TARGET_COPYRIGHT = Valaczka Janos Pal
 	QMAKE_TARGET_DESCRIPTION = Call of Suli kliens
 }

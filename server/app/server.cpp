@@ -37,15 +37,18 @@
 
 
 QList<Server::VersionUpgrade> Server::m_versionUpgrades = {
-	Server::VersionUpgrade(3, 0, ":/sql/upgrade_3.0.sql")
+	Server::VersionUpgrade(3, 0, ":/sql/upgrade_3.0.sql"),
+	Server::VersionUpgrade(3, 1, ":/sql/upgrade_3.1.sql")
 };
+
+
+
 
 
 
 Server::Server(QObject *parent)
 	: QObject(parent)
-	, m_serverVersionMajor(_VERSION_MAJOR)
-	, m_serverVersionMinor(_VERSION_MINOR)
+	, m_networkAccessManager(this)
 	, m_serverDir()
 	, m_serverName()
 	, m_serverUuid()
@@ -56,8 +59,6 @@ Server::Server(QObject *parent)
 	m_mapsDb = new CosDb("mapsDb", this);
 	m_statDb = new CosDb("statDb", this);
 
-	m_versionMajor = 0;
-	m_versionMinor = 0;
 	m_port = 10101;
 	m_pendingConnections = 30;
 	m_createDb = false;
@@ -65,6 +66,7 @@ Server::Server(QObject *parent)
 	m_udpSocket = new QUdpSocket(this);
 	connect(m_udpSocket, &QUdpSocket::readyRead, this, &Server::onDatagramReady);
 }
+
 
 
 /**
@@ -291,6 +293,9 @@ bool Server::databaseLoad()
 	if (!m_statDb->open())
 		return false;
 
+	int dbVersionMinor = 0;
+	int dbVersionMajor = 0;
+
 	QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor, serverName, serverUuid from system");
 
 	if (m.isEmpty()) {
@@ -305,14 +310,17 @@ bool Server::databaseLoad()
 		setServerName(tr("Call of Suli szerver"));
 
 		QVariantMap params;
-		params["versionMajor"] = m_serverVersionMajor;
-		params["versionMinor"] = m_serverVersionMinor;
+		params["versionMajor"] = _VERSION_MAJOR;
+		params["versionMinor"] = _VERSION_MINOR;
 		params["serverName"] = m_serverName;
 		params["serverUuid"] = m_serverUuid;
 
 
 		if (m_db->execInsertQuery("INSERT INTO system(?k?) values (?)", params)==-1)
 			return false;
+
+		dbVersionMajor = _VERSION_MAJOR;
+		dbVersionMinor = _VERSION_MINOR;
 
 
 		params.clear();
@@ -373,8 +381,8 @@ bool Server::databaseLoad()
 	} else {
 		setServerUuid(m.value("serverUuid").toString());
 		setServerName(m.value("serverName").toString());
-		m_versionMajor = m.value("versionMajor").toInt();
-		m_versionMinor = m.value("versionMinor").toInt();
+		dbVersionMajor = m.value("versionMajor").toInt();
+		dbVersionMinor = m.value("versionMinor").toInt();
 	}
 
 
@@ -413,11 +421,16 @@ bool Server::databaseLoad()
 	}
 
 
-	if (m_versionMajor < m_serverVersionMajor || m_versionMinor < m_serverVersionMinor) {
+
+
+#ifndef QT_DEBUG
+	if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber())  {
+#endif
 		foreach (Server::VersionUpgrade upgrade, m_versionUpgrades) {
-			if (m_versionMajor < upgrade.major || (m_versionMajor == upgrade.major && m_versionMinor < upgrade.minor)) {
-				qInfo() << tr("Adatbázis frissítése %1.%2 -> %3.%4").arg(m_versionMajor)
-						   .arg(m_versionMinor)
+			if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber(upgrade.major, upgrade.minor)) {
+				qInfo() << tr("Adatbázis frissítése %1.%2 -> %3.%4")
+						   .arg(dbVersionMajor)
+						   .arg(dbVersionMinor)
 						   .arg(upgrade.major)
 						   .arg(upgrade.minor);
 
@@ -428,13 +441,16 @@ bool Server::databaseLoad()
 					return false;
 				}
 				m_db->commit();
+
+
+				QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor FROM system");
+				dbVersionMajor = m.value("versionMajor").toInt();
+				dbVersionMinor = m.value("versionMinor").toInt();
 			}
 		}
-
-		QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor FROM system");
-		m_versionMajor = m.value("versionMajor").toInt();
-		m_versionMinor = m.value("versionMinor").toInt();
+#ifndef QT_DEBUG
 	}
+#endif
 
 
 	m_db->subscribeToNotification("ranklog");
@@ -774,6 +790,39 @@ bool Server::isClientActive(const QString &username) const
 
 
 
+/**
+ * @brief Server::httpGet
+ * @param request
+ */
+
+QNetworkReply *Server::networkRequestGet(const QNetworkRequest &request)
+{
+	qDebug() << "HTTP GET" << request.url() << request.originatingObject();
+
+	QNetworkReply *reply = m_networkAccessManager.get(request);
+
+	connect(reply, &QNetworkReply::finished, this, [=]() {
+		if (reply->error() != QNetworkReply::NoError) {
+			qWarning() << "Network error" << reply->error() << reply->errorString();
+		}
+
+		Client *client = qobject_cast<Client *>(reply->request().originatingObject());
+
+		if (client) {
+			client->httpReply(reply);
+		} else {
+			qWarning() << "Invalid originating object";
+		}
+
+		reply->deleteLater();
+	});
+
+	return reply;
+}
+
+
+
+
 
 /**
  * @brief Server::onSslErrors
@@ -895,6 +944,5 @@ void Server::setServerUuid(QString serverUuid)
 	m_serverUuid = serverUuid;
 	emit serverUuidChanged(m_serverUuid);
 }
-
 
 

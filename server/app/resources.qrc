@@ -6,5 +6,7 @@
         <file>../../common/license.txt</file>
         <file>sql/stat.sql</file>
         <file>sql/upgrade_3.0.sql</file>
+        <file>cos_server.png</file>
+        <file>sql/upgrade_3.1.sql</file>
     </qresource>
 </RCC>

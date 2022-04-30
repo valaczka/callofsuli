@@ -52,12 +52,11 @@ QTabContainer {
 					}
 
 					ListElement {
-						title: qsTr("Felhasználók")
+						title: qsTr("Osztályok és felhasználók")
 						icon: "image://font/Material Icons/\ue7ef"
 						page: "Users"
 						textcolor: "white"
 						background: "#940000"
-
 					}
 				}
 

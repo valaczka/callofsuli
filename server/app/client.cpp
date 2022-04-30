@@ -40,8 +40,8 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 	: QObject(parent)
 	, m_server(server)
 	, m_socket(socket)
-	, m_oauthTokenInitilized(false)
-	, m_oauthRequestSent(false)
+	, m_oauthTokenInitialized(false)
+	, m_httpRequestList()
 {
 	Q_ASSERT(socket);
 	Q_ASSERT(server);
@@ -57,7 +57,7 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 
 	connect(this, &Client::clientRolesChanged, this, &Client::sendClientRoles);
 
-	connect(this, &Client::oauth2UserinfoReceived, this, &Client::onOAuth2UserinfoReceived);
+	//connect(this, &Client::oauth2UserinfoReceived, this, &Client::onOAuth2UserinfoReceived);
 
 	connect(server, &Server::serverInfoChanged, this, &Client::sendServerInfo);
 	connect(server->db()->worker(), &CosDbWorker::notification, this, [=](QString table) {
@@ -161,7 +161,7 @@ void Client::sendUserInfo()
 
 
 
-void Client::setClientState(Client::ClientState clientState)
+void Client::setClientState(ClientState clientState)
 {
 	if (m_clientState == clientState)
 		return;
@@ -183,30 +183,6 @@ void Client::setClientUserName(QString clientUserName)
 		setClientSession("");
 }
 
-/**
- * @brief Client::emailRegistrationDomainList
- * @return
- */
-
-QStringList Client::emailRegistrationDomainList() const
-{
-	if (!db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='email.registration'")
-		.value("v", false).toBool())
-		return QStringList();
-
-	QVariantMap m = db()->execSelectQueryOneRow("SELECT value as list FROM settings WHERE key='email.registrationDomains'");
-
-	QString s = m.value("list", "").toString();
-
-	if (s.isEmpty())
-		return QStringList();
-
-	QStringList list = s.split(",");
-	list.replaceInStrings(QRegExp("\\s"), "");
-	list.replaceInStrings(QRegExp("^([^@])"), "@\\1");
-
-	return list;
-}
 
 /**
  * @brief Client::setClientRoles
@@ -308,15 +284,6 @@ void Client::clientAuthorize(const CosMessage &message)
 	}
 
 	QJsonObject a = message.jsonAuth();
-
-	/*if (a.value("passwordRequest").toBool()) {
-		setClientState(ClientUnauthorized);
-		setClientUserName("");
-		clientPasswordRequest(message);
-		return;
-	}*/
-
-
 	QString session = a.value("session").toString("");
 	QString oauth2token = a.value("oauth2Token").toString();
 
@@ -332,7 +299,7 @@ void Client::clientAuthorize(const CosMessage &message)
 			setClientSession(session);
 
 
-			if (pwdMap.value("password") == "*" && !m_oauthTokenInitilized) {
+			if (pwdMap.value("password") == "*" && !m_oauthTokenInitialized) {
 				QString token = pwdMap.value("oauthToken").toString();
 				if (token.isEmpty()) {
 					CosMessage r(CosMessage::InvalidSession, message);
@@ -342,6 +309,7 @@ void Client::clientAuthorize(const CosMessage &message)
 					return;
 				} else {
 					getOAuth2Userinfo(token);
+					return;
 				}
 			}
 		} else {
@@ -369,40 +337,6 @@ void Client::clientAuthorize(const CosMessage &message)
 		}
 
 
-		/*
-		if (a.value("reset").toBool(false) && !password.isEmpty()) {
-			QVariantList l;
-			QString salt;
-			QString hashedPassword = CosDb::hashPassword(password, &salt);
-			l << username << hashedPassword << salt;
-			if (!db()->execSimpleQuery("INSERT OR REPLACE INTO auth (username, password, salt) VALUES (?, ?, ?)", l)) {
-				CosMessage r(CosMessage::ServerInternalError, "passwordReset", message);
-				r.send(m_socket);
-				setClientState(ClientUnauthorized);
-				setClientUserName("");
-				return;
-			}
-		}
-*/
-
-
-
-		// Regisztráció
-
-		QVariantMap rm = db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE username=?) as hasUser, code FROM registration WHERE email=?",
-													 {username, username});
-		if (rm.value("hasUser", -1).toInt() == 0 && !rm.value("code").toString().isEmpty()) {
-			if (!registerUser(username, password)) {
-				qDebug() << "REGISTRATION FAILED";
-				CosMessage r(CosMessage::ServerInternalError, "registration", message);
-				r.send(m_socket);
-				setClientState(ClientUnauthorized);
-				setClientUserName("");
-				return;
-			}
-		}
-
-
 		// Aktív-e?
 
 		if (!db()->execSelectQueryOneRow("SELECT active FROM user WHERE username=?", {username}).value("active", false).toBool()) {
@@ -413,32 +347,6 @@ void Client::clientAuthorize(const CosMessage &message)
 			return;
 		}
 
-
-		// Reset password
-
-		if (a.value("reset").toBool() && !password.isEmpty()) {
-			if (!db()->execSelectQueryOneRow("SELECT password FROM auth WHERE username=?", {username}).value("password").toString().isEmpty()) {
-				CosMessage r(CosMessage::PasswordRequestInvalidEmail, message);
-				r.send(m_socket);
-				setClientState(ClientUnauthorized);
-				setClientUserName("");
-				return;
-			} else {
-				QJsonObject o;
-				o["username"] = username;
-				o["password"] = password;
-				CosMessage m2(o, CosMessage::ClassInvalid, "");
-				Admin u(this, m2);
-				QJsonObject ret;
-				if (!u.userPasswordChange(&ret, nullptr)) {
-					CosMessage r(CosMessage::ServerInternalError, "password", message);
-					r.send(m_socket);
-					setClientState(ClientUnauthorized);
-					setClientUserName("");
-					return;
-				}
-			}
-		}
 
 
 		// Auth
@@ -571,10 +479,32 @@ void Client::updateRoles()
  * @param data
  */
 
-void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
+void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 {
+	QString token;
+
+	if (p_data) {
+		QString *t = static_cast<QString *>(p_data);
+
+		if (t) {
+			token = *t;
+			delete t;
+		}
+	}
+
+	qDebug() << "OAUTH2 LOGIN" << token;
+
+
+	QByteArray content = reply->readAll();
+	QJsonDocument doc = QJsonDocument::fromJson(content);
+
+	qDebug() << "OAUTH2 RESPONSE" << doc;
+
+	QJsonObject data = doc.object();
+
+
 	if (data.contains("error") && !m_clientUserName.isEmpty() && m_clientState == ClientAuthorized) {
-		qDebug() << "OAUTH2" << data;
+		qDebug() << "OAUTH2 ERROR" << data;
 		db()->execSimpleQuery("DELETE FROM session WHERE username=?", {m_clientUserName});
 		setClientUserName("");
 		setClientState(ClientUnauthorized);
@@ -588,7 +518,6 @@ void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
 	QString familyname = data.value("family_name").toString();
 	QString givenname = data.value("given_name").toString();
 	QString picture = data.value("picture").toString();
-	QString token = data.value("origToken").toString();
 
 	if (m_clientState == ClientAuthorized && !m_clientUserName.isEmpty() && user != m_clientUserName) {
 		qWarning() << tr("OAuth2 user name mismatch");
@@ -601,41 +530,11 @@ void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
 	QVariantMap u = db()->execSelectQueryOneRow("SELECT username, active FROM user WHERE username=?", {user});
 
 	if (u.isEmpty()) {
-		// Registration
-		if (db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.registration'")
-			.value("v", false).toBool()) {
-
-			QJsonObject obj;
-			obj["username"] = user;
-			obj["firstname"] = familyname;
-			obj["lastname"] = givenname;
-			obj["picture"] = picture;
-			obj["active"] = true;
-			obj["oauthToken"] = token;
-
-			CosMessage m2(obj, CosMessage::ClassInvalid, "");
-
-			QJsonObject ret;
-			Admin u(this, m2);
-			bool isSuccess = u.userCreate(&ret, nullptr);
-
-			if (isSuccess) {
-				qInfo().noquote() << tr("User registered (automatic)") << user;
-			} else {
-				CosMessage r(CosMessage::ServerInternalError, "oauth2 registration");
-				r.send(m_socket);
-				setClientState(ClientUnauthorized);
-				setClientUserName("");
-				return;
-			}
-
-		} else {
-			CosMessage r(CosMessage::InvalidUser, CosMessage(CosMessage::InvalidClass));
-			r.send(m_socket);
-			setClientState(ClientUnauthorized);
-			setClientUserName("");
-			return;
-		}
+		CosMessage r(CosMessage::InvalidUser, CosMessage(CosMessage::InvalidClass));
+		r.send(m_socket);
+		setClientState(ClientUnauthorized);
+		setClientUserName("");
+		return;
 	} else {
 		if (!u.value("active").toBool()) {
 			db()->execSimpleQuery("DELETE FROM session WHERE username=?", {user});
@@ -647,9 +546,7 @@ void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
 			return;
 		}
 
-		QVariantMap pwdMap = db()->execSelectQueryOneRow("SELECT password FROM auth WHERE username=?", { user });
-
-		if (pwdMap.value("password") != "*") {
+		if (db()->execSelectQueryOneRow("SELECT password FROM auth WHERE username=?", {user}).value("password") != "*") {
 			CosMessage r(CosMessage::InvalidUser, CosMessage(CosMessage::InvalidClass));
 			r.send(m_socket);
 			setClientState(ClientUnauthorized);
@@ -661,7 +558,7 @@ void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
 		db()->execSimpleQuery("UPDATE user SET firstname=?, lastname=?, picture=? WHERE username=?", {familyname, givenname, picture, user});
 	}
 
-	m_oauthTokenInitilized = true;
+	m_oauthTokenInitialized = true;
 
 	if (m_clientState != ClientAuthorized) {
 		setClientState(ClientAuthorized);
@@ -692,39 +589,18 @@ void Client::onOAuth2UserinfoReceived(const QJsonObject &data)
 
 void Client::getOAuth2Userinfo(const QString &token)
 {
-	if (m_oauthRequestSent) {
-		return;
-	}
-
 	QUrl url("https://www.googleapis.com/oauth2/v1/userinfo");
 	QUrlQuery q;
 	q.addQueryItem("alt", "json");
 	q.addQueryItem("access_token", token);
 	url.setQuery(q);
 
-	m_oauthRequestSent = true;
+	QString *p_token = new QString(token);
 
-	QNetworkReply *reply = m_networkAccessManager.get(QNetworkRequest(url));
-
-	qDebug() << "OAUTH2 REQUEST" << url;
-
-	connect(reply, &QNetworkReply::finished, [=]() {
-		QByteArray content = reply->readAll();
-		QJsonDocument doc = QJsonDocument::fromJson(content);
-
-		qDebug() << "OAUTH2 RESPONSE" << doc;
-
-		if (doc.isObject()) {
-			QJsonObject o = doc.object();
-			o["origToken"] = token;
-			emit oauth2UserinfoReceived(o);
-		}
-
-		m_oauthRequestSent = false;
-
-		reply->deleteLater();
-	});
+	httpGet(QNetworkRequest(url), CosMessage(QJsonObject(), CosMessage::ClassLogin, ""), p_token);
 }
+
+
 
 
 
@@ -742,42 +618,88 @@ void Client::setClientSession(const QString &clientSession)
 
 
 /**
- * @brief Client::registerUser
- * @param email
- * @param code
+ * @brief Client::httpGet
+ * @param request
+ * @param message
  */
 
-bool Client::registerUser(const QString &email, const QString &code)
+void Client::httpGet(QNetworkRequest request, const CosMessage &message, void *data)
 {
-	QVariantMap m;
+	qDebug() << "HTTP GET" << request.url() << message.cosClass() << message.cosFunc();
 
-	m = db()->execSelectQueryOneRow("SELECT firstname, lastname, classid FROM registration WHERE email=? and code=?", {email, code});
-	if (m.isEmpty()) {
-		return false;
+	request.setOriginatingObject(this);
+
+	QNetworkReply *reply = m_server->networkRequestGet(request);
+
+	HttpRequestMap m;
+	m.reply = reply;
+	m.message = message;
+	m.data = data;
+
+	m_httpRequestList.append(m);
+}
+
+
+
+/**
+ * @brief Client::httpReply
+ * @param reply
+ */
+
+void Client::httpReply(QNetworkReply *reply)
+{
+	qDebug() << "HTTP REPLY" << reply->error();
+
+	CosMessage m;
+	void *data = nullptr;
+
+	for (int i=0; i<m_httpRequestList.size(); ++i) {
+		const HttpRequestMap &p = m_httpRequestList.at(i);
+
+		if (p.reply == reply) {
+			m = p.message;
+			data = p.data;
+			m_httpRequestList.removeAt(i);
+			break;
+		}
 	}
 
-	QJsonObject obj;
-	obj["username"] = email;
-	obj["firstname"] = m.value("firstname").toString();
-	obj["lastname"] = m.value("lastname").toString();
-	obj["active"] = true;
+	if (!m.valid()) {
+		qDebug() << "Original message not found";
+		return;
+	}
 
-	if (!m.value("classid").isNull())
-		obj["classid"] = m.value("classid").toInt();
+	switch (m.cosClass()) {
+		case CosMessage::ClassLogin: {
+				onOAuth2UserinfoReceived(reply, data);
+				break;
+			}
+		case CosMessage::ClassAdmin: {
+				Admin u(this, m);
+				u.startHttpReply(reply, data);
+				break;
+			}
+		case CosMessage::ClassUserInfo: {
+				UserInfo u(this, m);
+				u.startHttpReply(reply, data);
+				break;
+			}
+		case CosMessage::ClassTeacher: {
+				Teacher u(this, m);
+				u.startHttpReply(reply, data);
+				break;
+			}
+		case CosMessage::ClassStudent: {
+				Student u(this, m);
+				u.startHttpReply(reply, data);
+				break;
+			}
+		case CosMessage::ClassInvalid:
+		case CosMessage::ClassLogout:
+		default: {
+				break;
+			}
 
-
-	CosMessage m2(obj, CosMessage::ClassInvalid, "");
-
-	QJsonObject ret;
-	Admin u(this, m2);
-	bool isSuccess = u.userCreate(&ret, nullptr);
-
-	if (isSuccess) {
-		qInfo().noquote() << tr("User registered") << email;
-		db()->execSimpleQuery("DELETE FROM registration WHERE email=? AND code=?", {email, code});
-		return true;
-	} else {
-		return false;
 	}
 }
 
