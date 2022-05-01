@@ -75,6 +75,11 @@ public:
 		return QJsonArray();
 	}
 
+	Q_INVOKABLE virtual void resetJsonArray(const QJsonArray & = QJsonArray())
+	{
+		qWarning() << "Missing implementation" << Q_FUNC_INFO;
+	}
+
 	bool processing() const;
 	void setProcessing(bool newProcessing);
 
@@ -138,6 +143,7 @@ public:
 	void appendJsonArray(QObject *parent, const QJsonArray &array);
 	Q_INVOKABLE virtual void appendJsonArray(const QJsonArray &array) override;
 	Q_INVOKABLE virtual void updateJsonArray(const QJsonArray &array, const QString &field) override;
+	Q_INVOKABLE virtual void resetJsonArray(const QJsonArray &array = QJsonArray()) override;
 	Q_INVOKABLE virtual QJsonArray toJsonArray() const override;
 
 	static QJsonArray toJsonArray(QList<T*> list);
@@ -151,6 +157,39 @@ protected slots:
 };
 
 
+
+
+/**
+ * @brief ObjectGenericListModel::resetJsonArray
+ * @param array
+ */
+
+template<typename T>
+void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::resetJsonArray(const QJsonArray &array)
+{
+	QObjectList list;
+	list.reserve(array.size());
+
+	foreach (QJsonValue v, array) {
+		QJsonObject o = v.toObject();
+		if (o.isEmpty())
+			continue;
+		T *obj = ObjectListModelObject::fromJsonObject<T>(o, this->parent() ? this->parent() : this);
+		if (!obj)
+			continue;
+		list.append(obj);
+	}
+
+	this->QObjectListModel::resetModel(std::move(list));
+	emit this->countChanged();
+}
+
+
+
+
+/**
+ * @brief ObjectGenericListModel::onSelectedChanged
+ */
 
 
 template<typename T>

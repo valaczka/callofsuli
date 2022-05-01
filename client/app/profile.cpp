@@ -37,6 +37,8 @@ Profile::Profile(QQuickItem *parent)
 
 	setCharacterList(Client::mapToList(Client::clientInstance()->characterData(), "dir"));
 
+	connect(this, &Profile::getAllUser, this, &Profile::onGetAllUser);
+
 	// Ignored Signals
 	m_ignoredSignals
 			<< "newSessionToken"
@@ -94,6 +96,19 @@ void Profile::scoreModelUpdate(const QJsonArray &list)
 {
 	m_scoreModel->updateJsonArray(list, "username");
 }
+
+
+/**
+ * @brief Profile::onGetAllUser
+ * @param jsonData
+ */
+
+void Profile::onGetAllUser(QJsonObject jsonData, QByteArray)
+{
+	scoreModelUpdate(jsonData.value("list").toArray());
+}
+
+
 
 ObjectGenericListModel<ProfileScoreObject> *Profile::scoreModel() const
 {

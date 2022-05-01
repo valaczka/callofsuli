@@ -53,12 +53,14 @@ public slots:
 
 	void scoreModelUpdate(const QJsonArray &list);
 
+private slots:
+	void onGetAllUser(QJsonObject jsonData, QByteArray);
+
 signals:
 	void userGet(QJsonObject jsonData, QByteArray binaryData);
 	void userModify(QJsonObject jsonData, QByteArray binaryData);
 	void userPasswordChange(QJsonObject jsonData, QByteArray binaryData);
 
-	//void getUserScore(QJsonObject jsonData, QByteArray binaryData);
 	void getAllUser(QJsonObject jsonData, QByteArray binaryData);
 	void getUser(QJsonObject jsonData, QByteArray binaryData);
 	void getMyGroups(QJsonObject jsonData, QByteArray binaryData);

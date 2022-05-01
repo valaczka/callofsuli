@@ -58,6 +58,7 @@ public:
 
 public slots:
 	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
+	bool userListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);
@@ -68,7 +69,7 @@ public slots:
 	bool getAllClass(QJsonObject *jsonResponse, QByteArray *);
 	bool classCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool classUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool classBatchRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool classRemove(QJsonObject *jsonResponse, QByteArray *);
 
 	bool getSettings(QJsonObject *jsonResponse, QByteArray *);
 	bool setSettings(QJsonObject *jsonResponse, QByteArray *);

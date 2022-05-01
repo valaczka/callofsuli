@@ -195,7 +195,6 @@ QTabContainer {
 		target: profile
 
 		function onGetAllUser(jsonData, binaryData) {
-			profile.scoreModelUpdate(jsonData.list)
 			var clist = jsonData.classlist
 			clist.unshift({"classid": -1, "classname": qsTr("Mindenki")})
 			classRepeater.model = clist

@@ -206,7 +206,7 @@ void Client::setClientRoles(CosMessage::ClientRoles clientRoles)
 
 void Client::onDisconnected()
 {
-	qInfo().noquote() << tr("Client disconnected:") << m_socket->peerAddress().toString() << m_socket->peerPort();
+	qInfo().noquote() << tr("Client disconnected:") << m_socket->peerAddress().toString() << m_socket->peerPort() << m_clientUserName;
 	emit disconnected();
 }
 

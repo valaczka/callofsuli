@@ -71,14 +71,62 @@ bool Admin::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList params;
 
 	l = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, "
-																	"class.name as classname, "
-																	"isTeacher, isAdmin FROM user "
-																	"LEFT JOIN class ON (class.id=user.classid)",
+																	"classname, isTeacher, isAdmin FROM userInfo",
 																	params));
 	(*jsonResponse)["list"] = l;
 
 	return true;
 }
+
+
+
+/**
+ * @brief Admin::userListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Admin::userListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QJsonObject &args = m_message.jsonData();
+	QJsonArray l;
+	QVariantList params;
+
+	QString q = "SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, classname, "
+				"isTeacher, isAdmin, nickname, character, picture, "
+				"rankid, rankname, ranklevel, rankimage FROM userInfo ";
+	QString w;
+
+
+	if (args.contains("classid")) {
+		w += (w.isEmpty() ? "" : " AND ");
+		w += "COALESCE(classid, -1)=?";
+		params << args.value("classid").toInt(-1);
+	}
+
+
+	if (args.contains("isTeacher")) {
+		w += (w.isEmpty() ? "" : " AND ");
+		w += "isTeacher=?";
+		params << args.value("isTeacher").toBool();
+	}
+
+	if (args.contains("isAdmin")) {
+		w += (w.isEmpty() ? "" : " AND ");
+		w += "isAdmin=?";
+		params << args.value("isAdmin").toBool();
+	}
+
+
+	if (!w.isEmpty())
+		q += " WHERE "+w;
+
+	l = QJsonArray::fromVariantList(m_client->db()->execSelectQuery(q, params));
+	(*jsonResponse)["list"] = l;
+
+	return true;
+}
+
 
 
 /**
@@ -93,9 +141,8 @@ bool Admin::userGet(QJsonObject *jsonResponse, QByteArray *)
 	params << m_message.jsonData().value("username").toString();
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
-																						"COALESCE(classid, -1) as classid, class.name as classname, "
-																						"isTeacher, isAdmin FROM user "
-																						"LEFT JOIN class ON (class.id=user.classid) "
+																						"COALESCE(classid, -1) as classid, classname, "
+																						"isTeacher, isAdmin FROM userInfo "
 																						"WHERE username=?",
 																						params));
 
@@ -373,7 +420,8 @@ bool Admin::classCreate(QJsonObject *jsonResponse, QByteArray *)
 bool Admin::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap bind;
-	bind[":id"] = m_message.jsonData().value("id").toInt();
+	int classid = m_message.jsonData().value("id").toInt();
+	bind[":id"] = classid;
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	params.remove("id");
 
@@ -382,7 +430,9 @@ bool Admin::classUpdate(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	(*jsonResponse)["updated"] = bind.value(":id").toInt();
+
+	(*jsonResponse)["updated"] = classid;
+	(*jsonResponse)["name"] = m_client->db()->execSelectQueryOneRow("SELECT name FROM class WHERE id=?", { classid }).value("name").toString();
 
 	return true;
 }
@@ -394,24 +444,33 @@ bool Admin::classUpdate(QJsonObject *jsonResponse, QByteArray *)
  * @param jsonResponse
  */
 
-bool Admin::classBatchRemove(QJsonObject *jsonResponse, QByteArray *)
+bool Admin::classRemove(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_message.jsonData().value("list").toArray().toVariantList();
+	QJsonObject params = m_message.jsonData();
+	int id = params.value("id").toInt(-1);
 
-	if (!list.count()) {
+	QVariantList list;
+
+	if (id != -1)
+		list.append(id);
+
+	foreach (QJsonValue v, params.value("list").toArray())
+		list.append(v.toInt());
+
+
+	if (list.size()) {
+		if (!m_client->db()->execListQuery("DELETE FROM class WHERE id IN (?l?)", list)) {
+			(*jsonResponse)["error"] = "sql error";
+			setServerError();
+			return false;
+		}
+	} else{
 		(*jsonResponse)["error"] = "invalid parameters";
-		return false;
-	}
-
-	QVariantList data;
-	data << QVariant(list);
-
-	if (m_client->db()->execBatchQuery("DELETE FROM class WHERE id=?", data))
-		(*jsonResponse)["removed"] = true;
-	else {
 		setServerError();
 		return false;
 	}
+
+	(*jsonResponse)["removed"] = true;
 
 	return true;
 }

@@ -177,6 +177,7 @@ SOURCES += \
 		teachergroups.cpp \
 		teachermaps.cpp \
 		tiledpaintedlayer.cpp \
+		userlistobject.cpp \
 		variantmapdata.cpp \
 		variantmapmodel.cpp
 
@@ -229,6 +230,7 @@ HEADERS += \
 	teachergroups.h \
 	teachermaps.h \
 	tiledpaintedlayer.h \
+	userlistobject.h \
 	variantmapdata.h \
 	variantmapmodel.h
 

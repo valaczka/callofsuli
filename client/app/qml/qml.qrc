@@ -32,7 +32,7 @@
         <file>QGridSpinBox.qml</file>
         <file>QTextArea.qml</file>
         <file>QGridTextArea.qml</file>
-        <file>AdminUserClassList.qml</file>
+        <file>AdminClassList.qml</file>
         <file>AdminUserList.qml</file>
         <file>AdminUserData.qml</file>
         <file>QGridComboBox.qml</file>
@@ -116,9 +116,7 @@
         <file>QImageSpinBox.qml</file>
         <file>QGridImageSpinBox.qml</file>
         <file>QDialogYesNoFlickable.qml</file>
-        <file>QStackComponent.qml</file>
         <file>QSimpleContainer.qml</file>
-        <file>_StackPage.qml</file>
         <file>OLD_PageConnectionInfo.qml</file>
         <file>QDialogPasswordChange.qml</file>
         <file>TeacherGroupUserEdit.qml</file>

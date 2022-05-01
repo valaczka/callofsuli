@@ -1,289 +1,167 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import COS.Client 1.0
 import SortFilterProxyModel 0.2
+import COS.Client 1.0
 import "."
 import "Style"
 import "JScript.js" as JS
 
-QPagePanel {
-	id: panel
-
-	property AdminUsers adminUsers: null
+QTabContainer {
+	id: control
 
 	title: qsTr("Felhasználók")
-	icon: CosStyle.iconUser
+	icon: CosStyle.iconUsers
 
-	/*pageContextMenu: QMenu {
-		MenuItem {
-			icon.source: CosStyle.iconUserAdd
-			text: qsTr("Context Új felhasználó")
-			onClicked: pageAdminUsers.createUserRequest()
-		}
-		MenuItem {
-			icon.source: CosStyle.iconUsersAdd
-			text: qsTr("Context Új osztály")
-			onClicked: pageAdminUsers.createClassRequest()
-		}
-	}*/
+	property var queryParameters: ({})
 
-	UserListWidget {
-		id: userListWidget
+	menu: QMenu {
+		MenuItem { action: actionRename }
+		MenuItem { action: actionDelete }
+	}
 
+	SortFilterProxyModel {
+		id: userProxyModel
+		sourceModel: serverSettings.modelUserList
+
+		sorters: [
+			StringSorter { roleName: "firstname"; sortOrder: Qt.AscendingOrder; priority: 2 },
+			StringSorter { roleName: "lastname"; sortOrder: Qt.AscendingOrder; priority: 1 }
+		]
+
+		proxyRoles: [
+			ExpressionRole {
+				name: "name"
+				expression: model.firstname+" "+model.lastname
+			},
+			SwitchRole {
+				name: "background"
+				filters: [
+					ValueFilter {
+						roleName: "isAdmin"
+						value: true
+						SwitchRole.value: JS.setColorAlpha(CosStyle.colorErrorDark, 0.4)
+					},
+					ValueFilter {
+						roleName: "isTeacher"
+						value: true
+						SwitchRole.value: JS.setColorAlpha(CosStyle.colorAccentDark, 0.4)
+					}
+				]
+				defaultValue: "transparent"
+			},
+			SwitchRole {
+				name: "titlecolor"
+				filters: ValueFilter {
+					roleName: "username"
+					value: cosClient.userName
+					SwitchRole.value: CosStyle.colorAccentLight
+				}
+				defaultValue: CosStyle.colorPrimaryLighter
+			}
+
+		]
+	}
+
+	QIconEmpty {
+		visible: userProxyModel.count == 0
+		anchors.centerIn: parent
+		textWidth: parent.width*0.75
+		tabContainer: control
+		text: qsTr("Egyetlen felhasználó sem tartozik ide")
+	}
+
+
+	QObjectListView {
+		id: userList
 		anchors.fill: parent
 
-		Flow {
-			id: flow
+		refreshEnabled: true
+		delegateHeight: CosStyle.twoLineHeight
+		autoSelectorChange: true
 
-			visible: userListWidget.delegate.selectorSet
-
-			property int buttonDisplay: AbstractButton.IconOnly
-
-			QToolButton { action: actionActiveSet; display: flow.buttonDisplay }
-			QToolButton { action: actionActiveUnset; display: flow.buttonDisplay  }
-			QToolButton { action: actionTeacherSet; display: flow.buttonDisplay  }
-			QToolButton { action: actionTeacherUnset; display: flow.buttonDisplay }
-			QToolButton { action: actionAdminSet; display: flow.buttonDisplay  }
-			QToolButton { action: actionAdminUnset; display: flow.buttonDisplay  }
-
-
-			QMenuButton {
-				icon.source: CosStyle.iconOK
-				ToolTip.text: qsTr("Osztályba sorol")
-
-				MenuItem {
-					text: qsTr("Osztály nélkül")
-					onTriggered: runBatchFunction("classid", null)
-				}
-
-				MenuSeparator { }
-
-				Repeater {
-					model: userListWidget._classList
-					MenuItem {
-						text: modelData.name
-						onTriggered: runBatchFunction("classid", modelData.id)
-					}
-				}
-			}
-
-			QToolButton { action: actionRemove; display: flow.buttonDisplay  }
+		header: QTabHeader {
+			tabContainer: control
+			isPlaceholder: true
 		}
 
-
-		delegate.onClicked: if (!delegate.selectorSet)
-								pageAdminUsers.userSelected(model.get(index).username)
-
-		delegate.onRightClicked: {
-			contextMenu.disableOwn = (model.get(index).username === cosClient.userName)
-			contextMenu.popup()
+		leftComponent: QProfileImage {
+			source: model && model.picture ? model.picture : ""
+			rankId: model ? model.rankid : -1
+			rankImage: model ? model.rankimage : ""
+			width: userList.delegateHeight+10
+			height: userList.delegateHeight*0.8
 		}
 
-		QMenu {
-			id: contextMenu
-
-			property bool disableOwn: false
-
-			MenuItem { action: actionActiveSet }
-			MenuItem { action: actionActiveUnset; enabled: !contextMenu.disableOwn }
-			MenuItem { action: actionTeacherSet }
-			MenuItem { action: actionTeacherUnset }
-			MenuItem { action: actionAdminSet }
-			MenuItem { action: actionAdminUnset; enabled: !contextMenu.disableOwn }
-
-			QMenu {
-				title: qsTr("Osztályba sorol")
-
-				MenuItem {
-					text: qsTr("Osztály nélkül")
-					onTriggered: runBatchFunction("classid", null)
-				}
-
-				MenuSeparator { }
-
-				Repeater {
-					model: userListWidget._classList
-					MenuItem {
-						text: modelData.name
-						onTriggered: runBatchFunction("classid", modelData.id)
-					}
-				}
-			}
-
-			MenuItem { action: actionRemove; enabled: !contextMenu.disableOwn }
+		rightComponent: QLabel {
+			text: model ? Number(model.xp).toLocaleString()+" XP" : ""
+			font.weight: Font.Normal
+			font.pixelSize: userList.delegateHeight*0.5
+			color: CosStyle.colorAccent
+			leftPadding: 5
 		}
+
+		model: userProxyModel
+		modelTitleRole: "name"
+		modelSubtitleRole: "username"
+		modelBackgroundRole: "background"
+		modelTitleColorRole: "titlecolor"
+		colorSubtitle: CosStyle.colorPrimaryDarker
+
+		highlightCurrentItem: false
+
+		onRefreshRequest: serverSettings.send("userListGet", queryParameters)
+
+		onClicked: {
+			//userSelected(userList.modelObject(index).username)
+		}
+	}
+
+
+
+	onPopulated: {
+		serverSettings.send("userListGet", queryParameters)
 	}
 
 
 	Connections {
-		target: pageAdminUsers
-		onClassSelected: if (userListWidget.tagClasses.checked && !userListWidget.delegate.selectorSet ) {
-							 var ii = []
-							 ii.push(id)
-							 userListWidget._selectedClasses = ii
-							 var n = []
-							 for (var i=0; i<userListWidget._classList.length; ++i) {
-								 if (userListWidget._classList[i].id === id) {
-									 userListWidget._selectedClassesRegExp = id
-									 n.push({"name": userListWidget._classList[i].name})
-									 userListWidget.tagClasses.tags = n
-									 return
-								 }
-							 }
-						 }
-	}
+		target: serverSettings
 
-	Connections {
-		target: adminUsers
-
-		onUserCreated: reloadUserList()
-		onUserUpdated: reloadUserList()
-
-		onUserListLoaded: getList(list)
-		onClassListLoaded: {
-			userListWidget._classList = list
-			reloadUserList()
-		}
-
-		onUserBatchUpdated: {
-			if (data.error)
-				cosClient.sendMessageWarning(qsTr("Felhasználók módosítása"), qsTr("Szerver hiba"), data.error)
-			else {
-				userListWidget.delegate.selectAll(false)
-				reloadUserList()
-			}
-		}
-
-		onUserBatchRemoved: {
-			if (data.error)
-				cosClient.sendMessageWarning(qsTr("Felhasználók törlése"), qsTr("Szerver hiba"), data.error)
-			else {
-				userListWidget.delegate.selectAll(false)
-				reloadUserList()
+		function onClassUpdate(jsonData, binaryData) {
+			if (queryParameters.classid !== undefined && queryParameters.classid !== -1 && jsonData.updated === queryParameters.classid) {
+				contentTitle = jsonData.name
+				tabPage.contentTitle = contentTitle
 			}
 		}
 	}
 
-
-
-
 	Action {
-		id: actionActiveSet
-		icon.source: CosStyle.iconChecked
-		text: qsTr("Aktivál")
-		onTriggered: runBatchFunction("active", true)
+		id: actionRename
+		text: qsTr("Átnevezés")
+		icon.source: CosStyle.iconRename
+		enabled: queryParameters.classid !== undefined && queryParameters.classid > 0
+		onTriggered: {
+			var d = JS.dialogCreateQml("TextField", { title: qsTr("Osztály neve"), value: control.contentTitle })
+
+			d.accepted.connect(function(data) {
+				if (data.length)
+					serverSettings.send("classUpdate", {id: queryParameters.classid, name: data})
+			})
+			d.open()
+		}
 	}
 
 	Action {
-		id: actionActiveUnset
-		icon.source: CosStyle.iconUnchecked
-		text: qsTr("Inaktivál")
-		onTriggered: runBatchFunction("active", false)
-	}
-
-	Action {
-		id: actionTeacherSet
-		icon.source: CosStyle.iconChecked
-		text: qsTr("Tanár jogot ad")
-		onTriggered: runBatchFunction("isTeacher", true)
-	}
-
-	Action {
-		id: actionTeacherUnset
-		icon.source: CosStyle.iconUnchecked
-		text: qsTr("Tanár jogot töröl")
-		onTriggered: runBatchFunction("isTeacher", false)
-	}
-
-	Action {
-		id: actionAdminSet
-		icon.source: CosStyle.iconChecked
-		text: qsTr("Admin jogot ad")
-		onTriggered: runBatchFunction("isAdmin", true)
-	}
-
-	Action {
-		id: actionAdminUnset
-		icon.source: CosStyle.iconUnchecked
-		text: qsTr("Admin jogot töröl")
-		onTriggered: runBatchFunction("isAdmin", false)
-	}
-
-	Action {
-		id: actionRemove
+		id: actionDelete
+		text: qsTr("Törlés")
 		icon.source: CosStyle.iconDelete
-		text: qsTr("Töröl")
-		onTriggered: runBatchFunction("remove")
-	}
-
-
-
-
-
-	function reloadUserList() {
-		adminUsers.send({"class": "user", "func": "getAllUser"})
-	}
-
-
-	function getList(_list) {
-		JS.setModel(userListWidget.model, _list)
-	}
-
-
-
-	function runBatchFunction(p, value) {
-		var l = []
-		if (userListWidget.delegate.selectorSet)
-			l = JS.getSelectedIndices(userListWidget.model, "username")
-		else if (userListWidget.delegate.currentIndex != -1)
-			l.push(userListWidget.delegate.model.get(userListWidget.delegate.currentIndex).username)
-
-		if (l.length === 0)
-			return
-
-		if (p==="active" || p==="isAdmin" || p==="remove") {
-			var i = l.indexOf(cosClient.userName)
-			if (i !== -1)
-				l.splice(i, 1)
+		enabled: queryParameters.classid !== undefined && queryParameters.classid > 0
+		onTriggered: {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan törlöd az osztályt?\n%1").arg(control.contentTitle)})
+			d.accepted.connect(function() {
+				serverSettings.send("classRemove", {id: queryParameters.classid})
+				mainStack.back()
+			})
+			d.open()
 		}
-
-		var d = {}
-		d["class"] = "user"
-		if (p === "remove") {
-			d["func"] = "userBatchRemove"
-			d["list"] = l
-		} else {
-			d["func"] = "userBatchUpdate"
-			d[p] = value
-			d["users"] = l
-		}
-
-		var dd = JS.dialogCreateQml("YesNo")
-		dd.item.title = p === "remove" ? qsTr("Felhasználók törlése") : qsTr("Felhasználók módosítása")
-
-		var txt = ""
-		if (p === "active" && value === true)
-			txt = qsTr("aktiválod")
-		else if (p === "active" && value === false)
-			txt = qsTr("inaktiválod")
-		else if (p === "isTeacher" && value === true)
-			txt = qsTr("tanárrá teszed")
-		else if (p === "isTeacher" && value === false)
-			txt = qsTr("nem tanárrá teszed")
-		else if (p === "isAdmin" && value === true)
-			txt = qsTr("adminná teszed")
-		else if (p === "isAdmin" && value === false)
-			txt = qsTr("nem adminná teszed")
-		else if (p === "remove")
-			txt = qsTr("törlöd")
-
-		dd.item.text = qsTr("Biztosan %1 a kiválasztott %2 felhasználót?").arg(txt).arg(l.length)
-		dd.accepted.connect(function () {
-			adminUsers.send(d)
-		})
-		dd.open()
-
 	}
-
 }
-

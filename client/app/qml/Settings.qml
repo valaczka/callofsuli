@@ -54,7 +54,7 @@ QTabContainer {
 					ListElement {
 						title: qsTr("Osztályok és felhasználók")
 						icon: "image://font/Material Icons/\ue7ef"
-						page: "Users"
+						page: "ClassList"
 						textcolor: "white"
 						background: "#940000"
 					}

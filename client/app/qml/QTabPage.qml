@@ -81,7 +81,7 @@ Page {
 		anchors.bottom: tabbar.visible ? tabbar.top : parent.bottom
 		opacity: compact ? 0.0 : 1.0
 
-		property real maximumPanelWidth: 600
+		property real maximumPanelWidth: 800
 
 		replaceEnter: Transition {
 			PropertyAnimation {

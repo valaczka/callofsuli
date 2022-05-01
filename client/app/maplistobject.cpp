@@ -143,12 +143,12 @@ void MapListObject::setBinded(const QVariantList &newBinded)
 	emit bindedChanged();
 }
 
-bool MapListObject::used() const
+int MapListObject::used() const
 {
 	return m_used;
 }
 
-void MapListObject::setUsed(bool newUsed)
+void MapListObject::setUsed(int newUsed)
 {
 	if (m_used == newUsed)
 		return;
