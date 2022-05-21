@@ -245,7 +245,7 @@ QDialogPanel {
 	}
 
 	Component.onCompleted: {
-		cosClient.checkPermissions()
+		cosClient.checkStoragePermissions()
 	}
 
 	function populated() {

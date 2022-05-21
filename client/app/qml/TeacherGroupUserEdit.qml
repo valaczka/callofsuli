@@ -14,13 +14,6 @@ QTabContainer {
 	title: qsTr("Résztvevők szerkesztése")
 	icon: CosStyle.iconUsers
 
-	menu: QMenu {
-		MenuItem { action: actionClassAdd }
-		MenuItem { action: actionClassRemove }
-		MenuItem { action: actionUserAdd }
-		MenuItem { action: actionUserRemove }
-	}
-
 	backCallbackFunction: function () {
 		if (modelUserList.selectedCount) {
 			modelUserList.unselectAll()

@@ -120,7 +120,8 @@ public:
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
 
-	Q_INVOKABLE QString connectionInfo(const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
+	Q_INVOKABLE QString connectionInfo(const QString &func = "connect", const QVariantMap &queries = {},
+									   const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
 	Q_INVOKABLE QVariantMap connectionInfoMap() const;
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
@@ -159,16 +160,11 @@ public:
 	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
 	Q_INVOKABLE static QVariantMap terrainMap();
 
-	/*Q_INVOKABLE static QVariantMap objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
-	{ return Question::objectiveInfo(module, dataString, storageModule, storageDataString); }
-	Q_INVOKABLE static QVariantMap storageInfo(const QString &module, const QString &dataString)
-	{ return Question::storageInfo(module, dataString); }
-	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }*/
-
 	Q_INVOKABLE QStringList takePositionalArgumentsToProcess();
 	Q_INVOKABLE void setPositionalArgumentsToProcess(const QStringList &list) { m_positionalArgumentsToProcess = list; }
 
-	Q_INVOKABLE void checkPermissions() const;
+	Q_INVOKABLE void checkStoragePermissions() const;
+	Q_INVOKABLE void checkMediaPermissions() const;
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
@@ -225,6 +221,9 @@ public:
 	Q_INVOKABLE QString guiLoad() const;
 
 public slots:
+	void sendRegistrationRequest(const bool &oauth2, const QString &code) {
+		emit registrationRequest(oauth2, code);
+	}
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
 		emit messageSent("warning", title, informativeText, detailedText);
 	}
@@ -302,6 +301,7 @@ signals:
 
 	void authInvalid();
 	void authRequirePasswordReset();
+	void registrationRequest(const bool &oauth2, const QString &code);
 
 	void urlsToProcessReady(const QStringList &list);
 
@@ -309,6 +309,9 @@ signals:
 
 	void storagePermissionsGranted();
 	void storagePermissionsDenied();
+
+	void mediaPermissionsGranted();
+	void mediaPermissionsDenied();
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(Client::ConnectionState connectionState);

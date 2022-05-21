@@ -15,6 +15,11 @@ QTabContainer {
 
 	property Servers servers: null
 
+	property bool autoRegisterGoogle: false
+	property alias code: textCode.text
+
+	property bool _isFirst: true
+
 	QGridLayoutFlickable {
 		id: grid
 
@@ -42,6 +47,10 @@ QTabContainer {
 				buttonPlain.visible = false
 				textCode.visible = true
 				buttonGoogle2.visible = true
+
+				if (autoRegisterGoogle && textCode.text != "") {
+					buttonGoogle2.clicked()
+				}
 			}
 		}
 
@@ -233,6 +242,10 @@ QTabContainer {
 						buttonPlain.enabled = false
 						buttonPlain.visible = false
 					}
+
+					if (autoRegisterGoogle && jsonData.oauth2Enabled) {
+						buttonGoogle.clicked()
+					}
 				} else {
 					labelInfo.text = qsTr("A szerveren a regisztráció nincs engedélyezve")
 					labelInfo.color = CosStyle.colorErrorLighter
@@ -269,6 +282,9 @@ QTabContainer {
 		}
 
 		function onAuthenticated(token) {
+			if ((Qt.platform.os == "android"  || Qt.platform.os === "ios") && !control.isCurrentItem)
+				mainStack.back()
+
 			grid.visible = false
 			labelInfo.text = qsTr("Regisztráció...")
 			labelInfo.visible = true
@@ -280,7 +296,8 @@ QTabContainer {
 		}
 	}
 
-	onPopulated: {
+	onPopulated: if (_isFirst) {
+		_isFirst = false
 		servers.send(CosMessage.ClassUserInfo, "registrationRequest", {})
 	}
 

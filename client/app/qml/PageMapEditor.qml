@@ -288,7 +288,7 @@ QTabPage {
 
 	Component.onCompleted: replaceContent(componentMain)
 
-	onPageActivatedFirst: cosClient.checkPermissions()
+	onPageActivatedFirst: cosClient.checkStoragePermissions()
 
 
 	Connections {

@@ -167,5 +167,7 @@
         <file>QGridDoubleNumberField.qml</file>
         <file>QGridDoubleNumberFields.qml</file>
         <file>MapEditorObjectivePreview.qml</file>
+        <file>ServerReadQR.qml</file>
+        <file>ServerInfo.qml</file>
     </qresource>
 </RCC>

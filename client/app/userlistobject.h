@@ -49,6 +49,7 @@ class UserListObject : public ObjectListModelObject
 	Q_PROPERTY(int ranklevel READ ranklevel WRITE setRanklevel NOTIFY ranklevelChanged)
 	Q_PROPERTY(QString rankname READ rankname WRITE setRankname NOTIFY ranknameChanged)
 	Q_PROPERTY(QString rankimage READ rankimage WRITE setRankimage NOTIFY rankimageChanged)
+	Q_PROPERTY(bool isOauth2 READ isOauth2 WRITE setIsOauth2 NOTIFY isOauth2Changed)
 
 public:
 	Q_INVOKABLE explicit UserListObject(QObject *parent = nullptr);
@@ -99,6 +100,9 @@ public:
 	const QString &rankimage() const;
 	void setRankimage(const QString &newRankimage);
 
+	bool isOauth2() const;
+	void setIsOauth2(bool newIsOauth2);
+
 signals:
 	void usernameChanged();
 	void firstnameChanged();
@@ -115,6 +119,7 @@ signals:
 	void ranklevelChanged();
 	void ranknameChanged();
 	void rankimageChanged();
+	void isOauth2Changed();
 
 private:
 	QString m_username;
@@ -132,6 +137,7 @@ private:
 	int m_ranklevel;
 	QString m_rankname;
 	QString m_rankimage;
+	bool m_isOauth2;
 
 };
 

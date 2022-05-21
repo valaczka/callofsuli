@@ -49,6 +49,7 @@ Servers::Servers(QQuickItem *parent)
 	, m_urlsToProcess()
 	, m_googleOAuth2(nullptr)
 	, m_serversModel(new ObjectGenericListModel<ServerObject>(this))
+	, m_urlString()
 {
 	connect(this, &Servers::resourceRegisterRequest, this, &Servers::registerResource);
 
@@ -174,10 +175,8 @@ void Servers::serverListReload()
 
 void Servers::serverConnect(ServerObject *server)
 {
-	//QAbstractSocket::SocketState s;
-	//QMetaObject::invokeMethod(Client::clientInstance()->socket(), "state", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QAbstractSocket::SocketState, s));
-	if (Client::clientInstance()->socket()->state() != QAbstractSocket::UnconnectedState) {
-		Client::clientInstance()->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
+	if (Client::clientInstance()->connectionState() != Client::Standby) {
+		//Client::clientInstance()->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
 		return;
 	}
 
@@ -488,15 +487,17 @@ bool Servers::parseUrls(const QStringList &urls)
 		}
 
 		if (func == "register") {
-			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
 			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
+			QString oauth2 = q.queryItemValue("oauth2", QUrl::FullyDecoded);
 
-			qDebug() << "REGISTER" << user << code;
+			qDebug() << "REGISTER" << oauth2 << code;
 
-			if (user.isEmpty() || code.isEmpty())
+			if (!Client::clientInstance()->userName().isEmpty()) {
+				Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A regisztrációhoz először ki kell jelentkezni!"));
 				return true;
+			}
 
-			Client::clientInstance()->login(user, "", code);
+			Client::clientInstance()->sendRegistrationRequest((oauth2 == "1"), code);
 		} else if (func == "reset") {
 			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
 			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
@@ -559,6 +560,20 @@ void Servers::sendBroadcast()
 	writeStream << m;
 
 	m_udpSocket->writeDatagram(s, QHostAddress::Broadcast, SERVER_UDP_PORT);
+}
+
+
+
+/**
+ * @brief Servers::checkQR
+ * @param url
+ */
+
+bool Servers::isValidUrl(const QString &url)
+{
+	QUrl u(url);
+
+	return (u.scheme() == "callofsuli");
 }
 
 
@@ -1070,5 +1085,30 @@ void Servers::setGoogleOAuth2(const QString &id, const QString &key, const qint1
 ObjectGenericListModel<ServerObject> *Servers::serversModel() const
 {
 	return m_serversModel;
+}
+
+
+/**
+ * @brief Servers::setUrlString
+ * @param url
+ */
+
+void Servers::setUrlString(const QString &url)
+{
+	m_urlString = url;
+}
+
+
+
+/**
+ * @brief Servers::takeUrlString
+ * @return
+ */
+
+QString Servers::takeUrlString()
+{
+	QString s = m_urlString;
+	m_urlString = "";
+	return s;
 }
 

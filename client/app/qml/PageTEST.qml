@@ -2,9 +2,10 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import COS.Client 1.0
 import "."
-import "Style"
-import "JScript.js" as JS
-import SortFilterProxyModel 0.2
+import QtGraphicalEffects 1.0
+import QtMultimedia 5.15
+import QZXing 3.3
+
 
 
 QTabPage {
@@ -17,181 +18,173 @@ QTabPage {
 	Component {
 		id: cmp1
 		QTabContainer {
+			id: container
 			title:  "Test"
 
+			property int detectedTags: 0
+			property string lastTag: ""
 
 
+			Rectangle
+			{
+				id: bgRect
+				color: "white"
+				anchors.fill: videoOutput
+			}
 
-			GameQuestionTileLayout {
-				id: grid
-				anchors.bottom: parent.bottom
+			Text
+			{
+				id: text1
+				wrapMode: Text.Wrap
+				font.pixelSize: 20
+				anchors.top: parent.top
+				anchors.left: parent.left
+				z: 50
+				text: "Tags detected: " + detectedTags
+			}
+			Text
+			{
+				id: fps
+				font.pixelSize: 20
+				anchors.top: parent.top
+				anchors.right: parent.right
+				z: 50
+				text: (1000 / zxingFilter.timePerFrameDecode).toFixed(0) + "fps"
+			}
+
+			Camera
+			{
+				id:camera
+				focus {
+					focusMode: CameraFocus.FocusContinuous
+					focusPointMode: CameraFocus.FocusPointCenter
+				}
+			}
+
+			VideoOutput
+			{
+				id: videoOutput
+				source: camera
+				anchors.top: text1.bottom
+				anchors.bottom: text2.top
 				anchors.left: parent.left
 				anchors.right: parent.right
-				anchors.top: parent.top
-				anchors.topMargin: 50
+				autoOrientation: true
+				fillMode: VideoOutput.Stretch
+				filters: [ zxingFilter ]
 
-				flick.contentWidth: col.width
-				flick.contentHeight: col.height
+				property double captureRectStartFactorX: 0.2
+				property double captureRectStartFactorY: 0.2
+				property double captureRectFactorWidth: 0.6
+				property double captureRectFactorHeight: 0.6
 
-				Column {
-					id: col
-					width: grid.flick.width
-					parent: grid.flick.contentItem
-					spacing: 5
 
+				Rectangle {
+					id: blackRect
+					color: "black"
+					anchors.fill: parent
+					visible: false
 				}
-			}
-
-
-
-			Component {
-				id: componentTileDrop
 
 				Item {
-					implicitWidth: labelField.implicitWidth+drop.implicitWidth
-					implicitHeight: Math.max(labelField.height, drop.height)
+					id: captureRect
+					anchors.fill: parent
+					visible: false
 
-					width: parent.width
-					height: implicitHeight
-					anchors.horizontalCenter: parent.horizontalCenter
-
-					property alias text: labelField.text
-					property alias drop: drop
-
-
-					GameQuestionTileDrop {
-						id: drop
-						implicitHeight: 40
-						autoResize: false
-						width: parent.width
-
-						anchors.fill: parent
-
-						//onCurrentDragChanged: recalculate()
-
-						QLabel {
-							id: labelField
-
-							visible: !drop.currentDrag
-
-							anchors.centerIn: parent
-							width: Math.min(parent.width, implicitWidth)
-							wrapMode: Text.Wrap
-
-							color: CosStyle.colorPrimaryDarkest
-							font.weight: Font.Normal
-
-							leftPadding: 5
-							rightPadding: 5
-
-							horizontalAlignment: Text.AlignHCenter
-						}
-					}
-				}
-			}
-
-			Component {
-				id: componentTileDrag
-
-				GameQuestionTileDrag {
-					dropFlow: grid.container.flow
-					mainContainer: control
-					interactive: true //_dragInteractive
-				}
-			}
-
-
-			Component.onCompleted:  {
-				for (var i=0; i<5; i++) {
-					var p = ""
-
-					if (i==0)
-						p = "legkisebb"
-					else if (i==4)
-						p = "legnagyobb"
-
-					var o = componentTileDrop.createObject(col, {text: p})
-				}
-
-				for (i=0; i<8; i++) {
-					componentTileDrag.createObject(grid.container.flow, {
-													   tileData: {},
-													   text: "Próba "+i
-												   })
-				}
-			}
-
-
-/*
-
-			function recalculate() {
-				if (!_drops.length || btnOk.enabled)
-					return
-
-				var s = true
-
-				for (var i=0; i<_drops.length; i++) {
-					var p = _drops[i]
-					if (!p.item.currentDrag) {
-						s = false
-						break
+					Rectangle {
+						color: "white"
+						width: parent.width * videoOutput.captureRectFactorWidth
+						height: parent.height * videoOutput.captureRectFactorHeight
+						x: parent.width * videoOutput.captureRectStartFactorX
+						y: parent.height * videoOutput.captureRectStartFactorY
 					}
 				}
 
-				if (s)
-					btnOk.enabled = true
+				OpacityMask {
+					anchors.fill: blackRect
+					source: blackRect
+					maskSource: captureRect
+					invert: true
+					opacity: 0.5
+				}
 			}
 
-			function answer() {
-				btnOk.enabled = false
-				_dragInteractive = false
-
-				var success = true
-
-				for (var i=0; i<_drops.length; i++) {
-					var p = _drops[i]
-
-					if (p.item && p.correct) {
-						var drag = p.item.currentDrag
-
-						if (drag) {
-							var data = drag.tileData
-
-							if (data === p.correct) {
-								drag.type = GameQuestionButton.Correct
-							} else {
-								drag.type = GameQuestionButton.Wrong
-								success = false
-							}
-						} else {
-							p.item.isWrong = true
-							success = false
-						}
-
-					}
+			QZXingFilter
+			{
+				id: zxingFilter
+				orientation: videoOutput.orientation
+				captureRect: {
+					videoOutput.sourceRect;
+					var r = Qt.rect(videoOutput.sourceRect.width * videoOutput.captureRectStartFactorX,
+									videoOutput.sourceRect.height * videoOutput.captureRectStartFactorY,
+									videoOutput.sourceRect.width * videoOutput.captureRectFactorWidth,
+									videoOutput.sourceRect.height * videoOutput.captureRectFactorHeight)
+					console.debug("RRR", r)
+					return r;
 				}
 
-				if (success)
-					succeed()
-				else
-					failed()
+				decoder {
+					enabledDecoders: QZXing.DecoderFormat_QR_CODE
 
+					onTagFound: {
+						console.log(tag + " | " + decoder.charSet());
+
+						container.detectedTags++;
+						container.lastTag = tag;
+					}
+
+					tryHarder: true
+				}
+
+
+				onDecodingStarted:
+				{
+					//console.log("started");
+				}
+
+				property int framesDecoded: 0
+				property real timePerFrameDecode: 0
+
+				onDecodingFinished:
+				{
+					timePerFrameDecode = (decodeTime + framesDecoded * timePerFrameDecode) / (framesDecoded + 1);
+					framesDecoded++;
+					if(succeeded)
+						console.log("frame finished: " + succeeded, decodeTime, timePerFrameDecode, framesDecoded);
+				}
 			}
 
-
-			function keyPressed(key) {
-				if (btnOk.enabled && (key === Qt.Key_Enter || key === Qt.Key_Return))
-					btnOk.press()
+			Text
+			{
+				id: text2
+				wrapMode: Text.Wrap
+				font.pixelSize: 20
+				anchors.bottom: parent.bottom
+				anchors.left: parent.left
+				z: 50
+				text: "Last tag: " + lastTag
 			}
 
-*/
 
 		}
 	}
 
-	Component.onCompleted: pushContent(cmp1)
+
+	onPageActivatedFirst: cosClient.checkMediaPermissions()
 
 
+	Connections {
+		target: cosClient
 
+		function onMediaPermissionsDenied() {
+			console.debug("MEDIA DENIED")
+		}
+
+		function onMediaPermissionsGranted() {
+			console.debug("MEDIA GRANTED")
+			pushContent(cmp1)
+		}
+
+	}
 
 }

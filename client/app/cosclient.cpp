@@ -141,6 +141,8 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsDenied, this, &Client::storagePermissionsDenied);
 	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsGranted, this, &Client::storagePermissionsGranted);
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::mediaPermissionsDenied, this, &Client::mediaPermissionsDenied);
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::mediaPermissionsGranted, this, &Client::mediaPermissionsGranted);
 
 	qRegisterMetaType<QAbstractSocket::SocketError>();
 	qRegisterMetaType<QAbstractSocket::SocketState>();
@@ -493,26 +495,29 @@ void Client::textToClipboard(const QString &text) const
  * @brief Client::connectionInfoToClipboard
  */
 
-QString Client::connectionInfo(const QUrl::FormattingOptions &format) const
+QString Client::connectionInfo(const QString &func, const QVariantMap &queries, const QUrl::FormattingOptions &format) const
 {
 	if (m_connectionState == Client::Standby)
 		return "";
 
 	QUrl url;
-	//url.setHost(m_socket->requestUrl().host());
-	//url.setPort(m_socket->requestUrl().port());
+	url.setHost(m_socket->requestUrl().host());
+	url.setPort(m_socket->requestUrl().port());
 	url.setScheme("callofsuli");
 
 	QString path = "";
-	/*if (m_socket->requestUrl().scheme() == "wss")
-		path += "/ssl";*/
+	if (m_socket->requestUrl().scheme() == "wss")
+		path += "/ssl";
 
-	path += "/connect";
+	path += "/"+func;
 
 	QUrlQuery query;
-	if (!m_serverName.isEmpty())
-		query.addQueryItem("name", m_serverName);
 
+	QMapIterator<QString, QVariant> i(queries);
+	while (i.hasNext()) {
+		i.next();
+		query.addQueryItem(i.key(), i.value().toString());
+	}
 
 	url.setPath(path);
 	url.setQuery(query);
@@ -533,9 +538,9 @@ QVariantMap Client::connectionInfoMap() const
 		return QVariantMap();
 
 	QVariantMap m;
-	//m["host"] = m_socket->requestUrl().host();
-	//m["port"] = m_socket->requestUrl().port();
-	//m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
+	m["host"] = m_socket->requestUrl().host();
+	m["port"] = m_socket->requestUrl().port();
+	m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
 
 	return m;
 }
@@ -953,9 +958,20 @@ QStringList Client::takePositionalArgumentsToProcess()
  * @brief Client::checkPermissions
  */
 
-void Client::checkPermissions() const
+void Client::checkStoragePermissions() const
 {
-	AndroidShareUtils::instance()->checkPermissions();
+	AndroidShareUtils::instance()->checkStoragePermissions();
+}
+
+
+
+/**
+ * @brief Client::checkMediaPermissions
+ */
+
+void Client::checkMediaPermissions() const
+{
+	AndroidShareUtils::instance()->checkMediaPermissions();
 }
 
 

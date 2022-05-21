@@ -17,6 +17,13 @@ QTabContainer {
 	menu: QMenu {
 		MenuItem { action: actionRename }
 		MenuItem { action: actionDelete }
+		MenuSeparator {}
+		MenuItem { action: actionQR }
+		MenuItem { action: actionQRgoogle }
+	}
+
+	ListModel {
+		id: _filteredClassModel
 	}
 
 	SortFilterProxyModel {
@@ -24,6 +31,7 @@ QTabContainer {
 		sourceModel: serverSettings.modelUserList
 
 		sorters: [
+			RoleSorter { roleName: "active"; sortOrder:Qt.DescendingOrder; priority: 3 },
 			StringSorter { roleName: "firstname"; sortOrder: Qt.AscendingOrder; priority: 2 },
 			StringSorter { roleName: "lastname"; sortOrder: Qt.AscendingOrder; priority: 1 }
 		]
@@ -33,9 +41,18 @@ QTabContainer {
 				name: "name"
 				expression: model.firstname+" "+model.lastname
 			},
+			ExpressionRole {
+				name: "details"
+				expression: model.nickname === "" ? model.username : model.username+" - "+model.nickname
+			},
 			SwitchRole {
 				name: "background"
 				filters: [
+					ValueFilter {
+						roleName: "active"
+						value: false
+						SwitchRole.value: "transparent"
+					},
 					ValueFilter {
 						roleName: "isAdmin"
 						value: true
@@ -51,12 +68,35 @@ QTabContainer {
 			},
 			SwitchRole {
 				name: "titlecolor"
-				filters: ValueFilter {
-					roleName: "username"
-					value: cosClient.userName
-					SwitchRole.value: CosStyle.colorAccentLight
-				}
+				filters: [
+					ValueFilter {
+						roleName: "active"
+						value: false
+						SwitchRole.value: "#99ffffff"
+					},
+					ValueFilter {
+						roleName: "username"
+						value: cosClient.userName
+						SwitchRole.value: CosStyle.colorAccentLight
+					}
+				]
 				defaultValue: CosStyle.colorPrimaryLighter
+			},
+			SwitchRole {
+				name: "subtitlecolor"
+				filters: [
+					ValueFilter {
+						roleName: "active"
+						value: false
+						SwitchRole.value: "#55ffffff"
+					},
+					ValueFilter {
+						roleName: "username"
+						value: cosClient.userName
+						SwitchRole.value: CosStyle.colorAccentLighter
+					}
+				]
+				defaultValue: CosStyle.colorPrimaryDarker
 			}
 
 		]
@@ -90,22 +130,23 @@ QTabContainer {
 			rankImage: model ? model.rankimage : ""
 			width: userList.delegateHeight+10
 			height: userList.delegateHeight*0.8
+			active: model && model.active
 		}
 
-		rightComponent: QLabel {
-			text: model ? Number(model.xp).toLocaleString()+" XP" : ""
-			font.weight: Font.Normal
-			font.pixelSize: userList.delegateHeight*0.5
-			color: CosStyle.colorAccent
-			leftPadding: 5
+		rightComponent: QFontImage {
+			icon: "qrc:/internal/img/google.svg"
+			visible: model && model.isOauth2
+			color: CosStyle.colorPrimaryDarker
+			size: userList.delegateHeight*0.4
+			width: userList.delegateHeight
 		}
 
 		model: userProxyModel
 		modelTitleRole: "name"
-		modelSubtitleRole: "username"
+		modelSubtitleRole: "details"
 		modelBackgroundRole: "background"
 		modelTitleColorRole: "titlecolor"
-		colorSubtitle: CosStyle.colorPrimaryDarker
+		modelSubtitleColorRole: "subtitlecolor"
 
 		highlightCurrentItem: false
 
@@ -114,6 +155,48 @@ QTabContainer {
 		onClicked: {
 			//userSelected(userList.modelObject(index).username)
 		}
+
+		onRightClicked: contextMenu.popup()
+		onLongPressed: contextMenu.popup()
+
+		QMenu {
+			id: contextMenu
+
+			MenuItem {
+				text: qsTr("Aktívvá tesz")
+				icon.source: CosStyle.iconVisible
+			}
+
+			MenuItem {
+				text: qsTr("Inaktívvá tesz")
+				icon.source: CosStyle.iconInvisible
+			}
+
+			MenuItem {
+				text: qsTr("Töröl")
+				icon.source: CosStyle.iconDelete
+			}
+
+			QMenu {
+				id: submenu
+				title: qsTr("Áthelyez")
+
+				Instantiator {
+					model: _filteredClassModel
+
+					MenuItem {
+						text: model.name
+						//onClicked: objectiveMoveCopy(model.id, true, item.objectiveSelf)
+					}
+
+					onObjectAdded: submenu.insertItem(index, object)
+					onObjectRemoved: submenu.removeItem(object)
+				}
+			}
+
+			MenuSeparator { }
+		}
+
 	}
 
 
@@ -131,6 +214,10 @@ QTabContainer {
 				contentTitle = jsonData.name
 				tabPage.contentTitle = contentTitle
 			}
+		}
+
+		function onUserListGet(jsonData, binaryData) {
+			actionQR.classCode = jsonData.code
 		}
 	}
 
@@ -164,4 +251,115 @@ QTabContainer {
 			d.open()
 		}
 	}
+
+
+	Action {
+		id: actionToTeacher
+		text: qsTr("Tanárrá tesz")
+		icon.source: "image://font/Academic/\uf213"
+	}
+
+	Action {
+		id: actionToStudent
+		text: qsTr("Diákká tesz")
+		icon.source: CosStyle.iconUser
+	}
+
+	Action {
+		id: actionToAdmin
+		text: qsTr("Adminná tesz")
+		icon.source: "image://font/AcademicI/\uf1ec"
+	}
+
+	Action {
+		id: actionRevokeAdmin
+		text: qsTr("Admint visszavon")
+		icon.source: "image://font/Academic/\uf213"
+	}
+
+
+	Action {
+		id: actionQR
+		icon.source: CosStyle.iconComputerData
+		text: qsTr("Regisztrációs info")
+		enabled: !queryParameters.isAdmin && !queryParameters.isTeacher
+
+		property string classCode: ""
+
+		onTriggered: control.tabPage.pushContent(componentQR, {
+													 serverFunc: "register",
+													 serverQueries: {
+														 code: actionQR.classCode,
+														 server: cosClient.serverUuid,
+														 oauth2: "0"
+													 },
+													 displayText: (actionQR.classCode !== "" ?
+																	   ("<br>%1: <b>%2</b>").arg(qsTr("Hitelesítő kód")).arg(actionQR.classCode)
+																	 : "")
+
+												 })
+
+	}
+
+
+	Action {
+		id: actionQRgoogle
+		icon.source: "qrc:/internal/img/google.svg"
+		text: qsTr("Regisztrációs info")
+		enabled: !queryParameters.isAdmin && !queryParameters.isTeacher
+
+		onTriggered: control.tabPage.pushContent(componentQR, {
+													 serverFunc: "register",
+													 serverQueries: {
+														 code: actionQR.classCode,
+														 server: cosClient.serverUuid,
+														 oauth2: "1"
+													 },
+													 displayText: (actionQR.classCode !== "" ?
+																	   ("<br>%1: <b>%2</b>").arg(qsTr("Hitelesítő kód")).arg(actionQR.classCode)
+																	 : "")
+
+												 })
+
+	}
+
+
+	Component {
+		id: componentQR
+		ServerInfo {  }
+	}
+
+	backCallbackFunction: function () {
+		if (serverSettings.modelUserList.selectedCount) {
+			serverSettings.modelUserList.unselectAll()
+			return true
+		}
+
+		return false
+	}
+
+	Component.onCompleted: {
+		if (queryParameters.isAdmin === true)
+			contextMenu.addAction(actionRevokeAdmin)
+		else if (queryParameters.isTeacher === true) {
+			contextMenu.addAction(actionToStudent)
+			contextMenu.addAction(actionToAdmin)
+		} else
+			contextMenu.addAction(actionToTeacher)
+
+		_filteredClassModel.clear()
+
+		if (queryParameters.classid !== -1)
+			_filteredClassModel.append({id: -1, name: qsTr("[Osztály nélkül]")})
+
+		if (!tabPage)
+			return
+
+		for (var i=0; i<tabPage.classModel.length; i++) {
+			var d=tabPage.classModel[i]
+			if (d.id !== queryParameters.classid)
+				_filteredClassModel.append({id: d.id, name: d.name})
+		}
+	}
+
 }

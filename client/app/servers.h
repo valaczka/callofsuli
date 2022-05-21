@@ -69,6 +69,9 @@ public:
 
 	ObjectGenericListModel<ServerObject> *serversModel() const;
 
+	Q_INVOKABLE void setUrlString(const QString &url);
+	Q_INVOKABLE QString takeUrlString();
+
 public slots:
 	void reloadResources(QVariantMap resources);
 	void registerResource(const QString &filename);
@@ -88,6 +91,7 @@ public slots:
 	bool parseUrl(const QString &url);
 
 	void sendBroadcast();
+	bool isValidUrl(const QString &url);
 
 	void acceptCertificate(ServerObject *server, const QSslCertificate &cert, const QList<int> &errorList);
 
@@ -132,6 +136,7 @@ private:
 	QStringList m_urlsToProcess;
 	GoogleOAuth2 *m_googleOAuth2;
 	ObjectGenericListModel<ServerObject> *m_serversModel;
+	QString m_urlString;
 };
 
 

@@ -117,6 +117,7 @@ QtObject {
 	property string iconPreferences: "image://font/Material Icons/\ue8b8"
 	property string iconSearch: "image://font/Material Icons/\ue8b6"
 	property string iconEmail: "image://font/Material Icons/\ue0e1"
+	property string iconQR: "image://font/Material Icons/\ue3b5"
 
 	property string iconLockAdd: "image://font/Material Icons/\ue63f"
 	property string iconLockDisabled: "image://font/Material Icons/\ue641"

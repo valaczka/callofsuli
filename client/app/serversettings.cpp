@@ -58,13 +58,6 @@ ObjectGenericListModel<UserListObject> *ServerSettings::modelUserList() const
 	return m_modelUserList;
 }
 
-void ServerSettings::setModelUserList(ObjectGenericListModel<UserListObject> *newModelUserList)
-{
-	if (m_modelUserList == newModelUserList)
-		return;
-	m_modelUserList = newModelUserList;
-	emit modelUserListChanged();
-}
 
 
 
@@ -75,5 +68,6 @@ void ServerSettings::setModelUserList(ObjectGenericListModel<UserListObject> *ne
 
 void ServerSettings::onUserListGet(QJsonObject jsonData, QByteArray)
 {
+	m_modelUserList->unselectAll();
 	m_modelUserList->resetJsonArray(jsonData.value("list").toArray());
 }

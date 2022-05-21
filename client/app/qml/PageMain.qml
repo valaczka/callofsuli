@@ -186,6 +186,16 @@ QTabPage {
 
 			checkRoles()
 		}
+
+		function onRegistrationRequest(oauth2, code) {
+			if (control.StackView.view)
+				mainStack.pop(control)
+
+			control.replaceContent(componentRegistration, {
+									   autoRegisterGoogle: oauth2,
+									   code: code
+								   })
+		}
 	}
 
 	StackView.onRemoved: {

@@ -141,6 +141,7 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int groupid = params.value("groupid", -1).toInt();
 
+	(*jsonResponse)["groupid"] = groupid;
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
 																						  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
 																						  "t1, t2, t3, d1, d2, d3, sumxp "
@@ -420,10 +421,11 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 	// Új állapot
 
-	int solvedXP = GameMap::computeSolvedXpFactor(oldSolver, level, deathmatch) * baseXP;
+	int solvedXP = 0;
 	int durationXP = 0;
 
 	if (success) {
+		solvedXP = GameMap::computeSolvedXpFactor(oldSolver, level, deathmatch) * baseXP;
 		int shortestDuration = oldDurations.value("minDuration", -1).toInt();
 
 		if (shortestDuration > -1 && duration < shortestDuration) {

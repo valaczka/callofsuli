@@ -224,6 +224,18 @@ void GameEnemy::rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items
 		}
 	}
 
+	bool newFacingLeft = parentEntity()->property("facingLeft").toBool();
+
+	if (m_player && !player) {
+		qreal playerX = m_player->parentEntity()->x();
+		qreal meX = parentEntity()->x();
+
+		if (playerX <= meX)
+			newFacingLeft = true;
+		else if (playerX > meX)
+			newFacingLeft = false;
+	}
+
 	setPlayer(player);
 
 	if (player && fraction != -1.0) {
@@ -235,6 +247,8 @@ void GameEnemy::rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items
 		} else if (fraction < m_castAttackFraction) {
 			setAttackRunning(true);
 		}
+	} else {
+		parentEntity()->setProperty("facingLeft", newFacingLeft);
 	}
 }
 

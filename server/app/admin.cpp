@@ -92,15 +92,16 @@ bool Admin::userListGet(QJsonObject *jsonResponse, QByteArray *)
 	QJsonArray l;
 	QVariantList params;
 
-	QString q = "SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, classname, "
+	QString q = "SELECT userInfo.username, firstname, lastname, active, COALESCE(classid, -1) as classid, classname, "
 				"isTeacher, isAdmin, nickname, character, picture, "
-				"rankid, rankname, ranklevel, rankimage FROM userInfo ";
+				"rankid, rankname, ranklevel, rankimage, (password='*') as isOauth2 FROM userInfo "
+				"LEFT JOIN auth ON (auth.username=userInfo.username)";
 	QString w;
 
 
 	if (args.contains("classid")) {
 		w += (w.isEmpty() ? "" : " AND ");
-		w += "COALESCE(classid, -1)=?";
+		w += "COALESCE(classid, -1)=? AND isTeacher=false";
 		params << args.value("classid").toInt(-1);
 	}
 
@@ -124,6 +125,19 @@ bool Admin::userListGet(QJsonObject *jsonResponse, QByteArray *)
 	l = QJsonArray::fromVariantList(m_client->db()->execSelectQuery(q, params));
 	(*jsonResponse)["list"] = l;
 
+
+
+	// Class registration code
+
+	int classid = args.value("classid").toInt(-1);
+
+	if (classid > -1)
+		(*jsonResponse)["code"] = m_client->db()->execSelectQueryOneRow("SELECT code FROM classRegistration WHERE classid=?",
+																		{classid}).value("code").toString();
+	else
+		(*jsonResponse)["code"] = m_client->db()->execSelectQueryOneRow("SELECT code FROM classRegistration WHERE classid is null").value("code").toString();
+
+
 	return true;
 }
 
@@ -140,10 +154,11 @@ bool Admin::userGet(QJsonObject *jsonResponse, QByteArray *)
 
 	params << m_message.jsonData().value("username").toString();
 
-	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, active, "
+	(*jsonResponse) = QJsonObject::fromVariantMap(m_client->db()->execSelectQueryOneRow("SELECT userInfo.username, firstname, lastname, active, "
 																						"COALESCE(classid, -1) as classid, classname, "
-																						"isTeacher, isAdmin FROM userInfo "
-																						"WHERE username=?",
+																						"isTeacher, isAdmin, (password='*') as isOauth2"
+																						"FROM userInfo LEFT JOIN auth ON (auth.username=userInfo.username) "
+																						"WHERE userInfo.username=?",
 																						params));
 
 	return true;

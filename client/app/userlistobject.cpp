@@ -237,3 +237,16 @@ void UserListObject::setRankimage(const QString &newRankimage)
 	m_rankimage = newRankimage;
 	emit rankimageChanged();
 }
+
+bool UserListObject::isOauth2() const
+{
+	return m_isOauth2;
+}
+
+void UserListObject::setIsOauth2(bool newIsOauth2)
+{
+	if (m_isOauth2 == newIsOauth2)
+		return;
+	m_isOauth2 = newIsOauth2;
+	emit isOauth2Changed();
+}

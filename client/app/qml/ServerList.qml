@@ -15,6 +15,7 @@ QTabContainer {
 	menu: QMenu {
 		MenuItem { action: actionServerNew }
 		MenuItem { action: actionServerSearch }
+		MenuItem { action: actionServerQR }
 		MenuSeparator {}
 		MenuItem { action: actionDemo }
 		MenuItem { action: actionAbout }
@@ -226,6 +227,16 @@ QTabContainer {
 	}
 
 
+	Action {
+		id: actionServerQR
+		text: qsTr("QR kód beolvasás")
+		icon.source: CosStyle.iconQR
+		onTriggered: {
+			cosClient.checkMediaPermissions()
+		}
+	}
+
+
 
 
 	Action {
@@ -257,8 +268,33 @@ QTabContainer {
 	}
 
 
+	Component {
+		id: cmpQR
+		ServerReadQR {  }
+	}
 
-	onPopulated: serverList.forceActiveFocus()
+
+	Connections {
+		target: cosClient
+
+		function onMediaPermissionsDenied() {
+
+		}
+
+		function onMediaPermissionsGranted() {
+			pushContent(cmpQR, {})
+		}
+	}
+
+
+	onPopulated: {
+		var s = servers.takeUrlString()
+
+		if (s !== "")
+			servers.parseUrl(s)
+		else
+			serverList.forceActiveFocus()
+	}
 }
 
 

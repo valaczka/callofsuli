@@ -167,7 +167,7 @@ ApplicationWindow {
 		id: actionFullscreen
 		shortcut: "Ctrl+F11"
 		onTriggered: {
-			if (mainWindow.visibility == Window.FullScreen)
+			if (mainWindow.visibility === Window.FullScreen)
 				mainWindow.showMaximized()
 			else
 				mainWindow.showFullScreen()
@@ -203,10 +203,12 @@ ApplicationWindow {
 		if (fs > 0)
 			CosStyle.pixelSize = fs
 
-		if (DEBUG_MODE)
-			showMaximized()
-		else
-			showFullScreen()
+		if (Qt.platform.os !== "android" && Qt.platform.os !== "ios") {
+			if (DEBUG_MODE)
+				showMaximized()
+			else
+				showFullScreen()
+		}
 
 
 		var g = cosClient.guiLoad()

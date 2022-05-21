@@ -135,7 +135,7 @@ public:
 	void addObject(T *object);
 	void insertObject(const QModelIndex &index, T *object);
 	void insertObject(int index, T*object);
-	void resetModel(const QList<T*> &objects);
+	void resetModel(const QList<T*> &objects = {});
 
 	static ObjectGenericListModel<T>* fromJsonArray(QObject *parent, const QJsonArray &array);
 	static ObjectGenericListModel<T>* fromJsonArray(const QJsonArray &array);
@@ -178,6 +178,7 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::resetJs
 		if (!obj)
 			continue;
 		list.append(obj);
+		QObject::connect(obj, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	}
 
 	this->QObjectListModel::resetModel(std::move(list));
@@ -260,12 +261,14 @@ T *ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::takeObjec
 template<typename T>
 T *ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::replaceObject(const QModelIndex &index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	return qobject_cast<T*>(this->QObjectListModel::replaceObject(index, object));
 }
 
 template<typename T>
 T *ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::replaceObject(int index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	return qobject_cast<T*>(this->QObjectListModel::replaceObject(index, object));
 }
 
@@ -281,6 +284,7 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::addObje
 template <typename T>
 void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::insertObject(const QModelIndex &index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	this->QObjectListModel::insertObject(index, object);
 	emit this->countChanged();
 }
@@ -288,6 +292,7 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::insertO
 template <typename T>
 void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::insertObject(int index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	this->QObjectListModel::insertObject(index, object);
 	emit this->countChanged();
 }
@@ -297,8 +302,10 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::resetMo
 {
 	QObjectList list;
 	list.reserve(objects.size());
-	for(auto obj : objects)
+	for(auto obj : objects) {
 		list.append(obj);
+		QObject::connect(obj, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
+	}
 	this->QObjectListModel::resetModel(std::move(list));
 	emit this->countChanged();
 }

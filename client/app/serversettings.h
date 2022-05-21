@@ -43,14 +43,13 @@ class ServerSettings : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(ObjectGenericListModel<UserListObject>* modelUserList READ modelUserList WRITE setModelUserList NOTIFY modelUserListChanged)
+	Q_PROPERTY(ObjectGenericListModel<UserListObject>* modelUserList READ modelUserList CONSTANT)
 
 public:
 	explicit ServerSettings(QQuickItem *parent = nullptr);
 	virtual ~ServerSettings();
 
 	ObjectGenericListModel<UserListObject> *modelUserList() const;
-	void setModelUserList(ObjectGenericListModel<UserListObject> *newModelUserList);
 
 signals:
 	void getSettings(QJsonObject jsonData, QByteArray binaryData);
@@ -63,8 +62,6 @@ signals:
 	void classRemove(QJsonObject jsonData, QByteArray binaryData);
 
 	void userListGet(QJsonObject jsonData, QByteArray binaryData);
-
-	void modelUserListChanged();
 
 private slots:
 	void onUserListGet(QJsonObject jsonData, QByteArray);

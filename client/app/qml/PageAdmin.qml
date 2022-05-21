@@ -10,9 +10,16 @@ QTabPage {
 	id: control
 
 	property string page: ""
+	property var classModel: null
+
 
 	activity: ServerSettings {
 		id: serverSettings
+
+		onGetAllClass: {
+			classModel = jsonData.list
+		}
+
 	}
 
 	Component {

@@ -183,6 +183,9 @@ QTabContainer {
 		}
 
 		function onAuthenticated(token) {
+			if ((Qt.platform.os == "android"  || Qt.platform.os === "ios") && !control.isCurrentItem)
+				mainStack.back()
+
 			labelLogin.visible = false
 			control.enabled = false
 			cosClient.oauth2Login(token)

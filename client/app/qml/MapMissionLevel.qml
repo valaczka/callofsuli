@@ -276,6 +276,7 @@ QTabContainer {
 					leftComponent: QProfileImage {
 						rankId: model ? model.rankid : -1
 						rankImage: model ? model.rankimage : ""
+						//active: model && model.active
 						width: listSuccess.delegateHeight
 						height: listSuccess.delegateHeight*0.9
 					}
@@ -404,6 +405,7 @@ QTabContainer {
 					leftComponent: QProfileImage {
 						rankId: model ? model.rankid : -1
 						rankImage: model ? model.rankimage : ""
+						//active: model && model.active
 						width: listDuration.delegateHeight
 						height: listDuration.delegateHeight*0.9
 					}

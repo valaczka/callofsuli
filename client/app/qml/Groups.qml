@@ -16,6 +16,11 @@ QTabContainer {
 
 	property real groupsButtonSize: CosStyle.twoLineHeight*2.75
 
+	menu: QMenu {
+		MenuItem { action: actionQRinfo }
+	}
+
+
 	Flickable {
 		id: flickable
 		width: parent.width
@@ -286,5 +291,18 @@ QTabContainer {
 							  })
 			}
 		}
+	}
+
+
+	Component {
+		id: cmpServerInfo
+		ServerInfo {}
+	}
+
+	Action {
+		id: actionQRinfo
+		icon.source: CosStyle.iconComputerData
+		text: qsTr("Csatlakozási info")
+		onTriggered: tabPage.pushContent(cmpServerInfo, {})
 	}
 }
