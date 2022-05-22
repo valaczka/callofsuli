@@ -57,7 +57,11 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+
+	qreal xpFactor() const override { return 2.0; };
+
+	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
 
 	inline bool canImport() const override { return false; }
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
@@ -65,6 +69,8 @@ public:
 	void registerQmlTypes() const override;
 
 	static const QRegularExpression &expressionWord();
+
+	QVariantMap generateOne(const QVariantMap &data) const;
 
 signals:
 

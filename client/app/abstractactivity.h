@@ -45,7 +45,6 @@ class AbstractActivity : public QQuickItem
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Client* client READ client WRITE setClient NOTIFY clientChanged)
 	Q_PROPERTY(bool isBusy READ isBusy WRITE setIsBusy NOTIFY isBusyChanged)
 	Q_PROPERTY(CosDownloader * downloader READ downloader WRITE setDownloader NOTIFY downloaderChanged)
 	Q_PROPERTY(int canUndo READ canUndo NOTIFY canUndoChanged)
@@ -60,7 +59,6 @@ public:
 	explicit AbstractActivity(const CosMessage::CosClass &defaultClass = CosMessage::ClassInvalid, QQuickItem *parent = nullptr);
 	virtual ~AbstractActivity();
 
-	Client* client() const { return m_client; }
 	bool isBusy() const { return m_isBusy; }
 	CosDb* db() const { return m_db; }
 	CosDownloader * downloader() const { return m_downloader; }
@@ -82,7 +80,6 @@ public slots:
 			  const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray()) {
 		send(m_defaultClass, cosFunc, jsonData, binaryData);
 	}
-	void setClient(Client* client);
 	void setIsBusy(bool isBusy);
 	void busyStackAdd(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject = nullptr);
 	void busyStackRemove(const CosMessage::CosClass &cosClass, const QString &cosFunc, const int &msgId, QObject *otherObject = nullptr);
@@ -98,7 +95,6 @@ public slots:
 protected slots:
 	virtual void onMessageReceived(const CosMessage &message) { autoSignalEmit(message); }
 	virtual void onMessageFrameReceived(const CosMessage &) {}
-	virtual void clientSetup() {}
 
 private slots:
 	void onMessageReceivedPrivate(const CosMessage &message);
@@ -106,7 +102,6 @@ private slots:
 	void autoSignalEmit(const CosMessage &message);
 
 signals:
-	void clientChanged(Client* client);
 	void isBusyChanged(bool isBusy);
 	void socketDisconnected();
 	void downloaderChanged(CosDownloader * downloader);
@@ -116,7 +111,6 @@ signals:
 	void removeDatabaseChanged(bool removeDatabase);
 
 protected:
-	Client* m_client;
 	bool m_isBusy;
 	QList<busyData> m_busyStack;
 	CosDownloader *m_downloader;

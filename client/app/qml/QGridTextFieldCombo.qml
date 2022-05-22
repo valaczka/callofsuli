@@ -37,6 +37,11 @@ Row {
 						   control.parent.modified = true
 					   }
 
+		onTextCleared: if (watchModification) {
+						   modified = true
+						   parent.modified = true
+					   }
+
 
 		onAccepted: control.parent.accept()
 

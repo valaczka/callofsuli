@@ -43,12 +43,16 @@ ModulePair::ModulePair(QObject *parent) : QObject(parent)
 
 QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
 
 	QStringList list;
 
-	QVariantList l = data.value("pairs").toList();
+	QVariantList l;
+
+	if (!storage)
+		l = data.value("pairs").toList();
+	else if (storage->name() == "binding" || storage->name() == "numbers")
+		l = storageData.value("bindings").toList();
+
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
 		list.append(QString("%1 — %2").arg(m.value("first").toString()).arg(m.value("second").toString()));
@@ -63,6 +67,40 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 }
 
 
+
+/**
+ * @brief ModulePair::generateAll
+ * @param data
+ * @param storage
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+{
+	QVariantList list;
+	QVariantMap m;
+
+	m["question"] = data.value("question").toString();
+
+	QVariantList alist;
+
+	if (!storage)
+		alist = data.value("pairs").toList();
+	else if (storage->name() == "binding" || storage->name() == "numbers")
+		alist = storageData.value("bindings").toList();
+
+	m.insert(generateOne(data, alist));
+
+	list.append(m);
+
+	return list;
+
+
+	return QVariantList();
+}
+
+
 /**
  * @brief ModulePair::generate
  * @param data
@@ -72,19 +110,12 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
  * @return
  */
 
-QVariantMap ModulePair::generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const
+QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairList) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
-
 	QVariantMap m;
 
-	m["question"] = data.value("question").toString();
-
-	QVariantList plist = data.value("pairs").toList();
-
-	if (plist.isEmpty())
-		plist = {
+	if (pairList.isEmpty())
+		pairList = {
 			QVariantMap({{"first", " "}, {"second", " "}}),
 			QVariantMap({{"first", " "}, {"second", " "}})
 		};
@@ -116,8 +147,8 @@ QVariantMap ModulePair::generate(const QVariantMap &data, ModuleInterface *stora
 	QVariantList answers;
 	QStringList options;
 
-	while (plist.size()) {
-		QVariantMap m = plist.takeAt(QRandomGenerator::global()->bounded(plist.size())).toMap();
+	while (pairList.size()) {
+		QVariantMap m = pairList.takeAt(QRandomGenerator::global()->bounded(pairList.size())).toMap();
 		QString first = m.value("first").toString();
 		QString second = m.value("second").toString();
 
@@ -164,11 +195,8 @@ QVariantMap ModulePair::generate(const QVariantMap &data, ModuleInterface *stora
 
 	m["list"] = questions;
 	m["options"] = optList;
-	m["xpFactor"] = 1.5;
+	m["answer"] = QVariantMap({{ "list", answers }});
 
-	if (answer) {
-		(*answer)["list"] = answers;
-	}
 
 	return m;
 }

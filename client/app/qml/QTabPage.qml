@@ -19,21 +19,23 @@ Page {
 	property var backFunction: function() { mainStack.back() }
 
 	property alias buttonModel: rptr.model
+	property alias buttons: row.children
 
 	property bool compact: width < 1280 || height < 720
 
 	property alias menuButton: menuButton
 	property alias backButtonVisible: backButton.visible
-	property alias toolbarVisible: toolbar.visible
+	property alias tabBarVisible: tabbar.visible
 	property alias labelTitle: labelTitle
 	property alias stack: stack
 	property alias toolButtonAction: toolButton.action
+	property alias toolBarLoaderComponent: toolbarLoader.sourceComponent
 
 	property color backgroundColor: "black"
 	property color backgroundImageColor: JS.setColorAlpha(backgroundColor, 0.4)
 	property color buttonColor: CosStyle.colorPrimaryDark
 	property color buttonActiveColor: CosStyle.colorAccent
-	property alias buttonBackgroundColor: toolbar.color
+	property alias buttonBackgroundColor: tabbar.color
 
 	property var pageBackCallbackFunction: null
 	property var closeCallbackFunction: windowCloseFunction
@@ -50,9 +52,7 @@ Page {
 	signal pageDeactivated()
 	signal pageActivatedFirst()
 
-	onActivityChanged: if (activity) {
-						   activity.client = cosClient
-					   }
+	signal activateButton(int index)
 
 
 	background: Item {
@@ -79,10 +79,10 @@ Page {
 		anchors.top: compact ? parent.top : header.bottom
 		anchors.left: parent.left
 		anchors.right: parent.right
-		anchors.bottom: toolbar.visible ? toolbar.top : parent.bottom
+		anchors.bottom: tabbar.visible ? tabbar.top : parent.bottom
 		opacity: compact ? 0.0 : 1.0
 
-		property real maximumPanelWidth: 600
+		property real maximumPanelWidth: 800
 
 		replaceEnter: Transition {
 			PropertyAnimation {
@@ -212,10 +212,11 @@ Page {
 			icon.source: CosStyle.iconBack
 
 			onClicked: {
-				if (stack.depth > 1)
+				/*if (stack.depth > 1)
 					stack.pop()
 				else if (backFunction)
-					backFunction()
+					backFunction()*/
+				mainStack.back()
 			}
 
 			states: State {
@@ -308,9 +309,10 @@ Page {
 			id: labelTitle
 			anchors.left: backButton.visible ? backButton.right : parent.left
 			anchors.right: indicator.visible ? indicator.left :
-											   toolButton.visible ? toolButton.left :
-																	menuButton.visible ? menuButton.left :
-																						 parent.right
+											   toolbarLoader.item ? toolbarLoader.left :
+																	toolButton.visible ? toolButton.left :
+																						 menuButton.visible ? menuButton.left :
+																											  parent.right
 			anchors.verticalCenter: parent.verticalCenter
 			anchors.verticalCenterOffset: compact ? 0 : -2
 
@@ -336,6 +338,15 @@ Page {
 			width: running ? height : 0
 			running: activity && activity.isBusy
 			visible: running
+			anchors.right: toolbarLoader.item ? toolbarLoader.left :
+												toolButton.visible ? toolButton.left :
+																	 menuButton.visible ? menuButton.left : parent.right
+			anchors.verticalCenter: parent.verticalCenter
+			anchors.verticalCenterOffset: compact ? 0 : -2
+		}
+
+		Loader {
+			id: toolbarLoader
 			anchors.right: toolButton.visible ? toolButton.left :
 												menuButton.visible ? menuButton.left : parent.right
 			anchors.verticalCenter: parent.verticalCenter
@@ -364,16 +375,16 @@ Page {
 
 	DropShadow {
 		id: dropshadow2
-		anchors.fill: toolbar
+		anchors.fill: tabbar
 		horizontalOffset: -3
 		verticalOffset: -3
 		color: JS.setColorAlpha("black", 0.75)
-		source: toolbar
-		visible: toolbar.visible
+		source: tabbar
+		visible: tabbar.visible
 	}
 
 	Rectangle {
-		id: toolbar
+		id: tabbar
 		anchors.left: parent.left
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
@@ -422,7 +433,18 @@ Page {
 											  model.func()
 									  }
 
-					width: rptr.count ? toolbar.width/rptr.count : implicitWidth
+					width: rptr.count ? tabbar.width/rptr.count : implicitWidth
+
+					Connections {
+						target: control
+
+						function onActivateButton(idx) {
+							if (idx === index) {
+								checked = false
+								checked = true
+							}
+						}
+					}
 				}
 			}
 		}

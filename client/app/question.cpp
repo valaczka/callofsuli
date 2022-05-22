@@ -38,9 +38,11 @@
 
 
 
-Question::Question(GameMap::Objective *objective)
+Question::Question(GameMapObjective *objective)
+	: m_objective (objective)
+	, m_question()
 {
-	m_objective = objective;
+
 }
 
 
@@ -52,7 +54,7 @@ Question::Question(GameMap::Objective *objective)
 
 bool Question::isValid() const
 {
-	if (m_objective)
+	if (m_objective && !m_question.isEmpty())
 		return true;
 
 	return false;
@@ -105,7 +107,11 @@ bool Question::generate()
 		std = m_objective->storage()->data();
 	}
 
-	m_question = mi->generate(m_objective->data(), st, std, &m_answer);
+	if (!m_objective->hasGeneratedQuestion())
+		m_objective->setGeneratedQuestions(mi->generateAll(m_objective->data(), st, std));
+
+	m_question = m_objective->takeQuestion();
+	m_question.insert("xpFactor", mi->xpFactor());
 
 	return true;
 }
@@ -122,7 +128,7 @@ bool Question::generate()
  * @return
  */
 
-QVariantMap Question::objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
+QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &data, const QString &storageModule, const QVariantMap &storageData)
 {
 	if (!Client::moduleObjectiveList().contains(module)) {
 		return QVariantMap({
@@ -133,9 +139,6 @@ QVariantMap Question::objectiveInfo(const QString &module, const QString &dataSt
 							   { "image", "" }
 						   });
 	}
-
-	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
-	QVariantMap storageData = storageDataString.isEmpty() ? QVariantMap() : Client::byteArrayToJsonMap(storageDataString.toUtf8());
 
 	ModuleInterface *mi = Client::moduleObjectiveList().value(module);
 
@@ -155,7 +158,7 @@ QVariantMap Question::objectiveInfo(const QString &module, const QString &dataSt
  * @return
  */
 
-QVariantMap Question::storageInfo(const QString &module, const QString &dataString)
+QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data)
 {
 	if (!Client::moduleStorageList().contains(module)) {
 		return QVariantMap({
@@ -166,8 +169,6 @@ QVariantMap Question::storageInfo(const QString &module, const QString &dataStri
 							   { "image", "" }
 						   });
 	}
-
-	QVariantMap data = Client::byteArrayToJsonMap(dataString.toUtf8());
 
 	ModuleInterface *mi = Client::moduleStorageList().value(module);
 

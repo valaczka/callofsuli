@@ -49,6 +49,7 @@ public:
 	explicit UserInfo(Client *client, const CosMessage &message);
 
 	bool classInit() override { return true; }
+	void startHttpReply(QNetworkReply *reply, void *data) override;
 
 public slots:
 	bool getServerInfo(QJsonObject *jsonResponse, QByteArray *);
@@ -61,7 +62,15 @@ public slots:
 	bool downloadMap(QJsonObject *jsonResponse, QByteArray *binaryResponse);
 	bool getMyGroups(QJsonObject *jsonResponse, QByteArray *);
 
-	bool emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code);
+private:
+	void getOAuth2Userinfo(const QString &token, const QStringList &domainList, const QString &classCode);
+	void onOAuth2UserinfoReply(QNetworkReply *reply, void *data);
+
+	struct OAuth2Data {
+		QString classCode;
+		QStringList domainList;
+		QString token;
+	};
 };
 
 #endif // USERINFO_H

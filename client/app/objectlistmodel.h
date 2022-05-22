@@ -27,6 +27,7 @@
 #ifndef OBJECTLISTMODEL_H
 #define OBJECTLISTMODEL_H
 
+#include <QCoreApplication>
 #include "qobjectlistmodel.h"
 #include "objectlistmodelobject.h"
 
@@ -40,6 +41,7 @@ class ObjectListModel : public QObjectListModel
 
 public:
 	explicit ObjectListModel(const QMetaObject *objectType, QObject *parent = nullptr);
+	explicit ObjectListModel(const QMetaObject *objectType, const bool &isOwner, QObject *parent = nullptr);
 
 	int selectedCount() const;
 	void setSelectedCount(int newSelectedCount);
@@ -71,6 +73,11 @@ public:
 	{
 		qWarning() << "Missing implementation" << Q_FUNC_INFO;
 		return QJsonArray();
+	}
+
+	Q_INVOKABLE virtual void resetJsonArray(const QJsonArray & = QJsonArray())
+	{
+		qWarning() << "Missing implementation" << Q_FUNC_INFO;
 	}
 
 	bool processing() const;
@@ -115,6 +122,7 @@ class ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>> : publi
 {
 public:
 	explicit ObjectGenericListModel(QObject *parent = nullptr);
+	explicit ObjectGenericListModel(const bool &isOwner, QObject *parent = nullptr);
 
 	QList<T*> objects() const;
 	T *object(const QModelIndex &index) const;
@@ -127,7 +135,7 @@ public:
 	void addObject(T *object);
 	void insertObject(const QModelIndex &index, T *object);
 	void insertObject(int index, T*object);
-	void resetModel(const QList<T*> &objects);
+	void resetModel(const QList<T*> &objects = {});
 
 	static ObjectGenericListModel<T>* fromJsonArray(QObject *parent, const QJsonArray &array);
 	static ObjectGenericListModel<T>* fromJsonArray(const QJsonArray &array);
@@ -135,6 +143,7 @@ public:
 	void appendJsonArray(QObject *parent, const QJsonArray &array);
 	Q_INVOKABLE virtual void appendJsonArray(const QJsonArray &array) override;
 	Q_INVOKABLE virtual void updateJsonArray(const QJsonArray &array, const QString &field) override;
+	Q_INVOKABLE virtual void resetJsonArray(const QJsonArray &array = QJsonArray()) override;
 	Q_INVOKABLE virtual QJsonArray toJsonArray() const override;
 
 	static QJsonArray toJsonArray(QList<T*> list);
@@ -149,6 +158,39 @@ protected slots:
 
 
 
+
+/**
+ * @brief ObjectGenericListModel::resetJsonArray
+ * @param array
+ */
+
+template<typename T>
+void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::resetJsonArray(const QJsonArray &array)
+{
+	QObjectList list;
+	list.reserve(array.size());
+
+	foreach (QJsonValue v, array) {
+		QJsonObject o = v.toObject();
+		if (o.isEmpty())
+			continue;
+		T *obj = ObjectListModelObject::fromJsonObject<T>(o, this->parent() ? this->parent() : this);
+		if (!obj)
+			continue;
+		list.append(obj);
+		QObject::connect(obj, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
+	}
+
+	this->QObjectListModel::resetModel(std::move(list));
+	emit this->countChanged();
+}
+
+
+
+
+/**
+ * @brief ObjectGenericListModel::onSelectedChanged
+ */
 
 
 template<typename T>
@@ -167,6 +209,14 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::onSelec
 template<typename T>
 ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::ObjectGenericListModel(QObject *parent)
 	: ObjectListModel{&T::staticMetaObject, parent}
+{
+
+}
+
+
+template<typename T>
+ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::ObjectGenericListModel(const bool &isOwner, QObject *parent)
+	: ObjectListModel{&T::staticMetaObject, isOwner, parent}
 {
 
 }
@@ -211,12 +261,14 @@ T *ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::takeObjec
 template<typename T>
 T *ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::replaceObject(const QModelIndex &index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	return qobject_cast<T*>(this->QObjectListModel::replaceObject(index, object));
 }
 
 template<typename T>
 T *ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::replaceObject(int index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	return qobject_cast<T*>(this->QObjectListModel::replaceObject(index, object));
 }
 
@@ -232,6 +284,7 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::addObje
 template <typename T>
 void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::insertObject(const QModelIndex &index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	this->QObjectListModel::insertObject(index, object);
 	emit this->countChanged();
 }
@@ -239,6 +292,7 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::insertO
 template <typename T>
 void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::insertObject(int index, T *object)
 {
+	QObject::connect(object, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
 	this->QObjectListModel::insertObject(index, object);
 	emit this->countChanged();
 }
@@ -248,8 +302,10 @@ void ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::resetMo
 {
 	QObjectList list;
 	list.reserve(objects.size());
-	for(auto obj : objects)
+	for(auto obj : objects) {
 		list.append(obj);
+		QObject::connect(obj, &ObjectListModelObject::selectedChanged, this, &ObjectGenericListModel<T>::onSelectedChanged);
+	}
 	this->QObjectListModel::resetModel(std::move(list));
 	emit this->countChanged();
 }
@@ -354,11 +410,8 @@ QJsonArray ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::t
 {
 	QJsonArray array;
 	const QList<T*> objs = objects();
-	for(T* obj : objs) {
-		QtJsonSerializer::JsonSerializer serializer;
-		QJsonValue json = serializer.serialize(obj);
-		array.append(json);
-	}
+	for(T* obj : objs)
+		array.append(obj->toJsonObject());
 	return array;
 }
 
@@ -368,11 +421,9 @@ template<typename T>
 QJsonArray ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::toJsonArray(QList<T *> list)
 {
 	QJsonArray array;
-	for(T* obj : list) {
-		QtJsonSerializer::JsonSerializer serializer;
-		QJsonValue json = serializer.serialize(obj);
-		array.append(json);
-	}
+	for(T* obj : list)
+		array.append(obj->toJsonObject());
+
 	return array;
 }
 
@@ -402,5 +453,8 @@ QList<T *> ObjectGenericListModel<T, ObjectGenericListModel_Object_SFINAE<T>>::f
 		list.append(qobject_cast<T*>(obj));
 	return list;
 }
+
+
+
 
 #endif // OBJECTLISTMODEL_H

@@ -72,9 +72,6 @@ public slots:
 
 	void getSelectedMapInfo();
 
-protected slots:
-	void clientSetup() override;
-
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);

@@ -17,7 +17,7 @@ QTextArea {
 
 	placeholderText: parent.columns > 1 ? "" : fieldName
 
-	width: parent.width
+	//width: parent.width
 
 	Layout.fillWidth: true
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0

@@ -54,7 +54,7 @@ class GameEnemyData : public QObject
 
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(int targetId READ targetId WRITE setTargetId NOTIFY targetIdChanged)
-	Q_PROPERTY(QByteArray objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
+	Q_PROPERTY(QString objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
 	Q_PROPERTY(bool targetDestroyed READ targetDestroyed WRITE setTargetDestroyed NOTIFY targetDestroyedChanged)
 
 	Q_PROPERTY(EnemyType enemyType READ enemyType NOTIFY enemyTypeChanged)
@@ -88,7 +88,7 @@ public:
 
 	explicit GameEnemyData(QObject *parent = nullptr);
 
-	static QHash<QByteArray, InventoryType> inventoryTypes();
+	static QHash<QString, InventoryType> inventoryTypes();
 	static QVariantMap inventoryInfo(const QString &module);
 
 	QRectF boundRect() const { return m_boundRect; }
@@ -99,7 +99,7 @@ public:
 	EnemyType enemyType() const { return m_enemyType; }
 	GameEnemy * enemyPrivate() const;
 	int targetId() const { return m_targetId; }
-	QByteArray objectiveUuid() const { return m_objectiveUuid; }
+	QString objectiveUuid() const { return m_objectiveUuid; }
 	GamePickable::PickableType pickableType() const { return m_pickableType; }
 	QVariantMap pickableData() const { return m_pickableData; }
 	bool targetDestroyed() const { return m_targetDestroyed; }
@@ -114,7 +114,7 @@ public slots:
 	void enemyDied();
 	void enemyKilled(GameEnemy *);
 	void setTargetId(int targetId);
-	void setObjectiveUuid(QByteArray objectiveUuid);
+	void setObjectiveUuid(QString objectiveUuid);
 	Question generateQuestion();
 	void setPickableType(GamePickable::PickableType pickableType);
 	void setPickableData(QVariantMap pickableData);
@@ -127,7 +127,7 @@ signals:
 	void enemyChanged(QQuickItem * enemy);
 	void enemyTypeChanged(EnemyType enemyType);
 	void targetIdChanged(int targetId);
-	void objectiveUuidChanged(QByteArray objectiveUuid);
+	void objectiveUuidChanged(QString objectiveUuid);
 	void pickableTypeChanged(GamePickable::PickableType pickableType);
 	void pickableDataChanged(QVariantMap pickableData);
 	void targetDestroyedChanged(bool targetDestroyed);
@@ -139,7 +139,7 @@ private:
 	QQuickItem *m_enemy;
 	EnemyType m_enemyType;
 	int m_targetId;
-	QByteArray m_objectiveUuid;
+	QString m_objectiveUuid;
 	GamePickable::PickableType m_pickableType;
 	QVariantMap m_pickableData;
 	bool m_targetDestroyed;

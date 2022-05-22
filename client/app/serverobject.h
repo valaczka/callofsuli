@@ -42,7 +42,7 @@ class ServerObject : public ObjectListModelObject
 	Q_PROPERTY(QString session READ session WRITE setSession NOTIFY sessionChanged)
 	Q_PROPERTY(bool autoconnect READ autoconnect WRITE setAutoconnect NOTIFY autoconnectChanged)
 	Q_PROPERTY(bool broadcast READ broadcast WRITE setBroadcast NOTIFY broadcastChanged STORED false)
-	Q_PROPERTY(QList<int> ignoredErrors READ ignoredErrors WRITE setIgnoredErrors NOTIFY ignoredErrorsChanged)
+	Q_PROPERTY(QVariantList ignoredErrors READ ignoredErrors WRITE setIgnoredErrors NOTIFY ignoredErrorsChanged)
 
 public:
 	Q_INVOKABLE explicit ServerObject(QObject *parent = nullptr);
@@ -71,8 +71,11 @@ public:
 	bool broadcast() const;
 	void setBroadcast(bool newBroadcast);
 
-	const QList<int> &ignoredErrors() const;
-	void setIgnoredErrors(const QList<int> &newIgnoredErrors);
+	const QVariantList &ignoredErrors() const;
+	void setIgnoredErrors(const QVariantList &newIgnoredErrors);
+
+	bool hasErrorAndNotified() const;
+	void setHasErrorAndNotified(bool newHasErrorAndNotified);
 
 signals:
 	void idChanged();
@@ -82,9 +85,7 @@ signals:
 	void usernameChanged();
 	void sessionChanged();
 	void autoconnectChanged();
-
 	void broadcastChanged();
-
 	void ignoredErrorsChanged();
 
 private:
@@ -96,7 +97,8 @@ private:
 	QString m_session;
 	bool m_autoconnect;
 	bool m_broadcast;
-	QList<int> m_ignoredErrors;
+	QVariantList m_ignoredErrors;
+	bool m_hasErrorAndNotified;
 };
 
 Q_DECLARE_METATYPE(ObjectGenericListModel<ServerObject>*);

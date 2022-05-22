@@ -63,6 +63,10 @@ void CosMessage::increaseMsgId()
 
 
 
+
+
+
+
 /**
  * @brief CosMessage::CosMessage
  * @param message
@@ -83,6 +87,7 @@ CosMessage::CosMessage(const QByteArray &message)
 	, m_jsonData()
 	, m_peerMsgId(0)
 	, m_responsedMsgId(0)
+	, m_appVersion(0)
 {
 	if (!message.isEmpty())
 		appendFrame(message);
@@ -103,6 +108,7 @@ CosMessage::CosMessage()
 	, m_jsonData()
 	, m_peerMsgId(0)
 	, m_responsedMsgId(0)
+	, m_appVersion(0)
 {
 
 }
@@ -123,6 +129,7 @@ CosMessage::CosMessage(const CosMessage::CosMessageType &messageType, const CosM
 	, m_jsonData()
 	, m_peerMsgId(0)
 	, m_responsedMsgId(0)
+	, m_appVersion(0)
 {
 	increaseMsgId();
 
@@ -145,6 +152,7 @@ CosMessage::CosMessage(const CosMessage::CosMessageError &messageError, const Co
 	, m_jsonData()
 	, m_peerMsgId(0)
 	, m_responsedMsgId(0)
+	, m_appVersion(0)
 {
 	increaseMsgId();
 
@@ -173,6 +181,7 @@ CosMessage::CosMessage(const CosMessage::CosMessageServerError &serverError, con
 	, m_jsonData()
 	, m_peerMsgId(0)
 	, m_responsedMsgId(0)
+	, m_appVersion(0)
 {
 	increaseMsgId();
 
@@ -202,6 +211,7 @@ CosMessage::CosMessage(const QJsonObject &jsonData, const CosClass &cosClass, co
 	, m_jsonData(jsonData)
 	, m_peerMsgId(0)
 	, m_responsedMsgId(0)
+	, m_appVersion(0)
 {
 	increaseMsgId();
 
@@ -211,34 +221,27 @@ CosMessage::CosMessage(const QJsonObject &jsonData, const CosClass &cosClass, co
 
 
 /**
- * @brief CosMessage::versionMajor
- * @return
- */
-
-inline int CosMessage::versionMajor()
-{
-	return _VERSION_MAJOR;
-}
-
-/**
- * @brief CosMessage::versionMinor
- * @return
- */
-
-inline int CosMessage::versionMinor()
-{
-	return _VERSION_MINOR;
-}
-
-
-/**
  * @brief CosMessage::versionNumber
  * @return
  */
 
-inline quint32 CosMessage::versionNumber()
+quint32 CosMessage::versionNumber()
 {
-	return _VERSION_MAJOR;//(_VERSION_MAJOR*100)+_VERSION_MINOR;
+	return (_VERSION_MAJOR*1000)+_VERSION_MINOR;
+}
+
+
+
+/**
+ * @brief CosMessage::versionNumber
+ * @param major
+ * @param minor
+ * @return
+ */
+
+quint32 CosMessage::versionNumber(const quint32 &major, const quint32 &minor)
+{
+	return (major*1000)+minor;
 }
 
 
@@ -286,19 +289,7 @@ CosMessage &CosMessage::appendFrame(const QByteArray &frame)
 			m_messageError = BadMessageFormat;
 		}
 
-		quint32 version;
-
-		stream >> version;
-
-		if (version < versionNumber()) {
-			m_messageType = MessageInvalid;
-			m_messageError = MessageTooOld;
-		}
-
-		if (version > versionNumber()) {
-			m_messageType = MessageInvalid;
-			m_messageError = MessageTooNew;
-		}
+		stream >> m_appVersion;
 
 		stream.setVersion(QDataStream::Qt_5_11);
 
@@ -399,7 +390,7 @@ void CosMessage::setServerError(const CosMessageServerError &serverError)
 QDataStream &operator<<(QDataStream &stream, const CosMessage &cosMessage)
 {
 	stream << (quint32) 0x434F53;			// COS
-	stream << (quint32) CosMessage::versionNumber();
+	stream << CosMessage::versionNumber();
 
 	stream.setVersion(QDataStream::Qt_5_11);
 

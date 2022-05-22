@@ -44,7 +44,7 @@ public:
 
 	inline QString name() const override { return "calculator"; }
 	inline bool isStorageModule() const override { return false; }
-	inline QString readableName() const override { return tr("Számolás"); }
+	inline QString readableName() const override { return tr("Numerikus válasz"); }
 	inline QString icon() const override { return "image://font/AcademicI/\uf127"; }
 
 	inline QString qmlEditor() const override { return "ME_calculator.qml"; }
@@ -53,13 +53,19 @@ public:
 	inline bool canImport() const override { return false; }
 	inline AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
 
-	inline QStringList storageModules() const override { return {"plusminus"}; }
+	inline QStringList storageModules() const override { return {"plusminus", "numbers"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantMap generatePlusminus(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const;
+	qreal xpFactor() const override { return 1.5; };
+
+	QVariantMap preview(const QVariantList &generatedList) const override;
+
+
+	QVariantMap generatePlusminus(const QVariantMap &data) const;
+	QVariantList generateNumbers(const QVariantMap &data, const QVariantMap &storageData) const;
 
 	void registerQmlTypes() const override {};
 signals:

@@ -36,6 +36,9 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QNetworkDatagram>
 #include "androidshareutils.h"
+#include <iostream>
+
+#include "gamemap.h"
 
 Servers::Servers(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -46,10 +49,23 @@ Servers::Servers(QQuickItem *parent)
 	, m_urlsToProcess()
 	, m_googleOAuth2(nullptr)
 	, m_serversModel(new ObjectGenericListModel<ServerObject>(this))
+	, m_urlString()
 {
 	connect(this, &Servers::resourceRegisterRequest, this, &Servers::registerResource);
 
 	connect(m_udpSocket, &QUdpSocket::readyRead, this, &Servers::onUdpDatagramReceived);
+
+	connect(Client::clientInstance(), &Client::connectionStateChanged, this, &Servers::onConnectionStateChanged);
+	connect(Client::clientInstance(), &Client::sessionTokenChanged, this, &Servers::onSessionTokenChanged);
+	connect(Client::clientInstance(), &Client::userNameChanged, this, &Servers::onUserNameChanged);
+	connect(Client::clientInstance(), &Client::authInvalid, this, &Servers::onAuthInvalid);
+	connect(Client::clientInstance(), &Client::userRolesChanged, this, &Servers::onUserRolesChanged);
+	connect(Client::clientInstance(), &Client::urlsToProcessReady, this, &Servers::parseUrls);
+
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::urlSelected, this, &Servers::parseUrl);
+
+	connect(Client::clientInstance()->socket(), &QWebSocket::sslErrors, this, &Servers::onSocketSslErrors);
+	Client::clientInstance()->connectSslErrorSignalHandler(this);
 }
 
 
@@ -68,8 +84,7 @@ Servers::~Servers()
 
 	delete m_udpSocket;
 
-	if (m_client)
-		m_client->connectSslErrorSignalHandler(nullptr);
+		Client::clientInstance()->connectSslErrorSignalHandler(nullptr);
 
 	if (m_googleOAuth2)
 		delete m_googleOAuth2;
@@ -90,11 +105,26 @@ void Servers::onMessageReceived(const CosMessage &message)
 		if (func == "getResources") {
 			reloadResources(d.toVariantMap());
 		} else if (func == "getServerInfo") {
-			qDebug() << "GET SERVER INFO";
 			setGoogleOAuth2(d.value("googleOAuth2id").toString(),
 							d.value("googleOAuth2key").toString(),
 							-1);
-			//d.value("googleOAuth2port").toInt(-1));
+
+			quint32 appVersion = message.appVersion();
+			if (m_connectedServer && appVersion > CosMessage::versionNumber() && !m_connectedServer->hasErrorAndNotified()) {
+				Client::clientInstance()->sendMessageWarning(tr("Frissítés szükséges"), tr("A szerverhez képest az alkalmazás elavult, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
+				m_connectedServer->setHasErrorAndNotified(true);
+			}
+
+		} else if (func == "registrationRequest") {
+			qDebug() << "REGISTRATION" << d;
+			/*if (d.contains("error")) {
+				emit registrationRequestFailed(d.value("error").toString());
+			} else if (d.contains("createdUserName")) {
+				login(d.value("createdUserName").toString(), "");
+			} else if (d.value("success").toBool(false)) {
+				emit registrationRequestSuccess();
+			}*/
+			emit registrationRequest(d);
 		}
 	} else if (message.cosClass() == CosMessage::ClassTeacher) {
 		if (func == "groupCreate") {
@@ -145,15 +175,13 @@ void Servers::serverListReload()
 
 void Servers::serverConnect(ServerObject *server)
 {
-	//QAbstractSocket::SocketState s;
-	//QMetaObject::invokeMethod(m_client->socket(), "state", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QAbstractSocket::SocketState, s));
-	if (m_client->socket()->state() != QAbstractSocket::UnconnectedState) {
-		m_client->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
+	if (Client::clientInstance()->connectionState() != Client::Standby) {
+		//Client::clientInstance()->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
 		return;
 	}
 
 	if (!server) {
-		m_client->sendMessageWarning(tr("Belső hiba"), tr("Érvénytelen szerver"));
+		Client::clientInstance()->sendMessageWarning(tr("Belső hiba"), tr("Érvénytelen szerver"));
 		return;
 	}
 
@@ -174,7 +202,7 @@ void Servers::serverConnect(ServerObject *server)
 	if (!QFileInfo::exists(serverDir)) {
 		QDir d(Client::standardPath());
 		if (!d.mkdir(dir)) {
-			m_client->sendMessageError(tr("Programhiba"), tr("Nem sikerült létrehozni a könyvtárt:"), serverDir);
+			Client::clientInstance()->sendMessageError(tr("Programhiba"), tr("Nem sikerült létrehozni a könyvtárt:"), serverDir);
 			return;
 		}
 	}
@@ -191,28 +219,28 @@ void Servers::serverConnect(ServerObject *server)
 				if (!c.isNull()) {
 					QList<QSslError> eList;
 
-					foreach (int v, server->ignoredErrors()) {
-						QSslError::SslError error = static_cast<QSslError::SslError>(v);
+					foreach (QVariant v, server->ignoredErrors()) {
+						QSslError::SslError error = static_cast<QSslError::SslError>(v.toInt());
 						QSslError certError = QSslError(error, c);
 						eList.append(certError);
 					}
 
-					m_client->socket()->ignoreSslErrors(eList);
-					//QMetaObject::invokeMethod(m_client->socket(), "ignoreSslErrors", Qt::QueuedConnection, Q_ARG(QList<QSslError>, eList));
+					Client::clientInstance()->socket()->ignoreSslErrors(eList);
+					//QMetaObject::invokeMethod(Client::clientInstance()->socket(), "ignoreSslErrors", Qt::QueuedConnection, Q_ARG(QList<QSslError>, eList));
 				}
 			}
 		}
 	}
 
-	m_client->setServerDataDir(serverDir);
-	m_client->clearSession();
+	Client::clientInstance()->setServerDataDir(serverDir);
+	Client::clientInstance()->clearSession();
 
 	m_serverTryToConnect = server;
 
-	qDebug() << "CONNECT" << m_client->socket() << url;
+	qDebug() << "CONNECT" << Client::clientInstance()->socket() << url;
 
-	//m_client->socket()->open(url);
-	QMetaObject::invokeMethod(m_client->socket(), "open", Qt::QueuedConnection, Q_ARG(QUrl, url));
+	//Client::clientInstance()->socket()->open(url);
+	QMetaObject::invokeMethod(Client::clientInstance()->socket(), "open", Qt::QueuedConnection, Q_ARG(QUrl, url));
 }
 
 
@@ -224,7 +252,7 @@ void Servers::serverConnect(ServerObject *server)
 
 ServerObject *Servers::serverCreate(const QJsonObject &json)
 {
-	ServerObject *newServer = ServerObject::fromJsonObject<ServerObject>(json);
+	ServerObject *newServer = ObjectListModelObject::fromJsonObject<ServerObject>(json);
 	newServer->setId(m_serversModel->nextIntValue("id"));
 	m_serversModel->addObject(newServer);
 	saveServerList();
@@ -333,7 +361,7 @@ bool Servers::serverTryLogin()
 	QString session = m_connectedServer->session();
 
 	if (!username.isEmpty() && !session.isEmpty()) {
-		m_client->login(username, session);
+		Client::clientInstance()->login(username, session);
 		return true;
 	}
 
@@ -418,12 +446,12 @@ bool Servers::parseUrls(const QStringList &urls)
 		QUrlQuery q(url);
 		QString serverUuid = q.queryItemValue("server", QUrl::FullyDecoded);
 
-		if (func == "connect" && m_client->connectionState() != Client::Standby) {
-			m_client->sendMessageWarning(tr("Hiba"), tr("Nem lehet új szerverhez csatlakozni, előbb jelentkezz ki!"));
+		if (func == "connect" && Client::clientInstance()->connectionState() != Client::Standby) {
+			Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("Nem lehet új szerverhez csatlakozni, előbb jelentkezz ki!"));
 			return true;
 		}
 
-		if (func == "connect" || m_client->connectionState() == Client::Standby) {
+		if (func == "connect" || Client::clientInstance()->connectionState() == Client::Standby) {
 			QString name = q.queryItemValue("name", QUrl::FullyDecoded);
 
 			qDebug() << "Connect to " << name;
@@ -448,26 +476,28 @@ bool Servers::parseUrls(const QStringList &urls)
 			return true;
 		}
 
-		if (m_client->connectionState() != Client::Connected && m_client->connectionState() != Client::Reconnected) {
-			m_client->sendMessageWarning(tr("Hiba"), tr("A szerver nem elérhető, ismételd meg a kérést!"));
+		if (Client::clientInstance()->connectionState() != Client::Connected && Client::clientInstance()->connectionState() != Client::Reconnected) {
+			Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A szerver nem elérhető, ismételd meg a kérést!"));
 			return true;
 		}
 
-		if (serverUuid != m_client->serverUuid()) {
-			m_client->sendMessageWarning(tr("Hiba"), tr("A kérés nem az aktuális kapcsolatra vonatkozik!"));
+		if (serverUuid != Client::clientInstance()->serverUuid()) {
+			Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A kérés nem az aktuális kapcsolatra vonatkozik!"));
 			return true;
 		}
 
 		if (func == "register") {
-			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
 			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
+			QString oauth2 = q.queryItemValue("oauth2", QUrl::FullyDecoded);
 
-			qDebug() << "REGISTER" << user << code;
+			qDebug() << "REGISTER" << oauth2 << code;
 
-			if (user.isEmpty() || code.isEmpty())
+			if (!Client::clientInstance()->userName().isEmpty()) {
+				Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A regisztrációhoz először ki kell jelentkezni!"));
 				return true;
+			}
 
-			m_client->login(user, "", code);
+			Client::clientInstance()->sendRegistrationRequest((oauth2 == "1"), code);
 		} else if (func == "reset") {
 			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
 			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
@@ -477,7 +507,7 @@ bool Servers::parseUrls(const QStringList &urls)
 			if (user.isEmpty() || code.isEmpty())
 				return true;
 
-			m_client->passwordRequest(user, code);
+			Client::clientInstance()->passwordRequest(user, code);
 		}
 
 	}
@@ -515,7 +545,7 @@ void Servers::sendBroadcast()
 			qInfo() << tr("UDP port nem elérhető: %1").arg(SERVER_UDP_PORT);
 
 			if (!m_udpSocket->bind()) {
-				m_client->sendMessageError(tr("Belső hiba"), tr("UDP socket error"));
+				Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("UDP socket error"));
 				return;
 			}
 		}
@@ -530,6 +560,20 @@ void Servers::sendBroadcast()
 	writeStream << m;
 
 	m_udpSocket->writeDatagram(s, QHostAddress::Broadcast, SERVER_UDP_PORT);
+}
+
+
+
+/**
+ * @brief Servers::checkQR
+ * @param url
+ */
+
+bool Servers::isValidUrl(const QString &url)
+{
+	QUrl u(url);
+
+	return (u.scheme() == "callofsuli");
 }
 
 
@@ -549,12 +593,12 @@ void Servers::sendBroadcast()
 void Servers::acceptCertificate(ServerObject *server, const QSslCertificate &cert, const QList<int> &errorList)
 {
 	if (cert.isNull()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen tanúsítvány"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen tanúsítvány"));
 		return;
 	}
 
 	if (!server) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerver"));
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerver"));
 		return;
 	}
 
@@ -567,14 +611,16 @@ void Servers::acceptCertificate(ServerObject *server, const QSslCertificate &cer
 	f.write(cert.toPem());
 	f.close();
 
-	QList<int> list = server->ignoredErrors();
+	QVariantList list = server->ignoredErrors();
+	list.reserve(errorList.size());
 
-	list.append(errorList);
+	foreach (int i, errorList)
+	list.append(i);
 
-	QList<int> _toList;
-	foreach (int i, list)
-		if (!_toList.contains(i))
-			_toList.append(i);
+	QVariantList _toList;
+	foreach (QVariant v, list)
+		if (!_toList.contains(v))
+			_toList.append(v);
 
 	server->setIgnoredErrors(_toList);
 	saveServerList();
@@ -612,7 +658,8 @@ void Servers::onSocketSslErrors(QList<QSslError> errors)
 			if (!cert.isEmpty()) {
 				QSslCertificate c(cert, QSsl::Pem);
 				if (!c.isNull()) {
-					foreach (int i, m_serverTryToConnect->ignoredErrors()) {
+					foreach (QVariant v, m_serverTryToConnect->ignoredErrors()) {
+						int i = v.toInt();
 						QSslError::SslError error = static_cast<QSslError::SslError>(i);
 						QSslError certError = QSslError(error, c);
 						errors.removeAll(certError);
@@ -633,7 +680,7 @@ void Servers::onSocketSslErrors(QList<QSslError> errors)
 	foreach(QSslError e, errors) {
 		if (!e.certificate().isNull()) {
 			if (!cert.isNull() && e.certificate() != cert) {
-				m_client->sendMessageError(tr("SSL hiba"), tr("Többféle tanúsítvány található!"));
+				Client::clientInstance()->sendMessageError(tr("SSL hiba"), tr("Többféle tanúsítvány található!"));
 				return;
 			}
 
@@ -654,26 +701,6 @@ void Servers::onSocketSslErrors(QList<QSslError> errors)
 
 
 
-
-
-/**
- * @brief Servers::clientSetup
- */
-
-void Servers::clientSetup()
-{
-	connect(m_client, &Client::connectionStateChanged, this, &Servers::onConnectionStateChanged);
-	connect(m_client, &Client::sessionTokenChanged, this, &Servers::onSessionTokenChanged);
-	connect(m_client, &Client::userNameChanged, this, &Servers::onUserNameChanged);
-	connect(m_client, &Client::authInvalid, this, &Servers::onAuthInvalid);
-	connect(m_client, &Client::userRolesChanged, this, &Servers::onUserRolesChanged);
-	connect(m_client, &Client::urlsToProcessReady, this, &Servers::parseUrls);
-
-	connect(AndroidShareUtils::instance(), &AndroidShareUtils::urlSelected, this, &Servers::parseUrl);
-
-	connect(m_client->socket(), &QWebSocket::sslErrors, this, &Servers::onSocketSslErrors);
-	m_client->connectSslErrorSignalHandler(this);
-}
 
 
 /**
@@ -821,7 +848,7 @@ void Servers::_reloadResources(QVariantMap resources)
 
 		QString filename = i.key();
 		QString md5 = data.value("md5").toString();
-		QString localFile = m_client->serverDataDir()+"/"+filename;
+		QString localFile = Client::clientInstance()->serverDataDir()+"/"+filename;
 
 
 		QFile f(localFile);
@@ -876,7 +903,7 @@ void Servers::reloadResources(QVariantMap resources)
 		setDownloader(new CosDownloader(this, CosMessage::ClassUserInfo, "downloadFile", this));
 		connect(m_downloader, &CosDownloader::oneDownloadFinished, this, &Servers::onOneResourceDownloaded);
 		connect(m_downloader, &CosDownloader::downloadFinished, this, &Servers::resourceReady);
-		connect(m_downloader, &CosDownloader::downloadFailed, m_client, &Client::closeConnection);
+		connect(m_downloader, &CosDownloader::downloadFailed, Client::clientInstance(), &Client::closeConnection);
 	}
 
 	run(&Servers::_reloadResources, resources);
@@ -896,9 +923,8 @@ void Servers::registerResource(const QString &filename)
 		qInfo() << tr("Register server resource:") << filename;
 		QResource::registerResource(filename);
 	} else if (filename.endsWith("/images.db")) {
-		QQmlEngine *engine = qmlEngine(this);
-		SqlImage *sqlImage = new SqlImage(m_client, "sqlimageprovider", filename);
-		engine->addImageProvider("sql", sqlImage);
+		SqlImage *sqlImage = new SqlImage(Client::clientInstance(), "sqlimageprovider", filename);
+		Client::clientInstance()->rootEngine()->addImageProvider("sql", sqlImage);
 		m_sqlImageProviders.append("sql");
 	}
 }
@@ -923,14 +949,10 @@ void Servers::unregisterResources()
 		}
 	}
 
-	QQmlEngine *engine = qmlEngine(this);
+	qDebug() << "Remove image providers from engine" << m_sqlImageProviders;
 
-	qDebug() << "Remove image providers from engine" << engine << m_sqlImageProviders;
-
-	if (engine) {
 		foreach (QString s, m_sqlImageProviders)
-			engine->removeImageProvider(s);
-	}
+			Client::clientInstance()->rootEngine()->removeImageProvider(s);
 
 	m_sqlImageProviders.clear();
 
@@ -1063,5 +1085,30 @@ void Servers::setGoogleOAuth2(const QString &id, const QString &key, const qint1
 ObjectGenericListModel<ServerObject> *Servers::serversModel() const
 {
 	return m_serversModel;
+}
+
+
+/**
+ * @brief Servers::setUrlString
+ * @param url
+ */
+
+void Servers::setUrlString(const QString &url)
+{
+	m_urlString = url;
+}
+
+
+
+/**
+ * @brief Servers::takeUrlString
+ * @return
+ */
+
+QString Servers::takeUrlString()
+{
+	QString s = m_urlString;
+	m_urlString = "";
+	return s;
 }
 

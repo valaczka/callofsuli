@@ -54,11 +54,18 @@ public:
 	inline QString qmlEditor() const override { return "ME_simplechoice.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
 
-	inline QStringList storageModules() const override { return QStringList(); }
+	inline QStringList storageModules() const override { return {"binding", "numbers"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+
+	qreal xpFactor() const override { return 1.1; };
+
+	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList) const;
+
+	QVariantMap preview(const QVariantList &generatedList) const override;
 
 	inline bool canImport() const override { return true; }
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterSimplechoice(worksheet); }

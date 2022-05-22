@@ -48,8 +48,14 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 	QVariantMap m;
 
+	if (!storage) {
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = QString("%1 %2").arg(data.value("answer").toString()).arg(data.value("suffix").toString());
+		m["image"] = "";
 
-	if (storage && storage->name() == "plusminus") {
+		return m;
+	} else if (storage->name() == "plusminus") {
 		bool isSubtract = data.value("subtract", false).toBool();
 		int canNegative = data.value("canNegative", 0).toInt();
 		bool allCanNegative = canNegative > 1;
@@ -91,7 +97,26 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		m["details"] = details;
 		m["image"] = "";
 		return m;
+	} else if (storage->name() == "numbers") {
+		QStringList answers;
 
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap m = v.toMap();
+			QString left = m.value("first").toString();
+			QString right = m.value("second").toString();
+
+			if (left.isEmpty() || right.isEmpty())
+				continue;
+
+			answers.append(QString("%1 — %2").arg(left).arg(right));
+		}
+
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = answers.join(", ");
+		m["image"] = "";
+
+		return m;
 
 	}
 
@@ -105,37 +130,51 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 
 
-
-
-
 /**
- * @brief ModuleCalculator::generate
+ * @brief ModuleCalculator::generateAll
  * @param data
  * @param storage
+ * @param storageData
  * @return
  */
 
-QVariantMap ModuleCalculator::generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const
+QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	QVariantMap m;
+	if (!storage) {
+		QVariantList list;
+		QVariantMap m;
 
-	if (storage && storage->name() == "plusminus")
-		return generatePlusminus(data, storage, storageData, answerPtr);
+		bool decimals = data.value("decimals", false).toBool();
 
+		m["question"] = data.value("question").toString();
+		m["suffix"] = data.value("suffix").toString();
+		m["twoLine"] = false;
+		m["decimalEnabled"] = decimals;
+		m["answer"] = QVariantMap({{"first", decimals ? data.value("answer").toReal() : data.value("answer").toInt()}, {"second", 0}});
 
-	m["question"] = "0";
-	m["suffix"] = "";
-	m["twoLine"] = false;
-	m["decimalEnabled"] = false;
-	m["xpFactor"] = 0;
+		list.append(m);
 
-	if (answerPtr) {
-		(*answerPtr)["first"] = 0;
-		(*answerPtr)["second"] = 0;
+		return list;
 	}
 
-	return m;
+	if (storage->name() == "plusminus") {
+		QVariantList list;
+
+		for (int i=0; i<20; ++i)
+			list.append(generatePlusminus(data));
+
+		return list;
+	}
+
+
+	if (storage->name() == "numbers")
+		return generateNumbers(data, storageData);
+
+	return QVariantList();
 }
+
+
+
 
 
 
@@ -146,38 +185,30 @@ QVariantMap ModuleCalculator::generate(const QVariantMap &data, ModuleInterface 
  * @return
  */
 
-QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answerPtr) const
+QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
-
 	QVariantMap m;
 
 	bool isSubtract = data.value("subtract", false).toBool();
 	int canNegative = data.value("canNegative", 0).toInt();
 	bool allCanNegative = canNegative > 1;
 	int range = data.value("range", 1).toInt();
-	float xpFactor = 1.0;
 
 	int floor = 1, ceil = 1;
 
 	if (range >= 4) {
-		xpFactor += 0.4;
 		ceil = allCanNegative ? 100 : 101;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -100;
 	} else if (range == 3) {
-		xpFactor += 0.3;
 		ceil = allCanNegative ? 50 : 51;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -50;
 	} else if (range == 2) {
-		xpFactor += 0.2;
 		ceil = allCanNegative ? 20 : 21;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -20;
 	} else {
-		xpFactor += 0.1;
 		ceil = allCanNegative ? 10 : 11;
 		if (allCanNegative || (isSubtract && canNegative))
 			floor = -10;
@@ -206,13 +237,6 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleI
 	}
 
 
-
-	if (allCanNegative)
-		xpFactor = 1.0+(xpFactor-1.0)*2;
-	else if (canNegative)
-		xpFactor += 0.1;
-
-
 	if (number2 < 0)
 		m["question"] = QString("%1 %2 (%3) =")
 						.arg(number1)
@@ -227,12 +251,84 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data, ModuleI
 	m["suffix"] = "";
 	m["twoLine"] = false;
 	m["decimalEnabled"] = false;
-	m["xpFactor"] = xpFactor;
+	m["answer"] = QVariantMap({{"first", answer}, {"second", 0}});
 
-	if (answerPtr) {
-		(*answerPtr)["first"] = answer;
-		(*answerPtr)["second"] = 0;
+
+	return m;
+}
+
+
+
+/**
+ * @brief ModuleCalculator::generateNumbers
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleCalculator::generateNumbers(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	QString question = data.value("question").toString();
+
+	foreach (QVariant v, storageData.value("bindings").toList()) {
+		QVariantMap m = v.toMap();
+		QString left = m.value("first").toString();
+		QString right = m.value("second").toString();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		if (question.isEmpty())
+			retMap["question"] = left;
+		else if (question.contains("%1"))
+			retMap["question"] = question.arg(left);
+		else
+			retMap["question"] = question;
+
+		qreal r = m.value("second").toReal();
+		/*qreal ri = floor(r);
+		bool decimal = !(r-ri == 0.0);*/
+
+
+		retMap["suffix"] = data.value("suffix").toString();
+		retMap["twoLine"] = false;
+		retMap["decimalEnabled"] = true;
+		retMap["answer"] = QVariantMap({{"first", r}, {"second", 0}});
+
+		ret.append(retMap);
 	}
+
+	return ret;
+}
+
+
+
+
+
+/**
+ * @brief ModuleCalculator::preview
+ * @param generatedList
+ * @return
+ */
+
+QVariantMap ModuleCalculator::preview(const QVariantList &generatedList) const
+{
+	QVariantMap m;
+	QString s;
+
+	foreach (QVariant v, generatedList) {
+		QVariantMap m = v.toMap();
+
+		s.append(QString("- %1 <b>%2 %3</b>\n").arg(m.value("question").toString())
+				 .arg(m.value("answer").toMap().value("first").toReal())
+				 .arg(m.value("suffix").toString()));
+	}
+
+	m["text"] = s;
 
 	return m;
 }

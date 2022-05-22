@@ -1,4 +1,4 @@
-lines = "$${LITERAL_HASH}define COSversion = $${VERSION}"
+lines = "$${LITERAL_HASH}define COSversion = \"$${VERSION}\""
 lines += "$${LITERAL_HASH}define COSexe = \"Call_of_Suli_$${VERSION}_install\""
 lines += $$cat(../deploy/CallOfSuli.iss, blob)
 

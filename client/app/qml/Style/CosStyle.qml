@@ -75,10 +75,13 @@ QtObject {
 	property string iconClear: "image://font/Material Icons/\ue14a"
 	property string iconBack: "image://font/Material Icons/\ue5c4"
 	property string iconUndo: "image://font/Material Icons/\ue166"
+	property string iconRedo: "image://font/Material Icons/\ue15a"
 	property string iconSelectAll: "image://font/Material Icons/\ue877"
 	property string iconDrawer: "image://font/Material Icons/\ue3c7"
 	property string iconDelete: iconTrash
 	property string iconCancel: "image://font/Material Icons/\ue5cd"
+	property string iconNew: "image://font/Material Icons/\ue24d"
+	property string iconOpen: "image://font/Material Icons/\ue2c8"
 	property string iconAdd: "image://font/Material Icons/\ue145"
 	property string iconSave: "image://font/Material Icons/\ue161"
 	property string iconSend: "image://font/Material Icons/\ue163"
@@ -114,6 +117,7 @@ QtObject {
 	property string iconPreferences: "image://font/Material Icons/\ue8b8"
 	property string iconSearch: "image://font/Material Icons/\ue8b6"
 	property string iconEmail: "image://font/Material Icons/\ue0e1"
+	property string iconQR: "image://font/Material Icons/\ue3b5"
 
 	property string iconLockAdd: "image://font/Material Icons/\ue63f"
 	property string iconLockDisabled: "image://font/Material Icons/\ue641"

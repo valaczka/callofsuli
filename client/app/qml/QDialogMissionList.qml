@@ -11,7 +11,6 @@ QDialogPanel {
 
 	property alias list: list
 	property alias selectorSet: list.selectorSet
-	readonly property bool simpleSelect: !list.selectorSet
 	readonly property alias model: proxyModel
 	property alias sourceModel: proxyModel.sourceModel
 
@@ -21,7 +20,7 @@ QDialogPanel {
 
 	acceptedData: -1
 
-	QVariantMapProxyView {
+	QObjectListView {
 		id: list
 
 		anchors.fill: parent
@@ -77,10 +76,12 @@ QDialogPanel {
 
 		colorTitle: CosStyle.colorWarningLight
 
-		onClicked: if (simpleSelect) {
-					   acceptedData = model.mapToSource(currentIndex)
-					   dlgClose()
-				   }
+		onClicked: {
+			if (!selectorSet) {
+				acceptedData = index
+				dlgClose()
+			}
+		}
 	}
 
 
@@ -103,16 +104,16 @@ QDialogPanel {
 		QButton {
 			id: buttonYes
 
-			anchors.verticalCenter: parent.verticalCenter
+			visible: selectorSet
 
-			visible: !simpleSelect
+			anchors.verticalCenter: parent.verticalCenter
 
 			text: qsTr("OK")
 			icon.source: CosStyle.iconOK
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {
-				acceptedData = true
+				acceptedData = 1
 				dlgClose()
 			}
 		}

@@ -6,19 +6,25 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Többszörös választás")
+Item {
+	id: control
 
-	property string moduleData: ""
-	property string storageData: ""
+	width: parent.width
+	height: layout.height
+
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
-	interactive: false
+	signal modified()
 
 	QGridLayout {
-		watchModification: false
+		id: layout
+
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 		QGridLabel { field: textQuestion }
 
@@ -27,8 +33,6 @@ QCollapsible {
 			fieldName: qsTr("Kérdés")
 			sqlField: "question"
 			placeholderText: qsTr("Ez a kérdés fog megjelenni")
-
-			onTextModified: getData()
 		}
 
 		QGridLabel { field: areaCorrectAnswers }
@@ -39,8 +43,6 @@ QCollapsible {
 
 			placeholderText: qsTr("A helyes válaszok (soronként)")
 			minimumHeight: CosStyle.baseHeight*2
-
-			onTextModified: getData()
 		}
 
 		QGridLabel {
@@ -52,11 +54,12 @@ QCollapsible {
 			fieldName: qsTr("Helytelen válaszok")
 			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
 			minimumHeight: CosStyle.baseHeight*2
-
-			onTextModified: getData()
 		}
 
-		QGridText { text: qsTr("Min. helyes válasz:") }
+		QGridText {
+			text: qsTr("Min. helyes válasz:")
+			field: spinCourrectMin
+		}
 
 		QGridSpinBox {
 			id: spinCourrectMin
@@ -67,7 +70,10 @@ QCollapsible {
 			sqlField: "correctMin"
 		}
 
-		QGridText { text: qsTr("Max. helyes válasz:") }
+		QGridText {
+			text: qsTr("Max. helyes válasz:")
+			field: spinCourrectMax
+		}
 
 		QGridSpinBox {
 			id: spinCourrectMax
@@ -78,7 +84,10 @@ QCollapsible {
 			sqlField: "correctMax"
 		}
 
-		QGridText { text: qsTr("Max. lehetőség:") }
+		QGridText {
+			text: qsTr("Max. lehetőség:")
+			field: spinCount
+		}
 
 		QGridSpinBox {
 			id: spinCount
@@ -89,19 +98,15 @@ QCollapsible {
 			sqlField: "count"
 		}
 
-
 	}
 
-
 	Component.onCompleted: {
-		if (moduleData == "")
+		if (!moduleData)
 			return
 
-		var d = JSON.parse(moduleData)
-
-		JS.setSqlFields([textQuestion, spinCount, spinCourrectMin, spinCourrectMax], d)
-		areaCorrectAnswers.setData(d.corrects.join("\n"))
-		areaAnswers.setData(d.answers.join("\n"))
+		JS.setSqlFields([textQuestion, spinCount, spinCourrectMin, spinCourrectMax], moduleData)
+		areaCorrectAnswers.setData(moduleData.corrects.join("\n"))
+		areaAnswers.setData(moduleData.answers.join("\n"))
 	}
 
 
@@ -110,7 +115,7 @@ QCollapsible {
 		d.corrects = areaCorrectAnswers.text.split("\n")
 		d.answers = areaAnswers.text.split("\n")
 
-		moduleData = JSON.stringify(d)
+		moduleData = d
 		return moduleData
 	}
 

@@ -6,30 +6,22 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Egész számok összeadása, kivonása")
+QLabel {
+	id: label
 
-	property string moduleData: ""
+	property var moduleData: ({})
 
-	/*property bool editable: false
+	signal modified()
 
-	rightComponent: QToolButton {
-		icon.source: CosStyle.iconEdit
-		onClicked: editable = true
-	}*/
-
-
-	QLabel {
-		padding: 10
-		width: parent.width
-		wrapMode: Text.Wrap
-		text: qsTr("Ez a modul a kívánt mennyiségben 2 egész számot állít elő, melyek beállítás szerint összeadhatók egymással vagy kivonhatóak egymásból.")
-	}
+	padding: 10
+	width: parent.width
+	wrapMode: Text.Wrap
+	text: qsTr("Ez a modul a kívánt mennyiségben 2 egész számot állít elő, melyek beállítás szerint összeadhatók egymással vagy kivonhatóak egymásból.")
 
 
 	function getData() {
-		return moduleData
+		var r = {}
+		return r
 	}
 
 }

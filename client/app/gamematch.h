@@ -36,19 +36,20 @@
 #define GAMEMATCH_H
 
 #include <QObject>
+#include <QJsonArray>
 #include "gamemap.h"
+#include "gamemapeditor.h"
 
 class GameMatch : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QByteArray missionUuid READ missionUuid WRITE setMissionUuid NOTIFY missionUuidChanged)
+	Q_PROPERTY(QString missionUuid READ missionUuid WRITE setMissionUuid NOTIFY missionUuidChanged)
 	Q_PROPERTY(QString playerCharacter READ playerCharacter WRITE setPlayerCharacter NOTIFY playerCharacterChanged)
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged)
 	Q_PROPERTY(int startHp READ startHp WRITE setStartHp NOTIFY startHpChanged)
-	Q_PROPERTY(int startBlock READ startBlock WRITE setStartBlock NOTIFY startBlockChanged)
 	Q_PROPERTY(QString bgImage READ bgImage WRITE setBgImage NOTIFY bgImageChanged)
 	Q_PROPERTY(QString imageDbName READ imageDbName WRITE setImageDbName NOTIFY imageDbNameChanged)
 	Q_PROPERTY(int duration READ duration WRITE setDuration NOTIFY durationChanged)
@@ -64,7 +65,8 @@ class GameMatch : public QObject
 
 public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
-	explicit GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
+	explicit GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
+	explicit GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	virtual ~GameMatch();
 
 	struct Statistics {
@@ -88,19 +90,18 @@ public:
 		static uint m_index;
 	};
 
-	GameMap::MissionLevel *missionLevel() const;
+	GameMapMissionLevel *missionLevel() const;
 
 	QString playerCharacter() const { return m_playerCharacter; }
 	QString terrain() const { return m_terrain; }
 	int level() const { return m_level; }
 	int startHp() const { return m_startHp; }
-	int startBlock() const { return m_startBlock; }			// DEPRECATED
 	QString bgImage() const;
 	QString imageDbName() const { return m_imageDbName; }
 	QString name() const { return m_name; }
 	int duration() const { return m_duration; }
 	GameMap *gameMap() const { return m_gameMap; }
-	QByteArray missionUuid() const { return m_missionUuid; }
+	QString missionUuid() const { return m_missionUuid; }
 	bool deathmatch() const { return m_deathmatch; }
 	int gameId() const { return m_gameId; }
 	int xp() const { return m_xp; }
@@ -127,12 +128,11 @@ public slots:
 	void setTerrain(QString terrain);
 	void setLevel(int level);
 	void setStartHp(int startHp);
-	void setStartBlock(int startBlock);
 	void setBgImage(QString bgImage);
 	void setImageDbName(QString imageDbName);
 	void setName(QString name);
 	void setDuration(int duration);
-	void setMissionUuid(QByteArray missionUuid);
+	void setMissionUuid(QString missionUuid);
 	void setGameId(int gameId);
 	void setXP(int xp);
 	void setBaseXP(int baseXP);
@@ -146,12 +146,11 @@ signals:
 	void terrainChanged(QString terrain);
 	void levelChanged(int level);
 	void startHpChanged(int startHp);
-	void startBlockChanged(int startBlock);
 	void bgImageChanged(QString bgImage);
 	void imageDbNameChanged(QString imageDbName);
 	void nameChanged(QString name);
 	void durationChanged(int duration);
-	void missionUuidChanged(QByteArray missionUuid);
+	void missionUuidChanged(QString missionUuid);
 	void gameIdChanged(int gameId);
 	void xpChanged(int xp);
 	void baseXPChanged(int baseXP);
@@ -161,19 +160,18 @@ signals:
 
 private:
 	GameMap *m_gameMap;
-	GameMap::MissionLevel *m_missionLevel;
+	GameMapMissionLevel *m_missionLevel;
 	bool m_deleteGameMap;
 
 	QString m_playerCharacter;
 	QString m_terrain;
 	int m_level;
 	int m_startHp;
-	int m_startBlock;
 	QString m_bgImage;
 	QString m_imageDbName;
 	QString m_name;
 	int m_duration;
-	QByteArray m_missionUuid;
+	QString m_missionUuid;
 	int m_gameId;
 	int m_xp;
 	int m_baseXP;

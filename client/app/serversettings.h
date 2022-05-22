@@ -36,21 +36,38 @@
 #define SERVERSETTINGS_H
 
 #include "abstractactivity.h"
-#include "qgenericlistmodel.h"
-#include "QAbstractItemModel"
 #include "objectlistmodel.h"
+#include "userlistobject.h"
 
 class ServerSettings : public AbstractActivity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(ObjectGenericListModel<UserListObject>* modelUserList READ modelUserList CONSTANT)
+
 public:
 	explicit ServerSettings(QQuickItem *parent = nullptr);
 	virtual ~ServerSettings();
 
+	ObjectGenericListModel<UserListObject> *modelUserList() const;
+
 signals:
 	void getSettings(QJsonObject jsonData, QByteArray binaryData);
 	void setSettings(QJsonObject jsonData, QByteArray binaryData);
+	void classRegistration(QJsonObject jsonData, QByteArray binaryData);
+
+	void getAllClass(QJsonObject jsonData, QByteArray binaryData);
+	void classCreate(QJsonObject jsonData, QByteArray binaryData);
+	void classUpdate(QJsonObject jsonData, QByteArray binaryData);
+	void classRemove(QJsonObject jsonData, QByteArray binaryData);
+
+	void userListGet(QJsonObject jsonData, QByteArray binaryData);
+
+private slots:
+	void onUserListGet(QJsonObject jsonData, QByteArray);
+
+private:
+	ObjectGenericListModel<UserListObject> *m_modelUserList;
 };
 
 

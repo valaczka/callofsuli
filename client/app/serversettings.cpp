@@ -37,8 +37,9 @@
 
 ServerSettings::ServerSettings(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassAdmin, parent)
+	, m_modelUserList(new ObjectGenericListModel<UserListObject>(this))
 {
-
+	connect(this, &ServerSettings::userListGet, this, &ServerSettings::onUserListGet);
 }
 
 /**
@@ -47,5 +48,26 @@ ServerSettings::ServerSettings(QQuickItem *parent)
 
 ServerSettings::~ServerSettings()
 {
+	delete m_modelUserList;
+}
 
+
+
+ObjectGenericListModel<UserListObject> *ServerSettings::modelUserList() const
+{
+	return m_modelUserList;
+}
+
+
+
+
+/**
+ * @brief ServerSettings::onUserListGet
+ * @param jsonData
+ */
+
+void ServerSettings::onUserListGet(QJsonObject jsonData, QByteArray)
+{
+	m_modelUserList->unselectAll();
+	m_modelUserList->resetJsonArray(jsonData.value("list").toArray());
 }

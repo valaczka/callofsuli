@@ -6,96 +6,87 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
-ListView {
+
+
+QTabContainer {
 	id: control
-	anchors.fill: parent
 
-	implicitHeight: 300
-	implicitWidth: 650
+	title: qsTr("Feladatok")
+	icon: CosStyle.iconComputer
 
-	clip: true
-	focus: true
-	activeFocusOnTab: true
-	boundsBehavior: Flickable.StopAtBounds
-	orientation: ListView.Horizontal
-	snapMode: width > implicitWidth ? ListView.SnapToItem : ListView.SnapOneItem
+	readonly property int contextAction: (MapEditorAction.ActionTypeChapterList | MapEditorAction.ActionTypeChapter)
+	property int actionContextType: -1
+	property var actionContextId: null
 
-	highlightFollowsCurrentItem: false
+	signal forceChapterOpen(int chapterid)
 
-	ScrollBar.horizontal: ScrollBar { }
+	QObjectListDelegateView {
+		id: chapterList
+		anchors.fill: parent
 
-	//Keys.onLeftPressed: decrementCurrentIndex()
-	//Keys.onRightPressed: incrementCurrentIndex()
+		visible: mapEditor.editor.chapters.count
 
+		selectorSet: mapEditor.editor.chapters.selectedCount
 
-	model: SortFilterProxyModel {
-		sourceModel: mapEditor.modelChapterList
+		model: SortFilterProxyModel {
+			sourceModel: mapEditor.editor.chapters
 
-		sorters: RoleSorter {
-			roleName: "chapter"
-		}
-	}
-
-	delegate: QSwipeContainer {
-		id: item
-
-		required property string name
-		required property int chapter
-		required property int missionCount
-		required property int objectiveCount
-
-		verticalPadding: 5
-		horizontalPadding: 5
-
-		width: Math.min(control.width, control.implicitWidth)
-		height: control.height
-
-		//title: qsTr("Level %1").arg(level)
-		icon: CosStyle.iconTrophy
-
-		borderColor: chapterItem.backgroundColor
-
-		QAccordion {
-			MapEditorChapter {
-				id: chapterItem
-				collapsed: false
-				interactive: false
-				level: -1
-				name: item.name
-				chapter: item.chapter
-				missionCount: item.missionCount
-				objectiveCount: item.objectiveCount
+			sorters: RoleSorter {
+				roleName: "id"
 			}
 		}
-	}
 
-	footer: Item {
-		width: Math.min(control.implicitWidth, control.width)
-		height: control.height
+		delegate: MapEditorChapter {
+			id: chapterItem
+			required property int index
+			collapsed: true
+			level: -1
+			selectorSet: chapterList.selectorSet
+			onLongClicked: chapterList.onDelegateLongClicked(index)
+			onSelectToggled: chapterList.onDelegateClicked(index, withShift)
+			self: chapterList.modelObject(index)
 
-		Column {
-			anchors.centerIn: parent
+			onSelfChanged: if (!self) {
+							   delete chapterItem
+						   }
 
-			QToolButtonBig {
-				anchors.horizontalCenter: parent.horizontalCenter
-				icon.source: CosStyle.iconAdd
-				text: qsTr("Hozzáadás")
-
-				onClicked: {
-					var d = JS.dialogCreateQml("TextField", {
-												   title: qsTr("Új szakasz"),
-												   text: qsTr("Az új szakasz neve")
-											   })
-
-					d.accepted.connect(function(data) {
-						if (data.length)
-							mapEditor.chapterAdd({name: data})
-					})
-					d.open()
+			onChapterRemove: {
+				if (mapEditor.editor.chapters.selectedCount > 0) {
+					mapEditor.chapterRemoveList(mapEditor.editor.chapters.getSelected())
+				} else {
+					mapEditor.chapterRemove(self)
 				}
 			}
 
-			QToolButtonBig {
+			Connections {
+				target: control
+				function onForceChapterOpen(chid) {
+					if (!chapterItem.self)
+						return
+
+					if (chid === chapterItem.self.id)
+						chapterItem.collapsed = false
+					else
+						chapterItem.collapsed = true
+				}
+			}
+		}
+
+		header: QTabHeader {
+			tabContainer: control
+			isPlaceholder: true
+		}
+
+
+		footer: Column {
+			width: chapterList.width
+
+			QToolButtonFooter {
+				anchors.horizontalCenter: parent.horizontalCenter
+				action: actionChapterNew
+			}
+
+			QToolButtonFooter {
 				anchors.horizontalCenter: parent.horizontalCenter
 				icon.source: CosStyle.iconAdd
 				text: qsTr("Importálás")
@@ -115,12 +106,62 @@ ListView {
 					d.open()
 				}
 			}
-
 		}
 	}
 
+	QToolButtonBig {
+		anchors.centerIn: parent
+		visible: !mapEditor.editor.chapters.count
+		action: actionChapterNew
+		color: CosStyle.colorOKLighter
+	}
 
-	function layoutBack() {
+	Action {
+		id: actionChapterNew
+		icon.source: CosStyle.iconAdd
+		text: qsTr("Új szakasz")
+
+		onTriggered: {
+			var d = JS.dialogCreateQml("TextField", {
+										   title: qsTr("Új szakasz"),
+										   text: qsTr("Az új szakasz neve")
+									   })
+
+			d.accepted.connect(function(data) {
+				if (data.length)
+					mapEditor.chapterAdd({name: data})
+			})
+			d.open()
+		}
+	}
+
+	onPopulated: {
+		chapterList.forceActiveFocus()
+
+		loadContextId(actionContextType, actionContextId)
+		actionContextType = -1
+		actionContextId = null
+	}
+
+
+	function loadContextId(type, id) {
+		if (type === MapEditorAction.ActionTypeChapterList)
+			forceChapterOpen(-1)
+		else if (type === MapEditorAction.ActionTypeChapter)
+			forceChapterOpen(id)
+	}
+
+
+	backCallbackFunction: function () {
+		if (mapEditor.chapterModelUnselectObjectives(mapEditor.editor.chapters))
+			return true
+
+		if (mapEditor.editor.chapters.selectedCount) {
+			mapEditor.editor.chapters.unselectAll()
+			return true
+		}
+
 		return false
 	}
 }
+

@@ -33,7 +33,11 @@ Profile::Profile(QQuickItem *parent)
 	, m_characterList()
 	, m_scoreModel(new ObjectGenericListModel<ProfileScoreObject>(this))
 {
-	m_characterList.append(QVariantMap({{"dir", "default"}, {"name", "Default"}}));
+	//m_characterList.append(QVariantMap({{"dir", "default"}, {"name", "Default"}}));
+
+	setCharacterList(Client::mapToList(Client::clientInstance()->characterData(), "dir"));
+
+	connect(this, &Profile::getAllUser, this, &Profile::onGetAllUser);
 
 	// Ignored Signals
 	m_ignoredSignals
@@ -95,16 +99,16 @@ void Profile::scoreModelUpdate(const QJsonArray &list)
 
 
 /**
- * @brief Profile::clientSetup
+ * @brief Profile::onGetAllUser
+ * @param jsonData
  */
 
-void Profile::clientSetup()
+void Profile::onGetAllUser(QJsonObject jsonData, QByteArray)
 {
-	if (!m_client)
-		return;
-
-	setCharacterList(Client::mapToList(m_client->characterData(), "dir"));
+	scoreModelUpdate(jsonData.value("list").toArray());
 }
+
+
 
 ObjectGenericListModel<ProfileScoreObject> *Profile::scoreModel() const
 {

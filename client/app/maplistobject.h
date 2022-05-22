@@ -44,7 +44,7 @@ class MapListObject : public ObjectListModelObject
 
 	Q_PROPERTY(int version READ version WRITE setVersion NOTIFY versionChanged)
 	Q_PROPERTY(QVariantList binded READ binded WRITE setBinded NOTIFY bindedChanged)
-	Q_PROPERTY(bool used READ used WRITE setUsed NOTIFY usedChanged)
+	Q_PROPERTY(int used READ used WRITE setUsed NOTIFY usedChanged)
 	Q_PROPERTY(QDateTime lastModified READ lastModified WRITE setLastModified NOTIFY lastModifiedChanged)
 
 public:
@@ -74,8 +74,8 @@ public:
 	const QVariantList &binded() const;
 	void setBinded(const QVariantList &newBinded);
 
-	bool used() const;
-	void setUsed(bool newUsed);
+	int used() const;
+	void setUsed(int newUsed);
 
 	const QDateTime &lastModified() const;
 	void setLastModified(const QDateTime &newLastModified);
@@ -101,7 +101,7 @@ private:
 	QString m_md5;
 	int m_version;
 	QVariantList m_binded;
-	bool m_used;
+	int m_used;
 	QDateTime m_lastModified;
 };
 

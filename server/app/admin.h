@@ -50,8 +50,15 @@ public:
 
 	bool classInit() override;
 
+	QString userCreateReal(const QString &username, const QString &firstname, const QString &lastname, const bool &isTeacher = false,
+						const QString &classCode = "", const QString &oauthToken = "",
+						const QString &picture = "", const QString &character = "default");
+
+	bool userPasswordChangeReal(const QString &username, const QString &password);
+
 public slots:
 	bool getAllUser(QJsonObject *jsonResponse, QByteArray *);
+	bool userListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);
@@ -62,10 +69,12 @@ public slots:
 	bool getAllClass(QJsonObject *jsonResponse, QByteArray *);
 	bool classCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool classUpdate(QJsonObject *jsonResponse, QByteArray *);
-	bool classBatchRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool classRemove(QJsonObject *jsonResponse, QByteArray *);
 
 	bool getSettings(QJsonObject *jsonResponse, QByteArray *);
 	bool setSettings(QJsonObject *jsonResponse, QByteArray *);
+
+	bool classRegistration(QJsonObject *jsonResponse, QByteArray *);
 
 	bool getAllClients(QJsonObject *jsonResponse, QByteArray *);
 

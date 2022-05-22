@@ -246,6 +246,58 @@
 			"frameCount": 5,
 			"frameDuration": 60,
 			"to": { "idle": 1, "shot": 0, "dead": 0 }
+		},
+		"operate": {
+			"source": "operate.png",
+			"frameWidth": 90,
+			"frameHeight": 55,
+			"frameX": 0,
+			"frameY": 0,
+			"frameCount": 5,
+			"frameDuration": 60,
+			"to": { "idle": 0, "operate": 0, "operate2": 1, "operate3": 0 }
+		},
+		"operate2": {
+			"source": "operate.png",
+			"frameWidth": 90,
+			"frameHeight": 55,
+			"frameX": 90,
+			"frameY": 55,
+			"frameCount": 1,
+			"frameDuration": 1500,
+			"to": { "idle": 0, "operate": 0, "operate2": 0, "operate3": 1 }
+		},
+		"operate3": {
+			"source": "operate.png",
+			"frameWidth": 90,
+			"frameHeight": 55,
+			"frameX": 180,
+			"frameY": 55,
+			"frameCount": 5,
+			"frameDuration": 60,
+			"to": { "idle": 1, "operate": 0, "operate2": 0, "operate3": 0 }
+		},
+		"burn": {
+			"source": "../default/burn.png",
+			"frameWidth": 90,
+			"frameHeight": 66,
+			"boxHeight": 50,
+			"frameX": 0,
+			"frameY": 0,
+			"frameCount": 13,
+			"frameDuration": 60,
+			"to": { "idle": 0, "burn": 0, "burndead": 1 }
+		},
+		"burndead":	{
+			"source": "../default/burn.png",
+			"frameWidth": 90,
+			"frameHeight": 66,
+			"boxHeight": 50,
+			"frameX": 90,
+			"frameY": 198,
+			"frameCount": 1,
+			"frameDuration": 50,
+			"to": { "idle": 0, "burndead": 1 }
 		}
 }
 }

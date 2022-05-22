@@ -30,7 +30,6 @@
 
 AbstractActivity::AbstractActivity(const CosMessage::CosClass &defaultClass, QQuickItem *parent)
 	: QQuickItem(parent)
-	, m_client(nullptr)
 	, m_isBusy(false)
 	, m_busyStack()
 	, m_downloader(nullptr)
@@ -41,6 +40,13 @@ AbstractActivity::AbstractActivity(const CosMessage::CosClass &defaultClass, QQu
 	, m_removeDatabase(false)
 	, m_defaultClass(defaultClass)
 {
+	connect(Client::clientInstance(), &Client::messageReceived, this, &AbstractActivity::onMessageReceivedPrivate);
+	connect(Client::clientInstance(), &Client::messageReceivedError, this, &AbstractActivity::onMessageReceivedPrivate);
+	connect(Client::clientInstance(), &Client::messageReceived, this, &AbstractActivity::onMessageReceived);
+	connect(Client::clientInstance(), &Client::messageFrameReceived, this, &AbstractActivity::onMessageFrameReceived);
+
+	QWebSocket *socket = Client::clientInstance()->socket();
+	connect(socket, &QWebSocket::disconnected, this, &AbstractActivity::onSocketDisconnected);
 }
 
 /**
@@ -56,7 +62,8 @@ AbstractActivity::~AbstractActivity()
 			if (!m_db->isOpen())
 				m_db->close();
 
-			QFile::remove(dbName);
+			if (!dbName.isEmpty() && dbName != ":memory:")
+				QFile::remove(dbName);
 		}
 		delete m_db;
 	}
@@ -75,12 +82,7 @@ AbstractActivity::~AbstractActivity()
 
 void AbstractActivity::send(const CosMessage::CosClass &cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
 {
-	if (!m_client) {
-		qWarning() << tr("Missing client") << this;
-		return;
-	}
-
-	int msgid = m_client->socketSend(cosClass, cosFunc, jsonData, binaryData);
+	int msgid = Client::clientInstance()->socketSend(cosClass, cosFunc, jsonData, binaryData);
 
 	busyStackAdd(cosClass, cosFunc, msgid);
 }
@@ -95,35 +97,6 @@ void AbstractActivity::send(const CosMessage::CosClass &cosClass, const QString 
 
 
 
-
-/**
- * @brief AbstractActivity::setClient
- * @param client
- */
-
-
-void AbstractActivity::setClient(Client *client)
-{
-	if (m_client == client)
-		return;
-
-	m_client = client;
-	emit clientChanged(m_client);
-
-	if (m_client) {
-		connect(m_client, &Client::messageReceived, this, &AbstractActivity::onMessageReceivedPrivate);
-		connect(m_client, &Client::messageReceivedError, this, &AbstractActivity::onMessageReceivedPrivate);
-		connect(m_client, &Client::messageReceived, this, &AbstractActivity::onMessageReceived);
-		connect(m_client, &Client::messageFrameReceived, this, &AbstractActivity::onMessageFrameReceived);
-		clientSetup();
-		if (m_db) {
-			connect(m_db->worker(), &CosDbWorker::databaseError, m_client, &Client::sendDatabaseError);
-		}
-
-		QWebSocket *socket = m_client->socket();
-		connect(socket, &QWebSocket::disconnected, this, &AbstractActivity::onSocketDisconnected);
-	}
-}
 
 void AbstractActivity::setIsBusy(bool isBusy)
 {
@@ -205,8 +178,8 @@ void AbstractActivity::addDb(CosDb *db, const bool &removeDatabase)
 
 	emit dbChanged(m_db);
 
-	if (m_client)
-		connect(m_db->worker(), &CosDbWorker::databaseError, m_client, &Client::sendDatabaseError);
+
+	connect(m_db->worker(), &CosDbWorker::databaseError, Client::clientInstance(), &Client::sendDatabaseError);
 
 	connect(m_db, &CosDb::canUndoChanged, this, [=](int canUndo, const QString &canUndoString) {
 		emit canUndoChanged(canUndo);

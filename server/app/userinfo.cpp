@@ -45,6 +45,22 @@ UserInfo::UserInfo(Client *client, const CosMessage &message)
 }
 
 
+
+/**
+ * @brief UserInfo::startHttpReply
+ * @param reply
+ */
+
+void UserInfo::startHttpReply(QNetworkReply *reply, void *data)
+{
+	qDebug() << "START HTTP REPLY" << reply << m_message.cosFunc();
+
+	if (m_message.cosFunc() == "registrationRequest")
+		onOAuth2UserinfoReply(reply, data);
+
+}
+
+
 /**
  * @brief UserInfo::getServer
  * @return
@@ -54,37 +70,20 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 {
 	(*jsonResponse)["serverName"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverName from system").value("serverName"));
 	(*jsonResponse)["serverUuid"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT serverUuid from system").value("serverUuid"));
-	(*jsonResponse)["passwordResetEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, '0') as v "
-																											"FROM settings WHERE key='email.passwordReset'")
-																	  .value("v", false).toBool());
 
+	(*jsonResponse)["registrationEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.enabled'").value("v", false).toBool());
 
-	bool autoRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.auto'")
-							.value("v", false).toBool();
-
-	bool emailRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='email.registration'")
-							 .value("v", false).toBool();
-
-	(*jsonResponse)["registrationEnabled"] = (autoRegistration || emailRegistration);
-
-
-	(*jsonResponse)["registrationDomains"] = QJsonArray::fromStringList(m_client->emailRegistrationDomainList());
 
 	(*jsonResponse)["ranklist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as rankid, name as rankname,"
-"COALESCE(level, -1) as ranklevel, image as rankimage, xp "
-									"FROM rank ORDER BY id"));
+																							  "COALESCE(level, -1) as ranklevel, image as rankimage, xp "
+																							  "FROM rank ORDER BY id"));
 
-
-	if (m_client->db()->execSelectQueryOneRow("SELECT COALESCE(value, false) as v "
-											  "FROM settings WHERE key='registration.class'").value("v").toBool()) {
-		(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname FROM class ORDER BY name"));
-	}
 
 
 	QString googleId = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleID'")
-									.value("v").toString();
+					   .value("v").toString();
 	QString googleKey = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleKey'")
-									.value("v").toString();
+						.value("v").toString();
 
 	if (!googleId.isEmpty() && !googleKey.isEmpty()) {
 		(*jsonResponse)["googleOAuth2id"] = googleId;
@@ -112,44 +111,44 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT username, firstname, lastname, "
-																						"isTeacher, isAdmin, COALESCE(classid, -1) as classid, classname, xp, rankid, "
-																						"rankname, rankimage, COALESCE(ranklevel, -1) as ranklevel, "
-																						"nickname, character, picture "
-																						"FROM userInfo WHERE active IS TRUE AND username=?", {username});
+														  "isTeacher, isAdmin, COALESCE(classid, -1) as classid, classname, xp, rankid, "
+														  "rankname, rankimage, COALESCE(ranklevel, -1) as ranklevel, "
+														  "nickname, character, picture "
+														  "FROM userInfo WHERE active IS TRUE AND username=?", {username});
 
 	m["maxStreak"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(MAX(maxStreak), 0) as maxStreak "
 														   "FROM score WHERE username=?", {username}).value("maxStreak").toInt();
 
 	int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-	"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-	"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-	"(SELECT DISTINCT date(timestamp) AS dt "
-	"FROM game WHERE username=? AND success=true) t2 "
-	"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-	"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-	"WHERE username=? AND success=true) t1) t GROUP BY grp) "
-	"WHERE dt=date('now', 'localtime')", {username, username})
+															  "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+															  "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+															  "(SELECT DISTINCT date(timestamp) AS dt "
+															  "FROM game WHERE username=? AND success=true) t2 "
+															  "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+															  "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+															  "WHERE username=? AND success=true) t1) t GROUP BY grp) "
+															  "WHERE dt=date('now', 'localtime')", {username, username})
 						.value("streak", 0).toInt();
 
 
 	// Ha ma még nem volt megoldás, akkor a tegnapit számoljuk
 	if (currentStreak == 0)
 		currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-			"(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-			"(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-			"(SELECT DISTINCT date(timestamp) AS dt "
-			"FROM game WHERE username=? AND success=true) t2 "
-			"WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-			"(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-			"WHERE username=? AND success=true) t1) t GROUP BY grp) "
-			"WHERE dt=date('now', '-1 day', 'localtime')", {username, username})
+															  "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+															  "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+															  "(SELECT DISTINCT date(timestamp) AS dt "
+															  "FROM game WHERE username=? AND success=true) t2 "
+															  "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+															  "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+															  "WHERE username=? AND success=true) t1) t GROUP BY grp) "
+															  "WHERE dt=date('now', '-1 day', 'localtime')", {username, username})
 						.value("streak", 0).toInt();
 
 	m["currentStreak"] = currentStreak;
 
 	if (m_message.jsonData().contains("withTrophy")) {
 		m.insert(m_client->db()->execSelectQueryOneRow("SELECT (SELECT COALESCE(MAX(maxStreak), 0) FROM score WHERE score.username=?) as longestStreak, "
-			"t1, t2, t3, d1, d2, d3 FROM fullTrophy WHERE username=?", {username, username}));
+													   "t1, t2, t3, d1, d2, d3 FROM fullTrophy WHERE username=?", {username, username}));
 	}
 
 
@@ -158,8 +157,8 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 	if (m_message.jsonData().contains("withRanklog")) {
 		QVariantList rList = m_client->db()->execSelectQuery("SELECT rankid, datetime(timestamp, 'localtime') as timestamp, ranklog.xp, name, level, image,"
 															 "-1 as maxStreak "
-															"FROM ranklog LEFT JOIN rank ON (rank.id=ranklog.rankid) "
-															"WHERE username=? "
+															 "FROM ranklog LEFT JOIN rank ON (rank.id=ranklog.rankid) "
+															 "WHERE username=? "
 															 "UNION "
 															 "SELECT -1 as rankid, datetime(timestamp, 'localtime') as timestamp, -1 as xp, '' as name, "
 															 "-1 as level, '' as image, maxStreak "
@@ -172,7 +171,7 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 									.value("v", false).toBool();
 
 	m["oauth2Account"] = m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {username})
-									.value("v", false).toBool();
+						 .value("v", false).toBool();
 
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m);
@@ -192,11 +191,11 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
 	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, "
-									"isTeacher, isAdmin, COALESCE(classid, -1) as classid, classname, xp, rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname, picture "
-									"FROM userInfo WHERE active=true"));
+																						  "isTeacher, isAdmin, COALESCE(classid, -1) as classid, classname, xp, rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname, picture "
+																						  "FROM userInfo WHERE active=true"));
 
 	(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname "
-									"FROM class"));
+																							   "FROM class"));
 
 	return true;
 }
@@ -222,14 +221,14 @@ bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 
 	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT "
-			"(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
-			"(SELECT COALESCE(MAX(xp), 0) FROM userInfo) as maxXP, "
-			"(SELECT COALESCE(MAX(t1), 0) FROM fullTrophy) as maxT1, "
-			"(SELECT COALESCE(MAX(t2), 0) FROM fullTrophy) as maxT2, "
-			"(SELECT COALESCE(MAX(t3), 0) FROM fullTrophy) as maxT3, "
-			"(SELECT COALESCE(MAX(d1), 0) FROM fullTrophy) as maxD1, "
-			"(SELECT COALESCE(MAX(d2), 0) FROM fullTrophy) as maxD2, "
-			"(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3");
+														  "(SELECT COALESCE(MAX(maxStreak), 0) FROM score) as maxStreak, "
+														  "(SELECT COALESCE(MAX(xp), 0) FROM userInfo) as maxXP, "
+														  "(SELECT COALESCE(MAX(t1), 0) FROM fullTrophy) as maxT1, "
+														  "(SELECT COALESCE(MAX(t2), 0) FROM fullTrophy) as maxT2, "
+														  "(SELECT COALESCE(MAX(t3), 0) FROM fullTrophy) as maxT3, "
+														  "(SELECT COALESCE(MAX(d1), 0) FROM fullTrophy) as maxD1, "
+														  "(SELECT COALESCE(MAX(d2), 0) FROM fullTrophy) as maxD2, "
+														  "(SELECT COALESCE(MAX(d3), 0) FROM fullTrophy) as maxD3");
 
 	(*jsonResponse)["maxStreak"] = m.value("maxStreak").toInt();
 	(*jsonResponse)["maxXP"] = m.value("maxXP").toInt();
@@ -251,111 +250,106 @@ bool UserInfo::getUserScore(QJsonObject *jsonResponse, QByteArray *)
 
 bool UserInfo::registrationRequest(QJsonObject *jsonResponse, QByteArray *)
 {
-	QString email = m_message.jsonData().value("email").toString();
-	QString firstname = m_message.jsonData().value("firstname").toString();
-	QString lastname = m_message.jsonData().value("lastname").toString();
-	int classid = -1;
+	QJsonObject params = m_message.jsonData();
 
-	if (email.isEmpty()) {
-		(*jsonResponse)["error"] = "email empty";
+	QString username = params.value("username").toString();
+	QString firstname = params.value("firstname").toString();
+	QString lastname = params.value("lastname").toString();
+	QString token = params.value("oauthToken").toString();
+	QString code = params.value("code").toString();
+	QString password = params.value("password").toString();
+
+
+	bool registrationEnabled = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.enabled'")
+							   .value("v", false).toBool();
+	bool oauth2Enabled = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.registration'")
+						 .value("v", false).toBool();
+	bool oauth2Forced = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.forced'")
+						 .value("v", false).toBool();
+
+
+
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT value as list FROM settings WHERE key='oauth2.domains'");
+
+	QString s = m.value("list", "").toString();
+
+	QStringList domainList = s.isEmpty() ? QStringList() : s.split(",");
+	domainList.replaceInStrings(QRegExp("\\s"), "");
+
+
+	// Csak regisztrációs információk
+
+	if (username.isEmpty() && token.isEmpty()) {
+		(*jsonResponse)["status"] = true;
+		(*jsonResponse)["registrationEnabled"] = QJsonValue::fromVariant(registrationEnabled);
+		(*jsonResponse)["oauth2Enabled"] = QJsonValue::fromVariant(oauth2Enabled);
+		(*jsonResponse)["oauth2Forced"] = QJsonValue::fromVariant(oauth2Forced);
+
+		if (oauth2Enabled)
+			(*jsonResponse)["domains"] = QJsonArray::fromStringList(domainList);
+
+		return true;
+	}
+
+
+	// Ha a regisztráció le van tiltva
+
+	if (!registrationEnabled) {
+		(*jsonResponse)["error"] = "registration disabled";
 		return false;
 	}
 
-	QVariantList l;
-	l << email;
 
-	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT EXISTS(SELECT * FROM user WHERE username=?) as e", l);
+	// Ha az oauth2 le van tiltva
 
-	if (m.value("e", false).toBool()) {
-		(*jsonResponse)["error"] = "email exists";
+	if (!oauth2Enabled && !token.isEmpty()) {
+		(*jsonResponse)["error"] = "oauth2 registration disabled";
 		return false;
 	}
 
-	QStringList domainList = m_client->emailRegistrationDomainList();
-	bool match = domainList.count() ? false : true;
-
-	foreach (QString s, domainList) {
-		if (email.endsWith(s)) {
-			match = true;
-			break;
-		}
-	}
 
 
-	if (!match) {
-		(*jsonResponse)["error"] = "email invalid";
+	// Ha nincs kényszerített osztály és nincs osztálykód
+
+	int forcedClass = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.forced'").value("v", -1).toInt();
+
+	if (forcedClass <= 0 && code.isEmpty()) {
+		(*jsonResponse)["error"] = "missing code";
 		return false;
 	}
 
-	if (m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.class'")
-		.value("v", false).toBool()) {
-		classid = m_message.jsonData().value("classid").toInt(-1);
-	}
 
 
-	bool autoRegistration = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.auto'")
-							.value("v", false).toBool();
+	if (!token.isEmpty()) {
+		getOAuth2Userinfo(token, domainList, code);
+		(*jsonResponse)["oauth2"] = true;
+		return true;
+	} else if (!oauth2Forced) {
+		Admin a(m_client, CosMessage());
 
-	if (autoRegistration) {
-		QJsonObject obj;
-		obj["username"] = email;
-		obj["firstname"] = firstname;
-		obj["lastname"] = lastname;
-		obj["active"] = true;
-		obj["classid"] = classid;
+		QString err = a.userCreateReal(username,
+									   firstname,
+									   lastname,
+									   false,
+									   code);
 
-		qInfo().noquote() << tr("Auto-register user") << email;
-
-		CosMessage m2(obj, CosMessage::ClassInvalid, "");
-
-		QJsonObject ret;
-		Admin u(m_client, m2);
-		bool isSuccess = u.userCreate(&ret, nullptr);
-
-		if (isSuccess) {
-			(*jsonResponse)["createdUserName"] = ret.value("createdUserName").toString();
-			return true;
-		} else {
-			setServerError();
+		if (!err.isEmpty()) {
+			(*jsonResponse)["error"] = err;
 			return false;
 		}
 
+		if (!a.userPasswordChangeReal(username, password)) {
+			(*jsonResponse)["error"] = "auth error";
+			return false;
+		} else {
+			(*jsonResponse)["created"] = username;
+		}
 	} else {
-
-		QVariantMap ins;
-		ins["email"] = email;
-		ins["firstname"] = firstname;
-		ins["lastname"] = lastname;
-		if (classid > 0)
-			ins["classid"] = classid;
-		else
-			ins["classid"] = QVariant::Invalid;
-
-		int rowId = m_client->db()->execInsertQuery("INSERT OR REPLACE INTO registration (?k?) VALUES (?)", ins);
-
-		if (rowId == -1) {
-			setServerError();
-			return false;
-		}
-
-		QVariantList ll;
-		ll << rowId;
-
-		QString code = m_client->db()->execSelectQueryOneRow("SELECT code FROM registration WHERE id=?", ll).value("code").toString();
-
-		if (code.isEmpty()) {
-			setServerError();
-			return false;
-		}
-
-		if (emailRegistration(email, firstname, lastname, code)) {
-			(*jsonResponse)["success"] = true;
-			return true;
-		} else {
-			(*jsonResponse)["error"] = "smtp error";
-			return false;
-		}
+		(*jsonResponse)["error"] = "invalid method";
+		return false;
 	}
+
+	return true;
 }
 
 
@@ -421,7 +415,7 @@ bool UserInfo::downloadMap(QJsonObject *jsonResponse, QByteArray *binaryResponse
 	m.append(uuid);
 
 	QVariantMap r = m_client->mapsDb()->execSelectQueryOneRow("SELECT data, md5, name, version, datetime(lastModified, 'localtime') as lastModified "
-															"FROM maps WHERE uuid=?", m);
+															  "FROM maps WHERE uuid=?", m);
 
 	if (r.isEmpty()) {
 		(*jsonResponse)["error"] = "invalid map";
@@ -480,81 +474,125 @@ bool UserInfo::getMyGroups(QJsonObject *jsonResponse, QByteArray *)
 
 
 /**
- * @brief UserInfo::emailRegistration
- * @param email
- * @param firstname
- * @param lastname
- * @param code
- * @return
+ * @brief UserInfo::getOAuth2Userinfo
+ * @param token
  */
 
 
-bool UserInfo::emailRegistration(const QString &email, const QString &firstname, const QString &lastname, const QString &code)
+void UserInfo::getOAuth2Userinfo(const QString &token, const QStringList &domainList, const QString &classCode)
 {
-	SmtpClient smtp;
-	QString serverName = m_client->server()->serverName();
-	QString serverEmail;
+	QUrl url("https://www.googleapis.com/oauth2/v1/userinfo");
+	QUrlQuery q;
+	q.addQueryItem("alt", "json");
+	q.addQueryItem("access_token", token);
+	url.setQuery(q);
 
-	if (!m_client->emailSmptClient("registration", &smtp, &serverEmail))
-		return false;
+	OAuth2Data *d = new OAuth2Data;
+	d->classCode = classCode;
+	d->domainList = domainList;
+	d->token = token;
 
-	QUrl url;
-	url.setHost(m_client->server()->host());
-	url.setPort(m_client->server()->port());
-	url.setScheme("callofsuli");
-
-	QString path = "";
-	if (m_client->server()->socketServer()->secureMode() == QWebSocketServer::SecureMode)
-		path += "/ssl";
-
-	path += "/register";
-
-	QUrlQuery query;
-	if (!serverName.isEmpty())
-		query.addQueryItem("name", QUrl::toPercentEncoding(serverName));
-
-	query.addQueryItem("server", QUrl::toPercentEncoding(m_client->server()->serverUuid()));
-	query.addQueryItem("user", QUrl::toPercentEncoding(email.trimmed()));
-	query.addQueryItem("code", QUrl::toPercentEncoding(code));
+	m_client->httpGet(QNetworkRequest(url), m_message, d);
+}
 
 
-	url.setPath(path);
-	url.setQuery(query);
+
+/**
+ * @brief UserInfo::OAuth2UserinfoReply
+ * @param reply
+ */
+
+void UserInfo::onOAuth2UserinfoReply(QNetworkReply *reply, void *data)
+{
+	QString classCode;
+	QStringList domainList;
+	QString token;
+
+	if (data) {
+		OAuth2Data *d = static_cast<OAuth2Data*>(data);
+
+		if (d) {
+			classCode = d->classCode;
+			domainList = d->domainList;
+			token = d->token;
+
+			delete d;
+		}
+	}
 
 
-	MimeMessage message;
+	QByteArray content = reply->readAll();
+	QJsonDocument doc = QJsonDocument::fromJson(content);
 
-	message.setSender(new EmailAddress(serverEmail, serverName));
-	message.addRecipient(new EmailAddress(email.trimmed(), QStringList({firstname, lastname}).join(" ")));
-	message.setSubject(tr("Call of Suli regisztráció"));
+	qDebug() << "OAUTH2 RESPONSE" << doc;
+
+	if (doc.isObject()) {
+		QJsonObject data = doc.object();
+
+		if (data.contains("error")) {
+			qWarning() << "Invalid oauth2 response" << data.value("error");
+			CosMessage cm(QJsonObject({
+										  {"error", data.value("error").toObject().value("message").toString()}
+									  }),
+						  CosMessage::ClassUserInfo, "registrationRequest");
+			cm.send(m_client->socket());
+			return;
+		}
 
 
-	MimeHtml html;
 
-	html.setHtml(tr("<h2>Kedves %1!</h2>"
-						 "<p>A(z) %2 szerverre a(z) %3 címmel regisztráltál.</p>"
-						 "<p>A regisztráció aktiválásához kattints a következő linkre: <a href=\"%4\">%4</a></p>"
-						 "<p>Ha nem működik, akkor jelentkezz be a következő ideiglenes jelszóval:</p>"
-						 "<h2>%5</h2>"
-						 "<hr />"
-						 "<p><i>%2</i><br/>"
-						 "Call of Suli</p>")
-				 .arg(lastname)
-				 .arg(serverName)
-				 .arg(email.trimmed())
-				 .arg(url.toString(QUrl::FullyEncoded))
-				 .arg(code)
-				 );
+		QString username = data.value("email").toString();
+		QString familyname = data.value("family_name").toString();
+		QString givenname = data.value("given_name").toString();
+		QString picture = data.value("picture").toString();
 
-	message.addPart(&html);
+		bool match = domainList.count() ? false : true;
 
-	bool ret = smtp.sendMail(message);
-	smtp.quit();
+		foreach (QString s, domainList) {
+			if (username.endsWith(s)) {
+				match = true;
+				break;
+			}
+		}
 
-	if (!ret)
-		return false;
 
-	qInfo().noquote() << tr("Regisztrációs kód elküldve: ") << email;
+		if (!match) {
+			CosMessage cm(QJsonObject({
+										  {"error", "invalid domain"}
+									  }),
+						  CosMessage::ClassUserInfo, "registrationRequest");
+			cm.send(m_client->socket());
+			return;
+		}
 
-	return true;
+
+
+		Admin a(m_client, CosMessage());
+
+		QString err = a.userCreateReal(username,
+									   familyname,
+									   givenname,
+									   false,
+									   classCode,
+									   token,
+									   picture
+									   );
+
+		if (!err.isEmpty()) {
+			CosMessage cm(QJsonObject({
+										  {"error", err}
+									  }),
+						  CosMessage::ClassUserInfo, "registrationRequest");
+			cm.send(m_client->socket());
+			return;
+		} else {
+			CosMessage cm(QJsonObject({
+										  {"created", username},
+										  {"token", token}
+									  }),
+						  CosMessage::ClassUserInfo, "registrationRequest");
+			cm.send(m_client->socket());
+			return;
+		}
+	}
 }

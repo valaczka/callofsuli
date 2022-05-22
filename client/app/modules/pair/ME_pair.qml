@@ -5,20 +5,25 @@ import "."
 import "Style"
 import "JScript.js" as JS
 
+Item {
+	id: control
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Párosítás")
+	width: parent.width
+	height: layout.height
 
-	property string moduleData: ""
-	property string storageData: ""
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
-	interactive: false
+	signal modified()
 
 	QGridLayout {
-		watchModification: false
+		id: layout
+
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
 
 		QGridLabel { field: textQuestion }
 
@@ -32,15 +37,21 @@ QCollapsible {
 		}
 
 
-		QGridText { text: qsTr("Párok") }
+		QGridText {
+			text: qsTr("Párok")
+			field: fields
+			visible: fields.visible
+		}
 
 		QGridDoubleTextFields {
 			id: fields
 			sqlField: "pairs"
-
 		}
 
-		QGridText { text: qsTr("Párok száma:") }
+		QGridText {
+			text: qsTr("Párok száma:")
+			field: spinCount
+		}
 
 		QGridSpinBox {
 			id: spinCount
@@ -52,7 +63,10 @@ QCollapsible {
 		}
 
 
-		QGridText { text: qsTr("Válaszlehetőségek száma:") }
+		QGridText {
+			text: qsTr("Válaszlehetőségek száma:")
+			field: spinOptions
+		}
 
 		QGridSpinBox {
 			id: spinOptions
@@ -83,32 +97,59 @@ QCollapsible {
 			]
 		}
 
+
+		QGridText {
+			text: qsTr("Feladatok száma:")
+			field: sCount
+			visible: sCount.visible
+		}
+
+		QGridSpinBox {
+			id: sCount
+			from: 1
+			to: 99
+			editable: true
+
+			onValueModified: {
+				storageCount = value
+			}
+		}
+
 	}
 
 
 	Component.onCompleted: {
-		if (moduleData == "")
+		if (storageModule == "binding" || storageModule == "numbers") {
+			fields.visible = false
+		} else {
+			sCount.visible = false
+		}
+
+		if (!moduleData)
 			return
 
-		var d = JSON.parse(moduleData)
-
-		JS.setSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode], d)
+		if (storageModule == "binding" || storageModule == "numbers") {
+			JS.setSqlFields([textQuestion, spinCount, spinOptions, comboMode], moduleData)
+			sCount.setData(storageCount)
+		} else
+			JS.setSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode], moduleData)
 
 	}
 
 
 	function getData() {
-		var d = JS.getSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode])
-
-		moduleData = JSON.stringify(d)
-
-		console.debug("*******", moduleData)
+		if (storageModule == "binding" || storageModule == "numbers")
+			moduleData = JS.getSqlFields([textQuestion, spinCount, spinOptions, comboMode])
+		else
+			moduleData = JS.getSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode])
 
 		return moduleData
 	}
 
+	function setStorageData(data) {
+		storageData = data
+	}
+
+
 }
-
-
-
 

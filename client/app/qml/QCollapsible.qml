@@ -8,7 +8,7 @@ import "JScript.js" as JS
 Rectangle {
 	id: control
 
-	width: parent.width
+	width: parent ? parent.width : 100
 
 	property int contentHeight: content.childrenRect.height+10
 	property alias headerHeight: headerRect.height
@@ -20,13 +20,19 @@ Rectangle {
 	property alias title: title.text
 	property alias titleColor: title.color
 	property color backgroundColor: JS.setColorAlpha(CosStyle.colorPrimaryDarkest, 0.5)
+	property color lineColor: CosStyle.colorPrimaryDark
 	property color contentBackgroundColor: "transparent"
 
 	property bool interactive: true
 
+	property bool selectorSet: false
+	property bool itemSelected: false
+
 	default property alias contents: content.data
 
 	signal rightClicked()
+	signal longClicked()
+	signal selectToggled(bool withShift)
 
 	color: "transparent"
 
@@ -41,23 +47,46 @@ Rectangle {
 			width: parent.width
 			height: 1
 			anchors.bottom: parent.bottom
-			color: CosStyle.colorPrimaryDark
+			color: lineColor
 		}
 
 		MouseArea {
 			anchors.fill: parent
 			acceptedButtons: interactive ? (Qt.LeftButton | Qt.RightButton) : Qt.RightButton
 			onClicked: {
-				if (mouse.button == Qt.LeftButton)
-					collapsed = !collapsed
-				else if (mouse.button == Qt.RightButton)
+				if (mouse.button == Qt.LeftButton) {
+					if (selectorSet)
+						control.selectToggled(mouse.modifiers & Qt.ShiftModifier)
+					else
+						collapsed = !collapsed
+				} else if (mouse.button == Qt.RightButton)
 					control.rightClicked()
+			}
+
+			onPressAndHold: control.longClicked()
+
+			QFlipable {
+				id: flipable
+				width: parent.height
+				height: parent.height
+
+				anchors.left: parent.left
+				anchors.verticalCenter: parent.verticalCenter
+
+				visible: control.selectorSet
+
+				mouseArea.enabled: false
+
+				frontIcon: CosStyle.iconUnchecked
+				backIcon: CosStyle.iconChecked
+				color: CosStyle.colorAccent
+				flipped: control.itemSelected
 			}
 
 
 			QFontImage {
 				id: arrow
-				anchors.left: parent.left
+				anchors.left: flipable.visible ? flipable.right : parent.left
 				anchors.verticalCenter: parent.verticalCenter
 
 				size: CosStyle.pixelSize*1.4

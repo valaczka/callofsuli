@@ -50,6 +50,13 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	connect(this, &TeacherGroups::gameListUserGet, this, &TeacherGroups::onGameListUserGet);
 	connect(this, &TeacherGroups::gameListMapGet, this, &TeacherGroups::onGameListMapGet);
 	connect(this, &TeacherGroups::gameListGroupGet, this, &TeacherGroups::onGameListGroupGet);
+
+	CosDb *db = TeacherMaps::teacherMapsDb(Client::clientInstance(), this);
+
+	if (db) {
+		addDb(db, false);
+		mapDownloadInfoReload();
+	}
 }
 
 /**
@@ -161,7 +168,7 @@ bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
 	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
 
 	if (r.isEmpty()) {
-		m_client->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
 		return false;
 	}
 
@@ -178,23 +185,6 @@ bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
 
 
 
-
-/**
- * @brief TeacherGroups::clientSetup
- */
-
-void TeacherGroups::clientSetup()
-{
-	if (!m_client)
-		return;
-
-	CosDb *db = TeacherMaps::teacherMapsDb(m_client, this);
-
-	if (db) {
-		addDb(db, false);
-		mapDownloadInfoReload();
-	}
-}
 
 
 
@@ -275,7 +265,7 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 	}
 
 	if (jsonData.contains("error")) {
-		m_client->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 
@@ -308,7 +298,7 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.contains("error")) {
-		m_client->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 
@@ -342,7 +332,7 @@ void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
 void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.contains("error")) {
-		m_client->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 

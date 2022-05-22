@@ -3,7 +3,7 @@
  *
  * mapeditor.h
  *
- * Created on: 2021. 05. 24.
+ * Created on: 2022. 01. 16.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * MapEditor
@@ -27,236 +27,185 @@
 #ifndef MAPEDITOR_H
 #define MAPEDITOR_H
 
-#include "abstractactivity.h"
 #include <QObject>
-#include "variantmapmodel.h"
-#include "variantmapdata.h"
+#include "abstractactivity.h"
+#include "gamemapeditor.h"
+#include "mapeditoraction.h"
+
+
+/**
+ * @brief The MapEditorMissionLevelObject class
+ */
+
+class MapEditorMissionLevelObject : public ObjectListModelObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString uuid MEMBER m_uuid)
+	Q_PROPERTY(QString name MEMBER m_name)
+	Q_PROPERTY(int level MEMBER m_level)
+	Q_PROPERTY(GameMapEditorMissionLevel *missionLevel MEMBER m_missionLevel)
+
+public:
+	explicit MapEditorMissionLevelObject(QObject *parent = nullptr);
+	explicit MapEditorMissionLevelObject(const QString &name, QObject *parent = nullptr);
+	explicit MapEditorMissionLevelObject(const QString &uuid, const QString &name, QObject *parent = nullptr);
+	explicit MapEditorMissionLevelObject(const QString &uuid, const QString &name, GameMapEditorMissionLevel *missionLevel, QObject *parent = nullptr);
+	virtual ~MapEditorMissionLevelObject();
+
+	const QString &uuid() const { return m_uuid; }
+	const int &level() const { return m_level; }
+
+	GameMapEditorMissionLevel *missionLevel() const;
+
+private:
+	QString m_uuid;
+	QString m_name;
+	int m_level;
+	GameMapEditorMissionLevel *m_missionLevel;
+};
+
+Q_DECLARE_METATYPE(ObjectGenericListModel<MapEditorMissionLevelObject>*);
+
+
+
+/**
+ * @brief The MapEditor class
+ */
 
 class MapEditor : public AbstractActivity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QString filename READ filename WRITE setFilename NOTIFY filenameChanged)
-	Q_PROPERTY(QString readableFilename READ readableFilename NOTIFY filenameChanged)
-	Q_PROPERTY(bool loaded READ loaded NOTIFY loadedChanged)
-	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
+	Q_PROPERTY(GameMapEditor* editor READ editor WRITE setEditor NOTIFY editorChanged)
+	Q_PROPERTY(EditorUndoStack *undoStack READ undoStack WRITE setUndoStack NOTIFY undoStackChanged)
+	Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
+	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
 
-	Q_PROPERTY(qreal loadProgress READ loadProgress WRITE setLoadProgress NOTIFY loadProgressChanged)
-	Q_PROPERTY(QPair<qreal, qreal> loadProgressFraction READ loadProgressFraction WRITE setLoadProgressFraction NOTIFY loadProgressFractionChanged)
-
-	Q_PROPERTY(bool isWithGraphviz READ isWithGraphviz NOTIFY isWithGraphvizChanged)
-
-	// Missions
-
-	Q_PROPERTY(QString currentMission READ currentMission WRITE setCurrentMission NOTIFY currentMissionChanged)
-	Q_PROPERTY(VariantMapModel * modelMissionList READ modelMissionList WRITE setModelMissionList NOTIFY modelMissionListChanged)
-	Q_PROPERTY(VariantMapModel * modelTerrainList READ modelTerrainList WRITE setModelTerrainList NOTIFY modelTerrainListChanged)
-	Q_PROPERTY(VariantMapModel * modelLevelChapterList READ modelLevelChapterList WRITE setModelLevelChapterList NOTIFY modelLevelChapterListChanged)
-	Q_PROPERTY(VariantMapModel * modelObjectiveList READ modelObjectiveList WRITE setModelObjectiveList NOTIFY modelObjectiveListChanged)
-	Q_PROPERTY(VariantMapModel * modelInventoryList READ modelInventoryList WRITE setModelInventoryList NOTIFY modelInventoryListChanged)
-	Q_PROPERTY(VariantMapModel * modelInventoryModules READ modelInventoryModules WRITE setModelInventoryModules NOTIFY modelInventoryModulesChanged)
-	Q_PROPERTY(VariantMapModel * modelLockList READ modelLockList WRITE setModelLockList NOTIFY modelLockListChanged)
-	Q_PROPERTY(VariantMapModel * modelDialogMissionList READ modelDialogMissionList WRITE setModelDialogMissionList NOTIFY modelDialogMissionListChanged)
-	Q_PROPERTY(VariantMapModel * modelDialogChapterList READ modelDialogChapterList WRITE setModelDialogChapterList NOTIFY modelDialogChapterListChanged)
-
-
-	// Chapters
-
-	Q_PROPERTY(VariantMapModel * modelObjectiveModules READ modelObjectiveModules WRITE setModelObjectiveModules NOTIFY modelObjectiveModulesChanged)
-	Q_PROPERTY(VariantMapModel * modelStorageList READ modelStorageList WRITE setModelStorageList NOTIFY modelStorageListChanged)
-	Q_PROPERTY(VariantMapModel * modelChapterList READ modelChapterList WRITE setModelChapterList NOTIFY modelChapterListChanged)
-	Q_PROPERTY(VariantMapModel * modelDialogChapterMissionList READ modelDialogChapterMissionList WRITE setModelDialogChapterMissionList
-			   NOTIFY modelDialogChapterMissionListChanged)
-
+	Q_PROPERTY(QVariantList availableObjectives READ availableObjectives CONSTANT)
+	Q_PROPERTY(QVariantList availableTerrains READ availableTerrains CONSTANT)
+	Q_PROPERTY(QVariantList availableInventories READ availableInventories CONSTANT)
+	Q_PROPERTY(ObjectGenericListModel<MapEditorMissionLevelObject>* missionLevelModel READ missionLevelModel CONSTANT)
 
 public:
 	explicit MapEditor(QQuickItem *parent = nullptr);
 	virtual ~MapEditor();
 
-	qreal loadProgress() const { return m_loadProgress; }
-	QPair<qreal, qreal> loadProgressFraction() const { return m_loadProgressFraction; }
+	GameMapEditor *editor() const;
+	void setEditor(GameMapEditor *newEditor);
 
-	QString filename() const { return m_filename; }
-	QString readableFilename() const;
-	bool isWithGraphviz() const;
-	bool modified() const { return m_modified; }
-	bool loaded() const { return m_loaded; }
+	EditorUndoStack *undoStack() const;
+	void setUndoStack(EditorUndoStack *newUndoStack);
 
-	TerrainData defaultTerrain() const;
-	TerrainData randomTerrain(const int &level) const;
+	const QUrl &url() const;
+	void setUrl(const QUrl &newUrl);
 
-	Q_INVOKABLE QString objectiveQml(const QString &module);
-	Q_INVOKABLE QString storageQml(const QString &module);
+	const QString &displayName() const;
+	void setDisplayName(const QString &newDisplayName);
 
-	QString currentMission() const { return m_currentMission; }
-	VariantMapModel * modelMissionList() const { return m_modelMissionList; }
-	VariantMapModel * modelTerrainList() const { return m_modelTerrainList; }
-	VariantMapModel * modelLevelChapterList() const { return m_modelLevelChapterList; }
-	VariantMapModel * modelObjectiveList() const { return m_modelObjectiveList; }
-	VariantMapModel * modelInventoryList() const { return m_modelInventoryList; }
-	VariantMapModel * modelInventoryModules() const { return m_modelInventoryModules; }
-	VariantMapModel * modelLockList() const { return m_modelLockList; }
-	VariantMapModel * modelDialogMissionList() const { return m_modelDialogMissionList; }
-	VariantMapModel * modelDialogChapterList() const { return m_modelDialogChapterList; }
-	VariantMapModel * modelDialogChapterMissionList() const { return m_modelDialogChapterMissionList; }
-	VariantMapModel * modelChapterList() const { return m_modelChapterList; }
-	VariantMapModel * modelObjectiveModules() const { return m_modelObjectiveModules; }
-	VariantMapModel * modelStorageList() const { return m_modelStorageList; }
+	const QVariantList &availableObjectives() const;
+	const QVariantList &availableTerrains() const;
+	const QVariantList &availableInventories() const;
+
+	Q_INVOKABLE QVariantList getStorages() const;
+	Q_INVOKABLE QString objectiveQml(const QString &module) const;
+	Q_INVOKABLE QString storageQml(const QString &module) const;
+
+	Q_INVOKABLE QVariantMap inventoryInfo(const QString &module) const;
+	Q_INVOKABLE QVariantMap storageInfo(GameMapEditorStorage *storage) const;
+
+	ObjectGenericListModel<MapEditorMissionLevelObject> *missionLevelModel() const;
+	Q_INVOKABLE void updateMissionLevelModelChapter(GameMapEditorChapter *chapter);
+	Q_INVOKABLE void updateMissionLevelModelMission(GameMapEditorMission *mission);
+	Q_INVOKABLE void updateMissionLevelModelLock(GameMapEditorMissionLevel *lock);
+
+	Q_INVOKABLE void updateChapterModelMissionLevel(GameMapEditorMissionLevel *missionLevel);
+
+	Q_INVOKABLE QString checkMap() const;
+
 
 public slots:
-	void createTargets(const QString &filename);
-	void create(const QString &filename = "");
-	void save(const QString &filename = "");
-	void saveCopy(const QString &filename);
-	void openUrl(const QUrl &url) { createTargets(url.toLocalFile()); }
-	void saveUrl(const QUrl &url) { save(url.toLocalFile()); }
-	void saveCopyUrl(const QUrl &url) { saveCopy(url.toLocalFile()); }
-	void loadAbort();
-	bool setLoadProgress(qreal loadProgress);
-	void setLoadProgressFraction(QPair<qreal, qreal> loadProgressFraction);
-	void setFilename(QString filename);
-	void setModified(bool modified);
-	void setLoaded(bool loaded);
+	void open(const QUrl &url);
+	void create();
+	void close();
+	void save(const QUrl &newUrl = QUrl());
 
-	void setCurrentMission(QString currentMission);
-	void setModelMissionList(VariantMapModel * modelMissionList);
-	void setModelTerrainList(VariantMapModel * modelTerrainList);
-	void setModelLevelChapterList(VariantMapModel * modelLevelChapterList);
-	void setModelObjectiveList(VariantMapModel * modelObjectiveList);
-	void setModelInventoryList(VariantMapModel * modelInventoryList);
-	void setModelInventoryModules(VariantMapModel * modelInventoryModules);
-	void setModelLockList(VariantMapModel * modelLockList);
-	void setModelDialogMissionList(VariantMapModel * modelDialogMissionList);
-	void setModelDialogChapterList(VariantMapModel * modelDialogChapterList);
-	void setModelDialogChapterMissionList(VariantMapModel * modelDialogChapterMissionList);
-	void setModelChapterList(VariantMapModel * modelChapterList);
-	void setModelObjectiveModules(VariantMapModel * modelObjectiveModules);
-	void setModelStorageList(VariantMapModel * modelStorageModules);
+	void chapterAdd(QVariantMap data, GameMapEditorMissionLevel *missionLevel = nullptr);
+	void chapterRemove(GameMapEditorChapter *chapter);
+	void chapterRemoveList(const QList<GameMapEditorChapter*> &list);
+	void chapterModify(GameMapEditorChapter *chapter, const QVariantMap &data);
+	bool chapterModelUnselectObjectives(ObjectGenericListModel<GameMapEditorChapter> *model);
+	void chapterModifyMissionLevels(GameMapEditorChapter *chapter, const QList<MapEditorMissionLevelObject*> &list);
 
-	void getMissionList();
-	void getCurrentMissionData();
-	void getFirstMission();
-	void getObjectiveList();
-	void getStorageList();
-	void getChapterList();
+	void objectiveAdd(GameMapEditorChapter *chapter, const QVariantMap &data, const QVariantMap &storageData = QVariantMap());
+	void objectiveRemove(GameMapEditorChapter *chapter, GameMapEditorObjective *objective);
+	void objectiveRemoveList(GameMapEditorChapter *chapter, const QList<GameMapEditorObjective*> &list);
+	void objectiveModify(GameMapEditorChapter *chapter, GameMapEditorObjective *objective,
+						 const QVariantMap &data, const QVariantMap &storageData = QVariantMap());
+	void objectiveMoveCopy(GameMapEditorChapter *chapter, const bool &isCopy, GameMapEditorObjective *objective,
+						   const int &targetChapterId, const QString &newChapterName = "");
+	void objectiveMoveCopyList(GameMapEditorChapter *chapter, const bool &isCopy, const QList<GameMapEditorObjective*> &list,
+							   const int &targetChapterId, const QString &newChapterName = "");
 
-	void play(QVariantMap data);
+	QVariantMap objectiveGeneratePreview(const QString &objectiveModule,
+										 const QVariantMap &objectiveData,
+										 const QString &storageModule,
+										 const QVariantMap &storageData);
 
-	void missionAdd(QVariantMap data);
-	void missionModify(QVariantMap data);
-	void missionRemove();
+	void missionAdd(const QVariantMap &data, const QString &terrain = "");
+	void missionRemove(GameMapEditorMission *mission);
+	void missionRemoveList(const QList<GameMapEditorMission*> &list);
+	void missionModify(GameMapEditorMission *mission, const QVariantMap &data);
 
-	void missionLevelAdd(QVariantMap data);
-	void missionLevelRemove(QVariantMap data);
-	void missionLevelModify(QVariantMap data);
-	void missionLevelGetChapterList(int level);
-	void missionLevelChapterAdd(QVariantMap data);
-	void missionLevelChapterRemove(QVariantMap data);
+	void missionLockAdd(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+	void missionLockRemove(GameMapEditorMission *mission, GameMapEditorMissionLevel *level);
+	void missionLockReplace(GameMapEditorMission *mission, GameMapEditorMissionLevel *levelOld, GameMapEditorMissionLevel *levelNew);
 
-	void missionLockGetList(QVariantMap data);
-	void missionLockAdd(QVariantMap data);
-	void missionLockModify(QVariantMap data);
-	void missionLockRemove(QVariantMap data);
-	void missionLockGraphUpdate();
+	void missionLevelAdd(GameMapEditorMission *mission, QVariantMap data);
+	void missionLevelRemove(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelModify(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
+	void missionLevelPlay(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelRemoveChapter(GameMapEditorMissionLevel *missionLevel, GameMapEditorChapter* chapter);
+	void missionLevelRemoveChapterList(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter*> &chapterList);
+	void missionLevelModifyChapters(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter*> &list);
 
-	void inventoryAdd(QVariantMap data);
-	void inventoryModify(QVariantMap data);
-	void inventoryRemove(QVariantMap data);
+	void inventoryAdd(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
+	void inventoryRemove(GameMapEditorMissionLevel *missionLevel, GameMapEditorInventory *inventory);
+	void inventoryModify(GameMapEditorInventory *inventory, const QVariantMap &data);
 
-	void chapterAdd(QVariantMap data);
-	void chapterModify(QVariantMap data);
-	void chapterRemove(QVariantMap data);
-	void chapterGetMissionList(QVariantMap data);
-	void chapterMissionListModify(const int &chapter, VariantMapModel *model, const QString &selectField = "used");
-	void chapterImport(QVariantMap data);
-
-	void objectiveAdd(QVariantMap data);
-	void objectiveModify(QVariantMap data);
-	void objectiveRemove(QVariantMap data);
-	void objectiveCopy(QVariantMap data);
-	void objectiveImport(QVariantMap data);
-	void objectiveAddOrModify(QVariantMap data);
+	void storageRemove(GameMapEditorStorage *storage);
 
 
+private slots:
+	void onUndoRedoCompleted(const int &lastStep);
 
 signals:
-	void loadStarted(const QString &filename);
-	void loadFailed();
-	void loadSucceed();
-	void loadProgressChanged(qreal loadProgress);
-	void loadProgressFractionChanged(QPair<qreal, qreal> loadProgressFraction);
+	void actionContextUpdated(const MapEditorAction::MapEditorActionType &type, const QVariant &contextId);
+	void editorChanged();
+	void undoStackChanged();
+	void urlChanged();
+	void displayNameChanged();
 
-	void saveFailed();
-	void saveSucceed(const QString &filename, const bool &isCopy);
-	void saveDialogRequest(const bool &isNew);
+	void missionOpenRequest(GameMapEditorMission *mission);
+	void missionLevelOpenRequest(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelRemoved(GameMapEditorMissionLevel *missionLevel);
 
-
-	void filenameChanged(QString filename);
-	void isWithGraphvizChanged(bool isWithGraphviz);
-	void modifiedChanged(bool modified);
-	void loadedChanged(bool loaded);
-
-	void playFailed(QString error);
-	void playReady(GameMatch *gamematch);
-
-	void currentMissionDataChanged(QVariantMap data);
-
-	void missionLockListReady(QVariantMap data);
-	void missionChapterListReady(QVariantMap data);
-	void chapterMissionListReady(QVariantMap data);
-	void chapterImportReady(QVariantList records);
-
-	void currentMissionChanged(QString currentMission);
-	void modelMissionListChanged(VariantMapModel * modelMissionList);
-	void modelTerrainListChanged(VariantMapModel * modelTerrainList);
-	void modelLevelChapterListChanged(VariantMapModel * modelLevelChapterList);
-	void modelObjectiveListChanged(VariantMapModel * modelObjectiveList);
-	void modelInventoryListChanged(VariantMapModel * modelInventoryList);
-	void modelInventoryModulesChanged(VariantMapModel * modelInventoryModules);
-	void modelLockListChanged(VariantMapModel * modelLockList);
-	void modelDialogMissionListChanged(VariantMapModel * modelDialogMissionList);
-	void modelDialogChapterListChanged(VariantMapModel * modelDialogChapterList);
-	void modelDialogChapterMissionListChanged(VariantMapModel * modelDialogChapterMissionList);
-	void modelChapterListChanged(VariantMapModel * modelChapterList);
-	void modelObjectiveModulesChanged(VariantMapModel * modelObjectiveModules);
-	void modelStorageListChanged(VariantMapModel * modelStorageModules);
-
-protected:
-	void openPrivate(QVariantMap data);
-	void createPrivate(QVariantMap data);
-	void savePrivate(QVariantMap data);
-	bool loadDatabasePrivate(GameMap *game, const QString &filename = "");
-	bool createTriggersPrivate();
-
-protected slots:
-	void clientSetup() override;
+	void gamePlayReady(GameMatch *gameMatch);
 
 private:
-	QVariantMap missionLevelDefaults(const int &level);
-	int missionLevelAddPrivate(const QString &mission, const int &level);
-	int missionLevelChapterAddPrivate(const QString &mission, const int &level, const QVariantList &list);
+	QList<GameMapEditorMissionLevel*> toMissionLevelList(const QList<MapEditorMissionLevelObject*> &list);
 
-	mutable QVariantMap m_gameData;
-	qreal m_loadProgress;
-	QPair<qreal, qreal> m_loadProgressFraction;
-	bool m_loadAbortRequest;
-	QString m_filename;
-	bool m_modified;
-	bool m_loaded;
-	QString m_currentMission;
-	VariantMapModel * m_modelMissionList;
-	VariantMapModel * m_modelTerrainList;
-	VariantMapModel * m_modelLevelChapterList;
-	VariantMapModel * m_modelObjectiveList;
-	VariantMapModel * m_modelInventoryList;
-	VariantMapModel * m_modelInventoryModules;
-	VariantMapModel * m_modelLockList;
-	VariantMapModel * m_modelDialogMissionList;
-	VariantMapModel * m_modelDialogChapterList;
-	VariantMapModel * m_modelDialogChapterMissionList;
-	VariantMapModel * m_modelChapterList;
-	VariantMapModel * m_modelObjectiveModules;
-	VariantMapModel * m_modelStorageList;
+	GameMapEditor *m_editor;
+	EditorUndoStack *m_undoStack;
+	QUrl m_url;
+	QString m_displayName;
+	QVariantList m_availableObjectives;
+	QVariantList m_availableTerrains;
+	QVariantList m_availableInventories;
+	ObjectGenericListModel<MapEditorMissionLevelObject> *m_missionLevelModel;
 };
+
+
+
 
 #endif // MAPEDITOR_H

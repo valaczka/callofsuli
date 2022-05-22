@@ -7,66 +7,43 @@ import "Style"
 import "JScript.js" as JS
 
 
-Item {
+QTabContainer {
 	id: control
 
-	required property string uuid
-	required property string objectiveModule
-	required property string objectiveData
-	required property int storage
-	required property string storageData
-	required property string storageModule
-	required property int storageCount
-	required property int chapter
+	title: qsTr("Új feladat")
+	icon: CosStyle.iconAdd
+
+	property int contextAction: MapEditorAction.ActionTypeObjective
+	property int actionContextType: -1
+	property var actionContextId: null
+
+	property MapEditor _mapEditor: null
+	property GameMapEditorChapter chapter: null
+
+	property GameMapEditorObjective objective: null
+	property bool duplicate: false
+
+	property string objectiveModule: ""
+	property int storageId: -1
+	property string storageModule: ""
+	property int storageCount: 0
+	property var objectiveData: null
+	property var storageData: null
+
+	property bool modified: false
+	property bool _closeEnabled: false
+
+	signal close()
+
+	property ListModel availableObjectiveModel: ListModel {}
+	property ListModel availableStorageModel: ListModel {}
 
 	property var _availableStorageModules: []
 
-	property Drawer drawer: parent.drawer
-	property MapEditor mapEditor: parent.mapEditor
-
 	StackView {
 		id: stack
-		anchors.top: parent.top
-		anchors.left: parent.left
-		anchors.right: parent.right
-		anchors.bottom: buttonRow.top
-		anchors.margins: 1
-	}
-
-
-	Row {
-		id: buttonRow
-		spacing: 10
-
-		anchors.bottom: parent.bottom
-		anchors.horizontalCenter: parent.horizontalCenter
-
-		QButton {
-			id: buttonNo
-			anchors.verticalCenter: parent.verticalCenter
-			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
-			themeColors: CosStyle.buttonThemeRed
-
-			onClicked: drawer.close()
-		}
-
-		QButton {
-			id: buttonYes
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			visible: false
-
-			text: qsTr("OK")
-			icon.source: CosStyle.iconOK
-			themeColors: CosStyle.buttonThemeGreen
-
-			onClicked: {
-				save()
-				drawer.close()
-			}
-		}
+		anchors.fill: parent
+		clip: !control.compact
 	}
 
 
@@ -74,11 +51,11 @@ Item {
 	Component {
 		id: cmpObjectiveModules
 
-		QVariantMapProxyView {
+		QObjectListView {
 			id: list
 
 			model: SortFilterProxyModel {
-				sourceModel: mapEditor.modelObjectiveModules
+				sourceModel: availableObjectiveModel
 
 				sorters: StringSorter {
 					roleName: "name"
@@ -96,15 +73,36 @@ Item {
 				icon: model.icon
 			}
 
+			header: QTabHeader {
+				tabContainer: control
+				isPlaceholder: true
+				visible: control.compact
+			}
+
 			onClicked: {
 				var d = model.get(index)
-				objectiveModule = d.module
-				_availableStorageModules = d.storageModules
 
-				if (_availableStorageModules.length)
+				objectiveModule = d.module
+				_availableStorageModules = []
+
+				control.title = d.name
+				control.icon = d.icon
+
+				var i=0
+
+				while (true) {
+					if (!d.storageModules[i])
+						break
+
+					_availableStorageModules.push(d.storageModules[i])
+
+					i++
+				}
+
+				if (_availableStorageModules.length) {
 					stack.replace(cmpStorages)
-				else {
-					storage = 0
+				} else {
+					storageId = -1
 					stack.replace(cmpEdit)
 				}
 			}
@@ -121,7 +119,7 @@ Item {
 			id: slist
 
 			model: SortFilterProxyModel {
-				sourceModel: mapEditor.modelStorageList
+				sourceModel: availableStorageModel
 
 				filters: ExpressionFilter {
 					expression: _availableStorageModules.includes(model.module)
@@ -157,7 +155,7 @@ Item {
 			delegate: Item {
 				id: item
 				width: slist.width
-				height: CosStyle.twoLineHeight*1.7
+				height: CosStyle.twoLineHeight*1.2
 
 				required property int id
 				required property string module
@@ -166,7 +164,7 @@ Item {
 				required property string title
 				required property string details
 				required property int objectiveCount
-				required property string storageData
+				required property var storageData
 				required property bool isNew
 
 
@@ -177,8 +175,8 @@ Item {
 					Item {
 						id: rect
 						anchors.fill: parent
-						anchors.leftMargin: 5
-						anchors.rightMargin: 5
+						anchors.leftMargin: 10
+						anchors.rightMargin: 20
 
 
 						QLabel {
@@ -220,24 +218,27 @@ Item {
 										   -(badge.visible ? badge.width : 0)
 									text: item.title
 									color: item.isNew ? CosStyle.colorAccentLighter : CosStyle.colorPrimaryLighter
-									font.pixelSize: CosStyle.pixelSize*1.1
+									font.pixelSize: CosStyle.pixelSize
 									font.weight: Font.Normal
 									maximumLineCount: 1
 									lineHeight: 0.9
 									elide: Text.ElideRight
+									leftPadding: 10
 								}
 								QLabel {
 									id: subtitle
 									anchors.left: parent.left
 									width: title.width
 									text: item.details
+									visible: text.length
 									color: CosStyle.colorPrimary
 									font.pixelSize: CosStyle.pixelSize*0.75
 									font.weight: Font.Light
-									maximumLineCount: 3
+									maximumLineCount: 1
 									lineHeight: 0.8
 									wrapMode: Text.Wrap
 									elide: Text.ElideRight
+									leftPadding: 10
 								}
 							}
 
@@ -254,8 +255,8 @@ Item {
 
 
 					mouseArea.onClicked: {
-						storage = item.id > 0 ? item.id : -1
-						storageData = item.storageData
+						storageId = item.id > 0 ? item.id : -1
+						control.storageData = item.storageData
 						storageModule = item.module
 						stack.replace(cmpEdit)
 					}
@@ -270,17 +271,24 @@ Item {
 				}
 			}
 
-			header: QToolButtonFooter {
-				icon.source: CosStyle.iconAdd
-				text: qsTr("Storage nélkül")
-				width: slist.width
-				height: CosStyle.twoLineHeight*1.7
+			header: Column {
+				QTabHeader {
+					tabContainer: control
+					isPlaceholder: true
+					visible: control.compact
+				}
+				QToolButtonFooter {
+					icon.source: "image://font/Material Icons/\ue06f"
+					text: qsTr("Adatbank nélkül")
+					width: slist.width
+					height: CosStyle.twoLineHeight*1.7
 
-				onClicked: {
-					storage = 0
-					storageData = ""
-					storageModule = ""
-					stack.replace(cmpEdit)
+					onClicked: {
+						storageId = -1
+						control.storageData = null
+						storageModule = ""
+						stack.replace(cmpEdit)
+					}
 				}
 			}
 		}
@@ -293,34 +301,67 @@ Item {
 		QAccordion {
 			anchors.fill: undefined
 
+			QTabHeader {
+				tabContainer: control
+				visible: control.compact
+			}
+
 			Loader {
 				id: storageLoader
 				width: parent.width
+
+				Connections {
+					target: storageLoader.item
+					function onModified() {
+						control.modified = true
+					}
+				}
 			}
 
 			Loader {
 				id: objectiveLoader
 				width: parent.width
+
+				Connections {
+					target: objectiveLoader.item
+					function onModified() {
+						control.modified = true
+					}
+				}
 			}
 
-			StackView.onActivated: {
-				buttonYes.visible = true
+			QButton {
+				id: buttonYes
+
+				anchors.horizontalCenter: parent.horizontalCenter
+
+				text: qsTr("OK")
+				icon.source: CosStyle.iconOK
+				themeColors: CosStyle.buttonThemeGreen
+
+				onClicked: {
+					save()
+					control.close()
+				}
 			}
+
 
 			Component.onCompleted: {
 				if (storageModule != "") {
-					var q = mapEditor.storageQml(storageModule)
+					var q = _mapEditor.storageQml(storageModule)
 					storageLoader.setSource(q, {
-												moduleData: storageData
+												moduleData: control.storageData,
+												editable: (control.storageId == -1)
 											})
 
 				}
 
 				if (objectiveModule != "") {
-					var q2 = mapEditor.objectiveQml(objectiveModule)
+					var q2 = _mapEditor.objectiveQml(objectiveModule)
 					objectiveLoader.setSource(q2, {
+												  mapEditor: _mapEditor,
 												  moduleData: objectiveData,
-												  storageData: storageData,
+												  storageData: control.storageData,
 												  storageModule: storageModule,
 												  storageCount: storageCount
 											  })
@@ -331,17 +372,18 @@ Item {
 			Connections {
 				target: storageLoader.item
 
-				function onModuleDataChanged(d) {
-					storageData = d
+				function onModuleDataChanged() {
+					control.storageData = storageLoader.item.moduleData
 				}
 			}
 
 			Connections {
 				target: control
 
-				function onStorageDataChanged(sd) {
-					if (objectiveLoader.status == Loader.Ready)
-						objectiveLoader.item.setStorageData(storageData)
+				function onStorageDataChanged() {
+					if (objectiveLoader.status == Loader.Ready) {
+						objectiveLoader.item.setStorageData(control.storageData ? control.storageData : {})
+					}
 				}
 			}
 
@@ -351,14 +393,14 @@ Item {
 				if (objectiveLoader.status == Loader.Ready)
 					return objectiveLoader.item.getData()
 
-				return ""
+				return {}
 			}
 
 			function getStorageData() {
 				if (storageLoader.status == Loader.Ready)
 					return storageLoader.item.getData()
 
-				return ""
+				return {}
 			}
 
 			function getStorageCount() {
@@ -373,11 +415,82 @@ Item {
 
 
 	Component.onCompleted: {
-		if(objectiveModule == "")
-			stack.replace(cmpObjectiveModules)
-		else {
-			stack.replace(cmpEdit)
+		var l = _mapEditor.availableObjectives
+
+		for (var i=0; i<l.length; i++) {
+			availableObjectiveModel.append(l[i])
 		}
+
+
+		var sl = _mapEditor.getStorages()
+
+		for (var j=0; j<sl.length; j++) {
+			availableStorageModel.append(sl[j])
+		}
+
+		if (objective)
+			loadObjective()
+		else {
+			stack.replace(cmpObjectiveModules)
+		}
+	}
+
+
+	function loadObjective() {
+		if (!objective)
+			return
+
+		objectiveModule = objective.module
+		storageId = objective.storageId
+		storageModule = objective.storageModule
+		storageCount = objective.storageCount
+		objectiveData = objective.data
+		control.storageData = objective.storageData
+
+		title = objective.info[0]
+		icon = objective.info[1]
+
+		stack.replace(cmpEdit)
+
+		modified = false
+	}
+
+
+	backCallbackFunction: function () {
+		if (modified && !_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
+
+		return false
+	}
+
+
+	closeCallbackFunction: function () {
+		if (modified && !_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+			d.accepted.connect(function() {
+				_closeEnabled = true
+				mainWindow.close()
+			})
+			d.open()
+			return true
+		}
+
+		return false
+	}
+
+
+	function loadContextId(uuid) {
+		if (objective && objective.uuid === uuid) {
+			loadObjective()
+		}
+
 	}
 
 
@@ -386,16 +499,29 @@ Item {
 		var sdata = stack.currentItem.getStorageData()
 		var sc = stack.currentItem.getStorageCount()
 
-		mapEditor.objectiveAddOrModify({
-										   uuid: uuid,
-										   module: objectiveModule,
+		if (objective && !duplicate) {
+			_mapEditor.objectiveModify(chapter, objective,
+									   {
 										   data: odata,
-										   storage: storage,
-										   storageCount: sc,
-										   storageData: sdata,
-										   storageModule: storageModule,
-										   chapter: chapter
-									   })
+										   storageCount: sc
+									   },
+									   sdata)
+		} else {
+			_mapEditor.objectiveAdd(chapter,
+									{
+										module: objectiveModule,
+										data: odata,
+										storageCount: sc
+									},
+									{
+										id: storageId,
+										module: storageModule,
+										data: sdata
+									})
+
+		}
+
+		modified = false
 	}
 
 }

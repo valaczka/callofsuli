@@ -4,4 +4,8 @@ MODULES_LIST = truefalse \
 				simplechoice \
 				multichoice \
 				pair \
-				fillout
+				fillout \
+				binding \
+				numbers \
+				sequence \
+				order

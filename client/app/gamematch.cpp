@@ -63,7 +63,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
  * @param parent
  */
 
-GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObject *parent)
+GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObject *parent)
 	: QObject(parent)
 	, m_gameMap(gameMap)
 	, m_missionLevel(missionLevel)
@@ -88,15 +88,53 @@ GameMatch::GameMatch(GameMap::MissionLevel *missionLevel, GameMap *gameMap, QObj
 	setTerrain(missionLevel->terrain());
 	setStartHp(missionLevel->startHP());
 	setDuration(missionLevel->duration());
-	setStartBlock(missionLevel->startBlock());
 
-	QString imageFolder = missionLevel->imageFolder();
-	QString imageFile = missionLevel->imageFile();
+	QString image = missionLevel->image();
 
-	if (!imageFolder.isEmpty() && !imageFile.isEmpty())
-		setBgImage(imageFolder+"/"+imageFile);
+	if (!image.isEmpty())
+		setBgImage(image);
 
 }
+
+
+/**
+ * @brief GameMatch::GameMatch
+ * @param missionLevel
+ * @param gameMap
+ * @param parent
+ */
+
+GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, QObject *parent)
+	: QObject(parent)
+	, m_gameMap(gameMap)
+	, m_missionLevel(nullptr)
+	, m_deleteGameMap(false)
+	, m_level(0)
+	, m_missionUuid()
+	, m_gameId(-1)
+	, m_xp(0)
+	, m_baseXP(0)
+	, m_elapsedTime(-1)
+	, m_deathmatch(false)
+	, m_water(0)
+	, m_pliers(0)
+{
+	setPlayerCharacter("default");
+
+	setMissionUuid(missionLevel->editorMission()->uuid());
+	setName(missionLevel->editorMission()->name());
+	setLevel(missionLevel->level());
+	setTerrain(missionLevel->terrain());
+	setStartHp(missionLevel->startHP());
+	setDuration(missionLevel->duration());
+
+	QString image = missionLevel->image();
+
+	if (!image.isEmpty())
+		setBgImage(image);
+
+}
+
 
 
 /**
@@ -115,7 +153,7 @@ GameMatch::~GameMatch()
  * @return
  */
 
-GameMap::MissionLevel* GameMatch::missionLevel() const
+GameMapMissionLevel *GameMatch::missionLevel() const
 {
 	if (m_missionLevel)
 		return m_missionLevel;
@@ -182,7 +220,7 @@ QJsonArray GameMatch::takeStatistics()
 
 	foreach (Statistics s, m_statData) {
 		QJsonObject o;
-		o["map"] = m_gameMap ? QString::fromLatin1(m_gameMap->uuid()) : "";
+		o["map"] = m_gameMap ? m_gameMap->uuid() : "";
 		o["objective"] = s.objective;
 		o["success"] = s.success;
 		o["elapsed"] = s.elapsed;
@@ -203,7 +241,7 @@ QJsonArray GameMatch::takeStatistics()
 
 bool GameMatch::check(QString *errorString)
 {
-	GameMap::MissionLevel *ml = missionLevel();
+	GameMapMissionLevel *ml = missionLevel();
 
 	if (!ml) {
 		if (errorString)
@@ -211,11 +249,15 @@ bool GameMatch::check(QString *errorString)
 		return false;
 	}
 
+	if (!Client::terrainMap().contains(ml->terrain())) {
+		if (errorString)
+			*errorString = tr("Érvénytelen harcmező!");
+		return false;
+	}
 
-
-	foreach(GameMap::BlockChapterMap *bcm, ml->blockChapterMaps()) {
-		foreach(GameMap::Chapter *chapter, bcm->chapters()) {
-			foreach(GameMap::Objective *objective, chapter->objectives()) {
+	//foreach(GameMap::BlockChapterMap *bcm, ml->blockChapterMaps()) {
+		foreach(GameMapChapter *chapter, ml->chapters()) {
+			foreach(GameMapObjective *objective, chapter->objectives()) {
 				QString om = objective->module();
 
 				if (!Client::moduleObjectiveList().contains(om)) {
@@ -235,7 +277,7 @@ bool GameMatch::check(QString *errorString)
 				}
 			}
 		}
-	}
+	//}
 
 	return true;
 }
@@ -298,16 +340,6 @@ void GameMatch::setStartHp(int startHp)
 	emit startHpChanged(m_startHp);
 }
 
-void GameMatch::setStartBlock(int startBlock)
-{
-	qDebug() << "setStartBlock is DEPRECATED";
-
-	if (m_startBlock == startBlock)
-		return;
-
-	m_startBlock = startBlock;
-	emit startBlockChanged(m_startBlock);
-}
 
 void GameMatch::setBgImage(QString bgImage)
 {
@@ -346,7 +378,7 @@ void GameMatch::setDuration(int duration)
 	emit durationChanged(m_duration);
 }
 
-void GameMatch::setMissionUuid(QByteArray missionUuid)
+void GameMatch::setMissionUuid(QString missionUuid)
 {
 	if (m_missionUuid == missionUuid)
 		return;

@@ -87,9 +87,6 @@ public slots:
 	void mapDownloadInfoReload();
 	bool loadMapDataToModel(const QString &uuid, GameMapModel *model);
 
-protected slots:
-	void clientSetup() override;
-
 private slots:
 	void onGroupGet(QJsonObject jsonData, QByteArray);
 	void onGroupMapListGet(const QJsonArray &list);

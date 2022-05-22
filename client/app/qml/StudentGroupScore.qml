@@ -9,7 +9,7 @@ import "JScript.js" as JS
 TrophyView {
 	id: control
 
-	title: qsTr("Eredményeim")
+	title: qsTr("Eredmények")
 	icon: CosStyle.iconXPgraph
 
 	property int groupid: studentMaps ? studentMaps.selectedGroupId : -1
@@ -25,7 +25,7 @@ TrophyView {
 		visible: modelGameList.count == 0
 		anchors.centerIn: parent
 		textWidth: parent.width*0.75
-		text: qsTr("Még nincs teljesített küldetésed ebben a csoportban")
+		text: qsTr("Még nincs teljesített küldetés ebben a csoportban")
 		tabContainer: control
 	}
 

@@ -44,6 +44,7 @@
 
 class CosGame;
 
+
 class GameScene : public QQuickItem
 {
 	Q_OBJECT
@@ -56,7 +57,6 @@ public:
 	virtual ~GameScene();
 	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }
 	CosGame * game() const { return m_game; }
-
 
 public slots:
 	void setTiledLayers(QList<TiledPaintedLayer *> tiledLayers);

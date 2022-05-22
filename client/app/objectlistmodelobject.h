@@ -34,7 +34,7 @@
 #include <QJsonDocument>
 #include <QMetaObject>
 #include <QMetaProperty>
-#include <QtJsonSerializer>
+
 
 class ObjectListModelObject : public QObject
 {
@@ -49,50 +49,17 @@ public:
 	bool selected() const;
 	void setSelected(bool newSelected);
 
+	QJsonObject toJsonObject() const;
 
-	template <typename TObject>
-	static TObject* fromJsonObject(const QJsonObject &jsonObject, QObject *parent = nullptr)
-	{
-		QtJsonSerializer::JsonSerializer serializer;
+	void updateProperties(QObject *other);
 
-		try {
-			TObject *object = serializer.deserialize<TObject*>(jsonObject, parent);
-			return object;
-		} catch (QtJsonSerializer::Exception &e) {
-			qWarning() << e.what();
-			qDebug() << "FROM" << jsonObject;
-		}
-
-		return nullptr;
+	template <typename T>
+	static T *fromJsonObject(const QJsonObject &jsonObject, QObject *parent = nullptr) {
+		return qobject_cast<T*>(fromJsonObjectPrivate(T::staticMetaObject, jsonObject, parent));
 	}
 
-
-	template <typename TObject>
-	static TObject* fromJsonObject(const QByteArray &json, QObject *parent = nullptr)
-	{
-		return fromJsonObject<TObject>(QJsonDocument::fromJson(json).object(), parent);
-	}
-
-	template <typename TObject>
-	static TObject* fromJsonObject(const QString &json, QObject *parent = nullptr)
-	{
-		return fromJsonObject<TObject>(json.toUtf8(), parent);
-	}
-
-	template <typename TObject>
-	void updateProperties(TObject *other)
-	{
-		const QMetaObject *metaobject = this->metaObject();
-
-		int count = metaobject->propertyCount();
-		for (int i=0; i<count; ++i) {
-			QMetaProperty metaproperty = metaobject->property(i);
-			if (metaproperty.isWritable())
-				metaproperty.write(this, metaproperty.read(other));
-		}
-	}
-
-
+protected:
+	static QObject *fromJsonObjectPrivate(const QMetaObject objectType, const QJsonObject &jsonObject, QObject *parent = nullptr);
 
 signals:
 	void selectedChanged();
@@ -100,6 +67,8 @@ signals:
 private:
 	bool m_selected;
 };
+
+
 
 
 #endif // OBJECTLISTMODELOBJECT_H

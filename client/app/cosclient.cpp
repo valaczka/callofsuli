@@ -36,6 +36,7 @@
 #include <QQuickItem>
 #include <QResource>
 #include <QStandardPaths>
+#include <RollingFileAppender.h>
 
 #include "../../version/buildnumber.h"
 #include "abstractactivity.h"
@@ -71,7 +72,7 @@
 #include "variantmapmodel.h"
 
 
-
+Client* Client::m_clientInstance = nullptr;
 QList<TerrainData> Client::m_availableTerrains;
 QVariantMap Client::m_characterData;
 QStringList Client::m_musicList;
@@ -84,6 +85,8 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_connectionState = Standby;
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest);
 	m_timer = new QTimer(this);
+
+	m_guiLoad = "";
 
 	m_userRoles = CosMessage::RoleGuest;
 	m_userXP = 0;
@@ -101,9 +104,6 @@ Client::Client(QObject *parent) : QObject(parent)
 	m_sfxVolume = 1.0;
 
 	m_registrationEnabled = false;
-	m_passwordResetEnabled = false;
-	m_registrationDomains = QVariantList();
-	m_registrationClasses = QVariantList();
 
 	m_sslErrorSignalHandlerConnected = false;
 	m_forcedLandscape = false;
@@ -122,7 +122,7 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_socketThread.start();
 
-	QStringList dbList = {"objectiveDb", "editorDb", "tmpmapimagedb"};
+	QStringList dbList = {"objectiveDb"};
 
 	foreach (QString s, dbList) {
 		if (QSqlDatabase::contains(s))
@@ -141,6 +141,8 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsDenied, this, &Client::storagePermissionsDenied);
 	connect(AndroidShareUtils::instance(), &AndroidShareUtils::storagePermissionsGranted, this, &Client::storagePermissionsGranted);
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::mediaPermissionsDenied, this, &Client::mediaPermissionsDenied);
+	connect(AndroidShareUtils::instance(), &AndroidShareUtils::mediaPermissionsGranted, this, &Client::mediaPermissionsGranted);
 
 	qRegisterMetaType<QAbstractSocket::SocketError>();
 	qRegisterMetaType<QAbstractSocket::SocketState>();
@@ -152,7 +154,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, &QWebSocket::stateChanged, this, &Client::onSocketStateChanged);
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &Client::onSocketBinaryFrameReceived);
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &Client::onSocketBinaryMessageReceived);
-//	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
+	//	connect(m_socket, &QWebSocket::bytesWritten, this, &Client::onSocketBytesWritten);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
@@ -241,7 +243,7 @@ void Client::loadModules()
  * @return
  */
 
-bool Client::commandLineParse(QCoreApplication &app)
+QString Client::commandLineParse(QCoreApplication &app)
 {
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2022 Valaczka János Pál"));
@@ -250,6 +252,8 @@ bool Client::commandLineParse(QCoreApplication &app)
 
 	parser.addOption({{"t", "terrain"}, tr("Terepfájl <file> adatainak lekérdezése"), "file"});
 	parser.addOption({"license", tr("Licensz")});
+	parser.addOption({{"l", "log"}, tr("Naplózás <file> fájlba"), "file"});
+	parser.addOption({{"m", "map"}, tr("Pályszerkesztő indítása")});
 
 
 #ifdef QT_NO_DEBUG
@@ -265,23 +269,19 @@ bool Client::commandLineParse(QCoreApplication &app)
 #endif
 
 #ifdef QT_NO_DEBUG
-	if (parser.isSet("debug"))
+	if (parser.isSet("debug")) {
 		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
-	else
+		qInfo() << "DEBUG TRUE";
+	} else
 		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
 #endif
 
 
 	parser.process(app);
 
-	if (parser.isSet("license")) {
-		QByteArray b = Client::fileContent(":/common/license.txt");
+	if (parser.isSet("license"))
+		return "license";
 
-		QTextStream out(stdout);
-		out << b << Qt::endl;
-
-		return false;
-	}
 
 	if (parser.isSet("terrain")) {
 		QString tmx = parser.value("terrain");
@@ -289,13 +289,29 @@ bool Client::commandLineParse(QCoreApplication &app)
 		QTextStream out(stdout);
 		out << terrainDataToJson(tmx) << Qt::endl;
 
-		return false;
+		return "terrain";
+	}
+
+	QString logFile;
+
+	if (parser.isSet("log")) logFile = parser.value("log");
+
+
+	if (!logFile.isEmpty()) {
+		RollingFileAppender* appender = new RollingFileAppender(logFile);
+		appender->setFormat("%{time}{yyyy-MM-dd hh:mm:ss} [%{TypeOne}] %{message}\n");
+		appender->setDatePattern(RollingFileAppender::DailyRollover);
+		cuteLogger->registerAppender(appender);
 	}
 
 
+
+	if (parser.isSet("map"))
+		m_guiLoad = "map";
+
 	m_positionalArgumentsToProcess = parser.positionalArguments();
 
-	return true;
+	return "";
 }
 
 
@@ -377,6 +393,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<GameTerrain>("COS.Client", 1, 0, "GameTerrain");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
+	qmlRegisterType<GameMapEditor>("COS.Client", 1, 0, "GameMapEditor");
 	qmlRegisterType<MapListObject>("COS.Client", 1, 0, "MapListObject");
 	qmlRegisterType<ObjectListModelObject>("COS.Client", 1, 0, "ObjectListModelObject");
 	qmlRegisterType<Profile>("COS.Client", 1, 0, "Profile");
@@ -388,12 +405,20 @@ void Client::registerTypes()
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
 	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
+	qmlRegisterType<EditorUndoStack>("COS.Client", 1, 0, "EditorUndoStack");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosSound>("COS.Client", 1, 0, "CosSound", "uncreatable");
 	qmlRegisterUncreatableType<ObjectListModel>("COS.Client", 1, 0, "ObjectListModel", "uncreatable");
 	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
 	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
+	qmlRegisterUncreatableType<MapEditorAction>("COS.Client", 1, 0, "MapEditorAction", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorChapter>("COS.Client", 1, 0, "GameMapEditorChapter", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorMissionLevel>("COS.Client", 1, 0, "GameMapEditorMissionLevel", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorObjective>("COS.Client", 1, 0, "GameMapEditorObjective", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorStorage>("COS.Client", 1, 0, "GameMapEditorStorage", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorMission>("COS.Client", 1, 0, "GameMapEditorMission", "uncreatable");
+	qRegisterMetaType<MapEditorAction::MapEditorActionType>("MapEditorActionType");
 }
 
 
@@ -403,24 +428,19 @@ void Client::registerTypes()
  * @param window
  */
 
-void Client::windowSaveGeometry(QQuickWindow *window, const int &fontSize)
+void Client::windowSaveGeometry(QQuickWindow *window)
 {
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	QSettings s;
 	s.beginGroup("window");
 
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	s.setValue("size", window->size());
 	s.setValue("position", window->position());
-	s.setValue("visibility", window->visibility());
-
-	if (fontSize > 0)
-		s.setValue("fontSize", fontSize);
-
-	s.endGroup();
 #else
 	Q_UNUSED(window)
-	Q_UNUSED(fontSize)
 #endif
+
+	s.endGroup();
 }
 
 
@@ -431,10 +451,8 @@ void Client::windowSaveGeometry(QQuickWindow *window, const int &fontSize)
  * @param forceFullscreen
  */
 
-int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen)
+void Client::windowRestoreGeometry(QQuickWindow *window)
 {
-	int fontSize = -1;
-
 	QSettings s;
 	s.beginGroup("window");
 
@@ -442,31 +460,11 @@ int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscr
 	window->resize(s.value("size", QSize(600, 600)).toSize());
 	window->setPosition(s.value("position", QPoint(0, 0)).toPoint());
 
-	int v = s.value("visibility", QWindow::AutomaticVisibility).toInt();
-
-	if (forceFullscreen)
-		v = QWindow::FullScreen;
-
-	switch (v) {
-		case QWindow::Windowed:
-		case QWindow::Maximized:
-		case QWindow::FullScreen:
-		case QWindow::AutomaticVisibility:
-			window->setVisibility(static_cast<QWindow::Visibility>(v));
-			break;
-	}
-
-
 #else
 	Q_UNUSED(window);
-	Q_UNUSED(forceFullscreen);
 #endif
 
-	fontSize = s.value("fontSize", -1).toInt();
-
 	s.endGroup();
-
-	return fontSize;
 }
 
 
@@ -477,7 +475,7 @@ int Client::windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscr
 
 void Client::windowSetIcon(QQuickWindow *window)
 {
-	window->setIcon(QIcon(":/internal/img/cos96.png"));
+	window->setIcon(QIcon(":/internal/img/cos.png"));
 }
 
 
@@ -497,26 +495,29 @@ void Client::textToClipboard(const QString &text) const
  * @brief Client::connectionInfoToClipboard
  */
 
-QString Client::connectionInfo(const QUrl::FormattingOptions &format) const
+QString Client::connectionInfo(const QString &func, const QVariantMap &queries, const QUrl::FormattingOptions &format) const
 {
 	if (m_connectionState == Client::Standby)
 		return "";
 
 	QUrl url;
-	//url.setHost(m_socket->requestUrl().host());
-	//url.setPort(m_socket->requestUrl().port());
+	url.setHost(m_socket->requestUrl().host());
+	url.setPort(m_socket->requestUrl().port());
 	url.setScheme("callofsuli");
 
 	QString path = "";
-	/*if (m_socket->requestUrl().scheme() == "wss")
-		path += "/ssl";*/
+	if (m_socket->requestUrl().scheme() == "wss")
+		path += "/ssl";
 
-	path += "/connect";
+	path += "/"+func;
 
 	QUrlQuery query;
-	if (!m_serverName.isEmpty())
-		query.addQueryItem("name", m_serverName);
 
+	QMapIterator<QString, QVariant> i(queries);
+	while (i.hasNext()) {
+		i.next();
+		query.addQueryItem(i.key(), i.value().toString());
+	}
 
 	url.setPath(path);
 	url.setQuery(query);
@@ -537,9 +538,9 @@ QVariantMap Client::connectionInfoMap() const
 		return QVariantMap();
 
 	QVariantMap m;
-	//m["host"] = m_socket->requestUrl().host();
-	//m["port"] = m_socket->requestUrl().port();
-	//m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
+	m["host"] = m_socket->requestUrl().host();
+	m["port"] = m_socket->requestUrl().port();
+	m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
 
 	return m;
 }
@@ -895,9 +896,10 @@ QVariantList Client::mapToList(const QVariantMap &map, const QString &keyName)
 {
 	QVariantList list;
 
-	QVariantMap::const_iterator it;
+	QMapIterator<QString, QVariant> it(map);
 
-	for (it = map.constBegin(); it != map.constEnd(); ++it) {
+	while (it.hasNext()) {
+		it.next();
 		QVariantMap mm = it.value().toMap();
 		mm[keyName] = it.key();
 		list.append(mm);
@@ -920,24 +922,22 @@ QVariantMap Client::terrainMap()
 		QVariantMap m;
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
-		if (d.level != -1)
-			m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
-						   .arg(d.level)
-						   .arg(d.blocks.count())
-						   .arg(d.enemies);
-		else
-			m["details"] = QString(tr("%1 csatatér, %2 célpont"))
-						   .arg(d.blocks.count())
-						   .arg(d.enemies);
+		m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
+					   .arg(d.level)
+					   .arg(d.blocks.count())
+					   .arg(d.enemies);
 
 		m["data"] = d.data;
+		m["level"] = d.level;
 		m["readableName"] = d.data.contains("name") ? d.data.value("name").toString() : d.name;
 		m["thumbnail"] = "qrc:/terrain/"+d.name+"/thumbnail.png";
-		map[d.name] = m;
+		map[QString("%1/%2").arg(d.name).arg(d.level)] = m;
 	}
 
 	return map;
 }
+
+
 
 
 /**
@@ -958,9 +958,20 @@ QStringList Client::takePositionalArgumentsToProcess()
  * @brief Client::checkPermissions
  */
 
-void Client::checkPermissions() const
+void Client::checkStoragePermissions() const
 {
-	AndroidShareUtils::instance()->checkPermissions();
+	AndroidShareUtils::instance()->checkStoragePermissions();
+}
+
+
+
+/**
+ * @brief Client::checkMediaPermissions
+ */
+
+void Client::checkMediaPermissions() const
+{
+	AndroidShareUtils::instance()->checkMediaPermissions();
 }
 
 
@@ -1118,15 +1129,6 @@ void Client::resetLandscape()
 }
 
 
-void Client::setRegistrationClasses(QVariantList registrationClasses)
-{
-	if (m_registrationClasses == registrationClasses)
-		return;
-
-	m_registrationClasses = registrationClasses;
-	emit registrationClassesChanged(m_registrationClasses);
-}
-
 void Client::setUserPlayerCharacter(QString userPlayerCharacter)
 {
 	if (m_userPlayerCharacter == userPlayerCharacter)
@@ -1177,10 +1179,10 @@ void Client::setUserRankLevel(int userRankLevel)
  * @return
  */
 
-TerrainData Client::terrain(const QString &name)
+TerrainData Client::terrain(const QString &name, const int &level)
 {
 	foreach (TerrainData d, m_availableTerrains) {
-		if (d.name == name)
+		if (d.name == name && d.level == level)
 			return d;
 	}
 
@@ -1233,56 +1235,66 @@ void Client::loadTerrains()
 {
 	m_availableTerrains.clear();
 
-	QDirIterator it(":/terrain", {"terrain.tmx"}, QDir::Files, QDirIterator::Subdirectories);
+	QDirIterator it(":/terrain", {"level1.tmx"}, QDir::Files, QDirIterator::Subdirectories);
 
 	while (it.hasNext()) {
 		QString realname = it.next();
 
 		QString terrainName = realname.section('/',-2,-2);
 
-		QString blockfile = ":/terrain/"+terrainName+"/blocks.json";
+		QString terrainDir = ":/terrain/"+terrainName;
+		QString datafile = terrainDir+"/data.json";
 
-		if (QFile::exists(blockfile)) {
-			QJsonDocument doc = readJsonDocument(blockfile);
-			QJsonObject o = doc.object();
+		QVariantMap dataMap;
+		if (QFile::exists(datafile))
+			dataMap = Client::readJsonFile(datafile).toMap();
 
-			int enemies = o.value("enemies").toInt(-1);
+		for (int level=1; level<=3; level++) {
+			QString tmxFile = QString("%1/level%2.tmx").arg(terrainDir).arg(level);
 
-			if (enemies != -1) {
-				QMap<int, int> blist;
-
-				qDebug().noquote() << "Load block data from" << blockfile;
-
-				QJsonArray l = o.value("blocks").toArray();
-				foreach (QJsonValue v, l) {
-					QJsonObject b = v.toObject();
-					blist[b.value("num").toInt()] = b.value("enemies").toInt();
-				}
-
-				QString datafile = ":/terrain/"+terrainName+"/data.json";
-				QVariantMap dataMap;
-				if (QFile::exists(datafile))
-					dataMap = Client::readJsonFile(datafile).toMap();
-
-				TerrainData d(terrainName,
-							  blist,
-							  enemies,
-							  dataMap);
-
-				m_availableTerrains.append(d);
-
+			if (!QFile::exists(tmxFile))
 				continue;
+
+			qInfo() << "Load terrain" << terrainName << "level" << level;
+
+			QString blockfile = QString("%1/blocks%2.json").arg(terrainDir).arg(level);
+
+			if (QFile::exists(blockfile)) {
+				QJsonDocument doc = readJsonDocument(blockfile);
+				QJsonObject o = doc.object();
+
+				int enemies = o.value("enemies").toInt(-1);
+
+				if (enemies != -1) {
+					QMap<int, int> blist;
+
+					qDebug().noquote() << "Load block data from" << blockfile;
+
+					QJsonArray l = o.value("blocks").toArray();
+					foreach (QJsonValue v, l) {
+						QJsonObject b = v.toObject();
+						blist[b.value("num").toInt()] = b.value("enemies").toInt();
+					}
+
+					TerrainData d(terrainName,
+								  blist,
+								  enemies,
+								  dataMap,
+								  level);
+
+					m_availableTerrains.append(d);
+					continue;
+				}
 			}
-		}
 
+			TerrainData d = terrainDataFromFile(tmxFile, terrainName, dataMap, level);
 
+			if (d.enemies != -1)
+				m_availableTerrains.append(d);
+			else {
+				qWarning().noquote() << "Invalid terrain map" << tmxFile;
+			}
 
-		TerrainData d = terrainDataFromFile(realname);
-
-		if (d.enemies != -1)
-			m_availableTerrains.append(d);
-		else {
-			qWarning().noquote() << "Invalid terrain map" << realname;
 		}
 	}
 }
@@ -1367,7 +1379,10 @@ void Client::reloadGameResources()
  * @return
  */
 
-TerrainData Client::terrainDataFromFile(const QString &filename)
+TerrainData Client::terrainDataFromFile(const QString &filename,
+										const QString &terrainName,
+										const QVariantMap &dataMap,
+										const int &level)
 {
 	GameTerrain t;
 
@@ -1375,23 +1390,17 @@ TerrainData Client::terrainDataFromFile(const QString &filename)
 		QMap<int, int> blockData;
 
 		QMap<int, GameBlock*> b = t.blocks();
-		QMap<int, GameBlock*>::const_iterator it;
-		for (it = b.constBegin(); it != b.constEnd(); ++it) {
+		QMapIterator<int, GameBlock*> it(b);
+		while (it.hasNext()) {
+			it.next();
 			blockData[it.key()] = it.value()->enemies().count();
 		}
-
-
-		QString terrainName = filename.section('/',-2,-2);
-
-		QString datafile = ":/terrain/"+terrainName+"/data.json";
-		QVariantMap dataMap;
-		if (QFile::exists(datafile))
-			dataMap = Client::readJsonFile(datafile).toMap();
 
 		return TerrainData(terrainName,
 						   blockData,
 						   t.enemies().count(),
-						   dataMap);
+						   dataMap,
+						   level);
 	}
 
 	return TerrainData("",
@@ -1415,8 +1424,9 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 	if (t.enemies != -1) {
 		QJsonArray blocks;
 		QMap<int, int> m = t.blocks;
-		QMap<int, int>::const_iterator it;
-		for (it = m.constBegin(); it != m.constEnd(); ++it) {
+		QMapIterator<int, int> it (m);
+		while (it.hasNext()) {
+			it.next();
 			QJsonObject b;
 			b["num"] = it.key();
 			b["enemies"] = it.value();
@@ -1435,7 +1445,7 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 
 
 
-void Client::setConnectionState(Client::ConnectionState connectionState)
+void Client::setConnectionState(ConnectionState connectionState)
 {
 	if (m_connectionState == connectionState)
 		return;
@@ -1683,19 +1693,7 @@ void Client::performUserInfo(const CosMessage &message)
 			setServerName(d.value("serverName").toString());
 			setServerUuid(d.value("serverUuid").toString());
 			setRegistrationEnabled(d.value("registrationEnabled").toBool());
-			setPasswordResetEnabled(d.value("passwordResetEnabled").toBool(false));
-			setRegistrationDomains(d.value("registrationDomains").toArray().toVariantList());
 			setRankList(d.value("ranklist").toArray().toVariantList());
-
-			QVariantList classList = d.value("classlist").toArray().toVariantList();
-			if (!classList.isEmpty()) {
-				QVariantMap m;
-				m["classid"] = -1;
-				m["classname"] = tr("Osztály nélkül");
-				classList.prepend(m);
-			}
-			setRegistrationClasses(classList);
-
 		} else if (func == "newSessionToken") {
 			QString token = d.value("token").toString();
 			setSessionToken(token);
@@ -1706,14 +1704,6 @@ void Client::performUserInfo(const CosMessage &message)
 			qDebug() << "set user roles from server" << message.clientRole();
 
 			socketSend(CosMessage::ClassUserInfo, "getUser");
-		} else if (func == "registrationRequest") {
-			if (d.contains("error")) {
-				emit registrationRequestFailed(d.value("error").toString());
-			} else if (d.contains("createdUserName")) {
-				login(d.value("createdUserName").toString(), "");
-			} else if (d.value("success").toBool(false)) {
-				emit registrationRequestSuccess();
-			}
 		} else if (func == "getMyGroups") {
 			emit myGroupListReady(d.value("list").toArray());
 		}
@@ -1752,33 +1742,8 @@ bool Client::checkError(const CosMessage &message)
 		case CosMessage::BadMessageFormat:
 			sendMessageError(tr("Belső hiba"), tr("Hibás üzenetformátum"));
 			break;
-		case CosMessage::MessageTooOld:
-			sendMessageError(tr("Belső hiba"), tr("Elavult kliens"));
-			break;
-		case CosMessage::MessageTooNew:
-			sendMessageError(tr("Belső hiba"), tr("Elavult szerver"));
-			break;
 		case CosMessage::InvalidMessageType:
 			sendMessageError(tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
-			break;
-		case CosMessage::PasswordRequestMissingEmail:
-			sendMessageError(tr("Elfelejtett jelszó"), tr("Nincs megadva email cím!"));
-			emit resetPasswordFailed();
-			break;
-		case CosMessage::PasswordRequestInvalidEmail:
-			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen email cím!"));
-			emit resetPasswordFailed();
-			break;
-		case CosMessage::PasswordRequestInvalidCode:
-			sendMessageError(tr("Elfelejtett jelszó"), tr("Érvénytelen aktivációs kód!"));
-			emit resetPasswordFailed();
-			break;
-		case CosMessage::PasswordRequestCodeSent:
-			sendMessageInfo(tr("Elfelejtett jelszó"), tr("Az aktivációs kód a megadot email címre elküldve"));
-			emit resetPasswordEmailSent();
-			break;
-		case CosMessage::PasswordRequestSuccess:
-			emit resetPasswordSuccess();
 			break;
 		case CosMessage::InvalidSession:
 			sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
@@ -1818,6 +1783,32 @@ bool Client::checkError(const CosMessage &message)
 }
 
 
+/**
+ * @brief Client::guiLoad
+ * @return
+ */
+
+QString Client::guiLoad() const
+{
+	return m_guiLoad;
+}
+
+
+/**
+ * @brief Client::clientInstance
+ * @return
+ */
+
+Client *Client::clientInstance()
+{
+	if (!m_clientInstance) {
+		m_clientInstance = new Client();
+	}
+
+	return m_clientInstance;
+}
+
+
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 
@@ -1838,17 +1829,6 @@ void Client::setSingleInstance(QSingleInstance *singleInstance)
 
 
 
-
-
-void Client::setRegistrationDomains(QVariantList registrationDomains)
-{
-	if (m_registrationDomains == registrationDomains)
-		return;
-
-	m_registrationDomains = registrationDomains;
-	emit registrationDomainsChanged(m_registrationDomains);
-}
-
 void Client::setRegistrationEnabled(bool registrationEnabled)
 {
 	if (m_registrationEnabled == registrationEnabled)
@@ -1856,15 +1836,6 @@ void Client::setRegistrationEnabled(bool registrationEnabled)
 
 	m_registrationEnabled = registrationEnabled;
 	emit registrationEnabledChanged(m_registrationEnabled);
-}
-
-void Client::setPasswordResetEnabled(bool passwordResetEnabled)
-{
-	if (m_passwordResetEnabled == passwordResetEnabled)
-		return;
-
-	m_passwordResetEnabled = passwordResetEnabled;
-	emit passwordResetEnabledChanged(m_passwordResetEnabled);
 }
 
 void Client::setUserRankName(QString userRankName)
@@ -2099,6 +2070,11 @@ void Client::setRootContext(QQmlContext *newRootContext)
 		return;
 	m_rootContext = newRootContext;
 	emit rootContextChanged();
+}
+
+QQmlEngine *Client::rootEngine() const
+{
+	return m_rootContext->engine();
 }
 
 const QUrl &Client::userPicture() const

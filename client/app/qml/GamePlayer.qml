@@ -70,7 +70,6 @@ GameEntity {
 		}
 
 		onIsOnGroundChanged: {
-			console.debug("ISONGROUND", isOnGround)
 			if (!isBurning) {
 				if (isOnGround) {
 					if (_fallStartY == -1) {
@@ -208,7 +207,8 @@ GameEntity {
 		onTriggered: {
 			var r = ep.cosGame.running
 			if(readyToStop || !r) {
-				spriteSequence.jumpTo("runend")
+				spriteToIdle()
+				//spriteSequence.jumpTo("runend")
 			}
 
 			if (r) {

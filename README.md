@@ -18,6 +18,8 @@ A küldetések során egy karaktert kell irányítaniuk, akinek az ellenfeleit k
 - Párosítás
 - Szövegkitöltés
 - Összeadás-kivonás
+- Numerikus válasz
+- Sorbarendezés 
 
 ## Kliens letöltés
 
@@ -25,16 +27,5 @@ https://github.com/valaczka/callofsuli/releases
 
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/hu_badge_web_generic.png" width=250>](https://play.google.com/store/apps/details?id=hu.piarista.vjp.callofsuli)
 
-
-## Requirements
-**QtJsonSerializer** (https://github.com/Skycoder42/QtJsonSerializer)
-```
-git clone https://github.com/Skycoder42/QtJsonSerializer.git
-mkdir build
-cd build
-qmake ../QtJsonSerializer/qtjsonserializer.pro
-make
-make install
-```
 
 ## [Credits](CREDITS.md)

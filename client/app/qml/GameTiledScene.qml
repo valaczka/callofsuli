@@ -138,8 +138,18 @@ Scene {
 				showTargets = false
 				break
 
-			case Qt.Key_F3:
+			case Qt.Key_F3:				// Pinch zoom
 				scenePrivate.game.gameSceneScaleToggleRequest()
+				break
+
+			case Qt.Key_W:				// Water
+				if (game.player && game.player.entityPrivate.fire)
+					game.player.entityPrivate.operate(game.player.entityPrivate.fire)
+				break
+
+			case Qt.Key_P:				// Pliers
+				if (game.player && game.player.entityPrivate.fence)
+					game.player.entityPrivate.operate(game.player.entityPrivate.fence)
 				break
 			}
 
@@ -165,14 +175,6 @@ Scene {
 						game.addSecs(-30)
 					}
 					break;
-
-
-				case Qt.Key_O:
-					if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
-						game.player.operate()
-					}
-					break;
-
 
 				case Qt.Key_B:
 					if (event.modifiers & (Qt.ShiftModifier|Qt.ControlModifier) && game.isStarted) {
@@ -225,26 +227,11 @@ Scene {
 		GamePickableHealth { }
 	}
 
-	Component {
-		id: pickableComponentTime
-		GamePickableTime { }
-	}
 
 	Component {
-		id: pickableComponentShield
-		GamePickableShield { }
+		id: pickableComponentGeneral
+		GamePickableGeneral { }
 	}
-
-	Component {
-		id: pickableComponentPliers
-		GamePickablePliers { }
-	}
-
-	Component {
-		id: pickableComponentWater
-		GamePickableWater { }
-	}
-
 
 	Component {
 		id: playerLocatorComponent
@@ -300,6 +287,7 @@ Scene {
 			return
 
 		var obj = null
+		var img = ""
 
 		switch (pickableType) {
 			case GamePickablePrivate.PickableHealth:
@@ -310,31 +298,57 @@ Scene {
 				break
 
 			case GamePickablePrivate.PickableTime:
-				obj = pickableComponentTime.createObject(scene, {
+				if (pickableData.secs >= 60)
+					img = "qrc:/internal/game/time-60.png"
+				else if (pickableData.secs >= 30)
+					img = "qrc:/internal/game/time-30.png"
+
+				obj = pickableComponentGeneral.createObject(scene, {
 															   cosGame: game,
+															   type: GamePickablePrivate.PickableTime,
+															   image: img,
 															   pickableData: pickableData
 														   })
 				break
 
 			case GamePickablePrivate.PickableShield:
-				obj = pickableComponentShield.createObject(scene, {
+				if (pickableData.num >= 5)
+					img = "qrc:/internal/game/shield-gold.png"
+				else if (pickableData.num >= 3)
+					img = "qrc:/internal/game/shield-red.png"
+				else if (pickableData.num >= 2)
+					img = "qrc:/internal/game/shield-blue.png"
+				else
+					img = "qrc:/internal/game/shield-green.png"
+
+				obj = pickableComponentGeneral.createObject(scene, {
 															   cosGame: game,
+															   type: GamePickablePrivate.PickableShield,
+															   image: img,
 															   pickableData: pickableData
 														   })
 				break
 
 			case GamePickablePrivate.PickablePliers:
-				obj = pickableComponentPliers.createObject(scene, {
-															   cosGame: game,
-															   pickableData: pickableData
-														   })
+				obj = pickableComponentGeneral.createObject(scene, {
+																cosGame: game,
+																type: GamePickablePrivate.PickablePliers,
+																image: "qrc:/internal/game/pliers.png",
+																pickableData: pickableData
+															})
 				break
 
 			case GamePickablePrivate.PickableWater:
-				obj = pickableComponentWater.createObject(scene, {
-															   cosGame: game,
-															   pickableData: pickableData
-														   })
+				obj = pickableComponentGeneral.createObject(scene, {
+																cosGame: game,
+																type: GamePickablePrivate.PickableWater,
+																image: "qrc:/internal/game/water.svg",
+																imageWidth: 30,
+																imageHeight: 30,
+																imageSourceWidth: 50,
+																imageSourceHeight: 50,
+																pickableData: pickableData
+															})
 				break
 		}
 

@@ -14,7 +14,6 @@ Item {
 	implicitHeight: 500
 
 	required property var questionData
-	required property var answerData
 
 	signal succeed()
 	signal failed()
@@ -137,8 +136,8 @@ Item {
 				d.item = o
 				d.correct = null
 
-				if (answerData)
-					d.correct = answerData[p.q]
+				if (questionData.answer)
+					d.correct = questionData.answer[p.q]
 
 				_drops.push(d)
 			}

@@ -145,7 +145,7 @@ bool AndroidShareUtils::checkPendingIntents()
  * @brief AndroidShareUtils::checkPermissions
  */
 
-void AndroidShareUtils::checkPermissions()
+void AndroidShareUtils::checkStoragePermissions()
 {
 
 #ifdef Q_OS_ANDROID
@@ -172,6 +172,38 @@ void AndroidShareUtils::checkPermissions()
 #endif
 
 	emit storagePermissionsGranted();
+}
+
+
+
+
+
+/**
+ * @brief AndroidShareUtils::checkMediaPermissions
+ */
+
+void AndroidShareUtils::checkMediaPermissions()
+{
+#ifdef Q_OS_ANDROID
+	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");
+
+	QStringList permissions;
+
+	if (result0 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.CAMERA");
+
+	if (!permissions.isEmpty()) {
+		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
+
+		QList<QtAndroid::PermissionResult> results = resultHash.values();
+		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
+			emit mediaPermissionsDenied();
+			return;
+		}
+	}
+#endif
+
+	emit mediaPermissionsGranted();
 }
 
 

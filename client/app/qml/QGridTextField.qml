@@ -29,6 +29,11 @@ QTextField {
 					   parent.modified = true
 				   }
 
+	onTextCleared: if (watchModification) {
+					   modified = true
+					   parent.modified = true
+				   }
+
 
 
 	onAccepted: parent.accept()

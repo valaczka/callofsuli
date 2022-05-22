@@ -1,6 +1,7 @@
-QT += sql websockets quick svg multimedia network networkauth jsonserializer
+QT += sql websockets quick svg multimedia network networkauth
 
-android|ios|linux: QT += webview
+android|ios: QT += webview
+
 
 CONFIG += c++17
 
@@ -14,9 +15,7 @@ linux|win32|mac: include(../QSingleInstance/QSingleInstance.pri)
 
 TEMPLATE = app
 TARGET = callofsuli
-
 win32: CONFIG += windows
-
 
 INCLUDEPATH += ../QtXlsxWriter \
 				../QZXing \
@@ -27,6 +26,8 @@ INCLUDEPATH += ../Bacon2D-static/qml-box2d
 INCLUDEPATH += ../Bacon2D-static/qml-box2d/Box2D
 INCLUDEPATH += ../Bacon2D-static/tiled/
 INCLUDEPATH += ../Bacon2D-static/tiled/libtiled
+
+DEFINES += TILED_LIBRARY
 
 !android: DESTDIR = ../..
 
@@ -69,7 +70,10 @@ QML_IMPORT_PATH += $$PWD/modules/fillout
 
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
-	RC_ICONS = $$PWD/../../resources/internal/img/cos96.ico
+	RC_ICONS = $$PWD/../../resources/internal/img/cos.ico
+	RC_LANG = 0x040E
+	QMAKE_TARGET_COPYRIGHT = Valaczka Janos Pal
+	QMAKE_TARGET_DESCRIPTION = Call of Suli kliens
 }
 
 
@@ -134,6 +138,8 @@ SOURCES += \
 		cosdownloader.cpp \
 		cosgame.cpp \
 		cossound.cpp \
+		editoraction.cpp \
+		editorundostack.cpp \
 		fontimage.cpp \
 		gameactivity.cpp \
 		gameblock.cpp \
@@ -142,6 +148,7 @@ SOURCES += \
 		gameenemysoldier.cpp \
 		gameentity.cpp \
 		gameladder.cpp \
+		gamemapeditor.cpp \
 		gamemapmodel.cpp \
 		gamematch.cpp \
 		gameobject.cpp \
@@ -153,6 +160,8 @@ SOURCES += \
 		googleoauth2.cpp \
 		main.cpp \
 		mapeditor.cpp \
+		mapeditoraction.cpp \
+		mapimage.cpp \
 		maplistobject.cpp \
 		objectlistmodel.cpp \
 		objectlistmodelobject.cpp \
@@ -168,12 +177,12 @@ SOURCES += \
 		teachergroups.cpp \
 		teachermaps.cpp \
 		tiledpaintedlayer.cpp \
+		userlistobject.cpp \
 		variantmapdata.cpp \
 		variantmapmodel.cpp
 
 
 HEADERS += \
-	ODL_objectlistmodel.h \
 	abstractactivity.h \
 	abstractobjectiveimporter.h \
 	androidshareutils.h \
@@ -182,6 +191,8 @@ HEADERS += \
 	cosdownloader.h \
 	cosgame.h \
 	cossound.h \
+	editoraction.h \
+	editorundostack.h \
 	fontimage.h \
 	gameactivity.h \
 	gameblock.h \
@@ -190,6 +201,7 @@ HEADERS += \
 	gameenemysoldier.h \
 	gameentity.h \
 	gameladder.h \
+	gamemapeditor.h \
 	gamemapmodel.h \
 	gamematch.h \
 	gameobject.h \
@@ -200,6 +212,8 @@ HEADERS += \
 	gameterrain.h \
 	googleoauth2.h \
 	mapeditor.h \
+	mapeditoraction.h \
+	mapimage.h \
 	maplistobject.h \
 	modules/interfaces.h \
 	objectlistmodel.h \
@@ -216,6 +230,7 @@ HEADERS += \
 	teachergroups.h \
 	teachermaps.h \
 	tiledpaintedlayer.h \
+	userlistobject.h \
 	variantmapdata.h \
 	variantmapmodel.h
 

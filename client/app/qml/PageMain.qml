@@ -26,12 +26,12 @@ QTabPage {
 	ListModel {
 		id: modelGuest
 
-		/*ListElement {
+		ListElement {
 			title: qsTr("Regisztráció")
 			icon: "image://font/Academic/\uf184"
 			iconColor: "darkorange"
 			func: function() { replaceContent(componentRegistration) }
-		}*/
+		}
 		ListElement {
 			title: qsTr("Bejelentkezés")
 			icon: "image://font/Academic/\uf207"
@@ -143,7 +143,9 @@ QTabPage {
 
 	Component {
 		id: componentRegistration
-		Registration {}
+		Registration {
+			servers: control.servers
+		}
 	}
 
 	Component {
@@ -183,6 +185,16 @@ QTabPage {
 				mainStack.pop(control)
 
 			checkRoles()
+		}
+
+		function onRegistrationRequest(oauth2, code) {
+			if (control.StackView.view)
+				mainStack.pop(control)
+
+			control.replaceContent(componentRegistration, {
+									   autoRegisterGoogle: oauth2,
+									   code: code
+								   })
 		}
 	}
 
@@ -232,7 +244,18 @@ QTabPage {
 		if (_closeEnabled)
 			return false
 
-		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan lezárod a szerverkapcsolatot?")})
+
+		for (var i=0; i<buttonModel.count; i++) {
+			var o = buttonModel.get(i)
+			var b = buttons[i]
+
+			if (o.checked && b && !b.checked) {
+				b.checked = true
+				return true
+			}
+		}
+
+		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan lezárod a szerverrel a kapcsolatot?")})
 		d.accepted.connect(function() {
 			_closeEnabled = true
 			mainStack.back()

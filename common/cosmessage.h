@@ -59,15 +59,8 @@ public:
 	enum CosMessageError {
 		NoError,
 		BadMessageFormat,
-		MessageTooOld,
-		MessageTooNew,
 		InvalidMessageType,
 		NoBinaryData,
-		PasswordRequestMissingEmail,
-		PasswordRequestInvalidEmail,
-		PasswordRequestInvalidCode,
-		PasswordRequestCodeSent,
-		PasswordRequestSuccess,
 		InvalidSession,
 		InvalidUser,
 		PasswordResetRequired,
@@ -120,9 +113,8 @@ public:
 	CosMessage(const CosMessageServerError &serverError, const QString &details = QString(), const CosMessage &orig = CosMessage());
 	CosMessage(const QJsonObject &jsonData, const CosClass &cosClass, const QString &cosFunc, const CosMessage &orig = CosMessage());
 
-	static int versionMajor();
-	static int versionMinor();
 	static quint32 versionNumber();
+	static quint32 versionNumber(const quint32 &major, const quint32 &minor);
 
 	void send(QWebSocket *socket);
 
@@ -170,6 +162,8 @@ public:
 
 	QString serverErrorDetails() const { return m_serverErrorDetails; }
 
+	quint32 appVersion() const { return m_appVersion; }
+
 private:
 	void increaseMsgId();
 
@@ -191,6 +185,8 @@ private:
 	int m_peerMsgId;
 	int m_responsedMsgId;
 	static int m_msgId;
+
+	quint32 m_appVersion;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(CosMessage::ClientRoles)

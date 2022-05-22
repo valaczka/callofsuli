@@ -73,7 +73,6 @@ CosGame::CosGame(QQuickItem *parent)
 	}
 
 	connect(this, &Game::gameStateChanged, this, &CosGame::resetRunning);
-	connect(this, &CosGame::gameStarted, this, &CosGame::onGameStarted);
 	connect(this, &CosGame::gameAbortRequest, this, &CosGame::onGameFinishedLost);
 	connect(this, &CosGame::gameLost, this, &CosGame::onGameFinishedLost);
 	connect(this, &CosGame::gameTimeout, this, &CosGame::onGameFinishedLost);
@@ -161,10 +160,11 @@ void CosGame::recreateEnemies()
 	QVector<GameEnemyData *> allEnemyDataList;
 
 	QMap<int, GameBlock *> b = m_terrainData->blocks();
-	QMap<int, GameBlock *>::const_iterator it;
+	QMapIterator<int, GameBlock *> it(b);
 	QVector<GameEnemy *> createdEnemies;
 
-	for (it = b.constBegin(); it != b.constEnd(); ++it) {
+	while (it.hasNext()) {
+		it.next();
 		GameBlock *block = it.value();
 
 		if (block->completed()) {
@@ -512,7 +512,7 @@ void CosGame::pickPickable()
 			break;
 		case GamePickable::PickableShield:
 			increaseShield(data.value("num", 0).toInt());
-			emit gameMessageSent(tr("%1 shields gained").arg(data.value("num", 0).toInt()));
+			emit gameMessageSent(tr("%1 shield(s) gained").arg(data.value("num", 0).toInt()));
 			break;
 		case GamePickable::PickableWater:
 			increaseWater(1);
@@ -588,7 +588,6 @@ void CosGame::setGameScene(QQuickItem *gameScene)
 
 void CosGame::appendPlayerStartPosition(GameObject *playerStartPosition)
 {
-	qDebug() << "APPEND position" << m_playerStartPositions.size() << playerStartPosition->x() << playerStartPosition->y();
 	m_playerStartPositions.append(playerStartPosition);
 }
 
@@ -893,7 +892,7 @@ void CosGame::onTimerTimeout()
 
 void CosGame::onGameMatchTimerTimeout()
 {
-	if (!m_gameMatch || !m_activity || !m_activity->client())
+	if (!m_gameMatch || !m_activity)
 		return;
 
 	int gameId = m_gameMatch->gameId();
@@ -901,13 +900,11 @@ void CosGame::onGameMatchTimerTimeout()
 	if (gameId == -1)
 		return;
 
-	Client *client = m_activity->client();
-
 	QJsonObject o;
 	o["id"] = gameId;
 	o["xp"] = m_gameMatch->xp();
 	o["stat"] = m_gameMatch->takeStatistics();
-	client->socketSend(CosMessage::ClassStudent, "gameUpdate", o);
+	Client::clientInstance()->socketSend(CosMessage::ClassStudent, "gameUpdate", o);
 }
 
 
@@ -943,22 +940,20 @@ void CosGame::onGameFinishedSuccess()
 	m_timer->stop();
 	m_matchTimer->stop();
 
-	if (!m_gameMatch || !m_activity || !m_activity->client())
+	if (!m_gameMatch || !m_activity)
 		return;
 
 	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
 
 	emit m_gameMatch->gameWin();
 
-	Client *client = m_activity->client();
+	Client::clientInstance()->stopSound(m_backgroundMusicFile);
+	Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
 
-	client->stopSound(m_backgroundMusicFile);
-	client->playSound("qrc:/sound/sfx/win.ogg", CosSound::GameSound);
-
-	QTimer::singleShot(1000, [=]() {
+	QTimer::singleShot(1000, this, [=]() {
 		emit gameCompletedReady();
-		client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
-		client->playSound("qrc:/sound/voiceover/you_win.ogg", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
 	});
 }
 
@@ -977,18 +972,16 @@ void CosGame::onGameFinishedLost()
 	m_timer->stop();
 	m_matchTimer->stop();
 
-	if (!m_gameMatch || !m_activity || !m_activity->client())
+	if (!m_gameMatch || !m_activity)
 		return;
 
 	m_gameMatch->setElapsedTime(m_elapsedTime.secsTo(QTime::currentTime()));
 
 	emit m_gameMatch->gameLose();
 
-	Client *client = m_activity->client();
-
-	client->stopSound(m_backgroundMusicFile);
-	client->playSound("qrc:/sound/voiceover/game_over.ogg", CosSound::VoiceOver);
-	client->playSound("qrc:/sound/voiceover/you_lose.ogg", CosSound::VoiceOver);
+	Client::clientInstance()->stopSound(m_backgroundMusicFile);
+	Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+	Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
 }
 
 
@@ -1067,15 +1060,15 @@ void CosGame::loadPickables()
 	if (!m_gameMatch)
 		return;
 
-	GameMap::MissionLevel *level = m_gameMatch->missionLevel();
+	GameMapMissionLevel *level = m_gameMatch->missionLevel();
 
 	if (!level)
 		return;
 
-	QHash<QByteArray, GameEnemyData::InventoryType> inventoryTypes = GameEnemyData::inventoryTypes();
+	QHash<QString, GameEnemyData::InventoryType> inventoryTypes = GameEnemyData::inventoryTypes();
 
-	foreach (GameMap::Inventory *inventory, level->inventories()) {
-		QByteArray module = inventory->module();
+	foreach (GameMapInventory *inventory, level->inventories()) {
+		QString module = inventory->module();
 		if (!inventoryTypes.contains(module)) {
 			qWarning() << "Invalid inventory module" << module;
 			continue;
@@ -1197,27 +1190,30 @@ bool CosGame::loadTerrainData()
 
 	QString terrain = m_gameMatch->terrain();
 
-	qDebug() << "Load terrain data" << terrain;
+	QString terrainDir = terrain.section("/", 0, -2);
+	int terrainLevel = terrain.section("/", -1, -1).toInt();
+
+	qDebug() << "Load terrain data" << terrainDir << "level" << terrainLevel;
 
 
-	if (!m_terrainData->loadTmxFile(QString(":/terrain/"+terrain+"/terrain.tmx"))) {
+	if (!m_terrainData->loadTmxFile(QString(":/terrain/%1/level%2.tmx").arg(terrainDir).arg(terrainLevel))) {
 		qWarning() << "Terrain data load failed";
 		return false;
 	}
 
-	QString datafile = ":/terrain/"+terrain+"/data.json";
+	QString datafile = ":/terrain/"+terrainDir+"/data.json";
 
 	if (QFile::exists(datafile)) {
 		QVariantMap m = Client::readJsonFile(datafile).toMap();
 		QString bgMusic = m.value("backgroundMusic").toString();
 
 		if (!bgMusic.isEmpty())
-			setBackgroundMusicFile("qrc:/terrain/"+terrain+"/"+bgMusic);
+			setBackgroundMusicFile("qrc:/terrain/"+terrainDir+"/"+bgMusic);
 
 		QString bgImage = m.value("backgroundImage").toString();
 
 		if (!bgImage.isEmpty())
-			m_gameMatch->setBgImage("qrc:/terrain/"+terrain+"/"+bgImage);
+			m_gameMatch->setBgImage("qrc:/terrain/"+terrainDir+"/"+bgImage);
 	}
 
 	return true;

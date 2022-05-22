@@ -60,44 +60,54 @@ GameEnemyData::GameEnemyData(QObject *parent)
  * @return
  */
 
-QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
+QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 {
-	QHash<QByteArray, GameEnemyData::InventoryType> list;
+	QHash<QString, GameEnemyData::InventoryType> list;
 
-	list["health"] = InventoryType(tr("1 HP hozzáadása"),
-								   "image://font/School/\uf124",
+	list["health"] = InventoryType(tr("1 HP"),
+								   "qrc:/internal/game/powerup.gif",
 								   GamePickable::PickableHealth,
 								   QVariantMap());
 
-	list["time1"] = InventoryType(tr("30 másodperc hozzáadása"),
-								  "image://font/School/\uf124",
+	list["time1"] = InventoryType(tr("30 másodperc"),
+								  "qrc:/internal/game/time-30.png",
 								  GamePickable::PickableTime,
 								  QVariantMap({{"text", "30"}, {"secs", 30}}));
 
-	list["time2"] = InventoryType(tr("1 perc hozzáadása"),
-								  "image://font/School/\uf124",
+	list["time2"] = InventoryType(tr("1 perc"),
+								  "qrc:/internal/game/time-60.png",
 								  GamePickable::PickableTime,
 								  QVariantMap({{"text", "60"}, {"secs", 60}}));
 
-	list["shield1"] = InventoryType(tr("1 pajzs hozzáadása"),
+	list["shield1"] = InventoryType(tr("1 pajzs"),
 									"qrc:/internal/game/shield-green.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 1}}));
 
-	list["shield2"] = InventoryType(tr("2 pajzs hozzáadása"),
+	list["shield2"] = InventoryType(tr("2 pajzs"),
 									"qrc:/internal/game/shield-blue.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 2}}));
 
-	list["shield3"] = InventoryType(tr("3 pajzs hozzáadása"),
+	list["shield3"] = InventoryType(tr("3 pajzs"),
 									"qrc:/internal/game/shield-red.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 3}}));
 
-	list["shield4"] = InventoryType(tr("5 pajzs hozzáadása"),
+	list["shield4"] = InventoryType(tr("5 pajzs"),
 									"qrc:/internal/game/shield-gold.png",
 									GamePickable::PickableShield,
 									QVariantMap({{"num", 5}}));
+
+	list["water"] = InventoryType(tr("1 víz"),
+								   "qrc:/internal/game/water.svg",
+								   GamePickable::PickableWater,
+								   QVariantMap());
+
+	list["pliers"] = InventoryType(tr("1 fogó"),
+								   "qrc:/internal/game/pliers.png",
+								   GamePickable::PickablePliers,
+								   QVariantMap());
 
 	return list;
 }
@@ -111,16 +121,16 @@ QHash<QByteArray, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 
 QVariantMap GameEnemyData::inventoryInfo(const QString &module)
 {
-	QHash<QByteArray, InventoryType> list = inventoryTypes();
+	QHash<QString, InventoryType> list = inventoryTypes();
 
-	if (!list.contains(module.toLatin1())) {
+	if (!list.contains(module)) {
 		return QVariantMap({
 							   { "name", QObject::tr("Érvénytelen modul!") },
 							   { "icon", "image://font/Material Icons/\ue002" }
 						   });
 	}
 
-	InventoryType t = list.value(module.toLatin1());
+	InventoryType t = list.value(module);
 
 	return QVariantMap({
 						   { "name", t.name },
@@ -221,7 +231,7 @@ void GameEnemyData::setTargetId(int targetId)
 	emit targetIdChanged(m_targetId);
 }
 
-void GameEnemyData::setObjectiveUuid(QByteArray objectiveUuid)
+void GameEnemyData::setObjectiveUuid(QString objectiveUuid)
 {
 	if (m_objectiveUuid == objectiveUuid)
 		return;
@@ -258,7 +268,7 @@ Question GameEnemyData::generateQuestion()
 		return Question();
 
 
-	GameMap::Objective *objective = gameMap->objective(m_objectiveUuid);
+	GameMapObjective *objective = gameMap->objective(m_objectiveUuid);
 
 	if (!objective) {
 		return Question();
@@ -266,8 +276,12 @@ Question GameEnemyData::generateQuestion()
 
 	Question q(objective);
 
+	q.generate();
+
 	return q;
 }
+
+
 
 void GameEnemyData::setPickableType(GamePickable::PickableType pickableType)
 {

@@ -13,11 +13,40 @@ GamePickable {
 		data: pickableData
 	}
 
-	contentItem: QFontImage {
-		icon: CosStyle.iconSetup
-		width: 30
-		height: 30
-		size: 30
-		color: "brown"
+	contentItem: Item {
+		id: root
+
+		width: lbl.width
+		height: lbl.height
+
+		Image {
+			id: lbl
+			source: "qrc:/internal/game/pliers.png"
+			width: 25
+			height: 25
+			fillMode: Image.PreserveAspectFit
+		}
+
+
+		SequentialAnimation {
+			running: true
+			loops: Animation.Infinite
+			ParallelAnimation {
+				PropertyAnimation {
+					target: root
+					property: "scale"
+					to: 1.2
+					duration: 500
+				}
+			}
+			ParallelAnimation {
+				PropertyAnimation {
+					target: root
+					property: "scale"
+					to: 1.0
+					duration: 500
+				}
+			}
+		}
 	}
 }

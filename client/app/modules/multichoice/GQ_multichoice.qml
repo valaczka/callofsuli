@@ -13,7 +13,6 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
-	required property var answerData
 
 	property real buttonWidth: width-60
 
@@ -132,7 +131,7 @@ Item {
 		for (var i=0; i<_buttons.length; i++) {
 			var p = _buttons[i]
 
-			var correct = answerData.indices.includes(i)
+			var correct = questionData.answer.indices.includes(i)
 
 			if ((correct && !p.selected) || (!correct && p.selected))
 				success = false
@@ -183,7 +182,7 @@ Item {
 
 			btn.interactive = false
 
-			var correct = answerData.indices.includes(i)
+			var correct = questionData.answer.indices.includes(i)
 			btn.flipped = correct
 
 			if (correct && btn.selected)

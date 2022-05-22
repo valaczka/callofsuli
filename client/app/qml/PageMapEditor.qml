@@ -6,271 +6,239 @@ import "Style"
 import "JScript.js" as JS
 
 
-QBasePage {
+QTabPage {
 	id: control
 
-	defaultTitle: qsTr("Pályaszerkesztő")
-	defaultSubTitle: mapEditor.loaded ? mapEditor.readableFilename : ""
+	property bool _closeEnabled: false
+	property bool _isSmall: width < 800
+	property bool _permissionsGranted: false
+	property bool _permissionsDenied: false
 
 	property url fileToOpen: ""
+
+	title: mapEditor.displayName
+
+	toolBarLoaderComponent: Row {
+		QToolButton {
+			action: actionUndo
+			anchors.verticalCenter: parent.verticalCenter
+			visible: !_isSmall
+			text: qsTr("Vissza: %1").arg(mapEditor.undoStack.undoText)
+			display: AbstractButton.IconOnly
+		}
+		QToolButton {
+			action: actionRedo
+			anchors.verticalCenter: parent.verticalCenter
+			visible: !_isSmall
+			text: qsTr("Ismét: %1").arg(mapEditor.undoStack.redoText)
+			display: AbstractButton.IconOnly
+		}
+		QToolButton {
+			action: actionSave
+			anchors.verticalCenter: parent.verticalCenter
+		}
+		QMenuButton {
+			menu: _isSmall ? menuSmall : menuWide
+			anchors.verticalCenter: parent.verticalCenter
+		}
+	}
+
+	QMenu {
+		id: menuWide
+		//MenuItem { action: actionOpen }
+		MenuItem { action: actionSaveAs }
+	}
+
+	QMenu {
+		id: menuSmall
+		MenuItem { action: actionUndo; text: qsTr("Visszavonás") }
+		MenuItem { action: actionRedo; text: qsTr("Ismét") }
+		MenuSeparator {}
+		//MenuItem { action: actionOpen }
+		MenuItem { action: actionSaveAs }
+	}
+
 
 	activity: MapEditor {
 		id: mapEditor
 
-		property Drawer drawer: mapEditorDrawer
+		onEditorChanged: if (editor) {
+							 activateButton(PageMapEditor.Components.Missions)
+						 } else {
+							 replaceContent(componentMain)
+						 }
 
-		onLoadStarted: {
-			var d = JS.dialogCreateQml("Progress", { title: qsTr("Betöltés"), text: filename })
-			d.closePolicy = Popup.NoAutoClose
+		onActionContextUpdated: loadComponent(type, contextId)
 
-			d.rejected.connect(function(data) {
-				mapEditor.loadAbort()
-			})
-
-			mapEditor.loadProgressChanged.connect(d.item.setValue)
-			mapEditor.loadSucceed.connect(d.item.dlgClose)
-			mapEditor.loadFailed.connect(d.item.dlgClose)
-
-			d.onClosedAndDestroyed.connect(function() {
-				mapEditor.loadProgressChanged.disconnect(d.item.setValue)
-				mapEditor.loadSucceed.disconnect(d.item.dlgClose)
-				mapEditor.loadFailed.disconnect(d.item.dlgClose)
-			})
-
-			d.open()
+		function openObjective(params) {
+			pushContent(componentObjective, params)
 		}
 
-		onLoadSucceed: {
-			getMissionList()
-			getChapterList()
-			getObjectiveList()
-			getStorageList()
-			actionMissions.trigger()
+		function openMissionLevel(params) {
+			pushContent(componentMissionLevel, params)
 		}
 
-		onSaveSucceed: {
-			if (isCopy)
-				cosClient.sendMessageInfo(qsTr("Másolat készítése sikerült"), filename)
-		}
+		onMissionLevelOpenRequest: pushContent(componentMissionLevel, {
+												   missionLevel: missionLevel
+											   })
 
-		onSaveDialogRequest: {
-			if (!mapEditor.loaded)
-				return
+		onMissionLevelRemoved: if (stack.currentItem.contextAction === MapEditorAction.ActionTypeMissionLevel)
+								   stack.pop()
 
-			var d = JS.dialogCreateQml("File", {
-										   isSave: true,
-										   folder: cosClient.getSetting("mapFolder", "")
-									   })
-
-			d.accepted.connect(function(data){
-				if (!isNew)
-					mapEditor.saveCopyUrl(data)
-				else
-					mapEditor.saveUrl(data)
-				cosClient.setSetting("mapFolder", d.item.modelFolder)
-			})
-
-			d.open()
-		}
-
-		onPlayFailed: {
-			cosClient.sendMessageError(qsTr("Lejátszási hiba"), error)
-		}
-
-		onPlayReady: {
+		onGamePlayReady: {
 			var o = JS.createPage("Game", {
-									  gameMatch: gamematch,
+									  gameMatch: gameMatch,
 									  deleteGameMatch: true
 								  })
-
-		}
-
-
-
-
-
-		onChapterMissionListReady: {
-			if (data.missions.length === 0) {
-				cosClient.sendMessageWarning(qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))
-				return
-			}
-
-
-			mapEditor.modelDialogChapterMissionList.replaceList(data.missions)
-			mapEditor.modelDialogChapterMissionList.selectByRole("used")
-
-			var d = JS.dialogCreateQml("MissionList", {
-										   icon: CosStyle.iconLockAdd,
-										   title: data.chapterName.length ? data.chapterName : qsTr("Szakaszhoz tartozó küldetések"),
-										   selectorSet: true,
-										   sourceModel: mapEditor.modelDialogChapterMissionList
-									   })
-
-
-			d.accepted.connect(function(dlgdata) {
-				if (dlgdata !== true)
-					return
-
-				var l = mapEditor.modelDialogChapterMissionList.getSelectedData(["uuid", "level"])
-
-				mapEditor.chapterMissionListModify(data.chapter, mapEditor.modelDialogChapterMissionList, "used")
-
-			})
-			d.open()
-
-		}
-
-
-
-		onChapterImportReady: {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("%1 tétel importálható?").arg(records.length)})
-			d.accepted.connect(function() {
-				mapEditor.objectiveImport({list: records})
-			})
-			d.open()
-			return true
-		}
-
-	}
-
-	toolBarMenu: QMenu {
-		enabled: mapEditor.loaded
-
-		MenuItem {
-			action: actionMissions
-		}
-		MenuItem {
-			action: actionChapters
-		}
-	}
-
-	mainToolBarComponent: Row {
-		spacing: 0
-		visible: mapEditor.loaded
-		QUndoButton {
-			anchors.verticalCenter: parent.verticalCenter
-			activity: mapEditor
-		}
-		QToolButton {
-			anchors.verticalCenter: parent.verticalCenter
-			action: actionSave
 		}
 	}
 
 
-	mainMenuFunc: function (m) {
-		m.addAction(actionSaveAs)
-		if (mapEditor.isWithGraphviz)
-			m.addAction(actionGraph)
-	}
+	tabBarVisible: mapEditor.editor
 
-	Loader {
-		id: editorLoader
-		anchors.fill: parent
-		enabled: !mapEditorDrawer.opened
-	}
-
-
-
-	QLabel {
-		id: labelPermissions
-		color: CosStyle.colorWarning
-		anchors.centerIn: parent
-		anchors.margins: 10
-		text: qsTr("Jogosultságok ellenőrzése")
-	}
-
-
-	Column {
-		visible: !labelPermissions.visible && editorLoader.status != Loader.Ready && !mapEditor.loaded
-
-		anchors.centerIn: parent
-		spacing: 5
-		QToolButtonBig {
-			anchors.horizontalCenter: parent.horizontalCenter
-			action: actionCreate
+	buttonModel: ListModel {
+		ListElement {
+			title: qsTr("Küldetések")
+			icon: "image://font/School/\uf19d"
+			iconColor: "orange"
+			func: function() { replaceContent(componentMissions) }
+			checked: false
 		}
-		QToolButtonBig {
-			anchors.horizontalCenter: parent.horizontalCenter
-			action: actionOpen
+		ListElement {
+			title: qsTr("Feladatok")
+			icon: "image://font/AcademicI/\uf170"
+			iconColor: "chartreuse"
+			func: function() { replaceContent(componentChapters) }
 		}
+		ListElement {
+			title: qsTr("Adatbankok")
+			icon: "image://font/Academic/\uf1a3"
+			iconColor: "deepskyblue"
+			func: function() { replaceContent(componentStorages) }
+		}
+		/*ListElement {
+			title: qsTr("Képek")
+			icon: "image://font/Academic/\uf207"
+			//iconColor: "chartreuse"
+			func: function() { replaceContent(null) }
+		}*/
+
 	}
 
-	Rectangle {
-		anchors.fill: parent
-		color: "black"
-		opacity: 0.7 * mapEditorDrawer.position
-		visible: mapEditorDrawer.position
+
+	enum Components {
+		Missions = 0,
+		Chapters,
+		Storages
+		//Images
 	}
-
-
-	QDrawer {
-		id: mapEditorDrawer
-		edge: Qt.BottomEdge
-		height: control.height - control.mainToolBar.height
-		width: control.width>control.height ? Math.min(control.width*0.9, 1080) : control.width
-		x: (control.width-width)/2
-
-		property alias loader: drawerLoader
-
-		dim: false
-		interactive: false
-		modal: true
-
-		onClosed: {
-			interactive = false
-			drawerLoader.sourceComponent = undefined
-		}
-
-		onOpened: {
-			interactive = true
-		}
-
-
-		Loader {
-			id: drawerLoader
-			anchors.fill: parent
-			property Drawer drawer: mapEditorDrawer
-			property MapEditor mapEditor: mapEditor
-
-			onStatusChanged: if (drawerLoader.status == Loader.Ready)
-								 mapEditorDrawer.open()
-		}
-	}
-
 
 
 
 	Component {
 		id: componentMissions
-		MapEditorMissions {
-		}
+		MapEditorMissionList {}
 	}
-
 
 	Component {
 		id: componentChapters
-		MapEditorChapterList {
+		MapEditorChapterList {}
+	}
+
+	Component {
+		id: componentObjective
+		MapEditorObjective {
+			_mapEditor: mapEditor
+			onClose: stack.pop()
 		}
 	}
+
+	Component {
+		id: componentMissionLevel
+		MapEditorMissionLevel { }
+	}
+
+	Component {
+		id: componentStorages
+		MapEditorStorageList {}
+	}
+
+
+
+
+	Component {
+		id: componentMain
+		Item {
+			implicitWidth: 200
+			implicitHeight: 200
+
+			QLabel {
+				id: labelPermissions
+				color: _permissionsDenied ? CosStyle.colorErrorLighter : CosStyle.colorWarning
+				anchors.centerIn: parent
+				anchors.margins: 10
+				text: _permissionsDenied ? qsTr("Írási/olvasási jogosultság hiányzik") : qsTr("Jogosultságok ellenőrzése")
+				visible: !_permissionsGranted
+			}
+
+
+			Column {
+				visible: _permissionsGranted
+				anchors.centerIn: parent
+				spacing: 5
+				QToolButtonBig {
+					anchors.horizontalCenter: parent.horizontalCenter
+					action: actionNew
+				}
+				QToolButtonBig {
+					anchors.horizontalCenter: parent.horizontalCenter
+					action: actionOpen
+				}
+			}
+		}
+	}
+
+
 
 
 
 	Action {
-		id: actionCreate
-		text: qsTr("Új")
-		icon.source: CosStyle.iconAdd
-		enabled: !mapEditor.loaded
+		id: actionUndo
+		icon.source: CosStyle.iconUndo
+		enabled: mapEditor.editor && mapEditor.undoStack.canUndo
+		onTriggered: mapEditor.undoStack.undo()
+		shortcut: "Ctrl+Z"
+	}
+
+
+	Action {
+		id: actionRedo
+		icon.source: CosStyle.iconRedo
+		enabled: mapEditor.editor && mapEditor.undoStack.canRedo
+		onTriggered: mapEditor.undoStack.redo()
+		shortcut: "Ctrl+Shift+Z"
+	}
+
+
+	Action {
+		id: actionSave
+		icon.source: CosStyle.iconSave
+		enabled: mapEditor.editor && mapEditor.undoStack.savedStep !== mapEditor.undoStack.step
+		shortcut: "Ctrl+S"
 		onTriggered: {
-			mapEditor.create()
+			if (mapEditor.url.toString() != "")
+				mapEditor.save()
+			else
+				actionSaveAs.trigger()
 		}
 	}
+
 
 	Action {
 		id: actionOpen
+		icon.source: CosStyle.iconOpen
 		text: qsTr("Megnyitás")
-		enabled: !mapEditor.loaded
-		icon.source: CosStyle.iconAdjust
+		enabled: !mapEditor.editor
 		onTriggered: {
 			var d = JS.dialogCreateQml("File", {
 										   isSave: false,
@@ -278,7 +246,7 @@ QBasePage {
 									   })
 
 			d.accepted.connect(function(data){
-				mapEditor.openUrl(data)
+				mapEditor.open(data)
 				cosClient.setSetting("mapFolder", d.item.modelFolder)
 			})
 
@@ -288,101 +256,153 @@ QBasePage {
 
 
 	Action {
-		id: actionMissions
-		text: qsTr("Küldetések")
-		icon.source: CosStyle.iconAdd
-		onTriggered: {
-			control.title = qsTr("Küldetések")
-			editorLoader.sourceComponent = componentMissions
-		}
+		id: actionNew
+		icon.source: CosStyle.iconNew
+		text: qsTr("Új pálya")
+		enabled: !mapEditor.editor
+		onTriggered: mapEditor.create()
 	}
 
-	Action {
-		id: actionChapters
-		text: qsTr("Szakaszok")
-		icon.source: CosStyle.iconAdd
-		onTriggered: {
-			control.title = qsTr("Szakaszok")
-			editorLoader.sourceComponent = componentChapters
-		}
-	}
-
-
-
-	Action {
-		id: actionGraph
-		icon.source: CosStyle.iconAdd
-		text: qsTr("Folyamatábra")
-		enabled: mapEditor.loaded
-	}
-
-	Action {
-		id: actionSave
-		icon.source: CosStyle.iconSave
-		enabled: mapEditor.loaded && mapEditor.modified
-		shortcut: "Ctrl+S"
-		onTriggered: {
-			mapEditor.save()
-		}
-	}
 
 	Action {
 		id: actionSaveAs
-		icon.source: CosStyle.iconSave
-		text: qsTr("Másolat")
-		enabled: mapEditor.loaded
-		onTriggered: {
-			mapEditor.saveDialogRequest(false)
+		icon.source: "image://font/Material Icons/\ue02e"
+		text: qsTr("Mentés másként")
+		enabled: mapEditor.editor
+		onTriggered:  {
+			var d = JS.dialogCreateQml("File", {
+										   isSave: true,
+										   folder: cosClient.getSetting("mapFolder", "")
+									   })
+
+			d.accepted.connect(function(data){
+				mapEditor.save(data)
+				cosClient.setSetting("mapFolder", d.item.modelFolder)
+			})
+
+			d.open()
 		}
 	}
 
-	onPageActivatedFirst: cosClient.checkPermissions()
+
+
+	Component.onCompleted: replaceContent(componentMain)
+
+	onPageActivatedFirst: cosClient.checkStoragePermissions()
 
 
 	Connections {
 		target: cosClient
 
 		function onStoragePermissionsDenied() {
-			labelPermissions.text = qsTr("Írási/olvasási jogosultság hiányzik")
-			labelPermissions.color = CosStyle.colorErrorLighter
+			_permissionsDenied = true
 		}
 
 		function onStoragePermissionsGranted() {
-			labelPermissions.visible = false
+			_permissionsGranted = true
 
-			if (fileToOpen != "") {
-				mapEditor.openUrl(fileToOpen)
+			if (!mapEditor.editor && fileToOpen != "") {
+				mapEditor.open(fileToOpen)
+				fileToOpen = ""
 			}
 		}
 
 	}
 
 
-	function windowClose() {
-		if (mapEditor.modified) {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+
+
+	function loadComponent(contextAction, contextId) {
+		if (!mapEditor.editor)
+			return
+
+		if (stack.currentItem.contextAction === MapEditorAction.ActionTypeObjective &&
+				contextAction !== MapEditorAction.ActionTypeObjective)
+			activateButton(PageMapEditor.Components.Chapters)
+		else if (stack.currentItem.contextAction === MapEditorAction.ActionTypeMissionLevel &&
+				 contextAction !== MapEditorAction.ActionTypeMissionLevel && contextAction !== MapEditorAction.ActionTypeInventory)
+			activateButton(PageMapEditor.Components.Missions)
+		else if (stack.currentItem.contextAction === MapEditorAction.ActionTypeObjective &&
+				 contextAction === MapEditorAction.ActionTypeObjective)
+			stack.currentItem.loadContextId(contextId)
+	}
+
+
+
+
+	pageBackCallbackFunction: function () {
+		if (_closeEnabled || !mapEditor.editor)
+			return false
+
+		if (actionSave.enabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
 			d.accepted.connect(function() {
-				mapEditor.modified = false
-				mainWindow.close()
+				_closeEnabled = true
+				mainStack.back()
 			})
 			d.open()
+			return true
+		}
+
+		var err = mapEditor.checkMap()
+
+		if (err !== "") {
+			var dd = JS.dialogCreateQml("YesNoFlickable", {
+											title: qsTr("Hibás pálya"),
+											text: qsTr("A pálya hibákat tartalmaz.\nEnnek ellenére bezárod a szerkesztőt?"),
+											details: err
+										})
+
+			dd.item.titleColor = CosStyle.colorWarningLighter
+			dd.item.textColor = CosStyle.colorWarningLight
+
+			dd.accepted.connect(function() {
+				_closeEnabled = true
+				mainStack.back()
+			})
+
+			dd.open()
 			return true
 		}
 
 		return false
 	}
 
-	function pageStackBack() {
-		if (editorLoader.status == Loader.Ready && editorLoader.item.layoutBack())
+	closeCallbackFunction: function () {
+		if (windowCloseFunction())
 			return true
 
-		if (mapEditor.modified) {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+		if (_closeEnabled || !mapEditor.editor)
+			return false
+
+		if (actionSave.enabled) {
+			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan bezárod mentés nélkül?\n%1").arg(mapEditor.displayName)})
 			d.accepted.connect(function() {
-				mapEditor.modified = false
-				mainStack.back()
+				_closeEnabled = true
+				mainWindow.close()
 			})
 			d.open()
+			return true
+		}
+
+		var err = mapEditor.checkMap()
+
+		if (err !== "") {
+			var dd = JS.dialogCreateQml("YesNoFlickable", {
+											title: qsTr("Hibás pálya"),
+											text: qsTr("A pálya hibákat tartalmaz.\nEnnek ellenére bezárod a szerkesztőt?"),
+											details: err
+										})
+
+			dd.item.titleColor = CosStyle.colorWarningLighter
+			dd.item.textColor = CosStyle.colorWarningLight
+
+			dd.accepted.connect(function() {
+				_closeEnabled = true
+				mainWindow.close()
+			})
+
+			dd.open()
 			return true
 		}
 
@@ -390,4 +410,3 @@ QBasePage {
 		return false
 	}
 }
-

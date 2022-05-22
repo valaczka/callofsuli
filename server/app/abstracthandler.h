@@ -51,6 +51,7 @@ public:
 
 	virtual bool classInit() = 0;
 	virtual void start();
+	virtual void startHttpReply(QNetworkReply *reply, void *data);
 
 	void setServerError(CosMessage::CosMessageServerError serverError = CosMessage::ServerInternalError) { m_serverError = serverError; }
 

@@ -41,17 +41,9 @@ GameActivity::GameActivity(QQuickItem *parent)
 	, m_prepared(false)
 	, m_game(nullptr)
 {
-	QString dbFile = Client::standardPath("tmptargets.db");
-
-	if (QFile::exists(dbFile)) {
-		qDebug() << tr("A fájl (%1) létezik, törlöm").arg(dbFile);
-		QFile::remove(dbFile);
-	}
-
 	CosDb *db = new CosDb("objectiveDb", this);
-
-	db->setDatabaseName(dbFile);
-
+	//db->setDatabaseName(Client::standardPath("tmptargets.db"));
+	db->setDatabaseName(":memory:");
 	addDb(db, true);
 }
 
@@ -78,8 +70,8 @@ void GameActivity::prepare()
 		return;
 	}
 
-	if (!m_client || !m_game || !m_game->gameMatch()) {
-		qWarning() << "Invalid client or game";
+	if (!m_game || !m_game->gameMatch()) {
+		qWarning() << "Invalid game";
 		emit prepareFailed();
 		return;
 	}
@@ -123,26 +115,23 @@ void GameActivity::createTarget(GameEnemy *enemy)
 
 
 
-	QVariantList list = db()->execSelectQuery("SELECT target, map, objective FROM positions "
-											  "LEFT JOIN targets ON (targets.id=positions.target) "
-											  "WHERE (positions.block=? OR positions.block IS NULL) AND targets.block IS NULL "
-											  "ORDER BY num, RANDOM()", {block});
+	QVariantMap m = db()->execSelectQueryOneRow("SELECT id, objective FROM targets "
+												"WHERE block IS NULL "
+												"ORDER BY num, RANDOM() LIMIT 1");
 
-	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
+	if (m.isEmpty())
+		return;
 
-		int target = m.value("target").toInt();
+	int target = m.value("id").toInt();
 
-		if (!db()->execSimpleQuery("UPDATE targets SET block=?, num=num+1 WHERE id=?", {block, target})) {
-			m_client->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
-		} else if (enemyData) {
-			enemyData->setTargetId(target);
-			enemyData->setTargetDestroyed(false);
-			enemyData->setObjectiveUuid(m.value("objective").toByteArray());
-			enemy->setMaxHp(1);
-			enemy->setHp(1);
-			return;
-		}
+	if (!db()->execSimpleQuery("UPDATE targets SET block=?, num=num+1 WHERE id=?", {block, target})) {
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
+	} else if (enemyData) {
+		enemyData->setTargetId(target);
+		enemyData->setTargetDestroyed(false);
+		enemyData->setObjectiveUuid(m.value("objective").toString());
+		enemy->setMaxHp(1);
+		enemy->setHp(1);
 	}
 }
 
@@ -256,78 +245,40 @@ void GameActivity::setGame(CosGame *game)
 void GameActivity::prepareDb(QVariantMap)
 {
 	try {
-		if (!db()->execSimpleQuery("CREATE TABLE maps("
-								   "map INTEGER NOT NULL PRIMARY KEY)"))
-			throw 1;
 
 		if (!db()->execSimpleQuery("CREATE TABLE targets("
 								   "id INTEGER NOT NULL PRIMARY KEY, "
-								   "map INTEGER NOT NULL, "
 								   "objective TEXT NOT NULL, "
 								   "block INTEGER,"
 								   "num INTEGER NOT NULL DEFAULT 0)"))
 			throw 1;
 
-		if (!db()->execSimpleQuery("CREATE TABLE positions("
-								   "target INTEGER NOT NULL REFERENCES targets(id) ON UPDATE CASCADE ON DELETE CASCADE, "
-								   "block INTEGER)"))
-			throw 1;
-
 
 		GameMatch *match = m_game->gameMatch();
-		GameMap::MissionLevel *level = match->missionLevel();
+		GameMapMissionLevel *level = match->missionLevel();
 
 		if (!level) {
 			qWarning() << "Invalid mission level";
 			throw 1;
 		}
 
-		int mapIdx = 1;
+		foreach (GameMapChapter *chapter, level->chapters()) {
+			foreach (GameMapObjective *objective, chapter->objectives()) {
+				int iFrom = 0;
+				int iTo = 1;
 
-		foreach (GameMap::BlockChapterMap *map, level->blockChapterMaps()) {
-			QVariantMap m;
-			m["map"] = mapIdx;
+				if (objective->storageId() != -1) {
+					iFrom = 1;
+					iTo = objective->storageCount()+1;
+				}
 
-			db()->execInsertQuery("INSERT INTO maps(?k?) VALUES (?)", m);
+				for (int i=iFrom; i<iTo; ++i) {
+					QVariantMap m;
+					m["objective"] = objective->uuid();
+					db()->execInsertQuery("INSERT INTO targets(?k?) VALUES (?)", m);
 
-			foreach (GameMap::Chapter *chapter, map->chapters()) {
-				foreach (GameMap::Objective *objective, chapter->objectives()) {
-					QVariantList blockList;
-
-					if (map->blocks().count()) {
-						foreach (qint32 block, map->blocks()) {
-							blockList.append(block);
-						}
-					} else {
-						blockList.append(QVariant::Invalid);
-					}
-
-					int iFrom = 0;
-					int iTo = 1;
-
-					if (objective->storage()) {
-						iFrom = 1;
-						iTo = objective->storageCount()+1;
-					}
-
-					for (int i=iFrom; i<iTo; ++i) {
-						QVariantMap m;
-						m["map"] = mapIdx;
-						m["objective"] = QString(objective->uuid());
-						int idx = db()->execInsertQuery("INSERT INTO targets(?k?) VALUES (?)", m);
-
-						foreach (QVariant v, blockList) {
-							QVariantMap m;
-							m["target"] = idx;
-							m["block"] = v;
-
-							db()->execInsertQuery("INSERT INTO positions(?k?) VALUES (?)", m);
-						}
-					}
 				}
 			}
-
-			++mapIdx;
 		}
 
 

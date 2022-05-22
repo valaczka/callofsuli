@@ -13,7 +13,6 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
-	required property var answerData
 
 	property real buttonWidth: width-60
 
@@ -95,10 +94,10 @@ Item {
 							function onButtonReveal(original) {
 								btn.interactive = false
 
-								if (original === btn && index !== answerData.index)
+								if (original === btn && index !== questionData.answer)
 									btn.type = GameQuestionButton.Wrong
 
-								if (index === answerData.index)
+								if (index === questionData.answer)
 									btn.type = GameQuestionButton.Correct
 							}
 
@@ -118,7 +117,7 @@ Item {
 	function answer(btnIndex, btn) {
 		buttonReveal(btn)
 
-		if (btnIndex === answerData.index)
+		if (btnIndex === questionData.answer)
 			succeed()
 		else
 			failed()

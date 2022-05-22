@@ -54,7 +54,7 @@ QTabContainer {
 				},
 				ExpressionRole {
 					name: "titleUser"
-					expression: model.nickname !== "" ? model.nickname : model.firstname+model.lastname
+					expression: model.nickname !== "" ? model.nickname : model.firstname+" "+model.lastname
 				},
 				ExpressionRole {
 					name: "detailsUser"

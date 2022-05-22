@@ -15,6 +15,10 @@ Column {
 	property int initialCount: 5
 	property string separator: "—"
 
+	property bool readOnly: false
+
+	signal modification()
+
 	Layout.fillWidth: true
 	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
@@ -26,6 +30,14 @@ Column {
 
 		spacing: 0
 
+		property bool modified: false
+		property bool watchModification: control.watchModification
+
+		onModifiedChanged: if (control.watchModification) {
+							   control.modified = true
+							   control.parent.modified = true
+						   }
+
 		Component {
 			id: fieldComponent
 
@@ -33,22 +45,25 @@ Column {
 				id: field
 				width: parent.width
 				separator: control.separator
-				canDelete: parent.children && parent.children.length > 1
-
-				watchModification: control.watchModification
+				canDelete: parent.children && parent.children.length > 1 && !control.readOnly
+				first.readOnly: control.readOnly
+				second.readOnly: control.readOnly
 
 
 				onDeleteAction: {
-					destroy()
+					modification()
 
-					if (control.watchModification)
-						control.modified = true
+					if (parent.watchModification)
+						parent.modified = true
+
+					destroy()
 				}
 
 				onAcceptAction: if (parent.children && parent.children.length > 1) {
-									if (parent.children[parent.children.length-1] === field)
+									if (parent.children[parent.children.length-1] === field) {
 										addField()
-									else {
+										modification()
+									} else {
 										for (var i=0; i<parent.children.length; i++) {
 											if (parent.children[i] === field) {
 												parent.children[i+1].first.forceActiveFocus()
@@ -59,7 +74,10 @@ Column {
 
 								} else {
 									addField()
+									modification()
 								}
+
+				onModifyAction: modification()
 
 			}
 		}
@@ -69,7 +87,15 @@ Column {
 		width: parent.width
 		icon.source: CosStyle.iconAdd
 		text: qsTr("Hozzáadás")
-		onClicked: addField()
+		visible: !control.readOnly
+		onClicked: {
+			addField()
+			modification()
+			if (control.watchModification) {
+				control.modified = true
+				control.parent.modified = true
+			}
+		}
 	}
 
 
@@ -82,8 +108,8 @@ Column {
 	function addField(text1, text2) {
 		var o = fieldComponent.createObject(fieldColumn)
 
-		if (control.watchModification)
-			control.modified = true
+		/*if (control.watchModification)
+			control.modified = true*/
 
 		if (text1)
 			o.first.setData(text1)
@@ -91,7 +117,8 @@ Column {
 		if (text2)
 			o.second.setData(text2)
 
-		o.first.forceActiveFocus()
+		if (!readOnly)
+			o.first.forceActiveFocus()
 	}
 
 
@@ -101,12 +128,14 @@ Column {
 			var o=list[i]
 
 			if (fieldColumn.children && fieldColumn.children.length > i) {
-				fieldColumn.children[i].first.text = o.first
-				fieldColumn.children[i].second.text = o.second
+				fieldColumn.children[i].first.setData(o.first)
+				fieldColumn.children[i].second.setData(o.second)
 			} else {
 				addField(o.first, o.second)
 			}
 		}
+
+		control.modified = false
 	}
 
 	function _generateData() {

@@ -54,11 +54,17 @@ public:
 	inline QString qmlEditor() const override { return "ME_truefalse.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_truefalse.qml"; }
 
-	inline QStringList storageModules() const override { return QStringList(); }
+	inline QStringList storageModules() const override { return {"binding", "numbers"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantMap generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+
+	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
+
+	qreal xpFactor() const override { return 1.0; };
+
+	QVariantMap preview(const QVariantList &generatedList) const override;
 
 	inline bool canImport() const override { return true; }
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterTruefalse(worksheet); }

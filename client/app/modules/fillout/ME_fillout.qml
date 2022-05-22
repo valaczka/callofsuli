@@ -6,30 +6,35 @@ import "Style"
 import "JScript.js" as JS
 
 
-QCollapsible {
-	id: collapsible
-	title: qsTr("Szövegkitöltés")
+Item {
+	id: control
 
-	property string moduleData: ""
-	property string storageData: ""
+	width: parent.width
+	height: layout.height
+
+	property var moduleData: ({})
+	property var storageData: ({})
 	property string storageModule: ""
 	property int storageCount: 0
 
-	FilloutHighlighter {
-		id: hl
-
-		document: area.textDocument
-		wordForeground: "black"
-		wordBackground: CosStyle.colorWarningLight
-	}
-
-
-	interactive: false
+	signal modified()
 
 	QGridLayout {
-		width: parent.width
+		id: layout
 
-		watchModification: false
+
+		watchModification: true
+		onModifiedChanged: if (layout.modified)
+							   control.modified()
+
+		FilloutHighlighter {
+			id: hl
+
+			document: area.textDocument
+			wordForeground: "black"
+			wordBackground: CosStyle.colorWarningLight
+		}
+
 
 		QGridLabel { field: area }
 
@@ -40,8 +45,6 @@ QCollapsible {
 			placeholderText: qsTr("Ide kell írni a szöveget, amiből a hiányzó szavakat ki kell egészíteniük. A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni. (Pl: A %hiányzó% szó, vagy a %hiányzó kifejezések%.)\n Amennyiben %-jelet szeretnénk megjeleníteni ezt kell írni helyette: \\%")
 
 			minimumHeight: CosStyle.baseHeight*3
-
-			onTextModified: getData()
 		}
 
 		QGridLabel {
@@ -55,10 +58,12 @@ QCollapsible {
 
 			minimumHeight: CosStyle.baseHeight*2
 
-			onTextModified: getData()
 		}
 
-		QGridText { text: qsTr("Kiegészítendő helyek száma:") }
+		QGridText {
+			text: qsTr("Kiegészítendő helyek száma:")
+			field: spinCount
+		}
 
 		QGridSpinBox {
 			id: spinCount
@@ -69,7 +74,10 @@ QCollapsible {
 			sqlField: "count"
 		}
 
-		QGridText { text: qsTr("Válaszlehetőségek száma:") }
+		QGridText {
+			text: qsTr("Válaszlehetőségek száma:")
+			field: spinOptions
+		}
 
 		QGridSpinBox {
 			id: spinOptions
@@ -79,18 +87,14 @@ QCollapsible {
 			editable: true
 			sqlField: "optionsCount"
 		}
-
 	}
 
-
 	Component.onCompleted: {
-		if (moduleData == "")
+		if (!moduleData)
 			return
 
-		var d = JSON.parse(moduleData)
-
-		JS.setSqlFields([area, areaAnswers, spinCount, spinOptions], d)
-		areaAnswers.setData(d.options.join("\n"))
+		JS.setSqlFields([area, areaAnswers, spinCount, spinOptions], moduleData)
+		areaAnswers.setData(moduleData.options.join("\n"))
 	}
 
 
@@ -98,7 +102,7 @@ QCollapsible {
 		var d = JS.getSqlFields([area, areaAnswers, spinCount, spinOptions])
 		d.options = areaAnswers.text.split("\n")
 
-		moduleData = JSON.stringify(d)
+		moduleData = d
 		return moduleData
 	}
 

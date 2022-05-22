@@ -130,6 +130,7 @@ public slots:
 	void increaseWater(const int &num);
 
 	void setGameData(QVariantMap gameData);
+	void onGameStarted();
 
 	void addPickable(GamePickable *p);
 	void removePickable(GamePickable *p);
@@ -153,7 +154,6 @@ private slots:
 	void recalculateActiveEnemies();
 	void onTimerTimeout();
 	void onGameMatchTimerTimeout();
-	void onGameStarted();
 	void onGameFinishedSuccess();
 	void onGameFinishedLost();
 

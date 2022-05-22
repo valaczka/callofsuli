@@ -42,12 +42,8 @@ CosDownloader::CosDownloader(AbstractActivity *activity,
 {
 	Q_ASSERT(activity);
 
-	Client *client = m_activity->client();
-
-	Q_ASSERT(client);
-
-	connect(client, &Client::messageReceived, this, &CosDownloader::onMessageReceived);
-	connect(client, &Client::messageFrameReceived, this, &CosDownloader::onMessageFrameReceived);
+	connect(Client::clientInstance(), &Client::messageReceived, this, &CosDownloader::onMessageReceived);
+	connect(Client::clientInstance(), &Client::messageFrameReceived, this, &CosDownloader::onMessageFrameReceived);
 
 	connect(this, &CosDownloader::downloadFailed, this, [=](){ m_running = false; });
 	connect(this, &CosDownloader::downloadFinished, this, [=](){ m_running = false; });
@@ -267,7 +263,7 @@ void CosDownloader::start()
 void CosDownloader::abort()
 {
 	emit downloadFailed();
-	m_activity->client()->socket()->abort();
+	Client::clientInstance()->socket()->abort();
 }
 
 
@@ -334,13 +330,13 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 		QString md5 = message.jsonData().value(m_jsonKeyMd5).toString();
 
 		if (message.messageType() != CosMessage::MessageBinaryData) {
-			m_activity->client()->sendMessageError(tr("Letöltés"), tr("Érvénytelen adat érkezett"));
+			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Érvénytelen adat érkezett"));
 			emit downloadFailed();
 			return;
 		}
 
 		if (filename.isEmpty()) {
-			m_activity->client()->sendMessageError(tr("Letöltés"), tr("Érvénytelen fájl érkezett"));
+			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Érvénytelen fájl érkezett"));
 			emit downloadFailed();
 			return;
 		}
@@ -349,7 +345,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 		QString localmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
 
 		if (!md5.isEmpty() && localmd5 != md5) {
-			m_activity->client()->sendMessageError(tr("Letöltés"), tr("Hibás adat érkezett"));
+			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Hibás adat érkezett"));
 			emit downloadFailed();
 			return;
 		}
@@ -357,7 +353,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 		int idx = get(filename);
 
 		if (idx == -1) {
-			m_activity->client()->sendMessageError(tr("Letöltés"), tr("Váratlan fájl érkezett: ")+filename);
+			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Váratlan fájl érkezett: ")+filename);
 			emit downloadFailed();
 			return;
 		}
@@ -366,7 +362,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 
 
 		if (!md5.isEmpty() && !item.md5.isEmpty() && md5 != item.md5) {
-			m_activity->client()->sendMessageError(tr("Letöltés"), tr("Hibás adat érkezett"));
+			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Hibás adat érkezett"));
 			emit downloadFailed();
 			return;
 		}
@@ -379,13 +375,13 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 			QFile f(newFile);
 
 			if (!f.open(QIODevice::WriteOnly)) {
-				m_activity->client()->sendMessageError(tr("Fájl létrehozási hiba"), f.errorString(), newFile);
+				Client::clientInstance()->sendMessageError(tr("Fájl létrehozási hiba"), f.errorString(), newFile);
 				emit downloadFailed();
 				return;
 			}
 
 			if (f.write(data) == -1) {
-				m_activity->client()->sendMessageError(tr("Fájl írási hiba"), f.errorString(), newFile);
+				Client::clientInstance()->sendMessageError(tr("Fájl írási hiba"), f.errorString(), newFile);
 				f.close();
 				emit downloadFailed();
 				return;

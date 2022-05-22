@@ -61,7 +61,7 @@ PhysicsEntity {
 			_collision = 0
 			fixBox.collidesWith = 0
 			fixBox.categories = 0
-			cosClient.playSound("qrc:/sound/sfx/pick.ogg", CosSound.GameSound)
+			cosClient.playSound("qrc:/sound/sfx/pick.mp3", CosSound.GameSound)
 			state = "picked"
 		}
 	}

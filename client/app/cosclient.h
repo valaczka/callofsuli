@@ -34,6 +34,7 @@
 #include <QSettings>
 #include <QJsonObject>
 #include <QUrl>
+#include <QThread>
 
 #include "cosmessage.h"
 #include "variantmapmodel.h"
@@ -57,12 +58,6 @@ class Client : public QObject
 {
 	Q_OBJECT
 
-
-public:
-	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
-	Q_ENUM(ConnectionState)
-
-
 	Q_PROPERTY(QWebSocket * socket READ socket WRITE setSocket NOTIFY socketChanged)
 	Q_PROPERTY(ConnectionState connectionState READ connectionState WRITE setConnectionState NOTIFY connectionStateChanged)
 
@@ -71,9 +66,6 @@ public:
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QString serverUuid READ serverUuid WRITE setServerUuid NOTIFY serverUuidChanged)
 	Q_PROPERTY(bool registrationEnabled READ registrationEnabled WRITE setRegistrationEnabled NOTIFY registrationEnabledChanged)
-	Q_PROPERTY(bool passwordResetEnabled READ passwordResetEnabled WRITE setPasswordResetEnabled NOTIFY passwordResetEnabledChanged)
-	Q_PROPERTY(QVariantList registrationDomains READ registrationDomains WRITE setRegistrationDomains NOTIFY registrationDomainsChanged)
-	Q_PROPERTY(QVariantList registrationClasses READ registrationClasses WRITE setRegistrationClasses NOTIFY registrationClassesChanged)
 
 	Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
 	Q_PROPERTY(CosMessage::ClientRoles userRoles READ userRoles WRITE setUserRoles NOTIFY userRolesChanged)
@@ -97,10 +89,12 @@ public:
 
 	Q_PROPERTY(QQmlContext* rootContext READ rootContext WRITE setRootContext NOTIFY rootContextChanged)
 
+public:
+	enum ConnectionState { Standby, Connecting, Connected, Disconnected, Reconnecting, Reconnected, Closing };
+	Q_ENUM(ConnectionState)
 
 	explicit Client(QObject *parent = nullptr);
 	virtual ~Client();
-
 
 	static void registerResources();
 	static void registerTypes();
@@ -108,22 +102,26 @@ public:
 	static void loadModules();
 	static void standardPathCreate();
 
-	bool commandLineParse(QCoreApplication &app);
+	QString commandLineParse(QCoreApplication &app);
 
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
 	Q_INVOKABLE static void loadMusics();
 	Q_INVOKABLE static void loadMedalIcons();
 	Q_INVOKABLE static void reloadGameResources();
-	static TerrainData terrainDataFromFile(const QString &filename);
+	static TerrainData terrainDataFromFile(const QString &filename,
+										   const QString &terrainName = "",
+										   const QVariantMap &dataMap = QVariantMap(),
+										   const int &level = -1);
 	static QByteArray terrainDataToJson(const QString &filename);
 
-	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window, const int &fontSize = -1);
-	Q_INVOKABLE int windowRestoreGeometry(QQuickWindow *window, const bool &forceFullscreen = false);
+	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window);
+	Q_INVOKABLE void windowRestoreGeometry(QQuickWindow *window);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
 
-	Q_INVOKABLE QString connectionInfo(const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
+	Q_INVOKABLE QString connectionInfo(const QString &func = "connect", const QVariantMap &queries = {},
+									   const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
 	Q_INVOKABLE QVariantMap connectionInfoMap() const;
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
@@ -162,16 +160,11 @@ public:
 	Q_INVOKABLE static QVariantList mapToList(const QVariantMap &map, const QString &keyName = "name");
 	Q_INVOKABLE static QVariantMap terrainMap();
 
-	Q_INVOKABLE static QVariantMap objectiveInfo(const QString &module, const QString &dataString, const QString &storageModule, const QString &storageDataString)
-	{ return Question::objectiveInfo(module, dataString, storageModule, storageDataString); }
-	Q_INVOKABLE static QVariantMap storageInfo(const QString &module, const QString &dataString)
-	{ return Question::storageInfo(module, dataString); }
-	Q_INVOKABLE static QVariantMap inventoryInfo(const QString &module) { return GameEnemyData::inventoryInfo(module); }
-
 	Q_INVOKABLE QStringList takePositionalArgumentsToProcess();
 	Q_INVOKABLE void setPositionalArgumentsToProcess(const QStringList &list) { m_positionalArgumentsToProcess = list; }
 
-	Q_INVOKABLE void checkPermissions() const;
+	Q_INVOKABLE void checkStoragePermissions() const;
+	Q_INVOKABLE void checkMediaPermissions() const;
 
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
@@ -193,15 +186,12 @@ public:
 	QString serverName() const { return m_serverName; }
 	QString serverUuid() const { return m_serverUuid; }
 	bool registrationEnabled() const { return m_registrationEnabled; }
-	bool passwordResetEnabled() const { return m_passwordResetEnabled; }
-	QVariantList registrationDomains() const { return m_registrationDomains; }
-	QVariantList registrationClasses() const { return m_registrationClasses; }
 	QStringList waitForResources() const { return m_waitForResources; }
 
 	Q_INVOKABLE static QList<TerrainData> availableTerrains() { return m_availableTerrains; }
 	Q_INVOKABLE static QVariantMap characterData() { return m_characterData; }
 	Q_INVOKABLE static QStringList musicList() { return m_musicList; }
-	static TerrainData terrain(const QString &name);
+	static TerrainData terrain(const QString &name, const int &level);
 
 	Q_INVOKABLE static QStringList medalIcons() { return m_medalIconList; }
 	Q_INVOKABLE static QString medalIconPath(const QString &name, const bool &qrcPrepend = true);
@@ -221,11 +211,19 @@ public:
 
 	QQmlContext *rootContext() const;
 	void setRootContext(QQmlContext *newRootContext);
+	QQmlEngine *rootEngine() const;
 
 	const QUrl &userPicture() const;
 	void setUserPicture(const QUrl &newUserPicture);
 
+	static Client *clientInstance();
+
+	Q_INVOKABLE QString guiLoad() const;
+
 public slots:
+	void sendRegistrationRequest(const bool &oauth2, const QString &code) {
+		emit registrationRequest(oauth2, code);
+	}
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
 		emit messageSent("warning", title, informativeText, detailedText);
 	}
@@ -239,7 +237,7 @@ public slots:
 		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "");
 	}
 
-	void setConnectionState(ConnectionState connectionState);
+	void setConnectionState(Client::ConnectionState connectionState);
 	void closeConnection();
 	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
@@ -288,9 +286,6 @@ private slots:
 	void setServerName(QString serverName);
 	void setServerUuid(QString serverUuid);
 	void setRegistrationEnabled(bool registrationEnabled);
-	void setPasswordResetEnabled(bool passwordResetEnabled);
-	void setRegistrationDomains(QVariantList registrationDomains);
-	void setRegistrationClasses(QVariantList registrationClasses);
 	void setRankList(QVariantList rankList);
 
 signals:
@@ -306,18 +301,7 @@ signals:
 
 	void authInvalid();
 	void authRequirePasswordReset();
-
-	void resetPasswordEmailSent();
-	void resetPasswordSuccess();
-	void resetPasswordFailed();
-
-	void registrationRequest();
-	void registrationRequestSuccess();
-	void registrationRequestFailed(QString errorString);
-
-	void settingsLoaded(const QJsonObject &data);
-	void settingsError();
-	void settingsSuccess();
+	void registrationRequest(const bool &oauth2, const QString &code);
 
 	void urlsToProcessReady(const QStringList &list);
 
@@ -325,6 +309,9 @@ signals:
 
 	void storagePermissionsGranted();
 	void storagePermissionsDenied();
+
+	void mediaPermissionsGranted();
+	void mediaPermissionsDenied();
 
 	void socketChanged(QWebSocket * socket);
 	void connectionStateChanged(Client::ConnectionState connectionState);
@@ -352,7 +339,6 @@ signals:
 	void forcedLandscapeChanged(bool forcedLandscape);
 	void serverUuidChanged(QString serverUuid);
 	void rootContextChanged();
-
 	void userPictureChanged();
 
 private:
@@ -364,6 +350,8 @@ private:
 	QTimer* m_timer;
 	QUrl m_connectedUrl;
 	CosMessage *m_cosMessage;
+
+	QString m_guiLoad;
 
 	ConnectionState m_connectionState;
 	QString m_userName;
@@ -377,8 +365,6 @@ private:
 	QString m_serverDataDir;
 	QString m_userRankName;
 	bool m_registrationEnabled;
-	bool m_passwordResetEnabled;
-	QVariantList m_registrationDomains;
 	QStringList m_waitForResources;
 	QStringList m_registeredServerResources;
 	QString m_userRankImage;
@@ -393,7 +379,6 @@ private:
 	static QStringList m_medalIconList;
 	qreal m_sfxVolume;
 	QString m_userPlayerCharacter;
-	QVariantList m_registrationClasses;
 	static QHash<QString, ModuleInterface*> m_moduleObjectiveList;
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
 	bool m_sslErrorSignalHandlerConnected;
@@ -402,6 +387,7 @@ private:
 	QString m_serverUuid;
 	QQmlContext *m_rootContext;
 
+	static Client *m_clientInstance;
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	QSingleInstance *m_singleInstance;

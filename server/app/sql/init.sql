@@ -132,25 +132,13 @@ CREATE TABLE score(
 
 
 
-
-CREATE TABLE registration(
-	id INTEGER PRIMARY KEY,
-	email TEXT NOT NULL,
-	firstname TEXT,
-	lastname TEXT,
-	classid INTEGER,
-	code TEXT NOT NULL DEFAULT (upper(hex(randomblob(4)))),
-	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-	UNIQUE(email)
+CREATE TABLE classRegistration(
+	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	code TEXT NOT NULL,
+	UNIQUE(classid,
+	UNIQUE(code)
 );
 
-
-CREATE TABLE passwordReset(
-	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	code TEXT NOT NULL DEFAULT (upper(hex(randomblob(4)))),
-	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-	UNIQUE (username)
-);
 
 
 CREATE VIEW userInfo AS

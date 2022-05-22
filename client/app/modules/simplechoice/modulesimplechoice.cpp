@@ -43,51 +43,157 @@ ModuleSimplechoice::ModuleSimplechoice(QObject *parent) : QObject(parent)
 
 QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
+	if (!storage) {
+		QVariantMap m;
+		QStringList answers = data.value("answers").toStringList();
+		m["title"] = data.value("question").toString();
+		m["details"] = data.value("correct").toString()+"<br>("+answers.join(", ")+")";
+		m["image"] = "";
 
-	QStringList answers = data.value("answers").toStringList();
+		return m;
+	} else if (storage->name() == "binding" || storage->name() == "numbers") {
+		QStringList answers;
 
-	QVariantMap m;
-	m["title"] = data.value("question").toString();
-	m["details"] = data.value("correct").toString()+"<br>("+answers.join(", ")+")";
-	m["image"] = "";
+		bool isBindToRight = data.value("mode").toString() == "right";
 
-	return m;
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap m = v.toMap();
+			QString left = m.value("first").toString();
+			QString right = m.value("second").toString();
+
+			if (left.isEmpty() || right.isEmpty())
+				continue;
+
+			answers.append(QString("%1 — %2").arg(isBindToRight ? right : left).arg(isBindToRight ? left : right));
+		}
+
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = answers.join(", ");
+		m["image"] = "";
+
+		return m;
+	}
+
+	return QVariantMap({{"title", ""},
+						{"details", ""},
+						{"image", ""}
+					   });
 }
 
 
 
+
 /**
- * @brief ModuleSimplechoice::generate
+ * @brief ModuleSimplechoice::generateAll
  * @param data
  * @param storage
  * @param storageData
- * @param answer
  * @return
  */
 
-QVariantMap ModuleSimplechoice::generate(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *answer) const
+QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
+	if (!storage) {
+		QVariantList list;
+		QVariantMap m;
 
-	QVariantMap m;
+		m["question"] = data.value("question").toString();
 
-	m["question"] = data.value("question").toString();
+		QString correct = data.value("correct").toString();
 
-	QString correct = data.value("correct").toString();
+		if (correct.isEmpty())
+			correct = " ";
 
-	if (correct.isEmpty())
-		correct = " ";
+		QStringList alist = data.value("answers").toStringList();
 
-	QStringList alist = data.value("answers").toStringList();
+		m.insert(generateOne(correct, alist));
 
-	QVector<QPair<QString, bool>> options;
-	options.append(qMakePair(correct, true));
+		list.append(m);
 
-	while (alist.size() && options.size() < 4) {
-		options.append(qMakePair(alist.takeAt(QRandomGenerator::global()->bounded(alist.size())), false));
+		return list;
+	}
+
+	if (storage->name() == "binding" || storage->name() == "numbers")
+		return generateBinding(data, storageData);
+
+
+	return QVariantList();
+}
+
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateBinding
+ * @param data
+ * @param storage
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	bool isBindToRight = data.value("mode").toString() == "right";
+	QString question = data.value("question").toString();
+
+	foreach (QVariant v, storageData.value("bindings").toList()) {
+		QVariantMap m = v.toMap();
+		QString left = m.value("first").toString();
+		QString right = m.value("second").toString();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		if (question.isEmpty())
+			retMap["question"] = (isBindToRight ? right : left);
+		else if (question.contains("%1"))
+			retMap["question"] = question.arg(isBindToRight ? right : left);
+		else
+			retMap["question"] = question;
+
+		QStringList alist;
+
+		foreach (QVariant v, storageData.value("bindings").toList()) {
+			QVariantMap mm = v.toMap();
+			QString f1 = mm.value("first").toString();
+			QString f2 = mm.value("second").toString();
+
+			if ((isBindToRight && right == f2) || (!isBindToRight && left == f1))
+				continue;
+
+			alist.append(isBindToRight ? f1 : f2);
+		}
+
+		retMap.insert(generateOne(isBindToRight ? left : right, alist));
+
+		ret.append(retMap);
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief ModuleSimplechoice::generateOne
+ * @param correctAnswer
+ * @param options
+ * @return
+ */
+
+QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStringList optionsList) const
+{
+	QVector<QPair<QString, bool>> opts;
+	opts.append(qMakePair(correctAnswer, true));
+
+	while (optionsList.size() && opts.size() < 4) {
+		QString o = optionsList.takeAt(QRandomGenerator::global()->bounded(optionsList.size()));
+		if (!o.isEmpty())
+			opts.append(qMakePair(o, false));
 	}
 
 
@@ -95,21 +201,50 @@ QVariantMap ModuleSimplechoice::generate(const QVariantMap &data, ModuleInterfac
 
 	QStringList optList;
 
-	while (options.size()) {
-		QPair<QString, bool> p = options.takeAt(QRandomGenerator::global()->bounded(options.size()));
+	while (opts.size()) {
+		QPair<QString, bool> p = opts.takeAt(QRandomGenerator::global()->bounded(opts.size()));
 		optList.append(p.first);
 
 		if (p.second)
 			correctIdx = optList.size()-1;
 	}
 
-
+	QVariantMap m;
+	m["answer"] = correctIdx;
 	m["options"] = optList;
-	m["xpFactor"] = 1.1;
 
-	if (answer) {
-		(*answer)["index"] = correctIdx;
+	return m;
+}
+
+
+/**
+ * @brief ModuleSimplechoice::preview
+ * @param generatedList
+ * @return
+ */
+
+QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList) const
+{
+	QVariantMap m;
+	QString s;
+
+	foreach (QVariant v, generatedList) {
+		QVariantMap m = v.toMap();
+
+		s.append("**"+m.value("question").toString()+"**\n");
+
+		int correct = m.value("answer", -1).toInt();
+		QStringList l = m.value("options").toStringList();
+		for (int i=0; i<l.size(); ++i) {
+			if (i==correct)
+				s.append("- **"+l.at(i)+"**\n");
+			else
+				s.append("- "+l.at(i)+"\n");
+		}
+		s.append("---\n");
 	}
+
+	m["text"] = s;
 
 	return m;
 }

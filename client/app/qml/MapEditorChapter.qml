@@ -10,31 +10,29 @@ import "JScript.js" as JS
 QCollapsible {
 	id: control
 
-	required property string name
-	required property int chapter
-	required property int missionCount
-	required property int objectiveCount
 	required property int level
+	required property bool selected
 
-	//title: "%1 (#%2)".arg(name).arg(chapter)
-	title: name
-	titleColor: CosStyle.colorOKLight
-	backgroundColor: CosStyle.colorOKDark
-	contentBackgroundColor: JS.setColorAlpha(CosStyle.colorOKDarkest, 0.8)
+	property GameMapEditorChapter self: null
+
+	signal chapterRemove()
+
+	title: self ? self.name : ""
+	itemSelected: selected
 
 	rightComponent: Row {
 		spacing: 2
 		QBadge {
-			text: missionCount
-			color: CosStyle.colorWarningDark
+			text: self ? self.missionCount : ""
+			color: CosStyle.colorAccentDark
 			anchors.verticalCenter: parent.verticalCenter
-			visible: missionCount > (level>0 ? 1 : 0)
+			visible: self && self.missionCount > (level>0 ? 1 : 0)
 		}
 		QBadge {
-			text: objectiveCount
-			color: CosStyle.colorPrimaryDark
+			text: self ? self.objectiveCount : ""
+			color: CosStyle.colorPrimaryDarker
 			anchors.verticalCenter: parent.verticalCenter
-			visible: objectiveCount > 0
+			visible: self && self.objectiveCount > 0
 		}
 		QToolButton {
 			anchors.verticalCenter: parent.verticalCenter
@@ -62,209 +60,271 @@ QCollapsible {
 		}
 	}
 
-	Column {
 
-		Repeater {
-			model: SortFilterProxyModel {
-				sourceModel: mapEditor.modelObjectiveList
+	QObjectListDelegateView {
+		id: objectiveList
+		width: parent.width
 
-				filters: ValueFilter {
-					roleName: "chapter"
-					value: control.chapter
+		selectorSet: self && self.objectives.selectedCount
+
+		model: self ? self.objectives : null
+
+		delegate: Item {
+			id: item
+			width: objectiveList.width
+			height: CosStyle.twoLineHeight*1.7
+
+			required property bool selected
+			required property int index
+
+			property GameMapEditorObjective objectiveSelf: objectiveList.modelObject(index)
+
+			readonly property color mainColor: objectiveSelf && objectiveSelf.storageId > 0 ?
+												   CosStyle.colorOKLighter :
+												   CosStyle.colorAccent
+
+			property bool selectorSet: objectiveList.selectorSet
+
+
+			onObjectiveSelfChanged: if (!objectiveSelf) {
+										delete item
+									}
+
+			QRectangleBg {
+				id: rect
+				anchors.fill: parent
+				acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+				QLabel {
+					id: labelName
+					text: objectiveSelf ? objectiveSelf.info[0] : ""
+					color: mainColor
+					font.weight: Font.DemiBold
+					font.pixelSize: CosStyle.pixelSize*0.6
+					font.capitalization: Font.AllUppercase
+					anchors.left: parent.left
+					anchors.top: parent.top
+					anchors.leftMargin: 3
+					anchors.topMargin: 1
 				}
 
-				sorters: RoleSorter {
-					roleName: "sortid"
-				}
-			}
+				Row {
+					anchors.verticalCenter: parent.verticalCenter
 
-			Item {
-				id: item
-				width: control.width
-				height: CosStyle.twoLineHeight*1.7
+					spacing: 0
 
-				required property string uuid
-				required property string objectiveModule
-				required property string objectiveData
-				required property int storage
-				required property int storageCount
-				required property string storageData
-				required property string storageModule
-
-				readonly property var _info: cosClient.objectiveInfo(objectiveModule, objectiveData, storageModule, storageData)
-
-				readonly property color mainColor: storage ? CosStyle.colorAccent : CosStyle.colorWarningLight
-
-				QRectangleBg {
-					id: rect
-					anchors.fill: parent
-					acceptedButtons: Qt.LeftButton | Qt.RightButton
-
-					QLabel {
-						id: labelName
-						text: _info.name
+					QFontImage {
+						id: imgModule
+						width: Math.max(rect.height*0.5, size*1.1)
+						size: CosStyle.pixelSize*1.5
+						anchors.verticalCenter: parent.verticalCenter
+						icon: objectiveSelf ? objectiveSelf.info[1] : ""
 						color: mainColor
-						font.weight: Font.DemiBold
-						font.pixelSize: CosStyle.pixelSize*0.6
-						font.capitalization: Font.AllUppercase
-						anchors.left: parent.left
-						anchors.top: parent.top
-						anchors.leftMargin: 3
-						anchors.topMargin: 1
+						visible: !item.selectorSet
 					}
 
-					Row {
+					QFlipable {
+						id: flipable
+						width: imgModule.width
+						height: fontSize*1.1
+						fontSize: CosStyle.pixelSize*1.5
+
 						anchors.verticalCenter: parent.verticalCenter
 
-						spacing: 0
+						visible: item.selectorSet
 
-						QFontImage {
-							id: imgModule
-							width: Math.max(rect.height*0.5, size*1.1)
-							size: CosStyle.pixelSize*1.5
-							anchors.verticalCenter: parent.verticalCenter
-							icon: _info.icon
+						mouseArea.enabled: false
+
+						frontIcon: CosStyle.iconUnchecked
+						backIcon: CosStyle.iconChecked
+						color: CosStyle.colorAccent
+						flipped: item.selected
+					}
+
+
+					Column {
+						anchors.verticalCenter: parent.verticalCenter
+						anchors.verticalCenterOffset: (labelName.height/2)*(subtitle.lineCount-1)/3
+
+						QLabel {
+							id: title
+							anchors.left: parent.left
+							width: rect.width-imgModule.width-btnMenu.width
+								   -(badge.visible ? badge.width : 0)
+							text: objectiveSelf ? objectiveSelf.info[2] : ""
 							color: mainColor
+							font.pixelSize: CosStyle.pixelSize*1.1
+							font.weight: Font.Normal
+							maximumLineCount: 1
+							lineHeight: 0.9
+							elide: Text.ElideRight
+						}
+						QLabel {
+							id: subtitle
+							anchors.left: parent.left
+							width: title.width
+							text: objectiveSelf ? objectiveSelf.info[3] : ""
+							color: mainColor
+							font.pixelSize: CosStyle.pixelSize*0.75
+							font.weight: Font.Light
+							maximumLineCount: 3
+							lineHeight: 0.8
+							wrapMode: Text.Wrap
+							elide: Text.ElideRight
+						}
+					}
+
+					QBadge {
+						id: badge
+						text: objectiveSelf ? objectiveSelf.storageCount : ""
+						color: CosStyle.colorPrimaryDarker
+						anchors.verticalCenter: parent.verticalCenter
+						visible: objectiveSelf && objectiveSelf.storageCount > 1
+					}
+
+
+					QToolButton {
+						id: btnMenu
+						anchors.verticalCenter: parent.verticalCenter
+						icon.source: CosStyle.iconMenu
+
+						ListModel {
+							id: _filteredChaptersModel
 						}
 
-
-						Column {
-							anchors.verticalCenter: parent.verticalCenter
-							anchors.verticalCenterOffset: (labelName.height/2)*(subtitle.lineCount-1)/3
-
-							QLabel {
-								id: title
-								anchors.left: parent.left
-								width: rect.width-imgModule.width-btnMenu.width
-									   -(badge.visible ? badge.width : 0)
-								text: _info.title
-								color: mainColor
-								font.pixelSize: CosStyle.pixelSize*1.1
-								font.weight: Font.Normal
-								maximumLineCount: 1
-								lineHeight: 0.9
-								elide: Text.ElideRight
-							}
-							QLabel {
-								id: subtitle
-								anchors.left: parent.left
-								width: title.width
-								text: _info.details
-								color: mainColor
-								font.pixelSize: CosStyle.pixelSize*0.75
-								font.weight: Font.Light
-								maximumLineCount: 3
-								lineHeight: 0.8
-								wrapMode: Text.Wrap
-								elide: Text.ElideRight
-							}
-						}
-
-						QBadge {
-							id: badge
-							text: storageCount
-							color: CosStyle.colorPrimaryDark
-							anchors.verticalCenter: parent.verticalCenter
-							visible: storageCount > 1
-						}
-
-
-						QToolButton {
-							id: btnMenu
-							anchors.verticalCenter: parent.verticalCenter
-							icon.source: CosStyle.iconMenu
+						QMenu {
+							id: objectiveMenu
 
 							QMenu {
-								id: objectiveMenu
-								MenuItem {
-									//icon.source: CosStyle.iconRename
-									text: qsTr("Másolás")
+								id: submenuCopy
+								title: qsTr("Másolás")
 
-									onClicked: control.objectiveMoveCopy(item.uuid, true)
-								}
 								MenuItem {
-									//icon.source: CosStyle.iconBooks
-									text: qsTr("Áthelyezés")
-
-									onClicked: control.objectiveMoveCopy(item.uuid, false)
-								}
-								MenuItem {
-									icon.source: CosStyle.iconDuplicate
-									text: qsTr("Kettőzés")
-
-									onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																					 uuid: "",
-																					 objectiveModule: item.objectiveModule,
-																					 objectiveData: item.objectiveData,
-																					 storage: item.storage,
-																					 storageData: item.storageData,
-																					 storageModule: item.storageModule,
-																					 storageCount: item.storageCount,
-																					 chapter: control.chapter
-																				 })
+									text: "Új szakasz"
+									onClicked: objectiveMoveCopy(-1, true, item.objectiveSelf)
 								}
 
 								MenuSeparator { }
 
-								MenuItem {
-									icon.source: CosStyle.iconDelete
-									text: qsTr("Törlés")
+								Instantiator {
+									model: _filteredChaptersModel
 
-									onClicked: mapEditor.objectiveRemove({uuid: item.uuid})
+									MenuItem {
+										text: model.name
+										onClicked: objectiveMoveCopy(model.id, true, item.objectiveSelf)
+									}
+
+									onObjectAdded: submenuCopy.insertItem(index+2, object)
+									onObjectRemoved: submenuCopy.removeItem(object)
 								}
 							}
 
-							onClicked: objectiveMenu.open()
+							QMenu {
+								id: submenuMove
+								title: qsTr("Áthelyezés")
+
+								MenuItem {
+									text: "Új szakasz"
+									onClicked: objectiveMoveCopy(-1, false, item.objectiveSelf)
+								}
+
+								MenuSeparator { }
+
+								Instantiator {
+									model: _filteredChaptersModel
+
+									MenuItem {
+										text: model.name
+										onClicked: objectiveMoveCopy(model.id, false, item.objectiveSelf)
+									}
+
+									onObjectAdded: submenuMove.insertItem(index+2, object)
+									onObjectRemoved: submenuMove.removeItem(object)
+								}
+							}
+
+							MenuItem {
+								icon.source: CosStyle.iconDuplicate
+								text: qsTr("Kettőzés")
+								enabled: self.objectives.selectedCount === 0
+
+								onClicked: mapEditor.openObjective({
+																	   objective: item.objectiveSelf,
+																	   chapter: control.self,
+																	   duplicate: true
+																   })
+							}
+
+							MenuSeparator { }
+
+							MenuItem {
+								icon.source: CosStyle.iconDelete
+								text: qsTr("Törlés")
+
+								onClicked: {
+									if (self.objectives.selectedCount > 0) {
+										mapEditor.objectiveRemoveList(self, self.objectives.getSelected())
+									} else {
+										mapEditor.objectiveRemove(self, objectiveSelf)
+									}
+								}
+							}
 						}
-					}
 
+						onClicked: {
+							_filteredChaptersModel.clear()
+							for (var i=0; i<mapEditor.editor.chapters.count; i++) {
+								var d=mapEditor.editor.chapters.object(i)
+								if (d.id !== self.id)
+									_filteredChaptersModel.append({id: d.id, name: d.name})
+							}
 
-					mouseArea.onClicked: {
-						if (mouse.button === Qt.LeftButton) {
-							mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-																  uuid: item.uuid,
-																  objectiveModule: item.objectiveModule,
-																  objectiveData: item.objectiveData,
-																  storage: item.storage,
-																  storageData: item.storageData,
-																  storageModule: item.storageModule,
-																  storageCount: item.storageCount,
-																  chapter: control.chapter
-															  })
-
-						} else if (mouse.button === Qt.RightButton) {
 							objectiveMenu.open()
 						}
 
 					}
 				}
 
-				Rectangle {
-					anchors.bottom: parent.bottom
-					anchors.left: parent.left
-					width: parent.width
-					height: 1
-					color: CosStyle.colorOKDark
+
+				mouseArea.onClicked: {
+					if (mouse.button === Qt.LeftButton) {
+						if (item.selectorSet)
+							objectiveList.onDelegateClicked(index, mouse.modifiers & Qt.ShiftModifier)
+						else {
+							mapEditor.openObjective({
+														objective: item.objectiveSelf,
+														chapter: control.self
+													})
+						}
+
+					} else if (mouse.button === Qt.RightButton) {
+						btnMenu.clicked()
+					}
+				}
+
+
+
+				mouseArea.onPressAndHold: {
+					if (mouse.button === Qt.LeftButton) {
+						objectiveList.onDelegateLongClicked(index)
+					}
 				}
 			}
 		}
 
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
+
+		footer: QToolButtonFooter {
+			width: objectiveList.width
 			icon.source: CosStyle.iconAdd
 			text: qsTr("Új feladat")
-			onClicked: mapEditor.drawer.loader.setSource("MapEditorObjective.qml", {
-															 uuid: "",
-															 objectiveModule: "",
-															 objectiveData: "",
-															 storage: -1,
-															 storageData: "",
-															 storageModule: "",
-															 storageCount: 0,
-															 chapter: control.chapter
-														 })
+			color: CosStyle.colorAccentLighter
+			onClicked: mapEditor.openObjective({
+												   chapter: control.self
+											   })
 		}
 	}
+
+
 
 
 	Action {
@@ -274,11 +334,11 @@ QCollapsible {
 		text: qsTr("Átnevezés")
 
 		onTriggered: {
-			var d = JS.dialogCreateQml("TextField", { title: qsTr("Szakasz neve"), value: name })
+			var d = JS.dialogCreateQml("TextField", { title: qsTr("Szakasz neve"), value: self.name })
 
 			d.accepted.connect(function(data) {
 				if (data.length)
-					mapEditor.chapterModify({chapter: chapter, name: data})
+					mapEditor.chapterModify(self, {name: data})
 			})
 			d.open()
 		}
@@ -293,7 +353,30 @@ QCollapsible {
 		icon.source: CosStyle.iconBooks
 		text: qsTr("Küldetések")
 
-		onTriggered: mapEditor.chapterGetMissionList({chapter: chapter, name: name})
+		onTriggered: {
+			mapEditor.updateMissionLevelModelChapter(self)
+
+			if (mapEditor.missionLevelModel.count < 1) {
+				cosClient.sendMessageWarning(qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))
+				return
+			}
+
+
+			var d = JS.dialogCreateQml("MissionList", {
+										   icon: CosStyle.iconLockAdd,
+										   title: qsTr("%1 - Küldetések").arg(self.name),
+										   selectorSet: true,
+										   sourceModel: mapEditor.missionLevelModel
+									   })
+
+			d.accepted.connect(function(dlgdata) {
+				if (!dlgdata)
+					return
+
+				mapEditor.chapterModifyMissionLevels(self, mapEditor.missionLevelModel.getSelected())
+			})
+			d.open()
+		}
 	}
 
 
@@ -304,38 +387,40 @@ QCollapsible {
 		icon.source: level > 0 ? CosStyle.iconRemove : CosStyle.iconDelete
 		text: level > 0 ? qsTr("Eltávolítás") : qsTr("Törlés")
 
-		onTriggered: if (level > 0)
-						 mapEditor.missionLevelChapterRemove({chapter: chapter, level: level})
-					 else
-						 mapEditor.chapterRemove({chapter: chapter})
+		onTriggered: control.chapterRemove()
 	}
 
 
 
 
 
-	function objectiveMoveCopy(uuid, isCopy) {
-		var d = JS.dialogCreateQml("List", {
-									   icon: CosStyle.iconLockAdd,
-									   title: isCopy ? qsTr("Feladat másolása") : qsTr("Feladat áthelyezése"),
-									   roles: ["name", "chapter"],
-									   modelTitleRole: "name",
-									   selectorSet: false,
-									   sourceModel: mapEditor.modelChapterList
-								   })
+	function objectiveMoveCopy(chapterId, isCopy, objective) {
+		if (chapterId === -1) {
+			var d = JS.dialogCreateQml("TextField", {
+										   title: isCopy ? qsTr("Másolás új szakaszba") : qsTr("Áthelyezés új szakaszba"),
+										   text: qsTr("Az új szakasz neve")
+									   })
 
+			d.accepted.connect(function(data) {
+				if (data.length) {
+					if (self.objectives.selectedCount > 0) {
+						mapEditor.objectiveMoveCopyList(self, isCopy, self.objectives.getSelected(), -1, data)
+					} else {
+						mapEditor.objectiveMoveCopy(self, isCopy, objective, -1, data)
+					}
 
-		d.accepted.connect(function(data) {
-			if (data === -1)
-				return
+					self.objectives.unselectAll()
+				}
+			})
+			d.open()
+		} else {
+			if (self.objectives.selectedCount > 0) {
+				mapEditor.objectiveMoveCopyList(self, isCopy, self.objectives.getSelected(), chapterId)
+			} else {
+				mapEditor.objectiveMoveCopy(self, isCopy, objective, chapterId)
+			}
 
-			var p = d.item.sourceModel.get(data)
-
-			if (isCopy)
-				mapEditor.objectiveCopy({uuid: uuid, chapter: p.chapter})
-			else
-				mapEditor.objectiveModify({uuid: uuid, chapter: p.chapter})
-		})
-		d.open()
+			self.objectives.unselectAll()
+		}
 	}
 }

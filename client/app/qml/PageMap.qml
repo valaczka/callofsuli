@@ -21,11 +21,7 @@ QTabPage {
 	compact: true
 
 
-	StudentMaps {
-		id: demoStudentMaps
 
-		demoMode: true
-	}
 
 
 	Component {
@@ -46,53 +42,60 @@ QTabPage {
 	}
 
 
+	Component {
+		id: demoStudentMapsComponent
+
+		StudentMaps {
+			Component.onCompleted: init(true)
+		}
+	}
 
 	onDemoModeChanged: if (demoMode) {
-						   demoStudentMaps.client = cosClient
-						   studentMaps = demoStudentMaps
+						   studentMaps = demoStudentMapsComponent.createObject(control)
 					   }
 
 
-
 	onPageActivatedFirst: {
-		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true)) {
+		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true) === false) {
 			cosClient.sendMessageInfo(qsTr("Képernyő tájolása"), qsTr("Fektesd el a képernyőt"))
 			cosClient.setSetting("notification/gameLandscape", false)
 		}
 	}
 
 	onPageActivated: {
-		cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+		cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 	}
 
 
 	onPageDeactivated: {
-		cosClient.stopSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+		cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 	}
 
 
 	Connections {
 		target: Qt.application
 		function onStateChanged() {
-			if (Qt.platform.os !== "android")
+			if (Qt.platform.os !== "android" && Qt.platform.os !== "ios")
 				return
 
 			switch (Qt.application.state) {
 			case Qt.ApplicationSuspended:
 			case Qt.ApplicationHidden:
 				if (control.isCurrentItem)
-					cosClient.stopSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+					cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			case Qt.ApplicationActive:
 				if (control.isCurrentItem)
-					cosClient.playSound("qrc:/sound/menu/bg.ogg", CosSound.Music)
+					cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			}
 		}
 	}
 
 
-	Component.onCompleted: pushContent(componentMissionList)
+	Component.onCompleted: {
+		pushContent(componentMissionList)
+	}
 
 
 	function loadMissionLevel(uuid, level, deathmatch) {

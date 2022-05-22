@@ -46,7 +46,6 @@ Page {
 
 	GameActivity {
 		id: gameActivity
-		client: cosClient
 		game: game
 
 		onPreparedChanged: {
@@ -123,6 +122,7 @@ Page {
 		boundsBehavior: Flickable.StopAtBounds
 		flickableDirection: Flickable.HorizontalAndVerticalFlick
 
+		interactive: false
 
 		Item {
 			id: placeholderItem
@@ -351,14 +351,14 @@ Page {
 						infoTime.marked = true
 						_timeSound = false
 						messageList.message(qsTr("You have 1 minute left"), 1)
-						cosClient.playSound("qrc:/sound/voiceover/time.ogg", CosSound.VoiceOver)
+						cosClient.playSound("qrc:/sound/voiceover/time.mp3", CosSound.VoiceOver)
 					}
 
 					if (msecLeft <= 30*1000 && _finalSound) {
 						infoTime.marked = true
 						_finalSound = false
 						messageList.message(qsTr("You have 30 seconds left"), 1)
-						cosClient.playSound("qrc:/sound/voiceover/final_round.ogg", CosSound.VoiceOver)
+						cosClient.playSound("qrc:/sound/voiceover/final_round.mp3", CosSound.VoiceOver)
 					}
 				}
 
@@ -508,6 +508,41 @@ Page {
 				flick.contentY = y
 		}
 
+
+		function setOffsetTo(_x, _y) {
+			var fh = flick.height
+			var py = _y*gameScene.scale
+			var cy = flick.contentY
+			var ch = flick.contentHeight
+			var y = py-fh/2
+
+			if (y<0)
+				y = 0
+
+			if (y+fh > ch)
+				y = ch-fh
+
+			flick.contentY = y
+
+
+			var fw = flick.width
+			var px = _x*gameScene.scale
+			var cx = flick.contentX
+			var cw = flick.contentWidth
+			var x = px-fw/2
+
+			if (x<0)
+				x = 0
+			if (x+fw > cw)
+				x = cw-fw
+
+			if (animX.running || Math.abs(cx-x) > 50) {
+				animX.to = x
+				animX.restart()
+			} else {
+				flick.contentX = x
+			}
+		}
 	}
 
 	property alias painhudImage: painhudImage
@@ -705,7 +740,7 @@ Page {
 
 				QFontImage {
 					size: itemGrid.size
-					icon: CosStyle.iconDrawer
+					icon: "qrc:/internal/game/drop.png"
 					color: "blue"
 				}
 			}
@@ -969,7 +1004,7 @@ Page {
 
 			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
 
-			fontImage.icon: CosStyle.iconCancel
+			fontImage.icon: "qrc:/internal/game/drop.png"
 			fontImage.color: "white"
 			fontImageScale: 0.6
 			fontImage.anchors.horizontalCenterOffset: -2
@@ -1019,6 +1054,21 @@ Page {
 		wrapMode: Text.Wrap
 	}
 
+	Label {
+		id: previewLabel
+		color: CosStyle.colorErrorLight
+		font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
+		opacity: 0.0
+		visible: opacity
+		width: parent.width*0.7
+		horizontalAlignment: Text.AlignHCenter
+		x: (parent.width-width)/2
+		y: parent.height*0.8-height/2
+		wrapMode: Text.Wrap
+		font.weight: Font.DemiBold
+		style: Text.Outline
+		styleColor: "black"
+	}
 
 
 	Connections {
@@ -1204,18 +1254,68 @@ Page {
 				ScriptAction {
 					script: {
 						messageList.message(qsTr("LEVEL %1").arg(gameMatch.level), 3)
-						if (gameMatch && gameMatch.deathmatch) {
-							messageList.message(qsTr("SUDDEN DEATH"), 3)
-							cosClient.playSound("qrc:/sound/voiceover/sudden_death.ogg", CosSound.VoiceOver)
-						} else
-							cosClient.playSound("qrc:/sound/voiceover/begin.ogg", CosSound.VoiceOver)
-
 						_backDisabled = false
+						previewAnimation.start()
 					}
 				}
 			}
 		}
 	]
+
+
+
+
+
+	SequentialAnimation {
+		id: previewAnimation
+		running: false
+		loops: Animation.Infinite
+		property int num: 0
+
+		ScriptAction {
+			script:  {
+				if (previewAnimation.num >= game.terrainData.preview.length) {
+					if (gameMatch && gameMatch.deathmatch) {
+						messageList.message(qsTr("SUDDEN DEATH"), 3)
+						cosClient.playSound("qrc:/sound/voiceover/sudden_death.mp3", CosSound.VoiceOver)
+					} else
+						cosClient.playSound("qrc:/sound/voiceover/begin.mp3", CosSound.VoiceOver)
+
+					previewAnimation.stop()
+					flick.interactive = true
+					previewLabel.text = ""
+					game.onGameStarted()
+				} else {
+					var d = game.terrainData.preview[previewAnimation.num]
+
+					flick.setOffsetTo(d.point.x, d.point.y)
+					previewLabel.text = qsTr(d.text)
+
+					previewAnimation.num++
+				}
+			}
+		}
+
+		NumberAnimation {
+			target: previewLabel
+			property: "opacity"
+			to: 1.0
+			duration: 850
+			easing.type: Easing.InQuad
+		}
+
+		PauseAnimation {
+			duration: 1500
+		}
+
+		NumberAnimation {
+			target: previewLabel
+			property: "opacity"
+			to: 0.0
+			duration: 450
+			easing.type: Easing.OutQuad
+		}
+	}
 
 
 	Timer {
@@ -1225,7 +1325,7 @@ Page {
 		triggeredOnStart: false
 		onTriggered: {
 			stop()
-			cosClient.playSound("qrc:/sound/voiceover/fight.ogg", CosSound.VoiceOver)
+			cosClient.playSound("qrc:/sound/voiceover/fight.mp3", CosSound.VoiceOver)
 		}
 	}
 
@@ -1268,7 +1368,7 @@ Page {
 	}
 
 	Component.onCompleted: {
-		cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.ogg", CosSound.VoiceOver)
+		cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
 	}
 
 	Component.onDestruction: {
@@ -1283,7 +1383,8 @@ Page {
 		if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
 			control.state = "run"
 			game.gameStarted()
-			studentMaps.gameStarted()
+			if (studentMaps)
+				studentMaps.gameStarted()
 		}
 
 	}
