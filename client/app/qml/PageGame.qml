@@ -112,7 +112,7 @@ Page {
 		contentWidth: placeholderItem.width
 		contentHeight: placeholderItem.height
 
-		enabled: !game.question
+		enabled: !game.question && gameMatch.mode == GameMatch.ModeNormal
 
 		height: Math.min(contentHeight, parent.height)
 		width: Math.min(contentWidth, parent.width)
@@ -131,11 +131,11 @@ Page {
 
 			CosGame {
 				id: game
-				width: gameScene.width
-				height: gameScene.height
+				width: gameMatch.mode == GameMatch.ModeNormal ? gameScene.width : mainScene.width
+				height: gameMatch.mode == GameMatch.ModeNormal ? gameScene.height : mainScene.height
 				currentScene: mainScene
 
-				y: parent.height-(gameScene.height*gameScene.scale)
+				y: gameMatch.mode == GameMatch.ModeNormal ? parent.height-(gameScene.height*gameScene.scale) : 0
 
 				opacity: 0.0
 				visible: false
@@ -150,14 +150,8 @@ Page {
 				Scene {
 					id: mainScene
 
-					width: 600
-					height: 600
-
-					Label {
-						id: lbl
-						anchors.centerIn: parent
-						text: qsTr("Loading")
-					}
+					width: control.width
+					height: control.height
 				}
 
 
@@ -293,7 +287,8 @@ Page {
 
 				onGameSceneLoaded: {
 					_sceneLoaded = true
-					cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
+					if (gameMatch.mode == GameMatch.ModeNormal)
+						cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
 				}
 
 				onGameSceneLoadFailed: {
@@ -340,6 +335,9 @@ Page {
 
 
 				onMsecLeftChanged: {
+					if (gameMatch.mode != GameMatch.ModeNormal)
+						return
+
 					if (msecLeft > 30*1000 && !_finalSound)
 						_finalSound = true
 
@@ -371,7 +369,7 @@ Page {
 				}
 
 				onGameSceneScaleToggleRequest: {
-					if (!_backDisabled)
+					if (!_backDisabled && gameMatch.mode == GameMatch.ModeNormal)
 						gameScene.isSceneZoom = !gameScene.isSceneZoom
 				}
 			}
@@ -402,7 +400,7 @@ Page {
 				anchors.fill: parent
 			}
 
-			enabled: !_backDisabled
+			enabled: !_backDisabled && !game.question && gameMatch.mode == GameMatch.ModeNormal
 
 			onPinchUpdated: {
 				if (pinch.scale < 0.9) {
@@ -639,10 +637,11 @@ Page {
 		anchors.margins: 5
 		color: CosStyle.colorErrorLighter
 		text: "%1 HP"
-		value: game.player ? game.player.entityPrivate.hp : 0
+		value: game.player ? game.player.entityPrivate.hp
+						   : (gameMatch.mode == GameMatch.ModeLite ? gameMatch.startHp : 0)
 		image.visible: false
 
-		visible: !gameScene.isSceneZoom
+		visible: !gameScene.isSceneZoom && gameMatch.mode != GameMatch.ModeExam
 
 		onValueChanged: marked = true
 	}
@@ -653,7 +652,7 @@ Page {
 		anchors.margins: 7
 		spacing: 5
 
-		visible: !gameScene.isSceneZoom
+		visible: !gameScene.isSceneZoom && gameMatch.mode == GameMatch.ModeNormal
 
 		GameLabel {
 			id: labelXP
@@ -812,7 +811,7 @@ Page {
 		width: Math.min(implicitWidth, control.width*0.55)
 		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
 
-		visible: !gameScene.isSceneZoom
+		visible: !gameScene.isSceneZoom && gameMatch.mode == GameMatch.ModeNormal
 	}
 
 	GameLabel {
@@ -823,7 +822,7 @@ Page {
 		image.icon: CosStyle.iconClock1
 
 		anchors.left: parent.left
-		anchors.top: messageList.bottom
+		anchors.top: gameMatch.mode == GameMatch.ModeNormal ? messageList.bottom : parent.top
 		anchors.margins: 5
 
 		property int secs: game.msecLeft/1000
@@ -957,6 +956,8 @@ Page {
 		anchors.right: shotButton.left
 
 		spacing: 30
+
+		visible: gameMatch.mode == GameMatch.ModeNormal
 
 		GameButton {
 			id: pliersButton
@@ -1253,9 +1254,13 @@ Page {
 
 				ScriptAction {
 					script: {
-						messageList.message(qsTr("LEVEL %1").arg(gameMatch.level), 3)
 						_backDisabled = false
-						previewAnimation.start()
+						if (gameMatch.mode == GameMatch.ModeNormal) {
+							messageList.message(qsTr("LEVEL %1").arg(gameMatch.level), 3)
+							previewAnimation.start()
+						} else {
+							game.onGameStarted()
+						}
 					}
 				}
 			}
@@ -1274,6 +1279,9 @@ Page {
 
 		ScriptAction {
 			script:  {
+				if (gameMatch.mode != GameMatch.ModeNormal)
+					return
+
 				if (previewAnimation.num >= game.terrainData.preview.length) {
 					if (gameMatch && gameMatch.deathmatch) {
 						messageList.message(qsTr("SUDDEN DEATH"), 3)
@@ -1363,12 +1371,17 @@ Page {
 
 	StackView.onActivated: {
 		state = "start"
-		game.loadScene()
+		if (gameMatch.mode == GameMatch.ModeNormal)
+			game.loadScene()
+		else
+			_sceneLoaded = true
+
 		gameActivity.prepare()
 	}
 
 	Component.onCompleted: {
-		cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
+		if (gameMatch.mode == GameMatch.ModeNormal)
+			cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
 	}
 
 	Component.onDestruction: {

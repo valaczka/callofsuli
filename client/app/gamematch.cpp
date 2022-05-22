@@ -52,6 +52,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_statData()
 	, m_water(0)
 	, m_pliers(0)
+	, m_mode(ModeNormal)
 {
 	setPlayerCharacter("default");
 }
@@ -77,6 +78,7 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	, m_deathmatch(false)
 	, m_water(0)
 	, m_pliers(0)
+	, m_mode(ModeNormal)
 {
 	Q_ASSERT(missionLevel);
 
@@ -118,6 +120,7 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	, m_deathmatch(false)
 	, m_water(0)
 	, m_pliers(0)
+	, m_mode(ModeNormal)
 {
 	setPlayerCharacter("default");
 
@@ -421,6 +424,19 @@ void GameMatch::setDeathmatch(bool deathmatch)
 
 	m_deathmatch = deathmatch;
 	emit deathmatchChanged(m_deathmatch);
+}
+
+const GameMatch::GameMode &GameMatch::mode() const
+{
+	return m_mode;
+}
+
+void GameMatch::setMode(const GameMode &newMode)
+{
+	if (m_mode == newMode)
+		return;
+	m_mode = newMode;
+	emit modeChanged();
 }
 
 

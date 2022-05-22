@@ -16,11 +16,8 @@ QTabPage {
 	property bool readOnly: true
 
 	property StudentMaps studentMaps: null
-	property Profile profile: null
 
 	compact: true
-
-
 
 
 
@@ -28,8 +25,8 @@ QTabPage {
 		id: componentMissionLevel
 		MapMissionLevel {
 			studentMaps: control.studentMaps
-			profile: control.profile
 			readOnly: control.readOnly
+			actionLite: control.actionLite
 		}
 	}
 
@@ -38,6 +35,7 @@ QTabPage {
 		MapMissionList {
 			studentMaps: control.studentMaps
 			onMissionLevelLoad: loadMissionLevel(uuid, level, deathmatch)
+			actionLite: control.actionLite
 		}
 	}
 
@@ -63,7 +61,8 @@ QTabPage {
 	}
 
 	onPageActivated: {
-		cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
+		if (!actionLite.checked)
+			cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 	}
 
 
@@ -85,7 +84,7 @@ QTabPage {
 					cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			case Qt.ApplicationActive:
-				if (control.isCurrentItem)
+				if (control.isCurrentItem && !actionLite.checked)
 					cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			}
@@ -100,12 +99,26 @@ QTabPage {
 
 	function loadMissionLevel(uuid, level, deathmatch) {
 		pushContent(componentMissionLevel, {
-						   missionUuid: uuid,
-						   missionLevel: level,
-						   missionDeathmatch: deathmatch
-					   })
+						missionUuid: uuid,
+						missionLevel: level,
+						missionDeathmatch: deathmatch
+					})
 	}
 
+
+	property Action actionLite: Action {
+		text: qsTr("Csak feladatok")
+		checkable: true
+		checked: false
+
+		onToggled: {
+			studentMaps.getMissionList(checked)
+			if (checked)
+				cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
+			else
+				cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
+		}
+	}
 }
 
 

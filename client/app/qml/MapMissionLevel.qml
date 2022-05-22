@@ -11,12 +11,12 @@ QTabContainer {
 	id: control
 
 	property StudentMaps studentMaps: null
-	property Profile profile: null
 	property string missionUuid: ""
 	property int missionLevel: -1
 	property bool missionDeathmatch: false
 	property bool autoPlay: false
 	property bool readOnly: true
+	property Action actionLite: null
 
 
 	readonly property bool isHorizontal: width > height
@@ -123,14 +123,15 @@ QTabContainer {
 				anchors.horizontalCenter: parent.horizontalCenter
 
 				enabled: false
-				themeColors: CosStyle.buttonThemeGreen
-				text: qsTr("Play")
+				themeColors: actionLite && actionLite.checked ? CosStyle.buttonThemeDefault : CosStyle.buttonThemeGreen
+				text: actionLite && actionLite.checked ? qsTr("Feladatmegoldás") : qsTr("Play")
 				icon.source: enabled ? CosStyle.iconPlay : CosStyle.iconLock
 				font.pixelSize: CosStyle.pixelSize*1.4
 
 				onClicked: {
 					_state = 1
-					studentMaps.playGame(missionUuid, missionLevel, missionDeathmatch)
+					studentMaps.playGame(missionUuid, missionLevel, missionDeathmatch,
+										 actionLite && actionLite.checked ? GameMatch.ModeLite : GameMatch.ModeNormal)
 				}
 			}
 
@@ -466,7 +467,8 @@ QTabContainer {
 
 			if (autoPlay && info.available) {
 				_state = 1
-				studentMaps.playGame(missionUuid, missionLevel, missionDeathmatch)
+				studentMaps.playGame(missionUuid, missionLevel, missionDeathmatch,
+									 actionLite && actionLite.checked ? GameMatch.ModeLite : GameMatch.ModeNormal)
 			}
 		}
 
@@ -516,13 +518,13 @@ QTabContainer {
 			missionLevel = level
 			missionDeathmatch = deathmatch
 			autoPlay = true
-			studentMaps.getLevelInfo(missionUuid, missionLevel, missionDeathmatch)
+			studentMaps.getLevelInfo(missionUuid, missionLevel, missionDeathmatch, actionLite && actionLite.checked)
 		}
 	}
 
 	onPopulated: {
 		if (studentMaps) {
-			studentMaps.getLevelInfo(missionUuid, missionLevel, missionDeathmatch)
+			studentMaps.getLevelInfo(missionUuid, missionLevel, missionDeathmatch, actionLite && actionLite.checked)
 
 			if (!studentMaps.demoMode)
 				studentMaps.send(CosMessage.ClassStudent, "gameListUserMissionGet", {

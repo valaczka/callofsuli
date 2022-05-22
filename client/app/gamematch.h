@@ -62,12 +62,22 @@ class GameMatch : public QObject
 	Q_PROPERTY(int water READ water WRITE setWater NOTIFY waterChanged)
 	Q_PROPERTY(int pliers READ pliers WRITE setPliers NOTIFY pliersChanged)
 
+	Q_PROPERTY(GameMode mode READ mode WRITE setMode NOTIFY modeChanged)
+
 
 public:
 	explicit GameMatch(GameMap *gameMap, QObject *parent = nullptr);
 	explicit GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	explicit GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	virtual ~GameMatch();
+
+	enum GameMode {
+		ModeNormal,
+		ModeLite,
+		ModeExam
+	};
+
+	Q_ENUM(GameMode);
 
 	struct Statistics {
 		uint index;
@@ -120,6 +130,9 @@ public:
 	int pliers() const;
 	void setPliers(int newPliers);
 
+	const GameMode &mode() const;
+	void setMode(const GameMode &newMode);
+
 public slots:
 	bool check(QString *errorString);
 	void addXP(const qreal &factor);
@@ -158,6 +171,8 @@ signals:
 	void waterChanged();
 	void pliersChanged();
 
+	void modeChanged();
+
 private:
 	GameMap *m_gameMap;
 	GameMapMissionLevel *m_missionLevel;
@@ -180,6 +195,7 @@ private:
 	QVector<Statistics> m_statData;
 	int m_water;
 	int m_pliers;
+	GameMode m_mode;
 };
 
 

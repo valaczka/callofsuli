@@ -71,9 +71,9 @@ public slots:
 	void mapDownload(QList<QObject *> list);
 	void mapLoad(MapListObject *map);
 	void demoMapLoad();
-	void getMissionList();
-	void getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch);
-	void playGame(const QString &uuid, const int &level, const bool &deathmatch);
+	void getMissionList(const bool &isLite);
+	void getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch, const bool &isLite);
+	void playGame(const QString &uuid, const int &level, const bool &deathmatch, const GameMatch::GameMode &mode);
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
 

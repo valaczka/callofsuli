@@ -15,12 +15,20 @@ QTabContainer {
 	maximumWidth: 800
 
 	property StudentMaps studentMaps: null
+	property Action actionLite: null
 
 	property ListModel missionListModel: ListModel {}
 
 	property real medalButtonSize: CosStyle.twoLineHeight*2.8
 
 	signal missionLevelLoad(string uuid, int level, bool deathmatch)
+
+	menu: actionLite ? menu1 : null
+
+	QMenu {
+		id: menu1
+		MenuItem { action: actionLite }
+	}
 
 	SortFilterProxyModel {
 		id: missionProxyModel
@@ -198,7 +206,7 @@ QTabContainer {
 
 	onPopulated: {
 		if (studentMaps)
-			studentMaps.getMissionList()
+			studentMaps.getMissionList(actionLite && actionLite.checked)
 	}
 
 }

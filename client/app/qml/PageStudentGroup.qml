@@ -68,7 +68,6 @@ QTabPage {
 		onGameMapLoaded: {
 			JS.createPage("Map", {
 							  studentMaps: studentMaps,
-							  profile: profile,
 							  title: map.name,
 							  mapUuid: map.uuid,
 							  readOnly: !map.active

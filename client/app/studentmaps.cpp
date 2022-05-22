@@ -264,7 +264,7 @@ void StudentMaps::demoMapLoad()
  * @brief StudentMaps::getMissionList
  */
 
-void StudentMaps::getMissionList()
+void StudentMaps::getMissionList(const bool &isLite)
 {
 	if (!m_currentMap) {
 		return;
@@ -293,12 +293,14 @@ void StudentMaps::getMissionList()
 		}
 
 		o["list"] = list;
+		o["lite"] = isLite;
 		onMissionListGet(o, QByteArray());
 		return;
 	}
 
 	QJsonObject o;
 	o["map"] = QString(m_currentMap->uuid());
+	o["lite"] = isLite;
 	send("missionListGet", o);
 }
 
@@ -313,7 +315,7 @@ void StudentMaps::getMissionList()
  * @param deathmatch
  */
 
-void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch)
+void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch, const bool &isLite)
 {
 	if (!m_currentMap) {
 		return;
@@ -349,7 +351,7 @@ void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool
 						 -1;
 
 	if (deathmatch)
-		ret["available"] = (mission->solvedLevel() >= missionLevel->level() && missionLevel->level() <= lMin);
+		ret["available"] = (mission->solvedLevel() >= missionLevel->level() && missionLevel->level() <= lMin && !isLite);
 	else
 		ret["available"] = (missionLevel->level() <= lMin);
 
@@ -374,7 +376,7 @@ void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool
  * @param data
  */
 
-void StudentMaps::playGame(const QString &uuid, const int &level, const bool &deathmatch)
+void StudentMaps::playGame(const QString &uuid, const int &level, const bool &deathmatch, const GameMatch::GameMode &mode)
 {
 	if (!m_currentMap)
 		return;
@@ -385,6 +387,7 @@ void StudentMaps::playGame(const QString &uuid, const int &level, const bool &de
 		o["missionid"] = uuid;
 		o["level"] = level;
 		o["deathmatch"] = deathmatch;
+		o["mode"] = (mode == GameMatch::ModeLite ? "lite" : "normal");
 		onGameCreate(o, QByteArray());
 		return;
 	}
@@ -394,6 +397,7 @@ void StudentMaps::playGame(const QString &uuid, const int &level, const bool &de
 	o["mission"] = uuid;
 	o["level"] = level;
 	o["deathmatch"] = deathmatch;
+	o["mode"] = (mode == GameMatch::ModeLite ? "lite" : "normal");
 
 	send("gameCreate", o);
 }
@@ -689,6 +693,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 {
 	QJsonArray list = jsonData.value("list").toArray();
 	int baseXP = jsonData.value("baseXP").toInt();
+	bool isLite = jsonData.value("lite").toBool();
 
 	if (baseXP > 0)
 		setBaseXP(baseXP);
@@ -771,7 +776,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 
 				mm2["deathmatch"] = true;
-				mm2["available"] = (mis->solvedLevel() >= ml->level() && ml->level() <= lMin);
+				mm2["available"] = (mis->solvedLevel() >= ml->level() && ml->level() <= lMin && !isLite);
 				mm2["xp"] = xp;
 				mm2["solved"] = ml->solvedDeathmatch();
 				levelList.append(mm2);
@@ -823,8 +828,15 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 	int gameId = jsonData.value("gameid").toInt();
 	bool deathmatch = jsonData.value("deathmatch").toBool();
+	QString _mode = jsonData.value("mode").toString();
+	GameMatch::GameMode mode = GameMatch::ModeNormal;
 
-	qDebug() << "GAME CREATE" << m_currentMap << missionLevel << gameId;
+	if (_mode == "lite")
+		mode = GameMatch::ModeLite;
+	else if (_mode == "exam")
+		mode = GameMatch::ModeExam;
+
+	qDebug() << "GAME CREATE" << m_currentMap << missionLevel << gameId << mode;
 
 	if (!m_currentMap || !missionLevel) {
 		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Pályaadatok nem elérhetőek!"));
@@ -868,6 +880,10 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	m_gameMatch->setGameId(gameId);
 	m_gameMatch->setBaseXP(m_baseXP*XP_FACTOR_TARGET_BASE);
 	m_gameMatch->setDeathmatch(deathmatch);
+	m_gameMatch->setMode(mode);
+
+	if (mode == GameMatch::ModeLite)
+		m_gameMatch->setBgImage("qrc:/internal/img/villa.png");
 
 	if (!Client::clientInstance()->userPlayerCharacter().isEmpty())
 		m_gameMatch->setPlayerCharacter(Client::clientInstance()->userPlayerCharacter());
@@ -964,7 +980,9 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 		});
 	}
 
-	getMissionList();
+	qWarning() << "!!! Implementation missing!";
+
+	getMissionList(true);
 }
 
 

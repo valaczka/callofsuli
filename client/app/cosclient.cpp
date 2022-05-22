@@ -377,6 +377,7 @@ void Client::registerTypes()
 	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
 	qRegisterMetaType<CosSound::ChannelType>("CosSoundChannelType");
 	qRegisterMetaType<CosSound::SoundType>("CosSoundType");
+	qRegisterMetaType<GameMatch::GameMode>("GameMode");
 	qmlRegisterType<AbstractActivity>("COS.Client", 1, 0, "AbstractActivity");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");

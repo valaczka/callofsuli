@@ -118,6 +118,11 @@ void CosGame::loadScene()
 		return;
 	}
 
+	if (m_gameMatch->mode() != GameMatch::ModeNormal) {
+		emit gameSceneLoaded();
+		return;
+	}
+
 	GameScene *scene = qvariant_cast<GameScene *>(m_gameScene->property("scenePrivate"));
 
 	if (!scene) {
@@ -849,6 +854,7 @@ void CosGame::resetRunning()
 
 void CosGame::recalculateActiveEnemies()
 {
+	qWarning() << "!!! Missing implementation: recalculateActiveEnemies()";
 	if (!m_terrainData)
 		return;
 
@@ -916,13 +922,15 @@ void CosGame::onGameMatchTimerTimeout()
 
 void CosGame::onGameStarted()
 {
-	resetPlayer();
 	m_timer->start(100);
 	setIsStarted(true);
 
 	m_elapsedTime = QTime::currentTime();
 
-	QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
+	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+		resetPlayer();
+		QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
+	}
 }
 
 
@@ -947,13 +955,17 @@ void CosGame::onGameFinishedSuccess()
 
 	emit m_gameMatch->gameWin();
 
-	Client::clientInstance()->stopSound(m_backgroundMusicFile);
-	Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
+	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+		Client::clientInstance()->stopSound(m_backgroundMusicFile);
+		Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
+	}
 
 	QTimer::singleShot(1000, this, [=]() {
 		emit gameCompletedReady();
-		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
-		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
+		if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+			Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+			Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
+		}
 	});
 }
 
@@ -979,9 +991,11 @@ void CosGame::onGameFinishedLost()
 
 	emit m_gameMatch->gameLose();
 
-	Client::clientInstance()->stopSound(m_backgroundMusicFile);
-	Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
-	Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
+	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+		Client::clientInstance()->stopSound(m_backgroundMusicFile);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
+	}
 }
 
 
