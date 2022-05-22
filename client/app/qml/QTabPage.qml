@@ -19,6 +19,7 @@ Page {
 	property var backFunction: function() { mainStack.back() }
 
 	property alias buttonModel: rptr.model
+	property alias buttons: row.children
 
 	property bool compact: width < 1280 || height < 720
 

@@ -384,7 +384,7 @@ QListView {
 
 
 	function normalizedIndex(index) {
-		if (model.sourceModel) {
+		if (sourceObjectListModel) {
 			return model.mapToSource(index)
 		}
 

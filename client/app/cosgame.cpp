@@ -512,7 +512,7 @@ void CosGame::pickPickable()
 			break;
 		case GamePickable::PickableShield:
 			increaseShield(data.value("num", 0).toInt());
-			emit gameMessageSent(tr("%1 shields gained").arg(data.value("num", 0).toInt()));
+			emit gameMessageSent(tr("%1 shield(s) gained").arg(data.value("num", 0).toInt()));
 			break;
 		case GamePickable::PickableWater:
 			increaseWater(1);

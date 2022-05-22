@@ -244,7 +244,18 @@ QTabPage {
 		if (_closeEnabled)
 			return false
 
-		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan lezárod a szerverkapcsolatot?")})
+
+		for (var i=0; i<buttonModel.count; i++) {
+			var o = buttonModel.get(i)
+			var b = buttons[i]
+
+			if (o.checked && b && !b.checked) {
+				b.checked = true
+				return true
+			}
+		}
+
+		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan lezárod a szerverrel a kapcsolatot?")})
 		d.accepted.connect(function() {
 			_closeEnabled = true
 			mainStack.back()
