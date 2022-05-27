@@ -13,17 +13,35 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
 
 	property real buttonWidth: width-60
 
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
 	property var _drops: []
 	property bool _dragInteractive: true
 	property bool _modeDesc: false
 
+
+
+	QButton {
+		id: btnPostpone
+		enabled: canPostpone
+		visible: canPostpone
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.left: parent.left
+		anchors.leftMargin: 20
+		icon.source: CosStyle.iconPostpone
+		text: qsTr("Később")
+		themeColors: CosStyle.buttonThemeOrange
+		onClicked: postponed()
+	}
 
 	QLabel {
 		id: labelQuestion
@@ -32,8 +50,8 @@ Item {
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: btnOk.left
+		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
+		anchors.right: btnOk.visible ? btnOk.left : parent.right
 		height: Math.max(implicitHeight, btnOk.height)
 		topPadding: 30
 		bottomPadding: 30
@@ -52,7 +70,8 @@ Item {
 
 	QButton {
 		id: btnOk
-		enabled: false
+		enabled: (control.mode == GameMatch.ModeExam)
+		//visible: (control.mode == GameMatch.ModeExam)
 		anchors.verticalCenter: labelQuestion.verticalCenter
 		anchors.right: parent.right
 		anchors.rightMargin: 20
@@ -194,42 +213,46 @@ Item {
 
 
 	function answer() {
-		btnOk.enabled = false
-		_dragInteractive = false
+		if (mode == GameMatch.ModeExam) {
+			answered({"error": "missing implementation"})
+		} else {
+			btnOk.enabled = false
+			_dragInteractive = false
 
-		var success = true
+			var success = true
 
-		var prevNum = null
+			var prevNum = null
 
-		for (var i=0; i<_drops.length; i++) {
-			var p = _drops[i]
+			for (var i=0; i<_drops.length; i++) {
+				var p = _drops[i]
 
-			var drag = p.drop.currentDrag
+				var drag = p.drop.currentDrag
 
-			if (drag) {
-				var data = drag.tileData
+				if (drag) {
+					var data = drag.tileData
 
-				var correct = (prevNum === null || (_modeDesc && prevNum > data.num) || (!_modeDesc && prevNum < data.num))
+					var correct = (prevNum === null || (_modeDesc && prevNum > data.num) || (!_modeDesc && prevNum < data.num))
 
-				prevNum = data.num
+					prevNum = data.num
 
-				if (correct) {
-					drag.type = GameQuestionButton.Correct
+					if (correct) {
+						drag.type = GameQuestionButton.Correct
+					} else {
+						drag.type = GameQuestionButton.Wrong
+						success = false
+					}
 				} else {
-					drag.type = GameQuestionButton.Wrong
+					p.drop.isWrong = true
 					success = false
 				}
-			} else {
-				p.drop.isWrong = true
-				success = false
+
 			}
 
+			if (success)
+				succeed()
+			else
+				failed()
 		}
-
-		if (success)
-			succeed()
-		else
-			failed()
 	}
 
 

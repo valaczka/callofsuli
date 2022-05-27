@@ -46,6 +46,7 @@ public:
 
 	bool isValid() const;
 	QString module() const;
+	QString uuid() const;
 
 	bool generate();
 
@@ -56,6 +57,7 @@ public:
 
 	QVariantMap question() const { return m_question; }
 	QString qml() const;
+
 
 private:
 	GameMapObjective *m_objective;

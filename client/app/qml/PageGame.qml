@@ -58,6 +58,14 @@ Page {
 			_closeEnabled = true
 			mainStack.back()
 		}
+
+		onQuestionFailed: {
+			if (gameMatch && gameMatch.startHp <= 1)
+				skullImageAnim.start()
+			else
+				painhudImageAnim.start()
+		}
+
 	}
 
 
@@ -168,6 +176,8 @@ Page {
 
 
 
+
+
 				GameTiledScene {
 					id: gameScene
 					game: game
@@ -234,6 +244,7 @@ Page {
 						}
 					]
 				}
+
 
 				Connections {
 					target: game.player ? game.player : null
@@ -316,7 +327,10 @@ Page {
 					setEnemiesMoving(false)
 					setRunning(false)
 
-					var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Your man has died"))
+
+					var t = gameMatch.mode == GameMatch.ModeNormal ? qsTr("Your man has died") : qsTr("Sikertelen feladatmegoldás")
+
+					var d = JS.dialogMessageError(qsTr("Game over"), t)
 					d.rejected.connect(function() {
 						_closeEnabled = true
 						mainStack.back()
@@ -652,7 +666,7 @@ Page {
 		anchors.margins: 7
 		spacing: 5
 
-		visible: !gameScene.isSceneZoom && gameMatch.mode == GameMatch.ModeNormal
+		visible: !gameScene.isSceneZoom
 
 		GameLabel {
 			id: labelXP
@@ -677,6 +691,8 @@ Page {
 			progressBar.value: shield
 			image.icon: "qrc:/internal/game/shield2.png"
 			progressBar.width: Math.min(control.width*0.125, 100)
+
+			visible: gameMatch.mode == GameMatch.ModeNormal
 
 			property int shield: game.player ? game.player.entityPrivate.shield : 0
 
@@ -719,6 +735,8 @@ Page {
 			horizontalItemAlignment: Grid.AlignHCenter
 			verticalItemAlignment: Grid.AlignVCenter
 
+			visible: gameMatch.mode == GameMatch.ModeNormal
+
 			bottomPadding: 10
 
 			property real size: CosStyle.pixelSize*1.3
@@ -753,6 +771,8 @@ Page {
 			size: 30
 
 			anchors.right: parent.right
+
+			visible: gameMatch.mode == GameMatch.ModeNormal
 
 			color: "transparent"
 			border.color: fontImage.color
@@ -1352,7 +1372,9 @@ Page {
 	}
 
 	function createQuestion(questionPrivate : GameQuestionPrivate) : Item {
-		startTimer.start()
+		if (gameMatch.mode == GameMatch.ModeNormal) {
+			startTimer.start()
+		}
 		questionPlaceholder.visible = true
 
 		var obj = questionComponent.createObject(questionPlaceholder,{

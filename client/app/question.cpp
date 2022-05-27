@@ -42,7 +42,6 @@ Question::Question(GameMapObjective *objective)
 	: m_objective (objective)
 	, m_question()
 {
-
 }
 
 
@@ -200,6 +199,20 @@ QString Question::qml() const
 	ModuleInterface *mi = Client::moduleObjectiveList().value(module);
 
 	return mi->qmlQuestion();
+}
+
+
+/**
+ * @brief Question::uuid
+ * @return
+ */
+
+QString Question::uuid() const
+{
+	if (m_objective)
+		return m_objective->uuid();
+	else
+		return QString("");
 }
 
 

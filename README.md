@@ -27,5 +27,14 @@ https://github.com/valaczka/callofsuli/releases
 
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/hu_badge_web_generic.png" width=250>](https://play.google.com/store/apps/details?id=hu.piarista.vjp.callofsuli)
 
+## Build
+
+```
+git clone --recurse-submodules https://github.com/valaczka/callofsuli.git
+cd callofsuli
+qmake client.pro
+make
+make install
+```
 
 ## [Credits](CREDITS.md)

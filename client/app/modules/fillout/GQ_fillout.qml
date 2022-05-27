@@ -14,13 +14,31 @@ Item {
 	implicitHeight: 500
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
 
 	property var _drops: []
 	property bool _dragInteractive: true
+
+
+	QButton {
+		id: btnPostpone
+		enabled: canPostpone
+		visible: canPostpone
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.left: parent.left
+		anchors.leftMargin: 20
+		icon.source: CosStyle.iconPostpone
+		text: qsTr("Később")
+		themeColors: CosStyle.buttonThemeOrange
+		onClicked: postponed()
+	}
 
 	QLabel {
 		id: labelQuestion
@@ -29,8 +47,8 @@ Item {
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: btnOk.left
+		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
+		anchors.right: btnOk.visible ? btnOk.left : parent.right
 		height: Math.max(implicitHeight, btnOk.height)
 		topPadding: 30
 		bottomPadding: 30
@@ -38,16 +56,17 @@ Item {
 		rightPadding: 20
 
 		horizontalAlignment: Text.AlignHCenter
-		verticalAlignment: Text.AlignVCenter
 
 		color: CosStyle.colorAccent
 
 		text: qsTr("Egészítsd ki a szöveget!")
 	}
 
+
 	QButton {
 		id: btnOk
-		enabled: false
+		enabled: (control.mode == GameMatch.ModeExam)
+		//visible: (control.mode == GameMatch.ModeExam)
 		anchors.verticalCenter: labelQuestion.verticalCenter
 		anchors.right: parent.right
 		anchors.rightMargin: 20
@@ -56,7 +75,6 @@ Item {
 		themeColors: CosStyle.buttonThemeGreen
 		onClicked: answer()
 	}
-
 
 
 
@@ -181,35 +199,55 @@ Item {
 		btnOk.enabled = false
 		_dragInteractive = false
 
-		var success = true
 
-		for (var i=0; i<_drops.length; i++) {
-			var p = _drops[i]
+		if (mode == GameMatch.ModeExam) {
+			for (var ii=0; ii<questionData.list.length; ii++) {
+				var pp = questionData.list[ii]
 
-			if (p.item && p.correct) {
-				var drag = p.item.currentDrag
+				if (pp.w) {
+					//componentWord.createObject(wordFlow, { text: p.w })
+				} else if (pp.q) {
+					/*var o = componentTileDrop.createObject(wordFlow)
+					var d = {}
+					d.item = o
+					d.correct = null*/
+				}
+			}
 
-				if (drag) {
-					var data = drag.tileData
 
-					if (data === p.correct) {
-						drag.type = GameQuestionButton.Correct
+			answered({"error": "missing implementation"})
+		} else {
+
+			var success = true
+
+			for (var i=0; i<_drops.length; i++) {
+				var p = _drops[i]
+
+				if (p.item && p.correct) {
+					var drag = p.item.currentDrag
+
+					if (drag) {
+						var data = drag.tileData
+
+						if (data === p.correct) {
+							drag.type = GameQuestionButton.Correct
+						} else {
+							drag.type = GameQuestionButton.Wrong
+							success = false
+						}
 					} else {
-						drag.type = GameQuestionButton.Wrong
+						p.item.isWrong = true
 						success = false
 					}
-				} else {
-					p.item.isWrong = true
-					success = false
+
 				}
-
 			}
-		}
 
-		if (success)
-			succeed()
-		else
-			failed()
+			if (success)
+				succeed()
+			else
+				failed()
+		}
 
 	}
 

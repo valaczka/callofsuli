@@ -103,6 +103,7 @@ QtObject {
 	property string iconDownload: "image://font/Material Icons/\ue2c4"
 
 	property string iconPlay: "image://font/Material Icons/\ue037"
+	property string iconPostpone: "image://font/Material Icons/\ue01f"
 
 	property string iconKey: "image://font/Material Icons/\ue0da"
 	property string iconClock1: "image://font/Material Icons/\ue190"

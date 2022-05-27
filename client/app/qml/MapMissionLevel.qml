@@ -463,8 +463,6 @@ QTabContainer {
 					qsTr("Idő: %1\n").arg(JS.secToMMSS(info.duration))+
 					qsTr("Ellenfelek: %1").arg(info.enemies)*/
 
-			console.debug("LEVEL INFO READY", control, autoPlay, info.available)
-
 			if (autoPlay && info.available) {
 				_state = 1
 				studentMaps.playGame(missionUuid, missionLevel, missionDeathmatch,

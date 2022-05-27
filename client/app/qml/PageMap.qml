@@ -109,7 +109,7 @@ QTabPage {
 	property Action actionLite: Action {
 		text: qsTr("Csak feladatok")
 		checkable: true
-		checked: false
+		checked: true
 
 		onToggled: {
 			studentMaps.getMissionList(checked)

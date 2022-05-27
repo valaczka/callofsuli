@@ -35,6 +35,7 @@
 #include "gamequestion.h"
 #include "gameenemydata.h"
 #include "gamematch.h"
+#include "gameactivity.h"
 
 GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, QObject *parent)
 	: QObject(parent)
@@ -44,7 +45,25 @@ GameQuestion::GameQuestion(CosGame *game, GamePlayer *player, GameEnemy *enemy, 
 	, m_question(nullptr)
 	, m_questionData()
 	, m_elapsedTime()
+	, m_state(StateInvalid)
+	, m_canPostpone(false)
+	, m_answer()
 {
+}
+
+GameQuestion::GameQuestion(CosGame *game, QObject *parent)
+	: QObject(parent)
+	, m_game(game)
+	, m_player(nullptr)
+	, m_enemy(nullptr)
+	, m_question(nullptr)
+	, m_questionData()
+	, m_elapsedTime()
+	, m_state(StateInvalid)
+	, m_canPostpone(false)
+	, m_answer()
+{
+
 }
 
 
@@ -111,6 +130,7 @@ void GameQuestion::run()
 
 
 	if (m_question) {
+		m_state = StatePresented;
 		m_game->setRunning(false);
 		m_elapsedTime = QTime::currentTime();
 
@@ -126,6 +146,51 @@ void GameQuestion::run()
 		return;
 	}
 
+}
+
+
+
+
+/**
+ * @brief GameQuestion::runLite
+ */
+
+bool GameQuestion::runLite(const Question &question)
+{
+	QQuickItem *gamePage = m_game->itemPage();
+	m_question = nullptr;
+
+	m_questionData = question;
+
+	if (!m_questionData.isValid()) {
+		qWarning() << "Invalid question";
+		emit finished();
+		return false;
+	}
+
+	QMetaObject::invokeMethod(gamePage, "createQuestion", Qt::DirectConnection,
+							  Q_RETURN_ARG(QQuickItem*, m_question),
+							  Q_ARG(GameQuestion*, this)
+							  );
+
+
+	if (m_question) {
+		m_state = StatePresented;
+		m_game->setRunning(false);
+		m_elapsedTime = QTime::currentTime();
+
+		connect(m_question, &QQuickItem::destroyed, this, &GameQuestion::onDestroyed);
+		connect(m_question, SIGNAL(succeed(qreal)), this, SLOT(onSuccessLite(qreal)));
+		connect(m_question, SIGNAL(failed()), this, SLOT(onFailedLite()));
+
+		m_question->setFocus(true, Qt::OtherFocusReason);
+	} else {
+		qWarning() << "Can't create question";
+		emit finished();
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -154,6 +219,29 @@ QVariantMap GameQuestion::questionData() const
 
 
 
+/**
+ * @brief GameQuestion::postpone
+ */
+
+bool GameQuestion::postpone()
+{
+	if (!m_canPostpone) {
+		qWarning() << "Can't postpone";
+		return false;
+	}
+
+	m_state = StatePostponed;
+	emit postponed();
+
+	return true;
+}
+
+
+
+
+
+
+
 
 /**
  * @brief GameQuestion::forceDestroy
@@ -168,8 +256,10 @@ void GameQuestion::forceDestroy()
 		m_question->deleteLater();
 	}
 
-	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
-	m_game->setRunning(true);
+	if (m_game) {
+		m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
+		m_game->setRunning(true);
+	}
 
 	emit finished();
 }
@@ -181,8 +271,10 @@ void GameQuestion::forceDestroy()
 
 void GameQuestion::onSuccess(const qreal &xpFactor)
 {
+	m_state = StateSucceed;
+
 	if (m_game->gameMatch())
-		m_game->gameMatch()->addStatistics(m_enemy->enemyData()->objectiveUuid(), true, m_elapsedTime.msecsTo(QTime::currentTime()));
+		m_game->gameMatch()->addStatistics(m_questionData.uuid(), true, m_elapsedTime.msecsTo(QTime::currentTime()));
 
 	emit xpGained(xpFactor);
 
@@ -203,8 +295,10 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 
 void GameQuestion::onFailed()
 {
+	m_state = StateFailed;
+
 	if (m_game->gameMatch())
-		m_game->gameMatch()->addStatistics(m_enemy->enemyData()->objectiveUuid(), false, m_elapsedTime.msecsTo(QTime::currentTime()));
+		m_game->gameMatch()->addStatistics(m_questionData.uuid(), false, m_elapsedTime.msecsTo(QTime::currentTime()));
 
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
@@ -223,4 +317,92 @@ void GameQuestion::onDestroyed()
 
 	m_game->setRunning(true);
 	emit finished();
+}
+
+
+/**
+ * @brief GameQuestion::onSuccessLite
+ * @param xpFactor
+ */
+
+void GameQuestion::onSuccessLite(const qreal &xpFactor)
+{
+	m_state = StateSucceed;
+
+	if (m_game->gameMatch())
+		m_game->gameMatch()->addStatistics(m_questionData.uuid(), true, m_elapsedTime.msecsTo(QTime::currentTime()));
+
+	emit xpGained(xpFactor);
+
+	m_question->setFocus(false, Qt::OtherFocusReason);
+}
+
+
+/**
+ * @brief GameQuestion::onFailedLite
+ */
+
+void GameQuestion::onFailedLite()
+{
+	m_state = StateFailed;
+
+	if (m_game->gameMatch())
+		m_game->gameMatch()->addStatistics(m_questionData.uuid(), false, m_elapsedTime.msecsTo(QTime::currentTime()));
+
+	m_question->setFocus(false, Qt::OtherFocusReason);
+
+	if (m_game->activity()) {
+		emit m_game->activity()->questionFailed();
+	}
+}
+
+const QVariantMap &GameQuestion::answer() const
+{
+	return m_answer;
+}
+
+void GameQuestion::setAnswer(const QVariantMap &newAnswer)
+{
+	qDebug() << "SET ANSWER" << newAnswer;
+	if (m_answer == newAnswer)
+		return;
+	m_answer = newAnswer;
+	emit answerChanged();
+
+	m_state = StateAnswered;
+}
+
+
+
+const GameQuestion::QuestionState &GameQuestion::state() const
+{
+	return m_state;
+}
+
+
+CosGame *GameQuestion::game() const
+{
+	return m_game;
+}
+
+bool GameQuestion::canPostpone() const
+{
+	return m_canPostpone;
+}
+
+void GameQuestion::setCanPostpone(bool newCanPostpone)
+{
+	if (m_canPostpone == newCanPostpone)
+		return;
+	m_canPostpone = newCanPostpone;
+	emit canPostponeChanged();
+}
+
+GameMatch::GameMode GameQuestion::mode() const
+{
+	if (m_game && m_game->gameMatch()) {
+		return m_game->gameMatch()->mode();
+	} else {
+		return GameMatch::ModeNormal;
+	}
 }

@@ -854,7 +854,7 @@ void CosGame::resetRunning()
 
 void CosGame::recalculateActiveEnemies()
 {
-	qWarning() << "!!! Missing implementation: recalculateActiveEnemies()";
+	qWarning() << "!!! Missing implementation for ModeLite";
 	if (!m_terrainData)
 		return;
 
@@ -930,6 +930,10 @@ void CosGame::onGameStarted()
 	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
 		resetPlayer();
 		QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
+	} else if (m_gameMatch->mode() == GameMatch::ModeLite) {
+		createNextQuestion();
+	} else if (m_gameMatch->mode() == GameMatch::ModeExam) {
+		createNextQuestion();
 	}
 }
 
@@ -995,6 +999,53 @@ void CosGame::onGameFinishedLost()
 		Client::clientInstance()->stopSound(m_backgroundMusicFile);
 		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
 		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
+	}
+}
+
+
+
+
+/**
+ * @brief CosGame::onGameQuestionFinished
+ */
+
+void CosGame::onGameQuestionFinished()
+{
+	if (!m_question || !m_activity)
+		return;
+
+	GameQuestion::QuestionState state = m_question->state();
+	QVariantMap answer = m_question->answer();
+
+	m_question->deleteLater();
+	m_question = nullptr;
+	emit questionChanged(nullptr);
+
+	if (state == GameQuestion::StateSucceed) {
+		m_activity->setCurrentQuestionAnswer({{"success", true}});
+		qDebug() << "SUCCEED -> NEXT:" << m_activity->setNextQuestion();
+		createNextQuestion();
+	} else if (state == GameQuestion::StateFailed) {
+		int hp = m_gameMatch->startHp();
+		hp--;
+		m_gameMatch->setStartHp(hp);
+
+		if (hp <= 0) {
+			m_timer->stop();
+			emit gameLost();
+		} else {
+			m_activity->repeatCurrentQuestion();
+			createNextQuestion();
+		}
+	} else if (state == GameQuestion::StatePostponed) {
+		qDebug() << "POSTPONED";
+		m_activity->postponeCurrentQuestion();
+		createNextQuestion();
+	} else if (state == GameQuestion::StateAnswered) {
+		qDebug() << "STATE ANSWERED";
+		m_activity->setCurrentQuestionAnswer(answer);
+		qDebug() << "ANSWERED -> NEXT:" << m_activity->setNextQuestion();
+		createNextQuestion();
 	}
 }
 
@@ -1141,6 +1192,49 @@ void CosGame::setPickables(QVector<GameEnemyData *> *enemyList, const int &block
 	}
 
 	return;
+}
+
+
+
+
+/**
+ * @brief CosGame::createNextQuestion
+ */
+
+void CosGame::createNextQuestion()
+{
+	qDebug() << "CREATE NEXT QUESTION" << m_question << m_activity->questionList().size() << m_activity->currentQuestion();
+
+	if (!m_gameMatch) {
+		qWarning() << "Invalid GameMatch";
+		return;
+	}
+
+	if (m_question) {
+		qWarning() << "Question already exists";
+		return;
+	}
+
+
+	int n = m_activity->activeQuestions();
+	setActiveEnemies(n);
+
+	if (n == 0) {
+		emit gameCompleted();
+		return;
+	}
+
+
+	m_question = new GameQuestion(this, this);
+
+	connect(m_question, &GameQuestion::xpGained, m_gameMatch, &GameMatch::addXP);
+	connect(m_question, &GameQuestion::finished, this, &CosGame::onGameQuestionFinished);
+
+	emit questionChanged(m_question);
+
+	if (!m_activity->generateQuestion(m_question)) {
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem lehet elkészíteni a feladatot!"));
+	}
 }
 
 

@@ -7,7 +7,7 @@ import "JScript.js" as JS
 Rectangle {
 	id: control
 
-	implicitWidth: Math.max(100, label.implicitWidth)
+	implicitWidth: Math.max(100, label.implicitWidth+(isToggle ? flipable.width : 0))
 	implicitHeight: Math.max(40, label.implicitHeight)
 
 	radius: 3
@@ -23,9 +23,11 @@ Rectangle {
 	property bool interactive: true
 	property int type: GameQuestionButton.Neutral
 
-	property color textColor: CosStyle.buttonThemeDefault[0]
-	property color backgroundColor: CosStyle.buttonThemeDefault[1]
-	property color borderColor: CosStyle.buttonThemeDefault[2]
+	property var themeColors: CosStyle.buttonThemeDefault
+
+	property color textColor: themeColors[0]
+	property color backgroundColor: themeColors[1]
+	property color borderColor: themeColors[2]
 	property color flipColor: CosStyle.colorAccentLighter
 	property alias label: label
 	property alias text: label.text

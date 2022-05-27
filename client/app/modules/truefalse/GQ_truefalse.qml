@@ -13,10 +13,26 @@ Item {
 	implicitWidth: 800
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
+	QButton {
+		id: btnPostpone
+		enabled: canPostpone
+		visible: canPostpone
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.left: parent.left
+		anchors.leftMargin: 20
+		icon.source: CosStyle.iconPostpone
+		text: qsTr("Később")
+		themeColors: CosStyle.buttonThemeOrange
+		onClicked: postponed()
+	}
 
 	QLabel {
 		id: labelQuestion
@@ -25,8 +41,9 @@ Item {
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
+		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
+		anchors.right: btnOk.visible ? btnOk.left : parent.right
+		height: Math.max(implicitHeight, btnOk.height)
 		topPadding: 30
 		bottomPadding: 30
 		leftPadding: 20
@@ -41,6 +58,21 @@ Item {
 		text: questionData.question
 	}
 
+
+	QButton {
+		id: btnOk
+		enabled: (control.mode == GameMatch.ModeExam)
+		visible: (control.mode == GameMatch.ModeExam)
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.right: parent.right
+		anchors.rightMargin: 20
+		icon.source: CosStyle.iconOK
+		text: qsTr("Kész")
+		themeColors: CosStyle.buttonThemeGreen
+		onClicked: answer()
+	}
+
+
 	Item {
 		anchors.bottom: labelQuestion.top
 		anchors.right: parent.right
@@ -53,13 +85,16 @@ Item {
 			anchors.centerIn: parent
 			spacing: 30
 
-			property real buttonWidth: Math.min(Math.max(btnTrue.label.implicitWidth, btnFalse.label.implicitWidth, 120), control.width/2-40)
+			property real buttonWidth: Math.min(Math.max(btnTrue.implicitWidth, btnFalse.implicitWidth, 120), control.width/2-40)
 
 			GameQuestionButton {
 				id: btnTrue
 				text: qsTr("Igaz")
 				onClicked: { answer(true) }
 				width: row.buttonWidth
+
+				onToggled: btnFalse.selected = false
+				isToggle: (control.mode == GameMatch.ModeExam)
 			}
 
 			GameQuestionButton {
@@ -67,6 +102,9 @@ Item {
 				text: qsTr("Hamis")
 				onClicked: { answer(false) }
 				width: row.buttonWidth
+
+				onToggled: btnTrue.selected = false
+				isToggle: (control.mode == GameMatch.ModeExam)
 			}
 		}
 	}
@@ -76,26 +114,47 @@ Item {
 		btnTrue.interactive = false
 		btnFalse.interactive = false
 
-		if (correct === questionData.answer)
-			succeed()
-		else
-			failed()
+		if (mode == GameMatch.ModeExam) {
+			var i = -1
+			if (btnFalse.selected)
+				i = 0
+			else if (btnTrue.selected)
+				i = 1
 
-		if (questionData.answer) {
-			btnTrue.type = GameQuestionButton.Correct
-			if (!correct) btnFalse.type = GameQuestionButton.Wrong
+			answered({value: i})
 		} else {
-			btnFalse.type = GameQuestionButton.Correct
-			if (!correct) btnTrue.type = GameQuestionButton.Wrong
+			if (correct === questionData.answer)
+				succeed()
+			else
+				failed()
+
+			if (questionData.answer) {
+				btnTrue.type = GameQuestionButton.Correct
+				if (!correct) btnFalse.type = GameQuestionButton.Wrong
+			} else {
+				btnFalse.type = GameQuestionButton.Correct
+				if (!correct) btnTrue.type = GameQuestionButton.Wrong
+			}
 		}
 	}
 
 
 	function keyPressed(key) {
-		if (btnTrue.interactive && (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y))
-			btnTrue.clicked()
-		else if (btnFalse.interactive && (key === Qt.Key_N || key === Qt.Key_H))
-			btnFalse.clicked()
+		if (btnTrue.interactive && (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)) {
+			if (btnTrue.isToggle) {
+				btnTrue.selected = true
+				btnTrue.toggled()
+			} else {
+				btnTrue.clicked()
+			}
+		} else if (btnFalse.interactive && (key === Qt.Key_N || key === Qt.Key_H)) {
+			if (btnFalse.isToggle) {
+				btnFalse.selected = true
+				btnFalse.toggled()
+			} else {
+				btnFalse.clicked()
+			}
+		}
 	}
 }
 

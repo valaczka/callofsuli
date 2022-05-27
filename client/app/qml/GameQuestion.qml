@@ -40,9 +40,9 @@ Item {
 		readonly property bool _isFullscreen: (control.width>control.height && (Qt.platform.os == "android"  || Qt.platform.os === "ios")) || control.height < 800
 
 		width: _isFullscreen ? control.width-4 :
-									Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
+							   Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
 		height: _isFullscreen ? control.height-4 :
-									 Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-2*verticalPadding)
+								Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-2*verticalPadding)
 		x: (control.width-width)/2
 		y: (control.height-height)/2
 
@@ -116,6 +116,7 @@ Item {
 
 					signal succeed()
 					signal failed()
+					signal postponed()
 
 					GameQuestionButton {
 						anchors.centerIn: parent
@@ -132,17 +133,35 @@ Item {
 				target: contentLoader.item
 
 				function onSucceed() {
-					cosClient.playSound("qrc:/sound/sfx/correct.mp3", CosSound.GameSound)
-					cosClient.playSound("qrc:/sound/voiceover/winner.mp3", CosSound.VoiceOver)
+					if (questionPrivate && questionPrivate.mode == GameMatch.ModeNormal) {
+						cosClient.playSound("qrc:/sound/sfx/correct.mp3", CosSound.GameSound)
+						cosClient.playSound("qrc:/sound/voiceover/winner.mp3", CosSound.VoiceOver)
+					}
 					isAnswerSuccess = true
 					succeed(questionPrivate.questionData().xpFactor)
 					control.state = "finished"
 				}
 
 				function onFailed() {
-					cosClient.playSound("qrc:/sound/voiceover/loser.mp3", CosSound.VoiceOver)
+					if (questionPrivate && questionPrivate.mode == GameMatch.ModeNormal) {
+						cosClient.playSound("qrc:/sound/voiceover/loser.mp3", CosSound.VoiceOver)
+					}
 					isAnswerSuccess = false
 					failed()
+					control.state = "finished"
+				}
+
+				function onPostponed() {
+					if (questionPrivate.postpone()) {
+						isAnswerSuccess = true
+						control.state = "finished"
+					}
+				}
+
+				function onAnswered(answer) {
+					console.debug("ON ANSWERED", answer)
+					questionPrivate.answer = answer
+					isAnswerSuccess = true
 					control.state = "finished"
 				}
 			}
@@ -188,7 +207,9 @@ Item {
 		var q = questionPrivate.questionQml()
 		if (q && q.length) {
 			contentLoader.setSource(q, {
-										questionData: questionPrivate.questionData()
+										questionData: questionPrivate.questionData(),
+										mode: questionPrivate ? questionPrivate.mode : GameMatch.ModeNormal,
+										canPostpone: questionPrivate ? questionPrivate.canPostpone : false
 									})
 		} else {
 			cosClient.sendMessageError(qsTr("Belső hiba"), qsTr("Érvénytelen kérdés"))
@@ -262,7 +283,9 @@ Item {
 				}
 
 				ScriptAction {
-					script: cosClient.playSound("qrc:/sound/sfx/question.mp3")
+					script: if (questionPrivate && questionPrivate.mode == GameMatch.ModeNormal) {
+								cosClient.playSound("qrc:/sound/sfx/question.mp3")
+							}
 				}
 
 				PropertyAction {

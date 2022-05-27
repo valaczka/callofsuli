@@ -13,16 +13,33 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
 
 	property real buttonWidth: width-60
 
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
 	property var _drops: []
 	property bool _dragInteractive: true
 
+
+	QButton {
+		id: btnPostpone
+		enabled: canPostpone
+		visible: canPostpone
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.left: parent.left
+		anchors.leftMargin: 20
+		icon.source: CosStyle.iconPostpone
+		text: qsTr("Később")
+		themeColors: CosStyle.buttonThemeOrange
+		onClicked: postponed()
+	}
 
 	QLabel {
 		id: labelQuestion
@@ -31,8 +48,8 @@ Item {
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: btnOk.left
+		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
+		anchors.right: btnOk.visible ? btnOk.left : parent.right
 		height: Math.max(implicitHeight, btnOk.height)
 		topPadding: 30
 		bottomPadding: 30
@@ -51,7 +68,8 @@ Item {
 
 	QButton {
 		id: btnOk
-		enabled: false
+		enabled: (control.mode == GameMatch.ModeExam)
+		//visible: (control.mode == GameMatch.ModeExam)
 		anchors.verticalCenter: labelQuestion.verticalCenter
 		anchors.right: parent.right
 		anchors.rightMargin: 20
@@ -213,38 +231,42 @@ Item {
 
 
 	function answer() {
-		btnOk.enabled = false
-		_dragInteractive = false
+		if (mode == GameMatch.ModeExam) {
+			answered({"error": "missing implementation"})
+		} else {
+			btnOk.enabled = false
+			_dragInteractive = false
 
-		var success = true
+			var success = true
 
-		for (var i=0; i<_drops.length; i++) {
-			var p = _drops[i]
+			for (var i=0; i<_drops.length; i++) {
+				var p = _drops[i]
 
-			if (p.item && p.correct) {
-				var drag = p.item.drop.currentDrag
+				if (p.item && p.correct) {
+					var drag = p.item.drop.currentDrag
 
-				if (drag) {
-					var data = drag.tileData
+					if (drag) {
+						var data = drag.tileData
 
-					if (data === p.correct) {
-						drag.type = GameQuestionButton.Correct
+						if (data === p.correct) {
+							drag.type = GameQuestionButton.Correct
+						} else {
+							drag.type = GameQuestionButton.Wrong
+							success = false
+						}
 					} else {
-						drag.type = GameQuestionButton.Wrong
+						p.item.drop.isWrong = true
 						success = false
 					}
-				} else {
-					p.item.drop.isWrong = true
-					success = false
+
 				}
-
 			}
-		}
 
-		if (success)
-			succeed()
-		else
-			failed()
+			if (success)
+				succeed()
+			else
+				failed()
+		}
 	}
 
 

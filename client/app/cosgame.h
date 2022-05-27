@@ -156,6 +156,7 @@ private slots:
 	void onGameMatchTimerTimeout();
 	void onGameFinishedSuccess();
 	void onGameFinishedLost();
+	void onGameQuestionFinished();
 
 signals:
 	void gameStarted();
@@ -203,6 +204,7 @@ private:
 	QStringList loadSoldierData();
 	void loadPickables();
 	void setPickables(QVector<GameEnemyData *> *enemyList, const int &block);
+	void createNextQuestion();
 
 	QVariantMap m_gameData;
 	QQuickItem * m_player;

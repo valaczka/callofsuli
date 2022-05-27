@@ -13,14 +13,33 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
+
 
 	property real buttonWidth: width-60
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
 	signal buttonReveal(GameQuestionButton original)
 	signal buttonPressByKey(int num)
+
+
+	QButton {
+		id: btnPostpone
+		enabled: canPostpone
+		visible: canPostpone
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.left: parent.left
+		anchors.leftMargin: 20
+		icon.source: CosStyle.iconPostpone
+		text: qsTr("Később")
+		themeColors: CosStyle.buttonThemeOrange
+		onClicked: postponed()
+	}
 
 	QLabel {
 		id: labelQuestion
@@ -29,8 +48,9 @@ Item {
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
+		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
+		anchors.right: btnOk.visible ? btnOk.left : parent.right
+		height: Math.max(implicitHeight, btnOk.height)
 		topPadding: 30
 		bottomPadding: 30
 		leftPadding: 20
@@ -44,6 +64,22 @@ Item {
 
 		text: questionData.question
 	}
+
+
+	QButton {
+		id: btnOk
+		enabled: (control.mode == GameMatch.ModeExam)
+		visible: (control.mode == GameMatch.ModeExam)
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.right: parent.right
+		anchors.rightMargin: 20
+		icon.source: CosStyle.iconOK
+		text: qsTr("Kész")
+		themeColors: CosStyle.buttonThemeGreen
+		onClicked: answer()
+	}
+
+
 
 	Item {
 		anchors.right: parent.right
@@ -87,6 +123,15 @@ Item {
 						anchors.horizontalCenter: parent.horizontalCenter
 
 						onClicked: answer(index, btn)
+						onToggled: {
+							for (var i=0; i<rptr.model.length; i++) {
+								var b = rptr.itemAt(i)
+								if (b !== btn)
+									b.selected = false
+							}
+						}
+
+						isToggle: (control.mode == GameMatch.ModeExam)
 
 
 						Connections {
@@ -103,7 +148,12 @@ Item {
 
 							function onButtonPressByKey(num) {
 								if (num-1 == index && btn.interactive) {
-									btn.clicked()
+									if (isToggle) {
+										btn.selected = true
+										btn.toggled()
+									} else {
+										btn.clicked()
+									}
 								}
 							}
 						}
@@ -115,12 +165,22 @@ Item {
 
 
 	function answer(btnIndex, btn) {
-		buttonReveal(btn)
+		if (mode == GameMatch.ModeExam) {
+			var idx = -1
+			for (var i=0; i<rptr.model.length; i++) {
+				var b = rptr.itemAt(i)
+				if (b.selected)
+					idx = i
+			}
+			answered({index: idx})
+		} else {
+			buttonReveal(btn)
 
-		if (btnIndex === questionData.answer)
-			succeed()
-		else
-			failed()
+			if (btnIndex === questionData.answer)
+				succeed()
+			else
+				failed()
+		}
 	}
 
 	function keyPressed(key) {
