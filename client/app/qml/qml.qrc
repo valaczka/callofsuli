@@ -123,7 +123,7 @@
         <file>TeacherMapInfo.qml</file>
         <file>TrophyView.qml</file>
         <file>OLD_PageTeacherGroupMapViewUser.qml</file>
-        <file>MapMissionUserView.qml</file>
+        <file>OLD_MapMissionUserView.qml</file>
         <file>ProfileDetailsUser.qml</file>
         <file>ProfileDetailsTrophies.qml</file>
         <file>OAuthContainer.qml</file>
@@ -167,7 +167,7 @@
         <file>QGridDoubleNumberField.qml</file>
         <file>QGridDoubleNumberFields.qml</file>
         <file>MapEditorObjectivePreview.qml</file>
-        <file>ServerReadQR.qml</file>
+        <file>ReadQR.qml</file>
         <file>ServerInfo.qml</file>
     </qresource>
 </RCC>

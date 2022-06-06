@@ -270,7 +270,14 @@ QTabContainer {
 
 	Component {
 		id: cmpQR
-		ServerReadQR {  }
+		ReadQR {
+			onTagFound: {
+				if (servers.isValidUrl(tag)) {
+					servers.setUrlString(tag)
+					mainStack.back()
+				}
+			}
+		}
 	}
 
 

@@ -352,6 +352,7 @@ void GameQuestion::onFailedLite()
 	m_question->setFocus(false, Qt::OtherFocusReason);
 
 	if (m_game->activity()) {
+		m_game->activity()->setLiteHP(m_game->activity()->liteHP()-1);
 		emit m_game->activity()->questionFailed();
 	}
 }
@@ -363,7 +364,6 @@ const QVariantMap &GameQuestion::answer() const
 
 void GameQuestion::setAnswer(const QVariantMap &newAnswer)
 {
-	qDebug() << "SET ANSWER" << newAnswer;
 	if (m_answer == newAnswer)
 		return;
 	m_answer = newAnswer;

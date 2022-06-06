@@ -45,9 +45,53 @@ class Teacher : public AbstractHandler
 	Q_OBJECT
 
 public:
+	struct Grading {
+		enum Type {
+			TypeInvalid,
+			TypeGrade,
+			TypeXP
+		};
+
+		enum Mode {
+			ModeInvalid,
+			ModeDefault,
+			ModeRequired
+		};
+
+		Type type;
+		int value;
+		int ref;
+		Mode mode;
+		QJsonObject criteria;
+		bool success;
+
+		Grading() :
+			type(TypeInvalid), value(-1), ref(-1), mode(ModeInvalid), criteria(), success(false)
+		{}
+
+		Grading(const Type &t, const int &v, const QJsonObject &c, const int &r = -1);
+
+		bool isValid() const { return type != TypeInvalid; }
+
+		static QJsonArray toArray(const QVector<Grading> &list);
+		static QJsonObject toNestedArray(const QVector<Grading> &list);
+		static QMap<int, QVector<Grading>> toMap(const QVector<Grading> &list, const Type &type);
+	};
+
+
 	explicit Teacher(Client *client, const CosMessage &message);
 
 	bool classInit() override;
+
+
+	// Grading
+
+	static QVector<Grading> gradingFromVariantList(const QVariantList &list);
+	static Grading gradingResult(const QVector<Grading> &list, const Grading::Type &type);
+
+	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username);
+	QVector<Grading>& evaluate(QVector<Grading> &list, const int &campaignId, const QString &username);
+	Grading& evaluate(Grading &grading, const int &campaignId, const QString &username);
 
 public slots:
 
@@ -87,5 +131,14 @@ public slots:
 	bool gameListMapGet(QJsonObject *jsonResponse, QByteArray *);
 
 };
+
+
+
+
+
+
+
+
+
 
 #endif // TEACHER_H

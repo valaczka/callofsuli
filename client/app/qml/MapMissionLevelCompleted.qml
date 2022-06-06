@@ -447,9 +447,9 @@ Column {
 
 					QButton {
 						id: btnPlay
-						text: qsTr("Play")
 						icon.source: CosStyle.iconPlay
-						themeColors: CosStyle.buttonThemeGreen
+						themeColors: gameData.lite ? CosStyle.buttonThemeDefault : CosStyle.buttonThemeGreen
+						text: gameData.lite ? qsTr("Feladatmegoldás") : qsTr("Play")
 
 						onClicked: {
 							play(modelData.missionid, modelData.level, modelData.deathmatch)
@@ -507,9 +507,9 @@ Column {
 
 				QButton {
 					id: btnPlay2
-					text: qsTr("Play")
 					icon.source: CosStyle.iconPlay
-					themeColors: CosStyle.buttonThemeGreen
+					themeColors: gameData.lite ? CosStyle.buttonThemeDefault : CosStyle.buttonThemeGreen
+					text: gameData.lite ? qsTr("Feladatmegoldás") : qsTr("Play")
 
 					onClicked: {
 						play(gameData.next.missionid, gameData.next.level, gameData.next.deathmatch)

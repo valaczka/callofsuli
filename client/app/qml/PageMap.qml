@@ -26,7 +26,6 @@ QTabPage {
 		MapMissionLevel {
 			studentMaps: control.studentMaps
 			readOnly: control.readOnly
-			actionLite: control.actionLite
 		}
 	}
 
@@ -109,10 +108,11 @@ QTabPage {
 	property Action actionLite: Action {
 		text: qsTr("Csak feladatok")
 		checkable: true
-		checked: true
+		checked: studentMaps ? studentMaps.liteMode : false
 
 		onToggled: {
-			studentMaps.getMissionList(checked)
+			studentMaps.liteMode = checked
+			studentMaps.getMissionList()
 			if (checked)
 				cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 			else

@@ -184,7 +184,7 @@ Item {
 
 			componentTileDrag.createObject(grid.container.flow, {
 											   tileData: p,
-											   text: p.text+" "+p.num
+											   text: p.text
 										   })
 		}
 	}

@@ -37,6 +37,7 @@
 #include <QtNetwork/QSslSocket>
 #include <QUdpSocket>
 #include <QNetworkAccessManager>
+#include <QTimer>
 
 #include "client.h"
 
@@ -86,6 +87,8 @@ private:
 
 	static QList<VersionUpgrade> m_versionUpgrades;
 
+	QTimer *m_timer;
+
 public:
 	explicit Server(QObject *parent = nullptr);
 	virtual ~Server();
@@ -126,6 +129,7 @@ private slots:
 	void onNewConnection();
 	void onSocketDisconnected();
 	void onDatagramReady();
+	void onTimerTimeout();
 
 public slots:
 	void setServerDir(QString serverDir);

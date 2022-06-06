@@ -504,7 +504,7 @@ void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 
 
 	if (data.contains("error") && !m_clientUserName.isEmpty() && m_clientState == ClientAuthorized) {
-		qDebug() << "OAUTH2 ERROR" << data;
+		qWarning() << "OAUTH2 ERROR" << data;
 		db()->execSimpleQuery("DELETE FROM session WHERE username=?", {m_clientUserName});
 		setClientUserName("");
 		setClientState(ClientUnauthorized);

@@ -52,6 +52,7 @@ class GameActivity : public AbstractActivity
 	Q_PROPERTY(CosGame * game READ game WRITE setGame NOTIFY gameChanged)
 	Q_PROPERTY(int currentQuestion READ currentQuestion WRITE setCurrentQuestion NOTIFY currentQuestionChanged)
 	Q_PROPERTY(int postponedQuestions READ postponedQuestions WRITE setPostponedQuestions NOTIFY postponedQuestionsChanged)
+	Q_PROPERTY(int liteHP READ liteHP WRITE setLiteHP NOTIFY liteHPChanged)
 
 
 public:
@@ -61,6 +62,7 @@ public:
 	virtual ~GameActivity();
 
 	Q_INVOKABLE void prepare();
+	Q_INVOKABLE void prepareExam(const QVariantMap &data);
 	Q_INVOKABLE void createPickable(GameEnemy *enemy);
 
 	void createTarget(GameEnemy *enemy);
@@ -75,6 +77,7 @@ public:
 	void setCurrentQuestion(int newCurrentQuestion);
 	int setNextQuestion();
 	int repeatCurrentQuestion();
+	int addQuestion(const int &count = 0);
 	int postponeCurrentQuestion();
 	void setCurrentQuestionAnswer(const QVariantMap &answer);
 
@@ -84,12 +87,14 @@ public:
 	int postponedQuestions() const;
 	void setPostponedQuestions(int newPostponedQuestions);
 
+	int liteHP() const;
+	void setLiteHP(int newLiteHP);
+
 public slots:
 	void onEnemyKilled(GameEnemy *enemy);
 	void onEnemyKillMissed(GameEnemy *enemy);
 	void setPrepared(bool prepared);
 	void setGame(CosGame * game);
-
 
 signals:
 	void prepareFailed();
@@ -100,8 +105,8 @@ signals:
 	void preparedChanged(bool prepared);
 	void gameChanged(CosGame * game);
 	void currentQuestionChanged();
-
 	void postponedQuestionsChanged();
+	void liteHPChanged();
 
 protected slots:
 	//void clientSetup() override;
@@ -118,6 +123,7 @@ private:
 	QVector<GameActivityQuestion> m_questionList;
 	int m_currentQuestion;
 	int m_postponedQuestions;
+	int m_liteHP;
 };
 
 

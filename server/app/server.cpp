@@ -35,6 +35,9 @@
 #include "server.h"
 #include "../version/buildnumber.h"
 
+#define OLD_SESSION_TOKEN_TIME	"-48 day"
+#define OLD_GAME_DURATION	"+12 hours"
+
 
 QList<Server::VersionUpgrade> Server::m_versionUpgrades = {
 	Server::VersionUpgrade(3, 0, ":/sql/upgrade_3.0.sql"),
@@ -52,6 +55,7 @@ Server::Server(QObject *parent)
 	, m_serverDir()
 	, m_serverName()
 	, m_serverUuid()
+	, m_timer(new QTimer(this))
 {
 	m_socketServer = nullptr;
 	m_serverDir = "";
@@ -65,6 +69,8 @@ Server::Server(QObject *parent)
 
 	m_udpSocket = new QUdpSocket(this);
 	connect(m_udpSocket, &QUdpSocket::readyRead, this, &Server::onDatagramReady);
+
+	connect(m_timer, &QTimer::timeout, this, &Server::onTimerTimeout);
 }
 
 
@@ -88,6 +94,7 @@ Server::~Server()
 	delete m_db;
 	delete m_statDb;
 	delete m_udpSocket;
+	delete m_timer;
 }
 
 
@@ -117,6 +124,8 @@ bool Server::start()
 	if (!websocketServerStart())
 		return false;
 
+	m_timer->start(1000);
+
 	return true;
 }
 
@@ -127,6 +136,7 @@ bool Server::start()
 
 void Server::stop()
 {
+	m_timer->stop();
 	m_statDb->close();
 	m_mapsDb->close();
 	m_db->close();
@@ -284,6 +294,28 @@ bool Server::serverDirCheck()
 
 bool Server::databaseLoad()
 {
+	QStringList dbFiles = {m_db->databaseName(), m_mapsDb->databaseName(), m_statDb->databaseName()};
+
+	// Backup
+
+	foreach (const QString &db, dbFiles) {
+		QFile f(db);
+		const QString oldDb = db+"~";
+
+		if (QFile::exists(oldDb) && !QFile::remove(oldDb)) {
+			qWarning().noquote() << tr("A régig biztonsági másolat törlése sikertelen: ")+oldDb;
+			return false;
+		}
+
+		if (f.exists() && (!f.copy(oldDb))) {
+			qWarning().noquote() << tr("A biztonsági másolat készítése sikertelen: ")+db;
+			return false;
+		}
+	}
+
+
+	// Db-open
+
 	if (!m_db->open())
 		return false;
 
@@ -903,6 +935,35 @@ void Server::onDatagramReady()
 									   );
 
 		}
+	}
+}
+
+
+
+/**
+ * @brief Server::onTimerTimeout
+ */
+
+void Server::onTimerTimeout()
+{
+	QTime time = QTime::currentTime();
+
+	if (time.second() != 0)
+		return;
+
+
+	if (m_db->isOpen()) {
+		// Delete old tokens
+		m_db->execSimpleQuery("DELETE FROM session WHERE lastDate<date('now', ?)", { OLD_SESSION_TOKEN_TIME });
+
+		// Delete old games
+		m_db->execSimpleQuery("INSERT INTO score (username, xp, gameid) "
+							  "SELECT username, tmpScore, id FROM game WHERE tmpScore IS NOT NULL "
+							  "AND datetime(timestamp, ?)<datetime('now')",
+							  { OLD_GAME_DURATION });
+
+		m_db->execSimpleQuery("UPDATE game SET tmpScore=null WHERE tmpScore IS NOT NULL AND datetime(timestamp, ?)<datetime('now')",
+							  { OLD_GAME_DURATION });
 	}
 }
 

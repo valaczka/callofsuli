@@ -219,6 +219,17 @@ QTabContainer {
 						StringSorter {
 							roleName: "timestamp"
 							sortOrder: Qt.DescendingOrder
+							priority: 3
+						},
+						RoleSorter {
+							roleName: "rankid"
+							sortOrder: Qt.DescendingOrder
+							priority: 2
+						},
+						RoleSorter {
+							roleName: "level"
+							sortOrder: Qt.DescendingOrder
+							priority: 1
 						}
 					]
 				}

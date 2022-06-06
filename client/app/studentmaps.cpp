@@ -48,6 +48,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_baseXP(100)
 	, m_selectedGroupId(-1)
 	, m_missionNameMap()
+	, m_liteMode(false)
 {
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
@@ -147,6 +148,12 @@ void StudentMaps::init(const bool &demoMode)
 	} else {
 		demoMapLoad();
 	}
+
+
+	///// !!!!!
+	send("campaignGet", {
+			 {"groupid", m_selectedGroupId}
+		 });
 }
 
 
@@ -264,7 +271,7 @@ void StudentMaps::demoMapLoad()
  * @brief StudentMaps::getMissionList
  */
 
-void StudentMaps::getMissionList(const bool &isLite)
+void StudentMaps::getMissionList()
 {
 	if (!m_currentMap) {
 		return;
@@ -293,14 +300,12 @@ void StudentMaps::getMissionList(const bool &isLite)
 		}
 
 		o["list"] = list;
-		o["lite"] = isLite;
 		onMissionListGet(o, QByteArray());
 		return;
 	}
 
 	QJsonObject o;
 	o["map"] = QString(m_currentMap->uuid());
-	o["lite"] = isLite;
 	send("missionListGet", o);
 }
 
@@ -315,7 +320,7 @@ void StudentMaps::getMissionList(const bool &isLite)
  * @param deathmatch
  */
 
-void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch, const bool &isLite)
+void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch)
 {
 	if (!m_currentMap) {
 		return;
@@ -351,7 +356,7 @@ void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool
 						 -1;
 
 	if (deathmatch)
-		ret["available"] = (mission->solvedLevel() >= missionLevel->level() && missionLevel->level() <= lMin && !isLite);
+		ret["available"] = (mission->solvedLevel() >= missionLevel->level() && missionLevel->level() <= lMin && !m_liteMode);
 	else
 		ret["available"] = (missionLevel->level() <= lMin);
 
@@ -376,7 +381,7 @@ void StudentMaps::getLevelInfo(const QString &uuid, const int &level, const bool
  * @param data
  */
 
-void StudentMaps::playGame(const QString &uuid, const int &level, const bool &deathmatch, const GameMatch::GameMode &mode)
+void StudentMaps::playGame(const QString &uuid, const int &level, const bool &deathmatch)
 {
 	if (!m_currentMap)
 		return;
@@ -387,7 +392,7 @@ void StudentMaps::playGame(const QString &uuid, const int &level, const bool &de
 		o["missionid"] = uuid;
 		o["level"] = level;
 		o["deathmatch"] = deathmatch;
-		o["mode"] = (mode == GameMatch::ModeLite ? "lite" : "normal");
+		o["lite"] = m_liteMode;
 		onGameCreate(o, QByteArray());
 		return;
 	}
@@ -397,7 +402,7 @@ void StudentMaps::playGame(const QString &uuid, const int &level, const bool &de
 	o["mission"] = uuid;
 	o["level"] = level;
 	o["deathmatch"] = deathmatch;
-	o["mode"] = (mode == GameMatch::ModeLite ? "lite" : "normal");
+	o["lite"] = m_liteMode;
 
 	send("gameCreate", o);
 }
@@ -636,7 +641,7 @@ void StudentMaps::onDemoGameWin()
 	QString uuid = match->missionUuid();
 
 	GameMap::SolverInfo oldSolver = m_demoSolverMap.value(uuid).toMap();
-	int solvedXP = GameMap::computeSolvedXpFactor(oldSolver, match->level(), match->deathmatch()) * m_baseXP;
+	int solvedXP = GameMap::computeSolvedXpFactor(oldSolver, match->level(), match->deathmatch(), match->mode() == GameMatch::ModeLite) * m_baseXP;
 
 	GameMap::SolverInfo newSolver = oldSolver.solve(match->level(), match->deathmatch());
 	m_demoSolverMap[uuid] = newSolver.toVariantMap();
@@ -648,6 +653,7 @@ void StudentMaps::onDemoGameWin()
 	o["missionid"] = uuid;
 	o["level"] = match->level();
 	o["deathmatch"] = match->deathmatch();
+	o["lite"] = m_liteMode;
 	o["solvedCount"] = newSolver.solved(match->level(), match->deathmatch());
 
 	o["xp"] = QJsonObject::fromVariantMap({
@@ -693,7 +699,6 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 {
 	QJsonArray list = jsonData.value("list").toArray();
 	int baseXP = jsonData.value("baseXP").toInt();
-	bool isLite = jsonData.value("lite").toBool();
 
 	if (baseXP > 0)
 		setBaseXP(baseXP);
@@ -762,7 +767,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 			{
 				QVariantMap mm2 = mm;
-				int xp = m_baseXP * GameMap::computeSolvedXpFactor(info, ml->level(), false);
+				int xp = m_baseXP * GameMap::computeSolvedXpFactor(info, ml->level(), false, m_liteMode);
 				mm2["deathmatch"] = false;
 				mm2["available"] = (ml->level() <= lMin);
 				mm2["xp"] = xp;
@@ -772,11 +777,11 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 
 			if (ml->canDeathmatch()) {
 				QVariantMap mm2 = mm;
-				int xp = m_baseXP * GameMap::computeSolvedXpFactor(info, ml->level(), true);
+				int xp = m_baseXP * GameMap::computeSolvedXpFactor(info, ml->level(), true, m_liteMode);
 
 
 				mm2["deathmatch"] = true;
-				mm2["available"] = (mis->solvedLevel() >= ml->level() && ml->level() <= lMin && !isLite);
+				mm2["available"] = (mis->solvedLevel() >= ml->level() && ml->level() <= lMin && !m_liteMode);
 				mm2["xp"] = xp;
 				mm2["solved"] = ml->solvedDeathmatch();
 				levelList.append(mm2);
@@ -828,13 +833,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 	int gameId = jsonData.value("gameid").toInt();
 	bool deathmatch = jsonData.value("deathmatch").toBool();
-	QString _mode = jsonData.value("mode").toString();
-	GameMatch::GameMode mode = GameMatch::ModeNormal;
-
-	if (_mode == "lite")
-		mode = GameMatch::ModeLite;
-	else if (_mode == "exam")
-		mode = GameMatch::ModeExam;
+	GameMatch::GameMode mode = jsonData.value("lite").toBool() ? GameMatch::ModeLite : GameMatch::ModeNormal;
 
 	qDebug() << "GAME CREATE" << m_currentMap << missionLevel << gameId << mode;
 
@@ -926,6 +925,7 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			QString missionid = d.value("missionid").toString();
 			int level = d.value("level").toInt();
 			bool deathmatch = d.value("deathmatch").toBool();
+			bool lite = d.value("lite").toBool();
 
 			GameMapMissionLevel *missionLevel = m_currentMap->missionLevel(missionid, level);
 
@@ -933,6 +933,7 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			info["name"] = missionLevel->mission()->name();
 			info["level"] = level;
 			info["deathmatch"] = deathmatch;
+			info["lite"] = lite;
 
 			QVector<GameMap::MissionLevelDeathmatch> unlockedLevels = m_currentMap->getUnlocks(missionid, level, deathmatch);
 
@@ -948,6 +949,9 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 				GameMapMissionLevel *ml = d.first;
 				bool isDeathmatch = d.second;
 
+				if (lite && isDeathmatch)
+					continue;
+
 				list.append(QVariantMap({
 											{ "missionid", ml->mission()->uuid() },
 											{ "level", ml->level() },
@@ -960,7 +964,7 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			info["unlocks"] = list;
 
 			if (unlockedLevels.isEmpty()) {
-				GameMap::MissionLevelDeathmatch nextLevel = m_currentMap->getNextMissionLevel(missionid, level, deathmatch);
+				GameMap::MissionLevelDeathmatch nextLevel = m_currentMap->getNextMissionLevel(missionid, level, deathmatch, lite);
 
 				if (nextLevel.first) {
 					GameMapMissionLevel *ml = nextLevel.first;
@@ -975,14 +979,15 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			}
 		}
 
-		QTimer::singleShot(2000, this, [=]() {
+		if (m_liteMode)
 			emit gameFinishDialogReady(info);
-		});
+		else
+			QTimer::singleShot(2000, this, [=]() {
+				emit gameFinishDialogReady(info);
+			});
 	}
 
-	qWarning() << "!!! Implementation missing!";
-
-	getMissionList(true);
+	getMissionList();
 }
 
 
@@ -1056,6 +1061,36 @@ void StudentMaps::_createDownloader()
 
 		emit mapDownloadFinished(maps);
 	});
+}
+
+bool StudentMaps::liteMode() const
+{
+	return m_liteMode;
+}
+
+void StudentMaps::setLiteMode(bool newLiteMode)
+{
+	if (m_liteMode == newLiteMode)
+		return;
+	m_liteMode = newLiteMode;
+	emit liteModeChanged();
+}
+
+
+
+/**
+ * @brief StudentMaps::getExamContent
+ */
+
+void StudentMaps::getExamContent()
+{
+	qDebug() << "GET EXAM CONTENT";
+
+	QVariantMap m;
+
+	m["test"] = "test";
+
+	emit examContentReady(m);
 }
 
 

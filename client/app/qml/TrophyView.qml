@@ -67,11 +67,24 @@ QTabContainer {
 				},
 				SwitchRole {
 					name: "color"
-					ValueFilter {
-						roleName: "success"
-						value: true
-						SwitchRole.value: CosStyle.colorOKLighter
-					}
+					filters: [
+						AllOf {
+							ValueFilter {
+								roleName: "success"
+								value: true
+							}
+							ValueFilter {
+								roleName: "lite"
+								value: true
+							}
+							SwitchRole.value: CosStyle.colorWarning
+						},
+						ValueFilter {
+							roleName: "success"
+							value: true
+							SwitchRole.value: CosStyle.colorOKLighter
+						}
+					]
 					defaultValue: CosStyle.colorPrimaryLight
 				},
 				SwitchRole {

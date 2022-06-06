@@ -54,6 +54,8 @@ public slots:
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool missionListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool gameCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameUpdate(QJsonObject *jsonResponse, QByteArray *);

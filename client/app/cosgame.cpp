@@ -854,7 +854,6 @@ void CosGame::resetRunning()
 
 void CosGame::recalculateActiveEnemies()
 {
-	qWarning() << "!!! Missing implementation for ModeLite";
 	if (!m_terrainData)
 		return;
 
@@ -1023,28 +1022,23 @@ void CosGame::onGameQuestionFinished()
 
 	if (state == GameQuestion::StateSucceed) {
 		m_activity->setCurrentQuestionAnswer({{"success", true}});
-		qDebug() << "SUCCEED -> NEXT:" << m_activity->setNextQuestion();
+		m_activity->setNextQuestion();
 		createNextQuestion();
 	} else if (state == GameQuestion::StateFailed) {
-		int hp = m_gameMatch->startHp();
-		hp--;
-		m_gameMatch->setStartHp(hp);
-
-		if (hp <= 0) {
-			m_timer->stop();
-			emit gameLost();
-		} else {
-			m_activity->repeatCurrentQuestion();
-			createNextQuestion();
+		if (m_activity->liteHP() <= 0) {
+			m_activity->addQuestion(m_gameMatch->startHp());
+			m_activity->setLiteHP(m_gameMatch->startHp());
 		}
+
+		m_activity->repeatCurrentQuestion();
+		createNextQuestion();
+
 	} else if (state == GameQuestion::StatePostponed) {
-		qDebug() << "POSTPONED";
 		m_activity->postponeCurrentQuestion();
 		createNextQuestion();
 	} else if (state == GameQuestion::StateAnswered) {
-		qDebug() << "STATE ANSWERED";
 		m_activity->setCurrentQuestionAnswer(answer);
-		qDebug() << "ANSWERED -> NEXT:" << m_activity->setNextQuestion();
+		m_activity->setNextQuestion();
 		createNextQuestion();
 	}
 }

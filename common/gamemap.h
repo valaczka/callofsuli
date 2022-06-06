@@ -103,10 +103,11 @@ public:
 											   const bool &deathmatch) const;
 	MissionLevelDeathmatch getNextMissionLevel(const QString &uuid,
 											   const qint32 &level,
-											   const bool &deathmatch) const;
+											   const bool &deathmatch,
+											   const bool &lite) const;
 	static qreal computeSolvedXpFactor(const SolverInfo &baseSolver,
 									   const int &level,
-									   const bool &deathmatch);
+									   const bool &deathmatch, const bool &isLite);
 
 
 protected:

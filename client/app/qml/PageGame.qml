@@ -60,7 +60,7 @@ Page {
 		}
 
 		onQuestionFailed: {
-			if (gameMatch && gameMatch.startHp <= 1)
+			if (gameMatch && liteHP <= 0)
 				skullImageAnim.start()
 			else
 				painhudImageAnim.start()
@@ -652,7 +652,7 @@ Page {
 		color: CosStyle.colorErrorLighter
 		text: "%1 HP"
 		value: game.player ? game.player.entityPrivate.hp
-						   : (gameMatch.mode == GameMatch.ModeLite ? gameMatch.startHp : 0)
+						   : (gameMatch.mode == GameMatch.ModeLite ? gameActivity.liteHP : 0)
 		image.visible: false
 
 		visible: !gameScene.isSceneZoom && gameMatch.mode != GameMatch.ModeExam
@@ -1099,6 +1099,10 @@ Page {
 			_closeEnabled = true
 			mainStack.back()
 		}
+
+		function onExamContentReady(data) {
+			gameActivity.prepareExam(data)
+		}
 	}
 
 
@@ -1398,7 +1402,11 @@ Page {
 		else
 			_sceneLoaded = true
 
-		gameActivity.prepare()
+		if (gameMatch.mode == GameMatch.ModeExam)
+			//gameActivity.prepare()
+			studentMaps.getExamContent()
+		else
+			gameActivity.prepare()
 	}
 
 	Component.onCompleted: {

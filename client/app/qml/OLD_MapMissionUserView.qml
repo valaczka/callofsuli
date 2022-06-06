@@ -135,7 +135,8 @@ QSimpleContainer {
 			studentMaps.send("gameListUserMissionGet", {
 								 missionid: missionId,
 								 level: level,
-								 deathmatch: deathmatch
+								 deathmatch: deathmatch,
+								 lite: studentMaps.liteMode
 							 })
 	}
 

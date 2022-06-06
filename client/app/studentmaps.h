@@ -47,6 +47,7 @@ class StudentMaps : public AbstractActivity
 	Q_PROPERTY(bool demoMode READ demoMode NOTIFY demoModeChanged)
 	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
+	Q_PROPERTY(bool liteMode READ liteMode WRITE setLiteMode NOTIFY liteModeChanged)
 
 
 public:
@@ -66,14 +67,20 @@ public:
 
 	static bool checkTerrains(GameMap *map, QList<GameMapMissionLevel *> *levelList = nullptr);
 
+	bool liteMode() const;
+	void setLiteMode(bool newLiteMode);
+
+
+	Q_INVOKABLE void getExamContent();
+
 public slots:
 	void mapDownload(MapListObject *map);
 	void mapDownload(QList<QObject *> list);
 	void mapLoad(MapListObject *map);
 	void demoMapLoad();
-	void getMissionList(const bool &isLite);
-	void getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch, const bool &isLite);
-	void playGame(const QString &uuid, const int &level, const bool &deathmatch, const GameMatch::GameMode &mode);
+	void getMissionList();
+	void getLevelInfo(const QString &uuid, const int &level, const bool &deathmatch);
+	void playGame(const QString &uuid, const int &level, const bool &deathmatch);
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
 
@@ -122,10 +129,13 @@ signals:
 	void gameListUserReady(const QVariantList &list, const QString &username, const int &offset);
 	void gameListUserMissionGet(QJsonObject jsonData, QByteArray binaryData);
 
+	void examContentReady(const QVariantMap &data);
+
 	void demoModeChanged(bool demoMode);
 	void baseXPChanged(int baseXP);
 	void selectedGroupIdChanged(int selectedGroupId);
 	void modelMapListChanged();
+	void liteModeChanged();
 
 private:
 	void _createDownloader();
@@ -138,6 +148,7 @@ private:
 	int m_baseXP;
 	int m_selectedGroupId;
 	QVariantMap m_missionNameMap;
+	bool m_liteMode;
 };
 
 #endif // STUDENTMAPS_H

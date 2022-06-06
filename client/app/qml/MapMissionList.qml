@@ -206,7 +206,7 @@ QTabContainer {
 
 	onPopulated: {
 		if (studentMaps)
-			studentMaps.getMissionList(actionLite && actionLite.checked)
+			studentMaps.getMissionList()
 	}
 
 }

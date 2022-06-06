@@ -13,6 +13,7 @@ QTabContainer {
 	title: qsTr("Beolvasás")
 	icon: CosStyle.iconQR
 
+	signal tagFound(string tag)
 
 	Camera
 	{
@@ -95,12 +96,9 @@ QTabContainer {
 			enabledDecoders: QZXing.DecoderFormat_QR_CODE
 
 			onTagFound: {
-				console.info("QR: "+tag);
+				console.debug("QR: "+tag);
 
-				if (servers.isValidUrl(tag)) {
-					servers.setUrlString(tag)
-					mainStack.back()
-				}
+				panel.tagFound(tag)
 			}
 
 			tryHarder: false

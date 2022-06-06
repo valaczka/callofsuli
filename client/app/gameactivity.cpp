@@ -46,6 +46,7 @@ GameActivity::GameActivity(QQuickItem *parent)
 	, m_game(nullptr)
 	, m_currentQuestion(0)
 	, m_postponedQuestions(0)
+	, m_liteHP(0)
 {
 	CosDb *db = new CosDb("objectiveDb", this);
 	//db->setDatabaseName(Client::standardPath("tmptargets.db"));
@@ -86,9 +87,25 @@ void GameActivity::prepare()
 		run(&GameActivity::prepareDb, QVariantMap());
 	else if (m_game->gameMatch()->mode() == GameMatch::ModeLite)
 		prepareLite();
-	else if (m_game->gameMatch()->mode() == GameMatch::ModeExam)
-		prepareLite();
 
+
+}
+
+
+
+/**
+ * @brief GameActivity::prepareExam
+ * @param data
+ */
+
+void GameActivity::prepareExam(const QVariantMap &data)
+{
+	if (m_game->gameMatch()->mode() != GameMatch::ModeExam) {
+		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen kérés!"));
+		return;
+	}
+
+	qDebug() << "PREPARE EXAM" << data;
 }
 
 
@@ -318,59 +335,32 @@ void GameActivity::prepareDb(QVariantMap)
 
 void GameActivity::prepareLite()
 {
-	GameMatch *match = m_game->gameMatch();
-	GameMapMissionLevel *level = match->missionLevel();
-
-	if (!level) {
+	if (addQuestion() == -1) {
 		qWarning() << "Invalid mission level";
 		emit prepareFailed();
 		return;
 	}
 
-	QVector<GameActivityQuestion> list;
-
-	foreach (GameMapChapter *chapter, level->chapters()) {
-		foreach (GameMapObjective *objective, chapter->objectives()) {
-			int iFrom = 0;
-			int iTo = 1;
-
-			if (objective->storageId() != -1) {
-				iFrom = 1;
-				iTo = objective->storageCount()+1;
-			}
-
-			for (int i=iFrom; i<iTo; ++i) {
-				Question q(objective);
-
-				q.generate();
-
-				list.append(GameActivityQuestion(q));
-			}
-		}
-	}
-
-	// Limit questions count
-
-	int size = qMin(qFloor((qreal)level->duration()/(qreal)QUESTION_REQUIRED_SECONDS), list.size());
-
-	m_questionList.reserve(size);
-	while (list.size() && m_questionList.size() < size) {
-		if (list.size() > 1)
-			m_questionList.append(list.takeAt(QRandomGenerator::global()->bounded(list.size())));
-		else
-			m_questionList.append(list.takeFirst());
-	}
-
-
-	for (int i=0; i<m_questionList.size(); ++i)
-		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;
-
 	setCurrentQuestion(0);
 	setPostponedQuestions(0);
+	setLiteHP(m_game->gameMatch()->startHp());
 
 	emit prepareSucceed();
 
 	setPrepared(true);
+}
+
+int GameActivity::liteHP() const
+{
+	return m_liteHP;
+}
+
+void GameActivity::setLiteHP(int newLiteHP)
+{
+	if (m_liteHP == newLiteHP)
+		return;
+	m_liteHP = newLiteHP;
+	emit liteHPChanged();
 }
 
 
@@ -499,17 +489,79 @@ int GameActivity::repeatCurrentQuestion()
 				Question q(objective);
 				q.generate();
 				m_questionList[m_currentQuestion] = GameActivityQuestion(q);
-				qDebug() << "REPLACED" << m_currentQuestion;
 			}
 		}
 	}
-
-	qDebug() << "MOVE FROM" << m_currentQuestion << "TO" << n;
 
 	if (n != -1)
 		m_questionList.move(m_currentQuestion, n);
 
 	return n;
+}
+
+
+
+/**
+ * @brief GameActivity::addQuestion
+ * @param count
+ * @return
+ */
+
+int GameActivity::addQuestion(const int &count)
+{
+	GameMatch *match = m_game->gameMatch();
+	GameMapMissionLevel *level = match->missionLevel();
+
+	if (!level)
+		return -1;
+
+	QVector<GameActivityQuestion> list;
+
+	foreach (GameMapChapter *chapter, level->chapters()) {
+		foreach (GameMapObjective *objective, chapter->objectives()) {
+			int iFrom = 0;
+			int iTo = 1;
+
+			if (objective->storageId() != -1) {
+				iFrom = 1;
+				iTo = objective->storageCount()+1;
+			}
+
+			for (int i=iFrom; i<iTo; ++i) {
+				Question q(objective);
+
+				q.generate();
+
+				list.append(GameActivityQuestion(q));
+			}
+		}
+	}
+
+	// Limit questions count
+
+	int size = qMin(qFloor((qreal)level->duration()/(qreal)QUESTION_REQUIRED_SECONDS), list.size());
+
+	if (count > 0)
+		size = qMin(size, count);
+
+	int newSize = m_questionList.size()+size;
+	int created = 0;
+
+	m_questionList.reserve(newSize);
+	while (list.size() && m_questionList.size() < newSize) {
+		if (list.size() > 1)
+			m_questionList.append(list.takeAt(QRandomGenerator::global()->bounded(list.size())));
+		else
+			m_questionList.append(list.takeFirst());
+		++created;
+	}
+
+	m_questionList.squeeze();
+
+	for (int i=0; i<m_questionList.size(); ++i)
+		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;
+
+	return created;
 }
 
 
@@ -524,8 +576,6 @@ int GameActivity::postponeCurrentQuestion()
 
 	if (m_currentQuestion < m_questionList.size()-1)
 		n = m_questionList.size()-1;
-
-	qDebug() << "POSTPONED FROM" << m_currentQuestion << "TO" << n;
 
 	if (n != -1) {
 		m_questionList.move(m_currentQuestion, n);
@@ -569,15 +619,13 @@ bool GameActivity::generateQuestion(GameQuestion *gameQuestion)
 		GameActivityQuestion question = m_questionList.at(m_currentQuestion);
 
 		gameQuestion->setCanPostpone(m_game->gameMatch() && m_game->gameMatch()->mode() == GameMatch::ModeExam &&
-																						   m_postponedQuestions < MAX_POSTPONABLE_QUESTIONS &&
-																						   m_currentQuestion < m_questionList.size()-1);
+									 m_postponedQuestions < MAX_POSTPONABLE_QUESTIONS &&
+									 m_currentQuestion < m_questionList.size()-1);
 
 		gameQuestion->runLite(question.question);
 	} else {
 		return false;
 	}
-
-	qDebug() << "GEN ==============" << m_currentQuestion << "ACTIVE" << activeQuestions();
 
 	for (int i=0; i<m_questionList.size(); ++i)
 		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;

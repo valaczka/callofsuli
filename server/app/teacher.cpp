@@ -66,6 +66,226 @@ bool Teacher::classInit()
 
 
 
+/**
+ * @brief Teacher::gradingFromVariantList
+ * @param list
+ * @return
+ */
+
+QVector<Teacher::Grading> Teacher::gradingFromVariantList(const QVariantList &list)
+{
+	QVector<Teacher::Grading> ret;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		QByteArray cData = m.value("criteria").toString().toUtf8();
+		QJsonDocument doc = QJsonDocument::fromJson(cData);
+		QJsonObject criteriaObject;
+
+		if (!doc.isNull() && doc.isObject())
+			criteriaObject = doc.object();
+
+		if (!m.value("gradeid").isNull()) {
+			int ref = m.value("gradeid").toInt();
+			Grading g(Grading::TypeGrade, m.value("value", 0).toInt(), criteriaObject, ref);
+			ret.append(g);
+		} else if (!m.value("xp").isNull()) {
+			Grading g(Grading::TypeXP, m.value("xp", 0).toInt(), criteriaObject);
+			ret.append(g);
+		}
+	}
+
+	return ret;
+}
+
+
+
+
+
+/**
+ * @brief Teacher::gradingResultOneType
+ * @param list
+ * @param dest
+ * @return
+ */
+
+Teacher::Grading Teacher::gradingResult(const QVector<Grading> &list, const Grading::Type &type)
+{
+	Grading ret;
+
+	// Search default grade
+
+	for (int i=0; i<list.size(); ++i) {
+		Grading g = list.at(i);
+		if (g.mode == Grading::ModeDefault && g.type == type)
+			ret = g;
+	}
+
+	// Check required criteria
+
+	bool requiredSuccess = true;
+
+	for (int i=0; i<list.size(); ++i) {
+		Grading g = list.at(i);
+		if (g.mode == Grading::ModeRequired && !g.success) {
+			requiredSuccess = false;
+		}
+	}
+
+	if (!requiredSuccess)
+		return ret;
+
+	// Check over values
+
+	QMap<int, QVector<Grading>> map = Grading::toMap(list, type);
+
+	int maxValue = -1;
+
+	QMapIterator<int, QVector<Grading>> it(map);
+
+	while (it.hasNext()) {
+		it.next();
+
+		const QVector<Grading> &list = it.value();
+
+		bool allSuccess = true;
+
+		foreach (const Grading &g, list) {
+			if (!g.success)
+				allSuccess = false;
+		}
+
+		if (allSuccess && !list.isEmpty()) {
+			const Grading &g = list.at(0);
+
+			if (g.value>maxValue) {
+				ret = g;
+				maxValue = g.value;
+			}
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief Teacher::gradingGet
+ * @param assignmentId
+ * @param campaignId
+ * @param username
+ * @return
+ */
+
+QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int &campaignId, const QString &username)
+{
+	QVariantList gradingList = m_client->db()->execSelectQuery("SELECT grading.id, gradeid, value, xp, criteria "
+															   "FROM grading LEFT JOIN grade ON (grade.id=grading.gradeid) "
+															   "WHERE assignmentid=? ORDER BY grading.id", {assignmentId});
+
+
+	QVector<Grading> grading = gradingFromVariantList(gradingList);
+
+	evaluate(grading, campaignId, username);
+
+	return grading;
+}
+
+
+
+
+
+/**
+ * @brief Teacher::evaluate
+ * @param list
+ * @param campaignId
+ * @param username
+ * @return
+ */
+
+QVector<Teacher::Grading> &Teacher::evaluate(QVector<Grading> &list, const int &campaignId, const QString &username)
+{
+	for (int i=0; i<list.size(); ++i) {
+		Grading &g = list[i];
+		if (!g.success)
+			evaluate(g, campaignId, username);
+	}
+
+	return list;
+}
+
+
+
+
+
+
+
+/**
+ * @brief Teacher::evaluate
+ * @param grading
+ * @param campaignId
+ * @param username
+ * @return
+ */
+
+Teacher::Grading &Teacher::evaluate(Grading &grading, const int &campaignId, const QString &username)
+{
+	const QJsonObject criteria = grading.criteria;
+	const QString module = criteria.value("module").toString();
+
+	if (grading.mode == Grading::ModeDefault) {
+		grading.success = true;
+		return grading;
+	}
+
+	if (module == "xp") {
+		int targetXP = criteria.value("value").toInt(0);
+		if (targetXP < 1) {
+			grading.success = true;
+			return grading;
+		}
+
+		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT SUM(xp) as xp FROM game LEFT JOIN score ON (score.gameid=game.id) "
+															  "WHERE game.username=? AND "
+															  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
+															  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
+															  "game.mapid IN (SELECT mapid FROM bindGroupMap "
+															  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
+															  {username, campaignId, campaignId, campaignId});
+
+		int xp = m.value("xp", 0).toInt();
+
+		if (xp>=targetXP)
+			grading.success = true;
+	} else if (module == "trophy") {
+		int target = criteria.value("value").toInt(0);
+		if (target < 1) {
+			grading.success = true;
+			return grading;
+		}
+
+		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT COUNT(*) as trophy FROM game "
+															  "WHERE game.username=? AND success=true AND "
+															  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
+															  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
+															  "game.mapid IN (SELECT mapid FROM bindGroupMap "
+															  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
+															  {username, campaignId, campaignId, campaignId});
+
+		int trophy = m.value("trophy", 0).toInt();
+
+		if (trophy >= target)
+			grading.success = true;
+	} else {
+		qWarning() << "Invalid grading module" << module;
+	}
+
+	return grading;
+}
+
+
+
 
 /**
  * @brief Teacher::userGet
@@ -151,7 +371,7 @@ bool Teacher::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 	if (m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {m_client->clientUserName()})
-						 .value("v", false).toBool()) {
+		.value("v", false).toBool()) {
 		(*jsonResponse)["error"] = "oauth2 account";
 		return false;
 	}
@@ -1172,7 +1392,7 @@ bool Teacher::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.contains("groupid")) {
 		int groupid = params.value("groupid", -1).toInt();
 		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "level, success, deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND game.username=? "
 											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)) "
@@ -1183,7 +1403,7 @@ bool Teacher::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
 
 	} else if (params.contains("myGroups")) {
 		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "level, success, deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND game.username=? "
 											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid IN (SELECT id FROM studentGroup WHERE owner=?))) "
@@ -1193,7 +1413,7 @@ bool Teacher::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
 
 	} else if (params.contains("allGroups")) {
 		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "level, success, deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND game.username=?) "
 											   "SELECT * FROM t WHERE rowid NOT IN (SELECT rowid FROM t ORDER BY timestamp DESC LIMIT ?) "
@@ -1254,7 +1474,7 @@ bool Teacher::gameListGroupGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.contains("username")) {
 		QString username = params.value("username").toString();
 		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "level, success, deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND game.username=? "
 											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)) "
@@ -1265,7 +1485,8 @@ bool Teacher::gameListGroupGet(QJsonObject *jsonResponse, QByteArray *)
 
 	} else {
 		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, game.username, firstname, lastname, nickname, "
-											   "mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
+											   "mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, "
+											   "deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN userInfo ON (userInfo.username=game.username) "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=?)) "
@@ -1325,7 +1546,7 @@ bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
 	if (params.contains("username")) {
 		QString username = params.value("username").toString();
 		list = m_client->db()->execSelectQuery("SELECT missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-											   "level, success, deathmatch, duration, score.xp FROM game "
+											   "level, success, deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND game.username=? "
 											   "AND mapid=?",
@@ -1334,7 +1555,8 @@ bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
 
 	} else {
 		list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, "
-											   "missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, deathmatch, duration, score.xp FROM game "
+											   "missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, "
+											   "deathmatch, lite, duration, score.xp FROM game "
 											   "LEFT JOIN userInfo ON (userInfo.username=game.username) "
 											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
 											   "AND mapid=?",
@@ -1368,3 +1590,169 @@ bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+
+
+/**
+ * @brief Teacher::Grading::Grading
+ * @param t
+ * @param v
+ * @param c
+ * @param r
+ */
+
+Teacher::Grading::Grading(const Type &t, const int &v, const QJsonObject &c, const int &r) :
+	type(t), value(v), ref(r), mode(ModeInvalid), criteria(c), success(false)
+{
+	QString m = c.value("mode").toString();
+	if (m == "default")
+		mode = ModeDefault;
+	else if (m == "required")
+		mode = ModeRequired;
+	else
+		mode = ModeInvalid;
+}
+
+
+
+
+
+/**
+ * @brief Teacher::Grading::toArray
+ * @param list
+ * @return
+ */
+
+QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list)
+{
+	QJsonArray ret;
+
+	foreach (Grading g, list) {
+		if (!g.isValid())
+			continue;
+
+		QJsonObject o;
+
+		o["type"] = g.type == Grading::TypeXP ? "xp" : "grade";
+		o["value"] = g.value;
+		o["ref"] = g.ref;
+		/*if (g.mode == Grading::ModeDefault)
+			o["mode"] = "default";
+		else if (g.mode == Grading::ModeRequired)
+			o["mode"] = "required";
+		else
+			o["mode"] = "";*/
+		o["criteria"] = g.criteria;
+		o["success"] = g.success;
+
+		ret.append(o);
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief Teacher::Grading::toNestedArray
+ * @param list
+ * @return
+ */
+
+QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list)
+{
+	QJsonObject ret;
+	QMap<int, QVector<Grading>> gradeMap = toMap(list, Grading::TypeGrade);
+	QMap<int, QVector<Grading>> xpMap = toMap(list, Grading::TypeXP);
+
+	QJsonArray gradeArray;
+	QJsonArray xpArray;
+
+	QMapIterator<int, QVector<Grading>> it(gradeMap);
+	while (it.hasNext()) {
+		it.next();
+
+		const QVector<Grading> &list = it.value();
+
+		QJsonArray cList;
+
+		foreach (const Grading &g, list) {
+			cList.append(QJsonObject({
+										 { "data", g.criteria },
+										 { "success", g.success }
+									 }));
+		}
+
+		QJsonObject o;
+
+		if (!list.isEmpty()) {
+			const Grading &g = list.at(0);
+			o["ref"] = g.ref;
+			o["value"] = g.value;
+		} else {
+			o["ref"] = it.key();
+		}
+
+		o["criteria"] = cList;
+
+		gradeArray.append(o);
+	}
+
+
+	QMapIterator<int, QVector<Grading>> it2(xpMap);
+	while (it2.hasNext()) {
+		it2.next();
+
+		const QVector<Grading> &list = it2.value();
+
+		QJsonArray cList;
+
+		foreach (const Grading &g, list) {
+			cList.append(QJsonObject({
+										 { "data", g.criteria },
+										 { "success", g.success }
+									 }));
+		}
+
+		QJsonObject o;
+
+		o["value"] = it2.key();
+		o["criteria"] = cList;
+
+		xpArray.append(o);
+	}
+
+	ret["xp"] = xpArray;
+	ret["grade"] = gradeArray;
+
+	//QJsonDocument doc(ret);
+	//qDebug() << doc.toJson(QJsonDocument::Indented).data();
+
+	return ret;
+}
+
+
+
+/**
+ * @brief Teacher::Grading::toMap
+ * @param list
+ * @param type
+ * @return
+ */
+
+QMap<int, QVector<Teacher::Grading>> Teacher::Grading::toMap(const QVector<Grading> &list, const Type &type)
+{
+	QMap<int, QVector<Grading>> map;
+
+	foreach (Grading g, list) {
+		if (!g.isValid())
+			continue;
+
+		if (type == Grading::TypeGrade && g.type == Grading::TypeGrade) {
+			map[g.ref].append(g);
+		} else if (type == Grading::TypeXP && g.type == Grading::TypeXP) {
+			map[g.value].append(g);
+		}
+	}
+
+	return map;
+}

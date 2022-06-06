@@ -369,7 +369,7 @@ QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QString &uuid
  * @return
  */
 
-GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid, const qint32 &level, const bool &deathmatch) const
+GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid, const qint32 &level, const bool &deathmatch, const bool &lite) const
 {
 	GameMapMission *mis = mission(uuid);
 	GameMapMissionLevel *ml = missionLevel(uuid, level);
@@ -389,7 +389,7 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
 
 	// Check deathmatch
 
-	if (!deathmatch && ml->canDeathmatch() && !ml->solvedDeathmatch())
+	if (!deathmatch && ml->canDeathmatch() && !ml->solvedDeathmatch() && !lite)
 		return qMakePair(ml, true);
 
 
@@ -402,7 +402,7 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
 		if (!l->solvedNormal())
 			return qMakePair(l, false);
 
-		if (l->canDeathmatch() && !l->solvedDeathmatch())
+		if (l->canDeathmatch() && !l->solvedDeathmatch() && !lite)
 			return qMakePair(l, true);
 	}
 
@@ -424,6 +424,9 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
 
 
 	// Check all missions for deathmatch levels
+
+	if (lite)
+		return qMakePair(nullptr, false);
 
 	foreach (GameMapMission *m, missions()) {
 		if (m == mis)
@@ -452,15 +455,17 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
  * @return
  */
 
-qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch)
+qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch, const bool &isLite)
 {
 	qreal xp = XP_FACTOR_LEVEL*level;
 
-	if (deathmatch)
-		xp *= XP_FACTOR_DEATHMATCH;
+	if (!isLite) {
+		if (deathmatch)
+			xp *= XP_FACTOR_DEATHMATCH;
 
-	if (!baseSolver.hasSolved(level, deathmatch))
-		xp *= XP_FACTOR_SOLVED_FIRST;
+		if (!baseSolver.hasSolved(level, deathmatch))
+			xp *= XP_FACTOR_SOLVED_FIRST;
+	}
 
 	return xp;
 }
