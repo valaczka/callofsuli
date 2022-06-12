@@ -87,10 +87,12 @@ QVector<Teacher::Grading> Teacher::gradingFromVariantList(const QVariantList &li
 
 		if (!m.value("gradeid").isNull()) {
 			int ref = m.value("gradeid").toInt();
-			Grading g(Grading::TypeGrade, m.value("value", 0).toInt(), criteriaObject, ref);
+			Grading g(m.value("id", -1).toInt(), Grading::TypeGrade, m.value("value", 0).toInt(),
+					  criteriaObject, ref, m.value("success", false).toBool());
 			ret.append(g);
 		} else if (!m.value("xp").isNull()) {
-			Grading g(Grading::TypeXP, m.value("xp", 0).toInt(), criteriaObject);
+			Grading g(m.value("id", -1).toInt(), Grading::TypeXP, m.value("xp", 0).toInt(),
+					  criteriaObject, -1, m.value("success", false).toBool());
 			ret.append(g);
 		}
 	}
@@ -169,6 +171,204 @@ Teacher::Grading Teacher::gradingResult(const QVector<Grading> &list, const Grad
 }
 
 
+/**
+ * @brief Teacher::autoFinishCampaigns
+ * @return
+ */
+
+int Teacher::startAndFinishCampaigns(CosDb *db)
+{
+	int ret = 0;
+
+	Q_ASSERT(db);
+
+	qDebug() << "Start and finish campaigns";
+
+	// Finish
+
+	QVariantList list = db->execSelectQuery("SELECT id FROM campaign WHERE finished=false AND endtime<=datetime('now')");
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		int id = m.value("id").toInt();
+
+		if (!finishCampaign(db, id)) {
+			qCritical() << tr("Campaign finish error") << id;
+			return ret;
+		}
+
+		++ret;
+	}
+
+
+
+	// Start
+
+	QVariantList list2 = db->execSelectQuery("SELECT id FROM campaign WHERE started=false AND starttime<=datetime('now')");
+
+	foreach (QVariant v, list2) {
+		QVariantMap m = v.toMap();
+		int id = m.value("id").toInt();
+
+		if (!startCampaign(db, id)) {
+			qCritical() << tr("Campaign start error") << id;
+			return ret;
+		}
+
+		++ret;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Teacher::finishCampaign
+ * @param db
+ * @param campaignId
+ * @param groupId
+ * @return
+ */
+
+bool Teacher::finishCampaign(CosDb *db, const int &campaignId)
+{
+	Q_ASSERT (db);
+
+	const QVariantMap m = db->execSelectQueryOneRow("SELECT groupid, mapclose FROM campaign WHERE id=?", {campaignId});
+	const int groupid = m.value("groupid").toInt();
+
+	qInfo() << tr("Hadjárat (%1) automatikus zárása").arg(campaignId);
+
+	if (!db->execSimpleQuery("UPDATE campaign SET finished=true WHERE id=?", {campaignId}))
+		return false;
+
+
+	// BindGroupMap close
+
+
+	QVariantList mapList;
+	foreach (QString s, m.value("mapclose").toString().split('|', Qt::SkipEmptyParts))
+		mapList.append(s);
+
+	if (!mapList.isEmpty()) {
+		QVariantMap p;
+		p[":groupid"] = groupid;
+		if (!db->execListQuery("UPDATE bindGroupMap SET active=false WHERE groupid=:groupid AND mapid IN(?l?)", mapList, p)) {
+			qCritical() << tr("Map close error");
+			return false;
+		}
+	}
+
+
+	// Grading
+
+	const QVariantList userList = db->execSelectQuery("SELECT username FROM studentGroupInfo WHERE id=?", {groupid});
+	QVariantList assList = db->execSelectQuery("SELECT id FROM assignment WHERE campaignid=?", {campaignId});
+
+	foreach (QVariant v, userList) {
+		const QString username = v.toMap().value("username").toString();
+
+		foreach (const QVariant &av, assList) {
+			const int assignmentId = av.toMap().value("id").toInt();
+
+			const QVariantList gradingList = db->execSelectQuery("SELECT grading.id as id, gradeid, value, xp, criteria "
+																 "FROM grading LEFT JOIN grade ON (grade.id=grading.gradeid) "
+																 "WHERE assignmentid=? ORDER BY grading.id", {assignmentId});
+
+			QVector<Grading> grading = gradingFromVariantList(gradingList);
+
+			evaluate(db, grading, campaignId, username);
+
+
+			// Értékelések rögzítése
+
+			foreach (Grading g, grading) {
+				if (!g.isValid() || g.id == -1)
+					continue;
+
+				QVariantMap p;
+				p["username"] = username;
+				p["gradingid"] = g.id;
+				p["success"] = g.success;
+				db->execInsertQuery("INSERT INTO gradingResult(?k?) VALUES (?)", p);
+			}
+
+
+			Grading g1 = gradingResult(grading, Teacher::Grading::TypeGrade);
+			Grading g2 = gradingResult(grading, Teacher::Grading::TypeXP);
+
+			if (g1.isValid()) {
+				QVariantMap p;
+				p["username"] = username;
+				p["groupid"] = groupid;
+				p["assignmentid"] = assignmentId;
+				p["gradeid"] = g1.ref;
+				if (db->execInsertQuery("INSERT INTO gradeBook(?k?) VALUES (?)", p) == -1) {
+					qCritical() << tr("Grading error");
+					return false;
+				}
+
+				qInfo() << tr("Értékelés: %1 -> JEGY (id: %2)").arg(username).arg(g1.ref);
+			}
+
+			if (g2.isValid()) {
+				QVariantMap p;
+				p["username"] = username;
+				p["xp"] = g2.value;
+				p["assignmentid"] = assignmentId;
+				if (db->execInsertQuery("INSERT INTO score(?k?) VALUES (?)", p) == -1) {
+					qCritical() << tr("Grading error");
+					return false;
+				}
+
+				qInfo() << tr("Értékelés: %1 -> %2 XP").arg(username).arg(g2.value);
+			}
+		}
+
+	}
+
+	return true;
+
+}
+
+
+
+/**
+ * @brief Teacher::startCampaign
+ * @param db
+ * @param campaignId
+ * @return
+ */
+
+bool Teacher::startCampaign(CosDb *db, const int &campaignId)
+{
+	Q_ASSERT (db);
+
+	qInfo() << tr("Hadjárat (%1) automatikus megnyitása").arg(campaignId);
+
+	if (!db->execSimpleQuery("UPDATE campaign SET started=true WHERE id=?", {campaignId}))
+		return false;
+
+	QVariantMap m = db->execSelectQueryOneRow("SELECT groupid, mapopen FROM campaign WHERE id=?", {campaignId});
+	const int groupid = m.value("groupid").toInt();
+
+	foreach (QString s, m.value("mapopen").toString().split('|', Qt::SkipEmptyParts)) {
+		QVariantMap p;
+		p["groupid"] = groupid;
+		p["mapid"] = s;
+		p["active"] = true;
+
+		if (db->execInsertQuery("INSERT OR REPLACE INTO bindGroupMap (?k?) VALUES (?)", p) == -1) {
+			qCritical() << tr("Map open error");
+			return false;
+		}
+	}
+
+
+	return true;
+}
+
+
 
 /**
  * @brief Teacher::gradingGet
@@ -178,16 +378,26 @@ Teacher::Grading Teacher::gradingResult(const QVector<Grading> &list, const Grad
  * @return
  */
 
-QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int &campaignId, const QString &username)
+QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int &campaignId, const QString &username, const bool &isFinished)
 {
-	QVariantList gradingList = m_client->db()->execSelectQuery("SELECT grading.id, gradeid, value, xp, criteria "
-															   "FROM grading LEFT JOIN grade ON (grade.id=grading.gradeid) "
-															   "WHERE assignmentid=? ORDER BY grading.id", {assignmentId});
+	QVariantList gradingList;
+
+	if (isFinished)
+		gradingList = m_client->db()->execSelectQuery("SELECT grading.id as id, gradeid, value, xp, criteria, success "
+													  "FROM grading LEFT JOIN grade ON (grade.id=grading.gradeid) "
+													  "LEFT JOIN gradingResult ON (gradingResult.gradingid=grading.id AND gradingResult.username=?) "
+													  "WHERE assignmentid=? ORDER BY grading.id", {username, assignmentId});
+
+	else
+		gradingList = m_client->db()->execSelectQuery("SELECT grading.id as id, gradeid, value, xp, criteria "
+													  "FROM grading LEFT JOIN grade ON (grade.id=grading.gradeid) "
+													  "WHERE assignmentid=? ORDER BY grading.id", {assignmentId});
 
 
 	QVector<Grading> grading = gradingFromVariantList(gradingList);
 
-	evaluate(grading, campaignId, username);
+	if (!isFinished)
+		evaluate(m_client->db(), grading, campaignId, username);
 
 	return grading;
 }
@@ -204,12 +414,14 @@ QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int
  * @return
  */
 
-QVector<Teacher::Grading> &Teacher::evaluate(QVector<Grading> &list, const int &campaignId, const QString &username)
+QVector<Teacher::Grading> &Teacher::evaluate(CosDb *db, QVector<Grading> &list, const int &campaignId, const QString &username)
 {
+	Q_ASSERT(db);
+
 	for (int i=0; i<list.size(); ++i) {
 		Grading &g = list[i];
 		if (!g.success)
-			evaluate(g, campaignId, username);
+			evaluate(db, g, campaignId, username);
 	}
 
 	return list;
@@ -229,8 +441,10 @@ QVector<Teacher::Grading> &Teacher::evaluate(QVector<Grading> &list, const int &
  * @return
  */
 
-Teacher::Grading &Teacher::evaluate(Grading &grading, const int &campaignId, const QString &username)
+Teacher::Grading &Teacher::evaluate(CosDb *db, Grading &grading, const int &campaignId, const QString &username)
 {
+	Q_ASSERT(db);
+
 	const QJsonObject criteria = grading.criteria;
 	const QString module = criteria.value("module").toString();
 
@@ -246,13 +460,13 @@ Teacher::Grading &Teacher::evaluate(Grading &grading, const int &campaignId, con
 			return grading;
 		}
 
-		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT SUM(xp) as xp FROM game LEFT JOIN score ON (score.gameid=game.id) "
-															  "WHERE game.username=? AND "
-															  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
-															  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
-															  "game.mapid IN (SELECT mapid FROM bindGroupMap "
-															  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
-															  {username, campaignId, campaignId, campaignId});
+		QVariantMap m = db->execSelectQueryOneRow("SELECT SUM(xp) as xp FROM game LEFT JOIN score ON (score.gameid=game.id) "
+												  "WHERE game.username=? AND "
+												  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
+												  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
+												  "game.mapid IN (SELECT mapid FROM bindGroupMap "
+												  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
+												  {username, campaignId, campaignId, campaignId});
 
 		int xp = m.value("xp", 0).toInt();
 
@@ -265,13 +479,13 @@ Teacher::Grading &Teacher::evaluate(Grading &grading, const int &campaignId, con
 			return grading;
 		}
 
-		QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT COUNT(*) as trophy FROM game "
-															  "WHERE game.username=? AND success=true AND "
-															  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
-															  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
-															  "game.mapid IN (SELECT mapid FROM bindGroupMap "
-															  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
-															  {username, campaignId, campaignId, campaignId});
+		QVariantMap m = db->execSelectQueryOneRow("SELECT COUNT(*) as trophy FROM game "
+												  "WHERE game.username=? AND success=true AND "
+												  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
+												  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
+												  "game.mapid IN (SELECT mapid FROM bindGroupMap "
+												  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
+												  {username, campaignId, campaignId, campaignId});
 
 		int trophy = m.value("trophy", 0).toInt();
 
@@ -1600,8 +1814,8 @@ bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
  * @param r
  */
 
-Teacher::Grading::Grading(const Type &t, const int &v, const QJsonObject &c, const int &r) :
-	type(t), value(v), ref(r), mode(ModeInvalid), criteria(c), success(false)
+Teacher::Grading::Grading(const int &i, const Type &t, const int &v, const QJsonObject &c, const int &r, const bool &s) :
+	type(t), value(v), ref(r), mode(ModeInvalid), criteria(c), success(s), id(i)
 {
 	QString m = c.value("mode").toString();
 	if (m == "default")
@@ -1677,7 +1891,7 @@ QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list)
 
 		foreach (const Grading &g, list) {
 			cList.append(QJsonObject({
-										 { "data", g.criteria },
+										 { "criterion", g.criteria },
 										 { "success", g.success }
 									 }));
 		}
@@ -1708,7 +1922,7 @@ QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list)
 
 		foreach (const Grading &g, list) {
 			cList.append(QJsonObject({
-										 { "data", g.criteria },
+										 { "criterion", g.criteria },
 										 { "success", g.success }
 									 }));
 		}

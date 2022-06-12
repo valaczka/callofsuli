@@ -31,6 +31,7 @@
 #include <QCryptographicHash>
 #include <QFile>
 #include <RollingFileAppender.h>
+#include "teacher.h"
 
 #include "server.h"
 #include "../version/buildnumber.h"
@@ -948,8 +949,13 @@ void Server::onTimerTimeout()
 {
 	QTime time = QTime::currentTime();
 
+#ifdef QT_DEBUG
+	if (time.second() != 0 && time.second() != 20 && time.second() != 40)
+		return;
+#else
 	if (time.second() != 0)
 		return;
+#endif
 
 
 	if (m_db->isOpen()) {
@@ -964,6 +970,9 @@ void Server::onTimerTimeout()
 
 		m_db->execSimpleQuery("UPDATE game SET tmpScore=null WHERE tmpScore IS NOT NULL AND datetime(timestamp, ?)<datetime('now')",
 							  { OLD_GAME_DURATION });
+
+		// Finish campaigns
+		Teacher::startAndFinishCampaigns(m_db);
 	}
 }
 

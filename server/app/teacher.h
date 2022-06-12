@@ -64,12 +64,13 @@ public:
 		Mode mode;
 		QJsonObject criteria;
 		bool success;
+		int id;
 
 		Grading() :
-			type(TypeInvalid), value(-1), ref(-1), mode(ModeInvalid), criteria(), success(false)
+			type(TypeInvalid), value(-1), ref(-1), mode(ModeInvalid), criteria(), success(false), id(-1)
 		{}
 
-		Grading(const Type &t, const int &v, const QJsonObject &c, const int &r = -1);
+		Grading(const int &i, const Type &t, const int &v, const QJsonObject &c, const int &r = -1, const bool &s = false);
 
 		bool isValid() const { return type != TypeInvalid; }
 
@@ -88,10 +89,13 @@ public:
 
 	static QVector<Grading> gradingFromVariantList(const QVariantList &list);
 	static Grading gradingResult(const QVector<Grading> &list, const Grading::Type &type);
+	static int startAndFinishCampaigns(CosDb *db);
+	static bool finishCampaign(CosDb *db, const int &campaignId);
+	static bool startCampaign(CosDb *db, const int &campaignId);
+	static QVector<Grading>& evaluate(CosDb *db, QVector<Grading> &list, const int &campaignId, const QString &username);
+	static Grading& evaluate(CosDb *db, Grading &grading, const int &campaignId, const QString &username);
 
-	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username);
-	QVector<Grading>& evaluate(QVector<Grading> &list, const int &campaignId, const QString &username);
-	Grading& evaluate(Grading &grading, const int &campaignId, const QString &username);
+	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username, const bool &isFinished);
 
 public slots:
 

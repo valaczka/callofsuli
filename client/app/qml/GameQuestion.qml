@@ -41,10 +41,10 @@ Item {
 
 		width: _isFullscreen ? control.width-4 :
 							   Math.min(contentLoader.item ? contentLoader.item.implicitWidth : 400, control.width-2*horizontalPadding)
-		height: _isFullscreen ? control.height-4 :
+		height: _isFullscreen ? (questionPrivate && questionPrivate.mode != GameMatch.ModeNormal ? control.height-65 : control.height-4) :
 								Math.min(contentLoader.item ? contentLoader.item.implicitHeight : 300, control.height-2*verticalPadding)
 		x: (control.width-width)/2
-		y: (control.height-height)/2
+		y: questionPrivate && questionPrivate.mode != GameMatch.ModeNormal ? 60 : (control.height-height)/2
 
 		opacity: 0.1
 		scale: 0.1

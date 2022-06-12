@@ -64,6 +64,7 @@ QTabContainer {
 				ExpressionRole {
 					name: "details"
 					expression: "%1 (%2)".arg(model.timestamp).arg(model.duration)
+					// TODO: expression: "%1 (%2)".arg(JS.readableTimestamp(model.timestamp)).arg(model.duration)
 				},
 				SwitchRole {
 					name: "color"

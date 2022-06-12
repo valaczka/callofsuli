@@ -20,6 +20,12 @@ QTabPage {
 		id: modelGuest
 
 		ListElement {
+			title: qsTr("Hadjáratok")
+			icon: "qrc:/internal/img/battle.png"
+			iconColor: "firebrick"
+			func: function() { replaceContent(cmpStudentCampaign) }
+		}
+		ListElement {
 			title: qsTr("Pályák")
 			icon: "image://font/School/\uf19d"
 			iconColor: "lime"
@@ -96,6 +102,11 @@ QTabPage {
 	Component {
 		id: cmpStudentGroupScore
 		StudentGroupScore { }
+	}
+
+	Component {
+		id: cmpStudentCampaign
+		StudentGroupCampaign { }
 	}
 
 }

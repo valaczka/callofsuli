@@ -169,5 +169,8 @@
         <file>MapEditorObjectivePreview.qml</file>
         <file>ReadQR.qml</file>
         <file>ServerInfo.qml</file>
+        <file>StudentGroupCampaign.qml</file>
+        <file>CampaignAssignment.qml</file>
+        <file>Campaign.qml</file>
     </qresource>
 </RCC>

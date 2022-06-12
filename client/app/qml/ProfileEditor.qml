@@ -287,7 +287,7 @@ QTabContainer {
 						font.pixelSize: CosStyle.pixelSize*0.8
 						font.weight: Font.Normal
 						color: model && model.maxStreak !== -1 ? CosStyle.colorOKLighter : CosStyle.colorPrimaryLight
-						text: model ? model.timestamp : ""
+						text: model ? JS.readableTimestamp(model.timestamp) : ""
 					}
 				}
 

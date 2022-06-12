@@ -236,7 +236,7 @@ QTabContainer {
 			labelName.text = _map.name
 			labelInfo.text = qsTr("Verzió: <b>%1</b><br>Méret: <b>%2</b><br>Utoljára módosítva: <b>%3</b><br>Eddigi játékok száma: <b>%4</b>").arg(_map.version)
 			.arg(cosClient.formattedDataSize(Number(_map.dataSize)))
-			.arg(_map.lastModified.toLocaleString(Qt.locale()))
+			.arg(JS.readableTimestamp(_map.lastModified))
 			.arg(_map.used)
 
 			rptrGroup.model = _map.binded

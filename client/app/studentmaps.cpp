@@ -56,7 +56,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
 
 	connect(this, &StudentMaps::gameListUserGet, this, &StudentMaps::onGameListUserGet);
-
+	connect(this, &StudentMaps::campaignGet, this, &StudentMaps::onCampaignGet);
 }
 
 
@@ -148,12 +148,6 @@ void StudentMaps::init(const bool &demoMode)
 	} else {
 		demoMapLoad();
 	}
-
-
-	///// !!!!!
-	send("campaignGet", {
-			 {"groupid", m_selectedGroupId}
-		 });
 }
 
 
@@ -1032,6 +1026,63 @@ void StudentMaps::onGameListUserGet(QJsonObject jsonData, QByteArray)
 
 
 
+
+/**
+ * @brief StudentMaps::onCampaignGet
+ * @param jsonData
+ */
+
+void StudentMaps::onCampaignGet(QJsonObject jsonData, QByteArray)
+{
+	QJsonArray list = jsonData.value("list").toArray();
+	QVariantList ret;
+
+	loadGradeList(jsonData.value("gradeList").toArray());
+
+	if (m_missionNameMap.isEmpty()) {
+		m_missionNameMap = TeacherMaps::missionNames(db());
+	}
+
+	/*foreach (QJsonValue v, list) {
+		QVariantMap m = v.toObject().toVariantMap();
+		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+							  .value(m.value("missionid").toString()).toString();
+
+		m["missionname"] = missionname;
+		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
+		ret.append(m);
+	}*/
+
+	ret = list.toVariantList();
+
+	emit campaignGetReady(ret);
+}
+
+
+
+/**
+ * @brief StudentMaps::onCampaignGet
+ * @param jsonData
+ */
+
+void StudentMaps::loadGradeList(const QJsonArray &list)
+{
+	m_gradeMap.clear();
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		if (!m.contains("id"))
+			continue;
+
+		int id = m.value("id").toInt();
+		m.remove("id");
+
+		m_gradeMap.insert(id, m);
+	}
+}
+
+
+
 /**
  * @brief StudentMaps::_createDownloader
  */
@@ -1074,6 +1125,25 @@ void StudentMaps::setLiteMode(bool newLiteMode)
 		return;
 	m_liteMode = newLiteMode;
 	emit liteModeChanged();
+}
+
+
+/**
+ * @brief StudentMaps::grade
+ * @param id
+ * @return
+ */
+
+QVariantMap StudentMaps::grade(const int &id) const
+{
+	if (!m_gradeMap.contains(id))
+		return QVariantMap({
+							   {"id", -1},
+							   {"longname", ""},
+							   {"shortname", ""},
+							   {"value", -1}
+						   });
+	return m_gradeMap.value(id);
 }
 
 

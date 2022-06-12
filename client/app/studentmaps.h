@@ -70,6 +70,7 @@ public:
 	bool liteMode() const;
 	void setLiteMode(bool newLiteMode);
 
+	Q_INVOKABLE QVariantMap grade(const int &id) const;
 
 	Q_INVOKABLE void getExamContent();
 
@@ -83,6 +84,7 @@ public slots:
 	void playGame(const QString &uuid, const int &level, const bool &deathmatch);
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
+	void loadGradeList(const QJsonArray &list);
 
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
@@ -97,6 +99,8 @@ private slots:
 	void onGameCreate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);
 	void onGameListUserGet(QJsonObject jsonData, QByteArray);
+	void onCampaignGet(QJsonObject jsonData, QByteArray);
+
 
 signals:
 	void groupListGet(QJsonObject jsonData, QByteArray binaryData);
@@ -129,6 +133,10 @@ signals:
 	void gameListUserReady(const QVariantList &list, const QString &username, const int &offset);
 	void gameListUserMissionGet(QJsonObject jsonData, QByteArray binaryData);
 
+	void campaignGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignGetReady(const QVariantList &list);
+	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
+
 	void examContentReady(const QVariantMap &data);
 
 	void demoModeChanged(bool demoMode);
@@ -149,6 +157,7 @@ private:
 	int m_selectedGroupId;
 	QVariantMap m_missionNameMap;
 	bool m_liteMode;
+	QMap<int, QVariantMap> m_gradeMap;
 };
 
 #endif // STUDENTMAPS_H

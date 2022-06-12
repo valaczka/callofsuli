@@ -190,6 +190,58 @@ function mmSStoSec(text) {
 
 
 
+function readableInterval(timestamp1, timestamp2) {
+	var date1 = new Date(timestamp1)
+	var date2 = new Date(timestamp2)
+
+	var y1 = date1.getFullYear()
+	var y2 = date2.getFullYear()
+	var m1 = date1.getMonth()
+	var m2 = date2.getMonth()
+	var d1 = date1.getDate()
+	var d2 = date2.getDate()
+
+	var format2 = ""
+
+	if (y1 == y2 && m1 == m2 && d1 == d2)
+		format2 = "hh:mm"
+	else if (y1 == y2 && m1 == m2)
+		format2 = "d. hh:mm"
+	else if (y1 == y2)
+		format2 = "MMMM d. hh:mm"
+	else
+		format2 = "yyyy. MMMM d. hh:mm"
+
+	return qsTr("%1 – %2").arg(date1.toLocaleString(Qt.locale(), "yyyy. MMMM d. hh:mm")).arg(date2.toLocaleString(Qt.locale(), format2))
+}
+
+
+
+function readableTimestamp(timestamp1) {
+	var date1 = new Date(timestamp1)
+	var date2 = new Date()
+
+	var y1 = date1.getFullYear()
+	var y2 = date2.getFullYear()
+	var m1 = date1.getMonth()
+	var m2 = date2.getMonth()
+	var d1 = date1.getDate()
+	var d2 = date2.getDate()
+
+	var format = ""
+
+	if (y1 == y2 && m1 == m2 && d1 == d2)
+		format = "hh:mm:ss"
+	else if (y1 == y2)
+		format = "MMMM d. hh:mm:ss"
+	else
+		format = "yyyy. MMMM d. hh:mm:ss"
+
+	return date1.toLocaleString(Qt.locale(), format)
+}
+
+
+
 
 function selectAllProxyModelToggle(model) {
 	var s = false

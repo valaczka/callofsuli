@@ -54,6 +54,8 @@ QTabContainer {
 				ExpressionRole {
 					name: "details"
 					expression: qsTr("%1. verzió (%2), módosítva: %3") .arg(model.version) .arg(cosClient.formattedDataSize(Number(model.dataSize))) .arg(model.lastModified.toLocaleString(Qt.locale()))
+
+					// TODO: JS.readableTimestamp(model.timestamp))
 				},
 				SwitchRole {
 					name: "textColor"
