@@ -336,7 +336,7 @@ QTabContainer {
 				anchors.horizontalCenter: parent.horizontalCenter
 
 				text: qsTr("OK")
-				icon.source: CosStyle.iconOK
+				icon.source: "qrc:/internal/icon/check-bold.svg"
 				themeColors: CosStyle.buttonThemeGreen
 
 				onClicked: {

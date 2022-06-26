@@ -14,7 +14,7 @@ QTabContainer {
 	property ServerObject server: null
 
 	title: server ? qsTr("Szerver adatai") : qsTr("Új szerver adatai")
-	icon: CosStyle.iconComputerData
+	icon: server ? "qrc:/internal/icon/access-point.svg" : "qrc:/internal/icon/access-point-plus.svg"
 	menu: QMenu {
 		//MenuItem { action: actionQRread }
 		MenuItem { action: actionRemove }
@@ -73,7 +73,7 @@ QTabContainer {
 			enabled: textHostname.acceptableInput
 
 			themeColors: CosStyle.buttonThemeGreen
-			icon.source: CosStyle.iconSave
+			icon.source: server ? "qrc:/internal/icon/content-save.svg" : "qrc:/internal/icon/content-save-plus.svg"
 
 			onClicked: {
 				if (server) {
@@ -94,7 +94,7 @@ QTabContainer {
 
 	Action {
 		id: actionRemove
-		icon.source: CosStyle.iconDelete
+		icon.source: "qrc:/internal/icon/access-point-remove.svg"
 		text: qsTr("Törlés")
 
 		enabled: server
@@ -102,7 +102,8 @@ QTabContainer {
 		onTriggered: {
 			var d = JS.dialogCreateQml("YesNo", {
 										   title: qsTr("Szerver törlése"),
-										   text: qsTr("Biztosan törlöd a szervert?\n%1:%2").arg(textHostname.text).arg(spinPort.value)
+										   text: qsTr("Biztosan törlöd a szervert?\n%1:%2").arg(textHostname.text).arg(spinPort.value),
+										   image: "qrc:/internal/icon/access-point-remove.svg"
 									   })
 			d.accepted.connect(function () {
 				servers.serverDelete(server)

@@ -12,7 +12,7 @@ QTabContainer {
 	id: control
 
 	title: qsTr("Szerver beállításai")
-	icon: CosStyle.iconSetup
+	icon: "qrc:/internal/icon/wrench.svg"
 	action: actionSave
 
 	property bool _closeEnabled: false
@@ -301,7 +301,7 @@ QTabContainer {
 				//cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
 				serverSettings.send("getSettings")
 			} else {
-				cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
 			}
 		}
 
@@ -312,7 +312,7 @@ QTabContainer {
 				//cosClient.sendMessageInfo(qsTr("Hitelesítési kódok"), qsTr("A hitelesítési kódok sikeresen módosultak."))
 				serverSettings.send("getSettings")
 			} else {
-				cosClient.sendMessageWarning(qsTr("Hitelesítési kódok"), qsTr("Nem sikerült módosítani a hitelesítési kódokat."))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Hitelesítési kódok"), qsTr("Nem sikerült módosítani a hitelesítési kódokat."))
 			}
 		}
 	}

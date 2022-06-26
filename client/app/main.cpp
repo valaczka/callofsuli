@@ -85,6 +85,8 @@ int main(int argc, char *argv[])
 
 	QGuiApplication app(argc, argv);
 
+	Client::initialize();
+
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	QSingleInstance instance;
@@ -105,9 +107,7 @@ int main(int argc, char *argv[])
 
 	Q_INIT_RESOURCE(Bacon2D_static);
 
-	Client* client = Client::clientInstance();
-
-	QString cmdLine = client->commandLineParse(app);
+	QString cmdLine = Client::commandLineParse(app);
 
 	if (cmdLine == "terrain")
 		return 0;
@@ -169,12 +169,13 @@ int main(int argc, char *argv[])
 
 	QZXing::registerQMLTypes();
 
-	Client::initialize();
 	Client::loadModules();
 	Client::standardPathCreate();
 	Client::registerTypes();
 	Client::registerResources();
 	Client::reloadGameResources();
+
+	Client* client = Client::clientInstance();
 
 	QQmlApplicationEngine *engine = new QQmlApplicationEngine();
 	QQmlContext *context = engine->rootContext();

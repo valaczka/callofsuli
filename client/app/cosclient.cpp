@@ -79,14 +79,14 @@ QStringList Client::m_musicList;
 QStringList Client::m_medalIconList;
 QHash<QString, ModuleInterface *> Client::m_moduleObjectiveList;
 QHash<QString, ModuleInterface *> Client::m_moduleStorageList;
+QStringList Client::m_positionalArgumentsToProcess = QStringList();
+QString Client::m_guiLoad = "";
 
 Client::Client(QObject *parent) : QObject(parent)
 {
 	m_connectionState = Standby;
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest);
 	m_timer = new QTimer(this);
-
-	m_guiLoad = "";
 
 	m_userRoles = CosMessage::RoleGuest;
 	m_userXP = 0;
@@ -107,7 +107,6 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_sslErrorSignalHandlerConnected = false;
 	m_forcedLandscape = false;
-	m_positionalArgumentsToProcess = QStringList();
 	m_serverUuid = "";
 
 	m_rootContext = nullptr;
@@ -253,14 +252,14 @@ QString Client::commandLineParse(QCoreApplication &app)
 	parser.addOption({{"t", "terrain"}, tr("Terepfájl <file> adatainak lekérdezése"), "file"});
 	parser.addOption({"license", tr("Licensz")});
 	parser.addOption({{"l", "log"}, tr("Naplózás <file> fájlba"), "file"});
-	parser.addOption({{"m", "map"}, tr("Pályszerkesztő indítása")});
+	parser.addOption({{"e", "editor"}, tr("Pályszerkesztő indítása")});
+	parser.addOption({{"m", "map"}, tr("Pálya szerkesztése"), "file"});
+	parser.addOption({{"p", "play"}, tr("Pálya lejátszása"), "file"});
 
 
 #ifdef QT_NO_DEBUG
 	parser.addOption({"debug", tr("Hibakeresési üzenetek megjelenítése")});
 #endif
-
-	parser.process(app);
 
 #ifdef SQL_DEBUG
 	QLoggingCategory::setFilterRules(QStringLiteral("sql.debug=true"));
@@ -306,8 +305,12 @@ QString Client::commandLineParse(QCoreApplication &app)
 
 
 
-	if (parser.isSet("map"))
-		m_guiLoad = "map";
+	if (parser.isSet("editor"))
+		m_guiLoad = "map:";
+	else if (parser.isSet("map"))
+		m_guiLoad = "map:"+parser.value("map");
+	else if (parser.isSet("play"))
+		m_guiLoad = "play:"+parser.value("play");
 
 	m_positionalArgumentsToProcess = parser.positionalArguments();
 
@@ -431,7 +434,7 @@ void Client::registerTypes()
 
 void Client::windowSaveGeometry(QQuickWindow *window)
 {
-	QSettings s;
+	QSettings s(this);
 	s.beginGroup("window");
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -454,7 +457,7 @@ void Client::windowSaveGeometry(QQuickWindow *window)
 
 void Client::windowRestoreGeometry(QQuickWindow *window)
 {
-	QSettings s;
+	QSettings s(this);
 	s.beginGroup("window");
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -612,6 +615,47 @@ void Client::setSetting(const QString &key, const QVariant &value)
 QVariant Client::getSetting(const QString &key, const QVariant &defaultValue)
 {
 	QSettings s;
+	return s.value(key, defaultValue);
+}
+
+
+/**
+ * @brief Client::setServerSetting
+ * @param key
+ * @param value
+ */
+
+void Client::setServerSetting(const QString &key, const QVariant &value)
+{
+	if (m_serverDataDir.isEmpty()) {
+		qWarning() << tr("Nincs szerverkönyvtár beállítva!");
+		return;
+	}
+
+	const QString fname = m_serverDataDir+"/settings.ini";
+
+	QSettings s(fname, QSettings::IniFormat, this);
+	s.setValue(key, value);
+}
+
+
+/**
+ * @brief Client::getServerSetting
+ * @param key
+ * @param defaultValue
+ * @return
+ */
+
+QVariant Client::getServerSetting(const QString &key, const QVariant &defaultValue)
+{
+	if (m_serverDataDir.isEmpty()) {
+		qWarning() << tr("Nincs szerverkönyvtár beállítva!");
+		return defaultValue;
+	}
+
+	const QString fname = m_serverDataDir+"/settings.ini";
+
+	QSettings s(fname, QSettings::IniFormat, this);
 	return s.value(key, defaultValue);
 }
 
@@ -1585,7 +1629,7 @@ void Client::passwordRequest(const QString &email, const QString &code)
 int Client::socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
 {
 	if (m_connectionState != Connected && m_connectionState != Reconnected) {
-		sendMessageWarning(tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
+		sendMessageWarningImage("qrc:/internal/icon/lan-disconnect.svg", tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
 		return -1;
 	}
 
@@ -1727,10 +1771,10 @@ bool Client::checkError(const CosMessage &message)
 
 	switch (serverError) {
 		case CosMessage::ServerInternalError:
-			sendMessageError(tr("Belső szerver hiba"), message.serverErrorDetails());
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső szerver hiba"), message.serverErrorDetails());
 			break;
 		case CosMessage::ServerSmtpError:
-			sendMessageError(tr("SMTP hiba"), message.serverErrorDetails());
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("SMTP hiba"), message.serverErrorDetails());
 			break;
 		case CosMessage::ServerNoError:
 			break;
@@ -1741,19 +1785,19 @@ bool Client::checkError(const CosMessage &message)
 
 	switch (error) {
 		case CosMessage::BadMessageFormat:
-			sendMessageError(tr("Belső hiba"), tr("Hibás üzenetformátum"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás üzenetformátum"));
 			break;
 		case CosMessage::InvalidMessageType:
-			sendMessageError(tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
 			break;
 		case CosMessage::InvalidSession:
-			sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
+			sendMessageErrorImage("qrc:/internal/icon/account-clock.svg",tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
 			setSessionToken("");
 			setUserName("");
 			emit authInvalid();
 			break;
 		case CosMessage::InvalidUser:
-			sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
+			sendMessageErrorImage("qrc:/internal/icon/account-alert.svg",tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
 			setSessionToken("");
 			setUserName("");
 			emit authInvalid();
@@ -1764,14 +1808,14 @@ bool Client::checkError(const CosMessage &message)
 			break;
 		case CosMessage::InvalidClass:
 		case CosMessage::InvalidFunction:
-			sendMessageError(tr("Belső hiba"), tr("Érvénytelen kérés"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen kérés"));
 			break;
 		case CosMessage::ClassPermissionDenied:
-			sendMessageError(tr("Belső hiba"), tr("Hozzáférés megtagadva"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hozzáférés megtagadva"));
 			break;
 		case CosMessage::NoBinaryData:
 		case CosMessage::OtherError:
-			sendMessageError(tr("Belső hiba"), message.serverErrorDetails());
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), message.serverErrorDetails());
 			break;
 		case CosMessage::NoError:
 			break;
@@ -2053,7 +2097,7 @@ void Client::onSocketError(const QAbstractSocket::SocketError &error)
 		return;
 
 	if (m_connectionState == Standby || m_connectionState == Connecting)
-		sendMessageError(tr("Hiba"), QString("%1\n%2").arg(m_socket->errorString()).arg(m_socket->requestUrl().toString()));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Hiba"), QString("%1\n%2").arg(m_socket->errorString()).arg(m_socket->requestUrl().toString()));
 }
 
 

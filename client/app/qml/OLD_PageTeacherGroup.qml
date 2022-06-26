@@ -60,7 +60,7 @@ QBasePage {
 				return
 
 			if (!jsonData.list || jsonData.list.length === 0) {
-				cosClient.sendMessageWarning(qsTr("Pálya hozzáadása"), qsTr("Nincs több hozzáadható pálya!"))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Pálya hozzáadása"), qsTr("Nincs több hozzáadható pálya!"))
 				return
 			}
 
@@ -208,7 +208,7 @@ QBasePage {
 	Action {
 		id: actionUserEdit
 		text: qsTr("Résztvevők szerkesztése")
-		icon.source: CosStyle.iconEdit
+		icon.source: "qrc:/internal/icon/pencil.svg"
 		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
 			JS.createPage("TeacherGroupUsers", {

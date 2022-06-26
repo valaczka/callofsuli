@@ -102,7 +102,7 @@ public:
 	static void loadModules();
 	static void standardPathCreate();
 
-	QString commandLineParse(QCoreApplication &app);
+	static QString commandLineParse(QCoreApplication &app);
 
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
@@ -127,8 +127,12 @@ public:
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static QString homePath(const QString &path = QString());
 	Q_INVOKABLE static QString genericDataPath(const QString &path = QString());
+
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key, const QVariant &defaultValue = QVariant());
+
+	Q_INVOKABLE void setServerSetting(const QString &key, const QVariant &value);
+	Q_INVOKABLE QVariant getServerSetting(const QString &key, const QVariant &defaultValue = QVariant());
 
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);
@@ -144,6 +148,8 @@ public:
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 
 	Q_INVOKABLE QUrl rankImageSource(int rank = -1, int rankLevel = -1, QString rankImage = "");
+
+	Q_INVOKABLE QUrl urlFromLocalFile(const QString &file) { return QUrl::fromLocalFile(file); }
 
 	Q_INVOKABLE static void openUrl(const QUrl &url);
 
@@ -225,16 +231,25 @@ public slots:
 		emit registrationRequest(oauth2, code);
 	}
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
-		emit messageSent("warning", title, informativeText, detailedText);
+		emit messageSent("warning", title, informativeText, detailedText, "");
 	}
 	void sendMessageError(const QString &title, const QString &informativeText, const QString &detailedText = "") {
-		emit messageSent("error", title, informativeText, detailedText);
+		emit messageSent("error", title, informativeText, detailedText, "");
 	}
 	void sendMessageInfo(const QString &title, const QString &informativeText, const QString &detailedText = "") {
-		emit messageSent("info", title, informativeText, detailedText);
+		emit messageSent("info", title, informativeText, detailedText, "");
+	}
+	void sendMessageWarningImage(const QString &image, const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("warning", title, informativeText, detailedText, image);
+	}
+	void sendMessageErrorImage(const QString &image, const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("error", title, informativeText, detailedText, image);
+	}
+	void sendMessageInfoImage(const QString &image, const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("info", title, informativeText, detailedText, image);
 	}
 	void sendDatabaseError(const QString &informativeText) {
-		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "");
+		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "", "");
 	}
 
 	void setConnectionState(Client::ConnectionState connectionState);
@@ -292,7 +307,8 @@ signals:
 	void messageSent(const QString &type,
 					 const QString &title,
 					 const QString &informativeText,
-					 const QString &detailedText);
+					 const QString &detailedText,
+					 const QString &image);
 	void reconnecting();
 
 	void messageFrameReceived(const CosMessage &message);
@@ -351,7 +367,7 @@ private:
 	QUrl m_connectedUrl;
 	CosMessage *m_cosMessage;
 
-	QString m_guiLoad;
+	static QString m_guiLoad;
 
 	ConnectionState m_connectionState;
 	QString m_userName;
@@ -383,7 +399,7 @@ private:
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
 	bool m_sslErrorSignalHandlerConnected;
 	bool m_forcedLandscape;
-	QStringList m_positionalArgumentsToProcess;
+	static QStringList m_positionalArgumentsToProcess;
 	QString m_serverUuid;
 	QQmlContext *m_rootContext;
 

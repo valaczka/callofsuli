@@ -12,7 +12,7 @@ Item {
 
 	property color borderColor: titleColor
 	property color titleColor: CosStyle.colorPrimary
-	property string icon: ""
+	property string icon: "qrc:/internal/icon/message.svg"
 	property string title: ""
 
 	property alias panel: panelData

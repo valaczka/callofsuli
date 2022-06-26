@@ -19,7 +19,8 @@ QTabPage {
 			if (servers.downloader.fullSize > cosClient.getSetting("autoDownloadBelow", 500000)) {
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Letöltés"),
-											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize)
+											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize),
+											   image: "qrc:/internal/icon/cloud-download-outline.svg"
 										   })
 				d.accepted.connect(function() {
 					var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: servers.downloader })

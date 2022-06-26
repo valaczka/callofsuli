@@ -53,6 +53,8 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_water(0)
 	, m_pliers(0)
 	, m_mode(ModeNormal)
+	, m_skipPreview(false)
+	, m_isFlawless(false)
 {
 	setPlayerCharacter("default");
 }
@@ -79,6 +81,8 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	, m_water(0)
 	, m_pliers(0)
 	, m_mode(ModeNormal)
+	, m_skipPreview(false)
+	, m_isFlawless(false)
 {
 	Q_ASSERT(missionLevel);
 
@@ -90,11 +94,16 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	setTerrain(missionLevel->terrain());
 	setStartHp(missionLevel->startHP());
 	setDuration(missionLevel->duration());
+	setIsFlawless(true);
 
 	QString image = missionLevel->image();
 
 	if (!image.isEmpty())
 		setBgImage(image);
+
+	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+	if (l.contains(m_missionUuid))
+		setSkipPreview(true);
 
 }
 
@@ -121,6 +130,8 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	, m_water(0)
 	, m_pliers(0)
 	, m_mode(ModeNormal)
+	, m_skipPreview(false)
+	, m_isFlawless(false)
 {
 	setPlayerCharacter("default");
 
@@ -130,12 +141,16 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	setTerrain(missionLevel->terrain());
 	setStartHp(missionLevel->startHP());
 	setDuration(missionLevel->duration());
+	setIsFlawless(true);
 
 	QString image = missionLevel->image();
 
 	if (!image.isEmpty())
 		setBgImage(image);
 
+	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+	if (l.contains(m_missionUuid))
+		setSkipPreview(true);
 }
 
 
@@ -233,6 +248,24 @@ QJsonArray GameMatch::takeStatistics()
 	m_statData.clear();
 
 	return r;
+}
+
+
+/**
+ * @brief GameMatch::previewCompleted
+ */
+
+void GameMatch::previewCompleted()
+{
+	if (m_missionUuid.isEmpty())
+		return;
+
+	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+	if (!l.contains(m_missionUuid)) {
+		l.append(m_missionUuid);
+		Client::clientInstance()->setServerSetting("game/skipPreview", l);
+		setSkipPreview(true);
+	}
 }
 
 
@@ -469,4 +502,30 @@ void GameMatch::setPliers(int newPliers)
 		return;
 	m_pliers = newPliers;
 	emit pliersChanged();
+}
+
+bool GameMatch::skipPreview() const
+{
+	return m_skipPreview;
+}
+
+void GameMatch::setSkipPreview(bool newSkipPreview)
+{
+	if (m_skipPreview == newSkipPreview)
+		return;
+	m_skipPreview = newSkipPreview;
+	emit skipPreviewChanged();
+}
+
+bool GameMatch::isFlawless() const
+{
+	return m_isFlawless;
+}
+
+void GameMatch::setIsFlawless(bool newIsFlawless)
+{
+	if (m_isFlawless == newIsFlawless)
+		return;
+	m_isFlawless = newIsFlawless;
+	emit isFlawlessChanged();
 }

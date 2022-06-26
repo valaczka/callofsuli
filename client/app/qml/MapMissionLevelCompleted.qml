@@ -39,7 +39,7 @@ Column {
 
 		QLabel {
 			anchors.verticalCenter: parent.verticalCenter
-			text: qsTr("Mission completed")
+			text: gameData.flawless ? qsTr("Hibátlan győzelem") : qsTr("Mission completed")
 			wrapMode: Text.Wrap
 			horizontalAlignment: Text.AlignHCenter
 			width: Math.min(implicitWidth, col.width-imageTrophy.width-(imageMedal.visible ? imageMedal.width : 0))
@@ -250,7 +250,7 @@ Column {
 
 	QCollapsible {
 		id: collapsibleStreak
-		title: qsTr("Streak")
+		title: qsTr("Széria")
 		interactive: false
 		collapsed: true
 		backgroundColor: "transparent"
@@ -265,7 +265,7 @@ Column {
 
 				QLabel {
 					width: collapsibleGame.width/2
-					text: qsTr("Streak:")
+					text: qsTr("Széria:")
 					font.pixelSize: contentPixelSize
 					font.weight: contentFontWeight
 					anchors.verticalCenter: parent.verticalCenter
@@ -325,7 +325,7 @@ Column {
 
 				QLabel {
 					width: collapsibleGame.width/2
-					text: qsTr("Streak kezdete:")
+					text: qsTr("Széria kezdete:")
 					font.pixelSize: contentPixelSize
 					font.weight: contentFontWeight
 					anchors.verticalCenter: parent.verticalCenter
@@ -361,7 +361,7 @@ Column {
 
 				QLabel {
 					width: collapsibleGame.width/2
-					text: qsTr("Streakért kapott:")
+					text: qsTr("Szériáért kapott:")
 					font.pixelSize: contentPixelSize
 					font.weight: contentFontWeight
 					anchors.verticalCenter: parent.verticalCenter
@@ -383,7 +383,7 @@ Column {
 
 				QLabel {
 					width: collapsibleGame.width/2
-					text: qsTr("Leghosszabb streakért kapott:")
+					text: qsTr("Leghosszabb szériáért kapott:")
 					font.pixelSize: contentPixelSize
 					font.weight: contentFontWeight
 					anchors.verticalCenter: parent.verticalCenter

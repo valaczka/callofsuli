@@ -222,7 +222,7 @@ void TeacherMaps::mapUpload(const QUrl &url)
 	QFile f(url.toLocalFile());
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -230,7 +230,7 @@ void TeacherMaps::mapUpload(const QUrl &url)
 
 	GameMap *map = GameMap::fromBinaryData(content);
 	if (!map) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -261,7 +261,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 	QFile f(url.toLocalFile());
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -269,7 +269,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 
 	GameMap *map = GameMap::fromBinaryData(content);
 	if (!map) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -278,7 +278,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 	delete map;
 
 	if (fuuid != m_selectedMapId) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -307,7 +307,7 @@ void TeacherMaps::mapExport(const QUrl &url)
 	QVariantMap m = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {m_selectedMapId});
 
 	if (m.isEmpty()) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
 		return;
 	}
 
@@ -315,7 +315,7 @@ void TeacherMaps::mapExport(const QUrl &url)
 
 	QFile f(url.toLocalFile());
 	if (!f.open(QIODevice::WriteOnly)) {
-		Client::clientInstance()->sendMessageError(tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
 		return;
 	}
 	f.write(b);

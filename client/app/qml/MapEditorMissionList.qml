@@ -132,7 +132,7 @@ QTabContainer {
 									   })
 
 			d.accepted.connect(function(data) {
-				var dd = JS.dialogCreateQml("List", {
+				var dd = JS.dialogCreateQml("ImageList", {
 											   icon: CosStyle.iconLockAdd,
 											   title: qsTr("Harcmező kiválasztása"),
 											   selectorSet: false,

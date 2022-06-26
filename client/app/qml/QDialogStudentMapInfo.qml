@@ -126,7 +126,7 @@ QDialogPanel {
 		id: buttonOk
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("OK")
-		icon.source: CosStyle.iconOK
+		icon.source: "qrc:/internal/icon/check-bold.svg"
 
 		onClicked: dialogPanel.dlgClose()
 	}

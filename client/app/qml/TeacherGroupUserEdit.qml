@@ -49,7 +49,7 @@ QTabContainer {
 				return
 
 			if (!jsonData.list.length) {
-				cosClient.sendMessageWarning(qsTr("Osztály hozzáadása"), qsTr("Nincs több hozzáadható osztály!"))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Osztály hozzáadása"), qsTr("Nincs több hozzáadható osztály!"))
 				return
 			}
 
@@ -83,7 +83,7 @@ QTabContainer {
 				return
 
 			if (!jsonData.list.length) {
-				cosClient.sendMessageWarning(qsTr("Tanuló hozzáadása"), qsTr("Nincs több hozzáadható tanuló!"))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Tanuló hozzáadása"), qsTr("Nincs több hozzáadható tanuló!"))
 				return
 			}
 

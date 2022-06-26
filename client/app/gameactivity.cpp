@@ -101,7 +101,7 @@ void GameActivity::prepare()
 void GameActivity::prepareExam(const QVariantMap &data)
 {
 	if (m_game->gameMatch()->mode() != GameMatch::ModeExam) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen kérés!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen kérés!"));
 		return;
 	}
 
@@ -154,7 +154,7 @@ void GameActivity::createTarget(GameEnemy *enemy)
 	int target = m.value("id").toInt();
 
 	if (!db()->execSimpleQuery("UPDATE targets SET block=?, num=num+1 WHERE id=?", {block, target})) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
 	} else if (enemyData) {
 		enemyData->setTargetId(target);
 		enemyData->setTargetDestroyed(false);
@@ -558,8 +558,8 @@ int GameActivity::addQuestion(const int &count)
 
 	m_questionList.squeeze();
 
-	for (int i=0; i<m_questionList.size(); ++i)
-		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;
+	/*for (int i=0; i<m_questionList.size(); ++i)
+		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;*/
 
 	return created;
 }
@@ -627,8 +627,8 @@ bool GameActivity::generateQuestion(GameQuestion *gameQuestion)
 		return false;
 	}
 
-	for (int i=0; i<m_questionList.size(); ++i)
-		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;
+	/*for (int i=0; i<m_questionList.size(); ++i)
+		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;*/
 
 
 	return true;

@@ -41,7 +41,7 @@ QtObject {
 
 	property color colorBg: "#20ffffff"
 
-	property int pixelSize: (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 17 : 18)
+	property int pixelSize: 18
 	property int baseHeight: Math.max(pixelSize * 2.2, (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 48 : 24))
 	property int twoLineHeight: Math.max(pixelSize * 48/18, 32)
 	property int halfLineHeight: Math.max(CosStyle.pixelSize*1.7, 20)
@@ -66,7 +66,6 @@ QtObject {
 	property real volumeVoiceover: 0.8
 
 	property string iconMenu: "image://font/Material Icons/\ue5d4"
-	property string iconClose: "image://font/Material Icons/\ue14c"
 	property string iconChecked: "image://font/Material Icons/\ue86c"
 	property string iconUnchecked: "image://font/Material Icons/\ue836"
 	property string iconSelected: "image://font/Material Icons/\ue837"
@@ -79,26 +78,19 @@ QtObject {
 	property string iconSelectAll: "image://font/Material Icons/\ue877"
 	property string iconDrawer: "image://font/Material Icons/\ue3c7"
 	property string iconDelete: iconTrash
-	property string iconCancel: "image://font/Material Icons/\ue5cd"
 	property string iconNew: "image://font/Material Icons/\ue24d"
 	property string iconOpen: "image://font/Material Icons/\ue2c8"
 	property string iconAdd: "image://font/Material Icons/\ue145"
 	property string iconSave: "image://font/Material Icons/\ue161"
 	property string iconSend: "image://font/Material Icons/\ue163"
-	property string iconEdit: "image://font/Material Icons/\ue254"
 	property string iconRename: "image://font/Material Icons/\ue23c"
 	property string iconDuplicate: "image://font/Material Icons/\ue14d"
-	property string iconOK: "image://font/Material Icons/\ue5ca"
 	property string iconDown: "image://font/Material Icons/\ue5c5"
-	property string iconDialogQuestion: "image://font/Material Icons/\ue887"
-	property string iconDialogInfo: "image://font/Material Icons/\ue88f"
-	property string iconDialogWarning: "image://font/Material Icons/\ue002"
-	property string iconDialogError: "image://font/Material Icons/\ue000"
 	property string iconShield: "image://font/Material Icons/\ue32a"
 
 	property string iconDeleteCloud: "image://font/Material Icons/\ue2be"
 	property string iconUploadCloud: "image://font/Material Icons/\ue2c3"
-	property string iconDownloadCloud: "image://font/Material Icons/\ue2c0"
+	property string iconDownloadCloud: "qrc:/internal/icon/cloud-download.svg"
 	property string iconUpload: "image://font/Material Icons/\ue2c6"
 	property string iconDownload: "image://font/Material Icons/\ue2c4"
 
@@ -114,7 +106,6 @@ QtObject {
 	property string iconStopWatchDisabled: "image://font/Material Icons/\ue426"
 	property string iconRefresh: "image://font/Material Icons/\ue028"
 	property string iconAdjust: "image://font/Material Icons/\ue429"
-	property string iconSetup: "image://font/Material Icons/\ue869"
 	property string iconPreferences: "image://font/Material Icons/\ue8b8"
 	property string iconSearch: "image://font/Material Icons/\ue8b6"
 	property string iconEmail: "image://font/Material Icons/\ue0e1"

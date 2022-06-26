@@ -222,7 +222,7 @@ QTabPage {
 
 	Action {
 		id: actionSave
-		icon.source: CosStyle.iconSave
+		icon.source: "qrc:/internal/icon/content-save.svg"
 		enabled: mapEditor.editor && mapEditor.undoStack.savedStep !== mapEditor.undoStack.step
 		shortcut: "Ctrl+S"
 		onTriggered: {
@@ -236,7 +236,7 @@ QTabPage {
 
 	Action {
 		id: actionOpen
-		icon.source: CosStyle.iconOpen
+		icon.source: "qrc:/internal/icon/folder-open.svg"
 		text: qsTr("Megnyitás")
 		enabled: !mapEditor.editor
 		onTriggered: {
@@ -257,7 +257,7 @@ QTabPage {
 
 	Action {
 		id: actionNew
-		icon.source: CosStyle.iconNew
+		icon.source: "qrc:/internal/icon/file-plus.svg"
 		text: qsTr("Új pálya")
 		enabled: !mapEditor.editor
 		onTriggered: mapEditor.create()
@@ -266,7 +266,7 @@ QTabPage {
 
 	Action {
 		id: actionSaveAs
-		icon.source: "image://font/Material Icons/\ue02e"
+		icon.source: "qrc:/internal/icon/content-save-plus.svg"
 		text: qsTr("Mentés másként")
 		enabled: mapEditor.editor
 		onTriggered:  {

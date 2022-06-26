@@ -54,6 +54,7 @@ class GameMatch : public QObject
 	Q_PROPERTY(QString imageDbName READ imageDbName WRITE setImageDbName NOTIFY imageDbNameChanged)
 	Q_PROPERTY(int duration READ duration WRITE setDuration NOTIFY durationChanged)
 	Q_PROPERTY(bool deathmatch READ deathmatch WRITE setDeathmatch NOTIFY deathmatchChanged)
+	Q_PROPERTY(bool isFlawless READ isFlawless WRITE setIsFlawless NOTIFY isFlawlessChanged)
 
 	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXP NOTIFY xpChanged)
@@ -63,6 +64,8 @@ class GameMatch : public QObject
 	Q_PROPERTY(int pliers READ pliers WRITE setPliers NOTIFY pliersChanged)
 
 	Q_PROPERTY(GameMode mode READ mode WRITE setMode NOTIFY modeChanged)
+
+	Q_PROPERTY(bool skipPreview READ skipPreview WRITE setSkipPreview NOTIFY skipPreviewChanged)
 
 
 public:
@@ -124,6 +127,8 @@ public:
 	void addStatistics(const QString &objective, const bool &success, const int &elapsed);
 	QJsonArray takeStatistics();
 
+	void previewCompleted();
+
 	int water() const;
 	void setWater(int newWater);
 
@@ -132,6 +137,12 @@ public:
 
 	const GameMode &mode() const;
 	void setMode(const GameMode &newMode);
+
+	bool skipPreview() const;
+	void setSkipPreview(bool newSkipPreview);
+
+	bool isFlawless() const;
+	void setIsFlawless(bool newIsFlawless);
 
 public slots:
 	bool check(QString *errorString);
@@ -170,8 +181,9 @@ signals:
 	void deathmatchChanged(bool deathmatch);
 	void waterChanged();
 	void pliersChanged();
-
 	void modeChanged();
+	void skipPreviewChanged();
+	void isFlawlessChanged();
 
 private:
 	GameMap *m_gameMap;
@@ -196,6 +208,8 @@ private:
 	int m_water;
 	int m_pliers;
 	GameMode m_mode;
+	bool m_skipPreview;
+	bool m_isFlawless;
 };
 
 

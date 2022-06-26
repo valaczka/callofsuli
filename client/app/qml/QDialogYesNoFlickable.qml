@@ -23,7 +23,7 @@ QDialogPanel {
 	property real panelPaddingLeft: 5
 	property real panelPaddingRight: 5
 
-	icon: CosStyle.iconDialogQuestion
+	icon: "qrc:/internal/icon/message-question.svg"
 	titleColor: CosStyle.colorPrimaryDarker
 
 
@@ -84,7 +84,7 @@ QDialogPanel {
 			id: buttonNo
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Nem")
-			icon.source: CosStyle.iconCancel
+			icon.source: "qrc:/internal/icon/close-circle.svg"
 			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: {
@@ -98,7 +98,7 @@ QDialogPanel {
 			anchors.verticalCenter: parent.verticalCenter
 
 			text: qsTr("Igen")
-			icon.source: CosStyle.iconOK
+			icon.source: "qrc:/internal/icon/check-bold.svg"
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {

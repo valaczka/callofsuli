@@ -9,8 +9,8 @@ import "JScript.js" as JS
 QTabContainer {
 	id: control
 
-	title: qsTr("Csoportok")
-	icon: CosStyle.iconGroupsSmall
+	title: qsTr("Áttekintés")
+	icon: "qrc:/internal/icon/speedometer.svg"
 
 	property Profile profile: null
 
@@ -82,7 +82,7 @@ QTabContainer {
 				id: barStreak
 				width: parent.width*0.75
 				anchors.horizontalCenter: parent.horizontalCenter
-				textFormat: qsTr("Streak %1")
+				textFormat: qsTr("Széria: %1")
 				valueToVisible: false
 				color: CosStyle.colorAccent
 
@@ -132,7 +132,7 @@ QTabContainer {
 								size: groupItem.width*0.5
 								color: "white"
 								visible: icon
-								icon: CosStyle.iconGroupsSmall
+								icon: "qrc:/internal/icon/account-group.svg"
 							}
 
 							QLabel {
@@ -190,7 +190,7 @@ QTabContainer {
 							size: cardAdd.width*0.5
 							color: "white"
 							visible: icon
-							icon: CosStyle.iconAdd
+							icon: "qrc:/internal/icon/account-multiple-plus-outline.svg"
 						}
 
 						QLabel {
@@ -273,7 +273,7 @@ QTabContainer {
 
 				if (jsonData.maxStreak) {
 					barStreak.textTo = jsonData.maxStreak>jsonData.currentStreak ?
-								qsTr("leghosszabb streak %1").arg(jsonData.maxStreak) :
+								qsTr("leghosszabb széria: %1").arg(jsonData.maxStreak) :
 								Number(jsonData.currentStreak)+1
 					barStreak.to = Math.max(jsonData.maxStreak, Number(jsonData.currentStreak)+1)
 				}

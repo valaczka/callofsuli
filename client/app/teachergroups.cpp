@@ -168,7 +168,7 @@ bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
 	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
 
 	if (r.isEmpty()) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
 		return false;
 	}
 
@@ -265,7 +265,7 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 	}
 
 	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 
@@ -298,7 +298,7 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 
@@ -332,7 +332,7 @@ void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
 void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 

@@ -53,7 +53,7 @@ Page {
 		}
 
 		onPrepareFailed: {
-			cosClient.sendMessageError(qsTr("Játék előkészítése sikertelen"), qsTr("Nem sikerült előkészíteni a játékot!"))
+			cosClient.sendMessageErrorImage("qrc:/internal/icon/tools.svg",qsTr("Játék előkészítése sikertelen"), qsTr("Nem sikerült előkészíteni a játékot!"))
 			_backDisabled = false
 			_closeEnabled = true
 			mainStack.back()
@@ -303,7 +303,7 @@ Page {
 				}
 
 				onGameSceneLoadFailed: {
-					cosClient.sendMessageError(qsTr("Játék betöltése sikertelen"), qsTr("Nem sikerült betölteni a játékot!"))
+					cosClient.sendMessageErrorImage("qrc:/internal/icon/tools.svg",qsTr("Játék betöltése sikertelen"), qsTr("Nem sikerült betölteni a játékot!"))
 					_backDisabled = false
 					_closeEnabled = true
 					mainStack.back()
@@ -315,7 +315,7 @@ Page {
 					setEnemiesMoving(false)
 					setRunning(false)
 
-					var d = JS.dialogMessageError(qsTr("Game over"), qsTr("Lejárt az idő"))
+					var d = JS.dialogMessageErrorImage("qrc:/internal/icon/timer-sand-complete.svg", qsTr("Game over"), qsTr("Lejárt az idő"))
 					d.rejected.connect(function() {
 						_closeEnabled = true
 						mainStack.back()
@@ -330,7 +330,8 @@ Page {
 
 					var t = gameMatch.mode == GameMatch.ModeNormal ? qsTr("Your man has died") : qsTr("Sikertelen feladatmegoldás")
 
-					var d = JS.dialogMessageError(qsTr("Game over"), t)
+					var d = JS.dialogMessageErrorImage(gameMatch.mode == GameMatch.ModeNormal ? "qrc:/internal/icon/skull-crossbones.svg" : "",
+													   qsTr("Game over"), t)
 					d.rejected.connect(function() {
 						_closeEnabled = true
 						mainStack.back()
@@ -653,7 +654,8 @@ Page {
 		text: "%1 HP"
 		value: game.player ? game.player.entityPrivate.hp
 						   : (gameMatch.mode == GameMatch.ModeLite ? gameActivity.liteHP : 0)
-		image.visible: false
+		//image.visible: false
+		image.icon: "qrc:/internal/icon/heart-pulse.svg"
 
 		visible: !gameScene.isSceneZoom && gameMatch.mode != GameMatch.ModeExam
 
@@ -689,7 +691,7 @@ Page {
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: shield
-			image.icon: "qrc:/internal/game/shield2.png"
+			image.icon: "qrc:/internal/icon/shield.svg"
 			progressBar.width: Math.min(control.width*0.125, 100)
 
 			visible: gameMatch.mode == GameMatch.ModeNormal
@@ -710,7 +712,7 @@ Page {
 			id: infoTarget
 			anchors.right: parent.right
 			color: CosStyle.colorWarning
-			image.icon: "qrc:/internal/game/target.png"
+			image.icon: "qrc:/internal/icon/target-account.svg"
 			label.text: Math.floor(progressBar.value)
 
 			progressBar.from: 0
@@ -747,7 +749,7 @@ Page {
 
 			QFontImage {
 				size: itemGrid.size
-				icon: CosStyle.iconSetup
+				icon: "qrc:/internal/icon/wrench.svg"
 				color: "brown"
 				visible: game.gameMatch.pliers
 			}
@@ -757,7 +759,7 @@ Page {
 
 				QFontImage {
 					size: itemGrid.size
-					icon: "qrc:/internal/game/drop.png"
+					icon: "qrc:/internal/icon/water.svg"
 					color: "blue"
 				}
 			}
@@ -778,7 +780,7 @@ Page {
 			border.color: fontImage.color
 			border.width: 2
 
-			fontImage.icon: CosStyle.iconPreferences
+			fontImage.icon: "qrc:/internal/icon/cog.svg"
 			fontImage.color: CosStyle.colorAccentLighter
 			fontImageScale: 0.7
 
@@ -786,14 +788,17 @@ Page {
 				var d = JS.dialogCreateQml("GameSettings", {
 											   volumeMusic: cosClient.volume(CosSound.MusicChannel),
 											   volumeSfx: cosClient.volume(CosSound.SfxChannel),
-											   volumeVoiceover: cosClient.volume(CosSound.VoiceoverChannel)
+											   volumeVoiceover: cosClient.volume(CosSound.VoiceoverChannel),
+											   joystickSize: joystick.size
 										   })
 
 				d.item.volumeMusicModified.connect(function(volume) { cosClient.setVolume(CosSound.MusicChannel, volume) })
 				d.item.volumeSfxModified.connect(function(volume) { cosClient.setVolume(CosSound.SfxChannel, volume) })
 				d.item.volumeVoiceoverModified.connect(function(volume) { cosClient.setVolume(CosSound.VoiceoverChannel, volume) })
+				d.item.joystickSizeModified.connect(function(size) { joystick.size = size })
 				d.closedAndDestroyed.connect(function() {
 					gameScene.forceActiveFocus()
+					cosClient.setSetting("game/joystickSize", joystick.size)
 				})
 				d.open()
 			}
@@ -812,7 +817,7 @@ Page {
 			border.color: "white"
 			border.width: 2
 
-			fontImage.icon: CosStyle.iconOK
+			fontImage.icon: "qrc:/internal/icon/check-bold.svg"
 			fontImage.color: CosStyle.colorOKLight
 			fontImageScale: 0.7
 
@@ -862,12 +867,14 @@ Page {
 	GameJoystick {
 		id: joystick
 
+		property real size: 175
+
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		anchors.margins: 5
 
-		width: Math.min(175, control.width*0.5)
-		height: Math.min(120, control.width*0.4)
+		width: Math.min(size, control.width*0.5)
+		height: Math.min((120/175)*size, control.width*0.4)
 
 		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
@@ -959,7 +966,7 @@ Page {
 
 		opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
 
-		fontImage.icon: "image://font/Material Icons/\ue925"
+		fontImage.icon: "qrc:/internal/icon/hand-back-right.svg"
 		fontImage.color: "white"
 		fontImageScale: 0.6
 		fontImage.anchors.horizontalCenterOffset: -2
@@ -997,7 +1004,7 @@ Page {
 
 			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
 
-			fontImage.icon: CosStyle.iconSetup
+			fontImage.icon: "qrc:/internal/icon/pliers.svg"
 			fontImage.color: "white"
 			fontImageScale: 0.6
 			fontImage.anchors.horizontalCenterOffset: -2
@@ -1077,7 +1084,7 @@ Page {
 
 	Label {
 		id: previewLabel
-		color: CosStyle.colorErrorLight
+		color: CosStyle.colorPrimaryLighter
 		font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
 		opacity: 0.0
 		visible: opacity
@@ -1306,7 +1313,7 @@ Page {
 				if (gameMatch.mode != GameMatch.ModeNormal)
 					return
 
-				if (previewAnimation.num >= game.terrainData.preview.length) {
+				if (previewAnimation.num >= game.terrainData.preview.length || gameMatch.skipPreview) {
 					if (gameMatch && gameMatch.deathmatch) {
 						messageList.message(qsTr("SUDDEN DEATH"), 3)
 						cosClient.playSound("qrc:/sound/voiceover/sudden_death.mp3", CosSound.VoiceOver)
@@ -1317,11 +1324,27 @@ Page {
 					flick.interactive = true
 					previewLabel.text = ""
 					game.onGameStarted()
+
+					if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && cosClient.getSetting("notification/gameGesturePinch", true) === true) {
+						cosClient.sendMessageInfoImage("qrc:/internal/icon/gesture-pinch.svg", qsTr("Információ"), qsTr("A pálya áttekintéséhez csippentsd össze a képernyőt"))
+						cosClient.setSetting("notification/gameGesturePinch", false)
+					}
+
+					if (previewAnimation.num > 0) {
+						game.previewCompleted()
+					}
+
 				} else {
 					var d = game.terrainData.preview[previewAnimation.num]
 
 					flick.setOffsetTo(d.point.x, d.point.y)
 					previewLabel.text = qsTr(d.text)
+
+					var r = gameScene.playerLocatorComponent.createObject(gameScene, {
+																			  color: CosStyle.colorPrimaryLight
+																		  })
+					r.x = d.point.x-(r.width/2)
+					r.y = d.point.y-(r.height/2)
 
 					previewAnimation.num++
 				}
@@ -1412,6 +1435,8 @@ Page {
 	Component.onCompleted: {
 		if (gameMatch.mode == GameMatch.ModeNormal)
 			cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
+
+		joystick.size = cosClient.getSetting("game/joystickSize", joystick.size)
 	}
 
 	Component.onDestruction: {
@@ -1436,7 +1461,11 @@ Page {
 
 	property var closeCallbackFunction: function () {
 		if (!_closeEnabled) {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
+			var d = JS.dialogCreateQml("YesNo", {
+										   text: qsTr("Biztosan megszakítod a játékot?"),
+										   image: "qrc:/internal/icon/close-octagon-outline.svg"
+									   })
+
 			d.accepted.connect(function() {
 				game.currentScene = exitScene
 				bg.source = ""
@@ -1456,7 +1485,10 @@ Page {
 			return true
 
 		if (!_closeEnabled) {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan megszakítod a játékot?")})
+			var d = JS.dialogCreateQml("YesNo", {
+										   text: qsTr("Biztosan megszakítod a játékot?"),
+										   image: "qrc:/internal/icon/close-octagon-outline.svg"
+									   })
 			d.accepted.connect(function() {
 				game.currentScene = exitScene
 				bg.source = ""

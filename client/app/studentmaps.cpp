@@ -136,7 +136,7 @@ CosDb *StudentMaps::studentMapsDb(Client *client, QObject *parent, const QString
  * @param demoMode
  */
 
-void StudentMaps::init(const bool &demoMode)
+void StudentMaps::init(const bool &demoMode, const QString &fileToOpen)
 {
 	m_demoMode = demoMode;
 	emit demoModeChanged(m_demoMode);
@@ -146,6 +146,9 @@ void StudentMaps::init(const bool &demoMode)
 		if (db)
 			addDb(db, false);
 	} else {
+		if (!fileToOpen.isEmpty())
+			m_demoMapFile = fileToOpen;
+
 		demoMapLoad();
 	}
 }
@@ -172,7 +175,7 @@ void StudentMaps::mapLoad(MapListObject *map)
 	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {map->uuid()});
 
 	if (r.isEmpty()) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), map->uuid());
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), map->uuid());
 		return;
 	}
 
@@ -181,24 +184,24 @@ void StudentMaps::mapLoad(MapListObject *map)
 	GameMap *gmap = GameMap::fromBinaryData(b);
 
 	if (!gmap) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Hibás pályaadatok!"), map->uuid());
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás pályaadatok!"), map->uuid());
 		return;
 	}
 
 	GameMapMissionIface *merror = gmap->checkLockTree();
 
 	if (merror) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Hibás zárolás!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás zárolás!"));
 		return;
 	}
 
 	if (!StudentMaps::checkTerrains(gmap)) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Nem létező harcmező!"));
 		return;
 	}
 
 	if (gmap->appVersion() > 0 && gmap->appVersion() > CosMessage::versionNumber()) {
-		Client::clientInstance()->sendMessageWarning(tr("Frissítés szükséges"), tr("A pálya az alkalmazásnál magasabb verziószámmal készült, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/update.svg", tr("Frissítés szükséges"), tr("A pálya az alkalmazásnál magasabb verziószámmal készült, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
 	}
 
 
@@ -238,19 +241,19 @@ void StudentMaps::demoMapLoad()
 		GameMap *map = GameMap::fromBinaryData(b);
 
 		if (!map) {
-			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Hibás pályaadatok!"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás pályaadatok!"));
 			return;
 		}
 
 		GameMapMissionIface *merror = map->checkLockTree();
 
 		if (merror) {
-			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Hibás zárolás!"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás zárolás!"));
 			return;
 		}
 
 		if (!StudentMaps::checkTerrains(map)) {
-			Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem létező harcmező!"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Nem létező harcmező!"));
 			return;
 		}
 
@@ -649,6 +652,7 @@ void StudentMaps::onDemoGameWin()
 	o["deathmatch"] = match->deathmatch();
 	o["lite"] = m_liteMode;
 	o["solvedCount"] = newSolver.solved(match->level(), match->deathmatch());
+	o["flawless"] = match->isFlawless();
 
 	o["xp"] = QJsonObject::fromVariantMap({
 											  { "game", match->xp() },
@@ -677,6 +681,7 @@ void StudentMaps::onGameEnd(GameMatch *match, const bool &win)
 	o["success"] = win;
 	o["duration"] = match->elapsedTime();
 	o["stat"] = match->takeStatistics();
+	o["flawless"] = match->isFlawless();
 	Client::clientInstance()->socketSend(CosMessage::ClassStudent, "gameFinish", o);
 }
 
@@ -706,7 +711,7 @@ void StudentMaps::onMissionListGet(QJsonObject jsonData, QByteArray)
 	GameMapMissionIface *merror = m_currentMap->checkLockTree();
 
 	if (merror) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Hibás pálya!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás pálya!"));
 		return;
 	}
 
@@ -832,7 +837,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 	qDebug() << "GAME CREATE" << m_currentMap << missionLevel << gameId << mode;
 
 	if (!m_currentMap || !missionLevel) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Pályaadatok nem elérhetőek!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Pályaadatok nem elérhetőek!"));
 
 		if (m_demoMode) {
 			return;
@@ -851,7 +856,7 @@ void StudentMaps::onGameCreate(QJsonObject jsonData, QByteArray)
 
 	QString err;
 	if (!m_gameMatch->check(&err)) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), err);
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), err);
 
 		delete m_gameMatch;
 
@@ -920,6 +925,7 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			int level = d.value("level").toInt();
 			bool deathmatch = d.value("deathmatch").toBool();
 			bool lite = d.value("lite").toBool();
+			bool flawless = d.value("flawless").toBool();
 
 			GameMapMissionLevel *missionLevel = m_currentMap->missionLevel(missionid, level);
 
@@ -928,6 +934,7 @@ void StudentMaps::onGameFinish(QJsonObject jsonData, QByteArray)
 			info["level"] = level;
 			info["deathmatch"] = deathmatch;
 			info["lite"] = lite;
+			info["flawless"] = flawless;
 
 			QVector<GameMap::MissionLevelDeathmatch> unlockedLevels = m_currentMap->getUnlocks(missionid, level, deathmatch);
 
@@ -1000,7 +1007,7 @@ void StudentMaps::onGameListUserGet(QJsonObject jsonData, QByteArray)
 	}
 
 	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 

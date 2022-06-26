@@ -71,7 +71,7 @@ Item {
 		anchors.verticalCenter: labelQuestion.verticalCenter
 		anchors.right: parent.right
 		anchors.rightMargin: 20
-		icon.source: CosStyle.iconOK
+		icon.source: "qrc:/internal/icon/check-bold.svg"
 		text: qsTr("Kész")
 		themeColors: CosStyle.buttonThemeGreen
 		onClicked: answer()

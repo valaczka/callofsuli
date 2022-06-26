@@ -11,7 +11,7 @@ QTabContainer {
 	id: control
 
 	title: qsTr("Profil")
-	icon: CosStyle.iconUser
+	icon: "qrc:/internal/icon/account.svg"
 
 	property string username: cosClient.userName
 	property bool forcedEdit: false
@@ -19,14 +19,17 @@ QTabContainer {
 
 	property Profile profile: null
 
-	property int fieldNameWidth: Math.min(width*0.4, 350)
-
 	property ListModel modelRankList: ListModel {}
 
 	menu: menuVisible ? menuOwn : null
+	action: (!collapsibleBase.modificationEnabled && (username === cosClient.userName || forcedEdit)) || layout1.modified ? actionEdit : null
 
 	QMenu {
 		id: menuOwn
+		MenuItem {
+			action: actionChangePassword
+		}
+
 		MenuItem {
 			text: qsTr("Kijelentkezés")
 			icon.source: CosStyle.iconLogout
@@ -57,23 +60,13 @@ QTabContainer {
 
 			property bool modificationEnabled: false
 
-			rightComponent: QToolButton {
-				enabled: !collapsibleBase.modificationEnabled || layout1.acceptable
-				visible: (!collapsibleBase.modificationEnabled && (username === cosClient.userName || forcedEdit)) || layout1.modified
-				icon.source: collapsibleBase.modificationEnabled ? CosStyle.iconSave : CosStyle.iconEdit
-				onClicked: {
-					if (collapsibleBase.modificationEnabled) {
-						save()
-					} else {
-						collapsibleBase.modificationEnabled = true
-					}
-				}
-			}
-
 			QGridLayout {
 				id: layout1
 
 				watchModification: true
+				columns: 2
+				/*implicitWidth: accordion.width
+				width: collapsibleBase.width-50*/
 
 				acceptable: (!textFirstname.enabled || textFirstname.acceptableInput)
 							&& (!textLastname.enabled || textLastname.acceptableInput)
@@ -82,7 +75,6 @@ QTabContainer {
 				onAccepted: save()
 
 				QGridText {
-					Layout.minimumWidth: fieldNameWidth
 					text: qsTr("Felhasználó")
 				}
 
@@ -92,7 +84,6 @@ QTabContainer {
 				}
 
 				QGridText {
-					Layout.minimumWidth: fieldNameWidth
 					text: qsTr("Osztály")
 				}
 
@@ -141,7 +132,6 @@ QTabContainer {
 
 
 				QGridText {
-					Layout.minimumWidth: fieldNameWidth
 					text: qsTr("Karakter")
 				}
 
@@ -171,38 +161,14 @@ QTabContainer {
 
 				}
 
-				QGridButton {
-					id: buttonPassword
-					text: qsTr("Jelszó változtatás")
-					icon.source: CosStyle.iconEdit
-					display: AbstractButton.TextBesideIcon
 
-					visible: false
-
-					onClicked: {
-						var d = JS.dialogCreateQml("PasswordChange", { username: cosClient.userName })
-
-						d.accepted.connect(function(data) {
-							if (data === 1) {
-								var pwd = d.item.password
-								var opwd = d.item.oldPassword
-
-								if (cosClient.userRoles & Client.RoleTeacher)
-									profile.send(CosMessage.ClassTeacher, "userPasswordChange", {oldPassword: opwd, password: pwd})
-								else
-									profile.send(CosMessage.ClassStudent, "userPasswordChange", {oldPassword: opwd, password: pwd})
-							}
-						})
-						d.open()
-					}
-				}
 			}
 		}
 
 
 		QCollapsible {
 			id: collapsibleRankList
-			title: qsTr("Előlépés")
+			title: qsTr("Előléptetések")
 			backgroundColor: "transparent"
 			collapsed: true
 
@@ -265,7 +231,7 @@ QTabContainer {
 						font.pixelSize: CosStyle.pixelSize*0.9
 						font.weight: Font.DemiBold
 						color: CosStyle.colorOKLighter
-						text: model ? qsTr("Új streak: %1").arg(model.maxStreak) : ""
+						text: model ? qsTr("Új széria: %1").arg(model.maxStreak) : ""
 					}
 
 					QLabel {
@@ -296,7 +262,7 @@ QTabContainer {
 
 
 		QCollapsible {
-			title: qsTr("Megszerzett trófeák")
+			title: qsTr("Megszerzett trófeák (%1 db)").arg(trophies.trophyCount)
 			backgroundColor: "transparent"
 
 			ProfileDetailsTrophies {
@@ -315,6 +281,46 @@ QTabContainer {
 		onTriggered: {
 			if (collapsibleBase.modificationEnabled && layout1.acceptable)
 				save()
+		}
+	}
+
+
+	Action {
+		id: actionEdit
+
+		text: qsTr("")
+
+		enabled: !collapsibleBase.modificationEnabled || layout1.acceptable
+		icon.source: collapsibleBase.modificationEnabled ? "qrc:/internal/icon/content-save.svg" : "qrc:/internal/icon/account-edit.svg"
+		onTriggered: {
+			if (collapsibleBase.modificationEnabled) {
+				save()
+			} else {
+				collapsibleBase.modificationEnabled = true
+			}
+		}
+	}
+
+	Action {
+		id: actionChangePassword
+		text: qsTr("Jelszó változtatás")
+		icon.source: "qrc:/internal/icon/shield-edit.svg"
+
+		onTriggered: {
+			var d = JS.dialogCreateQml("PasswordChange", { username: cosClient.userName })
+
+			d.accepted.connect(function(data) {
+				if (data === 1) {
+					var pwd = d.item.password
+					var opwd = d.item.oldPassword
+
+					if (cosClient.userRoles & Client.RoleTeacher)
+						profile.send(CosMessage.ClassTeacher, "userPasswordChange", {oldPassword: opwd, password: pwd})
+					else
+						profile.send(CosMessage.ClassStudent, "userPasswordChange", {oldPassword: opwd, password: pwd})
+				}
+			})
+			d.open()
 		}
 	}
 
@@ -346,9 +352,9 @@ QTabContainer {
 			}
 
 			if (jsonData.oauth2Account && !forcedEdit)
-				buttonPassword.visible = false
+				actionChangePassword.enabled = false
 			else
-				buttonPassword.visible = true
+				actionChangePassword.enabled = true
 
 
 			JS.setSqlFields([
@@ -387,7 +393,7 @@ QTabContainer {
 
 		function onUserPasswordChange(jsonData, binaryData) {
 			if (jsonData.error && jsonData.error.length) {
-				cosClient.sendMessageWarning(qsTr("Jelszó változtatás"), qsTr("A jelszó változtatás sikertelen"), jsonData.error)
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/shield-alert.svg", qsTr("Jelszó változtatás"), qsTr("A jelszó változtatás sikertelen"), jsonData.error)
 			} else {
 				cosClient.sendMessageInfo(qsTr("Jelszó változtatás"), qsTr("A jelszót sikeresen megváltozott"))
 			}
@@ -428,4 +434,14 @@ QTabContainer {
 						 })
 	}
 
+
+	backCallbackFunction: function () {
+		if (collapsibleBase.modificationEnabled) {
+			collapsibleBase.modificationEnabled = false
+			reloadData()
+			return true
+		}
+
+		return false
+	}
 }

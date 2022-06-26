@@ -178,7 +178,8 @@ QTabContainer {
 			if (teacherGroups.downloader.fullSize > cosClient.getSetting("autoDownloadBelow", 500000)) {
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Letöltés"),
-											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize)
+											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize),
+											   image: "qrc:/internal/icon/cloud-download-outline.svg"
 										   })
 				d.accepted.connect(function() {
 					var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: teacherGroups.downloader })
@@ -200,7 +201,7 @@ QTabContainer {
 				return
 
 			if (!jsonData.list || jsonData.list.length === 0) {
-				cosClient.sendMessageWarning(qsTr("Pálya hozzáadása"), qsTr("Nincs több hozzáadható pálya!"))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Pálya hozzáadása"), qsTr("Nincs több hozzáadható pálya!"))
 				return
 			}
 

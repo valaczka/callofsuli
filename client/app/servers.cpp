@@ -111,7 +111,7 @@ void Servers::onMessageReceived(const CosMessage &message)
 
 			quint32 appVersion = message.appVersion();
 			if (m_connectedServer && appVersion > CosMessage::versionNumber() && !m_connectedServer->hasErrorAndNotified()) {
-				Client::clientInstance()->sendMessageWarning(tr("Frissítés szükséges"), tr("A szerverhez képest az alkalmazás elavult, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
+				Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/update.svg", tr("Frissítés szükséges"), tr("A szerverhez képest az alkalmazás elavult, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
 				m_connectedServer->setHasErrorAndNotified(true);
 			}
 
@@ -176,12 +176,12 @@ void Servers::serverListReload()
 void Servers::serverConnect(ServerObject *server)
 {
 	if (Client::clientInstance()->connectionState() != Client::Standby) {
-		//Client::clientInstance()->sendMessageWarning(tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
+		//Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/lan-pending.svg", tr("Csatlakoztatva"), tr("Már csatlakozol szerverhez, előbb azt be kell zárni!"));
 		return;
 	}
 
 	if (!server) {
-		Client::clientInstance()->sendMessageWarning(tr("Belső hiba"), tr("Érvénytelen szerver"));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Belső hiba"), tr("Érvénytelen szerver"));
 		return;
 	}
 
@@ -202,7 +202,7 @@ void Servers::serverConnect(ServerObject *server)
 	if (!QFileInfo::exists(serverDir)) {
 		QDir d(Client::standardPath());
 		if (!d.mkdir(dir)) {
-			Client::clientInstance()->sendMessageError(tr("Programhiba"), tr("Nem sikerült létrehozni a könyvtárt:"), serverDir);
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/folder-alert.svg",tr("Programhiba"), tr("Nem sikerült létrehozni a könyvtárt:"), serverDir);
 			return;
 		}
 	}
@@ -447,7 +447,7 @@ bool Servers::parseUrls(const QStringList &urls)
 		QString serverUuid = q.queryItemValue("server", QUrl::FullyDecoded);
 
 		if (func == "connect" && Client::clientInstance()->connectionState() != Client::Standby) {
-			Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("Nem lehet új szerverhez csatlakozni, előbb jelentkezz ki!"));
+			Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/account-arrow-right.svg", tr("Hiba"), tr("Nem lehet új szerverhez csatlakozni, előbb jelentkezz ki!"));
 			return true;
 		}
 
@@ -477,12 +477,12 @@ bool Servers::parseUrls(const QStringList &urls)
 		}
 
 		if (Client::clientInstance()->connectionState() != Client::Connected && Client::clientInstance()->connectionState() != Client::Reconnected) {
-			Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A szerver nem elérhető, ismételd meg a kérést!"));
+			Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/lan-disconnect.svg", tr("Hiba"), tr("A szerver nem elérhető, ismételd meg a kérést!"));
 			return true;
 		}
 
 		if (serverUuid != Client::clientInstance()->serverUuid()) {
-			Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A kérés nem az aktuális kapcsolatra vonatkozik!"));
+			Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Hiba"), tr("A kérés nem az aktuális kapcsolatra vonatkozik!"));
 			return true;
 		}
 
@@ -493,7 +493,7 @@ bool Servers::parseUrls(const QStringList &urls)
 			qDebug() << "REGISTER" << oauth2 << code;
 
 			if (!Client::clientInstance()->userName().isEmpty()) {
-				Client::clientInstance()->sendMessageWarning(tr("Hiba"), tr("A regisztrációhoz először ki kell jelentkezni!"));
+				Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/account-arrow-right.svg", tr("Hiba"), tr("A regisztrációhoz először ki kell jelentkezni!"));
 				return true;
 			}
 
@@ -545,7 +545,7 @@ void Servers::sendBroadcast()
 			qInfo() << tr("UDP port nem elérhető: %1").arg(SERVER_UDP_PORT);
 
 			if (!m_udpSocket->bind()) {
-				Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("UDP socket error"));
+				Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("UDP socket error"));
 				return;
 			}
 		}
@@ -593,12 +593,12 @@ bool Servers::isValidUrl(const QString &url)
 void Servers::acceptCertificate(ServerObject *server, const QSslCertificate &cert, const QList<int> &errorList)
 {
 	if (cert.isNull()) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen tanúsítvány"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen tanúsítvány"));
 		return;
 	}
 
 	if (!server) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen szerver"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen szerver"));
 		return;
 	}
 
@@ -680,7 +680,7 @@ void Servers::onSocketSslErrors(QList<QSslError> errors)
 	foreach(QSslError e, errors) {
 		if (!e.certificate().isNull()) {
 			if (!cert.isNull() && e.certificate() != cert) {
-				Client::clientInstance()->sendMessageError(tr("SSL hiba"), tr("Többféle tanúsítvány található!"));
+				Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("SSL hiba"), tr("Többféle tanúsítvány található!"));
 				return;
 			}
 
@@ -746,6 +746,7 @@ void Servers::onConnectionStateChanged(Client::ConnectionState state)
 		send(CosMessage::ClassUserInfo, "getResources");
 	} else if (state == Client::Standby) {
 		m_connectedServer = nullptr;
+		Client::clientInstance()->setServerDataDir("");
 		unregisterResources();
 		Client::reloadGameResources();
 	}

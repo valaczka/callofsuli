@@ -63,7 +63,7 @@ CosSound::~CosSound()
 	delete m_fadeAnimation;
 
 	if (m_mediaPlayerMusic && m_mediaPlayerSfx && m_mediaPlayerVoiceOver) {
-		QSettings s;
+		QSettings s(this);
 		s.beginGroup("sound");
 		s.setValue("volumeMusic", m_musicVolume);
 		s.setValue("volumeSfx", volumeSfx());
@@ -113,7 +113,7 @@ void CosSound::init()
 		m_mediaPlayerMusic->setVolume(m_musicVolume);
 	});
 
-	QSettings s;
+	QSettings s(this);
 	s.beginGroup("sound");
 	setVolumeMusic(s.value("volumeMusic", 50).toInt());
 	setVolumeSfx(s.value("volumeSfx", 50).toInt());
@@ -124,19 +124,19 @@ void CosSound::init()
 	/*connect(m_mediaPlayerMusic, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerMusic << error;
-		sendMessageError(tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});
 
 	connect(m_mediaPlayerSfx, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerSfx << error;
-		sendMessageError(tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});
 
 	connect(m_mediaPlayerVoiceOver, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerVoiceOver << error;
-		sendMessageError(tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});*/
 
 }

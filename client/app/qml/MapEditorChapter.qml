@@ -357,7 +357,7 @@ QCollapsible {
 			mapEditor.updateMissionLevelModelChapter(self)
 
 			if (mapEditor.missionLevelModel.count < 1) {
-				cosClient.sendMessageWarning(qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Küldetések"), qsTr("Még nincsen egyetlen küldetés sem!"))
 				return
 			}
 

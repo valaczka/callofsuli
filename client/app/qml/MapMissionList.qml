@@ -134,6 +134,10 @@ QTabContainer {
 
 							onClicked: missionLevelLoad(col2.model.uuid, model.level, model.deathmatch)
 
+							readonly property color contentColor: model.solved ? (model.level === 3 ? "#d3ec66" :
+																									  (model.level === 2 ? "#ee9100" : "#02e452")) :
+																				 model.available ? CosStyle.colorAccentLighter :
+																								   CosStyle.colorPrimaryDark
 
 							Column {
 								anchors.centerIn: parent
@@ -141,9 +145,7 @@ QTabContainer {
 
 								QLabel {
 									anchors.horizontalCenter: parent.horizontalCenter
-									color: cardDelegate.model.solved ? CosStyle.colorOKLighter :
-																		   cardDelegate.model.available ? CosStyle.colorAccentLighter :
-																											  CosStyle.colorPrimaryDark
+									color: cardDelegate.contentColor
 									font.weight: Font.Medium
 									font.pixelSize: CosStyle.pixelSize*0.7
 									horizontalAlignment: Text.AlignHCenter
@@ -176,9 +178,7 @@ QTabContainer {
 
 								QLabel {
 									anchors.horizontalCenter: parent.horizontalCenter
-									color: cardDelegate.model.solved ? CosStyle.colorOKLighter :
-																		   cardDelegate.model.available ? CosStyle.colorAccentLighter :
-																											  CosStyle.colorPrimaryDark
+									color: cardDelegate.contentColor
 									font.weight: Font.DemiBold
 									font.pixelSize: CosStyle.pixelSize
 									text: "%1 XP".arg(cardDelegate.model.xp)

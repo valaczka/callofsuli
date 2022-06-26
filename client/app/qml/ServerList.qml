@@ -11,7 +11,7 @@ QTabContainer {
 	id: panel
 
 	title: qsTr("Szerverek")
-	icon: CosStyle.iconComputer
+	icon: "qrc:/internal/icon/desktop-tower.svg"
 	menu: QMenu {
 		MenuItem { action: actionServerNew }
 		MenuItem { action: actionServerSearch }
@@ -66,10 +66,10 @@ QTabContainer {
 			width: serverList.delegateHeight
 			height: width
 
-			frontIcon: CosStyle.iconComputer
-			backIcon: CosStyle.iconComputer
+			frontIcon: model && model.broadcast ? "qrc:/internal/icon/access-point-network.svg" : "qrc:/internal/icon/access-point.svg"
+			backIcon: "qrc:/internal/icon/access-point-check.svg"
 			color: flipped ? CosStyle.colorAccent : CosStyle.colorPrimaryDark
-			flipped: model.autoconnect
+			flipped: model && model.autoconnect
 
 			mouseArea.onClicked: servers.serverSetAutoConnect(serverList.modelObject(modelIndex))
 		}
@@ -139,7 +139,7 @@ QTabContainer {
 			anchors.horizontalCenter: parent.horizontalCenter
 			themeColors: CosStyle.buttonThemeRed
 			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
+			icon.source: "qrc:/internal/icon/close-circle.svg"
 			onClicked: cosClient.closeConnection()
 		}
 	}
@@ -149,7 +149,7 @@ QTabContainer {
 	Action {
 		id: actionServerNew
 		text: qsTr("Hozzáadás")
-		icon.source: CosStyle.iconAdd
+		icon.source: "qrc:/internal/icon/access-point-plus.svg"
 		onTriggered: {
 			servers.uiAdd()
 		}
@@ -158,6 +158,7 @@ QTabContainer {
 	Action {
 		id: actionConnect
 		text: qsTr("Csatlakozás")
+		icon.source: "qrc:/internal/icon/connection.svg"
 		enabled: serverList.currentIndex !== -1
 		onTriggered: servers.serverConnect(serverList.modelObject(serverList.currentIndex))
 
@@ -166,6 +167,7 @@ QTabContainer {
 	Action {
 		id: actionEdit
 		text: qsTr("Szerkesztés")
+		icon.source: "qrc:/internal/icon/pencil.svg"
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
 			servers.uiEdit(serverList.modelObject(serverList.currentIndex))
@@ -174,7 +176,7 @@ QTabContainer {
 
 	Action {
 		id: actionRemove
-		icon.source: CosStyle.iconDelete
+		icon.source: "qrc:/internal/icon/access-point-remove.svg"
 		text: qsTr("Törlés")
 		enabled: serverList.currentIndex !== -1
 		onTriggered: {
@@ -183,7 +185,8 @@ QTabContainer {
 			if (more > 0) {
 				var dd = JS.dialogCreateQml("YesNo", {
 												title: qsTr("Szerverek törlése"),
-												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(more)
+												text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(more),
+												image: "qrc:/internal/icon/access-point-remove.svg"
 											})
 				dd.accepted.connect(function () {
 					servers.serverDeleteList(servers.serversModel.getSelected())
@@ -195,7 +198,8 @@ QTabContainer {
 
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Szerver törlése"),
-											   text: qsTr("Biztosan törlöd a szervert?\n%1").arg(o.name)
+											   text: qsTr("Biztosan törlöd a szervert?\n%1").arg(o.host+":"+o.port+(o.ssl ? " (SSL)" : "")),
+											   image: "qrc:/internal/icon/access-point-remove.svg"
 										   })
 				d.accepted.connect(function () {
 					servers.serverDelete(serverList.modelObject(serverList.currentIndex))
@@ -210,6 +214,7 @@ QTabContainer {
 	Action {
 		id: actionAutoConnect
 		text: qsTr("Automata csatlakozás")
+		icon.source: "qrc:/internal/icon/access-point-check.svg"
 		enabled: serverList.currentIndex !== -1
 		onTriggered:  {
 			servers.serverSetAutoConnect(serverList.modelObject(serverList.currentIndex))
@@ -229,8 +234,8 @@ QTabContainer {
 
 	Action {
 		id: actionServerQR
-		text: qsTr("QR kód beolvasás")
-		icon.source: CosStyle.iconQR
+		text: qsTr("Beolvasás")
+		icon.source: "qrc:/internal/icon/qrcode-scan.svg"
 		onTriggered: {
 			cosClient.checkMediaPermissions()
 		}
@@ -242,6 +247,7 @@ QTabContainer {
 	Action {
 		id: actionAbout
 		text: qsTr("Névjegy")
+		icon.source: "qrc:/internal/img/callofsuli_square.svg"
 		onTriggered: {
 			var dd = JS.dialogCreateQml("About", {})
 			dd.open()
@@ -250,6 +256,7 @@ QTabContainer {
 
 	Action {
 		id: actionExit
+		icon.source: "qrc:/internal/icon/application-export.svg"
 		text: qsTr("Kilépés")
 		onTriggered: mainWindow.close()
 	}
@@ -258,6 +265,7 @@ QTabContainer {
 	Action {
 		id: actionDemo
 		text: qsTr("Demo")
+		icon.source: "qrc:/internal/icon/presentation-play.svg"
 		onTriggered: {
 			JS.createPage("Map", {
 							  demoMode: true,
@@ -273,8 +281,9 @@ QTabContainer {
 		ReadQR {
 			onTagFound: {
 				if (servers.isValidUrl(tag)) {
-					servers.setUrlString(tag)
-					mainStack.back()
+					captureEnabled = false
+					panel.tabPage.stack.pop(panel)
+					servers.parseUrl(tag)
 				}
 			}
 		}
@@ -301,6 +310,16 @@ QTabContainer {
 			servers.parseUrl(s)
 		else
 			serverList.forceActiveFocus()
+	}
+
+
+	backCallbackFunction: function () {
+		if (servers.serversModel.selectedCount) {
+			servers.serversModel.unselectAll()
+			return true
+		}
+
+		return false
 	}
 }
 

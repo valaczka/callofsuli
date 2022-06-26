@@ -274,7 +274,7 @@ QCollapsible {
 							mapEditor.updateMissionLevelModelMission(self)
 
 							if (mapEditor.missionLevelModel.count < 1) {
-								cosClient.sendMessageWarning(qsTr("Zárolások"), qsTr("Nincs hozzáadható küldetés!"))
+								cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Zárolások"), qsTr("Nincs hozzáadható küldetés!"))
 								return
 							}
 
@@ -303,7 +303,7 @@ QCollapsible {
 						mapEditor.updateMissionLevelModelLock(o)
 
 						if (mapEditor.missionLevelModel.count < 1) {
-							cosClient.sendMessageWarning(qsTr("Zárolás"), qsTr("A kiválasztott szintet nincs mire módosítani!"))
+							cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Zárolás"), qsTr("A kiválasztott szintet nincs mire módosítani!"))
 							return
 						}
 
@@ -344,7 +344,7 @@ QCollapsible {
 	Action {
 		id: actionMissionEdit
 
-		icon.source: CosStyle.iconEdit
+		icon.source: "qrc:/internal/icon/pencil.svg"
 		text: qsTr("Szerkesztés")
 
 		onTriggered: control.editable = true

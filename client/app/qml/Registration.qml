@@ -222,7 +222,7 @@ QTabContainer {
 				else if (e === "missing code")
 					e = qsTr("Hitelesítő kód megadása szükséges!")
 
-				cosClient.sendMessageError(qsTr("Hiba"), e)
+				cosClient.sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",qsTr("Hiba"), e)
 				grid.visible = true
 				labelInfo.visible = false
 				control.enabled = true

@@ -33,7 +33,7 @@ Page {
 
 	property color backgroundColor: "black"
 	property color backgroundImageColor: JS.setColorAlpha(backgroundColor, 0.4)
-	property color buttonColor: CosStyle.colorPrimaryDark
+	property color buttonColor: "#99ffffff"
 	property color buttonActiveColor: CosStyle.colorAccent
 	property alias buttonBackgroundColor: tabbar.color
 
@@ -411,7 +411,7 @@ Page {
 					anchors.verticalCenter: parent ? parent.verticalCenter : undefined
 					autoExclusive: true
 					Material.foreground: compact ? buttonColor : CosStyle.colorPrimaryDarker
-					Material.accent: buttonActiveColor
+					Material.accent: model.iconColor ? model.iconColor : buttonActiveColor
 
 					font.pixelSize: CosStyle.pixelSize*0.85
 					font.capitalization: Font.MixedCase

@@ -297,7 +297,7 @@ QTabContainer {
 	Action {
 		id: actionUserEdit
 		text: qsTr("Résztvevők szerkesztése")
-		icon.source: CosStyle.iconEdit
+		icon.source: "qrc:/internal/icon/pencil.svg"
 		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
 			control.tabPage.pushContent(componentUserEdit)

@@ -330,13 +330,13 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 		QString md5 = message.jsonData().value(m_jsonKeyMd5).toString();
 
 		if (message.messageType() != CosMessage::MessageBinaryData) {
-			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Érvénytelen adat érkezett"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Letöltés"), tr("Érvénytelen adat érkezett"));
 			emit downloadFailed();
 			return;
 		}
 
 		if (filename.isEmpty()) {
-			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Érvénytelen fájl érkezett"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Letöltés"), tr("Érvénytelen fájl érkezett"));
 			emit downloadFailed();
 			return;
 		}
@@ -345,7 +345,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 		QString localmd5 = QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex();
 
 		if (!md5.isEmpty() && localmd5 != md5) {
-			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Hibás adat érkezett"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Letöltés"), tr("Hibás adat érkezett"));
 			emit downloadFailed();
 			return;
 		}
@@ -353,7 +353,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 		int idx = get(filename);
 
 		if (idx == -1) {
-			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Váratlan fájl érkezett: ")+filename);
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Letöltés"), tr("Váratlan fájl érkezett: ")+filename);
 			emit downloadFailed();
 			return;
 		}
@@ -362,7 +362,7 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 
 
 		if (!md5.isEmpty() && !item.md5.isEmpty() && md5 != item.md5) {
-			Client::clientInstance()->sendMessageError(tr("Letöltés"), tr("Hibás adat érkezett"));
+			Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Letöltés"), tr("Hibás adat érkezett"));
 			emit downloadFailed();
 			return;
 		}
@@ -375,13 +375,13 @@ void CosDownloader::onMessageReceived(const CosMessage &message)
 			QFile f(newFile);
 
 			if (!f.open(QIODevice::WriteOnly)) {
-				Client::clientInstance()->sendMessageError(tr("Fájl létrehozási hiba"), f.errorString(), newFile);
+				Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Fájl létrehozási hiba"), f.errorString(), newFile);
 				emit downloadFailed();
 				return;
 			}
 
 			if (f.write(data) == -1) {
-				Client::clientInstance()->sendMessageError(tr("Fájl írási hiba"), f.errorString(), newFile);
+				Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Fájl írási hiba"), f.errorString(), newFile);
 				f.close();
 				emit downloadFailed();
 				return;

@@ -143,12 +143,12 @@ Scene {
 				break
 
 			case Qt.Key_W:				// Water
-				if (game.player && game.player.entityPrivate.fire)
+				if (game.player && game.player.entityPrivate.fire && game.gameMatch.water)
 					game.player.entityPrivate.operate(game.player.entityPrivate.fire)
 				break
 
 			case Qt.Key_P:				// Pliers
-				if (game.player && game.player.entityPrivate.fence)
+				if (game.player && game.player.entityPrivate.fence && game.gameMatch.pliers)
 					game.player.entityPrivate.operate(game.player.entityPrivate.fence)
 				break
 			}

@@ -346,8 +346,10 @@ void GameQuestion::onFailedLite()
 {
 	m_state = StateFailed;
 
-	if (m_game->gameMatch())
+	if (m_game->gameMatch()) {
 		m_game->gameMatch()->addStatistics(m_questionData.uuid(), false, m_elapsedTime.msecsTo(QTime::currentTime()));
+		m_game->gameMatch()->setIsFlawless(false);
+	}
 
 	m_question->setFocus(false, Qt::OtherFocusReason);
 

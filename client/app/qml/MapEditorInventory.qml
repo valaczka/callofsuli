@@ -109,7 +109,7 @@ QCollapsible {
 			icon.source: CosStyle.iconAdd
 			color: "lightskyblue"
 			onClicked: {
-				var d = JS.dialogCreateQml("List", {
+				var d = JS.dialogCreateQml("ImageList", {
 											   icon: CosStyle.iconLockAdd,
 											   title: qsTr("Felszerelés hozzáadása"),
 											   selectorSet: false,

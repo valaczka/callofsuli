@@ -213,9 +213,19 @@ ApplicationWindow {
 
 		var g = cosClient.guiLoad()
 
-		if (g === "map")
-			JS.createPage("MapEditor", {})
-		else
+		if (String(g).startsWith("map:")) {
+			JS.createPage("MapEditor", {
+							  fileToOpen: cosClient.urlFromLocalFileString(g).substr(5)(String(g).substr(4))
+						  })
+		} else if (String(g).startsWith("play:")) {
+			var f = String(g).substr(5)
+			JS.createPage("Map", {
+							  demoMode: true,
+							  title: f,
+							  readOnly: false,
+							  fileToOpen: f
+						  })
+		} else
 			JS.createPage("Start", {})
 
 		//JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/ddd.map"})

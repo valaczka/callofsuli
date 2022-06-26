@@ -42,7 +42,7 @@ Item {
 
 	signal populated()
 
-	StackView.onActivated:  populated()
+	StackView.onActivated: populated()
 
 	Item {
 		id: panel

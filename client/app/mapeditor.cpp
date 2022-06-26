@@ -137,14 +137,14 @@ void MapEditor::setUndoStack(EditorUndoStack *newUndoStack)
 void MapEditor::open(const QUrl &url)
 {
 	if (m_editor) {
-		Client::clientInstance()->sendMessageWarning(tr("Pálya megnyitás"), tr("Már meg van nyitva egy pálya!"), m_url.toLocalFile());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Pálya megnyitás"), tr("Már meg van nyitva egy pálya!"), m_url.toLocalFile());
 		return;
 	}
 
 	GameMapEditor *e = GameMapEditor::fromBinaryData(Client::fileContent(url.toLocalFile()), this);
 
 	if (!e) {
-		Client::clientInstance()->sendMessageWarning(tr("Hibás pálya"), tr("Nem lehet megnyitni a fájlt!"), url.toLocalFile());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/folder-alert.svg", tr("Hibás pálya"), tr("Nem lehet megnyitni a fájlt!"), url.toLocalFile());
 		return;
 	}
 
@@ -162,7 +162,7 @@ void MapEditor::open(const QUrl &url)
 void MapEditor::create()
 {
 	if (m_editor) {
-		Client::clientInstance()->sendMessageWarning(tr("Új pálya"), tr("Már meg van nyitva egy pálya!"), m_url.toLocalFile());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Új pálya"), tr("Már meg van nyitva egy pálya!"), m_url.toLocalFile());
 		return;
 	}
 
@@ -225,7 +225,7 @@ void MapEditor::save(const QUrl &newUrl)
 	QFile f(filename);
 
 	if (!f.open(QIODevice::WriteOnly)) {
-		Client::clientInstance()->sendMessageWarning(tr("Mentés"), tr("Nem lehet menteni a fájlt!"), filename);
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/folder-alert.svg", tr("Mentés"), tr("Nem lehet menteni a fájlt!"), filename);
 		return;
 	}
 
@@ -723,7 +723,7 @@ void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel)
 
 	QString err;
 	if (!m_gameMatch->check(&err)) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), err);
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), err);
 
 		delete m_gameMatch;
 		return;

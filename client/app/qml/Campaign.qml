@@ -16,7 +16,7 @@ Item {
 	implicitHeight: 200
 
 	width: parent.width
-	height: col.height+85
+	height: col.height+85+50
 
 	BorderImage {
 		width: parent.width/scale

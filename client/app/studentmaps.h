@@ -61,7 +61,7 @@ public:
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
 
-	Q_INVOKABLE void init(const bool &demoMode);
+	Q_INVOKABLE void init(const bool &demoMode, const QString &fileToOpen = "");
 
 	ObjectGenericListModel<MapListObject> *modelMapList() const;
 
@@ -148,7 +148,7 @@ signals:
 private:
 	void _createDownloader();
 
-	const QString m_demoMapFile;
+	QString m_demoMapFile;
 	ObjectGenericListModel<MapListObject> *m_modelMapList;
 	GameMap * m_currentMap;
 	bool m_demoMode;

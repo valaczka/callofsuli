@@ -11,7 +11,9 @@ QTabContainer {
 
 	contentTitle: qsTr("QR kód beolvasás")
 	title: qsTr("Beolvasás")
-	icon: CosStyle.iconQR
+	icon: "qrc:/internal/icon/qrcode-scan.svg"
+
+	property bool captureEnabled: true
 
 	signal tagFound(string tag)
 
@@ -96,6 +98,9 @@ QTabContainer {
 			enabledDecoders: QZXing.DecoderFormat_QR_CODE
 
 			onTagFound: {
+				if (!captureEnabled)
+					return
+
 				console.debug("QR: "+tag);
 
 				panel.tagFound(tag)

@@ -10,17 +10,19 @@ QDialogPanel {
 	property alias volumeMusic: sliderMusic.value
 	property alias volumeSfx: sliderSfx.value
 	property alias volumeVoiceover: sliderVoiceover.value
+	property alias joystickSize: sliderJoystick.value
 
 	signal volumeMusicModified(real volume)
 	signal volumeSfxModified(real volume)
 	signal volumeVoiceoverModified(real volume)
+	signal joystickSizeModified(real size)
 
 	maximumHeight: 500
 	maximumWidth: 700
 
 	title: qsTr("Beállítások")
 
-	icon: CosStyle.iconPreferences
+	icon: "qrc:/internal/icon/message-cog-outline.svg"
 
 	titleColor: CosStyle.colorPrimary
 
@@ -45,6 +47,37 @@ QDialogPanel {
 			width: parent.width
 
 			spacing: 0
+
+			QLabel {
+				font.pixelSize: CosStyle.pixelSize*0.8
+				font.weight: Font.Medium
+				anchors.left: parent.left
+				text: qsTr("Joystick mérete")
+			}
+
+			Row {
+				spacing: 10
+				Slider {
+					id: sliderJoystick
+					anchors.verticalCenter: parent.verticalCenter
+					from: 100
+					to: 600
+					width: col.width-resetJoystick.width-parent.spacing
+					onMoved: joystickSizeModified(value)
+				}
+
+				QToolButton {
+					id: resetJoystick
+					anchors.verticalCenter: parent.verticalCenter
+					icon.source: "qrc:/internal/icon/restore.svg"
+					display: AbstractButton.IconOnly
+					text: qsTr("Visszaállítás")
+					onClicked: {
+						sliderJoystick.value = 175
+						joystickSizeModified(sliderJoystick.value)
+					}
+				}
+			}
 
 			QLabel {
 				font.pixelSize: CosStyle.pixelSize*0.8
@@ -99,7 +132,7 @@ QDialogPanel {
 				text: qsTr("Fekvő orientáció")
 				checked: cosClient.forcedLandscape
 
-				visible: Qt.platform.os == "android" || Qt.platform.os === "ios"
+				visible: Qt.platform.os == "android"
 
 				onToggled: if (checked)
 							   cosClient.forceLandscape()
@@ -114,7 +147,7 @@ QDialogPanel {
 		id: buttonNo
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("Bezárás")
-		icon.source: CosStyle.iconClose
+		icon.source: "qrc:/internal/icon/close.svg"
 
 		onClicked: dlgClose()
 	}

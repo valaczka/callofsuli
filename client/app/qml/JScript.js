@@ -72,8 +72,20 @@ function dialogMessageError(title, text, details) {
 	return dialogMessage("error", title, text, details)
 }
 
+function dialogMessageInfoImage(image, title, text, details) {
+	return dialogMessage("info", title, text, details, image)
+}
 
-function dialogMessage(type, title, text, details) {
+function dialogMessageWarningImage(image, title, text, details) {
+	return dialogMessage("warning", title, text, details, image)
+}
+
+function dialogMessageErrorImage(image, title, text, details) {
+	return dialogMessage("error", title, text, details, image)
+}
+
+
+function dialogMessage(type, title, text, details, image) {
 	if (type === "info" || type === "success")
 		console.info(title+": "+text+" ("+details+")")
 	else if (type === "warning")
@@ -94,6 +106,7 @@ function dialogMessage(type, title, text, details) {
 		d.popupContent.item.title = title
 		d.popupContent.item.text = text ? text : ""
 		d.popupContent.item.details = details ? details : ""
+		d.popupContent.item.image = image
 
 		d.open()
 

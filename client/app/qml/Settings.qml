@@ -10,7 +10,7 @@ QTabContainer {
 	id: control
 
 	title: qsTr("Beállítások")
-	icon: CosStyle.iconPreferences
+	icon: "qrc:/internal/icon/cog-outline.svg"
 
 	property real buttonSize: CosStyle.twoLineHeight*3
 	readonly property real _contentWidth: Math.min(width-10, 600)

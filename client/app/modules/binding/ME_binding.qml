@@ -21,7 +21,7 @@ QCollapsible {
 
 	rightComponent: QToolButton {
 		visible: !control.editable
-		icon.source: CosStyle.iconEdit
+		icon.source: "qrc:/internal/icon/pencil.svg"
 		text: qsTr("Szerkesztés")
 		display: AbstractButton.IconOnly
 		onClicked: control.editable = true

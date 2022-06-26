@@ -122,7 +122,7 @@ QSimpleContainer {
 
 		function onGameListUserMissionGet(jsonData, binaryData) {
 			if (jsonData.error !== undefined) {
-				cosClient.sendMessageWarning(qsTr("Lekérdezési hiba"), jsonData.error)
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Lekérdezési hiba"), jsonData.error)
 				return;
 			}
 

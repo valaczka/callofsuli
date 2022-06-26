@@ -17,7 +17,6 @@ Item {
 	Image {
 		id: img
 		anchors.centerIn: parent
-		source: CosStyle.iconMenu
 		sourceSize: Qt.size(control.size, control.size)
 		visible: false
 	}

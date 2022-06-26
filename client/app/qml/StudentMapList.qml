@@ -76,30 +76,30 @@ QTabContainer {
 
 		refreshEnabled: true
 
-		delegateHeight: CosStyle.twoLineHeight*1.5
+		delegateHeight: CosStyle.twoLineHeight*1.2
 
 		leftComponent: QFontImage {
 			width: visible ? list.delegateHeight : 0
-			height: width*0.8
+			height: width*0.7
 			size: height*0.8
 
 			icon: if (model && model.downloaded) {
 					  if (model.active)
 						  CosStyle.iconPlanet
 					  else
-						  CosStyle.iconVisible
+						  "qrc:/internal/icon/earth-off.svg"
 				  } else
 					  CosStyle.iconDownloadCloud
 
 			visible: model
 
-			color: model && model.downloaded ? model.textColor : CosStyle.colorWarningLighter
+			color: model ? model.textColor : CosStyle.colorWarningLighter
 		}
 
 		rightComponent: QLabel {
 			anchors.verticalCenter: parent.verticalCenter
 			font.pixelSize: CosStyle.pixelSize*0.9
-			font.weight: Font.DemiBold
+			font.weight: Font.Medium
 			color: CosStyle.colorWarningLighter
 			visible: model && (!model.downloaded || !model.active)
 			text: model && !model.downloaded ? qsTr("még nincs letöltve") : qsTr("csak megtekinthető")

@@ -13,17 +13,16 @@ QDialogPanel {
 	property alias selectorSet: list.selectorSet
 	property alias model: list.model
 
-	property real imageWidth: delegateHeight
-	property real imageHeight: delegateHeight*0.8
-
 	property alias modelTitleRole: list.modelTitleRole
 	property alias modelSubtitleRole: list.modelSubtitleRole
 	property alias delegateHeight: list.delegateHeight
-	property string modelImageRole: ""
-	property string modelImagePattern: "%1"
+	property string modelIconRole: ""
+	property string modelIconColorRole: ""
 	property string modelRightTextRole: ""
 
 	readonly property bool simpleSelect: !list.selectorSet
+
+	icon: "qrc:/internal/icon/message-bulleted.svg"
 
 	maximumHeight: 0
 	maximumWidth: 700
@@ -39,19 +38,16 @@ QDialogPanel {
 
 		autoSelectorChange: false
 
-		leftComponent: Item {
-			width: imageWidth+20
-			height: list.delegateHeight
-			anchors.verticalCenter: parent.verticalCenter
-			visible: model && modelImageRole.length
+		leftComponent: QFontImage {
+			width: control.delegateHeight*1.2
+			height: control.delegateHeight
+			size: control.delegateHeight*0.7
 
-			Image {
-				width: imageWidth
-				height: imageHeight
-				fillMode: Image.PreserveAspectFit
-				anchors.centerIn: parent
-				source: model && modelImageRole.length ? modelImagePattern.arg(model[modelImageRole]) : ""
-			}
+			visible: model && modelIconRole.length
+
+			icon: model && modelIconRole.length ? model[modelIconRole] : ""
+
+			color: model && modelIconColorRole.length ? model[modelIconColorRole] : CosStyle.colorPrimaryLighter
 		}
 
 		rightComponent: QLabel {
@@ -78,7 +74,7 @@ QDialogPanel {
 			id: buttonNo
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
+			icon.source: "qrc:/internal/icon/close-circle.svg"
 			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: dlgClose()
@@ -92,7 +88,7 @@ QDialogPanel {
 			visible: !simpleSelect
 
 			text: qsTr("OK")
-			icon.source: CosStyle.iconOK
+			icon.source: "qrc:/internal/icon/check-bold.svg"
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {

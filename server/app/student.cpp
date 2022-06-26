@@ -482,6 +482,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	int xp = params.value("xp", -1).toInt();
 	int duration = params.value("duration", -1).toInt();
 	bool success = params.value("success", false).toBool();
+	bool flawless = params.value("flawless", false).toBool();
 
 	if (gameid < 0 || xp < 0) {
 		(*jsonResponse)["error"] = "missing id or xp";
@@ -684,6 +685,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;
 	(*jsonResponse)["lite"] = lite;
+	(*jsonResponse)["flawless"] = (success && flawless);
 	(*jsonResponse)["solvedCount"] = oldSolver.solve(level, deathmatch).solved(level, deathmatch);
 
 

@@ -14,6 +14,7 @@ QTabPage {
 	property bool demoMode: false
 	property string mapUuid: ""
 	property bool readOnly: true
+	property string fileToOpen: ""
 
 	property StudentMaps studentMaps: null
 
@@ -43,24 +44,22 @@ QTabPage {
 		id: demoStudentMapsComponent
 
 		StudentMaps {
-			Component.onCompleted: init(true)
+			Component.onCompleted: {
+				init(true, fileToOpen)
+			}
 		}
 	}
 
-	onDemoModeChanged: if (demoMode) {
-						   studentMaps = demoStudentMapsComponent.createObject(control)
-					   }
-
 
 	onPageActivatedFirst: {
-		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true) === false) {
-			cosClient.sendMessageInfo(qsTr("Képernyő tájolása"), qsTr("Fektesd el a képernyőt"))
+		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true) === true) {
+			cosClient.sendMessageInfoImage("qrc:/internal/icon/phone-rotate-landscape.svg", qsTr("Képernyő tájolása"), qsTr("Fektesd el a képernyőt"))
 			cosClient.setSetting("notification/gameLandscape", false)
 		}
 	}
 
 	onPageActivated: {
-		if (!actionLite.checked)
+		if (studentMaps && !studentMaps.liteMode)
 			cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 	}
 
@@ -83,7 +82,7 @@ QTabPage {
 					cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			case Qt.ApplicationActive:
-				if (control.isCurrentItem && !actionLite.checked)
+				if (control.isCurrentItem && studentMaps && !studentMaps.liteMode)
 					cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 				break
 			}
@@ -92,6 +91,9 @@ QTabPage {
 
 
 	Component.onCompleted: {
+		if (demoMode) {
+			studentMaps = demoStudentMapsComponent.createObject(control)
+		}
 		pushContent(componentMissionList)
 	}
 
@@ -106,14 +108,18 @@ QTabPage {
 
 
 	property Action actionLite: Action {
-		text: qsTr("Csak feladatok")
-		checkable: true
-		checked: studentMaps ? studentMaps.liteMode : false
+		text: studentMaps && studentMaps.liteMode ?
+				  qsTr("Normál játék") :
+				  qsTr("Csak feladatok")
 
-		onToggled: {
-			studentMaps.liteMode = checked
+		icon.source: studentMaps && studentMaps.liteMode ?
+						 "qrc:/internal/icon/pistol.svg" :
+						 "qrc:/internal/icon/file-edit-outline.svg"
+
+		onTriggered: {
+			studentMaps.liteMode = !studentMaps.liteMode
 			studentMaps.getMissionList()
-			if (checked)
+			if (studentMaps.liteMode)
 				cosClient.stopSound("qrc:/sound/menu/bg.mp3", CosSound.Music)
 			else
 				cosClient.playSound("qrc:/sound/menu/bg.mp3", CosSound.Music)

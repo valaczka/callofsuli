@@ -51,7 +51,17 @@ QTabContainer {
 			ExpressionRole {
 				name: "title"
 				expression: model.description === "" ? qsTr("Hadjárat •%1").arg(model.id) : model.description
+			},
+			SwitchRole {
+				name: "icon"
+				filters: ValueFilter {
+					roleName: "finished"
+					value: true
+					SwitchRole.value: "qrc:/internal/icon/calendar-check.svg"
+				}
+				defaultValue: "qrc:/internal/icon/calendar-clock.svg"
 			}
+
 		]
 	}
 
@@ -109,6 +119,7 @@ QTabContainer {
 										   selectorSet: false,
 										   modelTitleRole: "title",
 										   modelSubtitleRole: "subtitle",
+										   modelIconRole: "icon",
 										   delegateHeight: CosStyle.twoLineHeight,
 										   imageWidth: 0,
 										   model: listProxyModel
@@ -129,7 +140,8 @@ QTabContainer {
 	Action {
 		id: actionList
 
-		text: qsTr("Korábbi hadjáratok")
+		text: qsTr("Hadjáratok")
+		icon.source: "qrc:/internal/icon/calendar-clock.svg"
 
 		onTriggered: {
 			studentMaps.send("campaignListGet", {groupid: studentMaps.selectedGroupId})

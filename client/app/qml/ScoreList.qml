@@ -10,7 +10,7 @@ QTabContainer {
 	id: control
 
 	title: qsTr("Rangsor")
-	icon: CosStyle.iconTrophy
+	icon: "qrc:/internal/icon/podium.svg"
 
 	property alias list: scoreList
 
@@ -216,10 +216,10 @@ QTabContainer {
 
 	Action {
 		id: actionRankList
-		icon.source: CosStyle.iconRank
+		icon.source: "qrc:/internal/icon/account-tie-hat.svg"
 		text: qsTr("Ranglista")
 		onTriggered: {
-			var d = JS.dialogCreateQml("List", {
+			var d = JS.dialogCreateQml("ImageList", {
 										   roles: ["rankid", "rankname", "details", "imgSource"],
 										   icon: actionRankList.icon.source,
 										   title: qsTr("Ranglista"),

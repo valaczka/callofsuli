@@ -153,7 +153,7 @@ QPagePanel {
 		onUserLoaded: load(data)
 
 		onUserUpdated: if (data.error) {
-						   cosClient.sendMessageWarning(qsTr("Felhasználó módosítása"), data.error)
+						   cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Felhasználó módosítása"), data.error)
 					   } else {
 						   username=data.updatedUserName
 						   get()
@@ -161,7 +161,7 @@ QPagePanel {
 
 		onUserCreated: {
 			if (data.error) {
-				cosClient.sendMessageWarning(qsTr("Felhasználó létrehozása"), data.error)
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Felhasználó létrehozása"), data.error)
 			} else {
 				username=data.createdUserName
 				get()

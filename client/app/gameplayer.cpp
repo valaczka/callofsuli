@@ -194,13 +194,19 @@ void GamePlayer::ladderClimbUp()
 		parentEntity()->setX(x);
 		setLadderMode(LadderClimb);
 		if (spriteSequence)
-			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbup"));
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbup"));
 	} else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
 		qreal y = parentEntity()->y()-m_qrcData.value("climb", 1).toReal();
 		parentEntity()->setY(y);
-		if (y < m_ladder->boundRect().top() && spriteSequence && m_ladderMode == LadderClimb) {
-			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbupend"));
+		if (y < m_ladder->boundRect().top()-parentEntity()->height()) {
+			qWarning() << "Ladder overbound (up)";
+			ladderClimbFinish();
+			if (spriteSequence)
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "idle"));
+		} else if (y < m_ladder->boundRect().top() && spriteSequence && m_ladderMode == LadderClimb) {
 			setLadderMode(LadderClimbFinish);
+			if (spriteSequence)
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbupend"));
 		}
 	}
 }
@@ -224,16 +230,17 @@ void GamePlayer::ladderClimbDown()
 		parentEntity()->setX(x);
 		setLadderMode(LadderClimb);
 		if (spriteSequence)
-			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdown"));
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbdown"));
 	}  else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
 		qreal delta = m_qrcData.value("climb", 1).toReal()*1.2;
 		int y = parentEntity()->y()+delta;
 		int height = parentEntity()->height();
 
 		if (m_ladderMode == LadderClimb) {
-			if (y+height >= m_ladder->boundRect().bottom() && spriteSequence) {
-				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdownend"));
+			if (y+height >= m_ladder->boundRect().bottom()) {
 				setLadderMode(LadderClimbFinish);
+				if (spriteSequence)
+					QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbdownend"));
 				parentEntity()->setY(m_ladder->boundRect().bottom()-height);
 			} else {
 				parentEntity()->setY(y);
@@ -428,6 +435,10 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 		setShield(m_shield-1);
 	} else {
 		decreaseHp();
+
+		if (m_cosGame && m_cosGame->gameMatch()) {
+			m_cosGame->gameMatch()->setIsFlawless(false);
+		}
 
 		if (hp() == 0)
 			emit killedByEnemy(enemy);

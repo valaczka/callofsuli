@@ -113,7 +113,7 @@ QDialogPanel {
 		id: buttonOk
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("Bezárás")
-		icon.source: CosStyle.iconClose
+		icon.source: "qrc:/internal/icon/close.svg"
 
 		onClicked: item.dlgClose()
 	}

@@ -106,6 +106,8 @@ public:
 
 	GameMatch * gameMatch() const { return m_gameMatch; }
 
+	Q_INVOKABLE void previewCompleted() const { if (m_gameMatch) m_gameMatch->previewCompleted(); }
+
 	bool isPrepared() const { return m_isPrepared; }
 	bool isStarted() const { return m_isStarted; }
 

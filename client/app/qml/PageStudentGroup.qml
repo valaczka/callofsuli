@@ -13,7 +13,7 @@ QTabPage {
 
 	property Profile profile: null
 
-	buttonColor: CosStyle.colorPrimary
+	//buttonColor: CosStyle.colorPrimary
 	buttonBackgroundColor: Qt.darker("#006400")
 
 	buttonModel: ListModel {
@@ -54,7 +54,8 @@ QTabPage {
 			if (studentMaps.downloader.fullSize > cosClient.getSetting("autoDownloadBelow", 500000)) {
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Letöltés"),
-											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize)
+											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize),
+											   image: "qrc:/internal/icon/cloud-download-outline.svg"
 										   })
 				d.accepted.connect(function() {
 					var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: studentMaps.downloader })

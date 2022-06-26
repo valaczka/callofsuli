@@ -13,7 +13,7 @@ QTabPage {
 
 	title: teacherGroups.selectedGroupFullName
 
-	buttonColor: CosStyle.colorPrimary
+	//buttonColor: CosStyle.colorPrimary
 	buttonBackgroundColor: Qt.darker("#006400")
 
 	buttonModel: ListModel {

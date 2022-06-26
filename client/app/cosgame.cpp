@@ -967,7 +967,10 @@ void CosGame::onGameFinishedSuccess()
 		emit gameCompletedReady();
 		if (m_gameMatch->mode() == GameMatch::ModeNormal) {
 			Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
-			Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
+			if (m_gameMatch->isFlawless())
+				Client::clientInstance()->playSound("qrc:/sound/voiceover/flawless_victory.mp3", CosSound::VoiceOver);
+			else
+				Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
 		}
 	});
 }
@@ -1197,8 +1200,6 @@ void CosGame::setPickables(QVector<GameEnemyData *> *enemyList, const int &block
 
 void CosGame::createNextQuestion()
 {
-	qDebug() << "CREATE NEXT QUESTION" << m_question << m_activity->questionList().size() << m_activity->currentQuestion();
-
 	if (!m_gameMatch) {
 		qWarning() << "Invalid GameMatch";
 		return;
@@ -1227,7 +1228,7 @@ void CosGame::createNextQuestion()
 	emit questionChanged(m_question);
 
 	if (!m_activity->generateQuestion(m_question)) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Nem lehet elkészíteni a feladatot!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Nem lehet elkészíteni a feladatot!"));
 	}
 }
 

@@ -163,12 +163,13 @@ QTabContainer {
 				anchors.horizontalCenter: parent.horizontalCenter
 				horizontalAlignment: Text.AlignHCenter
 				wrapMode: Text.Wrap
-				topPadding: isHorizontal ? 10 : 50
+				topPadding: isHorizontal ? bottomPadding : 50
+				bottomPadding: text.length ? 20 : 0
 				leftPadding: 50
 				rightPadding: 50
-				color: CosStyle.colorPrimary
-				font.weight: Font.Medium
-				font.pixelSize: CosStyle.pixelSize*0.9
+				color: CosStyle.colorAccent
+				font.pixelSize: CosStyle.pixelSize*0.95
+				font.family: "Special Elite"
 			}
 
 			BusyIndicator {

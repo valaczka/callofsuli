@@ -147,13 +147,13 @@ QTabContainer {
 				rightComponent: QFontImage {
 					visible: !imageTerrain._terrainData
 					color: CosStyle.colorWarning
-					icon: CosStyle.iconDialogWarning
+					icon: "qrc:/internal/icon/alert.svg"
 					size: CosStyle.pixelSize*1.2
 					width: size*2
 				}
 
 				mouseArea.onClicked: {
-					var dd = JS.dialogCreateQml("List", {
+					var dd = JS.dialogCreateQml("ImageList", {
 													icon: CosStyle.iconLockAdd,
 													title: qsTr("Harcmező kiválasztása"),
 													selectorSet: false,
@@ -300,13 +300,13 @@ QTabContainer {
 
 		QToolButtonFooter {
 			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconEdit
+			icon.source: "qrc:/internal/icon/pencil.svg"
 			text: qsTr("Szakaszok kiválasztása")
 			onClicked: {
 				mapEditor.updateChapterModelMissionLevel(missionLevel)
 
 				if (mapEditor.editor.chapters.count < 1) {
-					cosClient.sendMessageWarning(qsTr("Szakaszok"), qsTr("Még nincsen egyetlen szakasz sem!"))
+					cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Szakaszok"), qsTr("Még nincsen egyetlen szakasz sem!"))
 					return
 				}
 
