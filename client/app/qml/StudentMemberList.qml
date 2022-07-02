@@ -12,6 +12,12 @@ QTabContainer {
 	title: qsTr("Résztvevők")
 	icon: CosStyle.iconGroup
 
+	toolBarComponent: QToolButton {
+		action: actionCampaignFilter
+		color: actionCampaignFilter.color
+		display: AbstractButton.IconOnly
+	}
+
 	property ListModel modelUserList: ListModel {}
 
 	QObjectListView {
@@ -216,7 +222,7 @@ QTabContainer {
 
 		highlightCurrentItem: false
 
-		onRefreshRequest: studentMaps.send("userListGet", { groupid: studentMaps.selectedGroupId })
+		onRefreshRequest: reloadList()
 
 		onClicked: {
 			var o = userList.model.get(index)
@@ -248,12 +254,27 @@ QTabContainer {
 		}
 	}
 
+	Connections {
+		target: actionCampaignFilter
+
+		function onCampaignChanged() {
+			reloadList()
+		}
+	}
+
 	Component {
 		id: componentUserScore
 		StudentGroupScore { }
 	}
 
-	onPopulated: studentMaps.send("userListGet", { groupid: studentMaps.selectedGroupId })
+	function reloadList() {
+		studentMaps.send("userListGet", {
+							 groupid: studentMaps.selectedGroupId,
+							 campaignid: actionCampaignFilter.campaign
+						 })
+	}
+
+	onPopulated: reloadList()
 
 
 }

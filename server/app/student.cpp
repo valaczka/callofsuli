@@ -140,17 +140,38 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int groupid = params.value("groupid", -1).toInt();
+	int campaignid = params.value("campaignid", -1).toInt();
 
 	(*jsonResponse)["groupid"] = groupid;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
-																						  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
-																						  "t1, t2, t3, d1, d2, d3, sumxp "
-																						  "FROM studentGroupInfo LEFT JOIN userInfo ON (studentGroupInfo.username=userInfo.username) "
-																						  "LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username AND groupTrophy.id=studentGroupInfo.id) "
-																						  "WHERE active=true AND studentGroupInfo.id=?", {
-																							  groupid
-																						  }));
 
+	if (campaignid != -1) {
+		(*jsonResponse)["campaignid"] = campaignid;
+		(*jsonResponse)["list"] = QJsonArray::fromVariantList(
+									  m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
+																	  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
+																	  "t1, t2, t3, d1, d2, d3, sumxp "
+																	  "FROM studentGroupInfo LEFT JOIN userInfo "
+																	  "ON (studentGroupInfo.username=userInfo.username) "
+																	  "LEFT JOIN groupCampaignTrophy ON "
+																	  "(groupCampaignTrophy.username=studentGroupInfo.username "
+																	  "AND groupCampaignTrophy.id=studentGroupInfo.id "
+																	  "AND groupCampaignTrophy.campaignid=?) "
+																	  "WHERE active=true AND studentGroupInfo.id=?", {
+																		  campaignid, groupid
+																	  }));
+	} else {
+		(*jsonResponse)["list"] = QJsonArray::fromVariantList(
+									  m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
+																	  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
+																	  "t1, t2, t3, d1, d2, d3, sumxp "
+																	  "FROM studentGroupInfo LEFT JOIN userInfo "
+																	  "ON (studentGroupInfo.username=userInfo.username) "
+																	  "LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username "
+																	  "AND groupTrophy.id=studentGroupInfo.id) "
+																	  "WHERE active=true AND studentGroupInfo.id=?", {
+																		  groupid
+																	  }));
+	}
 	return true;
 }
 
@@ -719,6 +740,36 @@ bool Student::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
 	QJsonObject ret;
 	Teacher u(m_client, m2);
 	return u.gameListUserGet(jsonResponse, nullptr);
+}
+
+
+/**
+ * @brief Student::gameListCampaignGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	QString username = params.value("username").toString();
+	if (username.isEmpty())
+		username = m_client->clientUserName();
+
+	QJsonObject o;
+
+	o["username"] = username;
+	o["groupid"] = params.value("groupid").toInt(-1);
+	o["campaignid"] = params.value("campaignid").toInt(-1);
+	o["limit"] = params.value("limit").toInt(50);
+	o["offset"] = params.value("offset").toInt();
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Teacher u(m_client, m2);
+	return u.gameListCampaignGet(jsonResponse, nullptr);
 }
 
 

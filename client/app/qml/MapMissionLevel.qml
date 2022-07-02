@@ -17,7 +17,6 @@ QTabContainer {
 	property bool autoPlay: false
 	property bool readOnly: true
 
-
 	readonly property bool isHorizontal: width > height
 
 	/*
@@ -37,6 +36,89 @@ QTabContainer {
 	property int _minDuration: 0
 	property int _maxDuration: 0
 	property int _maxSuccess: 0
+
+
+	toolBarComponent: Item {
+		id: bgRect
+
+		anchors.verticalCenter: parent.verticalCenter
+
+		width: control.tabPage.headerItem.height
+		height: width
+
+		visible: studentMaps && !studentMaps.demoMode
+
+		readonly property int rank: cosClient.userRank
+		readonly property int level: cosClient.userRankLevel
+		property bool _completed: false
+
+		Component.onCompleted: _completed = true
+
+		onRankChanged: if (_completed && !anim.running)
+						   anim.start()
+
+		onLevelChanged: if (_completed && !anim.running)
+						   anim.start()
+
+		Rectangle {
+			color: "transparent"
+			radius: 5
+			anchors.fill: parent
+
+			opacity: 0.0
+
+			SequentialAnimation on opacity {
+				id: anim
+				running: false
+
+				PropertyAnimation {
+					from: 0.0
+					to: 0.8
+					duration: 250
+				}
+
+				PauseAnimation {
+					duration: 5000
+				}
+
+				PropertyAnimation {
+					from: 0.8
+					to: 0.0
+					duration: 1250
+				}
+			}
+
+			SequentialAnimation on color {
+				running: true
+				loops: Animation.Infinite
+
+				ColorAnimation {
+					from: CosStyle.colorAccentDarker
+					to: CosStyle.colorAccentLighter
+					duration: 175
+				}
+
+				ColorAnimation {
+					from: CosStyle.colorAccentLighter
+					to: CosStyle.colorAccentDarker
+					duration: 175
+				}
+			}
+		}
+
+		Image {
+			width: parent.width*0.8
+			height: parent.height*0.8
+			anchors.centerIn: parent
+
+			source: cosClient.rankImageSource(rank, level, cosClient.userRankImage)
+
+			fillMode: Image.PreserveAspectFit
+		}
+
+
+	}
+
 
 	Flickable {
 		id: flick
@@ -99,7 +181,6 @@ QTabContainer {
 				text: missionDeathmatch ? "Level %1%2Sudden death".arg(missionLevel).arg(isHorizontal ? " " : "\n") :
 										  "Level %1".arg(missionLevel)
 			}
-
 
 
 			Loader {
@@ -486,7 +567,9 @@ QTabContainer {
 
 			_state = 2
 
-			missionCompletedLoader.setSource("MapMissionLevelCompleted.qml", {gameData: data})
+			missionCompletedLoader.setSource("MapMissionLevelCompleted.qml", {
+												 gameData: data
+											 })
 		}
 
 

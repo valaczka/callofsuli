@@ -48,7 +48,6 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	connect(this, &TeacherGroups::groupMapRemove, this, &TeacherGroups::groupReload);
 	connect(this, &TeacherGroups::groupMapAdd, this, &TeacherGroups::groupReload);
 	connect(this, &TeacherGroups::gameListUserGet, this, &TeacherGroups::onGameListUserGet);
-	connect(this, &TeacherGroups::gameListMapGet, this, &TeacherGroups::onGameListMapGet);
 	connect(this, &TeacherGroups::gameListGroupGet, this, &TeacherGroups::onGameListGroupGet);
 
 	CosDb *db = TeacherMaps::teacherMapsDb(Client::clientInstance(), this);
@@ -289,39 +288,6 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 	emit gameListUserReady(ret, jsonData.value("username").toString());
 }
 
-
-/**
- * @brief TeacherGroups::onGameListMapGet
- * @param jsonData
- */
-
-void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
-{
-	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
-		return;
-	}
-
-	QString mapid = jsonData.value("mapid").toString();
-	QJsonArray list = jsonData.value("list").toArray();
-	QVariantList ret;
-
-	if (m_missionNameMap.isEmpty()) {
-		m_missionNameMap = TeacherMaps::missionNames(db());
-	}
-
-	foreach (QJsonValue v, list) {
-		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(mapid).toMap()
-							  .value(m.value("missionid").toString()).toString();
-
-		m["missionname"] = missionname;
-		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
-		ret.append(m);
-	}
-
-	emit gameListMapReady(ret, mapid, jsonData.value("username").toString());
-}
 
 
 /**

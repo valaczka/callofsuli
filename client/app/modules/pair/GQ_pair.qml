@@ -153,7 +153,6 @@ Item {
 
 			GameQuestionTileDrop {
 				id: drop
-				implicitHeight: 40
 				autoResize: false
 				width: (parent.width-labelSeparator.width)/2
 

@@ -18,6 +18,12 @@ QTabContainer {
 
 	menu: QMenu {
 		MenuItem { action: actionQRinfo }
+		QMenu {
+			title: qsTr("Betűméret")
+			MenuItem { action: mainWindow.actionFontPlus }
+			MenuItem { action: mainWindow.actionFontMinus }
+			MenuItem { action: mainWindow.actionFontReset }
+		}
 	}
 
 
@@ -301,8 +307,9 @@ QTabContainer {
 
 	Action {
 		id: actionQRinfo
-		icon.source: CosStyle.iconComputerData
+		icon.source: "qrc:/internal/icon/qrcode.svg"
 		text: qsTr("Csatlakozási info")
 		onTriggered: tabPage.pushContent(cmpServerInfo, {})
 	}
+
 }

@@ -109,6 +109,38 @@ SELECT studentGroupInfo.id, studentGroupInfo.username,
 
 DROP TABLE bindGroupMap_old;
 
+CREATE VIEW campaignTrophy AS
+SELECT campaign.id, game.username, mapid, missionid, level, deathmatch, success, COUNT(*) as num, SUM(xp) as xp
+	FROM campaign LEFT JOIN game ON (game.timestamp>=campaign.starttime AND game.timestamp<campaign.endtime AND
+	game.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=campaign.groupid))
+	LEFT JOIN score ON (score.gameid=game.id)
+	GROUP BY campaign.id, game.username, mapid, missionid, level, deathmatch, success;
+
+CREATE VIEW groupCampaignTrophy AS
+SELECT studentGroupInfo.id, campaign.id as campaignid, studentGroupInfo.username,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=1 AND deathmatch=false AND success=true)
+	AS t1,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=2 AND deathmatch=false AND success=true)
+	AS t2,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=3 AND deathmatch=false AND success=true)
+	AS t3,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=1 AND deathmatch=true AND success=true)
+	AS d1,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=2 AND deathmatch=true AND success=true)
+	AS d2,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=3 AND deathmatch=true AND success=true)
+	AS d3,
+	(SELECT COALESCE(SUM(xp),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id)
+	AS sumxp
+	FROM studentGroupInfo LEFT JOIN campaign;
+
 PRAGMA foreign_keys=ON;
 
 UPDATE system SET versionMajor=3, versionMinor=2;

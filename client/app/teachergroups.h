@@ -91,7 +91,6 @@ private slots:
 	void onGroupGet(QJsonObject jsonData, QByteArray);
 	void onGroupMapListGet(const QJsonArray &list);
 	void onGameListUserGet(QJsonObject jsonData, QByteArray);
-	void onGameListMapGet(QJsonObject jsonData, QByteArray);
 	void onGameListGroupGet(QJsonObject jsonData, QByteArray);
 
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
@@ -121,7 +120,6 @@ signals:
 
 	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserReady(const QVariantList &list, const QString &username);
-	void gameListMapGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListMapReady(const QVariantList &list, const QString &mapid, const QString &username);
 	void gameListGroupGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListGroupReady(const QVariantList &list, const int &groupid, const QString &username, const int &offset);

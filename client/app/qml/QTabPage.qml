@@ -23,6 +23,7 @@ Page {
 
 	property bool compact: width < 1280 || height < 720
 
+	property alias headerItem: header
 	property alias menuButton: menuButton
 	property alias backButtonVisible: backButton.visible
 	property alias tabBarVisible: tabbar.visible
@@ -341,6 +342,7 @@ Page {
 			anchors.right: toolbarLoader.item ? toolbarLoader.left :
 												toolButton.visible ? toolButton.left :
 																	 menuButton.visible ? menuButton.left : parent.right
+			anchors.rightMargin: !compact && !menuButton.visible && !toolButton.visible && !toolbarLoader.item ? 5 : 0
 			anchors.verticalCenter: parent.verticalCenter
 			anchors.verticalCenterOffset: compact ? 0 : -2
 		}
@@ -349,6 +351,7 @@ Page {
 			id: toolbarLoader
 			anchors.right: toolButton.visible ? toolButton.left :
 												menuButton.visible ? menuButton.left : parent.right
+			anchors.rightMargin: !compact && !menuButton.visible && !toolButton.visible ? 5 : 0
 			anchors.verticalCenter: parent.verticalCenter
 			anchors.verticalCenterOffset: compact ? 0 : -2
 		}
@@ -358,6 +361,7 @@ Page {
 			action: null
 			visible: action
 			anchors.right: menuButton.visible ? menuButton.left : parent.right
+			anchors.rightMargin: !compact && !menuButton.visible ? 5 : 0
 			anchors.verticalCenter: parent.verticalCenter
 			anchors.verticalCenterOffset: compact ? 0 : -2
 		}

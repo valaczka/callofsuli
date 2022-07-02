@@ -21,6 +21,10 @@ ApplicationWindow {
 	minimumWidth: 640
 	minimumHeight: 480
 
+	property alias actionFontPlus: fontPlus
+	property alias actionFontMinus: fontMinus
+	property alias actionFontReset: fontNormal
+
 
 	FontLoader { source: "qrc:/internal/font/ariblk.ttf" }
 	FontLoader { source: "qrc:/internal/font/Books.ttf" }
@@ -145,21 +149,27 @@ ApplicationWindow {
 	Action {
 		id: fontPlus
 		shortcut: "Ctrl++"
-		onTriggered: if (CosStyle.pixelSize < 36)
-						 CosStyle.pixelSize++
+		text: qsTr("Növelés")
+		icon.source: "qrc:/internal/icon/magnify-plus.svg"
+		enabled: CosStyle.pixelSize < 36
+		onTriggered: CosStyle.pixelSize++
 	}
 
 	Action {
 		id: fontMinus
 		shortcut: "Ctrl+-"
-		onTriggered: if (CosStyle.pixelSize > 10)
-						 CosStyle.pixelSize--
+		text: qsTr("Csökkentés")
+		icon.source: "qrc:/internal/icon/magnify-minus.svg"
+		enabled: CosStyle.pixelSize > 10
+		onTriggered: CosStyle.pixelSize--
 	}
 
 	Action {
 		id: fontNormal
 		shortcut: "Ctrl+0"
-		onTriggered: CosStyle.pixelSize = (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 17 : 18)
+		text: qsTr("Visszaállítás")
+		icon.source: "qrc:/internal/icon/magnify-remove-outline.svg"
+		onTriggered: CosStyle.pixelSize = 18
 	}
 
 
@@ -178,7 +188,8 @@ ApplicationWindow {
 		if (mainStack.currentItem && mainStack.currentItem.closeCallbackFunction) {
 			if (!mainStack.currentItem.closeCallbackFunction()) {
 				close.accepted = true
-				cosClient.windowSaveGeometry(mainWindow, CosStyle.pixelSize)
+				cosClient.windowSaveGeometry(mainWindow)
+				cosClient.setSetting("window/fontSize", CosStyle.pixelSize)
 				Qt.quit()
 			} else {
 				close.accepted = false

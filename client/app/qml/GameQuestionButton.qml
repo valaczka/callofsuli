@@ -8,7 +8,7 @@ Rectangle {
 	id: control
 
 	implicitWidth: Math.max(100, label.implicitWidth+(isToggle ? flipable.width : 0))
-	implicitHeight: Math.max(40, label.implicitHeight)
+	implicitHeight: Math.max(CosStyle.gameButtonMinHeight, label.implicitHeight)
 
 	radius: 3
 

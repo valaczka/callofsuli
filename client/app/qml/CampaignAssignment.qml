@@ -136,7 +136,7 @@ Column {
 					required property bool success
 
 					readonly property string module: criterion.module
-					readonly property int value: criterion.value
+					readonly property int value: criterion.value ? criterion.value : 0
 					readonly property bool required: criterion.mode === "required"
 
 					width: parent.width-10
@@ -154,8 +154,34 @@ Column {
 						source: rowCriteria.success ? "qrc:/internal/img/checkmark_red.png" : ""
 					}
 
+					QTrophyImage {
+						id: imgTrophy
+						visible: rowCriteria.module == "sumlevel" || rowCriteria.module == "trophy"
+						anchors.top: parent.top
+						width: CosStyle.pixelSize*1.3
+						height: CosStyle.pixelSize*1.3
+						isDeathmatch: rowCriteria.criterion.deathmatch ? true : false
+						level: rowCriteria.module == "sumlevel" && rowCriteria.criterion.level ? rowCriteria.criterion.level : -1
+						opacity: rowCriteria.success ? 0.4 : 1.0
+					}
+
+					QMedalImage {
+						id: imgMedal
+						visible: rowCriteria.module == "missionlevel"
+						anchors.top: parent.top
+						width: CosStyle.pixelSize*1.3
+						height: CosStyle.pixelSize*1.3
+						isDeathmatch: rowCriteria.criterion.deathmatch ? true : false
+						level: rowCriteria.criterion.level ? rowCriteria.criterion.level : -1
+						image: ""
+						opacity: rowCriteria.success ? 0.4 : 1.0
+					}
+
 					QLabel {
-						width: parent.width-imgSuccess.width-rowCriteria.spacing
+						id: labelText
+						width: parent.width-imgSuccess.width-parent.spacing
+							   -(imgTrophy.visible ? imgTrophy.width+parent.spacing : 0)
+							   -(imgMedal.visible ? imgMedal.width+parent.spacing : 0)
 						wrapMode: Text.Wrap
 						anchors.verticalCenter: rowCriteria.success && imgSuccess.height > height ? parent.verticalCenter : undefined
 						anchors.top: rowCriteria.success && imgSuccess.height > height ? undefined : parent.top
@@ -167,10 +193,15 @@ Column {
 								  qsTr("Gyűjts össze legalább %1 XP-t").arg(rowCriteria.value)
 							  else if (rowCriteria.module == "trophy")
 								  qsTr("Gyűjts össze legalább %1 trófeát").arg(rowCriteria.value)
+							  else if (rowCriteria.module == "sumlevel")
+								  qsTr("Gyűjts össze legalább %1 különböző LEVEL %2%3 trófeát").arg(rowCriteria.value).arg(rowCriteria.criterion.level).arg(rowCriteria.criterion.deathmatch ? " SUDDEN DEATH": "")
+							  else if (rowCriteria.module == "missionlevel")
+								  qsTr("Teljesítsd a %1 pálya %2 küldetését LEVEL %3%4 szinten").arg(rowCriteria.criterion.map).arg(rowCriteria.criterion.mission).arg(rowCriteria.criterion.level).arg(rowCriteria.criterion.deathmatch ? " SUDDEN DEATH": "")
 							  else
 								  "%1: %2".arg(rowCriteria.module).arg(rowCriteria.value)
 						font.family: "Special Elite"
 					}
+
 				}
 			}
 		}

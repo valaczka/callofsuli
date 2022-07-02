@@ -56,6 +56,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	connect(this, &StudentMaps::gameFinish, this, &StudentMaps::onGameFinish);
 
 	connect(this, &StudentMaps::gameListUserGet, this, &StudentMaps::onGameListUserGet);
+	connect(this, &StudentMaps::gameListCampaignGet, this, &StudentMaps::onGameListUserGet);
 	connect(this, &StudentMaps::campaignGet, this, &StudentMaps::onCampaignGet);
 }
 
@@ -1042,7 +1043,6 @@ void StudentMaps::onGameListUserGet(QJsonObject jsonData, QByteArray)
 void StudentMaps::onCampaignGet(QJsonObject jsonData, QByteArray)
 {
 	QJsonArray list = jsonData.value("list").toArray();
-	QVariantList ret;
 
 	loadGradeList(jsonData.value("gradeList").toArray());
 
@@ -1050,19 +1050,108 @@ void StudentMaps::onCampaignGet(QJsonObject jsonData, QByteArray)
 		m_missionNameMap = TeacherMaps::missionNames(db());
 	}
 
-	/*foreach (QJsonValue v, list) {
-		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
-							  .value(m.value("missionid").toString()).toString();
+	QJsonArray newList;
 
-		m["missionname"] = missionname;
-		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
-		ret.append(m);
-	}*/
+	foreach (QJsonValue v, list) {
+		QJsonObject o = v.toObject();
 
-	ret = list.toVariantList();
+		QJsonArray alist = o.value("assignment").toArray();
+		QJsonArray newAList;
 
-	emit campaignGetReady(ret);
+		foreach (QJsonValue v, alist) {
+			QJsonObject o = v.toObject();
+
+			QJsonObject grading = o.value("grading").toObject();
+
+			QJsonArray xpArray = grading.value("xp").toArray();
+			QJsonArray gradeArray = grading.value("grade").toArray();
+
+			QJsonArray newXpArray, newGradeArray;
+
+
+			// XP
+
+			foreach (QJsonValue v, xpArray) {
+				QJsonObject o = v.toObject();
+				QJsonArray cList = o.value("criteria").toArray();
+				QJsonArray newCList;
+
+				foreach (QJsonValue v, cList) {
+					QJsonObject o = v.toObject();
+					QJsonObject criterion = o.value("criterion").toObject();
+
+					if (criterion.value("module").toString() == "missionlevel") {
+						QString map = criterion.value("map").toString();
+						QString mission = criterion.value("mission").toString();
+
+						mission = m_missionNameMap.value(map).toMap().value(mission).toString();
+
+						if (mission.isEmpty())
+							mission = "???";
+
+						QList<MapListObject*> l = m_modelMapList->find("uuid", map);
+						map = l.isEmpty() ? "???" : l.at(0)->name();
+
+						criterion["map"] = map;
+						criterion["mission"] = mission;
+					}
+
+					o["criterion"] = criterion;
+					newCList.append(o);
+				}
+
+				o["criteria"] = newCList;
+				newXpArray.append(o);
+			}
+
+
+			// GRADE
+
+			foreach (QJsonValue v, gradeArray) {
+				QJsonObject o = v.toObject();
+				QJsonArray cList = o.value("criteria").toArray();
+				QJsonArray newCList;
+
+				foreach (QJsonValue v, cList) {
+					QJsonObject o = v.toObject();
+					QJsonObject criterion = o.value("criterion").toObject();
+
+					if (criterion.value("module").toString() == "missionlevel") {
+						QString map = criterion.value("map").toString();
+						QString mission = criterion.value("mission").toString();
+
+						mission = m_missionNameMap.value(map).toMap().value(mission).toString();
+
+						if (mission.isEmpty())
+							mission = "???";
+
+						QList<MapListObject*> l = m_modelMapList->find("uuid", map);
+						map = l.isEmpty() ? "???" : l.at(0)->name();
+
+						criterion["map"] = map;
+						criterion["mission"] = mission;
+					}
+
+					o["criterion"] = criterion;
+					newCList.append(o);
+				}
+
+				o["criteria"] = newCList;
+				newGradeArray.append(o);
+			}
+
+			grading["xp"] = newXpArray;
+			grading["grade"] = newGradeArray;
+			o["grading"] = grading;
+			newAList.append(o);
+		}
+
+		o["assignment"] = newAList;
+		newList.append(o);
+	}
+
+
+	emit campaignGetReady(newList.toVariantList());
 }
 
 

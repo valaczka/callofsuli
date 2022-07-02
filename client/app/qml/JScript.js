@@ -118,7 +118,7 @@ function dialogMessage(type, title, text, details, image) {
 
 
 function dialogCreate(component) {
-	var comp = Qt.createComponent("QDialogMain.qml", mainWindow)
+	var comp = Qt.createComponent("QDialog.qml", mainWindow)
 
 	if (comp.status === Component.Ready) {
 		var obj = comp.createObject(mainWindow)
@@ -147,7 +147,7 @@ function dialogCreate(component) {
 
 
 function dialogCreateQml(url, params) {
-	var comp = Qt.createComponent("QDialogMain.qml", mainWindow)
+	var comp = Qt.createComponent("QDialog.qml", mainWindow)
 
 	if (comp.status === Component.Ready) {
 		var obj = comp.createObject(mainWindow)

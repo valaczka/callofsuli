@@ -132,7 +132,7 @@ public slots:
 
 	bool gameListUserGet(QJsonObject *jsonResponse, QByteArray *);
 	bool gameListGroupGet(QJsonObject *jsonResponse, QByteArray *);
-	bool gameListMapGet(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

@@ -7,7 +7,7 @@
         <file>ServerEdit.qml</file>
         <file>QButton.qml</file>
         <file>QCosImage.qml</file>
-        <file>QDialogMain.qml</file>
+        <file>QDialog.qml</file>
         <file>QDialogMessage.qml</file>
         <file>QDialogYesNo.qml</file>
         <file>QGridButton.qml</file>
@@ -108,7 +108,6 @@
         <file>QDialogFile.qml</file>
         <file>QDrawer.qml</file>
         <file>MapEditorObjective.qml</file>
-        <file>OLD_PageTeacherGroup.qml</file>
         <file>TeacherGroupUserList.qml</file>
         <file>TeacherGroupMapList.qml</file>
         <file>TeacherGroupMapView.qml</file>
@@ -117,13 +116,10 @@
         <file>QGridImageSpinBox.qml</file>
         <file>QDialogYesNoFlickable.qml</file>
         <file>QSimpleContainer.qml</file>
-        <file>OLD_PageConnectionInfo.qml</file>
         <file>QDialogPasswordChange.qml</file>
         <file>TeacherGroupUserEdit.qml</file>
         <file>TeacherMapInfo.qml</file>
         <file>TrophyView.qml</file>
-        <file>OLD_PageTeacherGroupMapViewUser.qml</file>
-        <file>OLD_MapMissionUserView.qml</file>
         <file>ProfileDetailsUser.qml</file>
         <file>ProfileDetailsTrophies.qml</file>
         <file>OAuthContainer.qml</file>

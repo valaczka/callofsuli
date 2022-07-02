@@ -460,13 +460,9 @@ Teacher::Grading &Teacher::evaluate(CosDb *db, Grading &grading, const int &camp
 			return grading;
 		}
 
-		QVariantMap m = db->execSelectQueryOneRow("SELECT SUM(xp) as xp FROM game LEFT JOIN score ON (score.gameid=game.id) "
-												  "WHERE game.username=? AND "
-												  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
-												  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
-												  "game.mapid IN (SELECT mapid FROM bindGroupMap "
-												  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
-												  {username, campaignId, campaignId, campaignId});
+		QVariantMap m = db->execSelectQueryOneRow("SELECT SUM(xp) as xp FROM campaignTrophy "
+												  "WHERE id=? AND username=?",
+												  {campaignId, username});
 
 		int xp = m.value("xp", 0).toInt();
 
@@ -479,25 +475,54 @@ Teacher::Grading &Teacher::evaluate(CosDb *db, Grading &grading, const int &camp
 			return grading;
 		}
 
-		QVariantMap m = db->execSelectQueryOneRow("SELECT COUNT(*) as trophy FROM game "
-												  "WHERE game.username=? AND success=true AND "
-												  "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
-												  "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
-												  "game.mapid IN (SELECT mapid FROM bindGroupMap "
-												  "WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))",
-												  {username, campaignId, campaignId, campaignId});
+		QVariantMap m = db->execSelectQueryOneRow("SELECT SUM(num) as trophy FROM campaignTrophy "
+												  "WHERE id=? AND username=? AND success=true",
+												  {campaignId, username});
 
 		int trophy = m.value("trophy", 0).toInt();
 
 		if (trophy >= target)
 			grading.success = true;
+	} else if (module == "sumlevel") {
+		int target = criteria.value("value").toInt(0);
+		if (target < 1) {
+			grading.success = true;
+			return grading;
+		}
+
+		int level = criteria.value("level").toInt(0);
+		bool deathmatch = criteria.value("deathmatch").toBool(false);
+
+		QVariantMap m = db->execSelectQueryOneRow("SELECT COUNT(*) as cnt FROM campaignTrophy "
+												  "WHERE id=? AND username=? AND success=true AND level=? AND deathmatch=?",
+												  {campaignId, username, level, deathmatch});
+
+		int cnt = m.value("cnt", 0).toInt();
+
+		if (cnt >= target)
+			grading.success = true;
+	} else if (module == "missionlevel") {
+		int level = criteria.value("level").toInt(0);
+		bool deathmatch = criteria.value("deathmatch").toBool(false);
+		QString map = criteria.value("map").toString();
+		QString mission = criteria.value("mission").toString();
+
+		QVariantMap m = db->execSelectQueryOneRow("SELECT SUM(num) as trophy FROM campaignTrophy "
+												  "WHERE id=? AND username=? AND mapid=? AND missionid=? AND success=true "
+												  "AND level=? AND deathmatch=?",
+												  {campaignId, username, map, mission, level, deathmatch});
+
+		int trophy = m.value("trophy", 0).toInt();
+
+		if (trophy > 0)
+			grading.success = true;
+
 	} else {
 		qWarning() << "Invalid grading module" << module;
 	}
 
 	return grading;
 }
-
 
 
 
@@ -1737,48 +1762,62 @@ bool Teacher::gameListGroupGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+
+
 /**
- * @brief Teacher::gameListMapGet
- * @param jsonResponse
+ * @brief Teacher::gameListCampaignGet
+ * @param jsonReponse
  * @return
  */
 
-bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
-	QString mapid = params.value("mapid").toString();
+	int campaignid = params.value("campaignid", -1).toInt();
 
-	qWarning() << "TODO: OFFSET IMPLEMENTATION REQUIRED";
-
-	if (mapid.isEmpty()) {
-		(*jsonResponse)["error"] = "missing mapid";
+	if (campaignid == -1) {
+		(*jsonResponse)["error"] = "missing campaignid";
 		return false;
 	}
+
+	int limit = params.value("limit", 50).toInt();
+	int offset = params.value("offset", 0).toInt();
 
 	QVariantList list;
 
 	if (params.contains("username")) {
 		QString username = params.value("username").toString();
-		list = m_client->db()->execSelectQuery("SELECT missionid, datetime(game.timestamp, 'localtime') as timestamp, "
-											   "level, success, deathmatch, lite, duration, score.xp FROM game "
-											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-											   "AND game.username=? "
-											   "AND mapid=?",
-											   {username, mapid});
+		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, game.username, firstname, lastname, nickname, "
+											   "mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, "
+											   "deathmatch, lite, duration, score.xp FROM game "
+											   "LEFT JOIN userInfo ON (userInfo.username=game.username) "
+											   "LEFT JOIN score ON (score.gameid=game.id) "
+											   "WHERE tmpScore is NULL AND "
+											   "game.username=? AND "
+											   "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
+											   "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
+											   "game.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))) "
+											   "SELECT * FROM t WHERE rowid NOT IN (SELECT rowid FROM t ORDER BY timestamp DESC LIMIT ?) "
+											   "ORDER BY timestamp DESC LIMIT ?",
+											   {username, campaignid, campaignid, campaignid, offset, limit});
 		(*jsonResponse)["username"] = username;
 
 	} else {
-		list = m_client->db()->execSelectQuery("SELECT game.username, firstname, lastname, nickname, "
-											   "missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, "
+		list = m_client->db()->execSelectQuery("WITH t AS (SELECT game.rowid, "
+											   "mapid, missionid, datetime(game.timestamp, 'localtime') as timestamp, level, success, "
 											   "deathmatch, lite, duration, score.xp FROM game "
-											   "LEFT JOIN userInfo ON (userInfo.username=game.username) "
-											   "LEFT JOIN score ON (score.gameid=game.id) WHERE tmpScore is NULL "
-											   "AND mapid=?",
-											   {mapid});
+											   "LEFT JOIN score ON (score.gameid=game.id) "
+											   "WHERE tmpScore is NULL AND "
+											   "game.timestamp>=(SELECT starttime FROM campaign WHERE id=?) AND "
+											   "game.timestamp<(SELECT endtime FROM campaign WHERE id=?) AND "
+											   "game.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=(SELECT groupid FROM campaign WHERE id=?))) "
+											   "SELECT * FROM t WHERE rowid NOT IN (SELECT rowid FROM t ORDER BY timestamp DESC LIMIT ?) "
+											   "ORDER BY timestamp DESC LIMIT ?",
+											   {campaignid, campaignid, campaignid, offset, limit});
 	}
 
 
-	/*QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps");
+	QVariantList mapDataList = m_client->mapsDb()->execSelectQuery("SELECT uuid, name FROM maps");
 
 	QHash<QString, QString> mapHash;
 
@@ -1793,11 +1832,13 @@ bool Teacher::gameListMapGet(QJsonObject *jsonResponse, QByteArray *)
 		QJsonObject m = v.toJsonObject();
 		m["mapname"] = mapHash.value(m.value("mapid").toString());
 		ret.append(m);
-	}*/
+	}
 
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
-	(*jsonResponse)["mapid"] = mapid;
+	(*jsonResponse)["groupid"] = params.value("groupid", -1).toInt();
+	(*jsonResponse)["offset"] = offset;
+	(*jsonResponse)["list"] = ret;
+	(*jsonResponse)["campaignid"] = campaignid;
 
 	return true;
 }

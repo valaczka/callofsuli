@@ -17,6 +17,8 @@ QDialogPanel {
 	property alias modelSubtitleRole: list.modelSubtitleRole
 	property alias delegateHeight: list.delegateHeight
 	property string modelIconRole: ""
+	property alias modelTitleColorRole: list.modelTitleColorRole
+	property alias modelSubtitleColorRole: list.modelSubtitleColorRole
 	property string modelIconColorRole: ""
 	property string modelRightTextRole: ""
 

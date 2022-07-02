@@ -129,6 +129,7 @@ signals:
 	void gameFinish(QJsonObject jsonData, QByteArray binaryData);
 	void gameUpdate(QJsonObject jsonData, QByteArray binaryData);
 
+	void gameListCampaignGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserReady(const QVariantList &list, const QString &username, const int &offset);
 	void gameListUserMissionGet(QJsonObject jsonData, QByteArray binaryData);

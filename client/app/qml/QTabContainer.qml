@@ -14,9 +14,10 @@ Item {
 	property string icon: ""
 	property string title: ""
 	property string contentTitle: ""
+	property bool isMenuLocal: false
 	property QMenu menu: null
-	property bool forceMainMenu: true
 	property Action action: null
+	property Component toolBarComponent: null
 
 	property real maximumWidth: StackView.view && StackView.view.maximumPanelWidth ? StackView.view.maximumPanelWidth : -1
 
@@ -172,7 +173,7 @@ Item {
 					id: panelMenu
 					anchors.verticalCenter: parent.verticalCenter
 					anchors.right: parent.right
-					menu: !forceMainMenu ? control.menu : null
+					menu: !compact && isMenuLocal ? control.menu : null
 				}
 			}
 
@@ -262,6 +263,7 @@ Item {
 		if (tabPage) {
 			tabPage.toolButtonAction = null
 			tabPage.menuButton.menu = null
+			tabPage.toolBarLoaderComponent = null
 		}
 	}
 
@@ -269,10 +271,11 @@ Item {
 		if (tabPage) {
 			tabPage.contentTitle = contentTitle
 			tabPage.toolButtonAction = action
-			if (compact || forceMainMenu)
-				tabPage.menuButton.menu = menu
-			else
+			if (isMenuLocal)
 				tabPage.menuButton.menu = null
+			else
+				tabPage.menuButton.menu = menu
+			tabPage.toolBarLoaderComponent = toolBarComponent
 		}
 	}
 }

@@ -123,8 +123,6 @@ Item {
 		id: componentTileDrop
 
 		GameQuestionTileDrop {
-			implicitHeight: 40
-
 			onCurrentDragChanged: recalculate()
 		}
 	}

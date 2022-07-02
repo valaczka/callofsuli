@@ -100,6 +100,7 @@ QTabContainer {
 				SwitchRole {
 					name: "background"
 					filters: ValueFilter {
+						enabled: control.mode === TrophyView.User
 						roleName: "username"
 						value: cosClient.userName
 						SwitchRole.value: JS.setColorAlpha(CosStyle.colorWarningDark, 0.4)
@@ -192,6 +193,7 @@ QTabContainer {
 									}
 
 	}
+
 
 	onPopulated: view.forceActiveFocus()
 }

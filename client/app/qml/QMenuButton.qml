@@ -14,8 +14,10 @@ QToolButton {
 	visible: menu
 
 	onClicked: {
-		menu.parent = button
-		menu.y = button.height
+		var p = button.mapToItem(ApplicationWindow.contentItem, x, y)
+		var mp = menu.parent.mapFromItem(ApplicationWindow.contentItem, Math.min(p.x, ApplicationWindow.contentItem.width-menu.width), p.y+button.height)
+		menu.x = mp.x
+		menu.y = mp.y
 		menu.open()
 	}
 }

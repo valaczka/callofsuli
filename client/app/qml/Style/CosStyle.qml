@@ -47,6 +47,7 @@ QtObject {
 	property int halfLineHeight: Math.max(CosStyle.pixelSize*1.7, 20)
 	property int panelPaddingLeft: pixelSize * 0.5
 	property int panelPaddingRight: pixelSize * 0.5
+	property int gameButtonMinHeight: (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 48 : 40)
 
 
 	property var buttonThemeDefault: [colorPrimaryLight, colorPrimaryDarker, colorPrimaryLighter, colorPrimary]
