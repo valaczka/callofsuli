@@ -58,6 +58,8 @@ public:
 	static void mapDownloadPrivate(const QVariantMap &data, CosDownloader *downloader, ObjectGenericListModel<MapListObject> *mapModel);
 	static void mapDownloadFinished(CosDb *db, const CosDownloaderItem &item, const QByteArray &data);
 	static QVariantMap missionNames(CosDb *db);
+	static QMap<int, QVariantMap> gradeList(const QJsonArray &list);
+	static QJsonArray campaignList(const QJsonArray &list, const QVariantMap &missionMap, ObjectGenericListModel<MapListObject> *mapModel);
 
 	ObjectGenericListModel<MapListObject> * modelMapList() const { return m_modelMapList; }
 	QString selectedMapId() const { return m_selectedMapId; }

@@ -10,10 +10,7 @@ QTabPage {
 	id: control
 
 	title: qsTr("Pályák kezelése")
-	/*icon: CosStyle.iconPlanet
-	menu: QMenu {
-		MenuItem { action: actionMapEditor }
-	}*/
+
 
 	activity: TeacherMaps {
 		id: teacherMaps
@@ -23,7 +20,7 @@ QTabPage {
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Letöltés"),
 											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize),
-											   image: "qrc:/internal/icon/cloud-download-outline.svg"
+											   image: "qrc:/internal/icon/briefcase-download.svg"
 										   })
 				d.accepted.connect(function() {
 					var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: teacherMaps.downloader })
@@ -67,18 +64,6 @@ QTabPage {
 
 
 
-
-	Action {
-		id: actionMapEditor
-		text: qsTr("Pályaszerkesztő")
-		icon.source: "qrc:/internal/icon/pencil.svg"
-		onTriggered: {
-			JS.createPage("MapEditor", { })
-		}
-	}
-
-
-
 	Component {
 		id: cmpTeacherMapList
 		TeacherMapList {
@@ -90,6 +75,7 @@ QTabPage {
 		id: cmpTeacherMapInfo
 		TeacherMapInfo { }
 	}
+
 
 
 	Component.onCompleted: replaceContent(cmpTeacherMapList)

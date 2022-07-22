@@ -75,7 +75,7 @@ QCollapsible {
 
 			QToolButton {
 				anchors.verticalCenter: parent.verticalCenter
-				icon.source: CosStyle.iconDelete
+				icon.source: "qrc:/internal/icon/delete.svg"
 				color: CosStyle.colorErrorLighter
 				onClicked: {
 					var i = list.modelObject(modelIndex)

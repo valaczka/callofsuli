@@ -130,6 +130,7 @@ public:
 
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key, const QVariant &defaultValue = QVariant());
+	Q_INVOKABLE static bool getSettingBool(const QString &key, const bool &defaultValue = false);
 
 	Q_INVOKABLE void setServerSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE QVariant getServerSetting(const QString &key, const QVariant &defaultValue = QVariant());

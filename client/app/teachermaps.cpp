@@ -490,3 +490,164 @@ QVariantMap TeacherMaps::missionNames(CosDb *db)
 	return ret;
 }
 
+
+
+
+/**
+ * @brief TeacherMaps::gradeList
+ * @param list
+ * @return
+ */
+
+QMap<int, QVariantMap> TeacherMaps::gradeList(const QJsonArray &list)
+{
+	QMap<int, QVariantMap> ret;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		if (!m.contains("id"))
+			continue;
+
+		int id = m.value("id").toInt();
+		m.remove("id");
+
+		ret.insert(id, m);
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief TeacherMaps::campaignList
+ * @param list
+ * @return
+ */
+
+QJsonArray TeacherMaps::campaignList(const QJsonArray &list, const QVariantMap &missionMap, ObjectGenericListModel<MapListObject> *mapModel)
+{
+	QJsonArray newList;
+
+	foreach (QJsonValue v, list) {
+		QJsonObject o = v.toObject();
+
+		QJsonArray alist = o.value("assignment").toArray();
+		QJsonArray newAList;
+
+		foreach (QJsonValue v, alist) {
+			QJsonObject o = v.toObject();
+
+			QJsonObject grading = o.value("grading").toObject();
+
+			QJsonArray xpArray = grading.value("xp").toArray();
+			QJsonArray gradeArray = grading.value("grade").toArray();
+
+			QJsonArray newXpArray, newGradeArray;
+
+
+			// XP
+
+			foreach (QJsonValue v, xpArray) {
+				QJsonObject o = v.toObject();
+				QJsonArray cList = o.value("criteria").toArray();
+				QJsonArray newCList;
+
+				foreach (QJsonValue v, cList) {
+					QJsonObject o = v.toObject();
+					QJsonObject criterion = o.value("criterion").toObject();
+
+					if (criterion.value("module").toString() == "missionlevel") {
+						QString map = criterion.value("map").toString();
+						QString mission = criterion.value("mission").toString();
+
+						mission = missionMap.value(map).toMap().value(mission).toString();
+
+						if (mission.isEmpty())
+							mission = "???";
+
+						if (mapModel) {
+							QList<MapListObject*> l = mapModel->find("uuid", map);
+							map = l.isEmpty() ? "???" : l.at(0)->name();
+						} else {
+							map = "???";
+						}
+
+						criterion["map"] = map;
+						criterion["mission"] = mission;
+					}
+
+					o["criterion"] = criterion;
+					newCList.append(o);
+				}
+
+				o["criteria"] = newCList;
+				newXpArray.append(o);
+			}
+
+
+			// GRADE
+
+			foreach (QJsonValue v, gradeArray) {
+				QJsonObject o = v.toObject();
+				QJsonArray cList = o.value("criteria").toArray();
+				QJsonArray newCList;
+
+				foreach (QJsonValue v, cList) {
+					QJsonObject o = v.toObject();
+					QJsonObject criterion = o.value("criterion").toObject();
+
+					if (criterion.value("module").toString() == "missionlevel") {
+						QString map = criterion.value("map").toString();
+						QString mission = criterion.value("mission").toString();
+
+						mission = missionMap.value(map).toMap().value(mission).toString();
+
+						if (mission.isEmpty())
+							mission = "???";
+
+						if (mapModel) {
+							QList<MapListObject*> l = mapModel->find("uuid", map);
+							map = l.isEmpty() ? "???" : l.at(0)->name();
+						} else {
+							map = "???";
+						}
+
+						criterion["map"] = map;
+						criterion["mission"] = mission;
+					}
+
+					o["criterion"] = criterion;
+					newCList.append(o);
+				}
+
+				o["criteria"] = newCList;
+				newGradeArray.append(o);
+			}
+
+
+			// GRADES
+
+			QJsonArray grades = o.value("grades").toArray();
+			QJsonArray newGrades;
+
+			foreach (QJsonValue v, grades) {
+				QJsonObject o = v.toObject();
+				o["forecast"] = o.value("forecast").toBool(false);
+				newGrades.append(o);
+			}
+
+			grading["xp"] = newXpArray;
+			grading["grade"] = newGradeArray;
+			o["grading"] = grading;
+			o["grades"] = newGrades;
+			newAList.append(o);
+		}
+
+		o["assignment"] = newAList;
+		newList.append(o);
+	}
+
+	return newList;
+}
+

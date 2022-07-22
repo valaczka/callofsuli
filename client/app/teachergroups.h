@@ -60,6 +60,8 @@ class TeacherGroups : public AbstractActivity
 	Q_PROPERTY(QString selectedGroupName READ selectedGroupName WRITE setSelectedGroupName NOTIFY selectedGroupNameChanged)
 	Q_PROPERTY(QString selectedGroupFullName READ selectedGroupFullName WRITE setSelectedGroupFullName NOTIFY selectedGroupFullNameChanged)
 
+	Q_PROPERTY(QVariantList mapList READ mapList CONSTANT)
+
 
 public:
 	explicit TeacherGroups(QQuickItem *parent = nullptr);
@@ -79,6 +81,8 @@ public:
 	Q_INVOKABLE ObjectListModel* newUserModel(QObject *parent) const;
 	Q_INVOKABLE ObjectListModel* newMapModel(QObject *parent) const;
 
+	Q_INVOKABLE QVariantMap grade(const int &id) const;
+	const QVariantList &mapList() const;
 
 public slots:
 	void groupReload(QJsonObject = QJsonObject(), QByteArray = QByteArray());
@@ -92,6 +96,7 @@ private slots:
 	void onGroupMapListGet(const QJsonArray &list);
 	void onGameListUserGet(QJsonObject jsonData, QByteArray);
 	void onGameListGroupGet(QJsonObject jsonData, QByteArray);
+	void onCampaignGet(QJsonObject jsonData, QByteArray);
 
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 
@@ -124,6 +129,10 @@ signals:
 	void gameListGroupGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListGroupReady(const QVariantList &list, const int &groupid, const QString &username, const int &offset);
 
+	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignGetReady(const QJsonObject &jsonData);
+
 	void modelMapListChanged();
 	void selectedGroupIdChanged(int selectedGroupId);
 	void selectedGroupNameChanged();
@@ -136,6 +145,8 @@ private:
 	QVariantMap m_missionNameMap;
 	QString m_selectedGroupName;
 	QString m_selectedGroupFullName;
+	QMap<int, QVariantMap> m_gradeMap;
+	QVariantList m_mapList;
 };
 
 

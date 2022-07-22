@@ -1325,7 +1325,7 @@ Page {
 					previewLabel.text = ""
 					game.onGameStarted()
 
-					if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && cosClient.getSetting("notification/gameGesturePinch", true) === true) {
+					if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && cosClient.getSettingBool("notification/gameGesturePinch", true) === true) {
 						cosClient.sendMessageInfoImage("qrc:/internal/icon/gesture-pinch.svg", qsTr("Információ"), qsTr("A pálya áttekintéséhez csippentsd össze a képernyőt"))
 						cosClient.setSetting("notification/gameGesturePinch", false)
 					}

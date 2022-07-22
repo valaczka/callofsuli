@@ -9,8 +9,8 @@ import "JScript.js" as JS
 QTabContainer {
 	id: control
 
-	title: qsTr("Pályák")
-	icon: CosStyle.iconPlanet
+	title: qsTr("Résztvevők")
+	icon: CosStyle.iconGroupsSmall
 
 	menu: QMenu {
 		MenuItem { action: actionUserEdit }
@@ -307,7 +307,7 @@ QTabContainer {
 	Action {
 		id: actionGroupDelete
 		text: qsTr("Csoport törlése")
-		icon.source: CosStyle.iconDelete
+		icon.source: "qrc:/internal/icon/delete.svg"
 		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
 			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan törlöd a csoportot?\n%1").arg(teacherGroups.selectedGroupFullName)})

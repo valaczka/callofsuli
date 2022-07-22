@@ -10,7 +10,7 @@ QTabContainer {
 	id: control
 
 	title: qsTr("Pályák")
-	icon: CosStyle.iconPlanet
+	icon: CosStyle.iconPackage
 
 	property ObjectListModel _dialogMapModel: teacherGroups.newMapModel(control)
 
@@ -72,8 +72,8 @@ QTabContainer {
 
 			mouseArea.enabled: true
 
-			frontIcon: CosStyle.iconInvisible
-			backIcon: CosStyle.iconVisible
+			frontIcon: "qrc:/internal/icon/briefcase-variant-off-outline.svg"
+			backIcon: "qrc:/internal/icon/briefcase-variant.svg"
 			color: model && model.active ? CosStyle.colorOKLighter : CosStyle.colorPrimaryDark
 			flipped: model && model.active
 
@@ -91,7 +91,7 @@ QTabContainer {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: CosStyle.iconDownloadCloud
+			icon: "qrc:/internal/icon/briefcase-download.svg"
 
 			visible: model && !model.downloaded
 
@@ -179,7 +179,7 @@ QTabContainer {
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Letöltés"),
 											   text: qsTr("A szerver %1 adatot akar küldeni. Elindítod a letöltést?").arg(formattedDataSize),
-											   image: "qrc:/internal/icon/cloud-download-outline.svg"
+											   image: "qrc:/internal/icon/briefcase-download.svg"
 										   })
 				d.accepted.connect(function() {
 					var dd = JS.dialogCreateQml("Progress", { title: qsTr("Letöltés"), downloader: teacherGroups.downloader })
@@ -201,7 +201,7 @@ QTabContainer {
 				return
 
 			if (!jsonData.list || jsonData.list.length === 0) {
-				cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Pálya hozzáadása"), qsTr("Nincs több hozzáadható pálya!"))
+				cosClient.sendMessageWarningImage("qrc:/internal/icon/briefcase-off-outline.svg", qsTr("Pálya hozzáadása"), qsTr("Nincs több hozzáadható pálya!"))
 				return
 			}
 
@@ -209,7 +209,7 @@ QTabContainer {
 			_dialogMapModel.updateJsonArray(jsonData.list, "uuid")
 
 			var d = JS.dialogCreateQml("List", {
-										   icon: CosStyle.iconLockAdd,
+										   icon: "qrc:/internal/icon/briefcase-plus.svg",
 										   title: qsTr("Pálya hozzáadása"),
 										   modelTitleRole: "name",
 										   selectorSet: true,
@@ -234,7 +234,7 @@ QTabContainer {
 	Action {
 		id: actionMapAdd
 		text: qsTr("Pálya hozzáadása")
-		icon.source: CosStyle.iconAdd
+		icon.source: "qrc:/internal/icon/briefcase-plus.svg"
 		enabled: teacherGroups.selectedGroupId > -1
 		onTriggered: {
 			teacherGroups.send("groupExcludedMapListGet", {id: teacherGroups.selectedGroupId})
@@ -244,7 +244,7 @@ QTabContainer {
 	Action {
 		id: actionActivate
 		text: qsTr("Aktiválás")
-		icon.source: CosStyle.iconVisible
+		icon.source: "qrc:/internal/icon/briefcase-variant.svg"
 		enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.modelObject(list.currentIndex)
@@ -270,7 +270,7 @@ QTabContainer {
 	Action {
 		id: actionDeactivate
 		text: qsTr("Inaktiválás")
-		icon.source: CosStyle.iconInvisible
+		icon.source: "qrc:/internal/icon/briefcase-variant-off-outline.svg"
 		enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.modelObject(list.currentIndex)
@@ -295,7 +295,7 @@ QTabContainer {
 	Action {
 		id: actionRemove
 		text: qsTr("Eltávolítás")
-		icon.source: CosStyle.iconRemove
+		icon.source: "qrc:/internal/icon/briefcase-minus.svg"
 		enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.modelObject(list.currentIndex)
@@ -305,7 +305,8 @@ QTabContainer {
 			if (more > 0) {
 				var dd = JS.dialogCreateQml("YesNo", {
 												title: qsTr("Pálya eltávolítása"),
-												text: qsTr("Biztosan eltávolítod a kijelölt %1 pályát?").arg(more)
+												text: qsTr("Biztosan eltávolítod a kijelölt %1 pályát?").arg(more),
+												image: "qrc:/internal/icon/briefcase-minus.svg"
 											})
 				dd.accepted.connect(function () {
 					teacherGroups.send("groupMapRemove", {
@@ -316,7 +317,8 @@ QTabContainer {
 			} else {
 				var d = JS.dialogCreateQml("YesNo", {
 											   title: qsTr("Pálya eltávolítása"),
-											   text: qsTr("Biztosan eltávolítod a pályát?\n%1").arg(o.name)
+											   text: qsTr("Biztosan eltávolítod a pályát?\n%1").arg(o.name),
+											   image: "qrc:/internal/icon/briefcase-minus.svg"
 										   })
 				d.accepted.connect(function () {
 					teacherGroups.send("groupMapRemove", {
@@ -334,7 +336,7 @@ QTabContainer {
 	Action {
 		id: actionDownload
 		text: qsTr("Letöltés")
-		icon.source: CosStyle.iconDownload
+		icon.source: "qrc:/internal/icon/briefcase-download.svg"
 		enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.modelObject(list.currentIndex)

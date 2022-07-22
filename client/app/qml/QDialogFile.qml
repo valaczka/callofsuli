@@ -135,7 +135,8 @@ QDialogPanel {
 				width: height
 				height: item.height
 
-				icon: fileIsDir ? CosStyle.iconBooks : CosStyle.iconPlay
+				icon: fileIsDir ? "qrc:/internal/icon/folder-open.svg" : "qrc:/internal/icon/file-outline.svg"
+				color: fileIsDir ? CosStyle.colorAccent : CosStyle.colorPrimaryLighter
 			}
 
 			QLabel {

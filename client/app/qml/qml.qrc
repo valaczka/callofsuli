@@ -170,5 +170,7 @@
         <file>Campaign.qml</file>
         <file>GamePickableFontImage.qml</file>
         <file>QDialogImageList.qml</file>
+        <file>TeacherGroupCampaign.qml</file>
+        <file>TeacherGroupCampaignDetails.qml</file>
     </qresource>
 </RCC>

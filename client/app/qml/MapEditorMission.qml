@@ -257,7 +257,7 @@ QCollapsible {
 
 					rightComponent: QToolButton {
 						anchors.verticalCenter: parent.verticalCenter
-						icon.source: CosStyle.iconDelete
+						icon.source: "qrc:/internal/icon/delete.svg"
 						color: CosStyle.colorErrorLighter
 						onClicked: {
 							mapEditor.missionLockRemove(self, list.modelObject(modelIndex))
@@ -353,7 +353,7 @@ QCollapsible {
 	Action {
 		id: actionMissionRemove
 
-		icon.source: CosStyle.iconDelete
+		icon.source: "qrc:/internal/icon/delete.svg"
 		text: qsTr("Törlés")
 
 		onTriggered: control.missionRemove()

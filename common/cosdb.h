@@ -62,11 +62,13 @@ public slots:
 	void rollback() { QSqlDatabase::database(m_connectionName, false).rollback(); }
 
 	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
+	QJsonArray execQueryJson(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 
 	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	bool execSimpleQuery(QStringList queries, QString *errorString = nullptr);
 	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	QJsonArray execSelectQueryJson(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
 	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(),
@@ -143,6 +145,7 @@ public slots:
 	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	bool execBatchQuery(QString query, const QVariantList &list, QString *errorString = nullptr);
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	QJsonArray execSelectQueryJson(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
 	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(),

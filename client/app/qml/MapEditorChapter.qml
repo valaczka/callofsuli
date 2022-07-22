@@ -258,7 +258,7 @@ QCollapsible {
 							MenuSeparator { }
 
 							MenuItem {
-								icon.source: CosStyle.iconDelete
+								icon.source: "qrc:/internal/icon/delete.svg"
 								text: qsTr("Törlés")
 
 								onClicked: {
@@ -384,7 +384,7 @@ QCollapsible {
 	Action {
 		id: actionChapterRemove
 
-		icon.source: level > 0 ? CosStyle.iconRemove : CosStyle.iconDelete
+		icon.source: level > 0 ? CosStyle.iconRemove : "qrc:/internal/icon/delete.svg"
 		text: level > 0 ? qsTr("Eltávolítás") : qsTr("Törlés")
 
 		onTriggered: control.chapterRemove()

@@ -396,7 +396,7 @@ QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int
 
 	QVector<Grading> grading = gradingFromVariantList(gradingList);
 
-	if (!isFinished)
+	if (!isFinished && !username.isEmpty())
 		evaluate(m_client->db(), grading, campaignId, username);
 
 	return grading;
@@ -765,20 +765,20 @@ bool Teacher::groupUserGet(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
-														 "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
-														 {id});
+	QJsonArray cList = m_client->db()->execSelectQueryJson("SELECT classid, name FROM bindGroupClass "
+														   "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
+														   {id});
 
-	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
-														 "rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, picture, xp, "
-														 "active, COALESCE(classid, -1) as classid, classname "
-														 "FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
-														 {id});
+	QJsonArray uList = m_client->db()->execSelectQueryJson("SELECT userInfo.username as username, firstname, lastname, nickname, "
+														   "rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, picture, xp, "
+														   "active, COALESCE(classid, -1) as classid, classname "
+														   "FROM bindGroupStudent LEFT JOIN userInfo ON (userInfo.username=bindGroupStudent.username) WHERE groupid=?",
+														   {id});
 
 	(*jsonResponse)["id"] = id;
 	(*jsonResponse)["name"] = group.value("name").toString();
-	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(cList);
-	(*jsonResponse)["userList"] = QJsonArray::fromVariantList(uList);
+	(*jsonResponse)["classList"] = cList;
+	(*jsonResponse)["userList"] = uList;
 
 	return true;
 }
@@ -886,15 +886,15 @@ bool Teacher::groupExcludedUserListGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT username, firstname, lastname, "
-														"active, COALESCE(classid, -1) as classid, classname "
-														"FROM userInfo "
-														"WHERE isTeacher=false AND username NOT IN "
-														"(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
-														{id});
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT username, firstname, lastname, "
+														  "active, COALESCE(classid, -1) as classid, classname "
+														  "FROM userInfo "
+														  "WHERE isTeacher=false AND username NOT IN "
+														  "(SELECT username FROM bindGroupStudent WHERE groupid=?) ",
+														  {id});
 
 	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }
@@ -1002,12 +1002,12 @@ bool Teacher::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int id = params.value("id", -1).toInt();
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT id as classid, name FROM class WHERE id NOT IN "
-														"(SELECT classid FROM bindGroupClass WHERE groupid=?) ",
-														{id});
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT id as classid, name FROM class WHERE id NOT IN "
+														  "(SELECT classid FROM bindGroupClass WHERE groupid=?) ",
+														  {id});
 
 	(*jsonResponse)["id"] = id;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }
@@ -1029,14 +1029,14 @@ bool Teacher::groupExcludedClassListGet(QJsonObject *jsonResponse, QByteArray *)
 
 bool Teacher::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList mapList = m_client->db()->execSelectQuery("SELECT id, name, (SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-														   "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-														   "WHERE bindGroupClass.groupid=studentgroup.id) as readableClassList FROM studentgroup "
-														   "WHERE owner=?",
-														   {m_client->clientUserName()});
+	QJsonArray mapList = m_client->db()->execSelectQueryJson("SELECT id, name, (SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+															 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+															 "WHERE bindGroupClass.groupid=studentgroup.id) as readableClassList FROM studentgroup "
+															 "WHERE owner=?",
+															 {m_client->clientUserName()});
 
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(mapList);
+	(*jsonResponse)["list"] = mapList;
 
 	return true;
 }
@@ -1068,9 +1068,9 @@ bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantList mapList = m_client->db()->execSelectQuery("SELECT mapid, active FROM bindGroupMap WHERE groupid=?", {id});
 
-	QVariantList cList = m_client->db()->execSelectQuery("SELECT classid, name FROM bindGroupClass "
-														 "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
-														 {id});
+	QJsonArray cList = m_client->db()->execSelectQueryJson("SELECT classid, name FROM bindGroupClass "
+														   "LEFT JOIN class ON (class.id=bindGroupClass.classid) WHERE groupid=?",
+														   {id});
 
 	QVariantList uList = m_client->db()->execSelectQuery("SELECT userInfo.username as username, firstname, lastname, nickname, "
 														 "rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, picture, xp, "
@@ -1125,7 +1125,7 @@ bool Teacher::groupGet(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["id"] = id;
 	(*jsonResponse)["name"] = group.value("name").toString();
-	(*jsonResponse)["classList"] = QJsonArray::fromVariantList(cList);
+	(*jsonResponse)["classList"] = cList;
 	(*jsonResponse)["userList"] = userList;
 	(*jsonResponse)["mapList"] = mList;
 
@@ -1339,9 +1339,9 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 		queryParams.append(params.value("mission").toString());
 	}
 
-	QVariantList tList = m_client->db()->execSelectQuery(query, queryParams);
+	QJsonArray tList = m_client->db()->execSelectQueryJson(query, queryParams);
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(tList);
+	(*jsonResponse)["list"] = tList;
 
 
 
@@ -1365,8 +1365,8 @@ bool Teacher::groupTrophyGet(QJsonObject *jsonResponse, QByteArray *)
 		query += " WHERE id=?";
 		queryParams.append(id);
 
-		QVariantList uList = m_client->db()->execSelectQuery(query, queryParams);
-		(*jsonResponse)["users"] = QJsonArray::fromVariantList(uList);
+		QJsonArray uList = m_client->db()->execSelectQueryJson(query, queryParams);
+		(*jsonResponse)["users"] = uList;
 	}
 
 	return true;
@@ -1397,13 +1397,13 @@ bool Teacher::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 		o["used"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(COUNT(*),0) AS used FROM game WHERE mapid=:a",
 														  {uuid}).value("used").toInt();
 
-		o["binded"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT groupid, name, active, "
-																				  "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-																				  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-																				  "WHERE bindGroupClass.groupid=bindGroupMap.groupid) as readableClassList "
-																				  "FROM bindGroupMap "
-																				  "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
-																				  "WHERE mapid=? AND owner=?", {uuid, m_client->clientUserName()}));
+		o["binded"] = m_client->db()->execSelectQueryJson("SELECT groupid, name, active, "
+														  "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+														  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+														  "WHERE bindGroupClass.groupid=bindGroupMap.groupid) as readableClassList "
+														  "FROM bindGroupMap "
+														  "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
+														  "WHERE mapid=? AND owner=?", {uuid, m_client->clientUserName()});
 		retList.append(o);
 	}
 
@@ -1845,6 +1845,114 @@ bool Teacher::gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+/**
+ * @brief Teacher::campaignGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap params = m_message.jsonData().toVariantMap();
+	const int id = params.value("id", -1).toInt();
+
+
+	// Grades
+
+	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade");
+
+
+	// Maps
+
+	(*jsonResponse)["mapList"] = m_client->mapsDb()->execSelectQueryJson("SELECT uuid, name, version FROM maps WHERE owner=?",
+																		 {m_client->clientUserName()});
+
+	if (id == -1) {
+		(*jsonResponse)["error"] = "missing campaign";
+		return false;
+	}
+
+	QVariantMap d = m_client->db()->execSelectQueryOneRow("SELECT datetime(starttime, 'localtime') as starttime, "
+														  "datetime(endtime, 'localtime') as endtime, "
+														  "started, finished, description, mapopen, mapclose FROM campaign "
+														  "INNER JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+														  "WHERE campaign.id=? AND owner=?", {id, m_client->clientUserName()});
+
+	(*jsonResponse)["id"] = id;
+
+	if (d.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	(*jsonResponse)["starttime"] = d.value("starttime").toString();
+	(*jsonResponse)["endtime"] = d.value("endtime").toString();
+	(*jsonResponse)["started"] = d.value("started").toBool();
+	(*jsonResponse)["finished"] = d.value("finished").toBool();
+	(*jsonResponse)["description"] = d.value("description").toString();
+
+	QJsonArray ao, ac;
+	foreach (QString s, d.value("mapopen").toString().split('|', Qt::SkipEmptyParts))
+		ao.append(s);
+	foreach (QString s, d.value("mapclose").toString().split('|', Qt::SkipEmptyParts))
+		ac.append(s);
+
+	(*jsonResponse)["mapopen"] = ao;
+	(*jsonResponse)["mapclose"] = ac;
+
+
+	// Campaigns
+
+	QJsonArray assList = m_client->db()->execSelectQueryJson("SELECT id, name FROM assignment WHERE campaignid=?", {id});
+	QJsonArray assRetList;
+
+	foreach (const QJsonValue &v, assList) {
+		QJsonObject ass = v.toObject();
+		const int aid = ass.value("id").toInt();
+		ass["gradingList"] = Grading::toArray(gradingGet(aid, id));
+		assRetList.append(ass);
+	}
+
+	(*jsonResponse)["assignmentList"] = assRetList;
+
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief Teacher::campaignListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap params = m_message.jsonData().toVariantMap();
+	const int groupid = params.value("groupid", -1).toInt();
+
+	if (groupid == -1) {
+		(*jsonResponse)["error"] = "missing group";
+		return false;
+	}
+
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT campaign.id, datetime(starttime, 'localtime') as starttime, "
+														  "datetime(endtime, 'localtime') as endtime, "
+														  "started, finished, description FROM campaign "
+														  "INNER JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+														  "WHERE groupid=? AND owner=?", {groupid, m_client->clientUserName()});
+
+	(*jsonResponse)["list"] = list;
+
+
+
+	return true;
+}
+
+
+
 
 
 /**
@@ -1890,14 +1998,12 @@ QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list)
 		o["type"] = g.type == Grading::TypeXP ? "xp" : "grade";
 		o["value"] = g.value;
 		o["ref"] = g.ref;
-		/*if (g.mode == Grading::ModeDefault)
+		if (g.mode == Grading::ModeDefault)
 			o["mode"] = "default";
 		else if (g.mode == Grading::ModeRequired)
 			o["mode"] = "required";
-		else
-			o["mode"] = "";*/
 		o["criteria"] = g.criteria;
-		o["success"] = g.success;
+		//o["success"] = g.success;
 
 		ret.append(o);
 	}

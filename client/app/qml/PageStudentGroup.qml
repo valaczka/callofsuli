@@ -23,7 +23,7 @@ QTabPage {
 		ListElement {
 			title: qsTr("Hadjáratok")
 			icon: "qrc:/internal/img/battle.png"
-			iconColor: "firebrick"
+			iconColor: "tomato"
 			func: function() { replaceContent(cmpStudentCampaign) }
 		}
 		ListElement {
@@ -39,12 +39,12 @@ QTabPage {
 			iconColor: "orchid"
 			func: function() { replaceContent(cmpStudentMemberList) }
 		}
-		ListElement {
+		/*ListElement {
 			title: qsTr("Eredményeim")
 			icon: "image://font/AcademicI/\uf15d"
 			iconColor: "tomato"
 			func: function() { replaceContent(cmpStudentGroupScore) }
-		}
+		}*/
 	}
 
 

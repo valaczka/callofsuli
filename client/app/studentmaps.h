@@ -84,7 +84,6 @@ public slots:
 	void playGame(const QString &uuid, const int &level, const bool &deathmatch);
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
-	void loadGradeList(const QJsonArray &list);
 
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
@@ -135,7 +134,7 @@ signals:
 	void gameListUserMissionGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void campaignGet(QJsonObject jsonData, QByteArray binaryData);
-	void campaignGetReady(const QVariantList &list);
+	void campaignGetReady(const QJsonArray &list);
 	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void examContentReady(const QVariantMap &data);

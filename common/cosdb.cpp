@@ -296,6 +296,29 @@ QVariantList CosDb::execSelectQuery(QString query, const QVariantList &args, QSt
 
 
 /**
+ * @brief CosDb::execSelectQueryJson
+ * @param query
+ * @param args
+ * @param errorString
+ * @return
+ */
+
+QJsonArray CosDb::execSelectQueryJson(QString query, const QVariantList &args, QString *errorString)
+{
+	QJsonArray ret;
+
+	QMetaObject::invokeMethod(m_worker, "execSelectQueryJson", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QJsonArray, ret),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, args),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+/**
  * @brief CosDb::execSelectQueryOneRow
  * @param query
  * @param args
@@ -586,6 +609,61 @@ QVariantList CosDbWorker::execQuery(QSqlQuery query, QString *errorString, QVari
 }
 
 
+
+/**
+ * @brief CosDbWorker::execQueryJson
+ * @param query
+ * @param errorString
+ * @param lastInsertId
+ * @return
+ */
+
+QJsonArray CosDbWorker::execQueryJson(QSqlQuery query, QString *errorString, QVariant *lastInsertId)
+{
+	bool success = true;
+	QJsonArray records;
+
+	if (!query.exec()) {
+		QString errText = query.lastError().text();
+		qCDebug(sql).noquote() << tr("SQL query: ")+query.executedQuery();
+		qWarning().noquote() << tr("SQL error: ")+errText;
+		success = false;
+
+		if (errorString)
+			(*errorString) = errText;
+	} else {
+		qCDebug(sql).noquote() << tr("SQL query: ")+query.executedQuery();
+	}
+
+	if (!success) {
+		query.finish();
+		return records;
+	}
+
+	if (lastInsertId)
+		(*lastInsertId) = query.lastInsertId();
+
+
+	while (query.next()) {
+		QSqlRecord rec = query.record();
+		QJsonObject rr;
+
+		for (int i=0; i<rec.count(); ++i) {
+			QString key = rec.fieldName(i);
+			if (key.isEmpty())
+				key = QString("#key%1").arg(i);
+
+			rr[key] = QJsonValue::fromVariant(query.value(i));
+		}
+		records.append(rr);
+	}
+
+	query.finish();
+
+	return records;
+}
+
+
 /**
  * @brief CosSql::execSimpleQuery
  * @param query
@@ -699,6 +777,23 @@ QVariantList CosDbWorker::execSelectQuery(QString query, const QVariantList &arg
 {
 	QMutexLocker locker(&m_mutex);
 	QVariantList l = execQuery(simpleQuery(query, args), errorString);
+
+	return l;
+}
+
+
+/**
+ * @brief CosDbWorker::execSelectQueryJson
+ * @param query
+ * @param args
+ * @param errorString
+ * @return
+ */
+
+QJsonArray CosDbWorker::execSelectQueryJson(QString query, const QVariantList &args, QString *errorString)
+{
+	QMutexLocker locker(&m_mutex);
+	QJsonArray l = execQueryJson(simpleQuery(query, args), errorString);
 
 	return l;
 }

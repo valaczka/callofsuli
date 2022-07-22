@@ -93,7 +93,7 @@ RowLayout {
 	QToolButton {
 		id: removeButton
 		color: CosStyle.colorError
-		icon.source: CosStyle.iconDelete
+		icon.source: "qrc:/internal/icon/delete.svg"
 
 		visible: false
 

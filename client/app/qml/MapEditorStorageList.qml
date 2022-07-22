@@ -141,7 +141,7 @@ QTabContainer {
 						QToolButton {
 							id: btnDelete
 							anchors.verticalCenter: parent.verticalCenter
-							icon.source: CosStyle.iconDelete
+							icon.source: "qrc:/internal/icon/delete.svg"
 							color: CosStyle.colorErrorLighter
 							visible: storageSelf && storageSelf.objectiveCount === 0
 							onClicked: {

@@ -618,6 +618,19 @@ QVariant Client::getSetting(const QString &key, const QVariant &defaultValue)
 	return s.value(key, defaultValue);
 }
 
+/**
+ * @brief Client::getSettingBool
+ * @param key
+ * @param defaultValue
+ * @return
+ */
+
+bool Client::getSettingBool(const QString &key, const bool &defaultValue)
+{
+	QSettings s;
+	return s.value(key, defaultValue).toBool();
+}
+
 
 /**
  * @brief Client::setServerSetting

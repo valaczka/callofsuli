@@ -68,16 +68,16 @@ bool Student::classInit()
 
 bool Student::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.id as id, name, "
-														"user.firstname as teacherfirstname, user.lastname as teacherlastname, "
-														"(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-														"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-														"WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
-														"FROM studentGroupInfo "
-														"LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
-														"WHERE studentGroupInfo.username=?", {m_client->clientUserName()});
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT studentGroupInfo.id as id, name, "
+														  "user.firstname as teacherfirstname, user.lastname as teacherlastname, "
+														  "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+														  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+														  "WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
+														  "FROM studentGroupInfo "
+														  "LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
+														  "WHERE studentGroupInfo.username=?", {m_client->clientUserName()});
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }
@@ -146,8 +146,7 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	if (campaignid != -1) {
 		(*jsonResponse)["campaignid"] = campaignid;
-		(*jsonResponse)["list"] = QJsonArray::fromVariantList(
-									  m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
+		(*jsonResponse)["list"] = m_client->db()->execSelectQueryJson("SELECT userInfo.username, firstname, lastname, "
 																	  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
 																	  "t1, t2, t3, d1, d2, d3, sumxp "
 																	  "FROM studentGroupInfo LEFT JOIN userInfo "
@@ -158,10 +157,9 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 																	  "AND groupCampaignTrophy.campaignid=?) "
 																	  "WHERE active=true AND studentGroupInfo.id=?", {
 																		  campaignid, groupid
-																	  }));
+																	  });
 	} else {
-		(*jsonResponse)["list"] = QJsonArray::fromVariantList(
-									  m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
+		(*jsonResponse)["list"] = m_client->db()->execSelectQueryJson("SELECT userInfo.username, firstname, lastname, "
 																	  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
 																	  "t1, t2, t3, d1, d2, d3, sumxp "
 																	  "FROM studentGroupInfo LEFT JOIN userInfo "
@@ -170,7 +168,7 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 																	  "AND groupTrophy.id=studentGroupInfo.id) "
 																	  "WHERE active=true AND studentGroupInfo.id=?", {
 																		  groupid
-																	  }));
+																	  });
 	}
 	return true;
 }
@@ -194,7 +192,7 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT DISTINCT missionid, "
 														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
 														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
 														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
@@ -215,7 +213,7 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 	(*jsonResponse)["uuid"] = mapuuid;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 
 
 	// Base XP
@@ -267,7 +265,7 @@ bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 
 	// Grades
 
-	(*jsonResponse)["gradeList"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id, shortname, longname, value FROM grade"));
+	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade");
 
 
 	// Campaigns
@@ -291,7 +289,7 @@ bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 		foreach (const QVariant &v, assList) {
 			const int aid = v.toMap().value("id").toInt();
 
-			QJsonArray grades = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT datetime(timestamp, 'localtime') as timestamp, "
+			QJsonArray grades = m_client->db()->execSelectQueryJson("SELECT datetime(timestamp, 'localtime') as timestamp, "
 																							"gradeid, -1 as xp, false as forecast "
 																							"FROM gradebook "
 																							"WHERE assignmentid=? AND username=? "
@@ -300,7 +298,7 @@ bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 																							"-1 as gradeid, xp, false as forecast "
 																							"FROM score WHERE assignmentid=? AND username=?"
 																							, {aid, m_client->clientUserName(),
-																							   aid, m_client->clientUserName()}));
+																							   aid, m_client->clientUserName()});
 
 
 			Teacher t(m_client, CosMessage());
@@ -369,10 +367,10 @@ bool Student::campaignListGet(QJsonObject *jsonResponse, QByteArray *)
 		return false;
 	}
 
-	QJsonArray list = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id, datetime(starttime, 'localtime') as starttime, "
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT id, datetime(starttime, 'localtime') as starttime, "
 																				  "datetime(endtime, 'localtime') as endtime, "
 																				  "finished, description FROM campaign "
-																				  "WHERE groupid=? AND started=true", {groupid}));
+																				  "WHERE groupid=? AND started=true", {groupid});
 
 	(*jsonResponse)["list"] = list;
 
@@ -794,7 +792,7 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationNum, "
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationNum, "
 														"ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, MIN(duration)) successNum, "
 														"game.username, firstname, lastname, nickname, rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, rankname, "
 														"MIN(duration) as duration, COUNT(*) as success "
@@ -828,7 +826,7 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 																		  {missionid, level, deathmatch, lite}
 																		  ).value("v").toInt();
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 	(*jsonResponse)["missionid"] = missionid;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;

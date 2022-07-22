@@ -10,7 +10,7 @@ QTabContainer {
 	id: control
 
 	title: qsTr("Pályák")
-	icon: CosStyle.iconPlanet
+	icon: CosStyle.iconPackage
 
 	signal selectMap()
 
@@ -33,14 +33,30 @@ QTabContainer {
 			height: width*0.8
 			size: Math.min(height*0.8, 32)
 
-			icon: if (model && model.downloaded)
-					  "image://font/Academic/\uf118"
+			icon: if (model && model.used > 0)
+					  "qrc:/internal/icon/briefcase-account.svg"
+				  else if (model && model.binded.length)
+					  "qrc:/internal/icon/briefcase-eye.svg"
+				  /*else if (model && model.version > 1)
+					  "qrc:/internal/icon/briefcase-clock.svg"*/
 				  else
-					  "image://font/School/\uf137"
+					  "qrc:/internal/icon/briefcase.svg"
 
 			visible: model
 
-			color: model && model.downloaded ? model.textColor : CosStyle.colorWarning
+			color: model ? model.textColor : CosStyle.colorWarning
+		}
+
+		rightComponent: QFontImage {
+			width: visible ? list.delegateHeight : 0
+			height: width*0.8
+			size: Math.min(height*0.8, 32)
+
+			icon: "qrc:/internal/icon/briefcase-download.svg"
+
+			visible: model && !model.downloaded
+
+			color: CosStyle.colorAccent
 		}
 
 		model: SortFilterProxyModel {
@@ -84,16 +100,21 @@ QTabContainer {
 		onRefreshRequest: teacherMaps.send("mapListGet", { })
 
 		footer: Column {
+			spacing: 10
+			topPadding: 10
+
 			QToolButtonFooter {
 				width: list.width
 				action: actionUpload
 				text: qsTr("Új pálya feltöltése")
 			}
 
-			QToolButtonFooter {
-				width: list.width
+			QButton {
+				anchors.horizontalCenter: parent.horizontalCenter
 				action: actionMapEditor
-				color: CosStyle.colorAccent
+				display: AbstractButton.TextBesideIcon
+				themeColors: CosStyle.buttonThemeOrange
+				padding: 20
 			}
 		}
 
@@ -131,7 +152,7 @@ QTabContainer {
 	Action {
 		id: actionDownload
 		text: qsTr("Letöltés")
-		icon.source: CosStyle.iconDownload
+		icon.source: "qrc:/internal/icon/briefcase-download.svg"
 		enabled: !teacherMaps.isBusy && (list.currentIndex !== -1 || teacherMaps.modelMapList.selectedCount)
 		onTriggered: {
 			var o = list.modelObject(list.currentIndex)
@@ -139,7 +160,7 @@ QTabContainer {
 			var more = teacherMaps.modelMapList.selectedCount
 
 			if (more > 0)
-				teacherMaps.mapDownload({ list: teacherMaps.modelMapList.getSelectedData("uuid") })
+				teacherMaps.mapDownload({ list: teacherMaps.modelMapList.getSelectedFields("uuid") })
 			else
 				teacherMaps.mapDownload({ uuid: o.uuid })
 		}
@@ -148,12 +169,13 @@ QTabContainer {
 	Action {
 		id: actionUpload
 		text: qsTr("Feltöltés")
-		icon.source: CosStyle.iconUpload
+		icon.source: "qrc:/internal/icon/briefcase-plus.svg"
 		onTriggered: {
 			var d = JS.dialogCreateQml("File", {
 										   isSave: false,
 										   folder: cosClient.getSetting("mapFolder", ""),
-										   title: qsTr("Feltöltés")
+										   title: qsTr("Új pálya feltöltése"),
+										   icon: "qrc:/internal/icon/briefcase-plus.svg"
 									   })
 			d.accepted.connect(function(data){
 				teacherMaps.mapUpload(data)
@@ -164,6 +186,15 @@ QTabContainer {
 		}
 	}
 
+
+	Action {
+		id: actionMapEditor
+		text: qsTr("Pályaszerkesztő")
+		icon.source: "qrc:/internal/icon/briefcase-edit.svg"
+		onTriggered: {
+			JS.createPage("MapEditor", { })
+		}
+	}
 }
 
 

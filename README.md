@@ -1,13 +1,15 @@
 # Call of Suli
 Call of Suli - (c) 2012-2022 Valaczka János Pál
 
-A Call of Suli egy olyan alkalmazás, amellyel a tanárok feladatlapokat tudnak egyszerűen összeállítani, és ezeket a tanulók (játékosok) egy akciójáték keretében tudják megoldani.
+A Call of Suli egy olyan alkalmazás, amellyel a tanárok feladatlapokat tudnak egyszerűen összeállítani, melyeket a Call of Suli akciójátékká alakít át. A tanulók (játékosok) tehát a feladatokat egy akciójáték keretében tudják megoldani.
 
 A teljes funkcionalitáshoz egy létező Call of Suli szerverhez kell csatlakozni, enélkül csak egy demo pályát lehet végigjátszani.
 
-A tanárok a feladatlapokat (küldetések) pályákba, a tanulókat pedig csoportokba tudják szervezni, a csoportokhoz pedig pályákat tudnak rendelni. A tanulók feladata, hogy a csoportjaik pályáit teljesítsék. A tanárok a csoportjaik haladását és eredményeit nyomon tudják követni.
+A tanárok a feladatlapokat (küldetések) pályákba, a tanulókat pedig csoportokba tudják szervezni, a csoportokhoz pályákat tudnak rendelni. A tanulók feladata, hogy a csoportjaik pályáit teljesítsék. A tanárok a csoportjaik haladását és eredményeit nyomon tudják követni.
 
 A pályák összeállításától függően a küldetések egymásra épülhetnek, illetve több nehézségi szinten is megoldhatóak. A küldetések teljesítésért a játékosok pontokat (XP) szereznek, melyekkel a ranglistán előbbre lépnek.
+
+A csoportokon belül időtartamhoz kötött hadjáratokat lehet kitűzni, melyekhez értékelési feltételeket lehet szabni. A hadjárat végén a megoldott feladatok alapján automatikus értékelést (jegy, XP) kapnak a tanulók.
 
 A küldetések során egy karaktert kell irányítaniuk, akinek az ellenfeleit kell időre megölnie. Néhány ellenfelet csak akkor tud legyőzni, ha az adott feladatot helyesen oldja meg. A játékos akkor győz, ha az adott szintet befejezi.
 
@@ -37,4 +39,4 @@ make
 make install
 ```
 
-## [Credits](CREDITS.md)
+## [Köszönet (Credits)](CREDITS.md)

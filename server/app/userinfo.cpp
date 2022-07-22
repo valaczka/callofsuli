@@ -74,9 +74,9 @@ bool UserInfo::getServerInfo(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["registrationEnabled"] = QJsonValue::fromVariant(m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='registration.enabled'").value("v", false).toBool());
 
 
-	(*jsonResponse)["ranklist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as rankid, name as rankname,"
+	(*jsonResponse)["ranklist"] = m_client->db()->execSelectQueryJson("SELECT id as rankid, name as rankname,"
 																							  "COALESCE(level, -1) as ranklevel, image as rankimage, xp "
-																							  "FROM rank ORDER BY id"));
+																							  "FROM rank ORDER BY id");
 
 
 
@@ -155,7 +155,7 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 
 	if (m_message.jsonData().contains("withRanklog")) {
-		QVariantList rList = m_client->db()->execSelectQuery("SELECT rankid, datetime(timestamp, 'localtime') as timestamp, ranklog.xp, name, level, image,"
+		QJsonArray rList = m_client->db()->execSelectQueryJson("SELECT rankid, datetime(timestamp, 'localtime') as timestamp, ranklog.xp, name, level, image,"
 															 "-1 as maxStreak "
 															 "FROM ranklog LEFT JOIN rank ON (rank.id=ranklog.rankid) "
 															 "WHERE username=? "
@@ -163,7 +163,7 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 															 "SELECT -1 as rankid, datetime(timestamp, 'localtime') as timestamp, -1 as xp, '' as name, "
 															 "-1 as level, '' as image, maxStreak "
 															 "FROM score WHERE username=? AND maxStreak IS NOT NULL", {username, username});
-		m["ranklog"] = QJsonArray::fromVariantList(rList);
+		m["ranklog"] = rList;
 	}
 
 
@@ -190,12 +190,12 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 
 bool UserInfo::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 {
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT username, firstname, lastname, active, "
+	(*jsonResponse)["list"] = m_client->db()->execSelectQueryJson("SELECT username, firstname, lastname, active, "
 																						  "isTeacher, isAdmin, COALESCE(classid, -1) as classid, classname, xp, rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname, picture "
-																						  "FROM userInfo WHERE active=true"));
+																						  "FROM userInfo WHERE active=true");
 
-	(*jsonResponse)["classlist"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT id as classid, name as classname "
-																							   "FROM class"));
+	(*jsonResponse)["classlist"] = m_client->db()->execSelectQueryJson("SELECT id as classid, name as classname "
+																							   "FROM class");
 
 	return true;
 }

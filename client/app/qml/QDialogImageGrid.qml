@@ -89,7 +89,7 @@ QDialogPanel {
 			id: buttonClear
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Törlés")
-			icon.source: CosStyle.iconDelete
+			icon.source: "qrc:/internal/icon/delete.svg"
 			themeColors: CosStyle.buttonThemeOrange
 
 			visible: clearEnabled

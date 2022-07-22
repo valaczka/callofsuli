@@ -9,8 +9,8 @@ import "JScript.js" as JS
 QTabContainer {
 	id: control
 
-	title: qsTr("Részletek")
-	icon: "image://font/Academic/\uf118"
+	title: qsTr("Pálya részletei")
+	icon: "qrc:/internal/icon/briefcase-search.svg"
 
 
 	QAccordion {
@@ -90,7 +90,7 @@ QTabContainer {
 			QButton {
 				id: btnExport
 				text: qsTr("Mentés fájlba")
-				icon.source: CosStyle.iconSave
+				icon.source: "qrc:/internal/icon/content-save.svg"
 				display: AbstractButton.TextBesideIcon
 				visible: !btnDownload.visible
 				anchors.horizontalCenter: parent.horizontalCenter
@@ -113,7 +113,7 @@ QTabContainer {
 			QButton {
 				id: btnDownload
 				text: qsTr("Letöltés")
-				icon.source: CosStyle.iconDownload
+				icon.source: "qrc:/internal/icon/briefcase-download.svg"
 				display: AbstractButton.TextBesideIcon
 				anchors.horizontalCenter: parent.horizontalCenter
 
@@ -123,17 +123,21 @@ QTabContainer {
 			QButton {
 				id: btnOverride
 				text: qsTr("Felülírás")
-				icon.source: CosStyle.iconRefresh
 				display: AbstractButton.TextBesideIcon
 				anchors.horizontalCenter: parent.horizontalCenter
+				icon.source: "qrc:/internal/icon/briefcase-arrow-left-right.svg"
 
 				onClicked: {
-					var dd = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan felül akarod írni a pályát?\n%1").arg(labelName.text)})
+					var dd = JS.dialogCreateQml("YesNo", {
+													text: qsTr("Biztosan felül akarod írni a pályát?\n%1").arg(labelName.text),
+													image: "qrc:/internal/icon/briefcase-arrow-left-right.svg"
+												})
 					dd.accepted.connect(function() {
 						var d = JS.dialogCreateQml("File", {
 													   isSave: false,
 													   folder: cosClient.getSetting("mapFolder", ""),
-													   title: qsTr("Felülírás")
+													   title: qsTr("Pálya felülírása"),
+													   icon: "qrc:/internal/icon/briefcase-arrow-left-right.svg"
 												   })
 						d.accepted.connect(function(data){
 							teacherMaps.mapOverride(data)
@@ -143,8 +147,6 @@ QTabContainer {
 						d.open()
 					})
 					dd.open()
-
-
 				}
 			}
 
@@ -152,12 +154,15 @@ QTabContainer {
 				id: btnDelete
 				text: qsTr("Törlés")
 				themeColors: CosStyle.buttonThemeRed
-				icon.source: CosStyle.iconDelete
+				icon.source: "qrc:/internal/icon/briefcase-remove.svg"
 				display: AbstractButton.TextBesideIcon
 				anchors.horizontalCenter: parent.horizontalCenter
 
 				onClicked: {
-					var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan törlöd a pályát a szerverről?\n%1").arg(labelName.text)})
+					var d = JS.dialogCreateQml("YesNo", {
+												   text: qsTr("Biztosan törlöd a pályát a szerverről?\n%1").arg(labelName.text),
+												   image: "qrc:/internal/icon/briefcase-remove.svg"
+											   })
 					d.accepted.connect(function() {
 						teacherMaps.send("mapRemove", {uuid: teacherMaps.selectedMapId})
 					})

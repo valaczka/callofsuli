@@ -117,7 +117,7 @@ QTabContainer {
 				themeColors: CosStyle.buttonThemeRed
 
 				text: qsTr("Törlés")
-				icon.source: CosStyle.iconDelete
+				icon.source: "qrc:/internal/icon/delete.svg"
 				onClicked: mapEditor.missionLevelRemove(missionLevel)
 			}
 		}

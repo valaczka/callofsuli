@@ -49,6 +49,7 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	, m_selectedGroupId(-1)
 	, m_missionNameMap()
 	, m_liteMode(false)
+	, m_gradeMap()
 {
 	connect(this, &StudentMaps::mapListGet, this, &StudentMaps::onMapListGet);
 	connect(this, &StudentMaps::missionListGet, this, &StudentMaps::onMissionListGet);
@@ -1044,138 +1045,15 @@ void StudentMaps::onCampaignGet(QJsonObject jsonData, QByteArray)
 {
 	QJsonArray list = jsonData.value("list").toArray();
 
-	loadGradeList(jsonData.value("gradeList").toArray());
+	m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
 
 	if (m_missionNameMap.isEmpty()) {
 		m_missionNameMap = TeacherMaps::missionNames(db());
 	}
 
-	QJsonArray newList;
-
-	foreach (QJsonValue v, list) {
-		QJsonObject o = v.toObject();
-
-		QJsonArray alist = o.value("assignment").toArray();
-		QJsonArray newAList;
-
-		foreach (QJsonValue v, alist) {
-			QJsonObject o = v.toObject();
-
-			QJsonObject grading = o.value("grading").toObject();
-
-			QJsonArray xpArray = grading.value("xp").toArray();
-			QJsonArray gradeArray = grading.value("grade").toArray();
-
-			QJsonArray newXpArray, newGradeArray;
-
-
-			// XP
-
-			foreach (QJsonValue v, xpArray) {
-				QJsonObject o = v.toObject();
-				QJsonArray cList = o.value("criteria").toArray();
-				QJsonArray newCList;
-
-				foreach (QJsonValue v, cList) {
-					QJsonObject o = v.toObject();
-					QJsonObject criterion = o.value("criterion").toObject();
-
-					if (criterion.value("module").toString() == "missionlevel") {
-						QString map = criterion.value("map").toString();
-						QString mission = criterion.value("mission").toString();
-
-						mission = m_missionNameMap.value(map).toMap().value(mission).toString();
-
-						if (mission.isEmpty())
-							mission = "???";
-
-						QList<MapListObject*> l = m_modelMapList->find("uuid", map);
-						map = l.isEmpty() ? "???" : l.at(0)->name();
-
-						criterion["map"] = map;
-						criterion["mission"] = mission;
-					}
-
-					o["criterion"] = criterion;
-					newCList.append(o);
-				}
-
-				o["criteria"] = newCList;
-				newXpArray.append(o);
-			}
-
-
-			// GRADE
-
-			foreach (QJsonValue v, gradeArray) {
-				QJsonObject o = v.toObject();
-				QJsonArray cList = o.value("criteria").toArray();
-				QJsonArray newCList;
-
-				foreach (QJsonValue v, cList) {
-					QJsonObject o = v.toObject();
-					QJsonObject criterion = o.value("criterion").toObject();
-
-					if (criterion.value("module").toString() == "missionlevel") {
-						QString map = criterion.value("map").toString();
-						QString mission = criterion.value("mission").toString();
-
-						mission = m_missionNameMap.value(map).toMap().value(mission).toString();
-
-						if (mission.isEmpty())
-							mission = "???";
-
-						QList<MapListObject*> l = m_modelMapList->find("uuid", map);
-						map = l.isEmpty() ? "???" : l.at(0)->name();
-
-						criterion["map"] = map;
-						criterion["mission"] = mission;
-					}
-
-					o["criterion"] = criterion;
-					newCList.append(o);
-				}
-
-				o["criteria"] = newCList;
-				newGradeArray.append(o);
-			}
-
-			grading["xp"] = newXpArray;
-			grading["grade"] = newGradeArray;
-			o["grading"] = grading;
-			newAList.append(o);
-		}
-
-		o["assignment"] = newAList;
-		newList.append(o);
-	}
-
-
-	emit campaignGetReady(newList.toVariantList());
+	emit campaignGetReady(TeacherMaps::campaignList(list, m_missionNameMap, m_modelMapList));
 }
 
-
-
-/**
- * @brief StudentMaps::onCampaignGet
- * @param jsonData
- */
-
-void StudentMaps::loadGradeList(const QJsonArray &list)
-{
-	m_gradeMap.clear();
-
-	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
-		if (!m.contains("id"))
-			continue;
-
-		int id = m.value("id").toInt();
-		m.remove("id");
-
-		m_gradeMap.insert(id, m);
-	}
-}
 
 
 

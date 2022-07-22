@@ -52,7 +52,7 @@ QTabPage {
 
 
 	onPageActivatedFirst: {
-		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSetting("notification/gameLandscape", true) === true) {
+		if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && height>width && cosClient.getSettingBool("notification/gameLandscape", true) === true) {
 			cosClient.sendMessageInfoImage("qrc:/internal/icon/phone-rotate-landscape.svg", qsTr("Képernyő tájolása"), qsTr("Fektesd el a képernyőt"))
 			cosClient.setSetting("notification/gameLandscape", false)
 		}

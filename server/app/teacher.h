@@ -95,7 +95,7 @@ public:
 	static QVector<Grading>& evaluate(CosDb *db, QVector<Grading> &list, const int &campaignId, const QString &username);
 	static Grading& evaluate(CosDb *db, Grading &grading, const int &campaignId, const QString &username);
 
-	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username, const bool &isFinished);
+	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username = "", const bool &isFinished = false);
 
 public slots:
 
@@ -133,6 +133,9 @@ public slots:
 	bool gameListUserGet(QJsonObject *jsonResponse, QByteArray *);
 	bool gameListGroupGet(QJsonObject *jsonResponse, QByteArray *);
 	bool gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *);
+
+	bool campaignGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignListGet(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

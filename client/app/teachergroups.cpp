@@ -42,6 +42,8 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	, m_missionNameMap()
 	, m_selectedGroupName()
 	, m_selectedGroupFullName()
+	, m_gradeMap()
+	, m_mapList()
 {
 	connect(this, &TeacherGroups::groupGet, this, &TeacherGroups::onGroupGet);
 	connect(this, &TeacherGroups::groupMapActivate, this, &TeacherGroups::groupReload);
@@ -49,6 +51,7 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	connect(this, &TeacherGroups::groupMapAdd, this, &TeacherGroups::groupReload);
 	connect(this, &TeacherGroups::gameListUserGet, this, &TeacherGroups::onGameListUserGet);
 	connect(this, &TeacherGroups::gameListGroupGet, this, &TeacherGroups::onGameListGroupGet);
+	connect(this, &TeacherGroups::campaignGet, this, &TeacherGroups::onCampaignGet);
 
 	CosDb *db = TeacherMaps::teacherMapsDb(Client::clientInstance(), this);
 
@@ -324,6 +327,32 @@ void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 }
 
 
+/**
+ * @brief TeacherGroups::onCampaignGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onCampaignGet(QJsonObject jsonData, QByteArray)
+{
+	m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
+	m_mapList = jsonData.value("mapList").toArray().toVariantList();
+
+	if (m_missionNameMap.isEmpty()) {
+		m_missionNameMap = TeacherMaps::missionNames(db());
+	}
+
+	/*if (jsonData.contains("list")) {
+		QJsonArray list = jsonData.value("list").toArray();
+
+		emit campaignGetReady(TeacherMaps::campaignList(list, m_missionNameMap, m_modelMapList).toVariantList());
+	} else {
+		qWarning() << "NO LIST";
+	}*/
+
+	emit campaignGetReady(jsonData);
+}
+
+
 
 /**
  * @brief TeacherGroups::onOneDownloadFinished
@@ -394,5 +423,35 @@ ObjectListModel *TeacherGroups::newUserModel(QObject *parent) const
 
 ObjectListModel *TeacherGroups::newMapModel(QObject *parent) const
 {
-return new ObjectGenericListModel<MapListObject>(parent);
+	return new ObjectGenericListModel<MapListObject>(parent);
+}
+
+
+/**
+ * @brief TeacherGroups::grade
+ * @param id
+ * @return
+ */
+
+QVariantMap TeacherGroups::grade(const int &id) const
+{
+	if (!m_gradeMap.contains(id))
+		return QVariantMap({
+							   {"id", -1},
+							   {"longname", ""},
+							   {"shortname", ""},
+							   {"value", -1}
+						   });
+	return m_gradeMap.value(id);
+}
+
+
+/**
+ * @brief TeacherGroups::mapList
+ * @return
+ */
+
+const QVariantList &TeacherGroups::mapList() const
+{
+	return m_mapList;
 }

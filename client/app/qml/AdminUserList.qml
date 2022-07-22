@@ -174,7 +174,7 @@ QTabContainer {
 
 			MenuItem {
 				text: qsTr("Töröl")
-				icon.source: CosStyle.iconDelete
+				icon.source: "qrc:/internal/icon/delete.svg"
 			}
 
 			QMenu {
@@ -240,7 +240,7 @@ QTabContainer {
 	Action {
 		id: actionDelete
 		text: qsTr("Törlés")
-		icon.source: CosStyle.iconDelete
+		icon.source: "qrc:/internal/icon/delete.svg"
 		enabled: queryParameters.classid !== undefined && queryParameters.classid > 0
 		onTriggered: {
 			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan törlöd az osztályt?\n%1").arg(control.contentTitle)})
