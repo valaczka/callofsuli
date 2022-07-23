@@ -1995,6 +1995,7 @@ QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list)
 
 		QJsonObject o;
 
+		o["id"] = g.id;
 		o["type"] = g.type == Grading::TypeXP ? "xp" : "grade";
 		o["value"] = g.value;
 		o["ref"] = g.ref;

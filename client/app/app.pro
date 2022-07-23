@@ -145,6 +145,7 @@ SOURCES += \
 		gameblock.cpp \
 		gameenemy.cpp \
 		gameenemydata.cpp \
+		gameenemysniper.cpp \
 		gameenemysoldier.cpp \
 		gameentity.cpp \
 		gameladder.cpp \
@@ -198,6 +199,7 @@ HEADERS += \
 	gameblock.h \
 	gameenemy.h \
 	gameenemydata.h \
+	gameenemysniper.h \
 	gameenemysoldier.h \
 	gameentity.h \
 	gameladder.h \

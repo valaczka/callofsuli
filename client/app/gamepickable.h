@@ -55,7 +55,8 @@ public:
 		PickableTime,
 		PickableShield,
 		PickableWater,
-		PickablePliers
+		PickablePliers,
+		PickableGlasses
 	};
 
 	Q_ENUM(PickableType)

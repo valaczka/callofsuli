@@ -16,6 +16,14 @@
 					"castAttackFraction": 0.3,
 					"msecBeforeAttack": 2000,
 					"msecBetweenAttack": 2000
+				},
+				"sniper" : {
+					"rayCastElevation": 20,
+					"rayCastLength": 600,
+					"msecBeforeTurn": 10000,
+					"castAttackFraction": 0.25,
+					"msecBeforeAttack": 2000,
+					"msecBetweenAttack": 2000
 				}
 			},
 			"defaults": {
@@ -63,6 +71,14 @@
 					"castAttackFraction": 0.6,
 					"msecBeforeAttack": 1750,
 					"msecBetweenAttack": 1500
+				},
+				"sniper" : {
+					"rayCastElevation": 20,
+					"rayCastLength": 600,
+					"msecBeforeTurn": 10000,
+					"castAttackFraction": 0.25,
+					"msecBeforeAttack": 1500,
+					"msecBetweenAttack": 2000
 				}
 			},
 			"defaults": {
@@ -115,6 +131,14 @@
 					"castAttackFraction": 0.7,
 					"msecBeforeAttack": 1500,
 					"msecBetweenAttack": 1500
+				},
+				"sniper" : {
+					"rayCastElevation": 20,
+					"rayCastLength": 600,
+					"msecBeforeTurn": 8000,
+					"castAttackFraction": 0.3,
+					"msecBeforeAttack": 1500,
+					"msecBetweenAttack": 2000
 				}
 			},
 			"defaults": {

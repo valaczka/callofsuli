@@ -82,6 +82,7 @@ public:
 	Q_INVOKABLE ObjectListModel* newMapModel(QObject *parent) const;
 
 	Q_INVOKABLE QVariantMap grade(const int &id) const;
+	Q_INVOKABLE QVariantMap mapMission(const QString &mapUuid, const QString &missionUuid);
 	const QVariantList &mapList() const;
 
 public slots:

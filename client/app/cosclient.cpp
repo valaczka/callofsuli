@@ -48,6 +48,7 @@
 #include "gameactivity.h"
 #include "gameenemy.h"
 #include "gameenemysoldier.h"
+#include "gameenemysniper.h"
 #include "gameentity.h"
 #include "gameladder.h"
 #include "gamemapmodel.h"
@@ -389,6 +390,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
 	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
+	qmlRegisterType<GameEnemySniper>("COS.Client", 1, 0, "GameEnemySniperPrivate");
 	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GameMapModel>("COS.Client", 1, 0, "GameMapModel");

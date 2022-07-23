@@ -109,6 +109,11 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 								   GamePickable::PickablePliers,
 								   QVariantMap());
 
+	list["glasses"] = InventoryType(tr("1 szemüveg"),
+								   "qrc:/internal/game/glasses.png",
+								   GamePickable::PickableGlasses,
+								   QVariantMap());
+
 	return list;
 }
 

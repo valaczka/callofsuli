@@ -81,6 +81,7 @@ public:
 
 	Q_INVOKABLE bool loadTerrainData();
 
+	Q_INVOKABLE void createFixEnemies();
 	Q_INVOKABLE void recreateEnemies();
 	Q_INVOKABLE void resetEnemy(GameEnemyData *enemyData);
 	Q_INVOKABLE void setEnemiesMoving(const bool &moving);
@@ -130,6 +131,7 @@ public slots:
 	void increaseShield(const int &num);
 	void increasePliers(const int &num);
 	void increaseWater(const int &num);
+	void increaseGlasses(const int &num);
 
 	void setGameData(QVariantMap gameData);
 	void onGameStarted();

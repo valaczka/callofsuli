@@ -99,7 +99,7 @@ void GameQuestion::run()
 
 	if (enemyData->targetId() == -1 || enemyData->targetDestroyed()) {
 		qDebug() << "Empty question";
-		m_enemy->killByPlayer(m_player);
+		m_enemy->killByPlayer(m_player, true);
 		emit finished();
 		return;
 	}
@@ -284,7 +284,7 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 	m_question->setFocus(false, Qt::OtherFocusReason);
 	m_game->gameScene()->setFocus(true, Qt::OtherFocusReason);
 
-	m_enemy->killByPlayer(m_player);
+	m_enemy->killByPlayer(m_player, false);
 
 }
 

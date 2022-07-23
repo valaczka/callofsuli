@@ -55,6 +55,7 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_mode(ModeNormal)
 	, m_skipPreview(false)
 	, m_isFlawless(false)
+	, m_glasses(0)
 {
 	setPlayerCharacter("default");
 }
@@ -83,6 +84,7 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	, m_mode(ModeNormal)
 	, m_skipPreview(false)
 	, m_isFlawless(false)
+	, m_glasses(0)
 {
 	Q_ASSERT(missionLevel);
 
@@ -132,6 +134,7 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	, m_mode(ModeNormal)
 	, m_skipPreview(false)
 	, m_isFlawless(false)
+	, m_glasses(0)
 {
 	setPlayerCharacter("default");
 
@@ -261,6 +264,7 @@ void GameMatch::previewCompleted()
 		return;
 
 	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+
 	if (!l.contains(m_missionUuid)) {
 		l.append(m_missionUuid);
 		Client::clientInstance()->setServerSetting("game/skipPreview", l);
@@ -528,4 +532,17 @@ void GameMatch::setIsFlawless(bool newIsFlawless)
 		return;
 	m_isFlawless = newIsFlawless;
 	emit isFlawlessChanged();
+}
+
+int GameMatch::glasses() const
+{
+	return m_glasses;
+}
+
+void GameMatch::setGlasses(int newGlasses)
+{
+	if (m_glasses == newGlasses)
+		return;
+	m_glasses = newGlasses;
+	emit glassesChanged();
 }

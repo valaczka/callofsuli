@@ -344,3 +344,16 @@ function listModelCopy(_model, _items) {
         _model.append(_items.get(i))
     }
 }
+
+
+function listModelGetSelectedFields(_model, _field) {
+    var l = []
+
+    for (var i=0; i<_model.count; i++) {
+        var o = _model.get(i)
+        if (o.selected)
+            l.push(o[_field])
+    }
+
+    return l
+}

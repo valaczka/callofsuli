@@ -137,6 +137,8 @@ void CosGame::loadScene()
 		return;
 	}
 
+	createFixEnemies();
+
 	foreach (GameBlock *block, m_terrainData->blocks()) {
 		connect(block, &GameBlock::completedChanged, this, [=](bool completed){
 			if (completed)
@@ -299,17 +301,17 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	qreal x = enemyData->boundRect().left();
 	qreal y = enemyData->boundRect().top();
 
-	//x += QRandomGenerator::global()->bounded(enemyData->boundRect().toRect().width());
 	x += enemyData->boundRect().toRect().width()/2;
 
 	bool facingLeft = true;
 
 	if (x+item->width() > enemyData->boundRect().right()) {
 		x = enemyData->boundRect().right()-item->width();
-	} else {
-		if (QRandomGenerator::global()->generate() % 2 == 1)
-			facingLeft = false;
 	}
+
+	if (QRandomGenerator::global()->generate() % 2 == 1)
+		facingLeft = false;
+
 
 	item->setX(x);
 	item->setY(y-item->height());
@@ -526,6 +528,10 @@ void CosGame::pickPickable()
 		case GamePickable::PickablePliers:
 			increasePliers(1);
 			emit gameMessageSent(tr("1 pliers gained"));
+			break;
+		case GamePickable::PickableGlasses:
+			increaseGlasses(1);
+			emit gameMessageSent(tr("1 glasses gained"));
 			break;
 
 		default:
@@ -801,6 +807,22 @@ void CosGame::increaseWater(const int &num)
 	}
 
 	m_gameMatch->setWater(m_gameMatch->water()+num);
+}
+
+
+/**
+ * @brief CosGame::increaseGlasses
+ * @param num
+ */
+
+void CosGame::increaseGlasses(const int &num)
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid game match";
+		return;
+	}
+
+	m_gameMatch->setGlasses(m_gameMatch->glasses()+num);
 }
 
 
@@ -1321,6 +1343,81 @@ bool CosGame::loadTerrainData()
 
 	return true;
 }
+
+
+
+/**
+ * @brief CosGame::createFixEnemies
+ */
+
+
+void CosGame::createFixEnemies()
+{
+	if (!m_gameScene || !m_terrainData)
+		return;
+
+	qDebug() << "Create fix enemies";
+
+	QList<GameEnemyData *> enemies = m_terrainData->enemies();
+
+	foreach (GameEnemyData *data, enemies) {
+		if (data->enemy() || data->block())
+			continue;
+
+		QQuickItem *enemy = nullptr;
+
+		QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::DirectConnection,
+								  Q_RETURN_ARG(QQuickItem*, enemy),
+								  Q_ARG(int, data->enemyType())
+								  );
+
+		if (enemy) {
+			data->setEnemy(enemy);
+
+			GameEnemy *ep = data->enemyPrivate();
+
+			if (data->enemyType() == GameEnemyData::EnemySoldier) {
+				GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier *>(ep);
+				if (soldier) {
+					QStringList slist = m_gameData.value("soldiers").toStringList();
+					int x = QRandomGenerator::global()->bounded(slist.size());
+					soldier->setSoldierType(slist.at(x));
+				}
+			}
+
+			QMetaObject::invokeMethod(enemy, "loadSprites", Qt::DirectConnection);
+
+			if (ep) {
+				ep->setEnemyData(data);
+
+				if (m_gameMatch) {
+					QVariantMap hpData = ep->qrcData().value("hp").toMap();
+					int level = m_gameMatch->level();
+
+					for (int l=level; l>=1; --l) {
+						QString lKey = QString("%1").arg(l);
+						if (hpData.contains(lKey)) {
+							ep->setHp(hpData.value(lKey, 7).toInt());
+							break;
+						}
+					}
+				}
+
+				if (m_activity) {
+					connect(ep, &GameEnemy::killed, m_activity, &GameActivity::onEnemyKilled);
+					connect(ep, &GameEnemy::killMissed, m_activity, &GameActivity::onEnemyKillMissed);
+				}
+
+				connect(ep, &GameEnemy::killed, this, &CosGame::recalculateActiveEnemies);
+			}
+
+			resetEnemy(data);
+		}
+
+		QCoreApplication::processEvents();
+	}
+}
+
 
 
 

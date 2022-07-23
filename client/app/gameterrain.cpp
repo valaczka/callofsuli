@@ -234,30 +234,36 @@ void GameTerrain::loadEnemyLayer(Tiled::Layer *layer)
 	QList<Tiled::MapObject*> objects = og->objects();
 
 	foreach (Tiled::MapObject *object, objects) {
-		if (!object->isPolyShape())
-			continue;
-
-		QPolygonF polygon = object->polygon();
-		QRectF rect = polygon.boundingRect();
+		const QString type = object->property("type").toString();
+		const int block = object->property("block").toInt();
 
 		qreal ox = object->x();
 		qreal oy = object->y();
 
-		rect.adjust(ox, oy, ox, oy);
+		QRectF rect;
 
-		int block = object->property("block").toInt();
+		if (object->isPolyShape()) {
+			QPolygonF polygon = object->polygon();
+			rect = polygon.boundingRect();
+			rect.adjust(ox, oy, ox, oy);
+		} else {
+			rect = QRectF(ox, oy, 1, 1);
+		}
+
+		GameEnemyData *enemy = new GameEnemyData(this);
+
+		enemy->setBoundRect(rect);
+
+		if (type == "sniper")
+			enemy->setEnemyType(GameEnemyData::EnemySniper);
 
 		if (block > 0) {
-			GameEnemyData *enemy = new GameEnemyData(this);
-
-			enemy->setBoundRect(rect);
-
 			GameBlock *b = getBlock(block);
 			enemy->setBlock(b);
 			b->addEnemy(enemy);
-
-			m_enemies.append(enemy);
 		}
+
+		m_enemies.append(enemy);
 	}
 }
 

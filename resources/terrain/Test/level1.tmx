@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="85" nextobjectid="260">
+<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="85" nextobjectid="263">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
@@ -184,6 +184,24 @@
    </properties>
    <polyline points="-32.2086,21 191.791,21"/>
   </object>
+  <object id="260" x="142.494" y="628.484">
+   <properties>
+    <property name="type" value="sniper"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="261" x="1136.18" y="234.974">
+   <properties>
+    <property name="type" value="sniper"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="262" x="743.612" y="109.466">
+   <properties>
+    <property name="type" value="sniper"/>
+   </properties>
+   <point/>
+  </object>
  </objectgroup>
  <objectgroup color="#ffffff" id="84" name="Preview">
   <object id="255" x="625.653" y="109.466">
@@ -296,11 +314,6 @@
     <property name="block" type="int" value="4"/>
    </properties>
    <point/>
-  </object>
- </objectgroup>
- <objectgroup color="#ffff00" id="79" name="START IMAGE" visible="0">
-  <object id="237" x="528" y="607">
-   <polygon points="0,0 142.667,0 71.3333,95.1111"/>
   </object>
  </objectgroup>
 </map>

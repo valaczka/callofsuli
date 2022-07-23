@@ -62,6 +62,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_moveToItem(nullptr)
 	, m_fire(nullptr)
 	, m_fence(nullptr)
+	, m_invisible(false)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -455,6 +456,11 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 void GamePlayer::killByEnemy(GameEnemy *enemy)
 {
 	setHp(0);
+
+	if (m_cosGame && m_cosGame->gameMatch()) {
+		m_cosGame->gameMatch()->setIsFlawless(false);
+	}
+
 	emit killedByEnemy(enemy);
 }
 
@@ -603,15 +609,6 @@ QString GamePlayer::playSoundEffect(const QString &effect)
 }
 
 
-/**
- * @brief GamePlayer::attackSuccesful
- * @param enemy
- */
-
-void GamePlayer::attackSuccesful(GameEnemy *enemy)
-{
-	emit attackSucceed(enemy);
-}
 
 
 /**
@@ -796,4 +793,22 @@ void GamePlayer::setFence(QQuickItem *newFence)
 		return;
 	m_fence = newFence;
 	emit fenceChanged();
+}
+
+bool GamePlayer::invisible() const
+{
+	return m_invisible;
+}
+
+void GamePlayer::setInvisible(bool newInvisible)
+{
+	if (m_invisible == newInvisible)
+		return;
+	m_invisible = newInvisible;
+	emit invisibleChanged();
+
+	if (m_bodyPolygon) {
+		m_bodyPolygon->setProperty("invisible", m_invisible);
+		qDebug() << "BODY POLYGON" << m_bodyPolygon << m_bodyPolygon->property("invisible");
+	}
 }

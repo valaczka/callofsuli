@@ -446,6 +446,36 @@ QVariantMap TeacherGroups::grade(const int &id) const
 }
 
 
+
+/**
+ * @brief TeacherGroups::mapMission
+ * @param mapUuid
+ * @param missionUuid
+ * @return
+ */
+
+QVariantMap TeacherGroups::mapMission(const QString &mapUuid, const QString &missionUuid)
+{
+	QVariantMap ret;
+
+	QString map = mapUuid;
+	QString mis = m_missionNameMap.value(mapUuid).toMap().value(missionUuid).toString();
+
+	foreach (QVariant v, m_mapList) {
+		QVariantMap m = v.toMap();
+		if (m.value("uuid").toString() == mapUuid) {
+			map = m.value("name").toString();
+			break;
+		}
+	}
+
+	ret["map"] = map;
+	ret["mission"] = mis.isEmpty() ? missionUuid : mis;
+
+	return ret;
+}
+
+
 /**
  * @brief TeacherGroups::mapList
  * @return

@@ -14,19 +14,23 @@ QTabContainer {
     icon: "qrc:/internal/icon/calendar-edit.svg"
     action: actionSave
 
+    property int campaignId: -1
+    property bool isEditing: campaignId == -1
     property bool baseModificationEnabled: true
+
+    readonly property string _dateFormat: "yyyy-MM-dd HH:mm"
 
     menu: QMenu {
         MenuItem {
             text: qsTr("Új értékelés")
             icon.source: CosStyle.iconAdd
-            enabled: baseModificationEnabled
+            enabled: isEditing && baseModificationEnabled
             onClicked: {
                 modelAssignment.append({
                                            id: -1,
-                                           name: ""
+                                           name: "",
+                                           gradingList: []
                                        })
-                actionSave.enabled = true
             }
         }
 
@@ -41,7 +45,6 @@ QTabContainer {
                                                image: "qrc:/internal/icon/calendar-remove.svg"
                                            })
                 d.accepted.connect(function() {
-                    actionSave.enabled = false
                     mainStack.back()
                 })
                 d.open()
@@ -50,7 +53,6 @@ QTabContainer {
         }
     }
 
-    property int campaignId: -1
 
     QAccordion {
 
@@ -133,7 +135,7 @@ QTabContainer {
                     fieldName: qsTr("Leírás")
                     sqlField: "description"
                     placeholderText: qsTr("A hadjárat leírása (opcionális)")
-                    readOnly: !baseModificationEnabled
+                    readOnly: !isEditing || !baseModificationEnabled
                 }
 
                 QGridLabel { field: textStarttime }
@@ -142,10 +144,17 @@ QTabContainer {
                     id: textStarttime
                     fieldName: qsTr("Kezdés")
                     sqlField: "starttime"
-                    placeholderText: qsTr("Kezdő időpont (YYYY-MM-DD HH:mm)")
-                    readOnly: !baseModificationEnabled
+                    placeholderText: qsTr("Kezdő időpont (%1)").arg(_dateFormat)
+                    readOnly: !isEditing || !baseModificationEnabled
 
-                    //validator: RegExpValidator { regExp: /.+/ }
+                    onTextModified: parseDates()
+
+                    property bool _parseOK: true
+
+                    Binding on textColor {
+                        when: !textStarttime._parseOK
+                        value: CosStyle.colorErrorLighter
+                    }
                 }
 
                 QGridLabel { field: textEndtime }
@@ -154,7 +163,17 @@ QTabContainer {
                     id: textEndtime
                     fieldName: qsTr("Befejezés")
                     sqlField: "endtime"
-                    placeholderText: qsTr("Befejező időpont (YYYY-MM-DD HH:mm)")
+                    placeholderText: qsTr("Befejező időpont (%1)").arg(_dateFormat)
+                    readOnly: !isEditing
+
+                    onTextModified: parseDates()
+
+                    property bool _parseOK: true
+
+                    Binding on textColor {
+                        when: !textEndtime._parseOK
+                        value: CosStyle.colorErrorLighter
+                    }
                 }
 
 
@@ -163,7 +182,7 @@ QTabContainer {
                 QGridTextArea {
                     id: areaMapOpen
                     fieldName: qsTr("Pályák nyitása")
-                    placeholderText: qsTr("A kezdő időpontban aktiválandó a pályák")
+                    placeholderText: qsTr("A kezdő időpontban aktiválandó pályák")
                     minimumHeight: CosStyle.baseHeight*2
                     readOnly: true
                     //color: CosStyle.colorWarning
@@ -175,7 +194,7 @@ QTabContainer {
 
                     icon.source: "qrc:/internal/icon/briefcase-search.svg"
 
-                    enabled: baseModificationEnabled
+                    enabled: isEditing && baseModificationEnabled
 
                     onClicked: {
                         JS.listModelCopy(_modelDialogList, modelMapOpenList)
@@ -208,7 +227,7 @@ QTabContainer {
                 QGridTextArea {
                     id: areaMapClose
                     fieldName: qsTr("Pályák zárása")
-                    placeholderText: qsTr("A bejező időpontban inaktiválandó a pályák")
+                    placeholderText: qsTr("A bejező időpontban inaktiválandó pályák")
                     minimumHeight: CosStyle.baseHeight*2
                     readOnly: true
                     //color: CosStyle.colorWarning
@@ -219,6 +238,7 @@ QTabContainer {
                     text: qsTr("Kiválasztás")
 
                     icon.source: "qrc:/internal/icon/briefcase-search.svg"
+                    enabled: isEditing
 
                     onClicked: {
                         JS.listModelCopy(_modelDialogList, modelMapCloseList)
@@ -269,31 +289,171 @@ QTabContainer {
             }
 
             QCollapsible {
-                title: qsTr("Értékelés #%1").arg(index+1)
+                id: assignmentCollapsible
+                title: id > 0 ? qsTr("Értékelés #%1").arg(id) : qsTr("*Értékelés")
                 required property int index
                 required property string name
+                required property int id
+                required property ListModel gradingList
 
                 rightComponent: QToolButton {
                     icon.source: "qrc:/internal/icon/delete.svg"
                     color: CosStyle.colorErrorLighter
                     ToolTip.text: qsTr("Értékelés törlése")
-                    enabled: baseModificationEnabled
+                    enabled: isEditing && baseModificationEnabled
                     onClicked: {
                         var d = JS.dialogCreateQml("YesNo", {
                                                        text: qsTr("Biztosan törlöd az értékelést?"),
                                                        image: "qrc:/internal/icon/delete.svg"
                                                    })
                         d.accepted.connect(function() {
-                            actionSave.enabled = true
                             modelAssignment.remove(index)
                         })
                         d.open()
                     }
                 }
 
-                QLabel {
-                    text: "szia "+name
+                Column {
+                    Repeater {
+                        model: gradingList
+
+                        Item {
+                            id: gradingItem
+
+                            required property int index
+                            required property int id
+                            required property string type
+                            required property int ref
+                            required property int value
+                            required property var criteria
+
+                            width: assignmentCollapsible.width
+                            height: CosStyle.pixelSize*4
+
+                            QRectangleBg {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton
+
+                                QLabel {
+                                    id: valueLabel
+                                    anchors.left: parent.left
+                                    anchors.margins: 5
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: (type == "grade") ? teacherGroups.grade(ref).shortname :
+                                                              (type == "xp") ? qsTr("%1 XP").arg(value) :
+                                                                               "???"
+                                    font.capitalization: Font.AllUppercase
+                                    font.pixelSize: CosStyle.pixelSize*2.3
+                                    font.weight: Font.Light
+                                    color: CosStyle.colorAccentLight
+                                    width: CosStyle.pixelSize*8
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+
+                                Column {
+                                    anchors.left: valueLabel.right
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    anchors.right: btnDeleteCriteria.left
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    QLabel {
+                                        id: modeLabel
+                                        anchors.left: parent.left
+                                        font.weight: Font.Bold
+                                        font.pixelSize: CosStyle.pixelSize*0.7
+                                        font.capitalization: Font.AllUppercase
+                                        states: [
+                                            State {
+                                                when: criteria && criteria.mode !== undefined && criteria.mode === "default"
+                                                PropertyChanges {
+                                                    target: modeLabel
+                                                    text: qsTr("Alapértelmezett")
+                                                    color: CosStyle.colorOKLighter
+                                                }
+                                            },
+                                            State {
+                                                when: criteria && criteria.mode !== undefined && criteria.mode === "required"
+                                                PropertyChanges {
+                                                    target: modeLabel
+                                                    text: qsTr("Minimum követelmény")
+                                                    color: CosStyle.colorErrorLighter
+                                                }
+                                            }
+                                        ]
+                                    }
+
+                                    QLabel {
+                                        width: parent.width
+                                        anchors.left: parent.left
+                                        wrapMode: Text.Wrap
+                                        visible: text != ""
+
+                                        Component.onCompleted: {
+                                            if (criteria.module === undefined)
+                                                return
+
+                                            var m = criteria.module
+
+                                            if (m === "xp")
+                                                text = qsTr("%1 XP összegyűjtése").arg(criteria.value)
+                                            else if (m === "trophy")
+                                                text = qsTr("%1 trófea összegyűjtése").arg(criteria.value)
+                                            else if (m === "sumlevel")
+                                                text = qsTr("%1 különböző LEVEL %2%3 szintű küldetés").arg(criteria.value).arg(criteria.level).arg(
+                                                            criteria.deathmatch ? qsTr(" SUDDEN DEATH") : "")
+                                            else if (m === "missionlevel") {
+                                                var mm = teacherGroups.mapMission(criteria.map, criteria.mission)
+                                                text = qsTr("%1 pálya %2 küldetés LEVEL %3%4 szinten").arg(mm.map).arg(mm.mission).arg(criteria.level).arg(
+                                                            criteria.deathmatch ? qsTr(" SUDDEN DEATH") : "")
+                                            } else
+                                                text = "%1 value: %2".arg(m).arg(criteria.value)
+                                        }
+                                    }
+                                }
+
+                                QToolButton {
+                                    id: btnDeleteCriteria
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    icon.source: "qrc:/internal/icon/delete.svg"
+
+                                    color: CosStyle.colorErrorLighter
+                                    ToolTip.text: qsTr("Kritérium törlése")
+                                    enabled: isEditing && baseModificationEnabled
+                                    onClicked: {
+                                        var d = JS.dialogCreateQml("YesNo", {
+                                                                       text: qsTr("Biztosan törlöd a kritériumot?"),
+                                                                       image: "qrc:/internal/icon/delete.svg"
+                                                                   })
+                                        d.accepted.connect(function() {
+                                            gradingList.remove(gradingItem.index)
+                                        })
+                                        d.open()
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                    QToolButtonFooter {
+                        width: parent.width
+                        icon.source: CosStyle.iconAdd
+                        text: qsTr("Új kritérium")
+                        visible: isEditing && baseModificationEnabled
+                        onClicked: {
+                            gradingList.append({
+                                                   id: -1,
+                                                   type: "newtype",
+                                                   ref: -1,
+                                                   value: -1,
+                                                   criteria: {}
+                                               })
+                        }
+                    }
                 }
+
             }
 
         }
@@ -316,20 +476,20 @@ QTabContainer {
         target: teacherGroups
 
         function onCampaignGetReady(jsonData) {
+            if (campaignId == -1)
+                isEditing = true
+            else
+                isEditing = false
 
-            if (jsonData.finished === true) {
+            /*if (jsonData.finished === true) {
                 baseModificationEnabled = false
-                textEndtime.readOnly = true
-                buttonMapClose.enabled = false
+                isEditing = false
+                actionSave.enabled = false
             } else if (jsonData.started === true) {
                 baseModificationEnabled = false
-                textEndtime.readOnly = false
-                buttonMapClose.enabled = true
             } else {
                 baseModificationEnabled = true
-                textEndtime.readOnly = false
-                buttonMapClose.enabled = true
-            }
+            }*/
 
             JS.setSqlFields([
                                 textDescription,
@@ -357,15 +517,19 @@ QTabContainer {
                 modelAssignment.clear()
                 modelAssignment.append({
                                            id: -1,
-                                           name: ""
+                                           name: "",
+                                           gradingList: []
                                        })
             }
 
 
             // RETURN IF NEW
 
-            if (jsonData.error !== undefined)
+            if (jsonData.error !== undefined) {
+                areaMapOpen.text = ""
+                areaMapClose.text = ""
                 return
+            }
 
 
             if (jsonData.started === true || jsonData.finished === true)
@@ -439,10 +603,14 @@ QTabContainer {
 
     Action {
         id: actionSave
-        icon.source: "qrc:/internal/icon/content-save.svg"
-        shortcut: "Ctrl+S"
-        enabled: campaignId == -1 || layout1.modified
-        onTriggered: save()
+        icon.source: isEditing ? "qrc:/internal/icon/content-save.svg" : "qrc:/internal/icon/pencil.svg"
+        onTriggered: {
+            if (isEditing) {
+                save()
+            } else {
+                isEditing = true
+            }
+        }
     }
 
     ListModel {
@@ -478,32 +646,122 @@ QTabContainer {
     }
 
     function save() {
-        /*var o = JS.getModifiedSqlFields([
-                                            textFirstname,
-                                            textLastname,
-                                            textNickname,
-                                            spinCharacter
-                                        ])
+        var p = parseDates()
 
-        if (username === cosClient.userName && Object.keys(o).length) {
+        if (p !== "") {
+            var err = qsTr("Érvénytelen dátum!")
+
+            if (p === "invalid1")
+                err = qsTr("Érvénytelen kezdő időpont!")
+            else if (p === "invalid2")
+                err = qsTr("Érvénytelen befejező időpont!")
+            else if (p === "old1")
+                err = qsTr("A kezdő időpont a múltban van!")
+            else if (p === "old2")
+                err = qsTr("A befejező időpont a múltban van!")
+            else if (p === "before")
+                err = qsTr("A befejező időpont a kezdő időpont előtt van!")
+
+            cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Hadjárat szerkesztése"), err)
+
+            return
+        }
+
+        var o = {}
+
+        if (textDescription.modified)
+            o.description = textDescription.text
+
+        if (textStarttime.modified)
+            o.starttime = Date.fromLocaleString(Qt.locale(), textStarttime.text, _dateFormat).toLocaleString(Qt.locale(), "yyyy-MM-dd HH:mm:ss")
+
+        if (textEndtime.modified)
+            o.endtime = Date.fromLocaleString(Qt.locale(), textEndtime.text, _dateFormat).toLocaleString(Qt.locale(), "yyyy-MM-dd HH:mm:ss")
+
+        if (areaMapOpen.modified)
+            o.mapopen = JS.listModelGetSelectedFields(modelMapOpenList, "uuid")
+
+        if (areaMapClose.modified)
+            o.mapclose = JS.listModelGetSelectedFields(modelMapCloseList, "uuid")
+
+        var alist = []
+
+        for (var i=0; i<modelAssignment.count; i++) {
+            var a = modelAssignment.get(i)
+
+            alist.push(a)
+        }
+
+        o.assignmentList = alist
+
+        console.debug(JSON.stringify(o))
+
+        /*if (username === cosClient.userName && Object.keys(o).length) {
             if (cosClient.userRoles & Client.RoleTeacher)
                 profile.send(CosMessage.ClassTeacher, "userModify", o)
             else
                 profile.send(CosMessage.ClassStudent, "userModify", o)
         }*/
 
-        layout1.modified = false
+        //layout1.modified = false
+        //isEditing = false
+    }
+
+
+    function parseDates() {
+        if (!isEditing)
+            return
+
+        var d1 = Date.fromLocaleString(Qt.locale(), textStarttime.text, _dateFormat)
+        var d2 = Date.fromLocaleString(Qt.locale(), textEndtime.text, _dateFormat)
+
+        var t1 = d1.getTime()
+        var t2 = d2.getTime()
+
+        if (isNaN(t1)) {
+            textStarttime._parseOK = false
+            return "invalid1"
+        }
+
+        if (isNaN(t2)) {
+            textEndtime._parseOK = false
+            return "invalid2"
+        }
+
+        if (t1 <= Date.now() && baseModificationEnabled) {
+            textStarttime._parseOK = false
+            return "old1"
+        }
+
+        textStarttime._parseOK = true
+
+        if (t2 <= Date.now()) {
+            textEndtime._parseOK = false
+            return "old2"
+        }
+
+        if (t2 <= t1) {
+            textEndtime._parseOK = false
+            return "before"
+        }
+
+        textEndtime._parseOK = true
+
+        return ""
     }
 
 
     backCallbackFunction: function () {
-        if (actionSave.enabled) {
+        if (isEditing && campaignId != -1) {
+            teacherGroups.send("campaignGet", {id: campaignId})
+            return true
+        } if (isEditing && layout1.modified) {
             var d = JS.dialogCreateQml("YesNo", {
                                            text: qsTr("Biztosan elveted a módosításokat?"),
                                            image: "qrc:/internal/icon/close-octagon-outline.svg"
                                        })
             d.accepted.connect(function() {
-                actionSave.enabled = false
+                isEditing = false
                 mainStack.back()
             })
             d.open()

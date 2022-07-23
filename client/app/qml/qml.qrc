@@ -172,5 +172,6 @@
         <file>QDialogImageList.qml</file>
         <file>TeacherGroupCampaign.qml</file>
         <file>TeacherGroupCampaignDetails.qml</file>
+        <file>GameEnemySniper.qml</file>
     </qresource>
 </RCC>

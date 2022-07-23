@@ -62,6 +62,7 @@ class GameMatch : public QObject
 
 	Q_PROPERTY(int water READ water WRITE setWater NOTIFY waterChanged)
 	Q_PROPERTY(int pliers READ pliers WRITE setPliers NOTIFY pliersChanged)
+	Q_PROPERTY(int glasses READ glasses WRITE setGlasses NOTIFY glassesChanged)
 
 	Q_PROPERTY(GameMode mode READ mode WRITE setMode NOTIFY modeChanged)
 
@@ -144,6 +145,9 @@ public:
 	bool isFlawless() const;
 	void setIsFlawless(bool newIsFlawless);
 
+	int glasses() const;
+	void setGlasses(int newGlasses);
+
 public slots:
 	bool check(QString *errorString);
 	void addXP(const qreal &factor);
@@ -185,6 +189,8 @@ signals:
 	void skipPreviewChanged();
 	void isFlawlessChanged();
 
+	void glassesChanged();
+
 private:
 	GameMap *m_gameMap;
 	GameMapMissionLevel *m_missionLevel;
@@ -210,6 +216,7 @@ private:
 	GameMode m_mode;
 	bool m_skipPreview;
 	bool m_isFlawless;
+	int m_glasses;
 };
 
 
