@@ -1022,8 +1022,9 @@ void StudentMaps::onGameListUserGet(QJsonObject jsonData, QByteArray)
 
 	foreach (QJsonValue v, list) {
 		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
-							  .value(m.value("missionid").toString()).toString();
+		const QVariantMap missionInfo = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+										.value(m.value("missionid").toString()).toMap();
+		const QString missionname = missionInfo.value("name").toString();
 
 		m["missionname"] = missionname;
 		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");

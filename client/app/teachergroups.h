@@ -61,6 +61,7 @@ class TeacherGroups : public AbstractActivity
 	Q_PROPERTY(QString selectedGroupFullName READ selectedGroupFullName WRITE setSelectedGroupFullName NOTIFY selectedGroupFullNameChanged)
 
 	Q_PROPERTY(QVariantList mapList READ mapList CONSTANT)
+	Q_PROPERTY(QVariantList gradeList READ gradeList CONSTANT)
 
 
 public:
@@ -82,8 +83,11 @@ public:
 	Q_INVOKABLE ObjectListModel* newMapModel(QObject *parent) const;
 
 	Q_INVOKABLE QVariantMap grade(const int &id) const;
-	Q_INVOKABLE QVariantMap mapMission(const QString &mapUuid, const QString &missionUuid);
+	Q_INVOKABLE QVariantMap mapMission(const QString &mapUuid, const QString &missionUuid) const;
+	Q_INVOKABLE QVariantList missionList(const QString &mapUuid = "") const;
+
 	const QVariantList &mapList() const;
+	QVariantList gradeList() const;
 
 public slots:
 	void groupReload(QJsonObject = QJsonObject(), QByteArray = QByteArray());
@@ -133,6 +137,9 @@ signals:
 	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
 	void campaignGet(QJsonObject jsonData, QByteArray binaryData);
 	void campaignGetReady(const QJsonObject &jsonData);
+	void campaignAdd(QJsonObject jsonData, QByteArray binaryData);
+	void campaignRemove(QJsonObject jsonData, QByteArray binaryData);
+	void campaignModify(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelMapListChanged();
 	void selectedGroupIdChanged(int selectedGroupId);

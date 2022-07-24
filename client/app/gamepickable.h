@@ -56,7 +56,8 @@ public:
 		PickableShield,
 		PickableWater,
 		PickablePliers,
-		PickableGlasses
+		PickableCamouflage,
+		PickableTeleporter
 	};
 
 	Q_ENUM(PickableType)

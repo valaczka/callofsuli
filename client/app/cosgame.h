@@ -131,7 +131,8 @@ public slots:
 	void increaseShield(const int &num);
 	void increasePliers(const int &num);
 	void increaseWater(const int &num);
-	void increaseGlasses(const int &num);
+	void increaseCamouflage(const int &num);
+	void increaseTeleporter(const int &num);
 
 	void setGameData(QVariantMap gameData);
 	void onGameStarted();

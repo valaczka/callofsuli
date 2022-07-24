@@ -6,33 +6,37 @@ import "Style"
 
 
 QLabel {
-	id: label
+    id: label
 
-	property Item field: null
-	property string sqlField: ""
-	property string sqlData: text
+    property Item field: null
+    property string sqlField: ""
+    property string sqlData: text
 
-	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
+    Layout.bottomMargin: parent.columns === 1 ? 10 : 0
 
-	Layout.fillWidth: false
+    Layout.fillWidth: false
 
-	Layout.alignment: parent.columns > 1 ?
-						  Qt.AlignRight | Qt.AlignVCenter :
-						  Qt.AlignLeft | Qt.AlignVCenter
+    Layout.alignment: parent.columns > 1 ?
+                          Qt.AlignRight | Qt.AlignVCenter :
+                          Qt.AlignLeft | Qt.AlignVCenter
 
-	horizontalAlignment: parent.columns > 1 ? Text.AlignRight : Text.AlignLeft
-	verticalAlignment: Text.AlignVCenter
+    horizontalAlignment: parent.columns > 1 ? Text.AlignRight : Text.AlignLeft
+    verticalAlignment: Text.AlignVCenter
 
-	font.pixelSize: CosStyle.pixelSize*0.9
+    font.pixelSize: CosStyle.pixelSize*0.9
 
-	color: (field && field.modified) ? CosStyle.colorAccent : CosStyle.colorPrimary
+    color: (field && field.modified) ? CosStyle.colorAccent : CosStyle.colorPrimary
 
-	Behavior on color {
-		ColorAnimation { duration: 125 }
-	}
+    Behavior on color {
+        ColorAnimation { duration: 125 }
+    }
 
+    Binding on color {
+        when: field && !field.acceptableInput
+        value: CosStyle.colorErrorLighter
+    }
 
-	function setData(t) {
-		text = t
-	}
+    function setData(t) {
+        text = t
+    }
 }

@@ -55,7 +55,8 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_mode(ModeNormal)
 	, m_skipPreview(false)
 	, m_isFlawless(false)
-	, m_glasses(0)
+	, m_camouflage(0)
+	, m_teleporter(0)
 {
 	setPlayerCharacter("default");
 }
@@ -84,7 +85,8 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	, m_mode(ModeNormal)
 	, m_skipPreview(false)
 	, m_isFlawless(false)
-	, m_glasses(0)
+	, m_camouflage(0)
+	, m_teleporter(0)
 {
 	Q_ASSERT(missionLevel);
 
@@ -134,7 +136,8 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	, m_mode(ModeNormal)
 	, m_skipPreview(false)
 	, m_isFlawless(false)
-	, m_glasses(0)
+	, m_camouflage(0)
+	, m_teleporter(0)
 {
 	setPlayerCharacter("default");
 
@@ -295,29 +298,27 @@ bool GameMatch::check(QString *errorString)
 		return false;
 	}
 
-	//foreach(GameMap::BlockChapterMap *bcm, ml->blockChapterMaps()) {
-		foreach(GameMapChapter *chapter, ml->chapters()) {
-			foreach(GameMapObjective *objective, chapter->objectives()) {
-				QString om = objective->module();
+	foreach(GameMapChapter *chapter, ml->chapters()) {
+		foreach(GameMapObjective *objective, chapter->objectives()) {
+			QString om = objective->module();
 
-				if (!Client::moduleObjectiveList().contains(om)) {
+			if (!Client::moduleObjectiveList().contains(om)) {
+				if (errorString)
+					*errorString = tr("Érvénytelen modul: %1").arg(om);
+				return false;
+			}
+
+			if (objective->storage()) {
+				QString sm = objective->storage()->module();
+
+				if (!Client::moduleStorageList().contains(sm)) {
 					if (errorString)
-						*errorString = tr("Érvénytelen modul: %1").arg(om);
+						*errorString = tr("Érvénytelen modul: %1").arg(sm);
 					return false;
-				}
-
-				if (objective->storage()) {
-					QString sm = objective->storage()->module();
-
-					if (!Client::moduleStorageList().contains(sm)) {
-						if (errorString)
-							*errorString = tr("Érvénytelen modul: %1").arg(sm);
-						return false;
-					}
 				}
 			}
 		}
-	//}
+	}
 
 	return true;
 }
@@ -534,15 +535,28 @@ void GameMatch::setIsFlawless(bool newIsFlawless)
 	emit isFlawlessChanged();
 }
 
-int GameMatch::glasses() const
+int GameMatch::camouflage() const
 {
-	return m_glasses;
+	return m_camouflage;
 }
 
-void GameMatch::setGlasses(int newGlasses)
+void GameMatch::setCamouflage(int newGlasses)
 {
-	if (m_glasses == newGlasses)
+	if (m_camouflage == newGlasses)
 		return;
-	m_glasses = newGlasses;
-	emit glassesChanged();
+	m_camouflage = newGlasses;
+	emit camouflageChanged();
+}
+
+int GameMatch::teleporter() const
+{
+	return m_teleporter;
+}
+
+void GameMatch::setTeleporter(int newTeleporter)
+{
+	if (m_teleporter == newTeleporter)
+		return;
+	m_teleporter = newTeleporter;
+	emit teleporterChanged();
 }

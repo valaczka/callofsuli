@@ -280,8 +280,10 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 
 	foreach (QJsonValue v, list) {
 		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
-							  .value(m.value("missionid").toString()).toString();
+
+		const QVariantMap missionInfo = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+										.value(m.value("missionid").toString()).toMap();
+		const QString missionname = missionInfo.value("name").toString();
 
 		m["missionname"] = missionname;
 		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
@@ -315,8 +317,9 @@ void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 
 	foreach (QJsonValue v, list) {
 		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
-							  .value(m.value("missionid").toString()).toString();
+		const QVariantMap missionInfo = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+										.value(m.value("missionid").toString()).toMap();
+		const QString missionname = missionInfo.value("name").toString();
 
 		m["missionname"] = missionname;
 		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
@@ -340,14 +343,6 @@ void TeacherGroups::onCampaignGet(QJsonObject jsonData, QByteArray)
 	if (m_missionNameMap.isEmpty()) {
 		m_missionNameMap = TeacherMaps::missionNames(db());
 	}
-
-	/*if (jsonData.contains("list")) {
-		QJsonArray list = jsonData.value("list").toArray();
-
-		emit campaignGetReady(TeacherMaps::campaignList(list, m_missionNameMap, m_modelMapList).toVariantList());
-	} else {
-		qWarning() << "NO LIST";
-	}*/
 
 	emit campaignGetReady(jsonData);
 }
@@ -454,12 +449,14 @@ QVariantMap TeacherGroups::grade(const int &id) const
  * @return
  */
 
-QVariantMap TeacherGroups::mapMission(const QString &mapUuid, const QString &missionUuid)
+QVariantMap TeacherGroups::mapMission(const QString &mapUuid, const QString &missionUuid) const
 {
 	QVariantMap ret;
 
 	QString map = mapUuid;
-	QString mis = m_missionNameMap.value(mapUuid).toMap().value(missionUuid).toString();
+	const QVariantMap misMap = m_missionNameMap.value(mapUuid).toMap().value(missionUuid).toMap();
+	const QString mis = misMap.value("name").toString();
+	const QString medal = misMap.value("medalImage").toString();
 
 	foreach (QVariant v, m_mapList) {
 		QVariantMap m = v.toMap();
@@ -471,6 +468,7 @@ QVariantMap TeacherGroups::mapMission(const QString &mapUuid, const QString &mis
 
 	ret["map"] = map;
 	ret["mission"] = mis.isEmpty() ? missionUuid : mis;
+	ret["medalImage"] = medal;
 
 	return ret;
 }
@@ -484,4 +482,69 @@ QVariantMap TeacherGroups::mapMission(const QString &mapUuid, const QString &mis
 const QVariantList &TeacherGroups::mapList() const
 {
 	return m_mapList;
+}
+
+
+/**
+ * @brief TeacherGroups::missionList
+ * @return
+ */
+
+QVariantList TeacherGroups::missionList(const QString &mapUuid) const
+{
+	QVariantList ret;
+
+	QVariantMap m;
+
+	if (mapUuid.isEmpty()) {
+		m = m_missionNameMap;
+	} else {
+		m[mapUuid] = m_missionNameMap.value(mapUuid).toMap();
+	}
+
+	QMapIterator<QString, QVariant> it(m);
+
+	while (it.hasNext()) {
+		it.next();
+
+		QVariantMap mm = it.value().toMap();
+
+		QMapIterator<QString, QVariant> iit(mm);
+
+		while (iit.hasNext()) {
+			iit.next();
+
+			const QVariantMap im = iit.value().toMap();
+
+			ret.append(QVariantMap({
+									   { "uuid", iit.key() },
+									   { "name", im.value("name").toString() },
+									   { "medalImage", im.value("medalImage").toString() }
+								   }));
+		}
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief TeacherGroups::gradeList
+ * @return
+ */
+
+QVariantList TeacherGroups::gradeList() const
+{
+	QVariantList ret;
+
+	QMapIterator<int, QVariantMap> it (m_gradeMap);
+
+	while (it.hasNext()) {
+		it.next();
+		QVariantMap m = it.value();
+		m["id"] = it.key();
+		ret.append(m);
+	}
+
+	return ret;
 }

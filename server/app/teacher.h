@@ -136,6 +136,9 @@ public slots:
 
 	bool campaignGet(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

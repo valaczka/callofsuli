@@ -1953,6 +1953,153 @@ bool Teacher::campaignListGet(QJsonObject *jsonResponse, QByteArray *)
 
 
 
+/**
+ * @brief Teacher::campaignAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+	int groupid = params.value("groupid").toInt(-1);
+
+	QVariantMap group = m_client->db()->execSelectQueryOneRow("SELECT id FROM studentgroup WHERE id=? AND owner=?",
+															  {groupid, m_client->clientUserName()});
+	if (group.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid groupid";
+		return false;
+	}
+
+	QVariantMap m;
+	m["groupid"] = groupid;
+
+	const QString dateTimeFormat = "yyyy-MM-dd HH:mm:ss";
+
+	if (params.contains("starttime"))
+		m["starttime"] = QDateTime::fromString(params.value("starttime").toString(), dateTimeFormat).toUTC().toString(dateTimeFormat);
+
+	if (params.contains("endtime"))
+		m["endtime"] = QDateTime::fromString(params.value("endtime").toString(), dateTimeFormat).toUTC().toString(dateTimeFormat);
+
+	if (params.contains("description"))
+		m["description"] = params.value("description").toString();
+
+	if (params.contains("mapopen"))
+		m["mapopen"] = params.value("mapopen").toVariant().toStringList().join("|");
+
+	if (params.contains("mapclose"))
+		m["mapclose"] = params.value("mapclose").toVariant().toStringList().join("|");
+
+
+	int id = m_client->db()->execInsertQuery("INSERT INTO campaign (?k?) VALUES (?)", m);
+
+	if (id == -1) {
+		(*jsonResponse)["error"] = "sql error";
+		return false;
+	}
+
+
+	foreach (QJsonValue v, params.value("assignmentList").toArray()) {
+		QJsonObject o = v.toObject();
+
+		int aid = m_client->db()->execInsertQuery("INSERT INTO assignment (?k?) VALUES (?)", {
+													  { "campaignid", id },
+													  { "name", o.value("name").toString()}
+												  });
+
+		if (aid == -1) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+
+		foreach (QJsonValue v, o.value("gradingList").toArray()) {
+			QJsonObject o = v.toObject();
+
+			const QString type = o.value("type").toString();
+
+			if (type == "grade") {
+				if (m_client->db()->execInsertQuery("INSERT INTO grading (?k?) VALUES (?)", {
+				{ "assignmentid", aid },
+				{ "gradeid", o.value("ref").toInt() },
+				{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
+			}) == -1) {
+					(*jsonResponse)["error"] = "sql error";
+					return false;
+				}
+			} else if (type == "xp") {
+				if (m_client->db()->execInsertQuery("INSERT INTO grading (?k?) VALUES (?)", {
+				{ "assignmentid", aid },
+				{ "xp", o.value("xp").toInt() },
+				{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
+			}) == -1) {
+					(*jsonResponse)["error"] = "sql error";
+					return false;
+				}
+			}
+		}
+	}
+
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["created"] = true;
+
+	return true;
+}
+
+
+/**
+ * @brief Teacher::campaignRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	QVariantList list;
+
+	foreach (QJsonValue v, params.value("list").toArray())
+		list.append(v.toInt());
+
+	if (params.contains("id"))
+		list.append(params.value("id").toInt());
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":user"] = m_client->clientUserName();
+
+		if (!m_client->db()->execListQuery("DELETE from campaign WHERE id IN (?l?) AND "
+										   "(SELECT owner FROM studentgroup WHERE id=campaign.groupid)=:user", list, p, false)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+	}
+
+	if (params.contains("id"))
+		(*jsonResponse)["id"] = params.value("id").toInt();
+
+	(*jsonResponse)["removed"] = list.size();
+
+	return true;
+}
+
+
+/**
+ * @brief Teacher::campaignModify
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignModify(QJsonObject *jsonResponse, QByteArray *)
+{
+
+	return false;
+}
+
+
+
 
 
 /**

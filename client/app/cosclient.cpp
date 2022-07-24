@@ -439,7 +439,7 @@ void Client::windowSaveGeometry(QQuickWindow *window)
 	QSettings s(this);
 	s.beginGroup("window");
 
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+#ifdef Q_OS_LINUX
 	s.setValue("size", window->size());
 	s.setValue("position", window->position());
 #else
@@ -462,12 +462,21 @@ void Client::windowRestoreGeometry(QQuickWindow *window)
 	QSettings s(this);
 	s.beginGroup("window");
 
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	window->showFullScreen();
+#else
+
+#ifdef Q_OS_LINUX
 	window->resize(s.value("size", QSize(600, 600)).toSize());
 	window->setPosition(s.value("position", QPoint(0, 0)).toPoint());
+#endif
 
+#ifdef QT_DEBUG
+	window->showMaximized();
 #else
-	Q_UNUSED(window);
+	window->showFullScreen();
+#endif
+
 #endif
 
 	s.endGroup();
@@ -533,23 +542,6 @@ QString Client::connectionInfo(const QString &func, const QVariantMap &queries, 
 
 
 
-/**
- * @brief Client::connectionInfoMap
- * @return
- */
-
-QVariantMap Client::connectionInfoMap() const
-{
-	if (m_connectionState == Client::Standby)
-		return QVariantMap();
-
-	QVariantMap m;
-	m["host"] = m_socket->requestUrl().host();
-	m["port"] = m_socket->requestUrl().port();
-	m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
-
-	return m;
-}
 
 
 /**
@@ -643,7 +635,7 @@ bool Client::getSettingBool(const QString &key, const bool &defaultValue)
 void Client::setServerSetting(const QString &key, const QVariant &value)
 {
 	if (m_serverDataDir.isEmpty()) {
-		qWarning() << tr("Nincs szerverkönyvtár beállítva!");
+		setSetting(key, value);
 		return;
 	}
 
@@ -663,10 +655,8 @@ void Client::setServerSetting(const QString &key, const QVariant &value)
 
 QVariant Client::getServerSetting(const QString &key, const QVariant &defaultValue)
 {
-	if (m_serverDataDir.isEmpty()) {
-		qWarning() << tr("Nincs szerverkönyvtár beállítva!");
-		return defaultValue;
-	}
+	if (m_serverDataDir.isEmpty())
+		return getSetting(key, defaultValue);
 
 	const QString fname = m_serverDataDir+"/settings.ini";
 

@@ -63,6 +63,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_fire(nullptr)
 	, m_fence(nullptr)
 	, m_invisible(false)
+	, m_teleport(nullptr)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -290,6 +291,9 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 	} else if (data.value("fence", false).toBool()) {
 		setFence(qvariant_cast<QQuickItem*>(object));
 		return;
+	} else if (data.value("teleport", false).toBool()) {
+		setTeleport(qvariant_cast<QQuickItem*>(object));
+		return;
 	}
 
 	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
@@ -342,6 +346,11 @@ void GamePlayer::onBodyEndContact(Box2DFixture *other)
 		QQuickItem *i = qvariant_cast<QQuickItem*>(object);
 		if (m_fence == i)
 			setFence(nullptr);
+		return;
+	} else 	if (data.value("teleport", false).toBool()) {
+		QQuickItem *i = qvariant_cast<QQuickItem*>(object);
+		if (m_teleport == i)
+			setTeleport(nullptr);
 		return;
 	}
 
@@ -553,6 +562,51 @@ void GamePlayer::autoMove()
 		} else
 			emit autoMoveWalkRequest(false);
 	}
+
+}
+
+
+/**
+ * @brief GamePlayer::teleportToNext
+ */
+
+void GamePlayer::teleportToNext()
+{
+	if (!m_teleport)
+		return;
+
+	if (!parentEntity())
+		return;
+
+	QQuickItem *sceneItem = m_cosGame->gameScene();
+
+	qDebug() << "SCENE" << sceneItem;
+
+	if (!sceneItem)
+		return;
+
+	GameScene *scene = qvariant_cast<GameScene *>(sceneItem->property("scenePrivate"));
+
+	qDebug() << "SCENE*" << scene;
+
+	if (!scene)
+		return;
+
+	if (scene->teleports().isEmpty())
+		return;
+
+	int idx = scene->teleports().indexOf(m_teleport);
+	idx++;
+
+	if (idx >= scene->teleports().size())
+		idx = 0;
+
+	const QQuickItem *next = scene->teleports().at(idx);
+
+	qDebug() << "GOTO" << next << next->x() << next->y();
+
+	parentEntity()->setX(next->x());
+	parentEntity()->setY(next->y());
 
 }
 
@@ -806,9 +860,17 @@ void GamePlayer::setInvisible(bool newInvisible)
 		return;
 	m_invisible = newInvisible;
 	emit invisibleChanged();
+}
 
-	if (m_bodyPolygon) {
-		m_bodyPolygon->setProperty("invisible", m_invisible);
-		qDebug() << "BODY POLYGON" << m_bodyPolygon << m_bodyPolygon->property("invisible");
-	}
+QQuickItem *GamePlayer::teleport() const
+{
+	return m_teleport;
+}
+
+void GamePlayer::setTeleport(QQuickItem *newTeleport)
+{
+	if (m_teleport == newTeleport)
+		return;
+	m_teleport = newTeleport;
+	emit teleportChanged(m_teleport);
 }

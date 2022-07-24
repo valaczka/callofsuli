@@ -529,10 +529,15 @@ void CosGame::pickPickable()
 			increasePliers(1);
 			emit gameMessageSent(tr("1 pliers gained"));
 			break;
-		case GamePickable::PickableGlasses:
-			increaseGlasses(1);
-			emit gameMessageSent(tr("1 glasses gained"));
+		case GamePickable::PickableCamouflage:
+			increaseCamouflage(1);
+			emit gameMessageSent(tr("1 camouflage gained"));
 			break;
+		case GamePickable::PickableTeleporter:
+			increaseTeleporter(1);
+			emit gameMessageSent(tr("1 teleporter gained"));
+			break;
+
 
 		default:
 			break;
@@ -815,14 +820,30 @@ void CosGame::increaseWater(const int &num)
  * @param num
  */
 
-void CosGame::increaseGlasses(const int &num)
+void CosGame::increaseCamouflage(const int &num)
 {
 	if (!m_gameMatch) {
 		qWarning() << "Invalid game match";
 		return;
 	}
 
-	m_gameMatch->setGlasses(m_gameMatch->glasses()+num);
+	m_gameMatch->setCamouflage(m_gameMatch->camouflage()+num);
+}
+
+
+/**
+ * @brief CosGame::increaseTeleporter
+ * @param num
+ */
+
+void CosGame::increaseTeleporter(const int &num)
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid game match";
+		return;
+	}
+
+	m_gameMatch->setTeleporter(m_gameMatch->teleporter()+num);
 }
 
 

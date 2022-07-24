@@ -56,6 +56,7 @@ class GamePlayer : public GameEntity
 
 	Q_PROPERTY(QQuickItem* fire READ fire WRITE setFire NOTIFY fireChanged)
 	Q_PROPERTY(QQuickItem* fence READ fence WRITE setFence NOTIFY fenceChanged)
+	Q_PROPERTY(QQuickItem* teleport READ teleport WRITE setTeleport NOTIFY teleportChanged)
 
 public:
 	enum LadderMode {
@@ -81,6 +82,7 @@ public:
 
 	Q_INVOKABLE void operate(QQuickItem *item);
 	Q_INVOKABLE void autoMove();
+	Q_INVOKABLE void teleportToNext();
 
 	LadderMode ladderMode() const { return m_ladderMode; }
 	GameLadder * ladder() const { return m_ladder; }
@@ -104,6 +106,9 @@ public:
 
 	bool invisible() const;
 	void setInvisible(bool newInvisible);
+
+	QQuickItem *teleport() const;
+	void setTeleport(QQuickItem *newTeleport);
 
 public slots:
 	QString playSoundEffect(const QString &effect);
@@ -140,6 +145,7 @@ signals:
 	void fireChanged();
 	void fenceChanged();
 	void invisibleChanged();
+	void teleportChanged(QQuickItem *item);
 
 private slots:
 	void onCosGameChanged(CosGame *);
@@ -163,6 +169,7 @@ private:
 	QPointer<QQuickItem> m_fire;
 	QPointer<QQuickItem> m_fence;
 	bool m_invisible;
+	QPointer<QQuickItem> m_teleport;
 };
 
 

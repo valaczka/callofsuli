@@ -477,10 +477,14 @@ QVariantMap TeacherMaps::missionNames(CosDb *db)
 
 		if (map) {
 			foreach(GameMapMission *mis, map->missions()) {
-				QString missionid = mis->uuid();
-				QString name = mis->name();
+				const QString missionid = mis->uuid();
+				const QString name = mis->name();
+				const QString medal = mis->medalImage();
 
-				r[missionid] = name;
+				r[missionid] = QVariantMap({
+											   { "name", name },
+											   { "medalImage", medal }
+										   });
 			}
 		}
 
@@ -601,7 +605,10 @@ QJsonArray TeacherMaps::campaignList(const QJsonArray &list, const QVariantMap &
 						QString map = criterion.value("map").toString();
 						QString mission = criterion.value("mission").toString();
 
-						mission = missionMap.value(map).toMap().value(mission).toString();
+						const QVariantMap missionInfo = missionMap.value(map).toMap().value(mission).toMap();
+						const QString medalImage = missionInfo.value("medalImage").toString();
+
+						mission = missionInfo.value("name").toString();
 
 						if (mission.isEmpty())
 							mission = "???";
@@ -615,6 +622,7 @@ QJsonArray TeacherMaps::campaignList(const QJsonArray &list, const QVariantMap &
 
 						criterion["map"] = map;
 						criterion["mission"] = mission;
+						criterion["medalImage"] = medalImage;
 					}
 
 					o["criterion"] = criterion;

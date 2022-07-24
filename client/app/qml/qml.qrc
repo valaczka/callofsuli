@@ -173,5 +173,7 @@
         <file>TeacherGroupCampaign.qml</file>
         <file>TeacherGroupCampaignDetails.qml</file>
         <file>GameEnemySniper.qml</file>
+        <file>QDialogGradingCriterion.qml</file>
+        <file>GameTeleport.qml</file>
     </qresource>
 </RCC>

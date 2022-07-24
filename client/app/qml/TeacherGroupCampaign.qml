@@ -265,6 +265,19 @@ QTabContainer {
         text: qsTr("Törlés")
         icon.source: "qrc:/internal/icon/calendar-remove.svg"
         enabled: list.currentIndex != -1 && list.modelObject(list.currentIndex).started == false
+
+        onTriggered: {
+            var o = list.modelObject(list.currentIndex)
+            var d = JS.dialogCreateQml("YesNo", {
+                                           text: qsTr("Biztosan törlöd a hadjáratot?\n%1").arg(o.title),
+                                           image: "qrc:/internal/icon/calendar-remove.svg"
+                                       })
+            d.accepted.connect(function() {
+                teacherGroups.send("campaignRemove", {id: o.id})
+            })
+            d.open()
+            return true
+        }
     }
 
 
@@ -281,71 +294,6 @@ QTabContainer {
         }
     }
 
-    Action {
-        id: actionActivate
-        text: qsTr("Aktiválás")
-        icon.source: "qrc:/internal/icon/briefcase-variant.svg"
-        //enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
-        onTriggered: {
-            var o = list.modelObject(list.currentIndex)
-
-            var more = teacherGroups.modelMapList.selectedCount
-
-            if (more > 0)
-                teacherGroups.send("groupMapActivate", {
-                                       id: teacherGroups.selectedGroupId,
-                                       active: true,
-                                       list: teacherGroups.modelMapList.getSelectedFields("uuid")
-                                   })
-            else
-                teacherGroups.send("groupMapActivate", {
-                                       id: teacherGroups.selectedGroupId,
-                                       active: true,
-                                       uuid: o.uuid
-                                   })
-        }
-    }
-
-
-
-    Action {
-        id: actionRemove
-        text: qsTr("Eltávolítás")
-        icon.source: "qrc:/internal/icon/briefcase-minus.svg"
-        //enabled: !teacherGroups.isBusy && (list.currentIndex !== -1 || teacherGroups.modelMapList.selectedCount)
-        onTriggered: {
-            var o = list.modelObject(list.currentIndex)
-
-            var more = teacherGroups.modelMapList.selectedCount
-
-            if (more > 0) {
-                var dd = JS.dialogCreateQml("YesNo", {
-                                                title: qsTr("Pálya eltávolítása"),
-                                                text: qsTr("Biztosan eltávolítod a kijelölt %1 pályát?").arg(more),
-                                                image: "qrc:/internal/icon/briefcase-minus.svg"
-                                            })
-                dd.accepted.connect(function () {
-                    teacherGroups.send("groupMapRemove", {
-                                           id: teacherGroups.selectedGroupId,
-                                           list: teacherGroups.modelMapList.getSelectedFields("uuid") })
-                })
-                dd.open()
-            } else {
-                var d = JS.dialogCreateQml("YesNo", {
-                                               title: qsTr("Pálya eltávolítása"),
-                                               text: qsTr("Biztosan eltávolítod a pályát?\n%1").arg(o.name),
-                                               image: "qrc:/internal/icon/briefcase-minus.svg"
-                                           })
-                d.accepted.connect(function () {
-                    teacherGroups.send("groupMapRemove", {
-                                           id: teacherGroups.selectedGroupId,
-                                           uuid: o.uuid
-                                       })
-                })
-                d.open()
-            }
-        }
-    }
 
 
 
@@ -360,6 +308,21 @@ QTabContainer {
 
     Connections {
         target: teacherGroups
+
+        function onCampaignRemove(jsonData, binaryData) {
+            if (teacherGroups.selectedGroupId > -1)
+                teacherGroups.send("campaignListGet", {groupid: teacherGroups.selectedGroupId})
+        }
+
+        function onCampaignAdd(jsonData, binaryData) {
+            if (teacherGroups.selectedGroupId > -1)
+                teacherGroups.send("campaignListGet", {groupid: teacherGroups.selectedGroupId})
+        }
+
+        function onCampaignModify(jsonData, binaryData) {
+            if (teacherGroups.selectedGroupId > -1)
+                teacherGroups.send("campaignListGet", {groupid: teacherGroups.selectedGroupId})
+        }
 
         function onCampaignListGet(jsonData, binaryData) {
             modelCampaign.clear()

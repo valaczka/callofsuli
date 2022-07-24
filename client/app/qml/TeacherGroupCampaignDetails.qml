@@ -45,7 +45,7 @@ QTabContainer {
                                                image: "qrc:/internal/icon/calendar-remove.svg"
                                            })
                 d.accepted.connect(function() {
-                    mainStack.back()
+                    teacherGroups.send("campaignRemove", {id: campaignId})
                 })
                 d.open()
                 return true
@@ -213,8 +213,6 @@ QTabContainer {
 
                             JS.listModelCopy(modelMapOpenList, _modelDialogList)
                             updateMapArea(areaMapOpen, modelMapOpenList)
-
-                            //studentMaps.send("campaignGet", {groupid: studentMaps.selectedGroupId, id: data.id})*/
                         })
                         d.open()
                     }
@@ -230,7 +228,6 @@ QTabContainer {
                     placeholderText: qsTr("A bejező időpontban inaktiválandó pályák")
                     minimumHeight: CosStyle.baseHeight*2
                     readOnly: true
-                    //color: CosStyle.colorWarning
                 }
 
                 QGridButton {
@@ -257,24 +254,9 @@ QTabContainer {
 
                             JS.listModelCopy(modelMapCloseList, _modelDialogList)
                             updateMapArea(areaMapClose, modelMapCloseList)
-
-                            //studentMaps.send("campaignGet", {groupid: studentMaps.selectedGroupId, id: data.id})*/
                         })
                         d.open()
                     }
-
-                    /*onClicked: {
-                        if (server) {
-                            JS.updateByModifiedSqlFields(server, [textHostname, spinPort, checkSsl])
-                        } else {
-                            var m = JS.getSqlFields([textHostname, spinPort, checkSsl])
-
-                            if (Object.keys(m).length) {
-                                servers.serverCreate(m)
-                            }
-                        }
-                        servers.uiBack()
-                    }*/
 
                 }
 
@@ -294,7 +276,7 @@ QTabContainer {
                 required property int index
                 required property string name
                 required property int id
-                required property ListModel gradingList
+                required property var gradingList
 
                 rightComponent: QToolButton {
                     icon.source: "qrc:/internal/icon/delete.svg"
@@ -314,6 +296,8 @@ QTabContainer {
                 }
 
                 Column {
+                    width: parent.width
+
                     Repeater {
                         model: gradingList
 
@@ -332,7 +316,7 @@ QTabContainer {
 
                             QRectangleBg {
                                 anchors.fill: parent
-                                acceptedButtons: Qt.LeftButton
+                                acceptedButtons: isEditing && baseModificationEnabled ? Qt.LeftButton : Qt.NoButton
 
                                 QLabel {
                                     id: valueLabel
@@ -361,7 +345,7 @@ QTabContainer {
                                         id: modeLabel
                                         anchors.left: parent.left
                                         font.weight: Font.Bold
-                                        font.pixelSize: CosStyle.pixelSize*0.7
+                                        font.pixelSize: CosStyle.pixelSize*0.8
                                         font.capitalization: Font.AllUppercase
                                         states: [
                                             State {
@@ -384,31 +368,11 @@ QTabContainer {
                                     }
 
                                     QLabel {
+                                        id: criteriaLabel
                                         width: parent.width
                                         anchors.left: parent.left
                                         wrapMode: Text.Wrap
                                         visible: text != ""
-
-                                        Component.onCompleted: {
-                                            if (criteria.module === undefined)
-                                                return
-
-                                            var m = criteria.module
-
-                                            if (m === "xp")
-                                                text = qsTr("%1 XP összegyűjtése").arg(criteria.value)
-                                            else if (m === "trophy")
-                                                text = qsTr("%1 trófea összegyűjtése").arg(criteria.value)
-                                            else if (m === "sumlevel")
-                                                text = qsTr("%1 különböző LEVEL %2%3 szintű küldetés").arg(criteria.value).arg(criteria.level).arg(
-                                                            criteria.deathmatch ? qsTr(" SUDDEN DEATH") : "")
-                                            else if (m === "missionlevel") {
-                                                var mm = teacherGroups.mapMission(criteria.map, criteria.mission)
-                                                text = qsTr("%1 pálya %2 küldetés LEVEL %3%4 szinten").arg(mm.map).arg(mm.mission).arg(criteria.level).arg(
-                                                            criteria.deathmatch ? qsTr(" SUDDEN DEATH") : "")
-                                            } else
-                                                text = "%1 value: %2".arg(m).arg(criteria.value)
-                                        }
                                     }
                                 }
 
@@ -432,8 +396,55 @@ QTabContainer {
                                         d.open()
                                     }
                                 }
+
+                                mouseArea.onClicked: {
+                                    var d = JS.dialogCreateQml("GradingCriterion", {
+                                                                   teacherGroups: teacherGroups,
+                                                                   grading: {
+                                                                       id: gradingItem.id,
+                                                                       type: gradingItem.type,
+                                                                       ref: gradingItem.ref,
+                                                                       value: gradingItem.value,
+                                                                       criteria: gradingItem.criteria
+                                                                   }
+                                                               })
+                                    d.accepted.connect(function(data) {
+                                        if (!data)
+                                            return
+
+                                        gradingList.set(gradingItem.index, {
+                                                            id: gradingItem.id,
+                                                            type: data.type,
+                                                            ref: data.ref,
+                                                            value: data.value,
+                                                            criteria: data.criteria
+                                                        })
+
+                                    })
+                                    d.open()
+                                }
                             }
 
+                            onCriteriaChanged: {
+                                if (criteria.module === undefined)
+                                    return
+
+                                var m = criteria.module
+
+                                if (m === "xp")
+                                    criteriaLabel.text = qsTr("%1 XP összegyűjtése").arg(criteria.value)
+                                else if (m === "trophy")
+                                    criteriaLabel.text = qsTr("%1 trófea összegyűjtése").arg(criteria.value)
+                                else if (m === "sumlevel")
+                                    criteriaLabel.text = qsTr("%1 különböző LEVEL %2%3 szintű küldetés").arg(criteria.value).arg(criteria.level).arg(
+                                                criteria.deathmatch ? qsTr(" SUDDEN DEATH") : "")
+                                else if (m === "missionlevel") {
+                                    var mm = teacherGroups.mapMission(criteria.map, criteria.mission)
+                                    criteriaLabel.text = qsTr("%1 pálya %2 küldetés LEVEL %3%4 szinten").arg(
+                                                mm.map).arg(mm.mission).arg(criteria.level).arg(criteria.deathmatch ? qsTr(" SUDDEN DEATH") : "")
+                                } else
+                                    criteriaLabel.text = "%1 value: %2".arg(m).arg(criteria.value)
+                            }
                         }
                     }
 
@@ -443,13 +454,29 @@ QTabContainer {
                         text: qsTr("Új kritérium")
                         visible: isEditing && baseModificationEnabled
                         onClicked: {
-                            gradingList.append({
-                                                   id: -1,
-                                                   type: "newtype",
-                                                   ref: -1,
-                                                   value: -1,
-                                                   criteria: {}
-                                               })
+                            var d = JS.dialogCreateQml("GradingCriterion", {
+                                                           teacherGroups: teacherGroups,
+                                                           grading: {
+                                                               id: -1,
+                                                               type: "grade",
+                                                               value: -1,
+                                                               criteria: {}
+                                                           }
+                                                       })
+                            d.accepted.connect(function(data) {
+                                if (!data)
+                                    return
+
+                                gradingList.append({
+                                                       id: -1,
+                                                       type: data.type,
+                                                       ref: data.ref,
+                                                       value: data.value,
+                                                       criteria: data.criteria
+                                                   })
+
+                            })
+                            d.open()
                         }
                     }
                 }
@@ -463,10 +490,12 @@ QTabContainer {
             id: buttonAdd
             text: qsTr("Hadjárat létrehozása")
             icon.source: "qrc:/internal/icon/content-save.svg"
-            visible: campaignId == -1
+            visible: campaignId == -1 && isEditing
             themeColors: CosStyle.buttonThemeGreen
             anchors.horizontalCenter: parent.horizontalCenter
             padding: 20
+
+            onClicked: save()
         }
     }
 
@@ -475,7 +504,47 @@ QTabContainer {
     Connections {
         target: teacherGroups
 
+        function onCampaignAdd(jsonData, binaryData) {
+            if (jsonData.error !== undefined) {
+                cosClient.sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg", qsTr("Hiba"), jsonData.error)
+                return
+            }
+
+            if (campaignId == -1) {
+                campaignId = jsonData.id
+                teacherGroups.send("campaignGet", {id: campaignId})
+            }
+        }
+
+
+        function onCampaignRemove(jsonData, binaryData) {
+            if (jsonData.error !== undefined) {
+                cosClient.sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg", qsTr("Hiba"), jsonData.error)
+                return
+            }
+
+            if (campaignId === jsonData.id) {
+                isEditing = false
+                mainStack.back()
+            }
+        }
+
+
+        function onCampaignModify(jsonData, binaryData) {
+            if (jsonData.error !== undefined) {
+                cosClient.sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg", qsTr("Hiba"), jsonData.error)
+                return
+            }
+
+            if (campaignId === jsonData.id) {
+                teacherGroups.send("campaignGet", {id: campaignId})
+            }
+        }
+
+
         function onCampaignGetReady(jsonData) {
+            modelAssignment.clear()
+
             if (campaignId == -1)
                 isEditing = true
             else
@@ -514,7 +583,6 @@ QTabContainer {
             // Default assignment
 
             if (jsonData.assignmentList === undefined || jsonData.assignmentList.length === 0) {
-                modelAssignment.clear()
                 modelAssignment.append({
                                            id: -1,
                                            name: "",
@@ -694,17 +762,13 @@ QTabContainer {
 
         o.assignmentList = alist
 
-        console.debug(JSON.stringify(o))
-
-        /*if (username === cosClient.userName && Object.keys(o).length) {
-            if (cosClient.userRoles & Client.RoleTeacher)
-                profile.send(CosMessage.ClassTeacher, "userModify", o)
-            else
-                profile.send(CosMessage.ClassStudent, "userModify", o)
-        }*/
-
-        //layout1.modified = false
-        //isEditing = false
+        if (campaignId == -1) {
+            o.groupid = teacherGroups.selectedGroupId
+            teacherGroups.send("campaignAdd", o)
+        } else {
+            o.id = campaignId
+            teacherGroups.send("campaignModify", o)
+        }
     }
 
 

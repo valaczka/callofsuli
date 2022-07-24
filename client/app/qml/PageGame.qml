@@ -754,6 +754,13 @@ Page {
                 visible: game.gameMatch.pliers
             }
 
+            QFontImage {
+                size: itemGrid.size
+                icon: "qrc:/internal/icon/remote.svg"
+                color: "#00FFFF"
+                visible: game.gameMatch.teleporter
+            }
+
             Repeater {
                 model: game.gameMatch.water
 
@@ -765,11 +772,11 @@ Page {
             }
 
             Repeater {
-                model: game.gameMatch.glasses
+                model: game.gameMatch.camouflage
 
                 QFontImage {
                     size: itemGrid.size
-                    icon: "qrc:/internal/icon/eye-circle.svg"
+                    icon: "qrc:/internal/icon/domino-mask.svg"
                     color: "gold"
                 }
             }
@@ -873,7 +880,7 @@ Page {
         color: CosStyle.colorAccent
         //image.visible: false
 
-        image.icon: "qrc:/internal/icon/eye-off.svg"
+        image.icon: "qrc:/internal/icon/domino-mask.svg"
 
         anchors.left: parent.left
         anchors.top: infoTime.bottom
@@ -980,6 +987,8 @@ Page {
 
 
 
+
+
     GameButton {
         id: pickButton
         size: 50
@@ -987,11 +996,12 @@ Page {
         width: shotButton.width
         height: 60
 
+        anchors.horizontalCenter: shotButton.horizontalCenter
+        anchors.bottom: shotButton.top
+
         visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
         enabled: game.player && game.pickable
 
-        anchors.horizontalCenter: shotButton.horizontalCenter
-        anchors.bottom: shotButton.top
 
         color: enabled ? JS.setColorAlpha(CosStyle.colorOKLighter, 0.5) : "transparent"
         border.color: enabled ? fontImage.color : "white"
@@ -1076,14 +1086,42 @@ Page {
         }
 
         GameButton {
-            id: glassesButton
+            id: teleportButton
+            size: 50
+
+            width: size
+            height: size
+
+            enabled: game.gameMatch.teleporter
+            visible: game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.teleport
+
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            color: enabled ? "#00FFFF" : "transparent"
+            border.color: enabled ? fontImage.color : "white"
+            border.width: 1
+
+            opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
+
+            fontImage.icon: "qrc:/internal/icon/remote.svg"
+            fontImage.color: "white"
+            fontImageScale: 0.6
+            //fontImage.anchors.horizontalCenterOffset: -2
+
+            onClicked: {
+                game.player.entityPrivate.teleportToNext()
+            }
+        }
+
+        GameButton {
+            id: camouflageButton
             size: 50
 
             width: size
             height: size
 
             enabled: game.player && !game.player.entityPrivate.invisible
-            visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.gameMatch.glasses
+            visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.gameMatch.camouflage
 
             anchors.horizontalCenter: parent.horizontalCenter
 
@@ -1093,7 +1131,7 @@ Page {
 
             opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
 
-            fontImage.icon: "qrc:/internal/icon/eye-off.svg"
+            fontImage.icon: "qrc:/internal/icon/domino-mask.svg"
             fontImage.color: enabled ? "black" : "white"
             fontImageScale: 0.6
             //fontImage.anchors.horizontalCenterOffset: -2

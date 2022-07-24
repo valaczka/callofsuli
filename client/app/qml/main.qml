@@ -215,10 +215,7 @@ ApplicationWindow {
             CosStyle.pixelSize = fs
 
         if (Qt.platform.os !== "android" && Qt.platform.os !== "ios") {
-            if (DEBUG_MODE)
-                showMaximized()
-            else
-                showFullScreen()
+            cosClient.windowRestoreGeometry(mainWindow)
         }
 
 

@@ -153,8 +153,13 @@ Scene {
                 break
 
             case Qt.Key_I:				// Invisible
-                if (game.player && game.gameMatch.glasses)
+                if (game.player && game.gameMatch.camouflage)
                     game.player.startInvisibility(10000)
+                break
+
+            case Qt.Key_T:				// Teleport
+                if (game.player && game.player.entityPrivate.teleport && game.gameMatch.teleporter)
+                    game.player.entityPrivate.teleportToNext()
                 break
             }
 
@@ -176,8 +181,14 @@ Scene {
                     break;
 
                 case Qt.Key_T:
-                    if (event.modifiers & Qt.ShiftModifier && game.isStarted) {
+                    if (event.modifiers & Qt.ControlModifier && game.isStarted) {
                         game.addSecs(-30)
+                    }
+                    break;
+
+                case Qt.Key_T:
+                    if (event.modifiers & Qt.ShiftModifier && game.isStarted) {
+                        game.increaseTeleporter(1)
                     }
                     break;
 
@@ -189,7 +200,7 @@ Scene {
 
                 case Qt.Key_G:
                     if (event.modifiers & Qt.ShiftModifier && game.isStarted) {
-                        game.increaseGlasses(1)
+                        game.increaseCamouflage(1)
                     }
                     break;
 
@@ -236,6 +247,11 @@ Scene {
         GameFence {}
     }
 
+    Component {
+        id: teleportComponent
+        GameTeleport {}
+    }
+
 
 
     Component {
@@ -264,135 +280,149 @@ Scene {
             return p
         }
             return null
+    }
+
+
+    function createComponent(enemyType: int) : Item {
+        var obj = null
+
+        switch (enemyType) {
+            case GameEnemyData.EnemySoldier:
+                obj = enemySoldierComponent.createObject(scene)
+            break
+            case GameEnemyData.EnemySniper:
+                obj = enemySniperComponent.createObject(scene)
+            break
+            case GameEnemyData.EnemyOther:
+                obj = enemySoldierComponent.createObject(scene)
+            break
         }
 
-
-            function createComponent(enemyType: int) : Item {
-                var obj = null
-
-                switch (enemyType) {
-                    case GameEnemyData.EnemySoldier:
-                        obj = enemySoldierComponent.createObject(scene)
-                    break
-                    case GameEnemyData.EnemySniper:
-                        obj = enemySniperComponent.createObject(scene)
-                    break
-                    case GameEnemyData.EnemyOther:
-                        obj = enemySoldierComponent.createObject(scene)
-                    break
-                }
-
-                return obj
-            }
+        return obj
+    }
 
 
-                function createLadders() {
-                    if (!game || !game.ladderCount)
-                    return
+    function createLadders() {
+        if (!game || !game.ladderCount)
+        return
 
-                    for (var i=0; i<game.ladderCount; i++) {
-                        var l = game.ladderAt(i)
+        for (var i=0; i<game.ladderCount; i++) {
+            var l = game.ladderAt(i)
 
-                        var obj = ladderComponent.createObject(scene,{
-                            ladder: l
-                        })
-                    }
-                }
+            var obj = ladderComponent.createObject(scene,{
+                ladder: l
+            })
+        }
+    }
 
 
 
-                function createPickable(pickableType: int, pickableData) : Item {
-                    if (!game)
-                    return
+    function createPickable(pickableType: int, pickableData) : Item {
+        if (!game)
+        return
 
-                    var obj = null
-                    var img = ""
+        var obj = null
+        var img = ""
 
-                    switch (pickableType) {
-                        case GamePickablePrivate.PickableHealth:
-                            obj = pickableComponentHealth.createObject(scene, {
-                                                                           cosGame: game,
-                                                                           pickableData: pickableData
-                                                                       })
-                        break
+        switch (pickableType) {
+            case GamePickablePrivate.PickableHealth:
+                obj = pickableComponentHealth.createObject(scene, {
+                                                               cosGame: game,
+                                                               pickableData: pickableData
+                                                           })
+            break
 
-                        case GamePickablePrivate.PickableTime:
-                            if (pickableData.secs >= 60)
-                                img = "qrc:/internal/game/time-60.png"
-                            else if (pickableData.secs >= 30)
-                                img = "qrc:/internal/game/time-30.png"
+            case GamePickablePrivate.PickableTime:
+                if (pickableData.secs >= 60)
+                    img = "qrc:/internal/game/time-60.png"
+                else if (pickableData.secs >= 30)
+                    img = "qrc:/internal/game/time-30.png"
 
-                        obj = pickableComponentGeneral.createObject(scene, {
-                            cosGame: game,
-                            type: GamePickablePrivate.PickableTime,
-                            image: img,
-                            pickableData: pickableData
-                        })
-                        break
+            obj = pickableComponentGeneral.createObject(scene, {
+                cosGame: game,
+                type: GamePickablePrivate.PickableTime,
+                image: img,
+                pickableData: pickableData
+            })
+            break
 
-                        case GamePickablePrivate.PickableShield:
-                            if (pickableData.num >= 5)
-                                img = "qrc:/internal/game/shield-gold.png"
-                            else if (pickableData.num >= 3)
-                                img = "qrc:/internal/game/shield-red.png"
-                            else if (pickableData.num >= 2)
-                                img = "qrc:/internal/game/shield-blue.png"
-                            else
-                                img = "qrc:/internal/game/shield-green.png"
+            case GamePickablePrivate.PickableShield:
+                if (pickableData.num >= 5)
+                    img = "qrc:/internal/game/shield-gold.png"
+                else if (pickableData.num >= 3)
+                    img = "qrc:/internal/game/shield-red.png"
+                else if (pickableData.num >= 2)
+                    img = "qrc:/internal/game/shield-blue.png"
+                else
+                    img = "qrc:/internal/game/shield-green.png"
 
-                        obj = pickableComponentGeneral.createObject(scene, {
-                            cosGame: game,
-                            type: GamePickablePrivate.PickableShield,
-                            image: img,
-                            pickableData: pickableData
-                        })
-                        break
+            obj = pickableComponentGeneral.createObject(scene, {
+                cosGame: game,
+                type: GamePickablePrivate.PickableShield,
+                image: img,
+                pickableData: pickableData
+            })
+            break
 
-                        case GamePickablePrivate.PickablePliers:
-                            obj = pickableComponentGeneral.createObject(scene, {
-                                                                            cosGame: game,
-                                                                            type: GamePickablePrivate.PickablePliers,
-                                                                            image: "qrc:/internal/game/pliers.png",
-                                                                            pickableData: pickableData
-                                                                        })
-                        break
+            case GamePickablePrivate.PickablePliers:
+                obj = pickableComponentGeneral.createObject(scene, {
+                                                                cosGame: game,
+                                                                type: GamePickablePrivate.PickablePliers,
+                                                                image: "qrc:/internal/game/pliers.png",
+                                                                pickableData: pickableData
+                                                            })
+            break
 
-                        case GamePickablePrivate.PickableWater:
-                            obj = pickableComponentGeneral.createObject(scene, {
-                                                                            cosGame: game,
-                                                                            type: GamePickablePrivate.PickableWater,
-                                                                            image: "qrc:/internal/game/water.svg",
-                                                                            imageWidth: 30,
-                                                                            imageHeight: 30,
-                                                                            imageSourceWidth: 50,
-                                                                            imageSourceHeight: 50,
-                                                                            pickableData: pickableData
-                                                                        })
-                        break
+            case GamePickablePrivate.PickableWater:
+                obj = pickableComponentGeneral.createObject(scene, {
+                                                                cosGame: game,
+                                                                type: GamePickablePrivate.PickableWater,
+                                                                image: "qrc:/internal/game/water.svg",
+                                                                imageWidth: 30,
+                                                                imageHeight: 30,
+                                                                imageSourceWidth: 50,
+                                                                imageSourceHeight: 50,
+                                                                pickableData: pickableData
+                                                            })
+            break
 
-                        case GamePickablePrivate.PickableGlasses:
-                            obj = pickableComponentGeneral.createObject(scene, {
-                                                                            cosGame: game,
-                                                                            type: GamePickablePrivate.PickableGlasses,
-                                                                            image: "qrc:/internal/game/glasses.png",
-                                                                            pickableData: pickableData
-                                                                        })
-                        break
-                    }
+            case GamePickablePrivate.PickableCamouflage:
+                obj = pickableComponentGeneral.createObject(scene, {
+                                                                cosGame: game,
+                                                                type: GamePickablePrivate.PickableCamouflage,
+                                                                image: "qrc:/internal/game/camouflage.png",
+                                                                pickableData: pickableData
+                                                            })
+            break
 
-                    return obj
-                }
+            case GamePickablePrivate.PickableTeleporter:
+                obj = pickableComponentGeneral.createObject(scene, {
+                                                                cosGame: game,
+                                                                type: GamePickablePrivate.PickableTeleporter,
+                                                                image: "qrc:/internal/game/teleporter.png",
+                                                                pickableData: pickableData
+                                                            })
+            break
+        }
+
+        return obj
+    }
 
 
-                    function createFire() : Item {
-                        var obj = fireComponent.createObject(scene)
-                        return obj
-                    }
+    function createFire() : Item {
+        var obj = fireComponent.createObject(scene)
+        return obj
+    }
 
-                        function createFence() : Item {
-                            var obj = fenceComponent.createObject(scene, {
-                                cosGame: game
-                            })
-                            return obj
-                        }
-                        }
+    function createFence() : Item {
+        var obj = fenceComponent.createObject(scene, {
+            cosGame: game
+        })
+        return obj
+    }
+
+    function createTeleport() : Item {
+        var obj = teleportComponent.createObject(scene)
+        return obj
+    }
+}

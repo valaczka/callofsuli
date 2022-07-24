@@ -493,7 +493,7 @@ GameEntity {
         if (ep.invisible)
             return
 
-        ep.cosGame.gameMatch.glasses = ep.cosGame.gameMatch.glasses-1
+        ep.cosGame.gameMatch.camouflage = ep.cosGame.gameMatch.camouflage-1
 
         invisibilityTimer.msec = msec
         ep.invisible = true

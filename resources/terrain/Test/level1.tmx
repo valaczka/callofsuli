@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="85" nextobjectid="263">
+<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="86" nextobjectid="269">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
   <terraintypes>
@@ -184,53 +184,65 @@
    </properties>
    <polyline points="-32.2086,21 191.791,21"/>
   </object>
-  <object id="260" x="142.494" y="628.484">
-   <properties>
-    <property name="type" value="sniper"/>
-   </properties>
+  <object id="260" type="sniper" x="142.494" y="628.484">
    <point/>
   </object>
-  <object id="261" x="1136.18" y="234.974">
-   <properties>
-    <property name="type" value="sniper"/>
-   </properties>
+  <object id="261" type="sniper" x="1136.18" y="234.974">
    <point/>
   </object>
-  <object id="262" x="743.612" y="109.466">
-   <properties>
-    <property name="type" value="sniper"/>
-   </properties>
+  <object id="262" type="sniper" x="743.612" y="109.466">
    <point/>
   </object>
  </objectgroup>
  <objectgroup color="#ffffff" id="84" name="Preview">
   <object id="255" x="625.653" y="109.466">
    <properties>
+    <property name="order" type="int" value="2"/>
     <property name="text" value="Kerítés"/>
    </properties>
    <point/>
   </object>
   <object id="257" x="1596.69" y="554.878">
    <properties>
+    <property name="order" type="int" value="0"/>
     <property name="text" value="Víz"/>
    </properties>
    <point/>
   </object>
   <object id="258" x="362.369" y="626.597">
    <properties>
+    <property name="order" type="int" value="1"/>
     <property name="text" value="Tűz"/>
    </properties>
    <point/>
   </object>
  </objectgroup>
- <objectgroup color="#0055ff" id="82" name="Fences">
-  <object id="247" x="624.709" y="126.452">
+ <objectgroup color="#ffff00" id="85" name="Objects">
+  <object id="246" type="fire" x="1297.55" y="252.903">
    <point/>
   </object>
-  <object id="248" x="491.652" y="319.904">
+  <object id="245" type="fire" x="351.989" y="317.073">
    <point/>
   </object>
-  <object id="250" x="198.171" y="637.921">
+  <object id="244" type="fire" x="361.426" y="636.033">
+   <point/>
+  </object>
+  <object id="250" type="fence" x="198.171" y="637.921">
+   <point/>
+  </object>
+  <object id="248" type="fence" x="491.652" y="319.904">
+   <point/>
+  </object>
+  <object id="247" type="fence" x="624.709" y="126.452">
+   <point/>
+  </object>
+  <object id="266" type="teleport" x="1235.26" y="650.188">
+   <point/>
+  </object>
+  <object id="267" type="teleport" x="1408.9" y="234.974">
+   <point/>
+  </object>
+  <object id="268" type="teleport" x="573.751" y="493.539">
    <point/>
   </object>
  </objectgroup>
@@ -245,17 +257,6 @@
    <point/>
   </object>
   <object id="254" type="water" x="482.215" y="500.145">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup color="#ffaa00" id="81" name="Fires">
-  <object id="244" x="361.426" y="636.033">
-   <point/>
-  </object>
-  <object id="245" x="351.989" y="317.073">
-   <point/>
-  </object>
-  <object id="246" x="1297.55" y="252.903">
    <point/>
   </object>
  </objectgroup>

@@ -41,7 +41,6 @@
 #include "gameladder.h"
 #include "gameblock.h"
 #include "tiledpaintedlayer.h"
-#include "gamepickable.h"
 
 typedef QPair<QPointF, GameEnemyData::InventoryType> GameTerrainItem;
 
@@ -56,6 +55,17 @@ public:
 	virtual ~GameTerrain();
 
 	struct PreviewData;
+
+	enum TerrainObject {
+		Invalid,
+		Fire,
+		Fence,
+		Teleport
+	};
+
+	Q_ENUM(TerrainObject);
+
+	typedef QPair<QPointF, TerrainObject> TerrainObjectPoint;
 
 	QList<GameEnemyData *> enemies() const { return m_enemies; }
 	QList<GameLadder *> ladders() const { return m_ladders; }
@@ -78,8 +88,10 @@ public:
 
 	QPointF startPosition() const { return m_startPosition; }
 
-	const QList<QPointF> &fires() const;
-	const QList<QPointF> &fences() const;
+	QList<QPointF> fires() const { return terrainObjects(Fire); }
+	QList<QPointF> fences() const { return terrainObjects(Fence); }
+	QList<QPointF> teleports() const { return terrainObjects(Teleport); }
+	QList<QPointF> terrainObjects(const TerrainObject &type) const;
 	const QList<GameTerrainItem> &items() const;
 
 	const QList<PreviewData> &preview() const;
@@ -95,8 +107,7 @@ private:
 	void loadGroundLayer(Tiled::Layer *layer);
 	void loadPlayerLayer(Tiled::Layer *layer);
 	void loadLadderLayer(Tiled::Layer *layer);
-	void loadFireLayer(Tiled::Layer *layer);
-	void loadFenceLayer(Tiled::Layer *layer);
+	void loadObjectLayer(Tiled::Layer *layer);
 	void loadItemLayer(Tiled::Layer *layer);
 	void loadPreviewLayer(Tiled::Layer *layer);
 
@@ -106,9 +117,8 @@ private:
 	QList<QRectF> m_groundObjects;
 	QList<QPointF> m_playerPositions;
 	QPointF m_startPosition;
-	QList<QPointF> m_fires;
-	QList<QPointF> m_fences;
 	QList<GameTerrainItem> m_items;
+	QList<TerrainObjectPoint> m_objects;
 
 	QString m_tmxFile;
 	Tiled::Map *m_map;
