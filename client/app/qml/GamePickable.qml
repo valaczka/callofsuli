@@ -3,6 +3,7 @@ import QtQuick 2.15
 import COS.Client 1.0
 import QtGraphicalEffects 1.0
 import "Style"
+import "JScript.js" as JS
 
 PhysicsEntity {
     id: root

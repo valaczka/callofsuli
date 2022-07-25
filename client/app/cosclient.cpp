@@ -661,6 +661,7 @@ QVariant Client::getServerSetting(const QString &key, const QVariant &defaultVal
 	const QString fname = m_serverDataDir+"/settings.ini";
 
 	QSettings s(fname, QSettings::IniFormat, this);
+
 	return s.value(key, defaultValue);
 }
 

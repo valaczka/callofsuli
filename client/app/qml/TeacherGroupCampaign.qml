@@ -324,6 +324,11 @@ QTabContainer {
                 teacherGroups.send("campaignListGet", {groupid: teacherGroups.selectedGroupId})
         }
 
+        function onCampaignFinish(jsonData, binaryData) {
+            if (teacherGroups.selectedGroupId > -1)
+                teacherGroups.send("campaignListGet", {groupid: teacherGroups.selectedGroupId})
+        }
+
         function onCampaignListGet(jsonData, binaryData) {
             modelCampaign.clear()
 

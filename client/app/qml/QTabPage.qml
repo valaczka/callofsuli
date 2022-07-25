@@ -421,8 +421,8 @@ Page {
                     font.pixelSize: CosStyle.pixelSize*0.85
                     font.capitalization: Font.MixedCase
                     font.weight: checked ? Font.DemiBold : Font.Normal
-                    icon.height: checked || model.raised ? CosStyle.pixelSize*2 : CosStyle.pixelSize*1.7
-                    icon.width: checked || model.raised ? CosStyle.pixelSize*2 : CosStyle.pixelSize*1.7
+                    icon.height: checked || model.raised ? CosStyle.pixelSize*1.7 : CosStyle.pixelSize*1.5
+                    icon.width: checked || model.raised ? CosStyle.pixelSize*1.7 : CosStyle.pixelSize*1.5
 
                     display: AbstractButton.TextUnderIcon
                     icon.source: model.icon

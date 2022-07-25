@@ -186,14 +186,17 @@ int Teacher::startAndFinishCampaigns(CosDb *db)
 
 	// Finish
 
-	QVariantList list = db->execSelectQuery("SELECT id FROM campaign WHERE finished=false AND endtime<=datetime('now')");
+	QVariantList list = db->execSelectQuery("SELECT campaign.id, owner FROM campaign "
+											"LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+											"WHERE finished=false AND endtime<=datetime('now')");
 
 	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
-		int id = m.value("id").toInt();
+		const QVariantMap m = v.toMap();
+		const int id = m.value("id").toInt();
+		const QString owner = m.value("owner").toString();
 
-		if (!finishCampaign(db, id)) {
-			qCritical() << tr("Campaign finish error") << id;
+		if (!finishCampaign(db, id, owner)) {
+			qCritical() << tr("Campaign finish error") << id << owner;
 			return ret;
 		}
 
@@ -204,14 +207,17 @@ int Teacher::startAndFinishCampaigns(CosDb *db)
 
 	// Start
 
-	QVariantList list2 = db->execSelectQuery("SELECT id FROM campaign WHERE started=false AND starttime<=datetime('now')");
+	QVariantList list2 = db->execSelectQuery("SELECT campaign.id, owner FROM campaign "
+											 "LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+											 "WHERE started=false AND starttime<=datetime('now')");
 
 	foreach (QVariant v, list2) {
 		QVariantMap m = v.toMap();
 		int id = m.value("id").toInt();
+		const QString owner = m.value("owner").toString();
 
-		if (!startCampaign(db, id)) {
-			qCritical() << tr("Campaign start error") << id;
+		if (!startCampaign(db, id, owner)) {
+			qCritical() << tr("Campaign start error") << id << owner;
 			return ret;
 		}
 
@@ -230,17 +236,33 @@ int Teacher::startAndFinishCampaigns(CosDb *db)
  * @return
  */
 
-bool Teacher::finishCampaign(CosDb *db, const int &campaignId)
+bool Teacher::finishCampaign(CosDb *db, const int &campaignId, const QString &teacher, const bool &isAutomatic)
 {
 	Q_ASSERT (db);
 
-	const QVariantMap m = db->execSelectQueryOneRow("SELECT groupid, mapclose FROM campaign WHERE id=?", {campaignId});
-	const int groupid = m.value("groupid").toInt();
+	const QVariantMap m = db->execSelectQueryOneRow("SELECT groupid, mapclose FROM campaign "
+													"LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+													"WHERE campaign.id=? AND owner=?", {campaignId, teacher});
+	const int groupid = m.value("groupid", -1).toInt();
 
-	qInfo() << tr("Hadjárat (%1) automatikus zárása").arg(campaignId);
-
-	if (!db->execSimpleQuery("UPDATE campaign SET finished=true WHERE id=?", {campaignId}))
+	if (groupid == -1) {
+		qWarning() << tr("Érvénytelen hadjárat azonosító") << campaignId << teacher;
 		return false;
+	}
+
+	if (isAutomatic)
+		qInfo() << tr("Hadjárat (%1) automatikus zárása").arg(campaignId) << teacher;
+	else
+		qInfo() << tr("Hadjárat (%1) manuális zárása").arg(campaignId) << teacher;
+
+
+	if (isAutomatic) {
+		if (!db->execSimpleQuery("UPDATE campaign SET finished=true WHERE id=?", {campaignId}))
+			return false;
+	} else {
+		if (!db->execSimpleQuery("UPDATE campaign SET finished=true, endtime=datetime('now') WHERE id=?", {campaignId}))
+			return false;
+	}
 
 
 	// BindGroupMap close
@@ -340,17 +362,24 @@ bool Teacher::finishCampaign(CosDb *db, const int &campaignId)
  * @return
  */
 
-bool Teacher::startCampaign(CosDb *db, const int &campaignId)
+bool Teacher::startCampaign(CosDb *db, const int &campaignId, const QString &teacher)
 {
 	Q_ASSERT (db);
 
-	qInfo() << tr("Hadjárat (%1) automatikus megnyitása").arg(campaignId);
+	const QVariantMap m = db->execSelectQueryOneRow("SELECT groupid, mapopen FROM campaign "
+													"LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+													"WHERE campaign.id=? AND owner=?", {campaignId, teacher});
+	const int groupid = m.value("groupid", -1).toInt();
+
+	if (groupid == -1) {
+		qWarning() << tr("Érvénytelen hadjárat azonosító") << campaignId << teacher;
+		return false;
+	}
+
+	qInfo() << tr("Hadjárat (%1) automatikus megnyitása").arg(campaignId) << teacher;
 
 	if (!db->execSimpleQuery("UPDATE campaign SET started=true WHERE id=?", {campaignId}))
 		return false;
-
-	QVariantMap m = db->execSelectQueryOneRow("SELECT groupid, mapopen FROM campaign WHERE id=?", {campaignId});
-	const int groupid = m.value("groupid").toInt();
 
 	foreach (QString s, m.value("mapopen").toString().split('|', Qt::SkipEmptyParts)) {
 		QVariantMap p;
@@ -2030,7 +2059,7 @@ bool Teacher::campaignAdd(QJsonObject *jsonResponse, QByteArray *)
 			} else if (type == "xp") {
 				if (m_client->db()->execInsertQuery("INSERT INTO grading (?k?) VALUES (?)", {
 				{ "assignmentid", aid },
-				{ "xp", o.value("xp").toInt() },
+				{ "xp", o.value("value").toInt() },
 				{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
 			}) == -1) {
 					(*jsonResponse)["error"] = "sql error";
@@ -2070,7 +2099,7 @@ bool Teacher::campaignRemove(QJsonObject *jsonResponse, QByteArray *)
 		QVariantMap p;
 		p[":user"] = m_client->clientUserName();
 
-		if (!m_client->db()->execListQuery("DELETE from campaign WHERE id IN (?l?) AND "
+		if (!m_client->db()->execListQuery("DELETE from campaign WHERE id IN (?l?) AND started=false AND "
 										   "(SELECT owner FROM studentgroup WHERE id=campaign.groupid)=:user", list, p, false)) {
 			(*jsonResponse)["error"] = "sql error";
 			return false;
@@ -2094,8 +2123,226 @@ bool Teacher::campaignRemove(QJsonObject *jsonResponse, QByteArray *)
 
 bool Teacher::campaignModify(QJsonObject *jsonResponse, QByteArray *)
 {
+	QJsonObject params = m_message.jsonData();
+	const int id = params.value("id").toInt(-1);
 
-	return false;
+	const QVariantMap campaign = m_client->db()->execSelectQueryOneRow("SELECT campaign.id, started, finished FROM campaign "
+																	   "LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+																	   "WHERE campaign.id=? AND owner=?", {id, m_client->clientUserName()});
+
+	if (campaign.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+	if (campaign.value("finished", false).toBool()) {
+		(*jsonResponse)["error"] = "campaign finished";
+		return false;
+	}
+
+
+	const bool isStarted = campaign.value("started", false).toBool();
+	const QString dateTimeFormat = "yyyy-MM-dd HH:mm:ss";
+
+	QVariantMap m;
+
+
+	if (params.contains("endtime"))
+		m["endtime"] = QDateTime::fromString(params.value("endtime").toString(), dateTimeFormat).toUTC().toString(dateTimeFormat);
+
+	if (params.contains("mapclose"))
+		m["mapclose"] = params.value("mapclose").toVariant().toStringList().join("|");
+
+	if (!isStarted) {
+		if (params.contains("starttime"))
+			m["starttime"] = QDateTime::fromString(params.value("starttime").toString(), dateTimeFormat).toUTC().toString(dateTimeFormat);
+
+		if (params.contains("description"))
+			m["description"] = params.value("description").toString();
+
+		if (params.contains("mapopen"))
+			m["mapopen"] = params.value("mapopen").toVariant().toStringList().join("|");
+
+	}
+
+
+	if (!m.isEmpty() && !m_client->db()->execUpdateQuery("UPDATE campaign SET ? WHERE id=:id", m, {{":id", id}})) {
+		(*jsonResponse)["error"] = "sql error";
+		return false;
+	}
+
+
+	if (!isStarted) {
+
+		// Get assignment list
+
+		const QVariantList tmp = m_client->db()->execSelectQuery("SELECT id FROM assignment WHERE campaignid=?", {id});
+		QList<int> assignmentIdList;
+
+		foreach (QVariant v, tmp)
+			assignmentIdList.append(v.toMap().value("id").toInt());
+
+
+
+		foreach (QJsonValue v, params.value("assignmentList").toArray()) {
+			QJsonObject o = v.toObject();
+
+			int aid = o.value("id").toInt(-1);
+
+			if (aid == -1) {
+				aid = m_client->db()->execInsertQuery("INSERT INTO assignment (?k?) VALUES (?)", {
+														  { "campaignid", id },
+														  { "name", o.value("name").toString()}
+													  });
+
+				if (aid == -1) {
+					(*jsonResponse)["error"] = "sql error";
+					return false;
+				}
+			} else {
+				assignmentIdList.removeAll(aid);
+
+				if (o.contains("name") && !m_client->db()->execUpdateQuery("UPDATE assignment SET ? WHERE id=:id",
+				{{"name", o.value("name").toString()}},
+				{{":id", aid}})) {
+					(*jsonResponse)["error"] = "sql error";
+					return false;
+				}
+			}
+
+
+			// Get grading list
+
+			const QVariantList tmp = m_client->db()->execSelectQuery("SELECT id FROM grading WHERE assignmentid=?", {aid});
+			QList<int> gradingIdList;
+
+			foreach (QVariant v, tmp)
+				gradingIdList.append(v.toMap().value("id").toInt());
+
+
+			foreach (QJsonValue v, o.value("gradingList").toArray()) {
+				QJsonObject o = v.toObject();
+
+				const QString type = o.value("type").toString();
+				const int gid = o.value("id").toInt(-1);
+
+				if (gid == -1) {
+					if (type == "grade") {
+						if (m_client->db()->execInsertQuery("INSERT INTO grading (?k?) VALUES (?)", {
+						{ "assignmentid", aid },
+						{ "gradeid", o.value("ref").toInt() },
+						{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
+					}) == -1) {
+							(*jsonResponse)["error"] = "sql error";
+							return false;
+						}
+					} else if (type == "xp") {
+						if (m_client->db()->execInsertQuery("INSERT INTO grading (?k?) VALUES (?)", {
+						{ "assignmentid", aid },
+						{ "xp", o.value("value").toInt() },
+						{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
+					}) == -1) {
+							(*jsonResponse)["error"] = "sql error";
+							return false;
+						}
+					}
+				} else {
+					gradingIdList.removeAll(gid);
+
+					if (type == "grade") {
+						if (!m_client->db()->execUpdateQuery("UPDATE grading SET ? WHERE id=:id", {
+						{ "assignmentid", aid },
+						{ "gradeid", o.value("ref").toInt() },
+						{ "xp", QVariant::Invalid },
+						{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
+					},
+						{{":id", gid}})) {
+							(*jsonResponse)["error"] = "sql error";
+							return false;
+						}
+					} else if (type == "xp") {
+						if (!m_client->db()->execUpdateQuery("UPDATE grading SET ? WHERE id=:id", {
+						{ "assignmentid", aid },
+						{ "gradeid", QVariant::Invalid },
+						{ "xp", o.value("value").toInt() },
+						{ "criteria", QString::fromUtf8(QJsonDocument(o.value("criteria").toObject()).toJson(QJsonDocument::Compact)) }
+					},
+						{{":id", gid}}))
+						{
+							(*jsonResponse)["error"] = "sql error";
+							return false;
+						}
+					}
+				}
+			}
+
+			// Remove unused gradings
+
+			if (!gradingIdList.isEmpty()) {
+				QVariantList l;
+				foreach (int i, gradingIdList)
+					l.append(i);
+
+				if (!m_client->db()->execListQuery("DELETE FROM grading WHERE id IN (?l?)", l)) {
+					(*jsonResponse)["error"] = "sql error";
+					return false;
+				}
+			}
+		}
+
+
+		// Remove unused assignments
+
+		if (!assignmentIdList.isEmpty()) {
+			QVariantList l;
+			foreach (int i, assignmentIdList)
+				l.append(i);
+
+			if (!m_client->db()->execListQuery("DELETE FROM assignment WHERE id IN (?l?)", l)) {
+				(*jsonResponse)["error"] = "sql error";
+				return false;
+			}
+		}
+
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["modified"] = true;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::campaignFinish
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignFinish(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+	const int id = params.value("id").toInt(-1);
+
+	const QVariantMap campaign = m_client->db()->execSelectQueryOneRow("SELECT campaign.id, started, finished FROM campaign "
+																	   "LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+																	   "WHERE campaign.id=? AND owner=?", {id, m_client->clientUserName()});
+
+	if (campaign.isEmpty() || !campaign.value("started", false).toBool() || campaign.value("finished", false).toBool()) {
+		(*jsonResponse)["error"] = "invalid campaign";
+		return false;
+	}
+
+	if (!finishCampaign(m_client->db(), id, m_client->clientUserName(), false)) {
+		(*jsonResponse)["error"] = "sql error";
+		return false;
+	}
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["finished"] = true;
+
+	return true;
 }
 
 

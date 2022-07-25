@@ -140,6 +140,7 @@ signals:
 	void campaignAdd(QJsonObject jsonData, QByteArray binaryData);
 	void campaignRemove(QJsonObject jsonData, QByteArray binaryData);
 	void campaignModify(QJsonObject jsonData, QByteArray binaryData);
+	void campaignFinish(QJsonObject jsonData, QByteArray binaryData);
 
 	void modelMapListChanged();
 	void selectedGroupIdChanged(int selectedGroupId);

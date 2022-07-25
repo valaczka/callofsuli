@@ -521,7 +521,7 @@ GameEntity {
 
     Timer {
         id: invisibilityTimer
-        running: ep && ep.invisible && !ep.cosGame.question
+        running: ep && ep.invisible && ep.cosGame.running
         interval: 100
         repeat: true
 

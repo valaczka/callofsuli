@@ -133,6 +133,7 @@ public:
 
 	Q_INVOKABLE void setServerSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE QVariant getServerSetting(const QString &key, const QVariant &defaultValue = QVariant());
+	Q_INVOKABLE bool getServerSettingBool(const QString &key, const bool &defaultValue = false) { return getServerSetting(key, defaultValue).toBool(); }
 
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);

@@ -90,8 +90,8 @@ public:
 	static QVector<Grading> gradingFromVariantList(const QVariantList &list);
 	static Grading gradingResult(const QVector<Grading> &list, const Grading::Type &type);
 	static int startAndFinishCampaigns(CosDb *db);
-	static bool finishCampaign(CosDb *db, const int &campaignId);
-	static bool startCampaign(CosDb *db, const int &campaignId);
+	static bool finishCampaign(CosDb *db, const int &campaignId, const QString &teacher, const bool &isAutomatic = true);
+	static bool startCampaign(CosDb *db, const int &campaignId, const QString &teacher);
 	static QVector<Grading>& evaluate(CosDb *db, QVector<Grading> &list, const int &campaignId, const QString &username);
 	static Grading& evaluate(CosDb *db, Grading &grading, const int &campaignId, const QString &username);
 
@@ -139,6 +139,7 @@ public slots:
 	bool campaignAdd(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignFinish(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

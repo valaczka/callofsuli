@@ -387,6 +387,10 @@ Page {
                     if (!_backDisabled && gameMatch.mode == GameMatch.ModeNormal)
                         gameScene.isSceneZoom = !gameScene.isSceneZoom
                 }
+
+                onGameToolTipRequest: {
+                    gameToolTip(setting, image, text, details)
+                }
             }
 
 
@@ -749,7 +753,7 @@ Page {
 
             QFontImage {
                 size: itemGrid.size
-                icon: "qrc:/internal/icon/wrench.svg"
+                icon: "qrc:/internal/icon/pliers.svg"
                 color: "brown"
                 visible: game.gameMatch.pliers
             }
@@ -1388,6 +1392,7 @@ Page {
                         _backDisabled = false
                         if (gameMatch.mode == GameMatch.ModeNormal) {
                             messageList.message(qsTr("LEVEL %1").arg(gameMatch.level), 3)
+
                             previewAnimation.start()
                         } else {
                             game.onGameStarted()
@@ -1424,11 +1429,6 @@ Page {
                     flick.interactive = true
                     previewLabel.text = ""
                     game.onGameStarted()
-
-                    if ((Qt.platform.os === "android" || Qt.platform.os === "ios") && cosClient.getSettingBool("notification/gameGesturePinch", true) === true) {
-                        cosClient.sendMessageInfoImage("qrc:/internal/icon/gesture-pinch.svg", qsTr("Információ"), qsTr("A pálya áttekintéséhez csippentsd össze a képernyőt"))
-                        cosClient.setSetting("notification/gameGesturePinch", false)
-                    }
 
                     if (previewAnimation.num > 0) {
                         game.previewCompleted()
@@ -1490,10 +1490,18 @@ Page {
         GameQuestion {  }
     }
 
+    Component {
+        id: tooltipComponent
+
+        GameToolTip {  }
+    }
+
     Item {
         id: questionPlaceholder
         anchors.fill: parent
-        visible: game.question
+        visible: game.question || tooltip
+
+        property GameToolTip tooltip: null
 
         z: 5
     }
@@ -1502,104 +1510,126 @@ Page {
         if (gameMatch.mode == GameMatch.ModeNormal) {
             startTimer.start()
         }
-            questionPlaceholder.visible = true
 
-            var obj = questionComponent.createObject(questionPlaceholder,{
-                questionPrivate: questionPrivate
+        questionPlaceholder.visible = true
+
+        var obj = questionComponent.createObject(questionPlaceholder,{
+            questionPrivate: questionPrivate
+        })
+
+        return obj
+    }
+
+
+    function gameToolTip(_setting, _image, _text, _details){
+        if (cosClient.getServerSettingBool(_setting, true) === true) {
+            game.running = false
+
+            var d = tooltipComponent.createObject(questionPlaceholder, {
+                        text: _text,
+                        details: _details,
+                        image: _image
+                    })
+
+            questionPlaceholder.tooltip = d
+
+            d.finished.connect(function() {
+                game.running = true
+                game.currentScene.forceActiveFocus()
             })
+            cosClient.setServerSetting(_setting, false)
+        }
+    }
 
-            return obj
+
+
+    StackView.onRemoved: {
+        cosClient.stopSound(game.backgroundMusicFile, CosSound.Music)
+        destroy()
+    }
+
+    StackView.onActivated: {
+        state = "start"
+        if (gameMatch.mode == GameMatch.ModeNormal)
+            game.loadScene()
+        else
+            _sceneLoaded = true
+
+        if (gameMatch.mode == GameMatch.ModeExam)
+            //gameActivity.prepare()
+            studentMaps.getExamContent()
+        else
+            gameActivity.prepare()
+    }
+
+    Component.onCompleted: {
+        if (gameMatch.mode == GameMatch.ModeNormal)
+            cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
+
+        joystick.size = cosClient.getSetting("game/joystickSize", joystick.size)
+    }
+
+    Component.onDestruction: {
+        if (deleteGameMatch && gameMatch)
+            delete gameMatch
+    }
+
+
+
+
+    function doStep() {
+        if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
+            control.state = "run"
+            game.gameStarted()
+            if (studentMaps)
+                studentMaps.gameStarted()
         }
 
-
-
-            StackView.onRemoved: {
-                cosClient.stopSound(game.backgroundMusicFile, CosSound.Music)
-                destroy()
-            }
-
-            StackView.onActivated: {
-                state = "start"
-                if (gameMatch.mode == GameMatch.ModeNormal)
-                    game.loadScene()
-                else
-                    _sceneLoaded = true
-
-                if (gameMatch.mode == GameMatch.ModeExam)
-                    //gameActivity.prepare()
-                    studentMaps.getExamContent()
-                else
-                    gameActivity.prepare()
-            }
-
-            Component.onCompleted: {
-                if (gameMatch.mode == GameMatch.ModeNormal)
-                    cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
-
-                joystick.size = cosClient.getSetting("game/joystickSize", joystick.size)
-            }
-
-            Component.onDestruction: {
-                if (deleteGameMatch && gameMatch)
-                    delete gameMatch
-            }
+    }
 
 
 
+    property var closeCallbackFunction: function () {
+        if (!_closeEnabled) {
+            var d = JS.dialogCreateQml("YesNo", {
+                                           text: qsTr("Biztosan megszakítod a játékot?"),
+                                           image: "qrc:/internal/icon/close-octagon-outline.svg"
+                                       })
 
-            function doStep() {
-                if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
-                    control.state = "run"
-                    game.gameStarted()
-                    if (studentMaps)
-                        studentMaps.gameStarted()
-                }
-
-            }
-
-
-
-            property var closeCallbackFunction: function () {
-                if (!_closeEnabled) {
-                    var d = JS.dialogCreateQml("YesNo", {
-                                                   text: qsTr("Biztosan megszakítod a játékot?"),
-                                                   image: "qrc:/internal/icon/close-octagon-outline.svg"
-                                               })
-
-                    d.accepted.connect(function() {
-                        game.currentScene = exitScene
-                        bg.source = ""
-                        game.abortGame()
-                        _closeEnabled = true
-                        mainWindow.close()
-                    })
-                    d.open()
-                    return true
-                }
-                return false
-            }
-
-
-            function stackBack() {
-                if (_backDisabled)
-                    return true
-
-                if (!_closeEnabled) {
-                    var d = JS.dialogCreateQml("YesNo", {
-                                                   text: qsTr("Biztosan megszakítod a játékot?"),
-                                                   image: "qrc:/internal/icon/close-octagon-outline.svg"
-                                               })
-                    d.accepted.connect(function() {
-                        game.currentScene = exitScene
-                        bg.source = ""
-                        game.abortGame()
-                        _closeEnabled = true
-                        mainStack.back()
-                    })
-                    d.open()
-                    return true
-                }
-                return false
-            }
-
+            d.accepted.connect(function() {
+                game.currentScene = exitScene
+                bg.source = ""
+                game.abortGame()
+                _closeEnabled = true
+                mainWindow.close()
+            })
+            d.open()
+            return true
         }
+        return false
+    }
+
+
+    function stackBack() {
+        if (_backDisabled)
+            return true
+
+        if (!_closeEnabled) {
+            var d = JS.dialogCreateQml("YesNo", {
+                                           text: qsTr("Biztosan megszakítod a játékot?"),
+                                           image: "qrc:/internal/icon/close-octagon-outline.svg"
+                                       })
+            d.accepted.connect(function() {
+                game.currentScene = exitScene
+                bg.source = ""
+                game.abortGame()
+                _closeEnabled = true
+                mainStack.back()
+            })
+            d.open()
+            return true
+        }
+        return false
+    }
+
+}

@@ -155,6 +155,11 @@ QTabContainer {
                         when: !textStarttime._parseOK
                         value: CosStyle.colorErrorLighter
                     }
+
+                    function setData(t) {
+                        text = Date.fromLocaleString(Qt.locale(), t, "yyyy-MM-dd HH:mm:ss").toLocaleString(Qt.locale(), _dateFormat)
+                        modified = false
+                    }
                 }
 
                 QGridLabel { field: textEndtime }
@@ -173,6 +178,11 @@ QTabContainer {
                     Binding on textColor {
                         when: !textEndtime._parseOK
                         value: CosStyle.colorErrorLighter
+                    }
+
+                    function setData(t) {
+                        text = Date.fromLocaleString(Qt.locale(), t, "yyyy-MM-dd HH:mm:ss").toLocaleString(Qt.locale(), _dateFormat)
+                        modified = false
                     }
                 }
 
@@ -550,7 +560,7 @@ QTabContainer {
             else
                 isEditing = false
 
-            /*if (jsonData.finished === true) {
+            if (jsonData.finished === true) {
                 baseModificationEnabled = false
                 isEditing = false
                 actionSave.enabled = false
@@ -558,7 +568,7 @@ QTabContainer {
                 baseModificationEnabled = false
             } else {
                 baseModificationEnabled = true
-            }*/
+            }
 
             JS.setSqlFields([
                                 textDescription,

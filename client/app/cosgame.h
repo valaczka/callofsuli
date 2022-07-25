@@ -62,7 +62,7 @@ class CosGame : public Game
 	Q_PROPERTY(QQuickItem * itemPage READ itemPage WRITE setItemPage NOTIFY itemPageChanged)
 	Q_PROPERTY(GameQuestion * question READ question NOTIFY questionChanged)
 	Q_PROPERTY(GameActivity * activity READ activity WRITE setActivity NOTIFY activityChanged)
-	Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
 	Q_PROPERTY(GamePickable * pickable READ pickable NOTIFY pickableChanged)
@@ -185,6 +185,8 @@ signals:
 	void levelChanged(int level);
 	void startHpChanged(int startHp);
 
+	void gameToolTipRequest(const QString &setting, const QString &image, const QString &text, const QString &details);
+
 	void fixturesReadyToDestroy(QList<Box2DFixture*> list);
 
 	void playerChanged(QQuickItem * player);
@@ -232,6 +234,7 @@ private:
 	QVector<GamePickable *> m_pickableList;
 	QTime m_elapsedTime;
 	bool m_isFinished;
+	bool m_enemiesCreatedFirst = false;
 };
 
 

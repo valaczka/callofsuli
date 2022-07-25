@@ -274,6 +274,16 @@ void CosGame::recreateEnemies()
 
 	QTimer::singleShot(500, this, [=](){
 		setEnemiesMoving(true);
+		if (!m_enemiesCreatedFirst) {
+
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(QT_DEBUG)
+			emit gameToolTipRequest("notification/gameGesturePinch",
+									"qrc:/internal/icon/gesture-pinch.svg",
+									tr("A pálya áttekintéséhez csippentsd össze a képernyőt"),
+									"");
+#endif
+			m_enemiesCreatedFirst = true;
+		}
 	});
 }
 
