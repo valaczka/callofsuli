@@ -68,6 +68,9 @@ public:
 	QVariantList generateNumbers(const QVariantMap &data, const QVariantMap &storageData) const;
 
 	void registerQmlTypes() const override {};
+
+	QList<int> images(const QVariantMap &) const override { return QList<int>(); };
+
 signals:
 
 };

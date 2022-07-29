@@ -73,6 +73,8 @@ public:
 	};
 	Q_DECLARE_FLAGS(Modes, Mode)
 
+	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
+
 signals:
 
 };

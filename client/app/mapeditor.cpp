@@ -91,6 +91,15 @@ MapEditor::MapEditor(QQuickItem *parent)
 MapEditor::~MapEditor()
 {
 	delete m_missionLevelModel;
+
+	QQmlEngine *engine = Client::clientInstance()->rootEngine();
+
+	if (!engine) {
+		qWarning() << "Invalid engine" << this;
+	} else if (engine->imageProvider("mapimage")) {
+		qDebug() << "Remove image provider mapimage";
+		engine->removeImageProvider("mapimage");
+	}
 }
 
 
@@ -152,6 +161,11 @@ void MapEditor::open(const QUrl &url)
 	setUrl(url);
 	m_undoStack->clear();
 	setDisplayName(url.toLocalFile());
+
+	qDebug() << "Add mapimage provider";
+	MapImage *mapImage = new MapImage(e);
+	Client::clientInstance()->rootEngine()->addImageProvider("mapimage", mapImage);
+
 }
 
 
@@ -172,6 +186,10 @@ void MapEditor::create()
 	setUrl(QUrl());
 	m_undoStack->clear();
 	setDisplayName(tr("-- Új pálya --"));
+
+	qDebug() << "Add mapimage provider";
+	MapImage *mapImage = new MapImage(e);
+	Client::clientInstance()->rootEngine()->addImageProvider("mapimage", mapImage);
 }
 
 
@@ -189,6 +207,15 @@ void MapEditor::close()
 	if (m_editor) {
 		m_editor->deleteLater();
 		setEditor(nullptr);
+
+		QQmlEngine *engine = Client::clientInstance()->rootEngine();
+
+		if (!engine) {
+			qWarning() << "Invalid engine" << this;
+		} else if (engine->imageProvider("mapimage")) {
+			qDebug() << "Remove image provider mapimage";
+			engine->removeImageProvider("mapimage");
+		}
 	}
 }
 
@@ -232,7 +259,9 @@ void MapEditor::save(const QUrl &newUrl)
 	if (!newUrl.isEmpty())
 		m_editor->regenerateUuids();
 
+	m_editor->setFilterUsedImages(true);
 	QByteArray b = m_editor->toBinaryData();
+	m_editor->setFilterUsedImages(false);
 
 	f.write(b);
 
@@ -715,7 +744,7 @@ void MapEditor::missionLevelModify(GameMapEditorMissionLevel *missionLevel, cons
  * @param missionLevel
  */
 
-void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel)
+void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel, const GameMatch::GameMode &mode)
 {
 	GameMap *map = GameMap::fromBinaryData(m_editor->toBinaryData());
 	GameMatch *m_gameMatch = new GameMatch(missionLevel, map, this);
@@ -729,20 +758,16 @@ void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel)
 		return;
 	}
 
-	qDebug() << "Add mapimage provider";
-	MapImage *mapImage = new MapImage(map);
-	Client::clientInstance()->rootEngine()->addImageProvider("mapimage", mapImage);
-
-
 	m_gameMatch->setImageDbName("mapimage");
 	m_gameMatch->setDeathmatch(false);
+	m_gameMatch->setMode(mode);
 
 	if (!Client::clientInstance()->userPlayerCharacter().isEmpty())
 		m_gameMatch->setPlayerCharacter(Client::clientInstance()->userPlayerCharacter());
 	else
 		m_gameMatch->setPlayerCharacter("default");
 
-
+/*
 	connect(m_gameMatch, &GameMatch::gameWin, this, [=]() {
 		QQmlEngine *engine = Client::clientInstance()->rootEngine();
 
@@ -764,7 +789,7 @@ void MapEditor::missionLevelPlay(GameMapEditorMissionLevel *missionLevel)
 			engine->removeImageProvider("mapimage");
 		}
 	});
-
+*/
 	emit gamePlayReady(m_gameMatch);
 }
 
@@ -874,6 +899,36 @@ void MapEditor::storageRemove(GameMapEditorStorage *storage)
 		return;
 
 	m_undoStack->call(new MapEditorActionStorageRemove(m_editor, storage));
+}
+
+
+
+/**
+ * @brief MapEditor::imageAdd
+ * @param url
+ */
+
+int MapEditor::imageAdd(const QUrl &url)
+{
+	QFile f(url.toLocalFile());
+
+	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		return -1;
+	}
+
+	const QByteArray content = f.readAll();
+
+	f.close();
+
+	int id = 1;
+
+	foreach (GameMapEditorImage *s, m_editor->images()->objects())
+		id = qMax(s->id()+1, id);
+
+	m_editor->addImage(id, content);
+
+	return id;
 }
 
 

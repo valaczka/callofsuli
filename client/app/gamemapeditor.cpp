@@ -201,17 +201,84 @@ GameMapMissionIface *GameMapEditor::ifaceAddMission(const QByteArray &uuid, cons
  * @return
  */
 
-GameMapImageIface *GameMapEditor::ifaceAddImage(const QString &file, const QByteArray &data)
+GameMapImageIface *GameMapEditor::ifaceAddImage(const qint32 &id, const QByteArray &data)
 {
-	GameMapEditorImage *s = new GameMapEditorImage(file, data, this);
+	GameMapEditorImage *s = new GameMapEditorImage(id, data, this);
 	m_images->addObject(s);
 	return s;
+}
+
+bool GameMapEditor::filterUsedImages() const
+{
+	return m_filterUsedImages;
+}
+
+void GameMapEditor::setFilterUsedImages(bool newFilterUsedImages)
+{
+	m_filterUsedImages = newFilterUsedImages;
 }
 
 const QVariantMap &GameMapEditor::gameData() const
 {
 	return m_gameData;
 }
+
+
+/**
+ * @brief GameMapEditor::addImage
+ * @param id
+ * @param data
+ * @return
+ */
+
+GameMapEditorImage *GameMapEditor::addImage(const int &id, const QByteArray &data)
+{
+	GameMapEditorImage *s = new GameMapEditorImage(id, data);
+	m_images->addObject(s);
+	return s;
+}
+
+
+
+/**
+ * @brief GameMapEditor::ifaceImages
+ * @return
+ */
+
+QList<GameMapImageIface *> GameMapEditor::ifaceImages() const
+{
+	QList<int> usedInStorages;
+
+	if (m_filterUsedImages) {
+		// Csak azokat a képeket mentjük el, amikre van hivatkozás
+		foreach (GameMapEditorStorage *s, m_storages->objects()) {
+			const QString &module = s->module();
+			if (!Client::moduleStorageList().contains(module)) {
+				qWarning() << "Invalid storage module" << module;
+			} else {
+				ModuleInterface *mi = Client::moduleStorageList().value(module);
+				usedInStorages.append(mi->images(s->data()));
+			}
+		}
+	}
+
+
+	QList<GameMapImageIface *> list;
+	list.reserve(m_images->objects().size());
+	foreach (GameMapImageIface *s, m_images->objects()) {
+		if (m_filterUsedImages && !usedInStorages.contains(s->m_id)) {
+			qDebug() << "Orphan image found, skipped" << s->m_id;
+			continue;
+		}
+
+		list.append(s);
+	}
+
+	return list;
+}
+
+
+
 
 const QString &GameMapEditor::uuid() const
 {
@@ -343,26 +410,26 @@ void GameMapEditorStorage::recalculateCounts()
  * @param parent
  */
 
-GameMapEditorImage::GameMapEditorImage(const QString &file, const QByteArray &data, QObject *parent)
+GameMapEditorImage::GameMapEditorImage(const qint32 &id, const QByteArray &data, QObject *parent)
 	: ObjectListModelObject(parent)
 	, GameMapImageIface()
 {
-	m_name = file;
+	m_id = id;
 	m_data = data;
 }
 
 
-const QString &GameMapEditorImage::name() const
+const qint32 &GameMapEditorImage::id() const
 {
-	return m_name;
+	return m_id;
 }
 
-void GameMapEditorImage::setName(const QString &newName)
+void GameMapEditorImage::setId(const qint32 &newid)
 {
-	if (m_name == newName)
+	if (m_id == newid)
 		return;
-	m_name = newName;
-	emit nameChanged();
+	m_id = newid;
+	emit idChanged();
 }
 
 const QByteArray &GameMapEditorImage::data() const

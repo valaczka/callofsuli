@@ -183,14 +183,38 @@ QTabContainer {
 
         }
 
-        onRightClicked: contextMenu.popup()
+        onRightClicked: {
+            var o = list.model.get(index)
+            contextMenu.currentCampaignId = o.id
+            contextMenu.popup()
+        }
 
-        onLongPressed: contextMenu.popup()
+        onLongPressed: {
+            var o = list.model.get(index)
+            contextMenu.currentCampaignId = o.id
+            contextMenu.popup()
+        }
 
         QMenu {
             id: contextMenu
 
-            MenuItem { action: actionCampaignDuplicate }
+            property int currentCampaignId: -1
+
+            MenuItem {
+                text: qsTr("Kettőzés")
+                icon.source: "qrc:/internal/icon/calendar-blank-multiple.svg"
+                enabled: contextMenu.currentCampaignId != -1
+
+                onTriggered: {
+                    control.tabPage.pushContent(cmpDetails, {
+                                                    campaignId: contextMenu.currentCampaignId,
+                                                    contentTitle: qsTr("Új hadjárat | %1").arg(teacherGroups.selectedGroupFullName),
+                                                    copyToGroup: teacherGroups.selectedGroupId
+                                                })
+
+
+                }
+            }
 
             QMenu {
                 id: submenu
@@ -203,7 +227,15 @@ QTabContainer {
 
                     MenuItem {
                         text: model.name+" - "+model.readableClassList
-                        //onClicked: objectiveMoveCopy(model.id, true, item.objectiveSelf)
+                        onClicked: {
+                            control.tabPage.pushContent(cmpDetails, {
+                                                            campaignId: contextMenu.currentCampaignId,
+                                                            contentTitle: qsTr("Új hadjárat | %1").arg(text),
+                                                            copyToGroup: model.id
+                                                        })
+
+
+                        }
                     }
 
                     onObjectAdded: submenu.insertItem(index, object)
@@ -238,26 +270,25 @@ QTabContainer {
 
 
 
-    /*Action {
-        id: actionCampaignEdit
-        text: qsTr("Szerkesztés")
-        icon.source: "qrc:/internal/icon/calendar-edit.svg"
-        enabled: list.currentIndex != -1
-    }*/
-
-    Action {
-        id: actionCampaignDuplicate
-        text: qsTr("Kettőzés")
-        icon.source: "qrc:/internal/icon/calendar-blank-multiple.svg"
-        enabled: list.currentIndex != -1
-    }
-
 
     Action {
         id: actionCampaignFinish
         text: qsTr("Befejez")
         icon.source: "qrc:/internal/icon/calendar-check.svg"
         enabled: list.currentIndex != -1 && list.modelObject(list.currentIndex).finished == false && list.modelObject(list.currentIndex).started == true
+
+        onTriggered: {
+            var o = list.modelObject(list.currentIndex)
+            var d = JS.dialogCreateQml("YesNo", {
+                                           text: qsTr("Biztosan befejezed a hadjáratot?\n%1").arg(o.title),
+                                           image: "qrc:/internal/icon/calendar-check.svg"
+                                       })
+            d.accepted.connect(function() {
+                teacherGroups.send("campaignFinish", {id: o.id})
+            })
+            d.open()
+            return true
+        }
     }
 
     Action {

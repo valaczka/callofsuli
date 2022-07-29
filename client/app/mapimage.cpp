@@ -31,6 +31,7 @@ MapImage::MapImage(GameMapReaderIface *map)
 	, m_map(map)
 {
 
+
 }
 
 
@@ -45,13 +46,19 @@ MapImage::MapImage(GameMapReaderIface *map)
 QPixmap MapImage::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
 {
 	if (m_map) {
-		QStringList path = id.split("/");
+		QPixmap outPixmap;
 
-		QPixmap outPixmap;// = m_map->imagePixmap();
+		bool isOk = false;
+		qint32 idInt = id.toInt(&isOk);	/* TODO */
 
-		foreach (GameMapImageIface *i, m_map->ifaceImages()) {
-			if (i->m_name == path.value(0, "")) {
-				outPixmap.loadFromData(i->m_data);
+		if (isOk) {
+			foreach (GameMapImageIface *i, m_map->ifaceImages()) {
+				if (i->m_id == idInt) {
+					if (!outPixmap.loadFromData(i->m_data)) {
+						qWarning() << "Invalid image data" << i->m_id;
+					}
+					break;
+				}
 			}
 		}
 

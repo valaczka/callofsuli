@@ -15,7 +15,8 @@ QTabContainer {
     action: actionSave
 
     property int campaignId: -1
-    property bool isEditing: campaignId == -1
+    property int copyToGroup: -1
+    property bool isEditing: campaignId == -1 || copyToGroup != -1
     property bool baseModificationEnabled: true
 
     readonly property string _dateFormat: "yyyy-MM-dd HH:mm"
@@ -38,7 +39,7 @@ QTabContainer {
             id: menuRemove
             text: qsTr("Hadjárat törlése")
             icon.source: "qrc:/internal/icon/calendar-remove.svg"
-            enabled: campaignId != -1
+            enabled: campaignId != -1 && copyToGroup == -1
             onClicked: {
                 var d = JS.dialogCreateQml("YesNo", {
                                                text: qsTr("Biztosan törlöd a hadjáratot?"),
@@ -520,6 +521,8 @@ QTabContainer {
                 return
             }
 
+            copyToGroup = -1
+
             if (campaignId == -1) {
                 campaignId = jsonData.id
                 teacherGroups.send("campaignGet", {id: campaignId})
@@ -555,12 +558,18 @@ QTabContainer {
         function onCampaignGetReady(jsonData) {
             modelAssignment.clear()
 
+            if (copyToGroup != -1 && campaignId != -1) {
+                campaignId = -1
+            }
+
             if (campaignId == -1)
                 isEditing = true
             else
                 isEditing = false
 
-            if (jsonData.finished === true) {
+            if (copyToGroup != -1) {
+                baseModificationEnabled = true
+            } else if (jsonData.finished === true) {
                 baseModificationEnabled = false
                 isEditing = false
                 actionSave.enabled = false
@@ -600,6 +609,13 @@ QTabContainer {
                                        })
             }
 
+            if (copyToGroup != -1) {
+                textDescription.modified = true
+                textStarttime.modified = true
+                textEndtime.modified = true
+                areaMapOpen.modified = true
+                areaMapClose.modified = true
+            }
 
             // RETURN IF NEW
 
@@ -610,13 +626,15 @@ QTabContainer {
             }
 
 
-            if (jsonData.started === true || jsonData.finished === true)
+            if (jsonData.started === true || jsonData.finished === true || copyToGroup != -1)
                 menuRemove.enabled = false
 
-            if (jsonData.finished === true)
-                rectState.state = "finished"
-            else if (jsonData.started === true)
-                rectState.state = "started"
+            if (copyToGroup == -1) {
+                if (jsonData.finished === true)
+                    rectState.state = "finished"
+                else if (jsonData.started === true)
+                    rectState.state = "started"
+            }
 
             // Map Open text area
 
@@ -772,7 +790,10 @@ QTabContainer {
 
         o.assignmentList = alist
 
-        if (campaignId == -1) {
+        if (copyToGroup != -1) {
+            o.groupid = copyToGroup
+            teacherGroups.send("campaignAdd", o)
+        } else if (campaignId == -1) {
             o.groupid = teacherGroups.selectedGroupId
             teacherGroups.send("campaignAdd", o)
         } else {

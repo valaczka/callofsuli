@@ -84,7 +84,7 @@ protected:
 	virtual GameMapChapterIface* ifaceAddChapter(const qint32 &id, const QString &name) = 0;
 	virtual GameMapMissionIface* ifaceAddMission(const QByteArray &uuid, const QString &name,
 												 const QString &description, const QString &medalImage) = 0;
-	virtual GameMapImageIface* ifaceAddImage(const QString &file, const QByteArray &data) = 0;
+	virtual GameMapImageIface* ifaceAddImage(const qint32 &id, const QByteArray &data) = 0;
 
 
 	QString m_uuid;
@@ -316,7 +316,8 @@ public:
 protected:
 	friend class GameMapReaderIface;
 	friend class MapImage;
-	QString m_name;
+	friend class GameMapEditor;
+	qint32 m_id;
 	QByteArray m_data;
 
 };

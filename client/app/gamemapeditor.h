@@ -99,21 +99,21 @@ class GameMapEditorImage : public ObjectListModelObject, public GameMapImageIfac
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(qint32 id READ id WRITE setId NOTIFY idChanged)
 	Q_PROPERTY(QByteArray data READ data WRITE setData NOTIFY dataChanged)
 
 public:
-	explicit GameMapEditorImage(const QString &file, const QByteArray &data, QObject *parent = nullptr);
+	explicit GameMapEditorImage(const qint32 &id, const QByteArray &data, QObject *parent = nullptr);
 	virtual ~GameMapEditorImage() {}
 
-	const QString &name() const;
-	void setName(const QString &newName);
+	const qint32 &id() const;
+	void setId(const qint32 &newid);
 
 	const QByteArray &data() const;
 	void setData(const QByteArray &newData);
 
 signals:
-	void nameChanged();
+	void idChanged();
 	void dataChanged();
 };
 
@@ -488,6 +488,11 @@ public:
 
 	const QVariantMap &gameData() const;
 
+	GameMapEditorImage *addImage(const int &id, const QByteArray &data);
+
+	bool filterUsedImages() const;
+	void setFilterUsedImages(bool newFilterUsedImages);
+
 signals:
 	void uuidChanged();
 
@@ -501,14 +506,14 @@ protected:
 	QList<GameMapMissionIface*> ifaceMissions() const override
 	{ return ifaceListConvert<GameMapMissionIface, GameMapEditorMission>(m_missions->objects()); }
 
-	QList<GameMapImageIface*> ifaceImages() const override
-	{ return ifaceListConvert<GameMapImageIface, GameMapEditorImage>(m_images->objects());	}
+	QList<GameMapImageIface*> ifaceImages() const override;
+
 
 	GameMapStorageIface* ifaceAddStorage(const qint32 &id, const QString &module, const QVariantMap &data) override;
 	GameMapChapterIface* ifaceAddChapter(const qint32 &id, const QString &name) override;
 	GameMapMissionIface* ifaceAddMission(const QByteArray &uuid, const QString &name,
 												 const QString &description, const QString &medalImage) override;
-	GameMapImageIface* ifaceAddImage(const QString &file, const QByteArray &data) override;
+	GameMapImageIface* ifaceAddImage(const qint32 &id, const QByteArray &data) override;
 
 private:
 	ObjectGenericListModel<GameMapEditorStorage> *m_storages;
@@ -517,6 +522,7 @@ private:
 	ObjectGenericListModel<GameMapEditorMission> *m_missions;
 
 	QVariantMap m_gameData;
+	bool m_filterUsedImages = false;
 
 	friend class MapEditorAction;
 };

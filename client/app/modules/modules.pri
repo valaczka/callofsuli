@@ -8,4 +8,5 @@ MODULES_LIST = truefalse \
 				binding \
 				numbers \
 				sequence \
-				order
+				order \
+				images

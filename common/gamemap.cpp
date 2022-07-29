@@ -87,10 +87,10 @@ GameMapStorage *GameMap::storage(const qint32 &id) const
 	return nullptr;
 }
 
-GameMapImage *GameMap::image(const QString &name) const
+GameMapImage *GameMap::image(const qint32 &id) const
 {
 	foreach (GameMapImage *s, m_images)
-		if (s->name() == name)
+		if (s->id() == id)
 			return s;
 
 	return nullptr;
@@ -529,9 +529,9 @@ GameMapMissionIface *GameMap::ifaceAddMission(const QByteArray &uuid, const QStr
  * @return
  */
 
-GameMapImageIface *GameMap::ifaceAddImage(const QString &file, const QByteArray &data)
+GameMapImageIface *GameMap::ifaceAddImage(const qint32 &id, const QByteArray &data)
 {
-	GameMapImage *s = new GameMapImage(file, data);
+	GameMapImage *s = new GameMapImage(id, data);
 	m_images.append(s);
 	return s;
 }
@@ -569,16 +569,16 @@ const QVariantMap &GameMapStorage::data() const
 	return m_data;
 }
 
-GameMapImage::GameMapImage(const QString &file, const QByteArray &data)
+GameMapImage::GameMapImage(const qint32 &id, const QByteArray &data)
 	: GameMapImageIface()
 {
-	m_name = file;
+	m_id = id;
 	m_data = data;
 }
 
-const QString &GameMapImage::name() const
+const qint32 &GameMapImage::id() const
 {
-	return m_name;
+	return m_id;
 }
 
 const QByteArray &GameMapImage::data() const

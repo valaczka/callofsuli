@@ -75,6 +75,9 @@ public:
 
 	// QML-type register
 	virtual void registerQmlTypes() const = 0;
+
+	// Képek azonosítói, amiket tartalmaz
+	virtual QList<int> images(const QVariantMap &data) const = 0;
 };
 
 QT_BEGIN_NAMESPACE

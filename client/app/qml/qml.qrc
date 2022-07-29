@@ -176,5 +176,7 @@
         <file>QDialogGradingCriterion.qml</file>
         <file>GameTeleport.qml</file>
         <file>GameToolTip.qml</file>
+        <file>QGridDoubleImageFields.qml</file>
+        <file>QGridDoubleImageField.qml</file>
     </qresource>
 </RCC>
