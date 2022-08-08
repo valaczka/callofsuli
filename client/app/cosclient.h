@@ -119,6 +119,7 @@ public:
 	Q_INVOKABLE void windowRestoreGeometry(QQuickWindow *window);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
+	Q_INVOKABLE QVariantMap getWindowSafeMargins(QQuickWindow *window) const;
 
 	Q_INVOKABLE QString connectionInfo(const QString &func = "connect", const QVariantMap &queries = {},
 									   const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;

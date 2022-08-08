@@ -149,7 +149,8 @@ Page {
 
         z: 10
 
-        height: Math.max(indicator.height, menuButton.height, backButton.height, labelTitle.height, 48)
+        height: Math.max(Math.max(indicator.implicitHeight, menuButton.implicitHeight, backButton.implicitHeight, labelTitle.implicitHeight) + mainWindow.safeMarginTop,
+                         48)
 
         Rectangle {
             id: headerBg
@@ -207,7 +208,7 @@ Page {
 
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: compact ? 0 : -2
+            anchors.verticalCenterOffset: (compact ? 0 : -2) + mainWindow.safeMarginTop/2
 
             visible: false
 
@@ -316,7 +317,7 @@ Page {
                                                                                          menuButton.visible ? menuButton.left :
                                                                                                               parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: compact ? 0 : -2
+            anchors.verticalCenterOffset: (compact ? 0 : -2) + mainWindow.safeMarginTop/2
 
             text: control.contentTitle != "" ? control.contentTitle
                                              : control.title != "" ? control.title
@@ -345,7 +346,7 @@ Page {
                                                                      menuButton.visible ? menuButton.left : parent.right
             anchors.rightMargin: !compact && !menuButton.visible && !toolButton.visible && !toolbarLoader.item ? 5 : 0
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: compact ? 0 : -2
+            anchors.verticalCenterOffset: (compact ? 0 : -2) + mainWindow.safeMarginTop/2
         }
 
         Loader {
@@ -354,7 +355,7 @@ Page {
                                                 menuButton.visible ? menuButton.left : parent.right
             anchors.rightMargin: !compact && !menuButton.visible && !toolButton.visible ? 5 : 0
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: compact ? 0 : -2
+            anchors.verticalCenterOffset: (compact ? 0 : -2) + mainWindow.safeMarginTop/2
         }
 
         QToolButton {
@@ -364,7 +365,7 @@ Page {
             anchors.right: menuButton.visible ? menuButton.left : parent.right
             anchors.rightMargin: !compact && !menuButton.visible ? 5 : 0
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: compact ? 0 : -2
+            anchors.verticalCenterOffset: (compact ? 0 : -2) + mainWindow.safeMarginTop/2
         }
 
         QMenuButton {
@@ -373,7 +374,7 @@ Page {
             anchors.right: parent.right
             anchors.rightMargin: compact ? 0 : 5
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: compact ? 0 : -2
+            anchors.verticalCenterOffset: (compact ? 0 : -2) + mainWindow.safeMarginTop/2
         }
     }
 

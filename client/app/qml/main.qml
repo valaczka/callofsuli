@@ -21,9 +21,17 @@ ApplicationWindow {
     minimumWidth: 640
     minimumHeight: 480
 
+    flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint
+           | (Qt.platform.os === "ios" ? Qt.MaximizeUsingFullscreenGeometryHint : 0)
+
     property alias actionFontPlus: fontPlus
     property alias actionFontMinus: fontMinus
     property alias actionFontReset: fontNormal
+
+    property int safeMarginLeft: 0
+    property int safeMarginRight: 0
+    property int safeMarginTop: 0
+    property int safeMarginBottom: 0
 
 
     FontLoader { source: "qrc:/internal/font/ariblk.ttf" }
@@ -209,15 +217,13 @@ ApplicationWindow {
         cosClient.messageSent.connect(JS.dialogMessage)
 
         cosClient.windowSetIcon(mainWindow)
+        cosClient.windowRestoreGeometry(mainWindow)
 
         var fs = cosClient.getSetting("window/fontSize", 0)
         if (fs > 0)
             CosStyle.pixelSize = fs
 
-        if (Qt.platform.os !== "android" && Qt.platform.os !== "ios") {
-            cosClient.windowRestoreGeometry(mainWindow)
-        }
-
+        timerOrientation.start()
 
         var g = cosClient.guiLoad()
 
@@ -235,8 +241,27 @@ ApplicationWindow {
                           })
         } else
             JS.createPage("Start", {})
+    }
 
-        //JS.createPage("MapEditor", {fileToOpen: "file:///home/valaczka/ddd.map"})
-        //JS.createPage("TEST", {})
+
+    readonly property bool _isPortrait: (Screen.primaryOrientation === Qt.PortraitOrientation ||
+                                                Screen.primaryOrientation === Qt.InvertedPortraitOrientation)
+
+    on_IsPortraitChanged: timerOrientation.start()
+
+
+    Timer {
+        id: timerOrientation
+        interval: 10
+        running: false
+        repeat: false
+
+        onTriggered: {
+            var m = cosClient.getWindowSafeMargins(mainWindow)
+            safeMarginBottom = m.bottom
+            safeMarginLeft = m.left
+            safeMarginTop = m.top
+            safeMarginRight = m.right
+        }
     }
 }

@@ -6,30 +6,31 @@ import "JScript.js" as JS
 
 
 GridLayout {
-	id: item
+    id: item
 
-	// !!! WIDTH
+    // !!! WIDTH
 
-	property real requiredWidth: 800
+    property real requiredWidth: 800
 
-	property bool watchModification: false
-	property bool modified: false
-	property bool acceptable: true
+    property bool watchModification: false
+    property bool modified: false
+    property bool acceptable: true
 
-	property int panelPaddingLeft: CosStyle.panelPaddingLeft
-	property int panelPaddingRight: CosStyle.panelPaddingRight
+    property bool isFullscreen: false
+    property real panelPaddingLeft: isFullscreen ? Math.max(CosStyle.panelPaddingLeft, mainWindow.safeMarginLeft) : CosStyle.panelPaddingLeft
+    property real panelPaddingRight: isFullscreen ? Math.max(CosStyle.panelPaddingRight, mainWindow.safeMarginRight) : CosStyle.panelPaddingRight
 
-	signal accepted()
+    signal accepted()
 
-	width: parent.width-panelPaddingLeft-panelPaddingRight
-	x: panelPaddingLeft
+    width: parent.width-panelPaddingLeft-panelPaddingRight
+    x: panelPaddingLeft
 
-	columns: item.width < item.requiredWidth ? 1 : 2
-	columnSpacing: 5
-	rowSpacing: columns > 1 ? 5 : 0
+    columns: item.width < item.requiredWidth ? 1 : 2
+    columnSpacing: 5
+    rowSpacing: columns > 1 ? 5 : 0
 
-	function accept() {
-		item.accepted()
-	}
+    function accept() {
+        item.accepted()
+    }
 }
 

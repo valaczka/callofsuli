@@ -59,8 +59,9 @@ QListView {
 
     property color currentColor: "#33EEEEEE"
 
-    property int panelPaddingLeft: CosStyle.panelPaddingLeft
-    property int panelPaddingRight: CosStyle.panelPaddingRight
+    property bool isFullscreen: false
+    property real panelPaddingLeft: isFullscreen ? Math.max(CosStyle.panelPaddingLeft, mainWindow.safeMarginLeft) : CosStyle.panelPaddingLeft
+    property real panelPaddingRight: isFullscreen ? Math.max(CosStyle.panelPaddingRight, mainWindow.safeMarginRight) : CosStyle.panelPaddingRight
 
     signal clicked(int index)
     signal rightClicked(int index)

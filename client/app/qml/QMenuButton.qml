@@ -6,18 +6,19 @@ import "JScript.js" as JS
 import "."
 
 QToolButton {
-	id: button
+    id: button
 
-	icon.source: CosStyle.iconMenu
-	property QMenu menu: null
+    icon.source: CosStyle.iconMenu
+    property QMenu menu: null
 
-	visible: menu
+    visible: menu
 
-	onClicked: {
-		var p = button.mapToItem(ApplicationWindow.contentItem, x, y)
-		var mp = menu.parent.mapFromItem(ApplicationWindow.contentItem, Math.min(p.x, ApplicationWindow.contentItem.width-menu.width), p.y+button.height)
-		menu.x = mp.x
-		menu.y = mp.y
-		menu.open()
-	}
+    onClicked: {
+        var p = button.mapToItem(ApplicationWindow.contentItem, button.x, button.y)
+        var minP = Math.min(p.x, ApplicationWindow.contentItem.width-menu.width-ApplicationWindow.window.safeMarginRight)
+        var mp = menu.parent.mapFromItem(ApplicationWindow.contentItem, minP, p.y+button.height)
+        menu.x = mp.x
+        menu.y = mp.y
+        menu.open()
+    }
 }

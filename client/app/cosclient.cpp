@@ -459,6 +459,7 @@ void Client::windowSaveGeometry(QQuickWindow *window)
 
 void Client::windowRestoreGeometry(QQuickWindow *window)
 {
+
 	QSettings s(this);
 	s.beginGroup("window");
 
@@ -503,6 +504,25 @@ void Client::textToClipboard(const QString &text) const
 {
 	QClipboard *clipboard = QGuiApplication::clipboard();
 	clipboard->setText(text);
+}
+
+/**
+ * @brief Client::getWindowSafeMargins
+ * @param window
+ * @return
+ */
+
+QVariantMap Client::getWindowSafeMargins(QQuickWindow *window) const
+{
+	QVariantMap ret;
+	const QMarginsF m = AndroidShareUtils::instance()->getWindowSafeArea(window);
+
+	ret["top"] = m.top();
+	ret["left"] = m.left();
+	ret["right"] = m.right();
+	ret["bottom"] = m.bottom();
+
+	return ret;
 }
 
 
