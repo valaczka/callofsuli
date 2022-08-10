@@ -191,7 +191,7 @@ QTabContainer {
 
         header: QTabHeader {
             tabContainer: control
-            isPlaceholder: true
+            flickable: storageList
         }
 
 

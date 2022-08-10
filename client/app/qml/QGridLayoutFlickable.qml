@@ -6,60 +6,61 @@ import "JScript.js" as JS
 
 
 Item {
-	id: item
+    id: item
 
-	implicitHeight: 400
-	implicitWidth: 800
+    implicitHeight: 400
+    implicitWidth: 800
 
-	property alias flickable: flick
-	property alias columns: layout.columns
-	default property alias _data: layout.data
+    property alias flickable: flick
+    property alias columns: layout.columns
+    default property alias _data: layout.data
 
-	property alias watchModification: layout.watchModification
-	property alias modified: layout.modified
-	property bool acceptable: true
+    property alias watchModification: layout.watchModification
+    property alias modified: layout.modified
+    property bool acceptable: true
 
-	property int panelPaddingLeft: CosStyle.panelPaddingLeft
-	property int panelPaddingRight: CosStyle.panelPaddingRight
+    property bool isFullscreen: false
+    property real panelPaddingLeft: isFullscreen ? Math.max(CosStyle.panelPaddingLeft, mainWindow.safeMarginLeft) : CosStyle.panelPaddingLeft
+    property real panelPaddingRight: isFullscreen ? Math.max(CosStyle.panelPaddingRight, mainWindow.safeMarginRight) : CosStyle.panelPaddingRight
 
-	property bool verticalCentered: false
+    property bool verticalCentered: false
 
-	signal accepted()
+    signal accepted()
 
-	width: parent.width
-	height: Math.min(parent.height, flick.contentHeight)
-	anchors.verticalCenter: verticalCentered ? parent.verticalCenter : undefined
+    width: parent.width
+    height: Math.min(parent.height, flick.contentHeight)
+    anchors.verticalCenter: verticalCentered ? parent.verticalCenter : undefined
 
-	Flickable {
-		id: flick
+    Flickable {
+        id: flick
 
-		anchors.fill: parent
+        anchors.fill: parent
 
-		clip: true
+        clip: true
 
-		contentWidth: layout.width
-		contentHeight: layout.height
+        contentWidth: layout.width
+        contentHeight: layout.height
 
-		boundsBehavior: Flickable.StopAtBounds
-		flickableDirection: Flickable.VerticalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        flickableDirection: Flickable.VerticalFlick
 
-		GridLayout {
-			id: layout
+        GridLayout {
+            id: layout
 
-			property bool watchModification: false
-			property bool modified: false
+            property bool watchModification: false
+            property bool modified: false
 
-			width: flick.width-item.panelPaddingLeft-item.panelPaddingRight
-			x: item.panelPaddingLeft
+            width: flick.width-item.panelPaddingLeft-item.panelPaddingRight
+            x: item.panelPaddingLeft
 
-			columns: item.width < item.implicitWidth ? 1 : 2
-			columnSpacing: 5
-			rowSpacing: columns > 1 ? 5 : 0
+            columns: item.width < item.implicitWidth ? 1 : 2
+            columnSpacing: 5
+            rowSpacing: columns > 1 ? 5 : 0
 
-			function accept() {
-				item.accepted()
-			}
-		}
-	}
+            function accept() {
+                item.accepted()
+            }
+        }
+    }
 }
 

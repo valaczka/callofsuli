@@ -56,18 +56,23 @@ QTabContainer {
 
 
     QAccordion {
+        id: acc
 
         QTabHeader {
             tabContainer: control
-            isPlaceholder: true
+            flickable: acc.flickable
         }
 
         QCollapsible {
             title: qsTr("Alapadatok")
             backgroundColor: "transparent"
 
+            isFullscreen: control.compact
+
             QGridLayout {
                 id: layout1
+
+                isFullscreen: control.compact
 
                 watchModification: true
                 columns: 2
@@ -288,6 +293,8 @@ QTabContainer {
                 required property string name
                 required property int id
                 required property var gradingList
+
+                isFullscreen: control.compact
 
                 rightComponent: QToolButton {
                     icon.source: "qrc:/internal/icon/delete.svg"

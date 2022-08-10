@@ -1,7 +1,4 @@
-QT += sql websockets quick svg multimedia network networkauth gui-private
-
-android|ios: QT += webview
-
+QT += sql websockets quick svg multimedia network networkauth gui-private webview
 
 CONFIG += c++17
 

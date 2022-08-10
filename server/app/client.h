@@ -96,7 +96,8 @@ signals:
 	void oauth2UserinfoReceived(const QJsonObject &data);
 
 private:
-	void getOAuth2Userinfo(const QString &token);
+	void getOAuth2Userinfo(const QString &token, const QDateTime &expiration, const QString &refreshToken);
+
 	Server *m_server;
 	QWebSocket *m_socket;
 

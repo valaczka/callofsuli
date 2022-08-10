@@ -54,7 +54,7 @@ QTabContainer {
 
         header: QTabHeader {
             tabContainer: panel
-            isPlaceholder: true
+            flickable: serverList
         }
 
         autoSelectorChange: true

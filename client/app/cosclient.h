@@ -121,8 +121,10 @@ public:
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
 	Q_INVOKABLE QVariantMap getWindowSafeMargins(QQuickWindow *window) const;
 
+	Q_INVOKABLE QVariantMap connectionInfoMap() const;
 	Q_INVOKABLE QString connectionInfo(const QString &func = "connect", const QVariantMap &queries = {},
 									   const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
+
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static QString homePath(const QString &path = QString());
@@ -258,7 +260,7 @@ public slots:
 	void closeConnection();
 	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
-	void oauth2Login(const QString &accessToken);
+	void oauth2Login(const QString &accessToken, const QString &expiration = "", const QString &refreshToken = "");
 	void passwordRequest(const QString &email, const QString &code = "");
 
 	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,

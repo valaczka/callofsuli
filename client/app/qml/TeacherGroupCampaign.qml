@@ -27,6 +27,8 @@ QTabContainer {
 
         anchors.fill: parent
 
+        isFullscreen: control.compact
+
         model: SortFilterProxyModel {
             sourceModel: modelCampaign
 
@@ -138,7 +140,7 @@ QTabContainer {
 
         header: QTabHeader {
             tabContainer: control
-            isPlaceholder: true
+            flickable: list
         }
 
         leftComponent: QFontImage {

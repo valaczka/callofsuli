@@ -49,12 +49,13 @@ QTabContainer {
     }
 
     QAccordion {
+        id: acc
         visible: missionLevel
 
         QTabHeader {
             tabContainer: control
             visible: control.compact
-            isPlaceholder: true
+            flickable: acc.flickable
         }
 
         Row {
@@ -132,6 +133,8 @@ QTabContainer {
 
         QGridLayout {
             watchModification: false
+
+            isFullscreen: control.compact
 
             QGridText { text: qsTr("Harcmező") }
 

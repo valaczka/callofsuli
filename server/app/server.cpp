@@ -36,13 +36,15 @@
 #include "server.h"
 #include "../version/buildnumber.h"
 
-#define OLD_SESSION_TOKEN_TIME	"-48 day"
+#define OLD_SESSION_TOKEN_TIME	"-48 days"
 #define OLD_GAME_DURATION	"+12 hours"
+#define OAUTH2_TOKEN_REFRESH_TIME "+5 minutes"
 
 
 QList<Server::VersionUpgrade> Server::m_versionUpgrades = {
 	Server::VersionUpgrade(3, 0, ":/sql/upgrade_3.0.sql"),
-	Server::VersionUpgrade(3, 1, ":/sql/upgrade_3.1.sql")
+	Server::VersionUpgrade(3, 1, ":/sql/upgrade_3.1.sql"),
+	Server::VersionUpgrade(3, 2, ":/sql/upgrade_3.2.sql")
 };
 
 
@@ -57,6 +59,7 @@ Server::Server(QObject *parent)
 	, m_serverName()
 	, m_serverUuid()
 	, m_timer(new QTimer(this))
+	, m_refreshTokenReplyHash()
 {
 	m_socketServer = nullptr;
 	m_serverDir = "";
@@ -460,6 +463,9 @@ bool Server::databaseLoad()
 	if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber())  {
 #endif
 		foreach (Server::VersionUpgrade upgrade, m_versionUpgrades) {
+			if (CosMessage::versionNumber(upgrade.major, upgrade.minor) > CosMessage::versionNumber())
+				continue;
+
 			if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber(upgrade.major, upgrade.minor)) {
 				qInfo() << tr("Adatbázis frissítése %1.%2 -> %3.%4")
 						   .arg(dbVersionMajor)
@@ -840,17 +846,152 @@ QNetworkReply *Server::networkRequestGet(const QNetworkRequest &request)
 		}
 
 		Client *client = qobject_cast<Client *>(reply->request().originatingObject());
+		Server *server = qobject_cast<Server *>(reply->request().originatingObject());
 
-		if (client) {
+		if (client)
 			client->httpReply(reply);
-		} else {
+		else if (server && server == this)
+			networkRequestReply(reply);
+		else
 			qWarning() << "Invalid originating object";
-		}
+
 
 		reply->deleteLater();
 	});
 
 	return reply;
+}
+
+
+
+/**
+ * @brief Server::networkRequestPost
+ * @param request
+ * @return
+ */
+
+QNetworkReply *Server::networkRequestPost(const QNetworkRequest &request, const QByteArray &data)
+{
+	qDebug() << "HTTP POST" << request.url() << request.originatingObject();
+
+	QNetworkReply *reply = m_networkAccessManager.post(request, data);
+
+	connect(reply, &QNetworkReply::finished, this, [=]() {
+		if (reply->error() != QNetworkReply::NoError) {
+			qWarning() << "Network error" << reply->error() << reply->errorString();
+		}
+
+		Client *client = qobject_cast<Client *>(reply->request().originatingObject());
+		Server *server = qobject_cast<Server *>(reply->request().originatingObject());
+
+		if (client)
+			client->httpReply(reply);
+		else if (server && server == this)
+			networkRequestReply(reply);
+		else
+			qWarning() << "Invalid originating object";
+
+
+		reply->deleteLater();
+	});
+
+	return reply;
+}
+
+
+
+
+/**
+ * @brief Server::networkRequestReply
+ * @param reply
+ */
+
+void Server::networkRequestReply(QNetworkReply *reply)
+{
+	if (!m_refreshTokenReplyHash.contains(reply))
+		return;
+
+	const QVariantMap &m = m_refreshTokenReplyHash.value(reply);
+	const QString &username = m.value("username").toString();
+
+	if (username.isEmpty()) {
+		qWarning().noquote() << "Invalid username in refreshTokenReplyHash";
+	} else {
+		QByteArray content = reply->readAll();
+		QJsonDocument doc = QJsonDocument::fromJson(content);
+
+		QJsonObject data = doc.object();
+
+		if (data.contains("error") || !data.contains("access_token")) {
+			qWarning().noquote() << tr("Refresh token error") << username << doc.toJson(QJsonDocument::Indented).data();
+			m_db->execSimpleQuery("UPDATE auth SET expiration=null, refreshToken=null WHERE username=?", { username });
+		} else {
+			const QString &token = data.value("access_token").toString();
+			const int &secs = data.value("expires_in").toInt();
+
+			m_db->execSimpleQuery("UPDATE auth SET oauthToken=?, expiration=datetime('now', ?) WHERE username=?",
+								  {
+									  token,
+									  QString("+%1 seconds").arg(secs),
+									  username
+								  });
+		}
+	}
+
+	m_refreshTokenReplyHash.remove(reply);
+}
+
+
+
+/**
+ * @brief Server::refreshTokens
+ */
+
+void Server::refreshTokens()
+{
+	QVariantList list = m_db->execSelectQuery("SELECT username, refreshToken FROM auth WHERE password='*' AND expiration<=datetime('now', ?)",
+											  { OAUTH2_TOKEN_REFRESH_TIME });
+
+	if (list.isEmpty())
+		return;
+
+	const QString &googleId = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleID'")
+							  .value("v").toString();
+	const QString &googleKey = m_db->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleKey'")
+							   .value("v").toString();
+
+	if (googleId.isEmpty() || googleKey.isEmpty())
+		return;
+
+	foreach (QVariant v, list) {
+		const QVariantMap m = v.toMap();
+		const QString &refreshToken = m.value("refreshToken").toString();
+
+		if (refreshToken.isEmpty())
+			continue;
+
+		qInfo().noquote() << tr("Refresh token") << m.value("username").toString();
+
+		QUrl url("https://oauth2.googleapis.com/token");
+		QNetworkRequest request(url);
+
+		request.setOriginatingObject(this);
+		request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+		QUrlQuery params;
+		params.addQueryItem("client_id", googleId);
+		params.addQueryItem("client_secret", googleKey);
+		params.addQueryItem("refresh_token", refreshToken);
+		params.addQueryItem("grant_type", "refresh_token");
+
+		QNetworkReply *reply = networkRequestPost(request, params.query().toUtf8());
+
+		connect(reply, &QObject::destroyed, this, [=](){
+			m_refreshTokenReplyHash.remove(reply);
+		});
+
+		m_refreshTokenReplyHash.insert(reply, m);
+	}
 }
 
 
@@ -973,6 +1114,9 @@ void Server::onTimerTimeout()
 
 		// Finish campaigns
 		Teacher::startAndFinishCampaigns(m_db);
+
+		// Refresh tokens
+		refreshTokens();
 	}
 }
 

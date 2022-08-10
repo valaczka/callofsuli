@@ -7,65 +7,65 @@ import "Style"
 import "JScript.js" as JS
 
 QCollapsible {
-	id: control
+    id: control
 
-	collapsed: false
+    collapsed: false
 
-	property var moduleData: null
+    property var moduleData: null
 
-	property bool editable: false
+    property bool editable: false
 
-	signal modified()
+    signal modified()
 
-	title: qsTr("Összerendelések")
+    title: qsTr("Összerendelések")
 
-	rightComponent: QToolButton {
-		visible: !control.editable
-		icon.source: "qrc:/internal/icon/pencil.svg"
-		text: qsTr("Szerkesztés")
-		display: AbstractButton.IconOnly
-		onClicked: control.editable = true
-	}
+    rightComponent: QToolButton {
+        visible: !control.editable
+        icon.source: "qrc:/internal/icon/pencil.svg"
+        text: qsTr("Szerkesztés")
+        display: AbstractButton.IconOnly
+        onClicked: control.editable = true
+    }
 
-	QGridLayout {
-		id: layout
+    QGridLayout {
+        id: layout
 
-		watchModification: true
-		onModifiedChanged: if (layout.modified)
-							   control.modified()
+        watchModification: true
+        onModifiedChanged: if (layout.modified)
+                               control.modified()
 
-		QGridDoubleTextFields {
-			id: fields
-			sqlField: "bindings"
+        QGridDoubleTextFields {
+            id: fields
+            sqlField: "bindings"
 
-			watchModification: true
+            watchModification: true
 
-			readOnly: !control.editable
+            readOnly: !control.editable
 
-			Layout.fillWidth: true
-			Layout.columnSpan: layout.columns
+            Layout.fillWidth: true
+            Layout.columnSpan: layout.columns
 
-			onModification: getData()
+            onModification: getData()
 
-		}
-	}
+        }
+    }
 
-	Component.onCompleted: {
-		if (!moduleData)
-			return
+    Component.onCompleted: {
+        if (!moduleData)
+            return
 
-		JS.setSqlFields([fields], moduleData)
-	}
+        JS.setSqlFields([fields], moduleData)
+    }
 
 
-	function getData() {
-		moduleData = JS.getSqlFields([fields])
+    function getData() {
+        moduleData = JS.getSqlFields([fields])
 
-		if (editable)
-			return moduleData
-		else
-			return {}
-	}
+        if (editable)
+            return moduleData
+        else
+            return {}
+    }
 
 }
 

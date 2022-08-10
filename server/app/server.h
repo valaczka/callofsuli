@@ -89,6 +89,8 @@ private:
 
 	QTimer *m_timer;
 
+	QHash<QNetworkReply*, QVariantMap> m_refreshTokenReplyHash;
+
 public:
 	explicit Server(QObject *parent = nullptr);
 	virtual ~Server();
@@ -123,6 +125,10 @@ public:
 	QString serverUuid() const { return m_serverUuid; }
 
 	QNetworkReply *networkRequestGet(const QNetworkRequest &request);
+	QNetworkReply *networkRequestPost(const QNetworkRequest &request, const QByteArray &data);
+	void networkRequestReply(QNetworkReply *reply);
+
+	void refreshTokens();
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);

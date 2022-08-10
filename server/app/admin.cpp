@@ -71,8 +71,8 @@ bool Admin::getAllUser(QJsonObject *jsonResponse, QByteArray *)
 	QVariantList params;
 
 	l = m_client->db()->execSelectQueryJson("SELECT username, firstname, lastname, active, COALESCE(classid, -1) as classid, "
-																	"classname, isTeacher, isAdmin FROM userInfo",
-																	params);
+											"classname, isTeacher, isAdmin FROM userInfo",
+											params);
 	(*jsonResponse)["list"] = l;
 
 	return true;
@@ -504,8 +504,8 @@ bool Admin::getSettings(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["classList"] = m_client->db()->execSelectQueryJson("SELECT id, name FROM class");
 
 	(*jsonResponse)["codeList"] = m_client->db()->execSelectQueryJson("SELECT classid, code, name FROM classRegistration "
-																							  "LEFT JOIN class ON (classRegistration.classid=class.id) "
-																							  "ORDER BY name");
+																	  "LEFT JOIN class ON (classRegistration.classid=class.id) "
+																	  "ORDER BY name");
 
 	QVariantList list = m_client->db()->execSelectQuery("SELECT key, value FROM settings");
 
@@ -660,6 +660,8 @@ QString Admin::userCreateReal(const QString &username,
 							  const bool &isTeacher,
 							  const QString &classCode,
 							  const QString &oauthToken,
+							  const QString &refreshToken,
+							  const QDateTime &expiration,
 							  const QString &picture,
 							  const QString &character)
 {
@@ -718,6 +720,10 @@ QString Admin::userCreateReal(const QString &username,
 
 	if (!oauthToken.isEmpty()) {
 		m["oauthToken"] = oauthToken;
+		if (!refreshToken.isEmpty() && expiration.isValid()) {
+			m["refreshToken"] = refreshToken;
+			m["expiration"] = expiration.toUTC().toString("yyyy-MM-dd HH:mm:ss");
+		}
 		m["password"] = "*";
 	}
 

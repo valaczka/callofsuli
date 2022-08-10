@@ -54,6 +54,8 @@ QTabContainer {
         QObjectListView {
             id: list
 
+            isFullscreen: control.compact
+
             model: SortFilterProxyModel {
                 sourceModel: availableObjectiveModel
 
@@ -75,8 +77,8 @@ QTabContainer {
 
             header: QTabHeader {
                 tabContainer: control
-                isPlaceholder: true
                 visible: control.compact
+                flickable: list
             }
 
             onClicked: {
@@ -293,8 +295,8 @@ QTabContainer {
             header: Column {
                 QTabHeader {
                     tabContainer: control
-                    isPlaceholder: true
                     visible: control.compact
+                    flickable: slist
                 }
                 QToolButtonFooter {
                     icon.source: "image://font/Material Icons/\ue06f"
@@ -323,6 +325,7 @@ QTabContainer {
             QTabHeader {
                 tabContainer: control
                 visible: control.compact
+                isPlaceholder: false
             }
 
             Loader {

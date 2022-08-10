@@ -38,6 +38,8 @@ CREATE TABLE auth(
 	password TEXT,
 	salt TEXT,
 	oauthToken TEXT,
+	refreshToken TEXT,
+	expiration TEXT,
 	UNIQUE (username)
 );
 

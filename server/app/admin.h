@@ -51,8 +51,9 @@ public:
 	bool classInit() override;
 
 	QString userCreateReal(const QString &username, const QString &firstname, const QString &lastname, const bool &isTeacher = false,
-						const QString &classCode = "", const QString &oauthToken = "",
-						const QString &picture = "", const QString &character = "default");
+						   const QString &classCode = "", const QString &oauthToken = "",
+						   const QString &refreshToken = "", const QDateTime &expiration = QDateTime(),
+						   const QString &picture = "", const QString &character = "default");
 
 	bool userPasswordChangeReal(const QString &username, const QString &password);
 

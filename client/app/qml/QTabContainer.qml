@@ -42,6 +42,7 @@ Item {
 
 
     signal populated()
+    signal deactivating()
 
     StackView.onActivated: populated()
 
@@ -266,6 +267,8 @@ Item {
             if (!tabPage.toolBarLoaderComponentForced)
                 tabPage.toolBarLoaderComponent = null
         }
+
+        deactivating()
     }
 
     onPopulated: {

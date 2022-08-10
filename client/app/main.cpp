@@ -33,18 +33,12 @@
 #include <QDir>
 #include <QObject>
 #include <QQmlContext>
+#include <QtWebView/QtWebView>
 #include <Logger.h>
 #include <ColorConsoleAppender.h>
 #include <sqlimage.h>
 #include <fontimage.h>
 #include "qrimage.h"
-
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-#include <QtWebView/QtWebView>
-#endif
-
-#include "../Bacon2D-static/qml-box2d/box2dplugin.h"
-#include "../Bacon2D-static/src/plugins.h"
 
 #define QZXING_QML
 #include <QZXing.h>
@@ -59,19 +53,13 @@
 #endif
 
 
-
 #include "cosclient.h"
-#include "gamemap.h"
-#include "cosdb.h"
-
 #include "modules/staticmodules.h"
 
 
 int main(int argc, char *argv[])
 {
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 	QtWebView::initialize();
-#endif
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 	qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Normal");
@@ -87,7 +75,6 @@ int main(int argc, char *argv[])
 
 	Client::initialize();
 
-
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	QSingleInstance instance;
 
@@ -96,16 +83,6 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 #endif
-
-	srand(time(NULL));
-
-	Box2DPlugin box2dplugin;
-	box2dplugin.registerTypes("Box2D");
-
-	Plugins plugin;
-	plugin.registerTypes("Bacon2D");
-
-	Q_INIT_RESOURCE(Bacon2D_static);
 
 	QString cmdLine = Client::commandLineParse(app);
 

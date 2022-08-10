@@ -33,7 +33,6 @@ QTabContainer {
             tabContainer: p
             Layout.columnSpan: parent.columns
             Layout.fillWidth: true
-            isPlaceholder: true
         }
 
         QGridLabel { field: textHostname }

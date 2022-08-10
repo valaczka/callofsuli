@@ -50,7 +50,7 @@ public slots:
 
 signals:
 	void browserRequest(const QUrl &url);
-	void authenticated(const QString &token);
+	void authenticated(const QString &token, const QString &expiration, const QString &refreshToken);
 
 private:
 	QOAuth2AuthorizationCodeFlow m_oauth;

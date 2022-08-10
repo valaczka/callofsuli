@@ -38,6 +38,9 @@
 #include <QStandardPaths>
 #include <RollingFileAppender.h>
 
+#include "../Bacon2D-static/qml-box2d/box2dplugin.h"
+#include "../Bacon2D-static/src/plugins.h"
+
 #include "../../version/buildnumber.h"
 #include "abstractactivity.h"
 #include "androidshareutils.h"
@@ -190,6 +193,16 @@ void Client::initialize()
 	QCoreApplication::setApplicationName("callofsuli");
 	QCoreApplication::setOrganizationDomain("callofsuli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
+
+	srand(time(NULL));
+
+	Box2DPlugin box2dplugin;
+	box2dplugin.registerTypes("Box2D");
+
+	Plugins plugin;
+	plugin.registerTypes("Bacon2D");
+
+	Q_INIT_RESOURCE(Bacon2D_static);
 }
 
 
@@ -559,6 +572,26 @@ QString Client::connectionInfo(const QString &func, const QVariantMap &queries, 
 
 	return url.toString(format);
 }
+
+
+/**
+ * @brief Client::connectionInfoMap
+ * @return
+ */
+
+QVariantMap Client::connectionInfoMap() const
+{
+	if (m_connectionState == Client::Standby)
+		return QVariantMap();
+
+	QVariantMap m;
+	m["host"] = m_socket->requestUrl().host();
+	m["port"] = m_socket->requestUrl().port();
+	m["ssl"] = (m_socket->requestUrl().scheme() == "wss" ? true : false);
+
+	return m;
+}
+
 
 
 
@@ -1601,12 +1634,18 @@ void Client::logout()
  * @param accessToken
  */
 
-void Client::oauth2Login(const QString &accessToken)
+void Client::oauth2Login(const QString &accessToken, const QString &expiration, const QString &refreshToken)
 {
 	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
 
 	QJsonObject d;
 	d["oauth2Token"] = accessToken;
+
+	if (!expiration.isEmpty() && !refreshToken.isEmpty()) {
+		d["oauth2Expiration"] = expiration;
+		d["oauth2RefreshToken"] = refreshToken;
+	}
+
 	m.setJsonAuth(d);
 	m.send(m_socket);
 }

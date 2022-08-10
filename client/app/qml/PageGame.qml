@@ -654,6 +654,7 @@ Page {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.margins: 5
+        anchors.topMargin: Math.max(mainWindow.safeMarginTop, 5)
         color: CosStyle.colorErrorLighter
         text: "%1 HP"
         value: game.player ? game.player.entityPrivate.hp
@@ -670,6 +671,7 @@ Page {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 7
+        anchors.rightMargin: Math.max(mainWindow.safeMarginRight, 7)
         spacing: 5
 
         visible: !gameScene.isSceneZoom
@@ -853,6 +855,7 @@ Page {
 
         anchors.left: parent.left
         anchors.top: parent.top
+        anchors.leftMargin: mainWindow.safeMarginLeft
 
         width: Math.min(implicitWidth, control.width*0.55)
         maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
@@ -870,6 +873,7 @@ Page {
         anchors.left: parent.left
         anchors.top: gameMatch.mode == GameMatch.ModeNormal ? messageList.bottom : parent.top
         anchors.margins: 5
+        anchors.leftMargin: Math.max(mainWindow.safeMarginLeft, 5)
 
         property int secs: game.msecLeft/1000
 
@@ -889,6 +893,7 @@ Page {
         anchors.left: parent.left
         anchors.top: infoTime.bottom
         anchors.margins: 5
+        anchors.leftMargin: Math.max(mainWindow.safeMarginLeft, 5)
         pixelSize: 24
 
         property int secs: game.msecLeft/1000
@@ -915,7 +920,8 @@ Page {
 
         anchors.bottom: parent.bottom
         anchors.left: parent.left
-        anchors.margins: 5
+        anchors.bottomMargin: 5 //Math.max(5, mainWindow.safeMarginBottom)
+        anchors.leftMargin: 5 //Math.max(5, mainWindow.safeMarginLeft)
 
         width: Math.min(size, control.width*0.5)
         height: Math.min((120/175)*size, control.width*0.4)
@@ -971,7 +977,8 @@ Page {
 
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: 10
+        anchors.rightMargin: Math.max(10, mainWindow.safeMarginRight)
+        anchors.bottomMargin: Math.max(10, mainWindow.safeMarginBottom)
 
         visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
 
@@ -1192,7 +1199,7 @@ Page {
         font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
         opacity: 0.0
         visible: opacity
-        width: parent.width*0.7
+        width: Math.min(parent.width*0.7, parent.width-mainWindow.safeMarginLeft-mainWindow.safeMarginRight)
         horizontalAlignment: Text.AlignHCenter
         x: (parent.width-width)/2
         y: parent.height*0.8-height/2
