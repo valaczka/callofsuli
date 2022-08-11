@@ -13,6 +13,8 @@ A csoportokon belül időtartamhoz kötött hadjáratokat lehet kitűzni, melyek
 
 A küldetések során egy karaktert kell irányítaniuk, akinek az ellenfeleit kell időre megölnie. Néhány ellenfelet csak akkor tud legyőzni, ha az adott feladatot helyesen oldja meg. A játékos akkor győz, ha az adott szintet befejezi.
 
+Lehetőség van arra is, hogy akciójáték nélkül csak a kitűzött feladatokat oldják meg a játékosok, ha úgy szeretnék.
+
 ### Feladattípusok:
 - Egyszerű választás
 - Többszörös választás
@@ -21,7 +23,8 @@ A küldetések során egy karaktert kell irányítaniuk, akinek az ellenfeleit k
 - Szövegkitöltés
 - Összeadás-kivonás
 - Numerikus válasz
-- Sorbarendezés 
+- Sorbarendezés
+- Képválasztás
 
 ## Kliens letöltés
 

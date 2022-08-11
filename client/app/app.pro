@@ -109,7 +109,18 @@ else: CommonRcc.path = $${INSTALL_DIR}/build/share
 !isEmpty(target.path): INSTALLS += target
 !isEmpty(CommonRcc.path): INSTALLS += CommonRcc
 
-ios: QMAKE_BUNDLE_DATA += CommonRcc
+ios {
+	QMAKE_BUNDLE_DATA += CommonRcc
+
+	Q_ENABLE_BITCODE.name = ENABLE_BITCODE
+	Q_ENABLE_BITCODE.value = NO
+	QMAKE_MAC_XCODE_SETTINGS += Q_ENABLE_BITCODE
+
+	QMAKE_TARGET_BUNDLE_PREFIX = hu.piarista.vjp.callofsuli
+	QMAKE_DEVELOPMENT_TEAM = CVLKEEC7F2
+	#QMAKE_PROVISIONING_PROFILE = XXXXX
+
+}
 
 win32 {
 	license.path = $${INSTALL_DIR}/build
