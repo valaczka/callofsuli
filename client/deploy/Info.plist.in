@@ -32,6 +32,8 @@
 	<string>© Valaczka János Pál, 2022</string>
 	<key>UILaunchStoryboardName</key>
 	<string>COSLaunchScreen</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

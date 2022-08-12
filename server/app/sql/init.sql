@@ -193,7 +193,7 @@ CREATE TABLE score(
 CREATE TABLE classRegistration(
 	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	code TEXT NOT NULL,
-	UNIQUE(classid,
+	UNIQUE(classid),
 	UNIQUE(code)
 );
 
