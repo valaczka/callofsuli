@@ -261,7 +261,6 @@ public slots:
 	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
 	void oauth2Login(const QString &accessToken, const QString &expiration = "", const QString &refreshToken = "");
-	void passwordRequest(const QString &email, const QString &code = "");
 
 	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());

@@ -441,6 +441,7 @@ Page {
                 model: ListModel { }
 
                 ToolButton {
+                    id: btn
                     anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                     autoExclusive: true
                     Material.foreground: compact ? buttonColor : CosStyle.colorPrimaryDarker
@@ -467,6 +468,16 @@ Page {
                                       }
 
                     width: rptr.count ? tabbar.width/rptr.count : implicitWidth
+
+                    property real _bottomPaddingOverride: -1
+
+                    Binding on bottomPadding {
+                        when: btn._bottomPaddingOverride != -1
+                        value: Math.max(btn._bottomPaddingOverride, mainWindow.safeMarginBottom)
+                        delayed: true
+                    }
+
+                    Component.onCompleted: _bottomPaddingOverride = bottomPadding
 
                     Connections {
                         target: control

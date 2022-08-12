@@ -37,6 +37,7 @@
 
 #include "abstracthandler.h"
 #include <QObject>
+#include "examengine.h"
 
 class Client;
 
@@ -97,6 +98,8 @@ public:
 
 	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username = "", const bool &isFinished = false);
 
+	QJsonArray getOrGenerateGradeList();
+
 public slots:
 
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
@@ -140,6 +143,9 @@ public slots:
 	bool campaignRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignFinish(QJsonObject *jsonResponse, QByteArray *);
+
+	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *);
+	bool examEngineCreate(QJsonObject *jsonResponse, QByteArray *);
 
 };
 

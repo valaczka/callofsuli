@@ -432,6 +432,53 @@ QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int
 }
 
 
+/**
+ * @brief Teacher::getOrGenerateGradeList
+ * @return
+ */
+
+QJsonArray Teacher::getOrGenerateGradeList()
+{
+	QJsonArray gradeList = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade WHERE owner=?", {m_client->clientUserName()});
+
+	if (gradeList.isEmpty()) {
+		qInfo().noquote() << tr("Jegyek automatikus létrehozása") << m_client->clientUserName();
+
+		struct Grade {
+			QString shortname;
+			QString longname;
+			int value;
+
+			Grade(const QString &s, const QString &l, const int &v)
+				: shortname(s), longname(l), value(v)
+			{}
+		};
+
+		const QList<Grade> list = {
+			Grade("1", tr("elégtelen"), 1),
+			Grade("2", tr("elégséges"), 2),
+			Grade("3", tr("közepes"), 3),
+			Grade("4", tr("jó"), 4),
+			Grade("5", tr("jeles"), 5),
+			Grade("6", tr("kitűnő"), 6),
+		};
+
+		foreach (Grade g, list) {
+			m_client->db()->execInsertQuery("INSERT INTO grade (?k?) VALUES (?)", {
+												{ "owner", m_client->clientUserName() },
+												{ "shortname", g.shortname },
+												{ "longname", g.longname },
+												{ "value", g.value },
+											});
+		}
+
+		gradeList = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade WHERE owner=?", {m_client->clientUserName()});
+	}
+
+	return gradeList;
+}
+
+
 
 
 
@@ -1885,21 +1932,12 @@ bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 	const QVariantMap params = m_message.jsonData().toVariantMap();
 	const int id = params.value("id", -1).toInt();
 
-
-	// Grades
-
-	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade");
-
-
-	// Maps
-
-	(*jsonResponse)["mapList"] = m_client->mapsDb()->execSelectQueryJson("SELECT uuid, name, version FROM maps WHERE owner=?",
-																		 {m_client->clientUserName()});
-
 	if (id == -1) {
 		(*jsonResponse)["error"] = "missing campaign";
 		return false;
 	}
+
+
 
 	QVariantMap d = m_client->db()->execSelectQueryOneRow("SELECT datetime(starttime, 'localtime') as starttime, "
 														  "datetime(endtime, 'localtime') as endtime, "
@@ -1913,6 +1951,17 @@ bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 		(*jsonResponse)["error"] = "invalid id";
 		return false;
 	}
+
+	// Grades
+
+	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade WHERE owner=?",
+																	   {m_client->clientUserName()});
+
+
+	// Maps
+
+	(*jsonResponse)["mapList"] = m_client->mapsDb()->execSelectQueryJson("SELECT uuid, name, version FROM maps WHERE owner=?",
+																		 {m_client->clientUserName()});
 
 	(*jsonResponse)["starttime"] = d.value("starttime").toString();
 	(*jsonResponse)["endtime"] = d.value("endtime").toString();
@@ -1975,7 +2024,7 @@ bool Teacher::campaignListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	(*jsonResponse)["list"] = list;
 
-
+	(*jsonResponse)["gradeList"] = getOrGenerateGradeList();
 
 	return true;
 }
@@ -2343,6 +2392,118 @@ bool Teacher::campaignFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["finished"] = true;
 
 	return true;
+}
+
+
+
+/**
+ * @brief Teacher::examEngineCreate
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::examEngineConnect(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+	const int id = params.value("id").toInt(-1);
+
+	ExamEngine *old = m_client->examEngine();
+
+	if (old) {
+		if (old->engineId() == id) {
+			(*jsonResponse)["id"] = id;
+			(*jsonResponse)["connected"] = true;
+			return true;
+		} else {
+			m_client->setExamEngine(nullptr);
+		}
+	}
+
+	ExamEngine *engine = m_client->server()->getExamEngine(id);
+
+	if (engine) {
+		if (engine->owner() == m_client->clientUserName()) {
+			m_client->setExamEngine(engine);
+
+			(*jsonResponse)["id"] = id;
+			(*jsonResponse)["connected"] = true;
+			return true;
+		} else {
+			(*jsonResponse)["id"] = id;
+			(*jsonResponse)["error"] = "invalid engine";
+			return false;
+		}
+	}
+
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT examEngine.id, owner FROM examEngine "
+														  "LEFT JOIN exam ON (exam.id=examEngine.examid) "
+														  "LEFT JOIN studentGroup ON (studentGroup.id=exam.groupid) "
+														  "WHERE examEngine.id=?", { id });
+
+	if (!m.isEmpty() && m.value("owner").toString() == m_client->clientUserName()) {
+		engine = m_client->server()->newExamEngine(id, m_client->clientUserName());
+		m_client->setExamEngine(engine);
+	}
+
+
+	if (engine) {
+		(*jsonResponse)["id"] = id;
+		(*jsonResponse)["connected"] = true;
+		return true;
+	} else {
+		(*jsonResponse)["id"] = id;
+		(*jsonResponse)["error"] = "missing engine";
+		return false;
+	}
+
+}
+
+
+
+
+/**
+ * @brief Teacher::examEngineCreate
+ * @param engineId
+ * @return
+ */
+
+bool Teacher::examEngineCreate(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+	const int examid = params.value("examid").toInt(-1);
+
+	ExamEngine *engine = nullptr;
+
+	const QString characters = "0123456789";
+
+	for (int t=0; t<3; t++) {
+		QString code;
+
+		for (int i=0; i<6; i++)
+			code.append(characters.at(QRandomGenerator::global()->bounded(characters.size())));
+
+		QVariantMap ins;
+		ins["examid"] = examid;
+		ins["code"] = code;
+
+		int ret = m_client->db()->execInsertQuery("INSERT INTO examEngine(?k?) VALUES (?)", ins);
+
+		if (ret != -1) {
+			engine = m_client->server()->newExamEngine(ret, m_client->clientUserName());
+			m_client->setExamEngine(engine);
+			break;
+		}
+	}
+
+	if (engine) {
+		(*jsonResponse)["id"] = engine->engineId();
+		(*jsonResponse)["created"] = true;
+		return true;
+	} else {
+		(*jsonResponse)["error"] = "internal error";
+		setServerError(CosMessage::ServerInternalError);
+		return false;
+	}
 }
 
 

@@ -41,6 +41,8 @@
 
 #include "client.h"
 
+class ExamEngine;
+
 class Server : public QObject
 {
 	Q_OBJECT
@@ -90,6 +92,7 @@ private:
 	QTimer *m_timer;
 
 	QHash<QNetworkReply*, QVariantMap> m_refreshTokenReplyHash;
+	QList<ExamEngine*> m_examEngineList;
 
 public:
 	explicit Server(QObject *parent = nullptr);
@@ -129,6 +132,10 @@ public:
 	void networkRequestReply(QNetworkReply *reply);
 
 	void refreshTokens();
+
+	ExamEngine *newExamEngine(const int &engineId, const QString &owner);
+	ExamEngine *getExamEngine(const int &engineId) const;
+	bool deleteExamEngine(ExamEngine *engine);
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);

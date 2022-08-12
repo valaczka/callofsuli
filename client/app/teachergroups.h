@@ -102,6 +102,7 @@ private slots:
 	void onGameListUserGet(QJsonObject jsonData, QByteArray);
 	void onGameListGroupGet(QJsonObject jsonData, QByteArray);
 	void onCampaignGet(QJsonObject jsonData, QByteArray);
+	void onCampaignListGet(QJsonObject jsonData, QByteArray);
 
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 

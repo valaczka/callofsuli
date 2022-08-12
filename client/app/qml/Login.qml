@@ -107,15 +107,7 @@ QTabContainer {
             }
         }
 
-        /*QGridButton {
-            id: buttonForgot
-            text: qsTr("Elfelejtettem a jelszavam")
 
-            enabled: cosClient.passwordResetEnabled
-            visible: cosClient.passwordResetEnabled
-
-            onClicked: JS.createPage("PasswordRequest", {})
-        }*/
 
 
 

@@ -114,63 +114,70 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 														  "nickname, character, picture "
 														  "FROM userInfo WHERE active IS TRUE AND username=?", {username});
 
-	m["maxStreak"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(MAX(maxStreak), 0) as maxStreak "
-														   "FROM score WHERE username=?", {username}).value("maxStreak").toInt();
-
-	int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-															  "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-															  "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-															  "(SELECT DISTINCT date(timestamp) AS dt "
-															  "FROM game WHERE username=? AND success=true) t2 "
-															  "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-															  "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-															  "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-															  "WHERE dt=date('now', 'localtime')", {username, username})
-						.value("streak", 0).toInt();
-
-
-	// Ha ma még nem volt megoldás, akkor a tegnapit számoljuk
-	if (currentStreak == 0)
-		currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-															  "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-															  "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-															  "(SELECT DISTINCT date(timestamp) AS dt "
-															  "FROM game WHERE username=? AND success=true) t2 "
-															  "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-															  "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-															  "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-															  "WHERE dt=date('now', '-1 day', 'localtime')", {username, username})
-						.value("streak", 0).toInt();
-
-	m["currentStreak"] = currentStreak;
-
-	if (m_message.jsonData().contains("withTrophy")) {
-		m.insert(m_client->db()->execSelectQueryOneRow("SELECT (SELECT COALESCE(MAX(maxStreak), 0) FROM score WHERE score.username=?) as longestStreak, "
-													   "t1, t2, t3, d1, d2, d3 FROM fullTrophy WHERE username=?", {username, username}));
+	if (m_client->examEngine()) {
+		m["currentExamEngine"] = m_client->examEngine()->engineId();
 	}
 
+	if (!m_message.jsonData().value("ping").toBool(false)) {
+
+		m["maxStreak"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(MAX(maxStreak), 0) as maxStreak "
+															   "FROM score WHERE username=?", {username}).value("maxStreak").toInt();
+
+		int currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+																  "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+																  "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+																  "(SELECT DISTINCT date(timestamp) AS dt "
+																  "FROM game WHERE username=? AND success=true) t2 "
+																  "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+																  "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+																  "WHERE username=? AND success=true) t1) t GROUP BY grp) "
+																  "WHERE dt=date('now', 'localtime')", {username, username})
+							.value("streak", 0).toInt();
+
+
+		// Ha ma még nem volt megoldás, akkor a tegnapit számoljuk
+		if (currentStreak == 0)
+			currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
+																  "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
+																  "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
+																  "(SELECT DISTINCT date(timestamp) AS dt "
+																  "FROM game WHERE username=? AND success=true) t2 "
+																  "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
+																  "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
+																  "WHERE username=? AND success=true) t1) t GROUP BY grp) "
+																  "WHERE dt=date('now', '-1 day', 'localtime')", {username, username})
+							.value("streak", 0).toInt();
+
+		m["currentStreak"] = currentStreak;
+
+		if (m_message.jsonData().contains("withTrophy")) {
+			m.insert(m_client->db()->execSelectQueryOneRow("SELECT (SELECT COALESCE(MAX(maxStreak), 0) FROM score WHERE score.username=?) as longestStreak, "
+														   "t1, t2, t3, d1, d2, d3 FROM fullTrophy WHERE username=?", {username, username}));
+		}
 
 
 
-	if (m_message.jsonData().contains("withRanklog")) {
-		QJsonArray rList = m_client->db()->execSelectQueryJson("SELECT rankid, datetime(timestamp, 'localtime') as timestamp, ranklog.xp, name, level, image,"
-															   "-1 as maxStreak "
-															   "FROM ranklog LEFT JOIN rank ON (rank.id=ranklog.rankid) "
-															   "WHERE username=? "
-															   "UNION "
-															   "SELECT -1 as rankid, datetime(timestamp, 'localtime') as timestamp, -1 as xp, '' as name, "
-															   "-1 as level, '' as image, maxStreak "
-															   "FROM score WHERE username=? AND maxStreak IS NOT NULL", {username, username});
-		m["ranklog"] = rList;
+
+		if (m_message.jsonData().contains("withRanklog")) {
+			QJsonArray rList = m_client->db()->execSelectQueryJson("SELECT rankid, datetime(timestamp, 'localtime') as timestamp, ranklog.xp, name, level, image,"
+																   "-1 as maxStreak "
+																   "FROM ranklog LEFT JOIN rank ON (rank.id=ranklog.rankid) "
+																   "WHERE username=? "
+																   "UNION "
+																   "SELECT -1 as rankid, datetime(timestamp, 'localtime') as timestamp, -1 as xp, '' as name, "
+																   "-1 as level, '' as image, maxStreak "
+																   "FROM score WHERE username=? AND maxStreak IS NOT NULL", {username, username});
+			m["ranklog"] = rList;
+		}
+
+
+		m["nameModificationDisabled"] = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
+										.value("v", false).toBool();
+
+		m["oauth2Account"] = m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {username})
+							 .value("v", false).toBool();
+
 	}
-
-
-	m["nameModificationDisabled"] = m_client->db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='user.disableNameModification'")
-									.value("v", false).toBool();
-
-	m["oauth2Account"] = m_client->db()->execSelectQueryOneRow("SELECT (password='*') as v FROM auth WHERE username=?", {username})
-						 .value("v", false).toBool();
-
 
 	(*jsonResponse) = QJsonObject::fromVariantMap(m);
 

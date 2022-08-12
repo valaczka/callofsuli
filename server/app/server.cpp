@@ -32,6 +32,7 @@
 #include <QFile>
 #include <RollingFileAppender.h>
 #include "teacher.h"
+#include "examengine.h"
 
 #include "server.h"
 #include "../version/buildnumber.h"
@@ -60,6 +61,7 @@ Server::Server(QObject *parent)
 	, m_serverUuid()
 	, m_timer(new QTimer(this))
 	, m_refreshTokenReplyHash()
+	, m_examEngineList()
 {
 	m_socketServer = nullptr;
 	m_serverDir = "";
@@ -91,6 +93,7 @@ Server::~Server()
 	}
 
 	qDeleteAll(m_clients.begin(), m_clients.end());
+	qDeleteAll(m_examEngineList.begin(), m_examEngineList.end());
 
 	m_udpSocket->close();
 
@@ -996,6 +999,61 @@ void Server::refreshTokens()
 
 
 
+/**
+ * @brief Server::newExamEngine
+ * @param engineId
+ * @return
+ */
+
+ExamEngine *Server::newExamEngine(const int &engineId, const QString &owner)
+{
+	if (getExamEngine(engineId)) {
+		qWarning().noquote() << tr("A dolgozatíró már létezik") << engineId;
+		return nullptr;
+	}
+
+	ExamEngine *engine = new ExamEngine(this, engineId, owner);
+	m_examEngineList.append(engine);
+	return engine;
+}
+
+
+
+/**
+ * @brief Server::getExamEngine
+ * @param engineId
+ * @return
+ */
+
+ExamEngine *Server::getExamEngine(const int &engineId) const
+{
+	foreach (ExamEngine *e, m_examEngineList) {
+		if (e->engineId() == engineId)
+			return e;
+	}
+
+	return nullptr;
+}
+
+
+/**
+ * @brief Server::deleteExamEngine
+ * @param engine
+ */
+
+bool Server::deleteExamEngine(ExamEngine *engine)
+{
+	if (!engine || !m_examEngineList.contains(engine))
+		return false;
+
+	m_examEngineList.removeAll(engine);
+	delete engine;
+
+	return true;
+}
+
+
+
 
 
 /**
@@ -1090,14 +1148,8 @@ void Server::onTimerTimeout()
 {
 	QTime time = QTime::currentTime();
 
-#ifdef QT_DEBUG
-	if (time.second() != 0 && time.second() != 20 && time.second() != 40)
-		return;
-#else
 	if (time.second() != 0)
 		return;
-#endif
-
 
 	if (m_db->isOpen()) {
 		// Delete old tokens

@@ -203,7 +203,8 @@ void StudentMaps::mapLoad(MapListObject *map)
 	}
 
 	if (gmap->appVersion() > 0 && gmap->appVersion() > CosMessage::versionNumber()) {
-		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/update.svg", tr("Frissítés szükséges"), tr("A pálya az alkalmazásnál magasabb verziószámmal készült, elképzelhető, hogy nem minden funkció fog helyesen működni.\nFrissítsd az alkalmazást a legfrissebb verzióra!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/update.svg", tr("Frissítés szükséges"), tr("A pálya az alkalmazásnál magasabb verziószámmal készült.\nFrissítsd az alkalmazást a legújabb verzióra!"));
+		return;
 	}
 
 

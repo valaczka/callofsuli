@@ -34,6 +34,7 @@
 
 #include "cosdb.h"
 #include "cosmessage.h"
+#include "examengine.h"
 
 class Server;
 
@@ -68,6 +69,9 @@ public:
 	void httpGet(QNetworkRequest request, const CosMessage &message, void *data);
 	void httpReply(QNetworkReply *reply);
 
+	ExamEngine *examEngine() const;
+	void setExamEngine(ExamEngine *newExamEngine);
+
 public slots:
 	void sendClientRoles();
 	void sendServerInfo();
@@ -85,6 +89,7 @@ private slots:
 	void clientLogout(const CosMessage &message);
 	void updateRoles();
 	void onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data);
+	void onExamEngineDestroyed(QObject *engine);
 
 signals:
 	void disconnected();
@@ -114,6 +119,7 @@ private:
 	};
 
 	QList<HttpRequestMap> m_httpRequestList;
+	QPointer<ExamEngine> m_examEngine = nullptr;
 };
 
 #endif // CLIENT_H

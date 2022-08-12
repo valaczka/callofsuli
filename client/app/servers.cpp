@@ -116,14 +116,6 @@ void Servers::onMessageReceived(const CosMessage &message)
 			}
 
 		} else if (func == "registrationRequest") {
-			qDebug() << "REGISTRATION" << d;
-			/*if (d.contains("error")) {
-				emit registrationRequestFailed(d.value("error").toString());
-			} else if (d.contains("createdUserName")) {
-				login(d.value("createdUserName").toString(), "");
-			} else if (d.value("success").toBool(false)) {
-				emit registrationRequestSuccess();
-			}*/
 			emit registrationRequest(d);
 		}
 	} else if (message.cosClass() == CosMessage::ClassTeacher) {
@@ -498,16 +490,6 @@ bool Servers::parseUrls(const QStringList &urls)
 			}
 
 			Client::clientInstance()->sendRegistrationRequest((oauth2 == "1"), code);
-		} else if (func == "reset") {
-			QString user = q.queryItemValue("user", QUrl::FullyDecoded);
-			QString code = q.queryItemValue("code", QUrl::FullyDecoded);
-
-			qDebug() << "RESET" << user << code;
-
-			if (user.isEmpty() || code.isEmpty())
-				return true;
-
-			Client::clientInstance()->passwordRequest(user, code);
 		}
 
 	}

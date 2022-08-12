@@ -36,6 +36,8 @@
 #include "admin.h"
 #include "userinfo.h"
 #include "teacher.h"
+#include "server.h"
+#include "examengine.h"
 
 
 Student::Student(Client *client, const CosMessage &message)
@@ -265,7 +267,9 @@ bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 
 	// Grades
 
-	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade");
+	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade "
+																	   "WHERE owner=(SELECT owner FROM studentGroup WHERE studentgroup.id=?)",
+																	   {groupid});
 
 
 	// Campaigns
@@ -939,6 +943,57 @@ bool Student::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 	QJsonObject ret;
 	Admin u(m_client, m2);
 	return u.userPasswordChange(jsonResponse, nullptr);
+}
+
+
+
+/**
+ * @brief Student::examEngineConnect
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::examEngineConnect(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QJsonObject &params = m_message.jsonData();
+	const QString &code = params.value("code").toString();
+
+	if (m_client->examEngine()) {
+		(*jsonResponse)["id"] = m_client->examEngine()->engineId();
+		(*jsonResponse)["error"] = "already connected";
+		return false;
+	}
+
+	if (code.isEmpty()) {
+		(*jsonResponse)["error"] = "missing code";
+		return false;
+	}
+
+
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT examEngine.id FROM examEngine "
+														  "LEFT JOIN exam ON (exam.id=examEngine.examid) "
+														  "LEFT JOIN studentGroup ON (studentGroup.id=exam.groupid) "
+														  "WHERE examEngine.code=? AND EXISTS("
+														  "SELECT * FROM studentGroupInfo WHERE id=studentGroup.id AND studentGroupInfo.username=?",
+														  { code, m_client->clientUserName() });
+
+	if (m.isEmpty()) {
+		(*jsonResponse)["error"] = "invalid code";
+		return false;
+	}
+
+	ExamEngine *engine = m_client->server()->getExamEngine(m.value("id").toInt());
+
+	if (!engine) {
+		(*jsonResponse)["error"] = "engine error";
+		return false;
+	}
+
+	m_client->setExamEngine(engine);
+
+	(*jsonResponse)["id"] = engine->engineId();
+	(*jsonResponse)["connected"] = "true";
+	return false;
 }
 
 

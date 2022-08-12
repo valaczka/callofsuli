@@ -73,6 +73,7 @@ Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 
 Client::~Client()
 {
+
 }
 
 
@@ -257,6 +258,12 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 				u.start();
 				break;
 			}
+		case CosMessage::ClassExamEngine: {
+				if (m_examEngine) {
+					m_examEngine->run(this, m);
+					break;
+				}
+			}
 		case CosMessage::ClassInvalid:
 		default: {
 				CosMessage r(CosMessage::InvalidClass, m);
@@ -295,12 +302,27 @@ void Client::clientAuthorize(const CosMessage &message)
 	if (!session.isEmpty()) {
 		QVariantMap m = db()->execSelectQueryOneRow("SELECT username FROM session WHERE token=?", {session});
 		if (!m.isEmpty()) {
-			QString user = m.value("username").toString();
+			const QString &user = m.value("username").toString();
+
+			// Ha dolgozatot ír és nem ebben a kliensben és nem tanár
+
+			if (!db()->execSelectQuery("SELECT token FROM session "
+									   "LEFT JOIN user ON (user.username=session.username) "
+									   "WHERE session.username=? AND examEngineId IS NOT NULL AND isTeacher=false", {user}).isEmpty()
+				&& !m_examEngine) {
+				CosMessage r(CosMessage::ExamLock, message);
+				r.send(m_socket);
+				setClientState(ClientUnauthorized);
+				setClientUserName("");
+				return;
+			}
+
+
 			QVariantMap pwdMap = db()->execSelectQueryOneRow("SELECT password, oauthToken FROM auth WHERE username=?", { user });
 
 			db()->execSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", {session});
 			setClientState(ClientAuthorized);
-			setClientUserName(m.value("username").toString());
+			setClientUserName(user);
 			setClientSession(session);
 
 			if (pwdMap.value("password") == "*" && !m_oauthTokenInitialized) {
@@ -351,6 +373,18 @@ void Client::clientAuthorize(const CosMessage &message)
 			return;
 		}
 
+
+		// Ha dolgozatot ír és nem tanár
+
+		if (!db()->execSelectQuery("SELECT token FROM session "
+								   "LEFT JOIN user ON (user.username=session.username) "
+								   "WHERE session.username=? AND examEngineId IS NOT NULL AND isTeacher=false", {username}).isEmpty()) {
+			CosMessage r(CosMessage::ExamLock, message);
+			r.send(m_socket);
+			setClientState(ClientUnauthorized);
+			setClientUserName("");
+			return;
+		}
 
 
 		// Auth
@@ -500,13 +534,9 @@ void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 		}
 	}
 
-	qDebug() << "OAUTH2 LOGIN" << token << expiration << refreshToken;
-
 
 	QByteArray content = reply->readAll();
 	QJsonDocument doc = QJsonDocument::fromJson(content);
-
-	qDebug() << "OAUTH2 RESPONSE" << doc;
 
 	QJsonObject data = doc.object();
 
@@ -596,6 +626,19 @@ void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 }
 
 
+/**
+ * @brief Client::onExamEngineDestroyed
+ * @param engine
+ */
+
+void Client::onExamEngineDestroyed(QObject *engine)
+{
+	if (m_examEngine == engine)
+		m_examEngine = nullptr;
+}
+
+
+
 
 /**
  * @brief Client::getOAuth2Userinfo
@@ -616,6 +659,41 @@ void Client::getOAuth2Userinfo(const QString &token, const QDateTime &expiration
 	d->expiration = expiration;
 
 	httpGet(QNetworkRequest(url), CosMessage(QJsonObject(), CosMessage::ClassLogin, ""), d);
+}
+
+
+/**
+ * @brief Client::examEngine
+ * @return
+ */
+
+ExamEngine *Client::examEngine() const
+{
+	return m_examEngine;
+}
+
+
+/**
+ * @brief Client::setExamEngine
+ * @param newExamEngine
+ */
+
+void Client::setExamEngine(ExamEngine *newExamEngine)
+{
+	if (m_examEngine == newExamEngine)
+		return;
+
+	if (m_examEngine) {
+		m_examEngine->clientRemove(this);
+		disconnect(m_examEngine, &ExamEngine::destroyed, this, &Client::onExamEngineDestroyed);
+	}
+
+	m_examEngine = newExamEngine;
+
+	if (m_examEngine) {
+		m_examEngine->clientAdd(this);
+		connect(m_examEngine, &ExamEngine::destroyed, this, &Client::onExamEngineDestroyed);
+	}
 }
 
 
@@ -719,6 +797,7 @@ void Client::httpReply(QNetworkReply *reply)
 
 	}
 }
+
 
 
 

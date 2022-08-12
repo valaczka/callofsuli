@@ -1651,31 +1651,6 @@ void Client::oauth2Login(const QString &accessToken, const QString &expiration, 
 }
 
 
-/**
- * @brief Client::passwordReset
- * @param email
- * @param code
- */
-
-void Client::passwordRequest(const QString &email, const QString &code)
-{
-	if (email.isEmpty())
-		return;
-
-	QJsonObject d;
-	d["user"] = email;
-	if (!code.isEmpty()) {
-		d["code"] = code;
-	}
-
-	d["passwordRequest"] = true;
-
-	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
-
-	m.setJsonAuth(d);
-	m.send(m_socket);
-}
-
 
 
 
@@ -1878,6 +1853,9 @@ bool Client::checkError(const CosMessage &message)
 		case CosMessage::ClassPermissionDenied:
 			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hozzáférés megtagadva"));
 			break;
+		case CosMessage::ExamLock:
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Dolgozatot írsz éppen, nem lehet bejelentkezni!"));
+			break;
 		case CosMessage::NoBinaryData:
 		case CosMessage::OtherError:
 			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), message.serverErrorDetails());
@@ -2046,7 +2024,7 @@ void Client::setSocket(QWebSocket *socket)
 void Client::socketPing()
 {
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
-		socketSend(CosMessage::ClassUserInfo, "getUser");
+		socketSend(CosMessage::ClassUserInfo, "getUser", QJsonObject({{"ping", true}}));
 	} else if (m_connectionState == Disconnected) {
 		qInfo() << tr("Újracsatlakozás");
 		emit reconnecting();

@@ -68,6 +68,8 @@ public slots:
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);
 	bool userPasswordChange(QJsonObject *jsonResponse, QByteArray *);
 
+	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *);
+
 private:
 	GameMap::SolverInfo missionSolverInfo(const QString &mapid, const QString &missionid) const;
 	void updateStatistics(const QVariantList &list);

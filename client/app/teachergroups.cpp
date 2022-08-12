@@ -52,6 +52,7 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	connect(this, &TeacherGroups::gameListUserGet, this, &TeacherGroups::onGameListUserGet);
 	connect(this, &TeacherGroups::gameListGroupGet, this, &TeacherGroups::onGameListGroupGet);
 	connect(this, &TeacherGroups::campaignGet, this, &TeacherGroups::onCampaignGet);
+	connect(this, &TeacherGroups::campaignListGet, this, &TeacherGroups::onCampaignListGet);
 
 	CosDb *db = TeacherMaps::teacherMapsDb(Client::clientInstance(), this);
 
@@ -345,6 +346,18 @@ void TeacherGroups::onCampaignGet(QJsonObject jsonData, QByteArray)
 	}
 
 	emit campaignGetReady(jsonData);
+}
+
+
+/**
+ * @brief TeacherGroups::onCampaignListGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onCampaignListGet(QJsonObject jsonData, QByteArray)
+{
+	if (jsonData.contains("gradeList"))
+		m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
 }
 
 

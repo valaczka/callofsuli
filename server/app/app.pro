@@ -39,6 +39,7 @@ SOURCES += \
 		abstracthandler.cpp \
 		admin.cpp \
 		client.cpp \
+		examengine.cpp \
 		main.cpp \
 		server.cpp \
 		serverdb.cpp \
@@ -50,6 +51,7 @@ HEADERS += \
 	abstracthandler.h \
 	admin.h \
 	client.h \
+	examengine.h \
 	server.h \
 	serverdb.h \
 	student.h \
