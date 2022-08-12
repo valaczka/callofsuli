@@ -172,6 +172,7 @@ QTabContainer {
         id: actionUpload
         text: qsTr("Feltöltés")
         icon.source: "qrc:/internal/icon/briefcase-plus.svg"
+        enabled: Qt.platform.os !== "ios"
         onTriggered: {
             var d = JS.dialogCreateQml("File", {
                                            isSave: false,
@@ -193,6 +194,7 @@ QTabContainer {
         id: actionMapEditor
         text: qsTr("Pályaszerkesztő")
         icon.source: "qrc:/internal/icon/briefcase-edit.svg"
+        enabled: Qt.platform.os !== "ios"
         onTriggered: {
             JS.createPage("MapEditor", { })
         }

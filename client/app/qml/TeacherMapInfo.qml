@@ -94,6 +94,7 @@ QTabContainer {
                 display: AbstractButton.TextBesideIcon
                 visible: !btnDownload.visible
                 anchors.horizontalCenter: parent.horizontalCenter
+                enabled: Qt.platform.os !== "ios"
 
                 onClicked:  {
                     var d = JS.dialogCreateQml("File", {
@@ -126,6 +127,7 @@ QTabContainer {
                 display: AbstractButton.TextBesideIcon
                 anchors.horizontalCenter: parent.horizontalCenter
                 icon.source: "qrc:/internal/icon/briefcase-arrow-left-right.svg"
+                enabled: Qt.platform.os !== "ios"
 
                 onClicked: {
                     var dd = JS.dialogCreateQml("YesNo", {

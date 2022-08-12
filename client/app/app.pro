@@ -112,7 +112,7 @@ else: CommonRcc.path = $${INSTALL_DIR}/build/share
 ios {
 	QMAKE_BUNDLE_DATA += CommonRcc
 
-	QMAKE_TARGET_BUNDLE_PREFIX = hu.piarista.vjp.callofsuli
+	QMAKE_TARGET_BUNDLE_PREFIX = hu.piarista.vjp
 
 	Q_ENABLE_BITCODE.name = ENABLE_BITCODE
 	Q_ENABLE_BITCODE.value = NO
