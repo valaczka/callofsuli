@@ -178,5 +178,11 @@
         <file>GameToolTip.qml</file>
         <file>QGridDoubleImageFields.qml</file>
         <file>QGridDoubleImageField.qml</file>
+        <file>PageStudentExam.qml</file>
+        <file>StudentExamConnect.qml</file>
+        <file>StudentExamPrepared.qml</file>
+        <file>TeacherGroupExamList.qml</file>
+        <file>TeacherGroupExamEngine.qml</file>
+        <file>StudentExamFinished.qml</file>
     </qresource>
 </RCC>

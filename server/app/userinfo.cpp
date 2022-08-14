@@ -114,9 +114,11 @@ bool UserInfo::getUser(QJsonObject *jsonResponse, QByteArray *)
 														  "nickname, character, picture "
 														  "FROM userInfo WHERE active IS TRUE AND username=?", {username});
 
-	if (m_client->examEngine()) {
-		m["currentExamEngine"] = m_client->examEngine()->engineId();
-	}
+
+	// Van-e dolgozat
+
+	m["examEngineExists"] = m_client->server()->examEnginesHasMember(username);
+
 
 	if (!m_message.jsonData().value("ping").toBool(false)) {
 

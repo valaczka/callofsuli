@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	QGuiApplication app(argc, argv);
 
 	Client::initialize();
-
+/*
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	QSingleInstance instance;
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 #endif
-
+*/
 	QString cmdLine = Client::commandLineParse(app);
 
 	if (cmdLine == "terrain")
@@ -179,12 +179,12 @@ int main(int argc, char *argv[])
 #endif
 	}, Qt::QueuedConnection);
 	engine->load(url);
-
+/*
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
 	instance.setNotifyWindow(QGuiApplication::topLevelWindows().at(0));
 	client->setSingleInstance(&instance);
 #endif
-
+*/
 	int ret = app.exec();
 
 	delete engine;

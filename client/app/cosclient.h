@@ -79,6 +79,7 @@ class Client : public QObject
 	Q_PROPERTY(int userRankLevel READ userRankLevel WRITE setUserRankLevel NOTIFY userRankLevelChanged)
 	Q_PROPERTY(QString userPlayerCharacter READ userPlayerCharacter WRITE setUserPlayerCharacter NOTIFY userPlayerCharacterChanged)
 	Q_PROPERTY(QUrl userPicture READ userPicture WRITE setUserPicture NOTIFY userPictureChanged)
+	Q_PROPERTY(bool examEngineExists READ examEngineExists WRITE setExamEngineExists NOTIFY examEngineExistsChanged)
 
 	Q_PROPERTY(QVariantList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
 	Q_PROPERTY(QVariantMap characterData READ characterData CONSTANT)
@@ -230,6 +231,9 @@ public:
 
 	Q_INVOKABLE QString guiLoad() const;
 
+	bool examEngineExists() const;
+	void setExamEngineExists(bool newExamEngineExists);
+
 public slots:
 	void sendRegistrationRequest(const bool &oauth2, const QString &code) {
 		emit registrationRequest(oauth2, code);
@@ -360,6 +364,8 @@ signals:
 	void rootContextChanged();
 	void userPictureChanged();
 
+	void examEngineExistsChanged();
+
 private:
 	void performUserInfo(const CosMessage &message);
 	bool checkError(const CosMessage &message);
@@ -412,6 +418,7 @@ private:
 	QSingleInstance *m_singleInstance;
 #endif
 	QUrl m_userPicture;
+	bool m_examEngineExists = false;
 };
 
 

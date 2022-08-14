@@ -96,6 +96,9 @@ public slots:
 	void mapDownloadInfoReload();
 	bool loadMapDataToModel(const QString &uuid, GameMapModel *model);
 
+protected slots:
+	virtual void onMessageReceived(const CosMessage &message) override;
+
 private slots:
 	void onGroupGet(QJsonObject jsonData, QByteArray);
 	void onGroupMapListGet(const QJsonArray &list);
@@ -128,6 +131,7 @@ signals:
 	void groupMapRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupTrophyGet(QJsonObject jsonData, QByteArray binaryData);
+	void groupExamListGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserReady(const QVariantList &list, const QString &username);
@@ -143,10 +147,15 @@ signals:
 	void campaignModify(QJsonObject jsonData, QByteArray binaryData);
 	void campaignFinish(QJsonObject jsonData, QByteArray binaryData);
 
+	void examEngineCreate(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMapGet(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMessage(QString func, QJsonObject jsonData);
+
 	void modelMapListChanged();
 	void selectedGroupIdChanged(int selectedGroupId);
 	void selectedGroupNameChanged();
 	void selectedGroupFullNameChanged();
+
 
 private:
 	ObjectGenericListModel<MapListObject> * m_modelMapList;

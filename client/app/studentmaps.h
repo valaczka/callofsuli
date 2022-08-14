@@ -74,7 +74,10 @@ public:
 
 	Q_INVOKABLE void getExamContent();
 
+	Q_INVOKABLE bool isValidUrl(const QString &url);
+
 public slots:
+	bool parseUrl(const QString &urlString);
 	void mapDownload(MapListObject *map);
 	void mapDownload(QList<QObject *> list);
 	void mapLoad(MapListObject *map);
@@ -85,7 +88,11 @@ public slots:
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
 
+protected slots:
+	virtual void onMessageReceived(const CosMessage &message) override;
+
 private slots:
+	void onExamEngineMapGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 	bool loadGameMap(GameMap *map, MapListObject *mapObject = nullptr);
@@ -137,6 +144,10 @@ signals:
 	void campaignGetReady(const QJsonArray &list);
 	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
 
+	void examEngineConnect(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMapGet(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMessage(QString func, QJsonObject jsonData);
+
 	void examContentReady(const QVariantMap &data);
 
 	void demoModeChanged(bool demoMode);
@@ -158,6 +169,7 @@ private:
 	QVariantMap m_missionNameMap;
 	bool m_liteMode;
 	QMap<int, QVariantMap> m_gradeMap;
+	int m_examMapDownloadTries = 1;
 };
 
 #endif // STUDENTMAPS_H

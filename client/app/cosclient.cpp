@@ -161,7 +161,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	m_timer->start(5000);
+	//m_timer->start(5000);
 }
 
 /**
@@ -1773,6 +1773,8 @@ void Client::performUserInfo(const CosMessage &message)
 				setUserRankImage(d.value("rankimage").toString());
 				setUserNickName(d.value("nickname").toString());
 				setUserPlayerCharacter(d.value("character").toString());
+				if (d.contains("examEngineExists"))
+					setExamEngineExists(d.value("examEngineExists").toBool());
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
@@ -2176,4 +2178,17 @@ void Client::setUserPicture(const QUrl &newUserPicture)
 		return;
 	m_userPicture = newUserPicture;
 	emit userPictureChanged();
+}
+
+bool Client::examEngineExists() const
+{
+	return m_examEngineExists;
+}
+
+void Client::setExamEngineExists(bool newExamEngineExists)
+{
+	if (m_examEngineExists == newExamEngineExists)
+		return;
+	m_examEngineExists = newExamEngineExists;
+	emit examEngineExistsChanged();
 }

@@ -9,5 +9,6 @@
         <file>cos_server.png</file>
         <file>sql/upgrade_3.1.sql</file>
         <file>sql/upgrade_3.2.sql</file>
+        <file>sql/exam.sql</file>
     </qresource>
 </RCC>

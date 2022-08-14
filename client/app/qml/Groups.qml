@@ -106,6 +106,52 @@ QTabContainer {
 
                 bottomPadding: 20
 
+                QCard {
+                    id: cardExamEngine
+                    height: groupsButtonSize
+                    width: groupsButtonSize
+
+                    visible: (cosClient.userRoles & Client.RoleStudent) && cosClient.examEngineExists
+
+                    backgroundColor: CosStyle.colorPrimaryLight
+
+                    onClicked: {
+                        JS.createPage("StudentExam", {})
+                        /*var d = JS.dialogCreateQml("TextField", { title: qsTr("Új csoport létrehozása"), text: qsTr("Új csoport neve:") })
+
+                        d.accepted.connect(function(data) {
+                            if (data.length && profile)
+                                profile.send(CosMessage.ClassTeacher, "groupCreate", {name: data})
+                        })
+                        d.open()*/
+                    }
+
+                    Column {
+                        anchors.centerIn: parent
+
+                        QFontImage {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            size: cardAdd.width*0.5
+                            color: "black"
+                            visible: icon
+                            icon: "qrc:/internal/icon/account-multiple-plus-outline.svg"
+                        }
+
+                        QLabel {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            color: "black"
+                            font.weight: Font.DemiBold
+                            width: cardAdd.width*0.8
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 3
+                            elide: Text.ElideRight
+                            font.capitalization: Font.AllUppercase
+                            text: qsTr("Dolgozatírás")
+                        }
+                    }
+                }
+
                 Repeater {
                     id: groupRepeater
 

@@ -1380,6 +1380,26 @@ bool Teacher::groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief Teacher::groupExamListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::groupExamListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap &params = m_message.jsonData().toVariantMap();
+	const int &id = params.value("id", -1).toInt();
+
+	(*jsonResponse)["id"] = id;
+	(*jsonResponse)["list"] = m_client->db()->execSelectQueryJson("SELECT exam.id, examuuid, timestamp, title, description, started, finished FROM exam "
+																  "LEFT JOIN studentGroup ON (studentGroup.id=exam.groupid) "
+																  "WHERE exam.groupid=? AND owner=?", {id, m_client->clientUserName()});
+
+	return true;
+}
+
+
 
 /**
  * @brief Teacher::groupTrophyGet
@@ -2402,16 +2422,18 @@ bool Teacher::campaignFinish(QJsonObject *jsonResponse, QByteArray *)
  * @return
  */
 
-bool Teacher::examEngineConnect(QJsonObject *jsonResponse, QByteArray *)
+bool Teacher::examEngineConnect(QJsonObject *jsonResponse, QByteArray *binaryData)
 {
 	QJsonObject params = m_message.jsonData();
-	const int id = params.value("id").toInt(-1);
+	const QString &code = params.value("code").toString();
+	const bool &create = params.value("createIfNotExists").toBool();
+
 
 	ExamEngine *old = m_client->examEngine();
 
 	if (old) {
-		if (old->engineId() == id) {
-			(*jsonResponse)["id"] = id;
+		if (old->code() == code) {
+			(*jsonResponse)["code"] = code;
 			(*jsonResponse)["connected"] = true;
 			return true;
 		} else {
@@ -2419,43 +2441,27 @@ bool Teacher::examEngineConnect(QJsonObject *jsonResponse, QByteArray *)
 		}
 	}
 
-	ExamEngine *engine = m_client->server()->getExamEngine(id);
+	ExamEngine *engine = m_client->server()->examEngineGet(code);
 
 	if (engine) {
 		if (engine->owner() == m_client->clientUserName()) {
-			m_client->setExamEngine(engine);
+			m_client->setExamEngine(engine, true);
 
-			(*jsonResponse)["id"] = id;
+			(*jsonResponse)["code"] = code;
 			(*jsonResponse)["connected"] = true;
 			return true;
 		} else {
-			(*jsonResponse)["id"] = id;
+			(*jsonResponse)["code"] = code;
 			(*jsonResponse)["error"] = "invalid engine";
 			return false;
 		}
+	} else if (create) {
+		return examEngineCreate(jsonResponse, binaryData);
 	}
 
-	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT examEngine.id, owner FROM examEngine "
-														  "LEFT JOIN exam ON (exam.id=examEngine.examid) "
-														  "LEFT JOIN studentGroup ON (studentGroup.id=exam.groupid) "
-														  "WHERE examEngine.id=?", { id });
-
-	if (!m.isEmpty() && m.value("owner").toString() == m_client->clientUserName()) {
-		engine = m_client->server()->newExamEngine(id, m_client->clientUserName());
-		m_client->setExamEngine(engine);
-	}
-
-
-	if (engine) {
-		(*jsonResponse)["id"] = id;
-		(*jsonResponse)["connected"] = true;
-		return true;
-	} else {
-		(*jsonResponse)["id"] = id;
-		(*jsonResponse)["error"] = "missing engine";
-		return false;
-	}
-
+	(*jsonResponse)["code"] = code;
+	(*jsonResponse)["error"] = "missing engine";
+	return false;
 }
 
 
@@ -2474,36 +2480,83 @@ bool Teacher::examEngineCreate(QJsonObject *jsonResponse, QByteArray *)
 
 	ExamEngine *engine = nullptr;
 
-	const QString characters = "0123456789";
 
-	for (int t=0; t<3; t++) {
-		QString code;
+	QVariantMap m = m_client->db()->execSelectQueryOneRow("SELECT exam.groupid, examuuid, title, description, started, finished FROM exam "
+														  "LEFT JOIN studentGroup ON (studentGroup.id=exam.groupid) "
+														  "WHERE exam.id=? AND owner=?", {examid, m_client->clientUserName()});
 
-		for (int i=0; i<6; i++)
-			code.append(characters.at(QRandomGenerator::global()->bounded(characters.size())));
-
-		QVariantMap ins;
-		ins["examid"] = examid;
-		ins["code"] = code;
-
-		int ret = m_client->db()->execInsertQuery("INSERT INTO examEngine(?k?) VALUES (?)", ins);
-
-		if (ret != -1) {
-			engine = m_client->server()->newExamEngine(ret, m_client->clientUserName());
-			m_client->setExamEngine(engine);
-			break;
-		}
-	}
-
-	if (engine) {
-		(*jsonResponse)["id"] = engine->engineId();
-		(*jsonResponse)["created"] = true;
-		return true;
-	} else {
-		(*jsonResponse)["error"] = "internal error";
-		setServerError(CosMessage::ServerInternalError);
+	if (m.isEmpty() || m.value("finished").toBool()) {
+		(*jsonResponse)["error"] = "invalid examid";
 		return false;
 	}
+
+	engine = m_client->server()->examEngineGet(examid);
+
+	if (engine) {
+		m_client->setExamEngine(engine, true);
+	} else {
+
+
+		const QString &examUuid = m.value("examuuid").toString();
+		const int &groupid = m.value("groupid").toInt();
+
+		// Kód gyártása
+
+		for (int t=0; t<10; t++) {
+			const QString characters = "0123456789";
+
+			QString code;
+
+			for (int i=0; i<6; i++)
+				code.append(characters.at(QRandomGenerator::global()->bounded(characters.size())));
+
+			if (!m_client->server()->examEngineGet(code)) {
+				engine = m_client->server()->examEngineNew(examid, code, m_client->clientUserName());
+				m_client->setExamEngine(engine, true);
+				break;
+			}
+		}
+
+		if (!engine) {
+			(*jsonResponse)["error"] = "internal error";
+			setServerError(CosMessage::ServerInternalError);
+			return false;
+		}
+
+
+		QVariantList uList = m_client->db()->execSelectQuery("SELECT studentGroupInfo.username FROM studentGroupInfo "
+															 "LEFT JOIN user ON (studentGroupInfo.username=user.username) "
+															 "WHERE id=? AND user.active=true", {groupid});
+
+		QStringList userList;
+		userList.reserve(uList.size());
+
+		foreach (QVariant v, uList) {
+			QVariantMap m = v.toMap();
+			userList.append(m.value("username").toString());
+		}
+
+		engine->memberListAdd(userList);
+
+		QVariantMap em = m_client->server()->examDb()->execSelectQueryOneRow("SELECT mapuuid, config FROM exam WHERE uuid=?", {examUuid});
+
+
+		engine->setExamUuid(examUuid);
+		engine->setMapUuid(em.value("mapuuid").toString());
+		engine->setTitle(m.value("title").toString());
+		engine->setDescription(m.value("description").toString());
+		engine->setConfig(em.value("config").toString());
+
+		qInfo().noquote() << tr("Dolgozatírás elindult") << engine->title() << engine->owner() << engine->mapUuid();
+	}
+
+	(*jsonResponse)["code"] = engine->code();
+	(*jsonResponse)["mapUuid"] = engine->mapUuid();
+	(*jsonResponse)["title"] = engine->title();
+	(*jsonResponse)["description"] = engine->description();
+	(*jsonResponse)["created"] = true;
+
+	return true;
 }
 
 

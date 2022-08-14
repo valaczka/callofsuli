@@ -39,12 +39,12 @@ QTabPage {
             iconColor: "tomato"
             func: function() { replaceContent(cmpTeacherCampaign) }
         }
-        /*ListElement {
-            title: qsTr("Eredmények")
+        ListElement {
+            title: qsTr("Dolgozatok")
             icon: "image://font/AcademicI/\uf15d"
             iconColor: "tomato"
-            func: function() { replaceContent(cmpTeacherGroupScore) }
-        }*/
+            func: function() { replaceContent(cmpTeacherGroupExamList) }
+        }
     }
 
 
@@ -68,54 +68,23 @@ QTabPage {
                 send("groupGet", {id: selectedGroupId})
         }
 
-
-        /*onCampaignListGet: {
-            if (!actionCampaignFilter.waitForList)
+        onExamEngineCreate: {
+            if (jsonData.error !== undefined) {
+                cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Létrehozás sikertelen"), jsonData.error)
                 return
-
-            actionCampaignFilter.waitForList = false
-
-            modelCampaignFilterList.clear()
-
-            for (var i=0; i<jsonData.list.length; i++) {
-                var o = jsonData.list[i]
-                o.subtitle = JS.readableInterval(o.starttime, o.endtime)
-                modelCampaignFilterList.append(o)
             }
 
-            modelCampaignFilterList.append({
-                                               id: -1,
-                                               description: qsTr("-- Nincs szűrés --"),
-                                               subtitle: "",
-                                               starttime: "",
-                                               endtime: "",
-                                               finsihed: false
-                                           })
+            if (jsonData.created === true) {
+                pushContent(cmpTeacherGroupExamEngine, {
+                                title: jsonData.title,
+                                code: jsonData.code,
+                                mapUuid: jsonData.mapUuid
+                            })
 
-            var d = JS.dialogCreateQml("List", {
-                                           icon: "qrc:/internal/icon/filter.svg",
-                                           title: qsTr("Szűrés hadjáratra"),
-                                           selectorSet: false,
-                                           modelTitleRole: "title",
-                                           modelSubtitleRole: "subtitle",
-                                           modelIconRole: "icon",
-                                           modelIconColorRole: "iconcolor",
-                                           modelTitleColorRole: "iconcolor",
-                                           modelSubtitleColorRole: "iconcolor",
-                                           delegateHeight: CosStyle.twoLineHeight,
-                                           imageWidth: 0,
-                                           model: listCampaignFilterModel
-                                       })
+                //send("examEngineMapGet", {})
+            }
+        }
 
-
-            d.accepted.connect(function(data) {
-                if (!data)
-                    return
-
-                actionCampaignFilter.campaign = data.id
-            })
-            d.open()
-        }*/
     }
 
 
@@ -130,8 +99,13 @@ QTabPage {
     }
 
     Component {
-        id: cmpTeacherGroupScore
-        TeacherGroupScore { }
+        id: cmpTeacherGroupExamList
+        TeacherGroupExamList { }
+    }
+
+    Component {
+        id: cmpTeacherGroupExamEngine
+        TeacherGroupExamEngine { }
     }
 
     Component {

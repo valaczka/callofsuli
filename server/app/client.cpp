@@ -35,6 +35,7 @@
 #include "teacher.h"
 #include "student.h"
 
+#define OLD_OAUTH2_TOKEN_DAYS -3
 
 Client::Client(QWebSocket *socket, Server *server, QObject *parent)
 	: QObject(parent)
@@ -261,8 +262,12 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 		case CosMessage::ClassExamEngine: {
 				if (m_examEngine) {
 					m_examEngine->run(this, m);
-					break;
+				} else {
+					CosMessage r(CosMessage::InvalidClass, m);
+					r.send(m_socket);
+					return;
 				}
+				break;
 			}
 		case CosMessage::ClassInvalid:
 		default: {
@@ -318,7 +323,8 @@ void Client::clientAuthorize(const CosMessage &message)
 			}
 
 
-			QVariantMap pwdMap = db()->execSelectQueryOneRow("SELECT password, oauthToken FROM auth WHERE username=?", { user });
+			QVariantMap pwdMap = db()->execSelectQueryOneRow("SELECT password, oauthToken, datetime(expiration, 'localtime') as expiration "
+															 "FROM auth WHERE username=?", { user });
 
 			db()->execSimpleQuery("UPDATE session SET lastDate=datetime('now') WHERE token=?", {session});
 			setClientState(ClientAuthorized);
@@ -327,14 +333,16 @@ void Client::clientAuthorize(const CosMessage &message)
 
 			if (pwdMap.value("password") == "*" && !m_oauthTokenInitialized) {
 				const QString &token = pwdMap.value("oauthToken").toString();
-				if (token.isEmpty()) {
+				const QDateTime &aexpiration = pwdMap.value("expiration").toDateTime();
+				if (token.isEmpty() || !aexpiration.isValid()) {
 					CosMessage r(CosMessage::InvalidSession, message);
 					r.send(m_socket);
 					setClientState(ClientUnauthorized);
 					setClientUserName("");
 					return;
 				} else {
-					getOAuth2Userinfo(token, expiration, oauth2refreshToken);
+					if (QDateTime::currentDateTime().daysTo(aexpiration) <= OLD_OAUTH2_TOKEN_DAYS)
+						getOAuth2Userinfo(token, expiration, oauth2refreshToken);
 					return;
 				}
 			}
@@ -521,6 +529,7 @@ void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 {
 	QString token, refreshToken;
 	QDateTime expiration;
+	bool isRefresh = false;
 
 	if (p_data) {
 		UserInfo::OAuth2Data *d = static_cast<UserInfo::OAuth2Data*>(p_data);
@@ -529,16 +538,46 @@ void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 			token = d->token;
 			refreshToken = d->refreshToken;
 			expiration = d->expiration;
+			isRefresh = d->isRefreshQuery;
 
 			delete d;
 		}
 	}
 
+	const QByteArray &content = reply->readAll();
+	const QJsonDocument &doc = QJsonDocument::fromJson(content);
 
-	QByteArray content = reply->readAll();
-	QJsonDocument doc = QJsonDocument::fromJson(content);
+	const QJsonObject &data = doc.object();
 
-	QJsonObject data = doc.object();
+	if (isRefresh) {
+		if (data.contains("error") || !data.contains("access_token")) {
+			qWarning().noquote() << tr("Refresh token error") << doc.toJson(QJsonDocument::Indented).data();
+			db()->execSimpleQuery("UPDATE auth SET expiration=null, refreshToken=null WHERE oauthToken=? AND refreshToken=?",
+								  { token, refreshToken });
+
+			setClientUserName("");
+			setClientState(ClientUnauthorized);
+
+			CosMessage r(CosMessage::InvalidSession, CosMessage(CosMessage::InvalidClass));
+			r.send(m_socket);
+
+		} else {
+			const QString &newToken = data.value("access_token").toString();
+			const int &secs = data.value("expires_in").toInt();
+
+			db()->execSimpleQuery("UPDATE auth SET oauthToken=?, expiration=datetime('now', ?) WHERE oauthToken=? AND refreshToken=?",
+								  {
+									  newToken,
+									  QString("+%1 seconds").arg(secs),
+									  token,
+									  refreshToken
+								  });
+
+			getOAuth2Userinfo(newToken, QDateTime::currentDateTime().addSecs(secs), refreshToken);
+		}
+
+		return;
+	}
 
 
 	if (data.contains("error") && !m_clientUserName.isEmpty() && m_clientState == ClientAuthorized) {
@@ -626,16 +665,6 @@ void Client::onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data)
 }
 
 
-/**
- * @brief Client::onExamEngineDestroyed
- * @param engine
- */
-
-void Client::onExamEngineDestroyed(QObject *engine)
-{
-	if (m_examEngine == engine)
-		m_examEngine = nullptr;
-}
 
 
 
@@ -647,18 +676,50 @@ void Client::onExamEngineDestroyed(QObject *engine)
 
 void Client::getOAuth2Userinfo(const QString &token, const QDateTime &expiration, const QString &refreshToken)
 {
+	UserInfo::OAuth2Data *d = new UserInfo::OAuth2Data;
+	d->token = token;
+	d->refreshToken = refreshToken;
+	d->expiration = expiration;
+	d->isRefreshQuery = false;
+
+	if (!refreshToken.isEmpty() && expiration <= QDateTime::currentDateTime().addSecs(5*60)) {
+
+		const QString &googleId = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleID'")
+								  .value("v").toString();
+		const QString &googleKey = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleKey'")
+								   .value("v").toString();
+
+		if (!googleId.isEmpty() && !googleKey.isEmpty()) {
+			qInfo().noquote() << tr("Refresh token");
+
+			QUrl url("https://oauth2.googleapis.com/token");
+			QNetworkRequest request(url);
+
+			request.setOriginatingObject(this);
+			request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+			QUrlQuery params;
+			params.addQueryItem("client_id", googleId);
+			params.addQueryItem("client_secret", googleKey);
+			params.addQueryItem("refresh_token", refreshToken);
+			params.addQueryItem("grant_type", "refresh_token");
+
+			d->isRefreshQuery = true;
+
+			httpPost(request, CosMessage(QJsonObject(), CosMessage::ClassLogin, ""), params.query().toUtf8(), d);
+
+			return;
+		}
+	}
+
 	QUrl url("https://www.googleapis.com/oauth2/v1/userinfo");
 	QUrlQuery q;
 	q.addQueryItem("alt", "json");
 	q.addQueryItem("access_token", token);
 	url.setQuery(q);
 
-	UserInfo::OAuth2Data *d = new UserInfo::OAuth2Data;
-	d->token = token;
-	d->refreshToken = refreshToken;
-	d->expiration = expiration;
-
 	httpGet(QNetworkRequest(url), CosMessage(QJsonObject(), CosMessage::ClassLogin, ""), d);
+
 }
 
 
@@ -678,21 +739,21 @@ ExamEngine *Client::examEngine() const
  * @param newExamEngine
  */
 
-void Client::setExamEngine(ExamEngine *newExamEngine)
+void Client::setExamEngine(ExamEngine *newExamEngine, const bool &isOwnerClient)
 {
 	if (m_examEngine == newExamEngine)
 		return;
 
-	if (m_examEngine) {
+	if (m_examEngine)
 		m_examEngine->clientRemove(this);
-		disconnect(m_examEngine, &ExamEngine::destroyed, this, &Client::onExamEngineDestroyed);
-	}
 
 	m_examEngine = newExamEngine;
 
 	if (m_examEngine) {
-		m_examEngine->clientAdd(this);
-		connect(m_examEngine, &ExamEngine::destroyed, this, &Client::onExamEngineDestroyed);
+		if (isOwnerClient)
+			m_examEngine->addOwnerClient(this);
+		else
+			m_examEngine->clientAdd(this);
 	}
 }
 
@@ -725,6 +786,33 @@ void Client::httpGet(QNetworkRequest request, const CosMessage &message, void *d
 	request.setOriginatingObject(this);
 
 	QNetworkReply *reply = m_server->networkRequestGet(request);
+
+	HttpRequestMap m;
+	m.reply = reply;
+	m.message = message;
+	m.data = data;
+
+	m_httpRequestList.append(m);
+}
+
+
+
+
+
+/**
+ * @brief Client::httpPost
+ * @param request
+ * @param message
+ * @param data
+ */
+
+void Client::httpPost(QNetworkRequest request, const CosMessage &message, const QByteArray &postData, void *data)
+{
+	qDebug() << "HTTP POST" << request.url() << message.cosClass() << message.cosFunc();
+
+	request.setOriginatingObject(this);
+
+	QNetworkReply *reply = m_server->networkRequestPost(request, postData);
 
 	HttpRequestMap m;
 	m.reply = reply;

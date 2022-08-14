@@ -57,6 +57,7 @@ public:
 		QString token = "";
 		QString refreshToken = "";
 		QDateTime expiration = QDateTime();
+		bool isRefreshQuery = false;
 	};
 
 public slots:

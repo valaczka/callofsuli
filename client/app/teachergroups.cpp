@@ -72,6 +72,25 @@ TeacherGroups::~TeacherGroups()
 }
 
 
+
+/**
+ * @brief TeacherGroups::onMessageReceived
+ * @param message
+ */
+
+void TeacherGroups::onMessageReceived(const CosMessage &message)
+{
+	if (message.cosClass() == CosMessage::ClassExamEngine) {
+		const QString &func = message.cosFunc();
+		const QJsonObject &d = message.jsonData();
+		emit examEngineMessage(func, d);
+		qInfo() << "EXAM ENGINE MESSAGE" << func << d;
+	} else {
+		autoSignalEmit(message);
+	}
+}
+
+
 /**
  * @brief TeacherGroups::modelMapList
  * @return

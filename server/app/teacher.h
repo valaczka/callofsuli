@@ -125,6 +125,7 @@ public slots:
 	bool groupMapActivate(QJsonObject *jsonResponse, QByteArray *);
 	bool groupMapRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupExamListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool groupTrophyGet(QJsonObject *jsonResponse, QByteArray *);
 
@@ -144,7 +145,7 @@ public slots:
 	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignFinish(QJsonObject *jsonResponse, QByteArray *);
 
-	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *);
+	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *binaryData);
 	bool examEngineCreate(QJsonObject *jsonResponse, QByteArray *);
 
 };

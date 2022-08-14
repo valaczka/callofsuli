@@ -255,7 +255,10 @@ QListView {
                                 objectModel.selectToggle(normalizedIndex(index))
                             else {
                                 var s = view.model.get(normalizedIndex(index)).selected ? false : true
-                                view.model.setProperty(normalizedIndex(index), "selected", s)
+                                if (view.model.sourceModel)
+                                    view.model.sourceModel.setProperty(normalizedIndex(index), "selected", s)
+                                else
+                                    view.model.setProperty(normalizedIndex(index), "selected", s)
                             }
 
                         }
@@ -286,6 +289,8 @@ QListView {
             if (autoSelectorChange && !selectorSet) {
                 if (objectModel)
                     objectModel.select(normalizedIndex(index))
+                else if (view.model.sourceModel)
+                    view.model.sourceModel.setProperty(normalizedIndex(index), "selected", true)
                 else
                     view.model.setProperty(normalizedIndex(index), "selected", true)
                 selectorSet = true
@@ -398,9 +403,8 @@ QListView {
 
 
     function normalizedIndex(index) {
-        if (sourceObjectListModel) {
+        if (sourceObjectListModel || model.sourceModel)
             return model.mapToSource(index)
-        }
 
         return index
     }

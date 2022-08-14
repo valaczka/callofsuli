@@ -345,6 +345,34 @@ function listModelCopy(_model, _items) {
     }
 }
 
+function listModelUpdateProperty(_model, _searchProperty, _searchValue, _property, _value) {
+    for (var i=0; i<_model.count; i++) {
+        if (_model.get(i)[_searchProperty] === _searchValue)
+            _model.setProperty(i, _property, _value)
+    }
+}
+
+
+
+function listModelReplaceAddSelected(_model, _items) {
+    _model.clear()
+    for (var i=0; i<_items.length; i++) {
+        var o = _items[i]
+        o.selected = false
+        _model.append(o)
+    }
+}
+
+
+function listModelAppendAddSelected(_model, _items) {
+    for (var i=0; i<_items.length; i++) {
+        var o = _items[i]
+        o.selected = false
+        _model.append(o)
+    }
+}
+
+
 
 function listModelGetSelectedFields(_model, _field) {
     var l = []

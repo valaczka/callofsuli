@@ -67,10 +67,11 @@ public:
 	void setClientSession(const QString &clientSession);
 
 	void httpGet(QNetworkRequest request, const CosMessage &message, void *data);
+	void httpPost(QNetworkRequest request, const CosMessage &message, const QByteArray &postData, void *data);
 	void httpReply(QNetworkReply *reply);
 
 	ExamEngine *examEngine() const;
-	void setExamEngine(ExamEngine *newExamEngine);
+	void setExamEngine(ExamEngine *newExamEngine, const bool &isOwnerClient = false);
 
 public slots:
 	void sendClientRoles();
@@ -89,7 +90,6 @@ private slots:
 	void clientLogout(const CosMessage &message);
 	void updateRoles();
 	void onOAuth2UserinfoReceived(QNetworkReply *reply, void *p_data);
-	void onExamEngineDestroyed(QObject *engine);
 
 signals:
 	void disconnected();

@@ -59,6 +59,8 @@ StudentMaps::StudentMaps(QQuickItem *parent)
 	connect(this, &StudentMaps::gameListUserGet, this, &StudentMaps::onGameListUserGet);
 	connect(this, &StudentMaps::gameListCampaignGet, this, &StudentMaps::onGameListUserGet);
 	connect(this, &StudentMaps::campaignGet, this, &StudentMaps::onCampaignGet);
+
+	connect(this, &StudentMaps::examEngineMapGet, this, &StudentMaps::onExamEngineMapGet);
 }
 
 
@@ -428,6 +430,104 @@ void StudentMaps::setSelectedGroupId(int selectedGroupId)
 	m_selectedGroupId = selectedGroupId;
 	emit selectedGroupIdChanged(m_selectedGroupId);
 }
+
+
+
+/**
+ * @brief StudentMaps::onMessageReceived
+ * @param message
+ */
+
+void StudentMaps::onMessageReceived(const CosMessage &message)
+{
+	if (message.cosClass() == CosMessage::ClassExamEngine) {
+		const QString &func = message.cosFunc();
+		const QJsonObject &d = message.jsonData();
+		emit examEngineMessage(func, d);
+		qInfo() << "EXAM ENGINE MESSAGE" << func << d;
+	} else {
+		autoSignalEmit(message);
+	}
+}
+
+
+
+/**
+ * @brief StudentMaps::onExamEngineMapGet
+ * @param jsonData
+ */
+
+void StudentMaps::onExamEngineMapGet(QJsonObject jsonData, QByteArray)
+{
+	const QString &uuid = jsonData.value("uuid").toString();
+	const QString &md5 = jsonData.value("md5").toString();
+	const int &dataSize = jsonData.value("dataSize").toInt();
+
+	if (m_examMapDownloadTries > 4) {
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Belső hiba"), tr("Túl sok próbálkozás történt a pálya letöltésére!"));
+		return;
+	}
+
+	bool downloaded = false;
+
+	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
+
+	const QByteArray &d = r.value("data").toByteArray();
+
+	if (!r.isEmpty() && !d.isEmpty() &&
+		md5 == QString(QCryptographicHash::hash(d, QCryptographicHash::Md5).toHex()) &&
+		dataSize == d.size())
+	{
+		downloaded = true;
+	}
+
+	if (downloaded) {
+		MapListObject *mapObject = new MapListObject(this);
+		connect(mapObject,  &MapListObject::destroyed, this, []() {qDebug() << "------ DESTROYED"; });
+
+		mapObject->setUuid(uuid);
+
+		mapLoad(mapObject);
+
+		return;
+	}
+
+
+
+	if (!m_downloader) {
+		CosDownloader *dl = new CosDownloader(this, CosMessage::ClassUserInfo, "downloadMap", this);
+		dl->setJsonKeyFileName("uuid");
+		setDownloader(dl);
+
+		connect(m_downloader, &CosDownloader::oneDownloadFinished, this, &StudentMaps::onOneDownloadFinished);
+		connect(m_downloader, &CosDownloader::downloadFinished, this, [=]() {
+			foreach (CosDownloaderItem item, m_downloader->list()) {
+				qInfo() << "DOWLOAD FINISHED NEXT GET";
+				onExamEngineMapGet({
+									   { "uuid" , item.remoteFile },
+									   { "md5" , md5 },
+									   { "dataSize", dataSize }
+								   }, QByteArray());
+			}
+		});
+	}
+
+	m_downloader->clear();
+
+	m_downloader->append(uuid,
+						 "",
+						 dataSize,
+						 md5,
+						 false,
+						 0.0);
+
+	emit mapDownloadRequest(Client::formattedDataSize(m_downloader->fullSize()));
+
+	m_examMapDownloadTries++;
+}
+
+
+
 
 
 
@@ -1180,4 +1280,69 @@ bool StudentMaps::checkTerrains(GameMap *map, QList<GameMapMissionLevel *> *leve
 	}
 
 	return ret;
+}
+
+
+
+/**
+ * @brief StudentMaps::isValidUrl
+ * @param url
+ * @return
+ */
+
+bool StudentMaps::isValidUrl(const QString &url)
+{
+	QUrl u(url);
+
+	return (u.scheme() == "callofsuli");
+}
+
+
+
+
+/**
+ * @brief StudentMaps::parseUrl
+ * @param url
+ * @return
+ */
+
+bool StudentMaps::parseUrl(const QString &urlString)
+{
+	QUrl url(urlString);
+
+	qInfo() << "URL" << url;
+
+	if (url.scheme() != "callofsuli") {
+		return false;
+	}
+
+	QString path = url.path();
+	int _section = 1;
+
+	if (path.section('/', _section, _section) == "ssl") {
+		_section = 2;
+	}
+
+	QString func = path.section('/', _section, _section);
+
+	QUrlQuery q(url);
+	QString serverUuid = q.queryItemValue("server", QUrl::FullyDecoded);
+
+	if (serverUuid != Client::clientInstance()->serverUuid()) {
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Hiba"), tr("A kérés nem az aktuális kapcsolatra vonatkozik!"));
+		return false;
+	}
+
+	if (func == "examEngineConnect") {
+		QString code = q.queryItemValue("code", QUrl::FullyDecoded);
+
+		qDebug() << "CONNECT" << code;
+
+		send("examEngineConnect", {
+				 { "code", code }
+			 });
+	}
+
+
+	return false;
 }

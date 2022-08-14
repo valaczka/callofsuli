@@ -418,7 +418,7 @@ void CosDownloader::downloadNext()
 		CosDownloaderItem &item = m_list[i];
 
 		if (!item.isDownloaded) {
-			qDebug() << "Download" << item.localFile;
+			qDebug() << "Download" << item.remoteFile << "->" << item.localFile;
 
 			item.progress = 0.0;
 
