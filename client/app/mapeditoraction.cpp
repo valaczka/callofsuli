@@ -26,6 +26,7 @@
 
 #include <QRandomGenerator>
 
+#include "gameenemydata.h"
 #include "mapeditoraction.h"
 #include "question.h"
 #include "cosclient.h"

@@ -18,6 +18,7 @@ GameEntity {
 
     property bool showPickable: false
     property bool showTarget: false
+    property bool playerDiscovered: false
 
     glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
     glowEnabled: ep.aimedByPlayer || showPickable || showTarget
@@ -28,8 +29,15 @@ GameEntity {
     hpVisible: ep.aimedByPlayer
     hpValue: ep.hp
 
+
     GameEnemySniperPrivate {
         id: ep
+
+        SoundEffect {
+            id: shotEffect
+            source: ep.shotSoundFile
+            volume: cosClient.sfxVolume
+        }
 
         onKilled: {
             spriteSequence.jumpTo("dead")
@@ -41,17 +49,20 @@ GameEntity {
             setSprite()
 
             if (ep.player) {
-                var o = markerComponent.createObject(root)
+                playerDiscovered = true
+                var o = crosshairComponent.createObject(root.scene)
                 o.playerItem = ep.player.parentEntity
             }
         }
 
         onAttack: {
             spriteSequence.jumpTo("shot")
-            cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
+            //cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
+            shotEffect.play()
         }
 
         onRayCastPerformed: {
+            setray(rect)
             /*if (cosGame.gameScene.debug)
                 setray(rect)*/
         }
@@ -79,10 +90,11 @@ GameEntity {
     }
 
     Component {
-        id: markerComponent
+        id: crosshairComponent
 
-        GameEnemyMarker {
+        GameEnemySniperCrosshair {
             enemyPrivate: ep
+            z: 16
         }
     }
 
@@ -91,30 +103,56 @@ GameEntity {
     function setray(rect) {
         var k = mapFromItem(scene, rect.x, rect.y)
 
-        rayRect.x = k.x
+        rayRect.x = k.x + (facingLeft ? 0 : width)
+        rayRect.width = rect.width - width
         rayRect.y = k.y
-        rayRect.width = rect.width
         rayRect.height = Math.max(rect.height, 1)
-        rayRect.visible = true
-        timerOff.start()
+        //rayRect.visible = true
+        //timerOff.start()
 
     }
 
     Rectangle {
         id: rayRect
-        color: "blue"
-        visible: false
+        color: CosStyle.colorOKLighter
+        visible: ep.isAlive && !ep.player && playerDiscovered
         border.width: 1
-        border.color: "blue"
+        border.color: rayRect.color
+        x: 0
+        y: 0
+        width: 1
+        height: 1
 
-        Timer {
+        SequentialAnimation {
+            running: true
+            loops: Animation.Infinite
+            ColorAnimation {
+                target: rayRect
+                property: "color"
+                from: "transparent"
+                to: CosStyle.colorOKLighter
+                duration: 175
+                easing.type: Easing.InQuad
+            }
+
+            ColorAnimation {
+                target: rayRect
+                property: "color"
+                from: CosStyle.colorOKLighter
+                to: "transparent"
+                duration: 175
+                easing.type: Easing.OutQuad
+            }
+        }
+
+        /*Timer {
             id: timerOff
             interval: 200
             triggeredOnStart: false
             running: false
             repeat: false
             onTriggered: rayRect.visible = false
-        }
+        }*/
     }
 
 

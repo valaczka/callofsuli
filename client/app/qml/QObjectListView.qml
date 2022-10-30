@@ -414,6 +414,6 @@ QListView {
             return objectModel.object(normalizedIndex(index))
         }
 
-        return model.get(normalizedIndex(index))
+        return model.get(index)
     }
 }

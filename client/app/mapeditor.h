@@ -31,6 +31,8 @@
 #include "abstractactivity.h"
 #include "gamemapeditor.h"
 #include "mapeditoraction.h"
+#include "gamematch.h"
+#include "editorundostack.h"
 
 
 /**

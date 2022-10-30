@@ -124,7 +124,7 @@ QTabContainer {
                 sourceModel: availableStorageModel
 
                 filters: ExpressionFilter {
-                    expression: _availableStorageModules.includes(model.module)
+                    expression: _availableStorageModules.includes(model.module) || model.module === ""
                 }
 
                 proxyRoles: [
@@ -135,10 +135,22 @@ QTabContainer {
                             expression: model.id < 0
                             SwitchRole.value: true
                         }
+                    },
+                    SwitchRole {
+                        name: "isNoStorage"
+                        defaultValue: false
+                        filters: ExpressionFilter {
+                            expression: model.id === -1 && model.module === ""
+                            SwitchRole.value: true
+                        }
                     }
                 ]
 
                 sorters: [
+                    FilterSorter {
+                        filters: ValueFilter { roleName: "isNoStorage"; value: true }
+                        priority: 3
+                    },
                     FilterSorter {
                         filters: ValueFilter { roleName: "isNew"; value: true }
                         priority: 2
@@ -277,7 +289,7 @@ QTabContainer {
 
                     mouseArea.onClicked: {
                         storageId = item.id > 0 ? item.id : -1
-                        control.storageData = item.storageData
+                        control.storageData = item.module === "" ? null : item.storageData
                         storageModule = item.module
                         stack.replace(cmpEdit)
                     }
@@ -292,26 +304,12 @@ QTabContainer {
                 }
             }
 
-            header: Column {
-                QTabHeader {
-                    tabContainer: control
-                    visible: control.compact
-                    flickable: slist
-                }
-                QToolButtonFooter {
-                    icon.source: "image://font/Material Icons/\ue06f"
-                    text: qsTr("Adatbank nélkül")
-                    width: slist.width
-                    height: CosStyle.twoLineHeight*1.7
-
-                    onClicked: {
-                        storageId = -1
-                        control.storageData = null
-                        storageModule = ""
-                        stack.replace(cmpEdit)
-                    }
-                }
+            header: QTabHeader {
+                tabContainer: control
+                visible: control.compact
+                flickable: slist
             }
+
         }
     }
 
@@ -450,6 +448,21 @@ QTabContainer {
         for (var j=0; j<sl.length; j++) {
             availableStorageModel.append(sl[j])
         }
+
+
+        // Add no storage
+
+        availableStorageModel.append({
+                                         id: -1,
+                                         module: "",
+                                         name: "",
+                                         title: qsTr("Adatbank nélkül"),
+                                         icon: "image://font/Material Icons/\ue06f",
+                                         details: "",
+                                         image: "",
+                                         storageData: {},
+                                         objectiveCount: 0
+                                     })
 
         if (objective)
             loadObjective()

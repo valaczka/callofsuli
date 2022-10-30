@@ -331,7 +331,9 @@ void Client::clientAuthorize(const CosMessage &message)
 			setClientUserName(user);
 			setClientSession(session);
 
-			if (pwdMap.value("password") == "*" && !m_oauthTokenInitialized) {
+			/// SKIP OAUTH TOKEN REFRESH
+
+			/*if (pwdMap.value("password") == "*" && !m_oauthTokenInitialized) {
 				const QString &token = pwdMap.value("oauthToken").toString();
 				const QDateTime &aexpiration = pwdMap.value("expiration").toDateTime();
 				if (token.isEmpty() || !aexpiration.isValid()) {
@@ -345,7 +347,7 @@ void Client::clientAuthorize(const CosMessage &message)
 						getOAuth2Userinfo(token, expiration, oauth2refreshToken);
 					return;
 				}
-			}
+			}*/
 		} else {
 			CosMessage r(CosMessage::InvalidSession, message);
 			r.send(m_socket);
@@ -682,7 +684,9 @@ void Client::getOAuth2Userinfo(const QString &token, const QDateTime &expiration
 	d->expiration = expiration;
 	d->isRefreshQuery = false;
 
-	if (!refreshToken.isEmpty() && expiration <= QDateTime::currentDateTime().addSecs(5*60)) {
+	/// SKIP OAUTH2 TOKEN REFRESH
+
+	/*if (!refreshToken.isEmpty() && expiration <= QDateTime::currentDateTime().addSecs(5*60)) {
 
 		const QString &googleId = db()->execSelectQueryOneRow("SELECT value as v FROM settings WHERE key='oauth2.googleID'")
 								  .value("v").toString();
@@ -710,7 +714,7 @@ void Client::getOAuth2Userinfo(const QString &token, const QDateTime &expiration
 
 			return;
 		}
-	}
+	}*/
 
 	QUrl url("https://www.googleapis.com/oauth2/v1/userinfo");
 	QUrlQuery q;

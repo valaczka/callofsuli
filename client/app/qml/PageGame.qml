@@ -19,6 +19,7 @@ import "JScript.js" as JS
   9: Enemies
   10: Player
   11-15: TiledLayers
+  16: Crosshair
 
   */
 

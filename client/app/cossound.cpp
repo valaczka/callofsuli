@@ -41,7 +41,7 @@ CosSound::CosSound(QObject *parent)
 	, m_mediaPlayerMusic (nullptr)
 	, m_mediaPlayerSfx (nullptr)
 	, m_mediaPlayerVoiceOver (nullptr)
-	, m_soundTypeSfx(GameSfx)
+	, m_soundTypeSfx(PlayerSfx)
 	, m_musicNextSource()
 	, m_fadeAnimation(new QVariantAnimation(this))
 	, m_musicVolume(0)
@@ -94,7 +94,7 @@ void CosSound::init()
 	m_mediaPlayerSfx = new QMediaPlayer(this);
 	m_mediaPlayerVoiceOver = new QMediaPlayer(this);
 
-	m_soundTypeSfx = GameSfx;
+	m_soundTypeSfx = PlayerSfx;
 
 	/*connect (m_mediaPlayerMusic, &QMediaPlayer::volumeChanged, this, &CosSound::volumeMusicChanged);
 	connect (m_mediaPlayerSfx, &QMediaPlayer::volumeChanged, this, &CosSound::volumeSfxChanged);
@@ -176,19 +176,10 @@ void CosSound::playSound(const QString &source, const SoundType &soundType)
 			return;
 
 		if (m_mediaPlayerSfx->state() == QMediaPlayer::PlayingState) {
-			if (m_soundTypeSfx == GameSound && soundType != GameSound)
+			if (soundType == PlayerVoice && m_soundTypeSfx == GameSound)
 				return;
 
-			if (m_soundTypeSfx == PlayerShoot && soundType != PlayerShoot && soundType != GameSound)
-				return;
-
-			if (m_soundTypeSfx == EnemyShoot && soundType != EnemyShoot && soundType != PlayerShoot && soundType != GameSound  && soundType != PlayerVoice)
-				return;
-
-			if (m_soundTypeSfx == PlayerVoice && soundType != PlayerVoice && soundType != GameSound)
-				return;
-
-			if (m_soundTypeSfx == PlayerSfx && (soundType == GameSfx || soundType == EnemySfx))
+			if (soundType == PlayerSfx && m_soundTypeSfx == GameSound)
 				return;
 
 			m_mediaPlayerSfx->stop();

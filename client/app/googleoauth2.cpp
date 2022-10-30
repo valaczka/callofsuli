@@ -46,7 +46,7 @@ GoogleOAuth2::GoogleOAuth2(QObject *parent)
 
 	m_oauth.setModifyParametersFunction([&](QAbstractOAuth::Stage stage, QVariantMap *parameters) {
 		if (stage == QAbstractOAuth::Stage::RequestingAccessToken) {
-			QByteArray code = parameters->value("code").toByteArray();
+			const QByteArray &code = parameters->value("code").toByteArray();
 			(*parameters)["code"] = QUrl::fromPercentEncoding(code);
 		}
 	});

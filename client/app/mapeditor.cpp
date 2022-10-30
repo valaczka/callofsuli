@@ -29,6 +29,8 @@
 #include "mapeditoraction.h"
 #include "mapimage.h"
 #include "studentmaps.h"
+#include "gameenemydata.h"
+#include "question.h"
 
 MapEditor::MapEditor(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
@@ -1137,6 +1139,7 @@ QVariantList MapEditor::getStorages() const
 									 { "title", tr("Új %1").arg(iif->readableName()) },
 									 { "icon", iif->icon() },
 									 { "details", "" },
+									 { "image", "" },
 									 { "storageData", QVariantMap() },
 									 { "objectiveCount", 0 }
 								 }));

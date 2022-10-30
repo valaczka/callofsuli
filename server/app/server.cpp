@@ -37,7 +37,7 @@
 #include "server.h"
 #include "../version/buildnumber.h"
 
-#define OLD_SESSION_TOKEN_TIME	"-48 days"
+#define OLD_SESSION_TOKEN_TIME	"-14 days"
 #define OLD_GAME_DURATION	"+12 hours"
 
 

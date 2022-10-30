@@ -184,5 +184,6 @@
         <file>TeacherGroupExamList.qml</file>
         <file>TeacherGroupExamEngine.qml</file>
         <file>StudentExamFinished.qml</file>
+        <file>GameEnemySniperCrosshair.qml</file>
     </qresource>
 </RCC>

@@ -36,8 +36,9 @@
 #define STUDENTMAPS_H
 
 #include "abstractactivity.h"
+#include "gamemap.h"
+#include "gamematch.h"
 #include "maplistobject.h"
-#include "objectlistmodelobject.h"
 
 class StudentMaps : public AbstractActivity
 {

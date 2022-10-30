@@ -105,8 +105,10 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	if (!image.isEmpty())
 		setBgImage(image);
 
+	const QString &uuidLevel = QString("%1#%2").arg(m_missionUuid).arg(m_level);
+
 	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
-	if (l.contains(m_missionUuid))
+	if (l.contains(uuidLevel))
 		setSkipPreview(true);
 
 }
@@ -154,8 +156,10 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	if (!image.isEmpty())
 		setBgImage(image);
 
+	const QString &uuidLevel = QString("%1#%2").arg(m_missionUuid).arg(m_level);
+
 	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
-	if (l.contains(m_missionUuid))
+	if (l.contains(uuidLevel))
 		setSkipPreview(true);
 }
 
@@ -266,10 +270,12 @@ void GameMatch::previewCompleted()
 	if (m_missionUuid.isEmpty())
 		return;
 
+	const QString &uuidLevel = QString("%1#%2").arg(m_missionUuid).arg(m_level);
+
 	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
 
-	if (!l.contains(m_missionUuid)) {
-		l.append(m_missionUuid);
+	if (!l.contains(uuidLevel)) {
+		l.append(uuidLevel);
 		Client::clientInstance()->setServerSetting("game/skipPreview", l);
 		setSkipPreview(true);
 	}

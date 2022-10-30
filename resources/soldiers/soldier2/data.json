@@ -6,7 +6,7 @@
 	"y": 3,
 	"facingLeft": false,
 	"walk": 3.5,
-	"shotSound": "shot.ogg",
+	"shotSound": "shot.wav",
 	"hp": {
 		"1": 3,
 		"2": 4,

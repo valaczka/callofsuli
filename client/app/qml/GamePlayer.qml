@@ -335,9 +335,7 @@ GameEntity {
 
         ep.moveToPoint = Qt.point(0,0)
 
-        if (isFalling || isOperating ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+        if (isFalling || isOperating)
             return
 
         root.facingLeft = false
@@ -350,9 +348,7 @@ GameEntity {
 
         ep.moveToPoint = Qt.point(0,0)
 
-        if (isFalling || isOperating ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+        if (isFalling || isOperating)
             return
 
         root.facingLeft = true
@@ -365,12 +361,14 @@ GameEntity {
 
         ep.moveToPoint = Qt.point(0,0)
 
-        if (isFalling || isOperating ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+        if (isFalling || isOperating)
             return
 
         root.facingLeft = false
+
+        if (ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+            return
 
         if (!root.isWalking)
             spriteSequence.jumpTo("walk")
@@ -382,12 +380,14 @@ GameEntity {
 
         ep.moveToPoint = Qt.point(0,0)
 
-        if (isFalling || isOperating ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+        if (isFalling || isOperating)
             return
 
         root.facingLeft = true
+
+        if (ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+            return
 
         if (!root.isWalking)
             spriteSequence.jumpTo("walk")
@@ -400,12 +400,14 @@ GameEntity {
 
         ep.moveToPoint = Qt.point(0,0)
 
-        if (isFalling || isOperating ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+        if (isFalling || isOperating)
             return
 
         root.facingLeft = false
+
+        if (ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+            return
 
         if (!root.isRunning)
             spriteSequence.jumpTo("run")
@@ -417,12 +419,14 @@ GameEntity {
 
         ep.moveToPoint = Qt.point(0,0)
 
-        if (isFalling || isOperating ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+        if (isFalling || isOperating)
             return
 
         root.facingLeft = true
+
+        if (ep.ladderMode == GamePlayerPrivate.LadderClimb ||
+                ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
+            return
 
         if (!root.isRunning)
             spriteSequence.jumpTo("run")

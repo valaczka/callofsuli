@@ -31,6 +31,12 @@ GameEntity {
     GameEnemySoldierPrivate {
         id: ep
 
+        SoundEffect {
+            id: shotEffect
+            source: ep.shotSoundFile
+            volume: cosClient.sfxVolume
+        }
+
         onKilled: {
             spriteSequence.jumpTo("dead")
         }
@@ -48,7 +54,8 @@ GameEntity {
 
         onAttack: {
             spriteSequence.jumpTo("shot")
-            cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
+            //cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
+            shotEffect.play()
         }
 
         onRayCastPerformed: {

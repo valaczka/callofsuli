@@ -1023,14 +1023,27 @@ QVariantMap Client::terrainMap()
 	QVariantMap map;
 
 	foreach (TerrainData d, m_availableTerrains) {
+		QStringList details;
+
+		details << tr("%1 csatatér").arg(d.blocks.count());
+		details << tr("%1 ellenfél").arg(d.enemies);
+
+		if (d.snipers)
+			details << tr("%1 sniper").arg(d.snipers);
+
+		if (d.fires)
+			details << tr("%1 tűz").arg(d.fires);
+
+		if (d.fences)
+			details << tr("%1 kerítés").arg(d.fences);
+
+		if (d.teleports)
+			details << tr("%1 teleport").arg(d.teleports);
+
 		QVariantMap m;
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
-		m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
-					   .arg(d.level)
-					   .arg(d.blocks.count())
-					   .arg(d.enemies);
-
+		m["details"] = tr("Level %1: ").arg(d.level) + details.join(", ");
 		m["data"] = d.data;
 		m["level"] = d.level;
 		m["readableName"] = d.data.contains("name") ? d.data.value("name").toString() : d.name;
@@ -1156,17 +1169,25 @@ void Client::setVolume(const CosSound::ChannelType &channel, const int &volume) 
 {
 	QByteArray func;
 
+	QSettings s;
+	s.beginGroup("sound");
+
 	switch (channel) {
 		case CosSound::MusicChannel:
 			func = "setVolumeMusic";
+			s.setValue("volumeMusic", volume);
 			break;
 		case CosSound::SfxChannel:
 			func = "setVolumeSfx";
+			s.setValue("volumeSfx", volume);
 			break;
 		case CosSound::VoiceoverChannel:
 			func = "setVolumeVoiceOver";
+			s.setValue("volumeVoiceOver", volume);
 			break;
 	}
+
+	s.endGroup();
 
 	QMetaObject::invokeMethod(m_clientSound, func, Qt::DirectConnection,
 							  Q_ARG(int, volume)
@@ -1356,14 +1377,20 @@ void Client::loadTerrains()
 		for (int level=1; level<=3; level++) {
 			QString tmxFile = QString("%1/level%2.tmx").arg(terrainDir).arg(level);
 
-			if (!QFile::exists(tmxFile))
+			QFileInfo tmxI(tmxFile);
+
+			if (!tmxI.exists())
 				continue;
 
 			qInfo() << "Load terrain" << terrainName << "level" << level;
 
-			QString blockfile = QString("%1/blocks%2.json").arg(terrainDir).arg(level);
+			//QString blockfile = QString("%1/blocks%2.json").arg(terrainDir).arg(level);
 
-			if (QFile::exists(blockfile)) {
+			const QString &blockfile = QString("%1/%2_%3.json").arg(standardPath("terrain_cache")).arg(terrainName).arg(level);
+
+			QFileInfo fi(blockfile);
+
+			if (fi.exists() && fi.lastModified() > tmxI.lastModified()) {
 				QJsonDocument doc = readJsonDocument(blockfile);
 				QJsonObject o = doc.object();
 
@@ -1386,19 +1413,43 @@ void Client::loadTerrains()
 								  dataMap,
 								  level);
 
+					d.fires = o.value("fires").toInt();
+					d.fences = o.value("fences").toInt();
+					d.snipers = o.value("snipers").toInt();
+					d.teleports = o.value("teleports").toInt();
+
 					m_availableTerrains.append(d);
+				}
+			} else {
+				TerrainData d = terrainDataFromFile(tmxFile, terrainName, dataMap, level);
+
+				if (d.enemies != -1)
+					m_availableTerrains.append(d);
+				else {
+					qWarning().noquote() << "Invalid terrain map" << tmxFile;
 					continue;
 				}
+
+				QDir dir(standardPath());
+
+				if (!dir.exists("terrain_cache") && !dir.mkdir("terrain_cache")) {
+					qWarning().noquote() << tr("Nem sikerült létrehozni a könyvtárat:") << dir.absoluteFilePath("terrain_cache");
+					continue;
+				}
+
+				QFile f(blockfile);
+
+				if (!f.open(QIODevice::WriteOnly)) {
+					qWarning().noquote() << tr("Nem sikerült módosítani a fájlt:") << f.fileName();
+					continue;
+				}
+
+				f.write(terrainDataToJson(d));
+
+				qInfo().noquote() << tr("Harcmező cache:") << f.fileName();
+
+				f.close();
 			}
-
-			TerrainData d = terrainDataFromFile(tmxFile, terrainName, dataMap, level);
-
-			if (d.enemies != -1)
-				m_availableTerrains.append(d);
-			else {
-				qWarning().noquote() << "Invalid terrain map" << tmxFile;
-			}
-
 		}
 	}
 }
@@ -1490,6 +1541,7 @@ TerrainData Client::terrainDataFromFile(const QString &filename,
 {
 	GameTerrain t;
 
+
 	if (t.loadTmxFile(filename)) {
 		QMap<int, int> blockData;
 
@@ -1500,11 +1552,25 @@ TerrainData Client::terrainDataFromFile(const QString &filename,
 			blockData[it.key()] = it.value()->enemies().count();
 		}
 
-		return TerrainData(terrainName,
-						   blockData,
-						   t.enemies().count(),
-						   dataMap,
-						   level);
+		int snipers = 0;
+
+		foreach (GameEnemyData *edata, t.enemies()) {
+			if (edata->enemyType() == GameEnemyData::EnemySniper)
+				snipers++;
+		}
+
+		TerrainData td = TerrainData(terrainName,
+									 blockData,
+									 t.enemies().count(),
+									 dataMap,
+									 level);
+
+		td.snipers = snipers;
+		td.fences = t.fences().size();
+		td.fires = t.fires().size();
+		td.teleports = t.teleports().size();
+
+		return td;
 	}
 
 	return TerrainData("",
@@ -1523,11 +1589,24 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 {
 	TerrainData t = terrainDataFromFile(filename);
 
+	return terrainDataToJson(t);
+}
+
+
+
+/**
+ * @brief Client::terrainDataToJson
+ * @param data
+ * @return
+ */
+
+QByteArray Client::terrainDataToJson(const TerrainData &data)
+{
 	QJsonObject o;
 
-	if (t.enemies != -1) {
+	if (data.enemies != -1) {
 		QJsonArray blocks;
-		QMap<int, int> m = t.blocks;
+		QMap<int, int> m = data.blocks;
 		QMapIterator<int, int> it (m);
 		while (it.hasNext()) {
 			it.next();
@@ -1538,7 +1617,11 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 		}
 
 		o["blocks"] = blocks;
-		o["enemies"] = t.enemies;
+		o["enemies"] = data.enemies;
+		o["fences"] = data.fences;
+		o["fires"] = data.fires;
+		o["snipers"] = data.snipers;
+		o["teleports"] = data.teleports;
 	}
 
 	QJsonDocument doc(o);
@@ -1548,6 +1631,10 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 
 
 
+/**
+ * @brief Client::setConnectionState
+ * @param connectionState
+ */
 
 void Client::setConnectionState(ConnectionState connectionState)
 {

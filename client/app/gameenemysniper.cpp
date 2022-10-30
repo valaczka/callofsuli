@@ -36,7 +36,7 @@
 GameEnemySniper::GameEnemySniper(QQuickItem *parent)
 	: GameEnemy(parent)
 	, m_msecBeforeTurn(5000)
-	, m_shotSoundFile("qrc:/sound/sfx/enemyshot.mp3")
+	, m_shotSoundFile("qrc:/sound/sfx/rifle.wav")
 	, m_sniperType("sniper1")
 {
 	connect(this, &GameEnemy::cosGameChanged, this, &GameEnemySniper::onCosGameChanged);

@@ -35,15 +35,11 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <QThread>
+#include <QCoreApplication>
 
 #include "cosmessage.h"
 #include "variantmapmodel.h"
-#include "gameblock.h"
-#include "gamemap.h"
-#include "gamematch.h"
-#include "gameenemydata.h"
 #include "cossound.h"
-#include "question.h"
 #include "modules/interfaces.h"
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
@@ -115,6 +111,7 @@ public:
 										   const QVariantMap &dataMap = QVariantMap(),
 										   const int &level = -1);
 	static QByteArray terrainDataToJson(const QString &filename);
+	static QByteArray terrainDataToJson(const TerrainData &data);
 
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window);
 	Q_INVOKABLE void windowRestoreGeometry(QQuickWindow *window);
@@ -271,7 +268,7 @@ public slots:
 	void setServerDataDir(QString serverDataDir);
 	void clearSession();
 
-	void playSound(const QString &source, const CosSound::SoundType &soundType = CosSound::GameSfx);
+	void playSound(const QString &source, const CosSound::SoundType &soundType = CosSound::PlayerSfx);
 	void stopSound(const QString &source, const CosSound::SoundType &soundType = CosSound::Music);
 	int volume(const CosSound::ChannelType &channel) const;
 	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
@@ -434,14 +431,23 @@ struct TerrainData {
 	Q_PROPERTY(QMap<int, int> blocks MEMBER blocks)
 	Q_PROPERTY(int enemies MEMBER enemies)
 	Q_PROPERTY(int level MEMBER level)
+	Q_PROPERTY(int fences MEMBER fences)
+	Q_PROPERTY(int fires MEMBER fires)
+	Q_PROPERTY(int snipers MEMBER snipers)
+	Q_PROPERTY(int teleports MEMBER teleports)
 
 public:
 
 	QString name;
 	QMap<int, int> blocks;
-	int enemies;
+	int enemies = 0;
 	QVariantMap data;
-	int level;
+	int level = 0;
+	int fences = 0;
+	int fires = 0;
+	int snipers = 0;
+	int teleports = 0;
+
 
 	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0, const QVariantMap &data = QVariantMap(),
 				const int &level = -1)
@@ -454,9 +460,6 @@ public:
 
 	friend inline bool operator== (const TerrainData &b1, const TerrainData &b2) {
 		return b1.name == b2.name
-				&& b1.blocks == b2.blocks
-				&& b1.enemies == b2.enemies
-				&& b1.data == b2.data
 				&& b1.level == b2.level;
 	}
 };

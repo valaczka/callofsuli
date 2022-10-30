@@ -201,7 +201,6 @@ void GamePlayer::ladderClimbUp()
 		qreal y = parentEntity()->y()-m_qrcData.value("climb", 1).toReal();
 		parentEntity()->setY(y);
 		if (y < m_ladder->boundRect().top()-parentEntity()->height()) {
-			qWarning() << "Ladder overbound (up)";
 			ladderClimbFinish();
 			if (spriteSequence)
 				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "idle"));
@@ -238,15 +237,14 @@ void GamePlayer::ladderClimbDown()
 		int y = parentEntity()->y()+delta;
 		int height = parentEntity()->height();
 
-		if (m_ladderMode == LadderClimb) {
-			if (y+height >= m_ladder->boundRect().bottom()) {
-				setLadderMode(LadderClimbFinish);
-				if (spriteSequence)
-					QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbdownend"));
-				parentEntity()->setY(m_ladder->boundRect().bottom()-height);
-			} else {
-				parentEntity()->setY(y);
-			}
+		if (y+height >= m_ladder->boundRect().bottom()) {
+			int newY = m_ladder->boundRect().bottom()-height;
+			ladderClimbFinish();
+			parentEntity()->setY(newY);
+			if (spriteSequence)
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbdownend"));
+		} else {
+			parentEntity()->setY(y);
 		}
 	}
 }

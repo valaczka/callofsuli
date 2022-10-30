@@ -129,10 +129,10 @@ ios {
 	INFO_PLIST_VERSION = "$$VERSION"
 
 	plist.input = $$PWD/../deploy/Info.plist.in
-	plist.output = $$PWD/../deploy/Info.plist
+	plist.output = $$OUT_PWD/../Info.plist
 	QMAKE_SUBSTITUTES += plist
 
-	QMAKE_INFO_PLIST = $$PWD/../deploy/Info.plist
+	QMAKE_INFO_PLIST = $$OUT_PWD/../Info.plist
 
 
 }
