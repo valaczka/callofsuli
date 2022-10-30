@@ -54,6 +54,7 @@ class GameMatch : public QObject
 	Q_PROPERTY(QString imageDbName READ imageDbName WRITE setImageDbName NOTIFY imageDbNameChanged)
 	Q_PROPERTY(int duration READ duration WRITE setDuration NOTIFY durationChanged)
 	Q_PROPERTY(bool deathmatch READ deathmatch WRITE setDeathmatch NOTIFY deathmatchChanged)
+	Q_PROPERTY(bool isFlawless READ isFlawless WRITE setIsFlawless NOTIFY isFlawlessChanged)
 
 	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXP NOTIFY xpChanged)
@@ -61,6 +62,12 @@ class GameMatch : public QObject
 
 	Q_PROPERTY(int water READ water WRITE setWater NOTIFY waterChanged)
 	Q_PROPERTY(int pliers READ pliers WRITE setPliers NOTIFY pliersChanged)
+	Q_PROPERTY(int camouflage READ camouflage WRITE setCamouflage NOTIFY camouflageChanged)
+	Q_PROPERTY(int teleporter READ teleporter WRITE setTeleporter NOTIFY teleporterChanged)
+
+	Q_PROPERTY(GameMode mode READ mode WRITE setMode NOTIFY modeChanged)
+
+	Q_PROPERTY(bool skipPreview READ skipPreview WRITE setSkipPreview NOTIFY skipPreviewChanged)
 
 
 public:
@@ -68,6 +75,14 @@ public:
 	explicit GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	explicit GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, QObject *parent = nullptr);
 	virtual ~GameMatch();
+
+	enum GameMode {
+		ModeNormal,
+		ModeLite,
+		ModeExam
+	};
+
+	Q_ENUM(GameMode);
 
 	struct Statistics {
 		uint index;
@@ -114,11 +129,28 @@ public:
 	void addStatistics(const QString &objective, const bool &success, const int &elapsed);
 	QJsonArray takeStatistics();
 
+	void previewCompleted();
+
 	int water() const;
 	void setWater(int newWater);
 
 	int pliers() const;
 	void setPliers(int newPliers);
+
+	const GameMode &mode() const;
+	void setMode(const GameMode &newMode);
+
+	bool skipPreview() const;
+	void setSkipPreview(bool newSkipPreview);
+
+	bool isFlawless() const;
+	void setIsFlawless(bool newIsFlawless);
+
+	int camouflage() const;
+	void setCamouflage(int newGlasses);
+
+	int teleporter() const;
+	void setTeleporter(int newTeleporter);
 
 public slots:
 	bool check(QString *errorString);
@@ -157,6 +189,11 @@ signals:
 	void deathmatchChanged(bool deathmatch);
 	void waterChanged();
 	void pliersChanged();
+	void modeChanged();
+	void skipPreviewChanged();
+	void isFlawlessChanged();
+	void camouflageChanged();
+	void teleporterChanged();
 
 private:
 	GameMap *m_gameMap;
@@ -180,6 +217,11 @@ private:
 	QVector<Statistics> m_statData;
 	int m_water;
 	int m_pliers;
+	GameMode m_mode;
+	bool m_skipPreview;
+	bool m_isFlawless;
+	int m_camouflage;
+	int m_teleporter;
 };
 
 

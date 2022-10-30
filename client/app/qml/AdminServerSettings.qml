@@ -9,363 +9,380 @@ import "JScript.js" as JS
 
 
 QTabContainer {
-	id: control
+    id: control
 
-	title: qsTr("Szerver beállításai")
-	icon: CosStyle.iconSetup
-	action: actionSave
+    title: qsTr("Szerver beállításai")
+    icon: "qrc:/internal/icon/wrench.svg"
+    action: actionSave
 
-	property bool _closeEnabled: false
+    property bool _closeEnabled: false
 
-	QAccordion {
-		QTabHeader {
-			tabContainer: control
-			isPlaceholder: true
-		}
+    QAccordion {
+        id: acc
+        QTabHeader {
+            tabContainer: control
+            flickable: acc.flickable
+        }
 
-		QCollapsible {
-			title: qsTr("Általános")
+        QCollapsible {
+            title: qsTr("Általános")
 
-			QGridLayout {
-				id: grid1
-				enabled: !serverSettings.isBusy
+            isFullscreen: control.compact
 
-				onModifiedChanged: updateSaveEnabled()
+            QGridLayout {
+                id: grid1
+                enabled: !serverSettings.isBusy
 
-				watchModification: true
+                isFullscreen: control.compact
 
-				QGridLabel {
-					field: textServerName
-				}
+                onModifiedChanged: updateSaveEnabled()
 
-				QGridTextField {
-					id: textServerName
-					fieldName: qsTr("Szerver neve")
-					sqlField: "serverName"
+                watchModification: true
 
-					validator: RegExpValidator { regExp: /.+/ }
-				}
+                QGridLabel {
+                    field: textServerName
+                }
 
-			}
-		}
+                QGridTextField {
+                    id: textServerName
+                    fieldName: qsTr("Szerver neve")
+                    sqlField: "serverName"
 
-		QCollapsible {
-			title: qsTr("Regisztráció")
+                    validator: RegExpValidator { regExp: /.+/ }
+                }
 
-			QGridLayout {
-				id: grid4
+            }
+        }
 
-				enabled: !serverSettings.isBusy
+        QCollapsible {
+            title: qsTr("Regisztráció")
 
-				onModifiedChanged: updateSaveEnabled()
+            isFullscreen: control.compact
 
-				watchModification: true
+            QGridLayout {
+                id: grid4
 
-				QGridText {
-					field: comboRegistration
-					text: qsTr("Regisztráció engedélyezése")
-				}
+                enabled: !serverSettings.isBusy
 
-				QGridComboBox {
-					id: comboRegistration
-					sqlField: "registration.enabled"
+                isFullscreen: control.compact
 
-					valueRole: "value"
-					textRole: "text"
+                onModifiedChanged: updateSaveEnabled()
 
-					model: [
-						{value: "0", text: qsTr("Letiltva")},
-						{value: "1", text: qsTr("Engedélyezve")},
-					]
-				}
+                watchModification: true
 
-				QGridText {
-					field: comboForcedClass
-					text: qsTr("Osztályba sorolás")
-				}
+                QGridText {
+                    field: comboRegistration
+                    text: qsTr("Regisztráció engedélyezése")
+                }
 
-				QGridComboBox {
-					id: comboForcedClass
-					sqlField: "registration.forced"
+                QGridComboBox {
+                    id: comboRegistration
+                    sqlField: "registration.enabled"
 
-					valueRole: "value"
-					textRole: "text"
+                    valueRole: "value"
+                    textRole: "text"
 
-					model: []
-				}
-			}
-		}
+                    model: [
+                        {value: "0", text: qsTr("Letiltva")},
+                        {value: "1", text: qsTr("Engedélyezve")},
+                    ]
+                }
 
+                QGridText {
+                    field: comboForcedClass
+                    text: qsTr("Osztályba sorolás")
+                }
 
-		QCollapsible {
-			title: qsTr("Hitelesítési kódok")
+                QGridComboBox {
+                    id: comboForcedClass
+                    sqlField: "registration.forced"
 
-			QGridLayout {
-				id: grid6
-				enabled: !serverSettings.isBusy
+                    valueRole: "value"
+                    textRole: "text"
 
-				onModifiedChanged: updateSaveEnabled()
+                    model: []
+                }
+            }
+        }
 
-				watchModification: true
 
-				QGridLabel {
-					field: textClassCodes
-				}
-
-				QGridTextArea {
-					id: textClassCodes
-					fieldName: qsTr("Osztályok kódjai")
-					minimumHeight: CosStyle.baseHeight*3
-					readOnly: true
-				}
-
-				QGridButton {
-					id: buttonRegenerateCodes
-					text: qsTr("Újak generálása")
-					icon.source: CosStyle.iconRefresh
-					display: AbstractButton.TextBesideIcon
-
-					onClicked: {
-						buttonRegenerateCodes.enabled = false
-						serverSettings.send("classRegistration", {refresh: true})
-					}
-				}
-
-			}
-		}
-
-		QCollapsible {
-			title: qsTr("OAuth2")
-
-			QGridLayout {
-				id: grid5
-
-				enabled: !serverSettings.isBusy
-
-				onModifiedChanged: updateSaveEnabled()
-
-				watchModification: true
-
-				QGridLabel {
-					field: textOAuth2Id
-				}
-
-				QGridTextField {
-					id: textOAuth2Id
-					fieldName: qsTr("Google Client ID")
-					sqlField: "oauth2.googleID"
-				}
-
-				QGridLabel {
-					field: textOAuth2Key
-				}
-
-				QGridTextField {
-					id: textOAuth2Key
-					fieldName: qsTr("Google Client Secret")
-					sqlField: "oauth2.googleKey"
-				}
-
-				QGridText {
-					field: comboOAuth2RegistrationAuto
-					text: qsTr("Regisztráció Google fiókkal")
-				}
-
-				QGridComboBox {
-					id: comboOAuth2RegistrationAuto
-					sqlField: "oauth2.registration"
-
-					valueRole: "value"
-					textRole: "text"
-
-					model: [
-						{value: "0", text: qsTr("Letiltva")},
-						{value: "1", text: qsTr("Engedélyezve")},
-					]
-				}
-
-				QGridText {
-					field: comboOAuth2RegistrationForced
-					text: qsTr("Google fiókos regisztráció kényszerítése")
-				}
-
-				QGridComboBox {
-					id: comboOAuth2RegistrationForced
-					sqlField: "oauth2.forced"
-
-					valueRole: "value"
-					textRole: "text"
-
-					model: [
-						{value: "0", text: qsTr("Letiltva")},
-						{value: "1", text: qsTr("Engedélyezve")},
-					]
-				}
-
-				QGridLabel {
-					field: textOAuth2Domains
-				}
-
-				QGridTextField {
-					id: textOAuth2Domains
-					fieldName: qsTr("Domain korlátozás")
-					sqlField: "oauth2.domains"
-				}
-
-			}
-		}
-	}
-
-
-	Connections {
-		target: actionSave
-		function onTriggered() {
-			var o = JS.getModifiedSqlFields([
-												textServerName,
-												comboRegistration,
-												textOAuth2Id,
-												textOAuth2Key,
-												comboOAuth2RegistrationAuto,
-												comboOAuth2RegistrationForced,
-												comboForcedClass,
-												textOAuth2Domains
-											])
-
-			if (Object.keys(o).length) {
-				serverSettings.send("setSettings", o)
-			}
-		}
-	}
-
-	Connections {
-		target: serverSettings
-
-		function onGetSettings(jsonData, binaryData) {
-			var newModel = []
-
-			if (jsonData.classList) {
-				for (var i=0; i<jsonData.classList.length; i++) {
-					var c = jsonData.classList[i]
-					newModel.push({value: String(c.id), text: c.name})
-				}
-			}
-
-			newModel.push({value: String(-1), text: qsTr("-- Hitelesítési kód alapján --")})
-
-			comboForcedClass.model = newModel
-
-			var dc = jsonData["registration.forced"]
-
-			if (!dc || dc < 1)
-				jsonData["registration.forced"] = -1
-
-			JS.setSqlFields([
-								textServerName,
-								comboRegistration,
-								textOAuth2Id,
-								textOAuth2Key,
-								comboOAuth2RegistrationAuto,
-								comboOAuth2RegistrationForced,
-								comboForcedClass,
-								textOAuth2Domains
-							], jsonData)
-
-
-			textClassCodes.clear()
-
-			var t = ""
-
-			if (jsonData.codeList) {
-				for (i=0; i<jsonData.codeList.length; i++) {
-					c = jsonData.codeList[i]
-
-					if (c.classid > 0)
-						t += c.name
-					else
-						t = qsTr("Osztály nélkül")
-
-					t += ": "+c.code+"\n"
-				}
-			}
-
-			textClassCodes.text = t
-
-			grid1.modified = false
-			grid4.modified = false
-			grid5.modified = false
-			grid6.modified = false
-		}
-
-		function onSetSettings(jsonData, binaryData) {
-			if (jsonData.success) {
-				//cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
-				serverSettings.send("getSettings")
-			} else {
-				cosClient.sendMessageWarning(qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
-			}
-		}
-
-
-		function onClassRegistration(jsonData, binaryData) {
-			buttonRegenerateCodes.enabled = true
-			if (jsonData.success) {
-				//cosClient.sendMessageInfo(qsTr("Hitelesítési kódok"), qsTr("A hitelesítési kódok sikeresen módosultak."))
-				serverSettings.send("getSettings")
-			} else {
-				cosClient.sendMessageWarning(qsTr("Hitelesítési kódok"), qsTr("Nem sikerült módosítani a hitelesítési kódokat."))
-			}
-		}
-	}
-
-	Component.onCompleted: serverSettings.send("getSettings")
-
-
-	Action {
-		id: actionSave
-		icon.source: CosStyle.iconSave
-		//text: qsTr("Mentés")
-		enabled: false
-		shortcut: "Ctrl+S"
-	}
-
-
-	function updateSaveEnabled() {
-		actionSave.enabled = grid1.modified || grid4.modified || grid5.modified || grid6.modified
-	}
-
-
-	backCallbackFunction: function () {
-		if (_closeEnabled)
-			return false
-
-		if (actionSave.enabled) {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
-			d.accepted.connect(function() {
-				_closeEnabled = true
-				mainStack.back()
-			})
-			d.open()
-			return true
-		}
-
-		return false
-	}
-
-
-	closeCallbackFunction: function () {
-		if (_closeEnabled)
-			return false
-
-		if (actionSave.enabled) {
-			var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
-			d.accepted.connect(function() {
-				_closeEnabled = true
-				mainWindow.close()
-			})
-			d.open()
-			return true
-		}
-
-		return false
-	}
+        QCollapsible {
+            title: qsTr("Hitelesítési kódok")
+
+            isFullscreen: control.compact
+
+            QGridLayout {
+                id: grid6
+                enabled: !serverSettings.isBusy
+
+                isFullscreen: control.compact
+
+                onModifiedChanged: updateSaveEnabled()
+
+                watchModification: true
+
+                QGridLabel {
+                    field: textClassCodes
+                }
+
+                QGridTextArea {
+                    id: textClassCodes
+                    fieldName: qsTr("Osztályok kódjai")
+                    minimumHeight: CosStyle.baseHeight*3
+                    readOnly: true
+                }
+
+                QGridButton {
+                    id: buttonRegenerateCodes
+                    text: qsTr("Újak generálása")
+                    icon.source: CosStyle.iconRefresh
+                    display: AbstractButton.TextBesideIcon
+
+                    onClicked: {
+                        buttonRegenerateCodes.enabled = false
+                        serverSettings.send("classRegistration", {refresh: true})
+                    }
+                }
+
+            }
+        }
+
+        QCollapsible {
+            title: qsTr("OAuth2")
+
+            isFullscreen: control.compact
+
+            QGridLayout {
+                id: grid5
+
+                enabled: !serverSettings.isBusy
+
+                isFullscreen: control.compact
+
+                onModifiedChanged: updateSaveEnabled()
+
+                watchModification: true
+
+                QGridLabel {
+                    field: textOAuth2Id
+                }
+
+                QGridTextField {
+                    id: textOAuth2Id
+                    fieldName: qsTr("Google Client ID")
+                    sqlField: "oauth2.googleID"
+                }
+
+                QGridLabel {
+                    field: textOAuth2Key
+                }
+
+                QGridTextField {
+                    id: textOAuth2Key
+                    fieldName: qsTr("Google Client Secret")
+                    sqlField: "oauth2.googleKey"
+                }
+
+                QGridText {
+                    field: comboOAuth2RegistrationAuto
+                    text: qsTr("Regisztráció Google fiókkal")
+                }
+
+                QGridComboBox {
+                    id: comboOAuth2RegistrationAuto
+                    sqlField: "oauth2.registration"
+
+                    valueRole: "value"
+                    textRole: "text"
+
+                    model: [
+                        {value: "0", text: qsTr("Letiltva")},
+                        {value: "1", text: qsTr("Engedélyezve")},
+                    ]
+                }
+
+                QGridText {
+                    field: comboOAuth2RegistrationForced
+                    text: qsTr("Google fiókos regisztráció kényszerítése")
+                }
+
+                QGridComboBox {
+                    id: comboOAuth2RegistrationForced
+                    sqlField: "oauth2.forced"
+
+                    valueRole: "value"
+                    textRole: "text"
+
+                    model: [
+                        {value: "0", text: qsTr("Letiltva")},
+                        {value: "1", text: qsTr("Engedélyezve")},
+                    ]
+                }
+
+                QGridLabel {
+                    field: textOAuth2Domains
+                }
+
+                QGridTextField {
+                    id: textOAuth2Domains
+                    fieldName: qsTr("Domain korlátozás")
+                    sqlField: "oauth2.domains"
+                }
+
+            }
+        }
+    }
+
+
+    Connections {
+        target: actionSave
+        function onTriggered() {
+            var o = JS.getModifiedSqlFields([
+                                                textServerName,
+                                                comboRegistration,
+                                                textOAuth2Id,
+                                                textOAuth2Key,
+                                                comboOAuth2RegistrationAuto,
+                                                comboOAuth2RegistrationForced,
+                                                comboForcedClass,
+                                                textOAuth2Domains
+                                            ])
+
+            if (Object.keys(o).length) {
+                serverSettings.send("setSettings", o)
+            }
+        }
+    }
+
+    Connections {
+        target: serverSettings
+
+        function onGetSettings(jsonData, binaryData) {
+            var newModel = []
+
+            if (jsonData.classList) {
+                for (var i=0; i<jsonData.classList.length; i++) {
+                    var c = jsonData.classList[i]
+                    newModel.push({value: String(c.id), text: c.name})
+                }
+            }
+
+            newModel.push({value: String(-1), text: qsTr("-- Hitelesítési kód alapján --")})
+
+            comboForcedClass.model = newModel
+
+            var dc = jsonData["registration.forced"]
+
+            if (!dc || dc < 1)
+                jsonData["registration.forced"] = -1
+
+            JS.setSqlFields([
+                                textServerName,
+                                comboRegistration,
+                                textOAuth2Id,
+                                textOAuth2Key,
+                                comboOAuth2RegistrationAuto,
+                                comboOAuth2RegistrationForced,
+                                comboForcedClass,
+                                textOAuth2Domains
+                            ], jsonData)
+
+
+            textClassCodes.clear()
+
+            var t = ""
+
+            if (jsonData.codeList) {
+                for (i=0; i<jsonData.codeList.length; i++) {
+                    c = jsonData.codeList[i]
+
+                    if (c.classid > 0)
+                        t += c.name
+                    else
+                        t = qsTr("Osztály nélkül")
+
+                    t += ": "+c.code+"\n"
+                }
+            }
+
+            textClassCodes.text = t
+
+            grid1.modified = false
+            grid4.modified = false
+            grid5.modified = false
+            grid6.modified = false
+        }
+
+        function onSetSettings(jsonData, binaryData) {
+            if (jsonData.success) {
+                //cosClient.sendMessageInfo(qsTr("Szerver beállítások"), qsTr("A szerver beállításai sikeresen módosultak."))
+                serverSettings.send("getSettings")
+            } else {
+                cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Szerver beállítások"), qsTr("Nem sikerült módosítani a szerver beállításait."))
+            }
+        }
+
+
+        function onClassRegistration(jsonData, binaryData) {
+            buttonRegenerateCodes.enabled = true
+            if (jsonData.success) {
+                //cosClient.sendMessageInfo(qsTr("Hitelesítési kódok"), qsTr("A hitelesítési kódok sikeresen módosultak."))
+                serverSettings.send("getSettings")
+            } else {
+                cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Hitelesítési kódok"), qsTr("Nem sikerült módosítani a hitelesítési kódokat."))
+            }
+        }
+    }
+
+    Component.onCompleted: serverSettings.send("getSettings")
+
+
+    Action {
+        id: actionSave
+        icon.source: CosStyle.iconSave
+        //text: qsTr("Mentés")
+        enabled: false
+        shortcut: "Ctrl+S"
+    }
+
+
+    function updateSaveEnabled() {
+        actionSave.enabled = grid1.modified || grid4.modified || grid5.modified || grid6.modified
+    }
+
+
+    backCallbackFunction: function () {
+        if (_closeEnabled)
+            return false
+
+        if (actionSave.enabled) {
+            var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+            d.accepted.connect(function() {
+                _closeEnabled = true
+                mainStack.back()
+            })
+            d.open()
+            return true
+        }
+
+        return false
+    }
+
+
+    closeCallbackFunction: function () {
+        if (_closeEnabled)
+            return false
+
+        if (actionSave.enabled) {
+            var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan eldobod a módosításokat?")})
+            d.accepted.connect(function() {
+                _closeEnabled = true
+                mainWindow.close()
+            })
+            d.open()
+            return true
+        }
+
+        return false
+    }
 }

@@ -13,13 +13,31 @@ Item {
 	implicitWidth: 700
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
 
 	property real buttonWidth: width-60
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
 	property var _buttons: []
+
+
+	QButton {
+		id: btnPostpone
+		enabled: canPostpone
+		visible: canPostpone
+		anchors.verticalCenter: labelQuestion.verticalCenter
+		anchors.left: parent.left
+		anchors.leftMargin: 20
+		icon.source: CosStyle.iconPostpone
+		text: qsTr("Később")
+		themeColors: CosStyle.buttonThemeOrange
+		onClicked: postponed()
+	}
 
 	QLabel {
 		id: labelQuestion
@@ -28,8 +46,8 @@ Item {
 		font.pixelSize: CosStyle.pixelSize*1.4
 		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: btnOk.left
+		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
+		anchors.right: btnOk.visible ? btnOk.left : parent.right
 		height: Math.max(implicitHeight, btnOk.height)
 		topPadding: 30
 		bottomPadding: 30
@@ -48,15 +66,17 @@ Item {
 
 	QButton {
 		id: btnOk
-		enabled: false
+		enabled: (control.mode == GameMatch.ModeExam)
+		//visible: (control.mode == GameMatch.ModeExam)
 		anchors.verticalCenter: labelQuestion.verticalCenter
 		anchors.right: parent.right
 		anchors.rightMargin: 20
-		icon.source: CosStyle.iconOK
+		icon.source: "qrc:/internal/icon/check-bold.svg"
 		text: qsTr("Kész")
 		themeColors: CosStyle.buttonThemeGreen
 		onClicked: answer()
 	}
+
 
 
 
@@ -123,24 +143,36 @@ Item {
 
 
 	function answer() {
-		buttonReveal()
-		btnOk.enabled = false
+		if (mode == GameMatch.ModeExam) {
+			var a = []
+			for (var ii=0; ii<_buttons.length; ii++) {
+				var pp = _buttons[ii]
 
-		var success = true
+				if (pp.selected)
+					a.push(ii)
+			}
 
-		for (var i=0; i<_buttons.length; i++) {
-			var p = _buttons[i]
+			answered({answer: a})
+		} else {
+			buttonReveal()
+			btnOk.enabled = false
 
-			var correct = questionData.answer.indices.includes(i)
+			var success = true
 
-			if ((correct && !p.selected) || (!correct && p.selected))
-				success = false
+			for (var i=0; i<_buttons.length; i++) {
+				var p = _buttons[i]
+
+				var correct = questionData.answer.indices.includes(i)
+
+				if ((correct && !p.selected) || (!correct && p.selected))
+					success = false
+			}
+
+			if (success)
+				succeed()
+			else
+				failed()
 		}
-
-		if (success)
-			succeed()
-		else
-			failed()
 	}
 
 	function keyPressed(key) {

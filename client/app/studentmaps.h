@@ -36,8 +36,9 @@
 #define STUDENTMAPS_H
 
 #include "abstractactivity.h"
+#include "gamemap.h"
+#include "gamematch.h"
 #include "maplistobject.h"
-#include "objectlistmodelobject.h"
 
 class StudentMaps : public AbstractActivity
 {
@@ -47,6 +48,7 @@ class StudentMaps : public AbstractActivity
 	Q_PROPERTY(bool demoMode READ demoMode NOTIFY demoModeChanged)
 	Q_PROPERTY(int selectedGroupId READ selectedGroupId WRITE setSelectedGroupId NOTIFY selectedGroupIdChanged)
 	Q_PROPERTY(int baseXP READ baseXP WRITE setBaseXP NOTIFY baseXPChanged)
+	Q_PROPERTY(bool liteMode READ liteMode WRITE setLiteMode NOTIFY liteModeChanged)
 
 
 public:
@@ -60,13 +62,23 @@ public:
 	int baseXP() const { return m_baseXP; }
 	int selectedGroupId() const { return m_selectedGroupId; }
 
-	Q_INVOKABLE void init(const bool &demoMode);
+	Q_INVOKABLE void init(const bool &demoMode, const QString &fileToOpen = "");
 
 	ObjectGenericListModel<MapListObject> *modelMapList() const;
 
 	static bool checkTerrains(GameMap *map, QList<GameMapMissionLevel *> *levelList = nullptr);
 
+	bool liteMode() const;
+	void setLiteMode(bool newLiteMode);
+
+	Q_INVOKABLE QVariantMap grade(const int &id) const;
+
+	Q_INVOKABLE void getExamContent();
+
+	Q_INVOKABLE bool isValidUrl(const QString &url);
+
 public slots:
+	bool parseUrl(const QString &urlString);
 	void mapDownload(MapListObject *map);
 	void mapDownload(QList<QObject *> list);
 	void mapLoad(MapListObject *map);
@@ -77,7 +89,11 @@ public slots:
 	void setBaseXP(int baseXP);
 	void setSelectedGroupId(int selectedGroupId);
 
+protected slots:
+	virtual void onMessageReceived(const CosMessage &message) override;
+
 private slots:
+	void onExamEngineMapGet(QJsonObject jsonData, QByteArray);
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 	bool loadGameMap(GameMap *map, MapListObject *mapObject = nullptr);
@@ -90,6 +106,8 @@ private slots:
 	void onGameCreate(QJsonObject jsonData, QByteArray);
 	void onGameFinish(QJsonObject jsonData, QByteArray);
 	void onGameListUserGet(QJsonObject jsonData, QByteArray);
+	void onCampaignGet(QJsonObject jsonData, QByteArray);
+
 
 signals:
 	void groupListGet(QJsonObject jsonData, QByteArray binaryData);
@@ -118,19 +136,31 @@ signals:
 	void gameFinish(QJsonObject jsonData, QByteArray binaryData);
 	void gameUpdate(QJsonObject jsonData, QByteArray binaryData);
 
+	void gameListCampaignGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserReady(const QVariantList &list, const QString &username, const int &offset);
 	void gameListUserMissionGet(QJsonObject jsonData, QByteArray binaryData);
+
+	void campaignGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignGetReady(const QJsonArray &list);
+	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
+
+	void examEngineConnect(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMapGet(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMessage(QString func, QJsonObject jsonData);
+
+	void examContentReady(const QVariantMap &data);
 
 	void demoModeChanged(bool demoMode);
 	void baseXPChanged(int baseXP);
 	void selectedGroupIdChanged(int selectedGroupId);
 	void modelMapListChanged();
+	void liteModeChanged();
 
 private:
 	void _createDownloader();
 
-	const QString m_demoMapFile;
+	QString m_demoMapFile;
 	ObjectGenericListModel<MapListObject> *m_modelMapList;
 	GameMap * m_currentMap;
 	bool m_demoMode;
@@ -138,6 +168,9 @@ private:
 	int m_baseXP;
 	int m_selectedGroupId;
 	QVariantMap m_missionNameMap;
+	bool m_liteMode;
+	QMap<int, QVariantMap> m_gradeMap;
+	int m_examMapDownloadTries = 1;
 };
 
 #endif // STUDENTMAPS_H

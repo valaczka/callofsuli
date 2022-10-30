@@ -4,34 +4,34 @@ import QtQuick.Layouts 1.14
 import "Style"
 
 QTextArea {
-	id: control
+    id: control
 
-	property string fieldName: ""
-	property string sqlField: ""
-	property string sqlData: control.text
-	property bool modified: false
+    property string fieldName: ""
+    property string sqlField: ""
+    property string sqlData: control.text
+    property bool modified: false
 
-	property bool watchModification: parent.watchModification
-	property bool acceptableInput: true
-
-
-	placeholderText: parent.columns > 1 ? "" : fieldName
-
-	//width: parent.width
-
-	Layout.fillWidth: true
-	Layout.bottomMargin: parent.columns === 1 ? 10 : 0
+    property bool watchModification: parent.watchModification
+    property bool acceptableInput: true
 
 
-	onEditingFinished:  if (watchModification) {
-							   modified = true
-							   parent.modified = true
-						   }
+    placeholderText: parent.columns > 1 ? "" : fieldName
 
-	function setData(t) {
-		text = t
-		modified = false
-	}
+    //width: parent.width
+
+    Layout.fillWidth: true
+    Layout.bottomMargin: parent.columns === 1 ? 10 : 0
+
+
+    onEditingFinished:  if (watchModification && !readOnly) {
+                               modified = true
+                               parent.modified = true
+                           }
+
+    function setData(t) {
+        text = t
+        modified = false
+    }
 }
 
 

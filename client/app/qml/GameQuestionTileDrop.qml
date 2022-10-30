@@ -13,7 +13,7 @@ DropArea {
 	height: implicitHeight
 
 	implicitWidth: CosStyle.pixelSize*5
-	implicitHeight: 20
+	implicitHeight: CosStyle.gameButtonMinHeight
 
 	property GameQuestionTileDrag currentDrag: null
 	property string tileKeys: "fillout"

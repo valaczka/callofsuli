@@ -38,6 +38,8 @@ CREATE TABLE auth(
 	password TEXT,
 	salt TEXT,
 	oauthToken TEXT,
+	refreshToken TEXT,
+	expiration TEXT,
 	UNIQUE (username)
 );
 
@@ -45,7 +47,8 @@ CREATE TABLE auth(
 CREATE TABLE session(
 	token TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	lastDate TEXT NOT NULL DEFAULT (datetime('now'))
+	lastDate TEXT NOT NULL DEFAULT (datetime('now')),
+	examEngineId TEXT
 );
 
 
@@ -79,7 +82,8 @@ CREATE TABLE bindGroupMap(
 	id INTEGER PRIMARY KEY,
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	mapid TEXT NOT NULL,
-	active BOOL NOT NULL DEFAULT FALSE
+	active BOOL NOT NULL DEFAULT FALSE,
+	UNIQUE(groupid, mapid)
 );
 
 
@@ -93,11 +97,81 @@ CREATE TABLE game(
 	level INTEGER NOT NULL DEFAULT 1,
 	success BOOL NOT NULL DEFAULT FALSE,
 	deathmatch BOOL NOT NULL DEFAULT FALSE,
+	lite BOOL NOT NULL DEFAULT FALSE,
 	duration INTEGER,
 	tmpScore INTEGER
 );
 
 
+
+
+
+CREATE TABLE exam(
+	id INTEGER NOT NULL PRIMARY KEY,
+	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	examuuid TEXT NOT NULL,
+	timestamp TEXT,
+	title TEXT,
+	description TEXT,
+	grading TEXT,
+	started BOOL NOT NULL DEFAULT FALSE,
+	finished BOOL NOT NULL DEFAULT FALSE
+);
+
+
+
+
+CREATE TABLE grade(
+	id INTEGER NOT NULL PRIMARY KEY,
+	owner TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	shortname TEXT NOT NULL,
+	longname TEXT,
+	value INTEGER NOT NULL DEFAULT 0,
+	UNIQUE(owner, shortname)
+);
+
+
+CREATE TABLE campaign(
+	id INTEGER NOT NULL PRIMARY KEY,
+	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	starttime TEXT NOT NULL DEFAULT (datetime('now')),
+	endtime TEXT NOT NULL DEFAULT (datetime('now')),
+	description TEXT,
+	started BOOL NOT NULL DEFAULT FALSE,
+	finished BOOL NOT NULL DEFAULT FALSE,
+	mapopen TEXT,
+	mapclose TEXT
+);
+
+CREATE TABLE assignment(
+	id INTEGER NOT NULL PRIMARY KEY,
+	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	name TEXT
+);
+
+CREATE TABLE grading(
+	id INTEGER NOT NULL PRIMARY KEY,
+	assignmentid INTEGER REFERENCES assignment(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	gradeid INTEGER REFERENCES grade(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	xp INTEGER,
+	criteria TEXT
+);
+
+CREATE TABLE gradebook(
+	id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+	gradeid INTEGER NOT NULL REFERENCES grade(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	assignmentid INTEGER REFERENCES assignment(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	examid INTEGER REFERENCES exam(id) ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE TABLE gradingResult(
+	gradingid INTEGER REFERENCES grading(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	success BOOL NOT NULL DEFAULT FALSE
+);
 
 
 
@@ -126,6 +200,7 @@ CREATE TABLE score(
 	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
 	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0),
 	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	assignmentid INTEGER REFERENCES assignment(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	maxStreak INTEGER
 );
 
@@ -135,7 +210,7 @@ CREATE TABLE score(
 CREATE TABLE classRegistration(
 	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	code TEXT NOT NULL,
-	UNIQUE(classid,
+	UNIQUE(classid),
 	UNIQUE(code)
 );
 
@@ -171,6 +246,13 @@ SELECT game.username, mapid, missionid, level, deathmatch, success, COUNT(*) as 
 	GROUP BY game.username, mapid, missionid, level, deathmatch, success;
 
 
+CREATE VIEW campaignTrophy AS
+SELECT campaign.id, game.username, mapid, missionid, level, deathmatch, success, COUNT(*) as num, SUM(xp) as xp
+	FROM campaign LEFT JOIN game ON (game.timestamp>=campaign.starttime AND game.timestamp<campaign.endtime AND
+	game.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=campaign.groupid))
+	LEFT JOIN score ON (score.gameid=game.id)
+	GROUP BY campaign.id, game.username, mapid, missionid, level, deathmatch, success;
+
 
 CREATE VIEW groupTrophy AS
 SELECT studentGroupInfo.id, studentGroupInfo.username,
@@ -202,6 +284,33 @@ SELECT studentGroupInfo.id, studentGroupInfo.username,
 		AND userTrophy.mapid IN (SELECT mapid FROM bindGroupMap WHERE groupid=studentGroupInfo.id))
 	AS sumxp
 	FROM studentGroupInfo;
+
+
+
+CREATE VIEW groupCampaignTrophy AS
+SELECT studentGroupInfo.id, campaign.id as campaignid, studentGroupInfo.username,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=1 AND deathmatch=false AND success=true)
+	AS t1,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=2 AND deathmatch=false AND success=true)
+	AS t2,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=3 AND deathmatch=false AND success=true)
+	AS t3,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=1 AND deathmatch=true AND success=true)
+	AS d1,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=2 AND deathmatch=true AND success=true)
+	AS d2,
+	(SELECT COALESCE(SUM(num),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id AND level=3 AND deathmatch=true AND success=true)
+	AS d3,
+	(SELECT COALESCE(SUM(xp),0) FROM campaignTrophy WHERE campaignTrophy.username=studentGroupInfo.username
+		AND campaignTrophy.id=campaign.id)
+	AS sumxp
+	FROM studentGroupInfo LEFT JOIN campaign;
 
 
 

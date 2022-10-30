@@ -118,6 +118,11 @@ void CosGame::loadScene()
 		return;
 	}
 
+	if (m_gameMatch->mode() != GameMatch::ModeNormal) {
+		emit gameSceneLoaded();
+		return;
+	}
+
 	GameScene *scene = qvariant_cast<GameScene *>(m_gameScene->property("scenePrivate"));
 
 	if (!scene) {
@@ -131,6 +136,8 @@ void CosGame::loadScene()
 		emit gameSceneLoadFailed();
 		return;
 	}
+
+	createFixEnemies();
 
 	foreach (GameBlock *block, m_terrainData->blocks()) {
 		connect(block, &GameBlock::completedChanged, this, [=](bool completed){
@@ -267,6 +274,16 @@ void CosGame::recreateEnemies()
 
 	QTimer::singleShot(500, this, [=](){
 		setEnemiesMoving(true);
+		if (!m_enemiesCreatedFirst) {
+
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(QT_DEBUG)
+			emit gameToolTipRequest("notification/gameGesturePinch",
+									"qrc:/internal/icon/gesture-pinch.svg",
+									tr("A pálya áttekintéséhez csippentsd össze a képernyőt"),
+									"");
+#endif
+			m_enemiesCreatedFirst = true;
+		}
 	});
 }
 
@@ -294,17 +311,17 @@ void CosGame::resetEnemy(GameEnemyData *enemyData)
 	qreal x = enemyData->boundRect().left();
 	qreal y = enemyData->boundRect().top();
 
-	//x += QRandomGenerator::global()->bounded(enemyData->boundRect().toRect().width());
 	x += enemyData->boundRect().toRect().width()/2;
 
 	bool facingLeft = true;
 
 	if (x+item->width() > enemyData->boundRect().right()) {
 		x = enemyData->boundRect().right()-item->width();
-	} else {
-		if (QRandomGenerator::global()->generate() % 2 == 1)
-			facingLeft = false;
 	}
+
+	if (QRandomGenerator::global()->generate() % 2 == 1)
+		facingLeft = false;
+
 
 	item->setX(x);
 	item->setY(y-item->height());
@@ -522,6 +539,15 @@ void CosGame::pickPickable()
 			increasePliers(1);
 			emit gameMessageSent(tr("1 pliers gained"));
 			break;
+		case GamePickable::PickableCamouflage:
+			increaseCamouflage(1);
+			emit gameMessageSent(tr("1 camouflage gained"));
+			break;
+		case GamePickable::PickableTeleporter:
+			increaseTeleporter(1);
+			emit gameMessageSent(tr("1 teleporter gained"));
+			break;
+
 
 		default:
 			break;
@@ -799,6 +825,38 @@ void CosGame::increaseWater(const int &num)
 }
 
 
+/**
+ * @brief CosGame::increaseGlasses
+ * @param num
+ */
+
+void CosGame::increaseCamouflage(const int &num)
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid game match";
+		return;
+	}
+
+	m_gameMatch->setCamouflage(m_gameMatch->camouflage()+num);
+}
+
+
+/**
+ * @brief CosGame::increaseTeleporter
+ * @param num
+ */
+
+void CosGame::increaseTeleporter(const int &num)
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid game match";
+		return;
+	}
+
+	m_gameMatch->setTeleporter(m_gameMatch->teleporter()+num);
+}
+
+
 
 
 
@@ -916,13 +974,19 @@ void CosGame::onGameMatchTimerTimeout()
 
 void CosGame::onGameStarted()
 {
-	resetPlayer();
 	m_timer->start(100);
 	setIsStarted(true);
 
 	m_elapsedTime = QTime::currentTime();
 
-	QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
+	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+		resetPlayer();
+		QTimer::singleShot(1500, this, &CosGame::recreateEnemies);
+	} else if (m_gameMatch->mode() == GameMatch::ModeLite) {
+		createNextQuestion();
+	} else if (m_gameMatch->mode() == GameMatch::ModeExam) {
+		createNextQuestion();
+	}
 }
 
 
@@ -947,13 +1011,20 @@ void CosGame::onGameFinishedSuccess()
 
 	emit m_gameMatch->gameWin();
 
-	Client::clientInstance()->stopSound(m_backgroundMusicFile);
-	Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
+	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+		Client::clientInstance()->stopSound(m_backgroundMusicFile);
+		Client::clientInstance()->playSound("qrc:/sound/sfx/win.mp3", CosSound::GameSound);
+	}
 
 	QTimer::singleShot(1000, this, [=]() {
 		emit gameCompletedReady();
-		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
-		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
+		if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+			Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+			if (m_gameMatch->isFlawless())
+				Client::clientInstance()->playSound("qrc:/sound/voiceover/flawless_victory.mp3", CosSound::VoiceOver);
+			else
+				Client::clientInstance()->playSound("qrc:/sound/voiceover/you_win.mp3", CosSound::VoiceOver);
+		}
 	});
 }
 
@@ -979,9 +1050,53 @@ void CosGame::onGameFinishedLost()
 
 	emit m_gameMatch->gameLose();
 
-	Client::clientInstance()->stopSound(m_backgroundMusicFile);
-	Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
-	Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
+	if (m_gameMatch->mode() == GameMatch::ModeNormal) {
+		Client::clientInstance()->stopSound(m_backgroundMusicFile);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/game_over.mp3", CosSound::VoiceOver);
+		Client::clientInstance()->playSound("qrc:/sound/voiceover/you_lose.mp3", CosSound::VoiceOver);
+	}
+}
+
+
+
+
+/**
+ * @brief CosGame::onGameQuestionFinished
+ */
+
+void CosGame::onGameQuestionFinished()
+{
+	if (!m_question || !m_activity)
+		return;
+
+	GameQuestion::QuestionState state = m_question->state();
+	QVariantMap answer = m_question->answer();
+
+	m_question->deleteLater();
+	m_question = nullptr;
+	emit questionChanged(nullptr);
+
+	if (state == GameQuestion::StateSucceed) {
+		m_activity->setCurrentQuestionAnswer({{"success", true}});
+		m_activity->setNextQuestion();
+		createNextQuestion();
+	} else if (state == GameQuestion::StateFailed) {
+		if (m_activity->liteHP() <= 0) {
+			m_activity->addQuestion(m_gameMatch->startHp());
+			m_activity->setLiteHP(m_gameMatch->startHp());
+		}
+
+		m_activity->repeatCurrentQuestion();
+		createNextQuestion();
+
+	} else if (state == GameQuestion::StatePostponed) {
+		m_activity->postponeCurrentQuestion();
+		createNextQuestion();
+	} else if (state == GameQuestion::StateAnswered) {
+		m_activity->setCurrentQuestionAnswer(answer);
+		m_activity->setNextQuestion();
+		createNextQuestion();
+	}
 }
 
 
@@ -1132,6 +1247,47 @@ void CosGame::setPickables(QVector<GameEnemyData *> *enemyList, const int &block
 
 
 
+/**
+ * @brief CosGame::createNextQuestion
+ */
+
+void CosGame::createNextQuestion()
+{
+	if (!m_gameMatch) {
+		qWarning() << "Invalid GameMatch";
+		return;
+	}
+
+	if (m_question) {
+		qWarning() << "Question already exists";
+		return;
+	}
+
+
+	int n = m_activity->activeQuestions();
+	setActiveEnemies(n);
+
+	if (n == 0) {
+		emit gameCompleted();
+		return;
+	}
+
+
+	m_question = new GameQuestion(this, this);
+
+	connect(m_question, &GameQuestion::xpGained, m_gameMatch, &GameMatch::addXP);
+	connect(m_question, &GameQuestion::finished, this, &CosGame::onGameQuestionFinished);
+
+	emit questionChanged(m_question);
+
+	if (!m_activity->generateQuestion(m_question)) {
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Nem lehet elkészíteni a feladatot!"));
+	}
+}
+
+
+
+
 
 /**
  * @brief CosGame::setTerrainData
@@ -1218,6 +1374,81 @@ bool CosGame::loadTerrainData()
 
 	return true;
 }
+
+
+
+/**
+ * @brief CosGame::createFixEnemies
+ */
+
+
+void CosGame::createFixEnemies()
+{
+	if (!m_gameScene || !m_terrainData)
+		return;
+
+	qDebug() << "Create fix enemies";
+
+	QList<GameEnemyData *> enemies = m_terrainData->enemies();
+
+	foreach (GameEnemyData *data, enemies) {
+		if (data->enemy() || data->block())
+			continue;
+
+		QQuickItem *enemy = nullptr;
+
+		QMetaObject::invokeMethod(m_gameScene, "createComponent", Qt::DirectConnection,
+								  Q_RETURN_ARG(QQuickItem*, enemy),
+								  Q_ARG(int, data->enemyType())
+								  );
+
+		if (enemy) {
+			data->setEnemy(enemy);
+
+			GameEnemy *ep = data->enemyPrivate();
+
+			if (data->enemyType() == GameEnemyData::EnemySoldier) {
+				GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier *>(ep);
+				if (soldier) {
+					QStringList slist = m_gameData.value("soldiers").toStringList();
+					int x = QRandomGenerator::global()->bounded(slist.size());
+					soldier->setSoldierType(slist.at(x));
+				}
+			}
+
+			QMetaObject::invokeMethod(enemy, "loadSprites", Qt::DirectConnection);
+
+			if (ep) {
+				ep->setEnemyData(data);
+
+				if (m_gameMatch) {
+					QVariantMap hpData = ep->qrcData().value("hp").toMap();
+					int level = m_gameMatch->level();
+
+					for (int l=level; l>=1; --l) {
+						QString lKey = QString("%1").arg(l);
+						if (hpData.contains(lKey)) {
+							ep->setHp(hpData.value(lKey, 7).toInt());
+							break;
+						}
+					}
+				}
+
+				if (m_activity) {
+					connect(ep, &GameEnemy::killed, m_activity, &GameActivity::onEnemyKilled);
+					connect(ep, &GameEnemy::killMissed, m_activity, &GameActivity::onEnemyKillMissed);
+				}
+
+				connect(ep, &GameEnemy::killed, this, &CosGame::recalculateActiveEnemies);
+			}
+
+			resetEnemy(data);
+		}
+
+		QCoreApplication::processEvents();
+	}
+}
+
 
 
 

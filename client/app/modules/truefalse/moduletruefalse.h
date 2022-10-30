@@ -70,6 +70,9 @@ public:
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterTruefalse(worksheet); }
 
 	void registerQmlTypes() const override {};
+
+	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
+
 signals:
 
 };

@@ -67,6 +67,7 @@ public:
 		InvalidClass,
 		InvalidFunction,
 		ClassPermissionDenied,
+		ExamLock,
 		OtherError
 	};
 
@@ -99,7 +100,8 @@ public:
 		ClassAdmin,
 		ClassUserInfo,
 		ClassTeacher,
-		ClassStudent
+		ClassStudent,
+		ClassExamEngine
 	};
 
 	Q_ENUM(CosClass)

@@ -54,7 +54,7 @@ public:
 	inline QString qmlEditor() const override { return "ME_simplechoice.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
 
-	inline QStringList storageModules() const override { return {"binding", "numbers"}; }
+	inline QStringList storageModules() const override { return {"binding", "numbers", "images"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
@@ -63,6 +63,7 @@ public:
 	qreal xpFactor() const override { return 1.1; };
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList) const;
 
 	QVariantMap preview(const QVariantList &generatedList) const override;
@@ -71,6 +72,8 @@ public:
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const override { return new ObjectiveImporterSimplechoice(worksheet); }
 
 	void registerQmlTypes() const override {};
+
+	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
 
 signals:
 

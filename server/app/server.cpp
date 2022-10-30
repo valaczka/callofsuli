@@ -31,14 +31,20 @@
 #include <QCryptographicHash>
 #include <QFile>
 #include <RollingFileAppender.h>
+#include "teacher.h"
+#include "examengine.h"
 
 #include "server.h"
 #include "../version/buildnumber.h"
 
+#define OLD_SESSION_TOKEN_TIME	"-14 days"
+#define OLD_GAME_DURATION	"+12 hours"
+
 
 QList<Server::VersionUpgrade> Server::m_versionUpgrades = {
 	Server::VersionUpgrade(3, 0, ":/sql/upgrade_3.0.sql"),
-	Server::VersionUpgrade(3, 1, ":/sql/upgrade_3.1.sql")
+	Server::VersionUpgrade(3, 1, ":/sql/upgrade_3.1.sql"),
+	Server::VersionUpgrade(3, 2, ":/sql/upgrade_3.2.sql")
 };
 
 
@@ -52,12 +58,15 @@ Server::Server(QObject *parent)
 	, m_serverDir()
 	, m_serverName()
 	, m_serverUuid()
+	, m_timer(new QTimer(this))
+	, m_examEngineList()
 {
 	m_socketServer = nullptr;
 	m_serverDir = "";
 	m_db = new CosDb("serverDb", this);
 	m_mapsDb = new CosDb("mapsDb", this);
 	m_statDb = new CosDb("statDb", this);
+	m_examDb = new CosDb("examDb", this);
 
 	m_port = 10101;
 	m_pendingConnections = 30;
@@ -65,6 +74,8 @@ Server::Server(QObject *parent)
 
 	m_udpSocket = new QUdpSocket(this);
 	connect(m_udpSocket, &QUdpSocket::readyRead, this, &Server::onDatagramReady);
+
+	connect(m_timer, &QTimer::timeout, this, &Server::onTimerTimeout);
 }
 
 
@@ -81,13 +92,16 @@ Server::~Server()
 	}
 
 	qDeleteAll(m_clients.begin(), m_clients.end());
+	qDeleteAll(m_examEngineList.begin(), m_examEngineList.end());
 
 	m_udpSocket->close();
 
 	delete m_mapsDb;
 	delete m_db;
 	delete m_statDb;
+	delete m_examDb;
 	delete m_udpSocket;
+	delete m_timer;
 }
 
 
@@ -105,6 +119,7 @@ bool Server::start()
 	m_db->setDatabaseName(m_serverDir+"/main.db");
 	m_mapsDb->setDatabaseName(m_serverDir+"/maps.db");
 	m_statDb->setDatabaseName(m_serverDir+"/stat.db");
+	m_examDb->setDatabaseName(m_serverDir+"/exam.db");
 
 	if (!databaseLoad())
 		return false;
@@ -117,6 +132,8 @@ bool Server::start()
 	if (!websocketServerStart())
 		return false;
 
+	m_timer->start(1000);
+
 	return true;
 }
 
@@ -127,8 +144,10 @@ bool Server::start()
 
 void Server::stop()
 {
+	m_timer->stop();
 	m_statDb->close();
 	m_mapsDb->close();
+	m_examDb->close();
 	m_db->close();
 }
 
@@ -284,6 +303,33 @@ bool Server::serverDirCheck()
 
 bool Server::databaseLoad()
 {
+	QStringList dbFiles = {
+		m_db->databaseName(),
+		m_mapsDb->databaseName(),
+		m_statDb->databaseName(),
+		m_examDb->databaseName()
+	};
+
+	// Backup
+
+	foreach (const QString &db, dbFiles) {
+		QFile f(db);
+		const QString oldDb = db+"~";
+
+		if (QFile::exists(oldDb) && !QFile::remove(oldDb)) {
+			qWarning().noquote() << tr("A régig biztonsági másolat törlése sikertelen: ")+oldDb;
+			return false;
+		}
+
+		if (f.exists() && (!f.copy(oldDb))) {
+			qWarning().noquote() << tr("A biztonsági másolat készítése sikertelen: ")+db;
+			return false;
+		}
+	}
+
+
+	// Db-open
+
 	if (!m_db->open())
 		return false;
 
@@ -291,6 +337,9 @@ bool Server::databaseLoad()
 		return false;
 
 	if (!m_statDb->open())
+		return false;
+
+	if (!m_examDb->open())
 		return false;
 
 	int dbVersionMinor = 0;
@@ -423,34 +472,58 @@ bool Server::databaseLoad()
 
 
 
-#ifndef QT_DEBUG
-	if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber())  {
-#endif
-		foreach (Server::VersionUpgrade upgrade, m_versionUpgrades) {
-			if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber(upgrade.major, upgrade.minor)) {
-				qInfo() << tr("Adatbázis frissítése %1.%2 -> %3.%4")
-						   .arg(dbVersionMajor)
-						   .arg(dbVersionMinor)
-						   .arg(upgrade.major)
-						   .arg(upgrade.minor);
+	// ExamDb
 
-				m_db->transaction();
-				if (!m_db->batchQueryFromFile(upgrade.file)) {
-					qWarning() << tr("A frissítés sikertelen!");
-					m_db->rollback();
-					return false;
-				}
-				m_db->commit();
+	QVariantList etables = m_examDb->execSelectQuery("SELECT name FROM sqlite_master WHERE type ='table' AND name='exam'");
 
+	if (etables.isEmpty()) {
+		qInfo().noquote() << tr("A dolgozat adatbázis üres, előkészítem.");
 
-				QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor FROM system");
-				dbVersionMajor = m.value("versionMajor").toInt();
-				dbVersionMinor = m.value("versionMinor").toInt();
-			}
+		if (!m_examDb->batchQueryFromFile(":/sql/exam.sql")) {
+			qWarning().noquote() << tr("Nem sikerült előkészíteni az adatbázist: %1").arg(m_examDb->databaseName());
+			return false;
 		}
-#ifndef QT_DEBUG
+	} else {
+		// UPDATES
 	}
-#endif
+
+
+
+
+
+	foreach (Server::VersionUpgrade upgrade, m_versionUpgrades) {
+//#ifndef QT_DEBUG
+		if (CosMessage::versionNumber(upgrade.major, upgrade.minor) > CosMessage::versionNumber())
+			continue;
+//#endif
+
+		if (CosMessage::versionNumber(dbVersionMajor, dbVersionMinor) < CosMessage::versionNumber(upgrade.major, upgrade.minor)) {
+			qInfo() << tr("Adatbázis frissítése %1.%2 -> %3.%4")
+					   .arg(dbVersionMajor)
+					   .arg(dbVersionMinor)
+					   .arg(upgrade.major)
+					   .arg(upgrade.minor);
+
+			m_db->transaction();
+			if (!m_db->batchQueryFromFile(upgrade.file)) {
+				qWarning() << tr("A frissítés sikertelen!");
+				m_db->rollback();
+				return false;
+			}
+			m_db->commit();
+
+
+			QVariantMap m = m_db->execSelectQueryOneRow("SELECT versionMajor, versionMinor FROM system");
+			dbVersionMajor = m.value("versionMajor").toInt();
+			dbVersionMinor = m.value("versionMinor").toInt();
+		}
+	}
+
+
+	// Folyamatban lévő dolgozatok törlése a session-ből
+
+	qDebug().noquote() << tr("Folyamatban lévő dolgozatok törlése");
+	m_db->execSimpleQuery("UPDATE session SET examEngineId=null");
 
 
 	m_db->subscribeToNotification("ranklog");
@@ -807,17 +880,175 @@ QNetworkReply *Server::networkRequestGet(const QNetworkRequest &request)
 		}
 
 		Client *client = qobject_cast<Client *>(reply->request().originatingObject());
+		Server *server = qobject_cast<Server *>(reply->request().originatingObject());
 
-		if (client) {
+		if (client)
 			client->httpReply(reply);
-		} else {
+		else if (server && server == this)
+			networkRequestReply(reply);
+		else
 			qWarning() << "Invalid originating object";
-		}
+
 
 		reply->deleteLater();
 	});
 
 	return reply;
+}
+
+
+
+/**
+ * @brief Server::networkRequestPost
+ * @param request
+ * @return
+ */
+
+QNetworkReply *Server::networkRequestPost(const QNetworkRequest &request, const QByteArray &data)
+{
+	qDebug() << "HTTP POST" << request.url() << request.originatingObject();
+
+	QNetworkReply *reply = m_networkAccessManager.post(request, data);
+
+	connect(reply, &QNetworkReply::finished, this, [=]() {
+		if (reply->error() != QNetworkReply::NoError) {
+			qWarning() << "Network error" << reply->error() << reply->errorString();
+		}
+
+		Client *client = qobject_cast<Client *>(reply->request().originatingObject());
+		Server *server = qobject_cast<Server *>(reply->request().originatingObject());
+
+		if (client)
+			client->httpReply(reply);
+		else if (server && server == this)
+			networkRequestReply(reply);
+		else
+			qWarning() << "Invalid originating object";
+
+
+		reply->deleteLater();
+	});
+
+	return reply;
+}
+
+
+
+
+/**
+ * @brief Server::networkRequestReply
+ * @param reply
+ */
+
+void Server::networkRequestReply(QNetworkReply *)
+{
+
+}
+
+
+
+
+/**
+ * @brief Server::newExamEngine
+ * @param engineId
+ * @return
+ */
+
+ExamEngine *Server::examEngineNew(const int &examId, const QString &code, const QString &owner)
+{
+	if (examEngineGet(code)) {
+		qWarning().noquote() << tr("A dolgozatíró már létezik") << code;
+		return nullptr;
+	}
+
+	ExamEngine *engine = new ExamEngine(this, examId, code, owner);
+	m_examEngineList.append(engine);
+	return engine;
+}
+
+
+
+
+/**
+ * @brief Server::examEngineGet
+ * @param code
+ * @return
+ */
+
+ExamEngine *Server::examEngineGet(const QString &code) const
+{
+	ExamEngine *ret = nullptr;
+	foreach (ExamEngine *e, m_examEngineList) {
+		if (e->code() == code) {
+			if (ret) {
+				qWarning().noquote() << tr("Multiple ExamEngine exists with code") << code;
+				return nullptr;
+			}
+			ret = e;
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief Server::getExamEngine
+ * @param engineId
+ * @return
+ */
+
+ExamEngine *Server::examEngineGet(const int &examId) const
+{
+	ExamEngine *ret = nullptr;
+	foreach (ExamEngine *e, m_examEngineList) {
+		if (e->examId() == examId) {
+			if (ret) {
+				qWarning().noquote() << tr("Multiple ExamEngine exists with id") << examId;
+				return nullptr;
+			}
+			ret = e;
+		}
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief Server::deleteExamEngine
+ * @param engine
+ */
+
+bool Server::examEngineDelete(ExamEngine *engine)
+{
+	if (!engine || !m_examEngineList.contains(engine))
+		return false;
+
+	m_examEngineList.removeAll(engine);
+	engine->deleteLater();
+
+	return true;
+}
+
+
+/**
+ * @brief Server::examEnginesHasMember
+ * @param username
+ * @return
+ */
+
+bool Server::examEnginesHasMember(const QString &username) const
+{
+	foreach (ExamEngine *e, m_examEngineList) {
+		foreach (ExamEngine::Member m, e->members()) {
+			if (m.username == username)
+				return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -903,6 +1134,37 @@ void Server::onDatagramReady()
 									   );
 
 		}
+	}
+}
+
+
+
+/**
+ * @brief Server::onTimerTimeout
+ */
+
+void Server::onTimerTimeout()
+{
+	QTime time = QTime::currentTime();
+
+	if (time.second() != 0)
+		return;
+
+	if (m_db->isOpen()) {
+		// Delete old tokens
+		m_db->execSimpleQuery("DELETE FROM session WHERE lastDate<date('now', ?)", { OLD_SESSION_TOKEN_TIME });
+
+		// Delete old games
+		m_db->execSimpleQuery("INSERT INTO score (username, xp, gameid) "
+							  "SELECT username, tmpScore, id FROM game WHERE tmpScore IS NOT NULL "
+							  "AND datetime(timestamp, ?)<datetime('now')",
+							  { OLD_GAME_DURATION });
+
+		m_db->execSimpleQuery("UPDATE game SET tmpScore=null WHERE tmpScore IS NOT NULL AND datetime(timestamp, ?)<datetime('now')",
+							  { OLD_GAME_DURATION });
+
+		// Finish campaigns
+		Teacher::startAndFinishCampaigns(m_db);
 	}
 }
 

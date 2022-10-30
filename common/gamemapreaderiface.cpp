@@ -466,7 +466,7 @@ bool GameMapReaderIface::imagesFromStream(QDataStream &stream)
 	stream >> size;
 
 	for (quint32 i=0; i<size; i++) {
-		QString file;
+		qint32 id = -1;
 		QByteArray data;
 
 		if (m_version < 11) {
@@ -474,12 +474,12 @@ bool GameMapReaderIface::imagesFromStream(QDataStream &stream)
 			stream >> folder;
 		}
 
-		stream >> file >> data;
+		stream >> id >> data;
 
-		if (file.isEmpty() || data.isEmpty())
+		if (id == -1 || data.isEmpty())
 			return false;
 
-		if (!ifaceAddImage(file, data))
+		if (!ifaceAddImage(id, data))
 			return false;
 	}
 
@@ -500,7 +500,7 @@ void GameMapReaderIface::imagesToStream(QDataStream &stream, const QList<GameMap
 	stream << (quint32) images.size();
 
 	foreach (GameMapImageIface *i, images) {
-		stream << i->m_name;
+		stream << i->m_id;
 		stream << i->m_data;
 	}
 }

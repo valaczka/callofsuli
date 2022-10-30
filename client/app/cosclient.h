@@ -35,15 +35,11 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <QThread>
+#include <QCoreApplication>
 
 #include "cosmessage.h"
 #include "variantmapmodel.h"
-#include "gameblock.h"
-#include "gamemap.h"
-#include "gamematch.h"
-#include "gameenemydata.h"
 #include "cossound.h"
-#include "question.h"
 #include "modules/interfaces.h"
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
@@ -79,6 +75,7 @@ class Client : public QObject
 	Q_PROPERTY(int userRankLevel READ userRankLevel WRITE setUserRankLevel NOTIFY userRankLevelChanged)
 	Q_PROPERTY(QString userPlayerCharacter READ userPlayerCharacter WRITE setUserPlayerCharacter NOTIFY userPlayerCharacterChanged)
 	Q_PROPERTY(QUrl userPicture READ userPicture WRITE setUserPicture NOTIFY userPictureChanged)
+	Q_PROPERTY(bool examEngineExists READ examEngineExists WRITE setExamEngineExists NOTIFY examEngineExistsChanged)
 
 	Q_PROPERTY(QVariantList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
 	Q_PROPERTY(QVariantMap characterData READ characterData CONSTANT)
@@ -102,7 +99,7 @@ public:
 	static void loadModules();
 	static void standardPathCreate();
 
-	QString commandLineParse(QCoreApplication &app);
+	static QString commandLineParse(QCoreApplication &app);
 
 	Q_INVOKABLE static void loadTerrains();
 	Q_INVOKABLE static void loadCharacters();
@@ -114,21 +111,30 @@ public:
 										   const QVariantMap &dataMap = QVariantMap(),
 										   const int &level = -1);
 	static QByteArray terrainDataToJson(const QString &filename);
+	static QByteArray terrainDataToJson(const TerrainData &data);
 
 	Q_INVOKABLE void windowSaveGeometry(QQuickWindow *window);
 	Q_INVOKABLE void windowRestoreGeometry(QQuickWindow *window);
 	Q_INVOKABLE void windowSetIcon(QQuickWindow *window);
 	Q_INVOKABLE void textToClipboard(const QString &text) const;
+	Q_INVOKABLE QVariantMap getWindowSafeMargins(QQuickWindow *window) const;
 
+	Q_INVOKABLE QVariantMap connectionInfoMap() const;
 	Q_INVOKABLE QString connectionInfo(const QString &func = "connect", const QVariantMap &queries = {},
 									   const QUrl::FormattingOptions &format = QUrl::FullyEncoded) const;
-	Q_INVOKABLE QVariantMap connectionInfoMap() const;
+
 
 	Q_INVOKABLE static QString standardPath(const QString &path = QString());
 	Q_INVOKABLE static QString homePath(const QString &path = QString());
 	Q_INVOKABLE static QString genericDataPath(const QString &path = QString());
+
 	Q_INVOKABLE static void setSetting(const QString &key, const QVariant &value);
 	Q_INVOKABLE static QVariant getSetting(const QString &key, const QVariant &defaultValue = QVariant());
+	Q_INVOKABLE static bool getSettingBool(const QString &key, const bool &defaultValue = false);
+
+	Q_INVOKABLE void setServerSetting(const QString &key, const QVariant &value);
+	Q_INVOKABLE QVariant getServerSetting(const QString &key, const QVariant &defaultValue = QVariant());
+	Q_INVOKABLE bool getServerSettingBool(const QString &key, const bool &defaultValue = false) { return getServerSetting(key, defaultValue).toBool(); }
 
 	Q_INVOKABLE static QVariant readJsonFile(QString filename);
 	static QJsonDocument readJsonDocument(QString filename);
@@ -144,6 +150,8 @@ public:
 	Q_INVOKABLE static QList<QPointF> rotatePolygon(const QVariantList &points, const qreal &angle, const QRectF &boundRect, Qt::Axis axis = Qt::ZAxis);
 
 	Q_INVOKABLE QUrl rankImageSource(int rank = -1, int rankLevel = -1, QString rankImage = "");
+
+	Q_INVOKABLE QUrl urlFromLocalFile(const QString &file) { return QUrl::fromLocalFile(file); }
 
 	Q_INVOKABLE static void openUrl(const QUrl &url);
 
@@ -220,36 +228,47 @@ public:
 
 	Q_INVOKABLE QString guiLoad() const;
 
+	bool examEngineExists() const;
+	void setExamEngineExists(bool newExamEngineExists);
+
 public slots:
 	void sendRegistrationRequest(const bool &oauth2, const QString &code) {
 		emit registrationRequest(oauth2, code);
 	}
 	void sendMessageWarning(const QString &title, const QString &informativeText, const QString &detailedText = "") {
-		emit messageSent("warning", title, informativeText, detailedText);
+		emit messageSent("warning", title, informativeText, detailedText, "");
 	}
 	void sendMessageError(const QString &title, const QString &informativeText, const QString &detailedText = "") {
-		emit messageSent("error", title, informativeText, detailedText);
+		emit messageSent("error", title, informativeText, detailedText, "");
 	}
 	void sendMessageInfo(const QString &title, const QString &informativeText, const QString &detailedText = "") {
-		emit messageSent("info", title, informativeText, detailedText);
+		emit messageSent("info", title, informativeText, detailedText, "");
+	}
+	void sendMessageWarningImage(const QString &image, const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("warning", title, informativeText, detailedText, image);
+	}
+	void sendMessageErrorImage(const QString &image, const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("error", title, informativeText, detailedText, image);
+	}
+	void sendMessageInfoImage(const QString &image, const QString &title, const QString &informativeText, const QString &detailedText = "") {
+		emit messageSent("info", title, informativeText, detailedText, image);
 	}
 	void sendDatabaseError(const QString &informativeText) {
-		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "");
+		emit messageSent("error", tr("Adatbázis hiba"), informativeText, "", "");
 	}
 
 	void setConnectionState(Client::ConnectionState connectionState);
 	void closeConnection();
 	void login(const QString &username, const QString &session, const QString &password = "", const bool &isPasswordReset = false);
 	void logout();
-	void oauth2Login(const QString &accessToken);
-	void passwordRequest(const QString &email, const QString &code = "");
+	void oauth2Login(const QString &accessToken, const QString &expiration = "", const QString &refreshToken = "");
 
 	int socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc,
 				   const QJsonObject &jsonData = QJsonObject(), const QByteArray &binaryData = QByteArray());
 	void setServerDataDir(QString serverDataDir);
 	void clearSession();
 
-	void playSound(const QString &source, const CosSound::SoundType &soundType = CosSound::GameSfx);
+	void playSound(const QString &source, const CosSound::SoundType &soundType = CosSound::PlayerSfx);
 	void stopSound(const QString &source, const CosSound::SoundType &soundType = CosSound::Music);
 	int volume(const CosSound::ChannelType &channel) const;
 	void setVolume(const CosSound::ChannelType &channel, const int &volume) const;
@@ -292,7 +311,8 @@ signals:
 	void messageSent(const QString &type,
 					 const QString &title,
 					 const QString &informativeText,
-					 const QString &detailedText);
+					 const QString &detailedText,
+					 const QString &image);
 	void reconnecting();
 
 	void messageFrameReceived(const CosMessage &message);
@@ -341,6 +361,8 @@ signals:
 	void rootContextChanged();
 	void userPictureChanged();
 
+	void examEngineExistsChanged();
+
 private:
 	void performUserInfo(const CosMessage &message);
 	bool checkError(const CosMessage &message);
@@ -351,7 +373,7 @@ private:
 	QUrl m_connectedUrl;
 	CosMessage *m_cosMessage;
 
-	QString m_guiLoad;
+	static QString m_guiLoad;
 
 	ConnectionState m_connectionState;
 	QString m_userName;
@@ -383,7 +405,7 @@ private:
 	static QHash<QString, ModuleInterface*> m_moduleStorageList;
 	bool m_sslErrorSignalHandlerConnected;
 	bool m_forcedLandscape;
-	QStringList m_positionalArgumentsToProcess;
+	static QStringList m_positionalArgumentsToProcess;
 	QString m_serverUuid;
 	QQmlContext *m_rootContext;
 
@@ -393,6 +415,7 @@ private:
 	QSingleInstance *m_singleInstance;
 #endif
 	QUrl m_userPicture;
+	bool m_examEngineExists = false;
 };
 
 
@@ -408,14 +431,23 @@ struct TerrainData {
 	Q_PROPERTY(QMap<int, int> blocks MEMBER blocks)
 	Q_PROPERTY(int enemies MEMBER enemies)
 	Q_PROPERTY(int level MEMBER level)
+	Q_PROPERTY(int fences MEMBER fences)
+	Q_PROPERTY(int fires MEMBER fires)
+	Q_PROPERTY(int snipers MEMBER snipers)
+	Q_PROPERTY(int teleports MEMBER teleports)
 
 public:
 
 	QString name;
 	QMap<int, int> blocks;
-	int enemies;
+	int enemies = 0;
 	QVariantMap data;
-	int level;
+	int level = 0;
+	int fences = 0;
+	int fires = 0;
+	int snipers = 0;
+	int teleports = 0;
+
 
 	TerrainData(const QString &name = "", const QMap<int, int> &blocks = QMap<int, int>(), const int &enemies = 0, const QVariantMap &data = QVariantMap(),
 				const int &level = -1)
@@ -428,9 +460,6 @@ public:
 
 	friend inline bool operator== (const TerrainData &b1, const TerrainData &b2) {
 		return b1.name == b2.name
-				&& b1.blocks == b2.blocks
-				&& b1.enemies == b2.enemies
-				&& b1.data == b2.data
 				&& b1.level == b2.level;
 	}
 };

@@ -15,6 +15,8 @@ QDialogPanel {
 
 	property CosDownloader downloader: null
 
+	icon: "qrc:/internal/icon/message-processing.svg"
+
 	acceptedData: true
 
 	maximumHeight: 250
@@ -72,7 +74,7 @@ QDialogPanel {
 		id: buttonNo
 		anchors.right: parent.right
 		text: qsTr("Megszakítás")
-		icon.source: CosStyle.iconCancel
+		icon.source: "qrc:/internal/icon/close-circle.svg"
 		themeColors: CosStyle.buttonThemeRed
 
 		onClicked: {

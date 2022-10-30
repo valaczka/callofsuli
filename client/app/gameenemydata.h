@@ -68,6 +68,7 @@ public:
 
 	enum EnemyType {
 		EnemySoldier,
+		EnemySniper,
 		EnemyOther
 	};
 

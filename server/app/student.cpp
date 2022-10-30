@@ -36,6 +36,8 @@
 #include "admin.h"
 #include "userinfo.h"
 #include "teacher.h"
+#include "server.h"
+#include "examengine.h"
 
 
 Student::Student(Client *client, const CosMessage &message)
@@ -68,16 +70,16 @@ bool Student::classInit()
 
 bool Student::groupListGet(QJsonObject *jsonResponse, QByteArray *)
 {
-	QVariantList list = m_client->db()->execSelectQuery("SELECT studentGroupInfo.id as id, name, "
-														"user.firstname as teacherfirstname, user.lastname as teacherlastname, "
-														"(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
-														"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
-														"WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
-														"FROM studentGroupInfo "
-														"LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
-														"WHERE studentGroupInfo.username=?", {m_client->clientUserName()});
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT studentGroupInfo.id as id, name, "
+														  "user.firstname as teacherfirstname, user.lastname as teacherlastname, "
+														  "(SELECT GROUP_CONCAT(name, ', ') FROM bindGroupClass "
+														  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+														  "WHERE bindGroupClass.groupid=studentGroupInfo.id) as readableClassList "
+														  "FROM studentGroupInfo "
+														  "LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
+														  "WHERE studentGroupInfo.username=?", {m_client->clientUserName()});
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }
@@ -140,17 +142,36 @@ bool Student::userListGet(QJsonObject *jsonResponse, QByteArray *)
 {
 	QVariantMap params = m_message.jsonData().toVariantMap();
 	int groupid = params.value("groupid", -1).toInt();
+	int campaignid = params.value("campaignid", -1).toInt();
 
 	(*jsonResponse)["groupid"] = groupid;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(m_client->db()->execSelectQuery("SELECT userInfo.username, firstname, lastname, "
-																						  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
-																						  "t1, t2, t3, d1, d2, d3, sumxp "
-																						  "FROM studentGroupInfo LEFT JOIN userInfo ON (studentGroupInfo.username=userInfo.username) "
-																						  "LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username AND groupTrophy.id=studentGroupInfo.id) "
-																						  "WHERE active=true AND studentGroupInfo.id=?", {
-																							  groupid
-																						  }));
 
+	if (campaignid != -1) {
+		(*jsonResponse)["campaignid"] = campaignid;
+		(*jsonResponse)["list"] = m_client->db()->execSelectQueryJson("SELECT userInfo.username, firstname, lastname, "
+																	  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
+																	  "t1, t2, t3, d1, d2, d3, sumxp "
+																	  "FROM studentGroupInfo LEFT JOIN userInfo "
+																	  "ON (studentGroupInfo.username=userInfo.username) "
+																	  "LEFT JOIN groupCampaignTrophy ON "
+																	  "(groupCampaignTrophy.username=studentGroupInfo.username "
+																	  "AND groupCampaignTrophy.id=studentGroupInfo.id "
+																	  "AND groupCampaignTrophy.campaignid=?) "
+																	  "WHERE active=true AND studentGroupInfo.id=?", {
+																		  campaignid, groupid
+																	  });
+	} else {
+		(*jsonResponse)["list"] = m_client->db()->execSelectQueryJson("SELECT userInfo.username, firstname, lastname, "
+																	  "rankid, rankname, COALESCE(ranklevel, -1) as ranklevel, rankimage, nickname,"
+																	  "t1, t2, t3, d1, d2, d3, sumxp "
+																	  "FROM studentGroupInfo LEFT JOIN userInfo "
+																	  "ON (studentGroupInfo.username=userInfo.username) "
+																	  "LEFT JOIN groupTrophy ON (groupTrophy.username=studentGroupInfo.username "
+																	  "AND groupTrophy.id=studentGroupInfo.id) "
+																	  "WHERE active=true AND studentGroupInfo.id=?", {
+																		  groupid
+																	  });
+	}
 	return true;
 }
 
@@ -173,28 +194,28 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT DISTINCT missionid, "
-														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
-														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
-														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
-														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
-														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
-														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
-														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
-														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
-														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
-														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
-														"(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
-														"AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
-														"FROM game WHERE username=? AND mapid=?"
-														, {
-															m_client->clientUserName(),
-															mapuuid
-														});
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT DISTINCT missionid, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=false "
+														  "AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t1, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=false "
+														  "AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t2, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=false "
+														  "AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as t3, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=1 AND deathmatch=true "
+														  "AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d1, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=2 AND deathmatch=true "
+														  "AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d2, "
+														  "(SELECT COALESCE(num, 0) FROM missionTrophy WHERE level=3 AND deathmatch=true "
+														  "AND success=true AND username=game.username AND mapid=game.mapid AND missionid=game.missionid) as d3 "
+														  "FROM game WHERE username=? AND mapid=?"
+														  , {
+															  m_client->clientUserName(),
+															  mapuuid
+														  });
 
 
 	(*jsonResponse)["uuid"] = mapuuid;
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 
 
 	// Base XP
@@ -204,6 +225,158 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 	int baseXP = m.value("value", 100).toInt();
 
 	(*jsonResponse)["baseXP"] = baseXP;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Student::campaignGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap params = m_message.jsonData().toVariantMap();
+	const int groupid = params.value("groupid", -1).toInt();
+
+	if (groupid == -1) {
+		(*jsonResponse)["error"] = "missing group";
+		return false;
+	}
+
+	QList<int> campignIds;
+
+	if (params.contains("id")) {
+		campignIds.append(params.value("id").toInt());
+	}
+
+	if (params.contains("list")) {
+		foreach (QVariant v, params.value("list").toList())
+			campignIds.append(v.toInt());
+	}
+
+	if (campignIds.isEmpty()) {
+		QVariantList l = m_client->db()->execSelectQuery("SELECT id FROM campaign WHERE groupid=? AND started=true AND finished=false", {groupid});
+		foreach (QVariant v, l)
+			campignIds.append(v.toMap().value("id").toInt());
+	}
+
+
+	// Grades
+
+	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade "
+																	   "WHERE owner=(SELECT owner FROM studentGroup WHERE studentgroup.id=?)",
+																	   {groupid});
+
+
+	// Campaigns
+
+	QJsonArray list;
+
+	foreach (const int &id, campignIds) {
+		const QVariantMap jm = m_client->db()->execSelectQueryOneRow("SELECT id, datetime(starttime, 'localtime') as starttime, "
+																	 "datetime(endtime, 'localtime') as endtime, "
+																	 "description, started, finished FROM campaign "
+																	 "WHERE id=?", {id});
+
+		QJsonObject jo = QJsonObject::fromVariantMap(jm);
+
+		const bool isFinished = jm.value("finished", false).toBool();
+
+		QVariantList assList = m_client->db()->execSelectQuery("SELECT id, name FROM assignment WHERE campaignid=?", {id});
+
+		QJsonArray jlist;
+
+		foreach (const QVariant &v, assList) {
+			const int aid = v.toMap().value("id").toInt();
+
+			QJsonArray grades = m_client->db()->execSelectQueryJson("SELECT datetime(timestamp, 'localtime') as timestamp, "
+																	"gradeid, -1 as xp, false as forecast "
+																	"FROM gradebook "
+																	"WHERE assignmentid=? AND username=? "
+																	"UNION "
+																	"SELECT datetime(timestamp, 'localtime') as timestamp, "
+																	"-1 as gradeid, xp, false as forecast "
+																	"FROM score WHERE assignmentid=? AND username=?"
+																	, {aid, m_client->clientUserName(),
+																	   aid, m_client->clientUserName()});
+
+
+			Teacher t(m_client, CosMessage());
+			QVector<Teacher::Grading> grading = t.gradingGet(aid, id, m_client->clientUserName(), isFinished);
+
+
+			if (grades.isEmpty() && !isFinished) {
+				Teacher::Grading g = Teacher::gradingResult(grading, Teacher::Grading::TypeGrade);
+				if (g.isValid()) {
+					grades.append(QJsonObject({
+												  { "timestamp", "" },
+												  { "gradeid", g.ref },
+												  { "xp", -1 },
+												  { "forecast", true }
+											  }));
+				}
+
+
+				Teacher::Grading g2 = Teacher::gradingResult(grading, Teacher::Grading::TypeXP);
+				if (g2.isValid()) {
+					grades.append(QJsonObject({
+												  { "timestamp", "" },
+												  { "gradeid", -1 },
+												  { "xp", g2.value },
+												  { "forecast", true }
+											  }));
+				}
+			}
+
+
+			QJsonObject ja;
+
+			ja["id"] = aid;
+			ja["name"] = v.toMap().value("name").toString();
+			ja["grades"] = grades;
+			ja["grading"] = Teacher::Grading::toNestedArray(grading);
+
+			jlist.append(ja);
+		}
+
+		jo["assignment"] = jlist;
+		list.append(jo);
+	}
+
+
+	(*jsonResponse)["list"] = list;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Student::campaignListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::campaignListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap params = m_message.jsonData().toVariantMap();
+	const int groupid = params.value("groupid", -1).toInt();
+
+	if (groupid == -1) {
+		(*jsonResponse)["error"] = "missing group";
+		return false;
+	}
+
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT id, datetime(starttime, 'localtime') as starttime, "
+														  "datetime(endtime, 'localtime') as endtime, "
+														  "finished, description FROM campaign "
+														  "WHERE groupid=? AND started=true", {groupid});
+
+	(*jsonResponse)["list"] = list;
 
 	return true;
 }
@@ -227,6 +400,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	QString missionuuid = params.value("mission").toString();
 	int level = params.value("level", -1).toInt();
 	bool deathmatch = params.value("deathmatch", false).toBool();
+	bool lite = params.value("lite", false).toBool();
 
 	if (mapuuid.isEmpty() || missionuuid.isEmpty() || level <= 0) {
 		(*jsonResponse)["error"] = "missing map or mission";
@@ -259,6 +433,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	m["level"] = level;
 	m["success"] = false;
 	m["deathmatch"] = deathmatch;
+	m["lite"] = lite;
 	m["tmpScore"] = 0;
 
 	int rowid = m_client->db()->execInsertQuery("INSERT INTO game (?k?) VALUES (?)", m);
@@ -273,6 +448,7 @@ bool Student::gameCreate(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["missionid"] = missionuuid;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;
+	(*jsonResponse)["lite"] = lite;
 	return true;
 }
 
@@ -329,6 +505,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	int xp = params.value("xp", -1).toInt();
 	int duration = params.value("duration", -1).toInt();
 	bool success = params.value("success", false).toBool();
+	bool flawless = params.value("flawless", false).toBool();
 
 	if (gameid < 0 || xp < 0) {
 		(*jsonResponse)["error"] = "missing id or xp";
@@ -336,7 +513,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, mapid, missionid, level, deathmatch FROM game "
+	QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, mapid, missionid, level, deathmatch, lite FROM game "
 														  "WHERE username=? AND id=? AND tmpScore IS NOT NULL", {
 															  m_client->clientUserName(),
 															  gameid
@@ -352,7 +529,7 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	QString missionid = r.value("missionid").toString();
 	int level = r.value("level").toInt();
 	bool deathmatch = r.value("deathmatch").toBool();
-
+	bool lite = r.value("lite").toBool();
 
 	QJsonObject xpObject;
 
@@ -362,9 +539,9 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 
 	QVariantMap oldDurations = m_client->db()->execSelectQueryOneRow("SELECT "
 																	 "(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
-																	 "AND level=? AND success=true) as maxDuration,"
+																	 "AND level=? AND success=true AND lite=false) as maxDuration,"
 																	 "(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
-																	 "AND level=? AND success=true) as minDuration"
+																	 "AND level=? AND success=true AND lite=false) as minDuration"
 																	 , {
 																		 m_client->clientUserName(),
 																		 missionid,
@@ -425,10 +602,10 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	int durationXP = 0;
 
 	if (success) {
-		solvedXP = GameMap::computeSolvedXpFactor(oldSolver, level, deathmatch) * baseXP;
+		solvedXP = GameMap::computeSolvedXpFactor(oldSolver, level, deathmatch, lite) * baseXP;
 		int shortestDuration = oldDurations.value("minDuration", -1).toInt();
 
-		if (shortestDuration > -1 && duration < shortestDuration) {
+		if (shortestDuration > -1 && duration < shortestDuration && !lite) {
 			durationXP = (shortestDuration-duration) * baseXP * XP_FACTOR_DURATION_SEC;
 		}
 	}
@@ -516,8 +693,8 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["xp"] = xpObject;
 
 	if (success) {
-		(*jsonResponse)["maxDuration"] = oldDurations.value("maxDuration", -1).toInt();
-		(*jsonResponse)["minDuration"] = oldDurations.value("minDuration", -1).toInt();
+		(*jsonResponse)["maxDuration"] = lite ? -1 : oldDurations.value("maxDuration", -1).toInt();
+		(*jsonResponse)["minDuration"] = lite ? -1 : oldDurations.value("minDuration", -1).toInt();
 		(*jsonResponse)["duration"] = duration;
 	}
 
@@ -530,6 +707,8 @@ bool Student::gameFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["success"] = success;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;
+	(*jsonResponse)["lite"] = lite;
+	(*jsonResponse)["flawless"] = (success && flawless);
 	(*jsonResponse)["solvedCount"] = oldSolver.solve(level, deathmatch).solved(level, deathmatch);
 
 
@@ -566,6 +745,36 @@ bool Student::gameListUserGet(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief Student::gameListCampaignGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	QString username = params.value("username").toString();
+	if (username.isEmpty())
+		username = m_client->clientUserName();
+
+	QJsonObject o;
+
+	o["username"] = username;
+	o["groupid"] = params.value("groupid").toInt(-1);
+	o["campaignid"] = params.value("campaignid").toInt(-1);
+	o["limit"] = params.value("limit").toInt(50);
+	o["offset"] = params.value("offset").toInt();
+
+	CosMessage m2(o, CosMessage::ClassInvalid, "");
+
+	QJsonObject ret;
+	Teacher u(m_client, m2);
+	return u.gameListCampaignGet(jsonResponse, nullptr);
+}
+
+
 
 /**
  * @brief Student::gameListUserMissionGet
@@ -579,6 +788,7 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 	QString missionid = params.value("missionid").toString();
 	int level = params.value("level", -1).toInt();
 	bool deathmatch = params.value("deathmatch", false).toBool();
+	bool lite = false; //params.value("lite", false).toBool();			// Nem vesszük figyelembe a feladatmegoldást
 
 	if (missionid.isEmpty() || level < 0) {
 		(*jsonResponse)["error"] = "missing missionid or level";
@@ -586,44 +796,45 @@ bool Student::gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 
-	QVariantList list = m_client->db()->execSelectQuery("SELECT ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationNum, "
-														"ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, MIN(duration)) successNum, "
-														"game.username, firstname, lastname, nickname, rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, rankname, "
-														"MIN(duration) as duration, COUNT(*) as success "
-														"FROM game LEFT JOIN userInfo ON (userInfo.username=game.username) "
-														"WHERE missionid=? AND level=? AND deathmatch=? "
-														"AND success=true AND tmpScore IS NULL "
-														"GROUP BY game.username",
-														{missionid, level, deathmatch}
-														);
+	QJsonArray list = m_client->db()->execSelectQueryJson("SELECT ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationNum, "
+														  "ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, MIN(duration)) successNum, "
+														  "game.username, firstname, lastname, nickname, rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, rankname, "
+														  "MIN(duration) as duration, COUNT(*) as success "
+														  "FROM game LEFT JOIN userInfo ON (userInfo.username=game.username) "
+														  "WHERE missionid=? AND level=? AND deathmatch=? "
+														  "AND success=true AND lite=? AND tmpScore IS NULL "
+														  "GROUP BY game.username",
+														  {missionid, level, deathmatch, lite}
+														  );
 
 	(*jsonResponse)["minDuration"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(MIN(duration),0) as v "
 																		   "FROM game "
 																		   "WHERE missionid=? AND level=? AND deathmatch=? "
-																		   "AND success=true AND tmpScore IS NULL",
-																		   {missionid, level, deathmatch}
+																		   "AND success=true AND lite=? AND tmpScore IS NULL",
+																		   {missionid, level, deathmatch, lite}
 																		   ).value("v").toInt();
 
 	(*jsonResponse)["maxDuration"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(MAX(duration),0) as v "
 																		   "FROM game "
 																		   "WHERE missionid=? AND level=? AND deathmatch=? "
-																		   "AND success=true AND tmpScore IS NULL",
-																		   {missionid, level, deathmatch}
+																		   "AND success=true AND lite=? AND tmpScore IS NULL",
+																		   {missionid, level, deathmatch, lite}
 																		   ).value("v").toInt();
 
 	(*jsonResponse)["maxSuccess"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(MAX(success),0) as v FROM "
 																		  "(SELECT COUNT(*) as success "
 																		  "FROM game LEFT JOIN userInfo ON (userInfo.username=game.username) "
 																		  "WHERE missionid=? AND level=? AND deathmatch=? "
-																		  "AND success=true AND tmpScore IS NULL "
+																		  "AND success=true AND lite=? AND tmpScore IS NULL "
 																		  "GROUP BY game.username) t",
-																		  {missionid, level, deathmatch}
+																		  {missionid, level, deathmatch, lite}
 																		  ).value("v").toInt();
 
-	(*jsonResponse)["list"] = QJsonArray::fromVariantList(list);
+	(*jsonResponse)["list"] = list;
 	(*jsonResponse)["missionid"] = missionid;
 	(*jsonResponse)["level"] = level;
 	(*jsonResponse)["deathmatch"] = deathmatch;
+	//(*jsonResponse)["lite"] = lite;
 
 	return true;
 }
@@ -732,6 +943,89 @@ bool Student::userPasswordChange(QJsonObject *jsonResponse, QByteArray *)
 	QJsonObject ret;
 	Admin u(m_client, m2);
 	return u.userPasswordChange(jsonResponse, nullptr);
+}
+
+
+
+/**
+ * @brief Student::examEngineConnect
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::examEngineConnect(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QJsonObject &params = m_message.jsonData();
+	const QString &code = params.value("code").toString();
+
+	if (m_client->examEngine()) {
+		(*jsonResponse)["code"] = m_client->examEngine()->code();
+		(*jsonResponse)["error"] = "already connected";
+		return false;
+	}
+
+	if (code.isEmpty()) {
+		(*jsonResponse)["error"] = "missing code";
+		return false;
+	}
+
+	ExamEngine *engine = m_client->server()->examEngineGet(code);
+
+	if (!engine) {
+		(*jsonResponse)["error"] = "invalid code";
+		return false;
+	}
+
+	if (!engine->hasMember(m_client->clientUserName())) {
+		(*jsonResponse)["error"] = "invalid engine";
+		return false;
+	}
+
+	m_client->setExamEngine(engine);
+
+	m_client->db()->execSimpleQuery("UPDATE session SET examEngineId=? WHERE token=?", {
+										engine->code(),
+										m_client->clientSession()
+									});
+
+	(*jsonResponse)["code"] = engine->code();
+	(*jsonResponse)["mapUuid"] = engine->mapUuid();
+	(*jsonResponse)["title"] = engine->title();
+	(*jsonResponse)["connected"] = true;
+	return false;
+}
+
+
+
+/**
+ * @brief Student::examEngineMapGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Student::examEngineMapGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	if (!m_client->examEngine()) {
+		(*jsonResponse)["error"] = "missing engine";
+		return false;
+	}
+
+	const QString &uuid = m_client->examEngine()->mapUuid();
+
+	if (uuid.isEmpty()) {
+		(*jsonResponse)["error"] = "engine error";
+		setServerError(CosMessage::ServerInternalError);
+		return false;
+	}
+
+	QVariantMap map = m_client->mapsDb()->execSelectQueryOneRow("SELECT uuid, md5, "
+																"COALESCE(LENGTH(data),0) as dataSize FROM maps WHERE uuid=?", {uuid});
+
+	(*jsonResponse)["uuid"] = map.value("uuid").toString();
+	(*jsonResponse)["md5"] = map.value("md5").toString();
+	(*jsonResponse)["dataSize"] = map.value("dataSize").toInt();
+
+	return true;
 }
 
 

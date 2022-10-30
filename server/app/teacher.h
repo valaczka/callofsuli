@@ -37,6 +37,7 @@
 
 #include "abstracthandler.h"
 #include <QObject>
+#include "examengine.h"
 
 class Client;
 
@@ -45,9 +46,59 @@ class Teacher : public AbstractHandler
 	Q_OBJECT
 
 public:
+	struct Grading {
+		enum Type {
+			TypeInvalid,
+			TypeGrade,
+			TypeXP
+		};
+
+		enum Mode {
+			ModeInvalid,
+			ModeDefault,
+			ModeRequired
+		};
+
+		Type type;
+		int value;
+		int ref;
+		Mode mode;
+		QJsonObject criteria;
+		bool success;
+		int id;
+
+		Grading() :
+			type(TypeInvalid), value(-1), ref(-1), mode(ModeInvalid), criteria(), success(false), id(-1)
+		{}
+
+		Grading(const int &i, const Type &t, const int &v, const QJsonObject &c, const int &r = -1, const bool &s = false);
+
+		bool isValid() const { return type != TypeInvalid; }
+
+		static QJsonArray toArray(const QVector<Grading> &list);
+		static QJsonObject toNestedArray(const QVector<Grading> &list);
+		static QMap<int, QVector<Grading>> toMap(const QVector<Grading> &list, const Type &type);
+	};
+
+
 	explicit Teacher(Client *client, const CosMessage &message);
 
 	bool classInit() override;
+
+
+	// Grading
+
+	static QVector<Grading> gradingFromVariantList(const QVariantList &list);
+	static Grading gradingResult(const QVector<Grading> &list, const Grading::Type &type);
+	static int startAndFinishCampaigns(CosDb *db);
+	static bool finishCampaign(CosDb *db, const int &campaignId, const QString &teacher, const bool &isAutomatic = true);
+	static bool startCampaign(CosDb *db, const int &campaignId, const QString &teacher);
+	static QVector<Grading>& evaluate(CosDb *db, QVector<Grading> &list, const int &campaignId, const QString &username);
+	static Grading& evaluate(CosDb *db, Grading &grading, const int &campaignId, const QString &username);
+
+	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username = "", const bool &isFinished = false);
+
+	QJsonArray getOrGenerateGradeList();
 
 public slots:
 
@@ -74,6 +125,7 @@ public slots:
 	bool groupMapActivate(QJsonObject *jsonResponse, QByteArray *);
 	bool groupMapRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool groupExcludedMapListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool groupExamListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool groupTrophyGet(QJsonObject *jsonResponse, QByteArray *);
 
@@ -84,8 +136,27 @@ public slots:
 
 	bool gameListUserGet(QJsonObject *jsonResponse, QByteArray *);
 	bool gameListGroupGet(QJsonObject *jsonResponse, QByteArray *);
-	bool gameListMapGet(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *);
+
+	bool campaignGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignFinish(QJsonObject *jsonResponse, QByteArray *);
+
+	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *binaryData);
+	bool examEngineCreate(QJsonObject *jsonResponse, QByteArray *);
 
 };
+
+
+
+
+
+
+
+
+
 
 #endif // TEACHER_H

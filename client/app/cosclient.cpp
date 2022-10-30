@@ -38,6 +38,9 @@
 #include <QStandardPaths>
 #include <RollingFileAppender.h>
 
+#include "../Bacon2D-static/qml-box2d/box2dplugin.h"
+#include "../Bacon2D-static/src/plugins.h"
+
 #include "../../version/buildnumber.h"
 #include "abstractactivity.h"
 #include "androidshareutils.h"
@@ -48,6 +51,7 @@
 #include "gameactivity.h"
 #include "gameenemy.h"
 #include "gameenemysoldier.h"
+#include "gameenemysniper.h"
 #include "gameentity.h"
 #include "gameladder.h"
 #include "gamemapmodel.h"
@@ -79,14 +83,14 @@ QStringList Client::m_musicList;
 QStringList Client::m_medalIconList;
 QHash<QString, ModuleInterface *> Client::m_moduleObjectiveList;
 QHash<QString, ModuleInterface *> Client::m_moduleStorageList;
+QStringList Client::m_positionalArgumentsToProcess = QStringList();
+QString Client::m_guiLoad = "";
 
 Client::Client(QObject *parent) : QObject(parent)
 {
 	m_connectionState = Standby;
 	m_socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest);
 	m_timer = new QTimer(this);
-
-	m_guiLoad = "";
 
 	m_userRoles = CosMessage::RoleGuest;
 	m_userXP = 0;
@@ -107,7 +111,6 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	m_sslErrorSignalHandlerConnected = false;
 	m_forcedLandscape = false;
-	m_positionalArgumentsToProcess = QStringList();
 	m_serverUuid = "";
 
 	m_rootContext = nullptr;
@@ -158,7 +161,7 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	m_timer->start(5000);
+	//m_timer->start(5000);
 }
 
 /**
@@ -190,6 +193,16 @@ void Client::initialize()
 	QCoreApplication::setApplicationName("callofsuli");
 	QCoreApplication::setOrganizationDomain("callofsuli");
 	QCoreApplication::setApplicationVersion(_VERSION_FULL);
+
+	srand(time(NULL));
+
+	Box2DPlugin box2dplugin;
+	box2dplugin.registerTypes("Box2D");
+
+	Plugins plugin;
+	plugin.registerTypes("Bacon2D");
+
+	Q_INIT_RESOURCE(Bacon2D_static);
 }
 
 
@@ -253,14 +266,14 @@ QString Client::commandLineParse(QCoreApplication &app)
 	parser.addOption({{"t", "terrain"}, tr("Terepfájl <file> adatainak lekérdezése"), "file"});
 	parser.addOption({"license", tr("Licensz")});
 	parser.addOption({{"l", "log"}, tr("Naplózás <file> fájlba"), "file"});
-	parser.addOption({{"m", "map"}, tr("Pályszerkesztő indítása")});
+	parser.addOption({{"e", "editor"}, tr("Pályszerkesztő indítása")});
+	parser.addOption({{"m", "map"}, tr("Pálya szerkesztése"), "file"});
+	parser.addOption({{"p", "play"}, tr("Pálya lejátszása"), "file"});
 
 
 #ifdef QT_NO_DEBUG
 	parser.addOption({"debug", tr("Hibakeresési üzenetek megjelenítése")});
 #endif
-
-	parser.process(app);
 
 #ifdef SQL_DEBUG
 	QLoggingCategory::setFilterRules(QStringLiteral("sql.debug=true"));
@@ -306,8 +319,12 @@ QString Client::commandLineParse(QCoreApplication &app)
 
 
 
-	if (parser.isSet("map"))
-		m_guiLoad = "map";
+	if (parser.isSet("editor"))
+		m_guiLoad = "map:";
+	else if (parser.isSet("map"))
+		m_guiLoad = "map:"+parser.value("map");
+	else if (parser.isSet("play"))
+		m_guiLoad = "play:"+parser.value("play");
 
 	m_positionalArgumentsToProcess = parser.positionalArguments();
 
@@ -377,6 +394,7 @@ void Client::registerTypes()
 	qRegisterMetaType<CosMessage::CosMessageType>("CosMessageType");
 	qRegisterMetaType<CosSound::ChannelType>("CosSoundChannelType");
 	qRegisterMetaType<CosSound::SoundType>("CosSoundType");
+	qRegisterMetaType<GameMatch::GameMode>("GameMode");
 	qmlRegisterType<AbstractActivity>("COS.Client", 1, 0, "AbstractActivity");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
@@ -385,6 +403,7 @@ void Client::registerTypes()
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
 	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
+	qmlRegisterType<GameEnemySniper>("COS.Client", 1, 0, "GameEnemySniperPrivate");
 	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GameMapModel>("COS.Client", 1, 0, "GameMapModel");
@@ -430,10 +449,10 @@ void Client::registerTypes()
 
 void Client::windowSaveGeometry(QQuickWindow *window)
 {
-	QSettings s;
+	QSettings s(this);
 	s.beginGroup("window");
 
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+#ifdef Q_OS_LINUX
 	s.setValue("size", window->size());
 	s.setValue("position", window->position());
 #else
@@ -453,15 +472,25 @@ void Client::windowSaveGeometry(QQuickWindow *window)
 
 void Client::windowRestoreGeometry(QQuickWindow *window)
 {
-	QSettings s;
+
+	QSettings s(this);
 	s.beginGroup("window");
 
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	window->showFullScreen();
+#else
+
+#ifdef Q_OS_LINUX
 	window->resize(s.value("size", QSize(600, 600)).toSize());
 	window->setPosition(s.value("position", QPoint(0, 0)).toPoint());
+#endif
 
+#ifdef QT_DEBUG
+	window->showMaximized();
 #else
-	Q_UNUSED(window);
+	window->showFullScreen();
+#endif
+
 #endif
 
 	s.endGroup();
@@ -488,6 +517,25 @@ void Client::textToClipboard(const QString &text) const
 {
 	QClipboard *clipboard = QGuiApplication::clipboard();
 	clipboard->setText(text);
+}
+
+/**
+ * @brief Client::getWindowSafeMargins
+ * @param window
+ * @return
+ */
+
+QVariantMap Client::getWindowSafeMargins(QQuickWindow *window) const
+{
+	QVariantMap ret;
+	const QMarginsF m = AndroidShareUtils::instance()->getWindowSafeArea(window);
+
+	ret["top"] = m.top();
+	ret["left"] = m.left();
+	ret["right"] = m.right();
+	ret["bottom"] = m.bottom();
+
+	return ret;
 }
 
 
@@ -526,7 +574,6 @@ QString Client::connectionInfo(const QString &func, const QVariantMap &queries, 
 }
 
 
-
 /**
  * @brief Client::connectionInfoMap
  * @return
@@ -544,6 +591,10 @@ QVariantMap Client::connectionInfoMap() const
 
 	return m;
 }
+
+
+
+
 
 
 /**
@@ -611,6 +662,59 @@ void Client::setSetting(const QString &key, const QVariant &value)
 QVariant Client::getSetting(const QString &key, const QVariant &defaultValue)
 {
 	QSettings s;
+	return s.value(key, defaultValue);
+}
+
+/**
+ * @brief Client::getSettingBool
+ * @param key
+ * @param defaultValue
+ * @return
+ */
+
+bool Client::getSettingBool(const QString &key, const bool &defaultValue)
+{
+	QSettings s;
+	return s.value(key, defaultValue).toBool();
+}
+
+
+/**
+ * @brief Client::setServerSetting
+ * @param key
+ * @param value
+ */
+
+void Client::setServerSetting(const QString &key, const QVariant &value)
+{
+	if (m_serverDataDir.isEmpty()) {
+		setSetting(key, value);
+		return;
+	}
+
+	const QString fname = m_serverDataDir+"/settings.ini";
+
+	QSettings s(fname, QSettings::IniFormat, this);
+	s.setValue(key, value);
+}
+
+
+/**
+ * @brief Client::getServerSetting
+ * @param key
+ * @param defaultValue
+ * @return
+ */
+
+QVariant Client::getServerSetting(const QString &key, const QVariant &defaultValue)
+{
+	if (m_serverDataDir.isEmpty())
+		return getSetting(key, defaultValue);
+
+	const QString fname = m_serverDataDir+"/settings.ini";
+
+	QSettings s(fname, QSettings::IniFormat, this);
+
 	return s.value(key, defaultValue);
 }
 
@@ -919,14 +1023,27 @@ QVariantMap Client::terrainMap()
 	QVariantMap map;
 
 	foreach (TerrainData d, m_availableTerrains) {
+		QStringList details;
+
+		details << tr("%1 csatatér").arg(d.blocks.count());
+		details << tr("%1 ellenfél").arg(d.enemies);
+
+		if (d.snipers)
+			details << tr("%1 sniper").arg(d.snipers);
+
+		if (d.fires)
+			details << tr("%1 tűz").arg(d.fires);
+
+		if (d.fences)
+			details << tr("%1 kerítés").arg(d.fences);
+
+		if (d.teleports)
+			details << tr("%1 teleport").arg(d.teleports);
+
 		QVariantMap m;
 		m["blocks"] = d.blocks.count();
 		m["enemies"] = d.enemies;
-		m["details"] = QString(tr("Level %1: %2 csatatér, %3 célpont"))
-					   .arg(d.level)
-					   .arg(d.blocks.count())
-					   .arg(d.enemies);
-
+		m["details"] = tr("Level %1: ").arg(d.level) + details.join(", ");
 		m["data"] = d.data;
 		m["level"] = d.level;
 		m["readableName"] = d.data.contains("name") ? d.data.value("name").toString() : d.name;
@@ -1052,17 +1169,25 @@ void Client::setVolume(const CosSound::ChannelType &channel, const int &volume) 
 {
 	QByteArray func;
 
+	QSettings s;
+	s.beginGroup("sound");
+
 	switch (channel) {
 		case CosSound::MusicChannel:
 			func = "setVolumeMusic";
+			s.setValue("volumeMusic", volume);
 			break;
 		case CosSound::SfxChannel:
 			func = "setVolumeSfx";
+			s.setValue("volumeSfx", volume);
 			break;
 		case CosSound::VoiceoverChannel:
 			func = "setVolumeVoiceOver";
+			s.setValue("volumeVoiceOver", volume);
 			break;
 	}
+
+	s.endGroup();
 
 	QMetaObject::invokeMethod(m_clientSound, func, Qt::DirectConnection,
 							  Q_ARG(int, volume)
@@ -1252,14 +1377,20 @@ void Client::loadTerrains()
 		for (int level=1; level<=3; level++) {
 			QString tmxFile = QString("%1/level%2.tmx").arg(terrainDir).arg(level);
 
-			if (!QFile::exists(tmxFile))
+			QFileInfo tmxI(tmxFile);
+
+			if (!tmxI.exists())
 				continue;
 
 			qInfo() << "Load terrain" << terrainName << "level" << level;
 
-			QString blockfile = QString("%1/blocks%2.json").arg(terrainDir).arg(level);
+			//QString blockfile = QString("%1/blocks%2.json").arg(terrainDir).arg(level);
 
-			if (QFile::exists(blockfile)) {
+			const QString &blockfile = QString("%1/%2_%3.json").arg(standardPath("terrain_cache")).arg(terrainName).arg(level);
+
+			QFileInfo fi(blockfile);
+
+			if (fi.exists() && fi.lastModified() > tmxI.lastModified()) {
 				QJsonDocument doc = readJsonDocument(blockfile);
 				QJsonObject o = doc.object();
 
@@ -1282,19 +1413,43 @@ void Client::loadTerrains()
 								  dataMap,
 								  level);
 
+					d.fires = o.value("fires").toInt();
+					d.fences = o.value("fences").toInt();
+					d.snipers = o.value("snipers").toInt();
+					d.teleports = o.value("teleports").toInt();
+
 					m_availableTerrains.append(d);
+				}
+			} else {
+				TerrainData d = terrainDataFromFile(tmxFile, terrainName, dataMap, level);
+
+				if (d.enemies != -1)
+					m_availableTerrains.append(d);
+				else {
+					qWarning().noquote() << "Invalid terrain map" << tmxFile;
 					continue;
 				}
+
+				QDir dir(standardPath());
+
+				if (!dir.exists("terrain_cache") && !dir.mkdir("terrain_cache")) {
+					qWarning().noquote() << tr("Nem sikerült létrehozni a könyvtárat:") << dir.absoluteFilePath("terrain_cache");
+					continue;
+				}
+
+				QFile f(blockfile);
+
+				if (!f.open(QIODevice::WriteOnly)) {
+					qWarning().noquote() << tr("Nem sikerült módosítani a fájlt:") << f.fileName();
+					continue;
+				}
+
+				f.write(terrainDataToJson(d));
+
+				qInfo().noquote() << tr("Harcmező cache:") << f.fileName();
+
+				f.close();
 			}
-
-			TerrainData d = terrainDataFromFile(tmxFile, terrainName, dataMap, level);
-
-			if (d.enemies != -1)
-				m_availableTerrains.append(d);
-			else {
-				qWarning().noquote() << "Invalid terrain map" << tmxFile;
-			}
-
 		}
 	}
 }
@@ -1386,6 +1541,7 @@ TerrainData Client::terrainDataFromFile(const QString &filename,
 {
 	GameTerrain t;
 
+
 	if (t.loadTmxFile(filename)) {
 		QMap<int, int> blockData;
 
@@ -1396,11 +1552,25 @@ TerrainData Client::terrainDataFromFile(const QString &filename,
 			blockData[it.key()] = it.value()->enemies().count();
 		}
 
-		return TerrainData(terrainName,
-						   blockData,
-						   t.enemies().count(),
-						   dataMap,
-						   level);
+		int snipers = 0;
+
+		foreach (GameEnemyData *edata, t.enemies()) {
+			if (edata->enemyType() == GameEnemyData::EnemySniper)
+				snipers++;
+		}
+
+		TerrainData td = TerrainData(terrainName,
+									 blockData,
+									 t.enemies().count(),
+									 dataMap,
+									 level);
+
+		td.snipers = snipers;
+		td.fences = t.fences().size();
+		td.fires = t.fires().size();
+		td.teleports = t.teleports().size();
+
+		return td;
 	}
 
 	return TerrainData("",
@@ -1419,11 +1589,24 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 {
 	TerrainData t = terrainDataFromFile(filename);
 
+	return terrainDataToJson(t);
+}
+
+
+
+/**
+ * @brief Client::terrainDataToJson
+ * @param data
+ * @return
+ */
+
+QByteArray Client::terrainDataToJson(const TerrainData &data)
+{
 	QJsonObject o;
 
-	if (t.enemies != -1) {
+	if (data.enemies != -1) {
 		QJsonArray blocks;
-		QMap<int, int> m = t.blocks;
+		QMap<int, int> m = data.blocks;
 		QMapIterator<int, int> it (m);
 		while (it.hasNext()) {
 			it.next();
@@ -1434,7 +1617,11 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 		}
 
 		o["blocks"] = blocks;
-		o["enemies"] = t.enemies;
+		o["enemies"] = data.enemies;
+		o["fences"] = data.fences;
+		o["fires"] = data.fires;
+		o["snipers"] = data.snipers;
+		o["teleports"] = data.teleports;
 	}
 
 	QJsonDocument doc(o);
@@ -1444,6 +1631,10 @@ QByteArray Client::terrainDataToJson(const QString &filename)
 
 
 
+/**
+ * @brief Client::setConnectionState
+ * @param connectionState
+ */
 
 void Client::setConnectionState(ConnectionState connectionState)
 {
@@ -1530,41 +1721,22 @@ void Client::logout()
  * @param accessToken
  */
 
-void Client::oauth2Login(const QString &accessToken)
+void Client::oauth2Login(const QString &accessToken, const QString &expiration, const QString &refreshToken)
 {
 	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
 
 	QJsonObject d;
 	d["oauth2Token"] = accessToken;
-	m.setJsonAuth(d);
-	m.send(m_socket);
-}
 
-
-/**
- * @brief Client::passwordReset
- * @param email
- * @param code
- */
-
-void Client::passwordRequest(const QString &email, const QString &code)
-{
-	if (email.isEmpty())
-		return;
-
-	QJsonObject d;
-	d["user"] = email;
-	if (!code.isEmpty()) {
-		d["code"] = code;
+	if (!expiration.isEmpty() && !refreshToken.isEmpty()) {
+		d["oauth2Expiration"] = expiration;
+		d["oauth2RefreshToken"] = refreshToken;
 	}
 
-	d["passwordRequest"] = true;
-
-	CosMessage m(QJsonObject(), CosMessage::ClassLogin, "");
-
 	m.setJsonAuth(d);
 	m.send(m_socket);
 }
+
 
 
 
@@ -1584,7 +1756,7 @@ void Client::passwordRequest(const QString &email, const QString &code)
 int Client::socketSend(const CosMessage::CosClass &cosClass, const QString &cosFunc, const QJsonObject &jsonData, const QByteArray &binaryData)
 {
 	if (m_connectionState != Connected && m_connectionState != Reconnected) {
-		sendMessageWarning(tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
+		sendMessageWarningImage("qrc:/internal/icon/lan-disconnect.svg", tr("Nincs kapcsolat"), tr("A szerver jelenleg nem elérhető!"));
 		return -1;
 	}
 
@@ -1688,6 +1860,8 @@ void Client::performUserInfo(const CosMessage &message)
 				setUserRankImage(d.value("rankimage").toString());
 				setUserNickName(d.value("nickname").toString());
 				setUserPlayerCharacter(d.value("character").toString());
+				if (d.contains("examEngineExists"))
+					setExamEngineExists(d.value("examEngineExists").toBool());
 			}
 		} else if (func == "getServerInfo") {
 			setServerName(d.value("serverName").toString());
@@ -1726,10 +1900,10 @@ bool Client::checkError(const CosMessage &message)
 
 	switch (serverError) {
 		case CosMessage::ServerInternalError:
-			sendMessageError(tr("Belső szerver hiba"), message.serverErrorDetails());
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső szerver hiba"), message.serverErrorDetails());
 			break;
 		case CosMessage::ServerSmtpError:
-			sendMessageError(tr("SMTP hiba"), message.serverErrorDetails());
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("SMTP hiba"), message.serverErrorDetails());
 			break;
 		case CosMessage::ServerNoError:
 			break;
@@ -1740,19 +1914,19 @@ bool Client::checkError(const CosMessage &message)
 
 	switch (error) {
 		case CosMessage::BadMessageFormat:
-			sendMessageError(tr("Belső hiba"), tr("Hibás üzenetformátum"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hibás üzenetformátum"));
 			break;
 		case CosMessage::InvalidMessageType:
-			sendMessageError(tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen üzenetformátum"));
 			break;
 		case CosMessage::InvalidSession:
-			sendMessageError(tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
+			sendMessageErrorImage("qrc:/internal/icon/account-clock.svg",tr("Bejelentkezés"), tr("A munkamenetazonosító lejárt. Jelentkezz be ismét!"));
 			setSessionToken("");
 			setUserName("");
 			emit authInvalid();
 			break;
 		case CosMessage::InvalidUser:
-			sendMessageError(tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
+			sendMessageErrorImage("qrc:/internal/icon/account-alert.svg",tr("Bejelentkezés"), tr("Hibás felhasználónév vagy jelszó!"));
 			setSessionToken("");
 			setUserName("");
 			emit authInvalid();
@@ -1763,14 +1937,17 @@ bool Client::checkError(const CosMessage &message)
 			break;
 		case CosMessage::InvalidClass:
 		case CosMessage::InvalidFunction:
-			sendMessageError(tr("Belső hiba"), tr("Érvénytelen kérés"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen kérés"));
 			break;
 		case CosMessage::ClassPermissionDenied:
-			sendMessageError(tr("Belső hiba"), tr("Hozzáférés megtagadva"));
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Hozzáférés megtagadva"));
+			break;
+		case CosMessage::ExamLock:
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Dolgozatot írsz éppen, nem lehet bejelentkezni!"));
 			break;
 		case CosMessage::NoBinaryData:
 		case CosMessage::OtherError:
-			sendMessageError(tr("Belső hiba"), message.serverErrorDetails());
+			sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), message.serverErrorDetails());
 			break;
 		case CosMessage::NoError:
 			break;
@@ -1936,7 +2113,7 @@ void Client::setSocket(QWebSocket *socket)
 void Client::socketPing()
 {
 	if (m_connectionState == Connected || m_connectionState == Reconnected) {
-		socketSend(CosMessage::ClassUserInfo, "getUser");
+		socketSend(CosMessage::ClassUserInfo, "getUser", QJsonObject({{"ping", true}}));
 	} else if (m_connectionState == Disconnected) {
 		qInfo() << tr("Újracsatlakozás");
 		emit reconnecting();
@@ -2052,7 +2229,7 @@ void Client::onSocketError(const QAbstractSocket::SocketError &error)
 		return;
 
 	if (m_connectionState == Standby || m_connectionState == Connecting)
-		sendMessageError(tr("Hiba"), QString("%1\n%2").arg(m_socket->errorString()).arg(m_socket->requestUrl().toString()));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Hiba"), QString("%1\n%2").arg(m_socket->errorString()).arg(m_socket->requestUrl().toString()));
 }
 
 
@@ -2088,4 +2265,17 @@ void Client::setUserPicture(const QUrl &newUserPicture)
 		return;
 	m_userPicture = newUserPicture;
 	emit userPictureChanged();
+}
+
+bool Client::examEngineExists() const
+{
+	return m_examEngineExists;
+}
+
+void Client::setExamEngineExists(bool newExamEngineExists)
+{
+	if (m_examEngineExists == newExamEngineExists)
+		return;
+	m_examEngineExists = newExamEngineExists;
+	emit examEngineExistsChanged();
 }

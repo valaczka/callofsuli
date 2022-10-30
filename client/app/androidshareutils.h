@@ -36,6 +36,9 @@
 #endif
 
 
+#include <qpa/qplatformwindow.h>
+#include <QQuickWindow>
+
 class AndroidShareUtils : public QObject
 {
 	Q_OBJECT
@@ -48,6 +51,10 @@ public:
 
 	bool forceLandscape();
 	bool resetLandscape();
+
+	const QMarginsF &getWindowSafeArea(QQuickWindow *window);
+
+	const QMarginsF &safeArea() const;
 
 public slots:
 	bool checkPendingIntents();
@@ -64,6 +71,7 @@ signals:
 private:
 	static AndroidShareUtils *m_instance;
 	bool m_pendingIntentsChecked;
+	QMarginsF m_safeArea;
 
 #ifdef Q_OS_ANDROID
 	jint m_screenOrientationRequest;

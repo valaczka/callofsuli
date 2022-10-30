@@ -114,7 +114,7 @@ QDialogPanel {
 			id: buttonNo
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
+			icon.source: "qrc:/internal/icon/close-circle.svg"
 			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: dlgClose()
@@ -128,7 +128,7 @@ QDialogPanel {
 			visible: !simpleSelect
 
 			text: qsTr("OK")
-			icon.source: CosStyle.iconOK
+			icon.source: "qrc:/internal/icon/check-bold.svg"
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {

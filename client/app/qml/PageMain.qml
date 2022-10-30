@@ -41,7 +41,7 @@ QTabPage {
 		}
 		ListElement {
 			title: qsTr("Rangsor")
-			icon: "image://font/School/\uf114"
+			icon: "qrc:/internal/icon/podium.svg"
 			iconColor: "royalblue"
 			func: function() { replaceContent(componentScore) }
 		}
@@ -54,13 +54,13 @@ QTabPage {
 
 		ListElement {
 			title: qsTr("Profil")
-			icon: "image://font/Material Icons/\ue7fd"
+			icon: "qrc:/internal/icon/account.svg"
 			iconColor: "bisque"
 			func: function() { replaceContent(componentProfile, { menuVisible: true }) }
 		}
 		ListElement {
-			title: qsTr("Csoportjaim")
-			icon: "image://font/School/\uf154"
+			title: qsTr("Áttekintés")
+			icon: "qrc:/internal/icon/speedometer.svg"
 			iconColor: "gold"
 			func: function() { replaceContent(componentGroups) }
 			checked: true
@@ -68,7 +68,7 @@ QTabPage {
 		}
 		ListElement {
 			title: qsTr("Rangsor")
-			icon: "image://font/School/\uf114"
+			icon: "qrc:/internal/icon/podium.svg"
 			iconColor: "royalblue"
 			func: function() { replaceContent(componentScore) }
 		}
@@ -82,13 +82,13 @@ QTabPage {
 
 		ListElement {
 			title: qsTr("Profil")
-			icon: "image://font/Material Icons/\ue7fd"
+			icon: "qrc:/internal/icon/account-tie.svg"
 			iconColor: "bisque"
 			func: function() { replaceContent(componentProfile, { menuVisible: true }) }
 		}
 		ListElement {
-			title: qsTr("Csoportjaim")
-			icon: "image://font/School/\uf154"
+			title: qsTr("Áttekintés")
+			icon: "qrc:/internal/icon/speedometer.svg"
 			iconColor: "gold"
 			func: function() { replaceContent(componentGroups) }
 			checked: true
@@ -96,7 +96,7 @@ QTabPage {
 		}
 		ListElement {
 			title: qsTr("Rangsor")
-			icon: "image://font/School/\uf114"
+			icon: "qrc:/internal/icon/podium.svg"
 			iconColor: "royalblue"
 			func: function() { replaceContent(componentScore) }
 		}
@@ -108,26 +108,26 @@ QTabPage {
 
 		ListElement {
 			title: qsTr("Profil")
-			icon: "image://font/Material Icons/\ue7fd"
+			icon: "qrc:/internal/icon/account-hard-hat.svg"
 			iconColor: "bisque"
 			func: function() { replaceContent(componentProfile, { menuVisible: true }) }
 		}
 		ListElement {
-			title: qsTr("Csoportjaim")
-			icon: "image://font/School/\uf154"
+			title: qsTr("Áttekintés")
+			icon: "qrc:/internal/icon/speedometer.svg"
 			iconColor: "gold"
 			func: function() { replaceContent(componentGroups) }
 			checked: true
 		}
 		ListElement {
 			title: qsTr("Rangsor")
-			icon: "image://font/School/\uf114"
+			icon: "qrc:/internal/icon/podium.svg"
 			iconColor: "royalblue"
 			func: function() { replaceContent(componentScore) }
 		}
 		ListElement {
 			title: qsTr("Beállítások")
-			icon: "image://font/Material Icons/\ue8b8"
+			icon: "qrc:/internal/icon/cog-outline.svg"
 			iconColor: "#ff4f38"
 			func: function() { replaceContent(componentSettings) }
 		}
@@ -213,28 +213,28 @@ QTabPage {
 				replaceContent()
 			buttonModel = modelAdmin
 			title = ""
-			buttonColor = CosStyle.colorPrimaryLight
+			//buttonColor = CosStyle.colorPrimaryLight
 			buttonBackgroundColor = "#5e0000"
 		} else if (cosClient.userRoles & Client.RoleTeacher) {
 			if (buttonModel !== modelTeacher)
 				replaceContent()
 			buttonModel = modelTeacher
 			title = ""
-			buttonColor = CosStyle.colorPrimaryLighter
+			//buttonColor = CosStyle.colorPrimaryLighter
 			buttonBackgroundColor = "#33220c"
 		} else if (cosClient.userRoles & Client.RoleStudent) {
 			if (buttonModel !== modelStudent)
 				replaceContent()
 			buttonModel = modelStudent
 			title = ""
-			buttonColor = CosStyle.colorPrimary
+			//buttonColor = CosStyle.colorPrimary
 			buttonBackgroundColor = "#111147"
 		} else {
 			if (buttonModel !== modelGuest)
 				replaceContent()
 			buttonModel = modelGuest
 			title = cosClient.serverName
-			buttonColor = CosStyle.colorPrimaryDark
+			//buttonColor = CosStyle.colorPrimaryDark
 			buttonBackgroundColor = "black"
 		}
 	}
@@ -255,7 +255,10 @@ QTabPage {
 			}
 		}
 
-		var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan lezárod a szerverrel a kapcsolatot?")})
+		var d = JS.dialogCreateQml("YesNo", {
+									   text: qsTr("Biztosan lezárod a szerverrel a kapcsolatot?"),
+									   image: "qrc:/internal/icon/lan-disconnect.svg"
+								   })
 		d.accepted.connect(function() {
 			_closeEnabled = true
 			mainStack.back()

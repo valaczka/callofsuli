@@ -17,6 +17,12 @@ TrophyView {
 	readonly property int recordsPerPage: Math.ceil(height/delegateHeight)+1
 
 
+	toolBarComponent: QToolButton {
+		action: actionCampaignFilter
+		color: actionCampaignFilter.color
+		display: AbstractButton.IconOnly
+	}
+
 	onRefreshRequest: reloadList(0)
 	mode: TrophyView.Map
 
@@ -50,18 +56,36 @@ TrophyView {
 				canFetchMore = false
 			}
 		}
+
+	}
+
+	Connections {
+		target: actionCampaignFilter
+
+		function onCampaignChanged() {
+			reloadList(0)
+		}
 	}
 
 
 	function reloadList(_offset) {
-		if (studentMaps)
-			studentMaps.send("gameListUserGet", {
-								 username: username,
-								 groupid: groupid,
-								 offset: _offset,
-								 limit: recordsPerPage
-							 })
-		else
+		if (studentMaps) {
+			if (actionCampaignFilter.campaign == -1)
+				studentMaps.send("gameListUserGet", {
+									 username: username,
+									 groupid: groupid,
+									 offset: _offset,
+									 limit: recordsPerPage
+								 })
+			else
+				studentMaps.send("gameListCampaignGet", {
+									 username: username,
+									 groupid: groupid,
+									 campaignid: actionCampaignFilter.campaign,
+									 offset: _offset,
+									 limit: recordsPerPage
+								 })
+		} else
 			modelGameList.clear()
 
 	}

@@ -7,355 +7,357 @@ import "Style"
 import "JScript.js" as JS
 
 QCollapsible {
-	id: control
-
-	required property bool selected
-
-	property GameMapEditorMission self: null
-
-	property bool editable: true
-
-	backgroundColor: "transparent"
-	titleColor: CosStyle.colorWarningLighter
-	lineColor: "transparent"
-	itemSelected: selected
-
-	signal missionRemove()
-
-	title: self && (selected || collapsed)? self.name : ""
+    id: control
+
+    required property bool selected
+
+    property GameMapEditorMission self: null
+
+    property bool editable: true
+
+    backgroundColor: "transparent"
+    titleColor: CosStyle.colorWarningLighter
+    lineColor: "transparent"
+    itemSelected: selected
+
+    signal missionRemove()
+
+    title: self && (selected || collapsed)? self.name : ""
 
-	rightComponent: Row {
-		spacing: 0
-		/*QToolButton {
-			anchors.verticalCenter: parent.verticalCenter
-			action: actionMissionEdit
-			color: CosStyle.colorAccent
-			display: AbstractButton.IconOnly
-			visible: !control.collapsed && !control.editable
-		}*/
-		QToolButton {
-			anchors.verticalCenter: parent.verticalCenter
-			action: actionMissionRemove
-			color: CosStyle.colorErrorLighter
-			display: AbstractButton.IconOnly
-		}
-	}
+    rightComponent: Row {
+        spacing: 0
+        /*QToolButton {
+            anchors.verticalCenter: parent.verticalCenter
+            action: actionMissionEdit
+            color: CosStyle.colorAccent
+            display: AbstractButton.IconOnly
+            visible: !control.collapsed && !control.editable
+        }*/
+        QToolButton {
+            anchors.verticalCenter: parent.verticalCenter
+            action: actionMissionRemove
+            color: CosStyle.colorErrorLighter
+            display: AbstractButton.IconOnly
+        }
+    }
 
-	QMenu {
-		id: contextMenu
+    QMenu {
+        id: contextMenu
 
-		MenuItem { action: actionMissionRemove }
-	}
+        MenuItem { action: actionMissionRemove }
+    }
 
-	onRightClicked: contextMenu.open()
+    onRightClicked: contextMenu.open()
 
-	Column {
-		id: controlContent
-		width: parent.width
-
-		QGridLayout {
-			id: contentLayout
-			watchModification: false
-
-			QGridImageTextField {
-				id: imageTextName
-				fieldName: qsTr("Küldetés neve")
-
-				textfield.font.family: "Rajdhani"
-				textfield.font.pixelSize: CosStyle.pixelSize*1.5
-				textfield.textColor: CosStyle.colorWarningLighter
-				textfield.readOnly: !control.editable
-				textfield.onTextModified: mapEditor.missionModify(self, {name: textfield.text})
-
-				text: self ? self.name : ""
-
-				image: self && self.medalImage != "" ? cosClient.medalIconPath(self.medalImage) : ""
-
-				mousearea.enabled: control.editable
-				mousearea.onClicked:  {
-					var d = JS.dialogCreateQml("ImageGrid", {
-												   model: cosClient.medalIcons(),
-												   icon: CosStyle.iconMedal,
-												   title: qsTr("Küldetés medálképe"),
-												   modelImagePattern: "qrc:/internal/medals/%1",
-												   clearEnabled: false,
-												   currentValue: self.medalImage
-											   })
-
-					d.accepted.connect(function(data) {
-						if (data)
-							mapEditor.missionModify(self, {medalImage: data})
-					})
-
-					d.open()
-				}
-			}
-
-			QGridLabel {
-				field: areaDetails
-			}
-
-			QGridTextArea {
-				id: areaDetails
-				fieldName: qsTr("Leírás")
-				placeholderText: qsTr("Rövid ismertető leírás a küldetésről")
-				minimumHeight: CosStyle.baseHeight*2
-				readOnly: !control.editable
-				color: CosStyle.colorWarning
+    Column {
+        id: controlContent
+        width: parent.width
 
-				text: self ? self.description : ""
+        QGridLayout {
+            id: contentLayout
+            watchModification: false
+
+            isFullscreen: control.compact
 
-				onTextModified: mapEditor.missionModify(self, {description: text})
-			}
-		}
+            QGridImageTextField {
+                id: imageTextName
+                fieldName: qsTr("Küldetés neve")
+
+                textfield.font.family: "Rajdhani"
+                textfield.font.pixelSize: CosStyle.pixelSize*1.5
+                textfield.textColor: CosStyle.colorWarningLighter
+                textfield.readOnly: !control.editable
+                textfield.onTextModified: mapEditor.missionModify(self, {name: textfield.text})
+
+                text: self ? self.name : ""
+
+                image: self && self.medalImage != "" ? cosClient.medalIconPath(self.medalImage) : ""
+
+                mousearea.enabled: control.editable
+                mousearea.onClicked:  {
+                    var d = JS.dialogCreateQml("ImageGrid", {
+                                                   model: cosClient.medalIcons(),
+                                                   icon: CosStyle.iconMedal,
+                                                   title: qsTr("Küldetés medálképe"),
+                                                   modelImagePattern: "qrc:/internal/medals/%1",
+                                                   clearEnabled: false,
+                                                   currentValue: self.medalImage
+                                               })
+
+                    d.accepted.connect(function(data) {
+                        if (data)
+                            mapEditor.missionModify(self, {medalImage: data})
+                    })
+
+                    d.open()
+                }
+            }
+
+            QGridLabel {
+                field: areaDetails
+            }
+
+            QGridTextArea {
+                id: areaDetails
+                fieldName: qsTr("Leírás")
+                placeholderText: qsTr("Rövid ismertető leírás a küldetésről")
+                minimumHeight: CosStyle.baseHeight*2
+                readOnly: !control.editable
+                color: CosStyle.colorWarning
 
+                text: self ? self.description : ""
 
-		Row {
-			id: levelRow
-			anchors.horizontalCenter: parent.horizontalCenter
-			spacing: 5
+                onTextModified: mapEditor.missionModify(self, {description: text})
+            }
+        }
 
-			topPadding: 10
-			bottomPadding: 20
 
-			Repeater {
-				id: groupRepeater
+        Row {
+            id: levelRow
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 5
 
-				model: self ? self.levels : null
+            topPadding: 10
+            bottomPadding: 20
 
-				QCard {
-					id: levelItem
-					height: CosStyle.pixelSize*4.5
-					width: height
+            Repeater {
+                id: groupRepeater
 
-					backgroundColor: CosStyle.colorAccent
+                model: self ? self.levels : null
 
-					required property int index
+                QCard {
+                    id: levelItem
+                    height: CosStyle.pixelSize*4.5
+                    width: height
 
-					property GameMapEditorMissionLevel levelSelf: self.levels.object(index)
+                    backgroundColor: CosStyle.colorAccent
 
-					onLevelSelfChanged: if (!levelSelf) {
-											delete levelItem
-										}
+                    required property int index
 
-					onClicked: {
-						mapEditor.openMissionLevel({
-													   missionLevel: levelSelf
-												   })
-					}
+                    property GameMapEditorMissionLevel levelSelf: self.levels.object(index)
 
-					Column {
-						anchors.centerIn: parent
-						spacing: 0
+                    onLevelSelfChanged: if (!levelSelf) {
+                                            delete levelItem
+                                        }
 
-						QLabel {
-							anchors.horizontalCenter: parent.horizontalCenter
-							color: "white"
-							font.weight: Font.DemiBold
-							font.pixelSize: CosStyle.pixelSize*2
-							text: levelItem.levelSelf ? levelItem.levelSelf.level : ""
-						}
+                    onClicked: {
+                        mapEditor.openMissionLevel({
+                                                       missionLevel: levelSelf
+                                                   })
+                    }
 
-						QLabel {
-							anchors.horizontalCenter: parent.horizontalCenter
-							color: "white"
-							font.weight: Font.Medium
-							font.pixelSize: CosStyle.pixelSize*0.9
-							font.capitalization: Font.AllUppercase
-							text: "Level"
-						}
-					}
-				}
-			}
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 0
 
-			QCard {
-				id: levelAddItem
-				height: CosStyle.pixelSize*4.5
-				width: height
+                        QLabel {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            color: "white"
+                            font.weight: Font.DemiBold
+                            font.pixelSize: CosStyle.pixelSize*2
+                            text: levelItem.levelSelf ? levelItem.levelSelf.level : ""
+                        }
 
-				visible: self && self.levels.count < 3
+                        QLabel {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            color: "white"
+                            font.weight: Font.Medium
+                            font.pixelSize: CosStyle.pixelSize*0.9
+                            font.capitalization: Font.AllUppercase
+                            text: "Level"
+                        }
+                    }
+                }
+            }
 
-				backgroundColor: CosStyle.colorOKDark
+            QCard {
+                id: levelAddItem
+                height: CosStyle.pixelSize*4.5
+                width: height
 
-				QLabel {
-					anchors.centerIn: parent
-					color: CosStyle.colorOKLighter
-					font.weight: Font.Bold
-					font.pixelSize: CosStyle.pixelSize*3
-					text: "+"
-				}
+                visible: self && self.levels.count < 3
 
-				onClicked: mapEditor.missionLevelAdd(self, {})
+                backgroundColor: CosStyle.colorOKDark
 
-			}
-		}
+                QLabel {
+                    anchors.centerIn: parent
+                    color: CosStyle.colorOKLighter
+                    font.weight: Font.Bold
+                    font.pixelSize: CosStyle.pixelSize*3
+                    text: "+"
+                }
 
+                onClicked: mapEditor.missionLevelAdd(self, {})
 
+            }
+        }
 
-		Rectangle {
-			id: lockBgRect
 
-			width: parent.width
-			height: lockRow.height
 
-			color: JS.setColorAlpha(CosStyle.colorErrorDark, 0.3)
+        Rectangle {
+            id: lockBgRect
 
-			Row {
-				id: lockRow
+            width: parent.width
+            height: lockRow.height
 
-				width: parent.width
+            color: JS.setColorAlpha(CosStyle.colorErrorDark, 0.3)
 
-				QFontImage {
-					id: lockImage
-					size: CosStyle.pixelSize*2
-					icon: CosStyle.iconLock
-					color: CosStyle.colorErrorLighter
-					width: size*2
-					anchors.verticalCenter: parent.verticalCenter
-				}
+            Row {
+                id: lockRow
 
+                width: parent.width
 
-				QObjectListView {
-					id: list
+                QFontImage {
+                    id: lockImage
+                    size: CosStyle.pixelSize*2
+                    icon: CosStyle.iconLock
+                    color: CosStyle.colorErrorLighter
+                    width: size*2
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
-					anchors.verticalCenter: parent.verticalCenter
 
-					width: parent.width-lockImage.width
+                QObjectListView {
+                    id: list
 
-					model: SortFilterProxyModel {
-						sourceModel: self ? self.locks : null
+                    anchors.verticalCenter: parent.verticalCenter
 
-						proxyRoles: ExpressionRole {
-							name: "name"
-							expression: model.mission.name
-						}
+                    width: parent.width-lockImage.width
 
-						sorters: StringSorter {
-							roleName: "name"
-						}
-					}
+                    model: SortFilterProxyModel {
+                        sourceModel: self ? self.locks : null
 
-					modelTitleRole: "name"
-					colorTitle: CosStyle.colorAccentLighter
+                        proxyRoles: ExpressionRole {
+                            name: "name"
+                            expression: model.mission.name
+                        }
 
-					autoSelectorChange: false
-					refreshEnabled: false
+                        sorters: StringSorter {
+                            roleName: "name"
+                        }
+                    }
 
-					delegateHeight: CosStyle.baseHeight
+                    modelTitleRole: "name"
+                    colorTitle: CosStyle.colorAccentLighter
 
+                    autoSelectorChange: false
+                    refreshEnabled: false
 
-					leftComponent: Item {
-						width: list.delegateHeight
-						height: width
+                    delegateHeight: CosStyle.baseHeight
 
-						QBadge {
-							anchors.centerIn: parent
-							text: model && model.level ? model.level : ""
-							color: CosStyle.colorWarningDarker
-						}
-					}
 
-					rightComponent: QToolButton {
-						anchors.verticalCenter: parent.verticalCenter
-						icon.source: CosStyle.iconDelete
-						color: CosStyle.colorErrorLighter
-						onClicked: {
-							mapEditor.missionLockRemove(self, list.modelObject(modelIndex))
-						}
-					}
+                    leftComponent: Item {
+                        width: list.delegateHeight
+                        height: width
 
+                        QBadge {
+                            anchors.centerIn: parent
+                            text: model && model.level ? model.level : ""
+                            color: CosStyle.colorWarningDarker
+                        }
+                    }
 
-					footer: QToolButtonFooter {
-						width: list.width
-						color: CosStyle.colorAccentLight
-						text: qsTr("Zárolás hozzáadása")
-						icon.source: CosStyle.iconAdd
-						onClicked: {
-							mapEditor.updateMissionLevelModelMission(self)
+                    rightComponent: QToolButton {
+                        anchors.verticalCenter: parent.verticalCenter
+                        icon.source: "qrc:/internal/icon/delete.svg"
+                        color: CosStyle.colorErrorLighter
+                        onClicked: {
+                            mapEditor.missionLockRemove(self, list.modelObject(modelIndex))
+                        }
+                    }
 
-							if (mapEditor.missionLevelModel.count < 1) {
-								cosClient.sendMessageWarning(qsTr("Zárolások"), qsTr("Nincs hozzáadható küldetés!"))
-								return
-							}
 
+                    footer: QToolButtonFooter {
+                        width: list.width
+                        color: CosStyle.colorAccentLight
+                        text: qsTr("Zárolás hozzáadása")
+                        icon.source: CosStyle.iconAdd
+                        onClicked: {
+                            mapEditor.updateMissionLevelModelMission(self)
 
-							var d = JS.dialogCreateQml("MissionList", {
-														   icon: CosStyle.iconLockAdd,
-														   title: qsTr("%1 - Zárolás").arg(self.name),
-														   selectorSet: false,
-														   sourceModel: mapEditor.missionLevelModel
-													   })
+                            if (mapEditor.missionLevelModel.count < 1) {
+                                cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Zárolások"), qsTr("Nincs hozzáadható küldetés!"))
+                                return
+                            }
 
-							d.accepted.connect(function(dlgdata) {
-								if (dlgdata < 0)
-									return
 
-								mapEditor.missionLockAdd(self, d.item.list.modelObject(dlgdata).missionLevel)
-							})
-							d.open()
-						}
-					}
+                            var d = JS.dialogCreateQml("MissionList", {
+                                                           icon: CosStyle.iconLockAdd,
+                                                           title: qsTr("%1 - Zárolás").arg(self.name),
+                                                           selectorSet: false,
+                                                           sourceModel: mapEditor.missionLevelModel
+                                                       })
 
+                            d.accepted.connect(function(dlgdata) {
+                                if (dlgdata < 0)
+                                    return
 
-					onClicked: {
-						var o = modelObject(index)
+                                mapEditor.missionLockAdd(self, d.item.list.modelObject(dlgdata).missionLevel)
+                            })
+                            d.open()
+                        }
+                    }
 
-						mapEditor.updateMissionLevelModelLock(o)
 
-						if (mapEditor.missionLevelModel.count < 1) {
-							cosClient.sendMessageWarning(qsTr("Zárolás"), qsTr("A kiválasztott szintet nincs mire módosítani!"))
-							return
-						}
+                    onClicked: {
+                        var o = modelObject(index)
 
+                        mapEditor.updateMissionLevelModelLock(o)
 
-						var d = JS.dialogCreateQml("MissionList", {
-													   icon: CosStyle.iconLockAdd,
-													   title: qsTr("%1 - Zárolás").arg(self.name),
-													   selectorSet: false,
-													   sourceModel: mapEditor.missionLevelModel
-												   })
+                        if (mapEditor.missionLevelModel.count < 1) {
+                            cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Zárolás"), qsTr("A kiválasztott szintet nincs mire módosítani!"))
+                            return
+                        }
 
-						d.accepted.connect(function(dlgdata) {
-							if (dlgdata < 0)
-								return
 
-							mapEditor.missionLockReplace(self, o, d.item.list.modelObject(dlgdata).missionLevel)
-						})
-						d.open()
-					}
+                        var d = JS.dialogCreateQml("MissionList", {
+                                                       icon: CosStyle.iconLockAdd,
+                                                       title: qsTr("%1 - Zárolás").arg(self.name),
+                                                       selectorSet: false,
+                                                       sourceModel: mapEditor.missionLevelModel
+                                                   })
 
-				}
+                        d.accepted.connect(function(dlgdata) {
+                            if (dlgdata < 0)
+                                return
 
-			}
+                            mapEditor.missionLockReplace(self, o, d.item.list.modelObject(dlgdata).missionLevel)
+                        })
+                        d.open()
+                    }
 
-		}
-	}
+                }
 
-	Rectangle {
-		anchors.bottom: controlContent.bottom
-		anchors.left: controlContent.left
-		width: controlContent.width
-		height: 0.5
-		color: Qt.darker(CosStyle.colorAccentDark)
-	}
+            }
 
+        }
+    }
 
+    Rectangle {
+        anchors.bottom: controlContent.bottom
+        anchors.left: controlContent.left
+        width: controlContent.width
+        height: 0.5
+        color: Qt.darker(CosStyle.colorAccentDark)
+    }
 
-	Action {
-		id: actionMissionEdit
 
-		icon.source: CosStyle.iconEdit
-		text: qsTr("Szerkesztés")
 
-		onTriggered: control.editable = true
-	}
+    Action {
+        id: actionMissionEdit
 
-	Action {
-		id: actionMissionRemove
+        icon.source: "qrc:/internal/icon/pencil.svg"
+        text: qsTr("Szerkesztés")
 
-		icon.source: CosStyle.iconDelete
-		text: qsTr("Törlés")
+        onTriggered: control.editable = true
+    }
 
-		onTriggered: control.missionRemove()
-	}
+    Action {
+        id: actionMissionRemove
+
+        icon.source: "qrc:/internal/icon/delete.svg"
+        text: qsTr("Törlés")
+
+        onTriggered: control.missionRemove()
+    }
 }

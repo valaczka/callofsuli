@@ -60,6 +60,9 @@ class TeacherGroups : public AbstractActivity
 	Q_PROPERTY(QString selectedGroupName READ selectedGroupName WRITE setSelectedGroupName NOTIFY selectedGroupNameChanged)
 	Q_PROPERTY(QString selectedGroupFullName READ selectedGroupFullName WRITE setSelectedGroupFullName NOTIFY selectedGroupFullNameChanged)
 
+	Q_PROPERTY(QVariantList mapList READ mapList CONSTANT)
+	Q_PROPERTY(QVariantList gradeList READ gradeList CONSTANT)
+
 
 public:
 	explicit TeacherGroups(QQuickItem *parent = nullptr);
@@ -79,6 +82,12 @@ public:
 	Q_INVOKABLE ObjectListModel* newUserModel(QObject *parent) const;
 	Q_INVOKABLE ObjectListModel* newMapModel(QObject *parent) const;
 
+	Q_INVOKABLE QVariantMap grade(const int &id) const;
+	Q_INVOKABLE QVariantMap mapMission(const QString &mapUuid, const QString &missionUuid) const;
+	Q_INVOKABLE QVariantList missionList(const QString &mapUuid = "") const;
+
+	const QVariantList &mapList() const;
+	QVariantList gradeList() const;
 
 public slots:
 	void groupReload(QJsonObject = QJsonObject(), QByteArray = QByteArray());
@@ -87,12 +96,16 @@ public slots:
 	void mapDownloadInfoReload();
 	bool loadMapDataToModel(const QString &uuid, GameMapModel *model);
 
+protected slots:
+	virtual void onMessageReceived(const CosMessage &message) override;
+
 private slots:
 	void onGroupGet(QJsonObject jsonData, QByteArray);
 	void onGroupMapListGet(const QJsonArray &list);
 	void onGameListUserGet(QJsonObject jsonData, QByteArray);
-	void onGameListMapGet(QJsonObject jsonData, QByteArray);
 	void onGameListGroupGet(QJsonObject jsonData, QByteArray);
+	void onCampaignGet(QJsonObject jsonData, QByteArray);
+	void onCampaignListGet(QJsonObject jsonData, QByteArray);
 
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 
@@ -118,18 +131,31 @@ signals:
 	void groupMapRemove(QJsonObject jsonData, QByteArray binaryData);
 	void groupExcludedMapListGet(QJsonObject jsonData, QByteArray binaryData);
 	void groupTrophyGet(QJsonObject jsonData, QByteArray binaryData);
+	void groupExamListGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void gameListUserGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListUserReady(const QVariantList &list, const QString &username);
-	void gameListMapGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListMapReady(const QVariantList &list, const QString &mapid, const QString &username);
 	void gameListGroupGet(QJsonObject jsonData, QByteArray binaryData);
 	void gameListGroupReady(const QVariantList &list, const int &groupid, const QString &username, const int &offset);
+
+	void campaignListGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignGetReady(const QJsonObject &jsonData);
+	void campaignAdd(QJsonObject jsonData, QByteArray binaryData);
+	void campaignRemove(QJsonObject jsonData, QByteArray binaryData);
+	void campaignModify(QJsonObject jsonData, QByteArray binaryData);
+	void campaignFinish(QJsonObject jsonData, QByteArray binaryData);
+
+	void examEngineCreate(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMapGet(QJsonObject jsonData, QByteArray binaryData);
+	void examEngineMessage(QString func, QJsonObject jsonData);
 
 	void modelMapListChanged();
 	void selectedGroupIdChanged(int selectedGroupId);
 	void selectedGroupNameChanged();
 	void selectedGroupFullNameChanged();
+
 
 private:
 	ObjectGenericListModel<MapListObject> * m_modelMapList;
@@ -138,6 +164,8 @@ private:
 	QVariantMap m_missionNameMap;
 	QString m_selectedGroupName;
 	QString m_selectedGroupFullName;
+	QMap<int, QVariantMap> m_gradeMap;
+	QVariantList m_mapList;
 };
 
 

@@ -6,213 +6,218 @@ import "Style"
 import "JScript.js" as JS
 
 Rectangle {
-	id: control
+    id: control
 
-	width: parent ? parent.width : 100
+    width: parent ? parent.width : 100
 
-	property int contentHeight: content.childrenRect.height+10
-	property alias headerHeight: headerRect.height
-	property alias rightComponent: rightLoader.sourceComponent
+    property int contentHeight: content.childrenRect.height+10
+    property alias headerHeight: headerRect.height
+    property alias rightComponent: rightLoader.sourceComponent
 
-	height: headerRect.height
+    property bool isFullscreen: false
 
-	property bool collapsed: false
-	property alias title: title.text
-	property alias titleColor: title.color
-	property color backgroundColor: JS.setColorAlpha(CosStyle.colorPrimaryDarkest, 0.5)
-	property color lineColor: CosStyle.colorPrimaryDark
-	property color contentBackgroundColor: "transparent"
+    height: headerRect.height
 
-	property bool interactive: true
+    property bool collapsed: false
+    property alias title: title.text
+    property alias titleColor: title.color
+    property color backgroundColor: JS.setColorAlpha(CosStyle.colorPrimaryDarkest, 0.5)
+    property color lineColor: CosStyle.colorPrimaryDark
+    property color contentBackgroundColor: "transparent"
 
-	property bool selectorSet: false
-	property bool itemSelected: false
+    property bool interactive: true
 
-	default property alias contents: content.data
+    property bool selectorSet: false
+    property bool itemSelected: false
 
-	signal rightClicked()
-	signal longClicked()
-	signal selectToggled(bool withShift)
+    default property alias contents: content.data
 
-	color: "transparent"
+    signal rightClicked()
+    signal longClicked()
+    signal selectToggled(bool withShift)
 
-	Rectangle {
-		id: headerRect
-		width: parent.width
-		height: Math.max(title.implicitHeight, arrow.implicitHeight, CosStyle.halfLineHeight, rightLoader.height)
+    color: "transparent"
 
-		color: backgroundColor
+    Rectangle {
+        id: headerRect
+        width: parent.width
+        height: Math.max(title.implicitHeight, arrow.implicitHeight, CosStyle.halfLineHeight, rightLoader.height)
 
-		Rectangle {
-			width: parent.width
-			height: 1
-			anchors.bottom: parent.bottom
-			color: lineColor
-		}
+        color: backgroundColor
 
-		MouseArea {
-			anchors.fill: parent
-			acceptedButtons: interactive ? (Qt.LeftButton | Qt.RightButton) : Qt.RightButton
-			onClicked: {
-				if (mouse.button == Qt.LeftButton) {
-					if (selectorSet)
-						control.selectToggled(mouse.modifiers & Qt.ShiftModifier)
-					else
-						collapsed = !collapsed
-				} else if (mouse.button == Qt.RightButton)
-					control.rightClicked()
-			}
+        Rectangle {
+            width: parent.width
+            height: 1
+            anchors.bottom: parent.bottom
+            color: lineColor
+        }
 
-			onPressAndHold: control.longClicked()
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: interactive ? (Qt.LeftButton | Qt.RightButton) : Qt.RightButton
+            onClicked: {
+                if (mouse.button == Qt.LeftButton) {
+                    if (selectorSet)
+                        control.selectToggled(mouse.modifiers & Qt.ShiftModifier)
+                    else
+                        collapsed = !collapsed
+                } else if (mouse.button == Qt.RightButton)
+                    control.rightClicked()
+            }
 
-			QFlipable {
-				id: flipable
-				width: parent.height
-				height: parent.height
+            onPressAndHold: control.longClicked()
 
-				anchors.left: parent.left
-				anchors.verticalCenter: parent.verticalCenter
+            QFlipable {
+                id: flipable
+                width: parent.height
+                height: parent.height
 
-				visible: control.selectorSet
+                anchors.left: parent.left
+                anchors.leftMargin: control.isFullscreen ? mainWindow.safeMarginLeft: 0
+                anchors.verticalCenter: parent.verticalCenter
 
-				mouseArea.enabled: false
+                visible: control.selectorSet
 
-				frontIcon: CosStyle.iconUnchecked
-				backIcon: CosStyle.iconChecked
-				color: CosStyle.colorAccent
-				flipped: control.itemSelected
-			}
+                mouseArea.enabled: false
+
+                frontIcon: CosStyle.iconUnchecked
+                backIcon: CosStyle.iconChecked
+                color: CosStyle.colorAccent
+                flipped: control.itemSelected
+            }
 
 
-			QFontImage {
-				id: arrow
-				anchors.left: flipable.visible ? flipable.right : parent.left
-				anchors.verticalCenter: parent.verticalCenter
+            QFontImage {
+                id: arrow
+                anchors.left: flipable.visible ? flipable.right : parent.left
+                anchors.leftMargin: !flipable.visible && control.isFullscreen ? mainWindow.safeMarginLeft: 0
+                anchors.verticalCenter: parent.verticalCenter
 
-				size: CosStyle.pixelSize*1.4
-				color: CosStyle.colorPrimaryLighter
+                size: CosStyle.pixelSize*1.4
+                color: CosStyle.colorPrimaryLighter
 
-				icon: CosStyle.iconDown
+                icon: CosStyle.iconDown
 
-				rotation: -90
-				transformOrigin: Item.Center
-			}
+                rotation: -90
+                transformOrigin: Item.Center
+            }
 
-			QLabel {
-				id: title
-				anchors.left: arrow.right
-				anchors.verticalCenter: parent.verticalCenter
-				//width: parent.width-arrow.width
-				anchors.right: rightLoader.left
-				font.pixelSize: CosStyle.pixelSize*0.85
-				font.weight: Font.DemiBold
-				font.capitalization: Font.AllUppercase
-				color: CosStyle.colorAccentLighter
-				elide: Text.ElideRight
-			}
+            QLabel {
+                id: title
+                anchors.left: arrow.right
+                anchors.verticalCenter: parent.verticalCenter
+                //width: parent.width-arrow.width
+                anchors.right: rightLoader.left
+                font.pixelSize: CosStyle.pixelSize*0.85
+                font.weight: Font.DemiBold
+                font.capitalization: Font.AllUppercase
+                color: CosStyle.colorAccentLighter
+                elide: Text.ElideRight
+            }
 
-			Loader {
-				id: rightLoader
+            Loader {
+                id: rightLoader
 
-				anchors.right: parent.right
-				anchors.verticalCenter: parent.verticalCenter
-			}
-		}
-	}
+                anchors.right: parent.right
+                anchors.rightMargin: control.isFullscreen ? mainWindow.safeMarginRight : 0
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+    }
 
-	Rectangle {
-		id: bgRect
-		color: contentBackgroundColor
-		anchors.fill: parent
-		anchors.topMargin: headerRect.height
-	}
+    Rectangle {
+        id: bgRect
+        color: contentBackgroundColor
+        anchors.fill: parent
+        anchors.topMargin: headerRect.height
+    }
 
-	Item {
-		id: content
+    Item {
+        id: content
 
-		anchors.top: headerRect.bottom
-		anchors.topMargin: 5
-		anchors.left: parent.left
-		anchors.right: parent.right
+        anchors.top: headerRect.bottom
+        anchors.topMargin: 5
+        anchors.left: parent.left
+        anchors.right: parent.right
 
-		opacity: 0.0
-		visible: opacity
-	}
+        opacity: 0.0
+        visible: opacity
+    }
 
-	states: [
-		State {
-			name: "VISIBLE"
-			when: !control.collapsed
+    states: [
+        State {
+            name: "VISIBLE"
+            when: !control.collapsed
 
-			PropertyChanges {
-				target: arrow
-				rotation: 0
-			}
+            PropertyChanges {
+                target: arrow
+                rotation: 0
+            }
 
-			PropertyChanges {
-				target: control
-				height: headerRect.height+contentHeight+1
-			}
+            PropertyChanges {
+                target: control
+                height: headerRect.height+contentHeight+1
+            }
 
-			PropertyChanges {
-				target: content
-				opacity: 1.0
-			}
-		}
-	]
+            PropertyChanges {
+                target: content
+                opacity: 1.0
+            }
+        }
+    ]
 
-	transitions: [
-		Transition {
-			from: "*"
-			to: "VISIBLE"
-			SequentialAnimation {
-				ParallelAnimation {
-					PropertyAnimation {
-						target: arrow
-						property: "rotation"
-						duration: 225
-					}
-					PropertyAnimation {
-						target: control
-						property: "height"
-						duration: 225
-						easing.type: Easing.OutQuint
-					}
-				}
-				PropertyAnimation {
-					target: content
-					property: "opacity"
-					duration: 175
-					easing.type: Easing.InQuad
-				}
-			}
-		},
-		Transition {
-			from: "VISIBLE"
-			to: "*"
-			SequentialAnimation {
-				PropertyAnimation {
-					target: content
-					property: "opacity"
-					duration: 125
-					easing.type: Easing.OutQuad
-				}
-				ParallelAnimation {
-					PropertyAnimation {
-						target: arrow
-						property: "rotation"
-						duration: 175
-					}
-					PropertyAnimation {
-						target: control
-						property: "height"
-						duration: 175
-						easing.type: Easing.InQuint
-					}
-				}
-			}
-		}
-	]
+    transitions: [
+        Transition {
+            from: "*"
+            to: "VISIBLE"
+            SequentialAnimation {
+                ParallelAnimation {
+                    PropertyAnimation {
+                        target: arrow
+                        property: "rotation"
+                        duration: 225
+                    }
+                    PropertyAnimation {
+                        target: control
+                        property: "height"
+                        duration: 225
+                        easing.type: Easing.OutQuint
+                    }
+                }
+                PropertyAnimation {
+                    target: content
+                    property: "opacity"
+                    duration: 175
+                    easing.type: Easing.InQuad
+                }
+            }
+        },
+        Transition {
+            from: "VISIBLE"
+            to: "*"
+            SequentialAnimation {
+                PropertyAnimation {
+                    target: content
+                    property: "opacity"
+                    duration: 125
+                    easing.type: Easing.OutQuad
+                }
+                ParallelAnimation {
+                    PropertyAnimation {
+                        target: arrow
+                        property: "rotation"
+                        duration: 175
+                    }
+                    PropertyAnimation {
+                        target: control
+                        property: "height"
+                        duration: 175
+                        easing.type: Easing.InQuint
+                    }
+                }
+            }
+        }
+    ]
 
 }
 

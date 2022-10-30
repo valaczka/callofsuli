@@ -109,6 +109,16 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 								   GamePickable::PickablePliers,
 								   QVariantMap());
 
+	list["camouflage"] = InventoryType(tr("1 álruha"),
+								   "qrc:/internal/game/camouflage.png",
+								   GamePickable::PickableCamouflage,
+								   QVariantMap());
+
+	list["teleporter"] = InventoryType(tr("1 teleportáló"),
+								   "qrc:/internal/game/teleporter.png",
+								   GamePickable::PickableTeleporter,
+								   QVariantMap());
+
 	return list;
 }
 

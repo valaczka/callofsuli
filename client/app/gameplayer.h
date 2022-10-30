@@ -49,12 +49,14 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(GameEnemy * enemy READ enemy WRITE setEnemy NOTIFY enemyChanged)
 	Q_PROPERTY(int defaultHp READ defaultHp WRITE setDefaultHp NOTIFY defaultHpChanged)
 	Q_PROPERTY(int shield READ shield WRITE setShield NOTIFY shieldChanged)
+	Q_PROPERTY(bool invisible READ invisible WRITE setInvisible NOTIFY invisibleChanged)
 
 	Q_PROPERTY(QPointF moveToPoint READ moveToPoint WRITE setMoveToPoint NOTIFY moveToPointChanged)
 	Q_PROPERTY(QQuickItem* moveToItem READ moveToItem WRITE setMoveToItem NOTIFY moveToItemChanged)
 
 	Q_PROPERTY(QQuickItem* fire READ fire WRITE setFire NOTIFY fireChanged)
 	Q_PROPERTY(QQuickItem* fence READ fence WRITE setFence NOTIFY fenceChanged)
+	Q_PROPERTY(QQuickItem* teleport READ teleport WRITE setTeleport NOTIFY teleportChanged)
 
 public:
 	enum LadderMode {
@@ -80,6 +82,7 @@ public:
 
 	Q_INVOKABLE void operate(QQuickItem *item);
 	Q_INVOKABLE void autoMove();
+	Q_INVOKABLE void teleportToNext();
 
 	LadderMode ladderMode() const { return m_ladderMode; }
 	GameLadder * ladder() const { return m_ladder; }
@@ -101,6 +104,12 @@ public:
 	QQuickItem *fence() const;
 	void setFence(QQuickItem *newFence);
 
+	bool invisible() const;
+	void setInvisible(bool newInvisible);
+
+	QQuickItem *teleport() const;
+	void setTeleport(QQuickItem *newTeleport);
+
 public slots:
 	QString playSoundEffect(const QString &effect);
 	void onBodyBeginContact(Box2DFixture *other);
@@ -108,7 +117,6 @@ public slots:
 
 	void hurtByEnemy(GameEnemy *enemy, const bool &canProtect = false);
 	void killByEnemy(GameEnemy *enemy);
-	void attackSuccesful(GameEnemy *enemy);
 	void attackFailed(GameEnemy *enemy);
 
 	void setLadderMode(LadderMode ladderMode);
@@ -124,7 +132,6 @@ signals:
 	void hurt(GameEnemy *enemy);
 	void underAttack();
 	void attack();
-	void attackSucceed(GameEnemy *enemy);
 	void ladderModeChanged(LadderMode ladderMode);
 	void ladderChanged(GameLadder * ladder);
 	void enemyChanged(GameEnemy * enemy);
@@ -137,6 +144,8 @@ signals:
 	void operateRequest(QQuickItem *item);
 	void fireChanged();
 	void fenceChanged();
+	void invisibleChanged();
+	void teleportChanged(QQuickItem *item);
 
 private slots:
 	void onCosGameChanged(CosGame *);
@@ -159,6 +168,8 @@ private:
 	QPointer<QQuickItem> m_moveToItem;
 	QPointer<QQuickItem> m_fire;
 	QPointer<QQuickItem> m_fence;
+	bool m_invisible;
+	QPointer<QQuickItem> m_teleport;
 };
 
 

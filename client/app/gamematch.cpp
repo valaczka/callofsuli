@@ -52,6 +52,11 @@ GameMatch::GameMatch(GameMap *gameMap, QObject *parent)
 	, m_statData()
 	, m_water(0)
 	, m_pliers(0)
+	, m_mode(ModeNormal)
+	, m_skipPreview(false)
+	, m_isFlawless(false)
+	, m_camouflage(0)
+	, m_teleporter(0)
 {
 	setPlayerCharacter("default");
 }
@@ -77,6 +82,11 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	, m_deathmatch(false)
 	, m_water(0)
 	, m_pliers(0)
+	, m_mode(ModeNormal)
+	, m_skipPreview(false)
+	, m_isFlawless(false)
+	, m_camouflage(0)
+	, m_teleporter(0)
 {
 	Q_ASSERT(missionLevel);
 
@@ -88,11 +98,18 @@ GameMatch::GameMatch(GameMapMissionLevel *missionLevel, GameMap *gameMap, QObjec
 	setTerrain(missionLevel->terrain());
 	setStartHp(missionLevel->startHP());
 	setDuration(missionLevel->duration());
+	setIsFlawless(true);
 
 	QString image = missionLevel->image();
 
 	if (!image.isEmpty())
 		setBgImage(image);
+
+	const QString &uuidLevel = QString("%1#%2").arg(m_missionUuid).arg(m_level);
+
+	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+	if (l.contains(uuidLevel))
+		setSkipPreview(true);
 
 }
 
@@ -118,6 +135,11 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	, m_deathmatch(false)
 	, m_water(0)
 	, m_pliers(0)
+	, m_mode(ModeNormal)
+	, m_skipPreview(false)
+	, m_isFlawless(false)
+	, m_camouflage(0)
+	, m_teleporter(0)
 {
 	setPlayerCharacter("default");
 
@@ -127,12 +149,18 @@ GameMatch::GameMatch(GameMapEditorMissionLevel *missionLevel, GameMap *gameMap, 
 	setTerrain(missionLevel->terrain());
 	setStartHp(missionLevel->startHP());
 	setDuration(missionLevel->duration());
+	setIsFlawless(true);
 
 	QString image = missionLevel->image();
 
 	if (!image.isEmpty())
 		setBgImage(image);
 
+	const QString &uuidLevel = QString("%1#%2").arg(m_missionUuid).arg(m_level);
+
+	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+	if (l.contains(uuidLevel))
+		setSkipPreview(true);
 }
 
 
@@ -233,6 +261,27 @@ QJsonArray GameMatch::takeStatistics()
 }
 
 
+/**
+ * @brief GameMatch::previewCompleted
+ */
+
+void GameMatch::previewCompleted()
+{
+	if (m_missionUuid.isEmpty())
+		return;
+
+	const QString &uuidLevel = QString("%1#%2").arg(m_missionUuid).arg(m_level);
+
+	QStringList l = Client::clientInstance()->getServerSetting("game/skipPreview", QStringList()).toStringList();
+
+	if (!l.contains(uuidLevel)) {
+		l.append(uuidLevel);
+		Client::clientInstance()->setServerSetting("game/skipPreview", l);
+		setSkipPreview(true);
+	}
+}
+
+
 
 /**
  * @brief GameMatch::check
@@ -255,29 +304,27 @@ bool GameMatch::check(QString *errorString)
 		return false;
 	}
 
-	//foreach(GameMap::BlockChapterMap *bcm, ml->blockChapterMaps()) {
-		foreach(GameMapChapter *chapter, ml->chapters()) {
-			foreach(GameMapObjective *objective, chapter->objectives()) {
-				QString om = objective->module();
+	foreach(GameMapChapter *chapter, ml->chapters()) {
+		foreach(GameMapObjective *objective, chapter->objectives()) {
+			QString om = objective->module();
 
-				if (!Client::moduleObjectiveList().contains(om)) {
+			if (!Client::moduleObjectiveList().contains(om)) {
+				if (errorString)
+					*errorString = tr("Érvénytelen modul: %1").arg(om);
+				return false;
+			}
+
+			if (objective->storage()) {
+				QString sm = objective->storage()->module();
+
+				if (!Client::moduleStorageList().contains(sm)) {
 					if (errorString)
-						*errorString = tr("Érvénytelen modul: %1").arg(om);
+						*errorString = tr("Érvénytelen modul: %1").arg(sm);
 					return false;
-				}
-
-				if (objective->storage()) {
-					QString sm = objective->storage()->module();
-
-					if (!Client::moduleStorageList().contains(sm)) {
-						if (errorString)
-							*errorString = tr("Érvénytelen modul: %1").arg(sm);
-						return false;
-					}
 				}
 			}
 		}
-	//}
+	}
 
 	return true;
 }
@@ -423,6 +470,19 @@ void GameMatch::setDeathmatch(bool deathmatch)
 	emit deathmatchChanged(m_deathmatch);
 }
 
+const GameMatch::GameMode &GameMatch::mode() const
+{
+	return m_mode;
+}
+
+void GameMatch::setMode(const GameMode &newMode)
+{
+	if (m_mode == newMode)
+		return;
+	m_mode = newMode;
+	emit modeChanged();
+}
+
 
 
 
@@ -453,4 +513,56 @@ void GameMatch::setPliers(int newPliers)
 		return;
 	m_pliers = newPliers;
 	emit pliersChanged();
+}
+
+bool GameMatch::skipPreview() const
+{
+	return m_skipPreview;
+}
+
+void GameMatch::setSkipPreview(bool newSkipPreview)
+{
+	if (m_skipPreview == newSkipPreview)
+		return;
+	m_skipPreview = newSkipPreview;
+	emit skipPreviewChanged();
+}
+
+bool GameMatch::isFlawless() const
+{
+	return m_isFlawless;
+}
+
+void GameMatch::setIsFlawless(bool newIsFlawless)
+{
+	if (m_isFlawless == newIsFlawless)
+		return;
+	m_isFlawless = newIsFlawless;
+	emit isFlawlessChanged();
+}
+
+int GameMatch::camouflage() const
+{
+	return m_camouflage;
+}
+
+void GameMatch::setCamouflage(int newGlasses)
+{
+	if (m_camouflage == newGlasses)
+		return;
+	m_camouflage = newGlasses;
+	emit camouflageChanged();
+}
+
+int GameMatch::teleporter() const
+{
+	return m_teleporter;
+}
+
+void GameMatch::setTeleporter(int newTeleporter)
+{
+	if (m_teleporter == newTeleporter)
+		return;
+	m_teleporter = newTeleporter;
+	emit teleporterChanged();
 }

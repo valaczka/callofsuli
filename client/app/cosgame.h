@@ -62,7 +62,7 @@ class CosGame : public Game
 	Q_PROPERTY(QQuickItem * itemPage READ itemPage WRITE setItemPage NOTIFY itemPageChanged)
 	Q_PROPERTY(GameQuestion * question READ question NOTIFY questionChanged)
 	Q_PROPERTY(GameActivity * activity READ activity WRITE setActivity NOTIFY activityChanged)
-	Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
 	Q_PROPERTY(GamePickable * pickable READ pickable NOTIFY pickableChanged)
@@ -81,6 +81,7 @@ public:
 
 	Q_INVOKABLE bool loadTerrainData();
 
+	Q_INVOKABLE void createFixEnemies();
 	Q_INVOKABLE void recreateEnemies();
 	Q_INVOKABLE void resetEnemy(GameEnemyData *enemyData);
 	Q_INVOKABLE void setEnemiesMoving(const bool &moving);
@@ -106,6 +107,8 @@ public:
 
 	GameMatch * gameMatch() const { return m_gameMatch; }
 
+	Q_INVOKABLE void previewCompleted() const { if (m_gameMatch) m_gameMatch->previewCompleted(); }
+
 	bool isPrepared() const { return m_isPrepared; }
 	bool isStarted() const { return m_isStarted; }
 
@@ -128,6 +131,8 @@ public slots:
 	void increaseShield(const int &num);
 	void increasePliers(const int &num);
 	void increaseWater(const int &num);
+	void increaseCamouflage(const int &num);
+	void increaseTeleporter(const int &num);
 
 	void setGameData(QVariantMap gameData);
 	void onGameStarted();
@@ -156,6 +161,7 @@ private slots:
 	void onGameMatchTimerTimeout();
 	void onGameFinishedSuccess();
 	void onGameFinishedLost();
+	void onGameQuestionFinished();
 
 signals:
 	void gameStarted();
@@ -178,6 +184,8 @@ signals:
 
 	void levelChanged(int level);
 	void startHpChanged(int startHp);
+
+	void gameToolTipRequest(const QString &setting, const QString &image, const QString &text, const QString &details);
 
 	void fixturesReadyToDestroy(QList<Box2DFixture*> list);
 
@@ -203,6 +211,7 @@ private:
 	QStringList loadSoldierData();
 	void loadPickables();
 	void setPickables(QVector<GameEnemyData *> *enemyList, const int &block);
+	void createNextQuestion();
 
 	QVariantMap m_gameData;
 	QQuickItem * m_player;
@@ -225,6 +234,7 @@ private:
 	QVector<GamePickable *> m_pickableList;
 	QTime m_elapsedTime;
 	bool m_isFinished;
+	bool m_enemiesCreatedFirst = false;
 };
 
 

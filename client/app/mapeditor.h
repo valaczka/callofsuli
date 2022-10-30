@@ -31,6 +31,8 @@
 #include "abstractactivity.h"
 #include "gamemapeditor.h"
 #include "mapeditoraction.h"
+#include "gamematch.h"
+#include "editorundostack.h"
 
 
 /**
@@ -164,7 +166,7 @@ public slots:
 	void missionLevelAdd(GameMapEditorMission *mission, QVariantMap data);
 	void missionLevelRemove(GameMapEditorMissionLevel *missionLevel);
 	void missionLevelModify(GameMapEditorMissionLevel *missionLevel, const QVariantMap &data);
-	void missionLevelPlay(GameMapEditorMissionLevel *missionLevel);
+	void missionLevelPlay(GameMapEditorMissionLevel *missionLevel, const GameMatch::GameMode &mode = GameMatch::ModeNormal);
 	void missionLevelRemoveChapter(GameMapEditorMissionLevel *missionLevel, GameMapEditorChapter* chapter);
 	void missionLevelRemoveChapterList(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter*> &chapterList);
 	void missionLevelModifyChapters(GameMapEditorMissionLevel *missionLevel, const QList<GameMapEditorChapter*> &list);
@@ -174,6 +176,8 @@ public slots:
 	void inventoryModify(GameMapEditorInventory *inventory, const QVariantMap &data);
 
 	void storageRemove(GameMapEditorStorage *storage);
+
+	int imageAdd(const QUrl &url);
 
 
 private slots:

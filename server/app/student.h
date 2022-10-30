@@ -54,16 +54,22 @@ public slots:
 	bool mapListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool missionListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignGet(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignListGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool gameCreate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameUpdate(QJsonObject *jsonResponse, QByteArray *);
 	bool gameFinish(QJsonObject *jsonResponse, QByteArray *);
 	bool gameListUserGet(QJsonObject *jsonResponse, QByteArray *);
+	bool gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *);
 	bool gameListUserMissionGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool userGet(QJsonObject *jsonResponse, QByteArray *);
 	bool userModify(QJsonObject *jsonResponse, QByteArray *);
 	bool userPasswordChange(QJsonObject *jsonResponse, QByteArray *);
+
+	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *);
+	bool examEngineMapGet(QJsonObject *jsonResponse, QByteArray *);
 
 private:
 	GameMap::SolverInfo missionSolverInfo(const QString &mapid, const QString &missionid) const;

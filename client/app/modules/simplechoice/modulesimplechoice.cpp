@@ -73,6 +73,36 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		m["image"] = "";
 
 		return m;
+	} else if (storage->name() == "images") {
+		QStringList answers;
+
+		QString image = "";
+
+		const QString &mode = data.value("mode").toString();
+
+		foreach (QVariant v, storageData.value("images").toList()) {
+			QVariantMap m = v.toMap();
+			const int &imgId = m.value("image", -1).toInt();
+			const QString &text = m.value("text").toString();
+
+			if (imgId != -1 && image.isEmpty())
+				image = QString("image://mapimage/%1").arg(imgId);
+
+			if (!text.isEmpty()) {
+				const QString &answersPattern = data.value("answers").toString();
+				if (mode == "image" && answersPattern.contains("%1"))
+					answers.append(answersPattern.arg(text));
+				else
+					answers.append(text);
+			}
+		}
+
+		QVariantMap m;
+		m["title"] = data.value("question").toString();
+		m["details"] = answers.join(", ");
+		m["image"] = image;
+
+		return m;
 	}
 
 	return QVariantMap({{"title", ""},
@@ -116,6 +146,9 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 
 	if (storage->name() == "binding" || storage->name() == "numbers")
 		return generateBinding(data, storageData);
+
+	if (storage->name() == "images")
+		return generateImages(data, storageData);
 
 
 	return QVariantList();
@@ -178,6 +211,78 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 }
 
 
+
+
+/**
+ * @brief ModuleSimplechoice::generateImages
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	const QString &mode = data.value("mode").toString();
+	const QString &question = data.value("question").toString();
+	const QString &answersPattern = data.value("answers").toString();
+
+	foreach (QVariant v, storageData.value("images").toList()) {
+		QVariantMap m = v.toMap();
+		const int &imgId = m.value("image", -1).toInt();
+		const QString &text = m.value("text").toString();
+
+		if (imgId == -1 || text.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		if (mode == "text" && question.contains("%1"))
+			retMap["question"] = question.arg(text);
+		else
+			retMap["question"] = question;
+
+		if (mode == "image")
+			retMap["image"] = QString("image://mapimage/%1").arg(imgId);
+		else
+			retMap["imageAnswers"] = true;
+
+		QStringList alist;
+
+		foreach (QVariant v, storageData.value("images").toList()) {
+			QVariantMap mm = v.toMap();
+			const int &f1 = mm.value("image", -1).toInt();
+			const QString &f2 = mm.value("text").toString();
+
+			if ((mode == "image" && text == f2) || (mode == "text" && (imgId == f1 || f1 == -1)))
+				continue;
+
+			if (mode == "image" && answersPattern.contains("%1"))
+				alist.append(answersPattern.arg(f2));
+			else if (mode == "image")
+				alist.append(f2);
+			else
+				alist.append(QString("image://mapimage/%1").arg(f1));
+		}
+
+		if (mode == "image" && answersPattern.contains("%1"))
+			retMap.insert(generateOne(answersPattern.arg(text), alist));
+		else if (mode == "image")
+			retMap.insert(generateOne(text, alist));
+		else
+			retMap.insert(generateOne(QString("image://mapimage/%1").arg(imgId), alist));
+
+		ret.append(retMap);
+	}
+
+	return ret;
+}
+
+
+
+
+
 /**
  * @brief ModuleSimplechoice::generateOne
  * @param correctAnswer
@@ -231,15 +336,26 @@ QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList) const
 	foreach (QVariant v, generatedList) {
 		QVariantMap m = v.toMap();
 
-		s.append("**"+m.value("question").toString()+"**\n");
+		const QString &image = m.value("image").toString();
+		const bool &imageAnswers = m.value("imageAnswers").toBool();
+
+		s.append((image.isEmpty() ? "" : tr("[KÉP] "))
+				 +"**"+m.value("question").toString()+"**\n");
 
 		int correct = m.value("answer", -1).toInt();
 		QStringList l = m.value("options").toStringList();
 		for (int i=0; i<l.size(); ++i) {
-			if (i==correct)
-				s.append("- **"+l.at(i)+"**\n");
-			else
-				s.append("- "+l.at(i)+"\n");
+			if (imageAnswers) {
+				if (i==correct)
+					s.append("- **"+tr("[KÉP]")+"**\n");
+				else
+					s.append("- "+tr("[KÉP]")+"\n");
+			} else {
+				if (i==correct)
+					s.append("- **"+l.at(i)+"**\n");
+				else
+					s.append("- "+l.at(i)+"\n");
+			}
 		}
 		s.append("---\n");
 	}

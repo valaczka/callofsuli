@@ -67,6 +67,8 @@ public:
 
 	QVariantMap generateOne(const QVariantMap &data) const;
 
+	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
+
 signals:
 
 };

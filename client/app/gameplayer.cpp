@@ -62,6 +62,8 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_moveToItem(nullptr)
 	, m_fire(nullptr)
 	, m_fence(nullptr)
+	, m_invisible(false)
+	, m_teleport(nullptr)
 {
 	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
 	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
@@ -194,13 +196,18 @@ void GamePlayer::ladderClimbUp()
 		parentEntity()->setX(x);
 		setLadderMode(LadderClimb);
 		if (spriteSequence)
-			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbup"));
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbup"));
 	} else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
 		qreal y = parentEntity()->y()-m_qrcData.value("climb", 1).toReal();
 		parentEntity()->setY(y);
-		if (y < m_ladder->boundRect().top() && spriteSequence && m_ladderMode == LadderClimb) {
-			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbupend"));
+		if (y < m_ladder->boundRect().top()-parentEntity()->height()) {
+			ladderClimbFinish();
+			if (spriteSequence)
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "idle"));
+		} else if (y < m_ladder->boundRect().top() && spriteSequence && m_ladderMode == LadderClimb) {
 			setLadderMode(LadderClimbFinish);
+			if (spriteSequence)
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbupend"));
 		}
 	}
 }
@@ -224,20 +231,20 @@ void GamePlayer::ladderClimbDown()
 		parentEntity()->setX(x);
 		setLadderMode(LadderClimb);
 		if (spriteSequence)
-			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdown"));
+			QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbdown"));
 	}  else if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish) {
 		qreal delta = m_qrcData.value("climb", 1).toReal()*1.2;
 		int y = parentEntity()->y()+delta;
 		int height = parentEntity()->height();
 
-		if (m_ladderMode == LadderClimb) {
-			if (y+height >= m_ladder->boundRect().bottom() && spriteSequence) {
-				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::QueuedConnection, Q_ARG(QString, "climbdownend"));
-				setLadderMode(LadderClimbFinish);
-				parentEntity()->setY(m_ladder->boundRect().bottom()-height);
-			} else {
-				parentEntity()->setY(y);
-			}
+		if (y+height >= m_ladder->boundRect().bottom()) {
+			int newY = m_ladder->boundRect().bottom()-height;
+			ladderClimbFinish();
+			parentEntity()->setY(newY);
+			if (spriteSequence)
+				QMetaObject::invokeMethod(spriteSequence, "jumpTo", Qt::DirectConnection, Q_ARG(QString, "climbdownend"));
+		} else {
+			parentEntity()->setY(y);
 		}
 	}
 }
@@ -281,6 +288,9 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 		return;
 	} else if (data.value("fence", false).toBool()) {
 		setFence(qvariant_cast<QQuickItem*>(object));
+		return;
+	} else if (data.value("teleport", false).toBool()) {
+		setTeleport(qvariant_cast<QQuickItem*>(object));
 		return;
 	}
 
@@ -334,6 +344,11 @@ void GamePlayer::onBodyEndContact(Box2DFixture *other)
 		QQuickItem *i = qvariant_cast<QQuickItem*>(object);
 		if (m_fence == i)
 			setFence(nullptr);
+		return;
+	} else 	if (data.value("teleport", false).toBool()) {
+		QQuickItem *i = qvariant_cast<QQuickItem*>(object);
+		if (m_teleport == i)
+			setTeleport(nullptr);
 		return;
 	}
 
@@ -429,6 +444,10 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 	} else {
 		decreaseHp();
 
+		if (m_cosGame && m_cosGame->gameMatch()) {
+			m_cosGame->gameMatch()->setIsFlawless(false);
+		}
+
 		if (hp() == 0)
 			emit killedByEnemy(enemy);
 		else
@@ -444,6 +463,11 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 void GamePlayer::killByEnemy(GameEnemy *enemy)
 {
 	setHp(0);
+
+	if (m_cosGame && m_cosGame->gameMatch()) {
+		m_cosGame->gameMatch()->setIsFlawless(false);
+	}
+
 	emit killedByEnemy(enemy);
 }
 
@@ -541,6 +565,51 @@ void GamePlayer::autoMove()
 
 
 /**
+ * @brief GamePlayer::teleportToNext
+ */
+
+void GamePlayer::teleportToNext()
+{
+	if (!m_teleport)
+		return;
+
+	if (!parentEntity())
+		return;
+
+	QQuickItem *sceneItem = m_cosGame->gameScene();
+
+	qDebug() << "SCENE" << sceneItem;
+
+	if (!sceneItem)
+		return;
+
+	GameScene *scene = qvariant_cast<GameScene *>(sceneItem->property("scenePrivate"));
+
+	qDebug() << "SCENE*" << scene;
+
+	if (!scene)
+		return;
+
+	if (scene->teleports().isEmpty())
+		return;
+
+	int idx = scene->teleports().indexOf(m_teleport);
+	idx++;
+
+	if (idx >= scene->teleports().size())
+		idx = 0;
+
+	const QQuickItem *next = scene->teleports().at(idx);
+
+	qDebug() << "GOTO" << next << next->x() << next->y();
+
+	parentEntity()->setX(next->x());
+	parentEntity()->setY(next->y());
+
+}
+
+
+/**
  * @brief GamePlayer::playSoundEffect
  * @param effect
  */
@@ -592,15 +661,6 @@ QString GamePlayer::playSoundEffect(const QString &effect)
 }
 
 
-/**
- * @brief GamePlayer::attackSuccesful
- * @param enemy
- */
-
-void GamePlayer::attackSuccesful(GameEnemy *enemy)
-{
-	emit attackSucceed(enemy);
-}
 
 
 /**
@@ -785,4 +845,30 @@ void GamePlayer::setFence(QQuickItem *newFence)
 		return;
 	m_fence = newFence;
 	emit fenceChanged();
+}
+
+bool GamePlayer::invisible() const
+{
+	return m_invisible;
+}
+
+void GamePlayer::setInvisible(bool newInvisible)
+{
+	if (m_invisible == newInvisible)
+		return;
+	m_invisible = newInvisible;
+	emit invisibleChanged();
+}
+
+QQuickItem *GamePlayer::teleport() const
+{
+	return m_teleport;
+}
+
+void GamePlayer::setTeleport(QQuickItem *newTeleport)
+{
+	if (m_teleport == newTeleport)
+		return;
+	m_teleport = newTeleport;
+	emit teleportChanged(m_teleport);
 }

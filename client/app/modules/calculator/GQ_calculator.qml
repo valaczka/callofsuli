@@ -13,6 +13,8 @@ Item {
 	implicitWidth: Math.max(500, (labelQuestion.implicitWidth+labelSuffix.implicitWidth+200))			// 200 -> labelNumber1.width
 
 	required property var questionData
+	property bool canPostpone: false
+	property int mode: GameMatch.ModeNormal
 
 	property bool twoLineMode: questionData.twoLine
 	property bool decimalEnabled: questionData.decimalEnabled
@@ -27,6 +29,8 @@ Item {
 
 	signal succeed()
 	signal failed()
+	signal postponed()
+	signal answered(var answer)
 
 	RowLayout {
 		id: row
@@ -176,34 +180,58 @@ Item {
 			columnSpacing: 3
 
 			Repeater {
-				model: [
-					"7",
-					"8",
-					"9",
-					"\ue14a",
-					"4",
-					"5",
-					"6",
-					"C",
-					"1",
-					"2",
-					"3",
-					"=",
-					"±",
-					"0",
-					","
-				]
+				model: control.mode == GameMatch.ModeExam && canPostpone ? [
+																"7",
+																"8",
+																"9",
+																"\ue14a",
+																"4",
+																"5",
+																"6",
+																"C",
+																"1",
+																"2",
+																"3",
+																"\ue01f",
+																"±",
+																"0",
+																",",
+																"="
+															]
+														  : [
+																"7",
+																"8",
+																"9",
+																"\ue14a",
+																"4",
+																"5",
+																"6",
+																"C",
+																"1",
+																"2",
+																"3",
+																"=",
+																"±",
+																"0",
+																","
+															]
 
 				GameQuestionButton {
 					Layout.fillHeight: true
 					Layout.fillWidth: true
-					Layout.rowSpan: modelData == "=" ? 2 : 1
+					Layout.rowSpan: (control.mode != GameMatch.ModeExam || !canPostpone) && modelData == "=" ? 2 : 1
 					text: modelData
 					onClicked: clickBtn(text)
-					label.font.family: modelData == "\ue14a" ? "Material Icons" : "Rajdhani"
+					label.font.family: (modelData == "\ue14a" || modelData == "\ue01f") ? "Material Icons" : "Rajdhani"
 					label.font.weight: Font.Light
-					label.font.pixelSize: modelData == "\ue14a" ? buttonSize*0.5 : buttonSize*0.75
+					label.font.pixelSize: (modelData == "\ue14a" || modelData == "\ue01f") ? buttonSize*0.5 : buttonSize*0.75
 					interactive: modelData == "," ? control.interactive && control.decimalEnabled : control.interactive
+
+					themeColors: control.mode == GameMatch.ModeExam ?
+									 (modelData == "\ue01f" ? CosStyle.buttonThemeOrange :
+															  (modelData == "=" ? CosStyle.buttonThemeGreen :
+																				  CosStyle.buttonThemeDefault)) :
+									 CosStyle.buttonThemeDefault
 				}
 			}
 		}
@@ -217,7 +245,9 @@ Item {
 		var origStr = twoLineMode && activeLine == 2 ? labelNumber2.text : labelNumber1.text
 		var newStr = origStr
 
-		if (t === "\ue14a") {			// Backspace
+		if (t === "\ue01f") {			// Postpne
+			postponed()
+		} else if (t === "\ue14a") {			// Backspace
 			newStr = origStr.length < 2 || origStr === "-0" ? "0" : String(origStr).substring(0, origStr.length-1)
 
 			if (twoLineMode && activeLine == 2)
@@ -280,6 +310,8 @@ Item {
 
 
 	function answer() {
+		var ret = {}
+
 		interactive = false
 
 		var correct = true
@@ -289,25 +321,33 @@ Item {
 		if (n1 !== questionData.answer.first)
 			correct = false
 
+		ret.first = n1
+
 		if (twoLineMode) {
 			var n2 = Number(labelNumber2.text)
 
 			if (n2 !== questionData.answer.second)
 				correct = false
+
+			ret.second = n2
 		}
 
 
-		if (correct) {
-			succeed()
-			labelNumber1.color = CosStyle.colorOKLighter
-			labelNumber2.color = CosStyle.colorOKLighter
+		if (mode == GameMatch.ModeExam) {
+			answered(ret)
 		} else {
-			failed()
-			labelNumber1.color = CosStyle.colorErrorLighter
-			labelNumber2.color = CosStyle.colorErrorLighter
+			if (correct) {
+				succeed()
+				labelNumber1.color = CosStyle.colorOKLighter
+				labelNumber2.color = CosStyle.colorOKLighter
+			} else {
+				failed()
+				labelNumber1.color = CosStyle.colorErrorLighter
+				labelNumber2.color = CosStyle.colorErrorLighter
 
-			labelNumber1.text = questionData.answer.first
-			labelNumber2.text = questionData.answer.second
+				labelNumber1.text = questionData.answer.first
+				labelNumber2.text = questionData.answer.second
+			}
 		}
 
 		/*if (questionData.correct) {

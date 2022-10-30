@@ -26,7 +26,6 @@ Button {
 
 	font.capitalization: Font.AllUppercase
 
-
 	font.pixelSize: CosStyle.pixelSize
 
 	/*background: Rectangle {

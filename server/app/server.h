@@ -37,8 +37,11 @@
 #include <QtNetwork/QSslSocket>
 #include <QUdpSocket>
 #include <QNetworkAccessManager>
+#include <QTimer>
 
 #include "client.h"
+
+class ExamEngine;
 
 class Server : public QObject
 {
@@ -79,12 +82,17 @@ private:
 	CosDb *m_db;
 	CosDb *m_mapsDb;
 	CosDb *m_statDb;
+	CosDb *m_examDb;
 
 	QVariantMap m_resourceMap;
 	QVariantMap m_resources;
 	QString m_serverUuid;
 
 	static QList<VersionUpgrade> m_versionUpgrades;
+
+	QTimer *m_timer;
+
+	QList<ExamEngine*> m_examEngineList;
 
 public:
 	explicit Server(QObject *parent = nullptr);
@@ -109,6 +117,7 @@ public:
 	CosDb * db() const { return m_db; }
 	CosDb * mapsDb() const { return m_mapsDb; }
 	CosDb * statDb() const { return m_statDb; }
+	CosDb * examDb() const { return m_examDb; }
 	QList<Client *> clients() const { return m_clients; }
 	QVariantMap resourceMap() const { return m_resourceMap; }
 	QVariantMap resources() const { return m_resources; }
@@ -120,12 +129,21 @@ public:
 	QString serverUuid() const { return m_serverUuid; }
 
 	QNetworkReply *networkRequestGet(const QNetworkRequest &request);
+	QNetworkReply *networkRequestPost(const QNetworkRequest &request, const QByteArray &data);
+	void networkRequestReply(QNetworkReply *);
+
+	ExamEngine *examEngineNew(const int &examId, const QString &code, const QString &owner);
+	ExamEngine *examEngineGet(const QString &code) const;
+	ExamEngine *examEngineGet(const int &examId) const;
+	bool examEngineDelete(ExamEngine *engine);
+	bool examEnginesHasMember(const QString &username) const;
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);
 	void onNewConnection();
 	void onSocketDisconnected();
 	void onDatagramReady();
+	void onTimerTimeout();
 
 public slots:
 	void setServerDir(QString serverDir);

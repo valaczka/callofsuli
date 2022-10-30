@@ -95,11 +95,11 @@ public slots:
 protected slots:
 	virtual void onMessageReceived(const CosMessage &message) { autoSignalEmit(message); }
 	virtual void onMessageFrameReceived(const CosMessage &) {}
+	void autoSignalEmit(const CosMessage &message);
 
 private slots:
 	void onMessageReceivedPrivate(const CosMessage &message);
 	void onSocketDisconnected();
-	void autoSignalEmit(const CosMessage &message);
 
 signals:
 	void isBusyChanged(bool isBusy);

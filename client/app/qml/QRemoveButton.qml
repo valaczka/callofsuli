@@ -25,7 +25,7 @@ Item {
 
 		color: area.containsMouse ? CosStyle.colorErrorLighter : CosStyle.colorError
 
-		icon: CosStyle.iconDelete
+		icon: "qrc:/internal/icon/delete.svg"
 
 		ToolTip.text: tooltip
 		ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval

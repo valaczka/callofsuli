@@ -9,367 +9,378 @@ import "JScript.js" as JS
 
 
 QTabContainer {
-	id: control
-
-	title: labelTitle.text
-	icon: srcImg.source
-
-	property int contextAction: MapEditorAction.ActionTypeMissionLevel
-	property int actionContextType: -1
-	property var actionContextId: null
-
-	property GameMapEditorMissionLevel missionLevel: null
-	property bool canDelete: false
-
-	property ListModel availableTerrainModel: ListModel {}
-
-
-	onMissionLevelChanged: {
-		if (missionLevel && missionLevel.mission)
-			canDelete = missionLevel.isLastLevel() && missionLevel.level > 1
-		else
-			canDelete = false
-	}
-
-	SortFilterProxyModel {
-		id: terrainProxyModel
-
-		sourceModel: availableTerrainModel
-
-		sorters: [
-			StringSorter {
-				roleName: "readableName"
-				priority: 2
-			},
-			RoleSorter {
-				roleName: "level"
-				priority: 1
-			}
-		]
-	}
-
-	QAccordion {
-		visible: missionLevel
-
-		QTabHeader {
-			tabContainer: control
-			visible: control.compact
-			isPlaceholder: true
-		}
-
-		Row {
-			anchors.horizontalCenter: parent.horizontalCenter
-			bottomPadding: 50
-
-			Image {
-				id: srcImg
-				source: missionLevel && missionLevel.mission ? cosClient.medalIconPath(missionLevel.mission.medalImage) : ""
-				anchors.verticalCenter: parent.verticalCenter
-				width: CosStyle.pixelSize*2
-				height: CosStyle.pixelSize*2
-				fillMode: Image.PreserveAspectFit
-			}
-
-			Column {
-				anchors.verticalCenter: parent.verticalCenter
-				QLabel {
-					id: labelTitle
-					text: missionLevel && missionLevel.mission ? missionLevel.mission.name : ""
-					width: Math.min(implicitWidth, control.width-srcImg.width-20)
-					font.weight: Font.Normal
-					font.pixelSize: CosStyle.pixelSize*1.4
-					font.capitalization: Font.AllUppercase
-					elide: Text.ElideMiddle
-					color: CosStyle.colorWarningLight
-					leftPadding: CosStyle.pixelSize/2
-				}
-				QLabel {
-					text: missionLevel ? "Level %1".arg(missionLevel.level) : ""
-					width: Math.min(implicitWidth, labelTitle.width)
-					font.weight: Font.DemiBold
-					font.pixelSize: CosStyle.pixelSize*0.8
-					font.capitalization: Font.AllUppercase
-					color: CosStyle.colorWarningLight
-					leftPadding: CosStyle.pixelSize/2
-				}
-			}
-		}
-
-		Row {
-			anchors.horizontalCenter: parent.horizontalCenter
-			spacing: 10
-
-			QButton {
-				anchors.verticalCenter: parent.verticalCenter
-
-				themeColors: CosStyle.buttonThemeGreen
-
-				icon.source: CosStyle.iconPlay
-				text: qsTr("Lejátszás")
-				onClicked: mapEditor.missionLevelPlay(missionLevel)
-			}
-
-
-			QButton {
-				anchors.verticalCenter: parent.verticalCenter
-				visible: canDelete
+    id: control
+
+    title: labelTitle.text
+    icon: srcImg.source
+
+    property int contextAction: MapEditorAction.ActionTypeMissionLevel
+    property int actionContextType: -1
+    property var actionContextId: null
+
+    property GameMapEditorMissionLevel missionLevel: null
+    property bool canDelete: false
+
+    property ListModel availableTerrainModel: ListModel {}
+
+
+    onMissionLevelChanged: {
+        if (missionLevel && missionLevel.mission)
+            canDelete = missionLevel.isLastLevel() && missionLevel.level > 1
+        else
+            canDelete = false
+    }
+
+    SortFilterProxyModel {
+        id: terrainProxyModel
+
+        sourceModel: availableTerrainModel
+
+        sorters: [
+            StringSorter {
+                roleName: "readableName"
+                priority: 2
+            },
+            RoleSorter {
+                roleName: "level"
+                priority: 1
+            }
+        ]
+    }
+
+    QAccordion {
+        id: acc
+        visible: missionLevel
+
+        QTabHeader {
+            tabContainer: control
+            visible: control.compact
+            flickable: acc.flickable
+        }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            bottomPadding: 50
+
+            Image {
+                id: srcImg
+                source: missionLevel && missionLevel.mission ? cosClient.medalIconPath(missionLevel.mission.medalImage) : ""
+                anchors.verticalCenter: parent.verticalCenter
+                width: CosStyle.pixelSize*2
+                height: CosStyle.pixelSize*2
+                fillMode: Image.PreserveAspectFit
+            }
+
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                QLabel {
+                    id: labelTitle
+                    text: missionLevel && missionLevel.mission ? missionLevel.mission.name : ""
+                    width: Math.min(implicitWidth, control.width-srcImg.width-20)
+                    font.weight: Font.Normal
+                    font.pixelSize: CosStyle.pixelSize*1.4
+                    font.capitalization: Font.AllUppercase
+                    elide: Text.ElideMiddle
+                    color: CosStyle.colorWarningLight
+                    leftPadding: CosStyle.pixelSize/2
+                }
+                QLabel {
+                    text: missionLevel ? "Level %1".arg(missionLevel.level) : ""
+                    width: Math.min(implicitWidth, labelTitle.width)
+                    font.weight: Font.DemiBold
+                    font.pixelSize: CosStyle.pixelSize*0.8
+                    font.capitalization: Font.AllUppercase
+                    color: CosStyle.colorWarningLight
+                    leftPadding: CosStyle.pixelSize/2
+                }
+            }
+        }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 10
+
+            QButton {
+                anchors.verticalCenter: parent.verticalCenter
+
+                themeColors: CosStyle.buttonThemeGreen
+
+                icon.source: CosStyle.iconPlay
+                text: qsTr("Lejátszás")
+                onClicked: mapEditor.missionLevelPlay(missionLevel)
+            }
+
+            QButton {
+                anchors.verticalCenter: parent.verticalCenter
 
-				themeColors: CosStyle.buttonThemeRed
+                icon.source: CosStyle.iconPlay
+                text: qsTr("Feladatmegoldás")
+                onClicked: mapEditor.missionLevelPlay(missionLevel, GameMatch.ModeLite)
+            }
 
-				text: qsTr("Törlés")
-				icon.source: CosStyle.iconDelete
-				onClicked: mapEditor.missionLevelRemove(missionLevel)
-			}
-		}
 
-		QGridLayout {
-			watchModification: false
+            QButton {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: canDelete
 
-			QGridText { text: qsTr("Harcmező") }
+                themeColors: CosStyle.buttonThemeRed
 
-			QGridImage {
-				id: imageTerrain
-				Layout.columnSpan: 1
+                text: qsTr("Törlés")
+                icon.source: "qrc:/internal/icon/delete.svg"
+                onClicked: mapEditor.missionLevelRemove(missionLevel)
+            }
+        }
 
-				property var _terrainData: missionLevel ? cosClient.terrainMap()[missionLevel.terrain] : null
-				property bool _invalid: true
+        QGridLayout {
+            watchModification: false
 
-				title: _terrainData ? _terrainData.readableName : (missionLevel ? missionLevel.terrain : "")
-				subtitle: _terrainData ? _terrainData.details : ""
+            isFullscreen: control.compact
 
-				image: _terrainData ? _terrainData.thumbnail : ""
+            QGridText { text: qsTr("Harcmező") }
 
-				imageImg.width: imageTerrain.height*1.5
+            QGridImage {
+                id: imageTerrain
+                Layout.columnSpan: 1
 
-				labelTitle.color: CosStyle.colorAccentLighter
-				labelSubtitle.color: CosStyle.colorAccentLighter
+                property var _terrainData: missionLevel ? cosClient.terrainMap()[missionLevel.terrain] : null
+                property bool _invalid: true
 
-				rightComponent: QFontImage {
-					visible: !imageTerrain._terrainData
-					color: CosStyle.colorWarning
-					icon: CosStyle.iconDialogWarning
-					size: CosStyle.pixelSize*1.2
-					width: size*2
-				}
+                title: _terrainData ? _terrainData.readableName : (missionLevel ? missionLevel.terrain : "")
+                subtitle: _terrainData ? _terrainData.details : ""
 
-				mouseArea.onClicked: {
-					var dd = JS.dialogCreateQml("List", {
-													icon: CosStyle.iconLockAdd,
-													title: qsTr("Harcmező kiválasztása"),
-													selectorSet: false,
-													modelTitleRole: "readableName",
-													modelImageRole: "thumbnail",
-													modelSubtitleRole: "details",
-													delegateHeight: CosStyle.twoLineHeight*1.5,
-													model: terrainProxyModel
-												})
+                image: _terrainData ? _terrainData.thumbnail : ""
 
-					if (_terrainData)
-						dd.item.selectCurrentItem("terrain", missionLevel.terrain)
+                imageImg.width: imageTerrain.height*1.5
 
-					dd.accepted.connect(function(data) {
-						if (data)
-							mapEditor.missionLevelModify(missionLevel, {terrain: data.terrain})
-					})
-					dd.open()
+                labelTitle.color: CosStyle.colorAccentLighter
+                labelSubtitle.color: CosStyle.colorAccentLighter
 
-				}
-			}
+                rightComponent: QFontImage {
+                    visible: !imageTerrain._terrainData
+                    color: CosStyle.colorWarning
+                    icon: "qrc:/internal/icon/alert.svg"
+                    size: CosStyle.pixelSize*1.2
+                    width: size*2
+                }
 
+                mouseArea.onClicked: {
+                    var dd = JS.dialogCreateQml("ImageList", {
+                                                    icon: CosStyle.iconLockAdd,
+                                                    title: qsTr("Harcmező kiválasztása"),
+                                                    selectorSet: false,
+                                                    modelTitleRole: "readableName",
+                                                    modelImageRole: "thumbnail",
+                                                    modelSubtitleRole: "details",
+                                                    delegateHeight: CosStyle.twoLineHeight*1.5,
+                                                    model: terrainProxyModel
+                                                })
 
-			QGridLabel { text: qsTr("Időtartam") }
+                    if (_terrainData)
+                        dd.item.selectCurrentItem("terrain", missionLevel.terrain)
 
-			QGridSpinBox {
-				id: spinDuration
-				from: 30
-				to: 2400
-				stepSize: 30
-				//editable: true
+                    dd.accepted.connect(function(data) {
+                        if (data)
+                            mapEditor.missionLevelModify(missionLevel, {terrain: data.terrain})
+                    })
+                    dd.open()
 
-				value: missionLevel ? missionLevel.duration : 0
+                }
+            }
 
-				textFromValue: function(value) {
-					return JS.secToMMSS(value)
-				}
 
-				valueFromText: function(text) {
-					return JS.mmSStoSec(text)
-				}
+            QGridLabel { text: qsTr("Időtartam") }
 
-				onValueModified: {
-					mapEditor.missionLevelModify(missionLevel, {duration: value})
-				}
-			}
+            QGridSpinBox {
+                id: spinDuration
+                from: 30
+                to: 2400
+                stepSize: 30
+                //editable: true
 
+                value: missionLevel ? missionLevel.duration : 0
 
-			QGridLabel { text: qsTr("HP") }
+                textFromValue: function(value) {
+                    return JS.secToMMSS(value)
+                }
 
-			QGridSpinBox {
-				id: spinHP
-				from: 1
-				to: 99
+                valueFromText: function(text) {
+                    return JS.mmSStoSec(text)
+                }
 
-				value: missionLevel ? missionLevel.startHP : 0
+                onValueModified: {
+                    mapEditor.missionLevelModify(missionLevel, {duration: value})
+                }
+            }
 
-				onValueModified: {
-					mapEditor.missionLevelModify(missionLevel, {startHP: value})
-				}
-			}
 
+            QGridLabel { text: qsTr("HP") }
 
-			QGridLabel { text: qsTr("Kérdések aránya") }
+            QGridSpinBox {
+                id: spinHP
+                from: 1
+                to: 99
 
-			QGridSpinBox {
-				id: spinQuestions
-				from: 0
-				to: 100
-				stepSize: 5
-				//editable: true
+                value: missionLevel ? missionLevel.startHP : 0
 
-				value: missionLevel ? missionLevel.questions*100 : 0
+                onValueModified: {
+                    mapEditor.missionLevelModify(missionLevel, {startHP: value})
+                }
+            }
 
-				textFromValue: function(value) {
-					return String("%1%").arg(value)
-				}
 
-				/*valueFromText: function(text) {
-						return JS.mmSStoSec(text)
-					}*/
+            QGridLabel { text: qsTr("Kérdések aránya") }
 
-				onValueModified: {
-					mapEditor.missionLevelModify(missionLevel, {questions: Number(value/100)})
-				}
-			}
+            QGridSpinBox {
+                id: spinQuestions
+                from: 0
+                to: 100
+                stepSize: 5
+                //editable: true
 
+                value: missionLevel ? missionLevel.questions*100 : 0
 
+                textFromValue: function(value) {
+                    return String("%1%").arg(value)
+                }
 
-			QGridCheckBox {
-				id: checkDeathmatch
-				text: qsTr("Sudden death engedélyezve")
+                /*valueFromText: function(text) {
+                        return JS.mmSStoSec(text)
+                    }*/
 
-				checked: missionLevel ? missionLevel.canDeathmatch : false
+                onValueModified: {
+                    mapEditor.missionLevelModify(missionLevel, {questions: Number(value/100)})
+                }
+            }
 
-				onToggled: {
-					mapEditor.missionLevelModify(missionLevel, {canDeathmatch: checked})
-				}
-			}
 
 
-		}
+            QGridCheckBox {
+                id: checkDeathmatch
+                text: qsTr("Sudden death engedélyezve")
 
+                checked: missionLevel ? missionLevel.canDeathmatch : false
 
+                onToggled: {
+                    mapEditor.missionLevelModify(missionLevel, {canDeathmatch: checked})
+                }
+            }
 
-		QObjectListDelegateView {
-			id: chapterList
-			width: parent.width
 
-			selectorSet: missionLevel && missionLevel.chapters.selectedCount
+        }
 
-			model: SortFilterProxyModel {
-				sourceModel: missionLevel ? missionLevel.chapters : null
 
-				sorters: RoleSorter {
-					roleName: "id"
-				}
-			}
 
-			delegate: MapEditorChapter {
-				id: chapterItem
-				required property int index
-				collapsed: true
-				level: missionLevel.level
-				selectorSet: chapterList.selectorSet
-				onLongClicked: chapterList.onDelegateLongClicked(index)
-				onSelectToggled: chapterList.onDelegateClicked(index, withShift)
-				self: chapterList.modelObject(index)
+        QObjectListDelegateView {
+            id: chapterList
+            width: parent.width
 
-				onSelfChanged: if (!self) {
-								   delete chapterItem
-							   }
+            selectorSet: missionLevel && missionLevel.chapters.selectedCount
 
-				onChapterRemove: {
-					if (missionLevel.chapters.selectedCount > 0) {
-						mapEditor.missionLevelRemoveChapterList(missionLevel, missionLevel.chapters.getSelected())
-					} else {
-						mapEditor.missionLevelRemoveChapter(missionLevel, self)
-					}
-				}
-			}
+            model: SortFilterProxyModel {
+                sourceModel: missionLevel ? missionLevel.chapters : null
 
-		}
+                sorters: RoleSorter {
+                    roleName: "id"
+                }
+            }
 
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconEdit
-			text: qsTr("Szakaszok kiválasztása")
-			onClicked: {
-				mapEditor.updateChapterModelMissionLevel(missionLevel)
+            delegate: MapEditorChapter {
+                id: chapterItem
+                required property int index
+                collapsed: true
+                level: missionLevel.level
+                selectorSet: chapterList.selectorSet
+                onLongClicked: chapterList.onDelegateLongClicked(index)
+                onSelectToggled: chapterList.onDelegateClicked(index, withShift)
+                self: chapterList.modelObject(index)
 
-				if (mapEditor.editor.chapters.count < 1) {
-					cosClient.sendMessageWarning(qsTr("Szakaszok"), qsTr("Még nincsen egyetlen szakasz sem!"))
-					return
-				}
+                onSelfChanged: if (!self) {
+                                   delete chapterItem
+                               }
 
+                onChapterRemove: {
+                    if (missionLevel.chapters.selectedCount > 0) {
+                        mapEditor.missionLevelRemoveChapterList(missionLevel, missionLevel.chapters.getSelected())
+                    } else {
+                        mapEditor.missionLevelRemoveChapter(missionLevel, self)
+                    }
+                }
+            }
 
-				var d = JS.dialogCreateQml("List", {
-											   icon: CosStyle.iconLockAdd,
-											   title: qsTr("%1 - Szakaszok").arg(labelTitle.text),
-											   selectorSet: true,
-											   modelTitleRole: "name",
-											   delegateHeight: CosStyle.baseHeight,
-											   model: mapEditor.editor.chapters
-										   })
+        }
 
-				d.accepted.connect(function(dlgdata) {
-					var l = mapEditor.editor.chapters.getSelected()
-					mapEditor.editor.chapters.unselectAll()
+        QToolButtonFooter {
+            anchors.horizontalCenter: parent.horizontalCenter
+            icon.source: "qrc:/internal/icon/pencil.svg"
+            text: qsTr("Szakaszok kiválasztása")
+            onClicked: {
+                mapEditor.updateChapterModelMissionLevel(missionLevel)
 
-					if (!dlgdata)
-						return
+                if (mapEditor.editor.chapters.count < 1) {
+                    cosClient.sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", qsTr("Szakaszok"), qsTr("Még nincsen egyetlen szakasz sem!"))
+                    return
+                }
 
-					mapEditor.missionLevelModifyChapters(missionLevel, l)
-				})
 
-				d.rejected.connect(function() {
-					mapEditor.editor.chapters.unselectAll()
-				})
+                var d = JS.dialogCreateQml("List", {
+                                               icon: CosStyle.iconLockAdd,
+                                               title: qsTr("%1 - Szakaszok").arg(labelTitle.text),
+                                               selectorSet: true,
+                                               modelTitleRole: "name",
+                                               delegateHeight: CosStyle.baseHeight,
+                                               model: mapEditor.editor.chapters
+                                           })
 
-				d.open()
-			}
-		}
+                d.accepted.connect(function(dlgdata) {
+                    var l = mapEditor.editor.chapters.getSelected()
+                    mapEditor.editor.chapters.unselectAll()
 
-		QToolButtonFooter {
-			anchors.horizontalCenter: parent.horizontalCenter
-			icon.source: CosStyle.iconAdd
-			text: qsTr("Új szakasz létrehozása")
-			onClicked: {
-				var d = JS.dialogCreateQml("TextField", {
-											   title: qsTr("Új szakasz"),
-											   text: qsTr("Az új szakasz neve")
-										   })
+                    if (!dlgdata)
+                        return
 
-				d.accepted.connect(function(data) {
-					if (data.length)
-						mapEditor.chapterAdd({name: data}, missionLevel)
-				})
-				d.open()
-			}
-		}
+                    mapEditor.missionLevelModifyChapters(missionLevel, l)
+                })
 
+                d.rejected.connect(function() {
+                    mapEditor.editor.chapters.unselectAll()
+                })
 
-		MapEditorInventory {
-			id: inventory
-			collapsed: true
-			missionLevel: control.missionLevel
-		}
+                d.open()
+            }
+        }
 
-	}
+        QToolButtonFooter {
+            anchors.horizontalCenter: parent.horizontalCenter
+            icon.source: CosStyle.iconAdd
+            text: qsTr("Új szakasz létrehozása")
+            onClicked: {
+                var d = JS.dialogCreateQml("TextField", {
+                                               title: qsTr("Új szakasz"),
+                                               text: qsTr("Az új szakasz neve")
+                                           })
 
-	Component.onCompleted: {
-		var l = mapEditor.availableTerrains
+                d.accepted.connect(function(data) {
+                    if (data.length)
+                        mapEditor.chapterAdd({name: data}, missionLevel)
+                })
+                d.open()
+            }
+        }
 
-		for (var i=0; i<l.length; i++) {
-			availableTerrainModel.append(l[i])
-		}
-	}
+
+        MapEditorInventory {
+            id: inventory
+            collapsed: true
+            missionLevel: control.missionLevel
+        }
+
+    }
+
+    Component.onCompleted: {
+        var l = mapEditor.availableTerrains
+
+        for (var i=0; i<l.length; i++) {
+            availableTerrainModel.append(l[i])
+        }
+    }
 }

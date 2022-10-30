@@ -51,6 +51,15 @@ public:
 	bool classInit() override { return true; }
 	void startHttpReply(QNetworkReply *reply, void *data) override;
 
+	struct OAuth2Data {
+		QString classCode = "";
+		QStringList domainList = {};
+		QString token = "";
+		QString refreshToken = "";
+		QDateTime expiration = QDateTime();
+		bool isRefreshQuery = false;
+	};
+
 public slots:
 	bool getServerInfo(QJsonObject *jsonResponse, QByteArray *);
 	bool getUser(QJsonObject *jsonResponse, QByteArray *);
@@ -63,14 +72,9 @@ public slots:
 	bool getMyGroups(QJsonObject *jsonResponse, QByteArray *);
 
 private:
-	void getOAuth2Userinfo(const QString &token, const QStringList &domainList, const QString &classCode);
+	void getOAuth2Userinfo(const QString &token, const QString &refreshToken, const QDateTime &expiration, const QStringList &domainList, const QString &classCode);
 	void onOAuth2UserinfoReply(QNetworkReply *reply, void *data);
 
-	struct OAuth2Data {
-		QString classCode;
-		QStringList domainList;
-		QString token;
-	};
 };
 
 #endif // USERINFO_H

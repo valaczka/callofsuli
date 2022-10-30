@@ -48,8 +48,7 @@ GameTerrain::GameTerrain(QList<TiledPaintedLayer *> *tiledLayers, QQuickItem *ti
 	, m_groundObjects()
 	, m_playerPositions()
 	, m_startPosition()
-	, m_fires()
-	, m_fences()
+	, m_objects()
 	, m_tmxFile()
 	, m_map(nullptr)
 	, m_tiledLayers(tiledLayers)
@@ -196,10 +195,8 @@ void GameTerrain::loadLayers()
 			loadPlayerLayer(layer);
 		} else if (layer->isObjectGroup() && layer->name() == "Ladders") {
 			loadLadderLayer(layer);
-		} else if (layer->isObjectGroup() && layer->name() == "Fires") {
-			loadFireLayer(layer);
-		} else if (layer->isObjectGroup() && layer->name() == "Fences") {
-			loadFenceLayer(layer);
+		} else if (layer->isObjectGroup() && layer->name() == "Objects") {
+			loadObjectLayer(layer);
 		} else if (layer->isObjectGroup() && layer->name() == "Items") {
 			loadItemLayer(layer);
 		} else if (layer->isObjectGroup() && layer->name() == "Preview") {
@@ -234,30 +231,35 @@ void GameTerrain::loadEnemyLayer(Tiled::Layer *layer)
 	QList<Tiled::MapObject*> objects = og->objects();
 
 	foreach (Tiled::MapObject *object, objects) {
-		if (!object->isPolyShape())
-			continue;
-
-		QPolygonF polygon = object->polygon();
-		QRectF rect = polygon.boundingRect();
+		const int block = object->property("block").toInt();
 
 		qreal ox = object->x();
 		qreal oy = object->y();
 
-		rect.adjust(ox, oy, ox, oy);
+		QRectF rect;
 
-		int block = object->property("block").toInt();
+		if (object->isPolyShape()) {
+			QPolygonF polygon = object->polygon();
+			rect = polygon.boundingRect();
+			rect.adjust(ox, oy, ox, oy);
+		} else {
+			rect = QRectF(ox, oy, 1, 1);
+		}
+
+		GameEnemyData *enemy = new GameEnemyData(this);
+
+		enemy->setBoundRect(rect);
+
+		if (object->type() == "sniper")
+			enemy->setEnemyType(GameEnemyData::EnemySniper);
 
 		if (block > 0) {
-			GameEnemyData *enemy = new GameEnemyData(this);
-
-			enemy->setBoundRect(rect);
-
 			GameBlock *b = getBlock(block);
 			enemy->setBlock(b);
 			b->addEnemy(enemy);
-
-			m_enemies.append(enemy);
 		}
+
+		m_enemies.append(enemy);
 	}
 }
 
@@ -383,14 +385,15 @@ void GameTerrain::loadLadderLayer(Tiled::Layer *layer)
 }
 
 
+
 /**
- * @brief GameTerrain::loadFireLayer
+ * @brief GameTerrain::loadObjectLayer
  * @param layer
  */
 
-void GameTerrain::loadFireLayer(Tiled::Layer *layer)
+void GameTerrain::loadObjectLayer(Tiled::Layer *layer)
 {
-	qDebug() << "Load fire layer" << layer;
+	qDebug() << "Load object layer" << layer;
 
 	if (!layer)
 		return;
@@ -399,30 +402,27 @@ void GameTerrain::loadFireLayer(Tiled::Layer *layer)
 
 	QList<Tiled::MapObject*> objects = og->objects();
 
-	foreach (Tiled::MapObject *object, objects)
-		m_fires.append(object->position());
+	foreach (Tiled::MapObject *object, objects) {
+		const QPointF p = object->position();
+		const QString type = object->type();
+		TerrainObject t = Invalid;
+
+		if (type == "fire")
+			t = Fire;
+		else if (type == "fence")
+			t = Fence;
+		else if (type == "teleport")
+			t = Teleport;
+
+		if (t == Invalid) {
+			qWarning() << "Invalid object type" << type;
+			continue;
+		}
+
+		m_objects.append(qMakePair<QPointF, TerrainObject>(p, t));
+	}
 }
 
-
-/**
- * @brief GameTerrain::loadFenceLayer
- * @param layer
- */
-
-void GameTerrain::loadFenceLayer(Tiled::Layer *layer)
-{
-	qDebug() << "Load fence layer" << layer;
-
-	if (!layer)
-		return;
-
-	Tiled::ObjectGroup *og = layer->asObjectGroup();
-
-	QList<Tiled::MapObject*> objects = og->objects();
-
-	foreach (Tiled::MapObject *object, objects)
-		m_fences.append(object->position());
-}
 
 
 /**
@@ -496,22 +496,6 @@ const QList<GameTerrainItem> &GameTerrain::items() const
 
 
 
-/**
- * @brief GameTerrain::fences
- * @return
- */
-
-const QList<QPointF> &GameTerrain::fences() const
-{
-	return m_fences;
-}
-
-const QList<QPointF> &GameTerrain::fires() const
-{
-	return m_fires;
-}
-
-
 
 
 
@@ -529,6 +513,33 @@ void GameTerrain::setTiledLayersParent(QQuickItem *tiledLayersParent)
 {
 	m_tiledLayersParent = tiledLayersParent;
 }
+
+
+/**
+ * @brief GameTerrain::terrainObjects
+ * @param type
+ * @return
+ */
+
+QList<QPointF> GameTerrain::terrainObjects(const TerrainObject &type) const
+{
+	QList<QPointF> list;
+
+	if (m_objects.isEmpty())
+		return list;
+
+	list.reserve(m_objects.size());
+
+	foreach (TerrainObjectPoint p, m_objects) {
+		if (p.second == type)
+			list.append(p.first);
+	}
+
+	return list;
+}
+
+
+
 
 /**
  * @brief GameTerrain::setTiledLayers

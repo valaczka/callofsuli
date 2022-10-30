@@ -24,6 +24,8 @@ QDialogPanel {
 
 	property string currentValue: ""
 
+	icon: "qrc:/internal/icon/message-image.svg"
+
 	maximumHeight: 0
 	maximumWidth: 700
 
@@ -87,7 +89,7 @@ QDialogPanel {
 			id: buttonClear
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Törlés")
-			icon.source: CosStyle.iconDelete
+			icon.source: "qrc:/internal/icon/delete.svg"
 			themeColors: CosStyle.buttonThemeOrange
 
 			visible: clearEnabled
@@ -103,7 +105,7 @@ QDialogPanel {
 			id: buttonNo
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
+			icon.source: "qrc:/internal/icon/close-circle.svg"
 			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: dlgClose()
@@ -115,7 +117,7 @@ QDialogPanel {
 			anchors.verticalCenter: parent.verticalCenter
 
 			text: qsTr("OK")
-			icon.source: CosStyle.iconOK
+			icon.source: "qrc:/internal/icon/check-bold.svg"
 			themeColors: CosStyle.buttonThemeGreen
 
 			onClicked: {

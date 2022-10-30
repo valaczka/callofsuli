@@ -40,18 +40,15 @@ GoogleOAuth2::GoogleOAuth2(QObject *parent)
 
 	connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::statusChanged, this, [=](QAbstractOAuth::Status status) {
 		if (status == QAbstractOAuth::Status::Granted) {
-			const QString token = m_oauth.token();
-			emit authenticated(token);
-			qDebug() << "AUTHENTICATED" << token;
+			emit authenticated(m_oauth.token(), m_oauth.expirationAt().toString("yyyy-MM-dd HH:mm:ss"), m_oauth.refreshToken());
 		}
 	});
 
 	m_oauth.setModifyParametersFunction([&](QAbstractOAuth::Stage stage, QVariantMap *parameters) {
 		if (stage == QAbstractOAuth::Stage::RequestingAccessToken) {
-			QByteArray code = parameters->value("code").toByteArray();
+			const QByteArray &code = parameters->value("code").toByteArray();
 			(*parameters)["code"] = QUrl::fromPercentEncoding(code);
-		} else if (stage == QAbstractOAuth::Stage::RequestingAuthorization)
-			parameters->insert("duration", "permanent");
+		}
 	});
 
 	connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, this, &GoogleOAuth2::browserRequest);

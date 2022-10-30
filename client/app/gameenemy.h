@@ -79,7 +79,7 @@ public:
 	void rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items) override;
 
 public slots:
-	void killByPlayer(GamePlayer *player);
+	void killByPlayer(GamePlayer *player, const bool &isEmptyQuestion);
 	void missedByPlayer(GamePlayer *player);
 	void setMoving(bool moving);
 	void setArmed(bool armed);

@@ -59,7 +59,7 @@ class GameEntity : public QQuickItem
 	Q_OBJECT
 
 	Q_PROPERTY(CosGame* cosGame READ cosGame NOTIFY cosGameChanged)
-	Q_PROPERTY(Entity* parentEntity READ parentEntity)
+	Q_PROPERTY(Entity* parentEntity READ parentEntity CONSTANT)
 	Q_PROPERTY(Box2DPolygon* bodyPolygon READ bodyPolygon WRITE setBodyPolygon NOTIFY bodyPolygonChanged)
 	Q_PROPERTY(Box2DBox* boundBox READ boundBox WRITE setBoundBox NOTIFY boundBoxChanged)
 
@@ -70,7 +70,7 @@ class GameEntity : public QQuickItem
 	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged)
 	Q_PROPERTY(bool isAlive READ isAlive WRITE setIsAlive NOTIFY isAliveChanged)
 	Q_PROPERTY(bool isOnGround READ isOnGround WRITE setIsOnGround NOTIFY isOnGroundChanged)
-	Q_PROPERTY(bool isOnBaseGround READ isOnBaseGround)
+	Q_PROPERTY(bool isOnBaseGround READ isOnBaseGround CONSTANT)
 
 	Q_PROPERTY(Box2DRayCast * rayCast READ rayCast WRITE setRayCast NOTIFY rayCastChanged)
 	Q_PROPERTY(qreal rayCastElevation READ rayCastElevation WRITE setRayCastElevation NOTIFY rayCastElevationChanged)

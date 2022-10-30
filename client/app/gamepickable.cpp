@@ -33,6 +33,7 @@
  */
 
 #include "gamepickable.h"
+#include "cosgame.h"
 
 GamePickable::GamePickable(QObject *parent)
 	: QObject(parent)
@@ -56,6 +57,43 @@ GamePickable::~GamePickable()
 void GamePickable::pick()
 {
 	emit picked();
+
+	if (m_game) {
+		switch (m_type) {
+			case PickableShield:
+				emit m_game->gameToolTipRequest("notification/pickableShield",
+												"qrc:/internal/icon/shield.svg",
+												tr("A pajzs megvéd attól, hogy XP-t veszíts"),
+												tr("Ha az ellenség meglő, akkor amíg van pajzsod, abból veszítesz XP helyett"));
+				break;
+			case PickableWater:
+				emit m_game->gameToolTipRequest("notification/pickableWater",
+												"qrc:/internal/game/drop.png",
+												tr("A vízzel elolthatod a tüzet"),
+												tr("Közelítsd meg óvatosan a tüzet, majd nyomd meg a vizet ábrázoló gombot"));
+				break;
+			case PickablePliers:
+				emit m_game->gameToolTipRequest("notification/pickablePliers",
+												"qrc:/internal/icon/pliers.svg",
+												tr("A fogóval átvághatod a kerítést"),
+												tr("Közelítsd meg a kerítést, majd nyomd meg a fogót ábrázoló gombot"));
+				break;
+			case PickableCamouflage:
+				emit m_game->gameToolTipRequest("notification/pickableCamouflage",
+												"qrc:/internal/icon/domino-mask.svg",
+												tr("Az álruhával láthatatlanná válhatsz"),
+												tr("Egy álruha használatával 10 másodpercen keresztül nem vesz észre az ellenség"));
+				break;
+			case PickableTeleporter:
+				emit m_game->gameToolTipRequest("notification/pickableTeleleporter",
+												"qrc:/internal/icon/remote.svg",
+												tr("A teleportálóval a teleportok között közlekedhetsz"),
+												"");
+				break;
+			default:
+				break;
+		}
+	}
 }
 
 

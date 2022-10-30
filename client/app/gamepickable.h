@@ -55,7 +55,9 @@ public:
 		PickableTime,
 		PickableShield,
 		PickableWater,
-		PickablePliers
+		PickablePliers,
+		PickableCamouflage,
+		PickableTeleporter
 	};
 
 	Q_ENUM(PickableType)

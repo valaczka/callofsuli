@@ -36,10 +36,17 @@
 #include "gamematch.h"
 #include "cosgame.h"
 
+
+#define QUESTION_REQUIRED_SECONDS	7.5
+#define MAX_POSTPONABLE_QUESTIONS	5
+
 GameActivity::GameActivity(QQuickItem *parent)
 	: AbstractActivity(CosMessage::ClassInvalid, parent)
 	, m_prepared(false)
 	, m_game(nullptr)
+	, m_currentQuestion(0)
+	, m_postponedQuestions(0)
+	, m_liteHP(0)
 {
 	CosDb *db = new CosDb("objectiveDb", this);
 	//db->setDatabaseName(Client::standardPath("tmptargets.db"));
@@ -76,7 +83,29 @@ void GameActivity::prepare()
 		return;
 	}
 
-	run(&GameActivity::prepareDb, QVariantMap());
+	if (m_game->gameMatch()->mode() == GameMatch::ModeNormal)
+		run(&GameActivity::prepareDb, QVariantMap());
+	else if (m_game->gameMatch()->mode() == GameMatch::ModeLite)
+		prepareLite();
+
+
+}
+
+
+
+/**
+ * @brief GameActivity::prepareExam
+ * @param data
+ */
+
+void GameActivity::prepareExam(const QVariantMap &data)
+{
+	if (m_game->gameMatch()->mode() != GameMatch::ModeExam) {
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen kérés!"));
+		return;
+	}
+
+	qDebug() << "PREPARE EXAM" << data;
 }
 
 
@@ -125,7 +154,7 @@ void GameActivity::createTarget(GameEnemy *enemy)
 	int target = m.value("id").toInt();
 
 	if (!db()->execSimpleQuery("UPDATE targets SET block=?, num=num+1 WHERE id=?", {block, target})) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Ismeretlen adatbázis hiba!"));
 	} else if (enemyData) {
 		enemyData->setTargetId(target);
 		enemyData->setTargetDestroyed(false);
@@ -238,6 +267,7 @@ void GameActivity::setGame(CosGame *game)
 
 
 
+
 /**
  * @brief GameActivity::prepareDb
  */
@@ -298,6 +328,61 @@ void GameActivity::prepareDb(QVariantMap)
 
 
 
+
+/**
+ * @brief GameActivity::prepareLite
+ */
+
+void GameActivity::prepareLite()
+{
+	if (addQuestion() == -1) {
+		qWarning() << "Invalid mission level";
+		emit prepareFailed();
+		return;
+	}
+
+	setCurrentQuestion(0);
+	setPostponedQuestions(0);
+	setLiteHP(m_game->gameMatch()->startHp());
+
+	emit prepareSucceed();
+
+	setPrepared(true);
+}
+
+int GameActivity::liteHP() const
+{
+	return m_liteHP;
+}
+
+void GameActivity::setLiteHP(int newLiteHP)
+{
+	if (m_liteHP == newLiteHP)
+		return;
+	m_liteHP = newLiteHP;
+	emit liteHPChanged();
+}
+
+
+
+
+
+/**
+ * @brief GameActivity::questionList
+ * @return
+ */
+
+const QVector<GameActivity::GameActivityQuestion> &GameActivity::questionList() const
+{
+	return m_questionList;
+}
+
+
+
+
+
+
+
 /**
  * @brief GameActivity::createPickable
  * @param data
@@ -343,4 +428,241 @@ void GameActivity::createPickable(GameEnemy *enemy)
 							  Q_ARG(QVariant, d)
 							  );
 
+}
+
+
+
+int GameActivity::currentQuestion() const
+{
+	return m_currentQuestion;
+}
+
+
+void GameActivity::setCurrentQuestion(int newCurrentQuestion)
+{
+	if (m_currentQuestion == newCurrentQuestion)
+		return;
+	m_currentQuestion = newCurrentQuestion;
+	emit currentQuestionChanged();
+}
+
+
+
+/**
+ * @brief GameActivity::setNextQuestion
+ * @return
+ */
+
+int GameActivity::setNextQuestion()
+{
+	for (int i=0; i<m_questionList.size(); ++i) {
+		if (m_questionList.at(i).answer.isEmpty()) {
+			setCurrentQuestion(i);
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+
+/**
+ * @brief GameActivity::repeatCurrentQuestion
+ * @return
+ */
+
+int GameActivity::repeatCurrentQuestion()
+{
+	int n = -1;
+
+	if (m_currentQuestion < m_questionList.size()-2) {
+		n = QRandomGenerator::global()->bounded(m_currentQuestion+1, m_questionList.size());
+	} else if (m_currentQuestion < m_questionList.size()-1) {
+		n = m_questionList.size()-1;
+	}
+
+	if (m_game && m_game->gameMatch()) {
+		GameMap *map = m_game->gameMatch()->gameMap();
+		if (map) {
+			GameMapObjective *objective = map->objective(m_questionList.at(m_currentQuestion).question.uuid());
+			if (objective) {
+				Question q(objective);
+				q.generate();
+				m_questionList[m_currentQuestion] = GameActivityQuestion(q);
+			}
+		}
+	}
+
+	if (n != -1)
+		m_questionList.move(m_currentQuestion, n);
+
+	return n;
+}
+
+
+
+/**
+ * @brief GameActivity::addQuestion
+ * @param count
+ * @return
+ */
+
+int GameActivity::addQuestion(const int &count)
+{
+	GameMatch *match = m_game->gameMatch();
+	GameMapMissionLevel *level = match->missionLevel();
+
+	if (!level)
+		return -1;
+
+	QVector<GameActivityQuestion> list;
+
+	foreach (GameMapChapter *chapter, level->chapters()) {
+		foreach (GameMapObjective *objective, chapter->objectives()) {
+			int iFrom = 0;
+			int iTo = 1;
+
+			if (objective->storageId() != -1) {
+				iFrom = 1;
+				iTo = objective->storageCount()+1;
+			}
+
+			for (int i=iFrom; i<iTo; ++i) {
+				Question q(objective);
+
+				q.generate();
+
+				list.append(GameActivityQuestion(q));
+			}
+		}
+	}
+
+	// Limit questions count
+
+	int size = qMin(qFloor((qreal)level->duration()/(qreal)QUESTION_REQUIRED_SECONDS), list.size());
+
+	if (count > 0)
+		size = qMin(size, count);
+
+	int newSize = m_questionList.size()+size;
+	int created = 0;
+
+	m_questionList.reserve(newSize);
+	while (list.size() && m_questionList.size() < newSize) {
+		if (list.size() > 1)
+			m_questionList.append(list.takeAt(QRandomGenerator::global()->bounded(list.size())));
+		else
+			m_questionList.append(list.takeFirst());
+		++created;
+	}
+
+	m_questionList.squeeze();
+
+	/*for (int i=0; i<m_questionList.size(); ++i)
+		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;*/
+
+	return created;
+}
+
+
+
+/**
+ * @brief GameActivity::postponeCurrentQuestion
+ */
+
+int GameActivity::postponeCurrentQuestion()
+{
+	int n = -1;
+
+	if (m_currentQuestion < m_questionList.size()-1)
+		n = m_questionList.size()-1;
+
+	if (n != -1) {
+		m_questionList.move(m_currentQuestion, n);
+		setPostponedQuestions(m_postponedQuestions+1);
+	}
+
+	return n;
+}
+
+
+
+
+/**
+ * @brief GameActivity::setCurrentQuestionAnswer
+ * @param answer
+ */
+
+void GameActivity::setCurrentQuestionAnswer(const QVariantMap &answer)
+{
+	if (m_currentQuestion >= 0 && m_currentQuestion<m_questionList.size()) {
+		GameActivityQuestion &question = m_questionList[m_currentQuestion];
+		question.answer = answer;
+	} else {
+		qWarning() << "Invalid current question" << m_currentQuestion;
+	}
+}
+
+
+
+
+/**
+ * @brief GameActivity::generateQuestion
+ * @return
+ */
+
+bool GameActivity::generateQuestion(GameQuestion *gameQuestion)
+{
+	Q_ASSERT(gameQuestion);
+
+	if (m_currentQuestion >= 0 && m_currentQuestion<m_questionList.size()) {
+		GameActivityQuestion question = m_questionList.at(m_currentQuestion);
+
+		gameQuestion->setCanPostpone(m_game->gameMatch() && m_game->gameMatch()->mode() == GameMatch::ModeExam &&
+									 m_postponedQuestions < MAX_POSTPONABLE_QUESTIONS &&
+									 m_currentQuestion < m_questionList.size()-1);
+
+		gameQuestion->runLite(question.question);
+	} else {
+		return false;
+	}
+
+	/*for (int i=0; i<m_questionList.size(); ++i)
+		qDebug() << i << m_questionList.at(i).question.module() << m_questionList.at(i).answer;*/
+
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief GameActivity::activeQuestions
+ * @return
+ */
+
+int GameActivity::activeQuestions() const
+{
+	int n = 0;
+
+	foreach (GameActivityQuestion q, m_questionList) {
+		if (q.answer.isEmpty())
+			n++;
+	}
+
+	return n;
+}
+
+int GameActivity::postponedQuestions() const
+{
+	return m_postponedQuestions;
+}
+
+void GameActivity::setPostponedQuestions(int newPostponedQuestions)
+{
+	if (m_postponedQuestions == newPostponedQuestions)
+		return;
+	m_postponedQuestions = newPostponedQuestions;
+	emit postponedQuestionsChanged();
 }

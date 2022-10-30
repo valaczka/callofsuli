@@ -106,27 +106,29 @@ int GameEnemy::msecLeftAttack() const
  * @param player
  */
 
-void GameEnemy::killByPlayer(GamePlayer *player)
+void GameEnemy::killByPlayer(GamePlayer *player, const bool &isEmptyQuestion)
 {
 	decreaseHp();
-
-	if (isAlive())
-		return;
 
 	qreal playerX = player->parentEntity()->x();
 	qreal meX = parentEntity()->x();
 	bool facingLeft = parentEntity()->property("facingLeft").toBool();
 
-	if (playerX <= meX && !facingLeft)
-		parentEntity()->setProperty("facingLeft", true);
-	else if (playerX > meX && facingLeft)
-		parentEntity()->setProperty("facingLeft", false);
+	if (!isEmptyQuestion || (!isAlive() && m_enemyData->enemyType() != GameEnemyData::EnemySniper) ||
+		m_cosGame->gameMatch()->level() > 2)
+	{
+		if (playerX <= meX && !facingLeft)
+			parentEntity()->setProperty("facingLeft", true);
+		else if (playerX > meX && facingLeft)
+			parentEntity()->setProperty("facingLeft", false);
+	}
+
+	if (isAlive())
+		return;
 
 	setAimedByPlayer(false);
 
 	emit killed(this);
-
-	player->attackSuccesful(this);
 }
 
 
@@ -191,7 +193,10 @@ void GameEnemy::attackPlayer()
 {
 	if (m_player && m_isAlive) {
 		emit attack();
-		m_player->hurtByEnemy(this, true);
+		if (m_enemyData->enemyType() == GameEnemyData::EnemySniper)
+			m_player->killByEnemy(this);
+		else
+			m_player->hurtByEnemy(this, true);
 	}
 }
 
@@ -218,7 +223,7 @@ void GameEnemy::rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items
 
 		GamePlayer *p = qvariant_cast<GamePlayer *>(i.value()->property("entityPrivate"));
 
-		if (p && p->isAlive()) {
+		if (p && p->isAlive() && !p->invisible()) {
 			player = p;
 			fraction = i.key();
 		}

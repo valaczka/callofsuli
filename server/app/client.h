@@ -34,6 +34,7 @@
 
 #include "cosdb.h"
 #include "cosmessage.h"
+#include "examengine.h"
 
 class Server;
 
@@ -66,7 +67,11 @@ public:
 	void setClientSession(const QString &clientSession);
 
 	void httpGet(QNetworkRequest request, const CosMessage &message, void *data);
+	void httpPost(QNetworkRequest request, const CosMessage &message, const QByteArray &postData, void *data);
 	void httpReply(QNetworkReply *reply);
+
+	ExamEngine *examEngine() const;
+	void setExamEngine(ExamEngine *newExamEngine, const bool &isOwnerClient = false);
 
 public slots:
 	void sendClientRoles();
@@ -96,7 +101,8 @@ signals:
 	void oauth2UserinfoReceived(const QJsonObject &data);
 
 private:
-	void getOAuth2Userinfo(const QString &token);
+	void getOAuth2Userinfo(const QString &token, const QDateTime &expiration, const QString &refreshToken);
+
 	Server *m_server;
 	QWebSocket *m_socket;
 
@@ -113,6 +119,7 @@ private:
 	};
 
 	QList<HttpRequestMap> m_httpRequestList;
+	QPointer<ExamEngine> m_examEngine = nullptr;
 };
 
 #endif // CLIENT_H

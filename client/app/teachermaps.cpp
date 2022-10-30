@@ -222,7 +222,7 @@ void TeacherMaps::mapUpload(const QUrl &url)
 	QFile f(url.toLocalFile());
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -230,7 +230,7 @@ void TeacherMaps::mapUpload(const QUrl &url)
 
 	GameMap *map = GameMap::fromBinaryData(content);
 	if (!map) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -261,7 +261,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 	QFile f(url.toLocalFile());
 
 	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl megnyitási hiba"), tr("Nem sikerült megnyitni a fájlt:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -269,7 +269,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 
 	GameMap *map = GameMap::fromBinaryData(content);
 	if (!map) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl hiba"), tr("Érvénytelen formátumú fájl:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -278,7 +278,7 @@ void TeacherMaps::mapOverride(const QUrl &url)
 	delete map;
 
 	if (fuuid != m_selectedMapId) {
-		Client::clientInstance()->sendMessageWarning(tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Fájl hiba"), tr("A fájl nem ennek a pályának módosított változata:\n%1").arg(f.fileName()));
 		return;
 	}
 
@@ -307,7 +307,7 @@ void TeacherMaps::mapExport(const QUrl &url)
 	QVariantMap m = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {m_selectedMapId});
 
 	if (m.isEmpty()) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"));
 		return;
 	}
 
@@ -315,7 +315,7 @@ void TeacherMaps::mapExport(const QUrl &url)
 
 	QFile f(url.toLocalFile());
 	if (!f.open(QIODevice::WriteOnly)) {
-		Client::clientInstance()->sendMessageError(tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Mentési hiba"), tr("Nem lehet írni a fájlba:\n%1").arg(f.fileName()));
 		return;
 	}
 	f.write(b);
@@ -477,10 +477,14 @@ QVariantMap TeacherMaps::missionNames(CosDb *db)
 
 		if (map) {
 			foreach(GameMapMission *mis, map->missions()) {
-				QString missionid = mis->uuid();
-				QString name = mis->name();
+				const QString missionid = mis->uuid();
+				const QString name = mis->name();
+				const QString medal = mis->medalImage();
 
-				r[missionid] = name;
+				r[missionid] = QVariantMap({
+											   { "name", name },
+											   { "medalImage", medal }
+										   });
 			}
 		}
 
@@ -488,5 +492,170 @@ QVariantMap TeacherMaps::missionNames(CosDb *db)
 	}
 
 	return ret;
+}
+
+
+
+
+/**
+ * @brief TeacherMaps::gradeList
+ * @param list
+ * @return
+ */
+
+QMap<int, QVariantMap> TeacherMaps::gradeList(const QJsonArray &list)
+{
+	QMap<int, QVariantMap> ret;
+
+	foreach (QVariant v, list) {
+		QVariantMap m = v.toMap();
+		if (!m.contains("id"))
+			continue;
+
+		int id = m.value("id").toInt();
+		m.remove("id");
+
+		ret.insert(id, m);
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief TeacherMaps::campaignList
+ * @param list
+ * @return
+ */
+
+QJsonArray TeacherMaps::campaignList(const QJsonArray &list, const QVariantMap &missionMap, ObjectGenericListModel<MapListObject> *mapModel)
+{
+	QJsonArray newList;
+
+	foreach (QJsonValue v, list) {
+		QJsonObject o = v.toObject();
+
+		QJsonArray alist = o.value("assignment").toArray();
+		QJsonArray newAList;
+
+		foreach (QJsonValue v, alist) {
+			QJsonObject o = v.toObject();
+
+			QJsonObject grading = o.value("grading").toObject();
+
+			QJsonArray xpArray = grading.value("xp").toArray();
+			QJsonArray gradeArray = grading.value("grade").toArray();
+
+			QJsonArray newXpArray, newGradeArray;
+
+
+			// XP
+
+			foreach (QJsonValue v, xpArray) {
+				QJsonObject o = v.toObject();
+				QJsonArray cList = o.value("criteria").toArray();
+				QJsonArray newCList;
+
+				foreach (QJsonValue v, cList) {
+					QJsonObject o = v.toObject();
+					QJsonObject criterion = o.value("criterion").toObject();
+
+					if (criterion.value("module").toString() == "missionlevel") {
+						QString map = criterion.value("map").toString();
+						QString mission = criterion.value("mission").toString();
+
+						mission = missionMap.value(map).toMap().value(mission).toString();
+
+						if (mission.isEmpty())
+							mission = "???";
+
+						if (mapModel) {
+							QList<MapListObject*> l = mapModel->find("uuid", map);
+							map = l.isEmpty() ? "???" : l.at(0)->name();
+						} else {
+							map = "???";
+						}
+
+						criterion["map"] = map;
+						criterion["mission"] = mission;
+					}
+
+					o["criterion"] = criterion;
+					newCList.append(o);
+				}
+
+				o["criteria"] = newCList;
+				newXpArray.append(o);
+			}
+
+
+			// GRADE
+
+			foreach (QJsonValue v, gradeArray) {
+				QJsonObject o = v.toObject();
+				QJsonArray cList = o.value("criteria").toArray();
+				QJsonArray newCList;
+
+				foreach (QJsonValue v, cList) {
+					QJsonObject o = v.toObject();
+					QJsonObject criterion = o.value("criterion").toObject();
+
+					if (criterion.value("module").toString() == "missionlevel") {
+						QString map = criterion.value("map").toString();
+						QString mission = criterion.value("mission").toString();
+
+						const QVariantMap missionInfo = missionMap.value(map).toMap().value(mission).toMap();
+						const QString medalImage = missionInfo.value("medalImage").toString();
+
+						mission = missionInfo.value("name").toString();
+
+						if (mission.isEmpty())
+							mission = "???";
+
+						if (mapModel) {
+							QList<MapListObject*> l = mapModel->find("uuid", map);
+							map = l.isEmpty() ? "???" : l.at(0)->name();
+						} else {
+							map = "???";
+						}
+
+						criterion["map"] = map;
+						criterion["mission"] = mission;
+						criterion["medalImage"] = medalImage;
+					}
+
+					o["criterion"] = criterion;
+					newCList.append(o);
+				}
+
+				o["criteria"] = newCList;
+				newGradeArray.append(o);
+			}
+
+
+			// GRADES
+
+			QJsonArray grades = o.value("grades").toArray();
+			QJsonArray newGrades;
+
+			foreach (QJsonValue v, grades) {
+				QJsonObject o = v.toObject();
+				o["forecast"] = o.value("forecast").toBool(false);
+				newGrades.append(o);
+			}
+
+			grading["xp"] = newXpArray;
+			grading["grade"] = newGradeArray;
+			o["grading"] = grading;
+			o["grades"] = newGrades;
+			newAList.append(o);
+		}
+
+		o["assignment"] = newAList;
+		newList.append(o);
+	}
+
+	return newList;
 }
 

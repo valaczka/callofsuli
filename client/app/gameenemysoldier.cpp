@@ -46,7 +46,7 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	, m_atBound(false)
 	, m_turnElapsedMsec(-1)
 	, m_soldierType("soldier1")
-	, m_shotSoundFile("qrc:/sound/sfx/enemyshot.mp3")
+	, m_shotSoundFile("qrc:/sound/sfx/enemyshot.wav")
 {
 	m_movingTimer = new QTimer(this);
 	m_movingTimer->setInterval(60);
@@ -248,7 +248,7 @@ void GameEnemySoldier::onMovingTimerTimeout()
 			m_turnElapsedMsec = -1;
 		}
 	} else {
-		int x = entity->property("x").toInt();
+		int x = entity->x();//property("x").toInt();
 		int delta = m_qrcData.value("walk", 3).toInt();
 
 		if (facingLeft) {

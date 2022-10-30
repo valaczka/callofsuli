@@ -5,8 +5,14 @@ import android.os.*;
 import android.content.*;
 import android.app.*;
 
+import android.view.DisplayCutout;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowManager;
+
 import android.content.Intent;
 import android.util.Log;
+import android.graphics.Rect;
 
 public class ClientActivity extends QtActivity
 {
@@ -24,6 +30,12 @@ public class ClientActivity extends QtActivity
 		  if (theAction != null) {
 			  isIntentPending = true;
 		  }
+	  }
+
+	  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+		  getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+				  WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+		  getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
 	  }
 	}
 
@@ -60,4 +72,26 @@ public class ClientActivity extends QtActivity
 			}
 		}
 	}
+
+
+	public Object getSafeArea() {
+		final Rect safeInsetRect = new Rect();
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+		  return safeInsetRect;
+		}
+
+		final WindowInsets windowInsets = getWindow().getDecorView().getRootWindowInsets();
+		if (windowInsets == null) {
+		  return safeInsetRect;
+		}
+
+		final DisplayCutout displayCutout = windowInsets.getDisplayCutout();
+		if (displayCutout != null) {
+		  safeInsetRect.set(displayCutout.getSafeInsetLeft(), displayCutout.getSafeInsetTop(),
+		  displayCutout.getSafeInsetRight(), displayCutout.getSafeInsetBottom());
+		}
+
+		return safeInsetRect;
+	 }
+
 }

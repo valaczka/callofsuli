@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ME_images.qml</file>
+    </qresource>
+</RCC>

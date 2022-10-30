@@ -41,7 +41,7 @@ CosSound::CosSound(QObject *parent)
 	, m_mediaPlayerMusic (nullptr)
 	, m_mediaPlayerSfx (nullptr)
 	, m_mediaPlayerVoiceOver (nullptr)
-	, m_soundTypeSfx(GameSfx)
+	, m_soundTypeSfx(PlayerSfx)
 	, m_musicNextSource()
 	, m_fadeAnimation(new QVariantAnimation(this))
 	, m_musicVolume(0)
@@ -63,7 +63,7 @@ CosSound::~CosSound()
 	delete m_fadeAnimation;
 
 	if (m_mediaPlayerMusic && m_mediaPlayerSfx && m_mediaPlayerVoiceOver) {
-		QSettings s;
+		QSettings s(this);
 		s.beginGroup("sound");
 		s.setValue("volumeMusic", m_musicVolume);
 		s.setValue("volumeSfx", volumeSfx());
@@ -94,7 +94,7 @@ void CosSound::init()
 	m_mediaPlayerSfx = new QMediaPlayer(this);
 	m_mediaPlayerVoiceOver = new QMediaPlayer(this);
 
-	m_soundTypeSfx = GameSfx;
+	m_soundTypeSfx = PlayerSfx;
 
 	/*connect (m_mediaPlayerMusic, &QMediaPlayer::volumeChanged, this, &CosSound::volumeMusicChanged);
 	connect (m_mediaPlayerSfx, &QMediaPlayer::volumeChanged, this, &CosSound::volumeSfxChanged);
@@ -113,7 +113,7 @@ void CosSound::init()
 		m_mediaPlayerMusic->setVolume(m_musicVolume);
 	});
 
-	QSettings s;
+	QSettings s(this);
 	s.beginGroup("sound");
 	setVolumeMusic(s.value("volumeMusic", 50).toInt());
 	setVolumeSfx(s.value("volumeSfx", 50).toInt());
@@ -124,19 +124,19 @@ void CosSound::init()
 	/*connect(m_mediaPlayerMusic, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerMusic << error;
-		sendMessageError(tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});
 
 	connect(m_mediaPlayerSfx, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerSfx << error;
-		sendMessageError(tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});
 
 	connect(m_mediaPlayerVoiceOver, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerVoiceOver << error;
-		sendMessageError(tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
+		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});*/
 
 }
@@ -176,19 +176,10 @@ void CosSound::playSound(const QString &source, const SoundType &soundType)
 			return;
 
 		if (m_mediaPlayerSfx->state() == QMediaPlayer::PlayingState) {
-			if (m_soundTypeSfx == GameSound && soundType != GameSound)
+			if (soundType == PlayerVoice && m_soundTypeSfx == GameSound)
 				return;
 
-			if (m_soundTypeSfx == PlayerShoot && soundType != PlayerShoot && soundType != GameSound)
-				return;
-
-			if (m_soundTypeSfx == EnemyShoot && soundType != EnemyShoot && soundType != PlayerShoot && soundType != GameSound  && soundType != PlayerVoice)
-				return;
-
-			if (m_soundTypeSfx == PlayerVoice && soundType != PlayerVoice && soundType != GameSound)
-				return;
-
-			if (m_soundTypeSfx == PlayerSfx && (soundType == GameSfx || soundType == EnemySfx))
+			if (soundType == PlayerSfx && m_soundTypeSfx == GameSound)
 				return;
 
 			m_mediaPlayerSfx->stop();

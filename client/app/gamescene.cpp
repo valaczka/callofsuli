@@ -48,6 +48,7 @@ GameScene::GameScene(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_tiledLayers()
 	, m_game(nullptr)
+	, m_teleports()
 {
 
 }
@@ -268,6 +269,46 @@ void GameScene::loadFences(GameTerrain *terrainData)
 }
 
 
+/**
+ * @brief GameScene::loadTeleports
+ * @param terrainData
+ */
+
+void GameScene::loadTeleports(GameTerrain *terrainData)
+{
+	m_teleports.clear();
+
+	foreach (QPointF point, terrainData->teleports()) {
+		QQuickItem *item = nullptr;
+
+		QMetaObject::invokeMethod(m_game->gameScene(), "createTeleport", Qt::DirectConnection,
+								  Q_RETURN_ARG(QQuickItem*, item)
+								  );
+
+		if (!item) {
+			qWarning() << "Can't create teleport at" << point;
+			continue;
+		}
+
+		item->setX(point.x()-(item->width()/2));
+		item->setY(point.y()-item->height());
+
+		m_teleports.append(item);
+	}
+}
+
+
+/**
+ * @brief GameScene::teleports
+ * @return
+ */
+
+const QList<QQuickItem *> &GameScene::teleports() const
+{
+	return m_teleports;
+}
+
+
 
 /**
  * @brief GameScene::loadScene
@@ -304,6 +345,7 @@ bool GameScene::loadScene()
 	loadPlayerPositions(terrainData);
 	loadFires(terrainData);
 	loadFences(terrainData);
+	loadTeleports(terrainData);
 	loadItems(terrainData);
 
 	emit sceneLoaded();

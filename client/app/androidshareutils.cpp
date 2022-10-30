@@ -25,6 +25,8 @@
  */
 
 #include <QDebug>
+#include <QGuiApplication>
+#include <QScreen>
 
 #include "androidshareutils.h"
 
@@ -37,6 +39,7 @@ AndroidShareUtils* AndroidShareUtils::m_instance = nullptr;
 AndroidShareUtils::AndroidShareUtils(QObject *parent)
 	: QObject(parent)
 	, m_pendingIntentsChecked(false)
+	, m_safeArea()
 	#ifdef Q_OS_ANDROID
 	, m_screenOrientationRequest(-1)
 	#endif
@@ -109,6 +112,51 @@ bool AndroidShareUtils::resetLandscape()
 #endif
 
 	return false;
+}
+
+
+/**
+ * @brief AndroidShareUtils::getWindowSafeArea
+ * @param window
+ * @return
+ */
+
+const QMarginsF &AndroidShareUtils::getWindowSafeArea(QQuickWindow *window)
+{
+	if (!window) {
+		qWarning() << "INVALID WINDOW" << window;
+		return m_safeArea;
+	}
+
+	QWindow *qwin = qobject_cast<QWindow*>(window);
+
+	if (!qwin) {
+		qWarning() << "Invalid QWindow" << window;
+		return m_safeArea;
+	}
+
+#if !defined (Q_OS_ANDROID)
+	QPlatformWindow *platformWindow = static_cast<QPlatformWindow *>(qwin->handle());
+	if(!platformWindow)
+		return m_safeArea;;
+	m_safeArea = platformWindow->safeAreaMargins();
+#else
+	static const double devicePixelRatio = QGuiApplication::primaryScreen()->devicePixelRatio();
+
+	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
+
+	const double left = static_cast<double>(rect.getField<jint>("left"));
+	const double top = static_cast<double>(rect.getField<jint>("top"));
+	const double right = static_cast<double>(rect.getField<jint>("right"));
+	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
+
+	m_safeArea.setTop(top/devicePixelRatio);
+	m_safeArea.setBottom(bottom/devicePixelRatio);
+	m_safeArea.setLeft(left/devicePixelRatio);
+	m_safeArea.setRight(right/devicePixelRatio);
+#endif
+
+	return m_safeArea;
 }
 
 
@@ -204,6 +252,11 @@ void AndroidShareUtils::checkMediaPermissions()
 #endif
 
 	emit mediaPermissionsGranted();
+}
+
+const QMarginsF &AndroidShareUtils::safeArea() const
+{
+	return m_safeArea;
 }
 
 

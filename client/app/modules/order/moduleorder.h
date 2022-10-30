@@ -68,6 +68,8 @@ public:
 	QVariantList generateItems(const QStringList &list, const int &count) const;
 	QVariantList generateItems(const QVariantList &list, const int &count) const;
 
+	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
+
 signals:
 
 };

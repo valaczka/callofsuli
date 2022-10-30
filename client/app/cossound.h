@@ -52,7 +52,7 @@ public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
 	Q_ENUM(ChannelType)
 
-	enum SoundType { Music, VoiceOver, PlayerSfx, EnemySfx, GameSfx, PlayerShoot, EnemyShoot, PlayerVoice, GameSound };
+	enum SoundType { Music, VoiceOver, PlayerSfx, PlayerVoice, GameSound };
 	Q_ENUM(SoundType)
 
 	explicit CosSound(QObject *parent = nullptr);

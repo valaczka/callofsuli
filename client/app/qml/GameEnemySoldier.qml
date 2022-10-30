@@ -7,133 +7,139 @@ import "Style"
 import "JScript.js" as JS
 
 GameEntity {
-	id: root
-	sleepingAllowed: false
-	width: spriteSequence.width
-	height: spriteSequence.height
+    id: root
+    sleepingAllowed: false
+    width: spriteSequence.width
+    height: spriteSequence.height
 
-	z: 9
+    z: 9
 
-	entityPrivate: ep
+    entityPrivate: ep
 
-	property bool showPickable: false
-	property bool showTarget: false
+    property bool showPickable: false
+    property bool showTarget: false
 
-	glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
-	glowEnabled: ep.aimedByPlayer || showPickable || showTarget
+    glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
+    glowEnabled: ep.aimedByPlayer || showPickable || showTarget
 
-	overlayColor: JS.setColorAlpha(CosStyle.colorGlowEnemy, 0.8)
+    overlayColor: JS.setColorAlpha(CosStyle.colorGlowEnemy, 0.8)
 
-	hpColor: CosStyle.colorWarningLighter
-	hpVisible: ep.aimedByPlayer
-	hpValue: ep.hp
+    hpColor: CosStyle.colorWarningLighter
+    hpVisible: ep.aimedByPlayer
+    hpValue: ep.hp
 
-	GameEnemySoldierPrivate {
-		id: ep
+    GameEnemySoldierPrivate {
+        id: ep
 
-		onKilled: {
-			spriteSequence.jumpTo("dead")
-		}
+        SoundEffect {
+            id: shotEffect
+            source: ep.shotSoundFile
+            volume: cosClient.sfxVolume
+        }
 
-		onMovingChanged: setSprite()
-		onAtBoundChanged: setSprite()
-		onPlayerChanged: {
-			setSprite()
+        onKilled: {
+            spriteSequence.jumpTo("dead")
+        }
 
-			if (ep.player) {
-				var o = markerComponent.createObject(root)
-				o.playerItem = ep.player.parentEntity
-			}
-		}
+        onMovingChanged: setSprite()
+        onAtBoundChanged: setSprite()
+        onPlayerChanged: {
+            setSprite()
 
-		onAttack: {
-			spriteSequence.jumpTo("shot")
-			cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
-		}
+            if (ep.player) {
+                var o = markerComponent.createObject(root)
+                o.playerItem = ep.player.parentEntity
+            }
+        }
 
-		onRayCastPerformed: {
-			/*if (cosGame.gameScene.debug)
-				setray(rect)*/
-		}
+        onAttack: {
+            spriteSequence.jumpTo("shot")
+            //cosClient.playSound(shotSoundFile, CosSound.EnemyShoot)
+            shotEffect.play()
+        }
 
-		Connections {
-			target: ep.cosGame ? ep.cosGame.gameScene : null
-			function onShowPickablesChanged() {
-				if (ep.cosGame.gameScene.showPickables && ep.enemyData.pickableType !== GamePickablePrivate.PickableInvalid)
-					showPickable = true
-				else
-					showPickable = false
-			}
+        onRayCastPerformed: {
+            /*if (cosGame.gameScene.debug)
+                setray(rect)*/
+        }
 
-			function onShowTargetsChanged() {
-				if (ep.cosGame.gameScene.showTargets && ep.enemyData.targetId != -1)
-					showTarget = true
-				else
-					showTarget = false
-			}
+        Connections {
+            target: ep.cosGame ? ep.cosGame.gameScene : null
+            function onShowPickablesChanged() {
+                if (ep.cosGame.gameScene.showPickables && ep.enemyData.pickableType !== GamePickablePrivate.PickableInvalid)
+                    showPickable = true
+                else
+                    showPickable = false
+            }
 
-			function onIsSceneZoomChanged() {
-				overlayEnabled = ep.cosGame.gameScene.isSceneZoom
-			}
-		}
-	}
+            function onShowTargetsChanged() {
+                if (ep.cosGame.gameScene.showTargets && ep.enemyData.targetId != -1)
+                    showTarget = true
+                else
+                    showTarget = false
+            }
 
-	Component {
-		id: markerComponent
+            function onIsSceneZoomChanged() {
+                overlayEnabled = ep.cosGame.gameScene.isSceneZoom
+            }
+        }
+    }
 
-		GameEnemyMarker {
-			enemyPrivate: ep
-		}
-	}
+    Component {
+        id: markerComponent
 
-
-
-	function setray(rect) {
-		var k = mapFromItem(scene, rect.x, rect.y)
-
-		rayRect.x = k.x
-		rayRect.y = k.y
-		rayRect.width = rect.width
-		rayRect.height = Math.max(rect.height, 1)
-		rayRect.visible = true
-		timerOff.start()
-
-	}
-
-	Rectangle {
-		id: rayRect
-		color: "blue"
-		visible: false
-		border.width: 1
-		border.color: "blue"
-
-		Timer {
-			id: timerOff
-			interval: 200
-			triggeredOnStart: false
-			running: false
-			repeat: false
-			onTriggered: rayRect.visible = false
-		}
-	}
+        GameEnemyMarker {
+            enemyPrivate: ep
+        }
+    }
 
 
 
-	function setSprite() {
-		if (!ep.isAlive)
-			return
+    function setray(rect) {
+        var k = mapFromItem(scene, rect.x, rect.y)
 
-		if (ep.player) {
-			spriteSequence.jumpTo("idle")
-		} else {
-			if (!ep.atBound && ep.moving) {
-				spriteSequence.jumpTo("walk")
-			}
-			else {
-				spriteSequence.jumpTo("idle")
-			}
-		}
-	}
+        rayRect.x = k.x
+        rayRect.y = k.y
+        rayRect.width = rect.width
+        rayRect.height = Math.max(rect.height, 1)
+        rayRect.visible = true
+        timerOff.start()
+
+    }
+
+    Rectangle {
+        id: rayRect
+        color: "blue"
+        visible: false
+        border.width: 1
+        border.color: "blue"
+
+        Timer {
+            id: timerOff
+            interval: 200
+            triggeredOnStart: false
+            running: false
+            repeat: false
+            onTriggered: rayRect.visible = false
+        }
+    }
+
+
+    function setSprite() {
+        if (!ep.isAlive)
+            return
+
+        if (ep.player) {
+            spriteSequence.jumpTo("idle")
+        } else {
+            if (!ep.atBound && ep.moving) {
+                spriteSequence.jumpTo("walk")
+            }
+            else {
+                spriteSequence.jumpTo("idle")
+            }
+        }
+    }
 
 }
 

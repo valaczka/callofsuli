@@ -42,14 +42,17 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	, m_missionNameMap()
 	, m_selectedGroupName()
 	, m_selectedGroupFullName()
+	, m_gradeMap()
+	, m_mapList()
 {
 	connect(this, &TeacherGroups::groupGet, this, &TeacherGroups::onGroupGet);
 	connect(this, &TeacherGroups::groupMapActivate, this, &TeacherGroups::groupReload);
 	connect(this, &TeacherGroups::groupMapRemove, this, &TeacherGroups::groupReload);
 	connect(this, &TeacherGroups::groupMapAdd, this, &TeacherGroups::groupReload);
 	connect(this, &TeacherGroups::gameListUserGet, this, &TeacherGroups::onGameListUserGet);
-	connect(this, &TeacherGroups::gameListMapGet, this, &TeacherGroups::onGameListMapGet);
 	connect(this, &TeacherGroups::gameListGroupGet, this, &TeacherGroups::onGameListGroupGet);
+	connect(this, &TeacherGroups::campaignGet, this, &TeacherGroups::onCampaignGet);
+	connect(this, &TeacherGroups::campaignListGet, this, &TeacherGroups::onCampaignListGet);
 
 	CosDb *db = TeacherMaps::teacherMapsDb(Client::clientInstance(), this);
 
@@ -66,6 +69,25 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 TeacherGroups::~TeacherGroups()
 {
 	delete m_modelMapList;
+}
+
+
+
+/**
+ * @brief TeacherGroups::onMessageReceived
+ * @param message
+ */
+
+void TeacherGroups::onMessageReceived(const CosMessage &message)
+{
+	if (message.cosClass() == CosMessage::ClassExamEngine) {
+		const QString &func = message.cosFunc();
+		const QJsonObject &d = message.jsonData();
+		emit examEngineMessage(func, d);
+		qInfo() << "EXAM ENGINE MESSAGE" << func << d;
+	} else {
+		autoSignalEmit(message);
+	}
 }
 
 
@@ -168,7 +190,7 @@ bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
 	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
 
 	if (r.isEmpty()) {
-		Client::clientInstance()->sendMessageError(tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
+		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
 		return false;
 	}
 
@@ -265,7 +287,7 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 	}
 
 	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 
@@ -278,8 +300,10 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 
 	foreach (QJsonValue v, list) {
 		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
-							  .value(m.value("missionid").toString()).toString();
+
+		const QVariantMap missionInfo = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+										.value(m.value("missionid").toString()).toMap();
+		const QString missionname = missionInfo.value("name").toString();
 
 		m["missionname"] = missionname;
 		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
@@ -290,39 +314,6 @@ void TeacherGroups::onGameListUserGet(QJsonObject jsonData, QByteArray)
 }
 
 
-/**
- * @brief TeacherGroups::onGameListMapGet
- * @param jsonData
- */
-
-void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
-{
-	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
-		return;
-	}
-
-	QString mapid = jsonData.value("mapid").toString();
-	QJsonArray list = jsonData.value("list").toArray();
-	QVariantList ret;
-
-	if (m_missionNameMap.isEmpty()) {
-		m_missionNameMap = TeacherMaps::missionNames(db());
-	}
-
-	foreach (QJsonValue v, list) {
-		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(mapid).toMap()
-							  .value(m.value("missionid").toString()).toString();
-
-		m["missionname"] = missionname;
-		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
-		ret.append(m);
-	}
-
-	emit gameListMapReady(ret, mapid, jsonData.value("username").toString());
-}
-
 
 /**
  * @brief TeacherGroups::onGameListGroupGet
@@ -332,7 +323,7 @@ void TeacherGroups::onGameListMapGet(QJsonObject jsonData, QByteArray)
 void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.contains("error")) {
-		Client::clientInstance()->sendMessageWarning(tr("Lekérdezési hiba"), jsonData.value("error").toString());
+		Client::clientInstance()->sendMessageWarningImage("qrc:/internal/icon/alert-outline.svg", tr("Lekérdezési hiba"), jsonData.value("error").toString());
 		return;
 	}
 
@@ -346,8 +337,9 @@ void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 
 	foreach (QJsonValue v, list) {
 		QVariantMap m = v.toObject().toVariantMap();
-		QString missionname = m_missionNameMap.value(m.value("mapid").toString()).toMap()
-							  .value(m.value("missionid").toString()).toString();
+		const QVariantMap missionInfo = m_missionNameMap.value(m.value("mapid").toString()).toMap()
+										.value(m.value("missionid").toString()).toMap();
+		const QString missionname = missionInfo.value("name").toString();
 
 		m["missionname"] = missionname;
 		m["duration"] = QTime(0,0).addSecs(m.value("duration").toInt()).toString("mm:ss");
@@ -355,6 +347,36 @@ void TeacherGroups::onGameListGroupGet(QJsonObject jsonData, QByteArray)
 	}
 
 	emit gameListGroupReady(ret, groupid, jsonData.value("username").toString(), jsonData.value("offset").toInt());
+}
+
+
+/**
+ * @brief TeacherGroups::onCampaignGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onCampaignGet(QJsonObject jsonData, QByteArray)
+{
+	m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
+	m_mapList = jsonData.value("mapList").toArray().toVariantList();
+
+	if (m_missionNameMap.isEmpty()) {
+		m_missionNameMap = TeacherMaps::missionNames(db());
+	}
+
+	emit campaignGetReady(jsonData);
+}
+
+
+/**
+ * @brief TeacherGroups::onCampaignListGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onCampaignListGet(QJsonObject jsonData, QByteArray)
+{
+	if (jsonData.contains("gradeList"))
+		m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
 }
 
 
@@ -428,5 +450,133 @@ ObjectListModel *TeacherGroups::newUserModel(QObject *parent) const
 
 ObjectListModel *TeacherGroups::newMapModel(QObject *parent) const
 {
-return new ObjectGenericListModel<MapListObject>(parent);
+	return new ObjectGenericListModel<MapListObject>(parent);
+}
+
+
+/**
+ * @brief TeacherGroups::grade
+ * @param id
+ * @return
+ */
+
+QVariantMap TeacherGroups::grade(const int &id) const
+{
+	if (!m_gradeMap.contains(id))
+		return QVariantMap({
+							   {"id", -1},
+							   {"longname", ""},
+							   {"shortname", ""},
+							   {"value", -1}
+						   });
+	return m_gradeMap.value(id);
+}
+
+
+
+/**
+ * @brief TeacherGroups::mapMission
+ * @param mapUuid
+ * @param missionUuid
+ * @return
+ */
+
+QVariantMap TeacherGroups::mapMission(const QString &mapUuid, const QString &missionUuid) const
+{
+	QVariantMap ret;
+
+	QString map = mapUuid;
+	const QVariantMap misMap = m_missionNameMap.value(mapUuid).toMap().value(missionUuid).toMap();
+	const QString mis = misMap.value("name").toString();
+	const QString medal = misMap.value("medalImage").toString();
+
+	foreach (QVariant v, m_mapList) {
+		QVariantMap m = v.toMap();
+		if (m.value("uuid").toString() == mapUuid) {
+			map = m.value("name").toString();
+			break;
+		}
+	}
+
+	ret["map"] = map;
+	ret["mission"] = mis.isEmpty() ? missionUuid : mis;
+	ret["medalImage"] = medal;
+
+	return ret;
+}
+
+
+/**
+ * @brief TeacherGroups::mapList
+ * @return
+ */
+
+const QVariantList &TeacherGroups::mapList() const
+{
+	return m_mapList;
+}
+
+
+/**
+ * @brief TeacherGroups::missionList
+ * @return
+ */
+
+QVariantList TeacherGroups::missionList(const QString &mapUuid) const
+{
+	QVariantList ret;
+
+	QVariantMap m;
+
+	if (mapUuid.isEmpty()) {
+		m = m_missionNameMap;
+	} else {
+		m[mapUuid] = m_missionNameMap.value(mapUuid).toMap();
+	}
+
+	QMapIterator<QString, QVariant> it(m);
+
+	while (it.hasNext()) {
+		it.next();
+
+		QVariantMap mm = it.value().toMap();
+
+		QMapIterator<QString, QVariant> iit(mm);
+
+		while (iit.hasNext()) {
+			iit.next();
+
+			const QVariantMap im = iit.value().toMap();
+
+			ret.append(QVariantMap({
+									   { "uuid", iit.key() },
+									   { "name", im.value("name").toString() },
+									   { "medalImage", im.value("medalImage").toString() }
+								   }));
+		}
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief TeacherGroups::gradeList
+ * @return
+ */
+
+QVariantList TeacherGroups::gradeList() const
+{
+	QVariantList ret;
+
+	QMapIterator<int, QVariantMap> it (m_gradeMap);
+
+	while (it.hasNext()) {
+		it.next();
+		QVariantMap m = it.value();
+		m["id"] = it.key();
+		ret.append(m);
+	}
+
+	return ret;
 }

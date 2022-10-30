@@ -15,6 +15,13 @@ Grid {
 	property alias d2: gridRepeaterD2.model
 	property alias d3: gridRepeaterD3.model
 
+	readonly property int trophyCount: (gridRepeaterT1.model ? gridRepeaterT1.model : 0)+
+									   (gridRepeaterT2.model ? gridRepeaterT2.model : 0)+
+									   (gridRepeaterT3.model ? gridRepeaterT3.model : 0)+
+									   (gridRepeaterD1.model ? gridRepeaterD1.model : 0)+
+									   (gridRepeaterD2.model ? gridRepeaterD2.model : 0)+
+									   (gridRepeaterD3.model ? gridRepeaterD3.model : 0)
+
 	columns: Math.floor(parent.width/(imageSize+spacing))
 	spacing: 5
 

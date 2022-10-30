@@ -10,7 +10,7 @@ QDialogPanel {
 	id: control
 
 	title: isSave ? qsTr("Mentés") : qsTr("Megnyitás")
-	icon: isSave ? CosStyle.iconSave : CosStyle.iconBooks
+	icon: isSave ? "qrc:/internal/icon/content-save.svg" : "qrc:/internal/icon/folder-open.svg"
 
 	property alias text: tfFile.text
 	property url folder: ""
@@ -135,7 +135,8 @@ QDialogPanel {
 				width: height
 				height: item.height
 
-				icon: fileIsDir ? CosStyle.iconBooks : CosStyle.iconPlay
+				icon: fileIsDir ? "qrc:/internal/icon/folder-open.svg" : "qrc:/internal/icon/file-outline.svg"
+				color: fileIsDir ? CosStyle.colorAccent : CosStyle.colorPrimaryLighter
 			}
 
 			QLabel {
@@ -202,7 +203,7 @@ QDialogPanel {
 			id: buttonNo
 			anchors.verticalCenter: parent.verticalCenter
 			text: qsTr("Mégsem")
-			icon.source: CosStyle.iconCancel
+			icon.source: "qrc:/internal/icon/close-circle.svg"
 			themeColors: CosStyle.buttonThemeRed
 
 			onClicked: dlgClose()
@@ -214,7 +215,7 @@ QDialogPanel {
 			anchors.verticalCenter: parent.verticalCenter
 
 			text: qsTr("Mentés")
-			icon.source: CosStyle.iconSave
+			icon.source: "qrc:/internal/icon/content-save.svg"
 			themeColors: CosStyle.buttonThemeGreen
 
 			visible: isSave && !labelNoPermissions.visible

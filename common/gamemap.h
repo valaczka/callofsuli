@@ -81,7 +81,7 @@ public:
 	const QList<GameMapMission *> &missions() const;
 
 	GameMapStorage *storage(const qint32 &id) const;
-	GameMapImage *image(const QString &name) const;
+	GameMapImage *image(const qint32 &id) const;
 	GameMapChapter *chapter(const qint32 &id) const;
 	GameMapMission *mission(const QString &uuid) const;
 	GameMapMissionLevel *missionLevel(const QString &uuid, const qint32 &level) const;
@@ -103,10 +103,11 @@ public:
 											   const bool &deathmatch) const;
 	MissionLevelDeathmatch getNextMissionLevel(const QString &uuid,
 											   const qint32 &level,
-											   const bool &deathmatch) const;
+											   const bool &deathmatch,
+											   const bool &lite) const;
 	static qreal computeSolvedXpFactor(const SolverInfo &baseSolver,
 									   const int &level,
-									   const bool &deathmatch);
+									   const bool &deathmatch, const bool &isLite);
 
 
 protected:
@@ -126,7 +127,7 @@ protected:
 	GameMapChapterIface* ifaceAddChapter(const qint32 &id, const QString &name) override;
 	GameMapMissionIface* ifaceAddMission(const QByteArray &uuid, const QString &name,
 												 const QString &description, const QString &medalImage) override;
-	GameMapImageIface* ifaceAddImage(const QString &file, const QByteArray &data) override;
+	GameMapImageIface* ifaceAddImage(const qint32 &id, const QByteArray &data) override;
 
 private:
 	QList<GameMapStorage *> m_storages;
@@ -172,14 +173,14 @@ class GameMapImage : public GameMapImageIface
 {
 	Q_GADGET
 
-	Q_PROPERTY(QString name MEMBER m_name)
+	Q_PROPERTY(qint32 id MEMBER m_id)
 	Q_PROPERTY(QByteArray data MEMBER m_data STORED false)
 
 public:
-	explicit GameMapImage(const QString &file, const QByteArray &data);
+	explicit GameMapImage(const qint32 &id, const QByteArray &data);
 	virtual ~GameMapImage() {}
 
-	const QString &name() const;
+	const qint32 &id() const;
 	const QByteArray &data() const;
 };
 

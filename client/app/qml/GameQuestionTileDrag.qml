@@ -11,7 +11,7 @@ Item {
 	id: control
 
 	width: tile.width
-	height: tile.height
+	height: Math.min(CosStyle.gameButtonMinHeight, tile.height)
 
 	implicitWidth: tile.implicitWidth
 	implicitHeight: tile.implicitHeight

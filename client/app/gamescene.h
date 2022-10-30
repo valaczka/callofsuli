@@ -58,6 +58,8 @@ public:
 	QList<TiledPaintedLayer *> tiledLayers() const { return m_tiledLayers; }
 	CosGame * game() const { return m_game; }
 
+	const QList<QQuickItem *> &teleports() const;
+
 public slots:
 	void setTiledLayers(QList<TiledPaintedLayer *> tiledLayers);
 	void setGame(CosGame * game);
@@ -77,9 +79,11 @@ private:
 	void loadFires(GameTerrain *terrainData);
 	void loadItems(GameTerrain *terrainData);
 	void loadFences(GameTerrain *terrainData);
+	void loadTeleports(GameTerrain *terrainData);
 
 	QList<TiledPaintedLayer *> m_tiledLayers;
 	CosGame * m_game;
+	QList<QQuickItem *> m_teleports;
 };
 
 
