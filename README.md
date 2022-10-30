@@ -42,4 +42,13 @@ make
 make install
 ```
 
+## Build (iOS)
+
+```
+git clone https://github.com/valaczka/callofsuli.git
+cd callofsuli
+qmake -config release -spec macx-ios-clang client.pro
+make
+```
+
 ## [Köszönet (Credits)](CREDITS.md)
