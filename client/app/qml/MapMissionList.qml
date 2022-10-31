@@ -193,6 +193,13 @@ QTabContainer {
                         }
                     }
 
+                    Connections {
+                        target: mainWindow
+                        function onSafeMarginsChanged() {
+                            view.positionViewAtBeginning()
+                        }
+                    }
+
                 }
 
 

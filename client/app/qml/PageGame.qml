@@ -864,23 +864,50 @@ Page {
         visible: !gameScene.isSceneZoom && gameMatch.mode == GameMatch.ModeNormal
     }
 
-    GameLabel {
-        id: infoTime
-        color: CosStyle.colorPrimary
-        //image.visible: false
-
-        image.icon: CosStyle.iconClock1
+    Row {
+        id: rowTime
 
         anchors.left: parent.left
         anchors.top: gameMatch.mode == GameMatch.ModeNormal ? messageList.bottom : parent.top
         anchors.margins: 5
-        anchors.leftMargin: Math.max(mainWindow.safeMarginLeft, 5)
+        anchors.leftMargin: Math.max(mainWindow.safeMarginLeft/2, 10)
 
-        property int secs: game.msecLeft/1000
+        GameButton {
+            id: backButton
+            size: 25
 
-        label.text: game.msecLeft>=60000 ? JS.secToMMSS(secs) : Number(game.msecLeft/1000).toFixed(1)
+            anchors.verticalCenter: parent.verticalCenter
 
-        visible: !gameScene.isSceneZoom
+            //visible: DEBUG_MODE
+
+            color: JS.setColorAlpha(CosStyle.colorError, 0.7)
+            border.color: "white"
+            border.width: 1
+
+            fontImage.icon: "qrc:/internal/icon/close.svg"
+            fontImage.color: "white"
+            fontImageScale: 0.7
+
+            onClicked: {
+                mainStack.back()
+            }
+        }
+
+        GameLabel {
+            id: infoTime
+            color: CosStyle.colorPrimary
+            //image.visible: false
+
+            anchors.verticalCenter: parent.verticalCenter
+
+            image.icon: CosStyle.iconClock1
+
+            property int secs: game.msecLeft/1000
+
+            label.text: game.msecLeft>=60000 ? JS.secToMMSS(secs) : Number(game.msecLeft/1000).toFixed(1)
+
+            visible: !gameScene.isSceneZoom
+        }
     }
 
 
@@ -892,7 +919,7 @@ Page {
         image.icon: "qrc:/internal/icon/domino-mask.svg"
 
         anchors.left: parent.left
-        anchors.top: infoTime.bottom
+        anchors.top: rowTime.bottom
         anchors.margins: 5
         anchors.leftMargin: Math.max(mainWindow.safeMarginLeft, 5)
         pixelSize: 24

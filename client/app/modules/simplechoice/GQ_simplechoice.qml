@@ -51,8 +51,8 @@ Item {
         anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
         anchors.right: btnOk.visible ? btnOk.left : parent.right
         height: Math.max(implicitHeight, btnOk.height)
-        topPadding: 30
-        bottomPadding: 30
+        topPadding: 25
+        bottomPadding: 25
         leftPadding: 20
         rightPadding: 20
 

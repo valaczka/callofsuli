@@ -324,7 +324,7 @@ Loader {
     Component.onCompleted: {
         if (storageModule == "binding" || storageModule == "numbers")
             ldr.sourceComponent = cmpBinding
-        if (storageModule == "images")
+        else if (storageModule == "images")
             ldr.sourceComponent = cmpImages
         else
             ldr.sourceComponent = cmpNone

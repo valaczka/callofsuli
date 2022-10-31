@@ -77,8 +77,6 @@ ALTER TABLE score ADD COLUMN assignmentid INTEGER REFERENCES assignment(id) ON U
 
 PRAGMA foreign_keys = OFF;
 
-BEGIN TRANSACTION;
-
 ALTER TABLE bindGroupMap RENAME TO bindGroupMap_old;
 
 CREATE TABLE bindGroupMap(
@@ -90,8 +88,6 @@ CREATE TABLE bindGroupMap(
 );
 
 INSERT INTO bindGroupMap SELECT * FROM bindGroupMap_old;
-
-COMMIT;
 
 DROP VIEW groupTrophy;
 

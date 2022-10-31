@@ -33,6 +33,8 @@ ApplicationWindow {
     property int safeMarginTop: 0
     property int safeMarginBottom: 0
 
+    signal safeMarginsChanged()
+
 
     FontLoader { source: "qrc:/internal/font/ariblk.ttf" }
     FontLoader { source: "qrc:/internal/font/Books.ttf" }
@@ -252,7 +254,7 @@ ApplicationWindow {
 
     Timer {
         id: timerOrientation
-        interval: 10
+        interval: 20
         running: false
         repeat: false
 
@@ -262,6 +264,8 @@ ApplicationWindow {
             safeMarginLeft = m.left
             safeMarginTop = m.top
             safeMarginRight = m.right
+
+            safeMarginsChanged()
         }
     }
 }

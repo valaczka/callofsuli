@@ -32,6 +32,8 @@
 	<string>© Valaczka János Pál, 2022</string>
 	<key>UILaunchStoryboardName</key>
 	<string>COSLaunchScreen</string>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UISupportedInterfaceOrientations</key>

@@ -1054,7 +1054,7 @@ GameMapMissionLevelIface *GameMapEditorMission::ifaceAddLock(const QString &uuid
 	if (!m)
 		return nullptr;
 
-	GameMapEditorMissionLevel *s = m->level(level);
+	GameMapEditorMissionLevel *s = m->level(level > 0 ? level : 1);
 	m_locks->addObject(s);
 	return s;
 }

@@ -395,9 +395,6 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 			stream >> uuid >> level;
 
 			lockList.append(lockStruct(m, uuid, level));
-
-			/*if (!m->ifaceAddLock(uuid, level))
-				return false;*/
 		}
 
 
@@ -407,9 +404,10 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 
 	qDebug() << "Load locks";
 
-	foreach (lockStruct s, lockList) {
-		if (!s.mission || !s.mission->ifaceAddLock(s.lockMission, s.lockLevel))
+	foreach (const lockStruct &s, lockList) {
+		if (!s.mission || !s.mission->ifaceAddLock(s.lockMission, s.lockLevel)) {
 			return false;
+		}
 	}
 
 	qDebug() << "Locks loaded";
