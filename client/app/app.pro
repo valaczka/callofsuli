@@ -78,7 +78,6 @@ android {
 	QT += androidextras
 
 DISTFILES += \
-		#android/AndroidManifest.xml \
 		android/build.gradle \
 		android/res/drawable/splashscreen.xml \
 		android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
