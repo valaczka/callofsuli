@@ -30,9 +30,6 @@
 
 #include "cosclient.h"
 
-#include "maplistobject.h"
-#include "objectgroup.h"
-
 #include "gameenemy.h"
 #include "gameenemydata.h"
 #include "gameenemysoldier.h"
@@ -276,11 +273,22 @@ void CosGame::recreateEnemies()
 		setEnemiesMoving(true);
 		if (!m_enemiesCreatedFirst) {
 
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(QT_DEBUG)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 			emit gameToolTipRequest("notification/gameGesturePinch",
 									"qrc:/internal/icon/gesture-pinch.svg",
 									tr("A pálya áttekintéséhez csippentsd össze a képernyőt"),
 									"");
+#endif
+
+#if defined(Q_OS_WIN32) || (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_MACOS)
+			emit gameToolTipRequest("notification/gameKeyboard",
+									"qrc:/internal/icon/keyboard.svg",
+									tr("<b>NYILAK</b> Játékos mozgatása<br/>"
+									   "<b>SPACE</b> Lövés leadása<br/>"
+									   "<b>ENTER</b> Tárgy felvétele<br/>"
+									   "<b>F3</b> Teljes pálya megtekintése"),
+									"");
+
 #endif
 			m_enemiesCreatedFirst = true;
 		}

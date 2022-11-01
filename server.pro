@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 
 #CONFIG += skip_version
 
-!skip_version:linux: {
+!skip_version {
 	SUBDIRS = version
 }
 

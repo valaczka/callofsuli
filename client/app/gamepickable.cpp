@@ -75,8 +75,8 @@ void GamePickable::pick()
 			case PickablePliers:
 				emit m_game->gameToolTipRequest("notification/pickablePliers",
 												"qrc:/internal/icon/pliers.svg",
-												tr("A fogóval átvághatod a kerítést"),
-												tr("Közelítsd meg a kerítést, majd nyomd meg a fogót ábrázoló gombot"));
+												tr("A drótvágóval átvághatod a kerítést"),
+												tr("Közelítsd meg a kerítést, majd nyomd meg a drótvágót ábrázoló gombot"));
 				break;
 			case PickableCamouflage:
 				emit m_game->gameToolTipRequest("notification/pickableCamouflage",

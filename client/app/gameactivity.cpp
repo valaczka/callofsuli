@@ -345,6 +345,12 @@ void GameActivity::prepareLite()
 	setPostponedQuestions(0);
 	setLiteHP(m_game->gameMatch()->startHp());
 
+	// Truncate duration to max size
+
+	if (!m_questionList.isEmpty()) {
+		m_game->gameMatch()->setDuration(m_questionList.size() * QUESTION_REQUIRED_SECONDS);
+	}
+
 	emit prepareSucceed();
 
 	setPrepared(true);

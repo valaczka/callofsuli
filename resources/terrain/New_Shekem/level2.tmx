@@ -420,6 +420,9 @@
    <point/>
   </object>
   <object id="445" x="549.412" y="1125.88">
+   <properties>
+    <property name="text" value="Víz"/>
+   </properties>
    <point/>
   </object>
  </objectgroup>

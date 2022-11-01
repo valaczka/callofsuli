@@ -78,11 +78,17 @@ android {
 	QT += androidextras
 
 DISTFILES += \
-		android/AndroidManifest.xml \
+		#android/AndroidManifest.xml \
 		android/build.gradle \
 		android/res/drawable/splashscreen.xml \
 		android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
 
+
+	INFO_PLIST_VERSION = "$$VERSION"
+
+	alist.input = $$PWD/../deploy/AndroidManifest.xml.in
+	alist.output = $$PWD/android/AndroidManifest.xml
+	QMAKE_SUBSTITUTES += alist
 
 
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android

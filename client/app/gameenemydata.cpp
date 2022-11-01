@@ -104,7 +104,7 @@ QHash<QString, GameEnemyData::InventoryType> GameEnemyData::inventoryTypes()
 								   GamePickable::PickableWater,
 								   QVariantMap());
 
-	list["pliers"] = InventoryType(tr("1 fogó"),
+	list["pliers"] = InventoryType(tr("1 drótvágó"),
 								   "qrc:/internal/game/pliers.png",
 								   GamePickable::PickablePliers,
 								   QVariantMap());
