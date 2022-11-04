@@ -46,6 +46,7 @@ Rectangle {
     signal clicked()
     signal toggled()
     signal dragReleased()
+    signal dragClicked()
 
     border.width: 1
     border.color: if (interactive) {
@@ -165,7 +166,9 @@ Rectangle {
 
         drag.target: isDrag ? control : null
 
-        onClicked: if (!isDrag) {
+        onClicked: if (isDrag) {
+                       control.dragClicked()
+                   } else {
                        if (control.isToggle) {
                            control.selected = !control.selected
                            control.toggled()

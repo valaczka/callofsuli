@@ -114,8 +114,7 @@ void GameEnemy::killByPlayer(GamePlayer *player, const bool &isEmptyQuestion)
 	qreal meX = parentEntity()->x();
 	bool facingLeft = parentEntity()->property("facingLeft").toBool();
 
-	if (!isEmptyQuestion || (!isAlive() && m_enemyData->enemyType() != GameEnemyData::EnemySniper) ||
-		m_cosGame->gameMatch()->level() > 2)
+	if (m_enemyData->enemyType() != GameEnemyData::EnemySniper && (!isEmptyQuestion || !isAlive() || m_cosGame->gameMatch()->level() > 2))
 	{
 		if (playerX <= meX && !facingLeft)
 			parentEntity()->setProperty("facingLeft", true);

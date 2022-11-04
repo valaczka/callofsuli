@@ -8,92 +8,99 @@ import "JScript.js" as JS
 
 
 Item {
-	id: control
+    id: control
 
-	width: tile.width
-	height: Math.min(CosStyle.gameButtonMinHeight, tile.height)
+    width: tile.width
+    height: Math.min(CosStyle.gameButtonMinHeight, tile.height)
 
-	implicitWidth: tile.implicitWidth
-	implicitHeight: tile.implicitHeight
+    implicitWidth: tile.implicitWidth
+    implicitHeight: tile.implicitHeight
 
-	property Flow dropFlow: null
-	property Item mainContainer: null
+    property Flow dropFlow: null
+    property Item mainContainer: null
 
-	property var tileData: null
-	property string tileKeys: "fillout"
+    property var tileData: null
+    property string tileKeys: "fillout"
 
-	property alias text: tile.text
-	property alias type: tile.type
-	property alias interactive: tile.interactive
-	property bool fillParentWidth: false
+    property alias text: tile.text
+    property alias type: tile.type
+    property alias interactive: tile.interactive
+    property bool fillParentWidth: false
 
-	readonly property bool dragActive: tile.Drag.active
+    readonly property bool dragActive: tile.Drag.active
 
-	signal parentAnimationFinished()
+    signal parentAnimationFinished()
+    signal clicked()
 
-	enabled: tile.interactive
+    enabled: tile.interactive
 
-	Connections {
-		target: parent
+    Connections {
+        target: parent
 
-		function onWidthChanged() {
-			if (parent.width > 0 && !parent.autoResize) {
-				tile.width = fillParentWidth ? parent.width : Math.min(tile.implicitWidth, parent.width)
-			}
-		}
-	}
+        function onWidthChanged() {
+            if (parent.width > 0 && !parent.autoResize) {
+                tile.width = fillParentWidth ? parent.width : Math.min(tile.implicitWidth, parent.width)
+            }
+        }
+    }
 
-	GameQuestionButton {
-		id: tile
+    GameQuestionButton {
+        id: tile
 
-		width: implicitWidth
-		height: implicitHeight
+        width: implicitWidth
+        height: implicitHeight
 
-		isDrag: true
-		Drag.keys: tileKeys
+        isDrag: true
+        Drag.keys: tileKeys
 
-		onDragReleased: {
-			if (tile.Drag.target) {
-				tile.Drag.target.dropIn(control)
-			} else if (dropFlow) {
-				dropFlow.dropIn(control)
-			}
-		}
+        onDragClicked: control.clicked()
 
-		states: State {
-			name: "DragActive"
-			when: tile.Drag.active
+        onDragReleased: {
+            if (tile.Drag.target) {
+                tile.Drag.target.dropIn(control)
+            } else if (dropFlow) {
+                dropFlow.dropIn(control)
+            }
+        }
 
-			ParentChange {
-				target: tile
-				parent: mainContainer
-			}
-		}
+        states: State {
+            name: "DragActive"
+            when: tile.Drag.active
 
-		transitions: [
-			Transition {
-				from: "DragActive"
-				to: ""
+            ParentChange {
+                target: tile
+                parent: mainContainer
+            }
+        }
 
-				SequentialAnimation {
-					ParentAnimation {
+        transitions: [
+            Transition {
+                from: "DragActive"
+                to: ""
 
-					}
+                SequentialAnimation {
+                    ParentAnimation {
 
-					ScriptAction {
-						script: {
-							if (control.parent.width > 0 && !control.parent.autoResize) {
-								tile.width = fillParentWidth ? control.parent.width : Math.min(tile.implicitWidth, control.parent.width)
-							} else {
-								tile.width = tile.implicitWidth
-							}
-							parentAnimationFinished()
-						}
-					}
-				}
+                    }
 
-			}
-		]
-	}
+                    ScriptAction {
+                        script: {
+                            handleDropIn()
+                        }
+                    }
+                }
 
+            }
+        ]
+    }
+
+
+    function handleDropIn() {
+        if (control.parent.width > 0 && !control.parent.autoResize) {
+            tile.width = fillParentWidth ? control.parent.width : Math.min(tile.implicitWidth, control.parent.width)
+        } else {
+            tile.width = tile.implicitWidth
+        }
+        parentAnimationFinished()
+    }
 }

@@ -348,7 +348,21 @@ void GameActivity::prepareLite()
 	// Truncate duration to max size
 
 	if (!m_questionList.isEmpty()) {
-		m_game->gameMatch()->setDuration(m_questionList.size() * QUESTION_REQUIRED_SECONDS);
+		int seconds = 0;
+
+		foreach (const GameActivityQuestion &q, m_questionList) {
+			qreal factor = 1.0;
+			if (q.question.module() == "fillout")
+				factor = 3.0;
+			else if (q.question.module() == "pair")
+				factor = 2.0;
+			else if (q.question.module() == "order")
+				factor = 2.0;
+
+			seconds += QUESTION_REQUIRED_SECONDS * factor;
+		}
+
+		m_game->gameMatch()->setDuration(seconds);
 	}
 
 	emit prepareSucceed();

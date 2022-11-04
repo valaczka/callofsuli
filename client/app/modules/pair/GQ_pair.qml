@@ -168,9 +168,22 @@ Item {
         id: componentTileDrag
 
         GameQuestionTileDrag {
+            id: drag
             dropFlow: grid.container.flow
             mainContainer: control
             interactive: _dragInteractive
+
+            onClicked: {
+                for (var i=0; i<_drops.length; i++) {
+                    var p = _drops[i]
+
+                    if (!p.item.drop.currentDrag) {
+                        p.item.drop.dropIn(drag)
+                        drag.handleDropIn()
+                        break
+                    }
+                }
+            }
         }
     }
 
