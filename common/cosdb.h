@@ -63,6 +63,7 @@ public slots:
 
 	QVariantList execQuery(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 	QJsonArray execQueryJson(QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
+	bool execQuery(QJsonObject *dest, QSqlQuery query, QString *errorString = nullptr, QVariant *lastInsertId = nullptr);
 
 	bool execSimpleQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	bool execSimpleQuery(QStringList queries, QString *errorString = nullptr);
@@ -70,6 +71,7 @@ public slots:
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QJsonArray execSelectQueryJson(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	bool execSelectQueryOneRowToJson(QJsonObject *json, QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
 	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(),
 						 QString *errorString = nullptr);
@@ -86,7 +88,7 @@ signals:
 	void notification(QString table);
 
 private:
-	QSqlQuery simpleQuery(QString query, const QVariantList &args = QVariantList());
+	QSqlQuery simpleQuery(const QString &query, const QVariantList &args = QVariantList());
 	QSqlQuery insertQuery(QString query, const QVariantMap &map = QVariantMap()) const;
 	QSqlQuery updateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap()) const;
 	QSqlQuery listQuery(QString query, const QVariantList &list, const QVariantMap &bindValues = QVariantMap(),
@@ -147,6 +149,7 @@ public slots:
 	QVariantList execSelectQuery(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QJsonArray execSelectQueryJson(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	QVariantMap execSelectQueryOneRow(QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
+	bool execSelectQueryOneRow(QJsonObject *dest, QString query, const QVariantList &args = QVariantList(), QString *errorString = nullptr);
 	int execInsertQuery(QString query, const QVariantMap &map = QVariantMap(), QString *errorString = nullptr);
 	bool execUpdateQuery(QString query, const QVariantMap &map = QVariantMap(), const QVariantMap &bindValues = QVariantMap(),
 						 QString *errorString = nullptr);

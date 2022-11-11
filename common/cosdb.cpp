@@ -342,6 +342,30 @@ QVariantMap CosDb::execSelectQueryOneRow(QString query, const QVariantList &args
 
 
 /**
+ * @brief CosDb::execSelectQueryOneRow
+ * @param dest
+ * @param query
+ * @param args
+ * @param errorString
+ */
+
+bool CosDb::execSelectQueryOneRow(QJsonObject *dest, QString query, const QVariantList &args, QString *errorString)
+{
+	bool ret = false;
+
+	QMetaObject::invokeMethod(m_worker, "execSelectQueryOneRowToJson", Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(bool, ret),
+							  Q_ARG(QJsonObject*, dest),
+							  Q_ARG(QString, query),
+							  Q_ARG(QVariantList, args),
+							  Q_ARG(QString*, errorString)
+							  );
+
+	return ret;
+}
+
+
+/**
  * @brief CosDb::execInsertQuery
  * @param query
  * @param map
@@ -429,7 +453,7 @@ bool CosDb::execListQuery(QString query, const QVariantList &list, const QVarian
  * @return
  */
 
-QSqlQuery CosDbWorker::simpleQuery(QString query, const QVariantList &args)
+QSqlQuery CosDbWorker::simpleQuery(const QString &query, const QVariantList &args)
 {
 	QSqlDatabase m_db = QSqlDatabase::database(m_connectionName, false);
 
@@ -665,6 +689,70 @@ QJsonArray CosDbWorker::execQueryJson(QSqlQuery query, QString *errorString, QVa
 
 
 /**
+ * @brief CosDbWorker::execQuery
+ * @param dest
+ * @param query
+ * @param errorString
+ * @param lastInsertId
+ */
+
+bool CosDbWorker::execQuery(QJsonObject *dest, QSqlQuery query, QString *errorString, QVariant *lastInsertId)
+{
+	Q_ASSERT(dest);
+
+	bool success = true;
+
+	if (!query.exec()) {
+		QString errText = query.lastError().text();
+		qCDebug(sql).noquote() << tr("SQL error query: ")+query.executedQuery();
+		qWarning().noquote() << tr("SQL error: ")+errText;
+		success = false;
+
+		if (errorString)
+			(*errorString) = errText;
+	} else {
+		qCDebug(sql).noquote() << tr("SQL query: ")+query.executedQuery();
+	}
+
+	if (!success) {
+		query.finish();
+		return false;
+	}
+
+
+	if (lastInsertId)
+		(*lastInsertId) = query.lastInsertId();
+
+
+	if (query.first()) {
+		QSqlRecord rec = query.record();
+
+		for (int i=0; i<rec.count(); ++i) {
+			QString key = rec.fieldName(i);
+			if (key.isEmpty())
+				key = QString("#key%1").arg(i);
+
+			(*dest)[key] = query.value(i).toJsonValue();
+		}
+
+		query.finish();
+
+		return true;
+	}
+
+	QString errText = tr("No result");
+	qCDebug(sql).noquote() << tr("SQL error query: ")+query.executedQuery();
+	qWarning().noquote() << tr("SQL error: ")+errText;
+
+	if (errorString)
+		(*errorString) = errText;
+
+	query.finish();
+	return false;
+}
+
+
+/**
  * @brief CosSql::execSimpleQuery
  * @param query
  * @param args
@@ -821,6 +909,25 @@ QVariantMap CosDbWorker::execSelectQueryOneRow(QString query, const QVariantList
 	}
 
 	return list.value(0).toMap();
+}
+
+
+
+/**
+ * @brief CosDbWorker::execSelectQueryOneRowToJson
+ * @param json
+ * @param query
+ * @param args
+ * @param errorString
+ */
+
+bool CosDbWorker::execSelectQueryOneRowToJson(QJsonObject *json, QString query, const QVariantList &args, QString *errorString)
+{
+	Q_ASSERT(json);
+
+	QMutexLocker locker(&m_mutex);
+
+	return execQuery(json, simpleQuery(query, args), errorString);
 }
 
 
@@ -1409,7 +1516,7 @@ void CosDbWorker::init()
 	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", m_connectionName);
 	QSqlDriver *d = db.driver();
 	connect(d, QOverload<const QString &, QSqlDriver::NotificationSource, const QVariant &>::of(&QSqlDriver::notification),
-		[=](const QString &name, QSqlDriver::NotificationSource, const QVariant &){
+			[=](const QString &name, QSqlDriver::NotificationSource, const QVariant &){
 		emit this->notification(name);
 	});
 }

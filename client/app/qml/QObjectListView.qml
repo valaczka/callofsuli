@@ -70,6 +70,7 @@ QListView {
     signal keyF2Pressed(int sourceIndex)
     signal keyF4Pressed(int sourceIndex)
     signal keyDeletePressed(int sourceIndex)
+    signal selectionModified()
 
 
     focus: true
@@ -201,6 +202,7 @@ QListView {
                         width: parent.width
                         visible: text.length
                         //clip: true
+                        maximumLineCount: 1
                     }
 
                     Loader {
@@ -246,8 +248,12 @@ QListView {
                             for (var n=i; n<=j; ++n) {
                                 if (objectModel)
                                     objectModel.select(normalizedIndex(n))
-                                else
-                                    view.model.setProperty(normalizedIndex(n), "selected", true)
+                                else {
+                                    if (view.model.sourceModel)
+                                        view.model.sourceModel.setProperty(normalizedIndex(n), "selected", true)
+                                    else
+                                        view.model.setProperty(n, "selected", true)
+                                }
                             }
 
                         } else {
@@ -260,9 +266,11 @@ QListView {
                                 else
                                     view.model.setProperty(normalizedIndex(index), "selected", s)
                             }
-
                         }
+
                         view.currentIndex = index
+
+                        view.selectionModified()
                     } else
                         item.clicked(index)
                 }
@@ -361,9 +369,18 @@ QListView {
         }
 
         Keys.onSpacePressed: {
-            if (selectorSet && objectModel)
-                objectModel.selectToggle(normalizedIndex(index))
-            else {
+            if (selectorSet) {
+                if (objectModel) {
+                    objectModel.selectToggle(normalizedIndex(index))
+                } else {
+                    if (view.model.sourceModel)
+                        view.model.sourceModel.setProperty(normalizedIndex(index), "selected",
+                                                           !view.model.sourceModel.get(normalizedIndex(index)).selected)
+                    else
+                        view.model.setProperty(index, "selected",
+                                               !view.model.get(index).selected)
+                }
+            } else {
                 mousePressAnimation.start()
                 clicked(index)
             }

@@ -145,6 +145,12 @@ public slots:
 	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignFinish(QJsonObject *jsonResponse, QByteArray *);
 
+	bool examListGet(QJsonObject *jsonResponse, QByteArray *);
+	bool examGet(QJsonObject *jsonResponse, QByteArray *);
+	bool examAdd(QJsonObject *jsonResponse, QByteArray *);
+	bool examRemove(QJsonObject *jsonResponse, QByteArray *);
+	bool examModify(QJsonObject *jsonResponse, QByteArray *);
+
 	bool examEngineConnect(QJsonObject *jsonResponse, QByteArray *binaryData);
 	bool examEngineCreate(QJsonObject *jsonResponse, QByteArray *);
 

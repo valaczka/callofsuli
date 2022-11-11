@@ -748,8 +748,11 @@ void Client::setExamEngine(ExamEngine *newExamEngine, const bool &isOwnerClient)
 	if (m_examEngine == newExamEngine)
 		return;
 
-	if (m_examEngine)
+	if (m_examEngine) {
 		m_examEngine->clientRemove(this);
+		delete m_examEngine;
+		m_examEngine = nullptr;
+	}
 
 	m_examEngine = newExamEngine;
 

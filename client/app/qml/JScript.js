@@ -353,6 +353,13 @@ function listModelUpdateProperty(_model, _searchProperty, _searchValue, _propert
 }
 
 
+function listModelUpdatePropertyAll(_model, _property, _value) {
+    for (var i=0; i<_model.count; i++) {
+        _model.setProperty(i, _property, _value)
+    }
+}
+
+
 
 function listModelReplaceAddSelected(_model, _items) {
     _model.clear()

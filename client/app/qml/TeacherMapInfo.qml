@@ -172,6 +172,20 @@ QTabContainer {
                 }
             }
 
+
+            QButton {
+                id: btnExam
+                text: qsTr("Dolgozatok")
+                icon.source: "qrc:/internal/icon/briefcase-download.svg"
+                display: AbstractButton.TextBesideIcon
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                visible: !btnDownload.visible
+
+                onClicked: control.tabPage.pushContent(cmpExamList)
+            }
+
+
         }
 
 
@@ -220,6 +234,8 @@ QTabContainer {
                 }
             }
         }
+
+
     }
 
     QIconEmpty {
@@ -228,6 +244,14 @@ QTabContainer {
         anchors.centerIn: parent
         textWidth: parent.width*0.75
         tabContainer: control
+    }
+
+
+    Component {
+        id: cmpExamList
+        TeacherMapExamList {
+
+        }
     }
 
 

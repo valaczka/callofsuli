@@ -34,7 +34,8 @@
 
 #include "cosdb.h"
 #include "cosmessage.h"
-#include "examengine.h"
+
+class ExamEngine;
 
 class Server;
 
@@ -119,7 +120,7 @@ private:
 	};
 
 	QList<HttpRequestMap> m_httpRequestList;
-	QPointer<ExamEngine> m_examEngine = nullptr;
+	ExamEngine* m_examEngine = nullptr;
 };
 
 #endif // CLIENT_H

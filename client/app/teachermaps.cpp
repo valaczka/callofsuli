@@ -434,6 +434,52 @@ void TeacherMaps::getSelectedMapInfo()
 }
 
 
+/**
+ * @brief TeacherMaps::getSelectedMapChapters
+ * @return
+ */
+
+QVariantList TeacherMaps::getSelectedMapChapters() const
+{
+	if (m_selectedMapId.isEmpty())
+		return QVariantList();
+
+	QList<MapListObject *> mapList = m_modelMapList->find("uuid", m_selectedMapId);
+	if (mapList.size() != 1) {
+		qCritical().noquote() << tr("Érvénytelen pályaazonosító") << m_selectedMapId;
+		return QVariantList();
+	}
+
+	MapListObject *map = mapList.at(0);
+
+	if (!map->downloaded()) {
+		qWarning().noquote() << tr("A pálya még nincs letöltve:") << m_selectedMapId;
+		return QVariantList();
+	}
+
+	QVariantList list;
+
+	const QByteArray &data = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {m_selectedMapId}).value("data").toByteArray();
+
+	if (!data.isEmpty()) {
+		GameMap *gm = GameMap::fromBinaryData(data);
+
+		if (gm) {
+			foreach (GameMapChapter *ch, gm->chapters()) {
+				QVariantMap m;
+				m["id"] = ch->id();
+				m["name"] = ch->name();
+				list.append(m);
+			}
+
+			delete gm;
+		}
+	}
+
+	return list;
+}
+
+
 
 /**
  * @brief TeacherMaps::onOneDownloadFinished

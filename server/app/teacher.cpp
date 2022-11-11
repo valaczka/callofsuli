@@ -439,7 +439,8 @@ QVector<Teacher::Grading> Teacher::gradingGet(const int &assignmentId, const int
 
 QJsonArray Teacher::getOrGenerateGradeList()
 {
-	QJsonArray gradeList = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade WHERE owner=?", {m_client->clientUserName()});
+	QJsonArray gradeList = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade WHERE owner=? ORDER BY value",
+															   {m_client->clientUserName()});
 
 	if (gradeList.isEmpty()) {
 		qInfo().noquote() << tr("Jegyek automatikus létrehozása") << m_client->clientUserName();
@@ -460,7 +461,7 @@ QJsonArray Teacher::getOrGenerateGradeList()
 			Grade("3", tr("közepes"), 3),
 			Grade("4", tr("jó"), 4),
 			Grade("5", tr("jeles"), 5),
-			Grade("6", tr("kitűnő"), 6),
+			Grade("5*", tr("kitűnő"), 6),
 		};
 
 		foreach (Grade g, list) {
@@ -1485,9 +1486,9 @@ bool Teacher::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 
 	QJsonArray retList;
 
-	foreach (QVariant v, mapList) {
-		QVariantMap m = v.toMap();
-		QString uuid = m.value("uuid").toString();
+	foreach (const QVariant &v, mapList) {
+		const QVariantMap &m = v.toMap();
+		const QString &uuid = m.value("uuid").toString();
 
 		QJsonObject o = QJsonObject::fromVariantMap(m);
 		o["used"] = m_client->db()->execSelectQueryOneRow("SELECT COALESCE(COUNT(*),0) AS used FROM game WHERE mapid=:a",
@@ -1500,6 +1501,7 @@ bool Teacher::mapListGet(QJsonObject *jsonResponse, QByteArray *)
 														  "FROM bindGroupMap "
 														  "LEFT JOIN studentgroup ON (studentgroup.id=bindGroupMap.groupid) "
 														  "WHERE mapid=? AND owner=?", {uuid, m_client->clientUserName()});
+
 		retList.append(o);
 	}
 
@@ -1974,8 +1976,7 @@ bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 
 	// Grades
 
-	(*jsonResponse)["gradeList"] = m_client->db()->execSelectQueryJson("SELECT id, shortname, longname, value FROM grade WHERE owner=?",
-																	   {m_client->clientUserName()});
+	(*jsonResponse)["gradeList"] = getOrGenerateGradeList();
 
 
 	// Maps
@@ -2411,6 +2412,179 @@ bool Teacher::campaignFinish(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["id"] = id;
 	(*jsonResponse)["finished"] = true;
 
+	return true;
+}
+
+
+
+/**
+ * @brief Teacher::examListGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::examListGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QJsonObject &params = m_message.jsonData();
+
+
+	// TODO: add associated group number, exam (student) count
+
+	if (params.contains("mapuuid")) {
+		const QString &mapuuid = params.value("mapuuid").toString();
+
+		(*jsonResponse)["mapuuid"] = mapuuid;
+		(*jsonResponse)["list"] = m_client->server()->examDb()->execSelectQueryJson("SELECT uuid, title, description, mapuuid, config, grading "
+																					"FROM exam WHERE owner=? AND mapuuid=?",
+																					{m_client->clientUserName(), mapuuid});
+		return true;
+
+	} else {
+		(*jsonResponse)["list"] = m_client->server()->examDb()->execSelectQueryJson("SELECT uuid, title, description, mapuuid, config, grading "
+																					"FROM exam WHERE owner=?",
+																					{m_client->clientUserName()});
+		return true;
+	}
+}
+
+
+
+/**
+ * @brief Teacher::examGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::examGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap &params = m_message.jsonData().toVariantMap();
+	const QString &id = params.value("uuid").toString();
+
+
+	(*jsonResponse)["gradeList"] = getOrGenerateGradeList();
+
+	if (!id.isEmpty()) {
+		if (m_client->server()->examDb()->execSelectQueryOneRow(jsonResponse, "SELECT uuid, title, description, mapuuid, config, grading "
+																"FROM exam WHERE owner=? AND uuid=?", {m_client->clientUserName(), id}))
+			return true;
+
+		(*jsonResponse)["error"] = "not found";
+
+		return false;
+	}
+
+	return true;
+
+}
+
+
+
+
+
+/**
+ * @brief Teacher::examAdd
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::examAdd(QJsonObject *jsonResponse, QByteArray *)
+{
+	QVariantMap params = m_message.jsonData().toVariantMap();
+
+	const QString &uuid = QUuid::createUuid().toString();
+	params["uuid"] = uuid;
+	params["owner"] = m_client->clientUserName();
+
+	if (m_client->server()->examDb()->execInsertQuery("INSERT INTO exam (?k?) VALUES (?)", params) != -1) {
+		(*jsonResponse)["uuid"]	= uuid;
+		(*jsonResponse)["created"] = true;
+		return true;
+	}
+
+	(*jsonResponse)["uuid"]	= uuid;
+	(*jsonResponse)["error"] = "sql error";
+
+	return false;
+}
+
+
+
+
+/**
+ * @brief Teacher::examRemove
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::examRemove(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap &params = m_message.jsonData().toVariantMap();
+	const QString &id = params.value("uuid").toString();
+
+	QVariantList list;
+
+	if (!id.isEmpty())
+		list.append(id);
+
+	foreach (QVariant v, params.value("list").toList())
+		list.append(v.toString());
+
+
+	if (list.size()) {
+		QVariantMap p;
+		p[":owner"] = m_client->clientUserName();
+
+		if (!m_client->server()->examDb()->execListQuery("DELETE FROM exam WHERE owner=:owner AND uuid IN (?l?)", list, p)) {
+			(*jsonResponse)["error"] = "sql error";
+			return false;
+		}
+
+		(*jsonResponse)["removed"] = true;
+
+	} else {
+		(*jsonResponse)["error"] = "missing uuid";
+		return false;
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief Teacher::examModify
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::examModify(QJsonObject *jsonResponse, QByteArray *)
+{
+	QJsonObject params = m_message.jsonData();
+
+	const QString &id = params.value("uuid").toString();
+
+	if (id.isEmpty()) {
+		(*jsonResponse)["error"] = "missing uuid";
+		return false;
+	}
+
+	if (m_client->server()->examDb()->execSelectQueryOneRow("SELECT uuid FROM exam WHERE owner=? AND uuid=?",
+	{m_client->clientUserName(), id}).isEmpty()) {
+		(*jsonResponse)["error"] = "invalid uuid";
+		return false;
+	}
+
+
+
+	params.remove("uuid");
+	params.remove("owner");
+
+	if (!m_client->server()->examDb()->execUpdateQuery("UPDATE exam SET ? WHERE uuid=:id", params.toVariantMap(),  { {":id", id} })) {
+		(*jsonResponse)["error"] = "sql error";
+		return false;
+	}
+
+	(*jsonResponse)["uuid"]	= id;
+	(*jsonResponse)["modified"] = true;
 	return true;
 }
 

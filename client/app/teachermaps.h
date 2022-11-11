@@ -74,6 +74,8 @@ public slots:
 
 	void getSelectedMapInfo();
 
+	QVariantList getSelectedMapChapters() const;
+
 private slots:
 	void onMapListGet(QJsonObject jsonData, QByteArray);
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
@@ -86,6 +88,12 @@ signals:
 	void mapRemove(QJsonObject jsonData, QByteArray binaryData);
 	void mapModify(QJsonObject jsonData, QByteArray binaryData);
 	void mapAdd(QJsonObject jsonData, QByteArray binaryData);
+
+	void examAdd(QJsonObject jsonData, QByteArray binaryData);
+	void examGet(QJsonObject jsonData, QByteArray binaryData);
+	void examRemove(QJsonObject jsonData, QByteArray binaryData);
+	void examModify(QJsonObject jsonData, QByteArray binaryData);
+	void examListGet(QJsonObject jsonData, QByteArray binaryData);
 
 	void mapDataReady(MapListObject *map, const QVariantList &missionList, const bool &mapReady);
 	void modelMapListChanged();
