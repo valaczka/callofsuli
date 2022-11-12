@@ -59,7 +59,6 @@
         <file>FlickableParallax.qml</file>
         <file>GameQuestion.qml</file>
         <file>PageStart.qml</file>
-        <file>QVariantMapProxyView.qml</file>
         <file>QDialogProgress.qml</file>
         <file>QToolButtonBig.qml</file>
         <file>QPagePanelSearch.qml</file>
@@ -110,7 +109,6 @@
         <file>MapEditorObjective.qml</file>
         <file>TeacherGroupUserList.qml</file>
         <file>TeacherGroupMapList.qml</file>
-        <file>TeacherGroupMapView.qml</file>
         <file>QGridLayoutFlickable.qml</file>
         <file>QImageSpinBox.qml</file>
         <file>QGridImageSpinBox.qml</file>
@@ -187,5 +185,7 @@
         <file>GameEnemySniperCrosshair.qml</file>
         <file>TeacherMapExamList.qml</file>
         <file>TeacherMapExamEdit.qml</file>
+        <file>TeacherGroupCampaignResult.qml</file>
+        <file>TeacherGroupMain.qml</file>
     </qresource>
 </RCC>

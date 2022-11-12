@@ -33,7 +33,7 @@
  */
 
 #include "variantmapdata.h"
-#include "variantmapmodel.h"
+#include "OLD_variantmapmodel.h"
 
 VariantMapData::VariantMapData()
 	: _MapList()

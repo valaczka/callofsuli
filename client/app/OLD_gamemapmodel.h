@@ -24,10 +24,10 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GAMEMAPMODEL_H
-#define GAMEMAPMODEL_H
+#ifndef OLD_GAMEMAPMODEL_H
+#define OLD_GAMEMAPMODEL_H
 
-#include "variantmapmodel.h"
+#include "OLD_variantmapmodel.h"
 #include "gamemap.h"
 
 
@@ -117,4 +117,4 @@ private:
 
 
 
-#endif // GAMEMAPMODEL_H
+#endif // OLD_GAMEMAPMODEL_H

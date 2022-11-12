@@ -178,7 +178,6 @@ SOURCES += \
 		gameentity.cpp \
 		gameladder.cpp \
 		gamemapeditor.cpp \
-		gamemapmodel.cpp \
 		gamematch.cpp \
 		gameobject.cpp \
 		gamepickable.cpp \
@@ -206,9 +205,7 @@ SOURCES += \
 		teachergroups.cpp \
 		teachermaps.cpp \
 		tiledpaintedlayer.cpp \
-		userlistobject.cpp \
-		variantmapdata.cpp \
-		variantmapmodel.cpp
+		userlistobject.cpp
 
 
 HEADERS += \
@@ -232,7 +229,6 @@ HEADERS += \
 	gameentity.h \
 	gameladder.h \
 	gamemapeditor.h \
-	gamemapmodel.h \
 	gamematch.h \
 	gameobject.h \
 	gamepickable.h \
@@ -260,9 +256,7 @@ HEADERS += \
 	teachergroups.h \
 	teachermaps.h \
 	tiledpaintedlayer.h \
-	userlistobject.h \
-	variantmapdata.h \
-	variantmapmodel.h
+	userlistobject.h
 
 RESOURCES += \
 	qml/qml.qrc

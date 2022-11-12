@@ -7,110 +7,110 @@ import "Style"
 import "JScript.js" as JS
 
 QTabContainer {
-	id: control
+    id: control
 
-	title: qsTr("Beállítások")
-	icon: "qrc:/internal/icon/cog-outline.svg"
+    title: qsTr("Beállítások")
+    icon: "qrc:/internal/icon/cog-outline.svg"
 
-	property real buttonSize: CosStyle.twoLineHeight*3
-	readonly property real _contentWidth: Math.min(width-10, 600)
+    property real buttonSize: CosStyle.twoLineHeight*2.75
+    readonly property real _contentWidth: Math.min(width-10, 600)
 
-	Flickable {
-		id: flickable
-		width: Math.min(parent.width, contentWidth)
-		height: Math.min(parent.height, contentHeight)
-		anchors.centerIn: parent
+    Flickable {
+        id: flickable
+        width: Math.min(parent.width, contentWidth)
+        height: Math.min(parent.height, contentHeight)
+        anchors.centerIn: parent
 
-		contentWidth: grid.width
-		contentHeight: grid.height
+        contentWidth: grid.width
+        contentHeight: grid.height
 
-		clip: true
+        clip: true
 
-		flickableDirection: Flickable.VerticalFlick
-		boundsBehavior: Flickable.StopAtBounds
+        flickableDirection: Flickable.VerticalFlick
+        boundsBehavior: Flickable.StopAtBounds
 
-		ScrollIndicator.vertical: ScrollIndicator { }
+        ScrollIndicator.vertical: ScrollIndicator { }
 
 
-		Grid {
-			id: grid
-			columns: Math.floor(_contentWidth/(buttonSize+spacing))
-			spacing: buttonSize*0.2
+        Grid {
+            id: grid
+            columns: Math.floor(_contentWidth/(buttonSize+spacing))
+            spacing: buttonSize*0.2
 
-			bottomPadding: 20
+            bottomPadding: 20
 
-			Repeater {
-				id: groupRepeater
+            Repeater {
+                id: groupRepeater
 
-				model: ListModel {
-					ListElement {
-						title: qsTr("Szerver beállítások")
-						icon: "image://font/Material Icons/\ue869"
-						page: "ServerSettings"
-						textcolor: "white"
-						background: "#940000"
-					}
+                model: ListModel {
+                    ListElement {
+                        title: qsTr("Szerver beállítások")
+                        icon: "image://font/Material Icons/\ue869"
+                        page: "ServerSettings"
+                        textcolor: "white"
+                        background: "#940000"
+                    }
 
-					ListElement {
-						title: qsTr("Osztályok és felhasználók")
-						icon: "image://font/Material Icons/\ue7ef"
-						page: "ClassList"
-						textcolor: "white"
-						background: "#940000"
-					}
-				}
+                    ListElement {
+                        title: qsTr("Osztályok és felhasználók")
+                        icon: "image://font/Material Icons/\ue7ef"
+                        page: "ClassList"
+                        textcolor: "white"
+                        background: "#940000"
+                    }
+                }
 
-				QCard {
-					id: groupItem
-					height: buttonSize
-					width: buttonSize
+                QCard {
+                    id: groupItem
+                    height: buttonSize
+                    width: buttonSize
 
-					required property string background
-					required property string textcolor
-					required property string icon
-					required property string title
-					required property string page
+                    required property string background
+                    required property string textcolor
+                    required property string icon
+                    required property string title
+                    required property string page
 
-					backgroundColor: background
+                    backgroundColor: background
 
-					onClicked: {
-						JS.createPage("Admin", { page: page })
-					}
+                    onClicked: {
+                        JS.createPage("Admin", { page: page })
+                    }
 
-					Column {
-						anchors.centerIn: parent
+                    Column {
+                        anchors.centerIn: parent
 
-						QFontImage {
-							id: image
-							anchors.horizontalCenter: parent.horizontalCenter
-							size: groupItem.width*0.5
-							color: groupItem.textcolor
-							visible: icon
-							icon: groupItem.icon
-						}
+                        QFontImage {
+                            id: image
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            size: groupItem.width*0.5
+                            color: groupItem.textcolor
+                            visible: icon
+                            icon: groupItem.icon
+                        }
 
-						QLabel {
-							id: title
-							color: groupItem.textcolor
-							font.weight: Font.DemiBold
-							width: groupItem.width*0.8
-							horizontalAlignment: Text.AlignHCenter
-							wrapMode: Text.Wrap
-							maximumLineCount: 2
-							elide: Text.ElideRight
-							font.capitalization: Font.AllUppercase
-							text: groupItem.title
-						}
+                        QLabel {
+                            id: title
+                            color: groupItem.textcolor
+                            font.weight: Font.DemiBold
+                            width: groupItem.width*0.8
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                            font.capitalization: Font.AllUppercase
+                            text: groupItem.title
+                        }
 
-					}
-				}
-			}
+                    }
+                }
+            }
 
-		}
+        }
 
-	}
+    }
 
-	onPopulated: {
-	}
+    onPopulated: {
+    }
 
 }

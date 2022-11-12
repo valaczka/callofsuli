@@ -53,6 +53,7 @@ TeacherGroups::TeacherGroups(QQuickItem *parent)
 	connect(this, &TeacherGroups::gameListGroupGet, this, &TeacherGroups::onGameListGroupGet);
 	connect(this, &TeacherGroups::campaignGet, this, &TeacherGroups::onCampaignGet);
 	connect(this, &TeacherGroups::campaignListGet, this, &TeacherGroups::onCampaignListGet);
+	connect(this, &TeacherGroups::campaignResultGet, this, &TeacherGroups::onCampaignResultGet);
 
 	CosDb *db = TeacherMaps::teacherMapsDb(Client::clientInstance(), this);
 
@@ -166,43 +167,6 @@ void TeacherGroups::mapDownloadInfoReload()
 		m_mapDownloadInfo = TeacherMaps::mapDownloadInfo(db());
 	else
 		m_mapDownloadInfo.clear();
-}
-
-
-/**
- * @brief TeacherGroups::loadMapDataToModel
- * @param uuid
- * @param model
- */
-
-bool TeacherGroups::loadMapDataToModel(const QString &uuid, GameMapModel *model)
-{
-	if (!model) {
-		qWarning() << "Missing game map model";
-		return false;
-	}
-
-	if (uuid.isEmpty()) {
-		model->clear();
-		return false;
-	}
-
-	QVariantMap r = db()->execSelectQueryOneRow("SELECT data FROM maps WHERE uuid=?", {uuid});
-
-	if (r.isEmpty()) {
-		Client::clientInstance()->sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Belső hiba"), tr("Érvénytelen pályaazonosító!"), uuid);
-		return false;
-	}
-
-	QByteArray b = r.value("data").toByteArray();
-
-	GameMap *map = GameMap::fromBinaryData(b);
-
-	model->setGameMap(map);
-
-	delete map;
-
-	return true;
 }
 
 
@@ -377,6 +341,25 @@ void TeacherGroups::onCampaignListGet(QJsonObject jsonData, QByteArray)
 {
 	if (jsonData.contains("gradeList"))
 		m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
+}
+
+
+/**
+ * @brief TeacherGroups::onCampaignResultGet
+ * @param jsonData
+ */
+
+void TeacherGroups::onCampaignResultGet(QJsonObject jsonData, QByteArray)
+{
+	QJsonArray list = jsonData.value("resultList").toArray();
+
+	//m_gradeMap = TeacherMaps::gradeList(jsonData.value("gradeList").toArray());
+
+	if (m_missionNameMap.isEmpty()) {
+		m_missionNameMap = TeacherMaps::missionNames(db());
+	}
+
+	emit campaignResultGetReady(jsonData.value("id").toInt(), TeacherMaps::campaignList(list, m_missionNameMap, m_modelMapList));
 }
 
 

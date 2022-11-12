@@ -33,6 +33,7 @@
  */
 
 #include "gameactivity.h"
+#include "cosclient.h"
 #include "gamematch.h"
 #include "cosgame.h"
 

@@ -88,6 +88,7 @@ QTabContainer {
 
             Campaign {
                 width: parent.width
+                activity: studentMaps
             }
         }
 

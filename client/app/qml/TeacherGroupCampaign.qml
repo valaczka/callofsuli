@@ -178,7 +178,7 @@ QTabContainer {
         onClicked: {
             var o = list.model.get(index)
 
-            control.tabPage.pushContent(cmpDetails, {
+            control.tabPage.pushContent(o.started ? control.tabPage.cmpTeacherCampaignResult : control.tabPage.cmpTeacherCampaignDetails, {
                                             campaignId: o.id,
                                             contentTitle: qsTr("%1 | %2").arg(o.title).arg(teacherGroups.selectedGroupFullName)
                                         })
@@ -208,7 +208,7 @@ QTabContainer {
                 enabled: contextMenu.currentCampaignId != -1
 
                 onTriggered: {
-                    control.tabPage.pushContent(cmpDetails, {
+                    control.tabPage.pushContent(control.tabPage.cmpTeacherCampaignDetails, {
                                                     campaignId: contextMenu.currentCampaignId,
                                                     contentTitle: qsTr("Új hadjárat | %1").arg(teacherGroups.selectedGroupFullName),
                                                     copyToGroup: teacherGroups.selectedGroupId
@@ -230,7 +230,7 @@ QTabContainer {
                     MenuItem {
                         text: model.name+" - "+model.readableClassList
                         onClicked: {
-                            control.tabPage.pushContent(cmpDetails, {
+                            control.tabPage.pushContent(control.tabPage.cmpTeacherCampaignDetails, {
                                                             campaignId: contextMenu.currentCampaignId,
                                                             contentTitle: qsTr("Új hadjárat | %1").arg(text),
                                                             copyToGroup: model.id
@@ -264,11 +264,6 @@ QTabContainer {
         tabContainer: control
     }
 
-
-    Component {
-        id: cmpDetails
-        TeacherGroupCampaignDetails {  }
-    }
 
 
 
@@ -320,7 +315,7 @@ QTabContainer {
         icon.source: "qrc:/internal/icon/calendar-plus.svg"
         enabled: teacherGroups.selectedGroupId > -1
         onTriggered: {
-            control.tabPage.pushContent(cmpDetails, {
+            control.tabPage.pushContent(control.tabPage.cmpTeacherCampaignDetails, {
                                             campaignId: -1,
                                             contentTitle: qsTr("Új hadjárat | %1").arg(teacherGroups.selectedGroupFullName)
                                         })

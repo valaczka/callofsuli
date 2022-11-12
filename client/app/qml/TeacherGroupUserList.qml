@@ -14,9 +14,6 @@ QTabContainer {
 
     menu: QMenu {
         MenuItem { action: actionUserEdit }
-        MenuItem { action: actionGroupRename }
-        MenuSeparator { }
-        MenuItem { action: actionGroupDelete}
     }
 
     property ListModel modelUserList: ListModel {}
@@ -212,7 +209,7 @@ QTabContainer {
 
         footer: QToolButtonFooter {
             width: userList.width
-            visible: iconEmpty._visible && modelUserList.count == 0
+            //visible: iconEmpty._visible && modelUserList.count == 0
             action: actionUserEdit
             color: CosStyle.colorAccent
         }
@@ -303,40 +300,6 @@ QTabContainer {
         enabled: teacherGroups.selectedGroupId > -1
         onTriggered: {
             control.tabPage.pushContent(componentUserEdit)
-        }
-    }
-
-    Action {
-        id: actionGroupDelete
-        text: qsTr("Csoport törlése")
-        icon.source: "qrc:/internal/icon/delete.svg"
-        enabled: teacherGroups.selectedGroupId > -1
-        onTriggered: {
-            var d = JS.dialogCreateQml("YesNo", {text: qsTr("Biztosan törlöd a csoportot?\n%1").arg(teacherGroups.selectedGroupFullName)})
-            d.accepted.connect(function() {
-                teacherGroups.send("groupRemove", {id: teacherGroups.selectedGroupId})
-            })
-            d.open()
-        }
-    }
-
-    Action {
-        id: actionGroupRename
-        text: qsTr("Átnevezés")
-        icon.source: CosStyle.iconRename
-        enabled: teacherGroups.selectedGroupId > -1
-        onTriggered: {
-            var d = JS.dialogCreateQml("TextField", {
-                                           title: qsTr("Csoport átnevezése"),
-                                           text: qsTr("Csoport neve:"),
-                                           value: teacherGroups.selectedGroupName
-                                       })
-
-            d.accepted.connect(function(data) {
-                if (data.length)
-                    teacherGroups.send("groupModify", {id: teacherGroups.selectedGroupId, name: data})
-            })
-            d.open()
         }
     }
 }

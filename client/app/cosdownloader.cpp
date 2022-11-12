@@ -26,6 +26,7 @@
 
 #include "cosdownloader.h"
 #include "abstractactivity.h"
+#include "cosclient.h"
 
 CosDownloader::CosDownloader(AbstractActivity *activity,
 							 const CosMessage::CosClass &cosClass,

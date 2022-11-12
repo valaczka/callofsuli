@@ -36,7 +36,6 @@
 #define TEACHERGROUPS_H
 
 #include "abstractactivity.h"
-#include "gamemapmodel.h"
 #include "maplistobject.h"
 #include "objectlistmodel.h"
 
@@ -94,7 +93,6 @@ public slots:
 	void setSelectedGroupId(int selectedGroupId);
 	void mapDownload(QVariantMap data);
 	void mapDownloadInfoReload();
-	bool loadMapDataToModel(const QString &uuid, GameMapModel *model);
 
 protected slots:
 	virtual void onMessageReceived(const CosMessage &message) override;
@@ -106,6 +104,7 @@ private slots:
 	void onGameListGroupGet(QJsonObject jsonData, QByteArray);
 	void onCampaignGet(QJsonObject jsonData, QByteArray);
 	void onCampaignListGet(QJsonObject jsonData, QByteArray);
+	void onCampaignResultGet(QJsonObject jsonData, QByteArray);
 
 	void onOneDownloadFinished(const CosDownloaderItem &item, const QByteArray &data, const QJsonObject &);
 
@@ -146,6 +145,8 @@ signals:
 	void campaignRemove(QJsonObject jsonData, QByteArray binaryData);
 	void campaignModify(QJsonObject jsonData, QByteArray binaryData);
 	void campaignFinish(QJsonObject jsonData, QByteArray binaryData);
+	void campaignResultGet(QJsonObject jsonData, QByteArray binaryData);
+	void campaignResultGetReady(int id, QJsonArray list);
 
 	void examEngineCreate(QJsonObject jsonData, QByteArray binaryData);
 	void examEngineMapGet(QJsonObject jsonData, QByteArray binaryData);

@@ -32,7 +32,7 @@
  */
 
 #include "variantmapmodel.h"
-#include "variantmapdata.h"
+#include "OLD_variantmapdata.h"
 
 
 VariantMapModel::VariantMapModel(const QStringList &roleNames, QObject *parent)

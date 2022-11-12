@@ -18,6 +18,7 @@ QTabContainer {
     property int copyToGroup: -1
     property bool isEditing: campaignId == -1 || copyToGroup != -1
     property bool baseModificationEnabled: true
+    property bool componentResultEnabled: true
 
     readonly property string _dateFormat: "yyyy-MM-dd HH:mm"
 
@@ -52,7 +53,24 @@ QTabContainer {
                 return true
             }
         }
+
+        MenuSeparator { }
+
+        MenuItem {
+            text: qsTr("Eredmények")
+            enabled: componentResultEnabled
+            icon.source: CosStyle.iconAdd
+            onClicked: {
+                control.tabPage.pushContent(control.tabPage.cmpTeacherCampaignResult, {
+                                                campaignId: control.campaignId,
+                                                contentTitle: control.contentTitle,
+                                                componentDetailsEnabled: false
+                                            })
+            }
+        }
     }
+
+
 
 
     QAccordion {

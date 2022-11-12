@@ -75,8 +75,8 @@ public:
 
 		bool isValid() const { return type != TypeInvalid; }
 
-		static QJsonArray toArray(const QVector<Grading> &list);
-		static QJsonObject toNestedArray(const QVector<Grading> &list);
+		static QJsonArray toArray(const QVector<Grading> &list, const bool &onlySuccess = false);
+		static QJsonObject toNestedArray(const QVector<Grading> &list, const bool &onlySuccess = false);
 		static QMap<int, QVector<Grading>> toMap(const QVector<Grading> &list, const Type &type);
 	};
 
@@ -99,6 +99,7 @@ public:
 	QVector<Grading> gradingGet(const int &assignmentId, const int &campaignId, const QString &username = "", const bool &isFinished = false);
 
 	QJsonArray getOrGenerateGradeList();
+	QJsonArray getUserAssignment(const int &campaignId, const QString &username, const bool &isFinished = false);
 
 public slots:
 
@@ -144,6 +145,7 @@ public slots:
 	bool campaignRemove(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignModify(QJsonObject *jsonResponse, QByteArray *);
 	bool campaignFinish(QJsonObject *jsonResponse, QByteArray *);
+	bool campaignResultGet(QJsonObject *jsonResponse, QByteArray *);
 
 	bool examListGet(QJsonObject *jsonResponse, QByteArray *);
 	bool examGet(QJsonObject *jsonResponse, QByteArray *);

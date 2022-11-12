@@ -481,6 +481,75 @@ QJsonArray Teacher::getOrGenerateGradeList()
 
 
 
+/**
+ * @brief Teacher::getUserAssignment
+ * @param campaignId
+ * @param username
+ * @return
+ */
+
+QJsonArray Teacher::getUserAssignment(const int &campaignId, const QString &username, const bool &isFinished)
+{
+	const QVariantList &assList = m_client->db()->execSelectQuery("SELECT id, name FROM assignment WHERE campaignid=?", {campaignId});
+
+	QJsonArray jlist;
+
+	foreach (const QVariant &v, assList) {
+		const int aid = v.toMap().value("id").toInt();
+
+		QJsonArray grades = m_client->db()->execSelectQueryJson("SELECT datetime(timestamp, 'localtime') as timestamp, "
+																"gradeid, -1 as xp, false as forecast "
+																"FROM gradebook "
+																"WHERE assignmentid=? AND username=? "
+																"UNION "
+																"SELECT datetime(timestamp, 'localtime') as timestamp, "
+																"-1 as gradeid, xp, false as forecast "
+																"FROM score WHERE assignmentid=? AND username=?"
+																, {aid, username,
+																   aid, username});
+
+
+		const QVector<Teacher::Grading> &grading = gradingGet(aid, campaignId, username, isFinished);
+
+		if (grades.isEmpty() && !isFinished) {
+			const Grading &g = gradingResult(grading, Grading::TypeGrade);
+			if (g.isValid()) {
+				grades.append(QJsonObject({
+											  { "timestamp", "" },
+											  { "gradeid", g.ref },
+											  { "xp", -1 },
+											  { "forecast", true }
+										  }));
+			}
+
+
+			const Grading &g2 = gradingResult(grading, Grading::TypeXP);
+			if (g2.isValid()) {
+				grades.append(QJsonObject({
+											  { "timestamp", "" },
+											  { "gradeid", -1 },
+											  { "xp", g2.value },
+											  { "forecast", true }
+										  }));
+			}
+		}
+
+
+		QJsonObject ja;
+
+		ja["id"] = aid;
+		ja["name"] = v.toMap().value("name").toString();
+		ja["grades"] = grades;
+		ja["grading"] = Grading::toNestedArray(grading);
+
+		jlist.append(ja);
+	}
+
+	return jlist;
+}
+
+
+
 
 
 /**
@@ -1951,8 +2020,8 @@ bool Teacher::gameListCampaignGet(QJsonObject *jsonResponse, QByteArray *)
 
 bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 {
-	const QVariantMap params = m_message.jsonData().toVariantMap();
-	const int id = params.value("id", -1).toInt();
+	const QVariantMap &params = m_message.jsonData().toVariantMap();
+	const int &id = params.value("id", -1).toInt();
 
 	if (id == -1) {
 		(*jsonResponse)["error"] = "missing campaign";
@@ -1991,9 +2060,9 @@ bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 	(*jsonResponse)["description"] = d.value("description").toString();
 
 	QJsonArray ao, ac;
-	foreach (QString s, d.value("mapopen").toString().split('|', Qt::SkipEmptyParts))
+	foreach (const QString &s, d.value("mapopen").toString().split('|', Qt::SkipEmptyParts))
 		ao.append(s);
-	foreach (QString s, d.value("mapclose").toString().split('|', Qt::SkipEmptyParts))
+	foreach (const QString &s, d.value("mapclose").toString().split('|', Qt::SkipEmptyParts))
 		ac.append(s);
 
 	(*jsonResponse)["mapopen"] = ao;
@@ -2002,7 +2071,7 @@ bool Teacher::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 
 	// Campaigns
 
-	QJsonArray assList = m_client->db()->execSelectQueryJson("SELECT id, name FROM assignment WHERE campaignid=?", {id});
+	const QJsonArray &assList = m_client->db()->execSelectQueryJson("SELECT id, name FROM assignment WHERE campaignid=?", {id});
 	QJsonArray assRetList;
 
 	foreach (const QJsonValue &v, assList) {
@@ -2416,6 +2485,64 @@ bool Teacher::campaignFinish(QJsonObject *jsonResponse, QByteArray *)
 }
 
 
+/**
+ * @brief Teacher::campaignResultGet
+ * @param jsonResponse
+ * @return
+ */
+
+bool Teacher::campaignResultGet(QJsonObject *jsonResponse, QByteArray *)
+{
+	const QVariantMap &params = m_message.jsonData().toVariantMap();
+	const int &id = params.value("id", -1).toInt();
+
+	if (id == -1) {
+		(*jsonResponse)["error"] = "missing campaign";
+		return false;
+	}
+
+	(*jsonResponse)["id"] = id;
+
+	if (!m_client->db()->execSelectQueryOneRow(jsonResponse, "SELECT datetime(starttime, 'localtime') as starttime, "
+											   "datetime(endtime, 'localtime') as endtime, "
+											   "started, finished, description FROM campaign "
+											   "INNER JOIN studentgroup ON (studentgroup.id=campaign.groupid) "
+											   "WHERE campaign.id=? AND owner=?", {id, m_client->clientUserName()})) {
+		(*jsonResponse)["error"] = "invalid id";
+		return false;
+	}
+
+
+	const bool &isFinished = jsonResponse->value("finished").toInt() == 1;
+
+
+	// Users
+
+	const QJsonArray &userList = m_client->db()->execSelectQueryJson("SELECT userInfo.username as username, firstname, lastname, nickname, "
+																	 "rankid, COALESCE(ranklevel, -1) as ranklevel, rankimage, picture, xp, "
+																	 "active, COALESCE(classid, -1) as classid, classname "
+																	 "FROM studentGroupInfo LEFT JOIN userInfo ON (userInfo.username=studentGroupInfo.username) "
+																	 "WHERE studentGroupInfo.id=(SELECT groupid FROM campaign WHERE id=?)",
+																	 {id});
+
+
+
+	// Results
+
+	QJsonArray resultList;
+
+	foreach (const QJsonValue &v, userList) {
+		QJsonObject obj = v.toObject();
+		obj["assignment"] = getUserAssignment(id, obj.value("username").toString(), isFinished);
+		resultList.append(obj);
+	}
+
+	(*jsonResponse)["resultList"] = resultList;
+
+	return true;
+}
+
+
 
 /**
  * @brief Teacher::examListGet
@@ -2767,7 +2894,7 @@ Teacher::Grading::Grading(const int &i, const Type &t, const int &v, const QJson
  * @return
  */
 
-QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list)
+QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list, const bool &onlySuccess)
 {
 	QJsonArray ret;
 
@@ -2778,15 +2905,19 @@ QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list)
 		QJsonObject o;
 
 		o["id"] = g.id;
-		o["type"] = g.type == Grading::TypeXP ? "xp" : "grade";
-		o["value"] = g.value;
-		o["ref"] = g.ref;
-		if (g.mode == Grading::ModeDefault)
-			o["mode"] = "default";
-		else if (g.mode == Grading::ModeRequired)
-			o["mode"] = "required";
-		o["criteria"] = g.criteria;
-		//o["success"] = g.success;
+
+		if (onlySuccess) {
+			o["success"] = g.success;
+		} else {
+			o["type"] = g.type == Grading::TypeXP ? "xp" : "grade";
+			o["value"] = g.value;
+			o["ref"] = g.ref;
+			if (g.mode == Grading::ModeDefault)
+				o["mode"] = "default";
+			else if (g.mode == Grading::ModeRequired)
+				o["mode"] = "required";
+			o["criteria"] = g.criteria;
+		}
 
 		ret.append(o);
 	}
@@ -2802,7 +2933,7 @@ QJsonArray Teacher::Grading::toArray(const QVector<Grading> &list)
  * @return
  */
 
-QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list)
+QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list, const bool &onlySuccess)
 {
 	QJsonObject ret;
 	QMap<int, QVector<Grading>> gradeMap = toMap(list, Grading::TypeGrade);
@@ -2820,10 +2951,17 @@ QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list)
 		QJsonArray cList;
 
 		foreach (const Grading &g, list) {
-			cList.append(QJsonObject({
-										 { "criterion", g.criteria },
-										 { "success", g.success }
-									 }));
+			if (onlySuccess)
+				cList.append(QJsonObject({
+											 { "id", g.id },
+											 { "success", g.success }
+										 }));
+			else
+				cList.append(QJsonObject({
+											 { "id", g.id },
+											 { "criterion", g.criteria },
+											 { "success", g.success }
+										 }));
 		}
 
 		QJsonObject o;
@@ -2851,10 +2989,17 @@ QJsonObject Teacher::Grading::toNestedArray(const QVector<Grading> &list)
 		QJsonArray cList;
 
 		foreach (const Grading &g, list) {
-			cList.append(QJsonObject({
-										 { "criterion", g.criteria },
-										 { "success", g.success }
-									 }));
+			if (onlySuccess)
+				cList.append(QJsonObject({
+											 { "id", g.id },
+											 { "success", g.success }
+										 }));
+			else
+				cList.append(QJsonObject({
+											 { "id", g.id },
+											 { "criterion", g.criteria },
+											 { "success", g.success }
+										 }));
 		}
 
 		QJsonObject o;

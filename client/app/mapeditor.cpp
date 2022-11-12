@@ -25,6 +25,7 @@
  */
 
 #include "mapeditor.h"
+#include "cosclient.h"
 #include "editoraction.h"
 #include "mapeditoraction.h"
 #include "mapimage.h"

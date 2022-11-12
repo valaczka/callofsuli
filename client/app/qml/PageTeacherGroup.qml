@@ -12,41 +12,11 @@ QTabPage {
     property alias groupId: teacherGroups.selectedGroupId
     property alias allGroupList: teacherGroups.allGroupList
 
+    property alias cmpTeacherCampaignDetails: cmpTeacherCampaignDetails
+    property alias cmpTeacherCampaignResult: cmpTeacherCampaignResult
+
+
     title: teacherGroups.selectedGroupFullName
-
-    //buttonColor: CosStyle.colorPrimary
-    buttonBackgroundColor: Qt.darker("#006400")
-
-    buttonModel: ListModel {
-        id: modelGuest
-
-        ListElement {
-            title: qsTr("Résztvevők")
-            icon: "image://font/School/\uf154"
-            iconColor: "orchid"
-            func: function() { replaceContent(cmpTeacherGroupUserList) }
-            checked: true
-        }
-        ListElement {
-            title: qsTr("Pályák")
-            icon: "image://font/Academic/\uf122"
-            iconColor: "lime"
-            func: function() { replaceContent(cmpTeacherGroupMapList) }
-        }
-        ListElement {
-            title: qsTr("Hadjáratok")
-            icon: "qrc:/internal/icon/calendar-multiple.svg"
-            iconColor: "tomato"
-            func: function() { replaceContent(cmpTeacherCampaign) }
-        }
-        ListElement {
-            title: qsTr("Dolgozatok")
-            icon: "image://font/AcademicI/\uf15d"
-            iconColor: "tomato"
-            func: function() { replaceContent(cmpTeacherGroupExamList) }
-        }
-    }
-
 
     activity: TeacherGroups {
         id: teacherGroups
@@ -89,28 +59,18 @@ QTabPage {
 
 
     Component {
-        id: cmpTeacherGroupMapList
-        TeacherGroupMapList { }
+        id: cmpTeacherCampaignDetails
+        TeacherGroupCampaignDetails {  }
     }
 
     Component {
-        id: cmpTeacherGroupUserList
-        TeacherGroupUserList { }
+        id: cmpTeacherCampaignResult
+        TeacherGroupCampaignResult {  }
     }
 
     Component {
-        id: cmpTeacherGroupExamList
-        TeacherGroupExamList { }
-    }
-
-    Component {
-        id: cmpTeacherGroupExamEngine
-        TeacherGroupExamEngine { }
-    }
-
-    Component {
-        id: cmpTeacherCampaign
-        TeacherGroupCampaign { }
+        id: cmpTeacherGroupMain
+        TeacherGroupMain { }
     }
 
 
@@ -120,6 +80,10 @@ QTabPage {
         } else {
             teacherGroups.modelMapList.clear()
         }
+    }
+
+    Component.onCompleted: {
+        replaceContent(cmpTeacherGroupMain)
     }
 
 }

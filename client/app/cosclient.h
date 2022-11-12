@@ -38,7 +38,6 @@
 #include <QCoreApplication>
 
 #include "cosmessage.h"
-#include "variantmapmodel.h"
 #include "cossound.h"
 #include "modules/interfaces.h"
 
@@ -154,14 +153,6 @@ public:
 	Q_INVOKABLE QUrl urlFromLocalFile(const QString &file) { return QUrl::fromLocalFile(file); }
 
 	Q_INVOKABLE static void openUrl(const QUrl &url);
-
-	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
-		return VariantMapModel::newModel(list, this);
-	}
-
-	Q_INVOKABLE VariantMapModel *newModel(QObject *parent, const QStringList &list) {
-		return VariantMapModel::newModel(list, parent);
-	}
 
 	Q_INVOKABLE QVariantMap nextRank(const int &rankId) const;
 

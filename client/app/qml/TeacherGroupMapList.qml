@@ -113,11 +113,11 @@ QTabContainer {
             var o = list.modelObject(index)
             if (!o.downloaded)
                 actionDownload.trigger()
-            else
+            /*else
                 control.tabPage.pushContent(componentMapView, {
                                                 mapUuid: o.uuid,
                                                 mapName: o.name
-                                            })
+                                            })*/
 
         }
 
@@ -166,11 +166,7 @@ QTabContainer {
     }
 
 
-    Component {
-        id: componentMapView
 
-        TeacherGroupMapView { }
-    }
 
 
     Connections {

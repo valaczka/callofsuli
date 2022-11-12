@@ -32,8 +32,8 @@
  * SOFTWARE.
  */
 
-#ifndef VARIANTMAPMODEL_H
-#define VARIANTMAPMODEL_H
+#ifndef OLD_VARIANTMAPMODEL_H
+#define OLD_VARIANTMAPMODEL_H
 
 #include <QAbstractListModel>
 
@@ -107,4 +107,4 @@ private:
 	QHash<int, QByteArray> m_roleNames;
 };
 
-#endif // VARIANTMAPMODEL_H
+#endif // OLD_VARIANTMAPMODEL_H

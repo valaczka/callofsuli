@@ -32,11 +32,10 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QtConcurrent/QtConcurrent>
-#include "cosclient.h"
 #include "cosdb.h"
 #include "cosmessage.h"
 #include "cosdownloader.h"
-#include "variantmapmodel.h"
+#include "cosclient.h"
 
 class Client;
 
@@ -67,10 +66,6 @@ public:
 	template <typename Class>
 	void run(void (Class::*func)(QVariantMap), QVariantMap data) {
 		QtConcurrent::run((Class *)(this), func, data);
-	}
-
-	Q_INVOKABLE VariantMapModel *newModel(const QStringList &list) {
-		return VariantMapModel::newModel(list, this->parentItem());
 	}
 
 public slots:

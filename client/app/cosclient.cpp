@@ -54,7 +54,6 @@
 #include "gameenemysniper.h"
 #include "gameentity.h"
 #include "gameladder.h"
-#include "gamemapmodel.h"
 #include "gamematch.h"
 #include "gamepickable.h"
 #include "gameplayer.h"
@@ -73,7 +72,6 @@
 #include "teachergroups.h"
 #include "teachermaps.h"
 #include "tiledpaintedlayer.h"
-#include "variantmapmodel.h"
 
 
 Client* Client::m_clientInstance = nullptr;
@@ -161,7 +159,9 @@ Client::Client(QObject *parent) : QObject(parent)
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onSocketError);
 
 	connect(m_timer, &QTimer::timeout, this, &Client::socketPing);
-	//m_timer->start(5000);
+#ifndef QT_DEBUG
+	m_timer->start(5000);
+#endif
 }
 
 /**
@@ -395,49 +395,47 @@ void Client::registerTypes()
 	qRegisterMetaType<CosSound::ChannelType>("CosSoundChannelType");
 	qRegisterMetaType<CosSound::SoundType>("CosSoundType");
 	qRegisterMetaType<GameMatch::GameMode>("GameMode");
+	qRegisterMetaType<MapEditorAction::MapEditorActionType>("MapEditorActionType");
 	qmlRegisterType<AbstractActivity>("COS.Client", 1, 0, "AbstractActivity");
 	qmlRegisterType<Client>("COS.Client", 1, 0, "Client");
 	qmlRegisterType<CosDb>("COS.Client", 1, 0, "CosDb");
 	qmlRegisterType<CosGame>("COS.Client", 1, 0, "CosGame");
+	qmlRegisterType<EditorUndoStack>("COS.Client", 1, 0, "EditorUndoStack");
 	qmlRegisterType<GameActivity>("COS.Client", 1, 0, "GameActivity");
 	qmlRegisterType<GameEnemy>("COS.Client", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemyData>("COS.Client", 1, 0, "GameEnemyData");
-	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
 	qmlRegisterType<GameEnemySniper>("COS.Client", 1, 0, "GameEnemySniperPrivate");
+	qmlRegisterType<GameEnemySoldier>("COS.Client", 1, 0, "GameEnemySoldierPrivate");
 	qmlRegisterType<GameEntity>("COS.Client", 1, 0, "GameEntityPrivate");
 	qmlRegisterType<GameLadder>("COS.Client", 1, 0, "GameLadderPrivate");
-	qmlRegisterType<GameMapModel>("COS.Client", 1, 0, "GameMapModel");
+	qmlRegisterType<GameMapEditor>("COS.Client", 1, 0, "GameMapEditor");
 	qmlRegisterType<GamePickable>("COS.Client", 1, 0, "GamePickablePrivate");
 	qmlRegisterType<GamePlayer>("COS.Client", 1, 0, "GamePlayerPrivate");
 	qmlRegisterType<GameScene>("COS.Client", 1, 0, "GameScenePrivate");
 	qmlRegisterType<GameTerrain>("COS.Client", 1, 0, "GameTerrain");
 	qmlRegisterType<MapEditor>("COS.Client", 1, 0, "MapEditor");
-	qmlRegisterType<GameMapEditor>("COS.Client", 1, 0, "GameMapEditor");
 	qmlRegisterType<MapListObject>("COS.Client", 1, 0, "MapListObject");
 	qmlRegisterType<ObjectListModelObject>("COS.Client", 1, 0, "ObjectListModelObject");
 	qmlRegisterType<Profile>("COS.Client", 1, 0, "Profile");
-	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
 	qmlRegisterType<ServerObject>("COS.Client", 1, 0, "ServerObject");
+	qmlRegisterType<ServerSettings>("COS.Client", 1, 0, "ServerSettings");
 	qmlRegisterType<Servers>("COS.Client", 1, 0, "Servers");
 	qmlRegisterType<StudentMaps>("COS.Client", 1, 0, "StudentMaps");
 	qmlRegisterType<TeacherGroups>("COS.Client", 1, 0, "TeacherGroups");
 	qmlRegisterType<TeacherMaps>("COS.Client", 1, 0, "TeacherMaps");
 	qmlRegisterType<TiledPaintedLayer>("COS.Client", 1, 0, "TiledPaintedLayer");
-	qmlRegisterType<VariantMapModel>("COS.Client", 1, 0, "VariantMapModel");
-	qmlRegisterType<EditorUndoStack>("COS.Client", 1, 0, "EditorUndoStack");
 	qmlRegisterUncreatableType<CosDownloader>("COS.Client", 1, 0, "CosDownloader", "uncreatable");
 	qmlRegisterUncreatableType<CosMessage>("COS.Client", 1, 0, "CosMessage", "uncreatable");
 	qmlRegisterUncreatableType<CosSound>("COS.Client", 1, 0, "CosSound", "uncreatable");
-	qmlRegisterUncreatableType<ObjectListModel>("COS.Client", 1, 0, "ObjectListModel", "uncreatable");
-	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
-	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
-	qmlRegisterUncreatableType<MapEditorAction>("COS.Client", 1, 0, "MapEditorAction", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorChapter>("COS.Client", 1, 0, "GameMapEditorChapter", "uncreatable");
+	qmlRegisterUncreatableType<GameMapEditorMission>("COS.Client", 1, 0, "GameMapEditorMission", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorMissionLevel>("COS.Client", 1, 0, "GameMapEditorMissionLevel", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorObjective>("COS.Client", 1, 0, "GameMapEditorObjective", "uncreatable");
 	qmlRegisterUncreatableType<GameMapEditorStorage>("COS.Client", 1, 0, "GameMapEditorStorage", "uncreatable");
-	qmlRegisterUncreatableType<GameMapEditorMission>("COS.Client", 1, 0, "GameMapEditorMission", "uncreatable");
-	qRegisterMetaType<MapEditorAction::MapEditorActionType>("MapEditorActionType");
+	qmlRegisterUncreatableType<GameMatch>("COS.Client", 1, 0, "GameMatch", "uncreatable");
+	qmlRegisterUncreatableType<GameQuestion>("COS.Client", 1, 0, "GameQuestionPrivate", "uncreatable");
+	qmlRegisterUncreatableType<MapEditorAction>("COS.Client", 1, 0, "MapEditorAction", "uncreatable");
+	qmlRegisterUncreatableType<ObjectListModel>("COS.Client", 1, 0, "ObjectListModel", "uncreatable");
 }
 
 

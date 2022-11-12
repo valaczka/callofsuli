@@ -26,7 +26,7 @@
 
 #include <QRandomGenerator>
 #include "gamemapmodel.h"
-#include "variantmapdata.h"
+#include "OLD_variantmapdata.h"
 
 
 GameMapModel::GameMapModel(QObject *parent)

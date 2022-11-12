@@ -15,6 +15,7 @@ QTabContainer {
     property Profile profile: null
 
     property real groupsButtonSize: CosStyle.twoLineHeight*2.75
+    readonly property real _contentWidth: Math.min(width-10, 700)
 
     menu: QMenu {
         MenuItem { action: actionQRinfo }
@@ -101,7 +102,7 @@ QTabContainer {
             Grid {
                 id: groupsGrid
                 anchors.horizontalCenter: parent.horizontalCenter
-                columns: Math.floor(parent.width/(groupsButtonSize+spacing))
+                columns: Math.floor(_contentWidth/(groupsButtonSize+spacing))
                 spacing: groupsButtonSize*0.2
 
                 bottomPadding: 20

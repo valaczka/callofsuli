@@ -25,6 +25,7 @@
  */
 
 #include "profile.h"
+#include "cosclient.h"
 
 
 

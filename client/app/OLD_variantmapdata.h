@@ -32,14 +32,14 @@
  * SOFTWARE.
  */
 
-#ifndef VARIANTMAPDATA_H
-#define VARIANTMAPDATA_H
+#ifndef OLD_VARIANTMAPDATA_H
+#define OLD_VARIANTMAPDATA_H
 
 #include <QHash>
 #include <QVariant>
 #include <QJsonArray>
 #include <QJsonObject>
-#include <variantmapmodel.h>
+#include <OLD_variantmapmodel.h>
 
 class VariantMapModel;
 

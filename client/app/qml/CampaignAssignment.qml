@@ -13,6 +13,8 @@ Column {
     required property var grading
     required property string name
 
+    property AbstractActivity activity: null
+
     property bool separator: false
 
     width: parent.width
@@ -59,7 +61,7 @@ Column {
                     required property int xp
                     required property bool forecast
 
-                    readonly property var gradeData: studentMaps.grade(gradeid)
+                    readonly property var gradeData: activity ? activity.grade(gradeid) : null
                     readonly property color textColor: forecast ? "darkred" : "black"
 
                     QLabel {
@@ -108,7 +110,7 @@ Column {
             required property int value
             required property string gradingType
 
-            readonly property var gradeData: studentMaps.grade(ref)
+            readonly property var gradeData: activity ? activity.grade(ref) : null
 
             width: parent.width-10
             anchors.left: parent.left
@@ -183,12 +185,15 @@ Column {
                                -(imgTrophy.visible ? imgTrophy.width+parent.spacing : 0)
                                -(imgMedal.visible ? imgMedal.width+parent.spacing : 0)
                         wrapMode: Text.Wrap
-                        anchors.verticalCenter: (rowCriteria.success && imgSuccess.height > height) ||
+                        /*anchors.verticalCenter: (rowCriteria.success && imgSuccess.height > height) ||
                                                 (imgMedal.visible && imgMedal.height > height) ||
                                                 (imgTrophy.visible && imgTrophy.height > height) ? parent.verticalCenter : undefined
                         anchors.top: (rowCriteria.success && imgSuccess.height > height) ||
                                      (imgMedal.visible && imgMedal.height > height) ||
-                                     (imgTrophy.visible && imgTrophy.height > height)  ? undefined : parent.top
+                                     (imgTrophy.visible && imgTrophy.height > height)  ? undefined : parent.top*/
+
+                        anchors.top: parent.top
+
                         color: rowCriteria.required ? "darkred" : "black"
                         font.strikeout: rowCriteria.success
                         opacity: rowCriteria.success ? 0.4 : 1.0
@@ -204,6 +209,19 @@ Column {
                               else
                                   "%1: %2".arg(rowCriteria.module).arg(rowCriteria.value)
                         font.family: "Special Elite"
+
+                        states: State {
+                            when: (rowCriteria.success && imgSuccess.height > labelText.height) ||
+                                  (imgMedal.visible && imgMedal.height > labelText.height) ||
+                                  (imgTrophy.visible && imgTrophy.height > labelText.height)
+
+                            AnchorChanges {
+                                target: labelText
+                                anchors.top: undefined
+                                anchors.verticalCenter: parent.verticalCenter
+
+                            }
+                        }
                     }
 
                 }

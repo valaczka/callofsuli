@@ -239,8 +239,8 @@ bool Student::missionListGet(QJsonObject *jsonResponse, QByteArray *)
 
 bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 {
-	const QVariantMap params = m_message.jsonData().toVariantMap();
-	const int groupid = params.value("groupid", -1).toInt();
+	const QVariantMap &params = m_message.jsonData().toVariantMap();
+	const int &groupid = params.value("groupid", -1).toInt();
 
 	if (groupid == -1) {
 		(*jsonResponse)["error"] = "missing group";
@@ -259,8 +259,8 @@ bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 	}
 
 	if (campignIds.isEmpty()) {
-		QVariantList l = m_client->db()->execSelectQuery("SELECT id FROM campaign WHERE groupid=? AND started=true AND finished=false", {groupid});
-		foreach (QVariant v, l)
+		const QVariantList &l = m_client->db()->execSelectQuery("SELECT id FROM campaign WHERE groupid=? AND started=true AND finished=false", {groupid});
+		foreach (const QVariant &v, l)
 			campignIds.append(v.toMap().value("id").toInt());
 	}
 
@@ -277,73 +277,18 @@ bool Student::campaignGet(QJsonObject *jsonResponse, QByteArray *)
 	QJsonArray list;
 
 	foreach (const int &id, campignIds) {
-		const QVariantMap jm = m_client->db()->execSelectQueryOneRow("SELECT id, datetime(starttime, 'localtime') as starttime, "
+		const QVariantMap &jm = m_client->db()->execSelectQueryOneRow("SELECT id, datetime(starttime, 'localtime') as starttime, "
 																	 "datetime(endtime, 'localtime') as endtime, "
 																	 "description, started, finished FROM campaign "
 																	 "WHERE id=?", {id});
 
 		QJsonObject jo = QJsonObject::fromVariantMap(jm);
 
-		const bool isFinished = jm.value("finished", false).toBool();
+		const bool &isFinished = jm.value("finished", false).toBool();
 
-		QVariantList assList = m_client->db()->execSelectQuery("SELECT id, name FROM assignment WHERE campaignid=?", {id});
+		Teacher t(m_client, CosMessage());
 
-		QJsonArray jlist;
-
-		foreach (const QVariant &v, assList) {
-			const int aid = v.toMap().value("id").toInt();
-
-			QJsonArray grades = m_client->db()->execSelectQueryJson("SELECT datetime(timestamp, 'localtime') as timestamp, "
-																	"gradeid, -1 as xp, false as forecast "
-																	"FROM gradebook "
-																	"WHERE assignmentid=? AND username=? "
-																	"UNION "
-																	"SELECT datetime(timestamp, 'localtime') as timestamp, "
-																	"-1 as gradeid, xp, false as forecast "
-																	"FROM score WHERE assignmentid=? AND username=?"
-																	, {aid, m_client->clientUserName(),
-																	   aid, m_client->clientUserName()});
-
-
-			Teacher t(m_client, CosMessage());
-			QVector<Teacher::Grading> grading = t.gradingGet(aid, id, m_client->clientUserName(), isFinished);
-
-
-			if (grades.isEmpty() && !isFinished) {
-				Teacher::Grading g = Teacher::gradingResult(grading, Teacher::Grading::TypeGrade);
-				if (g.isValid()) {
-					grades.append(QJsonObject({
-												  { "timestamp", "" },
-												  { "gradeid", g.ref },
-												  { "xp", -1 },
-												  { "forecast", true }
-											  }));
-				}
-
-
-				Teacher::Grading g2 = Teacher::gradingResult(grading, Teacher::Grading::TypeXP);
-				if (g2.isValid()) {
-					grades.append(QJsonObject({
-												  { "timestamp", "" },
-												  { "gradeid", -1 },
-												  { "xp", g2.value },
-												  { "forecast", true }
-											  }));
-				}
-			}
-
-
-			QJsonObject ja;
-
-			ja["id"] = aid;
-			ja["name"] = v.toMap().value("name").toString();
-			ja["grades"] = grades;
-			ja["grading"] = Teacher::Grading::toNestedArray(grading);
-
-			jlist.append(ja);
-		}
-
-		jo["assignment"] = jlist;
+		jo["assignment"] = t.getUserAssignment(id, m_client->clientUserName(), isFinished);
 		list.append(jo);
 	}
 
