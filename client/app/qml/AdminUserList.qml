@@ -310,18 +310,21 @@ QTabContainer {
         text: qsTr("Regisztrációs info")
         enabled: !queryParameters.isAdmin && !queryParameters.isTeacher
 
-        onTriggered: control.tabPage.pushContent(componentQR, {
-                                                     serverFunc: "register",
-                                                     serverQueries: {
-                                                         code: actionQR.classCode,
-                                                         server: cosClient.serverUuid,
-                                                         oauth2: "1"
-                                                     },
-                                                     displayText: (actionQR.classCode !== "" ?
-                                                                       ("<br>%1: <b>%2</b>").arg(qsTr("Hitelesítő kód")).arg(actionQR.classCode)
-                                                                     : "")
+        onTriggered: {
+            control.tabPage.pushContent(componentQR, {
+                                            serverFunc: "register",
+                                            serverQueries: {
+                                                code: actionQR.classCode,
+                                                server: cosClient.serverUuid,
+                                                oauth2: "1"
+                                            },
+                                            displayText: (actionQR.classCode !== "" ?
+                                                              ("<br>%1: <b>%2</b>").arg(qsTr("Hitelesítő kód")).arg(actionQR.classCode)
+                                                            : ""),
+                                            extraServerInfo: serverSettings.extraServerInfo()
 
-                                                 })
+                                        })
+        }
 
     }
 

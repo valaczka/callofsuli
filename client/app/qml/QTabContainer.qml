@@ -34,8 +34,8 @@ Item {
     property var closeCallbackFunction: null
 
 
-    readonly property alias panelWidth: panel.width
-    readonly property alias panelHeight: panel.height
+    readonly property real panelWidth: panel.width
+    readonly property real panelHeight: panel.height-(hdrRect.visible ? hdrRect.height : 0)
     readonly property bool isCurrentItem: StackView.view && StackView.view.currentItem == control
 
     default property alias movableContentData: movableContent.data

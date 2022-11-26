@@ -40,7 +40,10 @@
 #include <fontimage.h>
 #include "qrimage.h"
 
+#ifndef QZXING_QML
 #define QZXING_QML
+#endif
+
 #include <QZXing.h>
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN32)
@@ -70,6 +73,7 @@ int main(int argc, char *argv[])
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
+
 
 	QGuiApplication app(argc, argv);
 

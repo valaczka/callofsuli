@@ -59,6 +59,36 @@ ObjectGenericListModel<UserListObject> *ServerSettings::modelUserList() const
 }
 
 
+/**
+ * @brief ServerSettings::extraServerInfo
+ * @return
+ */
+
+QJsonObject ServerSettings::extraServerInfo()
+{
+	QJsonDocument doc;
+
+	const QString filename(":/serverinfo/info.json");
+
+	QFile f(filename);
+
+	if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+		return QJsonObject();
+	}
+
+	QByteArray b = f.readAll();
+
+	f.close();
+
+	QJsonParseError error;
+	doc = QJsonDocument::fromJson(b, &error);
+	if (error.error != QJsonParseError::NoError)
+		qWarning().noquote() << tr("invalid JSON file '%1' at offset %2").arg(error.errorString()).arg(error.offset);
+
+	return doc.object();
+}
+
+
 
 
 /**

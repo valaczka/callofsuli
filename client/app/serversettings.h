@@ -51,6 +51,8 @@ public:
 
 	ObjectGenericListModel<UserListObject> *modelUserList() const;
 
+	Q_INVOKABLE static QJsonObject extraServerInfo();
+
 signals:
 	void getSettings(QJsonObject jsonData, QByteArray binaryData);
 	void setSettings(QJsonObject jsonData, QByteArray binaryData);

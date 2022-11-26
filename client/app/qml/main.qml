@@ -18,8 +18,8 @@ ApplicationWindow {
 
     title: (cosClient.connectionState !== Client.Standby && cosClient.serverName.length ? cosClient.serverName+" - " : "") + "Call of Suli"
 
-    minimumWidth: 640
-    minimumHeight: 480
+    minimumWidth: 320
+    minimumHeight: 240
 
     flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint
            | (Qt.platform.os === "ios" ? Qt.MaximizeUsingFullscreenGeometryHint : 0)

@@ -165,6 +165,8 @@ public:
 	Q_INVOKABLE void checkStoragePermissions() const;
 	Q_INVOKABLE void checkMediaPermissions() const;
 
+	Q_INVOKABLE static bool saveQrImage(const QString &base64content, const QUrl &file, const int &size = 300);
+
 	QWebSocket * socket() const { return m_socket; }
 	ConnectionState connectionState() const { return m_connectionState; }
 	QString userName() const { return m_userName; }

@@ -74,6 +74,17 @@
 #include "tiledpaintedlayer.h"
 
 
+#ifndef QZXING_QML
+#define QZXING_QML
+#endif
+
+#ifndef ENABLE_ENCODER_GENERIC
+#define ENABLE_ENCODER_GENERIC
+#endif
+
+#include <QZXing.h>
+
+
 Client* Client::m_clientInstance = nullptr;
 QList<TerrainData> Client::m_availableTerrains;
 QVariantMap Client::m_characterData;
@@ -1087,6 +1098,27 @@ void Client::checkStoragePermissions() const
 void Client::checkMediaPermissions() const
 {
 	AndroidShareUtils::instance()->checkMediaPermissions();
+}
+
+
+
+
+
+/**
+ * @brief Client::saveQrImage
+ * @param content
+ * @param file
+ * @param size
+ * @return
+ */
+
+bool Client::saveQrImage(const QString &base64content, const QUrl &file, const int &size)
+{
+	QString t = QString::fromUtf8(QByteArray::fromBase64(base64content.toLocal8Bit()));
+
+	QImage result = QZXing::encodeData(t, QZXing::EncoderFormat_QR_CODE, QSize(size, size), QZXing::EncodeErrorCorrectionLevel_L, true, false);
+
+	return result.save(file.toLocalFile(), "PNG");
 }
 
 

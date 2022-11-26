@@ -27,7 +27,9 @@
 #include "qrimage.h"
 #include <QDebug>
 
+#ifndef ENABLE_ENCODER_GENERIC
 #define ENABLE_ENCODER_GENERIC
+#endif
 
 #include <QZXing.h>
 
