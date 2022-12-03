@@ -67,6 +67,8 @@ class GameMatch : public QObject
 
 	Q_PROPERTY(GameMode mode READ mode WRITE setMode NOTIFY modeChanged)
 
+	Q_PROPERTY(bool invincible READ invincible WRITE setInvincible NOTIFY invincibleChanged)
+
 	Q_PROPERTY(bool skipPreview READ skipPreview WRITE setSkipPreview NOTIFY skipPreviewChanged)
 
 
@@ -152,6 +154,9 @@ public:
 	int teleporter() const;
 	void setTeleporter(int newTeleporter);
 
+	bool invincible() const;
+	void setInvincible(bool newInvincible);
+
 public slots:
 	bool check(QString *errorString);
 	void addXP(const qreal &factor);
@@ -195,6 +200,8 @@ signals:
 	void camouflageChanged();
 	void teleporterChanged();
 
+	void invincibleChanged();
+
 private:
 	GameMap *m_gameMap;
 	GameMapMissionLevel *m_missionLevel;
@@ -222,6 +229,7 @@ private:
 	bool m_isFlawless;
 	int m_camouflage;
 	int m_teleporter;
+	bool m_invincible = false;
 };
 
 

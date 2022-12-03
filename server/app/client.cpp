@@ -224,6 +224,13 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 
 	qDebug() << "RECEIVED" << m;
 
+	if (m_server->emulateLatency()) {
+		int msec = QRandomGenerator::global()->bounded(750, 5000);
+		qDebug() << "EMULATE LATENCY" << msec;
+
+		QThread::msleep(msec);
+	}
+
 	if (!m.valid()) {
 		CosMessage r(CosMessage::InvalidMessageType, m);
 		r.send(m_socket);

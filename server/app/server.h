@@ -94,6 +94,8 @@ private:
 
 	QList<ExamEngine*> m_examEngineList;
 
+	bool m_emulateLatency = false;
+
 public:
 	explicit Server(QObject *parent = nullptr);
 	virtual ~Server();
@@ -137,6 +139,8 @@ public:
 	ExamEngine *examEngineGet(const int &examId) const;
 	bool examEngineDelete(ExamEngine *engine);
 	bool examEnginesHasMember(const QString &username) const;
+
+	bool emulateLatency() const;
 
 private slots:
 	void onSslErrors(const QList<QSslError> &errors);

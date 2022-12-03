@@ -439,6 +439,10 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 {
 	emit underAttack();
 
+	if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
+		return;
+	}
+
 	if (canProtect && m_shield > 0) {
 		setShield(m_shield-1);
 	} else {
@@ -462,6 +466,10 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 
 void GamePlayer::killByEnemy(GameEnemy *enemy)
 {
+	if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
+		return;
+	}
+
 	setHp(0);
 
 	if (m_cosGame && m_cosGame->gameMatch()) {

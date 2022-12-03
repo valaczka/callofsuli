@@ -50,6 +50,16 @@ QList<Server::VersionUpgrade> Server::m_versionUpgrades = {
 
 
 
+/**
+ * @brief Server::emulateLatency
+ * @return
+ */
+
+bool Server::emulateLatency() const
+{
+	return m_emulateLatency;
+}
+
 
 
 Server::Server(QObject *parent)
@@ -180,6 +190,10 @@ bool Server::commandLineParse(QCoreApplication &app)
 	parser.addOption({{"l", "log"}, tr("Naplózás <file> fájlba"), "file"});
 	parser.addOption({"license", tr("Licensz")});
 
+#ifndef QT_NO_DEBUG
+	parser.addOption({{"L", "latency"}, tr("Lassú válaszok emulálása")});
+#endif
+
 #ifdef QT_NO_DEBUG
 	parser.addOption({"debug", tr("Hibakeresési üzenetek megjelenítése")});
 #endif
@@ -209,6 +223,9 @@ bool Server::commandLineParse(QCoreApplication &app)
 
 		return false;
 	}
+
+	if (parser.isSet("latency"))
+		m_emulateLatency = true;
 
 
 	QStringList args = parser.positionalArguments();

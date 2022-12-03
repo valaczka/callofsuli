@@ -295,6 +295,11 @@ void GameQuestion::onSuccess(const qreal &xpFactor)
 
 void GameQuestion::onFailed()
 {
+	if (m_game->gameMatch() && m_game->gameMatch()->invincible()) {
+		onSuccess(1.0);
+		return;
+	}
+
 	m_state = StateFailed;
 
 	if (m_game->gameMatch())
@@ -344,6 +349,11 @@ void GameQuestion::onSuccessLite(const qreal &xpFactor)
 
 void GameQuestion::onFailedLite()
 {
+	if (m_game->gameMatch() && m_game->gameMatch()->invincible()) {
+		onSuccessLite(1.0);
+		return;
+	}
+
 	m_state = StateFailed;
 
 	if (m_game->gameMatch()) {

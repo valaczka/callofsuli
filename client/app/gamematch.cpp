@@ -566,3 +566,16 @@ void GameMatch::setTeleporter(int newTeleporter)
 	m_teleporter = newTeleporter;
 	emit teleporterChanged();
 }
+
+bool GameMatch::invincible() const
+{
+	return m_invincible;
+}
+
+void GameMatch::setInvincible(bool newInvincible)
+{
+	if (m_invincible == newInvincible)
+		return;
+	m_invincible = newInvincible;
+	emit invincibleChanged();
+}
