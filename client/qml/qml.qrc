@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>PhysicsItem.qml</file>
+        <file>+emscripten/MainOLD.qml</file>
+        <file>../license.txt</file>
+        <file>../../CREDITS.md</file>
+    </qresource>
+</RCC>

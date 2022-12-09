@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>QCosImage.qml</file>
+        <file>+emscripten/main.qml</file>
+    </qresource>
+</RCC>

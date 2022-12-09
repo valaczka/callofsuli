@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Main.qml</file>
+        <file>PhysicsItem.qml</file>
+        <file>+emscripten/MainOLD.qml</file>
+    </qresource>
+</RCC>
