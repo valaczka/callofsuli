@@ -74,6 +74,10 @@ Application::~Application()
 	qCDebug(lcApp).noquote() << QObject::tr("Destroy Application");
 
 	delete m_engine;
+
+	if (m_client)
+		delete m_client;
+
 	delete m_application;
 }
 
@@ -85,6 +89,10 @@ Application::~Application()
 
 int Application::run()
 {
+	m_client = createClient();
+
+	Q_ASSERT(m_client);
+
 	registerQmlTypes();
 	loadQaterial();
 	loadBox2D();
@@ -96,6 +104,8 @@ int Application::run()
 #else
 	m_engine->rootContext()->setContextProperty("DEBUG_MODE", QVariant(true));
 #endif
+
+	m_engine->rootContext()->setContextProperty("Client", m_client);
 
 	if (!loadResources()) {
 		qCCritical(lcApp).noquote() << QObject::tr("Failed to load resources");
@@ -242,6 +252,18 @@ bool Application::loadResources()
 
 
 /**
+ * @brief Application::createClient
+ * @return
+ */
+
+Client *Application::createClient()
+{
+	return new Client(m_application);
+}
+
+
+
+/**
  * @brief Application::registerQmlTypes
  */
 
@@ -316,5 +338,10 @@ void Application::loadBox2D()
 #else
 	qCDebug(lcApp).noquote() << QObject::tr("Skip Box2D loading");
 #endif
+}
+
+Client *Application::client() const
+{
+	return m_client;
 }
 

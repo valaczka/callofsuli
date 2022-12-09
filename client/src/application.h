@@ -27,6 +27,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include "client.h"
 #include <QGuiApplication>
 #include <QtQml>
 
@@ -45,10 +46,12 @@ public:
 
 	QGuiApplication *application() const;
 	QQmlApplicationEngine *engine() const;
+	Client *client() const;
 
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();
+	virtual Client *createClient();
 
 	void registerQmlTypes();
 	void loadFonts();
@@ -62,6 +65,7 @@ protected:
 
 	QGuiApplication *m_application = nullptr;
 	QQmlApplicationEngine *m_engine = nullptr;
+	Client *m_client = nullptr;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcApp)

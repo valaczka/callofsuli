@@ -1,18 +1,17 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import Qaterial 1.0 as Qaterial
 import Box2D 2.0
+import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
+import "JScript.js" as JS
 
 Qaterial.ApplicationWindow
 {
-	id: window
-	width: 480
-	height: 750
+	id: mainWindow
+	width: 640
+	height: 480
 	visible: true
-	title: "Qaterial Gallery"
-
-
+	//title: "Qaterial Gallery"
 
 	menuBar: Qaterial.MenuBar
 	{
@@ -29,8 +28,7 @@ Qaterial.ApplicationWindow
 
 			Qaterial.MenuItem
 			{
-				text: qsTr("New...");onTriggered: console.log(
-													  "New");
+				text: qsTr("New...");onTriggered: Client.addPage();
 				action: Action { shortcut: "Ctrl+N" }
 			} // MenuItem
 			Qaterial.MenuItem { text: qsTr("Open...");onTriggered: console.log("Open") } // MenuItem
@@ -78,7 +76,7 @@ Qaterial.ApplicationWindow
 				action: Action
 				{
 					shortcut: "Ctrl+Shift+F5"
-					onTriggered: console.log("Dummy")
+					onTriggered: Client.pixelSize--
 				}
 			} // MenuItem
 			Qaterial.MenuItem
@@ -107,204 +105,100 @@ Qaterial.ApplicationWindow
 
 		Qaterial.Menu
 		{
-			title: qsTr("Help")
-			Qaterial.MenuItem { text: qsTr("About");onTriggered: console.log("About") } // MenuItem
+			title: qsTr("Nézet")
+			width: 400
+			Qaterial.MenuItem { icon.source: action.icon.source; action: fontPlus }
+			Qaterial.MenuItem { icon.source: action.icon.source; action: fontMinus }
+			Qaterial.MenuItem { icon.source: action.icon.source; action: fontNormal }
 		} // Menu
 	} // MenuBar
 
 
+
+	MainStackView {
+		id: mainStackView
+		anchors.fill: parent
+	}
+
+
 	Component.onCompleted:
 	{
-		Qaterial.Style.theme = Qaterial.Style.Theme.Dark
-		//Qaterial.Style.dense = true
-		Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan700
-		Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
-		Qaterial.Style.backgroundColor = Qaterial.Colors.black
-		Qaterial.Style.fontFamily = "Rajdhani"
+		JS.intializeStyle()
+		Client.mainStack = mainStackView
 
-
-		Qaterial.Style.textTheme.body2 = "Rajdhani"
-
-		Qaterial.Style.textTheme.headline1 = "Rajdhani"
-		Qaterial.Style.textTheme.headline2 = "Rajdhani"
-		Qaterial.Style.textTheme.headline3 = "Rajdhani"
-		Qaterial.Style.textTheme.headline4 = "Rajdhani"
-		Qaterial.Style.textTheme.headline5 = "Rajdhani"
-		Qaterial.Style.textTheme.headline6 = "Rajdhani"
-		Qaterial.Style.textTheme.subtitle1 = "Rajdhani"
-		Qaterial.Style.textTheme.subtitle2 = "Rajdhani"
-		Qaterial.Style.textTheme.body1 = "Rajdhani"
-		Qaterial.Style.textTheme.body2 = "Rajdhani"
-		Qaterial.Style.textTheme.button = "Rajdhani"
-		Qaterial.Style.textTheme.caption = "Rajdhani"
-		Qaterial.Style.textTheme.overline = "Rajdhani"
-		Qaterial.Style.textTheme.hint1 = "Rajdhani"
-		Qaterial.Style.textTheme.hint2 = "Rajdhani"
-
-
+		Client.mainStack.createPage("PageStart.qml", {})
 	}
+
 
 	Shortcut
 	{
 		sequences: ["Esc", "Back"]
-		enabled: stackView.depth > 1
+		enabled: Client.mainStack.depth > 1
 		onActivated:
 		{
-			stackView.pop()
+			Client.mainStack.pop()
 		}
-	} // Shortcut
+	}
 
-	Qaterial.StackView
-	{
-		id: stackView
+
+	MouseArea {
 		anchors.fill: parent
+		acceptedButtons: Qt.NoButton
+		onWheel: {
+			if (wheel.modifiers & Qt.ControlModifier) {
+				var i = wheel.angleDelta.y/120
+				if (i>0)
+					fontPlus.trigger()
+				else if (i<0)
+					fontMinus.trigger()
 
-		initialItem: Rectangle {
-			id: screen
-
-			width: 800
-			height: 600
-
-			readonly property int wallMeasure: 40
-			readonly property int ballDiameter: 20
-			readonly property int minBallPos: Math.ceil(wallMeasure)
-			readonly property int maxBallPos: Math.floor(screen.width - (wallMeasure + ballDiameter))
-
-			Slider {
-				id: lengthSlider
-				x: 180
-				y: 50
-				width: 100
-				height: 50
-				from: 20
-				to: 50
-				value: 30
-			}
-
-			Component {
-				id: linkComponent
-				PhysicsItem {
-					id: ball
-
-					width: 20
-					height: 20
-					bodyType: Body.Dynamic
-
-					property color color: "#EFEFEF"
-
-					fixtures: Circle {
-						radius: ball.width / 2
-						density: 0.5
-					}
-
-					Rectangle {
-						radius: parent.width / 2
-						border.color: "blue"
-						color: parent.color
-						width: parent.width
-						height: parent.height
-						smooth: true
-					}
-				}
-			}
-
-			Component {
-				id: jointComponent
-				RopeJoint {
-					localAnchorA: Qt.point(10,10)
-					localAnchorB: Qt.point(10,10)
-					maxLength: lengthSlider.value
-					collideConnected: true
-				}
-			}
-
-			World { id: physicsWorld }
-
-			Component.onCompleted: {
-				/*var prev = leftWall;
-				for (var i = 60;i < 740;i += 20) {
-					var newLink = linkComponent.createObject(screen);
-					newLink.color = "orange";
-					newLink.x = i;
-					newLink.y = 100;
-					var newJoint = jointComponent.createObject(screen);
-					if (i === 60)
-						newJoint.localAnchorA = Qt.point(40 = "Rajdhani"
-					newJoint.bodyA = prev.body;
-					newJoint.bodyB = newLink.body;
-					prev = newLink;
-				}
-				newJoint = jointComponent.createObject(screen);
-				newJoint.localAnchorB = Qt.point(0,100);
-				newJoint.bodyA = prev.body;
-				newJoint.bodyB = rightWall.body;*/
-			}
-
-			PhysicsItem {
-				id: ground
-				height: 40
-				anchors {
-					left: parent.left
-					right: parent.right
-					bottom: parent.bottom
-				}
-				fixtures: Box {
-					width: ground.width
-					height: ground.height
-					friction: 1
-					density: 1
-				}
-				Rectangle {
-					anchors.fill: parent
-					color: "#DEDEDE"
-				}
-			}
-
-
-
-			Rectangle {
-				id: debugButton
-				x: 50
-				y: 50
-				width: 120
-				height: 30
-				Text {
-					text: "Debug view: " + (debugDraw.visible ? "on" : "off")
-					anchors.centerIn: parent
-				}
-				color: "#DEDEDE"
-				border.color: "#999"
-				radius: 5
-				MouseArea {
-					anchors.fill: parent
-					onClicked: debugDraw.visible = !debugDraw.visible;
-				}
-			}
-
-			DebugDraw {
-				id: debugDraw
-				world: physicsWorld
-				opacity: 1
-				visible: false
-			}
-
-			function xPos() {
-				return (Math.floor(Math.random() * (maxBallPos - minBallPos)) + minBallPos)
-			}
-
-			Timer {
-				id: ballsTimer
-				interval: 500
-				running: true
-				repeat: true
-				onTriggered: {
-					var newBox = linkComponent.createObject(screen);
-					//newBox.x = xPos()
-					newBox.y = 50;
-				}
+				wheel.accepted = true
+			} else {
+				wheel.accepted = false
 			}
 		}
-	} // StackView
+	}
+
+
+	Action {
+		id: fontPlus
+		shortcut: "Ctrl++"
+		text: qsTr("Növelés")
+		icon.source: Qaterial.Icons.magnifyPlus
+		onTriggered: Client.pixelSize++
+	}
+
+	Action {
+		id: fontMinus
+		shortcut: "Ctrl+-"
+		text: qsTr("Csökkentés")
+		icon.source: Qaterial.Icons.magnifyMinus
+		onTriggered: Client.pixelSize--
+	}
+
+	Action {
+		id: fontNormal
+		shortcut: "Ctrl+0"
+		text: qsTr("Visszaállítás")
+		icon.source: Qaterial.Icons.magnifyRemoveOutline
+		onTriggered: Client.resetPixelSize()
+	}
+
+
+	Action {
+		id: actionFullscreen
+		shortcut: "Ctrl+F11"
+
+		onTriggered: {
+			if (mainWindow.visibility === Window.FullScreen)
+				mainWindow.showMaximized()
+			else
+				mainWindow.showFullScreen()
+
+			Qaterial.Style.menuItem.iconWidth
+		}
+	}
+
 
 }
 

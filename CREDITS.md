@@ -1,5 +1,9 @@
 **Library**
 
+- Tiled - Thorbjørn Lindeijer (https://github.com/mapeditor/tiled)
+- Qml-Box2D (https://github.com/qml-box2d/qml-box2d)
+- Qaterial - (c) 2020 Olivier Le Doeuff (https://github.com/OlivierLDff/Qaterial)
+
 - Bacon2D - 2D Game Engine for QML (https://github.com/Bacon2D/Bacon2D)
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - QObjectListModel - (c) 2017 - Felix Barz (https://github.com/Skycoder42/QObjectListModel)

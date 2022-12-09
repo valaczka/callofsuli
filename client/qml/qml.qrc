@@ -5,5 +5,9 @@
         <file>+emscripten/MainOLD.qml</file>
         <file>../license.txt</file>
         <file>../../CREDITS.md</file>
+        <file>JScript.js</file>
+        <file>CosImage.qml</file>
+        <file>PageStart.qml</file>
+        <file>MainStackView.qml</file>
     </qresource>
 </RCC>

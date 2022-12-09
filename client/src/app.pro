@@ -28,6 +28,7 @@ wasm:include(app_wasm.pri)
 
 SOURCES += \
 	application.cpp \
+	client.cpp \
 	main.cpp
 
 RESOURCES += \
@@ -37,4 +38,5 @@ RESOURCES += \
 
 HEADERS += \
 	../../version/version.h \
-	application.h
+	application.h \
+	client.h

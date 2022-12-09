@@ -1,0 +1,46 @@
+import QtQuick 2.12
+import QtQuick.Controls 2.12
+import QtQuick.Layouts 1.15
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import "JScript.js" as JS
+
+
+Qaterial.Page {
+	id: control
+
+	header: RowLayout
+	{
+	  Layout.fillWidth: true
+	  Layout.preferredHeight: Qaterial.Style.toolbar.implicitHeight
+	  property alias title: _titleLabel.text
+
+	  Qaterial.AppBarButton
+	  {
+		id: _backButton
+		icon.source: Qaterial.Icons.arrowLeft
+		onClicked: Client.mainStack.pop()
+		visible: Client.mainStack.depth > 1
+		//onPrimary: true
+	  } // AppBarButton
+
+	  Qaterial.LabelHeadline6
+	  {
+		id: _titleLabel
+
+		Layout.fillWidth: true
+		Layout.leftMargin: !_backButton.visible ? 20 : undefined
+		onPrimary: true
+
+		text: "Default text"
+		elide: Qaterial.Label.ElideRight
+	  } // Label
+
+	  Qaterial.AppBarButton
+	  {
+		icon.source: Qaterial.Icons.palette
+		onPrimary: true
+	  } // AppBarButton
+	} // RowLayout
+
+}

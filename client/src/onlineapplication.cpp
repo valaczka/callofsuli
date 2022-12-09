@@ -54,14 +54,14 @@ OnlineApplication::~OnlineApplication()
  * @brief OnlineApplication::loadResources
  * @return
  */
-
+/*
 bool OnlineApplication::loadResources()
 {
 	qCDebug(lcApp).noquote() << "SKIP resources";
 
 	return true;
 }
-
+*/
 bool OnlineApplication::loadMainQml()
 {
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
