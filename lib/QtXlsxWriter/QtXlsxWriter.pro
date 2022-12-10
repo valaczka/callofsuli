@@ -5,8 +5,8 @@ QT += core gui gui-private
 
 CONFIG += build_xlsx_lib
 
-android: TARGET = qtxlsx_$${QT_ARCH}
-else: TARGET = qtxlsx
+android: TARGET = QtXlsxWriter_$${QT_ARCH}
+else: TARGET = QtXlsxWriter
 
 DEFINES += XLSX_NO_LIB
 
@@ -22,11 +22,10 @@ android: QMAKE_CXXFLAGS += -Wno-deprecated
 win32: QMAKE_CXX += -Wno-strict-aliasing -Wno-deprecated-declarations
 
 
+#win32: target.path = $${OUT_PWD}/../../build
+#else: target.path = $${OUT_PWD}/../../build/lib
 
-win32: target.path = $${OUT_PWD}/../../build
-else: target.path = $${OUT_PWD}/../../build/lib
-
-INSTALLS += target
+#INSTALLS += target
 
 HEADERS += $$PWD/xlsxdocpropscore_p.h \
 	$$PWD/xlsxdocpropsapp_p.h \

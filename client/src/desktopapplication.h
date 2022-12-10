@@ -27,6 +27,13 @@
 #ifndef DESKTOPAPPLICATION_H
 #define DESKTOPAPPLICATION_H
 
+#include <ColorConsoleAppender.h>
+
+#ifdef Q_OS_ANDROID
+#include <AndroidAppender.h>
+#endif
+
+
 #include "application.h"
 
 class DesktopApplication : public Application
@@ -53,6 +60,11 @@ private:
 	CommandLine m_commandLine = Normal;
 	QString m_loadMap;
 	QStringList m_arguments;
+
+	ColorConsoleAppender* m_consoleAppender = nullptr;
+#ifdef Q_OS_ANDROID
+	AndroidAppender* m_androidAppender = nullptr;
+#endif
 
 #ifdef Q_OS_WIN32
 	FILE *m_streamO = NULL;

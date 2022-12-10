@@ -10,110 +10,13 @@ Qaterial.ApplicationWindow
 	id: mainWindow
 	width: 640
 	height: 480
+
 	visible: true
-	//title: "Qaterial Gallery"
 
-	menuBar: Qaterial.MenuBar
-	{
-		visible: true
+	//title: (cosClient.connectionState !== Client.Standby && cosClient.serverName.length ? cosClient.serverName+" - " : "") + "Call of Suli"
 
-		onPrimary: true
-
-		Qaterial.Menu
-		{
-			title: qsTr("File")
-			width: 300
-
-			backgroundColor: Qt.darker(Qaterial.Colors.cyan900)
-
-			Qaterial.MenuItem
-			{
-				text: qsTr("New...");onTriggered: Client.addPage();
-				action: Action { shortcut: "Ctrl+N" }
-			} // MenuItem
-			Qaterial.MenuItem { text: qsTr("Open...");onTriggered: console.log("Open") } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Save");onTriggered: console.log("Save") } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Save As...");onTriggered: console.log("Save As") } // MenuItem
-			Qaterial.MenuSeparator { width: parent.width } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Quit");onTriggered: console.log("Quit") } // MenuItem
-		} // Menu
-
-		Qaterial.Menu
-		{
-			width: 300
-			title: qsTr("Edit")
-
-
-			Qaterial.MenuItem
-			{
-				text: qsTr("Copy");
-				//icon.source: "qrc:/QaterialGallery/images/icons/content-copy.svg";
-				action: Action
-				{
-					shortcut: "Ctrl+C"
-					onTriggered: console.log("Copy")
-				}
-
-			} // MenuItem
-			Qaterial.MenuItem { text: qsTr("Cut");onTriggered: console.log("Cut") } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Paste");onTriggered: console.log("Paster") } // MenuItem
-
-			Qaterial.Menu
-			{
-				title: "Find/Replace"
-				Qaterial.MenuItem { text: "Find Next" } // MenuItem
-				Qaterial.MenuItem { text: "Find Previous" } // MenuItem
-				Qaterial.MenuItem { text: "Replace" } // MenuItem
-			} // Menu
-
-			Qaterial.MenuSeparator { width: parent.width } // MenuSeperator
-
-			Qaterial.MenuItem
-			{
-				text: qsTr("Dummy");
-				icon.source: Qaterial.Icons.airplane
-				//icon.source: "qrc:/QaterialGallery/images/icons/airplane.svg";
-				action: Action
-				{
-					shortcut: "Ctrl+Shift+F5"
-					onTriggered: Client.pixelSize--
-				}
-			} // MenuItem
-			Qaterial.MenuItem
-			{
-				text: qsTr("Colored Icon");
-				icon.source: Qaterial.Icons.album
-				icon.color: Qaterial.Style.accentColor
-				action: Action
-				{
-					shortcut: "Ctrl+K,Ctrl+L"
-					onTriggered: console.log("Colored")
-				}
-			} // MenuItem
-		} // Menu
-
-		Qaterial.Menu
-		{
-
-			title: qsTr("Test")
-			Qaterial.MenuItem { text: qsTr("Checked 1 very loing afznuaefb");checked: true } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Checked 2");checkable: true } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Checked 3");checkable: true } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Checked 4");checkable: true } // MenuItem
-			Qaterial.MenuItem { text: qsTr("Checked 5");checkable: true } // MenuItem
-		} // Menu
-
-		Qaterial.Menu
-		{
-			title: qsTr("Nézet")
-			width: 400
-			Qaterial.MenuItem { icon.source: action.icon.source; action: fontPlus }
-			Qaterial.MenuItem { icon.source: action.icon.source; action: fontMinus }
-			Qaterial.MenuItem { icon.source: action.icon.source; action: fontNormal }
-		} // Menu
-	} // MenuBar
-
-
+	minimumWidth: 320
+	minimumHeight: 240
 
 	MainStackView {
 		id: mainStackView
@@ -125,18 +28,19 @@ Qaterial.ApplicationWindow
 	{
 		JS.intializeStyle()
 		Client.mainStack = mainStackView
+		Client.mainWindow = mainWindow
 
-		Client.mainStack.createPage("PageStart.qml", {})
+		/// Ez kéne máshova
+		Client.stackPushPage("PageStart.qml", {})
 	}
 
 
 	Shortcut
 	{
 		sequences: ["Esc", "Back"]
-		enabled: Client.mainStack.depth > 1
 		onActivated:
 		{
-			Client.mainStack.pop()
+			Client.stackPop()
 		}
 	}
 
@@ -194,11 +98,32 @@ Qaterial.ApplicationWindow
 				mainWindow.showMaximized()
 			else
 				mainWindow.showFullScreen()
-
-			Qaterial.Style.menuItem.iconWidth
 		}
 	}
 
 
+	onClosing: {
+		if (Client.closeWindow()) {
+			close.accepted = true
+			Qt.quit()
+		} else {
+			close.accepted = false
+		}
+	}
+
+
+	function closeQuestion(_text : string) {
+		Qaterial.DialogManager.showDialog(
+					{
+						onAccepted: function()
+						{
+							Client.closeWindow(true)
+						},
+						text: _text,
+						title: qsTr("Kilépés"),
+						iconSource: Qaterial.Icons.account,
+						standardButtons: Dialog.No | Dialog.Yes
+					})
+	}
 }
 

@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/QaterialHelper">
-        <file>QaterialHelper.txt</file>
+        <file>QaterialHelper.qml</file>
     </qresource>
 </RCC>

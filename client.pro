@@ -1,17 +1,21 @@
 include(common.pri)
 
+android:if(isEmpty(AndroidNdkPath)|isEmpty(AndroidSdkPath)) {
+	error(Missing AndrodiNdkPath / AndroidSdkPath)
+}
+
 TEMPLATE = subdirs
 
 SUBDIRS += \
 				version \
-				client/lib \
+				client_lib \
 				application
-#                client/Bacon2D-static \
-#                client/QtXlsxWriter \
-#                client/QZXing \
-#                client/app/modules \
-#                client/app
 
+
+client_lib.file = lib/lib_client.pro
+client_lib.makefile = Makefile
 application.file = client/src/app.pro
+application.makefile = Makefile
 
 CONFIG += ordered
+

@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <RollingFileAppender.h>
 #include "desktopapplication.h"
 
 /**
@@ -45,7 +46,17 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 
 DesktopApplication::~DesktopApplication()
 {
+	if (m_consoleAppender) {
+		cuteLogger->removeAppender(m_consoleAppender);
+		delete m_consoleAppender;
+	}
 
+#ifdef Q_OS_ANDROID
+	if (m_androidAppender) {
+		cuteLogger->removeAppender(m_androidAppender);
+		delete m_androidAppender;
+	}
+#endif
 }
 
 
@@ -62,6 +73,7 @@ void DesktopApplication::commandLineParse()
 
 	parser.addOption({"license", QObject::tr("Licensz")});
 	parser.addOption({{"l", "log"}, QObject::tr("Naplózás <file> fájlba"), "file"});
+	parser.addOption({{"n", "log-limit"}, QObject::tr("Maximum <db> log fájl tárolása"), "db"});
 	parser.addOption({{"e", "editor"}, QObject::tr("Pályszerkesztő indítása")});
 	parser.addOption({{"m", "map"}, QObject::tr("Pálya szerkesztése"), "file"});
 	parser.addOption({{"p", "play"}, QObject::tr("Pálya lejátszása"), "file"});
@@ -90,12 +102,17 @@ void DesktopApplication::commandLineParse()
 
 	if (parser.isSet("log")) logFile = parser.value("log");
 
-	/*if (!logFile.isEmpty()) {
+	int logLimit = 12;
+
+	if (parser.isSet("log-limit")) logLimit = parser.value("log-limit").toInt();
+
+	if (!logFile.isEmpty()) {
 		RollingFileAppender* appender = new RollingFileAppender(logFile);
-		appender->setFormat("%{time}{yyyy-MM-dd hh:mm:ss} [%{TypeOne}] %{message}\n");
-		appender->setDatePattern(RollingFileAppender::DailyRollover);
+		appender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+		appender->setDatePattern(RollingFileAppender::WeeklyRollover);
+		appender->setLogFilesLimit(logLimit);
 		cuteLogger->registerAppender(appender);
-	}*/
+	}
 
 
 	if (parser.isSet("editor"))
@@ -124,6 +141,30 @@ void DesktopApplication::initialize()
 		m_streamE = freopen("CONOUT$", "w", stderr);
 	}
 #endif
+
+	m_consoleAppender = new ColorConsoleAppender;
+	#ifdef Q_OS_ANDROID
+			m_androidAppender = new AndroidAppender;
+	#endif
+
+
+	#ifndef QT_NO_DEBUG
+			m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
+	#ifdef Q_OS_ANDROID
+			m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
+	#endif
+	#else
+			m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+	#ifdef Q_OS_ANDROID
+			m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+	#endif
+	#endif
+
+			cuteLogger->registerAppender(m_consoleAppender);
+	#ifdef Q_OS_ANDROID
+			cuteLogger->registerAppender(m_androidAppender);
+	#endif
+
 
 }
 

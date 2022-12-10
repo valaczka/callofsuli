@@ -39,12 +39,10 @@ Qaterial.StackView
 	popExit: transitionExit
 
 
-	function createPage(_qml : string, _prop : jsobject) : bool {
+	function createPage(_qml : string, _prop : jsobject) : int {
 		var comp = Qt.createComponent(_qml)
 
 		if (comp.status === Component.Ready) {
-			//_prop.opacity = 0.0
-
 			var incubator = comp.incubateObject(mainWindow, _prop)
 			if (incubator.status !== Component.Ready) {
 				incubator.onStatusChanged = function(status) {
@@ -58,12 +56,35 @@ Qaterial.StackView
 				console.debug("Object ", incubator.object, "incubating...")
 			}
 
-			return true
+			return depth
 
 		} else if (comp.status === Component.Error) {
 			console.warn("Error loading component: ", comp.errorString())
 		}
 
-		return false
+		return -1
+	}
+
+
+	function popPage(_index : int) : int {
+		if (_index >= depth)
+			return -1;
+
+		if (depth <= 2) {
+			Client.closeWindow()
+			return depth;
+		}
+
+		if (_index < 0)
+			pop()
+		else
+			pop(get(_index))
+
+		return depth
+	}
+
+
+	function getCloseWindowQuestion() : string {
+		return qsTr("Biztosan kilépsz a programból?")
 	}
 }

@@ -24,7 +24,12 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QDebug>
+
 #include "client.h"
+#include "qquickwindow.h"
+
+Q_LOGGING_CATEGORY(lcClient, "app.client")
 
 Client::Client(QObject *parent)
 	: QObject{parent}
@@ -121,17 +126,105 @@ void Client::setMainStack(QQuickItem *newMainStack)
 	emit mainStackChanged();
 }
 
-void Client::addPage() const
+
+/**
+ * @brief Client::addPage
+ */
+
+void Client::stackPushPage(const QString &qml, const QVariantMap &parameters) const
 {
-	if (m_mainStack) {
-		bool ret = false;
-		QMetaObject::invokeMethod(m_mainStack, "createPage",
-								  Q_RETURN_ARG(bool, ret),
-								  Q_ARG(QString, "PageStart.qml"),
-								  Q_ARG(QVariant, QVariantMap({}))
-								  );
+	if (!m_mainStack) {
+		qCCritical(lcClient).noquote() << tr("mainStack nincsen beállítva!");
+		return;
 	}
+
+	if (qml.isEmpty()) {
+		qCWarning(lcClient).noquote() << tr("Nincs megadva lap");
+		return;
+	}
+
+	int ret = -1;
+	QMetaObject::invokeMethod(m_mainStack, "createPage",
+							  Q_RETURN_ARG(int, ret),
+							  Q_ARG(QString, qml),
+							  Q_ARG(QVariant, parameters)
+							  );
+
+	if (ret == -1) {
+		qCCritical(lcClient).noquote() << tr("Nem lehet a lapot betölteni: %1").arg(qml);
+		return;
+	}
+
+	qCDebug(lcClient()).noquote() << tr("Lap betöltve: %1 (%2)").arg(qml).arg(ret);
 }
+
+
+
+
+
+/**
+ * @brief Client::stackPop
+ * @param depth
+ */
+
+void Client::stackPop(const int &index) const
+{
+	if (!m_mainStack) {
+		qCCritical(lcClient).noquote() << tr("mainStack nincsen beállítva!");
+		return;
+	}
+
+	int ret = -1;
+	QMetaObject::invokeMethod(m_mainStack, "popPage",
+							  Q_RETURN_ARG(int, ret),
+							  Q_ARG(int, index)
+							  );
+
+	if (ret < 0) {
+		qCCritical(lcClient).noquote() << tr("Nem lehet a lapokat eltávolítani!");
+		return;
+	}
+
+	qCDebug(lcClient()).noquote() << tr("Lapozás vissza eddig: %1").arg(ret);
+}
+
+
+
+
+
+/**
+ * @brief Client::closeWindow
+ * @return
+ */
+
+bool Client::closeWindow(const bool &forced)
+{
+	if (m_mainWindowClosable)
+		return true;
+
+	QString question = "";
+	QMetaObject::invokeMethod(m_mainStack, "getCloseWindowQuestion",
+							  Q_RETURN_ARG(QString, question)
+							  );
+
+	if (forced || question.isEmpty()) {
+		qCDebug(lcClient()).noquote() << tr("Ablak bezárása");
+		m_mainWindowClosable = true;
+		m_mainWindow->close();
+		return true;
+	}
+
+	qCDebug(lcClient()).noquote() << tr("Ablak bezárás kérése");
+
+	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
+							  Q_ARG(QString, question)
+							  );
+
+	return false;
+}
+
+
+
 
 
 /**
@@ -142,3 +235,33 @@ void Client::resetPixelSize()
 {
 	setPixelSize(m_defaultPixelSize);
 }
+
+
+/**
+ * @brief Client::mainWindow
+ * @return
+ */
+
+QQuickWindow *Client::mainWindow() const
+{
+	return m_mainWindow;
+}
+
+
+/**
+ * @brief Client::setMainWindow
+ * @param newMainWindow
+ */
+
+void Client::setMainWindow(QQuickWindow *newMainWindow)
+{
+	if (m_mainWindow == newMainWindow)
+		return;
+
+	m_mainWindow = newMainWindow;
+	emit mainWindowChanged();
+
+	if (m_mainWindow)
+		m_mainWindow->setIcon(QIcon(":/internal/img/cos.png"));
+}
+

@@ -1,4 +1,11 @@
-!contains( CONFIG, c\+\+1[147] ): warning("SortFilterProxyModel needs at least c++11, add CONFIG += c++11 to your .pro")
+TEMPLATE = lib
+
+QT += qml
+
+CONFIG += staticlib
+
+android: TARGET = SortFilterProxyModel_$${QT_ARCH}
+else: TARGET = SortFilterProxyModel
 
 INCLUDEPATH += $$PWD
 

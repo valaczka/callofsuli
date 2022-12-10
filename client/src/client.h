@@ -29,6 +29,7 @@
 
 #include <QObject>
 #include <QQuickItem>
+#include <QLoggingCategory>
 
 class Client : public QObject
 {
@@ -38,6 +39,7 @@ class Client : public QObject
 	Q_PROPERTY(qreal pixelSizeRatio READ pixelSizeRatio WRITE setPixelSizeRatio NOTIFY pixelSizeRatioChanged RESET resetPixelSize)
 
 	Q_PROPERTY(QQuickItem* mainStack READ mainStack WRITE setMainStack NOTIFY mainStackChanged)
+	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
 
 
 public:
@@ -54,14 +56,19 @@ public:
 	QQuickItem *mainStack() const;
 	void setMainStack(QQuickItem *newMainStack);
 
-	Q_INVOKABLE void addPage() const;
+	Q_INVOKABLE void stackPushPage(const QString &qml, const QVariantMap &parameters = {}) const;
+	Q_INVOKABLE void stackPop(const int &index = -1) const;
 
+	QQuickWindow *mainWindow() const;
+	void setMainWindow(QQuickWindow *newMainWindow);
+
+	Q_INVOKABLE bool closeWindow(const bool &forced = false);
 
 signals:
 	void pixelSizeChanged();
 	void pixelSizeRatioChanged();
-
 	void mainStackChanged();
+	void mainWindowChanged();
 
 private:
 	const qreal m_defaultPixelSize = 16.0;
@@ -69,6 +76,11 @@ private:
 
 	QQuickItem *m_mainStack = nullptr;
 	qreal m_pixelSizeRatio;
+
+	QQuickWindow *m_mainWindow = nullptr;
+	bool m_mainWindowClosable = false;
 };
+
+Q_DECLARE_LOGGING_CATEGORY(lcClient)
 
 #endif // CLIENT_H

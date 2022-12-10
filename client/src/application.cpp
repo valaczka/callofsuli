@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Logger.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -31,6 +32,11 @@
 
 #ifdef WITH_BOX2D
 #include <box2dplugin.h>
+#endif
+
+#ifdef Q_OS_ANDROID
+#include <QtAndroid>
+//#include "AndroidAppender.h"
 #endif
 
 #include "application.h"
@@ -62,6 +68,11 @@ Application::Application(int &argc, char **argv)
 
 	m_application = new QGuiApplication(argc, argv);
 	m_engine = new QQmlApplicationEngine;
+
+	cuteLoggerInstance()->logToGlobalInstance("app.application", true);
+	cuteLoggerInstance()->logToGlobalInstance("qaterial.utils", true);
+	cuteLoggerInstance()->logToGlobalInstance("app.client", true);
+	cuteLoggerInstance()->logToGlobalInstance("qml", true);
 }
 
 
@@ -209,8 +220,8 @@ bool Application::loadResources()
 
 #ifdef Q_OS_ANDROID
 	searchList.append("assets:");
-	searchList.noquote() << QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
-	searchList.noquote() << QStandardPaths::standardLocations(QStandardPaths::DataLocation);
+	searchList.append(QStandardPaths::standardLocations(QStandardPaths::HomeLocation));
+	searchList.append(QStandardPaths::standardLocations(QStandardPaths::DataLocation));
 #else
 	QString binDir = QCoreApplication::applicationDirPath();
 

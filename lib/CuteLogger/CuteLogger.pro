@@ -1,3 +1,10 @@
+TEMPLATE = lib
+
+android: TARGET = CuteLogger_$${QT_ARCH}
+else: TARGET = CuteLogger
+
+CONFIG += staticlib
+
 DEFINES += CUTELOGGER_LIBRARY
 
 INCLUDEPATH += $$PWD/include

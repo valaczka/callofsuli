@@ -9,5 +9,7 @@
         <file>CosImage.qml</file>
         <file>PageStart.qml</file>
         <file>MainStackView.qml</file>
+        <file>callofsuli.svg</file>
+        <file>QPage.qml</file>
     </qresource>
 </RCC>

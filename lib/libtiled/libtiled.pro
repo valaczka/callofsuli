@@ -1,6 +1,7 @@
 TEMPLATE = lib
 
-TARGET = tiled
+android: TARGET = tiled_$${QT_ARCH}
+else: TARGET = tiled
 
 CONFIG += c++17 staticlib
 
