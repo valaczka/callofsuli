@@ -48,6 +48,12 @@ public:
 	QQmlApplicationEngine *engine() const;
 	Client *client() const;
 
+	static Application *instance();
+
+	void messageInfo(const QString &text, const QString &title = "") const;
+	void messageWarning(const QString &text, const QString &title = "") const;
+	void messageError(const QString &text, const QString &title = "") const;
+
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();
@@ -58,6 +64,9 @@ protected:
 	void loadQaterial();
 	void loadBox2D();
 
+	friend class Client;
+	friend class OnlineClient;
+
 	static const int m_versionMajor;
 	static const int m_versionMinor;
 	static const int m_versionBuild;
@@ -66,6 +75,7 @@ protected:
 	QGuiApplication *m_application = nullptr;
 	QQmlApplicationEngine *m_engine = nullptr;
 	Client *m_client = nullptr;
+	static Application *m_instance;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcApp)

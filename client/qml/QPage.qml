@@ -8,6 +8,9 @@ import "JScript.js" as JS
 Qaterial.Page {
 	id: control
 
+	property string closeQuestion: ""					// Kérdés a lap bezárása előtt
+	property string closeDisabled: ""					// Teljes mértékben tiltjuk a lap bezárását
+
 	background: Item {
 		anchors.fill: parent
 		Image {
@@ -15,14 +18,7 @@ Qaterial.Page {
 			anchors.fill: parent
 			fillMode: Image.PreserveAspectCrop
 			source: "qrc:/internal/img/villa.png"
-			//visible: !compact
 		}
-		/*ColorOverlay {
-			anchors.fill: bgImage
-			source: bgImage
-			color: backgroundImageColor
-			visible: compact
-		}*/
 	}
 
 }

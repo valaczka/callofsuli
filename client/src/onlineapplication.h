@@ -36,8 +36,9 @@ public:
 	virtual ~OnlineApplication();
 
 protected:
-	//virtual bool loadResources() override;
+	virtual bool loadResources() override;
 	virtual bool loadMainQml() override;
+	virtual Client *createClient() override;
 
 };
 

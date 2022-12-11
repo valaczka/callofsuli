@@ -24,7 +24,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Logger.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -46,6 +45,7 @@ const int Application::m_versionMajor = VERSION_MAJOR;
 const int Application::m_versionMinor = VERSION_MINOR;
 const int Application::m_versionBuild = VERSION_BUILD;
 const char *Application::m_version = VERSION_FULL;
+Application *Application::m_instance = nullptr;
 
 Q_LOGGING_CATEGORY(lcApp, "app.application")
 
@@ -66,13 +66,13 @@ Application::Application(int &argc, char **argv)
 	QCoreApplication::setApplicationVersion(m_version);
 	QGuiApplication::setApplicationDisplayName("Call of Suli");
 
-	m_application = new QGuiApplication(argc, argv);
-	m_engine = new QQmlApplicationEngine;
+	if (!m_instance) {
+		qCDebug(lcApp).noquote() << QObject::tr("Create application instance");
+		m_instance = this;
+	}
 
-	cuteLoggerInstance()->logToGlobalInstance("app.application", true);
-	cuteLoggerInstance()->logToGlobalInstance("qaterial.utils", true);
-	cuteLoggerInstance()->logToGlobalInstance("app.client", true);
-	cuteLoggerInstance()->logToGlobalInstance("qml", true);
+	m_application = new QGuiApplication(argc, argv);
+	m_engine = new QQmlApplicationEngine(m_application);
 }
 
 
@@ -135,8 +135,9 @@ int Application::run()
 	}
 
 
-
 	qCDebug(lcApp).noquote() << QObject::tr("Run Application");
+
+	QTimer::singleShot(0, m_client, &Client::onApplicationStarted);
 
 	return m_application->exec();
 }
@@ -269,7 +270,7 @@ bool Application::loadResources()
 
 Client *Application::createClient()
 {
-	return new Client(m_application);
+	return new Client(this, m_application);
 }
 
 
@@ -281,7 +282,6 @@ Client *Application::createClient()
 void Application::registerQmlTypes()
 {
 	qCDebug(lcApp).noquote() << QObject::tr("Register QML types");
-
 }
 
 /**
@@ -350,6 +350,70 @@ void Application::loadBox2D()
 	qCDebug(lcApp).noquote() << QObject::tr("Skip Box2D loading");
 #endif
 }
+
+
+
+/**
+ * @brief Application::instance
+ * @return
+ */
+
+Application *Application::instance()
+{
+	return m_instance;
+}
+
+
+
+/**
+ * @brief Application::messageInfo
+ * @param text
+ * @param title
+ */
+
+void Application::messageInfo(const QString &text, const QString &title) const
+{
+	if (m_client)
+		m_client->messageInfo(text, title);
+	else
+		qCInfo(lcApp).noquote() << QString("%1 (%2)").arg(text).arg(title);
+}
+
+
+/**
+ * @brief Application::messageWarning
+ * @param text
+ * @param title
+ */
+
+void Application::messageWarning(const QString &text, const QString &title) const
+{
+	if (m_client)
+		m_client->messageWarning(text, title);
+	else
+		qCWarning(lcApp).noquote() << QString("%1 (%2)").arg(text).arg(title);
+}
+
+
+/**
+ * @brief Application::messageError
+ * @param text
+ * @param title
+ */
+
+void Application::messageError(const QString &text, const QString &title) const
+{
+	if (m_client)
+		m_client->messageError(text, title);
+	else
+		qCCritical(lcApp).noquote() << QString("%1 (%2)").arg(text).arg(title);
+}
+
+
+/**
+ * @brief Application::client
+ * @return
+ */
 
 Client *Application::client() const
 {

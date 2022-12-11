@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml #sql websockets quick svg multimedia network networkauth gui-private webview
+QT += gui quick svg xml network #sql websockets quick svg multimedia network networkauth gui-private webview
 
 CONFIG += c++17
 
@@ -32,11 +32,15 @@ wasm:include(app_wasm.pri)
 CommonRcc.files += $$files($$PWD/../../share/*.cres)
 
 android: CommonRcc.path = /assets
-else:ios: CommonRcc.path = share
+ios: CommonRcc.path = share
+wasm: CommonRcc.path =
 else: CommonRcc.path = $${OUT_PWD}/build/share
 
-#INSTALLS += target
-#INSTALLS += CommonRcc
+#win32: target.path = $${INSTALL_DIR}/build
+#else:linux:!android: target.path = $${INSTALL_DIR}/build/bin
+
+!isEmpty(target.path): INSTALLS += target
+!isEmpty(CommonRcc.path): INSTALLS += CommonRcc
 
 
 win32 {
@@ -113,9 +117,11 @@ ios {
 
 
 SOURCES += \
+	abstractgame.cpp \
 	application.cpp \
 	client.cpp \
-	main.cpp
+	main.cpp \
+	utils.cpp
 
 RESOURCES += \
 	../qml/qml.qrc \
@@ -124,5 +130,7 @@ RESOURCES += \
 
 HEADERS += \
 	../../version/version.h \
+	abstractgame.h \
 	application.h \
-	client.h
+	client.h \
+	utils.h

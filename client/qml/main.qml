@@ -29,9 +29,6 @@ Qaterial.ApplicationWindow
 		JS.intializeStyle()
 		Client.mainStack = mainStackView
 		Client.mainWindow = mainWindow
-
-		/// Ez kéne máshova
-		Client.stackPushPage("PageStart.qml", {})
 	}
 
 
@@ -112,15 +109,30 @@ Qaterial.ApplicationWindow
 	}
 
 
-	function closeQuestion(_text : string) {
+
+	function messageDialog(_text : string, _title : string, _icon : string) {
+		Qaterial.DialogManager.showDialog(
+					{
+						text: _text,
+						title: _title,
+						iconSource: _icon,
+						standardButtons: Dialog.Ok
+					})
+	}
+
+
+	function closeQuestion(_text : string, _pop : bool, _index: int) {
 		Qaterial.DialogManager.showDialog(
 					{
 						onAccepted: function()
 						{
-							Client.closeWindow(true)
+							if (_pop)
+								Client.stackPop(_index, true)
+							else
+								Client.closeWindow(true)
 						},
 						text: _text,
-						title: qsTr("Kilépés"),
+						title: _pop ? qsTr("Bezárás") : qsTr("Kilépés"),
 						iconSource: Qaterial.Icons.account,
 						standardButtons: Dialog.No | Dialog.Yes
 					})

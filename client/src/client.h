@@ -27,9 +27,19 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "qnetworkaccessmanager.h"
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
+#include "utils.h"
+
+class Application;
+class AbstractGame;
+
+
+/**
+ * @brief The Client class
+ */
 
 class Client : public QObject
 {
@@ -41,9 +51,12 @@ class Client : public QObject
 	Q_PROPERTY(QQuickItem* mainStack READ mainStack WRITE setMainStack NOTIFY mainStackChanged)
 	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
 
+	Q_PROPERTY(Utils* utils READ utils CONSTANT)
+
+	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
 public:
-	explicit Client(QObject *parent = nullptr);
+	explicit Client(Application *app, QObject *parent = nullptr);
 	virtual ~Client();
 
 	qreal pixelSize() const;
@@ -56,21 +69,47 @@ public:
 	QQuickItem *mainStack() const;
 	void setMainStack(QQuickItem *newMainStack);
 
-	Q_INVOKABLE void stackPushPage(const QString &qml, const QVariantMap &parameters = {}) const;
-	Q_INVOKABLE void stackPop(const int &index = -1) const;
+	Q_INVOKABLE QQuickItem *stackPushPage(const QString &qml, const QVariantMap &parameters = {}) const;
+	Q_INVOKABLE bool stackPop(const int &index = -1, const bool &forced = false) const;
 
 	QQuickWindow *mainWindow() const;
 	void setMainWindow(QQuickWindow *newMainWindow);
 
 	Q_INVOKABLE bool closeWindow(const bool &forced = false);
 
+	QNetworkAccessManager *networkManager() const;
+	Utils *utils() const;
+
+	Application *application() const;
+
+	AbstractGame *currentGame() const;
+	void setCurrentGame(AbstractGame *newCurrentGame);
+
+	Q_INVOKABLE void messageInfo(const QString &text, QString title = "") const;
+	Q_INVOKABLE void messageWarning(const QString &text, QString title = "") const;
+	Q_INVOKABLE void messageError(const QString &text, QString title = "") const;
+
+	Q_INVOKABLE void loadGame();
+
+
+protected slots:
+	virtual void onApplicationStarted();
+	friend class Application;
+
+
+private:
+	void _message(const QString &text, const QString &title, const QString &icon) const;
+
 signals:
 	void pixelSizeChanged();
 	void pixelSizeRatioChanged();
 	void mainStackChanged();
 	void mainWindowChanged();
+	void currentGameChanged();
 
-private:
+protected:
+	Application *const m_application = nullptr;
+
 	const qreal m_defaultPixelSize = 16.0;
 	qreal m_pixelSize = m_defaultPixelSize;
 
@@ -79,6 +118,12 @@ private:
 
 	QQuickWindow *m_mainWindow = nullptr;
 	bool m_mainWindowClosable = false;
+
+	QNetworkAccessManager *const m_networkManager = nullptr;
+
+	Utils *const m_utils = nullptr;
+
+	AbstractGame *m_currentGame = nullptr;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcClient)

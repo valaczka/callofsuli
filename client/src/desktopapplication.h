@@ -55,7 +55,6 @@ public:
 	void shutdown();
 	bool performCommandLine();
 
-
 private:
 	CommandLine m_commandLine = Normal;
 	QString m_loadMap;

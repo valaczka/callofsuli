@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * main.cpp
+ * game.h
  *
- * Created on: 2022. 12. 09.
+ * Created on: 2022. 12. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * %{Cpp:License:ClassName}
+ * Game
  *
  *  This file is part of Call of Suli.
  *
@@ -24,34 +24,51 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QtGlobal>
+#ifndef ABSTRACTGAME_H
+#define ABSTRACTGAME_H
 
-#ifdef Q_OS_WASM
-#include "onlineapplication.h"
-#else
-#include "desktopapplication.h"
-#endif
+#include "qloggingcategory.h"
+#include "qquickitem.h"
+#include <QObject>
+
+class Client;
 
 
-int main(int argc, char *argv[])
+/**
+ * @brief The Game class
+ */
+
+class AbstractGame : public QObject
 {
-#ifdef Q_OS_WASM
-	OnlineApplication app(argc, argv);
-	return app.run();
-#else
-	DesktopApplication app(argc, argv);
+	Q_OBJECT
 
-	app.commandLineParse();
-	app.initialize();
+	Q_PROPERTY(QQuickItem *pageItem READ pageItem WRITE setPageItem NOTIFY pageItemChanged)
 
-	int r = 0;
+public:
+	explicit AbstractGame(Client *client);
+	virtual ~AbstractGame();
 
-	if (app.performCommandLine())
-		r = app.run();
+	QQuickItem *pageItem() const;
 
-	app.shutdown();
+	void setPageItem(QQuickItem *newPageItem);
 
-	return r;
-#endif
+public slots:
+	void load();
 
-}
+private slots:
+	void onPageItemDestroyed();
+
+signals:
+
+	void pageItemChanged();
+
+protected:
+	Client *m_client = nullptr;
+	QQuickItem *m_pageItem = nullptr;
+
+private:
+};
+
+Q_DECLARE_LOGGING_CATEGORY(lcGame)
+
+#endif // ABSTRACTGAME_H

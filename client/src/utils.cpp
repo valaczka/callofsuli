@@ -1,0 +1,117 @@
+/*
+ * ---- Call of Suli ----
+ *
+ * utils.cpp
+ *
+ * Created on: 2022. 12. 11.
+ *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
+ *
+ * Utils
+ *
+ *  This file is part of Call of Suli.
+ *
+ *  Call of Suli is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "utils.h"
+#include "client.h"
+#include "qjsondocument.h"
+
+Q_LOGGING_CATEGORY(lcUtils, "app.utils")
+
+/**
+ * @brief Utils::Utils
+ * @param client
+ */
+
+Utils::Utils(Client *client)
+	: QObject{client}
+	, m_client(client)
+{
+
+}
+
+
+/**
+ * @brief Utils::~Utils
+ */
+
+Utils::~Utils()
+{
+
+}
+
+
+/**
+ * @brief Utils::client
+ * @return
+ */
+
+Client *Utils::client() const
+{
+	return m_client;
+}
+
+
+/**
+ * @brief Utils::byteArrayToJsonDocument
+ * @param data
+ * @return
+ */
+
+QJsonDocument Utils::byteArrayToJsonDocument(const QByteArray &data)
+{
+	QJsonParseError error;
+	QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+
+	if (error.error != QJsonParseError::NoError) {
+		qCWarning(lcUtils).noquote() << tr("JSON feldolgozási hiba: %1 (%2)").arg(error.errorString()).arg(error.error);
+	}
+
+	return doc;
+}
+
+
+/**
+ * @brief Utils::byteArrayToJsonObject
+ * @param data
+ * @return
+ */
+
+QJsonObject Utils::byteArrayToJsonObject(const QByteArray &data, bool *error)
+{
+	const QJsonDocument &doc = byteArrayToJsonDocument(data);
+
+	if (error)
+		*error = doc.isNull();
+
+	return doc.object();
+}
+
+
+/**
+ * @brief Utils::byteArrayToJsonArray
+ * @param data
+ * @return
+ */
+
+QJsonArray Utils::byteArrayToJsonArray(const QByteArray &data, bool *error)
+{
+	const QJsonDocument &doc = byteArrayToJsonDocument(data);
+
+	if (error)
+		*error = doc.isNull();
+
+	return doc.array();
+}

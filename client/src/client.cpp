@@ -26,13 +26,18 @@
 
 #include <QDebug>
 
+#include "application.h"
 #include "client.h"
+#include "abstractgame.h"
 #include "qquickwindow.h"
 
 Q_LOGGING_CATEGORY(lcClient, "app.client")
 
-Client::Client(QObject *parent)
+Client::Client(Application *app, QObject *parent)
 	: QObject{parent}
+	, m_application(app)
+	, m_networkManager(new QNetworkAccessManager(this))
+	, m_utils(new Utils(this))
 {
 
 }
@@ -44,7 +49,11 @@ Client::Client(QObject *parent)
 
 Client::~Client()
 {
+	if (m_currentGame)
+		delete m_currentGame;
 
+	delete m_networkManager;
+	delete m_utils;
 }
 
 
@@ -127,36 +136,41 @@ void Client::setMainStack(QQuickItem *newMainStack)
 }
 
 
+
+
 /**
  * @brief Client::addPage
  */
 
-void Client::stackPushPage(const QString &qml, const QVariantMap &parameters) const
+QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &parameters) const
 {
 	if (!m_mainStack) {
 		qCCritical(lcClient).noquote() << tr("mainStack nincsen beállítva!");
-		return;
+		return nullptr;
 	}
 
 	if (qml.isEmpty()) {
 		qCWarning(lcClient).noquote() << tr("Nincs megadva lap");
-		return;
+		return nullptr;
 	}
 
-	int ret = -1;
+	QQuickItem *o = nullptr;
 	QMetaObject::invokeMethod(m_mainStack, "createPage",
-							  Q_RETURN_ARG(int, ret),
+							  Q_RETURN_ARG(QQuickItem*, o),
 							  Q_ARG(QString, qml),
 							  Q_ARG(QVariant, parameters)
 							  );
 
-	if (ret == -1) {
+	if (!o) {
 		qCCritical(lcClient).noquote() << tr("Nem lehet a lapot betölteni: %1").arg(qml);
-		return;
+		return nullptr;
 	}
 
-	qCDebug(lcClient()).noquote() << tr("Lap betöltve: %1 (%2)").arg(qml).arg(ret);
+	qCDebug(lcClient).noquote() << tr("Lap betöltve:") << qml << o;
+
+	return o;
 }
+
 
 
 
@@ -167,26 +181,69 @@ void Client::stackPushPage(const QString &qml, const QVariantMap &parameters) co
  * @param depth
  */
 
-void Client::stackPop(const int &index) const
+bool Client::stackPop(const int &index, const bool &forced) const
 {
 	if (!m_mainStack) {
 		qCCritical(lcClient).noquote() << tr("mainStack nincsen beállítva!");
-		return;
+		return false;
 	}
 
-	int ret = -1;
-	QMetaObject::invokeMethod(m_mainStack, "popPage",
-							  Q_RETURN_ARG(int, ret),
+	const int &depth = m_mainStack->property("depth").toInt();
+
+	if (index >= depth) {
+		qCWarning(lcClient).noquote() << tr("Nem lehet a #%1 lapra visszalépni (mélység: %2)").arg(index).arg(depth);
+		return false;
+	}
+
+	if (depth <= 2) {
+#if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
+		qCDebug(lcClient).noquote() << tr("Nem lehet visszalépni (mélység: %1)").arg(depth);
+		Application::instance()->messageInfo("Nem lehet visszalépni!");
+		return false;
+#endif
+
+		m_mainWindow->close();
+		return true;
+	}
+
+
+
+	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
+
+	if (!currentItem) {
+		qCCritical(lcClient).noquote() << tr("mainStack currentItem unavailable");
+		return false;
+	}
+
+
+	QString closeDisabled = currentItem->property("closeDisabled").toString();
+	QString question = currentItem->property("closeQuestion").toString();
+
+	if (!closeDisabled.isEmpty()) {
+		messageWarning(closeDisabled);
+		return false;
+	}
+
+
+	if (forced || question.isEmpty()) {
+		QMetaObject::invokeMethod(m_mainStack, "popPage",
+								  Q_ARG(int, index)
+								  );
+
+		return true;
+	}
+
+	qCDebug(lcClient).noquote() << tr("Kérdés a visszalépés előtt") << currentItem;
+
+	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
+							  Q_ARG(QString, question),
+							  Q_ARG(bool, true),						// _pop
 							  Q_ARG(int, index)
 							  );
 
-	if (ret < 0) {
-		qCCritical(lcClient).noquote() << tr("Nem lehet a lapokat eltávolítani!");
-		return;
-	}
-
-	qCDebug(lcClient()).noquote() << tr("Lapozás vissza eddig: %1").arg(ret);
+	return false;
 }
+
 
 
 
@@ -202,25 +259,107 @@ bool Client::closeWindow(const bool &forced)
 	if (m_mainWindowClosable)
 		return true;
 
-	QString question = "";
-	QMetaObject::invokeMethod(m_mainStack, "getCloseWindowQuestion",
-							  Q_RETURN_ARG(QString, question)
-							  );
+
+	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
+
+	if (!currentItem) {
+		qCCritical(lcClient).noquote() << tr("mainStack currentItem unavailable");
+		return false;
+	}
+
+	QString closeDisabled = currentItem->property("closeDisabled").toString();
+	QString question = currentItem->property("closeQuestion").toString();
+
+	if (!closeDisabled.isEmpty()) {
+		messageWarning(closeDisabled);
+		return false;
+	}
+
 
 	if (forced || question.isEmpty()) {
-		qCDebug(lcClient()).noquote() << tr("Ablak bezárása");
+		qCDebug(lcClient).noquote() << tr("Ablak bezárása");
 		m_mainWindowClosable = true;
 		m_mainWindow->close();
 		return true;
 	}
 
-	qCDebug(lcClient()).noquote() << tr("Ablak bezárás kérése");
+	qCDebug(lcClient).noquote() << tr("Kérdés a bezárás előtt") << currentItem;
 
 	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
-							  Q_ARG(QString, question)
+							  Q_ARG(QString, question),
+							  Q_ARG(bool, false),					// _pop
+							  Q_ARG(int, -1)						// _index
 							  );
 
 	return false;
+}
+
+
+
+
+
+/**
+ * @brief Client::onApplicationStarted
+ */
+
+void Client::onApplicationStarted()
+{
+	qCInfo(lcClient).noquote() << tr("A kliens alkalmazás sikeresen elindult.");
+	stackPushPage("PageStart.qml");
+}
+
+
+
+
+/**
+ * @brief Client::_message
+ * @param text
+ * @param title
+ * @param icon
+ */
+
+void Client::_message(const QString &text, const QString &title, const QString &icon) const
+{
+	if (m_mainWindow) {
+		QMetaObject::invokeMethod(m_mainWindow, "messageDialog",
+								  Q_ARG(QString, text),
+								  Q_ARG(QString, title),
+								  Q_ARG(QString, icon)
+								  );
+	}
+}
+
+
+/**
+ * @brief Client::application
+ * @return
+ */
+
+Application *Client::application() const
+{
+	return m_application;
+}
+
+
+/**
+ * @brief Client::utils
+ * @return
+ */
+
+Utils *Client::utils() const
+{
+	return m_utils;
+}
+
+
+/**
+ * @brief Client::netoworkManager
+ * @return
+ */
+
+QNetworkAccessManager *Client::networkManager() const
+{
+	return m_networkManager;
 }
 
 
@@ -265,3 +404,85 @@ void Client::setMainWindow(QQuickWindow *newMainWindow)
 		m_mainWindow->setIcon(QIcon(":/internal/img/cos.png"));
 }
 
+
+AbstractGame *Client::currentGame() const
+{
+	return m_currentGame;
+}
+
+
+void Client::setCurrentGame(AbstractGame *newCurrentGame)
+{
+	if (m_currentGame == newCurrentGame)
+		return;
+	m_currentGame = newCurrentGame;
+	emit currentGameChanged();
+}
+
+
+/**
+ * @brief Client::messageInfo
+ * @param text
+ * @param title
+ */
+
+void Client::messageInfo(const QString &text, QString title) const
+{
+	if (title.isEmpty())
+		title = m_application->application()->applicationDisplayName();
+
+	qCInfo(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
+	_message(text, title, "qrc:/Qaterial/Icons/firework.svg");
+}
+
+
+/**
+ * @brief Client::messageWarning
+ * @param text
+ * @param title
+ */
+
+void Client::messageWarning(const QString &text, QString title) const
+{
+	if (title.isEmpty())
+		title = m_application->application()->applicationDisplayName();
+
+	qCWarning(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
+	_message(text, title, "qrc:/Qaterial/Icons/flash.svg");
+}
+
+
+/**
+ * @brief Client::messageError
+ * @param text
+ * @param title
+ */
+
+void Client::messageError(const QString &text, QString title) const
+{
+	if (title.isEmpty())
+		title = m_application->application()->applicationDisplayName();
+
+	qCCritical(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
+	_message(text, title, "qrc:/Qaterial/Icons/fire.svg");
+}
+
+
+
+/**
+ * @brief Client::loadGame
+ */
+
+void Client::loadGame()
+{
+	if (m_currentGame) {
+		qCCritical(lcClient).noquote() << tr("Game already exists");
+		return;
+	}
+
+
+	AbstractGame *game = new AbstractGame(this);
+	setCurrentGame(game);
+
+	game->load();
+}

@@ -12,7 +12,7 @@ if ($$CMakeVerboseOutput) {
 
 CMakeArguments = \
 	-DCMAKE_PREFIX_PATH=$${QTDIR} \
-	#-DCMAKE_FIND_ROOT_PATH:PATH=${QTDIR}
+	-DCMAKE_FIND_ROOT_PATH:PATH=${QTDIR}
 
 android {
 	CMakeArguments += \
@@ -23,7 +23,7 @@ android {
 } else {
 	CMakeArguments += \
 		-DCMAKE_CXX_COMPILER=\"$$QMAKE_CXX\" \
-		#-DCMAKE_LINKER=\"$$QMAKE_LINK\"
+		-DCMAKE_LINKER=\"$$QMAKE_LINK\"
 }
 
 

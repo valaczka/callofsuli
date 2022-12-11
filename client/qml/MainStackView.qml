@@ -39,52 +39,22 @@ Qaterial.StackView
 	popExit: transitionExit
 
 
-	function createPage(_qml : string, _prop : jsobject) : int {
-		var comp = Qt.createComponent(_qml)
 
-		if (comp.status === Component.Ready) {
-			var incubator = comp.incubateObject(mainWindow, _prop)
-			if (incubator.status !== Component.Ready) {
-				incubator.onStatusChanged = function(status) {
-					if (status === Component.Ready) {
-						mainStackView.push(incubator.object)
-					} else if (status === Component.Error) {
-						console.warning("Component create error: ", _qml, incubator.errorString())
-					}
-				}
-			} else {
-				console.debug("Object ", incubator.object, "incubating...")
-			}
-
-			return depth
-
-		} else if (comp.status === Component.Error) {
-			console.warn("Error loading component: ", comp.errorString())
-		}
-
-		return -1
+	function createPage(_qml : string, _prop : jsobject) : Item {
+		return mainStackView.push(_qml, _prop)
 	}
 
 
-	function popPage(_index : int) : int {
-		if (_index >= depth)
-			return -1;
-
-		if (depth <= 2) {
-			Client.closeWindow()
-			return depth;
+	function popPage(_index : int) {
+		if (currentItem.onPageClose) {
+			console.info(qsTr("Lap bezárási funkció meghívása:"), currentItem)
+			currentItem.onPageClose()
 		}
 
 		if (_index < 0)
 			pop()
 		else
 			pop(get(_index))
-
-		return depth
 	}
 
-
-	function getCloseWindowQuestion() : string {
-		return qsTr("Biztosan kilépsz a programból?")
-	}
 }

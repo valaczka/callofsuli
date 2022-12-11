@@ -8,6 +8,9 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
+	//closeQuestion: StackView.index < 3 ? "Nem tudod, miért nem szeretnéd bezárni?" : ""
+	//closeDisabled: (StackView.index == 4) ? "Nem lehet bezárni!" : ""
+
 	header: Qaterial.ToolBar {
 		backgroundColor: "transparent"
 		elevation: 1
@@ -41,8 +44,14 @@ QPage {
 			{
 				icon.source: Qaterial.Icons.palette
 				onPrimary: true
+				onClicked: Client.stackPushPage("PageStart.qml", {})
 			} // AppBarButton
 		} // RowLayout
 	}
 
+	Qaterial.RaisedButton {
+		text: "Start Game"
+		icon.source: Qaterial.Icons.gamepad
+		onClicked: Client.loadGame()
+	}
 }

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * main.cpp
+ * utils.h
  *
- * Created on: 2022. 12. 09.
+ * Created on: 2022. 12. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * %{Cpp:License:ClassName}
+ * Utils
  *
  *  This file is part of Call of Suli.
  *
@@ -24,34 +24,37 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QtGlobal>
+#ifndef UTILS_H
+#define UTILS_H
 
-#ifdef Q_OS_WASM
-#include "onlineapplication.h"
-#else
-#include "desktopapplication.h"
-#endif
+#include "qloggingcategory.h"
+#include <QObject>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
+class Client;
 
-int main(int argc, char *argv[])
+class Utils : public QObject
 {
-#ifdef Q_OS_WASM
-	OnlineApplication app(argc, argv);
-	return app.run();
-#else
-	DesktopApplication app(argc, argv);
+	Q_OBJECT
 
-	app.commandLineParse();
-	app.initialize();
+public:
+	explicit Utils(Client *client);
+	virtual ~Utils();
 
-	int r = 0;
+	Client *client() const;
 
-	if (app.performCommandLine())
-		r = app.run();
+	Q_INVOKABLE static QJsonDocument byteArrayToJsonDocument(const QByteArray &data);
+	Q_INVOKABLE static QJsonObject byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
+	Q_INVOKABLE static QJsonArray byteArrayToJsonArray(const QByteArray &data, bool *error = nullptr);
 
-	app.shutdown();
+private:
+	Client *const m_client = nullptr;
 
-	return r;
-#endif
+};
 
-}
+
+Q_DECLARE_LOGGING_CATEGORY(lcUtils)
+
+#endif // UTILS_H

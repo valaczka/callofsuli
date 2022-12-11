@@ -36,7 +36,13 @@
 DesktopApplication::DesktopApplication(int &argc, char **argv)
 	: Application(argc, argv)
 {
-
+	cuteLogger->logToGlobalInstance("app.application", true);
+	cuteLogger->logToGlobalInstance("app.client", true);
+	cuteLogger->logToGlobalInstance("app.game", true);
+	cuteLogger->logToGlobalInstance("app.utils", true);
+	cuteLogger->logToGlobalInstance("qaterial.utils", true);
+	cuteLogger->logToGlobalInstance("qml", true);
+	cuteLogger->logToGlobalInstance("logger", true);
 }
 
 
@@ -211,3 +217,6 @@ bool DesktopApplication::performCommandLine()
 
 	return true;
 }
+
+
+

@@ -25,6 +25,7 @@
  */
 
 #include "onlineapplication.h"
+#include "onlineclient.h"
 
 /**
  * @brief OnlineApplication::OnlineApplication
@@ -54,14 +55,14 @@ OnlineApplication::~OnlineApplication()
  * @brief OnlineApplication::loadResources
  * @return
  */
-/*
+
 bool OnlineApplication::loadResources()
 {
-	qCDebug(lcApp).noquote() << "SKIP resources";
-
 	return true;
 }
-*/
+
+
+
 bool OnlineApplication::loadMainQml()
 {
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
@@ -69,3 +70,16 @@ bool OnlineApplication::loadMainQml()
 
 	return true;
 }
+
+/**
+ * @brief OnlineApplication::createClient
+ * @return
+ */
+
+Client *OnlineApplication::createClient()
+{
+	qCDebug(lcApp).noquote() << QObject::tr("Create online client");
+	return new OnlineClient(this, m_application);
+}
+
+
