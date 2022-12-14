@@ -29,6 +29,12 @@
 
 #include <Qaterial/Qaterial.hpp>
 
+#ifndef QZXING_QML
+#define QZXING_QML
+#endif
+
+#include <QZXing.h>
+
 #ifdef WITH_BOX2D
 #include <box2dplugin.h>
 #endif
@@ -282,6 +288,8 @@ Client *Application::createClient()
 void Application::registerQmlTypes()
 {
 	qCDebug(lcApp).noquote() << QObject::tr("Register QML types");
+
+	QZXing::registerQMLTypes();
 }
 
 /**

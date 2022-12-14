@@ -1,3 +1,5 @@
+include(../../common.pri)
+
 INCLUDEPATH += $$PWD
 DEPENDPATH += $$PWD
 
@@ -21,11 +23,7 @@ linux:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy -Wno-deprecated-declarati
 android: QMAKE_CXXFLAGS += -Wno-deprecated
 win32: QMAKE_CXX += -Wno-strict-aliasing -Wno-deprecated-declarations
 
-
-#win32: target.path = $${OUT_PWD}/../../build
-#else: target.path = $${OUT_PWD}/../../build/lib
-
-#INSTALLS += target
+DESTDIR = ../
 
 HEADERS += $$PWD/xlsxdocpropscore_p.h \
 	$$PWD/xlsxdocpropsapp_p.h \

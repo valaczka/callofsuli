@@ -108,3 +108,4 @@ SOURCES += \
 	libtiled-1.9.2/varianttomapconverter.cpp \
 	libtiled-1.9.2/wangset.cpp \
 	libtiled-1.9.2/worldmanager.cpp
+

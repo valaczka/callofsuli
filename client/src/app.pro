@@ -8,7 +8,16 @@ CONFIG += c++17
 include(../../common.pri)
 include(../../version/version.pri)
 
+android {
+	isEmpty(AndroidNdkPath): error(AndroidNdkPath empty)
+	isEmpty(AndroidSdkPath): error(AndroidSdkPath empty)
+}
+
+
+DESTDIR = ../..
+
 AppRpath =
+
 
 include(../../lib/import_lib_client.pri)
 
@@ -33,14 +42,9 @@ CommonRcc.files += $$files($$PWD/../../share/*.cres)
 
 android: CommonRcc.path = /assets
 ios: CommonRcc.path = share
-wasm: CommonRcc.path =
-else: CommonRcc.path = $${OUT_PWD}/build/share
 
-#win32: target.path = $${INSTALL_DIR}/build
-#else:linux:!android: target.path = $${INSTALL_DIR}/build/bin
 
-!isEmpty(target.path): INSTALLS += target
-!isEmpty(CommonRcc.path): INSTALLS += CommonRcc
+!isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
 
 
 win32 {
@@ -50,7 +54,7 @@ win32 {
 	QMAKE_TARGET_COPYRIGHT = Valaczka Janos Pal
 	QMAKE_TARGET_DESCRIPTION = Call of Suli
 
-	license.path = $${OUT_PWD}/build
+	license.path = $${PREFIX}
 	license.files = $$PWD/../../LICENSE
 
 	INSTALLS += license

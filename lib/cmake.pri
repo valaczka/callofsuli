@@ -1,5 +1,7 @@
 include(../common.pri)
 
+isEmpty(CMakePath): error(CMakePath empty, cmake required)
+
 QTDIR = $$dirname(QMAKE_QMAKE)/..
 
 nproc = $$system("nproc")

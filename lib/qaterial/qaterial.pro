@@ -1,10 +1,7 @@
 TEMPLATE = aux
 
 include(../../common.pri)
-include(../clang.pri)
-
-wasm: BUILDSHARED = ON
-else: BUILDSHARED = ON
+include(../cmake.pri)
 
 BUILDCONFIG = Release
 
@@ -17,37 +14,53 @@ android {
 				for a in $${ANDROID_ABIS}; do \
 					test -d $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a || mkdir $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a ; \
 					cd $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a ; \
-					cmake $$PWD/Qaterial-1.4.6 \
+					$${CMakePath} $$PWD/Qaterial-1.4.6 \
 					$${CMakeArguments} -DANDROID_ABI:STRING=$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a \
 					-DQATERIAL_ICONS=\"*.svg\" \
 					-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
-					-DQATERIAL_BUILD_SHARED=$$BUILDSHARED -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
+					-DQATERIAL_BUILD_SHARED=$$QaterialBuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
 					-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
 					-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=ON && \
-					cmake --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
-					cmake --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
-					cmake --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc ; \
+					$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
+					$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
+					$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc ; \
 					cd .. ; \
 				done
 
+} else:wasm {
+
+	extralib.commands = echo \"Building Qaterial...\"; \
+			$${CMakePath} $$PWD/Qaterial-1.4.6 \
+			$${CMakeArguments} \
+			-DQATERIAL_ICONS=\"*.svg\" \
+			-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
+			-DQATERIAL_BUILD_SHARED=$$QaterialBuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
+			-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
+			-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=ON && \
+			$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
+			$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
+			$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc
+
 } else {
 	extralib.commands = echo \"Building Qaterial...\"; \
-				cmake $$PWD/Qaterial-1.4.6 \
-				$${CMakeArguments} \
+				$${CMakePath} $$PWD/Qaterial-1.4.6 \
+				$${CMakeArguments} -DCMAKE_INSTALL_PREFIX=/tmp/___cmakeout \
 				-DQATERIAL_ICONS=\"*.svg\" \
 				-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
-				-DQATERIAL_BUILD_SHARED=$$BUILDSHARED -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
+				-DQATERIAL_BUILD_SHARED=$$QaterialBuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
 				-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
 				-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=ON && \
-				cmake --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
-				cmake --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
-				cmake --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc
+				$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
+				$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
+				$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc && \
+				mv $${LibQaterialFile} ../
 }
 
 
+extralib.target = $${LibQaterialFile}
 extralib.depends =
 
-extralib.target = libQaterial.so
+
 
 QMAKE_EXTRA_TARGETS += extralib
 PRE_TARGETDEPS = $$extralib.target

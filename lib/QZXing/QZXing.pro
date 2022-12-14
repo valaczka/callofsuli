@@ -1,3 +1,5 @@
+include(../../common.pri)
+
 CONFIG += \
 	enable_encoder_qr_code \
 	qzxing_qml \
@@ -24,6 +26,8 @@ QMAKE_CXXFLAGS += -Wno-sign-compare
 
 #win32: target.path = $${OUT_PWD}/../../build
 #else: target.path = $${OUT_PWD}/../../build/lib
+
+DESTDIR = ../
 
 INSTALLS -= headers target
 

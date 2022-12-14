@@ -14,6 +14,8 @@ wasm {
 
 	QTDIR = $$dirname(QMAKE_QMAKE)/../qml
 
+	DESTDIR = ../html
+
 	LIBS += \
 		$$QTDIR/Qt/labs/platform/libqtlabsplatformplugin.a \
 		$$QTDIR/QtGraphicalEffects/libqtgraphicaleffectsplugin.a \
@@ -34,11 +36,14 @@ wasm {
 	WasmRccFiles = $$files($$PWD/../../share/*.cres)
 	WasmRccFiles += $$PWD/../deploy/wasm_resources.json
 
-	WasmRcc.commands = $(COPY_FILE) $$shell_path($$WasmRccFiles) $$shell_path($$OUT_PWD)
+	WasmRcc.commands = $(COPY_FILE) $$shell_path($$WasmRccFiles) $$shell_path($$OUT_PWD/$$DESTDIR)
 
 	QMAKE_EXTRA_TARGETS += WasmRcc
 
 	POST_TARGETDEPS += WasmRcc
 
 	LIBS += -s EXIT_RUNTIME=0
+
+
+
 }

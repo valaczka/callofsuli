@@ -3,7 +3,9 @@ TEMPLATE = lib
 android: TARGET = CuteLogger_$${QT_ARCH}
 else: TARGET = CuteLogger
 
-CONFIG += staticlib
+#!win32: CONFIG += staticlib
+
+DESTDIR = ..
 
 DEFINES += CUTELOGGER_LIBRARY
 
