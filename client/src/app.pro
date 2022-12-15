@@ -115,9 +115,13 @@ ios {
 
 SOURCES += \
 	abstractgame.cpp \
+	actiongame.cpp \
 	application.cpp \
 	client.cpp \
+	gamescene.cpp \
+	gameterrain.cpp \
 	main.cpp \
+	tiledpaintedlayer.cpp \
 	utils.cpp
 
 RESOURCES += \
@@ -128,6 +132,10 @@ RESOURCES += \
 HEADERS += \
 	../../version/version.h \
 	abstractgame.h \
+	actiongame.h \
 	application.h \
 	client.h \
+	gamescene.h \
+	gameterrain.h \
+	tiledpaintedlayer.h \
 	utils.h

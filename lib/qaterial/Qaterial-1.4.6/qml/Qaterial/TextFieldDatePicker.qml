@@ -2,6 +2,7 @@ import QtQuick 2.0
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Qaterial.TextFieldDate
 {

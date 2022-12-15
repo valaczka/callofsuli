@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Qaterial.Label
 {

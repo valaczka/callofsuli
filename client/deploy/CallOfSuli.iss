@@ -9,13 +9,13 @@ AllowNoIcons=yes
 OutputDir=..
 OutputBaseFilename={#COSexe}
 PrivilegesRequired=lowest
-LicenseFile=.\build\LICENSE
+LicenseFile=LICENSE
 AppCopyright=Copyright (C) 2012-2022 Valaczka János Pál
 DisableDirPage=auto
 DisableProgramGroupPage=auto
 
 [Files]
-Source: "*"; DestDir: "{app}"; Excludes: "InnoSetup.iss"; Flags: recursesubdirs
+Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs
 
 
 [Tasks]

@@ -3,6 +3,7 @@ function intializeStyle() {
 	Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan700
 	Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
 	Qaterial.Style.backgroundColor = Qaterial.Colors.black
+	Qaterial.Style.foregroundColorDark = Qaterial.Colors.cyan200
 
 	if (Qt.platform.os == "linux" || Qt.platform.os == "osx" || Qt.platform.os == "windows")
 		Qaterial.Style.dense = true

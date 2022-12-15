@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.12
 import QtGraphicalEffects 1.0
 import QtMultimedia 5.12
+import CallOfSuli 1.0
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
@@ -23,6 +24,8 @@ import "JScript.js" as JS
 
 Page {
 	id: control
+
+	property ActionGame game: null
 
 	property bool _closeEnabled: false
 	property bool _sceneLoaded: false
@@ -82,8 +85,9 @@ Page {
 
 		cache: false
 
+		visible: false
 
-		source: game.gameMatch ? game.gameMatch.bgImage : ""
+		source: game.backgroundImage
 
 		clip: false
 
@@ -104,7 +108,7 @@ Page {
 	Desaturate {
 		id: bgSaturate
 
-		visible: desaturation
+		visible: desaturation && bg.visible
 
 		anchors.fill: bg
 		source: bg
@@ -136,6 +140,30 @@ Page {
 			width: gameScene.width*gameScene.scale
 			height: Math.max(gameScene.height*gameScene.scale, control.height)
 
+			GameScene {
+				id: gameScene
+				game: control.game
+
+				/*opacity: 0.0
+				visible: false*/
+
+			}
+
+			Desaturate {
+				id: gameSaturate
+
+				anchors.fill: gameScene
+				source: gameScene
+
+				opacity: 0.0
+				visible: false //desaturation
+
+				desaturation: 0.0 //desaturation: 1.0
+
+				Behavior on opacity { NumberAnimation { duration: 750 } }
+			}
+
+			/*
 			CosGame {
 				id: game
 				width: gameMatch.mode == GameMatch.ModeNormal ? gameScene.width : mainScene.width
@@ -408,17 +436,18 @@ Page {
 			}
 
 
+		}*/
+
 		}
 
-
-		PinchArea {
+		/*PinchArea {
 			anchors.fill: parent
 
 			MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
 				anchors.fill: parent
 			}
 
-			enabled: !_backDisabled && !game.question && gameMatch.mode == GameMatch.ModeNormal
+			//enabled: !_backDisabled && !game.question && gameMatch.mode == GameMatch.ModeNormal
 
 			onPinchUpdated: {
 				if (pinch.scale < 0.9) {
@@ -427,9 +456,9 @@ Page {
 					gameScene.isSceneZoom = false
 				}
 			}
-		}
+		}*/
 
-
+/*
 		onWidthChanged: setXOffset()
 		onHeightChanged: setYOffset()
 		onContentWidthChanged: setXOffset()
@@ -559,12 +588,11 @@ Page {
 				flick.contentX = x
 			}
 		}
+
+		*/
 	}
 
-	property alias painhudImage: painhudImage
-
-	Image {
-		id: painhudImage
+	property Image painhudImage: Image {
 		source: "qrc:/internal/game/painhud.png"
 		opacity: 0.0
 		visible: opacity
@@ -645,7 +673,7 @@ Page {
 	}
 
 
-
+	/*
 
 	GameLabel {
 		id: infoHP
@@ -1209,7 +1237,7 @@ Page {
 	}
 
 
-
+*/
 
 
 	Rectangle {
@@ -1217,6 +1245,7 @@ Page {
 		anchors.fill: parent
 		color: "black"
 		visible: opacity
+		opacity: 1.0
 	}
 
 	DropShadow {
@@ -1237,7 +1266,7 @@ Page {
 		color: "white"
 		font.family: "HVD Peace"
 		font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
-		text: game.gameMatch ? game.gameMatch.name : ""
+		text: game.name
 		opacity: 0.0
 		visible: opacity
 		width: parent.width*0.7
@@ -1247,35 +1276,35 @@ Page {
 		wrapMode: Text.Wrap
 	}
 
-	Label {
-		id: previewLabel
-		color: CosStyle.colorPrimaryLighter
-		font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
-		opacity: 0.0
-		visible: opacity
-		width: Math.min(parent.width*0.7, parent.width-mainWindow.safeMarginLeft-mainWindow.safeMarginRight)
-		horizontalAlignment: Text.AlignHCenter
-		x: (parent.width-width)/2
-		y: parent.height*0.8-height/2
-		wrapMode: Text.Wrap
-		font.weight: Font.DemiBold
-		style: Text.Outline
-		styleColor: "black"
-	}
+	/*Label {
+			id: previewLabel
+			color: CosStyle.colorPrimaryLighter
+			font.pixelSize: Math.min(Math.max(30, (control.width/1000)*50), 60)
+			opacity: 0.0
+			visible: opacity
+			width: Math.min(parent.width*0.7, parent.width-mainWindow.safeMarginLeft-mainWindow.safeMarginRight)
+			horizontalAlignment: Text.AlignHCenter
+			x: (parent.width-width)/2
+			y: parent.height*0.8-height/2
+			wrapMode: Text.Wrap
+			font.weight: Font.DemiBold
+			style: Text.Outline
+			styleColor: "black"
+		}*/
 
 
-	Connections {
-		target: studentMaps
+	/*Connections {
+			target: studentMaps
 
-		function onGameFinishDialogReady(data) {
-			_closeEnabled = true
-			mainStack.back()
-		}
+			function onGameFinishDialogReady(data) {
+				_closeEnabled = true
+				mainStack.back()
+			}
 
-		function onExamContentReady(data) {
-			gameActivity.prepareExam(data)
-		}
-	}
+			function onExamContentReady(data) {
+				gameActivity.prepareExam(data)
+			}
+		}*/
 
 
 
@@ -1291,12 +1320,11 @@ Page {
 			}
 			PropertyChanges {
 				target: gameSaturate
-				desaturation: 0.0
 				opacity: 0.0
 			}
 			PropertyChanges {
-				target: game
-				opacity: 0.0
+				target: gameScene
+				opacity: 1.0//opacity: 0.0
 			}
 			PropertyChanges {
 				target: shadowName
@@ -1334,7 +1362,7 @@ Page {
 			name: "run"
 
 			PropertyChanges {
-				target: game
+				target: gameScene
 				opacity: 1.0
 			}
 			PropertyChanges {
@@ -1368,7 +1396,8 @@ Page {
 			SequentialAnimation {
 				ScriptAction {
 					script: {
-						game.visible = true
+						bg.visible = true
+						gameScene.visible = true
 					}
 				}
 
@@ -1425,7 +1454,7 @@ Page {
 			SequentialAnimation {
 				ParallelAnimation {
 					PropertyAction {
-						target: game
+						target: gameScene
 						property: "opacity"
 					}
 					PropertyAnimation {
@@ -1448,7 +1477,7 @@ Page {
 					}
 				}
 
-				ScriptAction {
+				/*ScriptAction {
 					script: {
 						_backDisabled = false
 						if (gameMatch.mode == GameMatch.ModeNormal) {
@@ -1459,13 +1488,14 @@ Page {
 							game.onGameStarted()
 						}
 					}
-				}
+				}*/
 			}
 		}
 	]
 
 
 
+	/*
 
 
 	SequentialAnimation {
@@ -1572,125 +1602,132 @@ Page {
 			startTimer.start()
 		}
 
-			questionPlaceholder.visible = true
+		questionPlaceholder.visible = true
 
-			var obj = questionComponent.createObject(questionPlaceholder,{
-				questionPrivate: questionPrivate
+		var obj = questionComponent.createObject(questionPlaceholder,{
+			questionPrivate: questionPrivate
+		})
+
+		return obj
+	}
+
+
+	function gameToolTip(_setting, _image, _text, _details) {
+		if (cosClient.getServerSettingBool(_setting, true) === true) {
+			game.running = false
+
+			var d = tooltipComponent.createObject(questionPlaceholder, {
+				text: _text,
+				details: _details,
+				image: _image
 			})
 
-			return obj
+			questionPlaceholder.tooltip = d
+
+			d.finished.connect(function() {
+				game.running = true
+				game.currentScene.forceActiveFocus()
+			})
+				cosClient.setServerSetting(_setting, false)
+		}
+	}
+
+
+*/
+	StackView.onRemoved: {
+		//cosClient.stopSound(game.backgroundMusicFile, CosSound.Music)
+		//destroy()
+	}
+
+	StackView.onActivated: {
+		state = "start"
+
+		gameScene.loadTerrain(":/terrain/New_Shekem/level1.tmx")
+
+		/*if (gameMatch.mode == GameMatch.ModeNormal)
+			game.loadScene()
+		else
+			_sceneLoaded = true
+
+		if (gameMatch.mode == GameMatch.ModeExam)
+			//gameActivity.prepare()
+			studentMaps.getExamContent()
+		else
+			gameActivity.prepare() */
+	}
+
+	Component.onCompleted: {
+		if (!game) {
+			console.error(qsTr("null game"))
 		}
 
+		/*if (gameMatch.mode == GameMatch.ModeNormal)
+			cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
 
-			function gameToolTip(_setting, _image, _text, _details){
-				if (cosClient.getServerSettingBool(_setting, true) === true) {
-					game.running = false
+		joystick.size = cosClient.getSetting("game/joystickSize", joystick.size) */
+	}
 
-					var d = tooltipComponent.createObject(questionPlaceholder, {
-						text: _text,
-						details: _details,
-						image: _image
-					})
-
-					questionPlaceholder.tooltip = d
-
-					d.finished.connect(function() {
-						game.running = true
-						game.currentScene.forceActiveFocus()
-					})
-						cosClient.setServerSetting(_setting, false)
-					}
-					}
-
-
-
-						StackView.onRemoved: {
-							cosClient.stopSound(game.backgroundMusicFile, CosSound.Music)
-							destroy()
-						}
-
-						StackView.onActivated: {
-							state = "start"
-							if (gameMatch.mode == GameMatch.ModeNormal)
-								game.loadScene()
-							else
-								_sceneLoaded = true
-
-							if (gameMatch.mode == GameMatch.ModeExam)
-								//gameActivity.prepare()
-								studentMaps.getExamContent()
-							else
-								gameActivity.prepare()
-						}
-
-						Component.onCompleted: {
-							if (gameMatch.mode == GameMatch.ModeNormal)
-								cosClient.playSound("qrc:/sound/voiceover/prepare_yourself.mp3", CosSound.VoiceOver)
-
-							joystick.size = cosClient.getSetting("game/joystickSize", joystick.size)
-						}
-
-						Component.onDestruction: {
-							if (deleteGameMatch && gameMatch)
-								delete gameMatch
-						}
+	Component.onDestruction: {
+		/*if (deleteGameMatch && gameMatch)
+			delete gameMatch*/
+	}
 
 
 
 
-						function doStep() {
-							if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
-								control.state = "run"
-								game.gameStarted()
-								if (studentMaps)
-									studentMaps.gameStarted()
-							}
+	function doStep() {
+		/*if (_sceneLoaded && _animStartEnded && game.isPrepared && gameActivity.prepared) {
+			control.state = "run"
+			game.gameStarted()
+			if (studentMaps)
+				studentMaps.gameStarted()
+		}*/
 
-						}
+	}
+
+	/*
+
+	property var closeCallbackFunction: function () {
+		if (!_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {
+										   text: qsTr("Biztosan megszakítod a játékot?"),
+										   image: "qrc:/internal/icon/close-octagon-outline.svg"
+									   })
+
+			d.accepted.connect(function() {
+				game.currentScene = exitScene
+				bg.source = ""
+				game.abortGame()
+				_closeEnabled = true
+				mainWindow.close()
+			})
+			d.open()
+			return true
+		}
+		return false
+	}
 
 
+	function stackBack() {
+		if (_backDisabled)
+			return true
 
-						property var closeCallbackFunction: function () {
-							if (!_closeEnabled) {
-								var d = JS.dialogCreateQml("YesNo", {
-															   text: qsTr("Biztosan megszakítod a játékot?"),
-															   image: "qrc:/internal/icon/close-octagon-outline.svg"
-														   })
-
-								d.accepted.connect(function() {
-									game.currentScene = exitScene
-									bg.source = ""
-									game.abortGame()
-									_closeEnabled = true
-									mainWindow.close()
-								})
-								d.open()
-								return true
-							}
-							return false
-						}
-
-
-						function stackBack() {
-							if (_backDisabled)
-								return true
-
-							if (!_closeEnabled) {
-								var d = JS.dialogCreateQml("YesNo", {
-															   text: qsTr("Biztosan megszakítod a játékot?"),
-															   image: "qrc:/internal/icon/close-octagon-outline.svg"
-														   })
-								d.accepted.connect(function() {
-									game.currentScene = exitScene
-									bg.source = ""
-									game.abortGame()
-									_closeEnabled = true
-									mainStack.back()
-								})
-								d.open()
-								return true
-							}
-							return false
-						}
-
-					}
+		if (!_closeEnabled) {
+			var d = JS.dialogCreateQml("YesNo", {
+										   text: qsTr("Biztosan megszakítod a játékot?"),
+										   image: "qrc:/internal/icon/close-octagon-outline.svg"
+									   })
+			d.accepted.connect(function() {
+				game.currentScene = exitScene
+				bg.source = ""
+				game.abortGame()
+				_closeEnabled = true
+				mainStack.back()
+			})
+			d.open()
+			return true
+		}
+		return false
+	}
+*/
+}

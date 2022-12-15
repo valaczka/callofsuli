@@ -11,6 +11,6 @@
         <file>MainStackView.qml</file>
         <file>callofsuli.svg</file>
         <file>QPage.qml</file>
-        <file>PageGame.qml</file>
+        <file>PageActionGame.qml</file>
     </qresource>
 </RCC>

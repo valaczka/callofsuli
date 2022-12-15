@@ -24,10 +24,12 @@ android {
 
 # Tiled
 
+INCLUDEPATH += $$PWD/libtiled
 
 android: LIBS += -L../../lib/libtiled -ltiled_$${QT_ARCH}
 else: LIBS += -L../../lib/libtiled$${TargetSuffix} -ltiled
 
+LIBS += -lz
 
 
 # QZXing

@@ -13,6 +13,7 @@ import QtQuick.Controls.Material 2.12
 import QtQuick.Controls.Material.impl 2.12
 
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 T.ComboBox
 {

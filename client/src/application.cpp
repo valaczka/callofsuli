@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "gamescene.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -47,11 +48,23 @@
 #include "application.h"
 #include "../../version/version.h"
 
+#include "abstractgame.h"
+#include "actiongame.h"
+
 const int Application::m_versionMajor = VERSION_MAJOR;
 const int Application::m_versionMinor = VERSION_MINOR;
 const int Application::m_versionBuild = VERSION_BUILD;
 const char *Application::m_version = VERSION_FULL;
 Application *Application::m_instance = nullptr;
+
+
+#ifdef QT_NO_DEBUG
+const bool Application::m_debug = false;
+#else
+const bool Application::m_debug = true;
+#endif
+
+
 
 Q_LOGGING_CATEGORY(lcApp, "app.application")
 
@@ -115,12 +128,6 @@ int Application::run()
 	loadBox2D();
 
 	qCDebug(lcApp).noquote() << QObject::tr("Load main qml");
-
-#ifdef QT_NO_DEBUG
-	m_engine->rootContext()->setContextProperty("DEBUG_MODE", QVariant(false));
-#else
-	m_engine->rootContext()->setContextProperty("DEBUG_MODE", QVariant(true));
-#endif
 
 	m_engine->rootContext()->setContextProperty("Client", m_client);
 
@@ -290,6 +297,12 @@ void Application::registerQmlTypes()
 	qCDebug(lcApp).noquote() << QObject::tr("Register QML types");
 
 	QZXing::registerQMLTypes();
+
+	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
+	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+
+	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameScene");
+
 }
 
 /**
@@ -357,6 +370,17 @@ void Application::loadBox2D()
 #else
 	qCDebug(lcApp).noquote() << QObject::tr("Skip Box2D loading");
 #endif
+}
+
+
+/**
+ * @brief Application::debug
+ * @return
+ */
+
+bool Application::debug()
+{
+	return m_debug;
 }
 
 

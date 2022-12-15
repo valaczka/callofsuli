@@ -10,6 +10,7 @@ import QtQuick.Templates 2.12 as T
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Qaterial.RoundButton
 {

@@ -10,6 +10,7 @@ import QtQuick.Controls.Material 2.12
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 T.ApplicationWindow
 {
@@ -20,14 +21,14 @@ T.ApplicationWindow
 
   overlay.modal: Rectangle
   {
-    color: _window.overlayColor
-    Behavior on opacity { NumberAnimation { duration: 150 } }
+	color: _window.overlayColor
+	Behavior on opacity { NumberAnimation { duration: 150 } }
   } // Rectangle
 
   overlay.modeless: Rectangle
   {
-    color: _window.overlayColor
-    Behavior on opacity { NumberAnimation { duration: 150 } }
+	color: _window.overlayColor
+	Behavior on opacity { NumberAnimation { duration: 150 } }
   } // Rectangle
 
   // Ugly trick for now : todo remove
@@ -39,20 +40,20 @@ T.ApplicationWindow
 
   Qaterial.SnackbarLoader
   {
-    id: _snackBarLoader
+	id: _snackBarLoader
   }
 
   Qaterial.DialogLoader
   {
-    id: _dialogLoader
+	id: _dialogLoader
   }
 
   Component.onCompleted:
   {
-    if(!Qaterial.SnackbarManager.snackBarLoader)
-      Qaterial.SnackbarManager.snackBarLoader = _snackBarLoader
+	if(!Qaterial.SnackbarManager.snackBarLoader)
+	  Qaterial.SnackbarManager.snackBarLoader = _snackBarLoader
 
-    if(!Qaterial.DialogManager.dialogLoader)
-      Qaterial.DialogManager.dialogLoader = _dialogLoader
+	if(!Qaterial.DialogManager.dialogLoader)
+	  Qaterial.DialogManager.dialogLoader = _dialogLoader
   } // Component
 } // ApplicationWindow

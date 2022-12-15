@@ -21,10 +21,14 @@
 // SOFTWARE.
 
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Qaterial.Label
 {
   id: root
 
   font: Qaterial.Style.textTheme.headline6
+
+  color: enabled ? Qt.lighter(Qaterial.Style.accentColor, 1.7) : Qaterial.Style.colorTheme.disabledText
+
 }

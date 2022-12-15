@@ -43,30 +43,52 @@ class AbstractGame : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(QQuickItem *pageItem READ pageItem WRITE setPageItem NOTIFY pageItemChanged)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 
 public:
-	explicit AbstractGame(Client *client);
+
+	// Játékmód
+
+	enum Mode {
+		Invalid,
+		Action,
+		Lite,
+		Exam,
+		Quiz
+	};
+
+	Q_ENUM(Mode);
+
+	explicit AbstractGame(const Mode &mode, Client *client);
 	virtual ~AbstractGame();
 
-	QQuickItem *pageItem() const;
 
+	QQuickItem *pageItem() const;
 	void setPageItem(QQuickItem *newPageItem);
 
+	const Mode &mode() const;
+
+	const QString &name() const;
+	void setName(const QString &newName);
+
 public slots:
-	void load();
+	bool load();
+
+protected:
+	virtual QQuickItem *loadPage() = 0;
 
 private slots:
 	void onPageItemDestroyed();
 
 signals:
-
 	void pageItemChanged();
+	void nameChanged();
 
 protected:
 	Client *m_client = nullptr;
 	QQuickItem *m_pageItem = nullptr;
-
-private:
+	const Mode m_mode;
+	QString m_name;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcGame)

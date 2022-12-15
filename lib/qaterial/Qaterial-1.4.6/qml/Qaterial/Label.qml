@@ -10,6 +10,7 @@ import QtQuick.Controls 2.0
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 T.Label
 {

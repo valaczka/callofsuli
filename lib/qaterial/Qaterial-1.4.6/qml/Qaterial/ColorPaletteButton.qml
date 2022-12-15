@@ -9,6 +9,7 @@ import QtQuick.Templates 2.12 as T
 import QtGraphicalEffects 1.12
 
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 T.Button
 {

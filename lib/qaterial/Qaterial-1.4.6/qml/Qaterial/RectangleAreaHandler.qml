@@ -9,6 +9,7 @@ import QtQml 2.15
 
 // Dependencies
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Item
 {

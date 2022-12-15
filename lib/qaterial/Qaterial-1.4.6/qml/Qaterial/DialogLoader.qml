@@ -10,6 +10,7 @@ import QtQml 2.12
 import Qt.labs.platform 1.1 as QLab
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Item
 {

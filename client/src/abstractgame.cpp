@@ -34,9 +34,10 @@ Q_LOGGING_CATEGORY(lcGame, "app.game")
  * @param client
  */
 
-AbstractGame::AbstractGame(Client *client)
+AbstractGame::AbstractGame(const Mode &mode, Client *client)
 	: QObject{client}
 	, m_client(client)
+	, m_mode(mode)
 {
 	Q_ASSERT(client);
 
@@ -66,27 +67,6 @@ QQuickItem *AbstractGame::pageItem() const
 
 
 
-/**
- * @brief AbstractGame::load
- */
-
-void AbstractGame::load()
-{
-	if (m_pageItem) {
-		qCCritical(lcGame).noquote() << tr("A játék lapja már létezik!") << m_pageItem;
-		return;
-	}
-
-	QQuickItem *page = m_client->stackPushPage("PageStart.qml");
-
-	if (page) {
-		connect(page, &QQuickItem::destroyed, this, &AbstractGame::onPageItemDestroyed);
-		setPageItem(page);
-
-		qCDebug(lcGame) << tr("Game page loaded");
-	}
-}
-
 
 
 
@@ -100,6 +80,48 @@ void AbstractGame::onPageItemDestroyed()
 	qCDebug(lcGame) << tr("Game page item destroyed");
 	m_client->setCurrentGame(nullptr);
 	deleteLater();
+}
+
+
+/**
+ * @brief AbstractGame::mode
+ * @return
+ */
+
+const AbstractGame::Mode &AbstractGame::mode() const
+{
+	return m_mode;
+}
+
+
+
+
+
+/**
+ * @brief AbstractGame::load
+ */
+
+bool AbstractGame::load()
+{
+	qCDebug(lcGame).noquote() << tr("Load game") << this;
+
+	if (m_pageItem) {
+		qCCritical(lcGame).noquote() << tr("A játék lapja már létezik!") << m_pageItem;
+		return false;
+	}
+
+	QQuickItem *page = loadPage();
+
+	if (page) {
+		connect(page, &QQuickItem::destroyed, this, &AbstractGame::onPageItemDestroyed);
+		setPageItem(page);
+
+		qCDebug(lcGame) << tr("Game page loaded");
+		return true;
+	} else {
+		qCCritical(lcGame).noquote() << tr("Game page create error");
+		return false;
+	}
 }
 
 
@@ -118,3 +140,16 @@ void AbstractGame::setPageItem(QQuickItem *newPageItem)
 }
 
 
+
+const QString &AbstractGame::name() const
+{
+	return m_name;
+}
+
+void AbstractGame::setName(const QString &newName)
+{
+	if (m_name == newName)
+		return;
+	m_name = newName;
+	emit nameChanged();
+}

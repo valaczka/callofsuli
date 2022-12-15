@@ -10,15 +10,16 @@ import QtQuick.Templates 2.12 as T
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 T.Pane
 {
   id: control
 
   implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-    contentWidth + leftPadding + rightPadding)
+	contentWidth + leftPadding + rightPadding)
   implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
-    contentHeight + topPadding + bottomPadding)
+	contentHeight + topPadding + bottomPadding)
 
   //padding: Qaterial.Style.card.horizontalPadding
 
@@ -31,10 +32,10 @@ T.Pane
 
   background: Rectangle
   {
-    id: _back
-    color: control.color
-    radius: control.radius
-    layer.enabled: control.enabled && control.elevation > 0
-    layer.effect: Qaterial.ElevationEffect { elevation: control.elevation } // ElevationEffect
+	id: _back
+	color: control.color
+	radius: control.radius
+	layer.enabled: control.enabled && control.elevation > 0
+	layer.effect: Qaterial.ElevationEffect { elevation: control.elevation } // ElevationEffect
   } // Rectangle
 } // Pane

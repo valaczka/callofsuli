@@ -27,6 +27,17 @@ Qaterial.ApplicationWindow
 	Component.onCompleted:
 	{
 		JS.intializeStyle()
+
+		Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan700
+		Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
+		Qaterial.Style.backgroundColor = Qaterial.Colors.black
+		Qaterial.Style.foregroundColorDark = Qaterial.Colors.cyan200
+		Qaterial.Style.buttonTextColor = Qaterial.Colors.black
+
+		Qaterial.Style.darkColorTheme.background = Qaterial.Style.backgroundColor
+		Qaterial.Style.darkColorTheme.primary = Qaterial.Colors.cyan500
+		Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
+
 		Client.mainStack = mainStackView
 		Client.mainWindow = mainWindow
 	}
@@ -116,6 +127,7 @@ Qaterial.ApplicationWindow
 						text: _text,
 						title: _title,
 						iconSource: _icon,
+						iconColor: "red",
 						standardButtons: Dialog.Ok
 					})
 	}

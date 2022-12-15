@@ -43,6 +43,7 @@ public:
 	static int versionMinor();
 	static int versionBuild();
 	const char *version() const;
+	static bool debug();
 
 	QGuiApplication *application() const;
 	QQmlApplicationEngine *engine() const;
@@ -53,6 +54,7 @@ public:
 	void messageInfo(const QString &text, const QString &title = "") const;
 	void messageWarning(const QString &text, const QString &title = "") const;
 	void messageError(const QString &text, const QString &title = "") const;
+
 
 protected:
 	virtual bool loadMainQml();
@@ -76,6 +78,7 @@ protected:
 	QQmlApplicationEngine *m_engine = nullptr;
 	Client *m_client = nullptr;
 	static Application *m_instance;
+	static const bool m_debug;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcApp)

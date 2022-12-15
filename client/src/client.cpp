@@ -28,7 +28,7 @@
 
 #include "application.h"
 #include "client.h"
-#include "abstractgame.h"
+#include "actiongame.h"
 #include "qquickwindow.h"
 
 Q_LOGGING_CATEGORY(lcClient, "app.client")
@@ -39,7 +39,7 @@ Client::Client(Application *app, QObject *parent)
 	, m_networkManager(new QNetworkAccessManager(this))
 	, m_utils(new Utils(this))
 {
-
+	Q_ASSERT(app);
 }
 
 
@@ -481,8 +481,22 @@ void Client::loadGame()
 	}
 
 
-	AbstractGame *game = new AbstractGame(this);
+	ActionGame *game = new ActionGame(this);
 	setCurrentGame(game);
 
+	game->setName("Teszt név a játékhoz");
+
+
 	game->load();
+}
+
+
+/**
+ * @brief Client::debug
+ * @return
+ */
+
+bool Client::debug() const
+{
+	return m_application->debug();
 }

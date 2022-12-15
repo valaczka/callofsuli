@@ -52,6 +52,7 @@ class Client : public QObject
 	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
 
 	Q_PROPERTY(Utils* utils READ utils CONSTANT)
+	Q_PROPERTY(bool debug READ debug CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
@@ -81,6 +82,7 @@ public:
 	Utils *utils() const;
 
 	Application *application() const;
+	bool debug() const;
 
 	AbstractGame *currentGame() const;
 	void setCurrentGame(AbstractGame *newCurrentGame);
@@ -120,9 +122,7 @@ protected:
 	bool m_mainWindowClosable = false;
 
 	QNetworkAccessManager *const m_networkManager = nullptr;
-
 	Utils *const m_utils = nullptr;
-
 	AbstractGame *m_currentGame = nullptr;
 };
 

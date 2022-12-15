@@ -5,6 +5,7 @@ import QtGraphicalEffects 1.12
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Qaterial.SquacleButton
 {

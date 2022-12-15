@@ -9,6 +9,7 @@ import QtQuick.Controls 2.12
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 /**
  * @brief Manager that creates snack bar dynamically
@@ -31,110 +32,110 @@ Item
   // Snackbar component that is instantiated
   Component
   {
-    id: _snackbarComp
+	id: _snackbarComp
 
-    Qaterial.Snackbar
-    {
-      id: _snackbar
+	Qaterial.Snackbar
+	{
+	  id: _snackbar
 
-      opacity: 0
+	  opacity: 0
 
-      // The actual time we are using that can be override by the user
-      property real snackbarTimeout: _root.settings.timeout === undefined ? Qaterial.Style.snackbar.shortDisplayTime : _root.settings.timeout
-      // Used to call the onAccept callback or the onClose.
-      property bool actionCalled
-      // Indicate that the snackbar is about to be destroyed (and fade out animation is playing)
-      property bool pendingDestroy
+	  // The actual time we are using that can be override by the user
+	  property real snackbarTimeout: _root.settings.timeout === undefined ? Qaterial.Style.snackbar.shortDisplayTime : _root.settings.timeout
+	  // Used to call the onAccept callback or the onClose.
+	  property bool actionCalled
+	  // Indicate that the snackbar is about to be destroyed (and fade out animation is playing)
+	  property bool pendingDestroy
 
-      text: _root.settings && _root.settings.text ? _root.settings.text : ""
-      action: _root.settings && _root.settings.action ? _root.settings.action : ""
+	  text: _root.settings && _root.settings.text ? _root.settings.text : ""
+	  action: _root.settings && _root.settings.action ? _root.settings.action : ""
 
-      onActionPressed:
-      {
-        if(_root.settings && _root.settings.onAccept)
-        {
-          _root.settings.onAccept()
-          actionCalled = true
-          goToPendingDestroy()
-        }
-      }
+	  onActionPressed:
+	  {
+		if(_root.settings && _root.settings.onAccept)
+		{
+		  _root.settings.onAccept()
+		  actionCalled = true
+		  goToPendingDestroy()
+		}
+	  }
 
-      /** Call to play fade out */
-      function goToPendingDestroy()
-      {
-        pendingDestroy = true
-        fadeDuration = displaySnackbar ? outFadeDuration : inFadeDuration
-        opacity = 0
-        _timer.interval = fadeDuration
-        _timer.start()
-      } // function goToPendingDestroy()
+	  /** Call to play fade out */
+	  function goToPendingDestroy()
+	  {
+		pendingDestroy = true
+		fadeDuration = displaySnackbar ? outFadeDuration : inFadeDuration
+		opacity = 0
+		_timer.interval = fadeDuration
+		_timer.start()
+	  } // function goToPendingDestroy()
 
-      /** Called after fading out, this will pop the next snackbar */
-      function destroySnackbar()
-      {
-        _snackbarLoader.sourceComponent = null
+	  /** Called after fading out, this will pop the next snackbar */
+	  function destroySnackbar()
+	  {
+		_snackbarLoader.sourceComponent = null
 
-        if(!actionCalled && _root.settings && _root.settings.onClose)
-          _root.settings.onClose()
+		if(!actionCalled && _root.settings && _root.settings.onClose)
+		  _root.settings.onClose()
 
-        _root.popSnackBar() // to know if other snack bar is required
-      } // function destroySnackbar()
+		_root.popSnackBar() // to know if other snack bar is required
+	  } // function destroySnackbar()
 
-      /** The Manager will kill the current snackbar with an animation by using this boolean property */
-      Connections
-      {
-        target: _root
-        function onDisplaySnackbarChanged()
-        {
-          if(!_root.displaySnackbar && !pendingDestroy)
-            goToPendingDestroy()
-        }
-      } // Connections
+	  /** The Manager will kill the current snackbar with an animation by using this boolean property */
+	  Connections
+	  {
+		target: _root
+		function onDisplaySnackbarChanged()
+		{
+		  if(!_root.displaySnackbar && !pendingDestroy)
+			goToPendingDestroy()
+		}
+	  } // Connections
 
-      /** Timer used to manage the lifetime of the snackbar */
-      Timer
-      {
-        id: _timer
-        interval: snackbarTimeout
-        running: true
-        onTriggered:
-        {
-          if(pendingDestroy)
-            destroySnackbar()
-          else
-            goToPendingDestroy()
-        }
-      } // Timer
+	  /** Timer used to manage the lifetime of the snackbar */
+	  Timer
+	  {
+		id: _timer
+		interval: snackbarTimeout
+		running: true
+		onTriggered:
+		{
+		  if(pendingDestroy)
+			destroySnackbar()
+		  else
+			goToPendingDestroy()
+		}
+	  } // Timer
 
-      readonly property real inFadeDuration: 100
-      readonly property real outFadeDuration: 300
-      property real fadeDuration
+	  readonly property real inFadeDuration: 100
+	  readonly property real outFadeDuration: 300
+	  property real fadeDuration
 
-      /** Animation on opacity */
-      Behavior on opacity
-      {
-        NumberAnimation
-        {
-          duration: fadeDuration
-          easing.type: Easing.OutQuad
-        } // NumberAnimation
-      } // Behavior
+	  /** Animation on opacity */
+	  Behavior on opacity
+	  {
+		NumberAnimation
+		{
+		  duration: fadeDuration
+		  easing.type: Easing.OutQuad
+		} // NumberAnimation
+	  } // Behavior
 
-      /** Force to play fade in animation */
-      Component.onCompleted:
-      {
-        fadeDuration = inFadeDuration
-        opacity = 1
-      } // Component
-    } // SnackBar
+	  /** Force to play fade in animation */
+	  Component.onCompleted:
+	  {
+		fadeDuration = inFadeDuration
+		opacity = 1
+	  } // Component
+	} // SnackBar
   } // Component
 
   /** Load the current snackbar component that use */
   Loader
   {
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.bottom: parent.bottom
-    id: _snackbarLoader
+	anchors.horizontalCenter: parent.horizontalCenter
+	anchors.bottom: parent.bottom
+	id: _snackbarLoader
   } // Loader
 
   property
@@ -154,22 +155,22 @@ Item
    */
   function show(config)
   {
-    if(_snackbarLoader.sourceComponent)
-    {
-      if(canBeKilled)
-      {
-        displaySnackbar = false
-        if(settingsQueue.length)
-          settingsQueue.length = 0
-      } // if
-      settingsQueue.push(config)
-    } // if
-    else
-    {
-      settings = config
-      displaySnackbar = true
-      _snackbarLoader.sourceComponent = _snackbarComp
-    } // else
+	if(_snackbarLoader.sourceComponent)
+	{
+	  if(canBeKilled)
+	  {
+		displaySnackbar = false
+		if(settingsQueue.length)
+		  settingsQueue.length = 0
+	  } // if
+	  settingsQueue.push(config)
+	} // if
+	else
+	{
+	  settings = config
+	  displaySnackbar = true
+	  _snackbarLoader.sourceComponent = _snackbarComp
+	} // else
   } // function show(config)
 
   /**
@@ -178,8 +179,8 @@ Item
    */
   function popSnackBar()
   {
-    var nextSnackbarSetting = settingsQueue.shift()
-    if(nextSnackbarSetting)
-      show(nextSnackbarSetting)
+	var nextSnackbarSetting = settingsQueue.shift()
+	if(nextSnackbarSetting)
+	  show(nextSnackbarSetting)
   } // function popSnackBar()
 } // Item

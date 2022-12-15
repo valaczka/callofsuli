@@ -10,6 +10,7 @@ import QtQuick.Window 2.12
 
 // Qaterial
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 Qaterial.Page
 {

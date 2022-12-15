@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import QtQuick.Window 2.0
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 import QtQuick.Controls.Material 2.12
 
 Window

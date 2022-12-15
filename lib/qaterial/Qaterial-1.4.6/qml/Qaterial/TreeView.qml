@@ -1,6 +1,7 @@
 import QtQuick 2.14
 import QtQml 2.14
 import Qaterial 1.0 as Qaterial
+import "." as Qaterial
 
 ListView
 {

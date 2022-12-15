@@ -12,7 +12,7 @@
 AppVersionMajor = 3
 AppVersionMinor = 2
 
-# Automatic version increment (build)lib
+# Automatic version increment (build)
 
 AppVersionIncrement = true
 
@@ -49,12 +49,16 @@ CMakePath = cmake
 
 # Build creation enabled (linux, win32, mac)
 
-CreateBundle = true
+CreateBundle = false
 
 # CQtDeployer path
 
-win32: CQtDeployerPath = ~/cqtdeployer/CQtDeployer zip
+win32: CQtDeployerPath = ~/cqtdeployer/CQtDeployer
 else: CQtDeployerPath = cqtdeployer
+
+# LDD path
+
+LddPath = ldd
 
 # Bundle target directory ([build_dir]/bundle/[CQtTargetDir])
 
