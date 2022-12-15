@@ -27,6 +27,10 @@
 #include <RollingFileAppender.h>
 #include "desktopapplication.h"
 
+#ifdef Q_OS_WIN32
+#include <windows.h>
+#endif
+
 /**
  * @brief DesktopApplication::DesktopApplication
  * @param argc

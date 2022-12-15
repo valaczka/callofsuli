@@ -6,7 +6,7 @@ DefaultDirName={usercf}\Call of Suli
 UninstallDisplayIcon={app}\callofsuli.exe
 SolidCompression=yes
 AllowNoIcons=yes
-OutputDir=.\
+OutputDir=..
 OutputBaseFilename={#COSexe}
 PrivilegesRequired=lowest
 LicenseFile=.\build\LICENSE
@@ -15,7 +15,7 @@ DisableDirPage=auto
 DisableProgramGroupPage=auto
 
 [Files]
-Source: ".\build\*"; DestDir: "{app}"; Flags: recursesubdirs
+Source: "*"; DestDir: "{app}"; Excludes: "InnoSetup.iss"; Flags: recursesubdirs
 
 
 [Tasks]

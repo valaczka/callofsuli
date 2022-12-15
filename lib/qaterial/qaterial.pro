@@ -44,7 +44,7 @@ android {
 } else {
 	extralib.commands = echo \"Building Qaterial...\"; \
 				$${CMakePath} $$PWD/Qaterial-1.4.6 \
-				$${CMakeArguments} -DCMAKE_INSTALL_PREFIX=/tmp/___cmakeout \
+				$${CMakeArguments} \
 				-DQATERIAL_ICONS=\"*.svg\" \
 				-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
 				-DQATERIAL_BUILD_SHARED=$$QaterialBuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \

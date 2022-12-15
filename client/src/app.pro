@@ -53,13 +53,6 @@ win32 {
 	RC_LANG = 0x040E
 	QMAKE_TARGET_COPYRIGHT = Valaczka Janos Pal
 	QMAKE_TARGET_DESCRIPTION = Call of Suli
-
-	license.path = $${PREFIX}
-	license.files = $$PWD/../../LICENSE
-
-	INSTALLS += license
-
-	include(innosetup.pri)
 }
 
 

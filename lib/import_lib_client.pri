@@ -26,7 +26,7 @@ android {
 
 
 android: LIBS += -L../../lib/libtiled -ltiled_$${QT_ARCH}
-else: LIBS += -L../../lib/libtiled${TargetSuffix} -ltiled
+else: LIBS += -L../../lib/libtiled$${TargetSuffix} -ltiled
 
 
 
@@ -35,7 +35,7 @@ else: LIBS += -L../../lib/libtiled${TargetSuffix} -ltiled
 INCLUDEPATH += $$PWD/QZXing
 
 android: LIBS += -L../../lib -lQZXing_$${QT_ARCH}
-else: LIBS += -L../../lib${TargetSuffix} -lQZXing
+else: LIBS += -L../../lib$${TargetSuffix} -lQZXing
 
 
 # QML-Box2D
@@ -63,7 +63,7 @@ else: LIBS += -L../../lib${TargetSuffix} -lQZXing
 !wasm: INCLUDEPATH += $$PWD/CuteLogger/include
 
 android: LIBS += -L../../lib -lCuteLogger_$${QT_ARCH}
-else:!wasm: LIBS += -L../../lib${TargetSuffix} -lCuteLogger
+else:!wasm: LIBS += -L../../lib$${TargetSuffix} -lCuteLogger
 
 
 
@@ -72,7 +72,7 @@ else:!wasm: LIBS += -L../../lib${TargetSuffix} -lCuteLogger
 INCLUDEPATH += $$PWD/SortFilterProxyModel
 
 android: LIBS += -L../../lib/SortFilterProxyModel -lSortFilterProxyModel_$${QT_ARCH}
-else: LIBS += -L../../lib/SortFilterProxyModel${TargetSuffix} -lSortFilterProxyModel
+else: LIBS += -L../../lib/SortFilterProxyModel$${TargetSuffix} -lSortFilterProxyModel
 
 
 # QtXlsxWriter
@@ -80,4 +80,4 @@ else: LIBS += -L../../lib/SortFilterProxyModel${TargetSuffix} -lSortFilterProxyM
 INCLUDEPATH += $$PWD/QtXlsxWriter
 
 android: LIBS += -L../../lib -lQtXlsxWriter_$${QT_ARCH}
-else: LIBS += -L../../lib${TargetSuffix} -lQtXlsxWriter
+else: LIBS += -L../../lib$${TargetSuffix} -lQtXlsxWriter
