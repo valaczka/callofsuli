@@ -50,6 +50,11 @@
 
 #include "abstractgame.h"
 #include "actiongame.h"
+#include "gameentity.h"
+#include "gameenemysoldier.h"
+#include "gameladder.h"
+#include "gameobject.h"
+
 
 const int Application::m_versionMajor = VERSION_MAJOR;
 const int Application::m_versionMinor = VERSION_MINOR;
@@ -276,16 +281,6 @@ bool Application::loadResources()
 }
 
 
-/**
- * @brief Application::createClient
- * @return
- */
-
-Client *Application::createClient()
-{
-	return new Client(this, m_application);
-}
-
 
 
 /**
@@ -302,7 +297,10 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameScene");
-
+	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
+	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityPrivate");
+	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierPrivate");
+	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderPrivate");
 }
 
 /**

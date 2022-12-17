@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * actiongame.h
+ * style.h
  *
- * Created on: 2022. 12. 15.
+ * Created on: 2022. 12. 17.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ActionGame
+ * Style
  *
  *  This file is part of Call of Suli.
  *
@@ -24,42 +24,36 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ACTIONGAME_H
-#define ACTIONGAME_H
+#ifndef STYLE_H
+#define STYLE_H
 
-#include "abstractgame.h"
+#include "qcolor.h"
 #include <QObject>
 
-class ActionGame : public AbstractGame
+class Style : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QQuickItem* player READ player WRITE setPlayer NOTIFY playerChanged)				// Csere GamePlayer-re
-	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
+	Q_PROPERTY(QColor colorGlow READ colorGlow WRITE setColorGlow NOTIFY colorGlowChanged)
+	Q_PROPERTY(QColor colorEnemyGlow READ colorEnemyGlow WRITE setColorEnemyGlow NOTIFY colorEnemyGlowChanged)
 
 public:
-	ActionGame(Client *client);
-	virtual ~ActionGame();
+	explicit Style(QObject *parent = nullptr);
+	virtual ~Style();
 
-	QQuickItem *player() const;
-	void setPlayer(QQuickItem *newPlayer);
+	const QColor &colorGlow() const;
+	void setColorGlow(const QColor &newColorGlow);
 
-	bool running() const;
-	void setRunning(bool newRunning);
-
-protected:
-	virtual QQuickItem *loadPage() override;
+	const QColor &colorEnemyGlow() const;
+	void setColorEnemyGlow(const QColor &newColorEnemyGlow);
 
 signals:
-	void playerChanged();
-	void runningChanged();
+	void colorGlowChanged();
+	void colorEnemyGlowChanged();
 
 private:
-	QQuickItem *m_player = nullptr;
-	bool m_running = false;
+	QColor m_colorGlow;
+	QColor m_colorEnemyGlow;
 };
 
-
-//Q_DECLARE_METATYPE(ActionGame*)
-
-#endif // ACTIONGAME_H
+#endif // STYLE_H

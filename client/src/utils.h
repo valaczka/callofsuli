@@ -49,6 +49,10 @@ public:
 	Q_INVOKABLE static QJsonObject byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
 	Q_INVOKABLE static QJsonArray byteArrayToJsonArray(const QByteArray &data, bool *error = nullptr);
 
+	Q_INVOKABLE static QJsonDocument fileToJsonDocument(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static QJsonObject fileToJsonObject(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static QJsonArray fileToJsonArray(const QString &filename, bool *error = nullptr);
+
 private:
 	Client *const m_client = nullptr;
 

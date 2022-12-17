@@ -31,6 +31,7 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
+#include "style.h"
 #include "utils.h"
 
 class Application;
@@ -51,7 +52,8 @@ class Client : public QObject
 	Q_PROPERTY(QQuickItem* mainStack READ mainStack WRITE setMainStack NOTIFY mainStackChanged)
 	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
 
-	Q_PROPERTY(Utils* utils READ utils CONSTANT)
+	Q_PROPERTY(Utils* Utils READ utils CONSTANT)
+	Q_PROPERTY(Style* Style READ style CONSTANT)
 	Q_PROPERTY(bool debug READ debug CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
@@ -80,26 +82,27 @@ public:
 
 	QNetworkAccessManager *networkManager() const;
 	Utils *utils() const;
-
+	Style *style() const;
 	Application *application() const;
+
 	bool debug() const;
 
 	AbstractGame *currentGame() const;
 	void setCurrentGame(AbstractGame *newCurrentGame);
 
+	Q_INVOKABLE void loadGame();
+
 	Q_INVOKABLE void messageInfo(const QString &text, QString title = "") const;
 	Q_INVOKABLE void messageWarning(const QString &text, QString title = "") const;
 	Q_INVOKABLE void messageError(const QString &text, QString title = "") const;
 
-	Q_INVOKABLE void loadGame();
 
 
 protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
 
-
-private:
+protected:
 	void _message(const QString &text, const QString &title, const QString &icon) const;
 
 signals:
@@ -123,7 +126,9 @@ protected:
 
 	QNetworkAccessManager *const m_networkManager = nullptr;
 	Utils *const m_utils = nullptr;
+	Style *const m_style = nullptr;
 	AbstractGame *m_currentGame = nullptr;
+
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcClient)

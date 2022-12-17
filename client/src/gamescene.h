@@ -27,17 +27,27 @@
 #ifndef GAMESCENE_H
 #define GAMESCENE_H
 
+#include "box2dworld.h"
 #include "qloggingcategory.h"
 #include <QQuickItem>
 #include "gameterrain.h"
+#include "gameladder.h"
+#include "tiledpaintedlayer.h"
 
 class ActionGame;
+class GameObject;
 
 class GameScene : public QQuickItem
 {
 	Q_OBJECT
 
 	Q_PROPERTY(ActionGame* game READ game WRITE setGame NOTIFY gameChanged)
+	Q_PROPERTY(bool zoomOverview READ zoomOverview WRITE setZoomOverview NOTIFY zoomOverviewChanged)
+	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged)
+	Q_PROPERTY(Box2DWorld *world READ world WRITE setWorld NOTIFY worldChanged)
+	Q_PROPERTY(QList<QPointer<GameLadder>> ladders READ ladders CONSTANT)
+	Q_PROPERTY(bool showObjects READ showObjects WRITE setShowObjects NOTIFY showObjectsChanged)
+	Q_PROPERTY(bool showEnemies READ showEnemies WRITE setShowEnemies NOTIFY showEnemiesChanged)
 
 public:
 	GameScene(QQuickItem *parent = nullptr);
@@ -46,14 +56,60 @@ public:
 	ActionGame *game() const;
 	void setGame(ActionGame *newGame);
 
-	Q_INVOKABLE void loadTerrain(const QString &terrainName);
+	Q_INVOKABLE void load();
+
+	bool zoomOverview() const;
+	void setZoomOverview(bool newZoomOverview);
+
+	bool debugView() const;
+	void setDebugView(bool newDebugView);
+
+	Box2DWorld *world() const;
+	void setWorld(Box2DWorld *newWorld);
+
+	const QList<QPointer<GameLadder>> &ladders() const;
+
+	bool showObjects() const;
+	void setShowObjects(bool newShowObjects);
+
+	bool showEnemies() const;
+	void setShowEnemies(bool newShowEnemies);
+
+public slots:
+	void zoomOverviewToggle();
+	void onScenePrepared();
+
+protected:
+	virtual void keyPressEvent(QKeyEvent *event) override;
+	virtual void keyReleaseEvent(QKeyEvent *event) override;
 
 signals:
 	void gameChanged();
+	void zoomOverviewChanged();
+	void debugViewChanged();
+	void worldChanged();
+	void showObjectsChanged();
+	void showEnemiesChanged();
 
 private:
+	void loadTiledLayers();
+	void loadGroundLayer();
+	void loadLadderLayer();
+
+	Tiled::ObjectGroup *objectLayer(const QString &name) const;
+
 	ActionGame *m_game = nullptr;
 	GameTerrain m_terrain;
+	Box2DWorld *m_world = nullptr;
+
+	QList<QPointer<GameObject>> m_grounds;
+	QList<QPointer<GameLadder>> m_ladders;
+	QList<QPointer<TiledPaintedLayer>> m_tiledLayers;
+
+	bool m_zoomOverview = false;
+	bool m_debugView = false;
+	bool m_showObjects = false;
+	bool m_showEnemies = false;
 };
 
 

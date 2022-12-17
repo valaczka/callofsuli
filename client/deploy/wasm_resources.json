@@ -1,5 +1,9 @@
 {
 	"resources": [
-		"internal.cres"
+		"internal.cres",
+		"character.cres",
+		"snipers.cres",
+		"soldiers.cres",
+		"terrain.cres"
 	]
 }

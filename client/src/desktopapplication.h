@@ -55,6 +55,9 @@ public:
 	void shutdown();
 	bool performCommandLine();
 
+protected:
+	virtual Client *createClient();
+
 private:
 	CommandLine m_commandLine = Normal;
 	QString m_loadMap;

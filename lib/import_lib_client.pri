@@ -29,7 +29,7 @@ INCLUDEPATH += $$PWD/libtiled
 android: LIBS += -L../../lib/libtiled -ltiled_$${QT_ARCH}
 else: LIBS += -L../../lib/libtiled$${TargetSuffix} -ltiled
 
-LIBS += -lz
+!wasm: LIBS += -lz
 
 
 # QZXing
@@ -49,12 +49,10 @@ else: LIBS += -L../../lib$${TargetSuffix} -lQZXing
 	android {
 		LIBS += -L../../lib/qml-box2d/$${QT_ARCH}/bin/plugins/Box2D -lqmlbox2d_$${QT_ARCH}
 		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += $$OUT_PWD/../../lib/qml-box2d/$${abi}/bin/plugins/Box2D/libqmlbox2d_$${abi}.so
-	} else:wasm {
-		LIBS += \
-				../../lib/qml-box2d/bin/plugins/Box2D/libqmlbox2d.a \
-				../../lib/qml-box2d/lib/libBox2D.a
 	} else {
-		LIBS += -L../../lib -lqmlbox2d
+		LIBS += \
+				-L../../lib/qml-box2d/bin/plugins/Box2D -lqmlbox2d \
+				-L../../lib/qml-box2d/lib -lBox2D
 	}
 }
 

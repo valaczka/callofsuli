@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network #sql websockets quick svg multimedia network networkauth gui-private webview
+QT += gui quick svg xml network multimedia #sql websockets quick svg multimedia network networkauth gui-private webview
 
 CONFIG += c++17
 
@@ -118,9 +118,16 @@ SOURCES += \
 	actiongame.cpp \
 	application.cpp \
 	client.cpp \
+	desktopclient.cpp \
+	gameenemy.cpp \
+	gameenemysoldier.cpp \
+	gameentity.cpp \
+	gameladder.cpp \
+	gameobject.cpp \
 	gamescene.cpp \
 	gameterrain.cpp \
 	main.cpp \
+	style.cpp \
 	tiledpaintedlayer.cpp \
 	utils.cpp
 
@@ -135,7 +142,24 @@ HEADERS += \
 	actiongame.h \
 	application.h \
 	client.h \
+	desktopclient.h \
+	gameenemy.h \
+	gameenemysoldier.h \
+	gameentity.h \
+	gameladder.h \
+	gameobject.h \
 	gamescene.h \
 	gameterrain.h \
+	style.h \
 	tiledpaintedlayer.h \
 	utils.h
+
+
+
+!wasm {
+	SOURCES += \
+		sound.cpp
+
+	HEADERS += \
+		sound.h
+}

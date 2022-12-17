@@ -115,3 +115,94 @@ QJsonArray Utils::byteArrayToJsonArray(const QByteArray &data, bool *error)
 
 	return doc.array();
 }
+
+
+/**
+ * @brief Utils::fileToJsonDocument
+ * @param filename
+ * @return
+ */
+
+QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
+{
+	QFile f(filename);
+
+	if (!f.exists()) {
+		qCWarning(lcUtils).noquote() << tr("A fájl nem olvasható:") << filename;
+
+		if (error)
+			*error = true;
+
+		return QJsonDocument();
+	}
+
+	if (!f.open(QIODevice::ReadOnly)) {
+		qCWarning(lcUtils).noquote() << tr("Nem lehet megnyitni a fájlt:") << filename;
+
+		if (error)
+			*error = true;
+
+		return QJsonDocument();
+	}
+
+	QByteArray data = f.readAll();
+
+	f.close();
+
+	return byteArrayToJsonDocument(data);
+}
+
+
+/**
+ * @brief Utils::fileToJsonObject
+ * @param filename
+ * @param error
+ * @return
+ */
+
+QJsonObject Utils::fileToJsonObject(const QString &filename, bool *error)
+{
+	bool myerror = false;
+
+	const QJsonDocument &doc = fileToJsonDocument(filename, &myerror);
+
+	if (myerror) {
+		if (error)
+			*error = true;
+
+		return QJsonObject();
+	}
+
+	if (error)
+		*error = doc.isNull();
+
+	return doc.object();
+}
+
+
+
+/**
+ * @brief Utils::fileToJsonArray
+ * @param filename
+ * @param error
+ * @return
+ */
+
+QJsonArray Utils::fileToJsonArray(const QString &filename, bool *error)
+{
+	bool myerror = false;
+
+	const QJsonDocument &doc = fileToJsonDocument(filename, &myerror);
+
+	if (myerror) {
+		if (error)
+			*error = true;
+
+		return QJsonArray();
+	}
+
+	if (error)
+		*error = doc.isNull();
+
+	return doc.array();
+}

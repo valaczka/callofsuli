@@ -53,6 +53,8 @@ QPage {
 		text: "Start Game"
 		icon.source: Qaterial.Icons.gamepad
 		onClicked: Client.loadGame()
-		//foregroundColor: Qaterial.Colors.black
+		foregroundColor: Qaterial.Colors.black
 	}
+
+	StackView.onActivated: Client.loadGame()
 }

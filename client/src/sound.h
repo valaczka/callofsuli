@@ -32,14 +32,15 @@
  * SOFTWARE.
  */
 
-#ifndef COSSOUND_H
-#define COSSOUND_H
+#ifndef SOUND_H
+#define SOUND_H
 
+#include "qloggingcategory.h"
 #include <QObject>
 #include <QMediaPlayer>
 #include <QVariantAnimation>
 
-class CosSound : public QObject
+class Sound : public QObject
 {
 	Q_OBJECT
 
@@ -55,14 +56,14 @@ public:
 	enum SoundType { Music, VoiceOver, PlayerSfx, PlayerVoice, GameSound };
 	Q_ENUM(SoundType)
 
-	explicit CosSound(QObject *parent = nullptr);
-	virtual ~CosSound();
+	explicit Sound(QObject *parent = nullptr);
+	virtual ~Sound();
 
 public slots:
 	void init();
 
-	void playSound(const QString &source, const CosSound::SoundType &soundType);
-	void stopSound(const QString &source, const CosSound::SoundType &soundType);
+	void playSound(const QString &source, const Sound::SoundType &soundType);
+	void stopSound(const QString &source, const Sound::SoundType &soundType);
 
 	int volumeMusic() const { return m_mediaPlayerMusic ? m_mediaPlayerMusic->volume() : 0;  }
 	int volumeSfx() const { return m_mediaPlayerSfx ? m_mediaPlayerSfx->volume() : 0;  }
@@ -89,7 +90,8 @@ private:
 	QString m_musicNextSource;
 	QVariantAnimation *m_fadeAnimation;
 	int m_musicVolume;
-
 };
 
-#endif // COSSOUND_H
+Q_DECLARE_LOGGING_CATEGORY(lcSound)
+
+#endif // SOUND_H

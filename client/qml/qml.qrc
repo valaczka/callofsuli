@@ -1,8 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
-        <file>PhysicsItem.qml</file>
-        <file>+emscripten/MainOLD.qml</file>
         <file>../license.txt</file>
         <file>../../CREDITS.md</file>
         <file>JScript.js</file>
@@ -11,6 +9,12 @@
         <file>MainStackView.qml</file>
         <file>callofsuli.svg</file>
         <file>QPage.qml</file>
+        <file>PageActionGameBase.qml</file>
+        <file>GameSceneItem.qml</file>
+        <file>+emscripten/PageActionGame.qml</file>
         <file>PageActionGame.qml</file>
+        <file>GameLadder.qml</file>
+        <file>GameEnemySoldier.qml</file>
+        <file>GameEntitySpriteSequence.qml</file>
     </qresource>
 </RCC>

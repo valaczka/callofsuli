@@ -80,9 +80,5 @@ else: LibQaterialFile = libQaterial.so
 
 QaterialBuildShared = ON
 
-wasm: QmlBox2DBuildShared = OFF
-else: QmlBox2DBuildShared = ON
+QmlBox2DBuildShared = OFF
 
-wasm: LibQmlBox2DFile = qml-box2d/bin/plugins/Box2D/libqmlbox2d.a
-else:win32: LibQmlBox2DFile = qmlbox2d.dll
-else: LibQmlBox2DFile = libqmlbox2d.so

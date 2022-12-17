@@ -32,11 +32,13 @@
  * SOFTWARE.
  */
 
-#include "cossound.h"
+#include "sound.h"
 #include <QSettings>
 #include <QMediaPlaylist>
 
-CosSound::CosSound(QObject *parent)
+Q_LOGGING_CATEGORY(lcSound, "app.sound")
+
+Sound::Sound(QObject *parent)
 	: QObject(parent)
 	, m_mediaPlayerMusic (nullptr)
 	, m_mediaPlayerSfx (nullptr)
@@ -46,10 +48,12 @@ CosSound::CosSound(QObject *parent)
 	, m_fadeAnimation(new QVariantAnimation(this))
 	, m_musicVolume(0)
 {
+	qCDebug(lcSound).noquote() << tr("Sound object created") << this;
+
 	m_fadeAnimation->setDuration(750);
 	m_fadeAnimation->setEndValue(0);
 
-	connect(m_fadeAnimation, &QVariantAnimation::finished, this, &CosSound::musicLoadNextSource);
+	connect(m_fadeAnimation, &QVariantAnimation::finished, this, &Sound::musicLoadNextSource);
 }
 
 
@@ -58,7 +62,7 @@ CosSound::CosSound(QObject *parent)
  * @brief CosClientSound::~CosClientSound
  */
 
-CosSound::~CosSound()
+Sound::~Sound()
 {
 	delete m_fadeAnimation;
 
@@ -79,6 +83,8 @@ CosSound::~CosSound()
 
 	if (m_mediaPlayerVoiceOver)
 		delete m_mediaPlayerVoiceOver;
+
+	qCDebug(lcSound).noquote() << tr("Sound object destroyed") << this;
 }
 
 
@@ -88,8 +94,10 @@ CosSound::~CosSound()
  * @brief CosSound::init
  */
 
-void CosSound::init()
+void Sound::init()
 {
+	qCDebug(lcSound).noquote() << tr("Sound object init");
+
 	m_mediaPlayerMusic = new QMediaPlayer(this);
 	m_mediaPlayerSfx = new QMediaPlayer(this);
 	m_mediaPlayerVoiceOver = new QMediaPlayer(this);
@@ -149,8 +157,10 @@ void CosSound::init()
  * @param soundType
  */
 
-void CosSound::playSound(const QString &source, const SoundType &soundType)
+void Sound::playSound(const QString &source, const SoundType &soundType)
 {
+	qCDebug(lcSound).noquote() << tr("Play sound") << source << soundType;
+
 	if (!m_mediaPlayerMusic || !m_mediaPlayerSfx || !m_mediaPlayerVoiceOver)
 		return;
 
@@ -199,8 +209,10 @@ void CosSound::playSound(const QString &source, const SoundType &soundType)
  * @param soundType
  */
 
-void CosSound::stopSound(const QString &source, const SoundType &soundType)
+void Sound::stopSound(const QString &source, const SoundType &soundType)
 {
+	qCDebug(lcSound).noquote() << tr("Stop sound") << source << soundType;
+
 	if (!m_mediaPlayerMusic)
 		return;
 
@@ -221,7 +233,7 @@ void CosSound::stopSound(const QString &source, const SoundType &soundType)
  * @param volume
  */
 
-void CosSound::setVolumeSfx(int volume)
+void Sound::setVolumeSfx(int volume)
 {
 	if (m_mediaPlayerSfx) m_mediaPlayerSfx->setVolume(volume);
 	emit volumeSfxChanged(volume);
@@ -232,7 +244,7 @@ void CosSound::setVolumeSfx(int volume)
  * @param volume
  */
 
-void CosSound::setVolumeMusic(int volume)
+void Sound::setVolumeMusic(int volume)
 {
 	if (m_mediaPlayerMusic) m_mediaPlayerMusic->setVolume(volume);
 	emit volumeMusicChanged(volume);
@@ -246,7 +258,7 @@ void CosSound::setVolumeMusic(int volume)
  * @param volume
  */
 
-void CosSound::setVolumeVoiceOver(int volume)
+void Sound::setVolumeVoiceOver(int volume)
 {
 	if (m_mediaPlayerVoiceOver) m_mediaPlayerVoiceOver->setVolume(volume);
 	emit volumeVoiceOverChanged(volume);
@@ -258,8 +270,10 @@ void CosSound::setVolumeVoiceOver(int volume)
  * @param source
  */
 
-void CosSound::musicPlay(const QString &source)
+void Sound::musicPlay(const QString &source)
 {
+	qCDebug(lcSound).noquote() << tr("Play music") << source;
+
 	if (!m_mediaPlayerMusic)
 		return;
 
@@ -281,8 +295,10 @@ void CosSound::musicPlay(const QString &source)
  * @brief CosSound::musicLoadNextSource
  */
 
-void CosSound::musicLoadNextSource()
+void Sound::musicLoadNextSource()
 {
+	qCDebug(lcSound).noquote() << tr("Music load next source") << m_musicNextSource;
+
 	if (!m_mediaPlayerMusic)
 		return;
 

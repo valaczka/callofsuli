@@ -42,6 +42,8 @@ AbstractGame::AbstractGame(const Mode &mode, Client *client)
 	Q_ASSERT(client);
 
 	qCDebug(lcGame).noquote() << tr("Game created") << this;
+
+	m_backgroundImage = "qrc:/internal/game/bg.png";
 }
 
 
@@ -152,4 +154,22 @@ void AbstractGame::setName(const QString &newName)
 		return;
 	m_name = newName;
 	emit nameChanged();
+}
+
+
+/**
+ * @brief AbstractGame::backgroundImage
+ * @return
+ */
+
+const QString &AbstractGame::backgroundImage() const
+{
+	/*if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
+					return "qrc:/internal/game/bg.png";
+			else if (m_bgImage.startsWith("qrc:/"))
+					return m_bgImage;
+			else
+					return "image://"+m_imageDbName+"/"+m_bgImage;*/
+
+	return m_backgroundImage;
 }

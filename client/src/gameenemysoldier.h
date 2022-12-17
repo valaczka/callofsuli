@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * actiongame.h
+ * gameenemysoldier.h
  *
- * Created on: 2022. 12. 15.
+ * Created on: 2022. 12. 17.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ActionGame
+ * GameEnemySoldier
  *
  *  This file is part of Call of Suli.
  *
@@ -24,42 +24,18 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ACTIONGAME_H
-#define ACTIONGAME_H
+#ifndef GAMEENEMYSOLDIER_H
+#define GAMEENEMYSOLDIER_H
 
-#include "abstractgame.h"
-#include <QObject>
+#include "gameenemy.h"
 
-class ActionGame : public AbstractGame
+class GameEnemySoldier : public GameEnemy
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QQuickItem* player READ player WRITE setPlayer NOTIFY playerChanged)				// Csere GamePlayer-re
-	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
-
 public:
-	ActionGame(Client *client);
-	virtual ~ActionGame();
-
-	QQuickItem *player() const;
-	void setPlayer(QQuickItem *newPlayer);
-
-	bool running() const;
-	void setRunning(bool newRunning);
-
-protected:
-	virtual QQuickItem *loadPage() override;
-
-signals:
-	void playerChanged();
-	void runningChanged();
-
-private:
-	QQuickItem *m_player = nullptr;
-	bool m_running = false;
+	explicit GameEnemySoldier(QQuickItem *parent = nullptr);
+	virtual ~GameEnemySoldier();
 };
 
-
-//Q_DECLARE_METATYPE(ActionGame*)
-
-#endif // ACTIONGAME_H
+#endif // GAMEENEMYSOLDIER_H

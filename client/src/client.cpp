@@ -38,9 +38,12 @@ Client::Client(Application *app, QObject *parent)
 	, m_application(app)
 	, m_networkManager(new QNetworkAccessManager(this))
 	, m_utils(new Utils(this))
+	, m_style(new Style(this))
 {
 	Q_ASSERT(app);
+
 }
+
 
 
 /**
@@ -54,6 +57,7 @@ Client::~Client()
 
 	delete m_networkManager;
 	delete m_utils;
+	delete m_style;
 }
 
 
@@ -330,6 +334,7 @@ void Client::_message(const QString &text, const QString &title, const QString &
 }
 
 
+
 /**
  * @brief Client::application
  * @return
@@ -485,8 +490,6 @@ void Client::loadGame()
 	setCurrentGame(game);
 
 	game->setName("Teszt név a játékhoz");
-
-
 	game->load();
 }
 
@@ -499,4 +502,14 @@ void Client::loadGame()
 bool Client::debug() const
 {
 	return m_application->debug();
+}
+
+
+
+
+
+
+Style *Client::style() const
+{
+	return m_style;
 }

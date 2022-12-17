@@ -44,6 +44,7 @@ class AbstractGame : public QObject
 
 	Q_PROPERTY(QQuickItem *pageItem READ pageItem WRITE setPageItem NOTIFY pageItemChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(QString backgroundImage READ backgroundImage CONSTANT)
 
 public:
 
@@ -71,6 +72,8 @@ public:
 	const QString &name() const;
 	void setName(const QString &newName);
 
+	const QString &backgroundImage() const;
+
 public slots:
 	bool load();
 
@@ -89,6 +92,7 @@ protected:
 	QQuickItem *m_pageItem = nullptr;
 	const Mode m_mode;
 	QString m_name;
+	QString m_backgroundImage;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcGame)

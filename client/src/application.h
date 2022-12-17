@@ -59,7 +59,7 @@ public:
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();
-	virtual Client *createClient();
+	virtual Client *createClient() = 0;
 
 	void registerQmlTypes();
 	void loadFonts();

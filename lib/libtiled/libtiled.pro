@@ -5,7 +5,7 @@ else: TARGET = tiled
 
 CONFIG += c++17 staticlib
 
-LIBS += -lz
+!wasm: LIBS += -lz
 
 DEFINES += \
 	TILED_LIBRARY \

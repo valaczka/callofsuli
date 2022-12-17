@@ -20,24 +20,16 @@ android {
 					cd .. ; \
 				done
 
-} else:wasm {
+} else {
 	extralib.commands = echo \"Building qml-box2d...\"; \
 			$${CMakePath} $$PWD/qml-box2d \
 			$${CMakeArguments} \
 			-DUSE_QT6=$$USEQT6 -DUSE_SYSTEM_BOX2D=OFF -DBUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=$$QmlBox2DBuildShared && \
 			$${CMakePath} --build . $$CMakeProc
-} else {
-	extralib.commands = echo \"Building qml-box2d...\"; \
-				$${CMakePath} $$PWD/qml-box2d \
-				$${CMakeArguments} \
-				-DUSE_QT6=$$USEQT6 -DUSE_SYSTEM_BOX2D=OFF -DBUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=$$QmlBox2DBuildShared && \
-				$${CMakePath} --build . $$CMakeProc && \
-				mv bin/plugins/Box2D/$${LibQmlBox2DFile} ../
 }
 
 
-
-extralib.target = $$LibQmlBox2DFile
+extralib.target = libqmlbox2d.file
 extralib.depends =
 
 

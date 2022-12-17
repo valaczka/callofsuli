@@ -26,6 +26,9 @@
 
 #include <RollingFileAppender.h>
 #include "desktopapplication.h"
+#include "desktopclient.h"
+
+#include "sound.h"
 
 #ifdef Q_OS_WIN32
 #include <windows.h>
@@ -43,6 +46,8 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 	cuteLogger->logToGlobalInstance("app.application", true);
 	cuteLogger->logToGlobalInstance("app.client", true);
 	cuteLogger->logToGlobalInstance("app.game", true);
+	cuteLogger->logToGlobalInstance("app.scene", true);
+	cuteLogger->logToGlobalInstance("app.sound", true);
 	cuteLogger->logToGlobalInstance("app.utils", true);
 	cuteLogger->logToGlobalInstance("qaterial.utils", true);
 	cuteLogger->logToGlobalInstance("qml", true);
@@ -153,27 +158,31 @@ void DesktopApplication::initialize()
 #endif
 
 	m_consoleAppender = new ColorConsoleAppender;
-	#ifdef Q_OS_ANDROID
-			m_androidAppender = new AndroidAppender;
-	#endif
+#ifdef Q_OS_ANDROID
+	m_androidAppender = new AndroidAppender;
+#endif
 
 
-	#ifndef QT_NO_DEBUG
-			m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
-	#ifdef Q_OS_ANDROID
-			m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
-	#endif
-	#else
-			m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
-	#ifdef Q_OS_ANDROID
-			m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
-	#endif
-	#endif
+#ifndef QT_NO_DEBUG
+	m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
+#ifdef Q_OS_ANDROID
+	m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
+#endif
+#else
+	m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+#ifdef Q_OS_ANDROID
+	m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+#endif
+#endif
 
-			cuteLogger->registerAppender(m_consoleAppender);
-	#ifdef Q_OS_ANDROID
-			cuteLogger->registerAppender(m_androidAppender);
-	#endif
+	cuteLogger->registerAppender(m_consoleAppender);
+#ifdef Q_OS_ANDROID
+	cuteLogger->registerAppender(m_androidAppender);
+#endif
+
+
+	qRegisterMetaType<Sound::SoundType>("SoundType");
+	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 0, "Sound", "Sound is uncreatable");
 
 
 }
@@ -220,6 +229,18 @@ bool DesktopApplication::performCommandLine()
 	}
 
 	return true;
+}
+
+
+
+/**
+ * @brief DesktopApplication::createClient
+ * @return
+ */
+
+Client *DesktopApplication::createClient()
+{
+	return new DesktopClient(this, m_application);
 }
 
 

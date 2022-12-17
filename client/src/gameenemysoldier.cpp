@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * actiongame.h
+ * gameenemysoldier.cpp
  *
- * Created on: 2022. 12. 15.
+ * Created on: 2022. 12. 17.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ActionGame
+ * GameEnemySoldier
  *
  *  This file is part of Call of Suli.
  *
@@ -24,42 +24,21 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ACTIONGAME_H
-#define ACTIONGAME_H
+#include "gameenemysoldier.h"
+#include "gamescene.h"
 
-#include "abstractgame.h"
-#include <QObject>
-
-class ActionGame : public AbstractGame
+GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
+	: GameEnemy(parent)
 {
-	Q_OBJECT
-
-	Q_PROPERTY(QQuickItem* player READ player WRITE setPlayer NOTIFY playerChanged)				// Csere GamePlayer-re
-	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
-
-public:
-	ActionGame(Client *client);
-	virtual ~ActionGame();
-
-	QQuickItem *player() const;
-	void setPlayer(QQuickItem *newPlayer);
-
-	bool running() const;
-	void setRunning(bool newRunning);
-
-protected:
-	virtual QQuickItem *loadPage() override;
-
-signals:
-	void playerChanged();
-	void runningChanged();
-
-private:
-	QQuickItem *m_player = nullptr;
-	bool m_running = false;
-};
+	qCDebug(lcScene).noquote() << tr("Enemy soldier created") << this;
+}
 
 
-//Q_DECLARE_METATYPE(ActionGame*)
+/**
+ * @brief GameEnemy::~GameEnemy
+ */
 
-#endif // ACTIONGAME_H
+GameEnemySoldier::~GameEnemySoldier()
+{
+	qCDebug(lcScene).noquote() << tr("Enemy soldier destroyed") << this;
+}

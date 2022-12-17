@@ -31,8 +31,6 @@ ActionGame::ActionGame(Client *client)
 	: AbstractGame(Action, client)
 {
 	qCDebug(lcGame).noquote() << tr("Action game constructed") << this;
-
-	m_backgroundImage = "qrc:/internal/game/bg.png";
 }
 
 
@@ -79,21 +77,17 @@ QQuickItem *ActionGame::loadPage()
 																	 }));
 }
 
-
-
-/**
- * @brief ActionGame::backgroundImage
- * @return
- */
-
-const QString &ActionGame::backgroundImage() const
+bool ActionGame::running() const
 {
-	/*if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
-					return "qrc:/internal/game/bg.png";
-			else if (m_bgImage.startsWith("qrc:/"))
-					return m_bgImage;
-			else
-					return "image://"+m_imageDbName+"/"+m_bgImage;*/
-
-	return m_backgroundImage;
+	return m_running;
 }
+
+void ActionGame::setRunning(bool newRunning)
+{
+	if (m_running == newRunning)
+		return;
+	m_running = newRunning;
+	emit runningChanged();
+}
+
+

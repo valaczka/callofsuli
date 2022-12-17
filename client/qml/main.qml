@@ -38,6 +38,9 @@ Qaterial.ApplicationWindow
 		Qaterial.Style.darkColorTheme.primary = Qaterial.Colors.cyan500
 		Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
 
+		Client.Style.colorGlow = Qaterial.Colors.amber200
+		Client.Style.colorEnemyGlow = Qaterial.Colors.deepOrangeA700
+
 		Client.mainStack = mainStackView
 		Client.mainWindow = mainWindow
 	}
