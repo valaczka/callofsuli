@@ -2,95 +2,102 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import CallOfSuli 1.0
 import Box2D 2.0
-import QtGraphicalEffects 1.0
 
 
 GameEnemySoldierPrivate {
 	id: control
 
+	glowColor: Client.Style.colorEnemyGlow
+	overlayColor: Client.Style.colorEnemyGlow
+	hpProgressColor: Client.Style.colorEnemyGlow
+	hpProgressEnabled: true
 
-	/*property GameEntityPrivate entityPrivate: null
-	property alias spriteSequence: spriteSequence
+	z: 9
+
+	/*property bool showPickable: false
+	property bool showTarget: false
+
+	glowColor: showPickable ? CosStyle.colorGlowItem : CosStyle.colorGlowEnemy
+	glowEnabled: ep.aimedByPlayer || showPickable || showTarget
+
+	hpVisible: ep.aimedByPlayer
+	hpValue: ep.hp*/
 
 
-	property alias glowColor: glow.color
-	property bool glowEnabled: false
-	property bool _glowForced: true
+	/*onMovingChanged: setSprite()
+		onAtBoundChanged: setSprite()
+		onPlayerChanged: {
+			setSprite()
 
-	property alias overlayColor: overlay.color
-	property bool overlayEnabled: false
-
-	onHpValueChanged: {
-		if (entityPrivate && entityPrivate.maxHp>0)
-			hpProgress.to = entityPrivate.maxHp
-		else if (hpValue>hpProgress.to)
-			hpProgress.to = hpValue
-	}
-
-	ProgressBar {
-		id: hpProgress
-		visible: false
-
-		width: entityPrivate ? entityPrivate.boundBox.width+6 : 30
-		x: entityPrivate ? entityPrivate.boundBox.x-3 : 0
-		y: entityPrivate ? entityPrivate.boundBox.y-10 : -5
-		height: 2
-
-		from: 0
-		to: (entityPrivate && entityPrivate.maxHp>0) ? entityPrivate.maxHp : 0
-		value: hpValue
-
-		Behavior on value {
-			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
-		}
-
-		background: Rectangle {
-			implicitWidth: 200
-			implicitHeight: 2
-			color: hpColor
-			radius: 0
-			opacity: 0.3
-		}
-
-		contentItem: Item {
-			implicitWidth: 200
-			implicitHeight: 2
-
-			Rectangle {
-				width: hpProgress.visualPosition * parent.width
-				height: parent.height
-				radius: 0
-				color: hpColor
+			if (ep.player) {
+				var o = markerComponent.createObject(root)
+				o.playerItem = ep.player.parentEntity
 			}
+		}
+
+		*/
+
+
+	/*Connections {
+			target: ep.cosGame ? ep.cosGame.gameScene : null
+			function onShowPickablesChanged() {
+				if (ep.cosGame.gameScene.showPickables && ep.enemyData.pickableType !== GamePickablePrivate.PickableInvalid)
+					showPickable = true
+				else
+					showPickable = false
+			}
+
+			function onShowTargetsChanged() {
+				if (ep.cosGame.gameScene.showTargets && ep.enemyData.targetId != -1)
+					showTarget = true
+				else
+					showTarget = false
+			}
+
+			function onIsSceneZoomChanged() {
+				overlayEnabled = ep.cosGame.gameScene.isSceneZoom
+			}
+		}*/
+
+	/*Component {
+		id: markerComponent
+
+		GameEnemyMarker {
+			enemyPrivate: ep
 		}
 	}*/
 
 
-/*
+	onRayCastPerformed: {
+		if (scene && scene.debugView) {
+			var k = mapFromItem(scene, rect.x, rect.y)
+			rayRect.x = k.x
+			rayRect.y = k.y
+			rayRect.width = rect.width
+			rayRect.height = Math.max(rect.height, 1)
+			rayRect.visible = true
+			timerOff.start()
+		}
 
-	Connections {
-		target: entityPrivate ? entityPrivate : null
-		function onDie() {
-			dieAnimation.start()
+	}
+
+	Rectangle {
+		id: rayRect
+		color: "blue"
+		visible: false
+		border.width: 1
+		border.color: "blue"
+
+		Timer {
+			id: timerOff
+			interval: scene ? scene.timingTimerTimeoutMsec : 20
+			triggeredOnStart: false
+			running: false
+			repeat: false
+			onTriggered: rayRect.visible = false
 		}
 	}
 
-	SequentialAnimation {
-		id: dieAnimation
-		running: false
-		PropertyAnimation {
-			target: root
-			property: "opacity"
-			to: 0
-			duration: 150
-		}
-		ScriptAction {
-			script: root.destroy()
-		}
-	}
-
-
-*/
 
 
 }

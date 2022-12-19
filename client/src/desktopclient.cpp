@@ -78,7 +78,21 @@ void DesktopClient::setSfxVolume(qreal newSfxVolume)
 	if (qFuzzyCompare(m_sfxVolume, newSfxVolume))
 		return;
 	m_sfxVolume = newSfxVolume;
-	emit sfxVolumeChanged();
+	emit sfxVolumeChanged(m_sfxVolume);
+}
+
+
+
+QSoundEffect *DesktopClient::newSoundEffect()
+{
+	QSoundEffect *e = nullptr;
+
+	QMetaObject::invokeMethod(m_sound, "newSoundEffect",
+							  Qt::BlockingQueuedConnection,
+							  Q_RETURN_ARG(QSoundEffect*, e)
+							  );
+
+	return e;
 }
 
 

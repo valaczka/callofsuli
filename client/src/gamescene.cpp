@@ -24,7 +24,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "application.h"
 #include "gamescene.h"
 #include "actiongame.h"
 #include "box2dfixture.h"
@@ -33,7 +32,9 @@
 #include "gameterrain.h"
 #include "gameenemysoldier.h"
 #include "libtiled/mapobject.h"
+#include "qtimer.h"
 #include "tiledpaintedlayer.h"
+#include <QRandomGenerator>
 
 
 Q_LOGGING_CATEGORY(lcScene, "app.scene")
@@ -45,11 +46,15 @@ Q_LOGGING_CATEGORY(lcScene, "app.scene")
 
 GameScene::GameScene(QQuickItem *parent)
 	: QQuickItem(parent)
+	, m_timingTimer(new QTimer(this))
 {
 	qCDebug(lcScene).noquote() << tr("Scene created") << this;
 
 	setImplicitWidth(200);
 	setImplicitHeight(200);
+
+	m_timingTimer->setInterval(m_timingTimerTimeoutMsec);
+	m_timingTimer->start();
 }
 
 
@@ -59,6 +64,9 @@ GameScene::GameScene(QQuickItem *parent)
 
 GameScene::~GameScene()
 {
+	delete m_timingTimer;
+
+	qDeleteAll(m_childItems);
 	qDeleteAll(m_ladders);
 	qDeleteAll(m_tiledLayers);
 	qDeleteAll(m_grounds);
@@ -125,6 +133,10 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 		setShowObjects(true);
 		break;
 
+	case Qt::Key_F11:
+		setShowEnemies(true);
+		break;
+
 	case Qt::Key_D:
 		if (event->modifiers().testFlag(Qt::ShiftModifier))
 			setDebugView(!m_debugView);
@@ -146,6 +158,10 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 
 	case Qt::Key_F10:
 		setShowObjects(false);
+		break;
+
+	case Qt::Key_F11:
+		setShowEnemies(false);
 		break;
 	}
 
@@ -310,6 +326,29 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 }
 
 
+/**
+ * @brief GameScene::timingTimerTimeoutMsec
+ * @return
+ */
+
+int GameScene::timingTimerTimeoutMsec() const
+{
+	return m_timingTimerTimeoutMsec;
+}
+
+
+/**
+ * @brief GameScene::timingTimer
+ * @return
+ */
+
+QTimer *GameScene::timingTimer() const
+{
+	return m_timingTimer;
+}
+
+
+
 
 /**
  * @brief GameScene::ladders
@@ -357,7 +396,7 @@ void GameScene::setZoomOverview(bool newZoomOverview)
 	if (m_zoomOverview == newZoomOverview)
 		return;
 	m_zoomOverview = newZoomOverview;
-	emit zoomOverviewChanged();
+	emit zoomOverviewChanged(m_zoomOverview);
 }
 
 
@@ -365,7 +404,7 @@ void GameScene::setZoomOverview(bool newZoomOverview)
  * @brief GameScene::zoomOverviewToggle
  */
 
-inline void GameScene::zoomOverviewToggle()
+void GameScene::zoomOverviewToggle()
 {
 	setZoomOverview(!m_zoomOverview);
 }
@@ -385,38 +424,28 @@ void GameScene::onScenePrepared()
 
 
 	foreach (auto e, m_terrain.enemies()) {
-		qCDebug(lcScene).noquote() << tr("Enemy create test");
+		if (e.type != GameTerrain::EnemySoldier)
+			continue;
 
-		GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile("GameEnemySoldier.qml", this));
+		GameEnemySoldier *soldier = GameEnemySoldier::create(this, e);
 
-		if (!soldier) {
-			qCCritical(lcScene).noquote() << tr("Emeny creation error");
-			return;
-		}
-
-		soldier->setParentItem(this);
-		soldier->setScene(this);
 		soldier->setX(e.rect.left());
-		soldier->setY(e.rect.top());
-		soldier->setWidth(20);
-		soldier->setHeight(20);
+		soldier->setY(e.rect.bottom()-soldier->height());
 
-		QQmlComponent component(Application::instance()->engine(), "qrc:/GameEntitySpriteSequence.qml", this);
+		soldier->setMaxHp(QRandomGenerator::global()->bounded(1, 5));
+		soldier->setHp(QRandomGenerator::global()->bounded(1, 5));
 
-		qCDebug(lcScene).noquote() << tr("Create sprite sequence") << component.isReady();
+		QTimer *timer = new QTimer(this);
+		timer->setInterval(QRandomGenerator::global()->bounded(28000, 40000));
+		timer->setSingleShot(true);
+		connect(timer, &QTimer::timeout, soldier, &GameEntity::kill);
+		timer->start();
 
-		QQuickItem *seq = qobject_cast<QQuickItem*>(component.create());
+		qDebug() << "START" << timer->interval();
 
-		if (seq)
-			seq->setParentItem(soldier);
+		addChildItem(soldier);
 
-
-		soldier->setSpriteSequence(seq);
-
-		int s = QRandomGenerator::global()->bounded(1, 4);
-		QString d = QString(":/soldiers/soldier%1").arg(s);
-		soldier->setDataDir(d);
-		soldier->loadFromJsonFile();
+		soldier->startMovingAfter(2500);
 
 		QCoreApplication::processEvents();
 	}
@@ -451,7 +480,7 @@ void GameScene::setShowObjects(bool newShowObjects)
 	if (m_showObjects == newShowObjects)
 		return;
 	m_showObjects = newShowObjects;
-	emit showObjectsChanged();
+	emit showObjectsChanged(m_showObjects);
 }
 
 bool GameScene::showEnemies() const
@@ -464,5 +493,15 @@ void GameScene::setShowEnemies(bool newShowEnemies)
 	if (m_showEnemies == newShowEnemies)
 		return;
 	m_showEnemies = newShowEnemies;
-	emit showEnemiesChanged();
+	emit showEnemiesChanged(m_showEnemies);
+}
+
+/**
+ * @brief GameScene::addChildItem
+ * @param item
+ */
+
+void GameScene::addChildItem(QQuickItem *item)
+{
+	m_childItems.append(item);
 }

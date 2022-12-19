@@ -91,6 +91,37 @@ Sound::~Sound()
 
 
 /**
+ * @brief Sound::newSoundEffect
+ * @param parent
+ * @return
+ */
+
+QSoundEffect *Sound::newSoundEffect()
+{
+	QSoundEffect *e = new QSoundEffect(this);
+
+	e->setVolume((qreal)m_mediaPlayerSfx->volume() / 100.0);
+
+	connect(m_mediaPlayerSfx, &QMediaPlayer::volumeChanged, this, [this, e]() {
+		e->setVolume((qreal)m_mediaPlayerSfx->volume() / 100.0);
+	});
+
+	qCDebug(lcSound).noquote() << tr("New sound effect:") << e;
+
+	m_effectList.append(e);
+
+	connect(e, &QObject::destroyed, this, [this, e]() {
+		qCDebug(lcSound).noquote() << tr("Sound effect destroyed") << e;
+		m_effectList.removeAll(e);
+	});
+
+	return e;
+}
+
+
+
+
+/**
  * @brief CosSound::init
  */
 

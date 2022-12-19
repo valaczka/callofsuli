@@ -28,6 +28,7 @@
 #define DESKTOPCLIENT_H
 
 #include "client.h"
+#include "qsoundeffect.h"
 #include "qthread.h"
 #include "sound.h"
 
@@ -44,6 +45,8 @@ public:
 	qreal sfxVolume() const;
 	void setSfxVolume(qreal newSfxVolume);
 
+	QSoundEffect *newSoundEffect();
+
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);
 	void stopSound(const QString &source, const Sound::SoundType &soundType);
@@ -52,7 +55,7 @@ public slots:
 	void setSfxVolumeInt(int sfxVolume);
 
 signals:
-	void sfxVolumeChanged();
+	void sfxVolumeChanged(const qreal &volume);
 
 private:
 	Sound *m_sound = nullptr;

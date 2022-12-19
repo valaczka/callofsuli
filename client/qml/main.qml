@@ -38,6 +38,10 @@ Qaterial.ApplicationWindow
 		Qaterial.Style.darkColorTheme.primary = Qaterial.Colors.cyan500
 		Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
 
+		Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
+			return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)
+		})
+
 		Client.Style.colorGlow = Qaterial.Colors.amber200
 		Client.Style.colorEnemyGlow = Qaterial.Colors.deepOrangeA700
 
@@ -80,7 +84,7 @@ Qaterial.ApplicationWindow
 		shortcut: "Ctrl++"
 		text: qsTr("Növelés")
 		icon.source: Qaterial.Icons.magnifyPlus
-		onTriggered: Client.pixelSize++
+		onTriggered: setPixelSize(Qaterial.Style.pixelSize+1)
 	}
 
 	Action {
@@ -88,7 +92,7 @@ Qaterial.ApplicationWindow
 		shortcut: "Ctrl+-"
 		text: qsTr("Csökkentés")
 		icon.source: Qaterial.Icons.magnifyMinus
-		onTriggered: Client.pixelSize--
+		onTriggered: setPixelSize(Qaterial.Style.pixelSize-1)
 	}
 
 	Action {
@@ -96,7 +100,7 @@ Qaterial.ApplicationWindow
 		shortcut: "Ctrl+0"
 		text: qsTr("Visszaállítás")
 		icon.source: Qaterial.Icons.magnifyRemoveOutline
-		onTriggered: Client.resetPixelSize()
+		onTriggered: Qaterial.Style.pixelSize = Qaterial.Style.defaultPixelSize
 	}
 
 
@@ -113,8 +117,7 @@ Qaterial.ApplicationWindow
 	}
 
 
-	onClosing: {
-		if (Client.closeWindow()) {
+	onClosing: { if (Client.closeWindow()) {
 			close.accepted = true
 			Qt.quit()
 		} else {
@@ -130,7 +133,7 @@ Qaterial.ApplicationWindow
 						text: _text,
 						title: _title,
 						iconSource: _icon,
-						iconColor: "red",
+						iconColor: Qaterial.Style.errorColor,
 						standardButtons: Dialog.Ok
 					})
 	}
@@ -151,6 +154,12 @@ Qaterial.ApplicationWindow
 						iconSource: Qaterial.Icons.account,
 						standardButtons: Dialog.No | Dialog.Yes
 					})
+	}
+
+
+	function setPixelSize(newSize) {
+		if (newSize >= Qaterial.Style.defaultPixelSize/2.5 && newSize <= Qaterial.Style.defaultPixelSize * 3.0)
+			Qaterial.Style.pixelSize = newSize
 	}
 }
 

@@ -87,6 +87,7 @@ public:
 	Box2DBody *body() const;
 
 	Q_INVOKABLE void bodyComplete();
+	Q_INVOKABLE void addChildItem(QQuickItem *item);
 
 private slots:
 	void onSceneChanged();
@@ -94,10 +95,17 @@ private slots:
 signals:
 	void sceneChanged();
 	void gameChanged();
+	void sceneConnected();
+	void timingTimerTimeout();
 
 protected:
 	GameScene *m_scene = nullptr;
 	Box2DBody *m_body = nullptr;
+	QList<QPointer<QQuickItem>> m_childItems;
+
+private:
+	bool m_sceneConnected = false;
+
 };
 
 #endif // GAMEOBJECT_H

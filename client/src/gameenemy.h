@@ -28,15 +28,52 @@
 #define GAMEENEMY_H
 
 #include "gameentity.h"
+#include "gameterrain.h"
+
+#ifndef Q_OS_WASM
+#include <QSoundEffect>
+#endif
 
 class GameEnemy : public GameEntity
 {
 	Q_OBJECT
 
+	Q_PROPERTY(bool moving READ moving WRITE setMoving NOTIFY movingChanged)
+
+#ifndef Q_OS_WASM
+	Q_PROPERTY(QSoundEffect soundEffect READ soundEffect CONSTANT)
+#endif
+
 public:
 	explicit GameEnemy(QQuickItem *parent = nullptr);
 	virtual ~GameEnemy();
 
+	const GameTerrain::EnemyData &terrainEnemyData() const;
+	void setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnemyData);
+
+	bool moving() const;
+	void setMoving(bool newMoving);
+
+	Q_INVOKABLE void startMovingAfter(const int &msec);
+
+#ifndef Q_OS_WASM
+	QSoundEffect *soundEffect() const { return m_soundEffect; }
+#endif
+
+signals:
+	void attack();
+	void movingChanged();
+
+private slots:
+	void onSceneConnected();
+
+protected:
+	GameTerrain::EnemyData m_terrainEnemyData;
+	bool m_moving = false;
+	int m_startMovingAfter = 0;
+#ifndef Q_OS_WASM
+	QSoundEffect *m_soundEffect = nullptr;
+#endif
 
 };
 

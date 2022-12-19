@@ -46,9 +46,6 @@ class Client : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(qreal pixelSize READ pixelSize WRITE setPixelSize NOTIFY pixelSizeChanged)
-	Q_PROPERTY(qreal pixelSizeRatio READ pixelSizeRatio WRITE setPixelSizeRatio NOTIFY pixelSizeRatioChanged RESET resetPixelSize)
-
 	Q_PROPERTY(QQuickItem* mainStack READ mainStack WRITE setMainStack NOTIFY mainStackChanged)
 	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
 
@@ -61,13 +58,6 @@ class Client : public QObject
 public:
 	explicit Client(Application *app, QObject *parent = nullptr);
 	virtual ~Client();
-
-	qreal pixelSize() const;
-	void setPixelSize(qreal newPixelSize);
-
-	qreal pixelSizeRatio() const;
-	void setPixelSizeRatio(qreal newPixelSizeRatio);
-	Q_INVOKABLE void resetPixelSize();
 
 	QQuickItem *mainStack() const;
 	void setMainStack(QQuickItem *newMainStack);
@@ -114,13 +104,7 @@ signals:
 
 protected:
 	Application *const m_application = nullptr;
-
-	const qreal m_defaultPixelSize = 16.0;
-	qreal m_pixelSize = m_defaultPixelSize;
-
 	QQuickItem *m_mainStack = nullptr;
-	qreal m_pixelSizeRatio;
-
 	QQuickWindow *m_mainWindow = nullptr;
 	bool m_mainWindowClosable = false;
 

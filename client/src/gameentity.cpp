@@ -43,7 +43,7 @@
 GameEntity::GameEntity(QQuickItem *parent)
 	: GameObject(parent)
 	, m_rayCast(new Box2DRayCast(this))
-	, m_rayCastTimer(new QTimer(this))
+	, m_dieAnimation(new QPropertyAnimation(this, "opacity", this))
 {
 	m_body->setBodyType(Box2DBody::Dynamic);
 	m_body->setGravityScale(5.0);
@@ -51,17 +51,20 @@ GameEntity::GameEntity(QQuickItem *parent)
 
 	connect(m_rayCast, &Box2DRayCast::fixtureReported, this, &GameEntity::onRayCastFixtureReported);
 
-	m_rayCastTimer->start(50);
-	connect(m_rayCastTimer, &QTimer::timeout, this, &GameEntity::onRayCastTimerTimeout);
+	connect(this, &GameObject::sceneConnected, this, &GameEntity::onSceneConnected);
 
 	connect(this, &GameEntity::beginContact, this, &GameEntity::onBeginContact);
 	connect(this, &GameEntity::endContact, this, &GameEntity::onEndContact);
 
+	connect(this, &GameEntity::facingLeftChanged, this, &GameEntity::onFacingLeftChanged);
+
 	connect(this, &GameEntity::isAliveChanged, this, [this](){
 		QTimer::singleShot(2000, this, [this]() {
-			emit died();
+			onIsAliveDisabled();
 		});
 	});
+
+	connect(m_dieAnimation, &QAbstractAnimation::finished, this, &GameEntity::deleteLater);
 
 }
 
@@ -72,11 +75,11 @@ GameEntity::GameEntity(QQuickItem *parent)
 
 GameEntity::~GameEntity()
 {
-	delete m_rayCastTimer;
+	delete m_dieAnimation;
 	delete m_rayCast;
 
 	if (m_fixture)
-		m_fixture->deleteLater();
+		delete m_fixture;
 }
 
 
@@ -158,7 +161,7 @@ void GameEntity::doRayCast(const QPointF &point1, const QPointF &point2)
 {
 	rayCastFixtureCheck();
 
-	if (!m_scene || m_scene->world()) {
+	if (!m_scene || !m_scene->world()) {
 		qCWarning(lcScene).noquote() << tr("Missing scene or world, unable to ray cast");
 		return;
 	}
@@ -179,6 +182,48 @@ void GameEntity::doRayCast(const QPointF &point1, const QPointF &point2)
 Box2DBox *GameEntity::fixture() const
 {
 	return m_fixture;
+}
+
+
+/**
+ * @brief GameEntity::createSpriteItem
+ * @return
+ */
+
+bool GameEntity::createSpriteItem()
+{
+	QQmlComponent component(Application::instance()->engine(), "qrc:/GameEntitySpriteSequence.qml", this);
+
+	qCDebug(lcScene).noquote() << tr("Create sprite item:") << component.isReady();
+
+	QQuickItem *item = qobject_cast<QQuickItem*>(component.create());
+
+	if (item) {
+		setSpriteItem(item);
+
+		item->setParentItem(this);
+		item->setProperty("entity", QVariant::fromValue(this));
+
+		/*if (m_spriteSequence) {
+			const QMetaObject *mo = m_spriteSequence->metaObject();
+
+			auto p = mo->property(mo->indexOfProperty("currentSprite"));
+			auto t = this->metaObject()->indexOfSlot("onCurrentSpriteChanged(QString)");
+
+			if (p.hasNotifySignal()) {
+				connect(m_spriteSequence, p.notifySignal(), this, this->metaObject()->method(t));
+			}
+		}*/
+
+		addChildItem(item);
+
+		loadSprites();
+		return true;
+	}
+
+	qCWarning(lcScene).noquote() << tr("Can't create sprite item") << this;
+
+	return false;
 }
 
 
@@ -213,17 +258,17 @@ int GameEntity::hp() const
 
 void GameEntity::setHp(int newHp)
 {
-	if (m_hp == newHp)
-		return;
-
 	if (newHp < 0)
 		newHp = 0;
 
-	if ((m_hp > 0 && newHp == 0) || (m_hp == 0 && newHp > 0))
-		emit isAliveChanged();
+	if (m_hp == newHp)
+		return;
 
 	m_hp = newHp;
 	emit hpChanged();
+
+	if (m_hp == 0)
+		emit isAliveChanged();
 }
 
 
@@ -298,11 +343,32 @@ void GameEntity::updateFixtures(QString spriteName)
 	if (!game() || !game()->running())
 		return;
 
-	if (spriteName.isEmpty() && m_spriteSequence) {
-		spriteName = m_spriteSequence->property("currentSprite").toString();
+	if (spriteName.isEmpty() && m_spriteItem) {
+		spriteName = m_spriteItem->property("currentSprite").toString();
 	}
 
 	updateFixtures(sprite(spriteName.isEmpty() ? "idle" : spriteName));
+}
+
+
+
+
+
+/**
+ * @brief GameEntity::jumpToSprite
+ * @param sprite
+ */
+
+void GameEntity::jumpToSprite(const QString &sprite)
+{
+	if (!m_spriteSequence) {
+		qCWarning(lcScene).noquote() << tr("Missing sprite sequence");
+		return;
+	}
+
+	QMetaObject::invokeMethod(m_spriteSequence, "jumpTo",
+							  Q_ARG(QString, sprite)
+							  );
 }
 
 
@@ -400,11 +466,30 @@ void GameEntity::onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &
  * @brief GameEntity::onCurrentSpriteChanged
  */
 
-void GameEntity::onCurrentSpriteChanged()
+void GameEntity::onCurrentSpriteChanged(QString sprite)
 {
-	qDebug() << "CHANGED";
+	qDebug() << "CHANGED" << sprite;
 
 
+}
+
+
+
+/**
+ * @brief GameEntity::onIsAliveChanged
+ */
+
+void GameEntity::onIsAliveDisabled()
+{
+	qCDebug(lcScene).noquote() << tr("Entity died") << this;
+
+	emit died();
+
+	m_dieAnimation->setDuration(150);
+	m_dieAnimation->setStartValue(1.0);
+	m_dieAnimation->setEndValue(.0);
+
+	m_dieAnimation->start();
 }
 
 
@@ -452,6 +537,7 @@ void GameEntity::updateFixtures(const QJsonObject &spriteData)
 		bodyComplete();
 	}
 
+	qCDebug(lcScene).noquote() << tr("Update fixtures for:") << this;
 
 	if (m_facingLeft == m_spriteFacingLeft)
 		m_fixture->setX(m_bodyRect.x());
@@ -465,14 +551,19 @@ void GameEntity::updateFixtures(const QJsonObject &spriteData)
 	qreal w = qMax(spriteData.value("frameWidth").toDouble(), m_frameSize.width());
 	qreal h = qMax(spriteData.value("frameHeight").toDouble(),  m_frameSize.height());
 
-	if (m_spriteSequence) {
-		m_spriteSequence->setWidth(w);
-		m_spriteSequence->setHeight(h);
-
+	if (m_spriteItem) {
 		setWidth(w);
 		setHeight(h);
 
-		loadSprites();
+		if (m_spriteSequence) {
+			m_spriteSequence->setWidth(w);
+			m_spriteSequence->setHeight(h);
+		}
+
+		if (!m_spritesLoaded)
+			loadSprites();
+	} else {
+		qCDebug(lcScene).noquote() << tr("Missing sprite item") << this;
 	}
 
 }
@@ -598,6 +689,32 @@ void GameEntity::rayCastFixtureCheck()
 
 
 /**
+ * @brief GameEntity::onFacingLeftChanged
+ */
+
+void GameEntity::onFacingLeftChanged()
+{
+	if (!m_spriteSequence)
+		return;
+
+	if (m_facingLeft != m_spriteFacingLeft)
+		m_spriteSequence->setState("inverse");
+	else
+		m_spriteSequence->setState("");
+}
+
+
+/**
+ * @brief GameEntity::onSceneConnected
+ */
+
+void GameEntity::onSceneConnected()
+{
+	connect(this, &GameObject::timingTimerTimeout, this, &GameEntity::onRayCastTimerTimeout);
+}
+
+
+/**
  * @brief GameEntity::loadSprites
  */
 
@@ -606,27 +723,17 @@ void GameEntity::loadSprites()
 	if (m_spritesLoaded)
 		return;
 
-	if (!m_spriteSequence) {
-		qCWarning(lcScene).noquote() << tr("Missing sprite sequence");
+	if (!m_spriteItem) {
+		qCWarning(lcScene).noquote() << tr("Missing sprite item");
 		return;
 	}
 
+	QQuickItem *sequence = qvariant_cast<QQuickItem*>(m_spriteItem->property("spriteSequence"));
 
-	qDebug() << "****** CHECK";
-
-	const QMetaObject *mo = m_spriteSequence->metaObject();
-
-	auto p = mo->property(mo->indexOfProperty("currentSprite"));
-
-	qDebug() << "**" << mo << p.isValid() << p.hasNotifySignal() << p.notifySignalIndex();
-
-	auto t = this->metaObject()->indexOfSlot("onCurrentSpriteChanged()");
-
-	if (p.hasNotifySignal()) {
-		connect(m_spriteSequence, p.notifySignal(), this, this->metaObject()->method(t));
-
+	if (!sequence) {
+		qCWarning(lcScene).noquote() << tr("Missing sprite sequence");
+		return;
 	}
-
 
 	QStringList keys = m_sprites.keys();
 
@@ -665,13 +772,35 @@ void GameEntity::loadSprites()
 							{ "to", data.value("to").toObject().toVariantMap() }
 						});
 
-		QMetaObject::invokeMethod(m_scene, "addToSprites",
-								  Q_ARG(QQuickItem*, m_spriteSequence),
+		QMetaObject::invokeMethod(m_spriteItem, "addToSprites",
 								  Q_ARG(QVariant, map));
 
 	}
 
 	m_spritesLoaded = true;
+}
+
+
+/**
+ * @brief GameEntity::spriteItem
+ * @return
+ */
+
+QQuickItem *GameEntity::spriteItem() const
+{
+	return m_spriteItem;
+}
+
+void GameEntity::setSpriteItem(QQuickItem *newSpriteItem)
+{
+	if (m_spriteItem == newSpriteItem)
+		return;
+	m_spriteItem = newSpriteItem;
+	emit spriteItemChanged();
+
+	m_spriteSequence = qvariant_cast<QQuickItem*>(m_spriteItem->property("spriteSequence"));
+
+	emit spriteSequenceChanged();
 }
 
 
@@ -798,27 +927,6 @@ void GameEntity::setDataDir(const QString &newDataDir)
 }
 
 
-/**
- * @brief GameEntity::spriteSequence
- * @return
- */
-
-QQuickItem *GameEntity::spriteSequence() const
-{
-	return m_spriteSequence;
-}
-
-void GameEntity::setSpriteSequence(QQuickItem *newSpriteSequence)
-{
-	if (m_spriteSequence == newSpriteSequence)
-		return;
-
-	m_spriteSequence = newSpriteSequence;
-	emit spriteSequenceChanged();
-
-	if (m_spriteSequence)
-		loadSprites();
-}
 
 
 bool GameEntity::isOnGround() const
@@ -826,28 +934,148 @@ bool GameEntity::isOnGround() const
 	return !m_groundFixtures.isEmpty();
 }
 
-const QString &GameEntity::shotSound() const
+
+/**
+ * @brief GameEntity::shotSound
+ * @return
+ */
+
+QUrl GameEntity::shotSound() const
 {
-	return m_shotSound;
+	QString sound = m_shotSound.toString();
+
+	if (m_shotSound.isEmpty())
+		return m_defaultShotSound;
+
+	if (sound.startsWith("qrc:"))
+		return sound;
+
+	if (sound.startsWith("/"))
+		return "qrc:"+sound;
+
+	QString dir = m_dataDir;
+
+	if (dir.startsWith("qrc:"))
+		return dir+"/"+sound;
+
+	if (dir.startsWith(":"))
+		return "qrc"+dir+"/"+sound;
+
+	return "qrc:"+dir+"/"+sound;
+
 }
 
-void GameEntity::setShotSound(const QString &newShotSound)
+
+/**
+ * @brief GameEntity::setShotSound
+ * @param newShotSound
+ */
+
+void GameEntity::setShotSound(const QUrl &newShotSound)
 {
 	if (m_shotSound == newShotSound)
 		return;
 	m_shotSound = newShotSound;
-	emit shotSoundChanged();
+	emit shotSoundChanged(shotSound());
 }
 
 bool GameEntity::isAlive() const
 {
-	return m_isAlive;
+	return (m_hp > 0);
 }
 
-void GameEntity::setIsAlive(bool newIsAlive)
+
+bool GameEntity::glowEnabled() const
 {
-	if (m_isAlive == newIsAlive)
+	return m_glowEnabled;
+}
+
+void GameEntity::setGlowEnabled(bool newGlowEnabled)
+{
+	if (m_glowEnabled == newGlowEnabled)
 		return;
-	m_isAlive = newIsAlive;
-	emit isAliveChanged();
+	m_glowEnabled = newGlowEnabled;
+	emit glowEnabledChanged();
+}
+
+const QColor &GameEntity::glowColor() const
+{
+	return m_glowColor;
+}
+
+void GameEntity::setGlowColor(const QColor &newGlowColor)
+{
+	if (m_glowColor == newGlowColor)
+		return;
+	m_glowColor = newGlowColor;
+	emit glowColorChanged();
+}
+
+bool GameEntity::overlayEnabled() const
+{
+	return m_overlayEnabled;
+}
+
+void GameEntity::setOverlayEnabled(bool newOverlayEnabled)
+{
+	if (m_overlayEnabled == newOverlayEnabled)
+		return;
+	m_overlayEnabled = newOverlayEnabled;
+	emit overlayEnabledChanged();
+}
+
+const QColor &GameEntity::overlayColor() const
+{
+	return m_overlayColor;
+}
+
+void GameEntity::setOverlayColor(const QColor &newOverlayColor)
+{
+	if (m_overlayColor == newOverlayColor)
+		return;
+	m_overlayColor = newOverlayColor;
+	emit overlayColorChanged();
+}
+
+bool GameEntity::hpProgressEnabled() const
+{
+	return m_hpProgressEnabled;
+}
+
+void GameEntity::setHpProgressEnabled(bool newHpProgressEnabled)
+{
+	if (m_hpProgressEnabled == newHpProgressEnabled)
+		return;
+	m_hpProgressEnabled = newHpProgressEnabled;
+	emit hpProgressEnabledChanged();
+}
+
+const QColor &GameEntity::hpProgressColor() const
+{
+	return m_hpProgressColor;
+}
+
+void GameEntity::setHpProgressColor(const QColor &newHpProgressColor)
+{
+	if (m_hpProgressColor == newHpProgressColor)
+		return;
+	m_hpProgressColor = newHpProgressColor;
+	emit hpProgressColorChanged();
+}
+
+
+/**
+ * @brief GameEntity::kill
+ */
+
+void GameEntity::kill()
+{
+	setHp(0);
+
+	emit killed();
+}
+
+QQuickItem *GameEntity::spriteSequence() const
+{
+	return m_spriteSequence;
 }

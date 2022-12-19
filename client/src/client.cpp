@@ -60,62 +60,6 @@ Client::~Client()
 	delete m_style;
 }
 
-
-/**
- * @brief Client::pixelSize
- * @return
- */
-
-qreal Client::pixelSize() const
-{
-	return m_pixelSize;
-}
-
-
-/**
- * @brief Client::setPixelSize
- * @param newPixelSize
- */
-
-void Client::setPixelSize(qreal newPixelSize)
-{
-	if (newPixelSize < m_defaultPixelSize/3 || newPixelSize > m_defaultPixelSize*3)
-		return;
-
-	if (qFuzzyCompare(m_pixelSize, newPixelSize))
-		return;
-	m_pixelSize = newPixelSize;
-	emit pixelSizeChanged();
-	emit pixelSizeRatioChanged();
-}
-
-
-/**
- * @brief Client::pixelSizeRatio
- * @return
- */
-
-qreal Client::pixelSizeRatio() const
-{
-	return m_pixelSize/m_defaultPixelSize;
-}
-
-
-/**
- * @brief Client::setPixelSizeRatio
- * @param newPixelSizeRatio
- */
-
-void Client::setPixelSizeRatio(qreal newPixelSizeRatio)
-{
-	if (newPixelSizeRatio < (1.0/3.0) || newPixelSizeRatio > 3.0)
-		return;
-
-	m_pixelSize = m_defaultPixelSize*newPixelSizeRatio;
-	emit pixelSizeChanged();
-	emit pixelSizeRatioChanged();
-}
-
 /**
  * @brief Client::mainStack
  * @return
@@ -370,15 +314,6 @@ QNetworkAccessManager *Client::networkManager() const
 
 
 
-
-/**
- * @brief Client::resetPixelSize
- */
-
-void Client::resetPixelSize()
-{
-	setPixelSize(m_defaultPixelSize);
-}
 
 
 /**

@@ -39,6 +39,8 @@
 #include <QObject>
 #include <QMediaPlayer>
 #include <QVariantAnimation>
+#include <QSoundEffect>
+#include <QPointer>
 
 class Sound : public QObject
 {
@@ -58,6 +60,8 @@ public:
 
 	explicit Sound(QObject *parent = nullptr);
 	virtual ~Sound();
+
+	Q_INVOKABLE QSoundEffect *newSoundEffect();
 
 public slots:
 	void init();
@@ -90,6 +94,7 @@ private:
 	QString m_musicNextSource;
 	QVariantAnimation *m_fadeAnimation;
 	int m_musicVolume;
+	QList<QPointer<QSoundEffect>> m_effectList;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcSound)

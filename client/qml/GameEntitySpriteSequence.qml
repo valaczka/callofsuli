@@ -1,55 +1,53 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtGraphicalEffects 1.0
 import CallOfSuli 1.0
 
 
-SpriteSequence {
+Item {
 	id: control
 
+	property GameEntityPrivate entity: null
 
-	//running: entityPrivate && entityPrivate.cosGame.running
+	property bool _glowForced: true
 
-	/*onCurrentSpriteChanged: if (entityPrivate) {
-								var d = entityPrivate.qrcData.sprites[currentSprite]
-								spriteSequence.width = d.frameWidth
-								spriteSequence.height = d.frameHeight
-								entityPrivate.updateFixtures(currentSprite, isInverse)
+	anchors.fill: parent
 
-								if (Array("dead", "dead2", "dead3", "dead4", "falldeath", "falldeath2", "falldead", "burn", "burndead").includes(currentSprite))
-									entityPrivate.isAlive = false
-							} else {
-								spriteSequence.width = 35
-								spriteSequence.height = 35
-							}*/
+	property alias spriteSequence: spriteSequence
+
+	SpriteSequence {
+		id: spriteSequence
+		anchors.centerIn: parent
+
+		transform: Rotation {
+			id: rotation
+			origin.x: spriteSequence.width/2
+			origin.y: spriteSequence.height/2
+			axis.x: 0; axis.y: 1; axis.z: 0
+			angle: 0
+		}
+
+		state: ""
+
+		states: State {
+			name: "inverse"
+			//*when: entity && entity.facingLeft != entity.
+			PropertyChanges { target: rotation; angle: 180 }
+		}
+
+		transitions: Transition {
+			NumberAnimation { target: rotation; property: "angle"; duration: 150 }
+		}
 
 
-	transform: Rotation {
-		id: rotation
-		origin.x: control.width/2
-		origin.y: control.height/2
-		axis.x: 0; axis.y: 1; axis.z: 0
-		angle: 0
+		sprites: []
 	}
-
-	state: ""
-
-	states: State {
-		name: "back"
-		PropertyChanges { target: rotation; angle: 180 }
-	}
-
-	transitions: Transition {
-		NumberAnimation { target: rotation; property: "angle"; duration: 150 }
-	}
-
-	sprites: []
-
-	/*
 
 	Glow {
 		id: glow
-		opacity: glowEnabled || _glowForced ? 1.0 : 0.0
+		opacity: _glowForced || (entity && entity.glowEnabled) ? 1.0 : 0.0
 		visible: opacity != 0
+		color: entity ? entity.glowColor : "white"
 
 		source: spriteSequence
 		anchors.fill: spriteSequence
@@ -67,10 +65,11 @@ SpriteSequence {
 
 	ColorOverlay {
 		id: overlay
-		source: spriteSequence
-		anchors.fill: spriteSequence
-		opacity: overlayEnabled ? 1.0 : 0.0
+		source: control
+		anchors.fill: control
+		opacity: entity && entity.overlayEnabled ? 1.0 : 0.0
 		visible: opacity != 0
+		color: entity ? entity.overlayColor : "white"
 
 		Behavior on opacity {
 			NumberAnimation { duration: 300 }
@@ -81,26 +80,104 @@ SpriteSequence {
 
 
 
+	ProgressBar {
+		id: hpProgress
+		visible: entity && entity.hpProgressEnabled && !entity.scene.zoomOverview
+
+		width: entity ? entity.bodyRect.width+6 : 30
+		x: entity ? entity.bodyRect.x-3 : 0
+		y: entity ? entity.bodyRect.y-10 : -5
+		height: 2
+
+		from: 0
+		to: entity ? Math.max(entity.maxHp, entity.hp, 1) : 0
+		value: entity ? entity.hp : 0
+
+		Behavior on value {
+			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+		}
+
+		background: Rectangle {
+			implicitWidth: 200
+			implicitHeight: 2
+			color: entity ? entity.hpProgressColor : "red"
+			radius: 0
+			opacity: 0.3
+		}
+
+		contentItem: Item {
+			implicitWidth: 200
+			implicitHeight: 2
+
+			Rectangle {
+				width: hpProgress.visualPosition * parent.width
+				height: parent.height
+				radius: 0
+				color: entity ? entity.hpProgressColor : "red"
+			}
+		}
+	}
+
 
 	Timer {
-		id: glowForcedDelay
 		interval: 1500
 		repeat: false
+		running: true
 		triggeredOnStart: false
 		onTriggered: _glowForced = false
 	}
 
-*/
-	Component.onCompleted: {
-		console.debug("**** CREATED", control)
-		//glowForcedDelay.start()
+
+	/*Connections {
+		target: entity
+
+		function onRayCastPerformed(rect) {
+			if (!entity.scene.debugView)
+				return
+
+			var k = mapFromItem(entity.scene, rect.x, rect.y)
+
+			rayRect.x = k.x
+			rayRect.y = k.y
+			rayRect.width = rect.width
+			rayRect.height = Math.max(rect.height, 1)
+			rayRect.visible = true
+			timerOff.start()
+		}
 	}
 
 
-	Component.onDestruction: {
-		console.debug("**** DESTROY", control)
+
+	Rectangle {
+		id: rayRect
+		color: "blue"
+		visible: false
+		border.width: 1
+		border.color: "blue"
+
+		Timer {
+			id: timerOff
+			interval: 25
+			triggeredOnStart: false
+			running: false
+			repeat: false
+			onTriggered: rayRect.visible = false
+		}
+	}*/
+
+
+
+	Component {
+		id: componentSprite
+
+		Sprite {  }
 	}
 
+	function addToSprites(sdata) {
+		var obj = componentSprite.createObject(spriteSequence, sdata)
+
+		spriteSequence.sprites.push(obj)
+	}
 
 
 }

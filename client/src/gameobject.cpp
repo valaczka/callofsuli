@@ -43,6 +43,7 @@ GameObject::GameObject(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_body(new Box2DBody(this))
 {
+	qCDebug(lcScene).noquote() << tr("Create GameObject") << this;
 	setScene(static_cast<GameScene*>(parent));
 
 	m_body->setBodyType(Box2DBody::Static);
@@ -50,8 +51,9 @@ GameObject::GameObject(QQuickItem *parent)
 	m_body->setActive(true);
 	m_body->setSleepingAllowed(true);
 
-	if (m_scene)
-		m_body->setWorld(m_scene->world());
+	if (m_scene) {
+		onSceneChanged();
+	}
 
 	connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
 }
@@ -66,6 +68,10 @@ GameObject::GameObject(QQuickItem *parent)
 GameObject::~GameObject()
 {
 	delete m_body;
+
+	qDeleteAll(m_childItems);
+
+	qCDebug(lcScene).noquote() << tr("Destroy GameObject") << this;
 }
 
 
@@ -127,13 +133,36 @@ void GameObject::bodyComplete()
 
 
 /**
+ * @brief GameObject::addChildItem
+ * @param item
+ */
+
+void GameObject::addChildItem(QQuickItem *item)
+{
+	m_childItems.append(item);
+}
+
+
+/**
  * @brief GameObject::onSceneChanged
  */
 
 void GameObject::onSceneChanged()
 {
-	if (m_scene && m_scene->world())
-		m_body->setWorld(m_scene->world());
+	if (m_sceneConnected)
+		return;
+
+	if (m_scene) {
+		if (m_scene->world()) {
+			m_body->setWorld(m_scene->world());
+		}
+
+		if (m_scene) {
+			connect(m_scene->timingTimer(), &QTimer::timeout, this, &GameObject::timingTimerTimeout);
+			emit sceneConnected();
+			m_sceneConnected = true;
+		}
+	}
 }
 
 

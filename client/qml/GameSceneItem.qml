@@ -36,33 +36,13 @@ GameScene {
 	scale: _sceneZoom+((1.0-_sceneZoom)*_sceneScale)
 	transformOrigin: Item.TopLeft
 
-	//property alias playerLocatorComponent: playerLocatorComponent
-
-	/*GameScenePrivate {
-		id: scenePrivate
-
-		onSceneLoaded: {
-			game.currentScene = gameScene
-			scene.forceActiveFocus()
-		}
-	}
-
-
-	Connections {
-		target: game
-		function onGameStarted() {
-			createLadders()
-		}
-	}*/
-
 	world: World { }
-
 
 	// Base ground
 
 	GameObject {
 		x: 0
-		y: control.height - 50
+		y: control.height
 		width: control.width
 		height: 10
 
@@ -81,12 +61,6 @@ GameScene {
 	}
 
 
-	GameLadder {
-		boundRect: Qt.rect(100, 20, 20, 300)
-	}
-
-
-
 	MouseArea {
 		id: area
 		anchors.fill: parent
@@ -103,28 +77,7 @@ GameScene {
 	}
 
 
-	Component {
-		id: componentSprite
 
-		Sprite {  }
-	}
-
-	function addToSprites(sequence : Item, sdata) {
-		var obj = componentSprite.createObject(sequence, sdata)
-
-		/*obj.name = sdata.name
-		obj.source = sdata.source
-		obj.frameCount = sdata.frameCount
-		obj.frameWidth = sdata.frameWidth
-		obj.frameHeight = sdata.frameHeight
-		obj.frameX = sdata.frameX
-		obj.frameY = sdata.frameY
-		obj.frameDuration = sdata.frameDuration
-		obj.frameDurationVariation = sdata.frameDurationVariation
-		obj.to = sdata.to */
-
-		sequence.sprites.push(obj)
-	}
 
 	/*
 

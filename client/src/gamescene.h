@@ -37,6 +37,12 @@
 class ActionGame;
 class GameObject;
 
+#define TIMING_TIMER_TIMEOUT_MSEC	60
+
+/**
+ * @brief The GameScene class
+ */
+
 class GameScene : public QQuickItem
 {
 	Q_OBJECT
@@ -48,6 +54,8 @@ class GameScene : public QQuickItem
 	Q_PROPERTY(QList<QPointer<GameLadder>> ladders READ ladders CONSTANT)
 	Q_PROPERTY(bool showObjects READ showObjects WRITE setShowObjects NOTIFY showObjectsChanged)
 	Q_PROPERTY(bool showEnemies READ showEnemies WRITE setShowEnemies NOTIFY showEnemiesChanged)
+	Q_PROPERTY(QTimer *timingTimer READ timingTimer CONSTANT)
+	Q_PROPERTY(int timingTimerTimeoutMsec READ timingTimerTimeoutMsec CONSTANT)
 
 public:
 	GameScene(QQuickItem *parent = nullptr);
@@ -75,6 +83,11 @@ public:
 	bool showEnemies() const;
 	void setShowEnemies(bool newShowEnemies);
 
+	Q_INVOKABLE void addChildItem(QQuickItem *item);
+
+	QTimer *timingTimer() const;
+	int timingTimerTimeoutMsec() const;
+
 public slots:
 	void zoomOverviewToggle();
 	void onScenePrepared();
@@ -85,11 +98,11 @@ protected:
 
 signals:
 	void gameChanged();
-	void zoomOverviewChanged();
+	void zoomOverviewChanged(bool zoom);
 	void debugViewChanged();
 	void worldChanged();
-	void showObjectsChanged();
-	void showEnemiesChanged();
+	void showObjectsChanged(bool show);
+	void showEnemiesChanged(bool show);
 
 private:
 	void loadTiledLayers();
@@ -98,18 +111,25 @@ private:
 
 	Tiled::ObjectGroup *objectLayer(const QString &name) const;
 
+
+private:
 	ActionGame *m_game = nullptr;
 	GameTerrain m_terrain;
 	Box2DWorld *m_world = nullptr;
 
+	QTimer *m_timingTimer = nullptr;
+	const int m_timingTimerTimeoutMsec = TIMING_TIMER_TIMEOUT_MSEC;
+
 	QList<QPointer<GameObject>> m_grounds;
 	QList<QPointer<GameLadder>> m_ladders;
 	QList<QPointer<TiledPaintedLayer>> m_tiledLayers;
+	QList<QPointer<QQuickItem>> m_childItems;
 
 	bool m_zoomOverview = false;
 	bool m_debugView = false;
 	bool m_showObjects = false;
 	bool m_showEnemies = false;
+
 };
 
 

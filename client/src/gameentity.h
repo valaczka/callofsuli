@@ -38,10 +38,13 @@
 #include "box2dfixture.h"
 #include "box2draycast.h"
 #include "gameobject.h"
+#include "qpropertyanimation.h"
 
 #include <QJsonObject>
 
-
+/**
+ * @brief The GameEntity class
+ */
 
 class GameEntity : public GameObject
 {
@@ -50,22 +53,30 @@ class GameEntity : public GameObject
 	Q_PROPERTY(QString dataDir READ dataDir WRITE setDataDir NOTIFY dataDirChanged)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged)
 	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged)
-	Q_PROPERTY(bool isAlive READ isAlive WRITE setIsAlive NOTIFY isAliveChanged)
+	Q_PROPERTY(bool isAlive READ isAlive NOTIFY isAliveChanged)
 	Q_PROPERTY(bool facingLeft READ facingLeft WRITE setFacingLeft NOTIFY facingLeftChanged)
 	Q_PROPERTY(qreal rayCastLength READ rayCastLength WRITE setRayCastLength NOTIFY rayCastLengthChanged)
 	Q_PROPERTY(qreal rayCastElevation READ rayCastElevation WRITE setRayCastElevation NOTIFY rayCastElevationChanged)
 	Q_PROPERTY(bool rayCastEnabled READ rayCastEnabled WRITE setRayCastEnabled NOTIFY rayCastEnabledChanged)
 	Q_PROPERTY(QRectF bodyRect READ bodyRect WRITE setBodyRect NOTIFY bodyRectChanged)
 	Q_PROPERTY(qreal walkSize READ walkSize WRITE setWalkSize NOTIFY walkSizeChanged)
-	Q_PROPERTY(QString shotSound READ shotSound WRITE setShotSound NOTIFY shotSoundChanged)
+	Q_PROPERTY(QUrl shotSound READ shotSound WRITE setShotSound NOTIFY shotSoundChanged)
 
 	Q_PROPERTY(Box2DFixture::CategoryFlag categoryFixture READ categoryFixture WRITE setCategoryFixture NOTIFY categoryFixtureChanged)
 	Q_PROPERTY(Box2DFixture::CategoryFlag categoryCollidesWith READ categoryCollidesWith WRITE setCategoryCollidesWith NOTIFY categoryCollidesWithChanged)
 	Q_PROPERTY(Box2DFixture::CategoryFlag categoryRayCast READ categoryRayCast WRITE setCategoryRayCast NOTIFY categoryRayCastChanged)
 
+	Q_PROPERTY(QQuickItem *spriteItem READ spriteItem WRITE setSpriteItem NOTIFY spriteItemChanged)
+	Q_PROPERTY(QQuickItem *spriteSequence READ spriteSequence NOTIFY spriteSequenceChanged)
+
 	Q_PROPERTY(bool isOnGround READ isOnGround NOTIFY isOnGroundChanged)
 
-	Q_PROPERTY(QQuickItem * spriteSequence READ spriteSequence WRITE setSpriteSequence NOTIFY spriteSequenceChanged)
+	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged)
+	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged)
+	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged)
+	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged)
+	Q_PROPERTY(bool hpProgressEnabled READ hpProgressEnabled WRITE setHpProgressEnabled NOTIFY hpProgressEnabledChanged)
+	Q_PROPERTY(QColor hpProgressColor READ hpProgressColor WRITE setHpProgressColor NOTIFY hpProgressColorChanged)
 
 public:
 	explicit GameEntity(QQuickItem *parent = nullptr);
@@ -76,6 +87,18 @@ public:
 
 	QPair<QPointF, QPointF> getRayPoints(const qreal &width);
 	QPair<QPointF, QPointF> getRayPoints();
+
+	bool isOnGround() const;
+
+	const QJsonObject &dataObject() const;
+	const QJsonObject &sprites() const;
+
+	Q_INVOKABLE QJsonObject sprite(const QString &key) const;
+
+	Box2DBox *fixture() const;
+
+	Q_INVOKABLE bool createSpriteItem();
+
 
 	bool facingLeft() const;
 	void setFacingLeft(bool newFacingLeft);
@@ -104,15 +127,10 @@ public:
 	const QString &dataDir() const;
 	void setDataDir(const QString &newDataDir);
 
-	const QString &shotSound() const;
-	void setShotSound(const QString &newShotSound);
+	QUrl shotSound() const;
+	void setShotSound(const QUrl &newShotSound);
 
 	bool isAlive() const;
-	void setIsAlive(bool newIsAlive);
-
-
-	QQuickItem *spriteSequence() const;
-	void setSpriteSequence(QQuickItem *newSpriteSequence);
 
 	const Box2DFixture::CategoryFlag &categoryFixture() const;
 	void setCategoryFixture(const Box2DFixture::CategoryFlag &newCategoryFixture);
@@ -123,25 +141,36 @@ public:
 	const Box2DFixture::CategoryFlag &categoryRayCast() const;
 	void setCategoryRayCast(const Box2DFixture::CategoryFlag &newCategoryRayCast);
 
+	bool glowEnabled() const;
+	void setGlowEnabled(bool newGlowEnabled);
 
-	bool isOnGround() const;
+	const QColor &glowColor() const;
+	void setGlowColor(const QColor &newGlowColor);
 
+	QQuickItem *spriteItem() const;
+	void setSpriteItem(QQuickItem *newSpriteItem);
 
-	const QJsonObject &dataObject() const;
-	const QJsonObject &sprites() const;
+	QQuickItem *spriteSequence() const;
 
+	bool overlayEnabled() const;
+	void setOverlayEnabled(bool newOverlayEnabled);
 
-	Q_INVOKABLE QJsonObject sprite(const QString &key) const;
+	const QColor &overlayColor() const;
+	void setOverlayColor(const QColor &newOverlayColor);
 
-	Box2DBox *fixture() const;
+	bool hpProgressEnabled() const;
+	void setHpProgressEnabled(bool newHpProgressEnabled);
 
+	const QColor &hpProgressColor() const;
+	void setHpProgressColor(const QColor &newHpProgressColor);
 
 
 public slots:
-	inline void decreaseHp() { setHp(m_hp-1); }
-	inline void kill() { setHp(0); }
+	void decreaseHp() { setHp(m_hp-1); }
+	void kill();
 
 	void updateFixtures(QString spriteName = "");
+	void jumpToSprite(const QString &sprite);
 
 
 private slots:
@@ -149,10 +178,11 @@ private slots:
 	void onEndContact(Box2DFixture *other);
 	void onRayCastTimerTimeout();
 	void onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, qreal fraction);
-	void onCurrentSpriteChanged();
+	void onCurrentSpriteChanged(QString sprite);
 
 signals:
 	void baseGroundContact();
+	void killed();
 	void died();
 
 	void beginContact(Box2DFixture *other);
@@ -170,18 +200,27 @@ signals:
 	void isAliveChanged();
 	void bodyRectChanged();
 	void dataDirChanged();
-	void spriteSequenceChanged();
 	void isOnGroundChanged();
-	void shotSoundChanged();
+	void shotSoundChanged(QUrl sound);
 
 	void categoryFixtureChanged(Box2DFixture::CategoryFlag flag);
 	void categoryCollidesWithChanged(Box2DFixture::CategoryFlag flag);
 	void categoryRayCastChanged(Box2DFixture::CategoryFlag flag);
 
+	void glowEnabledChanged();
+	void glowColorChanged();
+	void overlayEnabledChanged();
+	void overlayColorChanged();
+	void hpProgressEnabledChanged();
+	void hpProgressColorChanged();
+
+	void spriteItemChanged();
+	void spriteSequenceChanged();
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items);
 	void updateFixtures(const QJsonObject &spriteData);
+	void onIsAliveDisabled();
 
 	QRectF m_bodyRect;
 	QSizeF m_frameSize;
@@ -190,26 +229,35 @@ protected:
 	QJsonObject m_dataObject;
 	QJsonObject m_sprites;
 	QString m_dataDir;
+	QUrl m_defaultShotSound;
 
 
 private:
 	void doRayCast();
 	void doRayCast(const QPointF &point1, const QPointF &point2);
 	void rayCastFixtureCheck();
+	void onFacingLeftChanged();
+	void onSceneConnected();
 
 	void loadSprites();
 
 	Box2DRayCast *m_rayCast = nullptr;
-	QTimer *m_rayCastTimer = nullptr;
-	int m_hp = 0;
-	int m_maxHp = 0;
+	int m_hp = 1;
+	int m_maxHp = 1;
 	bool m_facingLeft = false;
 	qreal m_rayCastLength = 0;
 	qreal m_rayCastElevation = 0;
-	bool m_rayCastEnabled = true;
-	QString m_shotSound;
-	bool m_isAlive = true;
+	bool m_rayCastEnabled = false;
+	QUrl m_shotSound;
 
+	bool m_glowEnabled = false;
+	QColor m_glowColor = QColor("white");
+	bool m_overlayEnabled = false;
+	QColor m_overlayColor = QColor("white");
+	bool m_hpProgressEnabled = false;
+	QColor m_hpProgressColor = QColor("red");
+
+	QQuickItem *m_spriteItem = nullptr;
 	QQuickItem *m_spriteSequence = nullptr;
 	bool m_spritesLoaded = false;
 
@@ -219,6 +267,8 @@ private:
 	Box2DFixture::CategoryFlag m_categoryRayCast = Box2DFixture::None;
 	QList<QPointer<Box2DFixture>> m_groundFixtures;
 	QMap<float32, QList<QPointer<Box2DFixture>>> m_rayCastFixtures;
+
+	QPropertyAnimation *m_dieAnimation = nullptr;
 };
 
 #endif // GAMEPLAYERPRIVATE_H
