@@ -37,40 +37,21 @@
 
 #include <QQuickPaintedItem>
 
-#include "tmxmap.h"
-
+#include <libtiled/map.h>
 
 class TiledPaintedLayer : public QQuickPaintedItem
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Tiled::Map * map READ map WRITE setMap NOTIFY mapChanged)
-	Q_PROPERTY(Tiled::TileLayer * layer READ layer WRITE setLayer NOTIFY layerChanged)
-
 public:
-	TiledPaintedLayer(QQuickItem *parent = Q_NULLPTR);
-
-	Tiled::Map * map() const { return m_map; }
-	Tiled::TileLayer * layer() const { return m_layer; }
-
-public slots:
-	void onParentChanged(QQuickItem *);
-	void setMap(Tiled::Map * map);
-	void setLayer(Tiled::TileLayer * layer);
+	TiledPaintedLayer(QQuickItem *parent, Tiled::Map *map, Tiled::TileLayer *layer);
+	virtual ~TiledPaintedLayer();
 
 protected:
 	virtual void paint(QPainter *painter) override;
 
-private slots:
-	void onParentSizeChanged();
-
-signals:
-	void mapChanged(Tiled::Map * map);
-	void layerChanged(Tiled::TileLayer * layer);
-
-private:
-	Tiled::Map * m_map;
-	Tiled::TileLayer * m_layer;
+	Tiled::Map *m_map;
+	Tiled::TileLayer *m_layer;
 };
 
 #endif // TILEDPAINTEDLAYER_H

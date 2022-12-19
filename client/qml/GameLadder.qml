@@ -1,70 +1,64 @@
-import Bacon2D 1.0
 import QtQuick 2.15
-import COS.Client 1.0
+import CallOfSuli 1.0
+import Box2D 2.0
 import QtGraphicalEffects 1.0
-import "Style"
 
-PhysicsEntity {
-	id: root
-	sleepingAllowed: true
-	width: ladder ? ladder.boundRect.width : 10
+GameLadderPrivate {
+	id: control
+	width: boundRect.width
 	height: 0
-	x: ladder ? ladder.boundRect.x : 0
-	y: ladder ? ladder.boundRect.y-fixtureHeight : 0
+	x: boundRect.x
+	y: boundRect.y-fixtureHeight
 	z: 5
 
-	bodyType: Body.Static
-
-	readonly property bool ladderActive: ladder && ladder.active
 	property int _collision: 0 //Box.Category3
 
 	readonly property int fixtureHeight: 20
 	readonly property int ladderWidth: 30
 
-	property bool glowEnabled: false
+	property bool glowEnabled: scene && scene.showObjects
 	property bool _glowForced: false
 
-	property GameLadderPrivate ladder: null
-
-	fixtures: [
+	body.fixtures: [
 		Box {
 			width: ladderWidth-6
-			x: (root.width-ladderWidth)/2+3
+			x: (control.width-ladderWidth)/2+3
 			y: 0
 			height: fixtureHeight
 			sensor: true
 			collidesWith: _collision
 			categories: Box.Category4
 
-			readonly property QtObject targetObject: ladder
+			readonly property QtObject targetObject: control
 			readonly property var targetData: {"direction": "down" }
 
-			onBeginContact: glowEnabled = true
-			onEndContact: glowEnabled = false
+			onBeginContact: _glowForced = true
+			onEndContact: _glowForced = false
 		},
 		Box {
 			width: ladderWidth-6
-			x: (root.width-ladderWidth)/2+3
-			y: root.height-fixtureHeight
+			x: (control.width-ladderWidth)/2+3
+			y: control.height-fixtureHeight
 			height: fixtureHeight
 			sensor: true
 			collidesWith: _collision
 			categories: Box.Category4
 
-			readonly property QtObject targetObject: ladder
+			readonly property QtObject targetObject: control
 			readonly property var targetData: {"direction": "up" }
 
-			onBeginContact: glowEnabled = true
-			onEndContact: glowEnabled = false
+			onBeginContact: _glowForced = true
+			onEndContact: _glowForced = false
 		}
 	]
 
+
 	Glow {
 		id: glow
-		opacity: ladderActive && (glowEnabled || _glowForced) ? 1.0 : 0.0
+		opacity: control.active && (glowEnabled || _glowForced) ? 1.0 : 0.0
 		visible: opacity != 0
 
-		color: CosStyle.colorGlowItem
+		color: Client.Style.colorGlow
 		source: img
 		anchors.fill: img
 
@@ -79,10 +73,10 @@ PhysicsEntity {
 	BorderImage {
 		id: img
 		source: "qrc:/terrain/tileset/ladder1.png"
-		x: (root.width-ladderWidth)/2
+		x: (control.width-ladderWidth)/2
 		y: fixtureHeight
 		width: ladderWidth
-		height: root.height-fixtureHeight
+		height: control.height-fixtureHeight
 		border.left: 9
 		border.top: 9
 		border.right: 7
@@ -95,7 +89,7 @@ PhysicsEntity {
 	states: [
 		State {
 			name: "active"
-			when: ladderActive
+			when: control.active
 		}
 	]
 
@@ -106,21 +100,21 @@ PhysicsEntity {
 
 			SequentialAnimation {
 				PropertyAction {
-					target: root
+					target: control
 					property: "_glowForced"
 					value: true
 				}
 
 				PropertyAnimation {
-					target: root
+					target: control
 					property: "height"
 					from: 0
-					to: ladder.boundRect.height+fixtureHeight
+					to: control.boundRect.height+fixtureHeight
 					duration: 3000
 				}
 
 				PropertyAction {
-					target: root
+					target: control
 					property: "_collision"
 					value: Box.Category3
 				}
@@ -130,7 +124,7 @@ PhysicsEntity {
 				}
 
 				PropertyAction {
-					target: root
+					target: control
 					property: "_glowForced"
 					value: false
 				}
@@ -138,4 +132,5 @@ PhysicsEntity {
 			}
 		}
 	]
+
 }
