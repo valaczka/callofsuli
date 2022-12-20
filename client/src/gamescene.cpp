@@ -26,16 +26,22 @@
 
 #include "gamescene.h"
 #include "actiongame.h"
+#include "application.h"
 #include "box2dfixture.h"
 #include "gameladder.h"
 #include "gameobject.h"
+#include "gameplayer.h"
 #include "gameterrain.h"
 #include "gameenemysoldier.h"
 #include "libtiled/mapobject.h"
 #include "qtimer.h"
 #include "tiledpaintedlayer.h"
+#include "utils.h"
 #include <QRandomGenerator>
 
+#ifndef Q_OS_WASM
+#include "desktopclient.h"
+#endif
 
 Q_LOGGING_CATEGORY(lcScene, "app.scene")
 
@@ -55,6 +61,8 @@ GameScene::GameScene(QQuickItem *parent)
 
 	m_timingTimer->setInterval(m_timingTimerTimeoutMsec);
 	m_timingTimer->start();
+
+	loadGameData();
 }
 
 
@@ -113,6 +121,24 @@ void GameScene::load()
 }
 
 
+/**
+ * @brief GameScene::playSoundPlayerVoice
+ * @param source
+ */
+
+void GameScene::playSoundPlayerVoice(const QString &source)
+{
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client)
+		client->playSound(source, Sound::PlayerVoice);
+#endif
+}
+
+
+
+
+
 
 /**
  * @brief GameScene::keyPressEvent
@@ -121,9 +147,38 @@ void GameScene::load()
 
 void GameScene::keyPressEvent(QKeyEvent *event)
 {
+	/*if (!event->isAutoRepeat())
+		qDebug(lcScene).noquote() << tr("Key press event:") << event;*/
+
 	const int &key = event->key();
+	GamePlayer *player = m_game->player();
+
+	if (!m_game->running())
+		player = nullptr;
 
 	switch (key) {
+
+	case Qt::Key_Shift:
+		if (player) player->setMovingFlag(GamePlayer::SlowModifier);
+		break;
+
+	case Qt::Key_Left:
+		if (player) {
+			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier);
+			player->setMovingFlag(GamePlayer::MoveLeft);
+		}
+		break;
+
+	case Qt::Key_Right:
+		if (player) {
+			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier);
+			player->setMovingFlag(GamePlayer::MoveRight);
+		}
+		break;
+
+	case Qt::Key_Space:
+		if (player) player->shot();
+		return;
 
 	case Qt::Key_F3:
 		zoomOverviewToggle();
@@ -141,6 +196,12 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 		if (event->modifiers().testFlag(Qt::ShiftModifier))
 			setDebugView(!m_debugView);
 		break;
+
+	case Qt::Key_X:
+		if (event->modifiers().testFlag(Qt::ShiftModifier) && m_mouseArea && m_mouseArea->property("containsMouse").toBool() && player)
+			player->moveTo(m_mouseArea->property("mouseX").toReal(), m_mouseArea->property("mouseY").toReal(), true);
+
+		break;
 	}
 }
 
@@ -152,9 +213,35 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 
 void GameScene::keyReleaseEvent(QKeyEvent *event)
 {
+	if (event->isAutoRepeat())
+		return;
+
+	//qDebug(lcScene).noquote() << tr("Key release event:") << event;
+
 	const int &key = event->key();
+	GamePlayer *player = m_game->player();
+
+	/*if (!m_game->running())
+		player = nullptr;*/
 
 	switch (key) {
+	case Qt::Key_Shift:
+		if (player) player->setMovingFlag(GamePlayer::SlowModifier, false);
+		break;
+
+	case Qt::Key_Left:
+		if (player) {
+			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
+			player->setMovingFlag(GamePlayer::MoveLeft, false);
+		}
+		break;
+
+	case Qt::Key_Right:
+		if (player) {
+			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
+			player->setMovingFlag(GamePlayer::MoveRight, false);
+		}
+		break;
 
 	case Qt::Key_F10:
 		setShowObjects(false);
@@ -165,6 +252,25 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 		break;
 	}
 
+}
+
+
+
+/**
+ * @brief GameScene::loadGameData
+ */
+
+void GameScene::loadGameData()
+{
+	bool error = false;
+	const QString filename = ":/internal/game/parameters.json";
+
+	m_gameData = Utils::fileToJsonObject(filename, &error);
+
+	if (error)
+		return;
+
+	qCDebug(lcScene).noquote() << tr("Load game data from:") << filename;
 }
 
 
@@ -327,6 +433,67 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 
 
 /**
+ * @brief GameScene::gameData
+ * @return
+ */
+
+const QJsonObject &GameScene::gameData() const
+{
+	return m_gameData;
+}
+
+
+
+
+/**
+ * @brief GameScene::levelData
+ * @param level
+ * @return
+ */
+
+QJsonObject GameScene::levelData(int level) const
+{
+	if (level < 0)
+		level = m_game->level();
+
+	const QString &key = QString::number(level);
+
+	return m_gameData.value("level").toObject().value(key).toObject();
+}
+
+
+
+/**
+ * @brief GameScene::createPlayer
+ */
+
+void GameScene::createPlayer()
+{
+	qDebug() << "CREATE PLAYER" << m_game->player();
+
+	if (m_game->player()) {
+		m_game->setPlayer(nullptr);
+		qDebug() << "ALREADY";
+	}
+
+	GamePlayer *player = GamePlayer::create(this);
+	GameTerrain::PlayerPositionData pos = m_terrain.defaultPlayerPosition();
+	pos.point.setY(pos.point.y()-player->height());
+
+	player->setPosition(pos.point);
+	player->setMaxHp(5);
+	player->setHp(3);
+
+	m_game->setPlayer(player);
+
+	connect(player, &GamePlayer::died, this, &GameScene::createPlayer);
+
+	addChildItem(player);
+}
+
+
+
+/**
  * @brief GameScene::timingTimerTimeoutMsec
  * @return
  */
@@ -435,20 +602,15 @@ void GameScene::onScenePrepared()
 		soldier->setMaxHp(QRandomGenerator::global()->bounded(1, 5));
 		soldier->setHp(QRandomGenerator::global()->bounded(1, 5));
 
-		QTimer *timer = new QTimer(this);
-		timer->setInterval(QRandomGenerator::global()->bounded(28000, 40000));
-		timer->setSingleShot(true);
-		connect(timer, &QTimer::timeout, soldier, &GameEntity::kill);
-		timer->start();
-
-		qDebug() << "START" << timer->interval();
-
 		addChildItem(soldier);
 
 		soldier->startMovingAfter(2500);
 
 		QCoreApplication::processEvents();
 	}
+
+
+	createPlayer();
 }
 
 
@@ -504,4 +666,17 @@ void GameScene::setShowEnemies(bool newShowEnemies)
 void GameScene::addChildItem(QQuickItem *item)
 {
 	m_childItems.append(item);
+}
+
+QQuickItem *GameScene::mouseArea() const
+{
+	return m_mouseArea;
+}
+
+void GameScene::setMouseArea(QQuickItem *newMouseArea)
+{
+	if (m_mouseArea == newMouseArea)
+		return;
+	m_mouseArea = newMouseArea;
+	emit mouseAreaChanged();
 }

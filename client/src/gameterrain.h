@@ -106,6 +106,7 @@ public:
 	QList<ObjectData> teleports() const { return objects(Teleport); }
 
 
+	PlayerPositionData defaultPlayerPosition() const;
 
 
 

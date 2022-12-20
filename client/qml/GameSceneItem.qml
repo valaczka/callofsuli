@@ -36,7 +36,9 @@ GameScene {
 	scale: _sceneZoom+((1.0-_sceneZoom)*_sceneScale)
 	transformOrigin: Item.TopLeft
 
-	world: World { }
+	world: World {  }
+
+	mouseArea: area
 
 	// Base ground
 
@@ -227,62 +229,6 @@ GameScene {
 
 
 
-	Component {
-		id: playerComponent
-		GamePlayer { }
-	}
-
-
-	Component {
-		id: ladderComponent
-		GameLadder { }
-	}
-
-	Component {
-		id: enemySoldierComponent
-		GameEnemySoldier { }
-	}
-
-	Component {
-		id: enemySniperComponent
-		GameEnemySniper { }
-	}
-
-
-	Component {
-		id: fireComponent
-		GameFire {}
-	}
-
-	Component {
-		id: fenceComponent
-		GameFence {}
-	}
-
-	Component {
-		id: teleportComponent
-		GameTeleport {}
-	}
-
-
-
-	Component {
-		id: pickableComponentHealth
-		GamePickableHealth { }
-	}
-
-
-	Component {
-		id: pickableComponentGeneral
-		GamePickableGeneral { }
-	}
-
-	Component {
-		id: playerLocatorComponent
-		GamePlayerLocator { }
-	}
-
-
 	function createPlayer() : Item {
 		if (!game.player) {
 			var r = playerLocatorComponent.createObject(scene)
@@ -439,4 +385,10 @@ GameScene {
 	}
 
 */
+
+
+	Component {
+		id: playerLocatorComponent
+		GamePlayerLocator { }
+	}
 }

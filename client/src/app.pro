@@ -124,10 +124,10 @@ SOURCES += \
 	gameentity.cpp \
 	gameladder.cpp \
 	gameobject.cpp \
+	gameplayer.cpp \
 	gamescene.cpp \
 	gameterrain.cpp \
 	main.cpp \
-	style.cpp \
 	tiledpaintedlayer.cpp \
 	utils.cpp
 
@@ -148,9 +148,9 @@ HEADERS += \
 	gameentity.h \
 	gameladder.h \
 	gameobject.h \
+	gameplayer.h \
 	gamescene.h \
 	gameterrain.h \
-	style.h \
 	tiledpaintedlayer.h \
 	utils.h
 

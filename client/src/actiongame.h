@@ -29,20 +29,25 @@
 
 #include "abstractgame.h"
 #include <QObject>
+#include "gameplayer.h"
 
 class ActionGame : public AbstractGame
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QQuickItem* player READ player WRITE setPlayer NOTIFY playerChanged)				// Csere GamePlayer-re
+	Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
 
 public:
 	ActionGame(Client *client);
 	virtual ~ActionGame();
 
-	QQuickItem *player() const;
-	void setPlayer(QQuickItem *newPlayer);
+	int level() const {return 1;}
+
+	void tryAttack(GamePlayer *player, GameEnemy *enemy);
+
+	GamePlayer *player() const;
+	void setPlayer(GamePlayer *newPlayer);
 
 	bool running() const;
 	void setRunning(bool newRunning);
@@ -55,7 +60,7 @@ signals:
 	void runningChanged();
 
 private:
-	QQuickItem *m_player = nullptr;
+	QPointer<GamePlayer> m_player = nullptr;
 	bool m_running = false;
 };
 

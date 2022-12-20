@@ -31,7 +31,6 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
-#include "style.h"
 #include "utils.h"
 
 class Application;
@@ -50,7 +49,6 @@ class Client : public QObject
 	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
 
 	Q_PROPERTY(Utils* Utils READ utils CONSTANT)
-	Q_PROPERTY(Style* Style READ style CONSTANT)
 	Q_PROPERTY(bool debug READ debug CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
@@ -72,7 +70,6 @@ public:
 
 	QNetworkAccessManager *networkManager() const;
 	Utils *utils() const;
-	Style *style() const;
 	Application *application() const;
 
 	bool debug() const;
@@ -110,7 +107,6 @@ protected:
 
 	QNetworkAccessManager *const m_networkManager = nullptr;
 	Utils *const m_utils = nullptr;
-	Style *const m_style = nullptr;
 	AbstractGame *m_currentGame = nullptr;
 
 };

@@ -347,6 +347,28 @@ const QList<GameTerrain::PlayerPositionData> &GameTerrain::playerPositions() con
 
 
 /**
+ * @brief GameTerrain::defaultPlayerPosition
+ * @return
+ */
+
+GameTerrain::PlayerPositionData GameTerrain::defaultPlayerPosition() const
+{
+	PlayerPositionData pos;
+
+	pos.block = -1;
+
+	foreach (const PlayerPositionData &data, m_playerPositions) {
+		if (data.start && (pos.block == -1 || data.block < pos.block))
+			pos = data;
+	}
+
+	return pos;
+}
+
+
+
+
+/**
  * @brief GameTerrain::objects
  * @return
  */

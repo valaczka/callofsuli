@@ -27,7 +27,7 @@
 #include "gameenemysoldier.h"
 #include "gamescene.h"
 #include "qdiriterator.h"
-#include "qtimer.h"
+#include "actiongame.h"
 #include <QRandomGenerator>
 
 GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
@@ -36,19 +36,8 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	setHpProgressEnabled(true);
 
 	connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
-	connect(this, &GameEnemy::killed, this, &GameEnemySoldier::onKilled);
 	connect(this, &GameEnemy::movingChanged, this, &GameEnemySoldier::onMovingChanged);
-	connect(this, &GameEnemySoldier::atBoundChanged, this, &GameEnemySoldier::onAtBoundChanged);
-
-	QTimer *timer = new QTimer(this);
-	timer->setInterval(QRandomGenerator::global()->bounded(3000, 10000));
-	connect(timer, &QTimer::timeout, this, &GameEnemy::attack);
-	timer->start();
-
-	connect(this, &GameEnemy::killed, timer, &QTimer::deleteLater);
-
-	connect(this, &GameObject::timingTimerTimeout, this, &GameEnemySoldier::onMovingTimerTimeout);
-
+	connect(this, &GameObject::timingTimerTimeout, this, &GameEnemySoldier::onTimingTimerTimeout);
 	connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
 
 }
@@ -76,15 +65,6 @@ void GameEnemySoldier::onAttack()
 }
 
 
-/**
- * @brief GameEnemySoldier::onKilled
- */
-
-void GameEnemySoldier::onKilled()
-{
-	jumpToSprite("dead");
-}
-
 
 
 
@@ -92,18 +72,18 @@ void GameEnemySoldier::onKilled()
  * @brief GameEnemySoldier::onMovingTimerTimeout
  */
 
-void GameEnemySoldier::onMovingTimerTimeout()
+void GameEnemySoldier::onTimingTimerTimeout()
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
 		qCWarning(lcScene) << tr("Invalid enemy type");
 		return;
 	}
 
-	if (!hp())
+	if (m_enemyState == Dead || !isAlive())
 		return;
 
 	if (!game() || !game()->running() || !m_moving) {
-		jumpToSprite("idle");
+		setEnemyState(Idle);
 		return;
 	}
 
@@ -111,32 +91,55 @@ void GameEnemySoldier::onMovingTimerTimeout()
 	/*if (m_player || m_attackRunning || !m_isAlive)
 		return;*/
 
-	if (m_atBound) {
+	if (m_enemyState == Idle) {
 		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec();
 
 		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
 			setFacingLeft(!facingLeft());
-			setAtBound(false);
+			setEnemyState(Move);
 			m_turnElapsedMsec = -1;
 		}
-	} else {
+	} else if (m_enemyState == Move) {
 		qreal posX = x();
 		qreal delta = m_walkSize;
 
+		body()->setBodyType(Box2DBody::Kinematic);
+
 		if (facingLeft()) {
 			if (posX-delta < m_terrainEnemyData.rect.left()) {
-				setAtBound(true);
+				setEnemyState(Idle);
 				m_turnElapsedMsec = 0;
 			} else {
 				setX(posX-delta);
 			}
 		} else {
 			if (posX+delta > m_terrainEnemyData.rect.right() - width()) {
-				setAtBound(true);
+				setEnemyState(Idle);
 				m_turnElapsedMsec = 0;
 			} else {
 				setX(posX+delta);
 			}
+		}
+
+		body()->setBodyType(Box2DBody::Dynamic);
+	} else if (m_enemyState == WatchPlayer) {
+		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
+
+		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
+
+		if (m_attackElapsedMsec >= m_msecBeforeAttack) {
+			//setFacingLeft(!facingLeft());
+			setEnemyState(Attack);
+			attackPlayer();
+			m_attackElapsedMsec = 0;
+		}
+	} else if (m_enemyState == Attack) {
+		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
+
+		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
+			//setFacingLeft(!facingLeft());
+			attackPlayer();
+			m_attackElapsedMsec = 0;
 		}
 	}
 }
@@ -148,27 +151,18 @@ void GameEnemySoldier::onMovingTimerTimeout()
 void GameEnemySoldier::onMovingChanged()
 {
 	if (game() && game()->running() && m_moving)
-		jumpToSprite("walk");
+		setEnemyState(Move);
 }
+
+
+
+
 
 
 /**
- * @brief GameEnemySoldier::onAtBoundChanged
+ * @brief GameEnemySoldier::turnElapsedMsec
+ * @return
  */
-
-void GameEnemySoldier::onAtBoundChanged()
-{
-	if (!game() || !game()->running()) {
-		jumpToSprite("idle");
-		return;
-	}
-
-	jumpToSprite(m_atBound ? "idle" : "walk");
-
-}
-
-
-
 
 int GameEnemySoldier::turnElapsedMsec() const
 {
@@ -238,13 +232,78 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 
 
 /**
+ * @brief GameEnemySoldier::attackPlayer
+ */
+
+void GameEnemySoldier::attackPlayer()
+{
+	emit attack();
+
+	jumpToSprite("shot");
+
+	if (player() && player()->isAlive())
+		player()->hurtByEnemy(this, true);
+}
+
+
+/**
  * @brief GameEnemySoldier::rayCastReport
  * @param items
  */
 
 void GameEnemySoldier::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 {
+	GamePlayer *player = nullptr;
 
+	foreach(GameEntity *item, items) {
+		GamePlayer *e = qobject_cast<GamePlayer *>(item);
+
+		if (e && e->isAlive()) {
+			player = e;
+			break;
+		}
+	}
+
+	setPlayer(player);
+
+	if ((m_enemyState == Attack || m_enemyState == WatchPlayer) && !player)
+		setEnemyState(Move);
+	else if (player && m_enemyState != Attack && m_enemyState != WatchPlayer)
+		setEnemyState(WatchPlayer);
+
+}
+
+
+/**
+ * @brief GameEnemySoldier::enemyStateModified
+ * @param newEnemyState
+ */
+
+void GameEnemySoldier::enemyStateModified()
+{
+	switch (m_enemyState) {
+	case Invalid:
+	case Idle:
+		jumpToSprite("idle");
+		break;
+	case Move:
+		jumpToSprite("walk");
+		break;
+	case WatchPlayer:
+		m_attackElapsedMsec = 0;
+		setMsecLeftToAttack(m_msecBeforeAttack);
+		jumpToSprite("idle");
+		break;
+
+	case Attack:
+		setMsecLeftToAttack(0);
+		break;
+
+	case Dead:
+		jumpToSprite("idle");
+		jumpToSprite("dead");
+		break;
+	}
 }
 
 
@@ -255,29 +314,16 @@ void GameEnemySoldier::rayCastReport(const QMultiMap<qreal, GameEntity *> &items
 
 void GameEnemySoldier::onSceneConnected()
 {
-	connect(m_scene, &GameScene::showEnemiesChanged, this, [this](const bool &show){
-		setGlowEnabled(show);
-	});
+	const QJsonObject &data = m_scene->levelData().value("enemy").toObject().value("soldier").toObject();
+
+	setRayCastElevation(data.value("rayCastElevation").toDouble());
+	setRayCastLength(data.value("rayCastLength").toDouble());
+	setMsecBeforeTurn(data.value("msecBeforeTurn").toDouble());
+	setCastAttackFraction(data.value("castAttackFraction").toDouble());
+	setMsecBeforeAttack(data.value("msecBeforeAttack").toDouble());
+	setMsecBetweenAttack(data.value("msecBetweenAttack").toDouble());
 }
 
-
-/**
- * @brief GameEnemySoldier::atBound
- * @return
- */
-
-bool GameEnemySoldier::atBound() const
-{
-	return m_atBound;
-}
-
-void GameEnemySoldier::setAtBound(bool newAtBound)
-{
-	if (m_atBound == newAtBound)
-		return;
-	m_atBound = newAtBound;
-	emit atBoundChanged();
-}
 
 int GameEnemySoldier::msecBeforeTurn() const
 {

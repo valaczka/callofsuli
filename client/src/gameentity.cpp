@@ -129,6 +129,8 @@ bool GameEntity::loadFromJsonFile(const QString &filename)
 
 	m_spriteFacingLeft = m_dataObject.value("facingLeft").toBool(false);
 
+	onFacingLeftChanged();
+
 	setWalkSize(m_dataObject.value("walk").toDouble(0));
 
 	setShotSound(m_dataObject.value("shotSound").toString());
@@ -142,7 +144,7 @@ bool GameEntity::loadFromJsonFile(const QString &filename)
 	setWidth(m_frameSize.width());
 	setHeight(m_frameSize.height());
 
-	updateFixtures(sprite("idle"));
+	updateFixturesJson(sprite("idle"));
 
 	return true;
 }
@@ -168,7 +170,9 @@ void GameEntity::doRayCast(const QPointF &point1, const QPointF &point2)
 
 	QRectF r(point1, point2);
 
-	emit rayCastPerformed(r.normalized());
+	QRectF r2 = mapRectFromItem(m_scene, r.normalized());
+
+	emit rayCastPerformed(r2);
 
 	m_scene->world()->rayCast(m_rayCast, point1, point2);
 }
@@ -204,16 +208,16 @@ bool GameEntity::createSpriteItem()
 		item->setParentItem(this);
 		item->setProperty("entity", QVariant::fromValue(this));
 
-		/*if (m_spriteSequence) {
+		if (m_spriteSequence) {
 			const QMetaObject *mo = m_spriteSequence->metaObject();
 
 			auto p = mo->property(mo->indexOfProperty("currentSprite"));
-			auto t = this->metaObject()->indexOfSlot("onCurrentSpriteChanged(QString)");
+			auto t = this->metaObject()->indexOfMethod("onSequenceCurrentSpriteChanged(QString)");
 
 			if (p.hasNotifySignal()) {
 				connect(m_spriteSequence, p.notifySignal(), this, this->metaObject()->method(t));
 			}
-		}*/
+		}
 
 		addChildItem(item);
 
@@ -258,11 +262,14 @@ int GameEntity::hp() const
 
 void GameEntity::setHp(int newHp)
 {
+	if (m_hp == newHp)
+		return;
+
 	if (newHp < 0)
 		newHp = 0;
 
-	if (m_hp == newHp)
-		return;
+	if (newHp > 0 && newHp < m_hp)
+		emit hurt();
 
 	m_hp = newHp;
 	emit hpChanged();
@@ -347,7 +354,7 @@ void GameEntity::updateFixtures(QString spriteName)
 		spriteName = m_spriteItem->property("currentSprite").toString();
 	}
 
-	updateFixtures(sprite(spriteName.isEmpty() ? "idle" : spriteName));
+	updateFixturesJson(sprite(spriteName.isEmpty() ? "idle" : spriteName));
 }
 
 
@@ -462,16 +469,22 @@ void GameEntity::onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &
 }
 
 
+
+
 /**
- * @brief GameEntity::onCurrentSpriteChanged
+ * @brief GameEntity::onSequenceCurrentSpriteChanged
+ * @param sprite
  */
 
-void GameEntity::onCurrentSpriteChanged(QString sprite)
+void GameEntity::onSequenceCurrentSpriteChanged(QString sprite)
 {
-	qDebug() << "CHANGED" << sprite;
-
-
+	m_lastCurrentSprite = sprite;
+	emit currentSpriteChanged(sprite);
+	updateFixtures(sprite);
 }
+
+
+
 
 
 
@@ -514,7 +527,7 @@ void GameEntity::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
  * @param spriteData
  */
 
-void GameEntity::updateFixtures(const QJsonObject &spriteData)
+void GameEntity::updateFixturesJson(const QJsonObject &spriteData)
 {
 	if (!m_fixture) {
 		qCDebug(lcScene).noquote() << tr("Create fixture for:") << this << m_categoryFixture << m_categoryCollidesWith;
@@ -536,8 +549,6 @@ void GameEntity::updateFixtures(const QJsonObject &spriteData)
 
 		bodyComplete();
 	}
-
-	qCDebug(lcScene).noquote() << tr("Update fixtures for:") << this;
 
 	if (m_facingLeft == m_spriteFacingLeft)
 		m_fixture->setX(m_bodyRect.x());
@@ -568,12 +579,12 @@ void GameEntity::updateFixtures(const QJsonObject &spriteData)
 
 }
 
-const Box2DFixture::CategoryFlag &GameEntity::categoryRayCast() const
+const Box2DFixture::CategoryFlags &GameEntity::categoryRayCast() const
 {
 	return m_categoryRayCast;
 }
 
-void GameEntity::setCategoryRayCast(const Box2DFixture::CategoryFlag &newCategoryRayCast)
+void GameEntity::setCategoryRayCast(const Box2DFixture::CategoryFlags &newCategoryRayCast)
 {
 	if (m_categoryRayCast == newCategoryRayCast)
 		return;
@@ -587,12 +598,12 @@ void GameEntity::setCategoryRayCast(const Box2DFixture::CategoryFlag &newCategor
  * @return
  */
 
-const Box2DFixture::CategoryFlag &GameEntity::categoryCollidesWith() const
+const Box2DFixture::CategoryFlags &GameEntity::categoryCollidesWith() const
 {
 	return m_categoryCollidesWith;
 }
 
-void GameEntity::setCategoryCollidesWith(const Box2DFixture::CategoryFlag &newCategoryCollidesWith)
+void GameEntity::setCategoryCollidesWith(const Box2DFixture::CategoryFlags &newCategoryCollidesWith)
 {
 	if (m_categoryCollidesWith == newCategoryCollidesWith)
 		return;
@@ -607,12 +618,12 @@ void GameEntity::setCategoryCollidesWith(const Box2DFixture::CategoryFlag &newCa
  * @return
  */
 
-const Box2DFixture::CategoryFlag &GameEntity::categoryFixture() const
+const Box2DFixture::CategoryFlags &GameEntity::categoryFixture() const
 {
 	return m_categoryFixture;
 }
 
-void GameEntity::setCategoryFixture(const Box2DFixture::CategoryFlag &newCategoryFixture)
+void GameEntity::setCategoryFixture(const Box2DFixture::CategoryFlags &newCategoryFixture)
 {
 	if (m_categoryFixture == newCategoryFixture)
 		return;
@@ -670,7 +681,7 @@ void GameEntity::rayCastFixtureCheck()
 			if (!active)
 				break;
 
-			if (categories.testFlag(m_categoryRayCast)) {
+			if (categories & m_categoryRayCast) {
 				qreal fraction = i.key();
 				GameEntity *e = qobject_cast<GameEntity*>(fixture->getBody()->target());
 
@@ -701,6 +712,8 @@ void GameEntity::onFacingLeftChanged()
 		m_spriteSequence->setState("inverse");
 	else
 		m_spriteSequence->setState("");
+
+	updateFixtures();
 }
 
 
@@ -1064,16 +1077,25 @@ void GameEntity::setHpProgressColor(const QColor &newHpProgressColor)
 }
 
 
+
+
 /**
  * @brief GameEntity::kill
  */
 
 void GameEntity::kill()
 {
-	setHp(0);
-
 	emit killed();
+	setHp(0);
 }
+
+
+
+/**
+ * @brief GameEntity::spriteSequence
+ * @return
+ */
+
 
 QQuickItem *GameEntity::spriteSequence() const
 {

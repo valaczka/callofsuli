@@ -39,7 +39,7 @@ Item {
 		source: overed
 		radius: 8
 		samples: 17
-		color: Qt.lighter(Qaterial.Style.primaryColorLight)
+		color: Qaterial.Style.colorGlow
 		visible: true
 	}
 

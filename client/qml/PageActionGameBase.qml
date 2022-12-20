@@ -165,18 +165,19 @@ Page {
 
 							ScriptAction {
 								script: {
-								/*	flick.setXOffset()
+									flick.setXOffset()
 									flick.setYOffset()
 									if (gameScene.zoomOverview && game.player) {
 										var r = gameScene.playerLocatorComponent.createObject(gameScene)
 										r.anchors.centerIn = game.player
-									}*/
+									}
 								}
 							}
 						}
 
 					}
 				]
+
 			}
 
 			Desaturate {
@@ -192,6 +193,9 @@ Page {
 
 				Behavior on opacity { NumberAnimation { duration: 750 } }
 			}
+
+
+
 
 			/*
 			CosGame {
@@ -214,35 +218,6 @@ Page {
 
 
 
-
-
-				GameTiledScene {
-					id: gameScene
-					game: game
-					scenePrivate.game: game
-
-
-				}
-
-
-				Connections {
-					target: game.player ? game.player : null
-					function onXChanged(x) {
-						gameScene.zoomOverview = false
-						flick.setXOffset()
-						flick.setYOffset()
-					}
-
-					function onFacingLeftChanged(facingLeft) {
-						flick.setXOffset()
-					}
-
-					function onYChanged(y) {
-						gameScene.zoomOverview = false
-						flick.setYOffset()
-					}
-
-				}
 
 				Connections {
 					target: game.player && game.player.entityPrivate ? game.player.entityPrivate : null
@@ -373,26 +348,14 @@ Page {
 			}
 
 
-			Desaturate {
-				id: gameSaturate
 
-				anchors.fill: game
-				source: game
-
-				opacity: 0.0
-				visible: desaturation
-
-				desaturation: 1.0
-
-				Behavior on opacity { NumberAnimation { duration: 750 } }
-			}
 
 
 		}*/
 
 		}
 
-		/*PinchArea {
+		PinchArea {
 			anchors.fill: parent
 
 			MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
@@ -408,9 +371,9 @@ Page {
 					gameScene.zoomOverview = false
 				}
 			}
-		}*/
+		}
 
-		/*
+
 		onWidthChanged: setXOffset()
 		onHeightChanged: setYOffset()
 		onContentWidthChanged: setXOffset()
@@ -438,7 +401,7 @@ Page {
 			var x = 0
 			var newX = false
 
-			if (game.player.facingLeft || gameScene.isSceneZoom) {
+			if (game.player.facingLeft || gameScene.zoomOverview) {
 				if (px+pw+10 > cx+fw) {
 					x = px+pw+10-fw
 					newX = true
@@ -463,7 +426,7 @@ Page {
 				if (x+fw > cw)
 					x = cw-fw
 
-				if (game.player.isRunning) {
+				if (game.player.playerState == GamePlayer.Run) {
 					if (animX.running)
 						animX.stop()
 					flick.contentX = x
@@ -541,7 +504,7 @@ Page {
 			}
 		}
 
-		*/
+
 	}
 
 	Image {
@@ -1259,6 +1222,49 @@ Page {
 			}
 		}*/
 
+
+
+	Connections {
+		target: game ? game.player : null
+
+		function onXChanged(x) {
+			gameScene.zoomOverview = false
+			flick.setXOffset()
+			flick.setYOffset()
+		}
+
+		function onFacingLeftChanged(facingLeft) {
+			flick.setXOffset()
+		}
+
+		function onYChanged(y) {
+			gameScene.zoomOverview = false
+			flick.setYOffset()
+		}
+
+		function onHurt() {
+			painhudImageAnim.start()
+		}
+
+		function onKilled() {
+			console.warn("KILLED")
+			//messageList.message(qsTr("Your man has died"), 3)
+			skullImageAnim.start()
+		}
+
+	}
+
+
+	Connections {
+		target: game
+
+		function onPlayerChanged() {
+			if (game.player) {
+				flick.setXOffset()
+				flick.setYOffset()
+			}
+		}
+	}
 
 
 	state: "default"

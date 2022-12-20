@@ -29,16 +29,26 @@
 
 #include "gameentity.h"
 #include "gameterrain.h"
+#include <QPointer>
 
 #ifndef Q_OS_WASM
 #include <QSoundEffect>
 #endif
+
+class GamePlayer;
 
 class GameEnemy : public GameEntity
 {
 	Q_OBJECT
 
 	Q_PROPERTY(bool moving READ moving WRITE setMoving NOTIFY movingChanged)
+	Q_PROPERTY(bool aimedByPlayer READ aimedByPlayer WRITE setAimedByPlayer NOTIFY aimedByPlayerChanged)
+	Q_PROPERTY(qreal castAttackFraction READ castAttackFraction WRITE setCastAttackFraction NOTIFY castAttackFractionChanged)
+	Q_PROPERTY(qreal msecBeforeAttack READ msecBeforeAttack WRITE setMsecBeforeAttack NOTIFY msecBeforeAttackChanged)
+	Q_PROPERTY(qreal msecBetweenAttack READ msecBetweenAttack WRITE setMsecBetweenAttack NOTIFY msecBetweenAttackChanged)
+	Q_PROPERTY(EnemyState enemyState READ enemyState WRITE setEnemyState NOTIFY enemyStateChanged)
+	Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
+	Q_PROPERTY(qreal msecLeftToAttack READ msecLeftToAttack NOTIFY msecLeftToAttackChanged)
 
 #ifndef Q_OS_WASM
 	Q_PROPERTY(QSoundEffect soundEffect READ soundEffect CONSTANT)
@@ -48,33 +58,89 @@ public:
 	explicit GameEnemy(QQuickItem *parent = nullptr);
 	virtual ~GameEnemy();
 
+#ifndef Q_OS_WASM
+	QSoundEffect *soundEffect() const { return m_soundEffect; }
+#endif
+
+	enum EnemyState {
+		Invalid = 0,
+		Idle,
+		Move,
+		WatchPlayer,
+		Attack,
+		Dead
+	};
+
+	Q_ENUM(EnemyState);
+
+	Q_INVOKABLE void startMovingAfter(const int &msec);
+
+
 	const GameTerrain::EnemyData &terrainEnemyData() const;
 	void setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnemyData);
 
 	bool moving() const;
 	void setMoving(bool newMoving);
 
-	Q_INVOKABLE void startMovingAfter(const int &msec);
+	bool aimedByPlayer() const;
+	void setAimedByPlayer(bool newAimedByPlayer);
 
-#ifndef Q_OS_WASM
-	QSoundEffect *soundEffect() const { return m_soundEffect; }
-#endif
+	qreal castAttackFraction() const;
+	void setCastAttackFraction(qreal newCastAttackFraction);
+
+	qreal msecBeforeAttack() const;
+	void setMsecBeforeAttack(qreal newMsecBeforeAttack);
+
+	qreal msecBetweenAttack() const;
+	void setMsecBetweenAttack(qreal newMsecBetweenAttack);
+
+	const EnemyState &enemyState() const;
+	void setEnemyState(const EnemyState &newEnemyState);
+
+	GamePlayer *player() const;
+	void setPlayer(GamePlayer *newPlayer);
+
+	qreal msecLeftToAttack() const;
+	void setMsecLeftToAttack(qreal newMsecLeftToAttack);
+
+
+public slots:
+	void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
+	void missedByPlayer(GamePlayer *player);
 
 signals:
 	void attack();
+	void killMissed();
 	void movingChanged();
+	void aimedByPlayerChanged();
+	void castAttackFractionChanged();
+	void msecBeforeAttackChanged();
+	void msecBetweenAttackChanged();
+	void enemyStateChanged();
+	void playerChanged();
+	void msecLeftToAttackChanged();
 
 private slots:
 	void onSceneConnected();
 
 protected:
-	GameTerrain::EnemyData m_terrainEnemyData;
-	bool m_moving = false;
-	int m_startMovingAfter = 0;
+	virtual void enemyStateModified() {}
+
 #ifndef Q_OS_WASM
 	QSoundEffect *m_soundEffect = nullptr;
 #endif
+	GameTerrain::EnemyData m_terrainEnemyData;
+	bool m_moving = false;
+	int m_startMovingAfter = 0;
 
+	qreal m_castAttackFraction = 0.5;
+	qreal m_msecBeforeAttack = 1500;
+	qreal m_msecBetweenAttack = 1500;
+
+	EnemyState m_enemyState = Invalid;
+	bool m_aimedByPlayer = false;
+	QPointer<GameEntity> m_player = nullptr;
+	qreal m_msecLeftToAttack = -1;
 };
 
 #endif // GAMEENEMY_H

@@ -16,5 +16,9 @@
         <file>GameLadder.qml</file>
         <file>GameEnemySoldier.qml</file>
         <file>GameEntitySpriteSequence.qml</file>
+        <file>GameEntityRay.qml</file>
+        <file>GamePlayer.qml</file>
+        <file>GamePlayerLocator.qml</file>
+        <file>GameEnemyMarker.qml</file>
     </qresource>
 </RCC>

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.cpp
+ * OLDGamePlayerprivate.cpp
  *
  * Created on: 2020. 10. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * OLDGamePlayerPrivate
  *
  *  This file is part of Call of Suli.
  *
@@ -43,10 +43,10 @@
 #include "box2dbody.h"
 #include "box2dfixture.h"
 #include "cosclient.h"
-#include "gameplayer.h"
+#include "OLDGamePlayer.h"
 #include "gameenemy.h"
 
-GamePlayer::GamePlayer(QQuickItem *parent)
+OLDGamePlayer::OLDGamePlayer(QQuickItem *parent)
 	: GameEntity(parent)
 	, m_ladderMode(LadderUnavaliable)
 	, m_isLadderDirectionUp(false)
@@ -65,19 +65,19 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	, m_invisible(false)
 	, m_teleport(nullptr)
 {
-	connect(this, &GameEntity::cosGameChanged, this, &GamePlayer::onCosGameChanged);
-	connect(this, &GamePlayer::bodyBeginContact, this, &GamePlayer::onBodyBeginContact);
-	connect(this, &GamePlayer::bodyEndContact, this, &GamePlayer::onBodyEndContact);
+	connect(this, &GameEntity::cosGameChanged, this, &OLDGamePlayer::onCosGameChanged);
+	connect(this, &OLDGamePlayer::bodyBeginContact, this, &OLDGamePlayer::onBodyBeginContact);
+	connect(this, &OLDGamePlayer::bodyEndContact, this, &OLDGamePlayer::onBodyEndContact);
 
 	m_rayCastFlag = Box2DFixture::Category5;
 }
 
 
 /**
- * @brief GamePlayer::~GamePlayer
+ * @brief OLDGamePlayer::~OLDGamePlayer
  */
 
-GamePlayer::~GamePlayer()
+OLDGamePlayer::~OLDGamePlayer()
 {
 
 }
@@ -87,10 +87,10 @@ GamePlayer::~GamePlayer()
 
 
 /**
- * @brief GamePlayerPrivate::loadQrcData
+ * @brief OLDGamePlayerPrivate::loadQrcData
  */
 
-void GamePlayer::setQrcDir()
+void OLDGamePlayer::setQrcDir()
 {
 	CosGame *game = cosGame();
 
@@ -109,10 +109,10 @@ void GamePlayer::setQrcDir()
 
 
 /**
- * @brief GamePlayerPrivate::createFixtures
+ * @brief OLDGamePlayerPrivate::createFixtures
  */
 
-void GamePlayer::createFixtures()
+void OLDGamePlayer::createFixtures()
 {
 	QVariant body = parentEntity()->property("body");
 
@@ -179,10 +179,10 @@ void GamePlayer::createFixtures()
 
 
 /**
- * @brief GamePlayerPrivate::ladderClimbUp
+ * @brief OLDGamePlayerPrivate::ladderClimbUp
  */
 
-void GamePlayer::ladderClimbUp()
+void OLDGamePlayer::ladderClimbUp()
 {
 	if (!m_ladder || !parentEntity())
 		return;
@@ -214,10 +214,10 @@ void GamePlayer::ladderClimbUp()
 
 
 /**
- * @brief GamePlayerPrivate::ladderClimbDown
+ * @brief OLDGamePlayerPrivate::ladderClimbDown
  */
 
-void GamePlayer::ladderClimbDown()
+void OLDGamePlayer::ladderClimbDown()
 {
 	if (!m_ladder || !parentEntity())
 		return;
@@ -251,10 +251,10 @@ void GamePlayer::ladderClimbDown()
 
 
 /**
- * @brief GamePlayerPrivate::ladderClimbFinish
+ * @brief OLDGamePlayerPrivate::ladderClimbFinish
  */
 
-void GamePlayer::ladderClimbFinish()
+void OLDGamePlayer::ladderClimbFinish()
 {
 	if (!m_ladder || !parentEntity())
 		return;
@@ -268,11 +268,11 @@ void GamePlayer::ladderClimbFinish()
 
 
 /**
- * @brief GamePlayerPrivate::onBodyBeginContact
+ * @brief OLDGamePlayerPrivate::onBodyBeginContact
  * @param other
  */
 
-void GamePlayer::onBodyBeginContact(Box2DFixture *other)
+void OLDGamePlayer::onBodyBeginContact(Box2DFixture *other)
 {
 	QVariant object = other->property("targetObject");
 	QVariantMap data = other->property("targetData").toMap();
@@ -323,11 +323,11 @@ void GamePlayer::onBodyBeginContact(Box2DFixture *other)
 
 
 /**
- * @brief GamePlayerPrivate::onBodyEndContact
+ * @brief OLDGamePlayerPrivate::onBodyEndContact
  * @param other
  */
 
-void GamePlayer::onBodyEndContact(Box2DFixture *other)
+void OLDGamePlayer::onBodyEndContact(Box2DFixture *other)
 {
 	QVariant object = other->property("targetObject");
 	QVariantMap data = other->property("targetData").toMap();
@@ -368,7 +368,7 @@ void GamePlayer::onBodyEndContact(Box2DFixture *other)
 	}
 }
 
-void GamePlayer::setLadderMode(GamePlayer::LadderMode ladderMode)
+void OLDGamePlayer::setLadderMode(OLDGamePlayer::LadderMode ladderMode)
 {
 	if (m_ladderMode == ladderMode)
 		return;
@@ -377,7 +377,7 @@ void GamePlayer::setLadderMode(GamePlayer::LadderMode ladderMode)
 	emit ladderModeChanged(m_ladderMode);
 }
 
-void GamePlayer::setLadder(GameLadder *ladder)
+void OLDGamePlayer::setLadder(GameLadder *ladder)
 {
 	if (m_ladder == ladder)
 		return;
@@ -387,13 +387,13 @@ void GamePlayer::setLadder(GameLadder *ladder)
 }
 
 
-void GamePlayer::setEnemy(GameEnemy *enemy)
+void OLDGamePlayer::setEnemy(GameEnemy *enemy)
 {
 	if (m_enemy == enemy)
 		return;
 
 	if (m_enemy) {
-		disconnect(m_enemy, &GameEnemy::die, this, &GamePlayer::onEnemyDied);
+		disconnect(m_enemy, &GameEnemy::die, this, &OLDGamePlayer::onEnemyDied);
 		m_enemy->setAimedByPlayer(false);
 	}
 
@@ -402,13 +402,13 @@ void GamePlayer::setEnemy(GameEnemy *enemy)
 
 	if (m_enemy) {
 		m_enemy->setAimedByPlayer(true);
-		connect(m_enemy, &GameEnemy::die, this, &GamePlayer::onEnemyDied);
+		connect(m_enemy, &GameEnemy::die, this, &OLDGamePlayer::onEnemyDied);
 	}
 }
 
 
 
-void GamePlayer::setDefaultHp(int defaultHp)
+void OLDGamePlayer::setDefaultHp(int defaultHp)
 {
 	if (m_defaultHp == defaultHp)
 		return;
@@ -418,7 +418,7 @@ void GamePlayer::setDefaultHp(int defaultHp)
 }
 
 
-void GamePlayer::setShield(int shield)
+void OLDGamePlayer::setShield(int shield)
 {
 	if (m_shield == shield)
 		return;
@@ -431,11 +431,11 @@ void GamePlayer::setShield(int shield)
 
 
 /**
- * @brief GamePlayer::hurtByEnemy
+ * @brief OLDGamePlayer::hurtByEnemy
  * @param enemy
  */
 
-void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
+void OLDGamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 {
 	emit underAttack();
 
@@ -460,11 +460,11 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 }
 
 /**
- * @brief GamePlayer::killByEnemy
+ * @brief OLDGamePlayer::killByEnemy
  * @param enemy
  */
 
-void GamePlayer::killByEnemy(GameEnemy *enemy)
+void OLDGamePlayer::killByEnemy(GameEnemy *enemy)
 {
 	if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
 		return;
@@ -481,10 +481,10 @@ void GamePlayer::killByEnemy(GameEnemy *enemy)
 
 
 /**
- * @brief GamePlayer::attackByGun
+ * @brief OLDGamePlayer::attackByGun
  */
 
-void GamePlayer::attackByGun()
+void OLDGamePlayer::attackByGun()
 {
 	if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish)
 		return;
@@ -502,10 +502,10 @@ void GamePlayer::attackByGun()
 
 
 /**
- * @brief GamePlayer::operateFire
+ * @brief OLDGamePlayer::operateFire
  */
 
-void GamePlayer::operate(QQuickItem *item)
+void OLDGamePlayer::operate(QQuickItem *item)
 {
 	if (!item || !parentEntity())
 		return;
@@ -541,11 +541,11 @@ void GamePlayer::operate(QQuickItem *item)
 
 
 /**
- * @brief GamePlayer::autoMoveUpdate
+ * @brief OLDGamePlayer::autoMoveUpdate
  * @param item
  */
 
-void GamePlayer::autoMove()
+void OLDGamePlayer::autoMove()
 {
 	if (m_moveToPoint == QPointF(0,0))
 		return;
@@ -573,10 +573,10 @@ void GamePlayer::autoMove()
 
 
 /**
- * @brief GamePlayer::teleportToNext
+ * @brief OLDGamePlayer::teleportToNext
  */
 
-void GamePlayer::teleportToNext()
+void OLDGamePlayer::teleportToNext()
 {
 	if (!m_teleport)
 		return;
@@ -618,11 +618,11 @@ void GamePlayer::teleportToNext()
 
 
 /**
- * @brief GamePlayer::playSoundEffect
+ * @brief OLDGamePlayer::playSoundEffect
  * @param effect
  */
 
-QString GamePlayer::playSoundEffect(const QString &effect)
+QString OLDGamePlayer::playSoundEffect(const QString &effect)
 {
 	QString newSource = "";
 
@@ -672,11 +672,11 @@ QString GamePlayer::playSoundEffect(const QString &effect)
 
 
 /**
- * @brief GamePlayer::attackFailed
+ * @brief OLDGamePlayer::attackFailed
  * @param enemy
  */
 
-void GamePlayer::attackFailed(GameEnemy *enemy)
+void OLDGamePlayer::attackFailed(GameEnemy *enemy)
 {
 	hurtByEnemy(enemy);
 }
@@ -687,11 +687,11 @@ void GamePlayer::attackFailed(GameEnemy *enemy)
 
 
 /**
- * @brief GamePlayerPrivate::onCosGameChanged
+ * @brief OLDGamePlayerPrivate::onCosGameChanged
  * @param game
  */
 
-void GamePlayer::onCosGameChanged(CosGame *)
+void OLDGamePlayer::onCosGameChanged(CosGame *)
 {
 	if (!cosGame())
 		return;
@@ -722,11 +722,11 @@ void GamePlayer::onCosGameChanged(CosGame *)
 
 
 /**
- * @brief GamePlayer::onRayCastReported
+ * @brief OLDGamePlayer::onRayCastReported
  * @param items
  */
 
-void GamePlayer::rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items)
+void OLDGamePlayer::rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &items)
 {
 	GameEnemy *enemy = nullptr;
 
@@ -744,11 +744,11 @@ void GamePlayer::rayCastItemsReported(const QMultiMap<qreal, QQuickItem *> &item
 
 
 /**
- * @brief GamePlayer::onEnemyDied
+ * @brief OLDGamePlayer::onEnemyDied
  * @param enemy
  */
 
-void GamePlayer::onEnemyDied()
+void OLDGamePlayer::onEnemyDied()
 {
 	m_enemy = nullptr;
 	emit enemyChanged(m_enemy);
@@ -756,11 +756,11 @@ void GamePlayer::onEnemyDied()
 
 
 /**
- * @brief GamePlayer::operateReal
+ * @brief OLDGamePlayer::operateReal
  * @param item
  */
 
-void GamePlayer::operateReal(QQuickItem *item)
+void OLDGamePlayer::operateReal(QQuickItem *item)
 {
 	if (!item)
 		return;
@@ -798,12 +798,12 @@ void GamePlayer::operateReal(QQuickItem *item)
 
 
 
-QPointF GamePlayer::moveToPoint() const
+QPointF OLDGamePlayer::moveToPoint() const
 {
 	return m_moveToPoint;
 }
 
-void GamePlayer::setMoveToPoint(QPointF newMoveToPoint)
+void OLDGamePlayer::setMoveToPoint(QPointF newMoveToPoint)
 {
 	if (m_moveToPoint == newMoveToPoint)
 		return;
@@ -816,12 +816,12 @@ void GamePlayer::setMoveToPoint(QPointF newMoveToPoint)
 	}
 }
 
-QQuickItem *GamePlayer::moveToItem() const
+QQuickItem *OLDGamePlayer::moveToItem() const
 {
 	return m_moveToItem;
 }
 
-void GamePlayer::setMoveToItem(QQuickItem *newMoveToItem)
+void OLDGamePlayer::setMoveToItem(QQuickItem *newMoveToItem)
 {
 	if (m_moveToItem == newMoveToItem)
 		return;
@@ -829,12 +829,12 @@ void GamePlayer::setMoveToItem(QQuickItem *newMoveToItem)
 	emit moveToItemChanged();
 }
 
-QQuickItem *GamePlayer::fire() const
+QQuickItem *OLDGamePlayer::fire() const
 {
 	return m_fire;
 }
 
-void GamePlayer::setFire(QQuickItem *newFire)
+void OLDGamePlayer::setFire(QQuickItem *newFire)
 {
 	if (m_fire == newFire)
 		return;
@@ -842,12 +842,12 @@ void GamePlayer::setFire(QQuickItem *newFire)
 	emit fireChanged();
 }
 
-QQuickItem *GamePlayer::fence() const
+QQuickItem *OLDGamePlayer::fence() const
 {
 	return m_fence;
 }
 
-void GamePlayer::setFence(QQuickItem *newFence)
+void OLDGamePlayer::setFence(QQuickItem *newFence)
 {
 	if (m_fence == newFence)
 		return;
@@ -855,12 +855,12 @@ void GamePlayer::setFence(QQuickItem *newFence)
 	emit fenceChanged();
 }
 
-bool GamePlayer::invisible() const
+bool OLDGamePlayer::invisible() const
 {
 	return m_invisible;
 }
 
-void GamePlayer::setInvisible(bool newInvisible)
+void OLDGamePlayer::setInvisible(bool newInvisible)
 {
 	if (m_invisible == newInvisible)
 		return;
@@ -868,12 +868,12 @@ void GamePlayer::setInvisible(bool newInvisible)
 	emit invisibleChanged();
 }
 
-QQuickItem *GamePlayer::teleport() const
+QQuickItem *OLDGamePlayer::teleport() const
 {
 	return m_teleport;
 }
 
-void GamePlayer::setTeleport(QQuickItem *newTeleport)
+void OLDGamePlayer::setTeleport(QQuickItem *newTeleport)
 {
 	if (m_teleport == newTeleport)
 		return;

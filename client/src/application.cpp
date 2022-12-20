@@ -54,6 +54,7 @@
 #include "gameenemysoldier.h"
 #include "gameladder.h"
 #include "gameobject.h"
+#include "gameplayer.h"
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -299,8 +300,12 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameScene");
 	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
 	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityPrivate");
+	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyPrivate");
 	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierPrivate");
 	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderPrivate");
+	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerPrivate");
+
+
 }
 
 /**

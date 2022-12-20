@@ -38,7 +38,7 @@
 #include <QObject>
 #include <QQuickItem>
 #include "box2dbody.h"
-#include "actiongame.h"
+
 
 /**
  * COLLISION CATEGORIES
@@ -60,6 +60,7 @@
 
 
 class GameScene;
+class ActionGame;
 
 
 /**

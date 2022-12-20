@@ -1330,4 +1330,12 @@ Qaterial.Theme
   property real pixelSize: defaultPixelSize;
   readonly property real pixelSizeRatio: pixelSize/defaultPixelSize
 
+  property color colorGlow: Qaterial.Colors.cyan400
+  property color colorEnemyGlow: Qaterial.Colors.deepOrangeA700
+  property color colorItemGlow: Qaterial.Colors.amber200
+
+  property color colorEnemyMarkerWatch: Qaterial.Colors.amber700
+  property color colorEnemyMarkerAttack: Qaterial.Colors.red800
+
+
 } // QtObject

@@ -25,11 +25,14 @@
  */
 
 #include "gameenemy.h"
-#include "desktopclient.h"
 #include "gamescene.h"
 #include "application.h"
-
+#include "gameplayer.h"
 #include <qtimer.h>
+
+#ifndef Q_OS_WASM
+#include "desktopclient.h"
+#endif
 
 GameEnemy::GameEnemy(QQuickItem *parent)
 	: GameEntity(parent)
@@ -52,6 +55,11 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 		connect(this, &GameEnemy::shotSoundChanged, m_soundEffect, &QSoundEffect::setSource);
 	}
 #endif
+
+	connect(this, &GameEnemy::isAliveChanged, this, [this](){
+		if (!isAlive())
+			setEnemyState(Dead);
+	});
 }
 
 
@@ -75,6 +83,72 @@ GameEnemy::~GameEnemy()
 void GameEnemy::onSceneConnected()
 {
 	connect(m_scene, &GameScene::zoomOverviewChanged, this, &GameEntity::setOverlayEnabled);
+}
+
+
+/**
+ * @brief GameEnemy::enemyState
+ * @return
+ */
+
+const GameEnemy::EnemyState &GameEnemy::enemyState() const
+{
+	return m_enemyState;
+}
+
+void GameEnemy::setEnemyState(const EnemyState &newEnemyState)
+{
+	if (m_enemyState == newEnemyState)
+		return;
+	m_enemyState = newEnemyState;
+	emit enemyStateChanged();
+
+	enemyStateModified();
+}
+
+
+/**
+ * @brief GameEnemy::msecBetweenAttack
+ * @return
+ */
+
+qreal GameEnemy::msecBetweenAttack() const
+{
+	return m_msecBetweenAttack;
+}
+
+void GameEnemy::setMsecBetweenAttack(qreal newMsecBetweenAttack)
+{
+	if (qFuzzyCompare(m_msecBetweenAttack, newMsecBetweenAttack))
+		return;
+	m_msecBetweenAttack = newMsecBetweenAttack;
+	emit msecBetweenAttackChanged();
+}
+
+qreal GameEnemy::msecBeforeAttack() const
+{
+	return m_msecBeforeAttack;
+}
+
+void GameEnemy::setMsecBeforeAttack(qreal newMsecBeforeAttack)
+{
+	if (qFuzzyCompare(m_msecBeforeAttack, newMsecBeforeAttack))
+		return;
+	m_msecBeforeAttack = newMsecBeforeAttack;
+	emit msecBeforeAttackChanged();
+}
+
+qreal GameEnemy::castAttackFraction() const
+{
+	return m_castAttackFraction;
+}
+
+void GameEnemy::setCastAttackFraction(qreal newCastAttackFraction)
+{
+	if (qFuzzyCompare(m_castAttackFraction, newCastAttackFraction))
+		return;
+	m_castAttackFraction = newCastAttackFraction;
+	emit castAttackFractionChanged();
 }
 
 
@@ -126,3 +200,104 @@ const GameTerrain::EnemyData &GameEnemy::terrainEnemyData() const
 	return m_terrainEnemyData;
 }
 
+
+bool GameEnemy::aimedByPlayer() const
+{
+	return m_aimedByPlayer;
+}
+
+void GameEnemy::setAimedByPlayer(bool newAimedByPlayer)
+{
+	if (m_aimedByPlayer == newAimedByPlayer)
+		return;
+	m_aimedByPlayer = newAimedByPlayer;
+	emit aimedByPlayerChanged();
+}
+
+
+/**
+ * @brief GameEnemy::player
+ * @return
+ */
+
+GamePlayer *GameEnemy::player() const
+{
+	return qobject_cast<GamePlayer*>(m_player);
+}
+
+void GameEnemy::setPlayer(GamePlayer *newPlayer)
+{
+	if (m_player == newPlayer)
+		return;
+	m_player = newPlayer;
+	emit playerChanged();
+}
+
+qreal GameEnemy::msecLeftToAttack() const
+{
+	return m_msecLeftToAttack;
+}
+
+void GameEnemy::setMsecLeftToAttack(qreal newMsecLeftToAttack)
+{
+	if (qFuzzyCompare(m_msecLeftToAttack, newMsecLeftToAttack))
+		return;
+	m_msecLeftToAttack = newMsecLeftToAttack;
+	emit msecLeftToAttackChanged();
+}
+
+
+
+
+/**
+ * @brief GameEnemy::attackByPlayer
+ * @param player
+ * @param questionEmpty
+ */
+
+void GameEnemy::attackByPlayer(GamePlayer *player, const bool &questionEmpty)
+{
+	decreaseHp();
+
+	/*const qreal &playerX = player->x();
+	const qreal &meX = x();
+
+	if (m_enemyData->enemyType() != GameEnemyData::EnemySniper && (!isEmptyQuestion || !isAlive() || m_cosGame->gameMatch()->level() > 2))
+			{
+					if (playerX <= meX && !facingLeft)
+							parentEntity()->setProperty("facingLeft", true);
+					else if (playerX > meX && facingLeft)
+							parentEntity()->setProperty("facingLeft", false);
+			}*/
+
+	if (isAlive())
+		return;
+
+	setAimedByPlayer(false);
+
+	//setEnemyState(Dead);
+}
+
+
+/**
+ * @brief GameEnemy::missedByPlayer
+ * @param player
+ */
+
+void GameEnemy::missedByPlayer(GamePlayer *player)
+{
+	qCDebug(lcScene).noquote() << tr("Missed by player:") << this;
+
+	/*qreal playerX = player->parentEntity()->x();
+			qreal meX = parentEntity()->x();
+			bool facingLeft = parentEntity()->property("facingLeft").toBool();
+
+			if (playerX <= meX && !facingLeft)
+					parentEntity()->setProperty("facingLeft", true);
+			else if (playerX > meX && facingLeft)
+					parentEntity()->setProperty("facingLeft", false);*/
+
+	emit killMissed();
+
+	player->hurtByEnemy(this, false);
+}

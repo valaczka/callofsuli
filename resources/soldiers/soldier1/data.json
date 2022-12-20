@@ -7,7 +7,7 @@
 	"x": 35,
 	"y": 3,
 	"facingLeft": false,
-	"walk": 2.2,
+	"walk": 1.1,
 	"shotSound": "shot.wav",
 	"hp": {
 		"1": 2,

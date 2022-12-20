@@ -62,9 +62,9 @@ class GameEntity : public GameObject
 	Q_PROPERTY(qreal walkSize READ walkSize WRITE setWalkSize NOTIFY walkSizeChanged)
 	Q_PROPERTY(QUrl shotSound READ shotSound WRITE setShotSound NOTIFY shotSoundChanged)
 
-	Q_PROPERTY(Box2DFixture::CategoryFlag categoryFixture READ categoryFixture WRITE setCategoryFixture NOTIFY categoryFixtureChanged)
-	Q_PROPERTY(Box2DFixture::CategoryFlag categoryCollidesWith READ categoryCollidesWith WRITE setCategoryCollidesWith NOTIFY categoryCollidesWithChanged)
-	Q_PROPERTY(Box2DFixture::CategoryFlag categoryRayCast READ categoryRayCast WRITE setCategoryRayCast NOTIFY categoryRayCastChanged)
+	Q_PROPERTY(Box2DFixture::CategoryFlags categoryFixture READ categoryFixture WRITE setCategoryFixture NOTIFY categoryFixtureChanged)
+	Q_PROPERTY(Box2DFixture::CategoryFlags categoryCollidesWith READ categoryCollidesWith WRITE setCategoryCollidesWith NOTIFY categoryCollidesWithChanged)
+	Q_PROPERTY(Box2DFixture::CategoryFlags categoryRayCast READ categoryRayCast WRITE setCategoryRayCast NOTIFY categoryRayCastChanged)
 
 	Q_PROPERTY(QQuickItem *spriteItem READ spriteItem WRITE setSpriteItem NOTIFY spriteItemChanged)
 	Q_PROPERTY(QQuickItem *spriteSequence READ spriteSequence NOTIFY spriteSequenceChanged)
@@ -132,14 +132,14 @@ public:
 
 	bool isAlive() const;
 
-	const Box2DFixture::CategoryFlag &categoryFixture() const;
-	void setCategoryFixture(const Box2DFixture::CategoryFlag &newCategoryFixture);
+	const Box2DFixture::CategoryFlags &categoryFixture() const;
+	void setCategoryFixture(const Box2DFixture::CategoryFlags &newCategoryFixture);
 
-	const Box2DFixture::CategoryFlag &categoryCollidesWith() const;
-	void setCategoryCollidesWith(const Box2DFixture::CategoryFlag &newCategoryCollidesWith);
+	const Box2DFixture::CategoryFlags &categoryCollidesWith() const;
+	void setCategoryCollidesWith(const Box2DFixture::CategoryFlags &newCategoryCollidesWith);
 
-	const Box2DFixture::CategoryFlag &categoryRayCast() const;
-	void setCategoryRayCast(const Box2DFixture::CategoryFlag &newCategoryRayCast);
+	const Box2DFixture::CategoryFlags &categoryRayCast() const;
+	void setCategoryRayCast(const Box2DFixture::CategoryFlags &newCategoryRayCast);
 
 	bool glowEnabled() const;
 	void setGlowEnabled(bool newGlowEnabled);
@@ -178,16 +178,18 @@ private slots:
 	void onEndContact(Box2DFixture *other);
 	void onRayCastTimerTimeout();
 	void onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, qreal fraction);
-	void onCurrentSpriteChanged(QString sprite);
+	void onSequenceCurrentSpriteChanged(QString sprite);
 
 signals:
 	void baseGroundContact();
+	void hurt();
 	void killed();
 	void died();
 
 	void beginContact(Box2DFixture *other);
 	void endContact(Box2DFixture *other);
 
+	void currentSpriteChanged(QString sprite);
 	void rayCastPerformed(QRectF rect);
 
 	void facingLeftChanged();
@@ -203,9 +205,9 @@ signals:
 	void isOnGroundChanged();
 	void shotSoundChanged(QUrl sound);
 
-	void categoryFixtureChanged(Box2DFixture::CategoryFlag flag);
-	void categoryCollidesWithChanged(Box2DFixture::CategoryFlag flag);
-	void categoryRayCastChanged(Box2DFixture::CategoryFlag flag);
+	void categoryFixtureChanged(Box2DFixture::CategoryFlags flag);
+	void categoryCollidesWithChanged(Box2DFixture::CategoryFlags flag);
+	void categoryRayCastChanged(Box2DFixture::CategoryFlags flag);
 
 	void glowEnabledChanged();
 	void glowColorChanged();
@@ -219,7 +221,7 @@ signals:
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items);
-	void updateFixtures(const QJsonObject &spriteData);
+	void updateFixturesJson(const QJsonObject &spriteData);
 	void onIsAliveDisabled();
 
 	QRectF m_bodyRect;
@@ -230,6 +232,11 @@ protected:
 	QJsonObject m_sprites;
 	QString m_dataDir;
 	QUrl m_defaultShotSound;
+	int m_hp = 1;
+	int m_maxHp = 1;
+	bool m_facingLeft = false;
+	QList<QPointer<Box2DFixture>> m_groundFixtures;
+	QString m_lastCurrentSprite = "";
 
 
 private:
@@ -242,9 +249,6 @@ private:
 	void loadSprites();
 
 	Box2DRayCast *m_rayCast = nullptr;
-	int m_hp = 1;
-	int m_maxHp = 1;
-	bool m_facingLeft = false;
 	qreal m_rayCastLength = 0;
 	qreal m_rayCastElevation = 0;
 	bool m_rayCastEnabled = false;
@@ -261,11 +265,11 @@ private:
 	QQuickItem *m_spriteSequence = nullptr;
 	bool m_spritesLoaded = false;
 
+
 	Box2DBox *m_fixture = nullptr;
-	Box2DFixture::CategoryFlag m_categoryFixture = Box2DFixture::None;
-	Box2DFixture::CategoryFlag m_categoryCollidesWith = CATEGORY_GROUND;
-	Box2DFixture::CategoryFlag m_categoryRayCast = Box2DFixture::None;
-	QList<QPointer<Box2DFixture>> m_groundFixtures;
+	Box2DFixture::CategoryFlags m_categoryFixture = Box2DFixture::None;
+	Box2DFixture::CategoryFlags m_categoryCollidesWith = CATEGORY_GROUND;
+	Box2DFixture::CategoryFlags m_categoryRayCast = Box2DFixture::None;
 	QMap<float32, QList<QPointer<Box2DFixture>>> m_rayCastFixtures;
 
 	QPropertyAnimation *m_dieAnimation = nullptr;

@@ -26,6 +26,7 @@
 
 #include "actiongame.h"
 #include "client.h"
+#include "gameplayer.h"
 
 ActionGame::ActionGame(Client *client)
 	: AbstractGame(Action, client)
@@ -45,16 +46,61 @@ ActionGame::~ActionGame()
 
 
 /**
+ * @brief ActionGame::tryAttack
+ * @param player
+ * @param enemy
+ */
+
+void ActionGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
+{
+	if (!player) {
+		qCWarning(lcGame).noquote() << tr("Invalid player to try attack");
+		return;
+	}
+
+	if (!enemy) {
+		qCWarning(lcGame).noquote() << tr("Invalid enemy to try attack");
+		return;
+	}
+
+	qCDebug(lcGame).noquote() << tr("Try attack");
+
+	enemy->decreaseHp();
+
+	/*if (m_question) {
+					qWarning() << "Question already exists";
+					return;
+			}
+
+			m_question = new GameQuestion(this, player, enemy, this);
+
+			if (m_gameMatch)
+					connect(m_question, &GameQuestion::xpGained, m_gameMatch, &GameMatch::addXP);
+
+			connect(m_question, &GameQuestion::finished, this, [=]() {
+					m_question->deleteLater();
+					m_question = nullptr;
+					emit questionChanged(nullptr);
+			});
+
+			emit questionChanged(m_question);
+
+			m_question->run();*/
+
+}
+
+
+/**
  * @brief ActionGame::player
  * @return
  */
 
-QQuickItem *ActionGame::player() const
+GamePlayer *ActionGame::player() const
 {
 	return m_player;
 }
 
-void ActionGame::setPlayer(QQuickItem *newPlayer)
+void ActionGame::setPlayer(GamePlayer *newPlayer)
 {
 	if (m_player == newPlayer)
 		return;

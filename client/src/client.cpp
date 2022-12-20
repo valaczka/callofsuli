@@ -38,7 +38,6 @@ Client::Client(Application *app, QObject *parent)
 	, m_application(app)
 	, m_networkManager(new QNetworkAccessManager(this))
 	, m_utils(new Utils(this))
-	, m_style(new Style(this))
 {
 	Q_ASSERT(app);
 
@@ -57,7 +56,6 @@ Client::~Client()
 
 	delete m_networkManager;
 	delete m_utils;
-	delete m_style;
 }
 
 /**
@@ -441,10 +439,3 @@ bool Client::debug() const
 
 
 
-
-
-
-Style *Client::style() const
-{
-	return m_style;
-}

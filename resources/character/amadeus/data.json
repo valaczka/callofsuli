@@ -1,5 +1,7 @@
 {
 	"name": "Amadeus",
+	"frameWidth": 90,
+	"frameHeight": 55,
 	"width": 25,
 	"height": 39,
 	"x": 37,
@@ -7,12 +9,10 @@
 	"facingLeft": true,
 	"walk": 1.5,
 	"run": 4,
-	"climb": 4,
+	"climb": 2,
 	"sprites": {
 		"idle":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 720,
 			"frameY": 385,
 			"frameCount": 2,
@@ -21,8 +21,6 @@
 		},
 		"run":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 990,
 			"frameY": 275,
 			"frameCount": 6,
@@ -31,8 +29,6 @@
 		},
 		"run2":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 450,
 			"frameY": 330,
 			"frameCount": 6,
@@ -41,8 +37,6 @@
 		},
 		"runend":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 990,
 			"frameY": 330,
 			"frameCount": 4,
@@ -51,8 +45,6 @@
 		},
 		"walk":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 810,
 			"frameY": 440,
 			"frameCount": 2,
@@ -61,8 +53,6 @@
 		},
 		"walk2": {
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 990,
 			"frameY": 440,
 			"frameCount": 4,
@@ -71,8 +61,6 @@
 		},
 		"walk3": {
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 270,
 			"frameY": 495,
 			"frameCount": 6,
@@ -81,8 +69,6 @@
 		},
 		"fall":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 90,
 			"frameY": 165,
 			"frameCount": 4,
@@ -91,8 +77,6 @@
 		},
 		"fall2": {
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 450,
 			"frameY": 165,
 			"frameCount": 7,
@@ -101,8 +85,6 @@
 		},
 		"falldeath":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 0,
 			"frameY": 220,
 			"frameCount": 8,
@@ -111,8 +93,6 @@
 		},
 		"falldeath2":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 720,
 			"frameY": 220,
 			"frameCount": 7,
@@ -121,8 +101,6 @@
 		},
 		"falldead":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 270,
 			"frameY": 275,
 			"frameCount": 1,
@@ -131,8 +109,6 @@
 		},
 		"climbup":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 0,
 			"frameY": 0,
 			"frameCount": 2,
@@ -141,8 +117,6 @@
 		},
 		"climbup2":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 180,
 			"frameY": 0,
 			"frameCount": 6,
@@ -151,8 +125,6 @@
 		},
 		"climbup3":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 720,
 			"frameY": 0,
 			"frameCount": 6,
@@ -161,8 +133,6 @@
 		},
 		"climbpause":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 0,
 			"frameY": 55,
 			"frameCount": 1,
@@ -171,8 +141,6 @@
 		},
 		"climbupend":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 180,
 			"frameY": 55,
 			"frameCount": 10,
@@ -181,16 +149,12 @@
 		},
 		"climbdown":	{
 			"source": "climbdown.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameCount": 10,
 			"frameDuration": 80,
 			"to": { "idle": 0, "climbdown" : 0, "climbdown2": 1, "climbdown3": 0, "climbpause": 0, "climbdownend": 0, "dead": 0 }
 		},
 		"climbdown2":	{
 			"source": "climbdown.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 360,
 			"frameY": 55,
 			"frameCount": 6,
@@ -199,8 +163,6 @@
 		},
 		"climbdown3":	{
 			"source": "climbdown.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 360,
 			"frameY": 110,
 			"frameCount": 6,
@@ -209,8 +171,6 @@
 		},
 		"climbdownend":	{
 			"source": "climbdown.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 360,
 			"frameY": 165,
 			"frameCount": 2,
@@ -219,8 +179,6 @@
 		},
 		"dead":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 0,
 			"frameY": 110,
 			"frameCount": 12,
@@ -229,8 +187,6 @@
 		},
 		"dead2":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 0,
 			"frameY": 165,
 			"frameCount": 1,
@@ -239,8 +195,6 @@
 		},
 		"shot":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 270,
 			"frameY": 385,
 			"frameCount": 5,
@@ -249,8 +203,6 @@
 		},
 		"operate": {
 			"source": "operate.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 0,
 			"frameY": 0,
 			"frameCount": 5,
@@ -259,8 +211,6 @@
 		},
 		"operate2": {
 			"source": "operate.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 90,
 			"frameY": 55,
 			"frameCount": 1,
@@ -269,8 +219,6 @@
 		},
 		"operate3": {
 			"source": "operate.png",
-			"frameWidth": 90,
-			"frameHeight": 55,
 			"frameX": 180,
 			"frameY": 55,
 			"frameCount": 5,

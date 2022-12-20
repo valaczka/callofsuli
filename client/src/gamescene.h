@@ -37,7 +37,7 @@
 class ActionGame;
 class GameObject;
 
-#define TIMING_TIMER_TIMEOUT_MSEC	60
+#define TIMING_TIMER_TIMEOUT_MSEC	30
 
 /**
  * @brief The GameScene class
@@ -56,6 +56,7 @@ class GameScene : public QQuickItem
 	Q_PROPERTY(bool showEnemies READ showEnemies WRITE setShowEnemies NOTIFY showEnemiesChanged)
 	Q_PROPERTY(QTimer *timingTimer READ timingTimer CONSTANT)
 	Q_PROPERTY(int timingTimerTimeoutMsec READ timingTimerTimeoutMsec CONSTANT)
+	Q_PROPERTY(QQuickItem* mouseArea READ mouseArea WRITE setMouseArea NOTIFY mouseAreaChanged)
 
 public:
 	GameScene(QQuickItem *parent = nullptr);
@@ -65,6 +66,7 @@ public:
 	void setGame(ActionGame *newGame);
 
 	Q_INVOKABLE void load();
+	Q_INVOKABLE void playSoundPlayerVoice(const QString &source);
 
 	bool zoomOverview() const;
 	void setZoomOverview(bool newZoomOverview);
@@ -88,6 +90,15 @@ public:
 	QTimer *timingTimer() const;
 	int timingTimerTimeoutMsec() const;
 
+	QQuickItem *mouseArea() const;
+	void setMouseArea(QQuickItem *newMouseArea);
+
+	const QJsonObject &gameData() const;
+	QJsonObject levelData(int level = -1) const;
+
+
+	Q_INVOKABLE void createPlayer();
+
 public slots:
 	void zoomOverviewToggle();
 	void onScenePrepared();
@@ -103,8 +114,10 @@ signals:
 	void worldChanged();
 	void showObjectsChanged(bool show);
 	void showEnemiesChanged(bool show);
+	void mouseAreaChanged();
 
 private:
+	void loadGameData();
 	void loadTiledLayers();
 	void loadGroundLayer();
 	void loadLadderLayer();
@@ -116,6 +129,7 @@ private:
 	ActionGame *m_game = nullptr;
 	GameTerrain m_terrain;
 	Box2DWorld *m_world = nullptr;
+	QQuickItem *m_mouseArea = nullptr;
 
 	QTimer *m_timingTimer = nullptr;
 	const int m_timingTimerTimeoutMsec = TIMING_TIMER_TIMEOUT_MSEC;
@@ -129,6 +143,8 @@ private:
 	bool m_debugView = false;
 	bool m_showObjects = false;
 	bool m_showEnemies = false;
+
+	QJsonObject m_gameData;
 
 };
 

@@ -34,7 +34,6 @@ class GameEnemySoldier : public GameEnemy
 	Q_OBJECT
 
 	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
-	Q_PROPERTY(bool atBound READ atBound WRITE setAtBound NOTIFY atBoundChanged)
 
 public:
 	explicit GameEnemySoldier(QQuickItem *parent = nullptr);
@@ -43,37 +42,34 @@ public:
 	int msecBeforeTurn() const;
 	void setMsecBeforeTurn(int newMsecBeforeTurn);
 
-	bool atBound() const;
-	void setAtBound(bool newAtBound);
-
 	int turnElapsedMsec() const;
 	void setTurnElapsedMsec(int newTurnElapsedMsec);
 
 	static GameEnemySoldier* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
 
+	Q_INVOKABLE void attackPlayer();
+
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
+	virtual void enemyStateModified() override;
 
 private slots:
 	void onSceneConnected();
 
-
 signals:
 	void msecBeforeTurnChanged();
-	void atBoundChanged();
 	void turnElapsedMsecChanged();
+	void enemySoldierStateChanged();
 
 private slots:
 	void onAttack();
-	void onKilled();
-	void onMovingTimerTimeout();
+	void onTimingTimerTimeout();
 	void onMovingChanged();
-	void onAtBoundChanged();
 
 private:
 	int m_msecBeforeTurn = 5000;
-	bool m_atBound = false;
 	int m_turnElapsedMsec = -1;
+	int m_attackElapsedMsec = -1;
 };
 
 #endif // GAMEENEMYSOLDIER_H

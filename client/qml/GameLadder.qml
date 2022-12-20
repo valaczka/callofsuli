@@ -2,6 +2,9 @@ import QtQuick 2.15
 import CallOfSuli 1.0
 import Box2D 2.0
 import QtGraphicalEffects 1.0
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+
 
 GameLadderPrivate {
 	id: control
@@ -58,7 +61,7 @@ GameLadderPrivate {
 		opacity: control.active && (glowEnabled || _glowForced) ? 1.0 : 0.0
 		visible: opacity != 0
 
-		color: Client.Style.colorGlow
+		color: Qaterial.Style.colorItemGlow
 		source: img
 		anchors.fill: img
 
