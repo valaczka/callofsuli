@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+
 
 Item {
 	id: control
@@ -10,7 +12,7 @@ Item {
 
 	z: 10
 
-	property color color: CosStyle.colorAccentLighter
+	property color color: Qaterial.Colors.amber200
 	property int count: 3
 	property int _created: 0
 
