@@ -54,6 +54,10 @@ public slots:
 	void setVolume(const Sound::ChannelType &channel, const int &volume) const;
 	void setSfxVolumeInt(int sfxVolume);
 
+private slots:
+	void onMainWindowChanged();
+	void onOrientationChanged(Qt::ScreenOrientation orientation);
+
 signals:
 	void sfxVolumeChanged(const qreal &volume);
 

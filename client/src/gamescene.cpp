@@ -118,6 +118,7 @@ void GameScene::load()
 	loadTiledLayers();
 	loadGroundLayer();
 	loadLadderLayer();
+	loadTerrainObjectsLayer();
 }
 
 
@@ -176,6 +177,14 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 		}
 		break;
 
+	case Qt::Key_Up:
+		if (player) player->setMovingFlag(GamePlayer::MoveUp);
+		break;
+
+	case Qt::Key_Down:
+		if (player) player->setMovingFlag(GamePlayer::MoveDown);
+		break;
+
 	case Qt::Key_Space:
 		if (player) player->shot();
 		return;
@@ -221,9 +230,6 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 	const int &key = event->key();
 	GamePlayer *player = m_game->player();
 
-	/*if (!m_game->running())
-		player = nullptr;*/
-
 	switch (key) {
 	case Qt::Key_Shift:
 		if (player) player->setMovingFlag(GamePlayer::SlowModifier, false);
@@ -241,6 +247,14 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
 			player->setMovingFlag(GamePlayer::MoveRight, false);
 		}
+		break;
+
+	case Qt::Key_Up:
+		if (player) player->setMovingFlag(GamePlayer::MoveUp, false);
+		break;
+
+	case Qt::Key_Down:
+		if (player) player->setMovingFlag(GamePlayer::MoveDown, false);
 		break;
 
 	case Qt::Key_F10:
@@ -405,6 +419,54 @@ void GameScene::loadLadderLayer()
 		m_ladders.append(ladder);
 	}
 }
+
+
+/**
+ * @brief GameScene::loadSceneObjectLayer
+ */
+
+void GameScene::loadTerrainObjectsLayer()
+{
+	qCDebug(lcScene).noquote() << tr("Load terrain objects layer");
+
+	QHash<GameTerrain::ObjectType, QString> list;
+
+	list.insert(GameTerrain::Fire, "GameFire.qml");
+
+	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
+		const GameTerrain::ObjectType &type = it.key();
+		const QString &qml = it.value();
+
+		foreach(const GameTerrain::ObjectData &data, m_terrain.objects(type)) {
+			GameObject *object = GameObject::createFromFile(qml, this);
+
+			if (!object) {
+				qCCritical(lcScene).noquote() << tr("Terrain object creation error:") << type << qml;
+				continue;
+			}
+
+			object->setParentItem(this);
+			object->setScene(this);
+
+			switch (type) {
+			case GameTerrain::Fire:
+				object->setX(data.point.x()-(object->width()/2));
+				object->setY(data.point.y()-object->height()+10);                       // +10: az animáció korrekciója miatt lejjebb kell tenni
+				break;
+			default:
+				object->setPosition(data.point);
+			}
+
+			object->bodyComplete();
+
+			addChildItem(object);
+		}
+	}
+}
+
+
+
+
 
 
 

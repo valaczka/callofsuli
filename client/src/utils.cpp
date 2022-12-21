@@ -206,3 +206,17 @@ QJsonArray Utils::fileToJsonArray(const QString &filename, bool *error)
 
 	return doc.array();
 }
+
+
+/**
+ * @brief Utils::colorSetAlpha
+ * @param color
+ * @param alpha
+ * @return
+ */
+
+QColor Utils::colorSetAlpha(QColor color, const qreal &alpha)
+{
+	color.setAlphaF(alpha);
+	return color;
+}

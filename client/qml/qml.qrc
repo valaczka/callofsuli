@@ -20,5 +20,12 @@
         <file>GamePlayer.qml</file>
         <file>GamePlayerLocator.qml</file>
         <file>GameEnemyMarker.qml</file>
+        <file>GameJoystick.qml</file>
+        <file>GameButton.qml</file>
+        <file>GameShotButton.qml</file>
+        <file>GameLabel.qml</file>
+        <file>GameFire.qml</file>
+        <file>GameInfo.qml</file>
+        <file>GameHpLabel.qml</file>
     </qresource>
 </RCC>

@@ -149,7 +149,6 @@ bool GameTerrain::loadObjectLayers()
 
 		Tiled::ObjectGroup *gLayer = static_cast<Tiled::ObjectGroup*>(*layer);
 
-
 		if (name == "Enemies")
 			readEnemyLayer(gLayer);
 		else if (name == "Objects")
@@ -157,21 +156,6 @@ bool GameTerrain::loadObjectLayers()
 		else if (name == "Player")
 			readPlayerLayer(gLayer);
 
-		/*if (layer->isObjectGroup() && layer->name() == "Enemies")
-		loadEnemyLayer(layer);
-	} else if (layer->isObjectGroup() && layer->name() == "Ground") {
-		loadGroundLayer(layer);
-	} else if (layer->isObjectGroup() && layer->name() == "Player") {
-		loadPlayerLayer(layer);
-	} else if (layer->isObjectGroup() && layer->name() == "Ladders") {
-		loadLadderLayer(layer);
-	} else if (layer->isObjectGroup() && layer->name() == "Objects") {
-		loadObjectLayer(layer);
-	} else if (layer->isObjectGroup() && layer->name() == "Items") {
-		loadItemLayer(layer);
-	} else if (layer->isObjectGroup() && layer->name() == "Preview") {
-		loadPreviewLayer(layer);
-	}*/
 	}
 
 	return true;

@@ -275,6 +275,58 @@ void Client::_message(const QString &text, const QString &title, const QString &
 	}
 }
 
+int Client::safeMarginBottom() const
+{
+	return m_safeMarginBottom;
+}
+
+void Client::setSafeMarginBottom(int newSafeMarginBottom)
+{
+	if (m_safeMarginBottom == newSafeMarginBottom)
+		return;
+	m_safeMarginBottom = newSafeMarginBottom;
+	emit safeMarginBottomChanged();
+}
+
+int Client::safeMarginTop() const
+{
+	return m_safeMarginTop;
+}
+
+void Client::setSafeMarginTop(int newSafeMarginTop)
+{
+	if (m_safeMarginTop == newSafeMarginTop)
+		return;
+	m_safeMarginTop = newSafeMarginTop;
+	emit safeMarginTopChanged();
+}
+
+int Client::safeMarginRight() const
+{
+	return m_safeMarginRight;
+}
+
+void Client::setSafeMarginRight(int newSafeMarginRight)
+{
+	if (m_safeMarginRight == newSafeMarginRight)
+		return;
+	m_safeMarginRight = newSafeMarginRight;
+	emit safeMarginRightChanged();
+}
+
+int Client::safeMarginLeft() const
+{
+	return m_safeMarginLeft;
+}
+
+void Client::setSafeMarginLeft(int newSafeMarginLeft)
+{
+	if (m_safeMarginLeft == newSafeMarginLeft)
+		return;
+	m_safeMarginLeft = newSafeMarginLeft;
+	emit safeMarginLeftChanged();
+}
+
 
 
 /**
@@ -370,7 +422,7 @@ void Client::messageInfo(const QString &text, QString title) const
 		title = m_application->application()->applicationDisplayName();
 
 	qCInfo(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
-	_message(text, title, "qrc:/Qaterial/Icons/firework.svg");
+	_message(text, title, "qrc:/Qaterial/Icons/alert-circle-outline.svg");
 }
 
 
@@ -386,7 +438,7 @@ void Client::messageWarning(const QString &text, QString title) const
 		title = m_application->application()->applicationDisplayName();
 
 	qCWarning(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
-	_message(text, title, "qrc:/Qaterial/Icons/flash.svg");
+	_message(text, title, "qrc:/Qaterial/Icons/alert.svg");
 }
 
 
@@ -402,7 +454,7 @@ void Client::messageError(const QString &text, QString title) const
 		title = m_application->application()->applicationDisplayName();
 
 	qCCritical(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
-	_message(text, title, "qrc:/Qaterial/Icons/fire.svg");
+	_message(text, title, "qrc:/Qaterial/Icons/alert-octagon.svg");
 }
 
 

@@ -166,7 +166,7 @@ public:
 
 
 public slots:
-	void decreaseHp() { setHp(m_hp-1); }
+	void decreaseHp();
 	void kill();
 
 	void updateFixtures(QString spriteName = "");
@@ -185,6 +185,7 @@ signals:
 	void hurt();
 	void killed();
 	void died();
+	void allHpLost();
 
 	void beginContact(Box2DFixture *other);
 	void endContact(Box2DFixture *other);

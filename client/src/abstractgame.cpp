@@ -128,6 +128,18 @@ bool AbstractGame::load()
 
 
 
+
+/**
+ * @brief AbstractGame::closeGame
+ */
+
+void AbstractGame::finishGame()
+{
+	qCDebug(lcGame).noquote() << tr("Finish game") << this;
+}
+
+
+
 /**
  * @brief AbstractGame::setPageItem
  * @param newPageItem

@@ -10,7 +10,7 @@ Item {
 	width: 200
 	height: 200
 
-	z: 10
+	z: 9
 
 	property color color: Qaterial.Colors.amber200
 	property int count: 3

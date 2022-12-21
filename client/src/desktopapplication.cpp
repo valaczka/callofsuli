@@ -61,7 +61,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 
 DesktopApplication::~DesktopApplication()
 {
-	if (m_consoleAppender) {
+	/*if (m_consoleAppender) {
 		cuteLogger->removeAppender(m_consoleAppender);
 		delete m_consoleAppender;
 	}
@@ -72,6 +72,7 @@ DesktopApplication::~DesktopApplication()
 		delete m_androidAppender;
 	}
 #endif
+*/
 }
 
 

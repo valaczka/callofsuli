@@ -19,7 +19,7 @@ GameLadderPrivate {
 	readonly property int fixtureHeight: 20
 	readonly property int ladderWidth: 30
 
-	property bool glowEnabled: scene && scene.showObjects
+	property bool glowEnabled: scene && (scene.showObjects || (scene.game.player && scene.game.player.ladder == control))
 	property bool _glowForced: false
 
 	body.fixtures: [
@@ -119,7 +119,7 @@ GameLadderPrivate {
 				PropertyAction {
 					target: control
 					property: "_collision"
-					value: Box.Category3
+					value: Box.Category2
 				}
 
 				PauseAnimation {

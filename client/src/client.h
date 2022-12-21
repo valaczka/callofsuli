@@ -53,6 +53,11 @@ class Client : public QObject
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
+	Q_PROPERTY(int safeMarginLeft READ safeMarginLeft WRITE setSafeMarginLeft NOTIFY safeMarginLeftChanged)
+	Q_PROPERTY(int safeMarginRight READ safeMarginRight WRITE setSafeMarginRight NOTIFY safeMarginRightChanged)
+	Q_PROPERTY(int safeMarginTop READ safeMarginTop WRITE setSafeMarginTop NOTIFY safeMarginTopChanged)
+	Q_PROPERTY(int safeMarginBottom READ safeMarginBottom WRITE setSafeMarginBottom NOTIFY safeMarginBottomChanged)
+
 public:
 	explicit Client(Application *app, QObject *parent = nullptr);
 	virtual ~Client();
@@ -84,6 +89,19 @@ public:
 	Q_INVOKABLE void messageError(const QString &text, QString title = "") const;
 
 
+	// Safe margins
+
+	int safeMarginLeft() const;
+	void setSafeMarginLeft(int newSafeMarginLeft);
+
+	int safeMarginRight() const;
+	void setSafeMarginRight(int newSafeMarginRight);
+
+	int safeMarginTop() const;
+	void setSafeMarginTop(int newSafeMarginTop);
+
+	int safeMarginBottom() const;
+	void setSafeMarginBottom(int newSafeMarginBottom);
 
 protected slots:
 	virtual void onApplicationStarted();
@@ -98,6 +116,10 @@ signals:
 	void mainStackChanged();
 	void mainWindowChanged();
 	void currentGameChanged();
+	void safeMarginLeftChanged();
+	void safeMarginRightChanged();
+	void safeMarginTopChanged();
+	void safeMarginBottomChanged();
 
 protected:
 	Application *const m_application = nullptr;
@@ -108,6 +130,11 @@ protected:
 	QNetworkAccessManager *const m_networkManager = nullptr;
 	Utils *const m_utils = nullptr;
 	AbstractGame *m_currentGame = nullptr;
+
+	int m_safeMarginLeft = 0;
+	int m_safeMarginRight = 0;
+	int m_safeMarginTop = 0;
+	int m_safeMarginBottom = 0;
 
 };
 

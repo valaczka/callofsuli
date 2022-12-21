@@ -18,16 +18,16 @@ T.Button
   id: _control
 
   implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-    implicitContentWidth + leftPadding + rightPadding)
+	implicitContentWidth + leftPadding + rightPadding)
   implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
-    implicitContentHeight + topPadding + bottomPadding)
+	implicitContentHeight + topPadding + bottomPadding)
 
   property bool drawline: Qaterial.Style.debug.drawDebugButton
   Qaterial.DebugRectangle
   {
-    anchors.fill: parent;
-    border.color: "pink";
-    visible: _control.drawline
+	anchors.fill: parent;
+	border.color: "pink";
+	visible: _control.drawline
   } // DebugRectangle
 
   font: Qaterial.Style.textTheme.button
@@ -39,21 +39,21 @@ T.Button
 
   leftPadding:
   {
-    if(icon.source != "" && !mirrored || text == "")
-      return Qaterial.Style.rawButton.iconPadding + leftInset
+	if(icon.source != "" && !mirrored || text == "")
+	  return Qaterial.Style.rawButton.iconPadding + leftInset
 
-    if(flat && !outlined)
-      return Qaterial.Style.rawButton.spacing + leftInset
-    return Qaterial.Style.rawButton.padding + leftInset
+	if(flat && !outlined)
+	  return Qaterial.Style.rawButton.spacing + leftInset
+	return Qaterial.Style.rawButton.padding + leftInset
   }
   rightPadding:
   {
-    if(icon.source != "" && mirrored || text == "")
-      return Qaterial.Style.rawButton.iconPadding + rightInset
+	if(icon.source != "" && mirrored || text == "")
+	  return Qaterial.Style.rawButton.iconPadding + rightInset
 
-    if(flat && !outlined)
-      return Qaterial.Style.rawButton.spacing + rightInset
-    return Qaterial.Style.rawButton.padding + rightInset
+	if(flat && !outlined)
+	  return Qaterial.Style.rawButton.spacing + rightInset
+	return Qaterial.Style.rawButton.padding + rightInset
   }
 
   topPadding: 0
@@ -66,48 +66,48 @@ T.Button
 
   property color foregroundColor:
   {
-    if(!enabled)
-      return Qaterial.Style.disabledTextColor()
-    if(flat && highlighted)
-      return palette.highlight
-    return colorReversed ? Qaterial.Style.primaryTextColorReversed() : Qaterial.Style.primaryTextColor()
+	if(!enabled)
+	  return Qaterial.Style.disabledTextColor()
+	if(flat && highlighted)
+	  return palette.highlight
+	return colorReversed ? Qaterial.Style.primaryTextColorReversed() : Qaterial.Style.primaryTextColor()
   }
   property color backgroundColor:
   {
-    if(flat)
-      return (outlined && pressed) ? Qaterial.Style.backgroundColor : "transparent"
-    if(!enabled)
-      return Qaterial.Style.buttonDisabledColor
-    return highlighted ? palette.highlight : Qaterial.Style.buttonColor
+	if(flat)
+	  return (outlined && pressed) ? Qaterial.Style.backgroundColor : "transparent"
+	if(!enabled)
+	  return Qaterial.Style.buttonDisabledColor
+	return highlighted ? palette.highlight : Qaterial.Style.buttonColor
   }
 
   readonly property int flatRippleColor: onPrimary ? Qaterial.Style.RippleBackground.Primary : Qaterial.Style
-    .RippleBackground.Background
+	.RippleBackground.Background
   readonly property int rawRippleColor: highlighted ? Qaterial.Style.RippleBackground.Accent : Qaterial.Style
-    .RippleBackground.Primary
+	.RippleBackground.Primary
 
   property color rippleColor:
   {
-    if(accentRipple)
-      return Qaterial.Style.rippleColor(Qaterial.Style.RippleBackground.AccentLight)
-    return Qaterial.Style.rippleColor(flat ? flatRippleColor : rawRippleColor)
+	if(accentRipple)
+	  return Qaterial.Style.rippleColor(Qaterial.Style.RippleBackground.AccentLight)
+	return Qaterial.Style.rippleColor(flat ? flatRippleColor : rawRippleColor)
   }
 
   property color outlinedColor:
   {
-    if(!outlined)
-      return "transparent"
-    if(!enabled)
-      return Qaterial.Style.disabledDividersColor()
-    if(pressed)
-      return foregroundColor
-    return Qaterial.Style.dividersColor()
+	if(!outlined)
+	  return "transparent"
+	if(!enabled)
+	  return Qaterial.Style.disabledDividersColor()
+	if(pressed)
+	  return foregroundColor
+	return Qaterial.Style.dividersColor()
   }
 
   property bool onPrimary: false
   property bool colorReversed: (flat && onPrimary && Qaterial.Style.shouldReverseForegroundOnPrimary) ||
-    (highlighted && Qaterial.Style.shouldReverseForegroundOnAccent) ||
-    (!flat && !highlighted && Qaterial.Style.shouldReverseForegroundOnPrimary)
+	(highlighted && Qaterial.Style.shouldReverseForegroundOnAccent) ||
+	(!flat && !highlighted && Qaterial.Style.shouldReverseForegroundOnPrimary)
 
   property double radius: Qaterial.Style.rawButton.cornerRadius
 
@@ -117,11 +117,11 @@ T.Button
 
   property double elevation:
   {
-    if(flat)
-      return (_control.down || _control.hovered) ? Qaterial.Style.rawButton.flatPressedElevation : Qaterial.Style
-      .rawButton.flatElevation
-    return _control.down ? Qaterial.Style.rawButton.defaultPressedElevation : Qaterial.Style.rawButton
-      .defaultElevation
+	if(flat)
+	  return (_control.down || _control.hovered) ? Qaterial.Style.rawButton.flatPressedElevation : Qaterial.Style
+	  .rawButton.flatElevation
+	return _control.down ? Qaterial.Style.rawButton.defaultPressedElevation : Qaterial.Style.rawButton
+	  .defaultElevation
   }
 
   property bool clipRipple: true
@@ -130,16 +130,16 @@ T.Button
 
   contentItem: Qaterial.IconLabel
   {
-    font: _control.font
-    spacing: _control.spacing
-    display: _control.display
-    icon.source: _control.icon.source
-    icon.width: _control.icon.width
-    icon.height: _control.icon.height
-    icon.color: _control.icon.color
-    icon.cache: _control.icon.cache
-    text: _control.text
-    color: _control.foregroundColor
+	font: _control.font
+	spacing: _control.spacing
+	display: _control.display
+	icon.source: _control.icon.source
+	icon.width: _control.icon.width
+	icon.height: _control.icon.height
+	icon.color: _control.icon.color
+	icon.cache: _control.icon.cache
+	text: _control.text
+	color: _control.foregroundColor
   } // IconLabel
 
   property double backgroundImplicitWidth: Qaterial.Style.rawButton.minWidth
@@ -147,59 +147,64 @@ T.Button
 
   background: Rectangle
   {
-    Qaterial.DebugRectangle
-    {
-      anchors.fill: parent;
-      border.color: "aquamarine";
-      visible: _control.drawline
-    } // DebugRectangle
+	Qaterial.DebugRectangle
+	{
+	  anchors.fill: parent;
+	  border.color: "aquamarine";
+	  visible: _control.drawline
+	} // DebugRectangle
 
-    implicitWidth: _control.backgroundImplicitWidth
-    implicitHeight: _control.backgroundImplicitHeight
-    radius: _control.radius
-    color: _control.backgroundColor
-    border.width:
-    {
-      if(_control.outlined)
-        return _control.pressed ? Qaterial.Style.rawButton.outlinedFocusWidth : Qaterial.Style.rawButton
-        .outlinedWidth
-      return 0
-    }
+	implicitWidth: _control.backgroundImplicitWidth
+	implicitHeight: _control.backgroundImplicitHeight
+	radius: _control.radius
+	color: _control.backgroundColor
+	border.width:
+	{
+	  if(_control.outlined)
+		return _control.pressed ? Qaterial.Style.rawButton.outlinedFocusWidth : Qaterial.Style.rawButton
+		.outlinedWidth
+	  return 0
+	}
 
-    border.color: _control.outlinedColor
-    // The layer is disabled when the button color is transparent so you can do
-    // Material.background: "transparent" and get a proper flat button without needing
-    // to set Material.elevation as well
-    layer.enabled: _control.enabled && (_control.backgroundColor.a > 0)
-    layer.effect: Qaterial.ElevationEffect
-    {
-      elevation: _control.elevation
-    } // ElevationEffect
+	border.color: _control.outlinedColor
+	// The layer is disabled when the button color is transparent so you can do
+	// Material.background: "transparent" and get a proper flat button without needing
+	// to set Material.elevation as well
+	layer.enabled: _control.enabled && (_control.backgroundColor.a > 0)
+	layer.effect: Qaterial.ElevationEffect
+	{
+	  elevation: _control.elevation
+	} // ElevationEffect
 
-    Qaterial.Ripple
-    {
-      id: _ripple
+	Qaterial.Ripple
+	{
+	  id: _ripple
 
-      width: parent.width + (_control.outlined ? -2 : 0)
-      height: parent.height + (_control.outlined ? -2 : 0)
-      anchors.centerIn: parent
+	  width: parent.width + (_control.outlined ? -2 : 0)
+	  height: parent.height + (_control.outlined ? -2 : 0)
+	  anchors.centerIn: parent
 
-      pressed: _control.pressed
-      anchor: _control
-      active: _control.down || _control.visualFocus || _control.hovered || _control.forceRipple
-      color: _control.rippleColor
+	  pressed: _control.pressed
+	  anchor: _control
+	  active: _control.down || _control.visualFocus || _control.hovered || _control.forceRipple
+	  color: _control.rippleColor
 
-      // trick because clipRadius isn't working in ripple private implementation (QTBUG-51894)
-      layer.enabled: _control.clipRipple
-      layer.effect: OpacityMask
-      {
-        maskSource: Rectangle
-        {
-          width: _ripple.width
-          height: _ripple.height
-          radius: _control.radius
-        } // Rectangle
-      } // OpacityMask
-    } // Ripple
+	  // trick because clipRadius isn't working in ripple private implementation (QTBUG-51894)
+	  layer.enabled: _control.clipRipple
+	  layer.effect: OpacityMask
+	  {
+		maskSource: Rectangle
+		{
+		  width: _ripple.width
+		  height: _ripple.height
+		  radius: _control.radius
+		} // Rectangle
+	  } // OpacityMask
+	} // Ripple
   } // Rectangle
+
+  //************************** VJP ***********************//
+
+  Keys.onEnterPressed: _control.clicked()
+  Keys.onReturnPressed: _control.clicked()
 } // Button

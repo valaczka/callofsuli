@@ -31,34 +31,34 @@ Qaterial.ModalDialog
 
   contentItem: Item
   {
-    Binding on implicitHeight
-    {
-      value: Math.floor(Math.max(_icon.implicitHeight, _text.implicitHeight))
-      delayed: true // Prevent intermediary values from being assigned
-    }
+	Binding on implicitHeight
+	{
+	  value: Math.floor(Math.max(_icon.implicitHeight, _text.implicitHeight))
+	  delayed: true // Prevent intermediary values from being assigned
+	}
 
-    Qaterial.RoundColorIcon
-    {
-      id: _icon
+	Qaterial.RoundColorIcon
+	{
+	  id: _icon
 
-      anchors.verticalCenter: parent.verticalCenter
-      highlighted: true
-      fill: true
-      visible: source != ""
-    } // RoundColorIcon
+	  anchors.verticalCenter: parent.verticalCenter
+	  highlighted: true
+	  fill: true
+	  visible: source != ""
+	} // RoundColorIcon
 
-    Qaterial.Label
-    {
-      id: _text
+	Qaterial.Label
+	{
+	  id: _text
 
-      text: root.text
-      x: _icon.visible ? (_icon.width + root.horizontalPadding) : 0
-      width: parent.width - x
-      font: root.font
-      color: Qaterial.Style.secondaryTextColor()
-      wrapMode: Text.Wrap
-      elide: Text.ElideRight
-      maximumLineCount: 8
-    } // Label
+	  text: root.text
+	  x: _icon.visible ? (_icon.width + root.horizontalPadding) : 0
+	  width: parent.width - x
+	  font: root.font
+	  color: Qaterial.Style.primaryTextColor() //****** VJP ******* // Qaterial.Style.secondaryTextColor()
+	  wrapMode: Text.Wrap
+	  elide: Text.ElideRight
+	  maximumLineCount: 8
+	} // Label
   } //Item
 } // ModalDialog

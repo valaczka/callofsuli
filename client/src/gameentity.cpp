@@ -268,9 +268,6 @@ void GameEntity::setHp(int newHp)
 	if (newHp < 0)
 		newHp = 0;
 
-	if (newHp > 0 && newHp < m_hp)
-		emit hurt();
-
 	m_hp = newHp;
 	emit hpChanged();
 
@@ -1074,6 +1071,25 @@ void GameEntity::setHpProgressColor(const QColor &newHpProgressColor)
 		return;
 	m_hpProgressColor = newHpProgressColor;
 	emit hpProgressColorChanged();
+}
+
+
+/**
+ * @brief GameEntity::decreaseHp
+ */
+
+void GameEntity::decreaseHp()
+{
+	if (m_hp <= 0)
+		return;
+
+	setHp(m_hp-1);
+
+	if (m_hp == 0)
+		emit allHpLost();
+	else
+		emit hurt();
+
 }
 
 

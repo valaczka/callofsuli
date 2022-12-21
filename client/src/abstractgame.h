@@ -76,6 +76,7 @@ public:
 
 public slots:
 	bool load();
+	void finishGame();
 
 protected:
 	virtual QQuickItem *loadPage() = 0;

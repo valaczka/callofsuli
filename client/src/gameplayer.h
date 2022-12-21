@@ -29,6 +29,7 @@
 
 #include "gameenemy.h"
 #include "gameentity.h"
+#include "gameladder.h"
 
 #ifndef Q_OS_WASM
 #include <QSoundEffect>
@@ -39,6 +40,8 @@ class GamePlayer : public GameEntity
 	Q_OBJECT
 
 	Q_PROPERTY(GameEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged)
+	Q_PROPERTY(GameLadder* ladder READ ladder WRITE setLadder NOTIFY ladderChanged)
+	Q_PROPERTY(LadderState ladderState READ ladderState NOTIFY ladderStateChanged)
 	Q_PROPERTY(PlayerState playerState READ playerState NOTIFY playerStateChanged)
 	Q_PROPERTY(qreal runSize READ runSize CONSTANT)
 	Q_PROPERTY(MovingFlags movingFlags READ movingFlags WRITE setMovingFlags NOTIFY movingFlagsChanged)
@@ -90,7 +93,20 @@ public:
 
 	Q_ENUM(MovingFlag)
 	Q_DECLARE_FLAGS(MovingFlags, MovingFlag)
+	Q_FLAG(MovingFlags)
 
+
+	// Ladder state
+
+	enum LadderState {
+		LadderInactive,
+		LadderUpAvailable,
+		LadderDownAvailable,
+		LadderActive,
+		LadderTopSprite
+	};
+
+	Q_ENUM(LadderState)
 
 #ifndef Q_OS_WASM
 	QSoundEffect *soundEffectShot() const;
@@ -100,9 +116,12 @@ public:
 	static GamePlayer* create(GameScene *scene, const QString &type = "");
 
 	Q_INVOKABLE void setMovingFlag(const MovingFlag &flag, const bool &on = true);
+	Q_INVOKABLE void standbyMovingFlags();
 	Q_INVOKABLE void moveTo(const QPointF &point, const bool &forced = false);
 	Q_INVOKABLE void moveTo(const qreal &x, const qreal &y, const bool &forced = false) { moveTo(QPointF(x, y), forced); }
 	Q_INVOKABLE void shot();
+	Q_INVOKABLE void turnLeft();
+	Q_INVOKABLE void turnRight();
 
 	Q_INVOKABLE void playSoundEffect(const QString &effect, int from = -1);
 
@@ -113,6 +132,7 @@ public:
 	void setPlayerState(const PlayerState &newPlayerState);
 
 	qreal runSize() const;
+	qreal climbSize() const;
 
 	const MovingFlags &movingFlags() const;
 	void setMovingFlags(const MovingFlags &newMovingFlags);
@@ -123,9 +143,20 @@ public:
 	qreal hurtFall() const;
 	void setHurtFall(qreal newHurtFall);
 
+	GameLadder *ladder() const;
+	void setLadder(GameLadder *newLadder);
+
+	LadderState ladderState() const;
+	void setLadderState(LadderState newLadderState);
+
+	const QHash<QString, QPointer<GameObject> > &terrainObjects() const;
+	GameObject *terrainObject(const QString &type) const;
+
 public slots:
 	void hurtByEnemy(GameEnemy *enemy, const bool &canProtect = false);
 	void killByEnemy(GameEnemy *enemy);
+
+	void setTerrainObject(const QString &type, GameObject *object);
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
@@ -137,9 +168,12 @@ signals:
 
 	void enemyChanged();
 	void playerStateChanged();
-	void movingFlagsChanged();
+	void movingFlagsChanged(GamePlayer::MovingFlags flags);
 	void deathlyFallChanged();
 	void hurtFallChanged();
+	void ladderChanged();
+	void ladderStateChanged();
+	void terrainObjectChanged(const QString &type, GameObject *object);
 
 private slots:
 	void onEnemyKilled();
@@ -147,14 +181,22 @@ private slots:
 	void onIsOnGroundChanged();
 	void onSceneConnected();
 	void onTimingTimerTimeout();
+	void onBeginContact(Box2DFixture *other);
+	void onEndContact(Box2DFixture *other);
+	void onBaseGroundContacted();
 
 private:
+	void ladderMove(const bool &up);
+	void terrainObjectSignalAddToPool(const QString &type, GameObject *object);
+	void terrainObjectSignalEmit();
+
 #ifndef Q_OS_WASM
 	QSoundEffect *m_soundEffectShot = nullptr;
 	QSoundEffect *m_soundEffectGeneral = nullptr;
 #endif
 
 	QPointer<GameEnemy> m_enemy = nullptr;
+	QPointer<GameLadder> m_ladder = nullptr;
 	PlayerState m_playerState = Invalid;
 	MovingFlags m_movingFlags = Standby;
 	qreal m_fallStart = -1;
@@ -162,12 +204,16 @@ private:
 	qreal m_hurtFall = 200;
 	QHash<QString, QStringList> m_soundEffectHash;
 	QHash<QString, int> m_soundEffectNum;
+	LadderState m_ladderState = LadderInactive;
+	bool m_ladderFall = false;
+	int m_soundElapsedMsec = 0;
+	QHash<QString, QPointer<GameObject>> m_terrainObjects;
+	QHash<QString, QPointer<GameObject>> m_terrainObjectsPrevious;
 
 };
 
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(GamePlayer::MovingFlags)
-
 
 
 #endif // GAMEPLAYER_H

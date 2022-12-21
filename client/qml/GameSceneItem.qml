@@ -40,6 +40,8 @@ GameScene {
 
 	mouseArea: area
 
+
+
 	// Base ground
 
 	GameObject {
@@ -79,6 +81,16 @@ GameScene {
 	}
 
 
+	Connections {
+		target: game
+
+		function onPlayerChanged() {
+			showPlayerLocator()
+		}
+	}
+
+	onZoomOverviewChanged: if (zoomOverview)
+							   showPlayerLocator()
 
 
 	/*
@@ -229,18 +241,6 @@ GameScene {
 
 
 
-	function createPlayer() : Item {
-		if (!game.player) {
-			var r = playerLocatorComponent.createObject(scene)
-			var p = playerComponent.createObject(scene)
-			r.anchors.centerIn = p
-			p.loadSprites()
-			return p
-		}
-			return null
-	}
-
-
 	function createComponent(enemyType: int) : Item {
 		var obj = null
 
@@ -258,21 +258,6 @@ GameScene {
 
 		return obj
 	}
-
-
-	function createLadders() {
-		if (!game || !game.ladderCount)
-		return
-
-		for (var i=0; i<game.ladderCount; i++) {
-			var l = game.ladderAt(i)
-
-			var obj = ladderComponent.createObject(scene,{
-				ladder: l
-			})
-		}
-	}
-
 
 
 	function createPickable(pickableType: int, pickableData) : Item {
@@ -390,5 +375,13 @@ GameScene {
 	Component {
 		id: playerLocatorComponent
 		GamePlayerLocator { }
+	}
+
+	function showPlayerLocator() {
+		console.debug("LOCATOR", game.player)
+		if (game.player) {
+			var r = playerLocatorComponent.createObject(control)
+			r.anchors.centerIn = game.player
+		}
 	}
 }

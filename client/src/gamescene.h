@@ -121,6 +121,7 @@ private:
 	void loadTiledLayers();
 	void loadGroundLayer();
 	void loadLadderLayer();
+	void loadTerrainObjectsLayer();
 
 	Tiled::ObjectGroup *objectLayer(const QString &name) const;
 

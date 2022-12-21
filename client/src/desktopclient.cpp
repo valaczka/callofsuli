@@ -25,6 +25,8 @@
  */
 
 #include "desktopclient.h"
+#include "qquickwindow.h"
+#include "qscreen.h"
 #include <QSettings>
 
 /**
@@ -46,6 +48,8 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	m_soundThread.start();
 
 	QMetaObject::invokeMethod(m_sound, "init", Qt::QueuedConnection);
+
+	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 }
 
 
@@ -213,4 +217,49 @@ void DesktopClient::setSfxVolumeInt(int sfxVolume)
 	qreal r = qreal(sfxVolume)/100;
 
 	setSfxVolume(r);
+}
+
+
+/**
+ * @brief DesktopClient::onMainWindowChanged
+ */
+
+void DesktopClient::onMainWindowChanged()
+{
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+
+#endif
+	if (!m_mainWindow)
+		return;
+
+	if (!m_mainWindow->screen())
+		return;
+
+	connect(m_mainWindow->screen(), &QScreen::orientationChanged, this, &DesktopClient::onOrientationChanged);
+
+}
+
+
+/**
+ * @brief DesktopClient::onOrientationChanged
+ * @param orientation
+ */
+
+void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
+{
+
+/*	Timer {
+		id: timerOrientation
+		interval: 20
+		running: false
+		repeat: false
+
+		onTriggered: {
+			var m = cosClient.getWindowSafeMargins(mainWindow)
+			safeMarginBottom = m.bottom
+			safeMarginLeft = m.left
+			safeMarginTop = m.top
+			safeMarginRight = m.right*/
+
+	qCDebug(lcClient).noquote() << tr("Screen orientation changed:") << orientation;
 }

@@ -14,6 +14,8 @@ Page {
 
 	property ActionGame game: null
 	property string closeDisabled: qsTr("A játék előkészítése alatt nem lehet bezárni a lapot!")
+	//property string closeQuestion: qsTr("Biztosan megszakítod a játékot?")
+	property var onPageClose: function() { if (game) game.finishGame() }
 
 	/*GameActivity {
 		id: gameActivity
@@ -167,10 +169,6 @@ Page {
 								script: {
 									flick.setXOffset()
 									flick.setYOffset()
-									if (gameScene.zoomOverview && game.player) {
-										var r = gameScene.playerLocatorComponent.createObject(gameScene)
-										r.anchors.centerIn = game.player
-									}
 								}
 							}
 						}
@@ -589,24 +587,13 @@ Page {
 	}
 
 
-	/*
-
-	GameLabel {
+	GameHpLabel {
 		id: infoHP
-
-		anchors.top: parent.top
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.margins: 5
-		anchors.topMargin: Math.max(mainWindow.safeMarginTop, 5)
-		color: CosStyle.colorErrorLighter
-		text: "%1 HP"
-		value: game.player ? game.player.entityPrivate.hp
-						   : (gameMatch.mode == GameMatch.ModeLite ? gameActivity.liteHP : 0)
-		//image.visible: false
-		image.icon: "qrc:/internal/icon/heart-pulse.svg"
-
-		visible: !gameScene.isSceneZoom && gameMatch.mode != GameMatch.ModeExam
-
+		anchors.top: parent.top
+		value: game.player ? game.player.hp : 0
+		visible: !gameScene.zoomOverview
 		onValueChanged: marked = true
 	}
 
@@ -614,38 +601,35 @@ Page {
 		anchors.right: parent.right
 		anchors.top: parent.top
 		anchors.margins: 7
-		anchors.rightMargin: Math.max(mainWindow.safeMarginRight, 7)
+		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
 		spacing: 5
 
-		visible: !gameScene.isSceneZoom
+		visible: !gameScene.zoomOverview
 
 		GameLabel {
 			id: labelXP
 			anchors.right: parent.right
 			color: "white"
-			image.visible: false
 
 			pixelSize: 16
 
 			text: "%1 XP"
 
-			value: game.gameMatch ? game.gameMatch.xp : 0
+			//value: game.gameMatch ? game.gameMatch.xp : 0
 		}
 
 		GameInfo {
 			id: infoShield
 			anchors.right: parent.right
-			color: CosStyle.colorOK
-			label.text: Math.floor(progressBar.value)
+			color: Qaterial.Colors.green500
+			text: Math.floor(progressBar.value)
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: shield
-			image.icon: "qrc:/internal/icon/shield.svg"
+			iconLabel.icon.source: Qaterial.Icons.shield
 			progressBar.width: Math.min(control.width*0.125, 100)
 
-			visible: gameMatch.mode == GameMatch.ModeNormal
-
-			property int shield: game.player ? game.player.entityPrivate.shield : 0
+			property int shield: 18//game.player ? game.player.entityPrivate.shield : 0
 
 			onShieldChanged: {
 				if (shield > progressBar.to)
@@ -660,16 +644,16 @@ Page {
 		GameInfo {
 			id: infoTarget
 			anchors.right: parent.right
-			color: CosStyle.colorWarning
-			image.icon: "qrc:/internal/icon/target-account.svg"
-			label.text: Math.floor(progressBar.value)
+			color: Qaterial.Colors.orange700
+			iconLabel.icon.source: Qaterial.Icons.targetAccount
+			text: Math.floor(progressBar.value)
 
 			progressBar.from: 0
 			progressBar.to: 0
 			progressBar.value: enemies
 			progressBar.width: Math.min(control.width*0.125, 100)
 
-			property int enemies: game.activeEnemies
+			property int enemies: 23//game.activeEnemies
 
 			onEnemiesChanged: {
 				infoTarget.marked = true
@@ -686,47 +670,54 @@ Page {
 			horizontalItemAlignment: Grid.AlignHCenter
 			verticalItemAlignment: Grid.AlignVCenter
 
-			visible: gameMatch.mode == GameMatch.ModeNormal
-
 			bottomPadding: 10
 
-			property real size: CosStyle.pixelSize*1.3
+			property real size: Qaterial.Style.pixelSize*1.3
 
 			spacing: 5
 
 			columns: Math.floor(width/size)
 
-			QFontImage {
+			Qaterial.Icon {
 				size: itemGrid.size
-				icon: "qrc:/internal/icon/pliers.svg"
-				color: "brown"
-				visible: game.gameMatch.pliers
+				icon: Qaterial.Icons.wrench
+				color: Qaterial.Colors.brown800
+				visible: true //game.gameMatch.pliers
+				width: size
+				height: size
 			}
 
-			QFontImage {
+			Qaterial.Icon {
 				size: itemGrid.size
-				icon: "qrc:/internal/icon/remote.svg"
-				color: "#00FFFF"
-				visible: game.gameMatch.teleporter
+				icon: Qaterial.Icons.remote
+				color: Qaterial.Colors.cyan600
+				visible: true //game.gameMatch.pliers
+				width: size
+				height: size
 			}
+
 
 			Repeater {
-				model: game.gameMatch.water
+				model: 2 //game.gameMatch.water
 
-				QFontImage {
+				Qaterial.Icon {
 					size: itemGrid.size
-					icon: "qrc:/internal/icon/water.svg"
-					color: "blue"
+					icon: Qaterial.Icons.water
+					color: Qaterial.Colors.blue800
+					width: size
+					height: size
 				}
 			}
 
 			Repeater {
-				model: game.gameMatch.camouflage
+				model: 3 //game.gameMatch.camouflage
 
-				QFontImage {
+				Qaterial.Icon {
 					size: itemGrid.size
-					icon: "qrc:/internal/icon/domino-mask.svg"
-					color: "gold"
+					icon: Qaterial.Icons.dominoMask
+					color: Qaterial.Colors.yellow700
+					width: size
+					height: size
 				}
 			}
 		}
@@ -740,18 +731,16 @@ Page {
 
 			anchors.right: parent.right
 
-			visible: gameMatch.mode == GameMatch.ModeNormal
-
-			color: "transparent"
+			color: Qaterial.Colors.white
 			border.color: fontImage.color
 			border.width: 2
 
-			fontImage.icon: "qrc:/internal/icon/cog.svg"
-			fontImage.color: CosStyle.colorAccentLighter
+			fontImage.icon: Qaterial.Icons.cog
+			fontImage.color: Qaterial.Colors.blueGray600
 			fontImageScale: 0.7
 
 			onClicked: {
-				var d = JS.dialogCreateQml("GameSettings", {
+		/*		var d = JS.dialogCreateQml("GameSettings", {
 											   volumeMusic: cosClient.volume(CosSound.MusicChannel),
 											   volumeSfx: cosClient.volume(CosSound.SfxChannel),
 											   volumeVoiceover: cosClient.volume(CosSound.VoiceoverChannel),
@@ -766,10 +755,10 @@ Page {
 					gameScene.forceActiveFocus()
 					cosClient.setSetting("game/joystickSize", joystick.size)
 				})
-				d.open()
+				d.open()*/
 			}
 		}
-
+/*
 
 		Row {
 			anchors.right: parent.right
@@ -818,9 +807,9 @@ Page {
 				}
 			}
 
-		}
+		}*/
 	}
-
+/*
 	GameMessageList {
 		id: messageList
 
@@ -904,8 +893,7 @@ Page {
 							  marked = true
 	}
 
-
-
+*/
 
 
 
@@ -924,41 +912,48 @@ Page {
 		width: Math.min(size, control.width*0.5)
 		height: Math.min((120/175)*size, control.width*0.4)
 
-		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
+		visible: game && game.player && game.player.isAlive
 
-		opacity: gameScene.isSceneZoom ? 0.2 : 1.0
+		opacity: gameScene.zoomOverview ? 0.2 : 1.0
 
-		onHasTouchChanged: if (!hasTouch && game.player)
-							   game.player.stopMoving()
+		onHasTouchChanged: if (!hasTouch && game.player) {
+							   game.player.standbyMovingFlags()
+						   }
 
-		onJoystickMoved: if (game.player) {
-							 if (y > 0.6) {
-								 if (game.player.moveUp())
-									 return
-							 } else if (y < -0.6) {
-								 if (game.player.moveDown())
-									 return
-							 } else if (game.player.isClimbing) {
-								 game.player.stopMoving()
-								 return
+		onJoystickMoved: if (game.player && hasTouch) {
+							 game.player.setMovingFlag(GamePlayer.JoystickInteraction)
+
+							 if (y > 0.85) {
+								 game.player.setMovingFlag(GamePlayer.MoveUp)
+							 } else if (y < -0.85) {
+								 game.player.setMovingFlag(GamePlayer.MoveDown)
+							 } else {
+								 game.player.setMovingFlag(GamePlayer.MoveUp, false)
+								 game.player.setMovingFlag(GamePlayer.MoveDown, false)
 							 }
 
 							 if (x > 0.3) {
-								 if (x > 0.6)
-									 game.player.runRight()
-								 else
-									 game.player.walkRight()
+								 if (x > 0.7) {
+									 game.player.setMovingFlag(GamePlayer.MoveRight)
+									 game.player.setMovingFlag(GamePlayer.SlowModifier, false)
+								 } else{
+									 game.player.setMovingFlag(GamePlayer.MoveRight)
+									 game.player.setMovingFlag(GamePlayer.SlowModifier)
+								 }
 							 } else if (x > 0.1) {
 								 game.player.turnRight()
 							 } else if (x < -0.3) {
-								 if (x < -0.6)
-									 game.player.runLeft()
-								 else
-									 game.player.walkLeft()
+								 if (x < -0.7) {
+									 game.player.setMovingFlag(GamePlayer.MoveLeft)
+									 game.player.setMovingFlag(GamePlayer.SlowModifier, false)
+								 } else {
+									 game.player.setMovingFlag(GamePlayer.MoveLeft)
+									 game.player.setMovingFlag(GamePlayer.SlowModifier)
+								 }
 							 } else if (x < -0.1) {
 								 game.player.turnLeft()
 							 } else {
-								 game.player.stopMoving()
+								 game.player.standbyMovingFlags()
 							 }
 
 						 }
@@ -966,39 +961,24 @@ Page {
 
 
 
-	GameButton {
+	GameShotButton {
 		id: shotButton
-		size: 55
 
-		width: Math.min(100, control.width*0.5)
-		height: Math.min(100, control.width*0.4)
+		player: game ? game.player : null
+		opacity: gameScene && gameScene.zoomOverview ? 0.2 : (enemyAimed ? 1.0 : 0.6)
 
-		anchors.right: parent.right
 		anchors.bottom: parent.bottom
-		anchors.rightMargin: Math.max(10, mainWindow.safeMarginRight)
-		anchors.bottomMargin: Math.max(10, mainWindow.safeMarginBottom)
+		anchors.right: parent.right
+		anchors.rightMargin: Math.max(10, Client.safeMarginRight)
+		anchors.bottomMargin: Math.max(10, Client.safeMarginBottom)
 
-		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
-
-		readonly property bool enemyAimed: game.player && game.player.entityPrivate && game.player.entityPrivate.enemy
-
-		color: enemyAimed ? JS.setColorAlpha(CosStyle.colorErrorLighter, 0.7) : "transparent"
-		opacity: gameScene.isSceneZoom ? 0.2 : (enemyAimed ? 1.0 : 0.6)
-
-		border.color: enemyAimed ? "black" : "white"
-
-		fontImage.icon: "qrc:/internal/game/target1.svg"
-		fontImage.color: "white"
-		fontImage.opacity: enemyAimed ? 0.6 : 1.0
-		tap.enabled: !game.question
-		tap.onTapped: if (!game.player.isOperating) game.player.entityPrivate.attackByGun()
 	}
 
 
 
 
 
-	GameButton {
+/*	GameButton {
 		id: pickButton
 		size: 50
 
@@ -1026,8 +1006,8 @@ Page {
 		onClicked: {
 			game.pickPickable()
 		}
-	}
-
+	}*/
+/*
 
 	Column {
 		anchors.bottom: shotButton.bottom
@@ -1252,6 +1232,29 @@ Page {
 			skullImageAnim.start()
 		}
 
+		function onMovingFlagsChanged(flags) {
+			if ((flags & GamePlayer.JoystickInteraction) || joystick.hasTouch)
+				return
+
+			var px = 0.5
+			var py = 0.5
+
+			if ((flags & GamePlayer.MoveLeft) && (flags & GamePlayer.SlowModifier))
+				px = 0.25
+			else if (flags & GamePlayer.MoveLeft)
+				px = 0.0
+			else if ((flags & GamePlayer.MoveRight) && (flags & GamePlayer.SlowModifier))
+				px = 0.75
+			else if (flags & GamePlayer.MoveRight)
+				px = 1.0
+
+			if (flags & GamePlayer.MoveUp)
+				py = 0.0
+			else if (flags & GamePlayer.MoveDown)
+				py = 1.0
+
+			joystick.moveThumb(px*joystick.width, py*joystick.height)
+		}
 	}
 
 
@@ -1592,17 +1595,6 @@ Page {
 	StackView.onActivated: {
 		state = "start"
 		gameScene.load()
-
-		/*if (gameMatch.mode == GameMatch.ModeNormal)
-			game.loadScene()
-		else
-			_sceneLoaded = true
-
-		if (gameMatch.mode == GameMatch.ModeExam)
-			//gameActivity.prepare()
-			studentMaps.getExamContent()
-		else
-			gameActivity.prepare() */
 	}
 
 	Component.onCompleted: {
@@ -1622,50 +1614,4 @@ Page {
 
 
 
-
-	/*
-
-	property var closeCallbackFunction: function () {
-		if (!_closeEnabled) {
-			var d = JS.dialogCreateQml("YesNo", {
-										   text: qsTr("Biztosan megszakítod a játékot?"),
-										   image: "qrc:/internal/icon/close-octagon-outline.svg"
-									   })
-
-			d.accepted.connect(function() {
-				game.currentScene = exitScene
-				bg.source = ""
-				game.abortGame()
-				_closeEnabled = true
-				mainWindow.close()
-			})
-			d.open()
-			return true
-		}
-		return false
-	}
-
-
-	function stackBack() {
-		if (_backDisabled)
-			return true
-
-		if (!_closeEnabled) {
-			var d = JS.dialogCreateQml("YesNo", {
-										   text: qsTr("Biztosan megszakítod a játékot?"),
-										   image: "qrc:/internal/icon/close-octagon-outline.svg"
-									   })
-			d.accepted.connect(function() {
-				game.currentScene = exitScene
-				bg.source = ""
-				game.abortGame()
-				_closeEnabled = true
-				mainStack.back()
-			})
-			d.open()
-			return true
-		}
-		return false
-	}
-*/
 }

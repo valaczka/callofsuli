@@ -100,6 +100,7 @@ public:
 	const QList<int> &blocks() const;
 	const QList<ObjectData> &objects() const;
 	const QList<PlayerPositionData> &playerPositions() const;
+	QList<ObjectData> objects(const ObjectType &type) const;
 
 	QList<ObjectData> fires() const { return objects(Fire); }
 	QList<ObjectData> fences() const { return objects(Fence); }
@@ -111,7 +112,6 @@ public:
 
 
 private:
-	QList<ObjectData> objects(const ObjectType &type) const;
 
 	void readEnemyLayer(Tiled::ObjectGroup *layer);
 	void readObjectLayer(Tiled::ObjectGroup *layer);

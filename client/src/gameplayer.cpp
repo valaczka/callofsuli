@@ -75,14 +75,25 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 												 }));
 
 
+
+	// Terrain objects
+
+	m_terrainObjects.insert("fire", nullptr);
+	m_terrainObjects.insert("fence", nullptr);
+	m_terrainObjects.insert("teleport", nullptr);
+
 	setCategoryFixture(CATEGORY_PLAYER);
 	setCategoryRayCast(CATEGORY_ENEMY);
 	setCategoryCollidesWith(CATEGORY_GROUND|CATEGORY_ITEM|CATEGORY_OTHER);
 	setRayCastEnabled(true);
 
+
 	connect(this, &GameObject::sceneConnected, this, &GamePlayer::onSceneConnected);
 	connect(this, &GameObject::timingTimerTimeout, this, &GamePlayer::onTimingTimerTimeout);
 	connect(this, &GameEntity::isOnGroundChanged, this, &GamePlayer::onIsOnGroundChanged);
+	connect(this, &GameEntity::beginContact, this, &GamePlayer::onBeginContact);
+	connect(this, &GameEntity::endContact, this, &GamePlayer::onEndContact);
+	connect(this, &GameEntity::baseGroundContact, this, &GamePlayer::onBaseGroundContacted);
 
 #ifndef Q_OS_WASM
 	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
@@ -100,9 +111,10 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	connect(this, &GamePlayer::movingFlagsChanged, this, &GamePlayer::onMovingFlagsChanged);
 
 	connect(this, &GamePlayer::hurt, this, [this]() { QTimer::singleShot(450, this, [this](){ playSoundEffect("pain"); }); });
-	connect(this, &GamePlayer::isAliveChanged, this, [this](){
-		if (!isAlive())
-			setPlayerState(Dead);
+	connect(this, &GamePlayer::allHpLost, this, [this](){
+		setPlayerState(Dead);
+		m_scene->playSoundPlayerVoice("qrc:/sound/sfx/dead.mp3");
+		emit killed();
 	});
 
 }
@@ -153,8 +165,58 @@ void GamePlayer::onTimingTimerTimeout()
 		return;
 	}*/
 
-	if (m_playerState == Dead || !isAlive())
+	terrainObjectSignalEmit();
+
+	if (m_playerState == Dead || m_playerState == Burn || !isAlive())
 		return;
+
+	if (m_ladderFall && !m_groundFixtures.isEmpty()) {
+		m_ladderFall = false;
+	}
+
+
+	if (m_ladderState == LadderInactive) {
+		setLadder(nullptr);
+	}
+
+
+
+	m_soundElapsedMsec += m_scene->timingTimerTimeoutMsec();
+
+	if (m_playerState == Walk) {
+		if (m_soundElapsedMsec >= 400) {
+			m_soundElapsedMsec = 0;
+			playSoundEffect("walk");
+		}
+	} else 	if (m_playerState == Run) {
+		if (m_soundElapsedMsec >= 300) {
+			m_soundElapsedMsec = 0;
+			playSoundEffect("run");
+		}
+	} else if (m_playerState == ClimbUp || m_playerState == ClimbDown) {
+		if (m_soundElapsedMsec >= 1700) {
+			m_soundElapsedMsec = 0;
+			playSoundEffect("climb");
+		}
+	} else {
+		m_soundElapsedMsec = 0;
+	}
+
+
+	if (m_playerState == ClimbUp && m_ladder) {
+		ladderMove(true);
+		return;
+	}
+
+	if (m_playerState == ClimbDown && m_ladder) {
+		ladderMove(false);
+		return;
+	}
+
+	if (m_playerState == ClimbPause && m_ladder) {
+
+		return;
+	}
 
 
 	if (m_playerState == Fall && m_groundFixtures.isEmpty())
@@ -182,11 +244,14 @@ void GamePlayer::onTimingTimerTimeout()
 	}
 
 
+
+
+
 	if (m_playerState == Shot) {
-		 if (m_lastCurrentSprite == "shot")
-			 return;
-		 else
-			 jumpToSprite("idle");
+		if (m_lastCurrentSprite == "shot")
+			return;
+		else
+			jumpToSprite("idle");
 	}
 
 
@@ -212,7 +277,287 @@ void GamePlayer::onTimingTimerTimeout()
 		jumpToSprite("idle");
 	}
 
+
+
 }
+
+
+/**
+ * @brief GamePlayer::onBeginContact
+ * @param other
+ */
+
+void GamePlayer::onBeginContact(Box2DFixture *other)
+{
+	QVariant object = other->property("targetObject");
+	QVariantMap data = other->property("targetData").toMap();
+
+	if (!object.isValid()) {
+		return;
+	}
+
+	GameObject *gameObject = qvariant_cast<GameObject*>(object);
+
+
+	if (data.value("fireDie", false).toBool()) {
+		qCDebug(lcScene).noquote() << tr("Player is on fire");
+
+		setPlayerState(Burn);
+		return;
+	}
+
+
+
+	foreach (const QString &key, m_terrainObjects.keys()) {
+		if (data.value(key, false).toBool()) {
+			//qDebug() << "TERRAIN OBJECT" << key << (gameObject ? "+++" : "-");
+			setTerrainObject(key, gameObject);
+			return;
+		}
+	}
+
+
+
+
+	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
+
+	if (ladder && m_ladderState != LadderActive && m_ladderState != LadderTopSprite) {
+		const QString &dir = data.value("direction").toString();
+
+		if (dir == "up") {
+			setLadder(ladder);
+			setLadderState(LadderUpAvailable);
+		} else if (dir == "down") {
+			setLadder(ladder);
+			setLadderState(LadderDownAvailable);
+		} else {
+			qCWarning(lcScene).noquote() << tr("Invalid ladder direction:") << dir;
+		}
+	}
+
+
+}
+
+
+
+
+
+/**
+ * @brief GamePlayer::onEndContact
+ * @param other
+ */
+
+void GamePlayer::onEndContact(Box2DFixture *other)
+{
+	QVariantMap data = other->property("targetData").toMap();
+	QVariant object = other->property("targetObject");
+	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
+
+	if (!object.isValid()) {
+		//qCWarning(lcScene).noquote() << tr("Invalid target object:") << other;
+		return;
+	}
+
+	//GameObject *gameObject = qvariant_cast<GameObject*>(object);
+
+
+	foreach (const QString &key, m_terrainObjects.keys()) {
+		if (data.value(key, false).toBool()) {
+			//qDebug() << "TERRAIN OBJECT" << key << gameObject;
+			setTerrainObject(key, nullptr);
+			return;
+		}
+	}
+
+
+
+	if (ladder && m_ladderState != LadderActive && m_ladderState != LadderTopSprite) {
+		setLadderState(LadderInactive);
+	}
+}
+
+
+
+
+
+
+/**
+ * @brief GamePlayer::onGroundTouched
+ */
+
+void GamePlayer::onBaseGroundContacted()
+{
+	qCDebug(lcScene).noquote() << tr("Player fell to base ground");
+
+	setPlayerState(Dead);
+	m_scene->playSoundPlayerVoice("qrc:/sound/sfx/falldead.mp3");
+	kill();
+}
+
+
+/**
+ * @brief GamePlayer::ladderUp
+ */
+
+void GamePlayer::ladderMove(const bool &up)
+{
+	if (!m_ladder) {
+		qCWarning(lcScene).noquote() << tr("Missing ladder");
+		return;
+	}
+
+	if (m_ladderState == LadderUpAvailable || m_ladderState == LadderDownAvailable) {
+		if (up)
+			qCDebug(lcScene).noquote() << tr("Begin climbing up on ladder:") << m_ladder->boundRect();
+		else
+			qCDebug(lcScene).noquote() << tr("Begin climbing down on ladder:") << m_ladder->boundRect();
+
+		if (up)
+			setLadderState(LadderActive);
+		else
+			setLadderState(LadderTopSprite);
+
+		qreal _x = m_ladder->boundRect().x()+(m_ladder->boundRect().width()-width())/2;
+		body()->setBodyType(Box2DBody::Kinematic);
+		setX(_x);
+
+		jumpToSprite(up ? "climbup" : "climbdown");
+
+		if (up)
+			playSoundEffect("ladder");
+
+	} else if ((m_ladderState == LadderActive || m_ladderState == LadderTopSprite) && up) {
+		qreal _y = y() -climbSize();
+
+		if (m_ladderState == LadderActive && !QStringList({"climbup", "climbup2", "climbup3"}).contains(m_lastCurrentSprite))
+			jumpToSprite("climbup2");
+
+		if (_y < m_ladder->boundRect().top() - height()) {
+			_y = m_ladder->boundRect().top()-height();
+			qCDebug(lcScene).noquote() << tr("Finish climbing up on ladder:") << m_ladder->boundRect();
+			setLadderState(LadderInactive);
+			setY(_y);
+			body()->setBodyType(Box2DBody::Dynamic);
+			setPlayerState(Idle);
+		} else if (_y >= m_ladder->boundRect().top() - height()) {
+			setY(_y);
+
+			if (m_ladderState == LadderActive && _y < m_ladder->boundRect().top()) {
+				qCDebug(lcScene).noquote() << tr("Ladder top area reached");
+				setLadderState(LadderTopSprite);
+				jumpToSprite("climbupend");
+			}
+		}
+	} else if ((m_ladderState == LadderActive || m_ladderState == LadderTopSprite) && !up) {
+		qreal _y = y() +climbSize();
+
+		if (!QStringList({"climbdown", "climbdown2", "climbdown3"}).contains(m_lastCurrentSprite))
+			jumpToSprite("climbdown2");
+
+		if (m_ladderState == LadderTopSprite && _y >= m_ladder->boundRect().top())  {
+			qCDebug(lcScene).noquote() << tr("Ladder top area over");
+			setLadderState(LadderActive);
+			onMovingFlagsChanged();
+		}
+
+		if (_y+height() >= m_ladder->boundRect().bottom()) {
+			_y = m_ladder->boundRect().bottom()-height();
+			qCDebug(lcScene).noquote() << tr("Finish climbing down on ladder:") << m_ladder->boundRect();
+			m_ladderFall = true;
+			setLadderState(LadderInactive);
+			setY(_y);
+			body()->setBodyType(Box2DBody::Dynamic);
+			setPlayerState(Idle);
+		} else if (_y+height() < m_ladder->boundRect().bottom()) {
+			setY(_y);
+		}
+
+	}
+
+}
+
+
+
+/**
+ * @brief GamePlayer::terrainObjectSignalAddToPool
+ * @param type
+ * @param object
+ */
+
+void GamePlayer::terrainObjectSignalAddToPool(const QString &type, GameObject *object)
+{
+	if (m_terrainObjectsPrevious.contains(type))
+		return;
+
+	m_terrainObjectsPrevious.insert(type, object);
+}
+
+
+
+
+/**
+ * @brief GamePlayer::terrainObjectSignalEmit
+ */
+
+void GamePlayer::terrainObjectSignalEmit()
+{
+	for (auto it = m_terrainObjectsPrevious.begin(); it != m_terrainObjectsPrevious.end(); ++it) {
+		GameObject *old = it.value();
+		GameObject *actual = m_terrainObjects.value(it.key());
+
+		if (old != actual) {
+			it.value() = actual;
+			emit terrainObjectChanged(it.key(), actual);
+		}
+	}
+}
+
+
+/**
+ * @brief GamePlayer::terrainObjects
+ * @return
+ */
+
+const QHash<QString, QPointer<GameObject>> &GamePlayer::terrainObjects() const
+{
+	return m_terrainObjects;
+}
+
+
+
+/**
+ * @brief GamePlayer::terrainObject
+ * @param type
+ * @return
+ */
+
+GameObject *GamePlayer::terrainObject(const QString &type) const
+{
+	return m_terrainObjects.value(type, nullptr);
+}
+
+
+
+
+/**
+ * @brief GamePlayer::ladderState
+ * @return
+ */
+
+GamePlayer::LadderState GamePlayer::ladderState() const
+{
+	return m_ladderState;
+}
+
+void GamePlayer::setLadderState(LadderState newLadderState)
+{
+	if (m_ladderState == newLadderState)
+		return;
+	m_ladderState = newLadderState;
+	emit ladderStateChanged();
+}
+
+
 
 
 /**
@@ -312,6 +657,16 @@ void GamePlayer::setMovingFlag(const MovingFlag &flag, const bool &on)
 }
 
 
+/**
+ * @brief GamePlayer::standbyMovingFlags
+ */
+
+void GamePlayer::standbyMovingFlags()
+{
+	setMovingFlags(Standby);
+}
+
+
 
 
 
@@ -340,10 +695,7 @@ void GamePlayer::moveTo(const QPointF &point, const bool &forced)
 
 void GamePlayer::shot()
 {
-	/*if (m_ladderMode == LadderClimb || m_ladderMode == LadderClimbFinish)
-					return;*/
-
-	if (!isAlive())
+	if (!isAlive() || m_ladderState == LadderActive || m_ladderState == LadderTopSprite)
 		return;
 
 	setPlayerState(Shot);
@@ -354,6 +706,34 @@ void GamePlayer::shot()
 		return;
 
 	m_scene->game()->tryAttack(this, m_enemy);
+}
+
+
+/**
+ * @brief GamePlayer::turnLeft
+ */
+
+void GamePlayer::turnLeft()
+{
+	if (!m_scene || !m_scene->game() || !m_scene->game()->running() ||!isAlive())
+		return;
+
+	setFacingLeft(true);
+}
+
+
+
+
+/**
+ * @brief GamePlayer::turnRight
+ */
+
+void GamePlayer::turnRight()
+{
+	if (!m_scene || !m_scene->game() || !m_scene->game()->running() ||!isAlive())
+		return;
+
+	setFacingLeft(false);
 }
 
 
@@ -412,6 +792,27 @@ void GamePlayer::killByEnemy(GameEnemy *enemy)
 
 
 /**
+ * @brief GamePlayer::setTerrainObject
+ * @param type
+ * @param object
+ */
+
+void GamePlayer::setTerrainObject(const QString &type, GameObject *object)
+{
+	if (m_terrainObjects.value(type) == object)
+		return;
+
+	terrainObjectSignalAddToPool(type, m_terrainObjects.value(type));
+
+	m_terrainObjects[type] = object;
+
+	//emit terrainObjectChanged(type, object);
+}
+
+
+
+
+/**
  * @brief GamePlayer::playSoundEffect
  * @param effect
  * @param from
@@ -449,6 +850,11 @@ void GamePlayer::playSoundEffect(const QString &effect, int from)
 
 void GamePlayer::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 {
+	if (m_ladderState == LadderActive || m_ladderState == LadderTopSprite) {
+		setEnemy(nullptr);
+		return;
+	}
+
 	GameEnemy *enemy = nullptr;
 
 	foreach(GameEntity *item, items) {
@@ -481,7 +887,7 @@ void GamePlayer::onEnemyKilled()
 
 void GamePlayer::onMovingFlagsChanged()
 {
-	qCDebug(lcScene).noquote() << tr("Moving flags:") << m_movingFlags;
+	//qCDebug(lcScene).noquote() << tr("Moving flags:") << m_movingFlags;
 
 	if (!m_scene || !m_scene->game() || !m_scene->game()->running())
 		return;
@@ -493,6 +899,23 @@ void GamePlayer::onMovingFlagsChanged()
 		setFacingLeft(true);
 	else if (m_movingFlags.testFlag(MoveRight))
 		setFacingLeft(false);
+
+	if (m_ladderState == LadderTopSprite)
+		return;
+
+	if (m_movingFlags.testFlag(MoveUp) && m_ladder && (m_ladderState == LadderActive || m_ladderState == LadderUpAvailable)) {
+		setPlayerState(ClimbUp);
+		return;
+	} else if (m_movingFlags.testFlag(MoveDown) && m_ladder && (m_ladderState == LadderActive || m_ladderState == LadderDownAvailable)) {
+		setPlayerState(ClimbDown);
+		return;
+	}
+
+	if (m_ladderState == LadderActive && !m_movingFlags.testFlag(MoveUp) && !m_movingFlags.testFlag(MoveDown)) {
+		setPlayerState(ClimbPause);
+		return;
+	}
+
 
 	if (m_movingFlags.testFlag(MoveLeft) || m_movingFlags.testFlag(MoveRight)) {
 		if (m_movingFlags.testFlag(SlowModifier))
@@ -612,18 +1035,17 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 		jumpToSprite("run");
 		break;
 	case Fall:
-		jumpToSprite("fall");
+		if (!m_ladderFall)
+			jumpToSprite("fall");
 		break;
 	case Shot:
-		//jumpToSprite("shot");
 		break;
 	case ClimbUp:
-		jumpToSprite("climbup");
 		break;
 	case ClimbDown:
-		jumpToSprite("climbdown");
 		break;
 	case ClimbPause:
+		body()->setBodyType(Box2DBody::Kinematic);
 		jumpToSprite("climbpause");
 		break;
 	case Operate:
@@ -631,11 +1053,11 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 		break;
 	case Burn:
 		jumpToSprite("burn");
+		m_scene->playSoundPlayerVoice("qrc:/sound/sfx/dead.mp3");
+		kill();
 		break;
 	case Dead:
 		jumpToSprite("dead");
-		m_scene->playSoundPlayerVoice("qrc:/sound/sfx/dead.mp3");
-		emit killed();
 		break;
 	case Idle:
 	case Invalid:
@@ -661,6 +1083,17 @@ qreal GamePlayer::runSize() const
 
 
 /**
+ * @brief GamePlayer::climbSize
+ * @return
+ */
+
+qreal GamePlayer::climbSize() const
+{
+	return m_dataObject.value("climb").toDouble(m_walkSize);
+}
+
+
+/**
  * @brief GamePlayer::movingFlags
  * @return
  */
@@ -675,5 +1108,26 @@ void GamePlayer::setMovingFlags(const MovingFlags &newMovingFlags)
 	if (m_movingFlags == newMovingFlags)
 		return;
 	m_movingFlags = newMovingFlags;
-	emit movingFlagsChanged();
+	emit movingFlagsChanged(m_movingFlags);
 }
+
+
+/**
+ * @brief GamePlayer::ladder
+ * @return
+ */
+
+GameLadder *GamePlayer::ladder() const
+{
+	return m_ladder;
+}
+
+void GamePlayer::setLadder(GameLadder *newLadder)
+{
+	if (m_ladder == newLadder)
+		return;
+	m_ladder = newLadder;
+	emit ladderChanged();
+}
+
+

@@ -34,6 +34,8 @@ Qaterial.ApplicationWindow
 		Qaterial.Style.foregroundColorDark = Qaterial.Colors.cyan200
 		Qaterial.Style.buttonTextColor = Qaterial.Colors.black
 
+		Qaterial.Style.colorItemGlow = Qaterial.Colors.yellow100
+
 		Qaterial.Style.darkColorTheme.background = Qaterial.Style.backgroundColor
 		Qaterial.Style.darkColorTheme.primary = Qaterial.Colors.cyan500
 		Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
@@ -118,6 +120,10 @@ Qaterial.ApplicationWindow
 
 
 	onClosing: { if (Client.closeWindow()) {
+			if (mainStackView.currentItem.onPageClose) {
+				console.info(qsTr("Lap bezárási funkció meghívása:"), mainStackView.currentItem)
+				mainStackView.currentItem.onPageClose()
+			}
 			close.accepted = true
 			Qt.quit()
 		} else {
@@ -151,7 +157,7 @@ Qaterial.ApplicationWindow
 						},
 						text: _text,
 						title: _pop ? qsTr("Bezárás") : qsTr("Kilépés"),
-						iconSource: Qaterial.Icons.account,
+						iconSource: Qaterial.Icons.closeOctagon,
 						standardButtons: Dialog.No | Dialog.Yes
 					})
 	}
@@ -161,5 +167,7 @@ Qaterial.ApplicationWindow
 		if (newSize >= Qaterial.Style.defaultPixelSize/2.5 && newSize <= Qaterial.Style.defaultPixelSize * 3.0)
 			Qaterial.Style.pixelSize = newSize
 	}
+
+
 }
 
