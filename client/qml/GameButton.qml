@@ -1,13 +1,9 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import Bacon2D 1.0
-import COS.Client 1.0
-import QtQuick.Controls.Material 2.12
 import QtGraphicalEffects 1.0
-import QtMultimedia 5.12
-import "."
-import "Style"
-import "JScript.js" as JS
+import CallOfSuli 1.0
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
 
 
 Item {
@@ -17,6 +13,7 @@ Item {
 	property real fontImageScale: 0.75
 	property alias fontImage: fontImage
 	property alias tap: tap
+	property alias tapAnim: anim
 
 	property alias color: rect.color
 	property alias border: rect.border
@@ -45,13 +42,13 @@ Item {
 
 		Behavior on color { ColorAnimation { duration: 125 } }
 
-		QFontImage {
+		Qaterial.Icon {
 			id: fontImage
 			anchors.centerIn: parent
 			color: "black"
 			size: control.size*fontImageScale
-			width: control.width
-			height: control.height
+			width: control.size*fontImageScale
+			height: control.size*fontImageScale
 
 			Behavior on color { ColorAnimation { duration: 125 } }
 		}
