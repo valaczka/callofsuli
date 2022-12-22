@@ -11,6 +11,7 @@ Item {
 	property alias glowRadius: glowed.radius
 	property alias glowSamples: glowed.samples
 	property alias glow: glowed.visible
+	property alias image: img
 	property int maxWidth: 0
 	property int maxHeight: 0
 

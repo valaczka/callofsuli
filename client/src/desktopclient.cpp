@@ -229,13 +229,16 @@ void DesktopClient::onMainWindowChanged()
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 
 #endif
+
 	if (!m_mainWindow)
 		return;
+
+	m_mainWindow->showFullScreen();
 
 	if (!m_mainWindow->screen())
 		return;
 
-	connect(m_mainWindow->screen(), &QScreen::orientationChanged, this, &DesktopClient::onOrientationChanged);
+	connect(m_mainWindow->screen(), &QScreen::primaryOrientationChanged, this, &DesktopClient::onOrientationChanged);
 
 }
 
@@ -262,4 +265,6 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 			safeMarginRight = m.right*/
 
 	qCDebug(lcClient).noquote() << tr("Screen orientation changed:") << orientation;
+
+	safeMarginsGet();
 }

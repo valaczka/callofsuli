@@ -252,6 +252,8 @@ void GamePlayer::onTimingTimerTimeout()
 			return;
 		else
 			jumpToSprite("idle");
+
+		onMovingFlagsChanged();
 	}
 
 
@@ -325,11 +327,11 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 		const QString &dir = data.value("direction").toString();
 
 		if (dir == "up") {
-			setLadder(ladder);
 			setLadderState(LadderUpAvailable);
-		} else if (dir == "down") {
 			setLadder(ladder);
+		} else if (dir == "down") {
 			setLadderState(LadderDownAvailable);
+			setLadder(ladder);
 		} else {
 			qCWarning(lcScene).noquote() << tr("Invalid ladder direction:") << dir;
 		}
@@ -903,6 +905,8 @@ void GamePlayer::onMovingFlagsChanged()
 	if (m_ladderState == LadderTopSprite)
 		return;
 
+	qDebug() << "TEST" << m_movingFlags << m_ladderState << m_ladder;
+
 	if (m_movingFlags.testFlag(MoveUp) && m_ladder && (m_ladderState == LadderActive || m_ladderState == LadderUpAvailable)) {
 		setPlayerState(ClimbUp);
 		return;
@@ -1128,6 +1132,9 @@ void GamePlayer::setLadder(GameLadder *newLadder)
 		return;
 	m_ladder = newLadder;
 	emit ladderChanged();
+
+	if (m_ladder)
+		onMovingFlagsChanged();
 }
 
 

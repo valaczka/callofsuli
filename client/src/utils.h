@@ -34,6 +34,12 @@
 #include <QJsonDocument>
 #include <QColor>
 
+#ifdef Q_OS_ANDROID
+#include <jni.h>
+#include <QtAndroid>
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
+
 class Client;
 
 class Utils : public QObject
@@ -56,8 +62,14 @@ public:
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 
+	Q_INVOKABLE void safeMarginsGet();
+
 private:
 	Client *const m_client = nullptr;
+
+#ifdef Q_OS_ANDROID
+	jint m_screenOrientationRequest = -1;
+#endif
 
 };
 

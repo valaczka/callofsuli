@@ -251,6 +251,9 @@ bool Client::closeWindow(const bool &forced)
 void Client::onApplicationStarted()
 {
 	qCInfo(lcClient).noquote() << tr("A kliens alkalmazás sikeresen elindult.");
+
+	QCoreApplication::processEvents();
+
 	stackPushPage("PageStart.qml");
 }
 
@@ -275,56 +278,84 @@ void Client::_message(const QString &text, const QString &title, const QString &
 	}
 }
 
-int Client::safeMarginBottom() const
+qreal Client::safeMarginBottom() const
 {
 	return m_safeMarginBottom;
 }
 
-void Client::setSafeMarginBottom(int newSafeMarginBottom)
+void Client::setSafeMarginBottom(qreal newSafeMarginBottom)
 {
-	if (m_safeMarginBottom == newSafeMarginBottom)
+	if (qFuzzyCompare(m_safeMarginBottom, newSafeMarginBottom))
 		return;
 	m_safeMarginBottom = newSafeMarginBottom;
 	emit safeMarginBottomChanged();
 }
 
-int Client::safeMarginTop() const
+
+/**
+ * @brief Client::setSafeMargins
+ * @param margins
+ */
+
+void Client::setSafeMargins(const QMarginsF &margins)
+{
+	setSafeMarginLeft(margins.left());
+	setSafeMarginRight(margins.right());
+	setSafeMarginTop(margins.top());
+	setSafeMarginBottom(margins.bottom());
+}
+
+
+
+qreal Client::safeMarginTop() const
 {
 	return m_safeMarginTop;
 }
 
-void Client::setSafeMarginTop(int newSafeMarginTop)
+void Client::setSafeMarginTop(qreal newSafeMarginTop)
 {
-	if (m_safeMarginTop == newSafeMarginTop)
+	if (qFuzzyCompare(m_safeMarginTop, newSafeMarginTop))
 		return;
 	m_safeMarginTop = newSafeMarginTop;
 	emit safeMarginTopChanged();
+	qDebug() << "**** SAFE MARGIN TOP CHANGED" << m_safeMarginTop;
 }
 
-int Client::safeMarginRight() const
+qreal Client::safeMarginRight() const
 {
 	return m_safeMarginRight;
 }
 
-void Client::setSafeMarginRight(int newSafeMarginRight)
+void Client::setSafeMarginRight(qreal newSafeMarginRight)
 {
-	if (m_safeMarginRight == newSafeMarginRight)
+	if (qFuzzyCompare(m_safeMarginRight, newSafeMarginRight))
 		return;
 	m_safeMarginRight = newSafeMarginRight;
 	emit safeMarginRightChanged();
 }
 
-int Client::safeMarginLeft() const
+qreal Client::safeMarginLeft() const
 {
 	return m_safeMarginLeft;
 }
 
-void Client::setSafeMarginLeft(int newSafeMarginLeft)
+void Client::setSafeMarginLeft(qreal newSafeMarginLeft)
 {
-	if (m_safeMarginLeft == newSafeMarginLeft)
+	if (qFuzzyCompare(m_safeMarginLeft, newSafeMarginLeft))
 		return;
 	m_safeMarginLeft = newSafeMarginLeft;
 	emit safeMarginLeftChanged();
+}
+
+
+
+/**
+ * @brief Client::safeMarginsGet
+ */
+
+void Client::safeMarginsGet()
+{
+	m_utils->safeMarginsGet();
 }
 
 
@@ -390,8 +421,12 @@ void Client::setMainWindow(QQuickWindow *newMainWindow)
 	m_mainWindow = newMainWindow;
 	emit mainWindowChanged();
 
-	if (m_mainWindow)
-		m_mainWindow->setIcon(QIcon(":/internal/img/cos.png"));
+	if (!m_mainWindow)
+		return;
+
+	m_mainWindow->setIcon(QIcon(":/internal/img/cos.png"));
+
+	safeMarginsGet();
 }
 
 
@@ -469,7 +504,6 @@ void Client::loadGame()
 		qCCritical(lcClient).noquote() << tr("Game already exists");
 		return;
 	}
-
 
 	ActionGame *game = new ActionGame(this);
 	setCurrentGame(game);

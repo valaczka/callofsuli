@@ -8,9 +8,15 @@ Qaterial.StackView
 {
 	id: mainStackView
 
+	signal stackViewLoaded()
+
 	initialItem: CosImage {
 		maxWidth: Math.min(mainWindow.width*0.7, 800)
 		glowRadius: 6
+
+		image.onStatusChanged: if (image.status == Image.Ready) {
+								   mainStackView.stackViewLoaded()
+							   }
 	}
 
 	Transition {

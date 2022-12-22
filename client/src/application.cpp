@@ -156,7 +156,7 @@ int Application::run()
 
 	qCDebug(lcApp).noquote() << QObject::tr("Run Application");
 
-	QTimer::singleShot(0, m_client, &Client::onApplicationStarted);
+	//QTimer::singleShot(0, m_client, &Client::onApplicationStarted);
 
 	return m_application->exec();
 }

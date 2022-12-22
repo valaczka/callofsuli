@@ -61,18 +61,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 
 DesktopApplication::~DesktopApplication()
 {
-	/*if (m_consoleAppender) {
-		cuteLogger->removeAppender(m_consoleAppender);
-		delete m_consoleAppender;
-	}
 
-#ifdef Q_OS_ANDROID
-	if (m_androidAppender) {
-		cuteLogger->removeAppender(m_androidAppender);
-		delete m_androidAppender;
-	}
-#endif
-*/
 }
 
 
@@ -158,33 +147,22 @@ void DesktopApplication::initialize()
 	}
 #endif
 
-	m_consoleAppender = new ColorConsoleAppender;
 #ifdef Q_OS_ANDROID
-	m_androidAppender = new AndroidAppender;
+	AndroidAppender *appender = new AndroidAppender;
+#else
+	ColorConsoleAppender *appender = new ColorConsoleAppender;
 #endif
-
 
 #ifndef QT_NO_DEBUG
-	m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
-#ifdef Q_OS_ANDROID
-	m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
-#endif
+	appender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
 #else
-	m_consoleAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
-#ifdef Q_OS_ANDROID
-	m_androidAppender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
-#endif
+	appender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
 #endif
 
-	cuteLogger->registerAppender(m_consoleAppender);
-#ifdef Q_OS_ANDROID
-	cuteLogger->registerAppender(m_androidAppender);
-#endif
-
+	cuteLogger->registerAppender(appender);
 
 	qRegisterMetaType<Sound::SoundType>("SoundType");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 0, "Sound", "Sound is uncreatable");
-
 
 }
 

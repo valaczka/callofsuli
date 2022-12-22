@@ -18,9 +18,17 @@ Qaterial.ApplicationWindow
 	minimumWidth: 320
 	minimumHeight: 240
 
+
+	property bool _completed: false
+	readonly property bool _allLoaded: mainStackView._loaded && _completed
+
 	MainStackView {
 		id: mainStackView
 		anchors.fill: parent
+
+		property bool _loaded: false
+
+		onStackViewLoaded: _loaded = true
 	}
 
 
@@ -49,7 +57,12 @@ Qaterial.ApplicationWindow
 
 		Client.mainStack = mainStackView
 		Client.mainWindow = mainWindow
+
+		_completed = true
 	}
+
+
+	on_AllLoadedChanged: if (_allLoaded) Client.onApplicationStarted()
 
 
 	Shortcut

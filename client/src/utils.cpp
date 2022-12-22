@@ -27,6 +27,14 @@
 #include "utils.h"
 #include "client.h"
 #include "qjsondocument.h"
+#include "qquickwindow.h"
+#include "qguiapplication.h"
+#include "qscreen.h"
+#include <qpa/qplatformwindow.h>
+
+#ifdef Q_OS_ANDROID
+#define FLAG_SCREEN_ORIENTATION_LANDSCAPE       0x00000000
+#endif
 
 Q_LOGGING_CATEGORY(lcUtils, "app.utils")
 
@@ -219,4 +227,53 @@ QColor Utils::colorSetAlpha(QColor color, const qreal &alpha)
 {
 	color.setAlphaF(alpha);
 	return color;
+}
+
+
+
+/**
+ * @brief Utils::safeMarginsGet
+ * @param client
+ */
+
+void Utils::safeMarginsGet()
+{
+	if (!m_client) {
+		qCWarning(lcUtils).noquote() << tr("Missing client");
+		return;
+	}
+
+	if (!m_client->mainWindow()) {
+		qCWarning(lcUtils).noquote() << tr("Missing main window");
+		return;
+	}
+
+	QMarginsF margins;
+
+#if !defined (Q_OS_ANDROID)
+	QPlatformWindow *platformWindow = m_client->mainWindow()->handle();
+	if(!platformWindow) {
+		qCWarning(lcUtils).noquote() << tr("Invalid QPlatformWindow");
+		return;
+	}
+	margins = platformWindow->safeAreaMargins();
+#else
+	static const double devicePixelRatio = QGuiApplication::primaryScreen()->devicePixelRatio();
+
+	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
+
+	const double left = static_cast<double>(rect.getField<jint>("left"));
+	const double top = static_cast<double>(rect.getField<jint>("top"));
+	const double right = static_cast<double>(rect.getField<jint>("right"));
+	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
+
+	margins.setTop(top/devicePixelRatio);
+	margins.setBottom(bottom/devicePixelRatio);
+	margins.setLeft(left/devicePixelRatio);
+	margins.setRight(right/devicePixelRatio);
+#endif
+
+	qCDebug(lcUtils).noquote() << tr("New safe margins:") << margins;
+
+	m_client->setSafeMargins(margins);
 }

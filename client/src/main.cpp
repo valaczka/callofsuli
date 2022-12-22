@@ -39,9 +39,11 @@ int main(int argc, char *argv[])
 	OnlineApplication app(argc, argv);
 	return app.run();
 #else
+
 	DesktopApplication app(argc, argv);
 
 	app.commandLineParse();
+
 	app.initialize();
 
 	int r = 0;

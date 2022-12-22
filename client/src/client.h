@@ -53,10 +53,11 @@ class Client : public QObject
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
-	Q_PROPERTY(int safeMarginLeft READ safeMarginLeft WRITE setSafeMarginLeft NOTIFY safeMarginLeftChanged)
-	Q_PROPERTY(int safeMarginRight READ safeMarginRight WRITE setSafeMarginRight NOTIFY safeMarginRightChanged)
-	Q_PROPERTY(int safeMarginTop READ safeMarginTop WRITE setSafeMarginTop NOTIFY safeMarginTopChanged)
-	Q_PROPERTY(int safeMarginBottom READ safeMarginBottom WRITE setSafeMarginBottom NOTIFY safeMarginBottomChanged)
+	Q_PROPERTY(qreal safeMarginLeft READ safeMarginLeft NOTIFY safeMarginLeftChanged)
+	Q_PROPERTY(qreal safeMarginRight READ safeMarginRight NOTIFY safeMarginRightChanged)
+	Q_PROPERTY(qreal safeMarginTop READ safeMarginTop NOTIFY safeMarginTopChanged)
+	Q_PROPERTY(qreal safeMarginBottom READ safeMarginBottom NOTIFY safeMarginBottomChanged)
+
 
 public:
 	explicit Client(Application *app, QObject *parent = nullptr);
@@ -91,17 +92,22 @@ public:
 
 	// Safe margins
 
-	int safeMarginLeft() const;
-	void setSafeMarginLeft(int newSafeMarginLeft);
+	Q_INVOKABLE void safeMarginsGet();
 
-	int safeMarginRight() const;
-	void setSafeMarginRight(int newSafeMarginRight);
+	qreal safeMarginLeft() const;
+	void setSafeMarginLeft(qreal newSafeMarginLeft);
 
-	int safeMarginTop() const;
-	void setSafeMarginTop(int newSafeMarginTop);
+	qreal safeMarginRight() const;
+	void setSafeMarginRight(qreal newSafeMarginRight);
 
-	int safeMarginBottom() const;
-	void setSafeMarginBottom(int newSafeMarginBottom);
+	qreal safeMarginTop() const;
+	void setSafeMarginTop(qreal newSafeMarginTop);
+
+	qreal safeMarginBottom() const;
+	void setSafeMarginBottom(qreal newSafeMarginBottom);
+
+	void setSafeMargins(const QMarginsF &margins);
+
 
 protected slots:
 	virtual void onApplicationStarted();
@@ -131,11 +137,10 @@ protected:
 	Utils *const m_utils = nullptr;
 	AbstractGame *m_currentGame = nullptr;
 
-	int m_safeMarginLeft = 0;
-	int m_safeMarginRight = 0;
-	int m_safeMarginTop = 0;
-	int m_safeMarginBottom = 0;
-
+	qreal m_safeMarginLeft = 0;
+	qreal m_safeMarginRight = 0;
+	qreal m_safeMarginTop = 0;
+	qreal m_safeMarginBottom = 0;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcClient)

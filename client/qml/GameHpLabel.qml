@@ -11,7 +11,6 @@ import "./QaterialHelper" as Qaterial
 GameLabel {
 	id: infoHP
 
-	anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 	color: Qaterial.Colors.red800
 	text: qsTr("%1 HP")
 	iconLabel.icon.source: Qaterial.Icons.heartPulse

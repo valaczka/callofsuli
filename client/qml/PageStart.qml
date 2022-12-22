@@ -14,6 +14,7 @@ QPage {
 	header: Qaterial.ToolBar {
 		backgroundColor: "transparent"
 		elevation: 1
+		topPadding: Client.safeMarginTop
 		RowLayout {
 			anchors.fill: parent
 			Layout.fillWidth: true

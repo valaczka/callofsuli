@@ -27,7 +27,7 @@ SkipLibraryMakeIfExists = true
 
 # Add --verbose flag to cmake compiler (Qaterial, qml-box2d)
 
-CMakeVerboseOutput = false
+CMakeVerboseOutput = true
 
 # WebAssembly build with qml-box2d
 
@@ -79,6 +79,4 @@ else:win32: LibQaterialFile = libQaterial.dll
 else: LibQaterialFile = libQaterial.so
 
 QaterialBuildShared = ON
-
-QmlBox2DBuildShared = OFF
 

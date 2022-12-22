@@ -590,7 +590,7 @@ Page {
 	GameHpLabel {
 		id: infoHP
 		anchors.horizontalCenter: parent.horizontalCenter
-		anchors.margins: 5
+		anchors.topMargin: Math.max(5, Client.safeMarginTop)
 		anchors.top: parent.top
 		value: game.player ? game.player.hp : 0
 		visible: !gameScene.zoomOverview
@@ -600,7 +600,7 @@ Page {
 	Column {
 		anchors.right: parent.right
 		anchors.top: parent.top
-		anchors.margins: 7
+		anchors.topMargin: Math.max(Client.safeMarginTop, 7)
 		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
 		spacing: 5
 
@@ -815,7 +815,7 @@ Page {
 
 		anchors.left: parent.left
 		anchors.top: parent.top
-		anchors.leftMargin: Math.max(mainWindow.safeMarginLeft/2, 10)
+		anchors.leftMargin: Math.max(mainWindow.safeMargins.left/2, 10)
 
 		width: Math.min(implicitWidth, control.width*0.55)
 		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
@@ -829,7 +829,7 @@ Page {
 		anchors.left: parent.left
 		anchors.top: gameMatch.mode == GameMatch.ModeNormal ? messageList.bottom : parent.top
 		anchors.margins: 5
-		anchors.leftMargin: Math.max(mainWindow.safeMarginLeft/2, 10)
+		anchors.leftMargin: Math.max(mainWindow.safeMargins.left/2, 10)
 
 		GameButton {
 			id: backButton
@@ -880,7 +880,7 @@ Page {
 		anchors.left: parent.left
 		anchors.top: rowTime.bottom
 		anchors.margins: 5
-		anchors.leftMargin: Math.max(mainWindow.safeMarginLeft, 5)
+		anchors.leftMargin: Math.max(mainWindow.safeMargins.left, 5)
 		pixelSize: 24
 
 		property int secs: game.msecLeft/1000
@@ -902,12 +902,12 @@ Page {
 	GameJoystick {
 		id: joystick
 
-		property real size: 175
+		property real size: 250
 
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.bottomMargin: 5 //Math.max(5, mainWindow.safeMarginBottom)
-		anchors.leftMargin: 5 //Math.max(5, mainWindow.safeMarginLeft)
+		anchors.bottomMargin: 5 //Math.max(5, mainWindow.safeMargins.bottom)
+		anchors.leftMargin: 5 //Math.max(5, mainWindow.safeMargins.left)
 
 		width: Math.min(size, control.width*0.5)
 		height: Math.min((120/175)*size, control.width*0.4)
@@ -921,40 +921,42 @@ Page {
 						   }
 
 		onJoystickMoved: if (game.player && hasTouch) {
-							 game.player.setMovingFlag(GamePlayer.JoystickInteraction)
+							 var f = GamePlayer.Standby
 
-							 if (y > 0.85) {
-								 game.player.setMovingFlag(GamePlayer.MoveUp)
-							 } else if (y < -0.85) {
-								 game.player.setMovingFlag(GamePlayer.MoveDown)
+							 if (y > 0.75) {
+								 f |= GamePlayer.MoveUp
+							 } else if (y < -0.75) {
+								 f |= GamePlayer.MoveDown
 							 } else {
-								 game.player.setMovingFlag(GamePlayer.MoveUp, false)
-								 game.player.setMovingFlag(GamePlayer.MoveDown, false)
+								 f &= ~GamePlayer.MoveUp
+								 f &= ~GamePlayer.MoveDown
 							 }
 
 							 if (x > 0.3) {
-								 if (x > 0.7) {
-									 game.player.setMovingFlag(GamePlayer.MoveRight)
-									 game.player.setMovingFlag(GamePlayer.SlowModifier, false)
+								 if (x > 0.85) {
+									 f |= GamePlayer.MoveRight
+									 f &= ~GamePlayer.SlowModifier
 								 } else{
-									 game.player.setMovingFlag(GamePlayer.MoveRight)
-									 game.player.setMovingFlag(GamePlayer.SlowModifier)
+									 f |= GamePlayer.MoveRight
+									 f |= GamePlayer.SlowModifier
 								 }
 							 } else if (x > 0.1) {
 								 game.player.turnRight()
+								 return
 							 } else if (x < -0.3) {
-								 if (x < -0.7) {
-									 game.player.setMovingFlag(GamePlayer.MoveLeft)
-									 game.player.setMovingFlag(GamePlayer.SlowModifier, false)
+								 if (x < -0.85) {
+									 f |= GamePlayer.MoveLeft
+									 f &= ~GamePlayer.SlowModifier
 								 } else {
-									 game.player.setMovingFlag(GamePlayer.MoveLeft)
-									 game.player.setMovingFlag(GamePlayer.SlowModifier)
+									 f |= GamePlayer.MoveLeft
+									 f |= GamePlayer.SlowModifier
 								 }
 							 } else if (x < -0.1) {
 								 game.player.turnLeft()
-							 } else {
-								 game.player.standbyMovingFlags()
+								 return
 							 }
+
+							 game.player.movingFlags = f
 
 						 }
 	}

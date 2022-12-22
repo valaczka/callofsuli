@@ -1,7 +1,9 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network multimedia #sql websockets quick svg multimedia network networkauth gui-private webview
+QT += gui quick svg xml network gui-private #sql websockets quick svg multimedia network networkauth webview
+
+!wasm: QT += multimedia
 
 CONFIG += c++17
 
@@ -18,12 +20,15 @@ DESTDIR = ../..
 
 AppRpath =
 
+QML_IMPORT_PATH += $$PWD/../qml
+QMLPATHS += $$PWD/../qml
+
 
 include(../../lib/import_lib_client.pri)
 
 FullAppRpath = $$join(AppRpath,",","-Wl,")
 
-!isEmpty(FullAppRpath):!wasm  {
+!isEmpty(FullAppRpath):!android:!wasm:  {
 	QMAKE_LFLAGS += $$FullAppRpath
 }
 

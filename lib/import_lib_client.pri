@@ -43,17 +43,12 @@ else: LIBS += -L../../lib$${TargetSuffix} -lQZXing
 # QML-Box2D
 
 !wasm|if($$WasmWithBox2D) {
-	INCLUDEPATH += $$PWD/qml-box2d/qml-box2d
-	INCLUDEPATH += $$PWD/qml-box2d/qml-box2d/Box2D
+	INCLUDEPATH += $$PWD/qml-box2d/
+	INCLUDEPATH += $$PWD/qml-box2d/Box2D
 
-	android {
-		LIBS += -L../../lib/qml-box2d/$${QT_ARCH}/bin/plugins/Box2D -lqmlbox2d_$${QT_ARCH}
-		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += $$OUT_PWD/../../lib/qml-box2d/$${abi}/bin/plugins/Box2D/libqmlbox2d_$${abi}.so
-	} else {
-		LIBS += \
-				-L../../lib/qml-box2d/bin/plugins/Box2D -lqmlbox2d \
-				-L../../lib/qml-box2d/lib -lBox2D
-	}
+	android: LIBS += -L../../lib -lqml-box2d_$${QT_ARCH}
+	else: LIBS += -L../../lib$${TargetSuffix} -lqml-box2d
+
 }
 
 
