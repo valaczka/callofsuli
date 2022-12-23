@@ -184,6 +184,7 @@ private slots:
 	void onBeginContact(Box2DFixture *other);
 	void onEndContact(Box2DFixture *other);
 	void onBaseGroundContacted();
+	void onIsAliveChanged();
 
 private:
 	void ladderMove(const bool &up);

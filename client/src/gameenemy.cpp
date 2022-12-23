@@ -56,6 +56,10 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	}
 #endif
 
+	connect(this, &GamePlayer::allHpLost, this, [this](){
+		emit killed(this);
+	});
+
 	connect(this, &GameEnemy::isAliveChanged, this, [this](){
 		if (!isAlive())
 			setEnemyState(Dead);
@@ -83,6 +87,36 @@ GameEnemy::~GameEnemy()
 void GameEnemy::onSceneConnected()
 {
 	connect(m_scene, &GameScene::zoomOverviewChanged, this, &GameEntity::setOverlayEnabled);
+}
+
+const GamePickable::GamePickableData &GameEnemy::pickable() const
+{
+	return m_pickable;
+}
+
+void GameEnemy::setPickable(const GamePickable::GamePickableData &newPickable)
+{
+	m_pickable = newPickable;
+	emit pickableChanged();
+}
+
+
+/**
+ * @brief GameEnemy::question
+ * @return
+ */
+
+ActionGame::QuestionLocation *GameEnemy::question() const
+{
+	return m_question;
+}
+
+void GameEnemy::setQuestion(ActionGame::QuestionLocation *newQuestion)
+{
+	if (m_question == newQuestion)
+		return;
+	m_question = newQuestion;
+	emit questionChanged();
 }
 
 

@@ -30,6 +30,7 @@
 #include "client.h"
 #include <QGuiApplication>
 #include <QtQml>
+#include "../modules/interfaces.h"
 
 class Application
 {
@@ -55,6 +56,8 @@ public:
 	void messageWarning(const QString &text, const QString &title = "") const;
 	void messageError(const QString &text, const QString &title = "") const;
 
+	const QHash<QString, ModuleInterface *> &objectiveModules() const;
+	const QHash<QString, ModuleInterface *> &storageModules() const;
 
 protected:
 	virtual bool loadMainQml();
@@ -65,6 +68,7 @@ protected:
 	void loadFonts();
 	void loadQaterial();
 	void loadBox2D();
+	void loadModules();
 
 	friend class Client;
 	friend class OnlineClient;
@@ -79,6 +83,9 @@ protected:
 	Client *m_client = nullptr;
 	static Application *m_instance;
 	static const bool m_debug;
+
+	QHash<QString, ModuleInterface*> m_objectiveModules;
+	QHash<QString, ModuleInterface*> m_storageModules;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcApp)

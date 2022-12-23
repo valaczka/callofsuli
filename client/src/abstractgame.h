@@ -29,6 +29,7 @@
 
 #include "qloggingcategory.h"
 #include "qquickitem.h"
+#include "gamemap.h"
 #include <QObject>
 
 class Client;
@@ -43,8 +44,7 @@ class AbstractGame : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(QQuickItem *pageItem READ pageItem WRITE setPageItem NOTIFY pageItemChanged)
-	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-	Q_PROPERTY(QString backgroundImage READ backgroundImage CONSTANT)
+	Q_PROPERTY(GameMap* map READ map WRITE setMap NOTIFY mapChanged)
 
 public:
 
@@ -63,16 +63,15 @@ public:
 	explicit AbstractGame(const Mode &mode, Client *client);
 	virtual ~AbstractGame();
 
-
 	QQuickItem *pageItem() const;
 	void setPageItem(QQuickItem *newPageItem);
 
 	const Mode &mode() const;
 
-	const QString &name() const;
-	void setName(const QString &newName);
+	GameMap *map() const;
+	void setMap(GameMap *newMap);
 
-	const QString &backgroundImage() const;
+	Q_INVOKABLE void unloadPageItem();
 
 public slots:
 	bool load();
@@ -86,14 +85,13 @@ private slots:
 
 signals:
 	void pageItemChanged();
-	void nameChanged();
+	void mapChanged();
 
 protected:
 	Client *m_client = nullptr;
 	QQuickItem *m_pageItem = nullptr;
 	const Mode m_mode;
-	QString m_name;
-	QString m_backgroundImage;
+	GameMap *m_map = nullptr;
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcGame)

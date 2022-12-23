@@ -3,20 +3,16 @@ include(../common.pri)
 TEMPLATE = subdirs
 
 SUBDIRS = \
+	qaterial \
 	libtiled \
 	SortFilterProxyModel \
 	QtXlsxWriter \
-	QZXing
+	QZXing \
+	callofsuli-core
 
 !wasm: SUBDIRS += CuteLogger
 
 !wasm|if($$WasmWithBox2D) {
 	SUBDIRS += qml-box2d
-}
-
-if ($$SkipLibraryMakeIfExists) {
-	!exists($$OUT_PWD/$$LibQaterialFile): SUBDIRS += qaterial
-} else {
-	SUBDIRS += qaterial
 }
 

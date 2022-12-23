@@ -32,7 +32,7 @@
 #include "gameobject.h"
 #include "gameplayer.h"
 #include "gameterrain.h"
-#include "gameenemysoldier.h"
+#include "gameplayerposition.h"
 #include "libtiled/mapobject.h"
 #include "qtimer.h"
 #include "tiledpaintedlayer.h"
@@ -63,6 +63,9 @@ GameScene::GameScene(QQuickItem *parent)
 	m_timingTimer->start();
 
 	loadGameData();
+
+	connect(this, &GameScene::sceneStepSuccess, this, &GameScene::onSceneStepSuccess);
+	connect(this, &GameScene::sceneLoadFailed, this, &GameScene::onSceneLoadFailed);
 }
 
 
@@ -109,8 +112,24 @@ void GameScene::setGame(ActionGame *newGame)
 
 void GameScene::load()
 {
-	if (!m_terrain.loadMap("Test", 1))
+	if (!m_game->missionLevel()) {
+		Application::instance()->messageError(tr("A küldetés nincs beállítva!"), tr("Nem lehet elindítani a játékot"));
+		emit sceneLoadFailed();
 		return;
+	}
+
+	GameMapMissionLevel *ml = m_game->missionLevel();
+
+	QString terrain = ml->terrain();
+
+	QString terrainDir = terrain.section("/", 0, -2);
+	int terrainLevel = terrain.section("/", -1, -1).toInt();
+
+	if (!m_terrain.loadMap(terrainDir, terrainLevel)) {
+		Application::instance()->messageError(tr("A harcmező nem tölthető be!"), tr("Nem lehet elindítani a játékot"));
+		emit sceneLoadFailed();
+		return;
+	}
 
 	setWidth(m_terrain.width());
 	setHeight(m_terrain.height());
@@ -118,7 +137,12 @@ void GameScene::load()
 	loadTiledLayers();
 	loadGroundLayer();
 	loadLadderLayer();
+	loadPlayerPositionLayer();
 	loadTerrainObjectsLayer();
+
+	++m_sceneLoadSteps;
+
+	emit sceneStepSuccess();
 }
 
 
@@ -154,8 +178,8 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 	const int &key = event->key();
 	GamePlayer *player = m_game->player();
 
-	if (!m_game->running())
-		player = nullptr;
+	if (!m_game->running() || m_sceneState != ScenePlay)
+		return;
 
 	switch (key) {
 
@@ -206,6 +230,11 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 			setDebugView(!m_debugView);
 		break;
 
+	case Qt::Key_R:
+		if (event->modifiers().testFlag(Qt::ShiftModifier))
+			m_game->setRunning(!m_game->running());
+		break;
+
 	case Qt::Key_X:
 		if (event->modifiers().testFlag(Qt::ShiftModifier) && m_mouseArea && m_mouseArea->property("containsMouse").toBool() && player)
 			player->moveTo(m_mouseArea->property("mouseX").toReal(), m_mouseArea->property("mouseY").toReal(), true);
@@ -222,6 +251,9 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 
 void GameScene::keyReleaseEvent(QKeyEvent *event)
 {
+	if (!m_game->running() || m_sceneState != ScenePlay)
+		return;
+
 	if (event->isAutoRepeat())
 		return;
 
@@ -357,8 +389,8 @@ void GameScene::loadGroundLayer()
 		fixture->setDensity(1);
 		fixture->setFriction(1);
 		fixture->setRestitution(0);
-		fixture->setCategories(Box2DFixture::Category1);
-		fixture->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2|Box2DFixture::Category5);
+		fixture->setCategories(CATEGORY_GROUND);
+		fixture->setCollidesWith(CATEGORY_GROUND|CATEGORY_PLAYER|CATEGORY_ENEMY);
 
 		item->body()->addFixture(fixture);
 
@@ -432,6 +464,7 @@ void GameScene::loadTerrainObjectsLayer()
 	QHash<GameTerrain::ObjectType, QString> list;
 
 	list.insert(GameTerrain::Fire, "GameFire.qml");
+	list.insert(GameTerrain::Fence, "GameFence.qml");
 
 	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
 		const GameTerrain::ObjectType &type = it.key();
@@ -453,6 +486,11 @@ void GameScene::loadTerrainObjectsLayer()
 				object->setX(data.point.x()-(object->width()/2));
 				object->setY(data.point.y()-object->height()+10);                       // +10: az animáció korrekciója miatt lejjebb kell tenni
 				break;
+			case GameTerrain::Fence:
+				object->setX(data.point.x()-(object->width()/2));
+				object->setY(data.point.y()-object->height());
+				break;
+
 			default:
 				object->setPosition(data.point);
 			}
@@ -461,6 +499,22 @@ void GameScene::loadTerrainObjectsLayer()
 
 			addChildItem(object);
 		}
+	}
+}
+
+
+
+
+/**
+ * @brief GameScene::loadPlayerPositionLayer
+ */
+
+void GameScene::loadPlayerPositionLayer()
+{
+	qCDebug(lcScene).noquote() << tr("Load player position layer");
+
+	foreach(const GameTerrain::PlayerPositionData &data, m_terrain.playerPositions()) {
+		m_grounds.append(new GamePlayerPosition(data, this));
 	}
 }
 
@@ -495,6 +549,60 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 
 
 /**
+ * @brief GameScene::terrain
+ * @return
+ */
+
+const GameTerrain &GameScene::terrain() const
+{
+	return m_terrain;
+}
+
+
+/**
+ * @brief GameScene::getPlayerPosition
+ * @return
+ */
+
+GameTerrain::PlayerPositionData GameScene::getPlayerPosition()
+{
+	while (!m_playerPositions.isEmpty()) {
+		GamePlayerPosition *p = m_playerPositions.top();
+
+		if (m_game->closedBlocks().contains(p->data().block)) {
+			return p->data();
+		}
+
+		m_playerPositions.pop();
+	}
+
+	return m_terrain.defaultPlayerPosition();
+}
+
+
+/**
+ * @brief GameScene::sceneState
+ * @return
+ */
+
+GameScene::SceneState GameScene::sceneState() const
+{
+	return m_sceneState;
+}
+
+void GameScene::setSceneState(SceneState newSceneState)
+{
+	if (m_sceneState == newSceneState)
+		return;
+	m_sceneState = newSceneState;
+	emit sceneStateChanged();
+
+	if (m_sceneState == ScenePlay)
+		emit sceneStarted();
+}
+
+
+/**
  * @brief GameScene::gameData
  * @return
  */
@@ -518,9 +626,20 @@ QJsonObject GameScene::levelData(int level) const
 	if (level < 0)
 		level = m_game->level();
 
-	const QString &key = QString::number(level);
+	QJsonObject r;
 
-	return m_gameData.value("level").toObject().value(key).toObject();
+	while (level > 0) {
+		const QString &key = QString::number(level);
+
+		if (m_gameData.value("level").toObject().contains(key)) {
+			r = m_gameData.value("level").toObject().value(key).toObject();
+			break;
+		}
+
+		--level;
+	}
+
+	return r;
 }
 
 
@@ -531,26 +650,24 @@ QJsonObject GameScene::levelData(int level) const
 
 void GameScene::createPlayer()
 {
-	qDebug() << "CREATE PLAYER" << m_game->player();
+	qCDebug(lcScene).noquote() << tr("Create player");
 
 	if (m_game->player()) {
-		m_game->setPlayer(nullptr);
-		qDebug() << "ALREADY";
+		qCWarning(lcScene).noquote() << tr("Player already exists");
+		return;
 	}
 
 	GamePlayer *player = GamePlayer::create(this);
-	GameTerrain::PlayerPositionData pos = m_terrain.defaultPlayerPosition();
+	GameTerrain::PlayerPositionData pos = getPlayerPosition();
 	pos.point.setY(pos.point.y()-player->height());
 
 	player->setPosition(pos.point);
-	player->setMaxHp(5);
-	player->setHp(3);
 
 	m_game->setPlayer(player);
 
-	connect(player, &GamePlayer::died, this, &GameScene::createPlayer);
-
 	addChildItem(player);
+
+	QCoreApplication::processEvents();
 }
 
 
@@ -647,32 +764,91 @@ void GameScene::onScenePrepared()
 {
 	qCDebug(lcScene).noquote() << tr("Scene prepared");
 
-	m_game->pageItem()->setProperty("closeDisabled", "");
+	++m_sceneLoadSteps;
+
+	emit sceneStepSuccess();
+}
+
+
+/**
+ * @brief GameScene::onSceneStepSuccess
+ */
+
+void GameScene::onSceneStepSuccess()
+{
+	qCDebug(lcScene).noquote() << tr("Scene step:") << m_sceneLoadSteps;
+
+	if (m_sceneLoadSteps < 2)
+		return;
+
+	m_game->createQuestions();
+	m_game->createEnemyLocations();
+	m_game->createFixEnemies();
+	m_game->createInventory();
+
 	m_game->pageItem()->setState("run");
-	m_game->setRunning(true);
+}
 
 
-	foreach (auto e, m_terrain.enemies()) {
-		if (e.type != GameTerrain::EnemySoldier)
-			continue;
+/**
+ * @brief GameScene::onSceneLoadFailed
+ */
 
-		GameEnemySoldier *soldier = GameEnemySoldier::create(this, e);
+void GameScene::onSceneLoadFailed()
+{
+	m_game->pageItem()->setProperty("closeDisabled", "");
+	m_game->pageItem()->setProperty("onPageClose", QVariant::Invalid);
+	m_game->pageItem()->setProperty("closeQuestion", "");
 
-		soldier->setX(e.rect.left());
-		soldier->setY(e.rect.bottom()-soldier->height());
+	m_game->unloadPageItem();
 
-		soldier->setMaxHp(QRandomGenerator::global()->bounded(1, 5));
-		soldier->setHp(QRandomGenerator::global()->bounded(1, 5));
+}
 
-		addChildItem(soldier);
 
-		soldier->startMovingAfter(2500);
+/**
+ * @brief GameScene::onSceneAnimationReady
+ */
 
-		QCoreApplication::processEvents();
-	}
+void GameScene::onSceneAnimationReady()
+{
+	m_game->pageItem()->setProperty("closeDisabled", "");
 
+	m_game->recreateEnemies();
 
 	createPlayer();
+
+
+	setSceneState(ScenePlay);
+}
+
+
+/**
+ * @brief GameScene::activateLaddersInBlock
+ * @param block
+ */
+
+void GameScene::activateLaddersInBlock(const int &block)
+{
+	qCDebug(lcScene).noquote() << tr("Activate ladders in block:") << block;
+
+	foreach (GameLadder *ladder, m_ladders) {
+		if (ladder->blockTop() == block || ladder->blockBottom() == block)
+			ladder->setActive(true);
+	}
+}
+
+
+/**
+ * @brief GameScene::setPlayerPosition
+ * @param position
+ */
+
+void GameScene::setPlayerPosition(GamePlayerPosition *position)
+{
+	if (position && (m_playerPositions.isEmpty() || m_playerPositions.top() != position)) {
+		qCDebug(lcScene).noquote() << tr("Player position reached:") << position->position();
+		m_playerPositions.push(position);
+	}
 }
 
 

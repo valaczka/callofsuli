@@ -6,11 +6,14 @@ client_lib.file = lib/lib_client.pro
 client_lib.makefile = Makefile
 application.file = client/src/app.pro
 application.makefile = Makefile
+modules.file = client/modules/modules.pro
+modules.makefile = Makefile
 
 
 SUBDIRS += \
 			version \
 			client_lib \
+			modules \
 			application
 
 

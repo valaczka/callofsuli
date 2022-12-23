@@ -493,7 +493,7 @@ void GameEntity::onIsAliveDisabled()
 {
 	qCDebug(lcScene).noquote() << tr("Entity died") << this;
 
-	emit died();
+	emit died(this);
 
 	m_dieAnimation->setDuration(150);
 	m_dieAnimation->setStartValue(1.0);
@@ -1101,7 +1101,7 @@ void GameEntity::decreaseHp()
 
 void GameEntity::kill()
 {
-	emit killed();
+	emit killed(this);
 	setHp(0);
 }
 

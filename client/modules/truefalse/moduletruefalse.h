@@ -31,8 +31,8 @@
 #include <QObject>
 #include <QtPlugin>
 
-#include "../../abstractobjectiveimporter.h"
-#include "../../../QtXlsxWriter/xlsxworksheet.h"
+#include "abstractobjectiveimporter.h"
+#include "xlsxworksheet.h"
 #include "objectiveimportertruefalse.h"
 
 

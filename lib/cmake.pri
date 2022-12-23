@@ -22,6 +22,13 @@ android {
 		-DANDROID_NDK:PATH=$${AndroidNdkPath} \
 		-DCMAKE_C_COMPILER:FILEPATH=$${AndroidNdkPath}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang \
 		-DCMAKE_TOOLCHAIN_FILE:FILEPATH=$${AndroidNdkPath}/build/cmake/android.toolchain.cmake
+} else:ios {
+	CMakeArguments += \
+		-DCMAKE_TOOLCHAIN_FILE:FILEPATH=$${IosCMakeToolchain} \
+		-DDEPLOYMENT_TARGET=$${IosDeploymentTarget} \
+		-DPLATFORM=$${IosDeploymentPlatform} \
+		-DARCHS=$${IosDeploymentArchs} \
+		-DENABLE_BITCODE=FALSE
 } else {
 	CMakeArguments += \
 		-DCMAKE_CXX_COMPILER=\"$$QMAKE_CXX\" \

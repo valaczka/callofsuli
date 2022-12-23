@@ -27,5 +27,7 @@
         <file>GameFire.qml</file>
         <file>GameInfo.qml</file>
         <file>GameHpLabel.qml</file>
+        <file>GameFence.qml</file>
+        <file>GamePickable.qml</file>
     </qresource>
 </RCC>

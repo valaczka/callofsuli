@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * objectiveimportertruefalse.h
+ * question.h
  *
- * Created on: 2021. 01. 09.
+ * Created on: 2021. 01. 03.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ObjectiveImporterTruefalse
+ * Question
  *
  *  This file is part of Call of Suli.
  *
@@ -32,20 +32,37 @@
  * SOFTWARE.
  */
 
-#ifndef OBJECTIVEIMPORTERTRUEFALSE_H
-#define OBJECTIVEIMPORTERTRUEFALSE_H
+#ifndef QUESTION_H
+#define QUESTION_H
 
-#include "../../abstractobjectiveimporter.h"
-#include "../../../QtXlsxWriter/xlsxworksheet.h"
+#include <QString>
+#include <QVariantMap>
+#include "gamemap.h"
 
-class ObjectiveImporterTruefalse : public AbstractObjectiveImporter
+class Question
 {
 public:
-	ObjectiveImporterTruefalse(QXlsx::Worksheet *worksheet);
+	explicit Question(GameMapObjective *objective = nullptr);
 
-protected:
-	QString normalizedHeaderString(const QString &header, const int &) override;
-	bool readRow(const QMultiMap<QString, QXlsx::Cell *> &cells) override;
+	bool isValid() const;
+	QString module() const;
+	QString uuid() const;
+
+	bool generate();
+
+	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data,
+									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
+
+	static QVariantMap storageInfo(const QString &module, const QVariantMap &data);
+
+	QVariantMap question() const { return m_question; }
+	QString qml() const;
+
+
+private:
+	GameMapObjective *m_objective;
+	QVariantMap m_question;
+
 };
 
-#endif // OBJECTIVEIMPORTERTRUEFALSE_H
+#endif // QUESTION_H

@@ -29,6 +29,8 @@
 
 #include "gameentity.h"
 #include "gameterrain.h"
+#include "gamepickable.h"
+#include "actiongame.h"
 #include <QPointer>
 
 #ifndef Q_OS_WASM
@@ -49,6 +51,8 @@ class GameEnemy : public GameEntity
 	Q_PROPERTY(EnemyState enemyState READ enemyState WRITE setEnemyState NOTIFY enemyStateChanged)
 	Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(qreal msecLeftToAttack READ msecLeftToAttack NOTIFY msecLeftToAttackChanged)
+	Q_PROPERTY(bool hasQuestion READ hasQuestion NOTIFY questionChanged)
+	Q_PROPERTY(bool hasPickable READ hasPickable NOTIFY pickableChanged)
 
 #ifndef Q_OS_WASM
 	Q_PROPERTY(QSoundEffect soundEffect READ soundEffect CONSTANT)
@@ -103,6 +107,13 @@ public:
 	qreal msecLeftToAttack() const;
 	void setMsecLeftToAttack(qreal newMsecLeftToAttack);
 
+	ActionGame::QuestionLocation *question() const;
+	void setQuestion(ActionGame::QuestionLocation *newQuestion);
+	bool hasQuestion() const { return m_question; }
+
+	const GamePickable::GamePickableData &pickable() const;
+	void setPickable(const GamePickable::GamePickableData &newPickable);
+	bool hasPickable() const { return m_pickable.type != GamePickable::PickableInvalid; }
 
 public slots:
 	void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
@@ -119,6 +130,8 @@ signals:
 	void enemyStateChanged();
 	void playerChanged();
 	void msecLeftToAttackChanged();
+	void questionChanged();
+	void pickableChanged();
 
 private slots:
 	void onSceneConnected();
@@ -141,6 +154,9 @@ protected:
 	bool m_aimedByPlayer = false;
 	QPointer<GameEntity> m_player = nullptr;
 	qreal m_msecLeftToAttack = -1;
+	ActionGame::QuestionLocation *m_question = nullptr;
+	GamePickable::GamePickableData m_pickable;
+
 };
 
 #endif // GAMEENEMY_H

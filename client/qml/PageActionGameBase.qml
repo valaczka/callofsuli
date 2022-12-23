@@ -14,32 +14,12 @@ Page {
 
 	property ActionGame game: null
 	property string closeDisabled: qsTr("A játék előkészítése alatt nem lehet bezárni a lapot!")
-	//property string closeQuestion: qsTr("Biztosan megszakítod a játékot?")
+	property string closeQuestion: ""//qsTr("Biztosan megszakítod a játékot?")
 	property var onPageClose: function() { if (game) game.finishGame() }
 
-	/*GameActivity {
-		id: gameActivity
-		game: game
+	readonly property int stackViewIndex: StackView.index
+	property alias scene: gameScene
 
-		onPreparedChanged: {
-			doStep()
-		}
-
-		onPrepareFailed: {
-			cosClient.sendMessageErrorImage("qrc:/internal/icon/tools.svg",qsTr("Játék előkészítése sikertelen"), qsTr("Nem sikerült előkészíteni a játékot!"))
-			_backDisabled = false
-			_closeEnabled = true
-			mainStack.back()
-		}
-
-		onQuestionFailed: {
-			if (gameMatch && liteHP <= 0)
-				skullImageAnim.start()
-			else
-				painhudImageAnim.start()
-		}
-
-	}*/
 
 
 	Image {
@@ -117,7 +97,6 @@ Page {
 				id: gameScene
 				game: control.game
 
-				//opacity: 0.0
 				visible: false
 
 				focus: true
@@ -145,8 +124,8 @@ Page {
 						SequentialAnimation {
 							ScriptAction {
 								script: {
-									/*if (animX.running)
-										animX.stop()*/
+									if (animX.running)
+										animX.stop()
 								}
 							}
 
@@ -653,7 +632,7 @@ Page {
 			progressBar.value: enemies
 			progressBar.width: Math.min(control.width*0.125, 100)
 
-			property int enemies: 23//game.activeEnemies
+			property int enemies: game ? game.activeEnemies : 0
 
 			onEnemiesChanged: {
 				infoTarget.marked = true
@@ -1298,10 +1277,10 @@ Page {
 				target: nameLabel
 				scale: 15.0
 			}
-			PropertyChanges {
+			/*PropertyChanges {
 				target: blackRect
 				opacity: 1.0
-			}
+			}*/
 		},
 		State {
 			name: "start"
@@ -1432,18 +1411,11 @@ Page {
 					}
 				}
 
-				/*ScriptAction {
+				ScriptAction {
 					script: {
-						_backDisabled = false
-						if (gameMatch.mode == GameMatch.ModeNormal) {
-							messageList.message(qsTr("LEVEL %1").arg(gameMatch.level), 3)
-
-							previewAnimation.start()
-						} else {
-							game.onGameStarted()
-						}
+						gameScene.onSceneAnimationReady()
 					}
-				}*/
+				}
 			}
 		}
 	]

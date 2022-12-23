@@ -47,10 +47,10 @@ class Utils : public QObject
 	Q_OBJECT
 
 public:
-	explicit Utils(Client *client);
+	explicit Utils(QObject *parent = nullptr);
 	virtual ~Utils();
 
-	Client *client() const;
+	Q_INVOKABLE static QByteArray fileContent(const QString &filename, bool *error = nullptr);
 
 	Q_INVOKABLE static QJsonDocument byteArrayToJsonDocument(const QByteArray &data);
 	Q_INVOKABLE static QJsonObject byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
@@ -62,10 +62,9 @@ public:
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 
-	Q_INVOKABLE void safeMarginsGet();
+	Q_INVOKABLE void safeMarginsGet(Client *client);
 
 private:
-	Client *const m_client = nullptr;
 
 #ifdef Q_OS_ANDROID
 	jint m_screenOrientationRequest = -1;

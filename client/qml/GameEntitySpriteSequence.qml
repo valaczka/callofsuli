@@ -19,6 +19,8 @@ Item {
 		id: spriteSequence
 		anchors.centerIn: parent
 
+		running: entity && entity.game && entity.game.running
+
 		transform: Rotation {
 			id: rotation
 			origin.x: spriteSequence.width/2

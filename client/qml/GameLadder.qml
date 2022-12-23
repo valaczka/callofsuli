@@ -32,7 +32,6 @@ GameLadderPrivate {
 			collidesWith: _collision
 			categories: Box.Category4
 
-			readonly property QtObject targetObject: control
 			readonly property var targetData: {"direction": "down" }
 
 			onBeginContact: _glowForced = true
@@ -47,7 +46,6 @@ GameLadderPrivate {
 			collidesWith: _collision
 			categories: Box.Category4
 
-			readonly property QtObject targetObject: control
 			readonly property var targetData: {"direction": "up" }
 
 			onBeginContact: _glowForced = true

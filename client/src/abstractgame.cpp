@@ -42,8 +42,6 @@ AbstractGame::AbstractGame(const Mode &mode, Client *client)
 	Q_ASSERT(client);
 
 	qCDebug(lcGame).noquote() << tr("Game created") << this;
-
-	m_backgroundImage = "qrc:/internal/game/bg.png";
 }
 
 
@@ -140,6 +138,7 @@ void AbstractGame::finishGame()
 
 
 
+
 /**
  * @brief AbstractGame::setPageItem
  * @param newPageItem
@@ -155,33 +154,38 @@ void AbstractGame::setPageItem(QQuickItem *newPageItem)
 
 
 
-const QString &AbstractGame::name() const
+
+
+GameMap *AbstractGame::map() const
 {
-	return m_name;
+	return m_map;
 }
 
-void AbstractGame::setName(const QString &newName)
+void AbstractGame::setMap(GameMap *newMap)
 {
-	if (m_name == newName)
+	if (m_map == newMap)
 		return;
-	m_name = newName;
-	emit nameChanged();
+	m_map = newMap;
+	emit mapChanged();
 }
 
 
 /**
- * @brief AbstractGame::backgroundImage
- * @return
+ * @brief AbstractGame::unloadPageItem
  */
 
-const QString &AbstractGame::backgroundImage() const
+void AbstractGame::unloadPageItem()
 {
-	/*if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
-					return "qrc:/internal/game/bg.png";
-			else if (m_bgImage.startsWith("qrc:/"))
-					return m_bgImage;
-			else
-					return "image://"+m_imageDbName+"/"+m_bgImage;*/
+	if (!m_pageItem) {
+		qCWarning(lcGame).noquote() << tr("Missing game page");
+		return;
+	}
 
-	return m_backgroundImage;
+	QVariant v = m_pageItem->property("stackViewIndex");
+
+	if (v.isValid()) {
+		m_client->stackPop(v.toInt()-1, true);
+	} else {
+		m_client->stackPop(-1, true);
+	}
 }

@@ -233,7 +233,9 @@ void DesktopClient::onMainWindowChanged()
 	if (!m_mainWindow)
 		return;
 
+#ifndef QT_DEBUG
 	m_mainWindow->showFullScreen();
+#endif
 
 	if (!m_mainWindow->screen())
 		return;

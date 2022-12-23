@@ -96,15 +96,15 @@ public:
 
 	Tiled::Map *map() const;
 
-	const QList<EnemyData> &enemies() const;
-	const QList<int> &blocks() const;
-	const QList<ObjectData> &objects() const;
-	const QList<PlayerPositionData> &playerPositions() const;
-	QList<ObjectData> objects(const ObjectType &type) const;
+	const QVector<EnemyData> &enemies() const;
+	const QVector<int> &blocks() const;
+	const QVector<ObjectData> &objects() const;
+	const QVector<PlayerPositionData> &playerPositions() const;
+	QVector<ObjectData> objects(const ObjectType &type) const;
 
-	QList<ObjectData> fires() const { return objects(Fire); }
-	QList<ObjectData> fences() const { return objects(Fence); }
-	QList<ObjectData> teleports() const { return objects(Teleport); }
+	QVector<ObjectData> fires() const { return objects(Fire); }
+	QVector<ObjectData> fences() const { return objects(Fence); }
+	QVector<ObjectData> teleports() const { return objects(Teleport); }
 
 
 	PlayerPositionData defaultPlayerPosition() const;
@@ -116,14 +116,15 @@ private:
 	void readEnemyLayer(Tiled::ObjectGroup *layer);
 	void readObjectLayer(Tiled::ObjectGroup *layer);
 	void readPlayerLayer(Tiled::ObjectGroup *layer);
+	void readItemLayer(Tiled::ObjectGroup *layer);
 
 	bool m_isValid = false;
 	std::unique_ptr<Tiled::Map> m_map;
 
-	QList<EnemyData> m_enemies;
-	QList<ObjectData> m_objects;
-	QList<int> m_blocks;
-	QList<PlayerPositionData> m_playerPositions;
+	QVector<EnemyData> m_enemies;
+	QVector<ObjectData> m_objects;
+	QVector<int> m_blocks;
+	QVector<PlayerPositionData> m_playerPositions;
 
 	int m_fireCount = 0;
 	int m_fenceCount = 0;
@@ -147,10 +148,6 @@ public:
 	EnemyType type = EnemyInvalid;
 	QRectF rect;
 	int block = -1;
-
-	bool operator == (const EnemyData &p) const {
-		return p.type == type && p.rect == rect && p.block == block;
-	}
 };
 
 
@@ -168,10 +165,6 @@ struct GameTerrain::ObjectData {
 public:
 	QPointF point;
 	ObjectType type = Invalid;
-
-	bool operator ==(const ObjectData &p) const {
-		return p.point == point && p.type == type;
-	}
 };
 
 
@@ -190,10 +183,6 @@ public:
 	QPointF point;
 	int block = -1;
 	bool start = false;
-
-	bool operator == (const PlayerPositionData &p) const {
-		return p.point == point && p.block == block && p.start == start;
-	}
 };
 
 #endif // GAMETERRAIN_H

@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "fontimage.h"
 #include "gamescene.h"
 #include <QFontDatabase>
 #include <QDebug>
@@ -47,6 +48,9 @@
 
 #include "application.h"
 #include "../../version/version.h"
+#include "../modules/staticmodules.h"
+
+
 
 #include "abstractgame.h"
 #include "actiongame.h"
@@ -55,6 +59,7 @@
 #include "gameladder.h"
 #include "gameobject.h"
 #include "gameplayer.h"
+#include "gamepickable.h"
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -132,6 +137,9 @@ int Application::run()
 	registerQmlTypes();
 	loadQaterial();
 	loadBox2D();
+	loadModules();
+
+	m_engine->addImageProvider("font", new FontImage());
 
 	qCDebug(lcApp).noquote() << QObject::tr("Load main qml");
 
@@ -155,8 +163,6 @@ int Application::run()
 
 
 	qCDebug(lcApp).noquote() << QObject::tr("Run Application");
-
-	//QTimer::singleShot(0, m_client, &Client::onApplicationStarted);
 
 	return m_application->exec();
 }
@@ -304,6 +310,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierPrivate");
 	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderPrivate");
 	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerPrivate");
+	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickablePrivate");
 
 
 }
@@ -373,6 +380,68 @@ void Application::loadBox2D()
 #else
 	qCDebug(lcApp).noquote() << QObject::tr("Skip Box2D loading");
 #endif
+}
+
+
+/**
+ * @brief Application::loadModules
+ */
+
+void Application::loadModules()
+{
+	qCDebug(lcApp).noquote() << QObject::tr("Load modules");
+
+	m_objectiveModules.clear();
+	m_storageModules.clear();
+
+	QVector<QStaticPlugin> l = QPluginLoader::staticPlugins();
+
+	foreach (QStaticPlugin ll, l) {
+		QObject *o = ll.instance();
+
+		if (!o)
+			continue;
+
+		ModuleInterface *i = qobject_cast<ModuleInterface *>(o);
+
+		if (!i)
+			continue;
+
+		QString name = i->name();
+
+		if (i->isStorageModule()) {
+			qCDebug(lcApp).noquote() << QObject::tr("Load storage module:") << i->name();
+			m_storageModules.insert(name, i);
+		} else {
+			qCDebug(lcApp).noquote() << QObject::tr("Load objective module:") << i->name();
+			m_objectiveModules.insert(name, i);
+		}
+
+		i->registerQmlTypes();
+	}
+
+}
+
+
+/**
+ * @brief Application::storageModules
+ * @return
+ */
+
+const QHash<QString, ModuleInterface *> &Application::storageModules() const
+{
+	return m_storageModules;
+}
+
+
+/**
+ * @brief Application::objectiveModules
+ * @return
+ */
+
+const QHash<QString, ModuleInterface *> &Application::objectiveModules() const
+{
+	return m_objectiveModules;
 }
 
 

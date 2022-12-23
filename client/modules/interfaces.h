@@ -28,7 +28,7 @@
 #define INTERFACES_H
 
 #include <QtPlugin>
-#include "../abstractobjectiveimporter.h"
+#include "abstractobjectiveimporter.h"
 
 class ModuleInterface
 {

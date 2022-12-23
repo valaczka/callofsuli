@@ -27,22 +27,47 @@
 #ifndef ACTIONGAME_H
 #define ACTIONGAME_H
 
-#include "abstractgame.h"
+#include <QPointer>
+#include "abstractlevelgame.h"
 #include <QObject>
-#include "gameplayer.h"
+#include "gameentity.h"
+#include "gameterrain.h"
+#include "gamescene.h"
+#include "gamepickable.h"
 
-class ActionGame : public AbstractGame
+class GamePlayer;
+class GameEnemy;
+
+
+/**
+ * @brief The ActionGame class
+ */
+
+
+class ActionGame : public AbstractLevelGame
 {
 	Q_OBJECT
 
 	Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
+	Q_PROPERTY(GameScene* scene READ scene WRITE setScene NOTIFY sceneChanged)
+	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
 
 public:
-	ActionGame(Client *client);
+	ActionGame(GameMapMissionLevel *missionLevel, Client *client);
 	virtual ~ActionGame();
 
-	int level() const {return 1;}
+	class EnemyLocation;
+	class QuestionLocation;
+
+	void createQuestions();
+	void createEnemyLocations();
+	void createFixEnemies();
+	void recreateEnemies();
+	void createInventory();
+
+	void linkQuestionToEnemies(QList<GameEnemy *> enemies);
+	void linkPickablesToEnemies(QList<GameEnemy *> enemies);
 
 	void tryAttack(GamePlayer *player, GameEnemy *enemy);
 
@@ -52,19 +77,92 @@ public:
 	bool running() const;
 	void setRunning(bool newRunning);
 
+	GameScene* scene() const;
+	void setScene(GameScene* newScene);
+
+	int activeEnemies() const;
+
+	const QVector<int> &closedBlocks() const;
+
+public slots:
+	void onPlayerDied(GameEntity *);
+	void onEnemyDied(GameEntity *entity);
+
 protected:
 	virtual QQuickItem *loadPage() override;
 
 signals:
+	void missionCompleted();
+	void missionFailed();
 	void playerChanged();
 	void runningChanged();
+	void sceneChanged();
+	void activeEnemiesChanged();
 
 private:
-	QPointer<GamePlayer> m_player = nullptr;
-	bool m_running = false;
+	QPointer<GameScene> m_scene = nullptr;
+	QPointer<GameEntity> m_player = nullptr;
+	bool m_running = true;
+	QVector<QuestionLocation*> m_questions;
+	QVector<EnemyLocation*> m_enemies;
+	QVector<int> m_closedBlocks;
+
+	typedef QPair<GamePickable::GamePickableData, int> Inventory;
+	QVector<Inventory> m_inventory;
 };
 
 
-//Q_DECLARE_METATYPE(ActionGame*)
+
+
+/**
+ * @brief The ActionGame::QuestionLocation class
+ */
+
+class ActionGame::QuestionLocation {
+public:
+	const Question &question() const;
+	void setQuestion(const Question &newQuestion);
+
+	GameEnemy* enemy() const;
+	void setEnemy(GameEnemy *newEnemy);
+
+	int used() const;
+	void setUsed(int newUsed);
+
+private:
+	Question m_question = Question(nullptr);
+	QPointer<GameEntity> m_enemy = nullptr;
+	int m_used = 0;
+};
+
+
+
+
+/**
+ * @brief The ActionGame::EnemyLocation class
+ */
+
+class ActionGame::EnemyLocation {
+	Q_GADGET
+
+	Q_PROPERTY(GameTerrain::EnemyData enemyData READ enemyData)
+	Q_PROPERTY(GameEnemy* enemy READ enemy)
+
+public:
+	EnemyLocation(const GameTerrain::EnemyData &enemyData = GameTerrain::EnemyData());
+	~EnemyLocation();
+
+	GameEnemy* enemy() const;
+	void setEnemy(GameEnemy *newEnemy);
+
+	const GameTerrain::EnemyData &enemyData() const;
+	void setEnemyData(const GameTerrain::EnemyData &newEnemyData);
+
+private:
+	GameTerrain::EnemyData m_enemyData = GameTerrain::EnemyData();
+	QPointer<GameEntity> m_enemy = nullptr;
+};
+
+
 
 #endif // ACTIONGAME_H

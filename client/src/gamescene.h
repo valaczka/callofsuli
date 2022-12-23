@@ -28,8 +28,10 @@
 #define GAMESCENE_H
 
 #include "box2dworld.h"
+#include "gameplayerposition.h"
 #include "qloggingcategory.h"
 #include <QQuickItem>
+#include <QStack>
 #include "gameterrain.h"
 #include "gameladder.h"
 #include "tiledpaintedlayer.h"
@@ -57,10 +59,23 @@ class GameScene : public QQuickItem
 	Q_PROPERTY(QTimer *timingTimer READ timingTimer CONSTANT)
 	Q_PROPERTY(int timingTimerTimeoutMsec READ timingTimerTimeoutMsec CONSTANT)
 	Q_PROPERTY(QQuickItem* mouseArea READ mouseArea WRITE setMouseArea NOTIFY mouseAreaChanged)
+	Q_PROPERTY(SceneState sceneState READ sceneState WRITE setSceneState NOTIFY sceneStateChanged)
 
 public:
 	GameScene(QQuickItem *parent = nullptr);
 	virtual ~GameScene();
+
+	/**
+	 * @brief The SceneState enum
+	 */
+
+	enum SceneState {
+		ScenePrepare,
+		ScenePreview,
+		ScenePlay
+	};
+
+	Q_ENUM(SceneState)
 
 	ActionGame *game() const;
 	void setGame(ActionGame *newGame);
@@ -96,18 +111,35 @@ public:
 	const QJsonObject &gameData() const;
 	QJsonObject levelData(int level = -1) const;
 
-
 	Q_INVOKABLE void createPlayer();
+
+	SceneState gameState() const;
+	void setGameState(SceneState newGameState);
+
+	SceneState sceneState() const;
+	void setSceneState(SceneState newSceneState);
+
+	const GameTerrain &terrain() const;
+
+	GameTerrain::PlayerPositionData getPlayerPosition();
 
 public slots:
 	void zoomOverviewToggle();
 	void onScenePrepared();
+	void onSceneStepSuccess();
+	void onSceneLoadFailed();
+	void onSceneAnimationReady();
+	void activateLaddersInBlock(const int &block);
+	void setPlayerPosition(GamePlayerPosition *position);
 
 protected:
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 
 signals:
+	void sceneLoadFailed();
+	void sceneStepSuccess();
+	void sceneStarted();
 	void gameChanged();
 	void zoomOverviewChanged(bool zoom);
 	void debugViewChanged();
@@ -115,6 +147,7 @@ signals:
 	void showObjectsChanged(bool show);
 	void showEnemiesChanged(bool show);
 	void mouseAreaChanged();
+	void sceneStateChanged();
 
 private:
 	void loadGameData();
@@ -122,6 +155,7 @@ private:
 	void loadGroundLayer();
 	void loadLadderLayer();
 	void loadTerrainObjectsLayer();
+	void loadPlayerPositionLayer();
 
 	Tiled::ObjectGroup *objectLayer(const QString &name) const;
 
@@ -139,6 +173,7 @@ private:
 	QList<QPointer<GameLadder>> m_ladders;
 	QList<QPointer<TiledPaintedLayer>> m_tiledLayers;
 	QList<QPointer<QQuickItem>> m_childItems;
+	QStack<QPointer<GamePlayerPosition>> m_playerPositions;
 
 	bool m_zoomOverview = false;
 	bool m_debugView = false;
@@ -147,6 +182,8 @@ private:
 
 	QJsonObject m_gameData;
 
+	SceneState m_sceneState = ScenePrepare;
+	int m_sceneLoadSteps = 0;
 };
 
 

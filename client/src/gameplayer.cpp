@@ -28,6 +28,7 @@
 #include "application.h"
 #include "actiongame.h"
 #include "gameenemy.h"
+#include "gameplayerposition.h"
 #include "gamescene.h"
 
 #ifndef Q_OS_WASM
@@ -114,9 +115,10 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	connect(this, &GamePlayer::allHpLost, this, [this](){
 		setPlayerState(Dead);
 		m_scene->playSoundPlayerVoice("qrc:/sound/sfx/dead.mp3");
-		emit killed();
+		emit killed(this);
 	});
 
+	connect(this, &GameEntity::isAliveChanged, this, &GamePlayer::onIsAliveChanged);
 }
 
 
@@ -291,37 +293,22 @@ void GamePlayer::onTimingTimerTimeout()
 
 void GamePlayer::onBeginContact(Box2DFixture *other)
 {
-	QVariant object = other->property("targetObject");
-	QVariantMap data = other->property("targetData").toMap();
+	GameObject *gameObject = qobject_cast<GameObject *>(other->getBody()->target());
+	const QVariantMap &data = other->property("targetData").toMap();
 
-	if (!object.isValid()) {
+	if (!gameObject) {
 		return;
 	}
 
-	GameObject *gameObject = qvariant_cast<GameObject*>(object);
+	GamePlayerPosition *position = qobject_cast<GamePlayerPosition *>(gameObject);
 
-
-	if (data.value("fireDie", false).toBool()) {
-		qCDebug(lcScene).noquote() << tr("Player is on fire");
-
-		setPlayerState(Burn);
+	if (position) {
+		m_scene->setPlayerPosition(position);
 		return;
 	}
 
 
-
-	foreach (const QString &key, m_terrainObjects.keys()) {
-		if (data.value(key, false).toBool()) {
-			//qDebug() << "TERRAIN OBJECT" << key << (gameObject ? "+++" : "-");
-			setTerrainObject(key, gameObject);
-			return;
-		}
-	}
-
-
-
-
-	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
+	GameLadder *ladder = qobject_cast<GameLadder *>(gameObject);
 
 	if (ladder && m_ladderState != LadderActive && m_ladderState != LadderTopSprite) {
 		const QString &dir = data.value("direction").toString();
@@ -338,6 +325,27 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 	}
 
 
+
+	if (data.value("fireDie", false).toBool()) {
+		qCDebug(lcScene).noquote() << tr("Player is on fire");
+
+		setPlayerState(Burn);
+		return;
+	}
+
+
+
+	foreach (const QString &key, m_terrainObjects.keys()) {
+		if (data.value(key, false).toBool()) {
+			setTerrainObject(key, gameObject);
+			return;
+		}
+	}
+
+
+
+
+
 }
 
 
@@ -351,26 +359,23 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 
 void GamePlayer::onEndContact(Box2DFixture *other)
 {
-	QVariantMap data = other->property("targetData").toMap();
-	QVariant object = other->property("targetObject");
-	GameLadder *ladder = qvariant_cast<GameLadder *>(object);
+	GameObject *gameObject = qobject_cast<GameObject *>(other->getBody()->target());
+	const QVariantMap &data = other->property("targetData").toMap();
 
-	if (!object.isValid()) {
-		//qCWarning(lcScene).noquote() << tr("Invalid target object:") << other;
+
+	if (!gameObject) {
 		return;
 	}
 
-	//GameObject *gameObject = qvariant_cast<GameObject*>(object);
+	GameLadder *ladder = qobject_cast<GameLadder *>(gameObject);
 
 
 	foreach (const QString &key, m_terrainObjects.keys()) {
 		if (data.value(key, false).toBool()) {
-			//qDebug() << "TERRAIN OBJECT" << key << gameObject;
 			setTerrainObject(key, nullptr);
 			return;
 		}
 	}
-
 
 
 	if (ladder && m_ladderState != LadderActive && m_ladderState != LadderTopSprite) {
@@ -394,6 +399,17 @@ void GamePlayer::onBaseGroundContacted()
 	setPlayerState(Dead);
 	m_scene->playSoundPlayerVoice("qrc:/sound/sfx/falldead.mp3");
 	kill();
+}
+
+
+/**
+ * @brief GamePlayer::onIsAliveChanged
+ */
+
+void GamePlayer::onIsAliveChanged()
+{
+	if (m_enemy)
+		m_enemy->setAimedByPlayer(false);
 }
 
 
@@ -905,8 +921,6 @@ void GamePlayer::onMovingFlagsChanged()
 	if (m_ladderState == LadderTopSprite)
 		return;
 
-	qDebug() << "TEST" << m_movingFlags << m_ladderState << m_ladder;
-
 	if (m_movingFlags.testFlag(MoveUp) && m_ladder && (m_ladderState == LadderActive || m_ladderState == LadderUpAvailable)) {
 		setPlayerState(ClimbUp);
 		return;
@@ -929,14 +943,6 @@ void GamePlayer::onMovingFlagsChanged()
 	} else {
 		setPlayerState(Idle);
 	}
-
-	/*if (ep.ladderMode == GamePlayerPrivate.LadderClimb ||
-					ep.ladderMode == GamePlayerPrivate.LadderClimbFinish)
-				return*/
-
-	/*if (!root.isRunning)
-				spriteSequence.jumpTo("run")*/
-
 }
 
 

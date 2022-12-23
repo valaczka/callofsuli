@@ -320,11 +320,22 @@ void GameTerrain::readPlayerLayer(Tiled::ObjectGroup *layer)
 
 
 /**
+ * @brief GameTerrain::readItemLayer
+ * @param layer
+ */
+
+void GameTerrain::readItemLayer(Tiled::ObjectGroup *layer)
+{
+
+}
+
+
+/**
  * @brief GameTerrain::playerPositions
  * @return
  */
 
-const QList<GameTerrain::PlayerPositionData> &GameTerrain::playerPositions() const
+const QVector<GameTerrain::PlayerPositionData> &GameTerrain::playerPositions() const
 {
 	return m_playerPositions;
 }
@@ -337,16 +348,15 @@ const QList<GameTerrain::PlayerPositionData> &GameTerrain::playerPositions() con
 
 GameTerrain::PlayerPositionData GameTerrain::defaultPlayerPosition() const
 {
-	PlayerPositionData pos;
-
-	pos.block = -1;
-
 	foreach (const PlayerPositionData &data, m_playerPositions) {
-		if (data.start && (pos.block == -1 || data.block < pos.block))
-			pos = data;
+		if (data.start)
+			return data;
 	}
 
-	return pos;
+	if (!m_playerPositions.isEmpty())
+		return m_playerPositions.first();
+
+	return PlayerPositionData();
 }
 
 
@@ -357,7 +367,7 @@ GameTerrain::PlayerPositionData GameTerrain::defaultPlayerPosition() const
  * @return
  */
 
-const QList<GameTerrain::ObjectData> &GameTerrain::objects() const
+const QVector<GameTerrain::ObjectData> &GameTerrain::objects() const
 {
 	return m_objects;
 }
@@ -368,7 +378,7 @@ const QList<GameTerrain::ObjectData> &GameTerrain::objects() const
  * @return
  */
 
-const QList<int> &GameTerrain::blocks() const
+const QVector<int> &GameTerrain::blocks() const
 {
 	return m_blocks;
 }
@@ -384,9 +394,9 @@ const QList<int> &GameTerrain::blocks() const
  * @return
  */
 
-QList<GameTerrain::ObjectData> GameTerrain::objects(const ObjectType &type) const
+QVector<GameTerrain::ObjectData> GameTerrain::objects(const ObjectType &type) const
 {
-	QList<ObjectData> list;
+	QVector<ObjectData> list;
 	foreach (const ObjectData &data, m_objects) {
 		if (data.type == type)
 			list.append(data);
@@ -401,7 +411,7 @@ QList<GameTerrain::ObjectData> GameTerrain::objects(const ObjectType &type) cons
  * @return
  */
 
-const QList<GameTerrain::EnemyData> &GameTerrain::enemies() const
+const QVector<GameTerrain::EnemyData> &GameTerrain::enemies() const
 {
 	return m_enemies;
 }
@@ -439,7 +449,7 @@ void GameTerrain::loadItemLayer(Tiled::Layer *layer)
 
 	Tiled::ObjectGroup *og = layer->asObjectGroup();
 
-	QList<Tiled::MapObject*> objects = og->objects();
+	QVector<Tiled::MapObject*> objects = og->objects();
 
 	foreach (Tiled::MapObject *object, objects) {
 		QString type = object->type();
@@ -469,7 +479,7 @@ void GameTerrain::loadPreviewLayer(Tiled::Layer *layer)
 
 	Tiled::ObjectGroup *og = layer->asObjectGroup();
 
-	QList<Tiled::MapObject*> objects = og->objects();
+	QVector<Tiled::MapObject*> objects = og->objects();
 
 	foreach (Tiled::MapObject *object, objects)
 		m_preview.append(PreviewData(object->position(), object->property("text").toString()));
@@ -479,39 +489,3 @@ void GameTerrain::loadPreviewLayer(Tiled::Layer *layer)
 */
 
 
-
-
-/**
- * @brief GameTerrain::setTiledLayers
- * @param tiledLayers
- */
-
-/*
-void GameTerrain::setTiledLayers(QList<TiledPaintedLayer *> *tiledLayers)
-{
-	m_tiledLayers = tiledLayers;
-}
-*/
-
-
-
-
-
-
-
-
-/*
-
-const QList<GameTerrain::PreviewData> &GameTerrain::preview() const
-{
-	return m_preview;
-}
-
-void GameTerrain::setPreview(const QList<PreviewData> &newPreview)
-{
-	if (m_preview == newPreview)
-		return;
-	m_preview = newPreview;
-	emit previewChanged();
-}
-*/

@@ -40,7 +40,6 @@ Client::Client(Application *app, QObject *parent)
 	, m_utils(new Utils(this))
 {
 	Q_ASSERT(app);
-
 }
 
 
@@ -144,7 +143,7 @@ bool Client::stackPop(const int &index, const bool &forced) const
 	if (depth <= 2) {
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
 		qCDebug(lcClient).noquote() << tr("Nem lehet visszalépni (mélység: %1)").arg(depth);
-		Application::instance()->messageInfo("Nem lehet visszalépni!");
+		//Application::instance()->messageInfo("Nem lehet visszalépni!");
 		return false;
 #endif
 
@@ -318,7 +317,6 @@ void Client::setSafeMarginTop(qreal newSafeMarginTop)
 		return;
 	m_safeMarginTop = newSafeMarginTop;
 	emit safeMarginTopChanged();
-	qDebug() << "**** SAFE MARGIN TOP CHANGED" << m_safeMarginTop;
 }
 
 qreal Client::safeMarginRight() const
@@ -355,7 +353,7 @@ void Client::setSafeMarginLeft(qreal newSafeMarginLeft)
 
 void Client::safeMarginsGet()
 {
-	m_utils->safeMarginsGet();
+	m_utils->safeMarginsGet(this);
 }
 
 
@@ -505,10 +503,16 @@ void Client::loadGame()
 		return;
 	}
 
-	ActionGame *game = new ActionGame(this);
+	GameMap *map = GameMap::fromBinaryData(Utils::fileContent("/home/valaczka/demo_test.map"));
+
+	if (!map)
+		return;
+
+	GameMapMissionLevel *ml = map->missionLevel("{90cb2799-f189-4255-9667-1f19b582284b}", 1);
+
+	ActionGame *game = new ActionGame(ml, this);
 	setCurrentGame(game);
 
-	game->setName("Teszt név a játékhoz");
 	game->load();
 }
 

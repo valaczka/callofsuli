@@ -21,10 +21,6 @@ AppVersionIncrement = true
 ### BUILD SETTINGS
 #########################################################################
 
-# Do not build Qaterial, qml-box2d if dynamic library file available ([build_dir]/lib)
-
-SkipLibraryMakeIfExists = true
-
 # Add --verbose flag to cmake compiler (Qaterial, qml-box2d)
 
 CMakeVerboseOutput = true
@@ -35,12 +31,27 @@ WasmWithBox2D = true
 
 # Android NDK and SKD path from cmake build (Qaterial, qml-box2d)
 
-AndroidNdkPath = /home/valaczka/usr/android-sdk/ndk/21.3.6528147
-AndroidSdkPath = /home/valaczka/usr/android-sdk
+AndroidNdkPath = ~/usr/android-sdk/ndk/21.3.6528147
+AndroidSdkPath = ~/usr/android-sdk
+AndroidVersionCode = 32
+
+# iOS cmake toolchain ([build_dir]/lib/[lib])
+
+IosCMakeToolchain = $$PWD/../../client/deploy/ios-cmake/ios.toolchain.cmake
+IosDeploymentTarget = 12.0
+IosDeploymentPlatform = OS64
+IosDeploymentArchs = arm64
 
 # cmake compiler path
 
-CMakePath = cmake
+ios: CMakePath = ~/Qt/Tools/CMake/CMake.app/Contents/bin/cmake
+else: CMakePath = cmake
+
+
+# Qaterial build mode (shared/static)
+
+QaterialBuildShared = ON
+
 
 
 #########################################################################
@@ -65,18 +76,4 @@ LddPath = ldd
 CQtTargetDir = CallOfSuli
 
 
-
-
-
-#########################################################################
-#########################################################################
-#########################################################################
-
-# Build configuration
-
-wasm: LibQaterialFile = qaterial/libQaterial.so
-else:win32: LibQaterialFile = libQaterial.dll
-else: LibQaterialFile = libQaterial.so
-
-QaterialBuildShared = ON
 

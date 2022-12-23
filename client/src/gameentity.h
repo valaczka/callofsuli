@@ -183,8 +183,8 @@ private slots:
 signals:
 	void baseGroundContact();
 	void hurt();
-	void killed();
-	void died();
+	void killed(GameEntity *entity);
+	void died(GameEntity *entity);
 	void allHpLost();
 
 	void beginContact(Box2DFixture *other);

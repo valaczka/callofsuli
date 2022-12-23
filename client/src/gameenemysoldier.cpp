@@ -28,6 +28,7 @@
 #include "gamescene.h"
 #include "qdiriterator.h"
 #include "actiongame.h"
+#include "gameplayer.h"
 #include <QRandomGenerator>
 
 GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
@@ -83,13 +84,9 @@ void GameEnemySoldier::onTimingTimerTimeout()
 		return;
 
 	if (!game() || !game()->running() || !m_moving) {
-		setEnemyState(Idle);
 		return;
 	}
 
-
-	/*if (m_player || m_attackRunning || !m_isAlive)
-		return;*/
 
 	if (m_enemyState == Idle) {
 		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec();
@@ -153,6 +150,7 @@ void GameEnemySoldier::onMovingChanged()
 	if (game() && game()->running() && m_moving)
 		setEnemyState(Move);
 }
+
 
 
 

@@ -18,43 +18,6 @@ GameObject {
 	readonly property point operatingPointRight: Qt.point(width-45,0)
 
 	opacity: 0.9
-	/*
-	body.fixtures: [
-		Box {
-			width: ladderWidth-6
-			x: (control.width-ladderWidth)/2+3
-			y: 0
-			height: fixtureHeight
-			sensor: true
-			collidesWith: _collision
-			categories: Box.Category4
-
-			readonly property QtObject targetObject: control
-			readonly property var targetData: {"direction": "down" }
-
-			onBeginContact: _glowForced = true
-			onEndContact: _glowForced = false
-		},
-		Box {
-			width: ladderWidth-6
-			x: (control.width-ladderWidth)/2+3
-			y: control.height-fixtureHeight
-			height: fixtureHeight
-			sensor: true
-			collidesWith: _collision
-			categories: Box.Category4
-
-			readonly property QtObject targetObject: control
-			readonly property var targetData: {"direction": "up" }
-
-			onBeginContact: _glowForced = true
-			onEndContact: _glowForced = false
-		}
-	]
-
-
-	body.bodyType: Body.Static
-*/
 
 	transformOrigin: Item.Center
 
@@ -66,10 +29,8 @@ GameObject {
 			x: (control.width-width)/2
 			y: 0
 			sensor: true
-			//collidesWith: Box.Category3
 			categories: Box.Category4
 
-			readonly property QtObject targetObject: control
 			readonly property var targetData: {"fireDie": true}
 		},
 		Box {
@@ -78,10 +39,8 @@ GameObject {
 			x: 0
 			y: 0
 			sensor: true
-			//collidesWith: Box.Category3
 			categories: Box.Category4
 
-			readonly property QtObject targetObject: control
 			readonly property var targetData: {"fire": true}
 		}
 
@@ -92,6 +51,8 @@ GameObject {
 		id: spriteSequence
 
 		anchors.fill: parent
+
+		running: control.game && control.game.running
 
 		sprites: [
 			Sprite {

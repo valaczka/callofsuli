@@ -27,8 +27,7 @@ android {
 					cd .. ; \
 				done
 
-} else:wasm {
-
+} else {
 	extralib.commands = echo \"Building Qaterial...\"; \
 			$${CMakePath} $$PWD/Qaterial-1.4.6 \
 			$${CMakeArguments} \
@@ -41,23 +40,10 @@ android {
 			$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
 			$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc
 
-} else {
-	extralib.commands = echo \"Building Qaterial...\"; \
-				$${CMakePath} $$PWD/Qaterial-1.4.6 \
-				$${CMakeArguments} \
-				-DQATERIAL_ICONS=\"*.svg\" \
-				-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
-				-DQATERIAL_BUILD_SHARED=$$QaterialBuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
-				-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
-				-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=ON && \
-				$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
-				$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
-				$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc && \
-				mv $${LibQaterialFile} ../
 }
 
 
-extralib.target = $${LibQaterialFile}
+extralib.target = libqaterial.file
 extralib.depends =
 
 

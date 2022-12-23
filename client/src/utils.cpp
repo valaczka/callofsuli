@@ -43,9 +43,8 @@ Q_LOGGING_CATEGORY(lcUtils, "app.utils")
  * @param client
  */
 
-Utils::Utils(Client *client)
-	: QObject{client}
-	, m_client(client)
+Utils::Utils(QObject *parent)
+	: QObject{parent}
 {
 
 }
@@ -62,14 +61,42 @@ Utils::~Utils()
 
 
 /**
- * @brief Utils::client
+ * @brief Utils::fileContent
+ * @param filename
+ * @param error
  * @return
  */
 
-Client *Utils::client() const
+QByteArray Utils::fileContent(const QString &filename, bool *error)
 {
-	return m_client;
+	QFile f(filename);
+
+	if (!f.exists()) {
+		qCWarning(lcUtils).noquote() << tr("A fájl nem olvasható:") << filename;
+
+		if (error)
+			*error = true;
+
+		return QByteArray();
+	}
+
+	if (!f.open(QIODevice::ReadOnly)) {
+		qCWarning(lcUtils).noquote() << tr("Nem lehet megnyitni a fájlt:") << filename;
+
+		if (error)
+			*error = true;
+
+		return QByteArray();
+	}
+
+	QByteArray data = f.readAll();
+
+	f.close();
+
+	return data;
 }
+
+
 
 
 /**
@@ -236,14 +263,14 @@ QColor Utils::colorSetAlpha(QColor color, const qreal &alpha)
  * @param client
  */
 
-void Utils::safeMarginsGet()
+void Utils::safeMarginsGet(Client *client)
 {
-	if (!m_client) {
+	if (!client) {
 		qCWarning(lcUtils).noquote() << tr("Missing client");
 		return;
 	}
 
-	if (!m_client->mainWindow()) {
+	if (!client->mainWindow()) {
 		qCWarning(lcUtils).noquote() << tr("Missing main window");
 		return;
 	}
@@ -251,7 +278,7 @@ void Utils::safeMarginsGet()
 	QMarginsF margins;
 
 #if !defined (Q_OS_ANDROID)
-	QPlatformWindow *platformWindow = m_client->mainWindow()->handle();
+	QPlatformWindow *platformWindow = client->mainWindow()->handle();
 	if(!platformWindow) {
 		qCWarning(lcUtils).noquote() << tr("Invalid QPlatformWindow");
 		return;
@@ -275,5 +302,5 @@ void Utils::safeMarginsGet()
 
 	qCDebug(lcUtils).noquote() << tr("New safe margins:") << margins;
 
-	m_client->setSafeMargins(margins);
+	client->setSafeMargins(margins);
 }

@@ -30,8 +30,8 @@
 #include <QObject>
 #include <QString>
 #include <QHash>
-#include "../QtXlsxWriter/xlsxdocument.h"
-#include "../QtXlsxWriter/xlsxworksheet.h"
+//#include "../QtXlsxWriter/xlsxdocument.h"
+#include "xlsxworksheet.h"
 
 #define DEFAULT_COL_COUNT	100
 #define DEFAULT_ROW_COUNT	300
