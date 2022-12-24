@@ -64,6 +64,8 @@ public:
 
 	Q_INVOKABLE void safeMarginsGet(Client *client);
 
+	Q_INVOKABLE static QString formatMSecs(const int &msec, const int &decimals = 0, const bool &withMinute = true);
+
 private:
 
 #ifdef Q_OS_ANDROID

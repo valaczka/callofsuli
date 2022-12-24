@@ -27,6 +27,7 @@
 #include "utils.h"
 #include "client.h"
 #include "qjsondocument.h"
+#include "qmath.h"
 #include "qquickwindow.h"
 #include "qguiapplication.h"
 #include "qscreen.h"
@@ -303,4 +304,45 @@ void Utils::safeMarginsGet(Client *client)
 	qCDebug(lcUtils).noquote() << tr("New safe margins:") << margins;
 
 	client->setSafeMargins(margins);
+}
+
+
+
+/**
+ * @brief Utils::formatMsecs
+ * @param msec
+ * @param decimals
+ * @return
+ */
+
+QString Utils::formatMSecs(const int &msec, const int &decimals, const bool &withMinute)
+{
+	int s = qFloor((qreal)msec / 1000.0);
+	int ms = msec - 1000*s;
+
+	QString r;
+
+	if (withMinute) {
+		int h = qFloor((qreal)msec / (60*60*1000.0));
+		int m = qFloor((qreal)msec / (60*1000.0)) - h*60;
+		s -= m*60;
+
+		if (h > 0)
+			r += QStringLiteral("%1:").arg(h, 2, 10, QLatin1Char('0'));
+
+		r += QStringLiteral("%1:%2").arg(m, 2, 10, QLatin1Char('0')).arg(s, 2, 10, QLatin1Char('0'));
+
+		if (decimals > 0) {
+			QString n = QStringLiteral("%1").arg(ms, 3, 10, QLatin1Char('0'));
+			r += QStringLiteral(".")+n.left(decimals);
+		}
+	} else {
+		r = QString::number(s);
+		if (decimals > 0) {
+			QString n = QStringLiteral("%1").arg(ms, 3, 10, QLatin1Char('0'));
+			r += QStringLiteral(".")+n.left(decimals);
+		}
+	}
+
+	return r;
 }

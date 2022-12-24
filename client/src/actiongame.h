@@ -52,6 +52,7 @@ class ActionGame : public AbstractLevelGame
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
 	Q_PROPERTY(GameScene* scene READ scene WRITE setScene NOTIFY sceneChanged)
 	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
+	Q_PROPERTY(GamePickable *pickable READ pickable NOTIFY pickableChanged)
 
 public:
 	ActionGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -65,6 +66,8 @@ public:
 	void createFixEnemies();
 	void recreateEnemies();
 	void createInventory();
+	void createPickable(GameEnemy *enemy);
+	void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
 
 	void linkQuestionToEnemies(QList<GameEnemy *> enemies);
 	void linkPickablesToEnemies(QList<GameEnemy *> enemies);
@@ -84,9 +87,16 @@ public:
 
 	const QVector<int> &closedBlocks() const;
 
+	GamePickable *pickable() const;
+
 public slots:
 	void onPlayerDied(GameEntity *);
 	void onEnemyDied(GameEntity *entity);
+	void pickableAdd(GamePickable *pickable);
+	void pickableRemove(GamePickable *pickable);
+	void pickableRemoveAll();
+	void pickablePick();
+	void message(const QString &text, const QColor &color = "white");
 
 protected:
 	virtual QQuickItem *loadPage() override;
@@ -98,6 +108,12 @@ signals:
 	void runningChanged();
 	void sceneChanged();
 	void activeEnemiesChanged();
+	void pickableChanged();
+	void timeNotify();
+
+private slots:
+	void onSceneStarted();
+	void onMsecLeftChanged(int diff);
 
 private:
 	QPointer<GameScene> m_scene = nullptr;
@@ -109,6 +125,9 @@ private:
 
 	typedef QPair<GamePickable::GamePickableData, int> Inventory;
 	QVector<Inventory> m_inventory;
+
+	QStack<GamePickable*> m_pickableStack;
+
 };
 
 

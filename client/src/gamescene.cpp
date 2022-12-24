@@ -161,6 +161,36 @@ void GameScene::playSoundPlayerVoice(const QString &source)
 }
 
 
+/**
+ * @brief GameScene::playSound
+ * @param source
+ */
+
+void GameScene::playSound(const QString &source)
+{
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client)
+		client->playSound(source, Sound::GameSound);
+#endif
+}
+
+
+/**
+ * @brief GameScene::playSoundVoiceOver
+ * @param source
+ */
+
+void GameScene::playSoundVoiceOver(const QString &source)
+{
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client)
+		client->playSound(source, Sound::VoiceOver);
+#endif
+}
+
+
 
 
 
@@ -212,6 +242,11 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 	case Qt::Key_Space:
 		if (player) player->shot();
 		return;
+
+	case Qt::Key_Return:
+	case Qt::Key_Enter:
+		m_game->pickablePick();
+		break;
 
 	case Qt::Key_F3:
 		zoomOverviewToggle();
@@ -787,6 +822,7 @@ void GameScene::onSceneStepSuccess()
 	m_game->createInventory();
 
 	m_game->pageItem()->setState("run");
+
 }
 
 
@@ -917,4 +953,17 @@ void GameScene::setMouseArea(QQuickItem *newMouseArea)
 		return;
 	m_mouseArea = newMouseArea;
 	emit mouseAreaChanged();
+}
+
+QQuickItem *GameScene::messageList() const
+{
+	return m_messageList;
+}
+
+void GameScene::setMessageList(QQuickItem *newMessageList)
+{
+	if (m_messageList == newMessageList)
+		return;
+	m_messageList = newMessageList;
+	emit messageListChanged();
 }

@@ -45,7 +45,7 @@ Item {
 		Qaterial.Icon {
 			id: fontImage
 			anchors.centerIn: parent
-			color: "black"
+			color: Client.Utils.colorSetAlpha("black", 0)
 			size: control.size*fontImageScale
 			width: control.size*fontImageScale
 			height: control.size*fontImageScale

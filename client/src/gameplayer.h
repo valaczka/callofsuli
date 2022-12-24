@@ -47,6 +47,7 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(MovingFlags movingFlags READ movingFlags WRITE setMovingFlags NOTIFY movingFlagsChanged)
 	Q_PROPERTY(qreal deathlyFall READ deathlyFall WRITE setDeathlyFall NOTIFY deathlyFallChanged)
 	Q_PROPERTY(qreal hurtFall READ hurtFall WRITE setHurtFall NOTIFY hurtFallChanged)
+	Q_PROPERTY(int shield READ shield WRITE setShield NOTIFY shieldChanged)
 
 #ifndef Q_OS_WASM
 	Q_PROPERTY(QSoundEffect *soundEffectShot READ soundEffectShot CONSTANT)
@@ -152,6 +153,9 @@ public:
 	const QHash<QString, QPointer<GameObject> > &terrainObjects() const;
 	GameObject *terrainObject(const QString &type) const;
 
+	int shield() const;
+	void setShield(int newShield);
+
 public slots:
 	void hurtByEnemy(GameEnemy *enemy, const bool &canProtect = false);
 	void killByEnemy(GameEnemy *enemy);
@@ -160,7 +164,7 @@ public slots:
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
-
+	virtual void hpProgressValueSetup() override;
 
 signals:
 	void attack();
@@ -174,6 +178,7 @@ signals:
 	void ladderChanged();
 	void ladderStateChanged();
 	void terrainObjectChanged(const QString &type, GameObject *object);
+	void shieldChanged();
 
 private slots:
 	void onEnemyKilled();
@@ -185,11 +190,10 @@ private slots:
 	void onEndContact(Box2DFixture *other);
 	void onBaseGroundContacted();
 	void onIsAliveChanged();
+	void onHpOrShieldChanged();
 
 private:
 	void ladderMove(const bool &up);
-	void terrainObjectSignalAddToPool(const QString &type, GameObject *object);
-	void terrainObjectSignalEmit();
 
 #ifndef Q_OS_WASM
 	QSoundEffect *m_soundEffectShot = nullptr;
@@ -209,8 +213,7 @@ private:
 	bool m_ladderFall = false;
 	int m_soundElapsedMsec = 0;
 	QHash<QString, QPointer<GameObject>> m_terrainObjects;
-	QHash<QString, QPointer<GameObject>> m_terrainObjectsPrevious;
-
+	int m_shield = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(GamePlayer::MovingFlags)

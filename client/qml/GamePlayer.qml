@@ -13,19 +13,13 @@ GamePlayerPrivate {
 
 	glowColor: Qaterial.Style.colorGlow
 	overlayColor: "#eeeeee"
-	hpProgressColor: Qaterial.Colors.green400
+	hpProgressColor: shield ? Qaterial.Colors.green400 : Qaterial.Colors.red400
 	hpProgressEnabled: enemy || hpVisibleTimer.running
 
 	onUnderAttack: hpVisibleTimer.restart()
 
 	//overlayEnabled: ep.invisible
 	//opacity: ep.invisible ? 0.5 : 1.0
-
-
-	/*hpColor: ep.shield ? CosStyle.colorOK : CosStyle.colorErrorLighter
-	hpVisible: ep.enemy || hpVisibleTimer.running
-	hpValue: ep.shield ? ep.shield : ep.hp*/
-
 
 
 	onRayCastPerformed: ray.show(rect, scene)

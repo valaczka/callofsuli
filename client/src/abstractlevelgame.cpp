@@ -38,8 +38,10 @@
 AbstractLevelGame::AbstractLevelGame(const Mode &mode, GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractGame(mode, client)
 	, m_missionLevel(missionLevel)
+	, m_timerLeft(new QTimer(this))
 {
-
+	m_timerLeft->setInterval(50);
+	connect(m_timerLeft, &QTimer::timeout, this, &AbstractLevelGame::onTimerLeftTimeout);
 }
 
 
@@ -49,7 +51,7 @@ AbstractLevelGame::AbstractLevelGame(const Mode &mode, GameMapMissionLevel *miss
 
 AbstractLevelGame::~AbstractLevelGame()
 {
-
+	delete m_timerLeft;
 }
 
 
@@ -85,6 +87,47 @@ QVector<Question> AbstractLevelGame::createQuestions()
 	qCDebug(lcGame).noquote() << tr("Created %1 question(s)").arg(list.size());
 
 	return list;
+}
+
+
+/**
+ * @brief AbstractLevelGame::onTimerLeftTimeout
+ */
+
+void AbstractLevelGame::onTimerLeftTimeout()
+{
+	qreal t = m_msecLeft - m_timerLeft->interval();
+
+	if (t<=0) {
+		qCDebug(lcGame).noquote() << tr("Game timeout");
+
+		m_timerLeft->stop();
+		setMsecLeft(0);
+		emit gameTimeout();
+		return;
+	}
+
+	setMsecLeft(t);
+}
+
+
+/**
+ * @brief AbstractLevelGame::msecLeft
+ * @return
+ */
+
+int AbstractLevelGame::msecLeft() const
+{
+	return m_msecLeft;
+}
+
+void AbstractLevelGame::setMsecLeft(int newMsecLeft)
+{
+	if (m_msecLeft == newMsecLeft)
+		return;
+	int d = newMsecLeft - m_msecLeft;
+	m_msecLeft = newMsecLeft;
+	emit msecLeftChanged(d);
 }
 
 

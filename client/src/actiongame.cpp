@@ -29,13 +29,20 @@
 #include "gameenemy.h"
 #include "actiongame.h"
 #include "client.h"
+#include "qtimer.h"
 #include <QRandomGenerator>
 #include <QtMath>
 
 ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractLevelGame(Action, missionLevel, client)
 {
+	Q_ASSERT(missionLevel);
+
 	qCDebug(lcGame).noquote() << tr("Action game constructed") << this;
+
+	setMsecLeft(missionLevel->duration()*1000);
+
+	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
 }
 
 
@@ -85,26 +92,8 @@ void ActionGame::createEnemyLocations()
 		return;
 	}
 
-	foreach (const GameTerrain::EnemyData &e, m_scene->terrain().enemies()) {
-		EnemyLocation *l = new EnemyLocation(e);
-
-		m_enemies.append(l);
-
-		/*GameEnemySoldier *soldier = GameEnemySoldier::create(this, e);
-
-		soldier->setFacingLeft(QRandomGenerator::global()->generate() % 2);
-
-		soldier->setX(e.rect.left() + e.rect.width()/2);
-		soldier->setY(e.rect.bottom()-soldier->height());
-
-		soldier->setMaxHp(QRandomGenerator::global()->bounded(1, 5));
-		soldier->setHp(QRandomGenerator::global()->bounded(1, 5));
-
-		addChildItem(soldier);
-
-		soldier->startMovingAfter(2500);
-		QCoreApplication::processEvents();*/
-	}
+	foreach (const GameTerrain::EnemyData &e, m_scene->terrain().enemies())
+		m_enemies.append(new EnemyLocation(e));
 
 	qCDebug(lcGame).noquote() << tr("%1 enemy places created").arg(m_enemies.size());
 
@@ -264,6 +253,70 @@ void ActionGame::createInventory()
 	foreach (const Inventory &inv, m_inventory) {
 		qCDebug(lcGame).noquote() << tr("- %1 (block: %2)").arg(inv.first.name).arg(inv.second);
 	}
+}
+
+
+
+/**
+ * @brief ActionGame::createPickableFromEnemy
+ * @param enemy
+ */
+
+void ActionGame::createPickable(GameEnemy *enemy)
+{
+	if (!enemy) {
+		qCCritical(lcGame).noquote() << tr("Invalid enemy");
+		return;
+	}
+
+	const GamePickable::GamePickableData &pickable = enemy->pickable();
+
+	qCDebug(lcGame).noquote() << tr("Create pickable from enemy:") << enemy->terrainEnemyData().type;
+
+	QPointF pos = enemy->position();
+	const QRectF br = enemy->bodyRect();
+
+	pos.setX(pos.x() + br.x() + br.width()/2);
+	pos.setY(pos.y() + br.y() + br.height());
+
+	createPickable(pickable, pos);
+}
+
+
+
+
+/**
+ * @brief ActionGame::createPickable
+ * @param data
+ * @param bottomPoint
+ */
+
+
+void ActionGame::createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint)
+{
+	if (!m_scene) {
+		qCCritical(lcGame).noquote() << tr("Invalid scene");
+		return;
+	}
+
+	qCDebug(lcGame).noquote() << tr("Create pickable:") << data.type << bottomPoint;
+
+	GamePickable *object = qobject_cast<GamePickable*>(GameObject::createFromFile("GamePickable.qml", m_scene));
+
+	if (!object) {
+		qCCritical(lcScene).noquote() << tr("Pickable creation error:") << data.type;
+		return;
+	}
+
+	object->setParentItem(m_scene);
+	object->setScene(m_scene);
+	object->setBottomPoint(bottomPoint);
+	object->bodyComplete();
+
+	m_scene->addChildItem(object);
+
+	object->setPickableData(data);
+
 }
 
 
@@ -529,6 +582,83 @@ QQuickItem *ActionGame::loadPage()
 
 
 /**
+ * @brief ActionGame::onSceneStarted
+ */
+
+void ActionGame::onSceneStarted()
+{
+	/*if (gameMatch && gameMatch.deathmatch) {
+		messageList.message(qsTr("SUDDEN DEATH"), 3)
+		cosClient.playSound("qrc:/sound/voiceover/sudden_death.mp3", CosSound.VoiceOver)
+	} else
+		cosClient.playSound("qrc:/sound/voiceover/begin.mp3", CosSound.VoiceOver)
+
+	previewAnimation.stop()
+	flick.interactive = true
+	previewLabel.text = ""
+	game.onGameStarted()
+
+	if (previewAnimation.num > 0) {
+		game.previewCompleted()
+	}*/
+
+	m_timerLeft->start();
+
+	if (m_deathmatch) {
+		message(tr("LEVEL %1 SUDDEN DEATH").arg(level()));
+		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/sudden_death.mp3");
+	} else {
+		message(tr("LEVEL %1").arg(level()));
+		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/begin.mp3");
+	}
+}
+
+
+/**
+ * @brief ActionGame::onMsecLeftChanged
+ * @param diff
+ */
+
+void ActionGame::onMsecLeftChanged(int diff)
+{
+	if (diff > 0) {
+		emit timeNotify();
+		return;
+	}
+
+	if (m_msecLeft < 60000 && (m_msecLeft-diff) >= 60000) {
+		message(tr("You have 60 seconds left"), QStringLiteral("#00bcd4"));
+		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/time.mp3");
+		emit timeNotify();
+		return;
+	}
+
+	if (m_msecLeft < 30000 && (m_msecLeft-diff) >= 30000) {
+		message(tr("You have 30 seconds left"), QStringLiteral("#00bcd4"));
+		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/final_round.mp3");
+		emit timeNotify();
+		return;
+	}
+
+}
+
+
+
+
+/**
+ * @brief ActionGame::pickable
+ * @return
+ */
+
+GamePickable *ActionGame::pickable() const
+{
+	return m_pickableStack.isEmpty() ? nullptr : m_pickableStack.top();
+}
+
+
+
+
+/**
  * @brief ActionGame::closedBlocks
  * @return
  */
@@ -551,6 +681,9 @@ void ActionGame::setScene(GameScene *newScene)
 		return;
 	m_scene = newScene;
 	emit sceneChanged();
+
+	if (m_scene)
+		connect(m_scene, &GameScene::sceneStarted, this, &ActionGame::onSceneStarted);
 }
 
 bool ActionGame::running() const
@@ -635,6 +768,10 @@ void ActionGame::onPlayerDied(GameEntity *)
 	qCDebug(lcGame).noquote() << tr("Player died");
 	setPlayer(nullptr);
 
+	message(tr("Your man has died"), QStringLiteral("#e53935"));
+
+	pickableRemoveAll();
+
 	if (m_deathmatch) {
 		emit missionFailed();
 		qDebug() << "!!!!!";
@@ -680,6 +817,12 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 		return;
 	}
 
+	// Create pickable
+
+	if (enemy->hasPickable()) {
+		createPickable(enemy);
+	}
+
 	// Close blocks
 
 	foreach (EnemyLocation *el, m_enemies) {
@@ -698,6 +841,92 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 	if (m_scene)
 		m_scene->activateLaddersInBlock(block);
 
+}
+
+
+/**
+ * @brief ActionGame::pickableAdd
+ * @param pickable
+ */
+
+void ActionGame::pickableAdd(GamePickable *pickable)
+{
+	if (!pickable)
+		return;
+
+	m_pickableStack.push(pickable);
+	connect(pickable, &QObject::destroyed, this, [this, pickable]() {
+		m_pickableStack.removeAll(pickable);
+		pickableChanged();
+	});
+	emit pickableChanged();
+}
+
+
+/**
+ * @brief ActionGame::pickableRemove
+ * @param pickable
+ */
+
+void ActionGame::pickableRemove(GamePickable *pickable)
+{
+	m_pickableStack.removeAll(pickable);
+	emit pickableChanged();
+}
+
+
+/**
+ * @brief ActionGame::pickableRemoveAll
+ */
+
+void ActionGame::pickableRemoveAll()
+{
+	m_pickableStack.clear();
+	emit pickableChanged();
+}
+
+
+/**
+ * @brief ActionGame::pickablePick
+ */
+
+void ActionGame::pickablePick()
+{
+	if (!pickable())
+		return;
+
+	GamePickable *p = m_pickableStack.pop();
+	emit pickableChanged();
+
+	if (!p) {
+		qCCritical(lcGame).noquote() << tr("Invalid pickable");
+		return;
+	}
+
+	p->pick(this);
+
+	m_scene->playSound("qrc:/sound/sfx/pick.mp3");
+}
+
+
+/**
+ * @brief ActionGame::message
+ * @param text
+ * @param color
+ */
+
+void ActionGame::message(const QString &text, const QColor &color)
+{
+	if (!m_scene || !m_scene->messageList()) {
+		qCInfo(lcGame).noquote() << text;
+		return;
+	}
+
+	qCDebug(lcGame).noquote() << text;
+
+	QMetaObject::invokeMethod(m_scene->messageList(), "message",
+							  Q_ARG(QVariant, text),
+							  Q_ARG(QVariant, color.name()));
 }
 
 

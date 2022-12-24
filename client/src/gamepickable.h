@@ -30,6 +30,7 @@
 #include "gameobject.h"
 #include <QObject>
 
+class GamePlayer;
 
 /**
  * @brief The GamePickable class
@@ -81,7 +82,6 @@ public:
 	 */
 
 	enum PickableFormat {
-		FormatIcon,
 		FormatPixmap,
 		FormatAnimated
 	};
@@ -99,7 +99,7 @@ public:
 		QString name;
 		PickableType type = PickableInvalid;
 		QString image;
-		PickableFormat format = FormatIcon;
+		PickableFormat format = FormatPixmap;
 
 		GamePickableData() {}
 
@@ -124,7 +124,10 @@ public:
 	QPointF bottomPoint() const;
 	void setBottomPoint(QPointF newBottomPoint);
 
+	void pick(ActionGame *game);
+
 signals:
+	void pickFinished();
 	void idChanged();
 	void nameChanged();
 	void typeChanged();

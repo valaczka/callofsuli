@@ -25,6 +25,8 @@
  */
 
 #include "gamepickable.h"
+#include "actiongame.h"
+#include "gameplayer.h"
 
 
 
@@ -36,7 +38,7 @@ const QVector<GamePickable::GamePickableData> GamePickable::m_pickableDataTypes 
 	{ "shield2", tr("Pajzs (x2)"), GamePickable::PickableShield2, "qrc:/internal/game/shield-blue.png", GamePickable::FormatPixmap },
 	{ "shield3", tr("Pajzs (x3)"), GamePickable::PickableShield3, "qrc:/internal/game/shield-red.png", GamePickable::FormatPixmap },
 	{ "shield4", tr("Pajzs (x5)"), GamePickable::PickableShield5, "qrc:/internal/game/shield-gold.png", GamePickable::FormatPixmap },
-	{ "water", tr("Víz"), GamePickable::PickableWater, "qrc:/internal/game/water.svg", GamePickable::FormatIcon },
+	{ "water", tr("Víz"), GamePickable::PickableWater, "qrc:/internal/game/water.svg", GamePickable::FormatPixmap },
 	{ "pliers", tr("Drótvágó"), GamePickable::PickablePliers, "qrc:/internal/game/pliers.png", GamePickable::FormatPixmap },
 	{ "camouflage", tr("Álruha"), GamePickable::PickableCamouflage, "qrc:/internal/game/camouflage.png", GamePickable::FormatPixmap },
 	{ "teleporter", tr("Teleportáló"), GamePickable::PickableTeleporter, "qrc:/internal/game/teleporter.png", GamePickable::FormatPixmap },
@@ -52,7 +54,7 @@ const QVector<GamePickable::GamePickableData> GamePickable::m_pickableDataTypes 
 GamePickable::GamePickable(QQuickItem *parent)
 	: GameObject(parent)
 {
-
+	connect(this, &GamePickable::pickFinished, this, &GamePickable::deleteLater);
 }
 
 
@@ -102,12 +104,12 @@ const GamePickable::GamePickableData &GamePickable::pickableData() const
 void GamePickable::setPickableData(const GamePickableData &newData)
 {
 	m_pickableData = newData;
-	emit pickableDataChanged();
 	emit idChanged();
 	emit nameChanged();
 	emit typeChanged();
 	emit imageChanged();
 	emit formatChanged();
+	emit pickableDataChanged();
 }
 
 
@@ -127,6 +129,68 @@ void GamePickable::setBottomPoint(QPointF newBottomPoint)
 		return;
 	m_bottomPoint = newBottomPoint;
 	emit bottomPointChanged();
+}
+
+
+/**
+ * @brief GamePickable::pick
+ * @param game
+ * @param player
+ */
+
+void GamePickable::pick(ActionGame *game)
+{
+	Q_ASSERT(game);
+
+	GamePlayer *player = game->player();
+
+	switch (m_pickableData.type) {
+	case PickableHealth:
+		player->setHp(player->hp()+1);
+		game->message(tr("1 HP gained"), QStringLiteral("#e53935"));
+		break;
+
+	case PickableTime30:
+		game->setMsecLeft(game->msecLeft()+30*1000);
+		game->message(tr("30 seconds gained"), QStringLiteral("#00bcd4"));
+		break;
+
+	case PickableTime60:
+		game->setMsecLeft(game->msecLeft()+60*1000);
+		game->message(tr("60 seconds gained"), QStringLiteral("#00bcd4"));
+		break;
+
+	case PickableShield1:
+		player->setShield(player->shield()+1);
+		game->message(tr("1 shield gained"), QStringLiteral("#4CAF50"));
+		break;
+
+	case PickableShield2:
+		player->setShield(player->shield()+2);
+		game->message(tr("2 shields gained"), QStringLiteral("#4CAF50"));
+		break;
+
+	case PickableShield3:
+		player->setShield(player->shield()+3);
+		game->message(tr("3 shields gained"), QStringLiteral("#4CAF50"));
+		break;
+
+	case PickableShield5:
+		player->setShield(player->shield()+5);
+		game->message(tr("5 shields gained"), QStringLiteral("#4CAF50"));
+		break;
+
+	case PickableWater:
+	case PickablePliers:
+	case PickableCamouflage:
+	case PickableTeleporter:
+	case PickableInvalid:
+		qCWarning(lcGame).noquote() << tr("Can't pick type:") << m_pickableData.type;
+		break;
+
+	}
+
+	setState("picked");
 }
 
 

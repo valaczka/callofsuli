@@ -29,5 +29,6 @@
         <file>GameHpLabel.qml</file>
         <file>GameFence.qml</file>
         <file>GamePickable.qml</file>
+        <file>GameMessageList.qml</file>
     </qresource>
 </RCC>

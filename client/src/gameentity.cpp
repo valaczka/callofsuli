@@ -66,6 +66,7 @@ GameEntity::GameEntity(QQuickItem *parent)
 
 	connect(m_dieAnimation, &QAbstractAnimation::finished, this, &GameEntity::deleteLater);
 
+	hpProgressValueSetup();
 }
 
 
@@ -269,7 +270,7 @@ void GameEntity::setHp(int newHp)
 		newHp = 0;
 
 	m_hp = newHp;
-	emit hpChanged();
+	emit hpChanged(m_hp);
 
 	if (m_hp == 0)
 		emit isAliveChanged();
@@ -500,6 +501,16 @@ void GameEntity::onIsAliveDisabled()
 	m_dieAnimation->setEndValue(.0);
 
 	m_dieAnimation->start();
+}
+
+
+/**
+ * @brief GameEntity::hpProgressValueSetup
+ */
+
+void GameEntity::hpProgressValueSetup()
+{
+	connect(this, &GameEntity::hpChanged, this, &GameEntity::setHpProgressValue);
 }
 
 
@@ -788,6 +799,25 @@ void GameEntity::loadSprites()
 	}
 
 	m_spritesLoaded = true;
+}
+
+
+/**
+ * @brief GameEntity::hpProgressValue
+ * @return
+ */
+
+int GameEntity::hpProgressValue() const
+{
+	return m_hpProgressValue;
+}
+
+void GameEntity::setHpProgressValue(int newHpProgressValue)
+{
+	if (m_hpProgressValue == newHpProgressValue)
+		return;
+	m_hpProgressValue = newHpProgressValue;
+	emit hpProgressValueChanged();
 }
 
 

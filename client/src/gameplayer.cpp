@@ -167,8 +167,6 @@ void GamePlayer::onTimingTimerTimeout()
 		return;
 	}*/
 
-	terrainObjectSignalEmit();
-
 	if (m_playerState == Dead || m_playerState == Burn || !isAlive())
 		return;
 
@@ -260,8 +258,6 @@ void GamePlayer::onTimingTimerTimeout()
 
 
 	if (m_playerState == Run || m_playerState == Walk) {
-		body()->setBodyType(Box2DBody::Kinematic);
-
 		if (m_playerState == Run) {
 			if (m_facingLeft)
 				setX(x() - runSize());
@@ -274,7 +270,10 @@ void GamePlayer::onTimingTimerTimeout()
 				setX(x() + m_walkSize);
 		}
 
-		body()->setBodyType(Box2DBody::Dynamic);
+		m_body->setAwake(true);				// Különben nem reagál a mozgásra
+
+
+
 	} else if (m_playerState == Fall) {
 
 	} else if (m_lastCurrentSprite != "idle") {
@@ -307,6 +306,13 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 		return;
 	}
 
+
+	GamePickable *pickable = qobject_cast<GamePickable *>(gameObject);
+
+	if (pickable) {
+		game()->pickableAdd(pickable);
+		return;
+	}
 
 	GameLadder *ladder = qobject_cast<GameLadder *>(gameObject);
 
@@ -367,7 +373,13 @@ void GamePlayer::onEndContact(Box2DFixture *other)
 		return;
 	}
 
-	GameLadder *ladder = qobject_cast<GameLadder *>(gameObject);
+
+	GamePickable *pickable = qobject_cast<GamePickable *>(gameObject);
+
+	if (pickable) {
+		game()->pickableRemove(pickable);
+		return;
+	}
 
 
 	foreach (const QString &key, m_terrainObjects.keys()) {
@@ -377,6 +389,7 @@ void GamePlayer::onEndContact(Box2DFixture *other)
 		}
 	}
 
+	GameLadder *ladder = qobject_cast<GameLadder *>(gameObject);
 
 	if (ladder && m_ladderState != LadderActive && m_ladderState != LadderTopSprite) {
 		setLadderState(LadderInactive);
@@ -410,6 +423,19 @@ void GamePlayer::onIsAliveChanged()
 {
 	if (m_enemy)
 		m_enemy->setAimedByPlayer(false);
+}
+
+
+/**
+ * @brief GamePlayer::onHpOrShieldChanged
+ */
+
+void GamePlayer::onHpOrShieldChanged()
+{
+	if (m_shield)
+		setHpProgressValue(m_shield);
+	else
+		setHpProgressValue(m_hp);
 }
 
 
@@ -495,40 +521,29 @@ void GamePlayer::ladderMove(const bool &up)
 }
 
 
-
 /**
- * @brief GamePlayer::terrainObjectSignalAddToPool
- * @param type
- * @param object
+ * @brief GamePlayer::shield
+ * @return
  */
 
-void GamePlayer::terrainObjectSignalAddToPool(const QString &type, GameObject *object)
+int GamePlayer::shield() const
 {
-	if (m_terrainObjectsPrevious.contains(type))
+	return m_shield;
+}
+
+void GamePlayer::setShield(int newShield)
+{
+	if (m_shield == newShield)
 		return;
-
-	m_terrainObjectsPrevious.insert(type, object);
+	m_shield = newShield;
+	emit shieldChanged();
 }
 
 
 
 
-/**
- * @brief GamePlayer::terrainObjectSignalEmit
- */
 
-void GamePlayer::terrainObjectSignalEmit()
-{
-	for (auto it = m_terrainObjectsPrevious.begin(); it != m_terrainObjectsPrevious.end(); ++it) {
-		GameObject *old = it.value();
-		GameObject *actual = m_terrainObjects.value(it.key());
 
-		if (old != actual) {
-			it.value() = actual;
-			emit terrainObjectChanged(it.key(), actual);
-		}
-	}
-}
 
 
 /**
@@ -697,13 +712,11 @@ void GamePlayer::standbyMovingFlags()
 
 void GamePlayer::moveTo(const QPointF &point, const bool &forced)
 {
-	body()->setBodyType(Box2DBody::Kinematic);
-
 	if (forced) {
 		setPosition(point);
 	}
 
-	body()->setBodyType(Box2DBody::Dynamic);
+	m_body->setAwake(true);
 }
 
 
@@ -771,11 +784,13 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 	/*if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
 					return;
 			}
+*/
 
-			if (canProtect && m_shield > 0) {
-					setShield(m_shield-1);
-			} else {*/
-	decreaseHp();
+	if (canProtect && m_shield > 0) {
+		setShield(m_shield-1);
+	} else {
+		decreaseHp();
+	}
 
 	/*if (m_cosGame && m_cosGame->gameMatch()) {
 							m_cosGame->gameMatch()->setIsFlawless(false);
@@ -820,11 +835,9 @@ void GamePlayer::setTerrainObject(const QString &type, GameObject *object)
 	if (m_terrainObjects.value(type) == object)
 		return;
 
-	terrainObjectSignalAddToPool(type, m_terrainObjects.value(type));
-
 	m_terrainObjects[type] = object;
 
-	//emit terrainObjectChanged(type, object);
+	emit terrainObjectChanged(type, object);
 }
 
 
@@ -886,6 +899,17 @@ void GamePlayer::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 
 	setEnemy(enemy);
 
+}
+
+
+/**
+ * @brief GamePlayer::hpProgressValueSetup
+ */
+
+void GamePlayer::hpProgressValueSetup()
+{
+	connect(this, &GamePlayer::hpChanged, this, &GamePlayer::onHpOrShieldChanged);
+	connect(this, &GamePlayer::shieldChanged, this, &GamePlayer::onHpOrShieldChanged);
 }
 
 

@@ -77,6 +77,7 @@ class GameEntity : public GameObject
 	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged)
 	Q_PROPERTY(bool hpProgressEnabled READ hpProgressEnabled WRITE setHpProgressEnabled NOTIFY hpProgressEnabledChanged)
 	Q_PROPERTY(QColor hpProgressColor READ hpProgressColor WRITE setHpProgressColor NOTIFY hpProgressColorChanged)
+	Q_PROPERTY(int hpProgressValue READ hpProgressValue WRITE setHpProgressValue NOTIFY hpProgressValueChanged)
 
 public:
 	explicit GameEntity(QQuickItem *parent = nullptr);
@@ -164,6 +165,8 @@ public:
 	const QColor &hpProgressColor() const;
 	void setHpProgressColor(const QColor &newHpProgressColor);
 
+	int hpProgressValue() const;
+	void setHpProgressValue(int newHpProgressValue);
 
 public slots:
 	void decreaseHp();
@@ -198,7 +201,7 @@ signals:
 	void rayCastElevationChanged();
 	void rayCastEnabledChanged();
 	void walkSizeChanged();
-	void hpChanged();
+	void hpChanged(int hp);
 	void maxHpChanged();
 	void isAliveChanged();
 	void bodyRectChanged();
@@ -216,6 +219,7 @@ signals:
 	void overlayColorChanged();
 	void hpProgressEnabledChanged();
 	void hpProgressColorChanged();
+	void hpProgressValueChanged();
 
 	void spriteItemChanged();
 	void spriteSequenceChanged();
@@ -224,6 +228,7 @@ protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items);
 	void updateFixturesJson(const QJsonObject &spriteData);
 	void onIsAliveDisabled();
+	virtual void hpProgressValueSetup();
 
 	QRectF m_bodyRect;
 	QSizeF m_frameSize;
@@ -261,6 +266,7 @@ private:
 	QColor m_overlayColor = QColor("white");
 	bool m_hpProgressEnabled = false;
 	QColor m_hpProgressColor = QColor("red");
+	int m_hpProgressValue = 0;
 
 	QQuickItem *m_spriteItem = nullptr;
 	QQuickItem *m_spriteSequence = nullptr;
@@ -274,6 +280,7 @@ private:
 	QMap<float32, QList<QPointer<Box2DFixture>>> m_rayCastFixtures;
 
 	QPropertyAnimation *m_dieAnimation = nullptr;
+
 };
 
 #endif // GAMEPLAYERPRIVATE_H

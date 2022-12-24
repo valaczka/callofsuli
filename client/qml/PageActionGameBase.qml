@@ -97,6 +97,8 @@ Page {
 				id: gameScene
 				game: control.game
 
+				messageList: messageList
+
 				visible: false
 
 				focus: true
@@ -176,25 +178,6 @@ Page {
 
 			/*
 			CosGame {
-				id: game
-				width: gameMatch.mode == GameMatch.ModeNormal ? gameScene.width : mainScene.width
-				height: gameMatch.mode == GameMatch.ModeNormal ? gameScene.height : mainScene.height
-				currentScene: mainScene
-
-				y: gameMatch.mode == GameMatch.ModeNormal ? parent.height-(gameScene.height*gameScene.scale) : 0
-
-				opacity: 0.0
-				visible: false
-
-				gameScene: gameScene
-				itemPage: control
-				activity: gameActivity
-
-				property bool _timeSound: false
-				property bool _finalSound: true
-
-
-
 
 				Connections {
 					target: game.player && game.player.entityPrivate ? game.player.entityPrivate : null
@@ -222,25 +205,12 @@ Page {
 					}
 				}
 
-				onPlayerChanged: if (player) {
-									 flick.setXOffset()
-									 flick.setYOffset()
-								 }
 
 				onGameSceneLoaded: {
 					_sceneLoaded = true
 					if (gameMatch.mode == GameMatch.ModeNormal)
 						cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
 				}
-
-				onGameSceneLoadFailed: {
-					cosClient.sendMessageErrorImage("qrc:/internal/icon/tools.svg",qsTr("Játék betöltése sikertelen"), qsTr("Nem sikerült betölteni a játékot!"))
-					_backDisabled = false
-					_closeEnabled = true
-					mainStack.back()
-				}
-
-				onIsPreparedChanged: doStep()
 
 				onGameTimeout: {
 					setEnemiesMoving(false)
@@ -267,61 +237,10 @@ Page {
 						_closeEnabled = true
 						mainStack.back()
 					})
-				}
-
-				onGameCompletedReady: {
-					setEnemiesMoving(false)
-					setRunning(false)
-
-					if (!studentMaps) {
-						_closeEnabled = true
-						mainStack.back()
-					}
-				}
-
-
-				onMsecLeftChanged: {
-					if (gameMatch.mode != GameMatch.ModeNormal)
-						return
-
-					if (msecLeft > 30*1000 && !_finalSound)
-						_finalSound = true
-
-					if (msecLeft > 60*1000 && !_timeSound)
-						_timeSound = true
-
-
-					if (msecLeft <= 60*1000 && _timeSound) {
-						infoTime.marked = true
-						_timeSound = false
-						messageList.message(qsTr("You have 1 minute left"), 1)
-						cosClient.playSound("qrc:/sound/voiceover/time.mp3", CosSound.VoiceOver)
 					}
 
-					if (msecLeft <= 30*1000 && _finalSound) {
-						infoTime.marked = true
-						_finalSound = false
-						messageList.message(qsTr("You have 30 seconds left"), 1)
-						cosClient.playSound("qrc:/sound/voiceover/final_round.mp3", CosSound.VoiceOver)
-					}
-				}
 
-				onGameSecondsAdded: {
-					infoTime.marked = true
-				}
 
-				onGameMessageSent: {
-					messageList.message(message, colorCode)
-				}
-
-				onGameSceneScaleToggleRequest: {
-					if (!_backDisabled && gameMatch.mode == GameMatch.ModeNormal)
-						gameScene.zoomOverviewToggle()
-				}
-
-				onGameToolTipRequest: {
-					gameToolTip(setting, image, text, details)
-				}
 			}
 
 
@@ -608,7 +527,7 @@ Page {
 			iconLabel.icon.source: Qaterial.Icons.shield
 			progressBar.width: Math.min(control.width*0.125, 100)
 
-			property int shield: 18//game.player ? game.player.entityPrivate.shield : 0
+			property int shield: game.player ? game.player.shield : 0
 
 			onShieldChanged: {
 				if (shield > progressBar.to)
@@ -788,27 +707,28 @@ Page {
 
 		}*/
 	}
-/*
+
 	GameMessageList {
 		id: messageList
 
 		anchors.left: parent.left
 		anchors.top: parent.top
-		anchors.leftMargin: Math.max(mainWindow.safeMargins.left/2, 10)
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.topMargin: Math.max(Client.safeMarginTop, 7)
 
 		width: Math.min(implicitWidth, control.width*0.55)
 		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
 
-		visible: !gameScene.isSceneZoom && gameMatch.mode == GameMatch.ModeNormal
+		visible: !gameScene.zoomOverview
 	}
 
 	Row {
 		id: rowTime
 
 		anchors.left: parent.left
-		anchors.top: gameMatch.mode == GameMatch.ModeNormal ? messageList.bottom : parent.top
+		anchors.top: messageList.bottom
 		anchors.margins: 5
-		anchors.leftMargin: Math.max(mainWindow.safeMargins.left/2, 10)
+		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
 
 		GameButton {
 			id: backButton
@@ -816,39 +736,40 @@ Page {
 
 			anchors.verticalCenter: parent.verticalCenter
 
-			visible: !gameScene.isSceneZoom
+			visible: !gameScene.zoomOverview
 
-			color: JS.setColorAlpha(CosStyle.colorError, 0.7)
+			color: Qaterial.Colors.red800
 			border.color: "white"
 			border.width: 1
 
-			fontImage.icon: "qrc:/internal/icon/close.svg"
+			fontImage.icon: Qaterial.Icons.close
 			fontImage.color: "white"
 			fontImageScale: 0.7
 
 			onClicked: {
-				mainStack.back()
+				Client.stackPop()
 			}
 		}
 
 		GameLabel {
 			id: infoTime
-			color: CosStyle.colorPrimary
-			//image.visible: false
+			color: Qaterial.Colors.cyan300
 
 			anchors.verticalCenter: parent.verticalCenter
 
-			image.icon: CosStyle.iconClock1
+			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
 			property int secs: game.msecLeft/1000
 
-			label.text: game.msecLeft>=60000 ? JS.secToMMSS(secs) : Number(game.msecLeft/1000).toFixed(1)
+			iconLabel.text: game.msecLeft>=60000 ?
+							Client.Utils.formatMSecs(game.msecLeft) :
+							Client.Utils.formatMSecs(game.msecLeft, 1, false)
 
 			visible: !gameScene.isSceneZoom
 		}
 	}
 
-
+/*
 	GameLabel {
 		id: infoInvisibilityTime
 		color: CosStyle.colorAccent
@@ -959,7 +880,7 @@ Page {
 
 
 
-/*	GameButton {
+	GameButton {
 		id: pickButton
 		size: 50
 
@@ -969,25 +890,26 @@ Page {
 		anchors.horizontalCenter: shotButton.horizontalCenter
 		anchors.bottom: shotButton.top
 
-		visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive
-		enabled: game.player && game.pickable
+		visible: game && game.player
+
+		property bool hasPickable: game && game.pickable
 
 
-		color: enabled ? JS.setColorAlpha(CosStyle.colorOKLighter, 0.5) : "transparent"
-		border.color: enabled ? fontImage.color : "white"
+		color: hasPickable ? Qaterial.Colors.green600 : "transparent"
+		border.color: hasPickable ? fontImage.color : "white"
 		border.width: 1
 
-		opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
+		opacity:  gameScene.zoomOverview ? 0.2 : (hasPickable ? 1.0 : 0.6)
 
-		fontImage.icon: "qrc:/internal/icon/hand-back-right.svg"
+		fontImage.icon: Qaterial.Icons.handRight
 		fontImage.color: "white"
 		fontImageScale: 0.6
 		fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			game.pickPickable()
+			game.pickablePick()
 		}
-	}*/
+	}
 /*
 
 	Column {
@@ -1213,6 +1135,7 @@ Page {
 			skullImageAnim.start()
 		}
 
+
 		function onMovingFlagsChanged(flags) {
 			if ((flags & GamePlayer.JoystickInteraction) || joystick.hasTouch)
 				return
@@ -1247,6 +1170,10 @@ Page {
 				flick.setXOffset()
 				flick.setYOffset()
 			}
+		}
+
+		function onTimeNotify() {
+			infoTime.marked = true
 		}
 	}
 

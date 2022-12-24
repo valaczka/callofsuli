@@ -20,21 +20,13 @@ GamePickablePrivate {
 	transformOrigin: Item.Center
 
 	property real elevation: 25
-	property var pickableData: null
-
-
-	property int _collision: 0 //Box.Category3
 
 	property real horizontalPadding: 25
 	property real verticalPadding: 5
 
-	property bool glowEnabled: false
+	property bool glowEnabled: (scene && scene.showObjects) || (game && game.player && game.pickable == control)
 	property bool _glowForced: false
-	property bool overlayEnabled: false
 
-	property CosGame cosGame: null
-
-	default property alias contentItem: itemLoader.sourceComponent
 
 	body.fixtures: [
 		Box {
@@ -44,38 +36,71 @@ GamePickablePrivate {
 			x: 0
 			y: 0
 			sensor: true
-			//collidesWith: _collision
 			categories: Box.Category4
 
-			readonly property var targetData: null
+			readonly property var targetData: {"pickable": true}
 		}
 	]
 
 
-	/*Connections {
-		target: targetObject
+	Component {
+		id: cmpAnimated
 
-		function onPicked() {
-			_collision = 0
-			fixBox.collidesWith = 0
-			fixBox.categories = 0
-			cosClient.playSound("qrc:/sound/sfx/pick.mp3", CosSound.GameSound)
-			state = "picked"
-		}
-	}*/
-
-	Connections {
-		target: cosGame
-
-		function onPickableChanged(pickable) {
-			glowEnabled = (targetObject && pickable === targetObject)
+		AnimatedImage {
+			source: control.image
+			width: 25
+			height: 25
+			speed: 0.75
+			fillMode: Image.PreserveAspectFit
 		}
 	}
 
 
+
+	Component {
+		id: cmpPixmap
+
+		Image {
+			id: lbl
+			source: control.image
+			width: 25 //control.imageWidth
+			height: 25 //control.imageHeight
+			fillMode: Image.PreserveAspectFit
+		}
+	}
+
 	Loader {
 		id: itemLoader
 		anchors.centerIn: parent
+
+		sourceComponent: if (control.type == GamePickablePrivate.PickableInvalid)
+							 undefined
+						 else if (control.format == GamePickablePrivate.FormatAnimated)
+							 cmpAnimated
+						 else
+							 cmpPixmap
+
+	}
+
+	SequentialAnimation {
+		running: itemLoader.status == Loader.Ready
+		loops: Animation.Infinite
+		ParallelAnimation {
+			PropertyAnimation {
+				targets: [itemLoader, glow]
+				property: "scale"
+				to: 1.2
+				duration: 500
+			}
+		}
+		ParallelAnimation {
+			PropertyAnimation {
+				targets: [itemLoader, glow]
+				property: "scale"
+				to: 1.0
+				duration: 500
+			}
+		}
 	}
 
 	Glow {
@@ -83,30 +108,20 @@ GamePickablePrivate {
 		opacity: (glowEnabled || _glowForced) ? 1.0 : 0.0
 		visible: opacity != 0
 
-		color: CosStyle.colorGlowItem
+		color: Qaterial.Style.colorItemGlow
 		source: itemLoader
 		anchors.fill: itemLoader
 
 		radius: 2
 		samples: 5
 
+		clip: false
+
 		Behavior on opacity {
 			NumberAnimation { duration: 200 }
 		}
 	}
 
-
-	ColorOverlay {
-		id: overlay
-		source: itemLoader
-		anchors.fill: itemLoader
-		opacity: overlayEnabled ? 1.0 : 0.0
-		visible: opacity != 0
-
-		Behavior on opacity {
-			NumberAnimation { duration: 300 }
-		}
-	}
 
 
 	states: [
@@ -127,7 +142,7 @@ GamePickablePrivate {
 			SequentialAnimation {
 				ParallelAnimation {
 					PropertyAnimation {
-						target: root
+						target: control
 						property: "scale"
 						from: 0.0
 						to: 1.0
@@ -137,30 +152,25 @@ GamePickablePrivate {
 
 					SequentialAnimation {
 						PropertyAnimation {
-							target: root
+							target: control
 							property: "y"
-							from: root.y+root.elevation
-							to: root.y-100
+							from: control.y+control.elevation
+							to: control.y-100
 							duration: 450
 							easing.type: Easing.OutQuad
 						}
 
 
 						PropertyAnimation {
-							target: root
+							target: control
 							property: "y"
-							to: root.y
+							to: control.y
 							duration: 300
 							easing.type: Easing.InSine
 						}
 					}
 				}
 
-				PropertyAction {
-					target: root
-					property: "_collision"
-					value: Box.Category3
-				}
 			}
 		},
 
@@ -171,13 +181,13 @@ GamePickablePrivate {
 			SequentialAnimation {
 				ParallelAnimation {
 					PropertyAnimation {
-						target: root
+						target: control
 						property: "scale"
 						to: 7.0
 						duration: 250
 					}
 					PropertyAnimation {
-						target: root
+						target: control
 						property: "opacity"
 						to: 0.0
 						duration: 260
@@ -185,110 +195,11 @@ GamePickablePrivate {
 				}
 				ScriptAction {
 					script: {
-						if (cosGame && targetObject)
-							cosGame.removePickable(targetObject)
-						root.destroy()
+						control.pickFinished()
 					}
 				}
 			}
 		}
 	]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	z: 6
-
-	width: 150
-	height: 128
-
-	readonly property point operatingPointLeft: Qt.point(45,0)
-	readonly property point operatingPointRight: Qt.point(width-45,0)
-
-	opacity: 0.9
-
-	transformOrigin: Item.Center
-
-	body.fixtures: [
-		Box {
-			id: boxDie
-			width: 15
-			height: control.height
-			x: (control.width-width)/2
-			y: 0
-			sensor: true
-			//collidesWith: Box.Category3
-			categories: Box.Category4
-
-			readonly property QtObject targetObject: control
-			readonly property var targetData: {"fireDie": true}
-		},
-		Box {
-			width: control.width
-			height: control.height
-			x: 0
-			y: 0
-			sensor: true
-			//collidesWith: Box.Category3
-			categories: Box.Category4
-
-			readonly property QtObject targetObject: control
-			readonly property var targetData: {"fire": true}
-		}
-
-	]
-
-
-	SpriteSequence {
-		id: spriteSequence
-
-		anchors.fill: parent
-
-		running: control.game && control.game.running
-
-		sprites: [
-			Sprite {
-				name: "idle"
-				source: "qrc:/internal/game/fire.png"
-				frameCount: 25
-				frameDuration: 30
-				frameWidth: 128
-				frameHeight: 128
-				randomStart: true
-			}
-		]
-	}
-
-	SequentialAnimation {
-		id: dieAnimation
-		running: false
-
-		PauseAnimation {
-			duration: 800
-		}
-		PropertyAnimation {
-			target: control
-			property: "opacity"
-			to: 0
-			duration: 1000
-		}
-		ScriptAction {
-			script: control.destroy()
-		}
-	}
-
-	function operate() {
-		dieAnimation.start()
-	}
 
 }

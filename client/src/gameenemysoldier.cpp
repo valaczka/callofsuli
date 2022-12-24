@@ -100,8 +100,6 @@ void GameEnemySoldier::onTimingTimerTimeout()
 		qreal posX = x();
 		qreal delta = m_walkSize;
 
-		body()->setBodyType(Box2DBody::Kinematic);
-
 		if (facingLeft()) {
 			if (posX-delta < m_terrainEnemyData.rect.left()) {
 				setEnemyState(Idle);
@@ -118,7 +116,8 @@ void GameEnemySoldier::onTimingTimerTimeout()
 			}
 		}
 
-		body()->setBodyType(Box2DBody::Dynamic);
+		m_body->setAwake(true);
+
 	} else if (m_enemyState == WatchPlayer) {
 		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
 

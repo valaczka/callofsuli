@@ -60,6 +60,7 @@ class GameScene : public QQuickItem
 	Q_PROPERTY(int timingTimerTimeoutMsec READ timingTimerTimeoutMsec CONSTANT)
 	Q_PROPERTY(QQuickItem* mouseArea READ mouseArea WRITE setMouseArea NOTIFY mouseAreaChanged)
 	Q_PROPERTY(SceneState sceneState READ sceneState WRITE setSceneState NOTIFY sceneStateChanged)
+	Q_PROPERTY(QQuickItem* messageList READ messageList WRITE setMessageList NOTIFY messageListChanged)
 
 public:
 	GameScene(QQuickItem *parent = nullptr);
@@ -82,6 +83,8 @@ public:
 
 	Q_INVOKABLE void load();
 	Q_INVOKABLE void playSoundPlayerVoice(const QString &source);
+	Q_INVOKABLE void playSound(const QString &source);
+	Q_INVOKABLE void playSoundVoiceOver(const QString &source);
 
 	bool zoomOverview() const;
 	void setZoomOverview(bool newZoomOverview);
@@ -123,6 +126,9 @@ public:
 
 	GameTerrain::PlayerPositionData getPlayerPosition();
 
+	QQuickItem *messageList() const;
+	void setMessageList(QQuickItem *newMessageList);
+
 public slots:
 	void zoomOverviewToggle();
 	void onScenePrepared();
@@ -148,6 +154,7 @@ signals:
 	void showEnemiesChanged(bool show);
 	void mouseAreaChanged();
 	void sceneStateChanged();
+	void messageListChanged();
 
 private:
 	void loadGameData();
@@ -165,6 +172,7 @@ private:
 	GameTerrain m_terrain;
 	Box2DWorld *m_world = nullptr;
 	QQuickItem *m_mouseArea = nullptr;
+	QQuickItem *m_messageList = nullptr;
 
 	QTimer *m_timingTimer = nullptr;
 	const int m_timingTimerTimeoutMsec = TIMING_TIMER_TIMEOUT_MSEC;
