@@ -37,7 +37,7 @@
 GameEnemy::GameEnemy(QQuickItem *parent)
 	: GameEntity(parent)
 {
-	m_defaultShotSound = "qrc:/sound/sfx/enemyshot.wav";
+	m_defaultShotSound = QStringLiteral("qrc:/sound/sfx/enemyshot.wav");
 
 	setCategoryFixture(CATEGORY_ENEMY);
 	setCategoryRayCast(CATEGORY_PLAYER);
@@ -188,19 +188,6 @@ void GameEnemy::setCastAttackFraction(qreal newCastAttackFraction)
 
 
 
-bool GameEnemy::moving() const
-{
-	return m_moving;
-}
-
-void GameEnemy::setMoving(bool newMoving)
-{
-	if (m_moving == newMoving)
-		return;
-	m_moving = newMoving;
-	emit movingChanged();
-}
-
 
 /**
  * @brief GameEnemy::startMovingAfter
@@ -209,7 +196,7 @@ void GameEnemy::setMoving(bool newMoving)
 
 void GameEnemy::startMovingAfter(const int &msec)
 {
-	QTimer::singleShot(msec, this, [this]() { setMoving(true); });
+	QTimer::singleShot(msec, this, [this]() { setEnemyState(Move); });
 }
 
 
@@ -322,14 +309,12 @@ void GameEnemy::missedByPlayer(GamePlayer *player)
 {
 	qCDebug(lcScene).noquote() << tr("Missed by player:") << this;
 
-	/*qreal playerX = player->parentEntity()->x();
-			qreal meX = parentEntity()->x();
-			bool facingLeft = parentEntity()->property("facingLeft").toBool();
+	const qreal &playerX = player->x();
 
-			if (playerX <= meX && !facingLeft)
-					parentEntity()->setProperty("facingLeft", true);
-			else if (playerX > meX && facingLeft)
-					parentEntity()->setProperty("facingLeft", false);*/
+	if (playerX <= x() && !m_facingLeft)
+		setFacingLeft(true);
+	else if (playerX > x() && m_facingLeft)
+		setFacingLeft(false);
 
 	emit killMissed();
 

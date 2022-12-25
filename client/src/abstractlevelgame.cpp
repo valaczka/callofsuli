@@ -77,7 +77,7 @@ QVector<Question> AbstractLevelGame::createQuestions()
 			for (int i=0; i<n; ++i) {
 				Question q(objective);
 
-				q.generate();
+				//q.generate();
 
 				list.append(q);
 			}
@@ -225,6 +225,6 @@ QUrl AbstractLevelGame::backgroundImage() const
 					return m_missionLevel ? m_missionLevel->image() : "";
 */
 
-	return QUrl("qrc:/internal/game/bg.png");
+	return QUrl(QStringLiteral("qrc:/internal/game/bg.png"));
 }
 

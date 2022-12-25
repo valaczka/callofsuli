@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.cpp
+ * GamePlayerImpl.cpp
  *
  * Created on: 2020. 10. 21.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * GamePlayerImpl
  *
  *  This file is part of Call of Suli.
  *
@@ -43,7 +43,7 @@
 GameEntity::GameEntity(QQuickItem *parent)
 	: GameObject(parent)
 	, m_rayCast(new Box2DRayCast(this))
-	, m_dieAnimation(new QPropertyAnimation(this, "opacity", this))
+	, m_dieAnimation(new QPropertyAnimation(this, QByteArrayLiteral("opacity"), this))
 {
 	m_body->setBodyType(Box2DBody::Dynamic);
 	m_body->setGravityScale(5.0);
@@ -96,7 +96,7 @@ bool GameEntity::loadFromJsonFile()
 		return false;
 	}
 
-	return loadFromJsonFile(m_dataDir+"/data.json");
+	return loadFromJsonFile(m_dataDir+QStringLiteral("/data.json"));
 }
 
 
@@ -121,31 +121,31 @@ bool GameEntity::loadFromJsonFile(const QString &filename)
 
 	QRectF r;
 
-	r.setX(m_dataObject.value("x").toDouble(0));
-	r.setY(m_dataObject.value("y").toDouble(0));
-	r.setWidth(m_dataObject.value("width").toDouble(5));
-	r.setHeight(m_dataObject.value("height").toDouble(5));
+	r.setX(m_dataObject.value(QStringLiteral("x")).toDouble(0));
+	r.setY(m_dataObject.value(QStringLiteral("y")).toDouble(0));
+	r.setWidth(m_dataObject.value(QStringLiteral("width")).toDouble(5));
+	r.setHeight(m_dataObject.value(QStringLiteral("height")).toDouble(5));
 
 	setBodyRect(r.normalized());
 
-	m_spriteFacingLeft = m_dataObject.value("facingLeft").toBool(false);
+	m_spriteFacingLeft = m_dataObject.value(QStringLiteral("facingLeft")).toBool(false);
 
 	onFacingLeftChanged();
 
-	setWalkSize(m_dataObject.value("walk").toDouble(0));
+	setWalkSize(m_dataObject.value(QStringLiteral("walk")).toDouble(0));
 
-	setShotSound(m_dataObject.value("shotSound").toString());
+	setShotSound(m_dataObject.value(QStringLiteral("shotSound")).toString());
 
-	m_sprites = m_dataObject.value("sprites").toObject();
+	m_sprites = m_dataObject.value(QStringLiteral("sprites")).toObject();
 
-	m_frameSize.setWidth(m_dataObject.value("frameWidth").toDouble(r.x()+r.width()));
-	m_frameSize.setHeight(m_dataObject.value("frameHeight").toDouble(r.y()+r.height()));
+	m_frameSize.setWidth(m_dataObject.value(QStringLiteral("frameWidth")).toDouble(r.x()+r.width()));
+	m_frameSize.setHeight(m_dataObject.value(QStringLiteral("frameHeight")).toDouble(r.y()+r.height()));
 
 
 	setWidth(m_frameSize.width());
 	setHeight(m_frameSize.height());
 
-	updateFixturesJson(sprite("idle"));
+	updateFixturesJson(sprite(QStringLiteral("idle")));
 
 	return true;
 }
@@ -197,7 +197,7 @@ Box2DBox *GameEntity::fixture() const
 
 bool GameEntity::createSpriteItem()
 {
-	QQmlComponent component(Application::instance()->engine(), "qrc:/GameEntitySpriteSequence.qml", this);
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/GameEntitySpriteSequence.qml"), this);
 
 	qCDebug(lcScene).noquote() << tr("Create sprite item:") << component.isReady();
 
@@ -352,7 +352,7 @@ void GameEntity::updateFixtures(QString spriteName)
 		spriteName = m_spriteItem->property("currentSprite").toString();
 	}
 
-	updateFixturesJson(sprite(spriteName.isEmpty() ? "idle" : spriteName));
+	updateFixturesJson(sprite(spriteName.isEmpty() ? QStringLiteral("idle") : spriteName));
 }
 
 
@@ -567,8 +567,8 @@ void GameEntity::updateFixturesJson(const QJsonObject &spriteData)
 	m_fixture->setWidth(m_bodyRect.width());
 	m_fixture->setHeight(m_bodyRect.height());
 
-	qreal w = qMax(spriteData.value("frameWidth").toDouble(), m_frameSize.width());
-	qreal h = qMax(spriteData.value("frameHeight").toDouble(),  m_frameSize.height());
+	qreal w = qMax(spriteData.value(QStringLiteral("frameWidth")).toDouble(), m_frameSize.width());
+	qreal h = qMax(spriteData.value(QStringLiteral("frameHeight")).toDouble(),  m_frameSize.height());
 
 	if (m_spriteItem) {
 		setWidth(w);
@@ -717,9 +717,9 @@ void GameEntity::onFacingLeftChanged()
 		return;
 
 	if (m_facingLeft != m_spriteFacingLeft)
-		m_spriteSequence->setState("inverse");
+		m_spriteSequence->setState(QStringLiteral("inverse"));
 	else
-		m_spriteSequence->setState("");
+		m_spriteSequence->setState(QLatin1String(""));
 
 	updateFixtures();
 }
@@ -761,8 +761,8 @@ void GameEntity::loadSprites()
 	if (keys.isEmpty())
 		return;
 
-	keys.removeAll("idle");
-	keys.prepend("idle");
+	keys.removeAll(QStringLiteral("idle"));
+	keys.prepend(QStringLiteral("idle"));
 
 	qCDebug(lcScene).noquote() << tr("Load sprites:") << keys;
 
@@ -774,23 +774,23 @@ void GameEntity::loadSprites()
 
 		QString dir = m_dataDir;
 
-		if (dir.startsWith(":"))
-			dir.replace(":", "qrc:");
-		else if (!dir.startsWith("qrc:"))
-			dir.prepend("qrc:");
+		if (dir.startsWith(QStringLiteral(":")))
+			dir.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
+		else if (!dir.startsWith(QStringLiteral("qrc:")))
+			dir.prepend(QStringLiteral("qrc:"));
 
 
 		QVariantMap map({
-							{ "name", k },
-							{ "source", dir+"/"+data.value("source").toString() },
-							{ "frameCount", data.value("frameCount").toInt(1) },
-							{ "frameWidth", data.value("frameWidth").toInt(m_frameSize.width()) },
-							{ "frameHeight", data.value("frameHeight").toInt(m_frameSize.height()) },
-							{ "frameX", data.value("frameX").toInt(0) },
-							{ "frameY", data.value("frameY").toInt(0) },
-							{ "frameDuration", data.value("frameDuration").toInt(100) },
-							{ "frameDurationVariation", data.value("frameDurationVariation").toInt(0) },
-							{ "to", data.value("to").toObject().toVariantMap() }
+							{ QStringLiteral("name"), k },
+							{ QStringLiteral("source"), dir+QStringLiteral("/")+data.value(QStringLiteral("source")).toString() },
+							{ QStringLiteral("frameCount"), data.value(QStringLiteral("frameCount")).toInt(1) },
+							{ QStringLiteral("frameWidth"), data.value(QStringLiteral("frameWidth")).toInt(m_frameSize.width()) },
+							{ QStringLiteral("frameHeight"), data.value(QStringLiteral("frameHeight")).toInt(m_frameSize.height()) },
+							{ QStringLiteral("frameX"), data.value(QStringLiteral("frameX")).toInt(0) },
+							{ QStringLiteral("frameY"), data.value(QStringLiteral("frameY")).toInt(0) },
+							{ QStringLiteral("frameDuration"), data.value(QStringLiteral("frameDuration")).toInt(100) },
+							{ QStringLiteral("frameDurationVariation"), data.value(QStringLiteral("frameDurationVariation")).toInt(0) },
+							{ QStringLiteral("to"), data.value(QStringLiteral("to")).toObject().toVariantMap() }
 						});
 
 		QMetaObject::invokeMethod(m_spriteItem, "addToSprites",
@@ -987,21 +987,21 @@ QUrl GameEntity::shotSound() const
 	if (m_shotSound.isEmpty())
 		return m_defaultShotSound;
 
-	if (sound.startsWith("qrc:"))
+	if (sound.startsWith(QStringLiteral("qrc:")))
 		return sound;
 
-	if (sound.startsWith("/"))
-		return "qrc:"+sound;
+	if (sound.startsWith(QStringLiteral("/")))
+		return QStringLiteral("qrc:")+sound;
 
 	QString dir = m_dataDir;
 
-	if (dir.startsWith("qrc:"))
-		return dir+"/"+sound;
+	if (dir.startsWith(QStringLiteral("qrc:")))
+		return dir+QStringLiteral("/")+sound;
 
-	if (dir.startsWith(":"))
-		return "qrc"+dir+"/"+sound;
+	if (dir.startsWith(QStringLiteral(":")))
+		return QStringLiteral("qrc")+dir+QStringLiteral("/")+sound;
 
-	return "qrc:"+dir+"/"+sound;
+	return QStringLiteral("qrc:")+dir+QStringLiteral("/")+sound;
 
 }
 

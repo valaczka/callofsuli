@@ -68,10 +68,10 @@ Sound::~Sound()
 
 	if (m_mediaPlayerMusic && m_mediaPlayerSfx && m_mediaPlayerVoiceOver) {
 		QSettings s(this);
-		s.beginGroup("sound");
-		s.setValue("volumeMusic", m_musicVolume);
-		s.setValue("volumeSfx", volumeSfx());
-		s.setValue("volumeVoiceOver", volumeVoiceOver());
+		s.beginGroup(QStringLiteral("sound"));
+		s.setValue(QStringLiteral("volumeMusic"), m_musicVolume);
+		s.setValue(QStringLiteral("volumeSfx"), volumeSfx());
+		s.setValue(QStringLiteral("volumeVoiceOver"), volumeVoiceOver());
 		s.endGroup();
 	}
 
@@ -153,10 +153,10 @@ void Sound::init()
 	});
 
 	QSettings s(this);
-	s.beginGroup("sound");
-	setVolumeMusic(s.value("volumeMusic", 50).toInt());
-	setVolumeSfx(s.value("volumeSfx", 50).toInt());
-	setVolumeVoiceOver(s.value("volumeVoiceOver", 50).toInt());
+	s.beginGroup(QStringLiteral("sound"));
+	setVolumeMusic(s.value(QStringLiteral("volumeMusic"), 50).toInt());
+	setVolumeSfx(s.value(QStringLiteral("volumeSfx"), 50).toInt());
+	setVolumeVoiceOver(s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
 	s.endGroup();
 
 
@@ -351,7 +351,7 @@ void Sound::musicLoadNextSource()
 	playlist->clear();
 	playlist->addMedia(QUrl(m_musicNextSource));
 
-	m_musicNextSource = "";
+	m_musicNextSource = QStringLiteral("");
 
 	m_mediaPlayerMusic->play();
 

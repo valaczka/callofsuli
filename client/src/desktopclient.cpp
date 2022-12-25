@@ -148,13 +148,13 @@ int DesktopClient::volume(const Sound::ChannelType &channel) const
 
 	switch (channel) {
 		case Sound::MusicChannel:
-			func = "volumeMusic";
+			func = QByteArrayLiteral("volumeMusic");
 			break;
 		case Sound::SfxChannel:
-			func = "volumeSfx";
+			func = QByteArrayLiteral("volumeSfx");
 			break;
 		case Sound::VoiceoverChannel:
-			func = "volumeVoiceOver";
+			func = QByteArrayLiteral("volumeVoiceOver");
 			break;
 	}
 
@@ -179,20 +179,20 @@ void DesktopClient::setVolume(const Sound::ChannelType &channel, const int &volu
 	QByteArray func;
 
 	QSettings s;
-	s.beginGroup("sound");
+	s.beginGroup(QStringLiteral("sound"));
 
 	switch (channel) {
 		case Sound::MusicChannel:
-			func = "setVolumeMusic";
-			s.setValue("volumeMusic", volume);
+			func = QByteArrayLiteral("setVolumeMusic");
+			s.setValue(QStringLiteral("volumeMusic"), volume);
 			break;
 		case Sound::SfxChannel:
-			func = "setVolumeSfx";
-			s.setValue("volumeSfx", volume);
+			func = QByteArrayLiteral("setVolumeSfx");
+			s.setValue(QStringLiteral("volumeSfx"), volume);
 			break;
 		case Sound::VoiceoverChannel:
-			func = "setVolumeVoiceOver";
-			s.setValue("volumeVoiceOver", volume);
+			func = QByteArrayLiteral("setVolumeVoiceOver");
+			s.setValue(QStringLiteral("volumeVoiceOver"), volume);
 			break;
 	}
 

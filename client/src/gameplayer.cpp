@@ -47,41 +47,41 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 {
 	qCDebug(lcScene).noquote() << tr("Player created:") << this;
 
-	m_defaultShotSound = "qrc:/sound/sfx/shot.wav";
+	m_defaultShotSound = QStringLiteral("qrc:/sound/sfx/shot.wav");
 
 
-	m_soundEffectHash.insert("run", QStringList({
-													"qrc:/sound/sfx/run1.mp3",
-													"qrc:/sound/sfx/run2.mp3",
+	m_soundEffectHash.insert(QStringLiteral("run"), QStringList({
+													QStringLiteral("qrc:/sound/sfx/run1.mp3"),
+													QStringLiteral("qrc:/sound/sfx/run2.mp3"),
 												}));
 
-	m_soundEffectHash.insert("walk", QStringList({
-													 "qrc:/sound/sfx/step1.mp3",
-													 "qrc:/sound/sfx/step2.mp3",
+	m_soundEffectHash.insert(QStringLiteral("walk"), QStringList({
+													 QStringLiteral("qrc:/sound/sfx/step1.mp3"),
+													 QStringLiteral("qrc:/sound/sfx/step2.mp3"),
 												 }));
 
-	m_soundEffectHash.insert("climb", QStringList({
-													  "qrc:/sound/sfx/ladderup1.mp3",
-													  "qrc:/sound/sfx/ladderup2.mp3",
+	m_soundEffectHash.insert(QStringLiteral("climb"), QStringList({
+													  QStringLiteral("qrc:/sound/sfx/ladderup1.mp3"),
+													  QStringLiteral("qrc:/sound/sfx/ladderup2.mp3"),
 												  }));
 
-	m_soundEffectHash.insert("ladder", QStringList({
-													   "qrc:/sound/sfx/ladder.mp3",
+	m_soundEffectHash.insert(QStringLiteral("ladder"), QStringList({
+													   QStringLiteral("qrc:/sound/sfx/ladder.mp3"),
 												   }));
 
-	m_soundEffectHash.insert("pain", QStringList({
-													 "qrc:/sound/sfx/pain1.mp3",
-													 "qrc:/sound/sfx/pain2.mp3",
-													 "qrc:/sound/sfx/pain3.mp3",
+	m_soundEffectHash.insert(QStringLiteral("pain"), QStringList({
+													 QStringLiteral("qrc:/sound/sfx/pain1.mp3"),
+													 QStringLiteral("qrc:/sound/sfx/pain2.mp3"),
+													 QStringLiteral("qrc:/sound/sfx/pain3.mp3"),
 												 }));
 
 
 
 	// Terrain objects
 
-	m_terrainObjects.insert("fire", nullptr);
-	m_terrainObjects.insert("fence", nullptr);
-	m_terrainObjects.insert("teleport", nullptr);
+	m_terrainObjects.insert(QStringLiteral("fire"), nullptr);
+	m_terrainObjects.insert(QStringLiteral("fence"), nullptr);
+	m_terrainObjects.insert(QStringLiteral("teleport"), nullptr);
 
 	setCategoryFixture(CATEGORY_PLAYER);
 	setCategoryRayCast(CATEGORY_ENEMY);
@@ -111,10 +111,10 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 	connect(this, &GamePlayer::movingFlagsChanged, this, &GamePlayer::onMovingFlagsChanged);
 
-	connect(this, &GamePlayer::hurt, this, [this]() { QTimer::singleShot(450, this, [this](){ playSoundEffect("pain"); }); });
+	connect(this, &GamePlayer::hurt, this, [this]() { QTimer::singleShot(450, this, [this](){ playSoundEffect(QStringLiteral("pain")); }); });
 	connect(this, &GamePlayer::allHpLost, this, [this](){
 		setPlayerState(Dead);
-		m_scene->playSoundPlayerVoice("qrc:/sound/sfx/dead.mp3");
+		m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));
 		emit killed(this);
 	});
 
@@ -145,12 +145,12 @@ GamePlayer::~GamePlayer()
 
 void GamePlayer::onSceneConnected()
 {
-	const QJsonObject &data = m_scene->levelData().value("player").toObject();
+	const QJsonObject &data = m_scene->levelData().value(QStringLiteral("player")).toObject();
 
-	setRayCastElevation(data.value("rayCastElevation").toDouble());
-	setRayCastLength(data.value("rayCastLength").toDouble());
-	setHurtFall(data.value("hurtFall").toDouble());
-	setDeathlyFall(data.value("deathlyFall").toDouble());
+	setRayCastElevation(data.value(QStringLiteral("rayCastElevation")).toDouble());
+	setRayCastLength(data.value(QStringLiteral("rayCastLength")).toDouble());
+	setHurtFall(data.value(QStringLiteral("hurtFall")).toDouble());
+	setDeathlyFall(data.value(QStringLiteral("deathlyFall")).toDouble());
 }
 
 
@@ -163,7 +163,7 @@ void GamePlayer::onSceneConnected()
 void GamePlayer::onTimingTimerTimeout()
 {
 	/*if ((m_playerState == Run || m_playerState == Walk || m_playerState == ClimbUp) && !m_movingFlags) {
-		jumpToSprite("idle");
+		jumpToSprite(QStringLiteral("idle"));
 		return;
 	}*/
 
@@ -186,17 +186,17 @@ void GamePlayer::onTimingTimerTimeout()
 	if (m_playerState == Walk) {
 		if (m_soundElapsedMsec >= 400) {
 			m_soundElapsedMsec = 0;
-			playSoundEffect("walk");
+			playSoundEffect(QStringLiteral("walk"));
 		}
 	} else 	if (m_playerState == Run) {
 		if (m_soundElapsedMsec >= 300) {
 			m_soundElapsedMsec = 0;
-			playSoundEffect("run");
+			playSoundEffect(QStringLiteral("run"));
 		}
 	} else if (m_playerState == ClimbUp || m_playerState == ClimbDown) {
 		if (m_soundElapsedMsec >= 1700) {
 			m_soundElapsedMsec = 0;
-			playSoundEffect("climb");
+			playSoundEffect(QStringLiteral("climb"));
 		}
 	} else {
 		m_soundElapsedMsec = 0;
@@ -232,7 +232,7 @@ void GamePlayer::onTimingTimerTimeout()
 
 		if (d >= m_deathlyFall || m_hp == 1) {
 			setPlayerState(Dead);
-			m_scene->playSoundPlayerVoice("qrc:/sound/sfx/falldead.mp3");
+			m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/falldead.mp3"));
 			kill();
 			return;
 		} else if (d >= m_hurtFall) {
@@ -248,10 +248,10 @@ void GamePlayer::onTimingTimerTimeout()
 
 
 	if (m_playerState == Shot) {
-		if (m_lastCurrentSprite == "shot")
+		if (m_lastCurrentSprite == QStringLiteral("shot"))
 			return;
 		else
-			jumpToSprite("idle");
+			jumpToSprite(QStringLiteral("idle"));
 
 		onMovingFlagsChanged();
 	}
@@ -276,8 +276,8 @@ void GamePlayer::onTimingTimerTimeout()
 
 	} else if (m_playerState == Fall) {
 
-	} else if (m_lastCurrentSprite != "idle") {
-		jumpToSprite("idle");
+	} else if (m_lastCurrentSprite != QStringLiteral("idle")) {
+		jumpToSprite(QStringLiteral("idle"));
 	}
 
 
@@ -317,12 +317,12 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 	GameLadder *ladder = qobject_cast<GameLadder *>(gameObject);
 
 	if (ladder && m_ladderState != LadderActive && m_ladderState != LadderTopSprite) {
-		const QString &dir = data.value("direction").toString();
+		const QString &dir = data.value(QStringLiteral("direction")).toString();
 
-		if (dir == "up") {
+		if (dir == QStringLiteral("up")) {
 			setLadderState(LadderUpAvailable);
 			setLadder(ladder);
-		} else if (dir == "down") {
+		} else if (dir == QStringLiteral("down")) {
 			setLadderState(LadderDownAvailable);
 			setLadder(ladder);
 		} else {
@@ -332,7 +332,7 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 
 
 
-	if (data.value("fireDie", false).toBool()) {
+	if (data.value(QStringLiteral("fireDie"), false).toBool()) {
 		qCDebug(lcScene).noquote() << tr("Player is on fire");
 
 		setPlayerState(Burn);
@@ -410,7 +410,7 @@ void GamePlayer::onBaseGroundContacted()
 	qCDebug(lcScene).noquote() << tr("Player fell to base ground");
 
 	setPlayerState(Dead);
-	m_scene->playSoundPlayerVoice("qrc:/sound/sfx/falldead.mp3");
+	m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/falldead.mp3"));
 	kill();
 }
 
@@ -465,16 +465,16 @@ void GamePlayer::ladderMove(const bool &up)
 		body()->setBodyType(Box2DBody::Kinematic);
 		setX(_x);
 
-		jumpToSprite(up ? "climbup" : "climbdown");
+		jumpToSprite(up ? QStringLiteral("climbup") : QStringLiteral("climbdown"));
 
 		if (up)
-			playSoundEffect("ladder");
+			playSoundEffect(QStringLiteral("ladder"));
 
 	} else if ((m_ladderState == LadderActive || m_ladderState == LadderTopSprite) && up) {
 		qreal _y = y() -climbSize();
 
-		if (m_ladderState == LadderActive && !QStringList({"climbup", "climbup2", "climbup3"}).contains(m_lastCurrentSprite))
-			jumpToSprite("climbup2");
+		if (m_ladderState == LadderActive && !QStringList({QStringLiteral("climbup"), QStringLiteral("climbup2"), QStringLiteral("climbup3")}).contains(m_lastCurrentSprite))
+			jumpToSprite(QStringLiteral("climbup2"));
 
 		if (_y < m_ladder->boundRect().top() - height()) {
 			_y = m_ladder->boundRect().top()-height();
@@ -489,14 +489,14 @@ void GamePlayer::ladderMove(const bool &up)
 			if (m_ladderState == LadderActive && _y < m_ladder->boundRect().top()) {
 				qCDebug(lcScene).noquote() << tr("Ladder top area reached");
 				setLadderState(LadderTopSprite);
-				jumpToSprite("climbupend");
+				jumpToSprite(QStringLiteral("climbupend"));
 			}
 		}
 	} else if ((m_ladderState == LadderActive || m_ladderState == LadderTopSprite) && !up) {
 		qreal _y = y() +climbSize();
 
-		if (!QStringList({"climbdown", "climbdown2", "climbdown3"}).contains(m_lastCurrentSprite))
-			jumpToSprite("climbdown2");
+		if (!QStringList({QStringLiteral("climbdown"), QStringLiteral("climbdown2"), QStringLiteral("climbdown3")}).contains(m_lastCurrentSprite))
+			jumpToSprite(QStringLiteral("climbdown2"));
 
 		if (m_ladderState == LadderTopSprite && _y >= m_ladder->boundRect().top())  {
 			qCDebug(lcScene).noquote() << tr("Ladder top area over");
@@ -640,7 +640,7 @@ GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 {
 	qCDebug(lcScene).noquote() << tr("Create player");
 
-	GamePlayer *player = qobject_cast<GamePlayer*>(GameObject::createFromFile("GamePlayer.qml", scene));
+	GamePlayer *player = qobject_cast<GamePlayer*>(GameObject::createFromFile(QStringLiteral("GamePlayer.qml"), scene));
 
 	if (!player) {
 		qCCritical(lcScene).noquote() << tr("Player creation error");
@@ -651,7 +651,7 @@ GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 	player->setScene(scene);
 	player->createSpriteItem();
 
-	QDirIterator it(":/character", {"data.json"}, QDir::Files, QDirIterator::Subdirectories);
+	QDirIterator it(QStringLiteral(":/character"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
 	QStringList list;
 
 	while (it.hasNext())
@@ -662,11 +662,11 @@ GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 	}
 
 	if (list.contains(type)) {
-		player->setDataDir(QString(":/character/%1").arg(type));
-	} else if (list.contains("default")) {
-		player->setDataDir(":/character/default");
+		player->setDataDir(QStringLiteral(":/character/%1").arg(type));
+	} else if (list.contains(QStringLiteral("default"))) {
+		player->setDataDir(QStringLiteral(":/character/default"));
 	} else {
-		player->setDataDir(QString(":/character/%1").arg(list.first()));
+		player->setDataDir(QStringLiteral(":/character/%1").arg(list.first()));
 	}
 
 	player->loadFromJsonFile();
@@ -731,7 +731,7 @@ void GamePlayer::shot()
 
 	setPlayerState(Shot);
 	emit attack();
-	jumpToSprite("shot");		// Mindenképp kérjük
+	jumpToSprite(QStringLiteral("shot"));		// Mindenképp kérjük
 
 	if (!m_enemy)
 		return;
@@ -1063,14 +1063,14 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 
 	switch (m_playerState) {
 	case Walk:
-		jumpToSprite("walk");
+		jumpToSprite(QStringLiteral("walk"));
 		break;
 	case Run:
-		jumpToSprite("run");
+		jumpToSprite(QStringLiteral("run"));
 		break;
 	case Fall:
 		if (!m_ladderFall)
-			jumpToSprite("fall");
+			jumpToSprite(QStringLiteral("fall"));
 		break;
 	case Shot:
 		break;
@@ -1080,18 +1080,18 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 		break;
 	case ClimbPause:
 		body()->setBodyType(Box2DBody::Kinematic);
-		jumpToSprite("climbpause");
+		jumpToSprite(QStringLiteral("climbpause"));
 		break;
 	case Operate:
-		jumpToSprite("operate");
+		jumpToSprite(QStringLiteral("operate"));
 		break;
 	case Burn:
-		jumpToSprite("burn");
-		m_scene->playSoundPlayerVoice("qrc:/sound/sfx/dead.mp3");
+		jumpToSprite(QStringLiteral("burn"));
+		m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));
 		kill();
 		break;
 	case Dead:
-		jumpToSprite("dead");
+		jumpToSprite(QStringLiteral("dead"));
 		break;
 	case Idle:
 	case Invalid:
@@ -1112,7 +1112,7 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 
 qreal GamePlayer::runSize() const
 {
-	return m_dataObject.value("run").toDouble(m_walkSize);
+	return m_dataObject.value(QStringLiteral("run")).toDouble(m_walkSize);
 }
 
 
@@ -1123,7 +1123,7 @@ qreal GamePlayer::runSize() const
 
 qreal GamePlayer::climbSize() const
 {
-	return m_dataObject.value("climb").toDouble(m_walkSize);
+	return m_dataObject.value(QStringLiteral("climb")).toDouble(m_walkSize);
 }
 
 

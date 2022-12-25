@@ -48,6 +48,8 @@ Qaterial.ApplicationWindow
 		Qaterial.Style.darkColorTheme.primary = Qaterial.Colors.cyan500
 		Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
 
+		Qaterial.Style.rawButton.outlinedFocusWidth = 1
+
 		if (Qt.platform.os != "wasm") {
 			Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
 				return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)
@@ -146,13 +148,27 @@ Qaterial.ApplicationWindow
 
 
 
-	function messageDialog(_text : string, _title : string, _icon : string) {
+	function messageDialog(_text : string, _title : string, _type : string) {
+		var _icon = Qaterial.Icons.informationOutline
+		var _color = Qaterial.Style.primaryTextColor()
+
+		if (_type === "warning") {
+			_icon = Qaterial.Icons.alert
+			_color = Qaterial.Colors.orange500
+		} else if (_type === "error") {
+			_icon = Qaterial.Icons.alertOctagon
+			_color = Qaterial.Colors.red600
+		}
+
 		Qaterial.DialogManager.showDialog(
 					{
 						text: _text,
 						title: _title,
 						iconSource: _icon,
-						iconColor: Qaterial.Style.errorColor,
+						iconColor: _color,
+						textColor: _color,
+						iconFill: false,
+						iconSize: Qaterial.Style.roundIcon.size,
 						standardButtons: Dialog.Ok
 					})
 	}
@@ -170,7 +186,11 @@ Qaterial.ApplicationWindow
 						},
 						text: _text,
 						title: _pop ? qsTr("Bezárás") : qsTr("Kilépés"),
-						iconSource: Qaterial.Icons.closeOctagon,
+						iconSource: Qaterial.Icons.closeCircle,
+						iconColor: Qaterial.Colors.orange500,
+						textColor: Qaterial.Colors.orange500,
+						iconFill: false,
+						iconSize: Qaterial.Style.roundIcon.size,
 						standardButtons: Dialog.No | Dialog.Yes
 					})
 	}

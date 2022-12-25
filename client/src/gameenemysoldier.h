@@ -64,7 +64,6 @@ signals:
 private slots:
 	void onAttack();
 	void onTimingTimerTimeout();
-	void onMovingChanged();
 
 private:
 	int m_msecBeforeTurn = 5000;

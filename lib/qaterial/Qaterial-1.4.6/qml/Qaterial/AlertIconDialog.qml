@@ -29,6 +29,11 @@ Qaterial.ModalDialog
   property alias iconhighlighted: _icon.highlighted
   property alias iconReverseHighlight: _icon.reverseHighlight
 
+  /***** VJP ******/
+  property alias iconSize: _icon.iconSize
+  property alias roundSize: _icon.roundSize
+  property alias textColor: _text.color
+
   contentItem: Item
   {
 	Binding on implicitHeight

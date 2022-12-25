@@ -9,10 +9,9 @@
         <file>MainStackView.qml</file>
         <file>callofsuli.svg</file>
         <file>QPage.qml</file>
-        <file>PageActionGameBase.qml</file>
-        <file>GameSceneItem.qml</file>
-        <file>+emscripten/PageActionGame.qml</file>
         <file>PageActionGame.qml</file>
+        <file>GameScene.qml</file>
+        <file>PageActionGame_OLD.qml</file>
         <file>GameLadder.qml</file>
         <file>GameEnemySoldier.qml</file>
         <file>GameEntitySpriteSequence.qml</file>
@@ -30,5 +29,11 @@
         <file>GameFence.qml</file>
         <file>GamePickable.qml</file>
         <file>GameMessageList.qml</file>
+        <file>GameQuestionBase.qml</file>
+        <file>GameQuestionDefaultComponent.qml</file>
+        <file>GameQuestionAction.qml</file>
+        <file>GameQuestionButton.qml</file>
+        <file>GameQuestionCheckButton.qml</file>
+        <file>GameQuestionTitle.qml</file>
     </qresource>
 </RCC>

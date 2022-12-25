@@ -6,7 +6,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
 
-GameEnemySoldierPrivate {
+GameEnemySoldierImpl {
 	id: control
 
 	glowColor: (scene && scene.showObjects) ? Qaterial.Style.colorItemGlow : Qaterial.Style.colorEnemyGlow

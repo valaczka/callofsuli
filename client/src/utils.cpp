@@ -81,6 +81,8 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 		return QByteArray();
 	}
 
+	qDebug() << "OPEN";
+
 	if (!f.open(QIODevice::ReadOnly)) {
 		qCWarning(lcUtils).noquote() << tr("Nem lehet megnyitni a fájlt:") << filename;
 
@@ -89,6 +91,8 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 
 		return QByteArray();
 	}
+
+	qDebug() << "READ";
 
 	QByteArray data = f.readAll();
 

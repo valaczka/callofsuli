@@ -33,7 +33,7 @@
 #include <QObject>
 
 class Client;
-
+class GameQuestion;
 
 /**
  * @brief The Game class
@@ -45,6 +45,7 @@ class AbstractGame : public QObject
 
 	Q_PROPERTY(QQuickItem *pageItem READ pageItem WRITE setPageItem NOTIFY pageItemChanged)
 	Q_PROPERTY(GameMap* map READ map WRITE setMap NOTIFY mapChanged)
+	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged)
 
 public:
 
@@ -60,6 +61,14 @@ public:
 
 	Q_ENUM(Mode);
 
+	// Statistics
+
+	struct Statistics {
+		QString objective;
+		bool success;
+		int elapsed;
+	};
+
 	explicit AbstractGame(const Mode &mode, Client *client);
 	virtual ~AbstractGame();
 
@@ -73,12 +82,20 @@ public:
 
 	Q_INVOKABLE void unloadPageItem();
 
+	void addStatistics(const Statistics &stat);
+	void addStatistics(const QString &uuid, const bool &success, const int &elapsed);
+	QJsonArray takeStatistics();
+
+	GameQuestion *gameQuestion() const;
+	void setGameQuestion(GameQuestion *newGameQuestion);
+
 public slots:
 	bool load();
 	void finishGame();
 
 protected:
 	virtual QQuickItem *loadPage() = 0;
+	virtual void connectGameQuestion() = 0;
 
 private slots:
 	void onPageItemDestroyed();
@@ -86,12 +103,16 @@ private slots:
 signals:
 	void pageItemChanged();
 	void mapChanged();
+	void gameQuestionChanged();
 
 protected:
 	Client *m_client = nullptr;
 	QQuickItem *m_pageItem = nullptr;
 	const Mode m_mode;
 	GameMap *m_map = nullptr;
+	GameQuestion *m_gameQuestion = nullptr;
+	QVector<Statistics> m_statistics;
+
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcGame)

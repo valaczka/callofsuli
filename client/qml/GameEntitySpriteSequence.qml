@@ -7,7 +7,7 @@ import CallOfSuli 1.0
 Item {
 	id: control
 
-	property GameEntityPrivate entity: null
+	property GameEntityImpl entity: null
 
 	property bool _glowForced: true
 

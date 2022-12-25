@@ -160,6 +160,8 @@ SOURCES += \
 	gamepickable.cpp \
 	gameplayer.cpp \
 	gameplayerposition.cpp \
+	gamequestion.cpp \
+	gamequestioncomponent.cpp \
 	gamescene.cpp \
 	gameterrain.cpp \
 	main.cpp \
@@ -190,6 +192,8 @@ HEADERS += \
 	gamepickable.h \
 	gameplayer.h \
 	gameplayerposition.h \
+	gamequestion.h \
+	gamequestioncomponent.h \
 	gamescene.h \
 	gameterrain.h \
 	question.h \

@@ -29,6 +29,7 @@
 #include "gameenemy.h"
 #include "actiongame.h"
 #include "client.h"
+#include "gamequestion.h"
 #include "qtimer.h"
 #include <QRandomGenerator>
 #include <QtMath>
@@ -398,7 +399,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 	const QString &levelKey = QString::number((int)m_missionLevel->level());
 
 	foreach (GameEnemy *enemy, notUsed) {
-		int hp = enemy->dataObject().value("hp").toObject().value(levelKey).toInt(3);
+		int hp = enemy->dataObject().value(QStringLiteral("hp")).toObject().value(levelKey).toInt(3);
 
 		enemy->setMaxHp(hp);
 		enemy->setHp(hp);
@@ -482,6 +483,56 @@ void ActionGame::linkPickablesToEnemies(QList<GameEnemy *> enemies)
 
 
 /**
+ * @brief ActionGame::relinkQuestionToEnemy
+ * @param enemy
+ */
+
+void ActionGame::relinkQuestionToEnemy(GameEnemy *enemy)
+{
+	Q_ASSERT (enemy);
+
+	if (!enemy->question()) {
+		qCWarning(lcGame).noquote() << tr("Enemy hasn't question location:") << enemy;
+	} else {
+		enemy->question()->setEnemy(nullptr);
+	}
+
+	typedef QVector<QuestionLocation *> QVL;
+
+	QMap<int, QVL> usedList;
+
+	foreach (QuestionLocation *ql, m_questions) {
+		if (!ql->enemy()) {
+			const int &used = ql->used();
+			if (usedList.contains(used)) {
+				usedList[used].append(ql);
+			} else {
+				usedList.insert(used, {ql});
+			}
+		}
+	}
+
+	if (m_questions.isEmpty()) {
+		qCWarning(lcGame).noquote() << tr("Question location unavailable");
+		return;
+	}
+
+	auto it = usedList.begin();
+
+	qCDebug(lcGame).noquote() << tr("Relink questions used %1 times").arg(it.key()) << it.value().size();
+
+	QuestionLocation *ql = it.value().takeAt(QRandomGenerator::global()->bounded(it.value().size()));
+
+	ql->setEnemy(enemy);
+	ql->setUsed(ql->used()+1);
+	enemy->setQuestion(ql);
+	enemy->setMaxHp(1);
+	enemy->setHp(1);
+
+}
+
+
+/**
  * @brief ActionGame::tryAttack
  * @param player
  * @param enemy
@@ -501,27 +552,15 @@ void ActionGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 
 	qCDebug(lcGame).noquote() << tr("Try attack");
 
-	enemy->decreaseHp();
-
-	/*if (m_question) {
-					qWarning() << "Question already exists";
-					return;
-			}
-
-			m_question = new GameQuestion(this, player, enemy, this);
-
-			if (m_gameMatch)
-					connect(m_question, &GameQuestion::xpGained, m_gameMatch, &GameMatch::addXP);
-
-			connect(m_question, &GameQuestion::finished, this, [=]() {
-					m_question->deleteLater();
-					m_question = nullptr;
-					emit questionChanged(nullptr);
-			});
-
-			emit questionChanged(m_question);
-
-			m_question->run();*/
+	if (enemy->hasQuestion()) {
+		m_attackedEnemy = enemy;
+		m_scene->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"));
+		m_gameQuestion->loadQuestion(enemy->question()->question());
+		setRunning(false);
+		player->standbyMovingFlags();
+	} else {
+		enemy->decreaseHp();
+	}
 
 }
 
@@ -557,7 +596,7 @@ void ActionGame::setPlayer(GamePlayer *newPlayer)
 	m_player->setMaxHp(startHP());
 	m_player->setHp(startHP());
 	connect(m_player, &GamePlayer::died, this, &ActionGame::onPlayerDied);
-
+	connect(this, &ActionGame::runningChanged, newPlayer, &GamePlayer::onMovingFlagsChanged);
 }
 
 
@@ -570,14 +609,28 @@ void ActionGame::setPlayer(GamePlayer *newPlayer)
 
 QQuickItem *ActionGame::loadPage()
 {
-	QQuickItem *page = m_client->stackPushPage("PageActionGame.qml", QVariantMap({
-																					 { "game", QVariant::fromValue(this) }
-																				 }));
+	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageActionGame.qml"), QVariantMap({
+																									 { QStringLiteral("game"), QVariant::fromValue(this) }
+																								 }));
 
 	const QVariant &scene = page->property("scene");
 
 	setScene(qvariant_cast<GameScene*>(scene));
 	return page;
+}
+
+
+/**
+ * @brief ActionGame::connectGameQuestion
+ */
+
+void ActionGame::connectGameQuestion()
+{
+	connect(m_gameQuestion, &GameQuestion::success, this, &ActionGame::onGameQuestionSuccess);
+	connect(m_gameQuestion, &GameQuestion::failed, this, &ActionGame::onGameQuestionFailed);
+
+	connect(m_gameQuestion, &GameQuestion::started, this, &ActionGame::onGameQuestionStarted);
+	connect(m_gameQuestion, &GameQuestion::finished, this, &ActionGame::onGameQuestionFinished);
 }
 
 
@@ -606,10 +659,10 @@ void ActionGame::onSceneStarted()
 
 	if (m_deathmatch) {
 		message(tr("LEVEL %1 SUDDEN DEATH").arg(level()));
-		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/sudden_death.mp3");
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/sudden_death.mp3"));
 	} else {
 		message(tr("LEVEL %1").arg(level()));
-		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/begin.mp3");
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
 	}
 }
 
@@ -628,18 +681,96 @@ void ActionGame::onMsecLeftChanged(int diff)
 
 	if (m_msecLeft < 60000 && (m_msecLeft-diff) >= 60000) {
 		message(tr("You have 60 seconds left"), QStringLiteral("#00bcd4"));
-		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/time.mp3");
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/time.mp3"));
 		emit timeNotify();
 		return;
 	}
 
 	if (m_msecLeft < 30000 && (m_msecLeft-diff) >= 30000) {
 		message(tr("You have 30 seconds left"), QStringLiteral("#00bcd4"));
-		m_scene->playSoundVoiceOver("qrc:/sound/voiceover/final_round.mp3");
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/final_round.mp3"));
 		emit timeNotify();
 		return;
 	}
 
+}
+
+
+
+
+/**
+ * @brief ActionGame::onGameQuestionSuccess
+ * @param answer
+ */
+
+void ActionGame::onGameQuestionSuccess(const QVariantMap &answer)
+{
+	addStatistics(m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
+
+	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"));
+	m_gameQuestion->answerReveal(answer);
+	m_gameQuestion->setMsecBeforeHide(0);
+	m_gameQuestion->finish();
+
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/winner.mp3"));
+
+	if (m_attackedEnemy) {
+		m_attackedEnemy->kill();
+		m_attackedEnemy = nullptr;
+	}
+
+}
+
+
+/**
+ * @brief ActionGame::onGameQuestionFailed
+ * @param answer
+ */
+
+void ActionGame::onGameQuestionFailed(const QVariantMap &answer)
+{
+	if (m_player) {
+		addStatistics(m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+
+		player()->hurtByEnemy(nullptr, false);
+
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/loser.mp3"));
+
+		m_gameQuestion->answerReveal(answer);
+		m_gameQuestion->setMsecBeforeHide(1250);
+
+		GameEnemy *enemy = qobject_cast<GameEnemy*>(m_attackedEnemy);
+
+		if (enemy) {
+			m_attackedEnemy = nullptr;
+			enemy->missedByPlayer(player());
+			relinkQuestionToEnemy(enemy);
+		}
+	}
+	m_gameQuestion->finish();
+
+}
+
+
+/**
+ * @brief ActionGame::onGameQuestionStarted
+ */
+
+void ActionGame::onGameQuestionStarted()
+{
+	m_scene->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"));
+
+}
+
+
+/**
+ * @brief ActionGame::onGameQuestionFinished
+ */
+
+void ActionGame::onGameQuestionFinished()
+{
+	setRunning(true);
+	m_scene->forceActiveFocus(Qt::OtherFocusReason);
 }
 
 
@@ -653,6 +784,21 @@ void ActionGame::onMsecLeftChanged(int diff)
 GamePickable *ActionGame::pickable() const
 {
 	return m_pickableStack.isEmpty() ? nullptr : m_pickableStack.top();
+}
+
+
+
+void ActionGame::testQuestion()
+{
+	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"));
+	m_gameQuestion->loadQuestion(QUrl(QStringLiteral("qrc:/GQ_simplechoice.qml")), {
+									 {QStringLiteral("question"), QStringLiteral("Na ez már jó kérdés")},
+									 {QStringLiteral("answer"), 3},
+									 {QStringLiteral("options"), QStringList({
+										  "egy", "kettő", "három", "négy"
+									  }) }
+								 });
+	setRunning(false);
 }
 
 
@@ -771,6 +917,9 @@ void ActionGame::onPlayerDied(GameEntity *)
 	message(tr("Your man has died"), QStringLiteral("#e53935"));
 
 	pickableRemoveAll();
+
+	if (m_gameQuestion)
+		m_gameQuestion->forceDestroy();
 
 	if (m_deathmatch) {
 		emit missionFailed();
@@ -905,7 +1054,7 @@ void ActionGame::pickablePick()
 
 	p->pick(this);
 
-	m_scene->playSound("qrc:/sound/sfx/pick.mp3");
+	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/pick.mp3"));
 }
 
 

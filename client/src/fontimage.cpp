@@ -54,10 +54,10 @@ FontImage::FontImage()
 
 QPixmap FontImage::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
 {
-	QStringList path = id.split("/");
+	QStringList path = id.split(QStringLiteral("/"));
 
-	QString family = path.value(0, "");
-	QString letter = path.value(1, "");
+	QString family = path.value(0, QLatin1String(""));
+	QString letter = path.value(1, QLatin1String(""));
 
 	QSize mSize = QSize(requestedSize.width() > 0 ? requestedSize.width() : 24,
 						requestedSize.height() > 0 ? requestedSize.height() : 24);

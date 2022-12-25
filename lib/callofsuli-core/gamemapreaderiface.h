@@ -116,7 +116,7 @@ private:
 
 
 
-Q_DECLARE_LOGGING_CATEGORY(lcMapReader);
+//Q_DECLARE_LOGGING_CATEGORY(lcMapReader);
 
 
 

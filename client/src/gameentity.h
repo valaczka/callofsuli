@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameplayerprivate.h
+ * GamePlayerImpl.h
  *
  * Created on: 2020. 10. 21.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GamePlayerPrivate
+ * GamePlayerImpl
  *
  *  This file is part of Call of Suli.
  *

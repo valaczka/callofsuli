@@ -213,6 +213,10 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 
 	switch (key) {
 
+	case Qt::Key_F5:
+		m_game->testQuestion();
+		break;
+
 	case Qt::Key_Shift:
 		if (player) player->setMovingFlag(GamePlayer::SlowModifier);
 		break;
@@ -344,7 +348,7 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 void GameScene::loadGameData()
 {
 	bool error = false;
-	const QString filename = ":/internal/game/parameters.json";
+	const QString filename = QStringLiteral(":/internal/game/parameters.json");
 
 	m_gameData = Utils::fileToJsonObject(filename, &error);
 
@@ -394,7 +398,7 @@ void GameScene::loadTiledLayers()
 
 void GameScene::loadGroundLayer()
 {
-	Tiled::ObjectGroup *layer = objectLayer("Ground");
+	Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ground"));
 
 	if (!layer) {
 		qCWarning(lcScene).noquote() << tr("Missing ground layer");
@@ -444,7 +448,7 @@ void GameScene::loadGroundLayer()
 
 void GameScene::loadLadderLayer()
 {
-	Tiled::ObjectGroup *layer = objectLayer("Ladders");
+	Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ladders"));
 
 	if (!layer) {
 		qCWarning(lcScene).noquote() << tr("Missing ladders layer");
@@ -459,7 +463,7 @@ void GameScene::loadLadderLayer()
 
 		QRectF rect(object->x(), object->y(), object->width(), object->height());
 
-		GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile("GameLadder.qml", this));
+		GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile(QStringLiteral("GameLadder.qml"), this));
 
 		if (!ladder) {
 			qCCritical(lcScene).noquote() << tr("Ladder creation error");
@@ -498,8 +502,8 @@ void GameScene::loadTerrainObjectsLayer()
 
 	QHash<GameTerrain::ObjectType, QString> list;
 
-	list.insert(GameTerrain::Fire, "GameFire.qml");
-	list.insert(GameTerrain::Fence, "GameFence.qml");
+	list.insert(GameTerrain::Fire, QStringLiteral("GameFire.qml"));
+	list.insert(GameTerrain::Fence, QStringLiteral("GameFence.qml"));
 
 	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
 		const GameTerrain::ObjectType &type = it.key();
@@ -666,8 +670,8 @@ QJsonObject GameScene::levelData(int level) const
 	while (level > 0) {
 		const QString &key = QString::number(level);
 
-		if (m_gameData.value("level").toObject().contains(key)) {
-			r = m_gameData.value("level").toObject().value(key).toObject();
+		if (m_gameData.value(QStringLiteral("level")).toObject().contains(key)) {
+			r = m_gameData.value(QStringLiteral("level")).toObject().value(key).toObject();
 			break;
 		}
 
@@ -821,7 +825,7 @@ void GameScene::onSceneStepSuccess()
 	m_game->createFixEnemies();
 	m_game->createInventory();
 
-	m_game->pageItem()->setState("run");
+	m_game->pageItem()->setState(QStringLiteral("run"));
 
 }
 
@@ -832,9 +836,9 @@ void GameScene::onSceneStepSuccess()
 
 void GameScene::onSceneLoadFailed()
 {
-	m_game->pageItem()->setProperty("closeDisabled", "");
+	m_game->pageItem()->setProperty("closeDisabled", QLatin1String(""));
 	m_game->pageItem()->setProperty("onPageClose", QVariant::Invalid);
-	m_game->pageItem()->setProperty("closeQuestion", "");
+	m_game->pageItem()->setProperty("closeQuestion", QLatin1String(""));
 
 	m_game->unloadPageItem();
 
@@ -847,7 +851,7 @@ void GameScene::onSceneLoadFailed()
 
 void GameScene::onSceneAnimationReady()
 {
-	m_game->pageItem()->setProperty("closeDisabled", "");
+	m_game->pageItem()->setProperty("closeDisabled", QLatin1String(""));
 
 	m_game->recreateEnemies();
 

@@ -41,7 +41,6 @@
 
 Question::Question(GameMapObjective *objective)
 	: m_objective (objective)
-	, m_question()
 {
 }
 
@@ -54,7 +53,7 @@ Question::Question(GameMapObjective *objective)
 
 bool Question::isValid() const
 {
-	if (m_objective && !m_question.isEmpty())
+	if (m_objective)
 		return true;
 
 	return false;
@@ -71,7 +70,7 @@ QString Question::module() const
 	if (m_objective)
 		return m_objective->module();
 
-	return "";
+	return QLatin1String("");
 }
 
 
@@ -83,19 +82,15 @@ QString Question::module() const
  * @return
  */
 
-bool Question::generate()
+QVariantMap Question::generate() const
 {
 	if (!m_objective)
-		return false;
+		return QVariantMap();
 
 	QString module = m_objective->module();
 
-	QVariantMap m;
-	m["module"] = module;
-
 	if (!Application::instance()->objectiveModules().contains(module)) {
-		m["error"] = "invalid module";
-		return false;
+		return QVariantMap();
 	}
 
 	ModuleInterface *mi = Application::instance()->objectiveModules().value(module);
@@ -107,13 +102,14 @@ bool Question::generate()
 		std = m_objective->storage()->data();
 	}
 
-	if (!m_objective->hasGeneratedQuestion())
-		m_objective->setGeneratedQuestions(mi->generateAll(m_objective->data(), st, std));
+	if (m_objective->generatedQuestions().isEmpty())
+		m_objective->generatedQuestions() = mi->generateAll(m_objective->data(), st, std);
 
-	m_question = m_objective->takeQuestion();
-	m_question.insert("xpFactor", mi->xpFactor());
+	QVariantMap q = m_objective->generatedQuestions().takeAt(QRandomGenerator::global()->bounded(m_objective->generatedQuestions().size())).toMap();
 
-	return true;
+	q.insert(QStringLiteral("xpFactor"), mi->xpFactor());
+
+	return q;
 }
 
 
@@ -132,19 +128,19 @@ QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &da
 {
 	if (!Application::instance()->objectiveModules().contains(module)) {
 		return QVariantMap({
-							   { "name", "" },
-							   { "icon", "image://font/Material Icons/\ue002" },
-							   { "title", QObject::tr("Érvénytelen modul!") },
-							   { "details", "" },
-							   { "image", "" }
+							   { QStringLiteral("name"), QStringLiteral("") },
+							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
+							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
+							   { QStringLiteral("details"), QStringLiteral("") },
+							   { QStringLiteral("image"), QStringLiteral("") }
 						   });
 	}
 
 	ModuleInterface *mi = Application::instance()->objectiveModules().value(module);
 
 	QVariantMap m;
-	m["name"] = mi->readableName();
-	m["icon"] = mi->icon();
+	m[QStringLiteral("name")] = mi->readableName();
+	m[QStringLiteral("icon")] = mi->icon();
 	m.insert(mi->details(data, Application::instance()->storageModules().value(storageModule, nullptr), storageData));
 
 	return m;
@@ -162,19 +158,19 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 {
 	if (!Application::instance()->storageModules().contains(module)) {
 		return QVariantMap({
-							   { "name", "" },
-							   { "icon", "image://font/Material Icons/\ue002" },
-							   { "title", QObject::tr("Érvénytelen modul!") },
-							   { "details", "" },
-							   { "image", "" }
+							   { QStringLiteral("name"), QStringLiteral("") },
+							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
+							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
+							   { QStringLiteral("details"), QStringLiteral("") },
+							   { QStringLiteral("image"), QStringLiteral("") }
 						   });
 	}
 
 	ModuleInterface *mi = Application::instance()->storageModules().value(module);
 
 	QVariantMap m;
-	m["name"] = mi->readableName();
-	m["icon"] = mi->icon();
+	m[QStringLiteral("name")] = mi->readableName();
+	m[QStringLiteral("icon")] = mi->icon();
 	m.insert(mi->details(data, nullptr, QVariantMap()));
 
 	return m;
@@ -190,12 +186,12 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 QString Question::qml() const
 {
 	if (!m_objective)
-		return "";
+		return QStringLiteral("");
 
 	QString module = m_objective->module();
 
 	if (!Application::instance()->objectiveModules().contains(module))
-		return "";
+		return QStringLiteral("");
 
 	ModuleInterface *mi = Application::instance()->objectiveModules().value(module);
 
@@ -213,7 +209,7 @@ QString Question::uuid() const
 	if (m_objective)
 		return m_objective->uuid();
 	else
-		return QString("");
+		return QLatin1String("");
 }
 
 

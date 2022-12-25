@@ -7,11 +7,11 @@ Rectangle {
 	id: control
 
 	visible: enemy && enemy.player
-	color: enemy && enemy.enemyState == GameEnemyPrivate.Attack ? Qaterial.Style.colorEnemyMarkerAttack : Qaterial.Style.colorEnemyMarkerWatch
+	color: enemy && enemy.enemyState == GameEnemyImpl.Attack ? Qaterial.Style.colorEnemyMarkerAttack : Qaterial.Style.colorEnemyMarkerWatch
 	height: 1
 	y: parent.height*0.2
 
-	property GameEnemyPrivate enemy: null
+	property GameEnemyImpl enemy: null
 
 	Connections {
 		target: enemy ? enemy.player : null
@@ -47,7 +47,7 @@ Rectangle {
 
 	Timer {
 		id: timerBlink
-		running: enemy && enemy.enemyState == GameEnemyPrivate.WatchPlayer && enemy.msecLeftToAttack < 1500
+		running: enemy && enemy.enemyState == GameEnemyImpl.WatchPlayer && enemy.msecLeftToAttack < 1500
 		interval: 150
 		triggeredOnStart: true
 		repeat: true

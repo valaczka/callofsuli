@@ -128,6 +128,9 @@ T.Button
   property bool forceRipple: false
   property bool accentRipple: false
 
+
+  property int wrapMode: Text.NoWrap
+
   contentItem: Qaterial.IconLabel
   {
 	font: _control.font
@@ -140,6 +143,8 @@ T.Button
 	icon.cache: _control.icon.cache
 	text: _control.text
 	color: _control.foregroundColor
+	////****** VJP *****//////
+	wrapMode: _control.wrapMode
   } // IconLabel
 
   property double backgroundImplicitWidth: Qaterial.Style.rawButton.minWidth

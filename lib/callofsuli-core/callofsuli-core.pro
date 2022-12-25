@@ -5,7 +5,7 @@ include(../../version/version.pri)
 android: TARGET = callofsuli-core_$${QT_ARCH}
 else: TARGET = callofsuli-core
 
-CONFIG += staticlib
+android: CONFIG += staticlib
 
 DESTDIR = ..
 

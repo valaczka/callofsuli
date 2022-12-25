@@ -82,8 +82,8 @@ bool GameTerrain::loadMapFromFile(QString filename)
 
 	Tiled::MapReader reader;
 
-	if (filename.startsWith("qrc:"))
-		filename.replace("qrc:", ":");
+	if (filename.startsWith(QStringLiteral("qrc:")))
+		filename.replace(QStringLiteral("qrc:"), QStringLiteral(":"));
 
 	if(!QFile::exists(filename)) {
 		qCWarning(lcClient).noquote() << QObject::tr("A terepfájl nem létezik:") << filename;
@@ -130,7 +130,7 @@ bool GameTerrain::loadMapFromFile(QString filename)
 
 bool GameTerrain::loadMap(const QString &terrain, const int &level)
 {
-	return loadMapFromFile(QString(":/terrain/%1/level%2.tmx").arg(terrain).arg(level));
+	return loadMapFromFile(QStringLiteral(":/terrain/%1/level%2.tmx").arg(terrain).arg(level));
 }
 
 
@@ -149,11 +149,11 @@ bool GameTerrain::loadObjectLayers()
 
 		Tiled::ObjectGroup *gLayer = static_cast<Tiled::ObjectGroup*>(*layer);
 
-		if (name == "Enemies")
+		if (name == QStringLiteral("Enemies"))
 			readEnemyLayer(gLayer);
-		else if (name == "Objects")
+		else if (name == QStringLiteral("Objects"))
 			readObjectLayer(gLayer);
-		else if (name == "Player")
+		else if (name == QStringLiteral("Player"))
 			readPlayerLayer(gLayer);
 
 	}
@@ -236,7 +236,7 @@ void GameTerrain::readEnemyLayer(Tiled::ObjectGroup *layer)
 		}
 
 
-		if (object->type() == "sniper")
+		if (object->type() == QStringLiteral("sniper"))
 			enemy.type = EnemySniper;
 		else
 			enemy.type = EnemySoldier;
@@ -267,11 +267,11 @@ void GameTerrain::readObjectLayer(Tiled::ObjectGroup *layer)
 		const QString type = object->type();
 		ObjectType o = Invalid;
 
-		if (type == "fire")
+		if (type == QStringLiteral("fire"))
 			o = Fire;
-		else if (type == "fence")
+		else if (type == QStringLiteral("fence"))
 			o = Fence;
-		else if (type == "teleport")
+		else if (type == QStringLiteral("teleport"))
 			o = Teleport;
 
 		if (o != Invalid) {

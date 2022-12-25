@@ -6,7 +6,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
 
-GamePlayerPrivate {
+GamePlayerImpl {
 	id: control
 
 	z: 10

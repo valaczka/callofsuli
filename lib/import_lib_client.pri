@@ -10,7 +10,6 @@ INCLUDEPATH += $$PWD/callofsuli-core
 android: LIBS += -L../../lib -lcallofsuli-core_$${QT_ARCH}
 else: LIBS += -L../../lib$${TargetSuffix} -lcallofsuli-core
 
-
 # Qaterial
 
 INCLUDEPATH += $$PWD/qaterial/Qaterial-1.4.6/src

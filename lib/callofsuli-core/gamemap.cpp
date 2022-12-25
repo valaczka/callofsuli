@@ -147,7 +147,11 @@ GameMapObjective *GameMap::objective(const QString &uuid) const
 
 GameMap *GameMap::fromBinaryData(const QByteArray &data)
 {
+	qDebug() << "++++++";
+	qDebug() << "+++" << data.size();
 	GameMap *map = new GameMap();
+
+	qDebug() << "****";
 
 	if (map->readBinaryData(data))
 		return map;
@@ -184,7 +188,7 @@ void GameMap::setSolver(const QVariantList &list)
 		GameMapMission *mis = mission(id);
 
 		if (!mis) {
-			qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission id:") << id;
+//			qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission id:") << id;
 			continue;
 		}
 
@@ -262,7 +266,7 @@ QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QString &uuid
 	QVector<MissionLevelDeathmatch> ret;
 
 	if (!mis || !ml) {
-		qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
+//		qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
 		return ret;
 	}
 
@@ -375,7 +379,7 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
 	GameMapMissionLevel *ml = missionLevel(uuid, level);
 
 	if (!mis || !ml) {
-		qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
+//		qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
 		return qMakePair(nullptr, false);
 	}
 
@@ -807,7 +811,6 @@ GameMapObjective::GameMapObjective(const QString &uuid, const QString &module,
 								   const QVariantMap &data, GameMap *map)
 	: GameMapObjectiveIface()
 	, m_map(map)
-	, m_generatedQuestions()
 {
 	m_uuid = uuid;
 	m_module = module;
@@ -867,40 +870,18 @@ GameMapStorage *GameMapObjective::storage() const
 
 
 /**
- * @brief GameMapObjective::setGeneratedQuestions
- * @param newGeneratedQuestions
- */
-
-void GameMapObjective::setGeneratedQuestions(const QVariantList &newGeneratedQuestions)
-{
-	m_generatedQuestions = newGeneratedQuestions;
-}
-
-
-/**
- * @brief GameMapObjective::hasGeneratedQuestion
+ * @brief GameMapObjective::generatedQuestions
  * @return
  */
 
-bool GameMapObjective::hasGeneratedQuestion() const
+
+QVariantList &GameMapObjective::generatedQuestions()
 {
-	return m_generatedQuestions.size() > 0;
+	return m_generatedQuestions;
 }
 
 
-/**
- * @brief GameMapObjective::takeQuestion
- * @return
- */
 
-QVariantMap GameMapObjective::takeQuestion()
-{
-	if (m_generatedQuestions.isEmpty())
-		return QVariantMap();
-
-	QVariant v = m_generatedQuestions.takeAt(QRandomGenerator::global()->bounded(m_generatedQuestions.size()));
-	return v.toMap();
-}
 
 
 

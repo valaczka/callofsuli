@@ -253,7 +253,7 @@ void Client::onApplicationStarted()
 
 	QCoreApplication::processEvents();
 
-	stackPushPage("PageStart.qml");
+	stackPushPage(QStringLiteral("PageStart.qml"));
 }
 
 
@@ -266,13 +266,13 @@ void Client::onApplicationStarted()
  * @param icon
  */
 
-void Client::_message(const QString &text, const QString &title, const QString &icon) const
+void Client::_message(const QString &text, const QString &title, const QString &type) const
 {
 	if (m_mainWindow) {
 		QMetaObject::invokeMethod(m_mainWindow, "messageDialog",
 								  Q_ARG(QString, text),
 								  Q_ARG(QString, title),
-								  Q_ARG(QString, icon)
+								  Q_ARG(QString, type)
 								  );
 	}
 }
@@ -422,7 +422,7 @@ void Client::setMainWindow(QQuickWindow *newMainWindow)
 	if (!m_mainWindow)
 		return;
 
-	m_mainWindow->setIcon(QIcon(":/internal/img/cos.png"));
+	m_mainWindow->setIcon(QIcon(QStringLiteral(":/internal/img/cos.png")));
 
 	safeMarginsGet();
 }
@@ -454,8 +454,8 @@ void Client::messageInfo(const QString &text, QString title) const
 	if (title.isEmpty())
 		title = m_application->application()->applicationDisplayName();
 
-	qCInfo(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
-	_message(text, title, "qrc:/Qaterial/Icons/alert-circle-outline.svg");
+	qCInfo(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
+	_message(text, title, QStringLiteral("info"));
 }
 
 
@@ -470,8 +470,8 @@ void Client::messageWarning(const QString &text, QString title) const
 	if (title.isEmpty())
 		title = m_application->application()->applicationDisplayName();
 
-	qCWarning(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
-	_message(text, title, "qrc:/Qaterial/Icons/alert.svg");
+	qCWarning(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
+	_message(text, title, QStringLiteral("warning"));
 }
 
 
@@ -486,8 +486,8 @@ void Client::messageError(const QString &text, QString title) const
 	if (title.isEmpty())
 		title = m_application->application()->applicationDisplayName();
 
-	qCCritical(lcClient).noquote() << QString("%1 (%2)").arg(text, title);
-	_message(text, title, "qrc:/Qaterial/Icons/alert-octagon.svg");
+	qCCritical(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
+	_message(text, title, QStringLiteral("error"));
 }
 
 
@@ -503,12 +503,22 @@ void Client::loadGame()
 		return;
 	}
 
-	GameMap *map = GameMap::fromBinaryData(Utils::fileContent("/home/valaczka/demo_test.map"));
+	//GameMap *map = GameMap::fromBinaryData(Utils::fileContent(QStringLiteral("/home/valaczka/demo_test.map")));
+
+	qDebug() << "MAP....";
+
+	QByteArray b = Utils::fileContent(QStringLiteral(":/internal/game/demo.map"));
+
+	qDebug() << "B" << b.size();
+
+	GameMap *map = GameMap::fromBinaryData(b);
+
+	qDebug() << "MAP" << map;
 
 	if (!map)
 		return;
 
-	GameMapMissionLevel *ml = map->missionLevel("{90cb2799-f189-4255-9667-1f19b582284b}", 1);
+	GameMapMissionLevel *ml = map->missionLevel(QStringLiteral("{90cb2799-f189-4255-9667-1f19b582284b}"), 2);
 
 	ActionGame *game = new ActionGame(ml, this);
 	setCurrentGame(game);

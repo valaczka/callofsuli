@@ -43,7 +43,6 @@ class GameEnemy : public GameEntity
 {
 	Q_OBJECT
 
-	Q_PROPERTY(bool moving READ moving WRITE setMoving NOTIFY movingChanged)
 	Q_PROPERTY(bool aimedByPlayer READ aimedByPlayer WRITE setAimedByPlayer NOTIFY aimedByPlayerChanged)
 	Q_PROPERTY(qreal castAttackFraction READ castAttackFraction WRITE setCastAttackFraction NOTIFY castAttackFractionChanged)
 	Q_PROPERTY(qreal msecBeforeAttack READ msecBeforeAttack WRITE setMsecBeforeAttack NOTIFY msecBeforeAttackChanged)
@@ -83,9 +82,6 @@ public:
 	const GameTerrain::EnemyData &terrainEnemyData() const;
 	void setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnemyData);
 
-	bool moving() const;
-	void setMoving(bool newMoving);
-
 	bool aimedByPlayer() const;
 	void setAimedByPlayer(bool newAimedByPlayer);
 
@@ -122,7 +118,6 @@ public slots:
 signals:
 	void attack();
 	void killMissed();
-	void movingChanged();
 	void aimedByPlayerChanged();
 	void castAttackFractionChanged();
 	void msecBeforeAttackChanged();
@@ -143,7 +138,6 @@ protected:
 	QSoundEffect *m_soundEffect = nullptr;
 #endif
 	GameTerrain::EnemyData m_terrainEnemyData;
-	bool m_moving = false;
 	int m_startMovingAfter = 0;
 
 	qreal m_castAttackFraction = 0.5;

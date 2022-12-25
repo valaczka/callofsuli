@@ -50,7 +50,7 @@ else: CMakePath = cmake
 
 # Qaterial build mode (shared/static)
 
-QaterialBuildShared = ON
+QaterialBuildShared = true
 
 
 

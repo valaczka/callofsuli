@@ -71,6 +71,7 @@ public:
 
 	void linkQuestionToEnemies(QList<GameEnemy *> enemies);
 	void linkPickablesToEnemies(QList<GameEnemy *> enemies);
+	void relinkQuestionToEnemy(GameEnemy * enemy);
 
 	void tryAttack(GamePlayer *player, GameEnemy *enemy);
 
@@ -89,6 +90,8 @@ public:
 
 	GamePickable *pickable() const;
 
+	void testQuestion();
+
 public slots:
 	void onPlayerDied(GameEntity *);
 	void onEnemyDied(GameEntity *entity);
@@ -100,6 +103,7 @@ public slots:
 
 protected:
 	virtual QQuickItem *loadPage() override;
+	virtual void connectGameQuestion() override;
 
 signals:
 	void missionCompleted();
@@ -114,6 +118,10 @@ signals:
 private slots:
 	void onSceneStarted();
 	void onMsecLeftChanged(int diff);
+	void onGameQuestionSuccess(const QVariantMap &answer);
+	void onGameQuestionFailed(const QVariantMap &answer);
+	void onGameQuestionStarted();
+	void onGameQuestionFinished();
 
 private:
 	QPointer<GameScene> m_scene = nullptr;
@@ -127,6 +135,7 @@ private:
 	QVector<Inventory> m_inventory;
 
 	QStack<GamePickable*> m_pickableStack;
+	QPointer<GameEntity> m_attackedEnemy = nullptr;
 
 };
 

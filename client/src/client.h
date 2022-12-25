@@ -114,7 +114,7 @@ protected slots:
 	friend class Application;
 
 protected:
-	void _message(const QString &text, const QString &title, const QString &icon) const;
+	void _message(const QString &text, const QString &title, const QString &type) const;
 
 signals:
 	void pixelSizeChanged();

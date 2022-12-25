@@ -6,7 +6,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
 
-GameLadderPrivate {
+GameLadderImpl {
 	id: control
 	width: boundRect.width
 	height: 0

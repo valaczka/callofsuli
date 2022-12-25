@@ -76,28 +76,28 @@ void DesktopApplication::commandLineParse()
 	parser.addHelpOption();
 	parser.addVersionOption();
 
-	parser.addOption({"license", QObject::tr("Licensz")});
-	parser.addOption({{"l", "log"}, QObject::tr("Naplózás <file> fájlba"), "file"});
-	parser.addOption({{"n", "log-limit"}, QObject::tr("Maximum <db> log fájl tárolása"), "db"});
-	parser.addOption({{"e", "editor"}, QObject::tr("Pályszerkesztő indítása")});
-	parser.addOption({{"m", "map"}, QObject::tr("Pálya szerkesztése"), "file"});
-	parser.addOption({{"p", "play"}, QObject::tr("Pálya lejátszása"), "file"});
+	parser.addOption({QStringLiteral("license"), QObject::tr("Licensz")});
+	parser.addOption({{QStringLiteral("l"), QStringLiteral("log")}, QObject::tr("Naplózás <file> fájlba"), QStringLiteral("file")});
+	parser.addOption({{QStringLiteral("n"), QStringLiteral("log-limit")}, QObject::tr("Maximum <db> log fájl tárolása"), QStringLiteral("db")});
+	parser.addOption({{QStringLiteral("e"), QStringLiteral("editor")}, QObject::tr("Pályszerkesztő indítása")});
+	parser.addOption({{QStringLiteral("m"), QStringLiteral("map")}, QObject::tr("Pálya szerkesztése"), QStringLiteral("file")});
+	parser.addOption({{QStringLiteral("p"), QStringLiteral("play")}, QObject::tr("Pálya lejátszása"), QStringLiteral("file")});
 
 
 #ifdef QT_NO_DEBUG
-	parser.addOption({"debug", QObject::tr("Hibakeresési üzenetek megjelenítése")});
+	parser.addOption({QStringLiteral("debug"), QObject::tr("Hibakeresési üzenetek megjelenítése")});
 #endif
 
 	parser.process(*m_application);
 
 #ifdef QT_NO_DEBUG
-	if (parser.isSet("debug")) {
+	if (parser.isSet(QStringLiteral("debug"))) {
 		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
 	} else
 		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
 #endif
 
-	if (parser.isSet("license")) {
+	if (parser.isSet(QStringLiteral("license"))) {
 		m_commandLine = License;
 		return;
 	}
@@ -105,29 +105,29 @@ void DesktopApplication::commandLineParse()
 
 	QString logFile;
 
-	if (parser.isSet("log")) logFile = parser.value("log");
+	if (parser.isSet(QStringLiteral("log"))) logFile = parser.value(QStringLiteral("log"));
 
 	int logLimit = 12;
 
-	if (parser.isSet("log-limit")) logLimit = parser.value("log-limit").toInt();
+	if (parser.isSet(QStringLiteral("log-limit"))) logLimit = parser.value(QStringLiteral("log-limit")).toInt();
 
 	if (!logFile.isEmpty()) {
 		RollingFileAppender* appender = new RollingFileAppender(logFile);
-		appender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+		appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n"));
 		appender->setDatePattern(RollingFileAppender::WeeklyRollover);
 		appender->setLogFilesLimit(logLimit);
 		cuteLogger->registerAppender(appender);
 	}
 
 
-	if (parser.isSet("editor"))
+	if (parser.isSet(QStringLiteral("editor")))
 		m_commandLine = Editor;
-	else if (parser.isSet("map")) {
+	else if (parser.isSet(QStringLiteral("map"))) {
 		m_commandLine = Map;
-		m_loadMap = parser.value("map");
-	} else if (parser.isSet("play")) {
+		m_loadMap = parser.value(QStringLiteral("map"));
+	} else if (parser.isSet(QStringLiteral("play"))) {
 		m_commandLine = Play;
-		m_loadMap = parser.value("map");
+		m_loadMap = parser.value(QStringLiteral("map"));
 	}
 
 	m_arguments = parser.positionalArguments();
@@ -154,9 +154,9 @@ void DesktopApplication::initialize()
 #endif
 
 #ifndef QT_NO_DEBUG
-	appender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n");
+	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n"));
 #else
-	appender->setFormat("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n");
+	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n"));
 #endif
 
 	cuteLogger->registerAppender(appender);
@@ -190,7 +190,7 @@ bool DesktopApplication::performCommandLine()
 {
 	if (m_commandLine == License)
 	{
-		QFile f(":/license.txt");
+		QFile f(QStringLiteral(":/license.txt"));
 
 		if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
 			qCWarning(lcApp).noquote() << QObject::tr("A licensz nem található vagy nem olvasható!");

@@ -161,6 +161,7 @@ public slots:
 	void killByEnemy(GameEnemy *enemy);
 
 	void setTerrainObject(const QString &type, GameObject *object);
+	void onMovingFlagsChanged();
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
@@ -182,7 +183,6 @@ signals:
 
 private slots:
 	void onEnemyKilled();
-	void onMovingFlagsChanged();
 	void onIsOnGroundChanged();
 	void onSceneConnected();
 	void onTimingTimerTimeout();

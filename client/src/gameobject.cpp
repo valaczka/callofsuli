@@ -83,12 +83,12 @@ GameObject::~GameObject()
 
 GameObject *GameObject::createFromFile(QString file, GameScene *scene)
 {
-	if (file.startsWith(":"))
-		file.replace(":", "qrc:");
-	else if (file.startsWith("/"))
-		file.replace("/", "qrc:/");
-	else if (!file.startsWith("qrc:/"))
-		file.prepend("qrc:/");
+	if (file.startsWith(QStringLiteral(":")))
+		file.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
+	else if (file.startsWith(QStringLiteral("/")))
+		file.replace(QStringLiteral("/"), QStringLiteral("qrc:/"));
+	else if (!file.startsWith(QStringLiteral("qrc:/")))
+		file.prepend(QStringLiteral("qrc:/"));
 
 	QQmlComponent component(Application::instance()->engine(), file, scene);
 

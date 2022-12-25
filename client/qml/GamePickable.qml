@@ -7,7 +7,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
 
-GamePickablePrivate {
+GamePickableImpl {
 	id: control
 
 	width: itemLoader.status == Loader.Ready ? itemLoader.item.width+(2*horizontalPadding) : 10
@@ -73,9 +73,9 @@ GamePickablePrivate {
 		id: itemLoader
 		anchors.centerIn: parent
 
-		sourceComponent: if (control.type == GamePickablePrivate.PickableInvalid)
+		sourceComponent: if (control.type == GamePickableImpl.PickableInvalid)
 							 undefined
-						 else if (control.format == GamePickablePrivate.FormatAnimated)
+						 else if (control.format == GamePickableImpl.FormatAnimated)
 							 cmpAnimated
 						 else
 							 cmpPixmap

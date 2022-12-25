@@ -26,6 +26,7 @@
 
 #include "abstractgame.h"
 #include "client.h"
+#include "gamequestion.h"
 
 Q_LOGGING_CATEGORY(lcGame, "app.game")
 
@@ -51,6 +52,9 @@ AbstractGame::AbstractGame(const Mode &mode, Client *client)
 
 AbstractGame::~AbstractGame()
 {
+	if (m_gameQuestion && m_gameQuestion->game() == this)
+		m_gameQuestion->setGame(nullptr);
+
 	qCDebug(lcGame).noquote() << tr("Game destroyed") << this;
 }
 
@@ -80,6 +84,30 @@ void AbstractGame::onPageItemDestroyed()
 	qCDebug(lcGame) << tr("Game page item destroyed");
 	m_client->setCurrentGame(nullptr);
 	deleteLater();
+}
+
+
+/**
+ * @brief AbstractGame::gameQuestion
+ * @return
+ */
+
+GameQuestion *AbstractGame::gameQuestion() const
+{
+	return m_gameQuestion;
+}
+
+void AbstractGame::setGameQuestion(GameQuestion *newGameQuestion)
+{
+	if (m_gameQuestion == newGameQuestion)
+		return;
+	m_gameQuestion = newGameQuestion;
+	emit gameQuestionChanged();
+
+	qCDebug(lcGame).noquote() << tr("Game question set:") << m_gameQuestion;
+
+	if (m_gameQuestion)
+		connectGameQuestion();
 }
 
 
@@ -189,3 +217,60 @@ void AbstractGame::unloadPageItem()
 		m_client->stackPop(-1, true);
 	}
 }
+
+
+/**
+ * @brief AbstractGame::addStatistics
+ * @param stat
+ */
+
+void AbstractGame::addStatistics(const Statistics &stat)
+{
+	m_statistics.append(stat);
+}
+
+
+
+/**
+ * @brief AbstractGame::addStatistics
+ * @param uuid
+ * @param success
+ * @param elapsed
+ */
+
+void AbstractGame::addStatistics(const QString &uuid, const bool &success, const int &elapsed)
+{
+	Statistics s;
+	s.objective = uuid;
+	s.success = success;
+	s.elapsed = elapsed;
+	m_statistics.append(s);
+}
+
+
+/**
+ * @brief AbstractGame::takeStatistics
+ * @return
+ */
+
+QJsonArray AbstractGame::takeStatistics()
+{
+	QJsonArray r;
+
+	foreach (const Statistics &s, m_statistics) {
+		QJsonObject o;
+		o[QStringLiteral("map")] = m_map ? m_map->uuid() : "";
+		o[QStringLiteral("mode")] = m_mode;
+		o[QStringLiteral("objective")] = s.objective;
+		o[QStringLiteral("success")] = s.success;
+		o[QStringLiteral("elapsed")] = s.elapsed;
+		r.append(o);
+	}
+
+	m_statistics.clear();
+
+	return r;
+
+}
+
+

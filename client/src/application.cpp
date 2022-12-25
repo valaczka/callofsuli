@@ -25,6 +25,7 @@
  */
 
 #include "fontimage.h"
+#include "gamequestioncomponent.h"
 #include "gamescene.h"
 #include <QFontDatabase>
 #include <QDebug>
@@ -60,6 +61,7 @@
 #include "gameobject.h"
 #include "gameplayer.h"
 #include "gamepickable.h"
+#include "gamequestion.h"
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -303,14 +305,16 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 
-	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameScene");
+	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
-	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityPrivate");
-	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyPrivate");
-	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierPrivate");
-	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderPrivate");
-	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerPrivate");
-	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickablePrivate");
+	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
+	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
+	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
+	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
+	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
+	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
+	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
+	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
 
 
 }
@@ -324,22 +328,22 @@ void Application::loadFonts()
 	qCDebug(lcApp).noquote() << QObject::tr("Load fonts");
 
 	const QVector<QString> fontsToLoad = {
-		":/internal/font/ariblk.ttf",
-		":/internal/font/Books.ttf",
-		":/internal/font/Material.ttf",
-		":/internal/font/School.ttf",
-		":/internal/font/Academic.ttf",
-		":/internal/font/AcademicI.ttf",
+		QStringLiteral(":/internal/font/ariblk.ttf"),
+		QStringLiteral(":/internal/font/Books.ttf"),
+		QStringLiteral(":/internal/font/Material.ttf"),
+		QStringLiteral(":/internal/font/School.ttf"),
+		QStringLiteral(":/internal/font/Academic.ttf"),
+		QStringLiteral(":/internal/font/AcademicI.ttf"),
 
-		":/internal/font/rajdhani-bold.ttf",
-		":/internal/font/rajdhani-light.ttf",
-		":/internal/font/rajdhani-regular.ttf",
-		":/internal/font/rajdhani-medium.ttf",
-		":/internal/font/rajdhani-semibold.ttf",
+		QStringLiteral(":/internal/font/rajdhani-bold.ttf"),
+		QStringLiteral(":/internal/font/rajdhani-light.ttf"),
+		QStringLiteral(":/internal/font/rajdhani-regular.ttf"),
+		QStringLiteral(":/internal/font/rajdhani-medium.ttf"),
+		QStringLiteral(":/internal/font/rajdhani-semibold.ttf"),
 
-		":/internal/font/SpecialElite.ttf",
-		":/internal/font/HVD_Peace.ttf",
-		":/internal/font/RenegadeMaster.ttf",
+		QStringLiteral(":/internal/font/SpecialElite.ttf"),
+		QStringLiteral(":/internal/font/HVD_Peace.ttf"),
+		QStringLiteral(":/internal/font/RenegadeMaster.ttf"),
 	};
 
 	for (const QString &fontPath : fontsToLoad) {
@@ -358,7 +362,7 @@ void Application::loadFonts()
 
 void Application::loadQaterial()
 {
-	m_engine->addImportPath("qrc:/");
+	m_engine->addImportPath(QStringLiteral("qrc:/"));
 
 	qaterial::loadQmlResources();
 	qaterial::registerQmlTypes();
@@ -480,7 +484,7 @@ void Application::messageInfo(const QString &text, const QString &title) const
 	if (m_client)
 		m_client->messageInfo(text, title);
 	else
-		qCInfo(lcApp).noquote() << QString("%1 (%2)").arg(text).arg(title);
+		qCInfo(lcApp).noquote() << QStringLiteral("%1 (%2)").arg(text).arg(title);
 }
 
 
@@ -495,7 +499,7 @@ void Application::messageWarning(const QString &text, const QString &title) cons
 	if (m_client)
 		m_client->messageWarning(text, title);
 	else
-		qCWarning(lcApp).noquote() << QString("%1 (%2)").arg(text).arg(title);
+		qCWarning(lcApp).noquote() << QStringLiteral("%1 (%2)").arg(text).arg(title);
 }
 
 
@@ -510,7 +514,7 @@ void Application::messageError(const QString &text, const QString &title) const
 	if (m_client)
 		m_client->messageError(text, title);
 	else
-		qCCritical(lcApp).noquote() << QString("%1 (%2)").arg(text).arg(title);
+		qCCritical(lcApp).noquote() << QStringLiteral("%1 (%2)").arg(text).arg(title);
 }
 
 

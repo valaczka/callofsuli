@@ -37,7 +37,6 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	setHpProgressEnabled(true);
 
 	connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
-	connect(this, &GameEnemy::movingChanged, this, &GameEnemySoldier::onMovingChanged);
 	connect(this, &GameObject::timingTimerTimeout, this, &GameEnemySoldier::onTimingTimerTimeout);
 	connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
 
@@ -62,7 +61,7 @@ void GameEnemySoldier::onAttack()
 {
 	qCDebug(lcScene).noquote() << tr("Enemy soldier attack") << this;
 
-	jumpToSprite("shot");
+	jumpToSprite(QStringLiteral("shot"));
 }
 
 
@@ -83,7 +82,7 @@ void GameEnemySoldier::onTimingTimerTimeout()
 	if (m_enemyState == Dead || !isAlive())
 		return;
 
-	if (!game() || !game()->running() || !m_moving) {
+	if (!game() || !game()->running()) {
 		return;
 	}
 
@@ -140,16 +139,6 @@ void GameEnemySoldier::onTimingTimerTimeout()
 	}
 }
 
-/**
- * @brief GameEnemySoldier::onMovingChanged
- */
-
-void GameEnemySoldier::onMovingChanged()
-{
-	if (game() && game()->running() && m_moving)
-		setEnemyState(Move);
-}
-
 
 
 
@@ -189,7 +178,7 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 {
 	qCDebug(lcScene).noquote() << tr("Create enemy soldier");
 
-	GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile("GameEnemySoldier.qml", scene));
+	GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile(QStringLiteral("GameEnemySoldier.qml"), scene));
 
 	if (!soldier) {
 		qCCritical(lcScene).noquote() << tr("Enemy soldier creation error");
@@ -200,7 +189,7 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 	soldier->setScene(scene);
 	soldier->createSpriteItem();
 
-	QDirIterator it(":/soldiers", {"data.json"}, QDir::Files, QDirIterator::Subdirectories);
+	QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
 	QStringList list;
 
 	while (it.hasNext())
@@ -212,12 +201,12 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 
 	if (type.isEmpty()) {
 		const QString &s = list.at(QRandomGenerator::global()->bounded(list.size()));
-		soldier->setDataDir(QString(":/soldiers/%1").arg(s));
+		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(s));
 	} else if (list.contains(type)) {
-		soldier->setDataDir(QString(":/soldiers/%1").arg(type));
+		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(type));
 	} else {
 		qCWarning(lcScene).noquote() << tr("Invalid enemy soldier type:") << type;
-		soldier->setDataDir(QString(":/soldiers/%1").arg(list.first()));
+		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(list.first()));
 	}
 
 
@@ -236,7 +225,7 @@ void GameEnemySoldier::attackPlayer()
 {
 	emit attack();
 
-	jumpToSprite("shot");
+	jumpToSprite(QStringLiteral("shot"));
 
 	if (player() && player()->isAlive())
 		player()->hurtByEnemy(this, true);
@@ -281,15 +270,15 @@ void GameEnemySoldier::enemyStateModified()
 	switch (m_enemyState) {
 	case Invalid:
 	case Idle:
-		jumpToSprite("idle");
+		jumpToSprite(QStringLiteral("idle"));
 		break;
 	case Move:
-		jumpToSprite("walk");
+		jumpToSprite(QStringLiteral("walk"));
 		break;
 	case WatchPlayer:
 		m_attackElapsedMsec = 0;
 		setMsecLeftToAttack(m_msecBeforeAttack);
-		jumpToSprite("idle");
+		jumpToSprite(QStringLiteral("idle"));
 		break;
 
 	case Attack:
@@ -297,8 +286,8 @@ void GameEnemySoldier::enemyStateModified()
 		break;
 
 	case Dead:
-		jumpToSprite("idle");
-		jumpToSprite("dead");
+		jumpToSprite(QStringLiteral("idle"));
+		jumpToSprite(QStringLiteral("dead"));
 		break;
 	}
 }
@@ -311,14 +300,14 @@ void GameEnemySoldier::enemyStateModified()
 
 void GameEnemySoldier::onSceneConnected()
 {
-	const QJsonObject &data = m_scene->levelData().value("enemy").toObject().value("soldier").toObject();
+	const QJsonObject &data = m_scene->levelData().value(QStringLiteral("enemy")).toObject().value(QStringLiteral("soldier")).toObject();
 
-	setRayCastElevation(data.value("rayCastElevation").toDouble());
-	setRayCastLength(data.value("rayCastLength").toDouble());
-	setMsecBeforeTurn(data.value("msecBeforeTurn").toDouble());
-	setCastAttackFraction(data.value("castAttackFraction").toDouble());
-	setMsecBeforeAttack(data.value("msecBeforeAttack").toDouble());
-	setMsecBetweenAttack(data.value("msecBetweenAttack").toDouble());
+	setRayCastElevation(data.value(QStringLiteral("rayCastElevation")).toDouble());
+	setRayCastLength(data.value(QStringLiteral("rayCastLength")).toDouble());
+	setMsecBeforeTurn(data.value(QStringLiteral("msecBeforeTurn")).toDouble());
+	setCastAttackFraction(data.value(QStringLiteral("castAttackFraction")).toDouble());
+	setMsecBeforeAttack(data.value(QStringLiteral("msecBeforeAttack")).toDouble());
+	setMsecBetweenAttack(data.value(QStringLiteral("msecBetweenAttack")).toDouble());
 }
 
 

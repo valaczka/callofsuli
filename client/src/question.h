@@ -48,21 +48,18 @@ public:
 	QString module() const;
 	QString uuid() const;
 
-	bool generate();
+	QVariantMap generate() const;
 
 	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data,
 									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
 
 	static QVariantMap storageInfo(const QString &module, const QVariantMap &data);
 
-	QVariantMap question() const { return m_question; }
 	QString qml() const;
 
 
 private:
 	GameMapObjective *m_objective;
-	QVariantMap m_question;
-
 };
 
 #endif // QUESTION_H

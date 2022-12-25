@@ -31,17 +31,17 @@
 
 
 const QVector<GamePickable::GamePickableData> GamePickable::m_pickableDataTypes = {
-	{ "health", tr("HP"), GamePickable::PickableHealth, "qrc:/internal/game/powerup.gif", GamePickable::FormatAnimated },
-	{ "time1", tr("Idő (30 másodperc)"), GamePickable::PickableTime30, "qrc:/internal/game/time-30.png", GamePickable::FormatPixmap },
-	{ "time2", tr("Idő (1 perc)"), GamePickable::PickableTime60, "qrc:/internal/game/time-60.png", GamePickable::FormatPixmap },
-	{ "shield1", tr("Pajzs (x1)"), GamePickable::PickableShield1, "qrc:/internal/game/shield-green.png", GamePickable::FormatPixmap },
-	{ "shield2", tr("Pajzs (x2)"), GamePickable::PickableShield2, "qrc:/internal/game/shield-blue.png", GamePickable::FormatPixmap },
-	{ "shield3", tr("Pajzs (x3)"), GamePickable::PickableShield3, "qrc:/internal/game/shield-red.png", GamePickable::FormatPixmap },
-	{ "shield4", tr("Pajzs (x5)"), GamePickable::PickableShield5, "qrc:/internal/game/shield-gold.png", GamePickable::FormatPixmap },
-	{ "water", tr("Víz"), GamePickable::PickableWater, "qrc:/internal/game/water.svg", GamePickable::FormatPixmap },
-	{ "pliers", tr("Drótvágó"), GamePickable::PickablePliers, "qrc:/internal/game/pliers.png", GamePickable::FormatPixmap },
-	{ "camouflage", tr("Álruha"), GamePickable::PickableCamouflage, "qrc:/internal/game/camouflage.png", GamePickable::FormatPixmap },
-	{ "teleporter", tr("Teleportáló"), GamePickable::PickableTeleporter, "qrc:/internal/game/teleporter.png", GamePickable::FormatPixmap },
+	{ QStringLiteral("health"), tr("HP"), GamePickable::PickableHealth, QStringLiteral("qrc:/internal/game/powerup.gif"), GamePickable::FormatAnimated },
+	{ QStringLiteral("time1"), tr("Idő (30 másodperc)"), GamePickable::PickableTime30, QStringLiteral("qrc:/internal/game/time-30.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("time2"), tr("Idő (1 perc)"), GamePickable::PickableTime60, QStringLiteral("qrc:/internal/game/time-60.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("shield1"), tr("Pajzs (x1)"), GamePickable::PickableShield1, QStringLiteral("qrc:/internal/game/shield-green.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("shield2"), tr("Pajzs (x2)"), GamePickable::PickableShield2, QStringLiteral("qrc:/internal/game/shield-blue.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("shield3"), tr("Pajzs (x3)"), GamePickable::PickableShield3, QStringLiteral("qrc:/internal/game/shield-red.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("shield4"), tr("Pajzs (x5)"), GamePickable::PickableShield5, QStringLiteral("qrc:/internal/game/shield-gold.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("water"), tr("Víz"), GamePickable::PickableWater, QStringLiteral("qrc:/internal/game/water.svg"), GamePickable::FormatPixmap },
+	{ QStringLiteral("pliers"), tr("Drótvágó"), GamePickable::PickablePliers, QStringLiteral("qrc:/internal/game/pliers.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("camouflage"), tr("Álruha"), GamePickable::PickableCamouflage, QStringLiteral("qrc:/internal/game/camouflage.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("teleporter"), tr("Teleportáló"), GamePickable::PickableTeleporter, QStringLiteral("qrc:/internal/game/teleporter.png"), GamePickable::FormatPixmap },
 };
 
 
@@ -190,7 +190,7 @@ void GamePickable::pick(ActionGame *game)
 
 	}
 
-	setState("picked");
+	setState(QStringLiteral("picked"));
 }
 
 
