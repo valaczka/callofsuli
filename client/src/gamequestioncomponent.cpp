@@ -72,5 +72,17 @@ void GameQuestionComponent::setQuestion(GameQuestion *newQuestion)
 	m_question = newQuestion;
 	emit questionChanged();
 	emit questionDataChanged();
+	emit toggleModeChanged();
 }
 
+
+
+/**
+ * @brief GameQuestionComponent::toggleMode
+ * @return
+ */
+
+bool GameQuestionComponent::toggleMode() const
+{
+	return m_question ? m_question->toggleMode() : false;
+}

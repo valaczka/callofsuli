@@ -29,6 +29,7 @@ function intializeStyle() {
 	Qaterial.Style.textTheme.button.weight = Font.DemiBold
 	Qaterial.Style.textTheme.body2.weight = Font.Medium
 	Qaterial.Style.textTheme.body1.weight = Font.Medium
+	Qaterial.Style.textTheme.caption.weight = Font.Medium
 
 	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 96*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 60*Qaterial.Style.pixelSizeRatio })

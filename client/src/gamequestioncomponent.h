@@ -37,6 +37,7 @@ class GameQuestionComponent : public QQuickItem
 
 	Q_PROPERTY(QVariantMap questionData READ questionData NOTIFY questionDataChanged)
 	Q_PROPERTY(GameQuestion *question READ question WRITE setQuestion NOTIFY questionChanged)
+	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
 
 public:
 	GameQuestionComponent(QQuickItem *parent = nullptr);
@@ -46,6 +47,7 @@ public:
 
 	GameQuestion *question() const;
 	void setQuestion(GameQuestion *newQuestion);
+	bool toggleMode() const;
 
 public slots:
 
@@ -54,9 +56,10 @@ signals:
 	void answerReveal(QVariantMap answer);
 	void questionChanged();
 
+	void toggleModeChanged();
+
 private:
 	GameQuestion *m_question = nullptr;
-
 };
 
 #endif // GAMEQUESTIONCOMPONENT_H

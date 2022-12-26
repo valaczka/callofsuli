@@ -28,11 +28,11 @@
 #define GAMEQUESTION_H
 
 #include <QQuickItem>
+#include "abstractgame.h"
 #include "gamequestioncomponent.h"
 #include "qdatetime.h"
 #include "question.h"
 
-class AbstractGame;
 
 class GameQuestion : public QQuickItem
 {
@@ -44,6 +44,9 @@ class GameQuestion : public QQuickItem
 	Q_PROPERTY(GameQuestionComponent *questionComponent READ questionComponent NOTIFY questionComponentChanged)
 	Q_PROPERTY(QString objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
 	Q_PROPERTY(QVariantMap questionData READ questionData WRITE setQuestionData NOTIFY questionDataChanged)
+	Q_PROPERTY(bool postponeEnabled READ postponeEnabled WRITE setPostponeEnabled NOTIFY postponeEnabledChanged)
+	Q_PROPERTY(AbstractGame::Mode gameMode READ gameMode NOTIFY gameModeChanged)
+	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
 
 public:
 	GameQuestion(QQuickItem *parent = nullptr);
@@ -72,9 +75,17 @@ public:
 	const QVariantMap &questionData() const;
 	void setQuestionData(const QVariantMap &newQuestionData);
 
+	bool postponeEnabled() const;
+	void setPostponeEnabled(bool newPostponeEnabled);
+
+	AbstractGame::Mode gameMode() const;
+
+	bool toggleMode() const;
+
 public slots:
 	void onSuccess(const QVariantMap &answer);
 	void onFailed(const QVariantMap &answer);
+	void onPostpone();
 	void onShowAnimationFinished();
 	void onHideAnimationFinished();
 	void onLoaderLoaded(QQuickItem *item);
@@ -85,6 +96,7 @@ public slots:
 signals:
 	void success(QVariantMap answer);
 	void failed(QVariantMap answer);
+	void postponed();
 	void started();
 	void finished();
 
@@ -96,7 +108,9 @@ signals:
 	void loaderChanged();
 	void objectiveUuidChanged();
 	void questionDataChanged();
-
+	void postponeEnabledChanged();
+	void gameModeChanged();
+	void toggleModeChanged();
 
 private:
 	AbstractGame *m_game = nullptr;
@@ -107,7 +121,7 @@ private:
 	int m_elapsedMsec = -1;
 	QString m_objectiveUuid;
 	QVariantMap m_questionData;
-
+	bool m_postponeEnabled = false;
 };
 
 #endif // GAMEQUESTION_H

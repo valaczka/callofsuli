@@ -38,8 +38,13 @@ include(../../lib/import_lib_client.pri)
 
 !wasm {
 	DEFINES += WITH_BOX2D
-	SOURCES += desktopapplication.cpp
-	HEADERS += desktopapplication.h
+	SOURCES += \
+		desktopapplication.cpp \
+		desktopclient.cpp
+
+	HEADERS += \
+		desktopapplication.h \
+		desktopclient.h
 }
 
 wasm:include(app_wasm.pri)
@@ -150,7 +155,6 @@ SOURCES += \
 	actiongame.cpp \
 	application.cpp \
 	client.cpp \
-	desktopclient.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
 	gameenemysoldier.cpp \
@@ -182,7 +186,6 @@ HEADERS += \
 	actiongame.h \
 	application.h \
 	client.h \
-	desktopclient.h \
 	fontimage.h \
 	gameenemy.h \
 	gameenemysoldier.h \

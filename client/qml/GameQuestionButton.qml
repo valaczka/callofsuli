@@ -19,10 +19,15 @@ Qaterial.Button {
 	highlighted: false
 	flat: true
 	outlined: true
-	wrapMode: Text.Wrap
+	wrapMode: implicitContentWidth > width ? Text.Wrap : Text.NoWrap
+	maximumLineCount: 2
+	topInset: 0
+	bottomInset: 0
+
+
 
 	font: Qaterial.Style.textTheme.body2
-	backgroundImplicitHeight: 50 //Qaterial.Style.dense ? 48 : 40
+	backgroundImplicitHeight: Qaterial.Style.gameButtonImplicitHeight
 	leftPadding: 10
 	rightPadding: 10
 

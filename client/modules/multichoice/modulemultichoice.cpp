@@ -138,7 +138,7 @@ QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 
 
 	m["options"] = optList;
-	m["answer"] = QVariantMap({{"indices", correctIdx}});
+	m["answer"] = correctIdx;
 
 	return m;
 }

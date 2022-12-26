@@ -503,22 +503,16 @@ void Client::loadGame()
 		return;
 	}
 
-	//GameMap *map = GameMap::fromBinaryData(Utils::fileContent(QStringLiteral("/home/valaczka/demo_test.map")));
-
-	qDebug() << "MAP....";
-
-	QByteArray b = Utils::fileContent(QStringLiteral(":/internal/game/demo.map"));
-
-	qDebug() << "B" << b.size();
-
-	GameMap *map = GameMap::fromBinaryData(b);
-
-	qDebug() << "MAP" << map;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_WASM)
+	GameMap *map = GameMap::fromBinaryData(Utils::fileContent(QStringLiteral(":/internal/game/demo.map")));
+#else
+	GameMap *map = GameMap::fromBinaryData(Utils::fileContent(QStringLiteral("/home/valaczka/demo_test.map")));
+#endif
 
 	if (!map)
 		return;
 
-	GameMapMissionLevel *ml = map->missionLevel(QStringLiteral("{90cb2799-f189-4255-9667-1f19b582284b}"), 2);
+	GameMapMissionLevel *ml = map->missionLevel(QStringLiteral("{90cb2799-f189-4255-9667-1f19b582284b}"), 1);
 
 	ActionGame *game = new ActionGame(ml, this);
 	setCurrentGame(game);

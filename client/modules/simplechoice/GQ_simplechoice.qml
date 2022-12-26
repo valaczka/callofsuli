@@ -7,12 +7,16 @@ import "./QaterialHelper" as Qaterial
 GameQuestionComponentImpl {
 	id: control
 
-	implicitHeight: imageButtons || img.visible ? 500 : titleRow.implicitHeight+grid.implicitHeight+35
+	implicitHeight: imageButtons || img.visible ? 500
+												: titleRow.implicitHeight
+												  +(Qaterial.Style.gameButtonImplicitHeight*rptr.model.length)
+												  +(grid.rowSpacing*rptr.model.length)
+												  +35
 	implicitWidth: 700
 
 	readonly property bool imageButtons: questionData.imageAnswers === true
 
-
+	property int selectedButtonIndex: -1
 
 	GameQuestionTitle {
 		id: titleRow
@@ -21,9 +25,13 @@ GameQuestionComponentImpl {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		buttons: false
+		buttons: control.toggleMode
+		buttonOkEnabled: control.toggleMode && selectedButtonIndex != -1
 
 		title: questionData.question
+
+		onButtonOkClicked: answer(selectedButtonIndex)
+
 	}
 
 	Item {
@@ -57,16 +65,6 @@ GameQuestionComponentImpl {
 		Flickable {
 			id: flick
 
-			/*width: img.visible && containerItem.isHorizontal ? parent.width/2 : parent.width
-			height: Math.min(!img.visible || containerItem.isHorizontal ? parent.height : parent.height/2,
-							 flick.contentHeight)
-			x: img.visible && containerItem.isHorizontal ?
-				   img.width+(parent.width-img.width-width)/2 :
-				   (parent.width-width)/2
-			y: img.visible && !containerItem.isHorizontal ?
-				   img.height+(parent.height-img.height-height)/2 :
-				   (parent.height-height)/2*/
-
 			anchors.top: img.visible && !containerItem.isHorizontal ? img.bottom : parent.top
 			anchors.left: img.visible && containerItem.isHorizontal ? img.right: parent.left
 			anchors.right: parent.right
@@ -93,15 +91,15 @@ GameQuestionComponentImpl {
 				width: flick.width
 
 				y: Math.max((flick.height-height)/2, 0)
-				rowSpacing: 0
-				columnSpacing: 0
+				rowSpacing: 3
+				columnSpacing: 3
 
 				columns: imageButtons ? 2 : 1
 
 				Repeater {
 					id: rptr
 					model: questionData.options
-					delegate: cmpNormal
+					delegate: imageButtons ? cmpImage : cmpNormal
 				}
 			}
 		}
@@ -114,17 +112,26 @@ GameQuestionComponentImpl {
 		GameQuestionButton {
 			id: btn
 			text: modelData
-			width: imageButtons ? (grid.width-grid.columnSpacing)/2 : grid.width
-			height: imageButtons ? (flick.height-grid.rowSpacing)/2 : implicitHeight
+			width: grid.width
 
-			onClicked: answer(index)
+			buttonType: control.toggleMode ?
+							(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
+							GameQuestionButton.Neutral
+
+			onClicked: {
+				if (control.toggleMode) {
+					control.selectedButtonIndex = index
+				} else {
+					answer(index)
+				}
+			}
 
 			Connections {
 				target: control
 				function onAnswerReveal(answer) {
 					if (index === questionData.answer)
 						btn.buttonType = GameQuestionButton.Correct
-					else if (answer.index === index)
+					else if (answer.index === index || selectedButtonIndex === index)
 						btn.buttonType = GameQuestionButton.Wrong
 				}
 			}
@@ -132,55 +139,48 @@ GameQuestionComponentImpl {
 	}
 
 
+
 	Component {
-		id: cmpToggle
+		id: cmpImage
 
-		GameQuestionCheckButton {
+		GameQuestionButton {
 			id: btn
-			text: modelData
-			width: imageButtons ? (grid.width-grid.columnSpacing)/2 : grid.width
-			height: imageButtons ? (flick.height-grid.rowSpacing)/2 : implicitHeight
+			text: "kérdés"
+			width: (grid.width-grid.columnSpacing)/2
+			height: (flick.height-grid.rowSpacing)/2
 
-			/*
+			icon.source: modelData
+			icon.color: "transparent"
+			icon.width: btn.width-10
+			icon.height: btn.height-10
 
+			display: AbstractButton.IconOnly
 
-			//image: imageButtons ? modelData : ""
+			buttonType: control.toggleMode ?
+							(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
+							GameQuestionButton.Neutral
 
-			onToggled: {
-				for (var i=0; i<rptr.model.length; i++) {
-					var b = rptr.itemAt(i)
-					if (b !== btn)
-						b.selected = false
+			onClicked: {
+				if (control.toggleMode) {
+					control.selectedButtonIndex = index
+				} else {
+					answer(index)
 				}
 			}
 
 			Connections {
 				target: control
-				function onButtonReveal(original) {
-					btn.interactive = false
-
-					if (original === btn && index !== questionData.answer)
-						btn.type = GameQuestionButton.Wrong
-
+				function onAnswerReveal(answer) {
 					if (index === questionData.answer)
-						btn.type = GameQuestionButton.Correct
-				}
-
-				function onButtonPressByKey(num) {
-					if (num-1 == index && btn.interactive) {
-						if (isToggle) {
-							btn.selected = true
-							btn.toggled()
-						} else {
-							btn.clicked()
-						}
-					}
+						btn.buttonType = GameQuestionButton.Correct
+					else if (answer.index === index || selectedButtonIndex === index)
+						btn.buttonType = GameQuestionButton.Wrong
 				}
 			}
-
-			*/
 		}
 	}
+
+
 
 	function answer(idx) {
 		if (idx === questionData.answer)
@@ -189,24 +189,6 @@ GameQuestionComponentImpl {
 			question.onFailed({"index": idx})
 	}
 
-	/*function answer(btnIndex, btn) {
-		if (mode == GameMatch.ModeExam) {
-			var idx = -1
-			for (var i=0; i<rptr.model.length; i++) {
-				var b = rptr.itemAt(i)
-				if (b.selected)
-					idx = i
-			}
-			answered({index: idx})
-		} else {
-			buttonReveal(btn)
-
-			if (btnIndex === questionData.answer)
-				succeed()
-			else
-				failed()
-		}
-	}*/
 
 	Keys.onPressed: {
 		var key = event.key

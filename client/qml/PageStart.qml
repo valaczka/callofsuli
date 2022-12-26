@@ -57,5 +57,5 @@ QPage {
 		foregroundColor: Qaterial.Colors.black
 	}
 
-	//StackView.onActivated: Client.loadGame()
+	StackView.onActivated: Client.loadGame()
 }

@@ -1,160 +1,104 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import COS.Client 1.0
-import "."
-import "Style"
-import "JScript.js" as JS
+import CallOfSuli 1.0
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
 
-Item {
-    id: control
+GameQuestionComponentImpl {
+	id: control
 
-    implicitHeight: labelQuestion.implicitHeight+row.implicitHeight+25
-    implicitWidth: 800
+	implicitHeight: titleRow.implicitHeight+row.implicitHeight+150
+	implicitWidth: 700
 
-    required property var questionData
-    property bool canPostpone: false
-    property int mode: GameMatch.ModeNormal
+	property int selectedButtonIndex: -1
 
-    signal succeed()
-    signal failed()
-    signal postponed()
-    signal answered(var answer)
+	GameQuestionTitle {
+		id: titleRow
 
-    QButton {
-        id: btnPostpone
-        enabled: canPostpone
-        visible: canPostpone
-        anchors.verticalCenter: labelQuestion.verticalCenter
-        anchors.left: parent.left
-        anchors.leftMargin: 20
-        icon.source: CosStyle.iconPostpone
-        text: qsTr("Később")
-        themeColors: CosStyle.buttonThemeOrange
-        onClicked: postponed()
-    }
+		anchors.left: parent.left
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
 
-    QLabel {
-        id: labelQuestion
+		buttons: control.toggleMode
+		buttonOkEnabled: control.toggleMode && selectedButtonIndex != -1
 
-        font.family: "Special Elite"
-        font.pixelSize: CosStyle.pixelSize*1.4
-        wrapMode: Text.Wrap
-        anchors.bottom: parent.bottom
-        anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
-        anchors.right: btnOk.visible ? btnOk.left : parent.right
-        height: Math.max(implicitHeight, btnOk.height)
-        topPadding: 25
-        bottomPadding: 25
-        leftPadding: 20
-        rightPadding: 20
+		title: questionData.question
 
-        horizontalAlignment: Text.AlignHCenter
+		onButtonOkClicked: answer(selectedButtonIndex)
 
-        color: CosStyle.colorAccent
+	}
 
-        textFormat: Text.RichText
+	Item {
+		id: containerItem
 
-        text: questionData.question
-    }
+		anchors.right: parent.right
+		anchors.left: parent.left
+		anchors.top: parent.top
+		anchors.bottom: titleRow.top
+		anchors.topMargin: 15
 
+		Row {
+			id: row
+			anchors.centerIn: parent
+			spacing: 30
 
-    QButton {
-        id: btnOk
-        enabled: (control.mode == GameMatch.ModeExam)
-        visible: (control.mode == GameMatch.ModeExam)
-        anchors.verticalCenter: labelQuestion.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: 20
-        icon.source: "qrc:/internal/icon/check-bold.svg"
-        text: qsTr("Kész")
-        themeColors: CosStyle.buttonThemeGreen
-        onClicked: answer()
-    }
+			property real buttonMinWidth: 150 * Qaterial.Style.pixelSizeRatio
 
+			Repeater {
+				model: [qsTr("Hamis"), qsTr("Igaz")]
 
-    Item {
-        anchors.bottom: labelQuestion.top
-        anchors.right: parent.right
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.topMargin: 20
+				delegate: GameQuestionButton {
+					id: btn
+					text: modelData
+					width: Math.max(implicitWidth, row.buttonMinWidth)
 
-        Row {
-            id: row
-            anchors.centerIn: parent
-            spacing: 30
+					buttonType: control.toggleMode ?
+									(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
+									GameQuestionButton.Neutral
 
-            property real buttonWidth: Math.min(Math.max(btnTrue.implicitWidth, btnFalse.implicitWidth, 120), control.width/2-40)
+					onClicked: {
+						if (control.toggleMode) {
+							control.selectedButtonIndex = index
+						} else {
+							answer(index)
+						}
+					}
 
-            GameQuestionButton {
-                id: btnTrue
-                text: qsTr("Igaz")
-                onClicked: { answer(true) }
-                width: row.buttonWidth
-
-                onToggled: btnFalse.selected = false
-                isToggle: (control.mode == GameMatch.ModeExam)
-            }
-
-            GameQuestionButton {
-                id: btnFalse
-                text: qsTr("Hamis")
-                onClicked: { answer(false) }
-                width: row.buttonWidth
-
-                onToggled: btnTrue.selected = false
-                isToggle: (control.mode == GameMatch.ModeExam)
-            }
-        }
-    }
+					Connections {
+						target: control
+						function onAnswerReveal(answer) {
+							if (index === questionData.answer)
+								btn.buttonType = GameQuestionButton.Correct
+							else if (answer.value === index || selectedButtonIndex === index)
+								btn.buttonType = GameQuestionButton.Wrong
+						}
+					}
+				}
+			}
 
 
-    function answer(correct) {
-        btnTrue.interactive = false
-        btnFalse.interactive = false
-
-        if (mode == GameMatch.ModeExam) {
-            var i = -1
-            if (btnFalse.selected)
-                i = 0
-            else if (btnTrue.selected)
-                i = 1
-
-            answered({value: i})
-        } else {
-            if (correct === questionData.answer)
-                succeed()
-            else
-                failed()
-
-            if (questionData.answer) {
-                btnTrue.type = GameQuestionButton.Correct
-                if (!correct) btnFalse.type = GameQuestionButton.Wrong
-            } else {
-                btnFalse.type = GameQuestionButton.Correct
-                if (!correct) btnTrue.type = GameQuestionButton.Wrong
-            }
-        }
-    }
+		}
+	}
 
 
-    function keyPressed(key) {
-        if (btnTrue.interactive && (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)) {
-            if (btnTrue.isToggle) {
-                btnTrue.selected = true
-                btnTrue.toggled()
-            } else {
-                btnTrue.clicked()
-            }
-        } else if (btnFalse.interactive && (key === Qt.Key_N || key === Qt.Key_H)) {
-            if (btnFalse.isToggle) {
-                btnFalse.selected = true
-                btnFalse.toggled()
-            } else {
-                btnFalse.clicked()
-            }
-        }
-    }
+
+	function answer(idx) {
+		if (idx === questionData.answer)
+			question.onSuccess({"value": idx})
+		else
+			question.onFailed({"value": idx})
+	}
+
+
+	Keys.onPressed: {
+		var key = event.key
+
+		if (key === Qt.Key_Return || key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)
+			answer(1)
+		else if (key === Qt.Key_N || key === Qt.Key_H)
+			answer(0)
+	}
+
+
 }
 

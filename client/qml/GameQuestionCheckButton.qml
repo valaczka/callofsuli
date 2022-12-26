@@ -15,6 +15,7 @@ GameQuestionButton {
 	icon.width: backgroundImplicitHeight*0.5
 	spacing: leftPadding
 	icon.source: checked ? Qaterial.Icons.checkCircle : Qaterial.Icons.checkboxBlankCircleOutline
+	horizontalAlignment: Qt.AlignLeft
 
-	onToggled: buttonType = (checked ? GameQuestionButton.Selected : GameQuestionButton.Neutral )
+	onCheckedChanged: buttonType = (checked ? GameQuestionButton.Selected : GameQuestionButton.Neutral )
 }

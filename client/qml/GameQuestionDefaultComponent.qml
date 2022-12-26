@@ -7,44 +7,12 @@ import "./QaterialHelper" as Qaterial
 GameQuestionComponentImpl {
 	id: control
 
-	implicitHeight: 300 //labelQuestion.implicitHeight+row.implicitHeight+25
-	implicitWidth: 800
+	implicitHeight: titleRow.implicitHeight
+					+(Qaterial.Style.gameButtonImplicitHeight*rptr.model.length)
+					+(col.spacing*rptr.model.length)
+					+35
 
-	Row {
-		anchors.centerIn: parent
-
-		GameQuestionButton {
-			id: btn1
-			text: "skdjald fasdoiw erélkadf laksjdfarwe"
-			onClicked: {
-				buttonType++
-				if (buttonType > GameQuestionButton.Selected)
-					buttonType = GameQuestionButton.Neutral
-			}
-		}
-
-		GameQuestionButton {
-			id: btn2
-			text: "skarwe"
-			onClicked: btn1.enabled = !btn1.enabled
-		}
-
-		GameQuestionButton {
-			text: "Accept"
-			onClicked: question.onSuccess({})
-		}
-
-		GameQuestionButton {
-			text: "Failed"
-			onClicked: question.onFailed({})
-		}
-
-		GameQuestionCheckButton {
-			text: "Check asfjaowe rlkafa"
-		}
-	}
-
-	Keys.onPressed: console.debug("PRESS", event)
+	implicitWidth: 700
 
 
 	GameQuestionTitle {
@@ -54,145 +22,143 @@ GameQuestionComponentImpl {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		buttons: false
+		buttons: true
+		buttonOkEnabled: true
 
-		title: "iasdoai sdfélkasd joiauw sdf oaiu faklésdjf awioeru alkdsfj aéirué lafj alouoirerlakdf?"
+		title: questionData.question
+
+		onButtonOkClicked: answer()
+
 	}
-
-	/*QButton {
-		id: btnPostpone
-		enabled: canPostpone
-		visible: canPostpone
-		anchors.verticalCenter: labelQuestion.verticalCenter
-		anchors.left: parent.left
-		anchors.leftMargin: 20
-		icon.source: CosStyle.iconPostpone
-		text: qsTr("Később")
-		themeColors: CosStyle.buttonThemeOrange
-		onClicked: postponed()
-	}
-
-	QLabel {
-		id: labelQuestion
-
-		font.family: "Special Elite"
-		font.pixelSize: CosStyle.pixelSize*1.4
-		wrapMode: Text.Wrap
-		anchors.bottom: parent.bottom
-		anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
-		anchors.right: btnOk.visible ? btnOk.left : parent.right
-		height: Math.max(implicitHeight, btnOk.height)
-		topPadding: 25
-		bottomPadding: 25
-		leftPadding: 20
-		rightPadding: 20
-
-		horizontalAlignment: Text.AlignHCenter
-
-		color: CosStyle.colorAccent
-
-		textFormat: Text.RichText
-
-		text: questionData.question
-	}
-
-
-	QButton {
-		id: btnOk
-		enabled: (control.mode == GameMatch.ModeExam)
-		visible: (control.mode == GameMatch.ModeExam)
-		anchors.verticalCenter: labelQuestion.verticalCenter
-		anchors.right: parent.right
-		anchors.rightMargin: 20
-		icon.source: "qrc:/internal/icon/check-bold.svg"
-		text: qsTr("Kész")
-		themeColors: CosStyle.buttonThemeGreen
-		onClicked: answer()
-	}
-
 
 	Item {
-		anchors.bottom: labelQuestion.top
+		id: containerItem
+
 		anchors.right: parent.right
 		anchors.left: parent.left
 		anchors.top: parent.top
-		anchors.topMargin: 20
+		anchors.bottom: titleRow.top
+		anchors.topMargin: 15
 
-		Row {
-			id: row
+		readonly property bool isHorizontal: control.width > control.height
+
+		Flickable {
+			id: flick
+
+			width: parent.width
+			height: Math.min(parent.height, flick.contentHeight)
 			anchors.centerIn: parent
-			spacing: 30
 
-			property real buttonWidth: Math.min(Math.max(btnTrue.implicitWidth, btnFalse.implicitWidth, 120), control.width/2-40)
+			clip: true
 
-			GameQuestionButton {
-				id: btnTrue
-				text: qsTr("Igaz")
-				onClicked: { answer(true) }
-				width: row.buttonWidth
+			contentWidth: col.width
+			contentHeight: col.height
 
-				onToggled: btnFalse.selected = false
-				isToggle: (control.mode == GameMatch.ModeExam)
-			}
+			boundsBehavior: Flickable.StopAtBounds
+			flickableDirection: Flickable.VerticalFlick
 
-			GameQuestionButton {
-				id: btnFalse
-				text: qsTr("Hamis")
-				onClicked: { answer(false) }
-				width: row.buttonWidth
-
-				onToggled: btnTrue.selected = false
-				isToggle: (control.mode == GameMatch.ModeExam)
-			}
-		}
-	}
+			ScrollIndicator.vertical: ScrollIndicator { }
 
 
-	function answer(correct) {
-		btnTrue.interactive = false
-		btnFalse.interactive = false
+			Column {
+				id: col
 
-		if (mode == GameMatch.ModeExam) {
-			var i = -1
-			if (btnFalse.selected)
-				i = 0
-			else if (btnTrue.selected)
-				i = 1
+				width: flick.width - 2*(containerItem.isHorizontal ? 10 : 20)
+				x: (flick.width-width)/2
+				spacing: 3
 
-			answered({value: i})
-		} else {
-			if (correct === questionData.answer)
-				succeed()
-			else
-				failed()
-
-			if (questionData.answer) {
-				btnTrue.type = GameQuestionButton.Correct
-				if (!correct) btnFalse.type = GameQuestionButton.Wrong
-			} else {
-				btnFalse.type = GameQuestionButton.Correct
-				if (!correct) btnTrue.type = GameQuestionButton.Wrong
+				Repeater {
+					id: rptr
+					model: questionData.options
+					delegate: cmpNormal
+				}
 			}
 		}
 	}
 
 
-	function keyPressed(key) {
-		if (btnTrue.interactive && (key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)) {
-			if (btnTrue.isToggle) {
-				btnTrue.selected = true
-				btnTrue.toggled()
-			} else {
-				btnTrue.clicked()
-			}
-		} else if (btnFalse.interactive && (key === Qt.Key_N || key === Qt.Key_H)) {
-			if (btnFalse.isToggle) {
-				btnFalse.selected = true
-				btnFalse.toggled()
-			} else {
-				btnFalse.clicked()
+	Component {
+		id: cmpNormal
+
+		GameQuestionCheckButton {
+			id: btn
+			text: modelData
+			width: col.width
+
+
+			Connections {
+				target: control
+				function onAnswerReveal(answer) {
+					if (questionData.answer.includes(index))
+						btn.buttonType = GameQuestionButton.Correct
+					else if (answer.values.includes(index))
+						btn.buttonType = GameQuestionButton.Wrong
+				}
 			}
 		}
-	}*/
+	}
+
+
+
+
+
+	function answer() {
+		var success = true
+		var idx = []
+
+		for (var i=0; i<rptr.model.length; i++) {
+			var p = rptr.itemAt(i)
+
+			if (p.checked)
+				idx.push(i)
+
+			var correct = questionData.answer.includes(i)
+
+			if ((correct && !p.checked) || (!correct && p.checked))
+				success = false
+		}
+
+		if (success)
+			question.onSuccess({"values": idx})
+		else
+			question.onFailed({"values": idx})
+	}
+
+
+	Keys.onPressed: {
+		var key = event.key
+
+		var i = -1
+
+		if (key === Qt.Key_Return || key === Qt.Key_Enter) {
+			titleRow.buttonOkClicked()
+			return
+		}
+
+		else if (key === Qt.Key_1 || key === Qt.Key_A)
+			i = 0
+		else if (key === Qt.Key_2 || key === Qt.Key_B)
+			i = 1
+		else if (key === Qt.Key_3 || key === Qt.Key_C)
+			i = 2
+		else if (key === Qt.Key_4 || key === Qt.Key_D)
+			i = 3
+		else if (key === Qt.Key_5 || key === Qt.Key_E)
+			i = 4
+		else if (key === Qt.Key_6 || key === Qt.Key_F)
+			i = 5
+		else if (key === Qt.Key_7 || key === Qt.Key_G)
+			i = 6
+		else if (key === Qt.Key_8 || key === Qt.Key_H)
+			i = 7
+		else if (key === Qt.Key_9 || key === Qt.Key_I)
+			i = 8
+
+		if (i>=0 && i<rptr.model.length) {
+			var p = rptr.itemAt(i)
+			p.toggle()
+		}
+	}
 }
+
 

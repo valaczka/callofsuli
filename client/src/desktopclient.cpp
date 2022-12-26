@@ -233,7 +233,7 @@ void DesktopClient::onMainWindowChanged()
 	if (!m_mainWindow)
 		return;
 
-#ifndef QT_DEBUG
+#if defined(Q_OS_ANDROID) || !defined(QT_DEBUG)
 	m_mainWindow->showFullScreen();
 #endif
 

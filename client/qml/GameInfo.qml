@@ -13,7 +13,7 @@ Item {
 	property alias iconLabel: iconLabel
 	property alias text: iconLabel.text
 	property color color: Qaterial.Style.accentColor
-	property real pixelSize: (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 18 : 24)
+	property real pixelSize: Qaterial.Style.textTheme.body2.pixelSize
 	property bool marked: false
 	property real horizontalPadding: 10
 
@@ -54,10 +54,10 @@ Item {
 		anchors.rightMargin: 10
 
 		color: control.color
-		icon.width: control._realSize
-		icon.height: control._realSize
+		icon.width: control._realSize*1.1
+		icon.height: control._realSize*1.1
 		font.family: "Rajdhani"
-		font.pixelSize: control._realSize*0.85
+		font.pixelSize: control._realSize
 		font.weight: Font.Bold
 	}
 
@@ -67,8 +67,8 @@ Item {
 		anchors.fill: iconLabel
 		source: iconLabel
 		color: "black"
-		radius: 2
-		spread: 0.5
+		radius: 1
+		spread: 0.9
 		samples: 5
 	}
 

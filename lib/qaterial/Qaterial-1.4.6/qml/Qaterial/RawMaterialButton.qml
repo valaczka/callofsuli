@@ -129,7 +129,10 @@ T.Button
   property bool accentRipple: false
 
 
+  /*** VJP ****/
   property int wrapMode: Text.NoWrap
+  property int maximumLineCount: 2 //Number.MAX_SAFE_INTEGER
+  property int horizontalAlignment: Qt.AlignHCenter
 
   contentItem: Qaterial.IconLabel
   {
@@ -145,6 +148,9 @@ T.Button
 	color: _control.foregroundColor
 	////****** VJP *****//////
 	wrapMode: _control.wrapMode
+	maximumLineCount: _control.maximumLineCount
+	horizontalAlignment: _control.horizontalAlignment
+
   } // IconLabel
 
   property double backgroundImplicitWidth: Qaterial.Style.rawButton.minWidth

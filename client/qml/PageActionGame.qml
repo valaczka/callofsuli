@@ -654,6 +654,8 @@ Page {
 					cosClient.setSetting("game/joystickSize", joystick.size)
 				})
 				d.open()*/
+
+				game.testQuestion()
 			}
 		}
 		/*
@@ -804,7 +806,7 @@ Page {
 	GameJoystick {
 		id: joystick
 
-		property real size: 250
+		property real size: 200
 
 		enabled: game && game.running
 

@@ -29,10 +29,10 @@
 
 
 #include "qloggingcategory.h"
-#define GAMEMAP_CURRENT_VERSION 12
-
 #include <QDataStream>
 #include <QVariantMap>
+
+#define GAMEMAP_CURRENT_VERSION 12
 
 
 class GameMapChapterIface;
@@ -116,7 +116,7 @@ private:
 
 
 
-//Q_DECLARE_LOGGING_CATEGORY(lcMapReader);
+Q_DECLARE_LOGGING_CATEGORY(lcApp);
 
 
 

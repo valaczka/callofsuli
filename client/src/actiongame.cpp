@@ -790,13 +790,28 @@ GamePickable *ActionGame::pickable() const
 
 void ActionGame::testQuestion()
 {
+	//m_gameQuestion->setPostponeEnabled(true);
 	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"));
-	m_gameQuestion->loadQuestion(QUrl(QStringLiteral("qrc:/GQ_simplechoice.qml")), {
+	m_gameQuestion->loadQuestion(QUrl(QStringLiteral("qrc:/GameQuestionDefaultComponent.qml")), {
 									 {QStringLiteral("question"), QStringLiteral("Na ez már jó kérdés")},
-									 {QStringLiteral("answer"), 3},
+									 {QStringLiteral("answer"), QVariantList({ 1,3,4})},
 									 {QStringLiteral("options"), QStringList({
-										  "egy", "kettő", "három", "négy"
-									  }) }
+										  "egy",
+										  "kettő afaiodf aélsd fwioe alékfj alésdjfioweéaklsjf léaksfiowe éajkdf éalskdfoweir aéldkfjd alésdfowier éaklsdfj aseofa dfwei aédfjk aoir asdklf",
+										  "három saklf weio alkdjfl askdjf",
+										  "négy",
+										  "öt",
+										  "hat"
+									  }) },
+
+									 {"image", "file:///home/valaczka/Letöltések/bg.jpg"}
+									 /*{"imageAnswers", true},
+									 {"options", QStringList({
+										  "file:///home/valaczka/Letöltések/bg.jpg",
+										  "file:///home/valaczka/Letöltések/3centiho.jpg",
+										  "file:///home/valaczka/Letöltések/logo_gb.jpg",
+										  "file:///home/valaczka/Letöltések/vitorlas.jpg",
+									  })}*/
 								 });
 	setRunning(false);
 }

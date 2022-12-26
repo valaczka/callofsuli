@@ -48,26 +48,25 @@ Item {
 
 			Label {
 				id: lbl
-				//visible: false
+
 				width: parent.width
 				anchors.verticalCenter: parent.verticalCenter
 
 				leftPadding: 2
 				rightPadding: 2
 
-				font.family: "Rajdhani"
-				font.pixelSize: 14
-				font.weight: Font.DemiBold
-				font.capitalization: Font.AllUppercase
+				font: Qaterial.Style.textTheme.caption
 
 				color: item.textColor
 
 				text: item.message
 				elide: Text.ElideRight
+				style: Text.Outline
+				styleColor: Qaterial.Colors.black
 			}
 
 
-			DropShadow {
+			/*DropShadow {
 				anchors.fill: lbl
 				source: lbl
 				color: Client.Utils.colorSetAlpha("black", 0.6)
@@ -76,7 +75,7 @@ Item {
 				samples: 3
 				verticalOffset: 1
 				horizontalOffset: 1
-			}
+			}*/
 
 			Timer {
 				property int chNum: 0

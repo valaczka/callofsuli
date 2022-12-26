@@ -90,7 +90,7 @@ public:
 
 	GamePickable *pickable() const;
 
-	void testQuestion();
+	Q_INVOKABLE void testQuestion();
 
 public slots:
 	void onPlayerDied(GameEntity *);

@@ -147,11 +147,7 @@ GameMapObjective *GameMap::objective(const QString &uuid) const
 
 GameMap *GameMap::fromBinaryData(const QByteArray &data)
 {
-	qDebug() << "++++++";
-	qDebug() << "+++" << data.size();
 	GameMap *map = new GameMap();
-
-	qDebug() << "****";
 
 	if (map->readBinaryData(data))
 		return map;
@@ -188,7 +184,7 @@ void GameMap::setSolver(const QVariantList &list)
 		GameMapMission *mis = mission(id);
 
 		if (!mis) {
-//			qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission id:") << id;
+			qCDebug(lcApp).noquote() << QObject::tr("Invalid mission id:") << id;
 			continue;
 		}
 
@@ -266,7 +262,7 @@ QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QString &uuid
 	QVector<MissionLevelDeathmatch> ret;
 
 	if (!mis || !ml) {
-//		qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
+		qCDebug(lcApp).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
 		return ret;
 	}
 
@@ -379,7 +375,7 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
 	GameMapMissionLevel *ml = missionLevel(uuid, level);
 
 	if (!mis || !ml) {
-//		qCDebug(lcMapReader).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
+		qCDebug(lcApp).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
 		return qMakePair(nullptr, false);
 	}
 

@@ -10,16 +10,20 @@ RowLayout {
 
 	property alias title: label.text
 	property bool buttons: true
+	property alias buttonOkEnabled: btnOk.enabled
 
-	GameQuestionButton {
+	readonly property GameQuestionImpl gameQuestion: (parent instanceof GameQuestionComponentImpl) ? parent.question : null
+
+	signal buttonOkClicked()
+
+	GameQuestionButtonPostpone {
 		id: btnPostpone
 		Layout.alignment: Qt.AlignVCenter
 		Layout.leftMargin: 20
-		//icon.source: CosStyle.iconPostpone
-		text: qsTr("Később")
-		//themeColors: CosStyle.buttonThemeOrange
-		//onClicked: postponed()
-		visible: buttons
+
+		visible: buttons && gameQuestion && gameQuestion.postponeEnabled
+		onClicked: if (gameQuestion) gameQuestion.onPostpone()
+
 	}
 
 	Label {
@@ -44,18 +48,12 @@ RowLayout {
 	}
 
 
-	GameQuestionButton {
+	GameQuestionButtonOk {
 		id: btnOk
-
-		buttonType: GameQuestionButton.Correct
-
-		icon.source: Qaterial.Icons.checkBold
-		text: qsTr("Kész")
-
 		Layout.alignment: Qt.AlignVCenter
 		Layout.rightMargin: 20
-
 		visible: buttons
+		onClicked: control.buttonOkClicked()
 	}
 
 }

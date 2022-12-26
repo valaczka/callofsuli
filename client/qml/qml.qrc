@@ -11,7 +11,6 @@
         <file>QPage.qml</file>
         <file>PageActionGame.qml</file>
         <file>GameScene.qml</file>
-        <file>PageActionGame_OLD.qml</file>
         <file>GameLadder.qml</file>
         <file>GameEnemySoldier.qml</file>
         <file>GameEntitySpriteSequence.qml</file>
@@ -35,5 +34,7 @@
         <file>GameQuestionButton.qml</file>
         <file>GameQuestionCheckButton.qml</file>
         <file>GameQuestionTitle.qml</file>
+        <file>GameQuestionButtonOk.qml</file>
+        <file>GameQuestionButtonPostpone.qml</file>
     </qresource>
 </RCC>

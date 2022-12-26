@@ -193,6 +193,19 @@ void GameQuestion::forceDestroy()
 
 
 /**
+ * @brief GameQuestion::postpone
+ */
+
+void GameQuestion::onPostpone()
+{
+	setEnabled(false);
+	m_elapsedMsec = m_time.msecsTo(QTime::currentTime());
+	qCDebug(lcGame).noquote() << tr("Question postponed after %1 milliseconds:").arg(m_elapsedMsec);
+	emit postponed();
+}
+
+
+/**
  * @brief GameQuestion::onSuccess
  * @param answer
  */
@@ -326,6 +339,8 @@ void GameQuestion::setGame(AbstractGame *newGame)
 		return;
 	m_game = newGame;
 	emit gameChanged();
+	emit gameModeChanged();
+	emit toggleModeChanged();
 
 	if (m_game)
 		m_game->setGameQuestion(this);
@@ -348,4 +363,49 @@ void GameQuestion::setMsecBeforeHide(int newMsecBeforeHide)
 		return;
 	m_msecBeforeHide = newMsecBeforeHide;
 	emit msecBeforeHideChanged();
+}
+
+
+/**
+ * @brief GameQuestion::postponeEnabled
+ * @return
+ */
+
+bool GameQuestion::postponeEnabled() const
+{
+	return m_postponeEnabled;
+}
+
+void GameQuestion::setPostponeEnabled(bool newPostponeEnabled)
+{
+	if (m_postponeEnabled == newPostponeEnabled)
+		return;
+	m_postponeEnabled = newPostponeEnabled;
+	emit postponeEnabledChanged();
+}
+
+
+/**
+ * @brief GameQuestion::gameMode
+ * @return
+ */
+
+AbstractGame::Mode GameQuestion::gameMode() const
+{
+	if (m_game)
+		return m_game->mode();
+	else
+		return AbstractGame::Invalid;
+}
+
+
+
+/**
+ * @brief GameQuestion::toggleMode
+ * @return
+ */
+
+bool GameQuestion::toggleMode() const
+{
+	return (gameMode() == AbstractGame::Lite) ? true : false;
 }
