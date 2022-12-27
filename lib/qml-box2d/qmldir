@@ -1,3 +1,0 @@
-module Box2D
-plugin qmlbox2d
-classname Box2DPlugin
