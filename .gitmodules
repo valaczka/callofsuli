@@ -4,3 +4,21 @@
 [submodule "lib/qml-box2d"]
 	path = lib/qml-box2d
 	url = https://github.com/valaczka/qml-box2d
+[submodule "lib/CuteLogger"]
+	path = lib/CuteLogger
+	url = https://github.com/valaczka/CuteLogger.git
+[submodule "lib/tiled"]
+	path = lib/tiled
+	url = https://github.com/valaczka/tiled.git
+[submodule "lib/Qaterial"]
+	path = lib/Qaterial
+	url = https://github.com/valaczka/Qaterial.git
+[submodule "lib/qzxing"]
+	path = lib/qzxing
+	url = https://github.com/valaczka/qzxing.git
+[submodule "lib/SortFilterProxyModel"]
+	path = lib/SortFilterProxyModel
+	url = https://github.com/valaczka/SortFilterProxyModel.git
+[submodule "lib/QtXlsxWriter"]
+	path = lib/QtXlsxWriter
+	url = https://github.com/valaczka/QtXlsxWriter.git
