@@ -103,7 +103,7 @@ void GameQuestion::onShowAnimationFinished()
 	setEnabled(true);
 	m_questionComponent->forceActiveFocus(Qt::OtherFocusReason);
 
-	m_time = QTime::currentTime();
+	m_elapsedTimer.start();
 	m_elapsedMsec = -1;
 
 	emit started();
@@ -199,7 +199,7 @@ void GameQuestion::forceDestroy()
 void GameQuestion::onPostpone()
 {
 	setEnabled(false);
-	m_elapsedMsec = m_time.msecsTo(QTime::currentTime());
+	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
 	qCDebug(lcGame).noquote() << tr("Question postponed after %1 milliseconds:").arg(m_elapsedMsec);
 	emit postponed();
 }
@@ -213,7 +213,7 @@ void GameQuestion::onPostpone()
 void GameQuestion::onSuccess(const QVariantMap &answer)
 {
 	setEnabled(false);
-	m_elapsedMsec = m_time.msecsTo(QTime::currentTime());
+	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
 	qCDebug(lcGame).noquote() << tr("Question successfully answered in %1 milliseconds:").arg(m_elapsedMsec) << answer;
 	emit success(answer);
 }
@@ -227,7 +227,7 @@ void GameQuestion::onSuccess(const QVariantMap &answer)
 void GameQuestion::onFailed(const QVariantMap &answer)
 {
 	setEnabled(false);
-	m_elapsedMsec = m_time.msecsTo(QTime::currentTime());
+	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
 	qCDebug(lcGame).noquote() << tr("Question answer failed in %1 milliseconds:").arg(m_elapsedMsec) << answer;
 	emit failed(answer);
 }

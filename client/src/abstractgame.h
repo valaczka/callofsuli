@@ -27,6 +27,7 @@
 #ifndef ABSTRACTGAME_H
 #define ABSTRACTGAME_H
 
+#include "qelapsedtimer.h"
 #include "qloggingcategory.h"
 #include "qquickitem.h"
 #include "gamemap.h"
@@ -89,13 +90,19 @@ public:
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 
+
+	int elapsedMsec() const;
+
 public slots:
 	bool load();
-	void finishGame();
+	bool gameStart();
+	bool gameFinish();
 
 protected:
 	virtual QQuickItem *loadPage() = 0;
 	virtual void connectGameQuestion() = 0;
+	virtual bool gameStartEvent() { return true; };
+	virtual bool gameFinishEvent() { return true; };
 
 private slots:
 	void onPageItemDestroyed();
@@ -112,6 +119,14 @@ protected:
 	GameMap *m_map = nullptr;
 	GameQuestion *m_gameQuestion = nullptr;
 	QVector<Statistics> m_statistics;
+	int m_elapsedMsec = -1;
+
+
+private:
+	void elapsedTimeStart();
+	void elapsedTimeStop();
+
+	QElapsedTimer m_elapsedTimer;
 
 };
 

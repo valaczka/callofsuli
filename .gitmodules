@@ -19,3 +19,6 @@
 [submodule "lib/QtXlsxWriter"]
 	path = lib/QtXlsxWriter
 	url = https://github.com/valaczka/QtXlsxWriter.git
+[submodule "lib/MaterialDesignSvgo"]
+	path = lib/MaterialDesignSvgo
+	url = https://github.com/OlivierLDff/MaterialDesignSvgo.git

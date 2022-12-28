@@ -28,6 +28,7 @@
 #define ABSTRACTLEVELGAME_H
 
 #include "abstractgame.h"
+#include "qdeadlinetimer.h"
 #include "question.h"
 #include "qtimer.h"
 
@@ -50,7 +51,7 @@ class AbstractLevelGame : public AbstractGame
 
 	Q_PROPERTY(QUrl backgroundImage READ backgroundImage CONSTANT);
 
-	Q_PROPERTY(int msecLeft READ msecLeft WRITE setMsecLeft NOTIFY msecLeftChanged)
+	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
 public:
 	explicit AbstractLevelGame(const Mode &mode, GameMapMissionLevel *missionLevel, Client *client);
@@ -70,9 +71,10 @@ public:
 	int startHP() const;
 	int duration() const;
 	QUrl backgroundImage() const;
-
 	int msecLeft() const;
-	void setMsecLeft(int newMsecLeft);
+
+	Q_INVOKABLE void startWithRemainingTime(const qint64 &msec);
+	void addToDeadline(const qint64 &msec);
 
 protected:
 	QVector<Question> createQuestions();
@@ -83,15 +85,17 @@ private slots:
 signals:
 	void gameTimeout();
 	void deathmatchChanged();
-	void msecLeftChanged(int diff);
+	void msecLeftChanged();
 
 protected:
 	GameMapMissionLevel *const m_missionLevel = nullptr;
 	bool m_deathmatch = false;
-	int m_msecLeft = 0;
-	QTimer *m_timerLeft = nullptr;
+	QDeadlineTimer m_deadline;
+	bool m_closedSuccesfully = false;
 
 private:
+	QTimer *m_timerLeft = nullptr;
+	bool m_deadlineTimeout = false;
 };
 
 #endif // ABSTRACTLEVELGAME_H

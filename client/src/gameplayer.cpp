@@ -162,6 +162,9 @@ void GamePlayer::onSceneConnected()
 
 void GamePlayer::onTimingTimerTimeout()
 {
+	if (game() && !game()->running())
+		return;
+
 	/*if ((m_playerState == Run || m_playerState == Walk || m_playerState == ClimbUp) && !m_movingFlags) {
 		jumpToSprite(QStringLiteral("idle"));
 		return;

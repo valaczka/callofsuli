@@ -74,13 +74,9 @@ QVector<Question> AbstractLevelGame::createQuestions()
 		foreach (GameMapObjective *objective, chapter->objectives()) {
 			int n = (objective->storageId() != -1 ? objective->storageCount() : 1);
 
-			for (int i=0; i<n; ++i) {
-				Question q(objective);
+			for (int i=0; i<n; ++i)
+				list.append(Question(objective));
 
-				//q.generate();
-
-				list.append(q);
-			}
 		}
 	}
 
@@ -90,24 +86,30 @@ QVector<Question> AbstractLevelGame::createQuestions()
 }
 
 
+
+
 /**
  * @brief AbstractLevelGame::onTimerLeftTimeout
  */
 
 void AbstractLevelGame::onTimerLeftTimeout()
 {
-	qreal t = m_msecLeft - m_timerLeft->interval();
+	if (m_deadlineTimeout || m_closedSuccesfully) {
+		m_timerLeft->stop();
+		return;
+	}
 
-	if (t<=0) {
+	emit msecLeftChanged();
+
+	if (m_deadline.hasExpired()) {
 		qCDebug(lcGame).noquote() << tr("Game timeout");
 
+		m_deadlineTimeout = true;
 		m_timerLeft->stop();
-		setMsecLeft(0);
 		emit gameTimeout();
 		return;
 	}
 
-	setMsecLeft(t);
 }
 
 
@@ -118,17 +120,44 @@ void AbstractLevelGame::onTimerLeftTimeout()
 
 int AbstractLevelGame::msecLeft() const
 {
-	return m_msecLeft;
+	if (m_deadlineTimeout)
+		return 0;
+
+	if (!m_timerLeft->isActive())
+		return duration()*1000;
+
+	if (m_deadline.hasExpired())
+		return 0;
+
+	return m_deadline.remainingTime();
 }
 
-void AbstractLevelGame::setMsecLeft(int newMsecLeft)
+
+/**
+ * @brief AbstractLevelGame::startWithRemainingTime
+ * @param msec
+ */
+
+void AbstractLevelGame::startWithRemainingTime(const qint64 &msec)
 {
-	if (m_msecLeft == newMsecLeft)
-		return;
-	int d = newMsecLeft - m_msecLeft;
-	m_msecLeft = newMsecLeft;
-	emit msecLeftChanged(d);
+	m_deadline.setRemainingTime(msec);
+	m_deadlineTimeout = false;
+	m_timerLeft->start();
+	gameStart();
 }
+
+
+/**
+ * @brief AbstractLevelGame::addToDeadline
+ * @param msec
+ */
+
+void AbstractLevelGame::addToDeadline(const qint64 &msec)
+{
+	m_deadline += msec;
+}
+
+
 
 
 

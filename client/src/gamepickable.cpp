@@ -151,12 +151,12 @@ void GamePickable::pick(ActionGame *game)
 		break;
 
 	case PickableTime30:
-		game->setMsecLeft(game->msecLeft()+30*1000);
+		game->addMSec(30000);
 		game->message(tr("30 seconds gained"), QStringLiteral("#00bcd4"));
 		break;
 
 	case PickableTime60:
-		game->setMsecLeft(game->msecLeft()+60*1000);
+		game->addMSec(60000);
 		game->message(tr("60 seconds gained"), QStringLiteral("#00bcd4"));
 		break;
 

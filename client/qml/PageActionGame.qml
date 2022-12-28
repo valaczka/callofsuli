@@ -14,8 +14,8 @@ Page {
 
 	property ActionGame game: null
 	property string closeDisabled: qsTr("A játék előkészítése alatt nem lehet bezárni a lapot!")
-	property string closeQuestion: "" //qsTr("Biztosan megszakítod a játékot?")
-	property var onPageClose: function() { if (game) game.finishGame() }
+	property string closeQuestion: qsTr("Biztosan megszakítod a játékot?")
+	property var onPageClose: function() { if (game) game.gameAbort() }
 
 	readonly property int stackViewIndex: StackView.index
 	property alias scene: gameScene
@@ -1372,5 +1372,38 @@ Page {
 	}
 
 
+	function messageFinish(_text : string, _icon : string, _success : bool) {
+		closeDisabled = ""
+		closeQuestion = ""
+		onPageClose = null
+		Qaterial.DialogManager.showDialog(
+					{
+						onAccepted: function() { Client.stackPop(control.stackViewIndex-1) },
+						onRejected: function() { Client.stackPop(control.stackViewIndex-1) },
+						text: _text,
+						title: qsTr("Game over"),
+						iconSource: _icon,
+						iconColor: _success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
+						textColor: _success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
+						iconFill: false,
+						iconSize: Qaterial.Style.roundIcon.size,
+						standardButtons: Dialog.Ok
+					})
+	}
+
+
+	function messageTooltip(_text : string, _icon : string, _title : string) {
+		Qaterial.DialogManager.showDialog(
+					{
+						text: _text,
+						title: _title,
+						iconSource: _icon,
+						iconColor: Qaterial.Style.primaryTextColor(),
+						textColor: Qaterial.Style.primaryTextColor(),
+						iconFill: false,
+						iconSize: Qaterial.Style.roundIcon.size,
+						standardButtons: Dialog.Ok
+					})
+	}
 
 }

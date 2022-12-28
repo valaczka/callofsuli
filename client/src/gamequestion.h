@@ -31,6 +31,7 @@
 #include "abstractgame.h"
 #include "gamequestioncomponent.h"
 #include "qdatetime.h"
+#include "qelapsedtimer.h"
 #include "question.h"
 
 
@@ -117,7 +118,7 @@ private:
 	int m_msecBeforeHide = 0;
 	QPointer<GameQuestionComponent> m_questionComponent = nullptr;
 	QPointer<QQuickItem> m_loader = nullptr;
-	QTime m_time;
+	QElapsedTimer m_elapsedTimer;
 	int m_elapsedMsec = -1;
 	QString m_objectiveUuid;
 	QVariantMap m_questionData;

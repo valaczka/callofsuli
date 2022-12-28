@@ -90,6 +90,8 @@ public:
 
 	GamePickable *pickable() const;
 
+	void killAllEnemy();
+
 	Q_INVOKABLE void testQuestion();
 
 public slots:
@@ -100,14 +102,18 @@ public slots:
 	void pickableRemoveAll();
 	void pickablePick();
 	void message(const QString &text, const QColor &color = "white");
+	void addMSec(const qint64 &msec);
+	void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
+	void dialogMessageTooltipById(const QString &msgId, const QString &title = tr("Tudtad?"));
+	void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
+	void gameAbort();
 
 protected:
 	virtual QQuickItem *loadPage() override;
 	virtual void connectGameQuestion() override;
+	virtual bool gameFinishEvent() override;
 
 signals:
-	void missionCompleted();
-	void missionFailed();
 	void playerChanged();
 	void runningChanged();
 	void sceneChanged();
@@ -117,13 +123,18 @@ signals:
 
 private slots:
 	void onSceneStarted();
-	void onMsecLeftChanged(int diff);
+	void onMsecLeftChanged();
 	void onGameQuestionSuccess(const QVariantMap &answer);
 	void onGameQuestionFailed(const QVariantMap &answer);
 	void onGameQuestionStarted();
 	void onGameQuestionFinished();
+	void onGameTimeout();
+	void onGameSuccess();
+	void onGameFailed();
 
 private:
+	void timeNotifySendReset();
+
 	QPointer<GameScene> m_scene = nullptr;
 	QPointer<GameEntity> m_player = nullptr;
 	bool m_running = true;
@@ -136,6 +147,8 @@ private:
 
 	QStack<GamePickable*> m_pickableStack;
 	QPointer<GameEntity> m_attackedEnemy = nullptr;
+
+	int m_timeNotifySendNext = -1;
 
 };
 

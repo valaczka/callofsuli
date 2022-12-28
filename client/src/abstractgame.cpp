@@ -88,6 +88,20 @@ void AbstractGame::onPageItemDestroyed()
 
 
 /**
+ * @brief AbstractGame::elapsedMsec
+ * @return
+ */
+
+int AbstractGame::elapsedMsec() const
+{
+	if (m_elapsedMsec == -1 && m_elapsedTimer.isValid())
+		return m_elapsedTimer.elapsed();
+
+	return m_elapsedMsec;
+}
+
+
+/**
  * @brief AbstractGame::gameQuestion
  * @return
  */
@@ -108,6 +122,40 @@ void AbstractGame::setGameQuestion(GameQuestion *newGameQuestion)
 
 	if (m_gameQuestion)
 		connectGameQuestion();
+}
+
+
+/**
+ * @brief AbstractGame::gameStart
+ * @return
+ */
+
+bool AbstractGame::gameStart()
+{
+	if (gameStartEvent()) {
+		elapsedTimeStart();
+		qCDebug(lcGame).noquote() << tr("Game started:") << this;
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief AbstractGame::gameFinish
+ * @return
+ */
+
+bool AbstractGame::gameFinish()
+{
+	if (gameFinishEvent()) {
+		elapsedTimeStop();
+		qCDebug(lcGame).noquote() << tr("Game finished after %1 milliseconds:").arg(m_elapsedMsec) << this;
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -155,13 +203,35 @@ bool AbstractGame::load()
 
 
 
+
 /**
- * @brief AbstractGame::closeGame
+ * @brief AbstractGame::elapsedTimeStart
  */
 
-void AbstractGame::finishGame()
+void AbstractGame::elapsedTimeStart()
 {
-	qCDebug(lcGame).noquote() << tr("Finish game") << this;
+	if (m_elapsedMsec != -1 || m_elapsedTimer.isValid()) {
+		qCWarning(lcGame).noquote() << tr("Elapsed timer has already been started");
+		return;
+	}
+
+	m_elapsedTimer.start();
+}
+
+
+/**
+ * @brief AbstractGame::elapsedTimeStop
+ */
+
+void AbstractGame::elapsedTimeStop()
+{
+	if (!m_elapsedTimer.isValid()) {
+		qCWarning(lcGame).noquote() << tr("Elapsed timer has never been started");
+		m_elapsedMsec = -1;
+		return;
+	}
+
+	m_elapsedMsec = m_elapsedTimer.elapsed();
 }
 
 

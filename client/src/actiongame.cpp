@@ -30,7 +30,6 @@
 #include "actiongame.h"
 #include "client.h"
 #include "gamequestion.h"
-#include "qtimer.h"
 #include <QRandomGenerator>
 #include <QtMath>
 
@@ -41,9 +40,8 @@ ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 
 	qCDebug(lcGame).noquote() << tr("Action game constructed") << this;
 
-	setMsecLeft(missionLevel->duration()*1000);
-
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
+	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionGame::onGameTimeout);
 }
 
 
@@ -635,6 +633,23 @@ void ActionGame::connectGameQuestion()
 
 
 /**
+ * @brief ActionGame::gameFinishEvent
+ * @return
+ */
+
+bool ActionGame::gameFinishEvent()
+{
+	if (m_closedSuccesfully)
+		return false;
+
+	setRunning(false);
+	m_closedSuccesfully = true;
+	return true;
+}
+
+
+
+/**
  * @brief ActionGame::onSceneStarted
  */
 
@@ -655,7 +670,8 @@ void ActionGame::onSceneStarted()
 		game.previewCompleted()
 	}*/
 
-	m_timerLeft->start();
+	timeNotifySendReset();
+	startWithRemainingTime(72000);//m_missionLevel->duration()*1000);
 
 	if (m_deathmatch) {
 		message(tr("LEVEL %1 SUDDEN DEATH").arg(level()));
@@ -664,6 +680,8 @@ void ActionGame::onSceneStarted()
 		message(tr("LEVEL %1").arg(level()));
 		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
 	}
+
+	dialogMessageTooltip("Ez a szvöeg am ia éajer oadjf lkéasdjf", "qrc:/Qaterial/Icons/message-question.svg");
 }
 
 
@@ -672,25 +690,31 @@ void ActionGame::onSceneStarted()
  * @param diff
  */
 
-void ActionGame::onMsecLeftChanged(int diff)
+void ActionGame::onMsecLeftChanged()
 {
-	if (diff > 0) {
-		emit timeNotify();
-		return;
-	}
+	const int &msec = msecLeft();
 
-	if (m_msecLeft < 60000 && (m_msecLeft-diff) >= 60000) {
-		message(tr("You have 60 seconds left"), QStringLiteral("#00bcd4"));
-		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/time.mp3"));
-		emit timeNotify();
-		return;
-	}
+	if (m_timeNotifySendNext > msec) {
+		QString msg;
+		QString voice;
 
-	if (m_msecLeft < 30000 && (m_msecLeft-diff) >= 30000) {
-		message(tr("You have 30 seconds left"), QStringLiteral("#00bcd4"));
-		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/final_round.mp3"));
-		emit timeNotify();
-		return;
+		if (msec <= 30000) {
+			msg = tr("You have 30 seconds left");
+			voice = QStringLiteral("qrc:/sound/voiceover/final_round.mp3");
+			m_timeNotifySendNext = -1;
+		} else if (msec <= 60000) {
+			msg = tr("You have 60 seconds left");
+			voice = QStringLiteral("qrc:/sound/voiceover/time.mp3");
+			m_timeNotifySendNext = 30000;
+		}
+
+		if (!msg.isEmpty()) {
+			message(msg, QStringLiteral("#00bcd4"));
+			m_scene->playSoundVoiceOver(voice);
+
+			emit timeNotify();
+			return;
+		}
 	}
 
 }
@@ -758,7 +782,7 @@ void ActionGame::onGameQuestionFailed(const QVariantMap &answer)
 
 void ActionGame::onGameQuestionStarted()
 {
-	m_scene->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/fight.mp3"));
 
 }
 
@@ -774,6 +798,63 @@ void ActionGame::onGameQuestionFinished()
 }
 
 
+/**
+ * @brief ActionGame::onGameTimeout
+ */
+
+void ActionGame::onGameTimeout()
+{
+	gameFinish();
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
+	dialogMessageFinish("Timeout", "qrc:/Qaterial/Icons/timer-sand.svg", false);
+
+}
+
+
+/**
+ * @brief ActionGame::onGameSuccess
+ */
+
+void ActionGame::onGameSuccess()
+{
+	gameFinish();
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/sfx/win.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"));
+
+	QTimer::singleShot(2500, this, [this](){
+		dialogMessageFinish("Mission completed", "qrc:/Qaterial/Icons/trophy.svg", true);
+	});
+}
+
+
+
+
+/**
+ * @brief ActionGame::onGameFailed
+ */
+
+void ActionGame::onGameFailed()
+{
+	gameFinish();
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
+	dialogMessageFinish("Failed", "qrc:/Qaterial/Icons/skull-crossbones.svg", false);
+}
+
+
+
+/**
+ * @brief ActionGame::timeNotifySendReset
+ */
+
+void ActionGame::timeNotifySendReset()
+{
+	m_timeNotifySendNext = 60000;
+}
+
+
 
 
 /**
@@ -784,6 +865,22 @@ void ActionGame::onGameQuestionFinished()
 GamePickable *ActionGame::pickable() const
 {
 	return m_pickableStack.isEmpty() ? nullptr : m_pickableStack.top();
+}
+
+
+
+/**
+ * @brief ActionGame::killAllEnemy
+ */
+
+void ActionGame::killAllEnemy()
+{
+	foreach (EnemyLocation *e, m_enemies) {
+		if (e->enemy())
+			e->enemy()->kill();
+	}
+
+	emit activeEnemiesChanged();
 }
 
 
@@ -806,12 +903,12 @@ void ActionGame::testQuestion()
 
 									 {"image", "file:///home/valaczka/Letöltések/bg.jpg"}
 									 /*{"imageAnswers", true},
-									 {"options", QStringList({
-										  "file:///home/valaczka/Letöltések/bg.jpg",
-										  "file:///home/valaczka/Letöltések/3centiho.jpg",
-										  "file:///home/valaczka/Letöltések/logo_gb.jpg",
-										  "file:///home/valaczka/Letöltések/vitorlas.jpg",
-									  })}*/
+																																		{"options", QStringList({
+																																			 "file:///home/valaczka/Letöltések/bg.jpg",
+																																			 "file:///home/valaczka/Letöltések/3centiho.jpg",
+																																			 "file:///home/valaczka/Letöltések/logo_gb.jpg",
+																																			 "file:///home/valaczka/Letöltések/vitorlas.jpg",
+																																		 })}*/
 								 });
 	setRunning(false);
 }
@@ -937,8 +1034,7 @@ void ActionGame::onPlayerDied(GameEntity *)
 		m_gameQuestion->forceDestroy();
 
 	if (m_deathmatch) {
-		emit missionFailed();
-		qDebug() << "!!!!!";
+		onGameFailed();
 		return;
 	}
 
@@ -976,7 +1072,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 	emit activeEnemiesChanged();
 
 	if (!activeEnemies()) {
-		emit missionCompleted();
+		onGameSuccess();
 		qCDebug(lcGame).noquote() << tr("Mission completed");
 		return;
 	}
@@ -1092,6 +1188,94 @@ void ActionGame::message(const QString &text, const QColor &color)
 							  Q_ARG(QVariant, text),
 							  Q_ARG(QVariant, color.name()));
 }
+
+
+/**
+ * @brief ActionGame::addMSec
+ * @param msec
+ */
+
+void ActionGame::addMSec(const qint64 &msec)
+{
+	addToDeadline(msec);
+	timeNotifySendReset();
+	emit timeNotify();
+}
+
+
+
+/**
+ * @brief ActionGame::dialogMessageTooltip
+ * @param text
+ * @param icon
+ * @param title
+ */
+
+void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, const QString &title)
+{
+	if (!m_pageItem) {
+		qCInfo(lcGame).noquote() << title << text;
+		return;
+	}
+
+	qCDebug(lcGame).noquote() << title << text;
+
+	QMetaObject::invokeMethod(m_pageItem, "messageTooltip",
+							  Q_ARG(QString, text),
+							  Q_ARG(QString, icon),
+							  Q_ARG(QString, title));
+}
+
+
+
+/**
+ * @brief ActionGame::dialogMessageTooltip
+ * @param msgId
+ * @param title
+ */
+
+void ActionGame::dialogMessageTooltipById(const QString &msgId, const QString &title)
+{
+
+}
+
+
+
+/**
+ * @brief ActionGame::dialogMessageFinish
+ * @param text
+ * @param icon
+ * @param success
+ */
+
+void ActionGame::dialogMessageFinish(const QString &text, const QString &icon, const bool &success)
+{
+	if (!m_pageItem) {
+		qCInfo(lcGame).noquote() << text;
+		return;
+	}
+
+	qCDebug(lcGame).noquote() << text;
+
+	QMetaObject::invokeMethod(m_pageItem, "messageFinish",
+							  Q_ARG(QString, text),
+							  Q_ARG(QString, icon),
+							  Q_ARG(bool, success));
+}
+
+
+/**
+ * @brief ActionGame::gameAbort
+ */
+
+void ActionGame::gameAbort()
+{
+	qCInfo(lcGame).noquote() << tr("Game aborted:") << this;
+	gameFinish();
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
+}
+
 
 
 

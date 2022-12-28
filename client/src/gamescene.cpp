@@ -255,30 +255,36 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 	case Qt::Key_F3:
 		zoomOverviewToggle();
 		break;
+	}
 
-	case Qt::Key_F10:
-		setShowObjects(true);
-		break;
 
-	case Qt::Key_F11:
-		setShowEnemies(true);
-		break;
 
-	case Qt::Key_D:
-		if (event->modifiers().testFlag(Qt::ShiftModifier))
-			setDebugView(!m_debugView);
-		break;
+	if (Application::instance()->client()->debug()) {
+		switch (key) {
+		case Qt::Key_F10:
+			setShowObjects(true);
+			break;
 
-	case Qt::Key_R:
-		if (event->modifiers().testFlag(Qt::ShiftModifier))
-			m_game->setRunning(!m_game->running());
-		break;
+		case Qt::Key_F11:
+			setShowEnemies(true);
+			break;
 
-	case Qt::Key_X:
-		if (event->modifiers().testFlag(Qt::ShiftModifier) && m_mouseArea && m_mouseArea->property("containsMouse").toBool() && player)
-			player->moveTo(m_mouseArea->property("mouseX").toReal(), m_mouseArea->property("mouseY").toReal(), true);
+		case Qt::Key_D:
+			if (event->modifiers().testFlag(Qt::ShiftModifier))
+				setDebugView(!m_debugView);
+			break;
 
-		break;
+		case Qt::Key_N:
+			if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier))
+				m_game->killAllEnemy();
+			break;
+
+		case Qt::Key_X:
+			if (event->modifiers().testFlag(Qt::ShiftModifier) && m_mouseArea && m_mouseArea->property("containsMouse").toBool() && player)
+				player->moveTo(m_mouseArea->property("mouseX").toReal(), m_mouseArea->property("mouseY").toReal(), true);
+
+			break;
+		}
 	}
 }
 
