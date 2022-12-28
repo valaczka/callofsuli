@@ -20,12 +20,11 @@ else: TARGET = QZXing
 
 TEMPLATE = lib
 
-include(QZXing-components.pri)
+include(../qzxing/src/QZXing-components.pri)
 
 QMAKE_CXXFLAGS += -Wno-sign-compare
 
-#win32: target.path = $${OUT_PWD}/../../build
-#else: target.path = $${OUT_PWD}/../../build/lib
+VERSION = 3.3
 
 DESTDIR = ../
 

@@ -16,7 +16,7 @@ android {
 				for a in $${ANDROID_ABIS}; do \
 					test -d $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a || mkdir $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a ; \
 					cd $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a ; \
-					$${CMakePath} $$PWD/Qaterial-1.4.6 \
+					$${CMakePath} $$PWD/../Qaterial \
 					$${CMakeArguments} -DANDROID_ABI:STRING=$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}a \
 					-DQATERIAL_ICONS=\"*.svg\" \
 					-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
@@ -31,7 +31,7 @@ android {
 
 } else {
 	extralib.commands = echo \"Building Qaterial...\"; \
-			$${CMakePath} $$PWD/Qaterial-1.4.6 \
+			$${CMakePath} $$PWD/../Qaterial \
 			$${CMakeArguments} \
 			-DQATERIAL_ICONS=\"*.svg\" \
 			-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \

@@ -3,11 +3,11 @@ include(../common.pri)
 TEMPLATE = subdirs
 
 SUBDIRS = \
-	qaterial \
-	libtiled \
-	SortFilterProxyModel \
-	QtXlsxWriter \
-	QZXing \
+	libQZXing \
+	libQaterial \
+	libTiled \
+	libSortFilterProxyModel \
+	libQtXlsxWriter \
 	callofsuli-core
 
 !wasm: SUBDIRS += CuteLogger
@@ -15,4 +15,5 @@ SUBDIRS = \
 !wasm|if($$WasmWithBox2D) {
 	SUBDIRS += qml-box2d
 }
+
 

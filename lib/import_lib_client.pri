@@ -7,42 +7,45 @@ win32: TargetSuffix = /release
 
 INCLUDEPATH += $$PWD/callofsuli-core
 
-android: LIBS += -L../../lib -lcallofsuli-core_$${QT_ARCH}
-else: LIBS += -L../../lib$${TargetSuffix} -lcallofsuli-core
+android: LIBS += -L../../lib
+else: LIBS += -L../../lib$${TargetSuffix}
+
+android: LIBS += -lcallofsuli-core_$${QT_ARCH}
+else: LIBS += -lcallofsuli-core
 
 # Qaterial
 
-INCLUDEPATH += $$PWD/qaterial/Qaterial-1.4.6/src
+INCLUDEPATH += $$PWD/Qaterial/src
 
-QMLPATHS += $$PWD/qaterial/Qaterial-1.4.6/qml/Qaterial
+QMLPATHS += $$PWD/Qaterial/qml/Qaterial
 
 android {
-	LIBS += -L../../lib/qaterial/$${QT_ARCH}/android-build/libs/$${QT_ARCH}/ -lQaterial_$${QT_ARCH}
+	LIBS += -L../../lib/libQaterial/$${QT_ARCH}/android-build/libs/$${QT_ARCH}/ -lQaterial_$${QT_ARCH}
 
 	if ($$QaterialBuildShared) {
-		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += $$OUT_PWD/../../lib/qaterial/$${abi}/android-build/libs/$${abi}/libQaterial_$${abi}.so
+		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += $$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQaterial_$${abi}.so
 	}
 } else {
-	LIBS += -L../../lib/qaterial -lQaterial
+	LIBS += -L../../lib/libQaterial -lQaterial
 }
 
 
 # Tiled
 
-INCLUDEPATH += $$PWD/libtiled
+INCLUDEPATH += $$PWD/tiled/src
 
-android: LIBS += -L../../lib/libtiled -ltiled_$${QT_ARCH}
-else: LIBS += -L../../lib/libtiled$${TargetSuffix} -ltiled
+android: LIBS += -ltiled_$${QT_ARCH}
+else: LIBS += -ltiled
 
 !wasm: LIBS += -lz
 
 
 # QZXing
 
-INCLUDEPATH += $$PWD/QZXing
+INCLUDEPATH += $$PWD/qzxing/src
 
-android: LIBS += -L../../lib -lQZXing_$${QT_ARCH}
-else: LIBS += -L../../lib$${TargetSuffix} -lQZXing
+android: LIBS += -lQZXing_$${QT_ARCH}
+else: LIBS += -lQZXing
 
 
 # QML-Box2D
@@ -51,8 +54,8 @@ else: LIBS += -L../../lib$${TargetSuffix} -lQZXing
 	INCLUDEPATH += $$PWD/qml-box2d/
 	INCLUDEPATH += $$PWD/qml-box2d/Box2D
 
-	android: LIBS += -L../../lib -lqml-box2d_$${QT_ARCH}
-	else: LIBS += -L../../lib$${TargetSuffix} -lqml-box2d
+	android: LIBS += -lqml-box2d_$${QT_ARCH}
+	else: LIBS += -lqml-box2d
 
 }
 
@@ -62,8 +65,8 @@ else: LIBS += -L../../lib$${TargetSuffix} -lQZXing
 
 !wasm: INCLUDEPATH += $$PWD/CuteLogger/include
 
-android: LIBS += -L../../lib -lCuteLogger_$${QT_ARCH}
-else:!wasm: LIBS += -L../../lib$${TargetSuffix} -lCuteLogger
+android: LIBS += -lCuteLogger_$${QT_ARCH}
+else:!wasm: LIBS += -lCuteLogger
 
 
 
@@ -71,13 +74,13 @@ else:!wasm: LIBS += -L../../lib$${TargetSuffix} -lCuteLogger
 
 INCLUDEPATH += $$PWD/SortFilterProxyModel
 
-android: LIBS += -L../../lib/SortFilterProxyModel -lSortFilterProxyModel_$${QT_ARCH}
-else: LIBS += -L../../lib/SortFilterProxyModel$${TargetSuffix} -lSortFilterProxyModel
+android: LIBS += -lSortFilterProxyModel_$${QT_ARCH}
+else: LIBS += -lSortFilterProxyModel
 
 
 # QtXlsxWriter
 
-INCLUDEPATH += $$PWD/QtXlsxWriter
+INCLUDEPATH += $$PWD/QtXlsxWriter/src/xlsx
 
-android: LIBS += -L../../lib -lQtXlsxWriter_$${QT_ARCH}
-else: LIBS += -L../../lib$${TargetSuffix} -lQtXlsxWriter
+android: LIBS += -lQtXlsxWriter_$${QT_ARCH}
+else: LIBS += -lQtXlsxWriter
