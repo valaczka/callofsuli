@@ -21,6 +21,7 @@ GameObject {
 	property bool glowEnabled: game && game.player && playerFence == control
 	property GameObject playerFence: null
 
+	objectType: "fence"
 
 	transformOrigin: Item.Center
 
@@ -64,8 +65,6 @@ GameObject {
 			y: 0
 			sensor: true
 			categories: Box.Category4
-
-			readonly property var targetData: {"fence": true}
 		}
 
 	]
@@ -179,7 +178,7 @@ GameObject {
 		ScriptAction {
 			script: {
 				maskOver.destroy()
-				control.destroy()
+				control.deleteSelf()
 			}
 		}
 	}

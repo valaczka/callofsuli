@@ -37,8 +37,6 @@ GamePickableImpl {
 			y: 0
 			sensor: true
 			categories: Box.Category4
-
-			readonly property var targetData: {"pickable": true}
 		}
 	]
 

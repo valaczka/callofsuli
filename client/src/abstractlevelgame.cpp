@@ -257,3 +257,22 @@ QUrl AbstractLevelGame::backgroundImage() const
 	return QUrl(QStringLiteral("qrc:/internal/game/bg.png"));
 }
 
+
+
+/**
+ * @brief AbstractLevelGame::isFlawless
+ * @return
+ */
+
+bool AbstractLevelGame::isFlawless() const
+{
+	return m_isFlawless;
+}
+
+void AbstractLevelGame::setIsFlawless(bool newIsFlawless)
+{
+	if (m_isFlawless == newIsFlawless)
+		return;
+	m_isFlawless = newIsFlawless;
+	emit isFlawlessChanged();
+}

@@ -25,6 +25,7 @@
  */
 
 #include "fontimage.h"
+#include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
 #include <QFontDatabase>
@@ -310,6 +311,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
 	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
 	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
+	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
 	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
 	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
 	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");

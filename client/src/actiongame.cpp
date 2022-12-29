@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "gameenemysniper.h"
 #include "gameenemysoldier.h"
 #include "gameplayer.h"
 #include "gameenemy.h"
@@ -32,6 +33,24 @@
 #include "gamequestion.h"
 #include <QRandomGenerator>
 #include <QtMath>
+
+
+// Tool dependency
+
+const QHash<QString, QVector<GamePickable::PickableType>>
+ActionGame::m_toolDependency({
+								 { QStringLiteral("fence"), {GamePickable::PickablePliers} },
+								 { QStringLiteral("fire"), {GamePickable::PickableWater} },
+								 { QStringLiteral("teleport"), {GamePickable::PickableTeleporter} }
+							 });
+
+
+
+/**
+ * @brief ActionGame::ActionGame
+ * @param missionLevel
+ * @param client
+ */
 
 ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractLevelGame(Action, missionLevel, client)
@@ -42,6 +61,7 @@ ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionGame::onGameTimeout);
+	connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);
 }
 
 
@@ -122,28 +142,34 @@ void ActionGame::createFixEnemies()
 		if (el->enemy())
 			continue;
 
-		if (type == GameTerrain::EnemyInvalid || type == GameTerrain::EnemySoldier)
-			continue;
+		if (type == GameTerrain::EnemySniper) {
 
-		/*GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, e);
+			GameEnemySniper *sniper= GameEnemySniper::create(m_scene, e);
 
-		soldier->setFacingLeft(QRandomGenerator::global()->generate() % 2);
+			sniper->setFacingLeft(QRandomGenerator::global()->generate() % 2);
 
-		soldier->setX(e.rect.left() + e.rect.width()/2);
-		soldier->setY(e.rect.bottom()-soldier->height());
+			sniper->setX(e.rect.left() + e.rect.width()/2);
+			sniper->setY(e.rect.bottom()-sniper->height());
 
-		soldier->setMaxHp(QRandomGenerator::global()->bounded(1, 5));
-		soldier->setHp(QRandomGenerator::global()->bounded(1, 5));
+			m_scene->addChildItem(sniper);
 
-		m_scene->addChildItem(soldier);
+			sniper->startMovingAfter(2500);
 
-		soldier->startMovingAfter(2500);
-		QCoreApplication::processEvents();
+			el->setEnemy(sniper);
 
-		el->setenemy(soldier);
-*/
+			connect(sniper, &GameEntity::killed, this, &ActionGame::onEnemyDied);
 
-		++n;
+			const QString &levelKey = QString::number((int)m_missionLevel->level());
+
+			int hp = sniper->dataObject().value(QStringLiteral("hp")).toObject().value(levelKey).toInt(3);
+
+			sniper->setMaxHp(hp);
+			sniper->setHp(hp);
+
+			QCoreApplication::processEvents();
+
+			++n;
+		}
 	}
 
 	qCDebug(lcGame).noquote() << tr("%1 fix enemies created").arg(n);
@@ -201,19 +227,6 @@ void ActionGame::recreateEnemies()
 
 	linkQuestionToEnemies(soldiers);
 	linkPickablesToEnemies(soldiers);
-
-
-
-	qCDebug(lcGame).noquote() << "ENEMIES -----------------------------";
-
-	foreach (EnemyLocation *el, m_enemies) {
-		qCDebug(lcGame).noquote() << (el->enemy() ? QString("  * [%1]").arg(el->enemy()->hp()) : "  - [ ]") <<
-									 QString("(%1)").arg(el->enemyData().block) <<
-									 (el->enemy() && el->enemy()->question() ? el->enemy()->question()->question().uuid() : "") <<
-									 (el->enemy() && el->enemy()->hasPickable() ? ("("+el->enemy()->pickable().id+")") : "");
-	}
-
-	qCDebug(lcGame).noquote() << "END ENEMIES -------------------------";
 
 	emit activeEnemiesChanged();
 }
@@ -564,6 +577,70 @@ void ActionGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 
 
 /**
+ * @brief ActionGame::operate
+ * @param object
+ */
+
+void ActionGame::operateReal(GamePlayer *player, GameObject *object)
+{
+	if (!player) {
+		qCCritical(lcGame).noquote() << tr("Missing player");
+		return;
+	}
+
+	QString objectType = object ? object->objectType() : "";
+
+	if (objectType.isEmpty()) {
+		qCWarning(lcGame).noquote() << tr("Invalid operating object type:") << objectType;
+		player->setOperatingObject(nullptr);
+		return;
+	}
+
+	connect(object, &GameObject::destroyed, player, [objectType, player](){
+		if (player)
+			emit player->terrainObjectChanged(objectType, nullptr);
+	});
+
+	QMetaObject::invokeMethod(object, "operate", Qt::QueuedConnection);
+}
+
+
+
+/**
+ * @brief ActionGame::canOperate
+ * @param type
+ * @return
+ */
+
+bool ActionGame::canOperate(const QString &type) const
+{
+	if (!m_toolDependency.contains(type))
+		return true;
+
+	const QVector<GamePickable::PickableType> &list = m_toolDependency.value(type);
+
+	foreach (const GamePickable::PickableType &t, list) {
+		if (toolCount(t) < 1)
+			return false;
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief ActionGame::canOperate
+ * @param object
+ * @return
+ */
+
+bool ActionGame::canOperate(GameObject *object) const
+{
+	return object ? canOperate(object->objectType()) : true;
+}
+
+
+/**
  * @brief ActionGame::player
  * @return
  */
@@ -655,23 +732,8 @@ bool ActionGame::gameFinishEvent()
 
 void ActionGame::onSceneStarted()
 {
-	/*if (gameMatch && gameMatch.deathmatch) {
-		messageList.message(qsTr("SUDDEN DEATH"), 3)
-		cosClient.playSound("qrc:/sound/voiceover/sudden_death.mp3", CosSound.VoiceOver)
-	} else
-		cosClient.playSound("qrc:/sound/voiceover/begin.mp3", CosSound.VoiceOver)
-
-	previewAnimation.stop()
-	flick.interactive = true
-	previewLabel.text = ""
-	game.onGameStarted()
-
-	if (previewAnimation.num > 0) {
-		game.previewCompleted()
-	}*/
-
 	timeNotifySendReset();
-	startWithRemainingTime(72000);//m_missionLevel->duration()*1000);
+	startWithRemainingTime(m_missionLevel->duration()*1000);
 
 	if (m_deathmatch) {
 		message(tr("LEVEL %1 SUDDEN DEATH").arg(level()));
@@ -681,7 +743,7 @@ void ActionGame::onSceneStarted()
 		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
 	}
 
-	dialogMessageTooltip("Ez a szvöeg am ia éajer oadjf lkéasdjf", "qrc:/Qaterial/Icons/message-question.svg");
+	//dialogMessageTooltip("Ez a szvöeg am ia éajer oadjf lkéasdjf", "qrc:/Qaterial/Icons/message-question.svg");
 }
 
 
@@ -807,7 +869,7 @@ void ActionGame::onGameTimeout()
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
-	dialogMessageFinish("Timeout", "qrc:/Qaterial/Icons/timer-sand.svg", false);
+	dialogMessageFinish(tr("Lejárt az idő"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
 
 }
 
@@ -824,7 +886,7 @@ void ActionGame::onGameSuccess()
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"));
 
 	QTimer::singleShot(2500, this, [this](){
-		dialogMessageFinish("Mission completed", "qrc:/Qaterial/Icons/trophy.svg", true);
+		dialogMessageFinish(m_isFlawless ? tr("Mission completed\nHibátlan győzelem!") : tr("Mission completed"), "qrc:/Qaterial/Icons/trophy.svg", true);
 	});
 }
 
@@ -840,7 +902,7 @@ void ActionGame::onGameFailed()
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
-	dialogMessageFinish("Failed", "qrc:/Qaterial/Icons/skull-crossbones.svg", false);
+	dialogMessageFinish(tr("Your man has died"), "qrc:/Qaterial/Icons/skull-crossbones.svg", false);
 }
 
 
@@ -853,6 +915,18 @@ void ActionGame::timeNotifySendReset()
 {
 	m_timeNotifySendNext = 60000;
 }
+
+
+/**
+ * @brief ActionGame::toolDependency
+ * @return
+ */
+
+const QHash<QString, QVector<GamePickable::PickableType> > &ActionGame::toolDependency() const
+{
+	return m_toolDependency;
+}
+
 
 
 
@@ -885,13 +959,104 @@ void ActionGame::killAllEnemy()
 
 
 
+/**
+ * @brief ActionGame::toolCount
+ * @param type
+ */
+
+int ActionGame::toolCount(const GamePickable::PickableType &type) const
+{
+	return m_tools.value(type, 0);
+}
+
+
+/**
+ * @brief ActionGame::toolAdd
+ * @param type
+ * @param count
+ */
+
+void ActionGame::toolAdd(const GamePickable::PickableType &type, const int &count)
+{
+	int s = m_tools.value(type, 0);
+	s = qMax(s+count, 0);
+	m_tools.insert(type, s);
+	emit toolChanged(type, s);
+}
+
+
+/**
+ * @brief ActionGame::toolRemove
+ * @param type
+ * @param count
+ */
+
+void ActionGame::toolRemove(const GamePickable::PickableType &type, const int &count)
+{
+	int s = m_tools.value(type, 0);
+	s = qMax(s-count, 0);
+	m_tools.insert(type, s);
+	emit toolChanged(type, s);
+}
+
+
+/**
+ * @brief ActionGame::toolClear
+ * @param type
+ */
+
+void ActionGame::toolClear(const GamePickable::PickableType &type)
+{
+	m_tools.insert(type, 0);
+	emit toolChanged(type, 0);
+}
+
+
+/**
+ * @brief ActionGame::toolList
+ * @return
+ */
+
+QVariantList ActionGame::tools()
+{
+	QVariantList l;
+
+	foreach (const GamePickable::GamePickableData &d, GamePickable::pickableDataTypes()) {
+		if (!d.icon.isEmpty()) {
+			QStringList depList;
+
+			for (auto it = m_toolDependency.constBegin(); it != m_toolDependency.constEnd(); ++it) {
+				if (it.value().contains(d.type))
+					depList.append(it.key());
+			}
+
+			l.append(QVariantMap({
+									 { QStringLiteral("id"), d.id },
+									 { QStringLiteral("icon"), d.icon },
+									 { QStringLiteral("iconColor"), d.iconColor },
+									 { QStringLiteral("dependency"), depList },
+									 { QStringLiteral("type"), d.type },
+								 }));
+		}
+	}
+
+	return l;
+}
+
+
+
 void ActionGame::testQuestion()
 {
-	//m_gameQuestion->setPostponeEnabled(true);
+	m_gameQuestion->setPostponeEnabled(true);
 	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"));
 	m_gameQuestion->loadQuestion(QUrl(QStringLiteral("qrc:/GameQuestionDefaultComponent.qml")), {
 									 {QStringLiteral("question"), QStringLiteral("Na ez már jó kérdés")},
-									 {QStringLiteral("answer"), QVariantList({ 1,3,4})},
+									 //{"decimalEnabled", true},
+									 //{"twoLine", true},
+									 {QStringLiteral("answer"), QVariantMap({
+										   {"first", 2 },
+										  {"second", 3 }
+									  })},
 									 {QStringLiteral("options"), QStringList({
 										  "egy",
 										  "kettő afaiodf aélsd fwioe alékfj alésdjfioweéaklsjf léaksfiowe éajkdf éalskdfoweir aéldkfjd alésdfowier éaklsdfj aseofa dfwei aédfjk aoir asdklf",
@@ -903,12 +1068,12 @@ void ActionGame::testQuestion()
 
 									 {"image", "file:///home/valaczka/Letöltések/bg.jpg"}
 									 /*{"imageAnswers", true},
-																																		{"options", QStringList({
-																																			 "file:///home/valaczka/Letöltések/bg.jpg",
-																																			 "file:///home/valaczka/Letöltések/3centiho.jpg",
-																																			 "file:///home/valaczka/Letöltések/logo_gb.jpg",
-																																			 "file:///home/valaczka/Letöltések/vitorlas.jpg",
-																																		 })}*/
+																																																																																																																				  {"options", QStringList({
+																																																																																																																					   "file:///home/valaczka/Letöltések/bg.jpg",
+																																																																																																																					   "file:///home/valaczka/Letöltések/3centiho.jpg",
+																																																																																																																					   "file:///home/valaczka/Letöltések/logo_gb.jpg",
+																																																																																																																					   "file:///home/valaczka/Letöltések/vitorlas.jpg",
+																																																																																																																				   })}*/
 								 });
 	setRunning(false);
 }
@@ -1117,7 +1282,7 @@ void ActionGame::pickableAdd(GamePickable *pickable)
 	m_pickableStack.push(pickable);
 	connect(pickable, &QObject::destroyed, this, [this, pickable]() {
 		m_pickableStack.removeAll(pickable);
-		pickableChanged();
+		emit pickableChanged();
 	});
 	emit pickableChanged();
 }
@@ -1265,6 +1430,19 @@ void ActionGame::dialogMessageFinish(const QString &text, const QString &icon, c
 
 
 /**
+ * @brief ActionGame::toolUse
+ * @param type
+ */
+
+void ActionGame::toolUse(const GamePickable::PickableType &type)
+{
+	qCDebug(lcGame).noquote() << tr("Use tool:") << type;
+
+	GamePickable::operate(this, type);
+}
+
+
+/**
  * @brief ActionGame::gameAbort
  */
 
@@ -1314,4 +1492,25 @@ GameEnemy *ActionGame::QuestionLocation::enemy() const
 void ActionGame::QuestionLocation::setEnemy(GameEnemy *newEnemy)
 {
 	m_enemy = newEnemy;
+}
+
+
+/**
+ * @brief ActionGame::toolList
+ * @return
+ */
+
+QVariantList ActionGame::toolListIcons() const
+{
+	QVariantList l;
+
+	foreach (const QVariant &v, tools()) {
+		const QVariantMap &m = v.toMap();
+
+		for (int i=0; i<toolCount(m.value("type").value<GamePickable::PickableType>()); ++i) {
+			l.append(m);
+		}
+	}
+
+	return l;
 }

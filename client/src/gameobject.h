@@ -74,6 +74,7 @@ class GameObject : public QQuickItem
 	Q_PROPERTY(GameScene *scene READ scene WRITE setScene NOTIFY sceneChanged)
 	Q_PROPERTY(Box2DBody *body READ body CONSTANT)
 	Q_PROPERTY(ActionGame *game READ game NOTIFY gameChanged)
+	Q_PROPERTY(QString objectType READ objectType WRITE setObjectType NOTIFY objectTypeChanged)
 
 public:
 	GameObject(QQuickItem *parent = nullptr);
@@ -89,6 +90,10 @@ public:
 
 	Q_INVOKABLE void bodyComplete();
 	Q_INVOKABLE void addChildItem(QQuickItem *item);
+	Q_INVOKABLE void deleteSelf();
+
+	const QString &objectType() const;
+	void setObjectType(const QString &newObjectType);
 
 private slots:
 	void onSceneChanged();
@@ -98,6 +103,7 @@ signals:
 	void gameChanged();
 	void sceneConnected();
 	void timingTimerTimeout();
+	void objectTypeChanged();
 
 protected:
 	GameScene *m_scene = nullptr;
@@ -106,7 +112,7 @@ protected:
 
 private:
 	bool m_sceneConnected = false;
-
+	QString m_objectType;
 };
 
 #endif // GAMEOBJECT_H

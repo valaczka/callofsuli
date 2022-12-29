@@ -1,36 +1,28 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.12
-import COS.Client 1.0
-import "."
-import "Style"
-import "JScript.js" as JS
+import QtQuick.Layouts 1.15
+import Qt.labs.qmlmodels 1.0
+import CallOfSuli 1.0
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
 
-Item {
+GameQuestionComponentImpl {
 	id: control
 
-	implicitHeight: labelQuestion.implicitHeight+(implicitButtonSize*4)+25
-	implicitWidth: Math.max(500, (labelQuestion.implicitWidth+labelSuffix.implicitWidth+200))			// 200 -> labelNumber1.width
-
-	required property var questionData
-	property bool canPostpone: false
-	property int mode: GameMatch.ModeNormal
+	implicitHeight: titleRow.titleLabel.implicitHeight+(implicitButtonSize*4)+25
+	implicitWidth: Math.max(500, (titleRow.titleLabel.implicitWidth+labelSuffix.implicitWidth+200))			// 200 -> labelNumber1.width
 
 	property bool twoLineMode: questionData.twoLine
 	property bool decimalEnabled: questionData.decimalEnabled
 	property int activeLine: 1
+
 	property bool interactive: true
 
 	readonly property real implicitButtonSize: 75
 	property real buttonSize: parent.height < implicitHeight ?
-								  Math.floor((parent.height-25-labelQuestion.implicitHeight)/4) :
+								  Math.floor((parent.height-25-titleRow.titleLabel.implicitHeight)/4) :
 								  implicitButtonSize
 
-
-	signal succeed()
-	signal failed()
-	signal postponed()
-	signal answered(var answer)
 
 	RowLayout {
 		id: row
@@ -39,30 +31,18 @@ Item {
 		anchors.right: parent.right
 		anchors.bottomMargin: 5
 
-
-		QLabel {
-			id: labelQuestion
+		GameQuestionTitle {
+			id: titleRow
 
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
-			font.family: "Special Elite"
-			font.pixelSize: CosStyle.pixelSize*1.4
-			wrapMode: Text.Wrap
-			topPadding: 25
-			bottomPadding: 25
-			leftPadding: 10
-			rightPadding: 10
+			buttons: false
+			buttonOkEnabled: false
 
-			horizontalAlignment: Text.AlignHCenter
-			verticalAlignment: Text.AlignVCenter
-
-			color: CosStyle.colorAccent
-
-			textFormat: Text.RichText
-
-			text: questionData.question
+			title: questionData.question
 		}
+
 
 		Column {
 			id: col
@@ -71,13 +51,13 @@ Item {
 
 			Rectangle {
 				border.width: 1
-				border.color: !twoLineMode || activeLine != 1 ? CosStyle.colorPrimaryDark : CosStyle.colorPrimaryDarker
-				color: "black"
+				border.color: !twoLineMode || activeLine != 1 ? Qaterial.Colors.cyan900 : Qaterial.Colors.cyan500
+				color: Qaterial.Colors.black
 
 				width: parent.width
 				height: labelNumber1.implicitHeight
 
-				QLabel {
+				Label {
 					id: labelNumber1
 					anchors.fill: parent
 					horizontalAlignment: Text.AlignRight
@@ -88,7 +68,7 @@ Item {
 					rightPadding: 10
 					topPadding: 2
 					bottomPadding: 2
-					color: CosStyle.colorWarning
+					color: Qaterial.Colors.orange400
 					text: "0"
 				}
 
@@ -101,21 +81,21 @@ Item {
 
 			Rectangle {
 				width: parent.width
-				color: CosStyle.colorWarning
+				color: Qaterial.Colors.orange400
 				height: 2
 				visible: twoLineMode
 			}
 
 			Rectangle {
 				border.width: 1
-				border.color: !twoLineMode || activeLine != 2 ? CosStyle.colorPrimaryDark : CosStyle.colorPrimaryDarker
-				color: "black"
+				border.color: !twoLineMode || activeLine != 2 ? Qaterial.Colors.cyan900 : Qaterial.Colors.cyan500
+				color: Qaterial.Colors.black
 				visible: twoLineMode
 
 				width: parent.width
 				height: labelNumber2.implicitHeight
 
-				QLabel {
+				Label {
 					id: labelNumber2
 					anchors.fill: parent
 					horizontalAlignment: Text.AlignRight
@@ -126,7 +106,7 @@ Item {
 					rightPadding: 10
 					topPadding: 2
 					bottomPadding: 2
-					color: CosStyle.colorWarning
+					color: Qaterial.Colors.orange400
 					text: "0"
 				}
 
@@ -138,23 +118,26 @@ Item {
 			}
 		}
 
-		QLabel {
+
+		Label {
 			id: labelSuffix
 
 			Layout.fillWidth: false
 			Layout.fillHeight: true
 
-			font: labelQuestion.font
-			wrapMode: Text.Wrap
-			topPadding: labelQuestion.topPadding
-			bottomPadding: labelQuestion.bottomPadding
-			leftPadding: labelQuestion.leftPadding
-			rightPadding: labelQuestion.rightPadding
+			Layout.alignment: Qt.AlignCenter
 
 			horizontalAlignment: Text.AlignHCenter
-			verticalAlignment: Text.AlignVCenter
 
-			color: labelQuestion.color
+			font: titleRow.titleLabel.font
+
+			wrapMode: Text.Wrap
+			topPadding: titleRow.titleLabel.topPadding
+			bottomPadding: titleRow.titleLabel.bottomPadding
+			leftPadding: titleRow.titleLabel.leftPadding
+			rightPadding: titleRow.titleLabel.rightPadding
+
+			color: titleRow.titleLabel.color
 
 			textFormat: Text.RichText
 
@@ -162,7 +145,13 @@ Item {
 		}
 	}
 
+
+
+
+
 	Item {
+		id: containerItem
+
 		anchors.bottom: row.top
 		anchors.right: parent.right
 		anchors.left: parent.left
@@ -173,69 +162,169 @@ Item {
 		anchors.topMargin: 20
 
 		GridLayout {
-			anchors.fill: parent
+			id: grid
+			width: Math.min(parent.width, implicitButtonSize*1.5*4)
+			height: Math.min(parent.height, implicitButtonSize*1.5*4)
+			anchors.centerIn: parent
 			columns: 4
+
+			readonly property real btnSize: Math.min(width, height)/4
 
 			rowSpacing: 3
 			columnSpacing: 3
 
+			ListModel {
+				id: modelPostpone
+				ListElement { type: "normal"; buttonText: "7" }
+				ListElement { type: "normal"; buttonText: "8" }
+				ListElement { type: "normal"; buttonText: "9" }
+				ListElement { type: "back"; buttonText: "BACK" }
+				ListElement { type: "normal"; buttonText: "4" }
+				ListElement { type: "normal"; buttonText: "5" }
+				ListElement { type: "normal"; buttonText: "6" }
+				ListElement { type: "normal"; buttonText: "C" }
+				ListElement { type: "normal"; buttonText: "1" }
+				ListElement { type: "normal"; buttonText: "2" }
+				ListElement { type: "normal"; buttonText: "3" }
+				ListElement { type: "postpone"; buttonText: "POSTPONE" }
+				ListElement { type: "normal"; buttonText: "±" }
+				ListElement { type: "normal"; buttonText: "0" }
+				ListElement { type: "normal"; buttonText: "," }
+				ListElement { type: "enter"; buttonText: "=" }
+			}
+
+
+			ListModel {
+				id: modelNormal
+
+				ListElement { type: "normal"; buttonText: "7" }
+				ListElement { type: "normal"; buttonText: "8" }
+				ListElement { type: "normal"; buttonText: "9" }
+				ListElement { type: "back"; buttonText: "BACK" }
+				ListElement { type: "normal"; buttonText: "4" }
+				ListElement { type: "normal"; buttonText: "5" }
+				ListElement { type: "normal"; buttonText: "6" }
+				ListElement { type: "normal"; buttonText: "C" }
+				ListElement { type: "normal"; buttonText: "1" }
+				ListElement { type: "normal"; buttonText: "2" }
+				ListElement { type: "normal"; buttonText: "3" }
+				ListElement { type: "enter"; buttonText: "=" }
+				ListElement { type: "normal"; buttonText: "±" }
+				ListElement { type: "normal"; buttonText: "0" }
+				ListElement { type: "normal"; buttonText: "," }
+			}
+
 			Repeater {
-				model: control.mode == GameMatch.ModeExam && canPostpone ? [
-																"7",
-																"8",
-																"9",
-																"\ue14a",
-																"4",
-																"5",
-																"6",
-																"C",
-																"1",
-																"2",
-																"3",
-																"\ue01f",
-																"±",
-																"0",
-																",",
-																"="
-															]
-														  : [
-																"7",
-																"8",
-																"9",
-																"\ue14a",
-																"4",
-																"5",
-																"6",
-																"C",
-																"1",
-																"2",
-																"3",
-																"=",
-																"±",
-																"0",
-																","
-															]
+				model: question.postponeEnabled ? modelPostpone : modelNormal
 
-				GameQuestionButton {
-					Layout.fillHeight: true
-					Layout.fillWidth: true
-					Layout.rowSpan: (control.mode != GameMatch.ModeExam || !canPostpone) && modelData == "=" ? 2 : 1
-					text: modelData
-					onClicked: clickBtn(text)
-					label.font.family: (modelData == "\ue14a" || modelData == "\ue01f") ? "Material Icons" : "Rajdhani"
-					label.font.weight: Font.Light
-					label.font.pixelSize: (modelData == "\ue14a" || modelData == "\ue01f") ? buttonSize*0.5 : buttonSize*0.75
-					interactive: modelData == "," ? control.interactive && control.decimalEnabled : control.interactive
 
-					themeColors: control.mode == GameMatch.ModeExam ?
-									 (modelData == "\ue01f" ? CosStyle.buttonThemeOrange :
-															  (modelData == "=" ? CosStyle.buttonThemeGreen :
-																				  CosStyle.buttonThemeDefault)) :
-									 CosStyle.buttonThemeDefault
+				delegate: chooser
+
+				DelegateChooser {
+					id: chooser
+					role: "type"
+					DelegateChoice { roleValue: "back"; delegate: cmpBack }
+					DelegateChoice { roleValue: "enter"; delegate: cmpEnter }
+					DelegateChoice { roleValue: "postpone"; delegate: cmpPostpone }
+					DelegateChoice { roleValue: "normal"; delegate: cmpNormal }
 				}
+
+
 			}
 		}
+
+
 	}
+
+
+	Component {
+		id: cmpNormal
+
+		GameQuestionButton {
+			required property string buttonText
+			Layout.fillHeight: true
+			Layout.fillWidth: true
+			text: buttonText
+			display: AbstractButton.TextOnly
+			onClicked: clickBtn(buttonText)
+			font.family: "Rajdhani"
+			font.weight: Font.Light
+			font.pixelSize: grid.btnSize*0.75
+			enabled: buttonText == "," ? control.interactive && control.decimalEnabled : control.interactive
+			opacity: enabled ? 1.0 : 0.5
+		}
+	}
+
+
+	Component {
+		id: cmpBack
+
+		GameQuestionButton {
+			Layout.fillHeight: true
+			Layout.fillWidth: true
+			text: ""
+			display: AbstractButton.IconOnly
+			icon.source: Qaterial.Icons.arrowLeft
+			icon.width: grid.btnSize*0.6
+			icon.height: grid.btnSize*0.6
+			onClicked: clickBtn(buttonText)
+			enabled: control.interactive
+		}
+	}
+
+
+	Component {
+		id: cmpEnter
+
+		GameQuestionButtonOk {
+			required property string buttonText
+			Layout.fillHeight: true
+			Layout.fillWidth: true
+			Layout.rowSpan: question.postponeEnabled ? 1 : 2
+			text: buttonText
+			icon.source: ""
+			display: AbstractButton.TextOnly
+			onClicked: clickBtn(buttonText)
+			font.family: "Rajdhani"
+			font.weight: Font.Light
+			font.pixelSize: grid.btnSize*0.75
+			enabled: control.interactive
+		}
+	}
+
+	Component {
+		id: cmpPostpone
+
+		GameQuestionButtonPostpone {
+			Layout.fillHeight: true
+			Layout.fillWidth: true
+
+			icon.width: grid.btnSize*0.6
+			icon.height: grid.btnSize*0.6
+
+			display: AbstractButton.IconOnly
+
+			onClicked: question.onPostpone()
+		}
+	}
+
+
+	onAnswerReveal: {
+		if (Number(labelNumber1.text) === questionData.answer.first) {
+			labelNumber1.color = Qaterial.Colors.green400
+		} else {
+			labelNumber1.text = questionData.answer.first
+			labelNumber1.color = Qaterial.Colors.red500
+		}
+
+		if (Number(labelNumber2.text) === questionData.answer.second) {
+			labelNumber2.color = Qaterial.Colors.green400
+		} else {
+			labelNumber2.text = questionData.answer.second
+			labelNumber2.color = Qaterial.Colors.red500
+		}
+	}
+
 
 
 
@@ -245,9 +334,10 @@ Item {
 		var origStr = twoLineMode && activeLine == 2 ? labelNumber2.text : labelNumber1.text
 		var newStr = origStr
 
-		if (t === "\ue01f") {			// Postpne
-			postponed()
-		} else if (t === "\ue14a") {			// Backspace
+		if (!interactive)
+			return
+
+		if (t === "BACK") {			// Backspace
 			newStr = origStr.length < 2 || origStr === "-0" ? "0" : String(origStr).substring(0, origStr.length-1)
 
 			if (twoLineMode && activeLine == 2)
@@ -309,6 +399,8 @@ Item {
 	}
 
 
+
+
 	function answer() {
 		var ret = {}
 
@@ -332,35 +424,16 @@ Item {
 			ret.second = n2
 		}
 
-
-		if (mode == GameMatch.ModeExam) {
-			answered(ret)
-		} else {
-			if (correct) {
-				succeed()
-				labelNumber1.color = CosStyle.colorOKLighter
-				labelNumber2.color = CosStyle.colorOKLighter
-			} else {
-				failed()
-				labelNumber1.color = CosStyle.colorErrorLighter
-				labelNumber2.color = CosStyle.colorErrorLighter
-
-				labelNumber1.text = questionData.answer.first
-				labelNumber2.text = questionData.answer.second
-			}
-		}
-
-		/*if (questionData.correct) {
-			btnTrue.type = GameQuestionButton.Correct
-			if (!correct) btnFalse.type = GameQuestionButton.Wrong
-		} else {
-			btnFalse.type = GameQuestionButton.Correct
-			if (!correct) btnTrue.type = GameQuestionButton.Wrong
-		}*/
+		if (correct)
+			question.onSuccess(ret)
+		else
+			question.onFailed(ret)
 	}
 
 
-	function keyPressed(key) {
+	Keys.onPressed: {
+		var key = event.key
+
 		if (key === Qt.Key_Enter || key === Qt.Key_Return)
 			clickBtn("=")
 		else if (key === Qt.Key_0)
@@ -390,11 +463,16 @@ Item {
 		else if (key === Qt.Key_Delete)
 			clickBtn("C")
 		else if (key === Qt.Key_Backspace)
-			clickBtn("\ue14a")
+			clickBtn("BACK")
 		else if (key === Qt.Key_Down)
 			activeLine = 2
 		else if (key === Qt.Key_Up)
 			activeLine = 1
 	}
 }
+
+
+
+
+
 

@@ -48,6 +48,9 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(qreal deathlyFall READ deathlyFall WRITE setDeathlyFall NOTIFY deathlyFallChanged)
 	Q_PROPERTY(qreal hurtFall READ hurtFall WRITE setHurtFall NOTIFY hurtFallChanged)
 	Q_PROPERTY(int shield READ shield WRITE setShield NOTIFY shieldChanged)
+	Q_PROPERTY(bool invisible READ invisible WRITE setInvisible NOTIFY invisibleChanged)
+	Q_PROPERTY(GameObject* operatingObject READ operatingObject WRITE setOperatingObject NOTIFY operatingObjectChanged)
+	Q_PROPERTY(int invisibleTime READ invisibleTime NOTIFY invisibleTimeChanged)
 
 #ifndef Q_OS_WASM
 	Q_PROPERTY(QSoundEffect *soundEffectShot READ soundEffectShot CONSTANT)
@@ -70,6 +73,7 @@ public:
 		ClimbUp,
 		ClimbPause,
 		ClimbDown,
+		MoveToOperate,
 		Operate,
 		Burn,
 		Fall,
@@ -116,13 +120,15 @@ public:
 
 	static GamePlayer* create(GameScene *scene, const QString &type = "");
 
-	Q_INVOKABLE void setMovingFlag(const MovingFlag &flag, const bool &on = true);
+	Q_INVOKABLE void setMovingFlag(const GamePlayer::MovingFlag &flag, const bool &on = true);
 	Q_INVOKABLE void standbyMovingFlags();
 	Q_INVOKABLE void moveTo(const QPointF &point, const bool &forced = false);
 	Q_INVOKABLE void moveTo(const qreal &x, const qreal &y, const bool &forced = false) { moveTo(QPointF(x, y), forced); }
 	Q_INVOKABLE void shot();
 	Q_INVOKABLE void turnLeft();
 	Q_INVOKABLE void turnRight();
+	Q_INVOKABLE void operate(GameObject *object);
+	Q_INVOKABLE void startInvisibility(const int &msec);
 
 	Q_INVOKABLE void playSoundEffect(const QString &effect, int from = -1);
 
@@ -151,14 +157,23 @@ public:
 	void setLadderState(LadderState newLadderState);
 
 	const QHash<QString, QPointer<GameObject> > &terrainObjects() const;
-	GameObject *terrainObject(const QString &type) const;
+	Q_INVOKABLE GameObject *terrainObject(const QString &type) const;
 
 	int shield() const;
 	void setShield(int newShield);
 
+	bool invisible() const;
+	void setInvisible(bool newInvisible);
+
+	GameObject *operatingObject() const;
+	void setOperatingObject(GameObject *newOperatingObject);
+
+	void setInvisibleTime(const int &msec);
+	const int &invisibleTime() const;
+
 public slots:
-	void hurtByEnemy(GameEnemy *enemy, const bool &canProtect = false);
-	void killByEnemy(GameEnemy *enemy);
+	void hurtByEnemy(GameEnemy *, const bool &canProtect = false);
+	void killByEnemy(GameEnemy *);
 
 	void setTerrainObject(const QString &type, GameObject *object);
 	void onMovingFlagsChanged();
@@ -180,6 +195,9 @@ signals:
 	void ladderStateChanged();
 	void terrainObjectChanged(const QString &type, GameObject *object);
 	void shieldChanged();
+	void invisibleChanged();
+	void operatingObjectChanged();
+	void invisibleTimeChanged();
 
 private slots:
 	void onEnemyKilled();
@@ -214,6 +232,9 @@ private:
 	int m_soundElapsedMsec = 0;
 	QHash<QString, QPointer<GameObject>> m_terrainObjects;
 	int m_shield = 0;
+	bool m_invisible = false;
+	QPointer<GameObject> m_operatingObject = nullptr;
+	int m_invisibleTime = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(GamePlayer::MovingFlags)

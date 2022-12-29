@@ -515,7 +515,7 @@ void Client::loadGame()
 	GameMapMissionLevel *ml = map->missionLevel(QStringLiteral("{90cb2799-f189-4255-9667-1f19b582284b}"), 1);
 
 	ActionGame *game = new ActionGame(ml, this);
-	game->setDeathmatch(true);
+	//game->setDeathmatch(true);
 	setCurrentGame(game);
 
 	game->load();

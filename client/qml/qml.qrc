@@ -36,5 +36,7 @@
         <file>GameQuestionTitle.qml</file>
         <file>GameQuestionButtonOk.qml</file>
         <file>GameQuestionButtonPostpone.qml</file>
+        <file>GameEnemySniper.qml</file>
+        <file>GameEnemySniperCrosshair.qml</file>
     </qresource>
 </RCC>

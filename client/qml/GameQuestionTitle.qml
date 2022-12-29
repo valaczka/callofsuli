@@ -8,6 +8,7 @@ import "./QaterialHelper" as Qaterial
 RowLayout {
 	id: control
 
+	property alias titleLabel: label
 	property alias title: label.text
 	property bool buttons: true
 	property alias buttonOkEnabled: btnOk.enabled

@@ -561,7 +561,7 @@ Page {
 		}
 
 		Grid {
-			id: itemGrid
+			id: toolsIconGrid
 			anchors.right: parent.right
 			width: infoShield.width
 			layoutDirection: Qt.RightToLeft
@@ -576,48 +576,19 @@ Page {
 
 			columns: Math.floor(width/size)
 
-			Qaterial.Icon {
-				size: itemGrid.size
-				icon: Qaterial.Icons.wrench
-				color: Qaterial.Colors.brown800
-				visible: true //game.gameMatch.pliers
-				width: size
-				height: size
-			}
-
-			Qaterial.Icon {
-				size: itemGrid.size
-				icon: Qaterial.Icons.remote
-				color: Qaterial.Colors.cyan600
-				visible: true //game.gameMatch.pliers
-				width: size
-				height: size
-			}
-
-
 			Repeater {
-				model: 2 //game.gameMatch.water
+				model: control.game ? control.game.toolListIcons : []
 
 				Qaterial.Icon {
-					size: itemGrid.size
-					icon: Qaterial.Icons.water
-					color: Qaterial.Colors.blue800
+					size: toolsIconGrid.size
+					icon: modelData.icon
+					color: modelData.iconColor
+					visible: true
 					width: size
 					height: size
 				}
 			}
 
-			Repeater {
-				model: 3 //game.gameMatch.camouflage
-
-				Qaterial.Icon {
-					size: itemGrid.size
-					icon: Qaterial.Icons.dominoMask
-					color: Qaterial.Colors.yellow700
-					width: size
-					height: size
-				}
-			}
 		}
 
 
@@ -763,8 +734,6 @@ Page {
 
 			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
-			property int secs: game.msecLeft/1000
-
 			iconLabel.text: game.msecLeft>=60000 ?
 								Client.Utils.formatMSecs(game.msecLeft) :
 								Client.Utils.formatMSecs(game.msecLeft, 1, false)
@@ -773,33 +742,28 @@ Page {
 		}
 	}
 
-	/*
 	GameLabel {
-		id: infoInvisibilityTime
-		color: CosStyle.colorAccent
-		//image.visible: false
-
-		image.icon: "qrc:/internal/icon/domino-mask.svg"
+		id: infoInvisibleTime
+		color: Qaterial.Colors.yellow400
 
 		anchors.left: parent.left
 		anchors.top: rowTime.bottom
 		anchors.margins: 5
-		anchors.leftMargin: Math.max(mainWindow.safeMargins.left, 5)
-		pixelSize: 24
+		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
 
-		property int secs: game.msecLeft/1000
+		iconLabel.icon.source: Qaterial.Icons.dominoMask
 
-		label.text: game.player ? Number(game.player.invisibleMsec/1000).toFixed(1) : ""
+		iconLabel.text: game && game.player ?
+							(game.player.invisibleTime >= 60000 ?
+							Client.Utils.formatMSecs(game.player.invisibleTime) :
+							Client.Utils.formatMSecs(game.player.invisibleTime, 1, false)) :
+							""
 
-		visible: !gameScene.isSceneZoom && game.player && game.player.entityPrivate.invisible
+		visible: !gameScene.zoomOverview && game && game.player && game.player.invisible
 
 		onVisibleChanged: if (visible)
 							  marked = true
 	}
-
-*/
-
-
 
 
 
@@ -921,133 +885,84 @@ Page {
 			game.pickablePick()
 		}
 	}
-	/*
+
 
 	Column {
+		id: toolColumn
+
 		anchors.bottom: shotButton.bottom
-		anchors.bottomMargin: (shotButton.height-pliersButton.height)/2
+		anchors.bottomMargin: (shotButton.height-50)/2
 		anchors.right: shotButton.left
 
 		spacing: 30
 
-		visible: gameMatch.mode == GameMatch.ModeNormal
+		Repeater {
+			model: control.game ? control.game.tools : []
 
-		GameButton {
-			id: pliersButton
-			size: 50
+			GameButton {
+				id: btn
+				size: 50
+				width: size
+				height: size
 
-			width: size
-			height: size
+				enabled: false
+				visible: false
 
-			enabled: game.gameMatch.pliers
-			visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.fence
+				anchors.horizontalCenter: parent.horizontalCenter
 
-			anchors.horizontalCenter: parent.horizontalCenter
+				color: enabled ? modelData.iconColor : "transparent"
+				border.color: enabled ? fontImage.color : "white"
+				border.width: 1
 
-			color: enabled ? "#7FFF7F50" : "transparent"
-			border.color: enabled ? fontImage.color : "white"
-			border.width: 1
+				opacity:  gameScene.zoomOverview ? 0.2 : (enabled ? 1.0 : 0.6)
 
-			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
+				fontImage.icon: modelData.icon
+				fontImage.color: "white"
+				fontImageScale: 0.6
 
-			fontImage.icon: "qrc:/internal/icon/pliers.svg"
-			fontImage.color: "white"
-			fontImageScale: 0.6
-			fontImage.anchors.horizontalCenterOffset: -2
+				onClicked: game.toolUse(modelData.type)
 
-			onClicked: {
-				game.player.entityPrivate.operate(game.player.entityPrivate.fence)
+				Connections {
+					target: game
+
+					function onToolChanged(type, count) {
+						if (type === modelData.type) {
+							btn.enabled = game.toolCount(type) > 0
+
+							if (modelData.dependency.length === 0)
+								btn.visible = game.toolCount(type) > 0
+						}
+					}
+
+					function onPlayerChanged() {
+						if (!game.player) {
+							if (modelData.dependency.length !== 0)
+								btn.visible = false
+						}
+					}
+				}
+
+				Connections {
+					target: game ? game.player : null
+
+					enabled: modelData.dependency.length
+
+					function onTerrainObjectChanged(type, object) {
+						if (modelData.dependency.includes(type)) {
+							btn.visible = object
+						}
+					}
+				}
+
 			}
+
 		}
 
-		GameButton {
-			id: waterButton
-			size: 50
 
-			width: size
-			height: size
-
-			enabled: game.gameMatch.water
-			visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.fire
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			color: enabled ? "#7F4169E1" : "transparent"
-			border.color: enabled ? fontImage.color : "white"
-			border.width: 1
-
-			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
-
-			fontImage.icon: "qrc:/internal/game/drop.png"
-			fontImage.color: "white"
-			fontImageScale: 0.6
-			fontImage.anchors.horizontalCenterOffset: -2
-
-			onClicked: {
-				game.player.entityPrivate.operate(game.player.entityPrivate.fire)
-			}
-		}
-
-		GameButton {
-			id: teleportButton
-			size: 50
-
-			width: size
-			height: size
-
-			enabled: game.gameMatch.teleporter
-			visible: game.player && game.player.entityPrivate.isAlive && game.player.entityPrivate.teleport
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			color: enabled ? "#00FFFF" : "transparent"
-			border.color: enabled ? fontImage.color : "white"
-			border.width: 1
-
-			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
-
-			fontImage.icon: "qrc:/internal/icon/remote.svg"
-			fontImage.color: "white"
-			fontImageScale: 0.6
-			//fontImage.anchors.horizontalCenterOffset: -2
-
-			onClicked: {
-				game.player.entityPrivate.teleportToNext()
-			}
-		}
-
-		GameButton {
-			id: camouflageButton
-			size: 50
-
-			width: size
-			height: size
-
-			enabled: game.player && !game.player.entityPrivate.invisible
-			visible: game.currentScene == gameScene && game.player && game.player.entityPrivate.isAlive && game.gameMatch.camouflage
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			color: enabled ? "gold" : "transparent"
-			border.color: enabled ? fontImage.color : "white"
-			border.width: 1
-
-			opacity:  gameScene.isSceneZoom ? 0.2 : (enabled ? 1.0 : 0.6)
-
-			fontImage.icon: "qrc:/internal/icon/domino-mask.svg"
-			fontImage.color: enabled ? "black" : "white"
-			fontImageScale: 0.6
-			//fontImage.anchors.horizontalCenterOffset: -2
-
-			onClicked: {
-				if (game.player)
-					game.player.startInvisibility(10000)
-			}
-		}
 	}
 
 
-*/
+
 
 
 	Rectangle {

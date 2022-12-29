@@ -17,6 +17,8 @@ GameObject {
 	readonly property point operatingPointLeft: Qt.point(45,0)
 	readonly property point operatingPointRight: Qt.point(width-45,0)
 
+	objectType: "fire"
+
 	opacity: 0.9
 
 	transformOrigin: Item.Center
@@ -31,7 +33,7 @@ GameObject {
 			sensor: true
 			categories: Box.Category4
 
-			readonly property var targetData: {"fireDie": true}
+			property var targetData: {"fireDie": true}
 		},
 		Box {
 			width: control.width
@@ -40,8 +42,6 @@ GameObject {
 			y: 0
 			sensor: true
 			categories: Box.Category4
-
-			readonly property var targetData: {"fire": true}
 		}
 
 	]
@@ -81,7 +81,7 @@ GameObject {
 			duration: 1000
 		}
 		ScriptAction {
-			script: control.destroy()
+			script: control.deleteSelf()
 		}
 	}
 

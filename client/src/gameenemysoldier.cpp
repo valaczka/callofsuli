@@ -34,8 +34,6 @@
 GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	: GameEnemy(parent)
 {
-	setHpProgressEnabled(true);
-
 	connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
 	connect(this, &GameObject::timingTimerTimeout, this, &GameEnemySoldier::onTimingTimerTimeout);
 	connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
@@ -123,7 +121,6 @@ void GameEnemySoldier::onTimingTimerTimeout()
 		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
 
 		if (m_attackElapsedMsec >= m_msecBeforeAttack) {
-			//setFacingLeft(!facingLeft());
 			setEnemyState(Attack);
 			attackPlayer();
 			m_attackElapsedMsec = 0;
@@ -132,7 +129,6 @@ void GameEnemySoldier::onTimingTimerTimeout()
 		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
 
 		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
-			//setFacingLeft(!facingLeft());
 			attackPlayer();
 			m_attackElapsedMsec = 0;
 		}
@@ -225,7 +221,7 @@ void GameEnemySoldier::attackPlayer()
 {
 	emit attack();
 
-	jumpToSprite(QStringLiteral("shot"));
+	//jumpToSprite(QStringLiteral("shot"));
 
 	if (player() && player()->isAlive())
 		player()->hurtByEnemy(this, true);
@@ -239,23 +235,36 @@ void GameEnemySoldier::attackPlayer()
 
 void GameEnemySoldier::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 {
-	GamePlayer *player = nullptr;
+	GamePlayer *_player = nullptr;
 
-	foreach(GameEntity *item, items) {
-		GamePlayer *e = qobject_cast<GamePlayer *>(item);
+	qreal fraction = -1.0;
 
-		if (e && e->isAlive()) {
-			player = e;
+	for (auto it = items.constBegin(); it != items.constEnd(); ++it) {
+		GamePlayer *e = qobject_cast<GamePlayer *>(it.value());
+
+		if (e && e->isAlive() && !e->invisible()) {
+			_player = e;
+			fraction = it.key();
 			break;
 		}
 	}
 
-	setPlayer(player);
+	GamePlayer *oldPlayer = player();
 
-	if ((m_enemyState == Attack || m_enemyState == WatchPlayer) && !player)
-		setEnemyState(Move);
-	else if (player && m_enemyState != Attack && m_enemyState != WatchPlayer)
-		setEnemyState(WatchPlayer);
+	setPlayer(_player);
+
+	if ((m_enemyState == Attack || m_enemyState == WatchPlayer) && !_player) {
+		if (oldPlayer)
+			turnToPlayer(oldPlayer);
+		else
+			setEnemyState(Move);
+	} else if (_player && m_enemyState != Attack && m_enemyState != WatchPlayer) {
+		if (fraction != -1.0 && fraction < m_castAttackFraction) {
+			setEnemyState(Attack);
+			attackPlayer();
+		} else
+			setEnemyState(WatchPlayer);
+	}
 
 }
 

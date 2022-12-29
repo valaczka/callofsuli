@@ -255,7 +255,37 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 	case Qt::Key_F3:
 		zoomOverviewToggle();
 		break;
+
+	case Qt::Key_W:
+		game()->toolUse(GamePickable::PickableWater);
+		break;
+
+	case Qt::Key_P:
+		game()->toolUse(GamePickable::PickablePliers);
+		break;
+
+	case Qt::Key_I:
+		game()->toolUse(GamePickable::PickableCamouflage);
+		break;
+
+
+	case Qt::Key_A:
+		game()->toolAdd(GamePickable::PickablePliers);
+		break;
+
+	case Qt::Key_S:
+		game()->toolAdd(GamePickable::PickableWater);
+		break;
+
+	case Qt::Key_D:
+		game()->toolAdd(GamePickable::PickableTeleporter);
+		break;
+
+	case Qt::Key_F:
+		game()->toolAdd(GamePickable::PickableCamouflage);
+		break;
 	}
+
 
 
 

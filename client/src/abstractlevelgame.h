@@ -48,10 +48,10 @@ class AbstractLevelGame : public AbstractGame
 	Q_PROPERTY(QString terrain READ terrain CONSTANT)
 	Q_PROPERTY(int startHP READ startHP CONSTANT)
 	Q_PROPERTY(int duration READ duration CONSTANT)
-
 	Q_PROPERTY(QUrl backgroundImage READ backgroundImage CONSTANT);
-
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
+
+	Q_PROPERTY(bool isFlawless READ isFlawless WRITE setIsFlawless NOTIFY isFlawlessChanged)
 
 public:
 	explicit AbstractLevelGame(const Mode &mode, GameMapMissionLevel *missionLevel, Client *client);
@@ -76,6 +76,9 @@ public:
 	Q_INVOKABLE void startWithRemainingTime(const qint64 &msec);
 	void addToDeadline(const qint64 &msec);
 
+	bool isFlawless() const;
+	void setIsFlawless(bool newIsFlawless);
+
 protected:
 	QVector<Question> createQuestions();
 
@@ -86,12 +89,14 @@ signals:
 	void gameTimeout();
 	void deathmatchChanged();
 	void msecLeftChanged();
+	void isFlawlessChanged();
 
 protected:
 	GameMapMissionLevel *const m_missionLevel = nullptr;
 	bool m_deathmatch = false;
 	QDeadlineTimer m_deadline;
 	bool m_closedSuccesfully = false;
+	bool m_isFlawless = true;
 
 private:
 	QTimer *m_timerLeft = nullptr;

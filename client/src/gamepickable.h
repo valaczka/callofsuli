@@ -100,16 +100,22 @@ public:
 		PickableType type = PickableInvalid;
 		QString image;
 		PickableFormat format = FormatPixmap;
+		QString icon;
+		QColor iconColor = QStringLiteral("#00bcd4");
+		QString messageName;
 
 		GamePickableData() {}
 
-		GamePickableData(const QString &i, const QString &n, const PickableType &t, const QString &iG, const PickableFormat &f)
-			: id(i), name(n), type(t), image(iG), format(f)
+		GamePickableData(const QString &i, const QString &n, const PickableType &t, const QString &iG, const PickableFormat &f,
+						 const QString &ic, const QColor &icc, const QString &mn)
+			: id(i), name(n), type(t), image(iG), format(f),
+			  icon(ic), iconColor(icc), messageName(mn)
 		{}
 	};
 
 	static const QVector<GamePickableData> &pickableDataTypes();
 	static QHash<QString, GamePickableData> pickableDataHash();
+	static GamePickableData pickableDataDetails(const PickableType &type);
 
 
 	const QString &id() const { return m_pickableData.id; }
@@ -125,6 +131,8 @@ public:
 	void setBottomPoint(QPointF newBottomPoint);
 
 	void pick(ActionGame *game);
+
+	static void operate(ActionGame *game, const GamePickable::PickableType &type);
 
 signals:
 	void pickFinished();

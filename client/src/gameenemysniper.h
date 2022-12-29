@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * gameenemysoldier.h
+ * gameenemysniper.h
  *
- * Created on: 2022. 12. 17.
+ * Created on: 2022. 12. 29.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GameEnemySoldier
+ * GameEnemySniper
  *
  *  This file is part of Call of Suli.
  *
@@ -24,20 +24,24 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GAMEENEMYSOLDIER_H
-#define GAMEENEMYSOLDIER_H
+#ifndef GAMEENEMYSNIPER_H
+#define GAMEENEMYSNIPER_H
 
 #include "gameenemy.h"
 
-class GameEnemySoldier : public GameEnemy
+class GameEnemySniper : public GameEnemy
 {
 	Q_OBJECT
 
 	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
 
 public:
-	explicit GameEnemySoldier(QQuickItem *parent = nullptr);
-	virtual ~GameEnemySoldier();
+	explicit GameEnemySniper(QQuickItem *parent = nullptr);
+	virtual ~GameEnemySniper();
+
+	static GameEnemySniper* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
+
+	Q_INVOKABLE void attackPlayer();
 
 	int msecBeforeTurn() const;
 	void setMsecBeforeTurn(int newMsecBeforeTurn);
@@ -45,13 +49,10 @@ public:
 	int turnElapsedMsec() const;
 	void setTurnElapsedMsec(int newTurnElapsedMsec);
 
-	static GameEnemySoldier* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
-
-	Q_INVOKABLE void attackPlayer();
-
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
 	virtual void enemyStateModified() override;
+	virtual void attackedByPlayerEvent(GamePlayer *, const bool &) override;
 
 private slots:
 	void onSceneConnected();
@@ -70,4 +71,4 @@ private:
 	int m_attackElapsedMsec = -1;
 };
 
-#endif // GAMEENEMYSOLDIER_H
+#endif // GAMEENEMYSNIPER_H

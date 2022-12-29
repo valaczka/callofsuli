@@ -29,19 +29,52 @@
 #include "gameplayer.h"
 
 
+/// Pickable types
 
 const QVector<GamePickable::GamePickableData> GamePickable::m_pickableDataTypes = {
-	{ QStringLiteral("health"), tr("HP"), GamePickable::PickableHealth, QStringLiteral("qrc:/internal/game/powerup.gif"), GamePickable::FormatAnimated },
-	{ QStringLiteral("time1"), tr("Idő (30 másodperc)"), GamePickable::PickableTime30, QStringLiteral("qrc:/internal/game/time-30.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("time2"), tr("Idő (1 perc)"), GamePickable::PickableTime60, QStringLiteral("qrc:/internal/game/time-60.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("shield1"), tr("Pajzs (x1)"), GamePickable::PickableShield1, QStringLiteral("qrc:/internal/game/shield-green.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("shield2"), tr("Pajzs (x2)"), GamePickable::PickableShield2, QStringLiteral("qrc:/internal/game/shield-blue.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("shield3"), tr("Pajzs (x3)"), GamePickable::PickableShield3, QStringLiteral("qrc:/internal/game/shield-red.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("shield4"), tr("Pajzs (x5)"), GamePickable::PickableShield5, QStringLiteral("qrc:/internal/game/shield-gold.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("water"), tr("Víz"), GamePickable::PickableWater, QStringLiteral("qrc:/internal/game/water.svg"), GamePickable::FormatPixmap },
-	{ QStringLiteral("pliers"), tr("Drótvágó"), GamePickable::PickablePliers, QStringLiteral("qrc:/internal/game/pliers.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("camouflage"), tr("Álruha"), GamePickable::PickableCamouflage, QStringLiteral("qrc:/internal/game/camouflage.png"), GamePickable::FormatPixmap },
-	{ QStringLiteral("teleporter"), tr("Teleportáló"), GamePickable::PickableTeleporter, QStringLiteral("qrc:/internal/game/teleporter.png"), GamePickable::FormatPixmap },
+	{ QStringLiteral("health"), tr("HP"), GamePickable::PickableHealth,
+	  QStringLiteral("qrc:/internal/game/powerup.gif"), GamePickable::FormatAnimated,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("time1"), tr("Idő (30 másodperc)"), GamePickable::PickableTime30,
+	  QStringLiteral("qrc:/internal/game/time-30.png"), GamePickable::FormatPixmap,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("time2"), tr("Idő (1 perc)"), GamePickable::PickableTime60,
+	  QStringLiteral("qrc:/internal/game/time-60.png"), GamePickable::FormatPixmap,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("shield1"), tr("Pajzs (x1)"), GamePickable::PickableShield1,
+	  QStringLiteral("qrc:/internal/game/shield-green.png"), GamePickable::FormatPixmap,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("shield2"), tr("Pajzs (x2)"), GamePickable::PickableShield2,
+	  QStringLiteral("qrc:/internal/game/shield-blue.png"), GamePickable::FormatPixmap,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("shield3"), tr("Pajzs (x3)"), GamePickable::PickableShield3,
+	  QStringLiteral("qrc:/internal/game/shield-red.png"), GamePickable::FormatPixmap,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("shield4"), tr("Pajzs (x5)"), GamePickable::PickableShield5,
+	  QStringLiteral("qrc:/internal/game/shield-gold.png"), GamePickable::FormatPixmap,
+	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+
+	{ QStringLiteral("water"), tr("Víz"), GamePickable::PickableWater,
+	  QStringLiteral("qrc:/internal/game/water.svg"), GamePickable::FormatPixmap,
+	  QLatin1String("qrc:/Qaterial/Icons/water.svg"), QLatin1String("#1565c0"), tr("water") },
+
+	{ QStringLiteral("pliers"), tr("Drótvágó"), GamePickable::PickablePliers,
+	  QStringLiteral("qrc:/internal/game/pliers.png"), GamePickable::FormatPixmap,
+	  QLatin1String("qrc:/Qaterial/Icons/wrench.svg"), QLatin1String("#4e342e"), tr("wrench") },
+
+	{ QStringLiteral("camouflage"), tr("Álruha"), GamePickable::PickableCamouflage,
+	  QStringLiteral("qrc:/internal/game/camouflage.png"), GamePickable::FormatPixmap,
+	  QLatin1String("qrc:/Qaterial/Icons/domino-mask.svg"), QLatin1String("#fbc02d"), tr("camouflage") },
+
+	{ QStringLiteral("teleporter"), tr("Teleportáló"), GamePickable::PickableTeleporter,
+	  QStringLiteral("qrc:/internal/game/teleporter.png"), GamePickable::FormatPixmap,
+	  QLatin1String("qrc:/Qaterial/Icons/remote.svg"), QLatin1String("#00acc1"), tr("teleporter") },
 };
 
 
@@ -89,6 +122,25 @@ QHash<QString, GamePickable::GamePickableData> GamePickable::pickableDataHash()
 
 	return hash;
 }
+
+
+/**
+ * @brief GamePickable::pickableDataDetails
+ * @param type
+ * @return
+ */
+
+GamePickable::GamePickableData GamePickable::pickableDataDetails(const PickableType &type)
+{
+	foreach (const GamePickableData &d, m_pickableDataTypes) {
+		if (d.type == type)
+			return d;
+	}
+
+	return GamePickableData();
+}
+
+
 
 
 /**
@@ -180,17 +232,111 @@ void GamePickable::pick(ActionGame *game)
 		game->message(tr("5 shields gained"), QStringLiteral("#4CAF50"));
 		break;
 
-	case PickableWater:
-	case PickablePliers:
-	case PickableCamouflage:
-	case PickableTeleporter:
-	case PickableInvalid:
-		qCWarning(lcGame).noquote() << tr("Can't pick type:") << m_pickableData.type;
+	default:
+		// Tool
+		if (!pickableDataDetails(m_pickableData.type).icon.isEmpty()) {
+			auto d = pickableDataDetails(m_pickableData.type);
+			game->toolAdd(m_pickableData.type);
+			game->message(tr("1 %1 gained").arg(d.messageName.isEmpty() ? d.name : d.messageName), QStringLiteral("#9c27b0"));
+		} else {
+			qCWarning(lcGame).noquote() << tr("Can't pick type:") << m_pickableData.type;
+		}
 		break;
-
 	}
 
 	setState(QStringLiteral("picked"));
+}
+
+
+
+
+
+/**
+ * @brief GamePickable::operate
+ * @param game
+ * @param player
+ */
+
+void GamePickable::operate(ActionGame *game, const GamePickable::PickableType &type)
+{
+	Q_ASSERT(game);
+
+	GamePlayer *player = game->player();
+
+	if (!player) {
+		qCWarning(lcGame).noquote() << tr("Missing player");
+		return;
+	}
+
+	if (player->playerState() == GamePlayer::Operate || player->playerState() == GamePlayer::MoveToOperate) {
+		qCWarning(lcGame).noquote() << tr("Operation already in progress");
+		return;
+	}
+
+
+
+	// Looking for terrain objects
+
+	QStringList terrainObjectTypes;
+
+	switch (type) {
+	case GamePickable::PickableWater:
+		terrainObjectTypes = QStringList({QStringLiteral("fire")});
+		break;
+	case GamePickable::PickablePliers:
+		terrainObjectTypes = QStringList({QStringLiteral("fence")});
+		break;
+	default:
+		break;
+	}
+
+	GameObject *terrainObject = nullptr;
+
+	if (!terrainObjectTypes.isEmpty()) {
+		foreach (const QString &s, terrainObjectTypes) {
+			GameObject *object = player->terrainObject(s);
+
+			if (object && game->canOperate(object)) {
+				terrainObject = object;
+				break;
+			}
+		}
+	}
+
+
+
+	// Operate
+
+	switch (type) {
+
+	case GamePickable::PickableWater:
+		if (game->toolCount(type) && terrainObject) {
+			game->toolRemove(type);
+			player->operate(terrainObject);
+			return;
+		}
+		break;
+
+	case GamePickable::PickablePliers:
+		if (game->toolCount(type) && terrainObject) {
+			player->operate(terrainObject);
+			return;
+		}
+		break;
+
+	case GamePickable::PickableCamouflage:
+		if (game->toolCount(type)) {
+			game->toolRemove(type);
+			player->startInvisibility(15000);
+			return;
+		}
+
+	default:
+		break;
+	}
+
+
+	qCWarning(lcGame).noquote() << tr("Invalid operation for tool:") << type;
 }
 
 

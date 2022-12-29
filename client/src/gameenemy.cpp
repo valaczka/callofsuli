@@ -56,7 +56,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	}
 #endif
 
-	connect(this, &GamePlayer::allHpLost, this, [this](){
+	connect(this, &GameEnemy::allHpLost, this, [this](){
 		emit killed(this);
 	});
 
@@ -88,6 +88,25 @@ void GameEnemy::onSceneConnected()
 {
 	connect(m_scene, &GameScene::zoomOverviewChanged, this, &GameEntity::setOverlayEnabled);
 }
+
+
+
+/**
+ * @brief GameEnemy::attackedByPlayerEvent
+ * @param player
+ */
+
+void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty)
+{
+	Q_ASSERT (player);
+
+	if (!isQuestionEmpty || !player->isAlive()) {
+		turnToPlayer(player);
+	}
+}
+
+
+
 
 const GamePickable::GamePickableData &GameEnemy::pickable() const
 {
@@ -280,23 +299,12 @@ void GameEnemy::attackByPlayer(GamePlayer *player, const bool &questionEmpty)
 {
 	decreaseHp();
 
-	/*const qreal &playerX = player->x();
-	const qreal &meX = x();
-
-	if (m_enemyData->enemyType() != GameEnemyData::EnemySniper && (!isEmptyQuestion || !isAlive() || m_cosGame->gameMatch()->level() > 2))
-			{
-					if (playerX <= meX && !facingLeft)
-							parentEntity()->setProperty("facingLeft", true);
-					else if (playerX > meX && facingLeft)
-							parentEntity()->setProperty("facingLeft", false);
-			}*/
+	attackedByPlayerEvent(player, questionEmpty);
 
 	if (isAlive())
 		return;
 
 	setAimedByPlayer(false);
-
-	//setEnemyState(Dead);
 }
 
 
@@ -309,14 +317,35 @@ void GameEnemy::missedByPlayer(GamePlayer *player)
 {
 	qCDebug(lcScene).noquote() << tr("Missed by player:") << this;
 
+	game()->setIsFlawless(false);
+
+	turnToPlayer(player);
+
+	emit killMissed();
+
+	player->hurtByEnemy(this, false);
+}
+
+
+
+
+
+/**
+ * @brief GameEnemy::turnToPlayer
+ * @param player
+ */
+
+void GameEnemy::turnToPlayer(GamePlayer *player)
+{
+	if (!player) {
+		qCWarning(lcGame).noquote() << tr("Missing player");
+		return;
+	}
+
 	const qreal &playerX = player->x();
 
 	if (playerX <= x() && !m_facingLeft)
 		setFacingLeft(true);
 	else if (playerX > x() && m_facingLeft)
 		setFacingLeft(false);
-
-	emit killMissed();
-
-	player->hurtByEnemy(this, false);
 }

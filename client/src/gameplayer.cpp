@@ -51,29 +51,29 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 
 	m_soundEffectHash.insert(QStringLiteral("run"), QStringList({
-													QStringLiteral("qrc:/sound/sfx/run1.mp3"),
-													QStringLiteral("qrc:/sound/sfx/run2.mp3"),
-												}));
+																	QStringLiteral("qrc:/sound/sfx/run1.mp3"),
+																	QStringLiteral("qrc:/sound/sfx/run2.mp3"),
+																}));
 
 	m_soundEffectHash.insert(QStringLiteral("walk"), QStringList({
-													 QStringLiteral("qrc:/sound/sfx/step1.mp3"),
-													 QStringLiteral("qrc:/sound/sfx/step2.mp3"),
-												 }));
+																	 QStringLiteral("qrc:/sound/sfx/step1.mp3"),
+																	 QStringLiteral("qrc:/sound/sfx/step2.mp3"),
+																 }));
 
 	m_soundEffectHash.insert(QStringLiteral("climb"), QStringList({
-													  QStringLiteral("qrc:/sound/sfx/ladderup1.mp3"),
-													  QStringLiteral("qrc:/sound/sfx/ladderup2.mp3"),
-												  }));
+																	  QStringLiteral("qrc:/sound/sfx/ladderup1.mp3"),
+																	  QStringLiteral("qrc:/sound/sfx/ladderup2.mp3"),
+																  }));
 
 	m_soundEffectHash.insert(QStringLiteral("ladder"), QStringList({
-													   QStringLiteral("qrc:/sound/sfx/ladder.mp3"),
-												   }));
+																	   QStringLiteral("qrc:/sound/sfx/ladder.mp3"),
+																   }));
 
 	m_soundEffectHash.insert(QStringLiteral("pain"), QStringList({
-													 QStringLiteral("qrc:/sound/sfx/pain1.mp3"),
-													 QStringLiteral("qrc:/sound/sfx/pain2.mp3"),
-													 QStringLiteral("qrc:/sound/sfx/pain3.mp3"),
-												 }));
+																	 QStringLiteral("qrc:/sound/sfx/pain1.mp3"),
+																	 QStringLiteral("qrc:/sound/sfx/pain2.mp3"),
+																	 QStringLiteral("qrc:/sound/sfx/pain3.mp3"),
+																 }));
 
 
 
@@ -116,6 +116,11 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 		setPlayerState(Dead);
 		m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));
 		emit killed(this);
+	});
+
+	connect(this, &GamePlayer::invisibleChanged, this, [this](){
+		if (!m_invisible)
+			m_scene->playSound("qrc:/sound/sfx/question.mp3");
 	});
 
 	connect(this, &GameEntity::isAliveChanged, this, &GamePlayer::onIsAliveChanged);
@@ -165,11 +170,6 @@ void GamePlayer::onTimingTimerTimeout()
 	if (game() && !game()->running())
 		return;
 
-	/*if ((m_playerState == Run || m_playerState == Walk || m_playerState == ClimbUp) && !m_movingFlags) {
-		jumpToSprite(QStringLiteral("idle"));
-		return;
-	}*/
-
 	if (m_playerState == Dead || m_playerState == Burn || !isAlive())
 		return;
 
@@ -182,6 +182,53 @@ void GamePlayer::onTimingTimerTimeout()
 		setLadder(nullptr);
 	}
 
+
+	if (m_invisibleTime > 0) {
+		if (!m_invisible)
+			setInvisible(true);
+
+		setInvisibleTime(qMax(m_invisibleTime - m_scene->timingTimerTimeoutMsec(), 0));
+	}
+
+	setInvisible(m_invisibleTime > 0);
+
+
+	if (m_playerState == MoveToOperate || m_playerState == Operate) {
+		if (!m_operatingObject) {
+			setPlayerState(Idle);
+		} else if (m_playerState == MoveToOperate) {
+			const QPointF &left = m_operatingObject->property("operatingPointLeft").toPointF() + m_operatingObject->position();
+			const QPointF &right = m_operatingObject->property("operatingPointRight").toPointF() + m_operatingObject->position();
+
+			qreal myLeft = x()+m_bodyRect.x();
+			qreal myRight = x()+m_bodyRect.x()+m_bodyRect.width();
+
+			if (myRight < left.x()) {
+				setFacingLeft(false);
+				if (left.x()-myRight > 5) {
+					setX(x() + m_walkSize);
+					m_body->setAwake(true);				// Különben nem reagál a mozgásra
+				} else {
+					setPlayerState(Operate);
+				}
+
+			} else if (myLeft > right.x()) {
+				setFacingLeft(true);
+				if (myLeft - right.x() > 5) {
+					setX(x() - m_walkSize);
+					m_body->setAwake(true);				// Különben nem reagál a mozgásra
+				} else {
+					setPlayerState(Operate);
+				}
+			} else {
+				setPlayerState(Operate);
+			}
+		}
+
+		// else wait for operate
+
+		return;
+	}
 
 
 	m_soundElapsedMsec += m_scene->timingTimerTimeoutMsec();
@@ -343,11 +390,12 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 	}
 
 
-
-	foreach (const QString &key, m_terrainObjects.keys()) {
-		if (data.value(key, false).toBool()) {
-			setTerrainObject(key, gameObject);
-			return;
+	if (!gameObject->objectType().isEmpty()) {
+		foreach (const QString &key, m_terrainObjects.keys()) {
+			if (gameObject->objectType() == key) {
+				setTerrainObject(key, gameObject);
+				return;
+			}
 		}
 	}
 
@@ -369,13 +417,10 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 void GamePlayer::onEndContact(Box2DFixture *other)
 {
 	GameObject *gameObject = qobject_cast<GameObject *>(other->getBody()->target());
-	const QVariantMap &data = other->property("targetData").toMap();
-
 
 	if (!gameObject) {
 		return;
 	}
-
 
 	GamePickable *pickable = qobject_cast<GamePickable *>(gameObject);
 
@@ -384,11 +429,12 @@ void GamePlayer::onEndContact(Box2DFixture *other)
 		return;
 	}
 
-
-	foreach (const QString &key, m_terrainObjects.keys()) {
-		if (data.value(key, false).toBool()) {
-			setTerrainObject(key, nullptr);
-			return;
+	if (!gameObject->objectType().isEmpty()) {
+		foreach (const QString &key, m_terrainObjects.keys()) {
+			if (gameObject->objectType() == key) {
+				setTerrainObject(key, nullptr);
+				return;
+			}
 		}
 	}
 
@@ -732,6 +778,9 @@ void GamePlayer::shot()
 	if (!isAlive() || m_ladderState == LadderActive || m_ladderState == LadderTopSprite)
 		return;
 
+	if (m_playerState == Operate || m_playerState == MoveToOperate)
+		return;
+
 	setPlayerState(Shot);
 	emit attack();
 	jumpToSprite(QStringLiteral("shot"));		// Mindenképp kérjük
@@ -771,6 +820,36 @@ void GamePlayer::turnRight()
 }
 
 
+/**
+ * @brief GamePlayer::operate
+ * @param object
+ */
+
+void GamePlayer::operate(GameObject *object)
+{
+	if (!object || object->objectType().isEmpty()) {
+		qCWarning(lcGame).noquote() << tr("Invalid operating object (%1):").arg(object ? object->objectType() : "") << object;
+		return;
+	}
+
+	setOperatingObject(object);
+	setPlayerState(MoveToOperate);
+}
+
+
+
+/**
+ * @brief GamePlayer::startInvisibility
+ * @param msec
+ */
+
+void GamePlayer::startInvisibility(const int &msec)
+{
+	setInvisibleTime(m_invisibleTime+msec);
+	emit invisibleTimeChanged();
+}
+
+
 
 
 
@@ -780,7 +859,7 @@ void GamePlayer::turnRight()
  * @param canProtect
  */
 
-void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
+void GamePlayer::hurtByEnemy(GameEnemy *, const bool &canProtect)
 {
 	emit underAttack();
 
@@ -794,12 +873,6 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
 	} else {
 		decreaseHp();
 	}
-
-	/*if (m_cosGame && m_cosGame->gameMatch()) {
-							m_cosGame->gameMatch()->setIsFlawless(false);
-					}*/
-
-
 }
 
 
@@ -808,20 +881,16 @@ void GamePlayer::hurtByEnemy(GameEnemy *enemy, const bool &canProtect)
  * @param enemy
  */
 
-void GamePlayer::killByEnemy(GameEnemy *enemy)
+void GamePlayer::killByEnemy(GameEnemy *)
 {
 	/*if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
 			return;
 	}*/
 
+	setPlayerState(Dead);
+	m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));
+
 	kill();
-
-	/*if (m_cosGame && m_cosGame->gameMatch()) {
-			m_cosGame->gameMatch()->setIsFlawless(false);
-	}
-
-	emit killedByEnemy(enemy);*/
-
 }
 
 
@@ -938,6 +1007,9 @@ void GamePlayer::onMovingFlagsChanged()
 		return;
 
 	if (!isAlive())
+		return;
+
+	if (m_playerState == Operate || m_playerState == MoveToOperate)
 		return;
 
 	if (m_movingFlags.testFlag(MoveLeft))
@@ -1066,6 +1138,7 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 
 	switch (m_playerState) {
 	case Walk:
+	case MoveToOperate:
 		jumpToSprite(QStringLiteral("walk"));
 		break;
 	case Run:
@@ -1087,6 +1160,7 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 		break;
 	case Operate:
 		jumpToSprite(QStringLiteral("operate"));
+		game()->operateReal(this, m_operatingObject);
 		break;
 	case Burn:
 		jumpToSprite(QStringLiteral("burn"));
@@ -1171,3 +1245,62 @@ void GamePlayer::setLadder(GameLadder *newLadder)
 }
 
 
+
+/**
+ * @brief GamePlayer::invisible
+ * @return
+ */
+
+
+bool GamePlayer::invisible() const
+{
+	return m_invisible;
+}
+
+void GamePlayer::setInvisible(bool newInvisible)
+{
+	if (m_invisible == newInvisible)
+		return;
+	m_invisible = newInvisible;
+	emit invisibleChanged();
+}
+
+GameObject *GamePlayer::operatingObject() const
+{
+	return m_operatingObject;
+}
+
+void GamePlayer::setOperatingObject(GameObject *newOperatingObject)
+{
+	if (m_operatingObject == newOperatingObject)
+		return;
+	m_operatingObject = newOperatingObject;
+	emit operatingObjectChanged();
+}
+
+
+/**
+ * @brief GamePlayer::setInvisibleTime
+ * @param msec
+ */
+
+void GamePlayer::setInvisibleTime(const int &msec)
+{
+	if (m_invisibleTime == msec)
+		return;
+	m_invisibleTime = msec;
+	emit invisibleTimeChanged();
+}
+
+
+
+
+/**
+ * @brief GamePlayer::invisibleTime
+ * @return
+ */
+
+const int &GamePlayer::invisibleTime() const
+{
+	return m_invisibleTime;
+}

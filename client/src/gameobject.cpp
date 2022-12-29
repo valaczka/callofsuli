@@ -144,6 +144,16 @@ void GameObject::addChildItem(QQuickItem *item)
 
 
 /**
+ * @brief GameObject::deleteSelf
+ */
+
+void GameObject::deleteSelf()
+{
+	this->deleteLater();
+}
+
+
+/**
  * @brief GameObject::onSceneChanged
  */
 
@@ -176,3 +186,22 @@ ActionGame *GameObject::game() const
 	return m_scene ? m_scene->game() : nullptr;
 }
 
+
+/**
+ * @brief GameObject::objectType
+ * @return
+ */
+
+
+const QString &GameObject::objectType() const
+{
+	return m_objectType;
+}
+
+void GameObject::setObjectType(const QString &newObjectType)
+{
+	if (m_objectType == newObjectType)
+		return;
+	m_objectType = newObjectType;
+	emit objectTypeChanged();
+}

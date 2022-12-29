@@ -157,6 +157,7 @@ SOURCES += \
 	client.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
+	gameenemysniper.cpp \
 	gameenemysoldier.cpp \
 	gameentity.cpp \
 	gameladder.cpp \
@@ -188,6 +189,7 @@ HEADERS += \
 	client.h \
 	fontimage.h \
 	gameenemy.h \
+	gameenemysniper.h \
 	gameenemysoldier.h \
 	gameentity.h \
 	gameladder.h \

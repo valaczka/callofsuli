@@ -114,6 +114,7 @@ public:
 public slots:
 	void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
 	void missedByPlayer(GamePlayer *player);
+	void turnToPlayer(GamePlayer *player);
 
 signals:
 	void attack();
@@ -133,6 +134,7 @@ private slots:
 
 protected:
 	virtual void enemyStateModified() {}
+	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
 
 #ifndef Q_OS_WASM
 	QSoundEffect *m_soundEffect = nullptr;

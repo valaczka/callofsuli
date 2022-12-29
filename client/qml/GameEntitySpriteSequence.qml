@@ -67,8 +67,8 @@ Item {
 
 	ColorOverlay {
 		id: overlay
-		source: control
-		anchors.fill: control
+		source: spriteSequence
+		anchors.fill: spriteSequence
 		opacity: entity && entity.overlayEnabled ? 1.0 : 0.0
 		visible: opacity != 0
 		color: entity ? entity.overlayColor : "white"
@@ -86,8 +86,8 @@ Item {
 		id: hpProgress
 		visible: entity && entity.hpProgressEnabled && !entity.scene.zoomOverview
 
-		width: entity ? entity.bodyRect.width+6 : 30
-		x: entity ? entity.bodyRect.x-3 : 0
+		width: entity ? Math.min(entity.bodyRect.width+6, 30) : 30
+		x: entity ? entity.bodyRect.x + (entity.bodyRect.width-width)/2 : 0
 		y: entity ? entity.bodyRect.y-10 : -5
 		height: 2
 

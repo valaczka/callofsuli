@@ -53,6 +53,8 @@ class ActionGame : public AbstractLevelGame
 	Q_PROPERTY(GameScene* scene READ scene WRITE setScene NOTIFY sceneChanged)
 	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
 	Q_PROPERTY(GamePickable *pickable READ pickable NOTIFY pickableChanged)
+	Q_PROPERTY(QVariantList tools READ tools CONSTANT)
+	Q_PROPERTY(QVariantList toolListIcons READ toolListIcons NOTIFY toolListIconsChanged)
 
 public:
 	ActionGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -74,6 +76,9 @@ public:
 	void relinkQuestionToEnemy(GameEnemy * enemy);
 
 	void tryAttack(GamePlayer *player, GameEnemy *enemy);
+	void operateReal(GamePlayer *player, GameObject *object);
+	bool canOperate(const QString &type) const;
+	bool canOperate(GameObject *object) const;
 
 	GamePlayer *player() const;
 	void setPlayer(GamePlayer *newPlayer);
@@ -92,7 +97,19 @@ public:
 
 	void killAllEnemy();
 
+	Q_INVOKABLE int toolCount(const GamePickable::PickableType &type) const;
+	void toolAdd(const GamePickable::PickableType &type, const int &count = 1);
+	void toolRemove(const GamePickable::PickableType &type, const int &count = 1);
+	void toolClear(const GamePickable::PickableType &type);
+	QVariantList toolListIcons() const;
+	static QVariantList tools();
+	Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
+	const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
+
+
 	Q_INVOKABLE void testQuestion();
+
+
 
 public slots:
 	void onPlayerDied(GameEntity *);
@@ -120,6 +137,8 @@ signals:
 	void activeEnemiesChanged();
 	void pickableChanged();
 	void timeNotify();
+	void toolChanged(GamePickable::PickableType type, int count);
+	void toolListIconsChanged();
 
 private slots:
 	void onSceneStarted();
@@ -148,8 +167,10 @@ private:
 	QStack<GamePickable*> m_pickableStack;
 	QPointer<GameEntity> m_attackedEnemy = nullptr;
 
-	int m_timeNotifySendNext = -1;
+	static const QHash<QString, QVector<GamePickable::PickableType>> m_toolDependency;
+	QHash<GamePickable::PickableType, int> m_tools;
 
+	int m_timeNotifySendNext = -1;
 };
 
 

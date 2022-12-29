@@ -18,17 +18,15 @@ GamePlayerImpl {
 
 	onUnderAttack: hpVisibleTimer.restart()
 
-	//overlayEnabled: ep.invisible
-	//opacity: ep.invisible ? 0.5 : 1.0
+	overlayEnabled: invisible
+	opacity: invisible ? 0.5 : 1.0
 
 
 	onRayCastPerformed: ray.show(rect, scene)
 
-
 	GameEntityRay {
 		id: ray
 		color: "orange"
-		visible: true
 	}
 
 	Timer {
