@@ -253,19 +253,6 @@ void DesktopClient::onMainWindowChanged()
 void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 {
 
-/*	Timer {
-		id: timerOrientation
-		interval: 20
-		running: false
-		repeat: false
-
-		onTriggered: {
-			var m = cosClient.getWindowSafeMargins(mainWindow)
-			safeMarginBottom = m.bottom
-			safeMarginLeft = m.left
-			safeMarginTop = m.top
-			safeMarginRight = m.right*/
-
 	qCDebug(lcClient).noquote() << tr("Screen orientation changed:") << orientation;
 
 	safeMarginsGet();

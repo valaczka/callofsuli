@@ -30,6 +30,7 @@
 #include "client.h"
 #include "actiongame.h"
 #include "mapplay.h"
+#include "mapplaydemo.h"
 #include "qquickwindow.h"
 
 Q_LOGGING_CATEGORY(lcClient, "app.client")
@@ -266,6 +267,8 @@ void Client::onApplicationStarted()
 	QCoreApplication::processEvents();
 
 	GameTerrain::reloadAvailableTerrains();
+	AbstractLevelGame::reloadAvailableMusic();
+	AbstractLevelGame::reloadAvailableMedal();
 
 	stackPushPage(QStringLiteral("PageStart.qml"));
 }
@@ -506,21 +509,6 @@ void Client::messageError(const QString &text, QString title) const
 
 
 
-/**
- * @brief Client::loadGame
- */
-
-void Client::loadGame()
-{
-	if (m_currentGame) {
-		qCCritical(lcClient).noquote() << tr("Game already exists");
-		return;
-	}
-
-
-}
-
-
 
 
 /**
@@ -534,14 +522,13 @@ void Client::loadDemoMap()
 		return;
 	}
 
-	MapPlay *mapPlay = new MapPlay(this);
+	MapPlayDemo *mapPlay = new MapPlayDemo(this);
 
-	//":/internal/game/demo.map" "/home/valaczka/demo_test.map"
-
-	if (!mapPlay->loadFromFile(QStringLiteral(":/internal/game/demo.map"))) {
+	if (!mapPlay->load()) {
 		delete mapPlay;
 		return;
 	}
+
 
 	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), tr("Demó pálya") },
@@ -549,7 +536,7 @@ void Client::loadDemoMap()
 																					}));
 
 	if (!page) {
-		messageError(tr("Nem lehet betölteni a demó oldalat!"));
+		messageError(tr("Nem lehet betölteni a demó oldalt!"));
 		delete mapPlay;
 		return;
 	}

@@ -173,7 +173,7 @@ SOURCES += \
 	main.cpp \
 	mapimage.cpp \
 	mapplay.cpp \
-	mapplaymission.cpp \
+	mapplaydemo.cpp \
 	question.cpp \
 	tiledpaintedlayer.cpp \
 	utils.cpp
@@ -208,7 +208,7 @@ HEADERS += \
 	gameterrainmap.h \
 	mapimage.h \
 	mapplay.h \
-	mapplaymission.h \
+	mapplaydemo.h \
 	question.h \
 	tiledpaintedlayer.h \
 	utils.h

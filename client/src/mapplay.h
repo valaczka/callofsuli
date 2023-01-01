@@ -28,19 +28,30 @@
 #define MAPPLAY_H
 
 #include <QObject>
-#include "abstractgame.h"
-#include "mapplaymission.h"
+#include <QOlm/QOlm.hpp>
+#include "abstractlevelgame.h"
+#include "gamemap.h"
 
 class Client;
-class GameMap;
+class AbstractMapPlaySolver;
+class MapPlayMission;
+using MapPlayMissionList = qolm::QOlm<MapPlayMission>;
+class MapPlayMissionLevel;
+using MapPlayMissionLevelList = qolm::QOlm<MapPlayMissionLevel>;
+
+
+/**
+ * @brief The MapPlay class
+ */
 
 class MapPlay : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(AbstractGame::Mode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged)
+	Q_PROPERTY(GameMap::GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged)
 	Q_PROPERTY(GameMap *gameMap READ gameMap WRITE setGameMap NOTIFY gameMapChanged)
-	Q_PROPERTY(MapPlayMissionList* missionList READ missionList WRITE setMissionList NOTIFY missionListChanged)
+	Q_PROPERTY(MapPlayMissionList *missionList READ missionList CONSTANT)
+	Q_PROPERTY(AbstractLevelGame *currentGame READ currentGame WRITE setCurrentGame NOTIFY currentGameChanged)
 
 public:
 	explicit MapPlay(Client *client, QObject *parent = nullptr);
@@ -49,43 +60,214 @@ public:
 	Q_INVOKABLE bool loadFromBinaryData(const QByteArray &data);
 	Q_INVOKABLE bool loadFromFile(const QString &filename);
 
-	Q_INVOKABLE void reloadMissionList();
-
 	static bool checkTerrains(GameMap *map);
 
 	Client *client() const;
 
-	const AbstractGame::Mode &gameMode() const;
-	void setGameMode(const AbstractGame::Mode &newGameMode);
+	const GameMap::GameMode &gameMode() const;
+	void setGameMode(const GameMap::GameMode &newGameMode);
 
 	GameMap *gameMap() const;
 	void setGameMap(GameMap *newGameMap);
 
-	MapPlayMissionList *missionList() const;
-	void setMissionList(MapPlayMissionList *newMissionList);
+	AbstractMapPlaySolver *solver() const;
+	void setSolver(AbstractMapPlaySolver *newSolver);
 
-	Q_INVOKABLE void play(MapPlayMissionLevel *level);
+	MapPlayMissionList *missionList() const { return m_missionList; }
+
+	MapPlayMission *getMission(GameMapMissionIface *mission) const;
+	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const;
+
+	Q_INVOKABLE bool play(MapPlayMissionLevel *level);
+
+	void updateSolver();
+
+	AbstractLevelGame *currentGame() const;
+	void setCurrentGame(AbstractLevelGame *newCurrentGame);
 
 protected:
 	void loadGameMap(GameMap *map);
 	void unloadGameMap();
+
+	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level);
+	virtual void onCurrentGamePrepared();
+	virtual void onCurrentGameFinished();
 
 signals:
 	void gameMapLoaded();
 	void gameMapUnloaded();
 	void gameModeChanged();
 	void gameMapChanged();
-
-	void missionListChanged();
+	void currentGameChanged();
 
 protected:
 	Client *const m_client = nullptr;
-	AbstractGame::Mode m_gameMode = AbstractGame::Action;
+	GameMap::GameMode m_gameMode = GameMap::Action;
 	GameMap *m_gameMap = nullptr;
-
-private:
-	MapPlayMissionList *m_missionList = nullptr;
+	AbstractMapPlaySolver *m_solver = nullptr;
+	MapPlayMissionList *const m_missionList;
+	AbstractLevelGame *m_currentGame = nullptr;
 };
 
+
+
+
+/**
+ * @brief The MapPlaySolverData class
+ */
+
+class MapPlaySolverData
+{
+public:
+	explicit MapPlaySolverData(const int &solved = 0) : m_solved(solved) {}
+	virtual ~MapPlaySolverData() {}
+
+	int solved() const { return m_solved; }
+	void setSolved(int newSolved) { m_solved = newSolved; }
+
+	int solvedIncrement() { return ++m_solved; }
+
+	MapPlaySolverData& operator++() { ++m_solved; return *this; }
+	MapPlaySolverData operator++(int) { MapPlaySolverData old = *this; ++m_solved; return old; }
+
+private:
+	int m_solved = 0;
+};
+
+
+
+/**
+ * @brief The MapPlaySolver class
+ */
+
+class AbstractMapPlaySolver
+{
+public:
+	AbstractMapPlaySolver(MapPlay *mapPlay);
+	virtual ~AbstractMapPlaySolver() {}
+
+	void clear();
+	static void clear(MapPlay *mapPlay);
+
+	bool loadSolverInfo(GameMapMission *mission, const GameMap::SolverInfo &info);
+	static bool loadSolverInfo(MapPlay *mapPlay, GameMapMission *mission, const GameMap::SolverInfo &info);
+
+	virtual void updateLock() = 0;
+	virtual void updateXP() = 0;
+
+protected:
+	MapPlay *m_mapPlay = nullptr;
+
+};
+
+
+
+
+/**
+ * @brief The MapPlaySolverAction class
+ */
+
+
+class MapPlaySolverAction : public AbstractMapPlaySolver
+{
+public:
+	MapPlaySolverAction(MapPlay *mapPlay) : AbstractMapPlaySolver(mapPlay) {}
+
+	virtual void updateLock() override;
+	virtual void updateXP() override;
+
+	int base() const { return m_base; }
+	void setBase(int newBase) { m_base = newBase; }
+
+private:
+	int m_base = 100;
+};
+
+
+
+
+/**
+ * @brief The MapPlayMission class
+ */
+
+class MapPlayMission : public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(GameMapMission *mission READ mission CONSTANT)
+	Q_PROPERTY(QString name READ name CONSTANT)
+	Q_PROPERTY(MapPlayMissionLevelList *missionLevelList READ missionLevelList CONSTANT)
+
+public:
+	explicit MapPlayMission(GameMapMission *mission, QObject *parent = nullptr);
+	virtual ~MapPlayMission();
+
+	GameMapMission *mission() const { return m_mission; }
+	MapPlayMissionLevelList *missionLevelList() const { return m_missionLevelList; }
+
+	QString name() const;
+
+	GameMap::SolverInfo toSolverInfo() const;
+
+private:
+	GameMapMission *const m_mission;
+	MapPlayMissionLevelList *const m_missionLevelList;
+};
+
+
+Q_DECLARE_METATYPE(MapPlayMissionList*)
+
+/**
+ * @brief The MapPlayMission class
+ */
+
+class MapPlayMissionLevel : public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(GameMapMissionLevel *missionLevel READ missionLevel CONSTANT)
+	Q_PROPERTY(bool deathmatch READ deathmatch CONSTANT)
+	Q_PROPERTY(int lockDepth READ lockDepth WRITE setLockDepth NOTIFY lockDepthChanged)
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
+	Q_PROPERTY(int level READ level CONSTANT)
+	Q_PROPERTY(int solved READ solved NOTIFY solvedChanged)
+	Q_PROPERTY(QString medalImage READ medalImage CONSTANT)
+
+public:
+	explicit MapPlayMissionLevel(GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent = nullptr);
+	virtual ~MapPlayMissionLevel();
+
+	const MapPlaySolverData &solverData() const;
+	void setSolverData(const MapPlaySolverData &newSolverData);
+	void solverDataIncrement();
+
+	GameMapMissionLevel *missionLevel() const { return m_missionLevel; }
+
+	int lockDepth() const;
+	void setLockDepth(int newLockDepth);
+
+	int xp() const;
+	void setXp(int newXp);
+
+	bool deathmatch() const { return m_deathmatch; }
+
+	int level() const;
+	int solved() const;
+	QString medalImage() const;
+
+signals:
+	void lockDepthChanged();
+	void xpChanged();
+	void solvedChanged();
+
+private:
+	GameMapMissionLevel *const m_missionLevel = nullptr;
+	MapPlaySolverData m_solverData;
+	bool m_deathmatch = false;
+	int m_lockDepth = 1;
+	int m_xp = 0;
+};
+
+Q_DECLARE_METATYPE(MapPlayMissionLevelList*)
 
 #endif // MAPPLAY_H

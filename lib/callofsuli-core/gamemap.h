@@ -90,6 +90,20 @@ public:
 	static GameMap *fromBinaryData(const QByteArray &data);
 
 
+	// Játékmód
+
+	enum GameMode {
+		Invalid,
+		Action,
+		Lite,
+		Exam,
+		Quiz
+	};
+
+	Q_ENUM(GameMode);
+
+
+
 	// Solver methods
 
 	struct SolverInfo;
@@ -105,9 +119,17 @@ public:
 											   const qint32 &level,
 											   const bool &deathmatch,
 											   const bool &lite) const;
+
+
 	static qreal computeSolvedXpFactor(const SolverInfo &baseSolver,
 									   const int &level,
-									   const bool &deathmatch, const bool &isLite);
+									   const bool &deathmatch,
+									   const GameMode &mode);
+
+	static qreal computeSolvedXpFactor(const int &level,
+									   const bool &deathmatch,
+									   const int &solved,
+									   const GameMode &mode);
 
 
 protected:
@@ -444,12 +466,21 @@ struct GameMap::SolverInfo {
 
 
 	SolverInfo(const QVariantMap &sqlRow) {
-		t1 = sqlRow.value("t1", 0).toInt();
-		t2 = sqlRow.value("t2", 0).toInt();
-		t3 = sqlRow.value("t3", 0).toInt();
-		d1 = sqlRow.value("d1", 0).toInt();
-		d2 = sqlRow.value("d2", 0).toInt();
-		d3 = sqlRow.value("d3", 0).toInt();
+		t1 = sqlRow.value(QStringLiteral("t1"), 0).toInt();
+		t2 = sqlRow.value(QStringLiteral("t2"), 0).toInt();
+		t3 = sqlRow.value(QStringLiteral("t3"), 0).toInt();
+		d1 = sqlRow.value(QStringLiteral("d1"), 0).toInt();
+		d2 = sqlRow.value(QStringLiteral("d2"), 0).toInt();
+		d3 = sqlRow.value(QStringLiteral("d3"), 0).toInt();
+	}
+
+	SolverInfo(const QJsonObject &sqlRow) {
+		t1 = sqlRow.value(QStringLiteral("t1")).toInt(0);
+		t2 = sqlRow.value(QStringLiteral("t2")).toInt(0);
+		t3 = sqlRow.value(QStringLiteral("t3")).toInt(0);
+		d1 = sqlRow.value(QStringLiteral("d1")).toInt(0);
+		d2 = sqlRow.value(QStringLiteral("d2")).toInt(0);
+		d3 = sqlRow.value(QStringLiteral("d3")).toInt(0);
 	}
 
 
@@ -478,17 +509,17 @@ struct GameMap::SolverInfo {
 	}
 
 	inline int solved(const QString &field) const {
-		if (field == "t1")
+		if (field == QStringLiteral("t1"))
 			return t1;
-		else if (field == "t2")
+		else if (field == QStringLiteral("t2"))
 			return t2;
-		else if (field == "t3")
+		else if (field == QStringLiteral("t3"))
 			return t3;
-		else if (field == "d1")
+		else if (field == QStringLiteral("d1"))
 			return d1;
-		else if (field == "d2")
+		else if (field == QStringLiteral("d2"))
 			return d2;
-		else if (field == "d3")
+		else if (field == QStringLiteral("d3"))
 			return d3;
 
 		return -1;
@@ -560,17 +591,17 @@ struct GameMap::SolverInfo {
 	inline SolverInfo solve(const QString &field) const {
 		SolverInfo p(*this);
 
-		if (field == "t1")
+		if (field == QStringLiteral("t1"))
 			p.t1++;
-		else if (field == "t2")
+		else if (field == QStringLiteral("t2"))
 			p.t2++;
-		else if (field == "t3")
+		else if (field == QStringLiteral("t3"))
 			p.t3++;
-		else if (field == "d1")
+		else if (field == QStringLiteral("d1"))
 			p.d1++;
-		else if (field == "d2")
+		else if (field == QStringLiteral("d2"))
 			p.d2++;
-		else if (field == "d3")
+		else if (field == QStringLiteral("d3"))
 			p.d3++;
 
 		return p;
@@ -580,23 +611,23 @@ struct GameMap::SolverInfo {
 
 	inline QJsonObject toJsonObject() const {
 		QJsonObject o;
-		o["t1"] = t1;
-		o["t2"] = t2;
-		o["t3"] = t3;
-		o["d1"] = d1;
-		o["d2"] = d2;
-		o["d3"] = d3;
+		o[QStringLiteral("t1")] = t1;
+		o[QStringLiteral("t2")] = t2;
+		o[QStringLiteral("t3")] = t3;
+		o[QStringLiteral("d1")] = d1;
+		o[QStringLiteral("d2")] = d2;
+		o[QStringLiteral("d3")] = d3;
 		return o;
 	};
 
 	inline QVariantMap toVariantMap() const {
 		QVariantMap o;
-		o["t1"] = t1;
-		o["t2"] = t2;
-		o["t3"] = t3;
-		o["d1"] = d1;
-		o["d2"] = d2;
-		o["d3"] = d3;
+		o[QStringLiteral("t1")] = t1;
+		o[QStringLiteral("t2")] = t2;
+		o[QStringLiteral("t3")] = t3;
+		o[QStringLiteral("d1")] = d1;
+		o[QStringLiteral("d2")] = d2;
+		o[QStringLiteral("d3")] = d3;
 		return o;
 	};
 };

@@ -390,12 +390,12 @@ void GameQuestion::setPostponeEnabled(bool newPostponeEnabled)
  * @return
  */
 
-AbstractGame::Mode GameQuestion::gameMode() const
+GameMap::GameMode GameQuestion::gameMode() const
 {
 	if (m_game)
 		return m_game->mode();
 	else
-		return AbstractGame::Invalid;
+		return GameMap::Invalid;
 }
 
 
@@ -407,5 +407,5 @@ AbstractGame::Mode GameQuestion::gameMode() const
 
 bool GameQuestion::toggleMode() const
 {
-	return (gameMode() == AbstractGame::Lite) ? true : false;
+	return (gameMode() == GameMap::Lite) ? true : false;
 }

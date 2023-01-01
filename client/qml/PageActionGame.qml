@@ -1265,7 +1265,7 @@ Page {
 
 
 	StackView.onRemoved: {
-		//cosClient.stopSound(game.backgroundMusicFile, CosSound.Music)
+		gameScene.stopSoundMusic(game.backgroundMusic)
 	}
 
 	StackView.onActivated: {

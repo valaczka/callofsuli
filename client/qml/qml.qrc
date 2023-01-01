@@ -44,5 +44,7 @@
         <file>QMenu.qml</file>
         <file>QMenuItem.qml</file>
         <file>PageAbout.qml</file>
+        <file>MedalImage.qml</file>
+        <file>MapPlayMissionLevelCard.qml</file>
     </qresource>
 </RCC>

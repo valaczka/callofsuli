@@ -12,10 +12,11 @@ QScrollablePage {
 
 	Item {
 		height: col.height
+		width: parent.width
 
 		Column {
 			id: col
-			width: parent.width-(Math.max(Client.safeMarginLeft, Client.safeMarginRight, 20)*2)
+			width: parent.width-(Math.max(Client.safeMarginLeft, Client.safeMarginRight, 10)*2)
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 10
 
@@ -40,7 +41,7 @@ QScrollablePage {
 
 				padding: 20
 
-				text: qsTr("Verzió: ")+Qt.application.version+"\n© 2012-2022 Valaczka János Pál"
+				text: qsTr("Verzió: ")+Qt.application.version+"\n© 2012-2023 Valaczka János Pál"
 			}
 
 			Qaterial.LabelHeadline6 {

@@ -30,7 +30,6 @@
 #include <QQuickItem>
 #include "abstractgame.h"
 #include "gamequestioncomponent.h"
-#include "qdatetime.h"
 #include "qelapsedtimer.h"
 #include "question.h"
 
@@ -46,7 +45,7 @@ class GameQuestion : public QQuickItem
 	Q_PROPERTY(QString objectiveUuid READ objectiveUuid WRITE setObjectiveUuid NOTIFY objectiveUuidChanged)
 	Q_PROPERTY(QVariantMap questionData READ questionData WRITE setQuestionData NOTIFY questionDataChanged)
 	Q_PROPERTY(bool postponeEnabled READ postponeEnabled WRITE setPostponeEnabled NOTIFY postponeEnabledChanged)
-	Q_PROPERTY(AbstractGame::Mode gameMode READ gameMode NOTIFY gameModeChanged)
+	Q_PROPERTY(GameMap::GameMode gameMode READ gameMode NOTIFY gameModeChanged)
 	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
 
 public:
@@ -79,7 +78,7 @@ public:
 	bool postponeEnabled() const;
 	void setPostponeEnabled(bool newPostponeEnabled);
 
-	AbstractGame::Mode gameMode() const;
+	GameMap::GameMode gameMode() const;
 
 	bool toggleMode() const;
 

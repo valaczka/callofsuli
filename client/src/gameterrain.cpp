@@ -150,7 +150,33 @@ void GameTerrain::reloadAvailableTerrains()
 		const QString &terrainName = realname.section('/',-2,-2);
 
 		const QString &terrainDir = QStringLiteral(":/terrain/")+terrainName;
-		//const QString &datafile = terrainDir+QStringLiteral("/data.json");
+		const QString &dataFile = terrainDir+QStringLiteral("/data.json");
+
+		QString displayName = terrainName;
+		QString bgImage;
+		QString bgMusic;
+
+		if (QFile::exists(dataFile)) {
+			const QJsonObject &data = Utils::fileToJsonObject(dataFile);
+
+			if (data.contains(QStringLiteral("name")))
+				displayName = data.value(QStringLiteral("name")).toString();
+
+			if (data.contains(QStringLiteral("backgroundMusic"))) {
+				bgMusic = data.value(QStringLiteral("backgroundMusic")).toString();
+				if (!bgMusic.startsWith(QStringLiteral(":/")) && !bgMusic.startsWith(QStringLiteral("/"))) {
+					bgMusic.prepend(terrainDir+QStringLiteral("/"));
+				}
+			}
+
+			if (data.contains(QStringLiteral("backgroundImage"))) {
+				bgImage = data.value(QStringLiteral("backgroundImage")).toString();
+				if (!bgImage.startsWith(QStringLiteral(":/")) && !bgImage.startsWith(QStringLiteral("/"))) {
+					bgImage.prepend(terrainDir+QStringLiteral("/"));
+				}
+			}
+		}
+
 
 		for (int level=1; level<=3; level++) {
 			const QString tmxFile = QStringLiteral("%1/level%2.tmx").arg(terrainDir).arg(level);
@@ -171,6 +197,9 @@ void GameTerrain::reloadAvailableTerrains()
 				GameTerrain t = GameTerrain::fromJsonObject(cacheObject);
 				t.m_name = terrainName;
 				t.m_level = level;
+				t.m_displayName = displayName;
+				t.m_backgroundImage = bgImage;
+				t.m_backgroundMusic = bgMusic;
 				m_availableTerrains.append(t);
 			} else {
 				GameTerrainMap t;
@@ -183,6 +212,9 @@ void GameTerrain::reloadAvailableTerrains()
 
 				t.m_name = terrainName;
 				t.m_level = level;
+				t.m_displayName = displayName;
+				t.m_backgroundImage = bgImage;
+				t.m_backgroundMusic = bgMusic;
 
 				m_availableTerrains.append(t);
 
@@ -226,6 +258,41 @@ bool GameTerrain::terrainAvailable(const QString &name, const int &level)
 	}
 
 	return false;
+}
+
+
+/**
+ * @brief GameTerrain::terrainAvailable
+ * @param missionLevelName
+ * @return
+ */
+
+bool GameTerrain::terrainAvailable(const QString &missionLevelName)
+{
+	const QString &terrainDir = missionLevelName.section("/", 0, -2);
+	const int &terrainLevel = missionLevelName.section("/", -1, -1).toInt();
+
+	return terrainAvailable(terrainDir, terrainLevel);
+}
+
+
+/**
+ * @brief GameTerrain::terrain
+ * @param missionLevelName
+ * @return
+ */
+
+GameTerrain GameTerrain::terrain(const QString &missionLevelName)
+{
+	const QString &terrainDir = missionLevelName.section("/", 0, -2);
+	const int &terrainLevel = missionLevelName.section("/", -1, -1).toInt();
+
+	foreach (const GameTerrain &t, m_availableTerrains) {
+		if (t.name() == terrainDir && t.level() == terrainLevel)
+			return t;
+	}
+
+	return GameTerrain();
 }
 
 
@@ -307,6 +374,36 @@ int GameTerrain::level() const
 void GameTerrain::setLevel(int newLevel)
 {
 	m_level = newLevel;
+}
+
+const QString &GameTerrain::displayName() const
+{
+	return m_displayName;
+}
+
+void GameTerrain::setDisplayName(const QString &newDisplayName)
+{
+	m_displayName = newDisplayName;
+}
+
+const QString &GameTerrain::backgroundImage() const
+{
+	return m_backgroundImage;
+}
+
+void GameTerrain::setBackgroundImage(const QString &newBackgroundImage)
+{
+	m_backgroundImage = newBackgroundImage;
+}
+
+const QString &GameTerrain::backgroundMusic() const
+{
+	return m_backgroundMusic;
+}
+
+void GameTerrain::setBackgroundMusic(const QString &newBackgroundMusic)
+{
+	m_backgroundMusic = newBackgroundMusic;
 }
 
 

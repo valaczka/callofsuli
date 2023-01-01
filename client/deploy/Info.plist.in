@@ -29,7 +29,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>QR-kód beolvasása a kamerával</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© Valaczka János Pál, 2022</string>
+	<string>© Valaczka János Pál, 2023</string>
 	<key>UILaunchStoryboardName</key>
 	<string>COSLaunchScreen</string>
 	<key>UIRequiresFullScreen</key>

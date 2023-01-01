@@ -113,7 +113,7 @@ bool GameTerrainMap::loadMapFromFile(QString filename)
 
 bool GameTerrainMap::loadMap(const QString &terrain, const int &level)
 {
-return loadMapFromFile(QStringLiteral(":/terrain/%1/level%2.tmx").arg(terrain).arg(level));
+	return loadMapFromFile(QStringLiteral(":/terrain/%1/level%2.tmx").arg(terrain).arg(level));
 }
 
 

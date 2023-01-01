@@ -25,13 +25,14 @@
  */
 
 #include "mapplay.h"
-#include "actiongame.h"
+#include "abstractgame.h"
 #include "mapimage.h"
 #include "utils.h"
 #include "application.h"
 #include "gamemap.h"
 #include "websocketmessage.h"
 #include "gameterrain.h"
+#include "actiongame.h"
 #include <QScopedPointer>
 
 MapPlay::MapPlay(Client *client, QObject *parent)
@@ -44,12 +45,21 @@ MapPlay::MapPlay(Client *client, QObject *parent)
 	qCDebug(lcGame).noquote() << tr("Map play object created:") << this;
 }
 
+
+
+
 /**
  * @brief MapPlay::~MapPlay
  */
+
 MapPlay::~MapPlay()
 {
 	unloadGameMap();
+
+	if (m_solver) {
+		delete m_solver;
+		m_solver = nullptr;
+	}
 
 	delete m_missionList;
 
@@ -92,8 +102,6 @@ bool MapPlay::loadFromBinaryData(const QByteArray &data)
 
 	loadGameMap(map.take());
 
-	reloadMissionList();
-
 	return true;
 }
 
@@ -111,47 +119,6 @@ bool MapPlay::loadFromFile(const QString &filename)
 
 
 
-/**
- * @brief MapPlay::reloadMissionList
- */
-
-void MapPlay::reloadMissionList()
-{
-	if (!m_gameMap) {
-		m_missionList->clear();
-		return;
-	}
-
-	foreach (GameMapMission *m, m_gameMap->missions()) {
-		MapPlayMissionLevelList *mllist = new MapPlayMissionLevelList(this);
-		//QVariantList levelList;
-
-		foreach (GameMapMissionLevel *ml, m->levels()) {
-			MapPlayMissionLevel *mll = new MapPlayMissionLevel(this);
-			mll->setLevel(ml->level());
-			mll->setDeathmatch(false);
-			mll->setMapLevel(ml);
-			mllist->append(mll);
-
-			if (ml->canDeathmatch()) {
-				MapPlayMissionLevel *mll = new MapPlayMissionLevel(this);
-				mll->setLevel(ml->level());
-				mll->setDeathmatch(true);
-				mll->setMapLevel(ml);
-				mllist->append(mll);
-			}
-		}
-
-		MapPlayMission *mm = new MapPlayMission(this);
-		mm->setName(m->name());
-		mm->setLevels(mllist);
-		m_missionList->append(mm);
-	}
-
-
-}
-
-
 
 /**
  * @brief MapPlay::checkTerrains
@@ -167,10 +134,8 @@ bool MapPlay::checkTerrains(GameMap *map)
 	foreach (GameMapMission *m, map->missions()) {
 		foreach (GameMapMissionLevel *ml, m->levels()) {
 			const QString &terrain = ml->terrain();
-			const QString &terrainDir = terrain.section("/", 0, -2);
-			const int &terrainLevel = terrain.section("/", -1, -1).toInt();
 
-			if (!GameTerrain::terrainAvailable(terrainDir, terrainLevel)) {
+			if (!GameTerrain::terrainAvailable(terrain)) {
 				qCWarning(lcGame).noquote() << tr("Missing terrain:") << terrain;
 				return false;
 			}
@@ -192,12 +157,12 @@ Client *MapPlay::client() const
 	return m_client;
 }
 
-const AbstractGame::Mode &MapPlay::gameMode() const
+const GameMap::GameMode &MapPlay::gameMode() const
 {
 	return m_gameMode;
 }
 
-void MapPlay::setGameMode(const AbstractGame::Mode &newGameMode)
+void MapPlay::setGameMode(const GameMap::GameMode &newGameMode)
 {
 	if (m_gameMode == newGameMode)
 		return;
@@ -235,9 +200,38 @@ void MapPlay::loadGameMap(GameMap *map)
 	if (!map)
 		return;
 
+
+	foreach (GameMapMission *mission, map->missions()) {
+		MapPlayMission *pMission = new MapPlayMission(mission);
+		m_missionList->append(pMission);
+
+		for (int i=1; i<=mission->levels().size(); i++) {
+			GameMapMissionLevel *mLevel = mission->level(i);
+
+			if (!mLevel)
+				continue;
+
+			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, false);
+			pMission->missionLevelList()->append(pLevel);
+
+			if (mLevel->canDeathmatch()) {
+				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, true);
+				pMission->missionLevelList()->append(pLevel);
+			}
+		}
+	}
+
+
+
 	qCDebug(lcGame).noquote() << tr("Add mapimage provider for map:") << map->uuid();
 	MapImage *mapImage = new MapImage(map);
-	Application::instance()->engine()->addImageProvider("mapimage", mapImage);
+	Application::instance()->engine()->addImageProvider(QStringLiteral("mapimage"), mapImage);
+
+	AbstractMapPlaySolver::clear(this);
+
+	updateSolver();
+
+
 
 	emit gameMapLoaded();
 }
@@ -251,10 +245,12 @@ void MapPlay::loadGameMap(GameMap *map)
 
 void MapPlay::unloadGameMap()
 {
-	if (Application::instance() && Application::instance()->engine() && Application::instance()->engine()->imageProvider("mapimage")) {
+	if (Application::instance() && Application::instance()->engine() && Application::instance()->engine()->imageProvider(QStringLiteral("mapimage"))) {
 		qCDebug(lcGame).noquote() << tr("Remove image provider mapimage");
-		Application::instance()->engine()->removeImageProvider("mapimage");
+		Application::instance()->engine()->removeImageProvider(QStringLiteral("mapimage"));
 	}
+
+	m_missionList->clear();
 
 	if (m_gameMap) {
 		qCDebug(lcGame).noquote() << tr("Delete gamemap:") << m_gameMap;
@@ -264,36 +260,561 @@ void MapPlay::unloadGameMap()
 
 		emit gameMapUnloaded();
 	}
+
+	AbstractMapPlaySolver::clear(this);
 }
 
 
-MapPlayMissionList *MapPlay::missionList() const
+
+
+AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level)
 {
-	return m_missionList;
+	Q_ASSERT(level);
+	Q_ASSERT(level->missionLevel());
+	Q_ASSERT(m_client);
+
+	AbstractLevelGame *g = nullptr;
+
+	switch (m_gameMode) {
+	case GameMap::Action:
+		g = new ActionGame(level->missionLevel(), m_client);
+		break;
+
+	default:
+		m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
+		return nullptr;
+		break;
+	}
+
+	g->setDeathmatch(level->deathmatch());
+
+
+
+	return g;
 }
 
-void MapPlay::setMissionList(MapPlayMissionList *newMissionList)
+
+/**
+ * @brief MapPlay::onGamePrepared
+ */
+
+void MapPlay::onCurrentGamePrepared()
 {
-	if (m_missionList == newMissionList)
+	qCDebug(lcGame).noquote() << tr("Current game prepared") << m_currentGame;
+}
+
+
+
+
+
+
+/**
+ * @brief MapPlay::onGameFinished
+ */
+
+void MapPlay::onCurrentGameFinished()
+{
+	qCDebug(lcGame).noquote() << tr("Missing game finished implementation!");
+
+	m_currentGame->setReadyToDestroy(true);
+}
+
+
+
+/**
+ * @brief MapPlay::currentGame
+ * @return
+ */
+
+AbstractLevelGame *MapPlay::currentGame() const
+{
+	return m_currentGame;
+}
+
+void MapPlay::setCurrentGame(AbstractLevelGame *newCurrentGame)
+{
+	if (m_currentGame == newCurrentGame)
 		return;
-	m_missionList = newMissionList;
-	emit missionListChanged();
+	m_currentGame = newCurrentGame;
+	emit currentGameChanged();
+}
+
+
+
+
+
+
+/**
+ * @brief MapPlay::solver
+ * @return
+ */
+
+AbstractMapPlaySolver *MapPlay::solver() const
+{
+	return m_solver;
+}
+
+void MapPlay::setSolver(AbstractMapPlaySolver *newSolver)
+{
+	if (m_solver)
+		delete m_solver;
+
+	m_solver = newSolver;
+
+	updateSolver();
+}
+
+
+
+
+/**
+ * @brief MapPlay::getMission
+ * @param mission
+ * @return
+ */
+
+MapPlayMission *MapPlay::getMission(GameMapMissionIface *mission) const
+{
+	for (MapPlayMission *m : *m_missionList) {
+		if (m->mission() == mission)
+			return m;
+	}
+
+	return nullptr;
+}
+
+
+
+/**
+ * @brief MapPlay::getMissionLevel
+ * @param missionLevel
+ * @return
+ */
+
+MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const
+{
+	for (MapPlayMission *mission : *m_missionList) {
+		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
+			if (level->missionLevel() == missionLevel && level->deathmatch() == deathmatch)
+				return level;
+		}
+	}
+
+	return nullptr;
 }
 
 
 /**
  * @brief MapPlay::play
  * @param level
+ * @return
  */
 
-void MapPlay::play(MapPlayMissionLevel *level)
+bool MapPlay::play(MapPlayMissionLevel *level)
 {
-	qDebug() << "PLAY" << level << level->level() << level->mapLevel();
+	if (!m_client) {
+		qCCritical(lcGame).noquote() << tr("Missing client");
+		return false;
+	}
 
-	ActionGame *game = new ActionGame(level->mapLevel(), m_client);
-	game->setDeathmatch(level->deathmatch());
+	if (!level || !level->missionLevel()) {
+		qCCritical(lcGame).noquote() << tr("Missing level");
+		return false;
+	}
 
-	m_client->setCurrentGame(game);
+	if (m_client->currentGame()) {
+		m_client->messageError(tr("Még folyamatban van egy másik játék"), tr("Játék nem indítható"));
+		return false;
+	}
 
-	game->load();
+	AbstractLevelGame *g = createLevelGame(level);
+
+	if (!g)
+		return false;
+
+	connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
+
+	setCurrentGame(g);
+	m_client->setCurrentGame(g);
+
+	onCurrentGamePrepared();
+
+	return true;
+
 }
+
+
+
+/**
+ * @brief MapPlay::updateSolver
+ */
+
+void MapPlay::updateSolver()
+{
+	if (m_solver) {
+		m_solver->updateLock();
+		m_solver->updateXP();
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief MapPlayMissionLevel::MapPlayMissionLevel
+ * @param missionLevel
+ * @param parent
+ */
+
+MapPlayMissionLevel::MapPlayMissionLevel(GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent)
+	: QObject(parent)
+	, m_missionLevel(missionLevel)
+	, m_deathmatch(deathmatch)
+{
+	qCDebug(lcGame).noquote() << tr("Map play mission level created:") << this;
+}
+
+
+/**
+ * @brief MapPlayMissionLevel::~MapPlayMissionLevel
+ */
+
+MapPlayMissionLevel::~MapPlayMissionLevel()
+{
+	qCDebug(lcGame).noquote() << tr("Map play mission destroyed:") << this;
+}
+
+
+/**
+ * @brief MapPlayMissionLevel::solverData
+ * @return
+ */
+
+const MapPlaySolverData &MapPlayMissionLevel::solverData() const
+{
+	return m_solverData;
+}
+
+
+/**
+ * @brief MapPlayMissionLevel::setSolverData
+ * @param newSolverData
+ */
+
+void MapPlayMissionLevel::setSolverData(const MapPlaySolverData &newSolverData)
+{
+	m_solverData = newSolverData;
+	emit solvedChanged();
+}
+
+
+
+void MapPlayMissionLevel::solverDataIncrement()
+{
+	++m_solverData;
+	emit solvedChanged();
+}
+
+
+
+/**
+ * @brief MapPlayMissionLevel::lockDepth
+ * @return
+ */
+
+int MapPlayMissionLevel::lockDepth() const
+{
+	return m_lockDepth;
+}
+
+void MapPlayMissionLevel::setLockDepth(int newLockDepth)
+{
+	if (m_lockDepth == newLockDepth)
+		return;
+	m_lockDepth = newLockDepth;
+	emit lockDepthChanged();
+}
+
+int MapPlayMissionLevel::xp() const
+{
+	return m_xp;
+}
+
+void MapPlayMissionLevel::setXp(int newXp)
+{
+	if (m_xp == newXp)
+		return;
+	m_xp = newXp;
+	emit xpChanged();
+}
+
+
+/**
+ * @brief MapPlayMissionLevel::level
+ * @return
+ */
+
+int MapPlayMissionLevel::level() const
+{
+	return m_missionLevel ? m_missionLevel->level() : 0;
+}
+
+int MapPlayMissionLevel::solved() const
+{
+	return m_solverData.solved();
+}
+
+QString MapPlayMissionLevel::medalImage() const
+{
+	return AbstractLevelGame::medalImagePath(m_missionLevel);
+}
+
+
+
+
+/**
+ * @brief MapPlayMission::MapPlayMission
+ * @param mission
+ * @param parent
+ */
+
+MapPlayMission::MapPlayMission(GameMapMission *mission, QObject *parent)
+	: QObject(parent)
+	, m_mission(mission)
+	, m_missionLevelList(new MapPlayMissionLevelList(this))
+{
+	qCDebug(lcGame).noquote() << tr("Map play mission created:") << this;
+}
+
+
+/**
+ * @brief MapPlayMission::~MapPlayMission
+ */
+
+MapPlayMission::~MapPlayMission()
+{
+	delete m_missionLevelList;
+
+	qCDebug(lcGame).noquote() << tr("Map play mission destroyed:") << this;
+}
+
+
+
+
+/**
+ * @brief MapPlayMission::name
+ * @return
+ */
+
+QString MapPlayMission::name() const
+{
+	return m_mission ? m_mission->name() : QLatin1String("");
+}
+
+
+/**
+ * @brief MapPlayMission::toSolverInfo
+ * @return
+ */
+
+GameMap::SolverInfo MapPlayMission::toSolverInfo() const
+{
+	QJsonObject object;
+
+	for (MapPlayMissionLevel *level : *m_missionLevelList) {
+		const QString &key = level->deathmatch() ? QStringLiteral("d%1").arg(level->level()) : QStringLiteral("t%1").arg(level->level());
+		object[key] = level->solverData().solved();
+	}
+
+	return GameMap::SolverInfo(object);
+}
+
+
+
+/**
+ * @brief AbstractMapPlaySolver::clear
+ */
+
+AbstractMapPlaySolver::AbstractMapPlaySolver(MapPlay *mapPlay)
+	: m_mapPlay(mapPlay)
+{
+	Q_ASSERT(m_mapPlay);
+}
+
+
+/**
+ * @brief AbstractMapPlaySolver::clear
+ */
+
+void AbstractMapPlaySolver::clear()
+{
+	clear(m_mapPlay);
+}
+
+
+/**
+ * @brief AbstractMapPlaySolver::clear
+ * @param mapPlay
+ */
+
+void AbstractMapPlaySolver::clear(MapPlay *mapPlay)
+{
+	Q_ASSERT(mapPlay);
+
+	qCDebug(lcGame).noquote() << QObject::tr("Clear solver info");
+
+	for (MapPlayMission *mission : *mapPlay->missionList()) {
+		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
+			level->setSolverData(MapPlaySolverData(0));
+		}
+	}
+}
+
+
+/**
+ * @brief AbstractMapPlaySolver::loadSolverInfo
+ * @param missionLevel
+ * @param info
+ * @return
+ */
+
+bool AbstractMapPlaySolver::loadSolverInfo(GameMapMission *mission, const GameMap::SolverInfo &info)
+{
+	if (!mission) {
+		qCWarning(lcGame).noquote() << QObject::tr("Invalid mission");
+		return false;
+	}
+
+	return loadSolverInfo(m_mapPlay, mission, info);
+}
+
+
+
+
+/**
+ * @brief AbstractMapPlaySolver::loadSolverInfo
+ * @param mapPlay
+ * @param missionLevel
+ * @param info
+ * @return
+ */
+
+bool AbstractMapPlaySolver::loadSolverInfo(MapPlay *mapPlay, GameMapMission *mission, const GameMap::SolverInfo &info)
+{
+	Q_ASSERT(mapPlay);
+	Q_ASSERT(mission);
+
+	bool found = false;
+
+	for (MapPlayMission *m : *mapPlay->missionList()) {
+		if (m->mission() != mission)
+			continue;
+
+		for (MapPlayMissionLevel *level : *m->missionLevelList()) {
+			MapPlaySolverData data = level->solverData();
+			data.setSolved(info.solved(level->missionLevel()->level(), level->deathmatch()));
+			level->setSolverData(data);
+			found = true;
+		}
+	}
+
+	return found;
+}
+
+
+
+/**
+ * @brief MapPlaySolverAction::updateLock
+ */
+
+void MapPlaySolverAction::updateLock()
+{
+	qCDebug(lcGame).noquote() << QObject::tr("MapPlaySolverAction update locks");
+
+	GameMap *map = m_mapPlay->gameMap();
+
+	if (!map)
+		return;
+
+
+	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
+		GameMapMission *gMission = mission->mission();
+
+		const QVector<GameMapMissionLevelIface *> &locks = map->missionLockTree(gMission);
+
+		int lockDepth = 0;
+
+		foreach (GameMapMissionLevelIface *ml, locks) {
+			MapPlayMissionLevel *l = m_mapPlay->getMissionLevel(ml, false);
+			if (l && (l->lockDepth()>0 || !l->solverData().solved())) {
+				lockDepth = qMax(l->lockDepth(), 1);
+				break;
+			}
+		}
+
+		if (lockDepth) {
+			for (MapPlayMissionLevel *level : *mission->missionLevelList())
+				level->setLockDepth(lockDepth);
+
+			continue;
+		}
+
+		for (int i=1; i<mission->missionLevelList()->size(); ++i) {
+			MapPlayMissionLevel *level = m_mapPlay->getMissionLevel(gMission->level(i), false);
+			MapPlayMissionLevel *dmLevel = m_mapPlay->getMissionLevel(gMission->level(i), true);
+
+			if (!level)
+				continue;
+
+			if (lockDepth) {
+				level->setLockDepth(lockDepth);
+				if (dmLevel)
+					dmLevel->setLockDepth(lockDepth);
+				continue;
+			}
+
+			level->setLockDepth(0);
+
+			if (dmLevel) {
+				dmLevel->setLockDepth(level->solverData().solved() ? 0 : 1);
+			}
+
+			if (level->solverData().solved() < 1)
+				lockDepth = 1;
+		}
+
+
+	}
+
+}
+
+
+/**
+ * @brief MapPlaySolverAction::updateXP
+ */
+
+void MapPlaySolverAction::updateXP()
+{
+	qCDebug(lcGame).noquote() << QObject::tr("MapPlaySolverAction update xp");
+
+	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
+		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
+			level->setXp(m_base * GameMap::computeSolvedXpFactor(level->level(),
+																 level->deathmatch(),
+																 level->solverData().solved(),
+																 GameMap::Action));
+		}
+	}
+}
+
+
+
+

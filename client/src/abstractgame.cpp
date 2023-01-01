@@ -35,7 +35,7 @@ Q_LOGGING_CATEGORY(lcGame, "app.game")
  * @param client
  */
 
-AbstractGame::AbstractGame(const Mode &mode, Client *client)
+AbstractGame::AbstractGame(const GameMap::GameMode &mode, Client *client)
 	: QObject{client}
 	, m_client(client)
 	, m_mode(mode)
@@ -82,8 +82,46 @@ void AbstractGame::onPageItemDestroyed()
 {
 	setPageItem(nullptr);
 	qCDebug(lcGame) << tr("Game page item destroyed");
-	m_client->setCurrentGame(nullptr);
-	deleteLater();
+	gameDestroy();
+}
+
+void AbstractGame::setFinishState(const FinishState &newFinishState)
+{
+	m_finishState = newFinishState;
+}
+
+
+/**
+ * @brief AbstractGame::readyToDestroy
+ * @return
+ */
+
+bool AbstractGame::readyToDestroy() const
+{
+	return m_readyToDestroy;
+}
+
+
+/**
+ * @brief AbstractGame::setReadyToDestroy
+ * @param newReadyToDestroy
+ */
+
+void AbstractGame::setReadyToDestroy(bool newReadyToDestroy)
+{
+	m_readyToDestroy = newReadyToDestroy;
+	gameDestroy();
+}
+
+
+/**
+ * @brief AbstractGame::finishState
+ * @return
+ */
+
+const AbstractGame::FinishState &AbstractGame::finishState() const
+{
+	return m_finishState;
 }
 
 
@@ -152,6 +190,8 @@ bool AbstractGame::gameFinish()
 	if (gameFinishEvent()) {
 		elapsedTimeStop();
 		qCDebug(lcGame).noquote() << tr("Game finished after %1 milliseconds:").arg(m_elapsedMsec) << this;
+
+		emit gameFinished(m_finishState);
 		return true;
 	}
 
@@ -160,11 +200,22 @@ bool AbstractGame::gameFinish()
 
 
 /**
+ * @brief AbstractGame::gameDestroy
+ */
+
+void AbstractGame::gameDestroy()
+{
+	if (!m_pageItem && m_readyToDestroy)
+		this->deleteLater();
+}
+
+
+/**
  * @brief AbstractGame::mode
  * @return
  */
 
-const AbstractGame::Mode &AbstractGame::mode() const
+const GameMap::GameMode &AbstractGame::mode() const
 {
 	return m_mode;
 }

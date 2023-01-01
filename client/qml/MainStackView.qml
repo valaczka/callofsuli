@@ -10,13 +10,16 @@ Qaterial.StackView
 
 	signal stackViewLoaded()
 
-	initialItem: CosImage {
-		maxWidth: Math.min(mainWindow.width*0.7, 800)
-		glowRadius: 6
+	initialItem: Item {
+		CosImage {
+			width: Math.min(mainStackView.width*0.7, 800)
+			anchors.centerIn: parent
+			glowRadius: 6
 
-		image.onStatusChanged: if (image.status == Image.Ready) {
-								   mainStackView.stackViewLoaded()
-							   }
+			image.onStatusChanged: if (image.status == Image.Ready) {
+									   mainStackView.stackViewLoaded()
+								   }
+		}
 	}
 
 	Transition {
@@ -65,7 +68,7 @@ Qaterial.StackView
 
 
 
-	function callStackPop() : bool{
+	function callStackPop() : bool {
 		if (currentItem.stackPopFunction) {
 			console.info(qsTr("Lap pop funkció meghívása:"), currentItem)
 			return currentItem.stackPopFunction()

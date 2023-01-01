@@ -25,7 +25,14 @@
  */
 
 #include "abstractlevelgame.h"
+#include "qdiriterator.h"
 #include "question.h"
+#include "gameterrain.h"
+#include <QRandomGenerator>
+
+
+QStringList AbstractLevelGame::m_availableMusic;
+QStringList AbstractLevelGame::m_availableMedal;
 
 
 
@@ -35,7 +42,7 @@
  * @param client
  */
 
-AbstractLevelGame::AbstractLevelGame(const Mode &mode, GameMapMissionLevel *missionLevel, Client *client)
+AbstractLevelGame::AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractGame(mode, client)
 	, m_missionLevel(missionLevel)
 	, m_timerLeft(new QTimer(this))
@@ -134,6 +141,66 @@ int AbstractLevelGame::msecLeft() const
 
 
 /**
+ * @brief AbstractLevelGame::reloadAvailableMusic
+ */
+
+void AbstractLevelGame::reloadAvailableMusic()
+{
+	qCDebug(lcGame).noquote() << tr("Reload available music...");
+
+	m_availableMusic.clear();
+
+	QDirIterator it(QStringLiteral(":/sound/music"), QDir::Files);
+
+	while (it.hasNext())
+		m_availableMusic.append(it.next());
+
+	qCDebug(lcGame).noquote() << tr("...loaded %1 music").arg(m_availableMusic.size());
+}
+
+
+/**
+ * @brief AbstractLevelGame::reloadAvailableMedal
+ */
+
+void AbstractLevelGame::reloadAvailableMedal()
+{
+	qCDebug(lcGame).noquote() << tr("Reload available medal...");
+
+	m_availableMedal.clear();
+
+	QDirIterator it(QStringLiteral(":/internal/medals"), QDir::Files);
+
+	while (it.hasNext()) {
+		it.next();
+		m_availableMedal.append(it.fileName());
+	}
+
+	qCDebug(lcGame).noquote() << tr("...loaded %1 medal").arg(m_availableMedal.size());
+}
+
+
+/**
+ * @brief AbstractLevelGame::medalImagePath
+ * @param image
+ * @return
+ */
+
+QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
+{
+	if (!missionLevel)
+		return QLatin1String("");
+
+	QString d = missionLevel->mission()->medalImage();
+
+	if (m_availableMedal.contains(d))
+		return d.prepend(QStringLiteral("qrc:/internal/medals/"));
+	else
+		return QLatin1String("");
+}
+
+
+/**
  * @brief AbstractLevelGame::startWithRemainingTime
  * @param msec
  */
@@ -216,8 +283,9 @@ int AbstractLevelGame::level() const
 
 QString AbstractLevelGame::medalImage() const
 {
-	return m_missionLevel ? m_missionLevel->mission()->medalImage() : "";
+	return medalImagePath(m_missionLevel);
 }
+
 
 QString AbstractLevelGame::terrain() const
 {
@@ -244,17 +312,70 @@ int AbstractLevelGame::duration() const
 
 QUrl AbstractLevelGame::backgroundImage() const
 {
-	/*if (m_bgImage.isEmpty() || m_imageDbName.isEmpty())
-					return "qrc:/internal/game/bg.png";
-			else if (m_bgImage.startsWith("qrc:/"))
-					return m_bgImage;
-			else
-					return "image://"+m_imageDbName+"/"+m_bgImage;
+	if (!m_missionLevel)
+		return QUrl(QStringLiteral("qrc:/internal/game/bg.png"));
 
-					return m_missionLevel ? m_missionLevel->image() : "";
-*/
+	QString d;
 
-	return QUrl(QStringLiteral("qrc:/internal/game/bg.png"));
+	if (!m_missionLevel->image().isEmpty())
+		d = QStringLiteral("image://mapimage/")+m_missionLevel->image();
+
+	if (d.isEmpty()) {
+		const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
+
+		if (!t.name().isEmpty())
+			d = t.backgroundImage();
+	}
+
+	if (!d.isEmpty()) {
+		if (d.startsWith(QStringLiteral(":")))
+			d.prepend(QStringLiteral("qrc"));
+		else if (!d.startsWith(QStringLiteral("qrc:")))
+			d.prepend(QStringLiteral("qrc:"));
+	}
+
+	return d.isEmpty() ? QStringLiteral("qrc:/internal/game/bg.png") : d;
+}
+
+
+
+/**
+ * @brief AbstractLevelGame::backgroundMusic
+ * @return
+ */
+
+QString AbstractLevelGame::backgroundMusic()
+{
+	if (!m_backgroundMusic.isEmpty())
+		return m_backgroundMusic;
+
+	QString d;
+
+	if (m_missionLevel) {
+		const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
+
+		if (!t.name().isEmpty())
+			d = t.backgroundMusic();
+
+		if (d.isEmpty() && m_availableMusic.size()) {
+			d = m_availableMusic.at(QRandomGenerator::global()->bounded(m_availableMusic.size()));
+		}
+
+		if (d.isEmpty())
+			d = QStringLiteral("qrc:/sound/music/default_bg_music.mp3");
+
+		if (d.startsWith(QStringLiteral(":")))
+			d.prepend(QStringLiteral("qrc"));
+		else if (!d.startsWith(QStringLiteral("qrc:")))
+			d.prepend(QStringLiteral("qrc:"));
+
+
+		m_backgroundMusic = d;
+	} else {
+		d = QStringLiteral("qrc:/sound/music/default_bg_music.mp3");
+	}
+
+	return d;
 }
 
 

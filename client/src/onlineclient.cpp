@@ -146,6 +146,7 @@ void OnlineClient::onAllResourceReady()
 	qCInfo(lcClient).noquote() << tr("Az alkalmazás sikeresen elindult");
 
 	GameTerrain::reloadAvailableTerrains();
+	AbstractLevelGame::reloadAvailableMedal();
 
 	stackPushPage("PageStart.qml");
 }

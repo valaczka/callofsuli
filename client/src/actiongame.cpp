@@ -53,7 +53,7 @@ ActionGame::m_toolDependency({
  */
 
 ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
-	: AbstractLevelGame(Action, missionLevel, client)
+	: AbstractLevelGame(GameMap::Action, missionLevel, client)
 {
 	Q_ASSERT(missionLevel);
 
@@ -866,6 +866,9 @@ void ActionGame::onGameQuestionFinished()
 
 void ActionGame::onGameTimeout()
 {
+	m_scene->stopSoundMusic(backgroundMusic());
+
+	setFinishState(Fail);
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
@@ -880,12 +883,15 @@ void ActionGame::onGameTimeout()
 
 void ActionGame::onGameSuccess()
 {
+	m_scene->stopSoundMusic(backgroundMusic());
+
+	setFinishState(Success);
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/sfx/win.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"));
 
-	QTimer::singleShot(2500, this, [this](){
+	QTimer::singleShot(2000, this, [this](){
 		dialogMessageFinish(m_isFlawless ? tr("Mission completed\nHibátlan győzelem!") : tr("Mission completed"), "qrc:/Qaterial/Icons/trophy.svg", true);
 	});
 }
@@ -899,6 +905,9 @@ void ActionGame::onGameSuccess()
 
 void ActionGame::onGameFailed()
 {
+	m_scene->stopSoundMusic(backgroundMusic());
+
+	setFinishState(Fail);
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));
@@ -1448,6 +1457,9 @@ void ActionGame::toolUse(const GamePickable::PickableType &type)
 
 void ActionGame::gameAbort()
 {
+	m_scene->stopSoundMusic(backgroundMusic());
+	setFinishState(Fail);
+
 	qCInfo(lcGame).noquote() << tr("Game aborted:") << this;
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));

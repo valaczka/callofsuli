@@ -455,15 +455,30 @@ GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid
  * @return
  */
 
-qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch, const bool &isLite)
+qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch, const GameMode &mode)
+{
+	return computeSolvedXpFactor(level, deathmatch, baseSolver.solved(level, deathmatch), mode);
+}
+
+
+/**
+ * @brief GameMap::computeSolvedXpFactor
+ * @param level
+ * @param deathmatch
+ * @param solved
+ * @param mode
+ * @return
+ */
+
+qreal GameMap::computeSolvedXpFactor(const int &level, const bool &deathmatch, const int &solved, const GameMode &mode)
 {
 	qreal xp = XP_FACTOR_LEVEL*level;
 
-	if (!isLite) {
+	if (mode == Action) {
 		if (deathmatch)
 			xp *= XP_FACTOR_DEATHMATCH;
 
-		if (!baseSolver.hasSolved(level, deathmatch))
+		if (solved < 1)
 			xp *= XP_FACTOR_SOLVED_FIRST;
 	}
 

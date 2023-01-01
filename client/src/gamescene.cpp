@@ -193,6 +193,38 @@ void GameScene::playSoundVoiceOver(const QString &source)
 }
 
 
+/**
+ * @brief GameScene::playSoundMusic
+ * @param source
+ */
+
+void GameScene::playSoundMusic(const QString &source)
+{
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client)
+		client->playSound(source, Sound::Music);
+#endif
+}
+
+
+
+
+/**
+ * @brief GameScene::stopSoundMusic
+ * @param source
+ */
+
+void GameScene::stopSoundMusic(const QString &source)
+{
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client)
+		client->stopSound(source, Sound::Music);
+#endif
+}
+
+
 
 
 
@@ -865,6 +897,7 @@ void GameScene::onSceneStepSuccess()
 
 	m_game->pageItem()->setState(QStringLiteral("run"));
 
+	playSoundMusic(m_game->backgroundMusic());
 }
 
 

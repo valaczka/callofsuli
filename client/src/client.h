@@ -83,7 +83,6 @@ public:
 	AbstractGame *currentGame() const;
 	void setCurrentGame(AbstractGame *newCurrentGame);
 
-	Q_INVOKABLE void loadGame();
 	Q_INVOKABLE void loadDemoMap();
 
 	Q_INVOKABLE void messageInfo(const QString &text, QString title = "") const;

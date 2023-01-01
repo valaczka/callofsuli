@@ -13,6 +13,10 @@ Qaterial.ScrollablePage {
 
 	property alias appBar: appBar
 
+	property real contentBottomPadding: 0
+
+	default property alias realContentData: realContent.data
+
 	header: AppBar {
 		id: appBar
 		title: control.title
@@ -26,6 +30,13 @@ Qaterial.ScrollablePage {
 			fillMode: Image.PreserveAspectCrop
 			source: "qrc:/internal/img/villa.png"
 		}
+	}
+
+	Item {
+		id: realContent
+
+		implicitHeight: Math.max(control.height-appBar.height, childrenRect.height+contentBottomPadding)
+		width: parent.width
 	}
 
 }

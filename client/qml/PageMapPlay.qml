@@ -10,123 +10,75 @@ import "JScript.js" as JS
 QScrollablePage {
 	id: control
 
+	contentBottomPadding: 20
+
 	property MapPlay map: null
 
 	property SortFilterProxyModel mList: SortFilterProxyModel {
 		sourceModel: map ? map.missionList : []
 
-		sorters: StringSorter { roleName: "name"; priority: 0 ; sortOrder: Qt.DescendingOrder }
+		sorters: StringSorter { roleName: "name"; priority: 0 ; sortOrder: Qt.AscendingOrder }
 	}
 
-
 	Column {
+		id: col
+		width: parent.width
+
 		Repeater {
 			model: mList
 
 			Column {
 				id: missionColumn
 
-				//required property string name
-				//required property var levels
+				property QtObject mission: model.qtObject
 
-
-
-				Qaterial.LabelHeadline3 {
-					text: name
+				Qaterial.LabelHeadline5 {
+					topPadding: 20
+					bottomPadding: 10
+					leftPadding: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
+					rightPadding: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
+					text: mission.name
 				}
 
 				ListView {
 					id: view
-					model: levels
+					model: mission.missionLevelList
 					orientation: ListView.Horizontal
 
-					implicitHeight: 220
+					implicitHeight: 150*Qaterial.Style.pixelSizeRatio
 
 					width: control.width
-					//height: 200//medalButtonSize
 					spacing: 5
 
 					clip: true
 
 					header: Item {
-						width: Client.safeMarginLeft
+						width: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
 						height: view.height
 					}
 
 					footer: Item {
-						width: Client.safeMarginRight
+						width: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
 						height: view.height
 					}
 
-					delegate: Qaterial.Card {
-						width: 200
-						height: 200
+					delegate: MapPlayMissionLevelCard {
+						height: view.implicitHeight
+						width: view.implicitHeight
 
-						property QtObject foo: model.qtObject
+						missionLevel: model.qtObject
 
-						pressed: area.pressed
-
-						contentItem: Item {
-							width: parent.width
-							height: lay.height
-							ColumnLayout {
-								id: lay
-								width: parent.width
-								spacing: Qaterial.Style.card.verticalPadding
-
-								Qaterial.LabelHeadline5
-								{
-									text: foo.level
-									elide: Text.ElideRight
-									//padding: Qaterial.Style.card.horizontalPadding
-									Layout.leftMargin: Qaterial.Style.card.horizontalPadding
-									Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-									Layout.fillWidth: true
-									////Layout.topMargin: Qaterial.Style.card.horizontalPadding
-								} // Label
-
-
-								Qaterial.CardSupportingText
-								{
-									supportingText: foo.deathmatch
-									Layout.leftMargin: Qaterial.Style.card.horizontalPadding
-									Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-									Layout.topMargin: 2
-									Layout.bottomMargin: 2
-									Layout.fillWidth: true
-								} // CardSupportingText
-							}
-
-							MouseArea {
-								id: area
-								anchors.fill: parent
-								acceptedButtons: Qt.LeftButton
-
-								onClicked: map.play(foo)
-
-							}
-
-						} // ColumnLayout
-
-						/*Image
-								{
-									source: _control.media
-									Layout.maximumWidth: Qaterial.Style.dense ? 64 : 80
-									Layout.maximumHeight: Qaterial.Style.dense ? 64 : 80
-									Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-								} // Image*/
-					} // RowLayout
+						onClicked: map.play(item)
+					}
 
 				}
 
-
 			}
-
-
 		}
+
+
 	}
 
 
 
-	//StackView.onActivated: Client.loadGame()
 }

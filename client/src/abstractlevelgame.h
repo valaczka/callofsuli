@@ -49,12 +49,13 @@ class AbstractLevelGame : public AbstractGame
 	Q_PROPERTY(int startHP READ startHP CONSTANT)
 	Q_PROPERTY(int duration READ duration CONSTANT)
 	Q_PROPERTY(QUrl backgroundImage READ backgroundImage CONSTANT);
+	Q_PROPERTY(QString backgroundMusic READ backgroundMusic CONSTANT);
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 
 	Q_PROPERTY(bool isFlawless READ isFlawless WRITE setIsFlawless NOTIFY isFlawlessChanged)
 
 public:
-	explicit AbstractLevelGame(const Mode &mode, GameMapMissionLevel *missionLevel, Client *client);
+	explicit AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissionLevel *missionLevel, Client *client);
 	virtual ~AbstractLevelGame();
 
 	bool deathmatch() const;
@@ -71,7 +72,13 @@ public:
 	int startHP() const;
 	int duration() const;
 	QUrl backgroundImage() const;
+	QString backgroundMusic();
 	int msecLeft() const;
+
+	static void reloadAvailableMusic();
+	static void reloadAvailableMedal();
+
+	static QString medalImagePath(GameMapMissionLevel *missionLevel);
 
 	Q_INVOKABLE void startWithRemainingTime(const qint64 &msec);
 	void addToDeadline(const qint64 &msec);
@@ -101,6 +108,9 @@ protected:
 private:
 	QTimer *m_timerLeft = nullptr;
 	bool m_deadlineTimeout = false;
+	QString m_backgroundMusic;
+	static QStringList m_availableMusic;
+	static QStringList m_availableMedal;
 };
 
 #endif // ABSTRACTLEVELGAME_H

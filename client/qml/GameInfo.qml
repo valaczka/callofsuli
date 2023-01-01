@@ -13,7 +13,7 @@ Item {
 	property alias iconLabel: iconLabel
 	property alias text: iconLabel.text
 	property color color: Qaterial.Style.accentColor
-	property real pixelSize: Qaterial.Style.textTheme.body2.pixelSize
+	property real pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
 	property bool marked: false
 	property real horizontalPadding: 10
 

@@ -1,6 +1,6 @@
 function intializeStyle() {
 	Qaterial.Style.theme = Qaterial.Style.Theme.Dark
-	Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan900
+	Qaterial.Style.primaryColorDark = Qt.darker(Qaterial.Colors.cyan900, 1.8)
 	Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
 	Qaterial.Style.backgroundColorDark = Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.6)
 	Qaterial.Style.foregroundColorDark = Qaterial.Colors.green200
@@ -11,7 +11,7 @@ function intializeStyle() {
 	Qaterial.Style.darkColorTheme.primary = Qaterial.Style.primaryColorDark
 	Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
 
-	Qaterial.Style.dialogColor = Qt.darker(Qaterial.Style.primaryColorDark, 1.8)
+	Qaterial.Style.dialogColor = Qt.darker(Qaterial.Style.primaryColorDark, 1.5)
 
 	if (Qt.platform.os == "linux" || Qt.platform.os == "osx" || Qt.platform.os == "windows")
 		Qaterial.Style.dense = true

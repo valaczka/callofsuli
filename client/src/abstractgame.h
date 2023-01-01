@@ -50,17 +50,14 @@ class AbstractGame : public QObject
 
 public:
 
-	// Játékmód
-
-	enum Mode {
-		Invalid,
-		Action,
-		Lite,
-		Exam,
-		Quiz
+	enum FinishState {
+		Invalid = 0,
+		Neutral,
+		Success,
+		Fail
 	};
 
-	Q_ENUM(Mode);
+	Q_ENUM(FinishState);
 
 	// Statistics
 
@@ -70,13 +67,13 @@ public:
 		int elapsed;
 	};
 
-	explicit AbstractGame(const Mode &mode, Client *client);
+	explicit AbstractGame(const GameMap::GameMode &mode, Client *client);
 	virtual ~AbstractGame();
 
 	QQuickItem *pageItem() const;
 	void setPageItem(QQuickItem *newPageItem);
 
-	const Mode &mode() const;
+	const GameMap::GameMode &mode() const;
 
 	GameMap *map() const;
 	void setMap(GameMap *newMap);
@@ -90,8 +87,14 @@ public:
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 
-
 	int elapsedMsec() const;
+
+	void setFinishState(const FinishState &newFinishState);
+	const FinishState &finishState() const;
+
+	bool readyToDestroy() const;
+	void setReadyToDestroy(bool newReadyToDestroy);
+
 
 public slots:
 	bool load();
@@ -103,6 +106,7 @@ protected:
 	virtual void connectGameQuestion() = 0;
 	virtual bool gameStartEvent() { return true; };
 	virtual bool gameFinishEvent() { return true; };
+	virtual void gameDestroy();
 
 private slots:
 	void onPageItemDestroyed();
@@ -111,22 +115,24 @@ signals:
 	void pageItemChanged();
 	void mapChanged();
 	void gameQuestionChanged();
+	void gameFinished(AbstractGame::FinishState state);
 
 protected:
 	Client *m_client = nullptr;
 	QQuickItem *m_pageItem = nullptr;
-	const Mode m_mode;
+	const GameMap::GameMode m_mode;
 	GameMap *m_map = nullptr;
 	GameQuestion *m_gameQuestion = nullptr;
 	QVector<Statistics> m_statistics;
 	int m_elapsedMsec = -1;
-
 
 private:
 	void elapsedTimeStart();
 	void elapsedTimeStop();
 
 	QElapsedTimer m_elapsedTimer;
+	FinishState m_finishState = Invalid;
+	bool m_readyToDestroy = false;
 
 };
 
