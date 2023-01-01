@@ -29,6 +29,7 @@
 #include "application.h"
 #include "client.h"
 #include "actiongame.h"
+#include "mapplay.h"
 #include "qquickwindow.h"
 
 Q_LOGGING_CATEGORY(lcClient, "app.client")
@@ -133,6 +134,24 @@ bool Client::stackPop(const int &index, const bool &forced) const
 		return false;
 	}
 
+	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
+
+	if (!currentItem) {
+		qCCritical(lcClient).noquote() << tr("mainStack currentItem unavailable");
+		return false;
+	}
+
+
+
+	bool canPop = true;
+
+	QMetaObject::invokeMethod(m_mainStack, "callStackPop",
+							  Q_RETURN_ARG(bool, canPop)
+							  );
+
+	if (!canPop)
+		return false;
+
 	const int &depth = m_mainStack->property("depth").toInt();
 
 	if (index >= depth) {
@@ -152,13 +171,6 @@ bool Client::stackPop(const int &index, const bool &forced) const
 	}
 
 
-
-	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
-
-	if (!currentItem) {
-		qCCritical(lcClient).noquote() << tr("mainStack currentItem unavailable");
-		return false;
-	}
 
 
 	QString closeDisabled = currentItem->property("closeDisabled").toString();
@@ -252,6 +264,8 @@ void Client::onApplicationStarted()
 	qCInfo(lcClient).noquote() << tr("A kliens alkalmazás sikeresen elindult.");
 
 	QCoreApplication::processEvents();
+
+	GameTerrain::reloadAvailableTerrains();
 
 	stackPushPage(QStringLiteral("PageStart.qml"));
 }
@@ -503,23 +517,47 @@ void Client::loadGame()
 		return;
 	}
 
-#if defined(Q_OS_ANDROID) || defined(Q_OS_WASM)
-	GameMap *map = GameMap::fromBinaryData(Utils::fileContent(QStringLiteral(":/internal/game/demo.map")));
-#else
-	GameMap *map = GameMap::fromBinaryData(Utils::fileContent(QStringLiteral("/home/valaczka/demo_test.map")));
-#endif
 
-	if (!map)
-		return;
-
-	GameMapMissionLevel *ml = map->missionLevel(QStringLiteral("{90cb2799-f189-4255-9667-1f19b582284b}"), 1);
-
-	ActionGame *game = new ActionGame(ml, this);
-	//game->setDeathmatch(true);
-	setCurrentGame(game);
-
-	game->load();
 }
+
+
+
+
+/**
+ * @brief Client::loadDemoMap
+ */
+
+void Client::loadDemoMap()
+{
+	if (m_currentGame) {
+		qCCritical(lcClient).noquote() << tr("Game already exists");
+		return;
+	}
+
+	MapPlay *mapPlay = new MapPlay(this);
+
+	//":/internal/game/demo.map" "/home/valaczka/demo_test.map"
+
+	if (!mapPlay->loadFromFile(QStringLiteral(":/internal/game/demo.map"))) {
+		delete mapPlay;
+		return;
+	}
+
+	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
+																						{ QStringLiteral("title"), tr("Demó pálya") },
+																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay) }
+																					}));
+
+	if (!page) {
+		messageError(tr("Nem lehet betölteni a demó oldalat!"));
+		delete mapPlay;
+		return;
+	}
+
+	connect(page, &QQuickItem::destroyed, mapPlay, &MapPlay::deleteLater);
+}
+
+
 
 
 /**

@@ -2,7 +2,7 @@ TEMPLATE = lib
 
 QT += qml
 
-#CONFIG += staticlib
+CONFIG += staticlib
 
 android: TARGET = SortFilterProxyModel_$${QT_ARCH}
 else: TARGET = SortFilterProxyModel

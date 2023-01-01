@@ -13,9 +13,17 @@ else: LIBS += -L../../lib$${TargetSuffix}
 android: LIBS += -lcallofsuli-core_$${QT_ARCH}
 else: LIBS += -lcallofsuli-core
 
+
+# Core includes
+
+INCLUDEPATH += $$PWD/QDeferred/src
+INCLUDEPATH += $$PWD/QJsonWebToken/src
+
 # Qaterial
 
-INCLUDEPATH += $$PWD/Qaterial/src
+INCLUDEPATH += \
+	$$PWD/Qaterial/src \
+	$$PWD/QOlm/include
 
 QMLPATHS += $$PWD/Qaterial/qml/Qaterial
 
@@ -72,10 +80,7 @@ else:!wasm: LIBS += -lCuteLogger
 
 # SortFilterProxyModel
 
-INCLUDEPATH += $$PWD/SortFilterProxyModel
-
-android: LIBS += -lSortFilterProxyModel_$${QT_ARCH}
-else: LIBS += -lSortFilterProxyModel
+include(SortFilterProxyModel/SortFilterProxyModel.pri)
 
 
 # QtXlsxWriter

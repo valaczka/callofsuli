@@ -164,6 +164,8 @@ void DesktopApplication::initialize()
 	qRegisterMetaType<Sound::SoundType>("SoundType");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 0, "Sound", "Sound is uncreatable");
 
+	createStandardPath();
+
 }
 
 
@@ -208,6 +210,24 @@ bool DesktopApplication::performCommandLine()
 	}
 
 	return true;
+}
+
+
+
+/**
+ * @brief DesktopApplication::createStandardPath
+ */
+
+void DesktopApplication::createStandardPath()
+{
+	QDir d(Utils::standardPath());
+
+	if (!d.exists()) {
+		qCInfo(lcApp).noquote() << QObject::tr("Create directory:") + d.absolutePath();
+		d.mkpath(d.absolutePath());
+	} else {
+		qCDebug(lcApp).noquote() << QObject::tr("Standard path:") << d.absolutePath();
+	}
 }
 
 

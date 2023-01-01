@@ -1,9 +1,17 @@
 function intializeStyle() {
 	Qaterial.Style.theme = Qaterial.Style.Theme.Dark
-	Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan700
+	Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan900
 	Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
-	Qaterial.Style.backgroundColor = Qaterial.Colors.black
-	Qaterial.Style.foregroundColorDark = Qaterial.Colors.cyan200
+	Qaterial.Style.backgroundColorDark = Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.6)
+	Qaterial.Style.foregroundColorDark = Qaterial.Colors.green200
+
+	Qaterial.Style.primaryTextColorDark = Qaterial.Colors.cyan50
+
+	Qaterial.Style.darkColorTheme.background = Qaterial.Colors.black
+	Qaterial.Style.darkColorTheme.primary = Qaterial.Style.primaryColorDark
+	Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
+
+	Qaterial.Style.dialogColor = Qt.darker(Qaterial.Style.primaryColorDark, 1.8)
 
 	if (Qt.platform.os == "linux" || Qt.platform.os == "osx" || Qt.platform.os == "windows")
 		Qaterial.Style.dense = true
@@ -29,7 +37,7 @@ function intializeStyle() {
 	Qaterial.Style.textTheme.button.weight = Font.DemiBold
 	Qaterial.Style.textTheme.body2.weight = Font.Medium
 	Qaterial.Style.textTheme.body1.weight = Font.Medium
-	Qaterial.Style.textTheme.caption.weight = Font.Medium
+	Qaterial.Style.textTheme.caption.weight = Font.DemiBold
 
 	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 96*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 60*Qaterial.Style.pixelSizeRatio })

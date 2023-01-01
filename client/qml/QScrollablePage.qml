@@ -4,7 +4,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
 
-Qaterial.Page {
+Qaterial.ScrollablePage {
 	id: control
 
 	property string closeQuestion: ""					// Kérdés a lap bezárása előtt

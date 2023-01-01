@@ -34,6 +34,7 @@
 #include "gameterrain.h"
 #include "gameplayerposition.h"
 #include "libtiled/mapobject.h"
+#include "libtiled/objectgroup.h"
 #include "qtimer.h"
 #include "tiledpaintedlayer.h"
 #include "utils.h"
@@ -120,10 +121,10 @@ void GameScene::load()
 
 	GameMapMissionLevel *ml = m_game->missionLevel();
 
-	QString terrain = ml->terrain();
+	const QString &terrain = ml->terrain();
 
-	QString terrainDir = terrain.section("/", 0, -2);
-	int terrainLevel = terrain.section("/", -1, -1).toInt();
+	const QString &terrainDir = terrain.section("/", 0, -2);
+	const int &terrainLevel = terrain.section("/", -1, -1).toInt();
 
 	if (!m_terrain.loadMap(terrainDir, terrainLevel)) {
 		Application::instance()->messageError(tr("A harcmező nem tölthető be!"), tr("Nem lehet elindítani a játékot"));
@@ -139,6 +140,7 @@ void GameScene::load()
 	loadLadderLayer();
 	loadPlayerPositionLayer();
 	loadTerrainObjectsLayer();
+	loadPickablesLayer();
 
 	++m_sceneLoadSteps;
 
@@ -268,22 +270,6 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 		game()->toolUse(GamePickable::PickableCamouflage);
 		break;
 
-
-	case Qt::Key_A:
-		game()->toolAdd(GamePickable::PickablePliers);
-		break;
-
-	case Qt::Key_S:
-		game()->toolAdd(GamePickable::PickableWater);
-		break;
-
-	case Qt::Key_D:
-		game()->toolAdd(GamePickable::PickableTeleporter);
-		break;
-
-	case Qt::Key_F:
-		game()->toolAdd(GamePickable::PickableCamouflage);
-		break;
 	}
 
 
@@ -595,6 +581,22 @@ void GameScene::loadPlayerPositionLayer()
 
 
 
+/**
+ * @brief GameScene::loadPickablesLayer
+ */
+
+void GameScene::loadPickablesLayer()
+{
+	qCDebug(lcScene).noquote() << tr("Load pickables layer");
+
+	foreach(const GameTerrain::PickableData &data, m_terrain.pickables()) {
+		m_game->createPickable(data.data, data.point);
+	}
+
+}
+
+
+
 
 
 
@@ -628,7 +630,7 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
  * @return
  */
 
-const GameTerrain &GameScene::terrain() const
+const GameTerrainMap &GameScene::terrain() const
 {
 	return m_terrain;
 }

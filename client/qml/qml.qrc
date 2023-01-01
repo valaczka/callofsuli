@@ -38,5 +38,11 @@
         <file>GameQuestionButtonPostpone.qml</file>
         <file>GameEnemySniper.qml</file>
         <file>GameEnemySniperCrosshair.qml</file>
+        <file>PageMapPlay.qml</file>
+        <file>QScrollablePage.qml</file>
+        <file>AppBar.qml</file>
+        <file>QMenu.qml</file>
+        <file>QMenuItem.qml</file>
+        <file>PageAbout.qml</file>
     </qresource>
 </RCC>

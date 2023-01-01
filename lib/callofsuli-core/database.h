@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * desktopapplication.h
+ * database.h
  *
- * Created on: 2022. 12. 09.
+ * Created on: 2022. 12. 31.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * DesktopApplication
+ * Database
  *
  *  This file is part of Call of Suli.
  *
@@ -24,51 +24,33 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DESKTOPAPPLICATION_H
-#define DESKTOPAPPLICATION_H
+#ifndef DATABASE_H
+#define DATABASE_H
 
 
-#ifdef Q_OS_ANDROID
-#include <AndroidAppender.h>
-#else
-#include <ColorConsoleAppender.h>
-#endif
+#include "qloggingcategory.h"
+#include <QDeferred>
+#include <QLambdaThreadWorker>
+#include <QSqlDatabase>
+#include <QSqlError>
 
-
-#include "application.h"
-
-class DesktopApplication : public Application
+class Database
 {
-	enum CommandLine {
-		Normal,
-		License,
-		Editor,
-		Map,
-		Play
-	};
-
 public:
-	DesktopApplication(int &argc, char **argv);
-	virtual ~DesktopApplication();
+	Database(const QString &dbName);
+	virtual ~Database();
 
-	void commandLineParse();
-	void initialize();
-	void shutdown();
-	bool performCommandLine();
-	void createStandardPath();
+	const QString &dbName() const;
+
+	virtual QDeferred<QSqlError> databaseOpen(const QString &path);
 
 protected:
-	virtual Client *createClient();
+	bool databaseInit();
 
-private:
-	CommandLine m_commandLine = Normal;
-	QString m_loadMap;
-	QStringList m_arguments;
-
-#ifdef Q_OS_WIN32
-	FILE *m_streamO = NULL;
-	FILE *m_streamE = NULL;
-#endif
+	QLambdaThreadWorker m_worker;
+	QString m_dbName;
 };
 
-#endif // DESKTOPAPPLICATION_H
+Q_DECLARE_LOGGING_CATEGORY(lcDb);
+
+#endif // DATABASE_H

@@ -34,13 +34,23 @@
 
 #include "gameterrain.h"
 #include "client.h"
-#include "libtiled/mapreader.h"
+#include "gameterrainmap.h"
+#include "qdiriterator.h"
 
 
-GameTerrain::GameTerrain(const QString &filename)
+QVector<GameTerrain> GameTerrain::m_availableTerrains;
+
+
+
+/**
+ * @brief GameTerrain::GameTerrain
+ * @param filename
+ */
+
+
+GameTerrain::GameTerrain()
 {
-	if (!filename.isEmpty())
-		loadMapFromFile(filename);
+
 }
 
 
@@ -50,7 +60,7 @@ GameTerrain::GameTerrain(const QString &filename)
 
 GameTerrain::~GameTerrain()
 {
-	m_map.reset(nullptr);
+
 }
 
 
@@ -66,268 +76,23 @@ bool GameTerrain::isValid() const
 }
 
 
+
+
+
+
+
+
+
 /**
- * @brief GameTerrain::loadMap
+ * @brief GameTerrain::pickables
  * @return
  */
 
-bool GameTerrain::loadMapFromFile(QString filename)
+const QVector<GameTerrain::PickableData> &GameTerrain::pickables() const
 {
-	m_isValid = false;
-	m_enemies.clear();
-	m_blocks.clear();
-	m_fireCount = 0;
-	m_fenceCount = 0;
-	m_teleportCount = 0;
-
-	Tiled::MapReader reader;
-
-	if (filename.startsWith(QStringLiteral("qrc:")))
-		filename.replace(QStringLiteral("qrc:"), QStringLiteral(":"));
-
-	if(!QFile::exists(filename)) {
-		qCWarning(lcClient).noquote() << QObject::tr("A terepfájl nem létezik:") << filename;
-		return false;
-	}
-
-	qCDebug(lcClient).noquote() << QObject::tr("Load map from file:") << filename;
-
-	m_map.reset(nullptr);
-	m_map = reader.readMap(filename);
-
-	if (!m_map) {
-		qCWarning(lcClient).noquote() << QObject::tr("Failed to read %1 (%2)").arg(filename, reader.errorString());
-		return false;
-	}
-
-	if (loadObjectLayers()) {
-		m_isValid = true;
-
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded enemies: %1").arg(enemies().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded blocks: %1").arg(blocks().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded fires: %1").arg(fires().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded fences: %1").arg(fences().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded teleports: %1").arg(teleports().size());
-
-		return true;
-	}
-
-	qCWarning(lcClient) << QObject::tr("Failed to read layers:") << filename;
-
-
-
-	return false;
+	return m_pickables;
 }
 
-
-
-/**
- * @brief GameTerrain::loadMap
- * @param terrain
- * @param level
- * @return
- */
-
-bool GameTerrain::loadMap(const QString &terrain, const int &level)
-{
-	return loadMapFromFile(QStringLiteral(":/terrain/%1/level%2.tmx").arg(terrain).arg(level));
-}
-
-
-
-
-/**
- * @brief GameTerrain::loadObjectLayers
- * @return
- */
-
-bool GameTerrain::loadObjectLayers()
-{
-	for (auto layer = m_map->objectGroups().begin(); layer != m_map->objectGroups().end(); ++layer) {
-		const QString &name = layer->name();
-		qCDebug(lcClient).noquote() << QObject::tr("Load layer:") << name;
-
-		Tiled::ObjectGroup *gLayer = static_cast<Tiled::ObjectGroup*>(*layer);
-
-		if (name == QStringLiteral("Enemies"))
-			readEnemyLayer(gLayer);
-		else if (name == QStringLiteral("Objects"))
-			readObjectLayer(gLayer);
-		else if (name == QStringLiteral("Player"))
-			readPlayerLayer(gLayer);
-
-	}
-
-	return true;
-}
-
-
-
-/**
- * @brief GameTerrain::width
- * @return
- */
-
-int GameTerrain::width() const
-{
-	if (m_map)
-		return m_map->width() * m_map->tileWidth();
-	else
-		return 0;
-}
-
-
-
-
-
-/**
- * @brief GameTerrain::height
- * @return
- */
-
-int GameTerrain::height() const
-{
-	if (m_map)
-		return m_map->height() * m_map->tileHeight();
-	else
-		return 0;
-}
-
-
-/**
- * @brief GameTerrain::map
- * @return
- */
-
-Tiled::Map* GameTerrain::map() const
-{
-	return m_map.get();
-}
-
-
-/**
- * @brief GameTerrain::readEnemyLayer
- */
-
-void GameTerrain::readEnemyLayer(Tiled::ObjectGroup *layer)
-{
-	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid object layer");
-		return;
-	}
-
-	foreach (Tiled::MapObject *object, layer->objects()) {
-		const int &block = object->property("block").toInt();
-
-		if (block > 0 && !m_blocks.contains(block))
-			m_blocks.append(block);
-
-		const qreal &ox = object->x();
-		const qreal &oy = object->y();
-
-		EnemyData enemy;
-
-		if (object->shape() == Tiled::MapObject::Polyline || object->shape() == Tiled::MapObject::Polygon) {
-			QPolygonF polygon = object->polygon();
-			enemy.rect = polygon.boundingRect();
-			enemy.rect.adjust(ox, oy, ox, oy);
-		} else {
-			enemy.rect = QRectF(ox, oy, 1, 1);
-		}
-
-
-		if (object->type() == QStringLiteral("sniper"))
-			enemy.type = EnemySniper;
-		else
-			enemy.type = EnemySoldier;
-
-		if (block > 0)
-			enemy.block = block;
-
-		qCDebug(lcClient).noquote() << QObject::tr("Add enemy") << enemy.type << enemy.rect << enemy.block;
-
-		m_enemies.append(enemy);
-	}
-}
-
-
-
-/**
- * @brief GameTerrain::readObjectLayer
- */
-
-void GameTerrain::readObjectLayer(Tiled::ObjectGroup *layer)
-{
-	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid object layer");
-		return;
-	}
-
-	foreach (Tiled::MapObject *object, layer->objects()) {
-		const QString type = object->type();
-		ObjectType o = Invalid;
-
-		if (type == QStringLiteral("fire"))
-			o = Fire;
-		else if (type == QStringLiteral("fence"))
-			o = Fence;
-		else if (type == QStringLiteral("teleport"))
-			o = Teleport;
-
-		if (o != Invalid) {
-			ObjectData d;
-			d.point = object->position();
-			d.type = o;
-
-			m_objects.append(d);
-
-		} else {
-			qCWarning(lcClient).noquote() << QObject::tr("Invalid map object type:") << type;
-		}
-	}
-
-}
-
-
-/**
- * @brief GameTerrain::readPlayerLayer
- * @param layer
- */
-
-void GameTerrain::readPlayerLayer(Tiled::ObjectGroup *layer)
-{
-	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid object layer");
-		return;
-	}
-
-	foreach (Tiled::MapObject *object, layer->objects()) {
-		const int &block = object->property("block").toInt();
-
-		if (block <= 0) {
-			qCWarning(lcClient).noquote() << QObject::tr("Invalid player position block:") << object->position();
-			continue;
-		}
-
-		PlayerPositionData d;
-		d.point = object->position();
-		d.block = block;
-		d.start = object->property("start").toBool();
-
-		m_playerPositions.append(d);
-	}
-}
-
-
-/**
- * @brief GameTerrain::readItemLayer
- * @param layer
- */
-
-void GameTerrain::readItemLayer(Tiled::ObjectGroup *layer)
-{
-
-}
 
 
 /**
@@ -357,6 +122,191 @@ GameTerrain::PlayerPositionData GameTerrain::defaultPlayerPosition() const
 		return m_playerPositions.first();
 
 	return PlayerPositionData();
+}
+
+
+
+/**
+ * @brief GameTerrain::reloadAvailableTerrains
+ */
+
+void GameTerrain::reloadAvailableTerrains()
+{
+	qCInfo(lcClient).noquote() << QObject::tr("Reload terrains...");
+
+	const QString cache = Utils::standardPath("terrain_cache.json");
+
+	qCDebug(lcClient).noquote() << QObject::tr("Terrain cache:") << cache;
+
+	QJsonObject terrainCache = Utils::fileToJsonObject(cache);
+
+	m_availableTerrains.clear();
+
+	QDirIterator it(QStringLiteral(":/terrain"), {QStringLiteral("level1.tmx")}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		const QString &realname = it.next();
+
+		const QString &terrainName = realname.section('/',-2,-2);
+
+		const QString &terrainDir = QStringLiteral(":/terrain/")+terrainName;
+		//const QString &datafile = terrainDir+QStringLiteral("/data.json");
+
+		for (int level=1; level<=3; level++) {
+			const QString tmxFile = QStringLiteral("%1/level%2.tmx").arg(terrainDir).arg(level);
+
+			QFileInfo tmxI(tmxFile);
+
+			if (!tmxI.exists())
+				continue;
+
+			qCInfo(lcClient).noquote() << QObject::tr("Load terrain %1 level %2").arg(terrainName).arg(level);
+
+			const qint64 &tmxModified = tmxI.lastModified().toMSecsSinceEpoch();
+
+			const QJsonObject &cacheObject = terrainCache.value(tmxFile).toObject();
+			double cacheModified = cacheObject.value(QLatin1String("lastModified")).toDouble();
+
+			if (cacheModified > tmxModified) {
+				GameTerrain t = GameTerrain::fromJsonObject(cacheObject);
+				t.m_name = terrainName;
+				t.m_level = level;
+				m_availableTerrains.append(t);
+			} else {
+				GameTerrainMap t;
+				if (!t.loadMapFromFile(tmxFile)) {
+					qCWarning(lcClient).noquote() << QObject::tr("Can't load terrain:") << tmxFile;
+					continue;
+				}
+				QJsonObject obj = t.toJsonObject();
+				obj[QStringLiteral("lastModified")] = QDateTime::currentDateTime().toMSecsSinceEpoch();
+
+				t.m_name = terrainName;
+				t.m_level = level;
+
+				m_availableTerrains.append(t);
+
+				terrainCache[tmxFile] = obj;
+			}
+		}
+
+	}
+
+	qCInfo(lcClient).noquote() << QObject::tr("...loaded %1 terrains").arg(m_availableTerrains.size());
+
+	qCDebug(lcClient).noquote() << QObject::tr("Save terrain cache:") << cache;
+
+	Utils::jsonObjectToFile(terrainCache, cache);
+}
+
+
+/**
+ * @brief GameTerrain::availableTerrains
+ * @return
+ */
+
+const QVector<GameTerrain> &GameTerrain::availableTerrains()
+{
+	return m_availableTerrains;
+}
+
+
+/**
+ * @brief GameTerrain::terrainAvailable
+ * @param name
+ * @param level
+ * @return
+ */
+
+bool GameTerrain::terrainAvailable(const QString &name, const int &level)
+{
+	foreach (const GameTerrain &t, m_availableTerrains) {
+		if (t.name() == name && t.level() == level)
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief GameTerrain::toJsonObject
+ * @return
+ */
+
+QJsonObject GameTerrain::toJsonObject() const
+{
+	QJsonObject o;
+
+	o[QStringLiteral("enemies")] = m_enemies.count();
+	o[QStringLiteral("fires")] = fires().count();
+	o[QStringLiteral("fences")] = fences().count();
+	o[QStringLiteral("teleports")] = teleports().count();
+	o[QStringLiteral("blocks")] = blocks().count();
+	o[QStringLiteral("pickables")] = pickables().count();
+
+	return o;
+}
+
+
+/**
+ * @brief GameTerrain::fromJsonObject
+ * @param object
+ * @return
+ */
+
+GameTerrain GameTerrain::fromJsonObject(const QJsonObject &object)
+{
+	GameTerrain t;
+
+	for (int i=0; i<object.value("enemies").toInt(); ++i)
+		t.m_enemies.append(EnemyData());
+
+	for (int i=0; i<object.value("fires").toInt(); ++i) {
+		ObjectData o;
+		o.type = Fire;
+		t.m_objects.append(o);
+	}
+
+	for (int i=0; i<object.value("fences").toInt(); ++i) {
+		ObjectData o;
+		o.type = Fence;
+		t.m_objects.append(o);
+	}
+
+	for (int i=0; i<object.value("teleports").toInt(); ++i) {
+		ObjectData o;
+		o.type = Teleport;
+		t.m_objects.append(o);
+	}
+
+	for (int i=0; i<object.value("blocks").toInt(); ++i)
+		t.m_blocks.append(-1);
+
+	for (int i=0; i<object.value("pickables").toInt(); ++i)
+		t.m_pickables.append(PickableData());
+
+	return t;
+}
+
+const QString &GameTerrain::name() const
+{
+	return m_name;
+}
+
+void GameTerrain::setName(const QString &newName)
+{
+	m_name = newName;
+}
+
+int GameTerrain::level() const
+{
+	return m_level;
+}
+
+void GameTerrain::setLevel(int newLevel)
+{
+	m_level = newLevel;
 }
 
 

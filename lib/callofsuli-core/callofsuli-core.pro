@@ -1,29 +1,47 @@
 TEMPLATE = lib
 
-include(../../version/version.pri)
+include($$PWD/../../version/version.pri)
 
 android: TARGET = callofsuli-core_$${QT_ARCH}
 else: TARGET = callofsuli-core
+
+!wasm: QT += sql
 
 CONFIG += staticlib
 
 DESTDIR = ..
 
-INCLUDEPATH += $$PWD
+# QDeferred
+
+include($$PWD/../QDeferred/src/qdeferred.pri)
+include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
+
+
+INCLUDEPATH += $$PWD \
+				$$PWD/../QJsonWebToken/src
 
 DEFINES += \
 	COS_VERSION_MAJOR=$$VER_MAJ \
 	COS_VERSION_MINOR=$$VER_MIN \
 
 HEADERS += \
-	QJsonWebToken/qjsonwebtoken.h \
+	../QJsonWebToken/src/qjsonwebtoken.h \
 	gamemap.h \
 	gamemapreaderiface.h \
 	websocketmessage.h
 
 SOURCES += \
-	QJsonWebToken/qjsonwebtoken.cpp \
+	../QJsonWebToken/src/qjsonwebtoken.cpp \
 	gamemap.cpp \
 	gamemapreaderiface.cpp \
 	websocketmessage.cpp
 
+
+!wasm {
+	HEADERS += \
+		database.h \
+
+	SOURCES += \
+		database.cpp \
+
+}

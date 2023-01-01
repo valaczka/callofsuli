@@ -27,3 +27,10 @@ hlines += "$${LITERAL_HASH}define VERSION_FULL \"$${AppVersionMajor}.$${AppVersi
 hlines += "$${LITERAL_HASH}endif"
 
 write_file(version.h, hlines)
+
+build_nr.commands = touch $$_PRO_FILE_
+build_nr.depends = FORCE
+
+QMAKE_EXTRA_TARGETS += build_nr
+POST_TARGETDEPS += build_nr
+

@@ -6,7 +6,6 @@ SUBDIRS = \
 	libQZXing \
 	libQaterial \
 	libTiled \
-	libSortFilterProxyModel \
 	libQtXlsxWriter \
 	callofsuli-core
 

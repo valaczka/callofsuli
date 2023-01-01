@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * desktopapplication.h
+ * mapimage.h
  *
- * Created on: 2022. 12. 09.
+ * Created on: 2022. 01. 05.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * DesktopApplication
+ * MapImage
  *
  *  This file is part of Call of Suli.
  *
@@ -24,51 +24,25 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DESKTOPAPPLICATION_H
-#define DESKTOPAPPLICATION_H
+#ifndef MAPIMAGE_H
+#define MAPIMAGE_H
 
+#include <QQuickImageProvider>
+#include <QPixmap>
+#include "gamemapreaderiface.h"
 
-#ifdef Q_OS_ANDROID
-#include <AndroidAppender.h>
-#else
-#include <ColorConsoleAppender.h>
-#endif
-
-
-#include "application.h"
-
-class DesktopApplication : public Application
+class MapImage : public QQuickImageProvider
 {
-	enum CommandLine {
-		Normal,
-		License,
-		Editor,
-		Map,
-		Play
-	};
-
 public:
-	DesktopApplication(int &argc, char **argv);
-	virtual ~DesktopApplication();
+	MapImage(GameMapReaderIface *map = nullptr);
 
-	void commandLineParse();
-	void initialize();
-	void shutdown();
-	bool performCommandLine();
-	void createStandardPath();
+	QPixmap requestPixmap(const QString &id, QSize *size, const QSize &requestedSize);
 
-protected:
-	virtual Client *createClient();
+	GameMapReaderIface *map() const { return m_map; }
+	void setMap(GameMapReaderIface *newMap) { m_map = newMap; }
 
 private:
-	CommandLine m_commandLine = Normal;
-	QString m_loadMap;
-	QStringList m_arguments;
-
-#ifdef Q_OS_WIN32
-	FILE *m_streamO = NULL;
-	FILE *m_streamE = NULL;
-#endif
+	GameMapReaderIface *m_map;
 };
 
-#endif // DESKTOPAPPLICATION_H
+#endif // MAPIMAGE_H

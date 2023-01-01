@@ -36,17 +36,7 @@ Qaterial.ApplicationWindow
 	{
 		JS.intializeStyle()
 
-		Qaterial.Style.primaryColorDark = Qaterial.Colors.cyan700
-		Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
-		Qaterial.Style.backgroundColor = Qaterial.Colors.black
-		Qaterial.Style.foregroundColorDark = Qaterial.Colors.cyan200
-		Qaterial.Style.buttonTextColor = Qaterial.Colors.black
-
 		Qaterial.Style.colorItemGlow = Qaterial.Colors.yellow100
-
-		Qaterial.Style.darkColorTheme.background = Qaterial.Style.backgroundColor
-		Qaterial.Style.darkColorTheme.primary = Qaterial.Colors.cyan500
-		Qaterial.Style.darkColorTheme.accent = Qaterial.Style.accentColorDark
 
 		Qaterial.Style.rawButton.outlinedFocusWidth = 1
 

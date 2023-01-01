@@ -15,6 +15,9 @@ Item {
 	property int maxWidth: 0
 	property int maxHeight: 0
 
+	implicitWidth: img.implicitWidth
+	implicitHeight: img.implicitHeight
+
 	Image {
 		id: img
 		anchors.centerIn: parent
@@ -31,7 +34,7 @@ Item {
 		id: overed
 		anchors.fill: img
 		source: img
-		color: Qaterial.Style.primaryColor
+		color: Qt.lighter(Qaterial.Style.primaryColor, 1.7)
 	}
 
 	Glow {

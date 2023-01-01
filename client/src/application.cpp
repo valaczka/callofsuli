@@ -63,6 +63,8 @@
 #include "gameplayer.h"
 #include "gamepickable.h"
 #include "gamequestion.h"
+#include "mapplay.h"
+#include "mapplaymission.h"
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -81,6 +83,7 @@ const bool Application::m_debug = true;
 
 
 Q_LOGGING_CATEGORY(lcApp, "app.application")
+Q_LOGGING_CATEGORY(lcDb, "app.database")
 
 /**
  * @brief Application::Application
@@ -118,11 +121,14 @@ Application::~Application()
 	qCDebug(lcApp).noquote() << QObject::tr("Destroy Application");
 
 	delete m_engine;
+	m_engine = nullptr;
 
 	if (m_client)
 		delete m_client;
+	m_client = nullptr;
 
 	delete m_application;
+	m_application = nullptr;
 }
 
 
@@ -305,6 +311,7 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
 
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
@@ -317,6 +324,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
+//	qmlRegisterType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission");
+//	qmlRegisterType<MapPlayMissionList>("CallOfSuli", 1, 0, "MapPlayMissionList");
 
 
 }
@@ -429,6 +438,7 @@ void Application::loadModules()
 }
 
 
+
 /**
  * @brief Application::storageModules
  * @return
@@ -438,6 +448,8 @@ const QHash<QString, ModuleInterface *> &Application::storageModules() const
 {
 	return m_storageModules;
 }
+
+
 
 
 /**

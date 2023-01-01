@@ -3,7 +3,7 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private #sql websockets quick svg multimedia network networkauth webview
 
-!wasm: QT += multimedia
+!wasm: QT += multimedia sql
 
 CONFIG += c++17
 
@@ -169,7 +169,11 @@ SOURCES += \
 	gamequestioncomponent.cpp \
 	gamescene.cpp \
 	gameterrain.cpp \
+	gameterrainmap.cpp \
 	main.cpp \
+	mapimage.cpp \
+	mapplay.cpp \
+	mapplaymission.cpp \
 	question.cpp \
 	tiledpaintedlayer.cpp \
 	utils.cpp
@@ -201,6 +205,10 @@ HEADERS += \
 	gamequestioncomponent.h \
 	gamescene.h \
 	gameterrain.h \
+	gameterrainmap.h \
+	mapimage.h \
+	mapplay.h \
+	mapplaymission.h \
 	question.h \
 	tiledpaintedlayer.h \
 	utils.h

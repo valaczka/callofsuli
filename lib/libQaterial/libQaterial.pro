@@ -22,7 +22,7 @@ android {
 					-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
 					-DQATERIAL_BUILD_SHARED=$$BuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
 					-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
-					-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=ON && \
+					-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=OFF && \
 					$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
 					$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
 					$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc ; \
@@ -37,7 +37,7 @@ android {
 			-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
 			-DQATERIAL_BUILD_SHARED=$$BuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
 			-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
-			-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=ON && \
+			-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=OFF && \
 			$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
 			$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
 			$${CMakePath} --build . --target Qaterial --config $$BUILDCONFIG $$CMakeProc

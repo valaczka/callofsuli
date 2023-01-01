@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * desktopapplication.h
+ * gameterrainmap.h
  *
- * Created on: 2022. 12. 09.
+ * Created on: 2022. 12. 31.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * DesktopApplication
+ * GameTerrainMap
  *
  *  This file is part of Call of Suli.
  *
@@ -24,51 +24,37 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DESKTOPAPPLICATION_H
-#define DESKTOPAPPLICATION_H
+#ifndef GAMETERRAINMAP_H
+#define GAMETERRAINMAP_H
+
+#include "gameterrain.h"
+
+#include "libtiled/map.h"
 
 
-#ifdef Q_OS_ANDROID
-#include <AndroidAppender.h>
-#else
-#include <ColorConsoleAppender.h>
-#endif
-
-
-#include "application.h"
-
-class DesktopApplication : public Application
+class GameTerrainMap : public GameTerrain
 {
-	enum CommandLine {
-		Normal,
-		License,
-		Editor,
-		Map,
-		Play
-	};
-
 public:
-	DesktopApplication(int &argc, char **argv);
-	virtual ~DesktopApplication();
+	GameTerrainMap(const QString &filename = "");
+	~GameTerrainMap();
 
-	void commandLineParse();
-	void initialize();
-	void shutdown();
-	bool performCommandLine();
-	void createStandardPath();
+	bool loadMapFromFile(QString filename);
+	bool loadMap(const QString &terrain, const int &level);
+
+	bool loadObjectLayers();
+
+	int width() const;
+	int height() const;
+
+	Tiled::Map* map() const;
 
 protected:
-	virtual Client *createClient();
+	void readEnemyLayer(Tiled::ObjectGroup *layer);
+	void readObjectLayer(Tiled::ObjectGroup *layer);
+	void readPlayerLayer(Tiled::ObjectGroup *layer);
+	void readPickableLayer(Tiled::ObjectGroup *layer);
 
-private:
-	CommandLine m_commandLine = Normal;
-	QString m_loadMap;
-	QStringList m_arguments;
-
-#ifdef Q_OS_WIN32
-	FILE *m_streamO = NULL;
-	FILE *m_streamE = NULL;
-#endif
+	std::unique_ptr<Tiled::Map> m_map;
 };
 
-#endif // DESKTOPAPPLICATION_H
+#endif // GAMETERRAINMAP_H

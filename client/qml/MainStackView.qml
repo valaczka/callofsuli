@@ -63,4 +63,15 @@ Qaterial.StackView
 			pop(get(_index))
 	}
 
+
+
+	function callStackPop() : bool{
+		if (currentItem.stackPopFunction) {
+			console.info(qsTr("Lap pop funkció meghívása:"), currentItem)
+			return currentItem.stackPopFunction()
+		}
+
+		return true
+	}
+
 }

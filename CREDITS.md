@@ -10,9 +10,9 @@
 - qzxing (https://github.com/ftylitak/qzxing) 
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
 - QJsonWebToken - (c) 2016 Juan Gonzalez Burgos (https://github.com/juangburgos/QJsonWebToken)
+- QDeferred - (c) 2017 Juan Gonzalez Burgos (https://github.com/juangburgos/QDeferred)
+- QOlm - (c) Olivier Le Doeuff (https://github.com/OlivierLDff/QOlm)
 
-
-- QSingleInstance - (c) 2015 Felix Barz (https://github.com/Skycoder42/QSingleInstance)
 
 **Image & Animation**
 

@@ -38,9 +38,7 @@
 #include "qobjectdefs.h"
 #include "qpoint.h"
 
-#include "libtiled/map.h"
-#include "libtiled/objectgroup.h"
-
+#include "gamepickable.h"
 
 class GameScene;
 
@@ -49,7 +47,7 @@ class GameTerrain
 	Q_GADGET
 
 public:
-	GameTerrain(const QString &filename = "");
+	GameTerrain();
 	virtual ~GameTerrain();
 
 
@@ -85,50 +83,52 @@ public:
 	struct PlayerPositionData;
 
 
+	// Pickables
+
+	struct PickableData;
+
+
 	bool isValid() const;
-	bool loadMapFromFile(QString filename);
-	bool loadMap(const QString &terrain, const int &level);
-
-	bool loadObjectLayers();
-
-	int width() const;
-	int height() const;
-
-	Tiled::Map *map() const;
 
 	const QVector<EnemyData> &enemies() const;
 	const QVector<int> &blocks() const;
 	const QVector<ObjectData> &objects() const;
 	const QVector<PlayerPositionData> &playerPositions() const;
+	const QVector<PickableData> &pickables() const;
+
 	QVector<ObjectData> objects(const ObjectType &type) const;
 
 	QVector<ObjectData> fires() const { return objects(Fire); }
 	QVector<ObjectData> fences() const { return objects(Fence); }
 	QVector<ObjectData> teleports() const { return objects(Teleport); }
 
-
 	PlayerPositionData defaultPlayerPosition() const;
 
+	static void reloadAvailableTerrains();
+	static const QVector<GameTerrain> &availableTerrains();
+	static bool terrainAvailable(const QString &name, const int &level);
 
+	QJsonObject toJsonObject() const;
+	static GameTerrain fromJsonObject(const QJsonObject &object);
 
-private:
+	const QString &name() const;
+	void setName(const QString &newName);
 
-	void readEnemyLayer(Tiled::ObjectGroup *layer);
-	void readObjectLayer(Tiled::ObjectGroup *layer);
-	void readPlayerLayer(Tiled::ObjectGroup *layer);
-	void readItemLayer(Tiled::ObjectGroup *layer);
+	int level() const;
+	void setLevel(int newLevel);
+
+protected:
+	static QVector<GameTerrain> m_availableTerrains;
 
 	bool m_isValid = false;
-	std::unique_ptr<Tiled::Map> m_map;
+	QString m_name;
+	int m_level = 0;
 
 	QVector<EnemyData> m_enemies;
 	QVector<ObjectData> m_objects;
 	QVector<int> m_blocks;
 	QVector<PlayerPositionData> m_playerPositions;
-
-	int m_fireCount = 0;
-	int m_fenceCount = 0;
-	int m_teleportCount = 0;
+	QVector<PickableData> m_pickables;
 };
 
 
@@ -184,5 +184,21 @@ public:
 	int block = -1;
 	bool start = false;
 };
+
+
+
+
+
+
+/**
+ * @brief The GameScene::PreviewData struct
+ */
+
+struct GameTerrain::PickableData {
+public:
+	QPointF point;
+	GamePickable::GamePickableData data;
+};
+
 
 #endif // GAMETERRAIN_H

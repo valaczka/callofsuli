@@ -52,6 +52,13 @@ public:
 
 	Q_INVOKABLE static QByteArray fileContent(const QString &filename, bool *error = nullptr);
 
+	Q_INVOKABLE static bool jsonDocumentToFile(const QJsonDocument &doc, const QString &filename,
+											   const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
+	Q_INVOKABLE static bool jsonObjectToFile(const QJsonObject &object, const QString &filename,
+											 const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
+	Q_INVOKABLE static bool jsonArrayToFile(const QJsonArray &array, const QString &filename,
+											const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
+
 	Q_INVOKABLE static QJsonDocument byteArrayToJsonDocument(const QByteArray &data);
 	Q_INVOKABLE static QJsonObject byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
 	Q_INVOKABLE static QJsonArray byteArrayToJsonArray(const QByteArray &data, bool *error = nullptr);
@@ -65,6 +72,11 @@ public:
 	Q_INVOKABLE void safeMarginsGet(Client *client);
 
 	Q_INVOKABLE static QString formatMSecs(const int &msec, const int &decimals = 0, const bool &withMinute = true);
+
+	Q_INVOKABLE static void openUrl(const QUrl &url);
+
+	Q_INVOKABLE static QString standardPath(const QString &path = "");
+	Q_INVOKABLE static QString genericDataPath(const QString &path = "");
 
 private:
 

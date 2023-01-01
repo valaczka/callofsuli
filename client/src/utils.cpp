@@ -26,6 +26,7 @@
 
 #include "utils.h"
 #include "client.h"
+#include "qdesktopservices.h"
 #include "qjsondocument.h"
 #include "qmath.h"
 #include "qquickwindow.h"
@@ -95,6 +96,61 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 	f.close();
 
 	return data;
+}
+
+
+/**
+ * @brief Utils::jsonDocumentToFile
+ * @param doc
+ * @param filename
+ * @return
+ */
+
+bool Utils::jsonDocumentToFile(const QJsonDocument &doc, const QString &filename, const QJsonDocument::JsonFormat &format)
+{
+	const QByteArray &b = doc.toJson(format);
+
+	QFile f(filename);
+
+	if (!f.open(QIODevice::WriteOnly)) {
+		qCWarning(lcUtils).noquote() << tr("Nem lehet írni a fájlt:") << filename;
+
+		return false;
+	}
+
+	f.write(b);
+
+	f.close();
+
+	return true;
+}
+
+
+/**
+ * @brief Utils::jsonObjectToFile
+ * @param doc
+ * @param filename
+ * @param format
+ * @return
+ */
+
+bool Utils::jsonObjectToFile(const QJsonObject &object, const QString &filename, const QJsonDocument::JsonFormat &format)
+{
+	return jsonDocumentToFile(QJsonDocument(object), filename, format);
+}
+
+
+/**
+ * @brief Utils::jsonArrayToFile
+ * @param array
+ * @param filename
+ * @param format
+ * @return
+ */
+
+bool Utils::jsonArrayToFile(const QJsonArray &array, const QString &filename, const QJsonDocument::JsonFormat &format)
+{
+	return jsonDocumentToFile(QJsonDocument(array), filename, format);
 }
 
 
@@ -345,4 +401,58 @@ QString Utils::formatMSecs(const int &msec, const int &decimals, const bool &wit
 	}
 
 	return r;
+}
+
+
+
+
+/**
+ * @brief Utils::openUrl
+ * @param url
+ */
+void Utils::openUrl(const QUrl &url)
+{
+	qCDebug(lcUtils).noquote() << tr("Open url:") << url;
+	QDesktopServices::openUrl(url);
+}
+
+
+/**
+ * @brief Utils::standardPath
+ * @param path
+ * @return
+ */
+
+QString Utils::standardPath(const QString &path)
+{
+	if (!path.isEmpty())
+		return QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0)+QStringLiteral("/")+path;
+	else
+		return QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0);
+}
+
+
+
+
+/**
+ * @brief Utils::genericDataPath
+ * @param path
+ * @return
+ */
+
+QString Utils::genericDataPath(const QString &path)
+{
+#ifdef Q_OS_ANDROID
+	QAndroidJniObject mediaDir = QAndroidJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
+	QAndroidJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
+	if (!path.isEmpty())
+		return QStringLiteral("file://")+mediaPath.toString()+QStringLiteral("/")+path;
+	else
+		return QStringLiteral("file://")+mediaPath.toString();
+#endif
+
+	if (!path.isEmpty())
+		return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+QStringLiteral("/")+path;
+	else
+		return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
 }

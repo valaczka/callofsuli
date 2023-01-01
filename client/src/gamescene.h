@@ -32,9 +32,9 @@
 #include "qloggingcategory.h"
 #include <QQuickItem>
 #include <QStack>
-#include "gameterrain.h"
 #include "gameladder.h"
 #include "tiledpaintedlayer.h"
+#include "gameterrainmap.h"
 
 class ActionGame;
 class GameObject;
@@ -122,7 +122,7 @@ public:
 	SceneState sceneState() const;
 	void setSceneState(SceneState newSceneState);
 
-	const GameTerrain &terrain() const;
+	const GameTerrainMap &terrain() const;
 
 	GameTerrain::PlayerPositionData getPlayerPosition();
 
@@ -163,13 +163,14 @@ private:
 	void loadLadderLayer();
 	void loadTerrainObjectsLayer();
 	void loadPlayerPositionLayer();
+	void loadPickablesLayer();
 
 	Tiled::ObjectGroup *objectLayer(const QString &name) const;
 
 
 private:
 	ActionGame *m_game = nullptr;
-	GameTerrain m_terrain;
+	GameTerrainMap m_terrain;
 	Box2DWorld *m_world = nullptr;
 	QQuickItem *m_mouseArea = nullptr;
 	QQuickItem *m_messageList = nullptr;

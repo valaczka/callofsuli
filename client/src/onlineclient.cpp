@@ -144,6 +144,9 @@ void OnlineClient::onAllResourceReady()
 	m_application->loadFonts();
 
 	qCInfo(lcClient).noquote() << tr("Az alkalmazás sikeresen elindult");
+
+	GameTerrain::reloadAvailableTerrains();
+
 	stackPushPage("PageStart.qml");
 }
 
