@@ -109,18 +109,6 @@ public:
 	struct SolverInfo;
 
 
-	typedef QPair<GameMapMissionLevel *, bool> MissionLevelDeathmatch;
-
-	void setSolver(const QVariantList &list);
-	QVector<MissionLevelDeathmatch> getUnlocks(const QString &uuid,
-											   const qint32 &level,
-											   const bool &deathmatch) const;
-	MissionLevelDeathmatch getNextMissionLevel(const QString &uuid,
-											   const qint32 &level,
-											   const bool &deathmatch,
-											   const bool &lite) const;
-
-
 	static qreal computeSolvedXpFactor(const SolverInfo &baseSolver,
 									   const int &level,
 									   const bool &deathmatch,
@@ -320,11 +308,6 @@ public:
 
 	GameMapMissionLevel *level(const qint32 &num) const;
 
-	qint32 solvedLevel() const;
-
-	int lockDepth() const;
-	void setLockDepth(int newLockDepth);
-
 protected:
 	QList<GameMapMissionLevelIface*> ifaceLevels() const override
 	{ return GameMapReaderIface::ifaceListConvert<GameMapMissionLevelIface, GameMapMissionLevel>(m_levels);	}
@@ -345,7 +328,6 @@ private:
 	QList<GameMapMissionLevel *> m_levels;
 	QList<GameMapMissionLevel *> m_locks;
 	GameMap *m_map;
-	int m_lockDepth;
 };
 
 
@@ -371,9 +353,6 @@ class GameMapMissionLevel : public GameMapMissionLevelIface
 	Q_PROPERTY(QList<GameMapInventory *> inventories MEMBER m_inventories)
 	Q_PROPERTY(QList<qint32> chapterIds MEMBER m_chapterIds)
 
-	Q_PROPERTY(bool solvedNormal MEMBER m_solvedNormal STORED false)
-	Q_PROPERTY(bool solvedDeathmatch MEMBER m_solvedDeathmatch STORED false)
-
 public:
 	explicit GameMapMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
 								 const qint32 &duration, const bool &canDeathmatch, const qreal &questions,
@@ -393,12 +372,6 @@ public:
 	GameMapMission *mission() const;
 	QList<GameMapChapter *> chapters() const;
 
-	bool solvedNormal() const;
-	void setSolvedNormal(bool newSolvedNormal);
-
-	bool solvedDeathmatch() const;
-	void setSolvedDeathmatch(bool newSolvedDeathmatch);
-
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const
 	{ return GameMapReaderIface::ifaceListConvert<GameMapChapterIface, GameMapChapter>(chapters());	}
@@ -413,8 +386,6 @@ private:
 	QList<qint32> m_chapterIds;
 	GameMap *m_map;
 	GameMapMission *m_mission;
-	bool m_solvedNormal;
-	bool m_solvedDeathmatch;
 };
 
 

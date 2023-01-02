@@ -159,294 +159,6 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data)
 
 
 
-
-/**
- * @brief GameMap::setSolver
- * @param list
- */
-
-void GameMap::setSolver(const QVariantList &list)
-{
-	// Clear
-	foreach (GameMapMission *m, m_missions) {
-		m->setLockDepth(0);
-		foreach (GameMapMissionLevel *ml, m->levels()) {
-			ml->setSolvedNormal(false);
-			ml->setSolvedDeathmatch(false);
-		}
-	}
-
-	// Load solver
-	foreach (QVariant v, list) {
-		QVariantMap m = v.toMap();
-		QByteArray id = m.value("missionid").toByteArray();
-
-		GameMapMission *mis = mission(id);
-
-		if (!mis) {
-			qCDebug(lcApp).noquote() << QObject::tr("Invalid mission id:") << id;
-			continue;
-		}
-
-		SolverInfo info(m);
-
-		foreach (GameMapMissionLevel *ml, mis->levels()) {
-			ml->setSolvedNormal(info.hasSolved(ml->level(), false));
-			ml->setSolvedDeathmatch(info.hasSolved(ml->level(), true));
-		}
-
-	}
-
-
-	// Calculate locks
-
-	foreach (GameMapMission *m, m_missions) {
-		qint32 lockDepth = 0;
-
-		QVector<GameMapMissionLevelIface*> locks = missionLockTree(m);
-		foreach (GameMapMissionLevelIface *mli, locks) {
-			GameMapMissionLevel *ml = dynamic_cast<GameMapMissionLevel*>(mli);
-
-			Q_ASSERT(ml);
-
-			GameMapMission *lockerMission = dynamic_cast<GameMapMission*>(ml->mission());
-
-			Q_ASSERT(lockerMission);
-
-			qint32 lockerLevel = ml->level();
-
-			if ((lockerLevel == -1 && lockerMission->solvedLevel() < 1) || lockerLevel > lockerMission->solvedLevel()) {
-				QVector<GameMapMissionLevelIface*> lockerLocks = missionLockTree(lockerMission);
-				if (lockerLocks.size() > 0) {
-					foreach (GameMapMissionLevelIface* mli2, lockerLocks) {
-						GameMapMissionLevel *ml2 = dynamic_cast<GameMapMissionLevel*>(mli2);
-
-						Q_ASSERT(ml2);
-
-						GameMapMission *locker2Mission = dynamic_cast<GameMapMission*>(ml2->mission());
-
-						Q_ASSERT(locker2Mission);
-
-						if ((ml2->level() == -1 && locker2Mission->solvedLevel() < 1) || ml2->level() > locker2Mission->solvedLevel()) {
-							lockDepth = 2;
-							break;
-						}
-					}
-				}
-
-				if (lockDepth < 1)
-					lockDepth = 1;
-			}
-		}
-
-		m->setLockDepth(lockDepth);
-	}
-
-}
-
-
-
-
-/**
- * @brief GameMap::getUnlocks
- * @param uuid
- * @param level
- * @param deathmatch
- * @return
- */
-
-QVector<GameMap::MissionLevelDeathmatch> GameMap::getUnlocks(const QString &uuid, const qint32 &level, const bool &deathmatch) const
-{
-	GameMapMission *mis = mission(uuid);
-	GameMapMissionLevel *ml = missionLevel(uuid, level);
-	QVector<MissionLevelDeathmatch> ret;
-
-	if (!mis || !ml) {
-		qCDebug(lcApp).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
-		return ret;
-	}
-
-	if (deathmatch)
-		return ret;
-
-	if (ml->solvedNormal())
-		return ret;
-
-
-	// Unlock deathmatch
-
-	if (!deathmatch && ml->canDeathmatch()) {
-		ret.append(qMakePair(ml, true));
-	}
-
-	// Unlock next level
-
-	GameMapMissionLevel *nextlevel = missionLevel(uuid, level+1);
-	if (nextlevel) {
-		ret.append(qMakePair(nextlevel, false));
-	}
-
-
-	// Locks
-
-	QVector<GameMapMission *> lockedMissions;
-
-	foreach(GameMapMission *lm, m_missions) {
-		QVector<GameMapMissionLevelIface*> locks = missionLockTree(lm);
-
-		if (locks.isEmpty())
-			continue;
-
-		foreach (GameMapMissionLevelIface *mli, locks) {
-			GameMapMissionLevel *l = dynamic_cast<GameMapMissionLevel*>(mli);
-
-			Q_ASSERT(l);
-
-			if (l->mission() == mis && (l->level() == level || l->level() == -1))
-				if (!lockedMissions.contains(lm))
-					lockedMissions.append(lm);
-		}
-	}
-
-
-
-	if (lockedMissions.isEmpty())
-		return ret;
-
-
-
-	// Calculate unlocks
-
-	foreach (GameMapMission *m, lockedMissions) {
-		qint32 oldLockDepth = m->lockDepth();
-
-		if (oldLockDepth < 1)
-			continue;
-
-		bool locked = false;
-
-		QVector<GameMapMissionLevelIface*> locks = missionLockTree(m);
-		foreach (GameMapMissionLevelIface *mli, locks) {
-			GameMapMissionLevel *ml = dynamic_cast<GameMapMissionLevel*>(mli);
-
-			Q_ASSERT(ml);
-
-			GameMapMission *lockerMission = dynamic_cast<GameMapMission*>(ml->mission());
-
-			Q_ASSERT(lockerMission);
-
-			qint32 lockerLevel = ml->level();
-			qint32 solvedLevel = lockerMission->solvedLevel();
-
-
-			// Emulate solved level
-
-			if (lockerMission == mis && solvedLevel < level)
-				solvedLevel = level;
-
-
-			if ((lockerLevel == -1 && solvedLevel < 1) || lockerLevel > solvedLevel) {
-				locked = true;
-			}
-		}
-
-		if (oldLockDepth > 0 && !locked) {
-			ret.append(qMakePair(m->level(1), false));
-		}
-	}
-
-	return ret;
-}
-
-
-
-
-/**
- * @brief GameMap::getNextMissionLevel
- * @param uuid
- * @param level
- * @param deathmatch
- * @return
- */
-
-GameMap::MissionLevelDeathmatch GameMap::getNextMissionLevel(const QString &uuid, const qint32 &level, const bool &deathmatch, const bool &lite) const
-{
-	GameMapMission *mis = mission(uuid);
-	GameMapMissionLevel *ml = missionLevel(uuid, level);
-
-	if (!mis || !ml) {
-		qCDebug(lcApp).noquote() << QObject::tr("Invalid mission uuid:") << uuid;
-		return qMakePair(nullptr, false);
-	}
-
-
-	// Check next level
-
-	GameMapMissionLevel *nextlevel = mis->level(level+1);
-	if (nextlevel && !nextlevel->solvedNormal())
-		return qMakePair(nextlevel, false);
-
-
-	// Check deathmatch
-
-	if (!deathmatch && ml->canDeathmatch() && !ml->solvedDeathmatch() && !lite)
-		return qMakePair(ml, true);
-
-
-	// Check current mission
-
-	for (int i=1; GameMapMissionLevel *l = mis->level(i); i++) {
-		if (l == ml)
-			continue;
-
-		if (!l->solvedNormal())
-			return qMakePair(l, false);
-
-		if (l->canDeathmatch() && !l->solvedDeathmatch() && !lite)
-			return qMakePair(l, true);
-	}
-
-
-	// Check other missions for normal levels
-
-	foreach (GameMapMission *m, missions()) {
-		if (m == mis)
-			continue;
-
-		if (m->lockDepth() > 0)
-			continue;
-
-		for (int i=1; GameMapMissionLevel *l = m->level(i); i++) {
-			if (!l->solvedNormal())
-				return qMakePair(l, false);
-		}
-	}
-
-
-	// Check all missions for deathmatch levels
-
-	if (lite)
-		return qMakePair(nullptr, false);
-
-	foreach (GameMapMission *m, missions()) {
-		if (m == mis)
-			continue;
-
-		if (m->lockDepth() > 0)
-			continue;
-
-		for (int i=1; GameMapMissionLevel *l = m->level(i); i++) {
-			if (l->canDeathmatch() && !l->solvedDeathmatch())
-				return qMakePair(l, true);
-		}
-	}
-
-	return qMakePair(nullptr, false);
-}
-
-
-
-
 /**
  * @brief GameMap::computeSolvedXpFactor
  * @param baseSolver
@@ -665,7 +377,6 @@ GameMapObjectiveIface *GameMapChapter::ifaceAddObjective(const QString &uuid, co
 GameMapMission::GameMapMission(const QByteArray &uuid, const QString &name, const QString &description, const QString &medalImage, GameMap *map)
 	: GameMapMissionIface()
 	, m_map(map)
-	, m_lockDepth(0)
 {
 	m_uuid = uuid;
 	m_name = name;
@@ -721,31 +432,6 @@ GameMapMissionLevel *GameMapMission::level(const qint32 &num) const
 }
 
 
-/**
- * @brief GameMapMission::solvedLevel
- * @return
- */
-
-qint32 GameMapMission::solvedLevel() const
-{
-	qint32 level = 0;
-
-	foreach (GameMapMissionLevel *ml, m_levels) {
-		int n = ml->level();
-		if (ml->solvedNormal()) {
-			bool hasSolvedAll = true;
-			for (int i=n-1; i>0; --i) {
-				if (!ml->mission()->level(i) || !ml->mission()->level(i)->solvedNormal())
-					hasSolvedAll = false;
-			}
-
-			if (hasSolvedAll && level < n)
-				level = n;
-		}
-	}
-
-	return level;
-}
 
 
 /**
@@ -796,16 +482,6 @@ GameMapMissionLevelIface *GameMapMission::ifaceAddLock(const QString &uuid, cons
 }
 
 
-
-int GameMapMission::lockDepth() const
-{
-	return m_lockDepth;
-}
-
-void GameMapMission::setLockDepth(int newLockDepth)
-{
-	m_lockDepth = newLockDepth;
-}
 
 
 /**
@@ -913,8 +589,6 @@ GameMapMissionLevel::GameMapMissionLevel(const qint32 &level, const QByteArray &
 	: GameMapMissionLevelIface()
 	, m_map(map)
 	, m_mission(mission)
-	, m_solvedNormal(false)
-	, m_solvedDeathmatch(false)
 {
 	m_level = level;
 	m_terrain = terrain;
@@ -1021,26 +695,6 @@ GameMapInventoryIface *GameMapMissionLevel::ifaceAddInventory(const qint32 &bloc
 	GameMapInventory *i = new GameMapInventory(block, module, count);
 	m_inventories.append(i);
 	return i;
-}
-
-bool GameMapMissionLevel::solvedDeathmatch() const
-{
-	return m_solvedDeathmatch;
-}
-
-void GameMapMissionLevel::setSolvedDeathmatch(bool newSolvedDeathmatch)
-{
-	m_solvedDeathmatch = newSolvedDeathmatch;
-}
-
-bool GameMapMissionLevel::solvedNormal() const
-{
-	return m_solvedNormal;
-}
-
-void GameMapMissionLevel::setSolvedNormal(bool newSolvedNormal)
-{
-	m_solvedNormal = newSolvedNormal;
 }
 
 

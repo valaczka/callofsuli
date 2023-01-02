@@ -28,12 +28,14 @@
 #include <emscripten/bind.h>
 
 
+#include "abstractlevelgame.h"
 #include "onlineclient.h"
 #include "qnetworkaccessmanager.h"
 #include "qnetworkreply.h"
 #include "qnetworkrequest.h"
 #include "QResource"
 #include "application.h"
+#include "gameterrain.h"
 
 OnlineClient::OnlineClient(Application *app, QObject *parent)
 	: Client{app, parent}

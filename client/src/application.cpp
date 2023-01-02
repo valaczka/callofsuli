@@ -128,6 +128,8 @@ Application::~Application()
 
 	delete m_application;
 	m_application = nullptr;
+
+	m_instance = nullptr;
 }
 
 

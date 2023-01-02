@@ -52,9 +52,9 @@ WebSocketMessage WebSocketMessage::createHello()
 	WebSocketMessage m;
 	m.m_opCode = Hello;
 	m.m_data = QJsonObject({
-							   {"version", QString("%1.%2").arg(m_versionMajor).arg(m_versionMinor)},
-							   {"versionMajor", (int) m_versionMajor},
-							   {"versionMinor", (int) m_versionMinor}
+							   {QStringLiteral("version"), QStringLiteral("%1.%2").arg(m_versionMajor).arg(m_versionMinor)},
+							   {QStringLiteral("versionMajor"), (int) m_versionMajor},
+							   {QStringLiteral("versionMinor"), (int) m_versionMinor}
 						   });
 	return m;
 }
@@ -224,17 +224,17 @@ QJsonObject WebSocketMessage::headerObject() const
 {
 	QJsonObject o;
 
-	o.insert("op", m_opCode);
-	o.insert("d", m_data);
+	o.insert(QStringLiteral("op"), m_opCode);
+	o.insert(QStringLiteral("d"), m_data);
 
 	if (m_opCode == Request)
-		o.insert("msg", m_msgNumber);
+		o.insert(QStringLiteral("msg"), m_msgNumber);
 
 	if (m_opCode == RequestResponse)
-		o.insert("request", m_requestMsgNumber);
+		o.insert(QStringLiteral("request"), m_requestMsgNumber);
 
 	if (!m_binaryData.isEmpty())
-		o.insert("size", m_binaryData.size());
+		o.insert(QStringLiteral("size"), m_binaryData.size());
 
 	return o;
 }
@@ -330,7 +330,7 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 		return m;
 	}
 
-	WebSocketOpCode opCode = headerObject.value("op").toVariant().value<WebSocketOpCode>();
+	WebSocketOpCode opCode = headerObject.value(QStringLiteral("op")).toVariant().value<WebSocketOpCode>();
 
 	if (opCode == Invalid) {
 		stream.abortTransaction();
@@ -339,7 +339,7 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 	}
 
 	if (opCode == Request) {
-		int n = headerObject.value("msg").toInt();
+		int n = headerObject.value(QStringLiteral("msg")).toInt();
 
 		m.m_msgNumber = n;
 
@@ -349,7 +349,7 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 			return m;
 		}
 	} else if (opCode == RequestResponse) {
-		int n = headerObject.value("request").toInt();
+		int n = headerObject.value(QStringLiteral("request")).toInt();
 
 		m.m_requestMsgNumber = n;
 
@@ -360,9 +360,9 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 		}
 	}
 
-	m.m_data = headerObject.value("d").toObject();
+	m.m_data = headerObject.value(QStringLiteral("d")).toObject();
 
-	int bSize = headerObject.value("size").toInt();
+	int bSize = headerObject.value(QStringLiteral("size")).toInt();
 
 	m.m_expectedDataSize = bSize;
 
@@ -426,18 +426,18 @@ QDebug operator<<(QDebug stream, const WebSocketMessage &message)
 {
 	QDebugStateSaver saver(stream);
 
-	stream.nospace().noquote() << "WebSocketMessage(" ;
+	stream.nospace().noquote() << QStringLiteral("WebSocketMessage(") ;
 
 	if (message.m_error != WebSocketMessage::NoError) {
 		stream.nospace().noquote() << message.m_error;
 	} else {
-		stream.nospace().noquote() << message.m_opCode << ", " << message.headerObject();
+		stream.nospace().noquote() << message.m_opCode << QStringLiteral(", ") << message.headerObject();
 
 		if (!message.m_binaryData.isEmpty())
-			stream.nospace().noquote() << ", QByteArray(" << message.m_binaryData.size() << ")";
+			stream.nospace().noquote() << QStringLiteral(", QByteArray(") << message.m_binaryData.size() << QStringLiteral(")");
 	}
 
-	stream.nospace().noquote() << ")";
+	stream.nospace().noquote() << QStringLiteral(")");
 
 	return stream;
 }

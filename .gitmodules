@@ -31,3 +31,12 @@
 [submodule "lib/QOlm"]
 	path = lib/QOlm
 	url = https://github.com/OlivierLDff/QOlm.git
+[submodule "lib/QtService"]
+	path = lib/QtService
+	url = https://github.com/valaczka/QtService.git
+[submodule "lib/QCtrlSignals"]
+	path = lib/QCtrlSignals
+	url = https://github.com/Skycoder42/QCtrlSignals.git
+[submodule "lib/QConsole"]
+	path = lib/QConsole
+	url = https://github.com/Skycoder42/QConsole.git

@@ -57,6 +57,8 @@ QScrollablePage {
 				textFormat: Text.MarkdownText
 				bottomPadding: 15
 
+				linkColor: Qaterial.Colors.cyan500
+
 				onLinkActivated: Client.Utils.openUrl(link)
 			}
 
