@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * database.h
+ * serversettings.h
  *
- * Created on: 2022. 12. 31.
+ * Created on: 2023. 01. 02.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Database
+ * ServerSettings
  *
  *  This file is part of Call of Suli.
  *
@@ -24,34 +24,39 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DATABASE_H
-#define DATABASE_H
+#ifndef SERVERSETTINGS_H
+#define SERVERSETTINGS_H
 
+#include "qcoreapplication.h"
+#include "qdir.h"
+#include "qhostaddress.h"
+#include <QString>
 
-#include "qloggingcategory.h"
-#include <QDeferred>
-#include <QLambdaThreadWorker>
-#include <QSqlDatabase>
-#include <QSqlError>
-
-class Database
+class ServerSettings
 {
 public:
-	Database(const QString &dbName);
-	virtual ~Database();
+	ServerSettings();
 
-	const QString &dbName() const;
+	QByteArray printConfig() const;
 
-	virtual QDeferred<QSqlError> databaseOpen(const QString &path);
-	virtual void databaseClose();
+	const QDir &dataDir() const;
+	void setDataDir(const QDir &newDataDir);
 
-protected:
-	bool databaseInit();
+	bool ssl() const;
+	void setSsl(bool newSsl);
 
-	QLambdaThreadWorker m_worker;
-	QString m_dbName;
+	const QHostAddress &listenAddress() const;
+	void setListenAddress(const QHostAddress &newListenAddress);
+
+	quint16 listenPort() const;
+	void setListenPort(quint16 newListenPort);
+
+private:
+	QDir m_dataDir;
+	bool m_ssl = false;
+	QHostAddress m_listenAddress = QHostAddress::Any;
+	quint16 m_listenPort = 10101;
+
 };
 
-Q_DECLARE_LOGGING_CATEGORY(lcDb);
-
-#endif // DATABASE_H
+#endif // SERVERSETTINGS_H

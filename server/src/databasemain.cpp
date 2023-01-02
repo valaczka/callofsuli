@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * database.h
+ * databasemain.cpp
  *
- * Created on: 2022. 12. 31.
+ * Created on: 2023. 01. 02.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Database
+ * DatabaseMain
  *
  *  This file is part of Call of Suli.
  *
@@ -24,34 +24,26 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DATABASE_H
-#define DATABASE_H
+#include "databasemain.h"
 
-
-#include "qloggingcategory.h"
-#include <QDeferred>
-#include <QLambdaThreadWorker>
-#include <QSqlDatabase>
-#include <QSqlError>
-
-class Database
+DatabaseMain::DatabaseMain(QObject *parent)
+	: QObject(parent)
+	, Database(QStringLiteral("mainDb"))
 {
-public:
-	Database(const QString &dbName);
-	virtual ~Database();
 
-	const QString &dbName() const;
+}
 
-	virtual QDeferred<QSqlError> databaseOpen(const QString &path);
-	virtual void databaseClose();
+DatabaseMain::~DatabaseMain()
+{
 
-protected:
-	bool databaseInit();
+}
 
-	QLambdaThreadWorker m_worker;
-	QString m_dbName;
-};
+const QString &DatabaseMain::dbFile() const
+{
+	return m_dbFile;
+}
 
-Q_DECLARE_LOGGING_CATEGORY(lcDb);
-
-#endif // DATABASE_H
+void DatabaseMain::setDbFile(const QString &newDbFile)
+{
+	m_dbFile = newDbFile;
+}

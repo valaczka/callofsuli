@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * database.h
+ * websocketserver.h
  *
- * Created on: 2022. 12. 31.
+ * Created on: 2023. 01. 02.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Database
+ * WebSocketServer
  *
  *  This file is part of Call of Suli.
  *
@@ -24,34 +24,37 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DATABASE_H
-#define DATABASE_H
-
+#ifndef WEBSOCKETSERVER_H
+#define WEBSOCKETSERVER_H
 
 #include "qloggingcategory.h"
-#include <QDeferred>
-#include <QLambdaThreadWorker>
-#include <QSqlDatabase>
-#include <QSqlError>
+#include <QWebSocketServer>
 
-class Database
+class ServerService;
+
+class WebSocketServer : public QWebSocketServer
 {
+	Q_OBJECT
+
 public:
-	Database(const QString &dbName);
-	virtual ~Database();
+	explicit WebSocketServer(const SslMode &ssl, ServerService *service);
+	virtual ~WebSocketServer();
 
-	const QString &dbName() const;
+	bool start();
 
-	virtual QDeferred<QSqlError> databaseOpen(const QString &path);
-	virtual void databaseClose();
+private slots:
+	void onNewConnection();
 
-protected:
-	bool databaseInit();
+	void onAcceptError(const QAbstractSocket::SocketError &socketError);
+	void onPeerVerifyError(const QSslError &error);
+	void onServerError(const QWebSocketProtocol::CloseCode &closeCode);
+	void onSslErrors(const QList<QSslError> &errors);
 
-	QLambdaThreadWorker m_worker;
-	QString m_dbName;
+private:
+	ServerService *const m_service;
 };
 
-Q_DECLARE_LOGGING_CATEGORY(lcDb);
+Q_DECLARE_LOGGING_CATEGORY(lcWebSocket)
+Q_DECLARE_LOGGING_CATEGORY(lcMessage)
 
-#endif // DATABASE_H
+#endif // WEBSOCKETSERVER_H

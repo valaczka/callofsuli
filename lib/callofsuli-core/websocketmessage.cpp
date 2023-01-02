@@ -88,7 +88,7 @@ WebSocketMessage WebSocketMessage::createRequest(const QJsonObject &data, const 
 {
 	WebSocketMessage m;
 	m.m_opCode = Request;
-	m.m_requestMsgNumber = nextMsgNumber();
+	m.m_msgNumber = nextMsgNumber();
 	m.m_data = data;
 	m.m_binaryData = binaryData;
 	return m;
@@ -102,7 +102,7 @@ WebSocketMessage WebSocketMessage::createRequest(const QJsonObject &data, const 
  * @return
  */
 
-WebSocketMessage WebSocketMessage::createResponse(const QJsonObject &data, const QByteArray &binaryData)
+WebSocketMessage WebSocketMessage::createResponse(const QJsonObject &data, const QByteArray &binaryData) const
 {
 	WebSocketMessage m;
 	m.m_opCode = RequestResponse;
@@ -111,6 +111,27 @@ WebSocketMessage WebSocketMessage::createResponse(const QJsonObject &data, const
 	m.m_binaryData = binaryData;
 	return m;
 }
+
+
+
+/**
+ * @brief WebSocketMessage::createErrorResponse
+ * @param errorString
+ * @return
+ */
+
+WebSocketMessage WebSocketMessage::createErrorResponse(const QString &errorString) const
+{
+	WebSocketMessage m;
+	m.m_opCode = RequestResponse;
+	m.m_requestMsgNumber = m_msgNumber;
+	m.m_data = QJsonObject({
+							  { QStringLiteral("error"), errorString }
+						   });
+	return m;
+}
+
+
 
 /**
  * @brief WebSocketMessage::versionMajor
@@ -293,6 +314,31 @@ const WebSocketMessage::WebSocketError &WebSocketMessage::error() const
 }
 
 
+/**
+ * @brief WebSocketMessage::hasResponseError
+ * @return
+ */
+
+bool WebSocketMessage::hasResponseError() const
+{
+	return (m_opCode == RequestResponse && m_data.contains(QStringLiteral("error")));
+}
+
+
+/**
+ * @brief WebSocketMessage::responseError
+ * @return
+ */
+
+QString WebSocketMessage::responseError() const
+{
+	if (m_opCode == RequestResponse)
+		return m_data.value(QStringLiteral("error")).toString();
+
+	return QLatin1String("");
+}
+
+
 
 
 /**
@@ -380,6 +426,8 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 	}
 
 	if (!stream.commitTransaction() && !isFrame) {
+		qDebug() << "COMMIT ERROR";
+
 		stream.abortTransaction();
 		m.m_error = UncompletedTransaction;
 		return m;

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../license.txt</file>
+        <file>../../CREDITS.md</file>
+    </qresource>
+</RCC>

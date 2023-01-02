@@ -76,7 +76,8 @@ public:
 	static WebSocketMessage createHello();
 	static WebSocketMessage createEvent(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	static WebSocketMessage createRequest(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
-	WebSocketMessage createResponse(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
+	WebSocketMessage createResponse(const QJsonObject &data, const QByteArray &binaryData = QByteArray()) const;
+	WebSocketMessage createErrorResponse(const QString &errorString) const;
 
 	static WebSocketMessage fromByteArray(const QByteArray &binaryData, const bool &isFrame = false);
 
@@ -100,6 +101,9 @@ public:
 	int requestMsgNumber() const;
 
 	const WebSocketError &error() const;
+
+	bool hasResponseError() const;
+	QString responseError() const;
 
 	QJsonObject headerObject() const;
 	QByteArray toByteArray() const;

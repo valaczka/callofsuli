@@ -3,6 +3,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 QPage {
@@ -77,6 +78,41 @@ QPage {
 			highlighted: false
 
 		}
+
+
+		Qaterial.RaisedButton {
+			text: "Connect"
+			highlighted: Client.webSocket.state == WebSocket.Connected
+
+			onClicked: Client.testConnect()
+
+		}
+
+		Qaterial.RaisedButton {
+			text: "Hello"
+			highlighted: false
+			onClicked: Client.testHello()
+		}
+
+		Qaterial.RaisedButton {
+			text: "Request"
+			highlighted: false
+			onClicked: Client.testRequest()
+		}
+
+
+		Qaterial.RaisedButton {
+			text: "Text"
+			highlighted: false
+			onClicked: Client.testText()
+		}
+
+		Qaterial.RaisedButton {
+			text: "Close"
+			highlighted: false
+			onClicked: Client.testClose()
+		}
+
 
 	}
 

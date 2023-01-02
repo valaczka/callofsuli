@@ -28,12 +28,14 @@ HEADERS += \
 	../QJsonWebToken/src/qjsonwebtoken.h \
 	gamemap.h \
 	gamemapreaderiface.h \
+	utils.h \
 	websocketmessage.h
 
 SOURCES += \
 	../QJsonWebToken/src/qjsonwebtoken.cpp \
 	gamemap.cpp \
 	gamemapreaderiface.cpp \
+	utils.cpp \
 	websocketmessage.cpp
 
 

@@ -186,6 +186,16 @@ Qaterial.ApplicationWindow
 	}
 
 
+	function snack(_text : string) {
+		Qaterial.SnackbarManager.show(
+					{
+						text: _text,
+					}
+
+		)
+	}
+
+
 	function setPixelSize(newSize) {
 		if (newSize >= Qaterial.Style.defaultPixelSize/2.5 && newSize <= Qaterial.Style.defaultPixelSize * 3.0)
 			Qaterial.Style.pixelSize = newSize

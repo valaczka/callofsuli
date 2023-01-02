@@ -40,8 +40,6 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
-class Client;
-
 class Utils : public QObject
 {
 	Q_OBJECT
@@ -69,7 +67,6 @@ public:
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 
-	Q_INVOKABLE void safeMarginsGet(Client *client);
 
 	Q_INVOKABLE static QString formatMSecs(const int &msec, const int &decimals = 0, const bool &withMinute = true);
 

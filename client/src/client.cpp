@@ -28,10 +28,14 @@
 
 #include "application.h"
 #include "client.h"
-#include "actiongame.h"
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
+#include "websocket.h"
+#include "gameterrain.h"
+#include "qquickwindow.h"
+#include "qguiapplication.h"
+#include <qpa/qplatformwindow.h>
 
 Q_LOGGING_CATEGORY(lcClient, "app.client")
 
@@ -40,8 +44,14 @@ Client::Client(Application *app, QObject *parent)
 	, m_application(app)
 	, m_networkManager(new QNetworkAccessManager(this))
 	, m_utils(new Utils(this))
+	, m_webSocket(new WebSocket(this))
 {
 	Q_ASSERT(app);
+
+	connect(m_webSocket->socket(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onWebSocketError);
+	connect(m_webSocket, &WebSocket::serverUnavailable, this, [this](int) {
+		snack(tr("Szerver nem elérhető"));
+	});
 }
 
 
@@ -57,6 +67,7 @@ Client::~Client()
 
 	delete m_networkManager;
 	delete m_utils;
+	delete m_webSocket;
 }
 
 /**
@@ -274,6 +285,17 @@ void Client::onApplicationStarted()
 }
 
 
+/**
+ * @brief Client::onWebSocketError
+ * @param error
+ */
+
+void Client::onWebSocketError(const QAbstractSocket::SocketError &error)
+{
+	messageError(tr("ERROR: %1").arg(error), tr("Sikertelen csatalakozás"));
+}
+
+
 
 
 /**
@@ -293,6 +315,58 @@ void Client::_message(const QString &text, const QString &title, const QString &
 								  );
 	}
 }
+
+
+
+
+
+/**
+ * @brief Client::webSocket
+ * @return
+ */
+
+WebSocket *Client::webSocket() const
+{
+	return m_webSocket;
+}
+
+
+
+/**
+ * @brief Client::testConnect
+ */
+
+void Client::testConnect()
+{
+	Server *s = new Server(this);
+s->setUrl(QUrl("ws://localhost:10101"));
+
+	m_webSocket->connectToServer(s);
+}
+
+void Client::testHello()
+{
+	m_webSocket->send(WebSocketMessage::createHello());
+}
+
+void Client::testRequest()
+{
+	m_webSocket->send(WebSocketMessage::createRequest(QJsonObject({{"test", "teststring"}})));
+}
+
+void Client::testClose()
+{
+	qDebug() << "CLOSE";
+	m_webSocket->socket()->close();
+}
+
+void Client::testText()
+{
+	qDebug() << "TEXT";
+	m_webSocket->socket()->sendTextMessage("helloka");
+}
+
+
 
 qreal Client::safeMarginBottom() const
 {
@@ -370,7 +444,34 @@ void Client::setSafeMarginLeft(qreal newSafeMarginLeft)
 
 void Client::safeMarginsGet()
 {
-	m_utils->safeMarginsGet(this);
+	QMarginsF margins;
+
+#if !defined (Q_OS_ANDROID)
+	QPlatformWindow *platformWindow = m_mainWindow->handle();
+	if(!platformWindow) {
+		qCWarning(lcUtils).noquote() << tr("Invalid QPlatformWindow");
+		return;
+	}
+	margins = platformWindow->safeAreaMargins();
+#else
+	static const double devicePixelRatio = QGuiApplication::primaryScreen()->devicePixelRatio();
+
+	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
+
+	const double left = static_cast<double>(rect.getField<jint>("left"));
+	const double top = static_cast<double>(rect.getField<jint>("top"));
+	const double right = static_cast<double>(rect.getField<jint>("right"));
+	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
+
+	margins.setTop(top/devicePixelRatio);
+	margins.setBottom(bottom/devicePixelRatio);
+	margins.setLeft(left/devicePixelRatio);
+	margins.setRight(right/devicePixelRatio);
+#endif
+
+	qCDebug(lcClient).noquote() << tr("New safe margins:") << margins;
+
+	setSafeMargins(margins);
 }
 
 
@@ -505,6 +606,21 @@ void Client::messageError(const QString &text, QString title) const
 
 	qCCritical(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
 	_message(text, title, QStringLiteral("error"));
+}
+
+
+/**
+ * @brief Client::snack
+ * @param text
+ */
+
+void Client::snack(const QString &text) const
+{
+	if (m_mainWindow) {
+		QMetaObject::invokeMethod(m_mainWindow, "snack",
+								  Q_ARG(QString, text)
+								  );
+	}
 }
 
 

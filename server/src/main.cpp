@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * database.h
+ * main.cpp
  *
- * Created on: 2022. 12. 31.
+ * Created on: 2023. 01. 02.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Database
+ * %{Cpp:License:ClassName}
  *
  *  This file is part of Call of Suli.
  *
@@ -24,34 +24,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DATABASE_H
-#define DATABASE_H
+#include "serverservice.h"
 
-
-#include "qloggingcategory.h"
-#include <QDeferred>
-#include <QLambdaThreadWorker>
-#include <QSqlDatabase>
-#include <QSqlError>
-
-class Database
+int main(int argc, char *argv[])
 {
-public:
-	Database(const QString &dbName);
-	virtual ~Database();
+	ServerService::initialize();
 
-	const QString &dbName() const;
+	ServerService service(argc, argv);
 
-	virtual QDeferred<QSqlError> databaseOpen(const QString &path);
-	virtual void databaseClose();
-
-protected:
-	bool databaseInit();
-
-	QLambdaThreadWorker m_worker;
-	QString m_dbName;
-};
-
-Q_DECLARE_LOGGING_CATEGORY(lcDb);
-
-#endif // DATABASE_H
+	return service.exec();
+}

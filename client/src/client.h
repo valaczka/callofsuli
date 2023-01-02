@@ -32,10 +32,11 @@
 #include <QQuickItem>
 #include <QLoggingCategory>
 #include "utils.h"
+#include "websocketmessage.h"
 
 class Application;
 class AbstractGame;
-
+class WebSocket;
 
 /**
  * @brief The Client class
@@ -57,6 +58,8 @@ class Client : public QObject
 	Q_PROPERTY(qreal safeMarginRight READ safeMarginRight NOTIFY safeMarginRightChanged)
 	Q_PROPERTY(qreal safeMarginTop READ safeMarginTop NOTIFY safeMarginTopChanged)
 	Q_PROPERTY(qreal safeMarginBottom READ safeMarginBottom NOTIFY safeMarginBottomChanged)
+
+	Q_PROPERTY(WebSocket *webSocket READ webSocket CONSTANT)
 
 
 public:
@@ -89,6 +92,8 @@ public:
 	Q_INVOKABLE void messageWarning(const QString &text, QString title = "") const;
 	Q_INVOKABLE void messageError(const QString &text, QString title = "") const;
 
+	Q_INVOKABLE void snack(const QString &text) const;
+
 
 	// Safe margins
 
@@ -109,9 +114,22 @@ public:
 	void setSafeMargins(const QMarginsF &margins);
 
 
+	// WebSocket
+
+	WebSocket *webSocket() const;
+
+
+	Q_INVOKABLE void testConnect();
+	Q_INVOKABLE void testHello();
+	Q_INVOKABLE void testRequest();
+	Q_INVOKABLE void testClose();
+Q_INVOKABLE void testText();
+
 protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
+
+	virtual void onWebSocketError(const QAbstractSocket::SocketError &error);
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
@@ -126,21 +144,26 @@ signals:
 	void safeMarginRightChanged();
 	void safeMarginTopChanged();
 	void safeMarginBottomChanged();
+	void webSocketMessageReceived(const WebSocketMessage &message);
 
 protected:
-	Application *const m_application = nullptr;
+	Application *const m_application;
 	QQuickItem *m_mainStack = nullptr;
 	QQuickWindow *m_mainWindow = nullptr;
 	bool m_mainWindowClosable = false;
 
-	QNetworkAccessManager *const m_networkManager = nullptr;
-	Utils *const m_utils = nullptr;
+	QNetworkAccessManager *const m_networkManager;
+	Utils *const m_utils;
 	AbstractGame *m_currentGame = nullptr;
+	WebSocket *const m_webSocket;
 
 	qreal m_safeMarginLeft = 0;
 	qreal m_safeMarginRight = 0;
 	qreal m_safeMarginTop = 0;
 	qreal m_safeMarginBottom = 0;
+
+private:
+
 };
 
 Q_DECLARE_LOGGING_CATEGORY(lcClient)

@@ -27,6 +27,7 @@
 #include <RollingFileAppender.h>
 #include "desktopapplication.h"
 #include "desktopclient.h"
+#include "utils.h"
 
 #include "sound.h"
 
@@ -43,15 +44,16 @@
 DesktopApplication::DesktopApplication(int &argc, char **argv)
 	: Application(argc, argv)
 {
-	cuteLogger->logToGlobalInstance("app.application", true);
-	cuteLogger->logToGlobalInstance("app.client", true);
-	cuteLogger->logToGlobalInstance("app.game", true);
-	cuteLogger->logToGlobalInstance("app.scene", true);
-	cuteLogger->logToGlobalInstance("app.sound", true);
-	cuteLogger->logToGlobalInstance("app.utils", true);
-	cuteLogger->logToGlobalInstance("qaterial.utils", true);
-	cuteLogger->logToGlobalInstance("qml", true);
-	cuteLogger->logToGlobalInstance("logger", true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.application"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.client"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.game"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.scene"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.sound"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.utils"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app.websocket"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qaterial.utils"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qml"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 }
 
 
@@ -192,16 +194,7 @@ bool DesktopApplication::performCommandLine()
 {
 	if (m_commandLine == License)
 	{
-		QFile f(QStringLiteral(":/license.txt"));
-
-		if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
-			qCWarning(lcApp).noquote() << QObject::tr("A licensz nem található vagy nem olvasható!");
-			return false;
-		}
-
-		QByteArray b = f.readAll();
-
-		f.close();
+		const QByteArray &b = Utils::fileContent(QStringLiteral(":/license.txt"));
 
 		QTextStream out(stdout);
 		out << b << Qt::endl;

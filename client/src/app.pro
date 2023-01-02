@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private #sql websockets quick svg multimedia network networkauth webview
+QT += gui quick svg xml network gui-private websockets #sql webview
 
 !wasm: QT += multimedia sql
 
@@ -30,7 +30,7 @@ QMLPATHS += $$PWD/../qml
 
 include(../../lib/import_lib_client.pri)
 
-!isEmpty(FullAppRpath) {
+!isEmpty(AppRpath) {
 	FullAppRpath = $$join(AppRpath,",","-Wl,")
 	QMAKE_LFLAGS += $$FullAppRpath
 }
@@ -145,9 +145,6 @@ ios {
 
 }
 
-
-
-
 SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
@@ -175,8 +172,9 @@ SOURCES += \
 	mapplay.cpp \
 	mapplaydemo.cpp \
 	question.cpp \
+	server.cpp \
 	tiledpaintedlayer.cpp \
-	utils.cpp
+	websocket.cpp
 
 RESOURCES += \
 	../qml/qml.qrc \
@@ -210,8 +208,9 @@ HEADERS += \
 	mapplay.h \
 	mapplaydemo.h \
 	question.h \
+	server.h \
 	tiledpaintedlayer.h \
-	utils.h
+	websocket.h
 
 
 

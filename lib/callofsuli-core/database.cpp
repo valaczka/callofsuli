@@ -104,6 +104,26 @@ QDeferred<QSqlError> Database::databaseOpen(const QString &path)
 
 
 /**
+ * @brief Database::databaseClose
+ */
+
+void Database::databaseClose()
+{
+	QDefer ret;
+
+	m_worker.execInThread([ret, this]() mutable {
+		qCDebug(lcDb).noquote() << QObject::tr("Close database:") << m_dbName;
+
+		QSqlDatabase::database(m_dbName).close();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+}
+
+
+/**
  * @brief Database::databaseInit
  * @return
  */
@@ -114,7 +134,7 @@ bool Database::databaseInit()
 	bool retValue = false;
 
 	m_worker.execInThread([ret, this]() mutable {
-		qCDebug(lcDb).noquote() << QObject::tr("Add database:") << m_dbName << QThread::currentThread();
+		qCDebug(lcDb).noquote() << QObject::tr("Add database:") << m_dbName;
 
 		if (QSqlDatabase::contains(m_dbName)) {
 			qCCritical(lcDb).noquote() << QObject::tr("Database already in use:") << m_dbName;

@@ -64,6 +64,7 @@
 #include "gamepickable.h"
 #include "gamequestion.h"
 #include "mapplay.h"
+#include "websocket.h"
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -96,10 +97,10 @@ Application::Application(int &argc, char **argv)
 	QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
-	QCoreApplication::setApplicationName("callofsuli");
-	QCoreApplication::setOrganizationDomain("callofsuli");
+	QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
+	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
 	QCoreApplication::setApplicationVersion(m_version);
-	QGuiApplication::setApplicationDisplayName("Call of Suli");
+	QGuiApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	if (!m_instance) {
 		qCDebug(lcApp).noquote() << QObject::tr("Create application instance");
@@ -313,6 +314,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
+	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
