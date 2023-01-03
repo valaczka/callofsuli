@@ -25,6 +25,7 @@
  */
 
 #include "gameplayer.h"
+#include "Logger.h"
 #include "application.h"
 #include "actiongame.h"
 #include "gameenemy.h"
@@ -828,7 +829,7 @@ void GamePlayer::turnRight()
 void GamePlayer::operate(GameObject *object)
 {
 	if (!object || object->objectType().isEmpty()) {
-		qCWarning(lcGame).noquote() << tr("Invalid operating object (%1):").arg(object ? object->objectType() : "") << object;
+		LOG_CWARNING("game") << "Invalid operating object " << (object ? object->objectType() : "") << object;
 		return;
 	}
 

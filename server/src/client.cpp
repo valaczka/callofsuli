@@ -27,8 +27,8 @@
 #include "client.h"
 #include "qjsondocument.h"
 #include "qjsonobject.h"
-#include "websocketserver.h"
 #include "serverservice.h"
+#include <Logger.h>
 
 
 /**
@@ -42,8 +42,9 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	, m_webSocket(webSocket)
 	, m_service(service)
 {
-	qCDebug(lcWebSocket).noquote() << tr("Client created:") << this;
-	qCInfo(lcWebSocket).noquote() << tr("New connection:") << webSocket->peerAddress().toString() << webSocket->peerPort();
+	LOG_CDEBUG("client") << "Client created:" << this;
+
+	LOG_CINFO("client") << "New connection:" << webSocket->peerAddress().toString() << webSocket->peerPort();
 
 	setClientState(Hello);
 
@@ -59,7 +60,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 
 Client::~Client()
 {
-	qCDebug(lcWebSocket).noquote() << tr("Client destroyed:") << this;
+	LOG_CDEBUG("client") << "Client destroyed:" << this;
 }
 
 
@@ -84,7 +85,7 @@ void Client::handleMessage(const WebSocketMessage &message)
 
 
 	if (m_clientState != Connected) {
-		qCWarning(lcWebSocket).noquote() << tr("Handle message error:") << m_clientState << this;
+		LOG_CWARNING("client") << "Handle message error:" << m_clientState << this;
 		send(message.createErrorResponse(QStringLiteral("Invalid handler state")));
 		return;
 	}
@@ -93,9 +94,25 @@ void Client::handleMessage(const WebSocketMessage &message)
 	if (message.opCode() == WebSocketMessage::Hello) {
 		send(message.createHello());
 	} else if (message.opCode() == WebSocketMessage::Request) {
-		send(message.createResponse(QJsonObject({
-													{ QStringLiteral("status"), QStringLiteral("success") }
-												})));
+		if (message.data().contains("google")) {
+			OAuth2CodeFlow *flow = m_service->googleOAuth2Authenticator()->addCodeFlow(this);
+
+			if (flow) {
+				send(message.createResponse(QJsonObject({
+															{ QStringLiteral("status"), QStringLiteral("flow created") }
+														})));
+
+				flow->grant();
+			} else {
+				send(message.createResponse(QJsonObject({
+															{ QStringLiteral("status"), QStringLiteral("flow failed") }
+														})));
+			}
+		} else {
+			send(message.createResponse(QJsonObject({
+														{ QStringLiteral("status"), QStringLiteral("success") }
+													})));
+		}
 	} else if (message.opCode() == WebSocketMessage::RequestResponse) {
 		/// TODO
 	} else if (message.opCode() == WebSocketMessage::Event) {
@@ -112,11 +129,11 @@ void Client::handleMessage(const WebSocketMessage &message)
 void Client::send(const WebSocketMessage &message)
 {
 	if (!m_webSocket) {
-		qCWarning(lcWebSocket).noquote() << tr("Missing web socket");
+		LOG_CWARNING("client") << "Missing web socket";
 		return;
 	}
 
-	qCDebug(lcMessage).noquote() << tr("Message sent:") << message << this;
+	LOG_CTRACE("client") << "Message sent:" << message << this;
 
 	m_webSocket->sendBinaryMessage(message.toByteArray());
 }
@@ -131,7 +148,7 @@ void Client::send(const WebSocketMessage &message)
 void Client::onDisconnected()
 {
 	setClientState(Invalid);
-	qCInfo(lcWebSocket).noquote() << tr("Disconnected:") << m_webSocket->peerAddress().toString() << m_webSocket->peerPort();
+	LOG_CINFO("client") << "Disconnected:" << m_webSocket->peerAddress().toString() << m_webSocket->peerPort();
 	m_service->clientRemove(this);
 }
 
@@ -146,10 +163,10 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 	WebSocketMessage m = WebSocketMessage::fromByteArray(message);
 
 	if (m.isValid()) {
-		qCDebug(lcMessage).noquote() << tr("Message received:") << m << this;
+		LOG_CTRACE("client") << "Message received:" << m << this;
 		handleMessage(m);
 	} else {
-		qCInfo(lcWebSocket).noquote() << tr("Invalid message received:") << this;
+		LOG_CINFO("client") << "Invalid message received:" << this;
 
 		QJsonObject r;
 		r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
@@ -169,7 +186,7 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 
 void Client::onTextMessageReceived(const QString &message)
 {
-	qCInfo(lcWebSocket).noquote() << tr("Text message received:") << message << this;
+	LOG_CINFO("client") << "Text message received:" << message << this;
 
 	QJsonObject r;
 	r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
@@ -178,6 +195,42 @@ void Client::onTextMessageReceived(const QString &message)
 
 	m_webSocket->sendTextMessage(QJsonDocument(r).toJson(QJsonDocument::Indented));
 }
+
+
+/**
+ * @brief Client::credential
+ * @return
+ */
+
+const Credential &Client::credential() const
+{
+	return m_credential;
+}
+
+void Client::setCredential(const Credential &newCredential)
+{
+	if (m_credential == newCredential)
+		return;
+	m_credential = newCredential;
+	emit credentialChanged();
+}
+
+
+
+/**
+ * @brief Client::requestOAuth2Browser
+ * @param url
+ */
+
+void Client::requestOAuth2Browser(const QUrl &url)
+{
+	LOG_CINFO("client") << "Request browser for oauth2 url" << url;
+
+	send(WebSocketMessage::createEvent(QJsonObject({
+													   { QStringLiteral("url"), url.toString() }
+												   })));
+}
+
 
 
 /**
@@ -207,7 +260,7 @@ void Client::setClientState(const ClientState &newClientState)
 void Client::onClientStateChanged()
 {
 	if (m_clientState == Error) {
-		qCInfo(lcWebSocket).noquote() << tr("Client state error:") << this;
+		LOG_CINFO("client") << "Client state error:" << this;
 		m_webSocket->close(QWebSocketProtocol::CloseCodeBadOperation);
 	}
 }

@@ -27,13 +27,15 @@
 #ifndef SERVERSERVICE_H
 #define SERVERSERVICE_H
 
-#include "qloggingcategory.h"
 #include <QtService/Service>
 #include <QPointer>
+#include "ColorConsoleAppender.h"
 #include "serversettings.h"
 #include "databasemain.h"
 #include "websocketserver.h"
 #include "client.h"
+#include "credential.h"
+#include "googleoauth2authenticator.h"
 
 class ServerService : public QtService::Service
 {
@@ -53,11 +55,13 @@ public:
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
 	WebSocketServer *webSocketServer() const;
+	GoogleOAuth2Authenticator *googleOAuth2Authenticator() const;
 
 	void clientAdd(Client *client);
 	void clientRemove(Client *client);
 
 	const QVector<QPointer<Client>> &clients() const;
+
 
 protected:
 	bool preStart() override;
@@ -81,9 +85,13 @@ private:
 	QPointer<DatabaseMain> m_databaseMain = nullptr;
 	QPointer<WebSocketServer> m_webSocketServer = nullptr;
 	QVector<QPointer<Client>> m_clients;
+	QPointer<GoogleOAuth2Authenticator> m_googleOAuth2Authenticator = nullptr;
+
+	JwtVerifier m_verifier = jwt::verify();
+
+	ColorConsoleAppender *m_consoleAppender = nullptr;
 };
 
-Q_DECLARE_LOGGING_CATEGORY(lcService)
 
 
 #endif // SERVERSERVICE_H

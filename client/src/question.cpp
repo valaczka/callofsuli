@@ -128,11 +128,11 @@ QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &da
 {
 	if (!Application::instance()->objectiveModules().contains(module)) {
 		return QVariantMap({
-							   { QStringLiteral("name"), QStringLiteral("") },
+							   { QStringLiteral("name"), QLatin1String("") },
 							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
-							   { QStringLiteral("details"), QStringLiteral("") },
-							   { QStringLiteral("image"), QStringLiteral("") }
+							   { QStringLiteral("details"), QLatin1String("") },
+							   { QStringLiteral("image"), QLatin1String("") }
 						   });
 	}
 
@@ -158,11 +158,11 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 {
 	if (!Application::instance()->storageModules().contains(module)) {
 		return QVariantMap({
-							   { QStringLiteral("name"), QStringLiteral("") },
+							   { QStringLiteral("name"), QLatin1String("") },
 							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
-							   { QStringLiteral("details"), QStringLiteral("") },
-							   { QStringLiteral("image"), QStringLiteral("") }
+							   { QStringLiteral("details"), QLatin1String("") },
+							   { QStringLiteral("image"), QLatin1String("") }
 						   });
 	}
 
@@ -186,12 +186,12 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 QString Question::qml() const
 {
 	if (!m_objective)
-		return QStringLiteral("");
+		return QLatin1String("");
 
 	QString module = m_objective->module();
 
 	if (!Application::instance()->objectiveModules().contains(module))
-		return QStringLiteral("");
+		return QLatin1String("");
 
 	ModuleInterface *mi = Application::instance()->objectiveModules().value(module);
 

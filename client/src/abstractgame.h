@@ -28,7 +28,6 @@
 #define ABSTRACTGAME_H
 
 #include "qelapsedtimer.h"
-#include "qloggingcategory.h"
 #include "qquickitem.h"
 #include "gamemap.h"
 #include <QObject>
@@ -135,7 +134,5 @@ private:
 	bool m_readyToDestroy = false;
 
 };
-
-Q_DECLARE_LOGGING_CATEGORY(lcGame)
 
 #endif // ABSTRACTGAME_H

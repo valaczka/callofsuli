@@ -25,6 +25,7 @@
  */
 
 #include "gamepickable.h"
+#include "Logger.h"
 #include "actiongame.h"
 #include "gameplayer.h"
 
@@ -239,7 +240,7 @@ void GamePickable::pick(ActionGame *game)
 			game->toolAdd(m_pickableData.type);
 			game->message(tr("1 %1 gained").arg(d.messageName.isEmpty() ? d.name : d.messageName), QStringLiteral("#9c27b0"));
 		} else {
-			qCWarning(lcGame).noquote() << tr("Can't pick type:") << m_pickableData.type;
+			LOG_CWARNING("game") << "Can't pick type:" << m_pickableData.type;
 		}
 		break;
 	}
@@ -264,12 +265,12 @@ void GamePickable::operate(ActionGame *game, const GamePickable::PickableType &t
 	GamePlayer *player = game->player();
 
 	if (!player) {
-		qCWarning(lcGame).noquote() << tr("Missing player");
+		LOG_CWARNING("game") << "Missing player";
 		return;
 	}
 
 	if (player->playerState() == GamePlayer::Operate || player->playerState() == GamePlayer::MoveToOperate) {
-		qCWarning(lcGame).noquote() << tr("Operation already in progress");
+		LOG_CWARNING("game") << "Operation already in progress";
 		return;
 	}
 
@@ -336,7 +337,7 @@ void GamePickable::operate(ActionGame *game, const GamePickable::PickableType &t
 	}
 
 
-	qCWarning(lcGame).noquote() << tr("Invalid operation for tool:") << type;
+	LOG_CWARNING("game") << "Invalid operation for tool:" << type;
 }
 
 

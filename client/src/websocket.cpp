@@ -27,15 +27,14 @@
 #include "websocket.h"
 #include "client.h"
 #include "websocketmessage.h"
-
-Q_LOGGING_CATEGORY(lcWebSocket, "app.websocket")
+#include "Logger.h"
 
 WebSocket::WebSocket(Client *client)
 	: QObject(client)
 	, m_socket(new QWebSocket(QStringLiteral("callofsuli"), QWebSocketProtocol::VersionLatest, this))
 	, m_client(client)
 {
-	qCDebug(lcWebSocket).noquote() << tr("WebSocket created");
+	LOG_CTRACE("websocket") << "WebSocket created";
 
 	connect(m_socket, &QWebSocket::connected, this, &WebSocket::onConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
@@ -45,7 +44,7 @@ WebSocket::WebSocket(Client *client)
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &WebSocket::onBinaryFrameReceived);
 
 	connect(m_socket, &QWebSocket::stateChanged, this, [=](const QAbstractSocket::SocketState &state){
-		qCDebug(lcWebSocket).noquote() << tr("----- STATE CHANGED") << state;
+		LOG_CTRACE("websocket") << "----- STATE CHANGED" << state;
 	});
 }
 
@@ -58,7 +57,7 @@ WebSocket::~WebSocket()
 {
 	delete m_socket;
 
-	qCDebug(lcWebSocket).noquote() << tr("WebSocket destroyed");
+	LOG_CTRACE("websocket") << "WebSocket destroyed";
 }
 
 
@@ -127,15 +126,15 @@ void WebSocket::connectToServer(Server *server)
 		return;
 	}
 
-	qCDebug(lcWebSocket).noquote() << tr("Connect to server:") << server->url();
+	LOG_CDEBUG("websocket") << "Connect to server:" << server->url();
 
 	if (m_socket->state() != QAbstractSocket::UnconnectedState) {
-		qCInfo(lcWebSocket).noquote() << tr("Régi nyitott kapcsolat lezárása:") << m_socket->requestUrl();
+		LOG_CINFO("websocket") << "Régi nyitott kapcsolat lezárása:" << m_socket->requestUrl();
 		m_socket->close();
 	}
 
 	if (m_socket->state() == QAbstractSocket::ConnectedState && m_socket->requestUrl() == server->url()) {
-		qCDebug(lcWebSocket).noquote() << tr("Server already connected:") << m_socket->requestUrl();
+		LOG_CTRACE("websocket") << "Server already connected:" << m_socket->requestUrl();
 		return;
 	}
 
@@ -151,7 +150,7 @@ void WebSocket::connectToServer(Server *server)
 
 void WebSocket::close()
 {
-	qCDebug(lcWebSocket).noquote() << tr("Close connection:") << m_socket->requestUrl();
+	LOG_CTRACE("websocket") << "Close connection:" << m_socket->requestUrl();
 	setState(Disconnected);
 	m_socket->close();
 }
@@ -166,7 +165,7 @@ void WebSocket::close()
 void WebSocket::send(const WebSocketMessage &message)
 {
 	if (!(m_state == Hello && message.opCode() == WebSocketMessage::Hello) && m_state != Connected) {
-		qCWarning(lcWebSocket).noquote() << tr("Web socket server unavailable");
+		LOG_CWARNING("websocket") << "Web socket server unavailable";
 		emit serverUnavailable(++m_signalUnavailableNum);
 
 		return;
@@ -185,7 +184,7 @@ void WebSocket::send(const WebSocketMessage &message)
 
 void WebSocket::onConnected()
 {
-	qCDebug(lcWebSocket).noquote() << tr("Connected:") << m_socket->requestUrl();
+	LOG_CTRACE("websocket") << "Connected:" << m_socket->requestUrl();
 	setState(Hello);
 	send(WebSocketMessage::createHello());
 	m_signalUnavailableNum = 0;
@@ -193,7 +192,7 @@ void WebSocket::onConnected()
 
 void WebSocket::onDisconnected()
 {
-	qCDebug(lcWebSocket).noquote() << tr("Disonnected:") << m_socket->requestUrl();
+	LOG_CTRACE("websocket") << "Disonnected:" << m_socket->requestUrl();
 
 	if (m_state != Disconnected)
 		setState(Terminated);
@@ -207,7 +206,7 @@ void WebSocket::onDisconnected()
 
 void WebSocket::onError(const QAbstractSocket::SocketError &error)
 {
-	qCDebug(lcWebSocket).noquote() << tr("Socket error:") << error << m_socket->requestUrl();
+	LOG_CTRACE("websocket") << "Socket error:" << error << m_socket->requestUrl();
 	setState(Error);
 }
 
@@ -219,7 +218,7 @@ void WebSocket::onError(const QAbstractSocket::SocketError &error)
 
 void WebSocket::onSslErrors(const QList<QSslError> &errors)
 {
-	qCDebug(lcWebSocket).noquote() << tr("Socket ssl errors:") << errors << m_socket->requestUrl();
+	LOG_CTRACE("websocket") << "Socket ssl errors:" << errors << m_socket->requestUrl();
 	setState(Error);
 }
 
@@ -248,7 +247,7 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 	if (m_state == Hello) {
 		if (m.opCode() == WebSocketMessage::Hello) {
 			/// TODO: CHECK VERSION
-			qCDebug(lcWebSocket).noquote() << tr("Hello successfull");
+			LOG_CTRACE("websocket") << "Hello successfull";
 			setState(Connected);
 			emit serverConnected();
 			return;
@@ -256,16 +255,19 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 	}
 
 	if (m_state != Connected) {
-		qCCritical(lcWebSocket).noquote() << tr("Invalid state");
+		LOG_CERROR("websocket") << "Invalid state";
 		return;
 	}
 
 	if (!m.isValid()) {
-		qCCritical(lcWebSocket).noquote() << tr("Invalid web socket message received");
+		LOG_CERROR("websocket") << "Invalid web socket message received";
 		return;
 	}
 
-	qCDebug(lcWebSocket).noquote() << tr("RECEIVED:") << m;
+	LOG_CTRACE("websocket") << "RECEIVED:" << m;
+
+	if (m.data().contains("url"))
+		Utils::openUrl(QUrl::fromEncoded(m.data().value("url").toString().toUtf8()));
 
 	emit m_client->webSocketMessageReceived(m);
 }

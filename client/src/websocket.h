@@ -27,7 +27,6 @@
 #ifndef WEBSOCKET_H
 #define WEBSOCKET_H
 
-#include "qloggingcategory.h"
 #include <QWebSocket>
 #include "server.h"
 #include "websocketmessage.h"
@@ -90,6 +89,5 @@ private:
 	int m_signalUnavailableNum = 0;
 };
 
-Q_DECLARE_LOGGING_CATEGORY(lcWebSocket)
 
 #endif // WEBSOCKET_H

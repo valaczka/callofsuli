@@ -37,7 +37,7 @@ class ServerSettings
 public:
 	ServerSettings();
 
-	QByteArray printConfig() const;
+	void printConfig() const;
 
 	const QDir &dataDir() const;
 	void setDataDir(const QDir &newDataDir);
@@ -51,11 +51,15 @@ public:
 	quint16 listenPort() const;
 	void setListenPort(quint16 newListenPort);
 
+	const QString &jwtSecret() const;
+	void setJwtSecret(const QString &newJwtSecret);
+
 private:
 	QDir m_dataDir;
 	bool m_ssl = false;
 	QHostAddress m_listenAddress = QHostAddress::Any;
 	quint16 m_listenPort = 10101;
+	QString m_jwtSecret;
 
 };
 

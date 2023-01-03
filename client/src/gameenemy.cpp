@@ -25,6 +25,7 @@
  */
 
 #include "gameenemy.h"
+#include "Logger.h"
 #include "gamescene.h"
 #include "application.h"
 #include "gameplayer.h"
@@ -338,7 +339,7 @@ void GameEnemy::missedByPlayer(GamePlayer *player)
 void GameEnemy::turnToPlayer(GamePlayer *player)
 {
 	if (!player) {
-		qCWarning(lcGame).noquote() << tr("Missing player");
+		LOG_CWARNING("game") << tr("Missing player");
 		return;
 	}
 

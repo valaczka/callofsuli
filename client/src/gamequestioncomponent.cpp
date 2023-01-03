@@ -25,19 +25,19 @@
  */
 
 #include "gamequestioncomponent.h"
-#include "abstractgame.h"
+#include "Logger.h"
 #include "gamequestion.h"
 
 
 GameQuestionComponent::GameQuestionComponent(QQuickItem *parent)
 	: QQuickItem(parent)
 {
-	qCDebug(lcGame).noquote() << tr("Game question component created") << this;
+	LOG_CTRACE("game") << "Game question component created" << this;
 }
 
 GameQuestionComponent::~GameQuestionComponent()
 {
-	qCDebug(lcGame).noquote() << tr("Game question component destroyed") << this;
+	LOG_CTRACE("game") << "Game question component destroyed" << this;
 }
 
 /**

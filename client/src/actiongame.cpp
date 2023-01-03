@@ -33,6 +33,7 @@
 #include "gamequestion.h"
 #include <QRandomGenerator>
 #include <QtMath>
+#include <Logger.h>
 
 
 // Tool dependency
@@ -57,7 +58,7 @@ ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 {
 	Q_ASSERT(missionLevel);
 
-	qCDebug(lcGame).noquote() << tr("Action game constructed") << this;
+	LOG_CTRACE("game") << "Action game constructed" << this;
 
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionGame::onGameTimeout);
@@ -73,7 +74,7 @@ ActionGame::~ActionGame()
 {
 	qDeleteAll(m_questions);
 	qDeleteAll(m_enemies);
-	qCDebug(lcGame).noquote() << tr("Action game destroyed") << this;
+	LOG_CTRACE("game") << "Action game destroyed" << this;
 }
 
 
@@ -107,14 +108,14 @@ void ActionGame::createEnemyLocations()
 	qDeleteAll(m_enemies);
 
 	if (!m_scene) {
-		qCWarning(lcGame).noquote() << tr("Missing scene, don't created any location");
+		LOG_CWARNING("game") << "Missing scene, don't created any location";
 		return;
 	}
 
 	foreach (const GameTerrain::EnemyData &e, m_scene->terrain().enemies())
 		m_enemies.append(new EnemyLocation(e));
 
-	qCDebug(lcGame).noquote() << tr("%1 enemy places created").arg(m_enemies.size());
+	LOG_CDEBUG("game") << m_enemies.size() << " enemy places created";
 
 	emit activeEnemiesChanged();
 }
@@ -127,11 +128,11 @@ void ActionGame::createEnemyLocations()
 void ActionGame::createFixEnemies()
 {
 	if (!m_scene) {
-		qCWarning(lcGame).noquote() << tr("Missing scene");
+		LOG_CWARNING("game") << "Missing scene";
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << tr("Create fix enemies");
+	LOG_CDEBUG("game") << "Create fix enemies";
 
 	int n = 0;
 
@@ -172,7 +173,7 @@ void ActionGame::createFixEnemies()
 		}
 	}
 
-	qCDebug(lcGame).noquote() << tr("%1 fix enemies created").arg(n);
+	LOG_CDEBUG("game") << n << " fix enemies created";
 
 	emit activeEnemiesChanged();
 }
@@ -185,11 +186,11 @@ void ActionGame::createFixEnemies()
 void ActionGame::recreateEnemies()
 {
 	if (!m_scene) {
-		qCWarning(lcGame).noquote() << tr("Missing scene");
+		LOG_CWARNING("game") << "Missing scene";
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << tr("Recreate enemies");
+	LOG_CDEBUG("game") << "Recreate enemies";
 
 	QList<GameEnemy *> soldiers;
 
@@ -223,7 +224,7 @@ void ActionGame::recreateEnemies()
 		soldiers.append(soldier);
 	}
 
-	qCDebug(lcGame).noquote() << tr("%1 new enemies created").arg(soldiers.size());
+	LOG_CDEBUG("game") << soldiers.size() << " new enemies created";
 
 	linkQuestionToEnemies(soldiers);
 	linkPickablesToEnemies(soldiers);
@@ -242,17 +243,17 @@ void ActionGame::createInventory()
 	m_inventory.clear();
 
 	if (!m_missionLevel) {
-		qCWarning(lcGame).noquote() << tr("Missing game map, don't created any pickable");
+		LOG_CWARNING("game") << "Missing game map, don't created any pickable";
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << tr("Create inventory");
+	LOG_CDEBUG("game") << "Create inventory";
 
 	const QHash<QString, GamePickable::GamePickableData> &list = GamePickable::pickableDataHash();
 
 	foreach (GameMapInventory *inventory, m_missionLevel->inventories()) {
 		if (!list.contains(inventory->module())) {
-			qCWarning(lcGame).noquote() << tr("Invalid pickable module:") << inventory->module();
+			LOG_CWARNING("game") << "Invalid pickable module:" << inventory->module();
 			continue;
 		}
 
@@ -260,10 +261,10 @@ void ActionGame::createInventory()
 		m_inventory.append(inv);
 	}
 
-	qCDebug(lcGame).noquote() << tr("Inventory loaded: %1 items").arg(m_inventory.size());
+	LOG_CDEBUG("game") << "Inventory loaded " << m_inventory.size() << " items";
 
 	foreach (const Inventory &inv, m_inventory) {
-		qCDebug(lcGame).noquote() << tr("- %1 (block: %2)").arg(inv.first.name).arg(inv.second);
+		LOG_CTRACE("game") << "- " << inv.first.name << " (block: " << inv.second << ")";
 	}
 }
 
@@ -277,13 +278,13 @@ void ActionGame::createInventory()
 void ActionGame::createPickable(GameEnemy *enemy)
 {
 	if (!enemy) {
-		qCCritical(lcGame).noquote() << tr("Invalid enemy");
+		LOG_CERROR("game") << "Invalid enemy";
 		return;
 	}
 
 	const GamePickable::GamePickableData &pickable = enemy->pickable();
 
-	qCDebug(lcGame).noquote() << tr("Create pickable from enemy:") << enemy->terrainEnemyData().type;
+	LOG_CDEBUG("game") << "Create pickable from enemy:" << enemy->terrainEnemyData().type;
 
 	QPointF pos = enemy->position();
 	const QRectF br = enemy->bodyRect();
@@ -307,11 +308,11 @@ void ActionGame::createPickable(GameEnemy *enemy)
 void ActionGame::createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint)
 {
 	if (!m_scene) {
-		qCCritical(lcGame).noquote() << tr("Invalid scene");
+		LOG_CERROR("game") << "Invalid scene";
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << tr("Create pickable:") << data.type << bottomPoint;
+	LOG_CDEBUG("game") << "Create pickable:" << data.type << bottomPoint;
 
 	GamePickable *object = qobject_cast<GamePickable*>(GameObject::createFromFile("GamePickable.qml", m_scene));
 
@@ -339,7 +340,7 @@ void ActionGame::createPickable(const GamePickable::GamePickableData &data, cons
 
 void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 {
-	qCDebug(lcGame).noquote() << tr("Link questions to enemies");
+	LOG_CDEBUG("game") << "Link questions to enemies";
 
 	typedef QVector<QuestionLocation *> QVL;
 
@@ -359,7 +360,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 	QList<GameEnemy *> notUsed = enemies;
 
 	for (auto it = usedList.begin(); it != usedList.end(); ++it) {
-		qCDebug(lcGame).noquote() << tr("Link questions used %1 times").arg(it.key()) << it.value().size();
+		LOG_CTRACE("game") << "Link questions used " << it.key() << " times: " << it.value().size();
 
 		while (!it.value().isEmpty() && !enemies.isEmpty()) {
 			QuestionLocation *ql = it.value().takeAt(QRandomGenerator::global()->bounded(it.value().size()));
@@ -384,7 +385,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 				}
 
 				if (blockQuestions >= qFloor(blockMax * m_missionLevel->questions())) {
-					qCDebug(lcGame).noquote() << tr("Block %1 oversize, skip.").arg(block);
+					LOG_CTRACE("game") << "Block oversize, skip:" << block;
 					continue;
 				}
 
@@ -426,7 +427,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 
 void ActionGame::linkPickablesToEnemies(QList<GameEnemy *> enemies)
 {
-	qCDebug(lcGame).noquote() << tr("Link pickables to enemies:") << enemies.size();
+	LOG_CDEBUG("game") << "Link pickables to enemies:" << enemies.size();
 
 	QVector<int> eBlocks;
 
@@ -489,7 +490,7 @@ void ActionGame::linkPickablesToEnemies(QList<GameEnemy *> enemies)
 		++n;
 	}
 
-	qCDebug(lcGame).noquote() << tr("%1 pickables linked").arg(n);
+	LOG_CDEBUG("game") << n << "pickables linked";
 }
 
 
@@ -503,7 +504,7 @@ void ActionGame::relinkQuestionToEnemy(GameEnemy *enemy)
 	Q_ASSERT (enemy);
 
 	if (!enemy->question()) {
-		qCWarning(lcGame).noquote() << tr("Enemy hasn't question location:") << enemy;
+		LOG_CWARNING("game") << "Enemy hasn't question location:" << enemy;
 	} else {
 		enemy->question()->setEnemy(nullptr);
 	}
@@ -524,13 +525,13 @@ void ActionGame::relinkQuestionToEnemy(GameEnemy *enemy)
 	}
 
 	if (m_questions.isEmpty()) {
-		qCWarning(lcGame).noquote() << tr("Question location unavailable");
+		LOG_CWARNING("game") << "Question location unavailable";
 		return;
 	}
 
 	auto it = usedList.begin();
 
-	qCDebug(lcGame).noquote() << tr("Relink questions used %1 times").arg(it.key()) << it.value().size();
+	LOG_CTRACE("game") << "Relink questions used " << it.key() << " times:" << it.value().size();
 
 	QuestionLocation *ql = it.value().takeAt(QRandomGenerator::global()->bounded(it.value().size()));
 
@@ -552,16 +553,16 @@ void ActionGame::relinkQuestionToEnemy(GameEnemy *enemy)
 void ActionGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 {
 	if (!player) {
-		qCWarning(lcGame).noquote() << tr("Invalid player to try attack");
+		LOG_CWARNING("game") << "Invalid player to try attack";
 		return;
 	}
 
 	if (!enemy) {
-		qCWarning(lcGame).noquote() << tr("Invalid enemy to try attack");
+		LOG_CWARNING("game") << "Invalid enemy to try attack";
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << tr("Try attack");
+	LOG_CDEBUG("game") << "Try attack";
 
 	if (enemy->hasQuestion()) {
 		m_attackedEnemy = enemy;
@@ -584,14 +585,14 @@ void ActionGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
 void ActionGame::operateReal(GamePlayer *player, GameObject *object)
 {
 	if (!player) {
-		qCCritical(lcGame).noquote() << tr("Missing player");
+		LOG_CERROR("game") << "Missing player";
 		return;
 	}
 
 	QString objectType = object ? object->objectType() : "";
 
 	if (objectType.isEmpty()) {
-		qCWarning(lcGame).noquote() << tr("Invalid operating object type:") << objectType;
+		LOG_CWARNING("game") << "Invalid operating object type:" << objectType;
 		player->setOperatingObject(nullptr);
 		return;
 	}
@@ -666,7 +667,7 @@ void ActionGame::setPlayer(GamePlayer *newPlayer)
 	if (!m_player)
 		return;
 
-	qCDebug(lcGame).noquote() << tr("Setup new player");
+	LOG_CDEBUG("game") << "Setup new player";
 
 	m_player->setMaxHp(startHP());
 	m_player->setHp(startHP());
@@ -1197,7 +1198,7 @@ int ActionGame::activeEnemies() const
 
 void ActionGame::onPlayerDied(GameEntity *)
 {
-	qCDebug(lcGame).noquote() << tr("Player died");
+	LOG_CDEBUG("game") << "Player died";
 	setPlayer(nullptr);
 
 	message(tr("Your man has died"), QStringLiteral("#e53935"));
@@ -1229,7 +1230,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 	GameEnemy *enemy = qobject_cast<GameEnemy*>(entity);
 
 	if (!enemy) {
-		qCCritical(lcGame).noquote() << tr("Invalid enemy entity:") << entity;
+		LOG_CERROR("game") << "Invalid enemy entity:" << entity;
 		return;
 	}
 
@@ -1247,7 +1248,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	if (!activeEnemies()) {
 		onGameSuccess();
-		qCDebug(lcGame).noquote() << tr("Mission completed");
+		LOG_CDEBUG("game") << "Mission completed";
 		return;
 	}
 
@@ -1270,7 +1271,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	m_closedBlocks.append(block);
 
-	qCDebug(lcGame).noquote() << tr("Block closed:") << block;
+	LOG_CDEBUG("game") << "Block closed:" << block;
 
 	if (m_scene)
 		m_scene->activateLaddersInBlock(block);
@@ -1333,7 +1334,7 @@ void ActionGame::pickablePick()
 	emit pickableChanged();
 
 	if (!p) {
-		qCCritical(lcGame).noquote() << tr("Invalid pickable");
+		LOG_CERROR("game") << "Invalid pickable";
 		return;
 	}
 
@@ -1352,11 +1353,11 @@ void ActionGame::pickablePick()
 void ActionGame::message(const QString &text, const QColor &color)
 {
 	if (!m_scene || !m_scene->messageList()) {
-		qCInfo(lcGame).noquote() << text;
+		LOG_CINFO("game") << text;
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << text;
+	LOG_CDEBUG("game") << text;
 
 	QMetaObject::invokeMethod(m_scene->messageList(), "message",
 							  Q_ARG(QVariant, text),
@@ -1388,11 +1389,11 @@ void ActionGame::addMSec(const qint64 &msec)
 void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, const QString &title)
 {
 	if (!m_pageItem) {
-		qCInfo(lcGame).noquote() << title << text;
+		LOG_CINFO("game") << title << text;
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << title << text;
+	LOG_CDEBUG("game") << title << text;
 
 	QMetaObject::invokeMethod(m_pageItem, "messageTooltip",
 							  Q_ARG(QString, text),
@@ -1425,11 +1426,11 @@ void ActionGame::dialogMessageTooltipById(const QString &msgId, const QString &t
 void ActionGame::dialogMessageFinish(const QString &text, const QString &icon, const bool &success)
 {
 	if (!m_pageItem) {
-		qCInfo(lcGame).noquote() << text;
+		LOG_CINFO("game") << text;
 		return;
 	}
 
-	qCDebug(lcGame).noquote() << text;
+	LOG_CDEBUG("game") << text;
 
 	QMetaObject::invokeMethod(m_pageItem, "messageFinish",
 							  Q_ARG(QString, text),
@@ -1445,7 +1446,7 @@ void ActionGame::dialogMessageFinish(const QString &text, const QString &icon, c
 
 void ActionGame::toolUse(const GamePickable::PickableType &type)
 {
-	qCDebug(lcGame).noquote() << tr("Use tool:") << type;
+	LOG_CDEBUG("game") << "Use tool:" << type;
 
 	GamePickable::operate(this, type);
 }
@@ -1460,7 +1461,8 @@ void ActionGame::gameAbort()
 	m_scene->stopSoundMusic(backgroundMusic());
 	setFinishState(Fail);
 
-	qCInfo(lcGame).noquote() << tr("Game aborted:") << this;
+	LOG_CINFO("game") << "Game aborted:" << this;
+
 	gameFinish();
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"));
 	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"));

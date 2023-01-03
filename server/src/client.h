@@ -29,6 +29,7 @@
 
 #include <QWebSocket>
 #include "websocketmessage.h"
+#include "credential.h"
 
 class ServerService;
 
@@ -37,6 +38,7 @@ class Client : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(ClientState clientState READ clientState WRITE setClientState NOTIFY clientStateChanged)
+	Q_PROPERTY(Credential credential READ credential WRITE setCredential NOTIFY credentialChanged)
 
 public:
 	explicit Client(QWebSocket *webSocket, ServerService *service);
@@ -59,8 +61,15 @@ public:
 	void setClientState(const ClientState &newClientState);
 
 
+	const Credential &credential() const;
+	void setCredential(const Credential &newCredential);
+
+public slots:
+	void requestOAuth2Browser(const QUrl &url);
+
 signals:
 	void clientStateChanged();
+	void credentialChanged();
 
 private slots:
 	void onClientStateChanged();
@@ -72,6 +81,7 @@ private:
 	QWebSocket *const m_webSocket;
 	ServerService *const m_service;
 	ClientState m_clientState = Invalid;
+	Credential m_credential;
 };
 
 #endif // CLIENT_H

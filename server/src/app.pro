@@ -37,7 +37,10 @@ win32 {
 SOURCES += \
 	client.cpp \
 	databasemain.cpp \
+	googleoauth2authenticator.cpp \
 	main.cpp \
+	oauth2authenticator.cpp \
+	oauth2codeflow.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	websocketserver.cpp
@@ -50,6 +53,9 @@ HEADERS += \
 	../../version/version.h \
 	client.h \
 	databasemain.h \
+	googleoauth2authenticator.h \
+	oauth2authenticator.h \
+	oauth2codeflow.h \
 	serverservice.h \
 	serversettings.h \
 	websocketserver.h

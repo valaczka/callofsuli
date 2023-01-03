@@ -25,6 +25,7 @@
  */
 
 #include "gamequestion.h"
+#include "Logger.h"
 #include "abstractgame.h"
 #include "application.h"
 
@@ -32,7 +33,7 @@
 GameQuestion::GameQuestion(QQuickItem *parent)
 	: QQuickItem(parent)
 {
-	qCDebug(lcGame).noquote() << tr("Game question item created");
+	LOG_CDEBUG("game") << "Game question item created";
 
 	setEnabled(false);
 	setVisible(false);
@@ -43,7 +44,7 @@ GameQuestion::~GameQuestion()
 	if (m_game && m_game->gameQuestion() == this)
 		m_game->setGameQuestion(nullptr);
 
-	qCDebug(lcGame).noquote() << tr("Game question item destroyed");
+	LOG_CDEBUG("game") << "Game question item destroyed";
 }
 
 
@@ -62,7 +63,7 @@ void GameQuestion::loadQuestion(const QUrl &componentUrl, const QVariantMap &dat
 	}
 
 	if (!m_loader) {
-		qCCritical(lcGame).noquote() << tr("Missing loader");
+		LOG_CERROR("game") << "Missing loader";
 		emit questionLoadFailed();
 		return;
 	}
@@ -98,7 +99,7 @@ void GameQuestion::loadQuestion(const Question &question)
 
 void GameQuestion::onShowAnimationFinished()
 {
-	qCDebug(lcGame).noquote() << tr("Game question show animation finished");
+	LOG_CDEBUG("game") << "Game question show animation finished";
 
 	setEnabled(true);
 	m_questionComponent->forceActiveFocus(Qt::OtherFocusReason);
@@ -116,7 +117,7 @@ void GameQuestion::onShowAnimationFinished()
 
 void GameQuestion::onHideAnimationFinished()
 {
-	qCDebug(lcGame).noquote() << tr("Game question hide animation finished");
+	LOG_CDEBUG("game") << "Game question hide animation finished";
 
 	if (m_loader)
 		m_loader->setProperty("source", QUrl(QLatin1String("")));
@@ -136,7 +137,7 @@ void GameQuestion::onHideAnimationFinished()
 
 void GameQuestion::onLoaderLoaded(QQuickItem *item)
 {
-	qCDebug(lcGame).noquote() << tr("Game question loader loaded:") << item;
+	LOG_CDEBUG("game") << "Game question loader loaded:" << item;
 
 	GameQuestionComponent *component = qobject_cast<GameQuestionComponent*>(item);
 
@@ -184,7 +185,7 @@ void GameQuestion::finish()
 
 void GameQuestion::forceDestroy()
 {
-	qCDebug(lcGame).noquote() << tr("Game question force destroy");
+	LOG_CDEBUG("game") << "Game question force destroy";
 
 	setEnabled(false);
 	setMsecBeforeHide(0);
@@ -200,7 +201,7 @@ void GameQuestion::onPostpone()
 {
 	setEnabled(false);
 	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
-	qCDebug(lcGame).noquote() << tr("Question postponed after %1 milliseconds:").arg(m_elapsedMsec);
+	LOG_CDEBUG("game") << "Question postponed after " << m_elapsedMsec << " milliseconds:";
 	emit postponed();
 }
 
@@ -214,7 +215,7 @@ void GameQuestion::onSuccess(const QVariantMap &answer)
 {
 	setEnabled(false);
 	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
-	qCDebug(lcGame).noquote() << tr("Question successfully answered in %1 milliseconds:").arg(m_elapsedMsec) << answer;
+	LOG_CDEBUG("game") << "Question successfully answered in " << m_elapsedMsec << " milliseconds:"<< answer;
 	emit success(answer);
 }
 
@@ -228,7 +229,7 @@ void GameQuestion::onFailed(const QVariantMap &answer)
 {
 	setEnabled(false);
 	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
-	qCDebug(lcGame).noquote() << tr("Question answer failed in %1 milliseconds:").arg(m_elapsedMsec) << answer;
+	LOG_CDEBUG("game") << "Question answer failed in " << m_elapsedMsec << " milliseconds:"<< answer;
 	emit failed(answer);
 }
 

@@ -27,8 +27,7 @@
 #include "abstractgame.h"
 #include "client.h"
 #include "gamequestion.h"
-
-Q_LOGGING_CATEGORY(lcGame, "app.game")
+#include "Logger.h"
 
 /**
  * @brief Game::Game
@@ -42,7 +41,7 @@ AbstractGame::AbstractGame(const GameMap::GameMode &mode, Client *client)
 {
 	Q_ASSERT(client);
 
-	qCDebug(lcGame).noquote() << tr("Game created") << this;
+	LOG_CTRACE("game") << "Game created" << this;
 }
 
 
@@ -55,7 +54,7 @@ AbstractGame::~AbstractGame()
 	if (m_gameQuestion && m_gameQuestion->game() == this)
 		m_gameQuestion->setGame(nullptr);
 
-	qCDebug(lcGame).noquote() << tr("Game destroyed") << this;
+	LOG_CTRACE("game") << "Game destroyed" << this;
 }
 
 
@@ -81,7 +80,7 @@ QQuickItem *AbstractGame::pageItem() const
 void AbstractGame::onPageItemDestroyed()
 {
 	setPageItem(nullptr);
-	qCDebug(lcGame) << tr("Game page item destroyed");
+	LOG_CTRACE("game") << "Game page item destroyed";
 	gameDestroy();
 }
 
@@ -156,7 +155,7 @@ void AbstractGame::setGameQuestion(GameQuestion *newGameQuestion)
 	m_gameQuestion = newGameQuestion;
 	emit gameQuestionChanged();
 
-	qCDebug(lcGame).noquote() << tr("Game question set:") << m_gameQuestion;
+	LOG_CTRACE("game") << "Game question set:" << m_gameQuestion;
 
 	if (m_gameQuestion)
 		connectGameQuestion();
@@ -172,7 +171,7 @@ bool AbstractGame::gameStart()
 {
 	if (gameStartEvent()) {
 		elapsedTimeStart();
-		qCDebug(lcGame).noquote() << tr("Game started:") << this;
+		LOG_CTRACE("game") << "Game started:" << this;
 		return true;
 	}
 
@@ -189,7 +188,7 @@ bool AbstractGame::gameFinish()
 {
 	if (gameFinishEvent()) {
 		elapsedTimeStop();
-		qCDebug(lcGame).noquote() << tr("Game finished after %1 milliseconds:").arg(m_elapsedMsec) << this;
+		LOG_CTRACE("game") << "Game finished after" << m_elapsedMsec << "milliseconds:" << this;
 
 		emit gameFinished(m_finishState);
 		return true;
@@ -230,10 +229,10 @@ const GameMap::GameMode &AbstractGame::mode() const
 
 bool AbstractGame::load()
 {
-	qCDebug(lcGame).noquote() << tr("Load game") << this;
+	LOG_CTRACE("game") << "Load game" << this;
 
 	if (m_pageItem) {
-		qCCritical(lcGame).noquote() << tr("A játék lapja már létezik!") << m_pageItem;
+		LOG_CERROR("game") << "A játék lapja már létezik!" << m_pageItem;
 		return false;
 	}
 
@@ -243,10 +242,10 @@ bool AbstractGame::load()
 		connect(page, &QQuickItem::destroyed, this, &AbstractGame::onPageItemDestroyed);
 		setPageItem(page);
 
-		qCDebug(lcGame) << tr("Game page loaded");
+		LOG_CDEBUG("game") << "Game page loaded";
 		return true;
 	} else {
-		qCCritical(lcGame).noquote() << tr("Game page create error");
+		LOG_CERROR("game") << "Game page create error";
 		return false;
 	}
 }
@@ -262,7 +261,7 @@ bool AbstractGame::load()
 void AbstractGame::elapsedTimeStart()
 {
 	if (m_elapsedMsec != -1 || m_elapsedTimer.isValid()) {
-		qCWarning(lcGame).noquote() << tr("Elapsed timer has already been started");
+		LOG_CWARNING("game") << "Elapsed timer has already been started";
 		return;
 	}
 
@@ -277,7 +276,7 @@ void AbstractGame::elapsedTimeStart()
 void AbstractGame::elapsedTimeStop()
 {
 	if (!m_elapsedTimer.isValid()) {
-		qCWarning(lcGame).noquote() << tr("Elapsed timer has never been started");
+		LOG_CWARNING("game") << "Elapsed timer has never been started";
 		m_elapsedMsec = -1;
 		return;
 	}
@@ -326,7 +325,7 @@ void AbstractGame::setMap(GameMap *newMap)
 void AbstractGame::unloadPageItem()
 {
 	if (!m_pageItem) {
-		qCWarning(lcGame).noquote() << tr("Missing game page");
+		LOG_CWARNING("game") << "Missing game page";
 		return;
 	}
 

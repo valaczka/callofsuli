@@ -25,11 +25,9 @@
  */
 
 #include "websocketserver.h"
+#include "Logger.h"
 #include "serversettings.h"
 #include "serverservice.h"
-
-Q_LOGGING_CATEGORY(lcWebSocket, "service.websocket")
-Q_LOGGING_CATEGORY(lcMessage, "service.message")
 
 
 /**
@@ -44,7 +42,7 @@ WebSocketServer::WebSocketServer(const QWebSocketServer::SslMode &ssl, ServerSer
 {
 	Q_ASSERT(m_service);
 
-	qCDebug(lcWebSocket).noquote() << tr("Web socket server created:") << ssl;
+	LOG_CINFO("websocket") << "Web socket server created:" << ssl;
 
 	connect(this, &QWebSocketServer::acceptError, this, &WebSocketServer::onAcceptError);
 	connect(this, &QWebSocketServer::newConnection, this, &WebSocketServer::onNewConnection);
@@ -61,7 +59,7 @@ WebSocketServer::WebSocketServer(const QWebSocketServer::SslMode &ssl, ServerSer
 
 WebSocketServer::~WebSocketServer()
 {
-	qCDebug(lcWebSocket).noquote() << tr("Web socket server destroyed");
+	LOG_CINFO("websocket") << "Web socket server destroyed";
 }
 
 
@@ -73,20 +71,18 @@ bool WebSocketServer::start()
 
 	if (!settings->ssl()) {
 		if (!QSslSocket::supportsSsl()) {
-			qCCritical(lcWebSocket).noquote() << tr("Platform doesn't support SSL");
+			LOG_CERROR("websocket") << "Platform doesn't support SSL";
 			return false;
 		}
 	}
 
 
 	if (!listen(settings->listenAddress(), settings->listenPort()))	{
-		qCCritical(lcWebSocket).noquote() << tr("Can't listening on host %1 port %2")
-											 .arg(settings->listenAddress().toString())
-											 .arg(settings->listenPort());
+		LOG_CERROR("websocket") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
 		return false;
 	}
 
-	qCDebug(lcWebSocket).noquote() << tr("Listening on:") << serverUrl();
+	LOG_CINFO("websocket") << "Listening on:" << serverUrl();
 
 		/*QFile certFile(base+m_socketCert);
 		QFile keyFile(base+m_socketKey);
@@ -201,7 +197,7 @@ void WebSocketServer::onNewConnection()
 
 void WebSocketServer::onAcceptError(const QAbstractSocket::SocketError &socketError)
 {
-	qCWarning(lcWebSocket).noquote() << tr("acceptError:") << socketError;
+	LOG_CWARNING("websocket") << "acceptError:" << socketError;
 }
 
 
@@ -212,7 +208,7 @@ void WebSocketServer::onAcceptError(const QAbstractSocket::SocketError &socketEr
 
 void WebSocketServer::onPeerVerifyError(const QSslError &error)
 {
-	qCWarning(lcWebSocket).noquote() << tr("peerVerifyError:") << error;
+	LOG_CWARNING("websocket") << "peerVerifyError:" << error;
 }
 
 
@@ -223,7 +219,7 @@ void WebSocketServer::onPeerVerifyError(const QSslError &error)
 
 void WebSocketServer::onServerError(const QWebSocketProtocol::CloseCode &closeCode)
 {
-	qCWarning(lcWebSocket).noquote() << tr("serverError:") << closeCode;
+	LOG_CWARNING("websocket") << "serverError:" << closeCode;
 }
 
 
@@ -234,5 +230,5 @@ void WebSocketServer::onServerError(const QWebSocketProtocol::CloseCode &closeCo
 
 void WebSocketServer::onSslErrors(const QList<QSslError> &errors)
 {
-	qCWarning(lcWebSocket).noquote() << tr("sslErrors:") << errors;
+	LOG_CWARNING("websocket") << "sslErrors:" << errors;
 }

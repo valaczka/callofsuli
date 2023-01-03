@@ -28,7 +28,6 @@
 #define DATABASE_H
 
 
-#include "qloggingcategory.h"
 #include <QDeferred>
 #include <QLambdaThreadWorker>
 #include <QSqlDatabase>
@@ -52,6 +51,5 @@ protected:
 	QString m_dbName;
 };
 
-Q_DECLARE_LOGGING_CATEGORY(lcDb);
 
 #endif // DATABASE_H

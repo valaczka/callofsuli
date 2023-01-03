@@ -29,6 +29,7 @@
 #include "question.h"
 #include "gameterrain.h"
 #include <QRandomGenerator>
+#include <Logger.h>
 
 
 QStringList AbstractLevelGame::m_availableMusic;
@@ -68,12 +69,12 @@ AbstractLevelGame::~AbstractLevelGame()
 
 QVector<Question> AbstractLevelGame::createQuestions()
 {
-	qCDebug(lcGame).noquote() << tr("Create questions");
+	LOG_CDEBUG("game") << "Create questions";
 
 	QVector<Question> list;
 
 	if (!m_missionLevel) {
-		qCWarning(lcGame).noquote() << tr("Missing game map, don't created any question");
+		LOG_CWARNING("game") << "Missing game map, don't created any question";
 		return list;
 	}
 
@@ -87,7 +88,7 @@ QVector<Question> AbstractLevelGame::createQuestions()
 		}
 	}
 
-	qCDebug(lcGame).noquote() << tr("Created %1 question(s)").arg(list.size());
+	LOG_CDEBUG("game") << "Created " << list.size() << " questions";
 
 	return list;
 }
@@ -109,7 +110,7 @@ void AbstractLevelGame::onTimerLeftTimeout()
 	emit msecLeftChanged();
 
 	if (m_deadline.hasExpired()) {
-		qCDebug(lcGame).noquote() << tr("Game timeout");
+		LOG_CDEBUG("game") << "Game timeout";
 
 		m_deadlineTimeout = true;
 		m_timerLeft->stop();
@@ -146,7 +147,7 @@ int AbstractLevelGame::msecLeft() const
 
 void AbstractLevelGame::reloadAvailableMusic()
 {
-	qCDebug(lcGame).noquote() << tr("Reload available music...");
+	LOG_CDEBUG("game") << "Reload available music...";
 
 	m_availableMusic.clear();
 
@@ -155,7 +156,7 @@ void AbstractLevelGame::reloadAvailableMusic()
 	while (it.hasNext())
 		m_availableMusic.append(it.next());
 
-	qCDebug(lcGame).noquote() << tr("...loaded %1 music").arg(m_availableMusic.size());
+	LOG_CDEBUG("game") << "...loaded " << m_availableMusic.size() << "music";
 }
 
 
@@ -165,7 +166,7 @@ void AbstractLevelGame::reloadAvailableMusic()
 
 void AbstractLevelGame::reloadAvailableMedal()
 {
-	qCDebug(lcGame).noquote() << tr("Reload available medal...");
+	LOG_CDEBUG("game") << "Reload available medal...";
 
 	m_availableMedal.clear();
 
@@ -176,7 +177,7 @@ void AbstractLevelGame::reloadAvailableMedal()
 		m_availableMedal.append(it.fileName());
 	}
 
-	qCDebug(lcGame).noquote() << tr("...loaded %1 medal").arg(m_availableMedal.size());
+	LOG_CDEBUG("game") << "...loaded " << m_availableMedal.size() << " medal";
 }
 
 

@@ -25,6 +25,7 @@
  */
 
 #include "serversettings.h"
+#include "Logger.h"
 #include <QByteArray>
 #include <QTextStream>
 
@@ -38,21 +39,16 @@ ServerSettings::ServerSettings()
  * @brief ServerSettings::printConfig
  */
 
-QByteArray ServerSettings::printConfig() const
+void ServerSettings::printConfig() const
 {
-	QByteArray b;
-	QTextStream out(&b);
-	out.setCodec("UTF-8");
-
-	out << QObject::tr("Konfiguráció:\n");
-	out << QStringLiteral("-----------------------------------------------------\n");
-	out << QObject::tr("Könyvtár: ") << m_dataDir.canonicalPath() << "\n";
-	out << QObject::tr("Host address: ") << m_listenAddress.toString() << "\n";
-	out << QObject::tr("Port: ") << m_listenPort << "\n";
-	out << QObject::tr("SSL: ") << m_ssl << "\n";
-	out << QStringLiteral("-----------------------------------------------------\n");
-
-	return b;
+	LOG_CINFO("service") << "Configuration:";
+	LOG_CINFO("service") << "-----------------------------------------------------";
+	LOG_CINFO("service") << "Directory:" << m_dataDir.canonicalPath();
+	LOG_CINFO("service") << "Host address:" << m_listenAddress;
+	LOG_CINFO("service") << "Port:" << m_listenPort;
+	LOG_CINFO("service") << "SSL:" << m_ssl;
+	LOG_CDEBUG("service") << "JWT secret:" << m_jwtSecret;
+	LOG_CINFO("service") << "-----------------------------------------------------";
 }
 
 
@@ -99,5 +95,15 @@ quint16 ServerSettings::listenPort() const
 void ServerSettings::setListenPort(quint16 newListenPort)
 {
 	m_listenPort = newListenPort;
+}
+
+const QString &ServerSettings::jwtSecret() const
+{
+	return m_jwtSecret;
+}
+
+void ServerSettings::setJwtSecret(const QString &newJwtSecret)
+{
+	m_jwtSecret = newJwtSecret;
 }
 

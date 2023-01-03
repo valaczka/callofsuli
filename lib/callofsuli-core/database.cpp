@@ -25,6 +25,7 @@
  */
 
 #include "database.h"
+#include "Logger.h"
 
 
 /**
@@ -36,7 +37,7 @@ Database::Database(const QString &dbName)
 {
 	Q_ASSERT(!dbName.isEmpty());
 
-	qCDebug(lcDb).noquote() << QObject::tr("Create new database:") << m_dbName;
+	LOG_CDEBUG("db") << "Create new database:" << m_dbName;
 
 	if (!databaseInit()) {
 		qFatal("%s", QObject::tr("Can't create database: %1").arg(m_dbName).toLatin1().constData());
@@ -50,7 +51,7 @@ Database::Database(const QString &dbName)
 
 Database::~Database()
 {
-	qCDebug(lcDb).noquote() << QObject::tr("Remove database:") << m_dbName;
+	LOG_CDEBUG("db") << "Remove database:" << m_dbName;
 
 	m_worker.execInThread([this](){
 		{
@@ -62,7 +63,7 @@ Database::~Database()
 		QSqlDatabase::removeDatabase(m_dbName);
 	});
 
-	qCDebug(lcDb).noquote() << QObject::tr("Destroy database:") << m_dbName;
+	LOG_CDEBUG("db") << "Destroy database:" << m_dbName;
 }
 
 
@@ -87,7 +88,7 @@ QDeferred<QSqlError> Database::databaseOpen(const QString &path)
 	QDeferred<QSqlError> ret;
 
 	m_worker.execInThread([ret, this, path]() mutable {
-		qCDebug(lcDb).noquote() << QObject::tr("Open database (%1):").arg(m_dbName) << path;
+		LOG_CDEBUG("db") << "Open database" << m_dbName << ": " << path;
 
 		QSqlDatabase db = QSqlDatabase::database(m_dbName);
 		db.setDatabaseName(path);
@@ -112,7 +113,7 @@ void Database::databaseClose()
 	QDefer ret;
 
 	m_worker.execInThread([ret, this]() mutable {
-		qCDebug(lcDb).noquote() << QObject::tr("Close database:") << m_dbName;
+		LOG_CDEBUG("db") << "Close database:" << m_dbName;
 
 		QSqlDatabase::database(m_dbName).close();
 
@@ -134,10 +135,10 @@ bool Database::databaseInit()
 	bool retValue = false;
 
 	m_worker.execInThread([ret, this]() mutable {
-		qCDebug(lcDb).noquote() << QObject::tr("Add database:") << m_dbName;
+		LOG_CDEBUG("db") << "Add database:" << m_dbName;
 
 		if (QSqlDatabase::contains(m_dbName)) {
-			qCCritical(lcDb).noquote() << QObject::tr("Database already in use:") << m_dbName;
+			LOG_CERROR("db") << "Database already in use:" << m_dbName;
 			ret.reject();
 			return;
 		}
@@ -145,7 +146,7 @@ bool Database::databaseInit()
 		QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_dbName);
 
 		if (!db.isValid()) {
-			qCCritical(lcDb).noquote() << QObject::tr("Database invalid:") << m_dbName;
+			LOG_CERROR("db") << "Database invalid:" << m_dbName;
 			ret.reject();
 		} else {
 			ret.resolve();

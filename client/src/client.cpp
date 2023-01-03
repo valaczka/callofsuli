@@ -363,7 +363,7 @@ void Client::testClose()
 void Client::testText()
 {
 	qDebug() << "TEXT";
-	m_webSocket->socket()->sendTextMessage("helloka");
+	m_webSocket->send(WebSocketMessage::createRequest(QJsonObject({{"google", "teststring"}})));
 }
 
 

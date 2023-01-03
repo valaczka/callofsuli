@@ -35,8 +35,7 @@
 #include "sound.h"
 #include <QSettings>
 #include <QMediaPlaylist>
-
-Q_LOGGING_CATEGORY(lcSound, "app.sound")
+#include <Logger.h>
 
 Sound::Sound(QObject *parent)
 	: QObject(parent)
@@ -48,7 +47,7 @@ Sound::Sound(QObject *parent)
 	, m_fadeAnimation(new QVariantAnimation(this))
 	, m_musicVolume(0)
 {
-	qCDebug(lcSound).noquote() << tr("Sound object created") << this;
+	LOG_CTRACE("sound") << "Sound object created" << this;
 
 	m_fadeAnimation->setDuration(750);
 	m_fadeAnimation->setEndValue(0);
@@ -84,7 +83,7 @@ Sound::~Sound()
 	if (m_mediaPlayerVoiceOver)
 		delete m_mediaPlayerVoiceOver;
 
-	qCDebug(lcSound).noquote() << tr("Sound object destroyed") << this;
+	LOG_CTRACE("sound") << "Sound object destroyed" << this;
 }
 
 
@@ -106,12 +105,12 @@ QSoundEffect *Sound::newSoundEffect()
 		e->setVolume((qreal)m_mediaPlayerSfx->volume() / 100.0);
 	});
 
-	qCDebug(lcSound).noquote() << tr("New sound effect:") << e;
+	LOG_CTRACE("sound") << "New sound effect:" << e;
 
 	m_effectList.append(e);
 
 	connect(e, &QObject::destroyed, this, [this, e]() {
-		qCDebug(lcSound).noquote() << tr("Sound effect destroyed") << e;
+		LOG_CTRACE("sound") << "Sound effect destroyed" << e;
 		m_effectList.removeAll(e);
 	});
 
@@ -127,7 +126,7 @@ QSoundEffect *Sound::newSoundEffect()
 
 void Sound::init()
 {
-	qCDebug(lcSound).noquote() << tr("Sound object init");
+	LOG_CTRACE("sound") << "Sound object init";
 
 	m_mediaPlayerMusic = new QMediaPlayer(this);
 	m_mediaPlayerSfx = new QMediaPlayer(this);
@@ -190,7 +189,7 @@ void Sound::init()
 
 void Sound::playSound(const QString &source, const SoundType &soundType)
 {
-	qCDebug(lcSound).noquote() << tr("Play sound") << source << soundType;
+	LOG_CTRACE("sound") << "Play sound" << source << soundType;
 
 	if (!m_mediaPlayerMusic || !m_mediaPlayerSfx || !m_mediaPlayerVoiceOver)
 		return;
@@ -242,7 +241,7 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 
 void Sound::stopSound(const QString &source, const SoundType &soundType)
 {
-	qCDebug(lcSound).noquote() << tr("Stop sound") << source << soundType;
+	LOG_CTRACE("sound") << "Stop sound" << source << soundType;
 
 	if (!m_mediaPlayerMusic)
 		return;
@@ -303,7 +302,7 @@ void Sound::setVolumeVoiceOver(int volume)
 
 void Sound::musicPlay(const QString &source)
 {
-	qCDebug(lcSound).noquote() << tr("Play music") << source;
+	LOG_CTRACE("sound") << "Play music" << source;
 
 	if (!m_mediaPlayerMusic)
 		return;
@@ -328,7 +327,7 @@ void Sound::musicPlay(const QString &source)
 
 void Sound::musicLoadNextSource()
 {
-	qCDebug(lcSound).noquote() << tr("Music load next source") << m_musicNextSource;
+	LOG_CTRACE("sound") << "Music load next source" << m_musicNextSource;
 
 	if (!m_mediaPlayerMusic)
 		return;
@@ -351,7 +350,7 @@ void Sound::musicLoadNextSource()
 	playlist->clear();
 	playlist->addMedia(QUrl(m_musicNextSource));
 
-	m_musicNextSource = QStringLiteral("");
+	m_musicNextSource = QLatin1String("");
 
 	m_mediaPlayerMusic->play();
 

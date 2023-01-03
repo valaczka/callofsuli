@@ -102,7 +102,7 @@ QPage {
 
 
 		Qaterial.RaisedButton {
-			text: "Text"
+			text: "Google"
 			highlighted: false
 			onClicked: Client.testText()
 		}

@@ -35,7 +35,6 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-#include "qloggingcategory.h"
 #include <QObject>
 #include <QMediaPlayer>
 #include <QVariantAnimation>
@@ -96,7 +95,5 @@ private:
 	int m_musicVolume;
 	QList<QPointer<QSoundEffect>> m_effectList;
 };
-
-Q_DECLARE_LOGGING_CATEGORY(lcSound)
 
 #endif // SOUND_H

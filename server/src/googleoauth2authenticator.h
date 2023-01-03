@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * websocketserver.h
+ * googleoauth2authenticator.h
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 01. 03.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * WebSocketServer
+ * GoogleOAuth2Authenticator
  *
  *  This file is part of Call of Suli.
  *
@@ -24,33 +24,19 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WEBSOCKETSERVER_H
-#define WEBSOCKETSERVER_H
+#ifndef GOOGLEOAUTH2AUTHENTICATOR_H
+#define GOOGLEOAUTH2AUTHENTICATOR_H
 
-#include <QWebSocketServer>
+#include "oauth2authenticator.h"
 
-class ServerService;
-
-class WebSocketServer : public QWebSocketServer
+class GoogleOAuth2Authenticator : public OAuth2Authenticator
 {
 	Q_OBJECT
 
 public:
-	explicit WebSocketServer(const SslMode &ssl, ServerService *service);
-	virtual ~WebSocketServer();
+	explicit GoogleOAuth2Authenticator(ServerService *service) : OAuth2Authenticator(service) { }
 
-	bool start();
-
-private slots:
-	void onNewConnection();
-
-	void onAcceptError(const QAbstractSocket::SocketError &socketError);
-	void onPeerVerifyError(const QSslError &error);
-	void onServerError(const QWebSocketProtocol::CloseCode &closeCode);
-	void onSslErrors(const QList<QSslError> &errors);
-
-private:
-	ServerService *const m_service;
+	OAuth2CodeFlow *addCodeFlow(Client *client);
 };
 
-#endif // WEBSOCKETSERVER_H
+#endif // GOOGLEOAUTH2AUTHENTICATOR_H

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * websocketserver.h
+ * oauth2codeflow.h
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 01. 03.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * WebSocketServer
+ * OAuth2CodeFlow
  *
  *  This file is part of Call of Suli.
  *
@@ -24,33 +24,23 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WEBSOCKETSERVER_H
-#define WEBSOCKETSERVER_H
+#ifndef OAUTH2CODEFLOW_H
+#define OAUTH2CODEFLOW_H
 
-#include <QWebSocketServer>
+#include <QOAuth2AuthorizationCodeFlow>
 
-class ServerService;
+class OAuth2Authenticator;
 
-class WebSocketServer : public QWebSocketServer
+class OAuth2CodeFlow : public QOAuth2AuthorizationCodeFlow
 {
 	Q_OBJECT
 
 public:
-	explicit WebSocketServer(const SslMode &ssl, ServerService *service);
-	virtual ~WebSocketServer();
+	explicit OAuth2CodeFlow(OAuth2Authenticator *authenticator);
+	virtual ~OAuth2CodeFlow();
 
-	bool start();
-
-private slots:
-	void onNewConnection();
-
-	void onAcceptError(const QAbstractSocket::SocketError &socketError);
-	void onPeerVerifyError(const QSslError &error);
-	void onServerError(const QWebSocketProtocol::CloseCode &closeCode);
-	void onSslErrors(const QList<QSslError> &errors);
-
-private:
-	ServerService *const m_service;
+protected slots:
+	virtual void onStatusChanged(const QAbstractOAuth::Status &status);
 };
 
-#endif // WEBSOCKETSERVER_H
+#endif // OAUTH2CODEFLOW_H

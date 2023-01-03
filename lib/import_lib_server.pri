@@ -9,12 +9,12 @@ INCLUDEPATH += $$PWD/callofsuli-core
 
 LIBS += -L../../lib$${TargetSuffix}
 
-LIBS += -lcallofsuli-core
+LIBS += -lcallofsuli-core -lcrypto
 
 # Core includes
 
 INCLUDEPATH += $$PWD/QDeferred/src
-INCLUDEPATH += $$PWD/QJsonWebToken/src
+INCLUDEPATH += $$PWD/jwt-cpp/include
 
 
 # Qt5Service

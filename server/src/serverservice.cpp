@@ -28,7 +28,6 @@
 #include "../../version/version.h"
 
 #include "qcommandlineparser.h"
-#include "qdebug.h"
 #include <QtService/Terminal>
 #include <QCoreApplication>
 #include <RollingFileAppender.h>
@@ -47,10 +46,6 @@ const char *ServerService::m_version = VERSION_FULL;
 using namespace QtService;
 
 
-Q_LOGGING_CATEGORY(lcService, "service.server")
-Q_LOGGING_CATEGORY(lcDb, "service.database")
-
-
 
 /**
  * @brief ServerService::ServerService
@@ -62,22 +57,28 @@ ServerService::ServerService(int &argc, char **argv)
 	: Service(argc, argv)
 	, m_settings(new ServerSettings())
 {
-	ColorConsoleAppender *appender = new ColorConsoleAppender;
+	m_consoleAppender = new ColorConsoleAppender;
 
 #ifndef QT_NO_DEBUG
-	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n"));
+	QString fmt = QString::fromStdString(
+				"%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
+				ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+				ColorConsoleAppender::magenta+"%{file}:%{line}"+
+				ColorConsoleAppender::green+">\n");
+	m_consoleAppender->setFormat(fmt);
 #else
-	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n"));
+	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
 #endif
 
-	cuteLogger->registerAppender(appender);
+	cuteLogger->registerAppender(m_consoleAppender);
 
 
-	cuteLogger->logToGlobalInstance(QStringLiteral("service.server"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("service.database"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("service.websocket"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("service.message"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
 
@@ -94,7 +95,7 @@ ServerService::ServerService(int &argc, char **argv)
 ServerService::~ServerService()
 {
 	delete m_settings;
-	qCDebug(lcService).noquote() << "FINISHED";
+	LOG_CTRACE("service") << "Finished";
 }
 
 
@@ -121,10 +122,9 @@ void ServerService::initialize()
 
 Service::CommandResult ServerService::onStart()
 {
-	qCInfo(lcService).noquote() << tr("Server service started");
+	LOG_CINFO("service") << "Server service started";
 
-	QFile *out = QConsole::qStdOut(this);
-	out->write(m_settings->printConfig());
+	m_settings->printConfig();
 
 
 	m_databaseMain = new DatabaseMain(this);
@@ -134,6 +134,32 @@ Service::CommandResult ServerService::onStart()
 
 	m_webSocketServer = new WebSocketServer(m_settings->ssl() ? QWebSocketServer::SecureMode : QWebSocketServer::NonSecureMode, this);
 	m_webSocketServer->start();
+
+
+	m_googleOAuth2Authenticator = new GoogleOAuth2Authenticator(this);
+	//m_googleOAuth2Authenticator->setClientId();
+
+	if (!m_googleOAuth2Authenticator->listen()) {
+		LOG_CERROR("service") << "OAuth2Authenticator listening error";
+		return CommandResult::Failed;
+	}
+
+	m_verifier = jwt::verify()
+			.allow_algorithm(jwt::algorithm::hs256{m_settings->jwtSecret().toStdString()})
+			.with_issuer(JWT_ISSUER);
+
+	/*Credential cc("jános pál valaczka", Credential::Teacher|Credential::Student|Credential::Panel);
+
+
+	LOG_CWARNING("service") << cc.createJWT(m_settings->jwtSecret());
+
+	Credential c = Credential::fromJWT(cc.createJWT("secret"));
+
+	LOG_CTRACE("service") << "SIKER?" << c.username() << c.roles();
+
+	LOG_CTRACE("service") << "TESZT1" << Credential::verify(cc.createJWT("seret"), &m_verifier);
+	LOG_CTRACE("service") << "TESZT2" << Credential::verify(cc.createJWT("secret"), &m_verifier);
+	LOG_CTRACE("service") << "TESZT3" << Credential::verify(cc.createJWT(""), &m_verifier);*/
 
 	return CommandResult::Completed;
 }
@@ -147,7 +173,7 @@ Service::CommandResult ServerService::onStart()
 
 QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 {
-	qCInfo(lcService).noquote() << tr("Server service stopped with code:") << exitCode;
+	LOG_CINFO("service") << "Server service stopped with code:" << exitCode;
 
 	if (m_webSocketServer) {
 		m_webSocketServer->close();
@@ -171,7 +197,7 @@ QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 
 Service::CommandResult ServerService::onReload()
 {
-	qCInfo(lcService).noquote() << tr("Server service reloaded");
+	LOG_CINFO("service") << "Server service reloaded";
 
 	if (m_webSocketServer) {
 		m_webSocketServer->close();
@@ -192,7 +218,7 @@ Service::CommandResult ServerService::onReload()
 
 Service::CommandResult ServerService::onPause()
 {
-	qCInfo(lcService).noquote() << tr("Server service paused");
+	LOG_CINFO("service") << "Server service paused";
 
 	if (m_webSocketServer)
 		m_webSocketServer->pauseAccepting();
@@ -208,12 +234,17 @@ Service::CommandResult ServerService::onPause()
 
 Service::CommandResult ServerService::onResume()
 {
-	qCInfo(lcService).noquote() << tr("Server service resumed");
+	LOG_CINFO("service") << "Server service resumed";
 
 	if (m_webSocketServer)
 		m_webSocketServer->resumeAccepting();
 
 	return CommandResult::Completed;
+}
+
+GoogleOAuth2Authenticator *ServerService::googleOAuth2Authenticator() const
+{
+	return m_googleOAuth2Authenticator;
 }
 
 const QVector<QPointer<Client> > &ServerService::clients() const
@@ -330,7 +361,7 @@ bool ServerService::preStart()
 	if (parser.isSet(QStringLiteral("dir"))) {
 		m_settings->setDataDir(parser.value(QStringLiteral("dir")));
 	} else {
-		qCCritical(lcService).noquote() << tr("You must specify main data directory");
+		LOG_CERROR("service") << "You must specify main data directory";
 
 		std::exit(1);
 		return false;
@@ -352,6 +383,10 @@ bool ServerService::preStart()
 		cuteLogger->registerAppender(appender);
 	}
 
+
+	m_consoleAppender->setDetailsLevel(Logger::Trace);
+
+	m_settings->setJwtSecret("secret");
 
 	return true;
 }

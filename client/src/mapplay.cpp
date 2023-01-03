@@ -34,6 +34,7 @@
 #include "gameterrain.h"
 #include "actiongame.h"
 #include <QScopedPointer>
+#include <Logger.h>
 
 MapPlay::MapPlay(Client *client, QObject *parent)
 	: QObject{(parent ? parent : client)}
@@ -42,7 +43,7 @@ MapPlay::MapPlay(Client *client, QObject *parent)
 {
 	Q_ASSERT(m_client);
 
-	qCDebug(lcGame).noquote() << tr("Map play object created:") << this;
+	LOG_CDEBUG("game") << "Map play object created:" << this;
 }
 
 
@@ -63,7 +64,7 @@ MapPlay::~MapPlay()
 
 	delete m_missionList;
 
-	qCDebug(lcGame).noquote() << tr("Map play object destroyed:") << this;
+	LOG_CDEBUG("game") << "Map play object destroyed:" << this;
 }
 
 
@@ -136,7 +137,7 @@ bool MapPlay::checkTerrains(GameMap *map)
 			const QString &terrain = ml->terrain();
 
 			if (!GameTerrain::terrainAvailable(terrain)) {
-				qCWarning(lcGame).noquote() << tr("Missing terrain:") << terrain;
+				LOG_CWARNING("game") << "Missing terrain:" << terrain;
 				return false;
 			}
 		}
@@ -193,7 +194,7 @@ void MapPlay::loadGameMap(GameMap *map)
 {
 	unloadGameMap();
 
-	qCDebug(lcGame).noquote() << tr("Load gamemap:") << map;
+	LOG_CDEBUG("game") << "Load gamemap:" << map;
 
 	setGameMap(map);
 
@@ -223,7 +224,7 @@ void MapPlay::loadGameMap(GameMap *map)
 
 
 
-	qCDebug(lcGame).noquote() << tr("Add mapimage provider for map:") << map->uuid();
+	LOG_CDEBUG("game") << "Add mapimage provider for map:" << map->uuid();
 	MapImage *mapImage = new MapImage(map);
 	Application::instance()->engine()->addImageProvider(QStringLiteral("mapimage"), mapImage);
 
@@ -246,14 +247,14 @@ void MapPlay::loadGameMap(GameMap *map)
 void MapPlay::unloadGameMap()
 {
 	if (Application::instance() && Application::instance()->engine() && Application::instance()->engine()->imageProvider(QStringLiteral("mapimage"))) {
-		qCDebug(lcGame).noquote() << tr("Remove image provider mapimage");
+		LOG_CDEBUG("game") << "Remove image provider mapimage";
 		Application::instance()->engine()->removeImageProvider(QStringLiteral("mapimage"));
 	}
 
 	m_missionList->clear();
 
 	if (m_gameMap) {
-		qCDebug(lcGame).noquote() << tr("Delete gamemap:") << m_gameMap;
+		LOG_CDEBUG("game") << "Delete gamemap:" << m_gameMap;
 		delete m_gameMap;
 
 		setGameMap(nullptr);
@@ -300,7 +301,7 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level)
 
 void MapPlay::onCurrentGamePrepared()
 {
-	qCDebug(lcGame).noquote() << tr("Current game prepared") << m_currentGame;
+	LOG_CDEBUG("game") << "Current game prepared" << m_currentGame;
 }
 
 
@@ -314,7 +315,7 @@ void MapPlay::onCurrentGamePrepared()
 
 void MapPlay::onCurrentGameFinished()
 {
-	qCDebug(lcGame).noquote() << tr("Missing game finished implementation!");
+	LOG_CDEBUG("game") << "Missing game finished implementation!";
 
 	m_currentGame->setReadyToDestroy(true);
 }
@@ -413,12 +414,12 @@ MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionL
 bool MapPlay::play(MapPlayMissionLevel *level)
 {
 	if (!m_client) {
-		qCCritical(lcGame).noquote() << tr("Missing client");
+		LOG_CERROR("game") << "Missing client";
 		return false;
 	}
 
 	if (!level || !level->missionLevel()) {
-		qCCritical(lcGame).noquote() << tr("Missing level");
+		LOG_CERROR("game") << "Missing level";
 		return false;
 	}
 
@@ -479,7 +480,7 @@ MapPlayMissionLevel::MapPlayMissionLevel(GameMapMissionLevel *missionLevel, cons
 	, m_missionLevel(missionLevel)
 	, m_deathmatch(deathmatch)
 {
-	qCDebug(lcGame).noquote() << tr("Map play mission level created:") << this;
+	LOG_CDEBUG("game") << "Map play mission level created:" << this;
 }
 
 
@@ -489,7 +490,7 @@ MapPlayMissionLevel::MapPlayMissionLevel(GameMapMissionLevel *missionLevel, cons
 
 MapPlayMissionLevel::~MapPlayMissionLevel()
 {
-	qCDebug(lcGame).noquote() << tr("Map play mission destroyed:") << this;
+	LOG_CDEBUG("game") << "Map play mission destroyed:" << this;
 }
 
 
@@ -591,7 +592,7 @@ MapPlayMission::MapPlayMission(GameMapMission *mission, QObject *parent)
 	, m_mission(mission)
 	, m_missionLevelList(new MapPlayMissionLevelList(this))
 {
-	qCDebug(lcGame).noquote() << tr("Map play mission created:") << this;
+	LOG_CDEBUG("game") << "Map play mission created:" << this;
 }
 
 
@@ -603,7 +604,7 @@ MapPlayMission::~MapPlayMission()
 {
 	delete m_missionLevelList;
 
-	qCDebug(lcGame).noquote() << tr("Map play mission destroyed:") << this;
+	LOG_CDEBUG("game") << "Map play mission destroyed:" << this;
 }
 
 
@@ -669,7 +670,7 @@ void AbstractMapPlaySolver::clear(MapPlay *mapPlay)
 {
 	Q_ASSERT(mapPlay);
 
-	qCDebug(lcGame).noquote() << QObject::tr("Clear solver info");
+	LOG_CDEBUG("game") << "Clear solver info";
 
 	for (MapPlayMission *mission : *mapPlay->missionList()) {
 		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
@@ -689,7 +690,7 @@ void AbstractMapPlaySolver::clear(MapPlay *mapPlay)
 bool AbstractMapPlaySolver::loadSolverInfo(GameMapMission *mission, const GameMap::SolverInfo &info)
 {
 	if (!mission) {
-		qCWarning(lcGame).noquote() << QObject::tr("Invalid mission");
+		LOG_CWARNING("game") << "Invalid mission";
 		return false;
 	}
 
@@ -737,7 +738,7 @@ bool AbstractMapPlaySolver::loadSolverInfo(MapPlay *mapPlay, GameMapMission *mis
 
 void MapPlaySolverAction::updateLock()
 {
-	qCDebug(lcGame).noquote() << QObject::tr("MapPlaySolverAction update locks");
+	LOG_CDEBUG("game") << "MapPlaySolverAction update locks";
 
 	GameMap *map = m_mapPlay->gameMap();
 
@@ -803,7 +804,7 @@ void MapPlaySolverAction::updateLock()
 
 void MapPlaySolverAction::updateXP()
 {
-	qCDebug(lcGame).noquote() << QObject::tr("MapPlaySolverAction update xp");
+	LOG_CDEBUG("game") << "MapPlaySolverAction update xp";
 
 	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
 		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {

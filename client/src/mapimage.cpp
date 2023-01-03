@@ -25,6 +25,7 @@
  */
 
 #include "mapimage.h"
+#include "Logger.h"
 
 MapImage::MapImage(GameMapReaderIface *map)
 	: QQuickImageProvider(QQuickImageProvider::Pixmap)
@@ -55,7 +56,7 @@ QPixmap MapImage::requestPixmap(const QString &id, QSize *size, const QSize &req
 			foreach (GameMapImageIface *i, m_map->ifaceImages()) {
 				if (i->m_id == idInt) {
 					if (!outPixmap.loadFromData(i->m_data)) {
-						qWarning() << "Invalid image data" << i->m_id;
+						LOG_CWARNING("app") << "Invalid image data" << i->m_id;
 					}
 					break;
 				}

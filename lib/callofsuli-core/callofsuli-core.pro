@@ -18,21 +18,22 @@ include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
 
 
 INCLUDEPATH += $$PWD \
-				$$PWD/../QJsonWebToken/src
+				$$PWD/../jwt-cpp/include \
+				$$PWD/../CuteLogger/include
 
 DEFINES += \
 	COS_VERSION_MAJOR=$$VER_MAJ \
 	COS_VERSION_MINOR=$$VER_MIN \
 
 HEADERS += \
-	../QJsonWebToken/src/qjsonwebtoken.h \
+	credential.h \
 	gamemap.h \
 	gamemapreaderiface.h \
 	utils.h \
 	websocketmessage.h
 
 SOURCES += \
-	../QJsonWebToken/src/qjsonwebtoken.cpp \
+	credential.cpp \
 	gamemap.cpp \
 	gamemapreaderiface.cpp \
 	utils.cpp \
