@@ -25,9 +25,6 @@
 [submodule "lib/QDeferred"]
 	path = lib/QDeferred
 	url = https://github.com/juangburgos/QDeferred.git
-[submodule "lib/QJsonWebToken"]
-	path = lib/QJsonWebToken
-	url = https://github.com/juangburgos/QJsonWebToken.git
 [submodule "lib/QOlm"]
 	path = lib/QOlm
 	url = https://github.com/OlivierLDff/QOlm.git
