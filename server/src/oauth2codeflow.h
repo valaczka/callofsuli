@@ -28,19 +28,38 @@
 #define OAUTH2CODEFLOW_H
 
 #include <QOAuth2AuthorizationCodeFlow>
+#include <QPointer>
 
 class OAuth2Authenticator;
+class Client;
 
 class OAuth2CodeFlow : public QOAuth2AuthorizationCodeFlow
 {
 	Q_OBJECT
 
 public:
-	explicit OAuth2CodeFlow(OAuth2Authenticator *authenticator);
+	explicit OAuth2CodeFlow(OAuth2Authenticator *authenticator, Client *client);
 	virtual ~OAuth2CodeFlow();
 
-protected slots:
-	virtual void onStatusChanged(const QAbstractOAuth::Status &status);
+	void startAuthenticate();
+	void requestAccesToken(const QString &code);
+
+	Client *client() const;
+
+signals:
+	void browserRequired(const QUrl &url);
+	void authenticationSuccess(const QVariantMap &data);
+	void authenticationFailed();
+
+
+private slots:
+	void onRequestAccessFinished();
+	void onClientDestroyed();
+
+private:
+	OAuth2Authenticator *const m_authenticator;
+	Client *m_client = nullptr;
+
 };
 
 #endif // OAUTH2CODEFLOW_H

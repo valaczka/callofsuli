@@ -41,6 +41,8 @@ class ServerService : public QtService::Service
 {
 	Q_OBJECT
 
+	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
+
 public:
 	explicit ServerService(int &argc, char **argv);
 	virtual ~ServerService();
@@ -62,6 +64,11 @@ public:
 
 	const QVector<QPointer<Client>> &clients() const;
 
+	const QString &serverName() const;
+	void setServerName(const QString &newServerName);
+
+signals:
+	void serverNameChanged();
 
 protected:
 	bool preStart() override;
@@ -77,6 +84,8 @@ private:
 	static const int m_versionMinor;
 	static const int m_versionBuild;
 	static const char* m_version;
+
+	QString m_serverName;
 
 	QStringList m_arguments;
 

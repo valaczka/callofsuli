@@ -28,6 +28,7 @@
 #define CREDENTIAL_H
 
 #include <jwt-cpp/jwt.h>
+#include "qcryptographichash.h"
 #include "qdatetime.h"
 #include <QJsonObject>
 
@@ -62,7 +63,13 @@ public:
 
 	static bool verify(const QString &token, JwtVerifier *verifier);
 
-	bool isValid() const;
+	static QString hashString(const QString &str, const QString &salt,
+							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
+
+	static QString hashString(const QString &str, QString *salt = nullptr,
+							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
+
+	virtual bool isValid() const;
 
 	const QString &username() const;
 	void setUsername(const QString &newUsername);

@@ -73,11 +73,34 @@ public:
 	Q_ENUM(WebSocketError);
 
 
+	/**
+	 * @brief The Handler enum
+	 */
+
+	enum ClassHandler {
+		ClassInvalid,
+		ClassServer,
+		ClassClient,
+		ClassAuth,
+		ClassGeneral,
+		ClassUser,
+		ClassTeacher,
+		ClassPanel,
+		ClassAdmin
+	};
+
+	Q_ENUM(ClassHandler);
+
+
 	static WebSocketMessage createHello();
 	static WebSocketMessage createEvent(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
+	static WebSocketMessage createEvent(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	static WebSocketMessage createRequest(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
+	static WebSocketMessage createRequest(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	WebSocketMessage createResponse(const QJsonObject &data, const QByteArray &binaryData = QByteArray()) const;
 	WebSocketMessage createErrorResponse(const QString &errorString) const;
+	WebSocketMessage createStatusResponse(const QString &statusString = QStringLiteral("ok")) const;
+	static WebSocketMessage createErrorEvent(const QString &errorString, const ClassHandler &classHandler = ClassInvalid);
 
 	static WebSocketMessage fromByteArray(const QByteArray &binaryData, const bool &isFrame = false);
 
@@ -87,6 +110,7 @@ public:
 	static quint32 versionCode(const int &major, const int &minor);
 
 	const WebSocketOpCode &opCode() const;
+	const ClassHandler &classHandler() const;
 
 	bool isValid() const { return m_opCode != Invalid && m_error == NoError; }
 
@@ -122,6 +146,7 @@ private:
 
 	WebSocketOpCode m_opCode = Invalid;
 	WebSocketError m_error = NoError;
+	ClassHandler m_classHandler = ClassInvalid;
 	QJsonObject m_data;
 	QByteArray m_binaryData;
 	int m_msgNumber = -1;

@@ -28,6 +28,8 @@
 #define CLIENT_H
 
 #include <QWebSocket>
+#include "abstracthandler.h"
+#include "oauth2codeflow.h"
 #include "websocketmessage.h"
 #include "credential.h"
 
@@ -39,6 +41,7 @@ class Client : public QObject
 
 	Q_PROPERTY(ClientState clientState READ clientState WRITE setClientState NOTIFY clientStateChanged)
 	Q_PROPERTY(Credential credential READ credential WRITE setCredential NOTIFY credentialChanged)
+	Q_PROPERTY(OAuth2CodeFlow *oauth2CodeFlow READ oauth2CodeFlow WRITE setOauth2CodeFlow NOTIFY oauth2CodeFlowChanged)
 
 public:
 	explicit Client(QWebSocket *webSocket, ServerService *service);
@@ -60,9 +63,13 @@ public:
 	const ClientState &clientState() const;
 	void setClientState(const ClientState &newClientState);
 
-
 	const Credential &credential() const;
 	void setCredential(const Credential &newCredential);
+
+	ServerService *service() const;
+
+	OAuth2CodeFlow *oauth2CodeFlow() const;
+	void setOauth2CodeFlow(OAuth2CodeFlow *newOauth2CodeFlow);
 
 public slots:
 	void requestOAuth2Browser(const QUrl &url);
@@ -70,6 +77,7 @@ public slots:
 signals:
 	void clientStateChanged();
 	void credentialChanged();
+	void oauth2CodeFlowChanged();
 
 private slots:
 	void onClientStateChanged();
@@ -82,6 +90,9 @@ private:
 	ServerService *const m_service;
 	ClientState m_clientState = Invalid;
 	Credential m_credential;
+	QHash<WebSocketMessage::ClassHandler, AbstractHandler*> m_handlers;
+
+	QPointer<OAuth2CodeFlow> m_oauth2CodeFlow = nullptr;
 };
 
 #endif // CLIENT_H

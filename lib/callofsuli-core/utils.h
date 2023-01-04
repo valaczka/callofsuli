@@ -67,7 +67,6 @@ public:
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 
-
 	Q_INVOKABLE static QString formatMSecs(const int &msec, const int &decimals = 0, const bool &withMinute = true);
 
 	Q_INVOKABLE static void openUrl(const QUrl &url);
@@ -75,6 +74,7 @@ public:
 	Q_INVOKABLE static QString standardPath(const QString &path = "");
 	Q_INVOKABLE static QString genericDataPath(const QString &path = "");
 
+	Q_INVOKABLE static QByteArray generateRandomString(quint8 length);
 private:
 
 #ifdef Q_OS_ANDROID

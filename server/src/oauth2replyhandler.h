@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * googleoauth2authenticator.h
+ * oauth2replyhandler.h
  *
- * Created on: 2023. 01. 03.
+ * Created on: 2023. 01. 04.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GoogleOAuth2Authenticator
+ * OAuth2ReplyHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,21 +24,39 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GOOGLEOAUTH2AUTHENTICATOR_H
-#define GOOGLEOAUTH2AUTHENTICATOR_H
+#ifndef OAUTH2REPLYHANDLER_H
+#define OAUTH2REPLYHANDLER_H
 
-#include "oauth2authenticator.h"
 
-class GoogleOAuth2Authenticator : public OAuth2Authenticator
+#include "qoauthhttpserverreplyhandler.h"
+#include <QAbstractOAuthReplyHandler>
+
+class OAuth2Authenticator;
+
+/**
+ * @brief The OAuth2ReplyHandler class
+ */
+
+
+class OAuth2ReplyHandler : public QObject
 {
 	Q_OBJECT
 
 public:
-	explicit GoogleOAuth2Authenticator(ServerService *service) : OAuth2Authenticator(service) { }
+	explicit OAuth2ReplyHandler(OAuth2Authenticator *authenticator);
+	virtual ~OAuth2ReplyHandler();
 
-	OAuth2CodeFlow *addCodeFlow(Client *client);
+	bool listen(const QHostAddress &address, quint16 port);
 
-	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
+	OAuth2Authenticator *authenticator() const;
+	QOAuthHttpServerReplyHandler *handler() const;
+
+private slots:
+	void onCallbackReceived(const QVariantMap &data);
+
+private:
+	QOAuthHttpServerReplyHandler *m_handler = nullptr;
+	OAuth2Authenticator *const m_authenticator = nullptr;
 };
 
-#endif // GOOGLEOAUTH2AUTHENTICATOR_H
+#endif // OAUTH2REPLYHANDLER_H

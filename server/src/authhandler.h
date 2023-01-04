@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * googleoauth2authenticator.h
+ * authhandler.h
  *
- * Created on: 2023. 01. 03.
+ * Created on: 2023. 01. 04.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GoogleOAuth2Authenticator
+ * AuthHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,21 +24,34 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GOOGLEOAUTH2AUTHENTICATOR_H
-#define GOOGLEOAUTH2AUTHENTICATOR_H
+#ifndef AUTHHANDLER_H
+#define AUTHHANDLER_H
 
-#include "oauth2authenticator.h"
+#include "abstracthandler.h"
 
-class GoogleOAuth2Authenticator : public OAuth2Authenticator
+class AuthHandler : public AbstractHandler
 {
 	Q_OBJECT
 
 public:
-	explicit GoogleOAuth2Authenticator(ServerService *service) : OAuth2Authenticator(service) { }
+	AuthHandler(Client *client);
 
-	OAuth2CodeFlow *addCodeFlow(Client *client);
+protected:
+	void handleRequest();
+	void handleRequestResponse();
+	void handleEvent();
 
-	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
+private slots:
+	void loginGoogle();
+	void test();
+
+	void onOAuthFailed();
+	void onOAuthSuccess(const QVariantMap &data);
+
+private:
+	void loginUser(const QString &username);
+
+
 };
 
-#endif // GOOGLEOAUTH2AUTHENTICATOR_H
+#endif // AUTHHANDLER_H

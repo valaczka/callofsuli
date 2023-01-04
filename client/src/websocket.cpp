@@ -269,6 +269,10 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 	if (m.data().contains("url"))
 		Utils::openUrl(QUrl::fromEncoded(m.data().value("url").toString().toUtf8()));
 
+	if (m.data().contains("error"))
+		m_client->snack(m.data().value("error").toString());
+
+
 	emit m_client->webSocketMessageReceived(m);
 }
 

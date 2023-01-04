@@ -27,6 +27,7 @@
 #include "credential.h"
 #include <jwt-cpp/jwt.h>
 #include "Logger.h"
+#include "utils.h"
 
 
 /**
@@ -171,6 +172,46 @@ bool Credential::verify(const QString &token, JwtVerifier *verifier)
 	}
 
 	return ret;
+}
+
+
+
+/**
+ * @brief Credential::hashString
+ * @param str
+ * @param salt
+ * @param method
+ * @return
+ */
+
+QString Credential::hashString(const QString &str, const QString &salt, const QCryptographicHash::Algorithm &method)
+{
+	QByteArray d;
+	d.append(str.toUtf8()).append(salt.toUtf8());
+
+	QByteArray hash = QCryptographicHash::hash(d, method);
+	return QString::fromLatin1(hash.toHex());
+}
+
+
+
+
+/**
+ * @brief Credential::hashString
+ * @param str
+ * @param salt
+ * @param method
+ * @return
+ */
+
+QString Credential::hashString(const QString &str, QString *salt, const QCryptographicHash::Algorithm &method)
+{
+	QByteArray _salt = Utils::generateRandomString(12);
+
+	if (salt)
+		*salt = QString::fromUtf8(_salt);
+
+	return hashString(str, _salt, method);
 }
 
 

@@ -79,6 +79,7 @@ ServerService::ServerService(int &argc, char **argv)
 	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
 
@@ -115,6 +116,9 @@ void ServerService::initialize()
 
 
 
+
+
+
 /*
  * @brief ServerService::onStart
  * @return
@@ -131,13 +135,17 @@ Service::CommandResult ServerService::onStart()
 	m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
 	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
 
+	if (!m_databaseMain->databasePrepare()) {
+		LOG_CERROR("service") << "Main database prepare error";
+		return CommandResult::Failed;
+	}
+
 
 	m_webSocketServer = new WebSocketServer(m_settings->ssl() ? QWebSocketServer::SecureMode : QWebSocketServer::NonSecureMode, this);
 	m_webSocketServer->start();
 
 
 	m_googleOAuth2Authenticator = new GoogleOAuth2Authenticator(this);
-	//m_googleOAuth2Authenticator->setClientId();
 
 	if (!m_googleOAuth2Authenticator->listen()) {
 		LOG_CERROR("service") << "OAuth2Authenticator listening error";
@@ -242,10 +250,35 @@ Service::CommandResult ServerService::onResume()
 	return CommandResult::Completed;
 }
 
+const QString &ServerService::serverName() const
+{
+	return m_serverName;
+}
+
+void ServerService::setServerName(const QString &newServerName)
+{
+	if (m_serverName == newServerName)
+		return;
+	m_serverName = newServerName;
+	emit serverNameChanged();
+}
+
+
+/**
+ * @brief ServerService::googleOAuth2Authenticator
+ * @return
+ */
+
 GoogleOAuth2Authenticator *ServerService::googleOAuth2Authenticator() const
 {
-	return m_googleOAuth2Authenticator;
+	return m_googleOAuth2Authenticator.data();
 }
+
+
+/**
+ * @brief ServerService::clients
+ * @return
+ */
 
 const QVector<QPointer<Client> > &ServerService::clients() const
 {
@@ -260,7 +293,7 @@ const QVector<QPointer<Client> > &ServerService::clients() const
 
 WebSocketServer *ServerService::webSocketServer() const
 {
-	return m_webSocketServer;
+	return m_webSocketServer.data();
 }
 
 
@@ -297,7 +330,7 @@ void ServerService::clientRemove(Client *client)
 
 DatabaseMain *ServerService::databaseMain() const
 {
-	return m_databaseMain;
+	return m_databaseMain.data();
 }
 
 
@@ -311,7 +344,6 @@ bool ServerService::preStart()
 {
 	m_settings->setDataDir(QCoreApplication::applicationDirPath());
 
-
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2023 Valaczka János Pál")));
 
@@ -319,8 +351,8 @@ bool ServerService::preStart()
 	auto versionOption = parser.addVersionOption();
 
 	parser.addOption({QStringLiteral("license"), QObject::tr("Licensz")});
-	parser.addOption({{QStringLiteral("l"), QStringLiteral("log")}, QObject::tr("Naplózás <file> fájlba"), QStringLiteral("file")});
-	parser.addOption({{QStringLiteral("n"), QStringLiteral("log-limit")}, QObject::tr("Maximum <db> log fájl tárolása"), QStringLiteral("db")});
+	//parser.addOption({{QStringLiteral("l"), QStringLiteral("log")}, QObject::tr("Naplózás <file> fájlba"), QStringLiteral("file")});
+	//parser.addOption({{QStringLiteral("n"), QStringLiteral("log-limit")}, QObject::tr("Maximum <db> log fájl tárolása"), QStringLiteral("db")});
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
 
 
@@ -367,7 +399,10 @@ bool ServerService::preStart()
 		return false;
 	}
 
-	QString logFile;
+
+	m_consoleAppender->setDetailsLevel(Logger::Trace);
+
+	/*QString logFile;
 
 	if (parser.isSet(QStringLiteral("log"))) logFile = parser.value(QStringLiteral("log"));
 
@@ -381,12 +416,13 @@ bool ServerService::preStart()
 		appender->setDatePattern(RollingFileAppender::WeeklyRollover);
 		appender->setLogFilesLimit(logLimit);
 		cuteLogger->registerAppender(appender);
-	}
+	}*/
 
 
-	m_consoleAppender->setDetailsLevel(Logger::Trace);
+	m_settings->loadFromFile();
 
-	m_settings->setJwtSecret("secret");
+	if (m_settings->generateJwtSecret())
+		m_settings->saveToFile(true);
 
 	return true;
 }

@@ -26,6 +26,7 @@
 
 #include "websocketmessage.h"
 #include <QDataStream>
+#include "Logger.h"
 
 const quint32 WebSocketMessage::m_versionMajor = COS_VERSION_MAJOR;
 const quint32 WebSocketMessage::m_versionMinor = COS_VERSION_MINOR;
@@ -69,8 +70,23 @@ WebSocketMessage WebSocketMessage::createHello()
 
 WebSocketMessage WebSocketMessage::createEvent(const QJsonObject &data, const QByteArray &binaryData)
 {
+	return createEvent(ClassInvalid, data, binaryData);
+}
+
+
+/**
+ * @brief WebSocketMessage::createEvent
+ * @param classHandler
+ * @param data
+ * @param binaryData
+ * @return
+ */
+
+WebSocketMessage WebSocketMessage::createEvent(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData)
+{
 	WebSocketMessage m;
 	m.m_opCode = Event;
+	m.m_classHandler = classHandler;
 	m.m_data = data;
 	m.m_binaryData = binaryData;
 	return m;
@@ -86,8 +102,23 @@ WebSocketMessage WebSocketMessage::createEvent(const QJsonObject &data, const QB
 
 WebSocketMessage WebSocketMessage::createRequest(const QJsonObject &data, const QByteArray &binaryData)
 {
+	return createRequest(ClassInvalid, data, binaryData);
+}
+
+
+/**
+ * @brief WebSocketMessage::createRequest
+ * @param classHandler
+ * @param data
+ * @param binaryData
+ * @return
+ */
+
+WebSocketMessage WebSocketMessage::createRequest(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData)
+{
 	WebSocketMessage m;
 	m.m_opCode = Request;
+	m.m_classHandler = classHandler;
 	m.m_msgNumber = nextMsgNumber();
 	m.m_data = data;
 	m.m_binaryData = binaryData;
@@ -106,6 +137,7 @@ WebSocketMessage WebSocketMessage::createResponse(const QJsonObject &data, const
 {
 	WebSocketMessage m;
 	m.m_opCode = RequestResponse;
+	m.m_classHandler = m_classHandler;
 	m.m_requestMsgNumber = m_msgNumber;
 	m.m_data = data;
 	m.m_binaryData = binaryData;
@@ -124,7 +156,45 @@ WebSocketMessage WebSocketMessage::createErrorResponse(const QString &errorStrin
 {
 	WebSocketMessage m;
 	m.m_opCode = RequestResponse;
+	m.m_classHandler = m_classHandler;
 	m.m_requestMsgNumber = m_msgNumber;
+	m.m_data = QJsonObject({
+							  { QStringLiteral("error"), errorString }
+						   });
+	return m;
+}
+
+
+/**
+ * @brief WebSocketMessage::createStatusResponse
+ * @param statusString
+ * @return
+ */
+
+WebSocketMessage WebSocketMessage::createStatusResponse(const QString &statusString) const
+{
+	WebSocketMessage m;
+	m.m_opCode = RequestResponse;
+	m.m_classHandler = m_classHandler;
+	m.m_requestMsgNumber = m_msgNumber;
+	m.m_data = QJsonObject({
+							  { QStringLiteral("status"), statusString }
+						   });
+	return m;
+}
+
+
+/**
+ * @brief WebSocketMessage::createErrorEvent
+ * @param errorString
+ * @return
+ */
+
+WebSocketMessage WebSocketMessage::createErrorEvent(const QString &errorString, const ClassHandler &classHandler)
+{
+	WebSocketMessage m;
+	m.m_opCode = Event;
+	m.m_classHandler = classHandler;
 	m.m_data = QJsonObject({
 							  { QStringLiteral("error"), errorString }
 						   });
@@ -246,6 +316,7 @@ QJsonObject WebSocketMessage::headerObject() const
 	QJsonObject o;
 
 	o.insert(QStringLiteral("op"), m_opCode);
+	o.insert(QStringLiteral("ch"), m_classHandler);
 	o.insert(QStringLiteral("d"), m_data);
 
 	if (m_opCode == Request)
@@ -289,6 +360,11 @@ int WebSocketMessage::nextMsgNumber()
 		m_msgNumberSequence = 0;
 
 	return ++m_msgNumberSequence;
+}
+
+const WebSocketMessage::ClassHandler &WebSocketMessage::classHandler() const
+{
+	return m_classHandler;
 }
 
 
@@ -406,6 +482,8 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 		}
 	}
 
+	m.m_classHandler = headerObject.value(QStringLiteral("ch")).toVariant().value<ClassHandler>();
+
 	m.m_data = headerObject.value(QStringLiteral("d")).toObject();
 
 	int bSize = headerObject.value(QStringLiteral("size")).toInt();
@@ -426,7 +504,7 @@ WebSocketMessage WebSocketMessage::fromByteArray(const QByteArray &binaryData, c
 	}
 
 	if (!stream.commitTransaction() && !isFrame) {
-		qDebug() << "COMMIT ERROR";
+		LOG_CERROR("websocket") << "Commit transaction error";
 
 		stream.abortTransaction();
 		m.m_error = UncompletedTransaction;
@@ -479,7 +557,9 @@ QDebug operator<<(QDebug stream, const WebSocketMessage &message)
 	if (message.m_error != WebSocketMessage::NoError) {
 		stream.nospace().noquote() << message.m_error;
 	} else {
-		stream.nospace().noquote() << message.m_opCode << QStringLiteral(", ") << message.headerObject();
+		stream.nospace().noquote() << message.m_opCode
+								   << QStringLiteral(", ") << message.m_classHandler
+								   << QStringLiteral(", ") << message.headerObject();
 
 		if (!message.m_binaryData.isEmpty())
 			stream.nospace().noquote() << QStringLiteral(", QByteArray(") << message.m_binaryData.size() << QStringLiteral(")");

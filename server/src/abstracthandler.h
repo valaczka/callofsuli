@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * googleoauth2authenticator.h
+ * abstracthandler.h
  *
- * Created on: 2023. 01. 03.
+ * Created on: 2023. 01. 04.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GoogleOAuth2Authenticator
+ * AbstractHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,21 +24,37 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GOOGLEOAUTH2AUTHENTICATOR_H
-#define GOOGLEOAUTH2AUTHENTICATOR_H
+#ifndef ABSTRACTHANDLER_H
+#define ABSTRACTHANDLER_H
 
-#include "oauth2authenticator.h"
+#include "websocketmessage.h"
+#include <QObject>
 
-class GoogleOAuth2Authenticator : public OAuth2Authenticator
+class Client;
+class ServerService;
+
+class AbstractHandler : public QObject
 {
 	Q_OBJECT
 
 public:
-	explicit GoogleOAuth2Authenticator(ServerService *service) : OAuth2Authenticator(service) { }
+	AbstractHandler(Client *client);
+	virtual ~AbstractHandler() {}
 
-	OAuth2CodeFlow *addCodeFlow(Client *client);
+	void handleMessage(const WebSocketMessage &message);
 
-	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
+protected:
+	virtual void handleRequest() = 0;
+	virtual void handleRequestResponse() = 0;
+	virtual void handleEvent() = 0;
+
+	void send(const WebSocketMessage &message);
+
+	const QJsonObject &json() const { return m_message.data(); }
+	ServerService *service() const;
+
+	WebSocketMessage m_message;
+	Client *const m_client;
 };
 
-#endif // GOOGLEOAUTH2AUTHENTICATOR_H
+#endif // ABSTRACTHANDLER_H

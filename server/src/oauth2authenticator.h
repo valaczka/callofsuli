@@ -29,7 +29,7 @@
 
 #include <QObject>
 #include <QtNetworkAuth>
-#include <QOAuth2AuthorizationCodeFlow>
+#include "oauth2replyhandler.h"
 #include "oauth2codeflow.h"
 
 
@@ -52,6 +52,9 @@ public:
 	bool listen() const;
 
 	void addCodeFlow(OAuth2CodeFlow *flow, Client *client);
+	void removeCodeFlow(OAuth2CodeFlow *flow);
+	OAuth2CodeFlow *getCodeFlowForClient(Client *client) const;
+	OAuth2CodeFlow *getCodeFlowForState(const QString &status) const;
 
 	const QString &clientId() const;
 	void setClientId(const QString &newClientId);
@@ -65,6 +68,8 @@ public:
 	quint16 listenPort() const;
 	void setListenPort(quint16 newListenPort);
 
+	QNetworkAccessManager *networkManager() const;
+
 signals:
 	void clientIdChanged();
 	void clientKeyChanged();
@@ -73,7 +78,8 @@ signals:
 
 protected:
 	ServerService *const m_service;
-	QPointer<QOAuthHttpServerReplyHandler> m_handler = nullptr;
+	OAuth2ReplyHandler *m_handler = nullptr;
+	QNetworkAccessManager *m_networkManager = nullptr;
 	QVector<QPointer<OAuth2CodeFlow>> m_codeFlowList;
 
 	QString m_clientId;

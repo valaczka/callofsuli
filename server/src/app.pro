@@ -35,12 +35,15 @@ win32 {
 
 
 SOURCES += \
+	abstracthandler.cpp \
+	authhandler.cpp \
 	client.cpp \
 	databasemain.cpp \
 	googleoauth2authenticator.cpp \
 	main.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
+	oauth2replyhandler.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	websocketserver.cpp
@@ -51,11 +54,14 @@ RESOURCES += \
 
 HEADERS += \
 	../../version/version.h \
+	abstracthandler.h \
+	authhandler.h \
 	client.h \
 	databasemain.h \
 	googleoauth2authenticator.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
+	oauth2replyhandler.h \
 	serverservice.h \
 	serversettings.h \
 	websocketserver.h

@@ -351,7 +351,7 @@ void Client::testHello()
 
 void Client::testRequest()
 {
-	m_webSocket->send(WebSocketMessage::createRequest(QJsonObject({{"test", "teststring"}})));
+	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth, QJsonObject({{"func", "test"}})));
 }
 
 void Client::testClose()
@@ -363,7 +363,7 @@ void Client::testClose()
 void Client::testText()
 {
 	qDebug() << "TEXT";
-	m_webSocket->send(WebSocketMessage::createRequest(QJsonObject({{"google", "teststring"}})));
+	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth, QJsonObject({{"func", "loginGoogle"}})));
 }
 
 

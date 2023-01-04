@@ -25,6 +25,7 @@
  */
 
 #include "client.h"
+#include "authhandler.h"
 #include "qjsondocument.h"
 #include "qjsonobject.h"
 #include "serverservice.h"
@@ -51,6 +52,8 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	connect(webSocket, &QWebSocket::disconnected, this, &Client::onDisconnected);
 	connect(webSocket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
 	connect(webSocket, &QWebSocket::textMessageReceived, this, &Client::onTextMessageReceived);
+
+	m_handlers.insert(WebSocketMessage::ClassAuth, new AuthHandler(this));
 }
 
 
@@ -60,6 +63,9 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 
 Client::~Client()
 {
+	foreach (AbstractHandler *h, m_handlers)
+		delete h;
+
 	LOG_CDEBUG("client") << "Client destroyed:" << this;
 }
 
@@ -83,7 +89,6 @@ void Client::handleMessage(const WebSocketMessage &message)
 		return;
 	}
 
-
 	if (m_clientState != Connected) {
 		LOG_CWARNING("client") << "Handle message error:" << m_clientState << this;
 		send(message.createErrorResponse(QStringLiteral("Invalid handler state")));
@@ -93,31 +98,16 @@ void Client::handleMessage(const WebSocketMessage &message)
 
 	if (message.opCode() == WebSocketMessage::Hello) {
 		send(message.createHello());
-	} else if (message.opCode() == WebSocketMessage::Request) {
-		if (message.data().contains("google")) {
-			OAuth2CodeFlow *flow = m_service->googleOAuth2Authenticator()->addCodeFlow(this);
+	} else {
+		AbstractHandler *h = m_handlers.value(message.classHandler());
 
-			if (flow) {
-				send(message.createResponse(QJsonObject({
-															{ QStringLiteral("status"), QStringLiteral("flow created") }
-														})));
-
-				flow->grant();
-			} else {
-				send(message.createResponse(QJsonObject({
-															{ QStringLiteral("status"), QStringLiteral("flow failed") }
-														})));
-			}
-		} else {
-			send(message.createResponse(QJsonObject({
-														{ QStringLiteral("status"), QStringLiteral("success") }
-													})));
+		if (h)
+			h->handleMessage(message);
+		else {
+			LOG_CERROR("client") << "Missing handler for class:" << message.classHandler();
 		}
-	} else if (message.opCode() == WebSocketMessage::RequestResponse) {
-		/// TODO
-	} else if (message.opCode() == WebSocketMessage::Event) {
-		/// TODO
 	}
+
 }
 
 
@@ -163,10 +153,10 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 	WebSocketMessage m = WebSocketMessage::fromByteArray(message);
 
 	if (m.isValid()) {
-		LOG_CTRACE("client") << "Message received:" << m << this;
+		LOG_CTRACE("client") << this << "Message received:" << m;
 		handleMessage(m);
 	} else {
-		LOG_CINFO("client") << "Invalid message received:" << this;
+		LOG_CINFO("client") << this << "Invalid message received:";
 
 		QJsonObject r;
 		r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
@@ -186,7 +176,7 @@ void Client::onBinaryMessageReceived(const QByteArray &message)
 
 void Client::onTextMessageReceived(const QString &message)
 {
-	LOG_CINFO("client") << "Text message received:" << message << this;
+	LOG_CINFO("client") << this << "Text message received:" << message;
 
 	QJsonObject r;
 	r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
@@ -194,6 +184,43 @@ void Client::onTextMessageReceived(const QString &message)
 	r.insert(QStringLiteral("error"), QStringLiteral("Text message not supported"));
 
 	m_webSocket->sendTextMessage(QJsonDocument(r).toJson(QJsonDocument::Indented));
+}
+
+
+/**
+ * @brief Client::oauth2CodeFlow
+ * @return
+ */
+
+OAuth2CodeFlow *Client::oauth2CodeFlow() const
+{
+	return m_oauth2CodeFlow.data();
+}
+
+
+/**
+ * @brief Client::setOauth2CodeFlow
+ * @param newOauth2CodeFlow
+ */
+
+void Client::setOauth2CodeFlow(OAuth2CodeFlow *newOauth2CodeFlow)
+{
+	if (m_oauth2CodeFlow == newOauth2CodeFlow)
+		return;
+
+	if (m_oauth2CodeFlow)
+		m_oauth2CodeFlow->deleteLater();
+
+	m_oauth2CodeFlow = newOauth2CodeFlow;
+	emit oauth2CodeFlowChanged();
+}
+
+
+
+
+ServerService *Client::service() const
+{
+	return m_service;
 }
 
 

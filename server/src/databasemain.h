@@ -29,19 +29,31 @@
 
 #include <database.h>
 
+class ServerService;
+
 class DatabaseMain : public QObject, public Database
 {
 	Q_OBJECT
 
 public:
-	explicit DatabaseMain(QObject *parent = nullptr);
+	explicit DatabaseMain(ServerService *service);
 	virtual ~DatabaseMain();
 
 	const QString &dbFile() const;
 	void setDbFile(const QString &newDbFile);
 
+	bool databasePrepare();
+
+	void test();
+
 private:
+	bool _checkSystemTable();
+	bool _createTables();
+	bool _upgradeTables();
+	bool _createUsers();
+
 	QString m_dbFile;
+	ServerService *m_service = nullptr;
 };
 
 #endif // DATABASEMAIN_H

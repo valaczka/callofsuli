@@ -31,13 +31,16 @@
 OAuth2Authenticator::OAuth2Authenticator(ServerService *service)
 	: QObject{service}
 	, m_service(service)
-	, m_handler(new QOAuthHttpServerReplyHandler(this))
+	, m_handler(new OAuth2ReplyHandler(this))
+	, m_networkManager(new QNetworkAccessManager(this))
 {
+	Q_ASSERT(service);
+
 	LOG_CTRACE("oauth2") << "OAuth2Authenticator created" << this;
 
-	setClientId("822493401756-d8ooae3ja5s9g5a1u7ld5b38es1no61f.apps.googleusercontent.com");
-	setClientKey("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");
-	setListenPort(15151);
+	setClientId(m_service->settings()->googleClientId());
+	setClientKey(m_service->settings()->googleClientKey());
+	setListenPort(m_service->settings()->googleListenPort());
 
 }
 
@@ -49,7 +52,9 @@ OAuth2Authenticator::OAuth2Authenticator(ServerService *service)
 OAuth2Authenticator::~OAuth2Authenticator()
 {
 	qDeleteAll(m_codeFlowList);
+
 	delete m_handler;
+	delete m_networkManager;
 
 	LOG_CTRACE("oauth2") << "OAuth2Authenticator destroyed" << this;
 }
@@ -61,10 +66,6 @@ OAuth2Authenticator::~OAuth2Authenticator()
 
 bool OAuth2Authenticator::listen() const
 {
-	if (m_handler->isListening())
-		m_handler->close();
-
-	LOG_CINFO("oauth2") << "OAuth2Handler listening on" << m_listenAddress << m_listenPort;
 	return m_handler->listen(m_listenAddress, m_listenPort);
 }
 
@@ -81,20 +82,61 @@ void OAuth2Authenticator::addCodeFlow(OAuth2CodeFlow *flow, Client *client)
 
 	LOG_CDEBUG("oauth2") << "Add new code flow" << flow << "to client" << client;
 
-	connect(flow, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, client, &Client::requestOAuth2Browser);
+	flow->setReplyHandler(m_handler->handler());
 
-	/***
-	 * Q_SIGNALS:
-	void callbackReceived(const QVariantMap &values);
-	void tokensReceived(const QVariantMap &tokens);
-
-	void replyDataReceived(const QByteArray &data);
-	void callbackDataReceived(const QByteArray &data);
-
-	*/
-
-	//flow->setReplyHandler(m_handler);
 	m_codeFlowList.append(flow);
+}
+
+
+/**
+ * @brief OAuth2Authenticator::removeCodeFlow
+ * @param flow
+ */
+
+void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
+{
+	if (m_codeFlowList.contains(flow)) {
+		LOG_CTRACE("oauth2") << "Remove and delete code flow:" << flow;
+		m_codeFlowList.removeAll(flow);
+		flow->deleteLater();
+	} else {
+		LOG_CWARNING("oauth2") << "Code flow not found:" << flow;
+	}
+}
+
+
+
+
+
+/**
+ * @brief OAuth2Authenticator::getCodeFlowForClient
+ * @param client
+ * @return
+ */
+
+OAuth2CodeFlow *OAuth2Authenticator::getCodeFlowForClient(Client *client) const
+{
+	foreach (OAuth2CodeFlow *f, m_codeFlowList)
+		if (f->client() == client)
+			return f;
+
+	return nullptr;
+}
+
+
+/**
+ * @brief OAuth2Authenticator::getCodeFlowForStatus
+ * @param status
+ * @return
+ */
+
+OAuth2CodeFlow *OAuth2Authenticator::getCodeFlowForState(const QString &state) const
+{
+	foreach (OAuth2CodeFlow *f, m_codeFlowList)
+		if (f->state() == state)
+			return f;
+
+	return nullptr;
 }
 
 
@@ -154,6 +196,13 @@ void OAuth2Authenticator::setListenPort(quint16 newListenPort)
 		return;
 	m_listenPort = newListenPort;
 	emit listenPortChanged();
+}
+
+
+
+QNetworkAccessManager *OAuth2Authenticator::networkManager() const
+{
+	return m_networkManager;
 }
 
 

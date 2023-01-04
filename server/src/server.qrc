@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>../license.txt</file>
         <file>../../CREDITS.md</file>
+        <file>../sql/main.sql</file>
     </qresource>
 </RCC>

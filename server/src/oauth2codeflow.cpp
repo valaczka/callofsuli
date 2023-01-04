@@ -26,17 +26,20 @@
 
 #include "oauth2codeflow.h"
 #include "Logger.h"
+#include "client.h"
 #include "oauth2authenticator.h"
 
-OAuth2CodeFlow::OAuth2CodeFlow(OAuth2Authenticator *authenticator)
+OAuth2CodeFlow::OAuth2CodeFlow(OAuth2Authenticator *authenticator, Client *client)
 	: QOAuth2AuthorizationCodeFlow{authenticator}
+	, m_authenticator(authenticator)
+	, m_client(client)
 {
-	LOG_CTRACE("oauth2") << "OAuth2CodeFlow created" << this;
+	Q_ASSERT(m_authenticator);
+	Q_ASSERT(m_client);
 
-	connect(this, &QOAuth2AuthorizationCodeFlow::statusChanged, this, &OAuth2CodeFlow::onStatusChanged);
+	connect(client, &Client::destroyed, this, &OAuth2CodeFlow::onClientDestroyed);
 
-//			connect(&m_oauth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, this, &GoogleOAuth2::browserRequest);
-
+	LOG_CTRACE("oauth2") << "OAuth2CodeFlow created" << state() << this;
 }
 
 
@@ -51,15 +54,134 @@ OAuth2CodeFlow::~OAuth2CodeFlow()
 
 
 /**
- * @brief OAuth2CodeFlow::onStatusChanged
- * @param status
+ * @brief OAuth2CodeFlow::startAuthenticate
  */
 
-void OAuth2CodeFlow::onStatusChanged(const Status &status)
+void OAuth2CodeFlow::startAuthenticate()
 {
-	LOG_CTRACE("oauth2") << "OAuth2CodeFlow status changed:" << (int) status << this;
+	const QUrl u = buildAuthenticateUrl();
 
-	/*if (status == QAbstractOAuth::Status::Granted) {
-			emit authenticated(m_oauth.token(), m_oauth.expirationAt().toString("yyyy-MM-dd HH:mm:ss"), m_oauth.refreshToken());
-	}*/
+	if (m_client)
+	m_client->requestOAuth2Browser(u);
+}
+
+
+
+/**
+ * @brief OAuth2CodeFlow::requestAccesToken
+ * @param code
+ */
+
+void OAuth2CodeFlow::requestAccesToken(const QString &code)
+{
+	LOG_CTRACE("oauth2") << "Start request token";
+
+	QNetworkRequest request(accessTokenUrl());
+
+	QUrlQuery query;
+	query.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("authorization_code"));
+	query.addQueryItem("code", code);
+	query.addQueryItem("redirect_uri", callback());
+	query.addQueryItem("client_id", clientIdentifier());
+
+	if (!clientIdentifierSharedKey().isEmpty())
+		query.addQueryItem("client_secret", clientIdentifierSharedKey());
+
+	request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/x-www-form-urlencoded"));
+
+	QNetworkReply *reply = m_authenticator->networkManager()->post(request, query.query(QUrl::FullyEncoded).toUtf8());
+
+	QObject::connect(reply, &QNetworkReply::finished, this, &OAuth2CodeFlow::onRequestAccessFinished);
+
+}
+
+
+/**
+ * @brief OAuth2CodeFlow::client
+ * @return
+ */
+
+Client *OAuth2CodeFlow::client() const
+{
+	return m_client;
+}
+
+
+/**
+ * @brief OAuth2CodeFlow::onRequestAccessFinished
+ */
+
+void OAuth2CodeFlow::onRequestAccessFinished()
+{
+	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+
+	if (!reply) {
+		LOG_CERROR("oauth2") << "Invalid QNetworkReply";
+		emit authenticationFailed();
+		return;
+	}
+
+	if (reply->error() != QNetworkReply::NoError) {
+		LOG_CERROR("oauth2") << "NetworkReply error:" << qPrintable(reply->errorString());
+		emit authenticationFailed();
+		return;
+	}
+	if (reply->header(QNetworkRequest::ContentTypeHeader).isNull()) {
+		LOG_CERROR("oauth2") << "Empty Content-type header";
+		emit authenticationFailed();
+		return;
+	}
+
+	const QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).isNull() ?
+				QStringLiteral("text/html") :
+				reply->header(QNetworkRequest::ContentTypeHeader).toString();
+
+	const QByteArray data = reply->readAll();
+
+	if (data.isEmpty()) {
+		LOG_CERROR("oauth2") << "No received data";
+		emit authenticationFailed();
+		return;
+	}
+
+	QVariantMap ret;
+
+	if (contentType.startsWith(QStringLiteral("text/html")) ||
+			contentType.startsWith(QStringLiteral("application/x-www-form-urlencoded"))) {
+		QUrlQuery query(QString::fromUtf8(data));
+		auto queryItems = query.queryItems(QUrl::FullyDecoded);
+
+		for (auto it = queryItems.begin(), end = queryItems.end(); it != end; ++it)
+			ret.insert(it->first, it->second);
+	} else if (contentType.startsWith(QStringLiteral("application/json"))
+			   || contentType.startsWith(QStringLiteral("text/javascript"))) {
+		const QJsonDocument document = QJsonDocument::fromJson(data);
+		if (!document.isObject()) {
+			LOG_CERROR("oauth2") << "Received data is not a JSON object:" << qPrintable(QString::fromUtf8(data));
+			emit authenticationFailed();
+			return;
+		}
+		const QJsonObject object = document.object();
+		if (object.isEmpty()) {
+			LOG_CERROR("oauth2") << "Received empty JSON object:" << qPrintable(QString::fromUtf8(data));
+		}
+		ret = object.toVariantMap();
+	} else {
+		LOG_CERROR("oauth2") << "Unknown content-type:" << qPrintable(contentType);
+		emit authenticationFailed();
+		return;
+	}
+
+	emit authenticationSuccess(ret);
+}
+
+
+/**
+ * @brief OAuth2CodeFlow::onClientDestroyed
+ */
+
+void OAuth2CodeFlow::onClientDestroyed()
+{
+	if (m_authenticator)
+		m_authenticator->removeCodeFlow(this);
 }
