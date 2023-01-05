@@ -43,9 +43,9 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	, m_webSocket(webSocket)
 	, m_service(service)
 {
-	LOG_CDEBUG("client") << "Client created:" << this;
+	LOG_CTRACE("client") << "Client created:" << this;
 
-	LOG_CINFO("client") << "New connection:" << webSocket->peerAddress().toString() << webSocket->peerPort();
+	LOG_CINFO("client") << "New connection:" << qPrintable(webSocket->peerAddress().toString()) << webSocket->peerPort();
 
 	setClientState(Hello);
 
@@ -53,7 +53,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	connect(webSocket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
 	connect(webSocket, &QWebSocket::textMessageReceived, this, &Client::onTextMessageReceived);
 
-	m_handlers.insert(WebSocketMessage::ClassAuth, new AuthHandler(this));
+	m_handlers.insert(WebSocketMessage::ClassAuth, &Client::createAuthHandler);
 }
 
 
@@ -63,10 +63,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 
 Client::~Client()
 {
-	foreach (AbstractHandler *h, m_handlers)
-		delete h;
-
-	LOG_CDEBUG("client") << "Client destroyed:" << this;
+	LOG_CTRACE("client") << "Client destroyed:" << this;
 }
 
 
@@ -99,11 +96,11 @@ void Client::handleMessage(const WebSocketMessage &message)
 	if (message.opCode() == WebSocketMessage::Hello) {
 		send(message.createHello());
 	} else {
-		AbstractHandler *h = m_handlers.value(message.classHandler());
+		HandlerFunc f = m_handlers.value(message.classHandler());
 
-		if (h)
-			h->handleMessage(message);
-		else {
+		if (f) {
+			std::invoke(f, this)->handleMessage(message);
+		} else {
 			LOG_CERROR("client") << "Missing handler for class:" << message.classHandler();
 		}
 	}
@@ -256,6 +253,17 @@ void Client::requestOAuth2Browser(const QUrl &url)
 	send(WebSocketMessage::createEvent(QJsonObject({
 													   { QStringLiteral("url"), url.toString() }
 												   })));
+}
+
+
+/**
+ * @brief Client::createAuthHandler
+ * @return
+ */
+
+AbstractHandler *Client::createAuthHandler()
+{
+	return new AuthHandler(this);
 }
 
 

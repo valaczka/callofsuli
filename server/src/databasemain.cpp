@@ -60,12 +60,11 @@ void DatabaseMain::setDbFile(const QString &newDbFile)
 
 bool DatabaseMain::databasePrepare()
 {
-	LOG_CTRACE("db") << "PREPARE"  << QThread::currentThread();
 	QDefer ret;
 
 	bool r = false;
 
-	m_worker.execInThread([ret, this]() mutable {
+	m_worker->execInThread([ret, this]() mutable {
 		LOG_CDEBUG("db") << "Prepare database:" << qPrintable(m_dbFile)  << QThread::currentThread();
 
 		QMutexLocker mutexlocker(mutex());
@@ -91,25 +90,6 @@ bool DatabaseMain::databasePrepare()
 
 
 
-void DatabaseMain::test()
-{
-	LOG_CDEBUG("db") << "TEST STARTED" << this;
-
-	m_worker.execInThread([this]() mutable {
-		LOG_CDEBUG("db") << "Test in thread started:" << m_dbName;
-
-		QMutexLocker mutexlocker(mutex());
-
-		LOG_CDEBUG("db") << "Mutex lock ok:" << m_dbName;
-
-		QThread::sleep(10);
-
-		LOG_CDEBUG("db") << "Wait end:" << m_dbName;
-
-	});
-
-}
-
 
 /**
  * @brief DatabaseMain::_checkSystemTable
@@ -120,7 +100,7 @@ bool DatabaseMain::_checkSystemTable()
 {
 	static uint called = 1;
 
-	LOG_CTRACE("db") << "Check system table" << called  << QThread::currentThread();
+	LOG_CTRACE("db") << "Check system table" << called;
 
 	if (called > 2) {
 		LOG_CERROR("db") << "System table prepare infinite loop";
@@ -134,8 +114,6 @@ bool DatabaseMain::_checkSystemTable()
 	QSqlQuery q(db);
 
 	q.exec(QStringLiteral("SELECT versionMajor, versionMinor, serverName from system"));
-
-	LOG_CTRACE("db") << "Query executed";
 
 	if (q.size() > 1) {
 		LOG_CERROR("db") << "Corrupt database";
@@ -163,8 +141,6 @@ bool DatabaseMain::_checkSystemTable()
 #endif
 		}
 	} else {
-		LOG_CTRACE("db") << "Failed";
-
 		if (_createTables() && _createUsers())
 			return _checkSystemTable();
 		else
@@ -182,26 +158,26 @@ bool DatabaseMain::_checkSystemTable()
 
 bool DatabaseMain::_createTables()
 {
-	LOG_CTRACE("db") << "Create tables"  << QThread::currentThread();
+	LOG_CTRACE("db") << "Create tables";
 
-	LOG_CTRACE("db") << "RETURN" << _batchFromFile(QStringLiteral(":/sql/main.sql"));
+	if (!_batchFromFile(QStringLiteral(":/sql/main.sql")))
+		return false;
 
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
 	QueryBuilder q(db);
 
-	q.addQuery("INSERT INTO system (versionMajor, versionMinor, serverName) VALUES (")
-			.addValue(m_service->versionMajor())
-			.addValue(m_service->versionMinor())
-			.addValue(QStringLiteral("New Call of Suli server"))
-			.addQuery(")");
+	q.addQuery("INSERT INTO system (")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("versionMajor", m_service->versionMajor())
+			.addField("versionMinor", m_service->versionMinor())
+			.addField("serverName", QStringLiteral("New Call of Suli server"))
+			;
 
-	if (!q.exec()) {
-		QUERY_LOG_ERROR(q);
-		return false;
-	}
-
-	return true;
+	return q.exec();
 }
 
 
@@ -295,20 +271,20 @@ bool DatabaseMain::_createUsers()
 	db.transaction();
 
 	foreach (const Users &u, users) {
-		QSqlQuery q(db);
-		queryPrepareList(&q, QStringLiteral("INSERT INTO user(username, firstname, active, isAdmin, isTeacher, isPanel) "
-											"VALUES (?,?,?,?,?,?)"),
-						 {
-							 u.username,
-							 u.firstname,
-							 true,
-							 u.isAdmin,
-							 u.isTeacher,
-							 u.isPanel
-						 });
+		QueryBuilder q(db);
+		q.addQuery("INSERT INTO user(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", u.username)
+				.addField("firstname", u.firstname)
+				.addField("active", true)
+				.addField("isAdmin", u.isAdmin)
+				.addField("isTeacher", u.isTeacher)
+				.addField("isPanel", u.isPanel);
 
 		if (!q.exec()) {
-			QUERY_LOG_ERROR(q);
 			db.rollback();
 			return false;
 		}
@@ -318,16 +294,16 @@ bool DatabaseMain::_createUsers()
 		QString salt;
 		QString pwd = Credential::hashString(u.password, &salt);
 
-		queryPrepareList(&q, QStringLiteral("INSERT INTO auth(username, password, salt) "
-											"VALUES (?,?,?)"),
-						 {
-							 u.username,
-							 pwd,
-							 salt
-						 });
+		q.addQuery("INSERT INTO auth(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", u.username)
+				.addField("password", pwd)
+				.addField("salt", salt);
 
 		if (!q.exec()) {
-			QUERY_LOG_ERROR(q);
 			db.rollback();
 			return false;
 		}

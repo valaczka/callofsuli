@@ -206,7 +206,7 @@ QString Credential::hashString(const QString &str, const QString &salt, const QC
 
 QString Credential::hashString(const QString &str, QString *salt, const QCryptographicHash::Algorithm &method)
 {
-	QByteArray _salt = Utils::generateRandomString(12);
+	QByteArray _salt = Utils::generateRandomString(24);
 
 	if (salt)
 		*salt = QString::fromUtf8(_salt);

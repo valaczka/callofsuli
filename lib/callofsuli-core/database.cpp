@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "utils.h"
 #include <QSqlQuery>
+#include <QSqlRecord>
 
 
 /**
@@ -35,15 +36,15 @@
  */
 
 Database::Database(const QString &dbName)
-	: m_dbName(dbName)
+	: m_worker(new QLambdaThreadWorker())
+	, m_dbName(dbName)
 {
 	Q_ASSERT(!dbName.isEmpty());
 
-	LOG_CDEBUG("db") << "Create new database:" << m_dbName;
+	LOG_CTRACE("db") << "Database created:" << qPrintable(m_dbName);
 
-	if (!databaseInit()) {
-		qFatal("%s", QObject::tr("Can't create database: %1").arg(m_dbName).toLatin1().constData());
-	}
+	if (!databaseInit())
+		LOG_CFATAL("db") << "Can't create database:" << qPrintable(m_dbName);
 }
 
 
@@ -53,11 +54,11 @@ Database::Database(const QString &dbName)
 
 Database::~Database()
 {
-	LOG_CDEBUG("db") << "Remove database:" << m_dbName;
+	LOG_CTRACE("db") << "Remove database:" << qPrintable(m_dbName);
 
 	QDefer ret;
 
-	m_worker.execInThread([ret, this]() mutable {
+	m_worker->execInThread([ret, this]() mutable {
 		{
 			QSqlDatabase db = QSqlDatabase::database(m_dbName);
 			if (db.isOpen())
@@ -77,7 +78,9 @@ Database::~Database()
 
 	QDefer::await(ret);
 
-	LOG_CDEBUG("db") << "Destroy database:" << m_dbName;
+	delete m_worker;
+
+	LOG_CTRACE("db") << "Database destroyed:" << qPrintable(m_dbName);
 }
 
 
@@ -102,8 +105,8 @@ bool Database::databaseOpen(const QString &path)
 	QDefer ret;
 	bool retValue = false;
 
-	m_worker.execInThread([ret, this, path]() mutable {
-		LOG_CDEBUG("db") << "Open database" << m_dbName << ": " << path  << QThread::currentThread();
+	m_worker->execInThread([ret, this, path]() mutable {
+		LOG_CDEBUG("db") << "Open database" << qPrintable(m_dbName) << "-" << qPrintable(path);
 
 		QSqlDatabase db = QSqlDatabase::database(m_dbName);
 		db.setDatabaseName(path);
@@ -111,7 +114,7 @@ bool Database::databaseOpen(const QString &path)
 		if (db.open()) {
 			ret.resolve();
 		} else {
-			LOG_CERROR("db") << "Open database error" << m_dbName << qPrintable(db.lastError().text());
+			LOG_CERROR("db") << "Open database error" << qPrintable(m_dbName) << qPrintable(db.lastError().text());
 			ret.reject();
 		}
 	});
@@ -124,7 +127,7 @@ bool Database::databaseOpen(const QString &path)
 
 	QDefer::await(ret);
 
-	LOG_CTRACE("db") << "Database opened:" << m_dbName;
+	LOG_CTRACE("db") << "Database opened:" << qPrintable(m_dbName);
 
 	return retValue;
 }
@@ -138,8 +141,8 @@ void Database::databaseClose()
 {
 	QDefer ret;
 
-	m_worker.execInThread([ret, this]() mutable {
-		LOG_CDEBUG("db") << "Close database:" << m_dbName;
+	m_worker->execInThread([ret, this]() mutable {
+		LOG_CDEBUG("db") << "Close database:" << qPrintable(m_dbName);
 
 		QSqlDatabase::database(m_dbName).close();
 
@@ -156,12 +159,8 @@ void Database::databaseClose()
  * @return
  */
 
-QMutex *Database::mutex()
+QRecursiveMutex *Database::mutex()
 {
-	/*Q_ASSERT(m_mutexObject);
-
-	rturn m_mutexObject->mutex();*/
-
 	return m_mutex;
 }
 
@@ -187,16 +186,13 @@ void Database::queryPrepareList(QSqlQuery *q, const QString &queryString, const 
  * @return
  */
 
-QSqlError Database::_batchFromData(const QString &data)
+bool Database::_batchFromData(const QString &data)
 {
+	LOG_CTRACE("db") << "Batch sql data begin -------------";
 
-	LOG_CDEBUG("db") << "Batch sql data begin -------------" << QThread::currentThread();
-
-	//QMutexLocker mutexlocker(mutex());
+	QMutexLocker mutexlocker(mutex());
 
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
-
-	LOG_CDEBUG("db") << "DB" << db;
 
 	db.transaction();
 
@@ -210,25 +206,17 @@ QSqlError Database::_batchFromData(const QString &data)
 		if (cmd.startsWith(QStringLiteral("---")))
 			continue;
 
-		QSqlQuery q(db);
-
-		LOG_CTRACE("db") << qPrintable(cmd);
-
-		if (!q.exec(s)) {
-			QUERY_LOG_ERROR(q);
-			const QSqlError &err = q.lastError();
-
+		if (!QueryBuilder::q(db).addQuery(s.toUtf8()).exec()) {
 			db.rollback();
-
-			return err;
+			return false;
 		}
 	}
 
 	db.commit();
 
-	LOG_CDEBUG("db") << "Batch sql data success -----------";
+	LOG_CTRACE("db") << "Batch sql data success -----------";
 
-	return QSqlError();
+	return true;
 }
 
 
@@ -238,14 +226,14 @@ QSqlError Database::_batchFromData(const QString &data)
  * @return
  */
 
-QSqlError Database::_batchFromFile(const QString &filename)
+bool Database::_batchFromFile(const QString &filename)
 {
 	bool err = false;
 	const QByteArray &b = Utils::fileContent(filename, &err);
 
 	if (err) {
 		LOG_CWARNING("db") << "File read error:" << qPrintable(filename);
-		return QSqlError(QString(), QString(), QSqlError::UnknownError);
+		return false;
 	}
 
 	return _batchFromData(QString::fromUtf8(b));
@@ -263,13 +251,13 @@ bool Database::databaseInit()
 	QDefer ret;
 	bool retValue = false;
 
-	m_worker.execInThread([ret, this]() mutable {
-		LOG_CDEBUG("db") << "Add database:" << m_dbName  << QThread::currentThread();
+	m_worker->execInThread([ret, this]() mutable {
+		LOG_CDEBUG("db") << "Add database:" << qPrintable(m_dbName);
 
-		m_mutex = new QMutex;
+		m_mutex = new QRecursiveMutex;
 
 		if (QSqlDatabase::contains(m_dbName)) {
-			LOG_CERROR("db") << "Database already in use:" << m_dbName;
+			LOG_CERROR("db") << "Database already in use:" << qPrintable(m_dbName);
 			ret.reject();
 			return;
 		}
@@ -277,7 +265,7 @@ bool Database::databaseInit()
 		QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_dbName);
 
 		if (!db.isValid()) {
-			LOG_CERROR("db") << "Database invalid:" << m_dbName;
+			LOG_CERROR("db") << "Database invalid:" << qPrintable(m_dbName);
 			ret.reject();
 		} else {
 			ret.resolve();
@@ -299,35 +287,190 @@ bool Database::databaseInit()
 }
 
 
-
 /**
- * @brief DatabaseMutexObject::DatabaseMutexObject
- * @param parent
- */
-
-DatabaseMutexObject::DatabaseMutexObject(QObject *parent)
-	: QObject(parent)
-{
-	LOG_CTRACE("db") << "Mutex object created:" << this;
-}
-
-
-/**
- * @brief DatabaseMutexObject::~DatabaseMutexObject
- */
-
-DatabaseMutexObject::~DatabaseMutexObject()
-{
-	LOG_CTRACE("db") << "Mutex object destroyed:" << this;
-}
-
-
-/**
- * @brief DatabaseMutexObject::mutex
+ * @brief Database::worker
  * @return
  */
 
-QMutex &DatabaseMutexObject::mutex()
+QLambdaThreadWorker *Database::worker() const
 {
-	return m_mutex;
+	return m_worker;
+}
+
+
+
+
+
+
+
+
+/**
+ * @brief QueryBuilder::exec
+ * @return
+ */
+
+bool QueryBuilder::exec()
+{
+	QString q;
+
+	auto bit = m_bind.constBegin();
+
+	for (auto it = m_queryString.constBegin(), prev = m_queryString.constEnd(); it != m_queryString.constEnd(); prev=it, ++it) {
+		switch (it->type) {
+		case QueryString::Query:
+			q += (it->text ? it->text : "");
+			break;
+
+		case QueryString::Bind:
+			while (bit != m_bind.constEnd() && bit->type == Bind::Field)
+				++bit;
+
+			if (bit != m_bind.constEnd()) {
+				if (prev != m_queryString.constEnd() && prev->type == QueryString::Bind) {
+					if (bit->type == Bind::Positional)
+						q += QStringLiteral(",?");
+					else
+						q += QStringLiteral(",").append(bit->name);
+				} else {
+					if (bit->type == Bind::Positional)
+						q += QStringLiteral("?");
+					else
+						q += bit->name;
+				}
+
+				++bit;
+			} else {
+				LOG_CERROR("db") << "QueryBuilder error: invalid bind";
+				return false;
+			}
+			break;
+
+		case QueryString::FieldPlaceholder:
+		{
+			bool has = false;
+			foreach (const Bind &b, m_bind) {
+				if (b.type != Bind::Field)
+					continue;
+
+				if (has)	q += QStringLiteral(",");
+				q += b.name;
+				has = true;
+			}
+		}
+
+			break;
+
+		case QueryString::ValuePlaceholder:
+		{
+			bool has = false;
+			foreach (const Bind &b, m_bind) {
+				if (b.type != Bind::Field)
+					continue;
+
+				if (has)
+					q += QStringLiteral(",?");
+				else {
+					q += QStringLiteral("?");
+					has = true;
+				}
+			}
+		}
+
+			break;
+		}
+	}
+
+	m_sqlQuery.prepare(q);
+
+	foreach (const Bind &b, m_bind) {
+		if (b.type == Bind::Positional || b.type == Bind::Field)
+			m_sqlQuery.addBindValue(b.value);
+		else
+			m_sqlQuery.bindValue(b.name, b.value);
+	}
+
+
+	bool r = m_sqlQuery.exec();
+
+	if (r)
+		LOG_CTRACE("db") << "Sql query:" << qPrintable(m_sqlQuery.executedQuery().simplified());
+	else {
+		LOG_CTRACE("db") << "Sql query:" << qPrintable(m_sqlQuery.lastQuery().simplified());
+		QUERY_LOG_ERROR(m_sqlQuery);
+	}
+
+	return r;
+}
+
+
+/**
+ * @brief QueryBuilder::execToJsonArray
+ * @param err
+ * @return
+ */
+
+
+QJsonArray QueryBuilder::execToJsonArray(bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QJsonArray();
+	}
+
+	QJsonArray list;
+
+	while (m_sqlQuery.next()) {
+		const QSqlRecord &rec = m_sqlQuery.record();
+		QJsonObject obj;
+
+		for (int i=0; i<rec.count(); ++i)
+			obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
+
+		list.append(obj);
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief QueryBuilder::execToJsonObject
+ * @param err
+ * @return
+ */
+
+QJsonObject QueryBuilder::execToJsonObject(bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QJsonObject();
+	}
+
+	if (m_sqlQuery.size() > 1) {
+		if (err) *err = true;
+		LOG_CWARNING("db") << "More than one row returned";
+		return QJsonObject();
+	}
+
+	QJsonObject obj;
+
+	if (m_sqlQuery.first()) {
+		const QSqlRecord &rec = m_sqlQuery.record();
+
+		for (int i=0; i<rec.count(); ++i)
+			obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
+	}
+
+	return obj;
+}
+
+
+/**
+ * @brief QueryBuilder::sqlQuery
+ * @return
+ */
+
+QSqlQuery &QueryBuilder::sqlQuery()
+{
+	return m_sqlQuery;
 }

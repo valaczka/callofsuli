@@ -37,31 +37,136 @@ AuthHandler::AuthHandler(Client *client)
 
 
 /**
- * @brief AuthHandler::handleRequest
+ * @brief AuthHandler::getCredential
+ * @param username
+ * @return
  */
 
-void AuthHandler::handleRequest()
+QDeferred<Credential> AuthHandler::getCredential(const QString &username) const
 {
-	const QString &func = json().value(QStringLiteral("func")).toString();
+	LOG_CTRACE("client") << "Get credential for" << qPrintable(username);
 
-	if (func.isEmpty()) {
-		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
-		LOG_CTRACE("client") << m_client << "Missing function";
-		return;
-	}
+	QDeferred<Credential> ret;
 
-	if (func.startsWith(QStringLiteral("on"))) {
-		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
-		LOG_CWARNING("client") << m_client << "Disabled function:" << qPrintable(func);
-		return;
-	}
+	databaseMain()->worker()->execInThread([ret, username, this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
-	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection)) {
-		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
-		LOG_CDEBUG("client") << m_client << "Invalid function:" << qPrintable(func);
-		return;
-	}
+		QMutexLocker(databaseMain()->mutex());
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT active, isAdmin, isTeacher, isPanel FROM user WHERE username=")
+				.addValue(username);
+
+		if (!q.exec() || !q.sqlQuery().first()) {
+			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(username);
+			ret.reject(Credential());
+			return;
+		}
+
+		if (!q.value("active").toBool()) {
+			LOG_CDEBUG("client") << "Inactive user:" << qPrintable(username);
+			ret.reject(Credential());
+			return;
+		}
+
+
+		Credential c;
+		Credential::Roles r;
+		c.setUsername(username);
+
+		if (q.value("isPanel").toBool()) {
+			r.setFlag(Credential::Panel);
+		} else {
+			r.setFlag(Credential::Student);
+			r.setFlag(Credential::Admin, q.value("isAdmin").toBool());
+			r.setFlag(Credential::Teacher, q.value("isTeacher").toBool());
+		}
+
+		c.setRoles(r);
+
+		ret.resolve(c);
+	});
+
+	return ret;
 }
+
+
+
+/**
+ * @brief AuthHandler::authorizePlain
+ * @param username
+ * @param passoword
+ * @return
+ */
+
+QDeferred<Credential> AuthHandler::authorizePlain(const Credential &credential, const QString &password) const
+{
+	LOG_CTRACE("client") << "Authorize plain" << qPrintable(credential.username());
+
+	QDeferred<Credential> ret;
+
+	databaseMain()->worker()->execInThread([ret, credential, password, this]() mutable {
+		if (!credential.isValid()) {
+			LOG_CWARNING("client") << "Invalid credential";
+			ret.reject(credential);
+			return;
+		}
+
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT salt, password, oauth FROM auth WHERE username=")
+				.addValue(credential.username());
+
+		if (!q.exec() || !q.sqlQuery().first()) {
+			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(credential.username());
+			ret.reject(credential);
+			return;
+		}
+
+		if (!q.value("oauth").isNull()) {
+			LOG_CDEBUG("client") << "Non-oauth2 user:" << qPrintable(credential.username());
+			ret.reject(credential);
+			return;
+		}
+
+		const QString &storedPassword = q.value("password").toString();
+
+		if (storedPassword.isEmpty()) {
+			LOG_CDEBUG("client") << "Empty password stored for user:" << qPrintable(credential.username());
+			ret.reject(credential);
+			return;
+		}
+
+		const QString &hashedPassword = Credential::hashString(password, q.value("salt").toString());
+
+		if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0)
+			ret.resolve(credential);
+		else {
+			LOG_CDEBUG("client") << "Invalid password for user:" << qPrintable(credential.username());
+			ret.reject(credential);
+		}
+	});
+
+	return ret;
+}
+
+
+/**
+ * @brief AuthHandler::authorizeOAuth2
+ * @param username
+ * @param oauthType
+ * @return
+ */
+
+QDeferred<Credential> AuthHandler::authorizeOAuth2(const Credential &credential, const char *oauthType) const
+{
+
+}
+
+
 
 void AuthHandler::handleRequestResponse()
 {
@@ -105,10 +210,51 @@ void AuthHandler::loginGoogle()
 
 
 
-void AuthHandler::test()
+
+/**
+ * @brief AuthHandler::loginPlain
+ */
+
+void AuthHandler::loginPlain()
 {
-	service()->databaseMain()->test();
+	LOG_CTRACE("client") << "Login plain";
+
+	const QString &username = json().value(QStringLiteral("username")).toString();
+	const QString &password = json().value(QStringLiteral("password")).toString();
+
+	if (username.isEmpty() || password.isEmpty()) {
+		send(m_message.createErrorResponse(QStringLiteral("missing username and/or password")));
+		return;
+	}
+
+	getCredential(username)
+			.fail([this](Credential){
+		send(m_message.createErrorResponse(QStringLiteral("invalid user")));
+	})
+	.then<Credential>([this, username, password](Credential c){
+		return authorizePlain(c, password);
+	})
+			.fail([this](Credential){
+		send(m_message.createErrorResponse(QStringLiteral("authentication failed")));
+	})
+	.done([this](Credential c){
+		loginUser(c);
+	});
 }
+
+void AuthHandler::testToken()
+{
+	LOG_CTRACE("client") << "Test token";
+
+	if (!validateJwtToken())
+		return;
+
+	LOG_CINFO("client") << "Validated" << credential().username() << credential().roles();
+
+	send(m_message.createStatusResponse());
+}
+
+
 
 
 
@@ -166,7 +312,19 @@ void AuthHandler::onOAuthSuccess(const QVariantMap &data)
 	if (QString::fromStdString(map.value("email_verified")) == QLatin1String("true")) {
 		LOG_CDEBUG("client") << "Authenticated with Google:" << qPrintable(email);
 
-		loginUser(email);
+		getCredential(email)
+				.fail([this](Credential){
+			send(m_message.createErrorResponse(QStringLiteral("invalid user")));
+		})
+		.then<Credential>([this](Credential c){
+			return authorizeOAuth2(c, "google");
+		})
+		.fail([this](Credential){
+			send(m_message.createErrorResponse(QStringLiteral("authentication failed")));
+		})
+		.done([this](Credential c){
+			loginUser(c);
+		});
 	} else {
 		send(WebSocketMessage::createErrorEvent(QStringLiteral("Authenticated email not verified"), WebSocketMessage::ClassAuth));
 	}
@@ -180,7 +338,16 @@ void AuthHandler::onOAuthSuccess(const QVariantMap &data)
  * @param username
  */
 
-void AuthHandler::loginUser(const QString &username)
+void AuthHandler::loginUser(const Credential &credential)
 {
-	LOG_CINFO("client") << "Login:" << qPrintable(username);
+	LOG_CINFO("client") << m_client << "Login:" << qPrintable(credential.username()) << credential.roles();
+
+	setCredential(credential);
+
+	const QString &token = credential.createJWT(service()->settings()->jwtSecret());
+
+	send(m_message.createResponse(QJsonObject({
+												  { QStringLiteral("status"), QStringLiteral("ok") },
+												  { QStringLiteral("auth_token"), token }
+											  })));
 }

@@ -37,24 +37,6 @@
 #include <QSqlQuery>
 
 
-/**
- * @brief The DatabaseMutexObject class
- */
-
-class DatabaseMutexObject : public QObject
-{
-	Q_OBJECT
-
-public:
-	DatabaseMutexObject(QObject *parent = nullptr);
-	virtual ~DatabaseMutexObject();
-
-	QMutex &mutex();
-
-private:
-	QMutex m_mutex;
-};
-
 
 /**
  * @brief The Database class
@@ -72,23 +54,30 @@ public:
 	virtual bool databaseOpen(const QString &path);
 	virtual void databaseClose();
 
-	QMutex *mutex();
+	QRecursiveMutex *mutex();
 
 	void queryPrepareList(QSqlQuery *q, const QString &queryString, const QVariantList &list);
 
 	// Methods starts with "_" must be called from m_thread
 
-	QSqlError _batchFromData(const QString &data);
-	QSqlError _batchFromFile(const QString &filename);
+	bool _batchFromData(const QString &data);
+	bool _batchFromFile(const QString &filename);
+
+	QLambdaThreadWorker *worker() const;
 
 protected:
 	bool databaseInit();
 
-	QLambdaThreadWorker m_worker;
+	QLambdaThreadWorker *m_worker = nullptr;
 	QString m_dbName;
-	//DatabaseMutexObject *m_mutexObject = nullptr;
-	QMutex *m_mutex = nullptr;
+	QRecursiveMutex *m_mutex = nullptr;
 };
+
+
+
+#define QUERY_LOG_ERROR(q)		LOG_CERROR("db") << "Sql error:" << qPrintable(q.lastError().text());
+#define QUERY_LOG_WARNING(q)	LOG_CWARNING("db") << "Sql error:" << qPrintable(q.lastError().text());
+
 
 
 /**
@@ -96,60 +85,112 @@ protected:
  */
 
 
-class QueryBuilder : public QSqlQuery
+class QueryBuilder
 {
+private:
+
+	struct QueryString {
+		enum Type {
+			Query,
+			Bind,
+			FieldPlaceholder,
+			ValuePlaceholder
+		};
+
+		Type type = Query;
+		const char *text = nullptr;
+
+		QueryString() {}
+		QueryString(const Type &t) : type(t) {}
+		QueryString(const Type &t, const char *txt) : type(t), text(txt) {}
+	};
+
+	struct Bind {
+		enum Type {
+			Positional,
+			Named,
+			Field
+		};
+
+		Type type = Positional;
+		QVariant value;
+		const char *name = nullptr;
+
+		Bind() {}
+		Bind(const Type &t, const QVariant &v, const char *n) : type(t), value(v), name(n) {}
+		Bind(const Type &t, const QVariant &v) : type(t), value(v) {}
+	};
+
+	QSqlQuery m_sqlQuery;
+	QVector<QueryString> m_queryString;
+	QVector<Bind> m_bind;
+
 public:
-	explicit QueryBuilder(QSqlDatabase db) : QSqlQuery(db) {}
+	explicit QueryBuilder(QSqlDatabase db) : m_sqlQuery(db) {};
+
+	static QueryBuilder q(QSqlDatabase db) { return QueryBuilder(db); }
 
 	QueryBuilder &addQuery(const char *q) {
-		m_query.append(q);
-		m_beforeIsValue = false;
+		m_queryString.append({QueryString::Query, q});
 		return *this;
 	}
 
 	QueryBuilder &addValue(const QVariant &v) {
-		if (m_beforeIsValue)
-			m_query.append(QStringLiteral(",?"));
-		else
-			m_query.append(QStringLiteral("?"));
-		addBindValue(v);
-		m_beforeIsValue = true;
+		m_queryString.append(QueryString::Bind);
+		m_bind.append({Bind::Positional, v});
 		return *this;
 	}
 
 	QueryBuilder &addValue(const char *name, const QVariant &v) {
-		if (m_beforeIsValue)
-			m_query.append(QStringLiteral(","));
-
-		m_query.append(name);
-		bindValue(name, v);
-		m_beforeIsValue = true;
+		m_queryString.append(QueryString::Bind);
+		m_bind.append({Bind::Named, v, name});
 		return *this;
 	}
 
 	QueryBuilder &addNullValue() {
-		if (m_beforeIsValue)
-			m_query.append(QStringLiteral(",?"));
-		else
-			m_query.append(QStringLiteral("?"));
-		addBindValue(QVariant::Invalid);
-		m_beforeIsValue = true;
+		m_queryString.append(QueryString::Bind);
+		m_bind.append({Bind::Positional, QVariant::Invalid});
 		return *this;
 	}
 
-	bool exec() {
-		prepare(m_query);
-		bool r = QSqlQuery::exec();
-		LOG_CTRACE("db") << "Executed query" << executedQuery();
-		return r;
+	QueryBuilder &addNullValue(const char *name) {
+		m_queryString.append(QueryString::Bind);
+		m_bind.append({Bind::Positional, QVariant::Invalid, name});
+		return *this;
 	}
 
-private:
-	QString m_query;
-	bool m_beforeIsValue = false;
+	QueryBuilder &setFieldPlaceholder() {
+		m_queryString.append(QueryString::FieldPlaceholder);
+		return *this;
+	}
+
+	QueryBuilder &setValuePlaceholder() {
+		m_queryString.append(QueryString::ValuePlaceholder);
+		return *this;
+	}
+
+	QueryBuilder &addField(const char *name, const QVariant &v) {
+		m_bind.append({Bind::Field, v, name});
+		return *this;
+	}
+
+	bool exec();
+	QJsonArray execToJsonArray(bool *err = nullptr);
+	QJsonObject execToJsonObject(bool *err = nullptr);
+
+	void clear() {
+		m_sqlQuery.clear();
+		m_queryString.clear();
+		m_bind.clear();
+	}
+
+	QSqlQuery &sqlQuery();
+
+	QVariant value(const char *field) { return m_sqlQuery.value(field); }
+
+	void logError() const { QUERY_LOG_ERROR(m_sqlQuery); }
+	void logWarning() const { QUERY_LOG_WARNING(m_sqlQuery); }
 };
 
-#define QUERY_LOG_ERROR(q)		LOG_CERROR("db") << "Sql error:" << qPrintable(q.lastError().text());
-#define QUERY_LOG_WARNING(q)	LOG_WARNING("db") << "Sql error:" << qPrintable(q.lastError().text());
 
 #endif // DATABASE_H

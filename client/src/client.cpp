@@ -339,7 +339,7 @@ WebSocket *Client::webSocket() const
 void Client::testConnect()
 {
 	Server *s = new Server(this);
-s->setUrl(QUrl("ws://localhost:10101"));
+	s->setUrl(QUrl("ws://localhost:10101"));
 
 	m_webSocket->connectToServer(s);
 }
@@ -351,7 +351,7 @@ void Client::testHello()
 
 void Client::testRequest()
 {
-	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth, QJsonObject({{"func", "test"}})));
+	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassGeneral, QJsonObject({{"func", "test"}})));
 }
 
 void Client::testClose()
@@ -360,10 +360,26 @@ void Client::testClose()
 	m_webSocket->socket()->close();
 }
 
-void Client::testText()
+void Client::testText(const QString &username, const QString &password)
 {
-	qDebug() << "TEXT";
-	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth, QJsonObject({{"func", "loginGoogle"}})));
+	qDebug() << "LOGIN";
+	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth,
+													  QJsonObject({
+																	  {"func", "loginPlain"},
+																	  { "username", username },
+																	  { "password", password }
+																  })));
+}
+
+
+
+void Client::testToken(const QString &token)
+{
+	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth,
+													  QJsonObject({
+																	  {"func", "testToken"},
+																	  { "token", token },
+																  })));
 }
 
 

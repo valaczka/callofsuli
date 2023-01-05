@@ -67,6 +67,8 @@ public:
 	const QString &serverName() const;
 	void setServerName(const QString &newServerName);
 
+	JwtVerifier &verifier();
+
 signals:
 	void serverNameChanged();
 

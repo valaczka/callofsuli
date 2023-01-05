@@ -123,7 +123,8 @@ public:
 	Q_INVOKABLE void testHello();
 	Q_INVOKABLE void testRequest();
 	Q_INVOKABLE void testClose();
-Q_INVOKABLE void testText();
+	Q_INVOKABLE void testText(const QString &username, const QString &password);
+	Q_INVOKABLE void testToken(const QString &token);
 
 protected slots:
 	virtual void onApplicationStarted();

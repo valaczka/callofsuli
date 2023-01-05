@@ -44,8 +44,6 @@ public:
 
 	bool databasePrepare();
 
-	void test();
-
 private:
 	bool _checkSystemTable();
 	bool _createTables();

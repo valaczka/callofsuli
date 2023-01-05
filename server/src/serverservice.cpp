@@ -72,20 +72,11 @@ ServerService::ServerService(int &argc, char **argv)
 
 	cuteLogger->registerAppender(m_consoleAppender);
 
-
-	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
-
 	for (int i=0; i<argc; ++i) {
 		m_arguments.append(argv[i]);
 	}
+
+	LOG_CTRACE("service") << "Server service created";
 }
 
 
@@ -96,7 +87,8 @@ ServerService::ServerService(int &argc, char **argv)
 ServerService::~ServerService()
 {
 	delete m_settings;
-	LOG_CTRACE("service") << "Finished";
+
+	LOG_CTRACE("service") << "Server service destroyed";
 }
 
 
@@ -111,6 +103,16 @@ void ServerService::initialize()
 	QCoreApplication::setApplicationVersion(m_version);
 
 	QCoreApplication::addLibraryPath(QStringLiteral("lib/QtService/plugins"));
+
+	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
 }
 
 
@@ -126,7 +128,7 @@ void ServerService::initialize()
 
 Service::CommandResult ServerService::onStart()
 {
-	LOG_CINFO("service") << "Server service started";
+	LOG_CTRACE("service") << "Server service started";
 
 	m_settings->printConfig();
 
@@ -137,6 +139,7 @@ Service::CommandResult ServerService::onStart()
 
 	if (!m_databaseMain->databasePrepare()) {
 		LOG_CERROR("service") << "Main database prepare error";
+		quit();
 		return CommandResult::Failed;
 	}
 
@@ -149,6 +152,7 @@ Service::CommandResult ServerService::onStart()
 
 	if (!m_googleOAuth2Authenticator->listen()) {
 		LOG_CERROR("service") << "OAuth2Authenticator listening error";
+		quit();
 		return CommandResult::Failed;
 	}
 
@@ -169,6 +173,8 @@ Service::CommandResult ServerService::onStart()
 	LOG_CTRACE("service") << "TESZT2" << Credential::verify(cc.createJWT("secret"), &m_verifier);
 	LOG_CTRACE("service") << "TESZT3" << Credential::verify(cc.createJWT(""), &m_verifier);*/
 
+	LOG_CINFO("service") << "Server service started successfull";
+
 	return CommandResult::Completed;
 }
 
@@ -182,6 +188,11 @@ Service::CommandResult ServerService::onStart()
 QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 {
 	LOG_CINFO("service") << "Server service stopped with code:" << exitCode;
+
+	qDeleteAll(m_clients);
+
+	if (m_googleOAuth2Authenticator)
+		delete m_googleOAuth2Authenticator;
 
 	if (m_webSocketServer) {
 		m_webSocketServer->close();
@@ -248,6 +259,17 @@ Service::CommandResult ServerService::onResume()
 		m_webSocketServer->resumeAccepting();
 
 	return CommandResult::Completed;
+}
+
+
+/**
+ * @brief ServerService::verifier
+ * @return
+ */
+
+JwtVerifier &ServerService::verifier()
+{
+	return m_verifier;
 }
 
 const QString &ServerService::serverName() const

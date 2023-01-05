@@ -65,6 +65,7 @@ QPage {
 
 
 	Row {
+		id: row1
 
 		Qaterial.RaisedButton {
 			text: "Start Game"
@@ -114,6 +115,60 @@ QPage {
 		}
 
 
+	}
+
+	Row {
+		id: row2
+		anchors.left: parent.left
+		anchors.top: row1.bottom
+
+		spacing: 10
+
+		Qaterial.TextField {
+			id: fUser
+			title: "Username"
+			helperText: "Felhasználónév"
+			width: 300
+
+			trailingContent:   Qaterial.TextFieldClearButton {textField: fUser}
+		}
+
+		Qaterial.FilledTextField {
+			id: fPassword
+			title: "Password"
+			helperText: "Jelszó"
+			width: 300
+
+			echoMode: TextInput.Password
+			inputMethodHints: Qt.ImhSensitiveData
+			trailingContent: Qaterial.TextFieldButtonContainer
+			{
+				Qaterial.TextFieldPasswordButton {textField: fPassword} // TextFieldCopyButton
+				Qaterial.TextFieldClearButton {textField: fPassword} // TextFieldClearButton
+			}
+		}
+
+		Qaterial.RaisedButton {
+			text: "Login"
+			highlighted: false
+			onClicked: Client.testText(fUser.text, fPassword.text)
+		}
+	}
+
+	Qaterial.TextField {
+		id: fToken
+		anchors.top: row2.bottom
+		anchors.left: parent.left
+		anchors.right: btnSend.left
+	}
+
+	Qaterial.RaisedButton {
+		id: btnSend
+		anchors.verticalCenter: fToken.verticalCenter
+		anchors.right: parent.right
+		text: "SEND"
+		highlighted: false
+		onClicked: Client.testToken(fToken.text)
 	}
 
 

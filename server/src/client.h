@@ -79,6 +79,9 @@ signals:
 	void credentialChanged();
 	void oauth2CodeFlowChanged();
 
+private:
+	AbstractHandler *createAuthHandler();
+
 private slots:
 	void onClientStateChanged();
 	void onDisconnected();
@@ -90,7 +93,10 @@ private:
 	ServerService *const m_service;
 	ClientState m_clientState = Invalid;
 	Credential m_credential;
-	QHash<WebSocketMessage::ClassHandler, AbstractHandler*> m_handlers;
+
+	typedef AbstractHandler* (Client::*HandlerFunc)();
+
+	QHash<WebSocketMessage::ClassHandler, HandlerFunc> m_handlers;
 
 	QPointer<OAuth2CodeFlow> m_oauth2CodeFlow = nullptr;
 };

@@ -36,20 +36,24 @@ class AuthHandler : public AbstractHandler
 public:
 	AuthHandler(Client *client);
 
+	QDeferred<Credential> getCredential(const QString &username) const;
+	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
+	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
+
 protected:
-	void handleRequest();
 	void handleRequestResponse();
 	void handleEvent();
 
 private slots:
 	void loginGoogle();
-	void test();
+	void loginPlain();
+	void testToken();
 
 	void onOAuthFailed();
 	void onOAuthSuccess(const QVariantMap &data);
 
 private:
-	void loginUser(const QString &username);
+	void loginUser(const Credential &credential);
 
 
 };

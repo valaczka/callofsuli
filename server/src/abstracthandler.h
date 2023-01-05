@@ -27,8 +27,12 @@
 #ifndef ABSTRACTHANDLER_H
 #define ABSTRACTHANDLER_H
 
+#include "credential.h"
+#include "databasemain.h"
 #include "websocketmessage.h"
 #include <QObject>
+
+#define HANDLER_DESTROY_TIMEOUT_MSEC	20*1000 //10*60*1000
 
 class Client;
 class ServerService;
@@ -39,22 +43,37 @@ class AbstractHandler : public QObject
 
 public:
 	AbstractHandler(Client *client);
-	virtual ~AbstractHandler() {}
+	virtual ~AbstractHandler();
 
 	void handleMessage(const WebSocketMessage &message);
 
+	bool validateJwtToken(const bool &autoResponseOnFail = true);
+
+	const Credential &credential() const;
+	void setCredential(const Credential &newCredential);
+
 protected:
-	virtual void handleRequest() = 0;
+	virtual void handleRequest();
 	virtual void handleRequestResponse() = 0;
 	virtual void handleEvent() = 0;
+
+	virtual void clear();
 
 	void send(const WebSocketMessage &message);
 
 	const QJsonObject &json() const { return m_message.data(); }
 	ServerService *service() const;
+	DatabaseMain *databaseMain() const;
 
 	WebSocketMessage m_message;
 	Client *const m_client;
+
+private slots:
+	void destroyTimeout();
+
+private:
+	bool m_jwtTokenValidated = false;
+	Credential m_credential;
 };
 
 #endif // ABSTRACTHANDLER_H
