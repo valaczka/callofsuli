@@ -242,3 +242,15 @@ void Credential::setRoles(const Roles &newRoles)
 {
 	m_roles = newRoles;
 }
+
+
+/**
+ * @brief Credential::setRole
+ * @param role
+ * @param on
+ */
+
+void Credential::setRole(const Role &role, const bool &on)
+{
+	m_roles.setFlag(role, on);
+}

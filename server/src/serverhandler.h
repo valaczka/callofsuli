@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * server.h
+ * serverhandler.h
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 01. 07.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Server
+ * ServerHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,29 +24,29 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef SERVERHANDLER_H
+#define SERVERHANDLER_H
 
-#include "qurl.h"
-#include <QObject>
+#include "abstracthandler.h"
 
-class Server : public QObject
+class ServerHandler : public AbstractHandler
 {
 	Q_OBJECT
-	Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
 
 public:
-	explicit Server(QObject *parent = nullptr);
+	explicit ServerHandler(Client *client);
 
-	const QUrl &url() const;
-	void setUrl(const QUrl &newUrl);
+protected:
+	virtual void handleRequestResponse() {};
+	virtual void handleEvent() {};
 
-signals:
-	void urlChanged();
+private slots:
+	void getConfig();
 
 private:
-	QUrl m_url;
+	static QJsonObject _getConfig(ServerService *service);
 
+	friend class ServerService;
 };
 
-#endif // SERVER_H
+#endif // SERVERHANDLER_H

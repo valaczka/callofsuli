@@ -28,6 +28,7 @@
 #include <emscripten/bind.h>
 
 
+#include "Logger.h"
 #include "abstractlevelgame.h"
 #include "onlineclient.h"
 #include "qnetworkaccessmanager.h"
@@ -60,13 +61,10 @@ OnlineClient::~OnlineClient()
 
 void OnlineClient::onApplicationStarted()
 {
-	qCDebug(lcClient).noquote() << tr("Download resources");
+	LOG_CDEBUG("client") << "Download resources";
 
-	QUrl url("wasm_resources.json");
-	QNetworkRequest request(url);
-
+	QNetworkRequest request(QUrl(QStringLiteral("wasm_resources.json")));
 	QNetworkReply *reply = m_networkManager->get(request);
-
 	connect(reply, &QNetworkReply::finished, this, &OnlineClient::onResourceDownloaded);
 
 	enableTabCloseConfirmation(true);
@@ -86,26 +84,26 @@ void OnlineClient::onResourceDownloaded()
 	const QUrl &url = reply->url();
 
 	if (reply->error()) {
-		qCWarning(lcClient).noquote() << tr("Nem sikerült a letöltés:") << url << reply->errorString();
+		LOG_CWARNING("client") << "Nem sikerült a letöltés:" << url << qPrintable(reply->errorString());
 	} else {
-		qCDebug(lcClient).noquote() << tr("Resource downloaded:") << url;
+		LOG_CDEBUG("client") << "Resource downloaded:" << url;
 		const QByteArray &payload = reply->readAll();
 		const QString &filename = url.path();
 
 		if (filename == "wasm_resources.json") {
 			const QJsonObject &o = Utils::byteArrayToJsonObject(payload);
-			const QJsonArray &resources = o.value("resources").toArray();
+			const QJsonArray &resources = o.value(QStringLiteral("resources")).toArray();
 
 
 			if (resources.isEmpty()) {
-				qCCritical(lcClient).noquote() << tr("Az erőforráslista üres");
+				LOG_CERROR("client") << "Az erőforráslista üres";
 			} else {
 				m_resourceList.clear();
 
 				foreach (const QJsonValue &v, resources)
 					m_resourceList.append(v.toString());
 
-				qCDebug(lcClient).noquote() << tr("Letöltendő erőforrások:") << m_resourceList;
+				LOG_CDEBUG("client") << "Letöltendő erőforrások:" << m_resourceList;
 
 				foreach (const QString &s, m_resourceList) {
 					QNetworkReply *r = m_networkManager->get(QNetworkRequest(QUrl(s)));
@@ -114,7 +112,7 @@ void OnlineClient::onResourceDownloaded()
 			}
 		} else {
 			if (!m_resourceList.contains(filename) || payload.isEmpty())	{
-				qCWarning(lcClient).noquote() << tr("Érvénytelen erőforrás:") << filename;
+				LOG_CWARNING("client") << "Érvénytelen erőforrás:" << qPrintable(filename);
 			} else {
 				const std::size_t count = payload.size();
 				unsigned char* resourceData = new unsigned char[count];
@@ -122,7 +120,7 @@ void OnlineClient::onResourceDownloaded()
 
 				QResource::registerResource(resourceData);
 
-				qCInfo(lcClient).noquote() << QObject::tr("Register resource: %1").arg(filename);
+				LOG_CINFO("client") << "Register resource:" << qPrintable(filename);
 
 				m_resourceList.removeAll(filename);
 
@@ -145,7 +143,7 @@ void OnlineClient::onAllResourceReady()
 {
 	m_application->loadFonts();
 
-	qCInfo(lcClient).noquote() << tr("Az alkalmazás sikeresen elindult");
+	LOG_CINFO("client") << "Az alkalmazás sikeresen elindult";
 
 	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMedal();
@@ -161,7 +159,7 @@ void OnlineClient::onAllResourceReady()
 
 void OnlineClient::enableTabCloseConfirmation(bool enable)
 {
-	qCDebug(lcClient).noquote() << tr("ENABLE TAB CLOSE CONFIRMATION") << enable;
+	LOG_CTRACE("client") << "Enable tab close confirmation" << enable;
 
 	using emscripten::val;
 	const val window = val::global("window");
@@ -169,10 +167,8 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 	const val eventHandler = val::module_property("beforeUnloadHandler");
 	if (enable) {
 		window.call<void>("addEventListener", std::string("beforeunload"), eventHandler, capture);
-		qCDebug(lcClient).noquote() << "CALL";
 	} else {
 		window.call<void>("removeEventListener", std::string("beforeunload"), eventHandler, capture);
-		qCDebug(lcClient).noquote() << "UNLOAD";
 	}
 
 }
@@ -181,7 +177,7 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 
 namespace {
 static emscripten::val beforeUnloadhandler(emscripten::val event) {
-	qCDebug(lcClient).noquote() << QObject::tr("Unload handler");
+	LOG_CTRACE("client") << "Unload handler";
 	// Adding this event handler is sufficent to make the browsers display
 	// the confirmation dialog, provided the calls below are also made:
 	event.call<void>("preventDefault"); // call preventDefault as required by standard

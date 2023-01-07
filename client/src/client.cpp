@@ -36,8 +36,7 @@
 #include "qquickwindow.h"
 #include "qguiapplication.h"
 #include <qpa/qplatformwindow.h>
-
-Q_LOGGING_CATEGORY(lcClient, "app.client")
+#include "Logger.h"
 
 Client::Client(Application *app, QObject *parent)
 	: QObject{parent}
@@ -103,12 +102,12 @@ void Client::setMainStack(QQuickItem *newMainStack)
 QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &parameters) const
 {
 	if (!m_mainStack) {
-		qCCritical(lcClient).noquote() << tr("mainStack nincsen beállítva!");
+		LOG_CERROR("client") << "mainStack nincsen beállítva!";
 		return nullptr;
 	}
 
 	if (qml.isEmpty()) {
-		qCWarning(lcClient).noquote() << tr("Nincs megadva lap");
+		LOG_CWARNING("client") << "Nincs megadva lap";
 		return nullptr;
 	}
 
@@ -120,11 +119,11 @@ QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &paramet
 							  );
 
 	if (!o) {
-		qCCritical(lcClient).noquote() << tr("Nem lehet a lapot betölteni: %1").arg(qml);
+		LOG_CERROR("client") << "Nem lehet a lapot betölteni:" << qPrintable(qml);
 		return nullptr;
 	}
 
-	qCDebug(lcClient).noquote() << tr("Lap betöltve:") << qml << o;
+	LOG_CDEBUG("client") << "Lap betöltve:" << qPrintable(qml) << o;
 
 	return o;
 }
@@ -142,14 +141,14 @@ QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &paramet
 bool Client::stackPop(const int &index, const bool &forced) const
 {
 	if (!m_mainStack) {
-		qCCritical(lcClient).noquote() << tr("mainStack nincsen beállítva!");
+		LOG_CERROR("client") << "mainStack nincsen beállítva!";
 		return false;
 	}
 
 	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
 
 	if (!currentItem) {
-		qCCritical(lcClient).noquote() << tr("mainStack currentItem unavailable");
+		LOG_CERROR("client") << "mainStack currentItem unavailable";
 		return false;
 	}
 
@@ -167,13 +166,13 @@ bool Client::stackPop(const int &index, const bool &forced) const
 	const int &depth = m_mainStack->property("depth").toInt();
 
 	if (index >= depth) {
-		qCWarning(lcClient).noquote() << tr("Nem lehet a #%1 lapra visszalépni (mélység: %2)").arg(index).arg(depth);
+		LOG_CWARNING("client") << "Nem lehet a lapra visszalépni:" << index << "mélység:" << depth;
 		return false;
 	}
 
 	if (depth <= 2) {
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
-		qCDebug(lcClient).noquote() << tr("Nem lehet visszalépni (mélység: %1)").arg(depth);
+		LOG_CDEBUG("client") << "Nem lehet visszalépni, mélység:" << depth;
 		//Application::instance()->messageInfo("Nem lehet visszalépni!");
 		return false;
 #endif
@@ -202,7 +201,7 @@ bool Client::stackPop(const int &index, const bool &forced) const
 		return true;
 	}
 
-	qCDebug(lcClient).noquote() << tr("Kérdés a visszalépés előtt") << currentItem;
+	LOG_CDEBUG("client") << "Kérdés a visszalépés előtt" << currentItem;
 
 	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
 							  Q_ARG(QString, question),
@@ -232,7 +231,7 @@ bool Client::closeWindow(const bool &forced)
 	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
 
 	if (!currentItem) {
-		qCCritical(lcClient).noquote() << tr("mainStack currentItem unavailable");
+		LOG_CERROR("client") << "mainStack currentItem unavailable";
 		return false;
 	}
 
@@ -246,13 +245,13 @@ bool Client::closeWindow(const bool &forced)
 
 
 	if (forced || question.isEmpty()) {
-		qCDebug(lcClient).noquote() << tr("Ablak bezárása");
+		LOG_CDEBUG("client") << "Ablak bezárása";
 		m_mainWindowClosable = true;
 		m_mainWindow->close();
 		return true;
 	}
 
-	qCDebug(lcClient).noquote() << tr("Kérdés a bezárás előtt") << currentItem;
+	LOG_CDEBUG("client") << "Kérdés a bezárás előtt" << currentItem;
 
 	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
 							  Q_ARG(QString, question),
@@ -273,7 +272,7 @@ bool Client::closeWindow(const bool &forced)
 
 void Client::onApplicationStarted()
 {
-	qCInfo(lcClient).noquote() << tr("A kliens alkalmazás sikeresen elindult.");
+	LOG_CINFO("client") << "A kliens alkalmazás sikeresen elindult.";
 
 	QCoreApplication::processEvents();
 
@@ -317,6 +316,25 @@ void Client::_message(const QString &text, const QString &title, const QString &
 }
 
 
+/**
+ * @brief Client::server
+ * @return
+ */
+
+Server *Client::server() const
+{
+	return m_server;
+}
+
+void Client::setServer(Server *newServer)
+{
+	if (m_server == newServer)
+		return;
+	m_server = newServer;
+	emit serverChanged();
+}
+
+
 
 
 
@@ -331,6 +349,18 @@ WebSocket *Client::webSocket() const
 }
 
 
+/**
+ * @brief Client::sendRequest
+ * @param classHandler
+ * @param json
+ */
+
+void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json)
+{
+	m_webSocket->send(WebSocketMessage::createRequest(classHandler, json));
+}
+
+
 
 /**
  * @brief Client::testConnect
@@ -339,7 +369,7 @@ WebSocket *Client::webSocket() const
 void Client::testConnect()
 {
 	Server *s = new Server(this);
-	s->setUrl(QUrl("ws://localhost:10101"));
+	s->setUrl(QUrl("ws://vjp:10102"));
 
 	m_webSocket->connectToServer(s);
 }
@@ -485,7 +515,7 @@ void Client::safeMarginsGet()
 	margins.setRight(right/devicePixelRatio);
 #endif
 
-	qCDebug(lcClient).noquote() << tr("New safe margins:") << margins;
+	LOG_CDEBUG("client") << "New safe margins:" << margins;
 
 	setSafeMargins(margins);
 }
@@ -588,7 +618,7 @@ void Client::messageInfo(const QString &text, QString title) const
 	if (title.isEmpty())
 		title = m_application->application()->applicationDisplayName();
 
-	qCInfo(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
+	LOG_CINFO("client") << qPrintable(text) << title;
 	_message(text, title, QStringLiteral("info"));
 }
 
@@ -604,7 +634,7 @@ void Client::messageWarning(const QString &text, QString title) const
 	if (title.isEmpty())
 		title = m_application->application()->applicationDisplayName();
 
-	qCWarning(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
+	LOG_CWARNING("client") << qPrintable(text) << title;
 	_message(text, title, QStringLiteral("warning"));
 }
 
@@ -620,7 +650,7 @@ void Client::messageError(const QString &text, QString title) const
 	if (title.isEmpty())
 		title = m_application->application()->applicationDisplayName();
 
-	qCCritical(lcClient).noquote() << QStringLiteral("%1 (%2)").arg(text, title);
+	LOG_CERROR("client") << qPrintable(text) << title;
 	_message(text, title, QStringLiteral("error"));
 }
 
@@ -650,7 +680,7 @@ void Client::snack(const QString &text) const
 void Client::loadDemoMap()
 {
 	if (m_currentGame) {
-		qCCritical(lcClient).noquote() << tr("Game already exists");
+		LOG_CERROR("client") << "Game already exists";
 		return;
 	}
 

@@ -32,7 +32,7 @@
 #include "websocketmessage.h"
 #include <QObject>
 
-#define HANDLER_DESTROY_TIMEOUT_MSEC	20*1000 //10*60*1000
+#define HANDLER_DESTROY_TIMEOUT_MSEC	180*1000
 
 class Client;
 class ServerService;
@@ -48,9 +48,13 @@ public:
 	void handleMessage(const WebSocketMessage &message);
 
 	bool validateJwtToken(const bool &autoResponseOnFail = true);
+	bool validateJwtToken(const Credential::Role &role, const bool &autoResponseOnFail = true);
 
 	const Credential &credential() const;
 	void setCredential(const Credential &newCredential);
+
+	DatabaseMain *databaseMain() const;
+	ServerService *service() const;
 
 protected:
 	virtual void handleRequest();
@@ -59,11 +63,9 @@ protected:
 
 	virtual void clear();
 
-	void send(const WebSocketMessage &message);
+	void send(const WebSocketMessage &message, const bool &deleteHandler = true);
 
 	const QJsonObject &json() const { return m_message.data(); }
-	ServerService *service() const;
-	DatabaseMain *databaseMain() const;
 
 	WebSocketMessage m_message;
 	Client *const m_client;

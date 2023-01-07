@@ -43,7 +43,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	, m_webSocket(webSocket)
 	, m_service(service)
 {
-	LOG_CTRACE("client") << "Client created:" << this;
+	LOG_CTRACE("client") << this << "Client created";
 
 	LOG_CINFO("client") << "New connection:" << qPrintable(webSocket->peerAddress().toString()) << webSocket->peerPort();
 
@@ -63,7 +63,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 
 Client::~Client()
 {
-	LOG_CTRACE("client") << "Client destroyed:" << this;
+	LOG_CTRACE("client") << this << "Client destroyed";
 }
 
 
@@ -87,7 +87,7 @@ void Client::handleMessage(const WebSocketMessage &message)
 	}
 
 	if (m_clientState != Connected) {
-		LOG_CWARNING("client") << "Handle message error:" << m_clientState << this;
+		LOG_CWARNING("client") << this << "Handle message error:" << m_clientState;
 		send(message.createErrorResponse(QStringLiteral("Invalid handler state")));
 		return;
 	}
@@ -101,7 +101,7 @@ void Client::handleMessage(const WebSocketMessage &message)
 		if (f) {
 			std::invoke(f, this)->handleMessage(message);
 		} else {
-			LOG_CERROR("client") << "Missing handler for class:" << message.classHandler();
+			LOG_CERROR("client") << this << "Missing handler for class:" << message.classHandler();
 		}
 	}
 
@@ -120,7 +120,7 @@ void Client::send(const WebSocketMessage &message)
 		return;
 	}
 
-	LOG_CTRACE("client") << "Message sent:" << message << this;
+	LOG_CTRACE("client") << this << "Message sent:" << message;
 
 	m_webSocket->sendBinaryMessage(message.toByteArray());
 }
@@ -135,7 +135,7 @@ void Client::send(const WebSocketMessage &message)
 void Client::onDisconnected()
 {
 	setClientState(Invalid);
-	LOG_CINFO("client") << "Disconnected:" << m_webSocket->peerAddress().toString() << m_webSocket->peerPort();
+	LOG_CINFO("client") << this << "Disconnected:" << m_webSocket->peerAddress().toString() << m_webSocket->peerPort();
 	m_service->clientRemove(this);
 }
 
@@ -248,7 +248,7 @@ void Client::setCredential(const Credential &newCredential)
 
 void Client::requestOAuth2Browser(const QUrl &url)
 {
-	LOG_CINFO("client") << "Request browser for oauth2 url" << url;
+	LOG_CINFO("client") << this << "Request browser for oauth2 url" << url;
 
 	send(WebSocketMessage::createEvent(QJsonObject({
 													   { QStringLiteral("url"), url.toString() }
@@ -295,7 +295,7 @@ void Client::setClientState(const ClientState &newClientState)
 void Client::onClientStateChanged()
 {
 	if (m_clientState == Error) {
-		LOG_CINFO("client") << "Client state error:" << this;
+		LOG_CINFO("client") << this << "Client state error";
 		m_webSocket->close(QWebSocketProtocol::CloseCodeBadOperation);
 	}
 }

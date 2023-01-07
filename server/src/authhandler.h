@@ -40,6 +40,14 @@ public:
 	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
 	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
+	QDeferred<bool> userExists(const QString &username) const;
+
+	bool isRegistrationEnabled() const;
+	void setRegistrationEnabled(const bool &on = true);
+	bool isOAuth2RegistrationForced() const;
+	void setOAuth2RegistrationForced(const bool &on = true);
+
+
 protected:
 	void handleRequestResponse();
 	void handleEvent();
@@ -47,10 +55,13 @@ protected:
 private slots:
 	void loginGoogle();
 	void loginPlain();
-	void testToken();
+
+	void registrationGoogle();
+	void registrationPlain();
 
 	void onOAuthFailed();
 	void onOAuthSuccess(const QVariantMap &data);
+	void onOAuthRegistrationSuccess(const QVariantMap &data);
 
 private:
 	void loginUser(const Credential &credential);

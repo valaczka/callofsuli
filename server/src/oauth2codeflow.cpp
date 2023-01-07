@@ -89,7 +89,11 @@ void OAuth2CodeFlow::requestAccesToken(const QString &code)
 
 	request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/x-www-form-urlencoded"));
 
+	LOG_CTRACE("oauth2") << "Post request token" << request.url() << query.query();
+
 	QNetworkReply *reply = m_authenticator->networkManager()->post(request, query.query(QUrl::FullyEncoded).toUtf8());
+
+	LOG_CTRACE("oauth2") << "Posted request token" << reply;
 
 	QObject::connect(reply, &QNetworkReply::finished, this, &OAuth2CodeFlow::onRequestAccessFinished);
 
@@ -113,6 +117,8 @@ Client *OAuth2CodeFlow::client() const
 
 void OAuth2CodeFlow::onRequestAccessFinished()
 {
+	LOG_CTRACE("oauth2") << "Request finished";
+
 	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
 
 	if (!reply) {
@@ -171,6 +177,8 @@ void OAuth2CodeFlow::onRequestAccessFinished()
 		emit authenticationFailed();
 		return;
 	}
+
+	LOG_CTRACE("oauth2") << "Received data:" << ret;
 
 	emit authenticationSuccess(ret);
 }

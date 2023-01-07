@@ -45,10 +45,11 @@ public:
 	Credential() {}
 
 	enum Role {
-		Guest = 0,
-		Student = 1,
-		Teacher = 1 << 1,
-		Panel = 1 << 2,
+		None = 0,
+		Guest = 1,
+		Student = 1 << 1,
+		Teacher = 1 << 2,
+		Panel = 1 << 3,
 		Admin = 1 << 8
 	};
 
@@ -56,7 +57,7 @@ public:
 	Q_DECLARE_FLAGS(Roles, Role)
 	Q_FLAG(Roles)
 
-	Credential(const QString &username, const Roles &roles = Guest);
+	Credential(const QString &username, const Roles &roles = None);
 
 	QString createJWT(const QString &secret) const;
 	static Credential fromJWT(const QString &jwt);
@@ -76,6 +77,7 @@ public:
 
 	const Roles &roles() const;
 	void setRoles(const Roles &newRoles);
+	void setRole(const Role &role, const bool &on = true);
 
 	inline bool operator==(const Credential &other) {
 		return other.m_username == m_username &&
@@ -84,7 +86,7 @@ public:
 
 private:
 	QString m_username;
-	Roles m_roles = Guest;
+	Roles m_roles = None;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Credential::Roles);

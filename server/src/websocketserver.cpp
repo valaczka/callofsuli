@@ -69,11 +69,49 @@ bool WebSocketServer::start()
 {
 	ServerSettings *settings = m_service->settings();
 
-	if (!settings->ssl()) {
+	if (settings->ssl()) {
 		if (!QSslSocket::supportsSsl()) {
 			LOG_CERROR("websocket") << "Platform doesn't support SSL";
 			return false;
 		}
+
+		QFile certFile(m_service->settings()->dataDir().absoluteFilePath(m_service->settings()->certFile()));
+		QFile keyFile(m_service->settings()->dataDir().absoluteFilePath(m_service->settings()->certKeyFile()));
+
+		if (!certFile.exists()) {
+			LOG_CERROR("websocket") << "Server certificate doesn't exists:" << qPrintable(certFile.fileName());
+			return false;
+		}
+
+		if (!keyFile.exists()) {
+			LOG_CERROR("websocket") << "Server certificate key doesn't exists:" << qPrintable(keyFile.fileName());
+			return false;
+		}
+
+		certFile.open(QIODevice::ReadOnly);
+		keyFile.open(QIODevice::ReadOnly);
+
+		QSslCertificate cert(&certFile, QSsl::Pem);
+		QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);
+
+		certFile.close();
+		keyFile.close();
+
+		if (cert.isNull()) {
+			LOG_CERROR("websocket") << "Invalid certificate:" << qPrintable(certFile.fileName());
+			return false;
+		}
+
+		if (key.isNull()) {
+			LOG_CERROR("websocket") << "Invalid key:" << qPrintable(keyFile.fileName());
+			return false;
+		}
+
+		QSslConfiguration config;
+		config.setLocalCertificate(cert);
+		config.setPrivateKey(key);
+		config.setPeerVerifyMode(QSslSocket::VerifyNone);
+		setSslConfiguration(config);
 	}
 
 
@@ -84,7 +122,7 @@ bool WebSocketServer::start()
 
 	LOG_CINFO("websocket") << "Listening on:" << serverUrl();
 
-		/*QFile certFile(base+m_socketCert);
+	/*QFile certFile(base+m_socketCert);
 		QFile keyFile(base+m_socketKey);
 
 		if (!certFile.exists()) {

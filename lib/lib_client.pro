@@ -2,17 +2,20 @@ include(../common.pri)
 
 TEMPLATE = subdirs
 
-SUBDIRS = \
-	libQZXing \
-	libQaterial \
-	libTiled \
-	libQtXlsxWriter \
-	callofsuli-core
+SUBDIRS = libQaterial
 
-!wasm: SUBDIRS += CuteLogger
+exists($${QaterialLibFilePath}) {
+	SUBDIRS += \
+		libQZXing \
+		libTiled \
+		libQtXlsxWriter \
+		callofsuli-core
 
-!wasm|if($$WasmWithBox2D) {
-	SUBDIRS += qml-box2d
+	!wasm: SUBDIRS += CuteLogger
+
+	!wasm|if($$WasmWithBox2D) {
+		SUBDIRS += qml-box2d
+	}
+
 }
-
 

@@ -1,14 +1,10 @@
 include(../common.pri)
 
-TargetSuffix =
-win32: TargetSuffix = /release
-
 # Core
 
 INCLUDEPATH += $$PWD/callofsuli-core
 
-android: LIBS += -L../../lib
-else: LIBS += -L../../lib$${TargetSuffix}
+LIBS += -L../../lib
 
 android: LIBS += -lcallofsuli-core_$${QT_ARCH}
 else: LIBS += -lcallofsuli-core

@@ -33,6 +33,7 @@
  */
 
 #include "gameterrain.h"
+#include "Logger.h"
 #include "client.h"
 #include "gameterrainmap.h"
 #include "qdiriterator.h"
@@ -132,11 +133,11 @@ GameTerrain::PlayerPositionData GameTerrain::defaultPlayerPosition() const
 
 void GameTerrain::reloadAvailableTerrains()
 {
-	qCInfo(lcClient).noquote() << QObject::tr("Reload terrains...");
+	LOG_CINFO("client") << "Reload terrains...";
 
 	const QString cache = Utils::standardPath("terrain_cache.json");
 
-	qCDebug(lcClient).noquote() << QObject::tr("Terrain cache:") << cache;
+	LOG_CINFO("client") << "Terrain cache:" << cache;
 
 	QJsonObject terrainCache = Utils::fileToJsonObject(cache);
 
@@ -186,7 +187,7 @@ void GameTerrain::reloadAvailableTerrains()
 			if (!tmxI.exists())
 				continue;
 
-			qCInfo(lcClient).noquote() << QObject::tr("Load terrain %1 level %2").arg(terrainName).arg(level);
+			LOG_CINFO("client") << "Load terrain" << terrainName << "level" << level;
 
 			const qint64 &tmxModified = tmxI.lastModified().toMSecsSinceEpoch();
 
@@ -204,7 +205,7 @@ void GameTerrain::reloadAvailableTerrains()
 			} else {
 				GameTerrainMap t;
 				if (!t.loadMapFromFile(tmxFile)) {
-					qCWarning(lcClient).noquote() << QObject::tr("Can't load terrain:") << tmxFile;
+					LOG_CWARNING("debug") << "Can't load terrain:" << qPrintable(tmxFile);
 					continue;
 				}
 				QJsonObject obj = t.toJsonObject();
@@ -224,9 +225,9 @@ void GameTerrain::reloadAvailableTerrains()
 
 	}
 
-	qCInfo(lcClient).noquote() << QObject::tr("...loaded %1 terrains").arg(m_availableTerrains.size());
+	LOG_CINFO("client") << "...loaded" << m_availableTerrains.size() << "terrains";
 
-	qCDebug(lcClient).noquote() << QObject::tr("Save terrain cache:") << cache;
+	LOG_CDEBUG("client") << "Save terrain cache:" << cache;
 
 	Utils::jsonObjectToFile(terrainCache, cache);
 }

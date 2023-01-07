@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * server.h
+ * Logger.h
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 01. 07.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Server
+ * %{Cpp:License:ClassName}
  *
  *  This file is part of Call of Suli.
  *
@@ -24,29 +24,15 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef LOGGER_H
+#define LOGGER_H
 
-#include "qurl.h"
-#include <QObject>
+#include <QDebug>
 
-class Server : public QObject
-{
-	Q_OBJECT
-	Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
+#define LOG_CTRACE(x)	qDebug() << x
+#define LOG_CDEBUG(x)	qDebug() << x
+#define LOG_CINFO(x)	qInfo() << x
+#define LOG_CWARNING(x)	qWarning() << x
+#define LOG_CERROR(x)	qCritical() << x
 
-public:
-	explicit Server(QObject *parent = nullptr);
-
-	const QUrl &url() const;
-	void setUrl(const QUrl &newUrl);
-
-signals:
-	void urlChanged();
-
-private:
-	QUrl m_url;
-
-};
-
-#endif // SERVER_H
+#endif // LOGGER_H

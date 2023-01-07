@@ -154,4 +154,6 @@ private:
 	int m_expectedDataSize = -1;
 };
 
+Q_DECLARE_METATYPE(WebSocketMessage::ClassHandler)
+
 #endif // WEBSOCKETMESSAGE_H

@@ -203,14 +203,15 @@ void AbstractHandler::clear()
  * @brief AbstractHandler::send
  */
 
-void AbstractHandler::send(const WebSocketMessage &message)
+void AbstractHandler::send(const WebSocketMessage &message, const bool &deleteHandler)
 {
 	if (m_client)
 		m_client->send(message);
 	else
 		LOG_CERROR("client") << "Missing client" << this;
 
-	this->deleteLater();
+	if (deleteHandler)
+		this->deleteLater();
 }
 
 ServerService *AbstractHandler::service() const

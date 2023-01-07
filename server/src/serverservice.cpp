@@ -33,6 +33,7 @@
 #include <RollingFileAppender.h>
 #include <ColorConsoleAppender.h>
 #include "qconsole.h"
+#include "serverhandler.h"
 #include "utils.h"
 
 
@@ -60,14 +61,13 @@ ServerService::ServerService(int &argc, char **argv)
 	m_consoleAppender = new ColorConsoleAppender;
 
 #ifndef QT_NO_DEBUG
-	QString fmt = QString::fromStdString(
-				"%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
-				ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
-				ColorConsoleAppender::magenta+"%{file}:%{line}"+
-				ColorConsoleAppender::green+">\n");
-	m_consoleAppender->setFormat(fmt);
+	m_consoleAppender->setFormat(QString::fromStdString(
+									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
+									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
+									 ColorConsoleAppender::green+">\n"));
 #else
-	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
+	m_consoleAppender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
 #endif
 
 	cuteLogger->registerAppender(m_consoleAppender);
@@ -143,6 +143,8 @@ Service::CommandResult ServerService::onStart()
 		return CommandResult::Failed;
 	}
 
+	m_config.m_service = this;
+	m_config.loadFromDb(m_databaseMain);
 
 	m_webSocketServer = new WebSocketServer(m_settings->ssl() ? QWebSocketServer::SecureMode : QWebSocketServer::NonSecureMode, this);
 	m_webSocketServer->start();
@@ -160,18 +162,6 @@ Service::CommandResult ServerService::onStart()
 			.allow_algorithm(jwt::algorithm::hs256{m_settings->jwtSecret().toStdString()})
 			.with_issuer(JWT_ISSUER);
 
-	/*Credential cc("jános pál valaczka", Credential::Teacher|Credential::Student|Credential::Panel);
-
-
-	LOG_CWARNING("service") << cc.createJWT(m_settings->jwtSecret());
-
-	Credential c = Credential::fromJWT(cc.createJWT("secret"));
-
-	LOG_CTRACE("service") << "SIKER?" << c.username() << c.roles();
-
-	LOG_CTRACE("service") << "TESZT1" << Credential::verify(cc.createJWT("seret"), &m_verifier);
-	LOG_CTRACE("service") << "TESZT2" << Credential::verify(cc.createJWT("secret"), &m_verifier);
-	LOG_CTRACE("service") << "TESZT3" << Credential::verify(cc.createJWT(""), &m_verifier);*/
 
 	LOG_CINFO("service") << "Server service started successfull";
 
@@ -259,6 +249,59 @@ Service::CommandResult ServerService::onResume()
 		m_webSocketServer->resumeAccepting();
 
 	return CommandResult::Completed;
+}
+
+
+/**
+ * @brief ServerService::onConfigChanged
+ */
+
+void ServerService::onConfigChanged()
+{
+	sendToClients(WebSocketMessage::createEvent(ServerHandler::_getConfig(this)));
+}
+
+
+/**
+ * @brief ServerService::config
+ * @return
+ */
+
+ServerConfig &ServerService::config()
+{
+	return m_config;
+}
+
+
+/**
+ * @brief ServerService::sendToClients
+ * @param message
+ */
+
+void ServerService::sendToClients(const WebSocketMessage &message) const
+{
+	LOG_CTRACE("service") << "Send to all clients:" << message;
+	foreach (Client *c, m_clients) {
+		if (c)
+			c->send(message);
+	}
+}
+
+
+/**
+ * @brief ServerService::sendToClients
+ * @param roles
+ * @param message
+ */
+
+void ServerService::sendToClients(const Credential::Roles &roles, const WebSocketMessage &message) const
+{
+	LOG_CTRACE("service") << "Send to clients with roles" << roles << "message:" << message;
+
+	foreach (Client *c, m_clients) {
+		if (c && ((c->credential().roles() & roles) != 0))
+			c->send(message);
+	}
 }
 
 
@@ -378,8 +421,10 @@ bool ServerService::preStart()
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
 
 
-#ifdef QT_NO_DEBUG
-	parser.addOption({QStringLiteral("debug"), QObject::tr("Hibakeresési üzenetek megjelenítése")});
+#ifdef QT_DEBUG
+	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
+#else
+	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #endif
 
 	parser.parse(m_arguments);
@@ -395,13 +440,6 @@ bool ServerService::preStart()
 		return false;
 	}
 
-
-#ifdef QT_NO_DEBUG
-	if (parser.isSet(QStringLiteral("debug"))) {
-		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
-	} else
-		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
-#endif
 
 	if (parser.isSet(QStringLiteral("license"))) {
 		QByteArray b = Utils::fileContent(QStringLiteral(":/license.txt"));
@@ -421,8 +459,19 @@ bool ServerService::preStart()
 		return false;
 	}
 
+#ifdef QT_DEBUG
+	if (parser.isSet(QStringLiteral("trace")))
+		m_consoleAppender->setDetailsLevel(Logger::Trace);
+	else
+		m_consoleAppender->setDetailsLevel(Logger::Debug);
 
-	m_consoleAppender->setDetailsLevel(Logger::Trace);
+#else
+	if (parser.isSet(QStringLiteral("debug")))
+		m_consoleAppender->setDetailsLevel(Logger::Debug);
+	else
+		m_consoleAppender->setDetailsLevel(Logger::Info);
+#endif
+
 
 	/*QString logFile;
 
@@ -486,3 +535,61 @@ int ServerService::versionMajor()
 }
 
 
+/**
+ * @brief ServerConfig::set
+ * @param key
+ * @param value
+ */
+
+
+void ServerConfig::set(const char *key, const QJsonValue &value)
+{
+	m_data.insert(key, value);
+	if (m_db) m_db->saveConfig(m_data);
+	if (m_service) emit m_service->configChanged();
+}
+
+
+
+/**
+ * @brief ServerConfig::loadFromDb
+ * @param db
+ */
+
+void ServerConfig::loadFromDb(DatabaseMain *db)
+{
+	Q_ASSERT(db);
+
+	LOG_CTRACE("db") << "Load config from database";
+
+	m_db = db;
+
+	QDefer ret;
+
+	m_db->worker()->execInThread([ret, this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(m_db->dbName());
+
+		QMutexLocker(m_db->mutex());
+
+		QSqlQuery q(db);
+		q.prepare("SELECT config FROM system");
+
+		if (!q.exec() || !q.first()) {
+			ret.reject();
+			return;
+		}
+
+		const QString &s = q.value(QStringLiteral("config")).toString();
+
+		if (s.isEmpty() || !s.startsWith('{'))
+			m_data = QJsonObject();
+		else
+			m_data = Utils::byteArrayToJsonObject(s.toUtf8());
+
+		if (m_service) emit m_service->configChanged();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+}

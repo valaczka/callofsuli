@@ -103,9 +103,15 @@ QPage {
 
 
 		Qaterial.RaisedButton {
-			text: "Google"
+			text: "Login Google"
 			highlighted: false
-			onClicked: Client.testText()
+			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {func: "loginGoogle"})
+		}
+
+		Qaterial.RaisedButton {
+			text: "Register Google"
+			highlighted: false
+			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {func: "registerGoogle"})
 		}
 
 		Qaterial.RaisedButton {
@@ -130,14 +136,21 @@ QPage {
 			helperText: "Felhasználónév"
 			width: 300
 
+			validator: RegExpValidator { regExp: /.+/ }
+			errorText: "Hiányzik a felhasználónév"
+
+			leadingIconSource: Qaterial.Icons.account
+
 			trailingContent:   Qaterial.TextFieldClearButton {textField: fUser}
 		}
 
-		Qaterial.FilledTextField {
+		Qaterial.TextField {
 			id: fPassword
 			title: "Password"
 			helperText: "Jelszó"
 			width: 300
+
+			leadingIconSource: Qaterial.Icons.account
 
 			echoMode: TextInput.Password
 			inputMethodHints: Qt.ImhSensitiveData
@@ -151,7 +164,22 @@ QPage {
 		Qaterial.RaisedButton {
 			text: "Login"
 			highlighted: false
-			onClicked: Client.testText(fUser.text, fPassword.text)
+			enabled: fUser.text.length && fPassword.text.length
+			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {
+											  func: "loginPlain",
+											  username: fUser.text,
+											  password: fPassword.text
+										  })
+		}
+
+		Qaterial.RaisedButton {
+			text: "Registration"
+			highlighted: false
+			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {
+											  func: "registrationPlain",
+											  username: fUser.text,
+											  password: fPassword.text
+										  })
 		}
 	}
 

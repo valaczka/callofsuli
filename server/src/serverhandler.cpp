@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * server.h
+ * serverhandler.cpp
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 01. 07.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * Server
+ * ServerHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,29 +24,39 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#include "serverhandler.h"
+#include "serverservice.h"
 
-#include "qurl.h"
-#include <QObject>
-
-class Server : public QObject
+ServerHandler::ServerHandler(Client *client)
+	: AbstractHandler(client)
 {
-	Q_OBJECT
-	Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
 
-public:
-	explicit Server(QObject *parent = nullptr);
+}
 
-	const QUrl &url() const;
-	void setUrl(const QUrl &newUrl);
 
-signals:
-	void urlChanged();
+/**
+ * @brief ServerHandler::getConfig
+ */
 
-private:
-	QUrl m_url;
+void ServerHandler::getConfig()
+{
+	LOG_CTRACE("client") << m_client << "Get config";
+	send(m_message.createResponse(_getConfig(service())));
+}
 
-};
 
-#endif // SERVER_H
+/**
+ * @brief ServerHandler::_getConfig
+ * @param service
+ * @return
+ */
+
+QJsonObject ServerHandler::_getConfig(ServerService *service)
+{
+	QJsonObject r;
+	r.insert(QStringLiteral("name"), service->serverName());
+	r.insert(QStringLiteral("versionMajor"), service->versionMajor());
+	r.insert(QStringLiteral("versionMinor"), service->versionMinor());
+	r.insert(QStringLiteral("config"), service->config().get());
+	return r;
+}

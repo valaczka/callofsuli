@@ -39,7 +39,9 @@ WebSocket::WebSocket(Client *client)
 	connect(m_socket, &QWebSocket::connected, this, &WebSocket::onConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &WebSocket::onError);
+#ifndef QT_NO_SSL
 	connect(m_socket, &QWebSocket::sslErrors, this, &WebSocket::onSslErrors);
+#endif
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &WebSocket::onBinaryMessageReceived);
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &WebSocket::onBinaryFrameReceived);
 
@@ -216,12 +218,13 @@ void WebSocket::onError(const QAbstractSocket::SocketError &error)
  * @param errors
  */
 
+#ifndef QT_NO_SSL
 void WebSocket::onSslErrors(const QList<QSslError> &errors)
 {
 	LOG_CTRACE("websocket") << "Socket ssl errors:" << errors << m_socket->requestUrl();
 	setState(Error);
 }
-
+#endif
 
 /**
  * @brief WebSocket::onBinaryFrameReceived
@@ -271,7 +274,6 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 
 	if (m.data().contains("error"))
 		m_client->snack(m.data().value("error").toString());
-
 
 	emit m_client->webSocketMessageReceived(m);
 }

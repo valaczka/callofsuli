@@ -52,7 +52,7 @@ else: CMakePath = cmake
 # Qaterial build mode (shared/static)
 
 QaterialBuildShared = true
-
+QaterialLibFilePath = $$OUT_PWD/lib/libQaterial/libQaterial.so
 
 
 #########################################################################
@@ -72,9 +72,6 @@ else: CQtDeployerPath = cqtdeployer
 
 LddPath = ldd
 
-# Bundle target directory ([build_dir]/bundle/[CQtTargetDir])
-
-CQtTargetDir = CallOfSuli
 
 
 

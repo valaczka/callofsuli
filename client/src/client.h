@@ -31,12 +31,15 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
+#include "server.h"
 #include "utils.h"
 #include "websocketmessage.h"
+#include <QAbstractSocket>
 
 class Application;
 class AbstractGame;
 class WebSocket;
+
 
 /**
  * @brief The Client class
@@ -60,6 +63,8 @@ class Client : public QObject
 	Q_PROPERTY(qreal safeMarginBottom READ safeMarginBottom NOTIFY safeMarginBottomChanged)
 
 	Q_PROPERTY(WebSocket *webSocket READ webSocket CONSTANT)
+	Q_PROPERTY(Server *server READ server WRITE setServer NOTIFY serverChanged)
+
 
 
 public:
@@ -117,6 +122,7 @@ public:
 	// WebSocket
 
 	WebSocket *webSocket() const;
+	Q_INVOKABLE void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json);
 
 
 	Q_INVOKABLE void testConnect();
@@ -125,6 +131,9 @@ public:
 	Q_INVOKABLE void testClose();
 	Q_INVOKABLE void testText(const QString &username, const QString &password);
 	Q_INVOKABLE void testToken(const QString &token);
+
+	Server *server() const;
+	void setServer(Server *newServer);
 
 protected slots:
 	virtual void onApplicationStarted();
@@ -147,6 +156,8 @@ signals:
 	void safeMarginBottomChanged();
 	void webSocketMessageReceived(const WebSocketMessage &message);
 
+	void serverChanged();
+
 protected:
 	Application *const m_application;
 	QQuickItem *m_mainStack = nullptr;
@@ -157,6 +168,7 @@ protected:
 	Utils *const m_utils;
 	AbstractGame *m_currentGame = nullptr;
 	WebSocket *const m_webSocket;
+	Server *m_server = nullptr;
 
 	qreal m_safeMarginLeft = 0;
 	qreal m_safeMarginRight = 0;
@@ -166,7 +178,5 @@ protected:
 private:
 
 };
-
-Q_DECLARE_LOGGING_CATEGORY(lcClient)
 
 #endif // CLIENT_H

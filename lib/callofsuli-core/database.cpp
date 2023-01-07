@@ -194,8 +194,6 @@ bool Database::_batchFromData(const QString &data)
 
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
-	db.transaction();
-
 	QStringList list = data.split(QStringLiteral("\n\n"), Qt::SkipEmptyParts);
 
 	foreach (const QString &s, list) {
@@ -207,12 +205,9 @@ bool Database::_batchFromData(const QString &data)
 			continue;
 
 		if (!QueryBuilder::q(db).addQuery(s.toUtf8()).exec()) {
-			db.rollback();
 			return false;
 		}
 	}
-
-	db.commit();
 
 	LOG_CTRACE("db") << "Batch sql data success -----------";
 

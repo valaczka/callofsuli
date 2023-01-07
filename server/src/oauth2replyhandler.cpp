@@ -92,7 +92,7 @@ void OAuth2ReplyHandler::onCallbackReceived(const QVariantMap &data)
 	LOG_CTRACE("oauth2") << "Callback received" << data;
 
 	const QString error = data.value(QStringLiteral("error")).toString();
-	const QString code = data.value(QStringLiteral("code")).toString();
+	const QString code = QUrl::fromPercentEncoding(data.value(QStringLiteral("code")).toByteArray());
 	const QString receivedState = data.value(QStringLiteral("state")).toString();
 	if (error.size()) {
 		const QString uri = data.value(QStringLiteral("error_uri")).toString();

@@ -71,7 +71,9 @@ private slots:
 	void onConnected();
 	void onDisconnected();
 	void onError(const QAbstractSocket::SocketError &error);
+#ifndef QT_NO_SSL
 	void onSslErrors(const QList<QSslError> &errors);
+#endif
 	void onBinaryFrameReceived(const QByteArray &message, const bool &isLastFrame);
 	void onBinaryMessageReceived(const QByteArray &message);
 

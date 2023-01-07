@@ -25,6 +25,7 @@
  */
 
 #include "desktopclient.h"
+#include "Logger.h"
 #include "qquickwindow.h"
 #include "qscreen.h"
 #include <QSettings>
@@ -38,7 +39,7 @@
 DesktopClient::DesktopClient(Application *app, QObject *parent)
 	: Client(app, parent)
 {
-	qCDebug(lcClient).noquote() << tr("Desktop DesktopClient created") << this;
+	LOG_CTRACE("client") << "Desktop DesktopClient created:" << this;
 
 	m_sound = new Sound();
 	m_sound->moveToThread(&m_soundThread);
@@ -63,7 +64,7 @@ DesktopClient::~DesktopClient()
 	m_soundThread.quit();
 	m_soundThread.wait();
 
-	qCDebug(lcClient).noquote() << tr("Desktop DesktopClient destroyed") << this;
+	LOG_CTRACE("client") << "Desktop DesktopClient destroyed:" << this;
 }
 
 
@@ -252,8 +253,7 @@ void DesktopClient::onMainWindowChanged()
 
 void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 {
-
-	qCDebug(lcClient).noquote() << tr("Screen orientation changed:") << orientation;
+	LOG_CTRACE("client") << "Screen orientation changed:" << orientation;
 
 	safeMarginsGet();
 }

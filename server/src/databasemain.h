@@ -44,6 +44,8 @@ public:
 
 	bool databasePrepare();
 
+	void saveConfig(const QJsonObject &json);
+
 private:
 	bool _checkSystemTable();
 	bool _createTables();

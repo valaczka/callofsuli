@@ -18,8 +18,11 @@ include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
 
 
 INCLUDEPATH += $$PWD \
-				$$PWD/../jwt-cpp/include \
-				$$PWD/../CuteLogger/include
+				$$PWD/../jwt-cpp/include
+
+!wasm: INCLUDEPATH += $$PWD/../CuteLogger/include
+
+wasm: INCLUDEPATH += $$PWD/../../client/src/wasm_helper
 
 DEFINES += \
 	COS_VERSION_MAJOR=$$VER_MAJ \

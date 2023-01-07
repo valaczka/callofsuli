@@ -25,6 +25,7 @@
  */
 
 #include "gameterrainmap.h"
+#include "Logger.h"
 #include "client.h"
 #include "libtiled/mapreader.h"
 #include "libtiled/objectgroup.h"
@@ -68,35 +69,35 @@ bool GameTerrainMap::loadMapFromFile(QString filename)
 		filename.replace(QStringLiteral("qrc:"), QStringLiteral(":"));
 
 	if(!QFile::exists(filename)) {
-		qCWarning(lcClient).noquote() << QObject::tr("A terepfájl nem létezik:") << filename;
+		LOG_CWARNING("client") << "A terepfájl nem létezik:" << qPrintable(filename);
 		return false;
 	}
 
-	qCDebug(lcClient).noquote() << QObject::tr("Load map from file:") << filename;
+	LOG_CDEBUG("client") << "Load map from file:" << qPrintable(filename);
 
 	m_map.reset(nullptr);
 
 	m_map = reader.readMap(filename);
 
 	if (!m_map) {
-		qCWarning(lcClient).noquote() << QObject::tr("Failed to read %1 (%2)").arg(filename, reader.errorString());
+		LOG_CWARNING("client") << "Failed to read" << qPrintable(filename) << "error:" << qPrintable(reader.errorString());
 		return false;
 	}
 
 	if (loadObjectLayers()) {
 		m_isValid = true;
 
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded enemies: %1").arg(enemies().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded blocks: %1").arg(blocks().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded fires: %1").arg(fires().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded fences: %1").arg(fences().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded teleports: %1").arg(teleports().size());
-		qCDebug(lcClient).noquote() << QObject::tr("Loaded pickables: %1").arg(m_pickables.size());
+		LOG_CDEBUG("client") << "Loaded enemies:" << enemies().size();
+		LOG_CDEBUG("client") << "Loaded blocks:" << blocks().size();
+		LOG_CDEBUG("client") << "Loaded fires:" << fires().size();
+		LOG_CDEBUG("client") << "Loaded fences:" << fences().size();
+		LOG_CDEBUG("client") << "Loaded teleports:" << teleports().size();
+		LOG_CDEBUG("client") << "Loaded pickables:" << m_pickables.size();
 
 		return true;
 	}
 
-	qCWarning(lcClient) << QObject::tr("Failed to read layers:") << filename;
+	LOG_CWARNING("client") << "Failed to read layers:" << qPrintable(filename);
 
 
 
@@ -127,7 +128,7 @@ bool GameTerrainMap::loadObjectLayers()
 {
 	for (auto layer = m_map->objectGroups().begin(); layer != m_map->objectGroups().end(); ++layer) {
 		const QString &name = layer->name();
-		qCDebug(lcClient).noquote() << QObject::tr("Load layer:") << name;
+		LOG_CDEBUG("client") << "Load layer:" << name;
 
 		Tiled::ObjectGroup *gLayer = static_cast<Tiled::ObjectGroup*>(*layer);
 
@@ -185,7 +186,7 @@ int GameTerrainMap::height() const
 void GameTerrainMap::readEnemyLayer(Tiled::ObjectGroup *layer)
 {
 	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid object layer");
+		LOG_CERROR("client") << "Invalid object layer";
 		return;
 	}
 
@@ -217,7 +218,7 @@ void GameTerrainMap::readEnemyLayer(Tiled::ObjectGroup *layer)
 		if (block > 0)
 			enemy.block = block;
 
-		qCDebug(lcClient).noquote() << QObject::tr("Add enemy") << enemy.type << enemy.rect << enemy.block;
+		LOG_CDEBUG("client") << "Add enemy" << enemy.type << enemy.rect << enemy.block;
 
 		m_enemies.append(enemy);
 	}
@@ -233,7 +234,7 @@ void GameTerrainMap::readEnemyLayer(Tiled::ObjectGroup *layer)
 void GameTerrainMap::readObjectLayer(Tiled::ObjectGroup *layer)
 {
 	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid object layer");
+		LOG_CERROR("client") << "Invalid object layer";
 		return;
 	}
 
@@ -256,7 +257,7 @@ void GameTerrainMap::readObjectLayer(Tiled::ObjectGroup *layer)
 			m_objects.append(d);
 
 		} else {
-			qCWarning(lcClient).noquote() << QObject::tr("Invalid map object type:") << type;
+			LOG_CWARNING("client") << "Invalid map object type:" << type;
 		}
 	}
 }
@@ -271,7 +272,7 @@ void GameTerrainMap::readObjectLayer(Tiled::ObjectGroup *layer)
 void GameTerrainMap::readPlayerLayer(Tiled::ObjectGroup *layer)
 {
 	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid object layer");
+		LOG_CERROR("client") << "Invalid object layer";
 		return;
 	}
 
@@ -279,7 +280,7 @@ void GameTerrainMap::readPlayerLayer(Tiled::ObjectGroup *layer)
 		const int &block = object->property("block").toInt();
 
 		if (block <= 0) {
-			qCWarning(lcClient).noquote() << QObject::tr("Invalid player position block:") << object->position();
+			LOG_CWARNING("client") << "Invalid player position block:" << object->position();
 			continue;
 		}
 
@@ -303,7 +304,7 @@ void GameTerrainMap::readPlayerLayer(Tiled::ObjectGroup *layer)
 void GameTerrainMap::readPickableLayer(Tiled::ObjectGroup *layer)
 {
 	if (!layer) {
-		qCCritical(lcClient).noquote() << QObject::tr("Invalid pickable layer");
+		LOG_CERROR("client") << "Invalid object layer";
 		return;
 	}
 
@@ -319,7 +320,7 @@ void GameTerrainMap::readPickableLayer(Tiled::ObjectGroup *layer)
 			m_pickables.append(d);
 
 		} else {
-			qCWarning(lcClient).noquote() << QObject::tr("Invalid map object type:") << type;
+			LOG_CWARNING("client") << "Invalid map object type:" << type;
 		}
 	}
 }

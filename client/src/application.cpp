@@ -315,6 +315,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
+	qmlRegisterUncreatableType<WebSocketMessage>("CallOfSuli", 1, 0, "WebSocketMessage", "WebSocketMessage is uncreatable");
 
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");

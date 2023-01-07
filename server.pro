@@ -15,7 +15,7 @@ SUBDIRS += \
 
 
 linux|win32|mac:!android:!ios {
-	if($$CreateBundle):	SUBDIRS += bundle
+	if($$CreateBundle):	SUBDIRS += bundle-server
 }
 
 CONFIG += ordered

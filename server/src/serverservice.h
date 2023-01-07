@@ -37,6 +37,36 @@
 #include "credential.h"
 #include "googleoauth2authenticator.h"
 
+
+class ServerService;
+
+/**
+ * @brief The ServerConfig class
+ */
+
+class ServerConfig
+{
+public:
+	ServerConfig() {}
+
+	QJsonValue get(const char *key) const { return m_data.value(key); }
+	void set(const char *key, const QJsonValue &value);
+	const QJsonObject &get() const { return m_data; }
+
+private:
+	void loadFromDb(DatabaseMain *db);
+	QPointer<DatabaseMain> m_db = nullptr;
+	QJsonObject m_data;
+	ServerService *m_service = nullptr;
+	friend class ServerService;
+};
+
+
+
+/**
+ * @brief The ServerService class
+ */
+
 class ServerService : public QtService::Service
 {
 	Q_OBJECT
@@ -69,7 +99,13 @@ public:
 
 	JwtVerifier &verifier();
 
+	ServerConfig &config();
+
+	void sendToClients(const WebSocketMessage &message) const;
+	void sendToClients(const Credential::Roles &roles, const WebSocketMessage &message) const;
+
 signals:
+	void configChanged();
 	void serverNameChanged();
 
 protected:
@@ -80,6 +116,9 @@ protected:
 	CommandResult onReload() override;
 	CommandResult onPause() override;
 	CommandResult onResume() override;
+
+private slots:
+	void onConfigChanged();
 
 private:
 	static const int m_versionMajor;
@@ -92,6 +131,7 @@ private:
 	QStringList m_arguments;
 
 	ServerSettings *const m_settings;
+	ServerConfig m_config;
 
 	QPointer<DatabaseMain> m_databaseMain = nullptr;
 	QPointer<WebSocketServer> m_webSocketServer = nullptr;

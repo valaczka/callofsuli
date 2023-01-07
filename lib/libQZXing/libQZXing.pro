@@ -24,7 +24,7 @@ include(../qzxing/src/QZXing-components.pri)
 
 QMAKE_CXXFLAGS += -Wno-sign-compare
 
-VERSION = 3.3
+#VERSION = 3.3
 
 DESTDIR = ../
 

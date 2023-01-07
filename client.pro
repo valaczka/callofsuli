@@ -9,16 +9,23 @@ application.makefile = Makefile
 modules.file = client/modules/modules.pro
 modules.makefile = Makefile
 
+message(Search for $${QaterialLibFilePath})
 
-SUBDIRS += \
+exists($${QaterialLibFilePath}): message(Qaterial library exists, building other subdirs)
+else: message(Qaterial libray doesn\'t exists)
+
+SUBDIRS += client_lib
+
+exists($${QaterialLibFilePath}) {
+	SUBDIRS += \
 			version \
-			client_lib \
 			modules \
 			application
 
+	linux|win32|mac:!android:!ios {
+		if($$CreateBundle):	SUBDIRS += bundle-client
+	}
 
-linux|win32|mac:!android:!ios {
-	if($$CreateBundle):	SUBDIRS += bundle
 }
 
 CONFIG += ordered

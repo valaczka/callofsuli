@@ -65,7 +65,7 @@ bool DatabaseMain::databasePrepare()
 	bool r = false;
 
 	m_worker->execInThread([ret, this]() mutable {
-		LOG_CDEBUG("db") << "Prepare database:" << qPrintable(m_dbFile)  << QThread::currentThread();
+		LOG_CDEBUG("db") << "Prepare database:" << qPrintable(m_dbFile);
 
 		QMutexLocker mutexlocker(mutex());
 
@@ -86,6 +86,28 @@ bool DatabaseMain::databasePrepare()
 	QDefer::await(ret);
 
 	return r;
+}
+
+
+/**
+ * @brief DatabaseMain::configSet
+ * @param json
+ */
+
+void DatabaseMain::saveConfig(const QJsonObject &json)
+{
+	LOG_CTRACE("db") << "Save config";
+
+	m_worker->execInThread([json, this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(m_dbName);
+		QMutexLocker mutexlocker(mutex());
+		const QString &doc = QJsonDocument(json).toJson(QJsonDocument::Indented);
+
+		QueryBuilder::q(db).addQuery("UPDATE system SET config=")
+				.addValue(doc)
+				.exec();
+
+	});
 }
 
 
@@ -141,10 +163,14 @@ bool DatabaseMain::_checkSystemTable()
 #endif
 		}
 	} else {
-		if (_createTables() && _createUsers())
+		db.transaction();
+		if (_createTables() && _createUsers()) {
+			db.commit();
 			return _checkSystemTable();
-		else
+		} else {
+			db.rollback();
 			return false;
+		}
 	}
 
 	return false;
@@ -201,7 +227,7 @@ bool DatabaseMain::_createUsers()
 	struct Users {
 		QString username;
 		QString password;
-		QString firstname;
+		QString familyName;
 		bool isAdmin;
 		bool isTeacher;
 		bool isPanel;
@@ -215,7 +241,7 @@ bool DatabaseMain::_createUsers()
 			  ) :
 			username(u),
 			password(p),
-			firstname(f),
+			familyName(f),
 			isAdmin(ia),
 			isTeacher(it),
 			isPanel(ip)
@@ -268,7 +294,6 @@ bool DatabaseMain::_createUsers()
 	}
 #endif
 
-	db.transaction();
 
 	foreach (const Users &u, users) {
 		QueryBuilder q(db);
@@ -278,14 +303,13 @@ bool DatabaseMain::_createUsers()
 				.setValuePlaceholder()
 				.addQuery(")")
 				.addField("username", u.username)
-				.addField("firstname", u.firstname)
+				.addField("familyName", u.familyName)
 				.addField("active", true)
 				.addField("isAdmin", u.isAdmin)
 				.addField("isTeacher", u.isTeacher)
 				.addField("isPanel", u.isPanel);
 
 		if (!q.exec()) {
-			db.rollback();
 			return false;
 		}
 
@@ -304,12 +328,10 @@ bool DatabaseMain::_createUsers()
 				.addField("salt", salt);
 
 		if (!q.exec()) {
-			db.rollback();
 			return false;
 		}
 	}
 
-	db.commit();
 
 	return true;
 }

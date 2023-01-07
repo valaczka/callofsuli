@@ -25,6 +25,9 @@ include(../../lib/import_lib_server.pri)
 }
 
 
+QMAKE_CXXFLAGS -= -Wextra
+QMAKE_CXXFLAGS += -Wno-extra
+
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
 	RC_ICONS = $$PWD/../../resources/internal/img/cos.ico
@@ -36,6 +39,7 @@ win32 {
 
 SOURCES += \
 	abstracthandler.cpp \
+	adminhandler.cpp \
 	authhandler.cpp \
 	client.cpp \
 	databasemain.cpp \
@@ -44,6 +48,7 @@ SOURCES += \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
 	oauth2replyhandler.cpp \
+	serverhandler.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	websocketserver.cpp
@@ -55,6 +60,7 @@ RESOURCES += \
 HEADERS += \
 	../../version/version.h \
 	abstracthandler.h \
+	adminhandler.h \
 	authhandler.h \
 	client.h \
 	databasemain.h \
@@ -62,6 +68,7 @@ HEADERS += \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
 	oauth2replyhandler.h \
+	serverhandler.h \
 	serverservice.h \
 	serversettings.h \
 	websocketserver.h
