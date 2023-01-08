@@ -52,7 +52,6 @@ else: CMakePath = cmake
 # Qaterial build mode (shared/static)
 
 QaterialBuildShared = true
-QaterialLibFilePath = $$OUT_PWD/lib/libQaterial/libQaterial.so
 
 
 #########################################################################

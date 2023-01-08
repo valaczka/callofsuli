@@ -19,7 +19,7 @@ INCLUDEPATH += $$PWD/QJsonWebToken/src
 
 INCLUDEPATH += \
 	$$PWD/Qaterial/src \
-	$$PWD/QOlm/include
+	$$OUT_PWD/../../lib/libQaterial/_deps/qolm-src/include
 
 QMLPATHS += $$PWD/Qaterial/qml/Qaterial
 

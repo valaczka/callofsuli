@@ -369,7 +369,7 @@ void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, con
 void Client::testConnect()
 {
 	Server *s = new Server(this);
-	s->setUrl(QUrl("ws://vjp:10102"));
+	s->setUrl(QUrl("wss://vjp:10102"));
 
 	m_webSocket->connectToServer(s);
 }
