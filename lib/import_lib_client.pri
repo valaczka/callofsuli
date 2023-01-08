@@ -13,7 +13,6 @@ else: LIBS += -lcallofsuli-core
 # Core includes
 
 INCLUDEPATH += $$PWD/QDeferred/src
-INCLUDEPATH += $$PWD/QJsonWebToken/src
 
 # Qaterial
 
@@ -30,7 +29,7 @@ android {
 		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += $$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQaterial_$${abi}.so
 	}
 } else {
-	LIBS += -L../../lib/libQaterial -lQaterial
+	LIBS += -L../../lib/libQaterial -lQaterial -L../../lib/libQaterial/_deps/qolm-build -lQOlm
 }
 
 

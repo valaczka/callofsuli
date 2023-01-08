@@ -33,6 +33,26 @@
 
 class OAuth2Authenticator;
 
+
+class _Handler : public QOAuthHttpServerReplyHandler
+{
+	Q_OBJECT
+
+public:
+	explicit _Handler(OAuth2Authenticator *authenticator, const QHostAddress &address, quint16 port, QObject *parent = nullptr)
+		: QOAuthHttpServerReplyHandler(address, port, parent)
+		, m_authenticator(authenticator)
+	{}
+
+	QString callback() const override;
+
+private:
+	OAuth2Authenticator *m_authenticator = nullptr;
+
+};
+
+
+
 /**
  * @brief The OAuth2ReplyHandler class
  */

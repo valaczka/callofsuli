@@ -64,6 +64,7 @@ private:
 	CommandLine m_commandLine = Normal;
 	QString m_loadMap;
 	QStringList m_arguments;
+	AbstractStringAppender *m_appender = nullptr;
 
 #ifdef Q_OS_WIN32
 	FILE *m_streamO = NULL;

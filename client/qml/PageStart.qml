@@ -200,6 +200,27 @@ QPage {
 	}
 
 
+	Column {
+		anchors.top: row2.bottom
+
+		Repeater {
+			model: Client.serverList
+
+			delegate: Row {
+				property Server server: model.qtObject
+
+				Qaterial.LabelBody1 {
+					text: server.name
+				}
+
+				Qaterial.RaisedButton {
+					text: "Connect"
+					onClicked: Client.connectToServer(server)
+				}
+			}
+		}
+	}
+
 
 	//StackView.onActivated: Client.loadGame()
 }

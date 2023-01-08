@@ -119,6 +119,13 @@ public:
 	void setSafeMargins(const QMarginsF &margins);
 
 
+	// Server
+
+	Server *server() const;
+	void setServer(Server *newServer);
+
+	Q_INVOKABLE void connectToServer(Server *server);
+
 	// WebSocket
 
 	WebSocket *webSocket() const;
@@ -132,8 +139,6 @@ public:
 	Q_INVOKABLE void testText(const QString &username, const QString &password);
 	Q_INVOKABLE void testToken(const QString &token);
 
-	Server *server() const;
-	void setServer(Server *newServer);
 
 protected slots:
 	virtual void onApplicationStarted();

@@ -27,6 +27,7 @@
 #include "googleoauth2authenticator.h"
 #include "Logger.h"
 #include "client.h"
+#include "serverservice.h"
 
 
 /**
@@ -83,4 +84,19 @@ QMap<std::string, std::string> GoogleOAuth2Authenticator::getInfoFromRequestAcce
 		m.insert(e.first, e.second.to_str());
 
 	return m;
+}
+
+
+/**
+ * @brief GoogleOAuth2Authenticator::listenCallback
+ * @return
+ */
+
+QString GoogleOAuth2Authenticator::listenCallback() const
+{
+	QUrl u;
+	u.setScheme(QStringLiteral("https"));
+	u.setHost(m_service->settings()->googleListenHost());
+	u.setPort(m_service->settings()->googleListenPort());
+	return u.toString();
 }

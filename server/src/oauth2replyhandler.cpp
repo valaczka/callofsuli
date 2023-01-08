@@ -64,7 +64,7 @@ bool OAuth2ReplyHandler::listen(const QHostAddress &address, quint16 port)
 	if (m_handler)
 		delete m_handler;
 
-	m_handler = new QOAuthHttpServerReplyHandler(address, port, this);
+	m_handler = new _Handler(m_authenticator, address, port, this);
 
 	connect(m_handler, &QOAuthHttpServerReplyHandler::callbackReceived, this, &OAuth2ReplyHandler::onCallbackReceived);
 
@@ -131,4 +131,15 @@ void OAuth2ReplyHandler::onCallbackReceived(const QVariantMap &data)
 QOAuthHttpServerReplyHandler *OAuth2ReplyHandler::handler() const
 {
 	return m_handler;
+}
+
+
+/**
+ * @brief _Handler::callback
+ * @return
+ */
+
+QString _Handler::callback() const
+{
+	return m_authenticator->listenCallback();
 }

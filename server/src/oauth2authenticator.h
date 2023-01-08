@@ -70,6 +70,8 @@ public:
 
 	QNetworkAccessManager *networkManager() const;
 
+	virtual QString listenCallback() const = 0;
+
 signals:
 	void clientIdChanged();
 	void clientKeyChanged();

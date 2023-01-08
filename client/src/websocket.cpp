@@ -36,6 +36,28 @@ WebSocket::WebSocket(Client *client)
 {
 	LOG_CTRACE("websocket") << "WebSocket created";
 
+#ifndef QT_NO_SSL
+	QFile certFile(QStringLiteral(":/root_CallOfSuli_CA.crt"));
+
+	LOG_CTRACE("websocket") << "Cert file exists:" << certFile.exists();
+
+
+	if (certFile.exists()) {
+		certFile.open(QIODevice::ReadOnly);
+		QSslCertificate cert(&certFile, QSsl::Pem);
+		certFile.close();
+
+		if (cert.isNull()) {
+			LOG_CDEBUG("websocket") << "Invalid certificate";
+		} else {
+			QSslConfiguration config = m_socket->sslConfiguration();
+			config.addCaCertificate(cert);
+			m_socket->setSslConfiguration(config);
+			LOG_CTRACE("websocket") << "Root certificate added";
+		}
+	}
+#endif
+
 	connect(m_socket, &QWebSocket::connected, this, &WebSocket::onConnected);
 	connect(m_socket, &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
 	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &WebSocket::onError);
@@ -123,7 +145,7 @@ void WebSocket::connectToServer(Server *server)
 	else
 		setServer(server);
 
-	if (!server) {
+	if (!server || server->url().isEmpty()) {
 		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
 		return;
 	}
@@ -223,6 +245,8 @@ void WebSocket::onSslErrors(const QList<QSslError> &errors)
 {
 	LOG_CTRACE("websocket") << "Socket ssl errors:" << errors << m_socket->requestUrl();
 	setState(Error);
+
+	m_socket->ignoreSslErrors(errors);
 }
 #endif
 

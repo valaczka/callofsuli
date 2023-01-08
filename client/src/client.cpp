@@ -47,7 +47,7 @@ Client::Client(Application *app, QObject *parent)
 {
 	Q_ASSERT(app);
 
-	connect(m_webSocket->socket(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onWebSocketError);
+	//connect(m_webSocket->socket(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onWebSocketError);
 	connect(m_webSocket, &WebSocket::serverUnavailable, this, [this](int) {
 		snack(tr("Szerver nem elérhető"));
 	});
@@ -291,8 +291,11 @@ void Client::onApplicationStarted()
 
 void Client::onWebSocketError(const QAbstractSocket::SocketError &error)
 {
+	LOG_CWARNING("client") << "Websocket error:" << error;
 	messageError(tr("ERROR: %1").arg(error), tr("Sikertelen csatalakozás"));
 }
+
+
 
 
 
@@ -332,6 +335,30 @@ void Client::setServer(Server *newServer)
 		return;
 	m_server = newServer;
 	emit serverChanged();
+}
+
+
+
+
+
+/**
+ * @brief Client::connectToServer
+ * @param server
+ */
+
+void Client::connectToServer(Server *server)
+{
+	if (!server) {
+		messageError(tr("Nincs megadva szerver"));
+		return;
+	}
+
+	if (server->url().isEmpty()) {
+		messageError(tr("A szerver URL címe nincs beállítva!"), server->name());
+		return;
+	}
+
+	m_webSocket->connectToServer(server);
 }
 
 

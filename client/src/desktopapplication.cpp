@@ -44,14 +44,38 @@
 DesktopApplication::DesktopApplication(int &argc, char **argv)
 	: Application(argc, argv)
 {
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.application"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.client"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.game"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.scene"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.sound"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.utils"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("app.websocket"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("qaterial.utils"), true);
+#ifdef Q_OS_ANDROID
+	m_appender = new AndroidAppender;
+#else
+	m_appender = new ColorConsoleAppender;
+#endif
+
+
+#ifndef QT_NO_DEBUG
+#ifdef Q_OS_ANDROID
+	m_appender->setFormat(QString::fromStdString(
+									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} <%{function} %{file}:%{line}>\n"));
+#else
+	m_appender->setFormat(QString::fromStdString(
+									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
+									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
+									 ColorConsoleAppender::green+">\n"));
+#endif
+#else
+	m_appender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
+#endif
+
+	cuteLogger->registerAppender(m_appender);
+
+	cuteLogger->logToGlobalInstance(QStringLiteral("application"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("game"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("scene"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("sound"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qml"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 }
@@ -86,18 +110,13 @@ void DesktopApplication::commandLineParse()
 	parser.addOption({{QStringLiteral("p"), QStringLiteral("play")}, QObject::tr("Pálya lejátszása"), QStringLiteral("file")});
 
 
-#ifdef QT_NO_DEBUG
-	parser.addOption({QStringLiteral("debug"), QObject::tr("Hibakeresési üzenetek megjelenítése")});
+#ifdef QT_DEBUG
+	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
+#else
+	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #endif
 
 	parser.process(*m_application);
-
-#ifdef QT_NO_DEBUG
-	if (parser.isSet(QStringLiteral("debug"))) {
-		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=true"));
-	} else
-		QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
-#endif
 
 	if (parser.isSet(QStringLiteral("license"))) {
 		m_commandLine = License;
@@ -133,6 +152,21 @@ void DesktopApplication::commandLineParse()
 	}
 
 	m_arguments = parser.positionalArguments();
+
+
+#ifdef QT_DEBUG
+	if (parser.isSet(QStringLiteral("trace")))
+		m_appender->setDetailsLevel(Logger::Trace);
+	else
+		m_appender->setDetailsLevel(Logger::Debug);
+
+#else
+	if (parser.isSet(QStringLiteral("debug")))
+		m_appender->setDetailsLevel(Logger::Debug);
+	else
+		m_appender->setDetailsLevel(Logger::Info);
+#endif
+
 }
 
 
@@ -149,22 +183,11 @@ void DesktopApplication::initialize()
 	}
 #endif
 
-#ifdef Q_OS_ANDROID
-	AndroidAppender *appender = new AndroidAppender;
-#else
-	ColorConsoleAppender *appender = new ColorConsoleAppender;
-#endif
-
-#ifndef QT_NO_DEBUG
-	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} <%{function}> %{message}\n"));
-#else
-	appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n"));
-#endif
-
-	cuteLogger->registerAppender(appender);
 
 	qRegisterMetaType<Sound::SoundType>("SoundType");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 0, "Sound", "Sound is uncreatable");
+
+	qmlRegisterType<Server>("CallOfSuli", 1, 0, "Server");
 
 	createStandardPath();
 

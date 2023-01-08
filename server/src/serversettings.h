@@ -66,9 +66,6 @@ public:
 	const QString &googleClientKey() const;
 	void setGoogleClientKey(const QString &newGoogleClientKey);
 
-	const QHostAddress &googleListenAddress() const;
-	void setGoogleListenAddress(const QHostAddress &newGoogleListenAddress);
-
 	quint16 googleListenPort() const;
 	void setGoogleListenPort(quint16 newGoogleListenPort);
 
@@ -77,6 +74,9 @@ public:
 
 	const QString &certKeyFile() const;
 	void setCertKeyFile(const QString &newCertKeyFile);
+
+	const QString &googleListenHost() const;
+	void setGoogleListenHost(const QString &newGoogleListenHost);
 
 private:
 	QDir m_dataDir;
@@ -92,7 +92,7 @@ private:
 
 	QString m_googleClientId;
 	QString m_googleClientKey;
-	QHostAddress m_googleListenAddress = QHostAddress::Any;
+	QString m_googleListenHost = QStringLiteral("localhost");
 	quint16 m_googleListenPort = 0;
 
 };

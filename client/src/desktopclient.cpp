@@ -26,6 +26,7 @@
 
 #include "desktopclient.h"
 #include "Logger.h"
+#include "qdiriterator.h"
 #include "qquickwindow.h"
 #include "qscreen.h"
 #include <QSettings>
@@ -38,6 +39,7 @@
 
 DesktopClient::DesktopClient(Application *app, QObject *parent)
 	: Client(app, parent)
+	, m_serverList(new ServerList(this))
 {
 	LOG_CTRACE("client") << "Desktop DesktopClient created:" << this;
 
@@ -51,6 +53,8 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	QMetaObject::invokeMethod(m_sound, "init", Qt::QueuedConnection);
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
+
+	serverListLoad();
 }
 
 
@@ -61,8 +65,12 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 
 DesktopClient::~DesktopClient()
 {
+	serverListSave();
+
 	m_soundThread.quit();
 	m_soundThread.wait();
+
+	delete m_serverList;
 
 	LOG_CTRACE("client") << "Desktop DesktopClient destroyed:" << this;
 }
@@ -256,4 +264,83 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 	LOG_CTRACE("client") << "Screen orientation changed:" << orientation;
 
 	safeMarginsGet();
+}
+
+
+/**
+ * @brief DesktopClient::serverListLoad
+ * @param dir
+ */
+
+void DesktopClient::serverListLoad(const QDir &dir)
+{
+	LOG_CDEBUG("client") << "Load servers from:" << qPrintable(dir.absolutePath());
+
+	m_serverList->clear();
+
+	QDirIterator it(dir.absolutePath(), {QStringLiteral("config.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		const QString &realname = it.next();
+
+		LOG_CWARNING("client") << "FOUND" << realname;
+
+		QJsonObject o = Utils::fileToJsonObject(realname);
+
+		LOG_CTRACE("obj") << o;
+
+		Server *s = Server::fromJson(o);
+
+		if (!s)
+			continue;
+
+
+		s->setName(realname.section('/', -2, -2));
+		s->setDirectory(realname.section('/', 0, -2));
+
+		LOG_CTRACE("client") << "Add server"<< s->name() << s->url() << s->directory();
+
+		m_serverList->append(s);
+	}
+}
+
+
+
+
+/**
+ * @brief DesktopClient::serverListSave
+ * @param dir
+ */
+
+void DesktopClient::serverListSave(const QDir &dir)
+{
+	LOG_CDEBUG("client") << "Save servers to:" << qPrintable(dir.absolutePath());
+
+	for (const Server *s : *m_serverList) {
+		LOG_CTRACE("client") << "Server dir" << dir;
+
+		if (!dir.exists(s->name())) {
+			if (!dir.mkpath(s->name())) {
+				LOG_CERROR("client") << "Can't create server directory:" << qPrintable(dir.absoluteFilePath(s->name()));
+				continue;
+			}
+		}
+
+		if (!Utils::jsonObjectToFile(s->toJson(), dir.filePath(s->name()+QStringLiteral("/config.json")))) {
+			LOG_CERROR("client") << "Can't save server data:" << qPrintable(dir.absoluteFilePath(s->name()));
+		}
+	}
+}
+
+
+
+
+/**
+ * @brief DesktopClient::serverList
+ * @return
+ */
+
+ServerList *DesktopClient::serverList() const
+{
+	return m_serverList;
 }

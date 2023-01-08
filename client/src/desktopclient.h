@@ -31,12 +31,19 @@
 #include "qsoundeffect.h"
 #include "qthread.h"
 #include "sound.h"
+#include <QOlm/QOlm.hpp>
+
+
+/**
+ * @brief The DesktopClient class
+ */
 
 class DesktopClient : public Client
 {
 	Q_OBJECT
 
 	Q_PROPERTY(qreal sfxVolume READ sfxVolume WRITE setSfxVolume NOTIFY sfxVolumeChanged)
+	Q_PROPERTY(ServerList *serverList READ serverList CONSTANT)
 
 public:
 	explicit DesktopClient(Application *app, QObject *parent = nullptr);
@@ -46,6 +53,8 @@ public:
 	void setSfxVolume(qreal newSfxVolume);
 
 	QSoundEffect *newSoundEffect();
+
+	ServerList *serverList() const;
 
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);
@@ -58,6 +67,10 @@ private slots:
 	void onMainWindowChanged();
 	void onOrientationChanged(Qt::ScreenOrientation orientation);
 
+private:
+	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
+	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
+
 signals:
 	void sfxVolumeChanged(const qreal &volume);
 
@@ -65,6 +78,7 @@ private:
 	Sound *m_sound = nullptr;
 	QThread m_soundThread;
 	qreal m_sfxVolume = 1.0;
+	ServerList *m_serverList = nullptr;
 };
 
 #endif // DESKTOPCLIENT_H

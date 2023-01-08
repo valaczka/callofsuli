@@ -51,7 +51,7 @@ void ServerSettings::printConfig() const
 	LOG_CINFO("service") << "SSL:" << m_ssl;
 	LOG_CINFO("service") << "SSL certificate:" << m_certFile;
 	LOG_CINFO("service") << "SSL certificate key:" << m_certKeyFile;
-	LOG_CINFO("service") << "Google OAuth2 listening address:" << m_googleListenAddress;
+	LOG_CINFO("service") << "Google OAuth2 listening host:" << m_googleListenHost;
 	LOG_CINFO("service") << "Google OAuth2 listening port:" << m_googleListenPort;
 	LOG_CINFO("service") << "-----------------------------------------------------";
 }
@@ -95,7 +95,7 @@ void ServerSettings::loadFromFile(const QString &filename)
 
 
 	if (s.contains(QStringLiteral("google/host")))
-		setGoogleListenAddress(QHostAddress(s.value(QStringLiteral("google/host")).toString()));
+		setGoogleListenHost(s.value(QStringLiteral("google/host")).toString());
 
 
 	if (s.contains(QStringLiteral("google/port")))
@@ -150,7 +150,7 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("ssl/key"), m_certKeyFile);
 
 
-	s.setValue(QStringLiteral("google/host"), m_googleListenAddress.toString());
+	s.setValue(QStringLiteral("google/host"), m_googleListenHost);
 	s.setValue(QStringLiteral("google/port"), m_googleListenPort);
 	s.setValue(QStringLiteral("google/client"), m_googleClientId);
 	s.setValue(QStringLiteral("google/secret"), m_googleClientKey);
@@ -251,15 +251,6 @@ void ServerSettings::setGoogleClientKey(const QString &newGoogleClientKey)
 	m_googleClientKey = newGoogleClientKey;
 }
 
-const QHostAddress &ServerSettings::googleListenAddress() const
-{
-	return m_googleListenAddress;
-}
-
-void ServerSettings::setGoogleListenAddress(const QHostAddress &newGoogleListenAddress)
-{
-	m_googleListenAddress = newGoogleListenAddress;
-}
 
 quint16 ServerSettings::googleListenPort() const
 {
@@ -289,5 +280,15 @@ const QString &ServerSettings::certKeyFile() const
 void ServerSettings::setCertKeyFile(const QString &newCertKeyFile)
 {
 	m_certKeyFile = newCertKeyFile;
+}
+
+const QString &ServerSettings::googleListenHost() const
+{
+	return m_googleListenHost;
+}
+
+void ServerSettings::setGoogleListenHost(const QString &newGoogleListenHost)
+{
+	m_googleListenHost = newGoogleListenHost;
 }
 

@@ -39,6 +39,9 @@ public:
 	OAuth2CodeFlow *addCodeFlow(Client *client);
 
 	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
+
+	virtual QString listenCallback() const;
+
 };
 
 #endif // GOOGLEOAUTH2AUTHENTICATOR_H

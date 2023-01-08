@@ -41,6 +41,7 @@ OAuth2Authenticator::OAuth2Authenticator(ServerService *service)
 	setClientId(m_service->settings()->googleClientId());
 	setClientKey(m_service->settings()->googleClientKey());
 	setListenPort(m_service->settings()->googleListenPort());
+	///setListenAddress(m_service->settings()->googleListenAddress());
 
 }
 
@@ -204,7 +205,6 @@ QNetworkAccessManager *OAuth2Authenticator::networkManager() const
 {
 	return m_networkManager;
 }
-
 
 
 
