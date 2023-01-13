@@ -27,15 +27,33 @@
 #ifndef SERVERSETTINGS_H
 #define SERVERSETTINGS_H
 
-#include "qcoreapplication.h"
+#include "oauth2authenticator.h"
 #include "qdir.h"
 #include "qhostaddress.h"
+#include "qsettings.h"
 #include <QString>
 
 class ServerSettings
 {
 public:
 	ServerSettings();
+
+	/**
+	 * @brief The OAuth class
+	 */
+
+	struct OAuth {
+		QString clientId;
+		QString clientKey;
+		QHostAddress listenHost = QHostAddress::Any;
+		quint16 listenPort = 0;
+		bool ssl = false;
+		QString redirectHost = listenHost.toString();
+
+		static OAuth fromSettings(QSettings *settings, const QString &group = "");
+		void toSettings(QSettings *settings, const QString &group = "") const;
+		void setAuthenticator(OAuth2Authenticator *authenticator) const;
+	};
 
 	void printConfig() const;
 	void loadFromFile(const QString &filename = "");
@@ -60,23 +78,15 @@ public:
 
 	bool generateJwtSecret(const bool &forced = false);
 
-	const QString &googleClientId() const;
-	void setGoogleClientId(const QString &newGoogleClientId);
-
-	const QString &googleClientKey() const;
-	void setGoogleClientKey(const QString &newGoogleClientKey);
-
-	quint16 googleListenPort() const;
-	void setGoogleListenPort(quint16 newGoogleListenPort);
-
 	const QString &certFile() const;
 	void setCertFile(const QString &newCertFile);
 
 	const QString &certKeyFile() const;
 	void setCertKeyFile(const QString &newCertKeyFile);
 
-	const QString &googleListenHost() const;
-	void setGoogleListenHost(const QString &newGoogleListenHost);
+
+	const OAuth &oauthGoogle() const;
+	void setOauthGoogle(const OAuth &newOauthGoogle);
 
 private:
 	QDir m_dataDir;
@@ -90,10 +100,7 @@ private:
 	QString m_certFile;
 	QString m_certKeyFile;
 
-	QString m_googleClientId;
-	QString m_googleClientKey;
-	QString m_googleListenHost = QStringLiteral("localhost");
-	quint16 m_googleListenPort = 0;
+	OAuth m_oauthGoogle;
 
 };
 

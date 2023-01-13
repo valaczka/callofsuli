@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Logger.h"
 #include "fontimage.h"
 #include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
@@ -80,10 +81,9 @@ const bool Application::m_debug = false;
 const bool Application::m_debug = true;
 #endif
 
-
-
-Q_LOGGING_CATEGORY(lcApp, "app.application")
-Q_LOGGING_CATEGORY(lcDb, "app.database")
+#ifndef Q_OS_WASM
+#include <QtWebView>
+#endif
 
 /**
  * @brief Application::Application
@@ -103,11 +103,16 @@ Application::Application(int &argc, char **argv)
 	QGuiApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	if (!m_instance) {
-		qCDebug(lcApp).noquote() << QObject::tr("Create application instance");
+		LOG_CTRACE("app") << "Create application instance";
 		m_instance = this;
 	}
 
+#ifndef Q_OS_WASM
+	QtWebView::initialize();
+#endif
+
 	m_application = new QGuiApplication(argc, argv);
+
 	m_engine = new QQmlApplicationEngine(m_application);
 }
 
@@ -118,7 +123,7 @@ Application::Application(int &argc, char **argv)
 
 Application::~Application()
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Destroy Application");
+	LOG_CTRACE("app") << "Destroy Application";
 
 	delete m_engine;
 	m_engine = nullptr;
@@ -152,28 +157,26 @@ int Application::run()
 
 	m_engine->addImageProvider("font", new FontImage());
 
-	qCDebug(lcApp).noquote() << QObject::tr("Load main qml");
-
 	m_engine->rootContext()->setContextProperty("Client", m_client);
 
 	if (!loadResources()) {
-		qCCritical(lcApp).noquote() << QObject::tr("Failed to load resources");
+		LOG_CERROR("app") << "Failed to load resources";
 		return -1;
 	}
 
 	if (!loadMainQml()) {
-		qCCritical(lcApp).noquote() << QObject::tr("Failed to load main qml");
+		LOG_CERROR("app") << "Failed to load main qml";
 		return -1;
 	}
 
 	if (m_engine->rootObjects().isEmpty())
 	{
-		qCCritical(lcApp).noquote() << QObject::tr("Missing root object");
+		LOG_CERROR("app") << "Missing root object";
 		return -1;
 	}
 
 
-	qCDebug(lcApp).noquote() << QObject::tr("Run Application");
+	LOG_CINFO("app") << "Run Application";
 
 	return m_application->exec();
 }
@@ -283,12 +286,12 @@ bool Application::loadResources()
 
 	foreach (QString dir, searchList)
 	{
-		qCDebug(lcApp).noquote() << QObject::tr("Search resources: ")+dir;
+		LOG_CDEBUG("app") << "Search resources:" << qPrintable(dir);
 		QDirIterator it(dir+"/", {"*.cres"});
 
 		while (it.hasNext()) {
 			QString realname = it.next();
-			qCInfo(lcApp).noquote() << QObject::tr("Register resource: %1").arg(realname);
+			LOG_CINFO("app") << "Register resource:" << qPrintable(realname);
 			QResource::registerResource(realname);
 		}
 	}
@@ -307,7 +310,7 @@ bool Application::loadResources()
 
 void Application::registerQmlTypes()
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Register QML types");
+	LOG_CTRACE("app") << "Register QML types";
 
 	QZXing::registerQMLTypes();
 
@@ -329,6 +332,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
 
+	LOG_CTRACE("app") << "Register QML types ****3";
+
 
 }
 
@@ -338,7 +343,7 @@ void Application::registerQmlTypes()
 
 void Application::loadFonts()
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Load fonts");
+	LOG_CTRACE("app") << "Load fonts";
 
 	const QVector<QString> fontsToLoad = {
 		QStringLiteral(":/internal/font/ariblk.ttf"),
@@ -361,9 +366,9 @@ void Application::loadFonts()
 
 	for (const QString &fontPath : fontsToLoad) {
 		if (QFontDatabase::addApplicationFont(fontPath) == -1) {
-			qCWarning(lcApp).noquote() << QObject::tr("Failed to load font: %1").arg(fontPath);
+			LOG_CWARNING("app") << "Failed to load font:" << qPrintable(fontPath);
 		} else {
-			qCInfo(lcApp).noquote() << QObject::tr("Font loaded: %1").arg(fontPath);
+			LOG_CINFO("app") << "Font loaded:" << qPrintable(fontPath);
 		}
 	}
 }
@@ -389,13 +394,13 @@ void Application::loadQaterial()
 void Application::loadBox2D()
 {
 #ifdef WITH_BOX2D
-	qCDebug(lcApp).noquote() << QObject::tr("Load Box2D");
+	LOG_CTRACE("app") << "Load Box2D";
 
 	Box2DPlugin plugin;
 	plugin.registerTypes("Box2D");
 	qmlProtectModule("Box2D", 2);
 #else
-	qCDebug(lcApp).noquote() << QObject::tr("Skip Box2D loading");
+	LOG_CTRACE("app") << "Skip Box2D loading");
 #endif
 }
 
@@ -406,7 +411,7 @@ void Application::loadBox2D()
 
 void Application::loadModules()
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Load modules");
+	LOG_CTRACE("app") << "Load modules";
 
 	m_objectiveModules.clear();
 	m_storageModules.clear();
@@ -427,10 +432,10 @@ void Application::loadModules()
 		QString name = i->name();
 
 		if (i->isStorageModule()) {
-			qCDebug(lcApp).noquote() << QObject::tr("Load storage module:") << i->name();
+			LOG_CTRACE("app") << "Load storage module:" << qPrintable(i->name());
 			m_storageModules.insert(name, i);
 		} else {
-			qCDebug(lcApp).noquote() << QObject::tr("Load objective module:") << i->name();
+			LOG_CTRACE("app") << "Load objective module:" << qPrintable(i->name());
 			m_objectiveModules.insert(name, i);
 		}
 
@@ -500,7 +505,7 @@ void Application::messageInfo(const QString &text, const QString &title) const
 	if (m_client)
 		m_client->messageInfo(text, title);
 	else
-		qCInfo(lcApp).noquote() << QStringLiteral("%1 (%2)").arg(text).arg(title);
+		LOG_CINFO("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text).arg(title));
 }
 
 
@@ -515,7 +520,7 @@ void Application::messageWarning(const QString &text, const QString &title) cons
 	if (m_client)
 		m_client->messageWarning(text, title);
 	else
-		qCWarning(lcApp).noquote() << QStringLiteral("%1 (%2)").arg(text).arg(title);
+		LOG_CWARNING("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text).arg(title));
 }
 
 
@@ -530,7 +535,7 @@ void Application::messageError(const QString &text, const QString &title) const
 	if (m_client)
 		m_client->messageError(text, title);
 	else
-		qCCritical(lcApp).noquote() << QStringLiteral("%1 (%2)").arg(text).arg(title);
+		LOG_CERROR("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text).arg(title));
 }
 
 

@@ -32,10 +32,6 @@
 #include "oauth2replyhandler.h"
 #include "oauth2codeflow.h"
 
-
-class ServerService;
-class Client;
-
 class OAuth2Authenticator : public QObject
 {
 	Q_OBJECT
@@ -46,14 +42,21 @@ class OAuth2Authenticator : public QObject
 	Q_PROPERTY(quint16 listenPort READ listenPort WRITE setListenPort NOTIFY listenPortChanged)
 
 public:
-	explicit OAuth2Authenticator(ServerService *service);
+	enum Type {
+		Invalid,
+		Google
+	};
+
+	Q_ENUM(Type)
+
+	explicit OAuth2Authenticator(const Type &type, QObject *parent = nullptr);
 	virtual ~OAuth2Authenticator();
 
 	bool listen() const;
 
-	void addCodeFlow(OAuth2CodeFlow *flow, Client *client);
+	void addCodeFlow(OAuth2CodeFlow *flow, QObject *referenceObject);
 	void removeCodeFlow(OAuth2CodeFlow *flow);
-	OAuth2CodeFlow *getCodeFlowForClient(Client *client) const;
+	OAuth2CodeFlow *getCodeFlowForReferenceObject(QObject *referenceObject) const;
 	OAuth2CodeFlow *getCodeFlowForState(const QString &status) const;
 
 	const QString &clientId() const;
@@ -70,7 +73,20 @@ public:
 
 	QNetworkAccessManager *networkManager() const;
 
-	virtual QString listenCallback() const = 0;
+	const QString &redirectHost() const;
+	void setRedirectHost(const QString &newRedirectHost);
+
+	AbstractReplyHandler *handler() const;
+	void setHandler(AbstractReplyHandler *newHandler);
+
+	template <typename T2>
+	T2* createHandler() {
+		OAuth2ReplyHandler<T2> *h = new OAuth2ReplyHandler<T2>(m_listenAddress, m_listenPort, this);
+		m_handler = h;
+		return h->handler();
+	};
+
+	Type type() const;
 
 signals:
 	void clientIdChanged();
@@ -79,8 +95,7 @@ signals:
 	void listenPortChanged();
 
 protected:
-	ServerService *const m_service;
-	OAuth2ReplyHandler *m_handler = nullptr;
+	AbstractReplyHandler *m_handler = nullptr;
 	QNetworkAccessManager *m_networkManager = nullptr;
 	QVector<QPointer<OAuth2CodeFlow>> m_codeFlowList;
 
@@ -88,7 +103,13 @@ protected:
 	QString m_clientKey;
 	QHostAddress m_listenAddress = QHostAddress::Any;
 	quint16 m_listenPort = 0;
+	QString m_redirectHost;
+
+private:
+	const Type m_type = Invalid;
 
 };
+
+
 
 #endif // OAUTH2AUTHENTICATOR_H

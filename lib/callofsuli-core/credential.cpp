@@ -92,6 +92,8 @@ QString Credential::createJWT(const QString &secret) const
 	LOG_CINFO("credential") << "Token created for user:" << m_username;
 
 	return QString::fromStdString(token);
+
+	return "";
 }
 
 

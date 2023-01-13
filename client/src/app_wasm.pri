@@ -7,10 +7,8 @@ SOURCES += \
 
 HEADERS += \
 	onlineapplication.h \
-	onlineclient.h \
-	$$PWD/wasm_helper/Logger.h
+	onlineclient.h
 
-INCLUDEPATH += $$PWD/wasm_helper
 
 if($$WasmWithBox2D): DEFINES += WITH_BOX2D
 

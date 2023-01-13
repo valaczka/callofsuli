@@ -315,7 +315,15 @@ void AuthHandler::loginGoogle()
 		return;
 	}
 
-	OAuth2CodeFlow *flow = service()->googleOAuth2Authenticator()->addCodeFlow(m_client);
+	GoogleOAuth2Authenticator *authenticator = qobject_cast<GoogleOAuth2Authenticator*>(service()->oauth2Authenticator(OAuth2Authenticator::Google));
+
+	if (!authenticator) {
+		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
+		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		return;
+	}
+
+	OAuth2CodeFlow *flow = authenticator->addCodeFlow(m_client);
 	m_client->setOauth2CodeFlow(flow);
 
 	if (flow) {
@@ -324,12 +332,16 @@ void AuthHandler::loginGoogle()
 		connect(flow, &OAuth2CodeFlow::authenticationFailed, this, &AuthHandler::onOAuthFailed);
 		connect(flow, &OAuth2CodeFlow::authenticationSuccess, this, &AuthHandler::onOAuthSuccess);
 
-		flow->startAuthenticate();
+		if (json().contains(QStringLiteral("code")))
+			flow->requestAccesToken(json().value(QStringLiteral("code")).toString());
+		else
+			m_client->requestOAuth2Browser(flow->requestAuthorizationUrl());
 	} else {
 		send(m_message.createErrorResponse(QStringLiteral("unable to create oauth2 code flow")));
 	}
 
 }
+
 
 
 
@@ -388,7 +400,15 @@ void AuthHandler::registrationGoogle()
 		return;
 	}
 
-	OAuth2CodeFlow *flow = service()->googleOAuth2Authenticator()->addCodeFlow(m_client);
+	GoogleOAuth2Authenticator *authenticator = qobject_cast<GoogleOAuth2Authenticator*>(service()->oauth2Authenticator(OAuth2Authenticator::Google));
+
+	if (!authenticator) {
+		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
+		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		return;
+	}
+
+	OAuth2CodeFlow *flow = authenticator->addCodeFlow(m_client);
 	m_client->setOauth2CodeFlow(flow);
 
 	if (flow) {
@@ -397,11 +417,16 @@ void AuthHandler::registrationGoogle()
 		connect(flow, &OAuth2CodeFlow::authenticationFailed, this, &AuthHandler::onOAuthFailed);
 		connect(flow, &OAuth2CodeFlow::authenticationSuccess, this, &AuthHandler::onOAuthRegistrationSuccess);
 
-		flow->startAuthenticate();
+		if (json().contains(QStringLiteral("code")))
+			flow->requestAccesToken(json().value(QStringLiteral("code")).toString());
+		else
+			m_client->requestOAuth2Browser(flow->requestAuthorizationUrl());
 	} else {
 		send(m_message.createErrorResponse(QStringLiteral("unable to create oauth2 code flow")));
 	}
 }
+
+
 
 
 
@@ -460,7 +485,17 @@ void AuthHandler::registrationPlain()
 void AuthHandler::onOAuthFailed()
 {
 	send(WebSocketMessage::createErrorEvent(QStringLiteral("authentication failed"), WebSocketMessage::ClassAuth));
-	service()->googleOAuth2Authenticator()->removeCodeFlow(qobject_cast<OAuth2CodeFlow*>(sender()));
+
+	GoogleOAuth2Authenticator *authenticator = qobject_cast<GoogleOAuth2Authenticator*>(service()->oauth2Authenticator(OAuth2Authenticator::Google));
+
+	if (!authenticator) {
+		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
+		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		return;
+	}
+
+
+	authenticator->removeCodeFlow(qobject_cast<OAuth2CodeFlow*>(sender()));
 	if (m_client)
 		m_client->setOauth2CodeFlow(nullptr);
 }
@@ -473,7 +508,15 @@ void AuthHandler::onOAuthFailed()
 
 void AuthHandler::onOAuthSuccess(const QVariantMap &data)
 {
-	service()->googleOAuth2Authenticator()->removeCodeFlow(qobject_cast<OAuth2CodeFlow*>(sender()));
+	GoogleOAuth2Authenticator *authenticator = qobject_cast<GoogleOAuth2Authenticator*>(service()->oauth2Authenticator(OAuth2Authenticator::Google));
+
+	if (!authenticator) {
+		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
+		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		return;
+	}
+
+	authenticator->removeCodeFlow(qobject_cast<OAuth2CodeFlow*>(sender()));
 
 	if (m_client)
 		m_client->setOauth2CodeFlow(nullptr);
@@ -516,7 +559,16 @@ void AuthHandler::onOAuthRegistrationSuccess(const QVariantMap &data)
 {
 	LOG_CTRACE("client") << m_client << "Registration success";
 
-	service()->googleOAuth2Authenticator()->removeCodeFlow(qobject_cast<OAuth2CodeFlow*>(sender()));
+	GoogleOAuth2Authenticator *authenticator = qobject_cast<GoogleOAuth2Authenticator*>(service()->oauth2Authenticator(OAuth2Authenticator::Google));
+
+	if (!authenticator) {
+		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
+		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		return;
+	}
+
+
+	authenticator->removeCodeFlow(qobject_cast<OAuth2CodeFlow*>(sender()));
 
 	if (m_client)
 		m_client->setOauth2CodeFlow(nullptr);

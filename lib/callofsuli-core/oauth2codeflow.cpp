@@ -26,18 +26,17 @@
 
 #include "oauth2codeflow.h"
 #include "Logger.h"
-#include "client.h"
 #include "oauth2authenticator.h"
 
-OAuth2CodeFlow::OAuth2CodeFlow(OAuth2Authenticator *authenticator, Client *client)
+OAuth2CodeFlow::OAuth2CodeFlow(OAuth2Authenticator *authenticator, QObject *referenceObject)
 	: QOAuth2AuthorizationCodeFlow{authenticator}
 	, m_authenticator(authenticator)
-	, m_client(client)
+	, m_referenceObject(referenceObject)
 {
 	Q_ASSERT(m_authenticator);
-	Q_ASSERT(m_client);
 
-	connect(client, &Client::destroyed, this, &OAuth2CodeFlow::onClientDestroyed);
+	if (m_referenceObject)
+		connect(m_referenceObject, &QObject::destroyed, this, &OAuth2CodeFlow::onReferenceObjectDestroyed);
 
 	LOG_CTRACE("oauth2") << "OAuth2CodeFlow created" << state() << this;
 }
@@ -54,16 +53,16 @@ OAuth2CodeFlow::~OAuth2CodeFlow()
 
 
 /**
- * @brief OAuth2CodeFlow::startAuthenticate
+ * @brief OAuth2CodeFlow::requestAuthorizationUrl
+ * @return
  */
 
-void OAuth2CodeFlow::startAuthenticate()
+QUrl OAuth2CodeFlow::requestAuthorizationUrl()
 {
-	const QUrl u = buildAuthenticateUrl();
-
-	if (m_client)
-	m_client->requestOAuth2Browser(u);
+	return buildAuthenticateUrl();
 }
+
+
 
 
 
@@ -99,16 +98,6 @@ void OAuth2CodeFlow::requestAccesToken(const QString &code)
 
 }
 
-
-/**
- * @brief OAuth2CodeFlow::client
- * @return
- */
-
-Client *OAuth2CodeFlow::client() const
-{
-	return m_client;
-}
 
 
 /**
@@ -188,8 +177,20 @@ void OAuth2CodeFlow::onRequestAccessFinished()
  * @brief OAuth2CodeFlow::onClientDestroyed
  */
 
-void OAuth2CodeFlow::onClientDestroyed()
+void OAuth2CodeFlow::onReferenceObjectDestroyed()
 {
 	if (m_authenticator)
 		m_authenticator->removeCodeFlow(this);
+}
+
+
+
+/**
+ * @brief OAuth2CodeFlow::referenceObject
+ * @return
+ */
+
+QObject *OAuth2CodeFlow::referenceObject() const
+{
+	return m_referenceObject;
 }

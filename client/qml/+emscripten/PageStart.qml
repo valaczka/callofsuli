@@ -2,9 +2,10 @@ import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.15
 import Qaterial 1.0 as Qaterial
-import "./QaterialHelper" as Qaterial
+import "../QaterialHelper" as Qaterial
 import CallOfSuli 1.0
-import "JScript.js" as JS
+import ".."
+import "../JScript.js" as JS
 
 QPage {
 	id: control
@@ -17,7 +18,7 @@ QPage {
 		return false
 	}*/
 
-	title: "Call of Suli WASM"
+	title: "Call of Suli"
 
 	appBar.backButtonVisible: false
 	appBar.rightComponent: Qaterial.AppBarButton
@@ -200,26 +201,6 @@ QPage {
 	}
 
 
-	Column {
-		anchors.top: row2.bottom
-
-		Repeater {
-			model: Client.serverList
-
-			delegate: Row {
-				property Server server: model.qtObject
-
-				Qaterial.LabelBody1 {
-					text: server.name
-				}
-
-				Qaterial.RaisedButton {
-					text: "Connect"
-					onClicked: Client.connectToServer(server)
-				}
-			}
-		}
-	}
 
 
 	//StackView.onActivated: Client.loadGame()

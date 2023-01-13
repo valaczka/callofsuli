@@ -95,7 +95,6 @@ signals:
 	void tokenChanged();
 	void certificateChanged();
 	void ignoredSslErrorsChanged();
-
 	void nameChanged();
 
 private:

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * oauth2codeflow.h
+ * googleoauth2authenticator.h
  *
  * Created on: 2023. 01. 03.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * OAuth2CodeFlow
+ * GoogleOAuth2Authenticator
  *
  *  This file is part of Call of Suli.
  *
@@ -24,42 +24,23 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef OAUTH2CODEFLOW_H
-#define OAUTH2CODEFLOW_H
+#ifndef GOOGLEOAUTH2AUTHENTICATOR_H
+#define GOOGLEOAUTH2AUTHENTICATOR_H
 
-#include <QOAuth2AuthorizationCodeFlow>
-#include <QPointer>
+#include "oauth2authenticator.h"
 
-class OAuth2Authenticator;
-class Client;
-
-class OAuth2CodeFlow : public QOAuth2AuthorizationCodeFlow
+class GoogleOAuth2Authenticator : public OAuth2Authenticator
 {
 	Q_OBJECT
 
 public:
-	explicit OAuth2CodeFlow(OAuth2Authenticator *authenticator, Client *client);
-	virtual ~OAuth2CodeFlow();
+	explicit GoogleOAuth2Authenticator(QObject *parent)
+		: OAuth2Authenticator(OAuth2Authenticator::Google, parent) { }
 
-	void startAuthenticate();
-	void requestAccesToken(const QString &code);
+	OAuth2CodeFlow *addCodeFlow(QObject *referenceObject);
 
-	Client *client() const;
-
-signals:
-	void browserRequired(const QUrl &url);
-	void authenticationSuccess(const QVariantMap &data);
-	void authenticationFailed();
-
-
-private slots:
-	void onRequestAccessFinished();
-	void onClientDestroyed();
-
-private:
-	OAuth2Authenticator *const m_authenticator;
-	Client *m_client = nullptr;
+	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
 
 };
 
-#endif // OAUTH2CODEFLOW_H
+#endif // GOOGLEOAUTH2AUTHENTICATOR_H

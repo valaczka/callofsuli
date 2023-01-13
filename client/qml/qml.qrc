@@ -47,5 +47,7 @@
         <file>MedalImage.qml</file>
         <file>MapPlayMissionLevelCard.qml</file>
         <file>../root_CallOfSuli_CA.crt</file>
+        <file>PageWebView.qml</file>
+        <file>+emscripten/PageStart.qml</file>
     </qresource>
 </RCC>

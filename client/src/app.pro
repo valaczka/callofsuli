@@ -1,9 +1,9 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private websockets #sql webview
+QT += gui quick svg xml network gui-private websockets
 
-!wasm: QT += multimedia sql
+!wasm: QT += multimedia sql webview
 
 CONFIG += c++17
 
@@ -38,13 +38,17 @@ include(../../lib/import_lib_client.pri)
 
 !wasm {
 	DEFINES += WITH_BOX2D
-	SOURCES += \
-		desktopapplication.cpp \
-		desktopclient.cpp
 
-	HEADERS += \
-		desktopapplication.h \
-		desktopclient.h
+	SOURCES += desktopclient.cpp
+	HEADERS += desktopclient.h
+
+	ios|android: {
+		SOURCES += mobileapplication.cpp
+		HEADERS += mobileapplication.h
+	} else {
+		SOURCES += desktopapplication.cpp
+		HEADERS += desktopapplication.h
+	}
 }
 
 wasm:include(app_wasm.pri)
@@ -211,6 +215,7 @@ HEADERS += \
 	server.h \
 	tiledpaintedlayer.h \
 	websocket.h
+
 
 
 

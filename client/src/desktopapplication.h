@@ -27,17 +27,10 @@
 #ifndef DESKTOPAPPLICATION_H
 #define DESKTOPAPPLICATION_H
 
+#include "ColorConsoleAppender.h"
+#include "mobileapplication.h"
 
-#ifdef Q_OS_ANDROID
-#include <AndroidAppender.h>
-#else
-#include <ColorConsoleAppender.h>
-#endif
-
-
-#include "application.h"
-
-class DesktopApplication : public Application
+class DesktopApplication : public MobileApplication
 {
 	enum CommandLine {
 		Normal,
@@ -52,24 +45,13 @@ public:
 	virtual ~DesktopApplication();
 
 	void commandLineParse();
-	void initialize();
-	void shutdown();
 	bool performCommandLine();
-	void createStandardPath();
-
-protected:
-	virtual Client *createClient();
 
 private:
 	CommandLine m_commandLine = Normal;
 	QString m_loadMap;
 	QStringList m_arguments;
-	AbstractStringAppender *m_appender = nullptr;
-
-#ifdef Q_OS_WIN32
-	FILE *m_streamO = NULL;
-	FILE *m_streamE = NULL;
-#endif
+	ColorConsoleAppender *m_appender = nullptr;
 };
 
 #endif // DESKTOPAPPLICATION_H

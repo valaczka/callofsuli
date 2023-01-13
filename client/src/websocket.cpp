@@ -293,8 +293,17 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 
 	LOG_CTRACE("websocket") << "RECEIVED:" << m;
 
-	if (m.data().contains("url"))
+	if (m.data().contains("url")) {
+#ifdef Q_OS_WASM
 		Utils::openUrl(QUrl::fromEncoded(m.data().value("url").toString().toUtf8()));
+#else
+		m_client->stackPushPage(QStringLiteral("PageWebView.qml"),
+								QVariantMap({
+												{ QStringLiteral("url"), QUrl::fromEncoded(m.data().value("url").toString().toUtf8()) },
+												{ QStringLiteral("title"), tr("Bejelentkezés")}
+											}));
+#endif
+	}
 
 	if (m.data().contains("error"))
 		m_client->snack(m.data().value("error").toString());

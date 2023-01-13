@@ -25,6 +25,7 @@
  */
 
 #include "onlineapplication.h"
+#include "Logger.h"
 #include "onlineclient.h"
 
 /**
@@ -78,7 +79,7 @@ bool OnlineApplication::loadMainQml()
 
 Client *OnlineApplication::createClient()
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Create online client");
+	LOG_CTRACE("app") << "Create online client";
 	return new OnlineClient(this, m_application);
 }
 

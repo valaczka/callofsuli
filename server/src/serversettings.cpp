@@ -45,14 +45,15 @@ void ServerSettings::printConfig() const
 {
 	LOG_CINFO("service") << "Configuration:";
 	LOG_CINFO("service") << "-----------------------------------------------------";
-	LOG_CINFO("service") << "Directory:" << m_dataDir.canonicalPath();
-	LOG_CINFO("service") << "Host address:" << m_listenAddress;
+	LOG_CINFO("service") << "Directory:" << qPrintable(m_dataDir.canonicalPath());
+	LOG_CINFO("service") << "Host address:" << qPrintable(m_listenAddress.toString());
 	LOG_CINFO("service") << "Port:" << m_listenPort;
 	LOG_CINFO("service") << "SSL:" << m_ssl;
-	LOG_CINFO("service") << "SSL certificate:" << m_certFile;
-	LOG_CINFO("service") << "SSL certificate key:" << m_certKeyFile;
-	LOG_CINFO("service") << "Google OAuth2 listening host:" << m_googleListenHost;
-	LOG_CINFO("service") << "Google OAuth2 listening port:" << m_googleListenPort;
+	LOG_CINFO("service") << "SSL certificate:" << qPrintable(m_certFile);
+	LOG_CINFO("service") << "SSL certificate key:" << qPrintable(m_certKeyFile);
+	LOG_CINFO("service") << "Google OAuth2 listening host:" << qPrintable(m_oauthGoogle.listenHost.toString());
+	LOG_CINFO("service") << "Google OAuth2 listening port:" << m_oauthGoogle.listenPort;
+	LOG_CINFO("service") << "Google OAuth2 listening ssl:" << m_oauthGoogle.ssl;
 	LOG_CINFO("service") << "-----------------------------------------------------";
 }
 
@@ -93,19 +94,8 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("ssl/key")))
 		setCertKeyFile(s.value(QStringLiteral("ssl/key")).toString());
 
-
-	if (s.contains(QStringLiteral("google/host")))
-		setGoogleListenHost(s.value(QStringLiteral("google/host")).toString());
-
-
-	if (s.contains(QStringLiteral("google/port")))
-		setGoogleListenPort(s.value(QStringLiteral("google/port")).toInt());
-
-	if (s.contains(QStringLiteral("google/client")))
-		setGoogleClientId(s.value(QStringLiteral("google/client")).toString());
-
-	if (s.contains(QStringLiteral("google/secret")))
-		setGoogleClientKey(s.value(QStringLiteral("google/secret")).toString());
+	if (s.contains(QStringLiteral("google/clientId")))
+		setOauthGoogle(OAuth::fromSettings(&s, QStringLiteral("google")));
 
 
 	LOG_CINFO("service") << "Configuration loaded from:" << f;
@@ -149,11 +139,7 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("ssl/certificate"), m_certFile);
 	s.setValue(QStringLiteral("ssl/key"), m_certKeyFile);
 
-
-	s.setValue(QStringLiteral("google/host"), m_googleListenHost);
-	s.setValue(QStringLiteral("google/port"), m_googleListenPort);
-	s.setValue(QStringLiteral("google/client"), m_googleClientId);
-	s.setValue(QStringLiteral("google/secret"), m_googleClientKey);
+	m_oauthGoogle.toSettings(&s, QStringLiteral("google"));
 
 	LOG_CINFO("service") << "Configuration saved to:" << f;
 }
@@ -231,36 +217,6 @@ bool ServerSettings::generateJwtSecret(const bool &forced)
 	return false;
 }
 
-const QString &ServerSettings::googleClientId() const
-{
-	return m_googleClientId;
-}
-
-void ServerSettings::setGoogleClientId(const QString &newGoogleClientId)
-{
-	m_googleClientId = newGoogleClientId;
-}
-
-const QString &ServerSettings::googleClientKey() const
-{
-	return m_googleClientKey;
-}
-
-void ServerSettings::setGoogleClientKey(const QString &newGoogleClientKey)
-{
-	m_googleClientKey = newGoogleClientKey;
-}
-
-
-quint16 ServerSettings::googleListenPort() const
-{
-	return m_googleListenPort;
-}
-
-void ServerSettings::setGoogleListenPort(quint16 newGoogleListenPort)
-{
-	m_googleListenPort = newGoogleListenPort;
-}
 
 const QString &ServerSettings::certFile() const
 {
@@ -282,13 +238,72 @@ void ServerSettings::setCertKeyFile(const QString &newCertKeyFile)
 	m_certKeyFile = newCertKeyFile;
 }
 
-const QString &ServerSettings::googleListenHost() const
+const ServerSettings::OAuth &ServerSettings::oauthGoogle() const
 {
-	return m_googleListenHost;
+	return m_oauthGoogle;
 }
 
-void ServerSettings::setGoogleListenHost(const QString &newGoogleListenHost)
+void ServerSettings::setOauthGoogle(const OAuth &newOauthGoogle)
 {
-	m_googleListenHost = newGoogleListenHost;
+	m_oauthGoogle = newOauthGoogle;
 }
 
+
+ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, const QString &group)
+{
+	Q_ASSERT (settings);
+	settings->beginGroup(group);
+
+	ServerSettings::OAuth r;
+
+	r.clientId = settings->value(QStringLiteral("clientId")).toString();
+	r.clientKey = settings->value(QStringLiteral("clientKey")).toString();
+	r.listenHost = QHostAddress(settings->value(QStringLiteral("listenHost"), QStringLiteral("0.0.0.0")).toString());
+	r.redirectHost = settings->value(QStringLiteral("redirectHost"), QStringLiteral("0.0.0.0")).toString();
+	r.listenPort = settings->value(QStringLiteral("listenPort"), 0).toUInt();
+	r.ssl = settings->value(QStringLiteral("ssl")).toBool();
+
+	settings->endGroup();
+
+	return r;
+}
+
+
+/**
+ * @brief ServerSettings::OAuth::toSettings
+ * @param settings
+ * @param group
+ */
+
+void ServerSettings::OAuth::toSettings(QSettings *settings, const QString &group) const
+{
+	Q_ASSERT (settings);
+	settings->beginGroup(group);
+
+	settings->setValue(QStringLiteral("clientId"), clientId);
+	settings->setValue(QStringLiteral("clientKey"), clientKey);
+	settings->setValue(QStringLiteral("listenHost"), listenHost.toString());
+	settings->setValue(QStringLiteral("listenPort"), listenPort);
+	settings->setValue(QStringLiteral("redirectHost"), redirectHost);
+	settings->setValue(QStringLiteral("ssl"), ssl);
+
+	settings->endGroup();
+}
+
+
+/**
+ * @brief ServerSettings::OAuth::setAuthenticator
+ * @param authenticator
+ */
+
+void ServerSettings::OAuth::setAuthenticator(OAuth2Authenticator *authenticator) const
+{
+	Q_ASSERT(authenticator);
+
+	authenticator->setClientId(clientId);
+	authenticator->setClientKey(clientKey);
+	authenticator->setListenPort(listenPort);
+	authenticator->setListenAddress(listenHost);
+	authenticator->setRedirectHost(redirectHost);
+
+}

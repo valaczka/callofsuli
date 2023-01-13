@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * Logger.h
+ * mobileapplication.h
  *
- * Created on: 2023. 01. 07.
+ * Created on: 2023. 01. 13.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * %{Cpp:License:ClassName}
+ * MobileApplication
  *
  *  This file is part of Call of Suli.
  *
@@ -24,16 +24,23 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef MOBILEAPPLICATION_H
+#define MOBILEAPPLICATION_H
 
-#include <QDebug>
+#include "application.h"
 
-#define LOG_CTRACE(x)	qDebug() << x
-#define LOG_CDEBUG(x)	qDebug() << x
-#define LOG_CINFO(x)	qInfo() << x
-#define LOG_CWARNING(x)	qWarning() << x
-#define LOG_CERROR(x)	qCritical() << x
-#define LOG_CFATAL(x)	qCritical() << x
+class MobileApplication : public Application
+{
+public:
+	MobileApplication(int &argc, char **argv);
+	virtual ~MobileApplication();
 
-#endif // LOGGER_H
+	virtual void initialize();
+	virtual void createStandardPath();
+
+protected:
+	virtual Client *createClient();
+
+};
+
+#endif // MOBILEAPPLICATION_H

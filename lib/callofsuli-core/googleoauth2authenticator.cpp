@@ -26,15 +26,14 @@
 
 #include "googleoauth2authenticator.h"
 #include "Logger.h"
-#include "client.h"
-#include "serverservice.h"
+#include "jwt-cpp/jwt.h"
 
 
 /**
  * @brief GoogleOAuth2Authenticator::addCodeFlow
  */
 
-OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(Client *client)
+OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(QObject *referenceObject)
 {
 	if (m_clientId.isEmpty()) {
 		LOG_CERROR("oauth2") << "Client id empty";
@@ -47,7 +46,7 @@ OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(Client *client)
 	}
 
 
-	OAuth2CodeFlow *flow = new OAuth2CodeFlow(this, client);
+	OAuth2CodeFlow *flow = new OAuth2CodeFlow(this, referenceObject);
 
 	flow->setAuthorizationUrl(QUrl(QStringLiteral("https://accounts.google.com/o/oauth2/auth")));
 	flow->setAccessTokenUrl(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
@@ -57,7 +56,7 @@ OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(Client *client)
 	flow->setClientIdentifierSharedKey(m_clientKey);
 
 
-	OAuth2Authenticator::addCodeFlow(flow, client);
+	OAuth2Authenticator::addCodeFlow(flow, referenceObject);
 
 	return flow;
 }
@@ -86,17 +85,3 @@ QMap<std::string, std::string> GoogleOAuth2Authenticator::getInfoFromRequestAcce
 	return m;
 }
 
-
-/**
- * @brief GoogleOAuth2Authenticator::listenCallback
- * @return
- */
-
-QString GoogleOAuth2Authenticator::listenCallback() const
-{
-	QUrl u;
-	u.setScheme(QStringLiteral("https"));
-	u.setHost(m_service->settings()->googleListenHost());
-	u.setPort(m_service->settings()->googleListenPort());
-	return u.toString();
-}

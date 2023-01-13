@@ -14,6 +14,9 @@ else: BUILDUNITY = ON
 if ($$QaterialBuildShared): BuildShared = ON
 else: BuildShared = OFF
 
+wasm: BuildQOlmShared = OFF
+else: BuildQOlmShared = $$BuildShared
+
 android {
 	extralib.commands = echo \"Building Qaterial...\"; \
 				for a in $${ANDROID_ABIS}; do \
@@ -24,7 +27,7 @@ android {
 					-DQATERIAL_ICONS=\"*.svg\" \
 					-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
 					-DQATERIAL_BUILD_SHARED=$$BuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
-					-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
+					-DQATERIAL_ENABLE_PCH=$$BUILDPCH -DQOLM_BUILD_SHARED=$$BuildQOlmShared \
 					-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=OFF && \
 					$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
 					$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \
@@ -39,7 +42,7 @@ android {
 			-DQATERIAL_ICONS=\"*.svg\" \
 			-DQATERIAL_ENABLE_ROBOTO=OFF -DQATERIAL_ENABLE_ROBOTOMONO=OFF -DQATERIAL_ENABLE_LATO=OFF \
 			-DQATERIAL_BUILD_SHARED=$$BuildShared -DQATERIAL_ENABLE_TESTS=OFF -DQATERIAL_ENABLE_TESTS=OFF \
-			-DQATERIAL_ENABLE_PCH=$$BUILDPCH \
+			-DQATERIAL_ENABLE_PCH=$$BUILDPCH -DQOLM_BUILD_SHARED=$$BuildQOlmShared \
 			-DQATERIAL_ENABLE_HIGHDPIFIX=OFF -DQATERIAL_ENABLE_INSTALL=OFF && \
 			$${CMakePath} --build . --target QaterialComponents --config $$BUILDCONFIG $$CMakeProc && \
 			$${CMakePath} --build . --target QaterialIcons --config $$BUILDCONFIG $$CMakeProc && \

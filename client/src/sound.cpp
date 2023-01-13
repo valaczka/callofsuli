@@ -158,7 +158,6 @@ void Sound::init()
 	setVolumeVoiceOver(s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
 	s.endGroup();
 
-
 	/*connect(m_mediaPlayerMusic, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
 			[=](QMediaPlayer::Error error) {
 		qWarning() << "Media error" << m_mediaPlayerMusic << error;
@@ -177,6 +176,7 @@ void Sound::init()
 		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
 	});*/
 
+	LOG_CTRACE("sound") << "Sound object initialized";
 }
 
 

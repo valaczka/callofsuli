@@ -50,7 +50,7 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 
 	m_soundThread.start();
 
-	QMetaObject::invokeMethod(m_sound, "init", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(m_sound, "init", Qt::BlockingQueuedConnection);
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 
@@ -302,6 +302,8 @@ void DesktopClient::serverListLoad(const QDir &dir)
 
 		m_serverList->append(s);
 	}
+
+	LOG_CDEBUG("client") << "Servers loaded:" << m_serverList->size();
 }
 
 

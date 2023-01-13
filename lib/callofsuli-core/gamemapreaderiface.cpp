@@ -25,6 +25,7 @@
  */
 
 #include "gamemapreaderiface.h"
+#include "Logger.h"
 #include "websocketmessage.h"
 
 #include <QDebug>
@@ -85,7 +86,7 @@ GameMapMissionIface *GameMapReaderIface::checkLockTree(QList<GameMapMissionIface
 			if (listPtr) {
 				listPtr->append(m);
 			} else {
-				qCWarning(lcApp).noquote() << QObject::tr("Redundant locks") << m->m_uuid << m->m_name << m;
+				LOG_CWARNING("app") << "Redundant locks" << qPrintable(m->m_uuid) << qPrintable(m->m_name) << m;
 				return m;
 			}
 		}
@@ -108,7 +109,7 @@ QVector<GameMapMissionLevelIface *> GameMapReaderIface::missionLockTree(GameMapM
 {
 	QVector<GameMapMissionLevelIface*> list;
 	if (!mission->getLockTree(&list, mission)) {
-		qCWarning(lcApp).noquote() << QObject::tr("Redundant locks:") << mission->m_uuid << mission->m_name;
+		LOG_CWARNING("app") << "Redundant locks:" << qPrintable(mission->m_uuid) << qPrintable(mission->m_name);
 		return QVector<GameMapMissionLevelIface*>();
 	}
 
@@ -135,7 +136,7 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 	stream >> magic >> str;
 
 	if (magic != 0x434F53 || str != "MAP") {			// COS
-		qCWarning(lcApp).noquote() << QObject::tr("Invalid map data");
+		LOG_CWARNING("app") << "Invalid map data";
 		return false;
 	}
 
@@ -143,15 +144,15 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 
 	stream >> version;
 
-	qCDebug(lcApp).noquote() << QObject::tr("Load map data version:") << version;
+	LOG_CTRACE("app") << "Load map data version:" << version;
 
 	if (version < 10) {
-		qCWarning(lcApp).noquote() << QObject::tr("Invalid map version");
+		LOG_CWARNING("app") << "Invalid map version";
 		return false;
 	}
 
 	if (version < GAMEMAP_CURRENT_VERSION) {
-		qCInfo(lcApp).noquote() << QObject::tr("Old version found:") << version;
+		LOG_CINFO("app") << "Old version found:" << version;
 	}
 
 	stream.setVersion(QDataStream::Qt_5_11);
@@ -163,7 +164,7 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 	m_version = version;
 	m_uuid = uuid;
 
-	qCDebug(lcApp).noquote() << QObject::tr("Load map") << m_uuid;
+	LOG_CTRACE("app") << "Load map" << m_uuid;
 
 	try {
 		if (version > 11)
@@ -182,7 +183,7 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 			throw 1;
 
 	} catch (...) {
-		qCWarning(lcApp).noquote() << QObject::tr("Invalid map");
+		LOG_CWARNING("app") << "Invalid map";
 		return false;
 	}
 
@@ -233,7 +234,7 @@ QByteArray GameMapReaderIface::toBinaryData() const
 
 bool GameMapReaderIface::storagesFromStream(QDataStream &stream)
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Load storages");
+	LOG_CTRACE("app") << "Load storages";
 
 	quint32 size = 0;
 	stream >> size;
@@ -284,7 +285,7 @@ void GameMapReaderIface::storagesToStream(QDataStream &stream, const QList<GameM
 
 bool GameMapReaderIface::chaptersFromStream(QDataStream &stream)
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Load chapters");
+	LOG_CTRACE("app") << "Load chapters";
 
 	quint32 size = 0;
 	stream >> size;
@@ -305,7 +306,7 @@ bool GameMapReaderIface::chaptersFromStream(QDataStream &stream)
 		objectivesFromStream(stream, ch);
 	}
 
-	qCDebug(lcApp).noquote() << QObject::tr("Chapters loaded");
+	LOG_CTRACE("app") << "Chapters loaded";
 
 	return true;
 }
@@ -347,7 +348,7 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 	quint32 size = 0;
 	stream >> size;
 
-	qCDebug(lcApp).noquote() << QObject::tr("Load missions:") << size;
+	LOG_CTRACE("app") << "Load missions:" << size;
 
 	struct lockStruct {
 		GameMapMissionIface *mission;
@@ -380,7 +381,7 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 
 		stream >> lockSize;
 
-		qCDebug(lcApp).noquote() << QObject::tr("Load mission:") << uuid;
+		LOG_CTRACE("app") << "Load mission:" << uuid;
 
 		if (uuid.isEmpty())
 			return false;
@@ -403,7 +404,7 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 	}
 
 
-	qCDebug(lcApp).noquote() << QObject::tr("Load locks");
+	LOG_CTRACE("app") << "Load locks";
 
 	foreach (const lockStruct &s, lockList) {
 		if (!s.mission || !s.mission->ifaceAddLock(s.lockMission, s.lockLevel)) {
@@ -411,7 +412,7 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 		}
 	}
 
-	qCDebug(lcApp).noquote() << QObject::tr("Locks loaded");
+	LOG_CTRACE("app") << "Locks loaded";
 
 	return true;
 }
@@ -459,7 +460,7 @@ void GameMapReaderIface::missionsToStream(QDataStream &stream, const QList<GameM
 
 bool GameMapReaderIface::imagesFromStream(QDataStream &stream)
 {
-	qCDebug(lcApp).noquote() << QObject::tr("Load images");
+	LOG_CTRACE("app") << "Load images";
 
 	quint32 size = 0;
 	stream >> size;
@@ -482,7 +483,7 @@ bool GameMapReaderIface::imagesFromStream(QDataStream &stream)
 			return false;
 	}
 
-	qCDebug(lcApp).noquote() << QObject::tr("Images loaded");
+	LOG_CTRACE("app") << "Images loaded";
 
 	return true;
 }
@@ -550,7 +551,7 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 	quint32 size = 0;
 	stream >> size;
 
-	qCDebug(lcApp).noquote() << QObject::tr("Load levels:") << size;
+	LOG_CTRACE("app") << "Load levels:" << size;
 
 	for (quint32 i=0; i<size; i++) {
 		qint32 level = -1;
@@ -605,7 +606,7 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 						stream >> chId;
 
 						if (chId == -1) {
-							qCWarning(lcApp).noquote() << QObject::tr("Invalid chapter id");
+							LOG_CWARNING("app") << "Invalid chapter id";
 							return false;
 						}
 
@@ -622,7 +623,7 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 				stream >> chId;
 
 				if (chId == -1) {
-					qCWarning(lcApp).noquote() << QObject::tr("Invalid chapter id");
+					LOG_CWARNING("app") << "Invalid chapter id";
 					return false;
 				}
 

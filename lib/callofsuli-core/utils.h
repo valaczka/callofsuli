@@ -36,7 +36,6 @@
 
 #ifdef Q_OS_ANDROID
 #include <jni.h>
-#include <QtAndroid>
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 

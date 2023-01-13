@@ -38,6 +38,11 @@
 #include <qpa/qplatformwindow.h>
 #include "Logger.h"
 
+#ifdef Q_OS_ANDROID
+#include "qandroidfunctions.h"
+#include "qscreen.h"
+#endif
+
 Client::Client(Application *app, QObject *parent)
 	: QObject{parent}
 	, m_application(app)
@@ -396,7 +401,7 @@ void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, con
 void Client::testConnect()
 {
 	Server *s = new Server(this);
-	s->setUrl(QUrl("wss://vjp:10102"));
+	s->setUrl(QUrl("ws://192.168.99.1:10102"));
 
 	m_webSocket->connectToServer(s);
 }

@@ -35,6 +35,8 @@
 #include "qconsole.h"
 #include "serverhandler.h"
 #include "utils.h"
+#include <QOAuthHttpServerReplyHandler>
+
 
 
 const int ServerService::m_versionMajor = VERSION_MAJOR;
@@ -150,9 +152,17 @@ Service::CommandResult ServerService::onStart()
 	m_webSocketServer->start();
 
 
-	m_googleOAuth2Authenticator = new GoogleOAuth2Authenticator(this);
+	GoogleOAuth2Authenticator *authGoogle = new GoogleOAuth2Authenticator(this);
+	m_authenticators.append(authGoogle);
+	m_settings->oauthGoogle().setAuthenticator(authGoogle);
 
-	if (!m_googleOAuth2Authenticator->listen()) {
+	if (m_settings->oauthGoogle().ssl) {
+		OAuthHttpServerReplySslHandler *h = authGoogle->createHandler<OAuthHttpServerReplySslHandler>();
+		h->setConfiguration(WebSocketServer::loadSslConfiguration(*m_settings));
+	} else
+		authGoogle->createHandler<QOAuthHttpServerReplyHandler>();
+
+	if (!authGoogle->handler()->isListening()) {
 		LOG_CERROR("service") << "OAuth2Authenticator listening error";
 		quit();
 		return CommandResult::Failed;
@@ -180,9 +190,7 @@ QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 	LOG_CINFO("service") << "Server service stopped with code:" << exitCode;
 
 	qDeleteAll(m_clients);
-
-	if (m_googleOAuth2Authenticator)
-		delete m_googleOAuth2Authenticator;
+	qDeleteAll(m_authenticators);
 
 	if (m_webSocketServer) {
 		m_webSocketServer->close();
@@ -263,6 +271,17 @@ void ServerService::onConfigChanged()
 
 
 /**
+ * @brief ServerService::authenticators
+ * @return
+ */
+
+const QVector<QPointer<OAuth2Authenticator> > &ServerService::authenticators() const
+{
+	return m_authenticators;
+}
+
+
+/**
  * @brief ServerService::config
  * @return
  */
@@ -329,15 +348,6 @@ void ServerService::setServerName(const QString &newServerName)
 }
 
 
-/**
- * @brief ServerService::googleOAuth2Authenticator
- * @return
- */
-
-GoogleOAuth2Authenticator *ServerService::googleOAuth2Authenticator() const
-{
-	return m_googleOAuth2Authenticator.data();
-}
 
 
 /**
@@ -359,6 +369,23 @@ const QVector<QPointer<Client> > &ServerService::clients() const
 WebSocketServer *ServerService::webSocketServer() const
 {
 	return m_webSocketServer.data();
+}
+
+
+/**
+ * @brief ServerService::oauth2Authenticator
+ * @param type
+ * @return
+ */
+
+OAuth2Authenticator *ServerService::oauth2Authenticator(const OAuth2Authenticator::Type &type) const
+{
+	for (OAuth2Authenticator *a : m_authenticators) {
+		if (a->type() == type)
+			return a;
+	}
+
+	return nullptr;
 }
 
 
@@ -421,9 +448,9 @@ bool ServerService::preStart()
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
 
 
-#ifdef QT_DEBUG
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
-#else
+
+#ifndef QT_DEBUG
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #endif
 
@@ -459,18 +486,12 @@ bool ServerService::preStart()
 		return false;
 	}
 
-#ifdef QT_DEBUG
 	if (parser.isSet(QStringLiteral("trace")))
 		m_consoleAppender->setDetailsLevel(Logger::Trace);
-	else
-		m_consoleAppender->setDetailsLevel(Logger::Debug);
-
-#else
-	if (parser.isSet(QStringLiteral("debug")))
+	else if (parser.isSet(QStringLiteral("debug")))
 		m_consoleAppender->setDetailsLevel(Logger::Debug);
 	else
 		m_consoleAppender->setDetailsLevel(Logger::Info);
-#endif
 
 
 	/*QString logFile;

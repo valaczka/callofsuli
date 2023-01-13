@@ -16,17 +16,22 @@ INCLUDEPATH += $$PWD/QDeferred/src
 
 # Qaterial
 
-INCLUDEPATH += \
-	$$PWD/Qaterial/src \
-	$$OUT_PWD/../../lib/libQaterial/_deps/qolm-src/include
+INCLUDEPATH += $$PWD/Qaterial/src
+
+android: INCLUDEPATH += $$OUT_PWD/../../lib/libQaterial/$${QT_ARCH}/_deps/qolm-src/include
+else: INCLUDEPATH += $$OUT_PWD/../../lib/libQaterial/_deps/qolm-src/include
 
 QMLPATHS += $$PWD/Qaterial/qml/Qaterial
 
 android {
-	LIBS += -L../../lib/libQaterial/$${QT_ARCH}/android-build/libs/$${QT_ARCH}/ -lQaterial_$${QT_ARCH}
-
 	if ($$QaterialBuildShared) {
-		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += $$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQaterial_$${abi}.so
+		LIBS += -L../../lib/libQaterial/$${QT_ARCH}/android-build/libs/$${QT_ARCH}/ -lQaterial_$${QT_ARCH} -lQOlm_$${QT_ARCH}
+
+		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += \
+			$$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQaterial_$${abi}.so \
+			$$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQOlm_$${abi}.so
+	} else {
+		LIBS += ../../lib/libQaterial/$${QT_ARCH}/_deps/qolm-build/libQOlm.a ../../lib/libQaterial/$${QT_ARCH}/libQaterial.a
 	}
 } else {
 	LIBS += -L../../lib/libQaterial -lQaterial -L../../lib/libQaterial/_deps/qolm-build -lQOlm
@@ -66,10 +71,14 @@ else: LIBS += -lQZXing
 
 # CuteLogger
 
-!wasm: INCLUDEPATH += $$PWD/CuteLogger/include
+android|ios|wasm {
+	HEADERS += $$PWD/../client/src/wasm_helper/Logger.h
+	INCLUDEPATH += $$PWD//../client/src/wasm_helper
+} else {
+	INCLUDEPATH += $$PWD/CuteLogger/include
+	LIBS += -lCuteLogger
+}
 
-android: LIBS += -lCuteLogger_$${QT_ARCH}
-else:!wasm: LIBS += -lCuteLogger
 
 
 
@@ -84,3 +93,9 @@ INCLUDEPATH += $$PWD/QtXlsxWriter/src/xlsx
 
 android: LIBS += -lQtXlsxWriter_$${QT_ARCH}
 else: LIBS += -lQtXlsxWriter
+
+
+
+# Android OpenSSL
+
+android: include($$PWD/android_openssl/openssl.pri)

@@ -88,6 +88,4 @@ protected:
 	QHash<QString, ModuleInterface*> m_storageModules;
 };
 
-Q_DECLARE_LOGGING_CATEGORY(lcApp)
-
 #endif // APPLICATION_H

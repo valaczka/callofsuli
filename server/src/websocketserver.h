@@ -27,7 +27,9 @@
 #ifndef WEBSOCKETSERVER_H
 #define WEBSOCKETSERVER_H
 
+#include "serversettings.h"
 #include <QWebSocketServer>
+#include <QSslConfiguration>
 
 class ServerService;
 
@@ -40,6 +42,8 @@ public:
 	virtual ~WebSocketServer();
 
 	bool start();
+
+	static QSslConfiguration loadSslConfiguration(const ServerSettings &settings);
 
 private slots:
 	void onNewConnection();

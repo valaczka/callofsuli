@@ -25,24 +25,17 @@
  */
 
 #include "oauth2authenticator.h"
-#include "serverservice.h"
+#include "Logger.h"
 #include "oauth2codeflow.h"
 
-OAuth2Authenticator::OAuth2Authenticator(ServerService *service)
-	: QObject{service}
-	, m_service(service)
-	, m_handler(new OAuth2ReplyHandler(this))
+OAuth2Authenticator::OAuth2Authenticator(const Type &type, QObject *parent)
+	: QObject{parent}
 	, m_networkManager(new QNetworkAccessManager(this))
+	, m_type(type)
 {
-	Q_ASSERT(service);
+	Q_ASSERT(parent);
 
-	LOG_CTRACE("oauth2") << "OAuth2Authenticator created" << this;
-
-	setClientId(m_service->settings()->googleClientId());
-	setClientKey(m_service->settings()->googleClientKey());
-	setListenPort(m_service->settings()->googleListenPort());
-	///setListenAddress(m_service->settings()->googleListenAddress());
-
+	LOG_CTRACE("oauth2") << "OAuth2Authenticator created" << m_type << this;
 }
 
 
@@ -54,10 +47,12 @@ OAuth2Authenticator::~OAuth2Authenticator()
 {
 	qDeleteAll(m_codeFlowList);
 
-	delete m_handler;
+	if (m_handler)
+		delete m_handler;
+
 	delete m_networkManager;
 
-	LOG_CTRACE("oauth2") << "OAuth2Authenticator destroyed" << this;
+	LOG_CTRACE("oauth2") << "OAuth2Authenticator destroyed" << m_type << this;
 }
 
 
@@ -67,6 +62,7 @@ OAuth2Authenticator::~OAuth2Authenticator()
 
 bool OAuth2Authenticator::listen() const
 {
+	Q_ASSERT(m_handler);
 	return m_handler->listen(m_listenAddress, m_listenPort);
 }
 
@@ -76,14 +72,14 @@ bool OAuth2Authenticator::listen() const
  * @param flow
  */
 
-void OAuth2Authenticator::addCodeFlow(OAuth2CodeFlow *flow, Client *client)
+void OAuth2Authenticator::addCodeFlow(OAuth2CodeFlow *flow, QObject *referenceObject)
 {
 	Q_ASSERT(flow);
-	Q_ASSERT(client);
+	Q_ASSERT(referenceObject);
 
-	LOG_CDEBUG("oauth2") << "Add new code flow" << flow << "to client" << client;
+	LOG_CDEBUG("oauth2") << "Add new code flow" << flow << "to client" << referenceObject;
 
-	flow->setReplyHandler(m_handler->handler());
+	flow->setReplyHandler(m_handler->abstractHandler());
 
 	m_codeFlowList.append(flow);
 }
@@ -115,10 +111,13 @@ void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
  * @return
  */
 
-OAuth2CodeFlow *OAuth2Authenticator::getCodeFlowForClient(Client *client) const
+OAuth2CodeFlow *OAuth2Authenticator::getCodeFlowForReferenceObject(QObject *referenceObject) const
 {
+	if (!referenceObject)
+		return nullptr;
+
 	foreach (OAuth2CodeFlow *f, m_codeFlowList)
-		if (f->client() == client)
+		if (f->referenceObject()  == referenceObject)
 			return f;
 
 	return nullptr;
@@ -204,6 +203,34 @@ void OAuth2Authenticator::setListenPort(quint16 newListenPort)
 QNetworkAccessManager *OAuth2Authenticator::networkManager() const
 {
 	return m_networkManager;
+}
+
+
+
+const QString &OAuth2Authenticator::redirectHost() const
+{
+	return m_redirectHost;
+}
+
+void OAuth2Authenticator::setRedirectHost(const QString &newRedirectHost)
+{
+	m_redirectHost = newRedirectHost;
+}
+
+AbstractReplyHandler *OAuth2Authenticator::handler() const
+{
+	return m_handler;
+}
+
+void OAuth2Authenticator::setHandler(AbstractReplyHandler *newHandler)
+{
+	m_handler = newHandler;
+	m_handler->setAuthenticator(this);
+}
+
+OAuth2Authenticator::Type OAuth2Authenticator::type() const
+{
+	return m_type;
 }
 
 

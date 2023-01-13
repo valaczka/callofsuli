@@ -28,6 +28,8 @@
 
 #ifdef Q_OS_WASM
 #include "onlineapplication.h"
+#elif defined (Q_OS_ANDROID) || defined (Q_OS_IOS)
+#include "mobileapplication.h"
 #else
 #include "desktopapplication.h"
 #endif
@@ -40,10 +42,15 @@ int main(int argc, char *argv[])
 	return app.run();
 #else
 
+#if defined (Q_OS_ANDROID) || defined (Q_OS_IOS)
+	MobileApplication app (argc, argv);
+
+	app.initialize();
+
+	return app.run();
+#else
 	DesktopApplication app(argc, argv);
-
 	app.commandLineParse();
-
 	app.initialize();
 
 	int r = 0;
@@ -51,9 +58,11 @@ int main(int argc, char *argv[])
 	if (app.performCommandLine())
 		r = app.run();
 
-	app.shutdown();
-
 	return r;
+#endif
+
+
+
 #endif
 
 }

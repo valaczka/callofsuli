@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli-server
 
-QT += network sql websockets networkauth
+QT += network sql websockets networkauth core-private
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
@@ -43,11 +43,7 @@ SOURCES += \
 	authhandler.cpp \
 	client.cpp \
 	databasemain.cpp \
-	googleoauth2authenticator.cpp \
 	main.cpp \
-	oauth2authenticator.cpp \
-	oauth2codeflow.cpp \
-	oauth2replyhandler.cpp \
 	serverhandler.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
@@ -64,10 +60,6 @@ HEADERS += \
 	authhandler.h \
 	client.h \
 	databasemain.h \
-	googleoauth2authenticator.h \
-	oauth2authenticator.h \
-	oauth2codeflow.h \
-	oauth2replyhandler.h \
 	serverhandler.h \
 	serverservice.h \
 	serversettings.h \

@@ -87,7 +87,8 @@ public:
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
 	WebSocketServer *webSocketServer() const;
-	GoogleOAuth2Authenticator *googleOAuth2Authenticator() const;
+
+	OAuth2Authenticator *oauth2Authenticator(const OAuth2Authenticator::Type &type) const;
 
 	void clientAdd(Client *client);
 	void clientRemove(Client *client);
@@ -103,6 +104,8 @@ public:
 
 	void sendToClients(const WebSocketMessage &message) const;
 	void sendToClients(const Credential::Roles &roles, const WebSocketMessage &message) const;
+
+	const QVector<QPointer<OAuth2Authenticator> > &authenticators() const;
 
 signals:
 	void configChanged();
@@ -136,7 +139,7 @@ private:
 	QPointer<DatabaseMain> m_databaseMain = nullptr;
 	QPointer<WebSocketServer> m_webSocketServer = nullptr;
 	QVector<QPointer<Client>> m_clients;
-	QPointer<GoogleOAuth2Authenticator> m_googleOAuth2Authenticator = nullptr;
+	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
 
 	JwtVerifier m_verifier = jwt::verify();
 

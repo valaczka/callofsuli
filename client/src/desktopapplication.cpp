@@ -25,15 +25,10 @@
  */
 
 #include <RollingFileAppender.h>
+#include "ColorConsoleAppender.h"
 #include "desktopapplication.h"
-#include "desktopclient.h"
 #include "utils.h"
 
-#include "sound.h"
-
-#ifdef Q_OS_WIN32
-#include <windows.h>
-#endif
 
 /**
  * @brief DesktopApplication::DesktopApplication
@@ -42,33 +37,23 @@
  */
 
 DesktopApplication::DesktopApplication(int &argc, char **argv)
-	: Application(argc, argv)
+	: MobileApplication(argc, argv)
 {
-#ifdef Q_OS_ANDROID
-	m_appender = new AndroidAppender;
-#else
 	m_appender = new ColorConsoleAppender;
-#endif
-
 
 #ifndef QT_NO_DEBUG
-#ifdef Q_OS_ANDROID
-	m_appender->setFormat(QString::fromStdString(
-									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} <%{function} %{file}:%{line}>\n"));
-#else
 	m_appender->setFormat(QString::fromStdString(
 									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
 									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
 									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
 									 ColorConsoleAppender::green+">\n"));
-#endif
 #else
 	m_appender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
 #endif
 
 	cuteLogger->registerAppender(m_appender);
 
-	cuteLogger->logToGlobalInstance(QStringLiteral("application"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("game"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("scene"), true);
@@ -155,11 +140,14 @@ void DesktopApplication::commandLineParse()
 
 
 #ifdef QT_DEBUG
+#ifdef Q_OS_ANDROID
+	m_appender->setDetailsLevel(Logger::Trace);
+#else
 	if (parser.isSet(QStringLiteral("trace")))
 		m_appender->setDetailsLevel(Logger::Trace);
 	else
 		m_appender->setDetailsLevel(Logger::Debug);
-
+#endif
 #else
 	if (parser.isSet(QStringLiteral("debug")))
 		m_appender->setDetailsLevel(Logger::Debug);
@@ -167,46 +155,10 @@ void DesktopApplication::commandLineParse()
 		m_appender->setDetailsLevel(Logger::Info);
 #endif
 
-}
 
-
-/**
- * @brief DesktopApplication::initialize
- */
-
-void DesktopApplication::initialize()
-{
-#ifdef Q_OS_WIN32
-	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		m_streamO = freopen("CONOUT$", "w", stdout);
-		m_streamE = freopen("CONOUT$", "w", stderr);
-	}
-#endif
-
-
-	qRegisterMetaType<Sound::SoundType>("SoundType");
-	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 0, "Sound", "Sound is uncreatable");
-
-	qmlRegisterType<Server>("CallOfSuli", 1, 0, "Server");
-
-	createStandardPath();
 
 }
 
-
-/**
- * @brief DesktopApplication::shutdown
- */
-
-void DesktopApplication::shutdown()
-{
-#ifdef Q_OS_WIN32
-	if (m_streamO != NULL)
-		fclose(m_streamO);
-	if (m_streamE != NULL)
-		fclose(m_streamE);
-#endif
-}
 
 
 /**
@@ -226,36 +178,6 @@ bool DesktopApplication::performCommandLine()
 	}
 
 	return true;
-}
-
-
-
-/**
- * @brief DesktopApplication::createStandardPath
- */
-
-void DesktopApplication::createStandardPath()
-{
-	QDir d(Utils::standardPath());
-
-	if (!d.exists()) {
-		qCInfo(lcApp).noquote() << QObject::tr("Create directory:") + d.absolutePath();
-		d.mkpath(d.absolutePath());
-	} else {
-		qCDebug(lcApp).noquote() << QObject::tr("Standard path:") << d.absolutePath();
-	}
-}
-
-
-
-/**
- * @brief DesktopApplication::createClient
- * @return
- */
-
-Client *DesktopApplication::createClient()
-{
-	return new DesktopClient(this, m_application);
 }
 
 

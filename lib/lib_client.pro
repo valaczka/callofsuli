@@ -9,7 +9,7 @@ SUBDIRS += \
 	libQtXlsxWriter \
 	callofsuli-core
 
-!wasm: SUBDIRS += CuteLogger
+!wasm:!android:!ios: SUBDIRS += CuteLogger
 
 !wasm|if($$WasmWithBox2D) {
 	SUBDIRS += qml-box2d
