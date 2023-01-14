@@ -54,6 +54,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 	cuteLogger->registerAppender(m_appender);
 
 	cuteLogger->logToGlobalInstance(QStringLiteral("app"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("game"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("scene"), true);
@@ -74,6 +75,7 @@ DesktopApplication::~DesktopApplication()
 {
 
 }
+
 
 
 /**

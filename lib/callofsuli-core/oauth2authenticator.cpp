@@ -75,9 +75,8 @@ bool OAuth2Authenticator::listen() const
 void OAuth2Authenticator::addCodeFlow(OAuth2CodeFlow *flow, QObject *referenceObject)
 {
 	Q_ASSERT(flow);
-	Q_ASSERT(referenceObject);
 
-	LOG_CDEBUG("oauth2") << "Add new code flow" << flow << "to client" << referenceObject;
+	LOG_CDEBUG("oauth2") << "Add new code flow" << flow << "to object" << referenceObject;
 
 	flow->setReplyHandler(m_handler->abstractHandler());
 

@@ -48,17 +48,45 @@ OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(QObject *referenceObject)
 
 	OAuth2CodeFlow *flow = new OAuth2CodeFlow(this, referenceObject);
 
+	setCodeFlow(flow);
+
+	OAuth2Authenticator::addCodeFlow(flow, referenceObject);
+
+	return flow;
+}
+
+
+/**
+ * @brief GoogleOAuth2Authenticator::addCodeFlow
+ * @param flow
+ * @return
+ */
+
+OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(OAuth2CodeFlow *flow)
+{
+	setCodeFlow(flow);
+
+	OAuth2Authenticator::addCodeFlow(flow, nullptr);
+
+	return flow;
+}
+
+
+/**
+ * @brief GoogleOAuth2Authenticator::setCodeFlow
+ * @param flow
+ */
+
+void GoogleOAuth2Authenticator::setCodeFlow(OAuth2CodeFlow *flow) const
+{
+	Q_ASSERT(flow);
+
 	flow->setAuthorizationUrl(QUrl(QStringLiteral("https://accounts.google.com/o/oauth2/auth")));
 	flow->setAccessTokenUrl(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
 	flow->setScope(QStringLiteral("email profile"));
 
 	flow->setClientIdentifier(m_clientId);
 	flow->setClientIdentifierSharedKey(m_clientKey);
-
-
-	OAuth2Authenticator::addCodeFlow(flow, referenceObject);
-
-	return flow;
 }
 
 

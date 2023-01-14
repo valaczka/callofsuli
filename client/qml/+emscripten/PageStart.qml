@@ -18,7 +18,7 @@ QPage {
 		return false
 	}*/
 
-	title: "Call of Suli"
+	title: "Call of Suli WASM"
 
 	appBar.backButtonVisible: false
 	appBar.rightComponent: Qaterial.AppBarButton

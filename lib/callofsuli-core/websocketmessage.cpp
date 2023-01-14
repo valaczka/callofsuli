@@ -133,8 +133,11 @@ WebSocketMessage WebSocketMessage::createRequest(const ClassHandler &classHandle
  * @return
  */
 
-WebSocketMessage WebSocketMessage::createResponse(const QJsonObject &data, const QByteArray &binaryData) const
+WebSocketMessage WebSocketMessage::createResponse(QJsonObject data, const QByteArray &binaryData) const
 {
+	if (m_data.contains(QStringLiteral("func")) && !data.contains(QStringLiteral("func")))
+		data.insert(QStringLiteral("func"), m_data.value(QStringLiteral("func")).toString());
+
 	WebSocketMessage m;
 	m.m_opCode = RequestResponse;
 	m.m_classHandler = m_classHandler;
@@ -161,6 +164,10 @@ WebSocketMessage WebSocketMessage::createErrorResponse(const QString &errorStrin
 	m.m_data = QJsonObject({
 							  { QStringLiteral("error"), errorString }
 						   });
+
+	if (m_data.contains(QStringLiteral("func")))
+		m.m_data.insert(QStringLiteral("func"), m_data.value(QStringLiteral("func")).toString());
+
 	return m;
 }
 
@@ -180,6 +187,10 @@ WebSocketMessage WebSocketMessage::createStatusResponse(const QString &statusStr
 	m.m_data = QJsonObject({
 							  { QStringLiteral("status"), statusString }
 						   });
+
+	if (m_data.contains(QStringLiteral("func")))
+		m.m_data.insert(QStringLiteral("func"), m_data.value(QStringLiteral("func")).toString());
+
 	return m;
 }
 
@@ -361,6 +372,23 @@ int WebSocketMessage::nextMsgNumber()
 
 	return ++m_msgNumberSequence;
 }
+
+
+/**
+ * @brief WebSocketMessage::msgNumber
+ * @return
+ */
+
+int WebSocketMessage::msgNumber() const
+{
+	return m_msgNumber;
+}
+
+
+/**
+ * @brief WebSocketMessage::classHandler
+ * @return
+ */
 
 const WebSocketMessage::ClassHandler &WebSocketMessage::classHandler() const
 {

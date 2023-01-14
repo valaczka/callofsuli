@@ -3,7 +3,7 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private websockets
 
-!wasm: QT += multimedia sql webview
+!wasm: QT += multimedia sql webview networkauth
 
 CONFIG += c++17
 
@@ -39,13 +39,15 @@ include(../../lib/import_lib_client.pri)
 !wasm {
 	DEFINES += WITH_BOX2D
 
-	SOURCES += desktopclient.cpp
-	HEADERS += desktopclient.h
+	SOURCES += \
+		mobileapplication.cpp \
+		desktopclient.cpp
 
-	ios|android: {
-		SOURCES += mobileapplication.cpp
-		HEADERS += mobileapplication.h
-	} else {
+	HEADERS += \
+		mobileapplication.h \
+		desktopclient.h
+
+	!android:!ios {
 		SOURCES += desktopapplication.cpp
 		HEADERS += desktopapplication.h
 	}
@@ -155,6 +157,7 @@ SOURCES += \
 	abstractobjectiveimporter.cpp \
 	actiongame.cpp \
 	application.cpp \
+	asyncmessagehandler.cpp \
 	client.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
@@ -192,6 +195,7 @@ HEADERS += \
 	abstractobjectiveimporter.h \
 	actiongame.h \
 	application.h \
+	asyncmessagehandler.h \
 	client.h \
 	fontimage.h \
 	gameenemy.h \

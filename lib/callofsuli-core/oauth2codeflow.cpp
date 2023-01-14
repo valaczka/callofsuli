@@ -79,7 +79,7 @@ void OAuth2CodeFlow::requestAccesToken(const QString &code)
 
 	QUrlQuery query;
 	query.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("authorization_code"));
-	query.addQueryItem("code", code);
+	query.addQueryItem("code", QUrl::fromPercentEncoding(code.toLatin1()));
 	query.addQueryItem("redirect_uri", callback());
 	query.addQueryItem("client_id", clientIdentifier());
 

@@ -241,20 +241,6 @@ void Client::setCredential(const Credential &newCredential)
 
 
 
-/**
- * @brief Client::requestOAuth2Browser
- * @param url
- */
-
-void Client::requestOAuth2Browser(const QUrl &url)
-{
-	LOG_CINFO("client") << this << "Request browser for oauth2 url" << url;
-
-	send(WebSocketMessage::createEvent(QJsonObject({
-													   { QStringLiteral("url"), url.toString() }
-												   })));
-}
-
 
 /**
  * @brief Client::createAuthHandler

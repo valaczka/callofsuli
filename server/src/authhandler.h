@@ -59,12 +59,16 @@ private slots:
 	void registrationGoogle();
 	void registrationPlain();
 
+	void getGoogleLocalClientId();
+
 	void onOAuthFailed();
 	void onOAuthSuccess(const QVariantMap &data);
 	void onOAuthRegistrationSuccess(const QVariantMap &data);
 
 private:
 	void loginUser(const Credential &credential);
+	void loginWithIdToken(const QVariantMap &data);
+	void registrationWithIdToken(const QVariantMap &data);
 
 
 };

@@ -218,6 +218,20 @@ bool Client::stackPop(const int &index, const bool &forced) const
 }
 
 
+/**
+ * @brief Client::stackPop
+ * @param page
+ * @param forced
+ * @return
+ */
+
+bool Client::stackPop(QQuickItem *page, const bool &forced) const
+{
+	QQmlProperty property(page, "StackView.index", qmlContext(page));
+	return stackPop(property.read().toInt()-1, forced);
+}
+
+
 
 
 
@@ -390,6 +404,59 @@ WebSocket *Client::webSocket() const
 void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json)
 {
 	m_webSocket->send(WebSocketMessage::createRequest(classHandler, json));
+}
+
+
+/**
+ * @brief Client::addMessageHandler
+ * @param handler
+ */
+
+void Client::addMessageHandler(AsyncMessageHandler *handler)
+{
+	if (!handler)
+		return;
+
+	if (!m_messageHandlers.contains(handler)) {
+		LOG_CTRACE("client") << "Add message handler:" << handler;
+		m_messageHandlers.append(handler);
+	}
+}
+
+
+
+
+/**
+ * @brief Client::removeMessageHandler
+ * @param handler
+ */
+
+void Client::removeMessageHandler(AsyncMessageHandler *handler)
+{
+	if (!handler)
+		return;
+
+	LOG_CTRACE("client") << "Remove message handler:" << handler;
+	m_messageHandlers.removeAll(handler);
+}
+
+
+/**
+ * @brief Client::handleMessage
+ * @param message
+ */
+
+void Client::handleMessage(const WebSocketMessage &message)
+{
+	if (handleMessageInternal(message))
+		return;
+
+	if (message.opCode() != WebSocketMessage::RequestResponse)
+		return;
+
+	foreach (AsyncMessageHandler *h, m_messageHandlers)
+		if (h) h->handleMessage(message);
+
 }
 
 

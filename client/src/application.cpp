@@ -66,6 +66,7 @@
 #include "gamequestion.h"
 #include "mapplay.h"
 #include "websocket.h"
+#include "asyncmessagehandler.h"
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -331,10 +332,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
-
-	LOG_CTRACE("app") << "Register QML types ****3";
-
-
+	qmlRegisterType<AsyncMessageHandler>("CallOfSuli", 1, 0, "AsyncMessageHandler");
 }
 
 /**

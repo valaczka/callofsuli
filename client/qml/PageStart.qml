@@ -17,7 +17,7 @@ QPage {
 		return false
 	}*/
 
-	title: "Call of Suli WASM"
+	title: "Call of Suli"
 
 	appBar.backButtonVisible: false
 	appBar.rightComponent: Qaterial.AppBarButton
@@ -34,6 +34,14 @@ QPage {
 			QMenuItem { action: actionExit }
 		}
 
+	}
+
+	AsyncMessageHandler {
+		id: handler
+
+		function getGoogleLocalClientId(a,b) {
+			console.debug("***", a.func, a, b)
+		}
 	}
 
 	Action {
@@ -75,7 +83,7 @@ QPage {
 		}
 
 		Qaterial.RaisedButton {
-			text: "Db"
+			text: "Db "+handler.pending
 			highlighted: false
 
 		}
@@ -92,7 +100,13 @@ QPage {
 		Qaterial.RaisedButton {
 			text: "Hello"
 			highlighted: false
-			onClicked: Client.stackPushPage("PageWebView.qml", {})
+			onClicked: handler.sendRequest(WebSocketMessage.ClassAuth, {func: "valami"})
+		}
+
+		Qaterial.RaisedButton {
+			text: "Hello2"
+			highlighted: false
+			onClicked: handler.sendRequest(WebSocketMessage.ClassAuth, {func: "getGoogleLocalClientId"})
 		}
 
 		Qaterial.RaisedButton {
@@ -105,7 +119,7 @@ QPage {
 		Qaterial.RaisedButton {
 			text: "Login Google"
 			highlighted: false
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {func: "loginGoogle"})
+			onClicked: Client.loginGoogle()
 		}
 
 		Qaterial.RaisedButton {
@@ -202,6 +216,14 @@ QPage {
 
 	Column {
 		anchors.top: row2.bottom
+
+		Qaterial.TextArea {
+			width: 500
+			title: "title"
+			helperText: "helper"
+			placeholderText: "placeholder"
+			suffixText: "suffix"
+		}
 
 		Repeater {
 			model: Client.serverList

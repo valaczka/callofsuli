@@ -97,7 +97,7 @@ public:
 	static WebSocketMessage createEvent(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	static WebSocketMessage createRequest(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	static WebSocketMessage createRequest(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData = QByteArray());
-	WebSocketMessage createResponse(const QJsonObject &data, const QByteArray &binaryData = QByteArray()) const;
+	WebSocketMessage createResponse(QJsonObject data, const QByteArray &binaryData = QByteArray()) const;
 	WebSocketMessage createErrorResponse(const QString &errorString) const;
 	WebSocketMessage createStatusResponse(const QString &statusString = QStringLiteral("ok")) const;
 	static WebSocketMessage createErrorEvent(const QString &errorString, const ClassHandler &classHandler = ClassInvalid);
@@ -122,6 +122,7 @@ public:
 
 	int expectedDataSize() const;
 
+	int msgNumber() const;
 	int requestMsgNumber() const;
 
 	const WebSocketError &error() const;
@@ -135,6 +136,7 @@ public:
 	friend QDataStream &operator<<(QDataStream &stream, const WebSocketMessage &message);
 	friend QDataStream &operator>>(QDataStream &stream, const WebSocketMessage &message);
 	friend QDebug operator<<(QDebug stream, const WebSocketMessage &message);
+
 
 
 private:

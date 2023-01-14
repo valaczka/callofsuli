@@ -33,6 +33,10 @@
 
 class Client;
 
+/**
+ * @brief The WebSocket class
+ */
+
 class WebSocket : public QObject
 {
 	Q_OBJECT
@@ -90,6 +94,9 @@ private:
 	Server *m_server = nullptr;
 	int m_signalUnavailableNum = 0;
 };
+
+
+
 
 
 #endif // WEBSOCKET_H

@@ -71,9 +71,6 @@ public:
 	OAuth2CodeFlow *oauth2CodeFlow() const;
 	void setOauth2CodeFlow(OAuth2CodeFlow *newOauth2CodeFlow);
 
-public slots:
-	void requestOAuth2Browser(const QUrl &url);
-
 signals:
 	void clientStateChanged();
 	void credentialChanged();

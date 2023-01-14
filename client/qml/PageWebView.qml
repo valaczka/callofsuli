@@ -9,8 +9,16 @@ import "./QaterialHelper" as Qaterial
 QPage {
 	id: control
 
-	//title: "Call of Suli"
-	property url url;
+	title: codeFlow ?
+			   codeFlow.mode == DesktopCodeFlow.Login ?
+				   qsTr("Bejelentkezés") :
+				   codeFlow.mode == DesktopCodeFlow.Registration ?
+					   qsTr("Regisztráció") :
+					   "" : ""
+
+
+	property alias url: web.url
+	property DesktopCodeFlow codeFlow: null
 
 	appBar.backButtonVisible: true
 
@@ -20,10 +28,7 @@ QPage {
 		width: parent.width
 		height: parent.height + (Qt.inputMethod && Qt.inputMethod.visible ? (Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)
 		httpUserAgent: "Mozilla/5.0 Google"
-
-		Component.onCompleted: {
-			url = control.url
-		}
 	}
 
+	Component.onDestruction: if (codeFlow) codeFlow.pageRemoved()
 }

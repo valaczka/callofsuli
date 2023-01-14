@@ -97,7 +97,6 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("google/clientId")))
 		setOauthGoogle(OAuth::fromSettings(&s, QStringLiteral("google")));
 
-
 	LOG_CINFO("service") << "Configuration loaded from:" << f;
 }
 
@@ -249,6 +248,14 @@ void ServerSettings::setOauthGoogle(const OAuth &newOauthGoogle)
 }
 
 
+
+/**
+ * @brief ServerSettings::OAuth::fromSettings
+ * @param settings
+ * @param group
+ * @return
+ */
+
 ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, const QString &group)
 {
 	Q_ASSERT (settings);
@@ -262,6 +269,8 @@ ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, c
 	r.redirectHost = settings->value(QStringLiteral("redirectHost"), QStringLiteral("0.0.0.0")).toString();
 	r.listenPort = settings->value(QStringLiteral("listenPort"), 0).toUInt();
 	r.ssl = settings->value(QStringLiteral("ssl")).toBool();
+	r.localClientId = settings->value(QStringLiteral("localClientId")).toString();
+	r.localClientKey = settings->value(QStringLiteral("localClientKey")).toString();
 
 	settings->endGroup();
 
@@ -286,6 +295,8 @@ void ServerSettings::OAuth::toSettings(QSettings *settings, const QString &group
 	settings->setValue(QStringLiteral("listenPort"), listenPort);
 	settings->setValue(QStringLiteral("redirectHost"), redirectHost);
 	settings->setValue(QStringLiteral("ssl"), ssl);
+	settings->setValue(QStringLiteral("localClientId"), localClientId);
+	settings->setValue(QStringLiteral("localClientKey"), localClientKey);
 
 	settings->endGroup();
 }

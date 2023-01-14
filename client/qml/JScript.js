@@ -2,7 +2,7 @@ function intializeStyle() {
 	Qaterial.Style.theme = Qaterial.Style.Theme.Dark
 	Qaterial.Style.primaryColorDark = Qt.darker(Qaterial.Colors.cyan900, 1.8)
 	Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
-	Qaterial.Style.backgroundColorDark = Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.6)
+	Qaterial.Style.backgroundColorDark = "transparent"
 	Qaterial.Style.foregroundColorDark = Qaterial.Colors.green200
 
 	Qaterial.Style.primaryTextColorDark = Qaterial.Colors.cyan50
@@ -56,6 +56,10 @@ function intializeStyle() {
 	Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
 
 	Qaterial.Style.menuItem.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 14 : 18) * Qaterial.Style.pixelSizeRatio })
+
+	Qaterial.Style.colorItemGlow = Qaterial.Colors.yellow100
+
+	Qaterial.Style.rawButton.outlinedFocusWidth = 1
 }
 
 

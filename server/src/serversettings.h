@@ -49,6 +49,8 @@ public:
 		quint16 listenPort = 0;
 		bool ssl = false;
 		QString redirectHost = listenHost.toString();
+		QString localClientId;
+		QString localClientKey;
 
 		static OAuth fromSettings(QSettings *settings, const QString &group = "");
 		void toSettings(QSettings *settings, const QString &group = "") const;
@@ -83,7 +85,6 @@ public:
 
 	const QString &certKeyFile() const;
 	void setCertKeyFile(const QString &newCertKeyFile);
-
 
 	const OAuth &oauthGoogle() const;
 	void setOauthGoogle(const OAuth &newOauthGoogle);

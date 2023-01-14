@@ -39,11 +39,6 @@ HEADERS += \
 	utils.h \
 	websocketmessage.h
 
-!wasm: HEADERS += \
-	googleoauth2authenticator.h \
-	oauth2authenticator.h \
-	oauth2codeflow.h \
-	oauth2replyhandler.h
 
 SOURCES += \
 	credential.cpp \
@@ -52,18 +47,20 @@ SOURCES += \
 	utils.cpp \
 	websocketmessage.cpp
 
-!wasm: SOURCES += \
-	googleoauth2authenticator.cpp \
-	oauth2authenticator.cpp \
-	oauth2codeflow.cpp \
-	oauth2replyhandler.cpp
-
 
 !wasm {
 	HEADERS += \
 		database.h \
+		googleoauth2authenticator.h \
+		oauth2authenticator.h \
+		oauth2codeflow.h \
+		oauth2replyhandler.h
 
 	SOURCES += \
 		database.cpp \
+		googleoauth2authenticator.cpp \
+		oauth2authenticator.cpp \
+		oauth2codeflow.cpp \
+		oauth2replyhandler.cpp
 
 }

@@ -309,6 +309,13 @@ void AuthHandler::handleEvent()
 
 void AuthHandler::loginGoogle()
 {
+	if (json().contains(QStringLiteral("id_token"))) {
+		loginWithIdToken(QVariantMap({
+										 { QStringLiteral("id_token"), json().value(QStringLiteral("id_token")).toString() }
+									 }));
+		return;
+	}
+
 	if (m_client->oauth2CodeFlow()) {
 		send(m_message.createErrorResponse(QStringLiteral("login already in progress")));
 		LOG_CWARNING("client") << m_client << "OAuth2CodeFlow already exists";
@@ -327,15 +334,12 @@ void AuthHandler::loginGoogle()
 	m_client->setOauth2CodeFlow(flow);
 
 	if (flow) {
-		send(m_message.createStatusResponse(), false);				// Don't delete handler!
-
 		connect(flow, &OAuth2CodeFlow::authenticationFailed, this, &AuthHandler::onOAuthFailed);
 		connect(flow, &OAuth2CodeFlow::authenticationSuccess, this, &AuthHandler::onOAuthSuccess);
 
-		if (json().contains(QStringLiteral("code")))
-			flow->requestAccesToken(json().value(QStringLiteral("code")).toString());
-		else
-			m_client->requestOAuth2Browser(flow->requestAuthorizationUrl());
+		send(m_message.createResponse(QJsonObject({
+													  { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+												  })), false); // Don't delete handler!
 	} else {
 		send(m_message.createErrorResponse(QStringLiteral("unable to create oauth2 code flow")));
 	}
@@ -394,6 +398,13 @@ void AuthHandler::registrationGoogle()
 		return;
 	}
 
+	if (json().contains(QStringLiteral("id_token"))) {
+		registrationWithIdToken(QVariantMap({
+										 { QStringLiteral("id_token"), json().value(QStringLiteral("id_token")).toString() }
+									 }));
+		return;
+	}
+
 	if (m_client->oauth2CodeFlow()) {
 		send(m_message.createErrorResponse(QStringLiteral("registration already in progress")));
 		LOG_CWARNING("client") << m_client << "OAuth2CodeFlow already exists";
@@ -412,15 +423,12 @@ void AuthHandler::registrationGoogle()
 	m_client->setOauth2CodeFlow(flow);
 
 	if (flow) {
-		send(m_message.createStatusResponse(), false);			// Don't delete handler!
-
 		connect(flow, &OAuth2CodeFlow::authenticationFailed, this, &AuthHandler::onOAuthFailed);
 		connect(flow, &OAuth2CodeFlow::authenticationSuccess, this, &AuthHandler::onOAuthRegistrationSuccess);
 
-		if (json().contains(QStringLiteral("code")))
-			flow->requestAccesToken(json().value(QStringLiteral("code")).toString());
-		else
-			m_client->requestOAuth2Browser(flow->requestAuthorizationUrl());
+		send(m_message.createResponse(QJsonObject({
+													  { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+												  })), false); // Don't delete handler!
 	} else {
 		send(m_message.createErrorResponse(QStringLiteral("unable to create oauth2 code flow")));
 	}
@@ -476,6 +484,24 @@ void AuthHandler::registrationPlain()
 
 
 
+/**
+ * @brief AuthHandler::getGoogleLocalClientId
+ */
+
+void AuthHandler::getGoogleLocalClientId()
+{
+	LOG_CDEBUG("client") << m_client << "Get Google local client ID and key";
+
+	send(m_message.createResponse(QJsonObject({
+												  { QStringLiteral("clientId"), service()->settings()->oauthGoogle().localClientId },
+												  { QStringLiteral("clientKey"), service()->settings()->oauthGoogle().localClientKey }
+											  })));
+
+}
+
+
+
+
 
 
 /**
@@ -521,30 +547,7 @@ void AuthHandler::onOAuthSuccess(const QVariantMap &data)
 	if (m_client)
 		m_client->setOauth2CodeFlow(nullptr);
 
-	auto map = GoogleOAuth2Authenticator::getInfoFromRequestAccess(data);
-
-	if (QString::fromStdString(map.value("email_verified")) == QLatin1String("true")) {
-		QString email = QString::fromStdString(map.value("email"));
-
-		LOG_CDEBUG("client") << m_client << "Authenticated with Google:" << qPrintable(email);
-
-		getCredential(email)
-				.fail([this](Credential){
-			send(m_message.createErrorResponse(QStringLiteral("invalid user")));
-		})
-		.then<Credential>([this](Credential c){
-			return authorizeOAuth2(c, "google");
-		})
-		.fail([this](Credential){
-			send(m_message.createErrorResponse(QStringLiteral("authentication failed")));
-		})
-		.done([this](Credential c){
-			loginUser(c);
-		});
-	} else {
-		send(WebSocketMessage::createErrorEvent(QStringLiteral("Authenticated email not verified"), WebSocketMessage::ClassAuth));
-	}
-
+	loginWithIdToken(data);
 }
 
 
@@ -574,8 +577,75 @@ void AuthHandler::onOAuthRegistrationSuccess(const QVariantMap &data)
 		m_client->setOauth2CodeFlow(nullptr);
 
 
+	registrationWithIdToken(data);
+}
+
+
+
+/**
+ * @brief AuthHandler::loginUser
+ * @param username
+ */
+
+void AuthHandler::loginUser(const Credential &credential)
+{
+	LOG_CINFO("client") << m_client << "Login:" << qPrintable(credential.username()) << credential.roles();
+
+	setCredential(credential);
+
+	const QString &token = credential.createJWT(service()->settings()->jwtSecret());
+
+	send(m_message.createResponse(QJsonObject({
+												  { QStringLiteral("status"), QStringLiteral("ok") },
+												  { QStringLiteral("auth_token"), token }
+											  })));
+}
+
+
+
+
+/**
+ * @brief AuthHandler::loginWithIdToken
+ * @param idToken
+ */
+
+void AuthHandler::loginWithIdToken(const QVariantMap &data)
+{
 	auto map = GoogleOAuth2Authenticator::getInfoFromRequestAccess(data);
 
+	if (QString::fromStdString(map.value("email_verified")) == QLatin1String("true")) {
+		QString email = QString::fromStdString(map.value("email"));
+
+		LOG_CDEBUG("client") << m_client << "Authenticated with Google:" << qPrintable(email);
+
+		getCredential(email)
+				.fail([this](Credential){
+			send(m_message.createErrorResponse(QStringLiteral("invalid user")));
+		})
+		.then<Credential>([this](Credential c){
+			return authorizeOAuth2(c, "google");
+		})
+		.fail([this](Credential){
+			send(m_message.createErrorResponse(QStringLiteral("authentication failed")));
+		})
+		.done([this](Credential c){
+			loginUser(c);
+		});
+	} else {
+		send(WebSocketMessage::createErrorEvent(QStringLiteral("Authenticated email not verified"), WebSocketMessage::ClassAuth));
+	}
+
+}
+
+
+/**
+ * @brief AuthHandler::registrationWithIdToken
+ * @param data
+ */
+
+void AuthHandler::registrationWithIdToken(const QVariantMap &data)
+{
+	auto map = GoogleOAuth2Authenticator::getInfoFromRequestAccess(data);
 
 	if (QString::fromStdString(map.value("email_verified")) == QLatin1String("true")) {
 		QString email = QString::fromStdString(map.value("email"));
@@ -614,23 +684,4 @@ void AuthHandler::onOAuthRegistrationSuccess(const QVariantMap &data)
 }
 
 
-
-/**
- * @brief AuthHandler::loginUser
- * @param username
- */
-
-void AuthHandler::loginUser(const Credential &credential)
-{
-	LOG_CINFO("client") << m_client << "Login:" << qPrintable(credential.username()) << credential.roles();
-
-	setCredential(credential);
-
-	const QString &token = credential.createJWT(service()->settings()->jwtSecret());
-
-	send(m_message.createResponse(QJsonObject({
-												  { QStringLiteral("status"), QStringLiteral("ok") },
-												  { QStringLiteral("auth_token"), token }
-											  })));
-}
 

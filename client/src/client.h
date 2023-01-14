@@ -35,6 +35,7 @@
 #include "utils.h"
 #include "websocketmessage.h"
 #include <QAbstractSocket>
+#include "asyncmessagehandler.h"
 
 class Application;
 class AbstractGame;
@@ -76,6 +77,7 @@ public:
 
 	Q_INVOKABLE QQuickItem *stackPushPage(const QString &qml, const QVariantMap &parameters = {}) const;
 	Q_INVOKABLE bool stackPop(const int &index = -1, const bool &forced = false) const;
+	Q_INVOKABLE bool stackPop(QQuickItem *page, const bool &forced = false) const;
 
 	QQuickWindow *mainWindow() const;
 	void setMainWindow(QQuickWindow *newMainWindow);
@@ -131,6 +133,10 @@ public:
 	WebSocket *webSocket() const;
 	Q_INVOKABLE void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json);
 
+	void addMessageHandler(AsyncMessageHandler *handler);
+	void removeMessageHandler(AsyncMessageHandler *handler);
+	void handleMessage(const WebSocketMessage &message);
+
 
 	Q_INVOKABLE void testConnect();
 	Q_INVOKABLE void testHello();
@@ -148,6 +154,7 @@ protected slots:
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
+	virtual bool handleMessageInternal(const WebSocketMessage &) { return false; }
 
 signals:
 	void pixelSizeChanged();
@@ -159,9 +166,8 @@ signals:
 	void safeMarginRightChanged();
 	void safeMarginTopChanged();
 	void safeMarginBottomChanged();
-	void webSocketMessageReceived(const WebSocketMessage &message);
-
 	void serverChanged();
+
 
 protected:
 	Application *const m_application;
@@ -179,6 +185,8 @@ protected:
 	qreal m_safeMarginRight = 0;
 	qreal m_safeMarginTop = 0;
 	qreal m_safeMarginBottom = 0;
+
+	QVector<QPointer<AsyncMessageHandler>> m_messageHandlers;
 
 private:
 

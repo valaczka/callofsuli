@@ -29,6 +29,7 @@
 #include "qdiriterator.h"
 #include "qquickwindow.h"
 #include "qscreen.h"
+#include "websocket.h"
 #include <QSettings>
 
 /**
@@ -53,6 +54,7 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	QMetaObject::invokeMethod(m_sound, "init", Qt::BlockingQueuedConnection);
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
+	connect(m_webSocket, &WebSocket::serverConnected, this, &DesktopClient::onServerConnected);
 
 	serverListLoad();
 }
@@ -156,15 +158,15 @@ int DesktopClient::volume(const Sound::ChannelType &channel) const
 	QByteArray func;
 
 	switch (channel) {
-		case Sound::MusicChannel:
-			func = QByteArrayLiteral("volumeMusic");
-			break;
-		case Sound::SfxChannel:
-			func = QByteArrayLiteral("volumeSfx");
-			break;
-		case Sound::VoiceoverChannel:
-			func = QByteArrayLiteral("volumeVoiceOver");
-			break;
+	case Sound::MusicChannel:
+		func = QByteArrayLiteral("volumeMusic");
+		break;
+	case Sound::SfxChannel:
+		func = QByteArrayLiteral("volumeSfx");
+		break;
+	case Sound::VoiceoverChannel:
+		func = QByteArrayLiteral("volumeVoiceOver");
+		break;
 	}
 
 	int volume = 0;
@@ -191,18 +193,18 @@ void DesktopClient::setVolume(const Sound::ChannelType &channel, const int &volu
 	s.beginGroup(QStringLiteral("sound"));
 
 	switch (channel) {
-		case Sound::MusicChannel:
-			func = QByteArrayLiteral("setVolumeMusic");
-			s.setValue(QStringLiteral("volumeMusic"), volume);
-			break;
-		case Sound::SfxChannel:
-			func = QByteArrayLiteral("setVolumeSfx");
-			s.setValue(QStringLiteral("volumeSfx"), volume);
-			break;
-		case Sound::VoiceoverChannel:
-			func = QByteArrayLiteral("setVolumeVoiceOver");
-			s.setValue(QStringLiteral("volumeVoiceOver"), volume);
-			break;
+	case Sound::MusicChannel:
+		func = QByteArrayLiteral("setVolumeMusic");
+		s.setValue(QStringLiteral("volumeMusic"), volume);
+		break;
+	case Sound::SfxChannel:
+		func = QByteArrayLiteral("setVolumeSfx");
+		s.setValue(QStringLiteral("volumeSfx"), volume);
+		break;
+	case Sound::VoiceoverChannel:
+		func = QByteArrayLiteral("setVolumeVoiceOver");
+		s.setValue(QStringLiteral("volumeVoiceOver"), volume);
+		break;
 	}
 
 	s.endGroup();
@@ -226,6 +228,27 @@ void DesktopClient::setSfxVolumeInt(int sfxVolume)
 	qreal r = qreal(sfxVolume)/100;
 
 	setSfxVolume(r);
+}
+
+
+/**
+ * @brief DesktopClient::handleMessageInternal
+ */
+
+bool DesktopClient::handleMessageInternal(const WebSocketMessage &message)
+{
+	const QString &func = message.data().value(QStringLiteral("func")).toString();
+
+	if (message.opCode() == WebSocketMessage::RequestResponse) {
+		if (func == QLatin1String("getGoogleLocalClientId")) {
+			if (!m_googleAuthenticator)
+				createGoogleAuthenticator(message.data().value(QStringLiteral("clientId")).toString(),
+										  message.data().value(QStringLiteral("clientKey")).toString());
+			return true;
+		}
+	}
+
+	return Client::handleMessageInternal(message);
 }
 
 
@@ -264,6 +287,21 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 	LOG_CTRACE("client") << "Screen orientation changed:" << orientation;
 
 	safeMarginsGet();
+}
+
+
+/**
+ * @brief DesktopClient::onServerConnected
+ */
+
+void DesktopClient::onServerConnected()
+{
+	LOG_CTRACE("client") << "Server connected";
+
+	if (!m_googleAuthenticator)
+		sendRequest(WebSocketMessage::ClassAuth, QJsonObject({
+																 { QStringLiteral("func"), QStringLiteral("getGoogleLocalClientId") }
+															 }));
 }
 
 
@@ -345,4 +383,112 @@ void DesktopClient::serverListSave(const QDir &dir)
 ServerList *DesktopClient::serverList() const
 {
 	return m_serverList;
+}
+
+
+
+/**
+ * @brief DesktopClient::googleAuthenticator
+ * @return
+ */
+
+GoogleOAuth2Authenticator *DesktopClient::createGoogleAuthenticator(const QString &clientId, const QString &clientKey)
+{
+	if (m_googleAuthenticator) {
+		LOG_CDEBUG("client") << "Google authenticator already exists";
+		return m_googleAuthenticator;
+	}
+
+	m_googleAuthenticator = new GoogleOAuth2Authenticator(this);
+	m_googleAuthenticator->setClientId(clientId);
+	m_googleAuthenticator->setClientKey(clientKey);
+	m_googleAuthenticator->createHandler<QOAuthHttpServerReplyHandler>();
+
+	LOG_CTRACE("client") << "Google authenticator created, listening" << m_googleAuthenticator->handler()->isListening();
+
+	return m_googleAuthenticator;
+}
+
+
+/**
+ * @brief DesktopClient::googleAuthenticator
+ * @return
+ */
+
+GoogleOAuth2Authenticator *DesktopClient::googleAuthenticator() const
+{
+	return m_googleAuthenticator;
+}
+
+
+
+/**
+ * @brief DesktopClient::loginGoogle
+ */
+
+void DesktopClient::loginGoogle()
+{
+	if (!m_googleAuthenticator) {
+		messageError(tr("A Google OAuth2 provider nem elérhető!"));
+		return;
+	}
+
+	if (m_googleAuthenticator->getCodeFlowForReferenceObject(this)) {
+		messageWarning(tr("Google authentikáció még folyamatban van!"));
+		return;
+	}
+
+
+	DesktopCodeFlow *flow = new DesktopCodeFlow(m_googleAuthenticator, this);
+	flow->setMode(DesktopCodeFlow::Login);
+	m_googleAuthenticator->addCodeFlow(flow);
+
+	connect(flow, &DesktopCodeFlow::pageRemoved, this, [this, flow](){ m_googleAuthenticator->removeCodeFlow(flow); });
+
+	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
+							QVariantMap({
+											{ QStringLiteral("url"), flow->requestAuthorizationUrl() },
+											{ QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
+										}));
+
+	flow->setPage(page);
+}
+
+
+
+
+
+
+
+/**
+ * @brief DesktopCodeFlow::onAuthSuccess
+ * @param data
+ */
+
+void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
+{
+	LOG_CINFO("oauth2") << "Authentication success";
+
+	if (!m_client) {
+		LOG_CERROR("oauth2") << "Missing client";
+		return;
+	}
+
+	QJsonObject o;
+
+	switch (m_mode) {
+	case Login:
+		o[QStringLiteral("func")] = QStringLiteral("loginGoogle");
+		break;
+	case Registration:
+		o[QStringLiteral("func")] = QStringLiteral("registrationGoogle");
+		break;
+	}
+
+	o[QStringLiteral("id_token")] = data.value(QStringLiteral("id_token")).toString();
+
+	m_client->sendRequest(WebSocketMessage::ClassAuth, o);
+
+	if (m_page)
+		m_client->stackPop(m_page);
 }

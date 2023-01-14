@@ -105,7 +105,7 @@ public:
 	void sendToClients(const WebSocketMessage &message) const;
 	void sendToClients(const Credential::Roles &roles, const WebSocketMessage &message) const;
 
-	const QVector<QPointer<OAuth2Authenticator> > &authenticators() const;
+	const QVector<QPointer<OAuth2Authenticator>> &authenticators() const;
 
 signals:
 	void configChanged();

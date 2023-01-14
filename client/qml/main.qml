@@ -36,10 +36,6 @@ Qaterial.ApplicationWindow
 	{
 		JS.intializeStyle()
 
-		Qaterial.Style.colorItemGlow = Qaterial.Colors.yellow100
-
-		Qaterial.Style.rawButton.outlinedFocusWidth = 1
-
 		if (Qt.platform.os != "wasm") {
 			Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
 				return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)

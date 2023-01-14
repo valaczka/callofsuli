@@ -152,6 +152,8 @@ Service::CommandResult ServerService::onStart()
 	m_webSocketServer->start();
 
 
+	// Create authenticators
+
 	GoogleOAuth2Authenticator *authGoogle = new GoogleOAuth2Authenticator(this);
 	m_authenticators.append(authGoogle);
 	m_settings->oauthGoogle().setAuthenticator(authGoogle);

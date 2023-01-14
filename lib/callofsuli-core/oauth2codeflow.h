@@ -41,7 +41,7 @@ public:
 	virtual ~OAuth2CodeFlow();
 
 	QUrl requestAuthorizationUrl();
-	void requestAccesToken(const QString &code);
+	virtual void requestAccesToken(const QString &code);
 
 	QObject *referenceObject() const;
 
