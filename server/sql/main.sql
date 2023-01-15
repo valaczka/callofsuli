@@ -24,6 +24,7 @@ CREATE TABLE class(
 
 CREATE TABLE classCode(
 	classid INTEGER REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	code TEXT,
 	UNIQUE(classid)
 );
 

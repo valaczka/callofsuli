@@ -25,6 +25,7 @@
  */
 
 #include "adminhandler.h"
+#include "utils.h"
 
 AdminHandler::AdminHandler(Client *client)
 	: AbstractHandler(client)
@@ -68,7 +69,7 @@ QDefer AdminHandler::userAdd(AbstractHandler *handler, const User &user)
 				.addField("familyName", user.familyName)
 				.addField("givenName", user.givenName)
 				.addField("active", user.active)
-				.addField("classid", user.classid > 0 ? user.classid : QVariant::Invalid)
+				.addField("classid", user.classid > 0 ? user.classid : QVariant(QVariant::Invalid))
 				.addField("isTeacher", user.isTeacher)
 				.addField("isAdmin", user.isAdmin)
 				.addField("isPanel", user.isPanel)
@@ -197,5 +198,17 @@ QDefer AdminHandler::authAddOAuth2(AbstractHandler *handler, const QString &user
 	});
 
 	return ret;
+}
+
+
+
+/**
+ * @brief AdminHandler::generateClassCode
+ * @return
+ */
+
+QString AdminHandler::generateClassCode()
+{
+	return QString::fromLatin1(Utils::generateRandomString(6, "1234567890"));
 }
 

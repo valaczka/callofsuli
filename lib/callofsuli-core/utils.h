@@ -33,6 +33,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QColor>
+#include <QOlm/QOlm.hpp>
 
 #ifdef Q_OS_ANDROID
 #include <jni.h>
@@ -74,6 +75,11 @@ public:
 	Q_INVOKABLE static QString genericDataPath(const QString &path = "");
 
 	Q_INVOKABLE static QByteArray generateRandomString(quint8 length);
+	Q_INVOKABLE static QByteArray generateRandomString(quint8 length, const char *characters);
+
+	Q_INVOKABLE static int selectedCount(qolm::QOlmBase *list);
+
+
 private:
 
 #ifdef Q_OS_ANDROID

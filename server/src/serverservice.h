@@ -51,6 +51,7 @@ public:
 
 	QJsonValue get(const char *key) const { return m_data.value(key); }
 	void set(const char *key, const QJsonValue &value);
+	void set(const QJsonObject &object);
 	const QJsonObject &get() const { return m_data; }
 
 private:

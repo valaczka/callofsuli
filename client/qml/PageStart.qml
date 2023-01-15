@@ -12,22 +12,28 @@ QPage {
 	//closeQuestion: StackView.index < 3 ? "Nem tudod, miért nem szeretnéd bezárni?" : ""
 	//closeDisabled: (StackView.index == 4) ? "Nem lehet bezárni!" : ""
 
-	/*stackPopFunction: function() {
-		console.debug("STACK POP")
-		return false
-	}*/
+	stackPopFunction: function() {
+		if (view.selectEnabled) {
+			view.unselectAll()
+			return false
+		}
+		return true
+	}
 
-	title: "Call of Suli"
+	title: view.selectEnabled ? Client.serverListSelectedCount : "Call of Suli"
 
 	appBar.backButtonVisible: false
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
+		visible: view.visible
 		icon.source: Qaterial.Icons.dotsVertical
 		onClicked: menu.open()
 
 		QMenu {
 			id: menu
 
+			QMenuItem { action: actionAdd }
+			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionAbout }
@@ -72,177 +78,168 @@ QPage {
 	}
 
 
-	Row {
-		id: row1
 
-		Qaterial.RaisedButton {
-			text: "Start Game"
-			icon.source: Qaterial.Icons.gamepad
-			onClicked: Client.loadGame()
-			foregroundColor: Qaterial.Colors.black
+	QListView {
+		id: view
+
+		currentIndex: -1
+		anchors.fill: parent
+		visible: false
+
+		model: Client.serverList
+
+		delegate: QItemDelegate {
+			property Server server: model.qtObject
+			selectableObject: server
+
+			highlighted: ListView.isCurrentItem
+			highlightedIcon: server ? server.autoConnect : false
+			iconSource: Qaterial.Icons.desktopClassic
+			text: server ? server.serverName : ""
+			secondaryText: server ? server.url : ""
+
+			onClicked: if (!view.selectEnabled)
+						   Client.connectToServer(server)
 		}
 
-		Qaterial.RaisedButton {
-			text: "Db "+handler.pending
-			highlighted: false
-
+		Qaterial.Menu {
+			id: contextMenu
+			QMenuItem { action: view.actionSelectAll }
+			QMenuItem { action: view.actionSelectNone }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionAdd }
+			QMenuItem { action: actionEdit }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionDelete }
 		}
 
-
-		Qaterial.RaisedButton {
-			text: "Connect"
-			highlighted: Client.webSocket.state == WebSocket.Connected
-
-			onClicked: Client.testConnect()
-
-		}
-
-		Qaterial.RaisedButton {
-			text: "Hello"
-			highlighted: false
-			onClicked: handler.sendRequest(WebSocketMessage.ClassAuth, {func: "valami"})
-		}
-
-		Qaterial.RaisedButton {
-			text: "Hello2"
-			highlighted: false
-			onClicked: handler.sendRequest(WebSocketMessage.ClassAuth, {func: "getGoogleLocalClientId"})
-		}
-
-		Qaterial.RaisedButton {
-			text: "Request"
-			highlighted: false
-			onClicked: Client.testRequest()
-		}
-
-
-		Qaterial.RaisedButton {
-			text: "Login Google"
-			highlighted: false
-			onClicked: Client.loginGoogle()
-		}
-
-		Qaterial.RaisedButton {
-			text: "Register Google"
-			highlighted: false
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {func: "registerGoogle"})
-		}
-
-		Qaterial.RaisedButton {
-			text: "Close"
-			highlighted: false
-			onClicked: Client.testClose()
-		}
-
-
+		onRightClickOrPressAndHold: contextMenu.popup(mouseX, mouseY)
 	}
 
-	Row {
-		id: row2
-		anchors.left: parent.left
-		anchors.top: row1.bottom
 
-		spacing: 10
+	Item {
+		id: connectingItem
+		anchors.fill: parent
+		visible: false
 
-		Qaterial.TextField {
-			id: fUser
-			title: "Username"
-			helperText: "Felhasználónév"
-			width: 300
+		Column {
+			anchors.centerIn: parent
+			spacing: 20
 
-			validator: RegExpValidator { regExp: /.+/ }
-			errorText: "Hiányzik a felhasználónév"
+			Row {
+				spacing: 20
 
-			leadingIconSource: Qaterial.Icons.account
+				Qaterial.BusyIndicator {
+					anchors.verticalCenter: parent.verticalCenter
+					height: txt.height
+					width: txt.height
+					visible: Client.webSocket.state != WebSocket.Connected
+				}
 
-			trailingContent:   Qaterial.TextFieldClearButton {textField: fUser}
-		}
+				Qaterial.LabelWithCaption {
+					id: txt
+					anchors.verticalCenter: parent.verticalCenter
+					text: Client.webSocket.state == WebSocket.Connected ? qsTr("Csatlakozva") : qsTr("Csatlakozás...")
+					caption: Client.server ? Client.server.url : ""
+				}
+			}
 
-		Qaterial.TextField {
-			id: fPassword
-			title: "Password"
-			helperText: "Jelszó"
-			width: 300
-
-			leadingIconSource: Qaterial.Icons.account
-
-			echoMode: TextInput.Password
-			inputMethodHints: Qt.ImhSensitiveData
-			trailingContent: Qaterial.TextFieldButtonContainer
-			{
-				Qaterial.TextFieldPasswordButton {textField: fPassword} // TextFieldCopyButton
-				Qaterial.TextFieldClearButton {textField: fPassword} // TextFieldClearButton
+			Qaterial.RaisedButton {
+				anchors.horizontalCenter: parent.horizontalCenter
+				backgroundColor: Qaterial.Colors.red600
+				foregroundColor: Qaterial.Colors.white
+				text: qsTr("Megszakítás")
+				icon.source: Qaterial.Icons.close
+				onClicked: Client.webSocket.close()
 			}
 		}
 
-		Qaterial.RaisedButton {
-			text: "Login"
-			highlighted: false
-			enabled: fUser.text.length && fPassword.text.length
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {
-											  func: "loginPlain",
-											  username: fUser.text,
-											  password: fPassword.text
-										  })
-		}
-
-		Qaterial.RaisedButton {
-			text: "Registration"
-			highlighted: false
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {
-											  func: "registrationPlain",
-											  username: fUser.text,
-											  password: fPassword.text
-										  })
-		}
-	}
-
-	Qaterial.TextField {
-		id: fToken
-		anchors.top: row2.bottom
-		anchors.left: parent.left
-		anchors.right: btnSend.left
-	}
-
-	Qaterial.RaisedButton {
-		id: btnSend
-		anchors.verticalCenter: fToken.verticalCenter
-		anchors.right: parent.right
-		text: "SEND"
-		highlighted: false
-		onClicked: Client.testToken(fToken.text)
 	}
 
 
-	Column {
-		anchors.top: row2.bottom
+	QFabButton {
+		visible: view.visible
+		action: actionAdd
+	}
 
-		Qaterial.TextArea {
-			width: 500
-			title: "title"
-			helperText: "helper"
-			placeholderText: "placeholder"
-			suffixText: "suffix"
+
+	Action {
+		id: actionAdd
+		text: qsTr("Hozzáadás")
+		icon.source: Qaterial.Icons.plus
+		onTriggered: Client.stackPushPage("ServerEdit.qml")
+	}
+
+	Action {
+		id: actionEdit
+		text: qsTr("Szerkesztés")
+		icon.source: Qaterial.Icons.pencil
+		enabled: view.currentIndex != -1
+		onTriggered: Client.stackPushPage("ServerEdit.qml", {server: view.model.get(view.currentIndex)})
+	}
+
+	Action {
+		id: actionDelete
+		text: qsTr("Törlés")
+		icon.source: Qaterial.Icons.trashCan
+		enabled: view.currentIndex != 1 || view.selectEnabled
+		onTriggered: {
+			if (view.selectEnabled) {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									Client.serverDeleteSelected()
+									view.checkSelected()
+								},
+								text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(Client.serverListSelectedCount),
+								title: qsTr("Szerverek törlése"),
+								iconSource: Qaterial.Icons.closeCircle
+							})
+
+			} else {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									Client.serverDelete(view.model.get(view.currentIndex))
+								},
+								text: qsTr("Biztosan törlöd a szervert?"),
+								title: view.model.get(view.currentIndex).serverName,
+								iconSource: Qaterial.Icons.closeCircle
+							})
+			}
+
 		}
+	}
 
-		Repeater {
-			model: Client.serverList
 
-			delegate: Row {
-				property Server server: model.qtObject
-
-				Qaterial.LabelBody1 {
-					text: server.name
-				}
-
-				Qaterial.RaisedButton {
-					text: "Connect"
-					onClicked: Client.connectToServer(server)
-				}
+	states: [
+		State {
+			name: "disconnected"
+			when: Client.webSocket.state == WebSocket.Disconnected
+			PropertyChanges {
+				target: view
+				visible: true
+			}
+			PropertyChanges {
+				target: connectingItem
+				visible: false
+			}
+		},
+		State {
+			name: "connecting"
+			when: Client.webSocket.state != WebSocket.Disconnected
+			PropertyChanges {
+				target: view
+				visible: false
+			}
+			PropertyChanges {
+				target: connectingItem
+				visible: true
 			}
 		}
-	}
+	]
 
-
-	//StackView.onActivated: Client.loadGame()
+	StackView.onActivated: view.forceActiveFocus()
 }

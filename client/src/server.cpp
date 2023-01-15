@@ -30,7 +30,7 @@
 #include "qjsonobject.h"
 
 Server::Server(QObject *parent)
-	: QObject{parent}
+	: SelectableObject{parent}
 {
 
 }
@@ -57,6 +57,7 @@ Server *Server::fromJson(const QJsonObject &data, QObject *parent)
 	s->setUsername(data.value(QStringLiteral("username")).toString());
 	s->setToken(data.value(QStringLiteral("token")).toString());
 	s->setCertificate(data.value(QStringLiteral("certificate")).toString().toUtf8());
+	s->setServerName(data.value(QStringLiteral("serverName")).toString());
 
 	#ifndef QT_NO_SSL
 	const QJsonArray &list = data.value(QStringLiteral("ignoredSslErrors")).toArray();
@@ -89,6 +90,7 @@ QJsonObject Server::toJson() const
 	o[QStringLiteral("url")] = m_url.toString();
 	o[QStringLiteral("autoConnect")] = m_autoConnect;
 	o[QStringLiteral("username")] = m_username;
+	o[QStringLiteral("serverName")] = m_serverName;
 	o[QStringLiteral("token")] = m_token;
 	o[QStringLiteral("certificate")] = QString::fromUtf8(m_certificate);
 
@@ -213,5 +215,18 @@ void Server::setName(const QString &newName)
 		return;
 	m_name = newName;
 	emit nameChanged();
+}
+
+const QString &Server::serverName() const
+{
+	return m_serverName;
+}
+
+void Server::setServerName(const QString &newServerName)
+{
+	if (m_serverName == newServerName)
+		return;
+	m_serverName = newServerName;
+	emit serverNameChanged();
 }
 

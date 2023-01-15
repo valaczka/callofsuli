@@ -127,6 +127,7 @@ public:
 	void setServer(Server *newServer);
 
 	Q_INVOKABLE void connectToServer(Server *server);
+	Q_INVOKABLE void closeServer();
 
 	// WebSocket
 
@@ -138,19 +139,13 @@ public:
 	void handleMessage(const WebSocketMessage &message);
 
 
-	Q_INVOKABLE void testConnect();
-	Q_INVOKABLE void testHello();
-	Q_INVOKABLE void testRequest();
-	Q_INVOKABLE void testClose();
-	Q_INVOKABLE void testText(const QString &username, const QString &password);
-	Q_INVOKABLE void testToken(const QString &token);
-
-
 protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
 
 	virtual void onWebSocketError(const QAbstractSocket::SocketError &error);
+	virtual void onServerConnected();
+	virtual void onServerDisconnected();
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;

@@ -10,8 +10,12 @@ Qaterial.Page {
 	property string closeQuestion: ""					// Kérdés a lap bezárása előtt
 	property string closeDisabled: ""					// Teljes mértékben tiltjuk a lap bezárását
 	property var stackPopFunction: null					// Visszalépés előtt végrehajtandó metódus (return: true - vissza lehet lépni, false - nem lehet visszalépni)
+	property var onPageClose: null						// Lap bezárásakor
 
 	property alias appBar: appBar
+	property alias subtitle: appBar.subtitle
+
+	enabled: StackView.view && StackView.index == StackView.view.depth-1
 
 	header: AppBar {
 		id: appBar

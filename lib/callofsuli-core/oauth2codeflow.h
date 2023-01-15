@@ -32,6 +32,11 @@
 
 class OAuth2Authenticator;
 
+
+/**
+ * @brief The OAuth2CodeFlow class
+ */
+
 class OAuth2CodeFlow : public QOAuth2AuthorizationCodeFlow
 {
 	Q_OBJECT
@@ -46,19 +51,41 @@ public:
 	QObject *referenceObject() const;
 
 signals:
-	void browserRequired(const QUrl &url);
 	void authenticationSuccess(const QVariantMap &data);
 	void authenticationFailed();
-
 
 private slots:
 	void onRequestAccessFinished();
 	void onReferenceObjectDestroyed();
 
-private:
+protected:
 	OAuth2Authenticator *const m_authenticator;
 	QObject *m_referenceObject = nullptr;
 
+};
+
+
+
+
+/**
+ * @brief The OAuth2AccessCodeFlow class
+ */
+
+class OAuth2AccessCodeFlow : public OAuth2CodeFlow
+{
+	Q_OBJECT
+
+public:
+	explicit OAuth2AccessCodeFlow (OAuth2Authenticator *authenticator, QObject *referenceObject = nullptr)
+		: OAuth2CodeFlow(authenticator, referenceObject)
+	{}
+	virtual ~OAuth2AccessCodeFlow() {}
+
+	virtual void getUserInfoWithAccessToken(const QString &accessToken) const = 0;
+
+signals:
+	void getUserInfoSuccess(const QVariantMap &data);
+	void getUserInfoFailed();
 };
 
 #endif // OAUTH2CODEFLOW_H

@@ -177,6 +177,8 @@ Service::CommandResult ServerService::onStart()
 
 	LOG_CINFO("service") << "Server service started successfull";
 
+	m_config.set("registrationEnabled", true);
+
 	return CommandResult::Completed;
 }
 
@@ -568,6 +570,21 @@ int ServerService::versionMajor()
 void ServerConfig::set(const char *key, const QJsonValue &value)
 {
 	m_data.insert(key, value);
+	if (m_db) m_db->saveConfig(m_data);
+	if (m_service) emit m_service->configChanged();
+}
+
+
+
+/**
+ * @brief ServerConfig::set
+ * @param object
+ */
+
+void ServerConfig::set(const QJsonObject &object)
+{
+	for (auto it=object.constBegin(); it != object.constEnd(); ++it)
+		m_data.insert(it.key(), it.value());
 	if (m_db) m_db->saveConfig(m_data);
 	if (m_service) emit m_service->configChanged();
 }

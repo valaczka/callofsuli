@@ -29,6 +29,7 @@
 #include "qsqlquery.h"
 #include "websocketmessage.h"
 #include "serverservice.h"
+#include "adminhandler.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
 	: QObject(service)
@@ -101,7 +102,7 @@ void DatabaseMain::saveConfig(const QJsonObject &json)
 	m_worker->execInThread([json, this]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(m_dbName);
 		QMutexLocker mutexlocker(mutex());
-		const QString &doc = QJsonDocument(json).toJson(QJsonDocument::Indented);
+		const QString &doc = QJsonDocument(json).toJson(QJsonDocument::Compact);
 
 		QueryBuilder::q(db).addQuery("UPDATE system SET config=")
 				.addValue(doc)
@@ -201,6 +202,21 @@ bool DatabaseMain::_createTables()
 			.addField("versionMajor", m_service->versionMajor())
 			.addField("versionMinor", m_service->versionMinor())
 			.addField("serverName", QStringLiteral("New Call of Suli server"))
+			;
+
+	if (!q.exec())
+		return false;
+
+
+	q.clear();
+
+	q.addQuery("INSERT INTO classCode(")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("classid", QVariant::Invalid)
+			.addField("code", AdminHandler::generateClassCode())
 			;
 
 	return q.exec();

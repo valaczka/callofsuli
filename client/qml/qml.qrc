@@ -49,5 +49,16 @@
         <file>../root_CallOfSuli_CA.crt</file>
         <file>PageWebView.qml</file>
         <file>+emscripten/PageStart.qml</file>
+        <file>QButton.qml</file>
+        <file>QListView.qml</file>
+        <file>QItemDelegate.qml</file>
+        <file>QFabButton.qml</file>
+        <file>ServerEdit.qml</file>
+        <file>QFormColumn.qml</file>
+        <file>QFormTextField.qml</file>
+        <file>QFormCheckButton.qml</file>
+        <file>QFormSwitchButton.qml</file>
+        <file>QFormTextArea.qml</file>
+        <file>PageMain.qml</file>
     </qresource>
 </RCC>

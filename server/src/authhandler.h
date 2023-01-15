@@ -29,6 +29,10 @@
 
 #include "abstracthandler.h"
 
+class OAuth2Authenticator;
+class OAuth2CodeFlow;
+class GoogleOAuth2Authenticator;
+
 class AuthHandler : public AbstractHandler
 {
 	Q_OBJECT
@@ -61,14 +65,18 @@ private slots:
 
 	void getGoogleLocalClientId();
 
-	void onOAuthFailed();
-	void onOAuthSuccess(const QVariantMap &data);
-	void onOAuthRegistrationSuccess(const QVariantMap &data);
-
 private:
-	void loginUser(const Credential &credential);
-	void loginWithIdToken(const QVariantMap &data);
-	void registrationWithIdToken(const QVariantMap &data);
+	void _loginUser(const Credential &credential);
+	void _loginWithAccessToken(const QVariantMap &data, const char *provider);
+	void _registrationWithAccessToken(const QVariantMap &data, const char *provider);
+
+	void _OAuthFailed(OAuth2Authenticator *authenticator, OAuth2CodeFlow *flow);
+	void _OAuthSuccess(OAuth2Authenticator *authenticator, OAuth2CodeFlow *flow);
+
+	void _loginGoogleOAuthSuccess(const QVariantMap &data, GoogleOAuth2Authenticator *authenticator, OAuth2CodeFlow *flow);
+	void _loginGoogleWithAccessToken(const QString &accessToken, GoogleOAuth2Authenticator *authenticator);
+	void _registrationGoogleOAuthSuccess(const QVariantMap &data, GoogleOAuth2Authenticator *authenticator, OAuth2CodeFlow *flow);
+	void _registrationGoogleWithAccessToken(const QString &accessToken, GoogleOAuth2Authenticator *authenticator);
 
 
 };

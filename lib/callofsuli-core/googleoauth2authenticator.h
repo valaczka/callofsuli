@@ -29,6 +29,11 @@
 
 #include "oauth2authenticator.h"
 
+
+/**
+ * @brief The GoogleOAuth2Authenticator class
+ */
+
 class GoogleOAuth2Authenticator : public OAuth2Authenticator
 {
 	Q_OBJECT
@@ -43,6 +48,27 @@ public:
 
 	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
 
+};
+
+
+/**
+ * @brief The GoogleOAuth2AccesTokenCodeFlow class
+ */
+
+class GoogleOAuth2AccessCodeFlow : public OAuth2AccessCodeFlow
+{
+	Q_OBJECT
+
+public:
+	explicit GoogleOAuth2AccessCodeFlow (OAuth2Authenticator *authenticator, QObject *referenceObject = nullptr)
+		: OAuth2AccessCodeFlow(authenticator, referenceObject)
+	{}
+	virtual ~GoogleOAuth2AccessCodeFlow() {}
+
+	void getUserInfoWithAccessToken(const QString &accessToken) const;
+
+private slots:
+	void onRequestFinished();
 };
 
 #endif // GOOGLEOAUTH2AUTHENTICATOR_H

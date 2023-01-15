@@ -48,6 +48,7 @@ class DesktopClient : public Client
 
 	Q_PROPERTY(qreal sfxVolume READ sfxVolume WRITE setSfxVolume NOTIFY sfxVolumeChanged)
 	Q_PROPERTY(ServerList *serverList READ serverList CONSTANT)
+	Q_PROPERTY(int serverListSelectedCount READ serverListSelectedCount NOTIFY serverListSelectedCountChanged)
 
 public:
 	explicit DesktopClient(Application *app, QObject *parent = nullptr);
@@ -60,9 +61,17 @@ public:
 
 	ServerList *serverList() const;
 
+	Q_INVOKABLE void serverSetAutoConnect(Server *server) const;
+	Q_INVOKABLE Server *serverAdd();
+	Q_INVOKABLE bool serverDelete(Server *server);
+	Q_INVOKABLE bool serverDeleteSelected();
+
 	GoogleOAuth2Authenticator *googleAuthenticator() const;
 
 	Q_INVOKABLE void loginGoogle();
+	Q_INVOKABLE void registrationGoogle();
+
+	int serverListSelectedCount() const;
 
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);
@@ -74,18 +83,22 @@ public slots:
 protected:
 	virtual bool handleMessageInternal(const WebSocketMessage &message);
 
+protected slots:
+	void onServerConnected();
+
 private slots:
 	void onMainWindowChanged();
 	void onOrientationChanged(Qt::ScreenOrientation orientation);
-	void onServerConnected();
 
 private:
 	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
+
 	GoogleOAuth2Authenticator *createGoogleAuthenticator(const QString &clientId, const QString &clientKey);
 
 signals:
 	void sfxVolumeChanged(const qreal &volume);
+	void serverListSelectedCountChanged();
 
 private:
 	Sound *m_sound = nullptr;
@@ -94,7 +107,6 @@ private:
 	ServerList *m_serverList = nullptr;
 	GoogleOAuth2Authenticator *m_googleAuthenticator = nullptr;
 	DesktopCodeFlow *m_codeFlow = nullptr;
-
 };
 
 

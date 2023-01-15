@@ -5,6 +5,7 @@ function intializeStyle() {
 	Qaterial.Style.backgroundColorDark = "transparent"
 	Qaterial.Style.foregroundColorDark = Qaterial.Colors.green200
 
+	Qaterial.Style.iconColorDark = Qaterial.Colors.cyan400
 	Qaterial.Style.primaryTextColorDark = Qaterial.Colors.cyan50
 
 	Qaterial.Style.darkColorTheme.background = Qaterial.Colors.black
@@ -64,3 +65,14 @@ function intializeStyle() {
 
 
 
+
+
+function questionDialog(_params) {
+	_params.iconColor = Qaterial.Colors.orange500
+	_params.textColor = Qaterial.Colors.orange500
+	_params.iconFill = false
+	_params.iconSize = Qaterial.Style.roundIcon.size
+	_params.standardButtons = Dialog.No | Dialog.Yes
+
+	Qaterial.DialogManager.showDialog(_params)
+}

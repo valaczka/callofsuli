@@ -52,10 +52,13 @@ Client::Client(Application *app, QObject *parent)
 {
 	Q_ASSERT(app);
 
-	//connect(m_webSocket->socket(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onWebSocketError);
+	connect(m_webSocket->socket(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onWebSocketError);
 	connect(m_webSocket, &WebSocket::serverUnavailable, this, [this](int) {
 		snack(tr("Szerver nem elérhető"));
 	});
+	connect(m_webSocket, &WebSocket::serverConnected, this, &Client::onServerConnected);
+	connect(m_webSocket, &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
+
 }
 
 
@@ -315,6 +318,29 @@ void Client::onWebSocketError(const QAbstractSocket::SocketError &error)
 }
 
 
+/**
+ * @brief Client::onServerConnected
+ */
+
+void Client::onServerConnected()
+{
+	LOG_CINFO("client") << "Server connected:" << m_server->url();
+
+	stackPushPage(QStringLiteral("PageMain.qml"));
+}
+
+
+/**
+ * @brief Client::onServerDisconnected
+ */
+
+void Client::onServerDisconnected()
+{
+	//LOG_CINFO("client") << "Server disconnected";
+	//stackPop(1, true);
+}
+
+
 
 
 
@@ -377,7 +403,20 @@ void Client::connectToServer(Server *server)
 		return;
 	}
 
+	setServer(server);
+
 	m_webSocket->connectToServer(server);
+}
+
+
+/**
+ * @brief Client::closeServer
+ */
+
+void Client::closeServer()
+{
+	m_webSocket->close();
+	setServer(nullptr);
 }
 
 
@@ -460,56 +499,6 @@ void Client::handleMessage(const WebSocketMessage &message)
 }
 
 
-
-/**
- * @brief Client::testConnect
- */
-
-void Client::testConnect()
-{
-	Server *s = new Server(this);
-	s->setUrl(QUrl("ws://192.168.99.1:10102"));
-
-	m_webSocket->connectToServer(s);
-}
-
-void Client::testHello()
-{
-	m_webSocket->send(WebSocketMessage::createHello());
-}
-
-void Client::testRequest()
-{
-	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassGeneral, QJsonObject({{"func", "test"}})));
-}
-
-void Client::testClose()
-{
-	qDebug() << "CLOSE";
-	m_webSocket->socket()->close();
-}
-
-void Client::testText(const QString &username, const QString &password)
-{
-	qDebug() << "LOGIN";
-	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth,
-													  QJsonObject({
-																	  {"func", "loginPlain"},
-																	  { "username", username },
-																	  { "password", password }
-																  })));
-}
-
-
-
-void Client::testToken(const QString &token)
-{
-	m_webSocket->send(WebSocketMessage::createRequest(WebSocketMessage::ClassAuth,
-													  QJsonObject({
-																	  {"func", "testToken"},
-																	  { "token", token },
-																  })));
-}
 
 
 

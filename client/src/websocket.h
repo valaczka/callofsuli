@@ -50,6 +50,7 @@ public:
 
 	enum State {
 		Disconnected = 0,
+		Connecting,
 		Hello,
 		Connected,
 		Terminated,
@@ -84,6 +85,7 @@ private slots:
 signals:
 	void serverUnavailable(int num);
 	void serverConnected();
+	void serverDisconnected();
 	void stateChanged();
 	void serverChanged();
 

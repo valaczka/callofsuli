@@ -54,7 +54,7 @@ public:
 
 	bool listen() const;
 
-	void addCodeFlow(OAuth2CodeFlow *flow, QObject *referenceObject);
+	void addCodeFlow(OAuth2CodeFlow *flow);
 	void removeCodeFlow(OAuth2CodeFlow *flow);
 	OAuth2CodeFlow *getCodeFlowForReferenceObject(QObject *referenceObject) const;
 	OAuth2CodeFlow *getCodeFlowForState(const QString &status) const;

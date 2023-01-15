@@ -46,10 +46,9 @@ public:
 
 	enum Role {
 		None = 0,
-		Guest = 1,
-		Student = 1 << 1,
-		Teacher = 1 << 2,
-		Panel = 1 << 3,
+		Student = 1,
+		Teacher = 1 << 1,
+		Panel = 1 << 2,
 		Admin = 1 << 8
 	};
 

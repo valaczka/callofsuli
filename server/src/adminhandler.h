@@ -56,6 +56,7 @@ public:
 		Credential toCredential() const {
 			Credential c;
 			c.setUsername(username);
+			c.setRole(Credential::Student);
 			c.setRole(Credential::Teacher, isTeacher);
 			c.setRole(Credential::Admin, isAdmin);
 			c.setRole(Credential::Panel, isPanel);
@@ -67,6 +68,8 @@ public:
 	static QDefer userAdd(AbstractHandler *handler, const User &user);
 	static QDefer authAddPlain(AbstractHandler *handler, const QString &username, const QString &password);
 	static QDefer authAddOAuth2(AbstractHandler *handler, const QString &username, const QString &oauthType);
+
+	static QString generateClassCode();
 
 protected:
 	virtual void handleRequestResponse() {};

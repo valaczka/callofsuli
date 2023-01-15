@@ -32,7 +32,7 @@ Item {
 		id: overed
 		anchors.fill: img
 		source: img
-		color: Qaterial.Colors.cyan400
+		color: Qaterial.Style.iconColor()
 	}
 
 	Glow {
@@ -41,7 +41,7 @@ Item {
 		source: overed
 		radius: 8
 		samples: 17
-		color: Qaterial.Colors.cyan50
+		color: Qt.lighter(Qaterial.Style.iconColor(), 1.7)
 		visible: true
 	}
 

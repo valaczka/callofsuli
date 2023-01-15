@@ -333,6 +333,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
 	qmlRegisterType<AsyncMessageHandler>("CallOfSuli", 1, 0, "AsyncMessageHandler");
+	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 }
 
 /**

@@ -43,9 +43,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	, m_webSocket(webSocket)
 	, m_service(service)
 {
-	LOG_CTRACE("client") << this << "Client created";
-
-	LOG_CINFO("client") << "New connection:" << qPrintable(webSocket->peerAddress().toString()) << webSocket->peerPort();
+	LOG_CINFO("client") << this << "New connection:" << qPrintable(webSocket->peerAddress().toString()) << webSocket->peerPort();
 
 	setClientState(Hello);
 
@@ -135,7 +133,8 @@ void Client::send(const WebSocketMessage &message)
 void Client::onDisconnected()
 {
 	setClientState(Invalid);
-	LOG_CINFO("client") << this << "Disconnected:" << m_webSocket->peerAddress().toString() << m_webSocket->peerPort();
+	LOG_CINFO("client") << this << "Disconnected:" << qPrintable(m_webSocket->peerAddress().toString()) << m_webSocket->peerPort()
+						<< qPrintable(m_credential.username());
 	m_service->clientRemove(this);
 }
 

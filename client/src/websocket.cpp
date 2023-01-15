@@ -111,6 +111,7 @@ void WebSocket::setState(const State &newState)
 		return;
 	m_state = newState;
 	emit stateChanged();
+	LOG_CTRACE("websocket") << "MYSTATE" << m_state;
 }
 
 
@@ -162,6 +163,7 @@ void WebSocket::connectToServer(Server *server)
 		return;
 	}
 
+	setState(Connecting);
 	m_socket->open(server->url());
 }
 
@@ -174,9 +176,12 @@ void WebSocket::connectToServer(Server *server)
 
 void WebSocket::close()
 {
-	LOG_CTRACE("websocket") << "Close connection:" << m_socket->requestUrl();
-	setState(Disconnected);
-	m_socket->close();
+	if (m_state != Disconnected) {
+		LOG_CTRACE("websocket") << "Close connection:" << m_socket->requestUrl();
+		setState(Disconnected);
+		m_socket->close();
+		emit serverDisconnected();
+	}
 }
 
 
@@ -194,8 +199,6 @@ void WebSocket::send(const WebSocketMessage &message)
 
 		return;
 	}
-
-	qDebug() << "-->" << message;
 
 	m_socket->sendBinaryMessage(message.toByteArray());
 }
@@ -218,7 +221,9 @@ void WebSocket::onDisconnected()
 {
 	LOG_CTRACE("websocket") << "Disonnected:" << m_socket->requestUrl();
 
-	if (m_state != Disconnected)
+	if (m_state == Connecting || m_state == Error)
+		setState(Disconnected);
+	else if (m_state != Disconnected)
 		setState(Terminated);
 }
 

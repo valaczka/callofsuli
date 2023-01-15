@@ -54,7 +54,6 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	QMetaObject::invokeMethod(m_sound, "init", Qt::BlockingQueuedConnection);
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
-	connect(m_webSocket, &WebSocket::serverConnected, this, &DesktopClient::onServerConnected);
 
 	serverListLoad();
 }
@@ -296,7 +295,7 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 
 void DesktopClient::onServerConnected()
 {
-	LOG_CTRACE("client") << "Server connected";
+	Client::onServerConnected();
 
 	if (!m_googleAuthenticator)
 		sendRequest(WebSocketMessage::ClassAuth, QJsonObject({
@@ -332,6 +331,7 @@ void DesktopClient::serverListLoad(const QDir &dir)
 		if (!s)
 			continue;
 
+		connect(s, &Server::selectedChanged, this, &DesktopClient::serverListSelectedCountChanged);
 
 		s->setName(realname.section('/', -2, -2));
 		s->setDirectory(realname.section('/', 0, -2));
@@ -386,6 +386,122 @@ ServerList *DesktopClient::serverList() const
 }
 
 
+/**
+ * @brief DesktopClient::serverSetAutoConnect
+ * @param server
+ */
+
+void DesktopClient::serverSetAutoConnect(Server *server) const
+{
+	for (Server *s : *m_serverList)
+		s->setAutoConnect(s == server);
+}
+
+
+/**
+ * @brief DesktopClient::serverAdd
+ * @param server
+ */
+
+Server *DesktopClient::serverAdd()
+{
+	LOG_CTRACE("client") << "Add new server";
+
+	QDir dir = Utils::standardPath(QStringLiteral("servers"));
+
+	QString subdir;
+
+	for (int i=1; i<INT_MAX; ++i) {
+		subdir = QString::number(i);
+		if (!dir.exists(subdir))
+			break;
+	}
+
+	if (!dir.mkpath(subdir)) {
+		LOG_CWARNING("client") << "Can't create directory:" << qPrintable(dir.absoluteFilePath(subdir));
+		messageError(tr("Nem sikerült lérehozni a szerver könyvtárát!"));
+		return nullptr;
+	}
+
+	Server *server = new Server();
+
+	server->setName(subdir);
+	server->setDirectory(dir.absoluteFilePath(subdir));
+
+	connect(server, &Server::selectedChanged, this, &DesktopClient::serverListSelectedCountChanged);
+
+	if (!Utils::jsonObjectToFile(server->toJson(), dir.filePath(server->name()+QStringLiteral("/config.json")))) {
+		LOG_CERROR("client") << "Can't save server data:" << qPrintable(dir.absoluteFilePath(server->name()));
+		messageError(tr("Nem sikerült menteni a szerver adatait!"));
+		delete server;
+		return nullptr;
+	}
+
+	m_serverList->append(server);
+
+	LOG_CINFO("client") << "Server created:" << qPrintable(server->name()) << qPrintable(server->url().toString());
+
+	return server;
+}
+
+
+
+
+/**
+ * @brief DesktopClient::serverDelete
+ * @param server
+ */
+
+bool DesktopClient::serverDelete(Server *server)
+{
+	Q_ASSERT(server);
+
+	LOG_CTRACE("client") << "Delete server:" << qPrintable(server->name());
+
+	QDir dir = server->directory();
+
+	if (dir.removeRecursively()) {
+		m_serverList->remove(server);
+		LOG_CINFO("client") << "Server removed:" << qPrintable(server->directory().path());
+		return true;
+	} else {
+		LOG_CERROR("client") << "Can't remove server data:" << qPrintable(server->directory().path());
+		messageError(tr("Nem sikerült törölni a szerver adatait!"));
+		return false;
+	}
+}
+
+
+
+/**
+ * @brief DesktopClient::serverDeleteSelected
+ * @return
+ */
+
+bool DesktopClient::serverDeleteSelected()
+{
+	LOG_CTRACE("client") << "Delete selected servers";
+
+	QVector<Server*> list;
+
+	list.reserve(m_serverList->size());
+
+	for (Server *s : *m_serverList) {
+		if (s->selected())
+			list.append(s);
+	}
+
+	list.squeeze();
+
+	foreach (Server *s, list) {
+		if (!serverDelete(s))
+			return false;
+	}
+
+	return true;
+}
+
+
 
 /**
  * @brief DesktopClient::googleAuthenticator
@@ -428,6 +544,11 @@ GoogleOAuth2Authenticator *DesktopClient::googleAuthenticator() const
 
 void DesktopClient::loginGoogle()
 {
+	if (m_webSocket->state() != WebSocket::Connected) {
+		messageWarning(tr("A szerver jelenleg nem elérhető!"));
+		return;
+	}
+
 	if (!m_googleAuthenticator) {
 		messageError(tr("A Google OAuth2 provider nem elérhető!"));
 		return;
@@ -446,10 +567,48 @@ void DesktopClient::loginGoogle()
 	connect(flow, &DesktopCodeFlow::pageRemoved, this, [this, flow](){ m_googleAuthenticator->removeCodeFlow(flow); });
 
 	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
-							QVariantMap({
-											{ QStringLiteral("url"), flow->requestAuthorizationUrl() },
-											{ QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
-										}));
+									 QVariantMap({
+													 { QStringLiteral("url"), flow->requestAuthorizationUrl() },
+													 { QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
+												 }));
+
+	flow->setPage(page);
+}
+
+
+/**
+ * @brief DesktopClient::registrationGoogle
+ */
+
+void DesktopClient::registrationGoogle()
+{
+	if (m_webSocket->state() != WebSocket::Connected) {
+		messageWarning(tr("A szerver jelenleg nem elérhető!"));
+		return;
+	}
+
+	if (!m_googleAuthenticator) {
+		messageError(tr("A Google OAuth2 provider nem elérhető!"));
+		return;
+	}
+
+	if (m_googleAuthenticator->getCodeFlowForReferenceObject(this)) {
+		messageWarning(tr("Google authentikáció még folyamatban van!"));
+		return;
+	}
+
+
+	DesktopCodeFlow *flow = new DesktopCodeFlow(m_googleAuthenticator, this);
+	flow->setMode(DesktopCodeFlow::Registration);
+	m_googleAuthenticator->addCodeFlow(flow);
+
+	connect(flow, &DesktopCodeFlow::pageRemoved, this, [this, flow](){ m_googleAuthenticator->removeCodeFlow(flow); });
+
+	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
+									 QVariantMap({
+													 { QStringLiteral("url"), flow->requestAuthorizationUrl() },
+													 { QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
+												 }));
 
 	flow->setPage(page);
 }
@@ -485,10 +644,21 @@ void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
 		break;
 	}
 
-	o[QStringLiteral("id_token")] = data.value(QStringLiteral("id_token")).toString();
+	o[QStringLiteral("access_token")] = data.value(QStringLiteral("access_token")).toString();
 
 	m_client->sendRequest(WebSocketMessage::ClassAuth, o);
 
 	if (m_page)
 		m_client->stackPop(m_page);
+}
+
+
+/**
+ * @brief DesktopClient::serverListSelectedCount
+ * @return
+ */
+
+int DesktopClient::serverListSelectedCount() const
+{
+	return Utils::selectedCount(m_serverList);
 }

@@ -9,7 +9,7 @@ QT += networkauth core-private
 
 !wasm: QT += sql
 
-CONFIG += staticlib
+CONFIG += staticlib c++17
 
 DESTDIR = ..
 
@@ -19,6 +19,10 @@ include($$PWD/../QDeferred/src/qdeferred.pri)
 include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
 
 android: INCLUDEPATH += $$PWD/../android_openssl/static/include
+
+
+android: INCLUDEPATH += $$OUT_PWD/../libQaterial/$${QT_ARCH}/_deps/qolm-src/include
+else: INCLUDEPATH += $$OUT_PWD/../libQaterial/_deps/qolm-src/include
 
 
 INCLUDEPATH += $$PWD \
@@ -36,6 +40,7 @@ HEADERS += \
 	credential.h \
 	gamemap.h \
 	gamemapreaderiface.h \
+	selectableobject.h \
 	utils.h \
 	websocketmessage.h
 
@@ -44,6 +49,7 @@ SOURCES += \
 	credential.cpp \
 	gamemap.cpp \
 	gamemapreaderiface.cpp \
+	selectableobject.cpp \
 	utils.cpp \
 	websocketmessage.cpp
 

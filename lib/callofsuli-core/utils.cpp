@@ -29,6 +29,7 @@
 #include "qjsondocument.h"
 #include "qmath.h"
 #include "qfile.h"
+#include "selectableobject.h"
 #include <random>
 
 
@@ -420,6 +421,19 @@ QString Utils::genericDataPath(const QString &path)
 QByteArray Utils::generateRandomString(quint8 length)
 {
 	const char characters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	return generateRandomString(length, characters);
+}
+
+
+/**
+ * @brief Utils::generateRandomString
+ * @param length
+ * @param characters
+ * @return
+ */
+
+QByteArray Utils::generateRandomString(quint8 length, const char *characters)
+{
 	static std::mt19937 randomEngine(QDateTime::currentDateTime().toMSecsSinceEpoch());
 	std::uniform_int_distribution<int> distribution(0, sizeof(characters) - 2);
 	QByteArray data;
@@ -427,4 +441,27 @@ QByteArray Utils::generateRandomString(quint8 length)
 	for (quint8 i = 0; i < length; ++i)
 		data.append(characters[distribution(randomEngine)]);
 	return data;
+}
+
+
+/**
+ * @brief Utils::selectedCount
+ * @param list
+ * @return
+ */
+
+int Utils::selectedCount(qolm::QOlmBase *list)
+{
+	if (!list)
+		return 0;
+
+	int num = 0;
+
+	foreach (QObject *o, list->children()) {
+		SelectableObject *s = qobject_cast<SelectableObject*>(o);
+		if (s && s->selected())
+			++num;
+	}
+
+	return num;
 }

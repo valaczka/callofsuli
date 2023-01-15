@@ -12,6 +12,9 @@ Qaterial.ScrollablePage {
 	property var stackPopFunction: null					// Visszalépés előtt végrehajtandó metódus (return: true - vissza lehet lépni, false - nem lehet visszalépni)
 
 	property alias appBar: appBar
+	property alias subtitle: appBar.subtitle
+
+	enabled: StackView.view && StackView.index == StackView.view.depth-1
 
 	property real contentBottomPadding: 0
 

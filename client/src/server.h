@@ -33,13 +33,13 @@
 #include "qsslerror.h"
 #endif
 #include "qurl.h"
-#include <QObject>
+#include <selectableobject.h>
 
 class Server;
 
 using ServerList = qolm::QOlm<Server>;
 
-class Server : public QObject
+class Server : public SelectableObject
 {
 	Q_OBJECT
 
@@ -50,6 +50,7 @@ class Server : public QObject
 	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
 	Q_PROPERTY(QString token READ token WRITE setToken NOTIFY tokenChanged)
 	Q_PROPERTY(QByteArray certificate READ certificate WRITE setCertificate NOTIFY certificateChanged)
+	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -87,6 +88,13 @@ public:
 	const QString &name() const;
 	void setName(const QString &newName);
 
+	const QString &serverName() const;
+	void setServerName(const QString &newServerName);
+
+	Q_INVOKABLE QString host() const { return m_url.host(); }
+	Q_INVOKABLE int port() const { return m_url.port(); }
+	Q_INVOKABLE bool ssl() const { return m_url.scheme() == QLatin1String("wss"); }
+
 signals:
 	void urlChanged();
 	void directoryChanged();
@@ -97,8 +105,11 @@ signals:
 	void ignoredSslErrorsChanged();
 	void nameChanged();
 
+	void serverNameChanged();
+
 private:
 	QString m_name;
+	QString m_serverName;
 	QUrl m_url;
 	QDir m_directory;
 	bool m_autoConnect = false;

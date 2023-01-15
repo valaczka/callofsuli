@@ -50,7 +50,7 @@ OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(QObject *referenceObject)
 
 	setCodeFlow(flow);
 
-	OAuth2Authenticator::addCodeFlow(flow, referenceObject);
+	OAuth2Authenticator::addCodeFlow(flow);
 
 	return flow;
 }
@@ -66,7 +66,7 @@ OAuth2CodeFlow *GoogleOAuth2Authenticator::addCodeFlow(OAuth2CodeFlow *flow)
 {
 	setCodeFlow(flow);
 
-	OAuth2Authenticator::addCodeFlow(flow, nullptr);
+	OAuth2Authenticator::addCodeFlow(flow);
 
 	return flow;
 }
@@ -113,3 +113,107 @@ QMap<std::string, std::string> GoogleOAuth2Authenticator::getInfoFromRequestAcce
 	return m;
 }
 
+
+
+
+
+
+/**
+ * @brief GoogleOAuth2AccessCodeFlow::getUserInfoWithAccessToken
+ * @param accessToken
+ */
+
+void GoogleOAuth2AccessCodeFlow::getUserInfoWithAccessToken(const QString &accessToken) const
+{
+	LOG_CTRACE("oauth2") << "Get user info with Google access token";
+
+	QUrl url(QStringLiteral("https://www.googleapis.com/oauth2/v1/userinfo"));
+
+	QUrlQuery q;
+	q.addQueryItem(QStringLiteral("alt"), QStringLiteral("json"));
+	q.addQueryItem(QStringLiteral("access_token"), accessToken);
+	url.setQuery(q);
+
+	QNetworkRequest request(url);
+
+	QNetworkReply *reply = m_authenticator->networkManager()->get(request);
+
+	QObject::connect(reply, &QNetworkReply::finished, this, &GoogleOAuth2AccessCodeFlow::onRequestFinished);
+}
+
+
+/**
+ * @brief GoogleOAuth2AccessCodeFlow::onRequestFinished
+ */
+
+void GoogleOAuth2AccessCodeFlow::onRequestFinished()
+{
+	LOG_CTRACE("oauth2") << "Request user info with Google access token finished";
+
+	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+
+	if (!reply) {
+		LOG_CERROR("oauth2") << "Invalid QNetworkReply";
+		emit getUserInfoFailed();
+		return;
+	}
+
+	if (reply->error() != QNetworkReply::NoError) {
+		LOG_CERROR("oauth2") << "NetworkReply error:" << qPrintable(reply->errorString());
+		emit getUserInfoFailed();
+		reply->deleteLater();
+		return;
+	}
+	if (reply->header(QNetworkRequest::ContentTypeHeader).isNull()) {
+		LOG_CERROR("oauth2") << "Empty Content-type header";
+		emit getUserInfoFailed();
+		reply->deleteLater();
+		return;
+	}
+
+	const QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).isNull() ?
+				QStringLiteral("text/html") :
+				reply->header(QNetworkRequest::ContentTypeHeader).toString();
+
+	const QByteArray data = reply->readAll();
+
+	reply->deleteLater();
+
+	if (data.isEmpty()) {
+		LOG_CERROR("oauth2") << "No received data";
+		emit getUserInfoFailed();
+		return;
+	}
+
+	QVariantMap ret;
+
+	if (contentType.startsWith(QStringLiteral("text/html")) ||
+			contentType.startsWith(QStringLiteral("application/x-www-form-urlencoded"))) {
+		QUrlQuery query(QString::fromUtf8(data));
+		auto queryItems = query.queryItems(QUrl::FullyDecoded);
+
+		for (auto it = queryItems.begin(), end = queryItems.end(); it != end; ++it)
+			ret.insert(it->first, it->second);
+	} else if (contentType.startsWith(QStringLiteral("application/json"))
+			   || contentType.startsWith(QStringLiteral("text/javascript"))) {
+		const QJsonDocument document = QJsonDocument::fromJson(data);
+		if (!document.isObject()) {
+			LOG_CERROR("oauth2") << "Received data is not a JSON object:" << qPrintable(QString::fromUtf8(data));
+			emit getUserInfoFailed();
+			return;
+		}
+		const QJsonObject object = document.object();
+		if (object.isEmpty()) {
+			LOG_CERROR("oauth2") << "Received empty JSON object:" << qPrintable(QString::fromUtf8(data));
+		}
+		ret = object.toVariantMap();
+	} else {
+		LOG_CERROR("oauth2") << "Unknown content-type:" << qPrintable(contentType);
+		emit getUserInfoFailed();
+		return;
+	}
+
+	LOG_CTRACE("oauth2") << "Received data:" << ret;
+
+	emit getUserInfoSuccess(ret);
+}

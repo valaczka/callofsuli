@@ -79,9 +79,9 @@ void OAuth2CodeFlow::requestAccesToken(const QString &code)
 
 	QUrlQuery query;
 	query.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("authorization_code"));
-	query.addQueryItem("code", QUrl::fromPercentEncoding(code.toLatin1()));
-	query.addQueryItem("redirect_uri", callback());
-	query.addQueryItem("client_id", clientIdentifier());
+	query.addQueryItem(QStringLiteral("code"), QUrl::fromPercentEncoding(code.toLatin1()));
+	query.addQueryItem(QStringLiteral("redirect_uri"), callback());
+	query.addQueryItem(QStringLiteral("client_id"), clientIdentifier());
 
 	if (!clientIdentifierSharedKey().isEmpty())
 		query.addQueryItem("client_secret", clientIdentifierSharedKey());
@@ -119,11 +119,13 @@ void OAuth2CodeFlow::onRequestAccessFinished()
 	if (reply->error() != QNetworkReply::NoError) {
 		LOG_CERROR("oauth2") << "NetworkReply error:" << qPrintable(reply->errorString());
 		emit authenticationFailed();
+		reply->deleteLater();
 		return;
 	}
 	if (reply->header(QNetworkRequest::ContentTypeHeader).isNull()) {
 		LOG_CERROR("oauth2") << "Empty Content-type header";
 		emit authenticationFailed();
+		reply->deleteLater();
 		return;
 	}
 
@@ -132,6 +134,8 @@ void OAuth2CodeFlow::onRequestAccessFinished()
 				reply->header(QNetworkRequest::ContentTypeHeader).toString();
 
 	const QByteArray data = reply->readAll();
+
+	reply->deleteLater();
 
 	if (data.isEmpty()) {
 		LOG_CERROR("oauth2") << "No received data";
