@@ -17,7 +17,7 @@ CREATE TABLE system(
 ----------------------------------
 
 CREATE TABLE class(
-	id INTEGER PRIMARY KEY,
+	id INTEGER NOT NULL PRIMARY KEY,
 	name TEXT
 );
 
@@ -54,4 +54,17 @@ CREATE TABLE auth(
 	salt TEXT,
 	oauth TEXT,
 	UNIQUE (username)
+);
+
+
+----------------------------------
+--- Ranks
+----------------------------------
+
+CREATE TABLE rank(
+	id INTEGER NOT NULL PRIMARY KEY,
+	level INTEGER NOT NULL CHECK(level>=0),
+	sublevel INTEGER CHECK(sublevel>=0),
+	xp INTEGER CHECK(xp>=0),
+	name TEXT NOT NULL
 );

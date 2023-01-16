@@ -16,9 +16,9 @@ Qaterial.ScrollablePage {
 
 	enabled: StackView.view && StackView.index == StackView.view.depth-1
 
-	property real contentBottomPadding: 0
-
 	default property alias realContentData: realContent.data
+
+	pane.padding: Qaterial.Style.horizontalPadding
 
 	header: AppBar {
 		id: appBar
@@ -38,7 +38,6 @@ Qaterial.ScrollablePage {
 	Item {
 		id: realContent
 
-		implicitHeight: Math.max(control.height-appBar.height, childrenRect.height+contentBottomPadding)
 		width: parent.width
 	}
 

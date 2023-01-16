@@ -33,7 +33,10 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QColor>
+
+#ifdef CLIENT_UTILS
 #include <QOlm/QOlm.hpp>
+#endif
 
 #ifdef Q_OS_ANDROID
 #include <jni.h>
@@ -77,7 +80,9 @@ public:
 	Q_INVOKABLE static QByteArray generateRandomString(quint8 length);
 	Q_INVOKABLE static QByteArray generateRandomString(quint8 length, const char *characters);
 
+#ifdef CLIENT_UTILS
 	Q_INVOKABLE static int selectedCount(qolm::QOlmBase *list);
+#endif
 
 
 private:

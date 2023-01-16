@@ -85,6 +85,7 @@ protected:
 
 protected slots:
 	void onServerConnected();
+	void onStartPageLoaded();
 
 private slots:
 	void onMainWindowChanged();

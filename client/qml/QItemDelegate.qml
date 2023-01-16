@@ -40,7 +40,9 @@ Qaterial.ItemDelegate {
 			if (selectableObject)
 				selectableObject.selected = true
 			return
-		} else if (_view) {
+		}
+
+		if (_view) {
 			_view.currentIndex = index
 			var r = mapToItem(_view, width/2, height/2)
 			_view.rightClickOrPressAndHold(index, r.x, r.y)

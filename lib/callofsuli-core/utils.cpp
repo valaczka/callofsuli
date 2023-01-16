@@ -450,6 +450,8 @@ QByteArray Utils::generateRandomString(quint8 length, const char *characters)
  * @return
  */
 
+#ifdef CLIENT_UTILS
+
 int Utils::selectedCount(qolm::QOlmBase *list)
 {
 	if (!list)
@@ -465,3 +467,5 @@ int Utils::selectedCount(qolm::QOlmBase *list)
 
 	return num;
 }
+
+#endif

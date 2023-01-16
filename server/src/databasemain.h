@@ -51,6 +51,7 @@ private:
 	bool _createTables();
 	bool _upgradeTables();
 	bool _createUsers();
+	bool _createRanks();
 
 	QString m_dbFile;
 	ServerService *m_service = nullptr;

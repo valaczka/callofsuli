@@ -83,8 +83,6 @@ QScrollablePage {
 			wrapMode: Label.Wrap
 			text: qsTr("Az applikáció induláskor a kiválasztott szerverhez megpróbál csatlakozni.")
 			topPadding: 10
-			leftPadding: Qaterial.Style.horizontalPadding
-			rightPadding: Qaterial.Style.horizontalPadding
 		}
 
 		QFormSwitchButton

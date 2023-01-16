@@ -180,6 +180,24 @@ void WebSocket::close()
 		LOG_CTRACE("websocket") << "Close connection:" << m_socket->requestUrl();
 		setState(Disconnected);
 		m_socket->close();
+		setServer(nullptr);
+		emit serverDisconnected();
+	}
+}
+
+
+
+/**
+ * @brief WebSocket::abort
+ */
+
+void WebSocket::abort()
+{
+	if (m_state != Disconnected) {
+		LOG_CTRACE("websocket") << "Abort connection:" << m_socket->requestUrl();
+		setState(Disconnected);
+		m_socket->abort();
+		setServer(nullptr);
 		emit serverDisconnected();
 	}
 }
@@ -236,7 +254,8 @@ void WebSocket::onDisconnected()
 void WebSocket::onError(const QAbstractSocket::SocketError &error)
 {
 	LOG_CTRACE("websocket") << "Socket error:" << error << m_socket->requestUrl();
-	setState(Error);
+	if (m_state != Disconnected)
+		setState(Error);
 }
 
 
@@ -249,7 +268,8 @@ void WebSocket::onError(const QAbstractSocket::SocketError &error)
 void WebSocket::onSslErrors(const QList<QSslError> &errors)
 {
 	LOG_CTRACE("websocket") << "Socket ssl errors:" << errors << m_socket->requestUrl();
-	setState(Error);
+	if (m_state != Disconnected)
+		setState(Error);
 
 	m_socket->ignoreSslErrors(errors);
 }

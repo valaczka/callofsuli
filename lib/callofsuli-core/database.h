@@ -187,6 +187,9 @@ public:
 	QSqlQuery &sqlQuery();
 
 	QVariant value(const char *field) { return m_sqlQuery.value(field); }
+	QVariant value(const char *field, const QVariant &defaultValue) {
+		return m_sqlQuery.value(field).isNull() ? defaultValue : m_sqlQuery.value(field) ;
+	}
 
 	void logError() const { QUERY_LOG_ERROR(m_sqlQuery); }
 	void logWarning() const { QUERY_LOG_WARNING(m_sqlQuery); }

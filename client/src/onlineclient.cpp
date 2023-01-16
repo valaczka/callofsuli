@@ -37,6 +37,7 @@
 #include "QResource"
 #include "application.h"
 #include "gameterrain.h"
+#include "websocket.h"
 
 OnlineClient::OnlineClient(Application *app, QObject *parent)
 	: Client{app, parent}
@@ -93,6 +94,10 @@ void OnlineClient::onResourceDownloaded()
 		if (filename == "wasm_resources.json") {
 			const QJsonObject &o = Utils::byteArrayToJsonObject(payload);
 			const QJsonArray &resources = o.value(QStringLiteral("resources")).toArray();
+
+			Server *s = new Server(this);
+			s->setUrl(o.value(QStringLiteral("url")).toString());
+			m_webSocket->setServer(s);
 
 
 			if (resources.isEmpty()) {

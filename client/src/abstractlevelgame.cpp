@@ -170,7 +170,7 @@ void AbstractLevelGame::reloadAvailableMedal()
 
 	m_availableMedal.clear();
 
-	QDirIterator it(QStringLiteral(":/internal/medals"), QDir::Files);
+	QDirIterator it(QStringLiteral(":/internal/medal"), QDir::Files);
 
 	while (it.hasNext()) {
 		it.next();
@@ -195,7 +195,7 @@ QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
 	QString d = missionLevel->mission()->medalImage();
 
 	if (m_availableMedal.contains(d))
-		return d.prepend(QStringLiteral("qrc:/internal/medals/"));
+		return d.prepend(QStringLiteral("qrc:/internal/medal/"));
 	else
 		return QLatin1String("");
 }

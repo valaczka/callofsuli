@@ -2,17 +2,14 @@ include(../common.pri)
 
 # Core
 
-INCLUDEPATH += $$PWD/callofsuli-core
-
 LIBS += -L../../lib
 
-android: LIBS += -lcallofsuli-core_$${QT_ARCH}
-else: LIBS += -lcallofsuli-core
-
+LIBS += -lcrypto
 
 # Core includes
 
-INCLUDEPATH += $$PWD/QDeferred/src
+INCLUDEPATH += $$PWD/QDeferred/src \
+				$$PWD/jwt-cpp/include
 
 # Qaterial
 

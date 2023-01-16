@@ -98,6 +98,7 @@ public:
 	static WebSocketMessage createRequest(const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	static WebSocketMessage createRequest(const ClassHandler &classHandler, const QJsonObject &data, const QByteArray &binaryData = QByteArray());
 	WebSocketMessage createResponse(QJsonObject data, const QByteArray &binaryData = QByteArray()) const;
+	WebSocketMessage createResponse(const char *key, const QJsonValue &value, const QString &statusString = QStringLiteral("ok")) const;
 	WebSocketMessage createErrorResponse(const QString &errorString) const;
 	WebSocketMessage createStatusResponse(const QString &statusString = QStringLiteral("ok")) const;
 	static WebSocketMessage createErrorEvent(const QString &errorString, const ClassHandler &classHandler = ClassInvalid);

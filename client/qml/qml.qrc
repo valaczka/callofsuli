@@ -60,5 +60,6 @@
         <file>QFormSwitchButton.qml</file>
         <file>QFormTextArea.qml</file>
         <file>PageMain.qml</file>
+        <file>UserButton.qml</file>
     </qresource>
 </RCC>

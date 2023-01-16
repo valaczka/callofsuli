@@ -492,10 +492,15 @@ bool ServerService::preStart()
 
 	if (parser.isSet(QStringLiteral("trace")))
 		m_consoleAppender->setDetailsLevel(Logger::Trace);
+#ifdef QT_DEBUG
+	else
+		m_consoleAppender->setDetailsLevel(Logger::Debug);
+#else
 	else if (parser.isSet(QStringLiteral("debug")))
 		m_consoleAppender->setDetailsLevel(Logger::Debug);
 	else
 		m_consoleAppender->setDetailsLevel(Logger::Info);
+#endif
 
 
 	/*QString logFile;

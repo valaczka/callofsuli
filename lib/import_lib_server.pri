@@ -5,11 +5,9 @@ win32: TargetSuffix = /release
 
 # Core
 
-INCLUDEPATH += $$PWD/callofsuli-core
-
 LIBS += -L../../lib$${TargetSuffix}
 
-LIBS += -lcallofsuli-core -lcrypto
+LIBS += -lcrypto
 
 # Core includes
 

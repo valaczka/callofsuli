@@ -9,9 +9,6 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	//closeQuestion: StackView.index < 3 ? "Nem tudod, miért nem szeretnéd bezárni?" : ""
-	//closeDisabled: (StackView.index == 4) ? "Nem lehet bezárni!" : ""
-
 	stackPopFunction: function() {
 		if (view.selectEnabled) {
 			view.unselectAll()
@@ -71,7 +68,6 @@ QPage {
 		id: actionDemo
 		text: qsTr("Demo")
 		icon.source: Qaterial.Icons.presentationPlay
-		shortcut: "F2"
 		onTriggered: {
 			onClicked: Client.loadDemoMap()
 		}
@@ -113,7 +109,11 @@ QPage {
 			QMenuItem { action: actionDelete }
 		}
 
-		onRightClickOrPressAndHold: contextMenu.popup(mouseX, mouseY)
+		onRightClickOrPressAndHold: {
+			if (index != -1)
+				currentIndex = index
+			contextMenu.popup(mouseX, mouseY)
+		}
 	}
 
 
@@ -150,7 +150,7 @@ QPage {
 				foregroundColor: Qaterial.Colors.white
 				text: qsTr("Megszakítás")
 				icon.source: Qaterial.Icons.close
-				onClicked: Client.webSocket.close()
+				onClicked: Client.webSocket.abort()
 			}
 		}
 

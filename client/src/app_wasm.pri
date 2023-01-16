@@ -34,7 +34,11 @@ LIBS += \
 	$$QTDIR/Qt/labs/settings/libqmlsettingsplugin.a
 
 WasmRccFiles = $$files($$PWD/../../share/*.cres)
-WasmRccFiles += $$PWD/../deploy/wasm_resources.json
+WasmRccFiles += \
+	$$PWD/../deploy/callofsuli.html \
+	$$PWD/../../resources/internal/img/cos.png
+
+###WasmRccFiles += $$PWD/../deploy/wasm_resources.json
 
 WasmRcc.commands = $(COPY_FILE) $$shell_path($$WasmRccFiles) $$shell_path($$OUT_PWD/$$DESTDIR)
 

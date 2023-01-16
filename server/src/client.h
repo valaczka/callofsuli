@@ -78,6 +78,7 @@ signals:
 
 private:
 	AbstractHandler *createAuthHandler();
+	AbstractHandler *createGeneralHandler();
 
 private slots:
 	void onClientStateChanged();

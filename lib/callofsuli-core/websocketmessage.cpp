@@ -148,6 +148,33 @@ WebSocketMessage WebSocketMessage::createResponse(QJsonObject data, const QByteA
 }
 
 
+/**
+ * @brief WebSocketMessage::createResponse
+ * @param key
+ * @param value
+ * @param statusString
+ * @return
+ */
+
+WebSocketMessage WebSocketMessage::createResponse(const char *key, const QJsonValue &value, const QString &statusString) const
+{
+	QJsonObject data;
+
+	data.insert(QStringLiteral("status"), statusString);
+	data.insert(QString::fromUtf8(key), value);
+
+	if (m_data.contains(QStringLiteral("func")) && !data.contains(QStringLiteral("func")))
+		data.insert(QStringLiteral("func"), m_data.value(QStringLiteral("func")).toString());
+
+	WebSocketMessage m;
+	m.m_opCode = RequestResponse;
+	m.m_classHandler = m_classHandler;
+	m.m_requestMsgNumber = m_msgNumber;
+	m.m_data = data;
+	return m;
+}
+
+
 
 /**
  * @brief WebSocketMessage::createErrorResponse

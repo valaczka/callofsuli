@@ -4,21 +4,13 @@ import QtQuick.Layouts 1.15
 import Qaterial 1.0 as Qaterial
 import "../QaterialHelper" as Qaterial
 import CallOfSuli 1.0
-import ".."
 import "../JScript.js" as JS
+import ".."
 
 QPage {
 	id: control
 
-	//closeQuestion: StackView.index < 3 ? "Nem tudod, miért nem szeretnéd bezárni?" : ""
-	//closeDisabled: (StackView.index == 4) ? "Nem lehet bezárni!" : ""
-
-	/*stackPopFunction: function() {
-		console.debug("STACK POP")
-		return false
-	}*/
-
-	title: "Call of Suli WASM"
+	title: "Call of Suli"
 
 	appBar.backButtonVisible: false
 	appBar.rightComponent: Qaterial.AppBarButton
@@ -58,150 +50,71 @@ QPage {
 		id: actionDemo
 		text: qsTr("Demo")
 		icon.source: Qaterial.Icons.presentationPlay
-		shortcut: "F2"
 		onTriggered: {
 			onClicked: Client.loadDemoMap()
 		}
 	}
 
+	Item {
+		id: connectingItem
+		anchors.fill: parent
 
-	Row {
-		id: row1
+		Column {
+			anchors.centerIn: parent
+			spacing: 20
 
-		Qaterial.RaisedButton {
-			text: "Start Game"
-			icon.source: Qaterial.Icons.gamepad
-			onClicked: Client.loadGame()
-			foregroundColor: Qaterial.Colors.black
-		}
+			Row {
+				spacing: 20
 
-		Qaterial.RaisedButton {
-			text: "Db"
-			highlighted: false
+				visible: Client.webSocket.state != WebSocket.Disconnected
 
-		}
+				Qaterial.BusyIndicator {
+					anchors.verticalCenter: parent.verticalCenter
+					height: txt.height
+					width: txt.height
+					visible: Client.webSocket.state != WebSocket.Connected
+				}
 
+				Qaterial.LabelWithCaption {
+					id: txt
+					anchors.verticalCenter: parent.verticalCenter
+					text: Client.webSocket.state == WebSocket.Connected ? qsTr("Csatlakozva") : qsTr("Csatlakozás...")
+					caption: Client.server ? Client.server.url : ""
+				}
+			}
 
-		Qaterial.RaisedButton {
-			text: "Connect"
-			highlighted: Client.webSocket.state == WebSocket.Connected
+			Qaterial.RaisedButton {
+				visible: Client.webSocket.state != WebSocket.Disconnected
 
-			onClicked: Client.testConnect()
+				anchors.horizontalCenter: parent.horizontalCenter
+				backgroundColor: Qaterial.Colors.red600
+				foregroundColor: Qaterial.Colors.white
+				text: qsTr("Megszakítás")
+				icon.source: Qaterial.Icons.close
+				onClicked: Client.webSocket.close()
+			}
 
-		}
+			Qaterial.IconLabelWithCaption {
+				visible: Client.webSocket.state == WebSocket.Disconnected
+				icon.source: Qaterial.Icons.connection
+				text: qsTr("Nincs kapcsolat")
+				caption: qsTr("Nem lehet csatlakozni a szerverhez")
+			}
 
-		Qaterial.RaisedButton {
-			text: "Hello"
-			highlighted: false
-			onClicked: Client.stackPushPage("PageWebView.qml", {})
-		}
-
-		Qaterial.RaisedButton {
-			text: "Request"
-			highlighted: false
-			onClicked: Client.testRequest()
-		}
-
-
-		Qaterial.RaisedButton {
-			text: "Login Google"
-			highlighted: false
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {func: "loginGoogle"})
-		}
-
-		Qaterial.RaisedButton {
-			text: "Register Google"
-			highlighted: false
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {func: "registerGoogle"})
-		}
-
-		Qaterial.RaisedButton {
-			text: "Close"
-			highlighted: false
-			onClicked: Client.testClose()
-		}
-
-
-	}
-
-	Row {
-		id: row2
-		anchors.left: parent.left
-		anchors.top: row1.bottom
-
-		spacing: 10
-
-		Qaterial.TextField {
-			id: fUser
-			title: "Username"
-			helperText: "Felhasználónév"
-			width: 300
-
-			validator: RegExpValidator { regExp: /.+/ }
-			errorText: "Hiányzik a felhasználónév"
-
-			leadingIconSource: Qaterial.Icons.account
-
-			trailingContent:   Qaterial.TextFieldClearButton {textField: fUser}
-		}
-
-		Qaterial.TextField {
-			id: fPassword
-			title: "Password"
-			helperText: "Jelszó"
-			width: 300
-
-			leadingIconSource: Qaterial.Icons.account
-
-			echoMode: TextInput.Password
-			inputMethodHints: Qt.ImhSensitiveData
-			trailingContent: Qaterial.TextFieldButtonContainer
-			{
-				Qaterial.TextFieldPasswordButton {textField: fPassword} // TextFieldCopyButton
-				Qaterial.TextFieldClearButton {textField: fPassword} // TextFieldClearButton
+			Qaterial.RaisedButton {
+				visible: Client.webSocket.state == WebSocket.Disconnected
+				anchors.horizontalCenter: parent.horizontalCenter
+				backgroundColor: Qaterial.Colors.red600
+				foregroundColor: Qaterial.Colors.white
+				text: qsTr("Kilépés")
+				icon.source: Qaterial.Icons.applicationExport
+				onClicked: Client.mainWindow.close()
 			}
 		}
 
-		Qaterial.RaisedButton {
-			text: "Login"
-			highlighted: false
-			enabled: fUser.text.length && fPassword.text.length
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {
-											  func: "loginPlain",
-											  username: fUser.text,
-											  password: fPassword.text
-										  })
-		}
-
-		Qaterial.RaisedButton {
-			text: "Registration"
-			highlighted: false
-			onClicked: Client.sendRequest(WebSocketMessage.ClassAuth, {
-											  func: "registrationPlain",
-											  username: fUser.text,
-											  password: fPassword.text
-										  })
-		}
-	}
-
-	Qaterial.TextField {
-		id: fToken
-		anchors.top: row2.bottom
-		anchors.left: parent.left
-		anchors.right: btnSend.left
-	}
-
-	Qaterial.RaisedButton {
-		id: btnSend
-		anchors.verticalCenter: fToken.verticalCenter
-		anchors.right: parent.right
-		text: "SEND"
-		highlighted: false
-		onClicked: Client.testToken(fToken.text)
 	}
 
 
-
-
-	//StackView.onActivated: Client.loadGame()
+	StackView.onActivated: if (Client.server)
+							   Client.webSocket.connectToServer()
 }

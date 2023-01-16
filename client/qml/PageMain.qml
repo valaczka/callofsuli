@@ -12,12 +12,14 @@ QPage {
 	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
 
 	onPageClose: function() {
-		Client.closeServer()
+		Client.webSocket.close()
 	}
 
 	title: Client.server ? Client.server.serverName : ""
 
 	appBar.backButtonVisible: true
+	appBar.rightComponent: UserButton { }
+
 	/*appBar.rightComponent: Qaterial.AppBarButton
 	{
 		visible: view.visible
@@ -45,6 +47,7 @@ QPage {
 
 		QButton {
 			text: "Close"
+			onClicked: Client.sendRequest(WebSocketMessage.ClassGeneral,{func: "rankList"})
 		}
 	}
 }

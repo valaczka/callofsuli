@@ -26,6 +26,7 @@
 
 #include "client.h"
 #include "authhandler.h"
+#include "generalhandler.h"
 #include "qjsondocument.h"
 #include "qjsonobject.h"
 #include "serverservice.h"
@@ -52,6 +53,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	connect(webSocket, &QWebSocket::textMessageReceived, this, &Client::onTextMessageReceived);
 
 	m_handlers.insert(WebSocketMessage::ClassAuth, &Client::createAuthHandler);
+	m_handlers.insert(WebSocketMessage::ClassGeneral, &Client::createGeneralHandler);
 }
 
 
@@ -249,6 +251,17 @@ void Client::setCredential(const Credential &newCredential)
 AbstractHandler *Client::createAuthHandler()
 {
 	return new AuthHandler(this);
+}
+
+
+/**
+ * @brief Client::createGeneralHandler
+ * @return
+ */
+
+AbstractHandler *Client::createGeneralHandler()
+{
+	return new GeneralHandler(this);
 }
 
 

@@ -58,6 +58,7 @@ Client::Client(Application *app, QObject *parent)
 	});
 	connect(m_webSocket, &WebSocket::serverConnected, this, &Client::onServerConnected);
 	connect(m_webSocket, &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
+	connect(m_webSocket, &WebSocket::serverChanged, this, &Client::serverChanged);
 
 }
 
@@ -235,6 +236,55 @@ bool Client::stackPop(QQuickItem *page, const bool &forced) const
 }
 
 
+/**
+ * @brief Client::stackPopToPage
+ * @param page
+ * @param forced
+ * @return
+ */
+
+bool Client::stackPopToPage(QQuickItem *page) const
+{
+	if (!m_mainStack) {
+		LOG_CERROR("client") << "mainStack nincsen beállítva!";
+		return false;
+	}
+
+	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
+
+	if (!currentItem) {
+		LOG_CERROR("client") << "mainStack currentItem unavailable";
+		return false;
+	}
+
+
+
+	bool canPop = true;
+
+	QMetaObject::invokeMethod(m_mainStack, "callStackPop",
+							  Q_RETURN_ARG(bool, canPop)
+							  );
+
+	if (!canPop)
+		return false;
+
+
+	QString closeDisabled = currentItem->property("closeDisabled").toString();
+	QString question = currentItem->property("closeQuestion").toString();
+
+	if (!closeDisabled.isEmpty()) {
+		messageWarning(closeDisabled);
+		return false;
+	}
+
+	QMetaObject::invokeMethod(m_mainStack, "popToItem",
+							  Q_ARG(QQuickItem*, page)
+							  );
+
+	return true;
+}
+
+
 
 
 
@@ -303,6 +353,8 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMedal();
 
 	stackPushPage(QStringLiteral("PageStart.qml"));
+
+	emit startPageLoaded();
 }
 
 
@@ -315,6 +367,7 @@ void Client::onWebSocketError(const QAbstractSocket::SocketError &error)
 {
 	LOG_CWARNING("client") << "Websocket error:" << error;
 	messageError(tr("ERROR: %1").arg(error), tr("Sikertelen csatalakozás"));
+	m_webSocket->close();
 }
 
 
@@ -324,7 +377,7 @@ void Client::onWebSocketError(const QAbstractSocket::SocketError &error)
 
 void Client::onServerConnected()
 {
-	LOG_CINFO("client") << "Server connected:" << m_server->url();
+	LOG_CINFO("client") << "Server connected:" << m_webSocket->server()->url();
 
 	stackPushPage(QStringLiteral("PageMain.qml"));
 }
@@ -336,8 +389,9 @@ void Client::onServerConnected()
 
 void Client::onServerDisconnected()
 {
-	//LOG_CINFO("client") << "Server disconnected";
-	//stackPop(1, true);
+	LOG_CINFO("client") << "Server disconnected";
+	snack(tr("Szerverkapcsolat lezárult"));
+	//stackPopToPage(m_startPage);
 }
 
 
@@ -364,24 +418,6 @@ void Client::_message(const QString &text, const QString &title, const QString &
 }
 
 
-/**
- * @brief Client::server
- * @return
- */
-
-Server *Client::server() const
-{
-	return m_server;
-}
-
-void Client::setServer(Server *newServer)
-{
-	if (m_server == newServer)
-		return;
-	m_server = newServer;
-	emit serverChanged();
-}
-
 
 
 
@@ -399,24 +435,11 @@ void Client::connectToServer(Server *server)
 	}
 
 	if (server->url().isEmpty()) {
-		messageError(tr("A szerver URL címe nincs beállítva!"), server->name());
+		messageError(tr("A szerver URL címe nincs beállítva!"));
 		return;
 	}
 
-	setServer(server);
-
 	m_webSocket->connectToServer(server);
-}
-
-
-/**
- * @brief Client::closeServer
- */
-
-void Client::closeServer()
-{
-	m_webSocket->close();
-	setServer(nullptr);
 }
 
 
@@ -443,6 +466,17 @@ WebSocket *Client::webSocket() const
 void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json)
 {
 	m_webSocket->send(WebSocketMessage::createRequest(classHandler, json));
+}
+
+
+/**
+ * @brief Client::server
+ * @return
+ */
+
+Server *Client::server() const
+{
+	return m_webSocket->server();
 }
 
 

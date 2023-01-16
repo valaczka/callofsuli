@@ -8,6 +8,7 @@ CONFIG -= app_bundle
 
 include(../../common.pri)
 include(../../version/version.pri)
+include(../../lib/callofsuli-core/callofsuli-core.pri)
 
 DESTDIR = ../..
 
@@ -43,6 +44,7 @@ SOURCES += \
 	authhandler.cpp \
 	client.cpp \
 	databasemain.cpp \
+	generalhandler.cpp \
 	main.cpp \
 	serverhandler.cpp \
 	serverservice.cpp \
@@ -60,6 +62,7 @@ HEADERS += \
 	authhandler.h \
 	client.h \
 	databasemain.h \
+	generalhandler.h \
 	serverhandler.h \
 	serverservice.h \
 	serversettings.h \

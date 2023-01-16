@@ -9,6 +9,7 @@ CONFIG += c++17
 
 include(../../common.pri)
 include(../../version/version.pri)
+include(../../lib/callofsuli-core/callofsuli-core.pri)
 
 android {
 	isEmpty(AndroidNdkPath): error(AndroidNdkPath empty)
@@ -27,6 +28,7 @@ DESTDIR = ../..
 QML_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
 
+DEFINES += CLIENT_UTILS
 
 include(../../lib/import_lib_client.pri)
 
@@ -181,6 +183,7 @@ SOURCES += \
 	question.cpp \
 	server.cpp \
 	tiledpaintedlayer.cpp \
+	user.cpp \
 	websocket.cpp
 
 RESOURCES += \
@@ -218,6 +221,7 @@ HEADERS += \
 	question.h \
 	server.h \
 	tiledpaintedlayer.h \
+	user.h \
 	websocket.h
 
 

@@ -70,6 +70,7 @@ public:
 public slots:
 	void connectToServer(Server *server = nullptr);
 	void close();
+	void abort();
 	void send(const WebSocketMessage &message);
 
 private slots:

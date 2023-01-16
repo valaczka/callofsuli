@@ -18,10 +18,8 @@ Column {
 		id: _title
 		width: parent.width
 		wrapMode: Label.Wrap
-		topPadding: 15
+		topPadding: 8
 		bottomPadding: 20
-		leftPadding: Qaterial.Style.horizontalPadding
-		rightPadding: Qaterial.Style.horizontalPadding
 		visible: text.length
 	}
 

@@ -64,7 +64,7 @@ class Client : public QObject
 	Q_PROPERTY(qreal safeMarginBottom READ safeMarginBottom NOTIFY safeMarginBottomChanged)
 
 	Q_PROPERTY(WebSocket *webSocket READ webSocket CONSTANT)
-	Q_PROPERTY(Server *server READ server WRITE setServer NOTIFY serverChanged)
+	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
 
 
 
@@ -78,6 +78,7 @@ public:
 	Q_INVOKABLE QQuickItem *stackPushPage(const QString &qml, const QVariantMap &parameters = {}) const;
 	Q_INVOKABLE bool stackPop(const int &index = -1, const bool &forced = false) const;
 	Q_INVOKABLE bool stackPop(QQuickItem *page, const bool &forced = false) const;
+	Q_INVOKABLE bool stackPopToPage(QQuickItem *page) const;
 
 	QQuickWindow *mainWindow() const;
 	void setMainWindow(QQuickWindow *newMainWindow);
@@ -121,18 +122,14 @@ public:
 	void setSafeMargins(const QMarginsF &margins);
 
 
-	// Server
-
-	Server *server() const;
-	void setServer(Server *newServer);
-
-	Q_INVOKABLE void connectToServer(Server *server);
-	Q_INVOKABLE void closeServer();
-
 	// WebSocket
 
 	WebSocket *webSocket() const;
 	Q_INVOKABLE void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json);
+
+	Server *server() const;
+
+	Q_INVOKABLE void connectToServer(Server *server);
 
 	void addMessageHandler(AsyncMessageHandler *handler);
 	void removeMessageHandler(AsyncMessageHandler *handler);
@@ -152,6 +149,7 @@ protected:
 	virtual bool handleMessageInternal(const WebSocketMessage &) { return false; }
 
 signals:
+	void startPageLoaded();
 	void pixelSizeChanged();
 	void pixelSizeRatioChanged();
 	void mainStackChanged();
@@ -174,7 +172,6 @@ protected:
 	Utils *const m_utils;
 	AbstractGame *m_currentGame = nullptr;
 	WebSocket *const m_webSocket;
-	Server *m_server = nullptr;
 
 	qreal m_safeMarginLeft = 0;
 	qreal m_safeMarginRight = 0;

@@ -30,6 +30,7 @@
 #include "websocketmessage.h"
 #include "serverservice.h"
 #include "adminhandler.h"
+#include "rank.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
 	: QObject(service)
@@ -165,7 +166,7 @@ bool DatabaseMain::_checkSystemTable()
 		}
 	} else {
 		db.transaction();
-		if (_createTables() && _createUsers()) {
+		if (_createTables() && _createUsers() && _createRanks()) {
 			db.commit();
 			return _checkSystemTable();
 		} else {
@@ -348,6 +349,38 @@ bool DatabaseMain::_createUsers()
 		}
 	}
 
+
+	return true;
+}
+
+
+
+/**
+ * @brief DatabaseMain::_createRanks
+ * @return
+ */
+
+bool DatabaseMain::_createRanks()
+{
+	QSqlDatabase db = QSqlDatabase::database(m_dbName);
+
+	foreach(const Rank &r, RankList::defaultRankList()) {
+		QueryBuilder q(db);
+		q.addQuery("INSERT INTO rank(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("id", r.id())
+				.addField("level", r.level())
+				.addField("sublevel", r.sublevel() < 0 ? QVariant(QVariant::Invalid) : r.sublevel())
+				.addField("xp", r.xp() < 0 ? QVariant(QVariant::Invalid) : r.xp())
+				.addField("name", r.name());
+
+		if (!q.exec()) {
+			return false;
+		}
+	}
 
 	return true;
 }

@@ -54,6 +54,7 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	QMetaObject::invokeMethod(m_sound, "init", Qt::BlockingQueuedConnection);
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
+	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
 
 	serverListLoad();
 }
@@ -301,6 +302,22 @@ void DesktopClient::onServerConnected()
 		sendRequest(WebSocketMessage::ClassAuth, QJsonObject({
 																 { QStringLiteral("func"), QStringLiteral("getGoogleLocalClientId") }
 															 }));
+}
+
+
+
+
+/**
+ * @brief DesktopClient::onStartPageLoaded
+ */
+
+void DesktopClient::onStartPageLoaded()
+{
+	for (Server *s : *m_serverList)
+		if (s->autoConnect()) {
+			connectToServer(s);
+			break;
+		}
 }
 
 

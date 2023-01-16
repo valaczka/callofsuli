@@ -6,8 +6,7 @@ SUBDIRS += \
 	libQaterial \
 	libQZXing \
 	libTiled \
-	libQtXlsxWriter \
-	callofsuli-core
+	libQtXlsxWriter
 
 !wasm:!android:!ios: SUBDIRS += CuteLogger
 
