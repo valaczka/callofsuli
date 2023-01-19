@@ -31,3 +31,105 @@ User::User(QObject *parent)
 {
 
 }
+
+const QString &User::username() const
+{
+	return m_username;
+}
+
+void User::setUsername(const QString &newUsername)
+{
+	if (m_username == newUsername)
+		return;
+	m_username = newUsername;
+	emit usernameChanged();
+}
+
+const QString &User::familyName() const
+{
+	return m_familyName;
+}
+
+void User::setFamilyName(const QString &newFamilyName)
+{
+	if (m_familyName == newFamilyName)
+		return;
+	m_familyName = newFamilyName;
+	emit familyNameChanged();
+	emit fullNameChanged();
+}
+
+const QString &User::givenName() const
+{
+	return m_givenName;
+}
+
+void User::setGivenName(const QString &newGivenName)
+{
+	if (m_givenName == newGivenName)
+		return;
+	m_givenName = newGivenName;
+	emit givenNameChanged();
+	emit fullNameChanged();
+}
+
+QString User::fullName() const
+{
+	return QStringList({m_familyName, m_givenName}).join(' ');
+}
+
+const Rank &User::rank() const
+{
+	return m_rank;
+}
+
+void User::setRank(const Rank &newRank)
+{
+	if (m_rank == newRank)
+		return;
+	m_rank = newRank;
+	emit rankChanged();
+}
+
+const Credential::Roles &User::roles() const
+{
+	return m_roles;
+}
+
+void User::setRoles(const Credential::Roles &newRoles)
+{
+	if (m_roles == newRoles)
+		return;
+	m_roles = newRoles;
+	emit rolesChanged();
+}
+
+
+/**
+ * @brief User::clear
+ */
+
+void User::clear()
+{
+	setUsername(QLatin1String(""));
+	setFamilyName(QLatin1String(""));
+	setGivenName(QLatin1String(""));
+	setRank(Rank());
+	setRoles(Credential::None);
+	setLoginState(LoggedOut);
+}
+
+
+const User::LoginState &User::loginState() const
+{
+	return m_loginState;
+}
+
+void User::setLoginState(const LoginState &newLoginState)
+{
+	if (m_loginState == newLoginState)
+		return;
+	m_loginState = newLoginState;
+	emit loginStateChanged();
+}
+

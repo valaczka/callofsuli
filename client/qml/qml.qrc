@@ -61,5 +61,7 @@
         <file>QFormTextArea.qml</file>
         <file>PageMain.qml</file>
         <file>UserButton.qml</file>
+        <file>Login.qml</file>
+        <file>RankList.qml</file>
     </qresource>
 </RCC>

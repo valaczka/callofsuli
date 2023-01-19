@@ -41,6 +41,7 @@
 DesktopClient::DesktopClient(Application *app, QObject *parent)
 	: Client(app, parent)
 	, m_serverList(new ServerList(this))
+	, m_internalHandler(new DesktopInternalHandler(this))
 {
 	LOG_CTRACE("client") << "Desktop DesktopClient created:" << this;
 
@@ -55,6 +56,8 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
+
+	addMessageHandler(m_internalHandler);
 
 	serverListLoad();
 }
@@ -73,6 +76,9 @@ DesktopClient::~DesktopClient()
 	m_soundThread.wait();
 
 	delete m_serverList;
+
+	removeMessageHandler(m_internalHandler);
+	delete m_internalHandler;
 
 	LOG_CTRACE("client") << "Desktop DesktopClient destroyed:" << this;
 }
@@ -231,25 +237,6 @@ void DesktopClient::setSfxVolumeInt(int sfxVolume)
 }
 
 
-/**
- * @brief DesktopClient::handleMessageInternal
- */
-
-bool DesktopClient::handleMessageInternal(const WebSocketMessage &message)
-{
-	const QString &func = message.data().value(QStringLiteral("func")).toString();
-
-	if (message.opCode() == WebSocketMessage::RequestResponse) {
-		if (func == QLatin1String("getGoogleLocalClientId")) {
-			if (!m_googleAuthenticator)
-				createGoogleAuthenticator(message.data().value(QStringLiteral("clientId")).toString(),
-										  message.data().value(QStringLiteral("clientKey")).toString());
-			return true;
-		}
-	}
-
-	return Client::handleMessageInternal(message);
-}
 
 
 /**
@@ -299,9 +286,22 @@ void DesktopClient::onServerConnected()
 	Client::onServerConnected();
 
 	if (!m_googleAuthenticator)
-		sendRequest(WebSocketMessage::ClassAuth, QJsonObject({
-																 { QStringLiteral("func"), QStringLiteral("getGoogleLocalClientId") }
-															 }));
+		m_internalHandler->sendRequest(WebSocketMessage::ClassAuth, "getGoogleLocalClientId");
+}
+
+
+/**
+ * @brief DesktopClient::onServerDisconnected
+ */
+
+void DesktopClient::onServerDisconnected()
+{
+	Client::onServerDisconnected();
+
+	if (!m_googleAuthenticator) {
+		m_googleAuthenticator->deleteLater();
+		m_googleAuthenticator = nullptr;
+	}
 }
 
 
@@ -337,11 +337,7 @@ void DesktopClient::serverListLoad(const QDir &dir)
 	while (it.hasNext()) {
 		const QString &realname = it.next();
 
-		LOG_CWARNING("client") << "FOUND" << realname;
-
 		QJsonObject o = Utils::fileToJsonObject(realname);
-
-		LOG_CTRACE("obj") << o;
 
 		Server *s = Server::fromJson(o);
 
@@ -352,6 +348,10 @@ void DesktopClient::serverListLoad(const QDir &dir)
 
 		s->setName(realname.section('/', -2, -2));
 		s->setDirectory(realname.section('/', 0, -2));
+
+		if (!s->token().isEmpty() && !s->isTokenValid())
+			s->setToken(QLatin1String(""));
+
 
 		LOG_CTRACE("client") << "Add server"<< s->name() << s->url() << s->directory();
 
@@ -527,6 +527,11 @@ bool DesktopClient::serverDeleteSelected()
 
 GoogleOAuth2Authenticator *DesktopClient::createGoogleAuthenticator(const QString &clientId, const QString &clientKey)
 {
+	if (clientId.isEmpty() || clientKey.isEmpty()) {
+		LOG_CTRACE("client") << "Google id empty";
+		return nullptr;
+	}
+
 	if (m_googleAuthenticator) {
 		LOG_CDEBUG("client") << "Google authenticator already exists";
 		return m_googleAuthenticator;
@@ -576,6 +581,7 @@ void DesktopClient::loginGoogle()
 		return;
 	}
 
+	server()->user()->setLoginState(User::LoggingIn);
 
 	DesktopCodeFlow *flow = new DesktopCodeFlow(m_googleAuthenticator, this);
 	flow->setMode(DesktopCodeFlow::Login);
@@ -636,6 +642,7 @@ void DesktopClient::registrationGoogle()
 
 
 
+
 /**
  * @brief DesktopCodeFlow::onAuthSuccess
  * @param data
@@ -663,7 +670,7 @@ void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
 
 	o[QStringLiteral("access_token")] = data.value(QStringLiteral("access_token")).toString();
 
-	m_client->sendRequest(WebSocketMessage::ClassAuth, o);
+	m_client->Client::m_internalHandler->sendRequest(WebSocketMessage::ClassAuth, o);
 
 	if (m_page)
 		m_client->stackPop(m_page);
@@ -678,4 +685,19 @@ void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
 int DesktopClient::serverListSelectedCount() const
 {
 	return Utils::selectedCount(m_serverList);
+}
+
+
+
+
+/**
+ * @brief DesktopInternalHandler::getGoogleLocalClientId
+ * @param json
+ */
+
+void DesktopInternalHandler::getGoogleLocalClientId(const QJsonObject &json) const
+{
+	if (!m_desktopClient->m_googleAuthenticator)
+		m_desktopClient->createGoogleAuthenticator(json.value(QStringLiteral("clientId")).toString(),
+												   json.value(QStringLiteral("clientKey")).toString());
 }

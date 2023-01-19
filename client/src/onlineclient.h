@@ -44,9 +44,6 @@ public:
 	Q_INVOKABLE void toggleFullscreen(); */
 	Q_INVOKABLE void enableTabCloseConfirmation(bool enable);
 
-protected:
-	virtual bool handleMessageInternal(const WebSocketMessage &message);
-
 protected slots:
 	virtual void onApplicationStarted() override;
 

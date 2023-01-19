@@ -49,17 +49,21 @@ Client::Client(Application *app, QObject *parent)
 	, m_networkManager(new QNetworkAccessManager(this))
 	, m_utils(new Utils(this))
 	, m_webSocket(new WebSocket(this))
+	, m_internalHandler(new InternalHandler(this))
 {
 	Q_ASSERT(app);
 
-	connect(m_webSocket->socket(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &Client::onWebSocketError);
+	connect(m_webSocket, &WebSocket::socketError, this, &Client::onWebSocketError);
 	connect(m_webSocket, &WebSocket::serverUnavailable, this, [this](int) {
 		snack(tr("Szerver nem elérhető"));
 	});
 	connect(m_webSocket, &WebSocket::serverConnected, this, &Client::onServerConnected);
 	connect(m_webSocket, &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
+	connect(m_webSocket, &WebSocket::serverTerminated, this, &Client::onServerTerminated);
+	connect(m_webSocket, &WebSocket::serverReconnected, this, &Client::onServerReconnected);
 	connect(m_webSocket, &WebSocket::serverChanged, this, &Client::serverChanged);
 
+	addMessageHandler(m_internalHandler);
 }
 
 
@@ -73,6 +77,9 @@ Client::~Client()
 	if (m_currentGame)
 		delete m_currentGame;
 
+	removeMessageHandler(m_internalHandler);
+
+	delete m_internalHandler;
 	delete m_networkManager;
 	delete m_utils;
 	delete m_webSocket;
@@ -352,7 +359,7 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
 
-	stackPushPage(QStringLiteral("PageStart.qml"));
+	m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
 
 	emit startPageLoaded();
 }
@@ -379,7 +386,14 @@ void Client::onServerConnected()
 {
 	LOG_CINFO("client") << "Server connected:" << m_webSocket->server()->url();
 
+	server()->user()->setLoginState(User::LoggedOut);
+
 	stackPushPage(QStringLiteral("PageMain.qml"));
+
+	loginToken();
+
+	m_internalHandler->sendRequest(WebSocketMessage::ClassServer, "getConfig");
+	m_internalHandler->sendRequest(WebSocketMessage::ClassGeneral, "rankList");
 }
 
 
@@ -391,7 +405,54 @@ void Client::onServerDisconnected()
 {
 	LOG_CINFO("client") << "Server disconnected";
 	snack(tr("Szerverkapcsolat lezárult"));
-	//stackPopToPage(m_startPage);
+
+	if (server())
+		server()->user()->setLoginState(User::LoggedOut);
+}
+
+
+/**
+ * @brief Client::onServerTerminated
+ */
+
+void Client::onServerTerminated()
+{
+	LOG_CINFO("client") << "Server terminated";
+	snack(tr("Szerverkapcsolat megszakadt"));
+}
+
+
+/**
+ * @brief Client::onServerReconnected
+ */
+
+void Client::onServerReconnected()
+{
+	LOG_CINFO("client") << "Server reconnected";
+	snack(tr("Szerverkapcsolat helyreállt"));
+}
+
+
+/**
+ * @brief Client::onUserLoggedIn
+ */
+
+void Client::onUserLoggedIn()
+{
+	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
+}
+
+
+/**
+ * @brief Client::onUserLoggedOut
+ */
+
+void Client::onUserLoggedOut()
+{
+	LOG_CINFO("client") << "User logged out:" << qPrintable(server()->user()->username());
+
+	server()->setToken(QLatin1String(""));
+	server()->user()->clear();
 }
 
 
@@ -415,6 +476,25 @@ void Client::_message(const QString &text, const QString &title, const QString &
 								  Q_ARG(QString, type)
 								  );
 	}
+}
+
+
+
+/**
+ * @brief Client::_userAuthTokenReceived
+ * @param token
+ */
+
+void Client::_userAuthTokenReceived(const QString &token)
+{
+	const Credential &c = Credential::fromJWT(token);
+
+	server()->setToken(token);
+	server()->user()->setUsername(c.username());
+	server()->user()->setRoles(c.roles());
+	server()->user()->setLoginState(User::LoggedIn);
+
+	onUserLoggedIn();
 }
 
 
@@ -443,6 +523,17 @@ void Client::connectToServer(Server *server)
 }
 
 
+/**
+ * @brief Client::stackPopToStartPage
+ */
+
+void Client::stackPopToStartPage()
+{
+	if (m_startPage)
+		stackPopToPage(m_startPage);
+}
+
+
 
 
 
@@ -467,6 +558,8 @@ void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, con
 {
 	m_webSocket->send(WebSocketMessage::createRequest(classHandler, json));
 }
+
+
 
 
 /**
@@ -530,6 +623,112 @@ void Client::handleMessage(const WebSocketMessage &message)
 	foreach (AsyncMessageHandler *h, m_messageHandlers)
 		if (h) h->handleMessage(message);
 
+}
+
+
+
+/**
+ * @brief Client::loginGoogle
+ */
+
+void Client::loginGoogle()
+{
+	server()->user()->setLoginState(User::LoggingIn);
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginGoogle");
+}
+
+
+/**
+ * @brief Client::registrationGoogle
+ */
+
+void Client::registrationGoogle()
+{
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationGoogle");
+}
+
+
+/**
+ * @brief Client::loginPlain
+ * @param username
+ * @param password
+ */
+
+void Client::loginPlain(const QString &username, const QString &password)
+{
+	server()->user()->setLoginState(User::LoggingIn);
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginPlain",
+									   QJsonObject({
+													   { QStringLiteral("username"), username },
+													   { QStringLiteral("password"), password }
+												   }));
+}
+
+
+
+
+
+/**
+ * @brief Client::registrationPlain
+ */
+
+void Client::registrationPlain()
+{
+
+}
+
+
+/**
+ * @brief Client::loginToken
+ * @param token
+ */
+
+bool Client::loginToken()
+{
+	const QString &token = server()->token();
+
+	if (token.isEmpty()) {
+		LOG_CTRACE("client") << "No auth token";
+		return false;
+	}
+
+#ifndef Q_OS_WASM
+	try {
+		auto decoded = jwt::decode(token.toStdString());
+
+		qint64 exp = decoded.get_payload_claim("exp").as_integer();
+
+		if (exp <= QDateTime::currentSecsSinceEpoch()) {
+			LOG_CINFO("client") << "Token expired";
+			server()->setToken(QLatin1String(""));
+			return false;
+		}
+
+	} catch (...) {
+		LOG_CWARNING("credential") << "Invalid token:" << token;
+		server()->setToken(QLatin1String(""));
+		return false;
+	}
+#endif
+
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginToken",
+									   QJsonObject({
+													   { QStringLiteral("token"), token }
+												   }));
+
+	return true;
+}
+
+
+
+/**
+ * @brief Client::logout
+ */
+
+void Client::logout()
+{
+	LOG_CDEBUG("client") << "Logout";
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "logout");
 }
 
 
@@ -839,6 +1038,96 @@ void Client::loadDemoMap()
 bool Client::debug() const
 {
 	return m_application->debug();
+}
+
+
+
+
+
+/**
+ * @brief InternalHandler::getConfig
+ * @param json
+ */
+
+void InternalHandler::getConfig(const QJsonObject &json) const
+{
+	if (json.contains(QStringLiteral("name")) && m_client->server())
+		m_client->server()->setServerName(json.value(QStringLiteral("name")).toString());
+
+	if (json.contains(QStringLiteral("config")) && m_client->server())
+		m_client->server()->setConfig(json.value(QStringLiteral("config")).toObject());
+
+}
+
+
+
+/**
+ * @brief InternalHandler::rankList
+ * @param json
+ */
+
+void InternalHandler::rankList(const QJsonObject &json) const
+{
+	if (!checkStatus(json))
+		return;
+
+	m_client->server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
+}
+
+
+/**
+ * @brief InternalHandler::loginPlain
+ * @param json
+ */
+
+void InternalHandler::loginPlain(const QJsonObject &json) const
+{
+	const QString &error = json.value(QStringLiteral("error")).toString();
+
+	if (!error.isEmpty()) {
+		m_client->messageWarning(error, tr("Sikertelen bejelentkezés"));
+		m_client->server()->user()->setLoginState(User::LoggedOut);
+		return;
+	}
+
+	if (!checkStatus(json))
+		return;
+
+	if (json.contains(QStringLiteral("auth_token")))
+		m_client->_userAuthTokenReceived(json.value(QStringLiteral("auth_token")).toString());
+	else
+		m_client->_userAuthTokenReceived(m_client->server()->token());
+
+}
+
+
+
+/**
+ * @brief InternalHandler::loginGoogle
+ * @param json
+ */
+
+void InternalHandler::loginGoogle(const QJsonObject &json) const
+{
+	if (json.contains(QStringLiteral("url"))) {
+		Utils::openUrl(QUrl::fromEncoded(json.value(QStringLiteral("url")).toString().toUtf8()));
+	} else {
+		loginPlain(json);
+	}
+}
+
+
+/**
+ * @brief InternalHandler::logout
+ * @param json
+ */
+
+void InternalHandler::logout(const QJsonObject &json) const
+{
+	if (!checkStatus(json))
+		return;
+
+	m_client->onUserLoggedOut();
 }
 
 

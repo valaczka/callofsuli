@@ -25,7 +25,6 @@
  */
 
 #include "credential.h"
-#include <jwt-cpp/jwt.h>
 #include "Logger.h"
 #include "utils.h"
 
@@ -40,6 +39,7 @@
 Credential::Credential(const QString &username, const Roles &roles)
 	: m_username(username)
 	, m_roles(roles)
+	, m_iat(QDateTime::currentSecsSinceEpoch())
 {
 
 }
@@ -47,6 +47,19 @@ Credential::Credential(const QString &username, const Roles &roles)
 
 
 
+/**
+ * @brief Credential::isValid
+ * @return
+ */
+
+bool Credential::isValid() const
+{
+	return (!m_username.isEmpty());
+}
+
+
+
+#ifndef Q_OS_WASM
 
 /**
  * @brief Credential::toJWT
@@ -76,9 +89,9 @@ QString Credential::createJWT(const QString &secret) const
 	else if (m_roles.testFlag(Student))
 		exp = exp.addDays(10);
 	else if (m_roles.testFlag(Panel))
-		exp = exp.addDays(20);
-	else
 		exp = exp.addDays(30);
+	else
+		exp = exp.addDays(50);
 
 	auto token = jwt::create()
 			.set_issuer(JWT_ISSUER)
@@ -96,16 +109,6 @@ QString Credential::createJWT(const QString &secret) const
 	return "";
 }
 
-
-/**
- * @brief Credential::isValid
- * @return
- */
-
-bool Credential::isValid() const
-{
-	return (!m_username.isEmpty());
-}
 
 
 
@@ -127,6 +130,8 @@ Credential Credential::fromJWT(const QString &jwt)
 		c.setUsername(QString::fromStdString(decoded.get_subject()));
 
 		const QString &r = QString::fromStdString(decoded.get_payload_claim("roles").as_string());
+
+		c.m_iat = decoded.get_payload_claim("iat").as_integer();
 
 		Roles roles;
 
@@ -176,6 +181,7 @@ bool Credential::verify(const QString &token, JwtVerifier *verifier)
 	return ret;
 }
 
+#endif
 
 
 /**
@@ -255,4 +261,15 @@ void Credential::setRoles(const Roles &newRoles)
 void Credential::setRole(const Role &role, const bool &on)
 {
 	m_roles.setFlag(role, on);
+}
+
+
+/**
+ * @brief Credential::iat
+ * @return
+ */
+
+qint64 Credential::iat() const
+{
+	return m_iat;
 }

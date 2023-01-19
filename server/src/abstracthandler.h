@@ -47,11 +47,8 @@ public:
 
 	void handleMessage(const WebSocketMessage &message);
 
-	bool validateJwtToken(const bool &autoResponseOnFail = true);
-	bool validateJwtToken(const Credential::Role &role, const bool &autoResponseOnFail = true);
-
-	const Credential &credential() const;
-	void setCredential(const Credential &newCredential);
+	bool validateCredential(const bool &autoResponseOnFail = true);
+	bool validateCredential(const Credential::Role &role, const bool &autoResponseOnFail = true);
 
 	DatabaseMain *databaseMain() const;
 	ServerService *service() const;
@@ -70,12 +67,16 @@ protected:
 	WebSocketMessage m_message;
 	Client *const m_client;
 
+	friend class AdminHandler;
+
 private slots:
 	void destroyTimeout();
-
-private:
-	bool m_jwtTokenValidated = false;
-	Credential m_credential;
 };
+
+#define HANDLER_LOG_TRACE() LOG_CTRACE("client") << m_client
+#define HANDLER_LOG_DEBUG() LOG_CDEBUG("client") << m_client
+#define HANDLER_LOG_INFO() LOG_CINFO("client") << m_client
+#define HANDLER_LOG_WARNING() LOG_CWARNING("client") << m_client
+#define HANDLER_LOG_ERROR() LOG_CERROR("client") << m_client
 
 #endif // ABSTRACTHANDLER_H

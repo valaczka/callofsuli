@@ -37,6 +37,7 @@
 
 
 class DesktopCodeFlow;
+class DesktopInternalHandler;
 
 /**
  * @brief The DesktopClient class
@@ -68,8 +69,8 @@ public:
 
 	GoogleOAuth2Authenticator *googleAuthenticator() const;
 
-	Q_INVOKABLE void loginGoogle();
-	Q_INVOKABLE void registrationGoogle();
+	Q_INVOKABLE virtual void loginGoogle() override;
+	Q_INVOKABLE virtual void registrationGoogle() override;
 
 	int serverListSelectedCount() const;
 
@@ -80,11 +81,9 @@ public slots:
 	void setVolume(const Sound::ChannelType &channel, const int &volume) const;
 	void setSfxVolumeInt(int sfxVolume);
 
-protected:
-	virtual bool handleMessageInternal(const WebSocketMessage &message);
-
 protected slots:
-	void onServerConnected();
+	void onServerConnected() override;
+	void onServerDisconnected() override;
 	void onStartPageLoaded();
 
 private slots:
@@ -108,6 +107,10 @@ private:
 	ServerList *m_serverList = nullptr;
 	GoogleOAuth2Authenticator *m_googleAuthenticator = nullptr;
 	DesktopCodeFlow *m_codeFlow = nullptr;
+	DesktopInternalHandler *m_internalHandler = nullptr;
+
+	friend class DesktopInternalHandler;
+	friend class DesktopCodeFlow;
 };
 
 
@@ -162,6 +165,31 @@ private:
 	Mode m_mode = Login;
 	QQuickItem *m_page = nullptr;
 	DesktopClient *m_client = nullptr;
+};
+
+
+
+
+
+/**
+ * @brief The DesktopInternalHandler class
+ */
+
+class DesktopInternalHandler : public AsyncMessageHandler
+{
+	Q_OBJECT
+
+public:
+	explicit DesktopInternalHandler(DesktopClient *client) : AsyncMessageHandler(client) , m_desktopClient(client) {}
+	virtual ~DesktopInternalHandler() {}
+
+public slots:
+	void getGoogleLocalClientId(const QJsonObject &json) const;
+	//void getConfig(const QJsonObject &json) const;
+	//void rankList(const QJsonObject &json) const;
+
+private:
+	DesktopClient *m_desktopClient = nullptr;
 };
 
 #endif // DESKTOPCLIENT_H

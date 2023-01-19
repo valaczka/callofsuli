@@ -45,7 +45,7 @@ AuthHandler::AuthHandler(Client *client)
 
 QDeferred<Credential> AuthHandler::getCredential(const QString &username) const
 {
-	LOG_CTRACE("client") << "Get credential for" << qPrintable(username);
+	HANDLER_LOG_TRACE() << "Get credential for" << qPrintable(username);
 
 	QDeferred<Credential> ret;
 
@@ -59,13 +59,13 @@ QDeferred<Credential> AuthHandler::getCredential(const QString &username) const
 				.addValue(username);
 
 		if (!q.exec() || !q.sqlQuery().first()) {
-			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(username);
+			HANDLER_LOG_DEBUG() << "Invalid username:" << qPrintable(username);
 			ret.reject(Credential());
 			return;
 		}
 
 		if (!q.value("active").toBool()) {
-			LOG_CDEBUG("client") << "Inactive user:" << qPrintable(username);
+			HANDLER_LOG_DEBUG() << "Inactive user:" << qPrintable(username);
 			ret.reject(Credential());
 			return;
 		}
@@ -89,6 +89,70 @@ QDeferred<Credential> AuthHandler::getCredential(const QString &username) const
 }
 
 
+/**
+ * @brief AuthHandler::getCredential
+ * @param username
+ * @param iat
+ * @return
+ */
+
+QDeferred<Credential> AuthHandler::getCredential(const QString &username, const qint64 &iat) const
+{
+	HANDLER_LOG_TRACE() << "Get credential for" << qPrintable(username) << "iat:" << iat;
+
+	QDeferred<Credential> ret;
+
+	getCredential(username)
+			.fail([ret](Credential c) mutable {
+		ret.reject(c);
+	})
+	.then<Credential>([this, iat](Credential c) mutable {
+		QDeferred<Credential> r;
+
+		databaseMain()->worker()->execInThread([r, c, iat, this]() mutable {
+			QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+			QMutexLocker(databaseMain()->mutex());
+
+			QueryBuilder q(db);
+			q.addQuery("SELECT tokenIat FROM auth WHERE username=")
+					.addValue(c.username());
+
+			if (!q.exec() || !q.sqlQuery().first()) {
+				HANDLER_LOG_DEBUG() << "Invalid username:" << qPrintable(c.username());
+				r.reject(Credential());
+				return;
+			}
+
+			if (q.value("tokenIat").isNull()) {
+				r.resolve(c);
+				return;
+			}
+
+			if (q.value("tokenIat").toInt() <= iat) {
+				r.resolve(c);
+				return;
+			}
+
+			HANDLER_LOG_DEBUG() << "Token revoked:" << qPrintable(c.username());
+			r.reject(Credential());
+			return;
+		}
+		);
+
+		return r;
+	})
+			.fail([ret](Credential c) mutable {
+		ret.reject(c);
+	})
+	.done([ret](Credential c) mutable {
+		ret.resolve(c);
+	});
+
+	return ret;
+}
+
+
 
 /**
  * @brief AuthHandler::authorizePlain
@@ -99,13 +163,13 @@ QDeferred<Credential> AuthHandler::getCredential(const QString &username) const
 
 QDeferred<Credential> AuthHandler::authorizePlain(const Credential &credential, const QString &password) const
 {
-	LOG_CTRACE("client") << "Authorize plain" << qPrintable(credential.username());
+	HANDLER_LOG_TRACE() << "Authorize plain" << qPrintable(credential.username());
 
 	QDeferred<Credential> ret;
 
 	databaseMain()->worker()->execInThread([ret, credential, password, this]() mutable {
 		if (!credential.isValid()) {
-			LOG_CWARNING("client") << "Invalid credential";
+			HANDLER_LOG_WARNING() << "Invalid credential";
 			ret.reject(credential);
 			return;
 		}
@@ -119,13 +183,13 @@ QDeferred<Credential> AuthHandler::authorizePlain(const Credential &credential, 
 				.addValue(credential.username());
 
 		if (!q.exec() || !q.sqlQuery().first()) {
-			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(credential.username());
+			HANDLER_LOG_DEBUG() << "Invalid username:" << qPrintable(credential.username());
 			ret.reject(credential);
 			return;
 		}
 
 		if (!q.value("oauth").isNull()) {
-			LOG_CDEBUG("client") << "OAuth2 user:" << qPrintable(credential.username());
+			HANDLER_LOG_DEBUG() << "OAuth2 user:" << qPrintable(credential.username());
 			ret.reject(credential);
 			return;
 		}
@@ -133,7 +197,7 @@ QDeferred<Credential> AuthHandler::authorizePlain(const Credential &credential, 
 		const QString &storedPassword = q.value("password").toString();
 
 		if (storedPassword.isEmpty()) {
-			LOG_CDEBUG("client") << "Empty password stored for user:" << qPrintable(credential.username());
+			HANDLER_LOG_DEBUG() << "Empty password stored for user:" << qPrintable(credential.username());
 			ret.reject(credential);
 			return;
 		}
@@ -143,7 +207,7 @@ QDeferred<Credential> AuthHandler::authorizePlain(const Credential &credential, 
 		if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0)
 			ret.resolve(credential);
 		else {
-			LOG_CDEBUG("client") << "Invalid password for user:" << qPrintable(credential.username());
+			HANDLER_LOG_DEBUG() << "Invalid password for user:" << qPrintable(credential.username());
 			ret.reject(credential);
 		}
 	});
@@ -161,13 +225,13 @@ QDeferred<Credential> AuthHandler::authorizePlain(const Credential &credential, 
 
 QDeferred<Credential> AuthHandler::authorizeOAuth2(const Credential &credential, const char *oauthType) const
 {
-	LOG_CTRACE("client") << "Authorize OAuth2" << oauthType << qPrintable(credential.username());
+	HANDLER_LOG_TRACE() << "Authorize OAuth2" << oauthType << qPrintable(credential.username());
 
 	QDeferred<Credential> ret;
 
 	databaseMain()->worker()->execInThread([ret, credential, oauthType, this]() mutable {
 		if (!credential.isValid()) {
-			LOG_CWARNING("client") << "Invalid credential";
+			HANDLER_LOG_WARNING() << "Invalid credential";
 			ret.reject(credential);
 			return;
 		}
@@ -181,13 +245,13 @@ QDeferred<Credential> AuthHandler::authorizeOAuth2(const Credential &credential,
 				.addValue(credential.username());
 
 		if (!q.exec() || !q.sqlQuery().first()) {
-			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(credential.username());
+			HANDLER_LOG_DEBUG() << "Invalid username:" << qPrintable(credential.username());
 			ret.reject(credential);
 			return;
 		}
 
 		if (q.value("oauth").toString() != QString::fromUtf8(oauthType)) {
-			LOG_CDEBUG("client") << "Non-oauth2 user:" << oauthType << qPrintable(credential.username());
+			HANDLER_LOG_DEBUG() << "Non-oauth2 user:" << oauthType << qPrintable(credential.username());
 			ret.reject(credential);
 			return;
 		}
@@ -207,13 +271,13 @@ QDeferred<Credential> AuthHandler::authorizeOAuth2(const Credential &credential,
 
 QDeferred<bool> AuthHandler::userExists(const QString &username) const
 {
-	LOG_CTRACE("client") << "Check user exists:" << qPrintable(username);
+	HANDLER_LOG_TRACE() << "Check user exists:" << qPrintable(username);
 
 	QDeferred<bool> ret;
 
 	databaseMain()->worker()->execInThread([ret, username, this]() mutable {
 		if (username.isEmpty()) {
-			LOG_CWARNING("client") << "Empty username";
+			HANDLER_LOG_WARNING() << "Empty username";
 			ret.reject(false);
 			return;
 		}
@@ -227,12 +291,12 @@ QDeferred<bool> AuthHandler::userExists(const QString &username) const
 				.addValue(username);
 
 		if (!q.exec() || !q.sqlQuery().first()) {
-			LOG_CTRACE("client") << "User doesn't exists:" << qPrintable(username);
+			HANDLER_LOG_TRACE() << "User doesn't exists:" << qPrintable(username);
 			ret.resolve(false);
 			return;
 		}
 
-		LOG_CTRACE("client") << "User exists:" << qPrintable(username);
+		HANDLER_LOG_TRACE() << "User exists:" << qPrintable(username);
 		ret.resolve(true);
 	});
 
@@ -313,13 +377,13 @@ void AuthHandler::loginGoogle()
 
 	if (!authenticator) {
 		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
-		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		HANDLER_LOG_WARNING() << "Invalid provider" << OAuth2Authenticator::Google;
 		return;
 	}
 
 	if (m_client->oauth2CodeFlow()) {
 		send(m_message.createErrorResponse(QStringLiteral("login already in progress")));
-		LOG_CWARNING("client") << m_client << "OAuth2CodeFlow already exists";
+		HANDLER_LOG_WARNING() << "OAuth2CodeFlow already exists";
 		return;
 	}
 
@@ -357,7 +421,7 @@ void AuthHandler::loginGoogle()
 
 void AuthHandler::loginPlain()
 {
-	LOG_CTRACE("client") << m_client << "Login plain";
+	HANDLER_LOG_TRACE() << "Login plain";
 
 	const QString &username = json().value(QStringLiteral("username")).toString();
 	const QString &password = json().value(QStringLiteral("password")).toString();
@@ -384,6 +448,72 @@ void AuthHandler::loginPlain()
 
 
 
+/**
+ * @brief AuthHandler::loginToken
+ */
+
+void AuthHandler::loginToken()
+{
+	HANDLER_LOG_TRACE() << "Login token";
+
+	if (!service()) {
+		HANDLER_LOG_ERROR() << "Missing service";
+		send(m_message.createErrorResponse(QStringLiteral("internal error")));
+		return;
+	}
+
+	const QString &token = json().value(QStringLiteral("token")).toString();
+
+	if (token.isEmpty()) {
+		HANDLER_LOG_TRACE() << "Missing token";
+		send(m_message.createErrorResponse(QStringLiteral("authentication required")));
+		return;
+	}
+
+	if (!Credential::verify(token, &service()->verifier())) {
+		LOG_CDEBUG("client") << "Token verification failed";
+		send(m_message.createErrorResponse(QStringLiteral("invalid token")));
+		return;
+	}
+
+	Credential c = Credential::fromJWT(token);
+
+	if (!c.isValid()) {
+		LOG_CDEBUG("client") << "Invalid token";
+		send(m_message.createErrorResponse(QStringLiteral("invalid token")));
+		return;
+	}
+
+	getCredential(c.username(), c.iat())
+			.fail([this](Credential){
+		send(m_message.createErrorResponse(QStringLiteral("invalid user")));
+	})
+	.done([c, this](Credential c2){
+		if (c2.roles() != c.roles()) {
+			send(m_message.createErrorResponse(QStringLiteral("corrupted token")));
+			return;
+		}
+		_loginUser(c2, false);
+	});
+}
+
+
+
+
+/**
+ * @brief AuthHandler::logout
+ */
+
+void AuthHandler::logout()
+{
+	HANDLER_LOG_TRACE() << "Logout";
+	m_client->setCredential(Credential());
+	send(m_message.createStatusResponse());
+
+}
+
+
+
 
 
 
@@ -395,7 +525,7 @@ void AuthHandler::registrationGoogle()
 {
 	if (!isRegistrationEnabled()) {
 		send(m_message.createErrorResponse(QStringLiteral("registration disabled")));
-		LOG_CWARNING("client") << m_client << "Registration disabled";
+		HANDLER_LOG_WARNING() << "Registration disabled";
 		return;
 	}
 
@@ -403,13 +533,13 @@ void AuthHandler::registrationGoogle()
 
 	if (!authenticator) {
 		send(m_message.createErrorResponse(QStringLiteral("invalid provider")));
-		LOG_CWARNING("client") << m_client << "Invalid provider" << OAuth2Authenticator::Google;
+		HANDLER_LOG_WARNING() << "Invalid provider" << OAuth2Authenticator::Google;
 		return;
 	}
 
 	if (m_client->oauth2CodeFlow()) {
 		send(m_message.createErrorResponse(QStringLiteral("registration already in progress")));
-		LOG_CWARNING("client") << m_client << "OAuth2CodeFlow already exists";
+		HANDLER_LOG_WARNING() << "OAuth2CodeFlow already exists";
 		return;
 	}
 
@@ -450,13 +580,13 @@ void AuthHandler::registrationPlain()
 {
 	if (!isRegistrationEnabled() || isOAuth2RegistrationForced()) {
 		send(m_message.createErrorResponse(QStringLiteral("registration disabled")));
-		LOG_CWARNING("client") << m_client << "Registration disabled";
+		HANDLER_LOG_WARNING() << "Registration disabled";
 		return;
 	}
 
 	const QString &username = json().value(QStringLiteral("username")).toString();
 
-	LOG_CDEBUG("client") << m_client << "Registration:" << qPrintable(username);
+	HANDLER_LOG_DEBUG() << "Registration:" << qPrintable(username);
 
 	userExists(username)
 			.fail([this](bool){
@@ -494,7 +624,7 @@ void AuthHandler::registrationPlain()
 
 void AuthHandler::getGoogleLocalClientId()
 {
-	LOG_CDEBUG("client") << m_client << "Get Google local client ID and key";
+	HANDLER_LOG_DEBUG() << "Get Google local client ID and key";
 
 	send(m_message.createResponse(QJsonObject({
 												  { QStringLiteral("clientId"), service()->settings()->oauthGoogle().localClientId },
@@ -518,7 +648,7 @@ void AuthHandler::_OAuthFailed(OAuth2Authenticator *authenticator, OAuth2CodeFlo
 
 	if (!authenticator) {
 		send(m_message.createErrorResponse(QStringLiteral("invalid authenticator")));
-		LOG_CWARNING("client") << m_client << "Invalid authenticator";
+		HANDLER_LOG_WARNING() << "Invalid authenticator";
 		return;
 	}
 
@@ -542,7 +672,7 @@ void AuthHandler::_OAuthSuccess(OAuth2Authenticator *authenticator, OAuth2CodeFl
 {
 	if (!authenticator) {
 		send(m_message.createErrorResponse(QStringLiteral("invalid authenticator")));
-		LOG_CWARNING("client") << m_client << "Invalid authenticator";
+		HANDLER_LOG_WARNING() << "Invalid authenticator";
 		return;
 	}
 
@@ -562,18 +692,22 @@ void AuthHandler::_OAuthSuccess(OAuth2Authenticator *authenticator, OAuth2CodeFl
  * @param username
  */
 
-void AuthHandler::_loginUser(const Credential &credential)
+void AuthHandler::_loginUser(const Credential &credential, const bool &createToken)
 {
-	LOG_CINFO("client") << m_client << "Login:" << qPrintable(credential.username()) << credential.roles();
+	HANDLER_LOG_INFO() << "Login:" << qPrintable(credential.username()) << credential.roles();
 
-	setCredential(credential);
+	m_client->setCredential(credential);
 
-	const QString &token = credential.createJWT(service()->settings()->jwtSecret());
+	if (createToken) {
+		const QString &token = credential.createJWT(service()->settings()->jwtSecret());
 
-	send(m_message.createResponse(QJsonObject({
-												  { QStringLiteral("status"), QStringLiteral("ok") },
-												  { QStringLiteral("auth_token"), token }
-											  })));
+		send(m_message.createResponse(QJsonObject({
+													  { QStringLiteral("status"), QStringLiteral("ok") },
+													  { QStringLiteral("auth_token"), token }
+												  })));
+	} else {
+		send(m_message.createStatusResponse());
+	}
 }
 
 
@@ -590,7 +724,7 @@ void AuthHandler::_loginWithAccessToken(const QVariantMap &data, const char *pro
 			data.value(QStringLiteral("verified_email")).toString() == QLatin1String("true")) {
 		const QString &email = data.value(QStringLiteral("email")).toString();
 
-		LOG_CDEBUG("client") << m_client << "Authenticated with" << provider << "user:" << qPrintable(email);
+		HANDLER_LOG_DEBUG() << "Authenticated with" << provider << "user:" << qPrintable(email);
 
 		getCredential(email)
 				.fail([this](Credential){
@@ -626,7 +760,7 @@ void AuthHandler::_registrationWithAccessToken(const QVariantMap &data, const ch
 			data.value(QStringLiteral("verified_email")).toString() == QLatin1String("true")) {
 		const QString &email = data.value(QStringLiteral("email")).toString();
 
-		LOG_CDEBUG("client") << m_client << "Registration with" << provider << "user:" << qPrintable(email);
+		HANDLER_LOG_DEBUG() << "Registration with" << provider << "user:" << qPrintable(email);
 
 		userExists(email)
 				.fail([this](bool){
@@ -712,7 +846,7 @@ void AuthHandler::_registrationGoogleOAuthSuccess(const QVariantMap &data, Googl
 
 	if (!data.contains(QStringLiteral("access_token"))) {
 		send(m_message.createErrorResponse(QStringLiteral("missing access token")));
-		LOG_CWARNING("client") << m_client << "Missing access token";
+		HANDLER_LOG_WARNING() << "Missing access token";
 		return;
 	}
 
@@ -763,7 +897,7 @@ void AuthHandler::_loginGoogleOAuthSuccess(const QVariantMap &data, GoogleOAuth2
 
 	if (!data.contains(QStringLiteral("access_token"))) {
 		send(m_message.createErrorResponse(QStringLiteral("missing access token")));
-		LOG_CWARNING("client") << m_client << "Missing access token";
+		HANDLER_LOG_WARNING() << "Missing access token";
 		return;
 	}
 

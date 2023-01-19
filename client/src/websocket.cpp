@@ -33,6 +33,7 @@ WebSocket::WebSocket(Client *client)
 	: QObject(client)
 	, m_socket(new QWebSocket(QStringLiteral("callofsuli"), QWebSocketProtocol::VersionLatest, this))
 	, m_client(client)
+	, m_timerPing(new QTimer(this))
 {
 	LOG_CTRACE("websocket") << "WebSocket created";
 
@@ -67,9 +68,11 @@ WebSocket::WebSocket(Client *client)
 	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &WebSocket::onBinaryMessageReceived);
 	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &WebSocket::onBinaryFrameReceived);
 
-	connect(m_socket, &QWebSocket::stateChanged, this, [=](const QAbstractSocket::SocketState &state){
-		LOG_CTRACE("websocket") << "----- STATE CHANGED" << state;
-	});
+
+	m_timerPing->setInterval(5000);
+	connect(m_timerPing, &QTimer::timeout, this, &WebSocket::onTimerPingTimeout);
+
+
 }
 
 
@@ -79,6 +82,7 @@ WebSocket::WebSocket(Client *client)
 
 WebSocket::~WebSocket()
 {
+	delete m_timerPing;
 	delete m_socket;
 
 	LOG_CTRACE("websocket") << "WebSocket destroyed";
@@ -111,7 +115,15 @@ void WebSocket::setState(const State &newState)
 		return;
 	m_state = newState;
 	emit stateChanged();
-	LOG_CTRACE("websocket") << "MYSTATE" << m_state;
+
+	LOG_CTRACE("websocket") << "State changed:" << m_state;
+
+	if (m_state == Terminated) {
+		emit serverTerminated();
+		pingEnabled(true);
+	} else
+		pingEnabled(false);
+
 }
 
 
@@ -195,6 +207,7 @@ void WebSocket::abort()
 {
 	if (m_state != Disconnected) {
 		LOG_CTRACE("websocket") << "Abort connection:" << m_socket->requestUrl();
+		m_client->stackPopToStartPage();
 		setState(Disconnected);
 		m_socket->abort();
 		setServer(nullptr);
@@ -211,7 +224,7 @@ void WebSocket::abort()
 
 void WebSocket::send(const WebSocketMessage &message)
 {
-	if (!(m_state == Hello && message.opCode() == WebSocketMessage::Hello) && m_state != Connected) {
+	if (!((m_state == Hello || m_state == Terminated) && message.opCode() == WebSocketMessage::Hello) && m_state != Connected) {
 		LOG_CWARNING("websocket") << "Web socket server unavailable";
 		emit serverUnavailable(++m_signalUnavailableNum);
 
@@ -230,10 +243,19 @@ void WebSocket::send(const WebSocketMessage &message)
 void WebSocket::onConnected()
 {
 	LOG_CTRACE("websocket") << "Connected:" << m_socket->requestUrl();
-	setState(Hello);
+
+	if (m_state != Terminated)
+		setState(Hello);
+
 	send(WebSocketMessage::createHello());
 	m_signalUnavailableNum = 0;
 }
+
+
+
+/**
+ * @brief WebSocket::onDisconnected
+ */
 
 void WebSocket::onDisconnected()
 {
@@ -243,6 +265,7 @@ void WebSocket::onDisconnected()
 		setState(Disconnected);
 	else if (m_state != Disconnected)
 		setState(Terminated);
+
 }
 
 
@@ -253,7 +276,18 @@ void WebSocket::onDisconnected()
 
 void WebSocket::onError(const QAbstractSocket::SocketError &error)
 {
+	if (m_state == Connected && error == QAbstractSocket::RemoteHostClosedError)
+		return;
+
+	if (m_state == Terminated) {
+		LOG_CTRACE("websocket") << "Socket ping error:" << error << m_socket->requestUrl();
+		return;
+	}
+
 	LOG_CTRACE("websocket") << "Socket error:" << error << m_socket->requestUrl();
+
+	emit socketError(error);
+
 	if (m_state != Disconnected)
 		setState(Error);
 }
@@ -296,12 +330,17 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 {
 	WebSocketMessage m = WebSocketMessage::fromByteArray(message);
 
-	if (m_state == Hello) {
+	if (m_state == Hello || m_state == Terminated) {
 		if (m.opCode() == WebSocketMessage::Hello) {
 			/// TODO: CHECK VERSION
 			LOG_CTRACE("websocket") << "Hello successfull";
-			setState(Connected);
-			emit serverConnected();
+			if (m_state == Hello) {
+				setState(Connected);
+				emit serverConnected();
+			} else {
+				setState(Connected);
+				emit serverReconnected();
+			}
 			return;
 		}
 	}
@@ -323,3 +362,40 @@ void WebSocket::onBinaryMessageReceived(const QByteArray &message)
 
 	m_client->handleMessage(m);
 }
+
+
+/**
+ * @brief WebSocket::pingEnabled
+ * @param on
+ */
+
+void WebSocket::pingEnabled(const bool &on)
+{
+	LOG_CDEBUG("websocket") << "Ping enabled:" << on;
+
+	if (on && m_timerPing->isActive())
+		return;
+
+	if (!on && !m_timerPing->isActive())
+		return;
+
+	if (on)
+		m_timerPing->start();
+	else
+		m_timerPing->stop();
+}
+
+
+
+/**
+ * @brief WebSocket::onTimerPingTimeout
+ */
+
+void WebSocket::onTimerPingTimeout()
+{
+	LOG_CTRACE("websocket") << "Ping";
+
+	if (m_state == Terminated && m_server)
+		m_socket->open(m_server->url());
+}
+

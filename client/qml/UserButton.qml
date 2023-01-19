@@ -8,6 +8,10 @@ import CallOfSuli 1.0
 Qaterial.SquareButton {
 	id: control
 
+	visible: Client.server && Client.server.user.username.length
+
+	ToolTip.text: Client.server ? Client.server.user.fullName : ""
+
 	property real contentSize: (Math.min(width,height)*0.75)-(2*roundBorderWidth)
 	property int roundBorderWidth: 1
 
@@ -27,4 +31,19 @@ Qaterial.SquareButton {
 			}
 		}
 	}
+
+	Action {
+		id: actionLogout
+		text: qsTr("Kijelentkezés")
+		icon.source: Qaterial.Icons.accountOff
+		onTriggered: Client.logout()
+	}
+
+	QMenu {
+		id: menu
+		QMenuItem { action: actionLogout }
+	}
+
+
+	onClicked: menu.open()
 }

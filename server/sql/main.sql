@@ -53,6 +53,7 @@ CREATE TABLE auth(
 	password TEXT,
 	salt TEXT,
 	oauth TEXT,
+	tokenIat INTEGER,
 	UNIQUE (username)
 );
 

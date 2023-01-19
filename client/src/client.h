@@ -40,6 +40,7 @@
 class Application;
 class AbstractGame;
 class WebSocket;
+class InternalHandler;
 
 
 /**
@@ -131,10 +132,24 @@ public:
 
 	Q_INVOKABLE void connectToServer(Server *server);
 
+	void stackPopToStartPage();
+
 	void addMessageHandler(AsyncMessageHandler *handler);
 	void removeMessageHandler(AsyncMessageHandler *handler);
 	void handleMessage(const WebSocketMessage &message);
 
+
+	// Login
+
+	Q_INVOKABLE virtual void loginGoogle();
+	Q_INVOKABLE virtual void registrationGoogle();
+
+	Q_INVOKABLE virtual void loginPlain(const QString &username, const QString &password);
+	Q_INVOKABLE virtual void registrationPlain();
+
+	Q_INVOKABLE virtual bool loginToken();
+
+	Q_INVOKABLE virtual void logout();
 
 protected slots:
 	virtual void onApplicationStarted();
@@ -143,10 +158,16 @@ protected slots:
 	virtual void onWebSocketError(const QAbstractSocket::SocketError &error);
 	virtual void onServerConnected();
 	virtual void onServerDisconnected();
+	virtual void onServerTerminated();
+	virtual void onServerReconnected();
+
+	virtual void onUserLoggedIn();
+	virtual void onUserLoggedOut();
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
 	virtual bool handleMessageInternal(const WebSocketMessage &) { return false; }
+	void _userAuthTokenReceived(const QString &token);
 
 signals:
 	void startPageLoaded();
@@ -180,7 +201,34 @@ protected:
 
 	QVector<QPointer<AsyncMessageHandler>> m_messageHandlers;
 
-private:
+	QQuickItem *m_startPage = nullptr;
+
+	InternalHandler *m_internalHandler = nullptr;
+	friend class InternalHandler;
+
+};
+
+
+
+/**
+ * @brief The InternalHandler class
+ */
+
+class InternalHandler : public AsyncMessageHandler
+{
+	Q_OBJECT
+
+public:
+	explicit InternalHandler(Client *client) : AsyncMessageHandler(client) {}
+	virtual ~InternalHandler() {}
+
+public slots:
+	void getConfig(const QJsonObject &json) const;
+	void rankList(const QJsonObject &json) const;
+	void loginPlain(const QJsonObject &json) const;
+	void loginGoogle(const QJsonObject &json) const;
+	void loginToken(const QJsonObject &json) const { loginPlain(json); }
+	void logout(const QJsonObject &json) const;
 
 };
 

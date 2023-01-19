@@ -25,6 +25,7 @@
  */
 
 #include "utils.h"
+#include "Logger.h"
 #include "qdesktopservices.h"
 #include "qjsondocument.h"
 #include "qmath.h"
@@ -434,8 +435,10 @@ QByteArray Utils::generateRandomString(quint8 length)
 
 QByteArray Utils::generateRandomString(quint8 length, const char *characters)
 {
+	Q_ASSERT(characters && strlen(characters));
+
 	static std::mt19937 randomEngine(QDateTime::currentDateTime().toMSecsSinceEpoch());
-	std::uniform_int_distribution<int> distribution(0, sizeof(characters) - 2);
+	std::uniform_int_distribution<int> distribution(0, strlen(characters)-1);
 	QByteArray data;
 	data.reserve(length);
 	for (quint8 i = 0; i < length; ++i)

@@ -64,6 +64,8 @@ public:
 	static Rank fromJson(const QJsonObject &object);
 	QJsonObject toJson() const;
 
+	friend bool operator==(const Rank &r, const Rank &other) { return r.m_id == other.m_id; }
+
 private:
 	int m_id = -1;
 	int m_level = -1;
@@ -73,6 +75,8 @@ private:
 	friend class RankList;
 };
 
+
+Q_DECLARE_METATYPE(Rank);
 
 
 /**

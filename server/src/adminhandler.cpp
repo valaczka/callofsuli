@@ -44,13 +44,13 @@ QDefer AdminHandler::userAdd(AbstractHandler *handler, const User &user)
 {
 	Q_ASSERT(handler);
 
-	LOG_CDEBUG("client") << "Add new user:" << qPrintable(user.username);
+	LOG_CDEBUG("client") << handler->m_client << "Add new user:" << qPrintable(user.username);
 
 	QDefer ret;
 
 	handler->databaseMain()->worker()->execInThread([ret, user, handler]() mutable {
 		if (user.username.isEmpty()) {
-			LOG_CWARNING("client") << "Empty username";
+			LOG_CWARNING("client") << handler->m_client << "Empty username";
 			ret.reject();
 			return;
 		}
@@ -80,12 +80,12 @@ QDefer AdminHandler::userAdd(AbstractHandler *handler, const User &user)
 
 
 		if (!q.exec()) {
-			LOG_CWARNING("client") << "User create error:" << qPrintable(user.username);
+			LOG_CWARNING("client") << handler->m_client << "User create error:" << qPrintable(user.username);
 			ret.reject();
 			return;
 		}
 
-		LOG_CTRACE("client") << "User created:" << qPrintable(user.username);
+		LOG_CTRACE("client") << handler->m_client << "User created:" << qPrintable(user.username);
 		ret.resolve();
 	});
 
@@ -105,13 +105,13 @@ QDefer AdminHandler::authAddPlain(AbstractHandler *handler, const QString &usern
 {
 	Q_ASSERT(handler);
 
-	LOG_CDEBUG("client") << "Add plain auth:" << qPrintable(username);
+	LOG_CDEBUG("client") << handler->m_client << "Add plain auth:" << qPrintable(username);
 
 	QDefer ret;
 
 	handler->databaseMain()->worker()->execInThread([ret, username, password, handler]() mutable {
 		if (username.isEmpty()) {
-			LOG_CWARNING("client") << "Empty username";
+			LOG_CWARNING("client") << handler->m_client << "Empty username";
 			ret.reject();
 			return;
 		}
@@ -136,12 +136,12 @@ QDefer AdminHandler::authAddPlain(AbstractHandler *handler, const QString &usern
 
 
 		if (!q.exec()) {
-			LOG_CWARNING("client") << "User auth create error:" << qPrintable(username);
+			LOG_CWARNING("client") << handler->m_client << "User auth create error:" << qPrintable(username);
 			ret.reject();
 			return;
 		}
 
-		LOG_CTRACE("client") << "User auth created:" << qPrintable(username);
+		LOG_CTRACE("client") << handler->m_client << "User auth created:" << qPrintable(username);
 		ret.resolve();
 	});
 
@@ -162,13 +162,13 @@ QDefer AdminHandler::authAddOAuth2(AbstractHandler *handler, const QString &user
 {
 	Q_ASSERT(handler);
 
-	LOG_CDEBUG("client") << "Add OAuth2 auth:" << qPrintable(username);
+	LOG_CDEBUG("client") << handler->m_client << "Add OAuth2 auth:" << qPrintable(username);
 
 	QDefer ret;
 
 	handler->databaseMain()->worker()->execInThread([ret, username, oauthType, handler]() mutable {
 		if (username.isEmpty()) {
-			LOG_CWARNING("client") << "Empty username";
+			LOG_CWARNING("client") << handler->m_client << "Empty username";
 			ret.reject();
 			return;
 		}
@@ -188,12 +188,12 @@ QDefer AdminHandler::authAddOAuth2(AbstractHandler *handler, const QString &user
 
 
 		if (!q.exec()) {
-			LOG_CWARNING("client") << "User auth create error:" << qPrintable(username);
+			LOG_CWARNING("client") << handler->m_client << "User auth create error:" << qPrintable(username);
 			ret.reject();
 			return;
 		}
 
-		LOG_CTRACE("client") << "User auth created:" << qPrintable(username);
+		LOG_CTRACE("client") << handler->m_client << "User auth created:" << qPrintable(username);
 		ret.resolve();
 	});
 

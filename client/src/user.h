@@ -30,6 +30,8 @@
 #include <selectableobject.h>
 #include <QObject>
 #include "QOlm/QOlm.hpp"
+#include "rank.h"
+#include "credential.h"
 
 class User;
 
@@ -43,14 +45,65 @@ class User : public SelectableObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
+	Q_PROPERTY(QString familyName READ familyName WRITE setFamilyName NOTIFY familyNameChanged)
+	Q_PROPERTY(QString givenName READ givenName WRITE setGivenName NOTIFY givenNameChanged)
+	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
+	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged)
+	Q_PROPERTY(Credential::Roles roles READ roles WRITE setRoles NOTIFY rolesChanged)
+	Q_PROPERTY(LoginState loginState READ loginState WRITE setLoginState NOTIFY loginStateChanged)
+
 public:
 	explicit User(QObject *parent = nullptr);
 	virtual ~User() {}
+
+	enum LoginState {
+		LoggedOut,
+		LoggingIn,
+		LoggedIn
+	};
+
+	Q_ENUM(LoginState);
+
+	const QString &username() const;
+	void setUsername(const QString &newUsername);
+
+	const QString &familyName() const;
+	void setFamilyName(const QString &newFamilyName);
+
+	const QString &givenName() const;
+	void setGivenName(const QString &newGivenName);
+
+	QString fullName() const;
+
+	const Rank &rank() const;
+	void setRank(const Rank &newRank);
+
+	const Credential::Roles &roles() const;
+	void setRoles(const Credential::Roles &newRoles);
+
+	const LoginState &loginState() const;
+	void setLoginState(const LoginState &newLoginState);
+
+public slots:
+	void clear();
+
+signals:
+	void usernameChanged();
+	void familyNameChanged();
+	void givenNameChanged();
+	void fullNameChanged();
+	void rankChanged();
+	void rolesChanged();
+	void loginStateChanged();
 
 private:
 	QString m_username;
 	QString m_familyName;
 	QString m_givenName;
+	Rank m_rank;
+	Credential::Roles m_roles = Credential::None;
+	LoginState m_loginState = LoggedOut;
 
 };
 

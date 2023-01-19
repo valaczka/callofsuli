@@ -37,7 +37,7 @@ AbstractHandler::AbstractHandler(Client *client)
 
 	QTimer::singleShot(HANDLER_DESTROY_TIMEOUT_MSEC, this, &AbstractHandler::destroyTimeout);
 
-	LOG_CTRACE("client") << "Abstract handler created:" << this;
+	HANDLER_LOG_TRACE() << "Abstract handler created:" << this;
 }
 
 
@@ -47,7 +47,7 @@ AbstractHandler::AbstractHandler(Client *client)
 
 AbstractHandler::~AbstractHandler()
 {
-	LOG_CTRACE("client") << "Abstract handler destroyed:" << this;
+	HANDLER_LOG_TRACE() << "Abstract handler destroyed:" << this;
 }
 
 
@@ -76,7 +76,7 @@ void AbstractHandler::handleMessage(const WebSocketMessage &message)
 		break;
 
 	default:
-		LOG_CWARNING("client") << "Invalid message:" << message;
+		HANDLER_LOG_WARNING() << "Invalid message:" << message;
 		break;
 	}
 }
@@ -87,44 +87,20 @@ void AbstractHandler::handleMessage(const WebSocketMessage &message)
  * @return
  */
 
-bool AbstractHandler::validateJwtToken(const bool &autoResponseOnFail)
+bool AbstractHandler::validateCredential(const bool &autoResponseOnFail)
 {
-	if (m_jwtTokenValidated)
-		return true;
-
-	if (!service()) {
-		LOG_CERROR("client") << "Missing ServerService";
+	if (!m_client) {
+		HANDLER_LOG_ERROR() << "Missing Client";
 		send(m_message.createErrorResponse(QStringLiteral("internal error")));
 		return false;
 	}
 
-	const QString &token = json().value(QStringLiteral("token")).toString();
-
-	if (token.isEmpty()) {
-		LOG_CTRACE("client") << "Missing token";
+	if (!m_client->credential().isValid()) {
+		HANDLER_LOG_TRACE() << "Invalid credential";
 		if (autoResponseOnFail)
-			send(m_message.createErrorResponse(QStringLiteral("authentication required")));
+			send(m_message.createErrorResponse(QStringLiteral("invalid credential")));
 		return false;
 	}
-
-	if (!Credential::verify(token, &service()->verifier())) {
-		LOG_CDEBUG("client") << "Token verification failed";
-		if (autoResponseOnFail)
-			send(m_message.createErrorResponse(QStringLiteral("invalid token")));
-		return false;
-	}
-
-	Credential c = Credential::fromJWT(token);
-
-	if (!c.isValid()) {
-		LOG_CTRACE("client") << "Invalid token";
-		if (autoResponseOnFail)
-			send(m_message.createErrorResponse(QStringLiteral("corrupt token")));
-		return false;
-	}
-
-	setCredential(c);
-	m_jwtTokenValidated = true;
 
 	return true;
 }
@@ -139,16 +115,16 @@ bool AbstractHandler::validateJwtToken(const bool &autoResponseOnFail)
  * @return
  */
 
-bool AbstractHandler::validateJwtToken(const Credential::Role &role, const bool &autoResponseOnFail)
+bool AbstractHandler::validateCredential(const Credential::Role &role, const bool &autoResponseOnFail)
 {
-	if (!validateJwtToken(autoResponseOnFail))
+	if (!validateCredential(autoResponseOnFail))
 		return false;
 
-	if (credential().roles().testFlag(role))
+	if (m_client->credential().roles().testFlag(role))
 		return true;
 
-	setCredential(Credential());
-	m_jwtTokenValidated = false;
+	if (autoResponseOnFail)
+		send(m_message.createErrorResponse(QStringLiteral("permission denied")));
 
 	return false;
 }
@@ -166,23 +142,23 @@ void AbstractHandler::handleRequest()
 
 	if (func.isEmpty()) {
 		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
-		LOG_CTRACE("client") << m_client << "Missing function";
+		HANDLER_LOG_TRACE() << m_client << "Missing function";
 		return;
 	}
 
 	if (func.startsWith(QStringLiteral("on")) || func.startsWith(QStringLiteral("_"))) {
 		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
-		LOG_CWARNING("client") << m_client << "Disabled function:" << qPrintable(func);
+		HANDLER_LOG_WARNING() << m_client << "Disabled function:" << qPrintable(func);
 		return;
 	}
 
 	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection)) {
 		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
-		LOG_CDEBUG("client") << m_client << "Invalid function:" << qPrintable(func);
+		HANDLER_LOG_DEBUG() << m_client << "Invalid function:" << qPrintable(func);
 		return;
 	}
 
-	LOG_CDEBUG("client") << m_client << "Request:" << qPrintable(func);
+	HANDLER_LOG_DEBUG() << m_client << "Request:" << qPrintable(func);
 }
 
 
@@ -192,10 +168,8 @@ void AbstractHandler::handleRequest()
 
 void AbstractHandler::clear()
 {
-	LOG_CTRACE("client") << "Clear handler" << this;
+	HANDLER_LOG_TRACE() << "Clear handler" << this;
 	m_message = WebSocketMessage();
-	m_jwtTokenValidated = false;
-	m_credential = Credential();
 }
 
 
@@ -208,11 +182,14 @@ void AbstractHandler::send(const WebSocketMessage &message, const bool &deleteHa
 	if (m_client)
 		m_client->send(message);
 	else
-		LOG_CERROR("client") << "Missing client" << this;
+		HANDLER_LOG_ERROR() << "Missing client" << this;
 
 	if (deleteHandler)
 		this->deleteLater();
 }
+
+
+
 
 ServerService *AbstractHandler::service() const
 {
@@ -243,31 +220,7 @@ DatabaseMain *AbstractHandler::databaseMain() const
 
 void AbstractHandler::destroyTimeout()
 {
-	LOG_CWARNING("client") << "Destroy handler timeout";
+	HANDLER_LOG_WARNING() << "Destroy handler timeout";
 	this->deleteLater();
 }
 
-
-/**
- * @brief AbstractHandler::setCredential
- * @param newCredential
- */
-
-void AbstractHandler::setCredential(const Credential &newCredential)
-{
-	m_credential = newCredential;
-
-	if (m_client)
-		m_client->setCredential(newCredential);
-}
-
-
-/**
- * @brief AbstractHandler::credential
- * @return
- */
-
-const Credential &AbstractHandler::credential() const
-{
-	return m_credential;
-}

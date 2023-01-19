@@ -41,6 +41,7 @@ public:
 	AuthHandler(Client *client);
 
 	QDeferred<Credential> getCredential(const QString &username) const;
+	QDeferred<Credential> getCredential(const QString &username, const qint64 &iat) const;
 	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
 	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
@@ -59,6 +60,9 @@ protected:
 private slots:
 	void loginGoogle();
 	void loginPlain();
+	void loginToken();
+
+	void logout();
 
 	void registrationGoogle();
 	void registrationPlain();
@@ -66,7 +70,7 @@ private slots:
 	void getGoogleLocalClientId();
 
 private:
-	void _loginUser(const Credential &credential);
+	void _loginUser(const Credential &credential, const bool &createToken = true);
 	void _loginWithAccessToken(const QVariantMap &data, const char *provider);
 	void _registrationWithAccessToken(const QVariantMap &data, const char *provider);
 

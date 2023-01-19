@@ -40,7 +40,7 @@ ServerHandler::ServerHandler(Client *client)
 
 void ServerHandler::getConfig()
 {
-	LOG_CTRACE("client") << m_client << "Get config";
+	HANDLER_LOG_TRACE() << "Get config";
 	send(m_message.createResponse(_getConfig(service())));
 }
 
@@ -53,10 +53,16 @@ void ServerHandler::getConfig()
 
 QJsonObject ServerHandler::_getConfig(ServerService *service)
 {
+	QJsonObject c = service->config().get();
+
+	if (!service->settings()->oauthGoogle().clientId.isEmpty() ||
+			!service->settings()->oauthGoogle().clientKey.isEmpty())
+		c.insert(QStringLiteral("oauthGoogle"), true);
+
 	QJsonObject r;
 	r.insert(QStringLiteral("name"), service->serverName());
 	r.insert(QStringLiteral("versionMajor"), service->versionMajor());
 	r.insert(QStringLiteral("versionMinor"), service->versionMinor());
-	r.insert(QStringLiteral("config"), service->config().get());
+	r.insert(QStringLiteral("config"), c);
 	return r;
 }

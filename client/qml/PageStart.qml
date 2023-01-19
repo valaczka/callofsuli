@@ -92,7 +92,8 @@ QPage {
 			highlightedIcon: server ? server.autoConnect : false
 			iconSource: Qaterial.Icons.desktopClassic
 			text: server ? server.serverName : ""
-			secondaryText: server ? server.url : ""
+			secondaryText: server ? (server.user.username.length ? server.user.username + " @ " : "") + server.url
+								  : ""
 
 			onClicked: if (!view.selectEnabled)
 						   Client.connectToServer(server)

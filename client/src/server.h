@@ -29,11 +29,13 @@
 
 #include "QOlm/QOlm.hpp"
 #include "qdir.h"
+#include "qjsonobject.h"
 #ifndef QT_NO_SSL
 #include "qsslerror.h"
 #endif
 #include "qurl.h"
 #include <selectableobject.h>
+#include "user.h"
 
 class Server;
 
@@ -47,10 +49,12 @@ class Server : public SelectableObject
 	Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
 	Q_PROPERTY(QDir directory READ directory WRITE setDirectory NOTIFY directoryChanged)
 	Q_PROPERTY(bool autoConnect READ autoConnect WRITE setAutoConnect NOTIFY autoConnectChanged)
-	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
 	Q_PROPERTY(QString token READ token WRITE setToken NOTIFY tokenChanged)
 	Q_PROPERTY(QByteArray certificate READ certificate WRITE setCertificate NOTIFY certificateChanged)
-	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
+	Q_PROPERTY(QString serverName READ serverName NOTIFY serverNameChanged)
+	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
+	Q_PROPERTY(User *user READ user CONSTANT)
+	Q_PROPERTY(RankList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -70,9 +74,6 @@ public:
 
 	bool autoConnect() const;
 	void setAutoConnect(bool newAutoConnect);
-
-	const QString &username() const;
-	void setUsername(const QString &newUsername);
 
 	const QString &token() const;
 	void setToken(const QString &newToken);
@@ -95,17 +96,28 @@ public:
 	Q_INVOKABLE int port() const { return m_url.port(); }
 	Q_INVOKABLE bool ssl() const { return m_url.scheme() == QLatin1String("wss"); }
 
+	const QJsonObject &config() const;
+	void setConfig(const QJsonObject &newConfig);
+
+	User *user() const;
+
+	const RankList &rankList() const;
+	void setRankList(const RankList &newRankList);
+
+	static bool isTokenValid(const QString &jwt);
+	bool isTokenValid() const { return isTokenValid(m_token); }
+
 signals:
 	void urlChanged();
 	void directoryChanged();
 	void autoConnectChanged();
-	void usernameChanged();
 	void tokenChanged();
 	void certificateChanged();
 	void ignoredSslErrorsChanged();
 	void nameChanged();
-
 	void serverNameChanged();
+	void configChanged();
+	void rankListChanged();
 
 private:
 	QString m_name;
@@ -113,12 +125,16 @@ private:
 	QUrl m_url;
 	QDir m_directory;
 	bool m_autoConnect = false;
-	QString m_username;
 	QString m_token;
+	User *const m_user;
+	RankList m_rankList;
+
 #ifndef QT_NO_SSL
 	QList<QSslError::SslError> m_ignoredSslErrors;
 #endif
 	QByteArray m_certificate;
+	QJsonObject m_config;
+
 };
 
 

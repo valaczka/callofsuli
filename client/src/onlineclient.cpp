@@ -153,7 +153,7 @@ void OnlineClient::onAllResourceReady()
 	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMedal();
 
-	stackPushPage("PageStart.qml");
+	m_startPage = stackPushPage("PageStart.qml");
 }
 
 
@@ -178,31 +178,6 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 
 }
 
-
-/**
- * @brief OnlineClient::handleMessageInternal
- * @param message
- * @return
- */
-
-bool OnlineClient::handleMessageInternal(const WebSocketMessage &message)
-{
-	const QString &func = message.data().value(QStringLiteral("func")).toString();
-
-	if (message.opCode() == WebSocketMessage::RequestResponse) {
-		if (func == QLatin1String("loginGoogle")) {
-			if (message.data().contains(QStringLiteral("url"))) {
-				Utils::openUrl(QUrl::fromEncoded(message.data().value(QStringLiteral("url")).toString().toUtf8()));
-			} else {
-				messageError(tr("Nem érkezett URL!"), tr("Belső hiba"));
-			}
-
-			return true;
-		}
-	}
-
-	return Client::handleMessageInternal(message);
-}
 
 
 

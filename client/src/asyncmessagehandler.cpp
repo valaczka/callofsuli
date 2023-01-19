@@ -38,8 +38,30 @@ AsyncMessageHandler::AsyncMessageHandler(QObject *parent)
 }
 
 
+/**
+ * @brief AsyncMessageHandler::AsyncMessageHandler
+ * @param client
+ */
+
+AsyncMessageHandler::AsyncMessageHandler(Client *client)
+	: QObject{client}
+	, m_client(client)
+{
+	LOG_CTRACE("client") << "AsyncMessageHandler created with client" << this << client;
+
+}
+
+
+
+/**
+ * @brief AsyncMessageHandler::~AsyncMessageHandler
+ */
+
 AsyncMessageHandler::~AsyncMessageHandler()
 {
+	if (m_client)
+		m_client->removeMessageHandler(this);
+
 	LOG_CTRACE("client") << "AsyncMessageHandler destroyed" << this;
 }
 
@@ -106,6 +128,33 @@ void AsyncMessageHandler::sendRequest(const WebSocketMessage::ClassHandler &clas
 }
 
 
+/**
+ * @brief AsyncMessageHandler::sendRequestFunc
+ * @param classHandler
+ * @param func
+ * @param json
+ */
+
+void AsyncMessageHandler::sendRequestFunc(const WebSocketMessage::ClassHandler &classHandler, const QString &func, const QJsonObject &json)
+{
+	sendRequest(classHandler, func.toUtf8(), json);
+}
+
+
+/**
+ * @brief AsyncMessageHandler::sendRequest
+ * @param classHandler
+ * @param func
+ * @param json
+ */
+
+void AsyncMessageHandler::sendRequest(const WebSocketMessage::ClassHandler &classHandler, const char *func, QJsonObject json)
+{
+	json.insert(QStringLiteral("func"), QString::fromUtf8(func));
+	sendRequest(classHandler, json);
+}
+
+
 
 
 /**
@@ -115,6 +164,9 @@ void AsyncMessageHandler::sendRequest(const WebSocketMessage::ClassHandler &clas
 
 void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 {
+	if (!prehandleMessage(message))
+		return;
+
 	if (message.opCode() != WebSocketMessage::RequestResponse) {
 		LOG_CWARNING("client") << "Can't handle message:" << message;
 		return;
@@ -145,9 +197,36 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 
 
 
-	QByteArray normalizedSignature = QMetaObject::normalizedSignature(func.toLatin1()+"(QVariant,QVariant)");
+	QByteArray normalizedSignature = QMetaObject::normalizedSignature(func.toLatin1()+"(QJsonObject,QJsonObject)");
 
 	int methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
+
+	if (methodIndex != -1) {
+		QMetaObject::invokeMethod(this, func.toLatin1(),
+								  Q_ARG(QJsonObject, message.data()),
+								  Q_ARG(QJsonObject, orig.data())
+								  );
+		return;
+	}
+
+
+
+	normalizedSignature = QMetaObject::normalizedSignature(func.toLatin1()+"(QJsonObject)");
+
+	methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
+
+	if (methodIndex != -1) {
+		QMetaObject::invokeMethod(this, func.toLatin1(),
+								  Q_ARG(QJsonObject, message.data())
+								  );
+		return;
+	}
+
+
+
+	normalizedSignature = QMetaObject::normalizedSignature(func.toLatin1()+"(QVariant,QVariant)");
+
+	methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
 
 	if (methodIndex != -1) {
 		QMetaObject::invokeMethod(this, func.toLatin1(),
@@ -202,4 +281,16 @@ void AsyncMessageHandler::setPending(bool newPending)
 		return;
 	m_pending = newPending;
 	emit pendingChanged();
+}
+
+
+/**
+ * @brief AsyncMessageHandler::checkStatus
+ * @param status
+ * @return
+ */
+
+bool AsyncMessageHandler::checkStatus(const QJsonObject &json, const QString &status)
+{
+	return (json.value(QStringLiteral("status")).toString() == status);
 }

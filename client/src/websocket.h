@@ -28,6 +28,7 @@
 #define WEBSOCKET_H
 
 #include <QWebSocket>
+#include "qtimer.h"
 #include "server.h"
 #include "websocketmessage.h"
 
@@ -82,11 +83,16 @@ private slots:
 #endif
 	void onBinaryFrameReceived(const QByteArray &message, const bool &isLastFrame);
 	void onBinaryMessageReceived(const QByteArray &message);
+	void pingEnabled(const bool &on = true);
+	void onTimerPingTimeout();
 
 signals:
 	void serverUnavailable(int num);
 	void serverConnected();
 	void serverDisconnected();
+	void serverTerminated();
+	void serverReconnected();
+	void socketError(const QAbstractSocket::SocketError &error);
 	void stateChanged();
 	void serverChanged();
 
@@ -96,6 +102,8 @@ private:
 	State m_state = Disconnected;
 	Server *m_server = nullptr;
 	int m_signalUnavailableNum = 0;
+
+	QTimer *m_timerPing = nullptr;
 };
 
 

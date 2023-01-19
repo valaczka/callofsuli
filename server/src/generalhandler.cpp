@@ -40,7 +40,7 @@ GeneralHandler::GeneralHandler(Client *client)
 
 QDeferred<RankList> GeneralHandler::getRankList() const
 {
-	LOG_CTRACE("client") << "Get rank list";
+	HANDLER_LOG_TRACE() << "Get rank list";
 
 	QDeferred<RankList> ret;
 
@@ -53,7 +53,7 @@ QDeferred<RankList> GeneralHandler::getRankList() const
 		q.addQuery("SELECT id, level, sublevel, xp, name FROM rank ORDER BY level, sublevel");
 
 		if (!q.exec()) {
-			LOG_CDEBUG("client") << "SQL error";
+			HANDLER_LOG_DEBUG() << "SQL error";
 			ret.reject(RankList());
 			return;
 		}

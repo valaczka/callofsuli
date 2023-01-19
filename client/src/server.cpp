@@ -31,6 +31,7 @@
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
+	, m_user(new User(this))
 {
 
 }
@@ -54,7 +55,7 @@ Server *Server::fromJson(const QJsonObject &data, QObject *parent)
 	//s->setDirectory(realname.section('/', 0, -2));
 	s->setUrl(data.value(QStringLiteral("url")).toString());
 	s->setAutoConnect(data.value(QStringLiteral("autoConnect")).toBool(false));
-	s->setUsername(data.value(QStringLiteral("username")).toString());
+	s->user()->setUsername(data.value(QStringLiteral("username")).toString());
 	s->setToken(data.value(QStringLiteral("token")).toString());
 	s->setCertificate(data.value(QStringLiteral("certificate")).toString().toUtf8());
 	s->setServerName(data.value(QStringLiteral("serverName")).toString());
@@ -89,7 +90,7 @@ QJsonObject Server::toJson() const
 
 	o[QStringLiteral("url")] = m_url.toString();
 	o[QStringLiteral("autoConnect")] = m_autoConnect;
-	o[QStringLiteral("username")] = m_username;
+	o[QStringLiteral("username")] = m_user->username();
 	o[QStringLiteral("serverName")] = m_serverName;
 	o[QStringLiteral("token")] = m_token;
 	o[QStringLiteral("certificate")] = QString::fromUtf8(m_certificate);
@@ -147,18 +148,6 @@ void Server::setAutoConnect(bool newAutoConnect)
 	emit autoConnectChanged();
 }
 
-const QString &Server::username() const
-{
-	return m_username;
-}
-
-void Server::setUsername(const QString &newUsername)
-{
-	if (m_username == newUsername)
-		return;
-	m_username = newUsername;
-	emit usernameChanged();
-}
 
 const QString &Server::token() const
 {
@@ -229,4 +218,64 @@ void Server::setServerName(const QString &newServerName)
 	m_serverName = newServerName;
 	emit serverNameChanged();
 }
+
+const QJsonObject &Server::config() const
+{
+	return m_config;
+}
+
+void Server::setConfig(const QJsonObject &newConfig)
+{
+	if (m_config == newConfig)
+		return;
+	m_config = newConfig;
+	emit configChanged();
+}
+
+User *Server::user() const
+{
+	return m_user;
+}
+
+const RankList &Server::rankList() const
+{
+	return m_rankList;
+}
+
+void Server::setRankList(const RankList &newRankList)
+{
+	if (m_rankList == newRankList)
+		return;
+	m_rankList = newRankList;
+	emit rankListChanged();
+}
+
+
+/**
+ * @brief Server::isTokenValid
+ * @param token
+ * @return
+ */
+
+bool Server::isTokenValid(const QString &jwt)
+{
+#ifndef Q_OS_WASM
+	try {
+		auto decoded = jwt::decode(jwt.toStdString());
+
+		int d = decoded.get_payload_claim("exp").as_integer();
+
+		if (d <= QDateTime::currentSecsSinceEpoch())
+			return false;
+
+	} catch (...) {
+		LOG_CWARNING("client") << "Invalid token:" << jwt;
+		return false;
+	}
+#endif
+	return true;
+}
+
+
+
 

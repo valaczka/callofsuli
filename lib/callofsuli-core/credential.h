@@ -27,7 +27,6 @@
 #ifndef CREDENTIAL_H
 #define CREDENTIAL_H
 
-#include <jwt-cpp/jwt.h>
 #include "qcryptographichash.h"
 #include "qdatetime.h"
 #include <QJsonObject>
@@ -35,7 +34,10 @@
 
 #define JWT_ISSUER "Call of Suli"
 
+#ifndef Q_OS_WASM
+#include <jwt-cpp/jwt.h>
 typedef jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson> JwtVerifier;
+#endif
 
 class Credential
 {
@@ -58,10 +60,12 @@ public:
 
 	Credential(const QString &username, const Roles &roles = None);
 
+#ifndef Q_OS_WASM
 	QString createJWT(const QString &secret) const;
 	static Credential fromJWT(const QString &jwt);
 
 	static bool verify(const QString &token, JwtVerifier *verifier);
+#endif
 
 	static QString hashString(const QString &str, const QString &salt,
 							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
@@ -78,14 +82,19 @@ public:
 	void setRoles(const Roles &newRoles);
 	void setRole(const Role &role, const bool &on = true);
 
+	qint64 iat() const;
+
 	inline bool operator==(const Credential &other) {
 		return other.m_username == m_username &&
 				other.m_roles == m_roles;
 	}
 
+
+
 private:
 	QString m_username;
 	Roles m_roles = None;
+	qint64 m_iat = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Credential::Roles);

@@ -42,25 +42,36 @@ class AsyncMessageHandler : public QObject
 
 public:
 	explicit AsyncMessageHandler(QObject *parent = nullptr);
+	explicit AsyncMessageHandler(Client *client);
 	virtual ~AsyncMessageHandler();
 
 	Client *client() const;
 	void setClient(Client *newClient);
 
 	Q_INVOKABLE void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json);
+	Q_INVOKABLE void sendRequestFunc(const WebSocketMessage::ClassHandler &classHandler, const QString &func,
+									 const QJsonObject &json = QJsonObject());
+	void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const char *func, QJsonObject json = QJsonObject());
 
 	void handleMessage(const WebSocketMessage &message);
 
 	bool pending() const;
 	void setPending(bool newPending);
 
+	static bool checkStatus(const QJsonObject &json, const QString &status = QStringLiteral("ok"));
+
+protected:
+	virtual bool prehandleMessage(const WebSocketMessage &/*message*/) { return true; }
+
 signals:
 	void clientChanged();
 	void pendingChanged();
 	void invalidMessageReceived(const WebSocketMessage &message, const WebSocketMessage &orig);
 
-private:
+protected:
 	Client *m_client = nullptr;
+
+private:
 	QHash<int, WebSocketMessage> m_messages;
 	QCache<int, WebSocketMessage> m_repliedMessages;
 	bool m_pending = false;
