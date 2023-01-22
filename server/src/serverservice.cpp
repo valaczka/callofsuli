@@ -170,10 +170,6 @@ Service::CommandResult ServerService::onStart()
 		return CommandResult::Failed;
 	}
 
-	m_verifier = jwt::verify()
-			.allow_algorithm(jwt::algorithm::hs256{m_settings->jwtSecret().toStdString()})
-			.with_issuer(JWT_ISSUER);
-
 
 	LOG_CINFO("service") << "Server service started successfull";
 
@@ -328,15 +324,6 @@ void ServerService::sendToClients(const Credential::Roles &roles, const WebSocke
 }
 
 
-/**
- * @brief ServerService::verifier
- * @return
- */
-
-JwtVerifier &ServerService::verifier()
-{
-	return m_verifier;
-}
 
 const QString &ServerService::serverName() const
 {
@@ -415,7 +402,7 @@ void ServerService::clientAdd(Client *client)
 void ServerService::clientRemove(Client *client)
 {
 	m_clients.removeAll(client);
-	client->deleteLater();
+	client->deleteAfterHandlers();
 }
 
 
@@ -442,6 +429,7 @@ bool ServerService::preStart()
 
 	QCommandLineParser parser;
 	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2023 Valaczka János Pál")));
+	parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions);
 
 	auto helpOption = parser.addHelpOption();
 	auto versionOption = parser.addVersionOption();
@@ -459,6 +447,8 @@ bool ServerService::preStart()
 #endif
 
 	parser.parse(m_arguments);
+
+	parser.clearPositionalArguments();
 
 
 	if (parser.isSet(helpOption)) {

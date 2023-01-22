@@ -25,12 +25,53 @@
  */
 
 #include "user.h"
+#include "application.h"
 
 User::User(QObject *parent)
 	: SelectableObject{parent}
 {
 
 }
+
+
+
+/**
+ * @brief User::loadFromJson
+ * @param user
+ * @param object
+ * @param allField
+ */
+
+void User::loadFromJson(const QJsonObject &object, const bool &allField)
+{
+	if (object.contains(QStringLiteral("username")) || allField)
+		setUsername(object.value(QStringLiteral("username")).toString());
+
+	if (object.contains(QStringLiteral("familyName")) || allField)
+		setFamilyName(object.value(QStringLiteral("familyName")).toString());
+
+	if (object.contains(QStringLiteral("givenName")) || allField)
+		setGivenName(object.value(QStringLiteral("givenName")).toString());
+
+	if (object.contains(QStringLiteral("picture")) || allField)
+		setPicture(object.value(QStringLiteral("picture")).toString());
+
+	if ((object.contains(QStringLiteral("rankid")) || allField) && Application::instance()->client()->server())
+		setRank(Application::instance()->client()->server()->rank(object.value(QStringLiteral("rankid")).toInt()));
+
+	if (object.contains(QStringLiteral("xp")) || allField)
+		setXp(object.value(QStringLiteral("xp")).toInt());
+
+	if (object.contains(QStringLiteral("classid")) || allField)
+		setClassid(object.value(QStringLiteral("classid")).toInt());
+}
+
+
+
+/**
+ * @brief User::username
+ * @return
+ */
 
 const QString &User::username() const
 {
@@ -119,6 +160,45 @@ void User::clear()
 	setLoginState(LoggedOut);
 }
 
+const QString &User::picture() const
+{
+	return m_picture;
+}
+
+void User::setPicture(const QString &newPicture)
+{
+	if (m_picture == newPicture)
+		return;
+	m_picture = newPicture;
+	emit pictureChanged();
+}
+
+int User::classid() const
+{
+	return m_classid;
+}
+
+void User::setClassid(int newClassid)
+{
+	if (m_classid == newClassid)
+		return;
+	m_classid = newClassid;
+	emit classidChanged();
+}
+
+int User::xp() const
+{
+	return m_xp;
+}
+
+void User::setXp(int newXp)
+{
+	if (m_xp == newXp)
+		return;
+	m_xp = newXp;
+	emit xpChanged();
+}
+
 
 const User::LoginState &User::loginState() const
 {
@@ -132,4 +212,5 @@ void User::setLoginState(const LoginState &newLoginState)
 	m_loginState = newLoginState;
 	emit loginStateChanged();
 }
+
 

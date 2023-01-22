@@ -70,7 +70,7 @@ public:
 	GoogleOAuth2Authenticator *googleAuthenticator() const;
 
 	Q_INVOKABLE virtual void loginGoogle() override;
-	Q_INVOKABLE virtual void registrationGoogle() override;
+	Q_INVOKABLE virtual void registrationGoogle(const QString &code) override;
 
 	int serverListSelectedCount() const;
 
@@ -154,6 +154,8 @@ public:
 	QQuickItem *page() const { return m_page; }
 	void setPage(QQuickItem *newPage) { m_page = newPage; }
 
+	QVariantMap &internalData() { return m_internalData; }
+
 signals:
 	void modeChanged();
 	void pageRemoved();
@@ -165,6 +167,7 @@ private:
 	Mode m_mode = Login;
 	QQuickItem *m_page = nullptr;
 	DesktopClient *m_client = nullptr;
+	QVariantMap m_internalData;
 };
 
 

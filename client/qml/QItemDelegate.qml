@@ -24,6 +24,11 @@ Qaterial.ItemDelegate {
 	width: ListView.view.width
 	iconColor: highlightedIcon ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
 
+	leftPadding: Math.max(!mirrored ? Qaterial.Style.delegate.leftPadding(control.type, control.lines) : Qaterial.Style.delegate
+	  .rightPadding(control.type, control.lines), Client.safeMarginLeft)
+	rightPadding: Math.max(mirrored ? Qaterial.Style.delegate.leftPadding(control.type, control.lines) : Qaterial.Style.delegate
+	  .rightPadding(control.type, control.lines), Client.safeMarginRight)
+
 	onClicked: if (selectArea.enabled) {
 				   if (selectableObject) {
 					   _view.currentIndex = index

@@ -603,7 +603,7 @@ void DesktopClient::loginGoogle()
  * @brief DesktopClient::registrationGoogle
  */
 
-void DesktopClient::registrationGoogle()
+void DesktopClient::registrationGoogle(const QString &code)
 {
 	if (m_webSocket->state() != WebSocket::Connected) {
 		messageWarning(tr("A szerver jelenleg nem elérhető!"));
@@ -623,6 +623,7 @@ void DesktopClient::registrationGoogle()
 
 	DesktopCodeFlow *flow = new DesktopCodeFlow(m_googleAuthenticator, this);
 	flow->setMode(DesktopCodeFlow::Registration);
+	flow->internalData().insert(QStringLiteral("code"), code);
 	m_googleAuthenticator->addCodeFlow(flow);
 
 	connect(flow, &DesktopCodeFlow::pageRemoved, this, [this, flow](){ m_googleAuthenticator->removeCodeFlow(flow); });
@@ -665,6 +666,7 @@ void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
 		break;
 	case Registration:
 		o[QStringLiteral("func")] = QStringLiteral("registrationGoogle");
+		o[QStringLiteral("code")] = m_internalData.value(QStringLiteral("code")).toString();
 		break;
 	}
 
@@ -675,6 +677,8 @@ void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
 	if (m_page)
 		m_client->stackPop(m_page);
 }
+
+
 
 
 /**

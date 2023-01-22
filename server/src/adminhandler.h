@@ -65,11 +65,23 @@ public:
 
 	};
 
+
+	/**
+	 * @brief The Class class
+	 */
+
+	struct Class {
+		int id = -1;
+		QString name;
+	};
+
 	static QDefer userAdd(AbstractHandler *handler, const User &user);
 	static QDefer authAddPlain(AbstractHandler *handler, const QString &username, const QString &password);
 	static QDefer authAddOAuth2(AbstractHandler *handler, const QString &username, const QString &oauthType);
 
 	static QString generateClassCode();
+
+	static QDefer classAdd(AbstractHandler *handler, const Class &_class);
 
 protected:
 	virtual void handleRequestResponse() {};

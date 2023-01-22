@@ -212,3 +212,67 @@ QString AdminHandler::generateClassCode()
 	return QString::fromLatin1(Utils::generateRandomString(6, "1234567890"));
 }
 
+
+/**
+ * @brief AdminHandler::classAdd
+ * @param handler
+ * @param _class
+ * @return
+ */
+
+QDefer AdminHandler::classAdd(AbstractHandler *handler, const Class &_class)
+{
+	Q_ASSERT(handler);
+
+	LOG_CDEBUG("client") << handler->m_client << "Add Class:" << qPrintable(_class.name);
+
+	QDefer ret;
+
+	handler->databaseMain()->worker()->execInThread([ret, _class, handler]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(handler->databaseMain()->dbName());
+
+		QMutexLocker(handler->databaseMain()->mutex());
+
+		db.transaction();
+
+		QueryBuilder q(db);
+		q.addQuery("INSERT INTO class(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("name", _class.name);
+
+		if (!q.exec()) {
+			LOG_CWARNING("client") << handler->m_client << "Class create error:" << qPrintable(_class.name);
+			db.rollback();
+			ret.reject();
+			return;
+		}
+
+		const int &id = q.sqlQuery().lastInsertId().toInt();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO classCode(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("id", id)
+				.addField("code", generateClassCode())
+				.exec()) {
+			LOG_CWARNING("client") << handler->m_client << "Class create error:" << qPrintable(_class.name);
+			db.rollback();
+			ret.reject();
+			return;
+		}
+
+		db.commit();
+
+		LOG_CTRACE("client") << handler->m_client << "Class created:" << qPrintable(_class.name) << id;
+		ret.resolve();
+	});
+
+	return ret;
+}
+

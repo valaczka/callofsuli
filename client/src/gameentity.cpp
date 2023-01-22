@@ -371,7 +371,7 @@ void GameEntity::jumpToSprite(const QString &sprite)
 		return;
 	}
 
-	QMetaObject::invokeMethod(m_spriteSequence, "jumpTo",
+	QMetaObject::invokeMethod(m_spriteSequence, "jumpTo", Qt::DirectConnection,
 							  Q_ARG(QString, sprite)
 							  );
 }
@@ -793,7 +793,7 @@ void GameEntity::loadSprites()
 							{ QStringLiteral("to"), data.value(QStringLiteral("to")).toObject().toVariantMap() }
 						});
 
-		QMetaObject::invokeMethod(m_spriteItem, "addToSprites",
+		QMetaObject::invokeMethod(m_spriteItem, "addToSprites", Qt::DirectConnection,
 								  Q_ARG(QVariant, map));
 
 	}

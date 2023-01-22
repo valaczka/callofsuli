@@ -36,7 +36,7 @@ function intializeStyle() {
 	Qaterial.Style.textTheme.hint2.family = "Rajdhani"
 
 	Qaterial.Style.textTheme.button.weight = Font.DemiBold
-	Qaterial.Style.textTheme.body2.weight = Font.Medium
+	Qaterial.Style.textTheme.body2.weight = Font.Normal
 	Qaterial.Style.textTheme.body1.weight = Font.Medium
 	Qaterial.Style.textTheme.caption.weight = Font.DemiBold
 
@@ -49,7 +49,7 @@ function intializeStyle() {
 	Qaterial.Style.textTheme.subtitle1.pixelSize = Qt.binding(function() { return 18*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.subtitle2.pixelSize = Qt.binding(function() { return 16*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.body1.pixelSize = Qt.binding(function() { return 18*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.body2.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.textTheme.body2.pixelSize = Qt.binding(function() { return 14*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.button.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.caption.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.overline.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })

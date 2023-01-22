@@ -59,8 +59,6 @@ bool Credential::isValid() const
 
 
 
-#ifndef Q_OS_WASM
-
 /**
  * @brief Credential::toJWT
  * @param secret
@@ -93,20 +91,24 @@ QString Credential::createJWT(const QString &secret) const
 	else
 		exp = exp.addDays(50);
 
-	auto token = jwt::create()
-			.set_issuer(JWT_ISSUER)
-			.set_type("JWS")
-			.set_subject(m_username.toStdString())
-			.set_issued_at(jwt::date::clock::now())
-			.set_payload_claim("exp", picojson::value(int64_t(exp.toSecsSinceEpoch())))
-			.set_payload_claim("roles", picojson::value(list.join("|").toStdString()))
-			.sign(jwt::algorithm::hs256{secret.toStdString()});
+	QJsonWebToken jwt;
+
+	jwt.setSecret(secret);
+
+
+	QJsonObject obj;
+
+	obj.insert(QStringLiteral("iss"), JWT_ISSUER);
+	obj.insert(QStringLiteral("sub"), m_username);
+	obj.insert(QStringLiteral("iat"), QDateTime::currentSecsSinceEpoch());
+	obj.insert(QStringLiteral("exp"), exp.toSecsSinceEpoch());
+	obj.insert(QStringLiteral("roles"), list.join("|"));
+
+	jwt.setPayloadJDoc(QJsonDocument(obj));
 
 	LOG_CINFO("credential") << "Token created for user:" << m_username;
 
-	return QString::fromStdString(token);
-
-	return "";
+	return jwt.getToken();
 }
 
 
@@ -122,35 +124,37 @@ QString Credential::createJWT(const QString &secret) const
 
 Credential Credential::fromJWT(const QString &jwt)
 {
+	QJsonWebToken token;
+
+	if (!token.setToken(jwt)) {
+		LOG_CWARNING("credential") << "Invalid token:" << jwt;
+		return Credential();
+	}
+
+	const QJsonObject &obj = token.getPayloadJDoc().object();
+
 	Credential c;
 
-	try {
-		auto decoded = jwt::decode(jwt.toStdString());
+	c.setUsername(obj.value(QStringLiteral("sub")).toString());
 
-		c.setUsername(QString::fromStdString(decoded.get_subject()));
+	const QString &r = obj.value(QStringLiteral("roles")).toString();
 
-		const QString &r = QString::fromStdString(decoded.get_payload_claim("roles").as_string());
+	c.m_iat = obj.value(QStringLiteral("iat")).toInt();
 
-		c.m_iat = decoded.get_payload_claim("iat").as_integer();
+	Roles roles;
 
-		Roles roles;
-
-		foreach (const QString &s, r.split("|")) {
-			if (s == QLatin1String("student"))
-				roles.setFlag(Student);
-			else if (s == QLatin1String("teacher"))
-				roles.setFlag(Teacher);
-			else if (s == QLatin1String("panel"))
-				roles.setFlag(Panel);
-			else if (s == QLatin1String("admin"))
-				roles.setFlag(Admin);
-		}
-
-		c.setRoles(roles);
-
-	} catch (...) {
-		LOG_CWARNING("credential") << "Invalid token:" << jwt;
+	foreach (const QString &s, r.split("|")) {
+		if (s == QLatin1String("student"))
+			roles.setFlag(Student);
+		else if (s == QLatin1String("teacher"))
+			roles.setFlag(Teacher);
+		else if (s == QLatin1String("panel"))
+			roles.setFlag(Panel);
+		else if (s == QLatin1String("admin"))
+			roles.setFlag(Admin);
 	}
+
+	c.setRoles(roles);
 
 	return c;
 }
@@ -164,24 +168,24 @@ Credential Credential::fromJWT(const QString &jwt)
  * @return
  */
 
-bool Credential::verify(const QString &token, JwtVerifier *verifier)
+bool Credential::verify(const QString &token, const QString &secret)
 {
-	bool ret = false;
+	const QJsonWebToken &jwt = QJsonWebToken::fromTokenAndSecret(token, secret);
 
-	try {
-		auto decoded = jwt::decode(token.toStdString());
-		verifier->verify(decoded);
-		ret = true;
+	if (!jwt.isValid())
+		return false;
 
-	} catch (const std::exception& ex) {
-		LOG_CWARNING("credential") << "Invalid token: " << ex.what();
-		ret = false;
-	}
+	const QJsonObject &object = jwt.getPayloadJDoc().object();
 
-	return ret;
+	if (object.value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch())
+		return false;
+
+	if (object.value(QStringLiteral("iss")).toString() != JWT_ISSUER)
+		return false;
+
+	return true;
 }
 
-#endif
 
 
 /**

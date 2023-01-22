@@ -25,6 +25,7 @@
  */
 
 #include "Logger.h"
+#include "classobject.h"
 #include "fontimage.h"
 #include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
@@ -335,6 +336,9 @@ void Application::registerQmlTypes()
 	qmlRegisterType<AsyncMessageHandler>("CallOfSuli", 1, 0, "AsyncMessageHandler");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
+	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
+	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
+	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
 }
 
 /**

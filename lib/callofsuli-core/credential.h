@@ -30,14 +30,9 @@
 #include "qcryptographichash.h"
 #include "qdatetime.h"
 #include <QJsonObject>
+#include <qjsonwebtoken.h>
 
-
-#define JWT_ISSUER "Call of Suli"
-
-#ifndef Q_OS_WASM
-#include <jwt-cpp/jwt.h>
-typedef jwt::verifier<jwt::default_clock, jwt::traits::kazuho_picojson> JwtVerifier;
-#endif
+#define JWT_ISSUER QStringLiteral("Call of Suli")
 
 class Credential
 {
@@ -60,12 +55,10 @@ public:
 
 	Credential(const QString &username, const Roles &roles = None);
 
-#ifndef Q_OS_WASM
 	QString createJWT(const QString &secret) const;
 	static Credential fromJWT(const QString &jwt);
 
-	static bool verify(const QString &token, JwtVerifier *verifier);
-#endif
+	static bool verify(const QString &token, const QString &secret);
 
 	static QString hashString(const QString &str, const QString &salt,
 							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
@@ -88,7 +81,6 @@ public:
 		return other.m_username == m_username &&
 				other.m_roles == m_roles;
 	}
-
 
 
 private:

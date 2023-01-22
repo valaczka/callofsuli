@@ -4,12 +4,8 @@ include(../common.pri)
 
 LIBS += -L../../lib
 
-LIBS += -lcrypto
+#####LIBS += -lcrypto
 
-# Core includes
-
-INCLUDEPATH += $$PWD/QDeferred/src \
-				$$PWD/jwt-cpp/include
 
 # Qaterial
 
@@ -96,3 +92,4 @@ else: LIBS += -lQtXlsxWriter
 # Android OpenSSL
 
 android: include($$PWD/android_openssl/openssl.pri)
+

@@ -28,6 +28,7 @@
 #define SERVER_H
 
 #include "QOlm/QOlm.hpp"
+#include "clientcache.h"
 #include "qdir.h"
 #include "qjsonobject.h"
 #ifndef QT_NO_SSL
@@ -54,7 +55,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(QString serverName READ serverName NOTIFY serverNameChanged)
 	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
 	Q_PROPERTY(User *user READ user CONSTANT)
-	Q_PROPERTY(RankList rankList READ rankList WRITE setRankList NOTIFY rankListChanged)
+	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -62,6 +63,7 @@ class Server : public SelectableObject
 
 public:
 	explicit Server(QObject *parent = nullptr);
+	virtual ~Server();
 
 	static Server *fromJson(const QJsonObject &data, QObject *parent = nullptr);
 	QJsonObject toJson() const;
@@ -101,11 +103,15 @@ public:
 
 	User *user() const;
 
-	const RankList &rankList() const;
+	QList<Rank> rankList() const { return m_rankList.toList(); }
 	void setRankList(const RankList &newRankList);
 
 	static bool isTokenValid(const QString &jwt);
 	bool isTokenValid() const { return isTokenValid(m_token); }
+
+	Rank rank(const int &id) const;
+
+	ClientCache *cache() const;
 
 signals:
 	void urlChanged();
@@ -134,6 +140,8 @@ private:
 #endif
 	QByteArray m_certificate;
 	QJsonObject m_config;
+
+	ClientCache *m_cache = nullptr;
 
 };
 

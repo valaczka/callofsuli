@@ -1,6 +1,5 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
@@ -9,13 +8,15 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-//	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
+	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
 
 	onPageClose: function() {
-		Client.webSocket.close()
+		if (Client.server && Client.server.user.loginState == User.LoggedIn)
+			Client.webSocket.close()
 	}
 
-	stackPopFunction: function() {
+
+	/*stackPopFunction: function() {
 		if (swipeView.currentIndex > 0) {
 			swipeView.setCurrentIndex(0)
 			return false
@@ -27,31 +28,18 @@ QPage {
 		}
 
 		return true
-	}
+	}*/
 
 	title: Client.server ? Client.server.serverName : ""
+	subtitle: Client.server ? Client.server.user.fullName : ""
 
 	appBar.backButtonVisible: true
-	appBar.rightComponent: swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
+	appBar.rightComponent: _cmpUser //swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
 	appBar.rightPadding: Qaterial.Style.horizontalPadding
 
 	Component {
 		id: _cmpUser
 		UserButton { }
-	}
-
-	Component {
-		id: _cmpRank
-
-		Qaterial.AppBarButton {
-			icon.source: Qaterial.Icons.medal
-			ToolTip.text: qsTr("Ranglista")
-			ToolTip.visible: hovered || pressed
-			ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-
-			onClicked: Client.stackPushPage("Ranks.qml")
-
-		}
 	}
 
 	Qaterial.SwipeView
@@ -60,15 +48,17 @@ QPage {
 		anchors.fill: parent
 		currentIndex: tabBar.currentIndex
 
-		Login {
-			id: _login
-			//height: swipeView.height
-			//width: swipeView.width
+		Item {
+			Qaterial.LabelBody1 {
+				anchors.centerIn: parent
+				text: "text"
+			}
+
 		}
 
 		ScoreList {
-			//height: swipeView.height
-			//width: swipeView.width
+			height: swipeView.height
+			width: swipeView.width
 		}
 	}
 

@@ -6,7 +6,7 @@ import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 import "JScript.js" as JS
 
-QScrollablePage {
+QPage {
 	id: control
 
 	closeQuestion: _form.modified ? qsTr("Biztosan eldobod a módosításokat?") : ""
@@ -26,7 +26,7 @@ QScrollablePage {
 						   {
 							   if (Client.serverDelete(server)) {
 								   _form.modified = false
-								   Client.stackPop(control)
+								   Client.stackPop(control.StackView.index-1)
 							   }
 						   },
 						   text: qsTr("Biztosan törlöd a szervert?"),
@@ -36,6 +36,8 @@ QScrollablePage {
 
 	}
 
+	QScrollable {
+		anchors.fill: parent
 
 	QFormColumn {
 		id: _form
@@ -113,12 +115,13 @@ QScrollablePage {
 						server.autoConnect = false
 
 					_form.modified = false
-					Client.stackPop(control)
+					Client.stackPop(control.StackView.index-1)
 				}
 			}
 		}
 	}
 
+	}
 
 	Component.onCompleted: if (server) {
 						 _host.text = server.host()

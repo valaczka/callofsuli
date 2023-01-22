@@ -47,6 +47,9 @@ AbstractHandler::AbstractHandler(Client *client)
 
 AbstractHandler::~AbstractHandler()
 {
+	if (m_client)
+		m_client->removeRunningHandler(this);
+
 	HANDLER_LOG_TRACE() << "Abstract handler destroyed:" << this;
 }
 

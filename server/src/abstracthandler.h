@@ -31,10 +31,10 @@
 #include "databasemain.h"
 #include "websocketmessage.h"
 #include <QObject>
+#include "client.h"
 
 #define HANDLER_DESTROY_TIMEOUT_MSEC	180*1000
 
-class Client;
 class ServerService;
 
 class AbstractHandler : public QObject
@@ -65,7 +65,7 @@ protected:
 	const QJsonObject &json() const { return m_message.data(); }
 
 	WebSocketMessage m_message;
-	Client *const m_client;
+	QPointer<Client> m_client = nullptr;
 
 	friend class AdminHandler;
 

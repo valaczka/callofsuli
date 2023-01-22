@@ -73,7 +73,7 @@ protected:
 
 private:
 	QHash<int, WebSocketMessage> m_messages;
-	QCache<int, WebSocketMessage> m_repliedMessages;
+	QVector<WebSocketMessage> m_repliedMessages;
 	bool m_pending = false;
 
 };

@@ -10,7 +10,7 @@
 - qzxing (https://github.com/ftylitak/qzxing) 
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
 - QJsonWebToken - (c) 2016 Juan Gonzalez Burgos (https://github.com/juangburgos/QJsonWebToken)
-- jwt-cpp - (c) 2018 Dominik Thalhammer (https://github.com/Thalhammer/jwt-cpp)
+- PullToRefreshHandler - (c) 2020 Mohammad Hasanzadeh (https://github.com/mohammadhasanzadeh/pulltorefreshhandler)
 - QDeferred - (c) 2017 Juan Gonzalez Burgos (https://github.com/juangburgos/QDeferred)
 - QOlm - (c) Olivier Le Doeuff (https://github.com/OlivierLDff/QOlm)
 

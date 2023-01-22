@@ -1,6 +1,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtWebView 1.15
+import QtQuick.Window 2.12
 import CallOfSuli 1.0
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial

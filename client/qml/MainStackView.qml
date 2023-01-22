@@ -60,21 +60,15 @@ Qaterial.StackView
 			currentItem.onPageClose()
 		}
 
+		if (_index >= depth)
+			return
+
 		if (_index < 0)
 			pop()
 		else
 			pop(get(_index))
 	}
 
-
-	function popToItem(_item : Item) {
-		if (currentItem.onPageClose) {
-			console.info(qsTr("Lap bezárási funkció meghívása:"), currentItem)
-			currentItem.onPageClose()
-		}
-
-		pop(_item)
-	}
 
 
 	function callStackPop() : bool {

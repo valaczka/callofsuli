@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * generalhandler.h
+ * classobject.h
  *
- * Created on: 2023. 01. 16.
+ * Created on: 2023. 01. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * GeneralHandler
+ * ClassObject
  *
  *  This file is part of Call of Suli.
  *
@@ -24,38 +24,46 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GENERALHANDLER_H
-#define GENERALHANDLER_H
+#ifndef CLASSOBJECT_H
+#define CLASSOBJECT_H
 
-#include "abstracthandler.h"
-#include "rank.h"
+#include <selectableobject.h>
+#include <QObject>
+#include "QOlm/QOlm.hpp"
 
-class GeneralHandler : public AbstractHandler
+class ClassObject;
+using ClassList = qolm::QOlm<ClassObject>;
+
+/**
+ * @brief The ClassObject class
+ */
+
+class ClassObject : public SelectableObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+
 public:
-	explicit GeneralHandler(Client *client);
+	explicit ClassObject(QObject *parent = nullptr);
+	virtual ~ClassObject() {}
 
-	QDeferred<RankList> getRankList() const;
-	QDeferred<QJsonArray> getUserListGroup(const int &id) const;
-	QDeferred<QJsonArray> getUserListClass(const int &id = -1) const;
+	void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
-protected:
-	virtual void handleRequestResponse() {};
-	virtual void handleEvent() {};
+	int id() const;
+	void setId(int newId);
 
-private slots:
-	void rankList();
-	void userList();
-	void userListGroup();
-	void userListClass();
+	const QString &name() const;
+	void setName(const QString &newName);
 
-	void me();
-
-	void classList();
+signals:
+	void idChanged();
+	void nameChanged();
 
 private:
+	int m_id = -1;
+	QString m_name;
 };
 
-#endif // GENERALHANDLER_H
+#endif // CLASSOBJECT_H

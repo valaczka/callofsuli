@@ -112,6 +112,8 @@ bool Database::databaseOpen(const QString &path)
 		db.setDatabaseName(path);
 
 		if (db.open()) {
+			QSqlQuery q(db);
+			q.exec(QStringLiteral("PRAGMA foreign_keys = ON"));
 			ret.resolve();
 		} else {
 			LOG_CERROR("db") << "Open database error" << qPrintable(m_dbName) << qPrintable(db.lastError().text());

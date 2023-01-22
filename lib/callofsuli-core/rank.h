@@ -100,4 +100,5 @@ public:
 
 };
 
+
 #endif // RANK_H

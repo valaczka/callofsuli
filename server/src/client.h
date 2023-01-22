@@ -28,12 +28,12 @@
 #define CLIENT_H
 
 #include <QWebSocket>
-#include "abstracthandler.h"
 #include "oauth2codeflow.h"
 #include "websocketmessage.h"
 #include "credential.h"
 
 class ServerService;
+class AbstractHandler;
 
 class Client : public QObject
 {
@@ -71,6 +71,9 @@ public:
 	OAuth2CodeFlow *oauth2CodeFlow() const;
 	void setOauth2CodeFlow(OAuth2CodeFlow *newOauth2CodeFlow);
 
+	void removeRunningHandler(AbstractHandler *handler);
+	void deleteAfterHandlers();
+
 signals:
 	void clientStateChanged();
 	void credentialChanged();
@@ -98,6 +101,9 @@ private:
 	QHash<WebSocketMessage::ClassHandler, HandlerFunc> m_handlers;
 
 	QPointer<OAuth2CodeFlow> m_oauth2CodeFlow = nullptr;
+	QVector<AbstractHandler *> m_runningHandlers;
+
+	bool m_destruction = false;
 };
 
 #endif // CLIENT_H

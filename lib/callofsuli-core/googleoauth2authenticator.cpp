@@ -26,7 +26,6 @@
 
 #include "googleoauth2authenticator.h"
 #include "Logger.h"
-#include "jwt-cpp/jwt.h"
 
 
 /**
@@ -87,30 +86,6 @@ void GoogleOAuth2Authenticator::setCodeFlow(OAuth2CodeFlow *flow) const
 
 	flow->setClientIdentifier(m_clientId);
 	flow->setClientIdentifierSharedKey(m_clientKey);
-}
-
-
-/**
- * @brief GoogleOAuth2Authenticator::getInfoFromRequestAccess
- * @param data
- * @return
- */
-
-QMap<std::string, std::string> GoogleOAuth2Authenticator::getInfoFromRequestAccess(const QVariantMap &data)
-{
-	QMap<std::string, std::string> m;
-
-	if (!data.contains(QStringLiteral("id_token"))) {
-		LOG_CWARNING("oauth2") << "Google response does not contain id_token";
-		return m;
-	}
-
-	auto decoded = jwt::decode(data.value(QStringLiteral("id_token")).toString().toStdString());
-
-	for (auto &e : decoded.get_payload_json())
-		m.insert(e.first, e.second.to_str());
-
-	return m;
 }
 
 

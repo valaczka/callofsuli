@@ -81,6 +81,7 @@ QPage {
 		currentIndex: -1
 		anchors.fill: parent
 		visible: false
+		autoSelectChange: true
 
 		model: Client.serverList
 

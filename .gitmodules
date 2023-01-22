@@ -40,3 +40,6 @@
 [submodule "lib/android_openssl"]
 	path = lib/android_openssl
 	url = https://github.com/KDAB/android_openssl.git
+[submodule "lib/QJsonWebToken"]
+	path = lib/QJsonWebToken
+	url = https://github.com/juangburgos/QJsonWebToken.git

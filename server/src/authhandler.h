@@ -46,6 +46,7 @@ public:
 	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
 	QDeferred<bool> userExists(const QString &username) const;
+	QDeferred<bool, int> getClassIdFromCode(const QString &code) const;
 
 	bool isRegistrationEnabled() const;
 	void setRegistrationEnabled(const bool &on = true);
@@ -83,6 +84,7 @@ private:
 	void _registrationGoogleWithAccessToken(const QString &accessToken, GoogleOAuth2Authenticator *authenticator);
 
 
+	QVariantMap m_internalData;
 };
 
 #endif // AUTHHANDLER_H

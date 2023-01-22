@@ -39,7 +39,6 @@
         <file>GameEnemySniper.qml</file>
         <file>GameEnemySniperCrosshair.qml</file>
         <file>PageMapPlay.qml</file>
-        <file>QScrollablePage.qml</file>
         <file>AppBar.qml</file>
         <file>QMenu.qml</file>
         <file>QMenuItem.qml</file>
@@ -62,6 +61,15 @@
         <file>PageMain.qml</file>
         <file>UserButton.qml</file>
         <file>Login.qml</file>
-        <file>RankList.qml</file>
+        <file>ScoreList.qml</file>
+        <file>PullToRefreshHandler.qml</file>
+        <file>RefreshIndicator.qml</file>
+        <file>UserImage.qml</file>
+        <file>Registration.qml</file>
+        <file>QFormRadioButton.qml</file>
+        <file>QScrollable.qml</file>
+        <file>Ranks.qml</file>
+        <file>QLoaderItemDelegate.qml</file>
+        <file>PageDashboard.qml</file>
     </qresource>
 </RCC>

@@ -7,10 +7,8 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
-QScrollablePage {
+QPage {
 	id: control
-
-	contentBottomPadding: 20
 
 	property MapPlay map: null
 
@@ -20,65 +18,73 @@ QScrollablePage {
 		sorters: StringSorter { roleName: "name"; priority: 0 ; sortOrder: Qt.AscendingOrder }
 	}
 
-	Column {
-		id: col
-		width: parent.width
+	QScrollable {
+		anchors.fill: parent
+		horizontalPadding: 0
+		verticalPadding: 0
+		leftPadding: 0
+		rightPadding: 0
 
-		Repeater {
-			model: mList
+		Column {
+			id: col
+			width: parent.width
 
-			Column {
-				id: missionColumn
+			Repeater {
+				model: mList
 
-				property QtObject mission: model.qtObject
+				Column {
+					id: missionColumn
 
-				Qaterial.LabelHeadline5 {
-					topPadding: 20
-					bottomPadding: 10
-					leftPadding: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
-					rightPadding: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
-					text: mission.name
+					property QtObject mission: model.qtObject
+
+					Qaterial.LabelHeadline5 {
+						topPadding: 20
+						bottomPadding: 10
+						leftPadding: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
+						rightPadding: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
+						text: mission.name
+					}
+
+					ListView {
+						id: view
+						model: mission.missionLevelList
+						orientation: ListView.Horizontal
+
+						implicitHeight: 150*Qaterial.Style.pixelSizeRatio
+
+						width: control.width
+						spacing: 5
+
+						clip: true
+
+						header: Item {
+							width: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
+							height: view.height
+						}
+
+						footer: Item {
+							width: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
+							height: view.height
+						}
+
+						delegate: MapPlayMissionLevelCard {
+							height: view.implicitHeight
+							width: view.implicitHeight
+
+							missionLevel: model.qtObject
+
+							onClicked: map.play(item)
+						}
+
+					}
+
 				}
-
-				ListView {
-					id: view
-					model: mission.missionLevelList
-					orientation: ListView.Horizontal
-
-					implicitHeight: 150*Qaterial.Style.pixelSizeRatio
-
-					width: control.width
-					spacing: 5
-
-					clip: true
-
-					header: Item {
-						width: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
-						height: view.height
-					}
-
-					footer: Item {
-						width: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
-						height: view.height
-					}
-
-					delegate: MapPlayMissionLevelCard {
-						height: view.implicitHeight
-						width: view.implicitHeight
-
-						missionLevel: model.qtObject
-
-						onClicked: map.play(item)
-					}
-
-				}
-
 			}
+
+
 		}
 
 
 	}
-
-
 
 }

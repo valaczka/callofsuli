@@ -101,7 +101,9 @@ void Client::handleMessage(const WebSocketMessage &message)
 		HandlerFunc f = m_handlers.value(message.classHandler());
 
 		if (f) {
-			std::invoke(f, this)->handleMessage(message);
+			AbstractHandler *h = std::invoke(f, this);
+			m_runningHandlers.append(h);
+			h->handleMessage(message);
 		} else {
 			LOG_CERROR("client") << this << "Missing handler for class:" << message.classHandler();
 		}
@@ -213,6 +215,34 @@ void Client::setOauth2CodeFlow(OAuth2CodeFlow *newOauth2CodeFlow)
 
 	m_oauth2CodeFlow = newOauth2CodeFlow;
 	emit oauth2CodeFlowChanged();
+}
+
+
+/**
+ * @brief Client::removeRunningHandler
+ * @param handler
+ */
+
+void Client::removeRunningHandler(AbstractHandler *handler)
+{
+	if (handler)
+		m_runningHandlers.removeAll(handler);
+
+	if (m_destruction && m_runningHandlers.isEmpty())
+		this->deleteLater();
+}
+
+
+
+
+/**
+ * @brief Client::deleteAfterHandlers
+ */
+
+void Client::deleteAfterHandlers()
+{
+	m_destruction = true;
+	removeRunningHandler(nullptr);
 }
 
 

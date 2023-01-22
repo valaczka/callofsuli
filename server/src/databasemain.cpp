@@ -248,20 +248,23 @@ bool DatabaseMain::_createUsers()
 		bool isAdmin;
 		bool isTeacher;
 		bool isPanel;
+		int classId = -1;
 
 		Users(const QString &u,
 			  const QString &p,
 			  const QString &f,
 			  bool ia,
 			  bool it,
-			  bool ip
+			  bool ip,
+			  int c = -1
 			  ) :
 			username(u),
 			password(p),
 			familyName(f),
 			isAdmin(ia),
 			isTeacher(it),
-			isPanel(ip)
+			isPanel(ip),
+			classId(c)
 		{}
 	};
 
@@ -277,6 +280,41 @@ bool DatabaseMain::_createUsers()
 				 });
 
 #ifdef QT_DEBUG
+
+	QVector<int> classIds;
+
+	for (int i=1; i<4; ++i) {
+		QueryBuilder q(db);
+		q.addQuery("INSERT INTO class(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("name", tr("Osztály #%1").arg(i));
+
+		if (!q.exec())
+			return false;
+
+		const int &id = q.sqlQuery().lastInsertId().toInt();
+
+		classIds.append(id);
+
+		q.clear();
+
+		q.addQuery("INSERT INTO classCode(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("classid", id)
+				.addField("code", AdminHandler::generateClassCode())
+				;
+
+		if (!q.exec())
+			return false;
+	}
+
+
 	for (int i=1; i<6; ++i) {
 		users.append({
 						 QStringLiteral("student%1").arg(i),
@@ -284,7 +322,8 @@ bool DatabaseMain::_createUsers()
 						 QStringLiteral("Tanuló %1").arg(i),
 						 false,
 						 false,
-						 false
+						 false,
+						 (classIds.isEmpty() ? -1 : classIds.at(QRandomGenerator::global()->bounded(classIds.size())))
 					 });
 	}
 
@@ -324,7 +363,8 @@ bool DatabaseMain::_createUsers()
 				.addField("active", true)
 				.addField("isAdmin", u.isAdmin)
 				.addField("isTeacher", u.isTeacher)
-				.addField("isPanel", u.isPanel);
+				.addField("isPanel", u.isPanel)
+				.addField("classid", u.classId == -1 ? QVariant(QVariant::Invalid) : u.classId);
 
 		if (!q.exec()) {
 			return false;
@@ -371,7 +411,6 @@ bool DatabaseMain::_createRanks()
 				.addQuery(") VALUES (")
 				.setValuePlaceholder()
 				.addQuery(")")
-				.addField("id", r.id())
 				.addField("level", r.level())
 				.addField("sublevel", r.sublevel() < 0 ? QVariant(QVariant::Invalid) : r.sublevel())
 				.addField("xp", r.xp() < 0 ? QVariant(QVariant::Invalid) : r.xp())

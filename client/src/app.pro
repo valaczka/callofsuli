@@ -160,7 +160,9 @@ SOURCES += \
 	actiongame.cpp \
 	application.cpp \
 	asyncmessagehandler.cpp \
+	classobject.cpp \
 	client.cpp \
+	clientcache.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
 	gameenemysniper.cpp \
@@ -199,7 +201,9 @@ HEADERS += \
 	actiongame.h \
 	application.h \
 	asyncmessagehandler.h \
+	classobject.h \
 	client.h \
+	clientcache.h \
 	fontimage.h \
 	gameenemy.h \
 	gameenemysniper.h \

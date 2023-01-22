@@ -176,11 +176,17 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 
 	setPending(!m_messages.isEmpty());
 
-	if (!orig.isValid()) {
-		WebSocketMessage *rm = m_repliedMessages.object(message.requestMsgNumber());
+	m_repliedMessages.append(orig);
 
-		if (rm)
-			orig = *rm;
+	if (m_repliedMessages.size() > 100)
+		m_repliedMessages.removeFirst();
+
+	if (!orig.isValid()) {
+		foreach (const WebSocketMessage &m, m_repliedMessages)
+			if (m.msgNumber() == message.requestMsgNumber()) {
+				orig = m;
+				break;
+			}
 	}
 
 	if (!orig.isValid())
@@ -202,7 +208,7 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 	int methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
 
 	if (methodIndex != -1) {
-		QMetaObject::invokeMethod(this, func.toLatin1(),
+		QMetaObject::invokeMethod(this, func.toLatin1(), Qt::DirectConnection,
 								  Q_ARG(QJsonObject, message.data()),
 								  Q_ARG(QJsonObject, orig.data())
 								  );
@@ -216,7 +222,7 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 	methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
 
 	if (methodIndex != -1) {
-		QMetaObject::invokeMethod(this, func.toLatin1(),
+		QMetaObject::invokeMethod(this, func.toLatin1(), Qt::DirectConnection,
 								  Q_ARG(QJsonObject, message.data())
 								  );
 		return;
@@ -229,7 +235,7 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 	methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
 
 	if (methodIndex != -1) {
-		QMetaObject::invokeMethod(this, func.toLatin1(),
+		QMetaObject::invokeMethod(this, func.toLatin1(), Qt::DirectConnection,
 								  Q_ARG(QVariant, message.data()),
 								  Q_ARG(QVariant, orig.data())
 								  );
@@ -243,7 +249,7 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 	methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
 
 	if (methodIndex != -1) {
-		QMetaObject::invokeMethod(this, func.toLatin1(),
+		QMetaObject::invokeMethod(this, func.toLatin1(), Qt::DirectConnection,
 								  Q_ARG(QVariant, message.data())
 								  );
 		return;
@@ -256,7 +262,7 @@ void AsyncMessageHandler::handleMessage(const WebSocketMessage &message)
 	methodIndex = this->metaObject()->indexOfMethod(normalizedSignature);
 
 	if (methodIndex != -1) {
-		QMetaObject::invokeMethod(this, func.toLatin1());
+		QMetaObject::invokeMethod(this, func.toLatin1(), Qt::DirectConnection);
 		return;
 	}
 

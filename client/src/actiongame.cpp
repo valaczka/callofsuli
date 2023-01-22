@@ -1359,7 +1359,7 @@ void ActionGame::message(const QString &text, const QColor &color)
 
 	LOG_CDEBUG("game") << text;
 
-	QMetaObject::invokeMethod(m_scene->messageList(), "message",
+	QMetaObject::invokeMethod(m_scene->messageList(), "message", Qt::DirectConnection,
 							  Q_ARG(QVariant, text),
 							  Q_ARG(QVariant, color.name()));
 }
@@ -1395,7 +1395,7 @@ void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, 
 
 	LOG_CDEBUG("game") << title << text;
 
-	QMetaObject::invokeMethod(m_pageItem, "messageTooltip",
+	QMetaObject::invokeMethod(m_pageItem, "messageTooltip", Qt::DirectConnection,
 							  Q_ARG(QString, text),
 							  Q_ARG(QString, icon),
 							  Q_ARG(QString, title));
@@ -1432,7 +1432,7 @@ void ActionGame::dialogMessageFinish(const QString &text, const QString &icon, c
 
 	LOG_CDEBUG("game") << text;
 
-	QMetaObject::invokeMethod(m_pageItem, "messageFinish",
+	QMetaObject::invokeMethod(m_pageItem, "messageFinish", Qt::DirectConnection,
 							  Q_ARG(QString, text),
 							  Q_ARG(QString, icon),
 							  Q_ARG(bool, success));

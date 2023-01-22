@@ -4,17 +4,32 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 
-Item
+QScrollable
 {
 	id: control
 
 	implicitWidth: 200
 	implicitHeight: 200
 
-	Qaterial.GroupBox {
-		visible: Client.server && Client.server.user.loginState == User.LoggedOut
+	contentCentered: !registrationMode
 
-		anchors.centerIn: parent
+	property bool registrationMode: false
+
+	Connections {
+		target: Client.server ? Client.server.user : null
+
+		function onLoginStateChanged() {
+			if (Client.server.user.loginState == User.LoggedIn)
+				registrationMode = false
+		}
+	}
+
+
+	Qaterial.GroupBox {
+		visible: Client.server && Client.server.user.loginState == User.LoggedOut && !registrationMode
+
+		anchors.horizontalCenter: parent.horizontalCenter
+		width: Math.min(parent.width, implicitWidth)
 
 		implicitWidth: 400
 
@@ -74,13 +89,31 @@ Item
 				icon.source: Qaterial.Icons.google
 				onClicked: Client.loginGoogle()
 			}
+
+			Qaterial.HorizontalLineSeparator {
+				visible: _registration.visible
+				anchors.horizontalCenter: parent.horizontalCenter
+				width: parent.width*0.75
+			}
+
+			QButton {
+				id: _registration
+				visible: Client.server && Client.server.config.registrationEnabled !== undefined && Client.server.config.registrationEnabled
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: qsTr("Regisztráció")
+				icon.source: Qaterial.Icons.login
+				onClicked: registrationMode = true // Client.stackPushPage("Registration.qml")
+			}
+
+
 		}
 	}
 
 
 	Column {
-		visible: Client.server && Client.server.user.loginState != User.LoggedOut
-		anchors.centerIn: parent
+		visible: Client.server && Client.server.user.loginState != User.LoggedOut && !registrationMode
+
+		anchors.horizontalCenter: parent.horizontalCenter
 		spacing: 20
 
 		Row {
@@ -113,4 +146,9 @@ Item
 		}
 	}
 
+
+	Registration {
+		visible: registrationMode
+		anchors.horizontalCenter: parent.horizontalCenter
+	}
 }

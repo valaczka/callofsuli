@@ -76,8 +76,8 @@ public:
 	QQuickItem *mainStack() const;
 	void setMainStack(QQuickItem *newMainStack);
 
-	Q_INVOKABLE QQuickItem *stackPushPage(const QString &qml, const QVariantMap &parameters = {}) const;
-	Q_INVOKABLE bool stackPop(const int &index = -1, const bool &forced = false) const;
+	Q_INVOKABLE QQuickItem *stackPushPage(QString qml, QVariantMap parameters = {}) const;
+	Q_INVOKABLE bool stackPop(int index = -1, const bool &forced = false) const;
 	Q_INVOKABLE bool stackPop(QQuickItem *page, const bool &forced = false) const;
 	Q_INVOKABLE bool stackPopToPage(QQuickItem *page) const;
 
@@ -92,6 +92,7 @@ public:
 
 	bool debug() const;
 
+
 	AbstractGame *currentGame() const;
 	void setCurrentGame(AbstractGame *newCurrentGame);
 
@@ -102,6 +103,47 @@ public:
 	Q_INVOKABLE void messageError(const QString &text, QString title = "") const;
 
 	Q_INVOKABLE void snack(const QString &text) const;
+
+
+	// Cache
+
+	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key) const
+	{
+		if (server())
+			return server()->cache()->get(key.toUtf8().constData());
+		else
+			return nullptr;
+	}
+	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key, const QString &id) const
+	{
+		if (server())
+			return server()->cache()->get(key.toUtf8().constData(), id.toUtf8().constData());
+		else
+			return nullptr;
+	}
+	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key, const int &id) const
+	{
+		if (server())
+			return server()->cache()->get(key.toUtf8().constData(), id);
+		else
+			return nullptr;
+	}
+
+	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list)
+	{
+		if (server())
+			server()->cache()->set(key.toUtf8().constData(), list);
+	}
+	Q_INVOKABLE void setCache(const QString &key, const QString &id, const QJsonArray &list)
+	{
+		if (server())
+			server()->cache()->set(key.toUtf8().constData(), id.toUtf8().constData(), list);
+	}
+	Q_INVOKABLE void setCache(const QString &key, const int &id, const QJsonArray &list)
+	{
+		if (server())
+			server()->cache()->set(key.toUtf8().constData(), id, list);
+	}
 
 
 	// Safe margins
@@ -142,14 +184,18 @@ public:
 	// Login
 
 	Q_INVOKABLE virtual void loginGoogle();
-	Q_INVOKABLE virtual void registrationGoogle();
+	Q_INVOKABLE virtual void registrationGoogle(const QString &code);
 
 	Q_INVOKABLE virtual void loginPlain(const QString &username, const QString &password);
-	Q_INVOKABLE virtual void registrationPlain();
+	Q_INVOKABLE virtual void registrationPlain(const QJsonObject &data);
 
 	Q_INVOKABLE virtual bool loginToken();
 
 	Q_INVOKABLE virtual void logout();
+
+	// Cached lists
+
+	Q_INVOKABLE void loadClassListFromArray(QJsonArray list);
 
 protected slots:
 	virtual void onApplicationStarted();
@@ -166,7 +212,7 @@ protected slots:
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
-	virtual bool handleMessageInternal(const WebSocketMessage &) { return false; }
+	virtual bool handleMessageInternal(const WebSocketMessage &message);
 	void _userAuthTokenReceived(const QString &token);
 
 signals:
@@ -202,6 +248,7 @@ protected:
 	QVector<QPointer<AsyncMessageHandler>> m_messageHandlers;
 
 	QQuickItem *m_startPage = nullptr;
+	QQuickItem *m_mainPage = nullptr;
 
 	InternalHandler *m_internalHandler = nullptr;
 	friend class InternalHandler;
@@ -229,6 +276,11 @@ public slots:
 	void loginGoogle(const QJsonObject &json) const;
 	void loginToken(const QJsonObject &json) const { loginPlain(json); }
 	void logout(const QJsonObject &json) const;
+
+	void registrationPlain(const QJsonObject &json) const;
+	void registrationGoogle(const QJsonObject &json) const;
+
+	void me(const QJsonObject &json) const;
 
 };
 

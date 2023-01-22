@@ -115,7 +115,7 @@ void Client::setMainStack(QQuickItem *newMainStack)
  * @brief Client::addPage
  */
 
-QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &parameters) const
+QQuickItem* Client::stackPushPage(QString qml, QVariantMap parameters) const
 {
 	if (!m_mainStack) {
 		LOG_CERROR("client") << "mainStack nincsen beállítva!";
@@ -128,7 +128,7 @@ QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &paramet
 	}
 
 	QQuickItem *o = nullptr;
-	QMetaObject::invokeMethod(m_mainStack, "createPage",
+	QMetaObject::invokeMethod(m_mainStack, "createPage", Qt::DirectConnection,
 							  Q_RETURN_ARG(QQuickItem*, o),
 							  Q_ARG(QString, qml),
 							  Q_ARG(QVariant, parameters)
@@ -154,7 +154,7 @@ QQuickItem* Client::stackPushPage(const QString &qml, const QVariantMap &paramet
  * @param depth
  */
 
-bool Client::stackPop(const int &index, const bool &forced) const
+bool Client::stackPop(int index, const bool &forced) const
 {
 	if (!m_mainStack) {
 		LOG_CERROR("client") << "mainStack nincsen beállítva!";
@@ -168,18 +168,22 @@ bool Client::stackPop(const int &index, const bool &forced) const
 		return false;
 	}
 
+	const int &depth = m_mainStack->property("depth").toInt();
+
+	if (index == -1) {
+		index = depth-2;
+	}
 
 
 	bool canPop = true;
 
-	QMetaObject::invokeMethod(m_mainStack, "callStackPop",
+	QMetaObject::invokeMethod(m_mainStack, "callStackPop", Qt::DirectConnection,
 							  Q_RETURN_ARG(bool, canPop)
 							  );
 
 	if (!canPop)
 		return false;
 
-	const int &depth = m_mainStack->property("depth").toInt();
 
 	if (index >= depth) {
 		LOG_CWARNING("client") << "Nem lehet a lapra visszalépni:" << index << "mélység:" << depth;
@@ -208,9 +212,8 @@ bool Client::stackPop(const int &index, const bool &forced) const
 		return false;
 	}
 
-
 	if (forced || question.isEmpty()) {
-		QMetaObject::invokeMethod(m_mainStack, "popPage",
+		QMetaObject::invokeMethod(m_mainStack, "popPage", Qt::DirectConnection,
 								  Q_ARG(int, index)
 								  );
 
@@ -219,7 +222,7 @@ bool Client::stackPop(const int &index, const bool &forced) const
 
 	LOG_CDEBUG("client") << "Kérdés a visszalépés előtt" << currentItem;
 
-	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
+	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion", Qt::DirectConnection,
 							  Q_ARG(QString, question),
 							  Q_ARG(bool, true),						// _pop
 							  Q_ARG(int, index)
@@ -264,11 +267,17 @@ bool Client::stackPopToPage(QQuickItem *page) const
 		return false;
 	}
 
+	if (currentItem == page)
+		return false;
 
+	QQmlProperty propertyCurrent(currentItem, "StackView.index", qmlContext(currentItem));
+	QQmlProperty propertyPage(page, "StackView.index", qmlContext(page));
+
+	const int &index = propertyPage.read().toInt();
 
 	bool canPop = true;
 
-	QMetaObject::invokeMethod(m_mainStack, "callStackPop",
+	QMetaObject::invokeMethod(m_mainStack, "callStackPop", Qt::DirectConnection,
 							  Q_RETURN_ARG(bool, canPop)
 							  );
 
@@ -284,8 +293,8 @@ bool Client::stackPopToPage(QQuickItem *page) const
 		return false;
 	}
 
-	QMetaObject::invokeMethod(m_mainStack, "popToItem",
-							  Q_ARG(QQuickItem*, page)
+	QMetaObject::invokeMethod(m_mainStack, "popPage", Qt::DirectConnection,
+							  Q_ARG(int, index)
 							  );
 
 	return true;
@@ -332,7 +341,7 @@ bool Client::closeWindow(const bool &forced)
 
 	LOG_CDEBUG("client") << "Kérdés a bezárás előtt" << currentItem;
 
-	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion",
+	QMetaObject::invokeMethod(m_mainWindow, "closeQuestion", Qt::DirectConnection,
 							  Q_ARG(QString, question),
 							  Q_ARG(bool, false),					// _pop
 							  Q_ARG(int, -1)						// _index
@@ -388,7 +397,7 @@ void Client::onServerConnected()
 
 	server()->user()->setLoginState(User::LoggedOut);
 
-	stackPushPage(QStringLiteral("PageMain.qml"));
+	m_mainPage = stackPushPage(QStringLiteral("PageMain.qml"));
 
 	loginToken();
 
@@ -408,6 +417,8 @@ void Client::onServerDisconnected()
 
 	if (server())
 		server()->user()->setLoginState(User::LoggedOut);
+
+	stackPopToStartPage();
 }
 
 
@@ -440,6 +451,9 @@ void Client::onServerReconnected()
 void Client::onUserLoggedIn()
 {
 	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
+	m_internalHandler->sendRequest(WebSocketMessage::ClassGeneral, "me");
+
+	stackPushPage(QStringLiteral("PageDashboard.qml"));
 }
 
 
@@ -453,6 +467,9 @@ void Client::onUserLoggedOut()
 
 	server()->setToken(QLatin1String(""));
 	server()->user()->clear();
+
+	if (m_mainPage)
+		stackPopToPage(m_mainPage);
 }
 
 
@@ -470,12 +487,32 @@ void Client::onUserLoggedOut()
 void Client::_message(const QString &text, const QString &title, const QString &type) const
 {
 	if (m_mainWindow) {
-		QMetaObject::invokeMethod(m_mainWindow, "messageDialog",
+		QMetaObject::invokeMethod(m_mainWindow, "messageDialog", Qt::DirectConnection,
 								  Q_ARG(QString, text),
 								  Q_ARG(QString, title),
 								  Q_ARG(QString, type)
 								  );
 	}
+}
+
+
+/**
+ * @brief Client::handleMessageInternal
+ * @return
+ */
+
+bool Client::handleMessageInternal(const WebSocketMessage &message)
+{
+	const QString &func = message.data().value(QStringLiteral("func")).toString();
+
+	if (message.opCode() == WebSocketMessage::RequestResponse) {
+		if (message.classHandler() == WebSocketMessage::ClassGeneral) {
+			if (func == QLatin1String("me")) {
+				m_internalHandler->me(message.data());
+			}
+		}
+	}
+	return false;
 }
 
 
@@ -642,9 +679,12 @@ void Client::loginGoogle()
  * @brief Client::registrationGoogle
  */
 
-void Client::registrationGoogle()
+void Client::registrationGoogle(const QString &code)
 {
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationGoogle");
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationGoogle",
+									   QJsonObject({
+													   { QStringLiteral("code"), code }
+												   }));
 }
 
 
@@ -672,9 +712,9 @@ void Client::loginPlain(const QString &username, const QString &password)
  * @brief Client::registrationPlain
  */
 
-void Client::registrationPlain()
+void Client::registrationPlain(const QJsonObject &data)
 {
-
+	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationPlain", data);
 }
 
 
@@ -692,24 +732,19 @@ bool Client::loginToken()
 		return false;
 	}
 
-#ifndef Q_OS_WASM
-	try {
-		auto decoded = jwt::decode(token.toStdString());
-
-		qint64 exp = decoded.get_payload_claim("exp").as_integer();
-
-		if (exp <= QDateTime::currentSecsSinceEpoch()) {
-			LOG_CINFO("client") << "Token expired";
-			server()->setToken(QLatin1String(""));
-			return false;
-		}
-
-	} catch (...) {
+	QJsonWebToken jwt;
+	if (!jwt.setToken(token)) {
 		LOG_CWARNING("credential") << "Invalid token:" << token;
 		server()->setToken(QLatin1String(""));
 		return false;
 	}
-#endif
+
+
+	if (jwt.getPayloadJDoc().object().value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch()) {
+		LOG_CINFO("client") << "Token expired";
+		server()->setToken(QLatin1String(""));
+		return false;
+	}
 
 	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginToken",
 									   QJsonObject({
@@ -729,6 +764,24 @@ void Client::logout()
 {
 	LOG_CDEBUG("client") << "Logout";
 	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "logout");
+}
+
+
+/**
+ * @brief Client::loadClassListFromArray
+ * @param list
+ */
+
+void Client::loadClassListFromArray(QJsonArray list)
+{
+	LOG_CTRACE("client") << "Refresh class list";
+
+	list.append(QJsonObject({
+								{ QStringLiteral("id"), -1 },
+								{ QStringLiteral("name"), tr("Mind")}
+							}));
+
+	setCache(QStringLiteral("classList"), list);
 }
 
 
@@ -984,7 +1037,7 @@ void Client::messageError(const QString &text, QString title) const
 void Client::snack(const QString &text) const
 {
 	if (m_mainWindow) {
-		QMetaObject::invokeMethod(m_mainWindow, "snack",
+		QMetaObject::invokeMethod(m_mainWindow, "snack", Qt::DirectConnection,
 								  Q_ARG(QString, text)
 								  );
 	}
@@ -1128,6 +1181,61 @@ void InternalHandler::logout(const QJsonObject &json) const
 		return;
 
 	m_client->onUserLoggedOut();
+}
+
+
+/**
+ * @brief InternalHandler::registrationPlain
+ * @param json
+ */
+
+void InternalHandler::registrationPlain(const QJsonObject &json) const
+{
+	const QString &error = json.value(QStringLiteral("error")).toString();
+
+	if (!error.isEmpty()) {
+		m_client->messageWarning(error, tr("Sikertelen regisztráció"));
+		return;
+	}
+
+	if (!checkStatus(json))
+		return;
+
+	loginPlain(json);
+}
+
+
+
+
+/**
+ * @brief InternalHandler::registrationGoogle
+ * @param json
+ */
+
+void InternalHandler::registrationGoogle(const QJsonObject &json) const
+{
+	if (json.contains(QStringLiteral("url"))) {
+		Utils::openUrl(QUrl::fromEncoded(json.value(QStringLiteral("url")).toString().toUtf8()));
+	} else {
+		registrationPlain(json);
+	}
+}
+
+
+
+
+/**
+ * @brief InternalHandler::me
+ * @param json
+ */
+
+void InternalHandler::me(const QJsonObject &json) const
+{
+	if (json.contains(QStringLiteral("error")))
+		return;
+
+	if (m_client->server())
+		m_client->server()->user()->loadFromJson(json);
 }
 
 

@@ -7,7 +7,13 @@ DEFINES += \
 !wasm {
 	include($$PWD/../QDeferred/src/qdeferred.pri)
 	include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
+
+	INCLUDEPATH += $$PWD/../QDeferred/src
 }
+
+
+INCLUDEPATH += $$PWD/../QJsonWebToken/src
+
 
 android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 
@@ -18,7 +24,8 @@ HEADERS += \
 	$$PWD/rank.h \
 	$$PWD/selectableobject.h \
 	$$PWD/utils.h \
-	$$PWD/websocketmessage.h
+	$$PWD/websocketmessage.h \
+	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h
 
 
 SOURCES += \
@@ -28,7 +35,8 @@ SOURCES += \
 	$$PWD/rank.cpp \
 	$$PWD/selectableobject.cpp \
 	$$PWD/utils.cpp \
-	$$PWD/websocketmessage.cpp
+	$$PWD/websocketmessage.cpp \
+	$$PWD/../QJsonWebToken/src/qjsonwebtoken.cpp
 
 !wasm {
 	HEADERS += \

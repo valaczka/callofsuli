@@ -46,8 +46,6 @@ public:
 	OAuth2CodeFlow *addCodeFlow(OAuth2CodeFlow *flow);
 	void setCodeFlow(OAuth2CodeFlow *flow) const;
 
-	static QMap<std::string, std::string> getInfoFromRequestAccess(const QVariantMap &data);
-
 };
 
 

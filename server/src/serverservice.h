@@ -99,8 +99,6 @@ public:
 	const QString &serverName() const;
 	void setServerName(const QString &newServerName);
 
-	JwtVerifier &verifier();
-
 	ServerConfig &config();
 
 	void sendToClients(const WebSocketMessage &message) const;
@@ -141,8 +139,6 @@ private:
 	QPointer<WebSocketServer> m_webSocketServer = nullptr;
 	QVector<QPointer<Client>> m_clients;
 	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
-
-	JwtVerifier m_verifier = jwt::verify();
 
 	ColorConsoleAppender *m_consoleAppender = nullptr;
 };

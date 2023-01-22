@@ -34,8 +34,8 @@
 #include "credential.h"
 
 class User;
-
 using UserList = qolm::QOlm<User>;
+
 
 /**
  * @brief The User class
@@ -52,6 +52,10 @@ class User : public SelectableObject
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged)
 	Q_PROPERTY(Credential::Roles roles READ roles WRITE setRoles NOTIFY rolesChanged)
 	Q_PROPERTY(LoginState loginState READ loginState WRITE setLoginState NOTIFY loginStateChanged)
+	Q_PROPERTY(QString picture READ picture WRITE setPicture NOTIFY pictureChanged)
+
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
+	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
 
 public:
 	explicit User(QObject *parent = nullptr);
@@ -64,6 +68,12 @@ public:
 	};
 
 	Q_ENUM(LoginState);
+
+	void loadFromJson(const QJsonObject &object, const bool &allField = true);
+
+	/*static bool loadUserList(UserList *list, const QJsonArray &jsonArray);
+	static User* find(UserList *list, const QString &username);
+	static User* find(UserList *list, const QJsonValue &username) { return find(list, username.toString()); }*/
 
 	const QString &username() const;
 	void setUsername(const QString &newUsername);
@@ -85,6 +95,15 @@ public:
 	const LoginState &loginState() const;
 	void setLoginState(const LoginState &newLoginState);
 
+	int xp() const;
+	void setXp(int newXp);
+
+	int classid() const;
+	void setClassid(int newClassid);
+
+	const QString &picture() const;
+	void setPicture(const QString &newPicture);
+
 public slots:
 	void clear();
 
@@ -96,6 +115,9 @@ signals:
 	void rankChanged();
 	void rolesChanged();
 	void loginStateChanged();
+	void xpChanged();
+	void classidChanged();
+	void pictureChanged();
 
 private:
 	QString m_username;
@@ -104,9 +126,11 @@ private:
 	Rank m_rank;
 	Credential::Roles m_roles = Credential::None;
 	LoginState m_loginState = LoggedOut;
-
+	int m_xp = 0;
+	int m_classid = -1;
+	QString m_picture;
 };
 
-Q_DECLARE_METATYPE(UserList*)
+
 
 #endif // USER_H

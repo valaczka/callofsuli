@@ -5,18 +5,17 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
-QScrollablePage {
+QPage {
 	id: control
 
 	title: qsTr("Névjegy")
 
-	Item {
-		height: col.height
-		width: parent.width
+	QScrollable {
+		anchors.fill: parent
 
 		Column {
 			id: col
-			width: parent.width-(Math.max(Client.safeMarginLeft, Client.safeMarginRight, 10)*2)
+			width: Math.min(parent.width, 700) //parent.width-(Math.max(Client.safeMarginLeft, Client.safeMarginRight, 10)*2)
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 10
 

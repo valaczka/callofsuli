@@ -28,12 +28,27 @@
 #include "Logger.h"
 #include "qjsonarray.h"
 #include "qjsonobject.h"
+#include "classobject.h"
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
 	, m_user(new User(this))
+	, m_cache(new ClientCache())
 {
+	m_cache->add(new CacheItem<UserList>("userScoreList", new UserList(this), [](UserList *list, QJsonArray array){
+					 if (!list) return false;
+					 return ClientCache::loadFromJsonArray<User>(list, array, "username");
+				 }));
 
+	m_cache->add(new CacheItem<ClassList>("classList", new ClassList(this), [](ClassList *list, QJsonArray array){
+					 if (!list) return false;
+					 return ClientCache::loadFromJsonArray<ClassObject>(list, array, "id");
+				 }));
+}
+
+Server::~Server()
+{
+	delete m_cache;
 }
 
 
@@ -60,7 +75,7 @@ Server *Server::fromJson(const QJsonObject &data, QObject *parent)
 	s->setCertificate(data.value(QStringLiteral("certificate")).toString().toUtf8());
 	s->setServerName(data.value(QStringLiteral("serverName")).toString());
 
-	#ifndef QT_NO_SSL
+#ifndef QT_NO_SSL
 	const QJsonArray &list = data.value(QStringLiteral("ignoredSslErrors")).toArray();
 
 	QList<QSslError::SslError> errList;
@@ -237,10 +252,7 @@ User *Server::user() const
 	return m_user;
 }
 
-const RankList &Server::rankList() const
-{
-	return m_rankList;
-}
+
 
 void Server::setRankList(const RankList &newRankList)
 {
@@ -259,21 +271,48 @@ void Server::setRankList(const RankList &newRankList)
 
 bool Server::isTokenValid(const QString &jwt)
 {
-#ifndef Q_OS_WASM
-	try {
-		auto decoded = jwt::decode(jwt.toStdString());
+	QJsonWebToken token;
 
-		int d = decoded.get_payload_claim("exp").as_integer();
-
-		if (d <= QDateTime::currentSecsSinceEpoch())
-			return false;
-
-	} catch (...) {
+	if (!token.setToken(jwt)) {
 		LOG_CWARNING("client") << "Invalid token:" << jwt;
 		return false;
 	}
-#endif
+
+	const QJsonObject &object = token.getPayloadJDoc().object();
+
+	if (object.value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch()) {
+		LOG_CWARNING("client") << "Expired token:" << jwt;
+		return false;
+	}
+
 	return true;
+}
+
+
+/**
+ * @brief Server::rank
+ * @param id
+ * @return
+ */
+
+Rank Server::rank(const int &id) const
+{
+	foreach (const Rank &r, m_rankList)
+		if (r.id() == id)
+			return r;
+
+	return Rank();
+}
+
+
+/**
+ * @brief Server::cache
+ * @return
+ */
+
+ClientCache *Server::cache() const
+{
+	return m_cache;
 }
 
 

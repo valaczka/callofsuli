@@ -11,31 +11,25 @@ Qaterial.SquareButton {
 	visible: Client.server && Client.server.user.username.length
 
 	ToolTip.text: Client.server ? Client.server.user.fullName : ""
+	ToolTip.visible: hovered || pressed
+	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 
-	property real contentSize: (Math.min(width,height)*0.75)-(2*roundBorderWidth)
-	property int roundBorderWidth: 1
+	property real contentSize: Math.min(width,height)*0.85
 
-	contentItem: Item {
-		Rectangle {
+	contentItem: Item{
+		UserImage {
+			user: Client.server ? Client.server.user : null
+			iconColor: Qaterial.Style.colorTheme.primaryText
+			width: control.contentSize
+			height: control.contentSize
 			anchors.centerIn: parent
-			width: img.width+2*roundBorderWidth
-			height: width
-			radius: width/2
-			color: Qaterial.Style.iconColor()
-			Qaterial.RoundImage {
-				id: img
-				anchors.centerIn: parent
-				width: contentSize
-				height: contentSize
-				source: "qrc:/internal/img/metalbg.png"
-			}
 		}
 	}
 
 	Action {
 		id: actionLogout
 		text: qsTr("Kijelentkezés")
-		icon.source: Qaterial.Icons.accountOff
+		icon.source: Qaterial.Icons.logout
 		onTriggered: Client.logout()
 	}
 

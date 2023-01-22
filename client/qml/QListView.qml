@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.12
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
@@ -7,11 +8,11 @@ ListView {
 	id: view
 
 	property int pauseDuration: 0
-	property int refreshActivateY: -50
 	property bool refreshEnabled: false
+	property bool refreshProgressVisible: false
 	property alias areaRightButtonEnabled: areaRightButton.enabled
 	property bool selectEnabled: false
-	property bool autoSelectChange: true
+	property bool autoSelectChange: false
 
 	signal refreshRequest()
 	signal rightClickOrPressAndHold(int index, int mouseX, int mouseY)
@@ -50,6 +51,8 @@ ListView {
 
 	highlightFollowsCurrentItem: false
 
+	reuseItems: true
+
 	ScrollIndicator.vertical: ScrollIndicator { }
 
 	Keys.onLeftPressed: decrementCurrentIndex()
@@ -57,9 +60,23 @@ ListView {
 
 	height: contentHeight
 
+	Qaterial.ProgressBar
+	{
+		id: progressbar
+		anchors.top: parent.top
+		width: parent.width
+		indeterminate: true
+		visible: view.refreshProgressVisible
+		color: Qaterial.Style.iconColor()
+	}
+
+	PullToRefreshHandler {
+		absoluteThreshold: 100
+		onPullDownRelease: view.refreshRequest()
+	}
 
 
-
+	/*
 
 	onDragStarted: if (refreshEnabled)
 					   header.visible = true
@@ -122,7 +139,7 @@ ListView {
 		]
 	}
 
-
+*/
 	MouseArea {
 		id: areaRightButton
 		anchors.fill: parent

@@ -9,12 +9,6 @@ LIBS += -L../../lib$${TargetSuffix}
 
 LIBS += -lcrypto
 
-# Core includes
-
-INCLUDEPATH += $$PWD/QDeferred/src
-INCLUDEPATH += $$PWD/jwt-cpp/include
-
-
 # Qt5Service
 
 LIBS += -L../../lib/QtService/lib -lQt5Service
