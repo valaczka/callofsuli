@@ -23,7 +23,7 @@ ListView {
 		icon.source: Qaterial.Icons.selectAll
 		onTriggered: {
 			for (var i=0; i<view.count; ++i)
-				view.model.get(i).selected = true
+				view.modelGet(i).selected = true
 
 			view.selectEnabled = true
 		}
@@ -34,7 +34,7 @@ ListView {
 		icon.source: Qaterial.Icons.selectOff
 		onTriggered: {
 			for (var i=0; i<view.count; ++i)
-				view.model.get(i).selected = false
+				view.modelGet(i).selected = false
 
 			if (view.autoSelectChange)
 				view.selectEnabled = false
@@ -76,70 +76,6 @@ ListView {
 	}
 
 
-	/*
-
-	onDragStarted: if (refreshEnabled)
-					   header.visible = true
-
-	onDragEnded: {
-		if (refreshEnabled && header.refresh) {
-			header.readyToRefreshRequest = true
-		}
-	}
-
-
-	onVerticalOvershootChanged: {
-		if (refreshEnabled && header.visible && verticalOvershoot>=0 && header.readyToRefreshRequest) {
-			refreshRequest()
-			header.readyToRefreshRequest = false
-		}
-
-		if (refreshEnabled && verticalOvershoot==0) {
-			header.visible = false
-		}
-	}
-
-	Item {
-		id: header
-		y: header.readyToRefreshRequest ?
-			   Math.max(-height-verticalOvershoot, headerItem ? headerItem.height : 0)
-			 : -height-verticalOvershoot
-		height: -view.refreshActivateY
-		width: parent.width
-		visible: false
-
-		readonly property bool refresh: state == "pulled" ? true : false
-		property bool readyToRefreshRequest: false
-
-		Qaterial.RoundColorIcon {
-			id: arrow
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.top: parent.top
-			source: Qaterial.Icons.refresh
-			iconSize: 24 * Qaterial.Style.pixelSizeRatio
-			roundSize: 40 * Qaterial.Style.pixelSizeRatio
-			transformOrigin: Item.Center
-			fill: true
-			onPrimary: true
-			Behavior on rotation { NumberAnimation { duration: 200 } }
-		}
-
-
-		states: [
-			State {
-				name: "base"; when: view.verticalOvershoot >= (refreshActivateY-(headerItem ? headerItem.height : 0))
-				PropertyChanges { target: arrow; rotation: 180 }
-			},
-			State {
-				name: "pulled"; when: view.verticalOvershoot < (refreshActivateY-(headerItem ? headerItem.height : 0))
-									  || header.readyToRefreshRequest
-				PropertyChanges { target: arrow; rotation: 0 }
-				//PropertyChanges { target: arrow; color: CosStyle.colorAccentLighter }
-			}
-		]
-	}
-
-*/
 	MouseArea {
 		id: areaRightButton
 		anchors.fill: parent
@@ -150,6 +86,12 @@ ListView {
 	}
 
 
+	function modelGet(_index) {
+		if (model.sourceModel)
+			return model.sourceModel.get(model.mapToSource(_index))
+		else
+			return model.get(_index)
+	}
 
 	function selectAll() {
 		actionSelectAll.trigger()
@@ -162,10 +104,26 @@ ListView {
 
 	function checkSelected() {
 		for (var i=0; i<count; ++i)
-			if (model.get(i).selected)
+			if (modelGet(i).selected)
 				return
 
 		if (autoSelectChange)
 			selectEnabled = false
+	}
+
+	function getSelected() {
+		var l = []
+
+		if (selectEnabled) {
+			for (var i=0; i<count; ++i) {
+				var o = modelGet(i)
+				if (o.selected)
+					l.push(o)
+			}
+		} else if (currentIndex != -1) {
+			l.push(modelGet(currentIndex))
+		}
+
+		return l
 	}
 }

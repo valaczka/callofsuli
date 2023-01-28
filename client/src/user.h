@@ -56,6 +56,10 @@ class User : public SelectableObject
 
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
+	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
+	Q_PROPERTY(QString oauth READ oauth WRITE setOauth NOTIFY oauthChanged)
+
+	Q_PROPERTY(QString className READ className NOTIFY classNameChanged)
 
 public:
 	explicit User(QObject *parent = nullptr);
@@ -104,6 +108,15 @@ public:
 	const QString &picture() const;
 	void setPicture(const QString &newPicture);
 
+	bool active() const;
+	void setActive(bool newActive);
+
+	const QString &oauth() const;
+	void setOauth(const QString &newOauth);
+
+	const QString &className() const;
+	void setClassName(const QString &newClassName);
+
 public slots:
 	void clear();
 
@@ -118,6 +131,10 @@ signals:
 	void xpChanged();
 	void classidChanged();
 	void pictureChanged();
+	void activeChanged();
+	void oauthChanged();
+
+	void classNameChanged();
 
 private:
 	QString m_username;
@@ -129,6 +146,9 @@ private:
 	int m_xp = 0;
 	int m_classid = -1;
 	QString m_picture;
+	bool m_active = true;
+	QString m_oauth;
+	QString m_className;
 };
 
 

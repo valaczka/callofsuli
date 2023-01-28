@@ -72,38 +72,15 @@ QPage {
 		}
 	}
 
-	footer: Qaterial.TabBar
+	footer: QTabBar
 	{
 		id: tabBar
-		width: parent.width
 		currentIndex: swipeView.currentIndex
 
-		Repeater
-		{
-			id: repeater
-
-			model: ListModel
-			{
-				id: tabBarModel
-			}
-
-			delegate: Qaterial.TabButton
-			{
-				width: tabBar.width / model.count
-				implicitWidth: width
-				text: model.text ? model.text : ""
-				icon.source: model.source ? model.source : ""
-				spacing: 4
-				display: (index === tabBar.currentIndex) ? AbstractButton.TextUnderIcon : AbstractButton.IconOnly
-				font: Qaterial.Style.textTheme.overline
-			}
-		}
-
 		Component.onCompleted: {
-			tabBarModel.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
-			tabBarModel.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.trophyBroken })
+			model.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
+			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.trophyBroken })
 			//tabBar.setCurrentIndex(1)
 		}
-
 	}
 }

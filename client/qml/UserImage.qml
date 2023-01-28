@@ -11,6 +11,7 @@ Item {
 	readonly property real size: Math.min(control.width, control.height)
 	property color iconColor: Qaterial.Style.primaryColor
 	property color sublevelColor: Qaterial.Style.iconColor()
+	property bool pictureEnabled: true
 
 	Qaterial.Icon {
 		visible: !user || user.rank.level < 0
@@ -23,7 +24,7 @@ Item {
 	Rectangle {
 		id: _picture
 
-		visible: user && user.picture.length
+		visible: user && user.picture.length && pictureEnabled
 
 		property real contentSize: control.size-(2*roundBorderWidth)
 		property int roundBorderWidth: 1

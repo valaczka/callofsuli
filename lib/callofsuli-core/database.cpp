@@ -326,12 +326,16 @@ bool QueryBuilder::exec()
 				if (prev != m_queryString.constEnd() && prev->type == QueryString::Bind) {
 					if (bit->type == Bind::Positional)
 						q += QStringLiteral(",?");
-					else
+					else if (bit->type == Bind::List)
+						q += QStringLiteral(",?").repeated(bit->value.toList().size());
+					else if (bit->type == Bind::Named)
 						q += QStringLiteral(",").append(bit->name);
 				} else {
 					if (bit->type == Bind::Positional)
 						q += QStringLiteral("?");
-					else
+					else if (bit->type == Bind::List)
+						q += QStringLiteral("?")+QStringLiteral(",?").repeated(bit->value.toList().size()-1);
+					else if (bit->type == Bind::Named)
 						q += bit->name;
 				}
 
@@ -374,6 +378,24 @@ bool QueryBuilder::exec()
 		}
 
 			break;
+
+		case QueryString::CombinedPlaceholder:
+		{
+			bool has = false;
+			foreach (const Bind &b, m_bind) {
+				if (b.type != Bind::Field)
+					continue;
+
+				if (has)
+					q += QStringLiteral(",")+b.name+QStringLiteral("=?");
+				else {
+					q += b.name+QStringLiteral("=?");
+					has = true;
+				}
+			}
+		}
+
+			break;
 		}
 	}
 
@@ -382,7 +404,10 @@ bool QueryBuilder::exec()
 	foreach (const Bind &b, m_bind) {
 		if (b.type == Bind::Positional || b.type == Bind::Field)
 			m_sqlQuery.addBindValue(b.value);
-		else
+		else if (b.type == Bind::List) {
+			foreach (const QVariant &v, b.value.toList())
+				m_sqlQuery.addBindValue(v);
+		}else
 			m_sqlQuery.bindValue(b.name, b.value);
 	}
 
@@ -470,4 +495,21 @@ QJsonObject QueryBuilder::execToJsonObject(bool *err)
 QSqlQuery &QueryBuilder::sqlQuery()
 {
 	return m_sqlQuery;
+}
+
+
+/**
+ * @brief QueryBuilder::fields
+ * @return
+ */
+
+int QueryBuilder::fieldCount() const
+{
+	int r = 0;
+
+	foreach (const Bind &b, m_bind)
+		if (b.type == Bind::Field)
+			++r;
+
+	return r;
 }

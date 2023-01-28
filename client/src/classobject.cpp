@@ -43,25 +43,13 @@ ClassObject::ClassObject(QObject *parent)
 void ClassObject::loadFromJson(const QJsonObject &object, const bool &allField)
 {
 	if (object.contains(QStringLiteral("id")) || allField)
-		setId(object.value(QStringLiteral("id")).toInt());
+		setClassid(object.value(QStringLiteral("id")).toInt());
 
 	if (object.contains(QStringLiteral("name")) || allField)
 		setName(object.value(QStringLiteral("name")).toString());
 }
 
 
-int ClassObject::id() const
-{
-	return m_id;
-}
-
-void ClassObject::setId(int newId)
-{
-	if (m_id == newId)
-		return;
-	m_id = newId;
-	emit idChanged();
-}
 
 const QString &ClassObject::name() const
 {
@@ -74,4 +62,17 @@ void ClassObject::setName(const QString &newName)
 		return;
 	m_name = newName;
 	emit nameChanged();
+}
+
+int ClassObject::classid() const
+{
+	return m_classid;
+}
+
+void ClassObject::setClassid(int newClassid)
+{
+	if (m_classid == newClassid)
+		return;
+	m_classid = newClassid;
+	emit classidChanged();
 }

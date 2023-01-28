@@ -80,6 +80,7 @@ signals:
 	void oauth2CodeFlowChanged();
 
 private:
+	AbstractHandler *createAdminHandler();
 	AbstractHandler *createAuthHandler();
 	AbstractHandler *createGeneralHandler();
 	AbstractHandler *createServerHandler();

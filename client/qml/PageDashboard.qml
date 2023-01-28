@@ -3,7 +3,6 @@ import QtQuick.Controls 2.12
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
-import "JScript.js" as JS
 
 QPage {
 	id: control
@@ -42,58 +41,93 @@ QPage {
 		UserButton { }
 	}
 
-	Qaterial.SwipeView
-	{
-		id: swipeView
+	QScrollable {
+		id: _content
 		anchors.fill: parent
-		currentIndex: tabBar.currentIndex
 
-		Item {
-			Qaterial.LabelBody1 {
-				anchors.centerIn: parent
-				text: "text"
+		Qaterial.LabelHeadline3 {
+			width: parent.width
+			text: "user name"
+		}
+
+		Row {
+			UserImage {
+				user: Client.server ? Client.server.user : null
+				iconColor: Qaterial.Style.colorTheme.primaryText
+				width: Qaterial.Style.pixelSize*2.5
+				height: Qaterial.Style.pixelSize*2.5
+				pictureEnabled: false
+			}
+
+			Qaterial.LabelHeadline6 {
+
+				text: Client.server ? Client.server.user.rank.name : ""
+			}
+		}
+
+
+		QDashboardGrid {
+			id: groupsGrid
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			Repeater {
+				model: 8
+
+				QDashboardButton {
+					text: "Csoport hosszú névvel, mi lesz vele vajon"+index
+					icon.source: Qaterial.Icons.group
+				}
+			}
+
+			QDashboardButton {
+				visible: Client.server && (Client.server.user.roles & Credential.Teacher)
+				text: qsTr("Létrehozás")
+				icon.source: Qaterial.Icons.plus
+				highlighted: false
+				outlined: true
+				//backgroundColor: Client.Utils.colorSetAlpha("black", 0.7)
+				flat: true
+
+				textColor: Qaterial.Colors.green500
+			}
+		}
+
+		Qaterial.HorizontalLineSeparator {
+			anchors.horizontalCenter: parent.horizontalCenter
+			width: groupsGrid.width*0.75
+		}
+
+
+		QDashboardGrid {
+			id: funcGrid
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			QDashboardButton {
+				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
+				text: qsTr("Pályaszerkesztő")
+				icon.source: Qaterial.Icons.map
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.amber500
+			}
+
+			QDashboardButton {
+				visible: Client.server && (Client.server.user.roles & Credential.Admin)
+				text: qsTr("Osztályok és felhasználók")
+				icon.source: Qaterial.Icons.cog
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.red500
+
+				onClicked: Client.stackPushPage("PageAdminUsers.qml")
 			}
 
 		}
 
-		ScoreList {
-			height: swipeView.height
-			width: swipeView.width
-		}
 	}
 
-	footer: Qaterial.TabBar
-	{
-		id: tabBar
-		width: parent.width
-		currentIndex: swipeView.currentIndex
-
-		Repeater
-		{
-			id: repeater
-
-			model: ListModel
-			{
-				id: tabBarModel
-			}
-
-			delegate: Qaterial.TabButton
-			{
-				width: tabBar.width / model.count
-				implicitWidth: width
-				text: model.text ? model.text : ""
-				icon.source: model.source ? model.source : ""
-				spacing: 4
-				display: (index === tabBar.currentIndex) ? AbstractButton.TextUnderIcon : AbstractButton.IconOnly
-				font: Qaterial.Style.textTheme.overline
-			}
-		}
-
-		Component.onCompleted: {
-			tabBarModel.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
-			tabBarModel.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.trophyBroken })
-			//tabBar.setCurrentIndex(1)
-		}
-
-	}
 }

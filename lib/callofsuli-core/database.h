@@ -94,7 +94,8 @@ private:
 			Query,
 			Bind,
 			FieldPlaceholder,
-			ValuePlaceholder
+			ValuePlaceholder,
+			CombinedPlaceholder
 		};
 
 		Type type = Query;
@@ -109,7 +110,8 @@ private:
 		enum Type {
 			Positional,
 			Named,
-			Field
+			Field,
+			List
 		};
 
 		Type type = Positional;
@@ -147,6 +149,12 @@ public:
 		return *this;
 	}
 
+	QueryBuilder &addList(const QVariantList &v) {
+		m_queryString.append(QueryString::Bind);
+		m_bind.append({Bind::List, v});
+		return *this;
+	}
+
 	QueryBuilder &addNullValue() {
 		m_queryString.append(QueryString::Bind);
 		m_bind.append({Bind::Positional, QVariant::Invalid});
@@ -166,6 +174,11 @@ public:
 
 	QueryBuilder &setValuePlaceholder() {
 		m_queryString.append(QueryString::ValuePlaceholder);
+		return *this;
+	}
+
+	QueryBuilder &setCombinedPlaceholder() {
+		m_queryString.append(QueryString::CombinedPlaceholder);
 		return *this;
 	}
 
@@ -190,6 +203,8 @@ public:
 	QVariant value(const char *field, const QVariant &defaultValue) {
 		return m_sqlQuery.value(field).isNull() ? defaultValue : m_sqlQuery.value(field) ;
 	}
+
+	int fieldCount() const;
 
 	void logError() const { QUERY_LOG_ERROR(m_sqlQuery); }
 	void logWarning() const { QUERY_LOG_WARNING(m_sqlQuery); }

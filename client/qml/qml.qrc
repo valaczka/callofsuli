@@ -71,5 +71,12 @@
         <file>Ranks.qml</file>
         <file>QLoaderItemDelegate.qml</file>
         <file>PageDashboard.qml</file>
+        <file>QDashboardButton.qml</file>
+        <file>QDashboardGrid.qml</file>
+        <file>PageAdminUsers.qml</file>
+        <file>QTabBar.qml</file>
+        <file>AdminClassList.qml</file>
+        <file>AdminUserList.qml</file>
+        <file>AdminUserEdit.qml</file>
     </qresource>
 </RCC>

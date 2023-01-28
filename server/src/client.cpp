@@ -25,6 +25,7 @@
  */
 
 #include "client.h"
+#include "adminhandler.h"
 #include "authhandler.h"
 #include "generalhandler.h"
 #include "qjsondocument.h"
@@ -53,6 +54,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	connect(webSocket, &QWebSocket::binaryMessageReceived, this, &Client::onBinaryMessageReceived);
 	connect(webSocket, &QWebSocket::textMessageReceived, this, &Client::onTextMessageReceived);
 
+	m_handlers.insert(WebSocketMessage::ClassAdmin, &Client::createAdminHandler);
 	m_handlers.insert(WebSocketMessage::ClassAuth, &Client::createAuthHandler);
 	m_handlers.insert(WebSocketMessage::ClassGeneral, &Client::createGeneralHandler);
 	m_handlers.insert(WebSocketMessage::ClassServer, &Client::createServerHandler);
@@ -243,6 +245,11 @@ void Client::deleteAfterHandlers()
 {
 	m_destruction = true;
 	removeRunningHandler(nullptr);
+}
+
+AbstractHandler *Client::createAdminHandler()
+{
+	return new AdminHandler(this);
 }
 
 

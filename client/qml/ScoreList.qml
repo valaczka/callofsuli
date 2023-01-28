@@ -46,10 +46,17 @@ Qaterial.Page
 		id: sortedClassList
 		sourceModel: classList
 
+		filters: [
+			RangeFilter {
+				roleName: "classid"
+				minimumValue: -1
+			}
+		]
+
 		sorters: [
 			FilterSorter {
 				ValueFilter {
-					roleName: "id"
+					roleName: "classid"
 					value: -1
 				}
 				priority: 1
@@ -91,8 +98,8 @@ Qaterial.Page
 						filters: [
 							ValueFilter {
 								roleName: "classid"
-								enabled: _item._class.id != -1
-								value: _item._class.id
+								enabled: _item._class.classid != -1
+								value: _item._class.classid
 							}
 						]
 

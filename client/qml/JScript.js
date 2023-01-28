@@ -39,6 +39,7 @@ function intializeStyle() {
 	Qaterial.Style.textTheme.body2.weight = Font.Normal
 	Qaterial.Style.textTheme.body1.weight = Font.Medium
 	Qaterial.Style.textTheme.caption.weight = Font.DemiBold
+	Qaterial.Style.textTheme.overline.weight = Font.DemiBold
 
 	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 96*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 60*Qaterial.Style.pixelSizeRatio })
@@ -75,4 +76,31 @@ function questionDialog(_params) {
 	_params.standardButtons = Dialog.No | Dialog.Yes
 
 	Qaterial.DialogManager.showDialog(_params)
+}
+
+
+
+
+function questionDialogPlural(_list, _question, _field, _params) {
+	_params.iconColor = Qaterial.Colors.orange500
+	_params.textColor = Qaterial.Colors.orange500
+	_params.iconFill = false
+	_params.iconSize = Qaterial.Style.roundIcon.size
+	_params.standardButtons = Dialog.No | Dialog.Yes
+
+	_params.text = _question.arg(_list.length)
+	_params.text += "\n" + listGetFields(_list, _field).join(", ")
+
+	Qaterial.DialogManager.showDialog(_params)
+}
+
+
+
+function listGetFields(_list, _field) {
+	var l = []
+
+	for (var i=0; i<_list.length; ++i)
+		l.push(_list[i][_field])
+
+	return l
 }

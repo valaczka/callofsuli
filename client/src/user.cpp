@@ -63,7 +63,30 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 		setXp(object.value(QStringLiteral("xp")).toInt());
 
 	if (object.contains(QStringLiteral("classid")) || allField)
-		setClassid(object.value(QStringLiteral("classid")).toInt());
+		setClassid(object.value(QStringLiteral("classid")).toInt(-1));
+
+	if (object.contains(QStringLiteral("className")) || allField)
+		setClassName(object.value(QStringLiteral("className")).toString());
+
+	if (object.contains(QStringLiteral("active")) || allField)
+		setActive(object.value(QStringLiteral("active")).toInt());
+
+	if (object.contains(QStringLiteral("oauth")) || allField)
+		setOauth(object.value(QStringLiteral("oauth")).toString());
+
+	Credential::Roles roles;
+
+	if (object.contains(QStringLiteral("isAdmin")) || allField)
+		roles.setFlag(Credential::Admin, object.value(QStringLiteral("isAdmin")).toInt());
+
+	if (object.contains(QStringLiteral("isTeacher")) || allField)
+		roles.setFlag(Credential::Teacher, object.value(QStringLiteral("isTeacher")).toInt());
+
+	if (object.contains(QStringLiteral("isPanel")) || allField)
+		roles.setFlag(Credential::Panel, object.value(QStringLiteral("isPanel")).toInt());
+
+	setRoles(roles);
+
 }
 
 
@@ -158,6 +181,45 @@ void User::clear()
 	setRank(Rank());
 	setRoles(Credential::None);
 	setLoginState(LoggedOut);
+}
+
+const QString &User::className() const
+{
+	return m_className;
+}
+
+void User::setClassName(const QString &newClassName)
+{
+	if (m_className == newClassName)
+		return;
+	m_className = newClassName;
+	emit classNameChanged();
+}
+
+const QString &User::oauth() const
+{
+	return m_oauth;
+}
+
+void User::setOauth(const QString &newOauth)
+{
+	if (m_oauth == newOauth)
+		return;
+	m_oauth = newOauth;
+	emit oauthChanged();
+}
+
+bool User::active() const
+{
+	return m_active;
+}
+
+void User::setActive(bool newActive)
+{
+	if (m_active == newActive)
+		return;
+	m_active = newActive;
+	emit activeChanged();
 }
 
 const QString &User::picture() const

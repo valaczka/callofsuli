@@ -20,9 +20,10 @@ Qaterial.ItemDelegate {
 					 selectableObject && selectableObject.selected ? Qaterial.Icons.checkCircle : Qaterial.Icons.checkBold
 	: iconSource
 
+	highlightedIcon: false
 
 	width: ListView.view.width
-	iconColor: highlightedIcon ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
+	iconColor: highlightedIcon || (_view && _view.selectEnabled) ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
 
 	leftPadding: Math.max(!mirrored ? Qaterial.Style.delegate.leftPadding(control.type, control.lines) : Qaterial.Style.delegate
 	  .rightPadding(control.type, control.lines), Client.safeMarginLeft)
@@ -79,7 +80,7 @@ Qaterial.ItemDelegate {
 				var i1 = Math.min(Math.max(_view.currentIndex,0), index)
 				var i2 = Math.max(Math.max(_view.currentIndex,0), index)
 				for (var i=i1; i<=i2; ++i) {
-					_view.model.get(i).selected = true
+					_view.modelGet(i).selected = true
 				}
 				_view.currentIndex = index
 			} else if (selectableObject) {

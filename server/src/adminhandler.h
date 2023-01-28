@@ -78,14 +78,28 @@ public:
 	static QDefer userAdd(AbstractHandler *handler, const User &user);
 	static QDefer authAddPlain(AbstractHandler *handler, const QString &username, const QString &password);
 	static QDefer authAddOAuth2(AbstractHandler *handler, const QString &username, const QString &oauthType);
+	static QDefer authPlainPasswordChange(AbstractHandler *handler, const QString &username,
+										  const QString &oldPassword, const QString &password,
+										  const bool &check = true);
 
 	static QString generateClassCode();
-
-	static QDefer classAdd(AbstractHandler *handler, const Class &_class);
 
 protected:
 	virtual void handleRequestResponse() {};
 	virtual void handleEvent() {};
+
+private slots:
+	void userListByClass();
+	void userAdd();
+	void userModify();
+	void userRemove();
+	void userActivate();
+	void userMoveToClass();
+	void userPasswordChange();
+
+	void classAdd();
+	void classModify();
+	void classRemove();
 };
 
 #endif // ADMINHANDLER_H

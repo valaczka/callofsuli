@@ -781,6 +781,11 @@ void Client::loadClassListFromArray(QJsonArray list)
 								{ QStringLiteral("name"), tr("Mind")}
 							}));
 
+	list.append(QJsonObject({
+								{ QStringLiteral("id"), -10 },
+								{ QStringLiteral("name"), tr("Osztály nélkül")}
+							}));
+
 	setCache(QStringLiteral("classList"), list);
 }
 

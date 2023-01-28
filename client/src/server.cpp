@@ -40,6 +40,11 @@ Server::Server(QObject *parent)
 					 return ClientCache::loadFromJsonArray<User>(list, array, "username");
 				 }));
 
+	m_cache->add(new CacheItem<UserList>("adminUserList", new UserList(this), [](UserList *list, QJsonArray array){
+					 if (!list) return false;
+					 return ClientCache::loadFromJsonArray<User>(list, array, "username");
+				 }));
+
 	m_cache->add(new CacheItem<ClassList>("classList", new ClassList(this), [](ClassList *list, QJsonArray array){
 					 if (!list) return false;
 					 return ClientCache::loadFromJsonArray<ClassObject>(list, array, "id");

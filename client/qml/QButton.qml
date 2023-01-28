@@ -8,6 +8,9 @@ Qaterial.RaisedButton {
 
 	highlighted: false
 
+	property color textColor: Qaterial.Style.primaryTextColor()
+	property color highlightedTextColor: Qaterial.Colors.black
+
 	foregroundColor:
 	{
 	  if(!enabled)
@@ -16,8 +19,8 @@ Qaterial.RaisedButton {
 		return palette.highlight
 
 	  if (highlighted)
-		  return Qaterial.Colors.black
+		  return control.highlightedTextColor
 
-	  return colorReversed ? Qaterial.Style.primaryTextColorReversed() : Qaterial.Style.primaryTextColor()
+	  return colorReversed ? Qaterial.Style.primaryTextColorReversed() : control.textColor
 	}
 }

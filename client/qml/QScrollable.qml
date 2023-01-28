@@ -17,6 +17,7 @@ Item {
 
 	default property alias content: _content.data
 	property alias contentContainer: _content
+	property alias spacing: _content.spacing
 
 	implicitHeight: _content.implicitHeight
 	implicitWidth: _content.implicitWidth

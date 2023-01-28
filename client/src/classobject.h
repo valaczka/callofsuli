@@ -42,7 +42,7 @@ class ClassObject : public SelectableObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
+	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 
 public:
@@ -51,18 +51,18 @@ public:
 
 	void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
-	int id() const;
-	void setId(int newId);
-
 	const QString &name() const;
 	void setName(const QString &newName);
 
+	int classid() const;
+	void setClassid(int newClassid);
+
 signals:
-	void idChanged();
 	void nameChanged();
+	void classidChanged();
 
 private:
-	int m_id = -1;
+	int m_classid = -1;
 	QString m_name;
 };
 

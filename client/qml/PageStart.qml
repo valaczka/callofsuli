@@ -39,13 +39,6 @@ QPage {
 
 	}
 
-	AsyncMessageHandler {
-		id: handler
-
-		function getGoogleLocalClientId(a,b) {
-			console.debug("***", a.func, a, b)
-		}
-	}
 
 	Action {
 		id: actionAbout
