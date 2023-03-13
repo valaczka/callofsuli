@@ -29,7 +29,7 @@
 #include "qsqlquery.h"
 #include "websocketmessage.h"
 #include "serverservice.h"
-#include "adminhandler.h"
+//#include "adminhandler.h"
 #include "rank.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
@@ -217,7 +217,7 @@ bool DatabaseMain::_createTables()
 			.setValuePlaceholder()
 			.addQuery(")")
 			.addField("classid", QVariant::Invalid)
-			.addField("code", AdminHandler::generateClassCode())
+//			.addField("code", AdminHandler::generateClassCode())
 			;
 
 	return q.exec();
@@ -307,7 +307,7 @@ bool DatabaseMain::_createUsers()
 				.setValuePlaceholder()
 				.addQuery(")")
 				.addField("classid", id)
-				.addField("code", AdminHandler::generateClassCode())
+//				.addField("code", AdminHandler::generateClassCode())
 				;
 
 		if (!q.exec())

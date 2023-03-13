@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * websocketserver.h
+ * handler.h
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 03. 13.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * WebSocketServer
+ * Handler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,37 +24,35 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WEBSOCKETSERVER_H
-#define WEBSOCKETSERVER_H
+#ifndef HANDLER_H
+#define HANDLER_H
 
-#include "serversettings.h"
-#include <QWebSocketServer>
-#include <QSslConfiguration>
+#include "httpRequestHandler.h"
+#include "abstractapi.h"
 
 class ServerService;
 
-class WebSocketServer : public QWebSocketServer
+/**
+ * @brief The Handler class
+ */
+
+class Handler : public HttpRequestHandler
 {
 	Q_OBJECT
 
 public:
-	explicit WebSocketServer(const SslMode &ssl, ServerService *service);
-	virtual ~WebSocketServer();
+	explicit Handler(ServerService *service, QObject *parent = nullptr);
+	virtual ~Handler();
 
-	bool start();
-
-	static QSslConfiguration loadSslConfiguration(const ServerSettings &settings);
-
-private slots:
-	void onNewConnection();
-
-	void onAcceptError(const QAbstractSocket::SocketError &socketError);
-	void onPeerVerifyError(const QSslError &error);
-	void onServerError(const QWebSocketProtocol::CloseCode &closeCode);
-	void onSslErrors(const QList<QSslError> &errors);
+	void handle(HttpRequest *request, HttpResponse *response);
 
 private:
-	ServerService *const m_service;
+	void getFavicon(HttpResponse *response);
+	void getWasmContent(QString uri, HttpResponse *response);
+	void handleApi(HttpRequest *request, HttpResponse *response);
+
+	QMap<const char*, AbstractAPI*> m_apiHandlers;
+	ServerService *m_service = nullptr;
 };
 
-#endif // WEBSOCKETSERVER_H
+#endif // HANDLER_H

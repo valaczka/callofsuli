@@ -27,7 +27,6 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include <QWebSocket>
 #include "oauth2codeflow.h"
 #include "websocketmessage.h"
 #include "credential.h"

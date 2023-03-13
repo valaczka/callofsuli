@@ -24,7 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "websocketserver.h"
+#include "webserver.h"
 #include "Logger.h"
 #include "serversettings.h"
 #include "serverservice.h"
@@ -36,19 +36,20 @@
  * @param parent
  */
 
-WebSocketServer::WebSocketServer(const QWebSocketServer::SslMode &ssl, ServerService *service)
-	: QWebSocketServer{QStringLiteral("callofsuli-websocket-server"), ssl, service}
+WebServer::WebServer(ServerService *service)
+	: QObject(service)
 	, m_service(service)
+	, m_handler(new Handler(service, this))
 {
 	Q_ASSERT(m_service);
 
-	LOG_CINFO("websocket") << "Web socket server created:" << ssl;
+	LOG_CDEBUG("client") << "Socket server created:" << this;
 
-	connect(this, &QWebSocketServer::acceptError, this, &WebSocketServer::onAcceptError);
+	/*connect(this, &QWebSocketServer::acceptError, this, &WebSocketServer::onAcceptError);
 	connect(this, &QWebSocketServer::newConnection, this, &WebSocketServer::onNewConnection);
 	connect(this, &QWebSocketServer::peerVerifyError, this, &WebSocketServer::onPeerVerifyError);
 	connect(this, &QWebSocketServer::serverError, this, &WebSocketServer::onServerError);
-	connect(this, &QWebSocketServer::sslErrors, this, &WebSocketServer::onSslErrors);
+	connect(this, &QWebSocketServer::sslErrors, this, &WebSocketServer::onSslErrors);*/
 
 }
 
@@ -57,32 +58,65 @@ WebSocketServer::WebSocketServer(const QWebSocketServer::SslMode &ssl, ServerSer
  * @brief WebSocketServer::~WebSocketServer
  */
 
-WebSocketServer::~WebSocketServer()
+WebServer::~WebServer()
 {
-	LOG_CINFO("websocket") << "Web socket server destroyed";
+	delete m_handler;
+	LOG_CDEBUG("client") << "Web socket server destroyed";
 }
 
 
 
 
-bool WebSocketServer::start()
+bool WebServer::start()
 {
 	ServerSettings *settings = m_service->settings();
 
+	HttpServerConfig configuration;
+	configuration.host = settings->listenAddress();
+	configuration.port = settings->listenPort();
+
+	configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html_error.html");
+
 	if (settings->ssl()) {
-		QSslConfiguration config = loadSslConfiguration(*m_service->settings());
+		/*QSslConfiguration config = loadSslConfiguration(*m_service->settings());
 
 		if (!config.isNull())
-			setSslConfiguration(config);
+			setSslConfiguration(config);*/
+
+		configuration.sslCertPath = settings->dataDir().absoluteFilePath(settings->certFile());
+		configuration.sslKeyPath = settings->dataDir().absoluteFilePath(settings->certKeyFile());
 	}
 
+	m_server = new HttpServer(configuration, m_handler, this);
 
-	if (!listen(settings->listenAddress(), settings->listenPort()))	{
-		LOG_CERROR("websocket") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
+	if (!m_server->listen())	{
+		LOG_CERROR("client") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
 		return false;
 	}
 
-	LOG_CINFO("websocket") << "Listening on:" << serverUrl();
+
+	LOG_CINFO("client") << tr("A szerver elindult, elérhető a következő címeken:");
+	LOG_CINFO("client") << tr("====================================================");
+
+	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
+		if (!h.isGlobal())
+			continue;
+
+		if (settings->listenAddress() == QHostAddress::Any || settings->listenAddress() == QHostAddress::AnyIPv4 ||
+				settings->listenAddress() == QHostAddress::AnyIPv6 || settings->listenAddress() == h) {
+
+			QUrl u;
+			u.setScheme(m_server->getSslConfig() ? QStringLiteral("https") : QStringLiteral("http"));
+			u.setHost(h.toString());
+			u.setPort(settings->listenPort());
+
+			LOG_CINFO("client") << u.toString();
+		}
+
+	}
+
+	LOG_CINFO("client") << tr("====================================================");
+
 
 	/*QFile certFile(base+m_socketCert);
 		QFile keyFile(base+m_socketKey);
@@ -184,7 +218,7 @@ bool WebSocketServer::start()
  * @return
  */
 
-QSslConfiguration WebSocketServer::loadSslConfiguration(const ServerSettings &settings)
+QSslConfiguration WebServer::loadSslConfiguration(const ServerSettings &settings)
 {
 	QSslConfiguration c;
 	if (!QSslSocket::supportsSsl()) {
@@ -235,10 +269,17 @@ QSslConfiguration WebSocketServer::loadSslConfiguration(const ServerSettings &se
 }
 
 
+
+HttpServer *WebServer::server() const
+{
+	return m_server;
+}
+
+
 /**
  * @brief WebSocketServer::onNewConnection
  */
-
+/*
 void WebSocketServer::onNewConnection()
 {
 	while (hasPendingConnections()) {
@@ -247,48 +288,5 @@ void WebSocketServer::onNewConnection()
 		m_service->clientAdd(client);
 	}
 }
+*/
 
-
-
-/**
- * @brief WebSocketServer::onAcceptError
- * @param socketError
- */
-
-void WebSocketServer::onAcceptError(const QAbstractSocket::SocketError &socketError)
-{
-	LOG_CWARNING("websocket") << "acceptError:" << socketError;
-}
-
-
-/**
- * @brief WebSocketServer::onPeerVerifyError
- * @param error
- */
-
-void WebSocketServer::onPeerVerifyError(const QSslError &error)
-{
-	LOG_CWARNING("websocket") << "peerVerifyError:" << error;
-}
-
-
-/**
- * @brief WebSocketServer::onServerError
- * @param closeCode
- */
-
-void WebSocketServer::onServerError(const QWebSocketProtocol::CloseCode &closeCode)
-{
-	LOG_CWARNING("websocket") << "serverError:" << closeCode;
-}
-
-
-/**
- * @brief WebSocketServer::onSslErrors
- * @param errors
- */
-
-void WebSocketServer::onSslErrors(const QList<QSslError> &errors)
-{
-	LOG_CWARNING("websocket") << "sslErrors:" << errors;
-}

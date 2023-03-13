@@ -58,7 +58,7 @@ QaterialBuildShared = true
 # BUNDLE SETTINGS
 #########################################################################
 
-# Build creation enabled (linux, win32, mac)
+# Build creation enabled (linux, win32, mac, wasm)
 
 CreateBundle = false
 

@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli-server
 
-QT += network sql websockets networkauth core-private
+QT += network sql networkauth core-private
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
@@ -39,18 +39,21 @@ win32 {
 
 
 SOURCES += \
-	abstracthandler.cpp \
-	adminhandler.cpp \
-	authhandler.cpp \
-	client.cpp \
+	abstractapi.cpp \
+	#abstracthandler.cpp \
+	#adminhandler.cpp \
+	#authhandler.cpp \
+	#client.cpp \
 	databasemain.cpp \
-	generalhandler.cpp \
+	generalapi.cpp \
+	#generalhandler.cpp \
+	handler.cpp \
 	main.cpp \
-	serverhandler.cpp \
+	#serverhandler.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
-	teacherhandler.cpp \
-	websocketserver.cpp
+	#teacherhandler.cpp \
+	webserver.cpp
 
 RESOURCES += \
 	server.qrc
@@ -58,16 +61,18 @@ RESOURCES += \
 
 HEADERS += \
 	../../version/version.h \
-	abstracthandler.h \
-	adminhandler.h \
-	authhandler.h \
-	client.h \
+	abstractapi.h \
+	#abstracthandler.h \
+	#adminhandler.h \
+	#authhandler.h \
+	#client.h \
 	databasemain.h \
-	generalhandler.h \
-	serverhandler.h \
+	generalapi.h \
+	#generalhandler.h \
+	handler.h \
+	#serverhandler.h \
 	serverservice.h \
 	serversettings.h \
-	teacherhandler.h \
-	websocketserver.h
-
+	#teacherhandler.h \
+	webserver.h
 

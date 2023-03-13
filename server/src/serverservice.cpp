@@ -33,7 +33,6 @@
 #include <RollingFileAppender.h>
 #include <ColorConsoleAppender.h>
 #include "qconsole.h"
-#include "serverhandler.h"
 #include "utils.h"
 #include <QOAuthHttpServerReplyHandler>
 
@@ -108,7 +107,6 @@ void ServerService::initialize()
 
 	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
@@ -134,6 +132,37 @@ Service::CommandResult ServerService::onStart()
 
 	m_settings->printConfig();
 
+	// Load WASM
+
+	QStringList wasmList;
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/share/wasm.rcc"));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../share/wasm.rcc"));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../../share/wasm.rcc"));
+
+	auto it = wasmList.constBegin();
+
+	for (; it != wasmList.constEnd(); ++it) {
+		if (QFile::exists(*it)) {
+			if (QResource::registerResource(*it, QStringLiteral("/wasm"))) {
+				LOG_CDEBUG("service") << "Registering wasm resource:" << *it;
+			} else {
+				LOG_CERROR("service") << "Wasm resource register error:" << *it;
+				quit();
+				return CommandResult::Failed;
+			}
+			break;
+		}
+	}
+
+
+	if (it == wasmList.constEnd()) {
+		LOG_CERROR("service") << "Wasm resource not found";
+		quit();
+		return CommandResult::Failed;
+	}
+
+
+	// Load main DB
 
 	m_databaseMain = new DatabaseMain(this);
 	m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
@@ -148,7 +177,7 @@ Service::CommandResult ServerService::onStart()
 	m_config.m_service = this;
 	m_config.loadFromDb(m_databaseMain);
 
-	m_webSocketServer = new WebSocketServer(m_settings->ssl() ? QWebSocketServer::SecureMode : QWebSocketServer::NonSecureMode, this);
+	m_webSocketServer = new WebServer(this);
 	m_webSocketServer->start();
 
 
@@ -160,7 +189,7 @@ Service::CommandResult ServerService::onStart()
 
 	if (m_settings->oauthGoogle().ssl) {
 		OAuthHttpServerReplySslHandler *h = authGoogle->createHandler<OAuthHttpServerReplySslHandler>();
-		h->setConfiguration(WebSocketServer::loadSslConfiguration(*m_settings));
+		h->setConfiguration(WebServer::loadSslConfiguration(*m_settings));
 	} else
 		authGoogle->createHandler<QOAuthHttpServerReplyHandler>();
 
@@ -189,11 +218,10 @@ QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 {
 	LOG_CINFO("service") << "Server service stopped with code:" << exitCode;
 
-	qDeleteAll(m_clients);
 	qDeleteAll(m_authenticators);
 
 	if (m_webSocketServer) {
-		m_webSocketServer->close();
+		m_webSocketServer->server()->close();
 		delete m_webSocketServer;
 	}
 
@@ -217,7 +245,7 @@ Service::CommandResult ServerService::onReload()
 	LOG_CINFO("service") << "Server service reloaded";
 
 	if (m_webSocketServer) {
-		m_webSocketServer->close();
+		m_webSocketServer->server()->close();
 	}
 
 	m_databaseMain->databaseClose();
@@ -238,7 +266,7 @@ Service::CommandResult ServerService::onPause()
 	LOG_CINFO("service") << "Server service paused";
 
 	if (m_webSocketServer)
-		m_webSocketServer->pauseAccepting();
+		m_webSocketServer->server()->pauseAccepting();
 
 	return CommandResult::Completed;
 }
@@ -254,7 +282,7 @@ Service::CommandResult ServerService::onResume()
 	LOG_CINFO("service") << "Server service resumed";
 
 	if (m_webSocketServer)
-		m_webSocketServer->resumeAccepting();
+		m_webSocketServer->server()->resumeAccepting();
 
 	return CommandResult::Completed;
 }
@@ -266,7 +294,7 @@ Service::CommandResult ServerService::onResume()
 
 void ServerService::onConfigChanged()
 {
-	sendToClients(WebSocketMessage::createEvent(ServerHandler::_getConfig(this)));
+	//sendToClients(WebSocketMessage::createEvent(ServerHandler::_getConfig(this)));
 }
 
 
@@ -292,36 +320,7 @@ ServerConfig &ServerService::config()
 }
 
 
-/**
- * @brief ServerService::sendToClients
- * @param message
- */
 
-void ServerService::sendToClients(const WebSocketMessage &message) const
-{
-	LOG_CTRACE("service") << "Send to all clients:" << message;
-	foreach (Client *c, m_clients) {
-		if (c)
-			c->send(message);
-	}
-}
-
-
-/**
- * @brief ServerService::sendToClients
- * @param roles
- * @param message
- */
-
-void ServerService::sendToClients(const Credential::Roles &roles, const WebSocketMessage &message) const
-{
-	LOG_CTRACE("service") << "Send to clients with roles" << roles << "message:" << message;
-
-	foreach (Client *c, m_clients) {
-		if (c && ((c->credential().roles() & roles) != 0))
-			c->send(message);
-	}
-}
 
 
 
@@ -342,22 +341,11 @@ void ServerService::setServerName(const QString &newServerName)
 
 
 /**
- * @brief ServerService::clients
- * @return
- */
-
-const QVector<QPointer<Client> > &ServerService::clients() const
-{
-	return m_clients;
-}
-
-
-/**
  * @brief ServerService::webSocketServer
  * @return
  */
 
-WebSocketServer *ServerService::webSocketServer() const
+WebServer *ServerService::webSocketServer() const
 {
 	return m_webSocketServer.data();
 }
@@ -379,31 +367,6 @@ OAuth2Authenticator *ServerService::oauth2Authenticator(const OAuth2Authenticato
 	return nullptr;
 }
 
-
-/**
- * @brief ServerService::addWebSocketClient
- * @param client
- */
-
-void ServerService::clientAdd(Client *client)
-{
-	if (!client)
-		return;
-
-	m_clients.append(client);
-}
-
-
-/**
- * @brief ServerService::webSocketClientRemove
- * @param client
- */
-
-void ServerService::clientRemove(Client *client)
-{
-	m_clients.removeAll(client);
-	client->deleteAfterHandlers();
-}
 
 
 /**

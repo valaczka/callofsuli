@@ -32,8 +32,7 @@
 #include "ColorConsoleAppender.h"
 #include "serversettings.h"
 #include "databasemain.h"
-#include "websocketserver.h"
-#include "client.h"
+#include "webserver.h"
 #include "credential.h"
 #include "googleoauth2authenticator.h"
 
@@ -87,22 +86,14 @@ public:
 
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
-	WebSocketServer *webSocketServer() const;
+	WebServer *webSocketServer() const;
 
 	OAuth2Authenticator *oauth2Authenticator(const OAuth2Authenticator::Type &type) const;
-
-	void clientAdd(Client *client);
-	void clientRemove(Client *client);
-
-	const QVector<QPointer<Client>> &clients() const;
 
 	const QString &serverName() const;
 	void setServerName(const QString &newServerName);
 
 	ServerConfig &config();
-
-	void sendToClients(const WebSocketMessage &message) const;
-	void sendToClients(const Credential::Roles &roles, const WebSocketMessage &message) const;
 
 	const QVector<QPointer<OAuth2Authenticator>> &authenticators() const;
 
@@ -136,8 +127,7 @@ private:
 	ServerConfig m_config;
 
 	QPointer<DatabaseMain> m_databaseMain = nullptr;
-	QPointer<WebSocketServer> m_webSocketServer = nullptr;
-	QVector<QPointer<Client>> m_clients;
+	QPointer<WebServer> m_webSocketServer = nullptr;
 	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
 
 	ColorConsoleAppender *m_consoleAppender = nullptr;
