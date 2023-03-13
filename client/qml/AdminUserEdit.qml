@@ -13,6 +13,7 @@ QPage {
 
 	property User user: null
 	property AsyncMessageHandler msgHandler: null
+	property int classid: -1
 
 	title: user ? user.fullName : qsTr("Új felhasználó")
 
@@ -57,6 +58,54 @@ QPage {
 				{
 					Qaterial.TextFieldAlertIcon { visible: _username.errorState }
 					Qaterial.TextFieldClearButton { visible: _username.length && !_username.readOnly; textField: _username }
+				}
+			}
+
+			QFormTextField {
+				id: _password
+				width: parent.width
+				title: qsTr("Jelszó")
+				visible: !user
+				echoMode: TextInput.Password
+				inputMethodHints: Qt.ImhSensitiveData
+				validator: RegExpValidator { regExp: /.+/ }
+				errorText: qsTr("Meg kell adni egy jelszót")
+				trailingContent: Qaterial.TextFieldPasswordButton { textField: _password }
+				watchModification: false
+
+				readonly property bool _hasAcceptableInput: !visible ||
+															(acceptableInput && (echoMode == TextInput.Normal || text == _password2.text))
+			}
+
+			QFormTextField {
+				id: _password2
+				width: parent.width
+				visible: _password.visible
+				title: qsTr("Jelszó mégegyszer")
+				enabled: _password.echoMode == TextInput.Password
+				echoMode: TextInput.Password
+				inputMethodHints: Qt.ImhSensitiveData
+				error: enabled && text !== _password.text
+				errorText: qsTr("Nem egyeznek meg a jelszavak")
+				watchModification: false
+			}
+
+			QButton
+			{
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: _password.visible ? qsTr("Jelszó mentése") : qsTr("Új jelszó beállítása")
+				icon.source: Qaterial.Icons.disc
+				visible: user
+				enabled: user && _password._hasAcceptableInput
+				onClicked: {
+					if (_password.visible) {
+						msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userPasswordChange", {
+													   username: user.username,
+													   password: _password.text
+												   })
+					} else {
+						_password.visible = true
+					}
 				}
 			}
 
@@ -139,29 +188,7 @@ QPage {
 				text: qsTr("Virtuális felhasználó (kijelző)")
 			}
 
-			QFormTextField {
-				id: _password
-				width: parent.width
-				title: qsTr("Jelszó")
-				visible: !user
-				echoMode: TextInput.Password
-				inputMethodHints: Qt.ImhSensitiveData
-				validator: RegExpValidator { regExp: /.+/ }
-				errorText: qsTr("Meg kell adni egy jelszót")
-				trailingContent: Qaterial.TextFieldPasswordButton { textField: _password }
-			}
 
-			QFormTextField {
-				id: _password2
-				width: parent.width
-				visible: !user
-				title: qsTr("Jelszó mégegyszer")
-				enabled: _password.echoMode == TextInput.Password
-				echoMode: TextInput.Password
-				inputMethodHints: Qt.ImhSensitiveData
-				error: enabled && text !== _password.text
-				errorText: qsTr("Nem egyeznek meg a jelszavak")
-			}
 
 
 
@@ -170,17 +197,18 @@ QPage {
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Mentés")
 				icon.source: Qaterial.Icons.disc
-				enabled: msgHandler && _username.acceptableInput && _familyName.acceptableInput && _form.modified &&
-						 (user || (_password.acceptableInput &&
-						  (_password.echoMode == TextInput.Normal || _password.text == _password2.text)))
+				enabled: msgHandler && _username.acceptableInput && _familyName.acceptableInput
+						 && _form.modified && (user || _password._hasAcceptableInput)
 				onClicked:
 				{
 					var d = {}
 
 					if (user)
 						d.username = user.username
-					else
+					else {
 						d.username = _username.text
+						d.classid = control.classid
+					}
 
 					d.familyName = _familyName.text
 					d.givenName = _givenName.text
@@ -200,6 +228,15 @@ QPage {
 			}
 		}
 
+	}
+
+
+	Connections {
+		target: msgHandler
+
+		function onUserPasswordChanged() {
+			_password.visible = false
+		}
 	}
 
 	Component.onCompleted: if (user) {

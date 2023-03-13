@@ -190,6 +190,7 @@ public:
 	bool exec();
 	QJsonArray execToJsonArray(bool *err = nullptr);
 	QJsonObject execToJsonObject(bool *err = nullptr);
+	bool execCheckExists();
 
 	void clear() {
 		m_sqlQuery.clear();

@@ -84,6 +84,7 @@ private:
 	AbstractHandler *createAuthHandler();
 	AbstractHandler *createGeneralHandler();
 	AbstractHandler *createServerHandler();
+	AbstractHandler *createTeacherHandler();
 
 private slots:
 	void onClientStateChanged();

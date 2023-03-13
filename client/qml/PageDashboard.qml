@@ -3,6 +3,7 @@ import QtQuick.Controls 2.12
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
+import SortFilterProxyModel 0.2
 
 QPage {
 	id: control
@@ -36,10 +37,48 @@ QPage {
 	appBar.rightComponent: _cmpUser //swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
 	appBar.rightPadding: Qaterial.Style.horizontalPadding
 
+	property StudentGroupList groupListTeacher: Client.cache("groupListTeacher")
+	property StudentGroupList groupListStudent: Client.cache("groupListStudent")
+
 	Component {
 		id: _cmpUser
 		UserButton { }
 	}
+
+
+	AsyncMessageHandler {
+		id: teacherHandler
+
+		function groupList(obj : QJsonObject) {
+			if (obj.status === "ok") {
+				Client.setCache("groupListTeacher", obj.list)
+				Client.setCache("groupListStudent", obj.list)
+			} else
+				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
+		}
+
+		function groupAdd(obj : QJsonObject) {
+			if (obj.status === "ok") {
+				Client.snack(qsTr("Csoport létrehozva"))
+				sendRequestFunc(WebSocketMessage.ClassTeacher, "groupList")
+			} else
+				Client.messageWarning(qsTr("Nem sikerült létrehozni a csoportot!"))
+		}
+	}
+
+
+	AsyncMessageHandler {
+		id: studentHandler
+
+		/*function groupList(obj : QJsonObject) {
+			if (obj.status === "ok")
+				Client.setCache("groupListTeacher", obj.list)
+			else
+				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
+		}*/
+	}
+
+
 
 	QScrollable {
 		id: _content
@@ -67,34 +106,86 @@ QPage {
 
 
 		QDashboardGrid {
-			id: groupsGrid
+			id: groupsTeacherGrid
 			anchors.horizontalCenter: parent.horizontalCenter
 
+			visible: Client.server && (Client.server.user.roles & Credential.Teacher)
+
 			Repeater {
-				model: 8
+				model: SortFilterProxyModel {
+					sourceModel: groupListTeacher
+					sorters: [
+						RoleSorter {
+							roleName: "active"
+							priority: 1
+							sortOrder: Qt.DescendingOrder
+						},
+						StringSorter {
+							roleName: "name"
+							sortOrder: Qt.AscendingOrder
+						}
+
+					]
+				}
 
 				QDashboardButton {
-					text: "Csoport hosszú névvel, mi lesz vele vajon"+index
+					property StudentGroup group: model.qtObject
+					text: group ? group.name : ""
 					icon.source: Qaterial.Icons.group
+					bgColor: Qaterial.Colors.green700
+					outlined: !group.active
+					flat: !group.active
+					onClicked: Client.stackPushPage("PageTeacherGroup.qml", {
+														group: group
+													})
 				}
 			}
 
 			QDashboardButton {
-				visible: Client.server && (Client.server.user.roles & Credential.Teacher)
-				text: qsTr("Létrehozás")
-				icon.source: Qaterial.Icons.plus
+				action: actionGroupAdd
 				highlighted: false
 				outlined: true
-				//backgroundColor: Client.Utils.colorSetAlpha("black", 0.7)
 				flat: true
-
-				textColor: Qaterial.Colors.green500
+				textColor: Qaterial.Colors.green400
 			}
 		}
 
 		Qaterial.HorizontalLineSeparator {
 			anchors.horizontalCenter: parent.horizontalCenter
-			width: groupsGrid.width*0.75
+			visible: groupsStudentGrid.visible && groupsStudentGrid.visible
+			width: Math.max(groupsTeacherGrid.width, groupsStudentGrid.width)*0.75
+		}
+
+		QDashboardGrid {
+			id: groupsStudentGrid
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			visible: groupListStudent.count
+
+			Repeater {
+				model: SortFilterProxyModel {
+					sourceModel: groupListStudent
+					sorters: [
+						StringSorter {
+							roleName: "name"
+							sortOrder: Qt.AscendingOrder
+						}
+					]
+				}
+
+				QDashboardButton {
+					property StudentGroup group: model.qtObject
+					text: group ? group.name : ""
+					icon.source: Qaterial.Icons.group
+					highlighted: true
+				}
+			}
+		}
+
+		Qaterial.HorizontalLineSeparator {
+			anchors.horizontalCenter: parent.horizontalCenter
+			visible: groupsStudentGrid.visible || groupsTeacherGrid.visible
+			width: Math.max(groupsTeacherGrid.width, groupsStudentGrid.width)*0.75
 		}
 
 
@@ -128,6 +219,82 @@ QPage {
 
 		}
 
+	}
+
+
+	Action {
+		id: actionGroupAdd
+		text: qsTr("Létrehozás")
+		icon.source: Qaterial.Icons.plus
+		enabled: Client.server && (Client.server.user.roles & Credential.Teacher)
+		onTriggered: {
+			Qaterial.DialogManager.showTextFieldDialog({
+														   textTitle: qsTr("Csoport neve"),
+														   title: qsTr("Új csoport létrehozása"),
+														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   onAccepted: function(_text, _noerror) {
+															   if (_noerror && _text.length)
+																   teacherHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupAdd", {
+																								  name: _text
+																							  })
+														   }
+													   })
+		}
+	}
+
+/*
+	Action {
+		id: actionClassRemove
+		text: qsTr("Törlés")
+		icon.source: Qaterial.Icons.trashCan
+		onTriggered: {
+			var l = _class.view.getSelected()
+			if (!l.length)
+				return
+
+			JS.questionDialogPlural(l, qsTr("Biztosan törlöd a kijelölt %1 osztályt?"), "name",
+									{
+										onAccepted: function()
+										{
+											msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classRemove", {
+																		   list: JS.listGetFields(l, "classid")
+																	   })
+										},
+										title: qsTr("Osztályok törlése"),
+										iconSource: Qaterial.Icons.closeCircle
+									})
+
+		}
+	}
+
+
+	Action {
+		id: actionClassRename
+		text: qsTr("Átnevezés")
+		enabled: _class.view.currentIndex != -1
+		icon.source: Qaterial.Icons.renameBox
+		onTriggered: {
+			var o = _class.view.modelGet(_class.view.currentIndex)
+			Qaterial.DialogManager.showTextFieldDialog({
+														   textTitle: qsTr("Osztály neve"),
+														   title: qsTr("Osztály átnevezése"),
+														   text: o.name,
+														   onAccepted: function(_text, _noerror) {
+															   if (_noerror && _text.length)
+																   msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classModify", {
+																								  classid: o.classid,
+																								  name: _text
+																							  })
+														   }
+													   })
+		}
+	}
+*/
+	StackView.onActivated: {
+		if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
+			teacherHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupList")
+		}
+		//msgHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "classList")
 	}
 
 }

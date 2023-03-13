@@ -78,5 +78,6 @@
         <file>AdminClassList.qml</file>
         <file>AdminUserList.qml</file>
         <file>AdminUserEdit.qml</file>
+        <file>PageTeacherGroup.qml</file>
     </qresource>
 </RCC>

@@ -57,6 +57,8 @@ QPage {
 	AsyncMessageHandler {
 		id: msgHandler
 
+		signal userPasswordChanged()
+
 		function userListByClass(obj : QJsonObject) {
 			if (obj.status === "ok")
 				Client.setCache("adminUserList", obj.list)
@@ -144,6 +146,14 @@ QPage {
 				sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
 			} else
 				Client.messageWarning(qsTr("Nem sikerült módosítani a felhasználókat!"))
+		}
+
+		function userPasswordChange(obj : QJsonObject) {
+			if (obj.status === "ok") {
+				Client.snack(qsTr("Jelszó módosítva"))
+				userPasswordChanged()
+			} else
+				Client.messageWarning(qsTr("Nem sikerült módosítani a jelszót!"))
 		}
 	}
 
@@ -253,7 +263,8 @@ QPage {
 		text: qsTr("Új felhasználó")
 		icon.source: Qaterial.Icons.accountPlus
 		onTriggered: Client.stackPushPage("AdminUserEdit.qml", {
-											  msgHandler: msgHandler
+											  msgHandler: msgHandler,
+											  classid: _user.classid
 										  })
 	}
 
@@ -261,4 +272,5 @@ QPage {
 		msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
 		msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
 	}
+
 }

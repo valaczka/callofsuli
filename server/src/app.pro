@@ -49,6 +49,7 @@ SOURCES += \
 	serverhandler.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
+	teacherhandler.cpp \
 	websocketserver.cpp
 
 RESOURCES += \
@@ -66,6 +67,7 @@ HEADERS += \
 	serverhandler.h \
 	serverservice.h \
 	serversettings.h \
+	teacherhandler.h \
 	websocketserver.h
 
 

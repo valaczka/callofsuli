@@ -155,6 +155,9 @@ void AbstractHandler::handleRequest()
 		return;
 	}
 
+	if (m_defaultRoleToValidate != Credential::None && !validateCredential(m_defaultRoleToValidate))
+		return;
+
 	if (!QMetaObject::invokeMethod(this, func.toStdString().data(), Qt::DirectConnection)) {
 		send(m_message.createErrorResponse(QStringLiteral("missing func key")));
 		HANDLER_LOG_DEBUG() << m_client << "Invalid function:" << qPrintable(func);

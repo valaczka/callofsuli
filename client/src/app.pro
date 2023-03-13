@@ -184,6 +184,7 @@ SOURCES += \
 	mapplaydemo.cpp \
 	question.cpp \
 	server.cpp \
+	studentgroup.cpp \
 	tiledpaintedlayer.cpp \
 	user.cpp \
 	websocket.cpp
@@ -224,6 +225,7 @@ HEADERS += \
 	mapplaydemo.h \
 	question.h \
 	server.h \
+	studentgroup.h \
 	tiledpaintedlayer.h \
 	user.h \
 	websocket.h

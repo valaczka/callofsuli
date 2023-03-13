@@ -29,6 +29,7 @@
 #include "qjsonarray.h"
 #include "qjsonobject.h"
 #include "classobject.h"
+#include "studentgroup.h"
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
@@ -37,17 +38,27 @@ Server::Server(QObject *parent)
 {
 	m_cache->add(new CacheItem<UserList>("userScoreList", new UserList(this), [](UserList *list, QJsonArray array){
 					 if (!list) return false;
-					 return ClientCache::loadFromJsonArray<User>(list, array, "username");
+					 return ClientCache::loadFromJsonArray<User>(list, array, "username", "username");
 				 }));
 
 	m_cache->add(new CacheItem<UserList>("adminUserList", new UserList(this), [](UserList *list, QJsonArray array){
 					 if (!list) return false;
-					 return ClientCache::loadFromJsonArray<User>(list, array, "username");
+					 return ClientCache::loadFromJsonArray<User>(list, array, "username", "username");
 				 }));
 
 	m_cache->add(new CacheItem<ClassList>("classList", new ClassList(this), [](ClassList *list, QJsonArray array){
 					 if (!list) return false;
-					 return ClientCache::loadFromJsonArray<ClassObject>(list, array, "id");
+					 return ClientCache::loadFromJsonArray<ClassObject>(list, array, "id", "classid");
+				 }));
+
+	m_cache->add(new CacheItem<StudentGroupList>("groupListStudent", new StudentGroupList(this), [](StudentGroupList *list, QJsonArray array){
+					 if (!list) return false;
+					 return ClientCache::loadFromJsonArray<StudentGroup>(list, array, "id", "groupid");
+				 }));
+
+	m_cache->add(new CacheItem<StudentGroupList>("groupListTeacher", new StudentGroupList(this), [](StudentGroupList *list, QJsonArray array){
+					 if (!list) return false;
+					 return ClientCache::loadFromJsonArray<StudentGroup>(list, array, "id", "groupid");
 				 }));
 }
 

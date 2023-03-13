@@ -7,7 +7,8 @@ import "./QaterialHelper" as Qaterial
 Qaterial.TextField {
 	id: control
 
+	property bool watchModification: true
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
 
-	onTextEdited: if (_form) _form.modified = true
+	onTextEdited: if (_form && watchModification) _form.modified = true
 }

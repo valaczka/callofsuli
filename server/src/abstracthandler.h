@@ -67,6 +67,8 @@ protected:
 	WebSocketMessage m_message;
 	QPointer<Client> m_client = nullptr;
 
+	Credential::Role m_defaultRoleToValidate = Credential::None;
+
 	friend class AdminHandler;
 
 private slots:

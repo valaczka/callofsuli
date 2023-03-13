@@ -13,7 +13,7 @@ QButton {
 
 	display: AbstractButton.TextUnderIcon
 
-	highlighted: true
+	//highlighted: true
 
 	wrapMode: Text.WordWrap
 	maximumLineCount: 2
@@ -26,7 +26,6 @@ QButton {
 	ToolTip.text: text
 	ToolTip.visible: hovered || pressed
 	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-
 
 	readonly property real _psRatio: Qaterial.Style.pixelSizeRatio
 	on_PsRatioChanged: {

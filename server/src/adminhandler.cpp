@@ -30,7 +30,7 @@
 AdminHandler::AdminHandler(Client *client)
 	: AbstractHandler(client)
 {
-
+	m_defaultRoleToValidate = Credential::Admin;
 }
 
 
@@ -347,7 +347,7 @@ void AdminHandler::userListByClass()
 
 	HANDLER_LOG_TRACE() << "User list by class" << id;
 
-	databaseMain()->worker()->execInThread([id, this]() mutable {
+	databaseMain()->worker()->execInThread([id, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -466,7 +466,7 @@ void AdminHandler::userModify()
 	user.isTeacher = json().value(QStringLiteral("isTeacher")).toBool(false);
 	user.isPanel = json().value(QStringLiteral("isPanel")).toBool(false);
 
-	databaseMain()->worker()->execInThread([user, this]() mutable {
+	databaseMain()->worker()->execInThread([user, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -543,7 +543,7 @@ void AdminHandler::userRemove()
 
 	HANDLER_LOG_TRACE() << "Remove users" << users;
 
-	databaseMain()->worker()->execInThread([users, this]() mutable {
+	databaseMain()->worker()->execInThread([users, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -594,7 +594,7 @@ void AdminHandler::userActivate()
 
 	HANDLER_LOG_TRACE() << "Activate users" << active << users;
 
-	databaseMain()->worker()->execInThread([users, active, this]() mutable {
+	databaseMain()->worker()->execInThread([users, active, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -651,7 +651,7 @@ void AdminHandler::userMoveToClass()
 
 	HANDLER_LOG_TRACE() << "Users move to class:" << classid << users;
 
-	databaseMain()->worker()->execInThread([users, classid, this]() mutable {
+	databaseMain()->worker()->execInThread([users, classid, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -723,7 +723,7 @@ void AdminHandler::classAdd()
 
 	HANDLER_LOG_TRACE() << "Add class" << qPrintable(c.name);
 
-	databaseMain()->worker()->execInThread([c, this]() mutable {
+	databaseMain()->worker()->execInThread([c, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -785,7 +785,7 @@ void AdminHandler::classModify()
 		return;
 	}
 
-	databaseMain()->worker()->execInThread([id, this]() mutable {
+	databaseMain()->worker()->execInThread([id, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -835,7 +835,7 @@ void AdminHandler::classRemove()
 		return;
 	}
 
-	databaseMain()->worker()->execInThread([list, this]() mutable {
+	databaseMain()->worker()->execInThread([list, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());

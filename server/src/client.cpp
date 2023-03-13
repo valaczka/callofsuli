@@ -28,6 +28,7 @@
 #include "adminhandler.h"
 #include "authhandler.h"
 #include "generalhandler.h"
+#include "teacherhandler.h"
 #include "qjsondocument.h"
 #include "qjsonobject.h"
 #include "serverhandler.h"
@@ -58,6 +59,7 @@ Client::Client(QWebSocket *webSocket, ServerService *service)
 	m_handlers.insert(WebSocketMessage::ClassAuth, &Client::createAuthHandler);
 	m_handlers.insert(WebSocketMessage::ClassGeneral, &Client::createGeneralHandler);
 	m_handlers.insert(WebSocketMessage::ClassServer, &Client::createServerHandler);
+	m_handlers.insert(WebSocketMessage::ClassTeacher, &Client::createTeacherHandler);
 }
 
 
@@ -312,6 +314,17 @@ AbstractHandler *Client::createGeneralHandler()
 AbstractHandler *Client::createServerHandler()
 {
 	return new ServerHandler(this);
+}
+
+
+/**
+ * @brief Client::createTeacherHandler
+ * @return
+ */
+
+AbstractHandler *Client::createTeacherHandler()
+{
+	return new TeacherHandler(this);
 }
 
 

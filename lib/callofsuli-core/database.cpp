@@ -488,6 +488,23 @@ QJsonObject QueryBuilder::execToJsonObject(bool *err)
 
 
 /**
+ * @brief QueryBuilder::execCheckExists
+ * @return
+ */
+
+bool QueryBuilder::execCheckExists()
+{
+	if (!exec())
+		return false;
+
+	if (!m_sqlQuery.first())
+		return false;
+
+	return true;
+}
+
+
+/**
  * @brief QueryBuilder::sqlQuery
  * @return
  */

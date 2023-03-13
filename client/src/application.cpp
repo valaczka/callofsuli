@@ -30,6 +30,7 @@
 #include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
+#include "studentgroup.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -340,6 +341,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
 	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
+	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
+	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
 }
 
 /**

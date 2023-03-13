@@ -52,7 +52,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(bool autoConnect READ autoConnect WRITE setAutoConnect NOTIFY autoConnectChanged)
 	Q_PROPERTY(QString token READ token WRITE setToken NOTIFY tokenChanged)
 	Q_PROPERTY(QByteArray certificate READ certificate WRITE setCertificate NOTIFY certificateChanged)
-	Q_PROPERTY(QString serverName READ serverName NOTIFY serverNameChanged)
+	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
 	Q_PROPERTY(User *user READ user CONSTANT)
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)

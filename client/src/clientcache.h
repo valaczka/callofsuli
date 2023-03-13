@@ -148,7 +148,7 @@ public:
 
 
 	template <typename T>
-	static bool loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *property);
+	static bool loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *jsonField, const char *property);
 
 	template <typename T>
 	static T* find(qolm::QOlm<T> *list, const char *property, const QVariant &value);
@@ -180,7 +180,7 @@ T* ClientCache::getAs(const CacheItemBase &id) const
 
 
 template<typename T>
-bool ClientCache::loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *property)
+bool ClientCache::loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *jsonField, const char *property)
 {
 	if (!list)
 		return false;
@@ -192,7 +192,7 @@ bool ClientCache::loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonA
 
 	foreach (const QJsonValue &v, jsonArray) {
 		const QJsonObject &obj = v.toObject();
-		T *record = find<T>(list, property, obj.value(property).toVariant());
+		T *record = find<T>(list, property, obj.value(jsonField).toVariant());
 		if (record) {
 			tmp.removeAll(record);
 			record->loadFromJson(obj, true);				// All fields overwrite
@@ -220,9 +220,10 @@ T* ClientCache::find(qolm::QOlm<T> *list, const char *property, const QVariant &
 	if (!list)
 		return nullptr;
 
-	for (T *u : *list)
+	for (T *u : *list) {
 		if (u->property(property) == value)
 			return u;
+	}
 
 	return nullptr;
 }
