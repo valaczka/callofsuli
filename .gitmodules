@@ -43,3 +43,6 @@
 [submodule "lib/QJsonWebToken"]
 	path = lib/QJsonWebToken
 	url = https://github.com/juangburgos/QJsonWebToken.git
+[submodule "lib/HttpServer"]
+	path = lib/HttpServer
+	url = https://github.com/valaczka/HttpServer.git
