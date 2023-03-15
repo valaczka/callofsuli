@@ -26,14 +26,14 @@
 
 #include "websocket.h"
 #include "client.h"
-#include "websocketmessage.h"
+#include "qnetworkreply.h"
 #include "Logger.h"
+#include "qtimer.h"
 
 WebSocket::WebSocket(Client *client)
 	: QObject(client)
-	, m_socket(new QWebSocket(QStringLiteral("callofsuli"), QWebSocketProtocol::VersionLatest, this))
 	, m_client(client)
-	, m_timerPing(new QTimer(this))
+	, m_networkManager(new QNetworkAccessManager(this))
 {
 	LOG_CTRACE("websocket") << "WebSocket created";
 
@@ -41,7 +41,6 @@ WebSocket::WebSocket(Client *client)
 	QFile certFile(QStringLiteral(":/root_CallOfSuli_CA.crt"));
 
 	LOG_CTRACE("websocket") << "Cert file exists:" << certFile.exists();
-
 
 	if (certFile.exists()) {
 		certFile.open(QIODevice::ReadOnly);
@@ -51,26 +50,13 @@ WebSocket::WebSocket(Client *client)
 		if (cert.isNull()) {
 			LOG_CDEBUG("websocket") << "Invalid certificate";
 		} else {
-			QSslConfiguration config = m_socket->sslConfiguration();
+			QSslConfiguration config = QSslConfiguration::defaultConfiguration();
 			config.addCaCertificate(cert);
-			m_socket->setSslConfiguration(config);
+			QSslConfiguration::setDefaultConfiguration(config);
 			LOG_CTRACE("websocket") << "Root certificate added";
 		}
 	}
 #endif
-
-	connect(m_socket, &QWebSocket::connected, this, &WebSocket::onConnected);
-	connect(m_socket, &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
-	connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &WebSocket::onError);
-#ifndef QT_NO_SSL
-	connect(m_socket, &QWebSocket::sslErrors, this, &WebSocket::onSslErrors);
-#endif
-	connect(m_socket, &QWebSocket::binaryMessageReceived, this, &WebSocket::onBinaryMessageReceived);
-	connect(m_socket, &QWebSocket::binaryFrameReceived, this, &WebSocket::onBinaryFrameReceived);
-
-
-	m_timerPing->setInterval(5000);
-	connect(m_timerPing, &QTimer::timeout, this, &WebSocket::onTimerPingTimeout);
 
 
 }
@@ -82,22 +68,11 @@ WebSocket::WebSocket(Client *client)
 
 WebSocket::~WebSocket()
 {
-	delete m_timerPing;
-	delete m_socket;
+	delete m_networkManager;
 
 	LOG_CTRACE("websocket") << "WebSocket destroyed";
 }
 
-
-/**
- * @brief WebSocket::socket
- * @return
- */
-
-QWebSocket *WebSocket::socket() const
-{
-	return m_socket;
-}
 
 /**
  * @brief WebSocket::state
@@ -116,14 +91,10 @@ void WebSocket::setState(const State &newState)
 	m_state = newState;
 	emit stateChanged();
 
-	LOG_CTRACE("websocket") << "State changed:" << m_state;
-
-	if (m_state == Terminated) {
-		emit serverTerminated();
-		pingEnabled(true);
-	} else
-		pingEnabled(false);
-
+	if (m_state == Connected)
+		emit serverConnected();
+	else if (m_state == Disconnected)
+		emit serverDisconnected();
 }
 
 
@@ -165,18 +136,18 @@ void WebSocket::connectToServer(Server *server)
 
 	LOG_CDEBUG("websocket") << "Connect to server:" << server->url();
 
-	if (m_socket->state() != QAbstractSocket::UnconnectedState) {
-		LOG_CINFO("websocket") << "Régi nyitott kapcsolat lezárása:" << m_socket->requestUrl();
-		m_socket->close();
-	}
-
-	if (m_socket->state() == QAbstractSocket::ConnectedState && m_socket->requestUrl() == server->url()) {
-		LOG_CTRACE("websocket") << "Server already connected:" << m_socket->requestUrl();
-		return;
-	}
-
 	setState(Connecting);
-	m_socket->open(server->url());
+
+	WebSocketReply *reply = send(ApiGeneral, "config");
+
+	connect(reply, &WebSocketReply::success, reply, [this](WebSocketReply *r){
+		if (m_server)
+			LOG_CINFO("websocket") << "Connected to server:" << m_server->url();
+		setState(Connected);
+
+		LOG_CTRACE("websocket") << "INFO" << r->getContentJson();
+	});
+
 }
 
 
@@ -189,9 +160,9 @@ void WebSocket::connectToServer(Server *server)
 void WebSocket::close()
 {
 	if (m_state != Disconnected) {
-		LOG_CTRACE("websocket") << "Close connection:" << m_socket->requestUrl();
+		LOG_CTRACE("websocket") << "Close connection";
 		setState(Disconnected);
-		m_socket->close();
+		abortAllReplies();
 		setServer(nullptr);
 		emit serverDisconnected();
 	}
@@ -206,10 +177,10 @@ void WebSocket::close()
 void WebSocket::abort()
 {
 	if (m_state != Disconnected) {
-		LOG_CTRACE("websocket") << "Abort connection:" << m_socket->requestUrl();
+		LOG_CTRACE("websocket") << "Abort connection";
 		m_client->stackPopToStartPage();
 		setState(Disconnected);
-		m_socket->abort();
+		abortAllReplies();
 		setServer(nullptr);
 		emit serverDisconnected();
 	}
@@ -217,185 +188,321 @@ void WebSocket::abort()
 
 
 
+
+
+
+
+/**
+ * @brief WebSocket::abortAllReplies
+ */
+
+void WebSocket::abortAllReplies()
+{
+	LOG_CTRACE("websocket") << "Abort all replies";
+	foreach (WebSocketReply *r, m_replies)
+		r->abort();
+}
+
+
+/**
+ * @brief WebSocket::pending
+ * @return
+ */
+
+bool WebSocket::pending() const
+{
+	return m_pending;
+}
+
+void WebSocket::setPending(bool newPending)
+{
+	if (m_pending == newPending)
+		return;
+	m_pending = newPending;
+	emit pendingChanged();
+}
+
+
+/**
+ * @brief WebSocket::networkManager
+ * @return
+ */
+
+QNetworkAccessManager *WebSocket::networkManager() const
+{
+	return m_networkManager;
+}
+
+
 /**
  * @brief WebSocket::send
- * @param message
+ * @param method
+ * @param api
+ * @param path
+ * @param data
+ * @return
  */
 
-void WebSocket::send(const WebSocketMessage &message)
+WebSocketReply *WebSocket::send(const Method &method, const API &api, const QString &path, const QJsonObject &data)
 {
-	if (!((m_state == Hello || m_state == Terminated) && message.opCode() == WebSocketMessage::Hello) && m_state != Connected) {
-		LOG_CWARNING("websocket") << "Web socket server unavailable";
-		emit serverUnavailable(++m_signalUnavailableNum);
+	Q_ASSERT (m_networkManager);
 
-		return;
+	/// TODO: send (..., mime-type, bytearray)
+
+	if (!m_server) {
+		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
+		return nullptr;
 	}
 
-	m_socket->sendBinaryMessage(message.toByteArray());
-}
+	QHash<API, const char*> apis;
+	apis[ApiServer] = "server";
+	apis[ApiGeneral] = "general";
+	apis[ApiClient] = "client";
+	apis[ApiAuth] = "auth";
+	apis[ApiUser] = "user";
+	apis[ApiTeacher] = "teacher";
+	apis[ApiPanel] = "panel";
+	apis[ApiAdmin] = "admin";
 
-
-
-/**
- * @brief WebSocket::onConnected
- */
-
-void WebSocket::onConnected()
-{
-	LOG_CTRACE("websocket") << "Connected:" << m_socket->requestUrl();
-
-	if (m_state != Terminated)
-		setState(Hello);
-
-	send(WebSocketMessage::createHello());
-	m_signalUnavailableNum = 0;
-}
-
-
-
-/**
- * @brief WebSocket::onDisconnected
- */
-
-void WebSocket::onDisconnected()
-{
-	LOG_CTRACE("websocket") << "Disonnected:" << m_socket->requestUrl();
-
-	if (m_state == Connecting || m_state == Error)
-		setState(Disconnected);
-	else if (m_state != Disconnected)
-		setState(Terminated);
-
-}
-
-
-/**
- * @brief WebSocket::onError
- * @param error
- */
-
-void WebSocket::onError(const QAbstractSocket::SocketError &error)
-{
-	if (m_state == Connected && error == QAbstractSocket::RemoteHostClosedError)
-		return;
-
-	if (m_state == Terminated) {
-		LOG_CTRACE("websocket") << "Socket ping error:" << error << m_socket->requestUrl();
-		return;
+	if (!apis.contains(api)) {
+		m_client->messageError(tr("Invalid api"));
+		return nullptr;
 	}
 
-	LOG_CTRACE("websocket") << "Socket error:" << error << m_socket->requestUrl();
+	QHash<Method, const char*> methods;
+	methods[Get] = "GET";
+	methods[Post] = "POST";
+	methods[Put] = "PUT";
+	methods[Delete] = "DELETE";
 
-	emit socketError(error);
+	if (!methods.contains(method)) {
+		m_client->messageError(tr("Invalid method"));
+		return nullptr;
+	}
 
-	if (m_state != Disconnected)
-		setState(Error);
+	QUrl url = m_server->url();
+	url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
+	QNetworkRequest r(url);
+
+	r.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+	QNetworkReply *reply = m_networkManager->sendCustomRequest(r, methods.value(method), QJsonDocument(data).toJson());
+
+	WebSocketReply *wr = new WebSocketReply(reply, this);
+	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
+	connect(wr, &WebSocketReply::aborted, this, &WebSocket::checkPending);
+	return wr;
 }
 
 
 /**
- * @brief WebSocket::onSslErrors
- * @param errors
+ * @brief WebSocket::checkPending
  */
+
+void WebSocket::checkPending()
+{
+	bool pending = false;
+
+	foreach (WebSocketReply *r, m_replies)
+		if (r && r->pending()) {
+			pending = true;
+			break;
+		}
+
+	setPending(pending);
+}
+
+
+
+/**
+ * @brief WebSocketReply::WebSocketReply
+ * @param reply
+ * @param socket
+ */
+
+WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
+	: QObject(socket)
+	, m_reply(reply)
+	, m_socket(socket)
+{
+	Q_ASSERT(m_socket);
+	Q_ASSERT(m_reply);
+
+	LOG_CTRACE("websocket") << "WebSocketReply created" << this;
+
+	m_socket->m_replies.append(this);
 
 #ifndef QT_NO_SSL
-void WebSocket::onSslErrors(const QList<QSslError> &errors)
-{
-	LOG_CTRACE("websocket") << "Socket ssl errors:" << errors << m_socket->requestUrl();
-	if (m_state != Disconnected)
-		setState(Error);
-
-	m_socket->ignoreSslErrors(errors);
-}
+	connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
+		m_pending = false;
+		emit failed(this);
+		emit finished(this);
+		emit m_socket->socketSslErrors(e);
+	});
 #endif
 
-/**
- * @brief WebSocket::onBinaryFrameReceived
- * @param message
- * @param isLastFrame
- */
+	connect(m_reply, &QNetworkReply::errorOccurred, m_socket, [this](QNetworkReply::NetworkError e){
+		m_pending = false;
+		emit failed(this);
+		emit finished(this);
+		emit m_socket->socketError(e);
+	});
 
-void WebSocket::onBinaryFrameReceived(const QByteArray &message, const bool &isLastFrame)
-{
-	///qCDebug(lcWebSocket).noquote() << "BINARY FRAME RECEIVED";
+	connect(m_reply, &QNetworkReply::finished, this, &WebSocketReply::onReplyFinished);
 }
 
 
 /**
- * @brief WebSocket::onBinaryMessageReceived
- * @param message
+ * @brief WebSocketReply::~WebSocketReply
  */
 
-void WebSocket::onBinaryMessageReceived(const QByteArray &message)
+WebSocketReply::~WebSocketReply()
 {
-	WebSocketMessage m = WebSocketMessage::fromByteArray(message);
+	if (m_socket)
+		m_socket->m_replies.removeAll(this);
 
-	if (m_state == Hello || m_state == Terminated) {
-		if (m.opCode() == WebSocketMessage::Hello) {
-			/// TODO: CHECK VERSION
-			LOG_CTRACE("websocket") << "Hello successfull";
-			if (m_state == Hello) {
-				setState(Connected);
-				emit serverConnected();
-			} else {
-				setState(Connected);
-				emit serverReconnected();
-			}
-			return;
-		}
-	}
+	if (m_reply)
+		m_reply->deleteLater();
 
-	if (m_state != Connected) {
-		LOG_CERROR("websocket") << "Invalid state";
-		return;
-	}
-
-	if (!m.isValid()) {
-		LOG_CERROR("websocket") << "Invalid web socket message received";
-		return;
-	}
-
-	LOG_CTRACE("websocket") << "RECEIVED:" << m;
-
-	if (m.data().contains("error"))
-		m_client->snack(m.data().value("error").toString());
-
-	m_client->handleMessage(m);
+	LOG_CTRACE("websocket") << "WebSocketReply destroyed" << this;
 }
 
 
 /**
- * @brief WebSocket::pingEnabled
- * @param on
+ * @brief WebSocketReply::networkReply
+ * @return
  */
 
-void WebSocket::pingEnabled(const bool &on)
+QNetworkReply *WebSocketReply::networkReply() const
 {
-	LOG_CDEBUG("websocket") << "Ping enabled:" << on;
+	return m_reply;
+}
 
-	if (on && m_timerPing->isActive())
-		return;
 
-	if (!on && !m_timerPing->isActive())
-		return;
+/**
+ * @brief WebSocketReply::abort
+ */
 
-	if (on)
-		m_timerPing->start();
+void WebSocketReply::abort()
+{
+	m_pending = false;
+
+	emit aborted(this);
+	emit failed(this);
+
+	LOG_CTRACE("websocket") << "Abort" << this;
+
+	if (m_reply && !m_reply->isFinished() && m_reply->error() == QNetworkReply::NoError)
+		m_reply->abort();
+
+	done();
+}
+
+
+/**
+ * @brief WebSocketReply::done
+ */
+
+void WebSocketReply::done()
+{
+	LOG_CTRACE("websocket") << "WebSocketReply done" << this;
+	deleteLater();
+}
+
+
+/**
+ * @brief WebSocketReply::onReplyFinished
+ */
+
+void WebSocketReply::onReplyFinished()
+{
+	Q_ASSERT(m_socket);
+
+	m_pending = false;
+
+	const QNetworkReply::NetworkError &error = m_reply->error();
+
+	LOG_CTRACE("websocket") << "WebSocketReply finished" << error << this;
+
+	if (m_reply->isReadable()) {
+		m_content = m_reply->readAll();
+		m_contentJson = QJsonDocument::fromJson(m_content).object();
+
+		if (!m_contentJson.isEmpty() && m_contentJson.contains(QStringLiteral("error")))
+			m_errorString = m_contentJson.value(QStringLiteral("error")).toString();
+	}
+
+	if (error == QNetworkReply::NoError)
+		emit success(this);
 	else
-		m_timerPing->stop();
+		emit failed(this);
+
+	emit finished(this);
+
+	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::done);
+}
+
+bool WebSocketReply::pending() const
+{
+	return m_pending;
 }
 
 
 
 /**
- * @brief WebSocket::onTimerPingTimeout
+ * @brief WebSocketReply::hasNetworkError
+ * @return
  */
 
-void WebSocket::onTimerPingTimeout()
+bool WebSocketReply::hasNetworkError() const
 {
-	LOG_CTRACE("websocket") << "Ping";
+	return m_reply && m_reply->error();
+}
 
-	if (m_state == Terminated && m_server)
-		m_socket->open(m_server->url());
+
+/**
+ * @brief WebSocketReply::networkError
+ * @return
+ */
+
+QNetworkReply::NetworkError WebSocketReply::networkError() const
+{
+	return m_reply ? m_reply->error() : QNetworkReply::UnknownServerError;
+}
+
+
+/**
+ * @brief WebSocketReply::getErrorString
+ * @return
+ */
+
+QString WebSocketReply::getErrorString()
+{
+	done();
+	return m_errorString;
+}
+
+
+/**
+ * @brief WebSocketReply::getContent
+ * @return
+ */
+
+QByteArray WebSocketReply::getContent()
+{
+	done();
+	return m_content;
+}
+
+
+/**
+ * @brief WebSocketReply::getContentJson
+ * @return
+ */
+
+QJsonObject WebSocketReply::getContentJson()
+{
+	done();
+	return m_contentJson;
 }
 

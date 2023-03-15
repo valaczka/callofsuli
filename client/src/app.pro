@@ -1,9 +1,9 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private websockets
+QT += gui quick svg xml network gui-private
 
-!wasm: QT += multimedia sql webview networkauth
+!wasm: QT += multimedia sql webview
 
 CONFIG += c++17
 
@@ -159,7 +159,6 @@ SOURCES += \
 	abstractobjectiveimporter.cpp \
 	actiongame.cpp \
 	application.cpp \
-	asyncmessagehandler.cpp \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
@@ -201,7 +200,6 @@ HEADERS += \
 	abstractobjectiveimporter.h \
 	actiongame.h \
 	application.h \
-	asyncmessagehandler.h \
 	classobject.h \
 	client.h \
 	clientcache.h \

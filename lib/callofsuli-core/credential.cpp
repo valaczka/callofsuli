@@ -106,7 +106,7 @@ QString Credential::createJWT(const QString &secret) const
 
 	jwt.setPayloadJDoc(QJsonDocument(obj));
 
-	LOG_CINFO("credential") << "Token created for user:" << m_username;
+	LOG_CTRACE("credential") << "Token created for user:" << m_username;
 
 	return jwt.getToken();
 }

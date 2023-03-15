@@ -27,7 +27,7 @@
 #include "databasemain.h"
 #include "Logger.h"
 #include "qsqlquery.h"
-#include "websocketmessage.h"
+#include "utils.h"
 #include "serverservice.h"
 //#include "adminhandler.h"
 #include "rank.h"
@@ -148,12 +148,12 @@ bool DatabaseMain::_checkSystemTable()
 
 		m_service->setServerName(q.value(QStringLiteral("serverName")).toString());
 
-		if (WebSocketMessage::versionCode(vMajor, vMinor) < WebSocketMessage::versionCode()) {
+		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
 			if (_upgradeTables())
 				return _checkSystemTable();
 			else
 				return false;
-		} else if (WebSocketMessage::versionCode(vMajor, vMinor) == WebSocketMessage::versionCode()) {
+		} else if (Utils::versionCode(vMajor, vMinor) == Utils::versionCode()) {
 			return true;
 		} else {
 #ifdef QT_DEBUG

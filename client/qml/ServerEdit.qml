@@ -108,7 +108,7 @@ QPage {
 				}
 
 				if (server) {
-					server.url = (_ssl.checked ? "wss://" : "ws://")+_host.text+":"+_port.text
+					server.url = (_ssl.checked ? "https://" : "http://")+_host.text+":"+_port.text
 					if (_auto.checked)
 						Client.serverSetAutoConnect(server)
 					else

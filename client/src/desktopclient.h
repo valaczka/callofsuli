@@ -31,13 +31,8 @@
 #include "qsoundeffect.h"
 #include "qthread.h"
 #include "sound.h"
-#include "oauth2replyhandler.h"
-#include "googleoauth2authenticator.h"
 #include <QOlm/QOlm.hpp>
 
-
-class DesktopCodeFlow;
-class DesktopInternalHandler;
 
 /**
  * @brief The DesktopClient class
@@ -67,8 +62,6 @@ public:
 	Q_INVOKABLE bool serverDelete(Server *server);
 	Q_INVOKABLE bool serverDeleteSelected();
 
-	GoogleOAuth2Authenticator *googleAuthenticator() const;
-
 	Q_INVOKABLE virtual void loginGoogle() override;
 	Q_INVOKABLE virtual void registrationGoogle(const QString &code) override;
 
@@ -82,8 +75,6 @@ public slots:
 	void setSfxVolumeInt(int sfxVolume);
 
 protected slots:
-	void onServerConnected() override;
-	void onServerDisconnected() override;
 	void onStartPageLoaded();
 
 private slots:
@@ -94,8 +85,6 @@ private:
 	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 
-	GoogleOAuth2Authenticator *createGoogleAuthenticator(const QString &clientId, const QString &clientKey);
-
 signals:
 	void sfxVolumeChanged(const qreal &volume);
 	void serverListSelectedCountChanged();
@@ -105,94 +94,7 @@ private:
 	QThread m_soundThread;
 	qreal m_sfxVolume = 1.0;
 	ServerList *m_serverList = nullptr;
-	GoogleOAuth2Authenticator *m_googleAuthenticator = nullptr;
-	DesktopCodeFlow *m_codeFlow = nullptr;
-	DesktopInternalHandler *m_internalHandler = nullptr;
-
-	friend class DesktopInternalHandler;
-	friend class DesktopCodeFlow;
 };
 
+#endif
 
-
-
-/**
- * @brief The DesktopCodeFlow class
- */
-
-class DesktopCodeFlow : public OAuth2CodeFlow
-{
-	Q_OBJECT
-
-	Q_PROPERTY(Mode mode READ mode WRITE setMode NOTIFY modeChanged)
-
-public:
-	explicit DesktopCodeFlow(OAuth2Authenticator *authenticator, DesktopClient *client) :
-		OAuth2CodeFlow(authenticator, client),
-		m_client(client)
-	{
-		connect(this, &OAuth2CodeFlow::authenticationSuccess, this, &DesktopCodeFlow::onAuthSuccess);
-	}
-	virtual ~DesktopCodeFlow() {}
-
-	enum Mode {
-		Login,
-		Registration
-	};
-
-	Q_ENUM(Mode);
-
-	const Mode &mode() const { return m_mode; }
-	void setMode(const Mode &newMode)
-	{
-		if (m_mode == newMode)
-			return;
-		m_mode = newMode;
-		emit modeChanged();
-	}
-
-	QQuickItem *page() const { return m_page; }
-	void setPage(QQuickItem *newPage) { m_page = newPage; }
-
-	QVariantMap &internalData() { return m_internalData; }
-
-signals:
-	void modeChanged();
-	void pageRemoved();
-
-private slots:
-	void onAuthSuccess(const QVariantMap &data);
-
-private:
-	Mode m_mode = Login;
-	QQuickItem *m_page = nullptr;
-	DesktopClient *m_client = nullptr;
-	QVariantMap m_internalData;
-};
-
-
-
-
-
-/**
- * @brief The DesktopInternalHandler class
- */
-
-class DesktopInternalHandler : public AsyncMessageHandler
-{
-	Q_OBJECT
-
-public:
-	explicit DesktopInternalHandler(DesktopClient *client) : AsyncMessageHandler(client) , m_desktopClient(client) {}
-	virtual ~DesktopInternalHandler() {}
-
-public slots:
-	void getGoogleLocalClientId(const QJsonObject &json) const;
-	//void getConfig(const QJsonObject &json) const;
-	//void rankList(const QJsonObject &json) const;
-
-private:
-	DesktopClient *m_desktopClient = nullptr;
-};
-
-#endif // DESKTOPCLIENT_H

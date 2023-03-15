@@ -58,6 +58,7 @@ using namespace QtService;
 ServerService::ServerService(int &argc, char **argv)
 	: Service(argc, argv)
 	, m_settings(new ServerSettings())
+	, m_networkManager(new QNetworkAccessManager(this))
 {
 	m_consoleAppender = new ColorConsoleAppender;
 
@@ -88,6 +89,7 @@ ServerService::ServerService(int &argc, char **argv)
 ServerService::~ServerService()
 {
 	delete m_settings;
+	delete m_networkManager;
 
 	LOG_CTRACE("service") << "Server service destroyed";
 }
@@ -178,26 +180,16 @@ Service::CommandResult ServerService::onStart()
 	m_config.loadFromDb(m_databaseMain);
 
 	m_webSocketServer = new WebServer(this);
+	m_webSocketServer->setRedirectHost(m_settings->redirectHost());
 	m_webSocketServer->start();
 
 
 	// Create authenticators
 
 	GoogleOAuth2Authenticator *authGoogle = new GoogleOAuth2Authenticator(this);
-	m_authenticators.append(authGoogle);
 	m_settings->oauthGoogle().setAuthenticator(authGoogle);
+	m_authenticators.append(authGoogle);
 
-	if (m_settings->oauthGoogle().ssl) {
-		OAuthHttpServerReplySslHandler *h = authGoogle->createHandler<OAuthHttpServerReplySslHandler>();
-		h->setConfiguration(WebServer::loadSslConfiguration(*m_settings));
-	} else
-		authGoogle->createHandler<QOAuthHttpServerReplyHandler>();
-
-	if (!authGoogle->handler()->isListening()) {
-		LOG_CERROR("service") << "OAuth2Authenticator listening error";
-		quit();
-		return CommandResult::Failed;
-	}
 
 
 	LOG_CINFO("service") << "Server service started successfull";
@@ -299,6 +291,17 @@ void ServerService::onConfigChanged()
 
 
 /**
+ * @brief ServerService::networkManager
+ * @return
+ */
+
+QNetworkAccessManager *ServerService::networkManager() const
+{
+	return m_networkManager;
+}
+
+
+/**
  * @brief ServerService::authenticators
  * @return
  */
@@ -345,7 +348,7 @@ void ServerService::setServerName(const QString &newServerName)
  * @return
  */
 
-WebServer *ServerService::webSocketServer() const
+WebServer *ServerService::webServer() const
 {
 	return m_webSocketServer.data();
 }
@@ -357,10 +360,10 @@ WebServer *ServerService::webSocketServer() const
  * @return
  */
 
-OAuth2Authenticator *ServerService::oauth2Authenticator(const OAuth2Authenticator::Type &type) const
+OAuth2Authenticator *ServerService::oauth2Authenticator(const char *type) const
 {
 	for (OAuth2Authenticator *a : m_authenticators) {
-		if (a->type() == type)
+		if (strcmp(a->type(), type) == 0)
 			return a;
 	}
 

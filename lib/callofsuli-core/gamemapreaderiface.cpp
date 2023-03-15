@@ -25,8 +25,8 @@
  */
 
 #include "gamemapreaderiface.h"
+#include "utils.h"
 #include "Logger.h"
-#include "websocketmessage.h"
 
 #include <QDebug>
 #include <QUuid>
@@ -213,7 +213,7 @@ QByteArray GameMapReaderIface::toBinaryData() const
 	stream.setVersion(QDataStream::Qt_5_11);
 
 	stream << m_uuid.toLatin1();
-	stream << WebSocketMessage::versionCode();
+	stream << Utils::versionCode();
 
 	storagesToStream(stream, ifaceStorages());
 	chaptersToStream(stream, ifaceChapters());

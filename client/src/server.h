@@ -96,7 +96,7 @@ public:
 
 	Q_INVOKABLE QString host() const { return m_url.host(); }
 	Q_INVOKABLE int port() const { return m_url.port(); }
-	Q_INVOKABLE bool ssl() const { return m_url.scheme() == QLatin1String("wss"); }
+	Q_INVOKABLE bool ssl() const { return m_url.scheme() == QLatin1String("https"); }
 
 	const QJsonObject &config() const;
 	void setConfig(const QJsonObject &newConfig);

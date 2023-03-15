@@ -27,7 +27,8 @@
 #include "handler.h"
 #include "Logger.h"
 #include "generalapi.h"
-
+#include "authapi.h"
+#include "serverservice.h"
 
 
 /**
@@ -42,6 +43,7 @@ Handler::Handler(ServerService *service, QObject *parent)
 	LOG_CTRACE("client") << "Handler created" << this;
 
 	m_apiHandlers.insert("general", new GeneralAPI(service));
+	m_apiHandlers.insert("auth", new AuthAPI(service));
 }
 
 
@@ -80,16 +82,14 @@ void Handler::handle(HttpRequest *request, HttpResponse *response)
 		return;
 	}
 
-	if (uri.startsWith(QStringLiteral("/api/"))) {
-		handleApi(request, response);
-		return;
-	}
+	if (uri.startsWith(QStringLiteral("/api/")))
+		return handleApi(request, response);
 
+	if (uri.startsWith(QStringLiteral("/cb/")))
+		return handleOAuthCallback(request, response);
 
-	if (method == QLatin1String("GET")) {
-		getWasmContent(uri, response);
-		return;
-	}
+	if (method == QLatin1String("GET"))
+		return getWasmContent(uri, response);
 
 
 	LOG_CWARNING("client") << "Invalid request:" << request->method() << request->uriStr();
@@ -180,6 +180,41 @@ void Handler::handleApi(HttpRequest *request, HttpResponse *response)
 	}
 
 	LOG_CWARNING("client") << "Invalid api request:" << request->uriStr();
+	response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
+}
+
+
+
+
+/**
+ * @brief Handler::handleOAuthCallback
+ * @param request
+ * @param response
+ */
+
+void Handler::handleOAuthCallback(HttpRequest *request, HttpResponse *response)
+{
+	QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
+	QRegularExpressionMatch match = exp.match(request->uriStr());
+
+	if (match.hasMatch()) {
+		const QString &provider = match.captured(1);
+
+		OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
+
+		if (!authenticator) {
+			LOG_CWARNING("client") << "Invalid provider:" << provider;
+			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid provider"));
+		}
+
+		if (authenticator->parseResponse(request->uriQuery()))
+			return response->setStatus(HttpStatus::Ok,
+									   tr("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body><p>A kapcsolatfelvétel sikeres, nyugodtan bezárhatod ezt a böngészőlapot.</p></body></html>").toUtf8());
+		else
+			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
+	}
+
+	LOG_CWARNING("client") << "Invalid request:" << request->method() << request->uriStr();
 	response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
 }
 

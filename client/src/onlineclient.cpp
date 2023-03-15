@@ -65,7 +65,7 @@ void OnlineClient::onApplicationStarted()
 	LOG_CDEBUG("client") << "Download resources";
 
 	QNetworkRequest request(QUrl(QStringLiteral("wasm_resources.json")));
-	QNetworkReply *reply = m_networkManager->get(request);
+	QNetworkReply *reply = m_webSocket->networkManager()->get(request);
 	connect(reply, &QNetworkReply::finished, this, &OnlineClient::onResourceDownloaded);
 
 	enableTabCloseConfirmation(true);

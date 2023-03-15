@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * websocketserver.h
+ * authapi.h
  *
- * Created on: 2023. 01. 02.
+ * Created on: 2023. 03. 14.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * WebSocketServer
+ * AuthAPI
  *
  *  This file is part of Call of Suli.
  *
@@ -24,38 +24,25 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WEBSERVER_H
-#define WEBSERVER_H
+#ifndef AUTHAPI_H
+#define AUTHAPI_H
 
-#include "serversettings.h"
-#include <QSslConfiguration>
-#include "httpServer.h"
-#include "handler.h"
+#include "abstractapi.h"
+#include "oauth2authenticator.h"
 
-class ServerService;
-
-class WebServer : public QObject
+class AuthAPI : public AbstractAPI
 {
-	Q_OBJECT
-
 public:
-	explicit WebServer(ServerService *service);
-	virtual ~WebServer();
+	AuthAPI(ServerService *service);
 
-	bool start();
+	void login(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void loginOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
-	HttpServer *server() const;
+	QDeferred<Credential> getCredential(const QString &username) const;
+	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
+	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
-	static QSslConfiguration loadSslConfiguration(const ServerSettings &settings);
-
-	const QString &redirectHost() const;
-	void setRedirectHost(const QString &newRedirectHost);
-
-private:
-	ServerService *const m_service;
-	HttpServer *m_server = nullptr;
-	Handler *const m_handler = nullptr;
-	QString m_redirectHost;
+	QJsonObject getToken(const Credential &credential) const;
 };
 
-#endif // WEBSERVER_H
+#endif // AUTHAPI_H

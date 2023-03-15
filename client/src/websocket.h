@@ -27,12 +27,16 @@
 #ifndef WEBSOCKET_H
 #define WEBSOCKET_H
 
-#include <QWebSocket>
-#include "qtimer.h"
+#include "qnetworkaccessmanager.h"
 #include "server.h"
-#include "websocketmessage.h"
+#include <QPointer>
+#include <QNetworkReply>
+#include <QAbstractSocket>
+
+#define WEBSOCKETREPLY_DELETE_AFTER_MSEC	6000 //00
 
 class Client;
+class WebSocketReply;
 
 /**
  * @brief The WebSocket class
@@ -44,23 +48,56 @@ class WebSocket : public QObject
 
 	Q_PROPERTY(Server *server READ server WRITE setServer NOTIFY serverChanged)
 	Q_PROPERTY(State state READ state NOTIFY stateChanged)
+	Q_PROPERTY(bool pending READ pending NOTIFY pendingChanged)
 
 public:
 	explicit WebSocket(Client *client);
 	virtual ~WebSocket();
 
+	///
+	/// \brief The State enum
+	///
+
 	enum State {
 		Disconnected = 0,
 		Connecting,
-		Hello,
-		Connected,
-		Terminated,
-		Error
+		Connected
 	};
 
 	Q_ENUM(State);
 
-	QWebSocket *socket() const;
+
+	///
+	/// \brief The Method enum
+	///
+
+	enum Method {
+		Get,
+		Post,
+		Put,
+		Delete
+	};
+
+	Q_ENUM(Method);
+
+
+	///
+	/// \brief The API enum
+	///
+
+	enum API {
+		ApiInvalid,
+		ApiServer,
+		ApiClient,
+		ApiAuth,
+		ApiGeneral,
+		ApiUser,
+		ApiTeacher,
+		ApiPanel,
+		ApiAdmin
+	};
+
+	Q_ENUM(API);
 
 	const State &state() const;
 	void setState(const State &newState);
@@ -68,46 +105,99 @@ public:
 	Server *server() const;
 	void setServer(Server *newServer);
 
+	QNetworkAccessManager *networkManager() const;
+
+	bool pending() const;
+	void setPending(bool newPending);
+
 public slots:
 	void connectToServer(Server *server = nullptr);
 	void close();
 	void abort();
-	void send(const WebSocketMessage &message);
+
+	WebSocketReply *send(const WebSocket::Method &method, const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
+	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {}) {
+		return send(Get, api, path, data);
+	}
 
 private slots:
-	void onConnected();
-	void onDisconnected();
-	void onError(const QAbstractSocket::SocketError &error);
-#ifndef QT_NO_SSL
-	void onSslErrors(const QList<QSslError> &errors);
-#endif
-	void onBinaryFrameReceived(const QByteArray &message, const bool &isLastFrame);
-	void onBinaryMessageReceived(const QByteArray &message);
-	void pingEnabled(const bool &on = true);
-	void onTimerPingTimeout();
+	void checkPending();
+
+private:
+	void abortAllReplies();
 
 signals:
-	void serverUnavailable(int num);
 	void serverConnected();
 	void serverDisconnected();
-	void serverTerminated();
-	void serverReconnected();
-	void socketError(const QAbstractSocket::SocketError &error);
+	void socketSslErrors(const QList<QSslError> &errors);
+	void socketError(QNetworkReply::NetworkError code);
 	void stateChanged();
 	void serverChanged();
 
+	void pendingChanged();
+
 private:
-	QWebSocket *const m_socket;
 	Client *const m_client;
 	State m_state = Disconnected;
 	Server *m_server = nullptr;
 	int m_signalUnavailableNum = 0;
 
-	QTimer *m_timerPing = nullptr;
+	QNetworkAccessManager *const m_networkManager = nullptr;
+	QVector<WebSocketReply *> m_replies;
+	bool m_pending = false;
+
+	friend class WebSocketReply;
 };
 
 
 
+/**
+ * @brief The WebSocketReply class
+ */
+
+class WebSocketReply : public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit WebSocketReply(QNetworkReply *reply, WebSocket *socket);
+	virtual ~WebSocketReply();
+
+	QNetworkReply* networkReply() const;
+
+	bool hasNetworkError() const;
+	QNetworkReply::NetworkError networkError() const;
+
+	QString getErrorString();
+	QByteArray getContent();
+	QJsonObject getContentJson();
+
+	bool pending() const;
+
+public slots:
+	void abort();
+	void done();
+
+private slots:
+	void onReplyFinished();
+
+signals:
+	void success(WebSocketReply *reply);
+	void failed(WebSocketReply *reply);
+	void aborted(WebSocketReply *reply);
+	void finished(WebSocketReply *reply);
+
+
+private:
+	QPointer<QNetworkReply> m_reply = nullptr;
+	WebSocket *const m_socket = nullptr;
+	QByteArray m_content;
+	QJsonObject m_contentJson;
+	QString m_errorString;
+	bool m_pending = true;
+};
+
+Q_DECLARE_METATYPE(WebSocket::API)
 
 
 #endif // WEBSOCKET_H

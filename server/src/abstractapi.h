@@ -29,10 +29,13 @@
 
 #include <QDeferred>
 #include <QLambdaThreadWorker>
+#include "credential.h"
 #include "httpRequest.h"
 #include "databasemain.h"
+#include <QPointer>
+#include "httpResponse.h"
 
-typedef std::function<void(const QString &, const QJsonObject &, HttpResponse *)> ApiMapFunction;
+typedef std::function<void(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>)> ApiMapFunction;
 
 class ServerService;
 
@@ -48,10 +51,10 @@ public:
 
 	struct Map {
 		const char *method;
-		const char *name;
+		const char *regularExpression;
 		ApiMapFunction func;
 
-		Map(const char *m, const char *n, ApiMapFunction f) : method(m), name(n), func(f) {}
+		Map(const char *m, const char *n, ApiMapFunction f) : method(m), regularExpression(n), func(f) {}
 	};
 
 	virtual void handle(HttpRequest *request, HttpResponse *response, const QString &parameters);
@@ -62,22 +65,27 @@ public:
 
 
 	template <typename T>
-	void addMap(const char *method, const char *name, T *inst,
-				void (T::*handler)(const QString &, const QJsonObject &, HttpResponse *) const)
+	void addMap(const char *method, const char *regularExpression, T *inst,
+				void (T::*handler)(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>) const)
 	{
-		Map m = {method, name, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
+		Map m = {method, regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
 		m_maps.append(m);
 	}
 
-	QVector<Map>::const_iterator findMap(const char *method, const char *name);
 
-	void responseError(HttpResponse *response, const char *errorStr, const HttpStatus &status = HttpStatus::InternalServerError) const;
+	void responseError(HttpResponse *response, const char *errorStr) const;
 	void responseAnswer(HttpResponse *response, const char *field, const QJsonValue &value) const;
 	void responseAnswer(HttpResponse *response, const QJsonObject &value) const;
+
+
+	Credential authorize(HttpRequest *request) const;
+	bool validate(const Credential &credential, const Credential::Role &role) const;
+	bool validate(HttpRequest *request, const Credential::Role &role) const;
 
 protected:
 	QVector<Map> m_maps;
 	ServerService *m_service = nullptr;
+	Credential::Role m_validateRole = Credential::Role::None;
 };
 
 #endif // ABSTRACTAPI_H

@@ -46,24 +46,16 @@
 Client::Client(Application *app, QObject *parent)
 	: QObject{parent}
 	, m_application(app)
-	, m_networkManager(new QNetworkAccessManager(this))
 	, m_utils(new Utils(this))
 	, m_webSocket(new WebSocket(this))
-	, m_internalHandler(new InternalHandler(this))
 {
 	Q_ASSERT(app);
 
 	connect(m_webSocket, &WebSocket::socketError, this, &Client::onWebSocketError);
-	connect(m_webSocket, &WebSocket::serverUnavailable, this, [this](int) {
-		snack(tr("Szerver nem elérhető"));
-	});
+	connect(m_webSocket, &WebSocket::socketSslErrors, this, &Client::onWebSocketSslError);
 	connect(m_webSocket, &WebSocket::serverConnected, this, &Client::onServerConnected);
 	connect(m_webSocket, &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
-	connect(m_webSocket, &WebSocket::serverTerminated, this, &Client::onServerTerminated);
-	connect(m_webSocket, &WebSocket::serverReconnected, this, &Client::onServerReconnected);
 	connect(m_webSocket, &WebSocket::serverChanged, this, &Client::serverChanged);
-
-	addMessageHandler(m_internalHandler);
 }
 
 
@@ -77,10 +69,6 @@ Client::~Client()
 	if (m_currentGame)
 		delete m_currentGame;
 
-	removeMessageHandler(m_internalHandler);
-
-	delete m_internalHandler;
-	delete m_networkManager;
 	delete m_utils;
 	delete m_webSocket;
 }
@@ -379,10 +367,23 @@ void Client::onApplicationStarted()
  * @param error
  */
 
-void Client::onWebSocketError(const QAbstractSocket::SocketError &error)
+void Client::onWebSocketError(QNetworkReply::NetworkError code)
 {
-	LOG_CWARNING("client") << "Websocket error:" << error;
-	messageError(tr("ERROR: %1").arg(error), tr("Sikertelen csatalakozás"));
+	LOG_CWARNING("client") << "Websocket error:" << code;
+	messageError(tr("ERROR: %1").arg(code), tr("Sikertelen csatalakozás"));
+	m_webSocket->close();
+}
+
+
+/**
+ * @brief Client::onWebSocketSslError
+ * @param errors
+ */
+
+void Client::onWebSocketSslError(const QList<QSslError> &errors)
+{
+	LOG_CWARNING("client") << "Websocket SSL error:" << errors;
+	messageError(tr("SSL ERROR"), tr("Sikertelen csatalakozás"));
 	m_webSocket->close();
 }
 
@@ -401,8 +402,29 @@ void Client::onServerConnected()
 
 	loginToken();
 
-	m_internalHandler->sendRequest(WebSocketMessage::ClassServer, "getConfig");
-	m_internalHandler->sendRequest(WebSocketMessage::ClassGeneral, "rankList");
+
+	connect(m_webSocket->send(WebSocket::ApiGeneral, QStringLiteral("config")),
+			&WebSocketReply::success, this, [this](WebSocketReply *r)
+	{
+		const QJsonObject &json = r->getContentJson();
+		LOG_CTRACE("client") << "GET INFO" << json;
+
+		if (json.contains(QStringLiteral("name")) && server())
+			server()->setServerName(json.value(QStringLiteral("name")).toString());
+
+		if (json.contains(QStringLiteral("config")) && server())
+			server()->setConfig(json.value(QStringLiteral("config")).toObject());
+	});
+
+
+	connect(m_webSocket->send(WebSocket::ApiGeneral, QStringLiteral("rank")),
+			&WebSocketReply::success, this, [this](WebSocketReply *r)
+	{
+		const QJsonObject &json = r->getContentJson();
+		LOG_CTRACE("client") << "GET RANK" << json;
+
+		server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
+	});
 }
 
 
@@ -413,7 +435,6 @@ void Client::onServerConnected()
 void Client::onServerDisconnected()
 {
 	LOG_CINFO("client") << "Server disconnected";
-	snack(tr("Szerverkapcsolat lezárult"));
 
 	if (server())
 		server()->user()->setLoginState(User::LoggedOut);
@@ -421,27 +442,6 @@ void Client::onServerDisconnected()
 	stackPopToStartPage();
 }
 
-
-/**
- * @brief Client::onServerTerminated
- */
-
-void Client::onServerTerminated()
-{
-	LOG_CINFO("client") << "Server terminated";
-	snack(tr("Szerverkapcsolat megszakadt"));
-}
-
-
-/**
- * @brief Client::onServerReconnected
- */
-
-void Client::onServerReconnected()
-{
-	LOG_CINFO("client") << "Server reconnected";
-	snack(tr("Szerverkapcsolat helyreállt"));
-}
 
 
 /**
@@ -451,7 +451,7 @@ void Client::onServerReconnected()
 void Client::onUserLoggedIn()
 {
 	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
-	m_internalHandler->sendRequest(WebSocketMessage::ClassGeneral, "me");
+	//m_internalHandler->sendRequest(WebSocketMessage::ClassGeneral, "me");
 
 	stackPushPage(QStringLiteral("PageDashboard.qml"));
 }
@@ -495,25 +495,6 @@ void Client::_message(const QString &text, const QString &title, const QString &
 	}
 }
 
-
-/**
- * @brief Client::handleMessageInternal
- * @return
- */
-
-bool Client::handleMessageInternal(const WebSocketMessage &message)
-{
-	const QString &func = message.data().value(QStringLiteral("func")).toString();
-
-	if (message.opCode() == WebSocketMessage::RequestResponse) {
-		if (message.classHandler() == WebSocketMessage::ClassGeneral) {
-			if (func == QLatin1String("me")) {
-				m_internalHandler->me(message.data());
-			}
-		}
-	}
-	return false;
-}
 
 
 
@@ -585,18 +566,6 @@ WebSocket *Client::webSocket() const
 }
 
 
-/**
- * @brief Client::sendRequest
- * @param classHandler
- * @param json
- */
-
-void Client::sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json)
-{
-	m_webSocket->send(WebSocketMessage::createRequest(classHandler, json));
-}
-
-
 
 
 /**
@@ -610,58 +579,6 @@ Server *Client::server() const
 }
 
 
-/**
- * @brief Client::addMessageHandler
- * @param handler
- */
-
-void Client::addMessageHandler(AsyncMessageHandler *handler)
-{
-	if (!handler)
-		return;
-
-	if (!m_messageHandlers.contains(handler)) {
-		LOG_CTRACE("client") << "Add message handler:" << handler;
-		m_messageHandlers.append(handler);
-	}
-}
-
-
-
-
-/**
- * @brief Client::removeMessageHandler
- * @param handler
- */
-
-void Client::removeMessageHandler(AsyncMessageHandler *handler)
-{
-	if (!handler)
-		return;
-
-	LOG_CTRACE("client") << "Remove message handler:" << handler;
-	m_messageHandlers.removeAll(handler);
-}
-
-
-/**
- * @brief Client::handleMessage
- * @param message
- */
-
-void Client::handleMessage(const WebSocketMessage &message)
-{
-	if (handleMessageInternal(message))
-		return;
-
-	if (message.opCode() != WebSocketMessage::RequestResponse)
-		return;
-
-	foreach (AsyncMessageHandler *h, m_messageHandlers)
-		if (h) h->handleMessage(message);
-
-}
-
 
 
 /**
@@ -671,7 +588,7 @@ void Client::handleMessage(const WebSocketMessage &message)
 void Client::loginGoogle()
 {
 	server()->user()->setLoginState(User::LoggingIn);
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginGoogle");
+	//m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginGoogle");
 }
 
 
@@ -681,10 +598,10 @@ void Client::loginGoogle()
 
 void Client::registrationGoogle(const QString &code)
 {
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationGoogle",
+	/*m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationGoogle",
 									   QJsonObject({
 													   { QStringLiteral("code"), code }
-												   }));
+												   }));*/
 }
 
 
@@ -697,11 +614,22 @@ void Client::registrationGoogle(const QString &code)
 void Client::loginPlain(const QString &username, const QString &password)
 {
 	server()->user()->setLoginState(User::LoggingIn);
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginPlain",
+	/*m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginPlain",
 									   QJsonObject({
 													   { QStringLiteral("username"), username },
 													   { QStringLiteral("password"), password }
-												   }));
+												   }));*/
+
+	connect(m_webSocket->send(WebSocket::ApiAuth, QStringLiteral("login"),
+			QJsonObject{
+								  { QStringLiteral("username"), username },
+								  { QStringLiteral("password"), password }
+			}),
+			&WebSocketReply::success, this, [this](WebSocketReply *r)
+	{
+		const QJsonObject &json = r->getContentJson();
+		LOG_CTRACE("client") << "GET AUTH" << json;
+	});
 }
 
 
@@ -714,7 +642,7 @@ void Client::loginPlain(const QString &username, const QString &password)
 
 void Client::registrationPlain(const QJsonObject &data)
 {
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationPlain", data);
+	//m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationPlain", data);
 }
 
 
@@ -746,10 +674,10 @@ bool Client::loginToken()
 		return false;
 	}
 
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginToken",
+	/*m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "loginToken",
 									   QJsonObject({
 													   { QStringLiteral("token"), token }
-												   }));
+												   }));*/
 
 	return true;
 }
@@ -763,7 +691,7 @@ bool Client::loginToken()
 void Client::logout()
 {
 	LOG_CDEBUG("client") << "Logout";
-	m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "logout");
+	//m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "logout");
 }
 
 
@@ -923,15 +851,6 @@ Utils *Client::utils() const
 }
 
 
-/**
- * @brief Client::netoworkManager
- * @return
- */
-
-QNetworkAccessManager *Client::networkManager() const
-{
-	return m_networkManager;
-}
 
 
 
@@ -1101,28 +1020,9 @@ bool Client::debug() const
 
 
 
-
-/**
- * @brief InternalHandler::getConfig
- * @param json
- */
-
-void InternalHandler::getConfig(const QJsonObject &json) const
-{
-	if (json.contains(QStringLiteral("name")) && m_client->server())
-		m_client->server()->setServerName(json.value(QStringLiteral("name")).toString());
-
-	if (json.contains(QStringLiteral("config")) && m_client->server())
-		m_client->server()->setConfig(json.value(QStringLiteral("config")).toObject());
-
-}
+/*
 
 
-
-/**
- * @brief InternalHandler::rankList
- * @param json
- */
 
 void InternalHandler::rankList(const QJsonObject &json) const
 {
@@ -1132,11 +1032,6 @@ void InternalHandler::rankList(const QJsonObject &json) const
 	m_client->server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
 }
 
-
-/**
- * @brief InternalHandler::loginPlain
- * @param json
- */
 
 void InternalHandler::loginPlain(const QJsonObject &json) const
 {
@@ -1159,12 +1054,6 @@ void InternalHandler::loginPlain(const QJsonObject &json) const
 }
 
 
-
-/**
- * @brief InternalHandler::loginGoogle
- * @param json
- */
-
 void InternalHandler::loginGoogle(const QJsonObject &json) const
 {
 	if (json.contains(QStringLiteral("url"))) {
@@ -1175,11 +1064,6 @@ void InternalHandler::loginGoogle(const QJsonObject &json) const
 }
 
 
-/**
- * @brief InternalHandler::logout
- * @param json
- */
-
 void InternalHandler::logout(const QJsonObject &json) const
 {
 	if (!checkStatus(json))
@@ -1187,12 +1071,6 @@ void InternalHandler::logout(const QJsonObject &json) const
 
 	m_client->onUserLoggedOut();
 }
-
-
-/**
- * @brief InternalHandler::registrationPlain
- * @param json
- */
 
 void InternalHandler::registrationPlain(const QJsonObject &json) const
 {
@@ -1211,12 +1089,6 @@ void InternalHandler::registrationPlain(const QJsonObject &json) const
 
 
 
-
-/**
- * @brief InternalHandler::registrationGoogle
- * @param json
- */
-
 void InternalHandler::registrationGoogle(const QJsonObject &json) const
 {
 	if (json.contains(QStringLiteral("url"))) {
@@ -1228,12 +1100,6 @@ void InternalHandler::registrationGoogle(const QJsonObject &json) const
 
 
 
-
-/**
- * @brief InternalHandler::me
- * @param json
- */
-
 void InternalHandler::me(const QJsonObject &json) const
 {
 	if (json.contains(QStringLiteral("error")))
@@ -1244,4 +1110,4 @@ void InternalHandler::me(const QJsonObject &json) const
 }
 
 
-
+*/

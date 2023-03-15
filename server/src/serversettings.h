@@ -45,12 +45,7 @@ public:
 	struct OAuth {
 		QString clientId;
 		QString clientKey;
-		QHostAddress listenHost = QHostAddress::Any;
-		quint16 listenPort = 0;
-		bool ssl = false;
-		QString redirectHost = listenHost.toString();
-		QString localClientId;
-		QString localClientKey;
+		QString path;
 
 		static OAuth fromSettings(QSettings *settings, const QString &group = "");
 		void toSettings(QSettings *settings, const QString &group = "") const;
@@ -89,6 +84,9 @@ public:
 	const OAuth &oauthGoogle() const;
 	void setOauthGoogle(const OAuth &newOauthGoogle);
 
+	const QString &redirectHost() const;
+	void setRedirectHost(const QString &newRedirectHost);
+
 private:
 	QDir m_dataDir;
 
@@ -96,6 +94,7 @@ private:
 
 	QHostAddress m_listenAddress = QHostAddress::Any;
 	quint16 m_listenPort = 10101;
+	QString m_redirectHost;
 
 	bool m_ssl = false;
 	QString m_certFile;

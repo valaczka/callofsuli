@@ -29,7 +29,7 @@
 
 #include <QObject>
 #include <QCache>
-#include "websocketmessage.h"
+#include "websocket.h"
 
 class Client;
 
@@ -48,9 +48,8 @@ public:
 	Client *client() const;
 	void setClient(Client *newClient);
 
-	Q_INVOKABLE void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json);
-	Q_INVOKABLE void sendRequestFunc(const WebSocketMessage::ClassHandler &classHandler, const QString &func,
-									 const QJsonObject &json = QJsonObject());
+	Q_INVOKABLE void sendRequest(const WebSocket::API &api, const QString &func, const QJsonObject &json = QJsonObject());
+
 	void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const char *func, QJsonObject json = QJsonObject());
 
 	void handleMessage(const WebSocketMessage &message);
@@ -59,9 +58,6 @@ public:
 	void setPending(bool newPending);
 
 	static bool checkStatus(const QJsonObject &json, const QString &status = QStringLiteral("ok"));
-
-protected:
-	virtual bool prehandleMessage(const WebSocketMessage &/*message*/) { return true; }
 
 signals:
 	void clientChanged();

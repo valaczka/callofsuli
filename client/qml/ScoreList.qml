@@ -19,7 +19,7 @@ Qaterial.Page
 
 	property bool _loadedFirst: true
 
-	AsyncMessageHandler {
+	/*AsyncMessageHandler {
 		id: msgHandler
 
 		function userList(obj : QJsonObject) {
@@ -39,7 +39,7 @@ Qaterial.Page
 			} else
 				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
 		}
-	}
+	}*/
 
 
 	SortFilterProxyModel {
@@ -116,9 +116,9 @@ Qaterial.Page
 						]
 					}
 
-					refreshProgressVisible: msgHandler.pending
+					/*refreshProgressVisible: msgHandler.pending
 					refreshEnabled: true
-					onRefreshRequest: msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "userList")
+					onRefreshRequest: msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "userList")*/
 
 					delegate: QLoaderItemDelegate {
 						id: _delegate
@@ -161,10 +161,10 @@ Qaterial.Page
 
 	}
 
-	SwipeView.onIsCurrentItemChanged: {
+	/*SwipeView.onIsCurrentItemChanged: {
 		if (SwipeView.isCurrentItem) {
 			msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "userList")
 			msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
 		}
-	}
+	}*/
 }

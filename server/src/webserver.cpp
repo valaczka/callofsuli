@@ -111,6 +111,9 @@ bool WebServer::start()
 			u.setPort(settings->listenPort());
 
 			LOG_CINFO("client") << u.toString();
+
+			if (m_redirectHost.isEmpty())
+				setRedirectHost(h.toString());
 		}
 
 	}
@@ -266,6 +269,22 @@ QSslConfiguration WebServer::loadSslConfiguration(const ServerSettings &settings
 	c.setPeerVerifyMode(QSslSocket::VerifyNone);
 
 	return c;
+}
+
+
+/**
+ * @brief WebServer::redirectUrl
+ * @return
+ */
+
+const QString &WebServer::redirectHost() const
+{
+	return m_redirectHost;
+}
+
+void WebServer::setRedirectHost(const QString &newRedirectUrl)
+{
+	m_redirectHost = newRedirectUrl;
 }
 
 

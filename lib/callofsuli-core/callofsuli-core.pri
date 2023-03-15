@@ -24,7 +24,6 @@ HEADERS += \
 	$$PWD/rank.h \
 	$$PWD/selectableobject.h \
 	$$PWD/utils.h \
-	$$PWD/websocketmessage.h \
 	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h
 
 
@@ -35,22 +34,13 @@ SOURCES += \
 	$$PWD/rank.cpp \
 	$$PWD/selectableobject.cpp \
 	$$PWD/utils.cpp \
-	$$PWD/websocketmessage.cpp \
 	$$PWD/../QJsonWebToken/src/qjsonwebtoken.cpp
 
 !wasm {
 	HEADERS += \
-		$$PWD/database.h \
-		$$PWD/googleoauth2authenticator.h \
-		$$PWD/oauth2authenticator.h \
-		$$PWD/oauth2codeflow.h \
-		$$PWD/oauth2replyhandler.h
+		$$PWD/database.h
 
 	SOURCES += \
-		$$PWD/database.cpp \
-		$$PWD/googleoauth2authenticator.cpp \
-		$$PWD/oauth2authenticator.cpp \
-		$$PWD/oauth2codeflow.cpp \
-		$$PWD/oauth2replyhandler.cpp
+		$$PWD/database.cpp
 
 }

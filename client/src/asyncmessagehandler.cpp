@@ -113,16 +113,17 @@ void AsyncMessageHandler::sendRequest(const WebSocketMessage::ClassHandler &clas
 		return;
 	}
 
-	if (m_client->webSocket()->state() != WebSocket::Connected) {
-		m_client->messageWarning(tr("A szerver jelenleg nem elérhető!"));
-		return;
-	}
+	//WebSocketReply *reply = m_client->webSocket()->send()
 
-	WebSocketMessage message = WebSocketMessage::createRequest(classHandler, json);
+
+	WebSocketReply *send(const WebSocket::Method &method, const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
+	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {}) {
+		return send(Get, api, path, data);
+	}
 
 	m_messages.insert(message.msgNumber(), message);
 
-	m_client->webSocket()->send(message);
+	///m_client->webSocket()->send(message);
 
 	setPending(!m_messages.isEmpty());
 }

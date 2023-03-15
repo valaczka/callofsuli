@@ -50,6 +50,7 @@ private:
 	void getFavicon(HttpResponse *response);
 	void getWasmContent(QString uri, HttpResponse *response);
 	void handleApi(HttpRequest *request, HttpResponse *response);
+	void handleOAuthCallback(HttpRequest *request, HttpResponse *response);
 
 	QMap<const char*, AbstractAPI*> m_apiHandlers;
 	ServerService *m_service = nullptr;

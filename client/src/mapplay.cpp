@@ -30,7 +30,6 @@
 #include "utils.h"
 #include "application.h"
 #include "gamemap.h"
-#include "websocketmessage.h"
 #include "gameterrain.h"
 #include "actiongame.h"
 #include <QScopedPointer>
@@ -95,7 +94,7 @@ bool MapPlay::loadFromBinaryData(const QByteArray &data)
 		return false;
 	}
 
-	if (map->appVersion() > 0 && map->appVersion() > WebSocketMessage::versionCode()) {
+	if (map->appVersion() > 0 && map->appVersion() > Utils::versionCode()) {
 		Application::instance()->messageWarning(tr("A pálya az alkalmazásnál magasabb verziószámmal készült.\nFrissítsd az alkalmazást a legújabb verzióra!"),
 												tr("Frissítés szükséges"));
 		return false;

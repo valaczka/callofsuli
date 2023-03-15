@@ -44,12 +44,16 @@ SOURCES += \
 	#adminhandler.cpp \
 	#authhandler.cpp \
 	#client.cpp \
+	authapi.cpp \
 	databasemain.cpp \
 	generalapi.cpp \
 	#generalhandler.cpp \
+	googleoauth2authenticator.cpp \
 	handler.cpp \
 	main.cpp \
 	#serverhandler.cpp \
+	oauth2authenticator.cpp \
+	oauth2codeflow.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	#teacherhandler.cpp \
@@ -66,11 +70,15 @@ HEADERS += \
 	#adminhandler.h \
 	#authhandler.h \
 	#client.h \
+	authapi.h \
 	databasemain.h \
 	generalapi.h \
 	#generalhandler.h \
+	googleoauth2authenticator.h \
 	handler.h \
 	#serverhandler.h \
+	oauth2authenticator.h \
+	oauth2codeflow.h \
 	serverservice.h \
 	serversettings.h \
 	#teacherhandler.h \

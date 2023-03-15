@@ -41,7 +41,6 @@
 DesktopClient::DesktopClient(Application *app, QObject *parent)
 	: Client(app, parent)
 	, m_serverList(new ServerList(this))
-	, m_internalHandler(new DesktopInternalHandler(this))
 {
 	LOG_CTRACE("client") << "Desktop DesktopClient created:" << this;
 
@@ -56,8 +55,6 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
-
-	addMessageHandler(m_internalHandler);
 
 	serverListLoad();
 }
@@ -76,9 +73,6 @@ DesktopClient::~DesktopClient()
 	m_soundThread.wait();
 
 	delete m_serverList;
-
-	removeMessageHandler(m_internalHandler);
-	delete m_internalHandler;
 
 	LOG_CTRACE("client") << "Desktop DesktopClient destroyed:" << this;
 }
@@ -276,33 +270,6 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 	safeMarginsGet();
 }
 
-
-/**
- * @brief DesktopClient::onServerConnected
- */
-
-void DesktopClient::onServerConnected()
-{
-	Client::onServerConnected();
-
-	if (!m_googleAuthenticator)
-		m_internalHandler->sendRequest(WebSocketMessage::ClassAuth, "getGoogleLocalClientId");
-}
-
-
-/**
- * @brief DesktopClient::onServerDisconnected
- */
-
-void DesktopClient::onServerDisconnected()
-{
-	Client::onServerDisconnected();
-
-	if (!m_googleAuthenticator) {
-		m_googleAuthenticator->deleteLater();
-		m_googleAuthenticator = nullptr;
-	}
-}
 
 
 
@@ -520,45 +487,6 @@ bool DesktopClient::serverDeleteSelected()
 
 
 
-/**
- * @brief DesktopClient::googleAuthenticator
- * @return
- */
-
-GoogleOAuth2Authenticator *DesktopClient::createGoogleAuthenticator(const QString &clientId, const QString &clientKey)
-{
-	if (clientId.isEmpty() || clientKey.isEmpty()) {
-		LOG_CTRACE("client") << "Google id empty";
-		return nullptr;
-	}
-
-	if (m_googleAuthenticator) {
-		LOG_CDEBUG("client") << "Google authenticator already exists";
-		return m_googleAuthenticator;
-	}
-
-	m_googleAuthenticator = new GoogleOAuth2Authenticator(this);
-	m_googleAuthenticator->setClientId(clientId);
-	m_googleAuthenticator->setClientKey(clientKey);
-	m_googleAuthenticator->createHandler<QOAuthHttpServerReplyHandler>();
-
-	LOG_CTRACE("client") << "Google authenticator created, listening" << m_googleAuthenticator->handler()->isListening();
-
-	return m_googleAuthenticator;
-}
-
-
-/**
- * @brief DesktopClient::googleAuthenticator
- * @return
- */
-
-GoogleOAuth2Authenticator *DesktopClient::googleAuthenticator() const
-{
-	return m_googleAuthenticator;
-}
-
-
 
 /**
  * @brief DesktopClient::loginGoogle
@@ -571,7 +499,7 @@ void DesktopClient::loginGoogle()
 		return;
 	}
 
-	if (!m_googleAuthenticator) {
+	/*if (!m_googleAuthenticator) {
 		messageError(tr("A Google OAuth2 provider nem elérhető!"));
 		return;
 	}
@@ -595,7 +523,7 @@ void DesktopClient::loginGoogle()
 													 { QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
 												 }));
 
-	flow->setPage(page);
+	flow->setPage(page);*/
 }
 
 
@@ -610,7 +538,7 @@ void DesktopClient::registrationGoogle(const QString &code)
 		return;
 	}
 
-	if (!m_googleAuthenticator) {
+	/*if (!m_googleAuthenticator) {
 		messageError(tr("A Google OAuth2 provider nem elérhető!"));
 		return;
 	}
@@ -634,49 +562,13 @@ void DesktopClient::registrationGoogle(const QString &code)
 													 { QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
 												 }));
 
-	flow->setPage(page);
+	flow->setPage(page);*/
 }
 
 
 
 
 
-
-
-
-/**
- * @brief DesktopCodeFlow::onAuthSuccess
- * @param data
- */
-
-void DesktopCodeFlow::onAuthSuccess(const QVariantMap &data)
-{
-	LOG_CINFO("oauth2") << "Authentication success";
-
-	if (!m_client) {
-		LOG_CERROR("oauth2") << "Missing client";
-		return;
-	}
-
-	QJsonObject o;
-
-	switch (m_mode) {
-	case Login:
-		o[QStringLiteral("func")] = QStringLiteral("loginGoogle");
-		break;
-	case Registration:
-		o[QStringLiteral("func")] = QStringLiteral("registrationGoogle");
-		o[QStringLiteral("code")] = m_internalData.value(QStringLiteral("code")).toString();
-		break;
-	}
-
-	o[QStringLiteral("access_token")] = data.value(QStringLiteral("access_token")).toString();
-
-	m_client->Client::m_internalHandler->sendRequest(WebSocketMessage::ClassAuth, o);
-
-	if (m_page)
-		m_client->stackPop(m_page);
-}
 
 
 
@@ -692,16 +584,3 @@ int DesktopClient::serverListSelectedCount() const
 }
 
 
-
-
-/**
- * @brief DesktopInternalHandler::getGoogleLocalClientId
- * @param json
- */
-
-void DesktopInternalHandler::getGoogleLocalClientId(const QJsonObject &json) const
-{
-	if (!m_desktopClient->m_googleAuthenticator)
-		m_desktopClient->createGoogleAuthenticator(json.value(QStringLiteral("clientId")).toString(),
-												   json.value(QStringLiteral("clientKey")).toString());
-}

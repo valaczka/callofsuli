@@ -83,13 +83,6 @@ QDeferred<RankList> GeneralHandler::getRankList() const
 
 
 
-#define _SQL_get_user	\
-	"SELECT user.username, familyName, givenName, active, classid, class.name as className, isTeacher, isAdmin, isPanel," \
-	"nickname, character, picture, xp, rankid FROM user " \
-	"LEFT JOIN class ON (class.id=user.classid) " \
-	"LEFT JOIN userRank ON (userRank.username=user.username) "
-
-
 /**
  * @brief GeneralHandler::getUserListGroup
  * @param id

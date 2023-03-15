@@ -86,9 +86,9 @@ public:
 
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
-	WebServer *webSocketServer() const;
+	WebServer *webServer() const;
 
-	OAuth2Authenticator *oauth2Authenticator(const OAuth2Authenticator::Type &type) const;
+	OAuth2Authenticator *oauth2Authenticator(const char *type) const;
 
 	const QString &serverName() const;
 	void setServerName(const QString &newServerName);
@@ -96,6 +96,8 @@ public:
 	ServerConfig &config();
 
 	const QVector<QPointer<OAuth2Authenticator>> &authenticators() const;
+
+	QNetworkAccessManager *networkManager() const;
 
 signals:
 	void configChanged();
@@ -131,6 +133,8 @@ private:
 	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
 
 	ColorConsoleAppender *m_consoleAppender = nullptr;
+
+	QNetworkAccessManager *const m_networkManager = nullptr;
 };
 
 

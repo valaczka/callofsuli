@@ -46,54 +46,60 @@ AbstractAPI::AbstractAPI(ServerService *service)
 
 void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QString &parameters)
 {
-	QString func;
-	QString params;
-	QJsonObject data;
+	if (m_validateRole != Credential::Role::None) {
+		LOG_CTRACE("client") << "Validate role:" << m_validateRole;
 
-	QRegularExpression exp(QStringLiteral("^(\\w+)/(.*)$"));
-	const QRegularExpressionMatch &match = exp.match(parameters);
+		const Credential &credential = authorize(request);
 
-	if (match.hasMatch()) {
-		func = match.captured(1);
-		params = match.captured(2);
-	} else {
-		QRegularExpression exp(QStringLiteral("^(\\w+)$"));
-		const QRegularExpressionMatch &match = exp.match(parameters);
+		if (!credential.isValid()) {
+			LOG_CWARNING("client") << "Unauthorized request:" << request->uriStr();
+			return response->setError(HttpStatus::Unauthorized, QStringLiteral("invalid token"));
+		}
 
-		if (match.hasMatch()) {
-			func = match.captured(1);
+		if (!validate(request, m_validateRole)) {
+			LOG_CWARNING("client") << "Permission denied:" << m_validateRole << request->uriStr();
+			return response->setError(HttpStatus::Forbidden, QStringLiteral("permission denied"));
 		}
 	}
 
-	if (func.isEmpty()) {
-		LOG_CWARNING("client") << "Invalid api request:" << request->uriStr();
-		return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
+	QJsonObject data;
+
+	QVector<AbstractAPI::Map>::const_iterator it = m_maps.constBegin();
+
+	QRegularExpressionMatch match;
+
+	for (; it != m_maps.constEnd(); ++it) {
+		if (strcmp(it->method, request->method().toLatin1()) == 0) {
+			QRegularExpression r(it->regularExpression);
+			QRegularExpressionMatch m = r.match(parameters);
+			if (m.hasMatch()) {
+				match = m;
+				break;
+			}
+		}
 	}
-
-
-	auto it = findMap(request->method().toLatin1(), func.toLatin1());
 
 	if (it == m_maps.constEnd()) {
 		LOG_CWARNING("client") << "Invalid api function:" << request->uriStr();
-		return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid function"));
+		return responseError(response, "invalid function");
 	}
 
 	const QString &d = request->parseBodyStr();
 
 	if (!d.isEmpty()) {
 		if (request->mimeType().compare("application/json", Qt::CaseInsensitive) != 0)
-			return response->setError(HttpStatus::BadRequest, QStringLiteral("Request body content type must be application/json"));
+			return responseError(response, "Request body content type must be application/json");
 
 		const QJsonDocument &jsonDocument = request->parseJsonBody();
 		if (jsonDocument.isNull())
-			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid json"));
+			return responseError(response, "invalid json");
 
 		data = jsonDocument.object();
 	}
 
-	LOG_CTRACE("client") << "Handle API request:" << func << params << data;
+	LOG_CTRACE("client") << "Handle API request:" << parameters << data;
 
-	it->func(params, data, response);
+	it->func(match, data, response);
 }
 
 
@@ -123,25 +129,6 @@ QLambdaThreadWorker *AbstractAPI::databaseMainWorker() const
 
 
 
-/**
- * @brief AbstractAPI::findMap
- * @param method
- * @param name
- * @return
- */
-
-QVector<AbstractAPI::Map>::const_iterator AbstractAPI::findMap(const char *method, const char *name)
-{
-	QVector<AbstractAPI::Map>::const_iterator it = m_maps.constBegin();
-
-	for (; it != m_maps.constEnd(); ++it) {
-		if (strcmp(it->method, method) == 0 && strcmp(it->name, name) == 0)
-			return it;
-	}
-
-	return it;
-}
-
 
 /**
  * @brief AbstractAPI::responseError
@@ -149,7 +136,7 @@ QVector<AbstractAPI::Map>::const_iterator AbstractAPI::findMap(const char *metho
  * @param errorStr
  */
 
-void AbstractAPI::responseError(HttpResponse *response, const char *errorStr, const HttpStatus &status) const
+void AbstractAPI::responseError(HttpResponse *response, const char *errorStr) const
 {
 	if (!response) {
 		LOG_CTRACE("client") << "Reponse null";
@@ -160,7 +147,7 @@ void AbstractAPI::responseError(HttpResponse *response, const char *errorStr, co
 		{ QStringLiteral("error"), errorStr }
 	}};
 
-	response->setStatus(status, doc);
+	response->setStatus(HttpStatus::Ok, doc);
 }
 
 
@@ -198,6 +185,65 @@ void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &valu
 	}
 
 	response->setStatus(HttpStatus::Ok, QJsonDocument{value});
+}
+
+
+
+
+/**
+ * @brief AbstractAPI::authorize
+ * @param request
+ * @return
+ */
+
+Credential AbstractAPI::authorize(HttpRequest *request) const
+{
+	LOG_CTRACE("client") << "Authorize request";
+
+	const QString &token = request->headerDefault(QStringLiteral("Authorization"), QString());
+
+	if (token.isEmpty()) {
+		LOG_CTRACE("client") << "Missing token";
+		return Credential();
+	}
+
+	if (!Credential::verify(token, m_service->settings()->jwtSecret())) {
+		LOG_CDEBUG("client") << "Token verification failed";
+		return Credential();
+	}
+
+	Credential c = Credential::fromJWT(token);
+
+	if (!c.isValid())
+		LOG_CDEBUG("client") << "Invalid token";
+
+	return c;
+}
+
+
+/**
+ * @brief AbstractAPI::validate
+ * @param credential
+ * @param role
+ * @return
+ */
+
+bool AbstractAPI::validate(const Credential &credential, const Credential::Role &role) const
+{
+	return (credential.isValid() && credential.roles().testFlag(role));
+}
+
+
+/**
+ * @brief AbstractAPI::validate
+ * @param request
+ * @param role
+ * @return
+ */
+
+bool AbstractAPI::validate(HttpRequest *request, const Credential::Role &role) const
+{
+	return validate(authorize(request), role);
 }
 
 

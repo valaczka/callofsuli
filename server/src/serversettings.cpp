@@ -51,9 +51,7 @@ void ServerSettings::printConfig() const
 	LOG_CINFO("service") << "SSL:" << m_ssl;
 	LOG_CINFO("service") << "SSL certificate:" << qPrintable(m_certFile);
 	LOG_CINFO("service") << "SSL certificate key:" << qPrintable(m_certKeyFile);
-	LOG_CINFO("service") << "Google OAuth2 listening host:" << qPrintable(m_oauthGoogle.listenHost.toString());
-	LOG_CINFO("service") << "Google OAuth2 listening port:" << m_oauthGoogle.listenPort;
-	LOG_CINFO("service") << "Google OAuth2 listening ssl:" << m_oauthGoogle.ssl;
+	LOG_CINFO("service") << "Google OAuth2 listening path:" << qPrintable(QStringLiteral("/")+m_oauthGoogle.path);
 	LOG_CINFO("service") << "-----------------------------------------------------";
 }
 
@@ -83,6 +81,9 @@ void ServerSettings::loadFromFile(const QString &filename)
 
 	if (s.contains(QStringLiteral("server/jwtSecret")))
 		setJwtSecret(s.value(QStringLiteral("server/jwtSecret")).toString());
+
+	if (s.contains(QStringLiteral("server/redirectHost")))
+		setRedirectHost(s.value(QStringLiteral("server/redirectHost")).toString());
 
 
 	if (s.contains(QStringLiteral("ssl/enabled")))
@@ -133,6 +134,7 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("server/host"), m_listenAddress.toString());
 	s.setValue(QStringLiteral("server/port"), m_listenPort);
 	s.setValue(QStringLiteral("server/jwtSecret"), m_jwtSecret);
+	s.setValue(QStringLiteral("server/redirectHost"), m_redirectHost);
 
 	s.setValue(QStringLiteral("ssl/enabled"), m_ssl);
 	s.setValue(QStringLiteral("ssl/certificate"), m_certFile);
@@ -247,6 +249,17 @@ void ServerSettings::setOauthGoogle(const OAuth &newOauthGoogle)
 	m_oauthGoogle = newOauthGoogle;
 }
 
+const QString &ServerSettings::redirectHost() const
+{
+	return m_redirectHost;
+}
+
+void ServerSettings::setRedirectHost(const QString &newRedirectHost)
+{
+	m_redirectHost = newRedirectHost;
+}
+
+
 
 
 /**
@@ -265,12 +278,7 @@ ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, c
 
 	r.clientId = settings->value(QStringLiteral("clientId")).toString();
 	r.clientKey = settings->value(QStringLiteral("clientKey")).toString();
-	r.listenHost = QHostAddress(settings->value(QStringLiteral("listenHost"), QStringLiteral("0.0.0.0")).toString());
-	r.redirectHost = settings->value(QStringLiteral("redirectHost"), QStringLiteral("0.0.0.0")).toString();
-	r.listenPort = settings->value(QStringLiteral("listenPort"), 0).toUInt();
-	r.ssl = settings->value(QStringLiteral("ssl")).toBool();
-	r.localClientId = settings->value(QStringLiteral("localClientId")).toString();
-	r.localClientKey = settings->value(QStringLiteral("localClientKey")).toString();
+	r.path = settings->value(QStringLiteral("path")).toString();
 
 	settings->endGroup();
 
@@ -291,12 +299,7 @@ void ServerSettings::OAuth::toSettings(QSettings *settings, const QString &group
 
 	settings->setValue(QStringLiteral("clientId"), clientId);
 	settings->setValue(QStringLiteral("clientKey"), clientKey);
-	settings->setValue(QStringLiteral("listenHost"), listenHost.toString());
-	settings->setValue(QStringLiteral("listenPort"), listenPort);
-	settings->setValue(QStringLiteral("redirectHost"), redirectHost);
-	settings->setValue(QStringLiteral("ssl"), ssl);
-	settings->setValue(QStringLiteral("localClientId"), localClientId);
-	settings->setValue(QStringLiteral("localClientKey"), localClientKey);
+	settings->setValue(QStringLiteral("path"), path);
 
 	settings->endGroup();
 }
@@ -313,8 +316,5 @@ void ServerSettings::OAuth::setAuthenticator(OAuth2Authenticator *authenticator)
 
 	authenticator->setClientId(clientId);
 	authenticator->setClientKey(clientKey);
-	authenticator->setListenPort(listenPort);
-	authenticator->setListenAddress(listenHost);
-	authenticator->setRedirectHost(redirectHost);
-
+	authenticator->setPath(path);
 }

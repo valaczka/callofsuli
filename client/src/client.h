@@ -35,12 +35,11 @@
 #include "utils.h"
 #include "websocketmessage.h"
 #include <QAbstractSocket>
-#include "asyncmessagehandler.h"
+#include <QNetworkReply>
 
 class Application;
 class AbstractGame;
 class WebSocket;
-class InternalHandler;
 
 
 /**
@@ -86,7 +85,6 @@ public:
 
 	Q_INVOKABLE bool closeWindow(const bool &forced = false);
 
-	QNetworkAccessManager *networkManager() const;
 	Utils *utils() const;
 	Application *application() const;
 
@@ -168,17 +166,12 @@ public:
 	// WebSocket
 
 	WebSocket *webSocket() const;
-	Q_INVOKABLE void sendRequest(const WebSocketMessage::ClassHandler &classHandler, const QJsonObject &json);
 
 	Server *server() const;
 
 	Q_INVOKABLE void connectToServer(Server *server);
 
 	void stackPopToStartPage();
-
-	void addMessageHandler(AsyncMessageHandler *handler);
-	void removeMessageHandler(AsyncMessageHandler *handler);
-	void handleMessage(const WebSocketMessage &message);
 
 
 	// Login
@@ -201,18 +194,16 @@ protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
 
-	virtual void onWebSocketError(const QAbstractSocket::SocketError &error);
+	virtual void onWebSocketError(QNetworkReply::NetworkError code);
+	virtual void onWebSocketSslError(const QList<QSslError> &errors);
 	virtual void onServerConnected();
 	virtual void onServerDisconnected();
-	virtual void onServerTerminated();
-	virtual void onServerReconnected();
 
 	virtual void onUserLoggedIn();
 	virtual void onUserLoggedOut();
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
-	virtual bool handleMessageInternal(const WebSocketMessage &message);
 	void _userAuthTokenReceived(const QString &token);
 
 signals:
@@ -235,7 +226,6 @@ protected:
 	QQuickWindow *m_mainWindow = nullptr;
 	bool m_mainWindowClosable = false;
 
-	QNetworkAccessManager *const m_networkManager;
 	Utils *const m_utils;
 	AbstractGame *m_currentGame = nullptr;
 	WebSocket *const m_webSocket;
@@ -245,43 +235,9 @@ protected:
 	qreal m_safeMarginTop = 0;
 	qreal m_safeMarginBottom = 0;
 
-	QVector<QPointer<AsyncMessageHandler>> m_messageHandlers;
-
 	QQuickItem *m_startPage = nullptr;
 	QQuickItem *m_mainPage = nullptr;
-
-	InternalHandler *m_internalHandler = nullptr;
-	friend class InternalHandler;
-
 };
 
-
-
-/**
- * @brief The InternalHandler class
- */
-
-class InternalHandler : public AsyncMessageHandler
-{
-	Q_OBJECT
-
-public:
-	explicit InternalHandler(Client *client) : AsyncMessageHandler(client) {}
-	virtual ~InternalHandler() {}
-
-public slots:
-	void getConfig(const QJsonObject &json) const;
-	void rankList(const QJsonObject &json) const;
-	void loginPlain(const QJsonObject &json) const;
-	void loginGoogle(const QJsonObject &json) const;
-	void loginToken(const QJsonObject &json) const { loginPlain(json); }
-	void logout(const QJsonObject &json) const;
-
-	void registrationPlain(const QJsonObject &json) const;
-	void registrationGoogle(const QJsonObject &json) const;
-
-	void me(const QJsonObject &json) const;
-
-};
 
 #endif // CLIENT_H

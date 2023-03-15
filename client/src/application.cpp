@@ -68,7 +68,7 @@
 #include "gamequestion.h"
 #include "mapplay.h"
 #include "websocket.h"
-#include "asyncmessagehandler.h"
+
 
 
 const int Application::m_versionMajor = VERSION_MAJOR;
@@ -321,7 +321,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
-	qmlRegisterUncreatableType<WebSocketMessage>("CallOfSuli", 1, 0, "WebSocketMessage", "WebSocketMessage is uncreatable");
+	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
@@ -335,7 +335,6 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
-	qmlRegisterType<AsyncMessageHandler>("CallOfSuli", 1, 0, "AsyncMessageHandler");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");

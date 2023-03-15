@@ -33,6 +33,8 @@
 #include "selectableobject.h"
 #include <random>
 
+const quint32 Utils::m_versionMajor = COS_VERSION_MAJOR;
+const quint32 Utils::m_versionMinor = COS_VERSION_MINOR;
 
 
 #ifdef Q_OS_ANDROID
@@ -470,5 +472,51 @@ int Utils::selectedCount(qolm::QOlmBase *list)
 
 	return num;
 }
-
 #endif
+
+/**
+ * @brief Utils::versionMajor
+ * @return
+ */
+
+quint32 Utils::versionMajor()
+{
+	return m_versionMajor;
+}
+
+
+/**
+ * @brief Utils::versionMinor
+ * @return
+ */
+
+quint32 Utils::versionMinor()
+{
+	return m_versionMinor;
+}
+
+
+/**
+ * @brief Utils::versionCode
+ * @return
+ */
+
+quint32 Utils::versionCode()
+{
+	return (1000*m_versionMajor)+m_versionMinor;
+}
+
+
+/**
+ * @brief Utils::versionCode
+ * @param major
+ * @param minor
+ * @return
+ */
+
+quint32 Utils::versionCode(const int &major, const int &minor)
+{
+	return (1000*major)+minor;
+}
+
+
