@@ -289,6 +289,59 @@ void DesktopClient::onStartPageLoaded()
 
 
 /**
+ * @brief DesktopClient::onOAuthFinished
+ */
+
+void DesktopClient::onOAuthFinished()
+{
+	LOG_CTRACE("client") << "Desktop OAuth finished";
+
+	m_oauthData.status = OAuthData::Invalid;
+	m_oauthData.state = "";
+	m_oauthData.code = "";
+	m_oauthData.path = "";
+	m_oauthData.type = OAuthData::Login;
+	m_oauthData.timer.stop();
+	if (m_oauthData.webPage)
+		stackPop(m_oauthData.webPage);
+}
+
+
+/**
+ * @brief DesktopClient::onOAuthStarted
+ * @param url
+ */
+
+void DesktopClient::onOAuthStarted(const QUrl &url)
+{
+	LOG_CTRACE("client") << "Desktop OAuth started:" << url;
+
+	QString title;
+
+	switch (m_oauthData.type) {
+	case Client::OAuthData::Login:
+		title = tr("Bejelentkezés");
+		break;
+	case Client::OAuthData::Registration:
+		title = tr("Regisztráció");
+		break;
+	}
+
+	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
+									 QVariantMap({
+													 { QStringLiteral("url"), url },
+													 { QStringLiteral("title"), title }
+												 }));
+
+	connect(page, &QQuickItem::destroyed, this, [this](){m_oauthData.webPage = nullptr;});
+
+	m_oauthData.webPage = page;
+	m_oauthData.status = OAuthData::Pending;
+	m_oauthData.timer.start();
+}
+
+
+/**
  * @brief DesktopClient::serverListLoad
  * @param dir
  */
@@ -492,14 +545,7 @@ bool DesktopClient::serverDeleteSelected()
  * @brief DesktopClient::loginGoogle
  */
 
-void DesktopClient::loginGoogle()
-{
-	if (m_webSocket->state() != WebSocket::Connected) {
-		messageWarning(tr("A szerver jelenleg nem elérhető!"));
-		return;
-	}
-
-	/*if (!m_googleAuthenticator) {
+/*if (!m_googleAuthenticator) {
 		messageError(tr("A Google OAuth2 provider nem elérhető!"));
 		return;
 	}
@@ -524,21 +570,14 @@ void DesktopClient::loginGoogle()
 												 }));
 
 	flow->setPage(page);*/
-}
 
 
-/**
- * @brief DesktopClient::registrationGoogle
- */
 
-void DesktopClient::registrationGoogle(const QString &code)
-{
-	if (m_webSocket->state() != WebSocket::Connected) {
-		messageWarning(tr("A szerver jelenleg nem elérhető!"));
-		return;
-	}
 
-	/*if (!m_googleAuthenticator) {
+
+
+
+/*if (!m_googleAuthenticator) {
 		messageError(tr("A Google OAuth2 provider nem elérhető!"));
 		return;
 	}
@@ -563,7 +602,6 @@ void DesktopClient::registrationGoogle(const QString &code)
 												 }));
 
 	flow->setPage(page);*/
-}
 
 
 

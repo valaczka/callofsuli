@@ -31,9 +31,10 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
+#include "qtimer.h"
 #include "server.h"
 #include "utils.h"
-#include "websocketmessage.h"
+#include "websocket.h"
 #include <QAbstractSocket>
 #include <QNetworkReply>
 
@@ -71,6 +72,34 @@ class Client : public QObject
 public:
 	explicit Client(Application *app, QObject *parent = nullptr);
 	virtual ~Client();
+
+
+	/**
+	 * @brief The OAuthData class
+	 */
+
+	struct OAuthData {
+		enum Type {
+			Login,
+			Registration
+		};
+
+		enum Status {
+			Invalid,
+			UrlReceived,
+			Pending,
+			Failed,
+			Success
+		};
+
+		QString path;
+		QString state;
+		QString code;
+		Type type = Login;
+		Status status = Invalid;
+		QTimer timer;
+		QPointer<QQuickItem> webPage = nullptr;
+	};
 
 	QQuickItem *mainStack() const;
 	void setMainStack(QQuickItem *newMainStack);
@@ -165,7 +194,8 @@ public:
 
 	// WebSocket
 
-	WebSocket *webSocket() const;
+	Q_INVOKABLE WebSocket *webSocket() const;
+	Q_INVOKABLE WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {}) const;
 
 	Server *server() const;
 
@@ -176,15 +206,15 @@ public:
 
 	// Login
 
-	Q_INVOKABLE virtual void loginGoogle();
-	Q_INVOKABLE virtual void registrationGoogle(const QString &code);
+	Q_INVOKABLE void loginGoogle();
+	Q_INVOKABLE void registrationGoogle(const QString &code);
 
-	Q_INVOKABLE virtual void loginPlain(const QString &username, const QString &password);
-	Q_INVOKABLE virtual void registrationPlain(const QJsonObject &data);
+	Q_INVOKABLE void loginPlain(const QString &username, const QString &password);
+	Q_INVOKABLE void registrationPlain(const QJsonObject &data);
 
-	Q_INVOKABLE virtual bool loginToken();
+	Q_INVOKABLE bool loginToken();
 
-	Q_INVOKABLE virtual void logout();
+	Q_INVOKABLE void logout();
 
 	// Cached lists
 
@@ -195,12 +225,23 @@ protected slots:
 	friend class Application;
 
 	virtual void onWebSocketError(QNetworkReply::NetworkError code);
+#ifndef QT_NO_SSL
 	virtual void onWebSocketSslError(const QList<QSslError> &errors);
+#endif
 	virtual void onServerConnected();
 	virtual void onServerDisconnected();
 
 	virtual void onUserLoggedIn();
 	virtual void onUserLoggedOut();
+
+	virtual void onOAuthFinished();
+	virtual void onOAuthStarted(const QUrl &url);
+	virtual void onOAuthPendingTimer();
+
+private slots:
+	void onLoginSuccess(const QJsonObject &json);
+	void onLoginFailed(const QString &error);
+	void onOAuthLoginStateChanged(const QJsonObject &json);
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
@@ -237,6 +278,8 @@ protected:
 
 	QQuickItem *m_startPage = nullptr;
 	QQuickItem *m_mainPage = nullptr;
+
+	OAuthData m_oauthData;
 };
 
 

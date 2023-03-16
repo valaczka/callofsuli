@@ -62,9 +62,6 @@ public:
 	Q_INVOKABLE bool serverDelete(Server *server);
 	Q_INVOKABLE bool serverDeleteSelected();
 
-	Q_INVOKABLE virtual void loginGoogle() override;
-	Q_INVOKABLE virtual void registrationGoogle(const QString &code) override;
-
 	int serverListSelectedCount() const;
 
 public slots:
@@ -76,6 +73,8 @@ public slots:
 
 protected slots:
 	void onStartPageLoaded();
+	void onOAuthFinished() override;
+	void onOAuthStarted(const QUrl &url) override;
 
 private slots:
 	void onMainWindowChanged();

@@ -50,11 +50,10 @@ public:
 	virtual ~AbstractAPI() {}
 
 	struct Map {
-		const char *method;
 		const char *regularExpression;
 		ApiMapFunction func;
 
-		Map(const char *m, const char *n, ApiMapFunction f) : method(m), regularExpression(n), func(f) {}
+		Map(const char *n, ApiMapFunction f) : regularExpression(n), func(f) {}
 	};
 
 	virtual void handle(HttpRequest *request, HttpResponse *response, const QString &parameters);
@@ -65,10 +64,10 @@ public:
 
 
 	template <typename T>
-	void addMap(const char *method, const char *regularExpression, T *inst,
+	void addMap(const char *regularExpression, T *inst,
 				void (T::*handler)(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>) const)
 	{
-		Map m = {method, regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
+		Map m = {regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
 		m_maps.append(m);
 	}
 
@@ -85,6 +84,7 @@ public:
 protected:
 	QVector<Map> m_maps;
 	ServerService *m_service = nullptr;
+	Credential m_credential;
 	Credential::Role m_validateRole = Credential::Role::None;
 };
 

@@ -24,8 +24,10 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "application.h"
 #include "websocket.h"
 #include "client.h"
+#include "qjsengine.h"
 #include "qnetworkreply.h"
 #include "Logger.h"
 #include "qtimer.h"
@@ -129,23 +131,26 @@ void WebSocket::connectToServer(Server *server)
 	else
 		setServer(server);
 
+#ifdef Q_OS_WASM
+	if (!server) {
+		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
+		return;
+	}
+#else
 	if (!server || server->url().isEmpty()) {
 		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
 		return;
 	}
+#endif
 
 	LOG_CDEBUG("websocket") << "Connect to server:" << server->url();
 
 	setState(Connecting);
 
-	WebSocketReply *reply = send(ApiGeneral, "config");
-
-	connect(reply, &WebSocketReply::success, reply, [this](WebSocketReply *r){
+	send(ApiGeneral, "config")->done([this](const QJsonObject &){
 		if (m_server)
 			LOG_CINFO("websocket") << "Connected to server:" << m_server->url();
 		setState(Connected);
-
-		LOG_CTRACE("websocket") << "INFO" << r->getContentJson();
 	});
 
 }
@@ -243,7 +248,7 @@ QNetworkAccessManager *WebSocket::networkManager() const
  * @return
  */
 
-WebSocketReply *WebSocket::send(const Method &method, const API &api, const QString &path, const QJsonObject &data)
+WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJsonObject &data)
 {
 	Q_ASSERT (m_networkManager);
 
@@ -269,28 +274,16 @@ WebSocketReply *WebSocket::send(const Method &method, const API &api, const QStr
 		return nullptr;
 	}
 
-	QHash<Method, const char*> methods;
-	methods[Get] = "GET";
-	methods[Post] = "POST";
-	methods[Put] = "PUT";
-	methods[Delete] = "DELETE";
-
-	if (!methods.contains(method)) {
-		m_client->messageError(tr("Invalid method"));
-		return nullptr;
-	}
-
 	QUrl url = m_server->url();
 	url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
 	QNetworkRequest r(url);
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-	QNetworkReply *reply = m_networkManager->sendCustomRequest(r, methods.value(method), QJsonDocument(data).toJson());
+	QNetworkReply *reply = m_networkManager->post(r, QJsonDocument(data).toJson());
 
 	WebSocketReply *wr = new WebSocketReply(reply, this);
 	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
-	connect(wr, &WebSocketReply::aborted, this, &WebSocket::checkPending);
 	return wr;
 }
 
@@ -336,7 +329,7 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 	connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
 		m_pending = false;
 		emit failed(this);
-		emit finished(this);
+		emit finished();
 		emit m_socket->socketSslErrors(e);
 	});
 #endif
@@ -344,7 +337,7 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 	connect(m_reply, &QNetworkReply::errorOccurred, m_socket, [this](QNetworkReply::NetworkError e){
 		m_pending = false;
 		emit failed(this);
-		emit finished(this);
+		emit finished();
 		emit m_socket->socketError(e);
 	});
 
@@ -368,16 +361,6 @@ WebSocketReply::~WebSocketReply()
 }
 
 
-/**
- * @brief WebSocketReply::networkReply
- * @return
- */
-
-QNetworkReply *WebSocketReply::networkReply() const
-{
-	return m_reply;
-}
-
 
 /**
  * @brief WebSocketReply::abort
@@ -387,7 +370,6 @@ void WebSocketReply::abort()
 {
 	m_pending = false;
 
-	emit aborted(this);
 	emit failed(this);
 
 	LOG_CTRACE("websocket") << "Abort" << this;
@@ -395,7 +377,9 @@ void WebSocketReply::abort()
 	if (m_reply && !m_reply->isFinished() && m_reply->error() == QNetworkReply::NoError)
 		m_reply->abort();
 
-	done();
+	emit finished();
+
+	close();
 }
 
 
@@ -403,11 +387,20 @@ void WebSocketReply::abort()
  * @brief WebSocketReply::done
  */
 
-void WebSocketReply::done()
+void WebSocketReply::close()
 {
 	LOG_CTRACE("websocket") << "WebSocketReply done" << this;
 	deleteLater();
 }
+
+
+/**
+ * @brief WebSocketReply::done
+ * @param func
+ * @return
+ */
+
+
 
 
 /**
@@ -424,23 +417,57 @@ void WebSocketReply::onReplyFinished()
 
 	LOG_CTRACE("websocket") << "WebSocketReply finished" << error << this;
 
-	if (m_reply->isReadable()) {
-		m_content = m_reply->readAll();
-		m_contentJson = QJsonDocument::fromJson(m_content).object();
-
-		if (!m_contentJson.isEmpty() && m_contentJson.contains(QStringLiteral("error")))
-			m_errorString = m_contentJson.value(QStringLiteral("error")).toString();
+	if (error != QNetworkReply::NoError) {
+		emit finished();
+		return;
 	}
 
-	if (error == QNetworkReply::NoError)
-		emit success(this);
-	else
-		emit failed(this);
+	QJsonObject contentJson;
+	QString errorString;
 
-	emit finished(this);
+	if (m_reply->isReadable()) {
+		contentJson = QJsonDocument::fromJson(m_reply->readAll()).object();
 
-	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::done);
+		if (!contentJson.isEmpty() && contentJson.contains(QStringLiteral("error")))
+			errorString = contentJson.value(QStringLiteral("error")).toString();
+	}
+
+
+
+
+	if (errorString.isEmpty()) {
+		foreach (const std::function<void (const QJsonObject &)> &func, m_funcs)
+			func(contentJson);
+
+		QJSValueList list;
+
+		QJSEngine *engine = qjsEngine(Application::instance()->client());
+
+		if (engine)
+			list = {engine->toScriptValue<QJsonObject>(contentJson)};
+		else
+			LOG_CERROR("websocket") << "Invalid JSEngine";
+
+		foreach (QJSValue v, m_jsvalues)
+			v.call(list);
+	} else {
+		foreach (const std::function<void (const QString &)> &func, m_funcsFail)
+			func(errorString);
+
+		foreach (QJSValue v, m_jsvaluesFail)
+			v.call({errorString});
+	}
+
+	emit finished();
+
+	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
 }
+
+
+/**
+ * @brief WebSocketReply::pending
+ * @return
+ */
 
 bool WebSocketReply::pending() const
 {
@@ -448,61 +475,36 @@ bool WebSocketReply::pending() const
 }
 
 
-
 /**
- * @brief WebSocketReply::hasNetworkError
+ * @brief WebSocketReply::done
+ * @param v
  * @return
  */
 
-bool WebSocketReply::hasNetworkError() const
+WebSocketReply *WebSocketReply::done(const QJSValue &v)
 {
-	return m_reply && m_reply->error();
+	if (!v.isCallable())
+		LOG_CERROR("websocket") << "QJSValue isn't callable";
+	else
+		m_jsvalues.append(v);
+	return this;
 }
 
 
 /**
- * @brief WebSocketReply::networkError
+ * @brief WebSocketReply::fail
+ * @param v
  * @return
  */
 
-QNetworkReply::NetworkError WebSocketReply::networkError() const
+WebSocketReply *WebSocketReply::fail(const QJSValue &v)
 {
-	return m_reply ? m_reply->error() : QNetworkReply::UnknownServerError;
+	if (!v.isCallable())
+		LOG_CERROR("websocket") << "QJSValue isn't callable";
+	else
+		m_jsvaluesFail.append(v);
+	return this;
 }
 
 
-/**
- * @brief WebSocketReply::getErrorString
- * @return
- */
-
-QString WebSocketReply::getErrorString()
-{
-	done();
-	return m_errorString;
-}
-
-
-/**
- * @brief WebSocketReply::getContent
- * @return
- */
-
-QByteArray WebSocketReply::getContent()
-{
-	done();
-	return m_content;
-}
-
-
-/**
- * @brief WebSocketReply::getContentJson
- * @return
- */
-
-QJsonObject WebSocketReply::getContentJson()
-{
-	done();
-	return m_contentJson;
-}
 

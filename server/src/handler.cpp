@@ -72,7 +72,7 @@ Handler::~Handler()
 
 void Handler::handle(HttpRequest *request, HttpResponse *response)
 {
-	LOG_CTRACE("client") << "Request:" << request->method() << request->uriStr();
+	LOG_CDEBUG("client") << "Request:" << request->method() << request->uriStr() << request->address().toString();
 
 	const QString &method = request->method();
 	const QString &uri = request->uriStr();
@@ -164,17 +164,19 @@ void Handler::getWasmContent(QString uri, HttpResponse *response)
 
 void Handler::handleApi(HttpRequest *request, HttpResponse *response)
 {
-	QRegularExpression exp(QStringLiteral("^/api/(\\w+)/(.*)$"));
-	QRegularExpressionMatch match = exp.match(request->uriStr());
+	if (request->method() == QLatin1String("GET") || request->method() == QLatin1String("POST")) {
+		QRegularExpression exp(QStringLiteral("^/api/(\\w+)/(.*)$"));
+		QRegularExpressionMatch match = exp.match(request->uriStr());
 
-	if (match.hasMatch()) {
-		const QString &api = match.captured(1);
-		const QString &params = match.captured(2);
+		if (match.hasMatch()) {
+			const QString &api = match.captured(1);
+			const QString &params = match.captured(2);
 
-		for (auto it = m_apiHandlers.constBegin(); it != m_apiHandlers.constEnd(); ++it) {
-			if (it.key() == api) {
-				it.value()->handle(request, response, params);
-				return;
+			for (auto it = m_apiHandlers.constBegin(); it != m_apiHandlers.constEnd(); ++it) {
+				if (it.key() == api) {
+					it.value()->handle(request, response, params);
+					return;
+				}
 			}
 		}
 	}

@@ -37,17 +37,20 @@
 GeneralAPI::GeneralAPI(ServerService *service)
 	: AbstractAPI(service)
 {
-	addMap("GET", "^config/*$", this, &GeneralAPI::config);
+	addMap("^config/*$", this, &GeneralAPI::config);
 
-	addMap("GET", "^rank/*$", this, &GeneralAPI::ranks);
-	addMap("GET", "^rank/(\\d+)/*$", this, &GeneralAPI::rank);
+	addMap("^rank/*$", this, &GeneralAPI::ranks);
+	addMap("^rank/(\\d+)/*$", this, &GeneralAPI::rank);
 
-	addMap("GET", "^class/*$", this, &GeneralAPI::classes);
-	addMap("GET", "^class/(\\d+)/*$", this, &GeneralAPI::classOne);
-	addMap("GET", "^class/(\\d+)/users/*$", this, &GeneralAPI::classUsers);
+	addMap("^class/*$", this, &GeneralAPI::classes);
+	addMap("^class/(\\d+)/*$", this, &GeneralAPI::classOne);
+	addMap("^class/(\\d+)/users/*$", this, &GeneralAPI::classUsers);
 
-	addMap("GET", "^user/*$", this, &GeneralAPI::users);
-	addMap("GET", "^user/(.+)/*$", this, &GeneralAPI::user);
+	addMap("^user/*$", this, &GeneralAPI::users);
+	addMap("^user/(.+)/*$", this, &GeneralAPI::user);
+
+	addMap("^user/me/*$", this, &GeneralAPI::userMe);
+	addMap("^me/*$", this, &GeneralAPI::userMe);
 }
 
 
@@ -239,6 +242,28 @@ void GeneralAPI::classUsers(const QRegularExpressionMatch &match, const QJsonObj
 			.done([this, response](QJsonArray list) {
 		responseAnswer(response, "list", list);
 	});
+}
+
+
+
+
+
+/**
+ * @brief GeneralAPI::userMe
+ * @param match
+ * @param response
+ */
+
+void GeneralAPI::userMe(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	LOG_CTRACE("client") << "Get me";
+
+	if (!m_credential.isValid()) {
+		LOG_CWARNING("client") << "Unauthorized request";
+		return responseError(response, "unauthorized");
+	}
+
+	user(m_credential.username(), response);
 }
 
 

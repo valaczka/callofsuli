@@ -54,6 +54,7 @@ public:
 	{ user(match.captured(1), response); }
 	void users(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
 	{ user(QLatin1String(""), response); }
+	void userMe(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void user(const QString &username, const QPointer<HttpResponse> &response) const;
 
 

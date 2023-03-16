@@ -96,7 +96,6 @@ void OnlineClient::onResourceDownloaded()
 			const QJsonArray &resources = o.value(QStringLiteral("resources")).toArray();
 
 			Server *s = new Server(this);
-			s->setUrl(o.value(QStringLiteral("url")).toString());
 			m_webSocket->setServer(s);
 
 
@@ -111,7 +110,7 @@ void OnlineClient::onResourceDownloaded()
 				LOG_CDEBUG("client") << "Letöltendő erőforrások:" << m_resourceList;
 
 				foreach (const QString &s, m_resourceList) {
-					QNetworkReply *r = m_networkManager->get(QNetworkRequest(QUrl(s)));
+					QNetworkReply *r = m_webSocket->networkManager()->get(QNetworkRequest(QUrl(s)));
 					connect(r, &QNetworkReply::finished, this, &OnlineClient::onResourceDownloaded);
 				}
 			}

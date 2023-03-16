@@ -33,7 +33,7 @@
 #include <QNetworkReply>
 #include <QAbstractSocket>
 
-#define WEBSOCKETREPLY_DELETE_AFTER_MSEC	6000 //00
+#define WEBSOCKETREPLY_DELETE_AFTER_MSEC	20000
 
 class Client;
 class WebSocketReply;
@@ -65,20 +65,6 @@ public:
 	};
 
 	Q_ENUM(State);
-
-
-	///
-	/// \brief The Method enum
-	///
-
-	enum Method {
-		Get,
-		Post,
-		Put,
-		Delete
-	};
-
-	Q_ENUM(Method);
 
 
 	///
@@ -115,10 +101,7 @@ public slots:
 	void close();
 	void abort();
 
-	WebSocketReply *send(const WebSocket::Method &method, const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
-	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {}) {
-		return send(Get, api, path, data);
-	}
+	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 
 private slots:
 	void checkPending();
@@ -129,7 +112,9 @@ private:
 signals:
 	void serverConnected();
 	void serverDisconnected();
+#ifndef QT_NO_SSL
 	void socketSslErrors(const QList<QSslError> &errors);
+#endif
 	void socketError(QNetworkReply::NetworkError code);
 	void stateChanged();
 	void serverChanged();
@@ -163,39 +148,63 @@ public:
 	explicit WebSocketReply(QNetworkReply *reply, WebSocket *socket);
 	virtual ~WebSocketReply();
 
-	QNetworkReply* networkReply() const;
-
-	bool hasNetworkError() const;
-	QNetworkReply::NetworkError networkError() const;
-
-	QString getErrorString();
-	QByteArray getContent();
-	QJsonObject getContentJson();
-
 	bool pending() const;
+
+	// Done
+
+	WebSocketReply *done(const std::function<void (const QJsonObject &)> &func)
+	{
+		m_funcs.append(func);
+		return this;
+	}
+
+	template <typename T>
+	WebSocketReply *done(T *inst, void (T::*func)(const QJsonObject &)) {
+		m_funcs.append(std::bind(func, inst, std::placeholders::_1));
+		return this;
+	}
+
+	Q_INVOKABLE WebSocketReply *done(const QJSValue &v);
+
+
+	// Fail
+
+	WebSocketReply *fail(const std::function<void (const QString &)> &func)
+	{
+		m_funcsFail.append(func);
+		return this;
+	}
+
+	template <typename T>
+	WebSocketReply *fail(T *inst, void (T::*func)(const QString &)) {
+		m_funcsFail.append(std::bind(func, inst, std::placeholders::_1));
+		return this;
+	}
+
+	Q_INVOKABLE WebSocketReply *fail(const QJSValue &v);
+
 
 public slots:
 	void abort();
-	void done();
+	void close();
 
 private slots:
 	void onReplyFinished();
 
 signals:
-	void success(WebSocketReply *reply);
+	void finished();
 	void failed(WebSocketReply *reply);
-	void aborted(WebSocketReply *reply);
-	void finished(WebSocketReply *reply);
-
 
 private:
 	QPointer<QNetworkReply> m_reply = nullptr;
 	WebSocket *const m_socket = nullptr;
-	QByteArray m_content;
-	QJsonObject m_contentJson;
-	QString m_errorString;
 	bool m_pending = true;
+	QVector<std::function<void (const QJsonObject &)>> m_funcs;
+	QJSValueList m_jsvalues;
+	QVector<std::function<void (const QString &)>> m_funcsFail;
+	QJSValueList m_jsvaluesFail;
 };
+
 
 Q_DECLARE_METATYPE(WebSocket::API)
 

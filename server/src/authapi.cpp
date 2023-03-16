@@ -37,8 +37,8 @@
 AuthAPI::AuthAPI(ServerService *service)
 	: AbstractAPI(service)
 {
-	addMap("GET", "^login/*$", this, &AuthAPI::login);
-	addMap("GET", "^login/(\\w+)/*$", this, &AuthAPI::loginOAuth2);
+	addMap("^login/*$", this, &AuthAPI::login);
+	addMap("^login/(\\w+)/*$", this, &AuthAPI::loginOAuth2);
 }
 
 
@@ -53,11 +53,40 @@ void AuthAPI::login(const QRegularExpressionMatch &, const QJsonObject &data, QP
 {
 	LOG_CTRACE("client") << "Login";
 
+	const QString &token = data.value(QStringLiteral("token")).toString();
 	const QString &username = data.value(QStringLiteral("username")).toString();
 	const QString &password = data.value(QStringLiteral("password")).toString();
 
-	if (username.isEmpty() || password.isEmpty())
+	if (token.isEmpty() && (username.isEmpty() || password.isEmpty()))
 		return responseError(response, "missing username/password");
+
+	if (!token.isEmpty()) {
+		if (!Credential::verify(token, m_service->settings()->jwtSecret())) {
+			LOG_CDEBUG("client") << "Token verification failed";
+			return responseError(response, "invalid token");
+		}
+
+		Credential c = Credential::fromJWT(token);
+
+		if (!c.isValid()) {
+			LOG_CDEBUG("client") << "Invalid JWT";
+			return responseError(response, "invalid token");
+		}
+
+		const QString &username = c.username();
+
+		getCredential(username)
+				.fail([this, response](Credential){
+			responseError(response, "invalid user");
+		})
+				.done([this, response](Credential c){
+			responseAnswer(response, getToken(c));
+		});
+
+		return;
+	}
+
+	// Without token
 
 	getCredential(username)
 			.fail([this, response](Credential){
@@ -328,6 +357,7 @@ QJsonObject AuthAPI::getToken(const Credential &credential) const
 	LOG_CINFO("client") << "Create token:" << qPrintable(credential.username()) << credential.roles();
 
 	return QJsonObject({
+						   { QStringLiteral("status"), QStringLiteral("ok") },
 						   { QStringLiteral("auth_token"), credential.createJWT(m_service->settings()->jwtSecret()) }
 					   });
 }

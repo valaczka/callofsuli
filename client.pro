@@ -18,12 +18,9 @@ SUBDIRS += \
 linux|win32|mac:!android:!ios {
 	if($$CreateBundle):	SUBDIRS += bundle-client
 } else:wasm: {
-	if($$CreateBundle):	{
-		SUBDIRS += bundle-client
-		bundle-client.file = bundle-client/bundle-client-wasm.pro
-	}
+	SUBDIRS += bundle-client
+	bundle-client.file = bundle-client/bundle-client-wasm.pro
 }
-
 
 CONFIG += ordered
 

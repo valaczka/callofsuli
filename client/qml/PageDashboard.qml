@@ -46,7 +46,7 @@ QPage {
 	}
 
 
-	AsyncMessageHandler {
+	/*AsyncMessageHandler {
 		id: teacherHandler
 
 		function groupList(obj : QJsonObject) {
@@ -68,7 +68,7 @@ QPage {
 
 
 	AsyncMessageHandler {
-		id: studentHandler
+		id: studentHandler*/
 
 		/*function groupList(obj : QJsonObject) {
 			if (obj.status === "ok")
@@ -76,7 +76,7 @@ QPage {
 			else
 				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
 		}*/
-	}
+	//}
 
 
 
@@ -227,7 +227,7 @@ QPage {
 		text: qsTr("Létrehozás")
 		icon.source: Qaterial.Icons.plus
 		enabled: Client.server && (Client.server.user.roles & Credential.Teacher)
-		onTriggered: {
+		/*onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Csoport neve"),
 														   title: qsTr("Új csoport létrehozása"),
@@ -239,7 +239,7 @@ QPage {
 																							  })
 														   }
 													   })
-		}
+		}*/
 	}
 
 /*
@@ -291,9 +291,9 @@ QPage {
 	}
 */
 	StackView.onActivated: {
-		if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
+		/*if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
 			teacherHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupList")
-		}
+		}*/
 		//msgHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "classList")
 	}
 

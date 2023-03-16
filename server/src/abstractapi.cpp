@@ -46,19 +46,19 @@ AbstractAPI::AbstractAPI(ServerService *service)
 
 void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QString &parameters)
 {
+	m_credential = authorize(request);
+
 	if (m_validateRole != Credential::Role::None) {
 		LOG_CTRACE("client") << "Validate role:" << m_validateRole;
 
-		const Credential &credential = authorize(request);
-
-		if (!credential.isValid()) {
+		if (!m_credential.isValid()) {
 			LOG_CWARNING("client") << "Unauthorized request:" << request->uriStr();
-			return response->setError(HttpStatus::Unauthorized, QStringLiteral("invalid token"));
+			return responseError(response, "unauthorized");
 		}
 
 		if (!validate(request, m_validateRole)) {
 			LOG_CWARNING("client") << "Permission denied:" << m_validateRole << request->uriStr();
-			return response->setError(HttpStatus::Forbidden, QStringLiteral("permission denied"));
+			return responseError(response, "permission denied");
 		}
 	}
 
@@ -69,13 +69,11 @@ void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QSt
 	QRegularExpressionMatch match;
 
 	for (; it != m_maps.constEnd(); ++it) {
-		if (strcmp(it->method, request->method().toLatin1()) == 0) {
-			QRegularExpression r(it->regularExpression);
-			QRegularExpressionMatch m = r.match(parameters);
-			if (m.hasMatch()) {
-				match = m;
-				break;
-			}
+		QRegularExpression r(it->regularExpression);
+		QRegularExpressionMatch m = r.match(parameters);
+		if (m.hasMatch()) {
+			match = m;
+			break;
 		}
 	}
 
@@ -144,8 +142,8 @@ void AbstractAPI::responseError(HttpResponse *response, const char *errorStr) co
 	}
 
 	QJsonDocument doc{QJsonObject{
-		{ QStringLiteral("error"), errorStr }
-	}};
+			{ QStringLiteral("error"), errorStr }
+		}};
 
 	response->setStatus(HttpStatus::Ok, doc);
 }
@@ -198,14 +196,10 @@ void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &valu
 
 Credential AbstractAPI::authorize(HttpRequest *request) const
 {
-	LOG_CTRACE("client") << "Authorize request";
-
 	const QString &token = request->headerDefault(QStringLiteral("Authorization"), QString());
 
-	if (token.isEmpty()) {
-		LOG_CTRACE("client") << "Missing token";
+	if (token.isEmpty())
 		return Credential();
-	}
 
 	if (!Credential::verify(token, m_service->settings()->jwtSecret())) {
 		LOG_CDEBUG("client") << "Token verification failed";
