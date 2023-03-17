@@ -17,31 +17,6 @@ Qaterial.Page
 
 	background: Rectangle { color: "transparent" }
 
-	property bool _loadedFirst: true
-
-	/*AsyncMessageHandler {
-		id: msgHandler
-
-		function userList(obj : QJsonObject) {
-			if (obj.status === "ok")
-				Client.setCache("userScoreList", obj.list)
-			else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}
-
-		function classList(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.loadClassListFromArray(obj.list)
-				if (_loadedFirst) {
-					swipeView.setCurrentIndex(0)
-					_loadedFirst = false
-				}
-			} else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}
-	}*/
-
-
 	SortFilterProxyModel {
 		id: sortedClassList
 		sourceModel: classList
@@ -116,9 +91,9 @@ Qaterial.Page
 						]
 					}
 
-					/*refreshProgressVisible: msgHandler.pending
+					refreshProgressVisible: Client.webSocket.pending
 					refreshEnabled: true
-					onRefreshRequest: msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "userList")*/
+					onRefreshRequest: Client.reloadCache("userScoreList")
 
 					delegate: QLoaderItemDelegate {
 						id: _delegate
@@ -161,10 +136,10 @@ Qaterial.Page
 
 	}
 
-	/*SwipeView.onIsCurrentItemChanged: {
+	SwipeView.onIsCurrentItemChanged: {
 		if (SwipeView.isCurrentItem) {
-			msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "userList")
-			msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
+			Client.reloadCache("userScoreList")
+			Client.reloadCache("classList")
 		}
-	}*/
+	}
 }

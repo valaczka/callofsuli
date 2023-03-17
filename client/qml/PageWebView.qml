@@ -1,11 +1,10 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
-import QtWebEngine 1.10
+import QtWebView 1.15
 import QtQuick.Window 2.12
 import CallOfSuli 1.0
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
-
 
 QPage {
 	id: control
@@ -14,12 +13,10 @@ QPage {
 
 	appBar.backButtonVisible: true
 
-	WebEngineView {
+	WebView {
 		id: web
 		width: parent.width
-		height: parent.height + (Qt.inputMethod && Qt.inputMethod.visible ? (Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)
-
-		onCertificateError: if (error.error == -202)			// CertificateAuthorityInvalid
-								error.ignoreCertificateError()
+		height: parent.height //+ (Qt.inputMethod && Qt.inputMethod.visible ? (Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)
+		httpUserAgent: "Mozilla/5.0 Google"
 	}
 }

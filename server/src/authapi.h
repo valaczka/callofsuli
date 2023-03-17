@@ -38,11 +38,18 @@ public:
 	void login(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void loginOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
+	void registration(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void registrationOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+
+	void localOAuth2(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+
 	QDeferred<Credential> getCredential(const QString &username) const;
 	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
 	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
 	QJsonObject getToken(const Credential &credential) const;
+
+	void updateOAuth2TokenInfo (OAuth2CodeFlow *flow) const;
 };
 
 #endif // AUTHAPI_H

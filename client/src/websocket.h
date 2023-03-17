@@ -28,14 +28,16 @@
 #define WEBSOCKET_H
 
 #include "qnetworkaccessmanager.h"
-#include "server.h"
 #include <QPointer>
 #include <QNetworkReply>
 #include <QAbstractSocket>
+#include <QJSValue>
+#include <QJsonObject>
 
 #define WEBSOCKETREPLY_DELETE_AFTER_MSEC	20000
 
 class Client;
+class Server;
 class WebSocketReply;
 
 /**
@@ -102,6 +104,7 @@ public slots:
 	void abort();
 
 	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
+	QNetworkReply *get(const QUrl &url);
 
 private slots:
 	void checkPending();
@@ -116,6 +119,7 @@ signals:
 	void socketSslErrors(const QList<QSslError> &errors);
 #endif
 	void socketError(QNetworkReply::NetworkError code);
+	void responseError(const QString &error);
 	void stateChanged();
 	void serverChanged();
 
@@ -127,6 +131,7 @@ private:
 	Server *m_server = nullptr;
 	int m_signalUnavailableNum = 0;
 
+	QSslCertificate m_rootCertificate;
 	QNetworkAccessManager *const m_networkManager = nullptr;
 	QVector<WebSocketReply *> m_replies;
 	bool m_pending = false;

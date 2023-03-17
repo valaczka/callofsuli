@@ -28,7 +28,9 @@
 #include "Logger.h"
 #include "generalapi.h"
 #include "authapi.h"
+#include "teacherapi.h"
 #include "serverservice.h"
+#include "utils.h"
 
 
 /**
@@ -44,6 +46,7 @@ Handler::Handler(ServerService *service, QObject *parent)
 
 	m_apiHandlers.insert("general", new GeneralAPI(service));
 	m_apiHandlers.insert("auth", new AuthAPI(service));
+	m_apiHandlers.insert("teacher", new TeacherAPI(service));
 }
 
 
@@ -72,7 +75,8 @@ Handler::~Handler()
 
 void Handler::handle(HttpRequest *request, HttpResponse *response)
 {
-	LOG_CDEBUG("client") << "Request:" << request->method() << request->uriStr() << request->address().toString();
+	LOG_CDEBUG("client") << qPrintable(request->method()+QStringLiteral(":")) << qPrintable(request->uriStr())
+						 << qPrintable(request->address().toString());
 
 	const QString &method = request->method();
 	const QString &uri = request->uriStr();
@@ -209,9 +213,11 @@ void Handler::handleOAuthCallback(HttpRequest *request, HttpResponse *response)
 			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid provider"));
 		}
 
+		QByteArray content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body><p>%1</p></body></html>")
+				.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt lapot.")).toUtf8();
+
 		if (authenticator->parseResponse(request->uriQuery()))
-			return response->setStatus(HttpStatus::Ok,
-									   tr("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body><p>A kapcsolatfelvétel sikeres, nyugodtan bezárhatod ezt a böngészőlapot.</p></body></html>").toUtf8());
+			return response->setStatus(HttpStatus::Ok, content);
 		else
 			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
 	}

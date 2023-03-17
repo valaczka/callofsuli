@@ -33,8 +33,7 @@
 #include "serversettings.h"
 #include "databasemain.h"
 #include "webserver.h"
-#include "credential.h"
-#include "googleoauth2authenticator.h"
+#include "oauth2authenticator.h"
 
 
 class ServerService;
@@ -52,6 +51,21 @@ public:
 	void set(const char *key, const QJsonValue &value);
 	void set(const QJsonObject &object);
 	const QJsonObject &get() const { return m_data; }
+
+
+	bool registrationEnabled() const
+	{ return get("registrationEnabled").toBool(false); }
+
+	void setRegistrationEnabled(const bool &on = true)
+	{ set("registrationEnabled", on); }
+
+
+	bool oAuth2RegistrationForced() const
+	{ return get("oauth2RegistrationForced").toBool(false); }
+
+	void setOAuth2RegistrationForced(const bool &on = true)
+	{ set("oauth2RegistrationForced", on); }
+
 
 private:
 	void loadFromDb(DatabaseMain *db);

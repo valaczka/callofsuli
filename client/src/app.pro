@@ -3,7 +3,7 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private
 
-!wasm: QT += multimedia sql webengine
+!wasm: QT += multimedia sql webview networkauth
 
 CONFIG += c++17
 

@@ -62,14 +62,9 @@ QPage {
 
 		Login {
 			id: _login
-			//height: swipeView.height
-			//width: swipeView.width
 		}
 
-		ScoreList {
-			//height: swipeView.height
-			//width: swipeView.width
-		}
+		ScoreList { }
 	}
 
 	footer: QTabBar
@@ -80,9 +75,6 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
 			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.trophyBroken })
-			//tabBar.setCurrentIndex(1)
-
-			Client.send(WebSocket.ApiGeneral, "config").done(function(r){ console.error("Na mi ez", r)})
 		}
 	}
 }

@@ -75,6 +75,10 @@ public:
 	void responseError(HttpResponse *response, const char *errorStr) const;
 	void responseAnswer(HttpResponse *response, const char *field, const QJsonValue &value) const;
 	void responseAnswer(HttpResponse *response, const QJsonObject &value) const;
+	void responseAnswerOk(HttpResponse *response, QJsonObject value = {}) const;
+	void responseErrorSql(HttpResponse *response) const {
+		responseError(response, "sql error");
+	}
 
 
 	Credential authorize(HttpRequest *request) const;

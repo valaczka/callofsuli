@@ -36,20 +36,15 @@ Server::Server(QObject *parent)
 	, m_user(new User(this))
 	, m_cache(new ClientCache())
 {
-	m_cache->add(new CacheItem<UserList>("userScoreList", new UserList(this), [](UserList *list, QJsonArray array){
+	/*m_cache->add(new CacheItem<UserList>("userScoreList", new UserList(this), [](UserList *list, QJsonArray array){
 					 if (!list) return false;
 					 return ClientCache::loadFromJsonArray<User>(list, array, "username", "username");
-				 }));
-
-	m_cache->add(new CacheItem<UserList>("adminUserList", new UserList(this), [](UserList *list, QJsonArray array){
-					 if (!list) return false;
-					 return ClientCache::loadFromJsonArray<User>(list, array, "username", "username");
-				 }));
+				 }, WebSocket::ApiGeneral, QStringLiteral("user")));
 
 	m_cache->add(new CacheItem<ClassList>("classList", new ClassList(this), [](ClassList *list, QJsonArray array){
 					 if (!list) return false;
 					 return ClientCache::loadFromJsonArray<ClassObject>(list, array, "id", "classid");
-				 }));
+				 }, WebSocket::ApiGeneral, QStringLiteral("class")));
 
 	m_cache->add(new CacheItem<StudentGroupList>("groupListStudent", new StudentGroupList(this), [](StudentGroupList *list, QJsonArray array){
 					 if (!list) return false;
@@ -59,8 +54,32 @@ Server::Server(QObject *parent)
 	m_cache->add(new CacheItem<StudentGroupList>("groupListTeacher", new StudentGroupList(this), [](StudentGroupList *list, QJsonArray array){
 					 if (!list) return false;
 					 return ClientCache::loadFromJsonArray<StudentGroup>(list, array, "id", "groupid");
-				 }));
+				 }, WebSocket::ApiTeacher, QStringLiteral("group")));*/
+
+
+	LOG_CDEBUG("client") << "Test point 1";
+	CacheItem2<UserList> *u = new CacheItem2<UserList>("adminUserList", nullptr, &ClientCache::loadFromJsonArray2<User>);
+
+	LOG_CDEBUG("client") << "Test point 2";
+
+	UserList *uuu = new UserList(this);
+
+	LOG_CDEBUG("client") << "Test point 3";
+
+	u->load2(uuu, {5,6,7});
+
+	LOG_CDEBUG("client") << "Test point 4";
+
+
+	/*m_cache->add(new CacheItem<UserList>("adminUserList", new UserList(this), [](UserList *list, QJsonArray array){
+					 if (!list) return false;
+					 return ClientCache::loadFromJsonArray<User>(list, array);
+				 }));*/
+
+
+
 }
+
 
 Server::~Server()
 {

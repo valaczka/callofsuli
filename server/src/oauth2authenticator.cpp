@@ -113,87 +113,6 @@ OAuth2CodeFlow *OAuth2Authenticator::getCodeFlowForState(const QString &state) c
 
 
 
-/**
- * @brief OAuth2Authenticator::updateUserInfo
- * @param flow
- */
-
-QString OAuth2Authenticator::updateUserInfo(OAuth2CodeFlow *flow) const
-{
-	Q_ASSERT(flow);
-
-	LOG_CTRACE("oauth2") << "Update user info";
-
-
-	const QJsonObject &obj = getJWT(flow->token().idToken);
-
-	if (obj.isEmpty()) {
-		LOG_CTRACE("oauth2") << "Invalid id_token";
-		return "";
-	}
-
-	const QString &email = updateUserInfoFromIdToken(obj);
-
-	if (email.isEmpty()) {
-		LOG_CDEBUG("oauth2") << "Invalid id_token";
-		return "";
-	}
-
-	const QJsonObject &tokenData = flow->token().toJson();
-
-	m_service->databaseMain()->worker()->execInThread([email, tokenData, this]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
-
-		QMutexLocker(m_service->databaseMain()->mutex());
-
-		QueryBuilder q(db);
-		q.addQuery("UPDATE auth SET oauthData=")
-				.addValue(QString::fromUtf8(QJsonDocument(tokenData).toJson(QJsonDocument::Compact)))
-				.addQuery(" WHERE username=")
-				.addValue(email)
-				.addQuery(" AND oauth=")
-				.addValue(QString::fromUtf8(m_type));
-
-		if (q.exec())
-			LOG_CDEBUG("oauth2") << "OAuth tokenData updated:" << email;
-	});
-
-	return email;
-}
-
-
-
-/**
- * @brief OAuth2Authenticator::clientId
- * @return
- */
-
-const QString &OAuth2Authenticator::clientId() const
-{
-	return m_clientId;
-}
-
-void OAuth2Authenticator::setClientId(const QString &newClientId)
-{
-	if (m_clientId == newClientId)
-		return;
-	m_clientId = newClientId;
-	emit clientIdChanged();
-}
-
-const QString &OAuth2Authenticator::clientKey() const
-{
-	return m_clientKey;
-}
-
-void OAuth2Authenticator::setClientKey(const QString &newClientKey)
-{
-	if (m_clientKey == newClientKey)
-		return;
-	m_clientKey = newClientKey;
-	emit clientKeyChanged();
-}
-
 
 ServerService *OAuth2Authenticator::service() const
 {
@@ -207,93 +126,44 @@ ServerService *OAuth2Authenticator::service() const
  * @param data
  */
 
-QString OAuth2Authenticator::updateUserInfoFromIdToken(const QJsonObject &data) const
+AdminAPI::User OAuth2Authenticator::getUserInfoFromIdToken(const QJsonObject &data) const
 {
+	AdminAPI::User user;
+
 	bool emailVerified = data.value(QStringLiteral("email_verified")).toBool();
 
 	if (!emailVerified) {
 		LOG_CDEBUG("oauth2") << "Email not verified";
-		return "";
+		return user;
 	}
 
 	const QString &email = data.value(QStringLiteral("email")).toString();
 
 	if (email.isEmpty()) {
 		LOG_CDEBUG("oauth2") << "Missing email";
-		return "";
+		return user;
 	}
 
-	m_service->databaseMain()->worker()->execInThread([data, email, this]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
+	user.username = email;
+	user.familyName = data.value(QStringLiteral("family_name")).toString();
+	user.givenName = data.value(QStringLiteral("given_name")).toString();
+	user.picture = data.value(QStringLiteral("picture")).toString();
 
-		QMutexLocker(m_service->databaseMain()->mutex());
-
-		if (!QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE active=TRUE AND username=")
-				.addValue(email).execCheckExists()) {
-			LOG_CDEBUG("oauth2") << "User doesn't exists:" << qPrintable(email);
-			return;
-		}
-
-		QueryBuilder q(db);
-		q.addQuery("UPDATE user SET ")
-				.setCombinedPlaceholder()
-				.addQuery(" WHERE username=")
-				.addValue(email);
-
-		if (data.contains(QStringLiteral("family_name")))
-			q.addField("familyName", data.value(QStringLiteral("family_name")).toString());
-
-		if (data.contains(QStringLiteral("given_name")))
-			q.addField("givenName", data.value(QStringLiteral("given_name")).toString());
-
-		if (data.contains(QStringLiteral("picture")))
-			q.addField("picture", data.value(QStringLiteral("picture")).toString());
-
-		if (!q.fieldCount()) {
-			LOG_CDEBUG("oauth2") << "No filed to update";
-			return;
-		}
-
-		if (q.exec())
-			LOG_CDEBUG("oauth2") << "User info updated:" << email;
-	});
-
-	return email;
+	return user;
 }
 
-
-
-/**
- * @brief OAuth2Authenticator::getJWT
- * @param idToken
- * @return
- */
-
-QJsonObject OAuth2Authenticator::getJWT(const QString &idToken) const
+const ServerSettings::OAuth &OAuth2Authenticator::oauth() const
 {
-	QStringList listJwtParts = idToken.split(".");
-	if (listJwtParts.count() != 3) {
-		LOG_CWARNING("oauth2") << "id_token format error";
-		return QJsonObject();
-	}
-
-
-	QJsonParseError error, errorP;
-	QJsonDocument::fromJson(QByteArray::fromBase64(listJwtParts.at(0).toUtf8(),QByteArray::Base64UrlEncoding), &error);
-	QJsonDocument tmpPayload = QJsonDocument::fromJson(QByteArray::fromBase64(listJwtParts.at(1).toUtf8(),QByteArray::Base64UrlEncoding), &errorP);
-
-	if (error.error != QJsonParseError::NoError) {
-		LOG_CWARNING("oauth2") << "id_token header error:" << error.errorString();
-		return QJsonObject();
-	}
-
-	if (errorP.error != QJsonParseError::NoError) {
-		LOG_CWARNING("oauth2") << "id_token payload error:" << errorP.errorString();
-		return QJsonObject();
-	}
-
-	return tmpPayload.object();
+	return m_oauth;
 }
+
+void OAuth2Authenticator::setOAuth(const ServerSettings::OAuth &newOauth)
+{
+	m_oauth = newOauth;
+}
+
+
+
 
 
 /**
@@ -304,20 +174,6 @@ QJsonObject OAuth2Authenticator::getJWT(const QString &idToken) const
 const char *OAuth2Authenticator::type() const
 {
 	return m_type;
-}
-
-
-const QString &OAuth2Authenticator::path() const
-{
-	return m_path;
-}
-
-void OAuth2Authenticator::setPath(const QString &newPath)
-{
-	if (m_path == newPath)
-		return;
-	m_path = newPath;
-	emit pathChanged();
 }
 
 
@@ -363,7 +219,7 @@ QString OAuth2ReplyHandler::callback() const
 				   .arg(m_authenticator->service()->settings()->ssl() ? QStringLiteral("https") : QStringLiteral("http"))
 				   .arg(m_authenticator->service()->webServer()->redirectHost())
 				   .arg(m_authenticator->service()->settings()->listenPort())
-				   .arg(m_authenticator->path())
+				   .arg(m_authenticator->oauth().path)
 				   );
 	return url.toString(QUrl::EncodeDelimiters);
 }

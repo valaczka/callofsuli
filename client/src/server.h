@@ -142,7 +142,6 @@ private:
 	QJsonObject m_config;
 
 	ClientCache *m_cache = nullptr;
-
 };
 
 

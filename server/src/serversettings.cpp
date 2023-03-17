@@ -51,7 +51,7 @@ void ServerSettings::printConfig() const
 	LOG_CINFO("service") << "SSL:" << m_ssl;
 	LOG_CINFO("service") << "SSL certificate:" << qPrintable(m_certFile);
 	LOG_CINFO("service") << "SSL certificate key:" << qPrintable(m_certKeyFile);
-	LOG_CINFO("service") << "Google OAuth2 listening path:" << qPrintable(QStringLiteral("/")+m_oauthGoogle.path);
+	LOG_CINFO("service") << "Google OAuth2 listening path:" << qPrintable(QStringLiteral("/cb/")+m_oauthGoogle.path);
 	LOG_CINFO("service") << "-----------------------------------------------------";
 }
 
@@ -279,6 +279,8 @@ ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, c
 	r.clientId = settings->value(QStringLiteral("clientId")).toString();
 	r.clientKey = settings->value(QStringLiteral("clientKey")).toString();
 	r.path = settings->value(QStringLiteral("path")).toString();
+	r.localClientId = settings->value(QStringLiteral("localClientId")).toString();
+	r.localClientKey = settings->value(QStringLiteral("localClientKey")).toString();
 
 	settings->endGroup();
 
@@ -300,21 +302,9 @@ void ServerSettings::OAuth::toSettings(QSettings *settings, const QString &group
 	settings->setValue(QStringLiteral("clientId"), clientId);
 	settings->setValue(QStringLiteral("clientKey"), clientKey);
 	settings->setValue(QStringLiteral("path"), path);
+	settings->setValue(QStringLiteral("localClientId"), localClientId);
+	settings->setValue(QStringLiteral("localClientKey"), localClientKey);
 
 	settings->endGroup();
 }
 
-
-/**
- * @brief ServerSettings::OAuth::setAuthenticator
- * @param authenticator
- */
-
-void ServerSettings::OAuth::setAuthenticator(OAuth2Authenticator *authenticator) const
-{
-	Q_ASSERT(authenticator);
-
-	authenticator->setClientId(clientId);
-	authenticator->setClientKey(clientKey);
-	authenticator->setPath(path);
-}

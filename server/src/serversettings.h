@@ -27,7 +27,6 @@
 #ifndef SERVERSETTINGS_H
 #define SERVERSETTINGS_H
 
-#include "oauth2authenticator.h"
 #include "qdir.h"
 #include "qhostaddress.h"
 #include "qsettings.h"
@@ -46,10 +45,11 @@ public:
 		QString clientId;
 		QString clientKey;
 		QString path;
+		QString localClientId;
+		QString localClientKey;
 
 		static OAuth fromSettings(QSettings *settings, const QString &group = "");
 		void toSettings(QSettings *settings, const QString &group = "") const;
-		void setAuthenticator(OAuth2Authenticator *authenticator) const;
 	};
 
 	void printConfig() const;

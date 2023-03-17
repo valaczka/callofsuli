@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teacherhandler.h
+ * googleoauth2authenticator.h
  *
- * Created on: 2023. 01. 29.
+ * Created on: 2023. 01. 03.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherHandler
+ * GoogleOAuth2Authenticator
  *
  *  This file is part of Call of Suli.
  *
@@ -24,30 +24,30 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TEACHERHANDLER_H
-#define TEACHERHANDLER_H
+#ifndef GOOGLEOAUTH2AUTHENTICATOR_H
+#define GOOGLEOAUTH2AUTHENTICATOR_H
 
-#include "abstracthandler.h"
+#include "oauth2authenticator.h"
 
-class TeacherHandler : public AbstractHandler
+
+/**
+ * @brief The GoogleOAuth2Authenticator class
+ */
+
+class GoogleOAuth2Authenticator : public OAuth2Authenticator
 {
 	Q_OBJECT
+
 public:
-	explicit TeacherHandler(Client *client);
+	explicit GoogleOAuth2Authenticator(ServerService *service)
+		: OAuth2Authenticator("google", service) { }
 
-	//QDeferred<RankList> getRankList() const;
+	void setCodeFlow(OAuth2CodeFlow *flow) const override;
+	bool parseResponse(const QUrlQuery &query) override;
+	QJsonObject localAuthData() const override;
 
-protected:
-	virtual void handleRequestResponse() {};
-	virtual void handleEvent() {};
-
-private slots:
-	void groupList();
-	void groupAdd();
-	void groupModify();
-	void groupRemove();
-
-private:
 };
 
-#endif // TEACHERHANDLER_H
+
+
+#endif // GOOGLEOAUTH2AUTHENTICATOR_H

@@ -32,6 +32,8 @@
 #include "qthread.h"
 #include "sound.h"
 #include <QOlm/QOlm.hpp>
+#include <QtNetworkAuth/qoauthhttpserverreplyhandler.h>
+#include <QtNetworkAuth/QOAuth2AuthorizationCodeFlow>
 
 
 /**
@@ -75,6 +77,7 @@ protected slots:
 	void onStartPageLoaded();
 	void onOAuthFinished() override;
 	void onOAuthStarted(const QUrl &url) override;
+	void prepareOAuth(const QJsonObject &json) override;
 
 private slots:
 	void onMainWindowChanged();
@@ -93,6 +96,8 @@ private:
 	QThread m_soundThread;
 	qreal m_sfxVolume = 1.0;
 	ServerList *m_serverList = nullptr;
+	QOAuthHttpServerReplyHandler *m_replyHandler = nullptr;
+	QOAuth2AuthorizationCodeFlow *m_codeFlow = nullptr;
 };
 
 #endif

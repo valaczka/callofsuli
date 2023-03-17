@@ -43,6 +43,11 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
+
+/**
+ * @brief The Utils class
+ */
+
 class Utils : public QObject
 {
 	Q_OBJECT

@@ -52,50 +52,6 @@ QPage {
 	}
 
 
-	AsyncMessageHandler {
-		id: msgHandler
-
-		function groupList(obj : QJsonObject) {
-			if (obj.status === "ok")
-				Client.setCache("groupListTeacher", obj.list)
-			else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}
-
-		function groupModify(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Csoport módosítva"))
-				sendRequestFunc(WebSocketMessage.ClassTeacher, "groupList")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült létrehozni a csoportot!"))
-		}
-
-/*		function userListByClass(obj : QJsonObject) {
-			if (obj.status === "ok")
-				Client.setCache("adminUserList", obj.list)
-			else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}
-
-		function classList(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.loadClassListFromArray(obj.list)
-			} else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat!"))
-		}
-
-		function classAdd(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Osztály létrehozva"))
-				_class.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült létrehozni az osztályt!"))
-		}
-*/
-
-	}
-
 	Qaterial.SwipeView
 	{
 		id: swipeView
@@ -141,10 +97,11 @@ QPage {
 						{
 							onAccepted: function()
 							{
-								msgHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupRemove", {
-															   id: group.groupid
-														   })
-								Client.stackPop(control.StackView.index-1)
+								Client.send(WebSocket.ApiTeacher, "group/%1/delete".arg(group.groupid))
+								.done(function(r){
+									Client.reloadCache("groupListTeacher")
+									Client.stackPop(control.StackView.index-1)
+								})
 							},
 							text: qsTr("Biztosan törlöd a csoportot?"),
 							title: group.name,
@@ -160,17 +117,20 @@ QPage {
 		enabled: group
 		icon.source: Qaterial.Icons.renameBox
 		onTriggered: {
-
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Csoport neve"),
 														   title: qsTr("Csoport átnevezése"),
 														   text: group.name,
+														   standardButtons: Dialog.Cancel | Dialog.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   msgHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupModify", {
-																								  id: group.groupid,
-																								  name: _text
-																							  })
+																   Client.send(WebSocket.ApiTeacher, "group/%1/update".arg(group.groupid),
+																			   {
+																				   name: _text
+																			   })
+															   .done(function(r){
+																   Client.reloadCache("groupListTeacher")
+															   })
 														   }
 													   })
 		}

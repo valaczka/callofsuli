@@ -26,6 +26,7 @@
 
 #include "authapi.h"
 #include "serverservice.h"
+#include "adminapi.h"
 
 
 
@@ -39,6 +40,11 @@ AuthAPI::AuthAPI(ServerService *service)
 {
 	addMap("^login/*$", this, &AuthAPI::login);
 	addMap("^login/(\\w+)/*$", this, &AuthAPI::loginOAuth2);
+
+	addMap("^registration/*$", this, &AuthAPI::registration);
+	addMap("^registration/(\\w+)/*$", this, &AuthAPI::registrationOAuth2);
+
+	addMap("^local/(\\w+)/*$", this, &AuthAPI::localOAuth2);
 }
 
 
@@ -128,17 +134,40 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 		if (!flow)
 			return responseError(response, "invalid state");
 
+		if (flow->isLocal()) {
+			const QString &access_token = data.value(QStringLiteral("access_token")).toString();
+			LOG_CTRACE("client") << "LOCAL flow" << flow << state << access_token;
+
+			if (!access_token.isEmpty()) {
+				OAuth2CodeFlow::Token token;
+
+				token.token = data.value(QStringLiteral("access_token")).toString();
+				token.refreshToken = data.value(QStringLiteral("refresh_token")).toString();
+				token.idToken = data.value(QStringLiteral("id_token")).toString();
+
+				const int &expiresIn = data.value(QStringLiteral("expiration")).toInt(-1);
+				if (expiresIn > 0)
+					token.expiration = QDateTime::fromSecsSinceEpoch(expiresIn);
+				else
+					token.expiration = QDateTime();
+
+				flow->setTokenFromLocal(token);
+			}
+		}
+
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
 			return responseError(response, "invalid state");
 			break;
 		case OAuth2CodeFlow::Failed:
+		case OAuth2CodeFlow::UserExists:
+		case OAuth2CodeFlow::InvalidCode:
 			return responseError(response, "authentication failed");
 			break;
 		case OAuth2CodeFlow::TokenReceived:
 			return responseAnswer(response, {
-									  { "pending", true },
-									  { "tokenReceived", true }
+									  { QStringLiteral("pending"), true },
+									  { QStringLiteral("tokenReceived"), true }
 								  });
 			break;
 		case OAuth2CodeFlow::Authenticated:
@@ -146,13 +175,203 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 				return responseAnswer(response, getToken(flow->credential()));
 			else
 				return responseAnswer(response, {
-										  { "pending", true },
-										  { "tokenReceived", true }
+										  { QStringLiteral("pending"), true },
+										  { QStringLiteral("tokenReceived"), true }
 									  });
 			break;
 		case OAuth2CodeFlow::Pending:
 			return responseAnswer(response, {
-									  { "pending", true }
+									  { QStringLiteral("pending"), true }
+								  });
+			break;
+		}
+	}
+
+	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
+	if (data.value(QStringLiteral("local")).toBool()) {
+		flow->setIsLocal(true);
+		flow->setAuthState(OAuth2CodeFlow::Pending);
+	}
+
+
+	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow](){
+		QString email = flow->getUserInfo().username;
+
+		if (!email.isEmpty()) {
+			QPointer<OAuth2CodeFlow> fp(flow);
+			getCredential(email).fail([fp](Credential){
+				if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
+			})
+			.done([fp, this](Credential c){
+				if (fp) {
+					fp->setCredential(c);
+					fp->setAuthState(OAuth2CodeFlow::Authenticated);
+				}
+				updateOAuth2TokenInfo(fp);
+			});
+		}
+	});
+
+
+	if (flow->isLocal()) {
+		QJsonObject data = authenticator->localAuthData();
+
+		if (data.isEmpty())
+			return responseError(response, "invalid provider");
+
+		data.insert(QStringLiteral("state"), flow->state());
+
+		responseAnswer(response, data);
+	} else {
+		responseAnswer(response, {
+						   { QStringLiteral("state"), flow->state() },
+						   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+					   });
+	}
+
+
+}
+
+
+
+/**
+ * @brief AuthAPI::registration
+ * @param data
+ * @param response
+ */
+
+void AuthAPI::registration(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	if (!m_service->config().registrationEnabled() || m_service->config().oAuth2RegistrationForced()) {
+		LOG_CWARNING("client") << "Registration disabled";
+		return responseError(response, "registration disabled");
+	}
+
+	const QString &username = data.value(QStringLiteral("username")).toString();
+	const QString &code = data.value(QStringLiteral("code")).toString();
+
+	LOG_CDEBUG("client") << "Registration:" << qPrintable(username);
+
+	AdminAPI::userNotExists(this, username)
+			.fail([this, response](){
+		responseError(response, "user exists");
+	})
+			.then<bool, int>([this, code, response](){
+		return AdminAPI::getClassIdFromCode(this, code);
+	})
+			.done([this, username, response, data](bool exists, int classid) {
+		if (!exists) {
+			return responseError(response, "invalid code");
+		}
+
+		AdminAPI::User user;
+		user.username = username;
+		user.familyName = data.value(QStringLiteral("familyName")).toString();
+		user.givenName = data.value(QStringLiteral("givenName")).toString();
+		user.picture = data.value(QStringLiteral("picture")).toString();
+		user.active = true;
+		user.classid = classid;
+
+		AdminAPI::userAdd(this, user)
+				.fail([this, response]{
+			return responseError(response, "registration failed");
+		})
+				.then([username, this, data]{
+			return AdminAPI::authAddPlain(this, username, data.value(QStringLiteral("password")).toString());
+		})
+				.fail([this, response]{
+			return responseError(response, "registration failed");
+		})
+				.done([username, response, this]{
+			getCredential(username)
+					.fail([this, response](Credential){
+				responseError(response, "invalid user");
+			})
+					.done([this, response](Credential c){
+				responseAnswer(response, getToken(c));
+			});
+
+		});
+	});
+}
+
+
+
+/**
+ * @brief AuthAPI::registrationOAuth2
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const QString &provider = match.captured(1);
+
+	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
+
+	if (!authenticator)
+		return responseError(response, "invalid provider");
+
+	if (data.contains(QStringLiteral("state"))) {
+		const QString &state = data.value(QStringLiteral("state")).toString();
+		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state);
+
+		if (!flow)
+			return responseError(response, "invalid state");
+
+		if (flow->isLocal()) {
+			const QString &access_token = data.value(QStringLiteral("access_token")).toString();
+			LOG_CTRACE("client") << "LOCAL flow" << flow << state << access_token;
+
+			if (!access_token.isEmpty()) {
+				OAuth2CodeFlow::Token token;
+
+				token.token = data.value(QStringLiteral("access_token")).toString();
+				token.refreshToken = data.value(QStringLiteral("refresh_token")).toString();
+				token.idToken = data.value(QStringLiteral("id_token")).toString();
+
+				const int &expiresIn = data.value(QStringLiteral("expiration")).toInt(-1);
+				if (expiresIn > 0)
+					token.expiration = QDateTime::fromSecsSinceEpoch(expiresIn);
+				else
+					token.expiration = QDateTime();
+
+				flow->setTokenFromLocal(token);
+			}
+		}
+
+		switch (flow->authState()) {
+		case OAuth2CodeFlow::Invalid:
+			return responseError(response, "invalid state");
+			break;
+		case OAuth2CodeFlow::Failed:
+			return responseError(response, "authentication failed");
+			break;
+		case OAuth2CodeFlow::UserExists:
+			return responseError(response, "user exists");
+			break;
+		case OAuth2CodeFlow::InvalidCode:
+			return responseError(response, "invalid code");
+			break;
+		case OAuth2CodeFlow::TokenReceived:
+			return responseAnswer(response, {
+									  { QStringLiteral("pending"), true },
+									  { QStringLiteral("tokenReceived"), true }
+								  });
+			break;
+		case OAuth2CodeFlow::Authenticated:
+			if (flow->credential().isValid())
+				return responseAnswer(response, getToken(flow->credential()));
+			else
+				return responseAnswer(response, {
+										  { QStringLiteral("pending"), true },
+										  { QStringLiteral("tokenReceived"), true }
+									  });
+			break;
+		case OAuth2CodeFlow::Pending:
+			return responseAnswer(response, {
+									  { QStringLiteral("pending"), true }
 								  });
 			break;
 		}
@@ -160,26 +379,104 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 
 	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
 
-	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, authenticator, flow](){
-		QString email = authenticator->updateUserInfo(flow);
+	if (data.value(QStringLiteral("local")).toBool()) {
+		flow->setIsLocal(true);
+		flow->setAuthState(OAuth2CodeFlow::Pending);
+	}
 
-		if (!email.isEmpty()) {
+	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, response, data](){
+		AdminAPI::User user = flow->getUserInfo();
+		QString code = data.value(QStringLiteral("code")).toString();
+
+		if (!user.username.isEmpty()) {
 			QPointer<OAuth2CodeFlow> fp(flow);
-			getCredential(email).fail([fp](Credential){
+
+			AdminAPI::userNotExists(this, user.username)
+					.fail([fp](){
 				if (fp)
-					fp->setAuthState(OAuth2CodeFlow::Failed);
+					fp->setAuthState(OAuth2CodeFlow::UserExists);
 			})
-			.done([fp](Credential c){
-				if (fp)
-					fp->setCredential(c);
+					.then<bool, int>([this, code, response](){
+				return AdminAPI::getClassIdFromCode(this, code);
+			})
+					.done([this, user, data, fp](bool exists, int classid) mutable {
+				if (!exists) {
+					if (fp) fp->setAuthState(OAuth2CodeFlow::InvalidCode);
+					return;
+				}
+
+				user.active = true;
+				user.classid = classid;
+
+				AdminAPI::userAdd(this, user)
+						.fail([fp]{
+					if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
+				})
+						.then([user, this, data, fp]{
+					return AdminAPI::authAddOAuth2(this, user.username, fp ? QString::fromUtf8(fp->authenticator()->type()) : QLatin1String(""));
+				})
+						.fail([fp]{
+					if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
+				})
+						.done([user, fp, this]{
+					getCredential(user.username)
+							.fail([fp](Credential){
+						if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
+					})
+					.done([fp, this](Credential c){
+						if (fp) {
+							fp->setCredential(c);
+							fp->setAuthState(OAuth2CodeFlow::Authenticated);
+						}
+						updateOAuth2TokenInfo(fp);
+					});
+				});
 			});
 		}
 	});
 
-	responseAnswer(response, {
-					   { "state", flow->state() },
-					   { "url", flow->requestAuthorizationUrl().toString() }
-				   });
+
+	if (flow->isLocal()) {
+		QJsonObject data = authenticator->localAuthData();
+
+		if (data.isEmpty())
+			return responseError(response, "invalid provider");
+
+		data.insert(QStringLiteral("state"), flow->state());
+
+		responseAnswer(response, data);
+	} else {
+		responseAnswer(response, {
+						   { QStringLiteral("state"), flow->state() },
+						   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+					   });
+	}
+}
+
+
+
+/**
+ * @brief AuthAPI::localOAuth2
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void AuthAPI::localOAuth2(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const QString &provider = match.captured(1);
+
+	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
+
+	if (!authenticator)
+		return responseError(response, "invalid provider");
+
+	const QJsonObject &data = authenticator->localAuthData();
+
+	if (data.isEmpty())
+		return responseError(response, "invalid provider");
+
+	responseAnswer(response, data);
 }
 
 
@@ -360,4 +657,37 @@ QJsonObject AuthAPI::getToken(const Credential &credential) const
 						   { QStringLiteral("status"), QStringLiteral("ok") },
 						   { QStringLiteral("auth_token"), credential.createJWT(m_service->settings()->jwtSecret()) }
 					   });
+}
+
+
+/**
+ * @brief AuthAPI::updateOAuth2TokenInfo
+ * @param flow
+ */
+
+void AuthAPI::updateOAuth2TokenInfo(OAuth2CodeFlow *flow) const
+{
+	Q_ASSERT(flow);
+	Q_ASSERT(flow->authenticator());
+
+	m_service->databaseMain()->worker()->execInThread([flow, this]() mutable {
+		const QJsonObject &tokenData = flow->token().toJson();
+		const QString &username = flow->getUserInfo().username;
+		const QString type = QString::fromUtf8(flow->authenticator()->type());
+
+		QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
+
+		QMutexLocker(m_service->databaseMain()->mutex());
+
+		QueryBuilder q(db);
+		q.addQuery("UPDATE auth SET oauthData=")
+				.addValue(QString::fromUtf8(QJsonDocument(tokenData).toJson(QJsonDocument::Compact)))
+				.addQuery(" WHERE username=")
+				.addValue(username)
+				.addQuery(" AND oauth=")
+				.addValue(type);
+
+		if (q.exec())
+			LOG_CDEBUG("oauth2") << "OAuth tokenData updated:" << username;
+	});
 }

@@ -30,9 +30,9 @@ Item {
 		anchors.top: contentCentered ? undefined : parent.top
 
 		contentHeight: _content.implicitHeight +
-					   control.topPadding + control.bottomPadding +
-					   (Qt.inputMethod && Qt.inputMethod.visible ?
-							(Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)
+					   control.topPadding + control.bottomPadding
+					   /* + (Qt.inputMethod && Qt.inputMethod.visible ?
+							(Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)*/
 		flickableDirection: Flickable.AutoFlickIfNeeded
 
 		clip: true

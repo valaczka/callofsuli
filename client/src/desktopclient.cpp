@@ -29,8 +29,8 @@
 #include "qdiriterator.h"
 #include "qquickwindow.h"
 #include "qscreen.h"
-#include "websocket.h"
 #include <QSettings>
+
 
 /**
  * @brief DesktopClient::DesktopClient
@@ -43,6 +43,8 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	, m_serverList(new ServerList(this))
 {
 	LOG_CTRACE("client") << "Desktop DesktopClient created:" << this;
+
+	m_oauthData.isLocal = true;
 
 	m_sound = new Sound();
 	m_sound->moveToThread(&m_soundThread);
@@ -298,7 +300,6 @@ void DesktopClient::onOAuthFinished()
 
 	m_oauthData.status = OAuthData::Invalid;
 	m_oauthData.state = "";
-	m_oauthData.code = "";
 	m_oauthData.path = "";
 	m_oauthData.type = OAuthData::Login;
 	m_oauthData.timer.stop();
@@ -338,6 +339,76 @@ void DesktopClient::onOAuthStarted(const QUrl &url)
 	m_oauthData.webPage = page;
 	m_oauthData.status = OAuthData::Pending;
 	m_oauthData.timer.start();
+}
+
+
+/**
+ * @brief DesktopClient::prepareOAuth
+ * @param json
+ */
+
+void DesktopClient::prepareOAuth(const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Local OAuth" << json;
+
+	if (!m_replyHandler) {
+		LOG_CTRACE("client") << "Create local reply handler";
+		m_replyHandler = new QOAuthHttpServerReplyHandler(this);
+		if (!m_replyHandler->isListening()) {
+			messageError(tr("OAuth2 hitelesítés nem működik!"), tr("Belső hiba"));
+			return;
+		}
+	}
+
+	if (m_codeFlow)
+		m_codeFlow->deleteLater();
+
+	m_codeFlow = new QOAuth2AuthorizationCodeFlow(this);
+	LOG_CTRACE("client") << "Create local code flow" << m_codeFlow->state();
+
+	m_codeFlow->setReplyHandler(m_replyHandler);
+	m_codeFlow->setAccessTokenUrl(json.value(QStringLiteral("access_token_url")).toString());
+	m_codeFlow->setAuthorizationUrl(json.value(QStringLiteral("authorization_url")).toString());
+	m_codeFlow->setClientIdentifier(json.value(QStringLiteral("client_id")).toString());
+	m_codeFlow->setClientIdentifierSharedKey(json.value(QStringLiteral("client_key")).toString());
+	m_codeFlow->setScope(json.value(QStringLiteral("scope")).toString());
+
+	m_codeFlow->setModifyParametersFunction([](QAbstractOAuth::Stage stage, QVariantMap* parameters) {
+		if (stage == QAbstractOAuth::Stage::RequestingAccessToken) {
+			const QString &code = QString::fromUtf8(QByteArray::fromPercentEncoding(parameters->value(QStringLiteral("code")).toByteArray()));
+			parameters->insert(QStringLiteral("code"), code);
+		}
+
+		if (stage == QAbstractOAuth::Stage::RequestingAuthorization) {
+			parameters->insert(QStringLiteral("access_type"), QStringLiteral("offline"));
+			parameters->insert(QStringLiteral("prompt"), QStringLiteral("consent"));
+		}
+	});
+
+
+	connect(m_codeFlow, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, this, &DesktopClient::onOAuthStarted);
+	connect(m_codeFlow, &QOAuth2AuthorizationCodeFlow::granted, this, [this]{
+		QJsonObject d;
+
+		d.insert(QStringLiteral("access_token"), m_codeFlow->token());
+		d.insert(QStringLiteral("refresh_token"), m_codeFlow->refreshToken());
+		d.insert(QStringLiteral("id_token"), m_codeFlow->extraTokens().value(QStringLiteral("id_token")).toString());
+		d.insert(QStringLiteral("expiration"), m_codeFlow->expirationAt().toSecsSinceEpoch());
+		d.insert(QStringLiteral("local"), true);
+		d.insert(QStringLiteral("state"), m_oauthData.state);
+
+		send(WebSocket::ApiAuth, m_oauthData.path, d)
+				->done([this](const QJsonObject &data){this->onLoginSuccess(data);})
+				->fail([this](const QString &err){this->onLoginFailed(err);});
+
+		if (m_oauthData.webPage)
+			stackPop(m_oauthData.webPage);
+
+	});
+
+	m_codeFlow->grant();
+
+
 }
 
 
@@ -537,75 +608,6 @@ bool DesktopClient::serverDeleteSelected()
 
 	return true;
 }
-
-
-
-
-/**
- * @brief DesktopClient::loginGoogle
- */
-
-/*if (!m_googleAuthenticator) {
-		messageError(tr("A Google OAuth2 provider nem elérhető!"));
-		return;
-	}
-
-	if (m_googleAuthenticator->getCodeFlowForReferenceObject(this)) {
-		messageWarning(tr("Google authentikáció még folyamatban van!"));
-		return;
-	}
-
-	server()->user()->setLoginState(User::LoggingIn);
-
-	DesktopCodeFlow *flow = new DesktopCodeFlow(m_googleAuthenticator, this);
-	flow->setMode(DesktopCodeFlow::Login);
-	m_googleAuthenticator->addCodeFlow(flow);
-
-	connect(flow, &DesktopCodeFlow::pageRemoved, this, [this, flow](){ m_googleAuthenticator->removeCodeFlow(flow); });
-
-	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
-									 QVariantMap({
-													 { QStringLiteral("url"), flow->requestAuthorizationUrl() },
-													 { QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
-												 }));
-
-	flow->setPage(page);*/
-
-
-
-
-
-
-
-/*if (!m_googleAuthenticator) {
-		messageError(tr("A Google OAuth2 provider nem elérhető!"));
-		return;
-	}
-
-	if (m_googleAuthenticator->getCodeFlowForReferenceObject(this)) {
-		messageWarning(tr("Google authentikáció még folyamatban van!"));
-		return;
-	}
-
-
-	DesktopCodeFlow *flow = new DesktopCodeFlow(m_googleAuthenticator, this);
-	flow->setMode(DesktopCodeFlow::Registration);
-	flow->internalData().insert(QStringLiteral("code"), code);
-	m_googleAuthenticator->addCodeFlow(flow);
-
-	connect(flow, &DesktopCodeFlow::pageRemoved, this, [this, flow](){ m_googleAuthenticator->removeCodeFlow(flow); });
-
-	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
-									 QVariantMap({
-													 { QStringLiteral("url"), flow->requestAuthorizationUrl() },
-													 { QStringLiteral("codeFlow"), QVariant::fromValue(flow) }
-												 }));
-
-	flow->setPage(page);*/
-
-
-
-
 
 
 

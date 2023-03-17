@@ -34,6 +34,7 @@
 #include <ColorConsoleAppender.h>
 #include "qconsole.h"
 #include "utils.h"
+#include "googleoauth2authenticator.h"
 #include <QOAuthHttpServerReplyHandler>
 
 
@@ -187,14 +188,14 @@ Service::CommandResult ServerService::onStart()
 	// Create authenticators
 
 	GoogleOAuth2Authenticator *authGoogle = new GoogleOAuth2Authenticator(this);
-	m_settings->oauthGoogle().setAuthenticator(authGoogle);
+	authGoogle->setOAuth(m_settings->oauthGoogle());
 	m_authenticators.append(authGoogle);
 
 
 
-	LOG_CINFO("service") << "Server service started successfull";
+	LOG_CINFO("service") << "Server service started successful";
 
-	m_config.set("registrationEnabled", true);
+	m_config.setRegistrationEnabled(true);
 
 	return CommandResult::Completed;
 }

@@ -85,7 +85,7 @@ const bool Application::m_debug = true;
 #endif
 
 #ifndef Q_OS_WASM
-#include <QtWebEngine/QtWebEngine>
+#include <QtWebView>
 #endif
 
 /**
@@ -111,7 +111,7 @@ Application::Application(int &argc, char **argv)
 	}
 
 #ifndef Q_OS_WASM
-	QtWebEngine::initialize();
+	QtWebView::initialize();
 #endif
 
 	m_application = new QGuiApplication(argc, argv);

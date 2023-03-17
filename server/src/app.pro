@@ -44,6 +44,7 @@ SOURCES += \
 	#adminhandler.cpp \
 	#authhandler.cpp \
 	#client.cpp \
+	adminapi.cpp \
 	authapi.cpp \
 	databasemain.cpp \
 	generalapi.cpp \
@@ -57,6 +58,7 @@ SOURCES += \
 	serverservice.cpp \
 	serversettings.cpp \
 	#teacherhandler.cpp \
+	teacherapi.cpp \
 	webserver.cpp
 
 RESOURCES += \
@@ -70,6 +72,7 @@ HEADERS += \
 	#adminhandler.h \
 	#authhandler.h \
 	#client.h \
+	adminapi.h \
 	authapi.h \
 	databasemain.h \
 	generalapi.h \
@@ -82,5 +85,6 @@ HEADERS += \
 	serverservice.h \
 	serversettings.h \
 	#teacherhandler.h \
+	teacherapi.h \
 	webserver.h
 

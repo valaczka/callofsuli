@@ -27,8 +27,11 @@
 #ifndef OAUTH2CODEFLOW_H
 #define OAUTH2CODEFLOW_H
 
+#include "credential.h"
+#include "qtimer.h"
 #include <QOAuth2AuthorizationCodeFlow>
 #include <QPointer>
+#include "adminapi.h"
 
 class OAuth2Authenticator;
 
@@ -42,50 +45,68 @@ class OAuth2CodeFlow : public QOAuth2AuthorizationCodeFlow
 	Q_OBJECT
 
 public:
-	explicit OAuth2CodeFlow(OAuth2Authenticator *authenticator, QObject *referenceObject = nullptr);
+	explicit OAuth2CodeFlow(OAuth2Authenticator *authenticator);
 	virtual ~OAuth2CodeFlow();
+
+	enum AuthState {
+		Invalid = 0,
+		Pending,
+		Failed,
+		TokenReceived,
+		Authenticated,
+		UserExists,
+		InvalidCode
+	};
+
+	struct Token {
+		QString token;
+		QString refreshToken;
+		QDateTime expiration;
+		QString idToken;
+
+		QJsonObject toJson() const;
+	};
 
 	QUrl requestAuthorizationUrl();
 	virtual void requestAccesToken(const QString &code);
 
-	QObject *referenceObject() const;
+	AuthState authState() const;
+	void setAuthState(AuthState newAuthState);
+
+	const Token &token() const;
+
+	const Credential &credential() const;
+	void setCredential(const Credential &newCredential);
+
+	OAuth2Authenticator *authenticator() const;
+
+	AdminAPI::User getUserInfo() const;
+	QJsonObject getJWT() const;
+
+	bool isLocal() const;
+	void setIsLocal(bool newIsLocal);
+
+	void setTokenFromLocal(const Token &token);
 
 signals:
-	void authenticationSuccess(const QVariantMap &data);
-	void authenticationFailed();
+	void authenticated();
 
 private slots:
 	void onRequestAccessFinished();
-	void onReferenceObjectDestroyed();
+	void onRemoveTimerTimeout();
 
 protected:
 	OAuth2Authenticator *const m_authenticator;
-	QObject *m_referenceObject = nullptr;
+	AuthState m_authState = Invalid;
+	Token m_token;
+	Credential m_credential;
+	bool m_isLocal = false;
+
+private:
+	QTimer m_removeTimer;
 
 };
 
 
-
-
-/**
- * @brief The OAuth2AccessCodeFlow class
- */
-
-class OAuth2AccessCodeFlow : public OAuth2CodeFlow
-{
-	Q_OBJECT
-
-public:
-	explicit OAuth2AccessCodeFlow (OAuth2Authenticator *authenticator, QObject *referenceObject = nullptr)
-		: OAuth2CodeFlow(authenticator, referenceObject)
-	{}
-	virtual ~OAuth2AccessCodeFlow() {}
-
-	virtual void getUserInfoWithAccessToken(const QString &accessToken) const = 0;
-
-signals:
-	void getUserInfoSuccess(const QVariantMap &data);
-	void getUserInfoFailed();
-};
 
 #endif // OAUTH2CODEFLOW_H

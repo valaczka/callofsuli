@@ -46,40 +46,6 @@ QPage {
 	}
 
 
-	/*AsyncMessageHandler {
-		id: teacherHandler
-
-		function groupList(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.setCache("groupListTeacher", obj.list)
-				Client.setCache("groupListStudent", obj.list)
-			} else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}
-
-		function groupAdd(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Csoport létrehozva"))
-				sendRequestFunc(WebSocketMessage.ClassTeacher, "groupList")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült létrehozni a csoportot!"))
-		}
-	}
-
-
-	AsyncMessageHandler {
-		id: studentHandler*/
-
-		/*function groupList(obj : QJsonObject) {
-			if (obj.status === "ok")
-				Client.setCache("groupListTeacher", obj.list)
-			else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}*/
-	//}
-
-
-
 	QScrollable {
 		id: _content
 		anchors.fill: parent
@@ -227,22 +193,21 @@ QPage {
 		text: qsTr("Létrehozás")
 		icon.source: Qaterial.Icons.plus
 		enabled: Client.server && (Client.server.user.roles & Credential.Teacher)
-		/*onTriggered: {
+		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Csoport neve"),
 														   title: qsTr("Új csoport létrehozása"),
 														   standardButtons: Dialog.Cancel | Dialog.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   teacherHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupAdd", {
-																								  name: _text
-																							  })
+																   Client.send(WebSocket.ApiTeacher, "group/create", { name: _text })
+															   .done(function(r){ Client.reloadCache("groupListTeacher") })
 														   }
 													   })
-		}*/
+		}
 	}
-
 /*
+
 	Action {
 		id: actionClassRemove
 		text: qsTr("Törlés")
@@ -256,9 +221,9 @@ QPage {
 									{
 										onAccepted: function()
 										{
-											msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classRemove", {
-																		   list: JS.listGetFields(l, "classid")
-																	   })
+											Client.send(WebSocket.ApiTeacher, "group/delete",
+														{ list: JS.listGetFields(l, "classid") })
+											.done(function(r){ Client.reloadCache("groupListTeacher") })
 										},
 										title: qsTr("Osztályok törlése"),
 										iconSource: Qaterial.Icons.closeCircle
@@ -291,9 +256,9 @@ QPage {
 	}
 */
 	StackView.onActivated: {
-		/*if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
-			teacherHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "groupList")
-		}*/
+		if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
+			Client.reloadCache("groupListTeacher")
+		}
 		//msgHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "classList")
 	}
 

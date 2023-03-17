@@ -27,12 +27,17 @@
 #ifndef CLIENTCACHE_H
 #define CLIENTCACHE_H
 
+#include "Logger.h"
 #include "QOlm/Details/QOlmBase.hpp"
 #include "QOlm/QOlm.hpp"
 #include "qdebug.h"
 #include "qjsonarray.h"
 #include "qjsonobject.h"
+#include "websocket.h"
 
+/**
+ * @brief The CacheItemBase class
+ */
 
 class CacheItemBase {
 public:
@@ -56,6 +61,14 @@ public:
 		return out;
 	}
 
+	const WebSocket::API &api() const { return m_api; }
+	const QString &path() const { return m_path; }
+	QString fullPath() const;
+
+protected:
+	WebSocket::API m_api = WebSocket::ApiInvalid;
+	QString m_path;
+
 private:
 	QString m_key;
 	QString m_id;
@@ -76,15 +89,22 @@ public:
 
 	typedef std::function<bool(T *olm, const QJsonArray &)> LoadFunc;
 
-	explicit CacheItem(const QString &key, const QString &id, T* olm, LoadFunc func = nullptr)
+	explicit CacheItem(const QString &key, const QString &id, T* olm, LoadFunc func = nullptr,
+					   const WebSocket::API &api = WebSocket::ApiInvalid, const QString &path = QLatin1String(""))
 		: CacheItemBase(key, id, olm)
 		, m_olm(olm)
 		, m_func(func)
-	{}
+	{
+		m_api = api;
+		m_path = path;
+	}
 
-	explicit CacheItem(const QString &key, T* olm, LoadFunc func = nullptr) : CacheItem(key, QString(), olm, func) {}
+	explicit CacheItem(const QString &key, T* olm, LoadFunc func = nullptr,
+					   const WebSocket::API &api = WebSocket::ApiInvalid, const QString &path = QLatin1String(""))
+		: CacheItem(key, QString(), olm, func, api, path) {}
 
 	T *olm() const { return m_olm; }
+
 
 	bool load(const QJsonArray &list) const override {
 		if (m_func)
@@ -93,9 +113,43 @@ public:
 			return false;
 	}
 
+
 private:
 	T *const m_olm;
 	LoadFunc m_func;
+
+};
+
+
+
+
+template <typename T, typename = void>
+class CacheItem2;
+
+template <typename T>
+class CacheItem2<T, QOlmBase_SFINAE<T>> : public CacheItemBase
+{
+public:
+
+	explicit CacheItem2(const QString &id, T* olm, bool (*handler)(T *, const QJsonArray &))
+		: CacheItemBase("", id, olm)
+		, m_olm(olm)
+		, m_func(std::bind(handler, std::placeholders::_1, std::placeholders::_2))
+	{
+
+	}
+
+
+	bool load2(T* olm, const QJsonArray &list) const {
+		if (m_func)
+			return std::invoke(m_func, olm, list);
+		else
+			return false;
+	}
+
+private:
+	T *const m_olm;
+	std::function<bool(T *olm, const QJsonArray &)> m_func;
 
 };
 
@@ -129,6 +183,11 @@ public:
 	bool set(const char *key, const int &id, const QJsonArray &list) { return set(CacheItemBase(key, QString::number(id)), list); }
 	bool set(const char *key, const QJsonArray &list) { return set(CacheItemBase(key, QString()), list); }
 
+	bool reload(WebSocket *websocket, const CacheItemBase &id);
+	bool reload(WebSocket *websocket, const char *key, const char *id) { return reload(websocket, CacheItemBase(key, id)); }
+	bool reload(WebSocket *websocket, const char *key, const int &id) { return reload(websocket, CacheItemBase(key, QString::number(id))); }
+	bool reload(WebSocket *websocket, const char *key) { return reload(websocket, CacheItemBase(key, QString())); }
+
 	qolm::QOlmBase* get(const CacheItemBase &id) const;
 	qolm::QOlmBase* get(const char *key, const char *id) const { return get(CacheItemBase(key, id)); }
 	qolm::QOlmBase* get(const char *key, const int &id) const { return get(CacheItemBase(key, QString::number(id))); }
@@ -151,6 +210,9 @@ public:
 	static bool loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *jsonField, const char *property);
 
 	template <typename T>
+	static bool loadFromJsonArray2(qolm::QOlm<T> *list, const QJsonArray &jsonArray);
+
+	template <typename T>
 	static T* find(qolm::QOlm<T> *list, const char *property, const QVariant &value);
 
 private:
@@ -160,6 +222,10 @@ private:
 
 
 
+
+
+
+/// ---------------------------------------------------------------
 
 template <typename T>
 T* ClientCache::getAs(const CacheItemBase &id) const
@@ -209,6 +275,33 @@ bool ClientCache::loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonA
 	return true;
 }
 
+
+
+template<typename T>
+bool ClientCache::loadFromJsonArray2(qolm::QOlm<T> *list, const QJsonArray &jsonArray)
+{
+	LOG_CDEBUG("client") << "Test point X";
+	if (!list)
+		return false;
+
+	LOG_CDEBUG("client") << "Test point X1";
+
+	list->clear();
+
+	LOG_CDEBUG("client") << "Test point X2";
+
+	foreach (const QJsonValue &v, jsonArray) {
+		LOG_CDEBUG("client") << "Test point X3" << v;
+		T* record = new T();
+		LOG_CDEBUG("client") << "Test point X4";
+		record->loadFromJson(v.toObject(), true);				// All fields overwrite
+		LOG_CDEBUG("client") << "Test point X5";
+		list->append(record);
+		LOG_CDEBUG("client") << "Test point X6";
+	}
+
+	LOG_CDEBUG("client") << "Test point X7";
+}
 
 
 

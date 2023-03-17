@@ -94,11 +94,11 @@ public:
 
 		QString path;
 		QString state;
-		QString code;
 		Type type = Login;
 		Status status = Invalid;
 		QTimer timer;
 		QPointer<QQuickItem> webPage = nullptr;
+		bool isLocal = false;
 	};
 
 	QQuickItem *mainStack() const;
@@ -173,6 +173,23 @@ public:
 	}
 
 
+	Q_INVOKABLE void reloadCache(const QString &key)
+	{
+		if (server())
+			server()->cache()->reload(m_webSocket, key.toUtf8().constData());
+	}
+	Q_INVOKABLE void reloadCache(const QString &key, const QString &id)
+	{
+		if (server())
+			server()->cache()->reload(m_webSocket, key.toUtf8().constData(), id.toUtf8().constData());
+	}
+	Q_INVOKABLE void reloadCache(const QString &key, const int &id)
+	{
+		if (server())
+			server()->cache()->reload(m_webSocket, key.toUtf8().constData(), id);
+	}
+
+
 	// Safe margins
 
 	Q_INVOKABLE void safeMarginsGet();
@@ -225,6 +242,7 @@ protected slots:
 	friend class Application;
 
 	virtual void onWebSocketError(QNetworkReply::NetworkError code);
+	virtual void onWebSocketResponseError(const QString &error);
 #ifndef QT_NO_SSL
 	virtual void onWebSocketSslError(const QList<QSslError> &errors);
 #endif
@@ -238,7 +256,6 @@ protected slots:
 	virtual void onOAuthStarted(const QUrl &url);
 	virtual void onOAuthPendingTimer();
 
-private slots:
 	void onLoginSuccess(const QJsonObject &json);
 	void onLoginFailed(const QString &error);
 	void onOAuthLoginStateChanged(const QJsonObject &json);
@@ -246,6 +263,7 @@ private slots:
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
 	void _userAuthTokenReceived(const QString &token);
+	virtual void prepareOAuth(const QJsonObject &) {}
 
 signals:
 	void startPageLoaded();

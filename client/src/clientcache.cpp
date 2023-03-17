@@ -179,6 +179,32 @@ bool ClientCache::set(const CacheItemBase &id, const QJsonArray &list)
 
 
 /**
+ * @brief ClientCache::reload
+ * @param id
+ * @return
+ */
+
+bool ClientCache::reload(WebSocket *websocket, const CacheItemBase &id)
+{
+	LOG_CTRACE("client") << "Cache reload list" << this << id;
+
+	foreach (CacheItemBase *c, m_list) {
+		if (c == id) {
+			if (websocket && c->api() != WebSocket::ApiInvalid)
+				websocket->send(c->api(), c->fullPath())->done([c](const QJsonObject &data){
+					const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
+					c->load(list);
+				});
+			return true;
+		}
+	}
+
+	LOG_CWARNING("client") << "Cache id olm not found" << this << id;
+	return false;
+}
+
+
+/**
  * @brief ClientCache::get
  * @param id
  * @return
@@ -197,3 +223,15 @@ qolm::QOlmBase *ClientCache::get(const CacheItemBase &id) const
 
 
 
+
+/**
+ * @brief CacheItemBase::fullPath
+ * @return
+ */
+
+QString CacheItemBase::fullPath() const
+{
+	if (!m_id.isEmpty() && m_path.contains(QStringLiteral("%1")))
+		return m_path.arg(m_id);
+	return m_path;
+}

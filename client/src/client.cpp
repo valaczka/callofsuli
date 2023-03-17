@@ -54,6 +54,7 @@ Client::Client(Application *app, QObject *parent)
 	m_oauthData.timer.setInterval(3000);
 
 	connect(m_webSocket, &WebSocket::socketError, this, &Client::onWebSocketError);
+	connect(m_webSocket, &WebSocket::responseError, this, &Client::onWebSocketResponseError);
 #ifndef QT_NO_SSL
 	connect(m_webSocket, &WebSocket::socketSslErrors, this, &Client::onWebSocketSslError);
 #endif
@@ -280,7 +281,6 @@ bool Client::stackPopToPage(QQuickItem *page) const
 
 
 	QString closeDisabled = currentItem->property("closeDisabled").toString();
-	QString question = currentItem->property("closeQuestion").toString();
 
 	if (!closeDisabled.isEmpty()) {
 		messageWarning(closeDisabled);
@@ -376,8 +376,27 @@ void Client::onApplicationStarted()
 void Client::onWebSocketError(QNetworkReply::NetworkError code)
 {
 	LOG_CWARNING("client") << "Websocket error:" << code;
-	messageError(tr("ERROR: %1").arg(code), tr("Sikertelen csatlakozás"));
+
+	if (m_webSocket->state() == WebSocket::Connected)
+		snack(tr("ERROR: %1").arg(code));
+	else
+		messageError(tr("ERROR: %1").arg(code), tr("Sikertelen csatlakozás"));
 	//m_webSocket->close();
+}
+
+
+
+/**
+ * @brief Client::onWebSocketResponseError
+ * @param error
+ */
+
+void Client::onWebSocketResponseError(const QString &error)
+{
+	if (error == QLatin1String("unauthorized"))
+		messageWarning(tr("A kérés végrehajátáshoz be kell jelentkezni"), tr("Hitelesítés szükséges"));
+	else if (error == QLatin1String("permission denied"))
+		messageWarning(tr("Hozzáférés megtagadva"), tr("Hitelesítés szükséges"));
 }
 
 
@@ -390,7 +409,11 @@ void Client::onWebSocketError(QNetworkReply::NetworkError code)
 void Client::onWebSocketSslError(const QList<QSslError> &errors)
 {
 	LOG_CWARNING("client") << "Websocket SSL error:" << errors;
-	messageError(tr("SSL ERROR"), tr("Sikertelen csatlakozás"));
+
+	if (m_webSocket->state() == WebSocket::Connected)
+		snack(tr("SSL ERROR"));
+	else
+		messageError(tr("SSL ERROR"), tr("Sikertelen csatlakozás"));
 	//m_webSocket->close();
 }
 #endif
@@ -414,8 +437,6 @@ void Client::onServerConnected()
 	send(WebSocket::ApiGeneral, QStringLiteral("config"))
 			->done([this](const QJsonObject &json)
 	{
-		LOG_CTRACE("client") << "GET INFO" << json;
-
 		if (json.contains(QStringLiteral("name")) && server())
 			server()->setServerName(json.value(QStringLiteral("name")).toString());
 
@@ -427,8 +448,6 @@ void Client::onServerConnected()
 	send(WebSocket::ApiGeneral, QStringLiteral("rank"))
 			->done([this](const QJsonObject &json)
 	{
-		LOG_CTRACE("client") << "GET RANK" << json;
-
 		server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
 	});
 }
@@ -476,11 +495,14 @@ void Client::onOAuthLoginStateChanged(const QJsonObject &json)
 		} else {
 			LOG_CWARNING("client") << "OAuth login protocol warning" << m_oauthData.status;
 		}
-	} else if (json.contains(QStringLiteral("state")) && json.contains(QStringLiteral("url"))) {
+	} else if (json.contains(QStringLiteral("state")) && (m_oauthData.isLocal || json.contains(QStringLiteral("url")))) {
 		if (m_oauthData.status == OAuthData::Invalid) {
 			m_oauthData.state = json.value(QStringLiteral("state")).toString();
-			m_oauthData.type = OAuthData::Login;
 			m_oauthData.status = OAuthData::UrlReceived;
+
+			if (m_oauthData.isLocal)
+				return prepareOAuth(json);
+
 			onOAuthStarted(QUrl::fromEncoded(json.value(QStringLiteral("url")).toString().toUtf8()));
 		} else {
 			LOG_CWARNING("client") << "OAuth login protocol warning" << m_oauthData.status;
@@ -498,9 +520,13 @@ void Client::onOAuthLoginStateChanged(const QJsonObject &json)
 void Client::onUserLoggedIn()
 {
 	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
-	//m_internalHandler->sendRequest(WebSocketMessage::ClassGeneral, "me");
 
-	stackPushPage(QStringLiteral("PageDashboard.qml"));
+	send(WebSocket::ApiGeneral, "me")->done([this](const QJsonObject &json){
+		LOG_CINFO("client") << "User logged in:" << json;
+		server()->user()->loadFromJson(json);
+		stackPushPage(QStringLiteral("PageDashboard.qml"));
+	});
+
 }
 
 
@@ -530,7 +556,6 @@ void Client::onOAuthFinished()
 
 	m_oauthData.status = OAuthData::Invalid;
 	m_oauthData.state = "";
-	m_oauthData.code = "";
 	m_oauthData.path = "";
 	m_oauthData.type = OAuthData::Login;
 	m_oauthData.timer.stop();
@@ -568,9 +593,17 @@ void Client::onOAuthPendingTimer()
 		return;
 	}
 
-	send(WebSocket::ApiAuth, m_oauthData.path, {
-								  { QStringLiteral("state"), m_oauthData.state }
-							  })
+
+	QJsonObject j;
+	j.insert(QStringLiteral("state"), m_oauthData.state);
+	if (m_oauthData.isLocal)
+		j.insert(QStringLiteral("local"), true);
+
+	if (m_oauthData.isLocal)
+		LOG_CTRACE("client") << "LOCAL";
+
+
+	send(WebSocket::ApiAuth, m_oauthData.path, j)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 
@@ -584,6 +617,8 @@ void Client::onOAuthPendingTimer()
 
 void Client::onLoginSuccess(const QJsonObject &json)
 {
+	LOG_CTRACE("client") << "On login success" << json;
+
 	if (json.contains(QStringLiteral("auth_token")) && json.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
 		if (m_oauthData.status != OAuthData::Invalid)
 			onOAuthLoginStateChanged(json);
@@ -592,11 +627,11 @@ void Client::onLoginSuccess(const QJsonObject &json)
 		return;
 	}
 
-	// OAUTH
-
 	if (json.contains(QStringLiteral("state")) || json.contains(QStringLiteral("url")) ||
-			json.contains(QStringLiteral("pending")))
+			json.contains(QStringLiteral("pending"))) {
 		onOAuthLoginStateChanged(json);
+		return;
+	}
 
 }
 
@@ -608,7 +643,25 @@ void Client::onLoginSuccess(const QJsonObject &json)
 
 void Client::onLoginFailed(const QString &error)
 {
-	messageWarning(error, tr("Sikertelen bejelentkezés"));
+	m_oauthData.timer.stop();
+	if (m_oauthData.status != OAuthData::Invalid) {
+		m_oauthData.status = OAuthData::Success;
+		onOAuthFinished();
+	}
+
+	QString errorStr = error;
+	if (error == QLatin1String("invalid user"))
+		errorStr = tr("Érvénytelen felhasználó");
+	else if (error == QLatin1String("authorization failed"))
+		errorStr = tr("Hibás felhasználónév/jelszó");
+	else if (error == QLatin1String("invalid token"))
+		errorStr = tr("Érvénytelen token");
+	else if (error == QLatin1String("invalid state"))
+		errorStr = tr("Hibás OAuth2 kérés");
+	else if (error == QLatin1String("authentication failed"))
+		errorStr = tr("A felhasználó nem azonosítható");
+
+	messageWarning(errorStr, tr("Sikertelen bejelentkezés"));
 	server()->user()->setLoginState(User::LoggedOut);
 }
 
@@ -748,7 +801,11 @@ void Client::loginGoogle()
 	m_oauthData.state = "";
 	m_oauthData.path = QStringLiteral("login/google");
 
-	send(WebSocket::ApiAuth, QStringLiteral("login/google"))
+	QJsonObject j;
+	if (m_oauthData.isLocal)
+		j.insert(QStringLiteral("local"), true);
+
+	send(WebSocket::ApiAuth, m_oauthData.path, j)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -760,10 +817,23 @@ void Client::loginGoogle()
 
 void Client::registrationGoogle(const QString &code)
 {
-	/*m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationGoogle",
-									   QJsonObject({
-													   { QStringLiteral("code"), code }
-												   }));*/
+	server()->user()->setLoginState(User::LoggingIn);
+
+	m_oauthData.status = OAuthData::Invalid;
+	if (m_oauthData.timer.isActive())
+		m_oauthData.timer.stop();
+	m_oauthData.type = OAuthData::Registration;
+	m_oauthData.state = "";
+	m_oauthData.path = QStringLiteral("registration/google");
+
+	QJsonObject j;
+	if (m_oauthData.isLocal)
+		j.insert(QStringLiteral("local"), true);
+	j.insert(QStringLiteral("code"), code);
+
+	send(WebSocket::ApiAuth, m_oauthData.path, j)
+			->done(this, &Client::onLoginSuccess)
+			->fail(this, &Client::onLoginFailed);
 }
 
 
@@ -778,10 +848,10 @@ void Client::loginPlain(const QString &username, const QString &password)
 	server()->user()->setLoginState(User::LoggingIn);
 
 	send(WebSocket::ApiAuth, QStringLiteral("login"),
-							  QJsonObject{
-								  { QStringLiteral("username"), username },
-								  { QStringLiteral("password"), password }
-							  })
+		 QJsonObject{
+			 { QStringLiteral("username"), username },
+			 { QStringLiteral("password"), password }
+		 })
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 
@@ -797,8 +867,12 @@ void Client::loginPlain(const QString &username, const QString &password)
 
 void Client::registrationPlain(const QJsonObject &data)
 {
-	//m_internalHandler->sendRequestFunc(WebSocketMessage::ClassAuth, "registrationPlain", data);
+	send(WebSocket::ApiAuth, QStringLiteral("registration"), data)
+			->done(this, &Client::onLoginSuccess)
+			->fail(this, &Client::onLoginFailed);
 }
+
+
 
 
 /**
@@ -830,14 +904,15 @@ bool Client::loginToken()
 	}
 
 	send(WebSocket::ApiAuth, QStringLiteral("login"),
-							  QJsonObject{
-								  { QStringLiteral("token"), token },
-							  })
+		 QJsonObject{
+			 { QStringLiteral("token"), token },
+		 })
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 
 	return true;
 }
+
 
 
 
@@ -1181,25 +1256,6 @@ bool Client::debug() const
 
 
 
-
-
-void InternalHandler::registrationPlain(const QJsonObject &json) const
-{
-	const QString &error = json.value(QStringLiteral("error")).toString();
-
-	if (!error.isEmpty()) {
-		m_client->messageWarning(error, tr("Sikertelen regisztráció"));
-		return;
-	}
-
-	if (!checkStatus(json))
-		return;
-
-	loginPlain(json);
-}
-
-
-
 void InternalHandler::registrationGoogle(const QJsonObject &json) const
 {
 	if (json.contains(QStringLiteral("url"))) {
@@ -1210,15 +1266,6 @@ void InternalHandler::registrationGoogle(const QJsonObject &json) const
 }
 
 
-
-void InternalHandler::me(const QJsonObject &json) const
-{
-	if (json.contains(QStringLiteral("error")))
-		return;
-
-	if (m_client->server())
-		m_client->server()->user()->loadFromJson(json);
-}
 
 
 */

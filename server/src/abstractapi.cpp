@@ -187,6 +187,20 @@ void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &valu
 
 
 
+/**
+ * @brief AbstractAPI::responseAnswerOk
+ * @param response
+ * @param value
+ */
+
+void AbstractAPI::responseAnswerOk(HttpResponse *response, QJsonObject value) const
+{
+	value.insert(QStringLiteral("status"), QStringLiteral("ok"));
+	responseAnswer(response, value);
+}
+
+
+
 
 /**
  * @brief AbstractAPI::authorize
@@ -196,10 +210,12 @@ void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &valu
 
 Credential AbstractAPI::authorize(HttpRequest *request) const
 {
-	const QString &token = request->headerDefault(QStringLiteral("Authorization"), QString());
+	QString token = request->headerDefault(QStringLiteral("Authorization"), QString());
 
 	if (token.isEmpty())
 		return Credential();
+
+	token.replace(QRegExp(QStringLiteral("^Bearer ")), QLatin1String(""));
 
 	if (!Credential::verify(token, m_service->settings()->jwtSecret())) {
 		LOG_CDEBUG("client") << "Token verification failed";

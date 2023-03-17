@@ -49,7 +49,6 @@ GeneralAPI::GeneralAPI(ServerService *service)
 	addMap("^user/*$", this, &GeneralAPI::users);
 	addMap("^user/(.+)/*$", this, &GeneralAPI::user);
 
-	addMap("^user/me/*$", this, &GeneralAPI::userMe);
 	addMap("^me/*$", this, &GeneralAPI::userMe);
 }
 
@@ -95,9 +94,7 @@ void GeneralAPI::ranks(const int &id, const QPointer<HttpResponse> &response) co
 {
 	LOG_CTRACE("client") << "Get rank list:" << id;
 
-	QDeferred<RankList> ret;
-
-	databaseMainWorker()->execInThread([ret, id, this]() mutable {
+	databaseMainWorker()->execInThread([response, id, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -111,7 +108,7 @@ void GeneralAPI::ranks(const int &id, const QPointer<HttpResponse> &response) co
 		q.addQuery(" ORDER BY level, sublevel");
 
 		if (!q.exec())
-			return ret.reject(RankList());
+			return responseErrorSql(response);
 
 		RankList list;
 
@@ -126,17 +123,8 @@ void GeneralAPI::ranks(const int &id, const QPointer<HttpResponse> &response) co
 						q.value("name").toString()
 						);
 			list.append(r);
-
 		}
 
-		ret.resolve(list);
-	});
-
-
-	ret.fail([this, response](RankList){
-		responseError(response, "sql error");
-	})
-			.done([this, response, id](RankList list) {
 		if (id == -1)
 			responseAnswer(response, "list", list.toJson());
 		else if (list.size() != 1)
@@ -161,9 +149,8 @@ void GeneralAPI::classes(const int &id, const QPointer<HttpResponse> &response) 
 {
 	LOG_CTRACE("client") << "Get class list:" << id;
 
-	QDeferred<QJsonArray> ret;
 
-	databaseMainWorker()->execInThread([ret, id, this]() mutable {
+	databaseMainWorker()->execInThread([response, id, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -179,22 +166,14 @@ void GeneralAPI::classes(const int &id, const QPointer<HttpResponse> &response) 
 		const QJsonArray &list = q.execToJsonArray(&err);
 
 		if (err)
-			return ret.reject(QJsonArray());
+			return responseErrorSql(response);
 
-		ret.resolve(list);
-	});
-
-	ret.fail([this, response](QJsonArray){
-		responseError(response, "sql error");
-	})
-			.done([this, response, id](QJsonArray list) {
 		if (id == -1)
 			responseAnswer(response, "list", list);
 		else if (list.size() != 1)
 			responseError(response, "not found");
-		else {
+		else
 			responseAnswer(response, list.at(0).toObject());
-		}
 	});
 }
 
@@ -214,9 +193,7 @@ void GeneralAPI::classUsers(const QRegularExpressionMatch &match, const QJsonObj
 
 	LOG_CTRACE("client") << "Get user list in class:" << classid;
 
-	QDeferred<QJsonArray> ret;
-
-	databaseMainWorker()->execInThread([ret, classid, this]() mutable {
+	databaseMainWorker()->execInThread([response, classid, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -231,17 +208,11 @@ void GeneralAPI::classUsers(const QRegularExpressionMatch &match, const QJsonObj
 		const QJsonArray &list = q.execToJsonArray(&err);
 
 		if (err)
-			return ret.reject(QJsonArray());
+			return responseErrorSql(response);
 
-		ret.resolve(list);
-	});
-
-	ret.fail([this, response](QJsonArray){
-		responseError(response, "sql error");
-	})
-			.done([this, response](QJsonArray list) {
 		responseAnswer(response, "list", list);
 	});
+
 }
 
 
@@ -282,9 +253,7 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 {
 	LOG_CTRACE("client") << "Get user list:" << username;
 
-	QDeferred<QJsonArray> ret;
-
-	databaseMainWorker()->execInThread([ret, username, this]() mutable {
+	databaseMainWorker()->execInThread([response, username, this]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -303,15 +272,8 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 		const QJsonArray &list = q.execToJsonArray(&err);
 
 		if (err)
-			return ret.reject(QJsonArray());
+			return responseErrorSql(response);
 
-		ret.resolve(list);
-	});
-
-	ret.fail([this, response](QJsonArray){
-		responseError(response, "sql error");
-	})
-			.done([this, response, username](QJsonArray list) {
 		if (username.isEmpty())
 			responseAnswer(response, "list", list);
 		else if (list.size() != 1)
@@ -320,5 +282,6 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 			responseAnswer(response, list.at(0).toObject());
 		}
 	});
+
 }
 
