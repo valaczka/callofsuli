@@ -12,23 +12,24 @@ QPage {
 	closeQuestion: _form.modified ? qsTr("Biztosan eldobod a módosításokat?") : ""
 
 	property User user: null
-	property AsyncMessageHandler msgHandler: null
 	property int classid: -1
 
 	title: user ? user.fullName : qsTr("Új felhasználó")
 
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
-		visible: user && msgHandler
+		visible: user
 		ToolTip.text: qsTr("Felhasználó törlése")
 		icon.source: Qaterial.Icons.trashCan
 		onClicked: JS.questionDialog(
 					   {
 						   onAccepted: function()
 						   {
-							   msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userRemove", {
-															  username: user.username
-														  })
+							   Client.send(WebSocket.ApiAdmin, "user/%1/delete".arg(user.username))
+							   .done(function(r){
+								   _form.modified = false
+								   Client.stackPop(control)
+							   })
 						   },
 						   text: qsTr("Biztosan törlöd a felhasználót?"),
 						   title: user.username,
@@ -99,10 +100,15 @@ QPage {
 				enabled: user && _password._hasAcceptableInput
 				onClicked: {
 					if (_password.visible) {
-						msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userPasswordChange", {
-													   username: user.username,
-													   password: _password.text
-												   })
+						Client.send(WebSocket.ApiAdmin, "user/%1/password".arg(user.username), {
+										password: _password.text
+									})
+						.done(function(r){
+							_password.text = ""
+							_password2.text = ""
+							_password.visible = false
+						})
+
 					} else {
 						_password.visible = true
 					}
@@ -197,7 +203,7 @@ QPage {
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Mentés")
 				icon.source: Qaterial.Icons.disc
-				enabled: msgHandler && _username.acceptableInput && _familyName.acceptableInput
+				enabled: _username.acceptableInput && _familyName.acceptableInput
 						 && _form.modified && (user || _password._hasAcceptableInput)
 				onClicked:
 				{
@@ -218,11 +224,19 @@ QPage {
 					d.isTeacher = _isTeacher.checked
 					d.isPanel = _isPanel.checked
 
-					if (user)
-						msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userModify", d)
-					else {
+					if (user) {
+						Client.send(WebSocket.ApiAdmin, "user/%1/update".arg(user.username), d)
+						.done(function(r){
+							_form.modified = false
+							Client.stackPop(control)
+						})
+					} else {
 						d.password = _password.text
-						msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userAdd", d)
+						Client.send(WebSocket.ApiAdmin, "user/create", d)
+						.done(function(r){
+							_form.modified = false
+							Client.stackPop(control)
+						})
 					}
 				}
 			}
@@ -230,14 +244,6 @@ QPage {
 
 	}
 
-
-	Connections {
-		target: msgHandler
-
-		function onUserPasswordChanged() {
-			_password.visible = false
-		}
-	}
 
 	Component.onCompleted: if (user) {
 							   _username.text = user.username

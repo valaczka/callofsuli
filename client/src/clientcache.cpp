@@ -27,7 +27,8 @@
 #include "clientcache.h"
 #include "Logger.h"
 
-ClientCache::ClientCache()
+ClientCache::ClientCache(QObject *parent)
+	: QObject(parent)
 {
 	LOG_CTRACE("client") << "Client cache created" << this;
 }
@@ -45,193 +46,279 @@ ClientCache::~ClientCache()
 }
 
 
-/**
- * @brief ClientCache::contains
- * @param id
- * @return
- */
-
-bool ClientCache::contains(const CacheItemBase &item) const
-{
-	foreach (CacheItemBase *c, m_list) {
-		if (c == item)
-			return true;
-	}
-
-	return false;
-}
-
-
-/**
- * @brief ClientCache::remove
- * @param item
- * @return
- */
-
-bool ClientCache::remove(const CacheItemBase &item)
-{
-	LOG_CTRACE("client") << "Cache remove id" << this << item;
-
-	bool r = false;
-
-	for (auto i = m_list.begin(); i != m_list.end(); ) {
-		if (*i == item) {
-			delete *i;
-			i = m_list.erase(i);
-			r = true;
-		} else {
-			++i;
-		}
-	}
-
-	return r;
-}
-
 
 
 /**
  * @brief ClientCache::add
- * @param id
- * @return
+ * @param key
+ * @param list
+ * @param jsonField
+ * @param property
+ * @param api
+ * @param path
  */
 
-
-bool ClientCache::add(CacheItemBase *item)
-{
-	if (contains(*item)) {
-		LOG_CWARNING("client") << "Cache already exists" << this << item;
-		return false;
-	}
-
-	m_list.append(item);
-
-	LOG_CDEBUG("client") << "Cache added" << this << item;
-
-	return true;
-}
 
 
 
 /**
- * @brief ClientCache::remove
- * @param olm
+ * @brief ClientCache::contains
+ * @param key
  * @return
  */
 
-bool ClientCache::removeAll(qolm::QOlmBase *olm)
+bool ClientCache::contains(const QString &key) const
 {
-	if (!olm)
-		return false;
+	return m_list.contains(key);
+}
 
-	LOG_CTRACE("client") << "Cache remove all" << this << olm;
 
-	bool r = false;
+/**
+ * @brief ClientCache::remove
+ * @param key
+ */
 
-	for (auto i = m_list.begin(); i != m_list.end(); ) {
-		CacheItemBase *c = *i;
-		if (c->olmBase() == olm) {
-			i = m_list.erase(i);
-			r = true;
-		} else {
-			++i;
-		}
+void ClientCache::remove(const QString &key)
+{
+	if (m_list.contains(key)) {
+		qolm::QOlmBase *l = m_list.value(key).list;
+		if (l)
+			l->deleteLater();
 	}
-
-	return r;
+	m_list.remove(key);
 }
 
 
 /**
  * @brief ClientCache::removeAll
- * @return
+ * @param olm
+ */
+
+void ClientCache::remove(qolm::QOlmBase *olm)
+{
+	LOG_CTRACE("client") << "Cache remove" << olm << this;
+
+	for (auto i = m_list.begin(); i != m_list.end(); ) {
+		if (i->list == olm) {
+			i->list->deleteLater();
+			i = m_list.erase(i);
+		} else {
+			++i;
+		}
+	}
+}
+
+
+/**
+ * @brief ClientCache::removeAll
  */
 
 void ClientCache::removeAll()
 {
 	LOG_CTRACE("client") << "Cache remove all" << this;
 
-	qDeleteAll(m_list);
+	foreach (const CacheItem &it, m_list) {
+		if (it.list)
+			it.list->deleteLater();
+	}
+
 	m_list.clear();
 }
 
+/**
+ * @brief ClientCache::get
+ * @param key
+ * @return
+ */
+
+qolm::QOlmBase *ClientCache::get(const QString &key) const
+{
+	if (m_list.contains(key))
+		return m_list.value(key).list;
+	else
+		return nullptr;
+}
 
 
 /**
  * @brief ClientCache::set
- * @param id
+ * @param key
  * @param list
  * @return
  */
 
-bool ClientCache::set(const CacheItemBase &id, const QJsonArray &list)
+bool ClientCache::set(const QString &key, const QJsonArray &list)
 {
-	LOG_CTRACE("client") << "Cache set list" << this << id;
-
-	foreach (CacheItemBase *c, m_list) {
-		if (c == id) {
-			return c->load(list);
-		}
+	if (!m_list.contains(key)) {
+		LOG_CWARNING("client") << "Key not found:" << key;
+		return false;
 	}
 
-	LOG_CWARNING("client") << "Cache id olm not found" << this << id;
-	return false;
+	const CacheItem &it = m_list.value(key);
+
+	OlmLoader::call(it.func, it.list, list, it.jsonField, it.property);
+
+	return true;
 }
 
 
 /**
  * @brief ClientCache::reload
- * @param id
+ * @param websocket
+ * @param key
  * @return
  */
 
-bool ClientCache::reload(WebSocket *websocket, const CacheItemBase &id)
-{
-	LOG_CTRACE("client") << "Cache reload list" << this << id;
 
-	foreach (CacheItemBase *c, m_list) {
-		if (c == id) {
-			if (websocket && c->api() != WebSocket::ApiInvalid)
-				websocket->send(c->api(), c->fullPath())->done([c](const QJsonObject &data){
-					const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
-					c->load(list);
-				});
-			return true;
-		}
+bool ClientCache::reload(WebSocket *websocket, const QString &key)
+{
+	if (!websocket) {
+		LOG_CERROR("client") << "Websocket not set";
+		return false;
 	}
 
-	LOG_CWARNING("client") << "Cache id olm not found" << this << id;
+	if (!m_list.contains(key)) {
+		LOG_CWARNING("client") << "Key not found:" << key;
+		return false;
+	}
+
+	const CacheItem &it = m_list.value(key);
+
+	if (it.api == WebSocket::ApiInvalid) {
+		LOG_CWARNING("client") << "API not set for key:" << key;
+		return false;
+	}
+
+
+	websocket->send(it.api, it.path)->done([this, key](const QJsonObject &data){
+		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
+		set(key, list);
+	});
+	return true;
+}
+
+
+/**
+ * @brief ClientCache::reload
+ * @param websocket
+ * @param key
+ * @param func
+ * @return
+ */
+
+bool ClientCache::reload(WebSocket *websocket, const QString &key, QJSValue func)
+{
+	if (!websocket) {
+		LOG_CERROR("client") << "Websocket not set";
+		return false;
+	}
+
+	if (!m_list.contains(key)) {
+		LOG_CWARNING("client") << "Key not found:" << key;
+		return false;
+	}
+
+	const CacheItem &it = m_list.value(key);
+
+	if (it.api == WebSocket::ApiInvalid) {
+		LOG_CWARNING("client") << "API not set for key:" << key;
+		return false;
+	}
+
+
+	websocket->send(it.api, it.path)->done([this, key, func](const QJsonObject &data) mutable {
+		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
+		set(key, list);
+		if (func.isCallable())
+			func.call();
+	});
+	return true;
+}
+
+
+/**
+ * @brief ClientCache::clear
+ */
+
+void ClientCache::clear()
+{
+	foreach (const CacheItem &it, m_list)
+		if (it.list)
+			it.list->clear();
+
+}
+
+
+
+
+/**
+ * @brief ClientCache::callHandler
+ * @param key
+ * @param list
+ * @param array
+ * @return
+ */
+
+bool ClientCache::callHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const
+{
+	if (m_handlers.contains(key)) {
+		LOG_CWARNING("client") << "Handlery key not found:" << key;
+		return false;
+	}
+
+	if (!list)
+		return false;
+
+	const CacheItem &it = m_list.value(key);
+
+	OlmLoader::call(it.func, list, array, it.jsonField, it.property);
+
+	return true;
+}
+
+
+
+
+
+
+
+/**
+ * @brief OlmLoader::call
+ * @param map
+ * @param key
+ * @param list
+ * @param array
+ * @param jsonField
+ * @param property
+ * @return
+ */
+
+bool OlmLoader::call(const QMap<QString, OlmLoaderFunc> &map, const QString &key, qolm::QOlmBase *list, const QJsonArray &array,
+					 const char *jsonField, const char *property)
+{
+	if (map.contains(key)) {
+		call(map.value(key), list, array, jsonField, property);
+		return true;
+	}
+
 	return false;
 }
 
 
+
 /**
- * @brief ClientCache::get
- * @param id
+ * @brief OlmLoader::call
+ * @param func
+ * @param list
+ * @param array
+ * @param jsonField
+ * @param property
  * @return
  */
 
-qolm::QOlmBase *ClientCache::get(const CacheItemBase &id) const
+void OlmLoader::call(const OlmLoaderFunc &func, qolm::QOlmBase *list, const QJsonArray &array, const char *jsonField, const char *property)
 {
-	foreach (CacheItemBase *c, m_list) {
-		if (id == c) {
-			return c->olmBase();
-		}
-	}
-
-	return nullptr;
+	std::invoke(func, list, array, jsonField, property);
 }
 
 
-
-
-/**
- * @brief CacheItemBase::fullPath
- * @return
- */
-
-QString CacheItemBase::fullPath() const
-{
-	if (!m_id.isEmpty() && m_path.contains(QStringLiteral("%1")))
-		return m_path.arg(m_id);
-	return m_path;
-}

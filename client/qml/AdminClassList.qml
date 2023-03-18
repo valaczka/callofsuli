@@ -25,9 +25,9 @@ Qaterial.Page
 		anchors.fill: parent
 		autoSelectChange: true
 
-		refreshProgressVisible: msgHandler.pending
+		refreshProgressVisible: Client.webSocket.pending
 		refreshEnabled: true
-		onRefreshRequest: msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
+		onRefreshRequest: Client.reloadCache("classList")
 
 		model: SortFilterProxyModel {
 			sourceModel: classList
@@ -46,6 +46,26 @@ Qaterial.Page
 					sortOrder: Qt.AscendingOrder
 				}
 			]
+		}
+
+		header: Column {
+			QItemDelegate {
+				text: qsTr("Minden felhasználó")
+				iconSource: Qaterial.Icons.desktopClassic
+
+				width: view.width
+
+				onClicked: classSelected(-1)
+			}
+
+			QItemDelegate {
+				text: qsTr("Osztály nélküli felhasználók")
+				iconSource: Qaterial.Icons.desktopClassic
+
+				width: view.width
+
+				onClicked: classSelected(-2)
+			}
 		}
 
 

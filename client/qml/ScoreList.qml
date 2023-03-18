@@ -12,14 +12,29 @@ Qaterial.Page
 	implicitWidth: 200
 	implicitHeight: 200
 
-	property UserList userList: Client.cache("userScoreList")
+	property UserList userList: Client.cache("userList")
 	property ClassList classList: Client.cache("classList")
 
 	background: Rectangle { color: "transparent" }
 
+	ListModel {
+		id: _preparedClassList
+
+		function reload() {
+			clear()
+
+			append({classid: -1, name: qsTr("Mindenki")})
+
+			for (var i=0; i<classList.length; i++) {
+				var o = classList.get(i)
+				append({classid: o.classid, name: o.name})
+			}
+		}
+	}
+
 	SortFilterProxyModel {
 		id: sortedClassList
-		sourceModel: classList
+		sourceModel: _preparedClassList
 
 		filters: [
 			RangeFilter {
@@ -57,7 +72,8 @@ Qaterial.Page
 
 			Item {
 				id: _item
-				property ClassObject _class: model.qtObject
+
+				required property int classid
 
 				QListView {
 					id: view
@@ -73,8 +89,8 @@ Qaterial.Page
 						filters: [
 							ValueFilter {
 								roleName: "classid"
-								enabled: _item._class.classid != -1
-								value: _item._class.classid
+								enabled: _item.classid != -1
+								value: _item.classid
 							}
 						]
 
@@ -93,7 +109,7 @@ Qaterial.Page
 
 					refreshProgressVisible: Client.webSocket.pending
 					refreshEnabled: true
-					onRefreshRequest: Client.reloadCache("userScoreList")
+					onRefreshRequest: Client.reloadCache("userList")
 
 					delegate: QLoaderItemDelegate {
 						id: _delegate
@@ -108,10 +124,6 @@ Qaterial.Page
 							text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
 							color: Qaterial.Style.accentColor
 						}
-
-
-						//onClicked: if (!view.selectEnabled)
-						//			   Client.connectToServer(server)
 					}
 
 				}
@@ -138,8 +150,8 @@ Qaterial.Page
 
 	SwipeView.onIsCurrentItemChanged: {
 		if (SwipeView.isCurrentItem) {
-			Client.reloadCache("userScoreList")
-			Client.reloadCache("classList")
+			Client.reloadCache("userList")
+			Client.reloadCache("classList", function(){_preparedClassList.reload()})
 		}
 	}
 }

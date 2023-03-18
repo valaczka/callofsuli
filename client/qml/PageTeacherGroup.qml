@@ -99,7 +99,7 @@ QPage {
 							{
 								Client.send(WebSocket.ApiTeacher, "group/%1/delete".arg(group.groupid))
 								.done(function(r){
-									Client.reloadCache("groupListTeacher")
+									Client.reloadCache("teacherGroupList")
 									Client.stackPop(control.StackView.index-1)
 								})
 							},
@@ -129,7 +129,7 @@ QPage {
 																				   name: _text
 																			   })
 															   .done(function(r){
-																   Client.reloadCache("groupListTeacher")
+																   Client.reloadCache("teacherGroupList")
 															   })
 														   }
 													   })

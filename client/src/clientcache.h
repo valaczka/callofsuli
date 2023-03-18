@@ -35,280 +35,287 @@
 #include "qjsonobject.h"
 #include "websocket.h"
 
-/**
- * @brief The CacheItemBase class
- */
 
-class CacheItemBase {
-public:
-	CacheItemBase() {}
-	CacheItemBase(const QString &key, const QString &id, qolm::QOlmBase *olm = nullptr)
-		: m_key(key), m_id(id), m_olm(olm) {}
-	virtual ~CacheItemBase() {  }
-
-	qolm::QOlmBase *olmBase() const { return m_olm; }
-
-	virtual bool load(const QJsonArray &) const { return false; };
-
-	friend inline bool operator==(const CacheItemBase &c, const CacheItemBase &other) { return c.m_key==other.m_key && c.m_id==other.m_id; }
-	friend inline bool operator==(const CacheItemBase &c, CacheItemBase *other) { return other && c.m_key==other->m_key && c.m_id==other->m_id; }
-	friend inline bool operator==(CacheItemBase *c, const CacheItemBase &other) { return c && c->m_key==other.m_key && c->m_id==other.m_id; }
-
-	friend QDebug operator<<(QDebug out, const CacheItemBase &id)
-	{
-		QDebugStateSaver saver(out);
-		out.nospace() << '(' << qPrintable(id.m_key) << ',' << qPrintable(id.m_id) << ':' << id.m_olm << ')';
-		return out;
-	}
-
-	const WebSocket::API &api() const { return m_api; }
-	const QString &path() const { return m_path; }
-	QString fullPath() const;
-
-protected:
-	WebSocket::API m_api = WebSocket::ApiInvalid;
-	QString m_path;
-
-private:
-	QString m_key;
-	QString m_id;
-	qolm::QOlmBase *m_olm = nullptr;
-};
-
-
-template <typename T, typename = void>
-class CacheItem;
-
-template <typename T>
-using QOlmBase_SFINAE = typename std::enable_if<std::is_base_of<qolm::QOlmBase, T>::value>::type;
-
-template <typename T>
-class CacheItem<T, QOlmBase_SFINAE<T>> : public CacheItemBase
-{
-public:
-
-	typedef std::function<bool(T *olm, const QJsonArray &)> LoadFunc;
-
-	explicit CacheItem(const QString &key, const QString &id, T* olm, LoadFunc func = nullptr,
-					   const WebSocket::API &api = WebSocket::ApiInvalid, const QString &path = QLatin1String(""))
-		: CacheItemBase(key, id, olm)
-		, m_olm(olm)
-		, m_func(func)
-	{
-		m_api = api;
-		m_path = path;
-	}
-
-	explicit CacheItem(const QString &key, T* olm, LoadFunc func = nullptr,
-					   const WebSocket::API &api = WebSocket::ApiInvalid, const QString &path = QLatin1String(""))
-		: CacheItem(key, QString(), olm, func, api, path) {}
-
-	T *olm() const { return m_olm; }
-
-
-	bool load(const QJsonArray &list) const override {
-		if (m_func)
-			return std::invoke(m_func, m_olm, list);
-		else
-			return false;
-	}
-
-
-private:
-	T *const m_olm;
-	LoadFunc m_func;
-
-};
-
-
-
-
-template <typename T, typename = void>
-class CacheItem2;
-
-template <typename T>
-class CacheItem2<T, QOlmBase_SFINAE<T>> : public CacheItemBase
-{
-public:
-
-	explicit CacheItem2(const QString &id, T* olm, bool (*handler)(T *, const QJsonArray &))
-		: CacheItemBase("", id, olm)
-		, m_olm(olm)
-		, m_func(std::bind(handler, std::placeholders::_1, std::placeholders::_2))
-	{
-
-	}
-
-
-	bool load2(T* olm, const QJsonArray &list) const {
-		if (m_func)
-			return std::invoke(m_func, olm, list);
-		else
-			return false;
-	}
-
-private:
-	T *const m_olm;
-	std::function<bool(T *olm, const QJsonArray &)> m_func;
-
-};
-
+typedef std::function<void(qolm::QOlmBase *olm, const QJsonArray &, const char *, const char *)> OlmLoaderFunc;
 
 /**
  * @brief The ClientCache class
  */
 
-class ClientCache
+class ClientCache : public QObject
 {
+	Q_OBJECT
+
 public:
-	explicit ClientCache();
+	explicit ClientCache(QObject *parent = nullptr);
 	virtual ~ClientCache();
 
-	bool contains(const CacheItemBase &item) const;
-	bool contains(const char *key, const char *id) const { return contains(CacheItemBase(key, id)); }
-	bool contains(const char *key, const int &id) const { return contains(CacheItemBase(key, QString::number(id))); }
-	bool contains(const char *key) const { return contains(CacheItemBase(key, QString())); }
+	/**
+	 * @brief The CacheItem class
+	 */
 
-	bool add(CacheItemBase *item);
+	struct CacheItem {
+		qolm::QOlmBase *list;
+		OlmLoaderFunc func;
+		WebSocket::API api = WebSocket::ApiInvalid;
+		const char *path = nullptr;
+		const char *jsonField = nullptr;
+		const char *property = nullptr;
+	};
 
-	bool remove(const CacheItemBase &item);
-	bool remove(const char *key, const char *id) { return remove(CacheItemBase(key, id)); }
-	bool remove(const char *key, const int &id) { return remove(CacheItemBase(key, QString::number(id))); }
-	bool remove(const char *key) { return remove(CacheItemBase(key, QString())); }
-	bool removeAll(qolm::QOlmBase *olm);
+
+	template <typename T>
+	void add(const QString &key, qolm::QOlm<T> *list,
+			 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *),
+			 const char *jsonField = nullptr, const char *property = nullptr,
+			 const WebSocket::API &api = WebSocket::ApiInvalid, const char *path = nullptr);
+
+	bool contains(const QString &key) const;
+	void remove(const QString &key);
+	void remove(qolm::QOlmBase *olm);
 	void removeAll();
 
-	bool set(const CacheItemBase &id, const QJsonArray &list);
-	bool set(const char *key, const char *id, const QJsonArray &list) { return set(CacheItemBase(key, id), list); }
-	bool set(const char *key, const int &id, const QJsonArray &list) { return set(CacheItemBase(key, QString::number(id)), list); }
-	bool set(const char *key, const QJsonArray &list) { return set(CacheItemBase(key, QString()), list); }
+	qolm::QOlmBase* get(const QString &key) const;
 
-	bool reload(WebSocket *websocket, const CacheItemBase &id);
-	bool reload(WebSocket *websocket, const char *key, const char *id) { return reload(websocket, CacheItemBase(key, id)); }
-	bool reload(WebSocket *websocket, const char *key, const int &id) { return reload(websocket, CacheItemBase(key, QString::number(id))); }
-	bool reload(WebSocket *websocket, const char *key) { return reload(websocket, CacheItemBase(key, QString())); }
+	bool set(const QString &key, const QJsonArray &list);
 
-	qolm::QOlmBase* get(const CacheItemBase &id) const;
-	qolm::QOlmBase* get(const char *key, const char *id) const { return get(CacheItemBase(key, id)); }
-	qolm::QOlmBase* get(const char *key, const int &id) const { return get(CacheItemBase(key, QString::number(id))); }
-	qolm::QOlmBase* get(const char *key) const { return get(CacheItemBase(key, QString())); }
+	bool reload(WebSocket *websocket, const QString &key);
+	bool reload(WebSocket *websocket, const QString &key, QJSValue func);
 
-	template <typename T>
-	T* getAs(const CacheItemBase &id) const;
+	void clear();
 
-	template <typename T>
-	T* getAs(const char *key, const char *id) const { return getAs<T>(CacheItemBase(key, id)); }
-
-	template <typename T>
-	T* getAs(const char *key, const int &id) const { return getAs<T>(CacheItemBase(key, QString::number(id))); }
-
-	template <typename T>
-	T* getAs(const char *key) const { return getAs<T>(CacheItemBase(key, QString())); }
 
 
 	template <typename T>
-	static bool loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *jsonField, const char *property);
+	void addHandler(const QString &key,
+			 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *),
+			 const char *jsonField = nullptr, const char *property = nullptr);
 
-	template <typename T>
-	static bool loadFromJsonArray2(qolm::QOlm<T> *list, const QJsonArray &jsonArray);
+	bool callHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const;
 
-	template <typename T>
-	static T* find(qolm::QOlm<T> *list, const char *property, const QVariant &value);
 
 private:
-	QVector<CacheItemBase*> m_list;
+	QMap<QString, CacheItem> m_list;
+	QMap<QString, CacheItem> m_handlers;
 
 };
 
 
+
+
+/**
+ * @brief The OlmLoader class
+ */
+
+class OlmLoader
+{
+public:
+	explicit OlmLoader() {}
+
+
+	template <typename T>
+	static void loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonArray, const char *jsonField, const char *property);
+
+	template <typename T>
+	static void map(QMap<QString, OlmLoaderFunc> *map, const QString &key,
+					void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *));
+
+
+	template <typename T>
+	void map(const QString &key,
+			 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *)) {
+		map<T>(&m_list, key, handler);
+	}
+
+
+	template <typename T>
+	static T* find(qolm::QOlm<T> *list, const char *property, const QVariant &value);
+
+
+	bool contains(const QString &key) const {
+		return m_list.contains(key);
+	}
+
+	static bool call(const QMap<QString, OlmLoaderFunc> &map, const QString &key,
+					 qolm::QOlmBase *list, const QJsonArray &array,
+					 const char *jsonField = nullptr, const char *property = nullptr);
+
+	bool call(const QString &key,
+			  qolm::QOlmBase *list, const QJsonArray &array,
+			  const char *jsonField = nullptr, const char *property = nullptr ) const {
+		return call(m_list, key, list, array, jsonField, property);
+	}
+
+	static void call(const OlmLoaderFunc &func, qolm::QOlmBase *list, const QJsonArray &array,
+					 const char *jsonField = nullptr, const char *property = nullptr);
+
+
+private:
+	QMap<QString, OlmLoaderFunc> m_list;
+
+};
 
 
 
 
 /// ---------------------------------------------------------------
 
+
+
+
 template <typename T>
-T* ClientCache::getAs(const CacheItemBase &id) const
+void ClientCache::add(const QString &key, qolm::QOlm<T> *list,
+		 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *),
+		 const char *jsonField, const char *property,
+		 const WebSocket::API &api, const char *path)
 {
-	for (auto i=m_list.begin(); i != m_list.end(); ++i) {
-		if (*i == id) {
-			CacheItem<T> *t = dynamic_cast<CacheItem<T>*>(*i);
-			if (t)
-				return t->olm();
-			else
-				return nullptr;
+	Q_ASSERT(list);
+
+	if (m_list.contains(key)) {
+		LOG_CWARNING("client") << "Key already exists:" << key;
+		return;
+	}
+
+	CacheItem it;
+	it.list = list;
+	it.func = handler;
+	it.api = api;
+	it.path = path;
+	it.jsonField = jsonField;
+	it.property = property;
+
+	m_list.insert(key, it);
+
+	QObject::connect(list, &QObject::destroyed, this, [this, key](){remove(key);});
+}
+
+
+
+
+
+/**
+ * @brief ClientCache::addHandler
+ * @param key
+ * @param jsonField
+ * @param property
+ */
+
+template<typename T>
+void ClientCache::addHandler(const QString &key,
+							 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *),
+							 const char *jsonField, const char *property)
+{
+	if (m_handlers.contains(key)) {
+		LOG_CWARNING("client") << "Handler key already exists:" << key;
+		return;
+	}
+
+	CacheItem it;
+	it.list = nullptr;
+	it.func = handler;
+	it.jsonField = jsonField;
+	it.property = property;
+
+	m_list.insert(key, it);
+}
+
+
+
+/**
+ * @brief OlmLoader::loadFromJsonArray
+ * @param list
+ * @param jsonArray
+ * @param jsonField
+ * @param property
+ */
+
+
+
+template<typename T>
+void OlmLoader::loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonArray, const char *jsonField, const char *property)
+{
+	Q_ASSERT(list);
+
+	qolm::QOlm<T> *t = dynamic_cast<qolm::QOlm<T>*>(list);
+
+	if (jsonField && property) {
+		QVector<T*> tmp;
+
+		for (T *u : *t)
+			tmp.append(u);
+
+		foreach (const QJsonValue &v, jsonArray) {
+			const QJsonObject &obj = v.toObject();
+			T *record = find<T>(t, property, obj.value(jsonField).toVariant());
+			if (record) {
+				tmp.removeAll(record);
+				record->loadFromJson(obj, true);				// All fields overwrite
+			} else {
+				record = new T(list);
+				record->loadFromJson(obj, true);				// All fields overwrite
+				t->append(record);
+			}
+		}
+
+		foreach (T *u, tmp) {
+			t->remove(u);
+			u->deleteLater();
+		}
+
+	} else {
+
+		if (!t) {
+			LOG_CWARNING("client") << "OlmLoader type error" << list;
+			return;
+		}
+
+		for (T *o : *t)
+			o->deleteLater();
+
+		list->clear();
+
+		foreach (const QJsonValue &v, jsonArray) {
+			T* record = new T(list);
+			record->loadFromJson(v.toObject(), true);				// All fields overwrite
+			t->append(record);
 		}
 	}
-	return nullptr;
 }
 
 
 
 
+/**
+ * @brief OlmLoader::map
+ * @param map
+ * @param key
+ */
+
+
 template<typename T>
-bool ClientCache::loadFromJsonArray(qolm::QOlm<T> *list, const QJsonArray &jsonArray, const char *jsonField, const char *property)
+void OlmLoader::map(QMap<QString, OlmLoaderFunc> *map, const QString &key,
+					void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *))
 {
-	if (!list)
-		return false;
+	Q_ASSERT(map);
 
-	QVector<T*> tmp;
-
-	for (T *u : *list)
-		tmp.append(u);
-
-	foreach (const QJsonValue &v, jsonArray) {
-		const QJsonObject &obj = v.toObject();
-		T *record = find<T>(list, property, obj.value(jsonField).toVariant());
-		if (record) {
-			tmp.removeAll(record);
-			record->loadFromJson(obj, true);				// All fields overwrite
-		} else {
-			record = new T();
-			record->loadFromJson(obj, true);				// All fields overwrite
-			list->append(record);
-		}
+	if (map->contains(key)) {
+		LOG_CWARNING("client") << "Key already exist:" << key;
 	}
 
-	foreach (T *u, tmp)
-		list->remove(u);
-
-	return true;
+	map->insert(key, handler);
 }
 
 
+/**
+ * @brief OlmLoader::find
+ * @param list
+ * @param property
+ * @param value
+ * @return
+ */
 
 template<typename T>
-bool ClientCache::loadFromJsonArray2(qolm::QOlm<T> *list, const QJsonArray &jsonArray)
-{
-	LOG_CDEBUG("client") << "Test point X";
-	if (!list)
-		return false;
-
-	LOG_CDEBUG("client") << "Test point X1";
-
-	list->clear();
-
-	LOG_CDEBUG("client") << "Test point X2";
-
-	foreach (const QJsonValue &v, jsonArray) {
-		LOG_CDEBUG("client") << "Test point X3" << v;
-		T* record = new T();
-		LOG_CDEBUG("client") << "Test point X4";
-		record->loadFromJson(v.toObject(), true);				// All fields overwrite
-		LOG_CDEBUG("client") << "Test point X5";
-		list->append(record);
-		LOG_CDEBUG("client") << "Test point X6";
-	}
-
-	LOG_CDEBUG("client") << "Test point X7";
-}
-
-
-
-
-
-template<typename T>
-T* ClientCache::find(qolm::QOlm<T> *list, const char *property, const QVariant &value)
+T *OlmLoader::find(qolm::QOlm<T> *list, const char *property, const QVariant &value)
 {
 	if (!list)
 		return nullptr;
@@ -320,6 +327,12 @@ T* ClientCache::find(qolm::QOlm<T> *list, const char *property, const QVariant &
 
 	return nullptr;
 }
+
+
+
+
+
+
 
 
 #endif // CLIENTCACHE_H

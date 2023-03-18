@@ -37,8 +37,8 @@ QPage {
 	appBar.rightComponent: _cmpUser //swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
 	appBar.rightPadding: Qaterial.Style.horizontalPadding
 
-	property StudentGroupList groupListTeacher: Client.cache("groupListTeacher")
-	property StudentGroupList groupListStudent: Client.cache("groupListStudent")
+	property StudentGroupList groupListTeacher: Client.cache("teacherGroupList")
+	property StudentGroupList groupListStudent: Client.cache("studentGroupList")
 
 	Component {
 		id: _cmpUser
@@ -201,65 +201,16 @@ QPage {
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   Client.send(WebSocket.ApiTeacher, "group/create", { name: _text })
-															   .done(function(r){ Client.reloadCache("groupListTeacher") })
+															   .done(function(r){ Client.reloadCache("teacherGroupList") })
 														   }
 													   })
 		}
 	}
-/*
 
-	Action {
-		id: actionClassRemove
-		text: qsTr("Törlés")
-		icon.source: Qaterial.Icons.trashCan
-		onTriggered: {
-			var l = _class.view.getSelected()
-			if (!l.length)
-				return
-
-			JS.questionDialogPlural(l, qsTr("Biztosan törlöd a kijelölt %1 osztályt?"), "name",
-									{
-										onAccepted: function()
-										{
-											Client.send(WebSocket.ApiTeacher, "group/delete",
-														{ list: JS.listGetFields(l, "classid") })
-											.done(function(r){ Client.reloadCache("groupListTeacher") })
-										},
-										title: qsTr("Osztályok törlése"),
-										iconSource: Qaterial.Icons.closeCircle
-									})
-
-		}
-	}
-
-
-	Action {
-		id: actionClassRename
-		text: qsTr("Átnevezés")
-		enabled: _class.view.currentIndex != -1
-		icon.source: Qaterial.Icons.renameBox
-		onTriggered: {
-			var o = _class.view.modelGet(_class.view.currentIndex)
-			Qaterial.DialogManager.showTextFieldDialog({
-														   textTitle: qsTr("Osztály neve"),
-														   title: qsTr("Osztály átnevezése"),
-														   text: o.name,
-														   onAccepted: function(_text, _noerror) {
-															   if (_noerror && _text.length)
-																   msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classModify", {
-																								  classid: o.classid,
-																								  name: _text
-																							  })
-														   }
-													   })
-		}
-	}
-*/
 	StackView.onActivated: {
 		if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
-			Client.reloadCache("groupListTeacher")
+			Client.reloadCache("teacherGroupList")
 		}
-		//msgHandler.sendRequestFunc(WebSocketMessage.ClassTeacher, "classList")
 	}
 
 }

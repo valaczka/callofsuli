@@ -29,8 +29,8 @@
 #include "generalapi.h"
 #include "authapi.h"
 #include "teacherapi.h"
+#include "adminapi.h"
 #include "serverservice.h"
-#include "utils.h"
 
 
 /**
@@ -47,6 +47,7 @@ Handler::Handler(ServerService *service, QObject *parent)
 	m_apiHandlers.insert("general", new GeneralAPI(service));
 	m_apiHandlers.insert("auth", new AuthAPI(service));
 	m_apiHandlers.insert("teacher", new TeacherAPI(service));
+	m_apiHandlers.insert("admin", new AdminAPI(service));
 }
 
 

@@ -27,10 +27,12 @@
 #include <QDebug>
 
 #include "application.h"
+#include "classobject.h"
 #include "client.h"
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
+#include "studentgroup.h"
 #include "websocket.h"
 #include "gameterrain.h"
 #include "qquickwindow.h"
@@ -63,6 +65,8 @@ Client::Client(Application *app, QObject *parent)
 	connect(m_webSocket, &WebSocket::serverChanged, this, &Client::serverChanged);
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
+
+	startCache();
 }
 
 
@@ -78,6 +82,8 @@ Client::~Client()
 
 	delete m_utils;
 	delete m_webSocket;
+
+	m_cache.removeAll();
 }
 
 /**
@@ -467,6 +473,8 @@ void Client::onServerDisconnected()
 		server()->user()->setLoginState(User::LoggedOut);
 
 	stackPopToStartPage();
+
+	m_cache.clear();
 }
 
 
@@ -706,6 +714,33 @@ void Client::_userAuthTokenReceived(const QString &token)
 	server()->user()->setLoginState(User::LoggedIn);
 
 	onUserLoggedIn();
+}
+
+
+
+/**
+ * @brief Client::startCache
+ */
+
+void Client::startCache()
+{
+	m_cache.add<User>(QStringLiteral("userList"), new UserList(this),
+					  &OlmLoader::loadFromJsonArray<User>, "username", "username",
+					  WebSocket::ApiGeneral, "user");
+
+	m_cache.add<ClassObject>(QStringLiteral("classList"), new ClassList(this),
+							 &OlmLoader::loadFromJsonArray<ClassObject>, "id", "classid",
+							 WebSocket::ApiGeneral, "class");
+
+	m_cache.add<StudentGroup>(QStringLiteral("studentGroupList"), new StudentGroupList(this),
+							  &OlmLoader::loadFromJsonArray<StudentGroup>, "id", "groupid");
+
+	m_cache.add<StudentGroup>(QStringLiteral("teacherGroupList"), new StudentGroupList(this),
+							  &OlmLoader::loadFromJsonArray<StudentGroup>, "id", "groupid",
+							  WebSocket::ApiTeacher, "group");
+
+
+	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>);
 }
 
 

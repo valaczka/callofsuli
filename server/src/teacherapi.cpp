@@ -38,7 +38,6 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^group/(\\d+)/update/*$", this, &TeacherAPI::groupUpdate);
 	addMap("^group/(\\d+)/delete/*$", this, &TeacherAPI::groupDeleteOne);
 	addMap("^group/delete/*$", this, &TeacherAPI::groupDelete);
-	//addMap("^class/(\\d+)/users/*$", this, &GeneralAPI::classUsers);
 }
 
 

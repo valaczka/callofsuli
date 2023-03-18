@@ -28,7 +28,6 @@
 #define SERVER_H
 
 #include "QOlm/QOlm.hpp"
-#include "clientcache.h"
 #include "qdir.h"
 #include "qjsonobject.h"
 #ifndef QT_NO_SSL
@@ -111,8 +110,6 @@ public:
 
 	Rank rank(const int &id) const;
 
-	ClientCache *cache() const;
-
 signals:
 	void urlChanged();
 	void directoryChanged();
@@ -140,8 +137,6 @@ private:
 #endif
 	QByteArray m_certificate;
 	QJsonObject m_config;
-
-	ClientCache *m_cache = nullptr;
 };
 
 

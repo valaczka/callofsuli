@@ -36,7 +36,7 @@ Qaterial.ItemDelegate {
 					   selectableObject.selected = !selectableObject.selected
 					   control.ListView.view.checkSelected()
 				   }
-			   } else if (setCurrentIndexEnabled)
+			   } else if (setCurrentIndexEnabled && ListView.view)
 				   ListView.view.currentIndex = index
 
 	onPressAndHold: {

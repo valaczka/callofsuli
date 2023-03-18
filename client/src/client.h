@@ -27,6 +27,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "clientcache.h"
 #include "qnetworkaccessmanager.h"
 #include <QObject>
 #include <QQuickItem>
@@ -134,59 +135,13 @@ public:
 
 	// Cache
 
-	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key) const
-	{
-		if (server())
-			return server()->cache()->get(key.toUtf8().constData());
-		else
-			return nullptr;
-	}
-	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key, const QString &id) const
-	{
-		if (server())
-			return server()->cache()->get(key.toUtf8().constData(), id.toUtf8().constData());
-		else
-			return nullptr;
-	}
-	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key, const int &id) const
-	{
-		if (server())
-			return server()->cache()->get(key.toUtf8().constData(), id);
-		else
-			return nullptr;
-	}
+	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key) const { return m_cache.get(key); }
+	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list) { m_cache.set(key, list); }
+	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_webSocket, key); }
+	Q_INVOKABLE void reloadCache(const QString &key, const QJSValue &func) { m_cache.reload(m_webSocket, key, func); }
 
-	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list)
-	{
-		if (server())
-			server()->cache()->set(key.toUtf8().constData(), list);
-	}
-	Q_INVOKABLE void setCache(const QString &key, const QString &id, const QJsonArray &list)
-	{
-		if (server())
-			server()->cache()->set(key.toUtf8().constData(), id.toUtf8().constData(), list);
-	}
-	Q_INVOKABLE void setCache(const QString &key, const int &id, const QJsonArray &list)
-	{
-		if (server())
-			server()->cache()->set(key.toUtf8().constData(), id, list);
-	}
-
-
-	Q_INVOKABLE void reloadCache(const QString &key)
-	{
-		if (server())
-			server()->cache()->reload(m_webSocket, key.toUtf8().constData());
-	}
-	Q_INVOKABLE void reloadCache(const QString &key, const QString &id)
-	{
-		if (server())
-			server()->cache()->reload(m_webSocket, key.toUtf8().constData(), id.toUtf8().constData());
-	}
-	Q_INVOKABLE void reloadCache(const QString &key, const int &id)
-	{
-		if (server())
-			server()->cache()->reload(m_webSocket, key.toUtf8().constData(), id);
+	Q_INVOKABLE void callHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) {
+		m_cache.callHandler(key, list, array);
 	}
 
 
@@ -278,6 +233,8 @@ signals:
 	void safeMarginBottomChanged();
 	void serverChanged();
 
+private:
+	void startCache();
 
 protected:
 	Application *const m_application;
@@ -298,6 +255,9 @@ protected:
 	QQuickItem *m_mainPage = nullptr;
 
 	OAuthData m_oauthData;
+
+	ClientCache m_cache;
+	OlmLoader m_olmLoader;
 };
 
 

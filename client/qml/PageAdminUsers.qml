@@ -51,111 +51,9 @@ QPage {
 	}
 
 
-	property UserList userList: Client.cache("adminUserList")
+	UserList { id: userList }
+
 	property ClassList classList: Client.cache("classList")
-
-	AsyncMessageHandler {
-		id: msgHandler
-
-		signal userPasswordChanged()
-
-		function userListByClass(obj : QJsonObject) {
-			if (obj.status === "ok")
-				Client.setCache("adminUserList", obj.list)
-			else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat"))
-		}
-
-		function classList(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.loadClassListFromArray(obj.list)
-			} else
-				Client.messageWarning(qsTr("Nem sikerült frissíteni az adatokat!"))
-		}
-
-		function classAdd(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Osztály létrehozva"))
-				_class.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült létrehozni az osztályt!"))
-		}
-
-		function classRemove(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Osztály(ok) törölve"))
-				_class.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült törölni az osztályokat!"))
-		}
-
-		function classModify(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Osztály módosítva"))
-				_class.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült módosítani az osztályt!"))
-		}
-
-		function userAdd(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Felhasználó létrehozva"))
-				_user.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
-				Client.stackPopToPage(control)
-			} else
-				Client.messageWarning(qsTr("Nem sikerült létrehozni a felhasználót!"))
-		}
-
-		function userModify(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Felhasználó módosítva"))
-				_user.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
-				Client.stackPopToPage(control)
-			} else
-				Client.messageWarning(qsTr("Nem sikerült módosítani a felhasználót!"))
-		}
-
-		function userRemove(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Felhasználó törölve"))
-				_user.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
-				Client.stackPopToPage(control)
-			} else
-				Client.messageWarning(qsTr("Nem sikerült törölni a felhasználót!"))
-		}
-
-		function userActivate(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Felhasználók módosítva"))
-				_user.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült módosítani a felhasználókat!"))
-		}
-
-		function userMoveToClass(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Felhasználók módosítva"))
-				_user.view.unselectAll()
-				sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
-			} else
-				Client.messageWarning(qsTr("Nem sikerült módosítani a felhasználókat!"))
-		}
-
-		function userPasswordChange(obj : QJsonObject) {
-			if (obj.status === "ok") {
-				Client.snack(qsTr("Jelszó módosítva"))
-				userPasswordChanged()
-			} else
-				Client.messageWarning(qsTr("Nem sikerült módosítani a jelszót!"))
-		}
-	}
 
 	Qaterial.SwipeView
 	{
@@ -200,9 +98,13 @@ QPage {
 														   standardButtons: Dialog.Cancel | Dialog.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classAdd", {
-																								  name: _text
-																							  })
+																   Client.send(WebSocket.ApiAdmin, "class/create", {
+																				   name: _text
+																			   })
+															   .done(function(r){
+																   Client.reloadCache("classList")
+																   _class.view.unselectAll()
+															   })
 														   }
 													   })
 		}
@@ -222,9 +124,13 @@ QPage {
 									{
 										onAccepted: function()
 										{
-											msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classRemove", {
-																		   list: JS.listGetFields(l, "classid")
-																	   })
+											Client.send(WebSocket.ApiAdmin, "class/delete", {
+															list: JS.listGetFields(l, "classid")
+														})
+											.done(function(r){
+												Client.reloadCache("classList")
+												_class.view.unselectAll()
+											})
 										},
 										title: qsTr("Osztályok törlése"),
 										iconSource: Qaterial.Icons.closeCircle
@@ -247,10 +153,13 @@ QPage {
 														   text: o.name,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "classModify", {
-																								  classid: o.classid,
-																								  name: _text
-																							  })
+																   Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(o.classid), {
+																				   name: _text
+																			   })
+															   .done(function(r){
+																   Client.reloadCache("classList")
+																   _class.view.unselectAll()
+															   })
 														   }
 													   })
 		}
@@ -263,14 +172,21 @@ QPage {
 		text: qsTr("Új felhasználó")
 		icon.source: Qaterial.Icons.accountPlus
 		onTriggered: Client.stackPushPage("AdminUserEdit.qml", {
-											  msgHandler: msgHandler,
 											  classid: _user.classid
 										  })
 	}
 
+	function reloadUsers() {
+		Client.send(WebSocket.ApiAdmin, "user").done(function(r) {
+			Client.callHandler("user", userList, r.list)
+		})
+	}
+
 	StackView.onActivated: {
-		msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userListByClass")
-		msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
+		_class.view.unselectAll()
+		_user.view.unselectAll()
+		Client.reloadCache("classList")
+		reloadUsers()
 	}
 
 }

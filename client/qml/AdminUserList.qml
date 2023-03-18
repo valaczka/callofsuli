@@ -34,9 +34,9 @@ Qaterial.Page
 		anchors.fill: parent
 		autoSelectChange: true
 
-		refreshProgressVisible: msgHandler.pending
+		refreshProgressVisible: Client.webSocket.pending
 		refreshEnabled: true
-		onRefreshRequest: msgHandler.sendRequestFunc(WebSocketMessage.ClassGeneral, "classList")
+		onRefreshRequest: reloadUsers()
 
 		model: SortFilterProxyModel {
 			sourceModel: userList
@@ -88,8 +88,8 @@ Qaterial.Page
 				ExpressionRole {
 					name: "classNameReadable"
 					expression: model.classid === -1 ? qsTr("Osztály nélkül") :
-													  model.className.length ? model.className :
-																			   qsTr("Osztály #%1").arg(model.classid)
+													   model.className.length ? model.className :
+																				qsTr("Osztály #%1").arg(model.classid)
 				}
 
 			]
@@ -116,8 +116,7 @@ Qaterial.Page
 
 			onClicked: if (!view.selectEnabled)
 						   Client.stackPushPage("AdminUserEdit.qml", {
-													user: user,
-													msgHandler: msgHandler
+													user: user
 												})
 		}
 
@@ -137,15 +136,7 @@ Qaterial.Page
 
 				Instantiator {
 					model: SortFilterProxyModel {
-						sourceModel: classList
-
-						filters: [
-							ValueFilter {
-								roleName: "classid"
-								value: -1
-								inverted: true
-							}
-						]
+						sourceModel: _moveMenuModel
 
 						sorters: [
 							FilterSorter {
@@ -174,10 +165,13 @@ Qaterial.Page
 													{
 														onAccepted: function()
 														{
-															msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userMoveToClass", {
-																						   classid: model.classid,
-																						   list: JS.listGetFields(l, "username")
-																					   })
+															Client.send(WebSocket.ApiAdmin, "user/move/%1".arg(model.classid), {
+																			list: JS.listGetFields(l, "username")
+																		})
+															.done(function(r){
+																reloadUsers()
+																_user.view.unselectAll()
+															})
 														},
 														title: qsTr("Felhasználók áthelyezése"),
 														iconSource: Qaterial.Icons.arrowRightBold
@@ -197,6 +191,7 @@ Qaterial.Page
 		onRightClickOrPressAndHold: {
 			if (index != -1)
 				currentIndex = index
+			_moveMenuModel.reload()
 			contextMenu.popup(mouseX, mouseY)
 		}
 	}
@@ -219,9 +214,14 @@ Qaterial.Page
 									{
 										onAccepted: function()
 										{
-											msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userRemove", {
-																		   list: JS.listGetFields(l, "username")
-																	   })
+											Client.send(WebSocket.ApiAdmin, "user/delete", {
+															list: JS.listGetFields(l, "username")
+														})
+											.done(function(r){
+												reloadUsers()
+												_user.view.unselectAll()
+											})
+
 										},
 										title: qsTr("Felhasználók törlése"),
 										iconSource: Qaterial.Icons.closeCircle
@@ -244,10 +244,13 @@ Qaterial.Page
 									{
 										onAccepted: function()
 										{
-											msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userActivate", {
-																		   active: true,
-																		   list: JS.listGetFields(l, "username")
-																	   })
+											Client.send(WebSocket.ApiAdmin, "user/activate", {
+															list: JS.listGetFields(l, "username")
+														})
+											.done(function(r){
+												reloadUsers()
+												_user.view.unselectAll()
+											})
 										},
 										title: qsTr("Felhasználók aktiválása"),
 										iconSource: Qaterial.Icons.eye
@@ -270,14 +273,32 @@ Qaterial.Page
 									{
 										onAccepted: function()
 										{
-											msgHandler.sendRequestFunc(WebSocketMessage.ClassAdmin, "userActivate", {
-																		   active: false,
-																		   list: JS.listGetFields(l, "username")
-																	   })
+											Client.send(WebSocket.ApiAdmin, "user/inactivate", {
+															list: JS.listGetFields(l, "username")
+														})
+											.done(function(r){
+												reloadUsers()
+												_user.view.unselectAll()
+											})
 										},
 										title: qsTr("Felhasználók inaktiválása"),
 										iconSource: Qaterial.Icons.eyeOff
 									})
+
+		}
+	}
+
+
+	ListModel {
+		id: _moveMenuModel
+
+		function reload() {
+			clear()
+
+			append({classid: -1, name: qsTr("-- Osztály nélkül --")})
+
+			for (var i=0; i<classList.length; i++)
+				append(classList.get(i))
 
 		}
 	}
