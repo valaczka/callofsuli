@@ -227,4 +227,9 @@ void Handler::handleOAuthCallback(HttpRequest *request, HttpResponse *response)
 	response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
 }
 
+const QMap<const char *, AbstractAPI *> &Handler::apiHandlers() const
+{
+	return m_apiHandlers;
+}
+
 

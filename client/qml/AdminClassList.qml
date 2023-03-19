@@ -21,7 +21,7 @@ Qaterial.Page
 	QListView {
 		id: view
 
-		currentIndex: 0
+		currentIndex: -1
 		anchors.fill: parent
 		autoSelectChange: true
 

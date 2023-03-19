@@ -19,27 +19,26 @@ function intializeStyle() {
 	else
 		Qaterial.Style.dense = false
 
-	Qaterial.Style.textTheme.headline1.family = "Rajdhani"
-	Qaterial.Style.textTheme.headline2.family = "Rajdhani"
-	Qaterial.Style.textTheme.headline3.family = "Rajdhani"
-	Qaterial.Style.textTheme.headline4.family = "Rajdhani"
-	Qaterial.Style.textTheme.headline5.family = "Rajdhani"
-	Qaterial.Style.textTheme.headline6.family = "Rajdhani"
-	Qaterial.Style.textTheme.subtitle1.family = "Rajdhani"
-	Qaterial.Style.textTheme.subtitle2.family = "Rajdhani"
-	Qaterial.Style.textTheme.body1.family = "Rajdhani"
-	Qaterial.Style.textTheme.body2.family = "Rajdhani"
-	Qaterial.Style.textTheme.button.family = "Rajdhani"
-	Qaterial.Style.textTheme.caption.family = "Rajdhani"
-	Qaterial.Style.textTheme.overline.family = "Rajdhani"
-	Qaterial.Style.textTheme.hint1.family = "Rajdhani"
-	Qaterial.Style.textTheme.hint2.family = "Rajdhani"
 
-	Qaterial.Style.textTheme.button.weight = Font.DemiBold
-	Qaterial.Style.textTheme.body2.weight = Font.Normal
-	Qaterial.Style.textTheme.body1.weight = Font.Medium
-	Qaterial.Style.textTheme.caption.weight = Font.DemiBold
-	Qaterial.Style.textTheme.overline.weight = Font.DemiBold
+	if (Qt.platform.os == "android" || Qt.platform.os == "ios") {
+		Qaterial.Style.textTheme.button.weight = Font.DemiBold
+		Qaterial.Style.textTheme.body2.weight = Font.Normal
+		Qaterial.Style.textTheme.body1.weight = Font.Medium
+		Qaterial.Style.textTheme.caption.weight = Font.DemiBold
+		Qaterial.Style.textTheme.overline.weight = Font.DemiBold
+	} else {
+		Qaterial.Style.textTheme.button.weight = Font.DemiBold
+		Qaterial.Style.textTheme.body2.weight = Font.Medium
+		Qaterial.Style.textTheme.body1.weight = Font.Medium
+		Qaterial.Style.textTheme.caption.weight = Font.DemiBold
+		Qaterial.Style.textTheme.overline.weight = Font.DemiBold
+		Qaterial.Style.textTheme.subtitle1.weight = Font.Medium
+		Qaterial.Style.textTheme.subtitle2.weight = Font.Medium
+		Qaterial.Style.textTheme.headline3.weight = Font.Medium
+		Qaterial.Style.textTheme.headline4.weight = Font.Medium
+		Qaterial.Style.textTheme.headline5.weight = Font.Medium
+		Qaterial.Style.textTheme.headline6.weight = Font.Medium
+	}
 
 	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 96*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 60*Qaterial.Style.pixelSizeRatio })
@@ -103,4 +102,12 @@ function listGetFields(_list, _field) {
 		l.push(_list[i][_field])
 
 	return l
+}
+
+
+
+
+function failMessage(_msg) {
+	var r = function(err) { Client.messageWarning(err, _msg) }
+	return r
 }

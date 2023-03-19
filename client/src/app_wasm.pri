@@ -1,5 +1,15 @@
 QMAKE_LFLAGS += -s TOTAL_MEMORY=32MB
 
+#########################
+### WASM LIMITATIONS
+#########################
+
+# Url not avaliable (CORS)
+# Proxy roles not available (too much recursion)
+
+#########################
+
+
 SOURCES += \
 	wasm_static_plugins.cpp \
 	onlineapplication.cpp \

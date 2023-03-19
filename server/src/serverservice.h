@@ -126,8 +126,11 @@ protected:
 	CommandResult onPause() override;
 	CommandResult onResume() override;
 
-private slots:
-	void onConfigChanged();
+	bool wasmLoad();
+	bool wasmUnload();
+
+protected slots:
+	void terminalConnected(QtService::Terminal *terminal) override;
 
 private:
 	static const int m_versionMajor;
@@ -149,6 +152,8 @@ private:
 	ColorConsoleAppender *m_consoleAppender = nullptr;
 
 	QNetworkAccessManager *const m_networkManager = nullptr;
+
+	QString m_loadedWasmResource;
 };
 
 

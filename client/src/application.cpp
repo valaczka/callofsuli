@@ -117,6 +117,7 @@ Application::Application(int &argc, char **argv)
 	m_application = new QGuiApplication(argc, argv);
 
 	m_engine = new QQmlApplicationEngine(m_application);
+
 }
 
 
@@ -388,6 +389,8 @@ void Application::loadFonts()
 void Application::loadQaterial()
 {
 	m_engine->addImportPath(QStringLiteral("qrc:/"));
+
+	qaterial::setDefaultFontFamily(QStringLiteral("Rajdhani"));
 
 	qaterial::loadQmlResources();
 	qaterial::registerQmlTypes();

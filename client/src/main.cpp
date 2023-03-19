@@ -34,7 +34,6 @@
 #include "desktopapplication.h"
 #endif
 
-
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_WASM

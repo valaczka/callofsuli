@@ -257,5 +257,11 @@ bool AbstractAPI::validate(HttpRequest *request, const Credential::Role &role) c
 }
 
 
+const QVector<AbstractAPI::Map> &AbstractAPI::maps() const
+{
+	return m_maps;
+}
+
+
 
 

@@ -102,6 +102,7 @@ QPage {
 									Client.reloadCache("teacherGroupList")
 									Client.stackPop(control.StackView.index-1)
 								})
+								.fail(JS.failMessage("Törlés sikertelen"))
 							},
 							text: qsTr("Biztosan törlöd a csoportot?"),
 							title: group.name,
@@ -131,6 +132,7 @@ QPage {
 															   .done(function(r){
 																   Client.reloadCache("teacherGroupList")
 															   })
+															   .fail(JS.failMessage("Átnevezés sikertelen"))
 														   }
 													   })
 		}

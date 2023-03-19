@@ -51,6 +51,8 @@ public:
 	const QString &redirectHost() const;
 	void setRedirectHost(const QString &newRedirectHost);
 
+	Handler *handler() const;
+
 private:
 	ServerService *const m_service;
 	HttpServer *m_server = nullptr;

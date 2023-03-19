@@ -46,6 +46,8 @@ public:
 
 	void handle(HttpRequest *request, HttpResponse *response);
 
+	const QMap<const char *, AbstractAPI *> &apiHandlers() const;
+
 private:
 	void getFavicon(HttpResponse *response);
 	void getWasmContent(QString uri, HttpResponse *response);

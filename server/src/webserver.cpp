@@ -287,6 +287,11 @@ void WebServer::setRedirectHost(const QString &newRedirectUrl)
 	m_redirectHost = newRedirectUrl;
 }
 
+Handler *WebServer::handler() const
+{
+	return m_handler;
+}
+
 
 
 HttpServer *WebServer::server() const

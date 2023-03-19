@@ -192,6 +192,8 @@ public:
 
 	Q_INVOKABLE void loadClassListFromArray(QJsonArray list);
 
+	const QUrl &parseUrl() const;
+
 protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
@@ -258,6 +260,8 @@ protected:
 
 	ClientCache m_cache;
 	OlmLoader m_olmLoader;
+
+	QUrl m_parseUrl;
 };
 
 

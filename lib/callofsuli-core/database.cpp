@@ -161,7 +161,7 @@ void Database::databaseClose()
  * @return
  */
 
-QRecursiveMutex *Database::mutex()
+QRecursiveMutex *Database::mutex() const
 {
 	return m_mutex;
 }

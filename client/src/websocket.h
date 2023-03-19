@@ -131,7 +131,9 @@ private:
 	Server *m_server = nullptr;
 	int m_signalUnavailableNum = 0;
 
+#ifndef QT_NO_SSL
 	QSslCertificate m_rootCertificate;
+#endif
 	QNetworkAccessManager *const m_networkManager = nullptr;
 	QVector<WebSocketReply *> m_replies;
 	bool m_pending = false;

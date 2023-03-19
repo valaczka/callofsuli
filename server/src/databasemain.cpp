@@ -29,7 +29,7 @@
 #include "qsqlquery.h"
 #include "utils.h"
 #include "serverservice.h"
-//#include "adminhandler.h"
+#include "adminapi.h"
 #include "rank.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
@@ -66,24 +66,22 @@ bool DatabaseMain::databasePrepare()
 
 	bool r = false;
 
-	m_worker->execInThread([ret, this]() mutable {
+	m_worker->execInThread([ret, this, &r]() mutable {
 		LOG_CDEBUG("db") << "Prepare database:" << qPrintable(m_dbFile);
 
 		QMutexLocker mutexlocker(mutex());
 
 		if (!_checkSystemTable()) {
+			r = false;
 			ret.reject();
 			return;
 		}
 
 		LOG_CDEBUG("db") << "Database prepared:" << qPrintable(m_dbFile);
 
+		r = true;
 		ret.resolve();
 	});
-
-	ret.done([&r](){ r = true; })
-			.fail([&r](){ r = false; });
-
 
 	QDefer::await(ret);
 
@@ -217,7 +215,7 @@ bool DatabaseMain::_createTables()
 			.setValuePlaceholder()
 			.addQuery(")")
 			.addField("classid", QVariant::Invalid)
-//			.addField("code", AdminHandler::generateClassCode())
+			.addField("code", AdminAPI::generateClassCode())
 			;
 
 	return q.exec();
@@ -241,156 +239,36 @@ bool DatabaseMain::_createUsers()
 {
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
-	struct Users {
-		QString username;
-		QString password;
-		QString familyName;
-		bool isAdmin;
-		bool isTeacher;
-		bool isPanel;
-		int classId = -1;
+	AdminAPI::User user;
+	user.username = QStringLiteral("admin");
+	user.familyName = QStringLiteral("Adminisztrátor");
+	user.isTeacher = true;
+	user.isAdmin = true;
+	user.active = true;
 
-		Users(const QString &u,
-			  const QString &p,
-			  const QString &f,
-			  bool ia,
-			  bool it,
-			  bool ip,
-			  int c = -1
-			  ) :
-			username(u),
-			password(p),
-			familyName(f),
-			isAdmin(ia),
-			isTeacher(it),
-			isPanel(ip),
-			classId(c)
-		{}
-	};
+	QDefer ret;
+	bool success = false;
 
-	QVector<Users> users;
+	AdminAPI::userAdd(this, user)
+			.fail([&ret, &success]() mutable {
+		success = false;
+		ret.reject();
+	})
+			.done([this, user, &ret, &success]() mutable {
+		AdminAPI::authAddPlain(this, user.username, user.username)
+				.fail([&ret, &success]() mutable {
+			success = false;
+			ret.reject();
+		})
+				.done([&ret, &success]() mutable {
+			success = true;
+			ret.resolve();
+		});
+	});
 
-	users.append({
-					 QStringLiteral("admin"),
-					 QStringLiteral("admin"),
-					 QStringLiteral("Adminisztrátor"),
-					 true,
-					 false,
-					 false
-				 });
+	QDefer::await(ret);
 
-#ifdef QT_DEBUG
-
-	QVector<int> classIds;
-
-	for (int i=1; i<4; ++i) {
-		QueryBuilder q(db);
-		q.addQuery("INSERT INTO class(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("name", tr("Osztály #%1").arg(i));
-
-		if (!q.exec())
-			return false;
-
-		const int &id = q.sqlQuery().lastInsertId().toInt();
-
-		classIds.append(id);
-
-		q.clear();
-
-		q.addQuery("INSERT INTO classCode(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("classid", id)
-//				.addField("code", AdminHandler::generateClassCode())
-				;
-
-		if (!q.exec())
-			return false;
-	}
-
-
-	for (int i=1; i<6; ++i) {
-		users.append({
-						 QStringLiteral("student%1").arg(i),
-						 QStringLiteral("student"),
-						 QStringLiteral("Tanuló %1").arg(i),
-						 false,
-						 false,
-						 false,
-						 (classIds.isEmpty() ? -1 : classIds.at(QRandomGenerator::global()->bounded(classIds.size())))
-					 });
-	}
-
-	for (int i=1; i<4; ++i) {
-		users.append({
-						 QStringLiteral("teacher%1").arg(i),
-						 QStringLiteral("teacher"),
-						 QStringLiteral("Tanár %1").arg(i),
-						 false,
-						 true,
-						 false
-					 });
-	}
-
-	for (int i=1; i<3; ++i) {
-		users.append({
-						 QStringLiteral("panel%1").arg(i),
-						 QStringLiteral("panel"),
-						 QStringLiteral("Panel %1").arg(i),
-						 false,
-						 false,
-						 true
-					 });
-	}
-#endif
-
-
-	foreach (const Users &u, users) {
-		QueryBuilder q(db);
-		q.addQuery("INSERT INTO user(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("username", u.username)
-				.addField("familyName", u.familyName)
-				.addField("active", true)
-				.addField("isAdmin", u.isAdmin)
-				.addField("isTeacher", u.isTeacher)
-				.addField("isPanel", u.isPanel)
-				.addField("classid", u.classId == -1 ? QVariant(QVariant::Invalid) : u.classId);
-
-		if (!q.exec()) {
-			return false;
-		}
-
-		q.clear();
-
-		QString salt;
-		QString pwd = Credential::hashString(u.password, &salt);
-
-		q.addQuery("INSERT INTO auth(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("username", u.username)
-				.addField("password", pwd)
-				.addField("salt", salt);
-
-		if (!q.exec()) {
-			return false;
-		}
-	}
-
-
-	return true;
+	return success;
 }
 
 

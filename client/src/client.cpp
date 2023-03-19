@@ -744,6 +744,17 @@ void Client::startCache()
 }
 
 
+/**
+ * @brief Client::parseUrl
+ * @return
+ */
+
+const QUrl &Client::parseUrl() const
+{
+	return m_parseUrl;
+}
+
+
 
 
 

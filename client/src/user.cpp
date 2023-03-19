@@ -222,8 +222,14 @@ void User::setActive(bool newActive)
 	emit activeChanged();
 }
 
-const QString &User::picture() const
+QString User::picture() const
 {
+#ifdef Q_OS_WASM
+	if (!m_picture.isEmpty()) {
+		LOG_CWARNING("client") << "URL override:" << m_picture;
+	}
+	return QLatin1String("");
+#endif
 	return m_picture;
 }
 

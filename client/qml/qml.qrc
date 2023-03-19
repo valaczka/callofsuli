@@ -79,5 +79,6 @@
         <file>AdminUserList.qml</file>
         <file>AdminUserEdit.qml</file>
         <file>PageTeacherGroup.qml</file>
+        <file>+emscripten/MainStackView.qml</file>
     </qresource>
 </RCC>

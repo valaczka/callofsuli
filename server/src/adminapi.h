@@ -159,7 +159,9 @@ public:
 		return userExists(api, username, true);
 	}
 	static QDefer userAdd(const AbstractAPI *api, const User &user);
+	static QDefer userAdd(const DatabaseMain *dbMain, const User &user);
 	static QDefer authAddPlain(const AbstractAPI *api, const QString &username, const QString &password);
+	static QDefer authAddPlain(const DatabaseMain *dbMain, const QString &username, const QString &password);
 	static QDefer authAddOAuth2(const AbstractAPI *api, const QString &username, const QString &type);
 	static QDefer authPlainPasswordChange(const AbstractAPI *api, const QString &username,
 										  const QString &oldPassword, const QString &password, const bool &check);

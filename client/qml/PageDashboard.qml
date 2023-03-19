@@ -4,6 +4,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
+import "JScript.js" as JS
 
 QPage {
 	id: control
@@ -202,6 +203,7 @@ QPage {
 															   if (_noerror && _text.length)
 																   Client.send(WebSocket.ApiTeacher, "group/create", { name: _text })
 															   .done(function(r){ Client.reloadCache("teacherGroupList") })
+															   .fail(JS.failMessage("Létrehozás sikertelen"))
 														   }
 													   })
 		}

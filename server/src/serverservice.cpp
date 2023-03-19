@@ -33,6 +33,7 @@
 #include <RollingFileAppender.h>
 #include <ColorConsoleAppender.h>
 #include "qconsole.h"
+#include "terminalhandler.h"
 #include "utils.h"
 #include "googleoauth2authenticator.h"
 #include <QOAuthHttpServerReplyHandler>
@@ -78,6 +79,9 @@ ServerService::ServerService(int &argc, char **argv)
 	for (int i=0; i<argc; ++i) {
 		m_arguments.append(argv[i]);
 	}
+
+	setTerminalActive(true);
+	setTerminalMode(TerminalMode::ReadWriteActive);
 
 	LOG_CTRACE("service") << "Server service created";
 }
@@ -137,29 +141,7 @@ Service::CommandResult ServerService::onStart()
 
 	// Load WASM
 
-	QStringList wasmList;
-	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/share/wasm.rcc"));
-	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../share/wasm.rcc"));
-	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../../share/wasm.rcc"));
-
-	auto it = wasmList.constBegin();
-
-	for (; it != wasmList.constEnd(); ++it) {
-		if (QFile::exists(*it)) {
-			if (QResource::registerResource(*it, QStringLiteral("/wasm"))) {
-				LOG_CDEBUG("service") << "Registering wasm resource:" << *it;
-			} else {
-				LOG_CERROR("service") << "Wasm resource register error:" << *it;
-				quit();
-				return CommandResult::Failed;
-			}
-			break;
-		}
-	}
-
-
-	if (it == wasmList.constEnd()) {
-		LOG_CERROR("service") << "Wasm resource not found";
+	if (!wasmLoad()) {
 		quit();
 		return CommandResult::Failed;
 	}
@@ -194,8 +176,6 @@ Service::CommandResult ServerService::onStart()
 
 
 	LOG_CINFO("service") << "Server service started successful";
-
-	m_config.setRegistrationEnabled(true);
 
 	return CommandResult::Completed;
 }
@@ -237,13 +217,27 @@ Service::CommandResult ServerService::onReload()
 {
 	LOG_CINFO("service") << "Server service reloaded";
 
-	if (m_webSocketServer) {
-		m_webSocketServer->server()->close();
-	}
+	if (m_webSocketServer)
+		m_webSocketServer->server()->pauseAccepting();
 
 	m_databaseMain->databaseClose();
 
+	if (!wasmUnload()) {
+		LOG_CINFO("invalid wasm unload");
+
+		quit();
+		return CommandResult::Failed;
+	}
+
 	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
+
+	if (!wasmLoad()) {
+		quit();
+		return CommandResult::Failed;
+	}
+
+	if (m_webSocketServer)
+		m_webSocketServer->server()->resumeAccepting();
 
 	return CommandResult::Completed;
 }
@@ -282,13 +276,76 @@ Service::CommandResult ServerService::onResume()
 
 
 /**
- * @brief ServerService::onConfigChanged
+ * @brief ServerService::wasmLoad
+ * @return
  */
 
-void ServerService::onConfigChanged()
+bool ServerService::wasmLoad()
 {
-	//sendToClients(WebSocketMessage::createEvent(ServerHandler::_getConfig(this)));
+	QStringList wasmList;
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/share/wasm.rcc"));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../share/wasm.rcc"));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../../share/wasm.rcc"));
+
+	auto it = wasmList.constBegin();
+
+	for (; it != wasmList.constEnd(); ++it) {
+		if (QFile::exists(*it)) {
+			if (QResource::registerResource(*it, QStringLiteral("/wasm"))) {
+				LOG_CDEBUG("service") << "Registering wasm resource:" << *it;
+				m_loadedWasmResource = *it;
+			} else {
+				LOG_CERROR("service") << "Wasm resource register error:" << *it;
+				return false;
+			}
+			break;
+		}
+	}
+
+	if (it == wasmList.constEnd()) {
+		LOG_CERROR("service") << "Wasm resource not found";
+		return false;
+	} else {
+		return true;
+	}
 }
+
+
+/**
+ * @brief ServerService::wasmUnload
+ * @return
+ */
+
+bool ServerService::wasmUnload()
+{
+	if (m_loadedWasmResource.isEmpty()) {
+		LOG_CERROR("service") << "Invalid wasm resource";
+		return false;
+	}
+
+	if (QResource::unregisterResource(m_loadedWasmResource, QStringLiteral("/wasm"))) {
+		LOG_CDEBUG("service") << "Wasm resource unregistered:" << m_loadedWasmResource;
+		return true;
+	} else {
+		LOG_CERROR("service") << "Wasm resource unregister failed:" << m_loadedWasmResource;
+		return false;
+	}
+
+}
+
+
+/**
+ * @brief ServerService::terminalConnected
+ * @param terminal
+ */
+
+void ServerService::terminalConnected(QtService::Terminal *terminal)
+{
+	LOG_CINFO("service") << "Terminal connected" << terminal;
+
+	new TerminalHandler(this, terminal);
+}
+
 
 
 /**
@@ -405,7 +462,7 @@ bool ServerService::preStart()
 	//parser.addOption({{QStringLiteral("l"), QStringLiteral("log")}, QObject::tr("Naplózás <file> fájlba"), QStringLiteral("file")});
 	//parser.addOption({{QStringLiteral("n"), QStringLiteral("log-limit")}, QObject::tr("Maximum <db> log fájl tárolása"), QStringLiteral("db")});
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
-
+	parser.addOption({{QStringLiteral("terminal")}, QObject::tr("Terminál indítása")});
 
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 

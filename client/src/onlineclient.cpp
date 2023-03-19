@@ -69,6 +69,9 @@ void OnlineClient::onApplicationStarted()
 	connect(reply, &QNetworkReply::finished, this, &OnlineClient::onResourceDownloaded);
 
 	enableTabCloseConfirmation(true);
+
+	emscripten::val location = emscripten::val::global("location");
+	m_parseUrl = {QString::fromStdString(location["href"].as<std::string>())};
 }
 
 
@@ -174,7 +177,6 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 	} else {
 		window.call<void>("removeEventListener", std::string("beforeunload"), eventHandler, capture);
 	}
-
 }
 
 

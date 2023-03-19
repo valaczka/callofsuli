@@ -30,6 +30,7 @@ QPage {
 								   _form.modified = false
 								   Client.stackPop(control)
 							   })
+							   .fail(JS.failMessage("Törlés sikertelen"))
 						   },
 						   text: qsTr("Biztosan törlöd a felhasználót?"),
 						   title: user.username,
@@ -108,6 +109,7 @@ QPage {
 							_password2.text = ""
 							_password.visible = false
 						})
+						.fail(JS.failMessage("Jelszóváltoztatás sikertelen"))
 
 					} else {
 						_password.visible = true
@@ -157,7 +159,7 @@ QPage {
 				helperText: qsTr("A profilkép URL címe")
 				placeholderText: qsTr("http://...")
 				width: parent.width
-				validator: RegExpValidator { regExp: /^(http(s):\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/ }
+				validator: RegExpValidator { regExp: /^(http(s)*:\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/ }
 				errorText: qsTr("Érvényes URL cím szükséges")
 				leadingIconSource: Qaterial.Icons.remoteDesktop
 				trailingContent: Qaterial.TextFieldButtonContainer
@@ -230,6 +232,7 @@ QPage {
 							_form.modified = false
 							Client.stackPop(control)
 						})
+						.fail(JS.failMessage("Módosítás sikertelen"))
 					} else {
 						d.password = _password.text
 						Client.send(WebSocket.ApiAdmin, "user/create", d)
@@ -237,6 +240,7 @@ QPage {
 							_form.modified = false
 							Client.stackPop(control)
 						})
+						.fail(JS.failMessage("Létrehozás sikertelen"))
 					}
 				}
 			}

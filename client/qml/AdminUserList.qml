@@ -30,7 +30,7 @@ Qaterial.Page
 	QListView {
 		id: view
 
-		currentIndex: 0
+		currentIndex: -1
 		anchors.fill: parent
 		autoSelectChange: true
 
@@ -65,37 +65,9 @@ Qaterial.Page
 					sortOrder: Qt.AscendingOrder
 				}
 			]
-
-			proxyRoles: [
-				SwitchRole {
-					name: "userImage"
-					filters: [
-						ExpressionFilter {
-							expression: model.roles & _rolePanel
-							SwitchRole.value: Qaterial.Icons.desktopClassic
-						},
-						ExpressionFilter {
-							expression: model.roles & _roleAdmin
-							SwitchRole.value: Qaterial.Icons.accountTie
-						},
-						ExpressionFilter {
-							expression: model.roles & _roleTeacher
-							SwitchRole.value: Qaterial.Icons.accountTieHat
-						}
-					]
-					defaultValue: Qaterial.Icons.account
-				},
-				ExpressionRole {
-					name: "classNameReadable"
-					expression: model.classid === -1 ? qsTr("Osztály nélkül") :
-													   model.className.length ? model.className :
-																				qsTr("Osztály #%1").arg(model.classid)
-				}
-
-			]
 		}
 
-		section.property: "classNameReadable"
+		section.property: "className"
 		section.criteria: ViewSection.FullString
 		section.delegate: Qaterial.ListSectionTitle {  }
 
@@ -104,7 +76,14 @@ Qaterial.Page
 			selectableObject: user
 
 			highlighted: ListView.isCurrentItem
-			iconSource: userImage
+			iconSource: user ? (user.roles & _rolePanel) ?
+								   Qaterial.Icons.desktopClassic :
+								   (user.roles & _roleAdmin) ?
+									   Qaterial.Icons.accountTie :
+									   (user.roles & _roleTeacher) ?
+										   Qaterial.Icons.accountTieHat :
+										   Qaterial.Icons.account : Qaterial.Icons.account
+
 			text: user ? user.fullName: ""
 			secondaryText: user ? user.username + (user.oauth.length ? " ("+user.oauth+")" : "") : ""
 			textColor: user && user.active ? Qaterial.Style.colorTheme.primaryText : Qaterial.Style.colorTheme.disabledText
@@ -165,13 +144,16 @@ Qaterial.Page
 													{
 														onAccepted: function()
 														{
-															Client.send(WebSocket.ApiAdmin, "user/move/%1".arg(model.classid), {
+															Client.send(WebSocket.ApiAdmin,
+																		model.classid === -1 ? "user/move/none" : "user/move/%1".arg(model.classid),
+																		{
 																			list: JS.listGetFields(l, "username")
 																		})
 															.done(function(r){
 																reloadUsers()
 																_user.view.unselectAll()
 															})
+															.fail(JS.failMessage("Áthelyezés sikertelen"))
 														},
 														title: qsTr("Felhasználók áthelyezése"),
 														iconSource: Qaterial.Icons.arrowRightBold
@@ -221,6 +203,7 @@ Qaterial.Page
 												reloadUsers()
 												_user.view.unselectAll()
 											})
+											.fail(JS.failMessage("Törlés sikertelen"))
 
 										},
 										title: qsTr("Felhasználók törlése"),
@@ -251,6 +234,7 @@ Qaterial.Page
 												reloadUsers()
 												_user.view.unselectAll()
 											})
+											.fail(JS.failMessage("Aktiválás sikertelen"))
 										},
 										title: qsTr("Felhasználók aktiválása"),
 										iconSource: Qaterial.Icons.eye
@@ -280,6 +264,7 @@ Qaterial.Page
 												reloadUsers()
 												_user.view.unselectAll()
 											})
+											.fail(JS.failMessage("Inaktiválás sikertelen"))
 										},
 										title: qsTr("Felhasználók inaktiválása"),
 										iconSource: Qaterial.Icons.eyeOff

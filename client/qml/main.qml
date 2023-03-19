@@ -13,11 +13,8 @@ Qaterial.ApplicationWindow
 
 	visible: true
 
-	//title: (cosClient.connectionState !== Client.Standby && cosClient.serverName.length ? cosClient.serverName+" - " : "") + "Call of Suli"
-
 	minimumWidth: 320
 	minimumHeight: 240
-
 
 	property bool _completed: false
 	readonly property bool _allLoaded: mainStackView._loaded && _completed
@@ -63,7 +60,7 @@ Qaterial.ApplicationWindow
 	}
 
 
-	MouseArea {
+	/*MouseArea {
 		anchors.fill: parent
 		acceptedButtons: Qt.NoButton
 		onWheel: {
@@ -79,7 +76,7 @@ Qaterial.ApplicationWindow
 				wheel.accepted = false
 			}
 		}
-	}
+	}*/
 
 
 	Action {

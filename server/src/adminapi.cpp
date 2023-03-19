@@ -381,9 +381,7 @@ void AdminAPI::userUpdate(const QRegularExpressionMatch &match, const QJsonObjec
 
 		QueryBuilder q(db);
 
-		q.addQuery("UPDATE user SET ")
-				.setCombinedPlaceholder()
-				.addQuery(" WHERE username=").addValue(username);
+		q.addQuery("UPDATE user SET ").setCombinedPlaceholder();
 
 		if (data.contains(QStringLiteral("familyName")))	q.addField("familyName", data.value(QStringLiteral("familyName")).toString());
 		if (data.contains(QStringLiteral("givenName")))		q.addField("givenName", data.value(QStringLiteral("givenName")).toString());
@@ -395,12 +393,15 @@ void AdminAPI::userUpdate(const QRegularExpressionMatch &match, const QJsonObjec
 			else
 				q.addField("classid", QVariant::Invalid);
 		}
+
 		if (data.contains(QStringLiteral("isTeacher")))		q.addField("isTeacher", data.value(QStringLiteral("isTeacher")).toBool());
 		if (data.contains(QStringLiteral("isAdmin")))		q.addField("isAdmin", data.value(QStringLiteral("isAdmin")).toBool());
 		if (data.contains(QStringLiteral("isPanel")))		q.addField("isPanel", data.value(QStringLiteral("isPanel")).toBool());
 		if (data.contains(QStringLiteral("nickname")))		q.addField("nickname", data.value(QStringLiteral("nickname")).toString());
 		if (data.contains(QStringLiteral("character")))		q.addField("character", data.value(QStringLiteral("character")).toString());
 		if (data.contains(QStringLiteral("picture")))		q.addField("picture", data.value(QStringLiteral("picture")).toString());
+
+		q.addQuery(" WHERE username=").addValue(username);
 
 		if (!q.fieldCount() || !q.exec()) {
 			LOG_CWARNING("client") << "User update failed:" << username;
@@ -670,6 +671,22 @@ QDefer AdminAPI::userAdd(const AbstractAPI *api, const User &user)
 {
 	Q_ASSERT(api);
 
+	return userAdd(api->databaseMain(), user);
+}
+
+
+
+/**
+ * @brief AdminAPI::userAdd
+ * @param db
+ * @param user
+ * @return
+ */
+
+QDefer AdminAPI::userAdd(const DatabaseMain *dbMain, const User &user)
+{
+	Q_ASSERT (dbMain);
+
 	LOG_CDEBUG("client") << "Add new user:" << qPrintable(user.username);
 
 	QDefer ret;
@@ -680,13 +697,12 @@ QDefer AdminAPI::userAdd(const AbstractAPI *api, const User &user)
 		return ret;
 	}
 
-	api->databaseMainWorker()->execInThread([ret, user, api]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+	dbMain->worker()->execInThread([ret, user, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
-		QMutexLocker(api->databaseMain()->mutex());
+		QMutexLocker(dbMain->mutex());
 
 		db.transaction();
-
 
 		if (QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(user.username).execCheckExists()) {
 			LOG_CWARNING("client") << "User already exists:" << qPrintable(user.username);
@@ -745,6 +761,22 @@ QDefer AdminAPI::authAddPlain(const AbstractAPI *api, const QString &username, c
 {
 	Q_ASSERT(api);
 
+	return authAddPlain(api->databaseMain(), username, password);
+}
+
+
+/**
+ * @brief AdminAPI::authAddPlain
+ * @param dbMain
+ * @param username
+ * @param password
+ * @return
+ */
+
+QDefer AdminAPI::authAddPlain(const DatabaseMain *dbMain, const QString &username, const QString &password)
+{
+	Q_ASSERT(dbMain);
+
 	LOG_CDEBUG("client") << "Add plain auth:" << qPrintable(username);
 
 	QDefer ret;
@@ -755,10 +787,10 @@ QDefer AdminAPI::authAddPlain(const AbstractAPI *api, const QString &username, c
 		return ret;
 	}
 
-	api->databaseMainWorker()->execInThread([ret, username, password, api]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+	dbMain->worker()->execInThread([ret, username, password, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
-		QMutexLocker(api->databaseMain()->mutex());
+		QMutexLocker(dbMain->mutex());
 
 		QString salt;
 		QString pwd = Credential::hashString(password, &salt);

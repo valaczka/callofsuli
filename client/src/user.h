@@ -75,10 +75,6 @@ public:
 
 	void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
-	/*static bool loadUserList(UserList *list, const QJsonArray &jsonArray);
-	static User* find(UserList *list, const QString &username);
-	static User* find(UserList *list, const QJsonValue &username) { return find(list, username.toString()); }*/
-
 	const QString &username() const;
 	void setUsername(const QString &newUsername);
 
@@ -105,7 +101,7 @@ public:
 	int classid() const;
 	void setClassid(int newClassid);
 
-	const QString &picture() const;
+	QString picture() const;
 	void setPicture(const QString &newPicture);
 
 	bool active() const;

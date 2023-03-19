@@ -54,7 +54,7 @@ public:
 	virtual bool databaseOpen(const QString &path);
 	virtual void databaseClose();
 
-	QRecursiveMutex *mutex();
+	QRecursiveMutex *mutex() const;
 
 	void queryPrepareList(QSqlQuery *q, const QString &queryString, const QVariantList &list);
 

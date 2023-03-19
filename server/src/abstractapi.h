@@ -85,6 +85,8 @@ public:
 	bool validate(const Credential &credential, const Credential::Role &role) const;
 	bool validate(HttpRequest *request, const Credential::Role &role) const;
 
+	const QVector<Map> &maps() const;
+
 protected:
 	QVector<Map> m_maps;
 	ServerService *m_service = nullptr;

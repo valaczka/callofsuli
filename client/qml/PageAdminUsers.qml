@@ -105,6 +105,7 @@ QPage {
 																   Client.reloadCache("classList")
 																   _class.view.unselectAll()
 															   })
+															   .fail(JS.failMessage("Létrehozás sikertelen"))
 														   }
 													   })
 		}
@@ -131,6 +132,7 @@ QPage {
 												Client.reloadCache("classList")
 												_class.view.unselectAll()
 											})
+											.fail(JS.failMessage("Törlés sikertelen"))
 										},
 										title: qsTr("Osztályok törlése"),
 										iconSource: Qaterial.Icons.closeCircle
@@ -160,6 +162,7 @@ QPage {
 																   Client.reloadCache("classList")
 																   _class.view.unselectAll()
 															   })
+															   .fail(JS.failMessage("Átnevezés sikertelen"))
 														   }
 													   })
 		}
@@ -180,6 +183,7 @@ QPage {
 		Client.send(WebSocket.ApiAdmin, "user").done(function(r) {
 			Client.callHandler("user", userList, r.list)
 		})
+		.fail(JS.failMessage("Letöltés sikertelen"))
 	}
 
 	StackView.onActivated: {
