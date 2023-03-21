@@ -38,18 +38,95 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^group/(\\d+)/update/*$", this, &TeacherAPI::groupUpdate);
 	addMap("^group/(\\d+)/delete/*$", this, &TeacherAPI::groupDeleteOne);
 	addMap("^group/delete/*$", this, &TeacherAPI::groupDelete);
+
+	addMap("^group/(\\d+)/class/add/(\\d+)/*$", this, &TeacherAPI::groupClassAddOne);
+	addMap("^group/(\\d+)/class/add/*$", this, &TeacherAPI::groupClassAdd);
+	addMap("^group/(\\d+)/class/remove/(\\d+)/*$", this, &TeacherAPI::groupClassRemoveOne);
+	addMap("^group/(\\d+)/class/remove/*$", this, &TeacherAPI::groupClassRemove);
+	addMap("^group/(\\d+)/class/exclude/*$", this, &TeacherAPI::groupClassExclude);
+
+	addMap("^group/(\\d+)/user/add/(.+)/*$", this, &TeacherAPI::groupUserAddOne);
+	addMap("^group/(\\d+)/user/add/*$", this, &TeacherAPI::groupUserAdd);
+	addMap("^group/(\\d+)/user/remove/(.+)/*$", this, &TeacherAPI::groupUserRemoveOne);
+	addMap("^group/(\\d+)/user/remove/*$", this, &TeacherAPI::groupUserRemove);
+	addMap("^group/(\\d+)/user/exclude/*$", this, &TeacherAPI::groupUserExclude);
 }
 
 
 /**
- * @brief TeacherAPI::groups
- * @param id
+ * @brief TeacherAPI::groupOne
+ * @param match
  * @param response
  */
 
-void TeacherAPI::groups(const int &id, const QPointer<HttpResponse> &response) const
+void TeacherAPI::groupOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
 {
-	databaseMainWorker()->execInThread([this, id, response]() {
+	const int &id = match.captured(1).toInt();
+
+	LOG_CTRACE("client") << "Get group" << id;
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		LOG_CTRACE("client") << "Get group" << id << username;
+
+		QJsonObject data = QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username)
+				.addQuery(" AND id=").addValue(id)
+				.execToJsonObject();
+
+		if (data.isEmpty())
+			return responseError(response, "invalid id");
+
+		data[QStringLiteral("classList")] =
+				QueryBuilder::q(db).addQuery("SELECT classid, name FROM bindGroupClass "
+											 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+											 "WHERE groupid=").addValue(id)
+				.execToJsonArray();
+
+		data[QStringLiteral("userList")] =
+				QueryBuilder::q(db).addQuery("SELECT classid, user.username, familyName, givenName, nickname, picture, "
+											 "class.name as classname FROM bindGroupStudent "
+											 "LEFT JOIN user ON (user.username=bindGroupStudent.username) "
+											 "LEFT JOIN class ON (class.id=user.classid) "
+											 "WHERE user.active=true AND groupid=").addValue(id)
+				.execToJsonArray();
+
+		data[QStringLiteral("memberList")] =
+				QueryBuilder::q(db).addQuery("SELECT user.username, familyName, givenName, nickname, picture, "
+											 "class.name as classname FROM studentGroupInfo "
+											 "LEFT JOIN user ON (user.username=studentGroupInfo.username) "
+											 "LEFT JOIN class ON (class.id=user.classid) "
+											 "WHERE user.active=true AND studentGroupInfo.id=").addValue(id)
+				.execToJsonArray();
+
+		data[QStringLiteral("mapList")] =
+				QueryBuilder::q(db).addQuery("SELECT id, mapid, active FROM bindGroupMap "
+											 "WHERE groupid=").addValue(id)
+				.execToJsonArray();
+
+
+		responseAnswer(response, data);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::groups
+ * @param response
+ */
+
+void TeacherAPI::groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	databaseMainWorker()->execInThread([this, response]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -59,9 +136,6 @@ void TeacherAPI::groups(const int &id, const QPointer<HttpResponse> &response) c
 		QueryBuilder q(db);
 		q.addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username);
 
-		if (id > 0)
-			q.addQuery(" AND id=").addValue(id);
-
 		bool err = false;
 
 		const QJsonArray &list = q.execToJsonArray(&err);
@@ -69,12 +143,7 @@ void TeacherAPI::groups(const int &id, const QPointer<HttpResponse> &response) c
 		if (err)
 			return responseErrorSql(response);
 
-		if (id == -1)
-			responseAnswer(response, "list", list);
-		else if (list.size() != 1)
-			responseError(response, "not found");
-		else
-			responseAnswer(response, list.at(0).toObject());
+		responseAnswer(response, "list", list);
 	});
 }
 
@@ -220,3 +289,314 @@ void TeacherAPI::groupDelete(const QJsonArray &list, const QPointer<HttpResponse
 		responseAnswerOk(response);
 	});
 }
+
+
+
+/**
+ * @brief TeacherAPI::groupClassAdd
+ * @param id
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::groupClassAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	if (list.isEmpty())
+		return responseError(response, "invalid class");
+
+	databaseMainWorker()->execInThread([id, list, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("SELECT * FROM studentgroup WHERE id=").addValue(id)
+				.addQuery(" AND owner=").addValue(username)
+				.execCheckExists()) {
+			LOG_CWARNING("client") << "Invalid group:" << id << username;
+			db.rollback();
+			return responseError(response, "invalid id");
+		}
+
+		foreach (const QJsonValue &v, list) {
+			const int &classid = v.toInt(-1);
+
+			if (classid > 0) {
+				if (!QueryBuilder::q(db).addQuery("INSERT OR IGNORE INTO bindGroupClass(")
+						.setFieldPlaceholder()
+						.addQuery(") VALUES (")
+						.setValuePlaceholder()
+						.addQuery(")")
+						.addField("groupid", id)
+						.addField("classid", classid)
+						.exec()) {
+					db.rollback();
+					return responseErrorSql(response);
+				}
+			} else {
+				db.rollback();
+				return responseError(response, "invalid class");
+			}
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Class added to group:" << id << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+/**
+ * @brief TeacherAPI::groupClassRemove
+ * @param id
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::groupClassRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	if (list.isEmpty())
+		return responseError(response, "invalid class");
+
+	databaseMainWorker()->execInThread([list, response, this, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).
+				addQuery("DELETE FROM bindGroupClass WHERE groupid=").addValue(id)
+				.addQuery(" AND classid IN (").addList(list.toVariantList())
+				.addQuery(") AND (SELECT owner FROM studentgroup WHERE id=").addValue(id)
+				.addQuery(")=").addValue(username)
+				.exec()) {
+			LOG_CWARNING("client") << "Class remove from group error:" << id << list;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Class removed from group:" << id << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::groupClassExclude
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::groupClassExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	LOG_CTRACE("client") << "Get excluded classes from group" << id;
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		LOG_CTRACE("client") << "Get group" << id << username;
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username)
+				.addQuery(" AND id=").addValue(id)
+				.execCheckExists())
+			return responseError(response, "invalid id");
+
+
+		bool err = false;
+		const QJsonArray &list = QueryBuilder::q(db).addQuery("SELECT c.id, c.name FROM class c WHERE c.id NOT IN "
+															  "(SELECT classid FROM bindGroupClass "
+															  "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+															  "WHERE groupid=").addValue(id).addQuery(")")
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+/**
+ * @brief TeacherAPI::groupUserAdd
+ * @param id
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::groupUserAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	if (list.isEmpty())
+		return responseError(response, "invalid user");
+
+	databaseMainWorker()->execInThread([id, list, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("SELECT * FROM studentgroup WHERE id=").addValue(id)
+				.addQuery(" AND owner=").addValue(username)
+				.execCheckExists()) {
+			LOG_CWARNING("client") << "Invalid group:" << id << username;
+			db.rollback();
+			return responseError(response, "invalid id");
+		}
+
+		foreach (const QJsonValue &v, list) {
+			const QString &user = v.toString();
+
+			if (!user.isEmpty()) {
+				if (!QueryBuilder::q(db).addQuery("INSERT OR IGNORE INTO bindGroupStudent(")
+						.setFieldPlaceholder()
+						.addQuery(") VALUES (")
+						.setValuePlaceholder()
+						.addQuery(")")
+						.addField("groupid", id)
+						.addField("username", user)
+						.exec()) {
+					db.rollback();
+					return responseErrorSql(response);
+				}
+			} else {
+				db.rollback();
+				return responseError(response, "invalid class");
+			}
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "User added to group:" << id << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::groupUserRemove
+ * @param id
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::groupUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	if (list.isEmpty())
+		return responseError(response, "invalid user");
+
+	databaseMainWorker()->execInThread([list, response, this, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).
+				addQuery("DELETE FROM bindGroupStudent WHERE groupid=").addValue(id)
+				.addQuery(" AND username IN (").addList(list.toVariantList())
+				.addQuery(") AND (SELECT owner FROM studentgroup WHERE id=").addValue(id)
+				.addQuery(")=").addValue(username)
+				.exec()) {
+			LOG_CWARNING("client") << "Class remove from group error:" << id << list;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "User removed from group:" << id << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::groupUserExclude
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::groupUserExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	LOG_CTRACE("client") << "Get excluded classes from group" << id;
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		LOG_CTRACE("client") << "Get group" << id << username;
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username)
+				.addQuery(" AND id=").addValue(id)
+				.execCheckExists())
+			return responseError(response, "invalid id");
+
+
+
+		bool err = false;
+		const QJsonArray &list = QueryBuilder::q(db).addQuery("SELECT classid, user.username, familyName, givenName, nickname, picture, "
+															  "class.name as classname FROM user "
+															  "LEFT JOIN class ON (class.id=user.classid) WHERE user.active=TRUE "
+															  "AND user.isTeacher=false AND user.username NOT IN "
+															  "(SELECT username FROM bindGroupStudent WHERE groupid=").addValue(id).addQuery(")")
+
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, "list", list);
+	});
+
+}
+
+

@@ -44,6 +44,7 @@ public:
 	void localOAuth2(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 	QDeferred<Credential> getCredential(const QString &username) const;
+	static QDeferred<Credential> getCredential(DatabaseMain *dbMain, const QString &username);
 	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
 	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 

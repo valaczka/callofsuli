@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * classobject.h
+ * teachergroup.h
  *
- * Created on: 2023. 01. 22.
+ * Created on: 2023. 03. 20.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ClassObject
+ * TeacherGroup
  *
  *  This file is part of Call of Suli.
  *
@@ -24,47 +24,62 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CLASSOBJECT_H
-#define CLASSOBJECT_H
+#ifndef TEACHERGROUP_H
+#define TEACHERGROUP_H
 
-#include <selectableobject.h>
 #include <QObject>
 #include "QOlm/QOlm.hpp"
+#include "user.h"
+#include "classobject.h"
 
-class ClassObject;
-using ClassList = qolm::QOlm<ClassObject>;
-Q_DECLARE_METATYPE(ClassList*)
+class TeacherGroup;
+using TeacherGroupList = qolm::QOlm<TeacherGroup>;
+Q_DECLARE_METATYPE(TeacherGroupList*)
 
-/**
- * @brief The ClassObject class
- */
-
-class ClassObject : public SelectableObject
+class TeacherGroup : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
+	Q_PROPERTY(int groupid READ groupid WRITE setGroupid NOTIFY groupidChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
+	Q_PROPERTY(UserList* userList READ userList CONSTANT)
+	Q_PROPERTY(UserList* memberList READ memberList CONSTANT)
+	Q_PROPERTY(ClassList* classList READ classList CONSTANT)
 
 public:
-	explicit ClassObject(QObject *parent = nullptr);
-	virtual ~ClassObject() {}
+	explicit TeacherGroup(QObject *parent = nullptr);
+	virtual ~TeacherGroup();
 
 	void loadFromJson(const QJsonObject &object, const bool &allField = true);
+
+	Q_INVOKABLE void reload();
+
+	int groupid() const;
+	void setGroupid(int newGroupid);
 
 	const QString &name() const;
 	void setName(const QString &newName);
 
-	int classid() const;
-	void setClassid(int newClassid);
+	bool active() const;
+	void setActive(bool newActive);
+
+	UserList *userList() const;
+	UserList *memberList() const;
+	ClassList *classList() const;
 
 signals:
+	void groupidChanged();
 	void nameChanged();
-	void classidChanged();
+	void activeChanged();
 
 private:
-	int m_classid = -1;
+	int m_groupid = -1;
 	QString m_name;
+	bool m_active = false;
+	UserList *const m_userList;
+	UserList *const m_memberList;
+	ClassList *const m_classList;
 };
 
-#endif // CLASSOBJECT_H
+#endif // TEACHERGROUP_H

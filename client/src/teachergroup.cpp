@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * studentgroup.cpp
+ * teachergroup.cpp
  *
- * Created on: 2023. 01. 29.
+ * Created on: 2023. 03. 20.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * StudentGroup
+ * TeacherGroup
  *
  *  This file is part of Call of Suli.
  *
@@ -24,36 +24,44 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "studentgroup.h"
-#include "qjsonobject.h"
+#include "teachergroup.h"
+#include "Logger.h"
 #include "clientcache.h"
+#include "application.h"
 
-StudentGroup::StudentGroup(QObject *parent)
+
+TeacherGroup::TeacherGroup(QObject *parent)
 	: QObject{parent}
+	, m_userList(new UserList(this))
 	, m_memberList(new UserList(this))
+	, m_classList(new ClassList(this))
 {
+	LOG_CTRACE("client") << "TeacherGroup created" << this;
 
 }
 
 
 /**
- * @brief StudentGroup::~StudentGroup
+ * @brief TeacherGroup::~TeacherGroup
  */
 
-StudentGroup::~StudentGroup()
+TeacherGroup::~TeacherGroup()
 {
+	delete m_classList;
+	delete m_userList;
 	delete m_memberList;
+
+	LOG_CTRACE("client") << "TeacherGroup destroyed" << this;
 }
 
 
-
 /**
- * @brief StudentGroup::loadFromJson
+ * @brief TeacherGroup::loadFromJson
  * @param object
  * @param allField
  */
 
-void StudentGroup::loadFromJson(const QJsonObject &object, const bool &allField)
+void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 {
 	if (object.contains(QStringLiteral("id")) || allField)
 		setGroupid(object.value(QStringLiteral("id")).toInt());
@@ -64,23 +72,46 @@ void StudentGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("active")) || allField)
 		setActive(object.value(QStringLiteral("active")).toInt());
 
+	if (object.contains(QStringLiteral("classList")) || allField)
+		OlmLoader::loadFromJsonArray<ClassObject>(m_classList, object.value(QStringLiteral("classList")).toArray(), "classid", "classid", true);
+
+	if (object.contains(QStringLiteral("userList")) || allField)
+		OlmLoader::loadFromJsonArray<User>(m_userList, object.value(QStringLiteral("userList")).toArray(), "username", "username", true);
+
 	if (object.contains(QStringLiteral("memberList")) || allField)
 		OlmLoader::loadFromJsonArray<User>(m_memberList, object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
-
 }
 
 
 /**
- * @brief StudentGroup::groupid
+ * @brief TeacherGroup::reload
+ */
+
+void TeacherGroup::reload()
+{
+	if (m_groupid <= 0)
+		return;
+
+	Application::instance()->client()->send(WebSocket::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
+			->fail([](const QString &err) {
+		Application::instance()->client()->messageWarning(err, tr("Letöltés sikertelen"));
+	})
+			->done(std::bind(&TeacherGroup::loadFromJson, this, std::placeholders::_1, true));
+}
+
+
+
+/**
+ * @brief TeacherGroup::groupid
  * @return
  */
 
-int StudentGroup::groupid() const
+int TeacherGroup::groupid() const
 {
 	return m_groupid;
 }
 
-void StudentGroup::setGroupid(int newGroupid)
+void TeacherGroup::setGroupid(int newGroupid)
 {
 	if (m_groupid == newGroupid)
 		return;
@@ -88,12 +119,12 @@ void StudentGroup::setGroupid(int newGroupid)
 	emit groupidChanged();
 }
 
-const QString &StudentGroup::name() const
+const QString &TeacherGroup::name() const
 {
 	return m_name;
 }
 
-void StudentGroup::setName(const QString &newName)
+void TeacherGroup::setName(const QString &newName)
 {
 	if (m_name == newName)
 		return;
@@ -101,12 +132,12 @@ void StudentGroup::setName(const QString &newName)
 	emit nameChanged();
 }
 
-bool StudentGroup::active() const
+bool TeacherGroup::active() const
 {
 	return m_active;
 }
 
-void StudentGroup::setActive(bool newActive)
+void TeacherGroup::setActive(bool newActive)
 {
 	if (m_active == newActive)
 		return;
@@ -114,7 +145,18 @@ void StudentGroup::setActive(bool newActive)
 	emit activeChanged();
 }
 
-UserList *StudentGroup::memberList() const
+UserList *TeacherGroup::userList() const
+{
+	return m_userList;
+}
+
+UserList *TeacherGroup::memberList() const
 {
 	return m_memberList;
 }
+
+ClassList *TeacherGroup::classList() const
+{
+	return m_classList;
+}
+

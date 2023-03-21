@@ -80,5 +80,11 @@
         <file>AdminUserEdit.qml</file>
         <file>PageTeacherGroup.qml</file>
         <file>+emscripten/MainStackView.qml</file>
+        <file>TeacherGroupMemberList.qml</file>
+        <file>PageTeacherGroupEdit.qml</file>
+        <file>QColoredItemDelegate.qml</file>
+        <file>QGreenItemDelegate.qml</file>
+        <file>QTextFieldInPlaceButtons.qml</file>
+        <file>QRefreshProgressBar.qml</file>
     </qresource>
 </RCC>

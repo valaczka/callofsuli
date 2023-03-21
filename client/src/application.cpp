@@ -31,6 +31,7 @@
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
 #include "studentgroup.h"
+#include "teachergroup.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -343,6 +344,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
 	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
 	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
+	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
+	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
 }
 
 /**

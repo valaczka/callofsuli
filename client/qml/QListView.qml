@@ -60,14 +60,10 @@ ListView {
 
 	height: contentHeight
 
-	Qaterial.ProgressBar
-	{
+	QRefreshProgressBar {
 		id: progressbar
 		anchors.top: parent.top
-		width: parent.width
-		indeterminate: true
 		visible: view.refreshProgressVisible
-		color: Qaterial.Style.iconColor()
 	}
 
 	PullToRefreshHandler {

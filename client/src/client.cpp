@@ -33,6 +33,7 @@
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
 #include "studentgroup.h"
+#include "teachergroup.h"
 #include "websocket.h"
 #include "gameterrain.h"
 #include "qquickwindow.h"
@@ -725,18 +726,18 @@ void Client::_userAuthTokenReceived(const QString &token)
 void Client::startCache()
 {
 	m_cache.add<User>(QStringLiteral("userList"), new UserList(this),
-					  &OlmLoader::loadFromJsonArray<User>, "username", "username",
+					  &OlmLoader::loadFromJsonArray<User>, "username", "username", true,
 					  WebSocket::ApiGeneral, "user");
 
 	m_cache.add<ClassObject>(QStringLiteral("classList"), new ClassList(this),
-							 &OlmLoader::loadFromJsonArray<ClassObject>, "id", "classid",
+							 &OlmLoader::loadFromJsonArray<ClassObject>, "id", "classid", true,
 							 WebSocket::ApiGeneral, "class");
 
 	m_cache.add<StudentGroup>(QStringLiteral("studentGroupList"), new StudentGroupList(this),
-							  &OlmLoader::loadFromJsonArray<StudentGroup>, "id", "groupid");
+							  &OlmLoader::loadFromJsonArray<StudentGroup>, "id", "groupid", false);
 
-	m_cache.add<StudentGroup>(QStringLiteral("teacherGroupList"), new StudentGroupList(this),
-							  &OlmLoader::loadFromJsonArray<StudentGroup>, "id", "groupid",
+	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), new TeacherGroupList(this),
+							  &OlmLoader::loadFromJsonArray<TeacherGroup>, "id", "groupid", false,
 							  WebSocket::ApiTeacher, "group");
 
 

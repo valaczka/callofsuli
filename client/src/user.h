@@ -35,7 +35,7 @@
 
 class User;
 using UserList = qolm::QOlm<User>;
-
+Q_DECLARE_METATYPE(UserList*)
 
 /**
  * @brief The User class

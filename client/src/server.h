@@ -40,6 +40,7 @@
 class Server;
 
 using ServerList = qolm::QOlm<Server>;
+Q_DECLARE_METATYPE(ServerList*)
 
 class Server : public SelectableObject
 {
@@ -140,6 +141,5 @@ private:
 };
 
 
-Q_DECLARE_METATYPE(ServerList*)
 
 #endif // SERVER_H

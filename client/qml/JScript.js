@@ -34,8 +34,8 @@ function intializeStyle() {
 		Qaterial.Style.textTheme.overline.weight = Font.DemiBold
 		Qaterial.Style.textTheme.subtitle1.weight = Font.Medium
 		Qaterial.Style.textTheme.subtitle2.weight = Font.Medium
-		Qaterial.Style.textTheme.headline3.weight = Font.Medium
-		Qaterial.Style.textTheme.headline4.weight = Font.Medium
+		Qaterial.Style.textTheme.headline3.weight = Font.Normal
+		Qaterial.Style.textTheme.headline4.weight = Font.Normal
 		Qaterial.Style.textTheme.headline5.weight = Font.Medium
 		Qaterial.Style.textTheme.headline6.weight = Font.Medium
 	}

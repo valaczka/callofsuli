@@ -86,12 +86,14 @@ CREATE TABLE studentgroup(
 
 CREATE TABLE bindGroupStudent(
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	UNIQUE(groupid, username)
 );
 
 CREATE TABLE bindGroupClass(
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	classid INTEGER NOT NULL REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE
+	classid INTEGER NOT NULL REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	UNIQUE(groupid, classid)
 );
 
 CREATE VIEW studentGroupInfo AS
@@ -100,7 +102,7 @@ CREATE VIEW studentGroupInfo AS
 	UNION
 	SELECT id, name, owner, studentgroup.active, username FROM studentgroup
 		INNER JOIN bindGroupClass ON (bindGroupClass.groupid = studentgroup.id)
-		LEFT JOIN user ON (user.classid = bindGroupClass.classid);
+		INNER JOIN user ON (user.classid = bindGroupClass.classid);
 
 
 CREATE TABLE bindGroupMap(

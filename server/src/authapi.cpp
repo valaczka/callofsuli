@@ -492,14 +492,30 @@ void AuthAPI::localOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 
 QDeferred<Credential> AuthAPI::getCredential(const QString &username) const
 {
+	return getCredential(databaseMain(), username);
+}
+
+
+
+/**
+ * @brief AuthAPI::getCredential
+ * @param dbMain
+ * @param username
+ * @return
+ */
+
+QDeferred<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QString &username)
+{
+	Q_ASSERT(dbMain);
+
 	LOG_CTRACE("client") << "Get credential for" << qPrintable(username);
 
 	QDeferred<Credential> ret;
 
-	databaseMainWorker()->execInThread([ret, username, this]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+	dbMain->worker()->execInThread([ret, username, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
-		QMutexLocker(databaseMain()->mutex());
+		QMutexLocker(dbMain->mutex());
 
 		QueryBuilder q(db);
 		q.addQuery("SELECT active, isAdmin, isTeacher, isPanel FROM user WHERE username=")

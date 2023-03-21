@@ -156,7 +156,7 @@ bool ClientCache::set(const QString &key, const QJsonArray &list)
 
 	const CacheItem &it = m_list.value(key);
 
-	OlmLoader::call(it.func, it.list, list, it.jsonField, it.property);
+	OlmLoader::call(it.func, it.list, list, it.jsonField, it.property, it.allFieldOverride);
 
 	return true;
 }
@@ -271,7 +271,7 @@ bool ClientCache::callHandler(const QString &key, qolm::QOlmBase *list, const QJ
 
 	const CacheItem &it = m_list.value(key);
 
-	OlmLoader::call(it.func, list, array, it.jsonField, it.property);
+	OlmLoader::call(it.func, list, array, it.jsonField, it.property, it.allFieldOverride);
 
 	return true;
 }
@@ -294,10 +294,10 @@ bool ClientCache::callHandler(const QString &key, qolm::QOlmBase *list, const QJ
  */
 
 bool OlmLoader::call(const QMap<QString, OlmLoaderFunc> &map, const QString &key, qolm::QOlmBase *list, const QJsonArray &array,
-					 const char *jsonField, const char *property)
+					 const char *jsonField, const char *property, const bool &allFieldOverride)
 {
 	if (map.contains(key)) {
-		call(map.value(key), list, array, jsonField, property);
+		call(map.value(key), list, array, jsonField, property, allFieldOverride);
 		return true;
 	}
 
@@ -316,9 +316,10 @@ bool OlmLoader::call(const QMap<QString, OlmLoaderFunc> &map, const QString &key
  * @return
  */
 
-void OlmLoader::call(const OlmLoaderFunc &func, qolm::QOlmBase *list, const QJsonArray &array, const char *jsonField, const char *property)
+void OlmLoader::call(const OlmLoaderFunc &func, qolm::QOlmBase *list, const QJsonArray &array,
+					 const char *jsonField, const char *property, const bool &allFieldOverride)
 {
-	std::invoke(func, list, array, jsonField, property);
+	std::invoke(func, list, array, jsonField, property, allFieldOverride);
 }
 
 

@@ -35,13 +35,8 @@ class TeacherAPI : public AbstractAPI
 public:
 	TeacherAPI(ServerService *service);
 
-	void groupOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const	{
-		groups(match.captured(1).toInt(), response);
-	}
-	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
-		groups(-1, response);
-	}
-	void groups(const int &id, const QPointer<HttpResponse> &response) const;
+	void groupOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void groupCreate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void groupUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void groupDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
@@ -51,6 +46,44 @@ public:
 		groupDelete(data.value(QStringLiteral("list")).toArray(), response);
 	}
 	void groupDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+
+
+	void groupClassAddOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		groupClassAdd(match.captured(1).toInt(), {match.captured(2).toInt()}, response);
+	}
+	void groupClassAdd(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		groupClassAdd(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void groupClassAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+	void groupClassRemoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		groupClassRemove(match.captured(1).toInt(), {match.captured(2).toInt()}, response);
+	}
+	void groupClassRemove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		groupClassRemove(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void groupClassRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+	void groupClassExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+
+
+
+	void groupUserAddOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		groupUserAdd(match.captured(1).toInt(), {match.captured(2)}, response);
+	}
+	void groupUserAdd(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		groupUserAdd(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void groupUserAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+	void groupUserRemoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		groupUserRemove(match.captured(1).toInt(), {match.captured(2)}, response);
+	}
+	void groupUserRemove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		groupUserRemove(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void groupUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+	void groupUserExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 };
 

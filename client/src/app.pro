@@ -184,6 +184,7 @@ SOURCES += \
 	question.cpp \
 	server.cpp \
 	studentgroup.cpp \
+	teachergroup.cpp \
 	tiledpaintedlayer.cpp \
 	user.cpp \
 	websocket.cpp
@@ -224,6 +225,7 @@ HEADERS += \
 	question.h \
 	server.h \
 	studentgroup.h \
+	teachergroup.h \
 	tiledpaintedlayer.h \
 	user.h \
 	websocket.h

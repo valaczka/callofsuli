@@ -38,7 +38,7 @@ QPage {
 	appBar.rightComponent: _cmpUser //swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
 	appBar.rightPadding: Qaterial.Style.horizontalPadding
 
-	property StudentGroupList groupListTeacher: Client.cache("teacherGroupList")
+	property TeacherGroupList groupListTeacher: Client.cache("teacherGroupList")
 	property StudentGroupList groupListStudent: Client.cache("studentGroupList")
 
 	Component {
@@ -96,7 +96,7 @@ QPage {
 				}
 
 				QDashboardButton {
-					property StudentGroup group: model.qtObject
+					property TeacherGroup group: model.qtObject
 					text: group ? group.name : ""
 					icon.source: Qaterial.Icons.group
 					bgColor: Qaterial.Colors.green700

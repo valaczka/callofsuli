@@ -27,7 +27,7 @@ QPage {
 	title: group ? group.name : qsTr("Csoport")
 	subtitle: Client.server ? Client.server.serverName : ""
 
-	property StudentGroup group: null
+	property TeacherGroup group: null
 
 	appBar.backButtonVisible: true
 	appBar.rightComponent: Qaterial.AppBarButton
@@ -58,20 +58,12 @@ QPage {
 		anchors.fill: parent
 		currentIndex: tabBar.currentIndex
 
-		Rectangle {
-			color: "red"
+		TeacherGroupMemberList {
+			group: control.group
 		}
 
 		Rectangle {
 			color: "blue"
-		}
-
-		Rectangle {
-			color: "green"
-		}
-
-		Rectangle {
-			color: "yellow"
 		}
 	}
 
@@ -82,8 +74,8 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.account, color: "green" })
 			model.append({ text: qsTr("Pályák"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}
 	}
 
@@ -138,4 +130,6 @@ QPage {
 		}
 	}
 
+
+	Component.onCompleted: group.reload()
 }
