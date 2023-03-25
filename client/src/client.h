@@ -192,7 +192,13 @@ public:
 
 	Q_INVOKABLE void loadClassListFromArray(QJsonArray list);
 
-	const QUrl &parseUrl() const;
+
+	// Scanned, readed,...stb. Url
+
+	Q_INVOKABLE virtual void parseUrl();
+	Q_INVOKABLE void setParseUrl(const QUrl &url);
+	Q_INVOKABLE const QUrl &getParseUrl() const;
+
 
 protected slots:
 	virtual void onApplicationStarted();
@@ -223,6 +229,8 @@ protected:
 	virtual void prepareOAuth(const QJsonObject &) {}
 
 signals:
+	void loadRequestRegistration(const QString &oauth, const QString &code);
+
 	void startPageLoaded();
 	void pixelSizeChanged();
 	void pixelSizeRatioChanged();

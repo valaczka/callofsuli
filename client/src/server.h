@@ -56,6 +56,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
 	Q_PROPERTY(User *user READ user CONSTANT)
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
+	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -111,6 +112,9 @@ public:
 
 	Rank rank(const int &id) const;
 
+	bool temporary() const;
+	void setTemporary(bool newTemporary);
+
 signals:
 	void urlChanged();
 	void directoryChanged();
@@ -123,6 +127,8 @@ signals:
 	void configChanged();
 	void rankListChanged();
 
+	void temporaryChanged();
+
 private:
 	QString m_name;
 	QString m_serverName;
@@ -132,6 +138,7 @@ private:
 	QString m_token;
 	User *const m_user;
 	RankList m_rankList;
+	bool m_temporary = false;
 
 #ifndef QT_NO_SSL
 	QList<QSslError::SslError> m_ignoredSslErrors;

@@ -87,8 +87,13 @@ public:
 
 #ifdef CLIENT_UTILS
 	Q_INVOKABLE static int selectedCount(qolm::QOlmBase *list);
-#endif
 
+	template<typename QEnum>
+	static std::string enumToString(const QEnum value)
+	{
+		return std::string(QMetaEnum::fromType<QEnum>().valueToKey(value));
+	}
+#endif
 
 	Q_INVOKABLE static quint32 versionMajor();
 	Q_INVOKABLE static quint32 versionMinor();

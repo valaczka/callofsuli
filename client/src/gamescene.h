@@ -198,6 +198,4 @@ private:
 };
 
 
-Q_DECLARE_LOGGING_CATEGORY(lcScene);
-
 #endif // GAMESCENE_H

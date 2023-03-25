@@ -26,6 +26,7 @@
 
 #include "teacherapi.h"
 #include "qjsonarray.h"
+#include "qsqlrecord.h"
 
 TeacherAPI::TeacherAPI(ServerService *service)
 	: AbstractAPI(service)
@@ -85,7 +86,7 @@ void TeacherAPI::groupOne(const QRegularExpressionMatch &match, const QJsonObjec
 			return responseError(response, "invalid id");
 
 		data[QStringLiteral("classList")] =
-				QueryBuilder::q(db).addQuery("SELECT classid, name FROM bindGroupClass "
+				QueryBuilder::q(db).addQuery("SELECT class.id, name FROM bindGroupClass "
 											 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
 											 "WHERE groupid=").addValue(id)
 				.execToJsonArray();
@@ -136,12 +137,36 @@ void TeacherAPI::groups(const QRegularExpressionMatch &, const QJsonObject &, QP
 		QueryBuilder q(db);
 		q.addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username);
 
-		bool err = false;
-
-		const QJsonArray &list = q.execToJsonArray(&err);
-
-		if (err)
+		if (!q.exec())
 			return responseErrorSql(response);
+
+		QJsonArray list;
+
+		while (q.sqlQuery().next()) {
+			const QSqlRecord &rec = q.sqlQuery().record();
+			QJsonObject obj;
+
+			int id = -1;
+
+			for (int i=0; i<rec.count(); ++i) {
+				if (rec.fieldName(i) == QStringLiteral("id"))
+					id = rec.value(i).toInt();
+				obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
+			}
+
+			QJsonArray clist;
+
+			if (id > 0) {
+				clist = QueryBuilder::q(db).addQuery("SELECT class.id, name FROM bindGroupClass "
+													 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
+													 "WHERE groupid=").addValue(id)
+						.execToJsonArray();
+			}
+
+			obj.insert(QStringLiteral("classList"), clist);
+
+			list.append(obj);
+		}
 
 		responseAnswer(response, "list", list);
 	});

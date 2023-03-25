@@ -25,6 +25,7 @@
  */
 
 #include "gameenemysniper.h"
+#include "Logger.h"
 #include "gameplayer.h"
 #include "qdiriterator.h"
 #include <QRandomGenerator>
@@ -66,12 +67,12 @@ GameEnemySniper::~GameEnemySniper()
 
 GameEnemySniper *GameEnemySniper::create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type)
 {
-	qCDebug(lcScene).noquote() << tr("Create enemy sniper");
+	LOG_CDEBUG("scene") << "Create enemy sniper";
 
 	GameEnemySniper *sniper = qobject_cast<GameEnemySniper*>(GameObject::createFromFile(QStringLiteral("GameEnemySniper.qml"), scene));
 
 	if (!sniper) {
-		qCCritical(lcScene).noquote() << tr("Enemy sniper creation error");
+		LOG_CERROR("scene") << "Enemy sniper creation error";
 		return nullptr;
 	}
 
@@ -95,7 +96,7 @@ GameEnemySniper *GameEnemySniper::create(GameScene *scene, const GameTerrain::En
 	} else if (list.contains(type)) {
 		sniper->setDataDir(QStringLiteral(":/snipers/%1").arg(type));
 	} else {
-		qCWarning(lcScene).noquote() << tr("Invalid enemy sniper type:") << type;
+		LOG_CWARNING("scene") << "Invalid enemy sniper type:" << type;
 		sniper->setDataDir(QStringLiteral(":/snipers/%1").arg(list.first()));
 	}
 
@@ -235,7 +236,7 @@ void GameEnemySniper::onSceneConnected()
 
 void GameEnemySniper::onAttack()
 {
-	qCDebug(lcScene).noquote() << tr("Enemy sniper attack") << this;
+	LOG_CDEBUG("scene") << "Enemy sniper attack" << this;
 
 	jumpToSprite(QStringLiteral("shot"));
 }
@@ -248,7 +249,7 @@ void GameEnemySniper::onAttack()
 void GameEnemySniper::onTimingTimerTimeout()
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySniper) {
-		qCWarning(lcScene) << tr("Invalid enemy type");
+		LOG_CWARNING("scene") << "Invalid enemy type";
 		return;
 	}
 

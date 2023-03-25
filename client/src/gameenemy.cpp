@@ -316,7 +316,7 @@ void GameEnemy::attackByPlayer(GamePlayer *player, const bool &questionEmpty)
 
 void GameEnemy::missedByPlayer(GamePlayer *player)
 {
-	qCDebug(lcScene).noquote() << tr("Missed by player:") << this;
+	LOG_CDEBUG("scene") << "Missed by player:" << this;
 
 	game()->setIsFlawless(false);
 

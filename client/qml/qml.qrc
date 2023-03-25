@@ -86,5 +86,6 @@
         <file>QGreenItemDelegate.qml</file>
         <file>QTextFieldInPlaceButtons.qml</file>
         <file>QRefreshProgressBar.qml</file>
+        <file>PageReadQR.qml</file>
     </qresource>
 </RCC>

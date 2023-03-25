@@ -14,6 +14,11 @@ QFormColumn {
 
 	title: qsTr("Adatok")
 
+	property alias code: _code.text
+	property alias plainChecked: _radioPlain.checked
+	property alias googleChecked: _radioGoogle.checked
+	property alias button: button
+
 	QFormTextField {
 		id: _code
 		title: qsTr("Hitelesítő kód")
@@ -119,6 +124,7 @@ QFormColumn {
 
 	QButton
 	{
+		id: button
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("Regisztráció")
 		icon.source: Qaterial.Icons.disc

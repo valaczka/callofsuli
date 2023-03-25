@@ -44,8 +44,6 @@
 #include "desktopclient.h"
 #endif
 
-Q_LOGGING_CATEGORY(lcScene, "app.scene")
-
 /**
  * @brief GameScene::GameScene
  * @param parent
@@ -55,7 +53,7 @@ GameScene::GameScene(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_timingTimer(new QTimer(this))
 {
-	qCDebug(lcScene).noquote() << tr("Scene created") << this;
+	LOG_CDEBUG("scene") << "Scene created" << this;
 
 	setImplicitWidth(200);
 	setImplicitHeight(200);
@@ -83,7 +81,7 @@ GameScene::~GameScene()
 	qDeleteAll(m_tiledLayers);
 	qDeleteAll(m_grounds);
 
-	qCDebug(lcScene).noquote() << tr("Scene destroyed") << this;
+	LOG_CDEBUG("scene") << "Scene destroyed" << this;
 }
 
 
@@ -409,7 +407,7 @@ void GameScene::loadGameData()
 	if (error)
 		return;
 
-	qCDebug(lcScene).noquote() << tr("Load game data from:") << filename;
+	LOG_CDEBUG("scene") << "Load game data from:" << filename;
 }
 
 
@@ -422,12 +420,12 @@ void GameScene::loadTiledLayers()
 	Tiled::Map *map = m_terrain.map();
 
 	if (!map) {
-		qCWarning(lcScene).noquote() << tr("Invalid map");
+		LOG_CWARNING("scene") << "Invalid map";
 		return;
 	}
 
 	for (auto layer = map->tileLayers().begin(); layer != map->tileLayers().end(); ++layer) {
-		qCDebug(lcScene).noquote() << QObject::tr("Load tile layer:") << layer->name();
+		LOG_CDEBUG("scene") <<  QObject::tr("Load tile layer:") << layer->name();
 
 		Tiled::TileLayer *l = static_cast<Tiled::TileLayer*>(*layer);
 
@@ -455,11 +453,11 @@ void GameScene::loadGroundLayer()
 	Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ground"));
 
 	if (!layer) {
-		qCWarning(lcScene).noquote() << tr("Missing ground layer");
+		LOG_CWARNING("scene") << "Missing ground layer";
 		return;
 	}
 
-	qCDebug(lcScene).noquote() << tr("Load ground layer");
+	LOG_CDEBUG("scene") << "Load ground layer";
 
 	foreach (Tiled::MapObject *object, layer->objects()) {
 		QRectF rect(object->x(), object->y(), object->width(), object->height());
@@ -505,11 +503,11 @@ void GameScene::loadLadderLayer()
 	Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ladders"));
 
 	if (!layer) {
-		qCWarning(lcScene).noquote() << tr("Missing ladders layer");
+		LOG_CWARNING("scene") << "Missing ladders layer";
 		return;
 	}
 
-	qCDebug(lcScene).noquote() << tr("Load ladders layer");
+	LOG_CDEBUG("scene") << "Load ladders layer";
 
 	foreach (Tiled::MapObject *object, layer->objects()) {
 		if (object->shape() != Tiled::MapObject::Rectangle)
@@ -520,7 +518,7 @@ void GameScene::loadLadderLayer()
 		GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile(QStringLiteral("GameLadder.qml"), this));
 
 		if (!ladder) {
-			qCCritical(lcScene).noquote() << tr("Ladder creation error");
+			LOG_CERROR("scene") << "Ladder creation error";
 			continue;
 		}
 
@@ -552,7 +550,7 @@ void GameScene::loadLadderLayer()
 
 void GameScene::loadTerrainObjectsLayer()
 {
-	qCDebug(lcScene).noquote() << tr("Load terrain objects layer");
+	LOG_CDEBUG("scene") << "Load terrain objects layer";
 
 	QHash<GameTerrain::ObjectType, QString> list;
 
@@ -567,7 +565,7 @@ void GameScene::loadTerrainObjectsLayer()
 			GameObject *object = GameObject::createFromFile(qml, this);
 
 			if (!object) {
-				qCCritical(lcScene).noquote() << tr("Terrain object creation error:") << type << qml;
+				LOG_CERROR("scene") << "Terrain object creation error:" << type << qml;
 				continue;
 			}
 
@@ -604,7 +602,7 @@ void GameScene::loadTerrainObjectsLayer()
 
 void GameScene::loadPlayerPositionLayer()
 {
-	qCDebug(lcScene).noquote() << tr("Load player position layer");
+	LOG_CDEBUG("scene") << "Load player position layer";
 
 	foreach(const GameTerrain::PlayerPositionData &data, m_terrain.playerPositions()) {
 		m_grounds.append(new GamePlayerPosition(data, this));
@@ -619,7 +617,7 @@ void GameScene::loadPlayerPositionLayer()
 
 void GameScene::loadPickablesLayer()
 {
-	qCDebug(lcScene).noquote() << tr("Load pickables layer");
+	LOG_CDEBUG("scene") << "Load pickables layer";
 
 	foreach(const GameTerrain::PickableData &data, m_terrain.pickables()) {
 		m_game->createPickable(data.data, data.point);
@@ -644,7 +642,7 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 	Tiled::Map *map = m_terrain.map();
 
 	if (!map) {
-		qCWarning(lcScene()).noquote() << tr("Invalid map");
+		LOG_CWARNING("scene") << "Invalid map";
 		return nullptr;
 	}
 
@@ -759,10 +757,10 @@ QJsonObject GameScene::levelData(int level) const
 
 void GameScene::createPlayer()
 {
-	qCDebug(lcScene).noquote() << tr("Create player");
+	LOG_CDEBUG("scene") << "Create player";
 
 	if (m_game->player()) {
-		qCWarning(lcScene).noquote() << tr("Player already exists");
+		LOG_CWARNING("scene") << "Player already exists";
 		return;
 	}
 
@@ -871,7 +869,7 @@ void GameScene::zoomOverviewToggle()
 
 void GameScene::onScenePrepared()
 {
-	qCDebug(lcScene).noquote() << tr("Scene prepared");
+	LOG_CDEBUG("scene") << "Scene prepared";
 
 	++m_sceneLoadSteps;
 
@@ -885,7 +883,7 @@ void GameScene::onScenePrepared()
 
 void GameScene::onSceneStepSuccess()
 {
-	qCDebug(lcScene).noquote() << tr("Scene step:") << m_sceneLoadSteps;
+	LOG_CDEBUG("scene") << "Scene step:" << m_sceneLoadSteps;
 
 	if (m_sceneLoadSteps < 2)
 		return;
@@ -940,7 +938,7 @@ void GameScene::onSceneAnimationReady()
 
 void GameScene::activateLaddersInBlock(const int &block)
 {
-	qCDebug(lcScene).noquote() << tr("Activate ladders in block:") << block;
+	LOG_CDEBUG("scene") << "Activate ladders in block:" << block;
 
 	foreach (GameLadder *ladder, m_ladders) {
 		if (ladder->blockTop() == block || ladder->blockBottom() == block)
@@ -957,7 +955,7 @@ void GameScene::activateLaddersInBlock(const int &block)
 void GameScene::setPlayerPosition(GamePlayerPosition *position)
 {
 	if (position && (m_playerPositions.isEmpty() || m_playerPositions.top() != position)) {
-		qCDebug(lcScene).noquote() << tr("Player position reached:") << position->position();
+		LOG_CDEBUG("scene") << "Player position reached:" << position->position();
 		m_playerPositions.push(position);
 	}
 }

@@ -47,6 +47,9 @@ public:
 	void commandLineParse();
 	bool performCommandLine();
 
+protected:
+	virtual Client *createClient() override;
+
 private:
 	CommandLine m_commandLine = Normal;
 	QString m_loadMap;

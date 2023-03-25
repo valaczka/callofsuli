@@ -30,6 +30,7 @@ QPage {
 			id: menu
 
 			QMenuItem { action: actionAdd }
+			QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
@@ -154,7 +155,7 @@ QPage {
 
 	QFabButton {
 		visible: view.visible
-		action: actionAdd
+		action: actionQR
 	}
 
 
@@ -163,6 +164,27 @@ QPage {
 		text: qsTr("Hozzáadás")
 		icon.source: Qaterial.Icons.plus
 		onTriggered: Client.stackPushPage("ServerEdit.qml")
+	}
+
+	Action {
+		id: actionQR
+		text: qsTr("QR-kód beolvasás")
+		icon.source: Qaterial.Icons.qrcodeScan
+		onTriggered: {
+			var page = Client.stackPushPage("PageReadQR.qml")
+			page.tagFound.connect(function(tag) {
+				var server = Client.serverAddWithUrl(tag)
+
+				if (server) {
+					page.captureEnabled = false
+					Client.setParseUrl(tag)
+					Client.stackPop(page)
+					Client.connectToServer(server)
+				} else {
+					Client.snack(qsTr("Érvénytelen URL"))
+				}
+			})
+		}
 	}
 
 	Action {

@@ -317,7 +317,7 @@ void ActionGame::createPickable(const GamePickable::GamePickableData &data, cons
 	GamePickable *object = qobject_cast<GamePickable*>(GameObject::createFromFile("GamePickable.qml", m_scene));
 
 	if (!object) {
-		qCCritical(lcScene).noquote() << tr("Pickable creation error:") << data.type;
+		LOG_CERROR("scene") << "Pickable creation error:" << data.type;
 		return;
 	}
 

@@ -145,7 +145,27 @@ void WebSocket::connectToServer(Server *server)
 
 	setState(Connecting);
 
-	send(ApiGeneral, "config")->done([this](const QJsonObject &){
+	send(ApiGeneral, "config")->done([this](const QJsonObject &json){
+
+		if (json.isEmpty() || json.value(QStringLiteral("server")).toString() != QStringLiteral("Call of Suli server")) {
+			m_client->messageError(tr("A megadott címen nem található Call of Suli szerver"), tr("Sikertelen csatlakozás"));
+			close();
+			return;
+		}
+
+		int vMajor = json.value(QStringLiteral("versionMajor")).toInt();
+		int vMinor = json.value(QStringLiteral("versionMinor")).toInt();
+
+		if (vMajor < 1) {
+			m_client->messageError(tr("A megadott címen nem található Call of Suli szerver"), tr("Sikertelen csatlakozás"));
+			close();
+			return;
+		}
+
+		if (Utils::versionCode(vMajor, vMinor) > Utils::versionCode()) {
+			m_client->messageWarning(tr("A szerver verziója újabb az alkamazásnál, frissítsd az applikációt!"), tr("Szoftverfrissítés szükséges"));
+		}
+
 		if (m_server)
 			LOG_CINFO("websocket") << "Connected to server:" << m_server->url();
 		setState(Connected);
@@ -374,11 +394,28 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 
 #ifndef QT_NO_SSL
 	connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
-		m_pending = false;
-		emit failed(this);
-		emit finished();
-		emit m_socket->socketSslErrors(e);
-		////m_reply->ignoreSslErrors(e);
+		LOG_CDEBUG("websocket") << "SSL error:" << e;
+
+		QList<QSslError> list;
+
+		foreach (const QSslError &err, e) {
+#ifdef QT_DEBUG
+			if (err.error() == QSslError::HostNameMismatch)
+				list.append(err);
+#endif
+		}
+
+		if (!list.isEmpty()) {
+			m_reply->ignoreSslErrors(list);
+			LOG_CWARNING("websocket") << "SSL errors ignored:" << list;
+		}
+
+		if (list.size() < e.size()) {
+			m_pending = false;
+			emit failed(this);
+			emit finished();
+			emit m_socket->socketSslErrors(e);
+		}
 	});
 #endif
 

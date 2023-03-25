@@ -375,6 +375,7 @@ void Client::onApplicationStarted()
 }
 
 
+
 /**
  * @brief Client::onWebSocketError
  * @param error
@@ -384,10 +385,34 @@ void Client::onWebSocketError(QNetworkReply::NetworkError code)
 {
 	LOG_CWARNING("client") << "Websocket error:" << code;
 
+	QString errStr;
+
+	switch (code) {
+	case QNetworkReply::ConnectionRefusedError:
+		errStr = tr("A szerver visszautasította a kapcsolatot");
+		break;
+	case QNetworkReply::RemoteHostClosedError:
+		errStr = tr("A szerver lezárta a kapcsolatot");
+		break;
+	case QNetworkReply::HostNotFoundError:
+		errStr = tr("A szerver nem található");
+		break;
+	case QNetworkReply::OperationCanceledError:
+		errStr = tr("A művelet megszakadt");
+		break;
+	case QNetworkReply::SslHandshakeFailedError:
+		errStr = tr("Az SSL tanúsítvány hibás");
+		break;
+
+
+	default:
+		errStr = QString::fromStdString(Utils::enumToString<QNetworkReply::NetworkError>(code));
+	}
+
 	if (m_webSocket->state() == WebSocket::Connected)
-		snack(tr("ERROR: %1").arg(code));
+		snack(errStr);
 	else
-		messageError(tr("ERROR: %1").arg(code), tr("Sikertelen csatlakozás"));
+		messageError(errStr, tr("Sikertelen csatlakozás"));
 	//m_webSocket->close();
 }
 
@@ -417,10 +442,16 @@ void Client::onWebSocketSslError(const QList<QSslError> &errors)
 {
 	LOG_CWARNING("client") << "Websocket SSL error:" << errors;
 
+	QStringList errList;
+
+	foreach (const QSslError &err, errors)
+		errList.append(err.errorString());
+
+
 	if (m_webSocket->state() == WebSocket::Connected)
-		snack(tr("SSL ERROR"));
+		snack(errList.join(QStringLiteral(", ")));
 	else
-		messageError(tr("SSL ERROR"), tr("Sikertelen csatlakozás"));
+		messageError(errList.join(QStringLiteral(", ")), tr("Sikertelen csatlakozás"));
 	//m_webSocket->close();
 }
 #endif
@@ -440,7 +471,6 @@ void Client::onServerConnected()
 
 	loginToken();
 
-
 	send(WebSocket::ApiGeneral, QStringLiteral("config"))
 			->done([this](const QJsonObject &json)
 	{
@@ -449,13 +479,21 @@ void Client::onServerConnected()
 
 		if (json.contains(QStringLiteral("config")) && server())
 			server()->setConfig(json.value(QStringLiteral("config")).toObject());
-	});
 
+		server()->setTemporary(false);
 
-	send(WebSocket::ApiGeneral, QStringLiteral("rank"))
-			->done([this](const QJsonObject &json)
-	{
-		server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
+		parseUrl();
+
+		send(WebSocket::ApiGeneral, QStringLiteral("rank"))
+				->done([this](const QJsonObject &json)
+		{
+			server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
+		});
+
+	})
+			->fail([this](const QString &err){
+		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
+		m_webSocket->close();
 	});
 }
 
@@ -745,17 +783,6 @@ void Client::startCache()
 }
 
 
-/**
- * @brief Client::parseUrl
- * @return
- */
-
-const QUrl &Client::parseUrl() const
-{
-	return m_parseUrl;
-}
-
-
 
 
 
@@ -994,6 +1021,69 @@ void Client::loadClassListFromArray(QJsonArray list)
 							}));
 
 	setCache(QStringLiteral("classList"), list);
+}
+
+
+/**
+ * @brief Client::parseUrl
+ */
+
+void Client::parseUrl()
+{
+	LOG_CTRACE("client") << "Parse URL:" << m_parseUrl;
+
+	if (m_parseUrl.isEmpty()) {
+		LOG_CTRACE("client") << "Parse URL empty";
+		return;
+	}
+
+
+	if (!server()) {
+		LOG_CERROR("client") << "Can't parse URL, invalid server";
+		return;
+	}
+
+	if (server()->url().isParentOf(m_parseUrl)) {
+		LOG_CWARNING("client") << "URL parsed successful";
+
+		const QUrlQuery q(m_parseUrl);
+		const QString &page = q.queryItemValue(QStringLiteral("page"));
+
+		if (page == QLatin1String("registration")) {
+			const QString &oauth = q.queryItemValue(QStringLiteral("oauth"));
+			const QString &code = q.queryItemValue(QStringLiteral("code"));
+
+			LOG_CDEBUG("client") << "Load registration with oauth" << oauth << "and code" << code;
+
+			emit loadRequestRegistration(oauth, code);
+		} else if (!q.isEmpty()) {
+			LOG_CWARNING("client") << "Invalid page request:" << page;
+		}
+	}
+
+
+	m_parseUrl = QUrl();
+}
+
+
+/**
+ * @brief Client::setParseUrl
+ * @param url
+ */
+
+void Client::setParseUrl(const QUrl &url)
+{
+	m_parseUrl = url;
+}
+
+
+/**
+ * @brief Client::getParseUrl
+ */
+
+const QUrl &Client::getParseUrl() const
+{
+	return m_parseUrl;
 }
 
 

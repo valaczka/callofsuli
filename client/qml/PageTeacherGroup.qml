@@ -24,7 +24,7 @@ QPage {
 		return true
 	}*/
 
-	title: group ? group.name : qsTr("Csoport")
+	title: group ? group.fullName : qsTr("Csoport")
 	subtitle: Client.server ? Client.server.serverName : ""
 
 	property TeacherGroup group: null

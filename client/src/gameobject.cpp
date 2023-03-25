@@ -43,7 +43,7 @@ GameObject::GameObject(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_body(new Box2DBody(this))
 {
-	qCDebug(lcScene).noquote() << tr("Create GameObject") << this;
+	LOG_CDEBUG("scene") << "Create GameObject" << this;
 	setScene(static_cast<GameScene*>(parent));
 
 	m_body->setBodyType(Box2DBody::Static);
@@ -71,7 +71,7 @@ GameObject::~GameObject()
 
 	qDeleteAll(m_childItems);
 
-	qCDebug(lcScene).noquote() << tr("Destroy GameObject") << this;
+	LOG_CDEBUG("scene") << "Destroy GameObject" << this;
 }
 
 
@@ -92,7 +92,7 @@ GameObject *GameObject::createFromFile(QString file, GameScene *scene)
 
 	QQmlComponent component(Application::instance()->engine(), file, scene);
 
-	qCDebug(lcScene).noquote() << tr("Create object from file:") << file << component.isReady();
+	LOG_CDEBUG("scene") << "Create object from file:" << file << component.isReady();
 
 	return qobject_cast<GameObject*>(component.create());
 }

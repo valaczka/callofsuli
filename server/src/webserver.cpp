@@ -75,7 +75,7 @@ bool WebServer::start()
 	configuration.host = settings->listenAddress();
 	configuration.port = settings->listenPort();
 
-	configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html_error.html");
+	configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");
 
 	if (settings->ssl()) {
 		/*QSslConfiguration config = loadSslConfiguration(*m_service->settings());

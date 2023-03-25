@@ -87,6 +87,22 @@ void Handler::handle(HttpRequest *request, HttpResponse *response)
 		return;
 	}
 
+	if (uri.startsWith(QStringLiteral("/events"))) {
+		HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
+		LOG_CWARNING("client") << "ADD stream" << conn ;
+		HttpEventStream *stream = new HttpEventStream(conn);
+		conn->setEventStream(stream);
+
+		QTimer *s = new QTimer(this);
+		connect(s, &QTimer::timeout, stream, [stream](){
+			LOG_CTRACE("client") << "SEND.....";
+			stream->write("esemeny", "Üzenet jön ide");
+		});
+		s->start(5000);
+
+		return response->setStatus(HttpStatus::Ok);
+	}
+
 	if (uri.startsWith(QStringLiteral("/api/")))
 		return handleApi(request, response);
 
@@ -132,16 +148,24 @@ void Handler::getFavicon(HttpResponse *response)
 
 void Handler::getWasmContent(QString uri, HttpResponse *response)
 {
+	QDir htmlDir(QStringLiteral(":/html"));
 	QDir dir(QStringLiteral(":/wasm"));
 
 	uri.remove(QRegExp("^/"));
 
 	if (uri.isEmpty())
-		uri = QStringLiteral("callofsuli.html");
+		uri = QStringLiteral("index.html");
 
-	if (dir.exists(uri)) {
-		const QString &fname = dir.absoluteFilePath(uri);
+	QString fname;
+	bool isHtml = false;
 
+	if (htmlDir.exists(uri)) {
+		fname = htmlDir.absoluteFilePath(uri);
+		isHtml = true;
+	} else if (dir.exists(uri))
+		fname = dir.absoluteFilePath(uri);
+
+	if (!fname.isEmpty()) {
 		LOG_CTRACE("client") << "HTTP response file content:" << fname;
 
 		QByteArray b;
@@ -149,6 +173,10 @@ void Handler::getWasmContent(QString uri, HttpResponse *response)
 		if (f.open(QIODevice::ReadOnly)) {
 			b = f.readAll();
 			f.close();
+		}
+
+		if (isHtml) {
+			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
 		}
 
 		response->setStatus(HttpStatus::Ok, b);

@@ -46,6 +46,7 @@ class TeacherGroup : public QObject
 	Q_PROPERTY(UserList* userList READ userList CONSTANT)
 	Q_PROPERTY(UserList* memberList READ memberList CONSTANT)
 	Q_PROPERTY(ClassList* classList READ classList CONSTANT)
+	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
 
 public:
 	explicit TeacherGroup(QObject *parent = nullptr);
@@ -68,10 +69,13 @@ public:
 	UserList *memberList() const;
 	ClassList *classList() const;
 
+	QString fullName() const;
+
 signals:
 	void groupidChanged();
 	void nameChanged();
 	void activeChanged();
+	void fullNameChanged();
 
 private:
 	int m_groupid = -1;

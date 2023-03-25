@@ -63,7 +63,7 @@ bool MapPlayDemo::load()
 	MapPlaySolverAction *solver = new MapPlaySolverAction(this);
 	setSolver(solver);
 
-#ifdef Q_OS_WASM
+#ifndef Q_OS_WASM
 	solverLoad();
 #endif
 

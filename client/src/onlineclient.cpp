@@ -98,8 +98,14 @@ void OnlineClient::onResourceDownloaded()
 			const QJsonObject &o = Utils::byteArrayToJsonObject(payload);
 			const QJsonArray &resources = o.value(QStringLiteral("resources")).toArray();
 
+			QUrl url;
+			url.setScheme(m_parseUrl.scheme());
+			url.setHost(m_parseUrl.host());
+			url.setPort(m_parseUrl.port());
+
 			Server *s = new Server(this);
 			m_webSocket->setServer(s);
+			s->setUrl(url);
 
 
 			if (resources.isEmpty()) {

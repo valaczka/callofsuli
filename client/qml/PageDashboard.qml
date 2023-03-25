@@ -97,7 +97,7 @@ QPage {
 
 				QDashboardButton {
 					property TeacherGroup group: model.qtObject
-					text: group ? group.name : ""
+					text: group ? group.fullName : ""
 					icon.source: Qaterial.Icons.group
 					bgColor: Qaterial.Colors.green700
 					outlined: !group.active

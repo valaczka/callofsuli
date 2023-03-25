@@ -27,6 +27,7 @@
 #include <RollingFileAppender.h>
 #include "ColorConsoleAppender.h"
 #include "desktopapplication.h"
+#include "desktopclient.h"
 #include "utils.h"
 
 
@@ -43,7 +44,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 
 #ifndef QT_NO_DEBUG
 	m_appender->setFormat(QString::fromStdString(
-									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
+									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
 									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
 									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
 									 ColorConsoleAppender::green+">\n"));
@@ -65,6 +66,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qml"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qaterial.utils"), true);
 }
 
 
@@ -181,6 +183,25 @@ bool DesktopApplication::performCommandLine()
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief DesktopApplication::createClient
+ * @return
+ */
+
+Client *DesktopApplication::createClient()
+{
+	Client *c = new DesktopClient(this, m_application);
+
+	if (!m_arguments.isEmpty()) {
+		QUrl u(m_arguments.at(0));
+		if (u.isValid())
+			c->setParseUrl(u);
+	}
+
+	return c;
 }
 
 

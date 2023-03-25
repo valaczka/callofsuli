@@ -67,6 +67,7 @@ QPage {
 				_user.view.unselectAll()
 				_class.view.unselectAll()
 				_user.classid = classid
+				_user.classname = classname
 				swipeView.setCurrentIndex(1)
 			}
 		}

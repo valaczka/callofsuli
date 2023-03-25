@@ -245,6 +245,16 @@ void TerminalHandler::parseRoot(const QByteArray &data)
 		return true;
 	});
 
+
+	f.map("ls", [this](const QStringList &){
+		QDirIterator it(QStringLiteral(":/"), QDirIterator::Subdirectories);
+		while (it.hasNext()) {
+			writeLine(it.next().toUtf8());
+		}
+
+		return true;
+	});
+
 	call(f, list);
 
 	prompt();

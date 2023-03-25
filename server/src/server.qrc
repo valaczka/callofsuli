@@ -3,6 +3,5 @@
         <file>../license.txt</file>
         <file>../../CREDITS.md</file>
         <file>../sql/main.sql</file>
-        <file>html_error.html</file>
     </qresource>
 </RCC>

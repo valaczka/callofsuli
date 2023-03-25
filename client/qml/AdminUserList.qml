@@ -22,159 +22,204 @@ Qaterial.Page
 	// <-1: out of class
 
 	property int classid: -1
+	property string classname: ""
 
 	readonly property int _rolePanel: Credential.Panel
 	readonly property int _roleAdmin: Credential.Admin
 	readonly property int _roleTeacher: Credential.Teacher
 
-	QListView {
-		id: view
-
-		currentIndex: -1
+	QScrollable
+	{
 		anchors.fill: parent
-		autoSelectChange: true
 
-		refreshProgressVisible: Client.webSocket.pending
-		refreshEnabled: true
-		onRefreshRequest: reloadUsers()
-
-		model: SortFilterProxyModel {
-			sourceModel: userList
-
-			filters: [
-				ValueFilter {
-					roleName: "classid"
-					value: control.classid < -1 ? -1 : control.classid
-					enabled: control.classid != -1
+		Qaterial.TextField {
+			id: textFieldClassName
+			visible: classid > 0
+			enabled: classid > 0
+			width: parent.width
+			font: Qaterial.Style.textTheme.headline4
+			leadingIconSource: Qaterial.Icons.accountMultiple
+			leadingIconInline: true
+			placeholderText: qsTr("Az osztály neve")
+			backgroundBorderHeight: 1
+			backgroundColor: "transparent"
+			trailingContent: QTextFieldInPlaceButtons {
+				id: nameInPlace
+				setTo: classname
+				onSaveRequest: {
+					Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(classid),
+								{
+									name: text
+								})
+					.done(function(r){
+						Client.reloadCache("classList")
+						saved()
+					})
+					.fail(function(err) {
+						Client.messageWarning(err, "Átnevezés sikertelen")
+						revert()
+					})
 				}
-			]
 
-			sorters: [
-				RoleSorter {
-					roleName: "classid"
-					priority: 2
-					sortOrder: Qt.AscendingOrder
-				},
-				RoleSorter {
-					roleName: "active"
-					priority: 1
-					sortOrder: Qt.DescendingOrder
-				},
-				StringSorter {
-					roleName: "fullName"
-					sortOrder: Qt.AscendingOrder
-				}
-			]
+			}
+
 		}
 
-		section.property: "className"
-		section.criteria: ViewSection.FullString
-		section.delegate: Qaterial.ListSectionTitle {  }
-
-		delegate: QItemDelegate {
-			property User user: model.qtObject
-			selectableObject: user
-
-			highlighted: ListView.isCurrentItem
-			iconSource: user ? (user.roles & _rolePanel) ?
-								   Qaterial.Icons.desktopClassic :
-								   (user.roles & _roleAdmin) ?
-									   Qaterial.Icons.accountTie :
-									   (user.roles & _roleTeacher) ?
-										   Qaterial.Icons.accountTieHat :
-										   Qaterial.Icons.account : Qaterial.Icons.account
-
-			text: user ? user.fullName: ""
-			secondaryText: user ? user.username + (user.oauth.length ? " ("+user.oauth+")" : "") : ""
-			textColor: user && user.active ? Qaterial.Style.colorTheme.primaryText : Qaterial.Style.colorTheme.disabledText
-			iconColor: user ? (user.selected ? Qaterial.Style.accentColor :
-											   user.active ? Qaterial.Style.iconColor() : Qaterial.Style.colorTheme.disabledText)
-							: Qaterial.Style.colorTheme.primaryText
-
-
-
-			onClicked: if (!view.selectEnabled)
-						   Client.stackPushPage("AdminUserEdit.qml", {
-													user: user
-												})
+		Qaterial.LabelHeadline5 {
+			visible: textFieldClassName.visible
+			topPadding: 20
+			text: qsTr("Tanulók")
 		}
 
-		Qaterial.Menu {
-			id: contextMenu
-			QMenuItem { action: view.actionSelectAll }
-			QMenuItem { action: view.actionSelectNone }
-			Qaterial.MenuSeparator {}
-			QMenuItem { action: actionUserAdd }
-			Qaterial.MenuSeparator {}
-			QMenuItem { action: actionUserActivate }
-			QMenuItem { action: actionUserInactivate }
+		QListView {
+			id: view
+
+			currentIndex: -1
+			width: parent.width
+			autoSelectChange: true
+
+			refreshProgressVisible: Client.webSocket.pending
+			refreshEnabled: true
+			onRefreshRequest: reloadUsers()
+
+			model: SortFilterProxyModel {
+				sourceModel: userList
+
+				filters: [
+					ValueFilter {
+						roleName: "classid"
+						value: control.classid < -1 ? -1 : control.classid
+						enabled: control.classid != -1
+					}
+				]
+
+				sorters: [
+					RoleSorter {
+						roleName: "classid"
+						priority: 2
+						sortOrder: Qt.AscendingOrder
+					},
+					RoleSorter {
+						roleName: "active"
+						priority: 1
+						sortOrder: Qt.DescendingOrder
+					},
+					StringSorter {
+						roleName: "fullName"
+						sortOrder: Qt.AscendingOrder
+					}
+				]
+			}
+
+			section.property: classid == -1 ? "className" : ""
+			section.criteria: ViewSection.FullString
+			section.delegate: Qaterial.ListSectionTitle {  }
+
+			delegate: QItemDelegate {
+				property User user: model.qtObject
+				selectableObject: user
+
+				highlighted: ListView.isCurrentItem
+				iconSource: user ? (user.roles & _rolePanel) ?
+									   Qaterial.Icons.desktopClassic :
+									   (user.roles & _roleAdmin) ?
+										   Qaterial.Icons.accountTie :
+										   (user.roles & _roleTeacher) ?
+											   Qaterial.Icons.accountTieHat :
+											   Qaterial.Icons.account : Qaterial.Icons.account
+
+				text: user ? user.fullName: ""
+				secondaryText: user ? user.username + (user.oauth.length ? " ("+user.oauth+")" : "") : ""
+				textColor: user && user.active ? Qaterial.Style.colorTheme.primaryText : Qaterial.Style.colorTheme.disabledText
+				iconColor: user ? (user.selected ? Qaterial.Style.accentColor :
+												   user.active ? Qaterial.Style.iconColor() : Qaterial.Style.colorTheme.disabledText)
+								: Qaterial.Style.colorTheme.primaryText
+
+
+
+				onClicked: if (!view.selectEnabled)
+							   Client.stackPushPage("AdminUserEdit.qml", {
+														user: user
+													})
+			}
 
 			Qaterial.Menu {
-				id: submenu
-				title: qsTr("Áthelyez")
+				id: contextMenu
+				QMenuItem { action: view.actionSelectAll }
+				QMenuItem { action: view.actionSelectNone }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: actionUserAdd }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: actionUserActivate }
+				QMenuItem { action: actionUserInactivate }
 
-				Instantiator {
-					model: SortFilterProxyModel {
-						sourceModel: _moveMenuModel
+				Qaterial.Menu {
+					id: submenu
+					title: qsTr("Áthelyez")
 
-						sorters: [
-							FilterSorter {
-								RangeFilter {
-									roleName: "classid"
-									maximumValue: 0
+					Instantiator {
+						model: SortFilterProxyModel {
+							sourceModel: _moveMenuModel
+
+							sorters: [
+								FilterSorter {
+									RangeFilter {
+										roleName: "classid"
+										maximumValue: 0
+									}
+									priority: 1
+									sortOrder: Qt.AscendingOrder
+								},
+								StringSorter {
+									roleName: "name"
+									sortOrder: Qt.AscendingOrder
 								}
-								priority: 1
-								sortOrder: Qt.AscendingOrder
-							},
-							StringSorter {
-								roleName: "name"
-								sortOrder: Qt.AscendingOrder
-							}
-						]
-					}
-
-					Qaterial.MenuItem {
-						text: model.name
-						onTriggered: {
-							var l = view.getSelected()
-							if (!l.length)
-								return
-
-							JS.questionDialogPlural(l, qsTr("Biztosan áthelyezed a kijelölt %1 felhasználót ide: ")+model.name+"?", "fullName",
-													{
-														onAccepted: function()
-														{
-															Client.send(WebSocket.ApiAdmin,
-																		model.classid === -1 ? "user/move/none" : "user/move/%1".arg(model.classid),
-																		{
-																			list: JS.listGetFields(l, "username")
-																		})
-															.done(function(r){
-																reloadUsers()
-																_user.view.unselectAll()
-															})
-															.fail(JS.failMessage("Áthelyezés sikertelen"))
-														},
-														title: qsTr("Felhasználók áthelyezése"),
-														iconSource: Qaterial.Icons.arrowRightBold
-													})
-
+							]
 						}
+
+						Qaterial.MenuItem {
+							text: model.name
+							onTriggered: {
+								var l = view.getSelected()
+								if (!l.length)
+									return
+
+								JS.questionDialogPlural(l, qsTr("Biztosan áthelyezed a kijelölt %1 felhasználót ide: ")+model.name+"?", "fullName",
+														{
+															onAccepted: function()
+															{
+																Client.send(WebSocket.ApiAdmin,
+																			model.classid === -1 ? "user/move/none" : "user/move/%1".arg(model.classid),
+																			{
+																				list: JS.listGetFields(l, "username")
+																			})
+																.done(function(r){
+																	reloadUsers()
+																	_user.view.unselectAll()
+																})
+																.fail(JS.failMessage("Áthelyezés sikertelen"))
+															},
+															title: qsTr("Felhasználók áthelyezése"),
+															iconSource: Qaterial.Icons.arrowRightBold
+														})
+
+							}
+						}
+
+						onObjectAdded: submenu.insertItem(index, object)
+						onObjectRemoved: submenu.removeItem(object)
 					}
-
-					onObjectAdded: submenu.insertItem(index, object)
-					onObjectRemoved: submenu.removeItem(object)
 				}
+				QMenuItem { action: actionUserRemove }
+
 			}
-			QMenuItem { action: actionUserRemove }
 
-		}
-
-		onRightClickOrPressAndHold: {
-			if (index != -1)
-				currentIndex = index
-			_moveMenuModel.reload()
-			contextMenu.popup(mouseX, mouseY)
+			onRightClickOrPressAndHold: {
+				if (index != -1)
+					currentIndex = index
+				_moveMenuModel.reload()
+				contextMenu.popup(mouseX, mouseY)
+			}
 		}
 	}
 

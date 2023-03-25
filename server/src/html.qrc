@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../html/html_error.html</file>
+        <file>../html/index.html</file>
+        <file>../html/testflight-badge.png</file>
+        <file>../html/windows-badge.png</file>
+    </qresource>
+</RCC>

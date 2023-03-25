@@ -295,6 +295,19 @@ Rank Server::rank(const int &id) const
 	return Rank();
 }
 
+bool Server::temporary() const
+{
+	return m_temporary;
+}
+
+void Server::setTemporary(bool newTemporary)
+{
+	if (m_temporary == newTemporary)
+		return;
+	m_temporary = newTemporary;
+	emit temporaryChanged();
+}
+
 
 
 

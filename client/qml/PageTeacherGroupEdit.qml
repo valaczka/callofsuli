@@ -10,7 +10,7 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	title: group ? group.name : qsTr("Csoport")
+	title: group ? group.fullName : qsTr("Csoport")
 	subtitle: qsTr("Résztvevők szerkesztése")
 
 	property TeacherGroup group: null
@@ -41,7 +41,10 @@ QPage {
 			id: menu
 
 			QMenuItem { action: actionClassAdd }
+			QMenuItem { action: actionClassRemove }
+			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionUserAdd }
+			QMenuItem { action: actionUserRemove }
 		}
 	}
 
@@ -127,6 +130,22 @@ QPage {
 					width: classView.width
 				}
 			}
+
+			Qaterial.Menu {
+				id: contextMenu
+				QMenuItem { action: classView.actionSelectAll }
+				QMenuItem { action: classView.actionSelectNone }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: actionClassAdd }
+				QMenuItem { action: actionClassRemove }
+			}
+
+			onRightClickOrPressAndHold: {
+				if (index != -1)
+					currentIndex = index
+				contextMenu.popup(mouseX, mouseY)
+			}
+
 		}
 
 		Qaterial.LabelHeadline5 {
@@ -184,8 +203,25 @@ QPage {
 					width: userView.width
 				}
 			}
+
+			Qaterial.Menu {
+				id: contextMenuUser
+				QMenuItem { action: userView.actionSelectAll }
+				QMenuItem { action: userView.actionSelectNone }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: actionUserAdd }
+				QMenuItem { action: actionUserRemove }
+			}
+
+			onRightClickOrPressAndHold: {
+				if (index != -1)
+					currentIndex = index
+				contextMenuUser.popup(mouseX, mouseY)
+			}
 		}
 	}
+
+
 
 
 	QRefreshProgressBar {
@@ -311,6 +347,67 @@ QPage {
 								model: _dlgUserSortModel
 							})
 			})
+		}
+	}
+
+
+
+	Action {
+		id: actionClassRemove
+		icon.source: Qaterial.Icons.minus
+		text: qsTr("Osztály eltávolítása")
+		onTriggered: {
+			var l = classView.getSelected()
+			if (!l.length)
+				return
+
+			JS.questionDialogPlural(l, qsTr("Biztosan eltávolítás a kijelölt %1 osztályt?"), "name",
+									{
+										onAccepted: function()
+										{
+											Client.send(WebSocket.ApiTeacher,  "group/%1/class/remove".arg(group.groupid), {
+															list: JS.listGetFields(l, "classid")
+														})
+											.done(function(r){
+												group.reload()
+												classView.unselectAll()
+											})
+											.fail(JS.failMessage("Eltávolítás sikertelen"))
+
+										},
+										title: qsTr("Osztályok eltávolítása"),
+										iconSource: Qaterial.Icons.closeCircle
+									})
+
+		}
+	}
+
+	Action {
+		id: actionUserRemove
+		icon.source: Qaterial.Icons.minus
+		text: qsTr("Tanuló eltávolítása")
+		onTriggered: {
+			var l = userView.getSelected()
+			if (!l.length)
+				return
+
+			JS.questionDialogPlural(l, qsTr("Biztosan eltávolítás a kijelölt %1 tanulót?"), "fullName",
+									{
+										onAccepted: function()
+										{
+											Client.send(WebSocket.ApiTeacher,  "group/%1/user/remove".arg(group.groupid), {
+															list: JS.listGetFields(l, "username")
+														})
+											.done(function(r){
+												group.reload()
+												userView.unselectAll()
+											})
+											.fail(JS.failMessage("Eltávolítás sikertelen"))
+
+										},
+										title: qsTr("Tanulók eltávolítása"),
+										iconSource: Qaterial.Icons.closeCircle
+									})
 		}
 	}
 }

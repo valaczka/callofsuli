@@ -8,11 +8,9 @@ import CallOfSuli 1.0
 Qaterial.SquareButton {
 	id: control
 
-	visible: Client.server && Client.server.user.username.length
+	visible: Client.server && Client.server.user.loginState == User.LoggedIn
 
 	ToolTip.text: Client.server ? Client.server.user.fullName : ""
-	ToolTip.visible: hovered || pressed
-	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 
 	property real contentSize: Math.min(width,height)*0.85
 

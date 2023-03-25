@@ -29,6 +29,7 @@
 #include "qdiriterator.h"
 #include "actiongame.h"
 #include "gameplayer.h"
+#include "Logger.h"
 #include <QRandomGenerator>
 
 GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
@@ -57,7 +58,7 @@ GameEnemySoldier::~GameEnemySoldier()
 
 void GameEnemySoldier::onAttack()
 {
-	qCDebug(lcScene).noquote() << tr("Enemy soldier attack") << this;
+	LOG_CDEBUG("scene") << "Enemy soldier attack" << this;
 
 	jumpToSprite(QStringLiteral("shot"));
 }
@@ -73,7 +74,7 @@ void GameEnemySoldier::onAttack()
 void GameEnemySoldier::onTimingTimerTimeout()
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
-		qCWarning(lcScene) << tr("Invalid enemy type");
+		LOG_CWARNING("scene") << "Invalid enemy type";
 		return;
 	}
 
@@ -172,12 +173,12 @@ void GameEnemySoldier::setTurnElapsedMsec(int newTurnElapsedMsec)
 
 GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type)
 {
-	qCDebug(lcScene).noquote() << tr("Create enemy soldier");
+	LOG_CDEBUG("scene") << "Create enemy soldier";
 
 	GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile(QStringLiteral("GameEnemySoldier.qml"), scene));
 
 	if (!soldier) {
-		qCCritical(lcScene).noquote() << tr("Enemy soldier creation error");
+		LOG_CERROR("scene") << "Enemy soldier creation error";
 		return nullptr;
 	}
 
@@ -201,7 +202,7 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 	} else if (list.contains(type)) {
 		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(type));
 	} else {
-		qCWarning(lcScene).noquote() << tr("Invalid enemy soldier type:") << type;
+		LOG_CWARNING("scene") << "Invalid enemy soldier type:" << type;
 		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(list.first()));
 	}
 

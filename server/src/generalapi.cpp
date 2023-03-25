@@ -72,6 +72,7 @@ void GeneralAPI::config(const QRegularExpressionMatch &, const QJsonObject &, QP
 		c.insert(QStringLiteral("oauthGoogle"), true);
 
 	QJsonObject r;
+	r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
 	r.insert(QStringLiteral("name"), m_service->serverName());
 	r.insert(QStringLiteral("versionMajor"), m_service->versionMajor());
 	r.insert(QStringLiteral("versionMinor"), m_service->versionMinor());

@@ -62,7 +62,9 @@ public:
 	Q_INVOKABLE void serverSetAutoConnect(Server *server) const;
 	Q_INVOKABLE Server *serverAdd();
 	Q_INVOKABLE bool serverDelete(Server *server);
+	Q_INVOKABLE void serverDeleteTemporary();
 	Q_INVOKABLE bool serverDeleteSelected();
+	Q_INVOKABLE Server *serverAddWithUrl(const QUrl &url);
 
 	int serverListSelectedCount() const;
 

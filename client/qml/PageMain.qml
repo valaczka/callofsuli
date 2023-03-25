@@ -67,6 +67,11 @@ QPage {
 		ScoreList { }
 	}
 
+	QRefreshProgressBar {
+		anchors.top: parent.top
+		visible: Client.webSocket.pending
+	}
+
 	footer: QTabBar
 	{
 		id: tabBar
@@ -77,4 +82,5 @@ QPage {
 			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.trophyBroken })
 		}
 	}
+
 }

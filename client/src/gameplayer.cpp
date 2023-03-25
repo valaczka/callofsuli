@@ -46,7 +46,7 @@
 GamePlayer::GamePlayer(QQuickItem *parent)
 	: GameEntity(parent)
 {
-	qCDebug(lcScene).noquote() << tr("Player created:") << this;
+	LOG_CDEBUG("scene") << "Player created:" << this;
 
 	m_defaultShotSound = QStringLiteral("qrc:/sound/sfx/shot.wav");
 
@@ -141,7 +141,7 @@ GamePlayer::~GamePlayer()
 		m_soundEffectGeneral->deleteLater();
 #endif
 
-	qCDebug(lcScene).noquote() << tr("Player destroyed:") << this;
+	LOG_CDEBUG("scene") << "Player destroyed:" << this;
 }
 
 
@@ -279,7 +279,7 @@ void GamePlayer::onTimingTimerTimeout()
 		return;
 	} else if (m_playerState == Fall) {
 		qreal d = y()-m_fallStart;
-		qCDebug(lcScene).noquote() << tr("Player fell:") << d;
+		LOG_CDEBUG("scene") << "Player fell:" << d;
 
 		if (d >= m_deathlyFall || m_hp == 1) {
 			setPlayerState(Dead);
@@ -377,14 +377,14 @@ void GamePlayer::onBeginContact(Box2DFixture *other)
 			setLadderState(LadderDownAvailable);
 			setLadder(ladder);
 		} else {
-			qCWarning(lcScene).noquote() << tr("Invalid ladder direction:") << dir;
+			LOG_CWARNING("scene") << "Invalid ladder direction:" << dir;
 		}
 	}
 
 
 
 	if (data.value(QStringLiteral("fireDie"), false).toBool()) {
-		qCDebug(lcScene).noquote() << tr("Player is on fire");
+		LOG_CDEBUG("scene") << "Player is on fire";
 
 		setPlayerState(Burn);
 		return;
@@ -457,7 +457,7 @@ void GamePlayer::onEndContact(Box2DFixture *other)
 
 void GamePlayer::onBaseGroundContacted()
 {
-	qCDebug(lcScene).noquote() << tr("Player fell to base ground");
+	LOG_CDEBUG("scene") << "Player fell to base ground";
 
 	setPlayerState(Dead);
 	m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/falldead.mp3"));
@@ -496,15 +496,15 @@ void GamePlayer::onHpOrShieldChanged()
 void GamePlayer::ladderMove(const bool &up)
 {
 	if (!m_ladder) {
-		qCWarning(lcScene).noquote() << tr("Missing ladder");
+		LOG_CWARNING("scene") << "Missing ladder";
 		return;
 	}
 
 	if (m_ladderState == LadderUpAvailable || m_ladderState == LadderDownAvailable) {
 		if (up)
-			qCDebug(lcScene).noquote() << tr("Begin climbing up on ladder:") << m_ladder->boundRect();
+			LOG_CDEBUG("scene") << "Begin climbing up on ladder:" << m_ladder->boundRect();
 		else
-			qCDebug(lcScene).noquote() << tr("Begin climbing down on ladder:") << m_ladder->boundRect();
+			LOG_CDEBUG("scene") << "Begin climbing down on ladder:" << m_ladder->boundRect();
 
 		if (up)
 			setLadderState(LadderActive);
@@ -528,7 +528,7 @@ void GamePlayer::ladderMove(const bool &up)
 
 		if (_y < m_ladder->boundRect().top() - height()) {
 			_y = m_ladder->boundRect().top()-height();
-			qCDebug(lcScene).noquote() << tr("Finish climbing up on ladder:") << m_ladder->boundRect();
+			LOG_CDEBUG("scene") << "Finish climbing up on ladder:" << m_ladder->boundRect();
 			setLadderState(LadderInactive);
 			setY(_y);
 			body()->setBodyType(Box2DBody::Dynamic);
@@ -537,7 +537,7 @@ void GamePlayer::ladderMove(const bool &up)
 			setY(_y);
 
 			if (m_ladderState == LadderActive && _y < m_ladder->boundRect().top()) {
-				qCDebug(lcScene).noquote() << tr("Ladder top area reached");
+				LOG_CDEBUG("scene") << "Ladder top area reached";
 				setLadderState(LadderTopSprite);
 				jumpToSprite(QStringLiteral("climbupend"));
 			}
@@ -549,14 +549,14 @@ void GamePlayer::ladderMove(const bool &up)
 			jumpToSprite(QStringLiteral("climbdown2"));
 
 		if (m_ladderState == LadderTopSprite && _y >= m_ladder->boundRect().top())  {
-			qCDebug(lcScene).noquote() << tr("Ladder top area over");
+			LOG_CDEBUG("scene") << "Ladder top area over";
 			setLadderState(LadderActive);
 			onMovingFlagsChanged();
 		}
 
 		if (_y+height() >= m_ladder->boundRect().bottom()) {
 			_y = m_ladder->boundRect().bottom()-height();
-			qCDebug(lcScene).noquote() << tr("Finish climbing down on ladder:") << m_ladder->boundRect();
+			LOG_CDEBUG("scene") << "Finish climbing down on ladder:" << m_ladder->boundRect();
 			m_ladderFall = true;
 			setLadderState(LadderInactive);
 			setY(_y);
@@ -688,12 +688,12 @@ void GamePlayer::setDeathlyFall(qreal newDeathlyFall)
 
 GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 {
-	qCDebug(lcScene).noquote() << tr("Create player");
+	LOG_CDEBUG("scene") << "Create player";
 
 	GamePlayer *player = qobject_cast<GamePlayer*>(GameObject::createFromFile(QStringLiteral("GamePlayer.qml"), scene));
 
 	if (!player) {
-		qCCritical(lcScene).noquote() << tr("Player creation error");
+		LOG_CERROR("scene") << "Player creation error";
 		return nullptr;
 	}
 
@@ -928,7 +928,7 @@ void GamePlayer::playSoundEffect(const QString &effect, int from)
 		return;
 
 	if (!m_soundEffectHash.contains(effect)) {
-		qCWarning(lcScene).noquote() << tr("Invalid sound effect:") << effect;
+		LOG_CWARNING("scene") << "Invalid sound effect:" << effect;
 		return;
 	}
 
@@ -1002,7 +1002,7 @@ void GamePlayer::onEnemyKilled()
 
 void GamePlayer::onMovingFlagsChanged()
 {
-	//qCDebug(lcScene).noquote() << tr("Moving flags:") << m_movingFlags;
+	//LOG_CDEBUG("scene") << "Moving flags:" << m_movingFlags;
 
 	if (!m_scene || !m_scene->game() || !m_scene->game()->running())
 		return;
@@ -1135,7 +1135,7 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 	m_playerState = newPlayerState;
 	emit playerStateChanged();
 
-	qCDebug(lcScene).noquote() << tr("Player state changed to:") << m_playerState;
+	LOG_CDEBUG("scene") << "Player state changed to:" << m_playerState;
 
 	switch (m_playerState) {
 	case Walk:

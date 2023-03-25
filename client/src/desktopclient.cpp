@@ -69,6 +69,7 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 
 DesktopClient::~DesktopClient()
 {
+	serverDeleteTemporary();
 	serverListSave();
 
 	m_soundThread.quit();
@@ -282,6 +283,18 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 
 void DesktopClient::onStartPageLoaded()
 {
+	if (m_parseUrl.isValid()) {
+		LOG_CTRACE("client") << "Try connect to command line URL:" << m_parseUrl;
+
+		Server *s = serverAddWithUrl(m_parseUrl);
+
+		if (s) {
+			connectToServer(s);
+			return;
+		}
+
+	}
+
 	for (Server *s : *m_serverList)
 		if (s->autoConnect()) {
 			connectToServer(s);
@@ -580,6 +593,29 @@ bool DesktopClient::serverDelete(Server *server)
 }
 
 
+/**
+ * @brief DesktopClient::serverDeleteTemporary
+ */
+
+void DesktopClient::serverDeleteTemporary()
+{
+	QVector<Server*> list;
+
+	for (Server *s : *m_serverList) {
+		if (s->temporary())
+			list.append(s);
+	}
+
+	if (list.isEmpty())
+		return;
+
+	LOG_CTRACE("client") << "Delete temporary servers:" << list.size();
+
+	foreach (Server *s, list)
+		serverDelete(s);
+}
+
+
 
 /**
  * @brief DesktopClient::serverDeleteSelected
@@ -607,6 +643,47 @@ bool DesktopClient::serverDeleteSelected()
 	}
 
 	return true;
+}
+
+
+
+/**
+ * @brief DesktopClient::serverAddWithUrl
+ * @param url
+ * @return
+ */
+
+Server *DesktopClient::serverAddWithUrl(const QUrl &url)
+{
+	LOG_CTRACE("client") << "Add new server:" << url;
+
+	if (url.scheme() != QLatin1String("http") && url.scheme() != QLatin1String("https")) {
+		LOG_CWARNING("client") << "Invalid scheme:" << url;
+		return nullptr;
+	}
+
+	QUrl baseUrl;
+	baseUrl.setScheme(url.scheme());
+	baseUrl.setHost(url.host());
+	baseUrl.setPort(url.port());
+
+	Server *server = nullptr;
+
+	for (Server *s : *m_serverList) {
+		if (s->url().toString() == baseUrl.toString()) {
+			server = s;
+			break;
+		}
+	}
+
+	if (!server) {
+		server = serverAdd();
+		server->setServerName(tr("-- automatikusan hozzáadott szerver --"));
+		server->setUrl(baseUrl);
+		server->setTemporary(true);
+	}
+
+	return server;
 }
 
 

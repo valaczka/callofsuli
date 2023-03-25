@@ -40,52 +40,39 @@ win32 {
 
 SOURCES += \
 	abstractapi.cpp \
-	#abstracthandler.cpp \
-	#adminhandler.cpp \
-	#authhandler.cpp \
-	#client.cpp \
 	adminapi.cpp \
 	authapi.cpp \
 	databasemain.cpp \
 	generalapi.cpp \
-	#generalhandler.cpp \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
 	main.cpp \
-	#serverhandler.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
-	#teacherhandler.cpp \
 	teacherapi.cpp \
 	terminalhandler.cpp \
 	webserver.cpp
 
 RESOURCES += \
+	html.qrc \
 	server.qrc
 
 
 HEADERS += \
 	../../version/version.h \
 	abstractapi.h \
-	#abstracthandler.h \
-	#adminhandler.h \
-	#authhandler.h \
-	#client.h \
 	adminapi.h \
 	authapi.h \
 	databasemain.h \
 	generalapi.h \
-	#generalhandler.h \
 	googleoauth2authenticator.h \
 	handler.h \
-	#serverhandler.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
 	serverservice.h \
 	serversettings.h \
-	#teacherhandler.h \
 	teacherapi.h \
 	terminalhandler.h \
 	webserver.h

@@ -25,6 +25,25 @@ QScrollable
 	}
 
 
+	Connections {
+		target: Client
+
+		function onLoadRequestRegistration(oauth, code) {
+			console.debug("LOAD", oauth, code)
+
+			registrationMode = true
+
+			registration.code = code
+			if (oauth === "google") {
+				registration.googleChecked = true
+				registration.button.clicked()
+			} else
+				registration.plainChecked = true
+
+		}
+	}
+
+
 	Qaterial.GroupBox {
 		visible: Client.server && Client.server.user.loginState == User.LoggedOut && !registrationMode
 
@@ -52,6 +71,7 @@ QScrollable
 					width: parent.width
 					title: qsTr("Felhasználónév")
 					onAccepted: _password.forceActiveFocus()
+					text: Client.server && Client.server.user && Client.server.user.oauth == "" ? Client.server.user.username : ""
 				}
 
 				QFormTextField {
@@ -148,6 +168,7 @@ QScrollable
 
 
 	Registration {
+		id: registration
 		visible: registrationMode
 		anchors.horizontalCenter: parent.horizontalCenter
 	}

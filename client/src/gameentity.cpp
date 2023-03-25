@@ -92,7 +92,7 @@ GameEntity::~GameEntity()
 bool GameEntity::loadFromJsonFile()
 {
 	if (m_dataDir.isEmpty()) {
-		qCWarning(lcScene).noquote() << tr("Missing entity data directory");
+		LOG_CWARNING("scene") << "Missing entity data directory";
 		return false;
 	}
 
@@ -117,7 +117,7 @@ bool GameEntity::loadFromJsonFile(const QString &filename)
 	if (error)
 		return false;
 
-	qCDebug(lcScene).noquote() << tr("Load entity data from:") << filename;
+	LOG_CDEBUG("scene") << "Load entity data from:" << filename;
 
 	QRectF r;
 
@@ -165,7 +165,7 @@ void GameEntity::doRayCast(const QPointF &point1, const QPointF &point2)
 	rayCastFixtureCheck();
 
 	if (!m_scene || !m_scene->world()) {
-		qCWarning(lcScene).noquote() << tr("Missing scene or world, unable to ray cast");
+		LOG_CWARNING("scene") << "Missing scene or world, unable to ray cast";
 		return;
 	}
 
@@ -199,7 +199,7 @@ bool GameEntity::createSpriteItem()
 {
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/GameEntitySpriteSequence.qml"), this);
 
-	qCDebug(lcScene).noquote() << tr("Create sprite item:") << component.isReady();
+	LOG_CDEBUG("scene") << "Create sprite item:" << component.isReady();
 
 	QQuickItem *item = qobject_cast<QQuickItem*>(component.create());
 
@@ -226,7 +226,7 @@ bool GameEntity::createSpriteItem()
 		return true;
 	}
 
-	qCWarning(lcScene).noquote() << tr("Can't create sprite item") << this;
+	LOG_CWARNING("scene") << "Can't create sprite item" << this;
 
 	return false;
 }
@@ -297,7 +297,7 @@ void GameEntity::doRayCast()
 QPair<QPointF, QPointF> GameEntity::getRayPoints(const qreal &width)
 {
 	if (!m_fixture) {
-		qCDebug(lcScene).noquote() << tr("Missing fixture");
+		LOG_CDEBUG("scene") << "Missing fixture";
 		return qMakePair<QPointF, QPointF>(QPointF(.0,.0), QPointF(.0,.0));
 	}
 
@@ -367,7 +367,7 @@ void GameEntity::updateFixtures(QString spriteName)
 void GameEntity::jumpToSprite(const QString &sprite)
 {
 	if (!m_spriteSequence) {
-		qCWarning(lcScene).noquote() << tr("Missing sprite sequence");
+		LOG_CWARNING("scene") << "Missing sprite sequence";
 		return;
 	}
 
@@ -492,7 +492,7 @@ void GameEntity::onSequenceCurrentSpriteChanged(QString sprite)
 
 void GameEntity::onIsAliveDisabled()
 {
-	qCDebug(lcScene).noquote() << tr("Entity died") << this;
+	LOG_CDEBUG("scene") << "Entity died" << this;
 
 	emit died(this);
 
@@ -522,7 +522,7 @@ void GameEntity::hpProgressValueSetup()
 
 void GameEntity::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 {
-	qCDebug(lcScene).noquote() << tr("Missing ray cast report implementation") << items;
+	LOG_CDEBUG("scene") << "Missing ray cast report implementation" << items;
 }
 
 
@@ -538,7 +538,7 @@ void GameEntity::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 void GameEntity::updateFixturesJson(const QJsonObject &spriteData)
 {
 	if (!m_fixture) {
-		qCDebug(lcScene).noquote() << tr("Create fixture for:") << this << m_categoryFixture << m_categoryCollidesWith;
+		LOG_CDEBUG("scene") << "Create fixture for:" << this << m_categoryFixture << m_categoryCollidesWith;
 
 		m_fixture = new Box2DBox(this);
 		m_fixture->setDensity(1);
@@ -582,7 +582,7 @@ void GameEntity::updateFixturesJson(const QJsonObject &spriteData)
 		if (!m_spritesLoaded)
 			loadSprites();
 	} else {
-		qCDebug(lcScene).noquote() << tr("Missing sprite item") << this;
+		LOG_CDEBUG("scene") << "Missing sprite item" << this;
 	}
 
 }
@@ -745,14 +745,14 @@ void GameEntity::loadSprites()
 		return;
 
 	if (!m_spriteItem) {
-		qCWarning(lcScene).noquote() << tr("Missing sprite item");
+		LOG_CWARNING("scene") << "Missing sprite item";
 		return;
 	}
 
 	QQuickItem *sequence = qvariant_cast<QQuickItem*>(m_spriteItem->property("spriteSequence"));
 
 	if (!sequence) {
-		qCWarning(lcScene).noquote() << tr("Missing sprite sequence");
+		LOG_CWARNING("scene") << "Missing sprite sequence";
 		return;
 	}
 
@@ -764,7 +764,7 @@ void GameEntity::loadSprites()
 	keys.removeAll(QStringLiteral("idle"));
 	keys.prepend(QStringLiteral("idle"));
 
-	qCDebug(lcScene).noquote() << tr("Load sprites:") << keys;
+	LOG_CDEBUG("scene") << "Load sprites:" << keys;
 
 	foreach (const QString &k, keys) {
 		const QJsonObject &data = sprite(k);

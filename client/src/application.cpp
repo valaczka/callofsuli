@@ -106,10 +106,9 @@ Application::Application(int &argc, char **argv)
 	QCoreApplication::setApplicationVersion(m_version);
 	QGuiApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
-	if (!m_instance) {
-		LOG_CTRACE("app") << "Create application instance";
+	if (!m_instance)
 		m_instance = this;
-	}
+
 
 #ifndef Q_OS_WASM
 	QtWebView::initialize();
@@ -179,7 +178,6 @@ int Application::run()
 		LOG_CERROR("app") << "Missing root object";
 		return -1;
 	}
-
 
 	LOG_CINFO("app") << "Run Application";
 

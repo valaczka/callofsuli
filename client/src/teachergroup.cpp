@@ -72,8 +72,10 @@ void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("active")) || allField)
 		setActive(object.value(QStringLiteral("active")).toInt());
 
-	if (object.contains(QStringLiteral("classList")) || allField)
-		OlmLoader::loadFromJsonArray<ClassObject>(m_classList, object.value(QStringLiteral("classList")).toArray(), "classid", "classid", true);
+	if (object.contains(QStringLiteral("classList")) || allField) {
+		OlmLoader::loadFromJsonArray<ClassObject>(m_classList, object.value(QStringLiteral("classList")).toArray(), "id", "id", true);
+		emit fullNameChanged();
+	}
 
 	if (object.contains(QStringLiteral("userList")) || allField)
 		OlmLoader::loadFromJsonArray<User>(m_userList, object.value(QStringLiteral("userList")).toArray(), "username", "username", true);
@@ -130,6 +132,7 @@ void TeacherGroup::setName(const QString &newName)
 		return;
 	m_name = newName;
 	emit nameChanged();
+	emit fullNameChanged();
 }
 
 bool TeacherGroup::active() const
@@ -159,4 +162,25 @@ ClassList *TeacherGroup::classList() const
 {
 	return m_classList;
 }
+
+
+/**
+ * @brief TeacherGroup::fullName
+ * @return
+ */
+
+QString TeacherGroup::fullName() const
+{
+	QStringList l;
+
+	for (ClassObject *c : *m_classList)
+		l.append(c->name());
+
+	if (l.isEmpty())
+		return m_name;
+
+	std::sort(l.begin(), l.end());
+	return QStringLiteral("%1 – %2").arg(m_name, l.join(QStringLiteral(", ")));
+}
+
 

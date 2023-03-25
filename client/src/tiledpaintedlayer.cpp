@@ -38,6 +38,7 @@
 #include <QSGGeometryNode>
 #include <QSGSimpleTextureNode>
 
+#include "Logger.h"
 #include "libtiled/tilelayer.h"
 #include "tiledpaintedlayer.h"
 #include "gamescene.h"
@@ -53,11 +54,11 @@ TiledPaintedLayer::TiledPaintedLayer(QQuickItem *parent, Tiled::Map *map, Tiled:
 	, m_layer(layer)
 {
 	if (!m_map) {
-		qCWarning(lcScene).noquote() << tr("Missing map on TiledPaintedLayer");
+		LOG_CWARNING("scene") << "Missing map on TiledPaintedLayer";
 	}
 
 	if (!m_layer) {
-		qCWarning(lcScene).noquote() << tr("Missing layer on TiledPaintedLayer");
+		LOG_CWARNING("scene") << "Missing layer on TiledPaintedLayer";
 	}
 
 
@@ -86,12 +87,12 @@ TiledPaintedLayer::~TiledPaintedLayer()
 void TiledPaintedLayer::paint(QPainter *painter)
 {
 	if (!m_map) {
-		qCWarning(lcScene).noquote() << tr("Missing map on TiledPaintedLayer");
+		LOG_CWARNING("scene") << "Missing map on TiledPaintedLayer";
 		return;
 	}
 
 	if (!m_layer) {
-		qCWarning(lcScene).noquote() << tr("Missing layer on TiledPaintedLayer");
+		LOG_CWARNING("scene") << "Missing layer on TiledPaintedLayer";
 		return;
 	}
 

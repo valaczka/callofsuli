@@ -1043,7 +1043,6 @@ Page {
 		}
 
 		function onKilled() {
-			console.warn("KILLED")
 			//messageList.message(qsTr("Your man has died"), 3)
 			skullImageAnim.start()
 		}
