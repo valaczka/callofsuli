@@ -246,6 +246,38 @@ void WebSocket::setPending(bool newPending)
 }
 
 
+
+/**
+ * @brief WebSocket::getUrl
+ * @param api
+ * @param path
+ * @param data
+ * @return
+ */
+
+QUrl WebSocket::getUrl(const API &api, const QString &path) const
+{
+	QHash<API, const char*> apis;
+	apis[ApiServer] = "server";
+	apis[ApiGeneral] = "general";
+	apis[ApiClient] = "client";
+	apis[ApiAuth] = "auth";
+	apis[ApiUser] = "user";
+	apis[ApiTeacher] = "teacher";
+	apis[ApiPanel] = "panel";
+	apis[ApiAdmin] = "admin";
+
+	if (!apis.contains(api)) {
+		m_client->messageError(tr("Invalid api"));
+		return QUrl();
+	}
+
+	QUrl url = m_server->url();
+	url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
+	return url;
+}
+
+
 /**
  * @brief WebSocket::networkManager
  * @return
@@ -275,24 +307,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 		return nullptr;
 	}
 
-	QHash<API, const char*> apis;
-	apis[ApiServer] = "server";
-	apis[ApiGeneral] = "general";
-	apis[ApiClient] = "client";
-	apis[ApiAuth] = "auth";
-	apis[ApiUser] = "user";
-	apis[ApiTeacher] = "teacher";
-	apis[ApiPanel] = "panel";
-	apis[ApiAdmin] = "admin";
-
-	if (!apis.contains(api)) {
-		m_client->messageError(tr("Invalid api"));
-		return nullptr;
-	}
-
-	QUrl url = m_server->url();
-	url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
-	QNetworkRequest r(url);
+	QNetworkRequest r(getUrl(api, path));
 
 #ifndef QT_NO_SSL
 	if (!m_rootCertificate.isNull()) {
@@ -306,11 +321,11 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
 	}
 
-	r.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
 
 	QNetworkReply *reply = m_networkManager->post(r, QJsonDocument(data).toJson());
 
-	LOG_CTRACE("websocket") << "SEND:" << apis.value(api) << qPrintable(path) << this << data;
+	LOG_CTRACE("websocket") << "SEND:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
 
 	WebSocketReply *wr = new WebSocketReply(reply, this);
 	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
@@ -349,6 +364,56 @@ QNetworkReply *WebSocket::get(const QUrl &url)
 	LOG_CTRACE("websocket") << "GET:" << url.toString();
 
 	return m_networkManager->get(r);
+}
+
+
+
+/**
+ * @brief WebSocket::getEventStream
+ * @param api
+ * @param path
+ * @param data
+ * @return
+ */
+
+EventStream *WebSocket::getEventStream(const API &api, const QString &path, const QJsonObject &data)
+{
+	Q_ASSERT (m_networkManager);
+
+	if (!m_server) {
+		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
+		return nullptr;
+	}
+
+	QNetworkRequest r(getUrl(api, path));
+
+#ifndef QT_NO_SSL
+	if (!m_rootCertificate.isNull()) {
+		QSslConfiguration config = r.sslConfiguration();
+		config.addCaCertificate(m_rootCertificate);
+		r.setSslConfiguration(config);
+	}
+#endif
+
+	if (!m_server->token().isEmpty()) {
+		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+	}
+
+	r.setRawHeader(QByteArrayLiteral("Accept"), QByteArrayLiteral("text/event-stream"));
+	//r.setHeader(QNetworkRequest::UserAgentHeader, USER_AGENT);
+	r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+	r.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+
+	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
+
+	EventStream *stream = new EventStream(this);
+	stream->setRequest(r);
+	stream->setRequestData(QJsonDocument(data).toJson());
+	stream->connect();
+
+	LOG_CTRACE("websocket") << "Get EventStream:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
+
+	return stream;
 }
 
 
@@ -421,9 +486,8 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 
 	connect(m_reply, &QNetworkReply::errorOccurred, m_socket, [this](QNetworkReply::NetworkError e){
 		m_pending = false;
-		emit failed(this);
-		emit finished();
 		emit m_socket->socketError(e);
+		this->abort();
 	});
 
 	connect(m_reply, &QNetworkReply::finished, this, &WebSocketReply::onReplyFinished);
@@ -474,8 +538,8 @@ void WebSocketReply::abort()
 
 void WebSocketReply::close()
 {
-	LOG_CTRACE("websocket") << "WebSocketReply done" << this;
-	deleteLater();
+	LOG_CTRACE("websocket") << "WebSocketReply done" << this << parent();
+	this->deleteLater();
 }
 
 

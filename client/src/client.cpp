@@ -386,28 +386,36 @@ void Client::onWebSocketError(QNetworkReply::NetworkError code)
 	LOG_CWARNING("client") << "Websocket error:" << code;
 
 	QString errStr;
+	bool closeSocket = false;
 
 	switch (code) {
 	case QNetworkReply::ConnectionRefusedError:
-		errStr = tr("A szerver visszautasította a kapcsolatot");
+		errStr = tr("A szerver nem elérhető");
+		closeSocket = true;
 		break;
 	case QNetworkReply::RemoteHostClosedError:
 		errStr = tr("A szerver lezárta a kapcsolatot");
+		closeSocket = true;
 		break;
 	case QNetworkReply::HostNotFoundError:
 		errStr = tr("A szerver nem található");
+		closeSocket = true;
 		break;
 	case QNetworkReply::OperationCanceledError:
-		errStr = tr("A művelet megszakadt");
+		//errStr = tr("A művelet megszakadt");
+		return;
 		break;
 	case QNetworkReply::SslHandshakeFailedError:
 		errStr = tr("Az SSL tanúsítvány hibás");
 		break;
 
-
 	default:
 		errStr = QString::fromStdString(Utils::enumToString<QNetworkReply::NetworkError>(code));
 	}
+
+
+	if (m_webSocket->state() == WebSocket::Connecting && closeSocket)
+		m_webSocket->abort();
 
 	if (m_webSocket->state() == WebSocket::Connected)
 		snack(errStr);
@@ -571,7 +579,11 @@ void Client::onUserLoggedIn()
 	send(WebSocket::ApiGeneral, "me")->done([this](const QJsonObject &json){
 		LOG_CINFO("client") << "User logged in:" << json;
 		server()->user()->loadFromJson(json);
-		stackPushPage(QStringLiteral("PageDashboard.qml"));
+
+		if (server()->user()->roles().testFlag(Credential::Panel))
+			stackPushPage(QStringLiteral("PagePanel.qml"));
+		else
+			stackPushPage(QStringLiteral("PageDashboard.qml"));
 	});
 
 }
@@ -780,6 +792,48 @@ void Client::startCache()
 
 
 	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>);
+}
+
+
+/**
+ * @brief Client::eventStream
+ * @return
+ */
+
+EventStream *Client::eventStream() const
+{
+	return m_eventStream;
+}
+
+
+/**
+ * @brief Client::setEventStream
+ * @param newEventStream
+ */
+
+void Client::setEventStream(EventStream *newEventStream)
+{
+#ifdef Q_OS_WASM
+	LOG_CWARNING("client") << "EventStream not functioning in WASM";
+#endif
+
+	if (m_eventStream == newEventStream)
+		return;
+
+	if (m_eventStream)
+		m_eventStream->disconnect();
+
+	m_eventStream = newEventStream;
+	emit eventStreamChanged();
+
+	if (m_eventStream) {
+		connect(m_eventStream, &EventStream::finished, this, [this](){
+			if (sender() == m_eventStream) {
+				LOG_CTRACE("client") << "Remove event stream";
+				setEventStream(nullptr);
+			}
+		});
+	}
 }
 
 

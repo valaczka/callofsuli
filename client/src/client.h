@@ -36,6 +36,7 @@
 #include "server.h"
 #include "utils.h"
 #include "websocket.h"
+#include "eventstream.h"
 #include <QAbstractSocket>
 #include <QNetworkReply>
 
@@ -67,6 +68,7 @@ class Client : public QObject
 
 	Q_PROPERTY(WebSocket *webSocket READ webSocket CONSTANT)
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
+	Q_PROPERTY(EventStream* eventStream READ eventStream WRITE setEventStream NOTIFY eventStreamChanged)
 
 
 
@@ -169,6 +171,9 @@ public:
 	Q_INVOKABLE WebSocket *webSocket() const;
 	Q_INVOKABLE WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {}) const;
 
+	EventStream *eventStream() const;
+	void setEventStream(EventStream *newEventStream);
+
 	Server *server() const;
 
 	Q_INVOKABLE void connectToServer(Server *server);
@@ -243,8 +248,11 @@ signals:
 	void safeMarginBottomChanged();
 	void serverChanged();
 
+	void eventStreamChanged();
+
 private:
 	void startCache();
+
 
 protected:
 	Application *const m_application;
@@ -255,6 +263,7 @@ protected:
 	Utils *const m_utils;
 	AbstractGame *m_currentGame = nullptr;
 	WebSocket *const m_webSocket;
+	QPointer<EventStream> m_eventStream = nullptr;
 
 	qreal m_safeMarginLeft = 0;
 	qreal m_safeMarginRight = 0;

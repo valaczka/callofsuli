@@ -85,6 +85,12 @@ public:
 	void groupUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
 	void groupUserExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
+
+	void panelOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void panels(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void panelGrab(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void panelRelease(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void panelUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 };
 
 #endif // TEACHERAPI_H

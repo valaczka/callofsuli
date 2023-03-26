@@ -87,5 +87,6 @@
         <file>QTextFieldInPlaceButtons.qml</file>
         <file>QRefreshProgressBar.qml</file>
         <file>PageReadQR.qml</file>
+        <file>PagePanel.qml</file>
     </qresource>
 </RCC>

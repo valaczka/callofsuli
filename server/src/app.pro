@@ -49,6 +49,8 @@ SOURCES += \
 	main.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
+	panel.cpp \
+	panelapi.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	teacherapi.cpp \
@@ -71,6 +73,8 @@ HEADERS += \
 	handler.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
+	panel.h \
+	panelapi.h \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \

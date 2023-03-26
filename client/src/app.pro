@@ -162,6 +162,7 @@ SOURCES += \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
+	eventstream.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
 	gameenemysniper.cpp \
@@ -181,6 +182,7 @@ SOURCES += \
 	mapimage.cpp \
 	mapplay.cpp \
 	mapplaydemo.cpp \
+	qrimage.cpp \
 	question.cpp \
 	server.cpp \
 	studentgroup.cpp \
@@ -204,6 +206,7 @@ HEADERS += \
 	classobject.h \
 	client.h \
 	clientcache.h \
+	eventstream.h \
 	fontimage.h \
 	gameenemy.h \
 	gameenemysniper.h \
@@ -222,6 +225,7 @@ HEADERS += \
 	mapimage.h \
 	mapplay.h \
 	mapplaydemo.h \
+	qrimage.h \
 	question.h \
 	server.h \
 	studentgroup.h \

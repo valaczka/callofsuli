@@ -93,6 +93,12 @@ public:
 	{
 		return std::string(QMetaEnum::fromType<QEnum>().valueToKey(value));
 	}
+
+	template<typename QEnum>
+	static QString enumToQString(const QEnum value)
+	{
+		return QString(QMetaEnum::fromType<QEnum>().valueToKey(value));
+	}
 #endif
 
 	Q_INVOKABLE static quint32 versionMajor();

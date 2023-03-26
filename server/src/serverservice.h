@@ -30,6 +30,7 @@
 #include <QtService/Service>
 #include <QPointer>
 #include "ColorConsoleAppender.h"
+#include "panel.h"
 #include "serversettings.h"
 #include "databasemain.h"
 #include "webserver.h"
@@ -109,9 +110,17 @@ public:
 
 	ServerConfig &config();
 
-	const QVector<QPointer<OAuth2Authenticator>> &authenticators() const;
+	QVector<OAuth2Authenticator *> authenticators() const;
 
 	QNetworkAccessManager *networkManager() const;
+
+	QVector<HttpEventStream *> eventStreams() const;
+	void addEventStream(HttpEventStream *stream);
+
+	QVector<Panel *> panels() const;
+	void addPanel(Panel *panel);
+	void removePanel(Panel *panel, const bool &_delete = true);
+	Panel *panel(const int &id) const;
 
 signals:
 	void configChanged();
@@ -148,6 +157,8 @@ private:
 	QPointer<DatabaseMain> m_databaseMain = nullptr;
 	QPointer<WebServer> m_webSocketServer = nullptr;
 	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
+	QVector<QPointer<HttpEventStream>> m_eventStreams;
+	QVector<QPointer<Panel>> m_panels;
 
 	ColorConsoleAppender *m_consoleAppender = nullptr;
 

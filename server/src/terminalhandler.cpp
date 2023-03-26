@@ -255,6 +255,53 @@ void TerminalHandler::parseRoot(const QByteArray &data)
 		return true;
 	});
 
+
+	f.map("send", [this](const QStringList &l){
+		if (l.size() < 2) {
+			writeLine("*** missing parameters: event data");
+			return true;
+		}
+
+		int n = 0;
+
+		auto streams = m_service->eventStreams();
+
+		for (auto it = streams.constBegin(); it != streams.constEnd(); ++it) {
+			HttpEventStream *stream = *it;
+
+			if (!stream)
+				continue;
+
+			stream->write(l.at(0).toUtf8(), l.at(1).toUtf8());
+			++n;
+		}
+
+
+		writeLine(QStringLiteral("Sent to %1 stream").arg(n).toUtf8());
+
+		return true;
+	});
+
+
+	f.map("panels", [this](const QStringList &){
+		auto panels = m_service->panels();
+
+		for (auto it = panels.constBegin(); it != panels.constEnd(); ++it) {
+			Panel *p = *it;
+
+			if (!p)
+				continue;
+
+			writeLine(QStringLiteral("Panel [%1] %2 - %3")
+					  .arg(p->stream() ? QStringLiteral("X") : QStringLiteral(" "))
+					  .arg(p->id())
+					  .arg(p->owner()).toUtf8()
+					  );
+		}
+
+		return true;
+	});
+
 	call(f, list);
 
 	prompt();

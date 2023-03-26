@@ -28,6 +28,7 @@
 #define WEBSOCKET_H
 
 #include "qnetworkaccessmanager.h"
+#include "eventstream.h"
 #include <QPointer>
 #include <QNetworkReply>
 #include <QAbstractSocket>
@@ -98,6 +99,8 @@ public:
 	bool pending() const;
 	void setPending(bool newPending);
 
+	QUrl getUrl(const WebSocket::API &api, const QString &path) const;
+
 public slots:
 	void connectToServer(Server *server = nullptr);
 	void close();
@@ -105,6 +108,7 @@ public slots:
 
 	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 	QNetworkReply *get(const QUrl &url);
+	EventStream *getEventStream(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 
 private slots:
 	void checkPending();

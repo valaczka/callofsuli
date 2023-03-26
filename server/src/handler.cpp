@@ -30,6 +30,7 @@
 #include "authapi.h"
 #include "teacherapi.h"
 #include "adminapi.h"
+#include "panelapi.h"
 #include "serverservice.h"
 
 
@@ -44,10 +45,11 @@ Handler::Handler(ServerService *service, QObject *parent)
 {
 	LOG_CTRACE("client") << "Handler created" << this;
 
-	m_apiHandlers.insert("general", new GeneralAPI(service));
-	m_apiHandlers.insert("auth", new AuthAPI(service));
-	m_apiHandlers.insert("teacher", new TeacherAPI(service));
 	m_apiHandlers.insert("admin", new AdminAPI(service));
+	m_apiHandlers.insert("auth", new AuthAPI(service));
+	m_apiHandlers.insert("general", new GeneralAPI(service));
+	m_apiHandlers.insert("teacher", new TeacherAPI(service));
+	m_apiHandlers.insert("panel", new PanelAPI(service));
 }
 
 
@@ -87,21 +89,6 @@ void Handler::handle(HttpRequest *request, HttpResponse *response)
 		return;
 	}
 
-	if (uri.startsWith(QStringLiteral("/events"))) {
-		HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
-		LOG_CWARNING("client") << "ADD stream" << conn ;
-		HttpEventStream *stream = new HttpEventStream(conn);
-		conn->setEventStream(stream);
-
-		QTimer *s = new QTimer(this);
-		connect(s, &QTimer::timeout, stream, [stream](){
-			LOG_CTRACE("client") << "SEND.....";
-			stream->write("esemeny", "Üzenet jön ide");
-		});
-		s->start(5000);
-
-		return response->setStatus(HttpStatus::Ok);
-	}
 
 	if (uri.startsWith(QStringLiteral("/api/")))
 		return handleApi(request, response);

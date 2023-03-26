@@ -347,6 +347,128 @@ void ServerService::terminalConnected(QtService::Terminal *terminal)
 }
 
 
+/**
+ * @brief ServerService::panels
+ * @return
+ */
+
+QVector<Panel*> ServerService::panels() const
+{
+	QVector<Panel *> list;
+
+	list.reserve(m_panels.size());
+
+	foreach (Panel *p, m_panels)
+		if (p)
+			list.append(p);
+
+	list.squeeze();
+
+	return list;
+}
+
+
+/**
+ * @brief ServerService::addPanel
+ * @param panel
+ */
+
+void ServerService::addPanel(Panel *panel)
+{
+	if (!panel)
+		return;
+
+	int id = 1;
+
+	foreach (Panel *p, m_panels)
+		if (p && p->id() >= id)
+			id = p->id()+1;
+
+	panel->setId(id);
+
+	m_panels.append(panel);
+	connect(panel, &Panel::destroyed, this, [this, panel](){
+		removePanel(panel, false);
+	});
+}
+
+
+/**
+ * @brief ServerService::removePanel
+ * @param panel
+ */
+
+void ServerService::removePanel(Panel *panel, const bool &_delete)
+{
+	if (!panel)
+		return;
+
+	m_panels.removeAll(panel);
+
+	if (_delete)
+		panel->deleteLater();
+}
+
+
+/**
+ * @brief ServerService::panel
+ * @param uuid
+ * @return
+ */
+
+Panel *ServerService::panel(const int &id) const
+{
+	foreach (Panel *p, m_panels)
+		if (p && p->id() == id)
+			return p;
+
+	return nullptr;
+}
+
+
+/**
+ * @brief ServerService::eventStreams
+ * @return
+ */
+
+QVector<HttpEventStream *> ServerService::eventStreams() const
+{
+	QVector<HttpEventStream *> list;
+
+	list.reserve(m_eventStreams.size());
+
+	foreach (HttpEventStream *s, m_eventStreams)
+		if (s)
+			list.append(s);
+
+	list.squeeze();
+
+	return list;
+}
+
+
+/**
+ * @brief ServerService::addEventStream
+ * @param stream
+ */
+
+void ServerService::addEventStream(HttpEventStream *stream)
+{
+	if (!stream)
+		return;
+
+	m_eventStreams.append(stream);
+
+	LOG_CTRACE("service") << "Event stream added:" << m_eventStreams.size() << stream;
+
+	connect(stream, &HttpEventStream::destroyed, this, [this, stream](){
+		m_eventStreams.removeAll(stream);
+		LOG_CTRACE("service") << "Event stream removed:" << m_eventStreams.size() << stream;
+	});
+}
+
+
+
 
 /**
  * @brief ServerService::networkManager
@@ -364,9 +486,19 @@ QNetworkAccessManager *ServerService::networkManager() const
  * @return
  */
 
-const QVector<QPointer<OAuth2Authenticator> > &ServerService::authenticators() const
+QVector<OAuth2Authenticator *> ServerService::authenticators() const
 {
-	return m_authenticators;
+	QVector<OAuth2Authenticator *> list;
+
+	list.reserve(m_authenticators.size());
+
+	foreach (OAuth2Authenticator *a, m_authenticators)
+		if (a)
+			list.append(a);
+
+	list.squeeze();
+
+	return list;
 }
 
 

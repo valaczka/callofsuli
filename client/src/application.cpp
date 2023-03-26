@@ -30,6 +30,7 @@
 #include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
+#include "qrimage.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include <QFontDatabase>
@@ -159,7 +160,8 @@ int Application::run()
 	loadBox2D();
 	loadModules();
 
-	m_engine->addImageProvider("font", new FontImage());
+	m_engine->addImageProvider(QStringLiteral("font"), new FontImage());
+	m_engine->addImageProvider(QStringLiteral("qrcode"), new QrImage());
 
 	m_engine->rootContext()->setContextProperty("Client", m_client);
 

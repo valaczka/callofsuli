@@ -27,6 +27,7 @@
 #include "teacherapi.h"
 #include "qjsonarray.h"
 #include "qsqlrecord.h"
+#include "serverservice.h"
 
 TeacherAPI::TeacherAPI(ServerService *service)
 	: AbstractAPI(service)
@@ -51,6 +52,12 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^group/(\\d+)/user/remove/(.+)/*$", this, &TeacherAPI::groupUserRemoveOne);
 	addMap("^group/(\\d+)/user/remove/*$", this, &TeacherAPI::groupUserRemove);
 	addMap("^group/(\\d+)/user/exclude/*$", this, &TeacherAPI::groupUserExclude);
+
+	addMap("^panel/*$", this, &TeacherAPI::panels);
+	addMap("^panel/(\\d+)/*$", this, &TeacherAPI::panelOne);
+	addMap("^panel/(\\d+)/grab/*$", this, &TeacherAPI::panelGrab);
+	addMap("^panel/(\\d+)/release/*$", this, &TeacherAPI::panelRelease);
+	addMap("^panel/(\\d+)/update/*$", this, &TeacherAPI::panelUpdate);
 }
 
 
@@ -622,6 +629,124 @@ void TeacherAPI::groupUserExclude(const QRegularExpressionMatch &match, const QJ
 		responseAnswer(response, "list", list);
 	});
 
+}
+
+
+
+/**
+ * @brief TeacherAPI::panelOne
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::panelOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	Panel *p = m_service->panel(id);
+
+	if (!p)
+		return responseError(response, "invalid id");
+
+	QJsonObject o;
+	o.insert(QStringLiteral("id"), p->id());
+	o.insert(QStringLiteral("owner"), p->owner());
+
+	if (p->owner() == m_credential.username())
+		o.insert(QStringLiteral("config"), p->config());
+
+	responseAnswer(response, o);
+
+}
+
+
+/**
+ * @brief TeacherAPI::panels
+ * @param response
+ */
+
+void TeacherAPI::panels(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	QJsonArray list;
+
+	foreach (Panel *p, m_service->panels()) {
+		if (!p) continue;
+		QJsonObject o;
+		o.insert(QStringLiteral("id"), p->id());
+		o.insert(QStringLiteral("owner"), p->owner());
+
+		if (p->owner() == m_credential.username())
+			o.insert(QStringLiteral("config"), p->config());
+
+		list.append(o);
+	}
+
+	responseAnswer(response, "list", list);
+}
+
+
+/**
+ * @brief TeacherAPI::panelGrab
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::panelGrab(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	Panel *p = m_service->panel(id);
+
+	if (!p || !p->owner().isEmpty())
+		return responseError(response, "invalid id");
+
+	p->setOwner(m_credential.username());
+	responseAnswerOk(response);
+}
+
+
+/**
+ * @brief TeacherAPI::panelRelease
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::panelRelease(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	Panel *p = m_service->panel(id);
+
+	if (!p || p->owner() != m_credential.username())
+		return responseError(response, "invalid id");
+
+	p->setOwner(QLatin1String(""));
+	responseAnswerOk(response);
+}
+
+
+
+/**
+ * @brief TeacherAPI::panelUpdate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::panelUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	Panel *p = m_service->panel(id);
+
+	if (!p)
+		return responseError(response, "invalid id");
+
+	if (p->owner() != m_credential.username())
+		return responseError(response, "invalid panel");
+
+	p->setConfig(data);
+	responseAnswerOk(response);
 }
 
 

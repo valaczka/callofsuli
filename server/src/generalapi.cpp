@@ -50,6 +50,8 @@ GeneralAPI::GeneralAPI(ServerService *service)
 	addMap("^user/(.+)/*$", this, &GeneralAPI::user);
 
 	addMap("^me/*$", this, &GeneralAPI::userMe);
+
+	addMap("^events/*$", this, &GeneralAPI::testEvents);
 }
 
 
@@ -261,7 +263,7 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 
 		QueryBuilder q(db);
 		q.addQuery(_SQL_get_user)
-				.addQuery("WHERE isPanel=false AND active=true");
+				.addQuery("WHERE active=true");
 
 		if (!username.isEmpty()) {
 			q.addQuery(" AND user.username=")
@@ -284,5 +286,32 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 		}
 	});
 
+}
+
+
+void GeneralAPI::testEvents(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
+	LOG_CWARNING("client") << "ADD stream" << conn ;
+	HttpEventStream *stream = new HttpEventStream(conn);
+	conn->setEventStream(stream);
+
+	m_service->addEventStream(stream);
+
+	QTimer *s = new QTimer(stream);
+	QObject::connect(s, &QTimer::timeout, stream, [stream](){
+		LOG_CTRACE("client") << "SEND.....";
+		stream->write("esemeny", "Üzenet jön ide");
+	});
+	s->start(5000);
+
+	QTimer *s2 = new QTimer(stream);
+	QObject::connect(s2, &QTimer::timeout, stream, [stream](){
+		LOG_CTRACE("client") << "SEND PING.....";
+		stream->ping();
+	});
+	s2->start(8000);
+
+	response->setStatus(HttpStatus::Ok);
 }
 

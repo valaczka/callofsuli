@@ -64,6 +64,8 @@ public:
 	void user(const QString &username, const QPointer<HttpResponse> &response) const;
 
 
+	void testEvents(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+
 };
 
 
