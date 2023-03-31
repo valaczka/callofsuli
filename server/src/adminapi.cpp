@@ -274,17 +274,17 @@ void AdminAPI::user(const QRegularExpressionMatch &match, const QJsonObject &, Q
 
 		bool err = false;
 
-		const QJsonArray &list = QueryBuilder::q(db)
+		const QJsonObject &obj = QueryBuilder::q(db)
 				.addQuery(_SQL_QUERY_USERS)
 				.addQuery("WHERE user.username=").addValue(username)
-				.execToJsonArray(&err);
+				.execToJsonObject(&err);
 
 		if (err)
 			return responseErrorSql(response);
-		else if (list.isEmpty())
+		else if (obj.isEmpty())
 			return responseError(response, "not found");
 
-		responseAnswer(response, list.at(0).toObject());
+		responseAnswer(response, obj);
 	});
 }
 

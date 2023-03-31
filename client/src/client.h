@@ -247,7 +247,6 @@ signals:
 	void safeMarginTopChanged();
 	void safeMarginBottomChanged();
 	void serverChanged();
-
 	void eventStreamChanged();
 
 private:

@@ -107,6 +107,7 @@ public slots:
 	void abort();
 
 	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
+	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content, const QJsonObject &data = {});
 	QNetworkReply *get(const QUrl &url);
 	EventStream *getEventStream(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 
@@ -175,6 +176,18 @@ public:
 		return this;
 	}
 
+	WebSocketReply *done(const std::function<void (const QByteArray &)> &func)
+	{
+		m_funcsByteArray.append(func);
+		return this;
+	}
+
+	template <typename T>
+	WebSocketReply *done(T *inst, void (T::*func)(const QByteArray &)) {
+		m_funcsByteArray.append(std::bind(func, inst, std::placeholders::_1));
+		return this;
+	}
+
 	Q_INVOKABLE WebSocketReply *done(const QJSValue &v);
 
 
@@ -205,12 +218,15 @@ private slots:
 signals:
 	void finished();
 	void failed(WebSocketReply *reply);
+	void downloadProgress(qreal percent);
+	void uploadProgress(qreal percent);
 
 private:
 	QPointer<QNetworkReply> m_reply = nullptr;
 	WebSocket *const m_socket = nullptr;
 	bool m_pending = true;
 	QVector<std::function<void (const QJsonObject &)>> m_funcs;
+	QVector<std::function<void (const QByteArray &)>> m_funcsByteArray;
 	QJSValueList m_jsvalues;
 	QVector<std::function<void (const QString &)>> m_funcsFail;
 	QJSValueList m_jsvaluesFail;

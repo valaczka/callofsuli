@@ -28,12 +28,18 @@
 #define TEACHERAPI_H
 
 #include "abstractapi.h"
+#include "gamemap.h"
 #include "qjsonarray.h"
 
 class TeacherAPI : public AbstractAPI
 {
 public:
 	TeacherAPI(ServerService *service);
+
+	static QString mapMd5(GameMap *map);
+	static QString mapMd5(const QByteArray &data);
+	static QJsonObject mapCache(GameMap *map);
+	static QString mapCacheString(GameMap *map);
 
 	void groupOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
@@ -91,6 +97,31 @@ public:
 	void panelGrab(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void panelRelease(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void panelUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+
+
+
+	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void mapOneContent(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		mapContent(match.captured(1), response, -1);
+	};
+	void mapOneDraft(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		mapContent(match.captured(1), response, match.captured(2).toInt());
+	};
+	void mapContent(const QString &uuid, const QPointer<HttpResponse> &response, const int &draftVersion) const;
+	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void mapUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void mapPublish(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void mapDeleteDraft(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void mapDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		mapDelete({match.captured(1)}, response);
+	}
+	void mapDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		mapDelete(data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void mapDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+	void mapCreate(const QRegularExpressionMatch &, HttpRequest *request, QPointer<HttpResponse> response) const;
+	void mapUpload(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const;
 };
 
 #endif // TEACHERAPI_H

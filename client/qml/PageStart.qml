@@ -170,21 +170,7 @@ QPage {
 		id: actionQR
 		text: qsTr("QR-kód beolvasás")
 		icon.source: Qaterial.Icons.qrcodeScan
-		onTriggered: {
-			var page = Client.stackPushPage("PageReadQR.qml")
-			page.tagFound.connect(function(tag) {
-				var server = Client.serverAddWithUrl(tag)
-
-				if (server) {
-					page.captureEnabled = false
-					Client.setParseUrl(tag)
-					Client.stackPop(page)
-					Client.connectToServer(server)
-				} else {
-					Client.snack(qsTr("Érvénytelen URL"))
-				}
-			})
-		}
+		onTriggered: Client.Utils.checkMediaPermissions()
 	}
 
 	Action {
@@ -259,4 +245,25 @@ QPage {
 	]
 
 	StackView.onActivated: view.forceActiveFocus()
+
+
+	Connections {
+		target: Client.Utils
+
+		function onMediaPermissionsGranted() {
+			var page = Client.stackPushPage("PageReadQR.qml")
+			page.tagFound.connect(function(tag) {
+				var server = Client.serverAddWithUrl(tag)
+
+				if (server) {
+					page.captureEnabled = false
+					Client.setParseUrl(tag)
+					Client.stackPop(page)
+					Client.connectToServer(server)
+				} else {
+					Client.snack(qsTr("Érvénytelen URL"))
+				}
+			})
+		}
+	}
 }

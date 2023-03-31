@@ -159,6 +159,8 @@ SOURCES += \
 	abstractobjectiveimporter.cpp \
 	actiongame.cpp \
 	application.cpp \
+	basemap.cpp \
+	basemaphandler.cpp \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
@@ -187,6 +189,8 @@ SOURCES += \
 	server.cpp \
 	studentgroup.cpp \
 	teachergroup.cpp \
+	teachermap.cpp \
+	teachermaphandler.cpp \
 	tiledpaintedlayer.cpp \
 	user.cpp \
 	websocket.cpp
@@ -203,6 +207,8 @@ HEADERS += \
 	abstractobjectiveimporter.h \
 	actiongame.h \
 	application.h \
+	basemap.h \
+	basemaphandler.h \
 	classobject.h \
 	client.h \
 	clientcache.h \
@@ -230,6 +236,8 @@ HEADERS += \
 	server.h \
 	studentgroup.h \
 	teachergroup.h \
+	teachermap.h \
+	teachermaphandler.h \
 	tiledpaintedlayer.h \
 	user.h \
 	websocket.h

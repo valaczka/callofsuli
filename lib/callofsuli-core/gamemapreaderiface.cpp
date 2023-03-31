@@ -58,15 +58,15 @@ GameMapReaderIface::~GameMapReaderIface()
 
 void GameMapReaderIface::regenerateUuids()
 {
-	m_uuid = QUuid::createUuid().toString();
+	m_uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
 	foreach(GameMapMissionIface *m, ifaceMissions()) {
-		m->m_uuid = QUuid::createUuid().toString();
+		m->m_uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	}
 
 	foreach (GameMapChapterIface *ch, ifaceChapters()) {
 		foreach (GameMapObjectiveIface *o, ch->ifaceObjectives()) {
-			o->m_uuid = QUuid::createUuid().toString();
+			o->m_uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
 		}
 	}
 }

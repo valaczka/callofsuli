@@ -73,6 +73,30 @@ CREATE TABLE rank(
 
 
 ----------------------------------
+--- Grades
+----------------------------------
+
+CREATE TABLE grade(
+	id INTEGER NOT NULL PRIMARY KEY,
+	shortname TEXT,
+	longname TEXT,
+	value INTEGER NOT NULL DEFAULT 0 CHECK (value>=0)
+);
+
+
+----------------------------------
+--- Maps
+----------------------------------
+
+CREATE TABLE mapOwner(
+	mapuuid TEXT NOT NULL,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	UNIQUE (mapuuid, username)
+);
+
+
+
+----------------------------------
 --- Groups
 ----------------------------------
 
@@ -105,13 +129,31 @@ CREATE VIEW studentGroupInfo AS
 		INNER JOIN user ON (user.classid = bindGroupClass.classid);
 
 
-CREATE TABLE bindGroupMap(
-	id INTEGER PRIMARY KEY,
+----------------------------------
+--- Campaign
+----------------------------------
+
+CREATE TABLE campaign(
+	id INTEGER NOT NULL PRIMARY KEY,
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	mapid TEXT NOT NULL,
-	active BOOL NOT NULL DEFAULT FALSE,
-	UNIQUE(groupid, mapid)
+	starttime TEXT NOT NULL DEFAULT (datetime('now')),
+	endtime TEXT NOT NULL DEFAULT (datetime('now')),
+	description TEXT,
+	started BOOL NOT NULL DEFAULT FALSE,
+	finished BOOL NOT NULL DEFAULT FALSE,
+	defaultGrade INTEGER REFERENCES grade(id) ON UPDATE CASCADE ON DELETE SET NULL
 );
+
+CREATE TABLE task(
+	id INTEGER NOT NULL PRIMARY KEY,
+	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	gradeid INTEGER REFERENCES grade(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	xp INTEGER,
+	required BOOL NOT NULL DEFAULT FALSE,
+	mapuuid TEXT,
+	criterion TEXT
+);
+
 
 
 ----------------------------------

@@ -3,5 +3,6 @@
         <file>../license.txt</file>
         <file>../../CREDITS.md</file>
         <file>../sql/main.sql</file>
+        <file>../sql/maps.sql</file>
     </qresource>
 </RCC>

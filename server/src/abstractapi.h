@@ -36,6 +36,7 @@
 #include "httpResponse.h"
 
 typedef std::function<void(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>)> ApiMapFunction;
+typedef std::function<void(const QRegularExpressionMatch &, HttpRequest*, QPointer<HttpResponse>)> ApiBaseFunction;
 
 class ServerService;
 
@@ -51,9 +52,11 @@ public:
 
 	struct Map {
 		const char *regularExpression;
-		ApiMapFunction func;
+		ApiMapFunction func = nullptr;
+		ApiBaseFunction baseFunc = nullptr;
 
 		Map(const char *n, ApiMapFunction f) : regularExpression(n), func(f) {}
+		Map(const char *n, ApiBaseFunction f) : regularExpression(n), baseFunc(f) {}
 	};
 
 	virtual void handle(HttpRequest *request, HttpResponse *response, const QString &parameters);
@@ -66,6 +69,14 @@ public:
 	template <typename T>
 	void addMap(const char *regularExpression, T *inst,
 				void (T::*handler)(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>) const)
+	{
+		Map m = {regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
+		m_maps.append(m);
+	}
+
+	template <typename T>
+	void addMap(const char *regularExpression, T *inst,
+				void (T::*handler)(const QRegularExpressionMatch &, HttpRequest *, QPointer<HttpResponse>) const)
 	{
 		Map m = {regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
 		m_maps.append(m);
@@ -84,6 +95,10 @@ public:
 	Credential authorize(HttpRequest *request) const;
 	bool validate(const Credential &credential, const Credential::Role &role) const;
 	bool validate(HttpRequest *request, const Credential::Role &role) const;
+	bool checkMultiPart(HttpRequest *request, HttpResponse *response,
+						QJsonObject *json = nullptr, QByteArray *content = nullptr,
+						const QString &fieldFile = QStringLiteral("content"),
+						const QString &fieldJson = QStringLiteral("json")) const;
 
 	const QVector<Map> &maps() const;
 

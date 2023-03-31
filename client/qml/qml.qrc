@@ -88,5 +88,9 @@
         <file>QRefreshProgressBar.qml</file>
         <file>PageReadQR.qml</file>
         <file>PagePanel.qml</file>
+        <file>PageTeacherMaps.qml</file>
+        <file>QFileDialog.qml</file>
+        <file>QIconLoaderItemDelegate.qml</file>
+        <file>QDownloadProgressIcon.qml</file>
     </qresource>
 </RCC>

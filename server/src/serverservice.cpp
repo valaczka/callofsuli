@@ -66,12 +66,12 @@ ServerService::ServerService(int &argc, char **argv)
 
 #ifndef QT_NO_DEBUG
 	m_consoleAppender->setFormat(QString::fromStdString(
-									 "%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message} "+
+									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
 									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
 									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
 									 ColorConsoleAppender::green+">\n"));
 #else
-	m_consoleAppender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
+	m_consoleAppender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message}\n"));
 #endif
 
 	cuteLogger->registerAppender(m_consoleAppender);
@@ -113,6 +113,7 @@ void ServerService::initialize()
 	QCoreApplication::addLibraryPath(QStringLiteral("lib/QtService/plugins"));
 
 	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
@@ -151,6 +152,7 @@ Service::CommandResult ServerService::onStart()
 
 	m_databaseMain = new DatabaseMain(this);
 	m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
+	m_databaseMain->setDbMapsFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("maps.db")));
 	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
 
 	if (!m_databaseMain->databasePrepare()) {
@@ -158,6 +160,13 @@ Service::CommandResult ServerService::onStart()
 		quit();
 		return CommandResult::Failed;
 	}
+
+	if (!m_databaseMain->databaseAttach()) {
+		LOG_CERROR("service") << "Main database attach error";
+		quit();
+		return CommandResult::Failed;
+	}
+
 
 	m_config.m_service = this;
 	m_config.loadFromDb(m_databaseMain);
@@ -230,6 +239,11 @@ Service::CommandResult ServerService::onReload()
 	}
 
 	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
+
+	if (!m_databaseMain->databaseAttach()) {
+		quit();
+		return CommandResult::Failed;
+	}
 
 	if (!wasmLoad()) {
 		quit();

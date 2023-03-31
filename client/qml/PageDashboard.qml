@@ -162,13 +162,15 @@ QPage {
 
 			QDashboardButton {
 				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
-				text: qsTr("Pályaszerkesztő")
+				text: qsTr("Pályák")
 				icon.source: Qaterial.Icons.map
 				highlighted: false
 				outlined: true
 				flat: true
 
 				textColor: Qaterial.Colors.amber500
+
+				onClicked: Client.stackPushPage("PageTeacherMaps.qml")
 			}
 
 			QDashboardButton {
@@ -182,81 +184,6 @@ QPage {
 				textColor: Qaterial.Colors.red500
 
 				onClicked: Client.stackPushPage("PageAdminUsers.qml")
-			}
-
-
-			QDashboardButton {
-				text: qsTr("PANEL1 grab")
-				icon.source: Qaterial.Icons.cog
-				highlighted: false
-				outlined: true
-				flat: true
-
-				textColor: Qaterial.Colors.red500
-
-				onClicked: Client.send(WebSocket.ApiTeacher, "panel/1/grab")
-			}
-
-			QDashboardButton {
-				text: qsTr("PANEL1 release")
-				icon.source: Qaterial.Icons.cog
-				highlighted: false
-				outlined: true
-				flat: true
-
-				textColor: Qaterial.Colors.red500
-
-				onClicked: Client.send(WebSocket.ApiTeacher, "panel/1/release")
-			}
-
-			QDashboardButton {
-				text: qsTr("PANEL1 update")
-				icon.source: Qaterial.Icons.cog
-				highlighted: false
-				outlined: true
-				flat: true
-
-				textColor: Qaterial.Colors.red500
-
-				property int _n: 1
-
-				onClicked: Client.send(WebSocket.ApiTeacher, "panel/1/update", {text: "test %1".arg(_n++)})
-			}
-
-			QDashboardButton {
-				text: qsTr("PANEL2 grab")
-				icon.source: Qaterial.Icons.cog
-				highlighted: false
-				outlined: true
-				flat: true
-
-				textColor: Qaterial.Colors.red500
-
-				onClicked: Client.send(WebSocket.ApiTeacher, "panel/2/grab")
-			}
-
-			QDashboardButton {
-				text: qsTr("PANEL2 release")
-				icon.source: Qaterial.Icons.cog
-				highlighted: false
-				outlined: true
-				flat: true
-
-				textColor: Qaterial.Colors.red500
-
-				onClicked: Client.send(WebSocket.ApiTeacher, "panel/2/release")
-			}
-
-			QDashboardButton {
-				text: qsTr("PANEL2 update")
-				icon.source: Qaterial.Icons.cog
-				highlighted: false
-				outlined: true
-				flat: true
-
-				textColor: Qaterial.Colors.red500
-
-				onClicked: Client.send(WebSocket.ApiTeacher, "panel/2/update", {text: "szia"})
 			}
 
 		}

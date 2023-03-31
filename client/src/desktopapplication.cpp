@@ -49,7 +49,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
 									 ColorConsoleAppender::green+">\n"));
 #else
-	m_appender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category} [%{TypeOne}] %{message}\n"));
+	m_appender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message}\n"));
 #endif
 
 	cuteLogger->registerAppender(m_appender);

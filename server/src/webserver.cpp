@@ -74,15 +74,11 @@ bool WebServer::start()
 	HttpServerConfig configuration;
 	configuration.host = settings->listenAddress();
 	configuration.port = settings->listenPort();
+	//configuration.verbosity = HttpServerConfig::Verbose::All;
 
 	configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");
 
 	if (settings->ssl()) {
-		/*QSslConfiguration config = loadSslConfiguration(*m_service->settings());
-
-		if (!config.isNull())
-			setSslConfiguration(config);*/
-
 		configuration.sslCertPath = settings->dataDir().absoluteFilePath(settings->certFile());
 		configuration.sslKeyPath = settings->dataDir().absoluteFilePath(settings->certKeyFile());
 	}
@@ -120,94 +116,6 @@ bool WebServer::start()
 
 	LOG_CINFO("client") << tr("====================================================");
 
-
-	/*QFile certFile(base+m_socketCert);
-		QFile keyFile(base+m_socketKey);
-
-		if (!certFile.exists()) {
-			qCritical().noquote() << tr("Server certificate doesn't exists: %1").arg(certFile.fileName());
-			return false;
-		}
-
-		if (!keyFile.exists()) {
-			qCritical().noquote() << tr("Server key doesn't exists: %1").arg(keyFile.fileName());
-			return false;
-		}
-
-		certFile.open(QIODevice::ReadOnly);
-		keyFile.open(QIODevice::ReadOnly);
-
-		QSslCertificate cert(&certFile, QSsl::Pem);
-		QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);
-
-		certFile.close();
-		keyFile.close();
-
-		if (cert.isNull()) {
-			qCritical().noquote() << tr("Invalid server certificate: %1").arg(certFile.fileName());
-			return false;
-		}
-
-		if (key.isNull()) {
-			qCritical().noquote() << tr("Invalid key: %1").arg(keyFile.fileName());
-			return false;
-		}
-
-		qInfo().noquote() << tr("Szerver tanúsítvány: %1").arg(certFile.fileName());
-		qInfo().noquote() << tr("Szerver kulcs: %1").arg(keyFile.fileName());
-
-
-		QSslConfiguration config;
-		config.setLocalCertificate(cert);
-		config.setPrivateKey(key);
-		config.setPeerVerifyMode(QSslSocket::VerifyNone);
-		m_socketServer->setSslConfiguration(config);*/
-
-
-	/*connect(m_socketServer, SIGNAL(newConnection()), this, SLOT(onNewConnection()));
-	//connect(m_socketServer, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
-	connect(m_socketServer, &QWebSocketServer::sslErrors, this, &Server::onSslErrors);
-
-	if (m_port <= 0)
-		m_port = 10101;
-
-	if (!m_socketServer->listen(QHostAddress::Any, m_port))	{
-		qCritical().noquote() << QString(tr("Cannot listen on port %1")).arg(m_port);
-		return false;
-	}
-
-	qDebug("Maximum pending connections: %d", m_socketServer->maxPendingConnections());
-
-
-	qInfo().noquote() << tr("A szerver elindult, elérhető a következő címeken:");
-	qInfo().noquote() << tr("====================================================");
-
-	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
-		if (!h.isGlobal())
-			continue;
-
-		qInfo().noquote() << QString("%1://%2:%3")
-							 .arg(m_socketServer->secureMode() == QWebSocketServer::SecureMode ? "wss" : "ws")
-							 .arg(h.toString())
-							 .arg(m_port);
-
-		if (m_host.isEmpty()) {
-			m_host = h.toString();
-		}
-
-	}
-
-	qInfo().noquote() << tr("====================================================");
-
-	qInfo().noquote() << tr("Szerver hoszt: %1").arg(m_host);
-
-	quint32 udpPort = SERVER_UDP_PORT;
-
-	if (m_udpSocket->bind(udpPort, QUdpSocket::ShareAddress)) {
-		qInfo().noquote() << tr("Figyelt UDP port: %1").arg(udpPort);
-	}
-
-*/
 	return true;
 }
 

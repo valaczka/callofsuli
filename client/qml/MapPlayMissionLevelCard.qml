@@ -12,7 +12,21 @@ Qaterial.Card {
 
 	outlined: true
 
-	elevation: Qaterial.Style.card.activeElevation
+	Binding {
+		target: control
+		property: "backgroundColor"
+		value: "transparent"
+		when: missionLevel.lockDepth > 0
+
+	}
+
+	borderColor: missionLevel.lockDepth > 0 ? "transparent" :
+											  missionLevel.solved === 0 && missionLevel.lockDepth === 0
+											  ? Qaterial.Colors.green500 :
+												enabled ? Qaterial.Style.dividersColor() : Qaterial.Style.disabledDividersColor()
+
+
+	elevation: missionLevel.lockDepth > 0 ? 0 : Qaterial.Style.card.activeElevation
 
 	signal clicked(QtObject item)
 

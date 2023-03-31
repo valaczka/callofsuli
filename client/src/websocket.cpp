@@ -311,7 +311,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 
 #ifndef QT_NO_SSL
 	if (!m_rootCertificate.isNull()) {
-		QSslConfiguration config = r.sslConfiguration();
+		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
 		config.addCaCertificate(m_rootCertificate);
 		r.setSslConfiguration(config);
 	}
@@ -326,6 +326,65 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 	QNetworkReply *reply = m_networkManager->post(r, QJsonDocument(data).toJson());
 
 	LOG_CTRACE("websocket") << "SEND:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
+
+	WebSocketReply *wr = new WebSocketReply(reply, this);
+	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
+	return wr;
+}
+
+
+/**
+ * @brief WebSocket::send
+ * @param api
+ * @param path
+ * @param content
+ * @param data
+ * @return
+ */
+
+WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByteArray &content, const QJsonObject &data)
+{
+	Q_ASSERT (m_networkManager);
+
+	if (!m_server) {
+		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
+		return nullptr;
+	}
+
+	QNetworkRequest r(getUrl(api, path));
+
+#ifndef QT_NO_SSL
+	if (!m_rootCertificate.isNull()) {
+		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
+		config.addCaCertificate(m_rootCertificate);
+		r.setSslConfiguration(config);
+	}
+#endif
+
+	if (!m_server->token().isEmpty()) {
+		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+	}
+
+	QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+	QHttpPart jsonPart;
+	jsonPart.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
+	jsonPart.setHeader(QNetworkRequest::ContentDispositionHeader, QByteArrayLiteral("form-data; name=\"json\";"));
+	jsonPart.setBody(QJsonDocument(data).toJson());
+	multiPart->append(jsonPart);
+
+	QHttpPart contentPart;
+	contentPart.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/octet-stream"));
+	contentPart.setHeader(QNetworkRequest::ContentDispositionHeader, QByteArrayLiteral("form-data; name=\"content\"; filename=\"content.file\""));
+	contentPart.setBody(content);
+	multiPart->append(contentPart);
+
+	QNetworkReply *reply = m_networkManager->post(r, multiPart);
+
+
+	multiPart->setParent(reply);
+
+	LOG_CWARNING("websocket") << "SEND CONTENT:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data << content.size();
 
 	WebSocketReply *wr = new WebSocketReply(reply, this);
 	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
@@ -355,7 +414,7 @@ QNetworkReply *WebSocket::get(const QUrl &url)
 
 #ifndef QT_NO_SSL
 	if (!m_rootCertificate.isNull()) {
-		QSslConfiguration config = r.sslConfiguration();
+		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
 		config.addCaCertificate(m_rootCertificate);
 		r.setSslConfiguration(config);
 	}
@@ -389,7 +448,7 @@ EventStream *WebSocket::getEventStream(const API &api, const QString &path, cons
 
 #ifndef QT_NO_SSL
 	if (!m_rootCertificate.isNull()) {
-		QSslConfiguration config = r.sslConfiguration();
+		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
 		config.addCaCertificate(m_rootCertificate);
 		r.setSslConfiguration(config);
 	}
@@ -491,6 +550,20 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 	});
 
 	connect(m_reply, &QNetworkReply::finished, this, &WebSocketReply::onReplyFinished);
+
+	connect(m_reply, &QNetworkReply::downloadProgress, this, [this](qint64 rec, qint64 total){
+		if (total <= 0)
+			emit downloadProgress(0);
+		else
+			emit downloadProgress((qreal)rec/(qreal)total);
+	});
+
+	connect(m_reply, &QNetworkReply::uploadProgress, this, [this](qint64 rec, qint64 total){
+		if (total <= 0)
+			emit uploadProgress(0);
+		else
+			emit uploadProgress((qreal)rec/(qreal)total);
+	});
 }
 
 
@@ -576,8 +649,11 @@ void WebSocketReply::onReplyFinished()
 	QJsonObject contentJson;
 	QString errorString;
 
+	QByteArray content;
+
 	if (m_reply->isReadable()) {
-		contentJson = QJsonDocument::fromJson(m_reply->readAll()).object();
+		content = m_reply->readAll();
+		contentJson = QJsonDocument::fromJson(content).object();
 
 		if (!contentJson.isEmpty() && contentJson.contains(QStringLiteral("error")))
 			errorString = contentJson.value(QStringLiteral("error")).toString();
@@ -585,9 +661,11 @@ void WebSocketReply::onReplyFinished()
 
 
 
-
 	if (errorString.isEmpty()) {
 		LOG_CTRACE("websocket") << "RECEIVED:" << contentJson;
+
+		foreach (const std::function<void (const QByteArray &)> &func, m_funcsByteArray)
+			func(content);
 
 		foreach (const std::function<void (const QJsonObject &)> &func, m_funcs)
 			func(contentJson);

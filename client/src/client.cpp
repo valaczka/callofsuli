@@ -34,6 +34,7 @@
 #include "qquickwindow.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
+#include "teachermap.h"
 #include "websocket.h"
 #include "gameterrain.h"
 #include "qquickwindow.h"
@@ -497,7 +498,6 @@ void Client::onServerConnected()
 		{
 			server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
 		});
-
 	})
 			->fail([this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
@@ -584,8 +584,8 @@ void Client::onUserLoggedIn()
 			stackPushPage(QStringLiteral("PagePanel.qml"));
 		else
 			stackPushPage(QStringLiteral("PageDashboard.qml"));
-	});
 
+	});
 }
 
 
@@ -677,7 +677,6 @@ void Client::onOAuthPendingTimer()
 void Client::onLoginSuccess(const QJsonObject &json)
 {
 	LOG_CTRACE("client") << "On login success" << json;
-
 	if (json.contains(QStringLiteral("auth_token")) && json.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
 		if (m_oauthData.status != OAuthData::Invalid)
 			onOAuthLoginStateChanged(json);
@@ -965,6 +964,7 @@ void Client::registrationGoogle(const QString &code)
 }
 
 
+
 /**
  * @brief Client::loginPlain
  * @param username
@@ -1225,7 +1225,7 @@ void Client::safeMarginsGet()
 #if !defined (Q_OS_ANDROID)
 	QPlatformWindow *platformWindow = m_mainWindow->handle();
 	if(!platformWindow) {
-		qCWarning(lcUtils).noquote() << tr("Invalid QPlatformWindow");
+		LOG_CERROR("client") << "Invalid QPlatformWindow";
 		return;
 	}
 	margins = platformWindow->safeAreaMargins();
@@ -1394,6 +1394,8 @@ void Client::snack(const QString &text) const
 
 
 
+
+
 /**
  * @brief Client::loadDemoMap
  */
@@ -1440,23 +1442,3 @@ bool Client::debug() const
 	return m_application->debug();
 }
 
-
-
-
-/*
-
-
-
-void InternalHandler::registrationGoogle(const QJsonObject &json) const
-{
-	if (json.contains(QStringLiteral("url"))) {
-		Utils::openUrl(QUrl::fromEncoded(json.value(QStringLiteral("url")).toString().toUtf8()));
-	} else {
-		registrationPlain(json);
-	}
-}
-
-
-
-
-*/

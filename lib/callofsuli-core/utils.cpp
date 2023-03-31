@@ -27,9 +27,10 @@
 #include "utils.h"
 #include "Logger.h"
 #include "qdesktopservices.h"
+#include "qfileinfo.h"
 #include "qjsondocument.h"
 #include "qmath.h"
-#include "qfile.h"
+#include "qsettings.h"
 #include "selectableobject.h"
 #include <random>
 
@@ -38,10 +39,10 @@ const quint32 Utils::m_versionMinor = COS_VERSION_MINOR;
 
 
 #ifdef Q_OS_ANDROID
+#include "qandroidfunctions.h"
+
 #define FLAG_SCREEN_ORIENTATION_LANDSCAPE       0x00000000
 #endif
-
-Q_LOGGING_CATEGORY(lcUtils, "app.utils")
 
 /**
  * @brief Utils::Utils
@@ -77,7 +78,7 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 	QFile f(filename);
 
 	if (!f.exists()) {
-		qCWarning(lcUtils).noquote() << tr("A fájl nem olvasható:") << filename;
+		LOG_CWARNING("utils") << "Can't read file:" << filename;
 
 		if (error)
 			*error = true;
@@ -86,7 +87,7 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
-		qCWarning(lcUtils).noquote() << tr("Nem lehet megnyitni a fájlt:") << filename;
+		LOG_CWARNING("utils") << "Can't open file:" << filename;
 
 		if (error)
 			*error = true;
@@ -99,6 +100,18 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 	f.close();
 
 	return data;
+}
+
+
+/**
+ * @brief Utils::fileBaseName
+ * @param filename
+ * @return
+ */
+
+QString Utils::fileBaseName(const QString &filename)
+{
+	return QFileInfo(filename).baseName();
 }
 
 
@@ -116,7 +129,7 @@ bool Utils::jsonDocumentToFile(const QJsonDocument &doc, const QString &filename
 	QFile f(filename);
 
 	if (!f.open(QIODevice::WriteOnly)) {
-		qCWarning(lcUtils).noquote() << tr("Nem lehet írni a fájlt:") << filename;
+		LOG_CWARNING("utils") << "Can't write file:" << filename;
 
 		return false;
 	}
@@ -171,7 +184,7 @@ QJsonDocument Utils::byteArrayToJsonDocument(const QByteArray &data)
 	QJsonDocument doc = QJsonDocument::fromJson(data, &error);
 
 	if (error.error != QJsonParseError::NoError) {
-		qCWarning(lcUtils).noquote() << tr("JSON feldolgozási hiba: %1 (%2)").arg(error.errorString()).arg(error.error);
+		LOG_CWARNING("utils") << "JSON parse error:" << error.errorString() << error.error;
 	}
 
 	return doc;
@@ -223,7 +236,7 @@ QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
 	QFile f(filename);
 
 	if (!f.exists()) {
-		qCWarning(lcUtils).noquote() << tr("A fájl nem olvasható:") << filename;
+		LOG_CWARNING("utils") << "Can't read file:" << filename;
 
 		if (error)
 			*error = true;
@@ -232,7 +245,7 @@ QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
-		qCWarning(lcUtils).noquote() << tr("Nem lehet megnyitni a fájlt:") << filename;
+		LOG_CWARNING("utils") << "Can't open file:" << filename;
 
 		if (error)
 			*error = true;
@@ -366,7 +379,7 @@ QString Utils::formatMSecs(const int &msec, const int &decimals, const bool &wit
  */
 void Utils::openUrl(const QUrl &url)
 {
-	qCDebug(lcUtils).noquote() << tr("Open url:") << url;
+	LOG_CDEBUG("utils") << "Open URL:" << url;
 	QDesktopServices::openUrl(url);
 }
 
@@ -450,6 +463,33 @@ QByteArray Utils::generateRandomString(quint8 length, const char *characters)
 
 
 /**
+ * @brief Utils::settingsGet
+ * @param key
+ * @param defaultValue
+ * @return
+ */
+
+QVariant Utils::settingsGet(const QString &key, const QVariant &defaultValue)
+{
+	QSettings s;
+	return s.value(key, defaultValue);
+}
+
+
+/**
+ * @brief Utils::settingsSet
+ * @param key
+ * @param value
+ */
+
+void Utils::settingsSet(const QString &key, const QVariant &value)
+{
+	QSettings s;
+	s.setValue(key, value);
+}
+
+
+/**
  * @brief Utils::selectedCount
  * @param list
  * @return
@@ -519,4 +559,70 @@ quint32 Utils::versionCode(const int &major, const int &minor)
 	return (1000*major)+minor;
 }
 
+
+
+/**
+ * @brief Utils::checkStoragePermissions
+ */
+
+
+void Utils::checkStoragePermissions()
+{
+#ifdef Q_OS_ANDROID
+	QtAndroid::PermissionResult result1 = QtAndroid::checkPermission("android.permission.READ_EXTERNAL_STORAGE");
+	QtAndroid::PermissionResult result2 = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+
+	QStringList permissions;
+
+	if (result1 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.READ_EXTERNAL_STORAGE");
+
+	if (result2 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.WRITE_EXTERNAL_STORAGE");
+
+	if (!permissions.isEmpty()) {
+		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
+
+		QList<QtAndroid::PermissionResult> results = resultHash.values();
+		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
+			emit storagePermissionsDenied();
+			return;
+		}
+	}
+#endif
+
+	emit storagePermissionsGranted();
+}
+
+
+
+
+
+/**
+ * @brief Utils::checkMediaPermissions
+ */
+
+void Utils::checkMediaPermissions()
+{
+#ifdef Q_OS_ANDROID
+	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");
+
+	QStringList permissions;
+
+	if (result0 == QtAndroid::PermissionResult::Denied)
+		permissions.append("android.permission.CAMERA");
+
+	if (!permissions.isEmpty()) {
+		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
+
+		QList<QtAndroid::PermissionResult> results = resultHash.values();
+		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
+			emit mediaPermissionsDenied();
+			return;
+		}
+	}
+#endif
+
+	emit mediaPermissionsGranted();
+}
 

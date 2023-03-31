@@ -25,6 +25,7 @@
  */
 
 #include "teacherapi.h"
+#include "gamemap.h"
 #include "qjsonarray.h"
 #include "qsqlrecord.h"
 #include "serverservice.h"
@@ -58,6 +59,83 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^panel/(\\d+)/grab/*$", this, &TeacherAPI::panelGrab);
 	addMap("^panel/(\\d+)/release/*$", this, &TeacherAPI::panelRelease);
 	addMap("^panel/(\\d+)/update/*$", this, &TeacherAPI::panelUpdate);
+
+	addMap("^map/*$", this, &TeacherAPI::maps);
+	addMap("^map/create/*$", this, &TeacherAPI::mapCreate);
+	addMap("^map/delete/*$", this, &TeacherAPI::mapDelete);
+	addMap("^map/([^/]+)/*$", this, &TeacherAPI::mapOne);
+	addMap("^map/([^/]+)/content/*$", this, &TeacherAPI::mapOneContent);
+	addMap("^map/([^/]+)/draft/(\\d+)/*$", this, &TeacherAPI::mapOneDraft);
+	addMap("^map/([^/]+)/delete/*$", this, &TeacherAPI::mapDeleteOne);
+	addMap("^map/([^/]+)/deleteDraft/(\\d+)/*$", this, &TeacherAPI::mapDeleteDraft);
+	addMap("^map/([^/]+)/update/*$", this, &TeacherAPI::mapUpdate);
+	addMap("^map/([^/]+)/upload/(\\d+)/*$", this, &TeacherAPI::mapUpload);
+	addMap("^map/([^/]+)/publish/(\\d+)/*$", this, &TeacherAPI::mapPublish);
+}
+
+
+/**
+ * @brief TeacherAPI::mapMd5
+ * @param map
+ * @return
+ */
+
+QString TeacherAPI::mapMd5(GameMap *map)
+{
+	Q_ASSERT(map);
+	return mapMd5(map->toBinaryData());
+}
+
+
+/**
+ * @brief TeacherAPI::mapMd5
+ * @param data
+ * @return
+ */
+
+QString TeacherAPI::mapMd5(const QByteArray &data)
+{
+	return QString::fromLatin1(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex());
+}
+
+
+
+/**
+ * @brief TeacherAPI::mapCache
+ * @param map
+ * @return
+ */
+
+QJsonObject TeacherAPI::mapCache(GameMap *map)
+{
+	Q_ASSERT(map);
+	QJsonObject obj;
+
+	QJsonArray mList;
+	foreach (GameMapMission *m, map->missions()) {
+		mList.append(QJsonObject{
+						 { QStringLiteral("uuid"), m->uuid() },
+						 { QStringLiteral("name"), m->name() },
+						 { QStringLiteral("medal"), m->medalImage() },
+						 { QStringLiteral("levels"), m->levels().size() }
+					 });
+	}
+
+	obj.insert(QStringLiteral("missions"), mList);
+
+	return obj;
+}
+
+
+/**
+ * @brief TeacherAPI::mapCacheString
+ * @param map
+ * @return
+ */
+
+QString TeacherAPI::mapCacheString(GameMap *map)
+{
+	return QString::fromUtf8(QJsonDocument(mapCache(map)).toJson(QJsonDocument::Compact));
 }
 
 
@@ -747,6 +825,559 @@ void TeacherAPI::panelUpdate(const QRegularExpressionMatch &match, const QJsonOb
 
 	p->setConfig(data);
 	responseAnswerOk(response);
+}
+
+
+
+/**
+ * @brief TeacherAPI::mapOne
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const QString &uuid = match.captured(1);
+
+	databaseMainWorker()->execInThread([this, response, uuid]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		bool err = false;
+
+		const QJsonObject &obj = QueryBuilder::q(db)
+				.addQuery("SELECT mapdb.map.uuid, name, version, md5, CAST(strftime('%s', lastModified) AS INTEGER) AS lastModified, "
+						  "COALESCE((SELECT version FROM mapdb.draft WHERE mapdb.draft.uuid=mapdb.map.uuid),-1) AS draftVersion, "
+						  "mapdb.cache.data AS cache, length(mapdb.map.data) as size, lastEditor "
+						  "FROM mapdb.map LEFT JOIN mapdb.cache ON (mapdb.cache.uuid=mapdb.map.uuid) "
+						  "WHERE mapdb.map.uuid IN "
+						  "(SELECT mapuuid FROM mapOwner WHERE username=").addValue(username)
+				.addQuery(") AND mapdb.map.uuid=").addValue(uuid)
+				.execToJsonObject({
+									 { QStringLiteral("cache"), [](const QVariant &v) {
+										   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+									   } }
+								 },
+								 &err);
+
+		if (err)
+			return responseErrorSql(response);
+		else if (obj.isEmpty())
+			return responseError(response, "not found");
+
+		responseAnswer(response, obj);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::mapContent
+ * @param uuid
+ * @param response
+ * @param isDraft
+ */
+
+void TeacherAPI::mapContent(const QString &uuid, const QPointer<HttpResponse> &response, const int &draftVersion) const
+{
+	databaseMainWorker()->execInThread([this, response, uuid, draftVersion]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT data FROM ")
+				.addQuery(draftVersion > 0 ? "mapdb.draft" : "mapdb.map")
+				.addQuery(" WHERE uuid IN "
+						  "(SELECT mapuuid FROM mapOwner WHERE username=").addValue(username)
+				.addQuery(") AND uuid=").addValue(uuid);
+
+		if (draftVersion > 0)
+			q.addQuery(" AND version=").addValue(draftVersion);
+
+		if (!q.exec())
+			return responseErrorSql(response);
+
+		if (q.sqlQuery().first()) {
+			const QByteArray &b = q.sqlQuery().value(QStringLiteral("data")).toByteArray();
+			if (response)
+				response->setStatus(HttpStatus::Ok, b);
+			return;
+		} else
+			return responseError(response, "not found");
+
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::maps
+ * @param response
+ */
+
+void TeacherAPI::maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	databaseMainWorker()->execInThread([this, response]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		bool err = false;
+
+		const QJsonArray &list = QueryBuilder::q(db)
+				.addQuery("SELECT mapdb.map.uuid, name, version, md5, CAST(strftime('%s', lastModified) AS INTEGER) AS lastModified, "
+						  "COALESCE((SELECT version FROM mapdb.draft WHERE mapdb.draft.uuid=mapdb.map.uuid),-1) AS draftVersion, "
+						  "mapdb.cache.data AS cache, length(mapdb.map.data) as size, lastEditor "
+						  "FROM mapdb.map LEFT JOIN mapdb.cache ON (mapdb.cache.uuid=mapdb.map.uuid) "
+						  "WHERE mapdb.map.uuid IN "
+						  "(SELECT mapuuid FROM mapOwner WHERE username=").addValue(username).addQuery(")")
+				.execToJsonArray({
+									 { QStringLiteral("cache"), [](const QVariant &v) {
+										   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+									   } }
+								 },
+								 &err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::mapUpdate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::mapUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const QString &uuid = match.captured(1);
+
+	LOG_CTRACE("client") << "Update map:" << uuid;
+
+	if (uuid.isEmpty())
+		return responseError(response, "invalid uuid");
+
+	databaseMainWorker()->execInThread([uuid, data, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT mapuuid FROM mapOwner WHERE username=")
+				.addValue(username)
+				.addQuery(" AND mapuuid=")
+				.addValue(uuid)
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "invalid uuid");
+		}
+
+		QueryBuilder q(db);
+		q.addQuery("UPDATE mapdb.map SET ").setCombinedPlaceholder();
+
+		if (data.contains(QStringLiteral("name")))
+			q.addField("name", data.value(QStringLiteral("name")).toString());
+
+		q.addQuery(" WHERE uuid=").addValue(uuid);
+
+		if (!q.fieldCount() || !q.exec()) {
+			LOG_CWARNING("client") << "Map modify error:" << uuid;
+			db.rollback();
+			return responseError(response, "update error");
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Map modified:" << uuid;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::mapPublish
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::mapPublish(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const QString &uuid = match.captured(1);
+	int version = match.captured(2).toInt();
+
+	LOG_CTRACE("client") << "Publis map draft:" << uuid << version;
+
+	databaseMainWorker()->execInThread([this, response, uuid, version]() {
+		const QString &username = m_credential.username();
+
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT mapuuid FROM mapOwner WHERE username=")
+				.addValue(username)
+				.addQuery(" AND mapuuid=")
+				.addValue(uuid)
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "map doesn't exists");
+		}
+
+
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT data FROM mapdb.draft WHERE uuid=").addValue(uuid).addQuery(" AND version=").addValue(version);
+
+		if (!q.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		if (!q.sqlQuery().first())
+		{
+			db.rollback();
+			return responseError(response, "invalid uuid/version");
+		}
+
+		const QByteArray &b = q.sqlQuery().value(QStringLiteral("data")).toByteArray();
+
+		GameMap *map = GameMap::fromBinaryData(b);
+
+		if (!map) {
+			db.rollback();
+			return responseError(response, "invalid map");
+		}
+
+		QString mapuuid = map->uuid();
+		const QString &md5 = mapMd5(b);
+		const QString &cache = mapCacheString(map);
+		delete map;
+		map = nullptr;
+
+		if (mapuuid != uuid) {
+			db.rollback();
+			return responseError(response, "map uuid mismatch");
+		}
+
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE mapdb.map SET version=version+1, lastModified=datetime('now'), ").setCombinedPlaceholder()
+				.addField("md5", md5)
+				.addField("data", b)
+				.addField("lastEditor", username)
+				.addQuery(" WHERE uuid=").addValue(uuid)
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO mapdb.cache(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+				.addField("uuid", uuid)
+				.addField("data", cache)
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM mapdb.draft WHERE uuid=").addValue(uuid).exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+		responseAnswerOk(response);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::mapDeleteDraft
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::mapDeleteDraft(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const QString &uuid = match.captured(1);
+	int version = match.captured(2).toInt();
+
+	LOG_CTRACE("client") << "Delete map draft:" << uuid << version;
+
+	databaseMainWorker()->execInThread([this, response, uuid, version]() {
+		const QString &username = m_credential.username();
+
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT mapuuid FROM mapOwner WHERE username=")
+				.addValue(username)
+				.addQuery(" AND mapuuid=")
+				.addValue(uuid)
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "map doesn't exists");
+		}
+
+		if (!QueryBuilder::q(db).addQuery("DELETE FROM mapdb.draft WHERE uuid=").addValue(uuid).addQuery(" AND version=").addValue(version).exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		LOG_CTRACE("client") << "Draft deleted" << uuid << version;
+
+		db.commit();
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::mapDelete
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::mapDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (list.isEmpty())
+		return responseError(response, "invalid uuid");
+
+	databaseMainWorker()->execInThread([list, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).
+				addQuery("DELETE FROM mapdb.map WHERE uuid IN (SELECT mapuuid FROM mapOwner WHERE mapuuid IN (").addList(list.toVariantList())
+				.addQuery(") AND username=").addValue(username).addQuery(")")
+				.exec()) {
+			LOG_CWARNING("client") << "Map remove error:" << list;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM mapOwner WHERE mapuuid IN (").addList(list.toVariantList())
+				.addQuery(") AND mapuuid IN (SELECT mapuuid FROM mapOwner WHERE username=").addValue(username)
+				.addQuery(")")
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Maps removed:" << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::mapCreate
+ * @param request
+ * @param response
+ */
+
+void TeacherAPI::mapCreate(const QRegularExpressionMatch &, HttpRequest *request, QPointer<HttpResponse> response) const
+{
+	LOG_CTRACE("client") << "Create map";
+
+	databaseMainWorker()->execInThread([this, response, request]() {
+		QJsonObject obj;
+		QByteArray b;
+
+		if (!checkMultiPart(request, response, &obj, &b))
+			return;
+
+		GameMap *map = GameMap::fromBinaryData(b);
+
+		if (!map)
+			return responseError(response, "invalid map");
+
+		QString uuid = map->uuid();
+		const QString &username = m_credential.username();
+		const QString &cache = mapCacheString(map);
+		delete map;
+		map = nullptr;
+
+
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		if (QueryBuilder::q(db).addQuery("SELECT uuid FROM mapdb.map WHERE uuid=").addValue(uuid).execCheckExists()) {
+			db.rollback();
+			return responseError(response, "map already exists");
+		}
+
+		const QString &name = obj.value(QStringLiteral("name")).toString(QObject::tr("-- új pálya --"));
+		const QString &md5 = mapMd5(b);
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO mapdb.map(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+				.addField("uuid", uuid)
+				.addField("name", name)
+				.addField("md5", md5)
+				.addField("data", b)
+				.addField("lastEditor", username)
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO mapdb.cache(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+				.addField("uuid", uuid)
+				.addField("data", cache)
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO mapOwner(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+				.addField("mapuuid", uuid)
+				.addField("username", username)
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+		responseAnswerOk(response, {{QStringLiteral("uuid"), uuid}});
+	});
+
+}
+
+
+
+/**
+ * @brief TeacherAPI::mapUpload
+ * @param match
+ * @param request
+ * @param response
+ */
+
+void TeacherAPI::mapUpload(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const
+{
+	const QString &uuid = match.captured(1);
+	int version = match.captured(2).toInt();
+
+	LOG_CTRACE("client") << "Upload map draft:" << uuid << version;
+
+	databaseMainWorker()->execInThread([this, response, request, uuid, version]() mutable {
+		QByteArray b;
+
+		if (!checkMultiPart(request, response, nullptr, &b))
+			return;
+
+		GameMap *map = GameMap::fromBinaryData(b);
+
+		if (!map)
+			return responseError(response, "invalid map");
+
+		QString mapuuid = map->uuid();
+		delete map;
+		map = nullptr;
+
+		if (mapuuid != uuid)
+			return responseError(response, "map uuid mismatch");
+
+		const QString &username = m_credential.username();
+
+
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT uuid FROM mapdb.map WHERE uuid=").addValue(uuid).execCheckExists()) {
+			db.rollback();
+			return responseError(response, "map doesn't exists");
+		}
+
+		if (!QueryBuilder::q(db).addQuery("SELECT mapuuid FROM mapOwner WHERE username=")
+				.addValue(username)
+				.addQuery(" AND mapuuid=")
+				.addValue(uuid)
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "map doesn't exists");
+		}
+
+
+		if (version == 0 && QueryBuilder::q(db).addQuery("SELECT version FROM mapdb.draft WHERE uuid=").addValue(uuid).execCheckExists()) {
+			db.rollback();
+			return responseError(response, "version mismatch");
+		}
+
+		if (version > 0 && !QueryBuilder::q(db).addQuery("SELECT version FROM mapdb.draft WHERE uuid=").addValue(uuid)
+				.addQuery(" AND version=").addValue(version)
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "version mismatch");
+		}
+
+		++version;
+
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO mapdb.draft(uuid, version, lastModified, data) VALUES (")
+				.addValue(uuid)
+				.addValue(version)
+				.addQuery(", datetime('now'), ")
+				.addValue(b)
+				.addQuery(")")
+				.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+		responseAnswerOk(response, {{QStringLiteral("version"), version}});
+	});
 }
 
 

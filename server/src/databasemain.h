@@ -43,17 +43,27 @@ public:
 	void setDbFile(const QString &newDbFile);
 
 	bool databasePrepare();
+	bool databaseAttach();
 
 	void saveConfig(const QJsonObject &json);
 
+	const QString &dbMapsFile() const;
+	void setDbMapsFile(const QString &newDbMapsFile);
+
 private:
+	bool databaseMapsPrepare();
+
 	bool _checkSystemTable();
+	bool _checkMapsSystemTable(Database *mapsDb);
 	bool _createTables();
+	bool _createMapsTables(Database *db);
 	bool _upgradeTables();
+	bool _upgradeMapsTables();
 	bool _createUsers();
-	bool _createRanks();
+	bool _createRanksAndGrades();
 
 	QString m_dbFile;
+	QString m_dbMapsFile;
 	ServerService *m_service = nullptr;
 };
 

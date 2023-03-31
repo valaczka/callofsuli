@@ -105,7 +105,7 @@ bool Database::databaseOpen(const QString &path)
 	QDefer ret;
 	bool retValue = false;
 
-	m_worker->execInThread([ret, this, path]() mutable {
+	m_worker->execInThread([ret, this, path, &retValue]() mutable {
 		LOG_CDEBUG("db") << "Open database" << qPrintable(m_dbName) << "-" << qPrintable(path);
 
 		QSqlDatabase db = QSqlDatabase::database(m_dbName);
@@ -114,18 +114,15 @@ bool Database::databaseOpen(const QString &path)
 		if (db.open()) {
 			QSqlQuery q(db);
 			q.exec(QStringLiteral("PRAGMA foreign_keys = ON"));
+			retValue = true;
 			ret.resolve();
 		} else {
 			LOG_CERROR("db") << "Open database error" << qPrintable(m_dbName) << qPrintable(db.lastError().text());
+			retValue = false;
 			ret.reject();
 		}
 	});
 
-	ret.done([&retValue](){
-		retValue = true;
-	}).fail([&retValue](){
-		retValue = false;
-	});;
 
 	QDefer::await(ret);
 
@@ -167,19 +164,6 @@ QRecursiveMutex *Database::mutex() const
 }
 
 
-/**
- * @brief Database::queryPrepare
- * @param q
- * @param queryString
- */
-
-void Database::queryPrepareList(QSqlQuery *q, const QString &queryString, const QVariantList &list)
-{
-	q->prepare(queryString);
-
-	foreach (const QVariant &v, list)
-		q->addBindValue(v);
-}
 
 
 /**
@@ -501,6 +485,87 @@ bool QueryBuilder::execCheckExists()
 		return false;
 
 	return true;
+}
+
+
+/**
+ * @brief QueryBuilder::execToJsonArray
+ * @param map
+ * @param err
+ * @return
+ */
+
+QJsonArray QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &map, bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QJsonArray();
+	}
+
+	QJsonArray list;
+
+	while (m_sqlQuery.next()) {
+		const QSqlRecord &rec = m_sqlQuery.record();
+		QJsonObject obj;
+
+		for (int i=0; i<rec.count(); ++i) {
+			const QString &f = rec.fieldName(i);
+			if (map.contains(f)) {
+				const FieldConvertFunc &func = map.value(f);
+				const QJsonValue &v = std::invoke(func, rec.value(i));
+				obj.insert(f, v);
+			} else {
+				obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
+			}
+		}
+
+		list.append(obj);
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief QueryBuilder::execToJsonObject
+ * @param map
+ * @param err
+ * @return
+ */
+
+QJsonObject QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc> &map, bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QJsonObject();
+	}
+
+	if (m_sqlQuery.size() > 1) {
+		if (err) *err = true;
+		LOG_CWARNING("db") << "More than one row returned";
+		return QJsonObject();
+	}
+
+	QJsonObject obj;
+
+	if (m_sqlQuery.first()) {
+		const QSqlRecord &rec = m_sqlQuery.record();
+
+		for (int i=0; i<rec.count(); ++i) {
+			const QString &f = rec.fieldName(i);
+			if (map.contains(f)) {
+				const FieldConvertFunc &func = map.value(f);
+				const QJsonValue &v = std::invoke(func, rec.value(i));
+				obj.insert(f, v);
+			} else {
+				obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
+			}
+		}
+	}
+
+	return obj;
 }
 
 

@@ -33,6 +33,8 @@
 #include "qrimage.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
+#include "teachermap.h"
+#include "teachermaphandler.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -346,6 +348,10 @@ void Application::registerQmlTypes()
 	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
 	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
 	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
+	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
+	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
+	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
+	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 }
 
 /**
@@ -468,6 +474,7 @@ const QHash<QString, ModuleInterface *> &Application::storageModules() const
 {
 	return m_storageModules;
 }
+
 
 
 

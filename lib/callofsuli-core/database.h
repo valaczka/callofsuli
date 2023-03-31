@@ -56,8 +56,6 @@ public:
 
 	QRecursiveMutex *mutex() const;
 
-	void queryPrepareList(QSqlQuery *q, const QString &queryString, const QVariantList &list);
-
 	// Methods starts with "_" must be called from m_thread
 
 	bool _batchFromData(const QString &data);
@@ -78,6 +76,9 @@ protected:
 #define QUERY_LOG_ERROR(q)		LOG_CERROR("db") << "Sql error:" << qPrintable(q.lastError().text());
 #define QUERY_LOG_WARNING(q)	LOG_CWARNING("db") << "Sql error:" << qPrintable(q.lastError().text());
 
+
+
+typedef std::function<QJsonValue(const QVariant&)> FieldConvertFunc;
 
 
 /**
@@ -191,6 +192,9 @@ public:
 	QJsonArray execToJsonArray(bool *err = nullptr);
 	QJsonObject execToJsonObject(bool *err = nullptr);
 	bool execCheckExists();
+
+	QJsonArray execToJsonArray(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
+	QJsonObject execToJsonObject(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
 
 	void clear() {
 		m_sqlQuery.clear();

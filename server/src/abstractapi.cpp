@@ -82,6 +82,23 @@ void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QSt
 		return responseError(response, "invalid function");
 	}
 
+
+	// Base function
+
+	if (it->baseFunc) {
+		LOG_CTRACE("client") << "Handle API base request:" << parameters;
+
+		return it->baseFunc(match, request, response);
+	}
+
+
+	// Json function
+
+	if (!it->func) {
+		LOG_CERROR("client") << "Missing function";
+		return responseError(response, "internal error");
+	}
+
 	const QString &d = request->parseBodyStr();
 
 	if (!d.isEmpty()) {
@@ -254,6 +271,46 @@ bool AbstractAPI::validate(const Credential &credential, const Credential::Role 
 bool AbstractAPI::validate(HttpRequest *request, const Credential::Role &role) const
 {
 	return validate(authorize(request), role);
+}
+
+
+/**
+ * @brief AbstractAPI::checkMultiPart
+ * @param request
+ * @param response
+ * @return
+ */
+
+bool AbstractAPI::checkMultiPart(HttpRequest *request, HttpResponse *response, QJsonObject *json,
+								 QByteArray *content, const QString &fieldFile, const QString &fieldJson) const
+{
+	const std::unordered_map<QString, QString> &fields = request->formFields();
+	const std::unordered_map<QString, FormFile> &formFiles = request->formFiles();
+
+	if (json) {
+		auto jsonIt = fields.find(fieldJson);
+
+		if (jsonIt == fields.cend()) {
+			responseError(response, "missing field: " + fieldJson.toUtf8());
+			return false;
+		}
+
+		const QString &jsonStr = jsonIt->second;
+		*json = QJsonDocument::fromJson(jsonStr.toUtf8()).object();
+	}
+
+	if (content) {
+		auto fileIt = formFiles.find(fieldFile);
+
+		if (fileIt == formFiles.cend()) {
+			responseError(response, "missing field: " + fieldFile.toUtf8());
+			return false;
+		}
+
+		*content = fileIt->second.file->readAll();
+	}
+
+	return true;
 }
 
 

@@ -57,6 +57,7 @@ public:
 	virtual ~Utils();
 
 	Q_INVOKABLE static QByteArray fileContent(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static QString fileBaseName(const QString &filename);
 
 	Q_INVOKABLE static bool jsonDocumentToFile(const QJsonDocument &doc, const QString &filename,
 											   const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
@@ -85,6 +86,9 @@ public:
 	Q_INVOKABLE static QByteArray generateRandomString(quint8 length);
 	Q_INVOKABLE static QByteArray generateRandomString(quint8 length, const char *characters);
 
+	Q_INVOKABLE static QVariant settingsGet(const QString &key, const QVariant &defaultValue = QVariant());
+	Q_INVOKABLE static void settingsSet(const QString &key, const QVariant &value);
+
 #ifdef CLIENT_UTILS
 	Q_INVOKABLE static int selectedCount(qolm::QOlmBase *list);
 
@@ -106,6 +110,14 @@ public:
 	Q_INVOKABLE static quint32 versionCode();
 	Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
 
+	Q_INVOKABLE void checkStoragePermissions();
+	Q_INVOKABLE void checkMediaPermissions();
+
+signals:
+	void storagePermissionsGranted();
+	void storagePermissionsDenied();
+	void mediaPermissionsGranted();
+	void mediaPermissionsDenied();
 
 private:
 	static const quint32 m_versionMajor;
@@ -117,7 +129,5 @@ private:
 
 };
 
-
-Q_DECLARE_LOGGING_CATEGORY(lcUtils)
 
 #endif // UTILS_H
