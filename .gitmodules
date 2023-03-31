@@ -34,9 +34,6 @@
 [submodule "lib/QConsole"]
 	path = lib/QConsole
 	url = https://github.com/Skycoder42/QConsole.git
-[submodule "lib/jwt-cpp"]
-	path = lib/jwt-cpp
-	url = https://github.com/Thalhammer/jwt-cpp.git
 [submodule "lib/android_openssl"]
 	path = lib/android_openssl
 	url = https://github.com/KDAB/android_openssl.git
