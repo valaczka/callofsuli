@@ -670,7 +670,6 @@ QDeferred<bool, int> AdminAPI::getClassIdFromCode(const AbstractAPI *api, const 
 QDefer AdminAPI::userAdd(const AbstractAPI *api, const User &user)
 {
 	Q_ASSERT(api);
-
 	return userAdd(api->databaseMain(), user);
 }
 
@@ -880,6 +879,170 @@ QDefer AdminAPI::authAddOAuth2(const AbstractAPI *api, const QString &username, 
 QString AdminAPI::generateClassCode()
 {
 	return QString::fromLatin1(Utils::generateRandomString(6, "1234567890"));
+}
+
+
+
+/**
+ * @brief AdminAPI::campaignStart
+ * @param api
+ * @param campaign
+ * @return
+ */
+
+QDefer AdminAPI::campaignStart(const AbstractAPI *api, const int &campaign)
+{
+	Q_ASSERT(api);
+	return campaignStart(api->databaseMain(), campaign);
+}
+
+
+/**
+ * @brief AdminAPI::campaignStart
+ * @param dbMain
+ * @param campaign
+ * @return
+ */
+
+QDefer AdminAPI::campaignStart(const DatabaseMain *dbMain, const int &campaign)
+{
+	Q_ASSERT (dbMain);
+
+	LOG_CDEBUG("client") << "Campaign start:" << campaign;
+
+	QDefer ret;
+
+	/*dbMain->worker()->execInThread([ret, user, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker(dbMain->mutex());
+
+		db.transaction();
+
+		if (QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(user.username).execCheckExists()) {
+			LOG_CWARNING("client") << "User already exists:" << qPrintable(user.username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		QueryBuilder q(db);
+
+		q.addQuery("INSERT INTO user(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", user.username)
+				.addField("familyName", user.familyName)
+				.addField("givenName", user.givenName)
+				.addField("active", user.active)
+				.addField("classid", user.classid > 0 ? user.classid : QVariant(QVariant::Invalid))
+				.addField("isTeacher", user.isTeacher)
+				.addField("isAdmin", user.isAdmin)
+				.addField("isPanel", user.isPanel)
+				.addField("nickname", user.nickname)
+				.addField("character", user.character)
+				.addField("picture", user.picture)
+				;
+
+
+		if (!q.exec()) {
+			LOG_CERROR("client") << "User create error:" << qPrintable(user.username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "User created:" << qPrintable(user.username);
+		ret.resolve();
+	});*/
+
+	ret.resolve();
+
+	return ret;
+}
+
+
+/**
+ * @brief AdminAPI::campaignFinish
+ * @param api
+ * @param campaign
+ * @return
+ */
+
+QDefer AdminAPI::campaignFinish(const AbstractAPI *api, const int &campaign)
+{
+	Q_ASSERT(api);
+	return campaignFinish(api->databaseMain(), campaign);
+}
+
+
+
+/**
+ * @brief AdminAPI::campaignFinish
+ * @param dbMain
+ * @param campaign
+ * @return
+ */
+
+QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
+{
+	Q_ASSERT (dbMain);
+
+	LOG_CDEBUG("client") << "Campaign finish:" << campaign;
+
+	QDefer ret;
+
+	/*dbMain->worker()->execInThread([ret, user, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker(dbMain->mutex());
+
+		db.transaction();
+
+		if (QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(user.username).execCheckExists()) {
+			LOG_CWARNING("client") << "User already exists:" << qPrintable(user.username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		QueryBuilder q(db);
+
+		q.addQuery("INSERT INTO user(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", user.username)
+				.addField("familyName", user.familyName)
+				.addField("givenName", user.givenName)
+				.addField("active", user.active)
+				.addField("classid", user.classid > 0 ? user.classid : QVariant(QVariant::Invalid))
+				.addField("isTeacher", user.isTeacher)
+				.addField("isAdmin", user.isAdmin)
+				.addField("isPanel", user.isPanel)
+				.addField("nickname", user.nickname)
+				.addField("character", user.character)
+				.addField("picture", user.picture)
+				;
+
+
+		if (!q.exec()) {
+			LOG_CERROR("client") << "User create error:" << qPrintable(user.username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "User created:" << qPrintable(user.username);
+		ret.resolve();
+	});*/
+
+	ret.resolve();
+
+	return ret;
 }
 
 

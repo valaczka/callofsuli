@@ -38,6 +38,15 @@ public:
 	Application(int &argc, char **argv);
 	virtual ~Application();
 
+	enum CommandLine {
+		Normal,
+		License,
+		Editor,
+		Map,
+		Play,
+		Demo
+	};
+
 	int run();
 
 	static int versionMajor();
@@ -59,6 +68,8 @@ public:
 	const QHash<QString, ModuleInterface *> &objectiveModules() const;
 	const QHash<QString, ModuleInterface *> &storageModules() const;
 
+	const CommandLine &commandLine() const;
+
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();
@@ -78,6 +89,7 @@ protected:
 	static const int m_versionBuild;
 	static const char* m_version;
 
+	CommandLine m_commandLine = Normal;
 	QGuiApplication *m_application = nullptr;
 	QQmlApplicationEngine *m_engine = nullptr;
 	Client *m_client = nullptr;

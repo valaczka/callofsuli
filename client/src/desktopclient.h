@@ -31,7 +31,11 @@
 #include "qsoundeffect.h"
 #include "qthread.h"
 #include "sound.h"
-#include <QOlm/QOlm.hpp>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include <QtNetworkAuth/qoauthhttpserverreplyhandler.h>
 #include <QtNetworkAuth/QOAuth2AuthorizationCodeFlow>
 

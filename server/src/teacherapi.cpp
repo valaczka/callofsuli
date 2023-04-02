@@ -54,6 +54,22 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^group/(\\d+)/user/remove/*$", this, &TeacherAPI::groupUserRemove);
 	addMap("^group/(\\d+)/user/exclude/*$", this, &TeacherAPI::groupUserExclude);
 
+	addMap("^group/(\\d+)/campaign/create/*$", this, &TeacherAPI::campaignCreate);
+
+	addMap("^campaign/(\\d+)/*$", this, &TeacherAPI::campaignOne);
+	addMap("^campaign/(\\d+)/update/*$", this, &TeacherAPI::campaignUpdate);
+	addMap("^campaign/(\\d+)/run/*$", this, &TeacherAPI::campaignRun);
+	addMap("^campaign/(\\d+)/finish/*$", this, &TeacherAPI::campaignFinish);
+	addMap("^campaign/(\\d+)/delete/*$", this, &TeacherAPI::campaignDeleteOne);
+	addMap("^campaign/delete/*$", this, &TeacherAPI::campaignDelete);
+	addMap("^campaign/(\\d+)/task/*$", this, &TeacherAPI::task);
+	addMap("^campaign/(\\d+)/task/create/*$", this, &TeacherAPI::taskCreate);
+
+	addMap("^task/(\\d+)/*$", this, &TeacherAPI::taskOne);
+	addMap("^task/(\\d+)/update/*$", this, &TeacherAPI::taskUpdate);
+	addMap("^task/(\\d+)/delete/*$", this, &TeacherAPI::taskDeleteOne);
+	addMap("^task/delete/*$", this, &TeacherAPI::taskDelete);
+
 	addMap("^panel/*$", this, &TeacherAPI::panels);
 	addMap("^panel/(\\d+)/*$", this, &TeacherAPI::panelOne);
 	addMap("^panel/(\\d+)/grab/*$", this, &TeacherAPI::panelGrab);
@@ -71,6 +87,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^map/([^/]+)/update/*$", this, &TeacherAPI::mapUpdate);
 	addMap("^map/([^/]+)/upload/(\\d+)/*$", this, &TeacherAPI::mapUpload);
 	addMap("^map/([^/]+)/publish/(\\d+)/*$", this, &TeacherAPI::mapPublish);
+
 }
 
 
@@ -192,10 +209,43 @@ void TeacherAPI::groupOne(const QRegularExpressionMatch &match, const QJsonObjec
 											 "WHERE user.active=true AND studentGroupInfo.id=").addValue(id)
 				.execToJsonArray();
 
-		data[QStringLiteral("mapList")] =
-				QueryBuilder::q(db).addQuery("SELECT id, mapid, active FROM bindGroupMap "
-											 "WHERE groupid=").addValue(id)
-				.execToJsonArray();
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+				   "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+				   "description, started, finished, defaultGrade "
+				   "FROM campaign WHERE groupid=").addValue(id);
+
+		if (!q.exec())
+			return responseErrorSql(response);
+
+
+		QJsonArray list;
+
+		while (q.sqlQuery().next()) {
+			const QSqlRecord &rec = q.sqlQuery().record();
+			QJsonObject obj;
+
+			int id = -1;
+
+			for (int i=0; i<rec.count(); ++i) {
+				const QString &field = rec.fieldName(i);
+				obj.insert(field, rec.value(i).toJsonValue());
+				if (field == QLatin1String("id"))
+					id = rec.value(i).toInt();
+			}
+
+			QJsonArray tlist;
+
+			if (id != -1)
+				tlist = _taskList(id);
+
+			obj.insert(QStringLiteral("taskList"), tlist);
+
+			list.append(obj);
+		}
+
+		data[QStringLiteral("campaignList")] = list;
 
 
 		responseAnswer(response, data);
@@ -857,11 +907,11 @@ void TeacherAPI::mapOne(const QRegularExpressionMatch &match, const QJsonObject 
 						  "(SELECT mapuuid FROM mapOwner WHERE username=").addValue(username)
 				.addQuery(") AND mapdb.map.uuid=").addValue(uuid)
 				.execToJsonObject({
-									 { QStringLiteral("cache"), [](const QVariant &v) {
-										   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-									   } }
-								 },
-								 &err);
+									  { QStringLiteral("cache"), [](const QVariant &v) {
+											return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+										} }
+								  },
+								  &err);
 
 		if (err)
 			return responseErrorSql(response);
@@ -1378,6 +1428,622 @@ void TeacherAPI::mapUpload(const QRegularExpressionMatch &match, HttpRequest *re
 		db.commit();
 		responseAnswerOk(response, {{QStringLiteral("version"), version}});
 	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::campaignOne
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		bool err = false;
+
+		QJsonObject obj = QueryBuilder::q(db)
+				.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+						  "description, started, finished, defaultGrade "
+						  "FROM campaign WHERE id=").addValue(id)
+				.addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(username).addQuery(")")
+				.execToJsonObject(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		if (obj.isEmpty())
+			return responseError(response, "not found");
+
+		obj.insert(QStringLiteral("taskList"), _taskList(id));
+
+		responseAnswer(response, obj);
+	});
+}
+
+
+
+
+
+
+/**
+ * @brief TeacherAPI::campaignCreate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::campaignCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &groupid = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, groupid, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=")
+				.addValue(groupid)
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "invalid group");
+		}
+
+		QueryBuilder q(db);
+		q.addQuery("INSERT INTO campaign(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("groupid", groupid)
+				;
+
+		if (data.contains(QStringLiteral("starttime"))) {
+			const int &g = data.value(QStringLiteral("starttime")).toInt();
+			q.addField("starttime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("endtime"))) {
+			const int &g = data.value(QStringLiteral("endtime")).toInt();
+			q.addField("endtime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("defaultGrade"))) {
+			const int &g = data.value(QStringLiteral("defaultGrade")).toInt();
+			q.addField("defaultGrade", g>0 ? g : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("description")))
+			q.addField("description", data.value(QStringLiteral("description")).toString());
+
+		if (!q.exec()) {
+			LOG_CWARNING("client") << "Campaign create error in group:" << groupid;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		const int &id = q.sqlQuery().lastInsertId().toInt();
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Campaign created:" << id;
+		responseAnswerOk(response, {
+							 { QStringLiteral("id"), id }
+						 });
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::campaignUpdate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::campaignUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([id, data, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=")
+				.addValue(id)
+				.addQuery(")")
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "invalid campaign");
+		}
+
+		QueryBuilder q(db);
+		q.addQuery("UPDATE campaign SET ").setCombinedPlaceholder();
+
+		if (data.contains(QStringLiteral("starttime"))) {
+			const int &g = data.value(QStringLiteral("starttime")).toInt();
+			q.addField("starttime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("endtime"))) {
+			const int &g = data.value(QStringLiteral("endtime")).toInt();
+			q.addField("endtime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("defaultGrade"))) {
+			const int &g = data.value(QStringLiteral("defaultGrade")).toInt();
+			q.addField("defaultGrade", g>0 ? g : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("description")))
+			q.addField("description", data.value(QStringLiteral("description")).toString());
+
+		q.addQuery(" WHERE id=").addValue(id);
+
+		if (!q.fieldCount() || !q.exec()) {
+			LOG_CWARNING("client") << "Campaign modify error:" << id;
+			db.rollback();
+			return responseError(response, "invalid campaign");
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Campaign modified:" << id;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::campaignDelete
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::campaignDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (list.isEmpty())
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([list, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).
+				addQuery("DELETE FROM campaign WHERE id IN "
+						 "(SELECT campaign.id FROM campaign LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) WHERE campaign.id IN(")
+				.addList(list.toVariantList())
+				.addQuery(") AND studentgroup.owner=").addValue(username)
+				.addQuery(")")
+				.exec()) {
+			LOG_CWARNING("client") << "Campaign delete error:" << list;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Campaigns deleted:" << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::campaignRun
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::campaignRun(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([id, data, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=")
+				.addValue(id)
+				.addQuery(")")
+				.execCheckExists()) {
+			return responseError(response, "invalid campaign");
+		}
+
+		AdminAPI::campaignStart(this, id)
+				.fail([response, this](){responseError(response, "campaign run error");})
+				.done([response, this](){responseAnswerOk(response);});
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::campaignFinish
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::campaignFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([id, data, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=")
+				.addValue(id)
+				.addQuery(")")
+				.execCheckExists()) {
+			return responseError(response, "invalid campaign");
+		}
+
+		AdminAPI::campaignFinish(this, id)
+				.fail([response, this](){responseError(response, "campaign finish error");})
+				.done([response, this](){responseAnswerOk(response);});
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::taskOne
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::taskOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=(SELECT campaignid FROM task WHERE id=")
+				.addValue(id)
+				.addQuery("))")
+				.execCheckExists()) {
+			return responseError(response, "invalid id");
+		}
+
+		responseAnswer(response, _task(id));
+	});
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::task
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::task(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &campaign = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, campaign]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=")
+				.addValue(campaign)
+				.addQuery(")")
+				.execCheckExists()) {
+			return responseError(response, "invalid campaign");
+		}
+
+		responseAnswer(response, "list", _taskList(campaign));
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::taskCreate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::taskCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &campaign = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, campaign, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=")
+				.addValue(campaign)
+				.addQuery(")")
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "invalid campaign");
+		}
+
+		QueryBuilder q(db);
+		q.addQuery("INSERT INTO task(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("campaignid", campaign)
+				;
+
+		if (data.contains(QStringLiteral("gradeid"))) {
+			const int &g = data.value(QStringLiteral("gradeid")).toInt();
+			q.addField("gradeid", g>0 ? g : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("xp"))) {
+			const int &g = data.value(QStringLiteral("xp")).toInt();
+			q.addField("xp", g>0 ? g : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("required")))
+			q.addField("required", data.value(QStringLiteral("required")).toBool());
+
+		if (data.contains(QStringLiteral("mapuuid")))
+			q.addField("mapuuid", data.value(QStringLiteral("mapuuid")).toString());
+
+		if (data.contains(QStringLiteral("criterion")))
+			q.addField("criterion", QString::fromUtf8(QJsonDocument(data.value(QStringLiteral("criterion")).toObject()).toJson(QJsonDocument::Compact)));
+
+
+		if (!q.exec()) {
+			LOG_CWARNING("client") << "Task create error in campaign:" << campaign;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		const int &id = q.sqlQuery().lastInsertId().toInt();
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Task created:" << id;
+		responseAnswerOk(response, {
+							 { QStringLiteral("id"), id }
+						 });
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::taskUpdate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::taskUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=(SELECT campaignid FROM task WHERE id=")
+				.addValue(id)
+				.addQuery("))")
+				.execCheckExists()) {
+			db.rollback();
+			return responseError(response, "invalid task");
+		}
+
+		QueryBuilder q(db);
+		q.addQuery("UPDATE task SET ").setCombinedPlaceholder();
+
+		if (data.contains(QStringLiteral("gradeid"))) {
+			const int &g = data.value(QStringLiteral("gradeid")).toInt();
+			q.addField("gradeid", g>0 ? g : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("xp"))) {
+			const int &g = data.value(QStringLiteral("xp")).toInt();
+			q.addField("xp", g>0 ? g : QVariant(QVariant::Invalid));
+		}
+
+		if (data.contains(QStringLiteral("required")))
+			q.addField("required", data.value(QStringLiteral("required")).toBool());
+
+		if (data.contains(QStringLiteral("mapuuid")))
+			q.addField("mapuuid", data.value(QStringLiteral("mapuuid")).toString());
+
+		if (data.contains(QStringLiteral("criterion")))
+			q.addField("criterion", QString::fromUtf8(QJsonDocument(data.value(QStringLiteral("criterion")).toObject()).toJson(QJsonDocument::Compact)));
+
+		q.addQuery(" WHERE id=").addValue(id);
+
+		if (!q.fieldCount() || !q.exec()) {
+			LOG_CWARNING("client") << "Task modify error:" << id;
+			db.rollback();
+			return responseError(response, "invalid task");
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Task updated:" << id;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::taskDelete
+ * @param list
+ * @param response
+ */
+
+void TeacherAPI::taskDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const
+{
+	if (list.isEmpty())
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([list, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).
+				addQuery("DELETE FROM task WHERE id IN "
+						 "(SELECT task.id FROM task LEFT JOIN campaign ON (campaign.id=task.campaignid) "
+						 "LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) WHERE task.id IN(")
+				.addList(list.toVariantList())
+				.addQuery(") AND studentgroup.owner=").addValue(username)
+				.addQuery(")")
+				.exec()) {
+			LOG_CWARNING("client") << "Task delete error:" << list;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Tasks deleted:" << list;
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::_task
+ * @param id
+ * @return
+ */
+
+
+QJsonObject TeacherAPI::_task(const int &id) const
+{
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	QMutexLocker(databaseMain()->mutex());
+
+	return QueryBuilder::q(db)
+			.addQuery("SELECT id, gradeid, xp, required, mapuuid, criterion, map.name as mapname FROM task "
+					  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) WHERE id=").addValue(id)
+			.execToJsonObject({
+								  { QStringLiteral("criterion"), [](const QVariant &v) {
+										return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+									} }
+							  });
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::_taskList
+ * @param campaign
+ * @return
+ */
+
+QJsonArray TeacherAPI::_taskList(const int &campaign) const
+{
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	QMutexLocker(databaseMain()->mutex());
+
+	return QueryBuilder::q(db)
+			.addQuery("SELECT id, gradeid, xp, required, mapuuid, criterion, map.name as mapname FROM task "
+					  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) WHERE campaignid=").addValue(campaign)
+			.execToJsonArray({
+								 { QStringLiteral("criterion"), [](const QVariant &v) {
+									   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+								   } }
+							 });
 }
 
 

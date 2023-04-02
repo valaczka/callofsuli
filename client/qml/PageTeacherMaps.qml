@@ -108,6 +108,26 @@ QPage {
 		}
 	}
 
+	Qaterial.Banner
+	{
+		anchors.top: parent.top
+		width: parent.width
+		drawSeparator: true
+		text: qsTr("Még egyetlen pálya sincsen felvéve. Hozz létre egy újat.")
+		iconSource: Qaterial.Icons.account
+		fillIcon: false
+		outlinedIcon: true
+		highlightedIcon: true
+
+		action1: qsTr("Létrehozás")
+		action2: qsTr("Importálás")
+
+		onAction1Clicked: actionMapAdd.trigger()
+		onAction2Clicked: actionMapImport.trigger()
+
+		visible: !handler.mapList.length
+	}
+
 	QFabButton {
 		visible: view.visible
 		action: actionMapAdd

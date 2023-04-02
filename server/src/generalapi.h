@@ -63,6 +63,8 @@ public:
 	void userMe(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void user(const QString &username, const QPointer<HttpResponse> &response) const;
 
+	void grade(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+
 
 	void testEvents(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 

@@ -27,7 +27,11 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include "qdir.h"
 #include "qjsonobject.h"
 #ifndef QT_NO_SSL
@@ -126,7 +130,6 @@ signals:
 	void serverNameChanged();
 	void configChanged();
 	void rankListChanged();
-
 	void temporaryChanged();
 
 private:

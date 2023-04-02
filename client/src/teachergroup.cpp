@@ -35,6 +35,7 @@ TeacherGroup::TeacherGroup(QObject *parent)
 	, m_userList(new UserList(this))
 	, m_memberList(new UserList(this))
 	, m_classList(new ClassList(this))
+	, m_campaignList(new CampaignList(this))
 {
 	LOG_CTRACE("client") << "TeacherGroup created" << this;
 
@@ -47,6 +48,7 @@ TeacherGroup::TeacherGroup(QObject *parent)
 
 TeacherGroup::~TeacherGroup()
 {
+	delete m_campaignList;
 	delete m_classList;
 	delete m_userList;
 	delete m_memberList;
@@ -82,6 +84,9 @@ void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("memberList")) || allField)
 		OlmLoader::loadFromJsonArray<User>(m_memberList, object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
+
+	if (object.contains(QStringLiteral("campaignList")) || allField)
+		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList, object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
 }
 
 
@@ -181,6 +186,18 @@ QString TeacherGroup::fullName() const
 
 	std::sort(l.begin(), l.end());
 	return QStringLiteral("%1 – %2").arg(m_name, l.join(QStringLiteral(", ")));
+}
+
+
+
+/**
+ * @brief TeacherGroup::campaignList
+ * @return
+ */
+
+CampaignList *TeacherGroup::campaignList() const
+{
+	return m_campaignList;
 }
 
 

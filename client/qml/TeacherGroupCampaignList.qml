@@ -18,36 +18,50 @@ Qaterial.Page
 	property TeacherGroup group: null
 	property alias view: view
 
+	property alias actionCampaignAdd: actionCampaignAdd
+
 	QListView {
 		id: view
 
 		currentIndex: -1
 		anchors.fill: parent
-		autoSelectChange: false
+		autoSelectChange: true
 
 		refreshProgressVisible: Client.webSocket.pending
 		refreshEnabled: true
 		onRefreshRequest: group.reload()
 
 		model: SortFilterProxyModel {
-			sourceModel: group ? group.memberList : null
+			sourceModel: group ? group.campaignList : null
 
 			sorters: [
-				StringSorter {
-					roleName: "fullName"
+				RoleSorter {
+					roleName: "finished"
 					sortOrder: Qt.AscendingOrder
+					priority: 3
+				},
+				RoleSorter {
+					roleName: "started"
+					sortOrder: Qt.DescendingOrder
+					priority: 2
+				},
+				RoleSorter {
+					roleName: "startTime"
+					sortOrder: Qt.AscendingOrder
+					priority: 1
 				}
 			]
 		}
 
 		delegate: QItemDelegate {
-			property User user: model.qtObject
-			selectableObject: user
+			property Campaign campaign: model.qtObject
+			selectableObject: campaign
 
 			highlighted: ListView.isCurrentItem
 			iconSource: Qaterial.Icons.account
 
-			text: user ? user.fullName: ""
+			text: campaign ? campaign.campaignid : ""
+			secondaryText: campaign ? campaign.taskList.length + " size" : ""
 
 			/*onClicked: if (!view.selectEnabled)
 						   Client.stackPushPage("AdminUserEdit.qml", {
@@ -61,35 +75,33 @@ Qaterial.Page
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen résztvevő sincsen felvéve. Adj hozzá a csoporthoz egy osztályt vagy felhasználót.")
+		text: qsTr("Még egyetlen hadjárat sincsen felvéve. Hozz létre egyet.")
 		iconSource: Qaterial.Icons.account
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true
 
-		action1: qsTr("Hozzáadás")
+		action1: qsTr("Létrehozás")
 
-		onAction1Clicked: actionUserEdit.trigger()
+		onAction1Clicked: actionCampaignAdd.trigger()
 
 		enabled: group
-		visible: group && !group.memberList.length
+		visible: group && !group.campaignList.length
 	}
 
 	QFabButton {
 		visible: view.visible
-		action: actionUserEdit
+		action: actionCampaignAdd
 	}
 
-	Action {
-		id: actionUserEdit
-		icon.source: Qaterial.Icons.pen
-		text: qsTr("Törlés")
-		onTriggered: {
-			Client.stackPushPage("PageTeacherGroupEdit.qml", {
-									 group: control.group
-								 })
 
-		}
+	Action {
+		id: actionCampaignAdd
+		text: qsTr("Új hadjárat")
+		icon.source: Qaterial.Icons.accountPlus
+		/*onTriggered: Client.stackPushPage("AdminUserEdit.qml", {
+											  classid: _user.classid
+										  })*/
 	}
 
 

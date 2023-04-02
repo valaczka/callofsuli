@@ -236,6 +236,29 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key, QJSValue func
 }
 
 
+
+/**
+ * @brief ClientCache::find
+ * @param key
+ * @param value
+ * @return
+ */
+
+QObject *ClientCache::find(const QString &key, const QVariant &value)
+{
+	if (!m_list.contains(key)) {
+		LOG_CWARNING("client") << "Key not found:" << key;
+		return nullptr;
+	}
+
+	const CacheItem &it = m_list.value(key);
+
+	return std::invoke(it.finder, it.list, it.property, value);
+}
+
+
+
+
 /**
  * @brief ClientCache::clear
  */
@@ -259,7 +282,7 @@ void ClientCache::clear()
  * @return
  */
 
-bool ClientCache::callHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const
+bool ClientCache::callReloadHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const
 {
 	if (m_handlers.contains(key)) {
 		LOG_CWARNING("client") << "Handlery key not found:" << key;
@@ -274,6 +297,31 @@ bool ClientCache::callHandler(const QString &key, qolm::QOlmBase *list, const QJ
 	OlmLoader::call(it.func, list, array, it.jsonField, it.property, it.allFieldOverride);
 
 	return true;
+}
+
+
+
+/**
+ * @brief ClientCache::callFinderHandler
+ * @param key
+ * @param list
+ * @param value
+ * @return
+ */
+
+QObject *ClientCache::callFinderHandler(const QString &key, qolm::QOlmBase *list, const QVariant &value) const
+{
+	if (m_handlers.contains(key)) {
+		LOG_CWARNING("client") << "Handlery key not found:" << key;
+		return nullptr;
+	}
+
+	if (!list)
+		return nullptr;
+
+	const CacheItem &it = m_list.value(key);
+
+	return std::invoke(it.finder, list, it.property, value);
 }
 
 
@@ -321,5 +369,6 @@ void OlmLoader::call(const OlmLoaderFunc &func, qolm::QOlmBase *list, const QJso
 {
 	std::invoke(func, list, array, jsonField, property, allFieldOverride);
 }
+
 
 

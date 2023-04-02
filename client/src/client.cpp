@@ -370,9 +370,16 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
 
-	m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
+	switch (m_application->commandLine()) {
+	case Application::Demo:
+		loadDemoMap();
+		break;
+	default:
+		m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
+		emit startPageLoaded();
+		break;
+	}
 
-	emit startPageLoaded();
 }
 
 
@@ -498,6 +505,8 @@ void Client::onServerConnected()
 		{
 			server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
 		});
+
+		reloadCache(QStringLiteral("gradeList"));
 	})
 			->fail([this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
@@ -775,22 +784,36 @@ void Client::_userAuthTokenReceived(const QString &token)
 void Client::startCache()
 {
 	m_cache.add<User>(QStringLiteral("userList"), new UserList(this),
-					  &OlmLoader::loadFromJsonArray<User>, "username", "username", true,
+					  &OlmLoader::loadFromJsonArray<User>,
+					  &OlmLoader::find<User>,
+					  "username", "username", true,
 					  WebSocket::ApiGeneral, "user");
 
+	m_cache.add<Grade>(QStringLiteral("gradeList"), new GradeList(this),
+							  &OlmLoader::loadFromJsonArray<Grade>,
+							  &OlmLoader::find<Grade>,
+							  "id", "gradeid", false,
+							  WebSocket::ApiGeneral, "grade");
+
 	m_cache.add<ClassObject>(QStringLiteral("classList"), new ClassList(this),
-							 &OlmLoader::loadFromJsonArray<ClassObject>, "id", "classid", true,
+							 &OlmLoader::loadFromJsonArray<ClassObject>,
+							 &OlmLoader::find<ClassObject>,
+							 "id", "classid", true,
 							 WebSocket::ApiGeneral, "class");
 
 	m_cache.add<StudentGroup>(QStringLiteral("studentGroupList"), new StudentGroupList(this),
-							  &OlmLoader::loadFromJsonArray<StudentGroup>, "id", "groupid", false);
+							  &OlmLoader::loadFromJsonArray<StudentGroup>,
+							  &OlmLoader::find<StudentGroup>,
+							  "id", "groupid", false);
 
 	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), new TeacherGroupList(this),
-							  &OlmLoader::loadFromJsonArray<TeacherGroup>, "id", "groupid", false,
+							  &OlmLoader::loadFromJsonArray<TeacherGroup>,
+							  &OlmLoader::find<TeacherGroup>,
+							  "id", "groupid", false,
 							  WebSocket::ApiTeacher, "group");
 
 
-	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>);
+	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>, &OlmLoader::find<User>);
 }
 
 

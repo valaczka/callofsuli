@@ -28,7 +28,11 @@
 #define MAPPLAY_H
 
 #include <QObject>
-#include <QOlm/QOlm.hpp>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include "abstractlevelgame.h"
 #include "gamemap.h"
 
@@ -48,7 +52,6 @@ class MapPlay : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(GameMap::GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged)
 	Q_PROPERTY(GameMap *gameMap READ gameMap WRITE setGameMap NOTIFY gameMapChanged)
 	Q_PROPERTY(MapPlayMissionList *missionList READ missionList CONSTANT)
 	Q_PROPERTY(AbstractLevelGame *currentGame READ currentGame WRITE setCurrentGame NOTIFY currentGameChanged)
@@ -64,9 +67,6 @@ public:
 
 	Client *client() const;
 
-	const GameMap::GameMode &gameMode() const;
-	void setGameMode(const GameMap::GameMode &newGameMode);
-
 	GameMap *gameMap() const;
 	void setGameMap(GameMap *newGameMap);
 
@@ -78,7 +78,7 @@ public:
 	MapPlayMission *getMission(GameMapMissionIface *mission) const;
 	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const;
 
-	Q_INVOKABLE bool play(MapPlayMissionLevel *level);
+	Q_INVOKABLE bool play(MapPlayMissionLevel *level, const GameMap::GameMode &mode);
 
 	void updateSolver();
 
@@ -88,25 +88,25 @@ public:
 protected:
 	void loadGameMap(GameMap *map);
 	void unloadGameMap();
+	void reloadMissionList();
 
-	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level);
+	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode);
 	virtual void onCurrentGamePrepared();
 	virtual void onCurrentGameFinished();
 
 signals:
 	void gameMapLoaded();
 	void gameMapUnloaded();
-	void gameModeChanged();
 	void gameMapChanged();
 	void currentGameChanged();
 
 protected:
 	Client *const m_client = nullptr;
-	GameMap::GameMode m_gameMode = GameMap::Action;
 	GameMap *m_gameMap = nullptr;
 	AbstractMapPlaySolver *m_solver = nullptr;
 	MapPlayMissionList *const m_missionList;
 	AbstractLevelGame *m_currentGame = nullptr;
+
 };
 
 

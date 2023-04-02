@@ -232,7 +232,7 @@ bool AbstractGame::load()
 	LOG_CTRACE("game") << "Load game" << this;
 
 	if (m_pageItem) {
-		LOG_CERROR("game") << "A játék lapja már létezik!" << m_pageItem;
+		LOG_CERROR("game") << "Game page already exists" << m_pageItem;
 		return false;
 	}
 

@@ -28,6 +28,7 @@ DESTDIR = ../..
 QML_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
 
+
 DEFINES += CLIENT_UTILS
 
 include(../../lib/import_lib_client.pri)
@@ -43,11 +44,13 @@ include(../../lib/import_lib_client.pri)
 
 	SOURCES += \
 		mobileapplication.cpp \
-		desktopclient.cpp
+		desktopclient.cpp \
+		sound.cpp
 
 	HEADERS += \
 		mobileapplication.h \
-		desktopclient.h
+		desktopclient.h \
+		sound.h
 
 	!android:!ios {
 		SOURCES += desktopapplication.cpp
@@ -161,6 +164,7 @@ SOURCES += \
 	application.cpp \
 	basemap.cpp \
 	basemaphandler.cpp \
+	campaign.cpp \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
@@ -180,6 +184,7 @@ SOURCES += \
 	gamescene.cpp \
 	gameterrain.cpp \
 	gameterrainmap.cpp \
+	grade.cpp \
 	main.cpp \
 	mapimage.cpp \
 	mapplay.cpp \
@@ -188,6 +193,7 @@ SOURCES += \
 	question.cpp \
 	server.cpp \
 	studentgroup.cpp \
+	task.cpp \
 	teachergroup.cpp \
 	teachermap.cpp \
 	teachermaphandler.cpp \
@@ -209,6 +215,7 @@ HEADERS += \
 	application.h \
 	basemap.h \
 	basemaphandler.h \
+	campaign.h \
 	classobject.h \
 	client.h \
 	clientcache.h \
@@ -228,6 +235,7 @@ HEADERS += \
 	gamescene.h \
 	gameterrain.h \
 	gameterrainmap.h \
+	grade.h \
 	mapimage.h \
 	mapplay.h \
 	mapplaydemo.h \
@@ -235,6 +243,7 @@ HEADERS += \
 	question.h \
 	server.h \
 	studentgroup.h \
+	task.h \
 	teachergroup.h \
 	teachermap.h \
 	teachermaphandler.h \
@@ -243,12 +252,3 @@ HEADERS += \
 	websocket.h
 
 
-
-
-!wasm {
-	SOURCES += \
-		sound.cpp
-
-	HEADERS += \
-		sound.h
-}

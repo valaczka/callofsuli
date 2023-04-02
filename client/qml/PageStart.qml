@@ -153,6 +153,28 @@ QPage {
 	}
 
 
+	Qaterial.Banner
+	{
+		anchors.top: parent.top
+		width: parent.width
+		drawSeparator: true
+		text: qsTr("Még egyetlen szerver sincsen felvéve. Olvasd be a QR-kódot, vagy add hozzá kézzel.")
+		iconSource: Qaterial.Icons.desktopClassic
+		fillIcon: false
+		outlinedIcon: true
+		highlightedIcon: true
+
+		action1: qsTr("QR-kód")
+		action2: qsTr("Hozzáadás")
+
+		onAction1Clicked: actionQR.trigger()
+		onAction2Clicked: actionAdd.trigger()
+
+		enabled: !Client.serverList.length
+		visible: !Client.serverList.length
+	}
+
+
 	QFabButton {
 		visible: view.visible
 		action: actionQR

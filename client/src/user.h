@@ -29,7 +29,11 @@
 
 #include <selectableobject.h>
 #include <QObject>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include "rank.h"
 #include "credential.h"
 

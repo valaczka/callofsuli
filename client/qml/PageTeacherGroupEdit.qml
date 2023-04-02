@@ -57,7 +57,7 @@ QPage {
 			font: Qaterial.Style.textTheme.headline4
 			leadingIconSource: Qaterial.Icons.accountMultiple
 			leadingIconInline: true
-			placeholderText: qsTr("A csoport neve")
+			title: qsTr("A csoport neve")
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
 			trailingContent: QTextFieldInPlaceButtons {

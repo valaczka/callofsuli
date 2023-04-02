@@ -28,7 +28,11 @@
 #define TEACHERMAP_H
 
 #include <QObject>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include "qjsonobject.h"
 #include "basemap.h"
 

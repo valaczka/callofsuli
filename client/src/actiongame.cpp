@@ -1409,7 +1409,7 @@ void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, 
  * @param title
  */
 
-void ActionGame::dialogMessageTooltipById(const QString &msgId, const QString &title)
+void ActionGame::dialogMessageTooltipById(const QString &, const QString &)
 {
 
 }

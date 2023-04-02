@@ -27,14 +27,24 @@
 #ifndef TEACHERGROUP_H
 #define TEACHERGROUP_H
 
+#include "campaign.h"
 #include <QObject>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include "user.h"
 #include "classobject.h"
 
 class TeacherGroup;
 using TeacherGroupList = qolm::QOlm<TeacherGroup>;
 Q_DECLARE_METATYPE(TeacherGroupList*)
+
+
+/**
+ * @brief The TeacherGroup class
+ */
 
 class TeacherGroup : public QObject
 {
@@ -46,6 +56,7 @@ class TeacherGroup : public QObject
 	Q_PROPERTY(UserList* userList READ userList CONSTANT)
 	Q_PROPERTY(UserList* memberList READ memberList CONSTANT)
 	Q_PROPERTY(ClassList* classList READ classList CONSTANT)
+	Q_PROPERTY(CampaignList *campaignList READ campaignList CONSTANT)
 	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
 
 public:
@@ -71,6 +82,8 @@ public:
 
 	QString fullName() const;
 
+	CampaignList *campaignList() const;
+
 signals:
 	void groupidChanged();
 	void nameChanged();
@@ -84,6 +97,7 @@ private:
 	UserList *const m_userList;
 	UserList *const m_memberList;
 	ClassList *const m_classList;
+	CampaignList *const m_campaignList;
 };
 
 #endif // TEACHERGROUP_H

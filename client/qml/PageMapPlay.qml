@@ -73,7 +73,7 @@ QPage {
 
 							missionLevel: model.qtObject
 
-							onClicked: map.play(item)
+							onClicked: map.play(item, GameMap.Action)
 						}
 
 					}

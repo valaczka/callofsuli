@@ -184,17 +184,22 @@ qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &le
 
 qreal GameMap::computeSolvedXpFactor(const int &level, const bool &deathmatch, const int &solved, const GameMode &mode)
 {
-	qreal xp = XP_FACTOR_LEVEL*level;
+	qreal factor = XP_FACTOR_LEVEL*level;
 
 	if (mode == Action) {
 		if (deathmatch)
-			xp *= XP_FACTOR_DEATHMATCH;
+			factor *= XP_FACTOR_DEATHMATCH;
 
 		if (solved < 1)
-			xp *= XP_FACTOR_SOLVED_FIRST;
+			factor *= XP_FACTOR_SOLVED_FIRST;
 	}
 
-	return xp;
+	if (solved > SOLVED_MAX) {
+		factor += XP_FACTOR_SOLVED_OVER * (solved - SOLVED_MAX);
+		factor = qMax(factor, XP_FACTOR_LEVEL);
+	}
+
+	return factor;
 }
 
 
@@ -241,9 +246,10 @@ GameMapChapterIface *GameMap::ifaceAddChapter(const qint32 &id, const QString &n
  */
 
 GameMapMissionIface *GameMap::ifaceAddMission(const QByteArray &uuid, const QString &name,
-											  const QString &description, const QString &medalImage)
+											  const QString &description, const QString &medalImage, const quint32 &gameModes)
 {
-	GameMapMission *s = new GameMapMission(uuid, name, description, medalImage, this);
+	GameMapMission *s = new GameMapMission(uuid, name, description, medalImage, GameMap::GameModes(gameModes), this);
+
 	m_missions.append(s);
 	return s;
 }
@@ -374,7 +380,9 @@ GameMapObjectiveIface *GameMapChapter::ifaceAddObjective(const QString &uuid, co
  */
 
 
-GameMapMission::GameMapMission(const QByteArray &uuid, const QString &name, const QString &description, const QString &medalImage, GameMap *map)
+GameMapMission::GameMapMission(const QByteArray &uuid, const QString &name, const QString &description,
+							   const QString &medalImage, const GameMap::GameModes &modes,
+							   GameMap *map)
 	: GameMapMissionIface()
 	, m_map(map)
 {
@@ -382,6 +390,7 @@ GameMapMission::GameMapMission(const QByteArray &uuid, const QString &name, cons
 	m_name = name;
 	m_description = description;
 	m_medalImage = medalImage;
+	m_modes = modes;
 }
 
 const QString &GameMapMission::uuid() const
@@ -479,6 +488,18 @@ GameMapMissionLevelIface *GameMapMission::ifaceAddLock(const QString &uuid, cons
 	GameMapMissionLevel *l = m->level(level > 0 ? level : 1);
 	m_locks.append(l);
 	return l;
+}
+
+
+
+/**
+ * @brief GameMapMission::modes
+ * @return
+ */
+
+const GameMap::GameModes &GameMapMission::modes() const
+{
+	return m_modes;
 }
 
 

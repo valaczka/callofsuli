@@ -35,7 +35,11 @@
 #include <QColor>
 
 #ifdef CLIENT_UTILS
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include <QOlm/QOlm.hpp>
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #endif
 
 #ifdef Q_OS_ANDROID

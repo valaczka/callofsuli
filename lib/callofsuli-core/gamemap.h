@@ -35,9 +35,12 @@
 #include "gamemapreaderiface.h"
 
 
+#define SOLVED_MAX				3
+
 #define XP_FACTOR_TARGET_BASE	0.1
 #define XP_FACTOR_LEVEL			0.5
 #define XP_FACTOR_SOLVED_FIRST	2.5
+#define XP_FACTOR_SOLVED_OVER	-0.5				// Afert SOLVED_MAX
 #define XP_FACTOR_DEATHMATCH	2.3
 #define XP_FACTOR_STREAK		0.5
 #define XP_FACTOR_NEW_STREAK	1.0
@@ -93,14 +96,17 @@ public:
 	// Játékmód
 
 	enum GameMode {
-		Invalid,
-		Action,
-		Lite,
-		Exam,
-		Quiz
+		Invalid = 0,
+		Action = 1,
+		Lite = 1 << 2,
+		Test = 1 << 3,
+		Quiz = 1 << 4,
+		Exam = 1 << 5
 	};
 
 	Q_ENUM(GameMode);
+
+	Q_DECLARE_FLAGS(GameModes, GameMode)
 
 
 
@@ -136,7 +142,8 @@ protected:
 	GameMapStorageIface* ifaceAddStorage(const qint32 &id, const QString &module, const QVariantMap &data) override;
 	GameMapChapterIface* ifaceAddChapter(const qint32 &id, const QString &name) override;
 	GameMapMissionIface* ifaceAddMission(const QByteArray &uuid, const QString &name,
-												 const QString &description, const QString &medalImage) override;
+										 const QString &description, const QString &medalImage,
+										 const quint32 &gameModes) override;
 	GameMapImageIface* ifaceAddImage(const qint32 &id, const QByteArray &data) override;
 
 private:
@@ -146,6 +153,7 @@ private:
 	QList<GameMapMission *> m_missions;
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(GameMap::GameModes)
 
 
 
@@ -226,10 +234,10 @@ protected:
 	{ return GameMapReaderIface::ifaceListConvert<GameMapObjectiveIface, GameMapObjective>(m_objectives);	}
 
 	GameMapObjectiveIface* ifaceAddObjective(const QString &uuid,
-													 const QString &module,
-													 const qint32 &storageId,
-													 const qint32 &storageCount,
-													 const QVariantMap &data) override;
+											 const QString &module,
+											 const qint32 &storageId,
+											 const qint32 &storageCount,
+											 const QVariantMap &data) override;
 
 private:
 	QList<GameMapObjective *> m_objectives;
@@ -294,9 +302,12 @@ class GameMapMission : public GameMapMissionIface
 	Q_PROPERTY(QString medalImage MEMBER m_medalImage)
 	Q_PROPERTY(QList<GameMapMissionLevel *> levels MEMBER m_levels)
 	Q_PROPERTY(QList<GameMapMissionLevel *> locks MEMBER m_locks)
+	Q_PROPERTY(GameMap::GameModes modes READ modes MEMBER m_modes)
 
 public:
-	explicit GameMapMission(const QByteArray &uuid, const QString &name, const QString &description, const QString &medalImage, GameMap *map);
+	explicit GameMapMission(const QByteArray &uuid, const QString &name, const QString &description,
+							const QString &medalImage, const GameMap::GameModes &modes,
+							GameMap *map);
 	virtual ~GameMapMission() {}
 
 	const QString &uuid() const;
@@ -305,8 +316,10 @@ public:
 	const QString &medalImage() const;
 	const QList<GameMapMissionLevel *> &levels() const;
 	const QList<GameMapMissionLevel *> &locks() const;
+	const GameMap::GameModes &modes() const;
 
 	GameMapMissionLevel *level(const qint32 &num) const;
+
 
 protected:
 	QList<GameMapMissionLevelIface*> ifaceLevels() const override
@@ -328,6 +341,7 @@ private:
 	QList<GameMapMissionLevel *> m_levels;
 	QList<GameMapMissionLevel *> m_locks;
 	GameMap *m_map;
+	GameMap::GameModes m_modes = GameMap::Invalid;
 };
 
 

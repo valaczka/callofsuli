@@ -323,6 +323,7 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
@@ -352,6 +353,12 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
+	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
+	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
+	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
+	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
+	qmlRegisterType<Task>("CallOfSuli", 1, 0, "Task");
+	qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
 }
 
 /**
@@ -466,6 +473,18 @@ void Application::loadModules()
 
 
 /**
+ * @brief Application::commandLine
+ * @return
+ */
+
+const Application::CommandLine &Application::commandLine() const
+{
+	return m_commandLine;
+}
+
+
+
+/**
  * @brief Application::storageModules
  * @return
  */
@@ -474,7 +493,6 @@ const QHash<QString, ModuleInterface *> &Application::storageModules() const
 {
 	return m_storageModules;
 }
-
 
 
 

@@ -98,6 +98,7 @@ void DesktopApplication::commandLineParse()
 	parser.addOption({{QStringLiteral("e"), QStringLiteral("editor")}, QObject::tr("Pályszerkesztő indítása")});
 	parser.addOption({{QStringLiteral("m"), QStringLiteral("map")}, QObject::tr("Pálya szerkesztése"), QStringLiteral("file")});
 	parser.addOption({{QStringLiteral("p"), QStringLiteral("play")}, QObject::tr("Pálya lejátszása"), QStringLiteral("file")});
+	parser.addOption({{QStringLiteral("d"), QStringLiteral("demo")}, QObject::tr("Demo pálya lejátszása")});
 
 
 #ifdef QT_DEBUG
@@ -133,6 +134,8 @@ void DesktopApplication::commandLineParse()
 
 	if (parser.isSet(QStringLiteral("editor")))
 		m_commandLine = Editor;
+	else if (parser.isSet(QStringLiteral("demo")))
+		m_commandLine = Demo;
 	else if (parser.isSet(QStringLiteral("map"))) {
 		m_commandLine = Map;
 		m_loadMap = parser.value(QStringLiteral("map"));
@@ -184,6 +187,7 @@ bool DesktopApplication::performCommandLine()
 
 	return true;
 }
+
 
 
 /**

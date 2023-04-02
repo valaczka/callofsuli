@@ -157,18 +157,6 @@ Client *MapPlay::client() const
 	return m_client;
 }
 
-const GameMap::GameMode &MapPlay::gameMode() const
-{
-	return m_gameMode;
-}
-
-void MapPlay::setGameMode(const GameMap::GameMode &newGameMode)
-{
-	if (m_gameMode == newGameMode)
-		return;
-	m_gameMode = newGameMode;
-	emit gameModeChanged();
-}
 
 GameMap *MapPlay::gameMap() const
 {
@@ -197,41 +185,18 @@ void MapPlay::loadGameMap(GameMap *map)
 
 	setGameMap(map);
 
-	if (!map)
+	if (!m_gameMap)
 		return;
 
+	reloadMissionList();
 
-	foreach (GameMapMission *mission, map->missions()) {
-		MapPlayMission *pMission = new MapPlayMission(mission);
-		m_missionList->append(pMission);
-
-		for (int i=1; i<=mission->levels().size(); i++) {
-			GameMapMissionLevel *mLevel = mission->level(i);
-
-			if (!mLevel)
-				continue;
-
-			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, false);
-			pMission->missionLevelList()->append(pLevel);
-
-			if (mLevel->canDeathmatch()) {
-				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, true);
-				pMission->missionLevelList()->append(pLevel);
-			}
-		}
-	}
-
-
-
-	LOG_CDEBUG("game") << "Add mapimage provider for map:" << map->uuid();
-	MapImage *mapImage = new MapImage(map);
+	LOG_CDEBUG("game") << "Add mapimage provider for map:" << m_gameMap->uuid();
+	MapImage *mapImage = new MapImage(m_gameMap);
 	Application::instance()->engine()->addImageProvider(QStringLiteral("mapimage"), mapImage);
 
 	AbstractMapPlaySolver::clear(this);
 
 	updateSolver();
-
-
 
 	emit gameMapLoaded();
 }
@@ -266,16 +231,58 @@ void MapPlay::unloadGameMap()
 
 
 
+/**
+ * @brief MapPlay::reloadMissionList
+ */
 
-AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level)
+void MapPlay::reloadMissionList()
+{
+	if (!m_gameMap)
+		return;
+
+	LOG_CTRACE("game") << "Reload mission list";
+
+	m_missionList->clear();
+
+	foreach (GameMapMission *mission, m_gameMap->missions()) {
+		if (mission->modes() && !mission->modes().testFlag(GameMap::Action) && !mission->modes().testFlag(GameMap::Lite)) {
+			LOG_CERROR("game") << "Missing implementation";
+			continue;
+		}
+
+		MapPlayMission *pMission = new MapPlayMission(mission);
+		m_missionList->append(pMission);
+
+		for (int i=1; i<=mission->levels().size(); i++) {
+			GameMapMissionLevel *mLevel = mission->level(i);
+
+			if (!mLevel)
+				continue;
+
+			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, false);
+			pMission->missionLevelList()->append(pLevel);
+
+			if (mLevel->canDeathmatch()) {
+				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, true);
+				pMission->missionLevelList()->append(pLevel);
+			}
+		}
+	}
+}
+
+
+
+
+AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
 {
 	Q_ASSERT(level);
 	Q_ASSERT(level->missionLevel());
 	Q_ASSERT(m_client);
 
+
 	AbstractLevelGame *g = nullptr;
 
-	switch (m_gameMode) {
+	switch (mode) {
 	case GameMap::Action:
 		g = new ActionGame(level->missionLevel(), m_client);
 		break;
@@ -318,6 +325,7 @@ void MapPlay::onCurrentGameFinished()
 
 	m_currentGame->setReadyToDestroy(true);
 }
+
 
 
 
@@ -410,7 +418,7 @@ MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionL
  * @return
  */
 
-bool MapPlay::play(MapPlayMissionLevel *level)
+bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
 {
 	if (!m_client) {
 		LOG_CERROR("game") << "Missing client";
@@ -427,7 +435,7 @@ bool MapPlay::play(MapPlayMissionLevel *level)
 		return false;
 	}
 
-	AbstractLevelGame *g = createLevelGame(level);
+	AbstractLevelGame *g = createLevelGame(level, mode);
 
 	if (!g)
 		return false;

@@ -92,5 +92,7 @@
         <file>QFileDialog.qml</file>
         <file>QIconLoaderItemDelegate.qml</file>
         <file>QDownloadProgressIcon.qml</file>
+        <file>TeacherGroupCampaignList.qml</file>
+        <file>TeacherCampaignEdit.qml</file>
     </qresource>
 </RCC>

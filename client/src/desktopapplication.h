@@ -32,14 +32,6 @@
 
 class DesktopApplication : public MobileApplication
 {
-	enum CommandLine {
-		Normal,
-		License,
-		Editor,
-		Map,
-		Play
-	};
-
 public:
 	DesktopApplication(int &argc, char **argv);
 	virtual ~DesktopApplication();
@@ -51,7 +43,6 @@ protected:
 	virtual Client *createClient() override;
 
 private:
-	CommandLine m_commandLine = Normal;
 	QString m_loadMap;
 	QStringList m_arguments;
 	ColorConsoleAppender *m_appender = nullptr;

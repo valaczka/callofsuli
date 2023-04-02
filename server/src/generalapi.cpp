@@ -51,6 +51,8 @@ GeneralAPI::GeneralAPI(ServerService *service)
 
 	addMap("^me/*$", this, &GeneralAPI::userMe);
 
+	addMap("^grade/*$", this, &GeneralAPI::grade);
+
 	addMap("^events/*$", this, &GeneralAPI::testEvents);
 }
 
@@ -287,6 +289,42 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 	});
 
 }
+
+
+
+
+/**
+ * @brief GeneralAPI::grade
+ * @param response
+ */
+
+void GeneralAPI::grade(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	LOG_CTRACE("client") << "Get grade list";
+
+	databaseMainWorker()->execInThread([response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		const QJsonArray &list = QueryBuilder::q(db)
+		.addQuery("SELECT id, shortname, longname, value FROM grade")
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+
+
+
+
 
 
 void GeneralAPI::testEvents(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const

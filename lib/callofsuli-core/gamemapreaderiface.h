@@ -32,7 +32,7 @@
 #include <QDataStream>
 #include <QVariantMap>
 
-#define GAMEMAP_CURRENT_VERSION 12
+#define GAMEMAP_CURRENT_VERSION 13
 
 
 class GameMapChapterIface;
@@ -84,7 +84,8 @@ protected:
 	virtual GameMapStorageIface* ifaceAddStorage(const qint32 &id, const QString &module, const QVariantMap &data) = 0;
 	virtual GameMapChapterIface* ifaceAddChapter(const qint32 &id, const QString &name) = 0;
 	virtual GameMapMissionIface* ifaceAddMission(const QByteArray &uuid, const QString &name,
-												 const QString &description, const QString &medalImage) = 0;
+												 const QString &description, const QString &medalImage,
+												 const quint32 &gameModes) = 0;
 	virtual GameMapImageIface* ifaceAddImage(const qint32 &id, const QByteArray &data) = 0;
 
 
@@ -231,6 +232,7 @@ protected:
 	QString m_name;
 	QString m_description;
 	QString m_medalImage;
+	quint32 m_gameModes;
 
 private:
 	friend class GameMapReaderIface;

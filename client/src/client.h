@@ -141,9 +141,14 @@ public:
 	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list) { m_cache.set(key, list); }
 	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_webSocket, key); }
 	Q_INVOKABLE void reloadCache(const QString &key, const QJSValue &func) { m_cache.reload(m_webSocket, key, func); }
+	Q_INVOKABLE QObject *findCacheObject(const QString &key, const QVariant &value) { return m_cache.find(key, value); }
 
-	Q_INVOKABLE void callHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) {
-		m_cache.callHandler(key, list, array);
+	Q_INVOKABLE void callReloadHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) {
+		m_cache.callReloadHandler(key, list, array);
+	}
+
+	Q_INVOKABLE void callFinderHandler(const QString &key, qolm::QOlmBase *list, const QVariant &value) {
+		m_cache.callFinderHandler(key, list, value);
 	}
 
 

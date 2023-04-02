@@ -28,8 +28,12 @@
 #define CLIENTCACHE_H
 
 #include "Logger.h"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/Details/QOlmBase.hpp"
 #include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #include "qdebug.h"
 #include "qjsonarray.h"
 #include "qjsonobject.h"
@@ -37,6 +41,7 @@
 
 
 typedef std::function<void(qolm::QOlmBase *olm, const QJsonArray &, const char *, const char *, const bool &)> OlmLoaderFunc;
+typedef std::function<QObject*(qolm::QOlmBase *olm, const char *, const QVariant &)> OlmFinderFunc;
 
 /**
  * @brief The ClientCache class
@@ -57,6 +62,7 @@ public:
 	struct CacheItem {
 		qolm::QOlmBase *list;
 		OlmLoaderFunc func;
+		OlmFinderFunc finder;
 		WebSocket::API api = WebSocket::ApiInvalid;
 		const char *path = nullptr;
 		const char *jsonField = nullptr;
@@ -68,6 +74,7 @@ public:
 	template <typename T>
 	void add(const QString &key, qolm::QOlm<T> *list,
 			 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *, const bool &),
+			 T* (*finder)(qolm::QOlmBase *, const char *, const QVariant &),
 			 const char *jsonField = nullptr, const char *property = nullptr, const bool &allFieldOverride = true,
 			 const WebSocket::API &api = WebSocket::ApiInvalid, const char *path = nullptr);
 
@@ -83,6 +90,8 @@ public:
 	bool reload(WebSocket *websocket, const QString &key);
 	bool reload(WebSocket *websocket, const QString &key, QJSValue func);
 
+	QObject *find(const QString &key, const QVariant &value);
+
 	void clear();
 
 
@@ -90,9 +99,11 @@ public:
 	template <typename T>
 	void addHandler(const QString &key,
 					void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *, const bool &),
+					T* (*finder)(qolm::QOlmBase *, const char *, const QVariant &),
 					const char *jsonField = nullptr, const char *property = nullptr, const bool &allFieldOverride = true);
 
-	bool callHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const;
+	bool callReloadHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const;
+	QObject *callFinderHandler(const QString &key, qolm::QOlmBase *list, const QVariant &value) const;
 
 
 private:
@@ -131,7 +142,7 @@ public:
 
 
 	template <typename T>
-	static T* find(qolm::QOlm<T> *list, const char *property, const QVariant &value);
+	static T* find(qolm::QOlmBase *list, const char *property, const QVariant &value);
 
 
 	bool contains(const QString &key) const {
@@ -160,6 +171,7 @@ private:
 
 
 
+
 /// ---------------------------------------------------------------
 
 
@@ -168,6 +180,7 @@ private:
 template <typename T>
 void ClientCache::add(const QString &key, qolm::QOlm<T> *list,
 					  void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *, const bool &),
+					  T* (*finder)(qolm::QOlmBase *, const char *, const QVariant &),
 					  const char *jsonField, const char *property,
 					  const bool &allFieldOverride,
 					  const WebSocket::API &api, const char *path)
@@ -182,6 +195,7 @@ void ClientCache::add(const QString &key, qolm::QOlm<T> *list,
 	CacheItem it;
 	it.list = list;
 	it.func = handler;
+	it.finder = finder;
 	it.api = api;
 	it.path = path;
 	it.jsonField = jsonField;
@@ -207,6 +221,7 @@ void ClientCache::add(const QString &key, qolm::QOlm<T> *list,
 template<typename T>
 void ClientCache::addHandler(const QString &key,
 							 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *, const bool &),
+							 T* (*finder)(qolm::QOlmBase *, const char *, const QVariant &),
 							 const char *jsonField, const char *property, const bool &allFieldOverride)
 {
 	if (m_handlers.contains(key)) {
@@ -217,6 +232,7 @@ void ClientCache::addHandler(const QString &key,
 	CacheItem it;
 	it.list = nullptr;
 	it.func = handler;
+	it.finder = finder;
 	it.jsonField = jsonField;
 	it.property = property;
 	it.allFieldOverride = allFieldOverride;
@@ -321,19 +337,19 @@ void OlmLoader::map(QMap<QString, OlmLoaderFunc> *map, const QString &key,
  */
 
 template<typename T>
-T *OlmLoader::find(qolm::QOlm<T> *list, const char *property, const QVariant &value)
+T *OlmLoader::find(qolm::QOlmBase *list, const char *property, const QVariant &value)
 {
-	if (!list)
-		return nullptr;
+	Q_ASSERT(list);
 
-	for (T *u : *list) {
+	qolm::QOlm<T> *t = dynamic_cast<qolm::QOlm<T>*>(list);
+
+	for (T *u : *t) {
 		if (u->property(property) == value)
 			return u;
 	}
 
 	return nullptr;
 }
-
 
 
 

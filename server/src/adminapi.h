@@ -167,6 +167,11 @@ public:
 										  const QString &oldPassword, const QString &password, const bool &check);
 
 	static QString generateClassCode();
+
+	static QDefer campaignStart(const AbstractAPI *api, const int &campaign);
+	static QDefer campaignStart(const DatabaseMain *dbMain, const int &campaign);
+	static QDefer campaignFinish(const AbstractAPI *api, const int &campaign);
+	static QDefer campaignFinish(const DatabaseMain *dbMain, const int &campaign);
 };
 
 #endif // ADMINAPI_H

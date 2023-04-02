@@ -122,6 +122,38 @@ public:
 
 	void mapCreate(const QRegularExpressionMatch &, HttpRequest *request, QPointer<HttpResponse> response) const;
 	void mapUpload(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const;
+
+
+
+	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void campaignCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void campaignUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void campaignDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		campaignDelete({match.captured(1).toInt()}, response);
+	}
+	void campaignDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		campaignDelete(data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void campaignDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+	void campaignRun(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void campaignFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+
+	void taskOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void task(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void taskCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void taskUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void taskDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		taskDelete({match.captured(1).toInt()}, response);
+	}
+	void taskDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		taskDelete(data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void taskDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+
+	// Run in database worker thread
+	QJsonObject _task(const int &id) const;
+	QJsonArray _taskList(const int &campaign) const;
 };
 
 #endif // TEACHERAPI_H

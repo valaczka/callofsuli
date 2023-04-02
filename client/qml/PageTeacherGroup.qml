@@ -9,10 +9,9 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	/*stackPopFunction: function() {
-		if (_class.view.selectEnabled || _user.view.selectEnabled) {
-			if (_user.view.selectEnabled) _user.view.unselectAll()
-			if (_class.view.selectEnabled) _class.view.unselectAll()
+	stackPopFunction: function() {
+		if (_campaignList.view.selectEnabled) {
+			_campaignList.view.unselectAll()
 			return false
 		}
 
@@ -22,7 +21,7 @@ QPage {
 		}
 
 		return true
-	}*/
+	}
 
 	title: group ? group.fullName : qsTr("Csoport")
 	subtitle: Client.server ? Client.server.serverName : ""
@@ -33,7 +32,7 @@ QPage {
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
 		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: swipeView.currentIndex == 0 ? menuClass.open() : menuUser.open()
+		onClicked: swipeView.currentIndex == 0 ? menuClass.open() : menuCampaign.open()
 
 		QMenu {
 			id: menuClass
@@ -42,13 +41,11 @@ QPage {
 			QMenuItem { action: actionGroupRemove }
 		}
 
-
 		QMenu {
-			id: menuUser
+			id: menuCampaign
 
-			QMenuItem { action: actionGroupRename }
+			QMenuItem { action: _campaignList.actionCampaignAdd }
 		}
-
 	}
 
 
@@ -62,8 +59,9 @@ QPage {
 			group: control.group
 		}
 
-		Rectangle {
-			color: "blue"
+		TeacherGroupCampaignList {
+			id: _campaignList
+			group: control.group
 		}
 	}
 
@@ -73,7 +71,7 @@ QPage {
 
 		Component.onCompleted: {
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.account, color: "green" })
-			model.append({ text: qsTr("Pályák"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}

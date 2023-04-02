@@ -204,7 +204,16 @@ QPage {
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   Client.send(WebSocket.ApiTeacher, "group/create", { name: _text })
-															   .done(function(r){ Client.reloadCache("teacherGroupList") })
+															   .done(function(r){
+																   Client.reloadCache("teacherGroupList", function() {
+																	   var d = Client.findCacheObject("teacherGroupList", r.id)
+																	   if (d)
+																		   Client.stackPushPage("PageTeacherGroup.qml", {
+																									group: d
+																								})
+
+																   })
+															   })
 															   .fail(JS.failMessage("Létrehozás sikertelen"))
 														   }
 													   })

@@ -146,7 +146,7 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 
 	LOG_CTRACE("app") << "Load map data version:" << version;
 
-	if (version < 10) {
+	if (version < 7) {
 		LOG_CWARNING("app") << "Invalid map version";
 		return false;
 	}
@@ -368,6 +368,7 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 		QString description;
 		QString medalImage;
 		quint32 lockSize = 0;
+		quint32 gameModes = 0;
 
 		stream >> uuid;
 
@@ -379,6 +380,9 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 		if (m_version > 7)
 			stream >> medalImage;
 
+		if (m_version > 12)
+			stream >> gameModes;
+
 		stream >> lockSize;
 
 		LOG_CTRACE("app") << "Load mission:" << uuid;
@@ -386,7 +390,7 @@ bool GameMapReaderIface::missionsFromStream(QDataStream &stream)
 		if (uuid.isEmpty())
 			return false;
 
-		GameMapMissionIface *m = ifaceAddMission(uuid, name, description, medalImage);
+		GameMapMissionIface *m = ifaceAddMission(uuid, name, description, medalImage, gameModes);
 
 		if (!m)
 			return false;
@@ -436,6 +440,7 @@ void GameMapReaderIface::missionsToStream(QDataStream &stream, const QList<GameM
 		stream << m->m_name;
 		stream << m->m_description;
 		stream << m->m_medalImage;
+		stream << m->m_gameModes;
 
 		const QList<GameMapMissionLevelIface *> locks = m->ifaceLocks();
 

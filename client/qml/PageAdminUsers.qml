@@ -182,7 +182,7 @@ QPage {
 
 	function reloadUsers() {
 		Client.send(WebSocket.ApiAdmin, "user").done(function(r) {
-			Client.callHandler("user", userList, r.list)
+			Client.callReloadHandler("user", userList, r.list)
 		})
 		.fail(JS.failMessage("Letöltés sikertelen"))
 	}
