@@ -501,7 +501,7 @@ void AdminAPI::userActivate(const QJsonArray &list, const bool &active, const QP
 		return responseError(response, "missing username");
 
 	if (active)
-	LOG_CTRACE("client") << "Activate users" << list;
+		LOG_CTRACE("client") << "Activate users" << list;
 	else
 		LOG_CTRACE("client") << "Inactivate users" << list;
 
@@ -912,53 +912,38 @@ QDefer AdminAPI::campaignStart(const DatabaseMain *dbMain, const int &campaign)
 
 	QDefer ret;
 
-	/*dbMain->worker()->execInThread([ret, user, dbMain]() mutable {
+	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
 
 		db.transaction();
 
-		if (QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(user.username).execCheckExists()) {
-			LOG_CWARNING("client") << "User already exists:" << qPrintable(user.username);
+		QueryBuilder q(db);
+		q.addQuery("SELECT starttime FROM campaign WHERE started=false AND finished=false AND id=").addValue(campaign);
+
+		if (!q.exec() || !q.sqlQuery().first()) {
 			db.rollback();
 			return ret.reject();
 		}
 
-		QueryBuilder q(db);
-
-		q.addQuery("INSERT INTO user(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("username", user.username)
-				.addField("familyName", user.familyName)
-				.addField("givenName", user.givenName)
-				.addField("active", user.active)
-				.addField("classid", user.classid > 0 ? user.classid : QVariant(QVariant::Invalid))
-				.addField("isTeacher", user.isTeacher)
-				.addField("isAdmin", user.isAdmin)
-				.addField("isPanel", user.isPanel)
-				.addField("nickname", user.nickname)
-				.addField("character", user.character)
-				.addField("picture", user.picture)
-				;
-
-
-		if (!q.exec()) {
-			LOG_CERROR("client") << "User create error:" << qPrintable(user.username);
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE campaign SET ")
+				.setCombinedPlaceholder()
+				.addField("started", true)
+				.addField("starttime", QDateTime::currentDateTimeUtc())
+				.addQuery(" WHERE id=").addValue(campaign)
+				.exec()) {
+			LOG_CERROR("client") << "Campaign start error:" << campaign;
 			db.rollback();
 			return ret.reject();
 		}
 
 		db.commit();
 
-		LOG_CDEBUG("client") << "User created:" << qPrintable(user.username);
+		LOG_CDEBUG("client") << "Campaign started:" << campaign;
 		ret.resolve();
-	});*/
-
-	ret.resolve();
+	});
 
 	return ret;
 }
@@ -994,53 +979,38 @@ QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 
 	QDefer ret;
 
-	/*dbMain->worker()->execInThread([ret, user, dbMain]() mutable {
+	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
 
 		db.transaction();
 
-		if (QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(user.username).execCheckExists()) {
-			LOG_CWARNING("client") << "User already exists:" << qPrintable(user.username);
+		QueryBuilder q(db);
+		q.addQuery("SELECT starttime FROM campaign WHERE started=true AND finished=false AND id=").addValue(campaign);
+
+		if (!q.exec() || !q.sqlQuery().first()) {
 			db.rollback();
 			return ret.reject();
 		}
 
-		QueryBuilder q(db);
-
-		q.addQuery("INSERT INTO user(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("username", user.username)
-				.addField("familyName", user.familyName)
-				.addField("givenName", user.givenName)
-				.addField("active", user.active)
-				.addField("classid", user.classid > 0 ? user.classid : QVariant(QVariant::Invalid))
-				.addField("isTeacher", user.isTeacher)
-				.addField("isAdmin", user.isAdmin)
-				.addField("isPanel", user.isPanel)
-				.addField("nickname", user.nickname)
-				.addField("character", user.character)
-				.addField("picture", user.picture)
-				;
-
-
-		if (!q.exec()) {
-			LOG_CERROR("client") << "User create error:" << qPrintable(user.username);
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE campaign SET ")
+				.setCombinedPlaceholder()
+				.addField("finished", true)
+				.addField("endtime", QDateTime::currentDateTimeUtc())
+				.addQuery(" WHERE id=").addValue(campaign)
+				.exec()) {
+			LOG_CERROR("client") << "Campaign finish error:" << campaign;
 			db.rollback();
 			return ret.reject();
 		}
 
 		db.commit();
 
-		LOG_CDEBUG("client") << "User created:" << qPrintable(user.username);
+		LOG_CDEBUG("client") << "Campaign finished:" << campaign;
 		ret.resolve();
-	});*/
-
-	ret.resolve();
+	});
 
 	return ret;
 }

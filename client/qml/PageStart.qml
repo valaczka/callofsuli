@@ -101,6 +101,7 @@ QPage {
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionAdd }
 			QMenuItem { action: actionEdit }
+			QMenuItem { action: actionAutoConnect }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDelete }
 		}
@@ -201,6 +202,14 @@ QPage {
 		icon.source: Qaterial.Icons.pencil
 		enabled: view.currentIndex != -1
 		onTriggered: Client.stackPushPage("ServerEdit.qml", {server: view.model.get(view.currentIndex)})
+	}
+
+	Action {
+		id: actionAutoConnect
+		text: qsTr("Automatikus csatlakozás")
+		icon.source: Qaterial.Icons.connection
+		enabled: view.currentIndex != -1
+		onTriggered: Client.serverSetAutoConnect(view.model.get(view.currentIndex))
 	}
 
 	Action {

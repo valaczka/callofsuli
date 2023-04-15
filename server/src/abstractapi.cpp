@@ -99,12 +99,7 @@ void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QSt
 		return responseError(response, "internal error");
 	}
 
-	const QString &d = request->parseBodyStr();
-
-	if (!d.isEmpty()) {
-		if (request->mimeType().compare("application/json", Qt::CaseInsensitive) != 0)
-			return responseError(response, "Request body content type must be application/json");
-
+	if (request->mimeType().compare("application/json", Qt::CaseInsensitive) == 0 && !request->parseBodyStr().isEmpty()) {
 		const QJsonDocument &jsonDocument = request->parseJsonBody();
 		if (jsonDocument.isNull())
 			return responseError(response, "invalid json");
@@ -234,7 +229,7 @@ Credential AbstractAPI::authorize(HttpRequest *request) const
 
 	token.replace(QRegExp(QStringLiteral("^Bearer ")), QLatin1String(""));
 
-	if (!Credential::verify(token, m_service->settings()->jwtSecret())) {
+	if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
 		LOG_CDEBUG("client") << "Token verification failed";
 		return Credential();
 	}

@@ -59,12 +59,22 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(bool finished READ finished WRITE setFinished NOTIFY finishedChanged)
 	Q_PROPERTY(Grade *defaultGrade READ defaultGrade WRITE setDefaultGrade NOTIFY defaultGradeChanged)
 	Q_PROPERTY(TaskList *taskList READ taskList CONSTANT)
+	Q_PROPERTY(State state READ state NOTIFY stateChanged)
 
 public:
 	explicit Campaign(QObject *parent = nullptr);
 	virtual ~Campaign();
 
-	void loadFromJson(const QJsonObject &object, const bool &allField = true);
+	enum State {
+		Invalid = 0,
+		Prepared,
+		Running,
+		Finished
+	};
+
+	Q_ENUM(State);
+
+	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
 	int campaignid() const;
 	void setCampaignid(int newCampaignid);
@@ -89,6 +99,8 @@ public:
 
 	TaskList *taskList() const;
 
+	State state() const;
+
 signals:
 	void campaignidChanged();
 	void startTimeChanged();
@@ -97,6 +109,7 @@ signals:
 	void startedChanged();
 	void finishedChanged();
 	void defaultGradeChanged();
+	void stateChanged();
 
 private:
 	int m_campaignid = 0;

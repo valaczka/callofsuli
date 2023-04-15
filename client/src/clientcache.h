@@ -144,6 +144,8 @@ public:
 	template <typename T>
 	static T* find(qolm::QOlmBase *list, const char *property, const QVariant &value);
 
+	static QObject *find(qolm::QOlmBase *list, const char *property, const QVariant &value);
+
 
 	bool contains(const QString &key) const {
 		return m_list.contains(key);
@@ -167,6 +169,8 @@ private:
 	QMap<QString, OlmLoaderFunc> m_list;
 
 };
+
+
 
 
 
@@ -350,7 +354,6 @@ T *OlmLoader::find(qolm::QOlmBase *list, const char *property, const QVariant &v
 
 	return nullptr;
 }
-
 
 
 

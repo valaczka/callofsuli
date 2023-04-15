@@ -60,7 +60,7 @@ Server *Server::fromJson(const QJsonObject &data, QObject *parent)
 	Server *s = new Server(parent);
 	//s->setDirectory(realname.section('/', 0, -2));
 	s->setUrl(data.value(QStringLiteral("url")).toString());
-	s->setAutoConnect(data.value(QStringLiteral("autoConnect")).toBool(false));
+	s->setAutoConnect(data.value(QStringLiteral("autoConnect")).toVariant().toBool());
 	s->user()->setUsername(data.value(QStringLiteral("username")).toString());
 	s->setToken(data.value(QStringLiteral("token")).toString());
 	s->setCertificate(data.value(QStringLiteral("certificate")).toString().toUtf8());

@@ -372,3 +372,25 @@ void OlmLoader::call(const OlmLoaderFunc &func, qolm::QOlmBase *list, const QJso
 
 
 
+
+
+/**
+ * @brief OlmLoader::find
+ * @param list
+ * @param property
+ * @param value
+ * @return
+ */
+
+QObject *OlmLoader::find(qolm::QOlmBase *list, const char *property, const QVariant &value)
+{
+	Q_ASSERT(list);
+
+	for (int i=0; i<list->size(); ++i) {
+		QObject *o = list->get(i);
+		if (o && o->property(property) == value)
+			return o;
+	}
+
+	return nullptr;
+}

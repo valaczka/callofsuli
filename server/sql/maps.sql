@@ -19,7 +19,7 @@ CREATE TABLE map(
 	name TEXT,
 	version INTEGER NOT NULL DEFAULT 1,
 	md5 TEXT,
-	lastModified TEXT NOT NULL DEFAULT (datetime('now')),
+	lastModified TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	lastEditor TEXT,
 	data BLOB
 );
@@ -31,7 +31,7 @@ CREATE TABLE map(
 
 CREATE TABLE draft(
 	uuid TEXT NOT NULL REFERENCES map(uuid) ON UPDATE CASCADE ON DELETE CASCADE,
-	lastModified TEXT NOT NULL DEFAULT (datetime('now')),
+	lastModified TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	version INTEGER NOT NULL DEFAULT 1,
 	data BLOB,
 	UNIQUE(uuid)

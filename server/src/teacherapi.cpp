@@ -1272,11 +1272,7 @@ void TeacherAPI::mapCreate(const QRegularExpressionMatch &, HttpRequest *request
 	LOG_CTRACE("client") << "Create map";
 
 	databaseMainWorker()->execInThread([this, response, request]() {
-		QJsonObject obj;
-		QByteArray b;
-
-		if (!checkMultiPart(request, response, &obj, &b))
-			return;
+		const QByteArray &b = request->body();
 
 		GameMap *map = GameMap::fromBinaryData(b);
 
@@ -1301,13 +1297,12 @@ void TeacherAPI::mapCreate(const QRegularExpressionMatch &, HttpRequest *request
 			return responseError(response, "map already exists");
 		}
 
-		const QString &name = obj.value(QStringLiteral("name")).toString(QObject::tr("-- új pálya --"));
 		const QString &md5 = mapMd5(b);
 
 		if (!QueryBuilder::q(db)
 				.addQuery("INSERT INTO mapdb.map(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
 				.addField("uuid", uuid)
-				.addField("name", name)
+				.addField("name", uuid)
 				.addField("md5", md5)
 				.addField("data", b)
 				.addField("lastEditor", username)

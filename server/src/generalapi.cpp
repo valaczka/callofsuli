@@ -47,6 +47,7 @@ GeneralAPI::GeneralAPI(ServerService *service)
 	addMap("^class/(\\d+)/users/*$", this, &GeneralAPI::classUsers);
 
 	addMap("^user/*$", this, &GeneralAPI::users);
+	addMap("^score/*$", this, &GeneralAPI::userStudent);
 	addMap("^user/(.+)/*$", this, &GeneralAPI::user);
 
 	addMap("^me/*$", this, &GeneralAPI::userMe);
@@ -254,11 +255,11 @@ void GeneralAPI::userMe(const QRegularExpressionMatch &, const QJsonObject &, QP
  * @param response
  */
 
-void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &response) const
+void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &response, const Credential::Roles &roles) const
 {
 	LOG_CTRACE("client") << "Get user list:" << username;
 
-	databaseMainWorker()->execInThread([response, username, this]() {
+	databaseMainWorker()->execInThread([response, username, this, roles]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -266,6 +267,23 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 		QueryBuilder q(db);
 		q.addQuery(_SQL_get_user)
 				.addQuery("WHERE active=true");
+
+		if (!roles.testFlag(Credential::None)) {
+			QStringList list;
+			if (roles.testFlag(Credential::Teacher) && !roles.testFlag(Credential::Student))
+				list.append(QStringLiteral("isTeacher=true"));
+			if (!roles.testFlag(Credential::Teacher) && roles.testFlag(Credential::Student))
+				list.append(QStringLiteral("isTeacher=false"));
+			if (roles.testFlag(Credential::Admin))
+				list.append(QStringLiteral("isAdmin=true"));
+			if (roles.testFlag(Credential::Panel))
+				list.append(QStringLiteral("isPanel=true"));
+
+			if (!list.isEmpty()) {
+				QString str = QStringLiteral(" AND (")+list.join(QStringLiteral(" OR "))+QStringLiteral(")");
+				q.addQuery(str.toUtf8());
+			}
+		}
 
 		if (!username.isEmpty()) {
 			q.addQuery(" AND user.username=")

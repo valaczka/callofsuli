@@ -127,9 +127,9 @@ void TeacherMapHandler::mapImport(const QUrl &file)
 	delete map;
 	map = nullptr;
 
-	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create"), b, {
-									{ QStringLiteral("name"), Utils::fileBaseName(file.toLocalFile()) }
-								})
+	//  { QStringLiteral("name"), Utils::fileBaseName(file.toLocalFile()) }
+
+	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create"), b)
 			->fail([this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
 			->done([this](const QJsonObject &){
 		m_client->snack(tr("Az importálás sikerült"));

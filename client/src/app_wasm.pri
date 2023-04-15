@@ -9,7 +9,6 @@ QMAKE_LFLAGS += -s TOTAL_MEMORY=32MB
 
 #########################
 
-
 SOURCES += \
 	wasm_static_plugins.cpp \
 	onlineapplication.cpp \
@@ -41,6 +40,7 @@ LIBS += \
 	$$QTDIR/QtQuick/Templates.2/libqtquicktemplates2plugin.a \
 	$$QTDIR/QtQuick/Window.2/libwindowplugin.a \
 	$$QTDIR/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.a \
+	$$QTDIR/Qt/labs/calendar/libqtlabscalendarplugin.a \
 	$$QTDIR/Qt/labs/settings/libqmlsettingsplugin.a
 
 WasmRccFiles = $$files($$PWD/../../share/*.cres)

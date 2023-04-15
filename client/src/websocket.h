@@ -107,7 +107,11 @@ public slots:
 	void abort();
 
 	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
-	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content, const QJsonObject &data = {});
+	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content);
+#ifndef Q_OS_WASM
+	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content, const QJsonObject &data);
+#endif
+
 	QNetworkReply *get(const QUrl &url);
 	EventStream *getEventStream(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 

@@ -136,8 +136,8 @@ CREATE VIEW studentGroupInfo AS
 CREATE TABLE campaign(
 	id INTEGER NOT NULL PRIMARY KEY,
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	starttime TEXT,
-	endtime TEXT,
+	starttime INTEGER,
+	endtime INTEGER,
 	description TEXT,
 	started BOOL NOT NULL DEFAULT FALSE,
 	finished BOOL NOT NULL DEFAULT FALSE,
@@ -164,7 +164,7 @@ CREATE TABLE ranklog(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	rankid INTEGER NOT NULL REFERENCES rank(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	xp INTEGER
 );
 
@@ -187,11 +187,10 @@ SELECT u.username, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as name, r.le
 --- Score
 ----------------------------------
 
-
 CREATE TABLE score(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0)
 );
 
@@ -203,3 +202,33 @@ BEGIN
 		SELECT NEW.username, rank.id, userRank.xp FROM userRank LEFT JOIN rank ON (rank.xp<=userRank.xp)
 		WHERE username=NEW.username AND rank.id>userRank.rankid ORDER BY rank.id DESC LIMIT 1;
 END;
+
+
+
+
+----------------------------------
+--- Game
+----------------------------------
+
+
+CREATE TABLE game(
+	id INTEGER PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	mapid TEXT,
+	missionid TEXT,
+	level INTEGER NOT NULL DEFAULT 1,
+	deathmatch BOOL NOT NULL DEFAULT FALSE,
+	success BOOL NOT NULL DEFAULT FALSE,
+	duration INTEGER
+);
+
+
+CREATE VIEW streak_view AS
+WITH game_date AS (SELECT DISTINCT username, date(timestamp) AS date FROM game WHERE success=true),
+	game_ranked AS (SELECT *, RANK() OVER(PARTITION BY username ORDER BY date) AS rank FROM game_date),
+	streak AS (SELECT *, date(date, '-'||rank||' day') AS date_group FROM game_ranked),
+	output AS (SELECT DISTINCT username, date_group, COUNT(*) AS streak, MIN(date) AS started_on, MAX(date) AS ended_on FROM streak GROUP BY 1,2)
+	SELECT username, streak, started_on, ended_on FROM output;
+
+

@@ -93,6 +93,10 @@
         <file>QIconLoaderItemDelegate.qml</file>
         <file>QDownloadProgressIcon.qml</file>
         <file>TeacherGroupCampaignList.qml</file>
-        <file>TeacherCampaignEdit.qml</file>
+        <file>PageTeacherCampaign.qml</file>
+        <file>TeacherCampaignDetails.qml</file>
+        <file>QComboBoxInPlaceButtons.qml</file>
+        <file>QDateTimePicker.qml</file>
+        <file>TeacherCampaignTaskEdit.qml</file>
     </qresource>
 </RCC>

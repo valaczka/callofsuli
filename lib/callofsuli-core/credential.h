@@ -58,7 +58,7 @@ public:
 	QString createJWT(const QString &secret) const;
 	static Credential fromJWT(const QString &jwt);
 
-	static bool verify(const QString &token, const QString &secret);
+	static bool verify(const QString &token, const QString &secret, const qint64 &firstIat);
 
 	static QString hashString(const QString &str, const QString &salt,
 							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);

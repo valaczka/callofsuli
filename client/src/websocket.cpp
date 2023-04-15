@@ -333,6 +333,54 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 }
 
 
+
+/**
+ * @brief WebSocket::send
+ * @param api
+ * @param path
+ * @param content
+ * @return
+ */
+
+WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByteArray &content)
+{
+	Q_ASSERT (m_networkManager);
+
+	if (!m_server) {
+		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
+		return nullptr;
+	}
+
+	QNetworkRequest r(getUrl(api, path));
+
+#ifndef QT_NO_SSL
+	if (!m_rootCertificate.isNull()) {
+		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
+		config.addCaCertificate(m_rootCertificate);
+		r.setSslConfiguration(config);
+	}
+#endif
+
+	if (!m_server->token().isEmpty()) {
+		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+	}
+
+	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/octet-stream"));
+
+	QNetworkReply *reply = m_networkManager->post(r, content);
+
+	LOG_CDEBUG("websocket") << "Send content:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << content.size();
+
+	WebSocketReply *wr = new WebSocketReply(reply, this);
+	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
+	return wr;
+}
+
+
+
+
+
+
 /**
  * @brief WebSocket::send
  * @param api
@@ -384,7 +432,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 
 	multiPart->setParent(reply);
 
-	LOG_CWARNING("websocket") << "SEND CONTENT:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data << content.size();
+	LOG_CDEBUG("websocket") << "Send multipart content:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << data << content.size();
 
 	WebSocketReply *wr = new WebSocketReply(reply, this);
 	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);

@@ -33,7 +33,9 @@ Campaign::Campaign(QObject *parent)
 	: SelectableObject{parent}
 	, m_taskList(new TaskList(this))
 {
-
+	connect(this, &Campaign::startedChanged, this, &Campaign::stateChanged);
+	connect(this, &Campaign::finishedChanged, this, &Campaign::stateChanged);
+	connect(m_taskList, &qolm::QOlmBase::countChanged, this, &Campaign::stateChanged);
 }
 
 
@@ -69,10 +71,10 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 		setEndTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("endtime")).toInt()));
 
 	if (object.contains(QStringLiteral("started")) || allField)
-		setStarted(object.value(QStringLiteral("started")).toBool());
+		setStarted(object.value(QStringLiteral("started")).toVariant().toBool());
 
 	if (object.contains(QStringLiteral("finished")) || allField)
-		setFinished(object.value(QStringLiteral("finished")).toBool());
+		setFinished(object.value(QStringLiteral("finished")).toVariant().toBool());
 
 	if (object.contains(QStringLiteral("defaultGrade")) || allField)
 		setDefaultGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
@@ -184,3 +186,25 @@ TaskList *Campaign::taskList() const
 {
 	return m_taskList;
 }
+
+
+/**
+ * @brief Campaign::state
+ * @return
+ */
+
+Campaign::State Campaign::state() const
+{
+	if (m_finished)
+		return Finished;
+
+	if (m_started)
+		return Running;
+
+	if (m_taskList->size())
+		return Prepared;
+
+	return Invalid;
+}
+
+

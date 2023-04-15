@@ -58,15 +58,31 @@ Qaterial.Page
 			selectableObject: campaign
 
 			highlighted: ListView.isCurrentItem
-			iconSource: Qaterial.Icons.account
+			iconSource: {
+				if (!campaign)
+					return ""
+				switch (campaign.state) {
+				case Campaign.Finished:
+					return Qaterial.Icons.checkBold
+				case Campaign.Running:
+					return Qaterial.Icons.play
+				default:
+					return Qaterial.Icons.account
+				}
+			}
 
-			text: campaign ? campaign.campaignid : ""
+
+			readonly property string _campaignName: campaign ? campaign.description != "" ? campaign.description :
+																							qsTr("Hadjárat #%1").arg(campaign.campaignid) : ""
+
+			text: _campaignName
 			secondaryText: campaign ? campaign.taskList.length + " size" : ""
 
-			/*onClicked: if (!view.selectEnabled)
-						   Client.stackPushPage("AdminUserEdit.qml", {
-													user: user
-												})*/
+			onClicked: if (!view.selectEnabled)
+						   Client.stackPushPage("PageTeacherCampaign.qml", {
+													group: control.group,
+													campaign: campaign
+												})
 		}
 	}
 
@@ -97,13 +113,22 @@ Qaterial.Page
 
 	Action {
 		id: actionCampaignAdd
+		enabled: group
 		text: qsTr("Új hadjárat")
 		icon.source: Qaterial.Icons.accountPlus
-		/*onTriggered: Client.stackPushPage("AdminUserEdit.qml", {
-											  classid: _user.classid
-										  })*/
+		onTriggered: {
+			Client.send(WebSocket.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
+			.done(function(r){
+				group.reloadAndCall(function() {
+					var o = Client.findOlmObject(group.campaignList, "campaignid", r.id)
+					if (o)
+						Client.stackPushPage("PageTeacherCampaign.qml", {
+												 group: control.group,
+												 campaign: o
+											 })
+				})
+			})
+			.fail(JS.failMessage(qsTr("Hadjárat létrehozása sikertelen")))
+		}
 	}
-
-
-
 }

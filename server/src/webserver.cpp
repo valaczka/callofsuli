@@ -74,6 +74,7 @@ bool WebServer::start()
 	HttpServerConfig configuration;
 	configuration.host = settings->listenAddress();
 	configuration.port = settings->listenPort();
+	configuration.maxRequestSize = 1 * 1024 * 1024;
 	//configuration.verbosity = HttpServerConfig::Verbose::All;
 
 	configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");

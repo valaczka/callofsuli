@@ -345,6 +345,7 @@ bool DatabaseMain::_createTables()
 			.addField("versionMajor", m_service->versionMajor())
 			.addField("versionMinor", m_service->versionMinor())
 			.addField("serverName", QStringLiteral("New Call of Suli server"))
+			.addField("config", QStringLiteral("{\"tokenFirstIat\":%1}").arg(QDateTime::currentSecsSinceEpoch()))
 			;
 
 	if (!q.exec())

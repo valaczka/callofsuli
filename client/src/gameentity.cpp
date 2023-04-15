@@ -128,7 +128,7 @@ bool GameEntity::loadFromJsonFile(const QString &filename)
 
 	setBodyRect(r.normalized());
 
-	m_spriteFacingLeft = m_dataObject.value(QStringLiteral("facingLeft")).toBool(false);
+	m_spriteFacingLeft = m_dataObject.value(QStringLiteral("facingLeft")).toVariant().toBool();
 
 	onFacingLeftChanged();
 

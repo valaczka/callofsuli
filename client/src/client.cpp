@@ -553,7 +553,7 @@ void Client::onOAuthLoginStateChanged(const QJsonObject &json)
 		return;
 	}
 
-	if (json.value(QStringLiteral("pending")).toBool()) {
+	if (json.value(QStringLiteral("pending")).toVariant().toBool()) {
 		if (m_oauthData.status == OAuthData::UrlReceived || m_oauthData.status == OAuthData::Pending) {
 			m_oauthData.status = OAuthData::Pending;
 		} else {

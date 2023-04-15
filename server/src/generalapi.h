@@ -60,8 +60,11 @@ public:
 	void users(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
 		user(QLatin1String(""), response);
 	}
+	void userStudent(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
+		user(QLatin1String(""), response, Credential::Student);
+	}
 	void userMe(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void user(const QString &username, const QPointer<HttpResponse> &response) const;
+	void user(const QString &username, const QPointer<HttpResponse> &response, const Credential::Roles &roles = Credential::None) const;
 
 	void grade(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 

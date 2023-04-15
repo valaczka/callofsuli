@@ -19,8 +19,10 @@ QScrollable
 		target: Client.server ? Client.server.user : null
 
 		function onLoginStateChanged() {
-			if (Client.server.user.loginState == User.LoggedIn)
+			if (Client.server.user.loginState == User.LoggedIn) {
 				registrationMode = false
+				_password.clear()
+			}
 		}
 	}
 
@@ -29,8 +31,6 @@ QScrollable
 		target: Client
 
 		function onLoadRequestRegistration(oauth, code) {
-			console.debug("LOAD", oauth, code)
-
 			registrationMode = true
 
 			registration.code = code

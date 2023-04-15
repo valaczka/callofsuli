@@ -55,7 +55,7 @@ void Task::loadFromJson(const QJsonObject &object, const bool &allField)
 		setMapName(object.value(QStringLiteral("mapname")).toString());
 
 	if (object.contains(QStringLiteral("required")) || allField)
-		setRequired(object.value(QStringLiteral("required")).toBool());
+		setRequired(object.value(QStringLiteral("required")).toVariant().toBool());
 
 	if (object.contains(QStringLiteral("xp")) || allField)
 		setXp(object.value(QStringLiteral("xp")).toInt());

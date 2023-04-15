@@ -78,7 +78,7 @@ QString Credential::createJWT(const QString &secret) const
 	if (m_roles.testFlag(Admin))
 		list.append(QStringLiteral("admin"));
 
-	QDateTime exp = QDateTime::currentDateTime();
+	QDateTime exp = QDateTime::currentDateTimeUtc();
 
 	if (m_roles.testFlag(Admin))
 		exp = exp.addDays(1);
@@ -168,7 +168,7 @@ Credential Credential::fromJWT(const QString &jwt)
  * @return
  */
 
-bool Credential::verify(const QString &token, const QString &secret)
+bool Credential::verify(const QString &token, const QString &secret, const qint64 &firstIat)
 {
 	const QJsonWebToken &jwt = QJsonWebToken::fromTokenAndSecret(token, secret);
 
@@ -176,6 +176,9 @@ bool Credential::verify(const QString &token, const QString &secret)
 		return false;
 
 	const QJsonObject &object = jwt.getPayloadJDoc().object();
+
+	if (firstIat > 0 && object.value(QStringLiteral("iat")).toInt() < firstIat)
+		return false;
 
 	if (object.value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch())
 		return false;

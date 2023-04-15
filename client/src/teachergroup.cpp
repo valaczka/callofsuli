@@ -107,6 +107,28 @@ void TeacherGroup::reload()
 }
 
 
+/**
+ * @brief TeacherGroup::reloadAndCall
+ * @param v
+ */
+
+void TeacherGroup::reloadAndCall(QJSValue v)
+{
+	if (m_groupid <= 0)
+		return;
+
+	Application::instance()->client()->send(WebSocket::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
+			->fail([](const QString &err) {
+		Application::instance()->client()->messageWarning(err, tr("Letöltés sikertelen"));
+	})
+			->done([this, v](const QJsonObject &o) mutable {
+		loadFromJson(o, true);
+		if (v.isCallable())
+			v.call();
+	});
+}
+
+
 
 /**
  * @brief TeacherGroup::groupid

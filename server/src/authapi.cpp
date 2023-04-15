@@ -67,7 +67,7 @@ void AuthAPI::login(const QRegularExpressionMatch &, const QJsonObject &data, QP
 		return responseError(response, "missing username/password");
 
 	if (!token.isEmpty()) {
-		if (!Credential::verify(token, m_service->settings()->jwtSecret())) {
+		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
 			LOG_CDEBUG("client") << "Token verification failed";
 			return responseError(response, "invalid token");
 		}
