@@ -199,6 +199,8 @@ public:
 
 	Q_INVOKABLE void logout();
 
+	Q_INVOKABLE void reloadUser() const;
+
 	// Cached lists
 
 	Q_INVOKABLE void loadClassListFromArray(QJsonArray list);

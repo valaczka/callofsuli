@@ -295,6 +295,13 @@ Rank Server::rank(const int &id) const
 	return Rank();
 }
 
+
+
+/**
+ * @brief Server::temporary
+ * @return
+ */
+
 bool Server::temporary() const
 {
 	return m_temporary;

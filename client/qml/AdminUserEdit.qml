@@ -220,6 +220,7 @@ QPage {
 
 					d.familyName = _familyName.text
 					d.givenName = _givenName.text
+					d.nickname = _nickName.text
 					d.picture = _picture.text
 					d.active = _active.checked
 					d.isAdmin = _isAdmin.checked
@@ -253,6 +254,7 @@ QPage {
 							   _username.text = user.username
 							   _familyName.text = user.familyName
 							   _givenName.text = user.givenName
+							   _nickName.text = user.nickName
 							   _picture.text = user.picture.toString()
 							   _active.checked = user.active
 							   _isAdmin.checked = (user.roles & Credential.Admin)

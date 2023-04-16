@@ -569,6 +569,65 @@ QJsonObject QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc>
 }
 
 
+
+/**
+ * @brief QueryBuilder::execToValue
+ * @param field
+ * @param err
+ * @return
+ */
+
+QVariant QueryBuilder::execToValue(const char *field, bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QVariant::Invalid;
+	}
+
+	if (m_sqlQuery.size() > 1) {
+		if (err) *err = true;
+		LOG_CWARNING("db") << "More than one row returned";
+		return QVariant::Invalid;
+	}
+
+	if (m_sqlQuery.first())
+		return value(field);
+	else
+		return QVariant::Invalid;
+
+}
+
+
+
+
+/**
+ * @brief QueryBuilder::execToValue
+ * @param field
+ * @param defaultValue
+ * @param err
+ * @return
+ */
+
+QVariant QueryBuilder::execToValue(const char *field, const QVariant &defaultValue, bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QVariant::Invalid;
+	}
+
+	if (m_sqlQuery.size() > 1) {
+		if (err) *err = true;
+		LOG_CWARNING("db") << "More than one row returned";
+		return QVariant::Invalid;
+	}
+
+	if (m_sqlQuery.first())
+		return value(field, defaultValue);
+	else
+		return defaultValue;
+}
+
+
 /**
  * @brief QueryBuilder::sqlQuery
  * @return

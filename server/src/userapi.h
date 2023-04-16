@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermaphandler.h
+ * studentapi.h
  *
- * Created on: 2023. 03. 31.
+ * Created on: 2023. 04. 16.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMapHandler
+ * StudentAPI
  *
  *  This file is part of Call of Suli.
  *
@@ -24,38 +24,25 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TEACHERMAPHANDLER_H
-#define TEACHERMAPHANDLER_H
+#ifndef USERAPI_H
+#define USERAPI_H
 
-#include "basemaphandler.h"
-#include "teachermap.h"
-#include <QObject>
+#include "abstractapi.h"
 
-class TeacherMapHandler : public BaseMapHandler
+class UserAPI : public AbstractAPI
 {
-	Q_OBJECT
-
-	Q_PROPERTY(TeacherMapList *mapList READ mapList CONSTANT)
-
 public:
-	explicit TeacherMapHandler(QObject *parent = nullptr);
-	virtual ~TeacherMapHandler();
+	UserAPI(ServerService *service);
 
-	Q_INVOKABLE void mapCreate(const QString &name);
-	Q_INVOKABLE void mapImport(const QUrl &file);
-	Q_INVOKABLE void mapDownload(TeacherMap *map);
-	Q_INVOKABLE void checkDownloads();
 
-	TeacherMapList *mapList() const;
+	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
-signals:
+	void campaigns(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
-protected:
-	void reloadList() override;
-
-private:
-	TeacherMapList *const m_mapList;
+	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 };
 
-#endif // TEACHERMAPHANDLER_H
+#endif // USERAPI_H

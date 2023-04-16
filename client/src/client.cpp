@@ -485,8 +485,6 @@ void Client::onServerConnected()
 
 	m_mainPage = stackPushPage(QStringLiteral("PageMain.qml"));
 
-	loginToken();
-
 	send(WebSocket::ApiGeneral, QStringLiteral("config"))
 			->done([this](const QJsonObject &json)
 	{
@@ -504,6 +502,7 @@ void Client::onServerConnected()
 				->done([this](const QJsonObject &json)
 		{
 			server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
+			loginToken();
 		});
 
 		reloadCache(QStringLiteral("gradeList"));
@@ -591,9 +590,10 @@ void Client::onUserLoggedIn()
 
 		if (server()->user()->roles().testFlag(Credential::Panel))
 			stackPushPage(QStringLiteral("PagePanel.qml"));
+		else if (server()->user()->roles().testFlag(Credential::Teacher) || server()->user()->roles().testFlag(Credential::Admin))
+			stackPushPage(QStringLiteral("PageTeacherDashboard.qml"));
 		else
-			stackPushPage(QStringLiteral("PageDashboard.qml"));
-
+			stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
 	});
 }
 
@@ -783,17 +783,17 @@ void Client::_userAuthTokenReceived(const QString &token)
 
 void Client::startCache()
 {
-	m_cache.add<User>(QStringLiteral("userList"), new UserList(this),
+	m_cache.add<User>(QStringLiteral("scoreList"), new UserList(this),
 					  &OlmLoader::loadFromJsonArray<User>,
 					  &OlmLoader::find<User>,
 					  "username", "username", true,
-					  WebSocket::ApiGeneral, "user");
+					  WebSocket::ApiGeneral, "score");
 
 	m_cache.add<Grade>(QStringLiteral("gradeList"), new GradeList(this),
-							  &OlmLoader::loadFromJsonArray<Grade>,
-							  &OlmLoader::find<Grade>,
-							  "id", "gradeid", false,
-							  WebSocket::ApiGeneral, "grade");
+					   &OlmLoader::loadFromJsonArray<Grade>,
+					   &OlmLoader::find<Grade>,
+					   "id", "gradeid", false,
+					   WebSocket::ApiGeneral, "grade");
 
 	m_cache.add<ClassObject>(QStringLiteral("classList"), new ClassList(this),
 							 &OlmLoader::loadFromJsonArray<ClassObject>,
@@ -804,7 +804,14 @@ void Client::startCache()
 	m_cache.add<StudentGroup>(QStringLiteral("studentGroupList"), new StudentGroupList(this),
 							  &OlmLoader::loadFromJsonArray<StudentGroup>,
 							  &OlmLoader::find<StudentGroup>,
-							  "id", "groupid", false);
+							  "id", "groupid", false,
+							  WebSocket::ApiUser, "group");
+
+	m_cache.add<Campaign>(QStringLiteral("studentCampaignList"), new CampaignList(this),
+							  &OlmLoader::loadFromJsonArray<Campaign>,
+							  &OlmLoader::find<Campaign>,
+							  "id", "campaignid", false,
+							  WebSocket::ApiUser, "campaign");
 
 	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), new TeacherGroupList(this),
 							  &OlmLoader::loadFromJsonArray<TeacherGroup>,
@@ -1076,6 +1083,26 @@ void Client::logout()
 	LOG_CDEBUG("client") << "Logout";
 	onUserLoggedOut();
 }
+
+
+
+/**
+ * @brief Client::reloadUser
+ */
+
+void Client::reloadUser() const
+{
+	if (!server() || !server()->user() || server()->user()->username().isEmpty())
+		return;
+
+	LOG_CINFO("client") << "Reload user:" << qPrintable(server()->user()->username());
+
+	send(WebSocket::ApiGeneral, "me")->done([this](const QJsonObject &json){
+		server()->user()->loadFromJson(json);
+	});
+}
+
+
 
 
 /**

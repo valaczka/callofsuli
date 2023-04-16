@@ -53,12 +53,15 @@ class User : public SelectableObject
 	Q_PROPERTY(QString familyName READ familyName WRITE setFamilyName NOTIFY familyNameChanged)
 	Q_PROPERTY(QString givenName READ givenName WRITE setGivenName NOTIFY givenNameChanged)
 	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
+	Q_PROPERTY(QString fullNickName READ fullNickName NOTIFY fullNickNameChanged)
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged)
 	Q_PROPERTY(Credential::Roles roles READ roles WRITE setRoles NOTIFY rolesChanged)
 	Q_PROPERTY(LoginState loginState READ loginState WRITE setLoginState NOTIFY loginStateChanged)
 	Q_PROPERTY(QString picture READ picture WRITE setPicture NOTIFY pictureChanged)
+	Q_PROPERTY(QString nickName READ nickName WRITE setNickName NOTIFY nickNameChanged)
 
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
+	Q_PROPERTY(int streak READ streak WRITE setStreak NOTIFY streakChanged)
 	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(QString oauth READ oauth WRITE setOauth NOTIFY oauthChanged)
@@ -89,6 +92,7 @@ public:
 	void setGivenName(const QString &newGivenName);
 
 	QString fullName() const;
+	QString fullNickName() const;
 
 	const Rank &rank() const;
 	void setRank(const Rank &newRank);
@@ -117,6 +121,12 @@ public:
 	const QString &className() const;
 	void setClassName(const QString &newClassName);
 
+	int streak() const;
+	void setStreak(int newStreak);
+
+	const QString &nickName() const;
+	void setNickName(const QString &newNickName);
+
 public slots:
 	void clear();
 
@@ -125,6 +135,7 @@ signals:
 	void familyNameChanged();
 	void givenNameChanged();
 	void fullNameChanged();
+	void fullNickNameChanged();
 	void rankChanged();
 	void rolesChanged();
 	void loginStateChanged();
@@ -133,13 +144,15 @@ signals:
 	void pictureChanged();
 	void activeChanged();
 	void oauthChanged();
-
 	void classNameChanged();
+	void streakChanged();
+	void nickNameChanged();
 
 private:
 	QString m_username;
 	QString m_familyName;
 	QString m_givenName;
+	QString m_nickName;
 	Rank m_rank;
 	Credential::Roles m_roles = Credential::None;
 	LoginState m_loginState = LoggedOut;
@@ -149,6 +162,8 @@ private:
 	bool m_active = true;
 	QString m_oauth;
 	QString m_className;
+	int m_streak = 0;
+
 };
 
 

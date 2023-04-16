@@ -195,6 +195,8 @@ public:
 
 	QJsonArray execToJsonArray(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
 	QJsonObject execToJsonObject(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
+	QVariant execToValue(const char *field, bool *err = nullptr);
+	QVariant execToValue(const char *field, const QVariant &defaultValue, bool *err = nullptr);
 
 	void clear() {
 		m_sqlQuery.clear();

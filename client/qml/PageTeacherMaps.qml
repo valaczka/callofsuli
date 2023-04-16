@@ -158,14 +158,8 @@ QPage {
 														   title: qsTr("Új pálya létrehozása"),
 														   standardButtons: Dialog.Cancel | Dialog.Ok,
 														   onAccepted: function(_text, _noerror) {
-															   /*if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiAdmin, "class/create", {
-																				   name: _text
-																			   })
-															   .done(function(r){
-																   reload()
-															   })
-															   .fail(JS.failMessage("Létrehozás sikertelen"))*/
+															   if (_noerror && _text.length)
+																   handler.mapCreate(_text)
 														   }
 													   })
 		}

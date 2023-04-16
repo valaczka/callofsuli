@@ -120,7 +120,7 @@ public:
 	}
 	void mapDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
 
-	void mapCreate(const QRegularExpressionMatch &, HttpRequest *request, QPointer<HttpResponse> response) const;
+	void mapCreate(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const;
 	void mapUpload(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const;
 
 

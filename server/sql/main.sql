@@ -210,7 +210,6 @@ END;
 --- Game
 ----------------------------------
 
-
 CREATE TABLE game(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -224,11 +223,11 @@ CREATE TABLE game(
 );
 
 
-CREATE VIEW streak_view AS
+CREATE VIEW streak AS
 WITH game_date AS (SELECT DISTINCT username, date(timestamp) AS date FROM game WHERE success=true),
 	game_ranked AS (SELECT *, RANK() OVER(PARTITION BY username ORDER BY date) AS rank FROM game_date),
-	streak AS (SELECT *, date(date, '-'||rank||' day') AS date_group FROM game_ranked),
-	output AS (SELECT DISTINCT username, date_group, COUNT(*) AS streak, MIN(date) AS started_on, MAX(date) AS ended_on FROM streak GROUP BY 1,2)
-	SELECT username, streak, started_on, ended_on FROM output;
+	streak_view AS (SELECT *, date(date, '-'||rank||' day') AS date_group FROM game_ranked)
+	SELECT DISTINCT username, date_group, COUNT(*) AS streak, MIN(date) AS started_on, MAX(date) AS ended_on FROM streak_view GROUP BY 1,2;
+
 
 

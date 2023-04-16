@@ -72,8 +72,7 @@ Qaterial.Page
 			}
 
 
-			readonly property string _campaignName: campaign ? campaign.description != "" ? campaign.description :
-																							qsTr("Hadjárat #%1").arg(campaign.campaignid) : ""
+			readonly property string _campaignName: campaign ? campaign.readableName : ""
 
 			text: _campaignName
 			secondaryText: campaign ? campaign.taskList.length + " size" : ""

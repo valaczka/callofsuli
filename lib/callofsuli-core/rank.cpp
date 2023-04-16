@@ -139,6 +139,41 @@ QJsonArray RankList::toJson() const
 }
 
 
+
+/**
+ * @brief RankList::next
+ * @param rank
+ * @return
+ */
+
+Rank RankList::next(const Rank &rank) const
+{
+	if (!rank.isValid() || rank.isReserved())
+		return Rank();
+
+	// Search for next sublevel
+
+	foreach (const Rank &r, *this) {
+		if (r.m_level == rank.m_level && r.m_sublevel == rank.m_sublevel+1)
+			return r;
+	}
+
+	// Search for next level
+
+	Rank ret;
+
+	foreach (const Rank &r, *this) {
+		if (r.m_level > rank.m_level && r.isValid() && !r.isReserved()) {
+			if (!ret.isValid() || r.m_level < ret.m_level || (r.m_level == ret.m_level && r.m_sublevel < ret.m_sublevel))
+				ret = r;
+		}
+	}
+
+	return ret;
+}
+
+
+
 /**
  * @brief RankList::defaultRankList
  * @return

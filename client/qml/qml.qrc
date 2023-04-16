@@ -70,7 +70,7 @@
         <file>QScrollable.qml</file>
         <file>Ranks.qml</file>
         <file>QLoaderItemDelegate.qml</file>
-        <file>PageDashboard.qml</file>
+        <file>PageTeacherDashboard.qml</file>
         <file>QDashboardButton.qml</file>
         <file>QDashboardGrid.qml</file>
         <file>PageAdminUsers.qml</file>
@@ -98,5 +98,12 @@
         <file>QComboBoxInPlaceButtons.qml</file>
         <file>QDateTimePicker.qml</file>
         <file>TeacherCampaignTaskEdit.qml</file>
+        <file>PageStudentDashboard.qml</file>
+        <file>StudentDashboard.qml</file>
+        <file>QItemGradient.qml</file>
+        <file>QAnimatedProgressBar.qml</file>
+        <file>StudentGroups.qml</file>
+        <file>PageStudentCampaign.qml</file>
+        <file>QPageGradient.qml</file>
     </qresource>
 </RCC>

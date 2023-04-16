@@ -93,6 +93,8 @@ public:
 	static RankList fromJson(const QJsonArray &array);
 	QJsonArray toJson() const;
 
+	Rank next(const Rank &rank) const;
+
 	static RankList defaultRankList(const int &sublevels = 3,
 									const int &base_xp = 500,
 									const qreal &rank_factor_step = 0.15,

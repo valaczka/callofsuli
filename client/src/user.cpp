@@ -53,6 +53,9 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("givenName")) || allField)
 		setGivenName(object.value(QStringLiteral("givenName")).toString());
 
+	if (object.contains(QStringLiteral("nickname")) || allField)
+		setNickName(object.value(QStringLiteral("nickname")).toString());
+
 	if (object.contains(QStringLiteral("picture")) || allField)
 		setPicture(object.value(QStringLiteral("picture")).toString());
 
@@ -61,6 +64,9 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("xp")) || allField)
 		setXp(object.value(QStringLiteral("xp")).toInt());
+
+	if (object.contains(QStringLiteral("streak")) || allField)
+		setStreak(object.value(QStringLiteral("streak")).toInt());
 
 	if (object.contains(QStringLiteral("classid")) || allField)
 		setClassid(object.value(QStringLiteral("classid")).toInt(-1));
@@ -121,6 +127,7 @@ void User::setFamilyName(const QString &newFamilyName)
 	m_familyName = newFamilyName;
 	emit familyNameChanged();
 	emit fullNameChanged();
+	emit fullNickNameChanged();
 }
 
 const QString &User::givenName() const
@@ -135,12 +142,32 @@ void User::setGivenName(const QString &newGivenName)
 	m_givenName = newGivenName;
 	emit givenNameChanged();
 	emit fullNameChanged();
+	emit fullNickNameChanged();
 }
 
 QString User::fullName() const
 {
 	return QStringList({m_familyName, m_givenName}).join(' ');
 }
+
+
+/**
+ * @brief User::fullNickName
+ * @return
+ */
+
+QString User::fullNickName() const
+{
+	if (!m_nickName.simplified().isEmpty())
+		return m_nickName;
+	else
+		return fullName();
+}
+
+/**
+ * @brief User::rank
+ * @return
+ */
 
 const Rank &User::rank() const
 {
@@ -181,6 +208,33 @@ void User::clear()
 	setRank(Rank());
 	setRoles(Credential::None);
 	setLoginState(LoggedOut);
+}
+
+const QString &User::nickName() const
+{
+	return m_nickName;
+}
+
+void User::setNickName(const QString &newNickName)
+{
+	if (m_nickName == newNickName)
+		return;
+	m_nickName = newNickName;
+	emit nickNameChanged();
+	emit fullNickNameChanged();
+}
+
+int User::streak() const
+{
+	return m_streak;
+}
+
+void User::setStreak(int newStreak)
+{
+	if (m_streak == newStreak)
+		return;
+	m_streak = newStreak;
+	emit streakChanged();
 }
 
 const QString &User::className() const

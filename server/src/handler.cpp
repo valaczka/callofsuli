@@ -31,6 +31,7 @@
 #include "teacherapi.h"
 #include "adminapi.h"
 #include "panelapi.h"
+#include "userapi.h"
 #include "serverservice.h"
 
 
@@ -48,6 +49,7 @@ Handler::Handler(ServerService *service, QObject *parent)
 	m_apiHandlers.insert("admin", new AdminAPI(service));
 	m_apiHandlers.insert("auth", new AuthAPI(service));
 	m_apiHandlers.insert("general", new GeneralAPI(service));
+	m_apiHandlers.insert("user", new UserAPI(service));
 	m_apiHandlers.insert("teacher", new TeacherAPI(service));
 	m_apiHandlers.insert("panel", new PanelAPI(service));
 }
@@ -230,7 +232,7 @@ void Handler::handleOAuthCallback(HttpRequest *request, HttpResponse *response)
 		}
 
 		QByteArray content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body><p>%1</p></body></html>")
-				.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt lapot.")).toUtf8();
+				.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot.")).toUtf8();
 
 		if (authenticator->parseResponse(request->uriQuery()))
 			return response->setStatus(HttpStatus::Ok, content);

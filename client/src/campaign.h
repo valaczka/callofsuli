@@ -60,6 +60,7 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(Grade *defaultGrade READ defaultGrade WRITE setDefaultGrade NOTIFY defaultGradeChanged)
 	Q_PROPERTY(TaskList *taskList READ taskList CONSTANT)
 	Q_PROPERTY(State state READ state NOTIFY stateChanged)
+	Q_PROPERTY(QString readableName READ readableName NOTIFY readableNameChanged)
 
 public:
 	explicit Campaign(QObject *parent = nullptr);
@@ -101,6 +102,10 @@ public:
 
 	State state() const;
 
+	QString readableName() const;
+
+	Q_INVOKABLE QStringList usedMapUuids() const;
+
 signals:
 	void campaignidChanged();
 	void startTimeChanged();
@@ -110,6 +115,7 @@ signals:
 	void finishedChanged();
 	void defaultGradeChanged();
 	void stateChanged();
+	void readableNameChanged();
 
 private:
 	int m_campaignid = 0;

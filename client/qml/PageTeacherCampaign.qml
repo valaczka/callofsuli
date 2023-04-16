@@ -27,8 +27,7 @@ QPage {
 	property TeacherGroup group: null
 	property Campaign campaign: null
 
-	readonly property string _campaignName: campaign ? campaign.description != "" ? campaign.description :
-																					qsTr("Hadjárat #%1").arg(campaign.campaignid) : ""
+	readonly property string _campaignName: campaign ? campaign.readableName : ""
 
 	title: campaign ? _campaignName : qsTr("Új hadjárat")
 	subtitle: group ? group.fullName : ""

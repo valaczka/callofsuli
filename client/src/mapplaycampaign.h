@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermaphandler.h
+ * mapplaycampaign.h
  *
- * Created on: 2023. 03. 31.
+ * Created on: 2023. 04. 16.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMapHandler
+ * MapPlayCampaign
  *
  *  This file is part of Call of Suli.
  *
@@ -24,38 +24,34 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TEACHERMAPHANDLER_H
-#define TEACHERMAPHANDLER_H
+#ifndef MAPPLAYCAMPAIGN_H
+#define MAPPLAYCAMPAIGN_H
 
-#include "basemaphandler.h"
-#include "teachermap.h"
-#include <QObject>
+#include "mapplay.h"
+#include "studentmaphandler.h"
 
-class TeacherMapHandler : public BaseMapHandler
+
+/**
+ * @brief The MapPlayCampaign class
+ */
+
+class MapPlayCampaign : public MapPlay
 {
 	Q_OBJECT
 
-	Q_PROPERTY(TeacherMapList *mapList READ mapList CONSTANT)
-
 public:
-	explicit TeacherMapHandler(QObject *parent = nullptr);
-	virtual ~TeacherMapHandler();
+	explicit MapPlayCampaign(StudentMapHandler *handler, QObject *parent = nullptr);
+	virtual ~MapPlayCampaign();
 
-	Q_INVOKABLE void mapCreate(const QString &name);
-	Q_INVOKABLE void mapImport(const QUrl &file);
-	Q_INVOKABLE void mapDownload(TeacherMap *map);
-	Q_INVOKABLE void checkDownloads();
-
-	TeacherMapList *mapList() const;
-
-signals:
+	bool load(Campaign *campaign, StudentMap *map);
 
 protected:
-	void reloadList() override;
+	virtual void onCurrentGamePrepared() override;
+	virtual void onCurrentGameFinished() override;
 
 private:
-	TeacherMapList *const m_mapList;
-
+	const QPointer<StudentMapHandler> m_handler;
 };
 
-#endif // TEACHERMAPHANDLER_H
+
+#endif // MAPPLAYCAMPAIGN_H

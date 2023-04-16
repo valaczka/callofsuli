@@ -46,9 +46,6 @@ QPage {
 		Qaterial.AppBarButton {
 			icon.source: Qaterial.Icons.medal
 			ToolTip.text: qsTr("Ranglista")
-			ToolTip.visible: hovered || pressed
-			ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-
 			onClicked: Client.stackPushPage("Ranks.qml")
 
 		}
@@ -79,7 +76,7 @@ QPage {
 
 		Component.onCompleted: {
 			model.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
-			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.trophyBroken })
+			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium })
 		}
 	}
 

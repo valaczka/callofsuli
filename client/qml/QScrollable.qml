@@ -15,15 +15,20 @@ Item {
 	property real topPadding: Math.max(verticalPadding, Client.safeMarginTop)
 	property real bottomPadding: Math.max(verticalPadding, Client.safeMarginBottom)
 
+	property bool refreshEnabled: false
+
 	default property alias content: _content.data
 	property alias contentContainer: _content
 	property alias spacing: _content.spacing
+
+	signal refreshRequest()
 
 	implicitHeight: _content.implicitHeight
 	implicitWidth: _content.implicitWidth
 
 	Flickable
 	{
+		id: _flickable
 		width: parent.width
 		height: Math.min(parent.height, contentHeight)
 		anchors.verticalCenter: contentCentered ? parent.verticalCenter : undefined
@@ -33,7 +38,11 @@ Item {
 					   control.topPadding + control.bottomPadding
 					   /* + (Qt.inputMethod && Qt.inputMethod.visible ?
 							(Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)*/
-		flickableDirection: Flickable.AutoFlickIfNeeded
+		flickableDirection: Flickable.VerticalFlick
+
+		boundsBehavior: control.refreshEnabled ? Flickable.DragAndOvershootBounds : Flickable.StopAtBounds
+		boundsMovement: Flickable.StopAtBounds
+
 
 		clip: true
 
@@ -45,7 +54,16 @@ Item {
 			y: control.topPadding
 		}
 
+		PullToRefreshHandler {
+			target: _flickable
+			enabled: control.refreshEnabled
+			absoluteThreshold: 100
+			onPullDownRelease: control.refreshRequest()
+		}
+
 		ScrollIndicator.vertical: Qaterial.ScrollIndicator {}
 	}
 }
+
+
 

@@ -45,7 +45,7 @@ Campaign::Campaign(QObject *parent)
 
 Campaign::~Campaign()
 {
-	delete m_taskList;
+	m_taskList->deleteLater();
 }
 
 
@@ -141,6 +141,7 @@ void Campaign::setDescription(const QString &newDescription)
 		return;
 	m_description = newDescription;
 	emit descriptionChanged();
+	emit readableNameChanged();
 }
 
 bool Campaign::started() const
@@ -205,6 +206,40 @@ Campaign::State Campaign::state() const
 		return Prepared;
 
 	return Invalid;
+}
+
+
+/**
+ * @brief Campaign::readableName
+ * @return
+ */
+
+QString Campaign::readableName() const
+{
+	if (m_description.isEmpty())
+		return tr("Hadjárat #%1").arg(m_campaignid);
+	else
+		return m_description;
+
+}
+
+
+
+/**
+ * @brief Campaign::usedMapUuids
+ * @return
+ */
+
+QStringList Campaign::usedMapUuids() const
+{
+	QStringList list;
+
+	for (Task *t : *m_taskList) {
+		if (!t->mapUuid().isEmpty() && !list.contains(t->mapUuid()))
+			list.append(t->mapUuid());
+	}
+
+	return list;
 }
 
 

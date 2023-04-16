@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermaphandler.h
+ * studentmaphandler.h
  *
- * Created on: 2023. 03. 31.
+ * Created on: 2023. 04. 16.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMapHandler
+ * StudentMapHandler
  *
  *  This file is part of Call of Suli.
  *
@@ -24,38 +24,43 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TEACHERMAPHANDLER_H
-#define TEACHERMAPHANDLER_H
+#ifndef STUDENTMAPHANDLER_H
+#define STUDENTMAPHANDLER_H
 
 #include "basemaphandler.h"
-#include "teachermap.h"
-#include <QObject>
+#include "studentmap.h"
 
-class TeacherMapHandler : public BaseMapHandler
+class Campaign;
+
+/**
+ * @brief The StudentMapHandler class
+ */
+
+class StudentMapHandler : public BaseMapHandler
 {
 	Q_OBJECT
 
-	Q_PROPERTY(TeacherMapList *mapList READ mapList CONSTANT)
+	Q_PROPERTY(StudentMapList *mapList READ mapList CONSTANT)
 
 public:
-	explicit TeacherMapHandler(QObject *parent = nullptr);
-	virtual ~TeacherMapHandler();
+	explicit StudentMapHandler(QObject *parent = nullptr);
+	virtual ~StudentMapHandler();
 
-	Q_INVOKABLE void mapCreate(const QString &name);
-	Q_INVOKABLE void mapImport(const QUrl &file);
-	Q_INVOKABLE void mapDownload(TeacherMap *map);
+	Q_INVOKABLE void mapDownload(StudentMap *map);
 	Q_INVOKABLE void checkDownloads();
 
-	TeacherMapList *mapList() const;
+	Q_INVOKABLE void getUserCampaign(Campaign *campaign);
+	Q_INVOKABLE void playCampaignMap(Campaign *campaign, StudentMap *map);
 
-signals:
+	StudentMapList *mapList() const;
 
 protected:
 	void reloadList() override;
 
 private:
-	TeacherMapList *const m_mapList;
-
+	StudentMapList *const m_mapList;
 };
 
-#endif // TEACHERMAPHANDLER_H
+
+
+#endif // STUDENTMAPHANDLER_H

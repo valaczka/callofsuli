@@ -47,8 +47,35 @@ TeacherMapHandler::TeacherMapHandler(QObject *parent)
 
 TeacherMapHandler::~TeacherMapHandler()
 {
-	delete m_mapList;
+	m_mapList->deleteLater();
 	LOG_CTRACE("client") << "TeacherMapHandler destroyed" << this;
+}
+
+
+
+/**
+ * @brief TeacherMapHandler::mapCreate
+ * @param name
+ */
+
+void TeacherMapHandler::mapCreate(const QString &name)
+{
+	LOG_CDEBUG("client") << "Create map:" << name;
+
+	GameMap *map = new GameMap();
+	map->regenerateUuids();
+
+	const QByteArray &b = map->toBinaryData();
+
+	delete map;
+	map = nullptr;
+
+	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(name), b)
+			->fail([this](const QString &err){m_client->messageWarning(err, tr("Pálya létrehozási hiba"));})
+			->done([this](const QJsonObject &){
+		m_client->snack(tr("A pálya létrehozása sikerült"));
+		reload();
+	});
 }
 
 
@@ -127,9 +154,7 @@ void TeacherMapHandler::mapImport(const QUrl &file)
 	delete map;
 	map = nullptr;
 
-	//  { QStringLiteral("name"), Utils::fileBaseName(file.toLocalFile()) }
-
-	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create"), b)
+	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(Utils::fileBaseName(file.toLocalFile())), b)
 			->fail([this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
 			->done([this](const QJsonObject &){
 		m_client->snack(tr("Az importálás sikerült"));

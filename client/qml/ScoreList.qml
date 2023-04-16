@@ -12,10 +12,12 @@ Qaterial.Page
 	implicitWidth: 200
 	implicitHeight: 200
 
-	property UserList userList: Client.cache("userList")
+	property UserList userList: Client.cache("scoreList")
 	property ClassList classList: Client.cache("classList")
 
-	background: Rectangle { color: "transparent" }
+	property double paddingTop: 0
+
+	background: null
 
 	ListModel {
 		id: _preparedClassList
@@ -86,13 +88,18 @@ Qaterial.Page
 					model: SortFilterProxyModel {
 						sourceModel: userList
 
-						filters: [
+						filters: AllOf {
 							ValueFilter {
 								roleName: "classid"
 								enabled: _item.classid != -1
 								value: _item.classid
 							}
-						]
+							ValueFilter {
+								roleName: "classid"
+								enabled: _item.classid != -1
+								value: _item.classid
+							}
+						}
 
 						sorters: [
 							RoleSorter {
@@ -101,7 +108,7 @@ Qaterial.Page
 								priority: 1
 							},
 							StringSorter {
-								roleName: "fullName"
+								roleName: "fullNickName"
 								sortOrder: Qt.AscendingOrder
 							}
 						]
@@ -109,21 +116,34 @@ Qaterial.Page
 
 					refreshProgressVisible: Client.webSocket.pending
 					refreshEnabled: true
-					onRefreshRequest: Client.reloadCache("userList")
+					onRefreshRequest: Client.reloadCache("scoreList")
 
 					delegate: QLoaderItemDelegate {
 						id: _delegate
 						property User user: model.qtObject
 
-						text: user ? user.fullName : ""
+						text: user ? user.fullNickName : ""
 						secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
 
 						leftSourceComponent: UserImage { user: _delegate.user }
 
-						rightSourceComponent: Qaterial.LabelHeadline5 {
-							text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
-							color: Qaterial.Style.accentColor
+						rightSourceComponent: Column {
+							Qaterial.LabelHeadline6 {
+								anchors.right: parent.right
+								text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
+								color: Qaterial.Style.accentColor
+							}
+							Qaterial.LabelCaption {
+								anchors.right: parent.right
+								text: user ? qsTr("streak: %1").arg(Number(user.streak).toLocaleString()) : ""
+								color: Qaterial.Style.primaryTextColor()
+							}
 						}
+					}
+
+					header: Item {
+						width: ListView.width
+						height: control.paddingTop
 					}
 
 				}
@@ -148,10 +168,14 @@ Qaterial.Page
 
 	}
 
+	function reload() {
+		Client.reloadCache("scoreList")
+		Client.reloadCache("classList", function(){_preparedClassList.reload()})
+	}
+
 	SwipeView.onIsCurrentItemChanged: {
 		if (SwipeView.isCurrentItem) {
-			Client.reloadCache("userList")
-			Client.reloadCache("classList", function(){_preparedClassList.reload()})
+			reload()
 		}
 	}
 }

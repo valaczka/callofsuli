@@ -12,6 +12,7 @@ Item {
 	property color iconColor: Qaterial.Style.primaryColor
 	property color sublevelColor: Qaterial.Style.iconColor()
 	property bool pictureEnabled: true
+	property bool sublevelEnabled: true
 
 	Qaterial.Icon {
 		visible: !user || user.rank.level < 0
@@ -65,7 +66,7 @@ Item {
 	}
 
 	Label {
-		visible: user && user.rank.sublevel > 0 && !_picture.visible
+		visible: user && user.rank.sublevel > 0 && !_picture.visible && control.sublevelEnabled
 		font.family: Qaterial.Style.textTheme.overline.family
 		font.pixelSize: control.size*0.5
 		font.weight: Font.Bold

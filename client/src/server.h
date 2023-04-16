@@ -114,7 +114,8 @@ public:
 	static bool isTokenValid(const QString &jwt);
 	bool isTokenValid() const { return isTokenValid(m_token); }
 
-	Rank rank(const int &id) const;
+	Q_INVOKABLE Rank rank(const int &id) const;
+	Q_INVOKABLE Rank nextRank(const Rank &rank) const { return m_rankList.next(rank); }
 
 	bool temporary() const;
 	void setTemporary(bool newTemporary);

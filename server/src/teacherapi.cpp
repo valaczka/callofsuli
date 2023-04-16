@@ -78,6 +78,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 
 	addMap("^map/*$", this, &TeacherAPI::maps);
 	addMap("^map/create/*$", this, &TeacherAPI::mapCreate);
+	addMap("^map/create/([^/]+)/*$", this, &TeacherAPI::mapCreate);
 	addMap("^map/delete/*$", this, &TeacherAPI::mapDelete);
 	addMap("^map/([^/]+)/*$", this, &TeacherAPI::mapOne);
 	addMap("^map/([^/]+)/content/*$", this, &TeacherAPI::mapOneContent);
@@ -1267,11 +1268,13 @@ void TeacherAPI::mapDelete(const QJsonArray &list, const QPointer<HttpResponse> 
  * @param response
  */
 
-void TeacherAPI::mapCreate(const QRegularExpressionMatch &, HttpRequest *request, QPointer<HttpResponse> response) const
+void TeacherAPI::mapCreate(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const
 {
-	LOG_CTRACE("client") << "Create map";
+	const QString &name = match.captured(1);
 
-	databaseMainWorker()->execInThread([this, response, request]() {
+	LOG_CTRACE("client") << "Create map:" << qPrintable(name);
+
+	databaseMainWorker()->execInThread([this, response, request, name]() {
 		const QByteArray &b = request->body();
 
 		GameMap *map = GameMap::fromBinaryData(b);
@@ -1302,7 +1305,7 @@ void TeacherAPI::mapCreate(const QRegularExpressionMatch &, HttpRequest *request
 		if (!QueryBuilder::q(db)
 				.addQuery("INSERT INTO mapdb.map(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
 				.addField("uuid", uuid)
-				.addField("name", uuid)
+				.addField("name", name.isEmpty() ? uuid : name)
 				.addField("md5", md5)
 				.addField("data", b)
 				.addField("lastEditor", username)

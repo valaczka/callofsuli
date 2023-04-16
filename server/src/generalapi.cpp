@@ -279,6 +279,9 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 			if (roles.testFlag(Credential::Panel))
 				list.append(QStringLiteral("isPanel=true"));
 
+			if (!roles.testFlag(Credential::Panel))
+				q.addQuery(" AND isPanel=false");
+
 			if (!list.isEmpty()) {
 				QString str = QStringLiteral(" AND (")+list.join(QStringLiteral(" OR "))+QStringLiteral(")");
 				q.addQuery(str.toUtf8());

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermap.h
+ * studentmap.h
  *
- * Created on: 2023. 03. 31.
+ * Created on: 2023. 04. 16.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMap
+ * StudentMap
  *
  *  This file is part of Call of Suli.
  *
@@ -24,8 +24,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TEACHERMAP_H
-#define TEACHERMAP_H
+#ifndef STUDENTMAP_H
+#define STUDENTMAP_H
 
 #include <QObject>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -36,52 +36,22 @@
 #include "qjsonobject.h"
 #include "basemap.h"
 
-class TeacherMap;
-using TeacherMapList = qolm::QOlm<TeacherMap>;
-Q_DECLARE_METATYPE(TeacherMapList*)
+class StudentMap;
+using StudentMapList = qolm::QOlm<StudentMap>;
+Q_DECLARE_METATYPE(StudentMapList*)
 
 /**
  * @brief The TeacherMap class
  */
 
-class TeacherMap : public BaseMap
+class StudentMap : public BaseMap
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int version READ version WRITE setVersion NOTIFY versionChanged)
-	Q_PROPERTY(int draftVersion READ draftVersion WRITE setDraftVersion NOTIFY draftVersionChanged)
-	Q_PROPERTY(QDateTime lastModified READ lastModified WRITE setLastModified NOTIFY lastModifiedChanged)
-	Q_PROPERTY(QString lastEditor READ lastEditor WRITE setLastEditor NOTIFY lastEditorChanged)
-
 public:
-	explicit TeacherMap(QObject *parent = nullptr);
+	explicit StudentMap(QObject *parent = nullptr);
 
 	void loadFromJson(const QJsonObject &object, const bool &allField = true);
-
-	int version() const;
-	void setVersion(int newVersion);
-
-	int draftVersion() const;
-	void setDraftVersion(int newDraftVersion);
-
-	const QDateTime &lastModified() const;
-	void setLastModified(const QDateTime &newLastModified);
-
-	const QString &lastEditor() const;
-	void setLastEditor(const QString &newLastEditor);
-
-signals:
-	void versionChanged();
-	void draftVersionChanged();
-	void cacheChanged();
-	void lastModifiedChanged();
-	void lastEditorChanged();
-
-private:
-	int m_version = 0;
-	int m_draftVersion = -2;
-	QDateTime m_lastModified;
-	QString m_lastEditor;
 };
 
-#endif // TEACHERMAP_H
+#endif // STUDENTMAP_H

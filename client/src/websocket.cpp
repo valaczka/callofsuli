@@ -390,6 +390,8 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
  * @return
  */
 
+#ifndef Q_OS_WASM
+
 WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByteArray &content, const QJsonObject &data)
 {
 	Q_ASSERT (m_networkManager);
@@ -438,7 +440,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
 	return wr;
 }
-
+#endif
 
 
 

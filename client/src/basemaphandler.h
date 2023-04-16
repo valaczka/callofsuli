@@ -29,7 +29,6 @@
 
 #include "basemap.h"
 #include "client.h"
-#include "server.h"
 #include <QObject>
 
 class BaseMapHandler : public QObject
@@ -45,6 +44,9 @@ public:
 
 	Q_INVOKABLE void reload();
 
+	Q_INVOKABLE QByteArray read(BaseMap *map) const;
+
+	Client *client() const;
 
 signals:
 	void reloaded();
@@ -53,10 +55,12 @@ protected:
 	virtual void reloadList() {}
 	virtual void download(BaseMap *map, const WebSocket::API &api, const QString &path);
 
-	bool hasDownloaded(const BaseMap *map);
-	bool checkDownload(const BaseMap *map, const QByteArray &data);
-	bool check(BaseMap *map);
-	bool checkAndSave(BaseMap *map, const QByteArray &data);
+	bool hasDownloaded(const BaseMap *map) const;
+	bool checkDownload(const BaseMap *map, const QByteArray &data) const;
+	bool check(BaseMap *map) const;
+	bool checkAndSave(BaseMap *map, const QByteArray &data) const;
+	QByteArray readFromMap(const BaseMap *map) const;
+	QByteArray loadAndCheck(const BaseMap *map) const;
 
 	Client *const m_client;
 	QString m_subdirName;

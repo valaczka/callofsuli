@@ -32,6 +32,8 @@
 #include "gamescene.h"
 #include "qrimage.h"
 #include "studentgroup.h"
+#include "studentmap.h"
+#include "studentmaphandler.h"
 #include "teachergroup.h"
 #include "teachermap.h"
 #include "teachermaphandler.h"
@@ -323,42 +325,46 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
+	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
-	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 
-	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
-	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
-	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
-	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
-	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
-	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
-	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
-	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
-	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
-	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
-	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
-	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
-	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
-	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
-	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
-	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
-	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
-	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
-	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
-	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
-	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
-	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
-	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
 	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
+	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
+	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
+	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
+	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
+	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
+	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
+	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
+	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
+	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
+	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
+	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
+	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
+	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
 	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
+	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
+	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
+	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
+	qmlRegisterType<StudentMap>("CallOfSuli", 1, 0, "StudentMap");
+	qmlRegisterType<StudentMapHandler>("CallOfSuli", 1, 0, "StudentMapHandler");
+	qmlRegisterType<StudentMapList>("CallOfSuli", 1, 0, "StudentMapList");
 	qmlRegisterType<Task>("CallOfSuli", 1, 0, "Task");
 	qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
+	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
+	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
+	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
+	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
+	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
+	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
+	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
 }
 
 /**
@@ -543,7 +549,7 @@ void Application::messageInfo(const QString &text, const QString &title) const
 	if (m_client)
 		m_client->messageInfo(text, title);
 	else
-		LOG_CINFO("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text).arg(title));
+		LOG_CINFO("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
 }
 
 
@@ -558,7 +564,7 @@ void Application::messageWarning(const QString &text, const QString &title) cons
 	if (m_client)
 		m_client->messageWarning(text, title);
 	else
-		LOG_CWARNING("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text).arg(title));
+		LOG_CWARNING("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
 }
 
 
@@ -573,7 +579,7 @@ void Application::messageError(const QString &text, const QString &title) const
 	if (m_client)
 		m_client->messageError(text, title);
 	else
-		LOG_CERROR("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text).arg(title));
+		LOG_CERROR("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
 }
 
 

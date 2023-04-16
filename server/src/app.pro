@@ -55,6 +55,7 @@ SOURCES += \
 	serversettings.cpp \
 	teacherapi.cpp \
 	terminalhandler.cpp \
+	userapi.cpp \
 	webserver.cpp
 
 RESOURCES += \
@@ -79,5 +80,6 @@ HEADERS += \
 	serversettings.h \
 	teacherapi.h \
 	terminalhandler.h \
+	userapi.h \
 	webserver.h
 

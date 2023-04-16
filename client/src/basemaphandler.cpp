@@ -44,31 +44,9 @@ BaseMapHandler::BaseMapHandler(const QString &subdirName, QObject *parent)
  * @return
  */
 
-bool BaseMapHandler::hasDownloaded(const BaseMap *map)
+bool BaseMapHandler::hasDownloaded(const BaseMap *map) const
 {
-	if (!map || !m_client->server())
-		return false;
-
-	QDir dir = m_client->server()->directory();
-
-	if (!dir.cd(m_subdirName))
-		return false;
-
-
-	const QString filename = QStringLiteral("%1.map").arg(map->uuid());
-
-	if (!dir.exists(filename))
-		return false;
-
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(dir.absoluteFilePath(filename), &err);
-
-	if (err) {
-		m_client->messageError(tr("Nem olvasható fájl"), tr("Belső hiba"));
-		return false;
-	}
-
-	return checkDownload(map, b);
+	return checkDownload(map, readFromMap(map));
 }
 
 
@@ -82,7 +60,7 @@ bool BaseMapHandler::hasDownloaded(const BaseMap *map)
  * @return
  */
 
-bool BaseMapHandler::checkDownload(const BaseMap *map, const QByteArray &data)
+bool BaseMapHandler::checkDownload(const BaseMap *map, const QByteArray &data) const
 {
 	Q_ASSERT(map);
 
@@ -100,7 +78,7 @@ bool BaseMapHandler::checkDownload(const BaseMap *map, const QByteArray &data)
  * @return
  */
 
-bool BaseMapHandler::check(BaseMap *map)
+bool BaseMapHandler::check(BaseMap *map) const
 {
 	if (!map)
 		return false;
@@ -137,6 +115,24 @@ void BaseMapHandler::reload()
 
 
 /**
+ * @brief BaseMapHandler::read
+ * @param map
+ * @return
+ */
+
+QByteArray BaseMapHandler::read(BaseMap *map) const
+{
+	if (!map) {
+		LOG_CERROR("client") << "Invalid map";
+		return QByteArray();
+	}
+
+	return loadAndCheck(map);
+}
+
+
+
+/**
  * @brief BaseMapHandler::mapDownload
  * @param map
  * @param api
@@ -162,7 +158,7 @@ void BaseMapHandler::download(BaseMap *map, const WebSocket::API &api, const QSt
  * @return
  */
 
-bool BaseMapHandler::checkAndSave(BaseMap *map, const QByteArray &data)
+bool BaseMapHandler::checkAndSave(BaseMap *map, const QByteArray &data) const
 {
 	if (!map || !m_client->server()) {
 		m_client->messageWarning(tr("Belső hiba"), tr("Letöltési hiba"));
@@ -199,4 +195,74 @@ bool BaseMapHandler::checkAndSave(BaseMap *map, const QByteArray &data)
 	check(map);
 
 	return true;
+}
+
+
+
+/**
+ * @brief BaseMapHandler::readFromMap
+ * @param map
+ * @return
+ */
+
+QByteArray BaseMapHandler::readFromMap(const BaseMap *map) const
+{
+	if (!map || !m_client->server())
+		return QByteArray();
+
+	QDir dir = m_client->server()->directory();
+
+	if (!dir.cd(m_subdirName))
+		return QByteArray();
+
+
+	const QString filename = QStringLiteral("%1.map").arg(map->uuid());
+
+	if (!dir.exists(filename))
+		return QByteArray();
+
+	bool err = false;
+	const QByteArray &b = Utils::fileContent(dir.absoluteFilePath(filename), &err);
+
+	if (err) {
+		m_client->messageError(tr("Nem olvasható fájl"), tr("Belső hiba"));
+		return QByteArray();
+	}
+
+	return b;
+}
+
+
+
+
+
+/**
+ * @brief BaseMapHandler::loadAndCheck
+ * @param map
+ * @return
+ */
+
+QByteArray BaseMapHandler::loadAndCheck(const BaseMap *map) const
+{
+	Q_ASSERT(map);
+
+	const QByteArray &b = readFromMap(map);
+	if (checkDownload(map, b))
+		return b;
+	else {
+		LOG_CWARNING("client") << "Map check failed";
+		return QByteArray();
+	}
+}
+
+
+
+/**
+ * @brief BaseMapHandler::client
+ * @return
+ */
+
+Client *BaseMapHandler::client() const
+{
+	return m_client;
 }

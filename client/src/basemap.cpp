@@ -53,6 +53,9 @@ void BaseMap::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("md5")) || allField)
 		setMd5(object.value(QStringLiteral("md5")).toString());
+
+	if (object.contains(QStringLiteral("cache")) || allField)
+		setCache(object.value(QStringLiteral("cache")).toObject());
 }
 
 
@@ -134,4 +137,17 @@ void BaseMap::setName(const QString &newName)
 		return;
 	m_name = newName;
 	emit nameChanged();
+}
+
+const QJsonObject &BaseMap::cache() const
+{
+	return m_cache;
+}
+
+void BaseMap::setCache(const QJsonObject &newCache)
+{
+	if (m_cache == newCache)
+		return;
+	m_cache = newCache;
+	emit cacheChanged();
 }

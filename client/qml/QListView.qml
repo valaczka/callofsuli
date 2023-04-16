@@ -67,6 +67,8 @@ ListView {
 	}
 
 	PullToRefreshHandler {
+		target: view
+		enabled: view.refreshEnabled
 		absoluteThreshold: 100
 		onPullDownRelease: view.refreshRequest()
 	}

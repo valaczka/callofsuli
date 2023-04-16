@@ -77,6 +77,7 @@ QPage {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: Client.server && (Client.server.user.roles & Credential.Teacher)
+			contentItems: groupListTeacher.lenght+1
 
 			Repeater {
 				model: SortFilterProxyModel {
@@ -128,6 +129,7 @@ QPage {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: groupListStudent.count
+			contentItems: groupListStudent.count
 
 			Repeater {
 				model: SortFilterProxyModel {
@@ -221,7 +223,7 @@ QPage {
 	}
 
 	StackView.onActivated: {
-		if (Client.server && (Client.server.user.roles & Credential.Teacher)) {
+		if (Client.server) {
 			Client.reloadCache("teacherGroupList")
 		}
 	}

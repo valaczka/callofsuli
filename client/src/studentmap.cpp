@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * teachermap.cpp
+ * studentmap.cpp
  *
- * Created on: 2023. 03. 31.
+ * Created on: 2023. 04. 16.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TeacherMap
+ * StudentMap
  *
  *  This file is part of Call of Suli.
  *
@@ -24,9 +24,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "teachermap.h"
+#include "studentmap.h"
 
-TeacherMap::TeacherMap(QObject *parent)
+StudentMap::StudentMap(QObject *parent)
 	: BaseMap{parent}
 {
 
@@ -34,82 +34,27 @@ TeacherMap::TeacherMap(QObject *parent)
 
 
 /**
- * @brief TeacherMap::loadFromJson
+ * @brief StudentMap::loadFromJson
  * @param object
  * @param allField
  */
 
-void TeacherMap::loadFromJson(const QJsonObject &object, const bool &allField)
+void StudentMap::loadFromJson(const QJsonObject &object, const bool &allField)
 {
-	if (object.contains(QStringLiteral("version")) || allField)
+	/*if (object.contains(QStringLiteral("version")) || allField)
 		setVersion(object.value(QStringLiteral("version")).toInt());
 
 	if (object.contains(QStringLiteral("draftVersion")) || allField)
 		setDraftVersion(object.value(QStringLiteral("draftVersion")).toInt());
 
+	if (object.contains(QStringLiteral("cache")) || allField)
+		setCache(object.value(QStringLiteral("cache")).toObject());
+
 	if (object.contains(QStringLiteral("lastModified")) || allField)
 		setLastModified(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("lastModified")).toInt()));
 
 	if (object.contains(QStringLiteral("lastEditor")) || allField)
-		setLastEditor(object.value(QStringLiteral("lastEditor")).toString());
+		setLastEditor(object.value(QStringLiteral("lastEditor")).toString());*/
 
 	BaseMap::loadFromJson(object, allField);
-}
-
-
-
-
-
-
-int TeacherMap::version() const
-{
-	return m_version;
-}
-
-void TeacherMap::setVersion(int newVersion)
-{
-	if (m_version == newVersion)
-		return;
-	m_version = newVersion;
-	emit versionChanged();
-}
-
-int TeacherMap::draftVersion() const
-{
-	return m_draftVersion;
-}
-
-void TeacherMap::setDraftVersion(int newDraftVersion)
-{
-	if (m_draftVersion == newDraftVersion)
-		return;
-	m_draftVersion = newDraftVersion;
-	emit draftVersionChanged();
-}
-
-
-const QDateTime &TeacherMap::lastModified() const
-{
-	return m_lastModified;
-}
-
-void TeacherMap::setLastModified(const QDateTime &newLastModified)
-{
-	if (m_lastModified == newLastModified)
-		return;
-	m_lastModified = newLastModified;
-	emit lastModifiedChanged();
-}
-
-const QString &TeacherMap::lastEditor() const
-{
-	return m_lastEditor;
-}
-
-void TeacherMap::setLastEditor(const QString &newLastEditor)
-{
-	if (m_lastEditor == newLastEditor)
-		return;
-	m_lastEditor = newLastEditor;
-	emit lastEditorChanged();
 }

@@ -27,6 +27,7 @@
 #ifndef BASEMAP_H
 #define BASEMAP_H
 
+#include "qjsonobject.h"
 #include <QObject>
 #include <selectableobject.h>
 
@@ -38,6 +39,7 @@ class BaseMap : public SelectableObject
 	Q_PROPERTY(QString md5 READ md5 WRITE setMd5 NOTIFY md5Changed)
 	Q_PROPERTY(int size READ size WRITE setSize NOTIFY sizeChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(QJsonObject cache READ cache WRITE setCache NOTIFY cacheChanged)
 	Q_PROPERTY(bool downloaded READ downloaded WRITE setDownloaded NOTIFY downloadedChanged)
 	Q_PROPERTY(qreal downloadProgress READ downloadProgress WRITE setDownloadProgress NOTIFY downloadProgressChanged)
 
@@ -64,6 +66,9 @@ public:
 	const QString &name() const;
 	void setName(const QString &newName);
 
+	const QJsonObject &cache() const;
+	void setCache(const QJsonObject &newCache);
+
 signals:
 	void downloadedChanged();
 	void downloadProgressChanged();
@@ -71,15 +76,16 @@ signals:
 	void md5Changed();
 	void sizeChanged();
 	void nameChanged();
+	void cacheChanged();
 
 protected:
 	QString m_uuid;
 	QString m_md5;
 	int m_size = 0;
 	QString m_name;
+	QJsonObject m_cache;
 	bool m_downloaded = false;
 	qreal m_downloadProgress = -1.0;
-
 };
 
 #endif // BASEMAP_H

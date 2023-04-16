@@ -188,11 +188,14 @@ SOURCES += \
 	main.cpp \
 	mapimage.cpp \
 	mapplay.cpp \
+	mapplaycampaign.cpp \
 	mapplaydemo.cpp \
 	qrimage.cpp \
 	question.cpp \
 	server.cpp \
 	studentgroup.cpp \
+	studentmap.cpp \
+	studentmaphandler.cpp \
 	task.cpp \
 	teachergroup.cpp \
 	teachermap.cpp \
@@ -238,11 +241,14 @@ HEADERS += \
 	grade.h \
 	mapimage.h \
 	mapplay.h \
+	mapplaycampaign.h \
 	mapplaydemo.h \
 	qrimage.h \
 	question.h \
 	server.h \
 	studentgroup.h \
+	studentmap.h \
+	studentmaphandler.h \
 	task.h \
 	teachergroup.h \
 	teachermap.h \
