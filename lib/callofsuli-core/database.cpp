@@ -435,6 +435,8 @@ QJsonArray QueryBuilder::execToJsonArray(bool *err)
 		list.append(obj);
 	}
 
+	if (err) *err = false;
+
 	return list;
 }
 
@@ -467,6 +469,8 @@ QJsonObject QueryBuilder::execToJsonObject(bool *err)
 			obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
 	}
 
+	if (err) *err = false;
+
 	return obj;
 }
 
@@ -485,6 +489,43 @@ bool QueryBuilder::execCheckExists()
 		return false;
 
 	return true;
+}
+
+
+
+/**
+ * @brief QueryBuilder::execInsert
+ * @param err
+ * @return
+ */
+
+QVariant QueryBuilder::execInsert(bool *err)
+{
+	if (!exec()) {
+		if (err) *err = true;
+		return QVariant::Invalid;
+	}
+
+	if (err) *err = false;
+
+	return m_sqlQuery.lastInsertId();
+}
+
+
+/**
+ * @brief QueryBuilder::execInsertInt
+ * @param err
+ * @return
+ */
+
+int QueryBuilder::execInsertAsInt(bool *err)
+{
+	const QVariant &v = execInsert(err);
+
+	if (v.isNull() || !v.isValid())
+		return -1;
+	else
+		return v.toInt();
 }
 
 
@@ -521,6 +562,8 @@ QJsonArray QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &
 
 		list.append(obj);
 	}
+
+	if (err) *err = false;
 
 	return list;
 }
@@ -565,6 +608,8 @@ QJsonObject QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc>
 		}
 	}
 
+	if (err) *err = false;
+
 	return obj;
 }
 
@@ -589,6 +634,8 @@ QVariant QueryBuilder::execToValue(const char *field, bool *err)
 		LOG_CWARNING("db") << "More than one row returned";
 		return QVariant::Invalid;
 	}
+
+	if (err) *err = false;
 
 	if (m_sqlQuery.first())
 		return value(field);
@@ -620,6 +667,8 @@ QVariant QueryBuilder::execToValue(const char *field, const QVariant &defaultVal
 		LOG_CWARNING("db") << "More than one row returned";
 		return QVariant::Invalid;
 	}
+
+	if (err) *err = false;
 
 	if (m_sqlQuery.first())
 		return value(field, defaultValue);

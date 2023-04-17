@@ -109,7 +109,7 @@ public:
 
 	Q_INVOKABLE QQuickItem *stackPushPage(QString qml, QVariantMap parameters = {}) const;
 	Q_INVOKABLE bool stackPop(int index = -1, const bool &forced = false) const;
-	Q_INVOKABLE bool stackPop(QQuickItem *page, const bool &forced = false) const;
+	Q_INVOKABLE bool stackPop(QQuickItem *page) const;
 	Q_INVOKABLE bool stackPopToPage(QQuickItem *page) const;
 
 	QQuickWindow *mainWindow() const;

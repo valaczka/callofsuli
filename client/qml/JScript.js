@@ -40,9 +40,9 @@ function intializeStyle() {
 		Qaterial.Style.textTheme.headline6.weight = Font.Medium
 	}
 
-	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 96*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 60*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.headline3.pixelSize = Qt.binding(function() { return 48*Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 72*Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 54*Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.textTheme.headline3.pixelSize = Qt.binding(function() { return 42*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline4.pixelSize = Qt.binding(function() { return 34*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline5.pixelSize = Qt.binding(function() { return 24*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline6.pixelSize = Qt.binding(function() { return 20*Qaterial.Style.pixelSizeRatio })

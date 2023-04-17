@@ -485,27 +485,43 @@ struct GameMap::SolverInfo {
 	{}
 
 
-	SolverInfo(const SolverInfo &s) {
+	/*SolverInfo(const SolverInfo &s) {
 		t1 = s.t1;
 		t2 = s.t2;
 		t3 = s.t3;
 		d1 = s.d1;
 		d2 = s.d2;
 		d3 = s.d3;
+	}*/
+
+	void setSolved(const int &level, const bool &deathmatch, const int &num) {
+		if (level == 1 && !deathmatch)
+			t1 = num;
+		else if (level == 2 && !deathmatch)
+			t2 = num;
+		else if (level == 3 && !deathmatch)
+			t3 = num;
+		else if (level == 1 && deathmatch)
+			d1 = num;
+		else if (level == 2 && deathmatch)
+			d2 = num;
+		else if (level == 3 && deathmatch)
+			d3 = num;
 	}
 
+
 	inline int solved(const QString &field) const {
-		if (field == QStringLiteral("t1"))
+		if (field == QLatin1String("t1"))
 			return t1;
-		else if (field == QStringLiteral("t2"))
+		else if (field == QLatin1String("t2"))
 			return t2;
-		else if (field == QStringLiteral("t3"))
+		else if (field == QLatin1String("t3"))
 			return t3;
-		else if (field == QStringLiteral("d1"))
+		else if (field == QLatin1String("d1"))
 			return d1;
-		else if (field == QStringLiteral("d2"))
+		else if (field == QLatin1String("d2"))
 			return d2;
-		else if (field == QStringLiteral("d3"))
+		else if (field == QLatin1String("d3"))
 			return d3;
 
 		return -1;

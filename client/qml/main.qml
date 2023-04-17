@@ -34,11 +34,11 @@ Qaterial.ApplicationWindow
 	{
 		JS.intializeStyle()
 
-		if (Qt.platform.os != "wasm") {
+		//if (Qt.platform.os != "wasm") {
 			Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
 				return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)
 			})
-		}
+		//}
 
 
 		Client.mainStack = mainStackView
@@ -117,6 +117,16 @@ Qaterial.ApplicationWindow
 		}
 	}
 
+
+	onWidthChanged: {
+		if (width >= 992)
+			Qaterial.Style.maxContainerSize = 970
+		else if (width >= 768)
+			Qaterial.Style.maxContainerSize = 750
+		else
+			Qaterial.Style.maxContainerSize = width
+
+	}
 
 	onClosing: { if (Client.closeWindow()) {
 			if (mainStackView.currentItem.onPageClose) {

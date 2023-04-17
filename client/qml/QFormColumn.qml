@@ -10,7 +10,7 @@ Column {
 	property alias title: _title.text
 	property bool modified: false
 
-	width: Math.min(parent.width, 700)
+	width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 	anchors.horizontalCenter: parent.horizontalCenter
 
 	Qaterial.LabelHeadline5

@@ -8,7 +8,7 @@ Grid {
 
 	property real buttonSize: Qaterial.Style.dashboardButtonSize
 	property real horizontalPadding: 10
-	property real gridContentWidth: Math.min(parent.width-2*horizontalPadding, 700)
+	property real gridContentWidth: Math.min(parent.width-2*horizontalPadding, Qaterial.Style.maxContainerSize)
 	property int contentItems: -1
 
 	columns: contentItems > 0 ? Math.min(contentItems, Math.floor(gridContentWidth/(buttonSize+spacing)))

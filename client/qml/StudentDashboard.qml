@@ -22,13 +22,14 @@ QItemGradient {
 		onRefreshRequest: reload()
 
 		Qaterial.LabelHeadline3 {
-			width: parent.width
+			anchors.horizontalCenter: parent.horizontalCenter
+			width: Math.min(parent.width-100, Qaterial.Style.maxContainerSize)
 			topPadding: 50+root.paddingTop
-			leftPadding: 50
-			rightPadding: 50
 			horizontalAlignment: Qt.AlignHCenter
 			text: user ? user.fullNickName : ""
 			wrapMode: Text.Wrap
+			maximumLineCount: 2
+			elide: Text.ElideRight
 		}
 
 		Row {
@@ -58,14 +59,15 @@ QItemGradient {
 
 		Column {
 			id: _col
-			width: Math.min(parent.width-40, 500)
+			width: Math.min(parent.width-40, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 0
 			topPadding: 50
 
 			QAnimatedProgressBar {
 				id: _progressXp
-				width: parent.width
+				width: Math.min(parent.width, 450)
+				anchors.horizontalCenter: parent.horizontalCenter
 				from: 0
 				value: 0
 				to: 1
@@ -74,7 +76,7 @@ QItemGradient {
 			}
 
 			Qaterial.LabelHint1 {
-				anchors.right: parent.right
+				anchors.right: _progressXp.right
 				visible: text != ""
 
 				readonly property int rankId: user ? user.rank.id : -1
@@ -102,11 +104,11 @@ QItemGradient {
 			}
 		}
 
-		Qaterial.HorizontalLineSeparator {
+		/*Qaterial.HorizontalLineSeparator {
 			anchors.horizontalCenter: parent.horizontalCenter
 			visible: campaignList.length
 			width: _col.width
-		}
+		}*/
 
 
 		Repeater {

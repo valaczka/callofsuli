@@ -22,8 +22,11 @@ Qaterial.Page
 		id: view
 
 		currentIndex: -1
-		anchors.fill: parent
 		autoSelectChange: false
+
+		height: parent.height
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		anchors.horizontalCenter: parent.horizontalCenter
 
 		refreshProgressVisible: Client.webSocket.pending
 		refreshEnabled: true

@@ -184,7 +184,7 @@ bool Client::stackPop(int index, const bool &forced) const
 							  Q_RETURN_ARG(bool, canPop)
 							  );
 
-	if (!canPop)
+	if (!canPop && !forced)
 		return false;
 
 
@@ -210,7 +210,7 @@ bool Client::stackPop(int index, const bool &forced) const
 	QString closeDisabled = currentItem->property("closeDisabled").toString();
 	QString question = currentItem->property("closeQuestion").toString();
 
-	if (!closeDisabled.isEmpty()) {
+	if (!closeDisabled.isEmpty() && !forced) {
 		messageWarning(closeDisabled);
 		return false;
 	}
@@ -242,10 +242,10 @@ bool Client::stackPop(int index, const bool &forced) const
  * @return
  */
 
-bool Client::stackPop(QQuickItem *page, const bool &forced) const
+bool Client::stackPop(QQuickItem *page) const
 {
 	QQmlProperty property(page, "StackView.index", qmlContext(page));
-	return stackPop(property.read().toInt()-1, forced);
+	return stackPop(property.read().toInt()-1, true);
 }
 
 
@@ -258,48 +258,8 @@ bool Client::stackPop(QQuickItem *page, const bool &forced) const
 
 bool Client::stackPopToPage(QQuickItem *page) const
 {
-	if (!m_mainStack) {
-		LOG_CERROR("client") << "mainStack nincsen beállítva!";
-		return false;
-	}
-
-	QQuickItem *currentItem = qvariant_cast<QQuickItem*>(m_mainStack->property("currentItem"));
-
-	if (!currentItem) {
-		LOG_CERROR("client") << "mainStack currentItem unavailable";
-		return false;
-	}
-
-	if (currentItem == page)
-		return false;
-
-	QQmlProperty propertyCurrent(currentItem, "StackView.index", qmlContext(currentItem));
-	QQmlProperty propertyPage(page, "StackView.index", qmlContext(page));
-
-	const int &index = propertyPage.read().toInt();
-
-	bool canPop = true;
-
-	QMetaObject::invokeMethod(m_mainStack, "callStackPop", Qt::DirectConnection,
-							  Q_RETURN_ARG(bool, canPop)
-							  );
-
-	if (!canPop)
-		return false;
-
-
-	QString closeDisabled = currentItem->property("closeDisabled").toString();
-
-	if (!closeDisabled.isEmpty()) {
-		messageWarning(closeDisabled);
-		return false;
-	}
-
-	QMetaObject::invokeMethod(m_mainStack, "popPage", Qt::DirectConnection,
-							  Q_ARG(int, index)
-							  );
-
-	return true;
+	QQmlProperty property(page, "StackView.index", qmlContext(page));
+	return stackPop(property.read().toInt(), true);
 }
 
 

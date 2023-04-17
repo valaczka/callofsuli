@@ -27,7 +27,7 @@ QPage {
 						   {
 							   if (Client.serverDelete(server)) {
 								   _form.modified = false
-								   Client.stackPop(control.StackView.index-1)
+								   Client.stackPop(control)
 							   }
 						   },
 						   text: qsTr("Biztosan törlöd a szervert?"),
@@ -116,7 +116,7 @@ QPage {
 						server.autoConnect = false
 
 					_form.modified = false
-					Client.stackPop(control.StackView.index-1)
+					Client.stackPop(control)
 				}
 			}
 		}

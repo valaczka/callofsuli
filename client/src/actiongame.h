@@ -38,6 +38,8 @@
 class GamePlayer;
 class GameEnemy;
 
+#define ACTION_GAME_BASE_XP		10
+#define ACTION_GAME_ENEMY_KILL_XP	5
 
 /**
  * @brief The ActionGame class
@@ -55,6 +57,7 @@ class ActionGame : public AbstractLevelGame
 	Q_PROPERTY(GamePickable *pickable READ pickable NOTIFY pickableChanged)
 	Q_PROPERTY(QVariantList tools READ tools CONSTANT)
 	Q_PROPERTY(QVariantList toolListIcons READ toolListIcons NOTIFY toolListIconsChanged)
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 
 public:
 	ActionGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -106,10 +109,11 @@ public:
 	Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
 	const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
 
+	int xp() const;
+	void setXp(int newXp);
+
 
 	Q_INVOKABLE void testQuestion();
-
-
 
 public slots:
 	void onPlayerDied(GameEntity *);
@@ -139,6 +143,8 @@ signals:
 	void timeNotify();
 	void toolChanged(GamePickable::PickableType type, int count);
 	void toolListIconsChanged();
+
+	void xpChanged();
 
 private slots:
 	void onSceneStarted();
@@ -171,6 +177,8 @@ private:
 	QHash<GamePickable::PickableType, int> m_tools;
 
 	int m_timeNotifySendNext = -1;
+
+	int m_xp = 0;
 };
 
 

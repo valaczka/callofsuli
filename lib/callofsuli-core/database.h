@@ -192,6 +192,8 @@ public:
 	QJsonArray execToJsonArray(bool *err = nullptr);
 	QJsonObject execToJsonObject(bool *err = nullptr);
 	bool execCheckExists();
+	QVariant execInsert(bool *err = nullptr);
+	int execInsertAsInt(bool *err = nullptr);
 
 	QJsonArray execToJsonArray(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
 	QJsonObject execToJsonObject(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);

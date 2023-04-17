@@ -75,8 +75,10 @@ Qaterial.Page
 			id: view
 
 			currentIndex: -1
-			width: parent.width
 			autoSelectChange: true
+
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
 
 			refreshProgressVisible: Client.webSocket.pending
 			refreshEnabled: true

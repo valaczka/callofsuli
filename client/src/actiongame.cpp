@@ -794,6 +794,9 @@ void ActionGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
 	addStatistics(m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
 
+	int xp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) ACTION_GAME_BASE_XP;
+	setXp(m_xp+xp);
+
 	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"));
 	m_gameQuestion->answerReveal(answer);
 	m_gameQuestion->setMsecBeforeHide(0);
@@ -924,6 +927,19 @@ void ActionGame::onGameFailed()
 void ActionGame::timeNotifySendReset()
 {
 	m_timeNotifySendNext = 60000;
+}
+
+int ActionGame::xp() const
+{
+	return m_xp;
+}
+
+void ActionGame::setXp(int newXp)
+{
+	if (m_xp == newXp)
+		return;
+	m_xp = newXp;
+	emit xpChanged();
 }
 
 
@@ -1233,6 +1249,8 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 		LOG_CERROR("game") << "Invalid enemy entity:" << entity;
 		return;
 	}
+
+	setXp(m_xp + ACTION_GAME_ENEMY_KILL_XP);
 
 	int block = -1;
 

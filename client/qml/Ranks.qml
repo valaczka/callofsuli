@@ -19,7 +19,7 @@ QPage {
 
 		currentIndex: -1
 		height: parent.height
-		width: Math.min(parent.width, 700)
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 		anchors.horizontalCenter: parent.horizontalCenter
 
 		model: Client.server ? Client.server.rankList : null

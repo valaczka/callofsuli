@@ -28,12 +28,27 @@
 #define USERAPI_H
 
 #include "abstractapi.h"
+#include "gamemap.h"
 
 class UserAPI : public AbstractAPI
 {
 public:
 	UserAPI(ServerService *service);
 
+	struct Game {
+		QString map;
+		QString mission;
+		int level = -1;
+		bool deathmatch = false;
+		GameMap::GameMode mode = GameMap::Invalid;
+	};
+
+	static QMap<QString, GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
+	static GameMap::SolverInfo solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
+	static int solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
+										  const int &level);
+	static int solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
+										  const int &level, const bool &deathmatch);
 
 	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
@@ -42,6 +57,11 @@ public:
 
 	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void mapSolver(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+
+	void gameCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void gameUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void gameFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
 };
 

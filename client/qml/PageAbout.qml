@@ -15,7 +15,7 @@ QPage {
 
 		Column {
 			id: col
-			width: Math.min(parent.width, 700) //parent.width-(Math.max(Client.safeMarginLeft, Client.safeMarginRight, 10)*2)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize) //parent.width-(Math.max(Client.safeMarginLeft, Client.safeMarginRight, 10)*2)
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 10
 

@@ -29,6 +29,8 @@
 
 #include "mapplay.h"
 #include "studentmaphandler.h"
+#include "campaign.h"
+#include "actiongame.h"
 
 
 /**
@@ -45,13 +47,48 @@ public:
 
 	bool load(Campaign *campaign, StudentMap *map);
 
+	Q_INVOKABLE void reloadSolver();
+
+signals:
+	void gameIdChanged();
+
 protected:
+	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode) override;
 	virtual void onCurrentGamePrepared() override;
 	virtual void onCurrentGameFinished() override;
 
 private:
-	const QPointer<StudentMapHandler> m_handler;
+	void destroyCurrentGame();
+
+	QPointer<StudentMapHandler> m_handler = nullptr;
+	QPointer<Campaign> m_campaign = nullptr;
 };
 
+
+
+
+/**
+ * @brief The CampaignLevelGame class
+ */
+
+class CampaignActionGame : public ActionGame
+{
+	Q_OBJECT
+
+	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
+
+public:
+	explicit CampaignActionGame(GameMapMissionLevel *missionLevel, Client *client);
+	virtual ~CampaignActionGame();
+
+	int gameId() const;
+	void setGameId(int newGameId);
+
+signals:
+	void gameIdChanged();
+
+private:
+	int m_gameId = -1;
+};
 
 #endif // MAPPLAYCAMPAIGN_H

@@ -90,7 +90,7 @@ QPage {
 								Client.send(WebSocket.ApiTeacher, "group/%1/delete".arg(group.groupid))
 								.done(function(r){
 									Client.reloadCache("teacherGroupList")
-									Client.stackPop(control.StackView.index-1)
+									Client.stackPop(control)
 								})
 								.fail(JS.failMessage("Törlés sikertelen"))
 							},

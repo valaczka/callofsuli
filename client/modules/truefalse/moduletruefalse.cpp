@@ -91,7 +91,7 @@ QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterfa
 		QVariantList list;
 		QVariantMap m = data;
 
-		m.insert("answer", data.value("correct").toBool());
+		m.insert("answer", data.value("correct").toBool() ? 1 : 0);
 
 		list.append(m);
 
@@ -131,14 +131,14 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 			if (!left.isEmpty()) {
 				QVariantMap retMap;
 				retMap["question"] = left;
-				retMap["answer"] = (mode == "left");
+				retMap["answer"] = (mode == "left") ? 1 : 0;
 				ret.append(retMap);
 			}
 
 			if (!right.isEmpty()) {
 				QVariantMap retMap;
 				retMap["question"] = right;
-				retMap["answer"] = (mode == "right");
+				retMap["answer"] = (mode == "right") ? 1 : 0;
 				ret.append(retMap);
 			}
 		}
@@ -199,7 +199,7 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 			else
 				retMap["question"] = question+" "+questionPart+" "+answerPart;
 
-			retMap["answer"] = isCorrect;
+			retMap["answer"] = isCorrect ? 1 : 0;
 
 			ret.append(retMap);
 		}

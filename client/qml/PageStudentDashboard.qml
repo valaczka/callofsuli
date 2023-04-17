@@ -9,20 +9,32 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
-
-	onPageClose: function() {
-		if (Client.server && Client.server.user.loginState == User.LoggedIn)
-			Client.webSocket.close()
-	}
-
 	stackPopFunction: function() {
+		if (_closeEnabled || (Client.server && Client.server.user.loginState != User.LoggedIn))
+			return true
+
 		if (tabBar.currentIndex > 0) {
 			tabBar.decrementCurrentIndex()
 			return false
 		}
 
-		return true
+		JS.questionDialog(
+					{
+						onAccepted: function()
+						{
+							_closeEnabled = true
+							if (Client.server && Client.server.user.loginState == User.LoggedIn)
+								Client.webSocket.close()
+							else
+								Client.stackPop(control)
+						},
+						text: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?"),
+						title: qsTr("Kilépés"),
+						iconSource: Qaterial.Icons.closeCircle
+					})
+
+
+		return false
 	}
 
 	header: null
@@ -30,6 +42,8 @@ QPage {
 	property StudentGroupList studentGroupList: Client.cache("studentGroupList")
 	property CampaignList studentCampaignList: Client.cache("studentCampaignList")
 	property StudentMapHandler studentMapHandler: StudentMapHandler {  }
+
+	property bool _closeEnabled: false
 
 	Qaterial.StackView
 	{
@@ -97,6 +111,12 @@ QPage {
 
 		Rectangle {
 			color: "green"
+
+			QButton {
+				anchors.centerIn: parent
+				text: "Logout"
+				onClicked: Client.logout()
+			}
 		}
 	}
 

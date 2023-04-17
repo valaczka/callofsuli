@@ -691,6 +691,13 @@ void WebSocketReply::onReplyFinished()
 	if (error != QNetworkReply::NoError) {
 		LOG_CWARNING("websocket") << "WebSocketReply error" << error << this;
 		emit finished();
+
+		foreach (const std::function<void (const QNetworkReply::NetworkError &)> &func, m_funcsError)
+			func(error);
+
+		foreach (QJSValue v, m_jsvaluesError)
+			v.call({error});
+
 		return;
 	}
 
@@ -788,6 +795,22 @@ WebSocketReply *WebSocketReply::fail(const QJSValue &v)
 		LOG_CERROR("websocket") << "QJSValue isn't callable";
 	else
 		m_jsvaluesFail.append(v);
+	return this;
+}
+
+
+/**
+ * @brief WebSocketReply::error
+ * @param v
+ * @return
+ */
+
+WebSocketReply *WebSocketReply::error(const QJSValue &v)
+{
+	if (!v.isCallable())
+		LOG_CERROR("websocket") << "QJSValue isn't callable";
+	else
+		m_jsvaluesError.append(v);
 	return this;
 }
 

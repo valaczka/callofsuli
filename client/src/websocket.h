@@ -211,6 +211,22 @@ public:
 
 	Q_INVOKABLE WebSocketReply *fail(const QJSValue &v);
 
+	// Network error
+
+	WebSocketReply *error(const std::function<void (const QNetworkReply::NetworkError &)> &func)
+	{
+		m_funcsError.append(func);
+		return this;
+	}
+
+	template <typename T>
+	WebSocketReply *error(T *inst, void (T::*func)(const QNetworkReply::NetworkError &)) {
+		m_funcsError.append(std::bind(func, inst, std::placeholders::_1));
+		return this;
+	}
+
+	Q_INVOKABLE WebSocketReply *error(const QJSValue &v);
+
 
 public slots:
 	void abort();
@@ -234,6 +250,8 @@ private:
 	QJSValueList m_jsvalues;
 	QVector<std::function<void (const QString &)>> m_funcsFail;
 	QJSValueList m_jsvaluesFail;
+	QVector<std::function<void (const QNetworkReply::NetworkError &)>> m_funcsError;
+	QJSValueList m_jsvaluesError;
 };
 
 

@@ -48,32 +48,34 @@ Qaterial.StackView
 	popExit: transitionExit
 
 
-
 	function createPage(_qml : string, _prop : jsobject) : Item {
 		return mainStackView.push(_qml, _prop)
 	}
 
-
 	function popPage(_index : int) {
+		if (_index < 0 || _index >= depth) {
+			console.warn(qsTr("Invalid index"), index)
+			return
+		}
+
 		if (currentItem.onPageClose) {
-			console.info(qsTr("Lap bezárási funkció meghívása:"), currentItem)
+			console.debug(qsTr("Lap bezárási funkció meghívása:"), currentItem)
 			currentItem.onPageClose()
 		}
 
-		if (_index >= depth)
-			return
-
-		if (_index < 0)
-			pop()
-		else
-			pop(get(_index))
+		pop(get(_index))
 	}
 
 
 
 	function callStackPop() : bool {
+		if (currentItem.StackView.status !== StackView.Active) {
+			console.debug(qsTr("StackView.status != Active"), currentItem.StackView.status)
+			return false
+		}
+
 		if (currentItem.stackPopFunction) {
-			console.info(qsTr("Lap pop funkció meghívása:"), currentItem)
+			console.debug(qsTr("Lap pop funkció meghívása:"), currentItem)
 			return currentItem.stackPopFunction()
 		}
 

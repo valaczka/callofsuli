@@ -513,7 +513,7 @@ Page {
 
 			text: "%1 XP"
 
-			//value: game.gameMatch ? game.gameMatch.xp : 0
+			value: game ? game.xp : 0
 		}
 
 		GameInfo {

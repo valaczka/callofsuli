@@ -21,8 +21,11 @@ Qaterial.Page
 	QListView {
 		id: view
 
+		height: parent.height
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		anchors.horizontalCenter: parent.horizontalCenter
+
 		currentIndex: -1
-		anchors.fill: parent
 		autoSelectChange: true
 
 		refreshProgressVisible: Client.webSocket.pending

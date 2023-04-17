@@ -25,6 +25,7 @@
  */
 
 #include "mapplaycampaign.h"
+#include "actiongame.h"
 
 
 /**
@@ -63,8 +64,6 @@ MapPlayCampaign::~MapPlayCampaign()
 
 bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 {
-	Q_UNUSED(campaign)
-
 	if (!m_client)
 		return false;
 
@@ -80,10 +79,40 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 		return false;
 	}
 
+	m_campaign = campaign;
+
 	MapPlaySolverAction *solver = new MapPlaySolverAction(this);
 	setSolver(solver);
 
+	reloadSolver();
+
 	return true;
+}
+
+
+
+/**
+ * @brief MapPlayCampaign::reloadSolver
+ */
+
+void MapPlayCampaign::reloadSolver()
+{
+	if (!m_gameMap || !m_solver || !m_client)
+		return;
+
+	m_client->send(WebSocket::ApiUser, QStringLiteral("map/%1/solver").arg(m_gameMap->uuid()))
+			->done([this](const QJsonObject &data){
+		for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
+			GameMapMission *mission = m_gameMap->mission(it.key());
+			GameMap::SolverInfo s(it.value().toObject());
+
+			if (mission)
+				m_solver->loadSolverInfo(mission, s);
+		}
+
+		m_solver->updateLock();
+		m_solver->updateXP();
+	});
 }
 
 
@@ -94,10 +123,50 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 
 void MapPlayCampaign::onCurrentGamePrepared()
 {
-	if (!m_currentGame)
+	if (!m_currentGame || !m_client || !m_gameMap)
 		return;
 
-	m_currentGame->load();
+	if (!m_campaign) {
+		LOG_CERROR("client") << "Missing campaign";
+		return;
+	}
+
+	CampaignActionGame *game = qobject_cast<CampaignActionGame*>(m_currentGame);
+
+	if (!game) {
+		LOG_CERROR("client") << "Object cast error" << m_currentGame;
+		return;
+	}
+
+	m_client->send(WebSocket::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
+					   { QStringLiteral("map"), m_gameMap->uuid() },
+					   { QStringLiteral("mission"), game->uuid() },
+					   { QStringLiteral("level"), game->level() },
+					   { QStringLiteral("xp"), game->xp() },
+					   { QStringLiteral("deathmatch"), game->deathmatch() },
+					   { QStringLiteral("mode"), game->mode() }
+				   })
+			->error([this](const QNetworkReply::NetworkError &){
+		m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
+		destroyCurrentGame();
+	})
+			->fail([this](const QString &err){
+		m_client->messageError(err, tr("Játék indítása sikertelen"));
+		destroyCurrentGame();
+	})
+			->done([this, game](const QJsonObject &data){
+		const int &gameId = data.value(QStringLiteral("id")).toInt(-1);
+		if (gameId < 0) {
+			m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
+			destroyCurrentGame();
+			return;
+		}
+
+		LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
+
+		game->setGameId(gameId);
+		game->load();
+	});
 }
 
 
@@ -110,9 +179,115 @@ void MapPlayCampaign::onCurrentGameFinished()
 	if (!m_currentGame || !m_client)
 		return;
 
+	CampaignActionGame *game = qobject_cast<CampaignActionGame*>(m_currentGame);
+
+	if (!game) {
+		LOG_CERROR("client") << "Object cast error" << m_currentGame;
+		return;
+	}
+
+	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
+					   { QStringLiteral("success"), game->finishState() == AbstractGame::Success },
+					   { QStringLiteral("xp"), game->xp() },
+					   { QStringLiteral("duration"), game->elapsedMsec() }
+				   })
+			->fail([this](const QString &err){
+		m_client->messageError(err, tr("Játék mentése sikertelen"));
+		destroyCurrentGame();
+	})
+			->done([this](const QJsonObject &data){
+
+		LOG_CINFO("client") << "GAME FINISHED!!!" << data;
+
+		destroyCurrentGame();
+
+		reloadSolver();
+	});
+
+}
+
+
+
+/**
+ * @brief MapPlayCampaign::createLevelGame
+ * @param level
+ * @param mode
+ * @return
+ */
+
+
+AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
+{
+	Q_ASSERT(level);
+	Q_ASSERT(level->missionLevel());
+	Q_ASSERT(m_client);
+
+
+	CampaignActionGame *g = nullptr;
+
+	switch (mode) {
+	case GameMap::Action:
+		g = new CampaignActionGame(level->missionLevel(), m_client);
+		break;
+
+	default:
+		m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
+		return nullptr;
+		break;
+	}
+
+	g->setDeathmatch(level->deathmatch());
+
+	return g;
+}
+
+
+/**
+ * @brief MapPlayCampaign::destroyCurrentGame
+ */
+
+void MapPlayCampaign::destroyCurrentGame()
+{
 	AbstractLevelGame *g = m_currentGame;
 
 	setCurrentGame(nullptr);
-	m_client->setCurrentGame(nullptr);
-	g->setReadyToDestroy(true);
+	if (m_client) m_client->setCurrentGame(nullptr);
+	if (g) g->setReadyToDestroy(true);
 }
+
+
+
+
+
+/**
+ * @brief CampaignLevelGame::CampaignLevelGame
+ * @param mode
+ * @param missionLevel
+ * @param client
+ */
+
+CampaignActionGame::CampaignActionGame(GameMapMissionLevel *missionLevel, Client *client)
+	: ActionGame(missionLevel, client)
+{
+
+}
+
+CampaignActionGame::~CampaignActionGame()
+{
+
+}
+
+
+int CampaignActionGame::gameId() const
+{
+	return m_gameId;
+}
+
+void CampaignActionGame::setGameId(int newGameId)
+{
+	if (m_gameId == newGameId)
+		return;
+	m_gameId = newGameId;
+	emit gameIdChanged();
+}
+
