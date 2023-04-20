@@ -284,7 +284,7 @@ void ClientCache::clear()
 
 bool ClientCache::callReloadHandler(const QString &key, qolm::QOlmBase *list, const QJsonArray &array) const
 {
-	if (m_handlers.contains(key)) {
+	if (!m_handlers.contains(key)) {
 		LOG_CWARNING("client") << "Handlery key not found:" << key;
 		return false;
 	}
@@ -292,7 +292,7 @@ bool ClientCache::callReloadHandler(const QString &key, qolm::QOlmBase *list, co
 	if (!list)
 		return false;
 
-	const CacheItem &it = m_list.value(key);
+	const CacheItem &it = m_handlers.value(key);
 
 	OlmLoader::call(it.func, list, array, it.jsonField, it.property, it.allFieldOverride);
 
@@ -311,7 +311,7 @@ bool ClientCache::callReloadHandler(const QString &key, qolm::QOlmBase *list, co
 
 QObject *ClientCache::callFinderHandler(const QString &key, qolm::QOlmBase *list, const QVariant &value) const
 {
-	if (m_handlers.contains(key)) {
+	if (!m_handlers.contains(key)) {
 		LOG_CWARNING("client") << "Handlery key not found:" << key;
 		return nullptr;
 	}
@@ -319,7 +319,7 @@ QObject *ClientCache::callFinderHandler(const QString &key, qolm::QOlmBase *list
 	if (!list)
 		return nullptr;
 
-	const CacheItem &it = m_list.value(key);
+	const CacheItem &it = m_handlers.value(key);
 
 	return std::invoke(it.finder, list, it.property, value);
 }

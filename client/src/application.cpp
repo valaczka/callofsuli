@@ -30,6 +30,7 @@
 #include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
+#include "mapgame.h"
 #include "qrimage.h"
 #include "studentgroup.h"
 #include "studentmap.h"
@@ -327,10 +328,16 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
+	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
+	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
+	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
+	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
+
+	qRegisterMetaType<GameMap::GameModes>();
 
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
@@ -350,6 +357,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
 	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
+	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
+	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
 	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");

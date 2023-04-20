@@ -41,6 +41,7 @@
 #include "qguiapplication.h"
 #include <qpa/qplatformwindow.h>
 #include "Logger.h"
+#include "mapgame.h"
 
 #ifdef Q_OS_ANDROID
 #include "qandroidfunctions.h"
@@ -178,6 +179,13 @@ bool Client::stackPop(int index, const bool &forced) const
 	}
 
 
+	LOG_CTRACE("client") << "Stack pop" << index << depth;
+
+	if (index >= depth-1) {
+		LOG_CWARNING("client") << "Nem lehet a lapra visszalépni:" << index << "mélység:" << depth;
+		return false;
+	}
+
 	bool canPop = true;
 
 	QMetaObject::invokeMethod(m_mainStack, "callStackPop", Qt::DirectConnection,
@@ -188,10 +196,6 @@ bool Client::stackPop(int index, const bool &forced) const
 		return false;
 
 
-	if (index >= depth) {
-		LOG_CWARNING("client") << "Nem lehet a lapra visszalépni:" << index << "mélység:" << depth;
-		return false;
-	}
 
 	if (depth <= 2) {
 #if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
@@ -781,6 +785,7 @@ void Client::startCache()
 
 
 	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>, &OlmLoader::find<User>);
+	m_cache.addHandler<MapGame>(QStringLiteral("mapGame"), &OlmLoader::loadFromJsonArray<MapGame>, &OlmLoader::find<MapGame>);
 }
 
 

@@ -186,6 +186,7 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	main.cpp \
+	mapgame.cpp \
 	mapimage.cpp \
 	mapplay.cpp \
 	mapplaycampaign.cpp \
@@ -239,6 +240,7 @@ HEADERS += \
 	gameterrain.h \
 	gameterrainmap.h \
 	grade.h \
+	mapgame.h \
 	mapimage.h \
 	mapplay.h \
 	mapplaycampaign.h \

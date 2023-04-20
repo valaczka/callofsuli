@@ -393,6 +393,11 @@ GameMapMission::GameMapMission(const QByteArray &uuid, const QString &name, cons
 	m_modes = modes;
 }
 
+GameMapMission::~GameMapMission()
+{
+
+}
+
 const QString &GameMapMission::uuid() const
 {
 	return m_uuid;

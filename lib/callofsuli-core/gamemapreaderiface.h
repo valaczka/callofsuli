@@ -232,7 +232,7 @@ protected:
 	QString m_name;
 	QString m_description;
 	QString m_medalImage;
-	quint32 m_gameModes;
+	quint32 m_gameModes = 0;
 
 private:
 	friend class GameMapReaderIface;

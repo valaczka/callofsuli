@@ -181,6 +181,27 @@ void AbstractLevelGame::reloadAvailableMedal()
 }
 
 
+
+/**
+ * @brief AbstractLevelGame::medalImagePath
+ * @param mission
+ * @return
+ */
+
+QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
+{
+	if (!mission)
+		return QLatin1String("");
+
+	QString d = mission->medalImage();
+
+	if (m_availableMedal.contains(d))
+		return d.prepend(QStringLiteral("qrc:/internal/medal/"));
+	else
+		return QLatin1String("");
+}
+
+
 /**
  * @brief AbstractLevelGame::medalImagePath
  * @param image
@@ -191,13 +212,8 @@ QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
 {
 	if (!missionLevel)
 		return QLatin1String("");
-
-	QString d = missionLevel->mission()->medalImage();
-
-	if (m_availableMedal.contains(d))
-		return d.prepend(QStringLiteral("qrc:/internal/medal/"));
 	else
-		return QLatin1String("");
+		return medalImagePath(missionLevel->mission());
 }
 
 

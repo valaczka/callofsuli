@@ -197,6 +197,7 @@ CREATE TABLE score(
 
 CREATE TRIGGER score_rank_update
 AFTER INSERT ON score
+FOR EACH ROW
 BEGIN
 	INSERT INTO ranklog (username, rankid, xp)
 		SELECT NEW.username, rank.id, userRank.xp FROM userRank LEFT JOIN rank ON (rank.xp<=userRank.xp)

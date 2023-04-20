@@ -69,6 +69,7 @@ WebSocket::WebSocket(Client *client)
 WebSocket::~WebSocket()
 {
 	delete m_networkManager;
+	m_networkManager = nullptr;
 
 	LOG_CTRACE("websocket") << "WebSocket destroyed";
 }

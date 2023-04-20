@@ -60,7 +60,7 @@ void DatabaseMain::setDbFile(const QString &newDbFile)
  * @brief DatabaseMain::databaseCreate
  */
 
-bool DatabaseMain::databasePrepare()
+bool DatabaseMain::databasePrepare(const QString importDb)
 {
 	if (!databaseMapsPrepare())
 		return false;
@@ -69,12 +69,12 @@ bool DatabaseMain::databasePrepare()
 
 	bool r = false;
 
-	m_worker->execInThread([ret, this, &r]() mutable {
+	m_worker->execInThread([ret, this, &r, importDb]() mutable {
 		LOG_CDEBUG("db") << "Prepare database:" << qPrintable(m_dbFile);
 
 		QMutexLocker mutexlocker(mutex());
 
-		if (!_checkSystemTable()) {
+		if (!_checkSystemTable(importDb)) {
 			r = false;
 			ret.reject();
 			return;
@@ -127,6 +127,8 @@ bool DatabaseMain::databaseAttach()
 
 	return r;
 }
+
+
 
 
 /**
@@ -198,7 +200,7 @@ bool DatabaseMain::databaseMapsPrepare()
  * @return
  */
 
-bool DatabaseMain::_checkSystemTable()
+bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 {
 	static uint called = 1;
 
@@ -243,7 +245,18 @@ bool DatabaseMain::_checkSystemTable()
 #endif
 		}
 	} else {
+
+		if (!dbImport.isEmpty()) {
+			if (_createTables() && _createRanksAndGrades() && _databaseImport(dbImport)) {
+				return _checkSystemTable();
+			} else {
+				LOG_CERROR("db") << "Database import failed:" << qPrintable(dbImport);
+				return false;
+			}
+		}
+
 		db.transaction();
+
 		if (_createTables() && _createUsers() && _createRanksAndGrades()) {
 			db.commit();
 			return _checkSystemTable();
@@ -528,6 +541,70 @@ bool DatabaseMain::_createRanksAndGrades()
 				.exec())
 			return false;
 	}
+
+	return true;
+}
+
+
+
+
+
+/**
+ * @brief DatabaseMain::_databaseImport
+ * @param dbFile
+ * @return
+ */
+
+bool DatabaseMain::_databaseImport(const QString &dbFile)
+{
+	LOG_CINFO("db") << "Import databases:" << qPrintable(dbFile);
+
+	QSqlDatabase db = QSqlDatabase::database(m_dbName);
+
+	QMutexLocker mutexlocker(mutex());
+
+	if (!QueryBuilder::q(db).addQuery("ATTACH ").addValue(dbFile).addQuery(" AS importdb").exec())
+		return false;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO class(id, name) SELECT id, name FROM importdb.class")
+			.exec())
+		return false;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO classCode(classid, code) SELECT classid, code FROM importdb.classRegistration")
+			.exec())
+		return false;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO user(username, familyName, givenName, active, classid, isTeacher, isAdmin, nickname, character, picture) "
+					  "SELECT username, firstname, lastname, active, classid, isTeacher, isAdmin, nickname, character, picture FROM importdb.user")
+			.exec())
+		return false;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO auth(username, password, salt, oauth) SELECT username, password, salt, "
+					  "CASE WHEN oauthToken IS NOT NULL THEN 'google' ELSE NULL END FROM importdb.auth")
+			.exec())
+		return false;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO game(username, timestamp, mapid, missionid, level, deathmatch, success, duration, mode) "
+					  "SELECT username, timestamp, mapid, missionid, level, deathmatch, success, duration*1000, 1 FROM importdb.game")
+			.exec())
+		return false;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO score(username, xp) "
+					  "SELECT username, SUM(xp) FROM importdb.score GROUP BY username")
+			.exec())
+		return false;
+
+	if (!QueryBuilder::q(db).addQuery("DETACH importdb").exec())
+		return false;
+
+
+	LOG_CINFO("db") << "Import succesful";
 
 	return true;
 }

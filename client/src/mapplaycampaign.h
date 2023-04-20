@@ -47,7 +47,7 @@ public:
 
 	bool load(Campaign *campaign, StudentMap *map);
 
-	Q_INVOKABLE void reloadSolver();
+	Q_INVOKABLE virtual void updateSolver() override;
 
 signals:
 	void gameIdChanged();

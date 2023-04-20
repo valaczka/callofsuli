@@ -25,6 +25,11 @@ QPageGradient {
 		leftPadding: 0
 		rightPadding: 0
 
+		refreshEnabled: true
+		onRefreshRequest: if (map)
+							  map.updateSolver()
+
+
 		Item {
 			width: parent.width
 			height: control.paddingTop
@@ -36,14 +41,34 @@ QPageGradient {
 			Column {
 				id: missionColumn
 
-				property QtObject mission: model.qtObject
+				property MapPlayMission mission: model.qtObject
 
-				Qaterial.LabelHeadline5 {
-					topPadding: 20
-					bottomPadding: 10
-					leftPadding: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
-					rightPadding: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
+				Item {
+					width: parent.width
+					height: 20
+				}
+
+				Qaterial.IconLabel {
+					//topPadding: 20
+					//bottomPadding: 10
+					anchors.left: parent.left
+					anchors.leftMargin: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
+					width: parent.width
+						   -Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
+						   -Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
+					horizontalAlignment: Qt.AlignLeft
+					font: Qaterial.Style.textTheme.headline5
 					text: mission.name
+					icon.source: mission.medalImage
+					icon.color: "transparent"
+					icon.width: 32 * Qaterial.Style.pixelSizeRatio
+					icon.height: 32 * Qaterial.Style.pixelSizeRatio
+					wrapMode: Text.Wrap
+				}
+
+				Item {
+					width: parent.width
+					height: 10
 				}
 
 				ListView {
@@ -51,7 +76,7 @@ QPageGradient {
 					model: mission.missionLevelList
 					orientation: ListView.Horizontal
 
-					implicitHeight: 150*Qaterial.Style.pixelSizeRatio
+					implicitHeight: 110*Qaterial.Style.pixelSizeRatio
 
 					width: control.width
 					spacing: 5
@@ -74,7 +99,11 @@ QPageGradient {
 
 						missionLevel: model.qtObject
 
-						onClicked: map.play(item, GameMap.Action)
+						onClicked: Client.stackPushPage("PageMapPlayMissionLevel.qml", {
+															mission: missionColumn.mission,
+															map: control.map,
+															missionLevel: item
+														})
 					}
 
 				}

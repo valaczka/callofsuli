@@ -105,5 +105,6 @@
         <file>StudentGroups.qml</file>
         <file>PageStudentCampaign.qml</file>
         <file>QPageGradient.qml</file>
+        <file>PageMapPlayMissionLevel.qml</file>
     </qresource>
 </RCC>

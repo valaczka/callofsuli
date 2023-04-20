@@ -241,7 +241,7 @@ void ClientCache::addHandler(const QString &key,
 	it.property = property;
 	it.allFieldOverride = allFieldOverride;
 
-	m_list.insert(key, it);
+	m_handlers.insert(key, it);
 }
 
 

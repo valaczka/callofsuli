@@ -84,7 +84,7 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 	MapPlaySolverAction *solver = new MapPlaySolverAction(this);
 	setSolver(solver);
 
-	reloadSolver();
+	updateSolver();
 
 	return true;
 }
@@ -92,10 +92,10 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 
 
 /**
- * @brief MapPlayCampaign::reloadSolver
+ * @brief MapPlayCampaign::updateSolver
  */
 
-void MapPlayCampaign::reloadSolver()
+void MapPlayCampaign::updateSolver()
 {
 	if (!m_gameMap || !m_solver || !m_client)
 		return;
@@ -201,7 +201,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 		destroyCurrentGame();
 
-		reloadSolver();
+		updateSolver();
 	});
 
 }

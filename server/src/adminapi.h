@@ -72,6 +72,9 @@ public:
 	struct Class {
 		int id = -1;
 		QString name;
+
+		Class(const int &i, const QString &n) : id(i), name(n) {}
+		Class(const QString &n) : name(n) {}
 	};
 
 
@@ -166,6 +169,7 @@ public:
 	static QDefer authPlainPasswordChange(const AbstractAPI *api, const QString &username,
 										  const QString &oldPassword, const QString &password, const bool &check);
 
+	static int _classCreate(const AbstractAPI *api, const Class &_class);
 	static QString generateClassCode();
 
 	static QDefer campaignStart(const AbstractAPI *api, const int &campaign);

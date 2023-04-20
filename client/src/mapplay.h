@@ -53,6 +53,7 @@ class MapPlay : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(GameMap *gameMap READ gameMap WRITE setGameMap NOTIFY gameMapChanged)
+	Q_PROPERTY(QString uuid READ uuid CONSTANT)
 	Q_PROPERTY(MapPlayMissionList *missionList READ missionList CONSTANT)
 	Q_PROPERTY(AbstractLevelGame *currentGame READ currentGame WRITE setCurrentGame NOTIFY currentGameChanged)
 
@@ -66,6 +67,7 @@ public:
 	static bool checkTerrains(GameMap *map);
 
 	Client *client() const;
+	QString uuid() const;
 
 	GameMap *gameMap() const;
 	void setGameMap(GameMap *newGameMap);
@@ -79,8 +81,9 @@ public:
 	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const;
 
 	Q_INVOKABLE bool play(MapPlayMissionLevel *level, const GameMap::GameMode &mode);
+	Q_INVOKABLE virtual void updateSolver();
 
-	void updateSolver();
+	Q_INVOKABLE int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const;
 
 	AbstractLevelGame *currentGame() const;
 	void setCurrentGame(AbstractLevelGame *newCurrentGame);
@@ -104,7 +107,7 @@ protected:
 	Client *const m_client = nullptr;
 	GameMap *m_gameMap = nullptr;
 	AbstractMapPlaySolver *m_solver = nullptr;
-	MapPlayMissionList *const m_missionList;
+	MapPlayMissionList *m_missionList = nullptr;
 	AbstractLevelGame *m_currentGame = nullptr;
 
 };
@@ -152,8 +155,9 @@ public:
 	bool loadSolverInfo(GameMapMission *mission, const GameMap::SolverInfo &info);
 	static bool loadSolverInfo(MapPlay *mapPlay, GameMapMission *mission, const GameMap::SolverInfo &info);
 
+	virtual int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const = 0;
 	virtual void updateLock() = 0;
-	virtual void updateXP() = 0;
+	virtual void updateXP();
 
 protected:
 	MapPlay *m_mapPlay = nullptr;
@@ -173,8 +177,8 @@ class MapPlaySolverAction : public AbstractMapPlaySolver
 public:
 	MapPlaySolverAction(MapPlay *mapPlay) : AbstractMapPlaySolver(mapPlay) {}
 
+	virtual int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const override;
 	virtual void updateLock() override;
-	virtual void updateXP() override;
 
 	int base() const { return m_base; }
 	void setBase(int newBase) { m_base = newBase; }
@@ -196,22 +200,29 @@ class MapPlayMission : public QObject
 
 	Q_PROPERTY(GameMapMission *mission READ mission CONSTANT)
 	Q_PROPERTY(QString name READ name CONSTANT)
+	Q_PROPERTY(QString uuid READ uuid CONSTANT)
 	Q_PROPERTY(MapPlayMissionLevelList *missionLevelList READ missionLevelList CONSTANT)
+	Q_PROPERTY(QString medalImage READ medalImage CONSTANT)
 
 public:
 	explicit MapPlayMission(GameMapMission *mission, QObject *parent = nullptr);
 	virtual ~MapPlayMission();
 
-	GameMapMission *mission() const { return m_mission; }
+	GameMapMission *mission() const;
 	MapPlayMissionLevelList *missionLevelList() const { return m_missionLevelList; }
 
 	QString name() const;
+	QString uuid() const;
 
 	GameMap::SolverInfo toSolverInfo() const;
 
+	QString medalImage() const;
+
+	Q_INVOKABLE bool modeEnabled(const GameMap::GameMode &mode) const;
+
 private:
-	GameMapMission *const m_mission;
-	MapPlayMissionLevelList *const m_missionLevelList;
+	GameMapMission * m_mission = nullptr;
+	MapPlayMissionLevelList *m_missionLevelList = nullptr;
 };
 
 

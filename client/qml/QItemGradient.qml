@@ -33,9 +33,8 @@ Item {
 			gradient: Gradient {
 				orientation: Gradient.Vertical
 				GradientStop { position: 0.0; color: "transparent" }
-				GradientStop { position: 0.2; color: "transparent" }
-				GradientStop { position: 0.6; color: "#19FFFFFF" }
-				GradientStop { position: 0.9; color: "#66FFFFFF" }
+				GradientStop { position: 0.1; color: "#0FFFFFFF" }
+				GradientStop { position: 0.65; color: "#19FFFFFF" }
 				GradientStop { position: 1.0; color: "white" }
 			}
 		}

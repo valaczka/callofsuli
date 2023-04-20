@@ -78,6 +78,7 @@ public:
 	static void reloadAvailableMusic();
 	static void reloadAvailableMedal();
 
+	static QString medalImagePath(GameMapMission *mission);
 	static QString medalImagePath(GameMapMissionLevel *missionLevel);
 
 	Q_INVOKABLE void startWithRemainingTime(const qint64 &msec);

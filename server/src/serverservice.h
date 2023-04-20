@@ -122,6 +122,8 @@ public:
 	void removePanel(Panel *panel, const bool &_delete = true);
 	Panel *panel(const int &id) const;
 
+	const QString &importDb() const;
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -165,6 +167,7 @@ private:
 	QNetworkAccessManager *const m_networkManager = nullptr;
 
 	QString m_loadedWasmResource;
+	QString m_importDb;
 };
 
 

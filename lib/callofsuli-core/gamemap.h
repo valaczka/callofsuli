@@ -153,8 +153,10 @@ private:
 	QList<GameMapMission *> m_missions;
 };
 
-Q_DECLARE_METATYPE(GameMap::GameMode)
 Q_DECLARE_OPERATORS_FOR_FLAGS(GameMap::GameModes)
+Q_DECLARE_METATYPE(GameMap::GameMode)
+Q_DECLARE_METATYPE(GameMap::GameModes)
+Q_DECLARE_METATYPE(GameMap)
 
 
 
@@ -303,13 +305,14 @@ class GameMapMission : public GameMapMissionIface
 	Q_PROPERTY(QString medalImage MEMBER m_medalImage)
 	Q_PROPERTY(QList<GameMapMissionLevel *> levels MEMBER m_levels)
 	Q_PROPERTY(QList<GameMapMissionLevel *> locks MEMBER m_locks)
-	Q_PROPERTY(GameMap::GameModes modes READ modes MEMBER m_modes)
+	Q_PROPERTY(GameMap::GameModes modes MEMBER m_modes)
 
 public:
+	explicit GameMapMission() {}
 	explicit GameMapMission(const QByteArray &uuid, const QString &name, const QString &description,
 							const QString &medalImage, const GameMap::GameModes &modes,
 							GameMap *map);
-	virtual ~GameMapMission() {}
+	virtual ~GameMapMission();
 
 	const QString &uuid() const;
 	const QString &name() const;
@@ -341,11 +344,11 @@ protected:
 private:
 	QList<GameMapMissionLevel *> m_levels;
 	QList<GameMapMissionLevel *> m_locks;
-	GameMap *m_map;
+	GameMap *m_map = nullptr;
 	GameMap::GameModes m_modes = GameMap::Invalid;
 };
 
-
+Q_DECLARE_METATYPE(GameMapMission)
 
 
 
@@ -369,6 +372,7 @@ class GameMapMissionLevel : public GameMapMissionLevelIface
 	Q_PROPERTY(QList<qint32> chapterIds MEMBER m_chapterIds)
 
 public:
+	explicit GameMapMissionLevel() {}
 	explicit GameMapMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
 								 const qint32 &duration, const bool &canDeathmatch, const qreal &questions,
 								 const QString &image, GameMapMission *mission, GameMap *map);
@@ -399,11 +403,11 @@ protected:
 private:
 	QList<GameMapInventory *> m_inventories;
 	QList<qint32> m_chapterIds;
-	GameMap *m_map;
-	GameMapMission *m_mission;
+	GameMap *m_map = nullptr;
+	GameMapMission *m_mission = nullptr;
 };
 
-
+Q_DECLARE_METATYPE(GameMapMissionLevel)
 
 
 

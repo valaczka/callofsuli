@@ -37,10 +37,13 @@ Item {
 			id: messageModel
 		}
 
-		delegate: Item {
+		delegate: Rectangle {
 			id: item
 			width: view.width
 			height: itemHeight
+
+			color: "#22000000"
+			radius: 5
 
 			required property string textColor
 			required property string message
@@ -108,10 +111,10 @@ Item {
 
 	Timer {
 		id: timerRemove
-		running: messageModel.count > 1
+		running: messageModel.count
 		repeat: true
 
-		interval: 3000
+		interval: 5000
 
 		onTriggered: messageModel.remove(0)
 

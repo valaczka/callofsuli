@@ -26,7 +26,7 @@ Qaterial.Button {
 
 
 
-	font: Qaterial.Style.textTheme.body2
+	font: Qaterial.Style.textTheme.body1
 	backgroundImplicitHeight: Qaterial.Style.gameButtonImplicitHeight
 	leftPadding: 10
 	rightPadding: 10

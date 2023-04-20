@@ -42,7 +42,7 @@ MapPlay::MapPlay(Client *client, QObject *parent)
 {
 	Q_ASSERT(m_client);
 
-	LOG_CDEBUG("game") << "Map play object created:" << this;
+	LOG_CTRACE("game") << "Map play created:" << this;
 }
 
 
@@ -61,9 +61,12 @@ MapPlay::~MapPlay()
 		m_solver = nullptr;
 	}
 
-	delete m_missionList;
+	if (m_missionList) {
+		delete m_missionList;
+		m_missionList = nullptr;
+	}
 
-	LOG_CDEBUG("game") << "Map play object destroyed:" << this;
+	LOG_CTRACE("game") << "Map play destroyed:" << this;
 }
 
 
@@ -155,6 +158,17 @@ bool MapPlay::checkTerrains(GameMap *map)
 Client *MapPlay::client() const
 {
 	return m_client;
+}
+
+
+/**
+ * @brief MapPlay::uuid
+ * @return
+ */
+
+QString MapPlay::uuid() const
+{
+	return m_gameMap ? m_gameMap->uuid() : QLatin1String("");
 }
 
 
@@ -250,6 +264,8 @@ void MapPlay::reloadMissionList()
 			continue;
 		}
 
+		LOG_CTRACE("game") << "Load mission" << mission << mission->name() << mission->modes();
+
 		MapPlayMission *pMission = new MapPlayMission(mission);
 		m_missionList->append(pMission);
 
@@ -307,7 +323,7 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 
 void MapPlay::onCurrentGamePrepared()
 {
-	LOG_CDEBUG("game") << "Current game prepared" << m_currentGame;
+	LOG_CWARNING("game") << "Missing game prepared implementation!";
 }
 
 
@@ -321,7 +337,7 @@ void MapPlay::onCurrentGamePrepared()
 
 void MapPlay::onCurrentGameFinished()
 {
-	LOG_CDEBUG("game") << "Missing game finished implementation!";
+	LOG_CWARNING("game") << "Missing game finished implementation!";
 
 	m_currentGame->setReadyToDestroy(true);
 }
@@ -470,6 +486,26 @@ void MapPlay::updateSolver()
 
 
 
+/**
+ * @brief MapPlay::calculateXP
+ * @param level
+ * @param mode
+ * @return
+ */
+
+int MapPlay::calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const
+{
+	if (m_solver)
+		return m_solver->calculateXP(level, mode);
+	else
+		return 0;
+}
+
+
+
+
+
+
 
 
 
@@ -487,7 +523,7 @@ MapPlayMissionLevel::MapPlayMissionLevel(GameMapMissionLevel *missionLevel, cons
 	, m_missionLevel(missionLevel)
 	, m_deathmatch(deathmatch)
 {
-	LOG_CDEBUG("game") << "Map play mission level created:" << this;
+	LOG_CTRACE("game") << "Map play mission level created:" << this;
 }
 
 
@@ -497,7 +533,7 @@ MapPlayMissionLevel::MapPlayMissionLevel(GameMapMissionLevel *missionLevel, cons
 
 MapPlayMissionLevel::~MapPlayMissionLevel()
 {
-	LOG_CDEBUG("game") << "Map play mission destroyed:" << this;
+	LOG_CTRACE("game") << "Map play mission destroyed:" << this;
 }
 
 
@@ -530,6 +566,8 @@ void MapPlayMissionLevel::solverDataIncrement()
 	++m_solverData;
 	emit solvedChanged();
 }
+
+
 
 
 
@@ -599,7 +637,7 @@ MapPlayMission::MapPlayMission(GameMapMission *mission, QObject *parent)
 	, m_mission(mission)
 	, m_missionLevelList(new MapPlayMissionLevelList(this))
 {
-	LOG_CDEBUG("game") << "Map play mission created:" << this;
+	LOG_CTRACE("game") << "Map play mission created:" << this;
 }
 
 
@@ -609,9 +647,23 @@ MapPlayMission::MapPlayMission(GameMapMission *mission, QObject *parent)
 
 MapPlayMission::~MapPlayMission()
 {
-	delete m_missionLevelList;
+	if (m_missionLevelList) {
+		delete m_missionLevelList;
+		m_missionLevelList = nullptr;
+	}
 
-	LOG_CDEBUG("game") << "Map play mission destroyed:" << this;
+	LOG_CTRACE("game") << "Map play mission destroyed:" << this;
+}
+
+
+/**
+ * @brief MapPlayMission::mission
+ * @return
+ */
+
+GameMapMission *MapPlayMission::mission() const
+{
+	return m_mission;
 }
 
 
@@ -625,6 +677,17 @@ MapPlayMission::~MapPlayMission()
 QString MapPlayMission::name() const
 {
 	return m_mission ? m_mission->name() : QLatin1String("");
+}
+
+
+/**
+ * @brief MapPlayMission::uuid
+ * @return
+ */
+
+QString MapPlayMission::uuid() const
+{
+	return m_mission ? m_mission->uuid() : QLatin1String("");
 }
 
 
@@ -643,6 +706,38 @@ GameMap::SolverInfo MapPlayMission::toSolverInfo() const
 	}
 
 	return GameMap::SolverInfo(object);
+}
+
+
+
+
+/**
+ * @brief MapPlayMission::medalImage
+ * @return
+ */
+
+QString MapPlayMission::medalImage() const
+{
+	return AbstractLevelGame::medalImagePath(m_mission);
+}
+
+
+
+
+/**
+ * @brief MapPlayMission::modeEnabled
+ * @param mode
+ * @return
+ */
+
+bool MapPlayMission::modeEnabled(const GameMap::GameMode &mode) const
+{
+	if (!m_mission)
+		return false;
+	else if (m_mission->modes().testFlag(GameMap::Invalid))
+		return mode == GameMap::Action || mode == GameMap::Lite;
+	else
+		return m_mission->modes().testFlag(mode);
 }
 
 
@@ -739,6 +834,60 @@ bool AbstractMapPlaySolver::loadSolverInfo(MapPlay *mapPlay, GameMapMission *mis
 
 
 
+
+/**
+ * @brief AbstractMapPlaySolver::updateXP
+ */
+
+void AbstractMapPlaySolver::updateXP()
+{
+	LOG_CDEBUG("game") << "AbstractMapPlaySolver update xp";
+
+	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
+		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
+			const GameMap::GameModes &modes = mission->mission()->modes();
+			int xp = 0;
+
+			const QVector<GameMap::GameMode> &list = {
+				GameMap::Action, GameMap::Lite, GameMap::Test, GameMap::Quiz, GameMap::Exam
+			};
+
+			if (modes.testFlag(GameMap::Invalid))
+				xp = calculateXP(level, GameMap::Action);
+
+			foreach (const GameMap::GameMode &mode, list) {
+				if (modes.testFlag(mode))
+					xp = qMax(xp, calculateXP(level, mode));
+			}
+
+			level->setXp(xp);
+		}
+	}
+}
+
+
+
+
+
+/**
+ * @brief MapPlaySolverAction::updateLock
+ */
+
+int MapPlaySolverAction::calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const
+{
+	if (!level)
+		return -1;
+
+	return m_base * GameMap::computeSolvedXpFactor(level->level(),
+												   level->deathmatch(),
+												   level->solverData().solved(),
+												   mode);
+}
+
+
+
+
+
 /**
  * @brief MapPlaySolverAction::updateLock
  */
@@ -803,26 +952,6 @@ void MapPlaySolverAction::updateLock()
 	}
 
 }
-
-
-/**
- * @brief MapPlaySolverAction::updateXP
- */
-
-void MapPlaySolverAction::updateXP()
-{
-	LOG_CDEBUG("game") << "MapPlaySolverAction update xp";
-
-	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
-		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
-			level->setXp(m_base * GameMap::computeSolvedXpFactor(level->level(),
-																 level->deathmatch(),
-																 level->solverData().solved(),
-																 GameMap::Action));
-		}
-	}
-}
-
 
 
 

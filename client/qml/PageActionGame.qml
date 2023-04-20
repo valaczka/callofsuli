@@ -498,7 +498,7 @@ Page {
 	Column {
 		anchors.right: parent.right
 		anchors.top: parent.top
-		anchors.topMargin: Math.max(Client.safeMarginTop, 7)
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
 		spacing: 5
 
@@ -687,7 +687,7 @@ Page {
 		anchors.left: parent.left
 		anchors.top: parent.top
 		anchors.leftMargin: Client.safeMarginLeft
-		anchors.topMargin: Math.max(Client.safeMarginTop, 7)
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 
 		width: Math.min(implicitWidth, control.width*0.55)
 		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
@@ -738,7 +738,7 @@ Page {
 								Client.Utils.formatMSecs(game.msecLeft) :
 								Client.Utils.formatMSecs(game.msecLeft, 1, false)
 
-			visible: !gameScene.isSceneZoom
+			visible: !gameScene.zoomOverview
 		}
 	}
 
@@ -1292,8 +1292,8 @@ Page {
 		onPageClose = null
 		Qaterial.DialogManager.showDialog(
 					{
-						onAccepted: function() { Client.stackPop(control.stackViewIndex-1) },
-						onRejected: function() { Client.stackPop(control.stackViewIndex-1) },
+						onAccepted: function() { Client.stackPop(control) },
+						onRejected: function() { Client.stackPop(control) },
 						text: _text,
 						title: qsTr("Game over"),
 						iconSource: _icon,

@@ -153,9 +153,17 @@ Service::CommandResult ServerService::onStart()
 	m_databaseMain = new DatabaseMain(this);
 	m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
 	m_databaseMain->setDbMapsFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("maps.db")));
+
+
+	if (QFile::exists(m_databaseMain->dbFile()) && !m_importDb.isEmpty()) {
+		LOG_CERROR("service") << "Import error, main database already exists";
+		quit();
+		return CommandResult::Failed;
+	}
+
 	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
 
-	if (!m_databaseMain->databasePrepare()) {
+	if (!m_databaseMain->databasePrepare(m_importDb)) {
 		LOG_CERROR("service") << "Main database prepare error";
 		quit();
 		return CommandResult::Failed;
@@ -166,7 +174,6 @@ Service::CommandResult ServerService::onStart()
 		quit();
 		return CommandResult::Failed;
 	}
-
 
 	m_config.m_service = this;
 	m_config.loadFromDb(m_databaseMain);
@@ -358,6 +365,17 @@ void ServerService::terminalConnected(QtService::Terminal *terminal)
 	LOG_CINFO("service") << "Terminal connected" << terminal;
 
 	new TerminalHandler(this, terminal);
+}
+
+
+/**
+ * @brief ServerService::importDb
+ * @return
+ */
+
+const QString &ServerService::importDb() const
+{
+	return m_importDb;
 }
 
 
@@ -608,6 +626,8 @@ bool ServerService::preStart()
 	//parser.addOption({{QStringLiteral("l"), QStringLiteral("log")}, QObject::tr("Naplózás <file> fájlba"), QStringLiteral("file")});
 	//parser.addOption({{QStringLiteral("n"), QStringLiteral("log-limit")}, QObject::tr("Maximum <db> log fájl tárolása"), QStringLiteral("db")});
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
+	parser.addOption({{QStringLiteral("i"), QStringLiteral("import")}, QObject::tr("Adatbázis importálása"), QStringLiteral("database")});
+
 	parser.addOption({{QStringLiteral("terminal")}, QObject::tr("Terminál indítása")});
 
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
@@ -662,6 +682,9 @@ bool ServerService::preStart()
 		m_consoleAppender->setDetailsLevel(Logger::Info);
 #endif
 
+
+	if (parser.isSet(QStringLiteral("import")))
+		m_importDb = parser.value(QStringLiteral("import"));
 
 	/*QString logFile;
 

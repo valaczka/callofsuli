@@ -42,7 +42,7 @@ public:
 	const QString &dbFile() const;
 	void setDbFile(const QString &newDbFile);
 
-	bool databasePrepare();
+	bool databasePrepare(const QString importDb = QString());
 	bool databaseAttach();
 
 	void saveConfig(const QJsonObject &json);
@@ -53,7 +53,7 @@ public:
 private:
 	bool databaseMapsPrepare();
 
-	bool _checkSystemTable();
+	bool _checkSystemTable(const QString &dbImport = QString());
 	bool _checkMapsSystemTable(Database *mapsDb);
 	bool _createTables();
 	bool _createMapsTables(Database *db);
@@ -61,6 +61,7 @@ private:
 	bool _upgradeMapsTables();
 	bool _createUsers();
 	bool _createRanksAndGrades();
+	bool _databaseImport(const QString &dbFile);
 
 	QString m_dbFile;
 	QString m_dbMapsFile;

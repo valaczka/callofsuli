@@ -8,7 +8,7 @@ import "./QaterialHelper" as Qaterial
 Qaterial.Card {
 	id: control
 
-	property QtObject missionLevel: null
+	property MapPlayMissionLevel missionLevel: null
 
 	outlined: true
 
@@ -28,13 +28,15 @@ Qaterial.Card {
 
 	elevation: missionLevel.lockDepth > 0 ? 0 : Qaterial.Style.card.activeElevation
 
-	signal clicked(QtObject item)
+	signal clicked(MapPlayMissionLevel item)
 
 	scale: area.pressed ? 0.9 : 1.0
 
 	Behavior on scale {
 		NumberAnimation { duration: 125 }
 	}
+
+	readonly property int _verticalPadding: 6//Qaterial.Style.dense ? 6 : 8
 
 	readonly property color textColor: missionLevel.solved > 0 ?
 										   (missionLevel.level === 3 ?
@@ -53,33 +55,7 @@ Qaterial.Card {
 			id: lay
 			width: parent.width
 			height: parent.height
-			spacing: Qaterial.Style.card.verticalPadding
-
-			Qaterial.LabelBody2
-			{
-				text: missionLevel.deathmatch ?
-						  qsTr("Level %1\nSudden death").arg(missionLevel.level) :
-						  qsTr("Level %1").arg(missionLevel.level)
-
-				font.capitalization: Font.AllUppercase
-				font.family: Qaterial.Style.textTheme.body2.family
-				font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
-				font.weight: Font.DemiBold
-				lineHeight: 0.9
-
-				color: control.textColor
-
-				horizontalAlignment: Text.AlignHCenter
-				verticalAlignment: Text.AlignVCenter
-
-				Layout.leftMargin: Qaterial.Style.card.horizontalPadding
-				Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-				Layout.fillWidth: true
-				Layout.topMargin: Qaterial.Style.card.verticalPadding
-				//Layout.bottomMargin: Qaterial.Style.card.verticalPadding
-				Layout.preferredHeight: font.pixelSize*2.2
-			}
-
+			spacing: control._verticalPadding
 
 			MedalImage {
 				deathmatch: missionLevel.deathmatch
@@ -88,6 +64,7 @@ Qaterial.Card {
 
 				visible: missionLevel.lockDepth === 0
 
+				Layout.topMargin: control._verticalPadding
 				Layout.fillWidth: true
 				Layout.fillHeight: true
 			}
@@ -101,12 +78,39 @@ Qaterial.Card {
 
 				Layout.fillWidth: true
 				Layout.fillHeight: true
-				Layout.topMargin: Qaterial.Style.card.verticalPadding
-				Layout.bottomMargin: Qaterial.Style.card.verticalPadding
+				Layout.topMargin: 2*control._verticalPadding
+				Layout.bottomMargin: 2*control._verticalPadding
 			}
 
-
 			Qaterial.LabelBody2
+			{
+				text: (missionLevel.deathmatch ?
+						  qsTr("Level %1 SD").arg(missionLevel.level) :
+						  qsTr("Level %1").arg(missionLevel.level))
+				+qsTr("\n%1 XP").arg(missionLevel.xp)
+
+				// Nem fogadja el másképp a capitalizationt, csak ha a family is idekerül
+				font.capitalization: Font.AllUppercase
+				font.family: Qaterial.Style.textTheme.body2.family
+				font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
+				font.weight: Font.DemiBold
+
+				lineHeight: 0.9
+
+				color: control.textColor
+
+				horizontalAlignment: Text.AlignHCenter
+				verticalAlignment: Text.AlignVCenter
+
+				Layout.leftMargin: Qaterial.Style.card.horizontalPadding
+				Layout.rightMargin: Qaterial.Style.card.horizontalPadding
+				Layout.fillWidth: true
+				//Layout.topMargin: control._verticalPadding
+				Layout.bottomMargin: control._verticalPadding
+				Layout.preferredHeight: font.pixelSize*2.3
+			}
+
+			/*Qaterial.LabelBody2
 			{
 				text: qsTr("%1 XP").arg(missionLevel.xp)
 				color: control.textColor
@@ -114,11 +118,11 @@ Qaterial.Card {
 				verticalAlignment: Text.AlignVCenter
 				Layout.leftMargin: Qaterial.Style.card.horizontalPadding
 				Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-				Layout.bottomMargin: Qaterial.Style.card.verticalPadding
+				Layout.bottomMargin: control._verticalPadding
 				//Layout.topMargin: Qaterial.Style.card.verticalPadding
 				Layout.fillWidth: true
 				Layout.preferredHeight: font.pixelSize*2
-			}
+			}*/
 		}
 
 		MouseArea {
@@ -126,7 +130,7 @@ Qaterial.Card {
 			anchors.fill: parent
 			acceptedButtons: Qt.LeftButton
 
-			onClicked: if (missionLevel.lockDepth === 0) control.clicked(missionLevel)
+			onClicked: control.clicked(missionLevel)
 		}
 	}
 

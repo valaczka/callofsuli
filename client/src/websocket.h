@@ -143,7 +143,7 @@ private:
 #ifndef QT_NO_SSL
 	QSslCertificate m_rootCertificate;
 #endif
-	QNetworkAccessManager *const m_networkManager = nullptr;
+	QNetworkAccessManager *m_networkManager = nullptr;
 	QVector<WebSocketReply *> m_replies;
 	bool m_pending = false;
 
@@ -243,7 +243,7 @@ signals:
 
 private:
 	QPointer<QNetworkReply> m_reply = nullptr;
-	WebSocket *const m_socket = nullptr;
+	QPointer<WebSocket> m_socket = nullptr;
 	bool m_pending = true;
 	QVector<std::function<void (const QJsonObject &)>> m_funcs;
 	QVector<std::function<void (const QByteArray &)>> m_funcsByteArray;

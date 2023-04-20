@@ -124,46 +124,10 @@ void AdminAPI::classCreate(const QRegularExpressionMatch &, const QJsonObject &d
 		return responseError(response, "missing name");
 
 	databaseMainWorker()->execInThread([this, name, data, response]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+		int id = _classCreate(this, Class(name));
 
-		QMutexLocker(databaseMain()->mutex());
-
-		db.transaction();
-
-		QueryBuilder q(db);
-		q.addQuery("INSERT INTO class(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("name", name);
-
-		if (!q.exec()) {
-			LOG_CWARNING("client") << "Class create error:" << qPrintable(name);
-			db.rollback();
+		if (id == -1)
 			return responseErrorSql(response);
-		}
-
-		const int &id = q.sqlQuery().lastInsertId().toInt();
-
-		const QString &code = generateClassCode();
-
-		if (!QueryBuilder::q(db)
-				.addQuery("INSERT INTO classCode(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("classid", id)
-				.addField("code", code)
-				.exec())
-		{
-			LOG_CWARNING("client") << "Class create error:" << qPrintable(name) << id << code;
-			db.rollback();
-			return responseErrorSql(response);
-		}
-
-		db.commit();
 
 		LOG_CDEBUG("client") << "Class created:" << qPrintable(name) << id;
 		responseAnswerOk(response, {
@@ -171,6 +135,8 @@ void AdminAPI::classCreate(const QRegularExpressionMatch &, const QJsonObject &d
 						 });
 	});
 }
+
+
 
 
 /**
@@ -1111,4 +1077,62 @@ QDefer AdminAPI::authPlainPasswordChange(const AbstractAPI *api, const QString &
 	});
 
 	return ret;
+}
+
+
+
+
+
+/**
+ * @brief AdminAPI::_classCreate
+ * @param _class
+ * @return
+ */
+
+int AdminAPI::_classCreate(const AbstractAPI *api, const Class &_class)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	db.transaction();
+
+	QueryBuilder q(db);
+	q.addQuery("INSERT INTO class(")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("name", _class.name);
+
+	if (!q.exec()) {
+		LOG_CWARNING("client") << "Class create error:" << qPrintable(_class.name);
+		db.rollback();
+		return -1;
+	}
+
+	const int &id = q.sqlQuery().lastInsertId().toInt();
+
+	const QString &code = generateClassCode();
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO classCode(")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("classid", id)
+			.addField("code", code)
+			.exec())
+	{
+		LOG_CWARNING("client") << "Class create error:" << qPrintable(_class.name) << id << code;
+		db.rollback();
+		return -1;
+	}
+
+	db.commit();
+
+	return id;
 }

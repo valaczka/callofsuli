@@ -44,6 +44,7 @@ UserAPI::UserAPI(ServerService *service)
 	addMap("^campaign/(\\d+)/*$", this, &UserAPI::campaignOne);
 	addMap("^campaign/(\\d+)/game/create/*$", this, &UserAPI::gameCreate);
 
+	addMap("^game/info/*", this, &UserAPI::gameInfo);
 	addMap("^game/(\\d+)/update/*$", this, &UserAPI::gameUpdate);
 	addMap("^game/(\\d+)/finish/*$", this, &UserAPI::gameFinish);
 
@@ -475,6 +476,46 @@ void UserAPI::mapSolver(const QRegularExpressionMatch &match, const QJsonObject 
 		ret.insert(it.key(), it.value().toJsonObject());
 
 	responseAnswer(response, ret);
+}
+
+
+
+/**
+ * @brief UserAPI::gameInfo
+ * @param data
+ * @param response
+ */
+
+void UserAPI::gameInfo(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	databaseMainWorker()->execInThread([this, response, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		const QJsonArray &list = QueryBuilder::q(db)
+				.addQuery("SELECT game.username, COUNT(*) AS num, MAX(duration) AS dMax, MIN(duration) as dMin, "
+						  "ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationPos, "
+						  "ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, MIN(duration)) numPos, "
+						  "familyName, givenName, nickname, picture, rankid FROM game "
+						  "LEFT JOIN user ON (user.username=game.username) "
+						  "LEFT JOIN userRank ON (userRank.username=game.username) "
+						  "WHERE success=true AND user.active=true ")
+				.addQuery(" AND mapid=").addValue(data.value(QStringLiteral("map")).toString())
+				.addQuery(" AND missionid=").addValue(data.value(QStringLiteral("mission")).toString())
+				.addQuery(" AND game.level=").addValue(data.value(QStringLiteral("level")).toInt())
+				.addQuery(" AND mode=").addValue(data.value(QStringLiteral("mode")).toInt())
+				.addQuery(" AND deathmatch=").addValue(data.value(QStringLiteral("deathmatch")).toVariant().toBool())
+				.addQuery(" GROUP BY game.username, mapid, missionid, game.level, mode, deathmatch")
+				.execToJsonArray(&err);
+
+		if (err)
+			responseErrorSql(response);
+		else
+			responseAnswer(response, "list", list);
+	});
 }
 
 

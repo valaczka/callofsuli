@@ -59,6 +59,7 @@ public:
 	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void mapSolver(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
+	void gameInfo(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void gameCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void gameUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void gameFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;

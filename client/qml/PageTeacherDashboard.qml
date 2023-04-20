@@ -9,27 +9,30 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
+	property bool _closeEnabled: false
 
-	onPageClose: function() {
-		if (Client.server && Client.server.user.loginState == User.LoggedIn)
-			Client.webSocket.close()
+	stackPopFunction: function() {
+		if (_closeEnabled || (Client.server && Client.server.user.loginState != User.LoggedIn))
+			return true
+
+		JS.questionDialog(
+					{
+						onAccepted: function()
+						{
+							_closeEnabled = true
+							if (Client.server && Client.server.user.loginState == User.LoggedIn)
+								Client.webSocket.close()
+							else
+								Client.stackPop(control)
+						},
+						text: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?"),
+						title: qsTr("Kilépés"),
+						iconSource: Qaterial.Icons.closeCircle
+					})
+
+
+		return false
 	}
-
-
-	/*stackPopFunction: function() {
-		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
-			return false
-		}
-
-		if (_login.registrationMode) {
-			_login.registrationMode = false
-			return false
-		}
-
-		return true
-	}*/
 
 	title: Client.server ? Client.server.serverName : ""
 	subtitle: Client.server ? Client.server.user.fullName : ""
