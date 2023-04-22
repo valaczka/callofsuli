@@ -27,6 +27,7 @@ QPage {
 	subtitle: Client.server ? Client.server.serverName : ""
 
 	property TeacherGroup group: null
+	property TeacherMapHandler mapHandler: null
 
 	appBar.backButtonVisible: true
 	appBar.rightComponent: Qaterial.AppBarButton
@@ -55,12 +56,13 @@ QPage {
 		anchors.fill: parent
 		currentIndex: tabBar.currentIndex
 
-		TeacherGroupMemberList {
-			group: control.group
-		}
-
 		TeacherGroupCampaignList {
 			id: _campaignList
+			group: control.group
+			mapHandler: control.mapHandler
+		}
+
+		TeacherGroupMemberList {
 			group: control.group
 		}
 	}
@@ -70,8 +72,8 @@ QPage {
 		currentIndex: swipeView.currentIndex
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.account, color: "green" })
 			model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.account, color: "green" })
 			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}

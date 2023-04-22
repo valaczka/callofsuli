@@ -342,6 +342,19 @@ void MapPlay::onCurrentGameFinished()
 	m_currentGame->setReadyToDestroy(true);
 }
 
+bool MapPlay::online() const
+{
+	return m_online;
+}
+
+void MapPlay::setOnline(bool newOnline)
+{
+	if (m_online == newOnline)
+		return;
+	m_online = newOnline;
+	emit onlineChanged();
+}
+
 
 
 
@@ -690,6 +703,11 @@ QString MapPlayMission::uuid() const
 	return m_mission ? m_mission->uuid() : QLatin1String("");
 }
 
+QString MapPlayMission::description() const
+{
+	return m_mission ? m_mission->description() : QLatin1String("");
+}
+
 
 /**
  * @brief MapPlayMission::toSolverInfo
@@ -738,6 +756,25 @@ bool MapPlayMission::modeEnabled(const GameMap::GameMode &mode) const
 		return mode == GameMap::Action || mode == GameMap::Lite;
 	else
 		return m_mission->modes().testFlag(mode);
+}
+
+
+/**
+ * @brief MapPlayMission::lockDepth
+ * @return
+ */
+
+int MapPlayMission::lockDepth() const
+{
+	return m_lockDepth;
+}
+
+void MapPlayMission::setLockDepth(int newLockDepth)
+{
+	if (m_lockDepth == newLockDepth)
+		return;
+	m_lockDepth = newLockDepth;
+	emit lockDepthChanged();
 }
 
 
@@ -921,8 +958,12 @@ void MapPlaySolverAction::updateLock()
 			for (MapPlayMissionLevel *level : *mission->missionLevelList())
 				level->setLockDepth(lockDepth);
 
+			mission->setLockDepth(lockDepth);
+
 			continue;
 		}
+
+		mission->setLockDepth(0);
 
 		for (int i=1; i<mission->missionLevelList()->size(); ++i) {
 			MapPlayMissionLevel *level = m_mapPlay->getMissionLevel(gMission->level(i), false);

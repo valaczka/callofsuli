@@ -31,7 +31,7 @@
 MapPlayDemo::MapPlayDemo(Client *client, QObject *parent)
 	: MapPlay(client, parent)
 {
-
+	m_online = false;
 }
 
 

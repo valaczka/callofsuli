@@ -30,6 +30,19 @@
 #include "qjsonobject.h"
 #include <QObject>
 #include <selectableobject.h>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
+
+class BaseMap;
+using BaseMapList = qolm::QOlm<BaseMap>;
+Q_DECLARE_METATYPE(BaseMapList*)
+
+/**
+ * @brief The BaseMap class
+ */
 
 class BaseMap : public SelectableObject
 {

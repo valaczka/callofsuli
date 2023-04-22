@@ -106,5 +106,10 @@
         <file>PageStudentCampaign.qml</file>
         <file>QPageGradient.qml</file>
         <file>PageMapPlayMissionLevel.qml</file>
+        <file>QLoaderItemFullDelegate.qml</file>
+        <file>MapPlayMissionLevelInfoList.qml</file>
+        <file>QPlaceholderItem.qml</file>
+        <file>TeacherCampaignTaskList.qml</file>
+        <file>StudentCampaign.qml</file>
     </qresource>
 </RCC>

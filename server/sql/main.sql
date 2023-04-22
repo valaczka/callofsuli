@@ -72,6 +72,52 @@ CREATE TABLE rank(
 );
 
 
+CREATE TABLE ranklog(
+	id INTEGER PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	rankid INTEGER NOT NULL REFERENCES rank(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	xp INTEGER
+);
+
+CREATE VIEW userRank AS
+SELECT u.username, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as name, r.level as level, r.sublevel as sublevel
+	FROM user u
+	LEFT JOIN (SELECT username, (SELECT SUM(xp) FROM score WHERE score.username=uuu.username) as xp FROM user uuu) s ON (s.username=u.username)
+	LEFT JOIN (SELECT uu.username,
+			CASE WHEN uu.isTeacher=1 THEN COALESCE((SELECT MAX(id) FROM rank WHERE xp IS null), (SELECT MIN(id) FROM rank))
+			ELSE COALESCE(rl.rankid, (SELECT MIN(id) FROM rank))
+			END as rankid
+		FROM user uu
+		LEFT JOIN (SELECT username, rankid FROM ranklog GROUP BY username HAVING MAX(timestamp) AND MAX(id)) rl ON (rl.username=uu.username)) ur
+		ON (ur.username=u.username)
+	LEFT JOIN (SELECT id, name, level, sublevel FROM rank) r ON (r.id=ur.rankid)
+	WHERE u.isPanel=false;
+
+
+----------------------------------
+--- Score
+----------------------------------
+
+CREATE TABLE score(
+	id INTEGER PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0)
+);
+
+
+CREATE TRIGGER score_rank_update
+AFTER INSERT ON score
+FOR EACH ROW
+BEGIN
+	INSERT INTO ranklog (username, rankid, xp)
+		SELECT NEW.username, rank.id, userRank.xp FROM userRank LEFT JOIN rank ON (rank.xp<=userRank.xp)
+		WHERE username=NEW.username AND rank.id>userRank.rankid ORDER BY rank.id DESC LIMIT 1;
+END;
+
+
+
 ----------------------------------
 --- Grades
 ----------------------------------
@@ -99,7 +145,6 @@ CREATE TABLE mapOwner(
 ----------------------------------
 --- Groups
 ----------------------------------
-
 
 CREATE TABLE studentgroup(
 	id INTEGER PRIMARY KEY,
@@ -154,55 +199,21 @@ CREATE TABLE task(
 	criterion TEXT
 );
 
-
-
-----------------------------------
---- Rank log
-----------------------------------
-
-CREATE TABLE ranklog(
-	id INTEGER PRIMARY KEY,
+CREATE TABLE campaignResult(
+	id INTEGER NOT NULL PRIMARY KEY,
+	campaignid INTEGER REFERENCES campaign(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	rankid INTEGER NOT NULL REFERENCES rank(id) ON UPDATE CASCADE ON DELETE CASCADE,
-	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	xp INTEGER
+	gradeid INTEGER REFERENCES grade(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	scoreid INTEGER REFERENCES score(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	UNIQUE(campaignid, username)
 );
 
-CREATE VIEW userRank AS
-SELECT u.username, COALESCE(s.xp, 0) as xp, r.id as rankid, r.name as name, r.level as level, r.sublevel as sublevel
-	FROM user u
-	LEFT JOIN (SELECT username, (SELECT SUM(xp) FROM score WHERE score.username=uuu.username) as xp FROM user uuu) s ON (s.username=u.username)
-	LEFT JOIN (SELECT uu.username,
-			CASE WHEN uu.isTeacher=1 THEN COALESCE((SELECT MAX(id) FROM rank WHERE xp IS null), (SELECT MIN(id) FROM rank))
-			ELSE COALESCE(rl.rankid, (SELECT MIN(id) FROM rank))
-			END as rankid
-		FROM user uu
-		LEFT JOIN (SELECT username, rankid FROM ranklog GROUP BY username HAVING MAX(timestamp) AND MAX(id)) rl ON (rl.username=uu.username)) ur
-		ON (ur.username=u.username)
-	LEFT JOIN (SELECT id, name, level, sublevel FROM rank) r ON (r.id=ur.rankid)
-	WHERE u.isPanel=false;
-
-
-----------------------------------
---- Score
-----------------------------------
-
-CREATE TABLE score(
-	id INTEGER PRIMARY KEY,
+CREATE TABLE taskSuccess(
+	id INTEGER NOT NULL PRIMARY KEY,
+	taskid INTEGER REFERENCES task(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
-	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	xp INTEGER NOT NULL DEFAULT 0 CHECK (xp>=0)
+	UNIQUE(taskid, username)
 );
-
-
-CREATE TRIGGER score_rank_update
-AFTER INSERT ON score
-FOR EACH ROW
-BEGIN
-	INSERT INTO ranklog (username, rankid, xp)
-		SELECT NEW.username, rank.id, userRank.xp FROM userRank LEFT JOIN rank ON (rank.xp<=userRank.xp)
-		WHERE username=NEW.username AND rank.id>userRank.rankid ORDER BY rank.id DESC LIMIT 1;
-END;
 
 
 

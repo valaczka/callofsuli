@@ -82,6 +82,13 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("taskList")) || allField)
 		OlmLoader::loadFromJsonArray<Task>(m_taskList, object.value(QStringLiteral("taskList")).toArray(), "id", "taskid", true);
+
+	if (object.contains(QStringLiteral("resultGrade")) || allField)
+		setResultGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
+																							   object.value(QStringLiteral("resultGrade")).toInt())));
+
+	if (object.contains(QStringLiteral("resultXP")) || allField)
+		setResultXP(object.value(QStringLiteral("resultXP")).toInt());
 }
 
 
@@ -240,6 +247,65 @@ QStringList Campaign::usedMapUuids() const
 	}
 
 	return list;
+}
+
+
+/**
+ * @brief Campaign::readableResult
+ * @param grade
+ * @param xp
+ * @return
+ */
+
+QString Campaign::readableResult(Grade *grade, int xp)
+{
+	if (!grade && xp <= 0 && !m_finished)
+		return Task::readableGradeOrXp(m_defaultGrade, -1);
+	else
+		return Task::readableGradeOrXp(grade, xp);
+}
+
+
+/**
+ * @brief Campaign::readableShortResult
+ * @param grade
+ * @param xp
+ * @return
+ */
+
+QString Campaign::readableShortResult(Grade *grade, int xp)
+{
+	if (!grade && xp <= 0 && !m_finished)
+		return Task::readableGradeOrXpShort(m_defaultGrade, -1);
+	else
+		return Task::readableGradeOrXpShort(grade, xp);
+}
+
+
+Grade *Campaign::resultGrade() const
+{
+	return m_resultGrade;
+}
+
+void Campaign::setResultGrade(Grade *newResultGrade)
+{
+	if (m_resultGrade == newResultGrade)
+		return;
+	m_resultGrade = newResultGrade;
+	emit resultGradeChanged();
+}
+
+int Campaign::resultXP() const
+{
+	return m_resultXP;
+}
+
+void Campaign::setResultXP(int newResultXP)
+{
+	if (m_resultXP == newResultXP)
+		return;
+	m_resultXP = newResultXP;
+	emit resultXPChanged();
 }
 
 

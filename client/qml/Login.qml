@@ -45,6 +45,7 @@ QScrollable
 
 
 	Qaterial.GroupBox {
+		id: _loginBox
 		visible: Client.server && Client.server.user.loginState == User.LoggedOut && !registrationMode
 
 		anchors.horizontalCenter: parent.horizontalCenter

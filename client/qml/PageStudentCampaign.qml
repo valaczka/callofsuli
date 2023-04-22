@@ -13,6 +13,8 @@ QPageGradient {
 	property Campaign campaign: null
 	property StudentMapHandler studentMapHandler: null
 
+	property bool _firstRun: true
+
 	StudentMapList {
 		id: _mapList
 	}
@@ -20,6 +22,7 @@ QPageGradient {
 	QScrollable {
 		anchors.fill: parent
 		spacing: 15
+		contentCentered: true
 
 		visible: user && campaign
 
@@ -27,75 +30,101 @@ QPageGradient {
 
 		onRefreshRequest: reload()
 
-		Qaterial.LabelHeadline5 {
+		Item {
 			width: parent.width
-			topPadding: 50+root.paddingTop
-			leftPadding: 50
-			rightPadding: 50
-			horizontalAlignment: Qt.AlignHCenter
-			text: qsTr("Hadjárat")
+			height: root.paddingTop
 		}
 
-		Qaterial.LabelHeadline6 {
+		StudentCampaign {
 			anchors.horizontalCenter: parent.horizontalCenter
-			text: campaign ? campaign.readableName : ""
-		}
+			campaign: root.campaign
+			user: root.user
+			mapHandler: studentMapHandler
 
 
-		Repeater {
-			model: campaign ? campaign.taskList : null
-
-			Qaterial.LabelBody2 {
-				property Task task: model.qtObject
+			QDashboardGrid {
+				id: _grid
 				anchors.horizontalCenter: parent.horizontalCenter
-				text: JSON.stringify(task.criterion)
-			}
 
-		}
+				readonly property bool showPlaceholders: _mapList.count === 0 && _firstRun
 
-		Qaterial.HorizontalLineSeparator {
-			anchors.horizontalCenter: parent.horizontalCenter
-		}
+				visible: _mapList.count || showPlaceholders
+				contentItems: showPlaceholders ? 3 : _mapList.count
 
-		QDashboardGrid {
-			anchors.horizontalCenter: parent.horizontalCenter
+				Repeater {
+					model: _grid.showPlaceholders ? 3 : _sortedMapList
 
-			visible: _mapList.count
-			contentItems: _mapList.count
+					delegate: _grid.showPlaceholders ? _cmpPlaceholder : _cmpButton
+				}
 
-			Repeater {
-				model: SortFilterProxyModel {
-					sourceModel: _mapList
+				Component {
+					id: _cmpButton
 
-					sorters: [
-						StringSorter {
-							roleName: "name"
-							sortOrder: Qt.AscendingOrder
+					QDashboardButton {
+						id: _btn
+						property StudentMap map: model && model.qtObject ? model.qtObject : null
+						text: map ? map.name : ""
+						bgColor: "saddlebrown"
+						icon.source: map && map.downloaded ? Qaterial.Icons.group :
+															 _playAfterDownload ? Qaterial.Icons.refresh :
+																				  Qaterial.Icons.download
+						//highlighted: true
+						onClicked: if (map && map.downloaded)
+									   studentMapHandler.playCampaignMap(campaign, map)
+								   else {
+									   _playAfterDownload = true
+									   studentMapHandler.mapDownload(map)
+								   }
+
+						property bool _playAfterDownload: false
+
+						Connections {
+							target: map
+
+							function onDownloadedChanged() {
+								if (_btn._playAfterDownload && downloaded && campaign)
+									studentMapHandler.playCampaignMap(campaign, map)
+							}
 						}
-					]
+					}
 				}
 
-				QDashboardButton {
-					property StudentMap map: model.qtObject
-					text: map ? map.name : ""
-					icon.source: map && map.downloaded ? Qaterial.Icons.group : Qaterial.Icons.download
-					//highlighted: true
-					onClicked: if (map && map.downloaded)
-								   studentMapHandler.playCampaignMap(campaign, map)
-							   else
-								   studentMapHandler.mapDownload(map)
+				Component {
+					id: _cmpPlaceholder
+
+					QPlaceholderItem {
+						widthRatio: 1.0
+						heightRatio: 1.0
+						width: _grid.buttonSize
+						height: _grid.buttonSize
+						rectangleRadius: 5
+					}
 				}
+
 			}
+
 		}
 
 	}
 
+	SortFilterProxyModel {
+		id: _sortedMapList
+		sourceModel: _mapList
+
+		sorters: [
+			StringSorter {
+				roleName: "name"
+				sortOrder: Qt.AscendingOrder
+			}
+		]
+	}
 
 	Connections {
 		target: studentMapHandler
 
 		function onReloaded() {
 			_mapList.clear()
+			_firstRun = false
 
 			if (!campaign)
 				return

@@ -14,6 +14,7 @@ QPageGradient {
 	property MapPlayMission mission: null
 	property MapPlayMissionLevel missionLevel: null
 
+	property bool _firstLoad: true
 
 	MapGameList {
 		id: _mapGameList
@@ -21,7 +22,6 @@ QPageGradient {
 
 	QScrollable {
 		anchors.fill: parent
-		//contentCentered: true
 
 		Item {
 			width: parent.width
@@ -36,6 +36,7 @@ QPageGradient {
 			font.family: "HVD Peace"
 			font.pixelSize: Qaterial.Style.textTheme.headline3.pixelSize
 			text: mission ? mission.name : ""
+			wrapMode: Text.Wrap
 			bottomPadding: 10
 		}
 
@@ -49,18 +50,30 @@ QPageGradient {
 			bottomPadding: 50
 		}
 
+		Qaterial.LabelBody1 {
+			anchors.horizontalCenter: parent.horizontalCenter
+			horizontalAlignment: Text.AlignHCenter
+			width: parent.width
+			leftPadding: Math.max(50, Client.safeMarginLeft)
+			rightPadding: Math.max(50, Client.safeMarginRight)
+			text: mission ? mission.description : ""
+			wrapMode: Text.Wrap
+			bottomPadding: 30
+			visible: text != ""
+			color: Qaterial.Style.iconColor()
+		}
 
 		Qaterial.GroupBox {
 			title: qsTr("Játék mód kiválasztása")
 
+			width: Math.min(300*Qaterial.Style.pixelSizeRatio, parent.width, Qaterial.Style.maxContainerSize)
+
 			anchors.horizontalCenter: parent.horizontalCenter
 			inlineTitle: true
-			bottomPadding: 50
-
 
 			ButtonGroup {
 				id: _modeGroup
-				onCheckedButtonChanged: {
+				onClicked: {
 					if (map)
 						_xpLabel.xp = map.calculateXP(missionLevel, checkedButton.gameMode)
 					reload()
@@ -101,6 +114,8 @@ QPageGradient {
 							case GameMap.Exam:
 								qsTr("Dolgozat")
 								break
+							default:
+								""
 							}
 
 						}
@@ -123,8 +138,8 @@ QPageGradient {
 
 			text: qsTr("%1 XP").arg(xp)
 			anchors.horizontalCenter: parent.horizontalCenter
-			topPadding: 10
-			bottomPadding: 10
+			topPadding: 30
+			bottomPadding: 30
 			color: Qaterial.Colors.lightGreen400
 
 			Behavior on xp {
@@ -161,114 +176,72 @@ QPageGradient {
 			onClicked: map.play(missionLevel, _modeGroup.checkedButton.gameMode)
 		}
 
-		Qaterial.LabelHeadline6 {
-			text: "Idő"
-		}
+		Row {
+			anchors.left: _listDuration.left
+			anchors.right: _listDuration.right
 
-		ListView {
-			width: parent.width
-			height: contentHeight
+			topPadding: 50
+			bottomPadding: 10
 
-			model: SortFilterProxyModel {
-				sourceModel: _mapGameList
+			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action && (_mapGameList.length > 0 || _firstLoad)
 
-				sorters: [
-					RoleSorter {
-						roleName: "posDuration"
-						sortOrder: Qt.AscendingOrder
-					}
-				]
-
-				filters: [
-					AnyOf {
-						//id: successFilter
-						RangeFilter {
-							roleName: "posDuration"
-							maximumValue: 5
-						}
-						ValueFilter {
-							roleName: "username"
-							value: Client.server.user.username
-						}
-					}
-
-				]
+			Qaterial.LabelHeadline6 {
+				text: qsTr("Leggyorsabb megoldás")
+				anchors.verticalCenter: _btnOpen.verticalCenter
+				width: parent.width-_btnOpen.width
+				elide: Text.ElideRight
 			}
 
-			delegate: QLoaderItemDelegate {
-				property MapGame game: model.qtObject
-
-				highlighted: game && game.user.username == Client.server.user.username
-				text: game ? game.posDuration+". "+game.user.fullNickName : ""
-
-				leftSourceComponent: UserImage {
-					user: game ? game.user : null
-					pictureEnabled: false
-					sublevelEnabled: false
-				}
-
-				rightSourceComponent: Qaterial.LabelCaption {
-					anchors.right: parent.right
-					text: game ? Client.Utils.formatMSecs(game.durationMin) : ""
-					color: Qaterial.Style.primaryTextColor()
-				}
+			Qaterial.AppBarButton {
+				id: _btnOpen
+				anchors.bottom: parent.bottom
+				icon.source: _listDuration.filterEnabled ? Qaterial.Icons.folderOpen : Qaterial.Icons.folderRemove
+				onClicked: _listDuration.filterEnabled = !_listDuration.filterEnabled
 			}
 		}
 
-		Qaterial.LabelHeadline6 {
-			text: "Megoldás"
+		MapPlayMissionLevelInfoList {
+			id: _listDuration
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+			mapGameList: _mapGameList
+			positionType: MapPlayMissionLevelInfoList.Duration
+			showPlaceholders: _mapGameList.length === 0 && _firstLoad
+			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action
 		}
 
-		ListView {
+		Row {
+			anchors.left: _listSolved.left
+			anchors.right: _listSolved.right
+
+			topPadding: 20
+			bottomPadding: 10
+
+			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action && (_mapGameList.length > 0 || _firstLoad)
+
+			Qaterial.LabelHeadline6 {
+				text: qsTr("Legtöbb megoldás")
+				anchors.verticalCenter: _btnOpen2.verticalCenter
+				width: parent.width-_btnOpen2.width
+				elide: Text.ElideRight
+			}
+
+			Qaterial.AppBarButton {
+				id: _btnOpen2
+				anchors.bottom: parent.bottom
+				icon.source: _listSolved.filterEnabled ? Qaterial.Icons.folderOpen : Qaterial.Icons.folderRemove
+				onClicked: _listSolved.filterEnabled = !_listSolved.filterEnabled
+			}
+		}
+
+		MapPlayMissionLevelInfoList {
 			id: _listSolved
-			width: parent.width
-			height: contentHeight
-
-			model: SortFilterProxyModel {
-				sourceModel: _mapGameList
-
-				sorters: [
-					RoleSorter {
-						roleName: "posSolved"
-						sortOrder: Qt.AscendingOrder
-					}
-				]
-
-				filters: [
-					AnyOf {
-						RangeFilter {
-							roleName: "posSolved"
-							maximumValue: 5
-						}
-						ValueFilter {
-							roleName: "username"
-							value: Client.server.user.username
-						}
-					}
-
-				]
-			}
-
-			delegate: QLoaderItemDelegate {
-				property MapGame game: model.qtObject
-
-				height: 30
-
-				highlighted: game && game.user.username == Client.server.user.username
-				text: game ? game.posSolved+". "+game.user.fullNickName : ""
-
-				leftSourceComponent: UserImage {
-					user: game ? game.user : null
-					pictureEnabled: false
-					sublevelEnabled: false
-				}
-
-				rightSourceComponent: Qaterial.LabelCaption {
-					anchors.right: parent.right
-					text: game ? game.solved : ""
-					color: Qaterial.Style.primaryTextColor()
-				}
-			}
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+			mapGameList: _mapGameList
+			positionType: MapPlayMissionLevelInfoList.Solved
+			showPlaceholders: _mapGameList.length === 0 && _firstLoad
+			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action
 		}
 	}
 
@@ -277,6 +250,11 @@ QPageGradient {
 		if (!map || !mission || !missionLevel || !_modeGroup.checkedButton)
 			return
 
+		if (!map.online) {
+			_firstLoad = false
+			return
+		}
+
 		Client.send(WebSocket.ApiUser, "game/info", {
 						map: map.uuid,
 						mission: mission.uuid,
@@ -284,8 +262,29 @@ QPageGradient {
 						deathmatch: missionLevel.deathmatch,
 						mode: GameMap.Action
 					}).done(function(r) {
+						var maxD = 1
+						var minD = 0
+						var maxS = 1
+
+						for (var i=0; i<r.list.length; ++i) {
+							var l = r.list[i]
+							maxD = Math.max(l.dMin, maxD)
+							minD = (i == 0 ? l.dMin : Math.min(l.dMin, minD))
+							maxS = Math.max(l.num, maxS)
+						}
+
+						_listDuration._maxValue = maxD
+						_listDuration._minValue = minD
+						_listSolved._maxValue = maxS
+
 						Client.callReloadHandler("mapGame", _mapGameList, r.list)
+						_firstLoad = false
 					})
 		.fail(JS.failMessage("Letöltés sikertelen"))
+	}
+
+	StackView.onActivated: {
+		reload()
+		_modeGroup.clicked(null)
 	}
 }

@@ -549,7 +549,6 @@ void Client::onUserLoggedIn()
 	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
 
 	send(WebSocket::ApiGeneral, "me")->done([this](const QJsonObject &json){
-		LOG_CINFO("client") << "User logged in:" << json;
 		server()->user()->loadFromJson(json);
 
 		if (server()->user()->roles().testFlag(Credential::Panel))

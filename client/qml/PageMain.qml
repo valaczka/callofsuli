@@ -9,15 +9,15 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-//	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
+	//	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
 
 	onPageClose: function() {
 		Client.webSocket.close()
 	}
 
 	stackPopFunction: function() {
-		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
+		if (stackView.depth > 1) {
+			stackView.pop()
 			return false
 		}
 
@@ -32,12 +32,17 @@ QPage {
 	title: Client.server ? Client.server.serverName : ""
 
 	appBar.backButtonVisible: true
-	appBar.rightComponent: swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
+	appBar.rightComponent: stackView.depth == 2 ? _cmpRank : _cmpUser
 	appBar.rightPadding: Qaterial.Style.horizontalPadding
 
 	Component {
 		id: _cmpUser
-		UserButton { }
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.podium
+			ToolTip.text: qsTr("Ranglista")
+			onClicked: stackView.push(_cmpScoreList)
+
+		}
 	}
 
 	Component {
@@ -45,23 +50,26 @@ QPage {
 
 		Qaterial.AppBarButton {
 			icon.source: Qaterial.Icons.medal
-			ToolTip.text: qsTr("Ranglista")
+			ToolTip.text: qsTr("Rangok")
 			onClicked: Client.stackPushPage("Ranks.qml")
 
 		}
 	}
 
-	Qaterial.SwipeView
+	Qaterial.StackView
 	{
-		id: swipeView
+		id: stackView
 		anchors.fill: parent
-		currentIndex: tabBar.currentIndex
 
-		Login {
-			id: _login
+		initialItem: Login { }
+	}
+
+	Component {
+		id: _cmpScoreList
+
+		ScoreList {
+			StackView.onActivated: reload()
 		}
-
-		ScoreList { }
 	}
 
 	QRefreshProgressBar {
@@ -69,7 +77,7 @@ QPage {
 		visible: Client.webSocket.pending
 	}
 
-	footer: QTabBar
+	/*footer: QTabBar
 	{
 		id: tabBar
 		currentIndex: swipeView.currentIndex
@@ -78,6 +86,6 @@ QPage {
 			model.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
 			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium })
 		}
-	}
+	}*/
 
 }

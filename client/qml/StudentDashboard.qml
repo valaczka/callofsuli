@@ -13,9 +13,12 @@ QItemGradient {
 	property User user: Client.server ? Client.server.user : null
 	property CampaignList campaignList: Client.cache("studentCampaignList")
 
+	property bool _firstRun: true
+
 	QScrollable {
 		anchors.fill: parent
 		spacing: 15
+		contentCentered: true
 
 		refreshEnabled: true
 
@@ -24,7 +27,7 @@ QItemGradient {
 		Qaterial.LabelHeadline3 {
 			anchors.horizontalCenter: parent.horizontalCenter
 			width: Math.min(parent.width-100, Qaterial.Style.maxContainerSize)
-			topPadding: 50+root.paddingTop
+			topPadding: root.paddingTop
 			horizontalAlignment: Qt.AlignHCenter
 			text: user ? user.fullNickName : ""
 			wrapMode: Text.Wrap
@@ -62,7 +65,7 @@ QItemGradient {
 			width: Math.min(parent.width-40, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 0
-			topPadding: 50
+			topPadding: 40
 
 			QAnimatedProgressBar {
 				id: _progressXp
@@ -104,30 +107,69 @@ QItemGradient {
 			}
 		}
 
-		/*Qaterial.HorizontalLineSeparator {
+
+		QDashboardGrid {
+			id: _grid
 			anchors.horizontalCenter: parent.horizontalCenter
-			visible: campaignList.length
-			width: _col.width
-		}*/
 
+			readonly property bool showPlaceholders: _campaignList.count === 0 && _firstRun
 
-		Repeater {
-			model: campaignList
+			visible: _campaignList.count || showPlaceholders
+			contentItems: showPlaceholders ? 3 : _campaignList.count
 
-			delegate: QButton {
-				anchors.horizontalCenter: parent.horizontalCenter
-				property Campaign campaign: model.qtObject
-				text: "campaign: " + campaign.campaignid + " - " + campaign.readableName
+			Repeater {
+				model: _grid.showPlaceholders ? 3 : _campaignList
 
-				onClicked: Client.stackPushPage("PageStudentCampaign.qml", {
-													user: root.user,
-													campaign: campaign,
-													studentMapHandler: studentMapHandler
-												})
-
+				delegate: _grid.showPlaceholders ? _cmpPlaceholder : _cmpButton
 			}
+
+			Component {
+				id: _cmpButton
+
+				QDashboardButton {
+					id: _btn
+					property Campaign campaign: model && model.qtObject ? model.qtObject : null
+					text: campaign ? campaign.readableName : ""
+
+					icon.source: Qaterial.Icons.playBox
+
+					onClicked: Client.stackPushPage("PageStudentCampaign.qml", {
+														user: root.user,
+														campaign: _btn.campaign,
+														studentMapHandler: root.studentMapHandler
+													})
+				}
+			}
+
+			Component {
+				id: _cmpPlaceholder
+
+				QPlaceholderItem {
+					widthRatio: 1.0
+					heightRatio: 1.0
+					width: _grid.buttonSize
+					height: _grid.buttonSize
+					rectangleRadius: 5
+				}
+			}
+
 		}
 
+	}
+
+	SortFilterProxyModel {
+		id: _campaignList
+		sourceModel: campaignList
+
+		filters: ValueFilter {
+			roleName: "finished"
+			value: false
+		}
+
+		sorters: StringSorter {
+			roleName: "readableName"
+			sortOrder: Qt.AscendingOrder
+		}
 	}
 
 
@@ -155,7 +197,9 @@ QItemGradient {
 
 	function reload() {
 		Client.reloadUser()
-		Client.reloadCache("studentCampaignList")
+		Client.reloadCache("studentCampaignList", function() {
+			_firstRun = false
+		})
 	}
 }
 

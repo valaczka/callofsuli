@@ -16,6 +16,7 @@ Qaterial.Page
 	background: Rectangle { color: "transparent" }
 
 	property TeacherGroup group: null
+	property TeacherMapHandler mapHandler: null
 	property alias view: view
 
 	property alias actionCampaignAdd: actionCampaignAdd
@@ -83,7 +84,8 @@ Qaterial.Page
 			onClicked: if (!view.selectEnabled)
 						   Client.stackPushPage("PageTeacherCampaign.qml", {
 													group: control.group,
-													campaign: campaign
+													campaign: campaign,
+													mapHandler: control.mapHandler
 												})
 		}
 	}

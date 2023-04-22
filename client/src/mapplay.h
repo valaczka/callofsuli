@@ -56,6 +56,7 @@ class MapPlay : public QObject
 	Q_PROPERTY(QString uuid READ uuid CONSTANT)
 	Q_PROPERTY(MapPlayMissionList *missionList READ missionList CONSTANT)
 	Q_PROPERTY(AbstractLevelGame *currentGame READ currentGame WRITE setCurrentGame NOTIFY currentGameChanged)
+	Q_PROPERTY(bool online READ online WRITE setOnline NOTIFY onlineChanged)
 
 public:
 	explicit MapPlay(Client *client, QObject *parent = nullptr);
@@ -88,6 +89,9 @@ public:
 	AbstractLevelGame *currentGame() const;
 	void setCurrentGame(AbstractLevelGame *newCurrentGame);
 
+	bool online() const;
+	void setOnline(bool newOnline);
+
 protected:
 	void loadGameMap(GameMap *map);
 	void unloadGameMap();
@@ -103,13 +107,15 @@ signals:
 	void gameMapChanged();
 	void currentGameChanged();
 
+	void onlineChanged();
+
 protected:
 	Client *const m_client = nullptr;
 	GameMap *m_gameMap = nullptr;
 	AbstractMapPlaySolver *m_solver = nullptr;
 	MapPlayMissionList *m_missionList = nullptr;
 	AbstractLevelGame *m_currentGame = nullptr;
-
+	bool m_online = true;
 };
 
 
@@ -200,7 +206,9 @@ class MapPlayMission : public QObject
 
 	Q_PROPERTY(GameMapMission *mission READ mission CONSTANT)
 	Q_PROPERTY(QString name READ name CONSTANT)
+	Q_PROPERTY(QString description READ description CONSTANT)
 	Q_PROPERTY(QString uuid READ uuid CONSTANT)
+	Q_PROPERTY(int lockDepth READ lockDepth WRITE setLockDepth NOTIFY lockDepthChanged)
 	Q_PROPERTY(MapPlayMissionLevelList *missionLevelList READ missionLevelList CONSTANT)
 	Q_PROPERTY(QString medalImage READ medalImage CONSTANT)
 
@@ -213,6 +221,7 @@ public:
 
 	QString name() const;
 	QString uuid() const;
+	QString description() const;
 
 	GameMap::SolverInfo toSolverInfo() const;
 
@@ -220,9 +229,16 @@ public:
 
 	Q_INVOKABLE bool modeEnabled(const GameMap::GameMode &mode) const;
 
+	int lockDepth() const;
+	void setLockDepth(int newLockDepth);
+
+signals:
+	void lockDepthChanged();
+
 private:
 	GameMapMission * m_mission = nullptr;
 	MapPlayMissionLevelList *m_missionLevelList = nullptr;
+	int m_lockDepth = -1;
 };
 
 

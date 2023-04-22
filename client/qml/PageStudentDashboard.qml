@@ -61,6 +61,9 @@ QPage {
 		id: tabBar
 
 		onCurrentIndexChanged: {
+			if (!stackView || currentIndex == -1)
+				return
+
 			stackView.replace(model.get(currentIndex).cmp)
 		}
 
@@ -102,7 +105,7 @@ QPage {
 				onClicked: Client.stackPushPage("Ranks.qml")
 			}
 
-			Component.onCompleted: _scoreList.reload()
+			StackView.onActivated: _scoreList.reload()
 		}
 	}
 

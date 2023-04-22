@@ -8,18 +8,23 @@ Item {
 	id: control
 
 	property User user: null
-	readonly property real size: Math.min(control.width, control.height)
+	property real size: Math.min(control.width, control.height)
 	property color iconColor: Qaterial.Style.primaryColor
 	property color sublevelColor: Qaterial.Style.iconColor()
 	property bool pictureEnabled: true
 	property bool sublevelEnabled: true
 
+	implicitWidth: Math.max(_icon.implicitWidth, _rank.implicitWidth)
+	implicitHeight: Math.max(_icon.implicitHeight, _rank.implicitHeight)
+
 	Qaterial.Icon {
+		id: _icon
 		visible: !user || user.rank.level < 0
 		anchors.centerIn: parent
 		icon: Qaterial.Icons.account
 		color: control.iconColor
-		size: control.size
+		width: control.size
+		height: control.size
 	}
 
 	Rectangle {
@@ -63,6 +68,7 @@ Item {
 		width: control.size
 		height: control.size
 		source: user && user.rank.level >= 0 ? "qrc:/internal/rank/"+user.rank.level+".svg" : ""
+		fillMode: Image.PreserveAspectFit
 	}
 
 	Label {

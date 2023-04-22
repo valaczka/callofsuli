@@ -2045,3 +2045,168 @@ QJsonArray TeacherAPI::_taskList(const int &campaign) const
 }
 
 
+
+/**
+ * @brief TeacherAPI::_campaignUserResutl
+ * @param api
+ * @param campaign
+ * @param username
+ * @return
+ */
+
+TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI *api, const int &campaign, const QString &username, bool *err)
+{
+	Q_ASSERT(api);
+
+	UserCampaignResult result;
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	const QJsonArray &list = QueryBuilder::q(db)
+			.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
+					  "(taskSuccess.username IS NOT NULL) AS success FROM task "
+					  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
+					  "LEFT JOIN grade ON (grade.id=task.gradeid) "
+					  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
+			.addValue(username)
+			.addQuery(") WHERE campaignid=").addValue(campaign)
+			.execToJsonArray({
+								 { QStringLiteral("criterion"), [](const QVariant &v) {
+									   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+								   } }
+							 }, &e);
+
+	if (e) {
+		if (err) *err = true;
+		return result;
+	}
+
+	/// Calculate result
+
+	struct ResultTask {
+		bool required = false;
+		bool success = false;
+
+		ResultTask(const bool &r, const bool &s) : required(r), success(s) {}
+
+		static bool allCompleted(const QVector<ResultTask> &list) {
+			bool completed = true;
+
+			foreach (const ResultTask &r, list) {
+				if (!r.success) {
+					completed = false;
+					break;
+				}
+			}
+
+			return completed;
+		}
+
+		static bool hasRequired(const QVector<ResultTask> &list) {
+			bool has = false;
+
+			foreach (const ResultTask &r, list) {
+				if (r.required) {
+					has = true;
+					break;
+				}
+			}
+
+			return has;
+		}
+	};
+
+	struct ResultGrade {
+		int gradevalue = -1;
+		bool success = false;
+		QVector<ResultTask> tasks;
+
+		ResultGrade(const int &v, const QVector<ResultTask> &t) : gradevalue(v), tasks(t) {}
+	};
+
+	struct ResultXP {
+		bool success = false;
+		QVector<ResultTask> tasks;
+
+		ResultXP(const QVector<ResultTask> &t) : tasks(t) {}
+	};
+
+
+	QMap<int, ResultGrade> gradeList;
+	QMap<int, ResultXP> xpList;
+
+	foreach (const QJsonValue &v, list) {
+		const QJsonObject &o = v.toObject();
+
+		const int &gradeid = o.value(QStringLiteral("gradeid")).toInt(-1);
+		const int &gradeValue = o.value(QStringLiteral("gradeValue")).toInt(-1);
+		const int &xp = o.value(QStringLiteral("xp")).toInt(-1);
+		const bool &required = o.value(QStringLiteral("required")).toVariant().toBool();
+		const bool &success = o.value(QStringLiteral("success")).toVariant().toBool();
+
+		if (gradeid > 0) {
+			auto it = gradeList.find(gradeid);
+			if (it != gradeList.end())
+				it.value().tasks.append({required, success});
+			else
+				gradeList.insert(gradeid, {gradeValue, {{required, success}}});
+		}
+
+		if (xp > 0) {
+			auto it = xpList.find(xp);
+			if (it != xpList.end())
+				it.value().tasks.append({required, success});
+			else
+				xpList.insert(xp, {{{required, success}}});
+		}
+	}
+
+	int maxRequiredValue = -1;
+
+	for (auto it = gradeList.begin(); it != gradeList.end(); ++it) {
+		it->success = ResultTask::allCompleted(it->tasks);
+		const bool &r = ResultTask::hasRequired(it->tasks);
+		if (r && !it->success)
+			maxRequiredValue = it->gradevalue;
+	}
+
+	for (auto it = gradeList.constBegin(); it != gradeList.constEnd(); ++it) {
+		if (!it->success)
+			continue;
+
+		if (it->gradevalue > result.gradeValue && (maxRequiredValue == -1 || it->gradevalue <= maxRequiredValue)) {
+			result.gradeValue = it->gradevalue;
+			result.grade = it.key();
+		}
+	}
+
+
+	int maxRequiredXP = -1;
+
+	for (auto it = xpList.begin(); it != xpList.end(); ++it) {
+		it->success = ResultTask::allCompleted(it->tasks);
+		const bool &r = ResultTask::hasRequired(it->tasks);
+		if (r && !it->success)
+			maxRequiredXP = it.key();
+	}
+
+	for (auto it = xpList.constBegin(); it != xpList.constEnd(); ++it) {
+		if (!it->success)
+			continue;
+
+		if (it.key() > result.xp && (maxRequiredXP == -1 || it.key() <= maxRequiredXP)) {
+			result.xp = it.key();
+		}
+	}
+
+	result.tasks = list;
+
+	if (err) *err = false;
+	return result;
+}
+
+

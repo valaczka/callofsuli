@@ -17,6 +17,8 @@ Qaterial.Page
 
 	property double paddingTop: 0
 
+	property bool _firstRun: true
+
 	background: null
 
 	ListModel {
@@ -60,103 +62,126 @@ Qaterial.Page
 		]
 	}
 
+	SortFilterProxyModel {
+		id: _sortedUserList
+		sourceModel: userList
 
-	Qaterial.SwipeView
-	{
-		id: swipeView
-		anchors.fill: parent
-		currentIndex: tabBar.currentIndex
+		filters: AllOf {
+			ValueFilter {
+				roleName: "classid"
+				enabled: view.classid != -1
+				value: view.classid
+			}
+			ValueFilter {
+				roleName: "classid"
+				enabled: view.classid != -1
+				value: view.classid
+			}
+		}
 
-		clip: true
+		sorters: [
+			RoleSorter {
+				roleName: "xp"
+				sortOrder: Qt.DescendingOrder
+				priority: 1
+			},
+			StringSorter {
+				roleName: "fullNickName"
+				sortOrder: Qt.AscendingOrder
+			}
+		]
+	}
 
-		Repeater {
-			model: sortedClassList
+	QListView {
+		id: view
 
-			Item {
-				id: _item
+		property int classid: -1
 
-				required property int classid
+		readonly property bool showPlaceholders: userList.count === 0 && _firstRun
 
-				QListView {
-					id: view
+		currentIndex: -1
+		height: parent.height
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		anchors.horizontalCenter: parent.horizontalCenter
 
-					currentIndex: -1
-					height: parent.height
-					width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-					anchors.horizontalCenter: parent.horizontalCenter
+		model: showPlaceholders ? 5 : _sortedUserList
 
-					model: SortFilterProxyModel {
-						sourceModel: userList
+		//refreshProgressVisible: Client.webSocket.pending
+		refreshEnabled: true
+		onRefreshRequest: Client.reloadCache("scoreList")
 
-						filters: AllOf {
-							ValueFilter {
-								roleName: "classid"
-								enabled: _item.classid != -1
-								value: _item.classid
-							}
-							ValueFilter {
-								roleName: "classid"
-								enabled: _item.classid != -1
-								value: _item.classid
-							}
-						}
+		delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
 
-						sorters: [
-							RoleSorter {
-								roleName: "xp"
-								sortOrder: Qt.DescendingOrder
-								priority: 1
-							},
-							StringSorter {
-								roleName: "fullNickName"
-								sortOrder: Qt.AscendingOrder
-							}
-						]
+		Component {
+			id: _cmpDelegate
+
+			QLoaderItemDelegate {
+				id: _delegate
+				property User user: model && model.qtObject ? model.qtObject : null
+
+				text: user ? user.fullNickName : ""
+				secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
+
+				leftSourceComponent: UserImage { user: _delegate.user }
+
+				rightSourceComponent: Column {
+					Qaterial.LabelHeadline6 {
+						anchors.right: parent.right
+						text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
+						color: Qaterial.Style.accentColor
 					}
-
-					refreshProgressVisible: Client.webSocket.pending
-					refreshEnabled: true
-					onRefreshRequest: Client.reloadCache("scoreList")
-
-					delegate: QLoaderItemDelegate {
-						id: _delegate
-						property User user: model.qtObject
-
-						text: user ? user.fullNickName : ""
-						secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
-
-						leftSourceComponent: UserImage { user: _delegate.user }
-
-						rightSourceComponent: Column {
-							Qaterial.LabelHeadline6 {
-								anchors.right: parent.right
-								text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
-								color: Qaterial.Style.accentColor
-							}
-							Qaterial.LabelCaption {
-								anchors.right: parent.right
-								text: user ? qsTr("streak: %1").arg(Number(user.streak).toLocaleString()) : ""
-								color: Qaterial.Style.primaryTextColor()
-							}
-						}
+					Qaterial.LabelCaption {
+						anchors.right: parent.right
+						text: user ? qsTr("streak: %1").arg(Number(user.streak).toLocaleString()) : ""
+						color: Qaterial.Style.primaryTextColor()
 					}
-
-					header: Item {
-						width: ListView.width
-						height: control.paddingTop
-					}
-
 				}
 			}
 		}
 
+		Component {
+			id: _cmpPlaceholder
+
+			QLoaderItemFullDelegate {
+				id: _placeholder
+				contentSourceComponent: QPlaceholderItem {
+					heightRatio: 0.5
+					horizontalAlignment: Qt.AlignLeft
+				}
+
+				leftSourceComponent: QPlaceholderItem {
+					width: _placeholder.height
+					height: _placeholder.height
+					widthRatio: 0.8
+					heightRatio: 0.8
+					contentComponent: ellipseComponent
+				}
+
+				rightSourceComponent: QPlaceholderItem {
+					fixedWidth: 75
+					heightRatio: 0.5
+				}
+			}
+
+		}
+
+		header: Item {
+			width: ListView.width
+			height: control.paddingTop
+		}
+
 	}
+
 
 	footer: Qaterial.ScrollableTabBar
 	{
 		id: tabBar
 		width: parent.width
-		currentIndex: swipeView.currentIndex
+
+		onCurrentIndexChanged: {
+			var o = model.get(currentIndex)
+			view.classid = o && o.classid ? o.classid : -1
+		}
 
 		onPrimary: true
 		model: sortedClassList
@@ -171,11 +196,8 @@ Qaterial.Page
 	function reload() {
 		Client.reloadCache("scoreList")
 		Client.reloadCache("classList", function(){_preparedClassList.reload()})
+		_firstRun = false
 	}
 
-	SwipeView.onIsCurrentItemChanged: {
-		if (SwipeView.isCurrentItem) {
-			reload()
-		}
-	}
+
 }

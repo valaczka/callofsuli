@@ -26,6 +26,7 @@ QPage {
 
 	property TeacherGroup group: null
 	property Campaign campaign: null
+	property TeacherMapHandler mapHandler: null
 
 	readonly property string _campaignName: campaign ? campaign.readableName : ""
 
@@ -86,6 +87,7 @@ QPage {
 		TeacherCampaignDetails {
 			group: control.group
 			campaign: control.campaign
+			mapHandler: control.mapHandler
 		}
 
 		Rectangle {

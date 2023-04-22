@@ -46,6 +46,7 @@ class MapGame : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(User *user READ user CONSTANT)
+	Q_PROPERTY(QString username READ username NOTIFY usernameChanged)
 	Q_PROPERTY(int solved READ solved WRITE setSolved NOTIFY solvedChanged)
 	Q_PROPERTY(int durationMin READ durationMin WRITE setDurationMin NOTIFY durationMinChanged)
 	Q_PROPERTY(int durationMax READ durationMax WRITE setDurationMax NOTIFY durationMaxChanged)
@@ -75,14 +76,15 @@ public:
 	int posSolved() const;
 	void setPosSolved(int newPosSolved);
 
+	const QString &username() const;
+
 signals:
 	void solvedChanged();
 	void durationMinChanged();
 	void durationMaxChanged();
-
 	void posDurationChanged();
-
 	void posSolvedChanged();
+	void usernameChanged();
 
 private:
 	User *m_user = nullptr;

@@ -27,6 +27,7 @@
 #include "userapi.h"
 #include "qjsonarray.h"
 #include "serverservice.h"
+#include "teacherapi.h"
 
 
 
@@ -344,11 +345,13 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 		bool err = false;
 
 		QJsonObject obj = QueryBuilder::q(db)
-				.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+				.addQuery("SELECT campaign.id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-						  "description, finished, groupid "
-						  "FROM campaign WHERE started=true "
-						  "AND id=").addValue(id)
+						  "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+						  "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
+				.addValue(username)
+				.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+						  "WHERE started=true AND campaign.id=").addValue(id)
 				.addQuery(" AND groupid IN "
 						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
 				.addQuery(")")
@@ -361,16 +364,17 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 			return responseError(response, "not found");
 
 
-		/// TODO: solved?
+		const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, username, &err);
 
-		obj[QStringLiteral("taskList")] = QueryBuilder::q(db)
-				.addQuery("SELECT id, gradeid, xp, required, mapuuid, criterion, false AS solved FROM task WHERE campaignid=").addValue(id)
-				.execToJsonArray({
-									 { QStringLiteral("criterion"), [](const QVariant &v) {
-										   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-									   } }
-								 });
+		if (err)
+			return responseErrorSql(response);
 
+		if (!obj.value(QStringLiteral("finished")).toVariant().toBool()) {
+			obj[QStringLiteral("resultXP")] = result.xp > 0 ? result.xp : QJsonValue::Null;
+			obj[QStringLiteral("resultGrade")] = result.grade > 0 ? result.grade : QJsonValue::Null;
+		}
+
+		obj[QStringLiteral("taskList")] = result.tasks;
 
 		responseAnswer(response, obj);
 	});

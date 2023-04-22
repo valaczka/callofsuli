@@ -38,10 +38,8 @@ QPage {
 		}
 	}
 
+	property TeacherMapHandler handler: null
 
-	TeacherMapHandler {
-		id: handler
-	}
 
 	QListView {
 		id: view
@@ -55,7 +53,7 @@ QPage {
 		onRefreshRequest: reload()
 
 		model: SortFilterProxyModel {
-			sourceModel: handler.mapList
+			sourceModel: handler ? handler.mapList : null
 
 			sorters: [
 				StringSorter {
@@ -125,7 +123,7 @@ QPage {
 		onAction1Clicked: actionMapAdd.trigger()
 		onAction2Clicked: actionMapImport.trigger()
 
-		visible: !handler.mapList.length
+		visible: handler && !handler.mapList.length
 	}
 
 	QFabButton {
@@ -152,6 +150,7 @@ QPage {
 		id: actionMapAdd
 		text: qsTr("Új pálya")
 		icon.source: Qaterial.Icons.plus
+		enabled: handler
 		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Pálya neve"),
@@ -227,6 +226,7 @@ QPage {
 		id: actionMapImport
 		text: qsTr("Pálya importálása")
 		icon.source: Qaterial.Icons.databaseImport
+		enabled: handler
 		onTriggered: {
 			Qaterial.DialogManager.openFromComponent(cmpFile)
 		}
@@ -245,7 +245,8 @@ QPage {
 
 	function reload() {
 		view.unselectAll()
-		handler.reload()
+		if (handler)
+			handler.reload()
 	}
 
 	StackView.onActivated: reload()

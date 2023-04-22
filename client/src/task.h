@@ -27,8 +27,11 @@
 #ifndef TASK_H
 #define TASK_H
 
+#include "basemap.h"
 #include "grade.h"
 #include "qjsonobject.h"
+#include "studentmap.h"
+#include "teachermap.h"
 #include <selectableobject.h>
 #include <QObject>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -56,6 +59,9 @@ class Task : public SelectableObject
 	Q_PROPERTY(QString mapName READ mapName WRITE setMapName NOTIFY mapNameChanged)
 	Q_PROPERTY(bool required READ required WRITE setRequired NOTIFY requiredChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
+	Q_PROPERTY(QString readableGradeOrXp READ readableGradeOrXp NOTIFY readableGradeOrXpChanged)
+	Q_PROPERTY(int gradeValue READ gradeValue NOTIFY gradeValueChanged)
+	Q_PROPERTY(bool success READ success WRITE setSuccess NOTIFY successChanged)
 
 public:
 	explicit Task(QObject *parent = nullptr);
@@ -84,6 +90,18 @@ public:
 	int xp() const;
 	void setXp(int newXp);
 
+	QString readableGradeOrXp() const;
+
+	static QString readableGradeOrXp(Grade *grade, int xp);
+	static QString readableGradeOrXpShort(Grade *grade, int xp);
+
+	int gradeValue() const;
+
+	Q_INVOKABLE QString readableCriterion(BaseMapList *mapList) const;
+
+	bool success() const;
+	void setSuccess(bool newSuccess);
+
 signals:
 	void taskidChanged();
 	void criterionChanged();
@@ -92,6 +110,10 @@ signals:
 	void mapNameChanged();
 	void requiredChanged();
 	void xpChanged();
+	void readableGradeOrXpChanged();
+	void gradeValueChanged();
+
+	void successChanged();
 
 private:
 	int m_taskid = 0;
@@ -100,6 +122,7 @@ private:
 	QString m_mapUuid;
 	QString m_mapName;
 	bool m_required = false;
+	bool m_success = false;
 	int m_xp = -1;
 };
 

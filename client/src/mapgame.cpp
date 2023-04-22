@@ -30,7 +30,7 @@ MapGame::MapGame(QObject *parent)
 	: QObject{parent}
 	, m_user(new User(this))
 {
-
+	connect(m_user, &User::usernameChanged, this, &MapGame::usernameChanged);
 }
 
 
@@ -148,4 +148,11 @@ void MapGame::setPosSolved(int newPosSolved)
 		return;
 	m_posSolved = newPosSolved;
 	emit posSolvedChanged();
+}
+
+
+
+const QString &MapGame::username() const
+{
+	return m_user->username();
 }

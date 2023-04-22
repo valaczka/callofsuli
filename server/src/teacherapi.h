@@ -36,6 +36,21 @@ class TeacherAPI : public AbstractAPI
 public:
 	TeacherAPI(ServerService *service);
 
+
+	/**
+	 * @brief The UserCampaignResult class
+	 */
+
+	struct UserCampaignResult {
+		int grade = -1;
+		int gradeValue = -1;
+		int xp = 0;
+		QJsonArray tasks;
+	};
+
+
+
+
 	static QString mapMd5(GameMap *map);
 	static QString mapMd5(const QByteArray &data);
 	static QJsonObject mapCache(GameMap *map);
@@ -154,6 +169,8 @@ public:
 	// Run in database worker thread
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
+	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const QString &username, bool *err = nullptr);
+
 };
 
 #endif // TEACHERAPI_H

@@ -61,6 +61,8 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(TaskList *taskList READ taskList CONSTANT)
 	Q_PROPERTY(State state READ state NOTIFY stateChanged)
 	Q_PROPERTY(QString readableName READ readableName NOTIFY readableNameChanged)
+	Q_PROPERTY(Grade *resultGrade READ resultGrade WRITE setResultGrade NOTIFY resultGradeChanged)
+	Q_PROPERTY(int resultXP READ resultXP WRITE setResultXP NOTIFY resultXPChanged)
 
 public:
 	explicit Campaign(QObject *parent = nullptr);
@@ -104,7 +106,15 @@ public:
 
 	QString readableName() const;
 
+	Grade *resultGrade() const;
+	void setResultGrade(Grade *newResultGrade);
+
+	int resultXP() const;
+	void setResultXP(int newResultXP);
+
 	Q_INVOKABLE QStringList usedMapUuids() const;
+	Q_INVOKABLE QString readableResult(Grade *grade, int xp);
+	Q_INVOKABLE QString readableShortResult(Grade *grade, int xp);
 
 signals:
 	void campaignidChanged();
@@ -116,6 +126,8 @@ signals:
 	void defaultGradeChanged();
 	void stateChanged();
 	void readableNameChanged();
+	void resultGradeChanged();
+	void resultXPChanged();
 
 private:
 	int m_campaignid = 0;
@@ -125,6 +137,8 @@ private:
 	bool m_started = false;
 	bool m_finished = false;
 	Grade *m_defaultGrade = nullptr;
+	Grade *m_resultGrade = nullptr;
+	int m_resultXP = -1;
 	TaskList *const m_taskList;
 };
 

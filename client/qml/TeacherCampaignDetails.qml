@@ -15,6 +15,7 @@ Qaterial.Page {
 
 	property TeacherGroup group: null
 	property Campaign campaign: null
+	property TeacherMapHandler mapHandler: null
 
 	readonly property color _doneColor: Qaterial.Colors.green500
 	readonly property real _stepperSize: 48
@@ -198,159 +199,13 @@ Qaterial.Page {
 	Component {
 		id: cmpDetails
 
-		QScrollable {
-			Row {
-				anchors.horizontalCenter: parent.horizontalCenter
-
-				spacing: 5
-
-				Qaterial.LabelCaption {
-					text: qsTr("Alapértelmezett jegy:")
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				Qaterial.ComboBox {
-					id: gradeCombo
-
-					flat: false
-					editable: false
-
-					anchors.verticalCenter: parent.verticalCenter
-
-					model: ListModel {
-						id: comboModel
-					}
-					valueRole: "gradeid"
-					textRole: "fullname"
-
-					Component.onCompleted: {
-						comboModel.append({gradeid: -1, fullname: qsTr("-- nincs --")})
-
-						var m = Client.cache("gradeList")
-						for (var i=0; i<m.length; ++i) {
-							var o = m.get(i)
-							comboModel.append({gradeid: o.gradeid, fullname: "%1 (%2)".arg(o.longname).arg(o.shortname)})
-						}
-
-						setFromCampaign()
-					}
-
-
-					Connections {
-						target: campaign
-
-						function onDefaultGradeChanged() {
-							gradeCombo.setFromCampaign()
-						}
-					}
-
-
-					function setFromCampaign() {
-						if (!campaign) {
-							comboGradeInPlaceButtons.set(-1)
-							return
-						}
-
-						if (!campaign.defaultGrade) {
-							comboGradeInPlaceButtons.set(0)
-							return
-						}
-
-						for (var i=1; i<model.count; ++i) {
-							if (model.get(i).gradeid === campaign.defaultGrade.gradeid) {
-								comboGradeInPlaceButtons.set(i)
-								return
-							}
-						}
-					}
-				}
-
-
-				QComboBoxInPlaceButtons {
-					id: comboGradeInPlaceButtons
-					combo: gradeCombo
-
-					visible: true
-					enabled: active
-					opacity: active ? 1.0 : 0.0
-
-					anchors.verticalCenter: parent.verticalCenter
-
-					onSaveRequest: {
-						Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
-									{
-										defaultGrade: gradeCombo.currentValue
-									})
-						.done(function(r){
-							reloadCampaign()
-							saved()
-						})
-						.fail(function(err) {
-							Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-							revert()
-						})
-					}
-				}
-			}
-
-			Qaterial.LabelHeadline5 {
-				text: qsTr("Kritériumok")
-			}
-
-			QListView {
-				id: taskList
-
-				currentIndex: -1
-				autoSelectChange: true
-
-				width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-				anchors.horizontalCenter: parent.horizontalCenter
-
-				model: campaign ? campaign.taskList : null
-
-				delegate: QItemDelegate {
-					property Task task: model.qtObject
-					selectableObject: task
-
-					highlighted: ListView.isCurrentItem
-					text: task.mapUuid
-					secondaryText: task.taskid
-					/*highlightedIcon: server ? server.autoConnect : false
-					iconSource: Qaterial.Icons.desktopClassic
-					text: server ? server.serverName : ""
-					secondaryText: server ? (server.user.username.length ? server.user.username + " @ " : "") + server.url
-										  : ""
-
-					onClicked: if (!view.selectEnabled)
-								   Client.connectToServer(server)*/
-				}
-
-				/*Qaterial.Menu {
-					id: contextMenu
-					QMenuItem { action: view.actionSelectAll }
-					QMenuItem { action: view.actionSelectNone }
-					Qaterial.MenuSeparator {}
-					QMenuItem { action: actionAdd }
-					QMenuItem { action: actionEdit }
-					QMenuItem { action: actionAutoConnect }
-					Qaterial.MenuSeparator {}
-					QMenuItem { action: actionDelete }
-				}
-
-				onRightClickOrPressAndHold: {
-					if (index != -1)
-						currentIndex = index
-					contextMenu.popup(mouseX, mouseY)
-				}*/
-			}
-
-			StackView.onStatusChanged: actionAddTask.enabled = (StackView.status == StackView.Active)
-
-			Component.onDestruction: actionAddTask.enabled = false
-
-
+		TeacherCampaignTaskList {
+			group: control.group
+			campaign: control.campaign
+			mapHandler: control.mapHandler
+			actionTaskCreate: actionAddTask
+			onReloadRequest: reloadCampaign()
 		}
-
 	}
 
 	// ----- START COMPONENT
@@ -626,19 +481,4 @@ Qaterial.Page {
 		.fail(JS.failMessage(qsTr("Hadjárat letöltése sikertelen")))
 	}
 
-	/*Component.onCompleted: if (user) {
-							   _username.text = user.username
-							   _familyName.text = user.familyName
-							   _givenName.text = user.givenName
-							   _picture.text = user.picture.toString()
-							   _active.checked = user.active
-							   _isAdmin.checked = (user.roles & Credential.Admin)
-							   _isTeacher.checked = (user.roles & Credential.Teacher)
-							   _isPanel.checked = (user.roles & Credential.Panel)
-						   } else {
-							   _active.checked = true
-						   }
-
-
-	StackView.onActivated: _username.forceActiveFocus()*/
 }

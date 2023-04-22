@@ -15,7 +15,26 @@ QPageGradient {
 	property SortFilterProxyModel mList: SortFilterProxyModel {
 		sourceModel: map ? map.missionList : []
 
-		sorters: StringSorter { roleName: "name"; priority: 0 ; sortOrder: Qt.AscendingOrder }
+		filters: ValueFilter {
+			roleName: "lockDepth"
+			value: -1
+			inverted: true
+		}
+
+
+		sorters: [
+			RoleSorter {
+				roleName: "lockDepth"
+				priority: 1
+				sortOrder: Qt.AscendingOrder
+			},
+
+			StringSorter {
+				roleName: "name"
+				priority: 0
+				sortOrder: Qt.AscendingOrder
+			}
+		]
 	}
 
 	QScrollable {

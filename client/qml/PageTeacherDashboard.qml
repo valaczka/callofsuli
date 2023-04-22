@@ -7,7 +7,7 @@ import SortFilterProxyModel 0.2
 import "JScript.js" as JS
 
 QPage {
-	id: control
+	id: root
 
 	property bool _closeEnabled: false
 
@@ -23,7 +23,7 @@ QPage {
 							if (Client.server && Client.server.user.loginState == User.LoggedIn)
 								Client.webSocket.close()
 							else
-								Client.stackPop(control)
+								Client.stackPop(root)
 						},
 						text: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?"),
 						title: qsTr("Kilépés"),
@@ -35,14 +35,18 @@ QPage {
 	}
 
 	title: Client.server ? Client.server.serverName : ""
-	subtitle: Client.server ? Client.server.user.fullName : ""
+	subtitle: user ? user.fullName : ""
 
 	appBar.backButtonVisible: true
 	appBar.rightComponent: _cmpUser //swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
 	appBar.rightPadding: Qaterial.Style.horizontalPadding
 
+	property User user: Client.server ? Client.server.user : null
 	property TeacherGroupList groupListTeacher: Client.cache("teacherGroupList")
 	property StudentGroupList groupListStudent: Client.cache("studentGroupList")
+	property TeacherMapHandler mapHandler: TeacherMapHandler { }
+
+	property bool _firstRun: true
 
 	Component {
 		id: _cmpUser
@@ -51,63 +55,96 @@ QPage {
 
 
 	QScrollable {
-		id: _content
 		anchors.fill: parent
+		contentCentered: true
 
 		Qaterial.LabelHeadline3 {
-			width: parent.width
-			text: "user name"
+			anchors.horizontalCenter: parent.horizontalCenter
+			topPadding: 30
+			width: Math.min(parent.width-100, Qaterial.Style.maxContainerSize)
+			horizontalAlignment: Qt.AlignHCenter
+			text: user ? user.fullName : ""
+			wrapMode: Text.Wrap
+			maximumLineCount: 2
+			elide: Text.ElideRight
 		}
 
 		Row {
+			spacing: 10
+			anchors.horizontalCenter: parent.horizontalCenter
+
 			UserImage {
-				user: Client.server ? Client.server.user : null
+				user: root.user
 				iconColor: Qaterial.Style.colorTheme.primaryText
 				width: Qaterial.Style.pixelSize*2.5
 				height: Qaterial.Style.pixelSize*2.5
 				pictureEnabled: false
+				anchors.verticalCenter: parent.verticalCenter
 			}
 
-			Qaterial.LabelHeadline6 {
-
-				text: Client.server ? Client.server.user.rank.name : ""
+			Column {
+				anchors.verticalCenter: parent.verticalCenter
+				Qaterial.LabelHeadline6 {
+					anchors.left: parent.left
+					text: user ? user.rank.name : ""
+				}
+				Qaterial.LabelBody2 {
+					anchors.left: parent.left
+					text: user && user.rank.sublevel > 0 ? qsTr("level %1").arg(user.rank.sublevel) : ""
+					visible: text != ""
+				}
 			}
 		}
 
+
+
+		// ---- TEACHER GROUPS
 
 		QDashboardGrid {
 			id: groupsTeacherGrid
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: Client.server && (Client.server.user.roles & Credential.Teacher)
-			contentItems: groupListTeacher.lenght+1
+			contentItems: showPlaceholders ? 2 : groupListTeacher.lenght+1
+
+			readonly property bool showPlaceholders: groupListTeacher.count === 0 && _firstRun
+
+			SortFilterProxyModel {
+				id: _sortedTeacherGroups
+				sourceModel: groupListTeacher
+				sorters: [
+					RoleSorter {
+						roleName: "active"
+						priority: 1
+						sortOrder: Qt.DescendingOrder
+					},
+					StringSorter {
+						roleName: "name"
+						sortOrder: Qt.AscendingOrder
+					}
+
+				]
+			}
 
 			Repeater {
-				model: SortFilterProxyModel {
-					sourceModel: groupListTeacher
-					sorters: [
-						RoleSorter {
-							roleName: "active"
-							priority: 1
-							sortOrder: Qt.DescendingOrder
-						},
-						StringSorter {
-							roleName: "name"
-							sortOrder: Qt.AscendingOrder
-						}
+				model: groupsTeacherGrid.showPlaceholders ? 2 : _sortedTeacherGroups
 
-					]
-				}
+				delegate: groupsTeacherGrid.showPlaceholders ? _cmpPlaceholder : _cmpGroupButton
+			}
+
+			Component {
+				id: _cmpGroupButton
 
 				QDashboardButton {
-					property TeacherGroup group: model.qtObject
+					property TeacherGroup group: model && model.qtObject ? model.qtObject : null
 					text: group ? group.fullName : ""
 					icon.source: Qaterial.Icons.group
 					bgColor: Qaterial.Colors.green700
-					outlined: !group.active
-					flat: !group.active
+					outlined: group && !group.active
+					flat: group && !group.active
 					onClicked: Client.stackPushPage("PageTeacherGroup.qml", {
-														group: group
+														group: group,
+														mapHandler: root.mapHandler
 													})
 				}
 			}
@@ -121,11 +158,28 @@ QPage {
 			}
 		}
 
+
+		Component {
+			id: _cmpPlaceholder
+
+			QPlaceholderItem {
+				fixedWidth: groupsTeacherGrid.buttonSize
+				fixedHeight: groupsTeacherGrid.buttonSize
+				rectangleRadius: 5
+			}
+		}
+
+
+
 		Qaterial.HorizontalLineSeparator {
 			anchors.horizontalCenter: parent.horizontalCenter
 			visible: groupsStudentGrid.visible && groupsStudentGrid.visible
 			width: Math.max(groupsTeacherGrid.width, groupsStudentGrid.width)*0.75
 		}
+
+
+
+		// ------- STUDENT GROUPS
 
 		QDashboardGrid {
 			id: groupsStudentGrid
@@ -161,6 +215,11 @@ QPage {
 		}
 
 
+
+
+
+		// ------- FUNCTIONS
+
 		QDashboardGrid {
 			id: funcGrid
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -175,7 +234,9 @@ QPage {
 
 				textColor: Qaterial.Colors.amber500
 
-				onClicked: Client.stackPushPage("PageTeacherMaps.qml")
+				onClicked: Client.stackPushPage("PageTeacherMaps.qml", {
+													handler: mapHandler
+												})
 			}
 
 			QDashboardButton {
@@ -225,10 +286,14 @@ QPage {
 		}
 	}
 
+
 	StackView.onActivated: {
 		if (Client.server) {
-			Client.reloadCache("teacherGroupList")
+			Client.reloadCache("teacherGroupList", function() {
+				_firstRun = false
+			})
 		}
-	}
 
+		mapHandler.reload()
+	}
 }
