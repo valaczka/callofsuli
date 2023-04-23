@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
@@ -29,7 +29,7 @@ Qaterial.TabBar
 			icon.color: model.color ? model.color : foregroundColor
 			spacing: 4
 			display: (index === control.currentIndex) ? AbstractButton.TextUnderIcon : AbstractButton.IconOnly
-			font: Qaterial.Style.textTheme.overline
+			font: Qaterial.Style.textTheme.buttonTab
 		}
 	}
 }

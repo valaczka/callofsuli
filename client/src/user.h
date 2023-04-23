@@ -62,6 +62,7 @@ class User : public SelectableObject
 
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int streak READ streak WRITE setStreak NOTIFY streakChanged)
+	Q_PROPERTY(bool streakToday READ streakToday WRITE setStreakToday NOTIFY streakTodayChanged)
 	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(QString oauth READ oauth WRITE setOauth NOTIFY oauthChanged)
@@ -127,6 +128,9 @@ public:
 	const QString &nickName() const;
 	void setNickName(const QString &newNickName);
 
+	bool streakToday() const;
+	void setStreakToday(bool newStreakToday);
+
 public slots:
 	void clear();
 
@@ -148,6 +152,8 @@ signals:
 	void streakChanged();
 	void nickNameChanged();
 
+	void streakTodayChanged();
+
 private:
 	QString m_username;
 	QString m_familyName;
@@ -163,7 +169,7 @@ private:
 	QString m_oauth;
 	QString m_className;
 	int m_streak = 0;
-
+	bool m_streakToday = false;
 };
 
 

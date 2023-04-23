@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
@@ -108,6 +108,16 @@ QItemGradient {
 		}
 
 
+		StudentStreak {
+			id: _streakRow
+			anchors.horizontalCenter: parent.horizontalCenter
+			duration: _progressXp.duration
+			value: 0
+			user: root.user
+			maxIconCount: Math.floor((_col.width-implicitLabelWidth)/iconSize)
+		}
+
+
 		QDashboardGrid {
 			id: _grid
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -180,6 +190,11 @@ QItemGradient {
 			if (root.StackView.status == StackView.Active)
 				_progressXp.value = user.xp
 		}
+
+		function onStreakChanged() {
+			if (root.StackView.status == StackView.Active)
+				_streakRow.value = user.streak
+		}
 	}
 
 	StackView.onActivated: {
@@ -187,12 +202,14 @@ QItemGradient {
 		if (!user)
 			return
 		_progressXp.value = user.xp
+		_streakRow.value = user.streak
 	}
 
 	StackView.onDeactivated: {
 		if (!user)
 			return
 		_progressXp.value = 0
+		_streakRow.value = user.streak
 	}
 
 	function reload() {

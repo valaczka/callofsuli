@@ -191,7 +191,7 @@ public:
 	bool exec();
 	QJsonArray execToJsonArray(bool *err = nullptr);
 	QJsonObject execToJsonObject(bool *err = nullptr);
-	bool execCheckExists();
+	bool execCheckExists(bool *err = nullptr);
 	QVariant execInsert(bool *err = nullptr);
 	int execInsertAsInt(bool *err = nullptr);
 

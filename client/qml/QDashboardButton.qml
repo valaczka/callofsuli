@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
@@ -27,16 +27,9 @@ QButton {
 	ToolTip.visible: hovered || pressed
 	ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
 
-	readonly property real _psRatio: Qaterial.Style.pixelSizeRatio
-	on_PsRatioChanged: {
-		var f = Qaterial.Style.textTheme.button
-		f.letterSpacing = 0
-		font = f
-	}
-
-	Component.onCompleted: {
-		var f = Qaterial.Style.textTheme.button
-		f.letterSpacing = 0
-		font = f
-	}
+	font.pixelSize: Qaterial.Style.textTheme.button.pixelSize
+	font.family: Qaterial.Style.textTheme.button.family
+	font.weight: Qaterial.Style.textTheme.button.weight
+	font.capitalization: Qaterial.Style.textTheme.button.capitalization
+	font.letterSpacing: 0
 }

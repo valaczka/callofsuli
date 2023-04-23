@@ -35,15 +35,15 @@ Item {
 			right: 1261-1175
 			bottom: 851-737
 		}
-		scale: 0.4
+		scale: Qaterial.Style.dense ? 0.3 : 0.15
 		transformOrigin: Item.TopLeft
 	}
 
 	Column {
 		id: col
-		x: 50
-		width: parent.width-100
-		y: 35
+		x: Qaterial.Style.dense ? 50 : 25
+		width: parent.width-2*x
+		y: Qaterial.Style.dense ? 35 : 20
 
 		Row {
 			width: parent.width
@@ -53,7 +53,7 @@ Item {
 				anchors.verticalCenter: parent.verticalCenter
 				width: parent.width-_labelResult.width-parent.spacing
 
-				Label {
+				Qaterial.Label {
 					visible: campaingDetails
 					text: campaign ? campaign.readableName : ""
 					width: parent.width
@@ -74,7 +74,7 @@ Item {
 				}
 			}
 
-			Qaterial.LabelHeadline5 {
+			Label {
 				id: _labelResult
 
 				anchors.top: parent.top
@@ -83,10 +83,10 @@ Item {
 
 				wrapMode: Text.Wrap
 				color: campaign && !campaign.finished ? Qaterial.Colors.red900 : Qaterial.Colors.black
-				font.weight: Font.Bold
-				font.pixelSize: Qaterial.Style.textTheme.headline5.pixelSize
 				font.family: Qaterial.Style.textTheme.headline5.family
+				font.pixelSize: Qaterial.Style.textTheme.headline5.pixelSize
 				font.capitalization: Font.AllUppercase
+				font.weight: Font.DemiBold
 				topPadding: 5
 				bottomPadding: 5
 			}
@@ -147,7 +147,7 @@ Item {
 				font.pixelSize: Qaterial.Style.textTheme.caption.pixelSize
 				font.family: Qaterial.Style.textTheme.caption.family
 				font.capitalization: Font.AllUppercase
-				font.weight: Font.Medium
+				font.weight: Qaterial.Style.textTheme.caption.weight
 			}
 
 			Component {
@@ -185,7 +185,7 @@ Item {
 						bottomPadding: 2
 
 						font.family: "Special Elite"
-						font.pixelSize: Qaterial.Style.textTheme.body1.pixelSize
+						font.pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
 						lineHeight: 1.2
 
 						text: task ? task.readableCriterion(root.mapHandler.mapList) : null

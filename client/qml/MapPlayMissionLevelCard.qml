@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import CallOfSuli 1.0
 import Qaterial 1.0 as Qaterial
@@ -82,20 +82,17 @@ Qaterial.Card {
 				Layout.bottomMargin: 2*control._verticalPadding
 			}
 
-			Qaterial.LabelBody2
+			Qaterial.Label
 			{
 				text: (missionLevel.deathmatch ?
-						  qsTr("Level %1 SD").arg(missionLevel.level) :
-						  qsTr("Level %1").arg(missionLevel.level))
-				+qsTr("\n%1 XP").arg(missionLevel.xp)
+						   qsTr("Level %1 SD").arg(missionLevel.level) :
+						   qsTr("Level %1").arg(missionLevel.level))
+					  +qsTr("<br><b>%1 XP</b>").arg(missionLevel.xp)
 
-				// Nem fogadja el másképp a capitalizationt, csak ha a family is idekerül
-				font.capitalization: Font.AllUppercase
-				font.family: Qaterial.Style.textTheme.body2.family
-				font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
-				font.weight: Font.DemiBold
+				font: Qaterial.Style.textTheme.body2Upper
 
 				lineHeight: 0.9
+				textFormat: Text.StyledText
 
 				color: control.textColor
 

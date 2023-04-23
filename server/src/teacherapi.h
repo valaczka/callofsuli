@@ -50,6 +50,20 @@ public:
 
 
 
+	/**
+	 * @brief The UserGame class
+	 */
+
+	struct UserGame {
+		QString map;
+		QString mission;
+		int level = -1;
+		bool deathmatch = false;
+		GameMap::GameMode mode = GameMap::Invalid;
+		int campaign = -1;
+	};
+
+
 
 	static QString mapMd5(GameMap *map);
 	static QString mapMd5(const QByteArray &data);
@@ -169,7 +183,11 @@ public:
 	// Run in database worker thread
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
-	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const QString &username, bool *err = nullptr);
+	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished, const QString &username, bool *err = nullptr);
+	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, bool *err = nullptr);
+	static bool _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username, bool *err = nullptr);
+	static bool _evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
+										  const QString &username, bool *err = nullptr);
 
 };
 

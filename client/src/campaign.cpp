@@ -224,7 +224,7 @@ Campaign::State Campaign::state() const
 QString Campaign::readableName() const
 {
 	if (m_description.isEmpty())
-		return tr("Hadjárat #%1").arg(m_campaignid);
+		return tr("Hadjárat •%1").arg(m_campaignid);
 	else
 		return m_description;
 

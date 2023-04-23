@@ -68,6 +68,9 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("streak")) || allField)
 		setStreak(object.value(QStringLiteral("streak")).toInt());
 
+	if (object.contains(QStringLiteral("streakToday")) || allField)
+		setStreakToday(object.value(QStringLiteral("streakToday")).toVariant().toBool());
+
 	if (object.contains(QStringLiteral("classid")) || allField)
 		setClassid(object.value(QStringLiteral("classid")).toInt(-1));
 
@@ -208,6 +211,19 @@ void User::clear()
 	setRank(Rank());
 	setRoles(Credential::None);
 	setLoginState(LoggedOut);
+}
+
+bool User::streakToday() const
+{
+	return m_streakToday;
+}
+
+void User::setStreakToday(bool newStreakToday)
+{
+	if (m_streakToday == newStreakToday)
+		return;
+	m_streakToday = newStreakToday;
+	emit streakTodayChanged();
 }
 
 const QString &User::nickName() const

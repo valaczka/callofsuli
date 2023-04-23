@@ -58,7 +58,7 @@ Item {
 				leftPadding: 2
 				rightPadding: 2
 
-				font: Qaterial.Style.textTheme.caption
+				font: Qaterial.Style.textTheme.subtitle2
 
 				color: item.textColor
 

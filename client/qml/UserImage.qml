@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
@@ -39,7 +39,7 @@ Item {
 		width: img.width+2*roundBorderWidth
 		height: width
 		radius: width/2
-		color: Qaterial.Style.iconColor()
+		color: Qaterial.Style.primaryColor
 		Qaterial.RoundImage {
 			id: img
 			anchors.centerIn: parent

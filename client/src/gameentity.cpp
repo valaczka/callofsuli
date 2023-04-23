@@ -450,8 +450,9 @@ void GameEntity::onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &
 		return;
 
 	GameEntity *e = qobject_cast<GameEntity *>(item);
+	GameObject *o = qobject_cast<GameObject *>(item);
 
-	if (!e || !e->isAlive())
+	if (!o && (!e || !e->isAlive()))
 		return;
 
 	QPointer<Box2DFixture> p = fixture;

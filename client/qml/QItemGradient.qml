@@ -11,6 +11,7 @@ Item {
 	property alias title: _appBar.title
 	property alias subtitle: _appBar.subtitle
 	readonly property double paddingTop: _appBar.visible ? _appBar.height : 0
+	readonly property bool titleVisible: _appBar.visible && title != "" || subtitle != ""
 
 	default property alias _contentData: _content.data
 
@@ -30,13 +31,7 @@ Item {
 			anchors.top: parent.top
 			anchors.right: parent.right
 			height: root.paddingTop
-			gradient: Gradient {
-				orientation: Gradient.Vertical
-				GradientStop { position: 0.0; color: "transparent" }
-				GradientStop { position: 0.1; color: "#0FFFFFFF" }
-				GradientStop { position: 0.65; color: "#19FFFFFF" }
-				GradientStop { position: 1.0; color: "white" }
-			}
+			gradient: titleVisible ? _gradientNormal : _gradientNoTitle
 		}
 		Rectangle {
 			anchors.left: parent.left
@@ -44,6 +39,24 @@ Item {
 			anchors.top: _topRectangle.bottom
 			anchors.bottom: parent.bottom
 			color: "white"
+		}
+
+		Gradient {
+			id: _gradientNormal
+			orientation: Gradient.Vertical
+			GradientStop { position: 0.0; color: "transparent" }
+			GradientStop { position: 0.1; color: "#0FFFFFFF" }
+			GradientStop { position: 0.65; color: "#19FFFFFF" }
+			GradientStop { position: 1.0; color: "white" }
+		}
+
+		Gradient {
+			id: _gradientNoTitle
+			orientation: Gradient.Vertical
+			GradientStop { position: 0.0; color: "transparent" }
+			GradientStop { position: 0.1; color: "#2FFFFFFF" }
+			GradientStop { position: 0.5; color: "#69FFFFFF" }
+			GradientStop { position: 1.0; color: "white" }
 		}
 
 		visible: false

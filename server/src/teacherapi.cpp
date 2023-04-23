@@ -2054,7 +2054,8 @@ QJsonArray TeacherAPI::_taskList(const int &campaign) const
  * @return
  */
 
-TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI *api, const int &campaign, const QString &username, bool *err)
+TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
+															   const QString &username, bool *err)
 {
 	Q_ASSERT(api);
 
@@ -2084,6 +2085,39 @@ TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI
 		if (err) *err = true;
 		return result;
 	}
+
+
+	result.tasks = list;
+
+
+
+	// Finished campaign
+
+	if (finished) {
+		if (err) *err = false;
+		return result;
+	}
+
+
+
+
+	// Default grade
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT defaultGrade, grade.value AS value FROM campaign LEFT JOIN grade ON (grade.id=campaign.defaultGrade) WHERE campaign.id=").addValue(campaign);
+
+	if (!q.exec()) {
+		if (err) *err = true;
+		return result;
+	}
+
+	if (q.sqlQuery().first()) {
+		result.grade = q.value("defaultGrade", -1).toInt();
+		result.gradeValue = q.value("value", -1).toInt();
+	}
+
+
+
 
 	/// Calculate result
 
@@ -2138,6 +2172,9 @@ TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI
 
 	QMap<int, ResultGrade> gradeList;
 	QMap<int, ResultXP> xpList;
+
+
+	// Task list
 
 	foreach (const QJsonValue &v, list) {
 		const QJsonObject &o = v.toObject();
@@ -2203,10 +2240,177 @@ TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI
 		}
 	}
 
-	result.tasks = list;
-
 	if (err) *err = false;
 	return result;
+}
+
+
+
+/**
+ * @brief TeacherAPI::_evaluateCampaign
+ * @param api
+ * @param campaign
+ * @param username
+ * @param err
+ * @return
+ */
+
+bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	QueryBuilder q(db);
+
+	q.addQuery("SELECT id, mapuuid, criterion FROM task WHERE campaignid=").addValue(campaign);
+
+	if (!q.exec()) {
+		if (err) *err = true;
+		return false;
+	}
+
+
+	db.transaction();
+
+	while (q.sqlQuery().next()) {
+		const int &task = q.value("id").toInt();
+		const QString &map = q.value("mapuuid").toString();
+		const QJsonObject &criterion = QJsonDocument::fromJson(q.value("criterion").toString().toUtf8()).object();
+		const QString &module = criterion.value(QStringLiteral("module")).toString();
+
+		bool success = false;
+		bool e = false;
+
+		if (module == QLatin1String("xp"))
+			success = _evaluateCriterionXP(api, campaign, criterion, username, &e);
+		else if (module == QLatin1String("mission"))
+			success = _evaluateCriterionMission(api, campaign, criterion, map, username, &e);
+
+		if (e) {
+			db.rollback();
+			if (err) *err = true;
+			return false;
+		}
+
+		if (success) {
+			if (!QueryBuilder::q(db)
+					.addQuery("INSERT OR IGNORE INTO taskSuccess(")
+					.setFieldPlaceholder()
+					.addQuery(") VALUES (")
+					.setValuePlaceholder()
+					.addQuery(")")
+					.addField("taskid", task)
+					.addField("username", username)
+					.exec()) {
+				db.rollback();
+				if (err) *err = true;
+				return false;
+			}
+		} else  {
+			if (!QueryBuilder::q(db)
+					.addQuery("DELETE FROM taskSuccess WHERE taskid=").addValue(task)
+					.addQuery(" AND username=").addValue(username)
+					.exec()) {
+				db.rollback();
+				if (err) *err = true;
+				return false;
+			}
+		}
+	}
+
+
+	db.commit();
+
+	if (err) *err = false;
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherAPI::_evaluateCriterionXP
+ * @param api
+ * @param criterion
+ * @param username
+ * @param err
+ * @return
+ */
+
+bool TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username, bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	const int &xp = QueryBuilder::q(db)
+			.addQuery("SELECT SUM(xp) AS xp FROM game LEFT JOIN score ON (game.scoreid=score.id) WHERE game.username=").addValue(username)
+			.addQuery(" AND campaignid=").addValue(campaign)
+			.execToValue("xp", &e).toInt();
+
+	if (e) {
+		if (err) *err = true;
+		return false;
+	}
+
+	if (xp >= criterion.value(QStringLiteral("xp")).toInt())
+		return true;
+
+	return false;
+}
+
+
+
+/**
+ * @brief TeacherAPI::_evaluateCriterionMission
+ * @param api
+ * @param campaign
+ * @param criterion
+ * @param map
+ * @param username
+ * @param err
+ * @return
+ */
+
+bool TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion,
+										   const QString &map, const QString &username, bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	QueryBuilder q(db);
+
+	q.addQuery("SELECT * FROM game WHERE success=true AND username=").addValue(username)
+			.addQuery(" AND campaignid=").addValue(campaign)
+			.addQuery(" AND mapid=").addValue(map)
+			.addQuery(" AND missionid=").addValue(criterion.value(QStringLiteral("mission")).toString())
+			;
+
+	if (criterion.contains(QStringLiteral("level")))
+		q.addQuery(" AND level=").addValue(criterion.value(QStringLiteral("level")).toInt());
+
+	if (criterion.contains(QStringLiteral("deathmatch")))
+		q.addQuery(" AND deathmatch=").addValue(criterion.value(QStringLiteral("deathmatch")).toVariant().toBool());
+
+	const bool &success = q.execCheckExists(&e);
+
+	if (e) {
+		if (err) *err = true;
+		return false;
+	}
+
+	return success;
 }
 
 

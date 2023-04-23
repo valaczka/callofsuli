@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
@@ -28,7 +28,7 @@ QPageGradient {
 			height: root.paddingTop
 		}
 
-		Qaterial.LabelHeadline3 {
+		Label {
 			width: parent.width
 			horizontalAlignment: Text.AlignHCenter
 			leftPadding: Math.max(20, Client.safeMarginLeft)
@@ -158,12 +158,13 @@ QPageGradient {
 			icon.source: Qaterial.Icons.play
 			icon.width: 36 * Qaterial.Style.pixelSizeRatio
 			icon.height: 36 * Qaterial.Style.pixelSizeRatio
-			font.family: Qaterial.Style.textTheme.headline6.family
+			/*font.family: Qaterial.Style.textTheme.headline6.family
 			font.pixelSize: Qaterial.Style.textTheme.headline6.pixelSize
-			font.capitalization: Font.AllUppercase
+			font.capitalization: Font.AllUppercase*/
+
 			bgColor: Qaterial.Colors.green700
 			textColor: Qaterial.Colors.white
-			display: AbstractButton.TextUnderIcon
+			//display: AbstractButton.TextUnderIcon
 			topPadding: 10
 			bottomPadding: 10
 			leftPadding: 40
@@ -185,7 +186,7 @@ QPageGradient {
 
 			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action && (_mapGameList.length > 0 || _firstLoad)
 
-			Qaterial.LabelHeadline6 {
+			Qaterial.LabelSubtitle1 {
 				text: qsTr("Leggyorsabb megoldás")
 				anchors.verticalCenter: _btnOpen.verticalCenter
 				width: parent.width-_btnOpen.width
@@ -219,7 +220,7 @@ QPageGradient {
 
 			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action && (_mapGameList.length > 0 || _firstLoad)
 
-			Qaterial.LabelHeadline6 {
+			Qaterial.LabelSubtitle1 {
 				text: qsTr("Legtöbb megoldás")
 				anchors.verticalCenter: _btnOpen2.verticalCenter
 				width: parent.width-_btnOpen2.width

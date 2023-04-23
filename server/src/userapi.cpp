@@ -363,13 +363,15 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 		if (obj.isEmpty())
 			return responseError(response, "not found");
 
+		const bool &finished = obj.value(QStringLiteral("finished")).toVariant().toBool();
 
-		const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, username, &err);
+
+		const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, finished, username, &err);
 
 		if (err)
 			return responseErrorSql(response);
 
-		if (!obj.value(QStringLiteral("finished")).toVariant().toBool()) {
+		if (!finished) {
 			obj[QStringLiteral("resultXP")] = result.xp > 0 ? result.xp : QJsonValue::Null;
 			obj[QStringLiteral("resultGrade")] = result.grade > 0 ? result.grade : QJsonValue::Null;
 		}
@@ -537,8 +539,7 @@ void UserAPI::gameCreate(const QRegularExpressionMatch &match, const QJsonObject
 {
 	const int &campaign = match.captured(1).toInt();
 
-
-	Game g;
+	TeacherAPI::UserGame g;
 
 	g.map = data.value(QStringLiteral("map")).toString();
 	g.mission = data.value(QStringLiteral("mission")).toString();
@@ -723,7 +724,7 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 		QueryBuilder qq(db);
 
-		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode FROM game "
+		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
 					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
 					"WHERE runningGame.gameid=game.id AND game.id=").addValue(gameid)
 				.addQuery(" AND username=").addValue(username);
@@ -734,13 +735,14 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 		if (!qq.sqlQuery().first())
 			return responseError(response, "invalid game");
 
-		Game g;
+		TeacherAPI::UserGame g;
 
 		g.map = qq.value("mapid").toString();
 		g.mission = qq.value("missionid").toString();
 		g.level = qq.value("level").toInt();
 		g.deathmatch = qq.value("deathmatch").toBool();
 		g.mode = qq.value("mode").value<GameMap::GameMode>();
+		g.campaign = qq.value("campaignid", -1).toInt();
 
 
 
@@ -816,6 +818,11 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 		}
 
 		db.commit();
+
+		if (success) {
+			if (!TeacherAPI::_evaluateCampaign(this, g.campaign, username))
+				return responseErrorSql(response);
+		}
 
 		responseAnswerOk(response, ret);
 	});

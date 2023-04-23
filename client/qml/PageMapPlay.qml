@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
@@ -80,8 +80,8 @@ QPageGradient {
 					text: mission.name
 					icon.source: mission.medalImage
 					icon.color: "transparent"
-					icon.width: 32 * Qaterial.Style.pixelSizeRatio
-					icon.height: 32 * Qaterial.Style.pixelSizeRatio
+					icon.width: 1.5 * font.pixelSize
+					icon.height: 1.5 * font.pixelSize
 					wrapMode: Text.Wrap
 				}
 

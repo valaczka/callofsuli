@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
@@ -62,55 +62,55 @@ Qaterial.Page
 		]
 	}
 
-	SortFilterProxyModel {
-		id: _sortedUserList
-		sourceModel: userList
 
-		filters: AllOf {
-			ValueFilter {
-				roleName: "classid"
-				enabled: view.classid != -1
-				value: view.classid
-			}
-			ValueFilter {
-				roleName: "classid"
-				enabled: view.classid != -1
-				value: view.classid
-			}
-		}
-
-		sorters: [
-			RoleSorter {
-				roleName: "xp"
-				sortOrder: Qt.DescendingOrder
-				priority: 1
-			},
-			StringSorter {
-				roleName: "fullNickName"
-				sortOrder: Qt.AscendingOrder
-			}
-		]
-	}
 
 	QListView {
 		id: view
 
 		property int classid: -1
 
-		readonly property bool showPlaceholders: userList.count === 0 && _firstRun
+		readonly property bool showPlaceholders: userList && userList.count === 0 && _firstRun
 
 		currentIndex: -1
 		height: parent.height
 		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 		anchors.horizontalCenter: parent.horizontalCenter
 
-		model: showPlaceholders ? 5 : _sortedUserList
+		model: showPlaceholders ? 10 : _sortedUserList
 
-		//refreshProgressVisible: Client.webSocket.pending
+
 		refreshEnabled: true
 		onRefreshRequest: Client.reloadCache("scoreList")
 
 		delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
+
+
+		onClassidChanged: positionViewAtBeginning()
+		onShowPlaceholdersChanged: positionViewAtBeginning()
+		Component.onCompleted: positionViewAtBeginning()
+
+		SortFilterProxyModel {
+			id: _sortedUserList
+			sourceModel: userList
+
+			filters: ValueFilter {
+				roleName: "classid"
+				enabled: view.classid != -1
+				value: view.classid
+			}
+
+			sorters: [
+				RoleSorter {
+					roleName: "xp"
+					sortOrder: Qt.DescendingOrder
+					priority: 1
+				},
+				StringSorter {
+					roleName: "fullNickName"
+					sortOrder: Qt.AscendingOrder
+				}
+			]
+		}
 
 		Component {
 			id: _cmpDelegate
@@ -125,15 +125,27 @@ Qaterial.Page
 				leftSourceComponent: UserImage { user: _delegate.user }
 
 				rightSourceComponent: Column {
-					Qaterial.LabelHeadline6 {
+					Qaterial.LabelSubtitle1 {
 						anchors.right: parent.right
 						text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
 						color: Qaterial.Style.accentColor
 					}
-					Qaterial.LabelCaption {
+					Row {
 						anchors.right: parent.right
-						text: user ? qsTr("streak: %1").arg(Number(user.streak).toLocaleString()) : ""
-						color: Qaterial.Style.primaryTextColor()
+						spacing: 2
+						visible: user && user.streak
+						Qaterial.LabelCaption {
+							anchors.verticalCenter: parent.verticalCenter
+							text: user ? user.streak : ""
+							color: Qaterial.Style.primaryTextColor()
+						}
+						Qaterial.Icon {
+							anchors.verticalCenter: parent.verticalCenter
+							icon: Qaterial.Icons.fire
+							color: Qaterial.Colors.orange500
+							width: Qaterial.Style.smallIcon*0.8
+							height: Qaterial.Style.smallIcon*0.8
+						}
 					}
 				}
 			}
@@ -198,6 +210,4 @@ Qaterial.Page
 		Client.reloadCache("classList", function(){_preparedClassList.reload()})
 		_firstRun = false
 	}
-
-
 }

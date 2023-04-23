@@ -35,14 +35,6 @@ class UserAPI : public AbstractAPI
 public:
 	UserAPI(ServerService *service);
 
-	struct Game {
-		QString map;
-		QString mission;
-		int level = -1;
-		bool deathmatch = false;
-		GameMap::GameMode mode = GameMap::Invalid;
-	};
-
 	static QMap<QString, GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
 	static GameMap::SolverInfo solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
 	static int solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,

@@ -8,6 +8,8 @@ Item {
 	property int horizontalAlignment: Qt.AlignHCenter
 	property int verticalAlignment: Qt.AlignVCenter
 
+	property alias contentOpacity: _loader.opacity
+
 	property real fixedWidth: 0
 	property real fixedHeight: 0
 
@@ -37,6 +39,8 @@ Item {
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.horizontalCenter: parent.horizontalCenter
+
+		opacity: 0.7
 
 		states: [
 			State {

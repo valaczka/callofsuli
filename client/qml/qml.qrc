@@ -111,5 +111,6 @@
         <file>QPlaceholderItem.qml</file>
         <file>TeacherCampaignTaskList.qml</file>
         <file>StudentCampaign.qml</file>
+        <file>StudentStreak.qml</file>
     </qresource>
 </RCC>

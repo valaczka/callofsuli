@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Window 2.15
 import Box2D 2.0
 import Qaterial 1.0 as Qaterial

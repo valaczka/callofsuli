@@ -1,5 +1,6 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
@@ -32,7 +33,7 @@ QPageGradient {
 
 		Item {
 			width: parent.width
-			height: root.paddingTop
+			height: root.paddingTop - parent.spacing
 		}
 
 		StudentCampaign {
@@ -41,15 +42,16 @@ QPageGradient {
 			user: root.user
 			mapHandler: studentMapHandler
 
-
-			QDashboardGrid {
+			ColumnLayout {
 				id: _grid
 				anchors.horizontalCenter: parent.horizontalCenter
+
+				width: Math.min(implicitWidth, parent.width)
 
 				readonly property bool showPlaceholders: _mapList.count === 0 && _firstRun
 
 				visible: _mapList.count || showPlaceholders
-				contentItems: showPlaceholders ? 3 : _mapList.count
+
 
 				Repeater {
 					model: _grid.showPlaceholders ? 3 : _sortedMapList
@@ -60,11 +62,16 @@ QPageGradient {
 				Component {
 					id: _cmpButton
 
-					QDashboardButton {
+					QButton {
 						id: _btn
 						property StudentMap map: model && model.qtObject ? model.qtObject : null
 						text: map ? map.name : ""
 						bgColor: "saddlebrown"
+
+						Layout.topMargin: index === 0 ? 20 : undefined
+						Layout.fillWidth: true
+						horizontalAlignment: Qt.AlignLeft
+
 						icon.source: map && map.downloaded ? Qaterial.Icons.group :
 															 _playAfterDownload ? Qaterial.Icons.refresh :
 																				  Qaterial.Icons.download
@@ -93,11 +100,13 @@ QPageGradient {
 					id: _cmpPlaceholder
 
 					QPlaceholderItem {
+						Layout.fillWidth: true
+						Layout.topMargin: index === 0 ? 20 : undefined
+						implicitWidth: 200
 						widthRatio: 1.0
-						heightRatio: 1.0
-						width: _grid.buttonSize
-						height: _grid.buttonSize
-						rectangleRadius: 5
+						heightRatio: 0.85
+						height: Qaterial.Style.rawButton.minHeight
+						rectangleRadius: Qaterial.Style.rawButton.cornerRadius
 					}
 				}
 

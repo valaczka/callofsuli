@@ -1,5 +1,5 @@
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
@@ -32,6 +32,8 @@ ListView {
 	height: contentHeight
 
 	model: showPlaceholders ? 3 : _model
+
+	boundsBehavior: Flickable.StopAtBounds
 
 	SortFilterProxyModel {
 		id: _model
@@ -68,15 +70,16 @@ ListView {
 			id: _delegate
 			property MapGame game: model.qtObject
 
+			spacing: 10
+			leftPadding: 0
+			rightPadding: 0
+
 			height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
 
 			highlighted: game && game.user.username == Client.server.user.username
 
-			contentSourceComponent: Qaterial.LabelBody2 {
-				font.family: Qaterial.Style.textTheme.body2.family
-				font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
-				font.capitalization: Font.AllUppercase
-				font.weight: Font.DemiBold
+			contentSourceComponent: Label {
+				font: Qaterial.Style.textTheme.body2Upper
 				verticalAlignment: Label.AlignVCenter
 				text: game && game.user ? (root.positionType == MapPlayMissionLevelInfoList.Position.Duration ? game.posDuration : game.posSolved)+". "
 										  +game.user.fullNickName : ""
@@ -132,6 +135,10 @@ ListView {
 			id: _delegatePlaceholder
 
 			height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
+
+			spacing: 10
+			leftPadding: 0
+			rightPadding: 0
 
 			contentSourceComponent: QPlaceholderItem {
 				horizontalAlignment: Qt.AlignLeft

@@ -23,12 +23,16 @@ function intializeStyle() {
 	if (Qt.platform.os == "android" || Qt.platform.os == "ios") {
 		Qaterial.Style.textTheme.button.weight = Font.DemiBold
 		Qaterial.Style.textTheme.body2.weight = Font.Normal
+		Qaterial.Style.textTheme.body2Upper.weight = Font.Normal
 		Qaterial.Style.textTheme.body1.weight = Font.Medium
 		Qaterial.Style.textTheme.caption.weight = Font.DemiBold
 		Qaterial.Style.textTheme.overline.weight = Font.DemiBold
+		Qaterial.Style.textTheme.buttonTab.weight = Font.Medium
 	} else {
 		Qaterial.Style.textTheme.button.weight = Font.DemiBold
+		Qaterial.Style.textTheme.buttonTab.weight = Font.DemiBold
 		Qaterial.Style.textTheme.body2.weight = Font.Medium
+		Qaterial.Style.textTheme.body2Upper.weight = Font.Medium
 		Qaterial.Style.textTheme.body1.weight = Font.Medium
 		Qaterial.Style.textTheme.caption.weight = Font.DemiBold
 		Qaterial.Style.textTheme.overline.weight = Font.DemiBold
@@ -37,30 +41,75 @@ function intializeStyle() {
 		Qaterial.Style.textTheme.headline3.weight = Font.Normal
 		Qaterial.Style.textTheme.headline4.weight = Font.Normal
 		Qaterial.Style.textTheme.headline5.weight = Font.Medium
+		Qaterial.Style.textTheme.headline5Upper.weight = Font.Medium
 		Qaterial.Style.textTheme.headline6.weight = Font.Medium
 	}
+
+
+	Qaterial.Style.textTheme.subtitle2.letterSpacing = 0
+	Qaterial.Style.textTheme.body1.letterSpacing = 0
+	Qaterial.Style.textTheme.body2.letterSpacing = 0
+	Qaterial.Style.textTheme.caption.letterSpacing = 0
+	Qaterial.Style.textTheme.overline.letterSpacing = 0.75
+	Qaterial.Style.textTheme.button.letterSpacing = 0.75
 
 	Qaterial.Style.textTheme.headline1.pixelSize = Qt.binding(function() { return 72*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline2.pixelSize = Qt.binding(function() { return 54*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline3.pixelSize = Qt.binding(function() { return 42*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline4.pixelSize = Qt.binding(function() { return 34*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline5.pixelSize = Qt.binding(function() { return 24*Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.textTheme.headline5Upper.pixelSize = Qt.binding(function() { return 24*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.headline6.pixelSize = Qt.binding(function() { return 20*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.subtitle1.pixelSize = Qt.binding(function() { return 18*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.subtitle2.pixelSize = Qt.binding(function() { return 16*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.body1.pixelSize = Qt.binding(function() { return 18*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.body2.pixelSize = Qt.binding(function() { return 14*Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.textTheme.button.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.caption.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.overline.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.hint1.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
 
-	Qaterial.Style.menuItem.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 14 : 18) * Qaterial.Style.pixelSizeRatio })
+	if (Qt.platform.os == "android" || Qt.platform.os == "ios") {
+		Qaterial.Style.textTheme.body2.pixelSize = Qt.binding(function() { return 14*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.body2Upper.pixelSize = Qt.binding(function() { return 14*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.buttonTab.pixelSize = Qt.binding(function() { return 14*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.caption.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.overline.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.hint1.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
+	} else {
+		Qaterial.Style.textTheme.body2.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.body2Upper.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.buttonTab.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.caption.pixelSize = Qt.binding(function() { return 13*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.overline.pixelSize = Qt.binding(function() { return 13*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.hint1.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
+	}
+
+	Qaterial.Style.tabButton.minHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 30 : 48) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.tabButton.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
+
+	Qaterial.Style.rawButton.minWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 52 : 64) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.rawButton.minHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 24 : 36) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.rawButton.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 14 : 18) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.rawButton.outlinedFocusWidth = 1
+
+	Qaterial.Style.toolButton.minWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 28 : 36) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.toolButton.minHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 28 : 36) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.toolButton.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.toolButton.appBarButtonWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 24 : 30) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.toolButton.appBarButtonHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 24 : 30) * Qaterial.Style.pixelSizeRatio })
+
+	Qaterial.Style.fab.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.menuItem.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
+
+	Qaterial.Style.radioIndicator.implicitWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 20) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.radioIndicator.implicitHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 20) * Qaterial.Style.pixelSizeRatio })
+
+	Qaterial.Style.checkIndicator.implicitWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 18) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.checkIndicator.implicitHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 18) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.checkIndicator.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 19) * Qaterial.Style.pixelSizeRatio })
+
 
 	Qaterial.Style.colorItemGlow = Qaterial.Colors.yellow100
 
-	Qaterial.Style.rawButton.outlinedFocusWidth = 1
 }
 
 
