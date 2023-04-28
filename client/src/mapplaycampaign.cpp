@@ -131,20 +131,20 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		return;
 	}
 
-	CampaignActionGame *game = qobject_cast<CampaignActionGame*>(m_currentGame);
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_currentGame);
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
 
-	if (!game) {
+	if (!levelGame || !game) {
 		LOG_CERROR("client") << "Object cast error" << m_currentGame;
 		return;
 	}
 
 	m_client->send(WebSocket::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
 					   { QStringLiteral("map"), m_gameMap->uuid() },
-					   { QStringLiteral("mission"), game->uuid() },
-					   { QStringLiteral("level"), game->level() },
-					   { QStringLiteral("xp"), game->xp() },
-					   { QStringLiteral("deathmatch"), game->deathmatch() },
-					   { QStringLiteral("mode"), game->mode() }
+					   { QStringLiteral("mission"), levelGame->uuid() },
+					   { QStringLiteral("level"), levelGame->level() },
+					   { QStringLiteral("deathmatch"), levelGame->deathmatch() },
+					   { QStringLiteral("mode"), levelGame->mode() }
 				   })
 			->error([this](const QNetworkReply::NetworkError &){
 		m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
@@ -154,7 +154,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		m_client->messageError(err, tr("Játék indítása sikertelen"));
 		destroyCurrentGame();
 	})
-			->done([this, game](const QJsonObject &data){
+			->done([this, game, levelGame](const QJsonObject &data){
 		const int &gameId = data.value(QStringLiteral("id")).toInt(-1);
 		if (gameId < 0) {
 			m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
@@ -165,7 +165,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
 
 		game->setGameId(gameId);
-		game->load();
+		levelGame->load();
 	});
 }
 
@@ -179,17 +179,18 @@ void MapPlayCampaign::onCurrentGameFinished()
 	if (!m_currentGame || !m_client)
 		return;
 
-	CampaignActionGame *game = qobject_cast<CampaignActionGame*>(m_currentGame);
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_currentGame);
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
 
-	if (!game) {
+	if (!levelGame || !game) {
 		LOG_CERROR("client") << "Object cast error" << m_currentGame;
 		return;
 	}
 
 	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
-					   { QStringLiteral("success"), game->finishState() == AbstractGame::Success },
-					   { QStringLiteral("xp"), game->xp() },
-					   { QStringLiteral("duration"), game->elapsedMsec() }
+					   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
+					   { QStringLiteral("xp"), levelGame->xp() },
+					   { QStringLiteral("duration"), levelGame->elapsedMsec() }
 				   })
 			->fail([this](const QString &err){
 		m_client->messageError(err, tr("Játék mentése sikertelen"));
@@ -223,11 +224,15 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 	Q_ASSERT(m_client);
 
 
-	CampaignActionGame *g = nullptr;
+	AbstractLevelGame *g = nullptr;
 
 	switch (mode) {
 	case GameMap::Action:
 		g = new CampaignActionGame(level->missionLevel(), m_client);
+		break;
+
+	case GameMap::Lite:
+		g = new CampaignLiteGame(level->missionLevel(), m_client);
 		break;
 
 	default:
@@ -257,37 +262,4 @@ void MapPlayCampaign::destroyCurrentGame()
 
 
 
-
-
-/**
- * @brief CampaignLevelGame::CampaignLevelGame
- * @param mode
- * @param missionLevel
- * @param client
- */
-
-CampaignActionGame::CampaignActionGame(GameMapMissionLevel *missionLevel, Client *client)
-	: ActionGame(missionLevel, client)
-{
-
-}
-
-CampaignActionGame::~CampaignActionGame()
-{
-
-}
-
-
-int CampaignActionGame::gameId() const
-{
-	return m_gameId;
-}
-
-void CampaignActionGame::setGameId(int newGameId)
-{
-	if (m_gameId == newGameId)
-		return;
-	m_gameId = newGameId;
-	emit gameIdChanged();
-}
 

@@ -929,19 +929,6 @@ void ActionGame::timeNotifySendReset()
 	m_timeNotifySendNext = 60000;
 }
 
-int ActionGame::xp() const
-{
-	return m_xp;
-}
-
-void ActionGame::setXp(int newXp)
-{
-	if (m_xp == newXp)
-		return;
-	m_xp = newXp;
-	emit xpChanged();
-}
-
 
 /**
  * @brief ActionGame::toolDependency
@@ -1073,33 +1060,96 @@ QVariantList ActionGame::tools()
 
 void ActionGame::testQuestion()
 {
-	m_gameQuestion->setPostponeEnabled(true);
+	/*
+
+	QVariantMap answer;
+
+	QVariantList words;
+
+	for (int i=0; i<items.size(); ++i) {
+		if (usedIndexList.contains(i)) {
+			QString id = QString("%1").arg(i);
+
+			answer.insert(id, items.at(i).text);
+
+			words.append(QVariantMap({{"q", id}}));
+		} else {
+			words.append(QVariantMap({{"w", items.at(i).text}}));
+		}
+	}
+
+
+	QStringList optList;
+
+	while (options.size())
+		optList.append(options.takeAt(QRandomGenerator::global()->bounded(options.size())));
+
+
+
+	QVariantMap ret;
+	ret["list"] = words;
+	ret["options"] = optList;
+	ret["answer"] = answer;
+
+	*/
+	m_gameQuestion->setPostponeEnabled(false);
 	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"));
 	m_gameQuestion->loadQuestion(QUrl(QStringLiteral("qrc:/GameQuestionDefaultComponent.qml")), {
 									 {QStringLiteral("question"), QStringLiteral("Na ez már jó kérdés")},
-									 //{"decimalEnabled", true},
+									 {"mode", "descending"},
+									 {"placeholderMin", "legkisebb"},
+									 {"placeholderMax", "legnagyob ezért nagyon hosszú szövega sdflkasd fowier léaj flkadfoiasd flkajsdfoiwe rkjalsd f"},
 									 //{"twoLine", true},
 									 {QStringLiteral("answer"), QVariantMap({
-										   {"first", 2 },
-										  {"second", 3 }
+										  {"1",  "egy"},
+										  {"2",  "kettő"},
+										  {"3",  "három"},
+										  {"4",  "négy"},
+									  })},
+									 {QStringLiteral("list"), QVariantList({
+										  QVariantMap({{"w", "Nulla"}}),
+										  QVariantMap({{"w", "és"}}),
+										  QVariantMap({{"q", "1"}}),
+										  QVariantMap({{"w", "néhány"}}),
+										  QVariantMap({{"w", "másik"}}),
+										  QVariantMap({{"w", "szó,"}}),
+										  QVariantMap({{"q", "2"}}),
+										  QVariantMap({{"w", "amit"}}),
+										  QVariantMap({{"w", "szeretnék"}}),
+										  QVariantMap({{"w", "itt"}}),
+										  QVariantMap({{"q", "3"}}),
+										  QVariantMap({{"w", "nagyon"}}),
+										  QVariantMap({{"w", "hosszan"}}),
+										  QVariantMap({{"w", "ecsetelni,"}}),
+										  QVariantMap({{"q", "4"}}),
+										  QVariantMap({{"w", "hogy"}}),
+										  QVariantMap({{"w", "látszódjon"}}),
+										  QVariantMap({{"w", "mit"}}),
+										  QVariantMap({{"w", "tud"}})
 									  })},
 									 {QStringLiteral("options"), QStringList({
-										  "egy",
-										  "kettő afaiodf aélsd fwioe alékfj alésdjfioweéaklsjf léaksfiowe éajkdf éalskdfoweir aéldkfjd alésdfowier éaklsdfj aseofa dfwei aédfjk aoir asdklf",
-										  "három saklf weio alkdjfl askdjf",
-										  "négy",
 										  "öt",
+										  "egy",
+										  "négy",
+										  "három saklf weio alkdjfl askdjf",
+										  "kettő",
+										  "három",
 										  "hat"
 									  }) },
 
 									 {"image", "file:///home/valaczka/Letöltések/bg.jpg"}
 									 /*{"imageAnswers", true},
-																																																																																																																				  {"options", QStringList({
-																																																																																																																					   "file:///home/valaczka/Letöltések/bg.jpg",
-																																																																																																																					   "file:///home/valaczka/Letöltések/3centiho.jpg",
-																																																																																																																					   "file:///home/valaczka/Letöltések/logo_gb.jpg",
-																																																																																																																					   "file:///home/valaczka/Letöltések/vitorlas.jpg",
-																																																																																																																				   })}*/
+
+																	  m["list"] = questions;
+																	  m["options"] = optList;
+																	  m["answer"] = QVariantMap({{ "list", answers }});
+
+																  {"options", QStringList({
+																																																																																																																														"file:///home/valaczka/Letöltések/bg.jpg",
+																																																																																																																														"file:///home/valaczka/Letöltések/3centiho.jpg",
+																																																																																																																														"file:///home/valaczka/Letöltések/logo_gb.jpg",
+																																																																																																																														"file:///home/valaczka/Letöltések/vitorlas.jpg",
+																																																																																																																													})}*/
 								 });
 	setRunning(false);
 }

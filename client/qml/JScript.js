@@ -72,14 +72,14 @@ function intializeStyle() {
 		Qaterial.Style.textTheme.caption.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.overline.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.hint1.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
-		Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 11*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 10*Qaterial.Style.pixelSizeRatio })
 	} else {
 		Qaterial.Style.textTheme.body2.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.body2Upper.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.buttonTab.pixelSize = Qt.binding(function() { return 15*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.caption.pixelSize = Qt.binding(function() { return 13*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.overline.pixelSize = Qt.binding(function() { return 13*Qaterial.Style.pixelSizeRatio })
-		Qaterial.Style.textTheme.hint1.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
+		Qaterial.Style.textTheme.hint1.pixelSize = Qt.binding(function() { return 13*Qaterial.Style.pixelSizeRatio })
 		Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
 	}
 

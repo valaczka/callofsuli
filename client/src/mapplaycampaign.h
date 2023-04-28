@@ -31,6 +31,7 @@
 #include "studentmaphandler.h"
 #include "campaign.h"
 #include "actiongame.h"
+#include "litegame.h"
 
 
 /**
@@ -68,27 +69,54 @@ private:
 
 
 /**
+ * @brief The CampaignGameIface class
+ */
+
+class CampaignGameIface
+{
+public:
+	CampaignGameIface() {}
+
+	const int &gameId() const { return m_gameId; }
+	void setGameId(int newGameId) { m_gameId = newGameId; }
+
+protected:
+	int m_gameId = -1;
+};
+
+
+
+/**
  * @brief The CampaignLevelGame class
  */
 
-class CampaignActionGame : public ActionGame
+class CampaignActionGame : public ActionGame, public CampaignGameIface
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged)
+public:
+	explicit CampaignActionGame(GameMapMissionLevel *missionLevel, Client *client)
+		: ActionGame(missionLevel, client) {}
+	virtual ~CampaignActionGame() {}
+};
+
+
+
+
+/**
+ * @brief The CampaignActionGame class
+ */
+
+class CampaignLiteGame : public LiteGame, public CampaignGameIface
+{
+	Q_OBJECT
 
 public:
-	explicit CampaignActionGame(GameMapMissionLevel *missionLevel, Client *client);
-	virtual ~CampaignActionGame();
-
-	int gameId() const;
-	void setGameId(int newGameId);
-
-signals:
-	void gameIdChanged();
-
-private:
-	int m_gameId = -1;
+	explicit CampaignLiteGame(GameMapMissionLevel *missionLevel, Client *client)
+		: LiteGame(missionLevel, client) {}
+	virtual ~CampaignLiteGame() {}
 };
+
+
 
 #endif // MAPPLAYCAMPAIGN_H

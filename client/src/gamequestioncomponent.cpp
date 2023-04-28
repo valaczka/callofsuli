@@ -73,6 +73,7 @@ void GameQuestionComponent::setQuestion(GameQuestion *newQuestion)
 	emit questionChanged();
 	emit questionDataChanged();
 	emit toggleModeChanged();
+	emit storedAnswerChanged();
 }
 
 
@@ -85,4 +86,9 @@ void GameQuestionComponent::setQuestion(GameQuestion *newQuestion)
 bool GameQuestionComponent::toggleMode() const
 {
 	return m_question ? m_question->toggleMode() : false;
+}
+
+QVariantMap GameQuestionComponent::storedAnswer() const
+{
+	return m_question ? m_question->storedAnswer() : QVariantMap();
 }

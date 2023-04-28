@@ -185,6 +185,7 @@ SOURCES += \
 	gameterrain.cpp \
 	gameterrainmap.cpp \
 	grade.cpp \
+	litegame.cpp \
 	main.cpp \
 	mapgame.cpp \
 	mapimage.cpp \
@@ -201,6 +202,7 @@ SOURCES += \
 	teachergroup.cpp \
 	teachermap.cpp \
 	teachermaphandler.cpp \
+	testgame.cpp \
 	tiledpaintedlayer.cpp \
 	user.cpp \
 	websocket.cpp
@@ -240,6 +242,7 @@ HEADERS += \
 	gameterrain.h \
 	gameterrainmap.h \
 	grade.h \
+	litegame.h \
 	mapgame.h \
 	mapimage.h \
 	mapplay.h \
@@ -255,6 +258,7 @@ HEADERS += \
 	teachergroup.h \
 	teachermap.h \
 	teachermaphandler.h \
+	testgame.h \
 	tiledpaintedlayer.h \
 	user.h \
 	websocket.h

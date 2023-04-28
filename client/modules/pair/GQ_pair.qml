@@ -1,291 +1,164 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import COS.Client 1.0
-import "."
-import "Style"
-import "JScript.js" as JS
+import QtQuick.Layouts 1.15
+import CallOfSuli 1.0
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
 
-Item {
-    id: control
+GameQuestionComponentImpl {
+	id: control
 
-    implicitHeight: labelQuestion.height+col.height+35
-    implicitWidth: 700
+	implicitHeight: 550
+	implicitWidth: 800
+
+	GameQuestionTitle {
+		id: titleRow
 
-    required property var questionData
-    property bool canPostpone: false
-    property int mode: GameMatch.ModeNormal
+		anchors.left: parent.left
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
 
-    property real buttonWidth: width-60
+		buttons: true
+		buttonOkEnabled: true
 
+		title: questionData.question
+
+		onButtonOkClicked: answer()
+	}
+
+	GameQuestionDNDlayout {
+		id: containerItem
 
-    signal succeed()
-    signal failed()
-    signal postponed()
-    signal answered(var answer)
+		anchors.right: parent.right
+		anchors.left: parent.left
+		anchors.top: parent.top
+		anchors.bottom: titleRow.top
+		anchors.topMargin: 15
 
-    property var _drops: []
-    property bool _dragInteractive: true
-
-
-    QButton {
-        id: btnPostpone
-        enabled: canPostpone
-        visible: canPostpone
-        anchors.verticalCenter: labelQuestion.verticalCenter
-        anchors.left: parent.left
-        anchors.leftMargin: 20
-        icon.source: CosStyle.iconPostpone
-        text: qsTr("Később")
-        themeColors: CosStyle.buttonThemeOrange
-        onClicked: postponed()
-    }
-
-    QLabel {
-        id: labelQuestion
-
-        font.family: "Special Elite"
-        font.pixelSize: CosStyle.pixelSize*1.4
-        wrapMode: Text.Wrap
-        anchors.bottom: parent.bottom
-        anchors.left: btnPostpone.visible ? btnPostpone.right : parent.left
-        anchors.right: btnOk.visible ? btnOk.left : parent.right
-        height: Math.max(implicitHeight, btnOk.height)
-        topPadding: 25
-        bottomPadding: 25
-        leftPadding: 20
-        rightPadding: 20
-
-        horizontalAlignment: Text.AlignHCenter
-
-        color: CosStyle.colorAccent
-
-        textFormat: Text.RichText
-
-        text: questionData.question
-    }
-
-
-    QButton {
-        id: btnOk
-        enabled: (control.mode == GameMatch.ModeExam)
-        //visible: (control.mode == GameMatch.ModeExam)
-        anchors.verticalCenter: labelQuestion.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: 20
-        icon.source: "qrc:/internal/icon/check-bold.svg"
-        text: qsTr("Kész")
-        themeColors: CosStyle.buttonThemeGreen
-        onClicked: answer()
-    }
-
-
-
-    GameQuestionTileLayout {
-        id: grid
-        anchors.bottom: labelQuestion.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-
-        flick.contentWidth: col.width
-        flick.contentHeight: col.height
-
-        Column {
-            id: col
-            width: grid.flick.width
-            parent: grid.flick.contentItem
-            spacing: 5
-
-        }
-    }
-
-
-
-    Component {
-        id: componentTileDrop
-
-        Item {
-            implicitWidth: labelField.implicitWidth+drop.implicitWidth
-            implicitHeight: Math.max(labelField.height, drop.height)
-
-            width: parent.width
-            height: implicitHeight
-            anchors.horizontalCenter: parent.horizontalCenter
-
-            property alias text: labelField.text
-            property alias drop: drop
-
-            QLabel {
-                id: labelField
-
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                width: (parent.width-labelSeparator.width)/2
-
-                color: CosStyle.colorPrimaryLighter
-                font.weight: Font.Medium
-
-                leftPadding: 5
-
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-
-                wrapMode: Text.Wrap
-            }
-
-            QLabel {
-                id: labelSeparator
-
-                anchors.centerIn: parent
-
-                text: "—"
-
-                color: CosStyle.colorPrimaryLighter
-                font.weight: Font.Medium
-
-                rightPadding: 10
-                leftPadding: 10
-
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            GameQuestionTileDrop {
-                id: drop
-                autoResize: false
-                width: (parent.width-labelSeparator.width)/2
-
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: parent.right
-
-                onCurrentDragChanged: recalculate()
-            }
-        }
-    }
-
-    Component {
-        id: componentTileDrag
-
-        GameQuestionTileDrag {
-            id: drag
-            dropFlow: grid.container.flow
-            mainContainer: control
-            interactive: _dragInteractive
-
-            onClicked: {
-                for (var i=0; i<_drops.length; i++) {
-                    var p = _drops[i]
-
-                    if (!p.item.drop.currentDrag) {
-                        p.item.drop.dropIn(drag)
-                        drag.handleDropIn()
-                        break
-                    }
-                }
-            }
-        }
-    }
-
-
-    Component.onCompleted:  {
-        if (!questionData || !questionData.list)
-            return
-
-        for (var i=0; i<questionData.list.length; i++) {
-            var p = questionData.list[i]
-
-
-            var o = componentTileDrop.createObject(col, {text: p})
-            var d = {}
-            d.item = o
-            d.correct = null
-
-            if (questionData.answer && questionData.answer.list && questionData.answer.list.length>i)
-                d.correct = questionData.answer.list[i]
-
-            _drops.push(d)
-        }
-
-        if (!questionData.options)
-            return
-
-        for (i=0; i<questionData.options.length; i++) {
-            var t = questionData.options[i]
-            componentTileDrag.createObject(grid.container.flow, {
-                                               tileData: t,
-                                               text: t
-                                           })
-        }
-    }
-
-
-
-
-
-    function recalculate() {
-        if (!_drops.length || btnOk.enabled)
-            return
-
-        var s = true
-
-        for (var i=0; i<_drops.length; i++) {
-            var p = _drops[i]
-            if (!p.item.drop.currentDrag) {
-                s = false
-                break
-            }
-        }
-
-        if (s)
-            btnOk.enabled = true
-    }
-
-
-    function answer() {
-        if (mode == GameMatch.ModeExam) {
-            answered({"error": "missing implementation"})
-        } else {
-            btnOk.enabled = false
-            _dragInteractive = false
-
-            var success = true
-
-            for (var i=0; i<_drops.length; i++) {
-                var p = _drops[i]
-
-                if (p.item && p.correct) {
-                    var drag = p.item.drop.currentDrag
-
-                    if (drag) {
-                        var data = drag.tileData
-
-                        if (data === p.correct) {
-                            drag.type = GameQuestionButton.Correct
-                        } else {
-                            drag.type = GameQuestionButton.Wrong
-                            success = false
-                        }
-                    } else {
-                        p.item.drop.isWrong = true
-                        success = false
-                    }
-
-                }
-            }
-
-            if (success)
-                succeed()
-            else
-                failed()
-        }
-    }
-
-
-    function keyPressed(key) {
-        if (btnOk.enabled && (key === Qt.Key_Enter || key === Qt.Key_Return))
-            btnOk.press()
-    }
+		contentSourceComponent: GridLayout {
+			id: _grid
+			width: containerItem.implicitContentWidth
+			columns: 3
+			columnSpacing: 15
+			rowSpacing: 3
+
+			Component {
+				id: _cmpLabel
+
+				Qaterial.LabelBody1 {
+					Layout.fillWidth: false
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+					Layout.maximumWidth: containerItem.implicitContentWidth*0.5
+					wrapMode: Text.Wrap
+				}
+			}
+
+			Component {
+				id: _cmpSep
+
+				Qaterial.LabelSubtitle1 {
+					Layout.fillWidth: false
+					Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+					text: "—"
+				}
+			}
+
+			Component {
+				id: _cmpDrop
+
+				GameQuestionDNDdrop {
+					allowResizeToContent: false
+					allowReplaceContent: true
+					Layout.fillWidth: true
+					Layout.maximumWidth: containerItem.implicitContentWidth*0.5
+					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+					width: implicitWidth
+
+					property string correctAnswer: ""
+				}
+			}
+
+			Connections {
+				target: control
+				function onQuestionDataChanged() {
+					if (!control.questionData || !control.questionData.list)
+						return
+
+					for (var i=0; i<control.questionData.list.length; i++) {
+						var p = control.questionData.list[i]
+
+						_cmpLabel.createObject(_grid, { text: p })
+						_cmpSep.createObject(_grid)
+
+						var d = _cmpDrop.createObject(_grid)
+
+						containerItem.drops.push(d)
+
+						if (control.questionData.answer && control.questionData.answer.list && control.questionData.answer.list.length>i)
+							d.correctAnswer = questionData.answer.list[i]
+					}
+				}
+			}
+		}
+	}
+
+
+	Component {
+		id: _cmp
+
+		GameQuestionDNDbutton {
+			drops: containerItem.drops
+		}
+	}
+
+
+	onQuestionDataChanged: {
+		if (!questionData || !questionData.options)
+			return
+
+		for (var i=0; i<questionData.options.length; i++) {
+			var t = questionData.options[i]
+			containerItem.dndFlow.createDND(_cmp, control, { text: t })
+		}
+	}
+
+	function answer() {
+		var success = true
+
+		var l = []
+
+		for (var i=0; i<containerItem.drops.length; ++i) {
+			var d=containerItem.drops[i]
+
+			var a = {}
+
+			if (!d.currentDrag) {
+				success = false
+				d.showAsError = true
+				a.answer = ""
+				a.success = false
+			} else {
+				var t = d.currentDrag.text
+				a.answer = t
+				if (t === d.correctAnswer) {
+					a.success = true
+					d.currentDrag.buttonType = GameQuestionButton.Correct
+				} else {
+					a.success = false
+					d.currentDrag.buttonType = GameQuestionButton.Wrong
+					success = false
+				}
+			}
+
+			l.push(a)
+		}
+
+		if (success)
+			question.onSuccess({"list": l})
+		else
+			question.onFailed({"list": l})
+	}
 
 }
 

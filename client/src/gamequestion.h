@@ -47,13 +47,14 @@ class GameQuestion : public QQuickItem
 	Q_PROPERTY(bool postponeEnabled READ postponeEnabled WRITE setPostponeEnabled NOTIFY postponeEnabledChanged)
 	Q_PROPERTY(GameMap::GameMode gameMode READ gameMode NOTIFY gameModeChanged)
 	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
+	Q_PROPERTY(QVariantMap storedAnswer READ storedAnswer WRITE setStoredAnswer NOTIFY storedAnswerChanged)
 
 public:
 	GameQuestion(QQuickItem *parent = nullptr);
 	virtual ~GameQuestion();
 
 	void loadQuestion(const QUrl &componentUrl, const QVariantMap &data, const QString &uuid = "");
-	void loadQuestion(const Question &question);
+	Q_INVOKABLE void loadQuestion(const Question &question);
 
 	int msecBeforeHide() const;
 	void setMsecBeforeHide(int newMsecBeforeHide);
@@ -81,6 +82,9 @@ public:
 	GameMap::GameMode gameMode() const;
 
 	bool toggleMode() const;
+
+	const QVariantMap &storedAnswer() const;
+	void setStoredAnswer(const QVariantMap &newStoredAnswer);
 
 public slots:
 	void onSuccess(const QVariantMap &answer);
@@ -111,6 +115,7 @@ signals:
 	void postponeEnabledChanged();
 	void gameModeChanged();
 	void toggleModeChanged();
+	void storedAnswerChanged();
 
 private:
 	AbstractGame *m_game = nullptr;
@@ -122,6 +127,7 @@ private:
 	QString m_objectiveUuid;
 	QVariantMap m_questionData;
 	bool m_postponeEnabled = false;
+	QVariantMap m_storedAnswer;
 };
 
 #endif // GAMEQUESTION_H

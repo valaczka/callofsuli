@@ -38,6 +38,7 @@ class GameQuestionComponent : public QQuickItem
 	Q_PROPERTY(QVariantMap questionData READ questionData NOTIFY questionDataChanged)
 	Q_PROPERTY(GameQuestion *question READ question WRITE setQuestion NOTIFY questionChanged)
 	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
+	Q_PROPERTY(QVariantMap storedAnswer READ storedAnswer NOTIFY storedAnswerChanged)
 
 public:
 	GameQuestionComponent(QQuickItem *parent = nullptr);
@@ -49,14 +50,16 @@ public:
 	void setQuestion(GameQuestion *newQuestion);
 	bool toggleMode() const;
 
+	QVariantMap storedAnswer() const;
+
 public slots:
 
 signals:
 	void questionDataChanged();
 	void answerReveal(QVariantMap answer);
 	void questionChanged();
-
 	void toggleModeChanged();
+	void storedAnswerChanged();
 
 private:
 	GameQuestion *m_question = nullptr;

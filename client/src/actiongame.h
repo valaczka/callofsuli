@@ -109,9 +109,6 @@ public:
 	Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
 	const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
 
-	int xp() const;
-	void setXp(int newXp);
-
 
 	Q_INVOKABLE void testQuestion();
 
@@ -177,8 +174,6 @@ private:
 	QHash<GamePickable::PickableType, int> m_tools;
 
 	int m_timeNotifySendNext = -1;
-
-	int m_xp = 0;
 };
 
 

@@ -218,7 +218,7 @@ QPageGradient {
 			topPadding: 20
 			bottomPadding: 10
 
-			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action && (_mapGameList.length > 0 || _firstLoad)
+			visible: map && map.online && _modeGroup.checkedButton && (_mapGameList.length > 0 || _firstLoad)
 
 			Qaterial.LabelSubtitle1 {
 				text: qsTr("Legtöbb megoldás")
@@ -242,7 +242,7 @@ QPageGradient {
 			mapGameList: _mapGameList
 			positionType: MapPlayMissionLevelInfoList.Solved
 			showPlaceholders: _mapGameList.length === 0 && _firstLoad
-			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action
+			visible: map && map.online && _modeGroup.checkedButton
 		}
 	}
 
@@ -261,7 +261,7 @@ QPageGradient {
 						mission: mission.uuid,
 						level: missionLevel.level,
 						deathmatch: missionLevel.deathmatch,
-						mode: GameMap.Action
+						mode: _modeGroup.checkedButton.gameMode
 					}).done(function(r) {
 						var maxD = 1
 						var minD = 0

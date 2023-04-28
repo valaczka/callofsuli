@@ -81,7 +81,7 @@ GameQuestionComponentImpl {
 			boundsBehavior: Flickable.StopAtBounds
 			flickableDirection: Flickable.VerticalFlick
 
-			ScrollIndicator.vertical: ScrollIndicator { }
+			ScrollIndicator.vertical: ScrollIndicator { active: flick.movingVertically || flick.contentHeight > flick.height }
 
 
 
@@ -145,7 +145,7 @@ GameQuestionComponentImpl {
 
 		GameQuestionButton {
 			id: btn
-			text: "kérdés"
+			//text: "kérdés"
 			width: (grid.width-grid.columnSpacing)/2
 			height: (flick.height-grid.rowSpacing)/2
 
@@ -181,6 +181,13 @@ GameQuestionComponentImpl {
 	}
 
 
+	onStoredAnswerChanged: {
+		console.debug("****", storedAnswer)
+		if (toggleMode && storedAnswer.index !== undefined) {
+			selectedButtonIndex = storedAnswer.index
+		}
+	}
+
 
 	function answer(idx) {
 		if (idx === questionData.answer)
@@ -193,18 +200,29 @@ GameQuestionComponentImpl {
 	Keys.onPressed: {
 		var key = event.key
 
+		var n = -1
+
 		if (key === Qt.Key_1 || key === Qt.Key_A)
-			answer(0)
+			n = 0
 		else if (key === Qt.Key_2 || key === Qt.Key_B)
-			answer(1)
+			n = 1
 		else if (key === Qt.Key_3 || key === Qt.Key_C)
-			answer(2)
+			n = 2
 		else if (key === Qt.Key_4 || key === Qt.Key_D)
-			answer(3)
+			n = 3
 		else if (key === Qt.Key_5 || key === Qt.Key_E)
-			answer(4)
+			n = 4
 		else if (key === Qt.Key_6 || key === Qt.Key_F)
-			answer(5)
+			n = 5
+
+		if (n < 0)
+			return
+
+		if (toggleMode) {
+			selectedButtonIndex = n
+		} else {
+			answer(n)
+		}
 	}
 }
 

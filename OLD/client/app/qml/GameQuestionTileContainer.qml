@@ -31,28 +31,32 @@ DropArea {
 				color: CosStyle.colorPrimaryDark
 			}
 		}
+	}
 
-		Flickable {
-			id: flick
+	Flickable {
+		id: flick
 
-			width: parent.width
-			height: Math.min(parent.height-10, flick.contentHeight)
-			anchors.verticalCenter: parent.verticalCenter
+		anchors.fill: parent
 
-			clip: true
+		clip: true
 
-			contentWidth: flow.width
-			contentHeight: flow.height
+		contentWidth: _flowRect.width
+		contentHeight: _flowRect.height
 
-			boundsBehavior: Flickable.StopAtBounds
-			flickableDirection: Flickable.VerticalFlick
+		boundsBehavior: Flickable.StopAtBounds
+		flickableDirection: Flickable.VerticalFlick
 
-			ScrollIndicator.vertical: ScrollIndicator { }
+		ScrollIndicator.vertical: ScrollIndicator { }
 
+		Item {
+			id: _flowRect
+
+			width: flick.width
+			height: flow.height
 
 			Flow {
 				id: flow
-				width: flick.width-control.paddingLeft-control.paddingRight
+				width: parent.width-control.paddingLeft-control.paddingRight
 				x: control.paddingLeft
 
 				spacing: 10
@@ -82,6 +86,7 @@ DropArea {
 			}
 		}
 	}
+
 
 	function dropIn(obj) {
 		flow.dropIn(obj)

@@ -192,6 +192,19 @@ void GameQuestion::forceDestroy()
 	finish();
 }
 
+const QVariantMap &GameQuestion::storedAnswer() const
+{
+	return m_storedAnswer;
+}
+
+void GameQuestion::setStoredAnswer(const QVariantMap &newStoredAnswer)
+{
+	if (m_storedAnswer == newStoredAnswer)
+		return;
+	m_storedAnswer = newStoredAnswer;
+	emit storedAnswerChanged();
+}
+
 
 /**
  * @brief GameQuestion::postpone
@@ -408,5 +421,13 @@ GameMap::GameMode GameQuestion::gameMode() const
 
 bool GameQuestion::toggleMode() const
 {
-	return (gameMode() == GameMap::Lite) ? true : false;
+	switch (gameMode()) {
+	case GameMap::GameMode::Exam:
+	case GameMap::GameMode::Quiz:
+	case GameMap::GameMode::Test:
+		return true;
+	default:
+		return false;
+	}
 }
+

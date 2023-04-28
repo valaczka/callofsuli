@@ -120,6 +120,19 @@ void AbstractLevelGame::onTimerLeftTimeout()
 
 }
 
+int AbstractLevelGame::xp() const
+{
+	return m_xp;
+}
+
+void AbstractLevelGame::setXp(int newXp)
+{
+	if (m_xp == newXp)
+		return;
+	m_xp = newXp;
+	emit xpChanged();
+}
+
 
 /**
  * @brief AbstractLevelGame::msecLeft

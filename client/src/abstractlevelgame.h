@@ -51,6 +51,7 @@ class AbstractLevelGame : public AbstractGame
 	Q_PROPERTY(QUrl backgroundImage READ backgroundImage CONSTANT);
 	Q_PROPERTY(QString backgroundMusic READ backgroundMusic CONSTANT);
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 
 	Q_PROPERTY(bool isFlawless READ isFlawless WRITE setIsFlawless NOTIFY isFlawlessChanged)
 
@@ -87,6 +88,9 @@ public:
 	bool isFlawless() const;
 	void setIsFlawless(bool newIsFlawless);
 
+	int xp() const;
+	void setXp(int newXp);
+
 protected:
 	QVector<Question> createQuestions();
 
@@ -99,12 +103,15 @@ signals:
 	void msecLeftChanged();
 	void isFlawlessChanged();
 
+	void xpChanged();
+
 protected:
 	GameMapMissionLevel *const m_missionLevel = nullptr;
 	bool m_deathmatch = false;
 	QDeadlineTimer m_deadline;
 	bool m_closedSuccesfully = false;
 	bool m_isFlawless = true;
+	int m_xp = 0;
 
 private:
 	QTimer *m_timerLeft = nullptr;

@@ -26,7 +26,9 @@
 
 #include "mapplay.h"
 #include "abstractgame.h"
+#include "litegame.h"
 #include "mapimage.h"
+#include "testgame.h"
 #include "utils.h"
 #include "application.h"
 #include "gamemap.h"
@@ -301,6 +303,14 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 	switch (mode) {
 	case GameMap::Action:
 		g = new ActionGame(level->missionLevel(), m_client);
+		break;
+
+	case GameMap::Lite:
+		g = new LiteGame(level->missionLevel(), m_client);
+		break;
+
+	case GameMap::Test:
+		g = new TestGame(level->missionLevel(), m_client);
 		break;
 
 	default:
@@ -753,7 +763,7 @@ bool MapPlayMission::modeEnabled(const GameMap::GameMode &mode) const
 	if (!m_mission)
 		return false;
 	else if (m_mission->modes().testFlag(GameMap::Invalid))
-		return mode == GameMap::Action || mode == GameMap::Lite;
+		return mode == GameMap::Action || mode == GameMap::Lite || mode == GameMap::Test;
 	else
 		return m_mission->modes().testFlag(mode);
 }

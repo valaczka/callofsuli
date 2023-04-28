@@ -112,5 +112,12 @@
         <file>TeacherCampaignTaskList.qml</file>
         <file>StudentCampaign.qml</file>
         <file>StudentStreak.qml</file>
+        <file>GameQuestionDNDbutton.qml</file>
+        <file>GameQuestionDNDdrop.qml</file>
+        <file>GameQuestionDNDflow.qml</file>
+        <file>GameQuestionDNDlayout.qml</file>
+        <file>PageLiteGame.qml</file>
+        <file>PageTestGame.qml</file>
+        <file>GameQuestionTest.qml</file>
     </qresource>
 </RCC>

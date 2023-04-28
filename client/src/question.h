@@ -57,9 +57,16 @@ public:
 
 	QString qml() const;
 
+	friend bool operator==(const Question &l, const Question &r)
+	{
+		return l.m_objective == r.m_objective;
+	}
+
 
 private:
-	GameMapObjective *m_objective;
+	GameMapObjective *m_objective = nullptr;
 };
+
+Q_DECLARE_METATYPE(Question)
 
 #endif // QUESTION_H
