@@ -15,9 +15,8 @@ Page {
 	property string closeQuestion: qsTr("Biztosan megszakítod a játékot?")
 	property var onPageClose: function() { if (game) game.gameAbort() }
 
-	readonly property int stackViewIndex: StackView.index
-
 	property bool itemsVisible: false
+	readonly property bool resultVisible: game && game.resultData && game.resultData.finished !== undefined
 
 	Image {
 		anchors.fill: parent
@@ -27,125 +26,29 @@ Page {
 	}
 
 	Row {
-		spacing: 10
+		id: _buttonRow
 
-		QButton {
-			text: "Előző"
+		anchors.right: parent.right
+		anchors.top: parent.top
+		anchors.margins: 5
+		anchors.rightMargin: Math.max(Client.safeMarginRight, 10)
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
+
+		visible: itemsVisible && !resultVisible
+
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.pagePrevious
 			enabled: game && game.currentQuestion > 0
 			onClicked: game.previousQuestion()
 		}
 
-		QButton {
-			text: "Következő"
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.pageNext
 			enabled: game && game.currentQuestion < game.questions-1
 			onClicked: game.nextQuestion()
 		}
 	}
 
-/*
-
-	GameHpLabel {
-		id: infoHP
-		anchors.horizontalCenter: parent.horizontalCenter
-		anchors.topMargin: Math.max(5, Client.safeMarginTop)
-		anchors.top: parent.top
-		value: game ? game.hp : 0
-		visible: itemsVisible
-		onValueChanged: marked = true
-	}
-
-
-	Column {
-		id: _colInfo
-		anchors.right: parent.right
-		anchors.top: parent.top
-		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
-		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
-		spacing: 5
-
-		visible: itemsVisible
-
-		GameLabel {
-			id: labelXP
-			anchors.right: parent.right
-			color: "white"
-
-			pixelSize: 16
-
-			text: "%1 XP"
-
-			value: game ? game.xp : 0
-		}
-
-		GameInfo {
-			id: infoTarget
-			anchors.right: parent.right
-			color: Qaterial.Colors.orange700
-			iconLabel.icon.source: Qaterial.Icons.targetAccount
-			text: Math.floor(progressBar.value)
-
-			progressBar.from: 0
-			progressBar.to: 0
-			progressBar.value: enemies
-			progressBar.width: Math.min(control.width*0.125, 100)
-
-			property int enemies: game ? game.questions : 0
-
-			onEnemiesChanged: {
-				infoTarget.marked = true
-				if (enemies>progressBar.to)
-					progressBar.to = enemies
-			}
-		}
-	}
-
-
-
-	Row {
-		id: rowTime
-
-		visible: itemsVisible
-
-		anchors.left: parent.left
-		anchors.top: parent.top
-		anchors.margins: 5
-		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
-		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
-
-		GameButton {
-			id: backButton
-			size: 25
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			color: Qaterial.Colors.red800
-			border.color: "white"
-			border.width: 1
-
-			fontImage.icon: Qaterial.Icons.close
-			fontImage.color: "white"
-			fontImageScale: 0.7
-
-			onClicked: {
-				Client.stackPop()
-			}
-		}
-
-		GameLabel {
-			id: infoTime
-			color: Qaterial.Colors.cyan300
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			iconLabel.icon.source: Qaterial.Icons.timerOutline
-
-			iconLabel.text: game.msecLeft>=60000 ?
-								Client.Utils.formatMSecs(game.msecLeft) :
-								Client.Utils.formatMSecs(game.msecLeft, 1, false)
-		}
-	}
-
-*/
 
 
 	Rectangle {
@@ -186,26 +89,106 @@ Page {
 
 
 
+	QScrollable {
+		anchors.fill: parent
+
+		topPadding: Math.max (_buttonRow.y + _buttonRow.height, rowTime.y+rowTime.height)
+		bottomPadding: Client.safeMarginBottom
+		rightPadding: Client.safeMarginRight
+		leftPadding: Client.safeMarginLeft
+
+		visible: resultVisible
+
+		contentCentered: true
+		refreshEnabled: false
+
+		GameTestResult {
+			id: _result
+			anchors.horizontalCenter: parent.horizontalCenter
+			resultData: game.resultData
+			name: game.name
+		}
+	}
+
+	Row {
+		id: rowTime
+
+		visible: itemsVisible
+
+		anchors.left: parent.left
+		anchors.top: parent.top
+		anchors.margins: 5
+		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
+
+		GameButton {
+			id: backButton
+			size: 25
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: Qaterial.Colors.red800
+			border.color: "white"
+			border.width: 1
+
+			fontImage.icon: Qaterial.Icons.close
+			fontImage.color: "white"
+			fontImageScale: 0.7
+
+			onClicked: {
+				Client.stackPop()
+			}
+		}
+
+		GameLabel {
+			id: infoTime
+			color: Qaterial.Colors.cyan300
+
+			visible: !resultVisible
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			iconLabel.icon.source: Qaterial.Icons.timerOutline
+
+			iconLabel.text: game.msecLeft>=60000 ?
+								Client.Utils.formatMSecs(game.msecLeft) :
+								Client.Utils.formatMSecs(game.msecLeft, 1, false)
+		}
+	}
+
+
+
 	GameQuestionTest {
 		id: gameQuestion
 
+		visible: !resultVisible
+
 		game: control.game
 
-		anchors.fill: parent
-		anchors.topMargin: 10 //infoHP.y + 2*infoHP.pixelSize
-		anchors.bottomMargin: Client.safeMarginBottom
+		anchors.top: _buttonRow.bottom
+		anchors.left: parent.left
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
+
+		anchors.bottomMargin: Math.max(Client.safeMarginBottom, _progress.height)
 		anchors.leftMargin: Client.safeMarginLeft
 		anchors.rightMargin: Client.safeMarginRight
 	}
 
+
 	Qaterial.ProgressBar {
-		anchors.top: parent.top
+		id: _progress
+
+		visible: !resultVisible
+
+		anchors.bottom: parent.bottom
 		width: parent.width
 		color: Qaterial.Style.iconColor()
 		from: 0
 		to: game ? game.questions : 0
 		value: game ? game.currentQuestion : 0
 	}
+
 
 
 
@@ -358,28 +341,13 @@ Page {
 		onPageClose = null
 		Qaterial.DialogManager.showDialog(
 					{
-						onAccepted: function() { Client.stackPop(control) },
-						onRejected: function() { Client.stackPop(control) },
+						/*onAccepted: function() { Client.stackPop(control) },
+						onRejected: function() { Client.stackPop(control) },*/
 						text: _text,
 						title: qsTr("Game over"),
 						iconSource: _icon,
 						iconColor: _success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
 						textColor: _success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
-						iconFill: false,
-						iconSize: Qaterial.Style.roundIcon.size,
-						standardButtons: Dialog.Ok
-					})
-	}
-
-
-	function messageTooltip(_text : string, _icon : string, _title : string) {
-		Qaterial.DialogManager.showDialog(
-					{
-						text: _text,
-						title: _title,
-						iconSource: _icon,
-						iconColor: Qaterial.Style.primaryTextColor(),
-						textColor: Qaterial.Style.primaryTextColor(),
 						iconFill: false,
 						iconSize: Qaterial.Style.roundIcon.size,
 						standardButtons: Dialog.Ok

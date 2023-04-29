@@ -51,8 +51,9 @@ public:
 	inline QString readableName() const override { return tr("Igaz/hamis"); }
 	inline QString icon() const override { return "image://font/School/\uf124"; }
 
-	inline QString qmlEditor() const override { return "ME_truefalse.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_truefalse.qml"; }
+	inline QString qmlEditor() const override { return "ME_singlechoice.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_singlechoice.qml"; }
+	inline QString qmlTestResult() const override { return QLatin1String("TR_singlechoice.qml"); }
 
 	inline QStringList storageModules() const override { return {"binding", "numbers"}; }
 

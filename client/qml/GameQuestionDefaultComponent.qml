@@ -102,7 +102,7 @@ GameQuestionComponentImpl {
 
 		for (var i=0; i<questionData.options.length; i++) {
 			var t = questionData.options[i]
-			containerItem.dndFlow.createDND(_cmp, control, { text: t })
+			containerItem.createDND(_cmp, control, { text: t })
 		}
 	}
 

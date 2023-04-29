@@ -73,7 +73,7 @@ GameQuestionComponentImpl {
 					Layout.maximumWidth: containerItem.implicitContentWidth*0.5
 					Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
-					width: implicitWidth
+					//width: implicitWidth
 
 					property string correctAnswer: ""
 				}
@@ -81,7 +81,7 @@ GameQuestionComponentImpl {
 
 			Connections {
 				target: control
-				function onQuestionDataChanged() {
+				function onQuestionChanged() {
 					if (!control.questionData || !control.questionData.list)
 						return
 
@@ -98,6 +98,8 @@ GameQuestionComponentImpl {
 						if (control.questionData.answer && control.questionData.answer.list && control.questionData.answer.list.length>i)
 							d.correctAnswer = questionData.answer.list[i]
 					}
+
+					loadStoredAnswer()
 				}
 			}
 		}
@@ -113,14 +115,24 @@ GameQuestionComponentImpl {
 	}
 
 
-	onQuestionDataChanged: {
+	onQuestionChanged: {
 		if (!questionData || !questionData.options)
 			return
 
 		for (var i=0; i<questionData.options.length; i++) {
 			var t = questionData.options[i]
-			containerItem.dndFlow.createDND(_cmp, control, { text: t })
+			containerItem.createDND(_cmp, control, {
+												text: t,
+												dragIndex: i
+											})
 		}
+
+		loadStoredAnswer()
+	}
+
+	function loadStoredAnswer() {
+		if (storedAnswer.list !== undefined)
+			containerItem.loadFromList(storedAnswer.list)
 	}
 
 	function answer() {
@@ -135,18 +147,25 @@ GameQuestionComponentImpl {
 
 			if (!d.currentDrag) {
 				success = false
-				d.showAsError = true
+				if (!toggleMode)
+					d.showAsError = true
+
 				a.answer = ""
 				a.success = false
+				a.dragIndex = -1
 			} else {
 				var t = d.currentDrag.text
 				a.answer = t
+				a.dragIndex = d.currentDrag.dragIndex
+
 				if (t === d.correctAnswer) {
 					a.success = true
-					d.currentDrag.buttonType = GameQuestionButton.Correct
+					if (!toggleMode)
+						d.currentDrag.buttonType = GameQuestionButton.Correct
 				} else {
 					a.success = false
-					d.currentDrag.buttonType = GameQuestionButton.Wrong
+					if (!toggleMode)
+						d.currentDrag.buttonType = GameQuestionButton.Wrong
 					success = false
 				}
 			}
@@ -160,5 +179,11 @@ GameQuestionComponentImpl {
 			question.onFailed({"list": l})
 	}
 
+	Keys.onPressed: {
+		var key = event.key
+
+		if (key === Qt.Key_Return || key === Qt.Key_Enter)
+			titleRow.buttonOkClicked()
+	}
 }
 

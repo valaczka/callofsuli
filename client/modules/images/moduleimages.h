@@ -48,7 +48,8 @@ public:
 	inline QString icon() const override { return "qrc:/internal/icon/camera-image.svg"; }
 
 	inline QString qmlEditor() const override { return "ME_images.qml"; }
-	inline QString qmlQuestion() const override { return ""; }
+	inline QString qmlQuestion() const override { return QLatin1String(""); }
+	inline QString qmlTestResult() const override { return QLatin1String(""); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 

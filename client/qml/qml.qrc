@@ -119,5 +119,13 @@
         <file>PageLiteGame.qml</file>
         <file>PageTestGame.qml</file>
         <file>GameQuestionTest.qml</file>
+        <file>GameQuestionTestFinishComponent.qml</file>
+        <file>GameTestResult.qml</file>
+        <file>GameTestResultBase.qml</file>
+        <file>GameTestResultTEST.qml</file>
+        <file>GameTestResultLabelAnswer.qml</file>
+        <file>GameTestResultCheckmark.qml</file>
+        <file>GameTestResultLabel.qml</file>
+        <file>GameTestResultLabelOptions.qml</file>
     </qresource>
 </RCC>

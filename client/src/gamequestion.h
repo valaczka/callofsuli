@@ -53,8 +53,8 @@ public:
 	GameQuestion(QQuickItem *parent = nullptr);
 	virtual ~GameQuestion();
 
-	void loadQuestion(const QUrl &componentUrl, const QVariantMap &data, const QString &uuid = "");
-	Q_INVOKABLE void loadQuestion(const Question &question);
+	void loadQuestion(const QUrl &componentUrl, const QVariantMap &data, const QString &uuid = "", const QVariantMap &storedAnswer = QVariantMap());
+	Q_INVOKABLE void loadQuestion(const Question &question, const QVariantMap &storedAnswer = QVariantMap());
 
 	int msecBeforeHide() const;
 	void setMsecBeforeHide(int newMsecBeforeHide);

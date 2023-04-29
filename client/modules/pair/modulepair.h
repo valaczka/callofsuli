@@ -49,6 +49,7 @@ public:
 
 	inline QString qmlEditor() const override { return "ME_pair.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_pair.qml"; }
+	inline QString qmlTestResult() const override { return QLatin1String("TR_pair.qml"); }
 
 	inline QStringList storageModules() const override { return { "binding", "numbers" }; }
 

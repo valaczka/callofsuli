@@ -1155,6 +1155,23 @@ const QUrl &Client::getParseUrl() const
 }
 
 
+/**
+ * @brief Client::moduleTestResult
+ * @param module
+ * @return
+ */
+
+QString Client::moduleTestResult(const QString &module) const
+{
+	ModuleInterface *iface = m_application->m_objectiveModules.value(module);
+
+	if (!iface)
+		return QLatin1String("");
+
+	return iface->qmlTestResult();
+}
+
+
 
 
 

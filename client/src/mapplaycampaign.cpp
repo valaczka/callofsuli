@@ -235,6 +235,10 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 		g = new CampaignLiteGame(level->missionLevel(), m_client);
 		break;
 
+	case GameMap::Test:
+		g = new CampaignTestGame(level->missionLevel(), m_client);
+		break;
+
 	default:
 		m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
 		return nullptr;

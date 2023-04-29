@@ -191,6 +191,7 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	ret["list"] = words;
 	ret["options"] = optList;
 	ret["answer"] = answer;
+	ret["question"] = data.value("question").toString();
 
 	return ret;
 }

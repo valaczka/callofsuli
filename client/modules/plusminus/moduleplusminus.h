@@ -48,7 +48,8 @@ public:
 	inline QString icon() const override { return "image://font/Special Elite/\u00b1"; }
 
 	inline QString qmlEditor() const override { return "ME_plusminus.qml"; }
-	inline QString qmlQuestion() const override { return ""; }
+	inline QString qmlQuestion() const override { return QLatin1String(""); }
+	inline QString qmlTestResult() const override { return QLatin1String(""); }
 
 	inline bool canImport() const override { return false; }
 	inline AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }

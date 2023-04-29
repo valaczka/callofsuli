@@ -32,6 +32,7 @@
 #include "campaign.h"
 #include "actiongame.h"
 #include "litegame.h"
+#include "testgame.h"
 
 
 /**
@@ -115,6 +116,25 @@ public:
 	explicit CampaignLiteGame(GameMapMissionLevel *missionLevel, Client *client)
 		: LiteGame(missionLevel, client) {}
 	virtual ~CampaignLiteGame() {}
+};
+
+
+
+
+
+
+/**
+ * @brief The CampaignTestGame class
+ */
+
+class CampaignTestGame : public TestGame, public CampaignGameIface
+{
+	Q_OBJECT
+
+public:
+	explicit CampaignTestGame(GameMapMissionLevel *missionLevel, Client *client)
+		: TestGame(missionLevel, client) {}
+	virtual ~CampaignTestGame() {}
 };
 
 

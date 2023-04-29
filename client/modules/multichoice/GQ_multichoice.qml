@@ -14,6 +14,8 @@ GameQuestionComponentImpl {
 
 	implicitWidth: 700
 
+	property var selectedItems: []
+
 
 	GameQuestionTitle {
 		id: titleRow
@@ -70,35 +72,55 @@ GameQuestionComponentImpl {
 				Repeater {
 					id: rptr
 					model: questionData.options
-					delegate: cmpNormal
+					delegate: GameQuestionCheckButton {
+						id: btn
+						text: modelData
+						width: col.width
+
+						checked: control.selectedItems.includes(_idx)
+
+						readonly property int _idx: index
+
+						onToggled: {
+							if (!checked) {
+								var idx = selectedItems.indexOf(_idx)
+								if (idx != -1)
+									selectedItems.splice(idx, 1)
+							} else if (!selectedItems.includes(_idx)){
+								selectedItems.push(_idx)
+							}
+						}
+
+
+						Connections {
+							target: control
+
+							function onAnswerReveal(answer) {
+								if (questionData.answer.includes(index))
+									btn.buttonType = GameQuestionButton.Correct
+								else if (answer.values.includes(index))
+									btn.buttonType = GameQuestionButton.Wrong
+							}
+
+							/*function onSelectedItemsChanged() {
+								console.debug("SELECTED ITEMS CHANGED", control.selectedItems)
+
+								btn.checked = control.selectedItems.includes(btn._idx)
+							}*/
+						}
+					}
 				}
 			}
 		}
 	}
 
 
-	Component {
-		id: cmpNormal
 
-		GameQuestionCheckButton {
-			id: btn
-			text: modelData
-			width: col.width
-
-
-			Connections {
-				target: control
-				function onAnswerReveal(answer) {
-					if (questionData.answer.includes(index))
-						btn.buttonType = GameQuestionButton.Correct
-					else if (answer.values.includes(index))
-						btn.buttonType = GameQuestionButton.Wrong
-				}
-			}
+	onQuestionChanged: {
+		if (storedAnswer.list !== undefined) {
+			selectedItems = storedAnswer.list
 		}
 	}
-
-
 
 
 
@@ -119,9 +141,9 @@ GameQuestionComponentImpl {
 		}
 
 		if (success)
-			question.onSuccess({"values": idx})
+			question.onSuccess({"list": idx})
 		else
-			question.onFailed({"values": idx})
+			question.onFailed({"list": idx})
 	}
 
 
@@ -154,10 +176,14 @@ GameQuestionComponentImpl {
 		else if (key === Qt.Key_9 || key === Qt.Key_I)
 			i = 8
 
-		if (i>=0 && i<rptr.model.length) {
-			var p = rptr.itemAt(i)
-			p.toggle()
-		}
+		var idx = selectedItems.indexOf(i)
+		if (idx != -1)
+			selectedItems.splice(idx, 1)
+		else
+			selectedItems.push(i)
+
+		selectedItemsChanged()
+
 	}
 }
 

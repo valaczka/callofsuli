@@ -83,6 +83,7 @@ void TestGame::onPageReady()
 		d.url = QStringLiteral("qrc:/")+q.qml();
 		d.data = q.generate();
 		d.uuid = q.uuid();
+		d.module = q.module();
 
 		m_questionList.append(d);
 	}
@@ -102,6 +103,7 @@ void TestGame::onPageReady()
 
 void TestGame::onStarted()
 {
+	startWithRemainingTime(m_missionLevel->duration()*1000);
 	setCurrentQuestion(0);
 	loadCurrentQuestion();
 }
@@ -116,17 +118,52 @@ void TestGame::onStarted()
 
 void TestGame::dialogMessageFinish(const QString &text, const QString &icon, const bool &success)
 {
+	if (!m_pageItem) {
+		LOG_CINFO("game") << text;
+		return;
+	}
 
+	LOG_CDEBUG("game") << text;
+
+	QMetaObject::invokeMethod(m_pageItem, "messageFinish", Qt::DirectConnection,
+							  Q_ARG(QString, text),
+							  Q_ARG(QString, icon),
+							  Q_ARG(bool, success));
 }
+
+
+
+/**
+ * @brief TestGame::gameAbort
+ */
 
 void TestGame::gameAbort()
 {
+	setFinishState(Fail);
 
+	LOG_CINFO("game") << "Game aborted:" << this;
+
+	gameFinish();
 }
+
+
+/**
+ * @brief TestGame::onMsecLeftChanged
+ */
 
 void TestGame::onMsecLeftChanged()
 {
+	const int &msec = msecLeft();
 
+	if (m_timeNotifySendNext > msec) {
+		if (msec <= 30000) {
+			m_timeNotifySendNext = -1;
+			emit timeNotify();
+		} else if (msec <= 60000) {
+			m_timeNotifySendNext = 30000;
+			emit timeNotify();
+		}
+	}
 }
 
 
@@ -141,8 +178,10 @@ void TestGame::onGameQuestionFinished()
 
 	if (m_currentQuestion >= 0 && m_currentQuestion < m_questionList.size())
 		loadCurrentQuestion();
+	else if (m_currentQuestion == m_questionList.size())
+		m_gameQuestion->loadQuestion(QStringLiteral("qrc:/GameQuestionTestFinishComponent.qml"), QVariantMap());
 	else
-		LOG_CTRACE("game") << "NINCS TÖBB";
+		checkAnswers();
 }
 
 
@@ -158,10 +197,7 @@ void TestGame::onGameQuestionSuccess(const QVariantMap &answer)
 		m_questionList[m_currentQuestion].success = true;
 	}
 
-	if (m_currentQuestion < m_questionList.size()-1) {
-		setCurrentQuestion(m_currentQuestion+1);
-		//m_gameQuestion->forceDestroy();
-	}
+	setCurrentQuestion(m_currentQuestion+1);
 
 	m_gameQuestion->setMsecBeforeHide(0);
 	m_gameQuestion->finish();
@@ -181,25 +217,52 @@ void TestGame::onGameQuestionFailed(const QVariantMap &answer)
 		m_questionList[m_currentQuestion].success = false;
 	}
 
-	if (m_currentQuestion < m_questionList.size()-1) {
-		setCurrentQuestion(m_currentQuestion+1);
-		//m_gameQuestion->forceDestroy();
-	}
+	setCurrentQuestion(m_currentQuestion+1);
+
 	m_gameQuestion->setMsecBeforeHide(0);
 	m_gameQuestion->finish();
 }
 
 
 
+
+/**
+ * @brief TestGame::onGameTimeout
+ */
+
 void TestGame::onGameTimeout()
 {
-
+	setFinishState(Fail);
+	gameFinish();
+	dialogMessageFinish(tr("Lejárt az idő"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
 }
+
+
+/**
+ * @brief TestGame::onGameSuccess
+ */
 
 void TestGame::onGameSuccess()
 {
+	setFinishState(Success);
+	gameFinish();
 
+	dialogMessageFinish(tr("Mission completed"), "qrc:/Qaterial/Icons/trophy.svg", true);
 }
+
+
+void TestGame::onGameFailed()
+{
+	setFinishState(Fail);
+	gameFinish();
+	dialogMessageFinish(tr("A teszt megoldása nem sikerült"), "qrc:/Qaterial/Icons/skull-crossbones.svg", false);
+}
+
+
+/**
+ * @brief TestGame::loadPage
+ * @return
+ */
 
 QQuickItem *TestGame::loadPage()
 {
@@ -236,6 +299,19 @@ bool TestGame::gameFinishEvent()
 	return true;
 }
 
+const QVariantMap &TestGame::resultData() const
+{
+	return m_resultData;
+}
+
+void TestGame::setResultData(const QVariantMap &newResultData)
+{
+	if (m_resultData == newResultData)
+		return;
+	m_resultData = newResultData;
+	emit resultDataChanged();
+}
+
 int TestGame::currentQuestion() const
 {
 	return m_currentQuestion;
@@ -261,8 +337,7 @@ void TestGame::loadCurrentQuestion() const
 
 	const QuestionData &d = m_questionList.at(m_currentQuestion);
 
-	m_gameQuestion->loadQuestion(d.url, d.data, d.uuid);
-	m_gameQuestion->setStoredAnswer(d.answer);
+	m_gameQuestion->loadQuestion(d.url, d.data, d.uuid, d.answer);
 }
 
 
@@ -292,6 +367,76 @@ void TestGame::previousQuestion()
 		setCurrentQuestion(m_currentQuestion-1);
 		m_gameQuestion->forceDestroy();
 	}
+}
+
+
+
+/**
+ * @brief TestGame::checkAnswers
+ */
+
+void TestGame::checkAnswers()
+{
+	const QuestionResult &r = questionDataResult(m_questionList, m_missionLevel->passed());
+
+	setXp(r.points * (qreal) TEST_GAME_BASE_XP);
+	setResultData(r.resultData);
+
+	if (r.success)
+		onGameSuccess();
+	else
+		onGameFailed();
+}
+
+
+
+
+
+/**
+ * @brief TestGame::questionDataToVariantMap
+ * @param list
+ * @return
+ */
+
+TestGame::QuestionResult TestGame::questionDataResult(const QVector<QuestionData> &list, const qreal &passed)
+{
+	QuestionResult r;
+
+	QVariantList l;
+
+	foreach (const QuestionData &q, list) {
+		const qreal &point = q.data.value(QStringLiteral("xpFactor"), 1.0).toReal();
+
+		r.maxPoints += point;
+
+		if (q.success)
+			r.points += point;
+
+		QVariantMap r;
+		r.insert(QStringLiteral("module"), q.module);
+		r.insert(QStringLiteral("uuid"), q.uuid);
+		r.insert(QStringLiteral("question"), q.data);
+		r.insert(QStringLiteral("answer"), q.answer);
+		r.insert(QStringLiteral("success"), q.success);
+
+		l.append(r);
+	}
+
+
+	r.success = r.maxPoints > 0 ? (r.points/r.maxPoints) >= passed : true;
+
+	r.resultData = QVariantMap({
+								  {QStringLiteral("finished"), true},
+								  {QStringLiteral("points"), r.points},
+								  {QStringLiteral("maxPoints"), r.maxPoints},
+								  {QStringLiteral("success"), r.success},
+								  {QStringLiteral("list"), l}
+							  });
+
+	QJsonDocument doc(QJsonObject::fromVariantMap(r.resultData));
+	LOG_CTRACE("game") << doc.toJson(QJsonDocument::Indented).constData();
+
+	return r;
 }
 
 

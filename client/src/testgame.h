@@ -29,12 +29,15 @@
 
 #include "abstractlevelgame.h"
 
+#define TEST_GAME_BASE_XP		10
+
 class TestGame : public AbstractLevelGame
 {
 	Q_OBJECT
 
 	Q_PROPERTY(int questions READ questions NOTIFY questionsChanged)
 	Q_PROPERTY(int currentQuestion READ currentQuestion WRITE setCurrentQuestion NOTIFY currentQuestionChanged)
+	Q_PROPERTY(QVariantMap resultData READ resultData WRITE setResultData NOTIFY resultDataChanged)
 
 public:
 	TestGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -45,10 +48,16 @@ public:
 	int currentQuestion() const;
 	void setCurrentQuestion(int newCurrentQuestion);
 
+	const QVariantMap &resultData() const;
+	void setResultData(const QVariantMap &newResultData);
+
 	void loadCurrentQuestion() const;
 
 	Q_INVOKABLE void nextQuestion();
 	Q_INVOKABLE void previousQuestion();
+
+	void checkAnswers();
+
 
 	/**
 	 * @brief The QuestionData class
@@ -59,8 +68,24 @@ public:
 		QVariantMap data;
 		QString uuid;
 		QVariantMap answer;
+		QString module;
 		bool success = false;
 	};
+
+
+	/**
+	 * @brief The QuestionResult class
+	 */
+
+	struct QuestionResult {
+		QVariantMap resultData;
+		qreal points = 0;
+		qreal maxPoints = 0;
+		bool success = false;
+	};
+
+	static QuestionResult questionDataResult(const QVector<QuestionData> &list, const qreal &passed = 1.0);
+
 
 public slots:
 	void onPageReady();
@@ -75,11 +100,13 @@ private slots:
 	void onGameQuestionFailed(const QVariantMap &answer);
 	void onGameTimeout();
 	void onGameSuccess();
+	void onGameFailed();
 
 signals:
 	void timeNotify();
 	void questionsChanged();
 	void currentQuestionChanged();
+	void resultDataChanged();
 
 protected:
 	virtual QQuickItem *loadPage() override;
@@ -90,6 +117,7 @@ private:
 	int m_timeNotifySendNext = 60000;
 	QVector<QuestionData> m_questionList;
 	int m_currentQuestion = -1;
+	QVariantMap m_resultData;
 };
 
 #endif // TESTGAME_H

@@ -49,6 +49,7 @@ public:
 
 	inline QString qmlEditor() const override { return "ME_order.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_order.qml"; }
+	inline QString qmlTestResult() const override { return QLatin1String(""); }
 
 	inline QStringList storageModules() const override { return { "sequence", "numbers" }; }
 
@@ -56,7 +57,7 @@ public:
 
 	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	qreal xpFactor() const override { return 1.5; };
+	qreal xpFactor() const override { return 2.0; };
 
 	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
 

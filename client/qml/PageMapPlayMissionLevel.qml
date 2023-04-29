@@ -83,11 +83,11 @@ QPageGradient {
 			Column {
 				Repeater {
 					model: [
+						GameMap.Exam,
 						GameMap.Test,
 						GameMap.Action,
 						GameMap.Lite,
-						GameMap.Quiz,
-						GameMap.Exam
+						GameMap.Quiz
 					]
 
 					delegate: Qaterial.RadioButton {
@@ -184,7 +184,7 @@ QPageGradient {
 			topPadding: 50
 			bottomPadding: 10
 
-			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action && (_mapGameList.length > 0 || _firstLoad)
+			visible: _listDuration.visible && (_mapGameList.length > 0 || _firstLoad)
 
 			Qaterial.LabelSubtitle1 {
 				text: qsTr("Leggyorsabb megoldás")
@@ -208,7 +208,8 @@ QPageGradient {
 			mapGameList: _mapGameList
 			positionType: MapPlayMissionLevelInfoList.Duration
 			showPlaceholders: _mapGameList.length === 0 && _firstLoad
-			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode == GameMap.Action
+			visible: map && map.online && _modeGroup.checkedButton &&
+					 (_modeGroup.checkedButton.gameMode === GameMap.Action || _modeGroup.checkedButton.gameMode === GameMap.Test)
 		}
 
 		Row {
@@ -218,7 +219,7 @@ QPageGradient {
 			topPadding: 20
 			bottomPadding: 10
 
-			visible: map && map.online && _modeGroup.checkedButton && (_mapGameList.length > 0 || _firstLoad)
+			visible:_listSolved.visible && _modeGroup.checkedButton && (_mapGameList.length > 0 || _firstLoad)
 
 			Qaterial.LabelSubtitle1 {
 				text: qsTr("Legtöbb megoldás")

@@ -16,6 +16,7 @@ GridLayout {
 	property double flowSplit: 0.35
 
 	property list<GameQuestionDNDdrop> drops
+	property list<Item> drags
 
 	readonly property double implicitContentWidth: _contentItem.width-2*_contentItem.padding
 	readonly property double implicitContentHeight: _contentItem.height-2*_contentItem.padding
@@ -78,4 +79,42 @@ GridLayout {
 		Layout.fillHeight: (root.columns > 1)
 		Layout.preferredHeight: (root.columns > 1) ? -1 : root.parent.height*root.flowSplit
 	}
+
+	function createDND(_cmp, _container, _prop) {
+		var o = _flow.createDND(_cmp, _container, _prop)
+		if (o)
+			drags.push(o)
+
+		return o
+	}
+
+
+	function loadFromList(_list) {
+		for (var i=0; i<_list.length && i<drops.length; i++) {
+			var idx = _list[i].dragIndex
+
+			if (idx < 0)
+				continue
+
+			var drag = null
+
+			for (var j=0; j<drags.length; ++j) {
+				if (drags[j].dragIndex === idx) {
+					drag = drags[j]
+					break
+				}
+			}
+
+			if (!drag)
+				continue
+
+			var dest = drops[i]
+
+			if (dest.currentDrag)
+				dest.currentDrag.dropBack()
+
+			dest.dropIn(drag)
+		}
+	}
+
 }

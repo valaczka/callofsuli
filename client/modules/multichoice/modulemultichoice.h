@@ -49,6 +49,7 @@ public:
 
 	inline QString qmlEditor() const override { return "ME_multichoice.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_multichoice.qml"; }
+	inline QString qmlTestResult() const override { return QLatin1String(""); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 

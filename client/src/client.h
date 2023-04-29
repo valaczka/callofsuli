@@ -211,6 +211,7 @@ public:
 	Q_INVOKABLE virtual void parseUrl();
 	Q_INVOKABLE void setParseUrl(const QUrl &url);
 	Q_INVOKABLE const QUrl &getParseUrl() const;
+	Q_INVOKABLE QString moduleTestResult(const QString &module) const;
 
 
 protected slots:

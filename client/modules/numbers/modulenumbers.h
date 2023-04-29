@@ -48,7 +48,8 @@ public:
 	inline QString icon() const override { return "image://font/School/\uf179"; }
 
 	inline QString qmlEditor() const override { return "ME_numbers.qml"; }
-	inline QString qmlQuestion() const override { return ""; }
+	inline QString qmlQuestion() const override { return QLatin1String(""); }
+	inline QString qmlTestResult() const override { return QLatin1String(""); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 

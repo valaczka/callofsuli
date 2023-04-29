@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>GQ_truefalse.qml</file>
-        <file>ME_truefalse.qml</file>
+        <file>GQ_singlechoice.qml</file>
+        <file>ME_singlechoice.qml</file>
+        <file>TR_singlechoice.qml</file>
     </qresource>
 </RCC>

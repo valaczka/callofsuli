@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>GQ_pair.qml</file>
         <file>ME_pair.qml</file>
+        <file>TR_pair.qml</file>
     </qresource>
 </RCC>

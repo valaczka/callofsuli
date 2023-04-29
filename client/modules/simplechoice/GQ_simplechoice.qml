@@ -30,7 +30,8 @@ GameQuestionComponentImpl {
 
 		title: questionData.question
 
-		onButtonOkClicked: answer(selectedButtonIndex)
+		onButtonOkClicked: if (selectedButtonIndex != -1)
+							   answer(selectedButtonIndex)
 
 	}
 
@@ -181,9 +182,8 @@ GameQuestionComponentImpl {
 	}
 
 
-	onStoredAnswerChanged: {
-		console.debug("****", storedAnswer)
-		if (toggleMode && storedAnswer.index !== undefined) {
+	onQuestionChanged: {
+		if (storedAnswer.index !== undefined) {
 			selectedButtonIndex = storedAnswer.index
 		}
 	}
@@ -199,6 +199,11 @@ GameQuestionComponentImpl {
 
 	Keys.onPressed: {
 		var key = event.key
+
+		if (toggleMode && selectedButtonIndex != -1 && (key === Qt.Key_Return || key === Qt.Key_Enter)) {
+			titleRow.buttonOkClicked()
+			return
+		}
 
 		var n = -1
 

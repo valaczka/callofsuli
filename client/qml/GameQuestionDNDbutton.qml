@@ -10,6 +10,8 @@ GameQuestionButton {
 	property double maximumWidth: dndFlow ? dndFlow.flow.width : 300
 	property double maximumHeight: 0
 
+	property int dragIndex: -1
+
 	readonly property GameQuestionDNDdrop dndDrop: (parent instanceof GameQuestionDNDdrop ? parent : null)
 
 	property list<GameQuestionDNDdrop> drops
@@ -55,8 +57,10 @@ GameQuestionButton {
 	}
 
 	onClicked: {
-		if (dndDrop)
+		if (dndDrop) {
+			dropBack()
 			return
+		}
 
 		if (root.drops.length) {
 			for (var i=0; i<root.drops.length; ++i) {
@@ -69,6 +73,7 @@ GameQuestionButton {
 			}
 		}
 	}
+
 
 	DragHandler {
 		id: _handler
@@ -85,7 +90,6 @@ GameQuestionButton {
 				var t = root.Drag.target
 				var p2 = questionItem.mapToItem(dndFlow.flow, root.x, root.y)
 				if (!root.Drag.target) {
-					console.log("CANCEL")
 					root.Drag.cancel()
 					root.parent = dndFlow.flow
 					root.x = p2.x
@@ -93,7 +97,6 @@ GameQuestionButton {
 					root._requiredHeight = 0
 					root._requiredWidth = 0
 				} else {
-					console.log("DROP")
 					root.Drag.drop()
 				}
 			}

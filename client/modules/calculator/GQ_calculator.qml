@@ -326,6 +326,14 @@ GameQuestionComponentImpl {
 	}
 
 
+	onQuestionChanged: {
+		if (storedAnswer.first !== undefined)
+			labelNumber1.text = Number(storedAnswer.first)
+		if (storedAnswer.second !== undefined)
+			labelNumber2.text = Number(storedAnswer.second)
+	}
+
+
 
 
 
