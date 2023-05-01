@@ -44,7 +44,8 @@ public:
 		Editor,
 		Map,
 		Play,
-		Demo
+		Demo,
+		DevPage
 	};
 
 	int run();

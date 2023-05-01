@@ -53,7 +53,7 @@ public:
 
 	inline QString qmlEditor() const override { return "ME_singlechoice.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_singlechoice.qml"; }
-	inline QString qmlTestResult() const override { return QLatin1String("TR_singlechoice.qml"); }
+	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"binding", "numbers"}; }
 

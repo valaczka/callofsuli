@@ -35,6 +35,51 @@ ModuleCalculator::ModuleCalculator(QObject *parent) : QObject(parent)
 
 
 /**
+ * @brief ModuleCalculator::testResult
+ * @param success
+ * @return
+ */
+
+QString ModuleCalculator::testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const
+{
+	QString html;
+
+	if (success)
+		html = QStringLiteral("<p class=\"answer\">");
+	else
+		html = QStringLiteral("<p class=\"answerFail\">");
+
+	if (answer.contains(QStringLiteral("first"))) {
+		const qreal &fReal = answer.value(QStringLiteral("first"), 0).toReal();
+		const int &fInt = answer.value(QStringLiteral("first"), 0).toInt();
+
+		if (fReal == (qreal) fInt)
+			html += QString::number(fInt);
+		else
+			html += QString::number(fReal);
+	}
+
+	if (answer.contains(QStringLiteral("second"))) {
+		const qreal &fReal = answer.value(QStringLiteral("second"), 0).toReal();
+		const int &fInt = answer.value(QStringLiteral("second"), 0).toInt();
+
+		html += QStringLiteral("/");
+
+		if (fReal == (qreal) fInt)
+			html += QString::number(fInt);
+		else
+			html += QString::number(fReal);
+	}
+
+	html += QStringLiteral("</p>");
+
+	return html;
+}
+
+
+
+
+/**
  * @brief ModuleCalculator::details
  * @param data
  * @param storage

@@ -32,9 +32,9 @@
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
+#include "qpdfwriter.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
-#include "teachermap.h"
 #include "websocket.h"
 #include "gameterrain.h"
 #include "qquickwindow.h"
@@ -42,6 +42,7 @@
 #include <qpa/qplatformwindow.h>
 #include "Logger.h"
 #include "mapgame.h"
+#include "testgame.h"
 
 #ifdef Q_OS_ANDROID
 #include "qandroidfunctions.h"
@@ -337,6 +338,9 @@ void Client::onApplicationStarted()
 	switch (m_application->commandLine()) {
 	case Application::Demo:
 		loadDemoMap();
+		break;
+	case Application::DevPage:
+		stackPushPage(QStringLiteral("_PageDev.qml"));
 		break;
 	default:
 		m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
@@ -771,10 +775,10 @@ void Client::startCache()
 							  WebSocket::ApiUser, "group");
 
 	m_cache.add<Campaign>(QStringLiteral("studentCampaignList"), new CampaignList(this),
-							  &OlmLoader::loadFromJsonArray<Campaign>,
-							  &OlmLoader::find<Campaign>,
-							  "id", "campaignid", false,
-							  WebSocket::ApiUser, "campaign");
+						  &OlmLoader::loadFromJsonArray<Campaign>,
+						  &OlmLoader::find<Campaign>,
+						  "id", "campaignid", false,
+						  WebSocket::ApiUser, "campaign");
 
 	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), new TeacherGroupList(this),
 							  &OlmLoader::loadFromJsonArray<TeacherGroup>,
@@ -1153,24 +1157,6 @@ const QUrl &Client::getParseUrl() const
 {
 	return m_parseUrl;
 }
-
-
-/**
- * @brief Client::moduleTestResult
- * @param module
- * @return
- */
-
-QString Client::moduleTestResult(const QString &module) const
-{
-	ModuleInterface *iface = m_application->m_objectiveModules.value(module);
-
-	if (!iface)
-		return QLatin1String("");
-
-	return iface->qmlTestResult();
-}
-
 
 
 

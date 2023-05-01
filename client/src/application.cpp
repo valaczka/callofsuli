@@ -391,7 +391,6 @@ void Application::loadFonts()
 	LOG_CTRACE("app") << "Load fonts";
 
 	const QVector<QString> fontsToLoad = {
-		QStringLiteral(":/internal/font/ariblk.ttf"),
 		QStringLiteral(":/internal/font/Books.ttf"),
 		QStringLiteral(":/internal/font/Material.ttf"),
 		QStringLiteral(":/internal/font/School.ttf"),

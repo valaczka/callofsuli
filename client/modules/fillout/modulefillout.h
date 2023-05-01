@@ -51,7 +51,7 @@ public:
 
 	inline QString qmlEditor() const override { return "ME_fillout.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_fillout.qml"; }
-	inline QString qmlTestResult() const override { return QLatin1String("TR_fillout.qml"); }
+	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
 	inline QStringList storageModules() const override { return QStringList(); }
 

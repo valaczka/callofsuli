@@ -34,6 +34,40 @@ ModuleTruefalse::ModuleTruefalse(QObject *parent) : QObject(parent)
 
 
 /**
+ * @brief ModuleTruefalse::testResult
+ * @param answer
+ * @param success
+ * @return
+ */
+
+QString ModuleTruefalse::testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const
+{
+	QString html = QStringLiteral("<p>");
+	html += tr("Igaz vagy hamis? ");
+
+	if (answer.contains(QStringLiteral("index"))) {
+		const int &idx = answer.value(QStringLiteral("index"), -1).toInt();
+
+		if (success)
+			html += QStringLiteral("<span class=\"answer\">");
+		else
+			html += QStringLiteral("<span class=\"answerFail\">");
+
+		if (idx > 0)
+			html += tr("IGAZ");
+		else
+			html += tr("HAMIS");
+
+		html += QStringLiteral("</span>");
+	}
+
+	html += QStringLiteral("</p>");
+
+	return html;
+}
+
+
+/**
  * @brief ModuleTruefalse::details
  * @param data
  * @param storage

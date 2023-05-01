@@ -57,8 +57,8 @@ public:
 	// A kérdező felület a játékban (QML)
 	virtual QString qmlQuestion() const = 0;
 
-	// A GameMode::Test és GameMode::Exam típusú játékokban az eredmények megtekintő felülete
-	virtual QString qmlTestResult() const = 0;
+	// A GameMode::Test és GameMode::Exam típusú játékokban az eredmények megtekintése (HTML)
+	virtual QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const = 0;
 
 	// Információk a szerkesztőfelülethez
 	virtual QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const = 0;

@@ -28,6 +28,8 @@
 #define TESTGAME_H
 
 #include "abstractlevelgame.h"
+#include "qquicktextdocument.h"
+#include "qtextdocument.h"
 
 #define TEST_GAME_BASE_XP		10
 
@@ -37,7 +39,8 @@ class TestGame : public AbstractLevelGame
 
 	Q_PROPERTY(int questions READ questions NOTIFY questionsChanged)
 	Q_PROPERTY(int currentQuestion READ currentQuestion WRITE setCurrentQuestion NOTIFY currentQuestionChanged)
-	Q_PROPERTY(QVariantMap resultData READ resultData WRITE setResultData NOTIFY resultDataChanged)
+	Q_PROPERTY(QuestionResult result READ result WRITE setResult NOTIFY resultChanged)
+	Q_PROPERTY(bool hasResult READ hasResult WRITE setHasResult NOTIFY hasResultChanged)
 
 public:
 	TestGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -48,13 +51,11 @@ public:
 	int currentQuestion() const;
 	void setCurrentQuestion(int newCurrentQuestion);
 
-	const QVariantMap &resultData() const;
-	void setResultData(const QVariantMap &newResultData);
-
 	void loadCurrentQuestion() const;
 
 	Q_INVOKABLE void nextQuestion();
 	Q_INVOKABLE void previousQuestion();
+	Q_INVOKABLE void finishGame();
 
 	void checkAnswers();
 
@@ -78,14 +79,29 @@ public:
 	 */
 
 	struct QuestionResult {
-		QVariantMap resultData;
+		QVector<QuestionData> resultData;
 		qreal points = 0;
 		qreal maxPoints = 0;
 		bool success = false;
 	};
 
 	static QuestionResult questionDataResult(const QVector<QuestionData> &list, const qreal &passed = 1.0);
+	QuestionResult questionDataResult(const qreal &passed = 1.0) { return questionDataResult(m_questionList, passed); }
 
+	static QString questionDataResultToHtml(const TestGame *game, const QuestionResult &result);
+	QString questionDataResultToHtml(const QuestionResult &result) const { return questionDataResultToHtml(this, result); }
+
+	static const QString CheckOK;
+	static const QString CheckFailed;
+
+	const QuestionResult &result() const;
+	void setResult(const QuestionResult &newResult);
+
+	Q_INVOKABLE void resultoToTextDocument(QTextDocument *document) const;
+	Q_INVOKABLE void resultoToQuickTextDocument(QQuickTextDocument *document) const;
+
+	bool hasResult() const;
+	void setHasResult(bool newHasResult);
 
 public slots:
 	void onPageReady();
@@ -106,7 +122,9 @@ signals:
 	void timeNotify();
 	void questionsChanged();
 	void currentQuestionChanged();
-	void resultDataChanged();
+	void resultChanged();
+
+	void hasResultChanged();
 
 protected:
 	virtual QQuickItem *loadPage() override;
@@ -117,7 +135,8 @@ private:
 	int m_timeNotifySendNext = 60000;
 	QVector<QuestionData> m_questionList;
 	int m_currentQuestion = -1;
-	QVariantMap m_resultData;
+	QuestionResult m_result;
+	bool m_hasResult = false;
 };
 
 #endif // TESTGAME_H

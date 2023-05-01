@@ -34,6 +34,47 @@ ModuleOrder::ModuleOrder(QObject *parent) : QObject(parent)
 
 
 /**
+ * @brief ModuleOrder::testResult
+ * @param data
+ * @param answer
+ * @param success
+ * @return
+ */
+
+QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const
+{
+	QStringList options;
+
+	foreach (const QVariant &v, data.value(QStringLiteral("list")).toList()) {
+		const QVariantMap &m = v.toMap();
+		options.append(m.value(QStringLiteral("text")).toString());
+	}
+
+	QString html = QStringLiteral("<p class=\"options\">");
+	html += options.join(QStringLiteral(" • "));
+	html += QStringLiteral("</p>");
+
+	const QVariantList &aList = answer.value(QStringLiteral("list")).toList();
+
+	for (int i=0; i<aList.size(); ++i) {
+		const QVariantMap &m = aList.at(i).toMap();
+
+		if (m.value(QStringLiteral("success"), false).toBool())
+			html += QStringLiteral("<p class=\"answer\">");
+		else
+			html += QStringLiteral("<p class=\"answerFail\">");
+
+		html += QStringLiteral("%1. ").arg(i+1);
+		html += m.value(QStringLiteral("answer")).toString();
+
+		html += QStringLiteral("</p>");
+	}
+
+	return html;
+}
+
+
+/**
  * @brief ModulePair::details
  * @param data
  * @param storage

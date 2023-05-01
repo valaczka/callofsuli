@@ -49,7 +49,7 @@ public:
 
 	inline QString qmlEditor() const override { return "ME_calculator.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_calculator.qml"; }
-	inline QString qmlTestResult() const override { return QLatin1String(""); }
+	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 
 	inline bool canImport() const override { return false; }
 	inline AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }

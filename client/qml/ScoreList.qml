@@ -121,6 +121,7 @@ Qaterial.Page
 
 				text: user ? user.fullNickName : ""
 				secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
+				highlighted: user && Client.server && Client.server.user && user.username == Client.server.user.username
 
 				leftSourceComponent: UserImage { user: _delegate.user }
 

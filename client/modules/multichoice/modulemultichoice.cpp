@@ -32,6 +32,50 @@ ModuleMultichoice::ModuleMultichoice(QObject *parent) : QObject(parent)
 
 }
 
+
+/**
+ * @brief ModuleMultichoice::testResult
+ * @param data
+ * @param answer
+ * @return
+ */
+
+QString ModuleMultichoice::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const
+{
+	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
+
+	QString html = QStringLiteral("<p class=\"options\">");
+	html += options.join(QStringLiteral(" • "));
+	html += QStringLiteral("</p>");
+
+	if (answer.contains(QStringLiteral("list"))) {
+		const QVariantList &list = answer.value(QStringLiteral("list")).toList();
+
+		QStringList a;
+
+		foreach (const QVariant &v, list) {
+			bool ok = false;
+			const int &idx = v.toInt(&ok);
+
+			if (ok && idx >= 0 && idx < options.size())
+				a.append(options.at(idx));
+			else
+				a.append(QStringLiteral("???"));
+		}
+
+		if (success)
+			html += QStringLiteral("<p class=\"answer\">");
+		else
+			html += QStringLiteral("<p class=\"answerFail\">");
+
+		html += a.join(QStringLiteral(", ")) + QStringLiteral("</p>");
+	}
+
+	return html;
+}
+
+
+
 /**
  * @brief ModuleMultichoice::details
  * @param data

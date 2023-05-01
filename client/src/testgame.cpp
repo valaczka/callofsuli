@@ -28,7 +28,12 @@
 #include "Logger.h"
 #include "client.h"
 #include "gamequestion.h"
+#include "application.h"
 #include <QRandomGenerator>
+
+
+const QString TestGame::CheckOK = QStringLiteral("<span class=\"checkOK\">\ue5ca</span>");
+const QString TestGame::CheckFailed = QStringLiteral("<span class=\"checkFail\">\ue5cd</span>");
 
 
 TestGame::TestGame(GameMapMissionLevel *missionLevel, Client *client)
@@ -299,18 +304,80 @@ bool TestGame::gameFinishEvent()
 	return true;
 }
 
-const QVariantMap &TestGame::resultData() const
+bool TestGame::hasResult() const
 {
-	return m_resultData;
+	return m_hasResult;
 }
 
-void TestGame::setResultData(const QVariantMap &newResultData)
+void TestGame::setHasResult(bool newHasResult)
 {
-	if (m_resultData == newResultData)
+	if (m_hasResult == newHasResult)
 		return;
-	m_resultData = newResultData;
-	emit resultDataChanged();
+	m_hasResult = newHasResult;
+	emit hasResultChanged();
 }
+
+const TestGame::QuestionResult &TestGame::result() const
+{
+	return m_result;
+}
+
+void TestGame::setResult(const QuestionResult &newResult)
+{
+	m_result = newResult;
+	emit resultChanged();
+}
+
+
+/**
+ * @brief TestGame::resultoToTextDocument
+ * @param document
+ */
+
+void TestGame::resultoToTextDocument(QTextDocument *document) const
+{
+	if (!document) {
+		LOG_CERROR("game") << "Missing QTextDocument";
+		return;
+	}
+
+	QFont font(QStringLiteral("Rajdhani"), 14);
+
+	document->setDefaultFont(font);
+	document->setDefaultStyleSheet(Utils::fileContent(QStringLiteral(":/gametest.css")));
+
+
+	document->setHtml(questionDataResultToHtml(m_result));
+	/*
+	QPdfWriter pdf("/tmp/out.pdf");
+	pdf.setCreator("Valaczka János Pál");
+	//pdf.setPageLayout(QPageLayout(QPageSize(QPageSize::A4), QPageLayout::Portrait, QMarginsF(125, 125, 125, 125), QPageLayout::Millimeter));
+	pdf.setTitle("Ez a címe");
+	pdf.setCreator("Call of Suli");
+
+	LOG_CTRACE("client") << "RES" << pdf.resolution();
+
+	doc->print(&pdf);*/
+
+}
+
+
+/**
+ * @brief TestGame::resultoToQuickTextDocument
+ * @param document
+ */
+
+void TestGame::resultoToQuickTextDocument(QQuickTextDocument *document) const
+{
+	if (!document) {
+		LOG_CERROR("game") << "Missing QQuickTextDocument";
+		return;
+	}
+
+	resultoToTextDocument(document->textDocument());
+}
+
+
 
 int TestGame::currentQuestion() const
 {
@@ -370,6 +437,17 @@ void TestGame::previousQuestion()
 }
 
 
+/**
+ * @brief TestGame::finishGame
+ */
+
+void TestGame::finishGame()
+{
+	setCurrentQuestion(m_questionList.size());
+	m_gameQuestion->forceDestroy();
+}
+
+
 
 /**
  * @brief TestGame::checkAnswers
@@ -380,7 +458,8 @@ void TestGame::checkAnswers()
 	const QuestionResult &r = questionDataResult(m_questionList, m_missionLevel->passed());
 
 	setXp(r.points * (qreal) TEST_GAME_BASE_XP);
-	setResultData(r.resultData);
+	setResult(r);
+	setHasResult(true);
 
 	if (r.success)
 		onGameSuccess();
@@ -402,7 +481,7 @@ TestGame::QuestionResult TestGame::questionDataResult(const QVector<QuestionData
 {
 	QuestionResult r;
 
-	QVariantList l;
+	r.resultData = list;
 
 	foreach (const QuestionData &q, list) {
 		const qreal &point = q.data.value(QStringLiteral("xpFactor"), 1.0).toReal();
@@ -412,31 +491,96 @@ TestGame::QuestionResult TestGame::questionDataResult(const QVector<QuestionData
 		if (q.success)
 			r.points += point;
 
-		QVariantMap r;
-		r.insert(QStringLiteral("module"), q.module);
-		r.insert(QStringLiteral("uuid"), q.uuid);
-		r.insert(QStringLiteral("question"), q.data);
-		r.insert(QStringLiteral("answer"), q.answer);
-		r.insert(QStringLiteral("success"), q.success);
-
-		l.append(r);
+		QJsonDocument doc(QJsonObject::fromVariantMap(q.data));
+		LOG_CTRACE("game") << "Q" << q.module << doc.toJson(QJsonDocument::Indented).constData();
+		QJsonDocument doc2(QJsonObject::fromVariantMap(q.answer));
+		LOG_CTRACE("game") << "A" << doc2.toJson(QJsonDocument::Indented).constData();
 	}
-
 
 	r.success = r.maxPoints > 0 ? (r.points/r.maxPoints) >= passed : true;
 
-	r.resultData = QVariantMap({
-								  {QStringLiteral("finished"), true},
-								  {QStringLiteral("points"), r.points},
-								  {QStringLiteral("maxPoints"), r.maxPoints},
-								  {QStringLiteral("success"), r.success},
-								  {QStringLiteral("list"), l}
-							  });
-
-	QJsonDocument doc(QJsonObject::fromVariantMap(r.resultData));
-	LOG_CTRACE("game") << doc.toJson(QJsonDocument::Indented).constData();
-
 	return r;
+}
+
+
+
+/**
+ * @brief TestGame::questionDataResutlToHtml
+ * @return
+ */
+
+QString TestGame::questionDataResultToHtml(const TestGame *game, const QuestionResult &result)
+{
+	Q_ASSERT(game);
+
+	QString html = QStringLiteral("<html><body>");
+
+
+	// Title
+
+	html += QStringLiteral("<h1>%1</h1>").arg(game->name());
+
+
+	// Result
+
+	const qreal &percent = result.maxPoints > 0 ? result.points/result.maxPoints : 0;
+
+	if (result.success)
+		html += QStringLiteral("<p class=\"resultSuccess\">%1 (%2%)</p>").arg(tr("Sikeres megoldás")).arg(qFloor(percent*100));
+	else
+		html += QStringLiteral("<p class=\"resultFail\">%1 (%2%)</p>").arg(tr("Sikertelen megoldás")).arg(qFloor(percent*100));
+
+	// Questions
+
+	html += QStringLiteral("<table class=\"questions\" width=\"100%\">");
+
+	int num = 1;
+
+	foreach (const QuestionData &q, result.resultData) {
+		const int &point = qFloor(q.data.value(QStringLiteral("xpFactor"), 1.0).toReal() * TEST_GAME_BASE_XP);
+		const QString &question = q.data.value(QStringLiteral("question")).toString();
+
+		html += QStringLiteral("<tr class=\"questionTitle\">");
+		html += QStringLiteral("<td class=\"questionNum\" align=right valign=top>%1.</td>").arg(num++);
+		html += QStringLiteral("<td class=\"question\" width=\"100%\" align=left valign=top>%1</td>").arg(question);
+		if (q.success)
+			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointSuccess\">%1</span>/%2</td>").arg(point).arg(point);
+		else
+			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointFail\">0</span>/%1</td>").arg(point);
+		html += QStringLiteral("</tr>");
+
+
+		// Answer
+
+		html += QStringLiteral("<tr class=\"answer\">");
+		html += QStringLiteral("<td></td>");
+		html += QStringLiteral("<td class=\"answer\">");
+
+		if (!Application::instance()->objectiveModules().contains(q.module)) {
+			html += QStringLiteral("<p>%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(q.data))
+																					   .toJson(QJsonDocument::Indented)));
+			html += QStringLiteral("<p class=\"answer\">%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(q.answer))
+																					   .toJson(QJsonDocument::Indented)));
+
+		} else {
+
+			ModuleInterface *mi = Application::instance()->objectiveModules().value(q.module);
+
+			html += mi->testResult(q.data, q.answer, q.success);
+
+		}
+
+		html += QStringLiteral("</td>");
+		html += QStringLiteral("<td class=\"check\" align=right valign=middle>%1</td>").arg(q.success ? CheckOK : CheckFailed);
+		html += QStringLiteral("</tr>");
+
+	}
+
+	html += QStringLiteral("</table>");
+	html += QStringLiteral("</body></html>");
+
+
+	return html;
 }
 
 

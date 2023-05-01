@@ -16,7 +16,9 @@ Page {
 	property var onPageClose: function() { if (game) game.gameAbort() }
 
 	property bool itemsVisible: false
-	readonly property bool resultVisible: game && game.resultData && game.resultData.finished !== undefined
+	readonly property bool resultVisible: game && game.hasResult
+
+	onResultVisibleChanged: gameQuestion.visible = !resultVisible
 
 	Image {
 		anchors.fill: parent
@@ -35,6 +37,13 @@ Page {
 		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 
 		visible: itemsVisible && !resultVisible
+
+
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.stopCircle
+			enabled: game
+			onClicked: game.finishGame()
+		}
 
 		Qaterial.AppBarButton {
 			icon.source: Qaterial.Icons.pagePrevious
@@ -103,10 +112,8 @@ Page {
 		refreshEnabled: false
 
 		GameTestResult {
-			id: _result
 			anchors.horizontalCenter: parent.horizontalCenter
-			resultData: game.resultData
-			name: game.name
+			game: control.game
 		}
 	}
 
@@ -160,8 +167,6 @@ Page {
 
 	GameQuestionTest {
 		id: gameQuestion
-
-		visible: !resultVisible
 
 		game: control.game
 

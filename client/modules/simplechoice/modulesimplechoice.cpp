@@ -32,6 +32,30 @@ ModuleSimplechoice::ModuleSimplechoice(QObject *parent) : QObject(parent)
 
 }
 
+QString ModuleSimplechoice::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const
+{
+	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
+
+	QString html = QStringLiteral("<p class=\"options\">");
+	html += options.join(QStringLiteral(" • "));
+	html += QStringLiteral("</p>");
+
+	if (answer.contains(QStringLiteral("index"))) {
+		const int &idx = answer.value(QStringLiteral("index"), -1).toInt();
+
+		if (idx >=0 && idx < options.size()) {
+			if (success)
+				html += QStringLiteral("<p class=\"answer\">");
+			else
+				html += QStringLiteral("<p class=\"answerFail\">");
+
+			html += options.at(idx) + QStringLiteral("</p>");
+		}
+	}
+
+	return html;
+}
+
 
 /**
  * @brief ModuleSimplechoice::details

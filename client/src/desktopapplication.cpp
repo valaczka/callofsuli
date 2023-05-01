@@ -103,6 +103,7 @@ void DesktopApplication::commandLineParse()
 
 #ifdef QT_DEBUG
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
+	parser.addOption({QStringLiteral("dev-page"), QObject::tr("_PageDev.qml betöltése")});
 #else
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #endif
@@ -142,7 +143,8 @@ void DesktopApplication::commandLineParse()
 	} else if (parser.isSet(QStringLiteral("play"))) {
 		m_commandLine = Play;
 		m_loadMap = parser.value(QStringLiteral("map"));
-	}
+	} else if (parser.isSet(QStringLiteral("dev-page")))
+		m_commandLine = DevPage;
 
 	m_arguments = parser.positionalArguments();
 

@@ -37,6 +37,63 @@ ModuleFillout::ModuleFillout(QObject *parent) : QObject(parent)
 }
 
 
+
+/**
+ * @brief ModuleFillout::testResult
+ * @param data
+ * @param answer
+ * @param success
+ * @return
+ */
+
+QString ModuleFillout::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const
+{
+	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
+
+	QString html = QStringLiteral("<p class=\"options\">");
+	html += options.join(QStringLiteral(" • "));
+	html += QStringLiteral("</p>");
+
+	const QVariantList &qList = data.value(QStringLiteral("list")).toList();
+	const QVariantList &aList = answer.value(QStringLiteral("list")).toList();
+
+	html += QStringLiteral("<p>");
+
+	int aidx = 0;
+
+	for (int i=0; i<qList.size(); ++i) {
+		const QVariantMap &m = qList.at(i).toMap();
+		if (m.contains(QStringLiteral("q"))) {
+			QString a;
+			bool success  = false;
+
+			if (aidx < aList.size()) {
+				const QVariantMap &m = aList.at(aidx).toMap();
+				success = m.value(QStringLiteral("success"), false).toBool();
+				a = m.value(QStringLiteral("answer")).toString();
+				aidx++;
+			}
+
+			if (success)
+				html += QStringLiteral("<span class=\"answer\">");
+			else
+				html += QStringLiteral("<span class=\"answerFail\">");
+
+			if (a.isEmpty())
+				a = QStringLiteral("&nbsp;").repeated(10);
+
+			html += a + QStringLiteral("</span> ");
+		} else {
+			html += m.value(QStringLiteral("w")).toString() + QStringLiteral(" ");
+		}
+	}
+
+	html += QStringLiteral("</p>");
+
+	return html;
+}
+
+
 /**
  * @brief ModuleFillout::details
  * @param data
