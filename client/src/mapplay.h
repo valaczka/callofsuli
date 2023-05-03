@@ -57,10 +57,26 @@ class MapPlay : public QObject
 	Q_PROPERTY(MapPlayMissionList *missionList READ missionList CONSTANT)
 	Q_PROPERTY(AbstractLevelGame *currentGame READ currentGame WRITE setCurrentGame NOTIFY currentGameChanged)
 	Q_PROPERTY(bool online READ online WRITE setOnline NOTIFY onlineChanged)
+	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged)
+	Q_PROPERTY(QJsonObject finishedData READ finishedData WRITE setFinishedData NOTIFY finishedDataChanged)
 
 public:
 	explicit MapPlay(Client *client, QObject *parent = nullptr);
 	virtual ~MapPlay();
+
+	/**
+	 * @brief The GameState enum
+	 */
+
+	enum GameState {
+		StateInvalid = 0,
+		StateSelect,
+		StateLoading,
+		StatePlay,
+		StateFinished
+	};
+
+	Q_ENUM(GameState)
 
 	Q_INVOKABLE bool loadFromBinaryData(const QByteArray &data);
 	Q_INVOKABLE bool loadFromFile(const QString &filename);
@@ -86,11 +102,19 @@ public:
 
 	Q_INVOKABLE int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const;
 
+	Q_INVOKABLE MapPlayMissionLevel* getNextLevel(MapPlayMissionLevel *currentLevel = nullptr, const GameMap::GameMode &mode = GameMap::Invalid) const;
+
 	AbstractLevelGame *currentGame() const;
 	void setCurrentGame(AbstractLevelGame *newCurrentGame);
 
 	bool online() const;
 	void setOnline(bool newOnline);
+
+	GameState gameState() const;
+	void setGameState(GameState newGameState);
+
+	const QJsonObject &finishedData() const;
+	void setFinishedData(const QJsonObject &newFinishedData);
 
 protected:
 	void loadGameMap(GameMap *map);
@@ -102,20 +126,25 @@ protected:
 	virtual void onCurrentGameFinished();
 
 signals:
+	void missionLevelUnlocked(QList<MapPlayMissionLevel*> list);
+	void currentGameFailed();
 	void gameMapLoaded();
 	void gameMapUnloaded();
 	void gameMapChanged();
 	void currentGameChanged();
-
 	void onlineChanged();
+	void gameStateChanged();
+	void finishedDataChanged();
 
 protected:
-	Client *const m_client = nullptr;
+	Client *const m_client ;
 	GameMap *m_gameMap = nullptr;
 	AbstractMapPlaySolver *m_solver = nullptr;
 	MapPlayMissionList *m_missionList = nullptr;
 	AbstractLevelGame *m_currentGame = nullptr;
 	bool m_online = true;
+	GameState m_gameState = StateInvalid;
+	QJsonObject m_finishedData;
 };
 
 
@@ -162,7 +191,7 @@ public:
 	static bool loadSolverInfo(MapPlay *mapPlay, GameMapMission *mission, const GameMap::SolverInfo &info);
 
 	virtual int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const = 0;
-	virtual void updateLock() = 0;
+	virtual QList<MapPlayMissionLevel*> updateLock() = 0;
 	virtual void updateXP();
 
 protected:
@@ -178,13 +207,13 @@ protected:
  */
 
 
-class MapPlaySolverAction : public AbstractMapPlaySolver
+class MapPlaySolverDefault : public AbstractMapPlaySolver
 {
 public:
-	MapPlaySolverAction(MapPlay *mapPlay) : AbstractMapPlaySolver(mapPlay) {}
+	MapPlaySolverDefault(MapPlay *mapPlay) : AbstractMapPlaySolver(mapPlay) {}
 
 	virtual int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const override;
-	virtual void updateLock() override;
+	virtual QList<MapPlayMissionLevel*> updateLock() override;
 
 	int base() const { return m_base; }
 	void setBase(int newBase) { m_base = newBase; }
@@ -227,7 +256,8 @@ public:
 
 	QString medalImage() const;
 
-	Q_INVOKABLE bool modeEnabled(const GameMap::GameMode &mode) const;
+	static bool modeEnabled(GameMapMission *mission, const GameMap::GameMode &mode);
+	Q_INVOKABLE bool modeEnabled(const GameMap::GameMode &mode) const { return modeEnabled(m_mission, mode); }
 
 	int lockDepth() const;
 	void setLockDepth(int newLockDepth);
@@ -257,11 +287,13 @@ class MapPlayMissionLevel : public QObject
 	Q_PROPERTY(int lockDepth READ lockDepth WRITE setLockDepth NOTIFY lockDepthChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int level READ level CONSTANT)
+	Q_PROPERTY(qreal passed READ passed CONSTANT)
 	Q_PROPERTY(int solved READ solved NOTIFY solvedChanged)
 	Q_PROPERTY(QString medalImage READ medalImage CONSTANT)
+	Q_PROPERTY(MapPlayMission *mission READ mission CONSTANT)
 
 public:
-	explicit MapPlayMissionLevel(GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent = nullptr);
+	explicit MapPlayMissionLevel(MapPlayMission *mission, GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent = nullptr);
 	virtual ~MapPlayMissionLevel();
 
 	const MapPlaySolverData &solverData() const;
@@ -280,7 +312,10 @@ public:
 
 	int level() const;
 	int solved() const;
+	qreal passed() const;
 	QString medalImage() const;
+
+	MapPlayMission *mission() const;
 
 signals:
 	void lockDepthChanged();
@@ -288,7 +323,8 @@ signals:
 	void solvedChanged();
 
 private:
-	GameMapMissionLevel *const m_missionLevel = nullptr;
+	MapPlayMission *const m_mission;
+	GameMapMissionLevel *const m_missionLevel;
 	MapPlaySolverData m_solverData;
 	bool m_deathmatch = false;
 	int m_lockDepth = 1;

@@ -369,6 +369,22 @@ void ServerService::terminalConnected(QtService::Terminal *terminal)
 
 
 /**
+ * @brief ServerService::imitateLatency
+ * @return
+ */
+
+int ServerService::imitateLatency() const
+{
+	return m_imitateLatency;
+}
+
+void ServerService::setImitateLatency(int newImitateLatency)
+{
+	m_imitateLatency = newImitateLatency;
+}
+
+
+/**
  * @brief ServerService::importDb
  * @return
  */
@@ -634,6 +650,8 @@ bool ServerService::preStart()
 
 #ifndef QT_DEBUG
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
+#else
+	parser.addOption({{QStringLiteral("l"), QStringLiteral("latency")}, QObject::tr("Késleltett válaszadás"), QStringLiteral("msec")});
 #endif
 
 	parser.parse(m_arguments);
@@ -707,6 +725,11 @@ bool ServerService::preStart()
 
 	if (m_settings->generateJwtSecret())
 		m_settings->saveToFile(true);
+
+	if (parser.isSet(QStringLiteral("latency"))) {
+		setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
+		LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
+	}
 
 	return true;
 }

@@ -200,7 +200,7 @@ QString TeacherGroup::fullName() const
 {
 	QStringList l;
 
-	for (ClassObject *c : *m_classList)
+	for (const ClassObject *c : *m_classList)
 		l.append(c->name());
 
 	if (l.isEmpty())

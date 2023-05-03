@@ -57,7 +57,6 @@ class ActionGame : public AbstractLevelGame
 	Q_PROPERTY(GamePickable *pickable READ pickable NOTIFY pickableChanged)
 	Q_PROPERTY(QVariantList tools READ tools CONSTANT)
 	Q_PROPERTY(QVariantList toolListIcons READ toolListIcons NOTIFY toolListIconsChanged)
-	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 
 public:
 	ActionGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -140,8 +139,6 @@ signals:
 	void timeNotify();
 	void toolChanged(GamePickable::PickableType type, int count);
 	void toolListIconsChanged();
-
-	void xpChanged();
 
 private slots:
 	void onSceneStarted();

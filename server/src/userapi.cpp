@@ -747,15 +747,10 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 
 		const bool &success = data.value(QStringLiteral("success")).toVariant().toBool();
-		const bool &flawless = data.value(QStringLiteral("flawless")).toVariant().toBool();
 		const int &xp = data.value(QStringLiteral("xp")).toInt();
 		const int &duration = data.value(QStringLiteral("duration")).toInt();
 		int sumXP = xp;
 
-
-		// duration.....
-
-		// streak....
 
 
 		QJsonObject ret;
@@ -764,19 +759,77 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 		const int &oldSolved = solverInfo(this, username, g.map, g.mission, g.level, g.deathmatch);
 
 		if (success) {
-			const int &xpSolved = GameMap::computeSolvedXpFactor(g.level, g.deathmatch, oldSolved, g.mode) * baseXP;
-			/*int shortestDuration = oldDurations.value("minDuration", -1).toInt();
+			// Solved XP
 
-			if (shortestDuration > -1 && duration < shortestDuration && !lite) {
-				durationXP = (shortestDuration-duration) * baseXP * XP_FACTOR_DURATION_SEC;
-			}*/
+			const int &xpSolved = GameMap::computeSolvedXpFactor(g.level, g.deathmatch, oldSolved, g.mode) * baseXP;
 
 			sumXP += xpSolved;
 			ret[QStringLiteral("xpSolved")] = xpSolved;
+
+			// Duration XP
+
+			bool err = false;
+
+			const int &shortestDuration = QueryBuilder::q(db)
+					.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
+							  "WHERE success=true AND username=").addValue(username)
+					.addQuery(" AND mapid=").addValue(g.map)
+					.addQuery(" AND missionid=").addValue(g.mission)
+					.addQuery(" AND level=").addValue(g.level)
+					.addQuery(" AND mode=").addValue(g.mode)
+					.execToValue("duration", &err).toInt();
+
+			if (err)
+				return responseErrorSql(response);
+
+			if (shortestDuration > 0 && duration < shortestDuration) {
+				const int &durationXP = (shortestDuration-duration)/1000 * baseXP * XP_FACTOR_DURATION_SEC;
+				sumXP += durationXP;
+				ret[QStringLiteral("xpDuration")] = durationXP;
+			}
+
+
+
+			// Streak XP
+
+			const int &longestStreak = QueryBuilder::q(db)
+					.addQuery("SELECT COALESCE(MAX(streak),0) AS streak FROM streak WHERE username=").addValue(username)
+					.execToValue("streak", &err).toInt();
+
+			if (err)
+				return responseErrorSql(response);
+
+			QueryBuilder q(db);
+			q.addQuery("SELECT COALESCE(streak, 0) AS streak, COALESCE((ended_on = date('now')), false) AS streakToday "
+						"FROM streak WHERE ended_on >= date('now', '-1 day') AND username=").addValue(username);
+
+			if (!q.exec())
+				return responseErrorSql(response);
+
+			q.sqlQuery().first();
+
+			const bool &sToday = q.value("streakToday", false).toBool();
+			const int &streak = q.value("streak", 0).toInt();
+
+			if (!sToday && streak > 0) {
+				if (streak+1 > longestStreak) {
+					const int &streakXP = (streak+1) * baseXP * XP_FACTOR_NEW_STREAK;
+					sumXP += streakXP;
+					ret[QStringLiteral("longestStreak")] = true;
+					ret[QStringLiteral("xpStreak")] = streakXP;
+				} else {
+					const int &streakXP = (streak+1) * baseXP * XP_FACTOR_STREAK;
+					sumXP += streakXP;
+					ret[QStringLiteral("longestStreak")] = false;
+					ret[QStringLiteral("xpStreak")] = streakXP;
+				}
+				ret[QStringLiteral("streak")] = streak+1;
+			}
+
 		}
 
+		ret[QStringLiteral("sumXP")] = sumXP;
 		ret[QStringLiteral("xpGame")] = xp;
-
 
 		ret[QStringLiteral("success")] = success;
 		ret[QStringLiteral("id")] = gameid;
@@ -829,221 +882,3 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 }
 
-
-
-/*
-QVariantMap params = m_message.jsonData().toVariantMap();
-int gameid = params.value("id", -1).toInt();
-int xp = params.value("xp", -1).toInt();
-int duration = params.value("duration", -1).toInt();
-bool success = params.value("success", false).toBool();
-bool flawless = params.value("flawless", false).toBool();
-
-if (gameid < 0 || xp < 0) {
-	(*jsonResponse)["error"] = "missing id or xp";
-	return false;
-}
-
-
-QVariantMap r = m_client->db()->execSelectQueryOneRow("SELECT id, mapid, missionid, level, deathmatch, lite FROM game "
-													  "WHERE username=? AND id=? AND tmpScore IS NOT NULL", {
-														  m_client->clientUserName(),
-														  gameid
-													  });
-
-if (r.isEmpty()) {
-	(*jsonResponse)["error"] = "invalid game";
-	return false;
-}
-
-
-QString mapid = r.value("mapid").toString();
-QString missionid = r.value("missionid").toString();
-int level = r.value("level").toInt();
-bool deathmatch = r.value("deathmatch").toBool();
-bool lite = r.value("lite").toBool();
-
-QJsonObject xpObject;
-
-// Eredeti állapot
-
-GameMap::SolverInfo oldSolver = missionSolverInfo(mapid, missionid);
-
-QVariantMap oldDurations = m_client->db()->execSelectQueryOneRow("SELECT "
-																 "(SELECT MAX(duration) FROM game WHERE username=? and missionid=? "
-																 "AND level=? AND success=true AND lite=false) as maxDuration,"
-																 "(SELECT MIN(duration) FROM game WHERE username=? and missionid=? "
-																 "AND level=? AND success=true AND lite=false) as minDuration"
-																 , {
-																	 m_client->clientUserName(),
-																	 missionid,
-																	 level,
-																	 m_client->clientUserName(),
-																	 missionid,
-																	 level
-																 });
-
-
-// lastStreak
-
-int lastStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-													   "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-													   "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-													   "(SELECT DISTINCT date(timestamp) AS dt "
-													   "FROM game WHERE username=? AND success=true) t2 "
-													   "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-													   "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-													   "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-													   "WHERE dt=date('now', 'localtime')", {
-														   m_client->clientUserName(),
-														   m_client->clientUserName()
-													   })
-				 .value("streak", 0).toInt();
-
-
-// maxStreak
-
-int maxStreak = m_client->db()->execSelectQueryOneRow("SELECT MAX(maxStreak) as maxStreak FROM score WHERE username=?", {
-														  m_client->clientUserName()
-													  })
-				.value("maxStreak", 0).toInt();
-
-// XP alap
-
-QVariantMap mxp = m_client->db()->execSelectQueryOneRow("SELECT value FROM settings WHERE key='xp.base'");
-
-int baseXP = mxp.value("value", 100).toInt();
-
-
-// Rögzítés
-
-QVariantList ll;
-ll.append(success);
-if (duration > 0)
-	ll.append(duration);
-else
-	ll.append(QVariant::Invalid);
-ll.append(gameid);
-
-m_client->db()->execSimpleQuery("UPDATE game SET tmpScore=NULL, success=?, duration=? WHERE id=?", ll);
-
-
-// Új állapot
-
-int solvedXP = 0;
-int durationXP = 0;
-
-if (success) {
-	solvedXP = GameMap::computeSolvedXpFactor(oldSolver, level, deathmatch, lite) * baseXP;
-	int shortestDuration = oldDurations.value("minDuration", -1).toInt();
-
-	if (shortestDuration > -1 && duration < shortestDuration && !lite) {
-		durationXP = (shortestDuration-duration) * baseXP * XP_FACTOR_DURATION_SEC;
-	}
-}
-
-xpObject["game"] = xp;
-xpObject["solved"] = solvedXP;
-xpObject["duration"] = durationXP;
-
-QVariantMap m;
-m["username"] = m_client->clientUserName();
-m["xp"] = xp+solvedXP+durationXP;
-m["gameid"] = gameid;
-int ret = m_client->db()->execInsertQuery("INSERT INTO score (?k?) VALUES (?)", m);
-
-if (ret == -1) {
-	(*jsonResponse)["error"] = "sql error";
-	return false;
-}
-
-
-
-
-
-
-// currentStreak
-
-int  currentStreak = m_client->db()->execSelectQueryOneRow("SELECT streak FROM "
-														   "(SELECT MAX(dt) as dt, COUNT(*) as streak FROM "
-														   "(SELECT t1.dt as dt, date(t1.dt,-(select count(*) FROM "
-														   "(SELECT DISTINCT date(timestamp) AS dt "
-														   "FROM game WHERE username=? AND success=true) t2 "
-														   "WHERE t2.dt<=t1.dt)||' day', 'localtime') as grp FROM "
-														   "(SELECT DISTINCT date(timestamp, 'localtime') AS dt FROM game "
-														   "WHERE username=? AND success=true) t1) t GROUP BY grp) "
-														   "WHERE dt=date('now', 'localtime')", {
-															   m_client->clientUserName(),
-															   m_client->clientUserName()
-														   })
-					 .value("streak", 0).toInt();
-
-
-
-// Streak lépés
-
-int streakXP = 0;
-int maxStreakXP = 0;
-
-
-if (currentStreak > 1 && currentStreak > lastStreak) {
-	streakXP = baseXP * XP_FACTOR_STREAK * currentStreak;
-
-	if (currentStreak > maxStreak) {
-		qInfo().noquote() << tr("New longest streak '%1': %2").arg(m_client->clientUserName()).arg(currentStreak);
-
-		maxStreakXP = baseXP * XP_FACTOR_NEW_STREAK * currentStreak;
-	} else {
-		qInfo().noquote() << tr("New streak '%1': %2").arg(m_client->clientUserName()).arg(currentStreak);
-	}
-
-
-	QVariantMap p;
-	p["maxStreak"] = currentStreak;
-	p["xp"] = streakXP+maxStreakXP;
-	p["username"] = m_client->clientUserName();
-
-	if (m_client->db()->execInsertQuery("INSERT INTO score (?k?) VALUES (?)", p) == -1) {
-		(*jsonResponse)["error"] = "sql error";
-		return false;
-	}
-
-	xpObject["streak"] = streakXP;
-	xpObject["maxStreak"] = maxStreakXP;
-}
-
-QJsonObject streakObject;
-streakObject["current"] = currentStreak;
-streakObject["last"] = lastStreak;
-streakObject["max"] = maxStreak;
-
-
-
-
-
-(*jsonResponse)["streak"] = streakObject;
-(*jsonResponse)["xp"] = xpObject;
-
-if (success) {
-	(*jsonResponse)["maxDuration"] = lite ? -1 : oldDurations.value("maxDuration", -1).toInt();
-	(*jsonResponse)["minDuration"] = lite ? -1 : oldDurations.value("minDuration", -1).toInt();
-	(*jsonResponse)["duration"] = duration;
-}
-
-
-(*jsonResponse)["mapid"] = mapid;
-(*jsonResponse)["missionid"] = missionid;
-(*jsonResponse)["gameid"] = gameid;
-(*jsonResponse)["level"] = level;
-(*jsonResponse)["finished"] = true;
-(*jsonResponse)["success"] = success;
-(*jsonResponse)["level"] = level;
-(*jsonResponse)["deathmatch"] = deathmatch;
-(*jsonResponse)["lite"] = lite;
-(*jsonResponse)["flawless"] = (success && flawless);
-(*jsonResponse)["solvedCount"] = oldSolver.solve(level, deathmatch).solved(level, deathmatch);
-
-
-return true;
-
-*/

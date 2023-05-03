@@ -10,6 +10,8 @@ import "JScript.js" as JS
 QPageGradient {
 	id: root
 
+	progressBarEnabled: true
+
 	property User user: null
 	property Campaign campaign: null
 	property StudentMapHandler studentMapHandler: null

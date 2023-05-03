@@ -10,6 +10,8 @@ import "JScript.js" as JS
 QPageGradient {
 	id: control
 
+	progressBarEnabled: true
+
 	property MapPlay map: null
 
 	property SortFilterProxyModel mList: SortFilterProxyModel {
@@ -130,6 +132,11 @@ QPageGradient {
 			}
 		}
 
+	}
+
+	StackView.onActivated: {
+		if (map)
+			map.gameState = MapPlay.StateSelect
 	}
 
 }

@@ -124,6 +124,9 @@ public:
 
 	const QString &importDb() const;
 
+	int imitateLatency() const;
+	void setImitateLatency(int newImitateLatency);
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -168,6 +171,7 @@ private:
 
 	QString m_loadedWasmResource;
 	QString m_importDb;
+	int m_imitateLatency = 0;
 };
 
 

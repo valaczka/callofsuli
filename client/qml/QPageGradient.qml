@@ -15,6 +15,8 @@ Qaterial.Page {
 	property alias appBar: _content.appBar
 	property alias subtitle: _content.appBar.subtitle
 	property alias paddingTop: _content.paddingTop
+	property alias progressBar: _progress
+	property bool progressBarEnabled: false
 
 	default property alias _contentData: _content._contentData
 
@@ -24,7 +26,12 @@ Qaterial.Page {
 		id: _content
 		appBar.title: control.title
 		anchors.fill: parent
+	}
 
+	QRefreshProgressBar {
+		id: _progress
+		anchors.top: parent.top
+		visible: progressBarEnabled && Client.webSocket.pending
 	}
 
 	background: Item {

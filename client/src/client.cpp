@@ -1029,6 +1029,8 @@ bool Client::loginToken()
 		return false;
 	}
 
+	server()->user()->setLoginState(User::LoggingIn);
+
 	send(WebSocket::ApiAuth, QStringLiteral("login"),
 		 QJsonObject{
 			 { QStringLiteral("token"), token },

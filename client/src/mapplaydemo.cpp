@@ -60,7 +60,7 @@ bool MapPlayDemo::load()
 		return false;
 	}
 
-	MapPlaySolverAction *solver = new MapPlaySolverAction(this);
+	MapPlaySolverDefault *solver = new MapPlaySolverDefault(this);
 	setSolver(solver);
 
 #ifndef Q_OS_WASM
@@ -112,7 +112,7 @@ void MapPlayDemo::solverSave()
 
 	QJsonObject object = Utils::fileToJsonObject(m_file);
 
-	for (MapPlayMission *mission: *m_missionList) {
+	for (const MapPlayMission *mission: *m_missionList) {
 		object.insert(mission->mission()->uuid(), mission->toSolverInfo().toJsonObject());
 	}
 
@@ -131,6 +131,8 @@ void MapPlayDemo::onCurrentGamePrepared()
 		return;
 
 	m_currentGame->load();
+
+	setGameState(StatePlay);
 }
 
 
@@ -156,10 +158,15 @@ void MapPlayDemo::onCurrentGameFinished()
 #endif
 			updateSolver();
 		}
+	} else if (g->finishState() == AbstractGame::Fail) {
+		emit currentGameFailed();
 	}
+
 
 
 	setCurrentGame(nullptr);
 	m_client->setCurrentGame(nullptr);
 	g->setReadyToDestroy(true);
+
+	setGameState(StateFinished);
 }

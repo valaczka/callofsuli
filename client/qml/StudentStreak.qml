@@ -15,9 +15,10 @@ Row {
 	property int maxIconCount: 10
 	property int duration: 650
 	property int value: user ? user.streak : 0
+	property bool forceToday: false
 
-	readonly property bool _hasToday: user && user.streakToday
-	readonly property int _iconCount: Math.max(3, (user ? user.streak : 0)+(_hasToday ? 0 : 1))
+	readonly property bool _hasToday: forceToday || (user && user.streakToday)
+	readonly property int _iconCount: Math.max(3, value+(_hasToday ? 0 : 1))
 	readonly property int _diff: Math.max(_iconCount-maxIconCount, 0)
 
 	readonly property real implicitLabelWidth: _labelStreak.width+_labelStreakNum.width

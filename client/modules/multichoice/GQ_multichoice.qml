@@ -98,7 +98,7 @@ GameQuestionComponentImpl {
 							function onAnswerReveal(answer) {
 								if (questionData.answer.includes(index))
 									btn.buttonType = GameQuestionButton.Correct
-								else if (answer.values.includes(index))
+								else if (answer.list.includes(index))
 									btn.buttonType = GameQuestionButton.Wrong
 							}
 

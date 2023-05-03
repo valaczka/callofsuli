@@ -241,7 +241,7 @@ QStringList Campaign::usedMapUuids() const
 {
 	QStringList list;
 
-	for (Task *t : *m_taskList) {
+	for (const Task *t : *m_taskList) {
 		if (!t->mapUuid().isEmpty() && !list.contains(t->mapUuid()))
 			list.append(t->mapUuid());
 	}

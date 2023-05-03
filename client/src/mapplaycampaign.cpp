@@ -25,7 +25,6 @@
  */
 
 #include "mapplaycampaign.h"
-#include "actiongame.h"
 
 
 /**
@@ -81,7 +80,7 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 
 	m_campaign = campaign;
 
-	MapPlaySolverAction *solver = new MapPlaySolverAction(this);
+	MapPlaySolverDefault *solver = new MapPlaySolverDefault(this);
 	setSolver(solver);
 
 	updateSolver();
@@ -110,8 +109,9 @@ void MapPlayCampaign::updateSolver()
 				m_solver->loadSolverInfo(mission, s);
 		}
 
-		m_solver->updateLock();
+		QList<MapPlayMissionLevel*> list = m_solver->updateLock();
 		m_solver->updateXP();
+		emit missionLevelUnlocked(list);
 	});
 }
 
@@ -138,6 +138,8 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		LOG_CERROR("client") << "Object cast error" << m_currentGame;
 		return;
 	}
+
+	setFinishedData({});
 
 	m_client->send(WebSocket::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
 					   { QStringLiteral("map"), m_gameMap->uuid() },
@@ -166,6 +168,8 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 		game->setGameId(gameId);
 		levelGame->load();
+
+		setGameState(StatePlay);
 	});
 }
 
@@ -187,6 +191,9 @@ void MapPlayCampaign::onCurrentGameFinished()
 		return;
 	}
 
+	if (levelGame->finishState() == AbstractGame::Fail)
+		emit currentGameFailed();
+
 	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
 					   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
 					   { QStringLiteral("xp"), levelGame->xp() },
@@ -198,11 +205,13 @@ void MapPlayCampaign::onCurrentGameFinished()
 	})
 			->done([this](const QJsonObject &data){
 
-		LOG_CINFO("client") << "GAME FINISHED!!!" << data;
+		setFinishedData(data);
 
 		destroyCurrentGame();
 
 		updateSolver();
+
+		setGameState(StateFinished);
 	});
 
 }
@@ -246,6 +255,8 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 	}
 
 	g->setDeathmatch(level->deathmatch());
+
+	setGameState(StateLoading);
 
 	return g;
 }

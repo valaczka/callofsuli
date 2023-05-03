@@ -214,6 +214,8 @@ void MapPlay::loadGameMap(GameMap *map)
 
 	updateSolver();
 
+	setGameState(StateSelect);
+
 	emit gameMapLoaded();
 }
 
@@ -243,6 +245,8 @@ void MapPlay::unloadGameMap()
 	}
 
 	AbstractMapPlaySolver::clear(this);
+
+	setGameState(StateInvalid);
 }
 
 
@@ -261,11 +265,6 @@ void MapPlay::reloadMissionList()
 	m_missionList->clear();
 
 	foreach (GameMapMission *mission, m_gameMap->missions()) {
-		if (mission->modes() && !mission->modes().testFlag(GameMap::Action) && !mission->modes().testFlag(GameMap::Lite)) {
-			LOG_CERROR("game") << "Missing implementation";
-			continue;
-		}
-
 		LOG_CTRACE("game") << "Load mission" << mission << mission->name() << mission->modes();
 
 		MapPlayMission *pMission = new MapPlayMission(mission);
@@ -277,11 +276,11 @@ void MapPlay::reloadMissionList()
 			if (!mLevel)
 				continue;
 
-			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, false);
+			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, false);
 			pMission->missionLevelList()->append(pLevel);
 
 			if (mLevel->canDeathmatch()) {
-				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(mLevel, true);
+				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, true);
 				pMission->missionLevelList()->append(pLevel);
 			}
 		}
@@ -290,6 +289,12 @@ void MapPlay::reloadMissionList()
 
 
 
+/**
+ * @brief MapPlay::createLevelGame
+ * @param level
+ * @param mode
+ * @return
+ */
 
 AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
 {
@@ -321,7 +326,7 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 
 	g->setDeathmatch(level->deathmatch());
 
-
+	setGameState(StateLoading);
 
 	return g;
 }
@@ -351,6 +356,31 @@ void MapPlay::onCurrentGameFinished()
 
 	m_currentGame->setReadyToDestroy(true);
 }
+
+
+/**
+ * @brief MapPlay::gameState
+ * @return
+ */
+
+MapPlay::GameState MapPlay::gameState() const
+{
+	return m_gameState;
+}
+
+void MapPlay::setGameState(GameState newGameState)
+{
+	if (m_gameState == newGameState)
+		return;
+	m_gameState = newGameState;
+	emit gameStateChanged();
+}
+
+
+/**
+ * @brief MapPlay::online
+ * @return
+ */
 
 bool MapPlay::online() const
 {
@@ -440,7 +470,7 @@ MapPlayMission *MapPlay::getMission(GameMapMissionIface *mission) const
 
 MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const
 {
-	for (MapPlayMission *mission : *m_missionList) {
+	for (const MapPlayMission *mission : *m_missionList) {
 		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
 			if (level->missionLevel() == missionLevel && level->deathmatch() == deathmatch)
 				return level;
@@ -499,8 +529,9 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
 void MapPlay::updateSolver()
 {
 	if (m_solver) {
-		m_solver->updateLock();
+		QList<MapPlayMissionLevel*> list = m_solver->updateLock();
 		m_solver->updateXP();
+		emit missionLevelUnlocked(list);
 	}
 }
 
@@ -526,6 +557,66 @@ int MapPlay::calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mo
 
 
 
+/**
+ * @brief MapPlay::getNextLevel
+ * @param currentLevel
+ * @return
+ */
+
+MapPlayMissionLevel *MapPlay::getNextLevel(MapPlayMissionLevel *currentLevel, const GameMap::GameMode &mode) const
+{
+	MapPlayMission *mission = currentLevel ? currentLevel->mission() : nullptr;
+
+	if (mission && (mode == GameMap::Invalid || mission->modeEnabled(mode))) {
+		MapPlayMissionLevel *nextLevel = nullptr;
+
+		for (MapPlayMissionLevel *ml : *mission->missionLevelList())
+		{
+			if (ml->solved() > 0)
+				continue;
+
+			if (ml->level() == currentLevel->level() && !currentLevel->deathmatch() && ml->deathmatch())
+				return ml;
+
+			if (!nextLevel && ml->level() > currentLevel->level())
+				nextLevel = ml;
+			else if (nextLevel && nextLevel->deathmatch() && ml->level() == nextLevel->level() && !ml->deathmatch())
+				nextLevel = ml;
+			else if (nextLevel && ml->level() < nextLevel->level())
+				nextLevel = ml;
+		}
+
+		if (nextLevel)
+			return nextLevel;
+	}
+
+	for (const MapPlayMission *m : *m_missionList) {
+		if (mode != GameMap::Invalid && !m->modeEnabled(mode))
+			continue;
+
+		MapPlayMissionLevel *nextLevel = nullptr;
+
+		for (MapPlayMissionLevel *ml : *m->missionLevelList()) {
+			if (ml->solved() > 0)
+				continue;
+
+			if (!nextLevel)
+				nextLevel = ml;
+			else if (nextLevel && nextLevel->deathmatch() && ml->level() == nextLevel->level() && !ml->deathmatch())
+				nextLevel = ml;
+			else if (nextLevel && ml->level() < nextLevel->level())
+				nextLevel = ml;
+		}
+
+		if (nextLevel)
+			return nextLevel;
+	}
+
+	return nullptr;
+}
+
+
+
 
 
 
@@ -541,11 +632,15 @@ int MapPlay::calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mo
  * @param parent
  */
 
-MapPlayMissionLevel::MapPlayMissionLevel(GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent)
+MapPlayMissionLevel::MapPlayMissionLevel(MapPlayMission *mission, GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent)
 	: QObject(parent)
+	, m_mission(mission)
 	, m_missionLevel(missionLevel)
 	, m_deathmatch(deathmatch)
 {
+	Q_ASSERT(mission);
+	Q_ASSERT(missionLevel);
+
 	LOG_CTRACE("game") << "Map play mission level created:" << this;
 }
 
@@ -641,9 +736,20 @@ int MapPlayMissionLevel::solved() const
 	return m_solverData.solved();
 }
 
+qreal MapPlayMissionLevel::passed() const
+{
+	return m_missionLevel ? m_missionLevel->passed() : 0;
+}
+
 QString MapPlayMissionLevel::medalImage() const
 {
 	return AbstractLevelGame::medalImagePath(m_missionLevel);
+}
+
+
+MapPlayMission *MapPlayMissionLevel::mission() const
+{
+	return m_mission;
 }
 
 
@@ -713,9 +819,30 @@ QString MapPlayMission::uuid() const
 	return m_mission ? m_mission->uuid() : QLatin1String("");
 }
 
+
+/**
+ * @brief MapPlayMission::description
+ * @return
+ */
+
 QString MapPlayMission::description() const
 {
-	return m_mission ? m_mission->description() : QLatin1String("");
+	if (!m_mission)
+		return QLatin1String("");
+
+	QString txt = m_mission->description();
+
+	if (m_lockDepth > 0) {
+		txt += tr("\n\nA küldetés zárolva van, előbb teljesítened kell a következőket:");
+
+		foreach (const GameMapMissionLevel *ml, m_mission->locks()) {
+			const QString &name = ml->mission() ? ml->mission()->name() : QStringLiteral("???");
+
+			txt += tr("\n%1 (level %2)").arg(name).arg(ml->level());
+		}
+	}
+
+	return txt;
 }
 
 
@@ -728,7 +855,7 @@ GameMap::SolverInfo MapPlayMission::toSolverInfo() const
 {
 	QJsonObject object;
 
-	for (MapPlayMissionLevel *level : *m_missionLevelList) {
+	for (const MapPlayMissionLevel *level : *m_missionLevelList) {
 		const QString &key = level->deathmatch() ? QStringLiteral("d%1").arg(level->level()) : QStringLiteral("t%1").arg(level->level());
 		object[key] = level->solverData().solved();
 	}
@@ -751,22 +878,23 @@ QString MapPlayMission::medalImage() const
 
 
 
-
 /**
  * @brief MapPlayMission::modeEnabled
+ * @param mission
  * @param mode
  * @return
  */
 
-bool MapPlayMission::modeEnabled(const GameMap::GameMode &mode) const
+bool MapPlayMission::modeEnabled(GameMapMission *mission, const GameMap::GameMode &mode)
 {
-	if (!m_mission)
+	if (!mission)
 		return false;
-	else if (m_mission->modes().testFlag(GameMap::Invalid))
+	else if (mission->modes().testFlag(GameMap::Invalid))
 		return mode == GameMap::Action || mode == GameMap::Lite || mode == GameMap::Test;
 	else
-		return m_mission->modes().testFlag(mode);
+		return mission->modes().testFlag(mode);
 }
+
 
 
 /**
@@ -821,7 +949,7 @@ void AbstractMapPlaySolver::clear(MapPlay *mapPlay)
 
 	LOG_CDEBUG("game") << "Clear solver info";
 
-	for (MapPlayMission *mission : *mapPlay->missionList()) {
+	for (const MapPlayMission *mission : *mapPlay->missionList()) {
 		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
 			level->setSolverData(MapPlaySolverData(0));
 		}
@@ -864,7 +992,7 @@ bool AbstractMapPlaySolver::loadSolverInfo(MapPlay *mapPlay, GameMapMission *mis
 
 	bool found = false;
 
-	for (MapPlayMission *m : *mapPlay->missionList()) {
+	for (const MapPlayMission *m : *mapPlay->missionList()) {
 		if (m->mission() != mission)
 			continue;
 
@@ -890,7 +1018,7 @@ void AbstractMapPlaySolver::updateXP()
 {
 	LOG_CDEBUG("game") << "AbstractMapPlaySolver update xp";
 
-	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
+	for (const MapPlayMission *mission : *m_mapPlay->missionList()) {
 		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
 			const GameMap::GameModes &modes = mission->mission()->modes();
 			int xp = 0;
@@ -920,7 +1048,7 @@ void AbstractMapPlaySolver::updateXP()
  * @brief MapPlaySolverAction::updateLock
  */
 
-int MapPlaySolverAction::calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const
+int MapPlaySolverDefault::calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const
 {
 	if (!level)
 		return -1;
@@ -939,14 +1067,16 @@ int MapPlaySolverAction::calculateXP(MapPlayMissionLevel *level, const GameMap::
  * @brief MapPlaySolverAction::updateLock
  */
 
-void MapPlaySolverAction::updateLock()
+QList<MapPlayMissionLevel *> MapPlaySolverDefault::updateLock()
 {
-	LOG_CDEBUG("game") << "MapPlaySolverAction update locks";
+	LOG_CDEBUG("game") << "MapPlaySolverDefault update locks";
+
+	QList<MapPlayMissionLevel*> ret;
 
 	GameMap *map = m_mapPlay->gameMap();
 
 	if (!map)
-		return;
+		return ret;
 
 
 	for (MapPlayMission *mission : *m_mapPlay->missionList()) {
@@ -989,10 +1119,16 @@ void MapPlaySolverAction::updateLock()
 				continue;
 			}
 
+			const int &oldDepth = level->lockDepth();
 			level->setLockDepth(0);
+			if (oldDepth > 0 && !ret.contains(level))
+				ret.append(level);
 
 			if (dmLevel) {
+				const int &oldDepth = dmLevel->lockDepth();
 				dmLevel->setLockDepth(level->solverData().solved() ? 0 : 1);
+				if (oldDepth > 0 && dmLevel->lockDepth() == 0 && !ret.contains(dmLevel))
+					ret.append(dmLevel);
 			}
 
 			if (level->solverData().solved() < 1)
@@ -1002,7 +1138,24 @@ void MapPlaySolverAction::updateLock()
 
 	}
 
+	return ret;
 }
 
 
+/**
+ * @brief MapPlay::finishedData
+ * @return
+ */
 
+const QJsonObject &MapPlay::finishedData() const
+{
+	return m_finishedData;
+}
+
+void MapPlay::setFinishedData(const QJsonObject &newFinishedData)
+{
+	if (m_finishedData == newFinishedData)
+		return;
+	m_finishedData = newFinishedData;
+	emit finishedDataChanged();
+}

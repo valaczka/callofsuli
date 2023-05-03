@@ -624,8 +624,10 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 
 WebSocketReply::~WebSocketReply()
 {
-	if (m_socket)
+	if (m_socket) {
 		m_socket->m_replies.removeAll(this);
+		m_socket->checkPending();
+	}
 
 	if (m_reply)
 		m_reply->deleteLater();
@@ -685,6 +687,7 @@ void WebSocketReply::onReplyFinished()
 	Q_ASSERT(m_socket);
 
 	m_pending = false;
+	m_socket->checkPending();
 
 	const QNetworkReply::NetworkError &error = m_reply->error();
 

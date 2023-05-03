@@ -91,6 +91,10 @@ void Handler::handle(HttpRequest *request, HttpResponse *response)
 		return;
 	}
 
+	if (m_service->imitateLatency() > 0) {
+		QThread::msleep(m_service->imitateLatency());
+	}
+
 
 	if (uri.startsWith(QStringLiteral("/api/")))
 		return handleApi(request, response);
