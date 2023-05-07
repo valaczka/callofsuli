@@ -57,6 +57,7 @@ Qaterial.ToolBar {
 				topPadding: 0
 				lineHeight: 0.9
 				visible: text.length
+				color: Qaterial.Style.secondaryTextColor()
 			}
 
 		}

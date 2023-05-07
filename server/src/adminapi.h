@@ -94,6 +94,14 @@ public:
 
 	void classCreate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void classUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void classCodeOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		classCode(match.captured(1).toInt(), response);
+	}
+	void classCode(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
+		classCode(-2, response);
+	}
+	void classCode(const int &code, QPointer<HttpResponse> response) const;
+	void classUpdateCode(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void classDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
 		classDelete({match.captured(1).toInt()}, response);
 	}

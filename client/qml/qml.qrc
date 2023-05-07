@@ -123,5 +123,10 @@
         <file>GameTestResult.qml</file>
         <file>_PageDev.qml</file>
         <file>gametest.css</file>
+        <file>PageMapEditor.qml</file>
+        <file>MapEditorMissionList.qml</file>
+        <file>QTagList.qml</file>
+        <file>MapEditorMission.qml</file>
+        <file>MapEditorToolbarComponent.qml</file>
     </qresource>
 </RCC>

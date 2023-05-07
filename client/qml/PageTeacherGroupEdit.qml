@@ -292,7 +292,7 @@ QPage {
 									var clist = []
 
 									for (var j=0; j<list.length; j++)
-										clist.push(_dlgClassModel.get(list[j]).id)
+										clist.push(_dlgClassSortModel.get(list[j]).id)
 
 
 									Client.send(WebSocket.ApiTeacher, "group/%1/class/add".arg(group.groupid), { list: clist })
@@ -335,7 +335,7 @@ QPage {
 									var clist = []
 
 									for (var j=0; j<list.length; j++)
-										clist.push(_dlgUserModel.get(list[j]).username)
+										clist.push(_dlgUserSortModel.get(list[j]).username)
 
 
 									Client.send(WebSocket.ApiTeacher, "group/%1/user/add".arg(group.groupid), { list: clist })

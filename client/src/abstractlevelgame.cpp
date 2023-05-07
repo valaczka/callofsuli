@@ -120,6 +120,11 @@ void AbstractLevelGame::onTimerLeftTimeout()
 
 }
 
+const QStringList &AbstractLevelGame::availableMedal()
+{
+	return m_availableMedal;
+}
+
 int AbstractLevelGame::xp() const
 {
 	return m_xp;

@@ -82,6 +82,8 @@ public:
 	static QString medalImagePath(GameMapMission *mission);
 	static QString medalImagePath(GameMapMissionLevel *missionLevel);
 
+	static const QStringList &availableMedal();
+
 	Q_INVOKABLE void startWithRemainingTime(const qint64 &msec);
 	void addToDeadline(const qint64 &msec);
 
@@ -90,6 +92,7 @@ public:
 
 	int xp() const;
 	void setXp(int newXp);
+
 
 protected:
 	QVector<Question> createQuestions();

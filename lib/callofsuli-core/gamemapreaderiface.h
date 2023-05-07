@@ -320,7 +320,6 @@ public:
 protected:
 	friend class GameMapReaderIface;
 	friend class MapImage;
-	friend class GameMapEditor;
 	qint32 m_id;
 	QByteArray m_data;
 

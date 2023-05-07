@@ -50,6 +50,9 @@ AdminAPI::AdminAPI(ServerService *service)
 	addMap("^class/(\\d+)/users/*$", this, &AdminAPI::classUsersOne);
 	addMap("^class/create/*$", this, &AdminAPI::classCreate);
 	addMap("^class/(\\d+)/update/*$", this, &AdminAPI::classUpdate);
+	addMap("^class/code/*$", this, &AdminAPI::classCode);
+	addMap("^class/(-*\\d+)/code/*$", this, &AdminAPI::classCodeOne);
+	addMap("^class/(-*\\d+)/updateCode/*$", this, &AdminAPI::classUpdateCode);
 	addMap("^class/(\\d+)/delete/*$", this, &AdminAPI::classDeleteOne);
 	addMap("^class/(\\d+)/users/create/*$", this, &AdminAPI::userCreateClass);
 	addMap("^class/delete/*$", this, &AdminAPI::classDelete);
@@ -177,6 +180,83 @@ void AdminAPI::classUpdate(const QRegularExpressionMatch &match, const QJsonObje
 		db.commit();
 
 		LOG_CDEBUG("client") << "Class modified:" << id;
+		responseAnswerOk(response);
+	});
+}
+
+
+/**
+ * @brief AdminAPI::classCode
+ * @param code
+ * @param response
+ */
+
+void AdminAPI::classCode(const int &code, QPointer<HttpResponse> response) const
+{
+	LOG_CTRACE("client") << "Get class code" << code;
+
+	databaseMainWorker()->execInThread([this, code, response]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT classid, code FROM classCode ");
+
+		if (code == -1)
+			q.addQuery("WHERE classid IS NULL");
+		else if (code > 0)
+			q.addQuery("WHERE classid=").addValue(code);
+
+		const QJsonArray &list = q.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+		else if (list.isEmpty())
+			return responseError(response, "not found");
+
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+
+
+
+/**
+ * @brief AdminAPI::classUpdateCode
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void AdminAPI::classUpdateCode(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([id, data, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE classCode SET code=").addValue(data.value(QStringLiteral("code")).toString())
+				.addQuery(" WHERE classid=").addValue(id <= 0 ? QVariant(QVariant::Invalid) : id).exec()) {
+			LOG_CWARNING("client") << "Class code modify error:" << id;
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Class code modified:" << id;
 		responseAnswerOk(response);
 	});
 }

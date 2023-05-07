@@ -168,6 +168,7 @@ SOURCES += \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
+	editorundostack.cpp \
 	eventstream.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
@@ -187,6 +188,8 @@ SOURCES += \
 	grade.cpp \
 	litegame.cpp \
 	main.cpp \
+	mapeditor.cpp \
+	mapeditormap.cpp \
 	mapgame.cpp \
 	mapimage.cpp \
 	mapplay.cpp \
@@ -225,6 +228,7 @@ HEADERS += \
 	classobject.h \
 	client.h \
 	clientcache.h \
+	editorundostack.h \
 	eventstream.h \
 	fontimage.h \
 	gameenemy.h \
@@ -243,6 +247,8 @@ HEADERS += \
 	gameterrainmap.h \
 	grade.h \
 	litegame.h \
+	mapeditor.h \
+	mapeditormap.h \
 	mapgame.h \
 	mapimage.h \
 	mapplay.h \

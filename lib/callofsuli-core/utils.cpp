@@ -99,6 +99,9 @@ QByteArray Utils::fileContent(const QString &filename, bool *error)
 
 	f.close();
 
+	if (error)
+		*error = false;
+
 	return data;
 }
 
@@ -256,6 +259,9 @@ QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
 	QByteArray data = f.readAll();
 
 	f.close();
+
+	if (error)
+		*error = false;
 
 	return byteArrayToJsonDocument(data);
 }

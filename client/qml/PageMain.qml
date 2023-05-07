@@ -9,8 +9,6 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	//	closeQuestion: qsTr("Biztosan lezárod a kapcsolatot a szerverrel?")
-
 	onPageClose: function() {
 		Client.webSocket.close()
 	}
@@ -76,16 +74,5 @@ QPage {
 		anchors.top: parent.top
 		visible: Client.webSocket.pending
 	}
-
-	/*footer: QTabBar
-	{
-		id: tabBar
-		currentIndex: swipeView.currentIndex
-
-		Component.onCompleted: {
-			model.append({ text: qsTr("Bejelentkezés"), source: Qaterial.Icons.account })
-			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium })
-		}
-	}*/
 
 }

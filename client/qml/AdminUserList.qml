@@ -23,6 +23,8 @@ Qaterial.Page
 
 	property int classid: -1
 	property string classname: ""
+	property string classcode: ""
+
 
 	readonly property int _rolePanel: Credential.Panel
 	readonly property int _roleAdmin: Credential.Admin
@@ -44,7 +46,6 @@ Qaterial.Page
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
 			trailingContent: QTextFieldInPlaceButtons {
-				id: nameInPlace
 				setTo: classname
 				onSaveRequest: {
 					Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(classid),
@@ -60,6 +61,55 @@ Qaterial.Page
 						revert()
 					})
 				}
+
+			}
+		}
+
+		Qaterial.TextField {
+			id: textFieldCode
+			visible: classid != -1
+			enabled: classid != -1
+			width: parent.width
+			leadingIconSource: Qaterial.Icons.codeTags
+			leadingIconInline: true
+			placeholderText: qsTr("Hitelesítő kód")
+			backgroundBorderHeight: 1
+			backgroundColor: "transparent"
+
+			validator: RegExpValidator { regExp: /.+/ }
+			errorText: qsTr("Egyedi kódot szükséges megadni")
+			trailingContent: Qaterial.TextFieldButtonContainer
+			{
+				Qaterial.TextFieldAlertIcon { visible: textFieldCode.errorState }
+
+				Qaterial.TextFieldIconButton
+				{
+					icon.source: Qaterial.Icons.refresh
+					onClicked:
+					{
+						textFieldCode.text = Client.Utils.generateRandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+						textFieldCode.textEdited()
+					}
+				}
+
+				QTextFieldInPlaceButtons {
+					setTo: classcode
+					onSaveRequest: {
+						Client.send(WebSocket.ApiAdmin, "class/%1/updateCode".arg(classid),
+									{
+										code: text
+									})
+						.done(function(r){
+							saved()
+						})
+						.fail(function(err) {
+							Client.messageWarning(err, "Módosítás sikertelen")
+							revert()
+						})
+					}
+
+				}
+
 
 			}
 
@@ -335,4 +385,23 @@ Qaterial.Page
 		}
 	}
 
+	function reloadCode() {
+		classcode = ""
+
+		if (classid == -1)
+			return
+
+		Client.send(WebSocket.ApiAdmin, "class/%1/code".arg(classid < 0 ? -1 : classid))
+		.done(function(r){
+			if (r.list && r.list.length === 1) {
+				classcode = r.list[0].code
+			} else {
+				Client.messageWarning(qsTr("Érvénytelen válasz érkezett"))
+			}
+		})
+		.fail(JS.failMessage("Inaktiválás sikertelen"))
+	}
+
+	Component.onCompleted: reloadCode()
+	onClassidChanged: reloadCode()
 }

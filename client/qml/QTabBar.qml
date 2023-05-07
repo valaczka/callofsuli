@@ -11,6 +11,8 @@ Qaterial.TabBar
 
 	property alias model: tabBarModel
 
+	accentColor: Qaterial.Style.iconColor()
+
 	Repeater
 	{
 		id: repeater
@@ -26,10 +28,14 @@ Qaterial.TabBar
 			implicitWidth: width
 			text: model.text ? model.text : ""
 			icon.source: model.source ? model.source : ""
-			icon.color: model.color ? model.color : foregroundColor
+			icon.color: foregroundColor
+			icon.width: (index === control.currentIndex) ? Qaterial.Style.tabButton.iconWidth*1.2 : Qaterial.Style.tabButton.iconWidth*1.8
+			icon.height: (index === control.currentIndex) ? Qaterial.Style.tabButton.iconWidth*1.2 : Qaterial.Style.tabButton.iconWidth*1.8
 			spacing: 4
 			display: (index === control.currentIndex) ? AbstractButton.TextUnderIcon : AbstractButton.IconOnly
 			font: Qaterial.Style.textTheme.buttonTab
+			foregroundColor: model.color ? model.color :
+										   (index === control.currentIndex) ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
 		}
 	}
 }

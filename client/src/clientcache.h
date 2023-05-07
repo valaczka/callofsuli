@@ -146,6 +146,11 @@ public:
 
 	static QObject *find(qolm::QOlmBase *list, const char *property, const QVariant &value);
 
+	static void unselectAll(qolm::QOlmBase *list, const char *property = "selected") {
+		selectAll(list, false, property);
+	}
+	static void selectAll(qolm::QOlmBase *list, const bool &selected = true, const char *property = "selected");
+
 
 	bool contains(const QString &key) const {
 		return m_list.contains(key);

@@ -98,6 +98,8 @@ function intializeStyle() {
 	Qaterial.Style.toolButton.appBarButtonHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 24 : 30) * Qaterial.Style.pixelSizeRatio })
 
 	Qaterial.Style.fab.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.fab.minWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 44 : 56) * Qaterial.Style.pixelSizeRatio })
+
 	Qaterial.Style.menuItem.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
 
 	Qaterial.Style.radioIndicator.implicitWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 20) * Qaterial.Style.pixelSizeRatio })

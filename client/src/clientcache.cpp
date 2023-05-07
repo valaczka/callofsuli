@@ -394,3 +394,23 @@ QObject *OlmLoader::find(qolm::QOlmBase *list, const char *property, const QVari
 
 	return nullptr;
 }
+
+
+
+/**
+ * @brief OlmLoader::selectAll
+ * @param list
+ * @param selected
+ * @param property
+ * @return
+ */
+
+void OlmLoader::selectAll(qolm::QOlmBase *list, const bool &selected, const char *property)
+{
+	Q_ASSERT(list);
+
+	for (int i=0; i<list->size(); ++i) {
+		QObject *o = list->get(i);
+		o->setProperty(property, selected);
+	}
+}

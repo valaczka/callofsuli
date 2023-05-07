@@ -339,6 +339,9 @@ void Client::onApplicationStarted()
 	case Application::Demo:
 		loadDemoMap();
 		break;
+	case Application::Editor:
+		stackPushPage(QStringLiteral("PageMapEditor.qml"));
+		break;
 	case Application::DevPage:
 		stackPushPage(QStringLiteral("_PageDev.qml"));
 		break;
