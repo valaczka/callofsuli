@@ -30,6 +30,7 @@
 				"duration": 240,
 				"startHP": 3,
 				"questions": 0.35,
+				"passed": 0.8,
 				"deathmatch": true,
 				"inventory": [
 					{
@@ -85,6 +86,7 @@
 				"duration": 210,
 				"startHP": 4,
 				"questions": 0.5,
+				"passed": 0.9,
 				"deathmatch": true,
 				"inventory": [
 					{
@@ -145,6 +147,7 @@
 				"duration": 210,
 				"startHP": 5,
 				"questions": 0.6,
+				"passed": 1.0,
 				"deathmatch": true,
 				"inventory": [
 					{

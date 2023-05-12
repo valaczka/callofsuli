@@ -9,6 +9,7 @@ Qaterial.LoaderItemDelegate {
 
 	property bool setCurrentIndexEnabled: true
 	property url iconSource: ""						// Ezt használjuk az icon.source helyett
+	property color iconColor: Qaterial.Style.iconColor()
 	property SelectableObject selectableObject: null
 	property bool highlightedIcon: false
 
@@ -32,7 +33,7 @@ Qaterial.LoaderItemDelegate {
 						 selectableObject && selectableObject.selected ?
 							 Qaterial.Icons.checkCircle : Qaterial.Icons.checkBold : iconSource
 
-		color: highlightedIcon || (_view && _view.selectEnabled) ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
+		color: highlightedIcon || (_view && _view.selectEnabled) ? Qaterial.Style.accentColor : iconColor
 	}
 
 	width: ListView.view.width

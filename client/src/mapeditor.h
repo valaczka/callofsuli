@@ -32,7 +32,10 @@
 #include "client.h"
 #include "mapeditormap.h"
 #include "editorundostack.h"
+#include "mapplay.h"
 
+
+class MapPlayEditor;
 
 /**
  * @brief The MapEditor class
@@ -63,12 +66,31 @@ public:
 	const QString &displayName() const;
 	void setDisplayName(const QString &newDisplayName);
 
+	Q_INVOKABLE QVariantMap objectiveInfo(MapEditorObjective *objective) const;
+	Q_INVOKABLE QVariantMap storageInfo(MapEditorStorage *storage) const;
+	Q_INVOKABLE QVariantMap inventoryInfo(MapEditorInventory *inventory) const;
+
 
 	Q_INVOKABLE MapEditorMission* missionAdd(const QString &name = QString());
 	Q_INVOKABLE void missionRemove(MapEditorMission *mission);
 	Q_INVOKABLE void missionModify(MapEditorMission *mission, QJSValue modifyFunc);
+	Q_INVOKABLE void missionLockAdd(MapEditorMission *mission, MapEditorMissionLevel *lock);
+	Q_INVOKABLE void missionLockAdd(MapEditorMission *mission, const QString &uuid, const int &level);
+	Q_INVOKABLE void missionLockRemove(MapEditorMission *mission, MapEditorMissionLevel *lock);
 
 	Q_INVOKABLE MapEditorMissionLevel* missionLevelAdd(MapEditorMission *mission);
+	Q_INVOKABLE void missionLevelRemove(MapEditorMissionLevel *missionLevel);
+	Q_INVOKABLE void missionLevelModify(MapEditorMissionLevel *missionLevel, QJSValue modifyFunc);
+	Q_INVOKABLE void missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, MapEditorChapter *chapter) {
+		missionLevelChapterAdd(missionLevel, QList<MapEditorChapter *>{chapter});
+	}
+	Q_INVOKABLE void missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList);
+	Q_INVOKABLE void missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, MapEditorChapter *chapter) {
+		missionLevelChapterRemove(missionLevel, QList<MapEditorChapter *>{chapter});
+	}
+	Q_INVOKABLE void missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList);
+
+	Q_INVOKABLE void missionLevelPlay(MapEditorMissionLevel *missionLevel, int mode);
 
 	bool modified() const;
 	void setModified(bool newModified);
@@ -101,8 +123,40 @@ private:
 	QString m_displayName;
 	bool m_modified = false;
 	bool m_autoSaved = false;
+	MapPlayEditor *m_mapPlay = nullptr;
 };
 
+
+
+
+/**
+ * @brief The MapPlayEditor class
+ */
+
+
+class MapPlayEditor : public MapPlay
+{
+	Q_OBJECT
+
+public:
+	explicit MapPlayEditor(Client *client, QObject *parent = nullptr)
+		: MapPlay(client, parent)
+	{
+		m_online = false;
+	}
+
+	virtual ~MapPlayEditor() {}
+
+
+	bool reloadMap(MapEditorMap *map);
+	bool play(MapEditorMissionLevel *missionLevel, const GameMap::GameMode &mode);
+
+
+protected:
+	virtual void onCurrentGamePrepared() override;
+	virtual void onCurrentGameFinished() override;
+
+};
 
 
 #endif // MAPEDITOR_H

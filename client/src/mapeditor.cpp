@@ -27,6 +27,8 @@
 #include "mapeditor.h"
 #include "application.h"
 #include "mapimage.h"
+#include "gamepickable.h"
+#include "question.h"
 #include "abstractlevelgame.h"
 
 
@@ -39,6 +41,7 @@ MapEditor::MapEditor(QObject *parent)
 	: QObject{parent}
 	, m_client(Application::instance()->client())
 	, m_undoStack(new EditorUndoStack(this))
+	, m_mapPlay(new MapPlayEditor(m_client, this))
 {
 	LOG_CTRACE("client") << "MapEditor created" << this;
 
@@ -57,6 +60,7 @@ MapEditor::MapEditor(QObject *parent)
 
 MapEditor::~MapEditor()
 {
+	delete m_mapPlay;
 	delete m_undoStack;
 	LOG_CTRACE("client") << "MapEditor destroyed" << this;
 }
@@ -240,6 +244,64 @@ void MapEditor::setDisplayName(const QString &newDisplayName)
 
 
 /**
+ * @brief MapEditor::objectiveInfo
+ * @param objective
+ * @return
+ */
+
+QVariantMap MapEditor::objectiveInfo(MapEditorObjective *objective) const
+{
+	if (!objective)
+		return Question::objectiveInfo(QLatin1String(""), {});
+
+	return Question::objectiveInfo(objective->module(), objective->data(), objective->storage() ? objective->storage()->module() : QLatin1String(""),
+								   objective->storage() ? objective->storage()->data() : QVariantMap());
+}
+
+
+/**
+ * @brief MapEditor::storageInfo
+ * @param storage
+ * @return
+ */
+
+QVariantMap MapEditor::storageInfo(MapEditorStorage *storage) const
+{
+	if (!storage)
+		return Question::storageInfo(QLatin1String(""), {});
+
+	return Question::storageInfo(storage->module(), storage->data());
+}
+
+
+
+/**
+ * @brief MapEditor::inventoryInfo
+ * @param inventory
+ * @return
+ */
+
+QVariantMap MapEditor::inventoryInfo(MapEditorInventory *inventory) const
+{
+	if (!inventory)
+		return QVariantMap();
+
+	const GamePickable::GamePickableData &data = GamePickable::pickableDataHash().value(inventory->module());
+
+	if (data.type == GamePickable::PickableInvalid)
+		return QVariantMap {
+			{ QStringLiteral("name"), tr("Érvénytelen modul: %1").arg(inventory->module()) },
+			{ QStringLiteral("icon"), QLatin1String("") }
+		};
+	else
+		return QVariantMap {
+			{ QStringLiteral("name"), data.name },
+			{ QStringLiteral("icon"), data.image }
+		};
+}
+
+
+/**
  * @brief MapEditor::undoStack
  * @return
  */
@@ -273,7 +335,7 @@ MapEditorMission* MapEditor::missionAdd(const QString &name)
 	mission.setName(name.isEmpty() ? tr("Új küldetés") : name);
 	mission.setModes(GameMap::Lite|GameMap::Action);
 
-	MapEditorMissionLevel *level = mission.createNextLevel();
+	MapEditorMissionLevel *level = mission.createNextLevel(m_map);
 	level->setLevel(1);
 	level->setCanDeathmatch(true);
 
@@ -441,6 +503,117 @@ void MapEditor::missionModify(MapEditorMission *mission, QJSValue modifyFunc)
 }
 
 
+/**
+ * @brief MapEditor::missionLockAdd
+ * @param mission
+ * @param lock
+ */
+
+void MapEditor::missionLockAdd(MapEditorMission *mission, MapEditorMissionLevel *lock)
+{
+	if (!m_map || !mission || !lock || !lock->editorMission())
+		return;
+
+	QVariantMap data;
+
+	data.insert(QStringLiteral("uuid"), mission->uuid());
+	data.insert(QStringLiteral("lockUuid"), lock->editorMission()->uuid());
+	data.insert(QStringLiteral("lockLevel"), lock->level());
+
+	EditorAction *action = new EditorAction(m_map, tr("Zárolás hozzáadása: %1").arg(mission->name()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (m)
+			m->lockAdd(action->data().value(QStringLiteral("lockUuid")).toString(),
+					   action->data().value(QStringLiteral("lockLevel")).toInt());
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (m)
+			m->lockRemove(action->data().value(QStringLiteral("lockUuid")).toString(),
+						  action->data().value(QStringLiteral("lockLevel")).toInt());
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+/**
+ * @brief MapEditor::missionLockAdd
+ * @param mission
+ * @param uuid
+ * @param level
+ */
+
+void MapEditor::missionLockAdd(MapEditorMission *mission, const QString &uuid, const int &level)
+{
+	if (!m_map)
+		return;
+
+	MapEditorMissionLevel *ml = m_map->missionLevel(uuid, level);
+
+	if (ml)
+		missionLockAdd(mission, ml);
+}
+
+
+
+/**
+ * @brief MapEditor::missionLockRemove
+ * @param mission
+ * @param lock
+ */
+
+void MapEditor::missionLockRemove(MapEditorMission *mission, MapEditorMissionLevel *lock)
+{
+	if (!m_map || !mission || !lock || !lock->editorMission())
+		return;
+
+	QVariantMap data;
+
+	data.insert(QStringLiteral("uuid"), mission->uuid());
+	data.insert(QStringLiteral("lockUuid"), lock->editorMission()->uuid());
+	data.insert(QStringLiteral("lockLevel"), lock->level());
+
+	EditorAction *action = new EditorAction(m_map, tr("Zárolás törlése: %1").arg(mission->name()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (m)
+			m->lockRemove(action->data().value(QStringLiteral("lockUuid")).toString(),
+						  action->data().value(QStringLiteral("lockLevel")).toInt());
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (m)
+			m->lockAdd(action->data().value(QStringLiteral("lockUuid")).toString(),
+					   action->data().value(QStringLiteral("lockLevel")).toInt());
+	});
+
+	m_undoStack->call(action);
+}
+
+
 
 
 
@@ -502,4 +675,277 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 	m_undoStack->call(action);
 
 	return m_map->missionLevel(mission->uuid(), data.value(QStringLiteral("level")).toInt());
+}
+
+
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelRemove
+ * @param missionLevel
+ */
+
+void MapEditor::missionLevelRemove(MapEditorMissionLevel *missionLevel)
+{
+	if (!m_map || !missionLevel || !missionLevel->editorMission())
+		return;
+
+	if (!missionLevel->canDelete())
+		return;
+
+	QVariantMap data = missionLevel->toVariantMap();
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+
+	EditorAction *action = new EditorAction(m_map, tr("Szint törlése: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("missionUuid")).toString());
+
+		if (!m)
+			return;
+
+		MapEditorMissionLevel *ml = m->level(action->data().value(QStringLiteral("level")).toInt());
+
+		if (!ml)
+			return;
+
+		m->levelRemove(ml);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("missionUuid")).toString());
+
+		if (m) {
+			const int l = action->data().value(QStringLiteral("level")).toInt();
+
+			MapEditorMissionLevel *ml = m->level(l);
+
+			if (ml) {
+				LOG_CERROR("client") << "Level" << l << "already exists in mission:" << qPrintable(m->uuid());
+				ml->fromVariantMap(action->data());
+			} else {
+				ml = new MapEditorMissionLevel(m);
+				ml->fromVariantMap(action->data());
+				m->levelAdd(ml);
+			}
+
+		}
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelModify
+ * @param missionLevel
+ * @param modifyFunc
+ */
+
+void MapEditor::missionLevelModify(MapEditorMissionLevel *missionLevel, QJSValue modifyFunc)
+{
+	if (!m_map || !missionLevel || !missionLevel->editorMission())
+		return;
+
+	QVariantMap data;
+	data.insert(QStringLiteral("uuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("level"), missionLevel->level());
+	data.insert(QStringLiteral("from"), missionLevel->toVariantMap(true));
+
+	if (modifyFunc.isCallable())
+		modifyFunc.call();
+
+	data.insert(QStringLiteral("to"), missionLevel->toVariantMap(true));
+
+	EditorAction *action = new EditorAction(m_map, tr("Szint módosítása: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *mis = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (!mis)
+			return;
+
+		MapEditorMissionLevel *level = mis->level(action->data().value(QStringLiteral("level")).toInt());
+
+		if (!level)
+			return;
+
+		level->fromVariantMap(action->data().value(QStringLiteral("to")).toMap(), true);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *mis = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (!mis)
+			return;
+
+		if (!mis)
+			return;
+
+		MapEditorMissionLevel *level = mis->level(action->data().value(QStringLiteral("level")).toInt());
+
+		if (!level)
+			return;
+
+		level->fromVariantMap(action->data().value(QStringLiteral("from")).toMap(), true);
+
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+/**
+ * @brief MapEditor::missionLevelChapterAdd
+ * @param missionLevel
+ * @param chapterList
+ */
+
+void MapEditor::missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList)
+{
+	LOG_CTRACE("client") << "ADD" << chapterList;
+}
+
+
+/**
+ * @brief MapEditor::missionLevelChapterRemove
+ * @param missionLevel
+ * @param chapterList
+ */
+
+void MapEditor::missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList)
+{
+
+}
+
+
+
+/**
+ * @brief MapEditor::missionLevelPlay
+ * @param missionLevel
+ * @param mode
+ */
+
+void MapEditor::missionLevelPlay(MapEditorMissionLevel *missionLevel, int mode)
+{
+	if (!missionLevel)
+		return;
+
+	if (m_mapPlay->reloadMap(m_map))
+		m_mapPlay->play(missionLevel, (GameMap::GameMode) mode);
+}
+
+
+
+
+
+/**
+ * @brief MapPlayEditor::reloadMap
+ * @param map
+ */
+
+bool MapPlayEditor::reloadMap(MapEditorMap *map)
+{
+	if (!map)
+		return false;
+
+	LOG_CTRACE("client") << "Reload MapPlayEditorMap";
+
+	GameMap *gmap = GameMap::fromBinaryData(map->toBinaryData());
+
+	if (!gmap) {
+		m_client->messageError(tr("Nem lehet létrehozni a pályát!"), tr("Belső hiba"));
+		return false;
+	}
+
+	loadGameMap(gmap);
+
+	return true;
+}
+
+
+/**
+ * @brief MapPlayEditor::play
+ * @param missionLevel
+ * @param mode
+ * @return
+ */
+
+bool MapPlayEditor::play(MapEditorMissionLevel *missionLevel, const GameMap::GameMode &mode)
+{
+	if (!missionLevel || !missionLevel->editorMission())
+		return false;
+
+	MapPlayMissionLevel *playLevel = nullptr;
+
+	for (MapPlayMission *mis : *m_missionList) {
+		if (mis->uuid() == missionLevel->editorMission()->uuid()) {
+			for (MapPlayMissionLevel *ml : *mis->missionLevelList()) {
+				if (ml->level() == missionLevel->level()) {
+					playLevel = ml;
+					break;
+				}
+			}
+		}
+		if (playLevel)
+			break;
+	}
+
+
+	if (!playLevel) {
+		m_client->messageError(tr("Nem lehet elindítani a játékot!"), tr("Belső hiba"));
+		return false;
+	}
+
+	return MapPlay::play(playLevel, mode);
+}
+
+
+
+/**
+ * @brief MapPlayEditor::onCurrentGamePrepared
+ */
+
+void MapPlayEditor::onCurrentGamePrepared()
+{
+	if (!m_currentGame)
+		return;
+
+	m_currentGame->load();
+
+	setGameState(StatePlay);
+}
+
+
+/**
+ * @brief MapPlayEditor::onCurrentGameFinished
+ */
+
+void MapPlayEditor::onCurrentGameFinished()
+{
+	if (!m_currentGame || !m_client)
+		return;
+
+	AbstractLevelGame *g = m_currentGame;
+
+	setCurrentGame(nullptr);
+	m_client->setCurrentGame(nullptr);
+	g->setReadyToDestroy(true);
+
+	setGameState(StateFinished);
 }

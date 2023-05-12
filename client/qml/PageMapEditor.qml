@@ -15,7 +15,7 @@ QPage {
 		}*/
 
 		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
+			swipeView.decrementCurrentIndex()
 			return false
 		}
 
@@ -82,6 +82,12 @@ QPage {
 			editor: _editor
 		}
 
+
+		MapEditorChapterList {
+			editor: _editor
+		}
+
+
 		Rectangle {
 			color: "blue"
 		}
@@ -92,10 +98,10 @@ QPage {
 		currentIndex: swipeView.currentIndex
 
 		Component.onCompleted: {
+			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.account, color: "green" })
 			model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.account, color: "green" })
-			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
+			/*model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}
 	}
 

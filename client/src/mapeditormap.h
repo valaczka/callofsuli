@@ -127,6 +127,12 @@ public:
 	const QString &uuid() const;
 	void setUuid(const QString &newUuid);
 
+
+	int nextIndexStorage() { return ++m_indexStorage; }
+	int nextIndexImage() { return ++m_indexImage; }
+	int nextIndexChapter() { return ++m_indexChapter; }
+	int nextIndexInventory() { return ++m_indexInventory; }
+
 protected:
 	QList<GameMapStorageIface *> ifaceStorages() const override
 	{ return olmListConvert<GameMapStorageIface>(m_storageList); }
@@ -162,6 +168,7 @@ private:
 	int m_indexStorage = 0;
 	int m_indexImage = 0;
 	int m_indexChapter = 0;
+	int m_indexInventory = 0;
 };
 
 
@@ -293,6 +300,7 @@ class MapEditorChapter : public MapEditorObject, public GameMapChapterIface
 	Q_PROPERTY(qint32 chapterid READ id WRITE setId NOTIFY idChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 	Q_PROPERTY(MapEditorObjectiveList *objectiveList READ objectiveList CONSTANT)
+	Q_PROPERTY(int objectiveCount READ objectiveCount NOTIFY objectiveCountChanged)
 
 public:
 	explicit MapEditorChapter() : MapEditorObject(), GameMapChapterIface(),
@@ -313,9 +321,15 @@ public:
 
 	MapEditorObjectiveList *objectiveList() const;
 
+	int objectiveCount() const;
+	void setObjectiveCount(int newObjectiveCount);
+
+	Q_INVOKABLE void recalculateObjectiveCount();
+
 signals:
 	void idChanged();
 	void nameChanged();
+	void objectiveCountChanged();
 
 protected:
 	QList<GameMapObjectiveIface*> ifaceObjectives() const override
@@ -329,6 +343,7 @@ protected:
 
 private:
 	MapEditorObjectiveList *const m_objectiveList;
+	int m_objectiveCount = 0;
 };
 
 
@@ -441,12 +456,12 @@ public:
 	const GameMap::GameModes &modes() const;
 	void setModes(const GameMap::GameModes &newModes);
 
-	Q_INVOKABLE int modesAsInt() const { return m_modes; }
-
 	MapEditorMissionLevelList *levelList() const;
 	MapEditorMissionLevel *level(const int &level) const;
 
-	MapEditorMissionLevel *createNextLevel() const;
+	MapEditorMissionLevel *createNextLevel(MapEditorMap *map = nullptr) const;
+	void levelAdd(MapEditorMissionLevel *level);
+	void levelRemove(MapEditorMissionLevel *level);
 
 	QString fullMedalImage() const;
 
@@ -506,7 +521,7 @@ class MapEditorMissionLevel : public MapEditorObject, public GameMapMissionLevel
 	Q_PROPERTY(qreal passed READ passed WRITE setPassed NOTIFY passedChanged)
 	Q_PROPERTY(MapEditorInventoryList *inventoryList READ inventoryList CONSTANT)
 	Q_PROPERTY(MapEditorMission *mission READ editorMission CONSTANT)
-	Q_PROPERTY(QList<int> chapterList READ chapterList WRITE setChapterList NOTIFY chapterListChanged)
+	Q_PROPERTY(QList<MapEditorChapter*> chapterList READ chapterList NOTIFY chapterListChanged)
 
 public:
 	explicit MapEditorMissionLevel(MapEditorMission *mission)
@@ -551,10 +566,22 @@ public:
 	void setPassed(qreal newPassed);
 
 	MapEditorInventoryList *inventoryList() const;
+	MapEditorInventory *inventory(const int &inventoryId) const;
 	MapEditorMission *editorMission() const { return m_mission; }
 
-	const QList<int> &chapterList() const;
-	void setChapterList(const QList<int> &newChapterList);
+	QList<MapEditorChapter *> chapterList() const;
+
+	Q_INVOKABLE void chapterAdd(const int &id);
+	Q_INVOKABLE void chapterAdd(MapEditorChapter *chapter);
+	Q_INVOKABLE void chapterRemove(const int &id);
+	Q_INVOKABLE void chapterRemove(MapEditorChapter *chapter);
+
+	Q_INVOKABLE bool canDelete() const;
+	Q_INVOKABLE QList<MapEditorChapter*> unlinkedChapterList() const;
+
+	Q_INVOKABLE void inventoryAdd(MapEditorInventory *inventory);
+	Q_INVOKABLE void inventoryRemove(MapEditorInventory *inventory);
+
 
 signals:
 	void levelChanged();
@@ -580,7 +607,7 @@ protected:
 private:
 	MapEditorInventoryList *const m_inventoryList;
 	MapEditorMission *const m_mission;
-	QList<int> m_chapterList;
+	QList<QPointer<MapEditorChapter>> m_chapterList;
 
 };
 
@@ -626,7 +653,6 @@ signals:
 	void blockChanged();
 	void moduleChanged();
 	void countChanged();
-
 	void inventoryidChanged();
 
 private:

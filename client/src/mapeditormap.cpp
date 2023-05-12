@@ -27,6 +27,7 @@
 #include "mapeditormap.h"
 #include "Logger.h"
 #include "clientcache.h"
+#include "utils.h"
 
 /**
  * @brief MapEditorMap::MapEditorMap
@@ -214,7 +215,7 @@ MapEditorMissionLevel *MapEditorMap::missionLevel(const QString &uuid, const int
 
 MapEditorStorage *MapEditorMap::storage(const int &id) const
 {
-	return OlmLoader::find<MapEditorStorage>(m_storageList, "id", id);
+	return OlmLoader::find<MapEditorStorage>(m_storageList, "storageid", id);
 }
 
 
@@ -226,7 +227,7 @@ MapEditorStorage *MapEditorMap::storage(const int &id) const
 
 MapEditorChapter *MapEditorMap::chapter(const int &id) const
 {
-	return OlmLoader::find<MapEditorChapter>(m_chapterList, "id", id);
+	return OlmLoader::find<MapEditorChapter>(m_chapterList, "chapterid", id);
 }
 
 
@@ -474,8 +475,49 @@ GameMapObjectiveIface *MapEditorChapter::ifaceAddObjective(const QString &uuid, 
 	d->setStorageCount(storageCount);
 	d->setData(data);
 	m_objectiveList->append(d);
+	recalculateObjectiveCount();
 	return d;
 }
+
+
+/**
+ * @brief MapEditorChapter::objectiveCount
+ * @return
+ */
+
+int MapEditorChapter::objectiveCount() const
+{
+	return m_objectiveCount;
+}
+
+void MapEditorChapter::setObjectiveCount(int newObjectiveCount)
+{
+	if (m_objectiveCount == newObjectiveCount)
+		return;
+	m_objectiveCount = newObjectiveCount;
+	emit objectiveCountChanged();
+}
+
+
+/**
+ * @brief MapEditorChapter::recalculateObjectiveCount
+ */
+
+void MapEditorChapter::recalculateObjectiveCount()
+{
+	int n = 0;
+
+	for (const MapEditorObjective *o : *m_objectiveList)
+		n += qMax(1, o->storageCount());
+
+	setObjectiveCount(n);
+}
+
+
+/**
+ * @brief MapEditorChapter::objectiveList
+ * @return
+ */
 
 MapEditorObjectiveList *MapEditorChapter::objectiveList() const
 {
@@ -995,8 +1037,14 @@ MapEditorMissionLevel *MapEditorMission::level(const int &level) const
  * @return
  */
 
-MapEditorMissionLevel *MapEditorMission::createNextLevel() const
+MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) const
 {
+	if (!map)
+		map = m_map;
+
+	if (!map)
+		return nullptr;
+
 	if (m_levelList->size() >= 3)
 		return nullptr;
 
@@ -1009,7 +1057,67 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel() const
 	level->setLevel(l);
 	level->setCanDeathmatch(m_modes.testFlag(GameMap::Action));
 
+	const QJsonObject &parameters = Utils::fileToJsonObject(QStringLiteral(":/internal/game/parameters.json"));
+
+	const QJsonObject &levelData = parameters.value(QStringLiteral("level")).toObject()
+			.value(QString::number(l)).toObject()
+			.value(QStringLiteral("defaults")).toObject();
+
+	if (levelData.contains(QStringLiteral("duration")))
+		level->setDuration(levelData.value(QStringLiteral("duration")).toInt());
+
+	if (levelData.contains(QStringLiteral("startHP")))
+		level->setStartHP(levelData.value(QStringLiteral("startHP")).toInt());
+
+	if (levelData.contains(QStringLiteral("questions")))
+		level->setQuestions(levelData.value(QStringLiteral("questions")).toDouble());
+
+	if (levelData.contains(QStringLiteral("passed")))
+		level->setPassed(levelData.value(QStringLiteral("passed")).toDouble());
+
+	if (levelData.contains(QStringLiteral("deathmatch")))
+		level->setCanDeathmatch(levelData.value(QStringLiteral("deathmatch")).toBool());
+
+	if (levelData.contains(QStringLiteral("inventory"))) {
+		const QJsonArray &list = levelData.value(QStringLiteral("inventory")).toArray();
+
+		foreach (const QJsonValue &v, list) {
+			const QVariantMap &data = v.toObject().toVariantMap();
+
+			MapEditorInventory *inventory = new MapEditorInventory(map);
+			inventory->fromVariantMap(data);
+			inventory->setInventoryid(map->nextIndexInventory());
+
+			level->inventoryAdd(inventory);
+		}
+	}
+
 	return level;
+}
+
+
+/**
+ * @brief MapEditorMission::levelAdd
+ * @param level
+ */
+
+void MapEditorMission::levelAdd(MapEditorMissionLevel *level)
+{
+	if (!m_levelList->contains(level))
+		m_levelList->append(level);
+}
+
+
+
+/**
+ * @brief MapEditorMission::removeLevel
+ * @param level
+ */
+
+void MapEditorMission::levelRemove(MapEditorMissionLevel *level)
+{
+	if (m_levelList->contains(level))
+		m_levelList->remove(level);
 }
 
 
@@ -1039,9 +1147,9 @@ void MapEditorMissionLevel::fromVariantMap(const QVariantMap &map, const bool &o
 		m_inventoryList->append(o);
 	}
 
-	foreach (const QVariant &v, map.value(QStringLiteral("chapters")).toList()) {
-		m_chapterList.append(v.toInt());
-	}
+	foreach (const QVariant &v, map.value(QStringLiteral("chapters")).toList())
+		chapterAdd(v.toInt());
+
 	emit chapterListChanged();
 }
 
@@ -1071,8 +1179,9 @@ QVariantMap MapEditorMissionLevel::toVariantMap(const bool &onlyUpdate) const
 		for (MapEditorInventory *o : *m_inventoryList)
 			iList.append(o->toVariantMap());
 
-		foreach (const int &id, m_chapterList)
-			chList.append(id);
+		foreach (MapEditorChapter *ch, m_chapterList)
+			if (ch)
+				chList.append(ch->id());
 
 		m.insert(QStringLiteral("chapters"), chList);
 		m.insert(QStringLiteral("inventories"), iList);
@@ -1198,6 +1307,24 @@ MapEditorInventoryList *MapEditorMissionLevel::inventoryList() const
 
 
 /**
+ * @brief MapEditorMissionLevel::inventory
+ * @param inventoryId
+ * @return
+ */
+
+MapEditorInventory *MapEditorMissionLevel::inventory(const int &inventoryId) const
+{
+	for (MapEditorInventory *i : *m_inventoryList) {
+		if (i->inventoryid() == inventoryId)
+			return i;
+	}
+
+	return nullptr;
+}
+
+
+
+/**
  * @brief MapEditorMissionLevel::ifaceChapters
  * @return
  */
@@ -1211,11 +1338,11 @@ QList<GameMapChapterIface *> MapEditorMissionLevel::ifaceChapters() const
 
 	list.reserve(m_chapterList.size());
 
-	foreach (const int &id, m_chapterList) {
-		MapEditorChapter *ch = m_map->chapter(id);
+	foreach (MapEditorChapter *ch, m_chapterList) {
 		if (ch)
 			list.append(ch);
 	}
+
 
 	return list;
 }
@@ -1228,8 +1355,7 @@ QList<GameMapChapterIface *> MapEditorMissionLevel::ifaceChapters() const
 
 bool MapEditorMissionLevel::ifaceAddChapter(const qint32 &chapterId)
 {
-	m_chapterList.append(chapterId);
-	emit chapterListChanged();
+	chapterAdd(chapterId);
 	return true;
 }
 
@@ -1259,17 +1385,137 @@ GameMapInventoryIface *MapEditorMissionLevel::ifaceAddInventory(const qint32 &bl
  * @return
  */
 
-const QList<int> &MapEditorMissionLevel::chapterList() const
+QList<MapEditorChapter *> MapEditorMissionLevel::chapterList() const
 {
-	return m_chapterList;
+	QList<MapEditorChapter *> list;
+
+	list.reserve(m_chapterList.size());
+
+	foreach (MapEditorChapter *ml, m_chapterList)
+		if (ml)
+			list.append(ml);
+
+	return list;
 }
 
-void MapEditorMissionLevel::setChapterList(const QList<int> &newChapterList)
+
+/**
+ * @brief MapEditorMissionLevel::chapterAdd
+ * @param id
+ */
+
+void MapEditorMissionLevel::chapterAdd(const int &id)
 {
-	if (m_chapterList == newChapterList)
-		return;
-	m_chapterList = newChapterList;
-	emit chapterListChanged();
+	chapterAdd(m_map->chapter(id));
+}
+
+
+/**
+ * @brief MapEditorMissionLevel::chapterAdd
+ * @param chapter
+ */
+
+void MapEditorMissionLevel::chapterAdd(MapEditorChapter *chapter)
+{
+	if (chapter) {
+		m_chapterList.append(chapter);
+		emit chapterListChanged();
+	}
+}
+
+
+/**
+ * @brief MapEditorMissionLevel::chapterRemove
+ * @param id
+ */
+
+void MapEditorMissionLevel::chapterRemove(const int &id)
+{
+	chapterRemove(m_map->chapter(id));
+}
+
+
+/**
+ * @brief MapEditorMissionLevel::chapterRemove
+ * @param chapter
+ */
+
+void MapEditorMissionLevel::chapterRemove(MapEditorChapter *chapter)
+{
+	if (chapter) {
+		m_chapterList.removeAll(chapter);
+		emit chapterListChanged();
+	}
+}
+
+
+
+/**
+ * @brief MapEditorMissionLevel::canDelete
+ * @return
+ */
+
+bool MapEditorMissionLevel::canDelete() const
+{
+	if (!m_mission)
+		return false;
+
+	int maxLevel = 0;
+
+	for (const MapEditorMissionLevel *level : *m_mission->levelList())
+		maxLevel = qMax(maxLevel, level->level());
+
+	return (m_level > 1 && m_level == maxLevel);
+}
+
+
+
+
+
+/**
+ * @brief MapEditorMissionLevel::unlinkedChapterList
+ * @return
+ */
+
+QList<MapEditorChapter *> MapEditorMissionLevel::unlinkedChapterList() const
+{
+	QList<MapEditorChapter *> list;
+
+	if (!m_map)
+		return list;
+
+	for (MapEditorChapter *chapter : *m_map->chapterList()) {
+		if (chapter && !m_chapterList.contains(chapter))
+			list.append(chapter);
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief MapEditorMissionLevel::inventoryAdd
+ * @param inventory
+ */
+
+void MapEditorMissionLevel::inventoryAdd(MapEditorInventory *inventory)
+{
+	if (!m_inventoryList->contains(inventory))
+		m_inventoryList->append(inventory);
+}
+
+
+/**
+ * @brief MapEditorMissionLevel::inventoryRemove
+ * @param inventory
+ */
+
+void MapEditorMissionLevel::inventoryRemove(MapEditorInventory *inventory)
+{
+	if (m_inventoryList->contains(inventory))
+		m_inventoryList->remove(inventory);
 }
 
 

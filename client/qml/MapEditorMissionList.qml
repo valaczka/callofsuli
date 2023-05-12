@@ -63,7 +63,7 @@ Item {
 								Layout.topMargin: Qaterial.Style.card.horizontalPadding
 								Layout.leftMargin: Qaterial.Style.card.horizontalPadding
 								Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-								Layout.bottomMargin: 2
+								Layout.bottomMargin: 4
 								Layout.fillWidth: true
 
 								Component.onCompleted: reloadModel()
@@ -78,8 +78,6 @@ Item {
 
 								function reloadModel() {
 									var list = []
-
-									var m = mission.modesAsInt()
 
 									if (mission.modes & GameMap.Action)
 										list.push({
@@ -172,6 +170,7 @@ Item {
 									{
 										property MapEditorMissionLevel missionLevel: model.qtObject
 										text: qsTr("Level %1").arg(missionLevel.level)
+										onClicked: loadMissionLevel(missionLevel)
 									}
 								}
 
@@ -183,7 +182,7 @@ Item {
 									icon.source: Qaterial.Icons.plus
 									onClicked: {
 										var m = editor.missionLevelAdd(mission)
-										console.warn("ADD", m, m.level)
+										loadMissionLevel(m)
 									}
 								}
 
@@ -256,9 +255,17 @@ Item {
 	}
 
 	function loadMission(m) {
-		Client.stackPushPage("MapEditorMission.qml", {
-								 editor: root.editor,
+		var o = Client.stackPushPage("MapEditorMissionItem.qml", {
 								 mission: m
+							 })
+
+		if (o)
+			o.missionLevelLoadRequest.connect((ml) => loadMissionLevel(ml))
+	}
+
+	function loadMissionLevel(ml) {
+		Client.stackPushPage("MapEditorMissionLevelItem.qml", {
+								 missionLevel: ml
 							 })
 	}
 

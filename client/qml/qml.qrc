@@ -126,7 +126,15 @@
         <file>PageMapEditor.qml</file>
         <file>MapEditorMissionList.qml</file>
         <file>QTagList.qml</file>
-        <file>MapEditorMission.qml</file>
+        <file>MapEditorMissionItem.qml</file>
         <file>MapEditorToolbarComponent.qml</file>
+        <file>MapEditorChapterList.qml</file>
+        <file>MapEditorChapterItem.qml</file>
+        <file>MapEditorObjectiveItem.qml</file>
+        <file>QBanner.qml</file>
+        <file>MapEditorMissionLevelItem.qml</file>
+        <file>MapEditorInventoryItem.qml</file>
+        <file>QExpandableHeader.qml</file>
+        <file>QIndentedItem.qml</file>
     </qresource>
 </RCC>
