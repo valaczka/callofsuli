@@ -1,74 +1,57 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.14
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
-QCollapsible {
-    id: control
 
-    collapsed: false
+QFormColumn {
+	id: root
 
-    property var moduleData: null
+	width: parent.width
 
-    property bool editable: false
+	property MapEditorObjectiveEditor objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-    signal modified()
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-    title: qsTr("Összerendelések")
+	QFormBindingField {
+		id: _binding
+		width: parent.width
 
-    rightComponent: QToolButton {
-        visible: !control.editable
-        icon.source: "qrc:/internal/icon/pencil.svg"
-        text: qsTr("Szerkesztés")
-        display: AbstractButton.IconOnly
-        onClicked: control.editable = true
-    }
+		title: qsTr("Párok")
 
-    QGridLayout {
-        id: layout
+		defaultLeftData: ""
+		defaultRightData: ""
 
-        watchModification: true
-        onModifiedChanged: if (layout.modified)
-                               control.modified()
+		leftComponent: QFormBindingTextField {
+			bindingField: _binding
+		}
 
-        QGridDoubleTextFields {
-            id: fields
-            sqlField: "bindings"
-
-            watchModification: true
-
-            readOnly: !control.editable
-
-            Layout.fillWidth: true
-            Layout.columnSpan: layout.columns
-
-            onModification: getData()
-
-        }
-    }
-
-    Component.onCompleted: {
-        if (!moduleData)
-            return
-
-        JS.setSqlFields([fields], moduleData)
-    }
+		rightComponent: QFormBindingTextField {
+			bindingField: _binding
+		}
+	}
 
 
-    function getData() {
-        moduleData = JS.getSqlFields([fields])
+	function saveData() {
+		if (!storage)
+			return
 
-        if (editable)
-            return moduleData
-        else
-            return {}
-    }
+		storage.data = {
+			bindings: _binding.saveToList()
+		}
+	}
 
+	function loadData() {
+		if (storage && storage.data.bindings)
+			_binding.loadFromList(storage.data.bindings)
+		else
+			_binding.loadFromList([])
+
+		if (storage && storage.storageid <= 0)
+			_binding.readOnly = false
+	}
 }
-
-
-
-

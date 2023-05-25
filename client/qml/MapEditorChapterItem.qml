@@ -11,6 +11,14 @@ Qaterial.Expandable {
 
 	property MapEditorChapter chapter: null
 	property bool separatorVisible: true
+	property bool actionAddVisible: false
+	property bool chapterDeleteAction: false
+
+	readonly property MapEditor editor: chapter && chapter.map ? chapter.map.mapEditor : null
+
+	property QListView _objectiveView: null
+
+	signal removeActionRequest()
 
 	header: Item {
 		width: root.width
@@ -52,8 +60,50 @@ Qaterial.Expandable {
 			}
 
 			Qaterial.RoundButton {
-				icon.source: Qaterial.Icons.dotsVertical
 				Layout.alignment: Qt.AlignCenter
+				icon.source: Qaterial.Icons.dotsVertical
+				icon.color: Qaterial.Style.iconColor()
+				onClicked: root._objectiveView ? contextMenuFull.popup() : contextMenuSimple.popup()
+
+
+				Qaterial.Menu {
+					id: contextMenuSimple
+					QMenuItem { action: actionChapterRename }
+					QMenuItem { action: chapterDeleteAction ? actionChapterDelete : actionChapterRemove }
+				}
+
+				Qaterial.Menu {
+					id: contextMenuFull
+
+					QMenuItem { action: actionChapterRename }
+					QMenuItem { action: chapterDeleteAction ? actionChapterDelete : actionChapterRemove }
+
+					Qaterial.MenuSeparator {}
+
+					Qaterial.Menu {
+						title: qsTr("Feladatok")
+						QMenuItem { action: root._objectiveView ? root._objectiveView.actionSelectAll : null}
+						QMenuItem { action: root._objectiveView ? root._objectiveView.actionSelectNone : null }
+						Qaterial.MenuSeparator {}
+						QMenuItem { action: actionObjectiveAdd }
+						QMenuItem {
+							text: qsTr("Törlés")
+							icon.source: Qaterial.Icons.trashCan
+							enabled: root._objectiveView
+							onClicked: {
+								if (!editor)
+									return
+
+								let l = root._objectiveView.getSelected()
+
+								//if (l.length)
+								//	editor.missionLevelInventoryRemove(missionLevel, l)
+
+								root._objectiveView.unselectAll()
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -69,6 +119,7 @@ Qaterial.Expandable {
 	delegate: QIndentedItem {
 		width: root.width
 		QListView {
+			id: _objectiveView
 			width: parent.width
 			height: contentHeight
 			boundsBehavior: Flickable.StopAtBounds
@@ -80,7 +131,72 @@ Qaterial.Expandable {
 			delegate: MapEditorObjectiveItem {
 				objective: model.qtObject
 				width: ListView.view.width
+
+				onClicked: {
+					Client.stackPushPage("MapEditorObjectiveEditor.qml", {
+											 chapter: chapter,
+											 objective: objective,
+											 storage: objective.storage
+										 })
+				}
 			}
+
+			footer: Qaterial.ItemDelegate {
+				width: ListView.view.width
+				height: visible ? implicitHeight : 0
+				visible: actionAddVisible
+				textColor: Qaterial.Colors.cyan700
+				iconColor: textColor
+				action: actionObjectiveAdd
+				text: qsTr("Új feladat létrehozása")
+			}
+
+			Component.onCompleted: root._objectiveView = _objectiveView
+			Component.onDestruction: root._objectiveView = null
 		}
+	}
+
+	Action {
+		id: actionObjectiveAdd
+		text: qsTr("Létrehozás")
+		icon.source: Qaterial.Icons.plus
+		onTriggered: if (editor) editor.objectiveDialogRequest(chapter)
+	}
+
+	Action {
+		id: actionChapterRename
+		text: qsTr("Átnevezés")
+		icon.source: Qaterial.Icons.renameBox
+		enabled: chapter
+
+		onTriggered: {
+			Qaterial.DialogManager.showTextFieldDialog({
+														   textTitle: qsTr("Feladatcsoport neve"),
+														   title: qsTr("Feladatcsoport átnevezése"),
+														   text: chapter.name,
+														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   onAccepted: function(_text, _noerror) {
+															   if (_noerror && _text.length) {
+																   editor.chapterModify(chapter, function(){
+																	   chapter.name = _text
+																   })
+															   }
+														   }
+													   })
+		}
+	}
+
+	Action {
+		id: actionChapterRemove
+		text: qsTr("Eltávolítás")
+		icon.source: Qaterial.Icons.minus
+		onTriggered: root.removeActionRequest()
+	}
+
+	Action {
+		id: actionChapterDelete
+		text: qsTr("Törlés")
+		icon.source: Qaterial.Icons.trashCan
+		onTriggered: if (editor) editor.chapterRemove(chapter)
 	}
 }

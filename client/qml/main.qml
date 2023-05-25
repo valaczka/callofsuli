@@ -6,6 +6,16 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
+
+// ----- For QtDeployer
+
+import Qt.labs.folderlistmodel 2.15
+import Qt.labs.platform 1.1
+import Qt.labs.settings 1.1
+import Qt.labs.calendar 1.0
+
+// -----
+
 Qaterial.ApplicationWindow
 {
 	id: mainWindow

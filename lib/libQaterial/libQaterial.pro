@@ -11,10 +11,11 @@ else: BUILDPCH = ON
 wasm|win32: BUILDUNITY = OFF
 else: BUILDUNITY = ON
 
-if ($$QaterialBuildShared): BuildShared = ON
+ios: BuildShared = OFF
+else: if ($$QaterialBuildShared): BuildShared = ON
 else: BuildShared = OFF
 
-wasm: BuildQOlmShared = OFF
+wasm|ios: BuildQOlmShared = OFF
 else: BuildQOlmShared = $$BuildShared
 
 android {

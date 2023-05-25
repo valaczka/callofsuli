@@ -4,5 +4,5 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
 Qaterial.MenuItem {
-	icon.source: action.icon.source
+	icon.source: action ? action.icon.source : ""
 }

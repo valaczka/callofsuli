@@ -30,6 +30,8 @@ QPage {
 	readonly property MapEditorMission mission: missionLevel ? missionLevel.mission : null
 	readonly property MapEditor editor: mission && mission.map ? mission.map.mapEditor : null
 
+	property QListView _inventoryView: null//_inventoryView
+
 
 	appBar.backButtonVisible: true
 	appBar.rightComponent: MapEditorToolbarComponent {
@@ -281,6 +283,11 @@ QPage {
 							delegate: MapEditorChapterItem {
 								width: parent.width
 								chapter: modelData
+
+								onRemoveActionRequest: {
+									if (editor)
+										editor.missionLevelChapterRemove(missionLevel, [chapter])
+								}
 							}
 						}
 
@@ -311,9 +318,7 @@ QPage {
 													var l = []
 
 													for (let i=0; i<indexList.length; ++i) {
-														var ch = _sortedChapterModel.get(indexList[i]).chapter
-														l.push(ch)
-														console.debug("   +", ch.name)
+														l.push(_sortedChapterModel.get(indexList[i]).chapter)
 													}
 
 													editor.missionLevelChapterAdd(missionLevel, l)
@@ -347,11 +352,48 @@ QPage {
 					text: qsTr("Felszerelés")
 					icon: Qaterial.Icons.molecule
 					expandable: _expInventory
+
+					rightSourceComponent: Qaterial.RoundButton {
+						icon.source: Qaterial.Icons.dotsVertical
+						icon.color: Qaterial.Style.iconColor()
+						onClicked: root._inventoryView ? contextMenu.popup() : contextMenuSimple.popup()
+
+						Qaterial.Menu {
+							id: contextMenu
+							QMenuItem { action: root._inventoryView ? root._inventoryView.actionSelectAll : null}
+							QMenuItem { action: root._inventoryView ? root._inventoryView.actionSelectNone : null }
+							Qaterial.MenuSeparator {}
+							QMenuItem { action: actionInventoryAdd }
+							QMenuItem {
+								text: qsTr("Törlés")
+								icon.source: Qaterial.Icons.trashCan
+								enabled: root._inventoryView
+								onClicked: {
+									if (!editor)
+										return
+
+									let l = root._inventoryView.getSelected()
+
+									if (l.length)
+										editor.missionLevelInventoryRemove(missionLevel, l)
+
+									root._inventoryView.unselectAll()
+								}
+							}
+						}
+
+						Qaterial.Menu {
+							id: contextMenuSimple
+							QMenuItem { action: actionInventoryAdd }
+						}
+					}
 				}
 
 				delegate: QIndentedItem {
 					width: _form.width
 					QListView {
+						id: _inventoryView
+
 						width: parent.width
 
 						height: contentHeight
@@ -359,7 +401,13 @@ QPage {
 
 						autoSelectChange: true
 
-						model: missionLevel ? missionLevel.inventoryList : null
+						model: SortFilterProxyModel {
+							sourceModel: missionLevel ? missionLevel.inventoryList : null
+
+							sorters: RoleSorter {
+								roleName: "inventoryid"
+							}
+						}
 
 						delegate: MapEditorInventoryItem {
 							inventory: model.qtObject
@@ -368,11 +416,52 @@ QPage {
 
 						footer: Qaterial.ItemDelegate {
 							width: ListView.view.width
-							icon.source: Qaterial.Icons.inboxArrowUp
-							text: qsTr("Új felszerelés hozzáadása")
 							textColor: Qaterial.Colors.blue700
 							iconColor: textColor
+							action: actionInventoryAdd
 						}
+
+						Component.onCompleted: root._inventoryView = _inventoryView
+						Component.onDestruction: root._inventoryView = null
+					}
+
+				}
+
+				Action {
+					id: actionInventoryAdd
+					icon.source: Qaterial.Icons.inboxArrowUp
+					text: qsTr("Új felszerelés")
+
+					onTriggered: {
+						_inventoryModel.clear()
+
+						if (!editor)
+							return
+
+						let list = editor.pickableListModel()
+
+						for (let i=0; i<list.length; ++i) {
+							let o = list[i]
+							o.iconColor = "transparent"
+							_inventoryModel.append(o)
+						}
+
+						Qaterial.DialogManager.openRadioListView(
+									{
+										onAccepted: function(index)
+										{
+											if (index < 0)
+												return
+
+											let ml = _inventoryModel.get(index)
+											if (ml)
+												editor.missionLevelInventoryAdd(missionLevel, ml.id)
+
+										},
+										title: qsTr("Felszerelés hozzáadása"),
+										standardButtons: Dialog.Cancel | Dialog.Ok,
+										model: _inventoryModel
+									})
 					}
 
 				}
@@ -383,6 +472,13 @@ QPage {
 		}
 
 	}
+
+
+	ListModel {
+		id: _inventoryModel
+	}
+
+
 
 	ListModel {
 		id: _chapterModel

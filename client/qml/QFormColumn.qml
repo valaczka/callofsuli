@@ -23,4 +23,21 @@ Column {
 		visible: text.length
 	}
 
+	function setItems(_items, _data) {
+		for (var i=0; i<_items.length; i++) {
+			if (Object.keys(_data).includes(_items[i].field))
+				_items[i].fieldData = _data[_items[i].field]
+		}
+	}
+
+	function getItems(_items) {
+		var o = {}
+
+		for (var i=0; i<_items.length; i++) {
+			o[_items[i].field] = _items[i].getData
+		}
+
+		return o
+	}
+
 }

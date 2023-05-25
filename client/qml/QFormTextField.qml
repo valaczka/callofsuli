@@ -9,6 +9,11 @@ Qaterial.TextField {
 
 	property bool watchModification: true
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
+	property string field: ""
+	property string fieldData: ""
+	readonly property string getData: text
+
+	onFieldDataChanged: text = fieldData
 
 	onTextEdited: if (_form && watchModification) _form.modified = true
 }

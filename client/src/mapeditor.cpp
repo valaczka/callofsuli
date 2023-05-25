@@ -62,6 +62,17 @@ MapEditor::~MapEditor()
 {
 	delete m_mapPlay;
 	delete m_undoStack;
+
+	if (m_tmpObjective) {
+		delete m_tmpObjective;
+		m_tmpObjective = nullptr;
+	}
+
+	if (m_tmpStorage) {
+		delete m_tmpStorage;
+		m_tmpStorage = nullptr;
+	}
+
 	LOG_CTRACE("client") << "MapEditor destroyed" << this;
 }
 
@@ -92,9 +103,7 @@ void MapEditor::setMap(MapEditorMap *newMap)
 
 void MapEditor::save()
 {
-	LOG_CWARNING("client") << "SAVE";
-	setAutoSaved(true);
-	setModified(false);
+	emit saveRequest();
 }
 
 
@@ -104,8 +113,41 @@ void MapEditor::save()
 
 void MapEditor::saveAuto()
 {
-	LOG_CWARNING("client") << "SAVE AUTO";
-	setAutoSaved(true);
+	emit autoSaveRequest();
+}
+
+
+/**
+ * @brief MapEditor::onSaved
+ * @param success
+ */
+
+void MapEditor::onSaved(const bool &success)
+{
+	LOG_CWARNING("client") << "SAVED" << success;
+
+	if (success) {
+		setAutoSaved(true);
+		setModified(false);
+	} else {
+		m_client->snack(tr("A mentés sikertelen"));
+	}
+}
+
+
+
+/**
+ * @brief MapEditor::onAutoSaved
+ * @param success
+ */
+
+void MapEditor::onAutoSaved(const bool &success)
+{
+	if (success) {
+		setAutoSaved(true);
+	} else {
+		m_client->snack(tr("A mentés sikertelen"));
+	}
 }
 
 
@@ -125,6 +167,48 @@ bool MapEditor::loadMapTest()
 		return false;
 
 	setDisplayName("test.map");
+
+	connect(this, &MapEditor::saveRequest, this, [this]() {
+		if (!m_map)
+			return onSaved(false);
+
+		const QByteArray &data = m_map->toBinaryData();
+
+		QFile f("/home/valaczka/test.map");
+
+		if (!f.open(QIODevice::WriteOnly)) {
+			LOG_CWARNING("client") << "Can't write file:";
+			return onSaved(false);
+		}
+
+		f.write(data);
+
+		f.close();
+
+		QFile::remove("/home/valaczka/test.map.autosave");
+
+		onSaved(true);
+	});
+
+	connect(this, &MapEditor::autoSaveRequest, this, [this]() {
+		if (!m_map)
+			return onAutoSaved(false);
+
+		const QByteArray &data = m_map->toBinaryData();
+
+		QFile f("/home/valaczka/test.map.autosave");
+
+		if (!f.open(QIODevice::WriteOnly)) {
+			LOG_CWARNING("client") << "Can't write file:";
+			return onAutoSaved(false);
+		}
+
+		f.write(data);
+
+		f.close();
+
+		onAutoSaved(true);
+	});
 
 	return loadFromBinaryData(b);
 }
@@ -219,6 +303,7 @@ void MapEditor::setModified(bool newModified)
 		return;
 	m_modified = newModified;
 	emit modifiedChanged();
+	emit displayNameChanged();
 }
 
 
@@ -229,10 +314,16 @@ void MapEditor::setModified(bool newModified)
  * @return
  */
 
-const QString &MapEditor::displayName() const
+QString MapEditor::displayName() const
 {
-	return m_displayName;
+	return m_modified ? tr("* ")+m_displayName : m_displayName;
 }
+
+
+/**
+ * @brief MapEditor::setDisplayName
+ * @param newDisplayName
+ */
 
 void MapEditor::setDisplayName(const QString &newDisplayName)
 {
@@ -274,6 +365,45 @@ QVariantMap MapEditor::storageInfo(MapEditorStorage *storage) const
 }
 
 
+/**
+ * @brief MapEditor::objectiveQml
+ * @param objective
+ * @return
+ */
+
+QString MapEditor::objectiveQml(MapEditorObjective *objective) const
+{
+	if (objective) {
+		ModuleInterface *mi = Application::instance()->objectiveModules().value(objective->module());
+
+		if (mi)
+			return mi->qmlEditor();
+	}
+
+	return QLatin1String("");
+}
+
+
+
+/**
+ * @brief MapEditor::storageQml
+ * @param storage
+ * @return
+ */
+
+QString MapEditor::storageQml(MapEditorStorage *storage) const
+{
+	if (storage) {
+		ModuleInterface *mi = Application::instance()->storageModules().value(storage->module());
+
+		if (mi)
+			return mi->qmlEditor();
+	}
+
+	return QLatin1String("");
+}
+
+
 
 /**
  * @brief MapEditor::inventoryInfo
@@ -299,6 +429,120 @@ QVariantMap MapEditor::inventoryInfo(MapEditorInventory *inventory) const
 			{ QStringLiteral("icon"), data.image }
 		};
 }
+
+
+
+/**
+ * @brief MapEditor::pickableList
+ * @return
+ */
+
+QVariantList MapEditor::pickableListModel() const
+{
+	QVariantList list;
+
+	foreach (const GamePickable::GamePickableData &data, GamePickable::pickableDataTypes())
+		list.append(QVariantMap {
+						{ QStringLiteral("id"), data.id },
+						{ QStringLiteral("text"), data.name },
+						{ QStringLiteral("icon"), data.image },
+					});
+
+	return list;
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveListModel
+ * @return
+ */
+
+QVariantList MapEditor::objectiveListModel() const
+{
+	QVariantList list;
+
+	QStringList keys = Application::instance()->objectiveModules().keys();
+
+	keys.sort();
+
+	foreach (const QString &k, keys) {
+		const ModuleInterface *iface = Application::instance()->objectiveModules().value(k);
+		if (!iface)
+			continue;
+
+		list.append(QVariantMap {
+						{ QStringLiteral("module"), iface->name() },
+						{ QStringLiteral("text"), iface->readableName() },
+						{ QStringLiteral("icon"), iface->icon() },
+					});
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief MapEditor::storageListModel
+ * @param objectiveModule
+ * @return
+ */
+
+QVariantList MapEditor::storageListModel(const QString &objectiveModule) const
+{
+	QVariantList list;
+
+	const ModuleInterface *iface = Application::instance()->objectiveModules().value(objectiveModule);
+
+	if (!iface)
+		return list;
+
+	foreach (const QString &s, iface->storageModules()) {
+		const ModuleInterface *iface = Application::instance()->storageModules().value(s);
+
+		if (!iface)
+			continue;
+
+		list.append(QVariantMap {
+						{ QStringLiteral("module"), iface->name() },
+						{ QStringLiteral("text"), iface->readableName() },
+						{ QStringLiteral("icon"), iface->icon() },
+					});
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief MapEditor::storageModel
+ * @param storageModule
+ * @return
+ */
+
+QVariantList MapEditor::storageModel(const QString &storageModule) const
+{
+	QVariantList list;
+
+	if (!m_map)
+		return list;
+
+	for (MapEditorStorage *s : *m_map->storageList()) {
+		if (s->module() != storageModule)
+			continue;
+
+		QVariantMap m = storageInfo(s);
+		m.insert(QStringLiteral("storage"), QVariant::fromValue(s));
+		list.append(m);
+	}
+
+
+	return list;
+}
+
+
 
 
 /**
@@ -616,6 +860,564 @@ void MapEditor::missionLockRemove(MapEditorMission *mission, MapEditorMissionLev
 
 
 
+/**
+ * @brief MapEditor::storageRemove
+ * @param storage
+ */
+
+void MapEditor::storageRemove(MapEditorStorage *storage)
+{
+	if (!m_map || !storage)
+		return;
+
+	const QVariantMap &data = storage->toVariantMap();
+
+	for (MapEditorChapter *ch : *m_map->chapterList()) {
+		for (MapEditorObjective *o : *ch->objectiveList()) {
+			if (o->storageId() == storage->id()) {
+				LOG_CERROR("client") << "Storage used in objectives:" << storage->id();
+				return;
+			}
+		}
+	}
+
+	EditorAction *action = new EditorAction(m_map, tr("Adatbank törlése"));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorStorage *s = action->map()->storage(action->data().value(QStringLiteral("id")).toInt());
+
+		if (s)
+			action->map()->storageList()->remove(s);
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorStorage *s = new MapEditorStorage(action->map());
+		s->fromVariantMap(action->data());
+
+		action->map()->storageList()->append(s);
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+
+/**
+ * @brief MapEditor::chapterAdd
+ * @param name
+ */
+
+void MapEditor::chapterAdd(const QString &name)
+{
+	if (!m_map)
+		return;
+
+	MapEditorChapter chapter;
+	chapter.setId(m_map->nextIndexChapter());
+	chapter.setName(name.isEmpty() ? tr("Új feladatcsoport") : name);
+
+	const QVariantMap &data = chapter.toVariantMap();
+
+	EditorAction *action = new EditorAction(m_map, tr("Új feladatcsoport: %1").arg(name));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = new MapEditorChapter(action->map());
+		ch->fromVariantMap(action->data());
+
+		action->map()->chapterList()->append(ch);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("id")).toInt());
+
+		if (ch)
+			action->map()->chapterList()->remove(ch);
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+
+/**
+ * @brief MapEditor::chapterRemove
+ * @param chapter
+ */
+
+void MapEditor::chapterRemove(MapEditorChapter *chapter)
+{
+	if (!m_map || !chapter)
+		return;
+
+	QVariantMap data = chapter->toVariantMap();
+
+	QVariantList levels;
+
+	for (MapEditorMission *mis : *m_map->missionList()) {
+		for (MapEditorMissionLevel *ml : *mis->levelList()) {
+			if (ml->chapterList().contains(chapter)) {
+				levels.append(QVariantMap{
+								  { QStringLiteral("uuid"), mis->uuid() },
+								  { QStringLiteral("level"), ml->level() }
+							  });
+			}
+		}
+	}
+
+	data.insert(QStringLiteral("usedLevels"), levels);
+
+	EditorAction *action = new EditorAction(m_map, tr("Feladatcsoport törlése: %1").arg(chapter->name()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("id")).toInt());
+
+		if (ch) {
+			const QVariantList &levels = action->data().value(QStringLiteral("usedLevels")).toList();
+			foreach (const QVariant &v, levels) {
+				const QVariantMap &lm = v.toMap();
+
+				MapEditorMissionLevel *ml = action->map()->missionLevel(lm.value(QStringLiteral("uuid")).toString(),
+																		lm.value(QStringLiteral("level")).toInt());
+
+				if (ml)
+					ml->chapterRemove(ch);
+			}
+
+			action->map()->chapterList()->remove(ch);
+		}
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = new MapEditorChapter(action->map());
+		ch->fromVariantMap(action->data());
+
+		action->map()->chapterList()->append(ch);
+
+		ch->recalculateStorageCount();
+
+		const QVariantList &levels = action->data().value(QStringLiteral("usedLevels")).toList();
+
+		foreach (const QVariant &v, levels) {
+			const QVariantMap &lm = v.toMap();
+
+			MapEditorMissionLevel *ml = action->map()->missionLevel(lm.value(QStringLiteral("uuid")).toString(),
+																	lm.value(QStringLiteral("level")).toInt());
+
+			if (ml)
+				ml->chapterAdd(ch);
+		}
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+/**
+ * @brief MapEditor::chapterModify
+ * @param chapter
+ * @param modifyFunc
+ */
+
+void MapEditor::chapterModify(MapEditorChapter *chapter, QJSValue modifyFunc)
+{
+	if (!m_map || !chapter)
+		return;
+
+	QVariantMap data;
+	data.insert(QStringLiteral("id"), chapter->id());
+	data.insert(QStringLiteral("from"), chapter->toVariantMap(true));
+
+	if (modifyFunc.isCallable())
+		modifyFunc.call();
+
+	data.insert(QStringLiteral("to"), chapter->toVariantMap(true));
+
+	EditorAction *action = new EditorAction(m_map, tr("Feladatcsoport módosítása: %1").arg(chapter->name()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("id")).toInt());
+
+		if (!ch)
+			return;
+
+		ch->fromVariantMap(action->data().value(QStringLiteral("to")).toMap(), true);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("id")).toInt());
+
+		if (!ch)
+			return;
+
+		ch->fromVariantMap(action->data().value(QStringLiteral("from")).toMap(), true);
+
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+
+/**
+ * @brief MapEditor::objectiveLoadEditor
+ * @param module
+ * @param storageModule
+ * @param storage
+ */
+
+void MapEditor::objectiveLoadEditor(MapEditorChapter *chapter, const QString &module, const QString &storageModule, MapEditorStorage *storage)
+{
+	if (module.isEmpty() || !chapter)
+		return;
+
+	if (m_tmpObjective) {
+		m_tmpObjective->deleteLater();
+		m_tmpObjective = nullptr;
+	}
+
+	if (m_tmpStorage) {
+		m_tmpStorage->deleteLater();
+		m_tmpStorage = nullptr;
+	}
+
+	LOG_CTRACE("client") << "Load objective editor" << module << storageModule << storage;
+
+	m_tmpObjective = new MapEditorObjective(m_map);
+	m_tmpObjective->setModule(module);
+
+	if (!storageModule.isEmpty()) {
+		if (storage)
+			m_tmpObjective->setStorageId(storage->id());
+		else {
+			m_tmpStorage = new MapEditorStorage(m_map);
+			m_tmpStorage->setModule(storageModule);
+		}
+	}
+
+	m_client->stackPushPage(QStringLiteral("MapEditorObjectiveEditor.qml"), QVariantMap{
+								{ QStringLiteral("chapter"), QVariant::fromValue(chapter) },
+								{ QStringLiteral("objective"), QVariant::fromValue(m_tmpObjective) },
+								{ QStringLiteral("storage"), QVariant::fromValue(storage ? storage : m_tmpStorage) },
+								{ QStringLiteral("modified"), true },
+							});
+
+
+
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveAdd
+ * @param data
+ */
+
+void MapEditor::objectiveAdd(MapEditorChapter *chapter, MapEditorObjective *objective, MapEditorStorage *storage, QJSValue modifyFunc)
+{
+	if (!m_map || !objective)
+		return;
+
+	QVariantMap data;
+	data.insert(QStringLiteral("chapterId"), chapter->id());
+
+
+	int storageId = 0;
+
+	if (storage) {
+		MapEditorStorage s(m_map);
+		s.setModule(storage->module());
+		s.setData(storage->data());
+
+		if (storage->id() > 0) {
+			s.setId(storage->id());
+
+			data.insert(QStringLiteral("storageFrom"), s.toVariantMap(true));
+
+			if (modifyFunc.isCallable())
+				modifyFunc.call();
+
+			s.setData(storage->data());
+
+			data.insert(QStringLiteral("storageTo"), s.toVariantMap(true));
+
+		} else {
+			s.setId(m_map->nextIndexStorage());
+
+			if (modifyFunc.isCallable())
+				modifyFunc.call();
+
+			s.setData(storage->data());
+
+			data.insert(QStringLiteral("storageTo"), s.toVariantMap());
+		}
+
+		storageId = s.id();
+
+	}
+
+
+	MapEditorObjective o(m_map);
+	o.setUuid(QUuid::createUuid().toString(QUuid::WithoutBraces));
+	o.setData(objective->data());
+	o.setModule(objective->module());
+	o.setStorageCount(objective->storageCount());
+	o.setStorageId(storageId);
+
+
+	data.insert(QStringLiteral("objective"), o.toVariantMap());
+
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Új feladat: %1").arg(chapter->name()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("chapterId")).toInt());
+
+		if (!ch)
+			return;
+
+		if (action->data().contains(QStringLiteral("storageTo"))) {
+			if (action->data().contains(QStringLiteral("storageFrom"))) {
+				MapEditorStorage *s = action->map()->storage(action->data().value(QStringLiteral("storageTo")).toMap().value(QStringLiteral("id")).toInt());
+
+				if (s)
+					s->fromVariantMap(action->data().value(QStringLiteral("storageTo")).toMap(), true);
+			} else {
+				MapEditorStorage *s = new MapEditorStorage(action->map());
+				s->fromVariantMap(action->data().value(QStringLiteral("storageTo")).toMap());
+				action->map()->storageList()->append(s);
+			}
+		}
+
+		MapEditorObjective *o = new MapEditorObjective(action->map());
+		o->fromVariantMap(action->data().value(QStringLiteral("objective")).toMap());
+
+		ch->objectiveList()->append(o);
+
+		ch->recalculateStorageCount();
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("chapterId")).toInt());
+
+		if (!ch)
+			return;
+
+		MapEditorObjective *o = ch->objective(action->data().value(QStringLiteral("objective")).toMap().value(QStringLiteral("uuid")).toString());
+
+		if (o)
+			ch->objectiveList()->remove(o);
+
+		if (action->data().contains(QStringLiteral("storageTo"))) {
+			MapEditorStorage *s = action->map()->storage(action->data().value(QStringLiteral("storageTo")).toMap().value(QStringLiteral("id")).toInt());
+			if (s && action->data().contains(QStringLiteral("storageFrom"))) {
+				s->fromVariantMap(action->data().value(QStringLiteral("storageFrom")).toMap(), true);
+			} else if (s) {
+				action->map()->storageList()->remove(s);
+			}
+		}
+
+		ch->recalculateStorageCount();
+
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveModify
+ * @param objective
+ * @param storage
+ * @param modifyFunc
+ */
+
+void MapEditor::objectiveModify(MapEditorObjective *objective, MapEditorStorage *storage, QJSValue modifyFunc)
+{
+	if (!m_map || !objective)
+		return;
+
+	QVariantMap data;
+	data.insert(QStringLiteral("uuid"), objective->uuid());
+	data.insert(QStringLiteral("objectiveFrom"), objective->toVariantMap(true));
+
+	if (storage) {
+		data.insert(QStringLiteral("storageId"), storage->id());
+		data.insert(QStringLiteral("storageFrom"), storage->toVariantMap(true));
+	}
+
+	if (modifyFunc.isCallable())
+		modifyFunc.call();
+
+	data.insert(QStringLiteral("objectiveTo"), objective->toVariantMap(true));
+
+	if (storage)
+		data.insert(QStringLiteral("storageTo"), storage->toVariantMap(true));
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Feladat módosítása"));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		if (action->data().contains(QStringLiteral("storageId"))) {
+			MapEditorStorage *s = action->map()->storage(action->data().value(QStringLiteral("storageId")).toInt());
+
+			if (s)
+				s->fromVariantMap(action->data().value(QStringLiteral("storageTo")).toMap(), true);
+		}
+
+		MapEditorObjective *o = action->map()->objective(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (o)
+			o->fromVariantMap(action->data().value(QStringLiteral("objectiveTo")).toMap(), true);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		if (action->data().contains(QStringLiteral("storageId"))) {
+			MapEditorStorage *s = action->map()->storage(action->data().value(QStringLiteral("storageId")).toInt());
+
+			if (s)
+				s->fromVariantMap(action->data().value(QStringLiteral("storageFrom")).toMap(), true);
+		}
+
+		MapEditorObjective *o = action->map()->objective(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (o)
+			o->fromVariantMap(action->data().value(QStringLiteral("objectiveFrom")).toMap(), true);
+
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+/**
+ * @brief MapEditor::objectiveRemove
+ * @param objective
+ */
+
+void MapEditor::objectiveRemove(MapEditorObjective *objective)
+{
+	if (!m_map || !objective)
+		return;
+
+	MapEditorChapter *chapter = m_map->chapter(objective);
+
+	if (!chapter)
+		return;
+
+	QVariantMap data = objective->toVariantMap();
+	data.insert(QStringLiteral("chapterId"), chapter->id());
+
+	EditorAction *action = new EditorAction(m_map, tr("Feladat törlése"));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("chapterId")).toInt());
+		MapEditorObjective *o = action->map()->objective(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (ch && o) {
+			ch->objectiveList()->remove(o);
+			ch->recalculateObjectiveCount();
+			ch->recalculateStorageCount();
+		}
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorChapter *ch = action->map()->chapter(action->data().value(QStringLiteral("chapterId")).toInt());
+
+		if (!ch)
+			return;
+
+		MapEditorObjective *o = new MapEditorObjective(action->map());
+		o->fromVariantMap(action->data());
+
+		ch->objectiveList()->append(o);
+		ch->recalculateObjectiveCount();
+		ch->recalculateStorageCount();
+	});
+
+	m_undoStack->call(action);
+
+
+/*
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("missionLevel"), missionLevel->level());
+
+	QVariantList list;
+
+	foreach (MapEditorInventory *inventory, inventoryList)
+		list.append(inventory->toVariantMap());
+
+	data.insert(QStringLiteral("list"), list);
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Felszerelés törlése: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const QVariantMap &data = v.toMap();
+			ml->inventoryRemove(data.value(QStringLiteral("id")).toInt());
+		}
+	});
+
+	*/
+}
+
+
+
+
 
 /**
  * @brief MapEditor::missionLevelAdd
@@ -818,7 +1620,61 @@ void MapEditor::missionLevelModify(MapEditorMissionLevel *missionLevel, QJSValue
 
 void MapEditor::missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList)
 {
-	LOG_CTRACE("client") << "ADD" << chapterList;
+	if (!m_map || !missionLevel || !missionLevel->editorMission() || chapterList.isEmpty())
+		return;
+
+	QVariantMap data;
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("missionLevel"), missionLevel->level());
+
+	QVariantList list;
+
+	foreach (MapEditorChapter *chapter, chapterList)
+		list.append(chapter->id());
+
+	data.insert(QStringLiteral("list"), list);
+
+	EditorAction *action = new EditorAction(m_map, tr("Feleadatcsoport hozzáadása: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const int &chapterId = v.toInt();
+
+			ml->chapterAdd(chapterId);
+		}
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const int &chapterId = v.toInt();
+
+			ml->chapterRemove(chapterId);
+		}
+	});
+
+	m_undoStack->call(action);
 }
 
 
@@ -830,8 +1686,277 @@ void MapEditor::missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, cons
 
 void MapEditor::missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList)
 {
+	if (!m_map || !missionLevel || !missionLevel->editorMission() || chapterList.isEmpty())
+		return;
 
+	QVariantMap data;
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("missionLevel"), missionLevel->level());
+
+	QVariantList list;
+
+	foreach (MapEditorChapter *chapter, chapterList)
+		list.append(chapter->id());
+
+	data.insert(QStringLiteral("list"), list);
+
+	EditorAction *action = new EditorAction(m_map, tr("Feleadatcsoport eltávolítása: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const int &chapterId = v.toInt();
+
+			ml->chapterRemove(chapterId);
+		}
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const int &chapterId = v.toInt();
+
+			ml->chapterAdd(chapterId);
+		}
+	});
+
+	m_undoStack->call(action);
 }
+
+
+
+/**
+ * @brief MapEditor::missionLevelInventoryAdd
+ * @param missionLevel
+ * @param type
+ * @return
+ */
+
+void MapEditor::missionLevelInventoryAdd(MapEditorMissionLevel *missionLevel, const QString &type)
+{
+	if (!m_map || !missionLevel || !missionLevel->editorMission())
+		return;
+
+	const GamePickable::GamePickableData &pickable = GamePickable::pickableDataHash().value(type);
+
+	if (pickable.type == GamePickable::PickableInvalid)
+		return;
+
+	MapEditorInventory inventory(m_map);
+	inventory.setInventoryid(m_map->nextIndexInventory());
+	inventory.setModule(pickable.id);
+	inventory.setCount(1);
+	inventory.setBlock(0);
+
+	QVariantMap data = inventory.toVariantMap();
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("missionLevel"), missionLevel->level());
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Új felszerelés: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		MapEditorInventory *inventory = new MapEditorInventory(action->map());
+		inventory->fromVariantMap(action->data());
+		ml->inventoryAdd(inventory);
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		ml->inventoryRemove(action->data().value(QStringLiteral("id")).toInt());
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelInventoryRemove
+ * @param missionLevel
+ * @param inventory
+ * @return
+ */
+
+void MapEditor::missionLevelInventoryRemove(MapEditorMissionLevel *missionLevel, const QList<MapEditorInventory *> &inventoryList)
+{
+	if (!m_map || !missionLevel || !missionLevel->editorMission() || inventoryList.isEmpty())
+		return;
+
+	QVariantMap data;
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("missionLevel"), missionLevel->level());
+
+	QVariantList list;
+
+	foreach (MapEditorInventory *inventory, inventoryList)
+		list.append(inventory->toVariantMap());
+
+	data.insert(QStringLiteral("list"), list);
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Felszerelés törlése: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const QVariantMap &data = v.toMap();
+			ml->inventoryRemove(data.value(QStringLiteral("id")).toInt());
+		}
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
+			const QVariantMap &data = v.toMap();
+
+			MapEditorInventory *inventory = new MapEditorInventory(action->map());
+			inventory->fromVariantMap(data);
+			ml->inventoryAdd(inventory);
+		}
+
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
+
+
+/**
+ * @brief MapEditor::missionLevelInventoryModify
+ * @param missionLevel
+ * @param inventory
+ * @param modifyFunc
+ */
+
+void MapEditor::missionLevelInventoryModify(MapEditorMissionLevel *missionLevel, MapEditorInventory *inventory, QJSValue modifyFunc)
+{
+	if (!m_map || !missionLevel || !missionLevel->editorMission() || !inventory)
+		return;
+
+	QVariantMap data = inventory->toVariantMap();
+	data.insert(QStringLiteral("missionUuid"), missionLevel->editorMission()->uuid());
+	data.insert(QStringLiteral("missionLevel"), missionLevel->level());
+
+
+	data.insert(QStringLiteral("from"), inventory->toVariantMap(true));
+
+	if (modifyFunc.isCallable())
+		modifyFunc.call();
+
+	data.insert(QStringLiteral("to"), inventory->toVariantMap(true));
+
+	EditorAction *action = new EditorAction(m_map, tr("Felszerelés módosítása: %1 (%2)").arg(missionLevel->editorMission()->name()).arg(missionLevel->level()));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		MapEditorInventory *inventory = ml->inventory(action->data().value(QStringLiteral("id")).toInt());
+
+		if (!inventory)
+			return;
+
+		inventory->fromVariantMap(action->data().value(QStringLiteral("to")).toMap(), true);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMissionLevel *ml = action->map()->missionLevel(
+					action->data().value(QStringLiteral("missionUuid")).toString(),
+					action->data().value(QStringLiteral("missionLevel")).toInt()
+					);
+
+		if (!ml)
+			return;
+
+		MapEditorInventory *inventory = ml->inventory(action->data().value(QStringLiteral("id")).toInt());
+
+		if (!inventory)
+			return;
+
+		inventory->fromVariantMap(action->data().value(QStringLiteral("from")).toMap(), true);
+
+	});
+
+	m_undoStack->call(action);
+}
+
+
+
 
 
 
@@ -843,6 +1968,8 @@ void MapEditor::missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, c
 
 void MapEditor::missionLevelPlay(MapEditorMissionLevel *missionLevel, int mode)
 {
+	LOG_CTRACE("client") << "PLAY" << missionLevel << mode;
+
 	if (!missionLevel)
 		return;
 

@@ -8,6 +8,11 @@ Qaterial.RadioButton {
 	id: control
 
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
+	property string field: ""
+	property bool fieldData: false
+	readonly property bool getData: checked
+
+	onFieldDataChanged: checked = fieldData
 
 	onToggled: if (_form) _form.modified = true
 }

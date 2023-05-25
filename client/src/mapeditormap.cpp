@@ -231,6 +231,24 @@ MapEditorChapter *MapEditorMap::chapter(const int &id) const
 }
 
 
+
+/**
+ * @brief MapEditorMap::chapter
+ * @param objective
+ * @return
+ */
+
+MapEditorChapter *MapEditorMap::chapter(MapEditorObjective *objective) const
+{
+	for (MapEditorChapter *ch : *m_chapterList) {
+		if (ch->objective(objective->uuid()))
+			return ch;
+	}
+
+	return nullptr;
+}
+
+
 /**
  * @brief MapEditorMap::objective
  * @param uuid
@@ -240,7 +258,7 @@ MapEditorChapter *MapEditorMap::chapter(const int &id) const
 MapEditorObjective *MapEditorMap::objective(const QString &uuid) const
 {
 	for (MapEditorChapter *ch : *m_chapterList) {
-		MapEditorObjective *o = OlmLoader::find<MapEditorObjective>(ch->objectiveList(), "uuid", uuid);
+		MapEditorObjective *o = ch->objective(uuid); //OlmLoader::find<MapEditorObjective>(ch->objectiveList(), "uuid", uuid);
 		if (o)
 			return o;
 	}
@@ -325,6 +343,42 @@ void MapEditorStorage::setData(const QVariantMap &newData)
 	m_data = newData;
 	emit dataChanged();
 }
+
+int MapEditorStorage::objectiveCount() const
+{
+	return m_objectiveCount;
+}
+
+void MapEditorStorage::setObjectiveCount(int newObjectiveCount)
+{
+	if (m_objectiveCount == newObjectiveCount)
+		return;
+	m_objectiveCount = newObjectiveCount;
+	emit objectiveCountChanged();
+}
+
+
+/**
+ * @brief MapEditorStorage::recalculateObjectives
+ */
+
+void MapEditorStorage::recalculateObjectives()
+{
+	int count = 0;
+
+	if (m_map) {
+		for (const MapEditorChapter *ch : *m_map->chapterList()) {
+			for (const MapEditorObjective *o : *ch->objectiveList()) {
+				if (o->storageId() == m_id)
+					++count;
+			}
+		}
+	}
+
+	setObjectiveCount(count);
+}
+
+
 
 const QString &MapEditorStorage::module() const
 {
@@ -425,6 +479,8 @@ void MapEditorChapter::fromVariantMap(const QVariantMap &map, const bool &onlyUp
 		o->fromVariantMap(v.toMap());
 		m_objectiveList->append(o);
 	}
+
+	recalculateObjectiveCount();
 }
 
 
@@ -476,6 +532,7 @@ GameMapObjectiveIface *MapEditorChapter::ifaceAddObjective(const QString &uuid, 
 	d->setData(data);
 	m_objectiveList->append(d);
 	recalculateObjectiveCount();
+	d->recalculateStorage();
 	return d;
 }
 
@@ -513,6 +570,12 @@ void MapEditorChapter::recalculateObjectiveCount()
 	setObjectiveCount(n);
 }
 
+void MapEditorChapter::recalculateStorageCount() const
+{
+	for (const MapEditorObjective *o : *m_objectiveList)
+		o->recalculateStorage();
+}
+
 
 /**
  * @brief MapEditorChapter::objectiveList
@@ -522,6 +585,18 @@ void MapEditorChapter::recalculateObjectiveCount()
 MapEditorObjectiveList *MapEditorChapter::objectiveList() const
 {
 	return m_objectiveList;
+}
+
+
+/**
+ * @brief MapEditorChapter::objective
+ * @param uuid
+ * @return
+ */
+
+MapEditorObjective *MapEditorChapter::objective(const QString &uuid) const
+{
+	return OlmLoader::find<MapEditorObjective>(m_objectiveList, "uuid", uuid);
 }
 
 
@@ -566,7 +641,19 @@ MapEditorObjective::MapEditorObjective()
 	: MapEditorObject(nullptr)
 	, GameMapObjectiveIface()
 {
+	LOG_CTRACE("client") << "OBJECTIVE CREATED" << this;
 	connect(this, &MapEditorObjective::mapChanged, this, &MapEditorObjective::storageChanged);
+}
+
+
+/**
+ * @brief MapEditorObjective::~MapEditorObjective
+ */
+
+MapEditorObjective::~MapEditorObjective()
+{
+	recalculateStorage();
+	LOG_CTRACE("client") << "OBJECTIVE DESTROYED" << this;
 }
 
 
@@ -599,6 +686,20 @@ QVariantMap MapEditorObjective::toVariantMap(const bool &) const
 	m.insert(QStringLiteral("storageCount"), m_storageCount);
 	m.insert(QStringLiteral("data"), m_data);
 	return m;
+}
+
+
+/**
+ * @brief MapEditorObjective::recalculateStorage
+ */
+
+void MapEditorObjective::recalculateStorage() const
+{
+	if (m_storageId > 0 && m_map) {
+		MapEditorStorage *s = m_map->storage(m_storageId);
+		if (s)
+			s->recalculateObjectives();
+	}
 }
 
 
@@ -658,6 +759,7 @@ void MapEditorObjective::setStorageCount(qint32 newStorageCount)
 		return;
 	m_storageCount = newStorageCount;
 	emit storageCountChanged();
+	recalculateStorage();
 }
 
 
@@ -1372,6 +1474,7 @@ bool MapEditorMissionLevel::ifaceAddChapter(const qint32 &chapterId)
 GameMapInventoryIface *MapEditorMissionLevel::ifaceAddInventory(const qint32 &block, const QString &module, const qint32 &count)
 {
 	MapEditorInventory *d = new MapEditorInventory(m_map);
+	d->setInventoryid(m_map->nextIndexInventory());
 	d->setBlock(block);
 	d->setModule(module);
 	d->setCount(count);
@@ -1516,6 +1619,21 @@ void MapEditorMissionLevel::inventoryRemove(MapEditorInventory *inventory)
 {
 	if (m_inventoryList->contains(inventory))
 		m_inventoryList->remove(inventory);
+}
+
+
+
+/**
+ * @brief MapEditorMissionLevel::inventoryRemove
+ * @param id
+ */
+
+void MapEditorMissionLevel::inventoryRemove(const int &id)
+{
+	for (MapEditorInventory *inventory : *m_inventoryList) {
+		if (inventory->inventoryid() == id)
+			m_inventoryList->remove(inventory);
+	}
 }
 
 

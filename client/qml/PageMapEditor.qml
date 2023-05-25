@@ -88,8 +88,8 @@ QPage {
 		}
 
 
-		Rectangle {
-			color: "blue"
+		MapEditorStorageList {
+			editor: _editor
 		}
 	}
 
@@ -100,10 +100,17 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.account, color: "green" })
-			model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Adatbázisok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			/*model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}
 	}
+
+
+
+	MapEditorObjectiveDialog {
+		editor: _editor
+	}
+
 
 
 

@@ -659,7 +659,7 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
  * @return
  */
 
-bool GameMapReaderIface::inventoriesFromStream(QDataStream &stream, GameMapMissionLevelIface *chapter)
+bool GameMapReaderIface::inventoriesFromStream(QDataStream &stream, GameMapMissionLevelIface *missionLevel)
 {
 	quint32 size = 0;
 	stream >> size;
@@ -671,10 +671,11 @@ bool GameMapReaderIface::inventoriesFromStream(QDataStream &stream, GameMapMissi
 
 		stream >> block >> module >> count;
 
-		if (block < 0 || module.isEmpty() || count <= 0)
+		if (block < 0 || module.isEmpty() || count <= 0) {
 			return false;
+		}
 
-		if (!chapter->ifaceAddInventory(block, module, count))
+		if (!missionLevel->ifaceAddInventory(block, module, count))
 			return false;
 	}
 

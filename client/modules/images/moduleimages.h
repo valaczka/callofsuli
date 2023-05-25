@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "images"; }
 	inline bool isStorageModule() const override { return true; }
 	inline QString readableName() const override { return tr("Képválasztás"); }
-	inline QString icon() const override { return "qrc:/internal/icon/camera-image.svg"; }
+	inline QString icon() const override { return "qrc:/Qaterial/Icons/camera-image.svg"; }
 
 	inline QString qmlEditor() const override { return "ME_images.qml"; }
 	inline QString qmlQuestion() const override { return QLatin1String(""); }

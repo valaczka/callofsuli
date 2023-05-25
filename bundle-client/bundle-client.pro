@@ -27,7 +27,7 @@ win32: LibExtension = dll
 else: LibExtension = so
 
 win32: LddBinFile = $${CQtTargetDir}/$${BinFile}
-else: LddBinFile = $${CQtTargetDir}/bin/$${BinFile}
+else: LddBinFile = $${CQtTargetDir}/usr/bin/$${BinFile}
 
 win32: LddLibDir = $${CQtTargetDir}/usr
 else: LddLibDir = $${CQtTargetDir}/usr/lib
@@ -36,9 +36,7 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
 			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter \
 			-qmake $$QMAKE_QMAKE \
-			-qmlDir $$PWD/../client/qml \
-			-qmlDir $$PWD/../lib/Qaterial/qml/Qaterial \
-			-qmlDir $$PWD/../lib/qml-box2d ; \
+			-qmlDir $$PWD/../client/qml ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
@@ -50,14 +48,10 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			done
 
 else: extralib.commands = echo \"Create bundle...\"; \
-			cp ../lib/libQaterial/libQaterial.$${LibExtension} ../lib ;
-			cp ../lib/libQaterial/_deps/qoml-build/libQOml.$${LibExtension} ../lib ;
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
 			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
 			-qmake $$QMAKE_QMAKE \
-			-qmlDir $$PWD/../client/qml \
-			-qmlDir $$PWD/../lib/Qaterial/qml/Qaterial \
-			-qmlDir $$PWD/../lib/qml-box2d ; \
+			-qmlDir $$PWD/../client/qml ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \

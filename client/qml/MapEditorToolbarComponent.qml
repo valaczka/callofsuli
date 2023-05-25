@@ -11,7 +11,7 @@ Row {
 
 	Qaterial.AppBarButton {
 		icon.source: Qaterial.Icons.contentSave
-		enabled: editor && editor.modified && !editor.autoSaved
+		enabled: editor && editor.modified //&& !editor.autoSaved
 		visible: editor && editor.modified
 		ToolTip.text: qsTr("Mentés")
 		onClicked: if (editor) editor.save()

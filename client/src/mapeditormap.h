@@ -121,6 +121,7 @@ public:
 	Q_INVOKABLE MapEditorMissionLevel *missionLevel(const QString &uuid, const int &level) const;
 	Q_INVOKABLE MapEditorStorage *storage(const int &id) const;
 	Q_INVOKABLE MapEditorChapter *chapter(const int &id) const;
+	Q_INVOKABLE MapEditorChapter *chapter(MapEditorObjective *objective) const;
 	Q_INVOKABLE MapEditorObjective *objective(const QString &uuid) const;
 	Q_INVOKABLE MapEditorImage *image(const int &id) const;
 
@@ -226,6 +227,7 @@ class MapEditorStorage : public MapEditorObject, public GameMapStorageIface
 	Q_PROPERTY(qint32 storageid READ id WRITE setId NOTIFY idChanged)
 	Q_PROPERTY(QString module READ module WRITE setModule NOTIFY moduleChanged)
 	Q_PROPERTY(QVariantMap data READ data WRITE setData NOTIFY dataChanged)
+	Q_PROPERTY(int objectiveCount READ objectiveCount NOTIFY objectiveCountChanged)
 
 public:
 	explicit MapEditorStorage() : MapEditorObject(), GameMapStorageIface() {  }
@@ -244,10 +246,19 @@ public:
 	const QVariantMap &data() const;
 	void setData(const QVariantMap &newData);
 
+	int objectiveCount() const;
+	void setObjectiveCount(int newObjectiveCount);
+
+	Q_INVOKABLE void recalculateObjectives();
+
 signals:
 	void idChanged();
 	void moduleChanged();
 	void dataChanged();
+	void objectiveCountChanged();
+
+private:
+	int m_objectiveCount = 0;
 };
 
 
@@ -321,10 +332,13 @@ public:
 
 	MapEditorObjectiveList *objectiveList() const;
 
+	MapEditorObjective *objective(const QString &uuid) const;
+
 	int objectiveCount() const;
 	void setObjectiveCount(int newObjectiveCount);
 
 	Q_INVOKABLE void recalculateObjectiveCount();
+	Q_INVOKABLE void recalculateStorageCount() const;
 
 signals:
 	void idChanged();
@@ -369,10 +383,12 @@ class MapEditorObjective : public MapEditorObject, public GameMapObjectiveIface
 public:
 	explicit MapEditorObjective();
 	explicit MapEditorObjective(MapEditorMap *map) : MapEditorObjective() { m_map = map; }
-	virtual ~MapEditorObjective() {}
+	virtual ~MapEditorObjective();
 
 	virtual void fromVariantMap(const QVariantMap &map, const bool & = false) override;
 	virtual QVariantMap toVariantMap(const bool & = false) const override;
+
+	void recalculateStorage() const;
 
 	const QString &uuid() const;
 	void setUuid(const QString &newUuid);
@@ -581,6 +597,7 @@ public:
 
 	Q_INVOKABLE void inventoryAdd(MapEditorInventory *inventory);
 	Q_INVOKABLE void inventoryRemove(MapEditorInventory *inventory);
+	Q_INVOKABLE void inventoryRemove(const int &id);
 
 
 signals:

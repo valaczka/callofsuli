@@ -1,347 +1,355 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.14
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 
-
 Loader {
-    id: ldr
-    width: parent.width
+	id: root
+	width: parent.width
 
-    property MapEditor mapEditor: null
+	property MapEditorObjectiveEditor objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-    property var moduleData: ({})
-    property var storageData: ({})
-    property string storageModule: ""
-    property int storageCount: 0
+	sourceComponent: {
+		if (!storage)
+			return cmpNone
 
-    signal modified()
+		/*if (storage.module == "binding" || storage.module == "numbers")
+			return cmpBinding
+		else if (storage.module == "images")
+			return cmpImages
+		else
+			return cmpNone
+*/
 
-    Component {
-        id: cmpNone
+		return cmpBinding
+	}
 
-        QGridLayout {
-            id: layout
 
-            watchModification: true
-            onModifiedChanged: if (layout.modified)
-                                   ldr.modified()
 
-            QGridLabel { field: textQuestion }
+	Component {
+		id: cmpNone
 
-            QGridTextField {
-                id: textQuestion
-                fieldName: qsTr("Kérdés")
-                sqlField: "question"
-                placeholderText: qsTr("Ez a kérdés fog megjelenni")
-            }
+		QFormColumn {
+			onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-            QGridLabel { field: textCorrectAnswer }
+			QFormComboBox {
+				id: _modeNone
+				text: qsTr("Kérdések készítése:")
 
-            QGridTextField {
-                id: textCorrectAnswer
-                fieldName: qsTr("Helyes válasz")
-                sqlField: "correct"
-                placeholderText: qsTr("Ez lesz a helyes válasz")
-            }
+				field: "mode"
 
-            QGridLabel {
-                field: areaAnswers
-            }
+				valueRole: "value"
+				textRole: "text"
 
-            QGridTextArea {
-                id: areaAnswers
-                fieldName: qsTr("Helytelen válaszok")
-                placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
-                minimumHeight: CosStyle.baseHeight*2
-            }
+				model: [
+					{value: "left", text: qsTr("Bal oldaliakhoz")},
+					{value: "right", text: qsTr("Jobb oldaliakhoz")}
+				]
+			}
 
+			QFormTextField {
+				id: _questionNone
+				title: qsTr("Kérdés")
+				placeholderText: qsTr("Ez a kérdés fog megjelenni")
+				helperText: qsTr("A \%1 jelöli a generált elem helyét")
+				field: "question"
+				width: parent.width
+			}
 
+			MapEditorSpinStorageCount {
+				id: _countNone
+			}
 
+			Qaterial.LabelBody1 {
+				text: "Hello"
+			}
 
-            Component.onCompleted: {
-                if (!moduleData)
-                    return
+			QFormBindingField {
+				width: parent.width
 
-                JS.setSqlFields([textQuestion, textCorrectAnswer], moduleData)
-                areaAnswers.setData(moduleData.answers.join("\n"))
-            }
+				leftComponent: Qaterial.LabelCaption { }
+				rightComponent: Qaterial.LabelHeadline6 { }
 
+			}
 
-            function getData() {
-                var d = JS.getSqlFields([textQuestion, textCorrectAnswer])
-                d.answers = areaAnswers.text.split("\n")
+			readonly property var _items: [_modeNone, _questionNone]
 
-                moduleData = d
-                return moduleData
-            }
+			function loadData() {
+				setItems(_items, objective.data)
+				_countNone.value = objective.storageCount
+			}
 
-        }
+			function saveData() {
+				objective.storageCount = _countNone.value
+				objective.data = getItems(_items)
+			}
+		}
 
-    }
 
+		/*QGridLayout {
+			id: layout
 
-    Component {
-        id: cmpBinding
+			watchModification: true
+			onModifiedChanged: if (layout.modified)
+								   ldr.modified()
 
-        Column {
+			QGridLabel { field: textQuestion }
 
-            QGridLayout {
-                id: layout2
-                watchModification: true
-                onModifiedChanged: if (layout2.modified)
-                                       ldr.modified()
+			QGridTextField {
+				id: textQuestion
+				fieldName: qsTr("Kérdés")
+				sqlField: "question"
+				placeholderText: qsTr("Ez a kérdés fog megjelenni")
+			}
 
-                QGridText {
-                    field: comboMode
-                    text: qsTr("Kérdések készítése:")
-                }
+			QGridLabel { field: textCorrectAnswer }
 
-                QGridComboBox {
-                    id: comboMode
-                    sqlField: "mode"
+			QGridTextField {
+				id: textCorrectAnswer
+				fieldName: qsTr("Helyes válasz")
+				sqlField: "correct"
+				placeholderText: qsTr("Ez lesz a helyes válasz")
+			}
 
-                    valueRole: "value"
-                    textRole: "text"
+			QGridLabel {
+				field: areaAnswers
+			}
 
-                    model: [
-                        {value: "left", text: qsTr("Bal oldaliakhoz")},
-                        {value: "right", text: qsTr("Jobb oldaliakhoz")}
-                    ]
+			QGridTextArea {
+				id: areaAnswers
+				fieldName: qsTr("Helytelen válaszok")
+				placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
+				minimumHeight: CosStyle.baseHeight*2
+			}
 
-                    onActivated: preview.refresh()
-                }
 
 
 
-                QGridLabel { field: textQuestion2 }
+			Component.onCompleted: {
+				if (!moduleData)
+					return
 
-                QGridTextField {
-                    id: textQuestion2
-                    fieldName: qsTr("Kérdés")
-                    sqlField: "question"
-                    placeholderText: qsTr("Ez a kérdés fog megjelenni. \%1 az összerendelésből kiválasztott tételre cserélődik ki.")
+				JS.setSqlFields([textQuestion, textCorrectAnswer], moduleData)
+				areaAnswers.setData(moduleData.answers.join("\n"))
+			}
 
-                    onTextModified: preview.refresh()
-                }
 
+			function getData() {
+				var d = JS.getSqlFields([textQuestion, textCorrectAnswer])
+				d.answers = areaAnswers.text.split("\n")
 
-                QGridText {
-                    text: qsTr("Feladatok száma:")
-                    field: spinCount
-                }
+				moduleData = d
+				return moduleData
+			}
 
-                QGridSpinBox {
-                    id: spinCount
-                    from: 1
-                    to: 99
-                    editable: true
+		}*/
 
-                    onValueModified: {
-                        storageCount = value
-                    }
-                }
+	}
 
 
-                Component.onCompleted: {
-                    if (!moduleData)
-                        return
+	Component {
+		id: cmpBinding
 
-                    JS.setSqlFields([comboMode, textQuestion2], moduleData)
-                    spinCount.setData(storageCount)
+		QFormColumn {
+			onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-                }
+			QFormComboBox {
+				id: _modeBinding
+				text: qsTr("Kérdések készítése:")
 
-            }
+				field: "mode"
 
-            MapEditorObjectivePreview {
-                id: preview
+				valueRole: "value"
+				textRole: "text"
 
-                refreshFunc: function() { return mapEditor.objectiveGeneratePreview("simplechoice", getData(), storageModule, storageData) }
+				model: [
+					{value: "left", text: qsTr("Bal oldaliakhoz")},
+					{value: "right", text: qsTr("Jobb oldaliakhoz nagyon hosszú lehetőség, hogy lássuk")}
+				]
+			}
 
-                Connections {
-                    target: ldr
-                    function onStorageDataChanged() {
-                        preview.refresh()
-                    }
-                }
-            }
+			QFormTextField {
+				id: _questionBinding
+				title: qsTr("Kérdés")
+				placeholderText: qsTr("Ez a kérdés fog megjelenni")
+				helperText: qsTr("A \%1 jelöli a generált elem helyét")
+				field: "question"
+				width: parent.width
+			}
 
+			MapEditorSpinStorageCount {
+				id: _countBinding
+			}
 
-            function getData() {
-                moduleData = JS.getSqlFields([comboMode, textQuestion2])
 
-                return moduleData
-            }
-        }
-    }
+			readonly property var _items: [_modeBinding, _questionBinding]
 
+			function loadData() {
+				setItems(_items, objective.data)
+				_countBinding.value = objective.storageCount
+			}
 
+			function saveData() {
+				objective.storageCount = _countBinding.value
+				objective.data = getItems(_items)
+			}
+		}
 
+	}
 
+	/*
+	Component {
+		id: cmpImages
 
-    Component {
-        id: cmpImages
+		Column {
 
-        Column {
+			QGridLayout {
+				id: layout3
+				watchModification: true
+				onModifiedChanged: if (layout3.modified)
+									   ldr.modified()
 
-            QGridLayout {
-                id: layout3
-                watchModification: true
-                onModifiedChanged: if (layout3.modified)
-                                       ldr.modified()
+				QGridText {
+					field: comboModeImg
+					text: qsTr("Kérdések készítése:")
+				}
 
-                QGridText {
-                    field: comboModeImg
-                    text: qsTr("Kérdések készítése:")
-                }
+				QGridComboBox {
+					id: comboModeImg
+					sqlField: "mode"
 
-                QGridComboBox {
-                    id: comboModeImg
-                    sqlField: "mode"
+					valueRole: "value"
+					textRole: "text"
 
-                    valueRole: "value"
-                    textRole: "text"
+					model: [
+						{value: "image", text: qsTr("Képhez (szövegekből választhat)")},
+						{value: "text", text: qsTr("Szöveghez (képekből választhat)")}
+					]
 
-                    model: [
-                        {value: "image", text: qsTr("Képhez (szövegekből választhat)")},
-                        {value: "text", text: qsTr("Szöveghez (képekből választhat)")}
-                    ]
+					onActivated: previewImg.refresh()
+				}
 
-                    onActivated: previewImg.refresh()
-                }
 
 
+				QGridLabel {
+					field: textQuestionImgImg
+					visible: textQuestionImgImg.visible
+				}
 
-                QGridLabel {
-                    field: textQuestionImgImg
-                    visible: textQuestionImgImg.visible
-                }
+				QGridTextField {
+					id: textQuestionImgImg
+					fieldName: qsTr("Kérdés")
+					sqlField: "question"
+					placeholderText: qsTr("Ez a kérdés fog megjelenni.")
+					text: qsTr("Mit látsz a képen?")
 
-                QGridTextField {
-                    id: textQuestionImgImg
-                    fieldName: qsTr("Kérdés")
-                    sqlField: "question"
-                    placeholderText: qsTr("Ez a kérdés fog megjelenni.")
-                    text: qsTr("Mit látsz a képen?")
+					visible: comboModeImg.currentValue === "image"
 
-                    visible: comboModeImg.currentValue === "image"
+					onTextModified: previewImg.refresh()
+				}
 
-                    onTextModified: previewImg.refresh()
-                }
+				QGridLabel {
+					field: textQuestionImgText
+					visible: textQuestionImgText.visible
+				}
 
-                QGridLabel {
-                    field: textQuestionImgText
-                    visible: textQuestionImgText.visible
-                }
+				QGridTextField {
+					id: textQuestionImgText
+					fieldName: qsTr("Kérdés")
+					sqlField: "question"
+					placeholderText: qsTr("Ez a kérdés fog megjelenni. \%1 az összerendelésből kiválasztott tételre cserélődik ki.")
+					text: qsTr("Melyik képen látható: %1?")
 
-                QGridTextField {
-                    id: textQuestionImgText
-                    fieldName: qsTr("Kérdés")
-                    sqlField: "question"
-                    placeholderText: qsTr("Ez a kérdés fog megjelenni. \%1 az összerendelésből kiválasztott tételre cserélődik ki.")
-                    text: qsTr("Melyik képen látható: %1?")
+					visible: comboModeImg.currentValue === "text"
 
-                    visible: comboModeImg.currentValue === "text"
+					onTextModified: previewImg.refresh()
+				}
 
-                    onTextModified: previewImg.refresh()
-                }
+				QGridLabel {
+					field: textAnswerImg
+					visible: textAnswerImg.visible
+				}
 
-                QGridLabel {
-                    field: textAnswerImg
-                    visible: textAnswerImg.visible
-                }
+				QGridTextField {
+					id: textAnswerImg
+					fieldName: qsTr("Válaszok")
+					sqlField: "answers"
+					placeholderText: qsTr("A válaszok formátuma. \%1 az összerendelésből kiválasztott tételre cserélődik ki.")
 
-                QGridTextField {
-                    id: textAnswerImg
-                    fieldName: qsTr("Válaszok")
-                    sqlField: "answers"
-                    placeholderText: qsTr("A válaszok formátuma. \%1 az összerendelésből kiválasztott tételre cserélődik ki.")
+					visible: comboModeImg.currentValue === "image"
+					onTextModified: previewImg.refresh()
+				}
 
-                    visible: comboModeImg.currentValue === "image"
-                    onTextModified: previewImg.refresh()
-                }
 
+				QGridText {
+					text: qsTr("Feladatok száma:")
+					field: spinCountImg
+				}
 
-                QGridText {
-                    text: qsTr("Feladatok száma:")
-                    field: spinCountImg
-                }
+				QGridSpinBox {
+					id: spinCountImg
+					from: 1
+					to: 99
+					editable: true
 
-                QGridSpinBox {
-                    id: spinCountImg
-                    from: 1
-                    to: 99
-                    editable: true
+					onValueModified: {
+						storageCount = value
+					}
+				}
 
-                    onValueModified: {
-                        storageCount = value
-                    }
-                }
 
+				Component.onCompleted: {
+					if (!moduleData)
+						return
 
-                Component.onCompleted: {
-                    if (!moduleData)
-                        return
+					JS.setSqlFields([comboModeImg, textQuestionImgImg, textQuestionImgText, textAnswerImg], moduleData)
+					spinCountImg.setData(storageCount)
 
-                    JS.setSqlFields([comboModeImg, textQuestionImgImg, textQuestionImgText, textAnswerImg], moduleData)
-                    spinCountImg.setData(storageCount)
+				}
 
-                }
+			}
 
-            }
+			MapEditorObjectivePreview {
+				id: previewImg
 
-            MapEditorObjectivePreview {
-                id: previewImg
+				refreshFunc: function() { return mapEditor.objectiveGeneratePreview("simplechoice", getData(), storageModule, storageData) }
 
-                refreshFunc: function() { return mapEditor.objectiveGeneratePreview("simplechoice", getData(), storageModule, storageData) }
+				Connections {
+					target: ldr
+					function onStorageDataChanged() {
+						previewImg.refresh()
+					}
+				}
+			}
 
-                Connections {
-                    target: ldr
-                    function onStorageDataChanged() {
-                        previewImg.refresh()
-                    }
-                }
-            }
 
+			function getData() {
+				moduleData = JS.getSqlFields([comboModeImg,
+											  comboModeImg.currentValue === "image" ?
+												  textQuestionImgImg :
+												  textQuestionImgText,
+											  textAnswerImg])
 
-            function getData() {
-                moduleData = JS.getSqlFields([comboModeImg,
-                                              comboModeImg.currentValue === "image" ?
-                                                  textQuestionImgImg :
-                                                  textQuestionImgText,
-                                              textAnswerImg])
+				return moduleData
+			}
+		}
+	}
+*/
 
-                return moduleData
-            }
-        }
-    }
+	function saveData() {
+		if (status == Loader.Ready)
+			item.saveData()
+	}
 
-    Component.onCompleted: {
-        if (storageModule == "binding" || storageModule == "numbers")
-            ldr.sourceComponent = cmpBinding
-        else if (storageModule == "images")
-            ldr.sourceComponent = cmpImages
-        else
-            ldr.sourceComponent = cmpNone
-    }
-
-
-    function getData() {
-        if (ldr.status == Loader.Ready)
-            return ldr.item.getData()
-
-        return {}
-    }
-
-    function setStorageData(data) {
-        storageData = data
-    }
-
+	function loadData() {
+		if (status == Loader.Ready)
+			item.loadData()
+	}
 }
 
 

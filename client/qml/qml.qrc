@@ -136,5 +136,14 @@
         <file>MapEditorInventoryItem.qml</file>
         <file>QExpandableHeader.qml</file>
         <file>QIndentedItem.qml</file>
+        <file>MapEditorStorageList.qml</file>
+        <file>MapEditorStorageItem.qml</file>
+        <file>MapEditorObjectiveEditor.qml</file>
+        <file>QFormComboBox.qml</file>
+        <file>QFormSpinBox.qml</file>
+        <file>MapEditorSpinStorageCount.qml</file>
+        <file>QFormBindingField.qml</file>
+        <file>QFormBindingTextField.qml</file>
+        <file>MapEditorObjectiveDialog.qml</file>
     </qresource>
 </RCC>

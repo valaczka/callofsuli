@@ -9,11 +9,29 @@ QIconLoaderItemDelegate {
 
 	property MapEditorObjective objective: null
 	readonly property MapEditor editor: objective && objective.map ? objective.map.mapEditor : null
-	readonly property var _info: editor ? editor.objectiveInfo(objective) : {}
+	property var _info: editor ? editor.objectiveInfo(objective) : {}
 
-	iconSource: _info.icon
-	text: _info.title
-	secondaryText: _info.details
+	iconSource: _info.icon !== undefined ? _info.icon : ""
+	text: _info.title !== undefined ? _info.title: ""
+	secondaryText: _info.details !== undefined ? _info.details : ""
+
+	Connections {
+		target: objective
+
+		function onDataChanged() {
+			if (editor)
+				_info = editor.objectiveInfo(objective)
+		}
+	}
+
+	Connections {
+		target: objective ? objective.storage : null
+
+		function onDataChanged() {
+			if (editor)
+				_info = editor.objectiveInfo(objective)
+		}
+	}
 
 	selectableObject: objective
 

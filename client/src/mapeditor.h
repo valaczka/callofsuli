@@ -63,12 +63,19 @@ public:
 
 	EditorUndoStack *undoStack() const;
 
-	const QString &displayName() const;
+	QString displayName() const;
 	void setDisplayName(const QString &newDisplayName);
 
 	Q_INVOKABLE QVariantMap objectiveInfo(MapEditorObjective *objective) const;
 	Q_INVOKABLE QVariantMap storageInfo(MapEditorStorage *storage) const;
+	Q_INVOKABLE QString objectiveQml(MapEditorObjective *objective) const;
+	Q_INVOKABLE QString storageQml(MapEditorStorage *storage) const;
 	Q_INVOKABLE QVariantMap inventoryInfo(MapEditorInventory *inventory) const;
+
+	Q_INVOKABLE QVariantList pickableListModel() const;
+	Q_INVOKABLE QVariantList objectiveListModel() const;
+	Q_INVOKABLE QVariantList storageListModel(const QString &objectiveModule) const;
+	Q_INVOKABLE QVariantList storageModel(const QString &storageModule) const;
 
 
 	Q_INVOKABLE MapEditorMission* missionAdd(const QString &name = QString());
@@ -78,6 +85,17 @@ public:
 	Q_INVOKABLE void missionLockAdd(MapEditorMission *mission, const QString &uuid, const int &level);
 	Q_INVOKABLE void missionLockRemove(MapEditorMission *mission, MapEditorMissionLevel *lock);
 
+	Q_INVOKABLE void storageRemove(MapEditorStorage *storage);
+
+	Q_INVOKABLE void chapterAdd(const QString &name = QString());
+	Q_INVOKABLE void chapterRemove(MapEditorChapter *chapter);
+	Q_INVOKABLE void chapterModify(MapEditorChapter *chapter, QJSValue modifyFunc);
+
+	Q_INVOKABLE void objectiveLoadEditor(MapEditorChapter *chapter, const QString &module, const QString &storageModule, MapEditorStorage *storage);
+	Q_INVOKABLE void objectiveAdd(MapEditorChapter *chapter, MapEditorObjective *objective, MapEditorStorage *storage, QJSValue modifyFunc);
+	Q_INVOKABLE void objectiveModify(MapEditorObjective *objective, MapEditorStorage *storage, QJSValue modifyFunc);
+	Q_INVOKABLE void objectiveRemove(MapEditorObjective *objective);
+
 	Q_INVOKABLE MapEditorMissionLevel* missionLevelAdd(MapEditorMission *mission);
 	Q_INVOKABLE void missionLevelRemove(MapEditorMissionLevel *missionLevel);
 	Q_INVOKABLE void missionLevelModify(MapEditorMissionLevel *missionLevel, QJSValue modifyFunc);
@@ -85,10 +103,10 @@ public:
 		missionLevelChapterAdd(missionLevel, QList<MapEditorChapter *>{chapter});
 	}
 	Q_INVOKABLE void missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList);
-	Q_INVOKABLE void missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, MapEditorChapter *chapter) {
-		missionLevelChapterRemove(missionLevel, QList<MapEditorChapter *>{chapter});
-	}
 	Q_INVOKABLE void missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, const QList<MapEditorChapter *> &chapterList);
+	Q_INVOKABLE void missionLevelInventoryAdd(MapEditorMissionLevel *missionLevel, const QString &type);
+	Q_INVOKABLE void missionLevelInventoryRemove(MapEditorMissionLevel *missionLevel, const QList<MapEditorInventory *> &inventoryList);
+	Q_INVOKABLE void missionLevelInventoryModify(MapEditorMissionLevel *missionLevel, MapEditorInventory *inventory, QJSValue modifyFunc);
 
 	Q_INVOKABLE void missionLevelPlay(MapEditorMissionLevel *missionLevel, int mode);
 
@@ -99,8 +117,10 @@ public:
 	void setAutoSaved(bool newAutoSaved);
 
 public slots:
-	virtual void save();
-	virtual void saveAuto();
+	void save();
+	void saveAuto();
+	void onSaved(const bool &success);
+	void onAutoSaved(const bool &success);
 
 protected:
 	bool loadFromBinaryData(const QByteArray &data);
@@ -110,6 +130,9 @@ protected slots:
 	void onModified();
 
 signals:
+	void saveRequest();
+	void autoSaveRequest();
+	void objectiveDialogRequest(MapEditorChapter *chapter);
 	void mapChanged();
 	void displayNameChanged();
 	void modifiedChanged();
@@ -124,6 +147,9 @@ private:
 	bool m_modified = false;
 	bool m_autoSaved = false;
 	MapPlayEditor *m_mapPlay = nullptr;
+
+	MapEditorObjective *m_tmpObjective = nullptr;
+	MapEditorStorage *m_tmpStorage = nullptr;
 };
 
 

@@ -38,7 +38,7 @@ AndroidVersionCode = 32
 
 # iOS cmake toolchain ([build_dir]/lib/[lib])
 
-IosCMakeToolchain = $$PWD/../../client/deploy/ios-cmake/ios.toolchain.cmake
+IosCMakeToolchain = $$PWD/client/deploy/ios-cmake/ios.toolchain.cmake
 IosDeploymentTarget = 12.0
 IosDeploymentPlatform = OS64
 IosDeploymentArchs = arm64

@@ -15,30 +15,42 @@ Item {
 	SortFilterProxyModel {
 		id: _model
 
-		sourceModel: editor && editor.map ? editor.map.chapterList : null
+		sourceModel: editor && editor.map ? editor.map.storageList : null
 
-		sorters: StringSorter {
-			roleName: "name"
+		sorters: RoleSorter {
+			roleName: "storageid"
 		}
 	}
+
 
 	QScrollable {
 		anchors.fill: parent
 
-		Repeater {
+		QListView {
+			id: _inventoryView
+
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			height: contentHeight
+			boundsBehavior: Flickable.StopAtBounds
+
+			autoSelectChange: true
+
 			model: _model
 
-			delegate: MapEditorChapterItem {
-				width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-				anchors.horizontalCenter: parent.horizontalCenter
-				id: _chapter
-				chapter: model.qtObject
-				separatorVisible: index !== _model.count-1 || expanded
-				actionAddVisible: true
-				chapterDeleteAction: true
+			delegate: MapEditorStorageItem {
+				storage: model.qtObject
+				width: ListView.view.width
 			}
-		}
 
+			/*footer: Qaterial.ItemDelegate {
+				width: ListView.view.width
+				textColor: Qaterial.Colors.blue700
+				iconColor: textColor
+				action: actionInventoryAdd
+			}*/
+		}
 	}
 
 	Qaterial.Banner
@@ -46,7 +58,7 @@ Item {
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen feladatot sem tartalmaz ez a pálya. Hozz létre egyet!")
+		text: qsTr("Még egyetlen adatbázist sem tartalmaz ez a pálya. Hozz létre egyet!")
 		iconSource: Qaterial.Icons.desktopClassic
 		fillIcon: false
 		outlinedIcon: true
@@ -56,8 +68,8 @@ Item {
 
 		onAction1Clicked: _actionAdd.trigger()
 
-		enabled: editor && editor.map && editor.map.chapterList.length === 0
-		visible: editor && editor.map && editor.map.chapterList.length === 0
+		enabled: editor && editor.map && editor.map.storageList.length === 0
+		visible: editor && editor.map && editor.map.storageList.length === 0
 	}
 
 	QFabButton {
@@ -74,7 +86,8 @@ Item {
 														   standardButtons: Dialog.Cancel | Dialog.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length) {
-																   editor.chapterAdd(_text)
+																   //var m = editor.chapterAdd(_text)
+																   //loadMission(m)
 															   }
 														   }
 													   })
