@@ -16,8 +16,6 @@ Qaterial.Expandable {
 
 	readonly property MapEditor editor: chapter && chapter.map ? chapter.map.mapEditor : null
 
-	property QListView _objectiveView: null
-
 	signal removeActionRequest()
 
 	header: Item {
@@ -62,47 +60,14 @@ Qaterial.Expandable {
 			Qaterial.RoundButton {
 				Layout.alignment: Qt.AlignCenter
 				icon.source: Qaterial.Icons.dotsVertical
-				icon.color: Qaterial.Style.iconColor()
-				onClicked: root._objectiveView ? contextMenuFull.popup() : contextMenuSimple.popup()
-
+				icon.color: Qaterial.Style.accentColor
+				onClicked: contextMenuSimple.popup()
 
 				Qaterial.Menu {
 					id: contextMenuSimple
 					QMenuItem { action: actionChapterRename }
 					QMenuItem { action: chapterDeleteAction ? actionChapterDelete : actionChapterRemove }
-				}
-
-				Qaterial.Menu {
-					id: contextMenuFull
-
-					QMenuItem { action: actionChapterRename }
-					QMenuItem { action: chapterDeleteAction ? actionChapterDelete : actionChapterRemove }
-
-					Qaterial.MenuSeparator {}
-
-					Qaterial.Menu {
-						title: qsTr("Feladatok")
-						QMenuItem { action: root._objectiveView ? root._objectiveView.actionSelectAll : null}
-						QMenuItem { action: root._objectiveView ? root._objectiveView.actionSelectNone : null }
-						Qaterial.MenuSeparator {}
-						QMenuItem { action: actionObjectiveAdd }
-						QMenuItem {
-							text: qsTr("Törlés")
-							icon.source: Qaterial.Icons.trashCan
-							enabled: root._objectiveView
-							onClicked: {
-								if (!editor)
-									return
-
-								let l = root._objectiveView.getSelected()
-
-								//if (l.length)
-								//	editor.missionLevelInventoryRemove(missionLevel, l)
-
-								root._objectiveView.unselectAll()
-							}
-						}
-					}
+					QMenuItem { action: actionObjectiveAdd }
 				}
 			}
 		}
@@ -139,6 +104,8 @@ Qaterial.Expandable {
 											 storage: objective.storage
 										 })
 				}
+
+				onMenuRequest: _objectiveView.menuOpenFromDelegate(button)
 			}
 
 			footer: Qaterial.ItemDelegate {
@@ -151,8 +118,154 @@ Qaterial.Expandable {
 				text: qsTr("Új feladat létrehozása")
 			}
 
-			Component.onCompleted: root._objectiveView = _objectiveView
-			Component.onDestruction: root._objectiveView = null
+			Qaterial.Menu {
+				id: contextMenu
+				QMenuItem { action: _objectiveView.actionSelectAll }
+				QMenuItem { action: _objectiveView.actionSelectNone }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: actionObjectiveAdd }
+				QMenuItem {
+					text: qsTr("Kettőzés")
+					icon.source: Qaterial.Icons.pageNext
+					enabled: _objectiveView && editor && chapter
+					onClicked: {
+						let l = _objectiveView.getSelected()
+
+						if (l.length)
+							editor.objectiveDuplicate(chapter, l)
+
+						_objectiveView.unselectAll()
+					}
+				}
+				QMenuItem {
+					text: qsTr("Törlés")
+					icon.source: Qaterial.Icons.trashCan
+					enabled: _objectiveView && editor && chapter
+					onClicked: {
+						let l = _objectiveView.getSelected()
+
+						if (l.length)
+							editor.objectiveRemove(chapter, l)
+
+						_objectiveView.unselectAll()
+					}
+				}
+
+				Qaterial.MenuSeparator {}
+
+				Qaterial.Menu {
+					id: _copyMenu
+					title: qsTr("Másolás")
+
+					QMenuItem {
+						text: qsTr("Új feladatcsoport")
+						icon.source: Qaterial.Icons.plus
+						onClicked: {
+							Qaterial.DialogManager.showTextFieldDialog({
+																		   textTitle: qsTr("Feladatcsoport neve"),
+																		   title: qsTr("Új feladatcsoport létrehozása"),
+																		   standardButtons: Dialog.Cancel | Dialog.Ok,
+																		   onAccepted: function(_text, _noerror) {
+																			   if (_noerror && _text.length) {
+																				  editor.objectiveCopyOrMove(chapter, _objectiveView.getSelected(),
+																											 -1, true, _text)
+																				   _objectiveView.unselectAll()
+																			   }
+																		   }
+																	   })
+						}
+					}
+
+					Qaterial.MenuSeparator {}
+
+					Instantiator {
+						model: _filteredChapterModel
+
+						QMenuItem {
+							text: model.name
+							onClicked: {
+								editor.objectiveCopyOrMove(chapter, _objectiveView.getSelected(), model.chapterid, true)
+								_objectiveView.unselectAll()
+							}
+						}
+
+						onObjectAdded: _copyMenu.insertItem(index+2, object)
+						onObjectRemoved: _copyMenu.removeItem(object)
+					}
+
+				}
+
+				Qaterial.Menu {
+					id: _moveMenu
+					title: qsTr("Áthelyezés")
+
+					QMenuItem {
+						text: qsTr("Új feladatcsoport")
+						icon.source: Qaterial.Icons.plus
+						onClicked: {
+							Qaterial.DialogManager.showTextFieldDialog({
+																		   textTitle: qsTr("Feladatcsoport neve"),
+																		   title: qsTr("Új feladatcsoport létrehozása"),
+																		   standardButtons: Dialog.Cancel | Dialog.Ok,
+																		   onAccepted: function(_text, _noerror) {
+																			   if (_noerror && _text.length) {
+																				  editor.objectiveCopyOrMove(chapter, _objectiveView.getSelected(),
+																											 -1, false, _text)
+																				   _objectiveView.unselectAll()
+																			   }
+																		   }
+																	   })
+						}
+					}
+
+					Qaterial.MenuSeparator {}
+
+					Instantiator {
+						model: _filteredChapterModel
+
+						QMenuItem {
+							text: model.name
+							onClicked: {
+								editor.objectiveCopyOrMove(chapter, _objectiveView.getSelected(), model.chapterid, false)
+								_objectiveView.unselectAll()
+							}
+						}
+
+						onObjectAdded: _moveMenu.insertItem(index+2, object)
+						onObjectRemoved: _moveMenu.removeItem(object)
+					}
+				}
+
+			}
+
+			onRightClickOrPressAndHold: {
+				if (index != -1)
+					currentIndex = index
+
+				_filteredChapterModel.reload()
+				contextMenu.popup(mouseX, mouseY)
+			}
+
+			function menuOpenFromDelegate(_item) {
+				var p = mapFromItem(_item, _item.x, _item.y+_item.height)
+
+				_filteredChapterModel.reload()
+				contextMenu.popup(p.x, p.y)
+			}
+		}
+	}
+
+
+	ListModel {
+		id: _filteredChapterModel
+
+		function reload() {
+			clear()
+			for (let i=0; i<editor.map.chapterList.length; i++) {
+				let d = editor.map.chapterList.get(i)
+				if (d !== chapter)
+					append({chapterid: d.chapterid, name: d.name})
+			}
 		}
 	}
 
@@ -162,6 +275,7 @@ Qaterial.Expandable {
 		icon.source: Qaterial.Icons.plus
 		onTriggered: if (editor) editor.objectiveDialogRequest(chapter)
 	}
+
 
 	Action {
 		id: actionChapterRename

@@ -13,7 +13,6 @@ QtObject
 	property MapEditor editor: null
 
 
-
 	property MapEditorChapter _chapter: null
 	property string _objectiveModule: ""
 	property string _storageModule: ""
@@ -26,13 +25,14 @@ QtObject
 		function onObjectiveDialogRequest(chapter) { loadDialog(chapter) }
 	}
 
-	property Component _delegate: Qaterial.RadioDialogDelegate
+	property Component _delegate: Qaterial.ItemDelegate
 	{
 		text: modelData.text ? modelData.text : ""
 		secondaryText: modelData.secondaryText ? modelData.secondaryText : ""
 		icon.source: modelData.icon ? modelData.icon : ""
 		iconColor: modelData.iconColor ? modelData.iconColor : Qaterial.Colors.cyan400
-		elide: Text.ElideRight
+		width: ListView.view.width
+		onClicked: ListView.view.select(index)
 	}
 
 	function loadDialog(chapter) {
@@ -58,7 +58,7 @@ QtObject
 		if (list.length === 0)
 			return
 
-		Qaterial.DialogManager.openRadioListView(
+		Qaterial.DialogManager.openListView(
 					{
 						onAccepted: function(index)
 						{
@@ -69,7 +69,6 @@ QtObject
 
 						},
 						title: qsTr("Új feladat"),
-						standardButtons: Dialog.Cancel | Dialog.Ok,
 						model: list,
 						delegate: _delegate
 					})
@@ -107,18 +106,17 @@ QtObject
 		}
 
 
-		Qaterial.DialogManager.openRadioListView(
+		Qaterial.DialogManager.openListView(
 					{
 						onAccepted: function(index)
 						{
 							if (index < 0)
 								return
 
-							_loadStorageSelectorDialog(slist[index].module)
+							_loadStorageSelectorDialog(slist[index])
 
 						},
 						title: qsTr("Adatbank típus kiválasztása"),
-						standardButtons: Dialog.Cancel | Dialog.Ok,
 						model: slist,
 						delegate: _delegate
 					})
@@ -130,9 +128,9 @@ QtObject
 		if (!_chapter || !_objectiveModule)
 			return
 
-		_storageModule = _module
+		_storageModule = _module.module
 
-		let list = editor.storageModel(_module)
+		let list = editor.storageModel(_module.module)
 
 		if (list.length === 0) {
 			_loadEditor()
@@ -142,7 +140,7 @@ QtObject
 		let slist = []
 
 		slist.push({
-					   text: qsTr("Új adatbank létrehozása"),
+					   text: qsTr("Új létrehozása"),
 					   icon: Qaterial.Icons.plus,
 					   iconColor: Qaterial.Colors.green500,
 					   storage: null
@@ -160,7 +158,7 @@ QtObject
 		}
 
 
-		Qaterial.DialogManager.openRadioListView(
+		Qaterial.DialogManager.openListView(
 					{
 						onAccepted: function(index)
 						{
@@ -173,8 +171,7 @@ QtObject
 
 							_loadEditor()
 						},
-						title: qsTr("Adatbank kiválasztása"),
-						standardButtons: Dialog.Cancel | Dialog.Ok,
+						title: qsTr("%1 kiválasztása").arg(_module.text),
 						model: slist,
 						delegate: _delegate
 					})

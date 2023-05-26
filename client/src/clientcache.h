@@ -265,7 +265,8 @@ template<typename T>
 void OlmLoader::loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonArray, const char *jsonField, const char *property,
 								  const bool &allFieldOverride)
 {
-	Q_ASSERT(list);
+	if (!list)
+		return;
 
 	qolm::QOlm<T> *t = dynamic_cast<qolm::QOlm<T>*>(list);
 
@@ -348,7 +349,8 @@ void OlmLoader::map(QMap<QString, OlmLoaderFunc> *map, const QString &key,
 template<typename T>
 T *OlmLoader::find(qolm::QOlmBase *list, const char *property, const QVariant &value)
 {
-	Q_ASSERT(list);
+	if (!list)
+		return nullptr;
 
 	qolm::QOlm<T> *t = dynamic_cast<qolm::QOlm<T>*>(list);
 

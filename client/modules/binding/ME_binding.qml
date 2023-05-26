@@ -11,17 +11,37 @@ QFormColumn {
 
 	width: parent.width
 
-	property MapEditorObjectiveEditor objectiveEditor: null
+	property Item objectiveEditor: null
 	property MapEditorStorage storage: null
 	property MapEditorObjective objective: null
 
+	property alias readOnly: _binding.readOnly
+
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
+
+	QFormTextField {
+		id: _title
+		title: qsTr("Név")
+		width: parent.width
+
+		field: "name"
+
+		enabled: !root.readOnly
+
+		placeholderText: qsTr("Adatbank elnevezése")
+		leadingIconSource: Qaterial.Icons.renameBox
+		trailingContent: Qaterial.TextFieldClearButton { visible: _title.length; textField: _title }
+	}
+
+	QFormSection {
+		width: parent.width
+		text: qsTr("Párok")
+		icon: Qaterial.Icons.abacus
+	}
 
 	QFormBindingField {
 		id: _binding
 		width: parent.width
-
-		title: qsTr("Párok")
 
 		defaultLeftData: ""
 		defaultRightData: ""
@@ -40,9 +60,9 @@ QFormColumn {
 		if (!storage)
 			return
 
-		storage.data = {
-			bindings: _binding.saveToList()
-		}
+		let d = getItems([_title])
+		d.bindings = _binding.saveToList()
+		storage.data = d
 	}
 
 	function loadData() {
@@ -53,5 +73,8 @@ QFormColumn {
 
 		if (storage && storage.storageid <= 0)
 			_binding.readOnly = false
+
+		if (storage)
+			setItems([_title], storage.data)
 	}
 }

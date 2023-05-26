@@ -107,9 +107,7 @@ QPage {
 				width: parent.width
 				title: qsTr("Leírás")
 				placeholderText: qsTr("Rövid tájékoztató a küldetésről")
-				height: Math.max(implicitHeight, 150)
 				text: mission ? mission.description : ""
-				font: Qaterial.Style.textTheme.body1
 
 				onEditingFinished: editor.missionModify(mission, function() {
 					mission.description = text
@@ -313,7 +311,6 @@ QPage {
 
 											},
 											title: qsTr("Zárolás hozzáadása"),
-											standardButtons: Dialog.Cancel | Dialog.Ok,
 											model: _sortedMissionLevelModel
 										})
 						}

@@ -53,10 +53,33 @@ MapEditorMap::MapEditorMap(MapEditor *editor)
 
 MapEditorMap::~MapEditorMap()
 {
-	delete m_storageList;
-	delete m_imageList;
-	delete m_chapterList;
+	// Különben a destructoroknál összeomolhat
+
+	for (MapEditorMission *m : *m_missionList) {
+		m->setMap(nullptr);
+		for (MapEditorMissionLevel *ml : *m->levelList()) {
+			ml->setMap(nullptr);
+			for (MapEditorInventory *i : *ml->inventoryList())
+				i->setMap(nullptr);
+		}
+	}
+
+	for (MapEditorChapter *ch : *m_chapterList) {
+		ch->setMap(nullptr);
+		for (MapEditorObjective *o : *ch->objectiveList())
+			o->setMap(nullptr);
+	}
+
+	for (MapEditorImage *i : *m_imageList)
+		i->setMap(nullptr);
+
+	for (MapEditorStorage *s : *m_storageList)
+		s->setMap(nullptr);
+
 	delete m_missionList;
+	delete m_chapterList;
+	delete m_imageList;
+	delete m_storageList;
 
 	LOG_CTRACE("client") << "MapEditorMap destroyed" << this;
 }

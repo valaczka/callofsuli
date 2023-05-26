@@ -297,6 +297,19 @@ QPage {
 							text: qsTr("Új feladatcsoport létrehozása")
 							color: Qaterial.Colors.green400
 
+							onClicked: {
+								Qaterial.DialogManager.showTextFieldDialog({
+																			   textTitle: qsTr("Feladatcsoport neve"),
+																			   title: qsTr("Új feladatcsoport létrehozása"),
+																			   standardButtons: Dialog.Cancel | Dialog.Ok,
+																			   onAccepted: function(_text, _noerror) {
+																				   if (_noerror && _text.length) {
+																					   editor.chapterAdd(_text, missionLevel)
+																				   }
+																			   }
+																		   })
+							}
+
 						}
 
 						QColoredItemDelegate {
@@ -412,6 +425,7 @@ QPage {
 						delegate: MapEditorInventoryItem {
 							inventory: model.qtObject
 							width: ListView.view.width
+							onMenuRequest: _inventoryView.menuOpenFromDelegate(button)
 						}
 
 						footer: Qaterial.ItemDelegate {
@@ -419,6 +433,43 @@ QPage {
 							textColor: Qaterial.Colors.blue700
 							iconColor: textColor
 							action: actionInventoryAdd
+						}
+
+						Qaterial.Menu {
+							id: _inventoryContextMenu
+							QMenuItem {
+								text: qsTr("Törlés")
+								icon.source: Qaterial.Icons.trashCan
+								onClicked: if (editor) editor.missionLevelInventoryRemove(missionLevel, [inventory])
+							}
+
+							Qaterial.Menu {
+								title: qsTr("Elhelyezés")
+
+								Repeater {
+									model: 5
+
+									QMenuItem {
+										text: index > 0 ? qsTr("%1. csatatéren").arg(index) : qsTr("Bárhol")
+										onClicked: editor.missionLevelInventoryModify(missionLevel, inventory, function() {
+											inventory.block = (index > 0 ? index : -1)
+										})
+									}
+								}
+							}
+						}
+
+						onRightClickOrPressAndHold: {
+							if (index != -1)
+								currentIndex = index
+
+							_inventoryContextMenu.popup(mouseX, mouseY)
+						}
+
+						function menuOpenFromDelegate(_item) {
+							var p = mapFromItem(_item, _item.x, _item.y+_item.height)
+
+							_inventoryContextMenu.popup(p.x, p.y)
 						}
 
 						Component.onCompleted: root._inventoryView = _inventoryView
@@ -446,7 +497,7 @@ QPage {
 							_inventoryModel.append(o)
 						}
 
-						Qaterial.DialogManager.openRadioListView(
+						Qaterial.DialogManager.openListView(
 									{
 										onAccepted: function(index)
 										{
@@ -459,7 +510,6 @@ QPage {
 
 										},
 										title: qsTr("Felszerelés hozzáadása"),
-										standardButtons: Dialog.Cancel | Dialog.Ok,
 										model: _inventoryModel
 									})
 					}

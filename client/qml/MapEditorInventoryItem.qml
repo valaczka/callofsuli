@@ -11,6 +11,8 @@ QIconLoaderItemDelegate {
 	readonly property MapEditor editor: inventory && inventory.map ? inventory.map.mapEditor : null
 	readonly property var _info: editor ? editor.inventoryInfo(inventory) : {}
 
+	signal menuRequest(Item button)
+
 	text: _info.name
 	secondaryText: inventory && inventory.block > 0 ? qsTr("%1. csatatéren").arg(inventory.block) : ""
 
@@ -60,34 +62,11 @@ QIconLoaderItemDelegate {
 		}
 
 		Qaterial.RoundButton {
+			id: _btn
 			icon.source: Qaterial.Icons.dotsVertical
 			icon.color: Qaterial.Style.iconColor()
 			anchors.verticalCenter: parent.verticalCenter
-			onClicked: contextMenu.popup()
-
-			Qaterial.Menu {
-				id: contextMenu
-				QMenuItem {
-					text: qsTr("Törlés")
-					icon.source: Qaterial.Icons.trashCan
-					onClicked: if (editor) editor.missionLevelInventoryRemove(missionLevel, [inventory])
-				}
-
-				Qaterial.Menu {
-					title: qsTr("Elhelyezés")
-
-					Repeater {
-						model: 5
-
-						QMenuItem {
-							text: index > 0 ? qsTr("%1. csatatéren").arg(index) : qsTr("Bárhol")
-							onClicked: editor.missionLevelInventoryModify(missionLevel, inventory, function() {
-								inventory.block = (index > 0 ? index : -1)
-							})
-						}
-					}
-				}
-			}
+			onClicked: menuRequest(_btn)
 
 		}
 	}

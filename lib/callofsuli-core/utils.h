@@ -62,6 +62,7 @@ public:
 
 	Q_INVOKABLE static QByteArray fileContent(const QString &filename, bool *error = nullptr);
 	Q_INVOKABLE static QString fileBaseName(const QString &filename);
+	Q_INVOKABLE static bool fileExists(const QUrl &file);
 
 	Q_INVOKABLE static bool jsonDocumentToFile(const QJsonDocument &doc, const QString &filename,
 											   const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);

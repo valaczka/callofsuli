@@ -15,6 +15,8 @@ Qaterial.ModalDialog
 	property alias textTitle: tfFile.title
 	property url folder: ""
 
+	property string suffix: ""
+
 	property alias filters: folderListModel.nameFilters
 	property alias modelFolder: folderListModel.folder
 
@@ -202,9 +204,9 @@ Qaterial.ModalDialog
 
 			visible: isSave && !itemNoPermissions.visible
 
+			suffixText: control.suffix != "" ? (text.endsWith(control.suffix) ? "" : control.suffix) : ""
 
 			onAccepted: {
-				_selectedFile = folderListModel.folder+"/"+text
 				control.accept()
 			}
 		}
@@ -231,8 +233,14 @@ Qaterial.ModalDialog
 		if (isSave && tfFile.text == "")
 			return
 
-		if (isSave)
-			_selectedFile = folderListModel.folder+"/"+tfFile.text
+		if (isSave) {
+			let t = tfFile.text
+
+			if (control.suffix != "" && !t.endsWith(control.suffix))
+				t += control.suffix
+
+			_selectedFile = folderListModel.folder+"/"+t
+		}
 
 		if (_selectedFile == "")
 			return

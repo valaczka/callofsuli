@@ -501,6 +501,17 @@ void Application::loadModules()
 }
 
 
+/**
+ * @brief Application::commandLineData
+ * @return
+ */
+
+const QString &Application::commandLineData() const
+{
+	return m_commandLineData;
+}
+
+
 
 /**
  * @brief Application::commandLine

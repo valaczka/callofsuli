@@ -342,6 +342,12 @@ void Client::onApplicationStarted()
 	case Application::Editor:
 		stackPushPage(QStringLiteral("PageMapEditor.qml"));
 		break;
+	case Application::Map:
+		LOG_CINFO("client") << m_application->commandLineData();
+		stackPushPage(QStringLiteral("PageMapEditor.qml"), {
+						  { QStringLiteral("loadFile"), QUrl::fromLocalFile(m_application->commandLineData()) }
+					  });
+		break;
 	case Application::DevPage:
 		stackPushPage(QStringLiteral("_PageDev.qml"));
 		break;

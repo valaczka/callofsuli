@@ -139,10 +139,10 @@ void DesktopApplication::commandLineParse()
 		m_commandLine = Demo;
 	else if (parser.isSet(QStringLiteral("map"))) {
 		m_commandLine = Map;
-		m_loadMap = parser.value(QStringLiteral("map"));
+		m_commandLineData = parser.value(QStringLiteral("map"));
 	} else if (parser.isSet(QStringLiteral("play"))) {
 		m_commandLine = Play;
-		m_loadMap = parser.value(QStringLiteral("map"));
+		m_commandLineData = parser.value(QStringLiteral("play"));
 	} else if (parser.isSet(QStringLiteral("dev-page")))
 		m_commandLine = DevPage;
 

@@ -25,7 +25,7 @@ QPage {
 		return true
 	}
 
-	title: _infoObjective.name !== undefined ? _infoObjective.name : qsTr("Feladat")
+	title: chapter ? chapter.name : _infoObjective.name !== undefined ? _infoObjective.name : qsTr("Feladat")
 	subtitle: editor ? editor.displayName : ""
 
 	property MapEditorChapter chapter: null
@@ -78,39 +78,38 @@ QPage {
 	QScrollable {
 		anchors.fill: parent
 
-		Qaterial.IconLabel {
-			visible: objective
 
-			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			icon.source: _infoObjective.icon !== undefined ? _infoObjective.icon : ""
-			//icon.color: Qaterial.
-			icon.width: 2.2 * Qaterial.Style.pixelSize
-			icon.height: 2.2 * Qaterial.Style.pixelSize
-
-			font: Qaterial.Style.textTheme.headline4
-			text: _infoObjective.name !== undefined ? _infoObjective.name : ""
-
-			elide: Text.ElideRight
-		}
-
-		Qaterial.IconLabel {
+		Row {
 			visible: storage
-
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			horizontalAlignment: Text.AlignLeft
-			text: _infoStorage.name !== undefined ? _infoStorage.name : ""
-			elide: Text.ElideRight
+			Qaterial.IconLabel {
+				width: parent.width-parent.spacing-_editButton.width
 
-			icon.source: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
-			//icon.color: Qaterial.
-			icon.width: 2.2 * Qaterial.Style.pixelSize
-			icon.height: 2.2 * Qaterial.Style.pixelSize
+				anchors.verticalCenter: parent.verticalCenter
 
-			font: Qaterial.Style.textTheme.headline6
+				horizontalAlignment: Text.AlignLeft
+				text: _infoStorage.name !== undefined ? _infoStorage.name : ""
+				elide: Text.ElideRight
+
+				icon.source: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
+				//icon.color: Qaterial.
+				icon.width: 2.2 * Qaterial.Style.pixelSize
+				icon.height: 2.2 * Qaterial.Style.pixelSize
+
+				font: Qaterial.Style.textTheme.headline6
+			}
+
+
+			Qaterial.RoundButton {
+				id: _editButton
+				icon.source: _storageLoader.item && !_storageLoader.item.readOnly ? Qaterial.Icons.pencilOff : Qaterial.Icons.pencil
+				ToolTip.text: qsTr("Szerkesztés")
+				enabled: _storageLoader.item
+				onClicked: _storageLoader.item.readOnly = !_storageLoader.item.readOnly
+				anchors.verticalCenter: parent.verticalCenter
+			}
 		}
 
 
@@ -125,23 +124,29 @@ QPage {
 			}
 		}
 
-		Item {
-			width: parent.width
-			height: 10
-			visible: _separator.visible
-		}
 
-		Qaterial.HorizontalLineSeparator {
-			id: _separator
-			width: parent.width*0.75
+		Item {
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
-			visible: _storageLoader.item && _objectiveLoader.item
-		}
+			height: _label.implicitHeight*1.5
 
-		Item {
-			width: parent.width
-			height: 10
-			visible: _separator.visible
+			Qaterial.IconLabel {
+				id: _label
+				visible: objective
+
+				width: parent.width
+				anchors.verticalCenter: parent.verticalCenter
+
+				icon.source: _infoObjective.icon !== undefined ? _infoObjective.icon : ""
+				//icon.color: Qaterial.
+				icon.width: 2.2 * Qaterial.Style.pixelSize
+				icon.height: 2.2 * Qaterial.Style.pixelSize
+
+				font: Qaterial.Style.textTheme.headline4
+				text: _infoObjective.name !== undefined ? _infoObjective.name : ""
+
+				elide: Text.ElideRight
+			}
 		}
 
 		Loader {

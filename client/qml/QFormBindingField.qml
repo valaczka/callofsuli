@@ -7,7 +7,6 @@ import "./QaterialHelper" as Qaterial
 Column {
 	id: root
 
-	property alias title: _title.text
 	property bool watchModification: true
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
 	property string field: ""
@@ -124,23 +123,6 @@ Column {
 		}
 	}
 
-	Row {
-		Qaterial.LabelSubtitle1 {
-			id: _title
-			width: root.width-parent.spacing-_editButton.width
-			elide: Text.ElideRight
-			maximumLineCount: 1
-			anchors.verticalCenter: parent.verticalCenter
-		}
-
-		Qaterial.RoundButton {
-			id: _editButton
-			icon.source: Qaterial.Icons.pencil
-			ToolTip.text: qsTr("Szerkesztés")
-			onClicked: root.readOnly = !root.readOnly
-			anchors.verticalCenter: parent.verticalCenter
-		}
-	}
 
 	Column {
 		id: _col

@@ -48,16 +48,18 @@ QVariantMap ModuleBinding::details(const QVariantMap &data, ModuleInterface *sto
 
 	QStringList list;
 
-	QVariantList l = data.value("bindings").toList();
+	QVariantList l = data.value(QStringLiteral("bindings")).toList();
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
-		list.append(QString("%1 — %2").arg(m.value("first").toString()).arg(m.value("second").toString()));
+		list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString()).arg(m.value(QStringLiteral("second")).toString()));
 	}
 
+	const QString &name = data.value(QStringLiteral("name")).toString();
+
 	QVariantMap m;
-	m["title"] = list.join(", ");
-	m["details"] = "";
-	m["image"] = "";
+	m[QStringLiteral("title")] = name.isEmpty() ? list.join(", ") : name;
+	m[QStringLiteral("details")] = "";
+	m[QStringLiteral("image")] = "";
 
 	return m;
 }

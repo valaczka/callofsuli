@@ -70,6 +70,7 @@ public:
 	const QHash<QString, ModuleInterface *> &storageModules() const;
 
 	const CommandLine &commandLine() const;
+	const QString &commandLineData() const;
 
 protected:
 	virtual bool loadMainQml();
@@ -91,6 +92,7 @@ protected:
 	static const char* m_version;
 
 	CommandLine m_commandLine = Normal;
+	QString m_commandLineData;
 	QGuiApplication *m_application = nullptr;
 	QQmlApplicationEngine *m_engine = nullptr;
 	Client *m_client = nullptr;

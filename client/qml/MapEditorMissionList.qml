@@ -193,14 +193,14 @@ Item {
 								Qaterial.SquareButton
 								{
 									foregroundColor: Qaterial.Style.iconColor()
-									icon.source: Qaterial.Icons.airplaneEdit
+									icon.source: Qaterial.Icons.pencil
 									onClicked: loadMission(mission)
 								}
 
 								Qaterial.SquareButton
 								{
 									foregroundColor: Qaterial.Colors.red500
-									icon.source: Qaterial.Icons.deleteForever
+									icon.source: Qaterial.Icons.delete_
 									onClicked: editor.missionRemove(mission)
 								}
 							}
@@ -268,6 +268,4 @@ Item {
 								 missionLevel: ml
 							 })
 	}
-
-	Component.onCompleted: 	if (editor) editor.loadMapTest()
 }

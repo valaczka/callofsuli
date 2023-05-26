@@ -35,21 +35,20 @@ Item {
 			height: contentHeight
 			boundsBehavior: Flickable.StopAtBounds
 
-			autoSelectChange: true
+			autoSelectChange: false
 
 			model: _model
 
 			delegate: MapEditorStorageItem {
 				storage: model.qtObject
 				width: ListView.view.width
-			}
 
-			/*footer: Qaterial.ItemDelegate {
-				width: ListView.view.width
-				textColor: Qaterial.Colors.blue700
-				iconColor: textColor
-				action: actionInventoryAdd
-			}*/
+				onClicked: {
+					Client.stackPushPage("MapEditorStorageEditor.qml", {
+											 storage: storage
+										 })
+				}
+			}
 		}
 	}
 
@@ -58,7 +57,7 @@ Item {
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen adatbázist sem tartalmaz ez a pálya. Hozz létre egyet!")
+		text: qsTr("Még egyetlen adatbankot sem tartalmaz ez a pálya. Hozz létre egyet!")
 		iconSource: Qaterial.Icons.desktopClassic
 		fillIcon: false
 		outlinedIcon: true
@@ -80,25 +79,40 @@ Item {
 		id: _actionAdd
 		icon.source: Qaterial.Icons.plus
 		onTriggered: {
-			Qaterial.DialogManager.showTextFieldDialog({
-														   textTitle: qsTr("Feladatcsoport neve"),
-														   title: qsTr("Új feladatcsoport létrehozása"),
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
-														   onAccepted: function(_text, _noerror) {
-															   if (_noerror && _text.length) {
-																   //var m = editor.chapterAdd(_text)
-																   //loadMission(m)
-															   }
-														   }
-													   })
+			let list = editor.storageListAllModel()
+
+			if (list.length === 0)
+				return
+
+			Qaterial.DialogManager.openListView(
+						{
+							onAccepted: function(index)
+							{
+								if (index < 0)
+									return
+
+								editor.storageLoadEditor(list[index].module)
+
+							},
+							title: qsTr("Új adatbank létrehozása"),
+							model: list,
+							delegate: _delegate
+						})
 		}
 	}
 
-	function loadMission(m) {
-		Client.stackPushPage("MapEditorMission.qml", {
-								 editor: root.editor,
-								 mission: m
-							 })
+	Component {
+		id: _delegate
+
+		Qaterial.ItemDelegate
+		{
+			text: modelData.text ? modelData.text : ""
+			secondaryText: modelData.secondaryText ? modelData.secondaryText : ""
+			icon.source: modelData.icon ? modelData.icon : ""
+			iconColor: modelData.iconColor ? modelData.iconColor : Qaterial.Colors.green400
+			width: ListView.view.width
+			onClicked: ListView.view.select(index)
+		}
 	}
 
 }

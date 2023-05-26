@@ -43,7 +43,6 @@ protected:
 	virtual Client *createClient() override;
 
 private:
-	QString m_loadMap;
 	QStringList m_arguments;
 	ColorConsoleAppender *m_appender = nullptr;
 };

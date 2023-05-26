@@ -145,5 +145,7 @@
         <file>QFormBindingField.qml</file>
         <file>QFormBindingTextField.qml</file>
         <file>MapEditorObjectiveDialog.qml</file>
+        <file>MapEditorStorageEditor.qml</file>
+        <file>QFormSection.qml</file>
     </qresource>
 </RCC>

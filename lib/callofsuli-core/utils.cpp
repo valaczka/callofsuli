@@ -119,6 +119,18 @@ QString Utils::fileBaseName(const QString &filename)
 
 
 /**
+ * @brief Utils::fileExists
+ * @param filename
+ * @return
+ */
+
+bool Utils::fileExists(const QUrl &file)
+{
+	return QFile::exists(file.toLocalFile());
+}
+
+
+/**
  * @brief Utils::jsonDocumentToFile
  * @param doc
  * @param filename

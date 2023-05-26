@@ -11,6 +11,8 @@ QIconLoaderItemDelegate {
 	readonly property MapEditor editor: objective && objective.map ? objective.map.mapEditor : null
 	property var _info: editor ? editor.objectiveInfo(objective) : {}
 
+	signal menuRequest(Item button)
+
 	iconSource: _info.icon !== undefined ? _info.icon : ""
 	text: _info.title !== undefined ? _info.title: ""
 	secondaryText: _info.details !== undefined ? _info.details : ""
@@ -61,9 +63,11 @@ QIconLoaderItemDelegate {
 		}
 
 		Qaterial.RoundButton {
+			id: _btn
 			icon.source: Qaterial.Icons.dotsVertical
 			icon.color: Qaterial.Style.iconColor()
 			anchors.verticalCenter: parent.verticalCenter
+			onClicked: menuRequest(_btn)
 		}
 
 	}
