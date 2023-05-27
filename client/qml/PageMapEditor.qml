@@ -8,10 +8,22 @@ import "JScript.js" as JS
 QPage {
 	id: root
 
+	closeQuestion: mapEditor && mapEditor.modified ? qsTr("Biztosan eldobod a módosításokat?") : ""
+
 	stackPopFunction: function() {
 		if (swipeView.currentIndex > 0) {
 			swipeView.decrementCurrentIndex()
 			return false
+		}
+
+		if (mapEditor) {
+			let l = mapEditor.checkMap()
+
+			if (l.length && !_errorShown) {
+				Client.messageWarning(l.join("\n"), qsTr("A pálya hibákat tartalmaz"))
+				_errorShown = true
+				return false
+			}
 		}
 
 		return true
@@ -19,6 +31,9 @@ QPage {
 
 	property MapEditor mapEditor: _editor
 	property url loadFile: ""
+	property bool online: false
+
+	property bool _errorShown: false
 
 	title: qsTr("Pályaszerkesztő")
 	subtitle: mapEditor.displayName
@@ -29,6 +44,15 @@ QPage {
 		onSaveRequest: {
 			if (currentFileName() === "")
 				_actionSaveAs.trigger()
+		}
+	}
+
+	Connections {
+		target: mapEditor
+
+		function onModifiedChanged() {
+			if (mapEditor.modified)
+				_errorShown = false
 		}
 	}
 
@@ -60,7 +84,7 @@ QPage {
 		{
 			icon.source: Qaterial.Icons.dotsVertical
 
-			onClicked: mapEditor.map ? _menuMap.open() : _menuEmpty.open()
+			onClicked: mapEditor.map ? (online ? _menuOnline.open() : _menuMap.open()) : _menuEmpty.open()
 
 			QMenu {
 				id: _menuEmpty
@@ -72,6 +96,15 @@ QPage {
 			QMenu {
 				id: _menuMap
 
+				QMenuItem { action: _actionSaveAs }
+			}
+
+			QMenu {
+				id: _menuOnline
+
+				QMenuItem { action: _actionPublish }
+				QMenuItem { action: _actionDelete }
+				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionSaveAs }
 			}
 		}
@@ -204,6 +237,41 @@ QPage {
 		onTriggered: Qaterial.DialogManager.openFromComponent(_cmpFileSaveAs)
 	}
 
+	Action {
+		id: _actionPublish
+		text: qsTr("Közzététel")
+		icon.source: Qaterial.Icons.send
+		enabled: mapEditor && !mapEditor.modified
+		onTriggered: JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								publishDraft()
+							},
+							text: qsTr("Biztosan közzéteszed a vázlatot?"),
+							title: qsTr("Közzététel"),
+							iconSource: Qaterial.Icons.send
+						})
+
+	}
+
+	Action {
+		id: _actionDelete
+		text: qsTr("Vázlat törlése")
+		icon.source: Qaterial.Icons.cancel
+		enabled: mapEditor && !mapEditor.modified
+		onTriggered: JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								deleteDraft()
+							},
+							text: qsTr("Biztosan törlöd a vázlatot?"),
+							title: qsTr("Vázlat törlése"),
+							iconSource: Qaterial.Icons.deleteAlert
+						})
+	}
+
 	function backupQuestion(file) {
 		Qaterial.DialogManager.showDialog(
 					{
@@ -239,4 +307,25 @@ QPage {
 						  })
 	}
 
+	function publishDraft() {
+		let uuid = mapEditor.uuid
+		let version = mapEditor.draftVersion
+		Client.send(WebSocket.ApiTeacher, "map/%1/publish/%2".arg(uuid).arg(version))
+		.done(function(r){
+			Client.messageInfo(qsTr("Sikeres közzététel"), mapEditor.displayName)
+			Client.stackPop(root)
+		})
+		.fail(JS.failMessage("Közzététel sikertelen"))
+	}
+
+	function deleteDraft() {
+		let uuid = mapEditor.uuid
+		let version = mapEditor.draftVersion
+		Client.send(WebSocket.ApiTeacher, "map/%1/deleteDraft/%2".arg(uuid).arg(version))
+		.done(function(r){
+			Client.messageInfo(qsTr("Vázlat törlése sikeres"), mapEditor.displayName)
+			Client.stackPop(root)
+		})
+		.fail(JS.failMessage("Törlés sikertelen"))
+	}
 }

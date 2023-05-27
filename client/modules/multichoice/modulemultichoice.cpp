@@ -90,9 +90,11 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 	Q_UNUSED(storageData)
 
 	QVariantMap m;
-	m["title"] = data.value("question").toString();
-	m["details"] = data.value("corrects").toStringList().join(", ")+"<br>("+data.value("answers").toStringList().join(", ")+")";
-	m["image"] = "";
+	m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+	m[QStringLiteral("details")] = data.value(QStringLiteral("corrects")).toStringList().join(QStringLiteral(", "))+
+			QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
+			QStringLiteral(")");
+	m[QStringLiteral("image")] = QLatin1String("");
 
 	return m;
 }
@@ -125,6 +127,46 @@ QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInter
 }
 
 
+
+
+/**
+ * @brief ModuleMultichoice::preview
+ * @return
+ */
+
+QVariantMap ModuleMultichoice::preview(const QVariantList &generatedList) const
+{
+	QVariantMap m;
+	QString s;
+
+	foreach (QVariant v, generatedList) {
+		QVariantMap m = v.toMap();
+
+		s.append(QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
+
+		QVector<int> idxList;
+
+		foreach (const QVariant &v, m.value(QStringLiteral("answer")).toList())
+			idxList.append(v.toInt());
+
+		const QStringList &l = m.value(QStringLiteral("options")).toStringList();
+
+		for (int i=0; i<l.size(); ++i) {
+			if (idxList.contains(i))
+				s.append(QStringLiteral("- **")+l.at(i)+QStringLiteral("**\n"));
+			else
+				s.append(QStringLiteral("- ")+l.at(i)+QStringLiteral("\n"));
+		}
+
+		s.append(QStringLiteral("---\n"));
+	}
+
+	m[QStringLiteral("text")] = s;
+
+	return m;
+}
+
+
 /**
  * @brief ModuleMultichoice::generate
  * @param data
@@ -138,18 +180,18 @@ QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 {
 	QVariantMap m;
 
-	m["question"] = data.value("question").toString();
+	m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 
-	QStringList clist = data.value("corrects").toStringList();
+	QStringList clist = data.value(QStringLiteral("corrects")).toStringList();
 
 	if (clist.isEmpty())
-		clist = QStringList({" "});
+		clist = QStringList({QStringLiteral(" ")});
 
-	QStringList alist = data.value("answers").toStringList();
+	QStringList alist = data.value(QStringLiteral("answers")).toStringList();
 
-	int minCorrect = qMax(data.value("correctMin", -1).toInt(), 2);
-	int maxOptions = qMax(data.value("count", -1).toInt(), 3);
-	int maxCorrect = qMax(data.value("correctMax", -1).toInt(), maxOptions-1);
+	int minCorrect = qMax(data.value(QStringLiteral("correctMin"), -1).toInt(), 2);
+	int maxOptions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
+	int maxCorrect = qMin(data.value(QStringLiteral("correctMax"), -1).toInt(), maxOptions-1);
 
 	int correctCount = minCorrect;
 
@@ -181,8 +223,8 @@ QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 	}
 
 
-	m["options"] = optList;
-	m["answer"] = correctIdx;
+	m[QStringLiteral("options")] = optList;
+	m[QStringLiteral("answer")] = correctIdx;
 
 	return m;
 }

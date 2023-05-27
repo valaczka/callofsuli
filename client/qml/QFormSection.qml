@@ -20,7 +20,7 @@ Item {
 		id: _iconLabel
 		horizontalAlignment: Qt.AlignLeft
 		font: Qaterial.Style.textTheme.body2Upper
-		wrapMode: Label.Wrap
+		wrapMode: Text.Wrap
 		anchors.bottom: parent.bottom
 		width: parent.width
 		text: root.text

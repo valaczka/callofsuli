@@ -107,12 +107,12 @@ QVariantMap ModuleFillout::details(const QVariantMap &data, ModuleInterface *sto
 	Q_UNUSED(storage)
 	Q_UNUSED(storageData)
 
-	QStringList answers = data.value("answers").toStringList();
+	QStringList answers = data.value(QStringLiteral("answers")).toStringList();
 
 	QVariantMap m;
-	m["title"] = data.value("text").toString();
-	m["details"] = answers.join(", ");
-	m["image"] = "";
+	m[QStringLiteral("title")] = data.value(QStringLiteral("text")).toString();
+	m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+	m[QStringLiteral("image")] = QLatin1String("");
 
 	return m;
 }
@@ -151,7 +151,7 @@ QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface
 
 QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 {
-	QString text = data.value("text").toString();
+	QString text = data.value(QStringLiteral("text")).toString();
 
 	if (text.isEmpty())
 		return QVariantMap();
@@ -178,21 +178,21 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 		int _s = match.capturedStart();
 		if (_s > _cptrd) {
 			foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
-				items.append(ItemStruct(s.replace("\\%", "%"), false));
+				items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 		}
 		_cptrd = match.capturedStart()+match.capturedLength();
 
-		QString q = text.mid(match.capturedStart(1), match.capturedLength(1)).replace("\\%", "%");
+		QString q = text.mid(match.capturedStart(1), match.capturedLength(1)).replace(QStringLiteral("\\%"), QStringLiteral("%"));
 
 		items.append(ItemStruct(q, true));
 	}
 
 
 	foreach (QString s, text.mid(_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
-		items.append(ItemStruct(s.replace("\\%", "%"), false));
+		items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 
 
-	int maxQuestion = qMax(data.value("count", -1).toInt(), 1);
+	int maxQuestion = qMax(data.value(QStringLiteral("count"), -1).toInt(), 1);
 
 	QVector<int> questionIndexList;
 
@@ -211,9 +211,9 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	}
 
 
-	int maxOptions = qMax(data.value("optionsCount", -1).toInt(), options.size()+1);
+	int maxOptions = qMax(data.value(QStringLiteral("optionsCount"), -1).toInt(), options.size()+1);
 
-	QStringList oList = data.value("options").toStringList();
+	QStringList oList = data.value(QStringLiteral("options")).toStringList();
 
 	while (oList.size() && options.size() < maxOptions) {
 		options.append(oList.takeAt(QRandomGenerator::global()->bounded(oList.size())));
@@ -226,13 +226,13 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 
 	for (int i=0; i<items.size(); ++i) {
 		if (usedIndexList.contains(i)) {
-			QString id = QString("%1").arg(i);
+			QString id = QStringLiteral("%1").arg(i);
 
 			answer.insert(id, items.at(i).text);
 
-			words.append(QVariantMap({{"q", id}}));
+			words.append(QVariantMap({{QStringLiteral("q"), id}}));
 		} else {
-			words.append(QVariantMap({{"w", items.at(i).text}}));
+			words.append(QVariantMap({{QStringLiteral("w"), items.at(i).text}}));
 		}
 	}
 
@@ -245,10 +245,10 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 
 
 	QVariantMap ret;
-	ret["list"] = words;
-	ret["options"] = optList;
-	ret["answer"] = answer;
-	ret["question"] = data.value("question").toString();
+	ret[QStringLiteral("list")] = words;
+	ret[QStringLiteral("options")] = optList;
+	ret[QStringLiteral("answer")] = answer;
+	ret[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 
 	return ret;
 }
@@ -260,7 +260,7 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 
 void ModuleFillout::registerQmlTypes() const
 {
-	qmlRegisterType<FilloutHighlighter>("COS.Client", 1, 0, "FilloutHighlighter");
+	qmlRegisterType<FilloutHighlighter>("CallOfSuli", 1, 0, "FilloutHighlighter");
 }
 
 

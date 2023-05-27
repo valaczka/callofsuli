@@ -1,79 +1,76 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.14
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
-QCollapsible {
-	id: control
 
-	collapsed: false
+QFormColumn {
+	id: root
 
-	property var moduleData: null
+	width: parent.width
 
-	property bool editable: false
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	signal modified()
+	property bool readOnly: true
 
-	title: qsTr("Sorozat")
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	rightComponent: QToolButton {
-		visible: !control.editable
-		icon.source: "qrc:/internal/icon/pencil.svg"
-		text: qsTr("Szerkesztés")
-		display: AbstractButton.IconOnly
-		onClicked: control.editable = true
+	QFormTextField {
+		id: _title
+		title: qsTr("Név")
+		width: parent.width
+
+		field: "name"
+
+		enabled: !root.readOnly
+
+		placeholderText: qsTr("Adatbank elnevezése")
+		leadingIconSource: Qaterial.Icons.renameBox
+		trailingContent: Qaterial.TextFieldClearButton { visible: _title.length; textField: _title }
+	}
+
+
+	QFormTextArea {
+		id: _areaItems
+		title: qsTr("Elemek")
+		placeholderText: qsTr("A sorozat elemei (soronként) növekvő sorrendben ")
+		helperText: qsTr("Növekvő sorrendben")
+		width: parent.width
+
+		enabled: !root.readOnly
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
 
-	QGridLayout {
-		id: layout
+	function saveData() {
+		if (!storage)
+			return
 
-		watchModification: true
-		onModifiedChanged: if (layout.modified)
-							   control.modified()
+		storage.data = previewData()
+	}
 
-		QGridLabel { field: areaItems }
+	function loadData() {
+		if (storage && storage.storageid <= 0)
+			readOnly = false
 
-		QGridTextArea {
-			id: areaItems
-			fieldName: qsTr("Elemek")
-
-			placeholderText: qsTr("A sorozat elemei (soronként) növekvő sorrendben ")
-			minimumHeight: CosStyle.baseHeight*3
-
-			onTextModified: getData()
+		if (storage) {
+			setItems([_title], storage.data)
+			if (storage.data.items !== undefined)
+				_areaItems.fieldData = storage.data.items.join("\n")
 		}
 	}
 
 
-	Component.onCompleted: {
-		if (!moduleData)
-			return
+	function previewData() {
+		let d = getItems([_title])
+		d.items = _areaItems.text.split("\n")
 
-		if (moduleData.items)
-			areaItems.setData(moduleData.items.join("\n"))
+		return d
 	}
-
-
-	function getData() {
-		var d = {} //JS.getSqlFields([textQuestion, spinCount, spinCourrectMin, spinCourrectMax])
-
-		d.items = areaItems.text.split("\n")
-
-		moduleData = d
-
-		if (editable)
-			return moduleData
-		else
-			return {}
-	}
-
 }
-
-
-
-

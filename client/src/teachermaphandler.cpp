@@ -113,6 +113,65 @@ void TeacherMapHandler::reloadList()
 }
 
 
+
+
+/**
+ * @brief TeacherMapHandler::loadEditorPage
+ */
+
+void TeacherMapHandler::loadEditorPage()
+{
+	if (!m_mapEditor)
+		return;
+
+	LOG_CTRACE("client") << "Teacher map editor page loaded" << m_mapEditor;
+
+	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapEditor.qml"), {
+												   { QStringLiteral("online"), true },
+												   { QStringLiteral("mapEditor"), QVariant::fromValue(m_mapEditor) }
+											   });
+
+	if (page)
+		connect(page, &QQuickItem::destroyed, this, &TeacherMapHandler::unsetMapEditor);
+}
+
+
+
+/**
+ * @brief TeacherMapHandler::mapEditor
+ * @return
+ */
+
+TeacherMapEditor *TeacherMapHandler::mapEditor() const
+{
+	return m_mapEditor;
+}
+
+void TeacherMapHandler::setMapEditor(TeacherMapEditor *newMapEditor)
+{
+	if (m_mapEditor == newMapEditor)
+		return;
+	m_mapEditor = newMapEditor;
+	emit mapEditorChanged();
+}
+
+
+
+/**
+ * @brief TeacherMapHandler::unsetMapEditor
+ */
+
+void TeacherMapHandler::unsetMapEditor()
+{
+	if (m_mapEditor) {
+		LOG_CTRACE("client") << "Teacher map editor unloaded" << m_mapEditor;
+		delete m_mapEditor;
+	}
+
+	setMapEditor(nullptr);
+}
+
+
 /**
  * @brief TeacherMapHandler::mapList
  * @return
@@ -179,5 +238,157 @@ void TeacherMapHandler::mapDownload(TeacherMap *map)
 	download(map, WebSocket::ApiTeacher, QStringLiteral("map/%1/content").arg(map->uuid()));
 }
 
+
+
+/**
+ * @brief TeacherMapHandler::mapEdit
+ * @param map
+ */
+
+void TeacherMapHandler::mapEdit(TeacherMap *map)
+{
+	if (!map)
+		return;
+
+	if (m_mapEditor)
+		return m_client->messageError(tr("Egy pálya már meg van nyitva szerkesztésre!"), tr("Belső hiba"));
+
+
+	TeacherMapEditor *editor = new TeacherMapEditor(this);
+
+	editor->setDraftVersion(qMax(map->draftVersion(),0));
+	editor->setDisplayName(map->name());
+	editor->setUuid(map->uuid());
+
+	setMapEditor(editor);
+
+	WebSocketReply *r = m_client->webSocket()->send(WebSocket::ApiTeacher,
+													QStringLiteral("map/%1/draft/%2").arg(editor->uuid()).arg(editor->draftVersion()))
+			->fail([this](const QString &err) {
+		m_client->messageWarning(err, tr("Letöltési hiba"));
+		unsetMapEditor();
+	})
+			->done([this, map](const QByteArray &data) {
+		if (map)
+			map->setDownloadProgress(0);
+
+		if (!m_mapEditor) {
+			LOG_CWARNING("client") << "Invalid map editor";
+			return;
+		}
+
+		if (data.isEmpty()) {
+			m_client->messageError(tr("Nem sikerült beolvasni a pálya tartalmát!"), tr("Belső hiba"));
+			unsetMapEditor();
+			return;
+		}
+
+		if (!m_mapEditor->loadFromBinaryData(data)) {
+			m_client->messageError(tr("Érvénytelen pálya!"), tr("Belső hiba"));
+			unsetMapEditor();
+			return;
+		}
+
+		loadEditorPage();
+	});
+
+	connect(r, &WebSocketReply::downloadProgress, map, &BaseMap::setDownloadProgress);
+
+}
+
+
+
+
+
+/**
+ * @brief TeacherMapEditor::TeacherMapEditor
+ * @param parent
+ */
+
+TeacherMapEditor::TeacherMapEditor(QObject *parent)
+	: MapEditor(parent)
+{
+	connect(this, &MapEditor::saveRequest, this, &TeacherMapEditor::onSaveRequest);
+	connect(this, &MapEditor::autoSaveRequest, this, &TeacherMapEditor::onSaveRequest);
+}
+
+
+/**
+ * @brief TeacherMapEditor::~TeacherMapEditor
+ */
+
+TeacherMapEditor::~TeacherMapEditor()
+{
+
+}
+
+
+
+/**
+ * @brief TeacherMapEditor::onSaveRequest
+ */
+
+void TeacherMapEditor::onSaveRequest()
+{
+	if (!m_map || m_uuid.isEmpty())
+		return;
+
+	if (!modified())
+		return;
+
+	const QByteArray &data = m_map->toBinaryData();
+
+	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/%1/upload/%2").arg(m_uuid).arg(m_draftVersion), data)
+			->fail([this](const QString &){
+		onSaved(false);
+	})
+			->done([this](const QJsonObject &data){
+		onSaved(true);
+		if (data.contains(QStringLiteral("version")))
+			m_draftVersion = data.value(QStringLiteral("version")).toInt();
+
+		LOG_CTRACE("client") << "Map saved, new draftVersion:" << m_draftVersion;
+	});
+}
+
+
+
+/**
+ * @brief TeacherMapEditor::draftVersion
+ * @return
+ */
+
+int TeacherMapEditor::draftVersion() const
+{
+	return m_draftVersion;
+}
+
+void TeacherMapEditor::setDraftVersion(int newDraftVersion)
+{
+	if (m_draftVersion == newDraftVersion)
+		return;
+	m_draftVersion = newDraftVersion;
+	emit draftVersionChanged();
+}
+
+
+
+/**
+ * @brief TeacherMapEditor::uuid
+ * @return
+ */
+
+const QString &TeacherMapEditor::uuid() const
+{
+	return m_uuid;
+}
+
+void TeacherMapEditor::setUuid(const QString &newUuid)
+{
+	if (m_uuid == newUuid)
+		return;
+	m_uuid = newUuid;
+	emit uuidChanged();
+}
 
 

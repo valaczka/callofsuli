@@ -4,31 +4,19 @@ include(../common.pri)
 
 LIBS += -L../../lib
 
-#####LIBS += -lcrypto
-
 
 # Qaterial
 
-INCLUDEPATH += $$PWD/Qaterial/src
-
-android: INCLUDEPATH += $$OUT_PWD/../../lib/libQaterial/$${QT_ARCH}/_deps/qolm-src/include
-else: INCLUDEPATH += $$OUT_PWD/../../lib/libQaterial/_deps/qolm-src/include
+INCLUDEPATH += \
+	$$PWD/Qaterial/src \
+	$$PWD/QOlm/src \
+	$$PWD/QOlm/include
 
 QMLPATHS += $$PWD/Qaterial/qml/Qaterial
 
-android {
-	if ($$QaterialBuildShared) {
-		LIBS += -L../../lib/libQaterial/$${QT_ARCH}/android-build/libs/$${QT_ARCH}/ -lQaterial_$${QT_ARCH} -lQOlm_$${QT_ARCH}
+android: LIBS += -lQaterial_$${QT_ARCH}
+else: LIBS += -lQaterial
 
-		for (abi, ANDROID_ABIS): ANDROID_EXTRA_LIBS += \
-			$$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQaterial_$${abi}.so \
-			$$OUT_PWD/../../lib/libQaterial/$${abi}/android-build/libs/$${abi}/libQOlm_$${abi}.so
-	} else {
-		LIBS += ../../lib/libQaterial/$${QT_ARCH}/_deps/qolm-build/libQOlm.a ../../lib/libQaterial/$${QT_ARCH}/libQaterial.a
-	}
-} else {
-	LIBS += -L../../lib/libQaterial -lQaterial -L../../lib/libQaterial/_deps/qolm-build -lQOlm
-}
 
 
 # Tiled

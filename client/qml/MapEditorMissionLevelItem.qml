@@ -46,6 +46,8 @@ QPage {
 		QFormColumn {
 			id: _form
 
+			spacing: 8
+
 			Qaterial.IconLabel {
 				visible: mission
 
@@ -239,7 +241,64 @@ QPage {
 			}
 
 
-			/// TERRAIN
+			Row {
+				anchors.left: parent.left
+
+				spacing: 15
+
+				visible: mission && (mission.modes & GameMap.Action)
+
+				Qaterial.LabelBody2 {
+					text: qsTr("Harcmező:")
+					anchors.verticalCenter: parent.verticalCenter
+				}
+
+				Qaterial.Icon
+				{
+					icon: missionLevel ? (missionLevel.terrainData.name !== "" ? missionLevel.terrainData.thumbnail : Qaterial.Icons.alert): ""
+					color: missionLevel && missionLevel.terrainData.name !== "" ? "transparent" : Qaterial.Colors.red500
+					width: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*4.5 : Qaterial.Style.mediumIcon
+					height: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*3 : Qaterial.Style.mediumIcon
+				}
+
+				Qaterial.LabelWithCaption {
+					anchors.verticalCenter: parent.verticalCenter
+					text: missionLevel ? missionLevel.terrainData.displayName : ""
+					caption: missionLevel && missionLevel.terrainData.level > 0 ? qsTr("level %1").arg(missionLevel.terrainData.level) : ""
+				}
+
+				Qaterial.RoundButton {
+					anchors.verticalCenter: parent.verticalCenter
+					icon.source: Qaterial.Icons.pencil
+					enabled: missionLevel
+					onClicked: {
+						let idx = -1
+
+						for (let i=0; i<_sortedTerrainModel.count; ++i) {
+							if (_sortedTerrainModel.get(i).fieldName === missionLevel.terrain)
+								idx = i
+						}
+
+						Qaterial.DialogManager.openListView(
+									{
+										onAccepted: function(index)
+										{
+											if (index < 0)
+												return
+
+											editor.missionLevelModify(missionLevel, function() {
+												missionLevel.terrain = _sortedTerrainModel.get(index).fieldName
+											})
+
+										},
+										title: qsTr("Harcmező kiválasztása"),
+										model: _sortedTerrainModel,
+										currentIndex: idx,
+										delegate: _terrainDelegate
+									})
+					}
+				}
+			}
 
 			QFormSwitchButton
 			{
@@ -440,7 +499,17 @@ QPage {
 							QMenuItem {
 								text: qsTr("Törlés")
 								icon.source: Qaterial.Icons.trashCan
-								onClicked: if (editor) editor.missionLevelInventoryRemove(missionLevel, [inventory])
+								onClicked: {
+									if (!editor)
+										return
+
+									let l = _inventoryView.getSelected()
+
+									if (l.length)
+										editor.missionLevelInventoryRemove(missionLevel, l)
+
+									_inventoryView.unselectAll()
+								}
 							}
 
 							Qaterial.Menu {
@@ -451,9 +520,16 @@ QPage {
 
 									QMenuItem {
 										text: index > 0 ? qsTr("%1. csatatéren").arg(index) : qsTr("Bárhol")
-										onClicked: editor.missionLevelInventoryModify(missionLevel, inventory, function() {
-											inventory.block = (index > 0 ? index : -1)
-										})
+										onClicked: {
+											if (!editor || _inventoryView.currentIndex == -1)
+												return
+
+											let inventory = _inventoryView.modelGet(_inventoryView.currentIndex)
+
+											editor.missionLevelInventoryModify(missionLevel, inventory, function() {
+												inventory.block = (index > 0 ? index : -1)
+											})
+										}
 									}
 								}
 							}
@@ -560,6 +636,73 @@ QPage {
 		}
 	}
 
+
+
+	ListModel {
+		id: _terrainModel
+	}
+
+	onEditorChanged: {
+		if (!editor)
+			return
+
+		var l = editor.terrainListModel()
+		_terrainModel.clear()
+
+		for (let i=0; i<l.length; ++i)
+			_terrainModel.append(l[i])
+	}
+
+
+	SortFilterProxyModel {
+		id: _sortedTerrainModel
+
+		property bool onlyFirst: false
+
+		sourceModel: _terrainModel
+
+		filters: [
+			ValueFilter {
+				enabled: _sortedTerrainModel.onlyFirst
+				roleName: "level"
+				value: 1
+			}
+		]
+
+		sorters: [
+			StringSorter {
+				roleName: "displayName"
+				priority: 2
+			},
+			RoleSorter {
+				roleName: "level"
+				priority: 1
+			}
+
+		]
+	}
+
+
+
+	Component {
+		id: _terrainDelegate
+
+		QLoaderItemDelegate {
+			highlighted: ListView.isCurrentItem
+			text: model.displayName ? model.displayName: ""
+			secondaryText: model.level > 0 ? qsTr("level %1").arg(model.level) : ""
+
+			leftSourceComponent: Image
+			{
+				fillMode: Image.PreserveAspectFit
+				source: model.icon
+				sourceSize: Qt.size(width, height)
+			}
+
+			width: ListView.view.width
+			onClicked: ListView.view.select(index)
+		}
+	}
 
 	onMissionChanged: if (!mission) Client.stackPop(root)
 	onMissionLevelChanged: if (!missionLevel) Client.stackPop(root)

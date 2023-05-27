@@ -1,215 +1,154 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 
-Loader {
-	id: ldr
+QFormColumn {
+	id: root
 	width: parent.width
 
-	property MapEditor mapEditor: null
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	property var moduleData: ({})
-	property var storageData: ({})
-	property string storageModule: ""
-	property int storageCount: 0
+	spacing: 10
 
-	signal modified()
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-
-	Component {
-		id: cmpSequence
-
-		QGridLayout {
-			id: layoutS
-
-			watchModification: true
-			onModifiedChanged: if (layoutS.modified)
-								   ldr.modified()
+	readonly property bool isNumbers: storage && (storage.module == "sequence" || storage.module == "numbers")
 
 
-			QGridLabel {
-				field: areaItems
-				visible: areaItems.visible
-			}
+	QFormTextArea {
+		id: _areaItems
+		title: qsTr("Elemek")
+		placeholderText: qsTr("A sorozat elemei (soronként) növekvő sorrendben ")
+		helperText: qsTr("Növekvő sorrendben")
+		width: parent.width
+		visible: !isNumbers
 
-			QGridTextArea {
-				id: areaItems
-				fieldName: qsTr("Elemek")
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-				placeholderText: qsTr("A sorozat elemei (soronként) növekvő sorrendben ")
-				minimumHeight: CosStyle.baseHeight*2
+	QFormSpinBox {
+		id: _spinCount
+		field: "count"
+		text: qsTr("Elemek száma:")
 
-				onTextModified: getData()
-			}
+		from: 2
+		value: 5
+		to: 99
+		spin.editable: true
 
-			QGridText {
-				text: qsTr("Elemek száma:")
-				field: spinCount
-			}
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-			QGridSpinBox {
-				id: spinCount
-				from: 2
-				value: 5
-				to: 99
-				editable: true
-				sqlField: "count"
-			}
+	QFormComboBox {
+		id: _modeOrder
+		text: qsTr("Sorrend:")
 
+		combo.width: Math.max(combo.implicitWidth, 200)
 
-			QGridText {
-				field: comboMode
-				text: qsTr("Sorrend:")
-			}
+		field: "mode"
 
-			QGridComboBox {
-				id: comboMode
-				sqlField: "mode"
+		valueRole: "value"
+		textRole: "text"
 
-				valueRole: "value"
-				textRole: "text"
+		model: [
+			{value: "ascending", text: qsTr("Növekvő sorrend")},
+			{value: "descending", text: qsTr("Csökkenő sorrend")},
+			{value: "random", text: qsTr("Véletlenszerű sorrend")}
+		]
 
-				model: [
-					{value: "ascending", text: qsTr("Növekvő sorrend")},
-					{value: "descending", text: qsTr("Csökkenő sorrend")},
-					{value: "random", text: qsTr("Véletlenszerű sorrend")}
-				]
-			}
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-			QGridLabel {
-				field: textQuestionAsc
-				visible: textQuestionAsc.visible
-			}
+	QFormTextField {
+		id: _questionAsc
+		title: qsTr("Kérdés (növekvő)")
+		field: "questionAsc"
+		placeholderText: qsTr("Ez a kérdés fog megjelenni növekvő sorrend esetén")
+		width: parent.width
 
-			QGridTextField {
-				id: textQuestionAsc
-				fieldName: qsTr("Kérdés (növekvő)")
-				sqlField: "questionAsc"
-				placeholderText: qsTr("Ez a kérdés fog megjelenni növekvő sorrend esetén")
+		visible: _modeOrder.currentValue === "ascending" || _modeOrder.currentValue === "random"
 
-				text: qsTr("Rendezd növekvő sorrendbe!")
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-				visible: comboMode.currentValue === "ascending" || comboMode.currentValue === "random"
-			}
+	QFormTextField {
+		id: _questionDesc
+		title: qsTr("Kérdés (csökkenő)")
+		field: "questionDesc"
+		placeholderText: qsTr("Ez a kérdés fog megjelenni csökkenő sorrend esetén")
+		width: parent.width
 
-			QGridLabel {
-				field: textQuestionDesc
-				visible: textQuestionDesc.visible
-			}
+		visible: _modeOrder.currentValue === "descending" || _modeOrder.currentValue === "random"
 
-			QGridTextField {
-				id: textQuestionDesc
-				fieldName: qsTr("Kérdés (csökkenő)")
-				sqlField: "questionDesc"
-				placeholderText: qsTr("Ez a kérdés fog megjelenni csökkenő sorrend esetén")
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-				text: qsTr("Rendezd csökkenő sorrendbe!")
+	QFormTextField {
+		id: _textMin
+		title: qsTr("Segítő jelzés (min.)")
+		field: "placeholderMin"
+		placeholderText: qsTr("Ezt jeleníti meg azon a helyen, ahova a legkisebb értéket kell helyezni")
 
-				visible: comboMode.currentValue === "descending" || comboMode.currentValue === "random"
-			}
+		text: qsTr("legkisebb")
+		width: parent.width
 
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-			QGridLabel { field: textPlaceholderMin }
+	QFormTextField {
+		id: _textMax
+		title: qsTr("Segítő jelzés (max.)")
+		field: "placeholderMax"
+		placeholderText: qsTr("Ezt jeleníti meg azon a helyen, ahova a legnagyobb értéket kell helyezni")
 
-			QGridTextField {
-				id: textPlaceholderMin
-				fieldName: qsTr("Segítő jelzés (min.)")
-				sqlField: "placeholderMin"
-				placeholderText: qsTr("Ezt jeleníti meg azon a helyen, ahova a legkisebb értéket kell helyezni")
+		text: qsTr("legnagyobb")
+		width: parent.width
 
-				text: qsTr("legkisebb")
-			}
-
-			QGridLabel { field: textPlaceholderMax }
-
-			QGridTextField {
-				id: textPlaceholderMax
-				fieldName: qsTr("Segítő jelzés (max.)")
-				sqlField: "placeholderMax"
-				placeholderText: qsTr("Ezt jeleníti meg azon a helyen, ahova a legnagyobb értéket kell helyezni")
-
-				text: qsTr("legnagyobb")
-			}
-
-
-			QGridText {
-				text: qsTr("Feladatok száma:")
-				field: sCount
-				visible: sCount.visible
-			}
-
-			QGridSpinBox {
-				id: sCount
-				from: 1
-				to: 99
-				editable: true
-
-				onValueModified: {
-					storageCount = value
-				}
-			}
-
-
-
-			Component.onCompleted: {
-				if (storageModule == "sequence" || storageModule == "numbers") {
-					areaItems.visible = false
-				} else {
-					sCount.visible = false
-				}
-
-				if (!moduleData)
-					return
-
-				JS.setSqlFields([spinCount, comboMode, textQuestionAsc, textQuestionDesc, textPlaceholderMax, textPlaceholderMin], moduleData)
-
-				if (storageModule == "sequence" || storageModule == "numbers") {
-					sCount.setData(storageCount)
-				} else {
-					areaItems.setData(moduleData.items.join("\n"))
-				}
-			}
-
-
-			function getData() {
-				var d = JS.getSqlFields([spinCount, comboMode, textQuestionAsc, textQuestionDesc, textPlaceholderMax, textPlaceholderMin])
-
-				if (storageModule == "sequence" || storageModule == "numbers") {
-
-				} else {
-					d.items = areaItems.text.split("\n")
-				}
-
-				moduleData = d
-
-				return moduleData
-			}
-		}
-
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
-	Component.onCompleted: {
-		ldr.sourceComponent = cmpSequence
-	}
-
-
-	function getData() {
-		if (ldr.status == Loader.Ready)
-			return ldr.item.getData()
-
-		return {}
-	}
-
-	function setStorageData(data) {
-		storageData = data
+	MapEditorSpinStorageCount {
+		id: _countBinding
+		visible: isNumbers
 	}
 
 
 
+
+
+	function loadData() {
+		_countBinding.value = objective.storageCount
+		setItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin], objective.data)
+
+		if (!isNumbers && objective.data.items !== undefined)
+			_areaItems.fieldData = objective.data.items.join("\n")
+	}
+
+
+	function saveData() {
+		objective.data = previewData()
+		objective.storageCount = _countBinding.value
+	}
+
+
+
+	function previewData() {
+		let d = getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin])
+
+		if (!isNumbers)
+			d.items = _areaItems.text.split("\n")
+
+		return d
+	}
 }
+
+
+
 

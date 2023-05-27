@@ -88,19 +88,20 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 	QVariantList l;
 
 	if (!storage)
-		l = data.value("pairs").toList();
-	else if (storage->name() == "binding" || storage->name() == "numbers")
-		l = storageData.value("bindings").toList();
+		l = data.value(QStringLiteral("pairs")).toList();
+	else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
+		l = storageData.value(QStringLiteral("bindings")).toList();
 
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
-		list.append(QString("%1 — %2").arg(m.value("first").toString()).arg(m.value("second").toString()));
+		list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString(),
+												  m.value(QStringLiteral("second")).toString()));
 	}
 
 	QVariantMap m;
-	m["title"] = data.value("question").toString();
-	m["details"] = list.join(", ");
-	m["image"] = "";
+	m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+	m[QStringLiteral("details")] = list.join(QStringLiteral(", "));
+	m[QStringLiteral("image")] = QLatin1String("");
 
 	return m;
 }
@@ -120,14 +121,14 @@ QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *s
 	QVariantList list;
 	QVariantMap m;
 
-	m["question"] = data.value("question").toString();
+	m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 
 	QVariantList alist;
 
 	if (!storage)
-		alist = data.value("pairs").toList();
-	else if (storage->name() == "binding" || storage->name() == "numbers")
-		alist = storageData.value("bindings").toList();
+		alist = data.value(QStringLiteral("pairs")).toList();
+	else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
+		alist = storageData.value(QStringLiteral("bindings")).toList();
 
 	m.insert(generateOne(data, alist));
 
@@ -155,32 +156,32 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 
 	if (pairList.isEmpty())
 		pairList = {
-			QVariantMap({{"first", " "}, {"second", " "}}),
-			QVariantMap({{"first", " "}, {"second", " "}})
+			QVariantMap({{QStringLiteral("first"), QStringLiteral(" ")}, {QStringLiteral("second"), QStringLiteral(" ")}}),
+			QVariantMap({{QStringLiteral("first"), QStringLiteral(" ")}, {QStringLiteral("second"), QStringLiteral(" ")}})
 		};
 
-	QString mode = data.value("mode").toString();
+	QString mode = data.value(QStringLiteral("mode")).toString();
 
 	Modes modes;
 
-	if (mode == "first") {
+	if (mode == QStringLiteral("first")) {
 		modes.setFlag(Mode::First);
-	} else if (mode == "second") {
+	} else if (mode == QStringLiteral("second")) {
 		modes.setFlag(Mode::Second);
-	} else if (mode == "both") {
+	} else if (mode == QStringLiteral("both")) {
 		if (QRandomGenerator::global()->bounded(2) == 1)
 			modes.setFlag(Mode::Second);
 		else
 			modes.setFlag(Mode::First);
-	} else if (mode == "shuffle") {
+	} else if (mode == QStringLiteral("shuffle")) {
 		modes.setFlag(Mode::First);
 		modes.setFlag(Mode::Second);
 	} else {
 		modes.setFlag(Mode::First);
 	}
 
-	int maxQuestions = qMax(data.value("count", -1).toInt(), 3);
-	int maxOptions = qMax(data.value("optionsCount", -1).toInt(), maxQuestions+1);
+	int maxQuestions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
+	int maxOptions = qMax(data.value(QStringLiteral("optionsCount"), -1).toInt(), maxQuestions+1);
 
 	QStringList questions;
 	QVariantList answers;
@@ -188,8 +189,8 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 
 	while (pairList.size()) {
 		QVariantMap m = pairList.takeAt(QRandomGenerator::global()->bounded(pairList.size())).toMap();
-		QString first = m.value("first").toString();
-		QString second = m.value("second").toString();
+		QString first = m.value(QStringLiteral("first")).toString();
+		QString second = m.value(QStringLiteral("second")).toString();
 
 		if (first.isEmpty() && second.isEmpty())
 			continue;
@@ -232,9 +233,9 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	while (mixedList.size())
 		optList.append(mixedList.takeAt(QRandomGenerator::global()->bounded(mixedList.size())).toString());
 
-	m["list"] = questions;
-	m["options"] = optList;
-	m["answer"] = QVariantMap({{ "list", answers }});
+	m[QStringLiteral("list")] = questions;
+	m[QStringLiteral("options")] = optList;
+	m[QStringLiteral("answer")] = QVariantMap({{ QStringLiteral("list"), answers }});
 
 
 	return m;

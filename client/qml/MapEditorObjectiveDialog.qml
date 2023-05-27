@@ -94,8 +94,8 @@ QtObject
 
 		slist.push({
 					   text: qsTr("Adatbank nélkül"),
-					   icon: Qaterial.Icons.paperRoll,
-					   iconColor: Qaterial.Colors.purple400,
+					   icon: "",
+					   iconColor: "transparent",
 					   module: ""
 				   })
 

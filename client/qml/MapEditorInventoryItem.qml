@@ -66,7 +66,11 @@ QIconLoaderItemDelegate {
 			icon.source: Qaterial.Icons.dotsVertical
 			icon.color: Qaterial.Style.iconColor()
 			anchors.verticalCenter: parent.verticalCenter
-			onClicked: menuRequest(_btn)
+			onClicked: {
+				if (_view)
+					_view.currentIndex = root._index
+				menuRequest(_btn)
+			}
 
 		}
 	}

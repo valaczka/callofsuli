@@ -27,6 +27,7 @@
 #include "mapeditormap.h"
 #include "Logger.h"
 #include "clientcache.h"
+#include "gameterrain.h"
 #include "utils.h"
 
 /**
@@ -1344,6 +1345,7 @@ void MapEditorMissionLevel::setTerrain(const QString &newTerrain)
 		return;
 	m_terrain = newTerrain;
 	emit terrainChanged();
+	emit terrainDataChanged();
 }
 
 qint32 MapEditorMissionLevel::startHP() const
@@ -1504,6 +1506,36 @@ GameMapInventoryIface *MapEditorMissionLevel::ifaceAddInventory(const qint32 &bl
 	m_inventoryList->append(d);
 	return d;
 }
+
+
+
+/**
+ * @brief MapEditorMissionLevel::terrainData
+ * @return
+ */
+
+
+QVariantMap MapEditorMissionLevel::terrainData() const
+{
+	const GameTerrain &t = GameTerrain::terrain(m_terrain);
+
+	QVariantMap m;
+
+	if (t.isValid()) {
+		m.insert(QStringLiteral("name"), t.name());
+		m.insert(QStringLiteral("displayName"), t.displayName());
+		m.insert(QStringLiteral("level"), t.level());
+		m.insert(QStringLiteral("thumbnail"), t.thumbnail());
+	} else {
+		m.insert(QStringLiteral("name"), QLatin1String(""));
+		m.insert(QStringLiteral("displayName"), tr("-- érvénytelen --"));
+		m.insert(QStringLiteral("level"), 0);
+		m.insert(QStringLiteral("thumbnail"), QLatin1String(""));
+	}
+
+	return m;
+}
+
 
 
 /**

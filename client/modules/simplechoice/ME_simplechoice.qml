@@ -14,6 +14,8 @@ QFormColumn {
 	property MapEditorStorage storage: null
 	property MapEditorObjective objective: null
 
+	spacing: 10
+
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
 	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers")
@@ -37,6 +39,8 @@ QFormColumn {
 			{value: "left", text: qsTr("Bal oldaliakhoz")},
 			{value: "right", text: qsTr("Jobb oldaliakhoz")}
 		]
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	QFormComboBox {
@@ -57,7 +61,7 @@ QFormColumn {
 
 		visible: isImages
 
-		//onActivated: previewImg.refresh()
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
@@ -69,6 +73,8 @@ QFormColumn {
 		field: "question"
 		width: parent.width
 		visible: !isImages
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	QFormTextField {
@@ -79,6 +85,8 @@ QFormColumn {
 		width: parent.width
 		visible: isImages && _modeImages.currentValue === "image"
 		text: qsTr("Mi látható a képen?")
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	QFormTextField {
@@ -91,6 +99,8 @@ QFormColumn {
 		visible: isImages && _modeImages.currentValue === "text"
 
 		text: qsTr("Melyik képen látható: %1?")
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	QFormTextField {
@@ -100,6 +110,8 @@ QFormColumn {
 		field: "correct"
 		width: parent.width
 		visible: !isBinding && !isImages
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	QFormTextArea {
@@ -108,6 +120,8 @@ QFormColumn {
 		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
 		width: parent.width
 		visible: !isBinding && !isImages
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	QFormTextField {
@@ -120,7 +134,7 @@ QFormColumn {
 
 		visible: isImages && _modeImages.currentValue === "image"
 
-		//onTextModified: previewImg.refresh()
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 	MapEditorSpinStorageCount {
@@ -144,7 +158,15 @@ QFormColumn {
 			_answers.fieldData = objective.data.answers.join("\n")
 	}
 
+
 	function saveData() {
+		objective.data = previewData()
+		objective.storageCount = _countBinding.value
+	}
+
+
+
+	function previewData() {
 		let _items = isBinding ? [_question, _modeBinding] :
 								 isImages ? (_modeImages.currentValue === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
@@ -156,38 +178,8 @@ QFormColumn {
 		if (!isBinding && !isImages)
 			d.answers = _answers.text.split("\n")
 
-		objective.data = d
-		objective.storageCount = _countBinding.value
+		return d
 	}
-
-
-	/*	MapEditorObjectivePreview {
-				id: previewImg
-
-				refreshFunc: function() { return mapEditor.objectiveGeneratePreview("simplechoice", getData(), storageModule, storageData) }
-
-				Connections {
-					target: ldr
-					function onStorageDataChanged() {
-						previewImg.refresh()
-					}
-				}
-			}
-
-
-			function getData() {
-				moduleData = JS.getSqlFields([comboModeImg,
-											  comboModeImg.currentValue === "image" ?
-												  textQuestionImgImg :
-												  textQuestionImgText,
-											  textAnswerImg])
-
-				return moduleData
-			}
-		}*/
-
-
-
 }
 
 

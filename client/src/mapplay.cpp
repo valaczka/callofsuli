@@ -890,7 +890,7 @@ bool MapPlayMission::modeEnabled(GameMapMission *mission, const GameMap::GameMod
 	if (!mission)
 		return false;
 	else if (mission->modes().testFlag(GameMap::Invalid))
-		return mode == GameMap::Action || mode == GameMap::Lite || mode == GameMap::Test;
+		return mode == GameMap::Action || mode == GameMap::Lite;
 	else
 		return mission->modes().testFlag(mode);
 }

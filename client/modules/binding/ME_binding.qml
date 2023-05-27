@@ -48,10 +48,14 @@ QFormColumn {
 
 		leftComponent: QFormBindingTextField {
 			bindingField: _binding
+
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 		}
 
 		rightComponent: QFormBindingTextField {
 			bindingField: _binding
+
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 		}
 	}
 
@@ -60,9 +64,7 @@ QFormColumn {
 		if (!storage)
 			return
 
-		let d = getItems([_title])
-		d.bindings = _binding.saveToList()
-		storage.data = d
+		storage.data = previewData()
 	}
 
 	function loadData() {
@@ -76,5 +78,13 @@ QFormColumn {
 
 		if (storage)
 			setItems([_title], storage.data)
+	}
+
+
+	function previewData() {
+		let d = getItems([_title])
+		d.bindings = _binding.saveToList()
+
+		return d
 	}
 }

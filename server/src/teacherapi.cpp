@@ -1355,10 +1355,7 @@ void TeacherAPI::mapUpload(const QRegularExpressionMatch &match, HttpRequest *re
 	LOG_CTRACE("client") << "Upload map draft:" << uuid << version;
 
 	databaseMainWorker()->execInThread([this, response, request, uuid, version]() mutable {
-		QByteArray b;
-
-		if (!checkMultiPart(request, response, nullptr, &b))
-			return;
+		const QByteArray &b = request->body();
 
 		GameMap *map = GameMap::fromBinaryData(b);
 

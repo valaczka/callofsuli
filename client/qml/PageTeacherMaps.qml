@@ -70,19 +70,31 @@ QPage {
 			selectableObject: mapObject
 
 			highlighted: ListView.isCurrentItem
-			iconSource: Qaterial.Icons.desktopClassic
-			text: mapObject ? mapObject.name : ""
+			iconSource: mapObject.draftVersion > 0 ? Qaterial.Icons.paperclipOff : Qaterial.Icons.desktopClassic
+			iconColor: mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
+			text: mapObject ? (mapObject.name + (mapObject.draftVersion > 0 ? qsTr(" [*]") : "")) : ""
 			secondaryText: mapObject ? qsTr("%1. verzió (%2 @%3)").arg(mapObject.version)
 									   .arg(mapObject.lastModified.toLocaleString(Qt.locale(), "yyyy. MMM d. H:mm:ss"))
 									   .arg(mapObject.lastEditor)
+									   + (mapObject.draftVersion > 0 ? qsTr(" [vázlat]") : "")
 									 : ""
 
-			rightSourceComponent: QDownloadProgressIcon {
-				map: mapObject
+			rightSourceComponent: Row {
+				QDownloadProgressIcon {
+					map: mapObject
+					anchors.verticalCenter: parent.verticalCenter
+				}
+				Qaterial.RoundButton {
+					icon.source: Qaterial.Icons.pencil
+					icon.color: mapObject && mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
+					ToolTip.text: qsTr("Vázlat szerkesztése")
+					onClicked: handler.mapEdit(mapObject)
+				}
 			}
 
 			onClicked: if (mapObject && mapObject.downloaded)
-						   console.debug("ok")
+						   //handler.mapEdit(mapObject)
+						   console.debug("CLICKED")
 					   else
 						   handler.mapDownload(mapObject)
 		}
@@ -96,7 +108,9 @@ QPage {
 			QMenuItem { action: actionMapAdd }
 			QMenuItem { action: actionMapRename }
 			QMenuItem { action: actionMapRemove }
-
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionMapPublish }
+			QMenuItem { action: actionMapDeleteDraft }
 		}
 
 		onRightClickOrPressAndHold: {
@@ -137,6 +151,7 @@ QPage {
 
 		QFileDialog {
 			title: qsTr("Pálya importálása")
+			filters: [ "*.map" ]
 			onFileSelected: {
 				handler.mapImport(file)
 				Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
@@ -242,6 +257,82 @@ QPage {
 										  })
 	}*/
 
+
+	Action {
+		id: actionMapPublish
+		text: qsTr("Közzététel")
+		icon.source: Qaterial.Icons.send
+		onTriggered: {
+			var l = view.getSelected()
+			if (!l.length)
+				return
+
+			var list = []
+
+			for (let i=0; i<l.length; ++i) {
+				let o = l[i]
+				if (o.draftVersion > 0)
+					list.push(o)
+			}
+
+			if (!list.length)
+				return
+
+			JS.questionDialogPlural(list, qsTr("Biztosan közzéteszed a kijelölt %1 pálya vázlatát?"), "name",
+									{
+										onAccepted: function()
+										{
+											for (let j=0; j<list.length; ++j) {
+												Client.send(WebSocket.ApiTeacher, "map/%1/publish/%2".arg(list[j].uuid).arg(list[j].draftVersion))
+												.fail(JS.failMessage("Közzététel sikertelen"))
+											}
+											view.unselectAll()
+											Client.messageInfo(qsTr("Vázlatok közzétéve"))
+										},
+										title: qsTr("Vázlatok közzététele"),
+										iconSource: Qaterial.Icons.send
+									})
+
+		}
+	}
+
+	Action {
+		id: actionMapDeleteDraft
+		text: qsTr("Vázlat törlése")
+		icon.source: Qaterial.Icons.cancel
+		onTriggered: {
+			var l = view.getSelected()
+			if (!l.length)
+				return
+
+			var list = []
+
+			for (let i=0; i<l.length; ++i) {
+				let o = l[i]
+				if (o.draftVersion > 0)
+					list.push(o)
+			}
+
+			if (!list.length)
+				return
+
+			JS.questionDialogPlural(list, qsTr("Biztosan törlöd a kijelölt %1 pálya vázlatát?"), "name",
+									{
+										onAccepted: function()
+										{
+											for (let j=0; j<list.length; ++j) {
+												Client.send(WebSocket.ApiTeacher, "map/%1/deleteDraft/%2".arg(list[j].uuid).arg(list[j].draftVersion))
+												.fail(JS.failMessage("Törlés sikertelen"))
+											}
+											view.unselectAll()
+											Client.messageInfo(qsTr("Vázlatok törölve"))
+										},
+										title: qsTr("Vázlatok törlése"),
+										iconSource: Qaterial.Icons.deleteAlert
+									})
+
+		}
+	}
 
 	function reload() {
 		view.unselectAll()

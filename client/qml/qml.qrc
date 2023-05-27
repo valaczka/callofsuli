@@ -147,5 +147,6 @@
         <file>MapEditorObjectiveDialog.qml</file>
         <file>MapEditorStorageEditor.qml</file>
         <file>QFormSection.qml</file>
+        <file>MapEditorObjectivePreview.qml</file>
     </qresource>
 </RCC>

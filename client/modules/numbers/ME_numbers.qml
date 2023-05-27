@@ -1,74 +1,105 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.14
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
-QCollapsible {
-	id: control
 
-	collapsed: false
+QFormColumn {
+	id: root
 
-	property var moduleData: null
+	width: parent.width
 
-	property bool editable: false
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	signal modified()
+	spacing: 10
 
-	title: qsTr("Numerikus összerendelések")
+	property alias readOnly: _binding.readOnly
 
-	rightComponent: QToolButton {
-		visible: !control.editable
-		icon.source: "qrc:/internal/icon/pencil.svg"
-		text: qsTr("Szerkesztés")
-		display: AbstractButton.IconOnly
-		onClicked: control.editable = true
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
+
+	QFormTextField {
+		id: _title
+		title: qsTr("Név")
+		width: parent.width
+
+		field: "name"
+
+		enabled: !root.readOnly
+
+		placeholderText: qsTr("Adatbank elnevezése")
+		leadingIconSource: Qaterial.Icons.renameBox
+		trailingContent: Qaterial.TextFieldClearButton { visible: _title.length; textField: _title }
 	}
 
-	QGridLayout {
-		id: layout
+	QFormSection {
+		width: parent.width
+		text: qsTr("Párok")
+		icon: Qaterial.Icons.abacus
+	}
 
-		watchModification: true
-		onModifiedChanged: if (layout.modified)
-							   control.modified()
+	QFormBindingField {
+		id: _binding
+		width: parent.width
 
-		QGridDoubleNumberFields {
-			id: fields
-			sqlField: "bindings"
+		defaultLeftData: ""
+		defaultRightData: 0
+		split: 0.7
 
-			watchModification: true
+		leftComponent: QFormBindingTextField {
+			bindingField: _binding
 
-			readOnly: !control.editable
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+		}
 
-			Layout.fillWidth: true
-			Layout.columnSpan: layout.columns
+		rightComponent: QFormBindingTextField {
+			bindingField: _binding
 
-			onModification: getData()
+			validator: DoubleValidator {
+				id: validatorDouble
+				bottom: -999999
+				top: 999999
+				decimals: 4
+				notation: DoubleValidator.StandardNotation
+				locale: "en_US"
+			}
 
+			inputMethodHints: Qt.ImhFormattedNumbersOnly
+
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 		}
 	}
 
-	Component.onCompleted: {
-		if (!moduleData)
+
+	function saveData() {
+		if (!storage)
 			return
 
-		JS.setSqlFields([fields], moduleData)
+		storage.data = previewData()
 	}
 
-
-	function getData() {
-		moduleData = JS.getSqlFields([fields])
-
-		if (editable)
-			return moduleData
+	function loadData() {
+		if (storage && storage.data.bindings)
+			_binding.loadFromList(storage.data.bindings)
 		else
-			return {}
+			_binding.loadFromList([])
+
+		if (storage && storage.storageid <= 0)
+			_binding.readOnly = false
+
+		if (storage)
+			setItems([_title], storage.data)
 	}
 
+
+	function previewData() {
+		let d = getItems([_title])
+		d.bindings = _binding.saveToList()
+
+		return d
+	}
 }
-
-
-
 

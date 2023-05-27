@@ -59,7 +59,7 @@ public:
 
 	qreal xpFactor() const override { return 1.5; };
 
-	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
+	QVariantMap preview(const QVariantList &generatedList) const override;
 
 	inline bool canImport() const override { return false; }
 	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }

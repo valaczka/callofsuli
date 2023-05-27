@@ -4,7 +4,6 @@
 - Tiled - Thorbjørn Lindeijer (https://github.com/mapeditor/tiled)
 - Qml-Box2D (https://github.com/qml-box2d/qml-box2d)
 - Qaterial - (c) 2020 Olivier Le Doeuff (https://github.com/OlivierLDff/Qaterial)
-- CMake toolchain for iOS - (c) 2011-2014 Andrew Fischer, (c) 2017 Alexander Widerberg (https://github.com/leetal/ios-cmake)
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - qzxing (https://github.com/ftylitak/qzxing) 

@@ -36,23 +36,6 @@ AndroidNdkPath = ~/usr/android-sdk/ndk/21.3.6528147
 AndroidSdkPath = ~/usr/android-sdk
 AndroidVersionCode = 32
 
-# iOS cmake toolchain ([build_dir]/lib/[lib])
-
-IosCMakeToolchain = $$PWD/client/deploy/ios-cmake/ios.toolchain.cmake
-IosDeploymentTarget = 12.0
-IosDeploymentPlatform = OS64
-IosDeploymentArchs = arm64
-
-# cmake compiler path
-
-ios: CMakePath = ~/Qt/Tools/CMake/CMake.app/Contents/bin/cmake
-else: CMakePath = cmake
-
-
-# Qaterial build mode (shared/static)
-
-QaterialBuildShared = true
-
 
 #########################################################################
 # BUNDLE SETTINGS

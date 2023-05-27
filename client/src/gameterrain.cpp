@@ -194,28 +194,36 @@ void GameTerrain::reloadAvailableTerrains()
 			const QJsonObject &cacheObject = terrainCache.value(tmxFile).toObject();
 			double cacheModified = cacheObject.value(QLatin1String("lastModified")).toDouble();
 
+			const QString &thumbnail = terrainDir+QStringLiteral("/thumbnail.png");
+
 			if (cacheModified > tmxModified) {
 				GameTerrain t = GameTerrain::fromJsonObject(cacheObject);
+				t.m_isValid = true;
 				t.m_name = terrainName;
 				t.m_level = level;
 				t.m_displayName = displayName;
 				t.m_backgroundImage = bgImage;
 				t.m_backgroundMusic = bgMusic;
+				if (QFile::exists(thumbnail))
+					t.m_thumbnail = QStringLiteral("qrc")+thumbnail;
 				m_availableTerrains.append(t);
 			} else {
 				GameTerrainMap t;
 				if (!t.loadMapFromFile(tmxFile)) {
-					LOG_CWARNING("debug") << "Can't load terrain:" << qPrintable(tmxFile);
+					LOG_CWARNING("client") << "Can't load terrain:" << qPrintable(tmxFile);
 					continue;
 				}
 				QJsonObject obj = t.toJsonObject();
 				obj[QStringLiteral("lastModified")] = QDateTime::currentDateTime().toMSecsSinceEpoch();
 
+				t.m_isValid = true;
 				t.m_name = terrainName;
 				t.m_level = level;
 				t.m_displayName = displayName;
 				t.m_backgroundImage = bgImage;
 				t.m_backgroundMusic = bgMusic;
+				if (QFile::exists(thumbnail))
+					t.m_thumbnail = QStringLiteral("qrc")+thumbnail;
 
 				m_availableTerrains.append(t);
 
@@ -268,10 +276,10 @@ bool GameTerrain::terrainAvailable(const QString &name, const int &level)
  * @return
  */
 
-bool GameTerrain::terrainAvailable(const QString &missionLevelName)
+bool GameTerrain::terrainAvailable(const QString &terrainName)
 {
-	const QString &terrainDir = missionLevelName.section("/", 0, -2);
-	const int &terrainLevel = missionLevelName.section("/", -1, -1).toInt();
+	const QString &terrainDir = terrainName.section("/", 0, -2);
+	const int &terrainLevel = terrainName.section("/", -1, -1).toInt();
 
 	return terrainAvailable(terrainDir, terrainLevel);
 }
@@ -283,10 +291,10 @@ bool GameTerrain::terrainAvailable(const QString &missionLevelName)
  * @return
  */
 
-GameTerrain GameTerrain::terrain(const QString &missionLevelName)
+GameTerrain GameTerrain::terrain(const QString &terrainName)
 {
-	const QString &terrainDir = missionLevelName.section("/", 0, -2);
-	const int &terrainLevel = missionLevelName.section("/", -1, -1).toInt();
+	const QString &terrainDir = terrainName.section("/", 0, -2);
+	const int &terrainLevel = terrainName.section("/", -1, -1).toInt();
 
 	foreach (const GameTerrain &t, m_availableTerrains) {
 		if (t.name() == terrainDir && t.level() == terrainLevel)
@@ -405,6 +413,16 @@ const QString &GameTerrain::backgroundMusic() const
 void GameTerrain::setBackgroundMusic(const QString &newBackgroundMusic)
 {
 	m_backgroundMusic = newBackgroundMusic;
+}
+
+const QString &GameTerrain::thumbnail() const
+{
+	return m_thumbnail;
+}
+
+void GameTerrain::setThumbnail(const QString &newThumbnail)
+{
+	m_thumbnail = newThumbnail;
 }
 
 

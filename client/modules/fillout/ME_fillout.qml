@@ -1,110 +1,112 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 
-Item {
-	id: control
-
+QFormColumn {
+	id: root
 	width: parent.width
-	height: layout.height
 
-	property var moduleData: ({})
-	property var storageData: ({})
-	property string storageModule: ""
-	property int storageCount: 0
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	signal modified()
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	QGridLayout {
-		id: layout
+	spacing: 10
 
-
-		watchModification: true
-		onModifiedChanged: if (layout.modified)
-							   control.modified()
-
-		FilloutHighlighter {
-			id: hl
-
-			document: area.textDocument
-			wordForeground: "black"
-			wordBackground: CosStyle.colorWarningLight
-		}
-
-
-		QGridLabel { field: area }
-
-		QGridTextArea {
-			id: area
-			fieldName: qsTr("Szöveg")
-			sqlField: "text"
-			placeholderText: qsTr("Ide kell írni a szöveget, amiből a hiányzó szavakat ki kell egészíteniük. A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni. (Pl: A %hiányzó% szó, vagy a %hiányzó kifejezések%.)\n Amennyiben %-jelet szeretnénk megjeleníteni ezt kell írni helyette: \\%")
-
-			minimumHeight: CosStyle.baseHeight*3
-		}
-
-		QGridLabel {
-			field: areaAnswers
-		}
-
-		QGridTextArea {
-			id: areaAnswers
-			fieldName: qsTr("Helytelen válaszok")
-			placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
-
-			minimumHeight: CosStyle.baseHeight*2
-
-		}
-
-		QGridText {
-			text: qsTr("Kiegészítendő helyek száma:")
-			field: spinCount
-		}
-
-		QGridSpinBox {
-			id: spinCount
-			from: 1
-			value: 3
-			to: 99
-			editable: true
-			sqlField: "count"
-		}
-
-		QGridText {
-			text: qsTr("Válaszlehetőségek száma:")
-			field: spinOptions
-		}
-
-		QGridSpinBox {
-			id: spinOptions
-			from: spinCount.value
-			value: 5
-			to: 99
-			editable: true
-			sqlField: "optionsCount"
-		}
-	}
-
-	Component.onCompleted: {
-		if (!moduleData)
-			return
-
-		JS.setSqlFields([area, areaAnswers, spinCount, spinOptions], moduleData)
-		areaAnswers.setData(moduleData.options.join("\n"))
+	FilloutHighlighter {
+		document: _area.textArea.textDocument
+		wordForeground: Qaterial.Colors.black
+		wordBackground: Qaterial.Colors.amber700
 	}
 
 
-	function getData() {
-		var d = JS.getSqlFields([area, areaAnswers, spinCount, spinOptions])
-		d.options = areaAnswers.text.split("\n")
+	QFormTextField {
+		id: _question
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		field: "question"
+		width: parent.width
+		text: qsTr("Egészítsd ki a szöveget!")
 
-		moduleData = d
-		return moduleData
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormTextArea {
+		id: _area
+		title: qsTr("Szöveg")
+		field: "text"
+		placeholderText: qsTr("Ide kell írni a szöveget, amiből a hiányzó szavakat ki kell egészíteniük. A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni. (Pl: A %hiányzó% szó, vagy a %hiányzó kifejezések%.)\nAmennyiben %-jelet szeretnénk megjeleníteni ezt kell írni helyette: \\%")
+		width: parent.width
+		helperText: qsTr("A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni")
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormTextArea {
+		id: _wrongAnswers
+		title: qsTr("Helytelen válaszok")
+		placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
+		width: parent.width
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSpinBox {
+		id: _spinCount
+		field: "count"
+		text: qsTr("Kiegészítendő helyek száma:")
+
+		from: 1
+		value: 3
+		to: 99
+		spin.editable: true
+
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormSpinBox {
+		id: _spinOptions
+		field: "optionsCount"
+		text: qsTr("Válaszlehetőségek száma:")
+
+		from: _spinCount.value
+		value: 5
+		to: 99
+		spin.editable: true
+
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+
+	function loadData() {
+		setItems([_question, _area, _spinOptions, _spinCount], objective.data)
+		if (objective.data.options !== undefined)
+			_wrongAnswers.fieldData = objective.data.options.join("\n")
+	}
+
+
+	function saveData() {
+		objective.data = previewData()
+		//objective.storageCount = _countBinding.value
+	}
+
+
+
+	function previewData() {
+		let d = getItems([_question, _area, _spinOptions, _spinCount])
+
+		d.options = _wrongAnswers.text.split("\n")
+
+		return d
+	}
 }
+
 

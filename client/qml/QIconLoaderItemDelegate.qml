@@ -16,6 +16,7 @@ Qaterial.LoaderItemDelegate {
 	checkable: false
 
 	readonly property QListView _view: (ListView.view instanceof QListView) ? ListView.view : null
+	readonly property int _index: index
 
 	leftSourceComponent: Qaterial.RoundColorIcon
 	{

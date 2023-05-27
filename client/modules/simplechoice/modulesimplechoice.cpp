@@ -69,52 +69,52 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 {
 	if (!storage) {
 		QVariantMap m;
-		QStringList answers = data.value("answers").toStringList();
-		m["title"] = data.value("question").toString();
-		m["details"] = data.value("correct").toString()+"<br>("+answers.join(", ")+")";
-		m["image"] = "";
+		QStringList answers = data.value(QStringLiteral("answers")).toStringList();
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toString()+QStringLiteral("<br>(")+answers.join(QStringLiteral(", "))+QStringLiteral(")");
+		m[QStringLiteral("image")] = QLatin1String("");
 
 		return m;
-	} else if (storage->name() == "binding" || storage->name() == "numbers") {
+	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
 		QStringList answers;
 
-		bool isBindToRight = data.value("mode").toString() == "right";
+		bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
 
-		foreach (QVariant v, storageData.value("bindings").toList()) {
+		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
 			QVariantMap m = v.toMap();
-			QString left = m.value("first").toString();
-			QString right = m.value("second").toString();
+			QString left = m.value(QStringLiteral("first")).toString();
+			QString right = m.value(QStringLiteral("second")).toString();
 
 			if (left.isEmpty() || right.isEmpty())
 				continue;
 
-			answers.append(QString("%1 — %2").arg(isBindToRight ? right : left).arg(isBindToRight ? left : right));
+			answers.append(QStringLiteral("%1 — %2").arg(isBindToRight ? right : left, isBindToRight ? left : right));
 		}
 
 		QVariantMap m;
-		m["title"] = data.value("question").toString();
-		m["details"] = answers.join(", ");
-		m["image"] = "";
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QLatin1String("");
 
 		return m;
-	} else if (storage->name() == "images") {
+	} else if (storage->name() == QStringLiteral("images")) {
 		QStringList answers;
 
-		QString image = "";
+		QString image = QLatin1String("");
 
-		const QString &mode = data.value("mode").toString();
+		const QString &mode = data.value(QStringLiteral("mode")).toString();
 
-		foreach (QVariant v, storageData.value("images").toList()) {
+		foreach (QVariant v, storageData.value(QStringLiteral("images")).toList()) {
 			QVariantMap m = v.toMap();
-			const int &imgId = m.value("image", -1).toInt();
-			const QString &text = m.value("text").toString();
+			const int &imgId = m.value(QStringLiteral("image"), -1).toInt();
+			const QString &text = m.value(QStringLiteral("text")).toString();
 
 			if (imgId != -1 && image.isEmpty())
-				image = QString("image://mapimage/%1").arg(imgId);
+				image = QStringLiteral("image://mapimage/%1").arg(imgId);
 
 			if (!text.isEmpty()) {
-				const QString &answersPattern = data.value("answers").toString();
-				if (mode == "image" && answersPattern.contains("%1"))
+				const QString &answersPattern = data.value(QStringLiteral("answers")).toString();
+				if (mode == QStringLiteral("image") && answersPattern.contains(QStringLiteral("%1")))
 					answers.append(answersPattern.arg(text));
 				else
 					answers.append(text);
@@ -122,16 +122,16 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		}
 
 		QVariantMap m;
-		m["title"] = data.value("question").toString();
-		m["details"] = answers.join(", ");
-		m["image"] = image;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = image;
 
 		return m;
 	}
 
-	return QVariantMap({{"title", ""},
-						{"details", ""},
-						{"image", ""}
+	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
+						{QStringLiteral("details"), QLatin1String("")},
+						{QStringLiteral("image"), QLatin1String("")}
 					   });
 }
 
@@ -152,14 +152,14 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 		QVariantList list;
 		QVariantMap m;
 
-		m["question"] = data.value("question").toString();
+		m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 
-		QString correct = data.value("correct").toString();
+		QString correct = data.value(QStringLiteral("correct")).toString();
 
 		if (correct.isEmpty())
-			correct = " ";
+			correct = QStringLiteral(" ");
 
-		QStringList alist = data.value("answers").toStringList();
+		QStringList alist = data.value(QStringLiteral("answers")).toStringList();
 
 		m.insert(generateOne(correct, alist));
 
@@ -168,10 +168,10 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 		return list;
 	}
 
-	if (storage->name() == "binding" || storage->name() == "numbers")
+	if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
 		return generateBinding(data, storageData);
 
-	if (storage->name() == "images")
+	if (storage->name() == QStringLiteral("images"))
 		return generateImages(data, storageData);
 
 
@@ -193,13 +193,13 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 {
 	QVariantList ret;
 
-	bool isBindToRight = data.value("mode").toString() == "right";
-	QString question = data.value("question").toString();
+	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
+	QString question = data.value(QStringLiteral("question")).toString();
 
-	foreach (QVariant v, storageData.value("bindings").toList()) {
+	foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
 		QVariantMap m = v.toMap();
-		QString left = m.value("first").toString();
-		QString right = m.value("second").toString();
+		QString left = m.value(QStringLiteral("first")).toString();
+		QString right = m.value(QStringLiteral("second")).toString();
 
 		if (left.isEmpty() || right.isEmpty())
 			continue;
@@ -207,18 +207,18 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 		QVariantMap retMap;
 
 		if (question.isEmpty())
-			retMap["question"] = (isBindToRight ? right : left);
-		else if (question.contains("%1"))
-			retMap["question"] = question.arg(isBindToRight ? right : left);
+			retMap[QStringLiteral("question")] = (isBindToRight ? right : left);
+		else if (question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(isBindToRight ? right : left);
 		else
-			retMap["question"] = question;
+			retMap[QStringLiteral("question")] = question;
 
 		QStringList alist;
 
-		foreach (QVariant v, storageData.value("bindings").toList()) {
+		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
 			QVariantMap mm = v.toMap();
-			QString f1 = mm.value("first").toString();
-			QString f2 = mm.value("second").toString();
+			QString f1 = mm.value(QStringLiteral("first")).toString();
+			QString f2 = mm.value(QStringLiteral("second")).toString();
 
 			if ((isBindToRight && right == f2) || (!isBindToRight && left == f1))
 				continue;
@@ -248,54 +248,54 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 {
 	QVariantList ret;
 
-	const QString &mode = data.value("mode").toString();
-	const QString &question = data.value("question").toString();
-	const QString &answersPattern = data.value("answers").toString();
+	const QString &mode = data.value(QStringLiteral("mode")).toString();
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const QString &answersPattern = data.value(QStringLiteral("answers")).toString();
 
-	foreach (QVariant v, storageData.value("images").toList()) {
+	foreach (QVariant v, storageData.value(QStringLiteral("images")).toList()) {
 		QVariantMap m = v.toMap();
-		const int &imgId = m.value("image", -1).toInt();
-		const QString &text = m.value("text").toString();
+		const int &imgId = m.value(QStringLiteral("image"), -1).toInt();
+		const QString &text = m.value(QStringLiteral("text")).toString();
 
 		if (imgId == -1 || text.isEmpty())
 			continue;
 
 		QVariantMap retMap;
 
-		if (mode == "text" && question.contains("%1"))
-			retMap["question"] = question.arg(text);
+		if (mode == QStringLiteral("text") && question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(text);
 		else
-			retMap["question"] = question;
+			retMap[QStringLiteral("question")] = question;
 
-		if (mode == "image")
-			retMap["image"] = QString("image://mapimage/%1").arg(imgId);
+		if (mode == QStringLiteral("image"))
+			retMap[QStringLiteral("image")] = QStringLiteral("image://mapimage/%1").arg(imgId);
 		else
-			retMap["imageAnswers"] = true;
+			retMap[QStringLiteral("imageAnswers")] = true;
 
 		QStringList alist;
 
-		foreach (QVariant v, storageData.value("images").toList()) {
+		foreach (QVariant v, storageData.value(QStringLiteral("images")).toList()) {
 			QVariantMap mm = v.toMap();
-			const int &f1 = mm.value("image", -1).toInt();
-			const QString &f2 = mm.value("text").toString();
+			const int &f1 = mm.value(QStringLiteral("image"), -1).toInt();
+			const QString &f2 = mm.value(QStringLiteral("text")).toString();
 
-			if ((mode == "image" && text == f2) || (mode == "text" && (imgId == f1 || f1 == -1)))
+			if ((mode == QStringLiteral("image") && text == f2) || (mode == QStringLiteral("text") && (imgId == f1 || f1 == -1)))
 				continue;
 
-			if (mode == "image" && answersPattern.contains("%1"))
+			if (mode == QStringLiteral("image") && answersPattern.contains(QStringLiteral("%1")))
 				alist.append(answersPattern.arg(f2));
-			else if (mode == "image")
+			else if (mode == QStringLiteral("image"))
 				alist.append(f2);
 			else
-				alist.append(QString("image://mapimage/%1").arg(f1));
+				alist.append(QStringLiteral("image://mapimage/%1").arg(f1));
 		}
 
-		if (mode == "image" && answersPattern.contains("%1"))
+		if (mode == QStringLiteral("image") && answersPattern.contains(QStringLiteral("%1")))
 			retMap.insert(generateOne(answersPattern.arg(text), alist));
-		else if (mode == "image")
+		else if (mode == QStringLiteral("image"))
 			retMap.insert(generateOne(text, alist));
 		else
-			retMap.insert(generateOne(QString("image://mapimage/%1").arg(imgId), alist));
+			retMap.insert(generateOne(QStringLiteral("image://mapimage/%1").arg(imgId), alist));
 
 		ret.append(retMap);
 	}
@@ -339,8 +339,8 @@ QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStrin
 	}
 
 	QVariantMap m;
-	m["answer"] = correctIdx;
-	m["options"] = optList;
+	m[QStringLiteral("answer")] = correctIdx;
+	m[QStringLiteral("options")] = optList;
 
 	return m;
 }
@@ -360,31 +360,31 @@ QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList) const
 	foreach (QVariant v, generatedList) {
 		QVariantMap m = v.toMap();
 
-		const QString &image = m.value("image").toString();
-		const bool &imageAnswers = m.value("imageAnswers").toBool();
+		const QString &image = m.value(QStringLiteral("image")).toString();
+		const bool &imageAnswers = m.value(QStringLiteral("imageAnswers")).toBool();
 
-		s.append((image.isEmpty() ? "" : tr("[KÉP] "))
-				 +"**"+m.value("question").toString()+"**\n");
+		s.append((image.isEmpty() ? QLatin1String("") : tr("[KÉP] "))
+				 +QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
 
-		int correct = m.value("answer", -1).toInt();
-		QStringList l = m.value("options").toStringList();
+		int correct = m.value(QStringLiteral("answer"), -1).toInt();
+		QStringList l = m.value(QStringLiteral("options")).toStringList();
 		for (int i=0; i<l.size(); ++i) {
 			if (imageAnswers) {
 				if (i==correct)
-					s.append("- **"+tr("[KÉP]")+"**\n");
+					s.append(QStringLiteral("- **")+tr("[KÉP]")+QStringLiteral("**\n"));
 				else
-					s.append("- "+tr("[KÉP]")+"\n");
+					s.append(QStringLiteral("- ")+tr("[KÉP]")+QStringLiteral("\n"));
 			} else {
 				if (i==correct)
-					s.append("- **"+l.at(i)+"**\n");
+					s.append(QStringLiteral("- **")+l.at(i)+QStringLiteral("**\n"));
 				else
-					s.append("- "+l.at(i)+"\n");
+					s.append(QStringLiteral("- ")+l.at(i)+QStringLiteral("\n"));
 			}
 		}
-		s.append("---\n");
+		s.append(QStringLiteral("---\n"));
 	}
 
-	m["text"] = s;
+	m[QStringLiteral("text")] = s;
 
 	return m;
 }

@@ -1,155 +1,150 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
-Item {
-	id: control
 
+QFormColumn {
+	id: root
 	width: parent.width
-	height: layout.height
 
-	property var moduleData: ({})
-	property var storageData: ({})
-	property string storageModule: ""
-	property int storageCount: 0
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	signal modified()
+	spacing: 10
 
-	QGridLayout {
-		id: layout
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-		watchModification: true
-		onModifiedChanged: if (layout.modified)
-							   control.modified()
+	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers")
 
-		QGridLabel { field: textQuestion }
+	QFormTextField {
+		id: _question
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		field: "question"
+		width: parent.width
 
-		QGridTextField {
-			id: textQuestion
-			fieldName: qsTr("Kérdés")
-			sqlField: "question"
-			placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		text: qsTr("Rendezd össze a párokat!")
 
-			text: qsTr("Rendezd össze a párokat!")
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSection {
+		width: parent.width
+		text: qsTr("Párok")
+		icon: Qaterial.Icons.abacus
+	}
+
+	QFormBindingField {
+		id: _binding
+		width: parent.width
+
+		defaultLeftData: ""
+		defaultRightData: ""
+
+		visible: !isBinding
+
+		readOnly: false
+
+		leftComponent: QFormBindingTextField {
+			bindingField: _binding
+
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 		}
 
+		rightComponent: QFormBindingTextField {
+			bindingField: _binding
 
-		QGridText {
-			text: qsTr("Párok")
-			field: fields
-			visible: fields.visible
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 		}
+	}
 
-		QGridDoubleTextFields {
-			id: fields
-			sqlField: "pairs"
-		}
+	QFormSpinBox {
+		id: _spinCount
+		field: "count"
+		text: qsTr("Párok száma:")
 
-		QGridText {
-			text: qsTr("Párok száma:")
-			field: spinCount
-		}
+		from: 2
+		value: 4
+		to: 99
+		spin.editable: true
 
-		QGridSpinBox {
-			id: spinCount
-			from: 2
-			value: 4
-			to: 99
-			editable: true
-			sqlField: "count"
-		}
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
+	QFormSpinBox {
+		id: _spinOptions
+		field: "optionsCount"
+		text: qsTr("Válaszlehetőségek száma:")
 
-		QGridText {
-			text: qsTr("Válaszlehetőségek száma:")
-			field: spinOptions
-		}
+		from: _spinCount.value
+		value: 5
+		to: 99
+		spin.editable: true
 
-		QGridSpinBox {
-			id: spinOptions
-			from: spinCount.value
-			value: 5
-			to: 99
-			editable: true
-			sqlField: "optionsCount"
-		}
-
-		QGridText {
-			field: comboMode
-			text: qsTr("Párok készítése:")
-		}
-
-		QGridComboBox {
-			id: comboMode
-			sqlField: "mode"
-
-			valueRole: "value"
-			textRole: "text"
-
-			model: [
-				{value: "first", text: qsTr("Bal oldaliakhoz")},
-				{value: "second", text: qsTr("Jobb oldaliakhoz")},
-				{value: "both", text: qsTr("Véletlenszerű oldaliakhoz")},
-				{value: "shuffle", text: qsTr("Keverve")}
-			]
-		}
-
-
-		QGridText {
-			text: qsTr("Feladatok száma:")
-			field: sCount
-			visible: sCount.visible
-		}
-
-		QGridSpinBox {
-			id: sCount
-			from: 1
-			to: 99
-			editable: true
-
-			onValueModified: {
-				storageCount = value
-			}
-		}
-
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
-	Component.onCompleted: {
-		if (storageModule == "binding" || storageModule == "numbers") {
-			fields.visible = false
-		} else {
-			sCount.visible = false
-		}
+	QFormComboBox {
+		id: _modeOrder
+		text: qsTr("Párok készítése:")
 
-		if (!moduleData)
-			return
+		combo.width: Math.max(combo.implicitWidth, 200)
 
-		if (storageModule == "binding" || storageModule == "numbers") {
-			JS.setSqlFields([textQuestion, spinCount, spinOptions, comboMode], moduleData)
-			sCount.setData(storageCount)
-		} else
-			JS.setSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode], moduleData)
+		field: "mode"
 
+		valueRole: "value"
+		textRole: "text"
+
+		model: [
+			{value: "first", text: qsTr("Bal oldaliakhoz")},
+			{value: "second", text: qsTr("Jobb oldaliakhoz")},
+			{value: "both", text: qsTr("Véletlenszerű oldaliakhoz")},
+			{value: "shuffle", text: qsTr("Keverve")}
+		]
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	MapEditorSpinStorageCount {
+		id: _countBinding
+		visible: isBinding
 	}
 
 
-	function getData() {
-		if (storageModule == "binding" || storageModule == "numbers")
-			moduleData = JS.getSqlFields([textQuestion, spinCount, spinOptions, comboMode])
+
+
+	function loadData() {
+		_countBinding.value = objective.storageCount
+
+		setItems([_question, _spinOptions, _modeOrder, _spinCount], objective.data)
+
+		if (!isBinding && objective.data.pairs !== undefined)
+			_binding.loadFromList(objective.data.pairs)
 		else
-			moduleData = JS.getSqlFields([textQuestion, fields, spinCount, spinOptions, comboMode])
-
-		return moduleData
-	}
-
-	function setStorageData(data) {
-		storageData = data
+			_binding.loadFromList([])
 	}
 
 
+	function saveData() {
+		objective.data = previewData()
+		objective.storageCount = _countBinding.value
+	}
+
+
+
+	function previewData() {
+		let d = getItems([_question, _spinOptions, _modeOrder, _spinCount])
+
+		if (!isBinding)
+			d.pairs = _binding.saveToList()
+
+		return d
+	}
 }
+
 

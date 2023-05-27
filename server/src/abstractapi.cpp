@@ -279,6 +279,7 @@ bool AbstractAPI::validate(HttpRequest *request, const Credential::Role &role) c
 bool AbstractAPI::checkMultiPart(HttpRequest *request, HttpResponse *response, QJsonObject *json,
 								 QByteArray *content, const QString &fieldFile, const QString &fieldJson) const
 {
+	LOG_CWARNING("client") << "Deprecated: checkMultiPart()";
 	const std::unordered_map<QString, QString> &fields = request->formFields();
 	const std::unordered_map<QString, FormFile> &formFiles = request->formFiles();
 

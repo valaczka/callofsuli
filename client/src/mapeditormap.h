@@ -538,6 +538,7 @@ class MapEditorMissionLevel : public MapEditorObject, public GameMapMissionLevel
 	Q_PROPERTY(MapEditorInventoryList *inventoryList READ inventoryList CONSTANT)
 	Q_PROPERTY(MapEditorMission *mission READ editorMission CONSTANT)
 	Q_PROPERTY(QList<MapEditorChapter*> chapterList READ chapterList NOTIFY chapterListChanged)
+	Q_PROPERTY(QVariantMap terrainData READ terrainData NOTIFY terrainDataChanged)
 
 public:
 	explicit MapEditorMissionLevel(MapEditorMission *mission)
@@ -581,6 +582,8 @@ public:
 	qreal passed() const;
 	void setPassed(qreal newPassed);
 
+	QVariantMap terrainData() const;
+
 	MapEditorInventoryList *inventoryList() const;
 	MapEditorInventory *inventory(const int &inventoryId) const;
 	MapEditorMission *editorMission() const { return m_mission; }
@@ -611,6 +614,8 @@ signals:
 	void passedChanged();
 	void chapterListChanged();
 
+	void terrainDataChanged();
+
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const override;
 	QList<GameMapInventoryIface*> ifaceInventories() const override
@@ -625,7 +630,6 @@ private:
 	MapEditorInventoryList *const m_inventoryList;
 	MapEditorMission *const m_mission;
 	QList<QPointer<MapEditorChapter>> m_chapterList;
-
 };
 
 

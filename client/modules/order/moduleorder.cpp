@@ -84,41 +84,41 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 
 QVariantMap ModuleOrder::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	QString mode = data.value("mode").toString();
+	QString mode = data.value(QStringLiteral("mode")).toString();
 	QString question;
 
-	if (mode == "ascending" || mode == "random")
-		question = data.value("questionAsc").toString();
+	if (mode == QStringLiteral("ascending") || mode == QStringLiteral("random"))
+		question = data.value(QStringLiteral("questionAsc")).toString();
 
-	if (mode == "descending" || mode == "random") {
+	if (mode == QStringLiteral("descending") || mode == QStringLiteral("random")) {
 		if (!question.isEmpty())
-			question += " / ";
-		question += data.value("questionDesc").toString();
+			question += QStringLiteral(" / ");
+		question += data.value(QStringLiteral("questionDesc")).toString();
 	}
 
 	QStringList list;
 
 	if (!storage)
-		list = data.value("items").toStringList();
-	else if (storage->name() == "sequence")
-		list = storageData.value("items").toStringList();
-	else if (storage->name() == "numbers") {
-		foreach (QVariant v, storageData.value("bindings").toList()) {
+		list = data.value(QStringLiteral("items")).toStringList();
+	else if (storage->name() == QStringLiteral("sequence"))
+		list = storageData.value(QStringLiteral("items")).toStringList();
+	else if (storage->name() == QStringLiteral("numbers")) {
+		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
 			QVariantMap m = v.toMap();
-			QString left = m.value("first").toString();
-			QString right = m.value("second").toString();
+			QString left = m.value(QStringLiteral("first")).toString();
+			QString right = m.value(QStringLiteral("second")).toString();
 
 			if (left.isEmpty() || right.isEmpty())
 				continue;
 
-			list.append(QString("%1 — %2").arg(left).arg(right));
+			list.append(QStringLiteral("%1 — %2").arg(left, right));
 		}
 	}
 
 	QVariantMap m;
-	m["title"] = question;
-	m["details"] = list.join(", ");
-	m["image"] = "";
+	m[QStringLiteral("title")] = question;
+	m[QStringLiteral("details")] = list.join(QStringLiteral(", "));
+	m[QStringLiteral("image")] = QLatin1String("");
 
 	return m;
 }
@@ -139,31 +139,31 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 	QVariantMap m;
 
 	QVariantList slist;
-	int cnt = data.value("count", 5).toInt();
+	int cnt = data.value(QStringLiteral("count"), 5).toInt();
 
 	if (!storage)
-		slist = generateItems(data.value("items").toStringList(), cnt);
-	else if (storage->name() == "sequence")
-		slist = generateItems(storageData.value("items").toStringList(), cnt);
-	else if (storage->name() == "numbers")
-		slist = generateItems(storageData.value("bindings").toList(), cnt);
+		slist = generateItems(data.value(QStringLiteral("items")).toStringList(), cnt);
+	else if (storage->name() == QStringLiteral("sequence"))
+		slist = generateItems(storageData.value(QStringLiteral("items")).toStringList(), cnt);
+	else if (storage->name() == QStringLiteral("numbers"))
+		slist = generateItems(storageData.value(QStringLiteral("bindings")).toList(), cnt);
 
 
 	bool isDesc = false;
 
-	QString mode = data.value("mode").toString();
+	QString mode = data.value(QStringLiteral("mode")).toString();
 
-	if (mode == "descending")
+	if (mode == QStringLiteral("descending"))
 		isDesc = true;
-	else if (mode == "random")
+	else if (mode == QStringLiteral("random"))
 		isDesc = (QRandomGenerator::global()->generate() % 2 == 1);
 
 
-	m["mode"] = isDesc ? "descending" : "ascending";
-	m["question"] = isDesc ? data.value("questionDesc").toString() : data.value("questionAsc").toString();
-	m["placeholderMin"] = data.value("placeholderMin").toString();
-	m["placeholderMax"] = data.value("placeholderMax").toString();
-	m["list"] = slist;
+	m[QStringLiteral("mode")] = isDesc ? QStringLiteral("descending") : QStringLiteral("ascending");
+	m[QStringLiteral("question")] = isDesc ? data.value(QStringLiteral("questionDesc")).toString() : data.value(QStringLiteral("questionAsc")).toString();
+	m[QStringLiteral("placeholderMin")] = data.value(QStringLiteral("placeholderMin")).toString();
+	m[QStringLiteral("placeholderMax")] = data.value(QStringLiteral("placeholderMax")).toString();
+	m[QStringLiteral("list")] = slist;
 
 	list.append(m);
 
@@ -187,8 +187,8 @@ QVariantList ModuleOrder::generateItems(const QStringList &list, const int &coun
 
 	for (int i=0; i<list.size(); ++i) {
 		l.append(QVariantMap({
-								 { "text", list.at(i) },
-								 { "num", i }
+								 { QStringLiteral("text"), list.at(i) },
+								 { QStringLiteral("num"), i }
 							 }));
 	}
 
@@ -214,14 +214,14 @@ QVariantList ModuleOrder::generateItems(const QVariantList &list, const int &cou
 	foreach (QVariant v, list) {
 		QVariantMap m = v.toMap();
 
-		QString first = m.value("first").toString();
+		QString first = m.value(QStringLiteral("first")).toString();
 
-		if (first.isEmpty() || m.value("second").toString().isEmpty())
+		if (first.isEmpty() || m.value(QStringLiteral("second")).toString().isEmpty())
 			continue;
 
 		l.append(QVariantMap({
-								 { "text", first },
-								 { "num", m.value("second").toReal() }
+								 { QStringLiteral("text"), first },
+								 { QStringLiteral("num"), m.value(QStringLiteral("second")).toReal() }
 							 }));
 	}
 

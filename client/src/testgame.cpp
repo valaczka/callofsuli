@@ -491,10 +491,10 @@ TestGame::QuestionResult TestGame::questionDataResult(const QVector<QuestionData
 		if (q.success)
 			r.points += point;
 
-		QJsonDocument doc(QJsonObject::fromVariantMap(q.data));
+		/*QJsonDocument doc(QJsonObject::fromVariantMap(q.data));
 		LOG_CTRACE("game") << "Q" << q.module << doc.toJson(QJsonDocument::Indented).constData();
 		QJsonDocument doc2(QJsonObject::fromVariantMap(q.answer));
-		LOG_CTRACE("game") << "A" << doc2.toJson(QJsonDocument::Indented).constData();
+		LOG_CTRACE("game") << "A" << doc2.toJson(QJsonDocument::Indented).constData();*/
 	}
 
 	r.success = r.maxPoints > 0 ? (r.points/r.maxPoints) >= passed : true;

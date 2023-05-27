@@ -155,8 +155,8 @@ private:
 };
 
 Q_DECLARE_METATYPE(GameMap)
-//Q_DECLARE_METATYPE(GameMap::GameMode)
-//Q_DECLARE_METATYPE(GameMap::GameModes)
+Q_DECLARE_METATYPE(GameMap::GameMode)
+Q_DECLARE_METATYPE(GameMap::GameModes)
 Q_DECLARE_OPERATORS_FOR_FLAGS(GameMap::GameModes)
 
 

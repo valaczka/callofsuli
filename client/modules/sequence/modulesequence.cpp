@@ -46,12 +46,12 @@ QVariantMap ModuleSequence::details(const QVariantMap &data, ModuleInterface *st
 	Q_UNUSED(storage)
 	Q_UNUSED(storageData)
 
-	QStringList list = data.value("items").toStringList();
+	QStringList list = data.value(QStringLiteral("items")).toStringList();
 
 	QVariantMap m;
-	m["title"] = list.join(", ");
-	m["details"] = "";
-	m["image"] = "";
+	m[QStringLiteral("title")] = list.join(QStringLiteral(", "));
+	m[QStringLiteral("details")] = QLatin1String("");
+	m[QStringLiteral("image")] = QLatin1String("");
 
 	return m;
 }

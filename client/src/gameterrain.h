@@ -107,8 +107,8 @@ public:
 	static void reloadAvailableTerrains();
 	static const QVector<GameTerrain> &availableTerrains();
 	static bool terrainAvailable(const QString &name, const int &level);
-	static bool terrainAvailable(const QString &missionLevelName);
-	static GameTerrain terrain(const QString &missionLevelName);
+	static bool terrainAvailable(const QString &terrainName);
+	static GameTerrain terrain(const QString &terrainName);
 
 	QJsonObject toJsonObject() const;
 	static GameTerrain fromJsonObject(const QJsonObject &object);
@@ -128,6 +128,9 @@ public:
 	const QString &backgroundMusic() const;
 	void setBackgroundMusic(const QString &newBackgroundMusic);
 
+	const QString &thumbnail() const;
+	void setThumbnail(const QString &newThumbnail);
+
 protected:
 	static QVector<GameTerrain> m_availableTerrains;
 
@@ -136,6 +139,7 @@ protected:
 	QString m_displayName;
 	QString m_backgroundImage;
 	QString m_backgroundMusic;
+	QString m_thumbnail;
 	int m_level = 0;
 
 	QVector<EnemyData> m_enemies;

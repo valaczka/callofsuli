@@ -30,6 +30,7 @@
 #include "gamepickable.h"
 #include "question.h"
 #include "abstractlevelgame.h"
+#include "gameterrain.h"
 
 const QString MapEditor::m_backupSuffix = QStringLiteral(".autosave");
 
@@ -225,6 +226,121 @@ QUrl MapEditor::currentFolder() const
 	else
 		return QUrl();
 }
+
+
+
+
+
+/**
+ * @brief MapEditor::checkMap
+ * @return
+ */
+
+QStringList MapEditor::checkMap() const
+{
+	if (!m_map)
+		return QStringList{tr("Belső hiba")};
+
+
+	QStringList errList;
+
+	// Check locks
+
+	for (MapEditorMission *m : *m_map->missionList()) {
+		QVector<GameMapMissionLevelIface*> list;
+		if (!m->getLockTree(&list, m))
+			errList.append(tr("Körkörös zárolás: %1").arg(m->name()));
+	}
+
+
+
+	// Check terrains
+
+	for (MapEditorMission *m : *m_map->missionList()) {
+		for (MapEditorMissionLevel *ml : *m->levelList()) {
+			if (!GameTerrain::terrainAvailable(ml->terrain()))
+					errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
+					.arg(ml->terrain())
+					.arg(ml->editorMission()->name())
+					.arg(ml->level()));
+
+			for (MapEditorInventory *i : *ml->inventoryList()) {
+				if (!GamePickable::pickableDataHash().contains(i->module()))
+					errList.append(tr("Érvénytelen felszerelés: %1 (%2 level %3)")
+					.arg(i->module())
+					.arg(ml->editorMission()->name())
+					.arg(ml->level()));
+			}
+		}
+	}
+
+
+	// Check modules
+
+	for (MapEditorChapter *ch : *m_map->chapterList()) {
+		for (MapEditorObjective *o : *ch->objectiveList()) {
+			if (!Application::instance()->objectiveModules().contains(o->module()))
+				errList.append(tr("Érvénytelen modul: %1 (%2 feladatcsoport)")
+										.arg(o->module())
+										.arg(ch->name()));
+		}
+	}
+
+	for (MapEditorStorage *s : *m_map->storageList()) {
+		if (!Application::instance()->storageModules().contains(s->module()))
+			errList.append(tr("Érvénytelen adatbank modul: %1")
+									.arg(s->module()));
+	}
+
+
+
+
+	return errList;
+
+}
+
+
+
+
+/**
+ * @brief MapEditor::getNextTerrain
+ * @param terrain
+ * @return
+ */
+
+GameTerrain MapEditor::getNextTerrain(const QString &terrain) const
+{
+	const QVector<GameTerrain> &list = GameTerrain::availableTerrains();
+
+	const GameTerrain &t = GameTerrain::terrain(terrain);
+
+	if (!t.isValid()) {
+		QVector<GameTerrain> level1list;
+		foreach (const GameTerrain &gt, list)
+			if (gt.level() == 1)
+				level1list.append(gt);
+
+		if (level1list.isEmpty())
+			return GameTerrain();
+
+		return level1list.at(QRandomGenerator::global()->bounded(level1list.size()));
+	} else {
+		GameTerrain nextTerrain;
+
+		foreach (const GameTerrain &gt, list) {
+			if (gt.name() != t.name() || gt.level() <= t.level())
+				continue;
+
+			if (!nextTerrain.isValid())
+				nextTerrain = gt;
+			else if (gt.level() < nextTerrain.level())
+				nextTerrain = gt;
+		}
+
+		return nextTerrain.isValid() ? nextTerrain : t;
+	}
+}
+
 
 
 
@@ -718,6 +834,31 @@ QVariantList MapEditor::storageListAllModel() const
 
 
 
+/**
+ * @brief MapEditor::terrainListModel
+ * @param onlyFirst
+ * @return
+ */
+
+QVariantList MapEditor::terrainListModel() const
+{
+	QVariantList list;
+
+	foreach (const GameTerrain &t, GameTerrain::availableTerrains()) {
+		list.append(QVariantMap {
+						{ QStringLiteral("name"), t.name() },
+						{ QStringLiteral("fieldName"), t.name()+QStringLiteral("/%1").arg(t.level()) },
+						{ QStringLiteral("level"), t.level() },
+						{ QStringLiteral("displayName"), t.displayName() },
+						{ QStringLiteral("icon"), t.thumbnail() },
+					});
+	}
+
+	return list;
+}
+
+
+
 
 /**
  * @brief MapEditor::undoStack
@@ -753,9 +894,12 @@ MapEditorMission* MapEditor::missionAdd(const QString &name)
 	mission.setName(name.isEmpty() ? tr("Új küldetés") : name);
 	mission.setModes(GameMap::Lite|GameMap::Action);
 
+	const GameTerrain &t = getNextTerrain();
+
 	MapEditorMissionLevel *level = mission.createNextLevel(m_map);
 	level->setLevel(1);
 	level->setCanDeathmatch(true);
+	level->setTerrain(t.name()+QStringLiteral("/%1").arg(t.level()));
 
 	mission.levelList()->append(level);
 
@@ -1946,6 +2090,37 @@ void MapEditor::objectiveCopyOrMove(MapEditorChapter *chapter, const QList<MapEd
 
 
 
+/**
+ * @brief MapEditor::objectivePreview
+ * @param objectiveModule
+ * @param objectiveData
+ * @param storageModule
+ * @param storageData
+ * @return
+ */
+
+QString MapEditor::objectivePreview(const QString &objectiveModule, const QVariantMap &objectiveData,
+									const QString &storageModule, const QVariantMap &storageData) const
+{
+	ModuleInterface *objective = Application::instance()->objectiveModules().value(objectiveModule);
+
+	if (!objective)
+		return tr("Érvénytelen modul: %1").arg(objectiveModule);
+
+
+	ModuleInterface *storage = nullptr;
+
+	if (!storageModule.isEmpty()) {
+		storage = Application::instance()->storageModules().value(storageModule);
+		if (!storage)
+			return tr("Érvénytelen modul: %1").arg(storageModule);
+	}
+
+	return objective->preview(objective->generateAll(objectiveData, storage, storageData)).value(QStringLiteral("text")).toString();
+}
+
+
+
 
 
 /**
@@ -1959,7 +2134,17 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 	if (!m_map || !mission)
 		return nullptr;
 
+	MapEditorMissionLevel *maxLevel = nullptr;
+
+	for (MapEditorMissionLevel *ml : *mission->levelList())
+		if (!maxLevel || ml->level()>maxLevel->level())
+			maxLevel = ml;
+
 	MapEditorMissionLevel *level = mission->createNextLevel();
+
+	const GameTerrain &t = getNextTerrain(maxLevel ? maxLevel->terrain() : QLatin1String(""));
+
+	level->setTerrain(t.name()+QStringLiteral("/%1").arg(t.level()));
 
 	if (!level)
 		return nullptr;

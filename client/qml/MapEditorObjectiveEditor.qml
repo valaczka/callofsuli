@@ -11,20 +11,6 @@ QPage {
 
 	closeQuestion: modified ? qsTr("Biztosan eldobod a módosításokat?") : ""
 
-	stackPopFunction: function() {
-		/*if (_campaignList.view.selectEnabled) {
-			_campaignList.view.unselectAll()
-			return false
-		}
-
-		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
-			return false
-		}*/
-
-		return true
-	}
-
 	title: chapter ? chapter.name : _infoObjective.name !== undefined ? _infoObjective.name : qsTr("Feladat")
 	subtitle: editor ? editor.displayName : ""
 
@@ -119,8 +105,10 @@ QPage {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			onStatusChanged: {
-				if (status == Loader.Ready)
+				if (status == Loader.Ready) {
 					item.loadData()
+					previewRefresh()
+				}
 			}
 		}
 
@@ -149,14 +137,45 @@ QPage {
 			}
 		}
 
+
 		Loader {
 			id: _objectiveLoader
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			onStatusChanged: {
-				if (status == Loader.Ready)
+				if (status == Loader.Ready) {
 					item.loadData()
+					previewRefresh()
+				}
+			}
+		}
+
+		Item {
+			width: parent.width
+			height: 50 * Qaterial.Style.pixelSizeRatio
+		}
+
+		MapEditorObjectivePreview {
+			id: _preview
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			refreshFunc: function() {
+				if (!editor)
+					return ""
+
+				let sData = {}
+				let oData = {}
+
+				if (_storageLoader.item)
+					sData = _storageLoader.item.previewData()
+
+				if (_objectiveLoader.item)
+					oData = _objectiveLoader.item.previewData()
+
+				return editor.objectivePreview(objective ? objective.module : "", oData,
+											   storage ? storage.module : "", sData)
 			}
 		}
 	}
@@ -182,6 +201,10 @@ QPage {
 		}
 		else
 			_objectiveLoader.setSource("")
+	}
+
+	function previewRefresh() {
+		_preview.refresh()
 	}
 
 	onObjectiveChanged: {

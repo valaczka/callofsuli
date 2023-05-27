@@ -1,126 +1,119 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 
-Item {
-	id: control
-
+QFormColumn {
+	id: root
 	width: parent.width
-	height: layout.height
 
-	property var moduleData: ({})
-	property var storageData: ({})
-	property string storageModule: ""
-	property int storageCount: 0
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	signal modified()
+	spacing: 10
 
-	QGridLayout {
-		id: layout
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-		watchModification: true
-		onModifiedChanged: if (layout.modified)
-							   control.modified()
+	QFormTextField {
+		id: _question
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		field: "question"
+		width: parent.width
 
-		QGridLabel { field: textQuestion }
-
-		QGridTextField {
-			id: textQuestion
-			fieldName: qsTr("Kérdés")
-			sqlField: "question"
-			placeholderText: qsTr("Ez a kérdés fog megjelenni")
-		}
-
-		QGridLabel { field: areaCorrectAnswers }
-
-		QGridTextArea {
-			id: areaCorrectAnswers
-			fieldName: qsTr("Helyes válaszok")
-
-			placeholderText: qsTr("A helyes válaszok (soronként)")
-			minimumHeight: CosStyle.baseHeight*2
-		}
-
-		QGridLabel {
-			field: areaAnswers
-		}
-
-		QGridTextArea {
-			id: areaAnswers
-			fieldName: qsTr("Helytelen válaszok")
-			placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
-			minimumHeight: CosStyle.baseHeight*2
-		}
-
-		QGridText {
-			text: qsTr("Min. helyes válasz:")
-			field: spinCourrectMin
-		}
-
-		QGridSpinBox {
-			id: spinCourrectMin
-			from: 2
-			value: 2
-			to: 99
-			editable: true
-			sqlField: "correctMin"
-		}
-
-		QGridText {
-			text: qsTr("Max. helyes válasz:")
-			field: spinCourrectMax
-		}
-
-		QGridSpinBox {
-			id: spinCourrectMax
-			from: spinCourrectMin.value
-			value: 4
-			to: 99
-			editable: true
-			sqlField: "correctMax"
-		}
-
-		QGridText {
-			text: qsTr("Max. lehetőség:")
-			field: spinCount
-		}
-
-		QGridSpinBox {
-			id: spinCount
-			from: spinCourrectMax.value+1
-			value: 5
-			to: 99
-			editable: true
-			sqlField: "count"
-		}
-
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
-	Component.onCompleted: {
-		if (!moduleData)
-			return
+	QFormTextArea {
+		id: _correctAnswers
+		title: qsTr("Helyes válaszok")
+		placeholderText: qsTr("Lehetséges helyes válaszok (soronként)")
+		width: parent.width
 
-		JS.setSqlFields([textQuestion, spinCount, spinCourrectMin, spinCourrectMax], moduleData)
-		areaCorrectAnswers.setData(moduleData.corrects.join("\n"))
-		areaAnswers.setData(moduleData.answers.join("\n"))
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormTextArea {
+		id: _wrongAnswers
+		title: qsTr("Helytelen válaszok")
+		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
+		width: parent.width
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSpinBox {
+		id: _spinMin
+		field: "correctMin"
+		text: qsTr("Min. helyes válasz")
+
+		from: 2
+		value: 2
+		to: 99
+		spin.editable: true
+
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSpinBox {
+		id: _spinMax
+		field: "correctMax"
+		text: qsTr("Max. helyes válasz")
+
+		from: _spinMin.value
+		value: 4
+		to: 99
+		spin.editable: true
+
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSpinBox {
+		id: _spinCount
+		field: "count"
+		text: qsTr("Max. lehetőség")
+
+		from: _spinMax.value+1
+		value: 5
+		to: 99
+		spin.editable: true
+
+		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
-	function getData() {
-		var d = JS.getSqlFields([textQuestion, spinCount, spinCourrectMin, spinCourrectMax])
-		d.corrects = areaCorrectAnswers.text.split("\n")
-		d.answers = areaAnswers.text.split("\n")
 
-		moduleData = d
-		return moduleData
+
+
+	function loadData() {
+		setItems([_question, _spinMin, _spinMax, _spinCount], objective.data)
+		if (objective.data.answers !== undefined)
+			_wrongAnswers.fieldData = objective.data.answers.join("\n")
+		if (objective.data.corrects !== undefined)
+			_correctAnswers.fieldData = objective.data.corrects.join("\n")
 	}
 
+
+	function saveData() {
+		objective.data = previewData()
+		//objective.storageCount = _countBinding.value
+	}
+
+
+
+	function previewData() {
+		let d = getItems([_question, _spinMin, _spinMax, _spinCount])
+
+		d.answers = _wrongAnswers.text.split("\n")
+		d.corrects = _correctAnswers.text.split("\n")
+
+		return d
+	}
 }
-
 
 
 

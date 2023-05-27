@@ -99,6 +99,10 @@ QPage {
 			_storageLoader.setSource("")
 	}
 
+	function previewRefresh() {
+
+	}
+
 	onStorageChanged: {
 		if (storage)
 			loadQmls()

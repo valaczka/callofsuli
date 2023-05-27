@@ -30,6 +30,7 @@
 #include <QObject>
 #include <QTimer>
 #include "client.h"
+#include "gameterrain.h"
 #include "mapeditormap.h"
 #include "editorundostack.h"
 #include "mapplay.h"
@@ -58,12 +59,18 @@ public:
 	MapEditorMap *map() const;
 	void setMap(MapEditorMap *newMap);
 
+	bool loadFromBinaryData(const QByteArray &data);
+
 	Q_INVOKABLE void createFile();
 	Q_INVOKABLE void saveAs(const QUrl &file);
 	Q_INVOKABLE void openFile(const QUrl &file, const bool &fromBackup = false);
 	Q_INVOKABLE bool hasBackup(const QUrl &file) const;
 	Q_INVOKABLE QUrl currentFolder() const;
 	Q_INVOKABLE QString currentFileName() const { return m_currentFileName; }
+
+	Q_INVOKABLE QStringList checkMap() const;
+
+	GameTerrain getNextTerrain(const QString &terrain = QLatin1String("")) const;
 
 	EditorUndoStack *undoStack() const;
 
@@ -81,6 +88,7 @@ public:
 	Q_INVOKABLE QVariantList storageListModel(const QString &objectiveModule) const;
 	Q_INVOKABLE QVariantList storageModel(const QString &storageModule) const;
 	Q_INVOKABLE QVariantList storageListAllModel() const;
+	Q_INVOKABLE QVariantList terrainListModel() const;
 
 
 	Q_INVOKABLE MapEditorMission* missionAdd(const QString &name = QString());
@@ -106,6 +114,8 @@ public:
 	Q_INVOKABLE void objectiveDuplicate(MapEditorChapter *chapter, const QList<MapEditorObjective *> &objectiveList);
 	Q_INVOKABLE void objectiveCopyOrMove(MapEditorChapter *chapter, const QList<MapEditorObjective *> &objectiveList,
 										 const int &toChapterId, const bool &isCopy, const QString &chapterName = QString());
+	Q_INVOKABLE QString objectivePreview(const QString &objectiveModule, const QVariantMap &objectiveData,
+										 const QString &storageModule, const QVariantMap &storageData) const;
 
 	Q_INVOKABLE MapEditorMissionLevel* missionLevelAdd(MapEditorMission *mission);
 	Q_INVOKABLE void missionLevelRemove(MapEditorMissionLevel *missionLevel);
@@ -134,7 +144,6 @@ public slots:
 	void onAutoSaved(const bool &success);
 
 protected:
-	bool loadFromBinaryData(const QByteArray &data);
 	void unloadMap();
 	void loadMap();
 	void setFileDisplayName() {
@@ -159,10 +168,10 @@ signals:
 protected:
 	QString m_currentFileName;
 	QString m_currentBackupName;
-
-private:
 	Client *const m_client;
 	MapEditorMap *m_map = nullptr;
+
+private:
 	EditorUndoStack *const m_undoStack;
 	QTimer m_saveTimer;
 	QString m_displayName;

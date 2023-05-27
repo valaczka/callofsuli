@@ -48,16 +48,19 @@ QVariantMap ModuleNumbers::details(const QVariantMap &data, ModuleInterface *sto
 
 	QStringList list;
 
-	QVariantList l = data.value("bindings").toList();
+	QVariantList l = data.value(QStringLiteral("bindings")).toList();
 	foreach (QVariant v, l) {
 		QVariantMap m = v.toMap();
-		list.append(QString("%1 — %2").arg(m.value("first").toString()).arg(m.value("second").toString()));
+		list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString(),
+												  m.value(QStringLiteral("second")).toString()));
 	}
 
 	QVariantMap m;
-	m["title"] = list.join(", ");
-	m["details"] = "";
-	m["image"] = "";
+	const QString &name = data.value(QStringLiteral("name")).toString();
+
+	m[QStringLiteral("title")] = name.isEmpty() ? list.join(QStringLiteral(", ")) : name;
+	m[QStringLiteral("details")] = QLatin1String("");
+	m[QStringLiteral("image")] = QLatin1String("");
 
 	return m;
 }
