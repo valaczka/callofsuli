@@ -5,13 +5,8 @@ import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 import "JScript.js" as JS
 
-Qaterial.Page {
+Item {
 	id: control
-
-	implicitWidth: 200
-	implicitHeight: 200
-
-	background: Rectangle { color: "transparent" }
 
 	property TeacherGroup group: null
 	property Campaign campaign: null
@@ -34,9 +29,12 @@ Qaterial.Page {
 
 	Qaterial.TextField {
 		id: textFieldCampaignDescription
+
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+
 		anchors.top: parent.top
-		anchors.left: parent.left
-		anchors.right: parent.right
+		anchors.horizontalCenter: parent.horizontalCenter
+
 		font: Qaterial.Style.textTheme.headline4
 		leadingIconSource: Qaterial.Icons.accountMultiple
 		leadingIconInline: true
@@ -157,7 +155,7 @@ Qaterial.Page {
 			text: element.text
 			font.bold: isCurrent
 			horizontalAlignment: stepper.vertical ? Text.AlignLeft : Text.AlignHCenter
-			color: isCurrent ? Qaterial.Style.accentColor : done ? _doneColor : Qaterial.Style.primaryTextColor()
+			color: isCurrent ? Qaterial.Style.accentColor : Qaterial.Style.primaryTextColor()
 
 		}
 	}
@@ -348,11 +346,15 @@ Qaterial.Page {
 
 			spacing: 10
 
-			Qaterial.IconLabel {
+			QIconLabel {
+				width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 				anchors.horizontalCenter: parent.horizontalCenter
+
 				visible: campaign && campaign.state >= Campaign.Running
+
 				font: Qaterial.Style.textTheme.headline3
 				color: Qaterial.Colors.lightGreen400
+
 				text: campaign && campaign.state == Campaign.Finished ? qsTr("A hadjárat véget ért") : qsTr("A hadjárat folyamatban van")
 				icon.source: campaign && campaign.state == Campaign.Finished ? Qaterial.Icons.checkBold : Qaterial.Icons.play
 				icon.width: 48
@@ -402,7 +404,7 @@ Qaterial.Page {
 						if (s > 0 || m > 0)
 							list.push(qsTr("%1 másodperc").arg(s))
 
-						_labelEnd.text = qsTr("Leállításig hátralévő idő:\n")+list.join(" ")
+						_labelEnd.text = qsTr("Befejezésig hátralévő idő:\n")+list.join(" ")
 					}
 				}
 			}

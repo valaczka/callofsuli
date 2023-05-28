@@ -508,6 +508,18 @@ void Utils::settingsSet(const QString &key, const QVariant &value)
 
 
 /**
+ * @brief Utils::noParent
+ * @return
+ */
+
+const QModelIndex &Utils::noParent()
+{
+	static const QModelIndex ret = QModelIndex();
+	return ret;
+}
+
+
+/**
  * @brief Utils::selectedCount
  * @param list
  * @return

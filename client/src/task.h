@@ -30,8 +30,6 @@
 #include "basemap.h"
 #include "grade.h"
 #include "qjsonobject.h"
-#include "studentmap.h"
-#include "teachermap.h"
 #include <selectableobject.h>
 #include <QObject>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -98,6 +96,7 @@ public:
 	int gradeValue() const;
 
 	Q_INVOKABLE QString readableCriterion(BaseMapList *mapList) const;
+	Q_INVOKABLE QString readableShortCriterion(BaseMapList *mapList) const;
 
 	bool success() const;
 	void setSuccess(bool newSuccess);
@@ -112,7 +111,6 @@ signals:
 	void xpChanged();
 	void readableGradeOrXpChanged();
 	void gradeValueChanged();
-
 	void successChanged();
 
 private:

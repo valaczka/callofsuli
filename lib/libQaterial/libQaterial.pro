@@ -92,7 +92,7 @@ HEADERS += \
 	$$PWD/../QOlm/include/QOlm/QOlm.hpp
 
 SOURCES += \
-	$$PWD/../Qaterial/src/Qaterial/Details/HighDpiFix.cpp \
+	#$$PWD/../Qaterial/src/Qaterial/Details/HighDpiFix.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Details/Utils.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Details/Version.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Display/IconDescription.cpp \

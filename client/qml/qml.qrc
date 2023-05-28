@@ -148,5 +148,8 @@
         <file>MapEditorStorageEditor.qml</file>
         <file>QFormSection.qml</file>
         <file>MapEditorObjectivePreview.qml</file>
+        <file>QIconLabel.qml</file>
+        <file>TeacherCampaignResult.qml</file>
+        <file>QTableView.qml</file>
     </qresource>
 </RCC>

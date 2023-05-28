@@ -49,27 +49,25 @@ QPage {
 	QScrollable {
 		anchors.fill: parent
 
-		Item {
+
+
+		Qaterial.IconLabel {
+			id: _label
+			visible: storage
+
+			topPadding: iconLabelItem.implicitHeight*0.5
+
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
-			height: _label.implicitHeight*1.5
 
-			Qaterial.IconLabel {
-				id: _label
-				visible: storage
+			icon.source: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
+			icon.width: 2.2 * Qaterial.Style.pixelSize
+			icon.height: 2.2 * Qaterial.Style.pixelSize
 
-				width: parent.width
-				anchors.verticalCenter: parent.verticalCenter
+			font: Qaterial.Style.textTheme.headline4
+			text: _infoStorage.name !== undefined ? _infoStorage.name : ""
 
-				icon.source: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
-				icon.width: 2.2 * Qaterial.Style.pixelSize
-				icon.height: 2.2 * Qaterial.Style.pixelSize
-
-				font: Qaterial.Style.textTheme.headline4
-				text: _infoStorage.name !== undefined ? _infoStorage.name : ""
-
-				elide: Text.ElideRight
-			}
+			elide: Text.ElideRight
 		}
 
 		Loader {

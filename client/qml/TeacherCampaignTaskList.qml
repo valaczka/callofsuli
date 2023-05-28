@@ -17,6 +17,7 @@ QScrollable {
 	signal reloadRequest()
 
 	Row {
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 		anchors.horizontalCenter: parent.horizontalCenter
 
 		spacing: 5
@@ -110,56 +111,95 @@ QScrollable {
 		}
 	}
 
-	Qaterial.LabelHeadline5 {
+	QIconLabel {
 		text: qsTr("Kritériumok")
-		anchors.left: taskList.left
+		anchors.left: _colTaskList.left
+		font: Qaterial.Style.textTheme.headline5
 		topPadding: 20
 		bottomPadding: 10
+		icon.source: Qaterial.Icons.abacus
 	}
 
 
-	SortFilterProxyModel {
-		id: _list
-		sourceModel: campaign ? campaign.taskList : null
 
-		sorters: [
-			FilterSorter {
-				filters: ValueFilter { roleName: "grade"; value: null; inverted: true }
-				priority: 3
-				sortOrder: Qt.DescendingOrder
-			},
-			RoleSorter {
-				roleName: "gradeValue"
-				sortOrder: Qt.AscendingOrder
-				priority: 2
-			},
-			RoleSorter {
-				roleName: "xp"
-				sortOrder: Qt.AscendingOrder
-				priority: 1
-			},
-			RoleSorter {
-				roleName: "taskid"
-				sortOrder: Qt.AscendingOrder
-				priority: 0
+	onCampaignChanged: _colTaskList.reload()
+
+	Connections {
+		target: campaign
+
+		function onTaskListReloaded() {
+			_colTaskList.reload()
+		}
+	}
+
+
+
+	Column {
+		id: _colTaskList
+
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		Repeater {
+			id: _rptr
+
+			delegate: Item {
+				width: parent.width
+				height: task ? _delegate.implicitHeight : _section.implicitHeight
+
+				readonly property Task task: modelData.task
+
+				Qaterial.ListSectionTitle {
+					id: _section
+					width: parent.width
+					text: modelData.section
+					visible: !task
+				}
+
+				Qaterial.ItemDelegate {
+					id: _delegate
+
+					width: parent.width
+					visible: task
+
+					icon.source: task && task.required ? Qaterial.Icons.accessPointCheck : Qaterial.Icons.accessPoint
+					highlightedIcon: task && task.required
+
+					Connections {
+						target: task
+
+						function onCriterionChanged() { getText() }
+						function onMapUuidChanged() { getText() }
+					}
+
+					Component.onCompleted: getText()
+
+					function getText() {
+						text = task.readableCriterion(mapHandler ? mapHandler.mapList : null)+" - "+task.gradeValue+" / "+task.xp + " : "+task.readableGradeOrXp
+					}
+
+				}
+
+
 			}
-		]
+		}
+
+
+		function reload() {
+			if (campaign)
+				_rptr.model = campaign.getOrderedTaskListModel()
+		}
 	}
 
+	/*
 	QListView {
 		id: taskList
 
 		currentIndex: -1
 		autoSelectChange: true
 
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-		anchors.horizontalCenter: parent.horizontalCenter
 
 		model: _list
-
-		section.property: "readableGradeOrXp"
-		section.criteria: ViewSection.FullString
-		section.delegate: Qaterial.ListSectionTitle {  }
 
 		delegate: QItemDelegate {
 			id: _delegate
@@ -182,30 +222,13 @@ QScrollable {
 			Component.onCompleted: getText()
 
 			function getText() {
-				text = task.readableCriterion(mapHandler ? mapHandler.mapList : null)
+				text = task.readableCriterion(mapHandler ? mapHandler.mapList : null)+" - "+task.gradeValue+" / "+task.xp + " : "+task.readableGradeOrXp
 			}
 
 		}
 
-		Qaterial.Menu {
-			id: contextMenu
-			QMenuItem { action: taskList.actionSelectAll }
-			QMenuItem { action: taskList.actionSelectNone }
-			Qaterial.MenuSeparator {}
-			QMenuItem { action: actionTaskCreate }
-			/*QMenuItem { action: actionEdit }
-					QMenuItem { action: actionAutoConnect }
-					Qaterial.MenuSeparator {}
-					QMenuItem { action: actionDelete }*/
-		}
-
-		onRightClickOrPressAndHold: {
-			if (index != -1)
-				currentIndex = index
-			contextMenu.popup(mouseX, mouseY)
-		}
 	}
-
+*/
 	StackView.onStatusChanged: if (actionTaskCreate) actionTaskCreate.enabled = (StackView.status == StackView.Active)
 
 	Component.onDestruction: if (actionTaskCreate) actionTaskCreate.enabled = false

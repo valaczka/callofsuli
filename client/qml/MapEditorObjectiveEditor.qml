@@ -113,28 +113,24 @@ QPage {
 		}
 
 
-		Item {
+		QIconLabel {
+			id: _label
+			visible: objective
+
+			topPadding: iconLabelItem.implicitHeight*0.5
+
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
-			height: _label.implicitHeight*1.5
 
-			Qaterial.IconLabel {
-				id: _label
-				visible: objective
+			icon.source: _infoObjective.icon !== undefined ? _infoObjective.icon : ""
+			//icon.color: Qaterial.
+			icon.width: 2.2 * Qaterial.Style.pixelSize
+			icon.height: 2.2 * Qaterial.Style.pixelSize
 
-				width: parent.width
-				anchors.verticalCenter: parent.verticalCenter
+			font: Qaterial.Style.textTheme.headline4
+			text: _infoObjective.name !== undefined ? _infoObjective.name : ""
 
-				icon.source: _infoObjective.icon !== undefined ? _infoObjective.icon : ""
-				//icon.color: Qaterial.
-				icon.width: 2.2 * Qaterial.Style.pixelSize
-				icon.height: 2.2 * Qaterial.Style.pixelSize
-
-				font: Qaterial.Style.textTheme.headline4
-				text: _infoObjective.name !== undefined ? _infoObjective.name : ""
-
-				elide: Text.ElideRight
-			}
+			elide: Text.ElideRight
 		}
 
 

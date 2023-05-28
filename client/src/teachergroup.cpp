@@ -82,8 +82,10 @@ void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("userList")) || allField)
 		OlmLoader::loadFromJsonArray<User>(m_userList, object.value(QStringLiteral("userList")).toArray(), "username", "username", true);
 
-	if (object.contains(QStringLiteral("memberList")) || allField)
+	if (object.contains(QStringLiteral("memberList")) || allField) {
 		OlmLoader::loadFromJsonArray<User>(m_memberList, object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
+		emit memberListReloaded();
+	}
 
 	if (object.contains(QStringLiteral("campaignList")) || allField)
 		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList, object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
@@ -223,3 +225,200 @@ CampaignList *TeacherGroup::campaignList() const
 }
 
 
+
+
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::TeacherGroupCampaignResultModel
+ * @param parent
+ */
+
+TeacherGroupCampaignResultModel::TeacherGroupCampaignResultModel(QObject *parent)
+	: QAbstractTableModel(parent)
+{
+
+}
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::~TeacherGroupCampaignResultModel
+ */
+
+TeacherGroupCampaignResultModel::~TeacherGroupCampaignResultModel()
+{
+
+}
+
+
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::data
+ * @param index
+ * @param role
+ * @return
+ */
+
+QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int role) const
+{
+	const int &col = index.column();
+	const int &row = index.row();
+
+	if (role == Qt::DisplayRole) {
+		if (col == 0) {
+			if (row <= 0 || row > m_userList.size())
+				return QStringLiteral("???");
+
+			User *u = m_userList.at(row-1);
+			return u->fullName();
+		} else if (row == 0) {
+			if (col <= 0 || col > m_taskList.size())
+				return QStringLiteral("???");
+
+			const TaskOrSection &task = m_taskList.at(col-1);
+
+			if (task.task())
+				return task.task()->readableCriterion(nullptr) + " " + QString::number(task.task()->gradeValue())+ " " +
+						QString::number(task.task()->xp());
+			else
+				return task.section();
+		}
+
+		return QString("%1, %2").arg(index.column()).arg(index.row());
+	}
+
+	return QVariant();
+}
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::roleNames
+ * @return
+ */
+
+QHash<int, QByteArray> TeacherGroupCampaignResultModel::roleNames() const
+{
+	return { { Qt::DisplayRole, QByteArrayLiteral("display") } };
+}
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::teacherGroup
+ * @return
+ */
+
+TeacherGroup *TeacherGroupCampaignResultModel::teacherGroup() const
+{
+	return m_teacherGroup;
+}
+
+void TeacherGroupCampaignResultModel::setTeacherGroup(TeacherGroup *newTeacherGroup)
+{
+	if (m_teacherGroup == newTeacherGroup)
+		return;
+
+	if (m_teacherGroup)
+		disconnect(m_teacherGroup, &TeacherGroup::memberListReloaded, this, &TeacherGroupCampaignResultModel::reload);
+
+	m_teacherGroup = newTeacherGroup;
+	emit teacherGroupChanged();
+
+	if (m_teacherGroup)
+		connect(m_teacherGroup, &TeacherGroup::memberListReloaded, this, &TeacherGroupCampaignResultModel::reload);
+
+	reload();
+}
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::campaign
+ * @return
+ */
+
+Campaign *TeacherGroupCampaignResultModel::campaign() const
+{
+	return m_campaign;
+}
+
+void TeacherGroupCampaignResultModel::setCampaign(Campaign *newCampaign)
+{
+	if (m_campaign == newCampaign)
+		return;
+
+	if (m_campaign)
+		disconnect(m_campaign, &Campaign::taskListReloaded, this, &TeacherGroupCampaignResultModel::reload);
+
+	m_campaign = newCampaign;
+	emit campaignChanged();
+
+	if (m_campaign)
+		connect(m_campaign, &Campaign::taskListReloaded, this, &TeacherGroupCampaignResultModel::reload);
+
+	reload();
+}
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::isSection
+ * @param col
+ * @return
+ */
+
+bool TeacherGroupCampaignResultModel::isSection(const int &col) const
+{
+	if (col < 1 || col >= m_taskList.size())
+		return false;
+
+	return !(m_taskList.at(col-1).task());
+}
+
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::reload
+ */
+
+void TeacherGroupCampaignResultModel::reload()
+{
+	LOG_CTRACE("client") << "Reload model" << this;
+
+	if (m_taskList.size()) {
+		beginRemoveColumns(Utils::noParent(), 0, columnCount());
+		m_taskList.clear();
+		endRemoveColumns();
+	}
+
+	if (m_userList.size()) {
+		beginRemoveRows(Utils::noParent(), 0, rowCount());
+		m_userList.clear();
+		endRemoveRows();
+	}
+
+
+	if (m_teacherGroup && m_teacherGroup->memberList()->size()) {
+		beginInsertRows(Utils::noParent(), 0, m_teacherGroup->memberList()->size()+1);
+
+		for (User *u : *m_teacherGroup->memberList())
+			m_userList.append(u);
+
+		std::sort(m_userList.begin(), m_userList.end(), [](User *left, User *right) {
+			if (!left || !right)
+				return true;
+
+			return (QString::localeAwareCompare(left->fullName(), right->fullName()) < 0);
+		});
+
+		endInsertRows();
+	}
+
+	if (m_campaign && m_campaign->taskList()->size()) {
+		beginInsertColumns(Utils::noParent(), 0, m_campaign->taskList()->size()+1);
+
+		m_taskList = m_campaign->getOrderedTaskList();
+
+		endInsertColumns();
+	}
+
+	emit modelReloaded();
+}

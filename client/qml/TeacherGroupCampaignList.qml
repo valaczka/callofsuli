@@ -6,14 +6,9 @@ import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
 import "./JScript.js" as JS
 
-Qaterial.Page
+Item
 {
 	id: control
-
-	implicitWidth: 200
-	implicitHeight: 200
-
-	background: Rectangle { color: "transparent" }
 
 	property TeacherGroup group: null
 	property TeacherMapHandler mapHandler: null
@@ -21,73 +16,78 @@ Qaterial.Page
 
 	property alias actionCampaignAdd: actionCampaignAdd
 
-	QListView {
-		id: view
+	QScrollable {
+		anchors.fill: parent
 
-		currentIndex: -1
-		autoSelectChange: true
+		QListView {
+			id: view
 
-		height: parent.height
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-		anchors.horizontalCenter: parent.horizontalCenter
+			currentIndex: -1
+			autoSelectChange: true
 
-		refreshProgressVisible: Client.webSocket.pending
-		refreshEnabled: true
-		onRefreshRequest: group.reload()
+			height: contentHeight
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
 
-		model: SortFilterProxyModel {
-			sourceModel: group ? group.campaignList : null
+			refreshProgressVisible: Client.webSocket.pending
+			refreshEnabled: true
+			onRefreshRequest: group.reload()
 
-			sorters: [
-				RoleSorter {
-					roleName: "finished"
-					sortOrder: Qt.AscendingOrder
-					priority: 3
-				},
-				RoleSorter {
-					roleName: "started"
-					sortOrder: Qt.DescendingOrder
-					priority: 2
-				},
-				RoleSorter {
-					roleName: "startTime"
-					sortOrder: Qt.AscendingOrder
-					priority: 1
-				}
-			]
-		}
+			model: SortFilterProxyModel {
+				sourceModel: group ? group.campaignList : null
 
-		delegate: QItemDelegate {
-			property Campaign campaign: model.qtObject
-			selectableObject: campaign
-
-			highlighted: ListView.isCurrentItem
-			iconSource: {
-				if (!campaign)
-					return ""
-				switch (campaign.state) {
-				case Campaign.Finished:
-					return Qaterial.Icons.checkBold
-				case Campaign.Running:
-					return Qaterial.Icons.play
-				default:
-					return Qaterial.Icons.account
-				}
+				sorters: [
+					RoleSorter {
+						roleName: "finished"
+						sortOrder: Qt.AscendingOrder
+						priority: 3
+					},
+					RoleSorter {
+						roleName: "started"
+						sortOrder: Qt.DescendingOrder
+						priority: 2
+					},
+					RoleSorter {
+						roleName: "startTime"
+						sortOrder: Qt.AscendingOrder
+						priority: 1
+					}
+				]
 			}
 
+			delegate: QItemDelegate {
+				property Campaign campaign: model.qtObject
+				selectableObject: campaign
 
-			readonly property string _campaignName: campaign ? campaign.readableName : ""
+				highlighted: ListView.isCurrentItem
+				iconSource: {
+					if (!campaign)
+						return ""
+					switch (campaign.state) {
+					case Campaign.Finished:
+						return Qaterial.Icons.checkBold
+					case Campaign.Running:
+						return Qaterial.Icons.play
+					default:
+						return Qaterial.Icons.account
+					}
+				}
 
-			text: _campaignName
-			secondaryText: campaign ? campaign.taskList.length + " size" : ""
 
-			onClicked: if (!view.selectEnabled)
-						   Client.stackPushPage("PageTeacherCampaign.qml", {
-													group: control.group,
-													campaign: campaign,
-													mapHandler: control.mapHandler
-												})
+				readonly property string _campaignName: campaign ? campaign.readableName : ""
+
+				text: _campaignName
+				secondaryText: campaign ? campaign.taskList.length + " size" : ""
+
+				onClicked: if (!view.selectEnabled)
+							   Client.stackPushPage("PageTeacherCampaign.qml", {
+														group: control.group,
+														campaign: campaign,
+														mapHandler: control.mapHandler
+													})
+			}
 		}
+
 	}
 
 	Qaterial.Banner

@@ -34,31 +34,9 @@ QPage {
 	subtitle: group ? group.fullName : ""
 
 
-	appBar.rightComponent: Qaterial.AppBarButton
-	{
-		visible: campaign && campaign.state < Campaign.Running
-		ToolTip.text: qsTr("Hadjárat törlése")
-		icon.source: Qaterial.Icons.trashCan
-		onClicked: JS.questionDialog(
-					   {
-						   onAccepted: function()
-						   {
-							   Client.send(WebSocket.ApiTeacher, "campaign/%1/delete".arg(campaign.campaignid))
-							   .done(function(r){
-								   group.reload()
-								   Client.stackPop(control)
-							   })
-							   .fail(JS.failMessage("Törlés sikertelen"))
-						   },
-						   text: qsTr("Biztosan törlöd a hadjáratot?"),
-						   title: _campaignName,
-						   iconSource: Qaterial.Icons.closeCircle
-					   })
-
-	}
-
 	appBar.backButtonVisible: true
-	/*appBar.rightComponent: Qaterial.AppBarButton
+
+	appBar.rightComponent: Qaterial.AppBarButton
 	{
 		icon.source: Qaterial.Icons.dotsVertical
 		onClicked: swipeView.currentIndex == 0 ? menuClass.open() : menuCampaign.open()
@@ -66,16 +44,15 @@ QPage {
 		QMenu {
 			id: menuClass
 
-			QMenuItem { action: actionGroupRename }
-			QMenuItem { action: actionGroupRemove }
+			QMenuItem { action: _actionRemove }
 		}
 
 		QMenu {
 			id: menuCampaign
 
-			QMenuItem { action: _campaignList.actionCampaignAdd }
+			//QMenuItem { action: _campaignList.actionCampaignAdd }
 		}
-	}*/
+	}
 
 
 	Qaterial.SwipeView
@@ -90,8 +67,10 @@ QPage {
 			mapHandler: control.mapHandler
 		}
 
-		Rectangle {
-			color: "blue"
+		TeacherCampaignResult {
+			group: control.group
+			campaign: control.campaign
+			mapHandler: control.mapHandler
 		}
 
 		/*TeacherGroupMemberList {
@@ -116,7 +95,32 @@ QPage {
 		}
 	}
 
-/*	Action {
+
+
+	Action {
+		id: _actionRemove
+
+		enabled: campaign && campaign.state < Campaign.Running
+		text: qsTr("Hadjárat törlése")
+		icon.source: Qaterial.Icons.trashCan
+		onTriggered: JS.questionDialog(
+						 {
+							 onAccepted: function()
+							 {
+								 Client.send(WebSocket.ApiTeacher, "campaign/%1/delete".arg(campaign.campaignid))
+								 .done(function(r){
+									 group.reload()
+									 Client.stackPop(control)
+								 })
+								 .fail(JS.failMessage("Törlés sikertelen"))
+							 },
+							 text: qsTr("Biztosan törlöd a hadjáratot?"),
+							 title: _campaignName,
+							 iconSource: Qaterial.Icons.closeCircle
+						 })
+	}
+
+	/*	Action {
 		id: actionGroupRemove
 		text: qsTr("Törlés")
 		enabled: group

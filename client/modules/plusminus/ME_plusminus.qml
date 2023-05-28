@@ -18,7 +18,7 @@ QFormColumn {
 
 	QFormSection {
 		width: parent.width
-		icon: Qaterial.Icons.abacus
+		icon.source: Qaterial.Icons.abacus
 
 		wrapMode: Text.Wrap
 		text: qsTr("Ez az adatbank a kívánt mennyiségben 2 egész számot állít elő, melyek beállítás szerint összeadhatók egymással vagy kivonhatóak egymásból.")

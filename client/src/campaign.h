@@ -30,6 +30,7 @@
 #include "grade.h"
 #include "qdatetime.h"
 #include "task.h"
+#include <QPointer>
 #include <selectableobject.h>
 #include <QObject>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -42,6 +43,7 @@ class Campaign;
 using CampaignList = qolm::QOlm<Campaign>;
 Q_DECLARE_METATYPE(CampaignList*)
 
+class TaskOrSection;
 
 /**
  * @brief The Campaign class
@@ -116,7 +118,11 @@ public:
 	Q_INVOKABLE QString readableResult(Grade *grade, int xp);
 	Q_INVOKABLE QString readableShortResult(Grade *grade, int xp);
 
+	QList<TaskOrSection> getOrderedTaskList() const;
+	Q_INVOKABLE QVariantList getOrderedTaskListModel() const;
+
 signals:
+	void taskListReloaded();
 	void campaignidChanged();
 	void startTimeChanged();
 	void endTimeChanged();
@@ -141,5 +147,28 @@ private:
 	int m_resultXP = -1;
 	TaskList *const m_taskList;
 };
+
+
+
+
+/**
+ * @brief The TaskOrSection class
+ */
+
+class TaskOrSection
+{
+public:
+	TaskOrSection(Task *task = nullptr, const QString &section = QString()) : m_task(task), m_section(section) {}
+	~TaskOrSection() {}
+
+	Task *task() const { return m_task; }
+	const QString &section() const { return m_section; }
+
+private:
+	QPointer<Task> m_task;
+	QString m_section;
+
+};
+
 
 #endif // CAMPAIGN_H

@@ -80,8 +80,10 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 		setDefaultGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
 																								object.value(QStringLiteral("defaultGrade")).toInt())));
 
-	if (object.contains(QStringLiteral("taskList")) || allField)
+	if (object.contains(QStringLiteral("taskList")) || allField) {
 		OlmLoader::loadFromJsonArray<Task>(m_taskList, object.value(QStringLiteral("taskList")).toArray(), "id", "taskid", true);
+		emit taskListReloaded();
+	}
 
 	if (object.contains(QStringLiteral("resultGrade")) || allField)
 		setResultGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
@@ -280,6 +282,100 @@ QString Campaign::readableShortResult(Grade *grade, int xp)
 	else
 		return Task::readableGradeOrXpShort(grade, xp);
 }
+
+
+
+/**
+ * @brief Campaign::getOrderedTaskList
+ * @return
+ */
+
+QList<TaskOrSection> Campaign::getOrderedTaskList() const
+{
+	QVector<Task*> tlist;
+
+	for (Task *t : *m_taskList)
+		tlist.append(t);
+
+	std::sort(tlist.begin(), tlist.end(), [](Task *left, Task *right) {
+		if (!left || !right)
+			return true;
+
+		if (left->grade()) {
+			if (!right->grade())
+				return true;
+
+			if (left->gradeValue() < right->gradeValue())
+				return true;
+
+			if (left->gradeValue() > right->gradeValue())
+				return false;
+		} else {
+			if (right->grade())
+				return false;
+		}
+
+		if (left->xp() < right->xp())
+			return true;
+
+		if (left->xp() > right->xp())
+			return false;
+
+		return (left->taskid() < right->taskid());
+	});
+
+
+	// Add sections
+
+	QList<TaskOrSection> list;
+
+	QVector<Task*>::iterator prev;
+
+	for (auto it = tlist.begin(); it != tlist.end(); ++it) {
+		if (it == tlist.begin()) {
+			const QString &s = *it ? (*it)->readableGradeOrXp() : QLatin1String("");
+			list.append(TaskOrSection(nullptr, s));
+			list.append(TaskOrSection(*it));
+			prev = it;
+			continue;
+		}
+
+		const QString &prevS = *prev ? (*prev)->readableGradeOrXp() : QLatin1String("");
+		const QString &s = *it ? (*it)->readableGradeOrXp() : QLatin1String("");
+
+		if (prevS != s)
+			list.append(TaskOrSection(nullptr, s));
+
+		list.append(TaskOrSection(*it));
+
+		prev = it;
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief Campaign::getOrderedTaskListAsVariant
+ * @return
+ */
+
+QVariantList Campaign::getOrderedTaskListModel() const
+{
+	QVariantList list;
+
+	foreach (const TaskOrSection &t, getOrderedTaskList()) {
+		list.append(QVariantMap{
+						{ QStringLiteral("section"), t.section() },
+						{ QStringLiteral("task"), QVariant::fromValue(t.task()) }
+					});
+	}
+
+	return list;
+}
+
+
 
 
 Grade *Campaign::resultGrade() const

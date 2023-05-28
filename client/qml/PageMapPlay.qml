@@ -64,14 +64,10 @@ QPageGradient {
 
 				property MapPlayMission mission: model.qtObject
 
-				Item {
-					width: parent.width
-					height: 20
-				}
 
-				Qaterial.IconLabel {
-					//topPadding: 20
-					//bottomPadding: 10
+				QIconLabel {
+					topPadding: 20
+					bottomPadding: 20
 					anchors.left: parent.left
 					anchors.leftMargin: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
 					width: parent.width
@@ -87,10 +83,7 @@ QPageGradient {
 					wrapMode: Text.Wrap
 				}
 
-				Item {
-					width: parent.width
-					height: 10
-				}
+
 
 				ListView {
 					id: view

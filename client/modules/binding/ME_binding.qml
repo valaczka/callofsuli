@@ -36,7 +36,7 @@ QFormColumn {
 	QFormSection {
 		width: parent.width
 		text: qsTr("Párok")
-		icon: Qaterial.Icons.abacus
+		icon.source: Qaterial.Icons.abacus
 	}
 
 	QFormBindingField {

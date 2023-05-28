@@ -41,6 +41,8 @@ class TeacherGroup;
 using TeacherGroupList = qolm::QOlm<TeacherGroup>;
 Q_DECLARE_METATYPE(TeacherGroupList*)
 
+class TeacherGroupCampaignResultModel;
+
 
 /**
  * @brief The TeacherGroup class
@@ -86,6 +88,7 @@ public:
 	CampaignList *campaignList() const;
 
 signals:
+	void memberListReloaded();
 	void groupidChanged();
 	void nameChanged();
 	void activeChanged();
@@ -99,6 +102,54 @@ private:
 	UserList *const m_memberList;
 	ClassList *const m_classList;
 	CampaignList *const m_campaignList;
+};
+
+
+
+
+
+/**
+ * @brief The TeacherGroupCampaignResultModel class
+ */
+
+class TeacherGroupCampaignResultModel : public QAbstractTableModel
+{
+	Q_OBJECT
+
+	Q_PROPERTY(TeacherGroup *teacherGroup READ teacherGroup WRITE setTeacherGroup NOTIFY teacherGroupChanged)
+	Q_PROPERTY(Campaign *campaign READ campaign WRITE setCampaign NOTIFY campaignChanged)
+
+public:
+	explicit TeacherGroupCampaignResultModel(QObject *parent = nullptr);
+	virtual ~TeacherGroupCampaignResultModel();
+
+	int rowCount(const QModelIndex & = QModelIndex()) const override { return m_userList.size()+1; }
+	int columnCount(const QModelIndex & = QModelIndex()) const override { return m_taskList.size()+1; }
+	QVariant data(const QModelIndex &index, int role) const override;
+	QHash<int, QByteArray> roleNames() const override;
+
+	TeacherGroup *teacherGroup() const;
+	void setTeacherGroup(TeacherGroup *newTeacherGroup);
+
+	Campaign *campaign() const;
+	void setCampaign(Campaign *newCampaign);
+
+	Q_INVOKABLE bool isSection(const int &col) const;
+
+public slots:
+	void reload();
+
+signals:
+	void modelReloaded();
+	void teacherGroupChanged();
+	void campaignChanged();
+
+private:
+	TeacherGroup *m_teacherGroup = nullptr;
+	Campaign *m_campaign = nullptr;
+	QVector<QPointer<User>> m_userList;
+	QList<TaskOrSection> m_taskList;
+
 };
 
 #endif // TEACHERGROUP_H

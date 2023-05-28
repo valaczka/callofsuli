@@ -192,7 +192,7 @@ QString Task::readableGradeOrXp() const
 QString Task::readableGradeOrXp(Grade *grade, int xp)
 {
 	if (grade && xp > 0)
-		return tr("%1 (%2), %3 XP").arg(grade->longname(), grade->shortname()).arg(xp);
+		return tr("%1 (%2), %3 XP").arg(grade->longname()).arg(grade->shortname()).arg(xp);
 	else if (grade)
 		return QStringLiteral("%1 (%2)").arg(grade->longname(), grade->shortname());
 	else if (xp > 0)
@@ -280,6 +280,21 @@ QString Task::readableCriterion(BaseMapList *mapList) const
 
 	return tr("-- Érvénytelen modul: %1 --").arg(module);
 }
+
+
+/**
+ * @brief Task::readableShortCriterion
+ * @param mapList
+ * @return
+ */
+
+QString Task::readableShortCriterion(BaseMapList *mapList) const
+{
+
+	return "";
+}
+
+
 
 bool Task::success() const
 {

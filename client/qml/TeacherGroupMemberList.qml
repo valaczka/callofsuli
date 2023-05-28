@@ -6,56 +6,56 @@ import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
 import "./JScript.js" as JS
 
-Qaterial.Page
+Item
 {
 	id: control
-
-	implicitWidth: 200
-	implicitHeight: 200
-
-	background: Rectangle { color: "transparent" }
 
 	property TeacherGroup group: null
 	property alias view: view
 
-	QListView {
-		id: view
+	QScrollable {
+		anchors.fill: parent
 
-		currentIndex: -1
-		autoSelectChange: false
+		QListView {
+			id: view
 
-		height: parent.height
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-		anchors.horizontalCenter: parent.horizontalCenter
+			currentIndex: -1
+			autoSelectChange: true
 
-		refreshProgressVisible: Client.webSocket.pending
-		refreshEnabled: true
-		onRefreshRequest: group.reload()
+			height: contentHeight
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
 
-		model: SortFilterProxyModel {
-			sourceModel: group ? group.memberList : null
 
-			sorters: [
-				StringSorter {
-					roleName: "fullName"
-					sortOrder: Qt.AscendingOrder
-				}
-			]
-		}
+			refreshProgressVisible: Client.webSocket.pending
+			refreshEnabled: true
+			onRefreshRequest: group.reload()
 
-		delegate: QItemDelegate {
-			property User user: model.qtObject
-			selectableObject: user
+			model: SortFilterProxyModel {
+				sourceModel: group ? group.memberList : null
 
-			highlighted: ListView.isCurrentItem
-			iconSource: Qaterial.Icons.account
+				sorters: [
+					StringSorter {
+						roleName: "fullName"
+						sortOrder: Qt.AscendingOrder
+					}
+				]
+			}
 
-			text: user ? user.fullName: ""
+			delegate: QItemDelegate {
+				property User user: model.qtObject
+				selectableObject: user
 
-			/*onClicked: if (!view.selectEnabled)
+				highlighted: ListView.isCurrentItem
+				iconSource: Qaterial.Icons.account
+
+				text: user ? user.fullName: ""
+
+				/*onClicked: if (!view.selectEnabled)
 						   Client.stackPushPage("AdminUserEdit.qml", {
 													user: user
 												})*/
+			}
 		}
 	}
 

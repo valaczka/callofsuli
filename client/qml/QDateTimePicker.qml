@@ -16,8 +16,8 @@ Qaterial.TextField
 	property bool canEdit: true
 
 
-	property date _storedDate: new Date()
 	property bool _storedHasDate: false
+	property date _storedDate: new Date()
 	property bool active: false
 
 	signal saveRequest(bool hasDate, date date)
@@ -135,6 +135,8 @@ Qaterial.TextField
 	function revert() {
 		date = _storedDate
 		hasDate = _storedHasDate
+		hour = _storedDate.getHours()
+		minute = _storedDate.getMinutes()
 		enabled = true
 		active = false
 	}
@@ -155,10 +157,11 @@ Qaterial.TextField
 
 
 	function setFromDateTime(dt) {
-		console.debug("SET FROM", dt, dt.getHours(), dt.getMinutes())
 		date = dt
 		hour = dt.getHours()
 		minute = dt.getMinutes()
+		_storedDate = dt
+		_storedHasDate = true
 	}
 
 
