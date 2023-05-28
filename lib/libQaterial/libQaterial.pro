@@ -1,5 +1,3 @@
-QT += core gui
-
 INCLUDEPATH += \
 	$$PWD/../Qaterial/src \
 	$$PWD/../QOlm/include
@@ -32,9 +30,8 @@ DEFINES += \
 
 
 
-linux:!android: QMAKE_CXXFLAGS += -Wno-deprecated-copy -Wno-deprecated-declarations -Wno-unused-parameter
-android: QMAKE_CXXFLAGS += -Wno-deprecated -Wno-unused-parameter
-win32: QMAKE_CXX += -Wno-strict-aliasing -Wno-deprecated-declarations -Wno-unused-parameter
+QMAKE_CXXFLAGS += -Wno-unused-parameter -Wno-unused-lambda-capture -Wno-deprecated-declarations
+
 
 # Qrc
 
@@ -55,7 +52,6 @@ write_file(Qaterial.qrc, lines)
 
 # Icons
 
-
 lines = <RCC>
 lines += "<qresource prefix=\"/Qaterial/Icons\">"
 
@@ -68,6 +64,9 @@ lines += </RCC>
 
 message(Create QaterialIcons.qrc)
 write_file(QaterialIcons.qrc, lines)
+
+
+# Sources
 
 HEADERS += \
 	$$PWD/../Qaterial/src/Qaterial/Details/Export.hpp \

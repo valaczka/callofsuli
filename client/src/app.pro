@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private
+QT += gui quick svg xml network gui-private quickcontrols2
 
 !wasm: QT += multimedia sql webview networkauth
 
@@ -61,7 +61,7 @@ include(../../lib/import_lib_client.pri)
 wasm:include(app_wasm.pri)
 
 
-# Modules
+##### Modules
 
 include(../modules/modules.pri)
 
@@ -73,6 +73,7 @@ for(m, MODULES_LIST) {
 }
 
 
+##### Assets
 
 CommonRcc.files += $$files($$PWD/../../share/*.cres)
 
@@ -82,6 +83,8 @@ ios: CommonRcc.path = share
 
 !isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
 
+
+################ PLATFORM SPECIFIC SETTINGS ######################x
 
 win32 {
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
@@ -146,9 +149,13 @@ ios {
 	QMAKE_SUBSTITUTES += plist
 
 	QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
-
-
 }
+
+
+
+######## SOURCES ###############
+
+
 
 SOURCES += \
 	abstractgame.cpp \
