@@ -39,18 +39,18 @@ QPage {
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
 		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: swipeView.currentIndex == 0 ? menuClass.open() : menuCampaign.open()
+		onClicked: swipeView.currentIndex == 0 ? menuDetails.open() : menuResult.open()
 
 		QMenu {
-			id: menuClass
+			id: menuDetails
 
 			QMenuItem { action: _actionRemove }
 		}
 
 		QMenu {
-			id: menuCampaign
+			id: menuResult
 
-			//QMenuItem { action: _campaignList.actionCampaignAdd }
+			QMenuItem { action: _actionResultReload }
 		}
 	}
 
@@ -68,19 +68,11 @@ QPage {
 		}
 
 		TeacherCampaignResult {
+			id: _result
 			group: control.group
 			campaign: control.campaign
 			mapHandler: control.mapHandler
 		}
-
-		/*TeacherGroupMemberList {
-			group: control.group
-		}
-
-		TeacherGroupCampaignList {
-			id: _campaignList
-			group: control.group
-		}*/
 	}
 
 	footer: QTabBar {
@@ -90,12 +82,16 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Hadjárat"), source: Qaterial.Icons.account, color: "green" })
 			model.append({ text: qsTr("Eredmények"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}
 	}
 
 
+	Action {
+		id: _actionResultReload
+		text: qsTr("Frissítés")
+		icon.source: Qaterial.Icons.refresh
+		onTriggered: _result.resultModel.reloadContent()
+	}
 
 	Action {
 		id: _actionRemove
@@ -120,57 +116,4 @@ QPage {
 						 })
 	}
 
-	/*	Action {
-		id: actionGroupRemove
-		text: qsTr("Törlés")
-		enabled: group
-		icon.source: Qaterial.Icons.trashCan
-		onTriggered: {
-			JS.questionDialog(
-						{
-							onAccepted: function()
-							{
-								Client.send(WebSocket.ApiTeacher, "group/%1/delete".arg(group.groupid))
-								.done(function(r){
-									Client.reloadCache("teacherGroupList")
-									Client.stackPop(control)
-								})
-								.fail(JS.failMessage("Törlés sikertelen"))
-							},
-							text: qsTr("Biztosan törlöd a csoportot?"),
-							title: group.name,
-							iconSource: Qaterial.Icons.closeCircle
-						})
-		}
-	}
-
-
-	Action {
-		id: actionGroupRename
-		text: qsTr("Átnevezés")
-		enabled: group
-		icon.source: Qaterial.Icons.renameBox
-		onTriggered: {
-			Qaterial.DialogManager.showTextFieldDialog({
-														   textTitle: qsTr("Csoport neve"),
-														   title: qsTr("Csoport átnevezése"),
-														   text: group.name,
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
-														   onAccepted: function(_text, _noerror) {
-															   if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiTeacher, "group/%1/update".arg(group.groupid),
-																			   {
-																				   name: _text
-																			   })
-															   .done(function(r){
-																   Client.reloadCache("teacherGroupList")
-															   })
-															   .fail(JS.failMessage("Átnevezés sikertelen"))
-														   }
-													   })
-		}
-	}
-
-
-	Component.onCompleted: group.reload()*/
 }

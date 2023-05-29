@@ -44,7 +44,7 @@ Item {
 		trailingContent: QTextFieldInPlaceButtons {
 			id: textFieldDescriptionInPlaceButtons
 			y: Math.max(textFieldCampaignDescription.height-height)/2
-			setTo: campaign.description
+			setTo: campaign ? campaign.description : ""
 			onSaveRequest: {
 				Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 							{
@@ -71,8 +71,9 @@ Item {
 
 		anchors.top: textFieldCampaignDescription.bottom
 		anchors.topMargin: _stepperPadding
-		anchors.left: parent.left
-		anchors.right: parent.right
+
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		anchors.horizontalCenter: parent.horizontalCenter
 
 		indicatorHeight: _stepperSize
 		indicatorWidth: _stepperSize
@@ -141,7 +142,7 @@ Item {
 			source: element.iconName
 		}
 
-		contentItem: Qaterial.LabelBody2
+		contentItem: Qaterial.Label
 		{
 			width: 100
 			height: 20
@@ -153,7 +154,9 @@ Item {
 			readonly property bool isCurrent: index === stepper.currentIndex
 
 			text: element.text
-			font.bold: isCurrent
+			font.family: Qaterial.Style.textTheme.body2.family
+			font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
+			font.weight: isCurrent ? Font.Bold : Qaterial.Style.textTheme.body2.weight
 			horizontalAlignment: stepper.vertical ? Text.AlignLeft : Text.AlignHCenter
 			color: isCurrent ? Qaterial.Style.accentColor : Qaterial.Style.primaryTextColor()
 

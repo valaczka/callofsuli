@@ -33,19 +33,23 @@ QPage {
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
 		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: swipeView.currentIndex == 0 ? menuClass.open() : menuCampaign.open()
-
-		QMenu {
-			id: menuClass
-
-			QMenuItem { action: actionGroupRename }
-			QMenuItem { action: actionGroupRemove }
-		}
+		onClicked: swipeView.currentIndex == 0 ? menuCampaign.open() : menuResult.open()
 
 		QMenu {
 			id: menuCampaign
 
+			QMenuItem { action: _actionGroupRename }
+			QMenuItem { action: _actionGroupRemove }
+			QMenuItem { action: _result.actionUserEdit }
+			Qaterial.MenuSeparator {}
 			QMenuItem { action: _campaignList.actionCampaignAdd }
+		}
+
+		QMenu {
+			id: menuResult
+
+			QMenuItem { action: _actionResultReload }
+			QMenuItem { action: _result.actionUserEdit }
 		}
 	}
 
@@ -62,7 +66,8 @@ QPage {
 			mapHandler: control.mapHandler
 		}
 
-		TeacherGroupMemberList {
+		TeacherGroupResult {
+			id: _result
 			group: control.group
 		}
 	}
@@ -79,8 +84,16 @@ QPage {
 		}
 	}
 
+
 	Action {
-		id: actionGroupRemove
+		id: _actionResultReload
+		text: qsTr("Frissítés")
+		icon.source: Qaterial.Icons.refresh
+		onTriggered: _result.resultModel.reloadContent()
+	}
+
+	Action {
+		id: _actionGroupRemove
 		text: qsTr("Törlés")
 		enabled: group
 		icon.source: Qaterial.Icons.trashCan
@@ -105,7 +118,7 @@ QPage {
 
 
 	Action {
-		id: actionGroupRename
+		id: _actionGroupRename
 		text: qsTr("Átnevezés")
 		enabled: group
 		icon.source: Qaterial.Icons.renameBox

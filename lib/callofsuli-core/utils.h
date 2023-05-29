@@ -94,9 +94,9 @@ public:
 	Q_INVOKABLE static QVariant settingsGet(const QString &key, const QVariant &defaultValue = QVariant());
 	Q_INVOKABLE static void settingsSet(const QString &key, const QVariant &value);
 
+#ifdef CLIENT_UTILS
 	static const QModelIndex& noParent();
 
-#ifdef CLIENT_UTILS
 	Q_INVOKABLE static int selectedCount(qolm::QOlmBase *list);
 
 	template<typename QEnum>

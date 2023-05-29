@@ -51,7 +51,7 @@ QPage {
 
 
 
-		Qaterial.IconLabel {
+		QIconLabel {
 			id: _label
 			visible: storage
 

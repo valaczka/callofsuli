@@ -175,7 +175,8 @@ QScrollable {
 					Component.onCompleted: getText()
 
 					function getText() {
-						text = task.readableCriterion(mapHandler ? mapHandler.mapList : null)+" - "+task.gradeValue+" / "+task.xp + " : "+task.readableGradeOrXp
+						text = task ?
+								(task.readableCriterion(mapHandler ? mapHandler.mapList : null)+" - "+task.gradeValue+" / "+task.xp + " : "+task.readableGradeOrXp) : ""
 					}
 
 				}

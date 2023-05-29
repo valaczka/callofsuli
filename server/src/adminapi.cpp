@@ -29,6 +29,7 @@
 #include "qjsonarray.h"
 #include "serverservice.h"
 #include "utils.h"
+#include "teacherapi.h"
 
 #define _SQL_QUERY_USERS "SELECT user.username, familyName, givenName, active, user.classid, class.name as className, " \
 	"isTeacher, isAdmin, isPanel, nickname, character, picture," \
@@ -987,7 +988,7 @@ QDefer AdminAPI::campaignStart(const DatabaseMain *dbMain, const int &campaign)
 
 		db.commit();
 
-		LOG_CDEBUG("client") << "Campaign started:" << campaign;
+		LOG_CINFO("client") << "Campaign started:" << campaign;
 		ret.resolve();
 	});
 
@@ -1005,37 +1006,25 @@ QDefer AdminAPI::campaignStart(const DatabaseMain *dbMain, const int &campaign)
 QDefer AdminAPI::campaignFinish(const AbstractAPI *api, const int &campaign)
 {
 	Q_ASSERT(api);
-	return campaignFinish(api->databaseMain(), campaign);
-}
 
+	Database *dbMain = api->databaseMain();
 
-
-/**
- * @brief AdminAPI::campaignFinish
- * @param dbMain
- * @param campaign
- * @return
- */
-
-QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
-{
-	Q_ASSERT (dbMain);
+	Q_ASSERT(dbMain);
 
 	LOG_CDEBUG("client") << "Campaign finish:" << campaign;
 
 	QDefer ret;
 
-	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
+	dbMain->worker()->execInThread([ret, campaign, dbMain, api]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
 
 		db.transaction();
 
-		QueryBuilder q(db);
-		q.addQuery("SELECT starttime FROM campaign WHERE started=true AND finished=false AND id=").addValue(campaign);
-
-		if (!q.exec() || !q.sqlQuery().first()) {
+		if (!QueryBuilder::q(db)
+				.addQuery("SELECT starttime FROM campaign WHERE started=true AND finished=false AND id=").addValue(campaign)
+				.execCheckExists()) {
 			db.rollback();
 			return ret.reject();
 		}
@@ -1052,9 +1041,75 @@ QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 			return ret.reject();
 		}
 
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT username FROM studentGroupInfo WHERE active=true "
+				   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign).addQuery(")");
+
+		if (!q.exec()) {
+			LOG_CERROR("client") << "Campaign finish error:" << campaign;
+			db.rollback();
+			return ret.reject();
+		}
+
+		bool err = false;
+
+		while (q.sqlQuery().next()) {
+			const QString &username = q.value("username").toString();
+
+			const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(api, campaign, false, username, false, &err);
+
+			if (err) {
+				LOG_CERROR("client") << "Campaign finish error:" << campaign;
+				db.rollback();
+				return ret.reject();
+			}
+
+			if (result.grade <= 0 && result.xp <= 0)
+				continue;
+
+			QVariant scoreId = QVariant::Invalid;
+
+			if (result.xp > 0) {
+				scoreId = QueryBuilder::q(db)
+						.addQuery("INSERT OR REPLACE INTO score (")
+						.setFieldPlaceholder()
+						.addQuery(") VALUES (")
+						.setValuePlaceholder()
+						.addQuery(")")
+						.addField("username", username)
+						.addField("xp", result.xp)
+						.execInsertAsInt(&err);
+
+				if (err) {
+					LOG_CERROR("client") << "Campaign finish error:" << campaign;
+					db.rollback();
+					return ret.reject();
+				}
+			}
+
+			QueryBuilder::q(db)
+					.addQuery("INSERT OR REPLACE INTO campaignResult (")
+					.setFieldPlaceholder()
+					.addQuery(") VALUES (")
+					.setValuePlaceholder()
+					.addQuery(")")
+					.addField("campaignid", campaign)
+					.addField("username", username)
+					.addField("gradeid", result.grade > 0 ? result.grade : QVariant(QVariant::Invalid))
+					.addField("scoreid", scoreId)
+					.execInsert(&err);
+
+			if (err) {
+				LOG_CERROR("client") << "Campaign finish error:" << campaign;
+				db.rollback();
+				return ret.reject();
+			}
+		}
+
 		db.commit();
 
-		LOG_CDEBUG("client") << "Campaign finished:" << campaign;
+		LOG_CINFO("client") << "Campaign finished:" << campaign;
 		ret.resolve();
 	});
 

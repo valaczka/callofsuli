@@ -284,6 +284,22 @@ QString Campaign::readableShortResult(Grade *grade, int xp)
 }
 
 
+/**
+ * @brief Campaign::hasRequiredTask
+ * @return
+ */
+
+bool Campaign::hasRequiredTask() const
+{
+	for (Task *t : *m_taskList) {
+		if (t && t->required())
+			return true;
+	}
+
+	return false;
+}
+
+
 
 /**
  * @brief Campaign::getOrderedTaskList

@@ -120,6 +120,8 @@ public:
 	void groupUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
 	void groupUserExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
+	void groupResult(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+
 
 	void panelOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void panels(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
@@ -155,6 +157,7 @@ public:
 
 
 	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void campaignOneResult(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void campaignCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void campaignUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void campaignDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
@@ -183,7 +186,8 @@ public:
 	// Run in database worker thread
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
-	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished, const QString &username, bool *err = nullptr);
+	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
+												  const QString &username, const bool &withCriterion = false, bool *err = nullptr);
 	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, bool *err = nullptr);
 	static bool _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username, bool *err = nullptr);
 	static bool _evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,

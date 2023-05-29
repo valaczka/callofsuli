@@ -39,6 +39,15 @@ Item {
 		transformOrigin: Item.TopLeft
 	}
 
+	Connections {
+		target: campaign
+
+		function onTaskListReloaded() {
+			_colTaskList.reload()
+		}
+	}
+
+
 	Column {
 		id: col
 		x: Qaterial.Style.dense ? 50 : 25
@@ -94,136 +103,130 @@ Item {
 
 
 
-		SortFilterProxyModel {
-			id: _list
-			sourceModel: campaign ? campaign.taskList : null
 
-			sorters: [
-				FilterSorter {
-					filters: ValueFilter { roleName: "grade"; value: null; inverted: true }
-					priority: 3
-					sortOrder: Qt.DescendingOrder
-				},
-				RoleSorter {
-					roleName: "gradeValue"
-					sortOrder: Qt.AscendingOrder
-					priority: 2
-				},
-				RoleSorter {
-					roleName: "xp"
-					sortOrder: Qt.AscendingOrder
-					priority: 1
-				},
-				RoleSorter {
-					roleName: "taskid"
-					sortOrder: Qt.AscendingOrder
-					priority: 0
-				}
-			]
-		}
-
-		QListView {
-			id: taskList
-
-			property bool showPlaceholders: _list.count == 0 && _firstRun
-
-			currentIndex: -1
-			autoSelectChange: false
+		Column {
+			id: _colTaskList
 
 			width: parent.width
 
-			model: showPlaceholders ? 5 : _list
+			Repeater {
+				id: _rptr
 
-			delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
+				property bool showPlaceholders: true
 
-			section.property: "readableGradeOrXp"
-			section.criteria: ViewSection.FullString
-			section.delegate: Qaterial.LabelCaption {
-				width: ListView.view.width
-				text: section
-				color: "saddlebrown"
-				topPadding: 15
-				bottomPadding: 5
-				font.pixelSize: Qaterial.Style.textTheme.caption.pixelSize
-				font.family: Qaterial.Style.textTheme.caption.family
-				font.capitalization: Font.AllUppercase
-				font.weight: Qaterial.Style.textTheme.caption.weight
-			}
+				model: 5
 
-			Component {
-				id: _cmpDelegate
+				delegate: Item {
+					width: parent.width
+					height: _rptr.showPlaceholders || task ? _delegate.implicitHeight : _section.implicitHeight
 
-				Row {
-					id: _delegate
-					property Task task: model && model.qtObject ? model.qtObject : null
+					readonly property Task task: modelData.task !== undefined ? modelData.task : null
 
-					width: taskList.width
-
-					spacing: 10
-
-					Image {
-						id: imgSuccess
-						anchors.top: parent.top
-						width: labelText.font.pixelSize*1.4
-						height: labelText.font.pixelSize*1.4
-						fillMode: Image.PreserveAspectFit
-						source: task && task.success ? "qrc:/internal/img/checkmark_red.png" : ""
+					Qaterial.LabelCaption {
+						id: _section
+						visible: !_rptr.showPlaceholders && !task
+						width: parent.width
+						text: modelData.section !== undefined ? modelData.section : ""
+						color: "saddlebrown"
+						topPadding: 15
+						bottomPadding: 5
+						font.pixelSize: Qaterial.Style.textTheme.caption.pixelSize
+						font.family: Qaterial.Style.textTheme.caption.family
+						font.capitalization: Font.AllUppercase
+						font.weight: Qaterial.Style.textTheme.caption.weight
 					}
 
-					Label {
-						id: labelText
-						width: parent.width-imgSuccess.width-parent.spacing
-						wrapMode: Text.Wrap
+					Row {
+						id: _delegate
 
-						anchors.top: parent.top
+						visible: task && !_rptr.showPlaceholders
 
-						color: task && task.required ? Qaterial.Colors.red900 : Qaterial.Colors.black
-						font.strikeout: task && task.success
-						opacity: task && task.success ? 0.4 : 1.0
+						width: parent.width
 
-						topPadding: 2
-						bottomPadding: 2
+						spacing: 10
 
-						font.family: "Special Elite"
-						font.pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
-						lineHeight: 1.2
-
-						text: task ? task.readableCriterion(root.mapHandler.mapList) : null
-
-						Connections {
-							target: root.mapHandler
-
-							function onReloaded() {
-								if (_delegate.task)
-									labelText.text = _delegate.task.readableCriterion(root.mapHandler.mapList)
-							}
+						Image {
+							id: imgSuccess
+							anchors.top: parent.top
+							width: labelText.font.pixelSize*1.4
+							height: labelText.font.pixelSize*1.4
+							fillMode: Image.PreserveAspectFit
+							source: task && task.success ? "qrc:/internal/img/checkmark_red.png" : ""
 						}
 
-						states: State {
-							when: (task && task.success && imgSuccess.height > labelText.height)
+						Label {
+							id: labelText
+							width: parent.width-imgSuccess.width-parent.spacing
+							wrapMode: Text.Wrap
 
-							AnchorChanges {
-								target: labelText
-								anchors.top: undefined
-								anchors.verticalCenter: parent.verticalCenter
+							anchors.top: parent.top
+
+							color: task && task.required ? Qaterial.Colors.red900 : Qaterial.Colors.black
+							font.strikeout: task && task.success
+							opacity: task && task.success ? 0.4 : 1.0
+
+							topPadding: 2
+							bottomPadding: 2
+
+							font.family: "Special Elite"
+							font.pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
+							lineHeight: 1.2
+
+							text: task ? (task.required ? qsTr("* ") : "") + task.readableCriterion(root.mapHandler.mapList) : " "
+
+							Connections {
+								target: root.mapHandler
+
+								function onReloaded() {
+									if (_delegate.task)
+										labelText.text = _delegate.task.readableCriterion(root.mapHandler.mapList)
+								}
+							}
+
+							states: State {
+								when: (task && task.success && imgSuccess.height > labelText.height)
+
+								AnchorChanges {
+									target: labelText
+									anchors.top: undefined
+									anchors.verticalCenter: parent.verticalCenter
+								}
 							}
 						}
 					}
+
+
+					QPlaceholderItem {
+						visible: _rptr.showPlaceholders
+						anchors.fill: parent
+						horizontalAlignment: Qt.AlignLeft
+						height: 48
+						heightRatio: 0.8
+					}
+
 				}
 			}
 
-			Component {
-				id: _cmpPlaceholder
 
-				QPlaceholderItem {
-					width: taskList.width
-					horizontalAlignment: Qt.AlignLeft
-					height: 48
-					heightRatio: 0.5
+			function reload() {
+				if (campaign) {
+					_rptr.model = campaign.getOrderedTaskListModel()
+					_rptr.showPlaceholders = false
+					_labelHasRequired.visible = campaign.hasRequiredTask()
 				}
 			}
 		}
 
+
+		Qaterial.LabelCaption {
+			id: _labelHasRequired
+			visible: false
+			text: qsTr("*A csillaggal jelölt feladat teljesítése szükséges a további értékeléshez is!")
+			width: parent.width
+			wrapMode: Text.Wrap
+			color: Qaterial.Colors.red900
+			topPadding: 10
+		}
 	}
 
 

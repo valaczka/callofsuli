@@ -290,8 +290,41 @@ QString Task::readableCriterion(BaseMapList *mapList) const
 
 QString Task::readableShortCriterion(BaseMapList *mapList) const
 {
+	const QString &module = m_criterion.value(QStringLiteral("module")).toString();
+	const int &num = m_criterion.value(QStringLiteral("num")).toInt();
 
-	return "";
+	if (module == QLatin1String("xp")) {
+		return tr("%1 XP").arg(num);
+	} else if (module == QLatin1String("mission")) {
+		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
+		const int &level = m_criterion.value(QStringLiteral("level")).toInt(1);
+		const bool &deathmatch = m_criterion.value(QStringLiteral("deathmatch")).toVariant().toBool();
+
+		const QString &mapName = m_mapName;
+		QString missionName = tr("???");
+
+		if (mapList) {
+			QObject *o = OlmLoader::find(mapList, "uuid", m_mapUuid);
+			BaseMap *m = qobject_cast<BaseMap*>(o);
+
+			if (m) {
+				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
+				foreach (const QJsonValue &v, list) {
+					const QJsonObject &o = v.toObject();
+					if (o.value(QStringLiteral("uuid")).toString() == mission) {
+						missionName = o.value(QStringLiteral("name")).toString();
+						break;
+					}
+				}
+			}
+		}
+
+		return tr("%1 / %2 level %3%4").arg(mapName, missionName)
+				.arg(level)
+				.arg(deathmatch ? tr(" S D") : QLatin1String(""));
+	}
+
+	return tr("-- Érvénytelen --");
 }
 
 

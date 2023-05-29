@@ -151,5 +151,6 @@
         <file>QIconLabel.qml</file>
         <file>TeacherCampaignResult.qml</file>
         <file>QTableView.qml</file>
+        <file>TeacherGroupResult.qml</file>
     </qresource>
 </RCC>

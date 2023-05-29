@@ -23,7 +23,7 @@ Item
 			id: view
 
 			currentIndex: -1
-			autoSelectChange: true
+			autoSelectChange: false
 
 			height: contentHeight
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
@@ -57,7 +57,7 @@ Item
 
 			delegate: QItemDelegate {
 				property Campaign campaign: model.qtObject
-				selectableObject: campaign
+				//selectableObject: campaign
 
 				highlighted: ListView.isCurrentItem
 				iconSource: {
@@ -67,9 +67,22 @@ Item
 					case Campaign.Finished:
 						return Qaterial.Icons.checkBold
 					case Campaign.Running:
-						return Qaterial.Icons.play
+						return Qaterial.Icons.playCircle
 					default:
 						return Qaterial.Icons.account
+					}
+				}
+
+				iconColor: {
+					if (!campaign)
+						return Qaterial.Style.disabledTextColor()
+					switch (campaign.state) {
+					case Campaign.Finished:
+						return Qaterial.Style.iconColor()
+					case Campaign.Running:
+						return Qaterial.Colors.green400
+					default:
+						return Qaterial.Style.disabledTextColor()
 					}
 				}
 
@@ -77,14 +90,23 @@ Item
 				readonly property string _campaignName: campaign ? campaign.readableName : ""
 
 				text: _campaignName
-				secondaryText: campaign ? campaign.taskList.length + " size" : ""
+				secondaryText: {
+					if (!campaign)
+						return ""
 
-				onClicked: if (!view.selectEnabled)
-							   Client.stackPushPage("PageTeacherCampaign.qml", {
-														group: control.group,
-														campaign: campaign,
-														mapHandler: control.mapHandler
-													})
+					if (campaign.startTime.getTime()) {
+						return campaign.startTime.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm – ")
+								+ (campaign.endTime.getTime() ? campaign.endTime.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm") : "")
+					}
+
+					return ""
+				}
+
+				onClicked: Client.stackPushPage("PageTeacherCampaign.qml", {
+													group: control.group,
+													campaign: campaign,
+													mapHandler: control.mapHandler
+												})
 			}
 		}
 

@@ -366,7 +366,7 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 		const bool &finished = obj.value(QStringLiteral("finished")).toVariant().toBool();
 
 
-		const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, finished, username, &err);
+		const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, finished, username, true, &err);
 
 		if (err)
 			return responseErrorSql(response);

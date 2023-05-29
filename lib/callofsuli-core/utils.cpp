@@ -506,6 +506,7 @@ void Utils::settingsSet(const QString &key, const QVariant &value)
 	s.setValue(key, value);
 }
 
+#ifdef CLIENT_UTILS
 
 /**
  * @brief Utils::noParent
@@ -525,7 +526,6 @@ const QModelIndex &Utils::noParent()
  * @return
  */
 
-#ifdef CLIENT_UTILS
 
 int Utils::selectedCount(qolm::QOlmBase *list)
 {

@@ -54,6 +54,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^group/(\\d+)/user/remove/*$", this, &TeacherAPI::groupUserRemove);
 	addMap("^group/(\\d+)/user/exclude/*$", this, &TeacherAPI::groupUserExclude);
 
+	addMap("^group/(\\d+)/result/*$", this, &TeacherAPI::groupResult);
 	addMap("^group/(\\d+)/campaign/create/*$", this, &TeacherAPI::campaignCreate);
 
 	addMap("^campaign/(\\d+)/*$", this, &TeacherAPI::campaignOne);
@@ -61,6 +62,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^campaign/(\\d+)/run/*$", this, &TeacherAPI::campaignRun);
 	addMap("^campaign/(\\d+)/finish/*$", this, &TeacherAPI::campaignFinish);
 	addMap("^campaign/(\\d+)/delete/*$", this, &TeacherAPI::campaignDeleteOne);
+	addMap("^campaign/(\\d+)/result/*$", this, &TeacherAPI::campaignOneResult);
 	addMap("^campaign/delete/*$", this, &TeacherAPI::campaignDelete);
 	addMap("^campaign/(\\d+)/task/*$", this, &TeacherAPI::task);
 	addMap("^campaign/(\\d+)/task/create/*$", this, &TeacherAPI::taskCreate);
@@ -758,6 +760,67 @@ void TeacherAPI::groupUserExclude(const QRegularExpressionMatch &match, const QJ
 		responseAnswer(response, "list", list);
 	});
 
+}
+
+
+
+/**
+ * @brief TeacherAPI::groupResult
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::groupResult(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username)
+				.addQuery(" AND id=").addValue(id)
+				.execCheckExists())
+			return responseError(response, "invalid id");
+
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT id FROM campaign WHERE groupid=").addValue(id);
+
+		if (!q.exec())
+			return responseErrorSql(response);
+
+		QJsonArray list;
+
+		while (q.sqlQuery().next()) {
+			const int &id = q.value("id").toInt();
+
+			bool err = false;
+
+			const QJsonArray &resultList = QueryBuilder::q(db)
+					.addQuery("SELECT studentGroupInfo.username AS username, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+							  "FROM studentGroupInfo "
+							  "LEFT JOIN campaignResult ON (campaignResult.campaignid=").addValue(id)
+					.addQuery(" AND campaignResult.username=studentGroupInfo.username) "
+							  "LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+							  "WHERE active=true AND studentGroupInfo.id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(id)
+					.addQuery(")")
+					.execToJsonArray(&err);
+
+			if (err)
+				return responseErrorSql(response);
+
+			QJsonObject obj;
+			obj[QStringLiteral("campaignid")] = id;
+			obj[QStringLiteral("resultList")] = resultList;
+			list.append(obj);
+		}
+
+		responseAnswer(response, "list", list);
+	});
 }
 
 
@@ -1470,6 +1533,91 @@ void TeacherAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonOb
 
 
 
+/**
+ * @brief TeacherAPI::campaignOneResult
+ * @param match
+ * @param response
+ */
+
+void TeacherAPI::campaignOneResult(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		bool err = false;
+
+		QJsonObject obj = QueryBuilder::q(db)
+				.addQuery("SELECT id, finished FROM campaign WHERE id=").addValue(id)
+				.addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(username).addQuery(")")
+				.execToJsonObject(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		if (obj.isEmpty())
+			return responseError(response, "not found");
+
+
+		const bool &finished = obj.value(QStringLiteral("finished")).toVariant().toBool();
+
+		QJsonArray resultList;
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT studentGroupInfo.username AS username, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+				   "FROM studentGroupInfo "
+				   "LEFT JOIN campaignResult ON (campaignResult.campaignid=").addValue(id)
+				.addQuery(" AND campaignResult.username=studentGroupInfo.username) "
+						  "LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+						  "WHERE active=true AND studentGroupInfo.id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(id)
+				.addQuery(")");
+
+		if (!q.exec())
+			return responseErrorSql(response);
+
+
+		while (q.sqlQuery().next()) {
+			const QString &username = q.value("username").toString();
+
+			const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, finished, username, false, &err);
+
+			if (err)
+				return responseErrorSql(response);
+
+			int xp = 0;
+			int grade = 0;
+
+			if (finished) {
+				xp = q.value("resultXP").toInt();
+				grade = q.value("resultGrade").toInt();
+			} else {
+				xp = result.xp;
+				grade = result.grade;
+			}
+
+			QJsonObject obj;
+
+			obj[QStringLiteral("username")] = username;
+			obj[QStringLiteral("resultXP")] = xp > 0 ? xp : QJsonValue::Null;
+			obj[QStringLiteral("resultGrade")] = grade > 0 ? grade : QJsonValue::Null;
+			obj[QStringLiteral("taskList")] = result.tasks;
+
+			resultList.append(obj);
+		}
+
+		responseAnswer(response, "list", resultList);
+	});
+}
+
+
+
+
+
 
 /**
  * @brief TeacherAPI::campaignCreate
@@ -2052,7 +2200,7 @@ QJsonArray TeacherAPI::_taskList(const int &campaign) const
  */
 
 TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
-															   const QString &username, bool *err)
+															   const QString &username, const bool &withCriterion, bool *err)
 {
 	Q_ASSERT(api);
 
@@ -2064,19 +2212,32 @@ TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI
 
 	bool e = false;
 
-	const QJsonArray &list = QueryBuilder::q(db)
-			.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
-					  "(taskSuccess.username IS NOT NULL) AS success FROM task "
-					  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
-					  "LEFT JOIN grade ON (grade.id=task.gradeid) "
-					  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
-			.addValue(username)
-			.addQuery(") WHERE campaignid=").addValue(campaign)
-			.execToJsonArray({
-								 { QStringLiteral("criterion"), [](const QVariant &v) {
-									   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-								   } }
-							 }, &e);
+	QJsonArray list;
+
+	if (withCriterion) {
+		list = QueryBuilder::q(db)
+				.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
+						  "(taskSuccess.username IS NOT NULL) AS success FROM task "
+						  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
+						  "LEFT JOIN grade ON (grade.id=task.gradeid) "
+						  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
+				.addValue(username)
+				.addQuery(") WHERE campaignid=").addValue(campaign)
+				.execToJsonArray({
+									 { QStringLiteral("criterion"), [](const QVariant &v) {
+										   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+									   } }
+								 }, &e);
+	} else {
+		list = QueryBuilder::q(db)
+				.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, "
+						  "(taskSuccess.username IS NOT NULL) AS success FROM task "
+						  "LEFT JOIN grade ON (grade.id=task.gradeid) "
+						  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
+				.addValue(username)
+				.addQuery(") WHERE campaignid=").addValue(campaign)
+				.execToJsonArray(&e);
+	}
 
 	if (e) {
 		if (err) *err = true;

@@ -118,6 +118,8 @@ public:
 	Q_INVOKABLE QString readableResult(Grade *grade, int xp);
 	Q_INVOKABLE QString readableShortResult(Grade *grade, int xp);
 
+	Q_INVOKABLE bool hasRequiredTask() const;
+
 	QList<TaskOrSection> getOrderedTaskList() const;
 	Q_INVOKABLE QVariantList getOrderedTaskListModel() const;
 
