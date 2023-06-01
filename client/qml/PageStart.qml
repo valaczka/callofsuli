@@ -34,6 +34,13 @@ QPage {
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
+			QMenu {
+				title: qsTr("Betűméret")
+				QMenuItem { action: Client.mainWindow.fontPlus }
+				QMenuItem { action: Client.mainWindow.fontMinus }
+				QMenuItem { action: Client.mainWindow.fontNormal }
+			}
+			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionAbout }
 			QMenuItem { action: actionExit }
 		}

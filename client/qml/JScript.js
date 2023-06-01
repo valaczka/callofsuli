@@ -1,4 +1,6 @@
 function intializeStyle() {
+	Qaterial.Style.devicePixelSizeCorrection = Client.getDevicePixelSizeCorrection()
+
 	Qaterial.Style.theme = Qaterial.Style.Theme.Dark
 	Qaterial.Style.primaryColorDark = Qt.darker(Qaterial.Colors.cyan900, 1.8)
 	Qaterial.Style.accentColorDark = Qaterial.Colors.amber500
@@ -83,10 +85,10 @@ function intializeStyle() {
 		Qaterial.Style.textTheme.hint2.pixelSize = Qt.binding(function() { return 12*Qaterial.Style.pixelSizeRatio })
 	}
 
-	Qaterial.Style.tabButton.minHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 30 : 48) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.tabButton.minHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 30 : 30) * Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.tabButton.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 18 : 24) * Qaterial.Style.pixelSizeRatio })
 
-	Qaterial.Style.rawButton.minWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 52 : 64) * Qaterial.Style.pixelSizeRatio })
+	/*Qaterial.Style.rawButton.minWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 52 : 64) * Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.rawButton.minHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 24 : 36) * Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.rawButton.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 14 : 18) * Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.rawButton.outlinedFocusWidth = 1
@@ -107,7 +109,7 @@ function intializeStyle() {
 
 	Qaterial.Style.checkIndicator.implicitWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 18) * Qaterial.Style.pixelSizeRatio })
 	Qaterial.Style.checkIndicator.implicitHeight = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 18) * Qaterial.Style.pixelSizeRatio })
-	Qaterial.Style.checkIndicator.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 19) * Qaterial.Style.pixelSizeRatio })
+	Qaterial.Style.checkIndicator.iconWidth = Qt.binding(function() { return (Qaterial.Style.dense ? 16 : 19) * Qaterial.Style.pixelSizeRatio })*/
 
 
 	Qaterial.Style.colorItemGlow = Qaterial.Colors.yellow100

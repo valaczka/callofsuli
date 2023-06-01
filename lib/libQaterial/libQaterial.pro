@@ -55,16 +55,54 @@ write_file(Qaterial.qrc, lines)
 lines = <RCC>
 lines += "<qresource prefix=\"/Qaterial/Icons\">"
 
+
+qmlLines = "// File auto generated"
+qmlLines += "// Generated at $${_DATE_}"
+qmlLines += "pragma Singleton"
+qmlLines += "import QtQuick 2.12"
+qmlLines += "QtObject"
+qmlLines += "{"
+
+
 flist = $$files($$PWD/../MaterialDesignSvgo/svg/*)
 
-for (file, flist): lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
+restrictedNames = delete export function import null package switch
+
+for (file, flist) {
+	baseName = $$basename(file)
+	iconBaseName = $$replace(baseName, .svg,)
+
+	iconNameParts = $$split(iconBaseName, -)
+
+	partNum = $$size(iconNameParts)
+
+	qmlName =
+
+	greaterThan(partNum, 1): {
+		for (part, iconNameParts) {
+			isEmpty(qmlName): qmlName = $$part
+			else: qmlName += $$upper($$str_member($$part, 0, 0))$$str_member($$part, 1, -1)
+		}
+	} else {
+		qmlName = $$iconBaseName
+	}
+
+
+	contains(restrictedNames, $$qmlName): qmlName = _$$qmlName
+
+	qmlLines += "	readonly property string $$join(qmlName,,,): \"qrc:/Qaterial/Icons/$$baseName\";"
+
+	lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
+}
 
 lines += </qresource>
 lines += </RCC>
 
+qmlLines += "}"
+
 message(Create QaterialIcons.qrc)
 write_file(QaterialIcons.qrc, lines)
-
+write_file($$PWD/../Qaterial/qml/Qaterial/Icons.qml, qmlLines)
 
 # Sources
 

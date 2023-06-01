@@ -14,12 +14,19 @@ QTableView {
 	property alias resultModel: _model
 	property alias actionUserEdit: _actionUserEdit
 
-	firstColumnWidth: 250 * Qaterial.Style.pixelSizeRatio
+	firstColumnWidth: Math.min(250 * Qaterial.Style.pixelSizeRatio, width*0.45) + Client.safeMarginLeft
+	firstRowHeight: Math.min(150 * Qaterial.Style.pixelSizeRatio, height*0.33) + Client.safeMarginTop
 	columnSpacing: 1
 	rowSpacing: 0
 
-	cellHeight: Qaterial.Style.textTheme.headline5.pixelSize * 1.4
-	cellWidth: cellHeight*1.75
+	cellHeight: Qaterial.Style.dense ? Qaterial.Style.textTheme.headline5.pixelSize * 1.4 :
+									   Math.max(Qaterial.Style.textTheme.headline5.pixelSize * 1.4,
+												Qaterial.Style.delegate.implicitHeight(Qaterial.Style.DelegateType.Icon, 1))
+	cellWidth: Qaterial.Style.dense ? Qaterial.Style.textTheme.headline5.pixelSize * 1.4 * 1.75:
+									  Math.max(Qaterial.Style.textTheme.headline5.pixelSize * 1.4 * 1.75,
+											   Qaterial.Style.delegate.implicitHeight(Qaterial.Style.DelegateType.Icon, 1))
+
+
 	//columnWidthFunc: function(col) { return _model.isSection(col) ? Qaterial.Style.textTheme.caption.pixelSize * 2 : cellWidth }
 
 	readonly property color _rowColor: Client.Utils.colorSetAlpha(Qaterial.Colors.gray700, 0.3)
@@ -170,6 +177,7 @@ QTableView {
 				color: Qaterial.Style.iconColor()
 				rotation: -90
 				maximumLineCount: 3
+				rightPadding: Client.safeMarginTop
 			}
 
 
@@ -220,12 +228,13 @@ QTableView {
 			Qaterial.LabelBody1 {
 				visible: !isPlaceholder
 				anchors.fill: parent
-				leftPadding: 7
+				leftPadding: Math.max(7, Client.safeMarginLeft)
 				rightPadding: 7
 				elide: Text.ElideRight
 				verticalAlignment: Text.AlignVCenter
-				maximumLineCount: 1
-				//lineHeight: 0.8
+				maximumLineCount: Qaterial.Style.dense ? 1 : 2
+				lineHeight: 0.8
+				wrapMode: Text.Wrap
 				text: display
 			}
 

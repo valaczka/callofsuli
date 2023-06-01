@@ -39,18 +39,21 @@ Item {
 			Repeater {
 				model: _model
 
-				delegate: Qaterial.Card {
+				delegate: QCard {
 					property MapEditorMission mission: model.qtObject
 
 					width: _grid._itemWidth
 					height: _grid._itemHeight
 
 					elevationOnHovered: true
-					hoverEnabled: true
 
+					rippleActive: _area.containsMouse
+					ripplePressed: _area.pressed
 
 					contentItem: MouseArea {
+						id: _area
 						acceptedButtons: Qt.LeftButton
+						hoverEnabled: true
 
 						onClicked: loadMission(mission)
 
@@ -200,7 +203,7 @@ Item {
 								Qaterial.SquareButton
 								{
 									foregroundColor: Qaterial.Colors.red500
-									icon.source: Qaterial.Icons.delete_
+									icon.source: Qaterial.Icons._delete
 									onClicked: editor.missionRemove(mission)
 								}
 							}
@@ -219,7 +222,7 @@ Item {
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Még egyetlen küldetést sem tartalmaz ez a pálya. Hozz létre egyet!")
-		iconSource: Qaterial.Icons.desktopClassic
+		iconSource: Qaterial.Icons.trophy
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true

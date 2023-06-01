@@ -47,7 +47,7 @@ Item {
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Még egyetlen feladatot sem tartalmaz ez a pálya. Hozz létre egyet!")
-		iconSource: Qaterial.Icons.desktopClassic
+		iconSource: Qaterial.Icons.folder
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true
@@ -66,7 +66,7 @@ Item {
 
 	Action {
 		id: _actionAdd
-		icon.source: Qaterial.Icons.plus
+		icon.source: Qaterial.Icons.folderPlus
 		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Feladatcsoport neve"),

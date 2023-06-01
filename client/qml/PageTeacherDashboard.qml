@@ -138,7 +138,7 @@ QPage {
 				QDashboardButton {
 					property TeacherGroup group: model && model.qtObject ? model.qtObject : null
 					text: group ? group.fullName : ""
-					icon.source: Qaterial.Icons.group
+					icon.source: Qaterial.Icons.accountMultiple
 					bgColor: Qaterial.Colors.green700
 					outlined: group && !group.active
 					flat: group && !group.active
@@ -202,7 +202,7 @@ QPage {
 				QDashboardButton {
 					property StudentGroup group: model.qtObject
 					text: group ? group.name : ""
-					icon.source: Qaterial.Icons.group
+					icon.source: Qaterial.Icons.accountGroup
 					highlighted: true
 				}
 			}
@@ -242,7 +242,7 @@ QPage {
 			QDashboardButton {
 				visible: Client.server && (Client.server.user.roles & Credential.Admin)
 				text: qsTr("Osztályok és felhasználók")
-				icon.source: Qaterial.Icons.cog
+				icon.source: Qaterial.Icons.accountSupervisorCircle
 				highlighted: false
 				outlined: true
 				flat: true
@@ -259,8 +259,8 @@ QPage {
 
 	Action {
 		id: actionGroupAdd
-		text: qsTr("Létrehozás")
-		icon.source: Qaterial.Icons.plus
+		text: qsTr("Csoport létrehozás")
+		icon.source: Qaterial.Icons.accountMultiplePlusOutline
 		enabled: Client.server && (Client.server.user.roles & Credential.Teacher)
 		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({

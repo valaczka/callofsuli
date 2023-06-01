@@ -71,6 +71,7 @@ QFormColumn {
 		field: "questionAsc"
 		placeholderText: qsTr("Ez a kérdés fog megjelenni növekvő sorrend esetén")
 		width: parent.width
+		text: qsTr("Rendezd növekvő sorrendbe!")
 
 		visible: _modeOrder.currentValue === "ascending" || _modeOrder.currentValue === "random"
 
@@ -83,6 +84,7 @@ QFormColumn {
 		field: "questionDesc"
 		placeholderText: qsTr("Ez a kérdés fog megjelenni csökkenő sorrend esetén")
 		width: parent.width
+		text: qsTr("Rendezd csökkenő sorrendbe!")
 
 		visible: _modeOrder.currentValue === "descending" || _modeOrder.currentValue === "random"
 

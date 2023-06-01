@@ -63,128 +63,138 @@ Qaterial.Page
 	}
 
 
-
-	QListView {
-		id: view
-
-		property int classid: -1
-
-		readonly property bool showPlaceholders: userList && userList.count === 0 && _firstRun
-
-		currentIndex: -1
-		height: parent.height
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-		anchors.horizontalCenter: parent.horizontalCenter
-
-		model: showPlaceholders ? 10 : _sortedUserList
-
+	QScrollable {
+		anchors.fill: parent
+		horizontalPadding: 0
+		topPadding: 0
+		bottomPadding: 0
 
 		refreshEnabled: true
 		onRefreshRequest: Client.reloadCache("scoreList")
 
-		delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
+
+		QListView {
+			id: view
+
+			property int classid: -1
+
+			readonly property bool showPlaceholders: userList && userList.count === 0 && _firstRun
+
+			currentIndex: -1
+			height: contentHeight
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			boundsBehavior: Flickable.StopAtBounds
+
+			model: showPlaceholders ? 10 : _sortedUserList
 
 
-		onClassidChanged: positionViewAtBeginning()
-		onShowPlaceholdersChanged: positionViewAtBeginning()
-		Component.onCompleted: positionViewAtBeginning()
 
-		SortFilterProxyModel {
-			id: _sortedUserList
-			sourceModel: userList
+			delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
 
-			filters: ValueFilter {
-				roleName: "classid"
-				enabled: view.classid != -1
-				value: view.classid
-			}
 
-			sorters: [
-				RoleSorter {
-					roleName: "xp"
-					sortOrder: Qt.DescendingOrder
-					priority: 1
-				},
-				StringSorter {
-					roleName: "fullNickName"
-					sortOrder: Qt.AscendingOrder
+			onClassidChanged: positionViewAtBeginning()
+			onShowPlaceholdersChanged: positionViewAtBeginning()
+			Component.onCompleted: positionViewAtBeginning()
+
+			SortFilterProxyModel {
+				id: _sortedUserList
+				sourceModel: userList
+
+				filters: ValueFilter {
+					roleName: "classid"
+					enabled: view.classid != -1
+					value: view.classid
 				}
-			]
-		}
 
-		Component {
-			id: _cmpDelegate
-
-			QLoaderItemDelegate {
-				id: _delegate
-				property User user: model && model.qtObject ? model.qtObject : null
-
-				text: user ? user.fullNickName : ""
-				secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
-				highlighted: user && Client.server && Client.server.user && user.username == Client.server.user.username
-
-				leftSourceComponent: UserImage { user: _delegate.user }
-
-				rightSourceComponent: Column {
-					Qaterial.LabelSubtitle1 {
-						anchors.right: parent.right
-						text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
-						color: Qaterial.Style.accentColor
+				sorters: [
+					RoleSorter {
+						roleName: "xp"
+						sortOrder: Qt.DescendingOrder
+						priority: 1
+					},
+					StringSorter {
+						roleName: "fullNickName"
+						sortOrder: Qt.AscendingOrder
 					}
-					Row {
-						anchors.right: parent.right
-						spacing: 2
-						visible: user && user.streak
-						Qaterial.LabelCaption {
-							anchors.verticalCenter: parent.verticalCenter
-							text: user ? user.streak : ""
-							color: Qaterial.Style.primaryTextColor()
+				]
+			}
+
+			Component {
+				id: _cmpDelegate
+
+				QLoaderItemDelegate {
+					id: _delegate
+					property User user: model && model.qtObject ? model.qtObject : null
+
+					text: user ? user.fullNickName : ""
+					secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
+					highlighted: user && Client.server && Client.server.user && user.username == Client.server.user.username
+
+					leftSourceComponent: UserImage { user: _delegate.user }
+
+					rightSourceComponent: Column {
+						Qaterial.LabelSubtitle1 {
+							anchors.right: parent.right
+							text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
+							color: Qaterial.Style.accentColor
 						}
-						Qaterial.Icon {
-							anchors.verticalCenter: parent.verticalCenter
-							icon: Qaterial.Icons.fire
-							color: Qaterial.Colors.orange500
-							width: Qaterial.Style.smallIcon*0.8
-							height: Qaterial.Style.smallIcon*0.8
+						Row {
+							anchors.right: parent.right
+							spacing: 2
+							visible: user && user.streak
+							Qaterial.LabelCaption {
+								anchors.verticalCenter: parent.verticalCenter
+								text: user ? user.streak : ""
+								color: Qaterial.Style.primaryTextColor()
+							}
+							Qaterial.Icon {
+								anchors.verticalCenter: parent.verticalCenter
+								icon: Qaterial.Icons.fire
+								color: Qaterial.Colors.orange500
+								width: Qaterial.Style.smallIcon*0.8
+								height: Qaterial.Style.smallIcon*0.8
+							}
 						}
 					}
 				}
 			}
-		}
 
-		Component {
-			id: _cmpPlaceholder
+			Component {
+				id: _cmpPlaceholder
 
-			QLoaderItemFullDelegate {
-				id: _placeholder
-				contentSourceComponent: QPlaceholderItem {
-					heightRatio: 0.5
-					horizontalAlignment: Qt.AlignLeft
+				QLoaderItemFullDelegate {
+					id: _placeholder
+					contentSourceComponent: QPlaceholderItem {
+						heightRatio: 0.5
+						horizontalAlignment: Qt.AlignLeft
+					}
+
+					leftSourceComponent: QPlaceholderItem {
+						width: _placeholder.height
+						height: _placeholder.height
+						widthRatio: 0.8
+						heightRatio: 0.8
+						contentComponent: ellipseComponent
+					}
+
+					rightSourceComponent: QPlaceholderItem {
+						fixedWidth: 75
+						heightRatio: 0.5
+					}
 				}
 
-				leftSourceComponent: QPlaceholderItem {
-					width: _placeholder.height
-					height: _placeholder.height
-					widthRatio: 0.8
-					heightRatio: 0.8
-					contentComponent: ellipseComponent
-				}
-
-				rightSourceComponent: QPlaceholderItem {
-					fixedWidth: 75
-					heightRatio: 0.5
-				}
 			}
 
-		}
+			header: Item {
+				width: ListView.width
+				height: control.paddingTop
+			}
 
-		header: Item {
-			width: ListView.width
-			height: control.paddingTop
 		}
 
 	}
-
 
 	footer: Qaterial.ScrollableTabBar
 	{
@@ -194,6 +204,7 @@ Qaterial.Page
 		onCurrentIndexChanged: {
 			var o = model.get(currentIndex)
 			view.classid = o && o.classid ? o.classid : -1
+			view.positionViewAtBeginning()
 		}
 
 		onPrimary: true

@@ -44,6 +44,8 @@ Qaterial.ApplicationWindow
 	{
 		JS.intializeStyle()
 
+		setPixelSize(Client.Utils.settingsGet("window/fontSize", Qaterial.Style.defaultPixelSize))
+
 		//if (Qt.platform.os != "wasm") {
 			Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
 				return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)
@@ -90,28 +92,25 @@ Qaterial.ApplicationWindow
 	}*/
 
 
-	Action {
-		id: fontPlus
+	readonly property Action fontPlus: Action {
 		shortcut: "Ctrl++"
 		text: qsTr("Növelés")
 		icon.source: Qaterial.Icons.magnifyPlus
-		onTriggered: setPixelSize(Qaterial.Style.pixelSize+1)
+		onTriggered: setPixelSize(Qaterial.Style.userPixelSize+1)
 	}
 
-	Action {
-		id: fontMinus
+	readonly property Action fontMinus: Action {
 		shortcut: "Ctrl+-"
 		text: qsTr("Csökkentés")
 		icon.source: Qaterial.Icons.magnifyMinus
-		onTriggered: setPixelSize(Qaterial.Style.pixelSize-1)
+		onTriggered: setPixelSize(Qaterial.Style.userPixelSize-1)
 	}
 
-	Action {
-		id: fontNormal
+	readonly property Action fontNormal: Action {
 		shortcut: "Ctrl+0"
 		text: qsTr("Visszaállítás")
 		icon.source: Qaterial.Icons.magnifyRemoveOutline
-		onTriggered: Qaterial.Style.pixelSize = Qaterial.Style.defaultPixelSize
+		onTriggered: setPixelSize(Qaterial.Style.defaultPixelSize)
 	}
 
 
@@ -211,8 +210,11 @@ Qaterial.ApplicationWindow
 
 
 	function setPixelSize(newSize) {
-		if (newSize >= Qaterial.Style.defaultPixelSize/2.5 && newSize <= Qaterial.Style.defaultPixelSize * 3.0)
-			Qaterial.Style.pixelSize = newSize
+		if (newSize >= Qaterial.Style.defaultPixelSize/2.5 && newSize <= Qaterial.Style.defaultPixelSize * 3.0) {
+			Qaterial.Style.userPixelSize = newSize
+			Client.Utils.settingsSet("window/fontSize", newSize)
+		}
+
 	}
 
 

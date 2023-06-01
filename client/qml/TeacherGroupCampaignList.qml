@@ -18,6 +18,13 @@ Item
 
 	QScrollable {
 		anchors.fill: parent
+		topPadding: 0
+		leftPadding: 0
+		bottomPadding: 0
+		rightPadding: 0
+
+		refreshEnabled: true
+		onRefreshRequest: group.reload()
 
 		QListView {
 			id: view
@@ -29,9 +36,9 @@ Item
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
+			boundsBehavior: Flickable.StopAtBounds
+
 			refreshProgressVisible: Client.webSocket.pending
-			refreshEnabled: true
-			onRefreshRequest: group.reload()
 
 			model: SortFilterProxyModel {
 				sourceModel: group ? group.campaignList : null
@@ -85,6 +92,9 @@ Item
 						return Qaterial.Style.disabledTextColor()
 					}
 				}
+
+				textColor: iconColor
+				secondaryTextColor: iconColor
 
 
 				readonly property string _campaignName: campaign ? campaign.readableName : ""

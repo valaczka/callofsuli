@@ -76,6 +76,21 @@ QPage {
 
 				onLinkActivated: Client.Utils.openUrl(link)
 			}
+
+			Qaterial.LabelHeadline6 {
+				text: qsTr("Rendszer")
+				bottomPadding: 5
+				visible: Client.debug
+			}
+
+			Qaterial.LabelBody2 {
+				width: parent.width
+				wrapMode: Text.Wrap
+				text: Client.getSystemInfo()
+				textFormat: Text.MarkdownText
+				bottomPadding: 15
+				visible: Client.debug
+			}
 		}
 
 	}

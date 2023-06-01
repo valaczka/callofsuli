@@ -78,7 +78,7 @@ QPage {
 
 		Component.onCompleted: {
 			model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.account, color: "green" })
+			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
 			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
 		}
@@ -96,7 +96,7 @@ QPage {
 		id: _actionGroupRemove
 		text: qsTr("Törlés")
 		enabled: group
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons._delete
 		onTriggered: {
 			JS.questionDialog(
 						{
@@ -121,7 +121,7 @@ QPage {
 		id: _actionGroupRename
 		text: qsTr("Átnevezés")
 		enabled: group
-		icon.source: Qaterial.Icons.renameBox
+		icon.source: Qaterial.Icons.accountMultipleCheck
 		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Csoport neve"),

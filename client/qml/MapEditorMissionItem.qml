@@ -182,7 +182,7 @@ QPage {
 			QExpandableHeader {
 				width: parent.width
 				text: qsTr("Lehetséges játékmódok")
-				icon: Qaterial.Icons.moleculeCo2
+				icon: Qaterial.Icons.googleController
 			}
 
 
@@ -247,7 +247,7 @@ QPage {
 			QExpandableHeader {
 				width: parent.width
 				text: qsTr("Zárolások")
-				icon: Qaterial.Icons.lockCheck
+				icon: Qaterial.Icons.keyChain
 			}
 
 			QIndentedItem {
@@ -279,7 +279,7 @@ QPage {
 								  qsTr(" - level %1").arg(missionLevel ? missionLevel.level : 0)
 
 							rightSourceComponent: Qaterial.SquareButton {
-								icon.source: Qaterial.Icons.trashCan
+								icon.source: Qaterial.Icons.lockOpenRemove
 								icon.color: Qaterial.Colors.red400
 
 								onClicked: editor.missionLockRemove(mission, missionLevel)
@@ -291,7 +291,7 @@ QPage {
 						width: _col.width
 
 						text: qsTr("Hozzáadás")
-						icon.source: Qaterial.Icons.plus
+						icon.source: Qaterial.Icons.lockPlus
 						iconColor: textColor
 						textColor: Qaterial.Colors.green400
 

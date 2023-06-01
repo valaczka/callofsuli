@@ -43,6 +43,7 @@
 #include "Logger.h"
 #include "mapgame.h"
 #include "testgame.h"
+#include <QScreen>
 
 #ifdef Q_OS_ANDROID
 #include "qandroidfunctions.h"
@@ -1166,6 +1167,51 @@ void Client::setParseUrl(const QUrl &url)
 const QUrl &Client::getParseUrl() const
 {
 	return m_parseUrl;
+}
+
+
+
+
+/**
+ * @brief Client::getSystemInfo
+ * @return
+ */
+
+QString Client::getSystemInfo() const
+{
+	QString text;
+
+	QScreen *screen = QGuiApplication::primaryScreen();
+
+	text += tr("Képernyő mérete: **%1x%2**\n\n").arg(screen->geometry().width()).arg(screen->geometry().height());
+	text += tr("Logical DPI: **%1**\n\n").arg(screen->logicalDotsPerInch());
+
+	return text;
+}
+
+
+
+/**
+ * @brief Client::getDevicePixelSizeCorrection
+ * @return
+ */
+
+qreal Client::getDevicePixelSizeCorrection() const
+{
+	const qreal refDpi = 72.;
+	const qreal refHeight = 700.;
+	const qreal refWidth = 400.;
+	const QRect &rect = QGuiApplication::primaryScreen()->geometry();
+	const qreal &height = qMax(rect.width(), rect.height());
+	const qreal &width = qMin(rect.width(), rect.height());
+
+	const qreal &dpi = QGuiApplication::primaryScreen()->logicalDotsPerInch();
+
+	qreal ratioFont = qMin(1., qMin(height*refDpi/(dpi*refHeight), width*refDpi/(dpi*refWidth)));
+
+	LOG_CDEBUG("client") << "Device pixel size correction:" << ratioFont;
+
+	return ratioFont;
 }
 
 

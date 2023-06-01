@@ -14,30 +14,42 @@ QPage {
 
 	appBar.backButtonVisible: true
 
-	QListView {
-		id: view
+	QScrollable {
+		anchors.fill: parent
+		horizontalPadding: 0
+		topPadding: 0
+		bottomPadding: 0
 
-		currentIndex: -1
-		height: parent.height
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-		anchors.horizontalCenter: parent.horizontalCenter
+		refreshEnabled: false
 
-		model: Client.server ? Client.server.rankList : null
 
-		delegate: QLoaderItemDelegate {
-			highlighted: ListView.isCurrentItem
-			text: modelData.name
-			secondaryText: modelData.sublevel > 0 ? qsTr("level %1").arg(modelData.sublevel) : ""
+		QListView {
+			id: view
 
-			leftSourceComponent: UserImage {
-				user: User {
-					rank: modelData
+			currentIndex: -1
+			height: contentHeight
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			boundsBehavior: Flickable.StopAtBounds
+
+			model: Client.server ? Client.server.rankList : null
+
+			delegate: QLoaderItemDelegate {
+				highlighted: ListView.isCurrentItem
+				text: modelData.name
+				secondaryText: modelData.sublevel > 0 ? qsTr("level %1").arg(modelData.sublevel) : ""
+
+				leftSourceComponent: UserImage {
+					user: User {
+						rank: modelData
+					}
 				}
-			}
 
-			rightSourceComponent: Qaterial.LabelHeadline5 {
-				text: modelData.xp >= 0 ? qsTr("%1 XP").arg(Number(modelData.xp).toLocaleString()) : ""
-				color: Qaterial.Style.iconColor()
+				rightSourceComponent: Qaterial.LabelHeadline5 {
+					text: modelData.xp >= 0 ? qsTr("%1 XP").arg(Number(modelData.xp).toLocaleString()) : ""
+					color: Qaterial.Style.iconColor()
+				}
 			}
 		}
 	}

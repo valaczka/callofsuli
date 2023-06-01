@@ -58,7 +58,7 @@ Item {
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Még egyetlen adatbankot sem tartalmaz ez a pálya. Hozz létre egyet!")
-		iconSource: Qaterial.Icons.desktopClassic
+		iconSource: Qaterial.Icons.database
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true
@@ -77,7 +77,7 @@ Item {
 
 	Action {
 		id: _actionAdd
-		icon.source: Qaterial.Icons.plus
+		icon.source: Qaterial.Icons.databasePlus
 		onTriggered: {
 			let list = editor.storageListAllModel()
 

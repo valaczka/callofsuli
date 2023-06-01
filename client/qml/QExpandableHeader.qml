@@ -27,7 +27,7 @@ Rectangle {
 
 		Qaterial.RoundButton {
 			id: _btn
-			icon.source: expandable && expandable.expanded ? Qaterial.Icons.plus : Qaterial.Icons.minus
+			icon.source: expandable && expandable.expanded ? Qaterial.Icons.chevronDown : Qaterial.Icons.chevronRight
 			Layout.alignment: Qt.AlignCenter
 			onClicked: expandable.expanded = !expandable.expanded
 			visible: expandable

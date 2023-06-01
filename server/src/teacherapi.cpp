@@ -1021,8 +1021,8 @@ void TeacherAPI::mapContent(const QString &uuid, const QPointer<HttpResponse> &r
 
 		if (q.sqlQuery().first()) {
 			const QByteArray &b = q.sqlQuery().value(QStringLiteral("data")).toByteArray();
-			if (response)
-				response->setStatus(HttpStatus::Ok, b);
+			if (response.data())
+				response.data()->setStatus(HttpStatus::Ok, b);
 			return;
 		} else
 			return responseError(response, "not found");

@@ -201,9 +201,9 @@ QPage {
 		visible: mapEditor.map
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.account, color: "green" })
-			model.append({ text: qsTr("Adatbankok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophy, color: "pink" })
+			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.folderMultiple, color: "green" })
+			model.append({ text: qsTr("Adatbankok"), source: Qaterial.Icons.database, color: "pink" })
 		}
 	}
 
@@ -233,7 +233,7 @@ QPage {
 	Action {
 		id: _actionSaveAs
 		text: qsTr("Mentés másként")
-		icon.source: Qaterial.Icons.folder
+		icon.source: Qaterial.Icons.contentSaveEdit
 		onTriggered: Qaterial.DialogManager.openFromComponent(_cmpFileSaveAs)
 	}
 

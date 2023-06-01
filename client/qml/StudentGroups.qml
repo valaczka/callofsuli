@@ -51,7 +51,7 @@ QItemGradient {
 				QDashboardButton {
 					property StudentGroup group: model.qtObject
 					text: group ? group.name : ""
-					icon.source: Qaterial.Icons.group
+					icon.source: Qaterial.Icons.accountGroup
 					highlighted: true
 				}
 			}

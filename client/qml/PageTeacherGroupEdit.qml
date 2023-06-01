@@ -112,7 +112,7 @@ QPage {
 				selectableObject: classobject
 
 				highlighted: ListView.isCurrentItem
-				iconSource: Qaterial.Icons.account
+				iconSource: Qaterial.Icons.accountMultipleOutline
 
 				text: classobject ? classobject.name : ""
 
@@ -126,7 +126,7 @@ QPage {
 				QGreenItemDelegate {
 					text: qsTr("Osztály hozzáadása")
 					onClicked: actionClassAdd.trigger()
-					iconSource: Qaterial.Icons.plus
+					iconSource: Qaterial.Icons.accountMultiplePlusOutline
 					width: classView.width
 				}
 			}
@@ -269,7 +269,7 @@ QPage {
 	Action {
 		id: actionClassAdd
 		text: qsTr("Osztály hozzáadása")
-		icon.source: Qaterial.Icons.plus
+		icon.source: Qaterial.Icons.accountMultiplePlusOutline
 		enabled: group
 		onTriggered: {
 			Client.send(WebSocket.ApiTeacher, "group/%1/class/exclude".arg(group.groupid))
@@ -354,7 +354,7 @@ QPage {
 
 	Action {
 		id: actionClassRemove
-		icon.source: Qaterial.Icons.minus
+		icon.source: Qaterial.Icons.accountMultipleRemoveOutline
 		text: qsTr("Osztály eltávolítása")
 		onTriggered: {
 			var l = classView.getSelected()
@@ -384,7 +384,7 @@ QPage {
 
 	Action {
 		id: actionUserRemove
-		icon.source: Qaterial.Icons.minus
+		icon.source: Qaterial.Icons.accountRemove
 		text: qsTr("Tanuló eltávolítása")
 		onTriggered: {
 			var l = userView.getSelected()

@@ -253,49 +253,78 @@ QPage {
 					anchors.verticalCenter: parent.verticalCenter
 				}
 
-				Qaterial.Icon
-				{
-					icon: missionLevel ? (missionLevel.terrainData.name !== "" ? missionLevel.terrainData.thumbnail : Qaterial.Icons.alert): ""
-					color: missionLevel && missionLevel.terrainData.name !== "" ? "transparent" : Qaterial.Colors.red500
-					width: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*4.5 : Qaterial.Style.mediumIcon
-					height: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*3 : Qaterial.Style.mediumIcon
-				}
+				MouseArea {
+					id: _area
+					width: _terrainRow.implicitWidth
+					height: _terrainRow.implicitHeight
 
-				Qaterial.LabelWithCaption {
-					anchors.verticalCenter: parent.verticalCenter
-					text: missionLevel ? missionLevel.terrainData.displayName : ""
-					caption: missionLevel && missionLevel.terrainData.level > 0 ? qsTr("level %1").arg(missionLevel.terrainData.level) : ""
-				}
+					hoverEnabled: true
 
-				Qaterial.RoundButton {
-					anchors.verticalCenter: parent.verticalCenter
-					icon.source: Qaterial.Icons.pencil
-					enabled: missionLevel
-					onClicked: {
-						let idx = -1
+					acceptedButtons: Qt.LeftButton
 
-						for (let i=0; i<_sortedTerrainModel.count; ++i) {
-							if (_sortedTerrainModel.get(i).fieldName === missionLevel.terrain)
-								idx = i
+					onClicked: _terrainAddButton.clicked()
+
+					Row {
+						id: _terrainRow
+
+						spacing: 15
+
+						Qaterial.Icon
+						{
+							icon: missionLevel ? (missionLevel.terrainData.name !== "" ? missionLevel.terrainData.thumbnail : Qaterial.Icons.alert): ""
+							color: missionLevel && missionLevel.terrainData.name !== "" ? "transparent" : Qaterial.Colors.red500
+							width: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*4.5 : Qaterial.Style.mediumIcon
+							height: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*3 : Qaterial.Style.mediumIcon
 						}
 
-						Qaterial.DialogManager.openListView(
-									{
-										onAccepted: function(index)
-										{
-											if (index < 0)
-												return
+						Qaterial.LabelWithCaption {
+							anchors.verticalCenter: parent.verticalCenter
+							text: missionLevel ? missionLevel.terrainData.displayName : ""
+							caption: missionLevel && missionLevel.terrainData.level > 0 ? qsTr("level %1").arg(missionLevel.terrainData.level) : ""
+						}
 
-											editor.missionLevelModify(missionLevel, function() {
-												missionLevel.terrain = _sortedTerrainModel.get(index).fieldName
+						Qaterial.RoundButton {
+							id: _terrainAddButton
+							anchors.verticalCenter: parent.verticalCenter
+							icon.source: Qaterial.Icons.pencil
+							enabled: missionLevel
+							onClicked: {
+								let idx = -1
+
+								for (let i=0; i<_sortedTerrainModel.count; ++i) {
+									if (_sortedTerrainModel.get(i).fieldName === missionLevel.terrain)
+										idx = i
+								}
+
+								Qaterial.DialogManager.openListView(
+											{
+												onAccepted: function(index)
+												{
+													if (index < 0)
+														return
+
+													editor.missionLevelModify(missionLevel, function() {
+														missionLevel.terrain = _sortedTerrainModel.get(index).fieldName
+													})
+
+												},
+												title: qsTr("Harcmező kiválasztása"),
+												model: _sortedTerrainModel,
+												currentIndex: idx,
+												delegate: _terrainDelegate
 											})
+							}
+						}
+					}
 
-										},
-										title: qsTr("Harcmező kiválasztása"),
-										model: _sortedTerrainModel,
-										currentIndex: idx,
-										delegate: _terrainDelegate
-									})
+					Qaterial.ListDelegateBackground
+					{
+						anchors.fill: parent
+						type: Qaterial.Style.DelegateType.Icon
+						lines: 1
+						pressed: _area.pressed
+						rippleActive: _area.containsMouse
+						rippleAnchor: _area
 					}
 				}
 			}
@@ -327,7 +356,7 @@ QPage {
 
 				header: QExpandableHeader {
 					text: qsTr("Feladatcsoportok")
-					icon: Qaterial.Icons.molecule
+					icon: Qaterial.Icons.folderMultipleOutline
 					expandable: _expChapters
 				}
 
@@ -352,7 +381,7 @@ QPage {
 
 						QColoredItemDelegate {
 							width: parent.width
-							icon.source: Qaterial.Icons.plus
+							icon.source: Qaterial.Icons.folderPlus
 							text: qsTr("Új feladatcsoport létrehozása")
 							color: Qaterial.Colors.green400
 
@@ -373,7 +402,7 @@ QPage {
 
 						QColoredItemDelegate {
 							width: parent.width
-							icon.source: Qaterial.Icons.accessPointPlus
+							icon.source: Qaterial.Icons.folderMultiplePlusOutline
 							text: qsTr("Létező feladatcsoport hozzáadása")
 							color: Qaterial.Colors.purple400
 
@@ -422,7 +451,7 @@ QPage {
 
 				header: QExpandableHeader {
 					text: qsTr("Felszerelés")
-					icon: Qaterial.Icons.molecule
+					icon: Qaterial.Icons.bagPersonal
 					expandable: _expInventory
 
 					rightSourceComponent: Qaterial.RoundButton {
@@ -438,7 +467,7 @@ QPage {
 							QMenuItem { action: actionInventoryAdd }
 							QMenuItem {
 								text: qsTr("Törlés")
-								icon.source: Qaterial.Icons.trashCan
+								icon.source: Qaterial.Icons._delete
 								enabled: root._inventoryView
 								onClicked: {
 									if (!editor)
@@ -498,7 +527,7 @@ QPage {
 							id: _inventoryContextMenu
 							QMenuItem {
 								text: qsTr("Törlés")
-								icon.source: Qaterial.Icons.trashCan
+								icon.source: Qaterial.Icons._delete
 								onClicked: {
 									if (!editor)
 										return
@@ -556,7 +585,7 @@ QPage {
 
 				Action {
 					id: actionInventoryAdd
-					icon.source: Qaterial.Icons.inboxArrowUp
+					icon.source: Qaterial.Icons.bagPersonalPlus
 					text: qsTr("Új felszerelés")
 
 					onTriggered: {

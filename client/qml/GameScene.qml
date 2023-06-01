@@ -378,7 +378,6 @@ GameSceneImpl {
 	}
 
 	function showPlayerLocator() {
-		console.debug("LOCATOR", game.player)
 		if (game.player) {
 			var r = playerLocatorComponent.createObject(control)
 			r.anchors.centerIn = game.player

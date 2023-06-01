@@ -152,5 +152,6 @@
         <file>TeacherCampaignResult.qml</file>
         <file>QTableView.qml</file>
         <file>TeacherGroupResult.qml</file>
+        <file>QCard.qml</file>
     </qresource>
 </RCC>

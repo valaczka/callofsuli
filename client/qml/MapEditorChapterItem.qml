@@ -28,7 +28,7 @@ Qaterial.Expandable {
 			spacing: 5
 
 			Qaterial.RoundButton {
-				icon.source: root.expanded ? Qaterial.Icons.plus : Qaterial.Icons.minus
+				icon.source: root.expanded ? Qaterial.Icons.chevronDown : Qaterial.Icons.chevronRight
 				Layout.alignment: Qt.AlignCenter
 				onClicked: root.expanded = !root.expanded
 			}
@@ -126,7 +126,7 @@ Qaterial.Expandable {
 				QMenuItem { action: actionObjectiveAdd }
 				QMenuItem {
 					text: qsTr("Kettőzés")
-					icon.source: Qaterial.Icons.pageNext
+					icon.source: Qaterial.Icons.clipboardMultipleOutline
 					enabled: _objectiveView && editor && chapter
 					onClicked: {
 						let l = _objectiveView.getSelected()
@@ -139,7 +139,7 @@ Qaterial.Expandable {
 				}
 				QMenuItem {
 					text: qsTr("Törlés")
-					icon.source: Qaterial.Icons.trashCan
+					icon.source: Qaterial.Icons._delete
 					enabled: _objectiveView && editor && chapter
 					onClicked: {
 						let l = _objectiveView.getSelected()
@@ -159,7 +159,7 @@ Qaterial.Expandable {
 
 					QMenuItem {
 						text: qsTr("Új feladatcsoport")
-						icon.source: Qaterial.Icons.plus
+						icon.source: Qaterial.Icons.folderPlus
 						onClicked: {
 							Qaterial.DialogManager.showTextFieldDialog({
 																		   textTitle: qsTr("Feladatcsoport neve"),
@@ -201,7 +201,7 @@ Qaterial.Expandable {
 
 					QMenuItem {
 						text: qsTr("Új feladatcsoport")
-						icon.source: Qaterial.Icons.plus
+						icon.source: Qaterial.Icons.folderPlus
 						onClicked: {
 							Qaterial.DialogManager.showTextFieldDialog({
 																		   textTitle: qsTr("Feladatcsoport neve"),
@@ -271,8 +271,8 @@ Qaterial.Expandable {
 
 	Action {
 		id: actionObjectiveAdd
-		text: qsTr("Létrehozás")
-		icon.source: Qaterial.Icons.plus
+		text: qsTr("Új feladat")
+		icon.source: Qaterial.Icons.clipboardPlusOutline
 		onTriggered: if (editor) editor.objectiveDialogRequest(chapter)
 	}
 
@@ -280,7 +280,7 @@ Qaterial.Expandable {
 	Action {
 		id: actionChapterRename
 		text: qsTr("Átnevezés")
-		icon.source: Qaterial.Icons.renameBox
+		icon.source: Qaterial.Icons.folderEditOutline
 		enabled: chapter
 
 		onTriggered: {
@@ -303,14 +303,14 @@ Qaterial.Expandable {
 	Action {
 		id: actionChapterRemove
 		text: qsTr("Eltávolítás")
-		icon.source: Qaterial.Icons.minus
+		icon.source: Qaterial.Icons.folderRemove
 		onTriggered: root.removeActionRequest()
 	}
 
 	Action {
 		id: actionChapterDelete
 		text: qsTr("Törlés")
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons._delete
 		onTriggered: if (editor) editor.chapterRemove(chapter)
 	}
 }
