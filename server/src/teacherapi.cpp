@@ -1180,7 +1180,7 @@ void TeacherAPI::mapPublish(const QRegularExpressionMatch &match, const QJsonObj
 
 		const QByteArray &b = q.sqlQuery().value(QStringLiteral("data")).toByteArray();
 
-		GameMap *map = GameMap::fromBinaryData(b);
+		GameMap *map = GameMap::fromBinaryData(qUncompress(b));
 
 		if (!map) {
 			db.rollback();
@@ -1340,7 +1340,7 @@ void TeacherAPI::mapCreate(const QRegularExpressionMatch &match, HttpRequest *re
 	databaseMainWorker()->execInThread([this, response, request, name]() {
 		const QByteArray &b = request->body();
 
-		GameMap *map = GameMap::fromBinaryData(b);
+		GameMap *map = GameMap::fromBinaryData(qUncompress(b));
 
 		if (!map)
 			return responseError(response, "invalid map");
@@ -1420,7 +1420,7 @@ void TeacherAPI::mapUpload(const QRegularExpressionMatch &match, HttpRequest *re
 	databaseMainWorker()->execInThread([this, response, request, uuid, version]() mutable {
 		const QByteArray &b = request->body();
 
-		GameMap *map = GameMap::fromBinaryData(b);
+		GameMap *map = GameMap::fromBinaryData(qUncompress(b));
 
 		if (!map)
 			return responseError(response, "invalid map");

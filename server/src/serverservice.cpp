@@ -153,6 +153,7 @@ Service::CommandResult ServerService::onStart()
 	m_databaseMain = new DatabaseMain(this);
 	m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
 	m_databaseMain->setDbMapsFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("maps.db")));
+	m_databaseMain->setDbStatFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("stat.db")));
 
 
 	if (QFile::exists(m_databaseMain->dbFile()) && !m_importDb.isEmpty()) {
@@ -639,13 +640,13 @@ bool ServerService::preStart()
 	auto versionOption = parser.addVersionOption();
 
 	parser.addOption({QStringLiteral("license"), QObject::tr("Licensz")});
-	//parser.addOption({{QStringLiteral("l"), QStringLiteral("log")}, QObject::tr("Naplózás <file> fájlba"), QStringLiteral("file")});
-	//parser.addOption({{QStringLiteral("n"), QStringLiteral("log-limit")}, QObject::tr("Maximum <db> log fájl tárolása"), QStringLiteral("db")});
+	parser.addOption({QStringLiteral("log"), QObject::tr("Naplózási limit (0 = nincs naplózás)"), QStringLiteral("num")});
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
 	parser.addOption({{QStringLiteral("i"), QStringLiteral("import")}, QObject::tr("Adatbázis importálása"), QStringLiteral("database")});
 
-	parser.addOption({{QStringLiteral("terminal")}, QObject::tr("Terminál indítása")});
+	parser.addOption({QStringLiteral("terminal"), QObject::tr("Terminál indítása")});
 
+	parser.addOption({{QStringLiteral("q"), QStringLiteral("quiet")}, QObject::tr("Csendes üzemmód")});
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 
 #ifndef QT_DEBUG
@@ -688,37 +689,28 @@ bool ServerService::preStart()
 		return false;
 	}
 
-	if (parser.isSet(QStringLiteral("trace")))
-		m_consoleAppender->setDetailsLevel(Logger::Trace);
+
+	if (parser.isSet(QStringLiteral("quiet")))
+		m_consoleAppender->setDetailsLevel(Logger::Fatal);
+	else {
+		if (parser.isSet(QStringLiteral("trace")))
+			m_consoleAppender->setDetailsLevel(Logger::Trace);
 #ifdef QT_DEBUG
-	else
-		m_consoleAppender->setDetailsLevel(Logger::Debug);
+		else
+			m_consoleAppender->setDetailsLevel(Logger::Debug);
 #else
-	else if (parser.isSet(QStringLiteral("debug")))
-		m_consoleAppender->setDetailsLevel(Logger::Debug);
-	else
-		m_consoleAppender->setDetailsLevel(Logger::Info);
+		else if (parser.isSet(QStringLiteral("debug")))
+			m_consoleAppender->setDetailsLevel(Logger::Debug);
+		else
+			m_consoleAppender->setDetailsLevel(Logger::Info);
 #endif
+	}
 
 
 	if (parser.isSet(QStringLiteral("import")))
 		m_importDb = parser.value(QStringLiteral("import"));
 
-	/*QString logFile;
 
-	if (parser.isSet(QStringLiteral("log"))) logFile = parser.value(QStringLiteral("log"));
-
-	int logLimit = 12;
-
-	if (parser.isSet(QStringLiteral("log-limit"))) logLimit = parser.value(QStringLiteral("log-limit")).toInt();
-
-	if (!logFile.isEmpty()) {
-		RollingFileAppender* appender = new RollingFileAppender(logFile);
-		appender->setFormat(QStringLiteral("%{time}{hh:mm:ss} [%{TypeOne}] %{category} %{message}\n"));
-		appender->setDatePattern(RollingFileAppender::WeeklyRollover);
-		appender->setLogFilesLimit(logLimit);
-		cuteLogger->registerAppender(appender);
-	}*/
 
 
 	m_settings->loadFromFile();
@@ -729,6 +721,32 @@ bool ServerService::preStart()
 	if (parser.isSet(QStringLiteral("latency"))) {
 		setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
 		LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
+	}
+
+
+	if (parser.isSet(QStringLiteral("log")))
+		m_settings->setLogLimit(parser.value(QStringLiteral("log")).toInt());
+
+	int logLimit = m_settings->logLimit();
+
+	if (logLimit > 0) {
+		const QString &logDir = QStringLiteral("log");
+
+		if (!m_settings->dataDir().exists(logDir)) {
+			if (!m_settings->dataDir().mkdir(logDir)) {
+				LOG_CERROR("service") << "Directory create error:" << qPrintable(m_settings->dataDir().absoluteFilePath(logDir));
+
+				std::exit(1);
+				return false;
+			}
+		}
+
+		RollingFileAppender* appender = new RollingFileAppender(m_settings->dataDir().absoluteFilePath(logDir+QStringLiteral("/server.log")));
+		appender->setFormat(QString::fromStdString("%{time}{yyyy-MM-dd hh:mm:ss}: %{category:-10} [%{Type}] %{message}\n"));
+		appender->setDatePattern(RollingFileAppender::DailyRollover);
+		appender->setLogFilesLimit(logLimit);
+		appender->setDetailsLevel(Logger::Debug);
+		cuteLogger->registerAppender(appender);
 	}
 
 	return true;

@@ -184,7 +184,7 @@ void TestGame::onGameQuestionFinished()
 	if (m_currentQuestion >= 0 && m_currentQuestion < m_questionList.size())
 		loadCurrentQuestion();
 	else if (m_currentQuestion == m_questionList.size())
-		m_gameQuestion->loadQuestion(QStringLiteral("qrc:/GameQuestionTestFinishComponent.qml"), QVariantMap());
+		m_gameQuestion->loadQuestion(QLatin1String(""), QStringLiteral("qrc:/GameQuestionTestFinishComponent.qml"), QVariantMap());
 	else
 		checkAnswers();
 }
@@ -404,7 +404,7 @@ void TestGame::loadCurrentQuestion() const
 
 	const QuestionData &d = m_questionList.at(m_currentQuestion);
 
-	m_gameQuestion->loadQuestion(d.url, d.data, d.uuid, d.answer);
+	m_gameQuestion->loadQuestion(d.module, d.url, d.data, d.uuid, d.answer);
 }
 
 

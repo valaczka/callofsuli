@@ -112,7 +112,10 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 	connect(this, &GamePlayer::movingFlagsChanged, this, &GamePlayer::onMovingFlagsChanged);
 
-	connect(this, &GamePlayer::hurt, this, [this]() { QTimer::singleShot(450, this, [this](){ playSoundEffect(QStringLiteral("pain")); }); });
+	connect(this, &GamePlayer::hurt, this, [this]() {
+		game()->resetKillStreak();
+		QTimer::singleShot(450, this, [this](){ playSoundEffect(QStringLiteral("pain")); });
+	});
 	connect(this, &GamePlayer::allHpLost, this, [this](){
 		setPlayerState(Dead);
 		m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));

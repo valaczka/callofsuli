@@ -315,6 +315,19 @@ void Server::setTemporary(bool newTemporary)
 	emit temporaryChanged();
 }
 
+int Server::maxUploadSize() const
+{
+	return m_maxUploadSize;
+}
+
+void Server::setMaxUploadSize(int newMaxUploadSize)
+{
+	if (m_maxUploadSize == newMaxUploadSize)
+		return;
+	m_maxUploadSize = newMaxUploadSize;
+	emit maxUploadSizeChanged();
+}
+
 
 
 

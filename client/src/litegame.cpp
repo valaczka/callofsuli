@@ -201,7 +201,7 @@ void LiteGame::onMsecLeftChanged()
 
 void LiteGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
-	addStatistics(m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
+	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
 
 	int xp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) LITE_GAME_BASE_XP;
 	setXp(m_xp+xp);
@@ -224,7 +224,7 @@ void LiteGame::onGameQuestionSuccess(const QVariantMap &answer)
 
 void LiteGame::onGameQuestionFailed(const QVariantMap &answer)
 {
-	addStatistics(m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
 
 	setIsFlawless(false);
 

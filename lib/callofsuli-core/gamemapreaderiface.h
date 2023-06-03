@@ -32,7 +32,7 @@
 #include <QDataStream>
 #include <QVariantMap>
 
-#define GAMEMAP_CURRENT_VERSION 14
+#define GAMEMAP_CURRENT_VERSION 15
 
 
 class GameMapChapterIface;
@@ -59,7 +59,7 @@ public:
 	GameMapMissionIface *checkLockTree(QList<GameMapMissionIface *> *listPtr = nullptr) const;
 	QVector<GameMapMissionLevelIface*> missionLockTree(GameMapMissionIface *mission) const;
 
-	QByteArray toBinaryData() const;
+	QByteArray toBinaryData(const bool &imageCheck = false) const;
 
 	template<typename TIface, typename TFrom>
 	static QList<TIface*> ifaceListConvert(const QList<TFrom *> &from)
@@ -105,7 +105,11 @@ private:
 	void missionsToStream(QDataStream &stream, const QList<GameMapMissionIface*> &missions) const;
 
 	bool imagesFromStream(QDataStream &stream);
-	void imagesToStream(QDataStream &stream, const QList<GameMapImageIface*> &images) const;
+	void imagesToStream(QDataStream &stream, const QList<GameMapImageIface*> &images,
+						const bool &check = false,
+						const QList<GameMapMissionIface*> &missions = {},
+						const QList<GameMapStorageIface*> &storages = {}
+			) const;
 
 	bool objectivesFromStream(QDataStream &stream, GameMapChapterIface *chapter);
 	bool missionLevelsFromStream(QDataStream &stream, GameMapMissionIface *mission);
@@ -225,7 +229,7 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const qreal &passed,
-													const QString &image) = 0;
+													const int &image) = 0;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) = 0;
 
 
@@ -272,7 +276,7 @@ protected:
 	QString m_terrain;
 	qint32 m_startHP = 0;
 	qint32 m_duration = 0;
-	QString m_image;
+	qint32 m_image = -1;
 	bool m_canDeathmatch = false;
 	qreal m_questions = 0;
 	qreal m_passed = 0.8;

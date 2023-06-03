@@ -87,10 +87,10 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
 		QStringList answers;
 
-		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-			QVariantMap m = v.toMap();
-			QString left = m.value(QStringLiteral("first")).toString();
-			QString right = m.value(QStringLiteral("second")).toString();
+		foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toString();
 
 			answers.append(QStringLiteral("%1 — %2").arg(left, right));
 		}
@@ -153,13 +153,13 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 {
 	QVariantList ret;
 
-	QString mode = data.value(QStringLiteral("mode")).toString();
+	const QString &mode = data.value(QStringLiteral("mode")).toString();
 
 	if (mode == QStringLiteral("left") || mode == QStringLiteral("right")) {
-		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-			QVariantMap m = v.toMap();
-			QString left = m.value(QStringLiteral("first")).toString();
-			QString right = m.value(QStringLiteral("second")).toString();
+		foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toString();
 
 
 			if (!left.isEmpty()) {
@@ -177,20 +177,20 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 			}
 		}
 	} else if (mode == QStringLiteral("generateLeft") || mode == QStringLiteral("generateRight")) {
-		QString question = data.value(QStringLiteral("question")).toString();
+		const QString &question = data.value(QStringLiteral("question")).toString();
 		bool isBindToRight = mode == QStringLiteral("generateRight");
 
-		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-			QVariantMap m = v.toMap();
-			QString left = m.value(QStringLiteral("first")).toString();
-			QString right = m.value(QStringLiteral("second")).toString();
+		foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toString();
 
 			if (left.isEmpty() || right.isEmpty())
 				continue;
 
 			bool isCorrect = (QRandomGenerator::global()->generate() % 2 == 1);
 
-			QString questionPart = isBindToRight ? right : left;
+			const QString &questionPart = isBindToRight ? right : left;
 			QString answerPart;
 
 			if (isCorrect)
@@ -198,10 +198,10 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 			else {
 				QStringList alist;
 
-				foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-					QVariantMap mm = v.toMap();
-					QString f1 = mm.value(QStringLiteral("first")).toString();
-					QString f2 = mm.value(QStringLiteral("second")).toString();
+				foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
+					const QVariantMap &mm = v.toMap();
+					const QString &f1 = mm.value(QStringLiteral("first")).toString();
+					const QString &f2 = mm.value(QStringLiteral("second")).toString();
 
 					if ((isBindToRight && right == f2) || (!isBindToRight && left == f1))
 						continue;
@@ -254,8 +254,8 @@ QVariantMap ModuleTruefalse::preview(const QVariantList &generatedList) const
 	QVariantMap m;
 	QString s;
 
-	foreach (QVariant v, generatedList) {
-		QVariantMap m = v.toMap();
+	foreach (const QVariant &v, generatedList) {
+		const QVariantMap &m = v.toMap();
 
 		if (m.value(QStringLiteral("answer")).toBool())
 			s.append(QStringLiteral("- [x] **%1**\n").arg(m.value(QStringLiteral("question")).toString()));

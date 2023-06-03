@@ -70,7 +70,7 @@ GameQuestionComponentImpl {
 						function onAnswerReveal(answer) {
 							if (index === questionData.answer)
 								btn.buttonType = GameQuestionButton.Correct
-							else if (answer.value === index || selectedButtonIndex === index)
+							else if (answer.index === index || selectedButtonIndex === index)
 								btn.buttonType = GameQuestionButton.Wrong
 						}
 					}

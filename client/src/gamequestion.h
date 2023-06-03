@@ -53,7 +53,8 @@ public:
 	GameQuestion(QQuickItem *parent = nullptr);
 	virtual ~GameQuestion();
 
-	void loadQuestion(const QUrl &componentUrl, const QVariantMap &data, const QString &uuid = "", const QVariantMap &storedAnswer = QVariantMap());
+	void loadQuestion(const QString &module, const QUrl &componentUrl, const QVariantMap &data,
+					  const QString &uuid = "", const QVariantMap &storedAnswer = QVariantMap());
 	Q_INVOKABLE void loadQuestion(const Question &question, const QVariantMap &storedAnswer = QVariantMap());
 
 	int msecBeforeHide() const;
@@ -85,6 +86,9 @@ public:
 
 	const QVariantMap &storedAnswer() const;
 	void setStoredAnswer(const QVariantMap &newStoredAnswer);
+
+	const QString &module() const;
+	void setModule(const QString &newModule);
 
 public slots:
 	void onSuccess(const QVariantMap &answer);
@@ -128,6 +132,7 @@ private:
 	QVariantMap m_questionData;
 	bool m_postponeEnabled = false;
 	QVariantMap m_storedAnswer;
+	QString m_module;
 };
 
 #endif // GAMEQUESTION_H

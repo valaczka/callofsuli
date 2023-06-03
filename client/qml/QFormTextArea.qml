@@ -11,7 +11,7 @@ Qaterial.TextArea {
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
 	property string field: ""
 	property string fieldData: ""
-	readonly property string getData: text
+	property var getData: function() { return text }
 
 	height: Math.max(implicitHeight, 120 * Qaterial.Style.pixelSizeRatio)
 

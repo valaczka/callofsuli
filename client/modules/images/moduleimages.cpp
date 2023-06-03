@@ -48,20 +48,20 @@ QVariantMap ModuleImages::details(const QVariantMap &data, ModuleInterface *stor
 
 	QStringList list;
 
-	QVariantList l = data.value("images").toList();
-	QString image = "";
-	foreach (QVariant v, l) {
-		QVariantMap m = v.toMap();
-		list.append(m.value("text").toString());
-		const int &img = m.value("image", -1).toInt();
+	const QVariantList &l = data.value(QStringLiteral("images")).toList();
+	QString image = QLatin1String("");
+	foreach (const QVariant &v, l) {
+		const QVariantMap &m = v.toMap();
+		list.append(m.value(QStringLiteral("first")).toString());
+		const int &img = m.value(QStringLiteral("second"), -1).toInt();
 		if (image.isEmpty() && img != -1)
-			image = QString("image://mapimage/%1").arg(img);
+			image = QStringLiteral("image://mapimage/%1").arg(img);
 	}
 
 	QVariantMap m;
-	m["title"] = list.join(", ");
-	m["details"] = "";
-	m["image"] = image;
+	m[QStringLiteral("title")] = list.join(QStringLiteral(", "));
+	m[QStringLiteral("details")] = QLatin1String("");
+	m[QStringLiteral("image")] = image;
 
 	return m;
 }
@@ -76,11 +76,11 @@ QList<int> ModuleImages::images(const QVariantMap &data) const
 {
 	QList<int> list;
 
-	QVariantList l = data.value("images").toList();
-	foreach (QVariant v, l) {
-		QVariantMap m = v.toMap();
-		if (m.contains("image"))
-			list.append(m.value("image", -1).toInt());
+	const QVariantList &l = data.value(QStringLiteral("images")).toList();
+	foreach (const QVariant &v, l) {
+		const QVariantMap &m = v.toMap();
+		if (m.contains(QStringLiteral("second")))
+			list.append(m.value(QStringLiteral("second"), -1).toInt());
 	}
 	return list;
 }

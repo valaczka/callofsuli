@@ -737,7 +737,8 @@ void ActionGame::onSceneStarted()
 	startWithRemainingTime(m_missionLevel->duration()*1000);
 
 	if (m_deathmatch) {
-		message(tr("LEVEL %1 SUDDEN DEATH").arg(level()));
+		message(tr("LEVEL %1").arg(level()));
+		message(tr("SUDDEN DEATH"));
 		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/sudden_death.mp3"));
 	} else {
 		message(tr("LEVEL %1").arg(level()));
@@ -792,7 +793,7 @@ void ActionGame::onMsecLeftChanged()
 
 void ActionGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
-	addStatistics(m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
+	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
 
 	int xp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) ACTION_GAME_BASE_XP;
 	setXp(m_xp+xp);
@@ -820,7 +821,7 @@ void ActionGame::onGameQuestionSuccess(const QVariantMap &answer)
 void ActionGame::onGameQuestionFailed(const QVariantMap &answer)
 {
 	if (m_player) {
-		addStatistics(m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+		addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
 
 		player()->hurtByEnemy(nullptr, false);
 
@@ -955,6 +956,18 @@ GamePickable *ActionGame::pickable() const
 }
 
 
+/**
+ * @brief ActionGame::resetKillStreak
+ */
+
+void ActionGame::resetKillStreak()
+{
+	m_killStreak = 0;
+
+	LOG_CWARNING("game") << "RESET Kill streak:" << m_killStreak;
+}
+
+
 
 /**
  * @brief ActionGame::killAllEnemy
@@ -1054,104 +1067,6 @@ QVariantList ActionGame::tools()
 	}
 
 	return l;
-}
-
-
-
-void ActionGame::testQuestion()
-{
-	/*
-
-	QVariantMap answer;
-
-	QVariantList words;
-
-	for (int i=0; i<items.size(); ++i) {
-		if (usedIndexList.contains(i)) {
-			QString id = QString("%1").arg(i);
-
-			answer.insert(id, items.at(i).text);
-
-			words.append(QVariantMap({{"q", id}}));
-		} else {
-			words.append(QVariantMap({{"w", items.at(i).text}}));
-		}
-	}
-
-
-	QStringList optList;
-
-	while (options.size())
-		optList.append(options.takeAt(QRandomGenerator::global()->bounded(options.size())));
-
-
-
-	QVariantMap ret;
-	ret["list"] = words;
-	ret["options"] = optList;
-	ret["answer"] = answer;
-
-	*/
-	m_gameQuestion->setPostponeEnabled(false);
-	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"));
-	m_gameQuestion->loadQuestion(QUrl(QStringLiteral("qrc:/GameQuestionDefaultComponent.qml")), {
-									 {QStringLiteral("question"), QStringLiteral("Na ez már jó kérdés")},
-									 {"mode", "descending"},
-									 {"placeholderMin", "legkisebb"},
-									 {"placeholderMax", "legnagyob ezért nagyon hosszú szövega sdflkasd fowier léaj flkadfoiasd flkajsdfoiwe rkjalsd f"},
-									 //{"twoLine", true},
-									 {QStringLiteral("answer"), QVariantMap({
-										  {"1",  "egy"},
-										  {"2",  "kettő"},
-										  {"3",  "három"},
-										  {"4",  "négy"},
-									  })},
-									 {QStringLiteral("list"), QVariantList({
-										  QVariantMap({{"w", "Nulla"}}),
-										  QVariantMap({{"w", "és"}}),
-										  QVariantMap({{"q", "1"}}),
-										  QVariantMap({{"w", "néhány"}}),
-										  QVariantMap({{"w", "másik"}}),
-										  QVariantMap({{"w", "szó,"}}),
-										  QVariantMap({{"q", "2"}}),
-										  QVariantMap({{"w", "amit"}}),
-										  QVariantMap({{"w", "szeretnék"}}),
-										  QVariantMap({{"w", "itt"}}),
-										  QVariantMap({{"q", "3"}}),
-										  QVariantMap({{"w", "nagyon"}}),
-										  QVariantMap({{"w", "hosszan"}}),
-										  QVariantMap({{"w", "ecsetelni,"}}),
-										  QVariantMap({{"q", "4"}}),
-										  QVariantMap({{"w", "hogy"}}),
-										  QVariantMap({{"w", "látszódjon"}}),
-										  QVariantMap({{"w", "mit"}}),
-										  QVariantMap({{"w", "tud"}})
-									  })},
-									 {QStringLiteral("options"), QStringList({
-										  "öt",
-										  "egy",
-										  "négy",
-										  "három saklf weio alkdjfl askdjf",
-										  "kettő",
-										  "három",
-										  "hat"
-									  }) },
-
-									 {"image", "file:///home/valaczka/Letöltések/bg.jpg"}
-									 /*{"imageAnswers", true},
-
-																	  m["list"] = questions;
-																	  m["options"] = optList;
-																	  m["answer"] = QVariantMap({{ "list", answers }});
-
-																  {"options", QStringList({
-																																																																																																																														"file:///home/valaczka/Letöltések/bg.jpg",
-																																																																																																																														"file:///home/valaczka/Letöltések/3centiho.jpg",
-																																																																																																																														"file:///home/valaczka/Letöltések/logo_gb.jpg",
-																																																																																																																														"file:///home/valaczka/Letöltések/vitorlas.jpg",
-																																																																																																																													})}*/
-								 });
-	setRunning(false);
 }
 
 
@@ -1300,7 +1215,19 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 		return;
 	}
 
-	setXp(m_xp + ACTION_GAME_ENEMY_KILL_XP);
+	m_killStreak++;
+
+	LOG_CWARNING("game") << "Kill streak:" << m_killStreak;
+
+	int xp = 0;
+
+	if (m_killStreak % 5 == 0) {
+		xp = m_killStreak * 15;
+		message(QStringLiteral("Kill streak: %1").arg(m_killStreak), QStringLiteral("#FFC107"));
+		message(QStringLiteral("+%1 XP").arg(xp), QStringLiteral("#FFC107"));
+	}
+
+	setXp(m_xp + ACTION_GAME_ENEMY_KILL_XP + xp);
 
 	int block = -1;
 

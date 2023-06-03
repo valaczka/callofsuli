@@ -252,10 +252,10 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 	const QString &question = data.value(QStringLiteral("question")).toString();
 	const QString &answersPattern = data.value(QStringLiteral("answers")).toString();
 
-	foreach (QVariant v, storageData.value(QStringLiteral("images")).toList()) {
-		QVariantMap m = v.toMap();
-		const int &imgId = m.value(QStringLiteral("image"), -1).toInt();
-		const QString &text = m.value(QStringLiteral("text")).toString();
+	foreach (const QVariant &v, storageData.value(QStringLiteral("images")).toList()) {
+		const QVariantMap &m = v.toMap();
+		const int &imgId = m.value(QStringLiteral("second"), -1).toInt();
+		const QString &text = m.value(QStringLiteral("first")).toString();
 
 		if (imgId == -1 || text.isEmpty())
 			continue;
@@ -274,10 +274,10 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 
 		QStringList alist;
 
-		foreach (QVariant v, storageData.value(QStringLiteral("images")).toList()) {
-			QVariantMap mm = v.toMap();
-			const int &f1 = mm.value(QStringLiteral("image"), -1).toInt();
-			const QString &f2 = mm.value(QStringLiteral("text")).toString();
+		foreach (const QVariant &v, storageData.value(QStringLiteral("images")).toList()) {
+			const QVariantMap &mm = v.toMap();
+			const int &f1 = mm.value(QStringLiteral("second"), -1).toInt();
+			const QString &f2 = mm.value(QStringLiteral("first")).toString();
 
 			if ((mode == QStringLiteral("image") && text == f2) || (mode == QStringLiteral("text") && (imgId == f1 || f1 == -1)))
 				continue;

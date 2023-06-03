@@ -1,98 +1,101 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.14
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
-QCollapsible {
-    id: control
 
-    collapsed: false
+QFormColumn {
+	id: root
 
-    property MapEditor mapEditor: null
-    property var moduleData: null
+	width: parent.width
 
-    property bool editable: false
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-    signal modified()
+	spacing: 10
 
-    title: qsTr("Képek")
+	property alias readOnly: _binding.readOnly
 
-    rightComponent: QToolButton {
-        visible: !control.editable
-        icon.source: "qrc:/internal/icon/pencil.svg"
-        text: qsTr("Szerkesztés")
-        display: AbstractButton.IconOnly
-        onClicked: control.editable = true
-    }
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-    QGridLayout {
-        id: layout
+	QFormTextField {
+		id: _title
+		title: qsTr("Név")
+		width: parent.width
 
-        watchModification: true
-        onModifiedChanged: if (layout.modified)
-                               control.modified()
+		field: "name"
 
-        QGridDoubleImageFields {
-            id: fields
-            sqlField: "images"
+		enabled: !root.readOnly
 
-            watchModification: true
+		placeholderText: qsTr("Adatbank elnevezése")
+		leadingIconSource: Qaterial.Icons.renameBox
+		trailingContent: Qaterial.TextFieldClearButton { visible: _title.length; textField: _title }
+	}
 
-            readOnly: !control.editable
+	QFormSection {
+		width: parent.width
+		text: qsTr("Képek")
+		icon.source: Qaterial.Icons.imageMultiple
+	}
 
-            Layout.fillWidth: true
-            Layout.columnSpan: layout.columns
+	QFormBindingField {
+		id: _binding
+		width: parent.width
 
-            onModification: getData()
-
-            onImageAddRequest: {
-                if (!mapEditor)
-                    return
-
-                var d = JS.dialogCreateQml("File", {
-                                               isSave: false,
-                                               folder: cosClient.getSetting("mapFolder", "")
-                                           })
-
-                d.item.filters = ["*.jpg", "*.png"]
-
-                d.accepted.connect(function(data){
-                    var i = mapEditor.imageAdd(data)
-
-                    if (i !== -1) {
-                        imageAddRequestSuccess(i)
-                    }
-
-                    cosClient.setSetting("mapFolder", d.item.modelFolder)
-                })
-
-                d.open()
-            }
-
-        }
-    }
-
-    Component.onCompleted: {
-        if (!moduleData)
-            return
-
-        JS.setSqlFields([fields], moduleData)
-    }
+		defaultLeftData: ""
+		defaultRightData: -1
+		split: 0.7
 
 
-    function getData() {
-        moduleData = JS.getSqlFields([fields])
+		leftComponent: QFormBindingTextField {
+			bindingField: _binding
 
-        if (editable)
-            return moduleData
-        else
-            return {}
-    }
+			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+		}
 
+		rightComponent: MapEditorFormImage {
+			bindingField: _binding
+			editor: objectiveEditor.editor
+
+			onModified: loadData(id)
+
+		}
+	}
+
+
+	function saveData() {
+		if (!storage)
+			return
+
+		storage.data = previewData()
+	}
+
+	function loadData() {
+		if (storage && storage.data.images)
+			_binding.loadFromList(storage.data.images)
+		else
+			_binding.loadFromList([])
+
+		if (storage && storage.storageid <= 0)
+			_binding.readOnly = false
+
+		if (storage)
+			setItems([_title], storage.data)
+	}
+
+
+	function previewData() {
+		let d = getItems([_title])
+		d.images = _binding.saveToList()
+
+		return d
+	}
 }
+
+
 
 
 

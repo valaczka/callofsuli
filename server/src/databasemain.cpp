@@ -65,6 +65,9 @@ bool DatabaseMain::databasePrepare(const QString importDb)
 	if (!databaseMapsPrepare())
 		return false;
 
+	if (!databaseStatPrepare())
+		return false;
+
 	QDefer ret;
 
 	bool r = false;
@@ -112,6 +115,12 @@ bool DatabaseMain::databaseAttach()
 		QMutexLocker mutexlocker(mutex());
 
 		if (!QueryBuilder::q(db).addQuery("ATTACH ").addValue(m_dbMapsFile).addQuery(" AS mapdb").exec()) {
+			r = false;
+			ret.reject();
+			return;
+		}
+
+		if (!QueryBuilder::q(db).addQuery("ATTACH ").addValue(m_dbStatFile).addQuery(" AS statdb").exec()) {
 			r = false;
 			ret.reject();
 			return;
@@ -191,6 +200,50 @@ bool DatabaseMain::databaseMapsPrepare()
 
 	return r;
 }
+
+
+
+
+
+/**
+ * @brief DatabaseMain::databaseStatPrepare
+ * @return
+ */
+
+bool DatabaseMain::databaseStatPrepare()
+{
+	Database statDb = Database(QStringLiteral("statDb"));
+	statDb.databaseOpen(m_dbStatFile);
+
+	QDefer ret;
+
+	bool r = false;
+
+	statDb.worker()->execInThread([ret, this, &r, &statDb]() mutable {
+		LOG_CDEBUG("db") << "Prepare stat database:" << qPrintable(m_dbStatFile);
+
+		QMutexLocker mutexlocker(statDb.mutex());
+
+		if (!_checkStatSystemTable(&statDb)) {
+			r = false;
+			ret.reject();
+			return;
+		}
+
+		LOG_CDEBUG("db") << "Database stat prepared:" << qPrintable(m_dbStatFile);
+
+		r = true;
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	statDb.databaseClose();
+
+	return r;
+}
+
+
 
 
 
@@ -334,6 +387,73 @@ bool DatabaseMain::_checkMapsSystemTable(Database *mapsDb)
 }
 
 
+
+/**
+ * @brief DatabaseMain::_checkStatSystemTable
+ * @param statDb
+ * @return
+ */
+
+bool DatabaseMain::_checkStatSystemTable(Database *statDb)
+{
+	Q_ASSERT(statDb);
+
+	static uint called = 1;
+
+	LOG_CTRACE("db") << "Check stat system table" << called;
+
+	if (called > 2) {
+		LOG_CERROR("db") << "Stat system table prepare infinite loop";
+		return false;
+	}
+
+	called++;
+
+	QSqlDatabase db = QSqlDatabase::database(statDb->dbName());
+
+	QSqlQuery q(db);
+
+	q.exec(QStringLiteral("SELECT versionMajor, versionMinor from system"));
+
+	if (q.size() > 1) {
+		LOG_CERROR("db") << "Corrupt database";
+		return false;
+	} else if (q.first()) {
+		int vMajor = q.value(QStringLiteral("versionMajor")).toInt();
+		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
+
+		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
+			if (_upgradeMapsTables())
+				return _checkStatSystemTable(statDb);
+			else
+				return false;
+		} else if (Utils::versionCode(vMajor, vMinor) == Utils::versionCode()) {
+			return true;
+		} else {
+#ifdef QT_DEBUG
+			LOG_CINFO("db") << "Stat database is newer than system service, skipped in debug";
+			return true;
+#else
+			LOG_CERROR("db") << "Stat database is newer than system service";
+			return false;
+#endif
+		}
+	} else {
+		db.transaction();
+		if (_createStatTables(statDb)) {
+			db.commit();
+			return _checkStatSystemTable(statDb);
+		} else {
+			db.rollback();
+			return false;
+		}
+	}
+
+	return false;
+}
+
+
+
 /**
  * @brief DatabaseMain::_createTables
  * @return
@@ -417,6 +537,43 @@ bool DatabaseMain::_createMapsTables(Database *db)
 
 
 
+
+/**
+ * @brief DatabaseMain::_createStatTables
+ * @param db
+ * @return
+ */
+
+bool DatabaseMain::_createStatTables(Database *db)
+{
+	Q_ASSERT(db);
+
+	LOG_CTRACE("db") << "Create stat tables";
+
+	if (!db->_batchFromFile(QStringLiteral(":/sql/stat.sql")))
+		return false;
+
+	QSqlDatabase d = QSqlDatabase::database(db->dbName());
+
+	QueryBuilder q(d);
+
+	q.addQuery("INSERT INTO system (")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("versionMajor", m_service->versionMajor())
+			.addField("versionMinor", m_service->versionMinor())
+			;
+
+	if (!q.exec())
+		return false;
+
+	return true;
+}
+
+
+
 /**
  * @brief DatabaseMain::_upgradeTables
  * @return
@@ -436,6 +593,18 @@ bool DatabaseMain::_upgradeTables()
  */
 
 bool DatabaseMain::_upgradeMapsTables()
+{
+	LOG_CERROR("db") << "Missing implementation";
+	return false;
+}
+
+
+/**
+ * @brief DatabaseMain::_upgradeStatTables
+ * @return
+ */
+
+bool DatabaseMain::_upgradeStatTables()
 {
 	LOG_CERROR("db") << "Missing implementation";
 	return false;
@@ -607,6 +776,16 @@ bool DatabaseMain::_databaseImport(const QString &dbFile)
 	LOG_CINFO("db") << "Import succesful";
 
 	return true;
+}
+
+const QString &DatabaseMain::dbStatFile() const
+{
+	return m_dbStatFile;
+}
+
+void DatabaseMain::setDbStatFile(const QString &newDbStatFile)
+{
+	m_dbStatFile = newDbStatFile;
 }
 
 

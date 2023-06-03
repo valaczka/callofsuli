@@ -39,6 +39,9 @@ MapPlayCampaign::MapPlayCampaign(StudentMapHandler *handler, QObject *parent)
 {
 	Q_ASSERT(m_handler);
 
+	m_updateTimer.setInterval(5000);
+	connect(&m_updateTimer, &QTimer::timeout, this, &MapPlayCampaign::onUpdateTimerTimeout);
+
 	LOG_CTRACE("client") << "MapPlayCampaign created" << this;
 }
 
@@ -170,6 +173,8 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		levelGame->load();
 
 		setGameState(StatePlay);
+
+		m_updateTimer.start();
 	});
 }
 
@@ -194,13 +199,18 @@ void MapPlayCampaign::onCurrentGameFinished()
 	if (levelGame->finishState() == AbstractGame::Fail)
 		emit currentGameFailed();
 
+
+	const QJsonArray &stat = m_currentGame->getStatistics();
+
 	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
 					   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
 					   { QStringLiteral("xp"), levelGame->xp() },
-					   { QStringLiteral("duration"), levelGame->elapsedMsec() }
+					   { QStringLiteral("duration"), levelGame->elapsedMsec() },
+					   { QStringLiteral("statistics"), stat }
 				   })
-			->fail([this](const QString &err){
+			->fail([this, stat](const QString &err){
 		m_client->messageError(err, tr("Játék mentése sikertelen"));
+		m_currentGame->clearStatistics(stat);
 		destroyCurrentGame();
 	})
 			->done([this](const QJsonObject &data){
@@ -215,6 +225,49 @@ void MapPlayCampaign::onCurrentGameFinished()
 	});
 
 }
+
+
+
+/**
+ * @brief MapPlayCampaign::onUpdateTimerTimeout
+ */
+
+void MapPlayCampaign::onUpdateTimerTimeout()
+{
+	LOG_CTRACE("client") << "GAME UPDATE";
+
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
+
+	if (m_gameState != StatePlay || !m_currentGame || !game)
+		return;
+
+	const QJsonArray &stat = m_currentGame->getStatistics();
+	int xp = m_currentGame->xp();
+
+	if (stat.isEmpty() && m_lastXP == xp)
+		return;
+
+	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/update").arg(game->gameId()), {
+					   { QStringLiteral("xp"), xp },
+					   { QStringLiteral("statistics"), stat }
+				   })
+			->fail([stat, this](const QString &err){
+		LOG_CWARNING("client") << "Game update error:" << qPrintable(err);
+
+		if (m_currentGame)
+			m_currentGame->clearStatistics(stat, true);
+	})
+			->done([this, stat, xp](const QJsonObject &){
+		if (m_currentGame)
+			m_currentGame->clearStatistics(stat, false);
+
+		m_lastXP = xp;
+
+		LOG_CTRACE("client") << "GAME UPDATED SUCCESSFULY";
+	});
+}
+
+
 
 
 

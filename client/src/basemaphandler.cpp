@@ -170,6 +170,13 @@ bool BaseMapHandler::checkAndSave(BaseMap *map, const QByteArray &data) const
 		return false;
 	}
 
+	/*const QByteArray &uncomp = qUncompress(data);
+
+	if (uncomp.isEmpty()) {
+		m_client->messageError(tr("Hibás adat érkezett"), tr("Tömörítési hiba"));
+		return false;
+	}*/
+
 	QDir dir = m_client->server()->directory();
 
 	if ((!dir.exists(m_subdirName) && !dir.mkdir(m_subdirName)) || !dir.cd(m_subdirName)) {
@@ -248,7 +255,7 @@ QByteArray BaseMapHandler::loadAndCheck(const BaseMap *map) const
 
 	const QByteArray &b = readFromMap(map);
 	if (checkDownload(map, b))
-		return b;
+		return qUncompress(b);
 	else {
 		LOG_CWARNING("client") << "Map check failed";
 		return QByteArray();

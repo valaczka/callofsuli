@@ -66,7 +66,7 @@ qmlLines += "{"
 
 flist = $$files($$PWD/../MaterialDesignSvgo/svg/*)
 
-restrictedNames = delete export function import null package switch
+restrictedNames = console delete export function import null package switch
 
 for (file, flist) {
 	baseName = $$basename(file)
@@ -88,7 +88,7 @@ for (file, flist) {
 	}
 
 
-	contains(restrictedNames, $$qmlName): qmlName = _$$qmlName
+	contains(restrictedNames, $$qmlName): qmlName = $${qmlName}_
 
 	qmlLines += "	readonly property string $$join(qmlName,,,): \"qrc:/Qaterial/Icons/$$baseName\";"
 

@@ -49,9 +49,18 @@ void ServerSettings::printConfig() const
 	LOG_CINFO("service") << "Host address:" << qPrintable(m_listenAddress.toString());
 	LOG_CINFO("service") << "Port:" << m_listenPort;
 	LOG_CINFO("service") << "SSL:" << m_ssl;
-	LOG_CINFO("service") << "SSL certificate:" << qPrintable(m_certFile);
-	LOG_CINFO("service") << "SSL certificate key:" << qPrintable(m_certKeyFile);
+
+	if (m_ssl) {
+		LOG_CINFO("service") << "SSL certificate:" << qPrintable(m_certFile);
+		LOG_CINFO("service") << "SSL certificate key:" << qPrintable(m_certKeyFile);
+	}
+
+
 	LOG_CINFO("service") << "Google OAuth2 listening path:" << qPrintable(QStringLiteral("/cb/")+m_oauthGoogle.path);
+
+	if (m_logLimit > 0)
+		LOG_CINFO("service") << "Log limit:" << m_logLimit;
+
 	LOG_CINFO("service") << "-----------------------------------------------------";
 }
 
@@ -85,6 +94,9 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("server/redirectHost")))
 		setRedirectHost(s.value(QStringLiteral("server/redirectHost")).toString());
 
+	if (s.contains(QStringLiteral("server/maxRequestSize")))
+		setMaxRequestSize(s.value(QStringLiteral("server/maxRequestSize")).toUInt());
+
 
 	if (s.contains(QStringLiteral("ssl/enabled")))
 		setSsl(s.value(QStringLiteral("ssl/enabled")).toBool());
@@ -97,6 +109,9 @@ void ServerSettings::loadFromFile(const QString &filename)
 
 	if (s.contains(QStringLiteral("google/clientId")))
 		setOauthGoogle(OAuth::fromSettings(&s, QStringLiteral("google")));
+
+	if (s.contains(QStringLiteral("log/limit")))
+		setLogLimit(s.value(QStringLiteral("log/limit")).toInt());
 
 	LOG_CINFO("service") << "Configuration loaded from:" << f;
 }
@@ -135,10 +150,13 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("server/port"), m_listenPort);
 	s.setValue(QStringLiteral("server/jwtSecret"), m_jwtSecret);
 	s.setValue(QStringLiteral("server/redirectHost"), m_redirectHost);
+	s.setValue(QStringLiteral("server/maxRequestSize"), m_maxRequestSize);
 
 	s.setValue(QStringLiteral("ssl/enabled"), m_ssl);
 	s.setValue(QStringLiteral("ssl/certificate"), m_certFile);
 	s.setValue(QStringLiteral("ssl/key"), m_certKeyFile);
+
+	s.setValue(QStringLiteral("log/limit"), m_logLimit);
 
 	m_oauthGoogle.toSettings(&s, QStringLiteral("google"));
 
@@ -257,6 +275,26 @@ const QString &ServerSettings::redirectHost() const
 void ServerSettings::setRedirectHost(const QString &newRedirectHost)
 {
 	m_redirectHost = newRedirectHost;
+}
+
+int ServerSettings::logLimit() const
+{
+	return m_logLimit;
+}
+
+void ServerSettings::setLogLimit(int newLogLimit)
+{
+	m_logLimit = newLogLimit;
+}
+
+uint ServerSettings::maxRequestSize() const
+{
+	return m_maxRequestSize;
+}
+
+void ServerSettings::setMaxRequestSize(uint newMaxRequestSize)
+{
+	m_maxRequestSize = newMaxRequestSize;
 }
 
 

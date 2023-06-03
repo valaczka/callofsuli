@@ -232,7 +232,7 @@ bool Database::databaseInit()
 	QDefer ret;
 	bool retValue = false;
 
-	m_worker->execInThread([ret, this]() mutable {
+	m_worker->execInThread([ret, this, &retValue]() mutable {
 		LOG_CDEBUG("db") << "Add database:" << qPrintable(m_dbName);
 
 		m_mutex = new QRecursiveMutex;
@@ -247,18 +247,13 @@ bool Database::databaseInit()
 
 		if (!db.isValid()) {
 			LOG_CERROR("db") << "Database invalid:" << qPrintable(m_dbName);
+			retValue = false;
 			ret.reject();
 		} else {
+			retValue = true;
 			ret.resolve();
 		}
 	});
-
-
-	ret.done([&retValue](){
-		retValue = true;
-	}).fail([&retValue](){
-		retValue = false;
-	});;
 
 	QDefer::await(ret);
 

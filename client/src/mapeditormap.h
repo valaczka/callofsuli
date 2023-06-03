@@ -504,7 +504,7 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const qreal &passed,
-													const QString &image) override;
+													const qint32 &image) override;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
 
 
@@ -531,7 +531,7 @@ class MapEditorMissionLevel : public MapEditorObject, public GameMapMissionLevel
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged)
 	Q_PROPERTY(qint32 startHP READ startHP WRITE setStartHP NOTIFY startHPChanged)
 	Q_PROPERTY(qint32 duration READ duration WRITE setDuration NOTIFY durationChanged)
-	Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged)
+	Q_PROPERTY(qint32 image READ image WRITE setImage NOTIFY imageChanged)
 	Q_PROPERTY(bool canDeathmatch READ canDeathmatch WRITE setCanDeathmatch NOTIFY canDeathmatchChanged)
 	Q_PROPERTY(qreal questions READ questions WRITE setQuestions NOTIFY questionsChanged)
 	Q_PROPERTY(qreal passed READ passed WRITE setPassed NOTIFY passedChanged)
@@ -539,6 +539,7 @@ class MapEditorMissionLevel : public MapEditorObject, public GameMapMissionLevel
 	Q_PROPERTY(MapEditorMission *mission READ editorMission CONSTANT)
 	Q_PROPERTY(QList<MapEditorChapter*> chapterList READ chapterList NOTIFY chapterListChanged)
 	Q_PROPERTY(QVariantMap terrainData READ terrainData NOTIFY terrainDataChanged)
+	Q_PROPERTY(MapEditorImage *editorImage READ editorImage NOTIFY editorImageChanged)
 
 public:
 	explicit MapEditorMissionLevel(MapEditorMission *mission)
@@ -570,9 +571,6 @@ public:
 	qint32 duration() const;
 	void setDuration(qint32 newDuration);
 
-	const QString &image() const;
-	void setImage(const QString &newImage);
-
 	bool canDeathmatch() const;
 	void setCanDeathmatch(bool newCanDeathmatch);
 
@@ -603,6 +601,11 @@ public:
 	Q_INVOKABLE void inventoryRemove(const int &id);
 
 
+	qint32 image() const;
+	void setImage(qint32 newImage);
+
+	MapEditorImage *editorImage() const;
+
 signals:
 	void levelChanged();
 	void terrainChanged();
@@ -613,8 +616,8 @@ signals:
 	void questionsChanged();
 	void passedChanged();
 	void chapterListChanged();
-
 	void terrainDataChanged();
+	void editorImageChanged();
 
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const override;

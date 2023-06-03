@@ -199,7 +199,7 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
  */
 
 
-QByteArray GameMapReaderIface::toBinaryData() const
+QByteArray GameMapReaderIface::toBinaryData(const bool &imageCheck) const
 {
 	QByteArray s;
 	QDataStream stream(&s, QIODevice::WriteOnly);
@@ -218,7 +218,7 @@ QByteArray GameMapReaderIface::toBinaryData() const
 	storagesToStream(stream, ifaceStorages());
 	chaptersToStream(stream, ifaceChapters());
 	missionsToStream(stream, ifaceMissions());
-	imagesToStream(stream, ifaceImages());
+	imagesToStream(stream, ifaceImages(), imageCheck, ifaceMissions(), ifaceStorages());
 
 	return s;
 }
@@ -498,10 +498,82 @@ bool GameMapReaderIface::imagesFromStream(QDataStream &stream)
  * @brief GameMapReaderIface::imagesToStream
  * @param stream
  * @param images
+ * @param check
+ * @param missions
+ * @param storages
  */
 
-void GameMapReaderIface::imagesToStream(QDataStream &stream, const QList<GameMapImageIface *> &images) const
+void GameMapReaderIface::imagesToStream(QDataStream &stream, const QList<GameMapImageIface *> &images,
+										const bool &check, const QList<GameMapMissionIface *> &missions,
+										const QList<GameMapStorageIface *> &storages) const
 {
+	if (check) {
+		LOG_CTRACE("app") << "Check images...";
+
+		QVector<GameMapImageIface *> list;
+		list.reserve(images.size());
+
+		foreach(GameMapImageIface *i, images) {
+			const int &id = i->m_id;
+
+			bool found = false;
+
+			foreach (GameMapMissionIface *m, missions) {
+				foreach (GameMapMissionLevelIface *ml, m->ifaceLevels()) {
+					if (ml->m_image == id) {
+						found = true;
+						break;
+					}
+				}
+
+				if (found)
+					break;
+			}
+
+			if (found) {
+				list.append(i);
+				continue;
+			}
+
+			foreach (GameMapStorageIface *s, storages) {
+				if (s->m_module != QLatin1String("images"))
+					continue;
+
+				const QVariantList &l = s->m_data.value(QStringLiteral("images")).toList();
+				foreach (const QVariant &v, l) {
+					const QVariantMap &m = v.toMap();
+					if (m.contains(QStringLiteral("second")) && m.value(QStringLiteral("second"), -1).toInt() == id) {
+						found = true;
+						break;
+					}
+				}
+
+				if (found)
+					break;
+			}
+
+			if (found) {
+				list.append(i);
+				continue;
+			}
+
+
+			LOG_CTRACE("app") << "- image skipped:" << id;
+		}
+
+
+		stream << (quint32) list.size();
+
+		foreach (GameMapImageIface *i, list) {
+			stream << i->m_id;
+			stream << i->m_data;
+		}
+
+
+		LOG_CTRACE("app") << "...check images finished";
+		return;
+	}
+
 	stream << (quint32) images.size();
 
 	foreach (GameMapImageIface *i, images) {
@@ -576,7 +648,10 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 			stream >> startBlock >> imageFolder;
 		}
 
-		stream >> image >> canDeathmatch >> questions;
+		if (m_version < 15)
+			stream >> image ;
+
+		stream >> canDeathmatch >> questions;
 
 		if (m_version > 13)
 			stream >> passed;
@@ -584,7 +659,12 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 		if (level == -1 || startHP == -1 || duration == -1)
 			return false;
 
-		GameMapMissionLevelIface *m = mission->ifaceAddLevel(level, terrain, startHP, duration, canDeathmatch, questions, passed, image);
+		qint32 imageId = -1;
+
+		if (m_version > 14)
+			stream >> imageId;
+
+		GameMapMissionLevelIface *m = mission->ifaceAddLevel(level, terrain, startHP, duration, canDeathmatch, questions, passed, imageId);
 
 		if (!m)
 			return false;
@@ -771,10 +851,11 @@ void GameMapMissionIface::levelsToStream(QDataStream &stream) const
 		stream << m->m_terrain.toLatin1();
 		stream << m->m_startHP;
 		stream << m->m_duration;
-		stream << m->m_image;
+		//stream << m->m_image;
 		stream << m->m_canDeathmatch;
 		stream << m->m_questions;
 		stream << m->m_passed;
+		stream << m->m_image;
 
 		QList<GameMapChapterIface*> chapters = m->ifaceChapters();
 

@@ -203,7 +203,7 @@ Item {
 								Qaterial.SquareButton
 								{
 									foregroundColor: Qaterial.Colors.red500
-									icon.source: Qaterial.Icons._delete
+									icon.source: Qaterial.Icons.delete_
 									onClicked: editor.missionRemove(mission)
 								}
 							}

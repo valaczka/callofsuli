@@ -26,6 +26,7 @@
 
 #include <emscripten/val.h>
 #include <emscripten/bind.h>
+#include <QtGui/private/qwasmlocalfileaccess_p.h>
 
 
 #include "Logger.h"
@@ -54,6 +55,58 @@ OnlineClient::~OnlineClient()
 {
 
 }
+
+
+
+/**
+ * @brief OnlineClient::wasmLoadFileToFileSystem
+ * @param accept
+ * @param saveFunc
+ * @return
+ */
+
+void OnlineClient::wasmLoadFileToFileSystem(const QString &accept, std::function<void (const QString &, const QByteArray &)> saveFunc)
+{
+	struct LoadFileData {
+		QString name;
+		QByteArray buffer;
+	};
+
+	LoadFileData *fileData = new LoadFileData();
+
+	QWasmLocalFileAccess::openFile(accept.toStdString(),
+								   [](bool fileSelected) {
+		LOG_CDEBUG("client") << "File selected" << fileSelected;
+	},
+	[fileData](uint64_t size, const std::string name) -> char* {
+		fileData->name = QString::fromStdString(name);
+		fileData->buffer.resize(size);
+		return fileData->buffer.data();
+	},
+	[fileData, saveFunc](){
+		QByteArray content = fileData->buffer;
+		QString name = fileData->name;
+		if (saveFunc)
+			saveFunc(name, content);
+		delete fileData;
+	});
+}
+
+
+
+/**
+ * @brief OnlineClient::wasmSaveContent
+ * @param data
+ * @param fileNameHint
+ */
+
+void OnlineClient::wasmSaveContent(const QByteArray &data, const QString &fileNameHint)
+{
+	QWasmLocalFileAccess::saveFile(data.constData(), size_t(data.size()), fileNameHint.toStdString());
+}
+
+
+
 
 
 /**
@@ -172,12 +225,12 @@ void OnlineClient::onAllResourceReady()
 
 void OnlineClient::enableTabCloseConfirmation(bool enable)
 {
-	LOG_CTRACE("client") << "Enable tab close confirmation" << enable;
+	LOG_CDEBUG("client") << "Enable tab close confirmation" << enable;
 
 	using emscripten::val;
 	const val window = val::global("window");
 	const bool capture = true;
-	const val eventHandler = val::module_property("beforeUnloadHandler");
+	const val eventHandler = val::module_property("app_beforeUnloadHandler");
 	if (enable) {
 		window.call<void>("addEventListener", std::string("beforeunload"), eventHandler, capture);
 	} else {
@@ -189,16 +242,16 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 
 
 namespace {
-static emscripten::val beforeUnloadhandler(emscripten::val event) {
-	LOG_CTRACE("client") << "Unload handler";
+void beforeUnloadhandler(emscripten::val event) {
+	LOG_CWARNING("client") << "Unload handler";
 	// Adding this event handler is sufficent to make the browsers display
 	// the confirmation dialog, provided the calls below are also made:
 	event.call<void>("preventDefault"); // call preventDefault as required by standard
 	event.set("returnValue", std::string(" ")); // set returnValue to something, as required by Chrome
-	return emscripten::val("Sure");
+	//return emscripten::val("Sure");
 }
 }
 
 EMSCRIPTEN_BINDINGS(app) {
-	function("beforeUnloadHandler", &beforeUnloadhandler);
+	function("app_beforeUnloadHandler", &beforeUnloadhandler);
 }

@@ -93,7 +93,7 @@ QFormColumn {
 		id: _modeOrder
 		text: qsTr("Párok készítése:")
 
-		combo.width: Math.max(combo.implicitWidth, 200)
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
 
 		field: "mode"
 

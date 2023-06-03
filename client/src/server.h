@@ -61,6 +61,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(User *user READ user CONSTANT)
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
+	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -120,6 +121,9 @@ public:
 	bool temporary() const;
 	void setTemporary(bool newTemporary);
 
+	int maxUploadSize() const;
+	void setMaxUploadSize(int newMaxUploadSize);
+
 signals:
 	void urlChanged();
 	void directoryChanged();
@@ -133,6 +137,8 @@ signals:
 	void rankListChanged();
 	void temporaryChanged();
 
+	void maxUploadSizeChanged();
+
 private:
 	QString m_name;
 	QString m_serverName;
@@ -143,6 +149,7 @@ private:
 	User *const m_user;
 	RankList m_rankList;
 	bool m_temporary = false;
+	int m_maxUploadSize = 0;
 
 #ifndef QT_NO_SSL
 	QList<QSslError::SslError> m_ignoredSslErrors;

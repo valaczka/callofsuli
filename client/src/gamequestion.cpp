@@ -54,7 +54,8 @@ GameQuestion::~GameQuestion()
  * @param data
  */
 
-void GameQuestion::loadQuestion(const QUrl &componentUrl, const QVariantMap &data, const QString &uuid, const QVariantMap &storedAnswer)
+void GameQuestion::loadQuestion(const QString &module, const QUrl &componentUrl,
+								const QVariantMap &data, const QString &uuid, const QVariantMap &storedAnswer)
 {
 	if (m_questionComponent) {
 		Application::instance()->messageError(tr("Már folyamatban van egy kérdés!"), tr("Belső hiba"));
@@ -71,6 +72,7 @@ void GameQuestion::loadQuestion(const QUrl &componentUrl, const QVariantMap &dat
 	setObjectiveUuid(uuid);
 	setQuestionData(data);
 	setStoredAnswer(storedAnswer);
+	setModule(module);
 
 	m_loader->setProperty("source", componentUrl);
 }
@@ -83,7 +85,7 @@ void GameQuestion::loadQuestion(const QUrl &componentUrl, const QVariantMap &dat
 
 void GameQuestion::loadQuestion(const Question &question, const QVariantMap &storedAnswer)
 {
-	loadQuestion(QStringLiteral("qrc:/")+question.qml(), question.generate(), question.uuid(), storedAnswer);
+	loadQuestion(question.module(), QStringLiteral("qrc:/")+question.qml(), question.generate(), question.uuid(), storedAnswer);
 }
 
 
@@ -185,6 +187,16 @@ void GameQuestion::forceDestroy()
 	setEnabled(false);
 	setMsecBeforeHide(0);
 	finish();
+}
+
+const QString &GameQuestion::module() const
+{
+	return m_module;
+}
+
+void GameQuestion::setModule(const QString &newModule)
+{
+	m_module = newModule;
 }
 
 const QVariantMap &GameQuestion::storedAnswer() const

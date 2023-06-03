@@ -29,6 +29,9 @@ QFormColumn {
 		width: parent.width
 		visible: !isNumbers
 
+		field: "items"
+		getData: function() { return text.split("\n") }
+
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
@@ -49,7 +52,7 @@ QFormColumn {
 		id: _modeOrder
 		text: qsTr("Sorrend:")
 
-		combo.width: Math.max(combo.implicitWidth, 200)
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
 
 		field: "mode"
 
@@ -142,12 +145,10 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin])
-
 		if (!isNumbers)
-			d.items = _areaItems.text.split("\n")
-
-		return d
+			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _areaItems])
+		else
+			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin])
 	}
 }
 

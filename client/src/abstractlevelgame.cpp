@@ -48,6 +48,8 @@ AbstractLevelGame::AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissi
 	, m_missionLevel(missionLevel)
 	, m_timerLeft(new QTimer(this))
 {
+	if (m_missionLevel)
+		setMap(m_missionLevel->map());
 	m_timerLeft->setInterval(50);
 	connect(m_timerLeft, &QTimer::timeout, this, &AbstractLevelGame::onTimerLeftTimeout);
 }
@@ -352,21 +354,21 @@ QUrl AbstractLevelGame::backgroundImage() const
 
 	QString d;
 
-	if (!m_missionLevel->image().isEmpty())
-		d = QStringLiteral("image://mapimage/")+m_missionLevel->image();
+	if (m_missionLevel->image() > 0)
+		d = QStringLiteral("image://mapimage/%1").arg(m_missionLevel->image());
 
 	if (d.isEmpty()) {
 		const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
 
 		if (!t.name().isEmpty())
 			d = t.backgroundImage();
-	}
 
-	if (!d.isEmpty()) {
-		if (d.startsWith(QStringLiteral(":")))
-			d.prepend(QStringLiteral("qrc"));
-		else if (!d.startsWith(QStringLiteral("qrc:")))
-			d.prepend(QStringLiteral("qrc:"));
+		if (!d.isEmpty()) {
+			if (d.startsWith(QStringLiteral(":")))
+				d.prepend(QStringLiteral("qrc"));
+			else if (!d.startsWith(QStringLiteral("qrc:")))
+				d.prepend(QStringLiteral("qrc:"));
+		}
 	}
 
 	return d.isEmpty() ? QStringLiteral("qrc:/internal/game/bg.png") : d;

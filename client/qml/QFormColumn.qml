@@ -34,7 +34,7 @@ Column {
 		var o = {}
 
 		for (var i=0; i<_items.length; i++) {
-			o[_items[i].field] = _items[i].getData
+			o[_items[i].field] = _items[i].getData()
 		}
 
 		return o

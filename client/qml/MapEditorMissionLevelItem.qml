@@ -123,10 +123,6 @@ QPage {
 			}
 
 
-			/*
-			Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged)
-			Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged)
-*/
 
 			Row {
 				anchors.left: parent.left
@@ -341,6 +337,32 @@ QPage {
 
 
 
+			Row {
+				anchors.left: parent.left
+
+				visible: mission && (mission.modes & GameMap.Action)
+
+				spacing: 10
+
+				Qaterial.LabelBody2 {
+					text: qsTr("Egyéni háttérkép")
+					anchors.verticalCenter: parent.verticalCenter
+				}
+
+				MapEditorFormImage {
+					editor: root.editor
+					image: missionLevel ? missionLevel.editorImage : null
+
+					anchors.verticalCenter: parent.verticalCenter
+
+					onModified: editor.missionLevelModify(missionLevel, function() {
+						missionLevel.image = id
+					})
+
+				}
+			}
+
+
 
 			Item {
 				width: parent.width
@@ -467,7 +489,7 @@ QPage {
 							QMenuItem { action: actionInventoryAdd }
 							QMenuItem {
 								text: qsTr("Törlés")
-								icon.source: Qaterial.Icons._delete
+								icon.source: Qaterial.Icons.delete_
 								enabled: root._inventoryView
 								onClicked: {
 									if (!editor)
@@ -527,7 +549,7 @@ QPage {
 							id: _inventoryContextMenu
 							QMenuItem {
 								text: qsTr("Törlés")
-								icon.source: Qaterial.Icons._delete
+								icon.source: Qaterial.Icons.delete_
 								onClicked: {
 									if (!editor)
 										return

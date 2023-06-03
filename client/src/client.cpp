@@ -348,6 +348,9 @@ void Client::onApplicationStarted()
 						  { QStringLiteral("loadFile"), QUrl::fromLocalFile(m_application->commandLineData()) }
 					  });
 		break;
+	case Application::Play:
+		loadDemoMap(QUrl::fromLocalFile(m_application->commandLineData()));
+		break;
 	case Application::DevPage:
 		stackPushPage(QStringLiteral("_PageDev.qml"));
 		break;
@@ -470,6 +473,10 @@ void Client::onServerConnected()
 
 		if (json.contains(QStringLiteral("config")) && server())
 			server()->setConfig(json.value(QStringLiteral("config")).toObject());
+
+		if (json.contains(QStringLiteral("uploadLimit")) && server())
+			server()->setMaxUploadSize(json.value(QStringLiteral("uploadLimit")).toInt());
+
 
 		server()->setTemporary(false);
 
@@ -1113,8 +1120,6 @@ void Client::loadClassListFromArray(QJsonArray list)
 
 void Client::parseUrl()
 {
-	LOG_CTRACE("client") << "Parse URL:" << m_parseUrl;
-
 	if (m_parseUrl.isEmpty()) {
 		LOG_CTRACE("client") << "Parse URL empty";
 		return;
@@ -1125,6 +1130,8 @@ void Client::parseUrl()
 		LOG_CERROR("client") << "Can't parse URL, invalid server";
 		return;
 	}
+
+	LOG_CINFO("client") << "Parse URL:" << m_parseUrl;
 
 	if (server()->url().isParentOf(m_parseUrl)) {
 		LOG_CWARNING("client") << "URL parsed successful";
@@ -1473,7 +1480,7 @@ void Client::snack(const QString &text) const
  * @brief Client::loadDemoMap
  */
 
-void Client::loadDemoMap()
+void Client::loadDemoMap(const QUrl &url)
 {
 	if (m_currentGame) {
 		LOG_CERROR("client") << "Game already exists";
@@ -1482,7 +1489,15 @@ void Client::loadDemoMap()
 
 	MapPlayDemo *mapPlay = new MapPlayDemo(this);
 
-	if (!mapPlay->load()) {
+
+	bool success = false;
+
+	if (url.isEmpty())
+		success = mapPlay->load();
+	else
+		success = mapPlay->load(url.toLocalFile());
+
+	if (!success) {
 		delete mapPlay;
 		return;
 	}

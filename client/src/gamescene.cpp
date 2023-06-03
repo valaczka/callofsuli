@@ -245,10 +245,6 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 
 	switch (key) {
 
-	case Qt::Key_F5:
-		m_game->testQuestion();
-		break;
-
 	case Qt::Key_Shift:
 		if (player) player->setMovingFlag(GamePlayer::SlowModifier);
 		break;

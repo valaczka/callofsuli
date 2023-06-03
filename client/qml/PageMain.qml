@@ -59,7 +59,9 @@ QPage {
 		id: stackView
 		anchors.fill: parent
 
-		initialItem: Login { }
+		initialItem: Login {
+			id: _login
+		}
 	}
 
 	Component {

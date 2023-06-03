@@ -8,6 +8,7 @@ Qaterial.TextField {
 	id: root
 
 	property QFormBindingField bindingField: null
+	property var saveData: function(d) { return text }
 
 	readOnly: bindingField && bindingField.readOnly
 
@@ -25,9 +26,6 @@ Qaterial.TextField {
 		text = d
 	}
 
-	function saveData(d) {
-		return text
-	}
 
 	function performGoto() {
 		root.forceActiveFocus()

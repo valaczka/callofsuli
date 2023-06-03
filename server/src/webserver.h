@@ -53,11 +53,14 @@ public:
 
 	Handler *handler() const;
 
+	const HttpServerConfig & configuration() { return m_configuration; }
+
 private:
 	ServerService *const m_service;
 	HttpServer *m_server = nullptr;
 	Handler *const m_handler = nullptr;
 	QString m_redirectHost;
+	HttpServerConfig m_configuration;
 };
 
 #endif // WEBSERVER_H

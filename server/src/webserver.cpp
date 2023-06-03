@@ -43,7 +43,7 @@ WebServer::WebServer(ServerService *service)
 {
 	Q_ASSERT(m_service);
 
-	LOG_CDEBUG("client") << "Socket server created:" << this;
+	LOG_CDEBUG("service") << "Socket server created:" << this;
 
 	/*connect(this, &QWebSocketServer::acceptError, this, &WebSocketServer::onAcceptError);
 	connect(this, &QWebSocketServer::newConnection, this, &WebSocketServer::onNewConnection);
@@ -60,8 +60,12 @@ WebServer::WebServer(ServerService *service)
 
 WebServer::~WebServer()
 {
+	if (m_server)
+		delete m_server;
+
 	delete m_handler;
-	LOG_CDEBUG("client") << "Web socket server destroyed";
+
+	LOG_CDEBUG("service") << "Web socket server destroyed";
 }
 
 
@@ -71,29 +75,27 @@ bool WebServer::start()
 {
 	ServerSettings *settings = m_service->settings();
 
-	HttpServerConfig configuration;
-	configuration.host = settings->listenAddress();
-	configuration.port = settings->listenPort();
-	configuration.maxRequestSize = 1 * 1024 * 1024;
-	//configuration.verbosity = HttpServerConfig::Verbose::All;
+	m_configuration.host = settings->listenAddress();
+	m_configuration.port = settings->listenPort();
+	m_configuration.maxRequestSize = settings->maxRequestSize();
+	//configuration.verbosity = HttpServerConfig::Verbose::Info;
 
-	configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");
+	m_configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");
 
 	if (settings->ssl()) {
-		configuration.sslCertPath = settings->dataDir().absoluteFilePath(settings->certFile());
-		configuration.sslKeyPath = settings->dataDir().absoluteFilePath(settings->certKeyFile());
+		m_configuration.sslCertPath = settings->dataDir().absoluteFilePath(settings->certFile());
+		m_configuration.sslKeyPath = settings->dataDir().absoluteFilePath(settings->certKeyFile());
 	}
 
-	m_server = new HttpServer(configuration, m_handler, this);
+	m_server = new HttpServer(m_configuration, m_handler, this);
 
 	if (!m_server->listen())	{
-		LOG_CERROR("client") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
+		LOG_CERROR("service") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
 		return false;
 	}
 
-
-	LOG_CINFO("client") << tr("A szerver elindult, elérhető a következő címeken:");
-	LOG_CINFO("client") << tr("====================================================");
+	LOG_CINFO("service") << tr("A szerver elindult, elérhető a következő címeken:");
+	LOG_CINFO("service") << tr("====================================================");
 
 	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
 		if (!h.isGlobal())
@@ -107,7 +109,7 @@ bool WebServer::start()
 			u.setHost(h.toString());
 			u.setPort(settings->listenPort());
 
-			LOG_CINFO("client") << u.toString();
+			LOG_CINFO("service") << u.toString();
 
 			if (m_redirectHost.isEmpty())
 				setRedirectHost(h.toString());
@@ -115,7 +117,7 @@ bool WebServer::start()
 
 	}
 
-	LOG_CINFO("client") << tr("====================================================");
+	LOG_CINFO("service") << tr("====================================================");
 
 	return true;
 }

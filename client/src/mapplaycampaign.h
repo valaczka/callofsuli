@@ -59,11 +59,16 @@ protected:
 	virtual void onCurrentGamePrepared() override;
 	virtual void onCurrentGameFinished() override;
 
+private slots:
+	void onUpdateTimerTimeout();
+
 private:
 	void destroyCurrentGame();
 
 	QPointer<StudentMapHandler> m_handler = nullptr;
 	QPointer<Campaign> m_campaign = nullptr;
+	QTimer m_updateTimer;
+	int m_lastXP = -1;
 };
 
 

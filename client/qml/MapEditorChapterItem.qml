@@ -139,7 +139,7 @@ Qaterial.Expandable {
 				}
 				QMenuItem {
 					text: qsTr("Törlés")
-					icon.source: Qaterial.Icons._delete
+					icon.source: Qaterial.Icons.delete_
 					enabled: _objectiveView && editor && chapter
 					onClicked: {
 						let l = _objectiveView.getSelected()
@@ -310,7 +310,7 @@ Qaterial.Expandable {
 	Action {
 		id: actionChapterDelete
 		text: qsTr("Törlés")
-		icon.source: Qaterial.Icons._delete
+		icon.source: Qaterial.Icons.delete_
 		onTriggered: if (editor) editor.chapterRemove(chapter)
 	}
 }

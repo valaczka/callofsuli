@@ -238,7 +238,7 @@ void GamePickable::pick(ActionGame *game)
 		if (!pickableDataDetails(m_pickableData.type).icon.isEmpty()) {
 			auto d = pickableDataDetails(m_pickableData.type);
 			game->toolAdd(m_pickableData.type);
-			game->message(tr("1 %1 gained").arg(d.messageName.isEmpty() ? d.name : d.messageName), QStringLiteral("#9c27b0"));
+			game->message(tr("1 %1 gained").arg(d.messageName.isEmpty() ? d.name : d.messageName), d.iconColor);
 		} else {
 			LOG_CWARNING("game") << "Can't pick type:" << m_pickableData.type;
 		}

@@ -32,6 +32,10 @@
 #include "abstractlevelgame.h"
 #include "gameterrain.h"
 
+#ifdef Q_OS_WASM
+#include "onlineclient.h"
+#endif
+
 const QString MapEditor::m_backupSuffix = QStringLiteral(".autosave");
 
 /**
@@ -125,12 +129,13 @@ void MapEditor::createFile()
 
 
 
+
 /**
  * @brief MapEditor::saveAs
  * @param file
  */
 
-void MapEditor::saveAs(const QUrl &file)
+void MapEditor::saveAs(const QUrl &file, const bool &createNew)
 {
 	const QString &fname = file.toLocalFile();
 
@@ -140,7 +145,21 @@ void MapEditor::saveAs(const QUrl &file)
 	if (!m_map)
 		return onSaved(false);
 
-	const QByteArray &data = m_map->toBinaryData();
+	QByteArray data = m_map->toBinaryData(true);
+
+	if (createNew) {
+		GameMap *m = GameMap::fromBinaryData(data);
+
+		if (!m)
+			return m_client->messageError(tr("Hiba történt"));
+
+		m->regenerateUuids();
+
+		data = m->toBinaryData(true);
+
+		delete m;
+	}
+
 
 	QFile f(fname);
 
@@ -153,17 +172,106 @@ void MapEditor::saveAs(const QUrl &file)
 
 	f.close();
 
-	if (!m_currentBackupName.isEmpty())
-		QFile::remove(m_currentBackupName);
+	if (!createNew) {
+		if (!m_currentBackupName.isEmpty())
+			QFile::remove(m_currentBackupName);
 
-	m_currentFileName = fname;
-	m_currentBackupName = file.toLocalFile().append(m_backupSuffix);
+		m_currentFileName = fname;
+		m_currentBackupName = file.toLocalFile().append(m_backupSuffix);
 
-	setFileDisplayName();
+		setFileDisplayName();
 
-	onSaved(true);
+		onSaved(true);
+
+	}
 }
 
+
+
+
+/**
+ * @brief MapEditor::wasmSaveAs
+ * @param createNew
+ */
+
+#ifdef Q_OS_WASM
+
+void MapEditor::wasmSaveAs(const bool &createNew)
+{
+	QByteArray data = m_map->toBinaryData(true);
+
+	if (createNew) {
+		GameMap *m = GameMap::fromBinaryData(data);
+
+		if (!m)
+			return m_client->messageError(tr("Hiba történt"));
+
+		m->regenerateUuids();
+
+		data = m->toBinaryData(true);
+
+		delete m;
+	}
+
+
+	OnlineClient *client = dynamic_cast<OnlineClient*>(m_client);
+
+	if (!client)
+		return;
+
+	client->wasmSaveContent(data, m_displayName);
+}
+
+
+
+
+
+/**
+ * @brief MapEditor::wasmUploadImage
+ */
+
+void MapEditor::wasmUploadImage(QJSValue uploadFunc)
+{
+	if (!m_map)
+		return;
+
+
+	OnlineClient *client = dynamic_cast<OnlineClient*>(m_client);
+
+	if (!client)
+		return;
+
+	client->wasmLoadFileToFileSystem(QStringLiteral("*"),
+									 [uploadFunc, this](const QString &name, const QByteArray &content) mutable {
+		LOG_CDEBUG("client") << "Upload image:" << qPrintable(name);
+
+		if (!m_map)
+			return;
+
+		if (!uploadFunc.isCallable())
+			return;
+
+		QJSEngine *engine = qjsEngine(m_client);
+
+		if (!engine)
+			return;
+
+		MapEditorImage *i = new MapEditorImage(m_map);
+		i->setId(m_map->nextIndexImage());
+		i->setData(content);
+		m_map->imageList()->append(i);
+
+		QJSValueList list;
+
+		list = {engine->toScriptValue<MapEditorImage *>(i)};
+
+		uploadFunc.call(list);
+	});
+
+
+}
+
+#endif
 
 
 /**
@@ -259,17 +367,17 @@ QStringList MapEditor::checkMap() const
 	for (MapEditorMission *m : *m_map->missionList()) {
 		for (MapEditorMissionLevel *ml : *m->levelList()) {
 			if (!GameTerrain::terrainAvailable(ml->terrain()))
-					errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
-					.arg(ml->terrain())
-					.arg(ml->editorMission()->name())
-					.arg(ml->level()));
+				errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
+							   .arg(ml->terrain())
+							   .arg(ml->editorMission()->name())
+							   .arg(ml->level()));
 
 			for (MapEditorInventory *i : *ml->inventoryList()) {
 				if (!GamePickable::pickableDataHash().contains(i->module()))
 					errList.append(tr("Érvénytelen felszerelés: %1 (%2 level %3)")
-					.arg(i->module())
-					.arg(ml->editorMission()->name())
-					.arg(ml->level()));
+								   .arg(i->module())
+								   .arg(ml->editorMission()->name())
+								   .arg(ml->level()));
 			}
 		}
 	}
@@ -281,15 +389,15 @@ QStringList MapEditor::checkMap() const
 		for (MapEditorObjective *o : *ch->objectiveList()) {
 			if (!Application::instance()->objectiveModules().contains(o->module()))
 				errList.append(tr("Érvénytelen modul: %1 (%2 feladatcsoport)")
-										.arg(o->module())
-										.arg(ch->name()));
+							   .arg(o->module())
+							   .arg(ch->name()));
 		}
 	}
 
 	for (MapEditorStorage *s : *m_map->storageList()) {
 		if (!Application::instance()->storageModules().contains(s->module()))
 			errList.append(tr("Érvénytelen adatbank modul: %1")
-									.arg(s->module()));
+						   .arg(s->module()));
 	}
 
 
@@ -486,7 +594,7 @@ void MapEditor::onSaveRequestFile()
 	if (!m_map)
 		return onSaved(false);
 
-	const QByteArray &data = m_map->toBinaryData();
+	const QByteArray &data = m_map->toBinaryData(true);
 
 	QFile f(m_currentFileName);
 
@@ -519,7 +627,7 @@ void MapEditor::onAutoSaveRequestFile()
 	if (!m_map)
 		return onAutoSaved(false);
 
-	const QByteArray &data = m_map->toBinaryData();
+	const QByteArray &data = m_map->toBinaryData(true);
 
 	QFile f(m_currentBackupName);
 
@@ -855,6 +963,35 @@ QVariantList MapEditor::terrainListModel() const
 	}
 
 	return list;
+}
+
+
+
+/**
+ * @brief MapEditor::uploadImage
+ * @param url
+ * @return
+ */
+
+MapEditorImage *MapEditor::uploadImage(const QUrl &url)
+{
+	if (!m_map)
+		return nullptr;
+
+	bool err = false;
+	const QByteArray &data = Utils::fileContent(url.toLocalFile(), &err);
+
+	if (err) {
+		m_client->messageError(tr("Nem olvasható a fájl:\n").arg(url.toLocalFile()));
+		return nullptr;
+	}
+
+	MapEditorImage *i = new MapEditorImage(m_map);
+	i->setId(m_map->nextIndexImage());
+	i->setData(data);
+
+	m_map->imageList()->append(i);
+	return i;
 }
 
 
@@ -1771,8 +1908,16 @@ void MapEditor::objectiveModify(MapEditorObjective *objective, MapEditorStorage 
 
 		MapEditorObjective *o = action->map()->objective(action->data().value(QStringLiteral("uuid")).toString());
 
-		if (o)
+		if (o) {
 			o->fromVariantMap(action->data().value(QStringLiteral("objectiveTo")).toMap(), true);
+
+			MapEditorChapter *ch = action->map()->chapter(o);
+
+			if (ch) {
+				ch->recalculateObjectiveCount();
+				ch->recalculateStorageCount();
+			}
+		}
 	});
 	action->setUndoFunc([action]{
 		if (!action->map())
@@ -1787,8 +1932,16 @@ void MapEditor::objectiveModify(MapEditorObjective *objective, MapEditorStorage 
 
 		MapEditorObjective *o = action->map()->objective(action->data().value(QStringLiteral("uuid")).toString());
 
-		if (o)
+		if (o) {
 			o->fromVariantMap(action->data().value(QStringLiteral("objectiveFrom")).toMap(), true);
+
+			MapEditorChapter *ch = action->map()->chapter(o);
+
+			if (ch) {
+				ch->recalculateObjectiveCount();
+				ch->recalculateStorageCount();
+			}
+		}
 
 	});
 
@@ -2140,7 +2293,7 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 		if (!maxLevel || ml->level()>maxLevel->level())
 			maxLevel = ml;
 
-	MapEditorMissionLevel *level = mission->createNextLevel();
+	MapEditorMissionLevel *level = mission->createNextLevel(m_map);
 
 	const GameTerrain &t = getNextTerrain(maxLevel ? maxLevel->terrain() : QLatin1String(""));
 
@@ -2166,10 +2319,7 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 		if (!m)
 			return;
 
-		MapEditorMissionLevel *ml = m->createNextLevel();
-
-		if (!ml)
-			return;
+		MapEditorMissionLevel *ml = new MapEditorMissionLevel(m);
 
 		ml->fromVariantMap(action->data());
 

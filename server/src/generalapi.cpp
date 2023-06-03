@@ -81,6 +81,7 @@ void GeneralAPI::config(const QRegularExpressionMatch &, const QJsonObject &, QP
 	r.insert(QStringLiteral("name"), m_service->serverName());
 	r.insert(QStringLiteral("versionMajor"), m_service->versionMajor());
 	r.insert(QStringLiteral("versionMinor"), m_service->versionMinor());
+	r.insert(QStringLiteral("uploadLimit"), m_service->webServer()->configuration().maxRequestSize);
 	r.insert(QStringLiteral("config"), c);
 
 	responseAnswer(response, r);

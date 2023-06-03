@@ -97,6 +97,7 @@ public:
 
 	GamePickable *pickable() const;
 
+	void resetKillStreak();
 	void killAllEnemy();
 
 	Q_INVOKABLE int toolCount(const GamePickable::PickableType &type) const;
@@ -108,8 +109,6 @@ public:
 	Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
 	const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
 
-
-	Q_INVOKABLE void testQuestion();
 
 public slots:
 	void onPlayerDied(GameEntity *);
@@ -171,6 +170,8 @@ private:
 	QHash<GamePickable::PickableType, int> m_tools;
 
 	int m_timeNotifySendNext = -1;
+
+	int m_killStreak = 0;
 };
 
 

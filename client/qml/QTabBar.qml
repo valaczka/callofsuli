@@ -11,7 +11,9 @@ Qaterial.TabBar
 
 	property alias model: tabBarModel
 
-	accentColor: Qaterial.Style.iconColor()
+	accentColor: Qaterial.Style.accentColor
+
+	highlightItem: null
 
 	Repeater
 	{
@@ -34,8 +36,9 @@ Qaterial.TabBar
 			spacing: 4
 			display: (index === control.currentIndex) ? AbstractButton.TextUnderIcon : AbstractButton.IconOnly
 			font: Qaterial.Style.textTheme.buttonTab
-			foregroundColor: model.color ? model.color :
-										   (index === control.currentIndex) ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
+			foregroundColor: (index === control.currentIndex)
+							 ? (model.color ? model.color : Qaterial.Style.accentColor)
+							 : Qaterial.Style.disabledTextColor()
 		}
 	}
 }

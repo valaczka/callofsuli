@@ -50,12 +50,12 @@ MapPlayDemo::~MapPlayDemo()
  * @return
  */
 
-bool MapPlayDemo::load()
+bool MapPlayDemo::load(const QString &map)
 {
 	if (!m_client)
 		return false;
 
-	if (!loadFromFile(QStringLiteral(":/internal/game/demo.map"))) {
+	if (!loadFromFile(map)) {
 		m_client->messageWarning(tr("Nem lehet betölteni a demó pályát!"), tr("Belső hiba"));
 		return false;
 	}

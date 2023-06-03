@@ -1,132 +1,116 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtGraphicalEffects 1.0
 import CallOfSuli 1.0
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 
+ListView {
+	id: root
 
-Item {
-	id: control
+	interactive: false
 
-	readonly property int itemHeight: 24
-	property real maximumHeight: implicitMaximumHeight
+	clip: false
 
-	implicitWidth: 450
-	readonly property real implicitMaximumHeight: 5*itemHeight+view.anchors.topMargin+view.anchors.bottomMargin
+	height: contentHeight
 
+	Behavior on height {
+		NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
+	}
 
-	height: Math.floor((maximumHeight-view.anchors.topMargin-view.anchors.bottomMargin)/itemHeight)
-			*itemHeight
-			+view.anchors.topMargin+view.anchors.bottomMargin
+	model: ListModel {
+		id: _model
+	}
 
-	ListView {
-		id: view
+	delegate: Item {
+		id: _item
 
-		interactive: false
+		width: root.width
+		height: _label.height*_rect.scale+3
 
-		anchors.fill: parent
-		anchors.leftMargin: 7
-		anchors.rightMargin: 10
-		anchors.topMargin: 5
-		anchors.bottomMargin: 5
+		required property string textColor
+		required property string message
+		required property int index
 
-		clip: true
-
-		model: ListModel {
-			id: messageModel
-		}
-
-		delegate: Rectangle {
-			id: item
-			width: view.width
-			height: itemHeight
-
-			color: "#22000000"
+		Rectangle {
+			id: _rect
+			color: "#AACCCCCC"
 			radius: 5
 
-			required property string textColor
-			required property string message
+			width: _label.width
+			height: _label.height
 
+			anchors.centerIn: parent
 
-			Label {
-				id: lbl
+			Qaterial.LabelBody1 {
+				id: _label
 
-				width: parent.width
-				anchors.verticalCenter: parent.verticalCenter
+				width: Math.min(implicitWidth, _item.width/1.5)
+				anchors.centerIn: parent
 
-				leftPadding: 2
-				rightPadding: 2
+				leftPadding: 8
+				rightPadding: 8
+				topPadding: 2
+				bottomPadding: 2
 
-				font: Qaterial.Style.textTheme.subtitle2
+				color: _item.textColor
 
-				color: item.textColor
-
-				text: item.message
+				text: _item.message
 				elide: Text.ElideRight
 				style: Text.Outline
 				styleColor: Qaterial.Colors.black
 			}
+		}
 
+		SequentialAnimation {
+			running: true
 
-			/*DropShadow {
-				anchors.fill: lbl
-				source: lbl
-				color: Client.Utils.colorSetAlpha("black", 0.6)
-				radius: 1
-				spread: 0.5
-				samples: 3
-				verticalOffset: 1
-				horizontalOffset: 1
-			}*/
+			PropertyAnimation {
+				target: _rect
+				property: "scale"
+				from: 1.0
+				to: 1.5
+				duration: 250
+				easing.type: Easing.OutQuart
+			}
 
-			Timer {
-				property int chNum: 0
-				running: chNum < 6
-				repeat: true
-				interval: 300
-				onTriggered: {
-					++chNum
-					if (chNum % 2) {
-						lbl.color = item.textColor
-					} else {
-						lbl.color = Qt.lighter(item.textColor, 1.1)
-					}
+			PauseAnimation {
+				duration: 1250
+			}
 
-				}
+			PropertyAnimation {
+				target: _rect
+				property: "scale"
+				to: 1.0
+				duration: 750
+				easing.type: Easing.InQuart
+			}
+
+			PauseAnimation {
+				duration: 1250
+			}
+
+			ScriptAction {
+				script: _model.remove(_item.index)
 			}
 		}
 
-		snapMode: ListView.SnapToItem
 
-		remove: Transition {
-			NumberAnimation { property: "opacity"; to: 0; duration: 250}
-		}
 
-		removeDisplaced: Transition {
-			NumberAnimation { properties: "x,y"; duration: 600 }
-		}
 	}
 
+	remove: Transition {
+		NumberAnimation { property: "opacity"; to: 0; duration: 250}
+	}
 
-	Timer {
-		id: timerRemove
-		running: messageModel.count
-		repeat: true
-
-		interval: 5000
-
-		onTriggered: messageModel.remove(0)
-
+	removeDisplaced: Transition {
+		NumberAnimation { properties: "x,y"; duration: 600 }
 	}
 
 
 	function message(text, colorCode) {
-		messageModel.append({
+		_model.append({
 								message: text,
 								textColor: String(colorCode)
 							})
-
-		view.positionViewAtIndex(messageModel.count - 1, ListView.End)
 	}
 }

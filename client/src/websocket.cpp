@@ -305,7 +305,14 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return nullptr;
+		return new WebSocketReply(QNetworkReply::InternalServerError);
+	}
+
+	const QByteArray &content = QJsonDocument(data).toJson();
+
+	if (m_server->maxUploadSize() > 0 && content.size() >= m_server->maxUploadSize()) {
+		m_client->messageError(tr("Az üzenet túl nagy méretű"), tr("Hálózati hiba"));
+		return new WebSocketReply(QNetworkReply::InternalServerError);
 	}
 
 	QNetworkRequest r(getUrl(api, path));
@@ -324,7 +331,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
 
-	QNetworkReply *reply = m_networkManager->post(r, QJsonDocument(data).toJson());
+	QNetworkReply *reply = m_networkManager->post(r, content);
 
 	LOG_CTRACE("websocket") << "SEND:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
 
@@ -349,7 +356,12 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return nullptr;
+		return new WebSocketReply(QNetworkReply::InternalServerError);
+	}
+
+	if (m_server->maxUploadSize() > 0 && content.size() >= m_server->maxUploadSize()) {
+		m_client->messageError(tr("Az üzenet túl nagy méretű"), tr("Hálózati hiba"));
+		return new WebSocketReply(QNetworkReply::InternalServerError);
 	}
 
 	QNetworkRequest r(getUrl(api, path));
@@ -618,6 +630,21 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 }
 
 
+
+/**
+ * @brief WebSocketReply::WebSocketReply
+ * @param error
+ */
+
+WebSocketReply::WebSocketReply(const QNetworkReply::NetworkError &error, QObject *parent)
+	: QObject(parent)
+{
+	LOG_CTRACE("websocket") << "WebSocketReply created" << error << this;
+
+	QMetaObject::invokeMethod(this, "onErrorPresent", Qt::QueuedConnection, Q_ARG(const QNetworkReply::NetworkError &, error));
+}
+
+
 /**
  * @brief WebSocketReply::~WebSocketReply
  */
@@ -629,8 +656,8 @@ WebSocketReply::~WebSocketReply()
 		m_socket->checkPending();
 	}
 
-	if (m_reply)
-		m_reply->deleteLater();
+	if (m_reply.data())
+		m_reply.data()->deleteLater();
 
 	LOG_CTRACE("websocket") << "WebSocketReply destroyed" << this;
 }
@@ -649,12 +676,14 @@ void WebSocketReply::abort()
 
 	LOG_CTRACE("websocket") << "Abort" << this;
 
-	if (m_reply && !m_reply->isFinished() && m_reply->error() == QNetworkReply::NoError)
-		m_reply->abort();
+	//if (m_reply && !m_reply->isFinished() && m_reply->error() == QNetworkReply::NoError)
+	//	m_reply->abort();
 
 	emit finished();
 
-	close();
+	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+
+	//close();
 }
 
 
@@ -699,8 +728,11 @@ void WebSocketReply::onReplyFinished()
 		foreach (const std::function<void (const QNetworkReply::NetworkError &)> &func, m_funcsError)
 			func(error);
 
-		foreach (QJSValue v, m_jsvaluesError)
+		foreach (QJSValue v, m_jsvaluesError) {
 			v.call({error});
+		}
+
+		QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
 
 		return;
 	}
@@ -740,8 +772,9 @@ void WebSocketReply::onReplyFinished()
 		else
 			LOG_CERROR("websocket") << "Invalid JSEngine";
 
-		foreach (QJSValue v, m_jsvalues)
+		foreach (QJSValue v, m_jsvalues) {
 			v.call(list);
+		}
 	} else {
 		LOG_CWARNING("websocket") << "Response error:" << errorString << this;
 
@@ -750,11 +783,35 @@ void WebSocketReply::onReplyFinished()
 		foreach (const std::function<void (const QString &)> &func, m_funcsFail)
 			func(errorString);
 
-		foreach (QJSValue v, m_jsvaluesFail)
+		foreach (QJSValue v, m_jsvaluesFail) {
 			v.call({errorString});
+		}
 	}
 
 	emit finished();
+
+	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+}
+
+
+
+/**
+ * @brief WebSocketReply::onErrorPresent
+ * @param error
+ */
+
+void WebSocketReply::onErrorPresent(const QNetworkReply::NetworkError &error)
+{
+	LOG_CWARNING("websocket") << "WebSocketReply error" << error << this;
+
+	emit finished();
+
+	foreach (const std::function<void (const QNetworkReply::NetworkError &)> &func, m_funcsError)
+		func(error);
+
+	foreach (QJSValue v, m_jsvaluesError) {
+		v.call({error});
+	}
 
 	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
 }

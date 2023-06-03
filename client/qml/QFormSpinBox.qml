@@ -8,7 +8,7 @@ Row {
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
 	property string field: ""
 	property int fieldData: -1
-	readonly property alias getData: _spin.value
+	property var getData: function() { return _spin.value }
 
 	property alias spin: _spin
 	property alias label: _label

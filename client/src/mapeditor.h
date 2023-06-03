@@ -62,7 +62,13 @@ public:
 	bool loadFromBinaryData(const QByteArray &data);
 
 	Q_INVOKABLE void createFile();
-	Q_INVOKABLE void saveAs(const QUrl &file);
+	Q_INVOKABLE void saveAs(const QUrl &file, const bool &createNew = false);
+
+#ifdef Q_OS_WASM
+	Q_INVOKABLE void wasmSaveAs(const bool &createNew = false);
+	Q_INVOKABLE void wasmUploadImage(QJSValue uploadFunc);
+#endif
+
 	Q_INVOKABLE void openFile(const QUrl &file, const bool &fromBackup = false);
 	Q_INVOKABLE bool hasBackup(const QUrl &file) const;
 	Q_INVOKABLE QUrl currentFolder() const;
@@ -90,6 +96,7 @@ public:
 	Q_INVOKABLE QVariantList storageListAllModel() const;
 	Q_INVOKABLE QVariantList terrainListModel() const;
 
+	Q_INVOKABLE MapEditorImage *uploadImage(const QUrl &url);
 
 	Q_INVOKABLE MapEditorMission* missionAdd(const QString &name = QString());
 	Q_INVOKABLE void missionRemove(MapEditorMission *mission);

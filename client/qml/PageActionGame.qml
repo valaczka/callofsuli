@@ -625,8 +625,6 @@ Page {
 					cosClient.setSetting("game/joystickSize", joystick.size)
 				})
 				d.open()*/
-
-				game.testQuestion()
 			}
 		}
 		/*
@@ -684,13 +682,11 @@ Page {
 	GameMessageList {
 		id: messageList
 
-		anchors.left: parent.left
-		anchors.top: parent.top
-		anchors.leftMargin: Client.safeMarginLeft
-		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
+		anchors.horizontalCenter: parent.horizontalCenter
 
-		width: Math.min(implicitWidth, control.width*0.55)
-		maximumHeight: Math.min(implicitMaximumHeight, control.height*0.25)
+		y: parent.height*0.33
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
 
 		visible: !gameScene.zoomOverview && itemsVisible
 	}
@@ -701,8 +697,9 @@ Page {
 		visible: itemsVisible
 
 		anchors.left: parent.left
-		anchors.top: messageList.bottom
+		anchors.top: parent.top
 		anchors.margins: 5
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
 
 		GameButton {

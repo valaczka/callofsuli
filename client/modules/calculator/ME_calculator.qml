@@ -1,342 +1,205 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import COS.Client 1.0
-import "."
-import "Style"
+import Qaterial 1.0 as Qaterial
+import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 
-Loader {
-	id: ldr
+QFormColumn {
+	id: root
 	width: parent.width
 
-	property MapEditor mapEditor: null
+	property Item objectiveEditor: null
+	property MapEditorStorage storage: null
+	property MapEditorObjective objective: null
 
-	property var moduleData: ({})
-	property var storageData: ({})
-	property string storageModule: ""
-	property int storageCount: 0
+	spacing: 10
 
-	signal modified()
+	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	Component {
-		id: cmpDefault
-
-		QGridLayout {
-			id: layoutDefault
-
-			watchModification: true
-			onModifiedChanged: if (layoutDefault.modified)
-								   ldr.modified()
+	readonly property bool isPlusminus: storage && storage.module == "plusminus"
+	readonly property bool isNumbers: storage && storage.module == "numbers"
 
 
-			QGridLabel { field: textQuestion }
+	QFormTextField {
+		id: _question
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		helperText: isNumbers ? qsTr("A \%1 jelöli a generált elem helyét") : ""
+		text: isNumbers ? "%1" : ""
+		field: "question"
+		width: parent.width
+		visible: !isPlusminus
 
-			QGridTextField {
-				id: textQuestion
-				fieldName: qsTr("Kérdés")
-				sqlField: "question"
-				placeholderText: qsTr("Ez a kérdés fog megjelenni")
-			}
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
-			QGridLabel { field: textAnswer }
+	QFormTextField {
+		id: _answer
+		title: qsTr("Numerikus válasz")
+		placeholderText: qsTr("Helyes válasz (szám)")
+		field: "answer"
+		width: parent.width
+		visible: !isPlusminus && !isNumbers
 
-			QGridTextField {
-				id: textAnswer
-				fieldName: qsTr("Numerikus válasz")
-				sqlField: "answer"
-				sqlData: acceptableInput ? Number(text) : 0
-				placeholderText: qsTr("Helyes válasz (szám)")
+		getData: function() { return Number(text) }
 
-				IntValidator {
-					id: validatorInt
-					bottom: -999999
-					top: 999999
-				}
-
-				DoubleValidator {
-					id: validatorDouble
-					bottom: -999999
-					top: 999999
-					decimals: 4
-					notation: DoubleValidator.StandardNotation
-					locale: "en_US"
-				}
-
-				validator: chDecimals.checked ? validatorDouble : validatorInt
-
-				inputMethodHints: chDecimals.checked ? Qt.ImhFormattedNumbersOnly : Qt.ImhDigitsOnly
-			}
-
-			QGridLabel { field: textSuffix }
-
-			QGridTextField {
-				id: textSuffix
-				fieldName: qsTr("Mértékegység")
-				sqlField: "suffix"
-				placeholderText: qsTr("Mértékegység (opcionális)")
-			}
-
-
-			QGridCheckBox {
-				id: chDecimals
-				text: qsTr("Tizedes számok engedélyezése")
-				sqlField: "decimals"
-			}
-
-			Component.onCompleted: {
-				if (!moduleData)
-					return
-
-				JS.setSqlFields([textQuestion, textAnswer, chDecimals, textSuffix], moduleData)
-			}
-
-
-			function getData() {
-				moduleData = JS.getSqlFields([textQuestion, textAnswer, chDecimals, textSuffix])
-
-				return moduleData
-			}
+		IntValidator {
+			id: _validatorInt
+			bottom: -999999
+			top: 999999
 		}
 
-	}
-
-	Component {
-		id: cmpPlusminus
-
-		Column {
-			QGridLayout {
-				id: layout
-
-				watchModification: true
-				onModifiedChanged: if (layout.modified)
-									   ldr.modified()
-
-				QGridText {
-					text: qsTr("Művelet:")
-					field: comboSubtract
-				}
-
-				QGridComboBox {
-					id: comboSubtract
-					sqlField: "subtract"
-
-					valueRole: "value"
-					textRole: "text"
-
-					model: [
-						{value: false, text: qsTr("Összeadás")},
-						{value: true, text: qsTr("Kivonás")},
-					]
-
-					onActivated: preview.refresh()
-
-				}
-
-
-
-				QGridText {
-					text: qsTr("Tartomány:")
-					field: comboRange
-				}
-
-				QGridComboBox {
-					id: comboRange
-					sqlField: "range"
-
-					valueRole: "value"
-					textRole: "text"
-
-					model: [
-						{value: 1, text: qsTr("0-10 között")},
-						{value: 2, text: qsTr("0-20 között")},
-						{value: 3, text: qsTr("0-50 között")},
-						{value: 4, text: qsTr("0-100 között")}
-					]
-
-					onActivated: preview.refresh()
-
-				}
-
-
-
-				QGridText {
-					text: qsTr("Negatív számok:")
-					field: comboNegative
-				}
-
-				QGridComboBox {
-					id: comboNegative
-					sqlField: "canNegative"
-
-					valueRole: "value"
-					textRole: "text"
-
-					model: [
-						{value: 0, text: qsTr("Semmi sem lehet negatív")},
-						{value: 1, text: qsTr("Az eredmény lehet negatív")},
-						{value: 2, text: qsTr("Az eredmény és a feladat is lehet negatív")},
-					]
-
-					onActivated: preview.refresh()
-				}
-
-
-
-				QGridText {
-					text: qsTr("Feladatok száma:")
-					field: spinCount
-				}
-
-				QGridSpinBox {
-					id: spinCount
-					from: 1
-					to: 99
-					editable: true
-
-					onValueModified: storageCount = value
-				}
-			}
-
-
-			MapEditorObjectivePreview {
-				id: preview
-
-				refreshFunc: function() { return mapEditor.objectiveGeneratePreview("calculator", getData(), storageModule, storageData) }
-
-				Connections {
-					target: ldr
-					function onStorageDataChanged() {
-						preview.refresh()
-					}
-				}
-			}
-
-
-			Component.onCompleted: {
-				if (!moduleData)
-					return
-
-				JS.setSqlFields([comboSubtract, comboRange, comboNegative], moduleData)
-				spinCount.setData(storageCount)
-
-			}
-
-			function getData() {
-				moduleData = JS.getSqlFields([comboSubtract, comboRange, comboNegative])
-
-				return moduleData
-			}
-		}
-	}
-
-
-
-
-	Component {
-		id: cmpNumbers
-
-		Column {
-			QGridLayout {
-				id: layoutNumbers
-
-				watchModification: true
-				onModifiedChanged: if (layoutNumbers.modified)
-									   ldr.modified()
-
-
-				QGridLabel { field: textQuestionN }
-
-				QGridTextField {
-					id: textQuestionN
-					fieldName: qsTr("Kérdés")
-					sqlField: "question"
-					placeholderText: qsTr("A kérdés formátuma (%1 helyettesíti a bal oldalról választott elemet)")
-					text: "%1"
-
-					onTextModified: previewN.refresh()
-				}
-
-				QGridText {
-					text: qsTr("Feladatok száma:")
-					field: spinCountN
-				}
-
-				QGridSpinBox {
-					id: spinCountN
-					from: 1
-					to: 99
-					editable: true
-
-					onValueModified: storageCount = value
-				}
-
-				QGridLabel { field: textSuffixN }
-
-				QGridTextField {
-					id: textSuffixN
-					fieldName: qsTr("Mértékegység")
-					sqlField: "suffix"
-					placeholderText: qsTr("Mértékegység (opcionális)")
-					onTextModified: previewN.refresh()
-				}
-			}
-
-			MapEditorObjectivePreview {
-				id: previewN
-
-				refreshFunc: function() { return mapEditor.objectiveGeneratePreview("calculator", getData(), storageModule, storageData) }
-
-				Connections {
-					target: ldr
-					function onStorageDataChanged() {
-						previewN.refresh()
-					}
-				}
-			}
-
-
-
-			Component.onCompleted: {
-				if (!moduleData)
-					return
-
-				JS.setSqlFields([textQuestionN, textSuffixN], moduleData)
-				spinCountN.setData(storageCount)
-
-			}
-
-			function getData() {
-				moduleData = JS.getSqlFields([textQuestionN, textSuffixN])
-
-				return moduleData
-			}
+		DoubleValidator {
+			id: _validatorDouble
+			bottom: -999999
+			top: 999999
+			decimals: 4
+			notation: DoubleValidator.StandardNotation
+			locale: "en_US"
 		}
 
+		validator: _decimals.checked ? _validatorDouble : _validatorInt
+
+		inputMethodHints: _decimals.checked ? Qt.ImhFormattedNumbersOnly : Qt.ImhDigitsOnly
+
+		onEditingFinished:  if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormTextField {
+		id: _suffix
+		title: qsTr("Mértékegység")
+		placeholderText: qsTr("A beviteli mező után feltüntetett mértékegység (opcionális)")
+		field: "suffix"
+		width: parent.width
+		visible: !isPlusminus
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormCheckButton {
+		id: _decimals
+		text: qsTr("Tizedes számok engedélyezése")
+		field: "decimals"
+
+		visible: !isPlusminus
+
+		onToggled: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormComboBox {
+		id: _subtract
+		text: qsTr("Kérdések készítése:")
+
+		visible: isPlusminus
+
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
+
+		field: "subtract"
+
+		valueRole: "value"
+		textRole: "text"
+
+		model: [
+			{value: false, text: qsTr("Összeadás")},
+			{value: true, text: qsTr("Kivonás")},
+		]
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormComboBox {
+		id: _range
+		text: qsTr("Tartomány:")
+
+		visible: isPlusminus
+
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
+
+		field: "range"
+
+		valueRole: "value"
+		textRole: "text"
+
+		model: [
+			{value: 1, text: qsTr("0-10 között")},
+			{value: 2, text: qsTr("0-20 között")},
+			{value: 3, text: qsTr("0-50 között")},
+			{value: 4, text: qsTr("0-100 között")}
+		]
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormComboBox {
+		id: _negative
+		text: qsTr("Negatív számok:")
+
+		visible: isPlusminus
+
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 350*Qaterial.Style.pixelSizeRatio))
+
+		field: "canNegative"
+
+		valueRole: "value"
+		textRole: "text"
+
+		model: [
+			{value: 0, text: qsTr("Semmi sem lehet negatív")},
+			{value: 1, text: qsTr("Az eredmény lehet negatív")},
+			{value: 2, text: qsTr("Az eredmény és a feladat is lehet negatív")},
+		]
+
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
 
 
-	Component.onCompleted: {
-		if (storageModule == "plusminus")
-			ldr.sourceComponent = cmpPlusminus
-		else if (storageModule == "numbers")
-			ldr.sourceComponent = cmpNumbers
-		else
-			ldr.sourceComponent = cmpDefault
+	MapEditorSpinStorageCount {
+		id: _countBinding
+		visible: isNumbers || isPlusminus
 	}
 
 
-	function getData() {
-		if (ldr.status == Loader.Ready)
-			return ldr.item.getData()
 
-		return {}
+
+	function loadData() {
+		let _items = isPlusminus ? [_subtract, _range, _negative] :
+								   isNumbers ? [_question, _suffix, _decimals] :
+											   [_question, _answer, _suffix, _decimals]
+
+		_countBinding.value = objective.storageCount
+		setItems(_items, objective.data)
 	}
 
-	function setStorageData(data) {
-		storageData = data
+
+	function saveData() {
+		objective.data = previewData()
+		objective.storageCount = _countBinding.value
 	}
+
+
+
+	function previewData() {
+		let _items = isPlusminus ? [_subtract, _range, _negative] :
+								   isNumbers ? [_question, _suffix, _decimals] :
+											   [_question, _answer, _suffix, _decimals]
+
+		return getItems(_items)
+	}
+
 }
+
+
+
+
+
+
 

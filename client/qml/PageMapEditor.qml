@@ -97,6 +97,7 @@ QPage {
 				id: _menuMap
 
 				QMenuItem { action: _actionSaveAs }
+				QMenuItem { action: _actionSaveNew }
 			}
 
 			QMenu {
@@ -106,6 +107,7 @@ QPage {
 				QMenuItem { action: _actionDelete }
 				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionSaveAs }
+				QMenuItem { action: _actionSaveNew }
 			}
 		}
 	}
@@ -160,9 +162,29 @@ QPage {
 			suffix: ".map"
 			onFileSelected: {
 				if (Client.Utils.fileExists(file))
-					overrideQuestion(file)
+					overrideQuestion(file, false)
 				else
-					mapEditor.saveAs(file)
+					mapEditor.saveAs(file, false)
+				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+			}
+
+			folder: mapEditor.currentFolder()
+		}
+	}
+
+	Component {
+		id: _cmpFileSaveNew
+
+		QFileDialog {
+			title: qsTr("Pálya mentése azonosítók cseréjével")
+			filters: [ "*.map" ]
+			isSave: true
+			suffix: ".map"
+			onFileSelected: {
+				if (Client.Utils.fileExists(file))
+					overrideQuestion(file, true)
+				else
+					mapEditor.saveAs(file, true)
 				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
 			}
 
@@ -201,9 +223,9 @@ QPage {
 		visible: mapEditor.map
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophy, color: "pink" })
-			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.folderMultiple, color: "green" })
-			model.append({ text: qsTr("Adatbankok"), source: Qaterial.Icons.database, color: "pink" })
+			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophy, color: Qaterial.Colors.amber200 })
+			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.folderMultiple, color: Qaterial.Colors.cyan300 })
+			model.append({ text: qsTr("Adatbankok"), source: Qaterial.Icons.database, color: Qaterial.Colors.green300 })
 		}
 	}
 
@@ -234,7 +256,24 @@ QPage {
 		id: _actionSaveAs
 		text: qsTr("Mentés másként")
 		icon.source: Qaterial.Icons.contentSaveEdit
-		onTriggered: Qaterial.DialogManager.openFromComponent(_cmpFileSaveAs)
+		onTriggered: {
+			if (Qt.platform.os == "wasm")
+				mapEditor.wasmSaveAs(false)
+			else
+				Qaterial.DialogManager.openFromComponent(_cmpFileSaveAs)
+		}
+	}
+
+	Action {
+		id: _actionSaveNew
+		text: qsTr("Mentés újként")
+		icon.source: Qaterial.Icons.contentSaveMoveOutline
+		onTriggered: {
+			if (Qt.platform.os == "wasm")
+				mapEditor.wasmSaveAs(true)
+			else
+				Qaterial.DialogManager.openFromComponent(_cmpFileSaveNew)
+		}
 	}
 
 	Action {
@@ -243,15 +282,15 @@ QPage {
 		icon.source: Qaterial.Icons.send
 		enabled: mapEditor && !mapEditor.modified
 		onTriggered: JS.questionDialog(
-						{
-							onAccepted: function()
-							{
-								publishDraft()
-							},
-							text: qsTr("Biztosan közzéteszed a vázlatot?"),
-							title: qsTr("Közzététel"),
-							iconSource: Qaterial.Icons.send
-						})
+						 {
+							 onAccepted: function()
+							 {
+								 publishDraft()
+							 },
+							 text: qsTr("Biztosan közzéteszed a vázlatot?"),
+							 title: qsTr("Közzététel"),
+							 iconSource: Qaterial.Icons.send
+						 })
 
 	}
 
@@ -261,15 +300,15 @@ QPage {
 		icon.source: Qaterial.Icons.cancel
 		enabled: mapEditor && !mapEditor.modified
 		onTriggered: JS.questionDialog(
-						{
-							onAccepted: function()
-							{
-								deleteDraft()
-							},
-							text: qsTr("Biztosan törlöd a vázlatot?"),
-							title: qsTr("Vázlat törlése"),
-							iconSource: Qaterial.Icons.deleteAlert
-						})
+						 {
+							 onAccepted: function()
+							 {
+								 deleteDraft()
+							 },
+							 text: qsTr("Biztosan törlöd a vázlatot?"),
+							 title: qsTr("Vázlat törlése"),
+							 iconSource: Qaterial.Icons.deleteAlert
+						 })
 	}
 
 	function backupQuestion(file) {
@@ -295,11 +334,11 @@ QPage {
 	}
 
 
-	function overrideQuestion(file) {
+	function overrideQuestion(file, isNew) {
 		JS.questionDialog({
 							  onAccepted: function()
 							  {
-								  mapEditor.saveAs(file)
+								  mapEditor.saveAs(file, isNew)
 							  },
 							  text: qsTr("A fájl létezik. Felülírjuk?\n%1").arg(file),
 							  title: qsTr("Mentés másként"),

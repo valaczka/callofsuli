@@ -61,9 +61,12 @@ public:
 	// Statistics
 
 	struct Statistics {
+		int id = -1;
+		QString module;
 		QString objective;
-		bool success;
-		int elapsed;
+		bool success = false;
+		int elapsed = 0;
+		bool uploaded = false;
 	};
 
 	explicit AbstractGame(const GameMap::GameMode &mode, Client *client);
@@ -80,8 +83,9 @@ public:
 	Q_INVOKABLE void unloadPageItem();
 
 	void addStatistics(const Statistics &stat);
-	void addStatistics(const QString &uuid, const bool &success, const int &elapsed);
-	QJsonArray takeStatistics();
+	void addStatistics(const QString &module, const QString &uuid, const bool &success, const int &elapsed);
+	QJsonArray getStatistics();
+	void clearStatistics(const QJsonArray &list, const bool &revert = false);
 
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
@@ -132,6 +136,7 @@ private:
 	QElapsedTimer m_elapsedTimer;
 	FinishState m_finishState = Invalid;
 	bool m_readyToDestroy = false;
+	int m_statId = 0;
 
 };
 

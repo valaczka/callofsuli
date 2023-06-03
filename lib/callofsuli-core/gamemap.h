@@ -340,7 +340,7 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const qreal &passed,
-													const QString &image) override;
+													const qint32 &image) override;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
 
 private:
@@ -367,7 +367,7 @@ class GameMapMissionLevel : public GameMapMissionLevelIface
 	Q_PROPERTY(QString terrain MEMBER m_terrain)
 	Q_PROPERTY(qint32 startHP MEMBER m_startHP)
 	Q_PROPERTY(qint32 duration MEMBER m_duration)
-	Q_PROPERTY(QString image MEMBER m_image)
+	Q_PROPERTY(qint32 image MEMBER m_image)
 	Q_PROPERTY(bool canDeathmatch MEMBER m_canDeathmatch)
 	Q_PROPERTY(qreal questions MEMBER m_questions)
 	Q_PROPERTY(qreal passed MEMBER m_passed)
@@ -378,14 +378,14 @@ public:
 	explicit GameMapMissionLevel() {}
 	explicit GameMapMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
 								 const qint32 &duration, const bool &canDeathmatch, const qreal &questions,
-								 const qreal &passed, const QString &image, GameMapMission *mission, GameMap *map);
+								 const qreal &passed, const qint32 &image, GameMapMission *mission, GameMap *map);
 	virtual ~GameMapMissionLevel() {}
 
 	qint32 level() const;
 	const QString &terrain() const;
 	qint32 startHP() const;
 	qint32 duration() const;
-	const QString &image() const;
+	const qint32 &image() const;
 	bool canDeathmatch() const;
 	qreal questions() const;
 	qreal passed() const;
@@ -394,6 +394,8 @@ public:
 
 	GameMapMission *mission() const;
 	QList<GameMapChapter *> chapters() const;
+
+	GameMap *map() const;
 
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const

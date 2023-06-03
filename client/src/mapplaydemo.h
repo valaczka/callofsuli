@@ -38,7 +38,7 @@ public:
 	explicit MapPlayDemo(Client *client, QObject *parent = nullptr);
 	virtual ~MapPlayDemo();
 
-	bool load();
+	bool load(const QString &map = QStringLiteral(":/internal/game/demo.map"));
 
 	void solverLoad();
 	void solverSave();

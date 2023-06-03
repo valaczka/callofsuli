@@ -43,6 +43,9 @@ QFormColumn {
 
 		enabled: !root.readOnly
 
+		field: "items"
+		getData: function() { return text.split("\n") }
+
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
@@ -68,9 +71,6 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems([_title])
-		d.items = _areaItems.text.split("\n")
-
-		return d
+		return getItems([_title, _areaItems])
 	}
 }

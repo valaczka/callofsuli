@@ -35,7 +35,7 @@ QIconLoaderItemDelegate {
 		}
 
 		Qaterial.RoundButton {
-			icon.source: Qaterial.Icons._delete
+			icon.source: Qaterial.Icons.delete_
 			icon.color: Qaterial.Colors.red400
 
 			visible: storage && storage.objectiveCount == 0

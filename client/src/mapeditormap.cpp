@@ -299,7 +299,7 @@ MapEditorObjective *MapEditorMap::objective(const QString &uuid) const
 
 MapEditorImage *MapEditorMap::image(const int &id) const
 {
-	return OlmLoader::find<MapEditorImage>(m_imageList, "id", id);
+	return OlmLoader::find<MapEditorImage>(m_imageList, "imageid", id);
 }
 
 
@@ -1060,7 +1060,7 @@ QList<GameMapMissionLevelIface *> MapEditorMission::ifaceLocks() const
 GameMapMissionLevelIface *MapEditorMission::ifaceAddLevel(const qint32 &level, const QByteArray &terrain,
 														  const qint32 &startHP, const qint32 &duration,
 														  const bool &canDeathmatch, const qreal &questions,
-														  const qreal &passed, const QString &image)
+														  const qreal &passed, const qint32 &image)
 {
 	MapEditorMissionLevel *d = new MapEditorMissionLevel(m_map, this);
 	d->setLevel(level);
@@ -1258,7 +1258,7 @@ void MapEditorMissionLevel::fromVariantMap(const QVariantMap &map, const bool &o
 	setTerrain(map.value(QStringLiteral("terrain")).toString());
 	setStartHP(map.value(QStringLiteral("startHP")).toInt());
 	setDuration(map.value(QStringLiteral("duration")).toInt());
-	setImage(map.value(QStringLiteral("image")).toString());
+	setImage(map.value(QStringLiteral("image")).toInt());
 	setCanDeathmatch(map.value(QStringLiteral("canDeathmatch")).toBool());
 	setQuestions(map.value(QStringLiteral("questions")).toReal());
 	setPassed(map.value(QStringLiteral("passed")).toReal());
@@ -1374,18 +1374,6 @@ void MapEditorMissionLevel::setDuration(qint32 newDuration)
 	emit durationChanged();
 }
 
-const QString &MapEditorMissionLevel::image() const
-{
-	return m_image;
-}
-
-void MapEditorMissionLevel::setImage(const QString &newImage)
-{
-	if (m_image == newImage)
-		return;
-	m_image = newImage;
-	emit imageChanged();
-}
 
 bool MapEditorMissionLevel::canDeathmatch() const
 {
@@ -1780,3 +1768,28 @@ void MapEditorInventory::setInventoryid(int newInventoryid)
 	emit inventoryidChanged();
 }
 
+
+qint32 MapEditorMissionLevel::image() const
+{
+	return m_image;
+}
+
+void MapEditorMissionLevel::setImage(qint32 newImage)
+{
+	if (m_image == newImage)
+		return;
+	m_image = newImage;
+	emit imageChanged();
+	emit editorImageChanged();
+}
+
+
+/**
+ * @brief MapEditorMissionLevel::editorImage
+ * @return
+ */
+
+MapEditorImage *MapEditorMissionLevel::editorImage() const
+{
+	return m_map ? m_map->image(m_image) : nullptr;
+}

@@ -69,6 +69,8 @@ QFormColumn {
 
 			inputMethodHints: Qt.ImhFormattedNumbersOnly
 
+			saveData: function saveData(d) { return Number(text) }
+
 			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 		}
 	}

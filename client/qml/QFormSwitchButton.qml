@@ -10,7 +10,7 @@ Qaterial.SwitchButton {
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
 	property string field: ""
 	property bool fieldData: false
-	readonly property bool getData: checked
+	property var getData: function() { return checked }
 
 	onFieldDataChanged: checked = fieldData
 

@@ -54,6 +54,9 @@ QFormColumn {
 		placeholderText: qsTr("Lehetséges egyéb helytelen válaszok (soronként)")
 		width: parent.width
 
+		field: "options"
+		getData: function() { return text.split("\n") }
+
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
@@ -101,11 +104,7 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems([_question, _area, _spinOptions, _spinCount])
-
-		d.options = _wrongAnswers.text.split("\n")
-
-		return d
+		return getItems([_question, _area, _spinOptions, _spinCount, _wrongAnswers])
 	}
 }
 

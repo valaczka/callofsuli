@@ -87,6 +87,12 @@ public:
 	const QString &redirectHost() const;
 	void setRedirectHost(const QString &newRedirectHost);
 
+	int logLimit() const;
+	void setLogLimit(int newLogLimit);
+
+	uint maxRequestSize() const;
+	void setMaxRequestSize(uint newMaxRequestSize);
+
 private:
 	QDir m_dataDir;
 
@@ -101,6 +107,9 @@ private:
 	QString m_certKeyFile;
 
 	OAuth m_oauthGoogle;
+
+	int m_logLimit = 14;
+	uint m_maxRequestSize = 10*1024*1024;
 
 };
 

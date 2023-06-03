@@ -28,7 +28,7 @@ QFormColumn {
 
 		visible: isBinding
 
-		combo.width: Math.max(combo.implicitWidth, 200)
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
 
 		field: "mode"
 
@@ -47,7 +47,7 @@ QFormColumn {
 		id: _modeImages
 		text: qsTr("Kérdések készítése:")
 
-		combo.width: Math.max(combo.implicitWidth, 300)
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 300*Qaterial.Style.pixelSizeRatio))
 
 		field: "mode"
 
@@ -121,6 +121,9 @@ QFormColumn {
 		width: parent.width
 		visible: !isBinding && !isImages
 
+		field: "answers"
+		getData: function() { return text.split("\n") }
+
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
@@ -171,14 +174,9 @@ QFormColumn {
 								 isImages ? (_modeImages.currentValue === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											[_question, _correctAnswer]
+											[_question, _correctAnswer, _answers]
 
-		let d = getItems(_items)
-
-		if (!isBinding && !isImages)
-			d.answers = _answers.text.split("\n")
-
-		return d
+		return getItems(_items)
 	}
 }
 

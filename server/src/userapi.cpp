@@ -688,6 +688,7 @@ void UserAPI::gameCreate(const QRegularExpressionMatch &match, const QJsonObject
 
 
 
+
 /**
  * @brief UserAPI::gameUpdate
  * @param match
@@ -697,7 +698,44 @@ void UserAPI::gameCreate(const QRegularExpressionMatch &match, const QJsonObject
 
 void UserAPI::gameUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
 {
+	const int &gameid = match.captured(1).toInt();
 
+	databaseMainWorker()->execInThread([this, response, gameid, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		LOG_CTRACE("client") << "Update game" << gameid << "for user:" << qPrintable(username);
+
+		QueryBuilder qq(db);
+
+		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
+					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
+					"WHERE runningGame.gameid=game.id AND game.id=").addValue(gameid)
+				.addQuery(" AND username=").addValue(username);
+
+		if (!qq.exec())
+			return responseErrorSql(response);
+
+		if (!qq.sqlQuery().first())
+			return responseError(response, "invalid game");
+
+
+		// Statistics
+
+		if (data.contains(QStringLiteral("statistics")))
+			_addStatistics(data.value(QStringLiteral("statistics")).toArray());
+
+		// XP
+
+		if (QueryBuilder::q(db).addQuery("UPDATE runningGame SET xp=").addValue(data.value(QStringLiteral("xp")).toInt())
+				.addQuery(" WHERE gameid=").addValue(gameid).exec())
+			return responseAnswerOk(response);
+		else
+			return responseErrorSql(response);
+	});
 }
 
 
@@ -734,6 +772,14 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 		if (!qq.sqlQuery().first())
 			return responseError(response, "invalid game");
+
+
+		// Statistics
+
+		if (data.contains(QStringLiteral("statistics")))
+			_addStatistics(data.value(QStringLiteral("statistics")).toArray());
+
+
 
 		TeacherAPI::UserGame g;
 
@@ -879,6 +925,61 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 		responseAnswerOk(response, ret);
 	});
+
+}
+
+
+
+
+/**
+ * @brief UserAPI::_addStatistics
+ * @param username
+ * @param list
+ */
+
+void UserAPI::_addStatistics(const QJsonArray &list) const
+{
+	if (list.isEmpty())
+		return;
+
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	QMutexLocker(databaseMain()->mutex());
+
+	const QString &username = m_credential.username();
+
+	foreach (const QJsonValue &v, list) {
+		const QJsonObject &o = v.toObject();
+
+		QueryBuilder q(db);
+
+		q.addQuery("INSERT INTO statdb.statistics (").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")");
+
+		if (o.contains(QStringLiteral("map")))
+			q.addField("map", o.value(QStringLiteral("map")).toString());
+
+		if (o.contains(QStringLiteral("mode")))
+			q.addField("mode", o.value(QStringLiteral("mode")).toInt());
+
+		if (o.contains(QStringLiteral("objective")))
+			q.addField("objective", o.value(QStringLiteral("objective")).toString());
+
+		if (o.contains(QStringLiteral("success")))
+			q.addField("success", o.value(QStringLiteral("success")).toVariant().toBool());
+
+		if (o.contains(QStringLiteral("elapsed")))
+			q.addField("elapsed", o.value(QStringLiteral("elapsed")).toInt());
+
+		if (o.contains(QStringLiteral("module")))
+			q.addField("module", o.value(QStringLiteral("module")).toString());
+
+		if (q.fieldCount())
+			q.addField("username", username);
+		else
+			continue;
+
+		q.exec();
+	}
 
 }
 

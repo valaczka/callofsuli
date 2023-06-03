@@ -96,7 +96,7 @@ QPage {
 		id: _actionGroupRemove
 		text: qsTr("Törlés")
 		enabled: group
-		icon.source: Qaterial.Icons._delete
+		icon.source: Qaterial.Icons.delete_
 		onTriggered: {
 			JS.questionDialog(
 						{

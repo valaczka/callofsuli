@@ -162,6 +162,7 @@ class WebSocketReply : public QObject
 
 public:
 	explicit WebSocketReply(QNetworkReply *reply, WebSocket *socket);
+	explicit WebSocketReply(const QNetworkReply::NetworkError &error, QObject *parent = nullptr);
 	virtual ~WebSocketReply();
 
 	bool pending() const;
@@ -234,6 +235,7 @@ public slots:
 
 private slots:
 	void onReplyFinished();
+	void onErrorPresent(const QNetworkReply::NetworkError &error);
 
 signals:
 	void finished();

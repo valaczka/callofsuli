@@ -8,7 +8,7 @@ Row {
 	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
 	property string field: ""
 	property var fieldData: null
-	readonly property alias getData: _combo.currentValue
+	property var getData: function() { return _combo.currentValue }
 
 	property alias combo: _combo
 	property alias label: _label
@@ -38,6 +38,8 @@ Row {
 	Qaterial.ComboBox {
 		id: _combo
 		anchors.verticalCenter: parent.verticalCenter
+
+		font: Qaterial.Style.textTheme.body2
 
 		onActivated: if (_form && watchModification) _form.modified = true
 	}

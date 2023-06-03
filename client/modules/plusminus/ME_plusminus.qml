@@ -16,9 +16,8 @@ QFormColumn {
 
 	property bool readOnly: true
 
-	QFormSection {
+	Qaterial.LabelBody2 {
 		width: parent.width
-		icon.source: Qaterial.Icons.abacus
 
 		wrapMode: Text.Wrap
 		text: qsTr("Ez az adatbank a kívánt mennyiségben 2 egész számot állít elő, melyek beállítás szerint összeadhatók egymással vagy kivonhatóak egymásból.")
@@ -31,5 +30,9 @@ QFormColumn {
 
 	function loadData() {
 
+	}
+
+	function previewData() {
+		return ({})
 	}
 }

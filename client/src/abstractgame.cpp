@@ -358,12 +358,15 @@ void AbstractGame::addStatistics(const Statistics &stat)
  * @param elapsed
  */
 
-void AbstractGame::addStatistics(const QString &uuid, const bool &success, const int &elapsed)
+void AbstractGame::addStatistics(const QString &module, const QString &uuid, const bool &success, const int &elapsed)
 {
 	Statistics s;
+	s.id = ++m_statId;
+	s.module = module;
 	s.objective = uuid;
 	s.success = success;
 	s.elapsed = elapsed;
+	s.uploaded = false;
 	m_statistics.append(s);
 }
 
@@ -373,24 +376,58 @@ void AbstractGame::addStatistics(const QString &uuid, const bool &success, const
  * @return
  */
 
-QJsonArray AbstractGame::takeStatistics()
+QJsonArray AbstractGame::getStatistics()
 {
 	QJsonArray r;
 
-	foreach (const Statistics &s, m_statistics) {
+	for (auto s = m_statistics.begin(); s != m_statistics.end(); ++s) {
+		if (s->uploaded)
+			continue;
+
 		QJsonObject o;
+		o[QStringLiteral("id")] = s->id;
 		o[QStringLiteral("map")] = m_map ? m_map->uuid() : "";
 		o[QStringLiteral("mode")] = m_mode;
-		o[QStringLiteral("objective")] = s.objective;
-		o[QStringLiteral("success")] = s.success;
-		o[QStringLiteral("elapsed")] = s.elapsed;
+		o[QStringLiteral("module")] = s->module;
+		o[QStringLiteral("objective")] = s->objective;
+		o[QStringLiteral("success")] = s->success;
+		o[QStringLiteral("elapsed")] = s->elapsed;
 		r.append(o);
+
+		s->uploaded = true;
 	}
 
-	m_statistics.clear();
+	//m_statistics.clear();
 
 	return r;
 
+}
+
+
+
+
+/**
+ * @brief AbstractGame::clearStatistics
+ * @param list
+ */
+
+void AbstractGame::clearStatistics(const QJsonArray &list, const bool &revert)
+{
+	foreach (const QJsonValue &v, list) {
+		int id = v.toObject().value(QStringLiteral("id")).toInt(-1);
+
+		for (auto it = m_statistics.begin(); it != m_statistics.end();) {
+			if (revert) {
+				it->uploaded = false;
+				++it;
+			} else {
+				if (it->id == id)
+					it = m_statistics.erase(it);
+				else
+					++it;
+			}
+		}
+	}
 }
 
 

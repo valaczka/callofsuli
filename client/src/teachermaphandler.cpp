@@ -65,7 +65,7 @@ void TeacherMapHandler::mapCreate(const QString &name)
 	GameMap *map = new GameMap();
 	map->regenerateUuids();
 
-	const QByteArray &b = map->toBinaryData();
+	const QByteArray &b = qCompress(map->toBinaryData());
 
 	delete map;
 	map = nullptr;
@@ -213,7 +213,9 @@ void TeacherMapHandler::mapImport(const QUrl &file)
 	delete map;
 	map = nullptr;
 
-	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(Utils::fileBaseName(file.toLocalFile())), b)
+	const QByteArray &comp = qCompress(b);
+
+	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(Utils::fileBaseName(file.toLocalFile())), comp)
 			->fail([this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
 			->done([this](const QJsonObject &){
 		m_client->snack(tr("Az importálás sikerült"));
@@ -277,13 +279,15 @@ void TeacherMapHandler::mapEdit(TeacherMap *map)
 			return;
 		}
 
-		if (data.isEmpty()) {
+		const QByteArray &uncomp = qUncompress(data);
+
+		if (uncomp.isEmpty()) {
 			m_client->messageError(tr("Nem sikerült beolvasni a pálya tartalmát!"), tr("Belső hiba"));
 			unsetMapEditor();
 			return;
 		}
 
-		if (!m_mapEditor->loadFromBinaryData(data)) {
+		if (!m_mapEditor->loadFromBinaryData(uncomp)) {
 			m_client->messageError(tr("Érvénytelen pálya!"), tr("Belső hiba"));
 			unsetMapEditor();
 			return;
@@ -336,7 +340,7 @@ void TeacherMapEditor::onSaveRequest()
 	if (!modified())
 		return;
 
-	const QByteArray &data = m_map->toBinaryData();
+	const QByteArray &data = qCompress(m_map->toBinaryData(true));
 
 	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/%1/upload/%2").arg(m_uuid).arg(m_draftVersion), data)
 			->fail([this](const QString &){

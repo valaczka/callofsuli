@@ -34,6 +34,9 @@ QFormColumn {
 		placeholderText: qsTr("Lehetséges helyes válaszok (soronként)")
 		width: parent.width
 
+		field: "corrects"
+		getData: function() { return text.split("\n") }
+
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
@@ -42,6 +45,9 @@ QFormColumn {
 		title: qsTr("Helytelen válaszok")
 		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
 		width: parent.width
+
+		field: "answers"
+		getData: function() { return text.split("\n") }
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -106,12 +112,7 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems([_question, _spinMin, _spinMax, _spinCount])
-
-		d.answers = _wrongAnswers.text.split("\n")
-		d.corrects = _correctAnswers.text.split("\n")
-
-		return d
+		return getItems([_question, _spinMin, _spinMax, _spinCount, _wrongAnswers, _correctAnswers])
 	}
 }
 

@@ -38,11 +38,11 @@ public:
 	explicit OnlineClient(Application *app, QObject *parent = nullptr);
 	virtual ~OnlineClient();
 
-	/*Q_INVOKABLE bool loadFileToFileSystem(const QString &accept, const QString &destinationFilePath, const QJSValue &fileReady);
-	Q_INVOKABLE void saveFileFromFileSystem(const QString &sourceFilePath, const QString &fileNameHint);
+	void wasmLoadFileToFileSystem(const QString &accept, std::function<void (const QString &, const QByteArray &)> saveFunc);
+	void wasmSaveContent(const QByteArray &data, const QString &fileNameHint);
 
-	Q_INVOKABLE void toggleFullscreen(); */
-	Q_INVOKABLE void enableTabCloseConfirmation(bool enable);
+	/*void toggleFullscreen(); */
+	void enableTabCloseConfirmation(bool enable);
 
 protected slots:
 	virtual void onApplicationStarted() override;

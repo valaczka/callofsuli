@@ -50,21 +50,29 @@ public:
 	const QString &dbMapsFile() const;
 	void setDbMapsFile(const QString &newDbMapsFile);
 
+	const QString &dbStatFile() const;
+	void setDbStatFile(const QString &newDbStatFile);
+
 private:
 	bool databaseMapsPrepare();
+	bool databaseStatPrepare();
 
 	bool _checkSystemTable(const QString &dbImport = QString());
 	bool _checkMapsSystemTable(Database *mapsDb);
+	bool _checkStatSystemTable(Database *statDb);
 	bool _createTables();
 	bool _createMapsTables(Database *db);
+	bool _createStatTables(Database *db);
 	bool _upgradeTables();
 	bool _upgradeMapsTables();
+	bool _upgradeStatTables();
 	bool _createUsers();
 	bool _createRanksAndGrades();
 	bool _databaseImport(const QString &dbFile);
 
 	QString m_dbFile;
 	QString m_dbMapsFile;
+	QString m_dbStatFile;
 	ServerService *m_service = nullptr;
 };
 

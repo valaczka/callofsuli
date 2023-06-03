@@ -467,7 +467,7 @@ GameMapMissionLevelIface *GameMapMission::ifaceAddLevel(const qint32 &level, con
 														const qint32 &startHP, const qint32 &duration,
 														const bool &canDeathmatch, const qreal &questions,
 														const qreal &passed,
-														const QString &image)
+														const qint32 &image)
 {
 	GameMapMissionLevel *s = new GameMapMissionLevel(level, terrain, startHP,
 													 duration, canDeathmatch, questions, passed,
@@ -615,7 +615,7 @@ QVariantList &GameMapObjective::generatedQuestions()
 
 GameMapMissionLevel::GameMapMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
 										 const qint32 &duration, const bool &canDeathmatch, const qreal &questions, const qreal &passed,
-										 const QString &image, GameMapMission *mission, GameMap *map)
+										 const qint32 &image, GameMapMission *mission, GameMap *map)
 	: GameMapMissionLevelIface()
 	, m_map(map)
 	, m_mission(mission)
@@ -650,7 +650,7 @@ qint32 GameMapMissionLevel::duration() const
 	return m_duration;
 }
 
-const QString &GameMapMissionLevel::image() const
+const qint32 &GameMapMissionLevel::image() const
 {
 	return m_image;
 }
@@ -731,6 +731,11 @@ GameMapInventoryIface *GameMapMissionLevel::ifaceAddInventory(const qint32 &bloc
 	GameMapInventory *i = new GameMapInventory(block, module, count);
 	m_inventories.append(i);
 	return i;
+}
+
+GameMap *GameMapMissionLevel::map() const
+{
+	return m_map;
 }
 
 
