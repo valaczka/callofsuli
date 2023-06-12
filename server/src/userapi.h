@@ -44,6 +44,9 @@ public:
 
 	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
+	void update(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void password(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
+
 	void campaigns(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
@@ -55,7 +58,6 @@ public:
 	void gameCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void gameUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void gameFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
 
 	void _addStatistics(const QJsonArray &list) const;
 };

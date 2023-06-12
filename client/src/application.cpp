@@ -34,6 +34,8 @@
 #include "mapeditor.h"
 #include "mapgame.h"
 #include "qrimage.h"
+#include "qsjsonlistmodel.h"
+#include "scorelist.h"
 #include "studentgroup.h"
 #include "studentmap.h"
 #include "studentmaphandler.h"
@@ -41,6 +43,7 @@
 #include "teachermap.h"
 #include "teachermaphandler.h"
 #include "testgame.h"
+#include "userloglist.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -352,7 +355,10 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
 
-	//qRegisterMetaType<Question>();
+	qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
+	qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");
+
+
 
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
@@ -376,6 +382,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
+	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
 	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
 	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
 	qmlRegisterType<StudentMap>("CallOfSuli", 1, 0, "StudentMap");
@@ -392,6 +399,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
+	qmlRegisterType<UserLogList>("CallOfSuli", 1, 0, "UserLogListImpl");
 }
 
 /**

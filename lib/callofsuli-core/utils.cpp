@@ -34,6 +34,10 @@
 #include "selectableobject.h"
 #include <random>
 
+#ifdef CLIENT_UTILS
+#include "qsdiffrunner.h"
+#endif
+
 const quint32 Utils::m_versionMajor = COS_VERSION_MAJOR;
 const quint32 Utils::m_versionMinor = COS_VERSION_MINOR;
 
@@ -542,6 +546,57 @@ int Utils::selectedCount(qolm::QOlmBase *list)
 
 	return num;
 }
+
+
+
+/**
+ * @brief Utils::getRolesFromObject
+ * @param object
+ * @return
+ */
+
+QStringList Utils::getRolesFromObject(const QMetaObject *object)
+{
+	QStringList roles;
+
+	for (int i = 0 ; i < object->propertyCount(); i++) {
+		const QMetaProperty &property = object->property(i);
+
+		if (!property.isValid() || !property.isReadable() || !property.isStored())
+			continue;
+
+		const QString &p = property.name();
+
+		if (p == QLatin1String("objectName"))
+			continue;
+
+		roles.append(p);
+	}
+
+	return roles;
+}
+
+
+/**
+ * @brief Utils::patchSListModel
+ * @param model
+ * @param keyField
+ */
+
+void Utils::patchSListModel(QSListModel *model, const QVariantList &data, const QString &keyField)
+{
+	Q_ASSERT(model);
+
+	QSDiffRunner runner;
+
+	runner.setKeyField(keyField);
+
+	const QList<QSPatch> &patches = runner.compare(model->storage(), data);
+
+	runner.patch(model, patches);
+}
+
+
 #endif
 
 /**

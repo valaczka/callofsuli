@@ -183,6 +183,7 @@ QPage {
 				width: parent.width
 				text: qsTr("Lehetséges játékmódok")
 				icon: Qaterial.Icons.googleController
+				button.visible: false
 			}
 
 
@@ -248,6 +249,7 @@ QPage {
 				width: parent.width
 				text: qsTr("Zárolások")
 				icon: Qaterial.Icons.keyChain
+				button.visible: false
 			}
 
 			QIndentedItem {

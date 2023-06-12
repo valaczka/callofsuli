@@ -46,3 +46,6 @@
 [submodule "lib/QOlm"]
 	path = lib/QOlm
 	url = https://github.com/valaczka/QOlm.git
+[submodule "lib/qsyncable"]
+	path = lib/qsyncable
+	url = https://github.com/benlau/qsyncable.git

@@ -12,6 +12,7 @@
 - PullToRefreshHandler - (c) 2020 Mohammad Hasanzadeh (https://github.com/mohammadhasanzadeh/pulltorefreshhandler)
 - QDeferred - (c) 2017 Juan Gonzalez Burgos (https://github.com/juangburgos/QDeferred)
 - QOlm - (c) Olivier Le Doeuff (https://github.com/OlivierLDff/QOlm)
+- QSyncable - (c) 2017 Ben Lau (https://github.com/benlau/qsyncable)
 
 
 **Image & Animation**

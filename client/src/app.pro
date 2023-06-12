@@ -198,6 +198,7 @@ SOURCES += \
 	mapplaydemo.cpp \
 	qrimage.cpp \
 	question.cpp \
+	scorelist.cpp \
 	server.cpp \
 	studentgroup.cpp \
 	studentmap.cpp \
@@ -209,6 +210,7 @@ SOURCES += \
 	testgame.cpp \
 	tiledpaintedlayer.cpp \
 	user.cpp \
+	userloglist.cpp \
 	websocket.cpp
 
 RESOURCES += \
@@ -257,6 +259,7 @@ HEADERS += \
 	mapplaydemo.h \
 	qrimage.h \
 	question.h \
+	scorelist.h \
 	server.h \
 	studentgroup.h \
 	studentmap.h \
@@ -268,6 +271,7 @@ HEADERS += \
 	testgame.h \
 	tiledpaintedlayer.h \
 	user.h \
+	userloglist.h \
 	websocket.h
 
 

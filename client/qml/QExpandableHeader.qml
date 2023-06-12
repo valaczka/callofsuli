@@ -15,23 +15,27 @@ Rectangle {
 	property alias rightSource: _loader.source
 	property alias rightSourceComponent: _loader.sourceComponent
 
+	property double topPadding: 0
+
+	property bool expanded: expandable ? expandable.expanded : false
+	property alias button: _btn
+
+	signal clicked()
+
 	color: "transparent"
 
-	width: expandable ? expandable.width : _btn.implicitWidth+_iconLabel.implicitWidth+(_loader.item ? _loader.item.implicitWidth : 0)
-	height: _headerRow.height
+	width: expandable ? expandable.width : implicitWidth
+	height: implicitHeight
+
+	implicitWidth: _btn.implicitWidth+_iconLabel.implicitWidth+(_loader.item ? _loader.item.implicitWidth : 0)
+	implicitHeight: _headerRow.height+topPadding
 
 	RowLayout {
 		id: _headerRow
 		width: parent.width
+		y: control.topPadding
 		spacing: 5
 
-		Qaterial.RoundButton {
-			id: _btn
-			icon.source: expandable && expandable.expanded ? Qaterial.Icons.chevronDown : Qaterial.Icons.chevronRight
-			Layout.alignment: Qt.AlignCenter
-			onClicked: expandable.expanded = !expandable.expanded
-			visible: expandable
-		}
 
 		Qaterial.IconLabel
 		{
@@ -48,7 +52,10 @@ Rectangle {
 			MouseArea {
 				anchors.fill: parent
 				acceptedButtons: Qt.LeftButton
-				onClicked: if (expandable) expandable.expanded = !expandable.expanded
+				onClicked: {
+					if (expandable) expandable.expanded = !expandable.expanded
+					control.clicked()
+				}
 			}
 		}
 
@@ -56,6 +63,17 @@ Rectangle {
 			id: _loader
 			Layout.alignment: Qt.AlignCenter
 		}
+
+		Qaterial.RoundButton {
+			id: _btn
+			icon.source: control.expanded ? Qaterial.Icons.chevronUp : Qaterial.Icons.chevronDown
+			Layout.alignment: Qt.AlignCenter
+			onClicked: {
+				if (expandable) expandable.expanded = !expandable.expanded
+				control.clicked()
+			}
+		}
+
 	}
 
 	Qaterial.HorizontalLineSeparator {

@@ -48,7 +48,8 @@ GeneralAPI::GeneralAPI(ServerService *service)
 
 	addMap("^user/*$", this, &GeneralAPI::users);
 	addMap("^score/*$", this, &GeneralAPI::userStudent);
-	addMap("^user/(.+)/*$", this, &GeneralAPI::user);
+	addMap("^user/([^/]+)/*$", this, &GeneralAPI::user);
+	addMap("^user/([^/]+)/log/*$", this, &GeneralAPI::userLog);
 
 	addMap("^me/*$", this, &GeneralAPI::userMe);
 
@@ -310,6 +311,48 @@ void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &res
 		}
 	});
 
+}
+
+
+
+/**
+ * @brief GeneralAPI::userLog
+ * @param match
+ * @param response
+ */
+
+void GeneralAPI::userLog(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const QString &username = match.captured(1);
+
+	LOG_CTRACE("client") << "Get user log:" << username;
+
+	databaseMainWorker()->execInThread([this, username, response]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		QJsonObject ret;
+
+		bool err = false;
+
+		ret[QStringLiteral("ranklog")] = QueryBuilder::q(db)
+				.addQuery("SELECT rankid, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp, xp FROM ranklog WHERE username=").addValue(username)
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		ret[QStringLiteral("streaklog")] = QueryBuilder::q(db)		//where ended_today=false AND streak > 1
+				.addQuery("SELECT streak, CAST(strftime('%s', started_on) AS INTEGER) AS started_on, "
+						  "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak WHERE username=").addValue(username)
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswerOk(response, ret);
+	});
 }
 
 

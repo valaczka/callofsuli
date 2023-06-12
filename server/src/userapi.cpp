@@ -41,6 +41,9 @@ UserAPI::UserAPI(ServerService *service)
 {
 	m_validateRole = Credential::Student;
 
+	addMap("^update/*$", this, &UserAPI::update);
+	addMap("^password/*$", this, &UserAPI::password);
+
 	addMap("^campaign/*$", this, &UserAPI::campaigns);
 	addMap("^campaign/(\\d+)/*$", this, &UserAPI::campaignOne);
 	addMap("^campaign/(\\d+)/game/create/*$", this, &UserAPI::gameCreate);
@@ -287,6 +290,78 @@ void UserAPI::groups(const QRegularExpressionMatch &, const QJsonObject &, QPoin
 		responseAnswer(response, "list", list);
 	});
 }
+
+
+
+
+/**
+ * @brief UserAPI::update
+ * @param data
+ * @param response
+ */
+
+void UserAPI::update(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const QString &username = m_credential.username();
+
+	LOG_CTRACE("client") << "Modify user data:" << qPrintable(username);
+
+	databaseMainWorker()->execInThread([username, response, data, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		QueryBuilder q(db);
+
+		q.addQuery("UPDATE user SET ").setCombinedPlaceholder();
+
+		if (m_service->config().nameUpdateEnabled()) {
+			if (data.contains(QStringLiteral("familyName")))	q.addField("familyName", data.value(QStringLiteral("familyName")).toString());
+			if (data.contains(QStringLiteral("givenName")))		q.addField("givenName", data.value(QStringLiteral("givenName")).toString());
+			if (data.contains(QStringLiteral("picture")))		q.addField("picture", data.value(QStringLiteral("picture")).toString());
+		}
+
+		if (data.contains(QStringLiteral("nickname")))	q.addField("nickname", data.value(QStringLiteral("nickname")).toString());
+		if (data.contains(QStringLiteral("character")))		q.addField("character", data.value(QStringLiteral("character")).toString());
+
+		q.addQuery(" WHERE username=").addValue(username);
+
+		if (!q.fieldCount() || !q.exec()) {
+			LOG_CWARNING("client") << "User update failed:" << username;
+			return responseErrorSql(response);
+		}
+
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+/**
+ * @brief UserAPI::password
+ * @param data
+ * @param response
+ */
+
+void UserAPI::password(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const QString &username = m_credential.username();
+	const QString &password = data.value(QStringLiteral("password")).toString();
+
+	if (password.isEmpty())
+		return responseError(response, "missing password");
+
+	LOG_CTRACE("client") << "Change password for user:" << qPrintable(username);
+
+	AdminAPI::authPlainPasswordChange(this, username, data.value(QStringLiteral("oldPassword")).toString(), password, true)
+			.fail([this, response](){
+		responseError(response, "failed");
+	})			.done([this, response](){
+		responseAnswerOk(response);
+	});
+}
+
 
 
 
@@ -847,7 +922,7 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 			QueryBuilder q(db);
 			q.addQuery("SELECT COALESCE(streak, 0) AS streak, COALESCE((ended_on = date('now')), false) AS streakToday "
-						"FROM streak WHERE ended_on >= date('now', '-1 day') AND username=").addValue(username);
+					   "FROM streak WHERE ended_on >= date('now', '-1 day') AND username=").addValue(username);
 
 			if (!q.exec())
 				return responseErrorSql(response);

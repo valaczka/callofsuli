@@ -140,3 +140,53 @@ function failMessage(_msg) {
 	var r = function(err) { Client.messageWarning(err, _msg) }
 	return r
 }
+
+
+
+function readableTimestamp(timestamp1) {
+	var date1 = new Date(timestamp1)
+	var date2 = new Date()
+
+	var y1 = date1.getFullYear()
+	var y2 = date2.getFullYear()
+	var m1 = date1.getMonth()
+	var m2 = date2.getMonth()
+	var d1 = date1.getDate()
+	var d2 = date2.getDate()
+
+	var format = ""
+
+	if (y1 == y2 && m1 == m2 && d1 == d2)
+		format = "hh:mm:ss"
+	else if (y1 == y2)
+		format = "MMMM d. hh:mm:ss"
+	else
+		format = "yyyy. MMMM d. hh:mm:ss"
+
+	return date1.toLocaleString(Qt.locale(), format)
+}
+
+
+
+function readableDate(timestamp1) {
+	var date1 = new Date(timestamp1)
+	var date2 = new Date()
+
+	var y1 = date1.getFullYear()
+	var y2 = date2.getFullYear()
+	var m1 = date1.getMonth()
+	var m2 = date2.getMonth()
+	var d1 = date1.getDate()
+	var d2 = date2.getDate()
+
+	var format = ""
+
+	if (y1 == y2 && m1 == m2 && d1 == d2)
+		return qsTr("Ma")
+	else if (y1 == y2)
+		format = "MMMM d."
+	else
+		format = "yyyy. MMMM d."
+
+	return date1.toLocaleString(Qt.locale(), format)
+}

@@ -74,9 +74,9 @@ QPageGradient {
 			leftPadding: Math.max(50, Client.safeMarginLeft)
 			rightPadding: Math.max(50, Client.safeMarginRight)
 			text: mission && missionLevel ? (_modeGroup.checkedButton.gameMode === GameMap.Test ?
-								 mission.description + qsTr("\n\nA sikeres teljesítéshez %1% eredményt kell elérni").arg(Math.floor(missionLevel.passed*100)) :
-								 mission.description)
-							 : ""
+												 mission.description + qsTr("\n\nA sikeres teljesítéshez %1% eredményt kell elérni").arg(Math.floor(missionLevel.passed*100)) :
+												 mission.description)
+										  : ""
 			wrapMode: Text.Wrap
 			bottomPadding: 20
 			visible: text != "" && map && map.gameState == MapPlay.StateSelect
@@ -398,29 +398,21 @@ QPageGradient {
 		// Lists
 
 
-		Row {
+
+		QExpandableHeader {
+			text: qsTr("Leggyorsabb megoldás")
+			icon: Qaterial.Icons.timerOutline
+
 			anchors.left: _listDuration.left
 			anchors.right: _listDuration.right
-
 			topPadding: 10
-			bottomPadding: 10
 
 			visible: _listDuration.visible && (_mapGameList.length > 0 || _firstLoad) &&
 					 map && (map.gameState == MapPlay.StateSelect)
 
-			Qaterial.LabelSubtitle1 {
-				text: qsTr("Leggyorsabb megoldás")
-				anchors.verticalCenter: _btnOpen.verticalCenter
-				width: parent.width-_btnOpen.width
-				elide: Text.ElideRight
-			}
+			onClicked: _listDuration.filterEnabled = !_listDuration.filterEnabled
 
-			Qaterial.AppBarButton {
-				id: _btnOpen
-				anchors.bottom: parent.bottom
-				icon.source: _listDuration.filterEnabled ? Qaterial.Icons.folderOpen : Qaterial.Icons.folderRemove
-				onClicked: _listDuration.filterEnabled = !_listDuration.filterEnabled
-			}
+			expanded: !_listDuration.filterEnabled
 		}
 
 		MapPlayMissionLevelInfoList {
@@ -434,29 +426,23 @@ QPageGradient {
 					 (map.gameState == MapPlay.StateSelect)
 		}
 
-		Row {
+
+
+
+		QExpandableHeader {
+			text: qsTr("Legtöbb megoldás")
+			icon: Qaterial.Icons.counter
+
 			anchors.left: _listSolved.left
 			anchors.right: _listSolved.right
+			topPadding: 20
 
-			topPadding: 10
-			bottomPadding: 10
+			visible: _listSolved.visible && _modeGroup.checkedButton && (_mapGameList.length > 0 || _firstLoad) &&
+					 map && (map.gameState == MapPlay.StateSelect)
 
-			visible:_listSolved.visible && _modeGroup.checkedButton && (_mapGameList.length > 0 || _firstLoad) &&
-					map && (map.gameState == MapPlay.StateSelect)
+			onClicked: _listSolved.filterEnabled = !_listSolved.filterEnabled
 
-			Qaterial.LabelSubtitle1 {
-				text: qsTr("Legtöbb megoldás")
-				anchors.verticalCenter: _btnOpen2.verticalCenter
-				width: parent.width-_btnOpen2.width
-				elide: Text.ElideRight
-			}
-
-			Qaterial.AppBarButton {
-				id: _btnOpen2
-				anchors.bottom: parent.bottom
-				icon.source: _listSolved.filterEnabled ? Qaterial.Icons.folderOpen : Qaterial.Icons.folderRemove
-				onClicked: _listSolved.filterEnabled = !_listSolved.filterEnabled
-			}
+			expanded: !_listSolved.filterEnabled
 		}
 
 		MapPlayMissionLevelInfoList {

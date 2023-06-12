@@ -154,5 +154,11 @@
         <file>TeacherGroupResult.qml</file>
         <file>QCard.qml</file>
         <file>MapEditorFormImage.qml</file>
+        <file>UserInfoForm.qml</file>
+        <file>StudentProfile.qml</file>
+        <file>UserInfoHeader.qml</file>
+        <file>ScoreUserInfo.qml</file>
+        <file>UserInfoLog.qml</file>
+        <file>UserInfoPassword.qml</file>
     </qresource>
 </RCC>

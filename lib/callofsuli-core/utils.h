@@ -40,6 +40,8 @@
 #include <QOlm/QOlm.hpp>
 #pragma GCC diagnostic warning "-Wunused-parameter"
 #pragma GCC diagnostic warning "-Wunused-variable"
+
+#include "qslistmodel.h"
 #endif
 
 #ifdef Q_OS_ANDROID
@@ -110,6 +112,11 @@ public:
 	{
 		return QString(QMetaEnum::fromType<QEnum>().valueToKey(value));
 	}
+
+	static QStringList getRolesFromObject(const QMetaObject *object);
+	static void patchSListModel(QSListModel *model, const QVariantList &data, const QString &keyField);
+
+
 #endif
 
 	Q_INVOKABLE static quint32 versionMajor();

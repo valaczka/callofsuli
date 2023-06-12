@@ -30,7 +30,13 @@
 User::User(QObject *parent)
 	: SelectableObject{parent}
 {
+	m_mapConvertFuncs.insert(QStringLiteral("rank"), [](const QVariant &v) -> QVariantMap {
+		return qvariant_cast<Rank>(v).toJson().toVariantMap();
+	});
 
+	m_jsonConvertFuncs.insert(QStringLiteral("rank"), [](const QVariant &v) -> QJsonObject {
+		return qvariant_cast<Rank>(v).toJson();
+	});
 }
 
 
@@ -225,6 +231,14 @@ void User::setStreakToday(bool newStreakToday)
 	m_streakToday = newStreakToday;
 	emit streakTodayChanged();
 }
+
+
+
+
+/**
+ * @brief User::nickName
+ * @return
+ */
 
 const QString &User::nickName() const
 {

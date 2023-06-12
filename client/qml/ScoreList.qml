@@ -4,6 +4,7 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 import SortFilterProxyModel 0.2
+import "JScript.js" as JS
 
 Qaterial.Page
 {
@@ -12,7 +13,6 @@ Qaterial.Page
 	implicitWidth: 200
 	implicitHeight: 200
 
-	property UserList userList: Client.cache("scoreList")
 	property ClassList classList: Client.cache("classList")
 
 	property double paddingTop: 0
@@ -20,6 +20,12 @@ Qaterial.Page
 	property bool _firstRun: true
 
 	background: null
+
+	ScoreListImpl {
+		id: _scoreList
+
+		onModelReloaded: _firstRun = false
+	}
 
 	ListModel {
 		id: _preparedClassList
@@ -63,6 +69,36 @@ Qaterial.Page
 	}
 
 
+	SortFilterProxyModel {
+		id: _sortedUserList
+		sourceModel: _scoreList.model
+
+		filters: ValueFilter {
+			id: _classidFilter
+
+			property int classid: -1
+
+			onClassidChanged: view.positionViewAtBeginning()
+
+			roleName: "classid"
+			enabled: classid != -1
+			value: classid
+		}
+
+		sorters: [
+			RoleSorter {
+				roleName: "xp"
+				sortOrder: Qt.DescendingOrder
+				priority: 1
+			},
+			StringSorter {
+				roleName: "fullNickName"
+				sortOrder: Qt.AscendingOrder
+			}
+		]
+	}
+
+
 	QScrollable {
 		anchors.fill: parent
 		horizontalPadding: 0
@@ -70,15 +106,13 @@ Qaterial.Page
 		bottomPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: Client.reloadCache("scoreList")
+		onRefreshRequest: reload()
 
 
 		QListView {
 			id: view
 
-			property int classid: -1
-
-			readonly property bool showPlaceholders: userList && userList.count === 0 && _firstRun
+			readonly property bool showPlaceholders: _scoreList.model.count == 0 && _firstRun
 
 			currentIndex: -1
 			height: contentHeight
@@ -89,64 +123,37 @@ Qaterial.Page
 
 			model: showPlaceholders ? 10 : _sortedUserList
 
-
-
 			delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
 
-
-			onClassidChanged: positionViewAtBeginning()
 			onShowPlaceholdersChanged: positionViewAtBeginning()
 			Component.onCompleted: positionViewAtBeginning()
 
-			SortFilterProxyModel {
-				id: _sortedUserList
-				sourceModel: userList
-
-				filters: ValueFilter {
-					roleName: "classid"
-					enabled: view.classid != -1
-					value: view.classid
-				}
-
-				sorters: [
-					RoleSorter {
-						roleName: "xp"
-						sortOrder: Qt.DescendingOrder
-						priority: 1
-					},
-					StringSorter {
-						roleName: "fullNickName"
-						sortOrder: Qt.AscendingOrder
-					}
-				]
-			}
 
 			Component {
 				id: _cmpDelegate
 
 				QLoaderItemDelegate {
 					id: _delegate
-					property User user: model && model.qtObject ? model.qtObject : null
 
-					text: user ? user.fullNickName : ""
-					secondaryText: user ? user.rank.name + (user.rank.sublevel > 0 ? qsTr(" (level %1)").arg(user.rank.sublevel) : "") : ""
-					highlighted: user && Client.server && Client.server.user && user.username == Client.server.user.username
+					text: fullNickName
+					secondaryText: rank.name + (rank.sublevel > 0 ? qsTr(" (level %1)").arg(rank.sublevel) : "")
+					highlighted: Client.server && Client.server.user && username === Client.server.user.username
 
-					leftSourceComponent: UserImage { user: _delegate.user }
+					leftSourceComponent: UserImage { userData: model }
 
 					rightSourceComponent: Column {
 						Qaterial.LabelSubtitle1 {
 							anchors.right: parent.right
-							text: user ? qsTr("%1 XP").arg(Number(user.xp).toLocaleString()) : ""
+							text: qsTr("%1 XP").arg(Number(xp).toLocaleString())
 							color: Qaterial.Style.accentColor
 						}
 						Row {
 							anchors.right: parent.right
 							spacing: 2
-							visible: user && user.streak
+							visible: streak
 							Qaterial.LabelCaption {
 								anchors.verticalCenter: parent.verticalCenter
-								text: user ? user.streak : ""
+								text: streak
 								color: Qaterial.Style.primaryTextColor()
 							}
 							Qaterial.Icon {
@@ -157,6 +164,12 @@ Qaterial.Page
 								height: Qaterial.Style.smallIcon*0.8
 							}
 						}
+					}
+
+					onClicked: {
+						Client.stackPushPage("ScoreUserInfo.qml", {
+												 userData: model
+											 })
 					}
 				}
 			}
@@ -202,9 +215,10 @@ Qaterial.Page
 		width: parent.width
 
 		onCurrentIndexChanged: {
-			var o = model.get(currentIndex)
-			view.classid = o && o.classid ? o.classid : -1
-			view.positionViewAtBeginning()
+			if (currentIndex != -1) {
+				var o = model.get(currentIndex)
+				_classidFilter.classid = o.classid
+			}
 		}
 
 		onPrimary: true
@@ -217,9 +231,9 @@ Qaterial.Page
 
 	}
 
+	Component.onCompleted: Client.reloadCache("classList", function(){_preparedClassList.reload()})
+
 	function reload() {
-		Client.reloadCache("scoreList")
-		Client.reloadCache("classList", function(){_preparedClassList.reload()})
-		_firstRun = false
+		_scoreList.reload()
 	}
 }

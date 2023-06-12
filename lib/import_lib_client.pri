@@ -81,3 +81,10 @@ else: LIBS += -lQtXlsxWriter
 
 android: include($$PWD/android_openssl/openssl.pri)
 
+
+
+
+
+# QSyncable
+
+include(qsyncable.pri)

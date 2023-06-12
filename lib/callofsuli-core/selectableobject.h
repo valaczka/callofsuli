@@ -28,6 +28,8 @@
 #define SELECTABLEOBJECT_H
 
 #include <QObject>
+#include <QMap>
+#include <QVariant>
 
 class SelectableObject : public QObject
 {
@@ -41,8 +43,18 @@ public:
 	bool selected() const;
 	void setSelected(bool newSelected);
 
+	Q_INVOKABLE QVariantMap toVariantMap() const;
+	QJsonObject toJsonObject() const;
+
+	typedef std::function<QVariantMap(const QVariant &)> MapConvertFunc;
+	typedef std::function<QJsonObject(const QVariant &)> JsonConvertFunc;
+
 signals:
 	void selectedChanged();
+
+protected:
+	QMap<QString, MapConvertFunc> m_mapConvertFuncs;
+	QMap<QString, JsonConvertFunc> m_jsonConvertFuncs;
 
 private:
 	bool m_selected = false;

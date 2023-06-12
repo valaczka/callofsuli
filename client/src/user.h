@@ -131,6 +131,7 @@ public:
 	bool streakToday() const;
 	void setStreakToday(bool newStreakToday);
 
+
 public slots:
 	void clear();
 
@@ -151,7 +152,6 @@ signals:
 	void classNameChanged();
 	void streakChanged();
 	void nickNameChanged();
-
 	void streakTodayChanged();
 
 private:

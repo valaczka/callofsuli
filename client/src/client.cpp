@@ -33,6 +33,8 @@
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
 #include "qpdfwriter.h"
+#include "qsdiffrunner.h"
+#include "qsjsonlistmodel.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "websocket.h"
@@ -369,7 +371,7 @@ void Client::onApplicationStarted()
  * @param error
  */
 
-void Client::onWebSocketError(QNetworkReply::NetworkError code)
+void Client::onWebSocketError(const QNetworkReply::NetworkError &code)
 {
 	LOG_CWARNING("client") << "Websocket error:" << code;
 
@@ -1076,42 +1078,22 @@ void Client::logout()
  * @brief Client::reloadUser
  */
 
-void Client::reloadUser() const
+void Client::reloadUser(QJSValue func)
 {
 	if (!server() || !server()->user() || server()->user()->username().isEmpty())
 		return;
 
-	LOG_CINFO("client") << "Reload user:" << qPrintable(server()->user()->username());
+	LOG_CDEBUG("client") << "Reload user:" << qPrintable(server()->user()->username());
 
-	send(WebSocket::ApiGeneral, "me")->done([this](const QJsonObject &json){
+	send(WebSocket::ApiGeneral, "me")->done([this, func](const QJsonObject &json) mutable {
 		server()->user()->loadFromJson(json);
+
+		if (func.isCallable())
+			func.call();
 	});
 }
 
 
-
-
-/**
- * @brief Client::loadClassListFromArray
- * @param list
- */
-
-void Client::loadClassListFromArray(QJsonArray list)
-{
-	LOG_CTRACE("client") << "Refresh class list";
-
-	list.append(QJsonObject({
-								{ QStringLiteral("id"), -1 },
-								{ QStringLiteral("name"), tr("Mind")}
-							}));
-
-	list.append(QJsonObject({
-								{ QStringLiteral("id"), -10 },
-								{ QStringLiteral("name"), tr("Osztály nélkül")}
-							}));
-
-	setCache(QStringLiteral("classList"), list);
-}
 
 
 /**
@@ -1219,6 +1201,21 @@ qreal Client::getDevicePixelSizeCorrection() const
 	LOG_CDEBUG("client") << "Device pixel size correction:" << ratioFont;
 
 	return ratioFont;
+}
+
+
+
+/**
+ * @brief Client::userToMap
+ * @param data
+ * @return
+ */
+
+QVariantMap Client::userToMap(const QJsonObject &data) const
+{
+	User u;
+	u.loadFromJson(data, true);
+	return u.toVariantMap();
 }
 
 

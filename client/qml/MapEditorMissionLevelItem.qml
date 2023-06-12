@@ -364,11 +364,6 @@ QPage {
 
 
 
-			Item {
-				width: parent.width
-				height: 20
-			}
-
 
 			Qaterial.Expandable {
 				id: _expChapters
@@ -380,90 +375,81 @@ QPage {
 					text: qsTr("Feladatcsoportok")
 					icon: Qaterial.Icons.folderMultipleOutline
 					expandable: _expChapters
+					topPadding: 20
 				}
 
-				delegate: QIndentedItem {
+				delegate: Column {
 					width: _form.width
-					Column {
+
+					Repeater {
+						model: missionLevel ? missionLevel.chapterList : null
+
+						delegate: MapEditorChapterItem {
+							width: parent.width
+							chapter: modelData
+
+							onRemoveActionRequest: {
+								if (editor)
+									editor.missionLevelChapterRemove(missionLevel, [chapter])
+							}
+						}
+					}
+
+					QColoredItemDelegate {
 						width: parent.width
+						icon.source: Qaterial.Icons.folderPlus
+						text: qsTr("Új feladatcsoport létrehozása")
+						color: Qaterial.Colors.green400
 
-						Repeater {
-							model: missionLevel ? missionLevel.chapterList : null
-
-							delegate: MapEditorChapterItem {
-								width: parent.width
-								chapter: modelData
-
-								onRemoveActionRequest: {
-									if (editor)
-										editor.missionLevelChapterRemove(missionLevel, [chapter])
-								}
-							}
-						}
-
-						QColoredItemDelegate {
-							width: parent.width
-							icon.source: Qaterial.Icons.folderPlus
-							text: qsTr("Új feladatcsoport létrehozása")
-							color: Qaterial.Colors.green400
-
-							onClicked: {
-								Qaterial.DialogManager.showTextFieldDialog({
-																			   textTitle: qsTr("Feladatcsoport neve"),
-																			   title: qsTr("Új feladatcsoport létrehozása"),
-																			   standardButtons: Dialog.Cancel | Dialog.Ok,
-																			   onAccepted: function(_text, _noerror) {
-																				   if (_noerror && _text.length) {
-																					   editor.chapterAdd(_text, missionLevel)
-																				   }
+						onClicked: {
+							Qaterial.DialogManager.showTextFieldDialog({
+																		   textTitle: qsTr("Feladatcsoport neve"),
+																		   title: qsTr("Új feladatcsoport létrehozása"),
+																		   standardButtons: Dialog.Cancel | Dialog.Ok,
+																		   onAccepted: function(_text, _noerror) {
+																			   if (_noerror && _text.length) {
+																				   editor.chapterAdd(_text, missionLevel)
 																			   }
-																		   })
-							}
-
+																		   }
+																	   })
 						}
 
-						QColoredItemDelegate {
-							width: parent.width
-							icon.source: Qaterial.Icons.folderMultiplePlusOutline
-							text: qsTr("Létező feladatcsoport hozzáadása")
-							color: Qaterial.Colors.purple400
+					}
 
-							onClicked: {
-								_sortedChapterModel.reload()
+					QColoredItemDelegate {
+						width: parent.width
+						icon.source: Qaterial.Icons.folderMultiplePlusOutline
+						text: qsTr("Létező feladatcsoport hozzáadása")
+						color: Qaterial.Colors.purple400
 
-								Qaterial.DialogManager.openCheckListView(
+						onClicked: {
+							_sortedChapterModel.reload()
+
+							Qaterial.DialogManager.openCheckListView(
+										{
+											onAccepted: function(indexList)
 											{
-												onAccepted: function(indexList)
-												{
-													if (indexList.length === 0)
-														return
+												if (indexList.length === 0)
+													return
 
-													var l = []
+												var l = []
 
-													for (let i=0; i<indexList.length; ++i) {
-														l.push(_sortedChapterModel.get(indexList[i]).chapter)
-													}
+												for (let i=0; i<indexList.length; ++i) {
+													l.push(_sortedChapterModel.get(indexList[i]).chapter)
+												}
 
-													editor.missionLevelChapterAdd(missionLevel, l)
-												},
-												title: qsTr("Feladatcsoport hozzáadása"),
-												standardButtons: Dialog.Cancel | Dialog.Ok,
-												model: _sortedChapterModel
-											})
-							}
+												editor.missionLevelChapterAdd(missionLevel, l)
+											},
+											title: qsTr("Feladatcsoport hozzáadása"),
+											standardButtons: Dialog.Cancel | Dialog.Ok,
+											model: _sortedChapterModel
+										})
 						}
 					}
 				}
 			}
 
 
-
-
-			Item {
-				width: parent.width
-				height: 20
-				visible: _expInventory.visible
-			}
 
 			Qaterial.Expandable {
 				id: _expInventory
@@ -475,6 +461,7 @@ QPage {
 					text: qsTr("Felszerelés")
 					icon: Qaterial.Icons.bagPersonal
 					expandable: _expInventory
+					topPadding: 20
 
 					rightSourceComponent: Qaterial.RoundButton {
 						icon.source: Qaterial.Icons.dotsVertical
@@ -512,141 +499,136 @@ QPage {
 					}
 				}
 
-				delegate: QIndentedItem {
+				delegate: QListView {
+					id: _inventoryView
+
 					width: _form.width
-					QListView {
-						id: _inventoryView
 
-						width: parent.width
+					height: contentHeight
+					boundsBehavior: Flickable.StopAtBounds
 
-						height: contentHeight
-						boundsBehavior: Flickable.StopAtBounds
+					autoSelectChange: true
 
-						autoSelectChange: true
+					model: SortFilterProxyModel {
+						sourceModel: missionLevel ? missionLevel.inventoryList : null
 
-						model: SortFilterProxyModel {
-							sourceModel: missionLevel ? missionLevel.inventoryList : null
+						sorters: RoleSorter {
+							roleName: "inventoryid"
+						}
+					}
 
-							sorters: RoleSorter {
-								roleName: "inventoryid"
+					delegate: MapEditorInventoryItem {
+						inventory: model.qtObject
+						width: ListView.view.width
+						onMenuRequest: _inventoryView.menuOpenFromDelegate(button)
+					}
+
+					footer: Qaterial.ItemDelegate {
+						width: ListView.view.width
+						textColor: Qaterial.Colors.blue700
+						iconColor: textColor
+						action: actionInventoryAdd
+					}
+
+					Qaterial.Menu {
+						id: _inventoryContextMenu
+						QMenuItem {
+							text: qsTr("Törlés")
+							icon.source: Qaterial.Icons.delete_
+							onClicked: {
+								if (!editor)
+									return
+
+								let l = _inventoryView.getSelected()
+
+								if (l.length)
+									editor.missionLevelInventoryRemove(missionLevel, l)
+
+								_inventoryView.unselectAll()
 							}
-						}
-
-						delegate: MapEditorInventoryItem {
-							inventory: model.qtObject
-							width: ListView.view.width
-							onMenuRequest: _inventoryView.menuOpenFromDelegate(button)
-						}
-
-						footer: Qaterial.ItemDelegate {
-							width: ListView.view.width
-							textColor: Qaterial.Colors.blue700
-							iconColor: textColor
-							action: actionInventoryAdd
 						}
 
 						Qaterial.Menu {
-							id: _inventoryContextMenu
-							QMenuItem {
-								text: qsTr("Törlés")
-								icon.source: Qaterial.Icons.delete_
-								onClicked: {
-									if (!editor)
-										return
+							title: qsTr("Elhelyezés")
 
-									let l = _inventoryView.getSelected()
+							Repeater {
+								model: 5
 
-									if (l.length)
-										editor.missionLevelInventoryRemove(missionLevel, l)
+								QMenuItem {
+									text: index > 0 ? qsTr("%1. csatatéren").arg(index) : qsTr("Bárhol")
+									onClicked: {
+										if (!editor || _inventoryView.currentIndex == -1)
+											return
 
-									_inventoryView.unselectAll()
-								}
-							}
+										let inventory = _inventoryView.modelGet(_inventoryView.currentIndex)
 
-							Qaterial.Menu {
-								title: qsTr("Elhelyezés")
-
-								Repeater {
-									model: 5
-
-									QMenuItem {
-										text: index > 0 ? qsTr("%1. csatatéren").arg(index) : qsTr("Bárhol")
-										onClicked: {
-											if (!editor || _inventoryView.currentIndex == -1)
-												return
-
-											let inventory = _inventoryView.modelGet(_inventoryView.currentIndex)
-
-											editor.missionLevelInventoryModify(missionLevel, inventory, function() {
-												inventory.block = (index > 0 ? index : -1)
-											})
-										}
+										editor.missionLevelInventoryModify(missionLevel, inventory, function() {
+											inventory.block = (index > 0 ? index : -1)
+										})
 									}
 								}
 							}
 						}
-
-						onRightClickOrPressAndHold: {
-							if (index != -1)
-								currentIndex = index
-
-							_inventoryContextMenu.popup(mouseX, mouseY)
-						}
-
-						function menuOpenFromDelegate(_item) {
-							var p = mapFromItem(_item, _item.x, _item.y+_item.height)
-
-							_inventoryContextMenu.popup(p.x, p.y)
-						}
-
-						Component.onCompleted: root._inventoryView = _inventoryView
-						Component.onDestruction: root._inventoryView = null
 					}
 
-				}
+					onRightClickOrPressAndHold: {
+						if (index != -1)
+							currentIndex = index
 
-				Action {
-					id: actionInventoryAdd
-					icon.source: Qaterial.Icons.bagPersonalPlus
-					text: qsTr("Új felszerelés")
-
-					onTriggered: {
-						_inventoryModel.clear()
-
-						if (!editor)
-							return
-
-						let list = editor.pickableListModel()
-
-						for (let i=0; i<list.length; ++i) {
-							let o = list[i]
-							o.iconColor = "transparent"
-							_inventoryModel.append(o)
-						}
-
-						Qaterial.DialogManager.openListView(
-									{
-										onAccepted: function(index)
-										{
-											if (index < 0)
-												return
-
-											let ml = _inventoryModel.get(index)
-											if (ml)
-												editor.missionLevelInventoryAdd(missionLevel, ml.id)
-
-										},
-										title: qsTr("Felszerelés hozzáadása"),
-										model: _inventoryModel
-									})
+						_inventoryContextMenu.popup(mouseX, mouseY)
 					}
 
+					function menuOpenFromDelegate(_item) {
+						var p = mapFromItem(_item, _item.x, _item.y+_item.height)
+
+						_inventoryContextMenu.popup(p.x, p.y)
+					}
+
+					Component.onCompleted: root._inventoryView = _inventoryView
+					Component.onDestruction: root._inventoryView = null
 				}
+
 			}
 
+			Action {
+				id: actionInventoryAdd
+				icon.source: Qaterial.Icons.bagPersonalPlus
+				text: qsTr("Új felszerelés")
 
+				onTriggered: {
+					_inventoryModel.clear()
 
+					if (!editor)
+						return
+
+					let list = editor.pickableListModel()
+
+					for (let i=0; i<list.length; ++i) {
+						let o = list[i]
+						o.iconColor = "transparent"
+						_inventoryModel.append(o)
+					}
+
+					Qaterial.DialogManager.openListView(
+								{
+									onAccepted: function(index)
+									{
+										if (index < 0)
+											return
+
+										let ml = _inventoryModel.get(index)
+										if (ml)
+											editor.missionLevelInventoryAdd(missionLevel, ml.id)
+
+									},
+									title: qsTr("Felszerelés hozzáadása"),
+									model: _inventoryModel
+								})
+				}
+
+			}
 		}
+
 
 	}
 

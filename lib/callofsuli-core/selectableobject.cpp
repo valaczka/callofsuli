@@ -25,6 +25,8 @@
  */
 
 #include "selectableobject.h"
+#include "qjsonobject.h"
+#include "qmetaobject.h"
 
 SelectableObject::SelectableObject(QObject *parent)
 	: QObject{parent}
@@ -43,4 +45,78 @@ void SelectableObject::setSelected(bool newSelected)
 		return;
 	m_selected = newSelected;
 	emit selectedChanged();
+}
+
+
+/**
+ * @brief SelectableObject::toVariantMap
+ * @return
+ */
+
+QVariantMap SelectableObject::toVariantMap() const
+{
+	QVariantMap map;
+
+	const QMetaObject* meta = this->metaObject();
+
+	for (int i = 0 ; i < meta->propertyCount(); i++) {
+		const QMetaProperty &property = meta->property(i);
+
+		if (!property.isValid() || !property.isReadable() || !property.isStored())
+			continue;
+
+		const QString &p = property.name();
+		const QVariant &value = this->property(p.toUtf8());
+
+		const MapConvertFunc &f = m_mapConvertFuncs.value(p);
+
+		SelectableObject *obj = qvariant_cast<SelectableObject*>(value);
+
+		if (f)
+			map.insert(p, f(value));
+		else if (obj)
+			map.insert(p, obj->toVariantMap());
+		else
+			map.insert(p, value);
+	}
+
+	return map;
+}
+
+
+
+
+/**
+ * @brief SelectableObject::toJsonObject
+ * @return
+ */
+
+QJsonObject SelectableObject::toJsonObject() const
+{
+	QJsonObject map;
+
+	const QMetaObject* meta = this->metaObject();
+
+	for (int i = 0 ; i < meta->propertyCount(); i++) {
+		const QMetaProperty &property = meta->property(i);
+
+		if (!property.isValid() || !property.isReadable() || !property.isStored())
+			continue;
+
+		const QString &p = property.name();
+		const QVariant &value = this->property(p.toUtf8());
+
+		const JsonConvertFunc &f = m_jsonConvertFuncs.value(p);
+
+		SelectableObject *obj = qvariant_cast<SelectableObject*>(value);
+
+		if (f)
+			map.insert(p, f(value));
+		else if (obj)
+			map.insert(p, obj->toJsonObject());
+		else
+			map.insert(p, value.toJsonValue());
+	}
+
+	return map;
 }

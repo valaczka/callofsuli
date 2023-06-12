@@ -9,6 +9,8 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
+	signal userLoaded()
+
 	stackPopFunction: function() {
 		if (_closeEnabled || (Client.server && Client.server.user.loginState != User.LoggedIn))
 			return true
@@ -71,7 +73,7 @@ QPage {
 			model.append({ text: qsTr("Áttekintés"), source: Qaterial.Icons.speedometer, cmp: cmpDashboard })
 			model.append({ text: qsTr("Csoportjaim"), source: Qaterial.Icons.accountGroup, cmp: cmpGroupList })
 			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium, cmp: cmpScoreList })
-			model.append({ text: qsTr("Profil"), source: Qaterial.Icons.account, cmp: cmpRect })
+			model.append({ text: qsTr("Profil"), source: Qaterial.Icons.account, cmp: cmpProfil })
 		}
 	}
 
@@ -110,17 +112,12 @@ QPage {
 	}
 
 	Component {
-		id: cmpRect
+		id: cmpProfil
 
-		Rectangle {
-			color: "green"
-
-			QButton {
-				anchors.centerIn: parent
-				text: "Logout"
-				onClicked: Client.logout()
-			}
+		StudentProfile {
+			user: Client.server.user
 		}
+
 	}
 
 	StackView.onActivated: {

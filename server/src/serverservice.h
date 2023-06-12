@@ -68,6 +68,12 @@ public:
 	{ set("oauth2RegistrationForced", on); }
 
 
+	bool nameUpdateEnabled() const
+	{ return get("nameUpdateEnabled").toBool(false); }
+
+	void setNameUpdateEnabled(const bool &on = true)
+	{ set("nameUpdateEnabled", on); }
+
 private:
 	void loadFromDb(DatabaseMain *db);
 	QPointer<DatabaseMain> m_db = nullptr;

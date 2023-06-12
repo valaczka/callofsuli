@@ -8,6 +8,7 @@ Item {
 	id: control
 
 	property User user: null
+	property var userData: null
 	property real size: Math.min(control.width, control.height)
 	property color iconColor: Qaterial.Style.primaryColor
 	property color sublevelColor: Qaterial.Style.iconColor()
@@ -17,9 +18,13 @@ Item {
 	implicitWidth: Math.max(_icon.implicitWidth, _rank.implicitWidth)
 	implicitHeight: Math.max(_icon.implicitHeight, _rank.implicitHeight)
 
+	readonly property int _u_rankLevel: user ? user.rank.level : userData ? userData.rank.level : -1
+	readonly property int _u_rankSubLevel: user ? user.rank.sublevel : userData ? userData.rank.sublevel : -1
+	readonly property string _u_picture: user ? user.picture : userData && userData.picture !== undefined ? userData.picture : ""
+
 	Qaterial.Icon {
 		id: _icon
-		visible: !user || user.rank.level < 0
+		visible: _u_rankLevel < 0
 		anchors.centerIn: parent
 		icon: Qaterial.Icons.account
 		color: control.iconColor
@@ -30,7 +35,7 @@ Item {
 	Rectangle {
 		id: _picture
 
-		visible: user && user.picture.length && pictureEnabled
+		visible: _u_picture.length && pictureEnabled
 
 		property real contentSize: control.size-(2*roundBorderWidth)
 		property int roundBorderWidth: 1
@@ -45,7 +50,7 @@ Item {
 			anchors.centerIn: parent
 			width: _picture.contentSize
 			height: _picture.contentSize
-			source: user ? user.picture : ""
+			source: _u_picture
 			asynchronous: true
 		}
 
@@ -53,10 +58,10 @@ Item {
 			id: _rankSmall
 			anchors.right: img.right
 			anchors.bottom: img.bottom
-			visible: user && user.rank.level >= 0
+			visible: _u_rankLevel >= 0
 			width: control.size*0.5
 			height: control.size*0.5
-			source: user && user.rank.level >= 0 ? "qrc:/internal/rank/"+user.rank.level+".svg" : ""
+			source: _u_rankLevel >= 0 ? "qrc:/internal/rank/"+_u_rankLevel+".svg" : ""
 		}
 	}
 
@@ -64,15 +69,15 @@ Item {
 	Image {
 		id: _rank
 		anchors.centerIn: parent
-		visible: user && user.rank.level >= 0 && !_picture.visible
+		visible: _u_rankLevel >= 0 && !_picture.visible
 		width: control.size
 		height: control.size
-		source: user && user.rank.level >= 0 ? "qrc:/internal/rank/"+user.rank.level+".svg" : ""
+		source: _u_rankLevel >= 0 ? "qrc:/internal/rank/"+_u_rankLevel+".svg" : ""
 		fillMode: Image.PreserveAspectFit
 	}
 
 	Label {
-		visible: user && user.rank.sublevel > 0 && !_picture.visible && control.sublevelEnabled
+		visible: _u_rankSubLevel > 0 && !_picture.visible && control.sublevelEnabled
 		font.family: Qaterial.Style.textTheme.overline.family
 		font.pixelSize: control.size*0.5
 		font.weight: Font.Bold
@@ -82,7 +87,7 @@ Item {
 		anchors.right: _rank.right
 		anchors.bottom: _rank.bottom
 		height: font.pixelSize
-		text: user ? user.rank.sublevel : ""
+		text: _u_rankSubLevel
 	}
 
 }

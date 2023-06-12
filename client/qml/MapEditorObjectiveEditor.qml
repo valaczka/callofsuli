@@ -25,40 +25,44 @@ QPage {
 
 
 	appBar.backButtonVisible: true
-	appBar.rightComponent: Qaterial.SquareButton {
-		backgroundImplicitHeight: Qaterial.Style.toolButton.appBarButtonHeight
+	appBar.rightComponent: Row {
+		rightPadding: 5
+		Qaterial.SquareButton {
+			backgroundImplicitHeight: Qaterial.Style.toolButton.appBarButtonHeight
 
-		icon.source: Qaterial.Icons.checkBold
-		text: qsTr("Kész")
-		display: AbstractButton.TextBesideIcon
-		enabled: modified && editor && chapter
+			icon.source: Qaterial.Icons.checkBold
+			text: qsTr("Kész")
+			display: AbstractButton.TextBesideIcon
+			enabled: modified && editor && chapter
 
-		onClicked: {
-			if (objective.uuid == "") {
-				if (_objectiveLoader.item)
-					_objectiveLoader.item.saveData()
-
-				editor.objectiveAdd(chapter, objective, storage, function() {
-					if (_storageLoader.item)
-						_storageLoader.item.saveData()
-				})
-			} else if (_objectiveLoader.item) {
-				if (_storageLoader.item && _storageLoader.item.modified) {
-					editor.objectiveModify(objective, storage, function() {
-						_storageLoader.item.saveData()
+			onClicked: {
+				if (objective.uuid == "") {
+					if (_objectiveLoader.item)
 						_objectiveLoader.item.saveData()
+
+					editor.objectiveAdd(chapter, objective, storage, function() {
+						if (_storageLoader.item)
+							_storageLoader.item.saveData()
 					})
-				} else {
-					editor.objectiveModify(objective, null, function() {
-						_objectiveLoader.item.saveData()
-					})
+				} else if (_objectiveLoader.item) {
+					if (_storageLoader.item && _storageLoader.item.modified) {
+						editor.objectiveModify(objective, storage, function() {
+							_storageLoader.item.saveData()
+							_objectiveLoader.item.saveData()
+						})
+					} else {
+						editor.objectiveModify(objective, null, function() {
+							_objectiveLoader.item.saveData()
+						})
+					}
 				}
-			}
 
-			modified = false
-			Client.stackPop(root)
+				modified = false
+				Client.stackPop(root)
+			}
 		}
 	}
+
 
 
 	QScrollable {

@@ -32,8 +32,6 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
-#include "qquicktextdocument.h"
-#include "qtextdocument.h"
 #include "qtimer.h"
 #include "server.h"
 #include "utils.h"
@@ -201,11 +199,8 @@ public:
 
 	Q_INVOKABLE void logout();
 
-	Q_INVOKABLE void reloadUser() const;
+	Q_INVOKABLE void reloadUser(QJSValue func = QJSValue::UndefinedValue);
 
-	// Cached lists
-
-	Q_INVOKABLE void loadClassListFromArray(QJsonArray list);
 
 
 	// Scanned, readed,...stb. Url
@@ -218,11 +213,20 @@ public:
 	Q_INVOKABLE qreal getDevicePixelSizeCorrection() const;
 
 
+
+	// Helpers
+
+	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
+
+
+
+public slots:
+	virtual void onWebSocketError(const QNetworkReply::NetworkError &code);
+
 protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
 
-	virtual void onWebSocketError(QNetworkReply::NetworkError code);
 	virtual void onWebSocketResponseError(const QString &error);
 #ifndef QT_NO_SSL
 	virtual void onWebSocketSslError(const QList<QSslError> &errors);
