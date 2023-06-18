@@ -40,6 +40,9 @@ typedef std::function<void(const QRegularExpressionMatch &, HttpRequest*, QPoint
 
 class ServerService;
 
+
+#define DEFAULT_LIMIT	50
+
 /**
  * @brief The AbstractAPI class
  */

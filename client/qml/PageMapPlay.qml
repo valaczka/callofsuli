@@ -111,6 +111,8 @@ QPageGradient {
 						height: view.implicitHeight
 						width: view.implicitHeight
 
+						readOnly: map && map.readOnly
+
 						missionLevel: model.qtObject
 
 						onClicked: Client.stackPushPage("PageMapPlayMissionLevel.qml", {

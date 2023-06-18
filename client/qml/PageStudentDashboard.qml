@@ -87,7 +87,9 @@ QPage {
 
 	Component {
 		id: cmpGroupList
-		StudentGroups {  }
+		StudentGroups {
+			studentMapHandler: control.studentMapHandler
+		}
 	}
 
 	Component {
@@ -107,7 +109,7 @@ QPage {
 				onClicked: Client.stackPushPage("Ranks.qml")
 			}
 
-			StackView.onActivated: _scoreList.reload()
+			StackView.onActivated: Qt.callLater(_scoreList.reload)
 		}
 	}
 

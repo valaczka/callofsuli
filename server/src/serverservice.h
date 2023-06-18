@@ -35,6 +35,7 @@
 #include "databasemain.h"
 #include "webserver.h"
 #include "oauth2authenticator.h"
+#include "eventstream.h"
 
 
 class ServerService;
@@ -120,8 +121,11 @@ public:
 
 	QNetworkAccessManager *networkManager() const;
 
-	QVector<HttpEventStream *> eventStreams() const;
-	void addEventStream(HttpEventStream *stream);
+	QVector<EventStream *> eventStreams() const;
+	void addEventStream(EventStream *stream);
+
+	void triggerEventStreams(const EventStream::EventStreamType &type);
+	void triggerEventStreams(const EventStream::EventStreamType &type, const QVariant &data);
 
 	QVector<Panel *> panels() const;
 	void addPanel(Panel *panel);
@@ -168,7 +172,7 @@ private:
 	QPointer<DatabaseMain> m_databaseMain = nullptr;
 	QPointer<WebServer> m_webSocketServer = nullptr;
 	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
-	QVector<QPointer<HttpEventStream>> m_eventStreams;
+	QVector<QPointer<EventStream>> m_eventStreams;
 	QVector<QPointer<Panel>> m_panels;
 
 	ColorConsoleAppender *m_consoleAppender = nullptr;

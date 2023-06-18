@@ -212,6 +212,8 @@ public:
 	Q_INVOKABLE QString getSystemInfo() const;
 	Q_INVOKABLE qreal getDevicePixelSizeCorrection() const;
 
+	Q_INVOKABLE QVariantMap availableCharacters() const;
+
 
 
 	// Helpers

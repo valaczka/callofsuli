@@ -24,7 +24,7 @@ Rectangle {
 
 	color: "transparent"
 
-	width: expandable ? expandable.width : implicitWidth
+	//width: expandable ? expandable.width : implicitWidth
 	height: implicitHeight
 
 	implicitWidth: _btn.implicitWidth+_iconLabel.implicitWidth+(_loader.item ? _loader.item.implicitWidth : 0)

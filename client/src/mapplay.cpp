@@ -357,6 +357,19 @@ void MapPlay::onCurrentGameFinished()
 	m_currentGame->setReadyToDestroy(true);
 }
 
+bool MapPlay::readOnly() const
+{
+	return m_readOnly;
+}
+
+void MapPlay::setReadOnly(bool newReadOnly)
+{
+	if (m_readOnly == newReadOnly)
+		return;
+	m_readOnly = newReadOnly;
+	emit readOnlyChanged();
+}
+
 
 /**
  * @brief MapPlay::gameState

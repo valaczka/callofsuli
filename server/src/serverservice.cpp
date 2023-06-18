@@ -480,13 +480,13 @@ Panel *ServerService::panel(const int &id) const
  * @return
  */
 
-QVector<HttpEventStream *> ServerService::eventStreams() const
+QVector<EventStream *> ServerService::eventStreams() const
 {
-	QVector<HttpEventStream *> list;
+	QVector<EventStream *> list;
 
 	list.reserve(m_eventStreams.size());
 
-	foreach (HttpEventStream *s, m_eventStreams)
+	foreach (EventStream *s, m_eventStreams)
 		if (s)
 			list.append(s);
 
@@ -496,24 +496,53 @@ QVector<HttpEventStream *> ServerService::eventStreams() const
 }
 
 
+
 /**
  * @brief ServerService::addEventStream
  * @param stream
  */
 
-void ServerService::addEventStream(HttpEventStream *stream)
+void ServerService::addEventStream(EventStream *stream)
 {
 	if (!stream)
 		return;
 
 	m_eventStreams.append(stream);
 
+	stream->setService(this);
+
 	LOG_CTRACE("service") << "Event stream added:" << m_eventStreams.size() << stream;
 
-	connect(stream, &HttpEventStream::destroyed, this, [this, stream](){
+	connect(stream, &EventStream::destroyed, this, [this, stream](){
 		m_eventStreams.removeAll(stream);
 		LOG_CTRACE("service") << "Event stream removed:" << m_eventStreams.size() << stream;
 	});
+}
+
+
+
+/**
+ * @brief ServerService::triggerEventStreams
+ * @param type
+ */
+
+void ServerService::triggerEventStreams(const EventStream::EventStreamType &type)
+{
+	foreach (EventStream *s, m_eventStreams)
+		if (s) s->trigger(type);
+}
+
+
+/**
+ * @brief ServerService::triggerEventStreams
+ * @param type
+ * @param data
+ */
+
+void ServerService::triggerEventStreams(const EventStream::EventStreamType &type, const QVariant &data)
+{
+	foreach (EventStream *s, m_eventStreams)
+		if (s) s->trigger(type, data);
 }
 
 

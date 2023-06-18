@@ -10,21 +10,30 @@ Item
 {
 	id: control
 
-	property TeacherGroup group: null
-	property TeacherMapHandler mapHandler: null
-	property alias view: view
+	property StudentGroup group: null
+	property StudentMapHandler mapHandler: null
 
-	property alias actionCampaignAdd: actionCampaignAdd
+	property real topPadding: 0
 
 	QScrollable {
 		anchors.fill: parent
-		topPadding: 0
+		topPadding: Math.max(verticalPadding, Client.safeMarginTop, control.topPadding)
 		leftPadding: 0
 		bottomPadding: 0
 		rightPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: group.reload()
+		onRefreshRequest: Client.reloadCache("studentCampaignList")
+
+		Qaterial.LabelHeadline5 {
+			width: parent.width
+			topPadding: 25
+			leftPadding: 50
+			rightPadding: 50
+			horizontalAlignment: Qt.AlignHCenter
+			text: group ? group.name : ""
+			visible: group
+		}
 
 		QListView {
 			id: view
@@ -38,10 +47,16 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			refreshProgressVisible: Client.webSocket.pending
-
 			model: SortFilterProxyModel {
-				sourceModel: group ? group.campaignList : null
+				sourceModel: Client.cache("studentCampaignList")
+
+				filters: [
+					ValueFilter {
+						roleName: "groupid"
+						value: group ? group.groupid : -1
+					}
+
+				]
 
 				sorters: [
 					RoleSorter {
@@ -62,12 +77,17 @@ Item
 				]
 			}
 
-			delegate: QItemDelegate {
+
+			delegate: Qaterial.LoaderItemDelegate {
+				id: _delegate
+
+				width: view.width
+
 				property Campaign campaign: model.qtObject
-				//selectableObject: campaign
 
 				highlighted: ListView.isCurrentItem
-				iconSource: {
+
+				readonly property string iconSource: {
 					if (!campaign)
 						return ""
 					switch (campaign.state) {
@@ -80,7 +100,7 @@ Item
 					}
 				}
 
-				iconColor: {
+				readonly property color iconColor: {
 					if (!campaign)
 						return Qaterial.Style.disabledTextColor()
 					switch (campaign.state) {
@@ -93,14 +113,8 @@ Item
 					}
 				}
 
-				textColor: iconColor
-				secondaryTextColor: !campaign || campaign.state == Campaign.Finished ?
-										Qaterial.Style.disabledTextColor() : Qaterial.Style.colorTheme.secondaryText
+				text: campaign ? campaign.readableName : ""
 
-
-				readonly property string _campaignName: campaign ? campaign.readableName : ""
-
-				text: _campaignName
 				secondaryText: {
 					if (!campaign)
 						return ""
@@ -113,59 +127,47 @@ Item
 					return ""
 				}
 
-				onClicked: Client.stackPushPage("PageTeacherCampaign.qml", {
-													group: control.group,
+				textColor: iconColor
+				secondaryTextColor: !campaign || campaign.state == Campaign.Finished ?
+										Qaterial.Style.disabledTextColor() : Qaterial.Style.colorTheme.secondaryText
+
+				leftSourceComponent: Qaterial.RoundColorIcon
+				{
+					source: _delegate.iconSource
+					color: _delegate.iconColor
+					iconSize: Qaterial.Style.delegate.iconWidth
+
+					fill: true
+					width: roundIcon ? roundSize : iconSize
+					height: roundIcon ? roundSize : iconSize
+				}
+
+				rightSourceComponent: Qaterial.LabelHeadline5 {
+					visible: text != ""
+					text: {
+						let l = []
+						if (_delegate.campaign.resultXP > 0)
+							l.push(qsTr("%1 XP").arg(Number(_delegate.campaign.resultXP).toLocaleString()))
+
+						if (_delegate.campaign.resultGrade)
+							l.push(_delegate.campaign.resultGrade.shortname)
+
+						return l.join(" / ")
+					}
+					color: Qaterial.Style.accentColor
+				}
+
+				onClicked: Client.stackPushPage("PageStudentCampaign.qml", {
+													user: Client.server ? Client.server.user : null,
 													campaign: campaign,
-													mapHandler: control.mapHandler
+													studentMapHandler: control.mapHandler,
+													withResult: true,
+													title: group ? group.name : ""
 												})
 			}
 		}
 
 	}
 
-	Qaterial.Banner
-	{
-		anchors.top: parent.top
-		width: parent.width
-		drawSeparator: true
-		text: qsTr("Még egyetlen hadjárat sincsen felvéve. Hozz létre egyet.")
-		iconSource: Qaterial.Icons.account
-		fillIcon: false
-		outlinedIcon: true
-		highlightedIcon: true
 
-		action1: qsTr("Létrehozás")
-
-		onAction1Clicked: actionCampaignAdd.trigger()
-
-		enabled: group
-		visible: group && !group.campaignList.length
-	}
-
-	QFabButton {
-		visible: view.visible
-		action: actionCampaignAdd
-	}
-
-
-	Action {
-		id: actionCampaignAdd
-		enabled: group
-		text: qsTr("Új hadjárat")
-		icon.source: Qaterial.Icons.accountPlus
-		onTriggered: {
-			Client.send(WebSocket.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
-			.done(function(r){
-				group.reloadAndCall(function() {
-					var o = Client.findOlmObject(group.campaignList, "campaignid", r.id)
-					if (o)
-						Client.stackPushPage("PageTeacherCampaign.qml", {
-												 group: control.group,
-												 campaign: o
-											 })
-				})
-			})
-			.fail(JS.failMessage(qsTr("Hadjárat létrehozása sikertelen")))
-		}
-	}
 }

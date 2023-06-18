@@ -69,6 +69,7 @@ QPage {
 		TeacherGroupResult {
 			id: _result
 			group: control.group
+			mapHandler: control.mapHandler
 		}
 	}
 

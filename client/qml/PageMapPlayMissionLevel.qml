@@ -73,7 +73,7 @@ QPageGradient {
 			width: parent.width
 			leftPadding: Math.max(50, Client.safeMarginLeft)
 			rightPadding: Math.max(50, Client.safeMarginRight)
-			text: mission && missionLevel ? (_modeGroup.checkedButton.gameMode === GameMap.Test ?
+			text: mission && missionLevel ? (_modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Test ?
 												 mission.description + qsTr("\n\nA sikeres teljesítéshez %1% eredményt kell elérni").arg(Math.floor(missionLevel.passed*100)) :
 												 mission.description)
 										  : ""
@@ -164,7 +164,7 @@ QPageGradient {
 			bottomPadding: 10
 			color: Qaterial.Colors.lightGreen400
 
-			visible: map && map.gameState == MapPlay.StateSelect
+			visible: map && map.gameState == MapPlay.StateSelect && !map.readOnly
 
 			Behavior on xp {
 				NumberAnimation {
@@ -196,7 +196,7 @@ QPageGradient {
 			enabled: missionLevel && missionLevel.lockDepth == 0 && map && _modeGroup.checkedButton
 			text:  map && map.gameState != MapPlay.StateSelect && _currentGameFailed ? qsTr("Újra") : qsTr("Play")
 
-			visible: map && (map.gameState == MapPlay.StateSelect || (map.gameState == MapPlay.StateFinished && _currentGameFailed))
+			visible: map && !map.readOnly && (map.gameState == MapPlay.StateSelect || (map.gameState == MapPlay.StateFinished && _currentGameFailed))
 
 			outlined: !enabled
 

@@ -112,7 +112,7 @@ QScrollable {
 	}
 
 	QIconLabel {
-		text: qsTr("Kritériumok")
+		text: qsTr("Értékelési kritériumok")
 		anchors.left: _colTaskList.left
 		font: Qaterial.Style.textTheme.headline5
 		topPadding: 20
@@ -165,18 +165,28 @@ QScrollable {
 					icon.source: task && task.required ? Qaterial.Icons.accessPointCheck : Qaterial.Icons.accessPoint
 					highlightedIcon: task && task.required
 
+					onClicked: {
+						let o = Client.stackPushPage("TeacherCampaignTaskEdit.qml", {
+														 campaign: campaign,
+														 mapHandler: mapHandler,
+														 task: task
+													 })
+
+						if (o)
+							o.Component.destruction.connect(reloadRequest)
+					}
+
 					Connections {
 						target: task
 
-						function onCriterionChanged() { getText() }
-						function onMapUuidChanged() { getText() }
+						function onCriterionChanged() { _delegate.getText() }
+						function onMapUuidChanged() { _delegate.getText() }
 					}
 
 					Component.onCompleted: getText()
 
 					function getText() {
-						text = task ?
-								(task.readableCriterion(mapHandler ? mapHandler.mapList : null)+" - "+task.gradeValue+" / "+task.xp + " : "+task.readableGradeOrXp) : ""
+						text = task ? task.readableCriterion(mapHandler ? mapHandler.mapList : null) : ""
 					}
 
 				}
@@ -192,44 +202,7 @@ QScrollable {
 		}
 	}
 
-	/*
-	QListView {
-		id: taskList
 
-		currentIndex: -1
-		autoSelectChange: true
-
-
-		model: _list
-
-		delegate: QItemDelegate {
-			id: _delegate
-			property Task task: model.qtObject
-			selectableObject: task
-
-			highlighted: ListView.isCurrentItem
-
-			iconSource: task.required ? Qaterial.Icons.accessPointCheck : Qaterial.Icons.accessPoint
-			highlightedIcon: task.required
-
-			Connections {
-				target: task
-
-				function onCriterionChanged() { getText() }
-				function onMapUuidChanged() { getText() }
-			}
-
-
-			Component.onCompleted: getText()
-
-			function getText() {
-				text = task.readableCriterion(mapHandler ? mapHandler.mapList : null)+" - "+task.gradeValue+" / "+task.xp + " : "+task.readableGradeOrXp
-			}
-
-		}
-
-	}
-*/
 	StackView.onStatusChanged: if (actionTaskCreate) actionTaskCreate.enabled = (StackView.status == StackView.Active)
 
 	Component.onDestruction: if (actionTaskCreate) actionTaskCreate.enabled = false

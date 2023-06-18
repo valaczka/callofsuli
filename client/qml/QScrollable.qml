@@ -21,6 +21,8 @@ Item {
 	property alias contentContainer: _content
 	property alias spacing: _content.spacing
 
+	property alias flickable: _flickable
+
 	signal refreshRequest()
 
 	implicitHeight: _content.implicitHeight

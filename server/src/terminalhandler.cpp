@@ -27,6 +27,7 @@
 #include "terminalhandler.h"
 #include "Logger.h"
 #include "serverservice.h"
+#include "authapi.h"
 
 using Terminal = QtService::Terminal;
 
@@ -298,6 +299,30 @@ void TerminalHandler::parseRoot(const QByteArray &data)
 					  .arg(p->owner()).toUtf8()
 					  );
 		}
+
+		return true;
+	});
+
+
+
+	f.map("token", [this](const QStringList &l){
+		if (l.size() < 1) {
+			writeLine("*** missing parameter: username");
+			return true;
+		}
+
+		const QString &username = l.at(0);
+
+		QDeferred<Credential> ret = AuthAPI::getCredential(m_service->databaseMain(), username);
+
+		ret.fail([this](const Credential &){
+			writeLine("Invalid username");
+		})
+				.done([this](const Credential &cred){
+			writeLine(QStringLiteral("Token: %1").arg(cred.createJWT(m_service->settings()->jwtSecret())).toUtf8());
+		});
+
+		QDefer::await(ret);
 
 		return true;
 	});

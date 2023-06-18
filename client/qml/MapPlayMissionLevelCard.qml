@@ -9,6 +9,7 @@ Qaterial.Card {
 	id: control
 
 	property MapPlayMissionLevel missionLevel: null
+	property bool readOnly: false
 
 	outlined: true
 
@@ -16,11 +17,11 @@ Qaterial.Card {
 		target: control
 		property: "backgroundColor"
 		value: "transparent"
-		when: missionLevel.lockDepth > 0
+		when: missionLevel.lockDepth > 0 || readOnly
 
 	}
 
-	borderColor: missionLevel.lockDepth > 0 ? "transparent" :
+	borderColor: readOnly || missionLevel.lockDepth > 0 ? "transparent" :
 											  missionLevel.solved === 0 && missionLevel.lockDepth === 0
 											  ? Qaterial.Colors.green500 :
 												enabled ? Qaterial.Style.dividersColor() : Qaterial.Style.disabledDividersColor()

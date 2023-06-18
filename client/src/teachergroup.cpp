@@ -725,6 +725,102 @@ void TeacherGroupCampaignResultModel::setShowCellPlaceholders(bool newShowCellPl
 }
 
 
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::userAt
+ * @param row
+ * @return
+ */
+
+User *TeacherGroupCampaignResultModel::userAt(const int &row) const
+{
+	if (m_showHeaderPlaceholders)
+		return nullptr;
+
+	if (row >= 0 && row < m_userList.size())
+		return m_userList.at(row).user;
+
+	return nullptr;
+}
+
+
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::loadCampaignDataFromUser
+ * @param campaign
+ * @param user
+ * @return
+ */
+
+bool TeacherGroupCampaignResultModel::loadCampaignDataFromUser(Campaign *campaign, User *user) const
+{
+	for (int i=0; i<m_userList.size(); ++i) {
+		if (m_userList.at(i).user == user)
+			return loadCampaignDataFromRow(campaign, i);
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief TeacherGroupCampaignResultModel::loadCampaignDataFromRow
+ * @param campaign
+ * @param row
+ * @return
+ */
+
+bool TeacherGroupCampaignResultModel::loadCampaignDataFromRow(Campaign *campaign, const int &row) const
+{
+	if (!campaign || !m_campaign) {
+		LOG_CERROR("client") << "Invalid campaign";
+		return false;
+	}
+
+	if (m_showHeaderPlaceholders)
+		return false;
+
+	if (row <= 0 || row > m_userList.size())
+		return false;
+
+	campaign->setCampaignid(m_campaign->campaignid());
+	campaign->setDescription(m_campaign->description());
+	campaign->setStartTime(m_campaign->startTime());
+	campaign->setEndTime(m_campaign->endTime());
+	campaign->setStarted(m_campaign->started());
+	campaign->setFinished(m_campaign->finished());
+	campaign->setDefaultGrade(m_campaign->defaultGrade());
+	campaign->setGroupid(m_campaign->groupid());
+
+
+	const UserResult &userResult = m_userList.at(row);
+
+	campaign->setResultGrade(userResult.grade);
+	campaign->setResultXP(userResult.xp);
+
+	for (Task *task : *m_campaign->taskList()) {
+		if (!task)
+			continue;
+
+		int idx = findResult(userResult.user, task);
+		bool success = false;
+
+		if (idx != -1)
+			success = m_resultList.at(idx).success;
+
+		Task *t = campaign->appendTask();
+		t->loadFromTask(task);
+		t->setSuccess(success);
+	}
+
+
+	return true;
+}
+
+
 /**
  * @brief TeacherGroupCampaignResultModel::showHeaderPlaceholders
  * @return
@@ -1124,6 +1220,36 @@ void TeacherGroupResultModel::setShowCellPlaceholders(bool newShowCellPlaceholde
 		const QModelIndex &bottomRight = index(m_userList.size(), m_campaignList.size());
 		emit dataChanged(topLeft, bottomRight);
 	}
+}
+
+
+/**
+ * @brief TeacherGroupResultModel::userAt
+ * @param row
+ * @return
+ */
+
+User *TeacherGroupResultModel::userAt(const int &row) const
+{
+	if (row >= 0 && row < m_userList.size())
+		return m_userList.at(row);
+
+	return nullptr;
+}
+
+
+/**
+ * @brief TeacherGroupResultModel::campaignAt
+ * @param column
+ * @return
+ */
+
+Campaign *TeacherGroupResultModel::campaignAt(const int &column) const
+{
+	if (column >= 0 && column < m_campaignList.size())
+		return m_campaignList.at(column);
+
+	return nullptr;
 }
 
 

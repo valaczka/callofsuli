@@ -38,6 +38,7 @@
 #include "QOlm/QOlm.hpp"
 #pragma GCC diagnostic warning "-Wunused-parameter"
 #pragma GCC diagnostic warning "-Wunused-variable"
+#include "offsetmodel.h"
 
 class Campaign;
 using CampaignList = qolm::QOlm<Campaign>;
@@ -65,6 +66,7 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(QString readableName READ readableName NOTIFY readableNameChanged)
 	Q_PROPERTY(Grade *resultGrade READ resultGrade WRITE setResultGrade NOTIFY resultGradeChanged)
 	Q_PROPERTY(int resultXP READ resultXP WRITE setResultXP NOTIFY resultXPChanged)
+	Q_PROPERTY(int groupid READ groupid WRITE setGroupid NOTIFY groupidChanged)
 
 public:
 	explicit Campaign(QObject *parent = nullptr);
@@ -80,6 +82,7 @@ public:
 	Q_ENUM(State);
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
+	Q_INVOKABLE Task *appendTask();
 
 	int campaignid() const;
 	void setCampaignid(int newCampaignid);
@@ -123,6 +126,9 @@ public:
 	QList<TaskOrSection> getOrderedTaskList() const;
 	Q_INVOKABLE QVariantList getOrderedTaskListModel() const;
 
+	int groupid() const;
+	void setGroupid(int newGroupid);
+
 signals:
 	void taskListReloaded();
 	void campaignidChanged();
@@ -137,6 +143,8 @@ signals:
 	void resultGradeChanged();
 	void resultXPChanged();
 
+	void groupidChanged();
+
 private:
 	int m_campaignid = 0;
 	QDateTime m_startTime;
@@ -148,6 +156,7 @@ private:
 	Grade *m_resultGrade = nullptr;
 	int m_resultXP = -1;
 	TaskList *const m_taskList;
+	int m_groupid = -1;
 };
 
 
@@ -172,5 +181,54 @@ private:
 
 };
 
+
+
+/**
+ * @brief The StudentCampaignOffsetModel class
+ */
+
+
+class StudentCampaignOffsetModel : public OffsetModel
+{
+	Q_OBJECT
+
+	Q_PROPERTY(Campaign *campaign READ campaign WRITE setCampaign NOTIFY campaignChanged)
+	Q_PROPERTY(BaseMapList *mapList READ mapList WRITE setMapList NOTIFY mapListChanged)
+	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
+	Q_PROPERTY(int groupid READ groupid WRITE setGroupid NOTIFY groupidChanged)
+
+public:
+	explicit StudentCampaignOffsetModel(QObject *parent = nullptr);
+
+	Campaign *campaign() const;
+	void setCampaign(Campaign *newCampaign);
+
+	BaseMapList *mapList() const;
+	void setMapList(BaseMapList *newMapList);
+
+	const QString &username() const;
+	void setUsername(const QString &newUsername);
+
+	int groupid() const;
+	void setGroupid(int newGroupid);
+
+signals:
+	void campaignChanged();
+	void mapListChanged();
+	void usernameChanged();
+	void groupidChanged();
+
+protected:
+	virtual QVariantList getListFromJson(const QJsonObject &obj) override;
+
+private:
+	void _setApi();
+
+private:
+	Campaign *m_campaign = nullptr;
+	BaseMapList *m_mapList = nullptr;
+	QString m_username;
+	int m_groupid = -1;
+};
 
 #endif // CAMPAIGN_H

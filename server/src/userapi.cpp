@@ -25,9 +25,12 @@
  */
 
 #include "userapi.h"
+#include "generalapi.h"
 #include "qjsonarray.h"
 #include "serverservice.h"
 #include "teacherapi.h"
+
+#include <QJsonObject>
 
 
 
@@ -46,6 +49,7 @@ UserAPI::UserAPI(ServerService *service)
 
 	addMap("^campaign/*$", this, &UserAPI::campaigns);
 	addMap("^campaign/(\\d+)/*$", this, &UserAPI::campaignOne);
+	addMap("^campaign/(\\d+)/result/*$", this, &UserAPI::campaignResult);
 	addMap("^campaign/(\\d+)/game/create/*$", this, &UserAPI::gameCreate);
 
 	addMap("^game/info/*", this, &UserAPI::gameInfo);
@@ -53,6 +57,8 @@ UserAPI::UserAPI(ServerService *service)
 	addMap("^game/(\\d+)/finish/*$", this, &UserAPI::gameFinish);
 
 	addMap("^group/*$", this, &UserAPI::groups);
+	addMap("^group/(\\d+)/score/*$", this, &UserAPI::groupScore);
+	addMap("^group/(\\d+)/score/live/*$", this, &UserAPI::groupScoreLive);
 
 	addMap("^map/*$", this, &UserAPI::maps);
 	addMap("^map/([^/]+)/*$", this, &UserAPI::mapOne);
@@ -294,6 +300,58 @@ void UserAPI::groups(const QRegularExpressionMatch &, const QJsonObject &, QPoin
 
 
 
+
+/**
+ * @brief UserAPI::groupScore
+ * @param match
+ * @param response
+ */
+
+void UserAPI::groupScore(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id < 0)
+		return responseError(response, "invalid id");
+
+	QDeferred<QJsonArray> def = getGroupScore(databaseMain(), id);
+
+	def.fail([response, this](const QJsonArray &) {
+		responseErrorSql(response);
+	})
+			.done([response, this](const QJsonArray &list) {
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+
+/**
+ * @brief UserAPI::groupScoreLive
+ * @param match
+ * @param response
+ */
+
+void UserAPI::groupScoreLive(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id < 0)
+		return responseError(response, "invalid id");
+
+	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
+	EventStream *stream = new EventStream(EventStream::EventStreamGroupScore, id, conn);
+	conn->setEventStream(stream);
+	m_service->addEventStream(stream);
+
+	response->setStatus(HttpStatus::Ok);
+
+	stream->trigger();
+}
+
+
+
+
 /**
  * @brief UserAPI::update
  * @param data
@@ -383,10 +441,14 @@ void UserAPI::campaigns(const QRegularExpressionMatch &, const QJsonObject &, QP
 		bool err = false;
 
 		const QJsonArray &list = QueryBuilder::q(db)
-				.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+				.addQuery("SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-						  "description, finished, groupid "
-						  "FROM campaign WHERE started=true AND groupid IN "
+						  "description, finished, groupid,"
+						  "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+						  "FROM campaign "
+						  "LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id AND campaignResult.username=").addValue(username)
+				.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+						  "WHERE started=true AND groupid IN "
 						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
 				.addQuery(")")
 				.execToJsonArray(&err);
@@ -420,7 +482,7 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 		bool err = false;
 
 		QJsonObject obj = QueryBuilder::q(db)
-				.addQuery("SELECT campaign.id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+				.addQuery("SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
 						  "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
 						  "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
@@ -456,6 +518,47 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 		responseAnswer(response, obj);
 	});
 
+}
+
+
+
+
+
+
+/**
+ * @brief UserAPI::campaignResult
+ * @param match
+ * @param response
+ */
+
+void UserAPI::campaignResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		bool err = false;
+
+		int offset = data.value(QStringLiteral("offset")).toInt(0);
+		int limit = data.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
+
+		const QJsonArray &list = TeacherAPI::_campaignUserGameResult(this, id, username, limit, offset, &err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, QJsonObject{
+						   { QStringLiteral("list"), list },
+						   { QStringLiteral("limit"), limit },
+						   { QStringLiteral("offset"), offset },
+					   });
+
+	});
 }
 
 
@@ -837,8 +940,9 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 		QueryBuilder qq(db);
 
-		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
+		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid, groupid FROM game "
 					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
+					"LEFT JOIN campaign ON (campaign.id=game.campaignid) "
 					"WHERE runningGame.gameid=game.id AND game.id=").addValue(gameid)
 				.addQuery(" AND username=").addValue(username);
 
@@ -857,6 +961,8 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 
 		TeacherAPI::UserGame g;
+
+		const int &groupId = qq.value("groupId", -1).toInt();
 
 		g.map = qq.value("mapid").toString();
 		g.mission = qq.value("missionid").toString();
@@ -927,10 +1033,10 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 			if (!q.exec())
 				return responseErrorSql(response);
 
-			q.sqlQuery().first();
+			const bool &hasFirst = q.sqlQuery().first();
 
-			const bool &sToday = q.value("streakToday", false).toBool();
-			const int &streak = q.value("streak", 0).toInt();
+			const bool &sToday = hasFirst ? q.value("streakToday", false).toBool() : false;
+			const int &streak = hasFirst ? q.value("streak", 0).toInt() : 0;
 
 			if (!sToday && streak > 0) {
 				if (streak+1 > longestStreak) {
@@ -992,6 +1098,9 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 		}
 
 		db.commit();
+
+		if (groupId > -1)
+			m_service->triggerEventStreams(EventStream::EventStreamGroupScore, groupId);
 
 		if (success) {
 			if (!TeacherAPI::_evaluateCampaign(this, g.campaign, username))
@@ -1058,3 +1167,48 @@ void UserAPI::_addStatistics(const QJsonArray &list) const
 
 }
 
+
+
+
+
+/**
+ * @brief UserAPI::getGroupScore
+ * @param api
+ * @param id
+ * @return
+ */
+
+
+QDeferred<QJsonArray> UserAPI::getGroupScore(const DatabaseMain *database, const int &id)
+{
+	Q_ASSERT (database);
+
+	LOG_CTRACE("client") << "Get group score:" << id;
+
+	QDeferred<QJsonArray> ret;
+
+	database->worker()->execInThread([ret, id, database]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(database->dbName());
+
+		QMutexLocker(database->mutex());
+
+		QueryBuilder q(db);
+		q.addQuery(_SQL_get_user)
+				.addQuery("WHERE active=true AND user.username IN (SELECT username FROM studentGroupInfo WHERE active=true AND id=")
+				.addValue(id)
+				.addQuery(")")
+				;
+
+
+		bool err = false;
+
+		const QJsonArray &list = q.execToJsonArray(&err);
+
+		if (err)
+			return ret.reject({});
+
+		ret.resolve(list);
+	});
+
+	return ret;
+}

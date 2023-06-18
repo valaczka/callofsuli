@@ -38,6 +38,7 @@
 #include "QResource"
 #include "application.h"
 #include "gameterrain.h"
+#include "actiongame.h"
 #include "websocket.h"
 
 OnlineClient::OnlineClient(Application *app, QObject *parent)
@@ -213,6 +214,7 @@ void OnlineClient::onAllResourceReady()
 
 	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMedal();
+	ActionGame::reloadAvailableCharacters();
 
 	m_startPage = stackPushPage("PageStart.qml");
 }

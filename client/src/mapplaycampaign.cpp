@@ -88,6 +88,9 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 
 	updateSolver();
 
+	if (m_campaign->finished() || !m_campaign->started())
+		setReadOnly(true);
+
 	return true;
 }
 

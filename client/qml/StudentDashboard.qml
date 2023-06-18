@@ -143,11 +143,19 @@ QItemGradient {
 
 					icon.source: Qaterial.Icons.playBox
 
-					onClicked: Client.stackPushPage("PageStudentCampaign.qml", {
-														user: root.user,
-														campaign: _btn.campaign,
-														studentMapHandler: root.studentMapHandler
-													})
+					onClicked: {
+						let group = null
+
+						if (campaign && campaign.groupid > -1)
+							group = Client.findCacheObject("studentGroupList", campaign.groupid)
+
+						Client.stackPushPage("PageStudentCampaign.qml", {
+												 user: root.user,
+												 campaign: _btn.campaign,
+												 studentMapHandler: root.studentMapHandler,
+												 title: group ? group.name : ""
+											 })
+					}
 				}
 			}
 

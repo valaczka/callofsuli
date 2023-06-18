@@ -28,8 +28,6 @@
 #include "application.h"
 
 
-QVariantList ScoreList::m_originalModel;
-
 /**
  * @brief ScoreList::ScoreList
  * @param parent
@@ -40,7 +38,7 @@ ScoreList::ScoreList(QObject *parent)
 	, m_model(new QSListModel(this))
 {
 	setRoles();
-	refresh();
+	//refresh();
 }
 
 
@@ -135,6 +133,20 @@ void ScoreList::refresh()
 
 
 /**
+ * @brief ScoreList::onEventJsonReceived
+ * @param event
+ * @param json
+ */
+
+void ScoreList::onEventJsonReceived(const QString &, const QJsonObject &json)
+{
+	loadFromJson(json);
+}
+
+
+
+
+/**
  * @brief ScoreList::setRoles
  */
 
@@ -165,6 +177,26 @@ void ScoreList::loadFromJson(const QJsonObject &obj)
 
 	refresh();
 	emit modelReloaded();
+}
+
+EventStream *ScoreList::eventStream() const
+{
+	return m_eventStream;
+}
+
+void ScoreList::setEventStream(EventStream *newEventStream)
+{
+	if (m_eventStream == newEventStream)
+		return;
+
+	if (m_eventStream)
+		disconnect(m_eventStream, &EventStream::eventJsonReceived, this, &ScoreList::onEventJsonReceived);
+
+	m_eventStream = newEventStream;
+	emit eventStreamChanged();
+
+	if (m_eventStream)
+		connect(m_eventStream, &EventStream::eventJsonReceived, this, &ScoreList::onEventJsonReceived);
 }
 
 

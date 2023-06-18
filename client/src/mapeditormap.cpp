@@ -29,6 +29,7 @@
 #include "clientcache.h"
 #include "gameterrain.h"
 #include "utils.h"
+#include "abstractlevelgame.h"
 
 /**
  * @brief MapEditorMap::MapEditorMap
@@ -1126,7 +1127,7 @@ QList<MapEditorMissionLevel *> MapEditorMission::lockList() const
 
 QString MapEditorMission::fullMedalImage() const
 {
-	return QStringLiteral("qrc:/internal/medal/").append(m_medalImage);
+	return AbstractLevelGame::medalImagePath(m_medalImage);
 }
 
 

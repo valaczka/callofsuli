@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * scorelist.h
+ * campaignresultlist.h
  *
- * Created on: 2023. 06. 04.
+ * Created on: 2023. 06. 15.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ScoreList
+ * CampaignResultList
  *
  *  This file is part of Call of Suli.
  *
@@ -24,48 +24,36 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SCORELIST_H
-#define SCORELIST_H
+#ifndef OFFSETMODEL_H
+#define OFFSETMODEL_H
 
-#include "qjsonobject.h"
+#include <QObject>
 #include "qslistmodel.h"
 #include "websocket.h"
-#include <QObject>
 
-class ScoreList : public QObject
+/**
+ * @brief The OffsetModel class
+ */
+
+class OffsetModel : public QObject
 {
 	Q_OBJECT
 
 	Q_PROPERTY(QSListModel *model READ model CONSTANT)
-	Q_PROPERTY(SortOrder sortOrder READ sortOrder WRITE setSortOrder NOTIFY sortOrderChanged)
-	Q_PROPERTY(int filterClassId READ filterClassId WRITE setFilterClassId NOTIFY filterClassIdChanged)
 
 	Q_PROPERTY(WebSocket::API api READ api WRITE setApi NOTIFY apiChanged)
 	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
 	Q_PROPERTY(QJsonObject apiData READ apiData WRITE setApiData NOTIFY apiDataChanged)
 
-	Q_PROPERTY(EventStream *eventStream READ eventStream WRITE setEventStream NOTIFY eventStreamChanged)
+	Q_PROPERTY(QStringList fields READ fields WRITE setFields NOTIFY fieldsChanged)
+	Q_PROPERTY(QString listField READ listField WRITE setListField NOTIFY listFieldChanged)
+
+	Q_PROPERTY(int limit READ limit WRITE setLimit NOTIFY limitChanged)
+	Q_PROPERTY(bool canFetch READ canFetch WRITE setCanFetch NOTIFY canFetchChanged)
 
 public:
-	explicit ScoreList(QObject *parent = nullptr);
-	virtual ~ScoreList();
-
-	enum SortOrder {
-		SortNone,
-		SortXPdesc,
-		SortXP,
-		SortFullname,
-		SortFullNickname,
-		SortStreak
-	};
-
-	Q_ENUM(SortOrder);
-
-	QSListModel *model() const;
-
-	const SortOrder &sortOrder() const;
-	void setSortOrder(const SortOrder &newSortOrder);
-
+	explicit OffsetModel(QObject *parent = nullptr);
+	virtual ~OffsetModel();
 
 	const WebSocket::API &api() const;
 	void setApi(const WebSocket::API &newApi);
@@ -76,46 +64,55 @@ public:
 	const QJsonObject &apiData() const;
 	void setApiData(const QJsonObject &newApiData);
 
-	int filterClassId() const;
-	void setFilterClassId(int newFilterClassId);
+	QSListModel *model() const;
 
-	EventStream *eventStream() const;
-	void setEventStream(EventStream *newEventStream);
+	const QStringList &fields() const;
+	void setFields(const QStringList &newFields);
+
+	int limit() const;
+	void setLimit(int newLimit);
+
+	const QString &listField() const;
+	void setListField(const QString &newListField);
+
+	bool canFetch() const;
+	void setCanFetch(bool newCanFetch);
 
 public slots:
 	void reload();
-	void refresh();
+	void fetch();
 
-private slots:
-	void onEventJsonReceived(const QString &, const QJsonObject &json);
+protected:
+	virtual QVariantList getListFromJson(const QJsonObject &obj);
 
 signals:
-	void modelReloaded();
-	void sortOrderChanged();
 	void apiChanged();
 	void pathChanged();
 	void apiDataChanged();
-	void filterClassIdChanged();
+	void fieldsChanged();
+	void limitChanged();
+	void listFieldChanged();
+	void canFetchChanged();
 
-	void eventStreamChanged();
+	void modelCleared();
+	void snapshotAdded();
+	void snapshotEmpty();
+
 
 private:
-	void setRoles();
 	void loadFromJson(const QJsonObject &obj);
-
 	QSListModel *m_model = nullptr;
-	SortOrder m_sortOrder = SortNone;
-	WebSocket::API m_api = WebSocket::ApiGeneral;
-	QString m_path = QStringLiteral("score");
+	WebSocket::API m_api = WebSocket::ApiInvalid;
+	QString m_path;
 	QJsonObject m_apiData;
-	int m_filterClassId = -1;
+	QStringList m_fields;
+	QString m_listField = QStringLiteral("list");
+	bool m_canFetch = true;
 
-	QVariantList m_originalModel;
+	int m_limit = 50;
+	int m_offset = 0;
 
-	EventStream *m_eventStream = nullptr;
+	bool m_fetchActive = false;
 };
 
-
-
-
-#endif // SCORELIST_H
+#endif // OFFSETMODEL_H

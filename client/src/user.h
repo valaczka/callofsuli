@@ -59,6 +59,7 @@ class User : public SelectableObject
 	Q_PROPERTY(LoginState loginState READ loginState WRITE setLoginState NOTIFY loginStateChanged)
 	Q_PROPERTY(QString picture READ picture WRITE setPicture NOTIFY pictureChanged)
 	Q_PROPERTY(QString nickName READ nickName WRITE setNickName NOTIFY nickNameChanged)
+	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged)
 
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int streak READ streak WRITE setStreak NOTIFY streakChanged)
@@ -131,6 +132,8 @@ public:
 	bool streakToday() const;
 	void setStreakToday(bool newStreakToday);
 
+	const QString &character() const;
+	void setCharacter(const QString &newCharacter);
 
 public slots:
 	void clear();
@@ -153,6 +156,7 @@ signals:
 	void streakChanged();
 	void nickNameChanged();
 	void streakTodayChanged();
+	void characterChanged();
 
 private:
 	QString m_username;
@@ -170,6 +174,7 @@ private:
 	QString m_className;
 	int m_streak = 0;
 	bool m_streakToday = false;
+	QString m_character;
 };
 
 

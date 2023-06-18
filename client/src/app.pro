@@ -196,6 +196,7 @@ SOURCES += \
 	mapplay.cpp \
 	mapplaycampaign.cpp \
 	mapplaydemo.cpp \
+	offsetmodel.cpp \
 	qrimage.cpp \
 	question.cpp \
 	scorelist.cpp \
@@ -257,6 +258,7 @@ HEADERS += \
 	mapplay.h \
 	mapplaycampaign.h \
 	mapplaydemo.h \
+	offsetmodel.h \
 	qrimage.h \
 	question.h \
 	scorelist.h \

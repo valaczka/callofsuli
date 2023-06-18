@@ -15,17 +15,38 @@ QPageGradient {
 	property User user: null
 	property Campaign campaign: null
 	property StudentMapHandler studentMapHandler: null
+	property TeacherMapHandler teacherMapHandler: null
+	property TeacherGroupCampaignResultModel campaignResultModel: null
+
+	property bool withResult: false
 
 	property bool _firstRun: true
+
+	stackPopFunction: function() {
+		if (!_scrollable.flickable.atYBeginning) {
+			_scrollable.flickable.contentY = 0
+			return false
+		}
+
+		return true
+	}
+
+	// Külön kell, mert nem az összeset jelenítjük meg!
 
 	StudentMapList {
 		id: _mapList
 	}
 
+	Campaign {
+		id: _tmpCampaign
+	}
+
+
 	QScrollable {
+		id: _scrollable
 		anchors.fill: parent
 		spacing: 15
-		contentCentered: true
+		contentCentered: !withResult
 
 		visible: user && campaign
 
@@ -33,16 +54,14 @@ QPageGradient {
 
 		onRefreshRequest: reload()
 
-		Item {
-			width: parent.width
-			height: root.paddingTop - parent.spacing
-		}
+		topPadding: Math.max(verticalPadding, Client.safeMarginTop, root.paddingTop + (withResult ? 25 : 0))
+
 
 		StudentCampaign {
 			anchors.horizontalCenter: parent.horizontalCenter
 			campaign: root.campaign
 			user: root.user
-			mapHandler: studentMapHandler
+			mapHandler: studentMapHandler ? studentMapHandler : teacherMapHandler
 
 			ColumnLayout {
 				id: _grid
@@ -52,7 +71,7 @@ QPageGradient {
 
 				readonly property bool showPlaceholders: _mapList.count === 0 && _firstRun
 
-				visible: _mapList.count || showPlaceholders
+				visible: studentMapHandler && (_mapList.count || showPlaceholders)
 
 
 				Repeater {
@@ -74,7 +93,7 @@ QPageGradient {
 						Layout.fillWidth: true
 						horizontalAlignment: Qt.AlignLeft
 
-						icon.source: map && map.downloaded ? Qaterial.Icons.group :
+						icon.source: map && map.downloaded ? (campaign && campaign.finished ? Qaterial.Icons.eye : Qaterial.Icons.map) :
 															 _playAfterDownload ? Qaterial.Icons.refresh :
 																				  Qaterial.Icons.download
 						//highlighted: true
@@ -116,6 +135,117 @@ QPageGradient {
 
 		}
 
+
+		Qaterial.LabelHeadline5 {
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			//topPadding: 50+root.paddingTop
+			//leftPadding: 50
+			//rightPadding: 50
+			//horizontalAlignment: Qt.AlignHCenter
+			text: qsTr("Teljesített küldetések")
+			visible: withResult
+		}
+
+		QOffsetListView {
+			id: _view
+
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			refreshEnabled: false
+			refreshProgressVisible: false
+
+			visible: withResult && campaign
+
+			delegate: Qaterial.LoaderItemDelegate {
+				id: _delegate
+				width: _view.width
+				icon.source: Qaterial.Icons.abacus
+				text: model.readableMap+" | "+model.readableMission+" [%1%2]".arg(model.level).arg(model.deathmatch ? qsTr(" SD") : "")
+				secondaryText: {
+					let t = JS.readableTimestamp(model.timestamp)
+					switch (model.mode) {
+					case GameMap.Action:
+						t += qsTr(" [akció]")
+						break
+					case GameMap.Lite:
+						t += qsTr(" [feladatmegoldás]")
+						break
+					case GameMap.Quiz:
+						t += qsTr(" [kvíz]")
+						break
+					case GameMap.Test:
+						t += qsTr(" [teszt]")
+						break
+					case GameMap.Exam:
+						t += qsTr(" [dolgozat]")
+						break
+					default:
+						break
+					}
+
+					t += " "+Client.Utils.formatMSecs(model.duration)
+
+					return t
+				}
+
+
+
+				enabled: model.success
+
+				Component {
+					id: _cmpIcon
+					Qaterial.RoundColorIcon
+					{
+						source: model.success ? Qaterial.Icons.checkBold : Qaterial.Icons.close
+						color: model.success ? Qaterial.Colors.green400 : Qaterial.Style.disabledTextColor()
+						iconSize: Qaterial.Style.delegate.iconWidth
+						enabled: model.success
+
+						fill: true
+						width: roundIcon ? roundSize : iconSize
+						height: roundIcon ? roundSize : iconSize
+					}
+				}
+
+				Component {
+					id: _cmpMedal
+					MedalImage {
+						width: 40 * Qaterial.Style.pixelSizeRatio
+						height: 40 * Qaterial.Style.pixelSizeRatio
+						deathmatch: model.deathmatch
+						image: model.medal
+						level: model.level
+					}
+				}
+
+				leftSourceComponent: model.success && model.medal !== "" ? _cmpMedal : _cmpIcon
+
+				rightSourceComponent: Qaterial.LabelSubtitle1 {
+					anchors.verticalCenter: parent.verticalCenter
+					text: qsTr("%1 XP").arg(Number(model.xp).toLocaleString())
+					color: Qaterial.Style.accentColor
+				}
+
+			}
+
+
+			offsetModel: StudentCampaignOffsetModelImpl {
+				mapList: studentMapHandler ? studentMapHandler.mapList :
+											 teacherMapHandler ? teacherMapHandler.mapList :
+																 null
+				campaign: root.campaign
+				username: teacherMapHandler && root.user ? root.user.username : ""
+			}
+
+		}
+
+		flickable.onAtYEndChanged: {
+			if (withResult && flickable.atYEnd && flickable.moving)
+				_view.offsetModel.fetch()
+		}
 	}
 
 	SortFilterProxyModel {
@@ -152,11 +282,25 @@ QPageGradient {
 		}
 	}
 
+
+
 	StackView.onActivated: reload()
+
 
 	function reload() {
 		if (studentMapHandler && campaign)
 			studentMapHandler.getUserCampaign(campaign)
+
+		if (!campaign && campaignResultModel && user) {
+			if (campaignResultModel.loadCampaignDataFromUser(_tmpCampaign, user)) {
+				campaign = _tmpCampaign
+				_firstRun = false
+				_tmpCampaign.taskListReloaded()
+			}
+		}
+
+		if (withResult && campaign)
+			_view.offsetModel.reload()
 	}
 
 }

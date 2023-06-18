@@ -43,6 +43,7 @@ SOURCES += \
 	adminapi.cpp \
 	authapi.cpp \
 	databasemain.cpp \
+	eventstream.cpp \
 	generalapi.cpp \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
@@ -69,6 +70,7 @@ HEADERS += \
 	adminapi.h \
 	authapi.h \
 	databasemain.h \
+	eventstream.h \
 	generalapi.h \
 	googleoauth2authenticator.h \
 	handler.h \

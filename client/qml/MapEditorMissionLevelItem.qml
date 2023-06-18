@@ -277,6 +277,8 @@ QPage {
 							anchors.verticalCenter: parent.verticalCenter
 							text: missionLevel ? missionLevel.terrainData.displayName : ""
 							caption: missionLevel && missionLevel.terrainData.level > 0 ? qsTr("level %1").arg(missionLevel.terrainData.level) : ""
+							textColor: Qaterial.Style.foregroundColor
+							captionColor: textColor
 						}
 
 						Qaterial.RoundButton {

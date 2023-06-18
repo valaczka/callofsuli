@@ -59,6 +59,7 @@ class MapPlay : public QObject
 	Q_PROPERTY(bool online READ online WRITE setOnline NOTIFY onlineChanged)
 	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged)
 	Q_PROPERTY(QJsonObject finishedData READ finishedData WRITE setFinishedData NOTIFY finishedDataChanged)
+	Q_PROPERTY(bool readOnly READ readOnly WRITE setReadOnly NOTIFY readOnlyChanged)
 
 public:
 	explicit MapPlay(Client *client, QObject *parent = nullptr);
@@ -116,6 +117,9 @@ public:
 	const QJsonObject &finishedData() const;
 	void setFinishedData(const QJsonObject &newFinishedData);
 
+	bool readOnly() const;
+	void setReadOnly(bool newReadOnly);
+
 protected:
 	void loadGameMap(GameMap *map);
 	void unloadGameMap();
@@ -135,6 +139,7 @@ signals:
 	void onlineChanged();
 	void gameStateChanged();
 	void finishedDataChanged();
+	void readOnlyChanged();
 
 protected:
 	Client *const m_client ;
@@ -145,6 +150,7 @@ protected:
 	bool m_online = true;
 	GameState m_gameState = StateInvalid;
 	QJsonObject m_finishedData;
+	bool m_readOnly = false;
 };
 
 

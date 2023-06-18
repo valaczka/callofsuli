@@ -136,7 +136,6 @@ signals:
 	void configChanged();
 	void rankListChanged();
 	void temporaryChanged();
-
 	void maxUploadSizeChanged();
 
 private:
@@ -146,7 +145,7 @@ private:
 	QDir m_directory;
 	bool m_autoConnect = false;
 	QString m_token;
-	User *const m_user;
+	User *m_user = nullptr;
 	RankList m_rankList;
 	bool m_temporary = false;
 	int m_maxUploadSize = 0;

@@ -66,6 +66,7 @@ public:
 	virtual ~Task() {}
 
 	void loadFromJson(const QJsonObject &object, const bool &allField = true);
+	void loadFromTask(Task *task);
 
 	int taskid() const;
 	void setTaskid(int newTaskid);

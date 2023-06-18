@@ -450,20 +450,14 @@ Item {
 		text: qsTr("Új kritérium")
 		icon.source: Qaterial.Icons.plus
 		enabled: false
-		//onTriggered: Client.stackPushPage("ServerEdit.qml")
 		onTriggered: {
-			Client.send(WebSocket.ApiTeacher, "campaign/%1/task/create".arg(campaign.campaignid), {
-							criterion: {
-								id: 244,
-								name: "hello"
-							},
-							xp: 56
-						})
+			let o = Client.stackPushPage("TeacherCampaignTaskEdit.qml", {
+											  campaign: campaign,
+											  mapHandler: mapHandler
+										  })
 
-			.done(function(r){
-				reloadCampaign()
-			})
-			.fail(JS.failMessage(qsTr("Kritérium létrehozása sikertelen")))
+			if (o)
+				o.Component.destruction.connect(reloadCampaign)
 		}
 	}
 

@@ -155,7 +155,22 @@ QTableView {
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
 
-		onClicked: rowClicked(row)
+		onClicked: {
+			rowClicked(row)
+
+			let u = _model.userAt(row-1)
+			if (u) {
+				Client.stackPushPage("PageStudentCampaign.qml", {
+										 user: u,
+										 //campaign: campaign,
+										 campaignResultModel: _model,
+										 teacherMapHandler: mapHandler,
+										 withResult: true,
+										 title: u.fullName,
+										 subtitle: group ? group.name : ""
+									 })
+			}
+		}
 
 
 		Rectangle {

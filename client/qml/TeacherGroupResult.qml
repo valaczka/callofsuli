@@ -10,6 +10,7 @@ QTableView {
 	id: root
 
 	property TeacherGroup group: null
+	property TeacherMapHandler mapHandler: null
 
 	property alias resultModel: _model
 	property alias actionUserEdit: _actionUserEdit
@@ -103,14 +104,27 @@ QTableView {
 		implicitHeight: 50
 
 		Qaterial.LabelHeadline5 {
+			id: _labelResult
 			visible: !isPlaceholder && result.grade
-			anchors.left: result.xp > 0 ? parent.left : undefined
-			anchors.horizontalCenter: result.xp > 0 ? undefined : parent.horizontalCenter
-			anchors.verticalCenter: result.xp > 0 ? undefined : parent.verticalCenter
-			anchors.top: result.xp > 0 ? parent.top : undefined
+			anchors.horizontalCenter: parent.horizontalCenter
+			anchors.verticalCenter: parent.verticalCenter
 			anchors.margins: 3
 			text: result.grade ? result.grade.shortname : ""
 			color: Qaterial.Style.accentColor
+
+			states: [
+				State {
+					name: "withXP"
+					when: result.xp > 0
+					AnchorChanges {
+						target: _labelResult
+						anchors.left: parent.left
+						anchors.horizontalCenter: undefined
+						anchors.verticalCenter: undefined
+						anchors.top: parent.top
+					}
+				}
+			]
 		}
 
 		Qaterial.LabelCaption {
@@ -135,7 +149,7 @@ QTableView {
 	// Hadjáratok
 
 
-	topHeaderDelegate: MouseArea {
+	topHeaderDelegate:  MouseArea {
 		id: _area2
 		implicitWidth: 50
 		implicitHeight: 50
@@ -143,7 +157,18 @@ QTableView {
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
 
-		onClicked: columnClicked(column)
+		onClicked: {
+			columnClicked(column)
+
+			let c = _model.campaignAt(column-1)
+			if (c) {
+				Client.stackPushPage("PageTeacherCampaignResult.qml", {
+										 group: root.group,
+										 campaign: c,
+										 mapHandler: root.mapHandler
+									 })
+			}
+		}
 
 		Rectangle {
 			anchors.fill: parent
@@ -195,6 +220,7 @@ QTableView {
 
 
 
+
 	// Diákok
 
 	leftHeaderDelegate: MouseArea {
@@ -205,7 +231,19 @@ QTableView {
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
 
-		onClicked: rowClicked(row)
+		onClicked: {
+			rowClicked(row)
+
+			let u = _model.userAt(row-1)
+			if (u) {
+				Client.stackPushPage("PageTeacherGroupUserResult.qml", {
+										 group: root.group,
+										 user: u,
+										 mapHandler: root.mapHandler
+									 })
+			}
+		}
+
 
 
 		Rectangle {

@@ -33,6 +33,7 @@
 #include "litegame.h"
 #include "mapeditor.h"
 #include "mapgame.h"
+#include "offsetmodel.h"
 #include "qrimage.h"
 #include "qsjsonlistmodel.h"
 #include "scorelist.h"
@@ -334,6 +335,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
+	qmlRegisterUncreatableType<EventStream>("CallOfSuli", 1, 0, "EventStream", "EventStream is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
 	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
@@ -349,7 +351,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
-	//qmlRegisterUncreatableType<Question>("CallOfSuli", 1, 0, "Question", "Question is uncreatable");
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
@@ -381,8 +382,10 @@ void Application::registerQmlTypes()
 	qmlRegisterType<MapEditor>("CallOfSuli", 1, 0, "MapEditor");
 	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
+	qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
+	qmlRegisterType<StudentCampaignOffsetModel>("CallOfSuli", 1, 0, "StudentCampaignOffsetModelImpl");
 	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
 	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
 	qmlRegisterType<StudentMap>("CallOfSuli", 1, 0, "StudentMap");

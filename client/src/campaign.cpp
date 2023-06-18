@@ -25,6 +25,7 @@
  */
 
 #include "campaign.h"
+#include "abstractlevelgame.h"
 #include "clientcache.h"
 #include "application.h"
 #include "qjsonobject.h"
@@ -64,14 +65,18 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("description")) || allField)
 		setDescription(object.value(QStringLiteral("description")).toString());
 
-	if (object.contains(QStringLiteral("starttime")) || allField)
+	if (object.contains(QStringLiteral("started")) || allField)
+		setStarted(object.value(QStringLiteral("started")).toVariant().toBool());
+
+	if (object.contains(QStringLiteral("starttime")) || allField) {
 		setStartTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("starttime")).toInt()));
+		if (!object.contains(QStringLiteral("started")))
+			setStarted(m_startTime <= QDateTime::currentDateTime());
+	}
 
 	if (object.contains(QStringLiteral("endtime")) || allField)
 		setEndTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("endtime")).toInt()));
 
-	if (object.contains(QStringLiteral("started")) || allField)
-		setStarted(object.value(QStringLiteral("started")).toVariant().toBool());
 
 	if (object.contains(QStringLiteral("finished")) || allField)
 		setFinished(object.value(QStringLiteral("finished")).toVariant().toBool());
@@ -91,7 +96,26 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("resultXP")) || allField)
 		setResultXP(object.value(QStringLiteral("resultXP")).toInt());
+
+	if (object.contains(QStringLiteral("groupid")) || allField)
+		setGroupid(object.value(QStringLiteral("groupid")).toInt());
 }
+
+
+
+/**
+ * @brief Campaign::addTaskFromTask
+ * @param orig
+ * @return
+ */
+
+Task *Campaign::appendTask()
+{
+	Task *t = new Task(m_taskList);
+	m_taskList->append(t);
+	return t;
+}
+
 
 
 
@@ -391,6 +415,19 @@ QVariantList Campaign::getOrderedTaskListModel() const
 	return list;
 }
 
+int Campaign::groupid() const
+{
+	return m_groupid;
+}
+
+void Campaign::setGroupid(int newGroupid)
+{
+	if (m_groupid == newGroupid)
+		return;
+	m_groupid = newGroupid;
+	emit groupidChanged();
+}
+
 
 
 
@@ -421,3 +458,192 @@ void Campaign::setResultXP(int newResultXP)
 }
 
 
+
+
+
+/**
+ * @brief StudentCampaignOffsetModel::StudentCampaignOffsetModel
+ * @param parent
+ */
+
+
+StudentCampaignOffsetModel::StudentCampaignOffsetModel(QObject *parent)
+	: OffsetModel(parent)
+{
+	setFields({
+				  QStringLiteral("timestamp"),
+				  QStringLiteral("mapid"),
+				  QStringLiteral("missionid"),
+				  QStringLiteral("level"),
+				  QStringLiteral("mode"),
+				  QStringLiteral("deathmatch"),
+				  QStringLiteral("success"),
+				  QStringLiteral("duration"),
+				  QStringLiteral("xp"),
+				  QStringLiteral("readableMap"),
+				  QStringLiteral("readableMission"),
+				  QStringLiteral("medal"),
+			  });
+}
+
+
+
+/**
+ * @brief StudentCampaignOffsetModel::getListFromJson
+ * @param obj
+ * @return
+ */
+
+QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
+{
+	QVariantList list;
+
+	foreach (const QJsonValue &v, obj.value(listField()).toArray()) {
+		QJsonObject obj = v.toObject();
+
+		if (m_mapList) {
+			QObject *o = OlmLoader::find(m_mapList, "uuid", obj.value(QStringLiteral("mapid")).toString());
+			BaseMap *m = qobject_cast<BaseMap*>(o);
+
+			QString mission, medal;
+
+			if (m) {
+				obj[QStringLiteral("readableMap")] = m->name();
+				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
+				foreach (const QJsonValue &v, list) {
+					const QJsonObject &o = v.toObject();
+					if (o.value(QStringLiteral("uuid")).toString() == obj.value(QStringLiteral("missionid")).toString()) {
+						mission = o.value(QStringLiteral("name")).toString();
+						medal = o.value(QStringLiteral("medal")).toString();
+						break;
+					}
+				}
+			} else {
+				obj[QStringLiteral("readableMap")] = tr("???");
+			}
+
+			obj[QStringLiteral("readableMission")] = mission.isEmpty() ? tr("???") : mission;
+			obj[QStringLiteral("medal")] = medal.isEmpty() ? QLatin1String("") : AbstractLevelGame::medalImagePath(medal);
+		}
+
+		QVariantMap m = obj.toVariantMap();
+
+		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(obj.value(QStringLiteral("timestamp")).toInt());
+
+		list.append(m);
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief StudentCampaignOffsetModel::setApi
+ */
+
+void StudentCampaignOffsetModel::_setApi()
+{
+	if (m_groupid > -1 && !m_username.isEmpty()) {
+		setApi(WebSocket::ApiTeacher);
+		setPath(QStringLiteral("group/%1/result/%2").arg(m_groupid).arg(m_username));
+	} else if (m_username.isEmpty()) {
+		setApi(m_campaign ? WebSocket::ApiUser : WebSocket::ApiInvalid);
+		setPath(m_campaign ? QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()) : QLatin1String(""));
+	} else {
+		setApi(m_campaign ? WebSocket::ApiTeacher : WebSocket::ApiInvalid);
+		setPath(m_campaign ? QStringLiteral("campaign/%1/result/%2").arg(m_campaign->campaignid()).arg(m_username) : QLatin1String(""));
+	}
+}
+
+
+/**
+ * @brief StudentCampaignOffsetModel::groupid
+ * @return
+ */
+
+int StudentCampaignOffsetModel::groupid() const
+{
+	return m_groupid;
+}
+
+void StudentCampaignOffsetModel::setGroupid(int newGroupid)
+{
+	if (m_groupid == newGroupid)
+		return;
+	m_groupid = newGroupid;
+	emit groupidChanged();
+
+	_setApi();
+}
+
+
+
+/**
+ * @brief StudentCampaignOffsetModel::username
+ * @return
+ */
+
+const QString &StudentCampaignOffsetModel::username() const
+{
+	return m_username;
+}
+
+void StudentCampaignOffsetModel::setUsername(const QString &newUsername)
+{
+	if (m_username == newUsername)
+		return;
+	m_username = newUsername;
+	emit usernameChanged();
+
+	_setApi();
+}
+
+
+
+/**
+ * @brief StudentCampaignOffsetModel::mapList
+ * @return
+ */
+
+BaseMapList *StudentCampaignOffsetModel::mapList() const
+{
+	return m_mapList;
+}
+
+void StudentCampaignOffsetModel::setMapList(BaseMapList *newMapList)
+{
+	if (m_mapList == newMapList)
+		return;
+	m_mapList = newMapList;
+	emit mapListChanged();
+}
+
+
+
+/**
+ * @brief StudentCampaignOffsetModel::campaign
+ * @return
+ */
+
+Campaign *StudentCampaignOffsetModel::campaign() const
+{
+	return m_campaign;
+}
+
+
+/**
+ * @brief StudentCampaignOffsetModel::setCampaign
+ * @param newCampaign
+ */
+
+void StudentCampaignOffsetModel::setCampaign(Campaign *newCampaign)
+{
+	if (m_campaign == newCampaign)
+		return;
+	m_campaign = newCampaign;
+	emit campaignChanged();
+
+	_setApi();
+}

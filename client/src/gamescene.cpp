@@ -760,7 +760,10 @@ void GameScene::createPlayer()
 		return;
 	}
 
-	GamePlayer *player = GamePlayer::create(this);
+	QString character = Application::instance()->client()->server() ? Application::instance()->client()->server()->user()->character() :
+																	  QLatin1String("");
+
+	GamePlayer *player = GamePlayer::create(this, character);
 	GameTerrain::PlayerPositionData pos = getPlayerPosition();
 	pos.point.setY(pos.point.y()-player->height());
 

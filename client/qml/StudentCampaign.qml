@@ -11,13 +11,11 @@ Item {
 
 	property User user: null
 	property Campaign campaign: null
-	property StudentMapHandler mapHandler: null
+	property QtObject mapHandler: null
 
 	property bool campaingDetails: true
 
 	default property alias _colContent: col.data
-
-	property bool _firstRun: true
 
 	implicitWidth: 200
 	implicitHeight: 200
@@ -221,7 +219,7 @@ Item {
 		Qaterial.LabelCaption {
 			id: _labelHasRequired
 			visible: false
-			text: qsTr("*A csillaggal jelölt feladat teljesítése szükséges a további értékeléshez is!")
+			text: qsTr("*A csillaggal jelölt feladatok teljesítése szükséges a további értékeléshez is!")
 			width: parent.width
 			wrapMode: Text.Wrap
 			color: Qaterial.Colors.red900
@@ -229,14 +227,6 @@ Item {
 		}
 	}
 
-
-	Connections {
-		target: mapHandler
-
-		function onReloaded() {
-			_firstRun = false
-		}
-	}
 
 }
 

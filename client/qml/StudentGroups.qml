@@ -9,7 +9,7 @@ import "JScript.js" as JS
 QItemGradient {
 	id: root
 
-	//property User user: null
+	property StudentMapHandler studentMapHandler: null
 	property StudentGroupList groupList: Client.cache("studentGroupList")
 
 	QScrollable {
@@ -53,6 +53,13 @@ QItemGradient {
 					text: group ? group.name : ""
 					icon.source: Qaterial.Icons.accountGroup
 					highlighted: true
+
+					onClicked: Client.stackPushPage("PageStudentGroup.qml", {
+														user: root.user,
+														group: group,
+														mapHandler: root.studentMapHandler
+													})
+
 				}
 			}
 		}

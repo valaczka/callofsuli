@@ -76,9 +76,10 @@ QFormColumn {
 
 
 
-	/*
+
 	Row {
 		anchors.left: parent.left
+		topPadding: 5
 
 		spacing: 15
 
@@ -89,43 +90,58 @@ QFormColumn {
 
 		MouseArea {
 			id: _area
-			width: _terrainRow.implicitWidth
-			height: _terrainRow.implicitHeight
+			width: _characterRow.implicitWidth
+			height: _characterRow.implicitHeight
+
+			anchors.verticalCenter: parent.verticalCenter
 
 			hoverEnabled: true
 
 			acceptedButtons: Qt.LeftButton
 
-			onClicked: _terrainAddButton.clicked()
+			onClicked: _changeBtn.clicked()
 
 			Row {
-				id: _terrainRow
+				id: _characterRow
+
+				property string character: "default"
 
 				spacing: 15
 
 				Qaterial.Icon
 				{
-					icon: missionLevel ? (missionLevel.terrainData.name !== "" ? missionLevel.terrainData.thumbnail : Qaterial.Icons.alert): ""
-					color: missionLevel && missionLevel.terrainData.name !== "" ? "transparent" : Qaterial.Colors.red500
-					width: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*4.5 : Qaterial.Style.mediumIcon
-					height: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*3 : Qaterial.Style.mediumIcon
+					icon: "qrc:/character/%1/thumbnail.png".arg(_characterRow.character)
+					color: "transparent"
+					width: Qaterial.Style.largeIcon
+					height: Qaterial.Style.largeIcon
+					anchors.verticalCenter: parent.verticalCenter
 				}
 
 				Qaterial.LabelBody1 {
 					anchors.verticalCenter: parent.verticalCenter
-					text: "????IIIII"
+					text: Client.availableCharacters()[_characterRow.character].name
+					color: Qaterial.Style.foregroundColor
 				}
 
 				Qaterial.RoundButton {
-					id: _terrainAddButton
+					id: _changeBtn
 					anchors.verticalCenter: parent.verticalCenter
 					icon.source: Qaterial.Icons.pencil
-					enabled: missionLevel
 					onClicked: {
 						let idx = -1
 
-						for (let i=0; i<_sortedTerrainModel.count; ++i) {
-							if (_sortedTerrainModel.get(i).fieldName === missionLevel.terrain)
+						let list = Object.keys(Client.availableCharacters())
+
+						let model = []
+
+
+						for (let i=0; i<list.length; ++i) {
+							model.push({
+										   id: list[i],
+										   name: Client.availableCharacters()[list[i]].name
+									   })
+
+							if (list[i] === _characterRow.character)
 								idx = i
 						}
 
@@ -136,15 +152,13 @@ QFormColumn {
 											if (index < 0)
 												return
 
-											editor.missionLevelModify(missionLevel, function() {
-												missionLevel.terrain = _sortedTerrainModel.get(index).fieldName
-											})
-
+											_characterRow.character = model[index].id
+											_form.modified = true
 										},
-										title: qsTr("Harcmező kiválasztása"),
-										model: _sortedTerrainModel,
+										title: qsTr("Karakter kiválasztása"),
+										model: model,
 										currentIndex: idx,
-										delegate: _terrainDelegate
+										delegate: _characterDelegate
 									})
 					}
 				}
@@ -161,13 +175,39 @@ QFormColumn {
 			}
 		}
 	}
-*/
+
+
+	Component {
+		id: _characterDelegate
+
+		QLoaderItemDelegate {
+			highlighted: ListView.isCurrentItem
+			text: modelData ? modelData.name : ""
+
+			leftSourceComponent: Image
+			{
+				fillMode: Image.PreserveAspectFit
+				source: modelData ? "qrc:/character/%1/thumbnail.png".arg(modelData.id) : ""
+				sourceSize: Qt.size(width, height)
+			}
+
+			width: ListView.view.width
+			onClicked: ListView.view.select(index)
+		}
+	}
+
 
 
 
 
 	function loadData(user) {
 		_form.setItems([_username, _familyName, _givenName, _nickName, _picture], user)
+
+		if (Client.availableCharacters()[user.character] !== undefined)
+			_characterRow.character = user.character
+		else
+			_characterRow.character = "default"
+
 		_form.modified = false
 	}
 
@@ -189,6 +229,7 @@ QFormColumn {
 			}
 
 			d.nickname = _nickName.text
+			d.character = _characterRow.character
 
 			if (pictureEditable)
 				d.picture = _picture.text

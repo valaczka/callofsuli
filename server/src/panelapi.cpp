@@ -90,7 +90,7 @@ void PanelAPI::panelLive(const QRegularExpressionMatch &match, const QJsonObject
 		return responseError(response, "stream used");
 
 	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
-	HttpEventStream *stream = new HttpEventStream(conn);
+	EventStream *stream = new EventStream(conn);
 	conn->setEventStream(stream);
 	m_service->addEventStream(stream);
 	panel->setStream(stream);

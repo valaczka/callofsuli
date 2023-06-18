@@ -160,5 +160,11 @@
         <file>ScoreUserInfo.qml</file>
         <file>UserInfoLog.qml</file>
         <file>UserInfoPassword.qml</file>
+        <file>QOffsetListView.qml</file>
+        <file>PageStudentGroup.qml</file>
+        <file>StudentGroupCampaignList.qml</file>
+        <file>PageTeacherCampaignResult.qml</file>
+        <file>PageTeacherGroupUserResult.qml</file>
+        <file>StudentGroupMemberList.qml</file>
     </qresource>
 </RCC>

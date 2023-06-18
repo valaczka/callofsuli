@@ -343,9 +343,10 @@ void GeneralAPI::userLog(const QRegularExpressionMatch &match, const QJsonObject
 		if (err)
 			return responseErrorSql(response);
 
-		ret[QStringLiteral("streaklog")] = QueryBuilder::q(db)		//where ended_today=false AND streak > 1
+		ret[QStringLiteral("streaklog")] = QueryBuilder::q(db)
 				.addQuery("SELECT streak, CAST(strftime('%s', started_on) AS INTEGER) AS started_on, "
-						  "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak WHERE username=").addValue(username)
+						  "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak "
+						  "WHERE streak > 1 AND username=").addValue(username)
 				.execToJsonArray(&err);
 
 		if (err)
@@ -396,7 +397,7 @@ void GeneralAPI::testEvents(const QRegularExpressionMatch &, const QJsonObject &
 {
 	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
 	LOG_CWARNING("client") << "ADD stream" << conn ;
-	HttpEventStream *stream = new HttpEventStream(conn);
+	EventStream *stream = new EventStream(conn);
 	conn->setEventStream(stream);
 
 	m_service->addEventStream(stream);
@@ -404,7 +405,7 @@ void GeneralAPI::testEvents(const QRegularExpressionMatch &, const QJsonObject &
 	QTimer *s = new QTimer(stream);
 	QObject::connect(s, &QTimer::timeout, stream, [stream](){
 		LOG_CTRACE("client") << "SEND.....";
-		stream->write("esemeny", "Üzenet jön ide");
+		//stream->write("esemeny", "Üzenet jön ide");
 	});
 	s->start(5000);
 

@@ -48,13 +48,14 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^group/(\\d+)/class/remove/*$", this, &TeacherAPI::groupClassRemove);
 	addMap("^group/(\\d+)/class/exclude/*$", this, &TeacherAPI::groupClassExclude);
 
-	addMap("^group/(\\d+)/user/add/(.+)/*$", this, &TeacherAPI::groupUserAddOne);
+	addMap("^group/(\\d+)/user/add/([^/]+)/*$", this, &TeacherAPI::groupUserAddOne);
 	addMap("^group/(\\d+)/user/add/*$", this, &TeacherAPI::groupUserAdd);
-	addMap("^group/(\\d+)/user/remove/(.+)/*$", this, &TeacherAPI::groupUserRemoveOne);
+	addMap("^group/(\\d+)/user/remove/([^/]+)/*$", this, &TeacherAPI::groupUserRemoveOne);
 	addMap("^group/(\\d+)/user/remove/*$", this, &TeacherAPI::groupUserRemove);
 	addMap("^group/(\\d+)/user/exclude/*$", this, &TeacherAPI::groupUserExclude);
 
 	addMap("^group/(\\d+)/result/*$", this, &TeacherAPI::groupResult);
+	addMap("^group/(\\d+)/result/([^/]+)/*$", this, &TeacherAPI::groupUserResult);
 	addMap("^group/(\\d+)/campaign/create/*$", this, &TeacherAPI::campaignCreate);
 
 	addMap("^campaign/(\\d+)/*$", this, &TeacherAPI::campaignOne);
@@ -63,6 +64,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^campaign/(\\d+)/finish/*$", this, &TeacherAPI::campaignFinish);
 	addMap("^campaign/(\\d+)/delete/*$", this, &TeacherAPI::campaignDeleteOne);
 	addMap("^campaign/(\\d+)/result/*$", this, &TeacherAPI::campaignOneResult);
+	addMap("^campaign/(\\d+)/result/([^/]+)/*$", this, &TeacherAPI::campaignUserResult);
 	addMap("^campaign/delete/*$", this, &TeacherAPI::campaignDelete);
 	addMap("^campaign/(\\d+)/task/*$", this, &TeacherAPI::task);
 	addMap("^campaign/(\\d+)/task/create/*$", this, &TeacherAPI::taskCreate);
@@ -133,11 +135,20 @@ QJsonObject TeacherAPI::mapCache(GameMap *map)
 
 	QJsonArray mList;
 	foreach (GameMapMission *m, map->missions()) {
+		QJsonArray levels;
+
+		for (GameMapMissionLevel *ml : m->levels()) {
+			levels.append(QJsonObject {
+							  { QStringLiteral("l"), ml->level() },
+							  { QStringLiteral("dm"), ml->canDeathmatch() }
+						  });
+		}
+
 		mList.append(QJsonObject{
 						 { QStringLiteral("uuid"), m->uuid() },
 						 { QStringLiteral("name"), m->name() },
 						 { QStringLiteral("medal"), m->medalImage() },
-						 { QStringLiteral("levels"), m->levels().size() }
+						 { QStringLiteral("levels"), levels }
 					 });
 	}
 
@@ -820,6 +831,55 @@ void TeacherAPI::groupResult(const QRegularExpressionMatch &match, const QJsonOb
 		}
 
 		responseAnswer(response, "list", list);
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::groupUserResult
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::groupUserResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+	const QString &username = match.captured(2);
+
+	if (username.isEmpty())
+		return responseError(response, "empty username");
+
+	databaseMainWorker()->execInThread([this, response, id, data, username]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(m_credential.username())
+				.addQuery(" AND id=").addValue(id)
+				.execCheckExists())
+			return responseError(response, "invalid group");
+
+		if (err)
+			return responseErrorSql(response);
+
+		int offset = data.value(QStringLiteral("offset")).toInt(0);
+		int limit = data.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
+
+		const QJsonArray &list = TeacherAPI::_groupUserGameResult(this, id, username, limit, offset, &err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, QJsonObject{
+						   { QStringLiteral("list"), list },
+						   { QStringLiteral("limit"), limit },
+						   { QStringLiteral("offset"), offset },
+					   });
 	});
 }
 
@@ -1616,6 +1676,55 @@ void TeacherAPI::campaignOneResult(const QRegularExpressionMatch &match, const Q
 
 
 
+/**
+ * @brief TeacherAPI::campaignUserResult
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::campaignUserResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+	const QString &username = match.captured(2);
+
+	if (username.isEmpty())
+		return responseError(response, "empty username");
+
+	databaseMainWorker()->execInThread([this, response, id, data, username]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		if (!QueryBuilder::q(db)
+				.addQuery("SELECT id FROM campaign WHERE id=").addValue(id)
+				.addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(m_credential.username()).addQuery(")")
+				.execCheckExists(&err))
+			return responseError(response, "invalid campaign");
+
+		if (err)
+			return responseErrorSql(response);
+
+		int offset = data.value(QStringLiteral("offset")).toInt(0);
+		int limit = data.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
+
+		const QJsonArray &list = TeacherAPI::_campaignUserGameResult(this, id, username, limit, offset, &err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, QJsonObject{
+						   { QStringLiteral("list"), list },
+						   { QStringLiteral("limit"), limit },
+						   { QStringLiteral("offset"), offset },
+					   });
+	});
+}
+
+
+
 
 
 
@@ -2404,6 +2513,95 @@ TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI
 
 
 
+
+
+/**
+ * @brief TeacherAPI::_campaignUserGameResult
+ * @param api
+ * @param ampaign
+ * @param username
+ * @param err
+ * @return
+ */
+
+QJsonArray TeacherAPI::_campaignUserGameResult(const AbstractAPI *api, const int &campaign, const QString &username,
+											   const int &limit, const int &offset,
+											   bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	const QJsonArray &list = QueryBuilder::q(db)
+			.addQuery("WITH t AS (SELECT game.id as id, CAST(strftime('%s', game.timestamp) AS INTEGER) AS timestamp, mapid, missionid, "
+					  "level, mode, deathmatch, success, duration, xp "
+					  "FROM game LEFT JOIN score ON (score.id=game.scoreid) "
+					  "WHERE campaignid=").addValue(campaign)
+			.addQuery(" AND game.username=").addValue(username)
+			.addQuery(") SELECT * FROM t WHERE id NOT IN (SELECT id FROM t ORDER BY timestamp DESC, id DESC LIMIT ").addValue(offset)
+			.addQuery(") ORDER BY timestamp DESC, id DESC LIMIT ").addValue(limit)
+			.execToJsonArray(&e);
+
+	if (e) {
+		if (err) *err = e;
+		return QJsonArray();
+	}
+
+	return list;
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::_groupUserGameResult
+ * @param api
+ * @param group
+ * @param username
+ * @param limit
+ * @param offset
+ * @param err
+ * @return
+ */
+
+QJsonArray TeacherAPI::_groupUserGameResult(const AbstractAPI *api, const int &group, const QString &username,
+											const int &limit, const int &offset, bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	const QJsonArray &list = QueryBuilder::q(db)
+			.addQuery("WITH t AS (SELECT game.id as id, CAST(strftime('%s', game.timestamp) AS INTEGER) AS timestamp, mapid, missionid, "
+					  "level, mode, deathmatch, success, duration, xp "
+					  "FROM game LEFT JOIN score ON (score.id=game.scoreid) "
+					  "WHERE (campaignid IS NULL OR campaignid IN (SELECT id FROM campaign WHERE groupid=").addValue(group)
+			.addQuery(")) AND game.username=").addValue(username)
+			.addQuery(") SELECT * FROM t WHERE id NOT IN (SELECT id FROM t ORDER BY timestamp DESC, id DESC LIMIT ").addValue(offset)
+			.addQuery(") ORDER BY timestamp DESC, id DESC LIMIT ").addValue(limit)
+			.execToJsonArray(&e);
+
+	if (e) {
+		if (err) *err = e;
+		return QJsonArray();
+	}
+
+	return list;
+}
+
+
+
+
+
 /**
  * @brief TeacherAPI::_evaluateCampaign
  * @param api
@@ -2446,6 +2644,8 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 			success = _evaluateCriterionXP(api, campaign, criterion, username, &e);
 		else if (module == QLatin1String("mission"))
 			success = _evaluateCriterionMission(api, campaign, criterion, map, username, &e);
+		else if (module == QLatin1String("mapmission"))
+			success = _evaluateCriterionMapMission(api, campaign, criterion, map, username, &e);
 
 		if (e) {
 			db.rollback();
@@ -2517,7 +2717,7 @@ bool TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, const int &campaig
 		return false;
 	}
 
-	if (xp >= criterion.value(QStringLiteral("xp")).toInt())
+	if (xp >= criterion.value(QStringLiteral("num")).toInt())
 		return true;
 
 	return false;
@@ -2569,6 +2769,49 @@ bool TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api, const int &ca
 	}
 
 	return success;
+}
+
+
+
+/**
+ * @brief TeacherAPI::_evaluateCriterionMapMission
+ * @param api
+ * @param campaign
+ * @param criterion
+ * @param map
+ * @param username
+ * @param err
+ * @return
+ */
+
+bool TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion,
+											  const QString &map, const QString &username, bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	int num = QueryBuilder::q(db)
+			.addQuery("WITH s AS (SELECT DISTINCT missionid FROM game WHERE success=true AND username=").addValue(username)
+			.addQuery(" AND campaignid=").addValue(campaign)
+			.addQuery(" AND mapid=").addValue(map)
+			.addQuery(") SELECT COUNT(*) AS num FROM s")
+			.execToValue("num", &e).toInt()
+			;
+
+	if (e) {
+		if (err) *err = true;
+		return false;
+	}
+
+	if (num >= criterion.value(QStringLiteral("num")).toInt())
+		return true;
+
+	return false;
 }
 
 

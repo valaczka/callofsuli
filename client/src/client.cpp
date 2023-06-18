@@ -32,9 +32,6 @@
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
-#include "qpdfwriter.h"
-#include "qsdiffrunner.h"
-#include "qsjsonlistmodel.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "websocket.h"
@@ -44,7 +41,7 @@
 #include <qpa/qplatformwindow.h>
 #include "Logger.h"
 #include "mapgame.h"
-#include "testgame.h"
+#include "actiongame.h"
 #include <QScreen>
 
 #ifdef Q_OS_ANDROID
@@ -337,6 +334,7 @@ void Client::onApplicationStarted()
 	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
+	ActionGame::reloadAvailableCharacters();
 
 	switch (m_application->commandLine()) {
 	case Application::Demo:
@@ -829,7 +827,7 @@ EventStream *Client::eventStream() const
 void Client::setEventStream(EventStream *newEventStream)
 {
 #ifdef Q_OS_WASM
-	LOG_CWARNING("client") << "EventStream not functioning in WASM";
+	LOG_CWARNING("client") << "EventStream not functioning on WASM";
 #endif
 
 	if (m_eventStream == newEventStream)
@@ -844,7 +842,7 @@ void Client::setEventStream(EventStream *newEventStream)
 	if (m_eventStream) {
 		connect(m_eventStream, &EventStream::finished, this, [this](){
 			if (sender() == m_eventStream) {
-				LOG_CTRACE("client") << "Remove event stream";
+				LOG_CDEBUG("client") << "EventStream finished" << m_eventStream;
 				setEventStream(nullptr);
 			}
 		});
@@ -1116,7 +1114,7 @@ void Client::parseUrl()
 	LOG_CINFO("client") << "Parse URL:" << m_parseUrl;
 
 	if (server()->url().isParentOf(m_parseUrl)) {
-		LOG_CWARNING("client") << "URL parsed successful";
+		LOG_CDEBUG("client") << "URL parsed successfuly";
 
 		const QUrlQuery q(m_parseUrl);
 		const QString &page = q.queryItemValue(QStringLiteral("page"));
@@ -1128,6 +1126,15 @@ void Client::parseUrl()
 			LOG_CDEBUG("client") << "Load registration with oauth" << oauth << "and code" << code;
 
 			emit loadRequestRegistration(oauth, code);
+		} else if (page == QLatin1String("login")) {
+			const QString &token = q.queryItemValue(QStringLiteral("token"));
+
+			if (!token.isEmpty()) {
+				LOG_CINFO("client") << "Login with token:" << qPrintable(token);
+				server()->setToken(token);
+				loginToken();
+			}
+
 		} else if (!q.isEmpty()) {
 			LOG_CWARNING("client") << "Invalid page request:" << page;
 		}
@@ -1201,6 +1208,30 @@ qreal Client::getDevicePixelSizeCorrection() const
 	LOG_CDEBUG("client") << "Device pixel size correction:" << ratioFont;
 
 	return ratioFont;
+}
+
+
+
+/**
+ * @brief Client::availableCharacters
+ * @return
+ */
+
+QVariantMap Client::availableCharacters() const
+{
+	QVariantMap ret;
+
+	const QStringList &l = ActionGame::availableCharacters();
+
+	foreach (const QString &s, l) {
+		const QJsonObject &obj = Utils::fileToJsonObject(QStringLiteral(":/character/%1/data.json").arg(s));
+
+		QVariantMap m;
+		m[QStringLiteral("name")] = obj.contains(QStringLiteral("name")) ? obj.value(QStringLiteral("name")).toString() : s;
+		ret.insert(s, m);
+	}
+
+	return ret;
 }
 
 

@@ -42,13 +42,20 @@ public:
 	static int solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
 										  const int &level, const bool &deathmatch);
 
+	static QDeferred<QJsonArray> getGroupScore(const DatabaseMain *database, const int &id);
+
+
+
 	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void groupScore(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void groupScoreLive(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 	void update(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void password(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
 	void campaigns(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void campaignResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
 	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;

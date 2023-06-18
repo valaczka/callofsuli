@@ -27,6 +27,7 @@
 #ifndef STUDENTGROUP_H
 #define STUDENTGROUP_H
 
+#include "campaign.h"
 #include <QObject>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -39,6 +40,10 @@ class StudentGroup;
 using StudentGroupList = qolm::QOlm<StudentGroup>;
 Q_DECLARE_METATYPE(StudentGroupList*)
 
+/**
+ * @brief The StudentGroup class
+ */
+
 class StudentGroup : public QObject
 {
 	Q_OBJECT
@@ -47,6 +52,7 @@ class StudentGroup : public QObject
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(UserList* memberList READ memberList CONSTANT)
+	Q_PROPERTY(CampaignList *campaignList READ campaignList CONSTANT)
 
 public:
 	explicit StudentGroup(QObject *parent = nullptr);
@@ -65,6 +71,9 @@ public:
 
 	UserList *memberList() const;
 
+	CampaignList *campaignList() const;
+
+
 signals:
 	void groupidChanged();
 	void nameChanged();
@@ -75,6 +84,7 @@ private:
 	QString m_name;
 	bool m_active = false;
 	UserList *const m_memberList;
+	CampaignList *const m_campaignList;
 };
 
 #endif // STUDENTGROUP_H

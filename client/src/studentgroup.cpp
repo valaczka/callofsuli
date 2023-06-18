@@ -31,6 +31,7 @@
 StudentGroup::StudentGroup(QObject *parent)
 	: QObject{parent}
 	, m_memberList(new UserList(this))
+	, m_campaignList(new CampaignList(this))
 {
 
 }
@@ -42,6 +43,7 @@ StudentGroup::StudentGroup(QObject *parent)
 
 StudentGroup::~StudentGroup()
 {
+	delete m_campaignList;
 	delete m_memberList;
 }
 
@@ -67,6 +69,8 @@ void StudentGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("memberList")) || allField)
 		OlmLoader::loadFromJsonArray<User>(m_memberList, object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
 
+	if (object.contains(QStringLiteral("campaignList")) || allField)
+		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList, object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
 }
 
 
@@ -118,3 +122,10 @@ UserList *StudentGroup::memberList() const
 {
 	return m_memberList;
 }
+
+CampaignList *StudentGroup::campaignList() const
+{
+	return m_campaignList;
+}
+
+

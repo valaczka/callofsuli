@@ -109,6 +109,8 @@ public:
 	Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
 	const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
 
+	static void reloadAvailableCharacters();
+	static const QStringList &availableCharacters();
 
 public slots:
 	void onPlayerDied(GameEntity *);
@@ -169,8 +171,9 @@ private:
 	static const QHash<QString, QVector<GamePickable::PickableType>> m_toolDependency;
 	QHash<GamePickable::PickableType, int> m_tools;
 
-	int m_timeNotifySendNext = -1;
+	static QStringList m_availableCharacters;
 
+	int m_timeNotifySendNext = -1;
 	int m_killStreak = 0;
 };
 

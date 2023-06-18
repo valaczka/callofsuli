@@ -79,6 +79,7 @@ public:
 	static void reloadAvailableMusic();
 	static void reloadAvailableMedal();
 
+	static QString medalImagePath(const QString &medal);
 	static QString medalImagePath(GameMapMission *mission);
 	static QString medalImagePath(GameMapMissionLevel *missionLevel);
 

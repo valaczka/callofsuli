@@ -704,11 +704,7 @@ GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 	player->setScene(scene);
 	player->createSpriteItem();
 
-	QDirIterator it(QStringLiteral(":/character"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
-	QStringList list;
-
-	while (it.hasNext())
-		list.append(it.next().section('/',-2,-2));
+	const QStringList &list = ActionGame::availableCharacters();
 
 	if (list.isEmpty()) {
 		qFatal("Player character directory is empty");

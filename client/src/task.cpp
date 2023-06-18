@@ -45,14 +45,14 @@ void Task::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("id")) || allField)
 		setTaskid(object.value(QStringLiteral("id")).toInt());
 
+	if (object.contains(QStringLiteral("mapname")) || allField)
+		setMapName(object.value(QStringLiteral("mapname")).toString());
+
 	if (object.contains(QStringLiteral("criterion")) || allField)
 		setCriterion(object.value(QStringLiteral("criterion")).toObject());
 
 	if (object.contains(QStringLiteral("mapuuid")) || allField)
 		setMapUuid(object.value(QStringLiteral("mapuuid")).toString());
-
-	if (object.contains(QStringLiteral("mapname")) || allField)
-		setMapName(object.value(QStringLiteral("mapname")).toString());
 
 	if (object.contains(QStringLiteral("required")) || allField)
 		setRequired(object.value(QStringLiteral("required")).toVariant().toBool());
@@ -62,10 +62,33 @@ void Task::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("gradeid")) || allField)
 		setGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
-																								object.value(QStringLiteral("gradeid")).toInt())));
+																						 object.value(QStringLiteral("gradeid")).toInt())));
 
 	if (object.contains(QStringLiteral("success")) || allField)
 		setSuccess(object.value(QStringLiteral("success")).toVariant().toBool());
+}
+
+
+
+
+/**
+ * @brief Task::loadFromTask
+ * @param task
+ */
+
+void Task::loadFromTask(Task *task)
+{
+	if (!task)
+		return;
+
+	setTaskid(task->taskid());
+	setMapName(task->mapName());
+	setCriterion(task->criterion());
+	setMapUuid(task->mapUuid());
+	setRequired(task->required());
+	setXp(task->xp());
+	setGrade(task->grade());
+	setSuccess(task->success());
 }
 
 
@@ -249,12 +272,13 @@ QString Task::readableCriterion(BaseMapList *mapList) const
 
 	if (module == QLatin1String("xp")) {
 		return tr("Gyűjts össze %1 XP-t").arg(num);
+	} else if (module == QLatin1String("mapmission")) {
+		return tr("Teljesíts %1 különböző küldetést a %2 pályán").arg(num).arg(m_mapName);
 	} else if (module == QLatin1String("mission")) {
 		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
 		const int &level = m_criterion.value(QStringLiteral("level")).toInt(1);
 		const bool &deathmatch = m_criterion.value(QStringLiteral("deathmatch")).toVariant().toBool();
 
-		const QString &mapName = m_mapName;
 		QString missionName = tr("???");
 
 		if (mapList) {
@@ -273,7 +297,7 @@ QString Task::readableCriterion(BaseMapList *mapList) const
 			}
 		}
 
-		return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(mapName, missionName)
+		return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(m_mapName, missionName)
 				.arg(level)
 				.arg(deathmatch ? tr(" SUDDEN DEATH") : QLatin1String(""));
 	}
@@ -295,6 +319,8 @@ QString Task::readableShortCriterion(BaseMapList *mapList) const
 
 	if (module == QLatin1String("xp")) {
 		return tr("%1 XP").arg(num);
+	} else if (module == QLatin1String("mapmission")) {
+		return tr("%1 (%2 db)").arg(m_mapName).arg(num);
 	} else if (module == QLatin1String("mission")) {
 		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
 		const int &level = m_criterion.value(QStringLiteral("level")).toInt(1);

@@ -151,6 +151,10 @@ public:
 	bool showCellPlaceholders() const;
 	void setShowCellPlaceholders(bool newShowCellPlaceholders);
 
+	Q_INVOKABLE User* userAt(const int &row) const;
+	Q_INVOKABLE bool loadCampaignDataFromUser(Campaign *campaign, User *user) const;
+	Q_INVOKABLE bool loadCampaignDataFromRow(Campaign *campaign, const int &row) const;
+
 
 public slots:
 	void reload();
@@ -263,6 +267,9 @@ public:
 
 	bool showCellPlaceholders() const;
 	void setShowCellPlaceholders(bool newShowCellPlaceholders);
+
+	Q_INVOKABLE User* userAt(const int &row) const;
+	Q_INVOKABLE Campaign* campaignAt(const int &column) const;
 
 public slots:
 	void reload();

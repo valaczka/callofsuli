@@ -65,6 +65,9 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("picture")) || allField)
 		setPicture(object.value(QStringLiteral("picture")).toString());
 
+	if (object.contains(QStringLiteral("character")) || allField)
+		setCharacter(object.value(QStringLiteral("character")).toString());
+
 	if ((object.contains(QStringLiteral("rankid")) || allField) && Application::instance()->client()->server())
 		setRank(Application::instance()->client()->server()->rank(object.value(QStringLiteral("rankid")).toInt()));
 
@@ -214,9 +217,24 @@ void User::clear()
 	setUsername(QLatin1String(""));
 	setFamilyName(QLatin1String(""));
 	setGivenName(QLatin1String(""));
+	setNickName(QLatin1String(""));
+	setCharacter(QLatin1String(""));
 	setRank(Rank());
 	setRoles(Credential::None);
 	setLoginState(LoggedOut);
+}
+
+const QString &User::character() const
+{
+	return m_character;
+}
+
+void User::setCharacter(const QString &newCharacter)
+{
+	if (m_character == newCharacter)
+		return;
+	m_character = newCharacter;
+	emit characterChanged();
 }
 
 bool User::streakToday() const

@@ -40,6 +40,8 @@ Server::Server(QObject *parent)
 
 Server::~Server()
 {
+	delete m_user;
+	m_user = nullptr;
 }
 
 

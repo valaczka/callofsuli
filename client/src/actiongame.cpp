@@ -31,6 +31,7 @@
 #include "actiongame.h"
 #include "client.h"
 #include "gamequestion.h"
+#include "qdiriterator.h"
 #include <QRandomGenerator>
 #include <QtMath>
 #include <Logger.h>
@@ -45,6 +46,8 @@ ActionGame::m_toolDependency({
 								 { QStringLiteral("teleport"), {GamePickable::PickableTeleporter} }
 							 });
 
+
+QStringList ActionGame::m_availableCharacters;
 
 
 /**
@@ -932,6 +935,17 @@ void ActionGame::timeNotifySendReset()
 
 
 /**
+ * @brief ActionGame::availableCharacters
+ * @return
+ */
+
+const QStringList &ActionGame::availableCharacters()
+{
+	return m_availableCharacters;
+}
+
+
+/**
  * @brief ActionGame::toolDependency
  * @return
  */
@@ -939,6 +953,26 @@ void ActionGame::timeNotifySendReset()
 const QHash<QString, QVector<GamePickable::PickableType> > &ActionGame::toolDependency() const
 {
 	return m_toolDependency;
+}
+
+
+
+/**
+ * @brief ActionGame::reloadAvailableCharacters
+ */
+
+void ActionGame::reloadAvailableCharacters()
+{
+	LOG_CDEBUG("game") << "Reload available characters...";
+
+	m_availableCharacters.clear();
+
+	QDirIterator it(QStringLiteral(":/character"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext())
+		m_availableCharacters.append(it.next().section('/',-2,-2));
+
+	LOG_CDEBUG("game") << "...loaded " << m_availableCharacters.size() << " characters";
 }
 
 
