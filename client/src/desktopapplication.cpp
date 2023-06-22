@@ -30,6 +30,10 @@
 #include "desktopclient.h"
 #include "utils.h"
 
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#endif
+
 
 /**
  * @brief DesktopApplication::DesktopApplication
@@ -40,6 +44,10 @@
 DesktopApplication::DesktopApplication(int &argc, char **argv)
 	: MobileApplication(argc, argv)
 {
+#ifdef Q_OS_WIN
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+
 	m_appender = new ColorConsoleAppender;
 
 #ifndef QT_NO_DEBUG

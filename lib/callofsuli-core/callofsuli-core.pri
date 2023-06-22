@@ -1,9 +1,5 @@
 INCLUDEPATH += $$PWD
 
-DEFINES += \
-	COS_VERSION_MAJOR=$$VER_MAJ \
-	COS_VERSION_MINOR=$$VER_MIN \
-
 !wasm {
 	include($$PWD/../QDeferred/src/qdeferred.pri)
 	include($$PWD/../QDeferred/src/qlambdathreadworker.pri)

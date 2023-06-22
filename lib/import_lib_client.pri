@@ -5,18 +5,30 @@ include(../common.pri)
 LIBS += -L../../lib
 
 
+
+# QOlm
+
+INCLUDEPATH += \
+	$$PWD/QOlm/src \
+	$$PWD/QOlm/include
+
+android: LIBS += -lQOlm_$${QT_ARCH}
+else: LIBS += -lQOlm
+
+DEFINES += QOLM_STATIC
+
+
 # Qaterial
 
 INCLUDEPATH += \
-	$$PWD/Qaterial/src \
-	$$PWD/QOlm/src \
-	$$PWD/QOlm/include
+	$$PWD/Qaterial/src
 
 QMLPATHS += $$PWD/Qaterial/qml/Qaterial
 
 android: LIBS += -lQaterial_$${QT_ARCH}
 else: LIBS += -lQaterial
 
+DEFINES += QATERIAL_STATIC
 
 
 # Tiled

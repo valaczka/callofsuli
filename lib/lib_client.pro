@@ -3,6 +3,7 @@ include(../common.pri)
 TEMPLATE = subdirs
 
 SUBDIRS += \
+	libQOlm \
 	libQaterial \
 	libQZXing \
 	libTiled \

@@ -9,10 +9,6 @@ TEMPLATE = lib
 android: TARGET = Qaterial_$${QT_ARCH}
 else: TARGET = Qaterial
 
-win32 {
-	CONFIG += dll
-}
-
 
 DESTDIR = ../
 
@@ -22,6 +18,7 @@ RESOURCES += \
 
 
 DEFINES += \
+	QOLM_STATIC \
 	QATERIAL_STATIC \
 	QATERIAL_VERSION_MAJOR=1 \
 	QATERIAL_VERSION_MINOR=4 \
@@ -124,13 +121,9 @@ HEADERS += \
 	$$PWD/../Qaterial/src/Qaterial/Qaterial.hpp \
 	$$PWD/../Qaterial/src/Qaterial/Theme/ColorTheme.hpp \
 	$$PWD/../Qaterial/src/Qaterial/Theme/TextTheme.hpp \
-	$$PWD/../Qaterial/src/Qaterial/Theme/Theme.hpp \
-	$$PWD/../QOlm/include/QOlm/Details/Export.hpp \
-	$$PWD/../QOlm/include/QOlm/Details/QOlmBase.hpp \
-	$$PWD/../QOlm/include/QOlm/QOlm.hpp
+	$$PWD/../Qaterial/src/Qaterial/Theme/Theme.hpp
 
 SOURCES += \
-	#$$PWD/../Qaterial/src/Qaterial/Details/HighDpiFix.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Details/Utils.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Details/Version.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Display/IconDescription.cpp \
@@ -144,5 +137,4 @@ SOURCES += \
 	$$PWD/../Qaterial/src/Qaterial/Navigation/TreeElement.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Theme/ColorTheme.cpp \
 	$$PWD/../Qaterial/src/Qaterial/Theme/TextTheme.cpp \
-	$$PWD/../Qaterial/src/Qaterial/Theme/Theme.cpp \
-	$$PWD/../QOlm/src/QOlmBase.cpp
+	$$PWD/../Qaterial/src/Qaterial/Theme/Theme.cpp

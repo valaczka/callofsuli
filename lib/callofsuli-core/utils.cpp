@@ -33,13 +33,14 @@
 #include "qsettings.h"
 #include "selectableobject.h"
 #include <random>
+#include "../../version/version.h"
 
 #ifdef CLIENT_UTILS
 #include "qsdiffrunner.h"
 #endif
 
-const quint32 Utils::m_versionMajor = COS_VERSION_MAJOR;
-const quint32 Utils::m_versionMinor = COS_VERSION_MINOR;
+const quint32 Utils::m_versionMajor = VERSION_MAJOR;
+const quint32 Utils::m_versionMinor = VERSION_MINOR;
 
 
 #ifdef Q_OS_ANDROID
