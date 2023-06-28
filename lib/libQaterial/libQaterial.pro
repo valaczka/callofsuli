@@ -32,74 +32,79 @@ QMAKE_CXXFLAGS += -Wno-unused-parameter -Wno-unused-lambda-capture -Wno-deprecat
 
 # Qrc
 
-lines = <RCC>
-lines += "<qresource prefix=\"/Qaterial\">"
+!exists(Qaterial.qrc): {
+	lines = <RCC>
+	lines += "<qresource prefix=\"/Qaterial\">"
 
-flist = $$files($$PWD/../Qaterial/qml/Qaterial/*)
+	flist = $$files($$PWD/../Qaterial/qml/Qaterial/*)
 
-for (file, flist): lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
+	for (file, flist): lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
 
-lines += </qresource>
-lines += </RCC>
+	lines += </qresource>
+	lines += </RCC>
 
-message(Create Qaterial.qrc)
-write_file(Qaterial.qrc, lines)
-
+	message(Create Qaterial.qrc)
+	write_file(Qaterial.qrc, lines)
+}
 
 
 # Icons
 
-lines = <RCC>
-lines += "<qresource prefix=\"/Qaterial/Icons\">"
+!exists(QaterialIcons.qrc): {
+
+	lines = <RCC>
+	lines += "<qresource prefix=\"/Qaterial/Icons\">"
 
 
-qmlLines = "// File auto generated"
-qmlLines += "// Generated at $${_DATE_}"
-qmlLines += "pragma Singleton"
-qmlLines += "import QtQuick 2.12"
-qmlLines += "QtObject"
-qmlLines += "{"
+	qmlLines = "// File auto generated"
+	qmlLines += "// Generated at $${_DATE_}"
+	qmlLines += "pragma Singleton"
+	qmlLines += "import QtQuick 2.12"
+	qmlLines += "QtObject"
+	qmlLines += "{"
 
 
-flist = $$files($$PWD/../MaterialDesignSvgo/svg/*)
+	flist = $$files($$PWD/../MaterialDesignSvgo/svg/*)
 
-restrictedNames = console delete export function import null package switch
+	restrictedNames = console delete export function import null package switch
 
-for (file, flist) {
-	baseName = $$basename(file)
-	iconBaseName = $$replace(baseName, .svg,)
+	for (file, flist) {
+		baseName = $$basename(file)
+		iconBaseName = $$replace(baseName, .svg,)
 
-	iconNameParts = $$split(iconBaseName, -)
+		iconNameParts = $$split(iconBaseName, -)
 
-	partNum = $$size(iconNameParts)
+		partNum = $$size(iconNameParts)
 
-	qmlName =
+		qmlName =
 
-	greaterThan(partNum, 1): {
-		for (part, iconNameParts) {
-			isEmpty(qmlName): qmlName = $$part
-			else: qmlName += $$upper($$str_member($$part, 0, 0))$$str_member($$part, 1, -1)
+		greaterThan(partNum, 1): {
+			for (part, iconNameParts) {
+				isEmpty(qmlName): qmlName = $$part
+				else: qmlName += $$upper($$str_member($$part, 0, 0))$$str_member($$part, 1, -1)
+			}
+		} else {
+			qmlName = $$iconBaseName
 		}
-	} else {
-		qmlName = $$iconBaseName
+
+
+		contains(restrictedNames, $$qmlName): qmlName = $${qmlName}_
+
+		qmlLines += "	readonly property string $$join(qmlName,,,): \"qrc:/Qaterial/Icons/$$baseName\";"
+
+		lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
 	}
 
+	lines += </qresource>
+	lines += </RCC>
 
-	contains(restrictedNames, $$qmlName): qmlName = $${qmlName}_
+	qmlLines += "}"
 
-	qmlLines += "	readonly property string $$join(qmlName,,,): \"qrc:/Qaterial/Icons/$$baseName\";"
-
-	lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
+	message(Create QaterialIcons.qrc)
+	write_file(QaterialIcons.qrc, lines)
+	write_file($$PWD/../Qaterial/qml/Qaterial/Icons.qml, qmlLines)
 }
 
-lines += </qresource>
-lines += </RCC>
-
-qmlLines += "}"
-
-message(Create QaterialIcons.qrc)
-write_file(QaterialIcons.qrc, lines)
-write_file($$PWD/../Qaterial/qml/Qaterial/Icons.qml, qmlLines)
 
 # Sources
 

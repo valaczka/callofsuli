@@ -39,7 +39,6 @@
 #include <QMediaPlayer>
 #include <QVariantAnimation>
 #include <QSoundEffect>
-#include <QPointer>
 
 class Sound : public QObject
 {
@@ -93,7 +92,6 @@ private:
 	QString m_musicNextSource;
 	QVariantAnimation *m_fadeAnimation;
 	int m_musicVolume;
-	QList<QPointer<QSoundEffect>> m_effectList;
 };
 
 #endif // SOUND_H

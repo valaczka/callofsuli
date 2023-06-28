@@ -122,7 +122,7 @@ public slots:
 	void message(const QString &text, const QColor &color = "white");
 	void addMSec(const qint64 &msec);
 	void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
-	void dialogMessageTooltipById(const QString &/*msgId*/, const QString &/*title*/ = tr("Tudtad?"));
+	void dialogMessageTooltipById(const QString &msgId, const QString &title = tr("Tudtad?"));
 	void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
 	void gameAbort();
 

@@ -64,6 +64,7 @@ Sound::Sound(QObject *parent)
 Sound::~Sound()
 {
 	delete m_fadeAnimation;
+	m_fadeAnimation = nullptr;
 
 	if (m_mediaPlayerMusic && m_mediaPlayerSfx && m_mediaPlayerVoiceOver) {
 		QSettings s(this);
@@ -77,11 +78,17 @@ Sound::~Sound()
 	if (m_mediaPlayerSfx)
 		delete m_mediaPlayerSfx;
 
+	m_mediaPlayerSfx = nullptr;
+
 	if (m_mediaPlayerMusic)
 		delete m_mediaPlayerMusic;
 
+	m_mediaPlayerMusic = nullptr;
+
 	if (m_mediaPlayerVoiceOver)
 		delete m_mediaPlayerVoiceOver;
+
+	m_mediaPlayerVoiceOver = nullptr;
 
 	LOG_CTRACE("sound") << "Sound object destroyed" << this;
 }
@@ -106,13 +113,6 @@ QSoundEffect *Sound::newSoundEffect()
 	});
 
 	LOG_CTRACE("sound") << "New sound effect:" << e;
-
-	m_effectList.append(e);
-
-	connect(e, &QObject::destroyed, this, [this, e]() {
-		LOG_CTRACE("sound") << "Sound effect destroyed" << e;
-		m_effectList.removeAll(e);
-	});
 
 	return e;
 }

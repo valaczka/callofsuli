@@ -679,17 +679,6 @@ Page {
 		}*/
 	}
 
-	GameMessageList {
-		id: messageList
-
-		anchors.horizontalCenter: parent.horizontalCenter
-
-		y: parent.height*0.33
-
-		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
-
-		visible: !gameScene.zoomOverview && itemsVisible
-	}
 
 	Row {
 		id: rowTime
@@ -1016,6 +1005,20 @@ Page {
 	}
 
 
+	GameMessageList {
+		id: messageList
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		y: parent.height*0.33
+
+		z: 6
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+
+		visible: !gameScene.zoomOverview && itemsVisible
+	}
+
 
 	Connections {
 		target: game ? game.player : null
@@ -1309,9 +1312,9 @@ Page {
 						text: _text,
 						title: _title,
 						iconSource: _icon,
-						iconColor: Qaterial.Style.primaryTextColor(),
-						textColor: Qaterial.Style.primaryTextColor(),
-						iconFill: false,
+						iconColor: Qaterial.Style.iconColor(),
+						textColor: Qaterial.Style.iconColor(),
+						iconFill: true,
 						iconSize: Qaterial.Style.roundIcon.size,
 						standardButtons: Dialog.Ok
 					})

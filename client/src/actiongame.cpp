@@ -1433,15 +1433,19 @@ void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, 
 
 
 /**
- * @brief ActionGame::dialogMessageTooltip
+ * @brief ActionGame::dialogMessageTooltipById
  * @param msgId
  * @param title
  */
 
-void ActionGame::dialogMessageTooltipById(const QString &, const QString &)
+void ActionGame::dialogMessageTooltipById(const QString &msgId, const QString &title)
 {
-
+	QString text = msgId;
+	//QString icon =
 }
+
+
+
 
 
 

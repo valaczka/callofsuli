@@ -349,19 +349,4 @@ Page {
 					})
 	}
 
-
-	function messageTooltip(_text : string, _icon : string, _title : string) {
-		Qaterial.DialogManager.showDialog(
-					{
-						text: _text,
-						title: _title,
-						iconSource: _icon,
-						iconColor: Qaterial.Style.primaryTextColor(),
-						textColor: Qaterial.Style.primaryTextColor(),
-						iconFill: false,
-						iconSize: Qaterial.Style.roundIcon.size,
-						standardButtons: Dialog.Ok
-					})
-	}
-
 }

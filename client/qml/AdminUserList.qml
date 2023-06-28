@@ -130,6 +130,8 @@ Qaterial.Page
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
+			height: contentHeight
+
 			refreshProgressVisible: Client.webSocket.pending
 			refreshEnabled: true
 			onRefreshRequest: reloadUsers()
@@ -170,6 +172,9 @@ Qaterial.Page
 			delegate: QItemDelegate {
 				property User user: model.qtObject
 				selectableObject: user
+
+				leftPadding: 0
+				rightPadding: 0
 
 				highlighted: ListView.isCurrentItem
 				iconSource: user ? (user.roles & _rolePanel) ?

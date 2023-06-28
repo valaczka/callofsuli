@@ -40,7 +40,8 @@ include(../../lib/import_lib_client.pri)
 
 
 !wasm {
-	DEFINES += WITH_BOX2D
+	DEFINES += \
+		WITH_BOX2D
 
 	SOURCES += \
 		mobileapplication.cpp \
@@ -142,7 +143,7 @@ ios {
 	OTHER_FILES += $$PWD/../deploy/Info.plist.in
 
 	INFO_PLIST_VERSION = "$$VERSION"
-	INFO_PLIST_SHORT_VERSION = "$$VERSION"
+	INFO_PLIST_SHORT_VERSION = "$${VER_MAJ}.$${VER_MIN}"
 
 	plist.input = $$PWD/../deploy/Info.plist.in
 	plist.output = $$OUT_PWD/Info.plist

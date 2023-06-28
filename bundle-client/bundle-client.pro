@@ -34,7 +34,7 @@ else: LddLibDir = $${CQtTargetDir}/usr/lib
 
 win32: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
-			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter \
+			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
 			-qmake $$QMAKE_QMAKE \
 			-qmlDir $$PWD/../client/qml ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \

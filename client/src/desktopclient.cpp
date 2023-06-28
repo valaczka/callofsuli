@@ -40,20 +40,16 @@
 
 DesktopClient::DesktopClient(Application *app, QObject *parent)
 	: Client(app, parent)
+	, m_sound(new Sound(this))
 	, m_serverList(new ServerList(this))
 {
-	LOG_CTRACE("client") << "Desktop DesktopClient created:" << this;
+	LOG_CTRACE("client") << "DesktopClient created:" << this;
 
 	m_oauthData.isLocal = true;
 
-	m_sound = new Sound();
-	m_sound->moveToThread(&m_soundThread);
-	connect(&m_soundThread, &QThread::finished, m_sound, &QObject::deleteLater);
 	connect(m_sound, &Sound::volumeSfxChanged, this, &DesktopClient::setSfxVolumeInt);
 
-	m_soundThread.start();
-
-	QMetaObject::invokeMethod(m_sound, "init", Qt::BlockingQueuedConnection);
+	m_sound->init();
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
@@ -72,12 +68,13 @@ DesktopClient::~DesktopClient()
 	serverDeleteTemporary();
 	serverListSave();
 
-	m_soundThread.quit();
-	m_soundThread.wait();
+	delete m_sound;
+	m_sound = nullptr;
 
 	delete m_serverList;
+	m_serverList = nullptr;
 
-	LOG_CTRACE("client") << "Desktop DesktopClient destroyed:" << this;
+	LOG_CTRACE("client") << "DesktopClient destroyed:" << this;
 }
 
 
@@ -101,16 +98,14 @@ void DesktopClient::setSfxVolume(qreal newSfxVolume)
 
 
 
+/**
+ * @brief DesktopClient::newSoundEffect
+ * @return
+ */
+
 QSoundEffect *DesktopClient::newSoundEffect()
 {
-	QSoundEffect *e = nullptr;
-
-	QMetaObject::invokeMethod(m_sound, "newSoundEffect",
-							  Qt::BlockingQueuedConnection,
-							  Q_RETURN_ARG(QSoundEffect*, e)
-							  );
-
-	return e;
+	return m_sound->newSoundEffect();
 }
 
 
@@ -158,27 +153,19 @@ void DesktopClient::stopSound(const QString &source, const Sound::SoundType &sou
 
 int DesktopClient::volume(const Sound::ChannelType &channel) const
 {
-	QByteArray func;
-
 	switch (channel) {
 	case Sound::MusicChannel:
-		func = QByteArrayLiteral("volumeMusic");
+		return m_sound->volumeMusic();
 		break;
 	case Sound::SfxChannel:
-		func = QByteArrayLiteral("volumeSfx");
+		return m_sound->volumeSfx();
 		break;
 	case Sound::VoiceoverChannel:
-		func = QByteArrayLiteral("volumeVoiceOver");
+		return m_sound->volumeVoiceOver();
 		break;
 	}
 
-	int volume = 0;
-
-	QMetaObject::invokeMethod(m_sound, func, Qt::BlockingQueuedConnection,
-							  Q_RETURN_ARG(int, volume)
-							  );
-
-	return volume;
+	return -1;
 }
 
 
@@ -190,31 +177,25 @@ int DesktopClient::volume(const Sound::ChannelType &channel) const
 
 void DesktopClient::setVolume(const Sound::ChannelType &channel, const int &volume) const
 {
-	QByteArray func;
-
 	QSettings s;
 	s.beginGroup(QStringLiteral("sound"));
 
 	switch (channel) {
 	case Sound::MusicChannel:
-		func = QByteArrayLiteral("setVolumeMusic");
+		m_sound->setVolumeMusic(volume);
 		s.setValue(QStringLiteral("volumeMusic"), volume);
 		break;
 	case Sound::SfxChannel:
-		func = QByteArrayLiteral("setVolumeSfx");
+		m_sound->setVolumeSfx(volume);
 		s.setValue(QStringLiteral("volumeSfx"), volume);
 		break;
 	case Sound::VoiceoverChannel:
-		func = QByteArrayLiteral("setVolumeVoiceOver");
+		m_sound->setVolumeVoiceOver(volume);
 		s.setValue(QStringLiteral("volumeVoiceOver"), volume);
 		break;
 	}
 
 	s.endGroup();
-
-	QMetaObject::invokeMethod(m_sound, func, Qt::DirectConnection,
-							  Q_ARG(int, volume)
-							  );
 }
 
 
@@ -242,10 +223,6 @@ void DesktopClient::setSfxVolumeInt(int sfxVolume)
 
 void DesktopClient::onMainWindowChanged()
 {
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-
-#endif
-
 	if (!m_mainWindow)
 		return;
 

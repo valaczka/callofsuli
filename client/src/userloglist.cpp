@@ -97,6 +97,8 @@ void UserLogList::reload()
 		return;
 	}
 
+	emit modelReloadRequested();
+
 	Client *client = Application::instance()->client();
 
 	client->send(m_api, m_path.arg(m_username))

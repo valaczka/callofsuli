@@ -63,6 +63,7 @@ signals:
 	void pathChanged();
 	void modelChanged();
 	void modelReloaded();
+	void modelReloadRequested();
 
 private:
 	void loadFromJson(const QJsonObject &obj);

@@ -17,14 +17,18 @@ Qaterial.Page
 
 	property double paddingTop: 0
 
-	property bool _firstRun: true
+	property bool _showPlaceholders: true
+	property int _pendingLoaders: -1
 
 	background: null
 
 	ScoreListImpl {
 		id: _scoreList
 
-		onModelReloaded: _firstRun = false
+		onModelReloaded: {
+			_pendingLoaders = _sortedUserList.count
+			view.model = _sortedUserList
+		}
 	}
 
 	ListModel {
@@ -109,10 +113,52 @@ Qaterial.Page
 		onRefreshRequest: reload()
 
 
+		ListView {
+			id: _viewPlaceholder
+
+			visible: _showPlaceholders
+
+			height: contentHeight
+
+			width: view.width
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			boundsBehavior: Flickable.StopAtBounds
+
+			model: 10
+
+			delegate: QLoaderItemFullDelegate {
+				id: _placeholder
+				contentSourceComponent: QPlaceholderItem {
+					heightRatio: 0.5
+					horizontalAlignment: Qt.AlignLeft
+				}
+
+				leftSourceComponent: QPlaceholderItem {
+					width: _placeholder.height
+					height: _placeholder.height
+					widthRatio: 0.8
+					heightRatio: 0.8
+					contentComponent: ellipseComponent
+				}
+
+				rightSourceComponent: QPlaceholderItem {
+					fixedWidth: 75
+					heightRatio: 0.5
+				}
+			}
+
+			header: Item {
+				width: ListView.width
+				height: control.paddingTop
+			}
+		}
+
+
 		QListView {
 			id: view
 
-			readonly property bool showPlaceholders: _scoreList.model.count == 0 && _firstRun
+			visible: !_showPlaceholders
 
 			currentIndex: -1
 			height: contentHeight
@@ -121,19 +167,17 @@ Qaterial.Page
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			model: showPlaceholders ? 10 : _sortedUserList
+			model: null
 
-			delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
-
-			onShowPlaceholdersChanged: positionViewAtBeginning()
-			Component.onCompleted: positionViewAtBeginning()
-
-
-			Component {
-				id: _cmpDelegate
-
-				QLoaderItemDelegate {
+			delegate: Loader {
+				id: _ldr
+				asynchronous: _showPlaceholders
+				sourceComponent: QLoaderItemDelegate {
 					id: _delegate
+
+					visible: _ldr.status == Loader.Ready
+
+					width: _ldr.ListView.view.width
 
 					text: fullNickName
 					secondaryText: rank.name + (rank.sublevel > 0 ? qsTr(" (level %1)").arg(rank.sublevel) : "")
@@ -172,33 +216,26 @@ Qaterial.Page
 											 })
 					}
 				}
-			}
 
-			Component {
-				id: _cmpPlaceholder
-
-				QLoaderItemFullDelegate {
-					id: _placeholder
-					contentSourceComponent: QPlaceholderItem {
-						heightRatio: 0.5
-						horizontalAlignment: Qt.AlignLeft
-					}
-
-					leftSourceComponent: QPlaceholderItem {
-						width: _placeholder.height
-						height: _placeholder.height
-						widthRatio: 0.8
-						heightRatio: 0.8
-						contentComponent: ellipseComponent
-					}
-
-					rightSourceComponent: QPlaceholderItem {
-						fixedWidth: 75
-						heightRatio: 0.5
+				onLoaded: {
+					if (_showPlaceholders) {
+						_pendingLoaders--
+						if (_pendingLoaders <= 0)
+							_showPlaceholders = false
 					}
 				}
 
+				Component.onCompleted: {
+					control.Component.destruction.connect(_ldr.stopLoading)
+				}
+
+				function stopLoading() {
+					if (_ldr)
+						_ldr.active = false
+				}
 			}
+
+
 
 			header: Item {
 				width: ListView.width
@@ -234,6 +271,8 @@ Qaterial.Page
 	Component.onCompleted: Client.reloadCache("classList", function(){_preparedClassList.reload()})
 
 	function reload() {
+		_showPlaceholders = true
+		view.model = null
 		_scoreList.reload()
 	}
 }

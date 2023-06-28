@@ -38,7 +38,12 @@ Item {
 
 		contentHeight: _content.implicitHeight +
 					   control.topPadding + control.bottomPadding
-					   /* + (Qt.inputMethod && Qt.inputMethod.visible ?
+					   + (Qt.inputMethod && Qt.inputMethod.visible ?
+							  Qt.inputMethod.keyboardRectangle.height > 0 ?
+								  (Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : control.height*0.8
+						  : 0)
+
+		/* + (Qt.inputMethod && Qt.inputMethod.visible ?
 							(Qt.inputMethod.keyboardRectangle.height / Screen.devicePixelRatio) : 0)*/
 		flickableDirection: Flickable.VerticalFlick
 

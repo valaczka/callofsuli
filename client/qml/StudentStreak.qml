@@ -37,7 +37,7 @@ Row {
 	}
 
 	Repeater {
-		model: root._iconCount-root._diff
+		model: Math.max(root._iconCount-root._diff, 0)
 
 		Qaterial.Icon {
 			anchors.verticalCenter: parent.verticalCenter

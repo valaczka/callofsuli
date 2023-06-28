@@ -60,7 +60,7 @@ QFormColumn {
 		width: parent.width
 		readOnly: !_form.editable
 		leadingIconSource: Qaterial.Icons.remoteDesktop
-		trailingContent: Qaterial.TextFieldClearButton { visible: _nickName.length; textField: _nickName }
+		trailingContent: Qaterial.TextFieldClearButton { visible: !_nickName.readOnly && _nickName.length; textField: _nickName }
 	}
 
 	QFormTextField {
@@ -70,7 +70,7 @@ QFormColumn {
 		width: parent.width
 		readOnly: !_form.editable || !_form.pictureEditable
 		leadingIconSource: Qaterial.Icons.imageOutline
-		trailingContent: Qaterial.TextFieldClearButton { visible: _picture.length; textField: _picture }
+		trailingContent: Qaterial.TextFieldClearButton { visible: !_picture.readOnly && _picture.length; textField: _picture }
 	}
 
 

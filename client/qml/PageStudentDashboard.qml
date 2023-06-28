@@ -41,21 +41,25 @@ QPage {
 
 	header: null
 
-	property StudentGroupList studentGroupList: Client.cache("studentGroupList")
-	property CampaignList studentCampaignList: Client.cache("studentCampaignList")
 	property StudentMapHandler studentMapHandler: StudentMapHandler {  }
 
 	property bool _closeEnabled: false
 
-	Qaterial.StackView
-	{
-		id: stackView
+	Loader {
+		id: _loader
+		asynchronous: true
 		anchors.fill: parent
+		sourceComponent: Qaterial.StackView {  }
+		onLoaded: {
+			if (tabBar.currentIndex > -1)
+				item.replace(tabBar.model.get(tabBar.currentIndex).cmp)
+		}
 	}
+
 
 	QRefreshProgressBar {
 		anchors.top: parent.top
-		visible: Client.webSocket.pending
+		visible: Client.webSocket.pending || _loader.status == Loader.Loading
 	}
 
 	footer: QTabBar
@@ -63,10 +67,10 @@ QPage {
 		id: tabBar
 
 		onCurrentIndexChanged: {
-			if (!stackView || currentIndex == -1)
+			if (!_loader.item || currentIndex < 0)
 				return
 
-			stackView.replace(model.get(currentIndex).cmp)
+			_loader.item.replace(model.get(currentIndex).cmp)
 		}
 
 		Component.onCompleted: {
@@ -76,6 +80,8 @@ QPage {
 			model.append({ text: qsTr("Profil"), source: Qaterial.Icons.account, cmp: cmpProfil })
 		}
 	}
+
+
 
 
 	Component {
@@ -109,7 +115,7 @@ QPage {
 				onClicked: Client.stackPushPage("Ranks.qml")
 			}
 
-			StackView.onActivated: Qt.callLater(_scoreList.reload)
+			StackView.onActivated: _scoreList.reload()
 		}
 	}
 

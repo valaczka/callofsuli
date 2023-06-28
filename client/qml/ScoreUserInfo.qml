@@ -34,21 +34,25 @@ QPageGradient {
 		}
 
 
-		UserInfoLog {
+		Loader {
 			id: _log
+			asynchronous: true
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			username: userData ? userData.username : ""
+			sourceComponent: UserInfoLog {
+				username: userData ? userData.username : ""
+				visible: _log.status == Loader.Ready
+			}
+
+			onLoaded: reload()
 		}
 
 	}
 
 
-	StackView.onActivated: () => reload()
-
 	function reload() {
-		if (!userData || !userData.username)
+		if (!userData || !userData.username || !_log.item)
 			return
 
 		Client.send(WebSocket.ApiGeneral, "user/%1".arg(userData.username))
@@ -57,7 +61,7 @@ QPageGradient {
 		})
 		.fail(JS.failMessage("Letöltés sikertelen"))
 
-		_log.reload()
+		_log.item.reload()
 	}
 
 }
