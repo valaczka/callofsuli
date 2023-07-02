@@ -45,6 +45,12 @@ Qaterial.ItemDelegate {
 			_view.currentIndex = index
 			if (selectableObject)
 				selectableObject.selected = true
+
+			if (Qt.platform.os == "ios" || Qt.platform.os == "android") {
+				var rr = mapToItem(_view, width/2, height/2)
+				_view.rightClickOrPressAndHold(index, rr.x, rr.y)
+			}
+
 			return
 		}
 

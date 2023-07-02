@@ -22,7 +22,7 @@ QFormColumn {
 		title: qsTr("Felhasználónév")
 		width: parent.width
 		readOnly: true
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		field: "username"
 	}
 
@@ -35,7 +35,7 @@ QFormColumn {
 		readOnly: !_form.editable || !_form.nameEditable
 		validator: RegExpValidator { regExp: /.+/ }
 		errorText: qsTr("Vezetéknév szükséges")
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon { visible: _familyName.errorState }
@@ -49,7 +49,7 @@ QFormColumn {
 		field: "givenName"
 		width: parent.width
 		readOnly: !_form.editable || !_form.nameEditable
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldClearButton { visible: !_givenName.readOnly && _givenName.length; textField: _givenName }
 	}
 
@@ -59,7 +59,7 @@ QFormColumn {
 		field: "nickName"
 		width: parent.width
 		readOnly: !_form.editable
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldClearButton { visible: !_nickName.readOnly && _nickName.length; textField: _nickName }
 	}
 
@@ -69,7 +69,7 @@ QFormColumn {
 		field: "picture"
 		width: parent.width
 		readOnly: !_form.editable || !_form.pictureEditable
-		leadingIconSource: Qaterial.Icons.imageOutline
+		//leadingIconSource: Qaterial.Icons.imageOutline
 		trailingContent: Qaterial.TextFieldClearButton { visible: !_picture.readOnly && _picture.length; textField: _picture }
 	}
 

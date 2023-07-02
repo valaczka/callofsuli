@@ -328,7 +328,7 @@ QString User::picture() const
 {
 #ifdef Q_OS_WASM
 	if (!m_picture.isEmpty()) {
-		LOG_CWARNING("client") << "URL override:" << m_picture;
+		LOG_CTRACE("client") << "URL override:" << m_picture;
 	}
 	return QLatin1String("");
 #endif

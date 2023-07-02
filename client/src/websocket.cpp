@@ -468,10 +468,10 @@ QNetworkReply *WebSocket::get(const QUrl &url)
 {
 	Q_ASSERT (m_networkManager);
 
-	if (!m_server) {
+	/*if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
 		return nullptr;
-	}
+	}*/
 
 	QNetworkRequest r(url);
 

@@ -20,7 +20,7 @@ QItemGradient {
 			id: _menu
 
 			QMenuItem {
-				icon.source: Qaterial.Icons.logout
+				icon.source: Qaterial.Icons.logoutVariant
 				text: qsTr("Kijelentkezés")
 				onClicked: Client.logout()
 			}
@@ -68,8 +68,8 @@ QItemGradient {
 				id: _form
 				width: _expForm.width
 				editable: true
-				nameEditable: Client.server && Client.server.config.nameEditable === true
-				pictureEditable: Client.server && Client.server.config.pictureEditable === true
+				nameEditable: Client.server && Client.server.config.nameUpdateEnabled === true
+				pictureEditable: Client.server && Client.server.config.pictureUpdateEditable === true
 
 				Component.onCompleted: {
 					if (root.userData)
@@ -100,7 +100,7 @@ QItemGradient {
 
 			header: QExpandableHeader {
 				text: qsTr("Jelszó megváltoztatása")
-				icon: Qaterial.Icons.folderMultipleOutline
+				icon: Qaterial.Icons.security
 				expandable: _expPassword
 			}
 

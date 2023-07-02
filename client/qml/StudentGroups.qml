@@ -51,7 +51,7 @@ QItemGradient {
 				QDashboardButton {
 					property StudentGroup group: model.qtObject
 					text: group ? group.name : ""
-					icon.source: Qaterial.Icons.accountGroup
+					icon.source: Qaterial.Icons.accountGroupOutline
 					highlighted: true
 
 					onClicked: Client.stackPushPage("PageStudentGroup.qml", {

@@ -112,6 +112,7 @@ public:
 	static void reloadAvailableCharacters();
 	static const QStringList &availableCharacters();
 
+
 public slots:
 	void onPlayerDied(GameEntity *);
 	void onEnemyDied(GameEntity *entity);
@@ -122,7 +123,7 @@ public slots:
 	void message(const QString &text, const QColor &color = "white");
 	void addMSec(const qint64 &msec);
 	void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
-	void dialogMessageTooltipById(const QString &msgId, const QString &title = tr("Tudtad?"));
+	bool dialogMessageTooltipById(const QString &msgId);
 	void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
 	void gameAbort();
 
@@ -175,6 +176,20 @@ private:
 
 	int m_timeNotifySendNext = -1;
 	int m_killStreak = 0;
+
+
+
+	/**
+	 * @brief The Tooltip class
+	 */
+
+	struct Tooltip {
+		QString icon;
+		QString title;
+		QString text;
+	};
+
+	static const QHash<QString, Tooltip> m_tooltips;
 };
 
 

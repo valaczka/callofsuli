@@ -55,7 +55,8 @@ public:
 		TokenReceived,
 		Authenticated,
 		UserExists,
-		InvalidCode
+		InvalidCode,
+		InvalidDomain
 	};
 
 	struct Token {

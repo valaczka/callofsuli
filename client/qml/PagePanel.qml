@@ -133,7 +133,7 @@ QPage {
 
 	Action {
 		id: actionLogout
-		icon.source: Qaterial.Icons.logout
+		icon.source: Qaterial.Icons.logoutVariant
 		onTriggered: Client.logout()
 	}
 

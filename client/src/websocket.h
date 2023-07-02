@@ -115,7 +115,6 @@ public slots:
 	QNetworkReply *get(const QUrl &url);
 	EventStream *getEventStream(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 
-private slots:
 	void checkPending();
 
 private:

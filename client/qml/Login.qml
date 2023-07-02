@@ -89,7 +89,7 @@ QScrollable
 					id: _send
 					anchors.horizontalCenter: parent.horizontalCenter
 					text: qsTr("Bejelentkezés")
-					icon.source: Qaterial.Icons.account
+					icon.source: Qaterial.Icons.accountCheck
 					enabled: _user.length && _password.length
 					onClicked: Client.loginPlain(_user.text, _password.text)
 				}
@@ -122,7 +122,7 @@ QScrollable
 				visible: Client.server && Client.server.config.registrationEnabled !== undefined && Client.server.config.registrationEnabled
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Regisztráció")
-				icon.source: Qaterial.Icons.login
+				icon.source: Qaterial.Icons.loginVariant
 				onClicked: registrationMode = true // Client.stackPushPage("Registration.qml")
 			}
 

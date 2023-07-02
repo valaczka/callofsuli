@@ -73,6 +73,7 @@ AdminAPI::AdminAPI(ServerService *service)
 	addMap("^user/inactivate/*$", this, &AdminAPI::userInactivate);
 	addMap("^user/*$", this, &AdminAPI::classUsers);
 	addMap("^user/([^/]+)/*$", this, &AdminAPI::user);
+	addMap("^config/*$", this, &AdminAPI::configUpdate);
 }
 
 
@@ -613,6 +614,45 @@ void AdminAPI::userMove(const QJsonArray &list, const int &classid, const QPoint
 		}
 
 		db.commit();
+
+		responseAnswerOk(response);
+	});
+}
+
+
+
+
+
+/**
+ * @brief AdminAPI::configUpdate
+ * @param data
+ * @param response
+ */
+
+void AdminAPI::configUpdate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	LOG_CINFO("client") << "Update configuration" << data;
+
+	databaseMainWorker()->execInThread([response, data, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		QJsonObject realData = data;
+
+		if (data.contains(QStringLiteral("serverName"))) {
+			const QString &name = data.value(QStringLiteral("serverName")).toString();
+			if (!QueryBuilder::q(db).addQuery("UPDATE system SET serverName=").addValue(name).exec()) {
+				LOG_CWARNING("client") << "Server name change error:" << qPrintable(name);
+				return responseErrorSql(response);
+			}
+
+			realData.remove(QStringLiteral("serverName"));
+			m_service->setServerName(data.value(QStringLiteral("serverName")).toString());
+		}
+
+		if (!realData.isEmpty())
+			m_service->config().set(realData);
 
 		responseAnswerOk(response);
 	});

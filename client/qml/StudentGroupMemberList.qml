@@ -16,13 +16,21 @@ Item
 	property alias apiData: _scoreList.apiData
 	property alias sortOrder: _scoreList.sortOrder
 
-	property EventStream eventStream: null
-
 	property real topPadding: 0
 
-	property bool _firstRun: true
 
-	readonly property bool _live: Qt.platform.os == "wasm" ? false : true
+	property bool _showPlaceholders: true
+	property int _pendingLoaders: -1
+
+
+	QLiveStream {
+		id: _liveStream
+
+		reloadCallback: function() { _scoreList.reload() }
+		api: WebSocket.ApiUser
+		path: "group/%1/score/live".arg(group.groupid)
+	}
+
 
 	ScoreListImpl {
 		id: _scoreList
@@ -30,10 +38,13 @@ Item
 		api: WebSocket.ApiUser
 		path: "group/%1/score".arg(group ? group.groupid : -1)
 		sortOrder: ScoreListImpl.SortXPdesc
-		eventStream: control.eventStream
+		eventStream: _liveStream.eventStream
 
 		onModelReloaded: {
-			_firstRun = false
+			if (!view.model) {
+				_pendingLoaders = _scoreList.model.count
+				view.model = _scoreList.model
+			}
 		}
 	}
 
@@ -44,13 +55,12 @@ Item
 		bottomPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: reload()
-
+		onRefreshRequest: _liveStream.reload()
 
 		QListView {
-			id: view
+			id: _viewPlaceholder
 
-			readonly property bool showPlaceholders: _scoreList.model.count == 0 && _firstRun
+			visible: _showPlaceholders
 
 			currentIndex: -1
 			height: contentHeight
@@ -59,23 +69,63 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			model: showPlaceholders ? 10 : _scoreList.model
+			model: 10
 
-			delegate: showPlaceholders ? _cmpPlaceholder : _cmpDelegate
+			delegate: QLoaderItemFullDelegate {
+				id: _placeholder
+				contentSourceComponent: QPlaceholderItem {
+					heightRatio: 0.5
+					horizontalAlignment: Qt.AlignLeft
+				}
 
-			onShowPlaceholdersChanged: positionViewAtBeginning()
-			Component.onCompleted: positionViewAtBeginning()
+				leftSourceComponent: QPlaceholderItem {
+					width: _placeholder.height
+					height: _placeholder.height
+					widthRatio: 0.8
+					heightRatio: 0.8
+					contentComponent: ellipseComponent
+				}
+
+				rightSourceComponent: QPlaceholderItem {
+					fixedWidth: 75
+					heightRatio: 0.5
+				}
+			}
 
 
-			Component {
-				id: _cmpDelegate
+			header: Item {
+				width: ListView.width
+				height: control.paddingTop
+			}
 
-				QLoaderItemDelegate {
+		}
+
+
+		QListView {
+			id: view
+
+			visible: !_showPlaceholders
+
+			currentIndex: -1
+			height: contentHeight
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			boundsBehavior: Flickable.StopAtBounds
+
+			model: null
+
+			delegate: Loader {
+				id: _ldr
+				asynchronous: _showPlaceholders
+				sourceComponent: QLoaderItemDelegate {
 					id: _delegate
 
 					text: fullNickName
 					secondaryText: rank.name + (rank.sublevel > 0 ? qsTr(" (level %1)").arg(rank.sublevel) : "")
 					highlighted: Client.server && Client.server.user && username === Client.server.user.username
+
+					width: _ldr.ListView.view.width
 
 					leftSourceComponent: UserImage { userData: model }
 
@@ -104,33 +154,25 @@ Item
 						}
 					}
 				}
-			}
 
-			Component {
-				id: _cmpPlaceholder
-
-				QLoaderItemFullDelegate {
-					id: _placeholder
-					contentSourceComponent: QPlaceholderItem {
-						heightRatio: 0.5
-						horizontalAlignment: Qt.AlignLeft
-					}
-
-					leftSourceComponent: QPlaceholderItem {
-						width: _placeholder.height
-						height: _placeholder.height
-						widthRatio: 0.8
-						heightRatio: 0.8
-						contentComponent: ellipseComponent
-					}
-
-					rightSourceComponent: QPlaceholderItem {
-						fixedWidth: 75
-						heightRatio: 0.5
+				onLoaded: {
+					if (_showPlaceholders) {
+						_pendingLoaders--
+						if (_pendingLoaders <= 0)
+							_showPlaceholders = false
 					}
 				}
 
+				Component.onCompleted: {
+					control.Component.destruction.connect(_ldr.stopLoading)
+				}
+
+				function stopLoading() {
+					if (_ldr)
+						_ldr.active = false
+				}
 			}
+
 
 			header: Item {
 				width: ListView.width
@@ -149,36 +191,7 @@ Item
 
 	}
 
-	StackView.onActivated: reload()
-	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) reload()
+	StackView.onActivated: _liveStream.reload()
+	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _liveStream.reload()
 
-
-	Timer {
-		interval: 5000
-		triggeredOnStart: true
-		repeat: true
-		running: !_live
-		onTriggered: _scoreList.reload()
-	}
-
-
-	function reload() {
-		if (!group)
-			return
-
-		if (eventStream) {
-			eventStream.destroy()
-			eventStream = null
-		}
-
-		if (_live)
-			eventStream = Client.webSocket.getEventStream(WebSocket.ApiUser, "group/%1/score/live".arg(group.groupid))
-	}
-
-	Component.onDestruction: {
-		if (eventStream) {
-			eventStream.destroy()
-			eventStream = null
-		}
-	}
 }

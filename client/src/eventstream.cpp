@@ -42,7 +42,7 @@ EventStream::EventStream(WebSocket *socket)
 {
 	Q_ASSERT(m_socket);
 
-	LOG_CTRACE("websocket") << "Event stream created:" << this;
+	LOG_CDEBUG("websocket") << "Event stream created:" << this;
 
 	QObject::connect(this, &EventStream::finished, this, &EventStream::deleteLater);
 }
@@ -59,7 +59,7 @@ EventStream::~EventStream()
 		m_reply = nullptr;
 	}
 
-	LOG_CTRACE("websocket") << "Event stream destroyed:" << this;
+	LOG_CDEBUG("websocket") << "Event stream destroyed:" << this;
 }
 
 
@@ -120,7 +120,7 @@ void EventStream::setReconnect(bool newReconnect)
 
 void EventStream::connect()
 {
-	LOG_CTRACE("websocket") << "Connect event stream:" << m_request.url().toString();
+	LOG_CDEBUG("websocket") << "Connect event stream:" << m_request.url().toString();
 
 	if (m_reply) {
 		if (m_reply->isOpen()) {
@@ -176,7 +176,8 @@ void EventStream::connect()
 
 void EventStream::disconnect()
 {
-	LOG_CTRACE("websocket") << "Event stream disconnect:" << this;
+	LOG_CDEBUG("websocket") << "Event stream disconnect:" << this;
+
 
 	m_reconnect = false;
 
@@ -184,6 +185,8 @@ void EventStream::disconnect()
 		m_reply->deleteLater();
 		m_reply = nullptr;
 	}
+
+	emit disconnected();
 
 	this->deleteLater();
 }
@@ -195,7 +198,7 @@ void EventStream::disconnect()
 
 void EventStream::onReplyFinished()
 {
-	LOG_CTRACE("websocket") << "Event stream finished:" << m_request.url().toString();
+	LOG_CDEBUG("websocket") << "Event stream finished:" << m_request.url().toString();
 
 	if (m_reply) {
 		emit disconnected();

@@ -121,6 +121,7 @@ public:
 
 	Q_INVOKABLE static quint32 versionMajor();
 	Q_INVOKABLE static quint32 versionMinor();
+	Q_INVOKABLE static quint32 versionBuild();
 	Q_INVOKABLE static quint32 versionCode();
 	Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
 
@@ -136,6 +137,7 @@ signals:
 private:
 	static const quint32 m_versionMajor;
 	static const quint32 m_versionMinor;
+	static const quint32 m_versionBuild;
 
 #ifdef Q_OS_ANDROID
 	jint m_screenOrientationRequest = -1;

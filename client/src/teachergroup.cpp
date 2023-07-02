@@ -446,13 +446,15 @@ void TeacherGroupCampaignResultModel::reload()
 
 	LOG_CDEBUG("client") << "Reload model" << this;
 
-	beginRemoveColumns(Utils::noParent(), 0, columnCount());
+	beginRemoveColumns(Utils::noParent(), 0, columnCount()-1);
 	m_taskList.clear();
 	endRemoveColumns();
 
-	beginRemoveRows(Utils::noParent(), 0, rowCount());
+	beginRemoveRows(Utils::noParent(), 0, rowCount()-1);
 	m_userList.clear();
 	endRemoveRows();
+
+	setShowHeaderPlaceholders(false);
 
 
 	if (m_teacherGroup->memberList()->size()) {
@@ -838,8 +840,11 @@ void TeacherGroupCampaignResultModel::setShowHeaderPlaceholders(bool newShowHead
 	m_showHeaderPlaceholders = newShowHeaderPlaceholders;
 	emit showHeaderPlaceholdersChanged();
 
-	emit dataChanged(index(0, 0), index(0, m_taskList.size()));
-	emit dataChanged(index(0, 0), index(m_userList.size(), 0));
+	if (m_taskList.size())
+		emit dataChanged(index(0, 0), index(0, m_taskList.size()));
+
+	if (m_userList.size())
+		emit dataChanged(index(0, 0), index(m_userList.size(), 0));
 }
 
 
@@ -977,13 +982,15 @@ void TeacherGroupResultModel::reload()
 
 	LOG_CDEBUG("client") << "Reload model" << this;
 
-	beginRemoveColumns(Utils::noParent(), 0, columnCount());
+	beginRemoveColumns(Utils::noParent(), 0, columnCount()-1);
 	m_campaignList.clear();
 	endRemoveColumns();
 
-	beginRemoveRows(Utils::noParent(), 0, rowCount());
+	beginRemoveRows(Utils::noParent(), 0, rowCount()-1);
 	m_userList.clear();
 	endRemoveRows();
+
+	setShowHeaderPlaceholders(false);
 
 
 	if (m_teacherGroup->memberList()->size()) {
@@ -1276,8 +1283,12 @@ void TeacherGroupResultModel::setShowHeaderPlaceholders(bool newShowHeaderPlaceh
 		return;
 	m_showHeaderPlaceholders = newShowHeaderPlaceholders;
 	emit showHeaderPlaceholdersChanged();
-	emit dataChanged(index(0, 0), index(0, m_campaignList.size()));
-	emit dataChanged(index(0, 0), index(m_userList.size(), 0));
+
+	if (m_campaignList.size())
+		emit dataChanged(index(0, 0), index(0, m_campaignList.size()));
+
+	if (m_userList.size())
+		emit dataChanged(index(0, 0), index(m_userList.size(), 0));
 }
 
 

@@ -87,7 +87,6 @@ QTableView {
 		teacherGroup: root.group
 
 		onModelReloaded: {
-			showHeaderPlaceholders = false
 			root.forceLayout()
 		}
 

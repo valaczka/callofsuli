@@ -42,7 +42,7 @@ Qaterial.Page
 			font: Qaterial.Style.textTheme.headline4
 			leadingIconSource: Qaterial.Icons.accountMultiple
 			leadingIconInline: true
-			placeholderText: qsTr("Az osztály neve")
+			title: qsTr("Az osztály neve")
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
 			trailingContent: QTextFieldInPlaceButtons {
@@ -72,7 +72,7 @@ Qaterial.Page
 			width: parent.width
 			leadingIconSource: Qaterial.Icons.codeTags
 			leadingIconInline: true
-			placeholderText: qsTr("Hitelesítő kód")
+			title: qsTr("Hitelesítő kód")
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
 

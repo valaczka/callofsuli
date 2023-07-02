@@ -166,5 +166,9 @@
         <file>PageTeacherCampaignResult.qml</file>
         <file>PageTeacherGroupUserResult.qml</file>
         <file>StudentGroupMemberList.qml</file>
+        <file>QLiveStream.qml</file>
+        <file>PageAdminServerConfig.qml</file>
+        <file>AdminServerConfigTextField.qml</file>
+        <file>AdminServerConfigCombo.qml</file>
     </qresource>
 </RCC>

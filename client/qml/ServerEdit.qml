@@ -52,7 +52,7 @@ QPage {
 			placeholderText: qsTr("192.168.2.1, www.callofsuli.hu,...stb.")
 			validator: RegExpValidator { regExp: /.+/ }
 			errorText: qsTr("A szerver IP címe szükséges")
-			leadingIconSource: Qaterial.Icons.remoteDesktop
+			leadingIconSource: Qaterial.Icons.ipNetwork
 			trailingContent: Qaterial.TextFieldButtonContainer
 			{
 				Qaterial.TextFieldAlertIcon { visible: _host.errorState }
@@ -69,7 +69,7 @@ QPage {
 			inputMethodHints: Qt.ImhDigitsOnly
 			validator: IntValidator { id: _portValidator; bottom: 1; top: 65535 }
 			errorText: qsTr("A port szükséges, %1-%2 között kell lennie").arg(_portValidator.bottom).arg(_portValidator.top)
-			leadingIconSource: Qaterial.Icons.remoteDesktop
+			leadingIconSource: Qaterial.Icons.numeric10BoxMultipleOutline
 			trailingContent: Qaterial.TextFieldAlertIcon { visible: _port.errorState }
 		}
 
@@ -97,7 +97,7 @@ QPage {
 		{
 			anchors.horizontalCenter: parent.horizontalCenter
 			text: qsTr("Mentés")
-			icon.source: Qaterial.Icons.disc
+			icon.source: Qaterial.Icons.contentSave
 			enabled: _host.acceptableInput && _port.acceptableInput && _form.modified
 			onClicked:
 			{

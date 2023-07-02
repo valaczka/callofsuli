@@ -96,7 +96,6 @@ signals:
 	void pathChanged();
 	void apiDataChanged();
 	void filterClassIdChanged();
-
 	void eventStreamChanged();
 
 private:

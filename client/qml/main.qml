@@ -13,6 +13,7 @@ import Qt.labs.folderlistmodel 2.15
 import Qt.labs.platform 1.1
 import Qt.labs.settings 1.1
 import Qt.labs.calendar 1.0
+import Qt.labs.qmlmodels 1.0
 
 // -----
 
@@ -216,7 +217,6 @@ Qaterial.ApplicationWindow
 		}
 
 	}
-
 
 }
 

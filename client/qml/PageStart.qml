@@ -182,6 +182,36 @@ QPage {
 		visible: !Client.serverList.length
 	}
 
+	Column {
+		visible: !Client.serverList.length
+		anchors.centerIn: parent
+
+		spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+		Qaterial.LabelCaption {
+			text: qsTr("Betűméret:")
+			anchors.horizontalCenter: parent.horizontalCenter
+		}
+
+		Row {
+			anchors.horizontalCenter: parent.horizontalCenter
+		Qaterial.ToolButton {
+			action: Client.mainWindow.fontMinus
+			display: AbstractButton.IconOnly
+		}
+
+		Qaterial.ToolButton {
+			action: Client.mainWindow.fontNormal
+			display: AbstractButton.IconOnly
+		}
+
+		Qaterial.ToolButton {
+			action: Client.mainWindow.fontPlus
+			display: AbstractButton.IconOnly
+		}
+		}
+	}
+
 
 	QFabButton {
 		visible: view.visible
@@ -216,7 +246,10 @@ QPage {
 		text: qsTr("Automatikus csatlakozás")
 		icon.source: Qaterial.Icons.connection
 		enabled: view.currentIndex != -1
-		onTriggered: Client.serverSetAutoConnect(view.model.get(view.currentIndex))
+		onTriggered: {
+			Client.serverSetAutoConnect(view.model.get(view.currentIndex))
+			view.unselectAll()
+		}
 	}
 
 	Action {
@@ -244,6 +277,7 @@ QPage {
 								onAccepted: function()
 								{
 									Client.serverDelete(view.model.get(view.currentIndex))
+									view.checkSelected()
 								},
 								text: qsTr("Biztosan törlöd a szervert?"),
 								title: view.model.get(view.currentIndex).serverName,

@@ -41,12 +41,10 @@
 
 const quint32 Utils::m_versionMajor = VERSION_MAJOR;
 const quint32 Utils::m_versionMinor = VERSION_MINOR;
-
+const quint32 Utils::m_versionBuild = VERSION_BUILD;
 
 #ifdef Q_OS_ANDROID
 #include "qandroidfunctions.h"
-
-#define FLAG_SCREEN_ORIENTATION_LANDSCAPE       0x00000000
 #endif
 
 /**
@@ -619,6 +617,11 @@ quint32 Utils::versionMajor()
 quint32 Utils::versionMinor()
 {
 	return m_versionMinor;
+}
+
+quint32 Utils::versionBuild()
+{
+	return m_versionBuild;
 }
 
 

@@ -136,6 +136,8 @@ Qaterial.Expandable {
 			function onModelReloaded() {
 				_pendingLoaders = _userLog.model.length
 				_rptr.model = _userLog.model
+				if (_pendingLoaders <= 0)
+					_showPlaceholders = false
 			}
 
 			function onModelReloadRequested() {

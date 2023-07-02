@@ -48,7 +48,6 @@ QTableView {
 		mapHandler: root.mapHandler
 
 		onModelReloaded: {
-			showHeaderPlaceholders = false
 			root.forceLayout()
 		}
 

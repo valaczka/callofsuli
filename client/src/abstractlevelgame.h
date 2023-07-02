@@ -106,7 +106,6 @@ signals:
 	void deathmatchChanged();
 	void msecLeftChanged();
 	void isFlawlessChanged();
-
 	void xpChanged();
 
 protected:

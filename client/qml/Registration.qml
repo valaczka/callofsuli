@@ -26,7 +26,7 @@ QFormColumn {
 		helperText: qsTr("A regisztrációhoz kapott hitelesítő kód")
 		validator: RegExpValidator { regExp: /.+/ }
 		errorText: qsTr("Meg kell adni a hitelesítő kódot")
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		leadingIconSource: Qaterial.Icons.keyOutline
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon { visible: _code.errorState }
@@ -45,6 +45,7 @@ QFormColumn {
 	QFormRadioButton {
 		id: _radioPlain
 		text: qsTr("Regisztráció felhasználónévvel, jelszóval")
+		enabled: Client.server && (Client.server.config.oauth2RegistrationForced === undefined || !Client.server.config.oauth2RegistrationForced)
 	}
 
 	QFormRadioButton {
@@ -60,7 +61,7 @@ QFormColumn {
 		visible: _radioPlain.checked
 		validator: RegExpValidator { regExp: /.+/ }
 		errorText: qsTr("Meg kell adni egy felhasználónevet")
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon { visible: _username.errorState }
@@ -76,7 +77,7 @@ QFormColumn {
 		visible: _radioPlain.checked
 		validator: RegExpValidator { regExp: /.+/ }
 		errorText: qsTr("Meg kell adni a vezetéknevet")
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon { visible: _familyName.errorState }
@@ -89,7 +90,7 @@ QFormColumn {
 		title: qsTr("Keresztnév")
 		width: parent.width
 		visible: _radioPlain.checked
-		leadingIconSource: Qaterial.Icons.remoteDesktop
+		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon { visible: _givenName.errorState }
@@ -127,7 +128,7 @@ QFormColumn {
 		id: button
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("Regisztráció")
-		icon.source: Qaterial.Icons.disc
+		icon.source: Qaterial.Icons.loginVariant
 		enabled: _code.acceptableInput &&
 				 (_radioGoogle.checked ||
 				  (_familyName.acceptableInput && _password.acceptableInput &&

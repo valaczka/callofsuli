@@ -161,6 +161,7 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 			break;
 		case OAuth2CodeFlow::Failed:
 		case OAuth2CodeFlow::UserExists:
+		case OAuth2CodeFlow::InvalidDomain:
 		case OAuth2CodeFlow::InvalidCode:
 			return responseError(response, "authentication failed");
 			break;
@@ -354,6 +355,9 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 		case OAuth2CodeFlow::InvalidCode:
 			return responseError(response, "invalid code");
 			break;
+		case OAuth2CodeFlow::InvalidDomain:
+			return responseError(response, "invalid domain");
+			break;
 		case OAuth2CodeFlow::TokenReceived:
 			return responseAnswer(response, {
 									  { QStringLiteral("pending"), true },
@@ -390,6 +394,25 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 
 		if (!user.username.isEmpty()) {
 			QPointer<OAuth2CodeFlow> fp(flow);
+
+			const QStringList &array = m_service->config().get("oauth2DomainList").toString().simplified().split(QStringLiteral(","));
+			bool domainEnabled = array.isEmpty();
+
+			for (const QString &s : array) {
+				if (domainEnabled)
+					break;
+
+				if (s.isEmpty())
+					continue;
+
+				if (user.username.endsWith(s.simplified()))
+					domainEnabled = true;
+			}
+
+			if (!domainEnabled) {
+				if (fp) fp->setAuthState(OAuth2CodeFlow::InvalidDomain);
+				return;
+			}
 
 			AdminAPI::userNotExists(this, user.username)
 					.fail([fp](){

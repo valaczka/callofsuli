@@ -36,6 +36,10 @@
 #include <QtMath>
 #include <Logger.h>
 
+#if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
+#include "qguiapplication.h"
+#include "qscreen.h"
+#endif
 
 // Tool dependency
 
@@ -49,6 +53,59 @@ ActionGame::m_toolDependency({
 
 QStringList ActionGame::m_availableCharacters;
 
+
+const QHash<QString, ActionGame::Tooltip> ActionGame::m_tooltips {
+	{ QStringLiteral("rotate"), {
+			QStringLiteral("qrc:/Qaterial/Icons/phone-rotate-landscape.svg"),
+					tr("Fordítsd el a kijelzőt"),
+					tr("A játék ideje alatt a kijelzőt vízszintesen érdemes tartani")
+		} },
+
+	{ QStringLiteral("pinch"), {
+			QStringLiteral("qrc:/Qaterial/Icons/gesture-pinch.svg"),
+					tr("Áttekintés"),
+					tr("A pálya áttekintéséhez csippentsd össze a képernyőt")
+		} },
+
+	{ QStringLiteral("keyboard"), {
+			QStringLiteral("qrc:/Qaterial/Icons/keyboard.svg"),
+					tr("Billentyűk használata"),
+					tr("<b>NYILAK</b> Játékos mozgatása<br/>"
+					   "<b>SPACE</b> Lövés leadása<br/>"
+					   "<b>ENTER</b> Tárgy felvétele<br/>"
+					   "<b>F3</b> Teljes pálya megtekintése"),
+		} },
+
+	{ QStringLiteral("shield"), {
+			QStringLiteral("qrc:/Qaterial/Icons/shield.svg"),
+					tr("A pajzs megvéd attól, hogy XP-t veszíts"),
+					tr("Ha az ellenség meglő, akkor amíg van pajzsod, abból veszítesz XP helyett")
+		} },
+
+	{ QStringLiteral("water"), {
+			QStringLiteral("qrc:/internal/game/drop.png"),
+					tr("A vízzel elolthatod a tüzet"),
+					tr("Közelítsd meg óvatosan a tüzet, majd nyomd meg a vizet ábrázoló gombot")
+		} },
+
+	{ QStringLiteral("pliers"), {
+			QStringLiteral("qrc:/Qaterial/Icons/pliers.svg"),
+					tr("A drótvágóval átvághatod a kerítést"),
+					tr("Közelítsd meg a kerítést, majd nyomd meg a drótvágót ábrázoló gombot")
+		} },
+
+	{ QStringLiteral("teleporter"), {
+			QStringLiteral("qrc:/Qaterial/Icons/remote.svg"),
+					tr("Teleportáló"),
+					tr("A teleportálóval a teleportok között közlekedhetsz")
+		} },
+
+	{ QStringLiteral("camouflage"), {
+			QStringLiteral("qrc:/Qaterial/Icons/domino-mask.svg"),
+					tr("Az álruhával láthatatlanná válhatsz"),
+					tr("Egy álruha használatával 10 másodpercen keresztül nem vesz észre az ellenség")
+		} },
+};
 
 /**
  * @brief ActionGame::ActionGame
@@ -748,7 +805,21 @@ void ActionGame::onSceneStarted()
 		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
 	}
 
-	//dialogMessageTooltip("Ez a szvöeg am ia éajer oadjf lkéasdjf", "qrc:/Qaterial/Icons/message-question.svg");
+
+#if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
+	QScreen *screen = QGuiApplication::primaryScreen();
+	if (screen &&
+			(screen->primaryOrientation() == Qt::ScreenOrientation::PortraitOrientation ||
+			 screen->primaryOrientation() == Qt::ScreenOrientation::InvertedPortraitOrientation)) {
+		if (dialogMessageTooltipById(QStringLiteral("rotate")))
+			dialogMessageTooltipById(QStringLiteral("pinch"));
+	} else {
+		dialogMessageTooltipById(QStringLiteral("pinch"));
+	}
+#elif defined(Q_OS_WIN32) || (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_MACOS) || defined(Q_OS_WASM)
+	dialogMessageTooltipById(QStringLiteral("keyboard"));
+#endif
+
 }
 
 
@@ -1367,7 +1438,40 @@ void ActionGame::pickablePick()
 		return;
 	}
 
+	QString tooltip;
+
+	switch (p->type()) {
+	case GamePickable::PickableShield1:
+	case GamePickable::PickableShield2:
+	case GamePickable::PickableShield3:
+	case GamePickable::PickableShield5:
+		tooltip = QStringLiteral("shield");
+		break;
+
+	case GamePickable::PickableWater:
+		tooltip = QStringLiteral("water");
+		break;
+
+	case GamePickable::PickablePliers:
+		tooltip = QStringLiteral("pliers");
+		break;
+
+	case GamePickable::PickableCamouflage:
+		tooltip = QStringLiteral("camouflage");
+		break;
+
+	case GamePickable::PickableTeleporter:
+		tooltip = QStringLiteral("teleporter");
+		break;
+
+	default:
+		break;
+	}
+
 	p->pick(this);
+
+	if (!tooltip.isEmpty())
+		dialogMessageTooltipById(tooltip);
 
 	m_scene->playSound(QStringLiteral("qrc:/sound/sfx/pick.mp3"));
 }
@@ -1432,16 +1536,35 @@ void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, 
 
 
 
+
+
 /**
  * @brief ActionGame::dialogMessageTooltipById
  * @param msgId
- * @param title
+ * @return bool: true - ha már volt korábban, false - ha még nem volt
  */
 
-void ActionGame::dialogMessageTooltipById(const QString &msgId, const QString &title)
+
+bool ActionGame::dialogMessageTooltipById(const QString &msgId)
 {
-	QString text = msgId;
-	//QString icon =
+	if (msgId.isEmpty())
+		return true;
+
+	const QString &id = QStringLiteral("notification/")+msgId;
+
+	if (Utils::settingsGet(id, false).toBool())
+		return true;
+
+	if (!m_tooltips.contains(msgId))
+		dialogMessageTooltip(msgId, QLatin1String("qrc:/Qaterial/Icons/information-slab-box-outline.svg"));
+	else {
+		const Tooltip &t = m_tooltips.value(msgId);
+		dialogMessageTooltip(t.text, t.icon, t.title);
+	}
+
+	Utils::settingsSet(id, true);
+
+	return false;
 }
 
 

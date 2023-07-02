@@ -220,6 +220,8 @@ public:
 
 	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
 
+	Q_INVOKABLE void checkUpdates() const;
+
 
 
 public slots:

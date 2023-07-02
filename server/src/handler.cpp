@@ -168,11 +168,18 @@ void Handler::getWasmContent(QString uri, HttpResponse *response)
 			f.close();
 		}
 
+		QString contentType;
+
 		if (isHtml) {
 			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
+
+			if (fname.endsWith(QStringLiteral("css")))
+				contentType = QStringLiteral("text/css");
+			if (fname.endsWith(QStringLiteral("js")))
+				contentType = QStringLiteral("text/javascript");
 		}
 
-		response->setStatus(HttpStatus::Ok, b);
+		response->setStatus(HttpStatus::Ok, b, contentType);
 		return;
 	}
 

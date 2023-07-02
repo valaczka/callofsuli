@@ -75,7 +75,7 @@ QItemGradient {
 				value: 0
 				to: 1
 				textFormat: "%1 XP"
-				icon: Qaterial.Icons.graphOutline
+				icon: Qaterial.Icons.chartTimelineVariantShimmer
 			}
 
 			Qaterial.LabelHint1 {
@@ -141,7 +141,7 @@ QItemGradient {
 					property Campaign campaign: model && model.qtObject ? model.qtObject : null
 					text: campaign ? campaign.readableName : ""
 
-					icon.source: Qaterial.Icons.playBox
+					icon.source: Qaterial.Icons.trophyBroken
 
 					onClicked: {
 						let group = null

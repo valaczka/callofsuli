@@ -360,6 +360,8 @@ void Client::onApplicationStarted()
 		break;
 	}
 
+	checkUpdates();
+
 }
 
 
@@ -708,6 +710,10 @@ void Client::onLoginFailed(const QString &error)
 		errorStr = tr("Érvénytelen token");
 	else if (error == QLatin1String("invalid state"))
 		errorStr = tr("Hibás OAuth2 kérés");
+	else if (error == QLatin1String("invalid code"))
+		errorStr = tr("Érvénytelen hitelesítő kód");
+	else if (error == QLatin1String("invalid domain"))
+		errorStr = tr("Érvénytelen email cím (domain)");
 	else if (error == QLatin1String("authentication failed"))
 		errorStr = tr("A felhasználó nem azonosítható");
 
@@ -1247,6 +1253,62 @@ QVariantMap Client::userToMap(const QJsonObject &data) const
 	User u;
 	u.loadFromJson(data, true);
 	return u.toVariantMap();
+}
+
+
+
+/**
+ * @brief Client::checkUpdates
+ */
+
+void Client::checkUpdates() const
+{
+	Q_ASSERT(m_webSocket);
+
+	QString platform;
+
+#if defined(Q_OS_LINUX)
+	platform = QStringLiteral("linux");
+#elif defined(Q_OS_WIN)
+	platform = QStringLiteral("windows");
+#elif defined(Q_OS_IOS)
+	platform = QStringLiteral("ios");
+#elif defined(Q_OS_ANDROID)
+	platform = QStringLiteral("android");
+#elif defined(Q_OS_MACOS)
+	platform = QStringLiteral("mac");
+#endif
+
+	if (platform.isEmpty()) {
+		LOG_CWARNING("client") << "Unknow platform";
+		return;
+	}
+
+	QNetworkRequest r(QUrl(QStringLiteral("https://valaczka.github.io/callofsuli/version.json")));
+
+	QNetworkReply *reply = m_webSocket->networkManager()->get(r);
+
+	WebSocketReply *wr = new WebSocketReply(reply, m_webSocket);
+	connect(wr, &WebSocketReply::finished, m_webSocket, &WebSocket::checkPending);
+
+
+	wr->done([this, platform](const QJsonObject &data){
+		const QString &vstr = data.value(platform).toObject().value(QStringLiteral("version")).toString();
+		uint vMajor = vstr.section('.', 0, 0).toUInt();
+		uint vMinor = vstr.section('.', 1, 1).toUInt();
+		uint vBuild = vstr.section('.', 2, 2).toUInt();
+
+		if (vMajor > Utils::versionMajor() ||
+				(vMajor == Utils::versionMajor() && vMinor > Utils::versionMinor()) ||
+				(vMajor == Utils::versionMajor() && vMinor == Utils::versionMinor() && vBuild > Utils::versionBuild())
+				) {
+			messageInfo(tr("Új verzió elérhető: %1").arg(vstr), tr("Új frissítés"));
+		}
+	})
+			->error([this](const QNetworkReply::NetworkError &){
+		snack(tr("Frissítéskeresés sikertelen"));
+	});
+
 }
 
 

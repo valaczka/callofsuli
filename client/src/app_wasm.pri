@@ -41,6 +41,7 @@ LIBS += \
 	$$QTDIR/QtQuick/Window.2/libwindowplugin.a \
 	$$QTDIR/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.a \
 	$$QTDIR/Qt/labs/calendar/libqtlabscalendarplugin.a \
+	$$QTDIR/Qt/labs/qmlmodels/liblabsmodelsplugin.a \
 	$$QTDIR/Qt/labs/settings/libqmlsettingsplugin.a
 
 WasmRccFiles = $$files($$PWD/../../share/*.cres)

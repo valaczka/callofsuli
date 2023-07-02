@@ -270,7 +270,7 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 
 	QSqlQuery q(db);
 
-	q.exec(QStringLiteral("SELECT versionMajor, versionMinor, serverName from system"));
+	q.exec(QStringLiteral("SELECT versionMajor, versionMinor, serverName FROM system"));
 
 	if (q.size() > 1) {
 		LOG_CERROR("db") << "Corrupt database";

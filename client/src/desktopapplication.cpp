@@ -174,7 +174,6 @@ void DesktopApplication::commandLineParse()
 #endif
 
 
-
 }
 
 

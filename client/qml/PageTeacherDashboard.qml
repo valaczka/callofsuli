@@ -252,6 +252,20 @@ QPage {
 				onClicked: Client.stackPushPage("PageAdminUsers.qml")
 			}
 
+
+			QDashboardButton {
+				visible: Client.server && (Client.server.user.roles & Credential.Admin)
+				text: qsTr("Konfiguráció")
+				icon.source: Qaterial.Icons.cogOutline
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.red500
+
+				onClicked: Client.stackPushPage("PageAdminServerConfig.qml")
+			}
+
 		}
 
 	}
