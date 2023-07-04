@@ -117,7 +117,7 @@ QScrollable {
 		font: Qaterial.Style.textTheme.headline5
 		topPadding: 20
 		bottomPadding: 10
-		icon.source: Qaterial.Icons.abacus
+		icon.source: Qaterial.Icons.bullseyeArrow
 	}
 
 

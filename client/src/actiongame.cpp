@@ -1068,8 +1068,6 @@ GamePickable *ActionGame::pickable() const
 void ActionGame::resetKillStreak()
 {
 	m_killStreak = 0;
-
-	LOG_CWARNING("game") << "RESET Kill streak:" << m_killStreak;
 }
 
 

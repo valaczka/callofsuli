@@ -22,18 +22,12 @@ AppVersionIncrement = true
 ### BUILD SETTINGS
 #########################################################################
 
-# Add --verbose flag to cmake compiler (Qaterial, qml-box2d)
-
-CMakeVerboseOutput = true
-
 # WebAssembly build with qml-box2d
 
 WasmWithBox2D = true
 
-# Android NDK and SKD path from cmake build (Qaterial, qml-box2d)
+# Android
 
-AndroidNdkPath = ~/usr/android-sdk/ndk/21.3.6528147
-AndroidSdkPath = ~/usr/android-sdk
 AndroidVersionCode = 32
 
 

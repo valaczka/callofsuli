@@ -61,6 +61,12 @@ QPage {
 					outlined: false
 
 					anchors.verticalCenter: parent.verticalCenter
+
+					onClicked: {
+						if (mission)
+							_modelMedal.setCurrentIndex(mission.medalImage)
+						Qaterial.DialogManager.openFromComponent(_cmpDialogMedal)
+					}
 				}
 
 				Qaterial.TextField {
@@ -86,21 +92,6 @@ QPage {
 			}
 
 
-			/*QFormTextField {
-				id: _username
-				title: qsTr("Felhasználónév")
-				width: parent.width
-				readOnly: user
-				helperText: qsTr("Egyedi felhasználónév, email cím")
-				validator: RegExpValidator { regExp: /.+/ }
-				errorText: qsTr("Felhasználónév szükséges")
-				leadingIconSource: Qaterial.Icons.remoteDesktop
-				trailingContent: Qaterial.TextFieldButtonContainer
-				{
-					Qaterial.TextFieldAlertIcon { visible: _username.errorState }
-					Qaterial.TextFieldClearButton { visible: _username.length && !_username.readOnly; textField: _username }
-				}
-			}*/
 
 			QFormTextArea {
 				id: _textAreaDescription
@@ -152,7 +143,7 @@ QPage {
 						property MapEditorMissionLevel missionLevel: model.qtObject
 						text: missionLevel ? qsTr("Level %1").arg(missionLevel.level) : ""
 						highlighted: false
-						foregroundColor: Qaterial.Style.iconColor()
+						foregroundColor: Qaterial.Style.accentColor
 						onClicked: root.missionLevelLoadRequest(missionLevel)
 					}
 				}
@@ -367,6 +358,57 @@ QPage {
 														})
 				}
 			}
+		}
+	}
+
+
+	onEditorChanged: {
+		if (editor) {
+			_modelMedal.clear()
+
+			let m = editor.availableMedals
+
+			for (let i=0; i<m.length; ++i) {
+				_modelMedal.append(m[i])
+			}
+		}
+	}
+
+	ListModel {
+		id: _modelMedal
+
+		property int _currentIndex: -1
+
+		function setCurrentIndex(_name) {
+			let idx = -1
+			for (let i=0; i<count; ++i) {
+				if (get(i).name === _name) {
+					idx = i
+					break
+				}
+			}
+
+			_currentIndex = idx
+		}
+	}
+
+	Component {
+		id: _cmpDialogMedal
+
+		QGridDialog {
+			title: qsTr("Pálya medálképe")
+
+			model: _modelMedal
+			currentIndex: _modelMedal._currentIndex
+
+			onAccepted: {
+				let name = model.get(currentIndex).name
+				if (editor)
+					editor.missionModify(mission, function() {
+						mission.medalImage = name
+					})
+			}
+
 		}
 	}
 

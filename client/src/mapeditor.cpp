@@ -60,6 +60,8 @@ MapEditor::MapEditor(QObject *parent)
 
 	connect(this, &MapEditor::saveRequest, this, &MapEditor::onSaveRequestFile);
 	connect(this, &MapEditor::autoSaveRequest, this, &MapEditor::onAutoSaveRequestFile);
+
+	loadAvailableMedals();
 }
 
 
@@ -642,6 +644,38 @@ void MapEditor::onAutoSaveRequestFile()
 
 	onAutoSaved(true);
 }
+
+
+
+/**
+ * @brief MapEditor::loadAvailableMedals
+ */
+
+void MapEditor::loadAvailableMedals()
+{
+	LOG_CTRACE("client") << "Load available medals";
+
+	m_availableMedals.clear();
+
+	foreach (const QString &s, AbstractLevelGame::availableMedal()) {
+		QVariantMap m;
+		m[QStringLiteral("source")] = AbstractLevelGame::medalImagePath(s);
+		m[QStringLiteral("name")] = s;
+		m_availableMedals << m;
+	}
+}
+
+
+/**
+ * @brief MapEditor::availableMedals
+ * @return
+ */
+
+const QVariantList &MapEditor::availableMedals() const
+{
+	return m_availableMedals;
+}
+
 
 
 

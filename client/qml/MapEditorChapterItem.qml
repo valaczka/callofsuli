@@ -36,7 +36,7 @@ Qaterial.Expandable {
 			Qaterial.LabelHeadline6 {
 				text: chapter ? chapter.name : ""
 				elide: Text.ElideRight
-				color: Qaterial.Style.accentColor
+				color: Qaterial.Colors.purple100
 				Layout.fillWidth: true
 				Layout.fillHeight: true
 				Layout.alignment: Qt.AlignCenter
@@ -60,7 +60,7 @@ Qaterial.Expandable {
 			Qaterial.RoundButton {
 				Layout.alignment: Qt.AlignCenter
 				icon.source: Qaterial.Icons.dotsVertical
-				icon.color: Qaterial.Style.accentColor
+				icon.color: Qaterial.Colors.purple100
 				onClicked: contextMenuSimple.popup()
 
 				Qaterial.Menu {

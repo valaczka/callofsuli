@@ -98,7 +98,7 @@ QPage {
 						visible: mission && (mission.modes & mode)
 						icon.source: Qaterial.Icons.play
 						highlighted: false
-						foregroundColor: Qaterial.Style.iconColor()
+						foregroundColor: Qaterial.Colors.amber200
 						onClicked: editor.missionLevelPlay(missionLevel, mode)
 					}
 
@@ -110,7 +110,7 @@ QPage {
 				anchors.horizontalCenter: parent.horizontalCenter
 				visible: editor && missionLevel && missionLevel.canDelete()
 				text: qsTr("Törlés")
-				icon.source: Qaterial.Icons.trashCan
+				icon.source: Qaterial.Icons.delete_
 				bgColor: Qaterial.Colors.red400
 				textColor: Qaterial.Colors.white
 
@@ -126,6 +126,15 @@ QPage {
 
 			Row {
 				anchors.left: parent.left
+
+				Qaterial.ColorIcon {
+					color: Qaterial.Style.colorTheme.primaryText
+					source: Qaterial.Icons.timer
+					iconSize: Qaterial.Style.textField.iconSize
+					width: Qaterial.Style.textField.iconWidth
+					height: Qaterial.Style.textField.iconWidth
+					anchors.verticalCenter: parent.verticalCenter
+				}
 
 				Qaterial.LabelBody2 {
 					text: qsTr("Időtartam")
@@ -154,6 +163,15 @@ QPage {
 				anchors.left: parent.left
 
 				visible: mission && (mission.modes & (GameMap.Action|GameMap.Lite))
+
+				Qaterial.ColorIcon {
+					color: Qaterial.Style.colorTheme.primaryText
+					source: Qaterial.Icons.heart
+					iconSize: Qaterial.Style.textField.iconSize
+					width: Qaterial.Style.textField.iconWidth
+					height: Qaterial.Style.textField.iconWidth
+					anchors.verticalCenter: parent.verticalCenter
+				}
 
 				Qaterial.LabelBody2 {
 					text: qsTr("Kezdő HP")
@@ -184,6 +202,15 @@ QPage {
 
 				visible: mission && (mission.modes & GameMap.Action)
 
+				Qaterial.ColorIcon {
+					color: Qaterial.Style.colorTheme.primaryText
+					source: Qaterial.Icons.messageQuestion
+					iconSize: Qaterial.Style.textField.iconSize
+					width: Qaterial.Style.textField.iconWidth
+					height: Qaterial.Style.textField.iconWidth
+					anchors.verticalCenter: parent.verticalCenter
+				}
+
 				Qaterial.LabelBody2 {
 					text: qsTr("Kérdések aránya")
 					anchors.verticalCenter: parent.verticalCenter
@@ -212,6 +239,15 @@ QPage {
 				anchors.left: parent.left
 
 				visible: mission && (mission.modes & GameMap.Test)
+
+				Qaterial.ColorIcon {
+					color: Qaterial.Style.colorTheme.primaryText
+					source: Qaterial.Icons.chartBar
+					iconSize: Qaterial.Style.textField.iconSize
+					width: Qaterial.Style.textField.iconWidth
+					height: Qaterial.Style.textField.iconWidth
+					anchors.verticalCenter: parent.verticalCenter
+				}
 
 				Qaterial.LabelBody2 {
 					text: qsTr("Sikeres teljesítés")
@@ -243,6 +279,15 @@ QPage {
 				spacing: 15
 
 				visible: mission && (mission.modes & GameMap.Action)
+
+				Qaterial.ColorIcon {
+					color: Qaterial.Style.colorTheme.primaryText
+					source: Qaterial.Icons.swordCross
+					iconSize: Qaterial.Style.textField.iconSize
+					width: Qaterial.Style.textField.iconWidth
+					height: Qaterial.Style.textField.iconWidth
+					anchors.verticalCenter: parent.verticalCenter
+				}
 
 				Qaterial.LabelBody2 {
 					text: qsTr("Harcmező:")
@@ -346,6 +391,15 @@ QPage {
 
 				spacing: 10
 
+				Qaterial.ColorIcon {
+					color: Qaterial.Style.colorTheme.primaryText
+					source: Qaterial.Icons.image
+					iconSize: Qaterial.Style.textField.iconSize
+					width: Qaterial.Style.textField.iconWidth
+					height: Qaterial.Style.textField.iconWidth
+					anchors.verticalCenter: parent.verticalCenter
+				}
+
 				Qaterial.LabelBody2 {
 					text: qsTr("Egyéni háttérkép")
 					anchors.verticalCenter: parent.verticalCenter
@@ -422,7 +476,7 @@ QPage {
 						width: parent.width
 						icon.source: Qaterial.Icons.folderMultiplePlusOutline
 						text: qsTr("Létező feladatcsoport hozzáadása")
-						color: Qaterial.Colors.purple400
+						color: Qaterial.Colors.purple100
 
 						onClicked: {
 							_sortedChapterModel.reload()

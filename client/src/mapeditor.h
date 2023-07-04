@@ -51,6 +51,7 @@ class MapEditor : public QObject
 	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged)
 	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
 	Q_PROPERTY(bool autoSaved READ autoSaved WRITE setAutoSaved NOTIFY autoSavedChanged)
+	Q_PROPERTY(QVariantList availableMedals READ availableMedals CONSTANT)
 
 public:
 	explicit MapEditor(QObject *parent = nullptr);
@@ -144,6 +145,8 @@ public:
 	bool autoSaved() const;
 	void setAutoSaved(bool newAutoSaved);
 
+	const QVariantList &availableMedals() const;
+
 public slots:
 	void save();
 	void saveAuto();
@@ -179,6 +182,8 @@ protected:
 	MapEditorMap *m_map = nullptr;
 
 private:
+	void loadAvailableMedals();
+
 	EditorUndoStack *const m_undoStack;
 	QTimer m_saveTimer;
 	QString m_displayName;
@@ -190,6 +195,8 @@ private:
 	MapEditorStorage *m_tmpStorage = nullptr;
 
 	static const QString m_backupSuffix;
+
+	QVariantList m_availableMedals;
 };
 
 

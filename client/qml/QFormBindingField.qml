@@ -86,7 +86,7 @@ Column {
 			}
 			Qaterial.RoundButton {
 				id: _remove
-				icon.source: Qaterial.Icons.trashCan
+				icon.source: Qaterial.Icons.delete_
 				icon.color: Qaterial.Colors.red400
 				visible: !root.readOnly
 

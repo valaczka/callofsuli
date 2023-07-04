@@ -9,8 +9,9 @@ application.makefile = Makefile
 modules.file = client/modules/modules.pro
 modules.makefile = Makefile
 
+!CONFIG(debug, debug|release): SUBDIRS += version
+
 SUBDIRS += \
-		version \
 		client_lib \
 		modules \
 		application

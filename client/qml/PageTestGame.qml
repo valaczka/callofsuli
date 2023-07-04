@@ -39,21 +39,21 @@ Page {
 		visible: itemsVisible && !resultVisible
 
 
-		Qaterial.AppBarButton {
+		/*Qaterial.AppBarButton {
 			icon.source: Qaterial.Icons.stopCircle
 			enabled: game
 			onClicked: game.finishGame()
-		}
+		}*/
 
 		Qaterial.AppBarButton {
-			icon.source: Qaterial.Icons.pagePrevious
+			icon.source: Qaterial.Icons.arrowLeftCircleOutline
 			enabled: game && game.currentQuestion > 0
 			onClicked: game.previousQuestion()
 		}
 
 		Qaterial.AppBarButton {
-			icon.source: Qaterial.Icons.pageNext
-			enabled: game && game.currentQuestion < game.questions-1
+			icon.source: Qaterial.Icons.arrowRightCircleOutline
+			enabled: game && game.currentQuestion < game.questions
 			onClicked: game.nextQuestion()
 		}
 	}

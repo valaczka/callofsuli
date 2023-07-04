@@ -183,7 +183,7 @@ QPage {
 	Action {
 		id: actionMapRemove
 		text: qsTr("Törlés")
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons.delete_
 		onTriggered: {
 			var l = view.getSelected()
 			if (!l.length)

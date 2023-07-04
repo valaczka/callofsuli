@@ -20,7 +20,7 @@ QPage {
 	{
 		visible: user
 		ToolTip.text: qsTr("Felhasználó törlése")
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons.delete_
 		onClicked: JS.questionDialog(
 					   {
 						   onAccepted: function()

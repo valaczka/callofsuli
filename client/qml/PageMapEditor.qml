@@ -224,7 +224,7 @@ QPage {
 
 		Component.onCompleted: {
 			model.append({ text: qsTr("Küldetések"), source: Qaterial.Icons.trophy, color: Qaterial.Colors.amber200 })
-			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.folderMultiple, color: Qaterial.Colors.cyan300 })
+			model.append({ text: qsTr("Feladatcsoportok"), source: Qaterial.Icons.folderMultiple, color: Qaterial.Colors.purple100 })
 			model.append({ text: qsTr("Adatbankok"), source: Qaterial.Icons.database, color: Qaterial.Colors.green300 })
 		}
 	}

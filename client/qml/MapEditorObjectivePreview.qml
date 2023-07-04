@@ -18,7 +18,7 @@ Qaterial.Expandable {
 
 	header: QExpandableHeader {
 		text: qsTr("Előnézet")
-		icon: Qaterial.Icons.eyeSettings
+		icon: Qaterial.Icons.eyeOutline
 		expandable: root
 
 		rightSourceComponent: Qaterial.RoundButton {

@@ -98,7 +98,7 @@ QPage {
 
 		enabled: campaign && campaign.state < Campaign.Running
 		text: qsTr("Hadjárat törlése")
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons.delete_
 		onTriggered: JS.questionDialog(
 						 {
 							 onAccepted: function()

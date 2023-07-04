@@ -61,6 +61,7 @@ GameQuestionComponentImpl {
 
 			fillMode: Image.PreserveAspectFit
 			cache: false
+			asynchronous: true
 		}
 
 		Flickable {

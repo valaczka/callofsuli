@@ -170,5 +170,6 @@
         <file>PageAdminServerConfig.qml</file>
         <file>AdminServerConfigTextField.qml</file>
         <file>AdminServerConfigCombo.qml</file>
+        <file>QGridDialog.qml</file>
     </qresource>
 </RCC>

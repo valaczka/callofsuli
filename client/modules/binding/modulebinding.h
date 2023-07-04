@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "binding"; }
 	inline bool isStorageModule() const override { return true; }
 	inline QString readableName() const override { return tr("Összerendelés"); }
-	inline QString icon() const override { return "image://font/Material Icons/\ue157"; }
+	inline QString icon() const override { return "qrc:/Qaterial/Icons/link-box.svg"; }
 
 	inline QString qmlEditor() const override { return "ME_binding.qml"; }
 	inline QString qmlQuestion() const override { return QLatin1String(""); }

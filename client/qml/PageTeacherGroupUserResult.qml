@@ -63,7 +63,7 @@ QPage {
 			delegate: Qaterial.LoaderItemDelegate {
 				id: _delegate
 				width: _view.width
-				icon.source: Qaterial.Icons.abacus
+
 				text: model.readableMap+" | "+model.readableMission+" [%1%2]".arg(model.level).arg(model.deathmatch ? qsTr(" SD") : "")
 				secondaryText: {
 					let t = JS.readableTimestamp(model.timestamp)

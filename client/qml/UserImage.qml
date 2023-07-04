@@ -62,6 +62,7 @@ Item {
 			width: control.size*0.5
 			height: control.size*0.5
 			source: _u_rankLevel >= 0 ? "qrc:/internal/rank/"+_u_rankLevel+".svg" : ""
+			asynchronous: true
 		}
 	}
 
@@ -74,6 +75,7 @@ Item {
 		height: control.size
 		source: _u_rankLevel >= 0 ? "qrc:/internal/rank/"+_u_rankLevel+".svg" : ""
 		fillMode: Image.PreserveAspectFit
+		asynchronous: true
 	}
 
 	Label {

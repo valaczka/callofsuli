@@ -19,7 +19,7 @@ QPage {
 	{
 		visible: server
 		ToolTip.text: qsTr("Szerver törlése")
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons.delete_
 		onClicked: JS.questionDialog(
 					   {
 						   onAccepted: function()

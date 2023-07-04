@@ -26,7 +26,7 @@ QPage {
 
 	appBar.backButtonVisible: true
 	appBar.rightComponent: Row {
-		rightPadding: 5
+		rightPadding: 7 * Qaterial.Style.pixelSizeRatio
 		Qaterial.SquareButton {
 			backgroundImplicitHeight: Qaterial.Style.toolButton.appBarButtonHeight
 
@@ -84,11 +84,12 @@ QPage {
 				elide: Text.ElideRight
 
 				icon.source: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
-				//icon.color: Qaterial.
+
 				icon.width: 2.2 * Qaterial.Style.pixelSize
 				icon.height: 2.2 * Qaterial.Style.pixelSize
 
 				font: Qaterial.Style.textTheme.headline6
+				color: Qaterial.Colors.green400
 			}
 
 
@@ -135,6 +136,8 @@ QPage {
 			text: _infoObjective.name !== undefined ? _infoObjective.name : ""
 
 			elide: Text.ElideRight
+
+			color: Qaterial.Style.iconColor()
 		}
 
 

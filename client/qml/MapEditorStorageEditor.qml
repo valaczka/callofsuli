@@ -21,35 +21,36 @@ QPage {
 	property bool modified: false
 
 	appBar.backButtonVisible: true
-	appBar.rightComponent: Qaterial.SquareButton {
-		backgroundImplicitHeight: Qaterial.Style.toolButton.appBarButtonHeight
+	appBar.rightComponent: Row {
+		rightPadding: 7 * Qaterial.Style.pixelSizeRatio
+		Qaterial.SquareButton {
+			backgroundImplicitHeight: Qaterial.Style.toolButton.appBarButtonHeight
 
-		icon.source: Qaterial.Icons.checkBold
-		text: qsTr("Kész")
-		display: AbstractButton.TextBesideIcon
-		enabled: modified && editor && _storageLoader.item
+			icon.source: Qaterial.Icons.checkBold
+			text: qsTr("Kész")
+			display: AbstractButton.TextBesideIcon
+			enabled: modified && editor && _storageLoader.item
 
-		onClicked: {
-			if (storage.storageid <= 0) {
-				editor.storageAdd(storage, function() {
-					_storageLoader.item.saveData()
-				})
-			} else {
-				editor.storageModify(storage, function() {
-					_storageLoader.item.saveData()
-				})
+			onClicked: {
+				if (storage.storageid <= 0) {
+					editor.storageAdd(storage, function() {
+						_storageLoader.item.saveData()
+					})
+				} else {
+					editor.storageModify(storage, function() {
+						_storageLoader.item.saveData()
+					})
+				}
+
+				modified = false
+				Client.stackPop(root)
 			}
-
-			modified = false
-			Client.stackPop(root)
 		}
 	}
 
 
 	QScrollable {
 		anchors.fill: parent
-
-
 
 		QIconLabel {
 			id: _label
@@ -68,6 +69,8 @@ QPage {
 			text: _infoStorage.name !== undefined ? _infoStorage.name : ""
 
 			elide: Text.ElideRight
+
+			color: Qaterial.Colors.green400
 		}
 
 		Loader {

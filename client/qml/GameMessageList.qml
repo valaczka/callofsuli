@@ -62,6 +62,7 @@ ListView {
 		}
 
 		SequentialAnimation {
+			id: _baseAnimation
 			running: true
 
 			PropertyAnimation {
@@ -77,12 +78,22 @@ ListView {
 				duration: 1250
 			}
 
-			PropertyAnimation {
-				target: _rect
-				property: "scale"
-				to: 1.0
-				duration: 750
-				easing.type: Easing.InQuart
+			ParallelAnimation {
+				PropertyAnimation {
+					target: _rect
+					property: "scale"
+					to: 1.0
+					duration: 750
+					easing.type: Easing.InQuart
+				}
+
+
+				ColorAnimation {
+					target: _rect
+					property: "color"
+					to: "#44CCCCCC"
+					duration: 750
+				}
 			}
 
 			PauseAnimation {
@@ -91,6 +102,34 @@ ListView {
 
 			ScriptAction {
 				script: _model.remove(_item.index)
+			}
+		}
+
+
+
+		SequentialAnimation {
+			id: _clickAnimation
+			running: false
+
+			PropertyAnimation {
+				target: _rect
+				property: "scale"
+				to: 0.0
+				duration: 250
+				easing.type: Easing.OutQuart
+			}
+
+			ScriptAction {
+				script: _model.remove(_item.index)
+			}
+		}
+
+		MouseArea {
+			anchors.fill: parent
+			acceptedButtons: Qt.LeftButton
+			onClicked: {
+				_baseAnimation.stop()
+				_clickAnimation.start()
 			}
 		}
 
@@ -109,8 +148,8 @@ ListView {
 
 	function message(text, colorCode) {
 		_model.append({
-								message: text,
-								textColor: String(colorCode)
-							})
+						  message: text,
+						  textColor: String(colorCode)
+					  })
 	}
 }

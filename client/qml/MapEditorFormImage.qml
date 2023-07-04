@@ -56,6 +56,7 @@ Row {
 			source: image ? "image://mapimage/%1".arg(image.imageid) : ""
 			visible: false
 			cache: false
+			asynchronous: true
 		}
 
 		Glow {

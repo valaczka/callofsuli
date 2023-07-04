@@ -255,7 +255,7 @@ QPage {
 	Action {
 		id: actionDelete
 		text: qsTr("Törlés")
-		icon.source: Qaterial.Icons.trashCan
+		icon.source: Qaterial.Icons.delete_
 		enabled: view.currentIndex != 1 || view.selectEnabled
 		onTriggered: {
 			if (view.selectEnabled) {

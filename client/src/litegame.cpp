@@ -26,6 +26,7 @@
 
 #include "litegame.h"
 #include "Logger.h"
+#include "application.h"
 #include "client.h"
 #include "gamequestion.h"
 #include <QRandomGenerator>
@@ -102,7 +103,24 @@ void LiteGame::onPageReady()
 
 void LiteGame::onStarted()
 {
-	startWithRemainingTime(m_questions.size()*SECOND_PER_QUESTION*1000);
+	qint64 msec = 0;
+
+	foreach (const LiteQuestion &q, m_questions) {
+		ModuleInterface *iface = Application::instance()->objectiveModules().value(q.question().module());
+
+		if (!iface)
+			continue;
+
+		msec += SECOND_PER_QUESTION*1000;
+
+		qreal factor = iface->xpFactor()-1.0;
+
+		// Exponenciálisan növeljük
+
+		msec += factor * SECOND_PER_QUESTION * 1000 * 2;
+	}
+
+	startWithRemainingTime(msec);
 
 	nextQuestion();
 }
@@ -157,8 +175,7 @@ void LiteGame::gameAbort()
  * @return
  */
 
-bool LiteGame::nextQuestion()
-{
+bool LiteGame::nextQuestion() {
 	if (m_indices.isEmpty()) {
 		onGameSuccess();
 		return false;

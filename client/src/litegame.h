@@ -30,7 +30,7 @@
 #include "abstractlevelgame.h"
 
 #define LITE_GAME_BASE_XP		10
-#define SECOND_PER_QUESTION		12
+#define SECOND_PER_QUESTION		7
 
 
 class LiteQuestion;

@@ -11,6 +11,9 @@ QIconLoaderItemDelegate {
 	readonly property MapEditor editor: storage && storage.map ? storage.map.mapEditor : null
 	property var _info: editor ? editor.storageInfo(storage) : {}
 
+	textColor: Qaterial.Colors.green400
+	iconColor: textColor
+
 	iconSource: _info.icon !== undefined ? _info.icon : ""
 	text: _info.name !== undefined ? _info.name : ""
 	secondaryText: _info.title !== undefined ? _info.title : ""

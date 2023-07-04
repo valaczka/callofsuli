@@ -16,7 +16,7 @@ GameQuestionComponentImpl {
 		buttonType: GameQuestionButton.Correct
 
 		icon.source: Qaterial.Icons.send
-		text: qsTr("Befejezés")
+		text: qsTr("Teszt beküldése")
 
 		onClicked: answer()
 	}

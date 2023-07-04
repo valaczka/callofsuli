@@ -11,11 +11,6 @@ include(../../common.pri)
 include(../../version/version.pri)
 include(../../lib/callofsuli-core/callofsuli-core.pri)
 
-android {
-	isEmpty(AndroidNdkPath): error(AndroidNdkPath empty)
-	isEmpty(AndroidSdkPath): error(AndroidSdkPath empty)
-}
-
 
 DESTDIR = ../..
 
@@ -108,14 +103,12 @@ android {
 	alist.output = $$PWD/android/AndroidManifest.xml
 	QMAKE_SUBSTITUTES += alist
 
+	ANDROID_TARGET_SDK_VERSION = 31
+
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	ANDROID_VERSION_CODE = $${AndroidVersionCode}
 	ANDROID_VERSION_NAME = $$VERSION
-
-	ANDROID_ABIS = armeabi-v7a
-
-	!CONFIG(debug, debug|release): ANDROID_ABIS += arm64-v8a
 
 	QTDIR = $$dirname(QMAKE_QMAKE)/../qml
 }

@@ -17,6 +17,9 @@ QIconLoaderItemDelegate {
 	text: _info.title !== undefined ? _info.title: ""
 	secondaryText: _info.details !== undefined ? _info.details : ""
 
+	textColor: Qaterial.Style.iconColor()
+	iconColor: textColor
+
 	Connections {
 		target: objective
 

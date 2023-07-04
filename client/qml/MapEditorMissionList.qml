@@ -144,7 +144,7 @@ Item {
 								Qaterial.Icon {
 									icon: Qaterial.Icons.lock
 									size: Qaterial.Style.largeIcon
-									color: Qaterial.Style.iconColor()
+									color: Qaterial.Colors.red400
 									visible: mission.lockList.length
 									Layout.leftMargin: 5
 								}
@@ -193,12 +193,12 @@ Item {
 									Layout.fillWidth: true
 								}
 
-								Qaterial.SquareButton
+								/*Qaterial.SquareButton
 								{
 									foregroundColor: Qaterial.Style.iconColor()
 									icon.source: Qaterial.Icons.pencil
 									onClicked: loadMission(mission)
-								}
+								}*/
 
 								Qaterial.SquareButton
 								{

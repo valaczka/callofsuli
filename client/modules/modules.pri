@@ -9,4 +9,5 @@ MODULES_LIST = truefalse \
 				numbers \
 				sequence \
 				order \
-				images
+				images \
+				writer

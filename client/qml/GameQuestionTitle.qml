@@ -12,6 +12,7 @@ RowLayout {
 	property alias title: label.text
 	property bool buttons: true
 	property alias buttonOkEnabled: btnOk.enabled
+	property alias buttonOkVisible: btnOk.visible
 
 	readonly property GameQuestionImpl gameQuestion: (parent instanceof GameQuestionComponentImpl) ? parent.question : null
 

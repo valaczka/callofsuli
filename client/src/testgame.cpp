@@ -419,6 +419,8 @@ void TestGame::nextQuestion()
 	if (m_currentQuestion < m_questionList.size()-1) {
 		setCurrentQuestion(m_currentQuestion+1);
 		m_gameQuestion->forceDestroy();
+	} else {
+		finishGame();
 	}
 }
 
