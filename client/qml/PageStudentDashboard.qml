@@ -82,8 +82,6 @@ QPage {
 	}
 
 
-
-
 	Component {
 		id: cmpDashboard
 		StudentDashboard {

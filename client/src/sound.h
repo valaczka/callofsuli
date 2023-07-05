@@ -38,7 +38,10 @@
 #include <QObject>
 #include <QMediaPlayer>
 #include <QVariantAnimation>
-#include <QSoundEffect>
+
+/**
+ * @brief The Sound class
+ */
 
 class Sound : public QObject
 {
@@ -47,7 +50,7 @@ class Sound : public QObject
 	Q_PROPERTY(int volumeMusic READ volumeMusic WRITE setVolumeMusic NOTIFY volumeMusicChanged)
 	Q_PROPERTY(int volumeSfx READ volumeSfx WRITE setVolumeSfx NOTIFY volumeSfxChanged)
 	Q_PROPERTY(int volumeVoiceOver READ volumeVoiceOver WRITE setVolumeVoiceOver NOTIFY volumeVoiceOverChanged)
-
+	Q_PROPERTY(bool vibrate READ vibrate WRITE setVibrate NOTIFY vibrateChanged)
 
 public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
@@ -59,13 +62,14 @@ public:
 	explicit Sound(QObject *parent = nullptr);
 	virtual ~Sound();
 
-	Q_INVOKABLE QSoundEffect *newSoundEffect();
+	Q_INVOKABLE void performVibrate() const;
 
-public slots:
 	void init();
 
-	void playSound(const QString &source, const Sound::SoundType &soundType);
-	void stopSound(const QString &source, const Sound::SoundType &soundType);
+	Q_INVOKABLE void playSound(const QString &source, const Sound::SoundType &soundType);
+	Q_INVOKABLE void stopSound(const QString &source, const Sound::SoundType &soundType);
+
+	Q_INVOKABLE bool isPlayingMusic() const;
 
 	int volumeMusic() const { return m_mediaPlayerMusic ? m_mediaPlayerMusic->volume() : 0;  }
 	int volumeSfx() const { return m_mediaPlayerSfx ? m_mediaPlayerSfx->volume() : 0;  }
@@ -75,6 +79,9 @@ public slots:
 	void setVolumeMusic(int volume);
 	void setVolumeVoiceOver(int volume);
 
+	bool vibrate() const;
+	void setVibrate(bool newVibrate);
+
 private slots:
 	void musicPlay(const QString &source);
 	void musicLoadNextSource();
@@ -83,6 +90,7 @@ signals:
 	void volumeSfxChanged(int volumeSfx);
 	void volumeMusicChanged(int volumeMusic);
 	void volumeVoiceOverChanged(int volumeVoiceOver);
+	void vibrateChanged();
 
 private:
 	QMediaPlayer *m_mediaPlayerMusic;
@@ -92,6 +100,9 @@ private:
 	QString m_musicNextSource;
 	QVariantAnimation *m_fadeAnimation;
 	int m_musicVolume;
+	bool m_vibrate = true;
 };
+
+
 
 #endif // SOUND_H

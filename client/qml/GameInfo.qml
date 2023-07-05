@@ -15,7 +15,7 @@ Item {
 	property color color: Qaterial.Style.accentColor
 	property real pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
 	property bool marked: false
-	property real horizontalPadding: 10
+	property real horizontalPadding: 10 * Qaterial.Style.pixelSizeRatio
 
 	implicitHeight: Math.max(iconLabel.height, progressBar.implicitHeight)
 	implicitWidth: iconLabel.width+progressBar.width+iconLabel.anchors.rightMargin+2*horizontalPadding
@@ -51,7 +51,7 @@ Item {
 
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.right: progressBar.left
-		anchors.rightMargin: 10
+		anchors.rightMargin: 10 * Qaterial.Style.pixelSizeRatio
 
 		color: control.color
 		icon.width: control._realSize*1.1

@@ -171,5 +171,8 @@
         <file>AdminServerConfigTextField.qml</file>
         <file>AdminServerConfigCombo.qml</file>
         <file>QGridDialog.qml</file>
+        <file>PageStudentSettings.qml</file>
+        <file>SettingsSound.qml</file>
+        <file>SettingsAppearance.qml</file>
     </qresource>
 </RCC>

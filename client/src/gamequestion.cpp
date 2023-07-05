@@ -29,6 +29,10 @@
 #include "abstractgame.h"
 #include "application.h"
 
+#ifndef Q_OS_WASM
+#include "desktopclient.h"
+#endif
+
 
 GameQuestion::GameQuestion(QQuickItem *parent)
 	: QQuickItem(parent)
@@ -251,6 +255,12 @@ void GameQuestion::onFailed(const QVariantMap &answer)
 	m_elapsedMsec = m_elapsedTimer.isValid() ? m_elapsedTimer.elapsed() : -1;
 	LOG_CDEBUG("game") << "Question answer failed in " << m_elapsedMsec << " milliseconds:"<< answer;
 	emit failed(answer);
+
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client && client->sound())
+		client->sound()->performVibrate();
+#endif
 }
 
 

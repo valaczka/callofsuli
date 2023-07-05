@@ -66,8 +66,8 @@ QPageGradient {
 
 
 				QIconLabel {
-					topPadding: 20
-					bottomPadding: 20
+					topPadding: 20 * Qaterial.Style.pixelSizeRatio
+					bottomPadding: 20 * Qaterial.Style.pixelSizeRatio
 					anchors.left: parent.left
 					anchors.leftMargin: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
 					width: parent.width
@@ -93,7 +93,7 @@ QPageGradient {
 					implicitHeight: 110*Qaterial.Style.pixelSizeRatio
 
 					width: control.width
-					spacing: 5
+					spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 					clip: true
 

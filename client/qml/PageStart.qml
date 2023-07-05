@@ -195,20 +195,20 @@ QPage {
 
 		Row {
 			anchors.horizontalCenter: parent.horizontalCenter
-		Qaterial.ToolButton {
-			action: Client.mainWindow.fontMinus
-			display: AbstractButton.IconOnly
-		}
+			Qaterial.ToolButton {
+				action: Client.mainWindow.fontMinus
+				display: AbstractButton.IconOnly
+			}
 
-		Qaterial.ToolButton {
-			action: Client.mainWindow.fontNormal
-			display: AbstractButton.IconOnly
-		}
+			Qaterial.ToolButton {
+				action: Client.mainWindow.fontNormal
+				display: AbstractButton.IconOnly
+			}
 
-		Qaterial.ToolButton {
-			action: Client.mainWindow.fontPlus
-			display: AbstractButton.IconOnly
-		}
+			Qaterial.ToolButton {
+				action: Client.mainWindow.fontPlus
+				display: AbstractButton.IconOnly
+			}
 		}
 	}
 

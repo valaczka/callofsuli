@@ -12,28 +12,6 @@ QItemGradient {
 	property User user: null
 	property var userData: null
 
-	appBar.rightComponent: Qaterial.AppBarButton {
-		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: _menu.open()
-
-		QMenu {
-			id: _menu
-
-			QMenuItem {
-				icon.source: Qaterial.Icons.logoutVariant
-				text: qsTr("Kijelentkezés")
-				onClicked: Client.logout()
-			}
-			Qaterial.MenuSeparator {}
-			QMenu {
-				title: qsTr("Betűméret")
-				QMenuItem { action: Client.mainWindow.fontPlus }
-				QMenuItem { action: Client.mainWindow.fontMinus }
-				QMenuItem { action: Client.mainWindow.fontNormal }
-			}
-		}
-	}
-
 	QScrollable {
 		anchors.fill: parent
 		spacing: 15

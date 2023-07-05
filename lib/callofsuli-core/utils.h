@@ -47,6 +47,7 @@
 #ifdef Q_OS_ANDROID
 #include <jni.h>
 #include <QtAndroidExtras/QAndroidJniObject>
+#include "qmargins.h"
 #endif
 
 
@@ -115,8 +116,6 @@ public:
 
 	static QStringList getRolesFromObject(const QMetaObject *object);
 	static void patchSListModel(QSListModel *model, const QVariantList &data, const QString &keyField);
-
-
 #endif
 
 	Q_INVOKABLE static quint32 versionMajor();
@@ -128,6 +127,13 @@ public:
 	Q_INVOKABLE void checkStoragePermissions();
 	Q_INVOKABLE void checkMediaPermissions();
 
+	Q_INVOKABLE static void vibrate();
+
+
+#ifdef Q_OS_ANDROID
+	static QMarginsF getAndroidSafeMargins();
+#endif
+
 signals:
 	void storagePermissionsGranted();
 	void storagePermissionsDenied();
@@ -138,10 +144,6 @@ private:
 	static const quint32 m_versionMajor;
 	static const quint32 m_versionMinor;
 	static const quint32 m_versionBuild;
-
-#ifdef Q_OS_ANDROID
-	jint m_screenOrientationRequest = -1;
-#endif
 
 };
 

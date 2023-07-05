@@ -47,12 +47,9 @@ Qaterial.ApplicationWindow
 
 		setPixelSize(Client.Utils.settingsGet("window/fontSize", Qaterial.Style.defaultPixelSize))
 
-		//if (Qt.platform.os != "wasm") {
-			Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
-				return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)
-			})
-		//}
-
+		Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {
+			return Math.min(mainWindow.width*.9, 400 * Qaterial.Style.pixelSizeRatio)
+		})
 
 		Client.mainStack = mainStackView
 		Client.mainWindow = mainWindow
@@ -72,25 +69,6 @@ Qaterial.ApplicationWindow
 			Client.stackPop()
 		}
 	}
-
-
-	/*MouseArea {
-		anchors.fill: parent
-		acceptedButtons: Qt.NoButton
-		onWheel: {
-			if (wheel.modifiers & Qt.ControlModifier) {
-				var i = wheel.angleDelta.y/120
-				if (i>0)
-					fontPlus.trigger()
-				else if (i<0)
-					fontMinus.trigger()
-
-				wheel.accepted = true
-			} else {
-				wheel.accepted = false
-			}
-		}
-	}*/
 
 
 	readonly property Action fontPlus: Action {
@@ -129,10 +107,10 @@ Qaterial.ApplicationWindow
 
 
 	onWidthChanged: {
-		if (width >= 992)
-			Qaterial.Style.maxContainerSize = 970
-		else if (width >= 768)
-			Qaterial.Style.maxContainerSize = 750
+		if (width >= 992 * Qaterial.Style.pixelSizeRatio)
+			Qaterial.Style.maxContainerSize = 970 * Qaterial.Style.pixelSizeRatio
+		else if (width >= 768 * Qaterial.Style.pixelSizeRatio)
+			Qaterial.Style.maxContainerSize = 750 * Qaterial.Style.pixelSizeRatio
 		else
 			Qaterial.Style.maxContainerSize = width
 
@@ -206,7 +184,7 @@ Qaterial.ApplicationWindow
 						text: _text,
 					}
 
-		)
+					)
 	}
 
 

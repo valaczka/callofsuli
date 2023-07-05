@@ -175,80 +175,6 @@ Page {
 
 
 
-
-			/*
-			CosGame {
-
-				Connections {
-					target: game.player && game.player.entityPrivate ? game.player.entityPrivate : null
-
-					function onHurt() {
-						painhudImageAnim.start()
-					}
-
-					function onKilledByEnemy(enemy) {
-						messageList.message(qsTr("Your man has died"), 3)
-						skullImageAnim.start()
-						cosClient.playSound("qrc:/sound/sfx/dead.mp3", CosSound.PlayerVoice)
-					}
-
-					function onDiedByFall() {
-						messageList.message(qsTr("Your man has died"), 3)
-						skullImageAnim.start()
-						cosClient.playSound("qrc:/sound/sfx/falldead.mp3", CosSound.PlayerVoice)
-					}
-
-					function onDiedByBurn() {
-						messageList.message(qsTr("Your man has died"), 3)
-						skullImageAnim.start()
-						cosClient.playSound("qrc:/sound/sfx/dead.mp3", CosSound.PlayerVoice)
-					}
-				}
-
-
-				onGameSceneLoaded: {
-					_sceneLoaded = true
-					if (gameMatch.mode == GameMatch.ModeNormal)
-						cosClient.playSound(game.backgroundMusicFile, CosSound.Music)
-				}
-
-				onGameTimeout: {
-					setEnemiesMoving(false)
-					setRunning(false)
-
-					var d = JS.dialogMessageErrorImage("qrc:/internal/icon/timer-sand-complete.svg", qsTr("Game over"), qsTr("Lejárt az idő"))
-					d.rejected.connect(function() {
-						_closeEnabled = true
-						mainStack.back()
-					})
-				}
-
-
-				onGameLost: {
-					setEnemiesMoving(false)
-					setRunning(false)
-
-
-					var t = gameMatch.mode == GameMatch.ModeNormal ? qsTr("Your man has died") : qsTr("Sikertelen feladatmegoldás")
-
-					var d = JS.dialogMessageErrorImage(gameMatch.mode == GameMatch.ModeNormal ? "qrc:/internal/icon/skull-crossbones.svg" : "",
-													   qsTr("Game over"), t)
-					d.rejected.connect(function() {
-						_closeEnabled = true
-						mainStack.back()
-					})
-					}
-
-
-
-			}
-
-
-
-
-
-		}*/
-
 		}
 
 		PinchArea {
@@ -500,7 +426,7 @@ Page {
 		anchors.top: parent.top
 		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
-		spacing: 5
+		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 		visible: !gameScene.zoomOverview && itemsVisible
 
@@ -509,7 +435,7 @@ Page {
 			anchors.right: parent.right
 			color: "white"
 
-			pixelSize: 16
+			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
 			text: "%1 XP"
 
@@ -568,11 +494,11 @@ Page {
 			horizontalItemAlignment: Grid.AlignHCenter
 			verticalItemAlignment: Grid.AlignVCenter
 
-			bottomPadding: 10
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 
 			property real size: Qaterial.Style.pixelSize*1.3
 
-			spacing: 5
+			spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 			columns: Math.floor(width/size)
 
@@ -609,74 +535,10 @@ Page {
 			fontImageScale: 0.7
 
 			onClicked: {
-				/*		var d = JS.dialogCreateQml("GameSettings", {
-											   volumeMusic: cosClient.volume(CosSound.MusicChannel),
-											   volumeSfx: cosClient.volume(CosSound.SfxChannel),
-											   volumeVoiceover: cosClient.volume(CosSound.VoiceoverChannel),
-											   joystickSize: joystick.size
-										   })
-
-				d.item.volumeMusicModified.connect(function(volume) { cosClient.setVolume(CosSound.MusicChannel, volume) })
-				d.item.volumeSfxModified.connect(function(volume) { cosClient.setVolume(CosSound.SfxChannel, volume) })
-				d.item.volumeVoiceoverModified.connect(function(volume) { cosClient.setVolume(CosSound.VoiceoverChannel, volume) })
-				d.item.joystickSizeModified.connect(function(size) { joystick.size = size })
-				d.closedAndDestroyed.connect(function() {
-					gameScene.forceActiveFocus()
-					cosClient.setSetting("game/joystickSize", joystick.size)
-				})
-				d.open()*/
+				Qaterial.DialogManager.openFromComponent(_settingsDialog)
 			}
 		}
-		/*
 
-		Row {
-			anchors.right: parent.right
-			spacing: 10
-
-			visible: DEBUG_MODE
-
-			GameButton {
-				id: invincibleButton
-				size: 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: gameMatch.invincible ? JS.setColorAlpha(CosStyle.colorErrorLighter, 0.7) : "transparent"
-				opacity: gameScene.isSceneZoom ? 0.2 : 1.0
-
-				border.color: gameMatch.invincible ? "black" : "white"
-				border.width: 2
-
-				fontImage.opacity: gameMatch.invincible ? 1.0 : 0.6
-				fontImage.icon: "qrc:/internal/icon/check-bold.svg"
-				fontImage.color: "white"
-				fontImageScale: 0.7
-
-				onClicked: {
-					gameMatch.invincible = !gameMatch.invincible
-				}
-			}
-
-			GameButton {
-				id: winButton
-				size: 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: JS.setColorAlpha(CosStyle.colorOK, 0.7)
-				border.color: "white"
-				border.width: 2
-
-				fontImage.icon: "qrc:/internal/icon/check-bold.svg"
-				fontImage.color: CosStyle.colorOKLight
-				fontImageScale: 0.7
-
-				onClicked: {
-					game.gameCompleted()
-				}
-			}
-
-		}*/
 	}
 
 
@@ -741,8 +603,8 @@ Page {
 
 		iconLabel.text: game && game.player ?
 							(game.player.invisibleTime >= 60000 ?
-							Client.Utils.formatMSecs(game.player.invisibleTime) :
-							Client.Utils.formatMSecs(game.player.invisibleTime, 1, false)) :
+								 Client.Utils.formatMSecs(game.player.invisibleTime) :
+								 Client.Utils.formatMSecs(game.player.invisibleTime, 1, false)) :
 							""
 
 		visible: !gameScene.zoomOverview && game && game.player && game.player.invisible
@@ -762,11 +624,11 @@ Page {
 
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.bottomMargin: 5 //Math.max(5, mainWindow.safeMargins.bottom)
-		anchors.leftMargin: 5 //Math.max(5, mainWindow.safeMargins.left)
+		anchors.bottomMargin: 2 //Math.max(5, mainWindow.safeMargins.bottom)
+		anchors.leftMargin: 2 //Math.max(5, mainWindow.safeMargins.left)
 
 		width: Math.min(size, control.width*0.5)
-		height: Math.min((120/175)*size, control.width*0.4)
+		height: Math.min((130/175)*size, control.width*0.4)
 
 		visible: game && game.player && game.player.isAlive
 
@@ -1263,6 +1125,61 @@ Page {
 	]
 
 
+
+
+	Component {
+		id: _settingsDialog
+		Qaterial.ModalDialog
+		{
+			id: _dialog
+
+			dialogImplicitWidth: 400 * Qaterial.Style.pixelSizeRatio
+
+			horizontalPadding: 0
+			bottomPadding: 1
+			drawSeparator: true
+
+			title: qsTr("Beállítások")
+
+			standardButtons: Dialog.Close
+			contentItem: QScrollable {
+				leftPadding: 10 * Qaterial.Style.pixelSizeRatio
+				rightPadding: 10 * Qaterial.Style.pixelSizeRatio
+				topPadding: 5 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+				Row {
+					spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+					Qaterial.IconLabel {
+						icon.source: Qaterial.Icons.gamepad
+						anchors.verticalCenter: parent.verticalCenter
+						text: qsTr("Joystick:")
+					}
+
+					SpinBox {
+						anchors.verticalCenter: parent.verticalCenter
+						from: 200
+						to: 600
+						stepSize: 10
+
+						font: Qaterial.Style.textTheme.body1
+
+						value: joystick.size
+
+						onValueModified: {
+							joystick.size = value
+							Client.Utils.settingsSet("window/joystick", joystick.size)
+						}
+					}
+				}
+
+				SettingsSound {
+					width: parent.width
+				}
+			}
+		}
+	}
+
 	StackView.onRemoved: {
 		gameScene.stopSoundMusic(game.backgroundMusic)
 	}
@@ -1282,7 +1199,7 @@ Page {
 
 		gameScene.forceActiveFocus()
 
-		//joystick.size = cosClient.getSetting("game/joystickSize", joystick.size) */
+		joystick.size = Client.Utils.settingsGet("window/joystick", joystick.size)
 	}
 
 

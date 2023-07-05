@@ -50,7 +50,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
 
 	if (client) {
-		m_soundEffect = client->newSoundEffect();
+		m_soundEffect = client->newSoundEffect(this);
 		m_soundEffect->setSource(shotSound());
 		connect(this, &GameEnemy::attack, m_soundEffect, &QSoundEffect::play);
 		connect(this, &GameEnemy::shotSoundChanged, m_soundEffect, &QSoundEffect::setSource);

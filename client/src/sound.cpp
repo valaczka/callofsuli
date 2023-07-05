@@ -36,6 +36,7 @@
 #include <QSettings>
 #include <QMediaPlaylist>
 #include <Logger.h>
+#include "utils.h"
 
 Sound::Sound(QObject *parent)
 	: QObject(parent)
@@ -72,6 +73,7 @@ Sound::~Sound()
 		s.setValue(QStringLiteral("volumeMusic"), m_musicVolume);
 		s.setValue(QStringLiteral("volumeSfx"), volumeSfx());
 		s.setValue(QStringLiteral("volumeVoiceOver"), volumeVoiceOver());
+		s.setValue(QStringLiteral("vibrate"), m_vibrate);
 		s.endGroup();
 	}
 
@@ -96,25 +98,15 @@ Sound::~Sound()
 
 
 
+
 /**
- * @brief Sound::newSoundEffect
- * @param parent
- * @return
+ * @brief Sound::performVibrate
  */
 
-QSoundEffect *Sound::newSoundEffect()
+void Sound::performVibrate() const
 {
-	QSoundEffect *e = new QSoundEffect(this);
-
-	e->setVolume((qreal)m_mediaPlayerSfx->volume() / 100.0);
-
-	connect(m_mediaPlayerSfx, &QMediaPlayer::volumeChanged, this, [this, e]() {
-		e->setVolume((qreal)m_mediaPlayerSfx->volume() / 100.0);
-	});
-
-	LOG_CTRACE("sound") << "New sound effect:" << e;
-
-	return e;
+	if (m_vibrate)
+		Utils::vibrate();
 }
 
 
@@ -134,9 +126,6 @@ void Sound::init()
 
 	m_soundTypeSfx = PlayerSfx;
 
-	/*connect (m_mediaPlayerMusic, &QMediaPlayer::volumeChanged, this, &CosSound::volumeMusicChanged);
-	connect (m_mediaPlayerSfx, &QMediaPlayer::volumeChanged, this, &CosSound::volumeSfxChanged);
-	connect (m_mediaPlayerVoiceOver, &QMediaPlayer::volumeChanged, this, &CosSound::volumeVoiceOverChanged);*/
 
 	connect(m_mediaPlayerVoiceOver, &QMediaPlayer::stateChanged, this, [=](QMediaPlayer::State state) {
 		if (state == QMediaPlayer::StoppedState && m_mediaPlayerVoiceOver->playlist()) {
@@ -156,25 +145,9 @@ void Sound::init()
 	setVolumeMusic(s.value(QStringLiteral("volumeMusic"), 50).toInt());
 	setVolumeSfx(s.value(QStringLiteral("volumeSfx"), 50).toInt());
 	setVolumeVoiceOver(s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
+	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
 	s.endGroup();
 
-	/*connect(m_mediaPlayerMusic, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
-			[=](QMediaPlayer::Error error) {
-		qWarning() << "Media error" << m_mediaPlayerMusic << error;
-		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
-	});
-
-	connect(m_mediaPlayerSfx, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
-			[=](QMediaPlayer::Error error) {
-		qWarning() << "Media error" << m_mediaPlayerSfx << error;
-		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
-	});
-
-	connect(m_mediaPlayerVoiceOver, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
-			[=](QMediaPlayer::Error error) {
-		qWarning() << "Media error" << m_mediaPlayerVoiceOver << error;
-		sendMessageErrorImage("qrc:/internal/icon/alert-octagon.svg",tr("Médialejátszó"), tr("Médialejátszási hiba %1").arg(error));
-	});*/
 
 	LOG_CTRACE("sound") << "Sound object initialized";
 }
@@ -250,11 +223,22 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 		return;
 
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState && m_mediaPlayerMusic->currentMedia() == QUrl(source)
-		&& m_fadeAnimation->state() != QAbstractAnimation::Running)
+			&& m_fadeAnimation->state() != QAbstractAnimation::Running)
 	{
 		m_fadeAnimation->setStartValue(m_mediaPlayerMusic->volume());
 		m_fadeAnimation->start();
 	}
+}
+
+
+/**
+ * @brief Sound::isPlayingMusic
+ * @return
+ */
+
+bool Sound::isPlayingMusic() const
+{
+	return (m_mediaPlayerMusic && m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState);
 }
 
 
@@ -302,6 +286,7 @@ void Sound::setVolumeVoiceOver(int volume)
 
 void Sound::musicPlay(const QString &source)
 {
+
 	LOG_CTRACE("sound") << "Play music" << source;
 
 	if (!m_mediaPlayerMusic)
@@ -355,3 +340,23 @@ void Sound::musicLoadNextSource()
 	m_mediaPlayerMusic->play();
 
 }
+
+
+/**
+ * @brief Sound::vibrate
+ * @return
+ */
+
+bool Sound::vibrate() const
+{
+	return m_vibrate;
+}
+
+void Sound::setVibrate(bool newVibrate)
+{
+	if (m_vibrate == newVibrate)
+		return;
+	m_vibrate = newVibrate;
+	emit vibrateChanged();
+}
+

@@ -53,17 +53,9 @@ class GameEnemy : public GameEntity
 	Q_PROPERTY(bool hasQuestion READ hasQuestion NOTIFY questionChanged)
 	Q_PROPERTY(bool hasPickable READ hasPickable NOTIFY pickableChanged)
 
-#ifndef Q_OS_WASM
-	Q_PROPERTY(QSoundEffect soundEffect READ soundEffect CONSTANT)
-#endif
-
 public:
 	explicit GameEnemy(QQuickItem *parent = nullptr);
 	virtual ~GameEnemy();
-
-#ifndef Q_OS_WASM
-	QSoundEffect *soundEffect() const { return m_soundEffect; }
-#endif
 
 	enum EnemyState {
 		Invalid = 0,

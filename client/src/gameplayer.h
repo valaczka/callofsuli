@@ -52,10 +52,6 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(GameObject* operatingObject READ operatingObject WRITE setOperatingObject NOTIFY operatingObjectChanged)
 	Q_PROPERTY(int invisibleTime READ invisibleTime NOTIFY invisibleTimeChanged)
 
-#ifndef Q_OS_WASM
-	Q_PROPERTY(QSoundEffect *soundEffectShot READ soundEffectShot CONSTANT)
-	Q_PROPERTY(QSoundEffect *soundEffectGeneral READ soundEffectGeneral CONSTANT)
-#endif
 
 public:
 	explicit GamePlayer(QQuickItem *parent = nullptr);
@@ -112,11 +108,6 @@ public:
 	};
 
 	Q_ENUM(LadderState)
-
-#ifndef Q_OS_WASM
-	QSoundEffect *soundEffectShot() const;
-	QSoundEffect *soundEffectGeneral() const;
-#endif
 
 	static GamePlayer* create(GameScene *scene, const QString &type = "");
 

@@ -15,6 +15,11 @@ QItemGradient {
 
 	property bool _firstRun: true
 
+	appBar.rightComponent: Qaterial.AppBarButton {
+		icon.source: Qaterial.Icons.cogOutline
+		onClicked: Client.stackPushPage("PageStudentSettings.qml")
+	}
+
 	QScrollable {
 		anchors.fill: parent
 		spacing: 15

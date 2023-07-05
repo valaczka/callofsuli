@@ -41,5 +41,23 @@ SOURCES += \
 
 	SOURCES += \
 		$$PWD/database.cpp
-
 }
+
+
+android: {
+	HEADERS += \
+		$$PWD/mobileutils.h
+
+	SOURCES += \
+		$$PWD/mobileutils.cpp
+}
+
+
+ios: {
+	HEADERS += \
+		$$PWD/mobileutils.h
+
+	OBJECTIVE_SOURCES += \
+		$$PWD/mobileutils.mm
+}
+

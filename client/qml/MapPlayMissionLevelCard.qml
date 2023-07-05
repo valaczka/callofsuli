@@ -108,19 +108,6 @@ Qaterial.Card {
 				Layout.preferredHeight: font.pixelSize*2.3
 			}
 
-			/*Qaterial.LabelBody2
-			{
-				text: qsTr("%1 XP").arg(missionLevel.xp)
-				color: control.textColor
-				horizontalAlignment: Text.AlignHCenter
-				verticalAlignment: Text.AlignVCenter
-				Layout.leftMargin: Qaterial.Style.card.horizontalPadding
-				Layout.rightMargin: Qaterial.Style.card.horizontalPadding
-				Layout.bottomMargin: control._verticalPadding
-				//Layout.topMargin: Qaterial.Style.card.verticalPadding
-				Layout.fillWidth: true
-				Layout.preferredHeight: font.pixelSize*2
-			}*/
 		}
 
 		MouseArea {

@@ -101,12 +101,12 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
 
 	if (client) {
-		m_soundEffectShot = client->newSoundEffect();
+		m_soundEffectShot = client->newSoundEffect(this);
 		m_soundEffectShot->setSource(shotSound());
 		connect(this, &GamePlayer::attack, m_soundEffectShot, &QSoundEffect::play);
 		connect(this, &GamePlayer::shotSoundChanged, m_soundEffectShot, &QSoundEffect::setSource);
 
-		m_soundEffectGeneral = client->newSoundEffect();
+		m_soundEffectGeneral = client->newSoundEffect(this);
 	}
 #endif
 
@@ -1055,30 +1055,6 @@ void GamePlayer::onIsOnGroundChanged()
 }
 
 
-#ifndef Q_OS_WASM
-
-/**
- * @brief GamePlayer::soundEffectShot
- * @return
- */
-
-QSoundEffect *GamePlayer::soundEffectShot() const
-{
-	return m_soundEffectShot;
-}
-
-
-/**
- * @brief GamePlayer::soundEffectGeneral
- * @return
- */
-
-QSoundEffect *GamePlayer::soundEffectGeneral() const
-{
-	return m_soundEffectGeneral;
-}
-
-#endif
 
 GameEnemy *GamePlayer::enemy() const
 {

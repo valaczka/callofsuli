@@ -29,7 +29,6 @@
 
 #include "client.h"
 #include "qsoundeffect.h"
-#include "qthread.h"
 #include "sound.h"
 #include <QtNetworkAuth/qoauthhttpserverreplyhandler.h>
 #include <QtNetworkAuth/QOAuth2AuthorizationCodeFlow>
@@ -43,18 +42,15 @@ class DesktopClient : public Client
 {
 	Q_OBJECT
 
-	Q_PROPERTY(qreal sfxVolume READ sfxVolume WRITE setSfxVolume NOTIFY sfxVolumeChanged)
 	Q_PROPERTY(ServerList *serverList READ serverList CONSTANT)
 	Q_PROPERTY(int serverListSelectedCount READ serverListSelectedCount NOTIFY serverListSelectedCountChanged)
+	Q_PROPERTY(Sound *sound READ sound CONSTANT)
 
 public:
 	explicit DesktopClient(Application *app, QObject *parent = nullptr);
 	virtual ~DesktopClient();
 
-	qreal sfxVolume() const;
-	void setSfxVolume(qreal newSfxVolume);
-
-	QSoundEffect *newSoundEffect();
+	QSoundEffect *newSoundEffect(QObject *parent);
 
 	ServerList *serverList() const;
 
@@ -67,12 +63,11 @@ public:
 
 	int serverListSelectedCount() const;
 
+	Sound *sound() const;
+
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);
 	void stopSound(const QString &source, const Sound::SoundType &soundType);
-	int volume(const Sound::ChannelType &channel) const;
-	void setVolume(const Sound::ChannelType &channel, const int &volume) const;
-	void setSfxVolumeInt(int sfxVolume);
 
 protected slots:
 	void onStartPageLoaded();
@@ -83,22 +78,23 @@ protected slots:
 private slots:
 	void onMainWindowChanged();
 	void onOrientationChanged(Qt::ScreenOrientation orientation);
+	void onSoundEffectTimeout();
 
 private:
 	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 
 signals:
-	void sfxVolumeChanged(const qreal &volume);
 	void serverListSelectedCountChanged();
 
 private:
 	Sound *m_sound = nullptr;
-	QThread m_soundThread;
-	qreal m_sfxVolume = 1.0;
 	ServerList *m_serverList = nullptr;
 	QOAuthHttpServerReplyHandler *m_replyHandler = nullptr;
 	QOAuth2AuthorizationCodeFlow *m_codeFlow = nullptr;
+	QVector<QPointer<QSoundEffect>> m_soundEffectList;
+
+	QTimer m_soundEffectTimer;
 };
 
 #endif

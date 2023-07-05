@@ -45,7 +45,16 @@ const quint32 Utils::m_versionBuild = VERSION_BUILD;
 
 #ifdef Q_OS_ANDROID
 #include "qandroidfunctions.h"
+#include "QGuiApplication"
+#include "qscreen.h"
 #endif
+
+
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#include "mobileutils.h"
+#endif
+
+
 
 /**
  * @brief Utils::Utils
@@ -715,3 +724,48 @@ void Utils::checkMediaPermissions()
 	emit mediaPermissionsGranted();
 }
 
+
+
+/**
+ * @brief Utils::vibrate
+ */
+
+void Utils::vibrate()
+{
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	MobileUtils::vibrate();
+#else
+	LOG_CTRACE("utils") << "Vibrate not supported";
+#endif
+}
+
+
+
+/**
+ * @brief Utils::getAndroidSafeMargins
+ * @return
+ */
+
+#ifdef Q_OS_ANDROID
+
+QMarginsF Utils::getAndroidSafeMargins()
+{
+	QMarginsF margins;
+	static const double devicePixelRatio = QGuiApplication::primaryScreen()->devicePixelRatio();
+
+	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
+
+	const double left = static_cast<double>(rect.getField<jint>("left"));
+	const double top = static_cast<double>(rect.getField<jint>("top"));
+	const double right = static_cast<double>(rect.getField<jint>("right"));
+	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
+
+	margins.setTop(top/devicePixelRatio);
+	margins.setBottom(bottom/devicePixelRatio);
+	margins.setLeft(left/devicePixelRatio);
+	margins.setRight(right/devicePixelRatio);
+
+	return margins;
+}
+
+#endif

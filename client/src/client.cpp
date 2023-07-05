@@ -1392,27 +1392,14 @@ void Client::safeMarginsGet()
 {
 	QMarginsF margins;
 
-#if !defined (Q_OS_ANDROID)
+#ifdef Q_OS_ANDROID
+	margins = Utils::getAndroidSafeMargins();
+#else
 	QPlatformWindow *platformWindow = m_mainWindow->handle();
 	if(!platformWindow) {
 		LOG_CERROR("client") << "Invalid QPlatformWindow";
 		return;
 	}
-	margins = platformWindow->safeAreaMargins();
-#else
-	static const double devicePixelRatio = QGuiApplication::primaryScreen()->devicePixelRatio();
-
-	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
-
-	const double left = static_cast<double>(rect.getField<jint>("left"));
-	const double top = static_cast<double>(rect.getField<jint>("top"));
-	const double right = static_cast<double>(rect.getField<jint>("right"));
-	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
-
-	margins.setTop(top/devicePixelRatio);
-	margins.setBottom(bottom/devicePixelRatio);
-	margins.setLeft(left/devicePixelRatio);
-	margins.setRight(right/devicePixelRatio);
 #endif
 
 	LOG_CDEBUG("client") << "New safe margins:" << margins;

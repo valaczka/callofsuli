@@ -70,7 +70,7 @@ ListView {
 			id: _delegate
 			property MapGame game: model.qtObject
 
-			spacing: 10
+			spacing: 10  * Qaterial.Style.pixelSizeRatio
 			leftPadding: 0
 			rightPadding: 0
 
@@ -136,7 +136,7 @@ ListView {
 
 			height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
 
-			spacing: 10
+			spacing: 10  * Qaterial.Style.pixelSizeRatio
 			leftPadding: 0
 			rightPadding: 0
 

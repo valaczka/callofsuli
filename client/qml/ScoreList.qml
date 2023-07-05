@@ -253,6 +253,7 @@ Qaterial.Page
 
 		onCurrentIndexChanged: {
 			if (currentIndex != -1) {
+				_showPlaceholders = false
 				var o = model.get(currentIndex)
 				_classidFilter.classid = o.classid
 			}

@@ -47,14 +47,17 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 
 	m_oauthData.isLocal = true;
 
-	connect(m_sound, &Sound::volumeSfxChanged, this, &DesktopClient::setSfxVolumeInt);
-
 	m_sound->init();
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
 
 	serverListLoad();
+
+	m_soundEffectTimer.setInterval(1500);
+	connect(&m_soundEffectTimer, &QTimer::timeout, this, &DesktopClient::onSoundEffectTimeout);
+
+	connect(m_sound, &Sound::volumeSfxChanged, &m_soundEffectTimer, [this](int){ m_soundEffectTimer.start(); });
 }
 
 
@@ -78,24 +81,6 @@ DesktopClient::~DesktopClient()
 }
 
 
-/**
- * @brief DesktopClient::sfxVolume
- * @return
- */
-
-qreal DesktopClient::sfxVolume() const
-{
-	return m_sfxVolume;
-}
-
-void DesktopClient::setSfxVolume(qreal newSfxVolume)
-{
-	if (qFuzzyCompare(m_sfxVolume, newSfxVolume))
-		return;
-	m_sfxVolume = newSfxVolume;
-	emit sfxVolumeChanged(m_sfxVolume);
-}
-
 
 
 /**
@@ -103,9 +88,13 @@ void DesktopClient::setSfxVolume(qreal newSfxVolume)
  * @return
  */
 
-QSoundEffect *DesktopClient::newSoundEffect()
+QSoundEffect *DesktopClient::newSoundEffect(QObject *parent)
 {
-	return m_sound->newSoundEffect();
+	QSoundEffect *e = new QSoundEffect(parent);
+
+	m_soundEffectList.append(e);
+
+	return e;
 }
 
 
@@ -142,78 +131,6 @@ void DesktopClient::stopSound(const QString &source, const Sound::SoundType &sou
 							  Q_ARG(Sound::SoundType, soundType)
 							  );
 }
-
-
-/**
- * @brief DesktopClient::volume
- * @param channel
- * @return
- */
-
-
-int DesktopClient::volume(const Sound::ChannelType &channel) const
-{
-	switch (channel) {
-	case Sound::MusicChannel:
-		return m_sound->volumeMusic();
-		break;
-	case Sound::SfxChannel:
-		return m_sound->volumeSfx();
-		break;
-	case Sound::VoiceoverChannel:
-		return m_sound->volumeVoiceOver();
-		break;
-	}
-
-	return -1;
-}
-
-
-/**
- * @brief DesktopClient::setVolume
- * @param channel
- * @param volume
- */
-
-void DesktopClient::setVolume(const Sound::ChannelType &channel, const int &volume) const
-{
-	QSettings s;
-	s.beginGroup(QStringLiteral("sound"));
-
-	switch (channel) {
-	case Sound::MusicChannel:
-		m_sound->setVolumeMusic(volume);
-		s.setValue(QStringLiteral("volumeMusic"), volume);
-		break;
-	case Sound::SfxChannel:
-		m_sound->setVolumeSfx(volume);
-		s.setValue(QStringLiteral("volumeSfx"), volume);
-		break;
-	case Sound::VoiceoverChannel:
-		m_sound->setVolumeVoiceOver(volume);
-		s.setValue(QStringLiteral("volumeVoiceOver"), volume);
-		break;
-	}
-
-	s.endGroup();
-}
-
-
-
-
-
-/**
- * @brief DesktopClient::setSfxVolumeInt
- * @param sfxVolume
- */
-
-void DesktopClient::setSfxVolumeInt(int sfxVolume)
-{
-	qreal r = qreal(sfxVolume)/100;
-
-	setSfxVolume(r);
-}
-
 
 
 
@@ -468,6 +385,35 @@ void DesktopClient::serverListSave(const QDir &dir)
 			LOG_CERROR("client") << "Can't save server data:" << qPrintable(dir.absoluteFilePath(s->name()));
 		}
 	}
+}
+
+
+
+/**
+ * @brief DesktopClient::onSoundEffectTimeout
+ */
+
+void DesktopClient::onSoundEffectTimeout()
+{
+	if (!m_sound)
+		return;
+
+	const qreal vol = (qreal) m_sound->volumeSfx() / 100.0;
+
+	foreach (QSoundEffect *e, m_soundEffectList)
+		if (e)
+			e->setVolume(vol);
+}
+
+
+/**
+ * @brief DesktopClient::sound
+ * @return
+ */
+
+Sound *DesktopClient::sound() const
+{
+	return m_sound;
 }
 
 

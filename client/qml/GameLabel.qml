@@ -13,7 +13,7 @@ Item {
 	property real pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
 	property string text: "%1"
 	property bool marked: false
-	property real horizontalPadding: 10
+	property real horizontalPadding: 10 * Qaterial.Style.pixelSizeRatio
 	property bool iconVisible: true
 
 	implicitHeight: iconLabel.height

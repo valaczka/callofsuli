@@ -45,13 +45,13 @@ QPageGradient {
 		Label {
 			width: parent.width
 			horizontalAlignment: Text.AlignHCenter
-			leftPadding: Math.max(20, Client.safeMarginLeft)
-			rightPadding: Math.max(20, Client.safeMarginRight)
+			leftPadding: Math.max(20 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
+			rightPadding: Math.max(20 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
 			font.family: "HVD Peace"
 			font.pixelSize: Qaterial.Style.textTheme.headline3.pixelSize
 			text: mission ? mission.name : ""
 			wrapMode: Text.Wrap
-			bottomPadding: 10
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 
 			visible: map && map.gameState != MapPlay.StateInvalid
 		}
@@ -63,22 +63,22 @@ QPageGradient {
 					  qsTr("Level %1").arg(missionLevel.level)
 					  +(missionLevel.deathmatch ? qsTr("\nSudden Death") : "")
 					: ""
-			bottomPadding: 20
+			bottomPadding: 20 * Qaterial.Style.pixelSizeRatio
 			visible: map && map.gameState != MapPlay.StateInvalid
 		}
 
-		Qaterial.LabelBody1 {
+		Qaterial.LabelBody2 {
 			anchors.horizontalCenter: parent.horizontalCenter
 			horizontalAlignment: Text.AlignHCenter
 			width: parent.width
-			leftPadding: Math.max(50, Client.safeMarginLeft)
-			rightPadding: Math.max(50, Client.safeMarginRight)
+			leftPadding: Math.max(50 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
+			rightPadding: Math.max(50 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
 			text: mission && missionLevel ? (_modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Test ?
 												 mission.description + qsTr("\n\nA sikeres teljesítéshez %1% eredményt kell elérni").arg(Math.floor(missionLevel.passed*100)) :
 												 mission.description)
 										  : ""
 			wrapMode: Text.Wrap
-			bottomPadding: 20
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 			visible: text != "" && map && map.gameState == MapPlay.StateSelect
 			color: Qaterial.Style.iconColor()
 		}
@@ -160,8 +160,8 @@ QPageGradient {
 
 			text: qsTr("%1 XP").arg(xp)
 			anchors.horizontalCenter: parent.horizontalCenter
-			topPadding: 10
-			bottomPadding: 10
+			topPadding: 7 * Qaterial.Style.pixelSizeRatio
+			bottomPadding: 7 * Qaterial.Style.pixelSizeRatio
 			color: Qaterial.Colors.lightGreen400
 
 			visible: map && map.gameState == MapPlay.StateSelect && !map.readOnly
@@ -189,10 +189,10 @@ QPageGradient {
 			bgColor: Qaterial.Colors.green700
 			textColor: Qaterial.Colors.white
 			//display: AbstractButton.TextUnderIcon
-			topPadding: 10
-			bottomPadding: 10
-			leftPadding: 40
-			rightPadding: 40
+			topPadding: 10 * Qaterial.Style.pixelSizeRatio
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+			leftPadding: 40 * Qaterial.Style.pixelSizeRatio
+			rightPadding: 40 * Qaterial.Style.pixelSizeRatio
 			enabled: missionLevel && missionLevel.lockDepth == 0 && map && _modeGroup.checkedButton
 			text:  map && map.gameState != MapPlay.StateSelect && _currentGameFailed ? qsTr("Újra") : qsTr("Play")
 
@@ -242,8 +242,8 @@ QPageGradient {
 
 			text: qsTr("%1 XP megszerezve").arg(xp)
 			anchors.horizontalCenter: parent.horizontalCenter
-			topPadding: 20
-			bottomPadding: 10
+			topPadding: 20 * Qaterial.Style.pixelSizeRatio
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 			color: Qaterial.Style.accentColor
 
 			visible: map && map.gameState == MapPlay.StateFinished && map.online
@@ -300,8 +300,8 @@ QPageGradient {
 		Row {
 			anchors.left: _unlockView.left
 			visible: _unlockView.visible
-			spacing: 10
-			topPadding: 40
+			spacing: 10 * Qaterial.Style.pixelSizeRatio
+			topPadding: 30 * Qaterial.Style.pixelSizeRatio
 
 			Qaterial.Icon {
 				icon: Qaterial.Icons.lockOff
@@ -405,7 +405,7 @@ QPageGradient {
 
 			anchors.left: _listDuration.left
 			anchors.right: _listDuration.right
-			topPadding: 10
+			topPadding: 10 * Qaterial.Style.pixelSizeRatio
 
 			visible: _listDuration.visible && (_mapGameList.length > 0 || _firstLoad) &&
 					 map && (map.gameState == MapPlay.StateSelect)
@@ -435,7 +435,7 @@ QPageGradient {
 
 			anchors.left: _listSolved.left
 			anchors.right: _listSolved.right
-			topPadding: 20
+			topPadding: 20 * Qaterial.Style.pixelSizeRatio
 
 			visible: _listSolved.visible && _modeGroup.checkedButton && (_mapGameList.length > 0 || _firstLoad) &&
 					 map && (map.gameState == MapPlay.StateSelect)
