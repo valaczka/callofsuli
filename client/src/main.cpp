@@ -30,6 +30,7 @@
 #include "onlineapplication.h"
 #elif defined (Q_OS_ANDROID) || defined (Q_OS_IOS)
 #include "mobileapplication.h"
+#include "mobileutils.h"
 #else
 #include "desktopapplication.h"
 #endif
@@ -44,20 +45,23 @@ int main(int argc, char *argv[])
 #if defined (Q_OS_ANDROID) || defined (Q_OS_IOS)
 	MobileApplication app (argc, argv);
 
+	MobileUtils::initialize();
+
 	app.initialize();
 
 	return app.run();
 #else
+
 	DesktopApplication app(argc, argv);
+
 	app.commandLineParse();
 	app.initialize();
 
-	int r = 0;
+	if (!app.performCommandLine())
+		return 0;
 
-	if (app.performCommandLine())
-		r = app.run();
+	return app.runSingleInstance();
 
-	return r;
 #endif
 
 

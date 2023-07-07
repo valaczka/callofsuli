@@ -98,9 +98,6 @@ const bool Application::m_debug = false;
 const bool Application::m_debug = true;
 #endif
 
-#ifndef Q_OS_WASM
-#include <QtWebView>
-#endif
 
 /**
  * @brief Application::Application
@@ -121,11 +118,6 @@ Application::Application(int &argc, char **argv)
 
 	if (!m_instance)
 		m_instance = this;
-
-
-#ifndef Q_OS_WASM
-	QtWebView::initialize();
-#endif
 
 	m_application = new QGuiApplication(argc, argv);
 
@@ -196,6 +188,8 @@ int Application::run()
 	LOG_CINFO("app") << "Run Application";
 
 	return m_application->exec();
+
+	LOG_CINFO("app") << "Application finished";
 }
 
 
@@ -522,6 +516,31 @@ void Application::loadModules()
 const QString &Application::commandLineData() const
 {
 	return m_commandLineData;
+}
+
+
+/**
+ * @brief Application::selectUrl
+ * @param url
+ */
+
+void Application::selectUrl(const QUrl &url)
+{
+	LOG_CDEBUG("app") << "Select APP url:" << url;
+
+	if (!m_client) {
+		LOG_CERROR("app") << "Missing client";
+		return;
+	}
+
+	m_client->notifyWindow();
+
+	if (url.host().isEmpty())
+		return;
+
+	m_client->setParseUrl(url);
+
+	QMetaObject::invokeMethod(m_client, "parseUrl", Qt::QueuedConnection);
 }
 
 

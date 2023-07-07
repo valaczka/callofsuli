@@ -134,7 +134,7 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 		if (!flow)
 			return responseError(response, "invalid state");
 
-		if (flow->isLocal()) {
+		/*if (flow->isLocal()) {
 			const QString &access_token = data.value(QStringLiteral("access_token")).toString();
 			LOG_CTRACE("client") << "LOCAL flow" << flow << state << access_token;
 
@@ -153,7 +153,7 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 
 				flow->setTokenFromLocal(token);
 			}
-		}
+		}*/
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
@@ -189,10 +189,10 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 	}
 
 	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
-	if (data.value(QStringLiteral("local")).toBool()) {
+	/*if (data.value(QStringLiteral("local")).toBool()) {
 		flow->setIsLocal(true);
 		flow->setAuthState(OAuth2CodeFlow::Pending);
-	}
+	}*/
 
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow](){
@@ -214,7 +214,7 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 	});
 
 
-	if (flow->isLocal()) {
+	/*if (flow->isLocal()) {
 		QJsonObject data = authenticator->localAuthData();
 
 		if (data.isEmpty())
@@ -223,12 +223,12 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 		data.insert(QStringLiteral("state"), flow->state());
 
 		responseAnswer(response, data);
-	} else {
+	} else {*/
 		responseAnswer(response, {
 						   { QStringLiteral("state"), flow->state() },
 						   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
 					   });
-	}
+	/*}*/
 
 
 }
@@ -321,7 +321,7 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 		if (!flow)
 			return responseError(response, "invalid state");
 
-		if (flow->isLocal()) {
+		/*if (flow->isLocal()) {
 			const QString &access_token = data.value(QStringLiteral("access_token")).toString();
 			LOG_CTRACE("client") << "LOCAL flow" << flow << state << access_token;
 
@@ -340,7 +340,7 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 
 				flow->setTokenFromLocal(token);
 			}
-		}
+		}*/
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
@@ -383,10 +383,10 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 
 	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
 
-	if (data.value(QStringLiteral("local")).toBool()) {
+	/*if (data.value(QStringLiteral("local")).toBool()) {
 		flow->setIsLocal(true);
 		flow->setAuthState(OAuth2CodeFlow::Pending);
-	}
+	}*/
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, response, data](){
 		AdminAPI::User user = flow->getUserInfo();
@@ -395,8 +395,10 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 		if (!user.username.isEmpty()) {
 			QPointer<OAuth2CodeFlow> fp(flow);
 
-			const QStringList &array = m_service->config().get("oauth2DomainList").toString().simplified().split(QStringLiteral(","));
+			const QStringList &array = m_service->config().get("oauth2DomainList").toString().simplified()
+					.split(QStringLiteral(","), Qt::SkipEmptyParts);
 			bool domainEnabled = array.isEmpty();
+
 
 			for (const QString &s : array) {
 				if (domainEnabled)
@@ -408,6 +410,8 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 				if (user.username.endsWith(s.simplified()))
 					domainEnabled = true;
 			}
+
+			LOG_CTRACE("client") << "Check domains:" << array << domainEnabled;
 
 			if (!domainEnabled) {
 				if (fp) fp->setAuthState(OAuth2CodeFlow::InvalidDomain);
@@ -459,7 +463,7 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 	});
 
 
-	if (flow->isLocal()) {
+	/*if (flow->isLocal()) {
 		QJsonObject data = authenticator->localAuthData();
 
 		if (data.isEmpty())
@@ -468,12 +472,12 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 		data.insert(QStringLiteral("state"), flow->state());
 
 		responseAnswer(response, data);
-	} else {
+	} else {*/
 		responseAnswer(response, {
 						   { QStringLiteral("state"), flow->state() },
 						   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
 					   });
-	}
+	/*}*/
 }
 
 

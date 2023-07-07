@@ -31,6 +31,11 @@
 #include "gamequestion.h"
 #include <QRandomGenerator>
 
+#ifndef Q_OS_WASM
+#include "desktopclient.h"
+#endif
+
+
 /**
  * @brief LiteGame::LiteGame
  * @param missionLevel
@@ -241,6 +246,12 @@ void LiteGame::onGameQuestionSuccess(const QVariantMap &answer)
 
 void LiteGame::onGameQuestionFailed(const QVariantMap &answer)
 {
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(m_client);
+	if (client)
+		client->performVibrate();
+#endif
+
 	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
 
 	setIsFlawless(false);

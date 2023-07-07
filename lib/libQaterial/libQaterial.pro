@@ -32,7 +32,7 @@ QMAKE_CXXFLAGS += -Wno-unused-parameter -Wno-unused-lambda-capture -Wno-deprecat
 
 # Qrc
 
-!exists(Qaterial.qrc): {
+linux:!exists(Qaterial.qrc): {
 	lines = <RCC>
 	lines += "<qresource prefix=\"/Qaterial\">"
 
@@ -50,7 +50,7 @@ QMAKE_CXXFLAGS += -Wno-unused-parameter -Wno-unused-lambda-capture -Wno-deprecat
 
 # Icons
 
-!exists(QaterialIcons.qrc): {
+linux:!exists(QaterialIcons.qrc): {
 
 	lines = <RCC>
 	lines += "<qresource prefix=\"/Qaterial/Icons\">"

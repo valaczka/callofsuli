@@ -11,5 +11,6 @@
         <file>../html/css/style.css</file>
         <file>../html/js/bootstrap.js</file>
         <file>../html/js/jquery-3.4.1.min.js</file>
+        <file>../html/callback.html</file>
     </qresource>
 </RCC>

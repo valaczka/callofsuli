@@ -101,7 +101,6 @@ public:
 		Status status = Invalid;
 		QTimer timer;
 		QPointer<QQuickItem> webPage = nullptr;
-		bool isLocal = false;
 	};
 
 	QQuickItem *mainStack() const;
@@ -116,6 +115,7 @@ public:
 	void setMainWindow(QQuickWindow *newMainWindow);
 
 	Q_INVOKABLE bool closeWindow(const bool &forced = false);
+	Q_INVOKABLE void notifyWindow();
 
 	Utils *utils() const;
 	Application *application() const;
@@ -182,6 +182,7 @@ public:
 
 	Server *server() const;
 
+	Q_INVOKABLE virtual Server *serverAddWithUrl(const QUrl &url);
 	Q_INVOKABLE void connectToServer(Server *server);
 
 	void stackPopToStartPage();
@@ -189,8 +190,8 @@ public:
 
 	// Login
 
-	Q_INVOKABLE void loginGoogle();
-	Q_INVOKABLE void registrationGoogle(const QString &code);
+	Q_INVOKABLE void loginOAuth2(const QString &provider);
+	Q_INVOKABLE void registrationOAuth2(const QString &provider, const QString &code);
 
 	Q_INVOKABLE void loginPlain(const QString &username, const QString &password);
 	Q_INVOKABLE void registrationPlain(const QJsonObject &data);
@@ -252,10 +253,10 @@ protected slots:
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
 	void _userAuthTokenReceived(const QString &token);
-	virtual void prepareOAuth(const QJsonObject &) {}
 
 signals:
 	void loadRequestRegistration(const QString &oauth, const QString &code);
+	void serverSetAutoConnectRequest(Server *server);
 
 	void startPageLoaded();
 	void pixelSizeChanged();

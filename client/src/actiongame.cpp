@@ -41,6 +41,11 @@
 #include "qscreen.h"
 #endif
 
+#ifndef Q_OS_WASM
+#include "desktopclient.h"
+#endif
+
+
 // Tool dependency
 
 const QHash<QString, QVector<GamePickable::PickableType>>
@@ -894,24 +899,30 @@ void ActionGame::onGameQuestionSuccess(const QVariantMap &answer)
 
 void ActionGame::onGameQuestionFailed(const QVariantMap &answer)
 {
-	if (m_player) {
-		addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(m_client);
+	if (client)
+		client->performVibrate();
+#endif
 
+	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+
+	if (m_player)
 		player()->hurtByEnemy(nullptr, false);
 
-		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/loser.mp3"));
+	m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/loser.mp3"));
 
-		m_gameQuestion->answerReveal(answer);
-		m_gameQuestion->setMsecBeforeHide(1250);
+	m_gameQuestion->answerReveal(answer);
+	m_gameQuestion->setMsecBeforeHide(1250);
 
-		GameEnemy *enemy = qobject_cast<GameEnemy*>(m_attackedEnemy);
+	GameEnemy *enemy = qobject_cast<GameEnemy*>(m_attackedEnemy);
 
-		if (enemy) {
-			m_attackedEnemy = nullptr;
-			enemy->missedByPlayer(player());
-			relinkQuestionToEnemy(enemy);
-		}
+	if (enemy) {
+		m_attackedEnemy = nullptr;
+		enemy->missedByPlayer(player());
+		relinkQuestionToEnemy(enemy);
 	}
+
 	m_gameQuestion->finish();
 
 }

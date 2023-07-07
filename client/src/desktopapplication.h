@@ -29,6 +29,7 @@
 
 #include "ColorConsoleAppender.h"
 #include "mobileapplication.h"
+#include "qsingleinstance.h"
 
 class DesktopApplication : public MobileApplication
 {
@@ -39,12 +40,17 @@ public:
 	void commandLineParse();
 	bool performCommandLine();
 
+	void performInstanceArguments(const QStringList &arguments);
+
+	int runSingleInstance();
+
 protected:
 	virtual Client *createClient() override;
 
 private:
 	QStringList m_arguments;
 	ColorConsoleAppender *m_appender = nullptr;
+	QSingleInstance m_singleInstance;
 };
 
 #endif // DESKTOPAPPLICATION_H

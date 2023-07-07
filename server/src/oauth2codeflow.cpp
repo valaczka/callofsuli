@@ -81,6 +81,11 @@ QUrl OAuth2CodeFlow::requestAuthorizationUrl()
 
 void OAuth2CodeFlow::requestAccesToken(const QString &code)
 {
+	if (m_authState != Invalid && m_authState != Pending) {
+		LOG_CTRACE("oauth2") << "Flow already finished";
+		return;
+	}
+
 	LOG_CTRACE("oauth2") << "Start request token";
 
 	m_authState = Pending;
@@ -227,36 +232,6 @@ void OAuth2CodeFlow::onRemoveTimerTimeout()
 	deleteLater();
 }
 
-bool OAuth2CodeFlow::isLocal() const
-{
-	return m_isLocal;
-}
-
-void OAuth2CodeFlow::setIsLocal(bool newIsLocal)
-{
-	m_isLocal = newIsLocal;
-}
-
-
-/**
- * @brief OAuth2CodeFlow::setTokenFromLocal
- * @param token
- */
-
-void OAuth2CodeFlow::setTokenFromLocal(const Token &token)
-{
-	LOG_CTRACE("oauth2") << "Set token from local";
-	m_token = token;
-
-	m_authState = TokenReceived;
-
-	if (m_token.idToken.isEmpty()) {
-		LOG_CTRACE("oauth2") << "Token received";
-	} else {
-		LOG_CTRACE("oauth2") << "Authenticated";
-		emit authenticated();
-	}
-}
 
 
 

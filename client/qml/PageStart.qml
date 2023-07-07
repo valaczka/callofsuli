@@ -44,8 +44,7 @@ QPage {
 			QMenuItem { action: actionAbout }
 			QMenuItem { action: actionExit }
 		}
-
-	}
+ }
 
 
 	Action {
@@ -268,7 +267,7 @@ QPage {
 								},
 								text: qsTr("Biztosan törlöd a kijelölt %1 szervert?").arg(Client.serverListSelectedCount),
 								title: qsTr("Szerverek törlése"),
-								iconSource: Qaterial.Icons.closeCircle
+								iconSource: Qaterial.Icons.delete_
 							})
 
 			} else {
@@ -281,7 +280,7 @@ QPage {
 								},
 								text: qsTr("Biztosan törlöd a szervert?"),
 								title: view.model.get(view.currentIndex).serverName,
-								iconSource: Qaterial.Icons.closeCircle
+								iconSource: Qaterial.Icons.delete_
 							})
 			}
 

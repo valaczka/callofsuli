@@ -36,6 +36,7 @@
 #include "terminalhandler.h"
 #include "utils.h"
 #include "googleoauth2authenticator.h"
+#include "microsoftoauth2authenticator.h"
 #include <QOAuthHttpServerReplyHandler>
 
 
@@ -186,10 +187,19 @@ Service::CommandResult ServerService::onStart()
 
 	// Create authenticators
 
-	GoogleOAuth2Authenticator *authGoogle = new GoogleOAuth2Authenticator(this);
-	authGoogle->setOAuth(m_settings->oauthGoogle());
-	m_authenticators.append(authGoogle);
+	for (auto it=m_settings->oauthMap().constBegin(); it != m_settings->oauthMap().constEnd(); ++it) {
+		OAuth2Authenticator *authenticator = nullptr;
 
+		if (it.key() == QStringLiteral("google"))
+			authenticator = new GoogleOAuth2Authenticator(this);
+		else if (it.key() == QStringLiteral("microsoft"))
+			authenticator = new MicrosoftOAuth2Authenticator(this);
+
+		if (authenticator) {
+			authenticator->setOAuth(it.value());
+			m_authenticators.append(authenticator);
+		}
+	}
 
 
 	LOG_CINFO("service") << "Server service started successful";

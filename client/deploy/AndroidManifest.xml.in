@@ -11,7 +11,7 @@
 	<uses-permission android:name=\"android.permission.VIBRATE\" />
 
 	<supports-screens android:largeScreens=\"true\" android:normalScreens=\"true\" android:anyDensity=\"true\" android:smallScreens=\"true\"/>
-	<application android:hardwareAccelerated=\"true\" android:name=\"org.qtproject.qt5.android.bindings.QtApplication\" android:label=\"Call of Suli\" android:extractNativeLibs=\"true\" android:icon=\"@drawable/icon\" android:requestLegacyExternalStorage=\"true\" android:usesCleartextTraffic=\"true\">
+	<application android:hardwareAccelerated=\"true\" android:name=\"org.qtproject.qt5.android.bindings.QtApplication\" android:label=\"Call of Suli\" android:extractNativeLibs=\"true\" android:icon=\"@mipmap/ic_launcher\" android:requestLegacyExternalStorage=\"true\" android:usesCleartextTraffic=\"true\">
 		<activity android:configChanges=\"orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density\" android:name=\"hu.piarista.vjp.callofsuli.ClientActivity\" android:label=\"Call of Suli\" android:screenOrientation=\"unspecified\" android:windowSoftInputMode=\"adjustPan\" android:launchMode=\"singleInstance\" android:taskAffinity=\"\"
 		android:exported=\"true\">
 			<intent-filter>
@@ -43,7 +43,7 @@
 							<data android:scheme=\"callofsuli\"/>
 						</intent-filter>
 			<meta-data android:name=\"android.app.splash_screen_sticky\" android:value=\"true\"/>
-			<meta-data android:name=\"android.app.splash_screen_drawable\" android:resource=\"@drawable/splashscreen\"/>
+			<meta-data android:name=\"android.app.splash_screen_drawable\" android:resource=\"@mipmap/splashscreen\"/>
 		</activity>
 	</application>
 

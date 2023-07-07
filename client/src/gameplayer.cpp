@@ -101,12 +101,12 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
 
 	if (client) {
-		m_soundEffectShot = client->newSoundEffect(this);
+		m_soundEffectShot = client->newSoundEffect();
 		m_soundEffectShot->setSource(shotSound());
 		connect(this, &GamePlayer::attack, m_soundEffectShot, &QSoundEffect::play);
 		connect(this, &GamePlayer::shotSoundChanged, m_soundEffectShot, &QSoundEffect::setSource);
 
-		m_soundEffectGeneral = client->newSoundEffect(this);
+		m_soundEffectGeneral = client->newSoundEffect();
 	}
 #endif
 
@@ -138,10 +138,20 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 GamePlayer::~GamePlayer()
 {
 #ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+
+	if (client) {
+		client->removeSoundEffect(m_soundEffectShot);
+		client->removeSoundEffect(m_soundEffectGeneral);
+	}
+
 	if (m_soundEffectShot)
 		m_soundEffectShot->deleteLater();
 	if (m_soundEffectGeneral)
 		m_soundEffectGeneral->deleteLater();
+
+	m_soundEffectShot = nullptr;
+	m_soundEffectGeneral = nullptr;
 #endif
 
 	LOG_CDEBUG("scene") << "Player destroyed:" << this;

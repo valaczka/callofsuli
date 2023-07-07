@@ -40,14 +40,30 @@
 
 DesktopClient::DesktopClient(Application *app, QObject *parent)
 	: Client(app, parent)
-	, m_sound(new Sound(this))
 	, m_serverList(new ServerList(this))
+	, m_worker(new QLambdaThreadWorker())
 {
 	LOG_CTRACE("client") << "DesktopClient created:" << this;
 
-	m_oauthData.isLocal = true;
+	QDefer ret;
 
-	m_sound->init();
+	m_worker->execInThread([this, &ret](){
+		m_sound = new Sound();
+		m_sound->init();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	QSettings s;
+	s.beginGroup(QStringLiteral("sound"));
+	setVolumeMusic(s.value(QStringLiteral("volumeMusic"), 50).toInt());
+	setVolumeSfx(s.value(QStringLiteral("volumeSfx"), 50).toInt());
+	setVolumeVoiceOver(s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
+	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
+	s.endGroup();
+
 
 	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
@@ -57,7 +73,7 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	m_soundEffectTimer.setInterval(1500);
 	connect(&m_soundEffectTimer, &QTimer::timeout, this, &DesktopClient::onSoundEffectTimeout);
 
-	connect(m_sound, &Sound::volumeSfxChanged, &m_soundEffectTimer, [this](int){ m_soundEffectTimer.start(); });
+	connect(this, &DesktopClient::volumeSfxChanged, &m_soundEffectTimer, [this](){ m_soundEffectTimer.start(); });
 }
 
 
@@ -71,8 +87,26 @@ DesktopClient::~DesktopClient()
 	serverDeleteTemporary();
 	serverListSave();
 
-	delete m_sound;
-	m_sound = nullptr;
+	QSettings s;
+	s.beginGroup(QStringLiteral("sound"));
+	s.setValue(QStringLiteral("volumeMusic"), m_volumeMusic);
+	s.setValue(QStringLiteral("volumeSfx"), m_volumeSfx);
+	s.setValue(QStringLiteral("volumeVoiceOver"), m_volumeVoiceOver);
+	s.setValue(QStringLiteral("vibrate"), m_vibrate);
+	s.endGroup();
+
+	QDefer ret;
+
+	m_worker->execInThread([this, &ret](){
+		m_sound->deleteLater();
+		m_sound = nullptr;
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	delete m_worker;
+	m_worker = nullptr;
 
 	delete m_serverList;
 	m_serverList = nullptr;
@@ -88,13 +122,34 @@ DesktopClient::~DesktopClient()
  * @return
  */
 
-QSoundEffect *DesktopClient::newSoundEffect(QObject *parent)
+QSoundEffect *DesktopClient::newSoundEffect()
 {
-	QSoundEffect *e = new QSoundEffect(parent);
+	QSoundEffect *e = nullptr;
+
+	QDefer ret;
+
+	m_worker->execInThread([&e, this, &ret](){
+		e = new QSoundEffect(m_sound);
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
 
 	m_soundEffectList.append(e);
 
 	return e;
+}
+
+
+/**
+ * @brief DesktopClient::removeSoundEffect
+ * @param effect
+ */
+
+void DesktopClient::removeSoundEffect(QSoundEffect *effect)
+{
+	if (effect)
+		m_soundEffectList.removeAll(effect);
 }
 
 
@@ -111,10 +166,9 @@ QSoundEffect *DesktopClient::newSoundEffect(QObject *parent)
 
 void DesktopClient::playSound(const QString &source, const Sound::SoundType &soundType)
 {
-	QMetaObject::invokeMethod(m_sound, "playSound", Qt::QueuedConnection,
-							  Q_ARG(QString, source),
-							  Q_ARG(Sound::SoundType, soundType)
-							  );
+	m_worker->execInThread([this, soundType, source](){
+		m_sound->playSound(source, soundType);
+	});
 }
 
 
@@ -126,10 +180,20 @@ void DesktopClient::playSound(const QString &source, const Sound::SoundType &sou
 
 void DesktopClient::stopSound(const QString &source, const Sound::SoundType &soundType)
 {
-	QMetaObject::invokeMethod(m_sound, "stopSound", Qt::QueuedConnection,
-							  Q_ARG(QString, source),
-							  Q_ARG(Sound::SoundType, soundType)
-							  );
+	m_worker->execInThread([this, soundType, source](){
+		m_sound->stopSound(source, soundType);
+	});
+}
+
+
+/**
+ * @brief DesktopClient::performVibrate
+ */
+
+void DesktopClient::performVibrate() const
+{
+	if (m_vibrate)
+		Utils::vibrate();
 }
 
 
@@ -249,74 +313,7 @@ void DesktopClient::onOAuthStarted(const QUrl &url)
 }
 
 
-/**
- * @brief DesktopClient::prepareOAuth
- * @param json
- */
 
-void DesktopClient::prepareOAuth(const QJsonObject &json)
-{
-	LOG_CTRACE("client") << "Local OAuth" << json;
-
-	if (!m_replyHandler) {
-		LOG_CTRACE("client") << "Create local reply handler";
-		m_replyHandler = new QOAuthHttpServerReplyHandler(this);
-		if (!m_replyHandler->isListening()) {
-			messageError(tr("OAuth2 hitelesítés nem működik!"), tr("Belső hiba"));
-			return;
-		}
-	}
-
-	if (m_codeFlow)
-		m_codeFlow->deleteLater();
-
-	m_codeFlow = new QOAuth2AuthorizationCodeFlow(this);
-	LOG_CTRACE("client") << "Create local code flow" << m_codeFlow->state();
-
-	m_codeFlow->setReplyHandler(m_replyHandler);
-	m_codeFlow->setAccessTokenUrl(json.value(QStringLiteral("access_token_url")).toString());
-	m_codeFlow->setAuthorizationUrl(json.value(QStringLiteral("authorization_url")).toString());
-	m_codeFlow->setClientIdentifier(json.value(QStringLiteral("client_id")).toString());
-	m_codeFlow->setClientIdentifierSharedKey(json.value(QStringLiteral("client_key")).toString());
-	m_codeFlow->setScope(json.value(QStringLiteral("scope")).toString());
-
-	m_codeFlow->setModifyParametersFunction([](QAbstractOAuth::Stage stage, QVariantMap* parameters) {
-		if (stage == QAbstractOAuth::Stage::RequestingAccessToken) {
-			const QString &code = QString::fromUtf8(QByteArray::fromPercentEncoding(parameters->value(QStringLiteral("code")).toByteArray()));
-			parameters->insert(QStringLiteral("code"), code);
-		}
-
-		if (stage == QAbstractOAuth::Stage::RequestingAuthorization) {
-			parameters->insert(QStringLiteral("access_type"), QStringLiteral("offline"));
-			parameters->insert(QStringLiteral("prompt"), QStringLiteral("consent"));
-		}
-	});
-
-
-	connect(m_codeFlow, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, this, &DesktopClient::onOAuthStarted);
-	connect(m_codeFlow, &QOAuth2AuthorizationCodeFlow::granted, this, [this]{
-		QJsonObject d;
-
-		d.insert(QStringLiteral("access_token"), m_codeFlow->token());
-		d.insert(QStringLiteral("refresh_token"), m_codeFlow->refreshToken());
-		d.insert(QStringLiteral("id_token"), m_codeFlow->extraTokens().value(QStringLiteral("id_token")).toString());
-		d.insert(QStringLiteral("expiration"), m_codeFlow->expirationAt().toSecsSinceEpoch());
-		d.insert(QStringLiteral("local"), true);
-		d.insert(QStringLiteral("state"), m_oauthData.state);
-
-		send(WebSocket::ApiAuth, m_oauthData.path, d)
-				->done([this](const QJsonObject &data){this->onLoginSuccess(data);})
-				->fail([this](const QString &err){this->onLoginFailed(err);});
-
-		if (m_oauthData.webPage)
-			stackPop(m_oauthData.webPage);
-
-	});
-
-	m_codeFlow->grant();
-
-
-}
 
 
 /**
@@ -389,6 +386,46 @@ void DesktopClient::serverListSave(const QDir &dir)
 
 
 
+
+
+
+/**
+ * @brief DesktopClient::_setVolume
+ * @param channel
+ * @param newVolume
+ */
+
+void DesktopClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
+{
+	if (!m_worker)
+		return;
+
+	m_worker->execInThread([this, channel, newVolume](){
+		int v = m_sound->volume(channel);
+
+		if (v == newVolume)
+			return;
+
+		m_sound->setVolume(channel, newVolume);
+		switch (channel) {
+		case Sound::MusicChannel:
+			m_volumeMusic = newVolume;
+			emit volumeMusicChanged();
+			break;
+		case Sound::SfxChannel:
+			m_volumeSfx = newVolume;
+			emit volumeSfxChanged();
+			break;
+		case Sound::VoiceoverChannel:
+			m_volumeVoiceOver = newVolume;
+			emit volumeVoiceOverChanged();
+			break;
+		}
+	});
+}
+
+
+
 /**
  * @brief DesktopClient::onSoundEffectTimeout
  */
@@ -398,7 +435,7 @@ void DesktopClient::onSoundEffectTimeout()
 	if (!m_sound)
 		return;
 
-	const qreal vol = (qreal) m_sound->volumeSfx() / 100.0;
+	const qreal vol = (qreal) volumeSfx() / 100.0;
 
 	foreach (QSoundEffect *e, m_soundEffectList)
 		if (e)
@@ -406,15 +443,6 @@ void DesktopClient::onSoundEffectTimeout()
 }
 
 
-/**
- * @brief DesktopClient::sound
- * @return
- */
-
-Sound *DesktopClient::sound() const
-{
-	return m_sound;
-}
 
 
 
@@ -624,3 +652,52 @@ int DesktopClient::serverListSelectedCount() const
 }
 
 
+
+/**
+ * @brief DesktopClient::volumeMusic
+ * @return
+ */
+
+
+int DesktopClient::volumeMusic() const
+{
+	return m_volumeMusic;
+}
+
+void DesktopClient::setVolumeMusic(int newVolumeMusic)
+{
+	_setVolume(Sound::MusicChannel, newVolumeMusic);
+}
+
+int DesktopClient::volumeSfx() const
+{
+	return m_volumeSfx;
+}
+
+void DesktopClient::setVolumeSfx(int newVolumeSfx)
+{
+	_setVolume(Sound::SfxChannel, newVolumeSfx);
+}
+
+int DesktopClient::volumeVoiceOver() const
+{
+	return m_volumeVoiceOver;
+}
+
+void DesktopClient::setVolumeVoiceOver(int newVolumeVoiceOver)
+{
+	_setVolume(Sound::VoiceoverChannel, newVolumeVoiceOver);
+}
+
+bool DesktopClient::vibrate() const
+{
+	return m_vibrate;
+}
+
+void DesktopClient::setVibrate(bool newVibrate)
+{
+	if (m_vibrate == newVibrate)
+		return;
+	m_vibrate = newVibrate;
+	emit vibrateChanged();
+}

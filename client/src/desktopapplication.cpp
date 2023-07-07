@@ -75,6 +75,17 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 	cuteLogger->logToGlobalInstance(QStringLiteral("qml"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qaterial.utils"), true);
+
+
+	// QSingleInstance
+
+	QObject::connect(&m_singleInstance, &QSingleInstance::instanceMessage, &m_singleInstance, [this](const QStringList &args){
+		performInstanceArguments(args);
+	});
+
+	m_singleInstance.setStartupFunction([this]() -> int {
+		return run();
+	});
 }
 
 
@@ -195,6 +206,38 @@ bool DesktopApplication::performCommandLine()
 	}
 
 	return true;
+}
+
+
+
+/**
+ * @brief DesktopApplication::performInstanceArguments
+ * @param arguments
+ */
+
+void DesktopApplication::performInstanceArguments(const QStringList &arguments)
+{
+	if (arguments.size() > 1 )
+		selectUrl(arguments.at(1));
+	else
+		selectUrl(QUrl());
+}
+
+
+
+/**
+ * @brief DesktopApplication::runSingleInstance
+ * @return
+ */
+
+int DesktopApplication::runSingleInstance()
+{
+	if (!m_singleInstance.process()) {
+		LOG_CINFO("app") << QObject::tr("Már fut az alkalmazás egy példánya");
+		return 0;
+	}
+
+	return run();
 }
 
 

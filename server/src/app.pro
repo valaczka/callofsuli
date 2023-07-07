@@ -48,6 +48,7 @@ SOURCES += \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
 	main.cpp \
+	microsoftoauth2authenticator.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
 	panel.cpp \
@@ -74,6 +75,7 @@ HEADERS += \
 	generalapi.h \
 	googleoauth2authenticator.h \
 	handler.h \
+	microsoftoauth2authenticator.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
 	panel.h \

@@ -72,6 +72,8 @@ public:
 	const CommandLine &commandLine() const;
 	const QString &commandLineData() const;
 
+	void selectUrl(const QUrl &url);
+
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();

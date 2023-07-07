@@ -84,11 +84,6 @@ public:
 	AdminAPI::User getUserInfo() const;
 	QJsonObject getJWT() const;
 
-	bool isLocal() const;
-	void setIsLocal(bool newIsLocal);
-
-	void setTokenFromLocal(const Token &token);
-
 signals:
 	void authenticated();
 
@@ -101,7 +96,6 @@ protected:
 	AuthState m_authState = Invalid;
 	Token m_token;
 	Credential m_credential;
-	bool m_isLocal = false;
 
 private:
 	QTimer m_removeTimer;

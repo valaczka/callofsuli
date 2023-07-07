@@ -12,6 +12,22 @@ QItemGradient {
 	property User user: null
 	property var userData: null
 
+	appBar.rightComponent: Qaterial.AppBarButton {
+		icon.source: Qaterial.Icons.logoutVariant
+		ToolTip.text: qsTr("Kijelentkezés")
+		onClicked: {
+			JS.questionDialog({
+								  onAccepted: function()
+								  {
+									  Client.logout()
+								  },
+								  text: qsTr("Biztosan kijelentkezel?"),
+								  iconSource: Qaterial.Icons.logoutVariant,
+								  title: Client.server ? Client.server.serverName : ""
+							  })
+		}
+	}
+
 	QScrollable {
 		anchors.fill: parent
 		spacing: 15

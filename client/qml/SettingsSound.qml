@@ -8,8 +8,6 @@ import CallOfSuli 1.0
 Column {
 	id: root
 
-	enabled: Client.sound
-
 	signal musicVolumeModified()
 
 	Timer {
@@ -20,7 +18,7 @@ Column {
 
 		property int soundType: Sound.GameSound
 
-		onTriggered: Client.sound.playSound("qrc:/sound/sfx/question.mp3", soundType)
+		onTriggered: Client.playSound("qrc:/sound/sfx/question.mp3", soundType)
 	}
 
 	GridLayout {
@@ -48,12 +46,12 @@ Column {
 			from: 0
 			to: 100
 			stepSize: 1
-			value: Client.sound ? Client.sound.volumeSfx : 0
+			value: Client.volumeSfx
 			Layout.fillWidth: true
 			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
 			onMoved: {
-				Client.sound.volumeSfx = _volSfx.value
+				Client.volumeSfx = _volSfx.value
 				_delayTimer.soundType = Sound.GameSound
 				_delayTimer.restart()
 			}
@@ -61,7 +59,7 @@ Column {
 
 
 		Qaterial.LabelBody2 {
-			text: Client.sound ? Client.sound.volumeSfx : "N/A"
+			text: Client.volumeSfx
 			Layout.minimumWidth: Math.max(implicitWidth, 25 * Qaterial.Style.pixelSizeRatio)
 			Layout.fillWidth: false
 			Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
@@ -88,12 +86,12 @@ Column {
 			from: 0
 			to: 100
 			stepSize: 1
-			value: Client.sound ? Client.sound.volumeVoiceOver : 0
+			value: Client.volumeVoiceOver
 			Layout.fillWidth: true
 			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
 			onMoved: {
-				Client.sound.volumeVoiceOver = _volVoiceOver.value
+				Client.volumeVoiceOver = _volVoiceOver.value
 				_delayTimer.soundType = Sound.VoiceOver
 				_delayTimer.restart()
 			}
@@ -101,7 +99,7 @@ Column {
 
 
 		Qaterial.LabelBody2 {
-			text: Client.sound ? Client.sound.volumeVoiceOver : "N/A"
+			text: Client.volumeVoiceOver
 			Layout.fillWidth: false
 			Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 		}
@@ -125,19 +123,19 @@ Column {
 			from: 0
 			to: 100
 			stepSize: 1
-			value: Client.sound ? Client.sound.volumeMusic : 0
+			value: Client.volumeMusic
 			Layout.fillWidth: true
 			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
 			onMoved: {
-				Client.sound.volumeMusic = _volMusic.value
+				Client.volumeMusic = _volMusic.value
 				musicVolumeModified()
 			}
 		}
 
 
 		Qaterial.LabelBody2 {
-			text: Client.sound ? Client.sound.volumeMusic : "N/A"
+			text: Client.volumeMusic
 			Layout.fillWidth: false
 			Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 		}
@@ -155,13 +153,13 @@ Column {
 		{
 			text: qsTr("Rezgés engedélyezése")
 			anchors.verticalCenter: parent.verticalCenter
-			checked: Client.sound ? Client.sound.vibrate : false
-			onToggled: Client.sound.vibrate = checked
+			checked: Client.vibrate
+			onToggled: Client.vibrate = checked
 		}
 
 		Qaterial.Icon
 		{
-			icon: Client.sound && Client.sound.vibrate ? Qaterial.Icons.vibrate : Qaterial.Icons.vibrateOff
+			icon: Client.vibrate ? Qaterial.Icons.vibrate : Qaterial.Icons.vibrateOff
 			implicitWidth: _label1.icon.width
 			implicitHeight: _label1.icon.height
 			color: _label1.icon.color

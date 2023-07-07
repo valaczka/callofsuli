@@ -105,6 +105,23 @@ Qaterial.ApplicationWindow
 		}
 	}
 
+	Connections {
+		target: Client
+
+		function onServerSetAutoConnectRequest(server) {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								Client.serverSetAutoConnect(server)
+							},
+							text: qsTr("Szeretnél ehhez a szerverhez az applikáció indulásakor automatikusan csatlakozni?"),
+							title: server.serverName,
+							iconSource: Qaterial.Icons.connection
+						})
+		}
+	}
+
 
 	onWidthChanged: {
 		if (width >= 992 * Qaterial.Style.pixelSizeRatio)
@@ -116,7 +133,8 @@ Qaterial.ApplicationWindow
 
 	}
 
-	onClosing: { if (Client.closeWindow()) {
+	onClosing: {
+		if (Client.closeWindow()) {
 			if (mainStackView.currentItem.onPageClose) {
 				console.info(qsTr("Lap bezárási funkció meghívása:"), mainStackView.currentItem)
 				mainStackView.currentItem.onPageClose()

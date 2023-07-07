@@ -31,6 +31,18 @@
 #include <QTextStream>
 #include "utils.h"
 
+
+
+const QStringList ServerSettings::m_supportedProviders = {
+	QStringLiteral("google"),
+	QStringLiteral("microsoft")
+};
+
+
+/**
+ * @brief ServerSettings::ServerSettings
+ */
+
 ServerSettings::ServerSettings()
 {
 
@@ -55,8 +67,13 @@ void ServerSettings::printConfig() const
 		LOG_CINFO("service") << "SSL certificate key:" << qPrintable(m_certKeyFile);
 	}
 
+	for (auto it=m_oauthMap.constBegin(); it != m_oauthMap.constEnd(); ++it) {
+		if (it->clientId.isEmpty())
+			continue;
 
-	LOG_CINFO("service") << "Google OAuth2 listening path:" << qPrintable(QStringLiteral("/cb/")+m_oauthGoogle.path);
+		LOG_CINFO("service") << "OAuth2" << qPrintable(it.key()) << "listening:" << qPrintable(QStringLiteral("/cb/")+it->path);
+	}
+
 
 	if (m_logLimit > 0)
 		LOG_CINFO("service") << "Log limit:" << m_logLimit;
@@ -107,8 +124,12 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("ssl/key")))
 		setCertKeyFile(s.value(QStringLiteral("ssl/key")).toString());
 
-	if (s.contains(QStringLiteral("google/clientId")))
-		setOauthGoogle(OAuth::fromSettings(&s, QStringLiteral("google")));
+
+	foreach (const QString &p, m_supportedProviders) {
+		if (s.contains(p+QStringLiteral("/clientId")))
+			m_oauthMap.insert(p, OAuth::fromSettings(&s, p));
+	}
+
 
 	if (s.contains(QStringLiteral("log/limit")))
 		setLogLimit(s.value(QStringLiteral("log/limit")).toInt());
@@ -158,7 +179,8 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 
 	s.setValue(QStringLiteral("log/limit"), m_logLimit);
 
-	m_oauthGoogle.toSettings(&s, QStringLiteral("google"));
+	for (auto it=m_oauthMap.constBegin(); it != m_oauthMap.constEnd(); ++it)
+		it->toSettings(&s, it.key());
 
 	LOG_CINFO("service") << "Configuration saved to:" << f;
 }
@@ -257,16 +279,6 @@ void ServerSettings::setCertKeyFile(const QString &newCertKeyFile)
 	m_certKeyFile = newCertKeyFile;
 }
 
-const ServerSettings::OAuth &ServerSettings::oauthGoogle() const
-{
-	return m_oauthGoogle;
-}
-
-void ServerSettings::setOauthGoogle(const OAuth &newOauthGoogle)
-{
-	m_oauthGoogle = newOauthGoogle;
-}
-
 const QString &ServerSettings::redirectHost() const
 {
 	return m_redirectHost;
@@ -300,6 +312,24 @@ void ServerSettings::setMaxRequestSize(uint newMaxRequestSize)
 
 
 
+const QStringList &ServerSettings::supportedProviders()
+{
+	return m_supportedProviders;
+}
+
+const QHash<QString, ServerSettings::OAuth> &ServerSettings::oauthMap() const
+{
+	return m_oauthMap;
+}
+
+void ServerSettings::setOauthMap(const QHash<QString, OAuth> &newOauthMap)
+{
+	m_oauthMap = newOauthMap;
+}
+
+
+
+
 /**
  * @brief ServerSettings::OAuth::fromSettings
  * @param settings
@@ -319,6 +349,7 @@ ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, c
 	r.path = settings->value(QStringLiteral("path")).toString();
 	r.localClientId = settings->value(QStringLiteral("localClientId")).toString();
 	r.localClientKey = settings->value(QStringLiteral("localClientKey")).toString();
+	r.tenant = settings->value(QStringLiteral("tenant")).toString();
 
 	settings->endGroup();
 
@@ -342,6 +373,7 @@ void ServerSettings::OAuth::toSettings(QSettings *settings, const QString &group
 	settings->setValue(QStringLiteral("path"), path);
 	settings->setValue(QStringLiteral("localClientId"), localClientId);
 	settings->setValue(QStringLiteral("localClientKey"), localClientKey);
+	settings->setValue(QStringLiteral("tenant"), tenant);
 
 	settings->endGroup();
 }

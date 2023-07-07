@@ -116,6 +116,9 @@ public:
 
 	static QStringList getRolesFromObject(const QMetaObject *object);
 	static void patchSListModel(QSListModel *model, const QVariantList &data, const QString &keyField);
+
+	Q_INVOKABLE static void setClipboardText(const QString &text);
+	Q_INVOKABLE static QString clipboardText();
 #endif
 
 	Q_INVOKABLE static quint32 versionMajor();
@@ -144,7 +147,6 @@ private:
 	static const quint32 m_versionMajor;
 	static const quint32 m_versionMinor;
 	static const quint32 m_versionBuild;
-
 };
 
 

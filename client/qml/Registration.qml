@@ -52,6 +52,13 @@ QFormColumn {
 		id: _radioGoogle
 		text: qsTr("Regisztráció Google fiókkal")
 		checked: true
+		visible: Client.server && Client.server.config.oauthProviders !== undefined && Client.server.config.oauthProviders.includes("google")
+	}
+
+	QFormRadioButton {
+		id: _radioMicrosoft
+		text: qsTr("Regisztráció Microsoft fiókkal")
+		visible: Client.server && Client.server.config.oauthProviders !== undefined && Client.server.config.oauthProviders.includes("microsoft")
 	}
 
 	QFormTextField {
@@ -130,7 +137,7 @@ QFormColumn {
 		text: qsTr("Regisztráció")
 		icon.source: Qaterial.Icons.loginVariant
 		enabled: _code.acceptableInput &&
-				 (_radioGoogle.checked ||
+				 (_radioGoogle.checked || _radioMicrosoft.checked ||
 				  (_familyName.acceptableInput && _password.acceptableInput &&
 				   (_password.echoMode == TextInput.Normal || _password.text == _password2.text)))
 		onClicked:
@@ -144,7 +151,9 @@ QFormColumn {
 											 password: _password.text
 										 })
 			else if (_radioGoogle.checked)
-				Client.registrationGoogle(_code.text)
+				Client.registrationOAuth2("google", _code.text)
+			else if (_radioMicrosoft.checked)
+				Client.registrationOAuth2("microsoft", _code.text)
 
 		}
 	}

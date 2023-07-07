@@ -38,8 +38,38 @@ QPage {
 	subtitle: user ? user.fullName : ""
 
 	appBar.backButtonVisible: true
-	appBar.rightComponent: _cmpUser //swipeView.currentIndex == 1 ? _cmpRank : _cmpUser
-	appBar.rightPadding: Qaterial.Style.horizontalPadding
+	appBar.rightComponent: Qaterial.AppBarButton
+	{
+		icon.source: Qaterial.Icons.dotsVertical
+		onClicked: menu.open()
+
+		QMenu {
+			id: menu
+
+			QMenuItem {
+				text: qsTr("Beállítások")
+				icon.source: Qaterial.Icons.cogOutline
+				onClicked: Client.stackPushPage("PageTeacherSettings.qml")
+			}
+
+			QMenuItem {
+				icon.source: Qaterial.Icons.logoutVariant
+				text: qsTr("Kijelentkezés")
+				onClicked: {
+					JS.questionDialog({
+										  onAccepted: function()
+										  {
+											  Client.logout()
+										  },
+										  text: qsTr("Biztosan kijelentkezel?"),
+										  iconSource: Qaterial.Icons.logoutVariant,
+										  title: Client.server ? Client.server.serverName : ""
+									  })
+				}
+			}
+		}
+
+	}
 
 	property User user: Client.server ? Client.server.user : null
 	property TeacherGroupList groupListTeacher: Client.cache("teacherGroupList")
@@ -48,10 +78,7 @@ QPage {
 
 	property bool _firstRun: true
 
-	Component {
-		id: _cmpUser
-		UserButton { }
-	}
+
 
 
 	QScrollable {

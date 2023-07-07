@@ -171,7 +171,14 @@ void Handler::getWasmContent(QString uri, HttpResponse *response)
 		QString contentType;
 
 		if (isHtml) {
-			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
+			QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(m_service->webServer()->redirectHost())
+					.arg(m_service->settings()->listenPort()).toUtf8();
+
+			if (m_service->settings()->ssl())
+				hostname.append(QByteArrayLiteral("/?ssl=1"));
+
+			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8())
+					.replace(QByteArrayLiteral("${server:connect}"), hostname);
 
 			if (fname.endsWith(QStringLiteral("css")))
 				contentType = QStringLiteral("text/css");
@@ -242,18 +249,41 @@ void Handler::handleOAuthCallback(HttpRequest *request, HttpResponse *response)
 			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid provider"));
 		}
 
-		QByteArray content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body><p>%1</p></body></html>")
-				.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot.")).toUtf8();
-
-		if (authenticator->parseResponse(request->uriQuery()))
-			return response->setStatus(HttpStatus::Ok, content);
-		else
+		if (!authenticator->parseResponse(request->uriQuery()))
 			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
+
+		QByteArray content;
+		QFile f(QStringLiteral(":/html/callback.html"));
+		if (f.open(QIODevice::ReadOnly)) {
+			content = f.readAll();
+			f.close();
+		}
+
+		if (!content.isEmpty()) {
+			content.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
+		} else {
+			content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body>"
+									 "<p>%1</p>"
+									 "<p><a href=\"callofsuli://\">%2</a></p>"
+									 "</body></html>")
+					.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot."), tr("Vissza az alkalmazásba"))
+					.toUtf8();
+		}
+
+
+		return response->setStatus(HttpStatus::Ok, content);
+
 	}
 
 	LOG_CWARNING("client") << "Invalid request:" << request->method() << request->uriStr();
 	response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
 }
+
+
+/**
+ * @brief Handler::apiHandlers
+ * @return
+ */
 
 const QMap<const char *, AbstractAPI *> &Handler::apiHandlers() const
 {

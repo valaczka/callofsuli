@@ -49,3 +49,6 @@
 [submodule "lib/qsyncable"]
 	path = lib/qsyncable
 	url = https://github.com/benlau/qsyncable.git
+[submodule "lib/QSingleInstance"]
+	path = lib/QSingleInstance
+	url = https://github.com/valaczka/QSingleInstance.git

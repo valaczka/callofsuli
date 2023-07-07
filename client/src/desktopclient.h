@@ -28,10 +28,9 @@
 #define DESKTOPCLIENT_H
 
 #include "client.h"
+#include "qlambdathreadworker.h"
 #include "qsoundeffect.h"
 #include "sound.h"
-#include <QtNetworkAuth/qoauthhttpserverreplyhandler.h>
-#include <QtNetworkAuth/QOAuth2AuthorizationCodeFlow>
 
 
 /**
@@ -44,13 +43,19 @@ class DesktopClient : public Client
 
 	Q_PROPERTY(ServerList *serverList READ serverList CONSTANT)
 	Q_PROPERTY(int serverListSelectedCount READ serverListSelectedCount NOTIFY serverListSelectedCountChanged)
-	Q_PROPERTY(Sound *sound READ sound CONSTANT)
+
+	Q_PROPERTY(int volumeMusic READ volumeMusic WRITE setVolumeMusic NOTIFY volumeMusicChanged)
+	Q_PROPERTY(int volumeSfx READ volumeSfx WRITE setVolumeSfx NOTIFY volumeSfxChanged)
+	Q_PROPERTY(int volumeVoiceOver READ volumeVoiceOver WRITE setVolumeVoiceOver NOTIFY volumeVoiceOverChanged)
+	Q_PROPERTY(bool vibrate READ vibrate WRITE setVibrate NOTIFY vibrateChanged)
+
 
 public:
 	explicit DesktopClient(Application *app, QObject *parent = nullptr);
 	virtual ~DesktopClient();
 
-	QSoundEffect *newSoundEffect(QObject *parent);
+	QSoundEffect *newSoundEffect();
+	void removeSoundEffect(QSoundEffect *effect);
 
 	ServerList *serverList() const;
 
@@ -59,21 +64,33 @@ public:
 	Q_INVOKABLE bool serverDelete(Server *server);
 	Q_INVOKABLE void serverDeleteTemporary();
 	Q_INVOKABLE bool serverDeleteSelected();
-	Q_INVOKABLE Server *serverAddWithUrl(const QUrl &url);
+	Q_INVOKABLE Server *serverAddWithUrl(const QUrl &url) override;
 
 	int serverListSelectedCount() const;
 
-	Sound *sound() const;
+	int volumeMusic() const;
+	void setVolumeMusic(int newVolumeMusic);
+
+	int volumeSfx() const;
+	void setVolumeSfx(int newVolumeSfx);
+
+	int volumeVoiceOver() const;
+	void setVolumeVoiceOver(int newVolumeVoiceOver);
+
+	bool vibrate() const;
+	void setVibrate(bool newVibrate);
+
+	bool isPlayingMusic() const { return m_sound && m_sound->isPlayingMusic(); }
 
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);
 	void stopSound(const QString &source, const Sound::SoundType &soundType);
+	void performVibrate() const;
 
 protected slots:
 	void onStartPageLoaded();
 	void onOAuthFinished() override;
 	void onOAuthStarted(const QUrl &url) override;
-	void prepareOAuth(const QJsonObject &json) override;
 
 private slots:
 	void onMainWindowChanged();
@@ -83,19 +100,31 @@ private slots:
 private:
 	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
+	void _setVolume(const Sound::ChannelType &channel, int newVolume);
 
 signals:
 	void serverListSelectedCountChanged();
+	void volumeMusicChanged();
+	void volumeSfxChanged();
+	void volumeVoiceOverChanged();
+	void vibrateChanged();
 
 private:
 	Sound *m_sound = nullptr;
 	ServerList *m_serverList = nullptr;
-	QOAuthHttpServerReplyHandler *m_replyHandler = nullptr;
-	QOAuth2AuthorizationCodeFlow *m_codeFlow = nullptr;
 	QVector<QPointer<QSoundEffect>> m_soundEffectList;
 
+	QLambdaThreadWorker *m_worker = nullptr;
 	QTimer m_soundEffectTimer;
+	bool m_vibrate = true;
+
+	int m_volumeSfx = 0;
+	int m_volumeMusic = 0;
+	int m_volumeVoiceOver = 0;
 };
+
+
+
 
 #endif
 

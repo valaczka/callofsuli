@@ -3,7 +3,7 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private quickcontrols2
 
-!wasm: QT += multimedia sql webview networkauth
+!wasm: QT += multimedia sql networkauth
 
 CONFIG += c++17
 
@@ -14,25 +14,18 @@ include(../../lib/callofsuli-core/callofsuli-core.pri)
 
 DESTDIR = ../..
 
-!android:if(linux|win32) {
-	AppRpath += --rpath=. --rpath=../lib --rpath=./lib
-} else {
-	AppRpath =
-}
-
 QML_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
-
 
 DEFINES += CLIENT_UTILS
 
 include(../../lib/import_lib_client.pri)
 
-!isEmpty(AppRpath) {
-	FullAppRpath = $$join(AppRpath,",","-Wl,")
-	QMAKE_LFLAGS += $$FullAppRpath
+!android:if(linux|win32){
+	QMAKE_LFLAGS += \
+		"-Wl,--rpath,'$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}ORIGIN'" \
+		"-Wl,--rpath,'$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}ORIGIN/lib'"
 }
-
 
 !wasm {
 	DEFINES += \

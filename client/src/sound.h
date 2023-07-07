@@ -47,11 +47,6 @@ class Sound : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(int volumeMusic READ volumeMusic WRITE setVolumeMusic NOTIFY volumeMusicChanged)
-	Q_PROPERTY(int volumeSfx READ volumeSfx WRITE setVolumeSfx NOTIFY volumeSfxChanged)
-	Q_PROPERTY(int volumeVoiceOver READ volumeVoiceOver WRITE setVolumeVoiceOver NOTIFY volumeVoiceOverChanged)
-	Q_PROPERTY(bool vibrate READ vibrate WRITE setVibrate NOTIFY vibrateChanged)
-
 public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
 	Q_ENUM(ChannelType)
@@ -62,45 +57,30 @@ public:
 	explicit Sound(QObject *parent = nullptr);
 	virtual ~Sound();
 
-	Q_INVOKABLE void performVibrate() const;
-
 	void init();
 
-	Q_INVOKABLE void playSound(const QString &source, const Sound::SoundType &soundType);
-	Q_INVOKABLE void stopSound(const QString &source, const Sound::SoundType &soundType);
+	void playSound(const QString &source, const Sound::SoundType &soundType);
+	void stopSound(const QString &source, const Sound::SoundType &soundType);
 
-	Q_INVOKABLE bool isPlayingMusic() const;
+	int volume(const ChannelType &channel) const;
+	void setVolume(const ChannelType &channel, int newVolume);
 
-	int volumeMusic() const { return m_mediaPlayerMusic ? m_mediaPlayerMusic->volume() : 0;  }
-	int volumeSfx() const { return m_mediaPlayerSfx ? m_mediaPlayerSfx->volume() : 0;  }
-	int volumeVoiceOver() const { return m_mediaPlayerVoiceOver ? m_mediaPlayerVoiceOver->volume() : 0; }
-
-	void setVolumeSfx(int volume);
-	void setVolumeMusic(int volume);
-	void setVolumeVoiceOver(int volume);
-
-	bool vibrate() const;
-	void setVibrate(bool newVibrate);
+	bool isPlayingMusic() const;
 
 private slots:
 	void musicPlay(const QString &source);
 	void musicLoadNextSource();
 
-signals:
-	void volumeSfxChanged(int volumeSfx);
-	void volumeMusicChanged(int volumeMusic);
-	void volumeVoiceOverChanged(int volumeVoiceOver);
-	void vibrateChanged();
-
 private:
-	QMediaPlayer *m_mediaPlayerMusic;
-	QMediaPlayer *m_mediaPlayerSfx;
-	QMediaPlayer *m_mediaPlayerVoiceOver;
+	QMediaPlayer *m_mediaPlayerMusic = nullptr;
+	QMediaPlayer *m_mediaPlayerSfx = nullptr;
+	QMediaPlayer *m_mediaPlayerVoiceOver = nullptr;
 	SoundType m_soundTypeSfx;
 	QString m_musicNextSource;
-	QVariantAnimation *m_fadeAnimation;
+	QVariantAnimation *m_fadeAnimation = nullptr;
 	int m_musicVolume;
-	bool m_vibrate = true;
+
+	friend class DesktopClient;
 };
 
 

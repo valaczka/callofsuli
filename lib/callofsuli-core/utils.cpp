@@ -37,6 +37,8 @@
 
 #ifdef CLIENT_UTILS
 #include "qsdiffrunner.h"
+#include "qclipboard.h"
+#include "QGuiApplication"
 #endif
 
 const quint32 Utils::m_versionMajor = VERSION_MAJOR;
@@ -605,6 +607,44 @@ void Utils::patchSListModel(QSListModel *model, const QVariantList &data, const 
 }
 
 
+
+
+
+/**
+ * @brief Utils::setCliboardText
+ * @param text
+ */
+
+void Utils::setClipboardText(const QString &text)
+{
+	QClipboard *clipboard = QGuiApplication::clipboard();
+
+	if (!clipboard) {
+		LOG_CERROR("utils") << "Cliboard unavailable";
+		return;
+	}
+
+	clipboard->setText(text);
+}
+
+
+/**
+ * @brief Utils::clipboardText
+ * @return
+ */
+
+QString Utils::clipboardText()
+{
+	QClipboard *clipboard = QGuiApplication::clipboard();
+
+	if (!clipboard) {
+		LOG_CERROR("utils") << "Cliboard unavailable";
+		return QLatin1String("");
+	}
+
+	return clipboard->text();
+}
+
 #endif
 
 /**
@@ -738,6 +778,7 @@ void Utils::vibrate()
 	LOG_CTRACE("utils") << "Vibrate not supported";
 #endif
 }
+
 
 
 

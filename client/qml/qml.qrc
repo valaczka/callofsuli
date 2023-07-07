@@ -174,5 +174,6 @@
         <file>PageStudentSettings.qml</file>
         <file>SettingsSound.qml</file>
         <file>SettingsAppearance.qml</file>
+        <file>PageTeacherSettings.qml</file>
     </qresource>
 </RCC>

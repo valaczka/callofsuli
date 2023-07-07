@@ -65,10 +65,7 @@ QPageGradient {
 			delegate: SettingsSound {
 				width: _item.width
 				onMusicVolumeModified: {
-					if (!Client.sound)
-						return
-
-					if (!Client.sound.isPlayingMusic())
+					if (!Client.isPlayingMusic())
 						Client.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
 				}
 			}
@@ -79,9 +76,6 @@ QPageGradient {
 	Connections {
 		target: Qt.application
 		function onStateChanged() {
-			if (!Client.sound)
-				return
-
 			if (Qt.platform.os !== "android" && Qt.platform.os !== "ios")
 				return
 
@@ -100,7 +94,6 @@ QPageGradient {
 	}
 
 	Component.onDestruction: {
-		if (Client.sound)
-			Client.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+		Client.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
 	}
 }

@@ -322,6 +322,31 @@ bool Client::closeWindow(const bool &forced)
 
 
 /**
+ * @brief Client::notifyWindow
+ */
+
+void Client::notifyWindow()
+{
+	LOG_CDEBUG("client") << "Notify window";
+
+	if (!m_mainWindow)
+		return;
+
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+	if (m_mainWindow->visibility() == QWindow::Minimized)
+		m_mainWindow->show();
+#endif
+
+	m_mainWindow->raise();
+	m_mainWindow->alert(0);
+	m_mainWindow->requestActivate();
+}
+
+
+
+
+
+/**
  * @brief Client::onApplicationStarted
  */
 
@@ -480,6 +505,9 @@ void Client::onServerConnected()
 			server()->setMaxUploadSize(json.value(QStringLiteral("uploadLimit")).toInt());
 
 
+		if (server()->temporary())
+			emit serverSetAutoConnectRequest(server());
+
 		server()->setTemporary(false);
 
 		parseUrl();
@@ -544,13 +572,10 @@ void Client::onOAuthLoginStateChanged(const QJsonObject &json)
 		} else {
 			LOG_CWARNING("client") << "OAuth login protocol warning" << m_oauthData.status;
 		}
-	} else if (json.contains(QStringLiteral("state")) && (m_oauthData.isLocal || json.contains(QStringLiteral("url")))) {
+	} else if (json.contains(QStringLiteral("state")) && json.contains(QStringLiteral("url"))) {
 		if (m_oauthData.status == OAuthData::Invalid) {
 			m_oauthData.state = json.value(QStringLiteral("state")).toString();
 			m_oauthData.status = OAuthData::UrlReceived;
-
-			if (m_oauthData.isLocal)
-				return prepareOAuth(json);
 
 			onOAuthStarted(QUrl::fromEncoded(json.value(QStringLiteral("url")).toString().toUtf8()));
 		} else {
@@ -649,11 +674,6 @@ void Client::onOAuthPendingTimer()
 
 	QJsonObject j;
 	j.insert(QStringLiteral("state"), m_oauthData.state);
-	if (m_oauthData.isLocal)
-		j.insert(QStringLiteral("local"), true);
-
-	if (m_oauthData.isLocal)
-		LOG_CTRACE("client") << "LOCAL";
 
 
 	send(WebSocket::ApiAuth, m_oauthData.path, j)
@@ -931,13 +951,27 @@ Server *Client::server() const
 }
 
 
+/**
+ * @brief Client::serverAddWithUrl
+ * @param url
+ * @return
+ */
+
+Server *Client::serverAddWithUrl(const QUrl &url)
+{
+	Q_UNUSED(url);
+	LOG_CWARNING("client") << "Missing implementation";
+	return nullptr;
+}
+
+
 
 
 /**
  * @brief Client::loginGoogle
  */
 
-void Client::loginGoogle()
+void Client::loginOAuth2(const QString &provider)
 {
 	server()->user()->setLoginState(User::LoggingIn);
 
@@ -946,13 +980,9 @@ void Client::loginGoogle()
 		m_oauthData.timer.stop();
 	m_oauthData.type = OAuthData::Login;
 	m_oauthData.state = "";
-	m_oauthData.path = QStringLiteral("login/google");
+	m_oauthData.path = QStringLiteral("login/")+provider;
 
-	QJsonObject j;
-	if (m_oauthData.isLocal)
-		j.insert(QStringLiteral("local"), true);
-
-	send(WebSocket::ApiAuth, m_oauthData.path, j)
+	send(WebSocket::ApiAuth, m_oauthData.path)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -962,7 +992,7 @@ void Client::loginGoogle()
  * @brief Client::registrationGoogle
  */
 
-void Client::registrationGoogle(const QString &code)
+void Client::registrationOAuth2(const QString &provider, const QString &code)
 {
 	server()->user()->setLoginState(User::LoggingIn);
 
@@ -971,14 +1001,12 @@ void Client::registrationGoogle(const QString &code)
 		m_oauthData.timer.stop();
 	m_oauthData.type = OAuthData::Registration;
 	m_oauthData.state = "";
-	m_oauthData.path = QStringLiteral("registration/google");
+	m_oauthData.path = QStringLiteral("registration/")+provider;
 
-	QJsonObject j;
-	if (m_oauthData.isLocal)
-		j.insert(QStringLiteral("local"), true);
-	j.insert(QStringLiteral("code"), code);
 
-	send(WebSocket::ApiAuth, m_oauthData.path, j)
+	send(WebSocket::ApiAuth, m_oauthData.path, {
+			 { QStringLiteral("code"), code }
+		 })
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -1111,18 +1139,35 @@ void Client::parseUrl()
 		return;
 	}
 
+	LOG_CINFO("client") << "Parse URL:" << m_parseUrl;
 
-	if (!server()) {
-		LOG_CERROR("client") << "Can't parse URL, invalid server";
-		return;
+	const QUrlQuery q(m_parseUrl);
+
+	if (m_parseUrl.scheme() == QStringLiteral("callofsuli")) {
+		if (q.hasQueryItem(QStringLiteral("ssl")))
+			m_parseUrl.setScheme(QStringLiteral("https"));
+		else
+			m_parseUrl.setScheme(QStringLiteral("http"));
+
+		LOG_CINFO("client") << "Parse modified URL:" << m_parseUrl;
 	}
 
-	LOG_CINFO("client") << "Parse URL:" << m_parseUrl;
+
+	if (!server()) {
+		Server *server = serverAddWithUrl(m_parseUrl);
+
+		if (server) {
+			connectToServer(server);
+			return;
+		} else {
+			snack(tr("Érvénytelen URL"));
+		}
+	}
+
 
 	if (server()->url().isParentOf(m_parseUrl)) {
 		LOG_CDEBUG("client") << "URL parsed successfuly";
 
-		const QUrlQuery q(m_parseUrl);
 		const QString &page = q.queryItemValue(QStringLiteral("page"));
 
 		if (page == QLatin1String("registration")) {
@@ -1144,6 +1189,9 @@ void Client::parseUrl()
 		} else if (!q.isEmpty()) {
 			LOG_CWARNING("client") << "Invalid page request:" << page;
 		}
+	} else {
+
+		messageWarning(tr("A link másik szerverhez vezet. Előbb zárd le a kapcsolatot!"), tr("Csatlakozás"));
 	}
 
 

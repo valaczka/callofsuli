@@ -26,8 +26,17 @@
 
 #include "mobileutils.h"
 #include "Logger.h"
-#include "qandroidfunctions.h"
 #include "qdebug.h"
+#include "application.h"
+#include "qandroidfunctions.h"
+#include "qurl.h"
+
+
+MobileUtils* MobileUtils::m_instance = nullptr;
+
+/**
+ * @brief MobileUtils::MobileUtils
+ */
 
 MobileUtils::MobileUtils()
 {
@@ -36,10 +45,28 @@ MobileUtils::MobileUtils()
 
 
 /**
+ * @brief MobileUtils::initialize
+ */
+
+void MobileUtils::initialize()
+{
+
+}
+
+
+
+void openUrl(const std::string &url)
+{
+	QUrl _url(QString::fromStdString(url));
+	Application::instance()->selectUrl(_url);
+}
+
+
+
+/**
  * @brief MobileUtils::vibrate
  */
 
-#ifdef Q_OS_ANDROID
 void MobileUtils::vibrate(const int &milliseconds)
 {
 	QAndroidJniObject activity = QtAndroid::androidActivity();
@@ -62,7 +89,7 @@ void MobileUtils::vibrate(const int &milliseconds)
 	jlong ms = milliseconds;
 
 	QAndroidJniObject effect = QAndroidJniObject::callStaticObjectMethod("android/os/VibrationEffect", "createOneShot",
-																	  "(JI)Landroid/os/VibrationEffect;", ms, amplitude);
+																		 "(JI)Landroid/os/VibrationEffect;", ms, amplitude);
 
 	if (!effect.isValid()) {
 		LOG_CWARNING("utils") << "Invalid VibrationEffect";
@@ -144,4 +171,30 @@ void MobileUtils::vibrate(const int &milliseconds)
 
 	*/
 }
+
+
+
+
+
+
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+JNIEXPORT void JNICALL
+Java_hu_piarista_vjp_callofsuli_ClientActivity_setUrl(JNIEnv *env,
+													  jobject ,
+													  jstring url)
+{
+	const char *urlStr = env->GetStringUTFChars(url, NULL);
+	QUrl _url(QString::fromUtf8(urlStr));
+	Application::instance()->selectUrl(_url);
+
+	env->ReleaseStringUTFChars(url, urlStr);
+	return;
+}
+
+#ifdef __cplusplus
+}
+#endif
+

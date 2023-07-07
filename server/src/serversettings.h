@@ -47,6 +47,7 @@ public:
 		QString path;
 		QString localClientId;
 		QString localClientKey;
+		QString tenant;
 
 		static OAuth fromSettings(QSettings *settings, const QString &group = "");
 		void toSettings(QSettings *settings, const QString &group = "") const;
@@ -81,9 +82,6 @@ public:
 	const QString &certKeyFile() const;
 	void setCertKeyFile(const QString &newCertKeyFile);
 
-	const OAuth &oauthGoogle() const;
-	void setOauthGoogle(const OAuth &newOauthGoogle);
-
 	const QString &redirectHost() const;
 	void setRedirectHost(const QString &newRedirectHost);
 
@@ -92,6 +90,11 @@ public:
 
 	uint maxRequestSize() const;
 	void setMaxRequestSize(uint newMaxRequestSize);
+
+	static const QStringList &supportedProviders();
+
+	const QHash<QString, OAuth> &oauthMap() const;
+	void setOauthMap(const QHash<QString, OAuth> &newOauthMap);
 
 private:
 	QDir m_dataDir;
@@ -106,10 +109,12 @@ private:
 	QString m_certFile;
 	QString m_certKeyFile;
 
-	OAuth m_oauthGoogle;
+	QHash<QString, OAuth> m_oauthMap;
 
 	int m_logLimit = 14;
 	uint m_maxRequestSize = 10*1024*1024;
+
+	static const QStringList m_supportedProviders;
 
 };
 

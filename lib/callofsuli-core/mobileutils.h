@@ -27,15 +27,28 @@
 #ifndef MOBILEUTILS_H
 #define MOBILEUTILS_H
 
+#include <string>
+
 class MobileUtils
 {
 
 public:
 	MobileUtils();
 
+	static MobileUtils* instance() {
+		if (!m_instance)
+			m_instance = new MobileUtils();
+		return m_instance;
+	}
+
+	static void initialize();
+
 	static void vibrate(const int &milliseconds = 400);
 
+	static void openUrl(const std::string &url);
 
+private:
+	static MobileUtils *m_instance;
 };
 
 #endif // MOBILEUTILS_H

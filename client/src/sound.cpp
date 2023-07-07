@@ -36,7 +36,6 @@
 #include <QSettings>
 #include <QMediaPlaylist>
 #include <Logger.h>
-#include "utils.h"
 
 Sound::Sound(QObject *parent)
 	: QObject(parent)
@@ -67,16 +66,6 @@ Sound::~Sound()
 	delete m_fadeAnimation;
 	m_fadeAnimation = nullptr;
 
-	if (m_mediaPlayerMusic && m_mediaPlayerSfx && m_mediaPlayerVoiceOver) {
-		QSettings s(this);
-		s.beginGroup(QStringLiteral("sound"));
-		s.setValue(QStringLiteral("volumeMusic"), m_musicVolume);
-		s.setValue(QStringLiteral("volumeSfx"), volumeSfx());
-		s.setValue(QStringLiteral("volumeVoiceOver"), volumeVoiceOver());
-		s.setValue(QStringLiteral("vibrate"), m_vibrate);
-		s.endGroup();
-	}
-
 	if (m_mediaPlayerSfx)
 		delete m_mediaPlayerSfx;
 
@@ -97,17 +86,6 @@ Sound::~Sound()
 
 
 
-
-
-/**
- * @brief Sound::performVibrate
- */
-
-void Sound::performVibrate() const
-{
-	if (m_vibrate)
-		Utils::vibrate();
-}
 
 
 
@@ -139,14 +117,6 @@ void Sound::init()
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, [=]() {
 		m_mediaPlayerMusic->setVolume(m_musicVolume);
 	});
-
-	QSettings s(this);
-	s.beginGroup(QStringLiteral("sound"));
-	setVolumeMusic(s.value(QStringLiteral("volumeMusic"), 50).toInt());
-	setVolumeSfx(s.value(QStringLiteral("volumeSfx"), 50).toInt());
-	setVolumeVoiceOver(s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
-	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
-	s.endGroup();
 
 
 	LOG_CTRACE("sound") << "Sound object initialized";
@@ -232,6 +202,53 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 
 
 /**
+ * @brief Sound::volume
+ * @param channel
+ * @return
+ */
+
+int Sound::volume(const ChannelType &channel) const
+{
+	switch (channel) {
+	case MusicChannel:
+		return m_mediaPlayerMusic->volume();
+		break;
+	case SfxChannel:
+		return m_mediaPlayerSfx->volume();
+		break;
+	case VoiceoverChannel:
+		return m_mediaPlayerVoiceOver->volume();
+		break;
+	}
+
+	return 0;
+}
+
+
+/**
+ * @brief Sound::setVolume
+ * @param channel
+ * @param newVolume
+ */
+
+void Sound::setVolume(const ChannelType &channel, int newVolume)
+{
+	switch (channel) {
+	case MusicChannel:
+		m_mediaPlayerMusic->setVolume(newVolume);
+		m_musicVolume = newVolume;
+		break;
+	case SfxChannel:
+		m_mediaPlayerSfx->setVolume(newVolume);
+		break;
+	case VoiceoverChannel:
+		m_mediaPlayerVoiceOver->setVolume(newVolume);
+		break;
+	}
+}
+
+
+/**
  * @brief Sound::isPlayingMusic
  * @return
  */
@@ -241,42 +258,6 @@ bool Sound::isPlayingMusic() const
 	return (m_mediaPlayerMusic && m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState);
 }
 
-
-/**
- * @brief CosSound::setVolumeSfx
- * @param volume
- */
-
-void Sound::setVolumeSfx(int volume)
-{
-	if (m_mediaPlayerSfx) m_mediaPlayerSfx->setVolume(volume);
-	emit volumeSfxChanged(volume);
-}
-
-/**
- * @brief CosSound::setVolumeMusic
- * @param volume
- */
-
-void Sound::setVolumeMusic(int volume)
-{
-	if (m_mediaPlayerMusic) m_mediaPlayerMusic->setVolume(volume);
-	emit volumeMusicChanged(volume);
-	m_musicVolume = volume;
-}
-
-
-
-/**
- * @brief CosSound::setVolumeVoiceOver
- * @param volume
- */
-
-void Sound::setVolumeVoiceOver(int volume)
-{
-	if (m_mediaPlayerVoiceOver) m_mediaPlayerVoiceOver->setVolume(volume);
-	emit volumeVoiceOverChanged(volume);
-}
 
 
 /**
@@ -339,24 +320,5 @@ void Sound::musicLoadNextSource()
 
 	m_mediaPlayerMusic->play();
 
-}
-
-
-/**
- * @brief Sound::vibrate
- * @return
- */
-
-bool Sound::vibrate() const
-{
-	return m_vibrate;
-}
-
-void Sound::setVibrate(bool newVibrate)
-{
-	if (m_vibrate == newVibrate)
-		return;
-	m_vibrate = newVibrate;
-	emit vibrateChanged();
 }
 

@@ -89,6 +89,26 @@ else: LIBS += -lQtXlsxWriter
 
 
 
+
+# QSingleInstance
+
+linux|win32|mac: {
+	HEADERS += \
+		$$PWD/QSingleInstance/QSingleInstance/QSingleInstance \
+		$$PWD/QSingleInstance/QSingleInstance/clientinstance.h \
+		$$PWD/QSingleInstance/QSingleInstance/qsingleinstance.h \
+		$$PWD/QSingleInstance/QSingleInstance/qsingleinstance_p.h
+
+	SOURCES += \
+		$$PWD/QSingleInstance/QSingleInstance/clientinstance.cpp \
+		$$PWD/QSingleInstance/QSingleInstance/qsingleinstance.cpp \
+		$$PWD/QSingleInstance/QSingleInstance/qsingleinstance_p.cpp
+
+	INCLUDEPATH += \
+		$$PWD/QSingleInstance/QSingleInstance
+}
+
+
 # Android OpenSSL
 
 android: include($$PWD/android_openssl/openssl.pri)
@@ -96,7 +116,8 @@ android: include($$PWD/android_openssl/openssl.pri)
 
 
 
-
 # QSyncable
 
 include(qsyncable.pri)
+
+

@@ -97,18 +97,28 @@ QScrollable
 
 
 			Qaterial.HorizontalLineSeparator {
-				visible: _google.visible
+				visible: _google.visible || _microsoft.visible
 				anchors.horizontalCenter: parent.horizontalCenter
 				width: parent.width*0.75
 			}
 
 			QButton {
 				id: _google
-				visible: Client.server && Client.server.config.oauthGoogle !== undefined && Client.server.config.oauthGoogle
+				visible: Client.server && Client.server.config.oauthProviders !== undefined && Client.server.config.oauthProviders.includes("google")
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Bejelentkezés Google fiókkal")
 				icon.source: Qaterial.Icons.google
-				onClicked: Client.loginGoogle()
+				onClicked: Client.loginOAuth2("google")
+			}
+
+			QButton {
+				id: _microsoft
+				visible: Client.server && Client.server.config.oauthProviders !== undefined &&
+						 Client.server.config.oauthProviders.includes("microsoft")
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: qsTr("Bejelentkezés Microsft fiókkal")
+				icon.source: Qaterial.Icons.microsoft
+				onClicked: Client.loginOAuth2("microsoft")
 			}
 
 			Qaterial.HorizontalLineSeparator {

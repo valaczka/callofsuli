@@ -50,7 +50,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
 
 	if (client) {
-		m_soundEffect = client->newSoundEffect(this);
+		m_soundEffect = client->newSoundEffect();
 		m_soundEffect->setSource(shotSound());
 		connect(this, &GameEnemy::attack, m_soundEffect, &QSoundEffect::play);
 		connect(this, &GameEnemy::shotSoundChanged, m_soundEffect, &QSoundEffect::setSource);
@@ -75,8 +75,15 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 GameEnemy::~GameEnemy()
 {
 #ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+
+	if (client)
+		client->removeSoundEffect(m_soundEffect);
+
 	if (m_soundEffect)
 		m_soundEffect->deleteLater();
+
+	m_soundEffect = nullptr;
 #endif
 }
 

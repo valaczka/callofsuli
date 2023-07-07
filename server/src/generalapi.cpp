@@ -73,9 +73,12 @@ void GeneralAPI::config(const QRegularExpressionMatch &, const QJsonObject &, QP
 
 	QJsonObject c = m_service->config().get();
 
-	if (!m_service->settings()->oauthGoogle().clientId.isEmpty() &&
-			!m_service->settings()->oauthGoogle().clientKey.isEmpty())
-		c.insert(QStringLiteral("oauthGoogle"), true);
+	QJsonArray pList;
+
+	foreach (OAuth2Authenticator *a, m_service->authenticators())
+		pList.append(QString::fromLatin1(a->type()));
+
+	c.insert(QStringLiteral("oauthProviders"), pList);
 
 	QJsonObject r;
 	r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
