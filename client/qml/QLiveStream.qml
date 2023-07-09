@@ -8,6 +8,7 @@ QtObject {
 		Invalid,
 		LoadingLive,
 		LoadingStatic,
+		Connected,
 		Live,
 		Static,
 		Error
@@ -22,7 +23,7 @@ QtObject {
 	property string path: ""
 	property var data: ({})
 
-	property int maximumTries: 5
+	property int maximumTries: 2
 
 	property var reloadCallback: null
 
@@ -44,22 +45,54 @@ QtObject {
 		}
 	}
 
+
+	property Timer _helloTimer: Timer {
+		id: _helloTimer
+		interval: 5000
+		triggeredOnStart: false
+		running: false
+		onTriggered: {
+			console.warn("EventStream hello message not received")
+
+			if (eventStream) {
+				eventStream.destroy()
+				eventStream = null
+			}
+
+			if (root.state !== QLiveStream.LoadingLive) {
+				root.state = QLiveStream.LoadingLive
+			}
+			_try()
+		}
+	}
+
 	property Connections _connections: Connections {
 		target: eventStream
 
 		function onConnected() {
 			console.debug("EventStream connected")
-			root.state = QLiveStream.Live
+			root.state = QLiveStream.Connected
+			_helloTimer.start()
 		}
 
 		function onDisconnected() {
 			console.debug("EventStream disconnected")
+			_helloTimer.stop()
 
 			if (root.state !== QLiveStream.LoadingLive) {
 				root.state = QLiveStream.LoadingLive
 				root.eventStream = null
 				_try()
 			}
+		}
+
+		function onEventHelloReceived() {
+			if (root.state !== QLiveStream.Connected)
+				console.warn("EventStream state error")
+
+			console.debug("EventStream live")
+			root.state = QLiveStream.Live
+			_helloTimer.stop()
 		}
 	}
 
@@ -71,6 +104,16 @@ QtObject {
 
 
 	function reload() {
+		if (root.state === QLiveStream.LoadingStatic || root.state === QLiveStream.Static) {
+			if (reloadCallback)
+				reloadCallback()
+
+			root.state = QLiveStream.Static
+			return
+		}
+
+		_helloTimer.stop()
+
 		if (eventStream) {
 			eventStream.destroy()
 			eventStream = null
@@ -86,7 +129,7 @@ QtObject {
 
 
 	function _try() {
-		if (Qt.platform.os == "wasm" || Qt.platform.os == "ios") {
+		if (Qt.platform.os == "wasm") {
 			console.debug("Platform doesn't support EventStream, switch to static")
 			root.state = QLiveStream.LoadingStatic
 			return
@@ -117,6 +160,8 @@ QtObject {
 			root.state = QLiveStream.Error
 			return
 		}
+
+		_helloTimer.start()
 	}
 
 	Component.onDestruction: {

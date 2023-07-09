@@ -69,7 +69,6 @@
         <file>QFormRadioButton.qml</file>
         <file>QScrollable.qml</file>
         <file>Ranks.qml</file>
-        <file>QLoaderItemDelegate.qml</file>
         <file>PageTeacherDashboard.qml</file>
         <file>QDashboardButton.qml</file>
         <file>QDashboardGrid.qml</file>
@@ -106,7 +105,6 @@
         <file>PageStudentCampaign.qml</file>
         <file>QPageGradient.qml</file>
         <file>PageMapPlayMissionLevel.qml</file>
-        <file>QLoaderItemFullDelegate.qml</file>
         <file>MapPlayMissionLevelInfoList.qml</file>
         <file>QPlaceholderItem.qml</file>
         <file>TeacherCampaignTaskList.qml</file>
@@ -175,5 +173,8 @@
         <file>SettingsSound.qml</file>
         <file>SettingsAppearance.qml</file>
         <file>PageTeacherSettings.qml</file>
+        <file>QFetchListView.qml</file>
+        <file>QFetchLoader.qml</file>
+        <file>QFetchLoaderGroup.qml</file>
     </qresource>
 </RCC>

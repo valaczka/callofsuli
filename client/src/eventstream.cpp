@@ -255,9 +255,14 @@ void EventStream::onReplyReadyRead()
 	foreach (const QByteArray &l, lines) {
 		QByteArray line = l.simplified();
 
+		LOG_CINFO("client") << "EVENT MESSAGE" << event << data;
+
 		// If more events received
 		if (line.isEmpty() && (!event.isEmpty() || !data.isEmpty())) {
-			emit eventReceived(event, data);
+			if (event == QByteArrayLiteral("hello") && data == QByteArrayLiteral("hello message"))
+				emit eventHelloReceived();
+			else
+				emit eventReceived(event, data);
 
 			QJsonDocument doc = QJsonDocument::fromJson(data);
 			if (!doc.isEmpty() || doc.isObject())
@@ -280,7 +285,13 @@ void EventStream::onReplyReadyRead()
 	}
 
 	if (!event.isEmpty() || !data.isEmpty()) {
-		emit eventReceived(event, data);
+
+		LOG_CINFO("client") << "EVENT MESSAGE" << event << data;
+
+		if (event == QByteArrayLiteral("hello") && data == QByteArrayLiteral("hello message"))
+			emit eventHelloReceived();
+		else
+			emit eventReceived(event, data);
 		QJsonDocument doc = QJsonDocument::fromJson(data);
 		if (!doc.isEmpty() || doc.isObject())
 			emit eventJsonReceived(QString::fromUtf8(event), doc.object());

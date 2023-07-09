@@ -776,10 +776,12 @@ QPage {
 	Component {
 		id: _terrainDelegate
 
-		QLoaderItemDelegate {
+		Qaterial.LoaderItemDelegate {
 			highlighted: ListView.isCurrentItem
 			text: model.displayName ? model.displayName: ""
 			secondaryText: model.level > 0 ? qsTr("level %1").arg(model.level) : ""
+
+			view: ListView.view.width
 
 			leftSourceComponent: Image
 			{

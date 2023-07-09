@@ -57,6 +57,8 @@ Row {
 			visible: false
 			cache: false
 			asynchronous: true
+			sourceSize.width: width
+			sourceSize.height: height
 		}
 
 		Glow {

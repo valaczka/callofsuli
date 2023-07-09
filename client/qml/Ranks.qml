@@ -35,10 +35,12 @@ QPage {
 
 			model: Client.server ? Client.server.rankList : null
 
-			delegate: QLoaderItemDelegate {
+			delegate: Qaterial.LoaderItemDelegate {
 				highlighted: ListView.isCurrentItem
 				text: modelData.name
 				secondaryText: modelData.sublevel > 0 ? qsTr("level %1").arg(modelData.sublevel) : ""
+
+				width: ListView.view.width
 
 				leftSourceComponent: UserImage {
 					user: User {

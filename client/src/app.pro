@@ -158,6 +158,7 @@ SOURCES += \
 	clientcache.cpp \
 	editorundostack.cpp \
 	eventstream.cpp \
+	fetchmodel.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
 	gameenemysniper.cpp \
@@ -221,6 +222,7 @@ HEADERS += \
 	clientcache.h \
 	editorundostack.h \
 	eventstream.h \
+	fetchmodel.h \
 	fontimage.h \
 	gameenemy.h \
 	gameenemysniper.h \

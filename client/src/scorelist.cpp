@@ -34,33 +34,12 @@
  */
 
 ScoreList::ScoreList(QObject *parent)
-	: QObject{parent}
-	, m_model(new QSListModel(this))
+	: FetchModel{parent}
 {
-	setRoles();
-	//refresh();
+	setFields(Utils::getRolesFromObject(User().metaObject()));
 }
 
 
-/**
- * @brief ScoreList::~ScoreList
- */
-
-ScoreList::~ScoreList()
-{
-	delete m_model;
-	m_model = nullptr;
-}
-
-/**
- * @brief ScoreList::model
- * @return
- */
-
-QSListModel *ScoreList::model() const
-{
-	return m_model;
-}
 
 
 /**
@@ -76,6 +55,21 @@ void ScoreList::reload()
 			->fail([client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
 			->done(this, &ScoreList::loadFromJson);
 
+}
+
+
+
+/**
+ * @brief ScoreList::reloadFromVariantList
+ * @param list
+ */
+
+void ScoreList::reloadFromVariantList(const QVariantList &list)
+{
+	if (limit() < 0)
+		Utils::patchSListModel(m_model, list, QStringLiteral("username"));
+	else
+		FetchModel::reloadFromVariantList(list);
 }
 
 
@@ -98,35 +92,65 @@ void ScoreList::refresh()
 	}
 
 	if (m_sortOrder != SortNone) {
-		std::sort(model.begin(), model.end(), [this](const QVariant &left, const QVariant &right) {
+		std::sort(model.begin(), model.end(), [this](const QVariant &left, const QVariant &right) -> bool {
 			const QVariantMap &mLeft = left.toMap();
 			const QVariantMap &mRight = right.toMap();
 
+			const bool defaultOrder = QString::localeAwareCompare(mLeft.value(QStringLiteral("username")).toString(),
+																  mRight.value(QStringLiteral("username")).toString()) < 0;
+
 			switch (m_sortOrder) {
 			case SortXP:
-				return mLeft.value(QStringLiteral("xp")).toInt() < mRight.value(QStringLiteral("xp")).toInt();
+				if (mLeft.value(QStringLiteral("xp")).toInt() < mRight.value(QStringLiteral("xp")).toInt())
+					return true;
+				else if (mLeft.value(QStringLiteral("xp")).toInt() > mRight.value(QStringLiteral("xp")).toInt())
+					return false;
+				else
+					return defaultOrder;
 				break;
 			case SortXPdesc:
-				return mLeft.value(QStringLiteral("xp")).toInt() > mRight.value(QStringLiteral("xp")).toInt();
+				if (mLeft.value(QStringLiteral("xp")).toInt() > mRight.value(QStringLiteral("xp")).toInt())
+					return true;
+				else if (mLeft.value(QStringLiteral("xp")).toInt() < mRight.value(QStringLiteral("xp")).toInt())
+					return false;
+				else
+					return defaultOrder;
 				break;
 			case SortStreak:
-				return mLeft.value(QStringLiteral("streak")).toInt() < mRight.value(QStringLiteral("streak")).toInt();
+				if (mLeft.value(QStringLiteral("streak")).toInt() < mRight.value(QStringLiteral("streak")).toInt())
+					return true;
+				else if (mLeft.value(QStringLiteral("streak")).toInt() > mRight.value(QStringLiteral("streak")).toInt())
+					return false;
+				else
+					return defaultOrder;
 				break;
 			case SortFullname:
-				return QString::localeAwareCompare(mLeft.value(QStringLiteral("fullName")).toString(),
-												   mRight.value(QStringLiteral("fullName")).toString()) < 0;
+				if (QString::localeAwareCompare(mLeft.value(QStringLiteral("fullName")).toString(),
+												mRight.value(QStringLiteral("fullName")).toString()) < 0)
+					return true;
+				else if (QString::localeAwareCompare(mLeft.value(QStringLiteral("fullName")).toString(),
+													 mRight.value(QStringLiteral("fullName")).toString()) > 0)
+					return false;
+				else
+					return defaultOrder;
 				break;
 			case SortFullNickname:
-				return QString::localeAwareCompare(mLeft.value(QStringLiteral("fullNickName")).toString(),
-												   mRight.value(QStringLiteral("fullNickName")).toString()) < 0;
+				if (QString::localeAwareCompare(mLeft.value(QStringLiteral("fullNickName")).toString(),
+												mRight.value(QStringLiteral("fullNickName")).toString()) < 0)
+					return true;
+				else if (QString::localeAwareCompare(mLeft.value(QStringLiteral("fullNickName")).toString(),
+													 mRight.value(QStringLiteral("fullNickName")).toString()) > 0)
+					return false;
+				else
+					return defaultOrder;
 				break;
 			default:
-				return false;
+				return defaultOrder;
 			}
 		});
 	}
 
-	Utils::patchSListModel(m_model, model, QStringLiteral("username"));
+	reloadFromVariantList(model);
 }
 
 
@@ -143,17 +167,6 @@ void ScoreList::onEventJsonReceived(const QString &, const QJsonObject &json)
 	loadFromJson(json);
 }
 
-
-
-
-/**
- * @brief ScoreList::setRoles
- */
-
-void ScoreList::setRoles()
-{
-	m_model->setRoleNames(Utils::getRolesFromObject(User().metaObject()));
-}
 
 
 
@@ -176,8 +189,13 @@ void ScoreList::loadFromJson(const QJsonObject &obj)
 	}
 
 	refresh();
-	emit modelReloaded();
 }
+
+
+/**
+ * @brief ScoreList::eventStream
+ * @return
+ */
 
 EventStream *ScoreList::eventStream() const
 {

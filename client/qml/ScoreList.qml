@@ -17,18 +17,20 @@ Qaterial.Page
 
 	property double paddingTop: 0
 
-	property bool _showPlaceholders: true
-	property int _pendingLoaders: -1
-
 	background: null
+
+	QFetchLoaderGroup {
+		id: _loaderGroup
+		showPlaceholders: true
+	}
 
 	ScoreListImpl {
 		id: _scoreList
 
-		onModelReloaded: {
-			_pendingLoaders = _sortedUserList.count
-			view.model = _sortedUserList
-		}
+		filterClassId: -1
+		sortOrder: ScoreListImpl.SortXPdesc
+
+		onFilterClassIdChanged: _scrollable.flickable.contentY = 0
 	}
 
 	ListModel {
@@ -73,50 +75,21 @@ Qaterial.Page
 	}
 
 
-	SortFilterProxyModel {
-		id: _sortedUserList
-		sourceModel: _scoreList.model
-
-		filters: ValueFilter {
-			id: _classidFilter
-
-			property int classid: -1
-
-			onClassidChanged: view.positionViewAtBeginning()
-
-			roleName: "classid"
-			enabled: classid != -1
-			value: classid
-		}
-
-		sorters: [
-			RoleSorter {
-				roleName: "xp"
-				sortOrder: Qt.DescendingOrder
-				priority: 1
-			},
-			StringSorter {
-				roleName: "fullNickName"
-				sortOrder: Qt.AscendingOrder
-			}
-		]
-	}
-
-
 	QScrollable {
+		id: _scrollable
+
 		anchors.fill: parent
 		horizontalPadding: 0
 		topPadding: 0
 		bottomPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: reload()
-
+		onRefreshRequest: _scoreList.reload()
 
 		ListView {
 			id: _viewPlaceholder
 
-			visible: _showPlaceholders
+			visible: _loaderGroup.showPlaceholders
 
 			height: contentHeight
 
@@ -127,8 +100,11 @@ Qaterial.Page
 
 			model: 10
 
-			delegate: QLoaderItemFullDelegate {
+			delegate: Qaterial.FullLoaderItemDelegate {
 				id: _placeholder
+
+				width: ListView.view.width
+
 				contentSourceComponent: QPlaceholderItem {
 					heightRatio: 0.5
 					horizontalAlignment: Qt.AlignLeft
@@ -155,10 +131,10 @@ Qaterial.Page
 		}
 
 
-		QListView {
+		QFetchListView {
 			id: view
 
-			visible: !_showPlaceholders
+			visible: !_loaderGroup.showPlaceholders
 
 			currentIndex: -1
 			height: contentHeight
@@ -167,12 +143,16 @@ Qaterial.Page
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			model: null
+			fetchModel: _scoreList
+			flickable: _scrollable.flickable
+			fillHeight: _scrollable.height
 
-			delegate: Loader {
+
+			delegate: QFetchLoader {
 				id: _ldr
-				asynchronous: _showPlaceholders
-				sourceComponent: QLoaderItemDelegate {
+
+				group: _loaderGroup
+				sourceComponent: Qaterial.LoaderItemPlaceholderDelegate {
 					id: _delegate
 
 					visible: _ldr.status == Loader.Ready
@@ -183,7 +163,17 @@ Qaterial.Page
 					secondaryText: rank.name + (rank.sublevel > 0 ? qsTr(" (level %1)").arg(rank.sublevel) : "")
 					highlighted: Client.server && Client.server.user && username === Client.server.user.username
 
+					leftPlaceholderSourceComponent: QPlaceholderItem {
+						width: _delegate.height
+						height: _delegate.height
+						widthRatio: 1.0
+						heightRatio: 1.0
+						contentComponent: ellipseComponent
+					}
+
 					leftSourceComponent: UserImage { userData: model }
+
+					rightAsynchronous: false
 
 					rightSourceComponent: Column {
 						Qaterial.LabelSubtitle1 {
@@ -216,26 +206,7 @@ Qaterial.Page
 											 })
 					}
 				}
-
-				onLoaded: {
-					if (_showPlaceholders) {
-						_pendingLoaders--
-						if (_pendingLoaders <= 0)
-							_showPlaceholders = false
-					}
-				}
-
-				Component.onCompleted: {
-					control.Component.destruction.connect(_ldr.stopLoading)
-				}
-
-				function stopLoading() {
-					if (_ldr)
-						_ldr.active = false
-				}
 			}
-
-
 
 			header: Item {
 				width: ListView.width
@@ -243,6 +214,7 @@ Qaterial.Page
 			}
 
 		}
+
 
 	}
 
@@ -253,9 +225,8 @@ Qaterial.Page
 
 		onCurrentIndexChanged: {
 			if (currentIndex != -1) {
-				_showPlaceholders = false
 				var o = model.get(currentIndex)
-				_classidFilter.classid = o.classid
+				_scoreList.filterClassId = o.classid
 			}
 		}
 
@@ -269,11 +240,11 @@ Qaterial.Page
 
 	}
 
-	Component.onCompleted: Client.reloadCache("classList", function(){_preparedClassList.reload()})
+	Component.onCompleted: {
+		Client.reloadCache("classList", function(){_preparedClassList.reload()})
+	}
 
 	function reload() {
-		_showPlaceholders = true
-		view.model = null
 		_scoreList.reload()
 	}
 }

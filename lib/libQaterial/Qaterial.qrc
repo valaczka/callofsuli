@@ -147,10 +147,12 @@
 	<file alias="ListDelegateContent.qml">../Qaterial/qml/Qaterial/ListDelegateContent.qml</file>
 	<file alias="ListDelegateFullLoaderContent.qml">../Qaterial/qml/Qaterial/ListDelegateFullLoaderContent.qml</file>
 	<file alias="ListDelegateLoaderContent.qml">../Qaterial/qml/Qaterial/ListDelegateLoaderContent.qml</file>
+	<file alias="ListDelegateLoaderPlaceholderContent.qml">../Qaterial/qml/Qaterial/ListDelegateLoaderPlaceholderContent.qml</file>
 	<file alias="ListDelegateText.qml">../Qaterial/qml/Qaterial/ListDelegateText.qml</file>
 	<file alias="ListDialog.qml">../Qaterial/qml/Qaterial/ListDialog.qml</file>
 	<file alias="ListSectionTitle.qml">../Qaterial/qml/Qaterial/ListSectionTitle.qml</file>
 	<file alias="LoaderItemDelegate.qml">../Qaterial/qml/Qaterial/LoaderItemDelegate.qml</file>
+	<file alias="LoaderItemPlaceholderDelegate.qml">../Qaterial/qml/Qaterial/LoaderItemPlaceholderDelegate.qml</file>
 	<file alias="MaterialColorPalette.qml">../Qaterial/qml/Qaterial/MaterialColorPalette.qml</file>
 	<file alias="Menu.qml">../Qaterial/qml/Qaterial/Menu.qml</file>
 	<file alias="MenuBar.qml">../Qaterial/qml/Qaterial/MenuBar.qml</file>

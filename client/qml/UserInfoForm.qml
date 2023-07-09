@@ -180,7 +180,7 @@ QFormColumn {
 	Component {
 		id: _characterDelegate
 
-		QLoaderItemDelegate {
+		Qaterial.LoaderItemDelegate {
 			highlighted: ListView.isCurrentItem
 			text: modelData ? modelData.name : ""
 

@@ -26,6 +26,7 @@
 
 #include "Logger.h"
 #include "classobject.h"
+#include "fetchmodel.h"
 #include "fontimage.h"
 #include "gameenemysniper.h"
 #include "gamequestioncomponent.h"
@@ -360,6 +361,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
 	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
+	qmlRegisterType<FetchModel>("CallOfSuli", 1, 0, "FetchModelImpl");
 	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
 	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
 	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");

@@ -32,6 +32,7 @@ Column {
 		Qaterial.IconLabel {
 			id: _label1
 			text: qsTr("Effektek")
+			icon.color: _volSfx.value > 0 ? Qaterial.Style.primaryTextColor() : Qaterial.Style.disabledTextColor()
 			icon.source: _volSfx.value > _volSfx.to * 0.66 ?
 							 Qaterial.Icons.volumeHigh :
 							 _volSfx.value > _volSfx.to * 0.33 ? Qaterial.Icons.volumeMedium :
@@ -72,6 +73,7 @@ Column {
 
 		Qaterial.IconLabel {
 			text: qsTr("Beszéd")
+			icon.color: _volVoiceOver.value > 0 ? Qaterial.Style.primaryTextColor() : Qaterial.Style.disabledTextColor()
 			icon.source: _volVoiceOver.value > _volVoiceOver.to * 0.66 ?
 							 Qaterial.Icons.volumeHigh :
 							 _volVoiceOver.value > _volVoiceOver.to * 0.33 ? Qaterial.Icons.volumeMedium :
@@ -109,6 +111,7 @@ Column {
 
 		Qaterial.IconLabel {
 			text: qsTr("Háttérzene")
+			icon.color: _volMusic.value > 0 ? Qaterial.Style.primaryTextColor() : Qaterial.Style.disabledTextColor()
 			icon.source: _volMusic.value > _volMusic.to * 0.66 ?
 							 Qaterial.Icons.volumeHigh :
 							 _volMusic.value > _volMusic.to * 0.33 ? Qaterial.Icons.volumeMedium :
@@ -162,7 +165,7 @@ Column {
 			icon: Client.vibrate ? Qaterial.Icons.vibrate : Qaterial.Icons.vibrateOff
 			implicitWidth: _label1.icon.width
 			implicitHeight: _label1.icon.height
-			color: _label1.icon.color
+			color: Client.vibrate ? Qaterial.Style.primaryTextColor() : Qaterial.Style.disabledTextColor()
 			anchors.verticalCenter: parent.verticalCenter
 		}
 

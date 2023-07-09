@@ -175,7 +175,6 @@ QItemGradient {
 					rectangleRadius: 5
 				}
 			}
-
 		}
 
 	}

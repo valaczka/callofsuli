@@ -106,11 +106,21 @@ QPage {
 				paddingTop: _pageScoreList.paddingTop
 			}
 
-			appBar.rightComponent: Qaterial.AppBarButton {
-				icon.source: Qaterial.Icons.medal
-				ToolTip.text: qsTr("Ranglista")
+			appBar.rightComponent: Row {
+				Qaterial.AppBarButton {
+					anchors.verticalCenter: parent.verticalCenter
+					icon.source: Qaterial.Icons.refresh
+					ToolTip.text: qsTr("Frissítés")
 
-				onClicked: Client.stackPushPage("Ranks.qml")
+					onClicked: _scoreList.reload()
+				}
+				Qaterial.AppBarButton {
+					anchors.verticalCenter: parent.verticalCenter
+					icon.source: Qaterial.Icons.medal
+					ToolTip.text: qsTr("Ranglista")
+
+					onClicked: Client.stackPushPage("Ranks.qml")
+				}
 			}
 
 			StackView.onActivated: _scoreList.reload()
@@ -133,3 +143,4 @@ QPage {
 		studentMapHandler.reload()
 	}
 }
+

@@ -25,6 +25,8 @@ GameQuestionImpl {
 
 	focus: true
 
+	layer.enabled: true
+
 
 	//-----------------------------------
 	// Required states: "started", "finished"

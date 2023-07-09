@@ -209,30 +209,6 @@ void EventStream::add(const EventStreamType &type, const QVariant &data)
 
 
 
-/**
- * @brief EventStream::triggerGroupScore
- */
-
-void EventStream::triggerGroupScore()
-{
-	const int &id = m_streamData.value(EventStreamGroupScore, -1).toInt();
-
-	if (id < 0)
-		return;
-
-	if (!m_service)
-		return;
-
-	QDeferred<QJsonArray> def = UserAPI::getGroupScore(m_service->databaseMain(), id);
-
-	def.fail([this](const QJsonArray &) {
-		write(EventStreamGroupScore, QJsonObject{{QStringLiteral("error"), true}});
-	})
-			.done([this](const QJsonArray &list) {
-		write(EventStreamGroupScore, QJsonObject{{QStringLiteral("list"), list}});
-	});
-}
-
 
 
 /**
@@ -260,7 +236,8 @@ void EventStream::setService(ServerService *newService)
 
 void EventStream::write(const EventStreamType &type, const QJsonObject &data)
 {
-	HttpEventStream::write(streamType(type), QJsonDocument(data).toJson(QJsonDocument::Compact));
+	if (!HttpEventStream::write(streamType(type), QJsonDocument(data).toJson(QJsonDocument::Compact)))
+		LOG_CWARNING("client") << "EventStream write failed" << this;
 }
 
 
@@ -292,4 +269,38 @@ void EventStream::setStreamTypes(const EventStreamTypes &newStreamTypes)
 		return;
 	m_streamTypes = newStreamTypes;
 	emit streamTypesChanged();
+}
+
+
+
+
+
+/// TRIGGERS ///
+
+
+
+/**
+ * @brief EventStream::triggerGroupScore
+ */
+
+void EventStream::triggerGroupScore()
+{
+	const int &id = m_streamData.value(EventStreamGroupScore, -1).toInt();
+
+	if (id < 0) {
+		LOG_CERROR("client") << "EventStreamGroupScore invalid id";
+		return;
+	}
+
+	if (!m_service)
+		return;
+
+	QDeferred<QJsonArray> def = UserAPI::getGroupScore(m_service->databaseMain(), id);
+
+	def.fail([this](const QJsonArray &) {
+		write(EventStreamGroupScore, QJsonObject{{QStringLiteral("error"), true}});
+	})
+			.done([this](const QJsonArray &list) {
+		write(EventStreamGroupScore, QJsonObject{{QStringLiteral("list"), list}});
+	});
 }

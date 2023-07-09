@@ -940,7 +940,7 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 		QueryBuilder qq(db);
 
-		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid, groupid FROM game "
+		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
 					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
 					"LEFT JOIN campaign ON (campaign.id=game.campaignid) "
 					"WHERE runningGame.gameid=game.id AND game.id=").addValue(gameid)
@@ -961,8 +961,6 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 
 		TeacherAPI::UserGame g;
-
-		const int &groupId = qq.value("groupId", -1).toInt();
 
 		g.map = qq.value("mapid").toString();
 		g.mission = qq.value("missionid").toString();
@@ -1099,8 +1097,21 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 
 		db.commit();
 
-		if (groupId > -1)
-			m_service->triggerEventStreams(EventStream::EventStreamGroupScore, groupId);
+
+		QueryBuilder qg(db);
+		qg.addQuery("SELECT DISTINCT id FROM studentGroupInfo WHERE username=").addValue(username);
+
+		if (qg.exec()) {
+			while (qg.sqlQuery().next()) {
+				const int groupId = qg.value("id", -1).toInt();
+
+				if (groupId > -1)
+					m_service->triggerEventStreams(EventStream::EventStreamGroupScore, groupId);
+			}
+		} else {
+			LOG_CERROR("client") << "SQL error" << qg.sqlQuery().lastError();
+		}
+
 
 		if (success) {
 			if (!TeacherAPI::_evaluateCampaign(this, g.campaign, username))

@@ -22,6 +22,8 @@ Page {
 
 	property bool itemsVisible: false
 
+	layer.enabled: true
+
 	Image {
 		id: bg
 
@@ -34,7 +36,7 @@ Page {
 		height: implicitHeight*reqScale
 		width: implicitWidth*reqScale
 
-		cache: false
+		cache: true
 
 		visible: itemsVisible
 
@@ -183,8 +185,6 @@ Page {
 			MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
 				anchors.fill: parent
 			}
-
-			//enabled: !_backDisabled && !game.question && gameMatch.mode == GameMatch.ModeNormal
 
 			onPinchUpdated: {
 				if (pinch.scale < 0.9) {
@@ -335,6 +335,9 @@ Page {
 		opacity: 0.0
 		visible: opacity
 		anchors.fill: parent
+
+		sourceSize.width: width
+		sourceSize.height: height
 
 		z: 10
 

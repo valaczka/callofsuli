@@ -39,6 +39,9 @@ Qaterial.ModalDialog
 				asynchronous: true
 				horizontalAlignment: Image.AlignHCenter
 				verticalAlignment: Image.AlignVCenter
+
+				sourceSize.width: width
+				sourceSize.height: height
 			}
 
 			background: Qaterial.ListDelegateBackground

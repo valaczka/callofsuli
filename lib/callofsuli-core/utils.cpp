@@ -520,6 +520,19 @@ void Utils::settingsSet(const QString &key, const QVariant &value)
 	s.setValue(key, value);
 }
 
+
+/**
+ * @brief Utils::settingsClear
+ * @param key
+ */
+
+void Utils::settingsClear(const QString &key)
+{
+	QSettings s;
+	s.remove(key);
+}
+
+
 #ifdef CLIENT_UTILS
 
 /**
@@ -605,9 +618,6 @@ void Utils::patchSListModel(QSListModel *model, const QVariantList &data, const 
 
 	runner.patch(model, patches);
 }
-
-
-
 
 
 /**

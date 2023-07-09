@@ -66,8 +66,10 @@ ListView {
 
 	Component {
 		id: _cmpDelegate
-		QLoaderItemFullDelegate {
+		Qaterial.FullLoaderItemDelegate {
 			id: _delegate
+
+			width: ListView.view.width
 			property MapGame game: model.qtObject
 
 			spacing: 10  * Qaterial.Style.pixelSizeRatio
@@ -131,9 +133,10 @@ ListView {
 
 	Component {
 		id: _cmpPlacholder
-		QLoaderItemFullDelegate {
+		Qaterial.FullLoaderItemDelegate {
 			id: _delegatePlaceholder
 
+			width: ListView.view.width
 			height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
 
 			spacing: 10  * Qaterial.Style.pixelSizeRatio

@@ -80,7 +80,7 @@ public:
 	bool vibrate() const;
 	void setVibrate(bool newVibrate);
 
-	bool isPlayingMusic() const { return m_sound && m_sound->isPlayingMusic(); }
+	Q_INVOKABLE bool isPlayingMusic() const { return m_sound && m_sound->isPlayingMusic(); }
 
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);

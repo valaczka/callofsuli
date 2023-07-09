@@ -15,7 +15,7 @@ Qaterial.Page {
 	property alias appBar: appBar
 	property alias subtitle: appBar.subtitle
 
-	enabled: StackView.view && StackView.index == StackView.view.depth-1
+	//enabled: StackView.view && StackView.index == StackView.view.depth-1
 
 	header: AppBar {
 		id: appBar
@@ -29,6 +29,9 @@ Qaterial.Page {
 			anchors.fill: parent
 			fillMode: Image.PreserveAspectCrop
 			source: "qrc:/internal/img/villa.png"
+
+			cache: true
+
 		}
 	}
 

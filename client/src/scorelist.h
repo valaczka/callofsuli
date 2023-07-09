@@ -28,15 +28,14 @@
 #define SCORELIST_H
 
 #include "qjsonobject.h"
-#include "qslistmodel.h"
 #include "websocket.h"
+#include "fetchmodel.h"
 #include <QObject>
 
-class ScoreList : public QObject
+class ScoreList : public FetchModel
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QSListModel *model READ model CONSTANT)
 	Q_PROPERTY(SortOrder sortOrder READ sortOrder WRITE setSortOrder NOTIFY sortOrderChanged)
 	Q_PROPERTY(int filterClassId READ filterClassId WRITE setFilterClassId NOTIFY filterClassIdChanged)
 
@@ -48,7 +47,6 @@ class ScoreList : public QObject
 
 public:
 	explicit ScoreList(QObject *parent = nullptr);
-	virtual ~ScoreList();
 
 	enum SortOrder {
 		SortNone,
@@ -60,8 +58,6 @@ public:
 	};
 
 	Q_ENUM(SortOrder);
-
-	QSListModel *model() const;
 
 	const SortOrder &sortOrder() const;
 	void setSortOrder(const SortOrder &newSortOrder);
@@ -83,14 +79,14 @@ public:
 	void setEventStream(EventStream *newEventStream);
 
 public slots:
-	void reload();
+	void reload() override;
+	void reloadFromVariantList(const QVariantList &list) override;
 	void refresh();
 
 private slots:
 	void onEventJsonReceived(const QString &, const QJsonObject &json);
 
 signals:
-	void modelReloaded();
 	void sortOrderChanged();
 	void apiChanged();
 	void pathChanged();
@@ -99,10 +95,8 @@ signals:
 	void eventStreamChanged();
 
 private:
-	void setRoles();
 	void loadFromJson(const QJsonObject &obj);
 
-	QSListModel *m_model = nullptr;
 	SortOrder m_sortOrder = SortNone;
 	WebSocket::API m_api = WebSocket::ApiGeneral;
 	QString m_path = QStringLiteral("score");

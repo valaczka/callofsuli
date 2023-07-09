@@ -18,7 +18,6 @@ ListView {
 	property alias limit: offsetModel.limit
 	property alias listField: offsetModel.listField*/
 
-	clip: true
 	focus: true
 	activeFocusOnTab: true
 

@@ -150,6 +150,9 @@ Item {
 							height: labelText.font.pixelSize*1.4
 							fillMode: Image.PreserveAspectFit
 							source: task && task.success ? "qrc:/internal/img/checkmark_red.png" : ""
+
+							sourceSize.width: width
+							sourceSize.height: height
 						}
 
 						Label {

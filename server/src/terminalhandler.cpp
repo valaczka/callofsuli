@@ -327,6 +327,34 @@ void TerminalHandler::parseRoot(const QByteArray &data)
 		return true;
 	});
 
+	f.map("users", [this](const QStringList &){
+		QDefer ret;
+
+		m_service->databaseMain()->worker()->execInThread([this, &ret]() {
+			QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
+
+			QMutexLocker(m_service->databaseMain()->mutex());
+
+			QueryBuilder q(db);
+
+			q.addQuery("SELECT username FROM user ORDER by username");
+
+			if (q.exec()) {
+				while (q.sqlQuery().next())
+					writeLine(q.value("username").toString().toUtf8());
+			} else {
+				writeLine("*** SQL error");
+			}
+
+			ret.resolve();
+
+		});
+
+		QDefer::await(ret);
+
+		return true;
+	});
+
 	call(f, list);
 
 	prompt();

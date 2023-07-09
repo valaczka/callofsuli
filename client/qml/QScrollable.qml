@@ -25,8 +25,8 @@ Item {
 
 	signal refreshRequest()
 
-	implicitHeight: _content.implicitHeight
-	implicitWidth: _content.implicitWidth
+	implicitHeight: _content.implicitHeight + control.topPadding + control.bottomPadding
+	implicitWidth: _content.implicitWidth + control.leftPadding + control.rightPadding
 
 	Flickable
 	{

@@ -41,8 +41,6 @@ ListView {
 		}
 	}
 
-
-	clip: true
 	focus: true
 	activeFocusOnTab: true
 
@@ -69,7 +67,7 @@ ListView {
 	PullToRefreshHandler {
 		target: view
 		enabled: view.refreshEnabled
-		absoluteThreshold: 100
+		absoluteThreshold: 100 * Qaterial.Style.pixelSizeRatio
 		onPullDownRelease: view.refreshRequest()
 	}
 

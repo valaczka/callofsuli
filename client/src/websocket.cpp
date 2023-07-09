@@ -523,6 +523,7 @@ EventStream *WebSocket::getEventStream(const API &api, const QString &path, cons
 
 	r.setRawHeader(QByteArrayLiteral("Accept"), QByteArrayLiteral("text/event-stream"));
 	//r.setHeader(QNetworkRequest::UserAgentHeader, USER_AGENT);
+
 	r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 	r.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
 

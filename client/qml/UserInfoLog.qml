@@ -10,12 +10,13 @@ Qaterial.Expandable {
 
 	property alias username: _userLog.username
 
-	property bool _showPlaceholders: true
-	property int _pendingLoaders: -1
-
 	expanded: true
 
 	onVisibleChanged: evaluateDelegateClipperHeight()
+
+	QFetchLoaderGroup {
+		id: _loaderGroup
+	}
 
 	header: QExpandableHeader {
 		text: qsTr("Előléptetések")
@@ -29,11 +30,11 @@ Qaterial.Expandable {
 
 		Column {
 			width: root.width
-			visible: _showPlaceholders
+			visible: _loaderGroup.showPlaceholders
 
 			Repeater {
 				model: 5
-				delegate: QLoaderItemFullDelegate {
+				delegate: Qaterial.FullLoaderItemDelegate {
 					id: _delegatePlaceholder
 
 					width: root.width
@@ -67,14 +68,14 @@ Qaterial.Expandable {
 
 		Column {
 			width: parent.width
-			visible: !_showPlaceholders
+			visible: !_loaderGroup.showPlaceholders
 
 			Repeater {
 				id: _rptr
 				model: null
-				delegate: Loader {
-					asynchronous: true
-					sourceComponent: QLoaderItemFullDelegate {
+				delegate: QFetchLoader {
+					group: _loaderGroup
+					Qaterial.FullLoaderItemDelegate {
 						id: _delegate
 
 						spacing: 10
@@ -117,14 +118,6 @@ Qaterial.Expandable {
 							color: _delegate._color
 						}
 					}
-
-					onLoaded: {
-						if (_showPlaceholders) {
-							_pendingLoaders--
-							if (_pendingLoaders <= 0)
-								_showPlaceholders = false
-						}
-					}
 				}
 			}
 		}
@@ -134,15 +127,7 @@ Qaterial.Expandable {
 			target: _userLog
 
 			function onModelReloaded() {
-				_pendingLoaders = _userLog.model.length
 				_rptr.model = _userLog.model
-				if (_pendingLoaders <= 0)
-					_showPlaceholders = false
-			}
-
-			function onModelReloadRequested() {
-				_showPlaceholders = true
-				_rptr.model = null
 			}
 		}
 	}

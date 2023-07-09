@@ -25,6 +25,8 @@ Page {
 		fillMode: Image.PreserveAspectCrop
 		source: "qrc:/internal/img/villa.png"
 		visible: itemsVisible
+
+		cache: true
 	}
 
 	Row {

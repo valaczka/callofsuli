@@ -60,8 +60,11 @@ GameQuestionComponentImpl {
 			anchors.leftMargin: 5
 
 			fillMode: Image.PreserveAspectFit
-			cache: false
+			cache: true
 			asynchronous: true
+
+			sourceSize.width: width
+			sourceSize.height: height
 		}
 
 		Flickable {

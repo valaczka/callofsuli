@@ -74,6 +74,7 @@ signals:
 	void connected();
 	void disconnected();
 	void finished();
+	void eventHelloReceived();
 	void eventReceived(const QByteArray &event, const QByteArray &data);
 	void eventJsonReceived(const QString &event, const QJsonObject &json);
 

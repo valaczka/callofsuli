@@ -13,6 +13,8 @@ Page {
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectCrop
 		source: "qrc:/internal/img/villa.png"
+
+		cache: true
 	}
 
 

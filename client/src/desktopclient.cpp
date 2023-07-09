@@ -130,6 +130,8 @@ QSoundEffect *DesktopClient::newSoundEffect()
 
 	m_worker->execInThread([&e, this, &ret](){
 		e = new QSoundEffect(m_sound);
+		const qreal vol = (qreal) volumeSfx() / 100.0;
+		e->setVolume(vol);
 		ret.resolve();
 	});
 

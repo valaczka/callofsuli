@@ -521,12 +521,14 @@ void ServerService::addEventStream(EventStream *stream)
 
 	stream->setService(this);
 
-	LOG_CTRACE("service") << "Event stream added:" << m_eventStreams.size() << stream;
+	LOG_CTRACE("service") << "Event stream added:" << stream << stream->streamTypes();
 
 	connect(stream, &EventStream::destroyed, this, [this, stream](){
 		m_eventStreams.removeAll(stream);
-		LOG_CTRACE("service") << "Event stream removed:" << m_eventStreams.size() << stream;
+		LOG_CTRACE("service") << "Event stream removed:" << stream << stream->streamTypes();
 	});
+
+	stream->HttpEventStream::write(QByteArrayLiteral("hello"), QByteArrayLiteral("hello message"));
 }
 
 

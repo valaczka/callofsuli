@@ -20,6 +20,8 @@ Item {
 
 		anchors.fill: parent
 		opacity: _appBar.visible ? 0.0 : 1.0
+
+		layer.enabled: true
 	}
 
 	Item {

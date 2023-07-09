@@ -271,10 +271,12 @@ QPageGradient {
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			delegate: QLoaderItemFullDelegate {
+			delegate: Qaterial.FullLoaderItemDelegate {
 				spacing: 10
 				leftPadding: 0
 				rightPadding: 0
+
+				width: ListView.view.width
 
 				height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
 
@@ -372,8 +374,10 @@ QPageGradient {
 			Component {
 				id: _cmpPlacholder
 
-				QLoaderItemFullDelegate {
+				Qaterial.FullLoaderItemDelegate {
 					id: _placeholder
+
+					width: ListView.view.width
 
 					contentSourceComponent: QPlaceholderItem {
 						heightRatio: 0.5

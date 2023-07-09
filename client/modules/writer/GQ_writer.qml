@@ -132,8 +132,11 @@ GameQuestionComponentImpl {
 				height: _content._isHorizontal ? parent.height : (parent.height-parent.spacing)/2
 
 				fillMode: Image.PreserveAspectFit
-				cache: false
+				cache: true
 				asynchronous: true
+
+				sourceSize.width: width
+				sourceSize.height: height
 			}
 
 			Item {

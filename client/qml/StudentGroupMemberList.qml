@@ -19,9 +19,10 @@ Item
 	property real topPadding: 0
 
 
-	property bool _showPlaceholders: true
-	property int _pendingLoaders: -1
 
+	QFetchLoaderGroup {
+		id: _loaderGroup
+	}
 
 	QLiveStream {
 		id: _liveStream
@@ -39,13 +40,7 @@ Item
 		path: "group/%1/score".arg(group ? group.groupid : -1)
 		sortOrder: ScoreListImpl.SortXPdesc
 		eventStream: _liveStream.eventStream
-
-		onModelReloaded: {
-			if (!view.model) {
-				_pendingLoaders = _scoreList.model.count
-				view.model = _scoreList.model
-			}
-		}
+		limit: -1
 	}
 
 	QScrollable {
@@ -60,7 +55,7 @@ Item
 		QListView {
 			id: _viewPlaceholder
 
-			visible: _showPlaceholders
+			visible: _loaderGroup.showPlaceholders
 
 			currentIndex: -1
 			height: contentHeight
@@ -71,8 +66,11 @@ Item
 
 			model: 10
 
-			delegate: QLoaderItemFullDelegate {
+			delegate: Qaterial.FullLoaderItemDelegate {
 				id: _placeholder
+
+				width: ListView.view.width
+
 				contentSourceComponent: QPlaceholderItem {
 					heightRatio: 0.5
 					horizontalAlignment: Qt.AlignLeft
@@ -104,7 +102,7 @@ Item
 		QListView {
 			id: view
 
-			visible: !_showPlaceholders
+			visible: !_loaderGroup.showPlaceholders
 
 			currentIndex: -1
 			height: contentHeight
@@ -113,12 +111,14 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			model: null
+			model: _scoreList.model
 
-			delegate: Loader {
+			delegate: QFetchLoader {
 				id: _ldr
-				asynchronous: _showPlaceholders
-				sourceComponent: QLoaderItemDelegate {
+
+				group: _loaderGroup
+
+				Qaterial.LoaderItemDelegate {
 					id: _delegate
 
 					text: fullNickName
@@ -154,23 +154,6 @@ Item
 						}
 					}
 				}
-
-				onLoaded: {
-					if (_showPlaceholders) {
-						_pendingLoaders--
-						if (_pendingLoaders <= 0)
-							_showPlaceholders = false
-					}
-				}
-
-				Component.onCompleted: {
-					control.Component.destruction.connect(_ldr.stopLoading)
-				}
-
-				function stopLoading() {
-					if (_ldr)
-						_ldr.active = false
-				}
 			}
 
 
@@ -186,7 +169,6 @@ Item
 			displaced: Transition {
 				NumberAnimation { properties: "x,y"; duration: 450 }
 			}
-
 		}
 
 	}

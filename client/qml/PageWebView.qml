@@ -21,7 +21,7 @@ QPage {
 			Qaterial.LabelBody1 {
 				id: _info
 				anchors.horizontalCenter: parent.horizontalCenter
-				width: Math.min(implicitWidth, Qaterial.Style.maxContainerSize*0.5)
+				width: Math.min(implicitWidth, Qaterial.Style.maxContainerSize*0.85)
 				wrapMode: Text.Wrap
 				horizontalAlignment: Text.AlignHCenter
 
@@ -44,7 +44,7 @@ QPage {
 
 			Qaterial.LabelBody2 {
 				anchors.horizontalCenter: parent.horizontalCenter
-				width: Math.min(implicitWidth, Qaterial.Style.maxContainerSize*0.5)
+				width: Math.min(implicitWidth, Qaterial.Style.maxContainerSize*0.85)
 				wrapMode: Text.Wrap
 				horizontalAlignment: Text.AlignHCenter
 				color: Qaterial.Style.secondaryTextColor()

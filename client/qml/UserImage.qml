@@ -18,9 +18,9 @@ Item {
 	implicitWidth: Math.max(_icon.implicitWidth, _rank.implicitWidth)
 	implicitHeight: Math.max(_icon.implicitHeight, _rank.implicitHeight)
 
-	readonly property int _u_rankLevel: user ? user.rank.level : userData ? userData.rank.level : -1
-	readonly property int _u_rankSubLevel: user ? user.rank.sublevel : userData ? userData.rank.sublevel : -1
-	readonly property string _u_picture: user ? user.picture : userData && userData.picture !== undefined ? userData.picture : ""
+	readonly property int _u_rankLevel: user && user.rank !== undefined ? user.rank.level : userData ? userData.rank.level : -1
+	readonly property int _u_rankSubLevel: user  && user.rank !== undefined ? user.rank.sublevel : userData ? userData.rank.sublevel : -1
+	readonly property string _u_picture: user  && user.rank !== undefined ? user.picture : userData && userData.picture !== undefined ? userData.picture : ""
 
 	Qaterial.Icon {
 		id: _icon
@@ -63,6 +63,8 @@ Item {
 			height: control.size*0.5
 			source: _u_rankLevel >= 0 ? "qrc:/internal/rank/"+_u_rankLevel+".svg" : ""
 			asynchronous: true
+			sourceSize.width: width
+			sourceSize.height: height
 		}
 	}
 
