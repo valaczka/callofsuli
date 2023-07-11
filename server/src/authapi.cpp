@@ -43,8 +43,6 @@ AuthAPI::AuthAPI(ServerService *service)
 
 	addMap("^registration/*$", this, &AuthAPI::registration);
 	addMap("^registration/(\\w+)/*$", this, &AuthAPI::registrationOAuth2);
-
-	addMap("^local/(\\w+)/*$", this, &AuthAPI::localOAuth2);
 }
 
 
@@ -134,26 +132,6 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 		if (!flow)
 			return responseError(response, "invalid state");
 
-		/*if (flow->isLocal()) {
-			const QString &access_token = data.value(QStringLiteral("access_token")).toString();
-			LOG_CTRACE("client") << "LOCAL flow" << flow << state << access_token;
-
-			if (!access_token.isEmpty()) {
-				OAuth2CodeFlow::Token token;
-
-				token.token = data.value(QStringLiteral("access_token")).toString();
-				token.refreshToken = data.value(QStringLiteral("refresh_token")).toString();
-				token.idToken = data.value(QStringLiteral("id_token")).toString();
-
-				const int &expiresIn = data.value(QStringLiteral("expiration")).toInt(-1);
-				if (expiresIn > 0)
-					token.expiration = QDateTime::fromSecsSinceEpoch(expiresIn);
-				else
-					token.expiration = QDateTime();
-
-				flow->setTokenFromLocal(token);
-			}
-		}*/
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
@@ -189,10 +167,6 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 	}
 
 	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
-	/*if (data.value(QStringLiteral("local")).toBool()) {
-		flow->setIsLocal(true);
-		flow->setAuthState(OAuth2CodeFlow::Pending);
-	}*/
 
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow](){
@@ -209,27 +183,12 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 					fp->setAuthState(OAuth2CodeFlow::Authenticated);
 				}
 				updateOAuth2TokenInfo(fp);
+
+				if (m_service->config().get("oauth2NameUpdate").toBool())
+					updateOAuth2UserData(fp);
 			});
 		}
 	});
-
-
-	/*if (flow->isLocal()) {
-		QJsonObject data = authenticator->localAuthData();
-
-		if (data.isEmpty())
-			return responseError(response, "invalid provider");
-
-		data.insert(QStringLiteral("state"), flow->state());
-
-		responseAnswer(response, data);
-	} else {*/
-		responseAnswer(response, {
-						   { QStringLiteral("state"), flow->state() },
-						   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
-					   });
-	/*}*/
-
 
 }
 
@@ -321,26 +280,6 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 		if (!flow)
 			return responseError(response, "invalid state");
 
-		/*if (flow->isLocal()) {
-			const QString &access_token = data.value(QStringLiteral("access_token")).toString();
-			LOG_CTRACE("client") << "LOCAL flow" << flow << state << access_token;
-
-			if (!access_token.isEmpty()) {
-				OAuth2CodeFlow::Token token;
-
-				token.token = data.value(QStringLiteral("access_token")).toString();
-				token.refreshToken = data.value(QStringLiteral("refresh_token")).toString();
-				token.idToken = data.value(QStringLiteral("id_token")).toString();
-
-				const int &expiresIn = data.value(QStringLiteral("expiration")).toInt(-1);
-				if (expiresIn > 0)
-					token.expiration = QDateTime::fromSecsSinceEpoch(expiresIn);
-				else
-					token.expiration = QDateTime();
-
-				flow->setTokenFromLocal(token);
-			}
-		}*/
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
@@ -383,10 +322,6 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 
 	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
 
-	/*if (data.value(QStringLiteral("local")).toBool()) {
-		flow->setIsLocal(true);
-		flow->setAuthState(OAuth2CodeFlow::Pending);
-	}*/
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, response, data](){
 		AdminAPI::User user = flow->getUserInfo();
@@ -462,49 +397,13 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 		}
 	});
 
-
-	/*if (flow->isLocal()) {
-		QJsonObject data = authenticator->localAuthData();
-
-		if (data.isEmpty())
-			return responseError(response, "invalid provider");
-
-		data.insert(QStringLiteral("state"), flow->state());
-
-		responseAnswer(response, data);
-	} else {*/
-		responseAnswer(response, {
-						   { QStringLiteral("state"), flow->state() },
-						   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
-					   });
-	/*}*/
+	responseAnswer(response, {
+					   { QStringLiteral("state"), flow->state() },
+					   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+				   });
 }
 
 
-
-/**
- * @brief AuthAPI::localOAuth2
- * @param match
- * @param data
- * @param response
- */
-
-void AuthAPI::localOAuth2(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	const QString &provider = match.captured(1);
-
-	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
-
-	if (!authenticator)
-		return responseError(response, "invalid provider");
-
-	const QJsonObject &data = authenticator->localAuthData();
-
-	if (data.isEmpty())
-		return responseError(response, "invalid provider");
-
-	responseAnswer(response, data);
-}
 
 
 
@@ -732,5 +631,37 @@ void AuthAPI::updateOAuth2TokenInfo(OAuth2CodeFlow *flow) const
 
 		if (q.exec())
 			LOG_CDEBUG("oauth2") << "OAuth tokenData updated:" << username;
+	});
+}
+
+
+
+/**
+ * @brief AuthAPI::updateOAuth2UserData
+ * @param flow
+ */
+
+void AuthAPI::updateOAuth2UserData(OAuth2CodeFlow *flow) const
+{
+	Q_ASSERT(flow);
+
+	m_service->databaseMain()->worker()->execInThread([flow, this]() mutable {
+		const AdminAPI::User &user = flow->getUserInfo();
+
+		QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
+
+		QMutexLocker(m_service->databaseMain()->mutex());
+
+		if (QueryBuilder::q(db)
+				.addQuery("UPDATE user SET ").setCombinedPlaceholder()
+				.addField("familyName", user.familyName)
+				.addField("givenName", user.givenName)
+				.addField("picture", user.picture)
+				.addQuery(" WHERE username=").addValue(user.username).exec()) {
+			LOG_CDEBUG("oauth2") << "OAuth tokenData updated:" << user.username;
+		} else {
+			LOG_CWARNING("oauth2") << "User data update failed:" << user.username;
+		}
+
 	});
 }

@@ -49,7 +49,14 @@ Qaterial.StackView
 
 
 	function createPage(_qml : string, _prop : jsobject) : Item {
-		return mainStackView.push(_qml, _prop)
+		var cmp = Qt.createComponent(_qml, Component.PreferSynchronous)
+
+		if (!cmp || cmp.status !== Component.Ready) {
+			console.warn("Can't create component:", cmp.errorString())
+			return null
+		}
+
+		return mainStackView.push(cmp, _prop)
 	}
 
 	function popPage(_index : int) {

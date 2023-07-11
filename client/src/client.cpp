@@ -141,6 +141,7 @@ QQuickItem* Client::stackPushPage(QString qml, QVariantMap parameters) const
 
 	if (!o) {
 		LOG_CERROR("client") << "Nem lehet a lapot betölteni:" << qPrintable(qml);
+		messageError(tr("Nem lehet a lapot betölteni!"), tr("Belső hiba"));
 		return nullptr;
 	}
 
@@ -1289,6 +1290,22 @@ QVariantMap Client::availableCharacters() const
 }
 
 
+/**
+ * @brief Client::generateRandomString
+ * @param length
+ * @param characters
+ * @return
+ */
+
+QString Client::generateRandomString(int length, const QString &characters) const
+{
+	if (characters.isEmpty())
+		return Utils::generateRandomString(length);
+	else
+		return Utils::generateRandomString(length, characters.toUtf8());
+}
+
+
 
 /**
  * @brief Client::userToMap
@@ -1309,7 +1326,7 @@ QVariantMap Client::userToMap(const QJsonObject &data) const
  * @brief Client::checkUpdates
  */
 
-void Client::checkUpdates() const
+void Client::checkUpdates()
 {
 	Q_ASSERT(m_webSocket);
 

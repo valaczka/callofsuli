@@ -5,23 +5,28 @@ import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 import "JScript.js" as JS
 
-QPageGradient {
+QPage {
 	id: control
 
-	/*stackPopFunction: function() {
-		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
-			return false
-		}
-
-		return true
-	}*/
-
-	title: qsTr("Beállítások")
+	title: Client.server ? Client.server.serverName : ""
+	subtitle: Client.server && Client.server.user ? Client.server.user.fullName : ""
 
 	appBar.backButtonVisible: true
-
-	progressBarEnabled: true
+	appBar.rightComponent: Qaterial.AppBarButton {
+		icon.source: Qaterial.Icons.logoutVariant
+		ToolTip.text: qsTr("Kijelentkezés")
+		onClicked: {
+			JS.questionDialog({
+								  onAccepted: function()
+								  {
+									  Client.logout()
+								  },
+								  text: qsTr("Biztosan kijelentkezel?"),
+								  iconSource: Qaterial.Icons.logoutVariant,
+								  title: Client.server ? Client.server.serverName : ""
+							  })
+		}
+	}
 
 
 	QScrollable {

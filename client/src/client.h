@@ -215,13 +215,15 @@ public:
 
 	Q_INVOKABLE QVariantMap availableCharacters() const;
 
+	Q_INVOKABLE QString generateRandomString(int length, const QString &characters = "") const;
+
 
 
 	// Helpers
 
 	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
 
-	Q_INVOKABLE void checkUpdates() const;
+	virtual void checkUpdates();
 
 
 

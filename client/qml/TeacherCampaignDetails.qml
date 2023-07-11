@@ -41,27 +41,29 @@ Item {
 		placeholderText: qsTr("A hadjárat neve")
 		backgroundBorderHeight: 1
 		backgroundColor: "transparent"
-		trailingContent: QTextFieldInPlaceButtons {
-			id: textFieldDescriptionInPlaceButtons
-			y: Math.max(textFieldCampaignDescription.height-height)/2
-			setTo: campaign ? campaign.description : ""
-			onSaveRequest: {
-				Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
-							{
-								description: text
-							})
-				.done(function(r){
-					reloadCampaign()
-					saved()
-				})
-				.fail(function(err) {
-					Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-					revert()
-				})
+		trailingContent: Qaterial.TextFieldButtonContainer
+		{
+			QTextFieldInPlaceButtons {
+				id: textFieldDescriptionInPlaceButtons
+				setTo: campaign ? campaign.description : ""
+				onSaveRequest: {
+					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
+								{
+									description: text
+								})
+					.done(function(r){
+						reloadCampaign()
+						saved()
+					})
+					.fail(function(err) {
+						Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+						revert()
+					})
+				}
+
+				Component.onCompleted: control._inPlaceButtons = textFieldDescriptionInPlaceButtons
+
 			}
-
-			Component.onCompleted: control._inPlaceButtons = textFieldDescriptionInPlaceButtons
-
 		}
 
 	}
@@ -452,9 +454,9 @@ Item {
 		enabled: false
 		onTriggered: {
 			let o = Client.stackPushPage("TeacherCampaignTaskEdit.qml", {
-											  campaign: campaign,
-											  mapHandler: mapHandler
-										  })
+											 campaign: campaign,
+											 mapHandler: mapHandler
+										 })
 
 			if (o)
 				o.Component.destruction.connect(reloadCampaign)

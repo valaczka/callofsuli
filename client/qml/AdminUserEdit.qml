@@ -55,11 +55,11 @@ QPage {
 				helperText: qsTr("Egyedi felhasználónév, email cím")
 				validator: RegExpValidator { regExp: /.+/ }
 				errorText: qsTr("Felhasználónév szükséges")
-				leadingIconSource: Qaterial.Icons.remoteDesktop
+				leadingIconSource: Qaterial.Icons.accountOutline
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
-					Qaterial.TextFieldAlertIcon { visible: _username.errorState }
-					Qaterial.TextFieldClearButton { visible: _username.length && !_username.readOnly; textField: _username }
+					Qaterial.TextFieldAlertIcon {  }
+					Qaterial.TextFieldClearButton { visible: _username.length && !_username.readOnly }
 				}
 			}
 
@@ -72,7 +72,10 @@ QPage {
 				inputMethodHints: Qt.ImhSensitiveData
 				validator: RegExpValidator { regExp: /.+/ }
 				errorText: qsTr("Meg kell adni egy jelszót")
-				trailingContent: Qaterial.TextFieldPasswordButton { textField: _password }
+				trailingContent: Qaterial.TextFieldButtonContainer
+				{
+					Qaterial.TextFieldPasswordButton {  }
+				}
 				watchModification: false
 
 				readonly property bool _hasAcceptableInput: !visible ||
@@ -96,7 +99,7 @@ QPage {
 			{
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: _password.visible ? qsTr("Jelszó mentése") : qsTr("Új jelszó beállítása")
-				icon.source: Qaterial.Icons.disc
+				icon.source: _password.visible ? Qaterial.Icons.contentSave : Qaterial.Icons.shieldCheck
 				visible: user
 				enabled: user && _password._hasAcceptableInput
 				onClicked: {
@@ -129,11 +132,10 @@ QPage {
 				width: parent.width
 				validator: RegExpValidator { regExp: /.+/ }
 				errorText: qsTr("Vezetéknév szükséges")
-				leadingIconSource: Qaterial.Icons.remoteDesktop
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
-					Qaterial.TextFieldAlertIcon { visible: _familyName.errorState }
-					Qaterial.TextFieldClearButton { visible: _familyName.length; textField: _familyName }
+					Qaterial.TextFieldAlertIcon {  }
+					Qaterial.TextFieldClearButton {  }
 				}
 			}
 
@@ -141,16 +143,21 @@ QPage {
 				id: _givenName
 				title: qsTr("Keresztnév")
 				width: parent.width
-				leadingIconSource: Qaterial.Icons.remoteDesktop
-				trailingContent: Qaterial.TextFieldClearButton { visible: _givenName.length; textField: _givenName }
+				trailingContent: Qaterial.TextFieldButtonContainer
+				{
+
+					Qaterial.TextFieldClearButton {  }
+				}
 			}
 
 			QFormTextField {
 				id: _nickName
 				title: qsTr("Becenév")
 				width: parent.width
-				leadingIconSource: Qaterial.Icons.remoteDesktop
-				trailingContent: Qaterial.TextFieldClearButton { visible: _nickName.length; textField: _nickName }
+				trailingContent: Qaterial.TextFieldButtonContainer
+				{
+					Qaterial.TextFieldClearButton {  }
+				}
 			}
 
 			QFormTextField {
@@ -161,11 +168,11 @@ QPage {
 				width: parent.width
 				validator: RegExpValidator { regExp: /^(http(s)*:\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/ }
 				errorText: qsTr("Érvényes URL cím szükséges")
-				leadingIconSource: Qaterial.Icons.remoteDesktop
+				leadingIconSource: Qaterial.Icons.image
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
-					Qaterial.TextFieldAlertIcon { visible: _picture.errorState }
-					Qaterial.TextFieldClearButton { visible: _picture.length; textField: _picture }
+					Qaterial.TextFieldAlertIcon {  }
+					Qaterial.TextFieldClearButton {  }
 				}
 			}
 
@@ -204,7 +211,7 @@ QPage {
 			{
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Mentés")
-				icon.source: Qaterial.Icons.disc
+				icon.source: Qaterial.Icons.contentSave
 				enabled: _username.acceptableInput && _familyName.acceptableInput
 						 && _form.modified && (user || _password._hasAcceptableInput)
 				onClicked:

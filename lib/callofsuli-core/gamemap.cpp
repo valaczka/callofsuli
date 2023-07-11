@@ -192,6 +192,9 @@ qreal GameMap::computeSolvedXpFactor(const int &level, const bool &deathmatch, c
 
 		if (solved < 1)
 			factor *= XP_FACTOR_SOLVED_FIRST;
+	} else if (mode == Lite) {
+		if (solved < 1)
+			factor *= XP_FACTOR_SOLVED_FIRST * 0.85;
 	} else {
 		if (solved < 1)
 			factor *= XP_FACTOR_SOLVED_FIRST * 0.5;

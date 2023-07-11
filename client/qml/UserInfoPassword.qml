@@ -19,7 +19,10 @@ QFormColumn {
 		echoMode: TextInput.Password
 		inputMethodHints: Qt.ImhSensitiveData
 		validator: RegExpValidator { regExp: /.+/ }
-		trailingContent: Qaterial.TextFieldPasswordButton { textField: _passwordOld }
+		trailingContent: Qaterial.TextFieldButtonContainer
+		{
+			Qaterial.TextFieldPasswordButton { }
+		}
 		watchModification: false
 	}
 
@@ -31,7 +34,10 @@ QFormColumn {
 		echoMode: TextInput.Password
 		inputMethodHints: Qt.ImhSensitiveData
 		validator: RegExpValidator { regExp: /.+/ }
-		trailingContent: Qaterial.TextFieldPasswordButton { textField: _password }
+		trailingContent: Qaterial.TextFieldButtonContainer
+		{
+			Qaterial.TextFieldPasswordButton { }
+		}
 		watchModification: false
 
 		readonly property bool _hasAcceptableInput: acceptableInput && (echoMode == TextInput.Normal || text == _password2.text)

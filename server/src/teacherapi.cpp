@@ -2313,11 +2313,32 @@ TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const AbstractAPI
 {
 	Q_ASSERT(api);
 
+	return _campaignUserResult(api->databaseMain(), campaign, finished, username, withCriterion, err);
+}
+
+
+
+/**
+ * @brief TeacherAPI::_campaignUserResult
+ * @param dbMain
+ * @param campaign
+ * @param finished
+ * @param username
+ * @param withCriterion
+ * @param err
+ * @return
+ */
+
+TeacherAPI::UserCampaignResult TeacherAPI::_campaignUserResult(const DatabaseMain *dbMain, const int &campaign, const bool &finished,
+															   const QString &username, const bool &withCriterion, bool *err)
+{
+	Q_ASSERT(dbMain);
+
 	UserCampaignResult result;
 
-	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
-	QMutexLocker(api->databaseMain()->mutex());
+	QMutexLocker(dbMain->mutex());
 
 	bool e = false;
 

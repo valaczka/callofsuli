@@ -781,8 +781,6 @@ QPage {
 			text: model.displayName ? model.displayName: ""
 			secondaryText: model.level > 0 ? qsTr("level %1").arg(model.level) : ""
 
-			view: ListView.view.width
-
 			leftSourceComponent: Image
 			{
 				fillMode: Image.PreserveAspectFit

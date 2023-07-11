@@ -226,7 +226,7 @@ void MapEditor::wasmSaveAs(const bool &createNew)
 
 
 
-
+z
 
 /**
  * @brief MapEditor::wasmUploadImage

@@ -7,12 +7,10 @@ else: TARGET = simplechoice
 include(../common.pri)
 
 SOURCES += \
-	modulesimplechoice.cpp \
-	objectiveimportersimplechoice.cpp
+	modulesimplechoice.cpp
 
 HEADERS += \
-	modulesimplechoice.h \
-	objectiveimportersimplechoice.h
+	modulesimplechoice.h
 
 RESOURCES += \
 	qml_simplechoice.qrc

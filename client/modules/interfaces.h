@@ -28,7 +28,6 @@
 #define INTERFACES_H
 
 #include <QtPlugin>
-#include "abstractobjectiveimporter.h"
 
 class ModuleInterface
 {
@@ -71,10 +70,6 @@ public:
 
 	// Előnézet készítése
 	virtual QVariantMap preview(const QVariantList &generatedList) const = 0;
-
-	// Objective importer
-	virtual bool canImport() const = 0;
-	virtual AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *worksheet) const = 0;
 
 	// QML-type register
 	virtual void registerQmlTypes() const = 0;

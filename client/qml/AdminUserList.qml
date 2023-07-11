@@ -13,7 +13,7 @@ Qaterial.Page
 	implicitWidth: 200
 	implicitHeight: 200
 
-	background: Rectangle { color: "transparent" }
+	background: null
 
 	property alias view: view
 
@@ -38,30 +38,36 @@ Qaterial.Page
 			id: textFieldClassName
 			visible: classid > 0
 			enabled: classid > 0
-			width: parent.width
+
+			width: view.width
+			anchors.left: view.left
+
 			font: Qaterial.Style.textTheme.headline4
-			leadingIconSource: Qaterial.Icons.accountMultiple
+			leadingIconSource: Qaterial.Icons.renameBox
 			leadingIconInline: true
 			title: qsTr("Az osztály neve")
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
-			trailingContent: QTextFieldInPlaceButtons {
-				setTo: classname
-				onSaveRequest: {
-					Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(classid),
-								{
-									name: text
-								})
-					.done(function(r){
-						Client.reloadCache("classList")
-						saved()
-					})
-					.fail(function(err) {
-						Client.messageWarning(err, "Átnevezés sikertelen")
-						revert()
-					})
-				}
+			trailingContent: Qaterial.TextFieldButtonContainer
+			{
+				QTextFieldInPlaceButtons {
+					setTo: classname
+					onSaveRequest: {
+						Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(classid),
+									{
+										name: text
+									})
+						.done(function(r){
+							Client.reloadCache("classList")
+							saved()
+						})
+						.fail(function(err) {
+							Client.messageWarning(err, "Átnevezés sikertelen")
+							revert()
+						})
+					}
 
+				}
 			}
 		}
 
@@ -69,8 +75,11 @@ Qaterial.Page
 			id: textFieldCode
 			visible: classid != -1
 			enabled: classid != -1
-			width: parent.width
-			leadingIconSource: Qaterial.Icons.codeTags
+
+			width: view.width
+			anchors.left: view.left
+
+			leadingIconSource: Qaterial.Icons.keyChainVariant
 			leadingIconInline: true
 			title: qsTr("Hitelesítő kód")
 			backgroundBorderHeight: 1
@@ -80,14 +89,14 @@ Qaterial.Page
 			errorText: qsTr("Egyedi kódot szükséges megadni")
 			trailingContent: Qaterial.TextFieldButtonContainer
 			{
-				Qaterial.TextFieldAlertIcon { visible: textFieldCode.errorState }
+				Qaterial.TextFieldAlertIcon {  }
 
 				Qaterial.TextFieldIconButton
 				{
 					icon.source: Qaterial.Icons.refresh
 					onClicked:
 					{
-						textFieldCode.text = Client.Utils.generateRandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+						textFieldCode.text = Client.generateRandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 						textFieldCode.textEdited()
 					}
 				}
@@ -119,6 +128,8 @@ Qaterial.Page
 			visible: textFieldClassName.visible
 			topPadding: 20
 			text: qsTr("Tanulók")
+
+			anchors.left: view.left
 		}
 
 		QListView {

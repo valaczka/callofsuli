@@ -12,7 +12,7 @@ Qaterial.Page
 	implicitWidth: 200
 	implicitHeight: 200
 
-	background: Rectangle { color: "transparent" }
+	background: null
 
 	property alias view: view
 

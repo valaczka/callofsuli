@@ -31,8 +31,6 @@
 #include <QObject>
 #include <QtPlugin>
 
-#include "abstractobjectiveimporter.h"
-
 
 class ModuleFillout : public QObject, public ModuleInterface
 {
@@ -62,9 +60,6 @@ public:
 	qreal xpFactor() const override { return 1.2; };
 
 	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
-
-	inline bool canImport() const override { return false; }
-	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
 
 	void registerQmlTypes() const override;
 

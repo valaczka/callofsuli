@@ -147,7 +147,6 @@ ios {
 SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
-	abstractobjectiveimporter.cpp \
 	actiongame.cpp \
 	application.cpp \
 	basemap.cpp \
@@ -199,6 +198,7 @@ SOURCES += \
 	testgame.cpp \
 	tiledpaintedlayer.cpp \
 	user.cpp \
+	userimporter.cpp \
 	userloglist.cpp \
 	websocket.cpp
 
@@ -211,7 +211,6 @@ HEADERS += \
 	../../version/version.h \
 	abstractgame.h \
 	abstractlevelgame.h \
-	abstractobjectiveimporter.h \
 	actiongame.h \
 	application.h \
 	basemap.h \
@@ -262,6 +261,7 @@ HEADERS += \
 	testgame.h \
 	tiledpaintedlayer.h \
 	user.h \
+	userimporter.h \
 	userloglist.h \
 	websocket.h
 

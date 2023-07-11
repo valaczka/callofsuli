@@ -84,6 +84,9 @@ ServerService::ServerService(int &argc, char **argv)
 	setTerminalActive(true);
 	setTerminalMode(TerminalMode::ReadWriteActive);
 
+	connect(&m_mainTimer, &QTimer::timeout, this, &ServerService::onMainTimerTimeout);
+	m_mainTimer.setInterval(500);
+
 	LOG_CTRACE("service") << "Server service created";
 }
 
@@ -202,6 +205,8 @@ Service::CommandResult ServerService::onStart()
 	}
 
 
+	m_mainTimer.start();
+
 	LOG_CINFO("service") << "Server service started successful";
 
 	return CommandResult::Completed;
@@ -217,6 +222,8 @@ Service::CommandResult ServerService::onStart()
 QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 {
 	LOG_CINFO("service") << "Server service stopped with code:" << exitCode;
+
+	m_mainTimer.stop();
 
 	qDeleteAll(m_authenticators);
 
@@ -243,6 +250,8 @@ QtService::Service::CommandResult ServerService::onStop(int &exitCode)
 Service::CommandResult ServerService::onReload()
 {
 	LOG_CINFO("service") << "Server service reloaded";
+
+	m_mainTimer.stop();
 
 	if (m_webSocketServer)
 		m_webSocketServer->server()->pauseAccepting();
@@ -271,6 +280,8 @@ Service::CommandResult ServerService::onReload()
 	if (m_webSocketServer)
 		m_webSocketServer->server()->resumeAccepting();
 
+	m_mainTimer.start();
+
 	return CommandResult::Completed;
 }
 
@@ -287,6 +298,8 @@ Service::CommandResult ServerService::onPause()
 	if (m_webSocketServer)
 		m_webSocketServer->server()->pauseAccepting();
 
+	m_mainTimer.stop();
+
 	return CommandResult::Completed;
 }
 
@@ -302,6 +315,8 @@ Service::CommandResult ServerService::onResume()
 
 	if (m_webSocketServer)
 		m_webSocketServer->server()->resumeAccepting();
+
+	m_mainTimer.start();
 
 	return CommandResult::Completed;
 }
@@ -377,6 +392,7 @@ void ServerService::terminalConnected(QtService::Terminal *terminal)
 
 	new TerminalHandler(this, terminal);
 }
+
 
 
 /**
@@ -902,4 +918,77 @@ void ServerConfig::loadFromDb(DatabaseMain *db)
 	});
 
 	QDefer::await(ret);
+}
+
+
+
+
+
+
+
+
+/**
+ * @brief ServerService::onMainTimerTimeout
+ */
+
+void ServerService::onMainTimerTimeout()
+{
+	const QDateTime &current = QDateTime::currentDateTime();
+	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
+
+	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
+		return;
+
+	LOG_CTRACE("service") << "Timer check";
+	m_mainTimerLastTick = dtMinute;
+
+	if (!m_databaseMain) {
+		LOG_CWARNING("service") << "Main database unavailable";
+		return;
+	}
+
+	m_databaseMain->worker()->execInThread([this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
+
+		QMutexLocker(m_databaseMain->mutex());
+
+		// Finish campaigns
+
+		LOG_CTRACE("service") << "Finish campaigns";
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
+				   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
+
+		if (!q.exec()) {
+			LOG_CERROR("service") << "Finish campaigns failed";
+			return;
+		}
+
+		while (q.sqlQuery().next()) {
+			const int id = q.value("id").toInt();
+			QDefer::await(AdminAPI::campaignFinish(m_databaseMain, id));
+		}
+
+
+		// Start campaigns
+
+		LOG_CTRACE("service") << "Start campaigns";
+
+		QueryBuilder qq(db);
+		qq.addQuery("SELECT id FROM campaign WHERE started=false "
+				   "AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
+
+		if (!qq.exec()) {
+			LOG_CERROR("service") << "Start campaigns failed";
+			return;
+		}
+
+		while (qq.sqlQuery().next()) {
+			const int id = qq.value("id").toInt();
+			QDefer::await(AdminAPI::campaignStart(m_databaseMain, id));
+		}
+
+	});
+
 }

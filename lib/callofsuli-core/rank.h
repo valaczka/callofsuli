@@ -96,9 +96,8 @@ public:
 	Rank next(const Rank &rank) const;
 
 	static RankList defaultRankList(const int &sublevels = 3,
-									const int &base_xp = 500,
-									const qreal &rank_factor_step = 0.15,
-									qreal rank_factor = 1.0);
+									const int &base_xp = 1750,
+									const qreal &rank_factor_step = 0.25);
 
 };
 

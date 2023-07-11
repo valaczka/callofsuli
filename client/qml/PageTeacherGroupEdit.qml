@@ -60,24 +60,27 @@ QPage {
 			title: qsTr("A csoport neve")
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
-			trailingContent: QTextFieldInPlaceButtons {
-				id: nameInPlace
-				setTo: group ? group.name: ""
-				onSaveRequest: {
-					Client.send(WebSocket.ApiTeacher, "group/%1/update".arg(group.groupid),
-								{
-									name: text
-								})
-					.done(function(r){
-						Client.reloadCache("teacherGroupList")
-						saved()
-					})
-					.fail(function(err) {
-						Client.messageWarning(err, "Átnevezés sikertelen")
-						revert()
-					})
+			trailingContent: Qaterial.TextFieldButtonContainer
+			{
+				QTextFieldInPlaceButtons {
+					id: nameInPlace
+					setTo: group ? group.name: ""
+					onSaveRequest: {
+						Client.send(WebSocket.ApiTeacher, "group/%1/update".arg(group.groupid),
+									{
+										name: text
+									})
+						.done(function(r){
+							Client.reloadCache("teacherGroupList")
+							saved()
+						})
+						.fail(function(err) {
+							Client.messageWarning(err, "Átnevezés sikertelen")
+							revert()
+						})
+					}
+					Component.onCompleted: control._nameInPlace = nameInPlace
 				}
-				Component.onCompleted: control._nameInPlace = nameInPlace
 			}
 
 		}

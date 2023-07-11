@@ -190,6 +190,8 @@ public:
 	QJsonArray _taskList(const int &campaign) const;
 	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
 												  const QString &username, const bool &withCriterion = false, bool *err = nullptr);
+	static UserCampaignResult _campaignUserResult(const DatabaseMain *dbMain, const int &campaign, const bool &finished,
+												  const QString &username, const bool &withCriterion = false, bool *err = nullptr);
 	static QJsonArray _campaignUserGameResult(const AbstractAPI *api, const int &campaign, const QString &username,
 											  const int &limit = DEFAULT_LIMIT, const int &offset = 0, bool *err = nullptr);
 	static QJsonArray _groupUserGameResult(const AbstractAPI *api, const int &group, const QString &username,

@@ -222,7 +222,7 @@ Item {
 		Qaterial.LabelCaption {
 			id: _labelHasRequired
 			visible: false
-			text: qsTr("*A csillaggal jelölt feladatok teljesítése szükséges a további értékeléshez is!")
+			text: qsTr("*A csillaggal jelölt feladatok teljesítése szükséges a magasabb értékeléshez is!")
 			width: parent.width
 			wrapMode: Text.Wrap
 			color: Qaterial.Colors.red900

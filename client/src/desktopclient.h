@@ -82,10 +82,14 @@ public:
 
 	Q_INVOKABLE bool isPlayingMusic() const { return m_sound && m_sound->isPlayingMusic(); }
 
+	void checkUpdates() override;
+
 public slots:
 	void playSound(const QString &source, const Sound::SoundType &soundType);
 	void stopSound(const QString &source, const Sound::SoundType &soundType);
 	void performVibrate() const;
+
+	void appImageUpdatePerform();
 
 protected slots:
 	void onStartPageLoaded();
@@ -103,6 +107,7 @@ private:
 	void _setVolume(const Sound::ChannelType &channel, int newVolume);
 
 signals:
+	void appImageUpdateAvailable();
 	void serverListSelectedCountChanged();
 	void volumeMusicChanged();
 	void volumeSfxChanged();

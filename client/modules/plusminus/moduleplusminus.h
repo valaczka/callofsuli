@@ -51,9 +51,6 @@ public:
 	inline QString qmlQuestion() const override { return QLatin1String(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QLatin1String(""); }
 
-	inline bool canImport() const override { return false; }
-	inline AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
-
 	inline QStringList storageModules() const override { return QStringList(); }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;

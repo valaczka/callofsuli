@@ -45,6 +45,7 @@
 #include "teachermap.h"
 #include "teachermaphandler.h"
 #include "testgame.h"
+#include "userimporter.h"
 #include "userloglist.h"
 #include <QFontDatabase>
 #include <QDebug>
@@ -397,6 +398,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
+	qmlRegisterType<UserImporter>("CallOfSuli", 1, 0, "UserImporter");
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
 	qmlRegisterType<UserLogList>("CallOfSuli", 1, 0, "UserLogListImpl");
 }

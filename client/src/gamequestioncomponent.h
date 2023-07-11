@@ -55,6 +55,7 @@ public:
 public slots:
 
 signals:
+	void vibrateRequest();
 	void questionDataChanged();
 	void answerReveal(QVariantMap answer);
 	void questionChanged();

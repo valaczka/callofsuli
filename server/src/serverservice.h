@@ -157,6 +157,8 @@ protected slots:
 	void terminalConnected(QtService::Terminal *terminal) override;
 
 private:
+	void onMainTimerTimeout();
+
 	static const int m_versionMajor;
 	static const int m_versionMinor;
 	static const int m_versionBuild;
@@ -182,6 +184,9 @@ private:
 	QString m_loadedWasmResource;
 	QString m_importDb;
 	int m_imitateLatency = 0;
+
+	QTimer m_mainTimer;
+	QDateTime m_mainTimerLastTick;
 };
 
 

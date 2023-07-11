@@ -39,6 +39,10 @@ QPage {
 			QMenuItem { action: actionClassAdd }
 			QMenuItem { action: actionClassRename }
 			QMenuItem { action: actionClassRemove }
+
+			Qaterial.MenuSeparator { }
+
+			QMenuItem { action: actionUserImport }
 		}
 
 
@@ -46,6 +50,7 @@ QPage {
 			id: menuUser
 
 			QMenuItem { action: actionUserAdd }
+			QMenuItem { action: actionUserImport }
 		}
 
 	}
@@ -177,6 +182,16 @@ QPage {
 		icon.source: Qaterial.Icons.accountPlus
 		onTriggered: Client.stackPushPage("AdminUserEdit.qml", {
 											  classid: _user.classid
+										  })
+	}
+
+
+	Action {
+		id: actionUserImport
+		text: qsTr("Importálás")
+		icon.source: Qaterial.Icons.import_
+		onTriggered: Client.stackPushPage("PageAdminUserImport.qml", {
+											 classId: _user.classid
 										  })
 	}
 

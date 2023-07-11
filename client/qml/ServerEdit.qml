@@ -55,8 +55,8 @@ QPage {
 			leadingIconSource: Qaterial.Icons.ipNetwork
 			trailingContent: Qaterial.TextFieldButtonContainer
 			{
-				Qaterial.TextFieldAlertIcon { visible: _host.errorState }
-				Qaterial.TextFieldClearButton { visible: _host.length; textField: _host }
+				Qaterial.TextFieldAlertIcon {  }
+				Qaterial.TextFieldClearButton { }
 			}
 		}
 
@@ -70,7 +70,10 @@ QPage {
 			validator: IntValidator { id: _portValidator; bottom: 1; top: 65535 }
 			errorText: qsTr("A port szükséges, %1-%2 között kell lennie").arg(_portValidator.bottom).arg(_portValidator.top)
 			leadingIconSource: Qaterial.Icons.numeric10BoxMultipleOutline
-			trailingContent: Qaterial.TextFieldAlertIcon { visible: _port.errorState }
+			trailingContent: Qaterial.TextFieldButtonContainer
+			{
+				Qaterial.TextFieldAlertIcon { }
+			}
 		}
 
 		QFormCheckButton

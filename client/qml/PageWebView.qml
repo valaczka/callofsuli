@@ -42,13 +42,7 @@ QPage {
 				}
 			}
 
-			Qaterial.LabelBody2 {
-				anchors.horizontalCenter: parent.horizontalCenter
-				width: Math.min(implicitWidth, Qaterial.Style.maxContainerSize*0.85)
-				wrapMode: Text.Wrap
-				horizontalAlignment: Text.AlignHCenter
-				color: Qaterial.Style.secondaryTextColor()
-
+			QLabelInformative {
 				visible: !(Client.Server && Client.server.config.noCertificateWarning !== undefined)
 
 				text: qsTr("A Call of Suli szerver saját aláírású tanúsítványt használ, amit a böngésző biztonsági kockázatnak fog jelezni. A sikeres azonosításhoz engedélyezni kell majd az oldalra lépést.")

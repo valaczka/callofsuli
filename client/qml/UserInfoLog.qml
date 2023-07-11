@@ -128,6 +128,8 @@ Qaterial.Expandable {
 
 			function onModelReloaded() {
 				_rptr.model = _userLog.model
+				if (!_rptr.model || !_rptr.model.length)
+					_loaderGroup.showPlaceholders = false
 			}
 		}
 	}

@@ -81,7 +81,10 @@ QScrollable
 					title: qsTr("Jelszó")
 					echoMode: TextInput.Password
 					inputMethodHints: Qt.ImhSensitiveData
-					trailingContent: Qaterial.TextFieldPasswordButton { textField: _password }
+					trailingContent: Qaterial.TextFieldButtonContainer
+					{
+						Qaterial.TextFieldPasswordButton {  }
+					}
 					onAccepted: _send.clicked()
 				}
 
@@ -116,7 +119,7 @@ QScrollable
 				visible: Client.server && Client.server.config.oauthProviders !== undefined &&
 						 Client.server.config.oauthProviders.includes("microsoft")
 				anchors.horizontalCenter: parent.horizontalCenter
-				text: qsTr("Bejelentkezés Microsft fiókkal")
+				text: qsTr("Bejelentkezés Microsoft fiókkal")
 				icon.source: Qaterial.Icons.microsoft
 				onClicked: Client.loginOAuth2("microsoft")
 			}

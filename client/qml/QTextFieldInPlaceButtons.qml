@@ -16,6 +16,8 @@ Row {
 
 	visible: active
 
+	anchors.verticalCenter: parent && (parent instanceof Qaterial.TextFieldButtonContainer) ? parent.verticalCenter : undefined
+
 	signal saveRequest(string text)
 
 	Qaterial.AppBarButton {

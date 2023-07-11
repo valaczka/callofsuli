@@ -27,6 +27,8 @@ GameQuestionComponentImpl {
 				_hpRow.maxHP = hp
 		}
 
+		onWrongKeyPressed: _control.vibrateRequest()
+
 		Component.onCompleted: _hpRow.maxHP = hp
 	}
 

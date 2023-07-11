@@ -47,6 +47,12 @@ QPage {
 			id: menu
 
 			QMenuItem {
+				text: qsTr("Profil")
+				icon.source: Qaterial.Icons.account
+				onClicked: Client.stackPushPage("PageTeacherProfile.qml")
+			}
+
+			QMenuItem {
 				text: qsTr("Beállítások")
 				icon.source: Qaterial.Icons.cogOutline
 				onClicked: Client.stackPushPage("PageTeacherSettings.qml")
@@ -266,6 +272,43 @@ QPage {
 												})
 			}
 
+
+			QDashboardButton {
+				text: qsTr("Profil")
+				icon.source: Qaterial.Icons.account
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.amber500
+
+				onClicked: Client.stackPushPage("PageTeacherProfile.qml")
+			}
+
+			QDashboardButton {
+				text: qsTr("Beállítások")
+				icon.source: Qaterial.Icons.cogOutline
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.amber500
+
+				onClicked: Client.stackPushPage("PageTeacherSettings.qml")
+			}
+
+			QDashboardButton {
+				text: qsTr("Rangsor")
+				icon.source: Qaterial.Icons.podium
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.amber500
+
+				onClicked: Client.stackPushPage("PageTeacherScoreList.qml")
+			}
+
 			QDashboardButton {
 				visible: Client.server && (Client.server.user.roles & Credential.Admin)
 				text: qsTr("Osztályok és felhasználók")
@@ -283,7 +326,7 @@ QPage {
 			QDashboardButton {
 				visible: Client.server && (Client.server.user.roles & Credential.Admin)
 				text: qsTr("Konfiguráció")
-				icon.source: Qaterial.Icons.cogOutline
+				icon.source: Qaterial.Icons.tune
 				highlighted: false
 				outlined: true
 				flat: true

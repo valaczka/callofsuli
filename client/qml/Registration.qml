@@ -29,8 +29,8 @@ QFormColumn {
 		leadingIconSource: Qaterial.Icons.keyOutline
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
-			Qaterial.TextFieldAlertIcon { visible: _code.errorState }
-			Qaterial.TextFieldClearButton { visible: _code.length; textField: _code }
+			Qaterial.TextFieldAlertIcon {  }
+			Qaterial.TextFieldClearButton {  }
 		}
 	}
 
@@ -71,8 +71,8 @@ QFormColumn {
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
-			Qaterial.TextFieldAlertIcon { visible: _username.errorState }
-			Qaterial.TextFieldClearButton { visible: _username.length; textField: _username }
+			Qaterial.TextFieldAlertIcon {  }
+			Qaterial.TextFieldClearButton { }
 		}
 	}
 
@@ -87,8 +87,8 @@ QFormColumn {
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
-			Qaterial.TextFieldAlertIcon { visible: _familyName.errorState }
-			Qaterial.TextFieldClearButton { visible: _familyName.length; textField: _familyName }
+			Qaterial.TextFieldAlertIcon { }
+			Qaterial.TextFieldClearButton {  }
 		}
 	}
 
@@ -100,8 +100,8 @@ QFormColumn {
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
-			Qaterial.TextFieldAlertIcon { visible: _givenName.errorState }
-			Qaterial.TextFieldClearButton { visible: _givenName.length; textField: _givenName }
+			Qaterial.TextFieldAlertIcon { }
+			Qaterial.TextFieldClearButton {  }
 		}
 	}
 
@@ -114,7 +114,10 @@ QFormColumn {
 		inputMethodHints: Qt.ImhSensitiveData
 		validator: RegExpValidator { regExp: /.+/ }
 		errorText: qsTr("Meg kell adni egy jelszót")
-		trailingContent: Qaterial.TextFieldPasswordButton { textField: _password }
+		trailingContent: Qaterial.TextFieldButtonContainer
+		{
+			Qaterial.TextFieldPasswordButton { }
+		}
 	}
 
 	QFormTextField {

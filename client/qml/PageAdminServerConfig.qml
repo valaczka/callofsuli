@@ -48,6 +48,7 @@ QPage {
 				text: qsTr("Szerver és authentikáció")
 				icon: Qaterial.Icons.serverOutline
 				button.visible: false
+				topPadding: 10 * Qaterial.Style.pixelSizeRatio
 			}
 
 			AdminServerConfigTextField {
@@ -85,6 +86,11 @@ QPage {
 			AdminServerConfigCombo {
 				field: "nameUpdateEnabled"
 				label: qsTr("Vezeték- és keresznevek módosítása:")
+			}
+
+			AdminServerConfigCombo {
+				field: "oauth2NameUpdate"
+				label: qsTr("Vezeték- és keresznevek felülírása OAuth2 bejelentkezéskor:")
 			}
 
 			AdminServerConfigCombo {

@@ -32,7 +32,10 @@ QFormColumn {
 
 		placeholderText: qsTr("Adatbank elnevezése")
 		leadingIconSource: Qaterial.Icons.renameBox
-		trailingContent: Qaterial.TextFieldClearButton { visible: _title.length; textField: _title }
+		trailingContent: Qaterial.TextFieldButtonContainer
+		{
+			Qaterial.TextFieldClearButton {  }
+		}
 	}
 
 	QFormSection {

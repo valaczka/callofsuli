@@ -12,36 +12,36 @@ Qaterial.TextField {
 
 	property string field: ""
 
+	trailingContent: Qaterial.TextFieldButtonContainer
+	{
+		QTextFieldInPlaceButtons {
+			id: _ip
 
-	trailingContent: QTextFieldInPlaceButtons {
-		id: _ip
+			property string field: root.field
+			readonly property string getData: text
 
-		y: textField ? Math.max(textField.height-height)/2 : 0
+			onSaveRequest: {
+				var d = {}
+				d[field] = getData
+				Client.send(WebSocket.ApiAdmin, "config", d)
+				.done(function(r){
+					saved()
+				})
+				.fail(function(err) {
+					Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+					revert()
+				})
+			}
 
-		property string field: root.field
-		readonly property string getData: text
+			onActiveChanged: checkModified()
 
-		onSaveRequest: {
-			var d = {}
-			d[field] = getData
-			Client.send(WebSocket.ApiAdmin, "config", d)
-			.done(function(r){
-				saved()
-			})
-			.fail(function(err) {
-				Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-				revert()
-			})
-		}
-
-		onActiveChanged: checkModified()
-
-		Component.onCompleted: {
-			_items.push(_ip)
-			if (field === "serverName")
-				set(Client.server.serverName)
-			if (field !== "" && _data[field] !== undefined) {
-				set(_data[field])
+			Component.onCompleted: {
+				_items.push(_ip)
+				if (field === "serverName")
+					set(Client.server.serverName)
+				if (field !== "" && _data[field] !== undefined) {
+					set(_data[field])
+				}
 			}
 		}
 	}

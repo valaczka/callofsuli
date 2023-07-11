@@ -61,9 +61,6 @@ public:
 
 	QVariantMap preview(const QVariantList &generatedList) const override;
 
-	inline bool canImport() const override { return false; }
-	AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
-
 	void registerQmlTypes() const override {};
 
 	QVariantMap generateOne(const QVariantMap &data) const;

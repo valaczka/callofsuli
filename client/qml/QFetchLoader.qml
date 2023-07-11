@@ -13,7 +13,7 @@ Loader {
 
 	onGroupChanged: {
 		if (group && group.parentItem)
-			group.Component.destruction.connect(_loader._stopLoading)
+			group.parentItem.Component.destruction.connect(_loader._stopLoading)
 	}
 
 	Component.onCompleted: if (group) group.add(_loader)

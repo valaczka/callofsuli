@@ -7,11 +7,9 @@ else: TARGET = truefalse
 include(../common.pri)
 
 SOURCES += \
-		objectiveimportertruefalse.cpp \
 		moduletruefalse.cpp
 
 HEADERS += \
-	objectiveimportertruefalse.h \
 	moduletruefalse.h
 
 RESOURCES += \

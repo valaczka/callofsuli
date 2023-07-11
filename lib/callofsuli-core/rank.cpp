@@ -179,7 +179,7 @@ Rank RankList::next(const Rank &rank) const
  * @return
  */
 
-RankList RankList::defaultRankList(const int &sublevels, const int &base_xp, const qreal &rank_factor_step, qreal rank_factor)
+RankList RankList::defaultRankList(const int &sublevels, const int &base_xp, const qreal &rank_factor_step)
 {
 	QStringList ranks;
 
@@ -207,9 +207,10 @@ RankList RankList::defaultRankList(const int &sublevels, const int &base_xp, con
 	RankList list;
 	list.reserve(ranks.size()*sublevels+1);
 
-	int multiply = 0;
+	double multiply = 0.;
 
 	int id = 1;
+	int xp = 0;
 
 	for (int n=0; n<ranks.size(); n++) {
 		const QString &rank = ranks.at(n);
@@ -219,12 +220,16 @@ RankList RankList::defaultRankList(const int &sublevels, const int &base_xp, con
 			r.m_level = n;
 			r.m_sublevel = i;
 			r.m_name = rank;
-			r.m_xp = (int) round(base_xp*rank_factor*multiply);
+			r.m_xp = xp;
 			list.append(r);
 
-			multiply += 1+rank_factor_step;
+			if (multiply == 0.)
+				multiply = 1.;
+			else
+				multiply += rank_factor_step;
+
+			xp += round(base_xp*multiply);
 		}
-		rank_factor += rank_factor_step;
 	}
 
 

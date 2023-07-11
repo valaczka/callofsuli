@@ -29,6 +29,10 @@
 #include "abstractgame.h"
 #include "application.h"
 
+#ifndef Q_OS_WASM
+#include "desktopclient.h"
+#endif
+
 GameQuestion::GameQuestion(QQuickItem *parent)
 	: QQuickItem(parent)
 {
@@ -143,6 +147,13 @@ void GameQuestion::onLoaderLoaded(QQuickItem *item)
 		setObjectiveUuid(QLatin1String(""));
 		return;
 	}
+
+#ifndef Q_OS_WASM
+	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	if (client)
+		connect(component, &GameQuestionComponent::vibrateRequest, client, &DesktopClient::performVibrate);
+#endif
+
 
 	component->setQuestion(this);
 

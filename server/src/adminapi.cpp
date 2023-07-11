@@ -59,6 +59,7 @@ AdminAPI::AdminAPI(ServerService *service)
 	addMap("^class/delete/*$", this, &AdminAPI::classDelete);
 	addMap("^user/noclass/*$", this, &AdminAPI::classUsersNone);
 	addMap("^user/create/*$", this, &AdminAPI::userCreate);
+	addMap("^user/import/*$", this, &AdminAPI::userImport);
 	addMap("^user/([^/]+)/update/*$", this, &AdminAPI::userUpdate);
 	addMap("^user/([^/]+)/delete/*$", this, &AdminAPI::userDeleteOne);
 	addMap("^user/([^/]+)/password/*$", this, &AdminAPI::userPassword);
@@ -624,6 +625,159 @@ void AdminAPI::userMove(const QJsonArray &list, const int &classid, const QPoint
 
 
 /**
+ * @brief AdminAPI::userImport
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void AdminAPI::userImport(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	LOG_CTRACE("client") << "Batch user import";
+
+
+	databaseMainWorker()->execInThread([response, data, this]() {
+		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
+		const int classid = data.value(QStringLiteral("classid")).toInt(-1);
+
+		if (list.isEmpty())
+			return responseError(response, "missing list");
+
+		QVariantList usernames;
+
+		foreach (const QJsonValue &v, list) {
+			const QString &u = v.toObject().value(QStringLiteral("username")).toString();
+			if (!u.isEmpty())
+				usernames << u;
+		}
+
+		if (usernames.isEmpty())
+			return responseError(response, "missing usernames");
+
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+
+		// Check existing usernames
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT username FROM user WHERE username IN (").addList(usernames).addQuery(")");
+
+		if (!q.exec())
+			return responseErrorSql(response);
+
+
+		QStringList exists;
+
+		while (q.sqlQuery().next())
+			exists.append(q.value("username").toString());
+
+		if (!exists.isEmpty())
+			LOG_CWARNING("client") << "Users already exists:" << exists;
+			/*return responseAnswer(response, {
+									  { QStringLiteral("error"), QStringLiteral("user exists") },
+									  { QStringLiteral("list"), QJsonArray::fromStringList(exists) }
+								  });*/
+
+
+
+		// Add users
+
+		QJsonArray retList;
+
+		foreach (const QJsonValue &v, list) {
+			const QJsonObject &o = v.toObject();
+
+			QJsonObject ret;
+
+			const QString &username = o.value(QStringLiteral("username")).toString();
+			const QString &password = o.value(QStringLiteral("password")).toString();
+			const QString &oauth = o.value(QStringLiteral("oauth2")).toString();
+
+
+			if (username.isEmpty()) {
+				ret.insert(QStringLiteral("error"), QStringLiteral("missing username"));
+				retList.append(ret);
+				continue;
+			}
+
+			ret.insert(QStringLiteral("username"), username);
+
+			if (exists.contains(username)) {
+				ret.insert(QStringLiteral("error"), QStringLiteral("already exists"));
+				retList.append(ret);
+				continue;
+			}
+
+			if (password.isEmpty() && oauth.isEmpty()) {
+				ret.insert(QStringLiteral("error"), QStringLiteral("missing password/oauth"));
+				retList.append(ret);
+				continue;
+			}
+
+			if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8())) {
+				ret.insert(QStringLiteral("error"), QStringLiteral("invalid provider"));
+				retList.append(ret);
+				continue;
+			}
+
+			User user;
+
+			user.username = username;
+
+			LOG_CTRACE("client") << "Add user" << qPrintable(user.username);
+
+			user.familyName = o.value(QStringLiteral("familyName")).toString();
+			user.givenName = o.value(QStringLiteral("givenName")).toString();
+			user.nickname = o.value(QStringLiteral("nickName")).toString();
+			user.character = o.value(QStringLiteral("character")).toString();
+			user.picture = o.value(QStringLiteral("picture")).toString();
+			user.active = true;
+			user.classid = classid;
+			user.isAdmin = false;
+			user.isTeacher = false;
+			user.isPanel = false;
+
+			QDefer dret;
+
+			userAdd(this, user)
+					.fail([&ret, &dret]{
+				ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
+				dret.reject();
+			})
+					.then([this, user, password, oauth](){
+				if (!oauth.isEmpty())
+					return authAddOAuth2(this, user.username, oauth);
+				else
+					return authAddPlain(this, user.username, password);
+			})
+					.fail([&ret, &dret]{
+				ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
+				dret.reject();
+			})
+					.done([&ret, &dret]{
+				ret.insert(QStringLiteral("status"), QStringLiteral("ok"));
+				dret.resolve();
+			});
+
+			QDefer::await(dret);
+
+			retList.append(ret);
+		}
+
+		responseAnswerOk(response, {
+							 { QStringLiteral("list"), retList }
+						 });
+
+	});
+}
+
+
+
+
+
+/**
  * @brief AdminAPI::configUpdate
  * @param data
  * @param response
@@ -825,7 +979,7 @@ QDefer AdminAPI::userAdd(const DatabaseMain *dbMain, const User &user)
 
 		db.commit();
 
-		LOG_CDEBUG("client") << "User created:" << qPrintable(user.username);
+		LOG_CINFO("client") << "New user created:" << qPrintable(user.username);
 		ret.resolve();
 	});
 
@@ -1047,15 +1201,29 @@ QDefer AdminAPI::campaignFinish(const AbstractAPI *api, const int &campaign)
 {
 	Q_ASSERT(api);
 
-	Database *dbMain = api->databaseMain();
+	return campaignFinish(api->databaseMain(), campaign);
+}
 
+
+
+
+
+/**
+ * @brief AdminAPI::campaignFinish
+ * @param dbMain
+ * @param campaign
+ * @return
+ */
+
+QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
+{
 	Q_ASSERT(dbMain);
 
 	LOG_CDEBUG("client") << "Campaign finish:" << campaign;
 
 	QDefer ret;
 
-	dbMain->worker()->execInThread([ret, campaign, dbMain, api]() mutable {
+	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
@@ -1097,7 +1265,7 @@ QDefer AdminAPI::campaignFinish(const AbstractAPI *api, const int &campaign)
 		while (q.sqlQuery().next()) {
 			const QString &username = q.value("username").toString();
 
-			const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(api, campaign, false, username, false, &err);
+			const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username, false, &err);
 
 			if (err) {
 				LOG_CERROR("client") << "Campaign finish error:" << campaign;

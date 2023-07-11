@@ -177,14 +177,15 @@ void WriterEngine::write(const int &index)
 
 void WriterEngine::pressKey(const QString &text)
 {
-	if (!text.isEmpty()) {
-		const QChar &ch = text.at(0).toUpper();
+	if (text.length() != 1)
+		return;
 
-		for (int i=0; i<m_characters.size(); ++i) {
-			if (m_characters.at(i) == ch) {
-				write(i);
-				return;
-			}
+	const QChar &ch = text.at(0).toUpper();
+
+	for (int i=0; i<m_characters.size(); ++i) {
+		if (m_characters.at(i) == ch) {
+			write(i);
+			return;
 		}
 	}
 
@@ -269,15 +270,15 @@ void WriterEngine::generate(const int &currentIndex)
 	}
 
 	for (++pos; pos < m_answer.size() && !indicesToReplace.isEmpty(); ++pos) {
-		 const QChar &ch = m_answer.at(pos).toUpper();
-		 if (ch.isSpace() || m_characters.contains(ch))
-			 continue;
+		const QChar &ch = m_answer.at(pos).toUpper();
+		if (ch.isSpace() || m_characters.contains(ch))
+			continue;
 
-		 int idx = indicesToReplace.takeAt(QRandomGenerator::global()->bounded(indicesToReplace.size()));
-		 m_characters[idx] = ch;
-		 list.removeAll(ch);
+		int idx = indicesToReplace.takeAt(QRandomGenerator::global()->bounded(indicesToReplace.size()));
+		m_characters[idx] = ch;
+		list.removeAll(ch);
 
-		 break;
+		break;
 	}
 
 

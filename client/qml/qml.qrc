@@ -176,5 +176,9 @@
         <file>QFetchListView.qml</file>
         <file>QFetchLoader.qml</file>
         <file>QFetchLoaderGroup.qml</file>
+        <file>PageTeacherProfile.qml</file>
+        <file>PageTeacherScoreList.qml</file>
+        <file>PageAdminUserImport.qml</file>
+        <file>QLabelInformative.qml</file>
     </qresource>
 </RCC>

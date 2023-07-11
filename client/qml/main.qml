@@ -108,6 +108,8 @@ Qaterial.ApplicationWindow
 	Connections {
 		target: Client
 
+		ignoreUnknownSignals: true
+
 		function onServerSetAutoConnectRequest(server) {
 			JS.questionDialog(
 						{
@@ -118,6 +120,20 @@ Qaterial.ApplicationWindow
 							text: qsTr("Szeretnél ehhez a szerverhez az applikáció indulásakor automatikusan csatlakozni?"),
 							title: server.serverName,
 							iconSource: Qaterial.Icons.connection
+						})
+		}
+
+
+		function onAppImageUpdateAvailable() {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								Client.appImageUpdatePerform()
+							},
+							text: qsTr("Az applikációhoz új frissítés érhető el. Frissítsem?"),
+							title: qsTr("Call of Suli - AppImage"),
+							iconSource: Qaterial.Icons.applicationCog
 						})
 		}
 	}

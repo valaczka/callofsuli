@@ -41,8 +41,6 @@ public:
 	void registration(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void registrationOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
-	void localOAuth2(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-
 	QDeferred<Credential> getCredential(const QString &username) const;
 	static QDeferred<Credential> getCredential(DatabaseMain *dbMain, const QString &username);
 	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
@@ -51,6 +49,7 @@ public:
 	QJsonObject getToken(const Credential &credential) const;
 
 	void updateOAuth2TokenInfo (OAuth2CodeFlow *flow) const;
+	void updateOAuth2UserData (OAuth2CodeFlow *flow) const;
 };
 
 #endif // AUTHAPI_H

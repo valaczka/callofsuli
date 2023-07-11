@@ -86,6 +86,8 @@ ListView {
 				text: game && game.user ? (root.positionType == MapPlayMissionLevelInfoList.Position.Duration ? game.posDuration : game.posSolved)+". "
 										  +game.user.fullNickName : ""
 				color: root.mainColor
+
+				elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone
 			}
 
 			leftSourceComponent: UserImage {

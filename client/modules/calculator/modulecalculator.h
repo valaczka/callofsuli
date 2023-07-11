@@ -51,9 +51,6 @@ public:
 	inline QString qmlQuestion() const override { return "GQ_calculator.qml"; }
 	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 
-	inline bool canImport() const override { return false; }
-	inline AbstractObjectiveImporter* newImporter(QXlsx::Worksheet *) const override { return nullptr; }
-
 	inline QStringList storageModules() const override { return {"plusminus", "numbers"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
