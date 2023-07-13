@@ -34,13 +34,7 @@ QPage {
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
-			QMenu {
-				title: qsTr("Betűméret")
-				QMenuItem { action: Client.mainWindow.fontPlus }
-				QMenuItem { action: Client.mainWindow.fontMinus }
-				QMenuItem { action: Client.mainWindow.fontNormal }
-			}
-			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionSettings }
 			QMenuItem { action: actionAbout }
 			QMenuItem { action: actionExit }
 		}
@@ -70,6 +64,15 @@ QPage {
 		icon.source: Qaterial.Icons.presentationPlay
 		onTriggered: {
 			onClicked: Client.loadDemoMap()
+		}
+	}
+
+	Action {
+		id: actionSettings
+		text: qsTr("Beállítások")
+		icon.source: Qaterial.Icons.cog
+		onTriggered: {
+			onClicked: Client.stackPushPage("PageStudentSettings.qml", {})
 		}
 	}
 

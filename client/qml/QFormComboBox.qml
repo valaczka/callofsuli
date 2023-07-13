@@ -39,7 +39,7 @@ Row {
 		id: _combo
 		anchors.verticalCenter: parent.verticalCenter
 
-		font: Qaterial.Style.textTheme.body2
+		font: Qaterial.Style.textTheme.body1
 
 		onActivated: if (_form && watchModification) _form.modified = true
 	}

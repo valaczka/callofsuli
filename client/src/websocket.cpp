@@ -31,6 +31,8 @@
 #include "qnetworkreply.h"
 #include "Logger.h"
 #include "qtimer.h"
+#include "utils.h"
+#include "server.h"
 
 WebSocket::WebSocket(Client *client)
 	: QObject(client)
@@ -756,7 +758,7 @@ void WebSocketReply::onReplyFinished()
 
 
 	if (errorString.isEmpty()) {
-		LOG_CTRACE("websocket") << "RECEIVED:" << contentJson;
+		LOG_CTRACE("websocket") << "RECEIVED:" << content.size() << contentJson;
 
 		foreach (const std::function<void (const QByteArray &)> &func, m_funcsByteArray)
 			func(content);

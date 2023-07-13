@@ -26,6 +26,8 @@
 
 #include "basemaphandler.h"
 #include "application.h"
+#include "utils.h"
+#include "server.h"
 
 BaseMapHandler::BaseMapHandler(const QString &subdirName, QObject *parent)
 	: QObject{parent}

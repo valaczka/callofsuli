@@ -34,6 +34,7 @@
 #include "mapeditormap.h"
 #include "editorundostack.h"
 #include "mapplay.h"
+#include <QFileInfo>
 
 
 class MapPlayEditor;

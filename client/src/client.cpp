@@ -42,6 +42,8 @@
 #include "Logger.h"
 #include "mapgame.h"
 #include "actiongame.h"
+#include "updater.h"
+#include "server.h"
 #include <QScreen>
 
 #ifdef Q_OS_ANDROID
@@ -54,6 +56,7 @@ Client::Client(Application *app, QObject *parent)
 	, m_application(app)
 	, m_utils(new Utils(this))
 	, m_webSocket(new WebSocket(this))
+	, m_updater(new Updater(this))
 {
 	Q_ASSERT(app);
 
@@ -84,8 +87,14 @@ Client::~Client()
 	if (m_currentGame)
 		delete m_currentGame;
 
-	delete m_utils;
+	delete m_updater;
+	m_updater = nullptr;
+
 	delete m_webSocket;
+	m_webSocket = nullptr;
+
+	delete m_utils;
+	m_utils = nullptr;
 
 	m_cache.removeAll();
 }
@@ -333,7 +342,7 @@ void Client::notifyWindow()
 	if (!m_mainWindow)
 		return;
 
-#if defined(Q_OS_LINUX) || defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN) || defined(Q_OS_MACOS)
 	if (m_mainWindow->visibility() == QWindow::Minimized)
 		m_mainWindow->show();
 #endif
@@ -386,7 +395,7 @@ void Client::onApplicationStarted()
 		break;
 	}
 
-	checkUpdates();
+	m_updater->checkAvailableUpdates(false);
 
 }
 
@@ -832,6 +841,17 @@ void Client::startCache()
 
 	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>, &OlmLoader::find<User>);
 	m_cache.addHandler<MapGame>(QStringLiteral("mapGame"), &OlmLoader::loadFromJsonArray<MapGame>, &OlmLoader::find<MapGame>);
+}
+
+
+/**
+ * @brief Client::updater
+ * @return
+ */
+
+Updater *Client::updater() const
+{
+	return m_updater;
 }
 
 
@@ -1319,63 +1339,6 @@ QVariantMap Client::userToMap(const QJsonObject &data) const
 	u.loadFromJson(data, true);
 	return u.toVariantMap();
 }
-
-
-
-/**
- * @brief Client::checkUpdates
- */
-
-void Client::checkUpdates()
-{
-	Q_ASSERT(m_webSocket);
-
-	QString platform;
-
-#if defined(Q_OS_LINUX)
-	platform = QStringLiteral("linux");
-#elif defined(Q_OS_WIN)
-	platform = QStringLiteral("windows");
-#elif defined(Q_OS_IOS)
-	platform = QStringLiteral("ios");
-#elif defined(Q_OS_ANDROID)
-	platform = QStringLiteral("android");
-#elif defined(Q_OS_MACOS)
-	platform = QStringLiteral("mac");
-#endif
-
-	if (platform.isEmpty()) {
-		LOG_CWARNING("client") << "Unknow platform";
-		return;
-	}
-
-	QNetworkRequest r(QUrl(QStringLiteral("https://valaczka.github.io/callofsuli/version.json")));
-
-	QNetworkReply *reply = m_webSocket->networkManager()->get(r);
-
-	WebSocketReply *wr = new WebSocketReply(reply, m_webSocket);
-	connect(wr, &WebSocketReply::finished, m_webSocket, &WebSocket::checkPending);
-
-
-	wr->done([this, platform](const QJsonObject &data){
-		const QString &vstr = data.value(platform).toObject().value(QStringLiteral("version")).toString();
-		uint vMajor = vstr.section('.', 0, 0).toUInt();
-		uint vMinor = vstr.section('.', 1, 1).toUInt();
-		uint vBuild = vstr.section('.', 2, 2).toUInt();
-
-		if (vMajor > Utils::versionMajor() ||
-				(vMajor == Utils::versionMajor() && vMinor > Utils::versionMinor()) ||
-				(vMajor == Utils::versionMajor() && vMinor == Utils::versionMinor() && vBuild > Utils::versionBuild())
-				) {
-			messageInfo(tr("Új verzió elérhető: %1").arg(vstr), tr("Új frissítés"));
-		}
-	})
-			->error([this](const QNetworkReply::NetworkError &){
-		snack(tr("Frissítéskeresés sikertelen"));
-	});
-
-}
-
 
 
 

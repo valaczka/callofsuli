@@ -159,15 +159,19 @@ QTableView {
 
 			let u = _model.userAt(row-1)
 			if (u) {
-				Client.stackPushPage("PageStudentCampaign.qml", {
-										 user: u,
-										 //campaign: campaign,
-										 campaignResultModel: _model,
-										 teacherMapHandler: mapHandler,
-										 withResult: true,
-										 title: u.fullName,
-										 subtitle: group ? group.name : ""
-									 })
+				let d = {
+					user: u,
+					campaignResultModel: _model,
+					teacherMapHandler: mapHandler,
+					withResult: true,
+					title: u.fullName
+				}
+
+
+				if (Qt.platform.os != "ios")					// IOS bug on iPhone 5S
+					d.subtitle = group ? group.name : ""
+
+				Client.stackPushPage("PageStudentCampaign.qml", d)
 			}
 		}
 

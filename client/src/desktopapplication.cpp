@@ -72,6 +72,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("updater"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qml"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qaterial.utils"), true);

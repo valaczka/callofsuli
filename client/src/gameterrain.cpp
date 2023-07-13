@@ -37,6 +37,7 @@
 #include "client.h"
 #include "gameterrainmap.h"
 #include "qdiriterator.h"
+#include "utils.h"
 
 
 QVector<GameTerrain> GameTerrain::m_availableTerrains;

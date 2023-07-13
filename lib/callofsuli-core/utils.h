@@ -134,6 +134,9 @@ public:
 	Q_INVOKABLE static void vibrate();
 
 
+	static size_t getPeakRSS();
+	static size_t getCurrentRSS();
+
 #ifdef Q_OS_ANDROID
 	static QMarginsF getAndroidSafeMargins();
 #endif

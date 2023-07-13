@@ -26,6 +26,7 @@
 
 #include "user.h"
 #include "application.h"
+#include "server.h"
 
 User::User(QObject *parent)
 	: SelectableObject{parent}

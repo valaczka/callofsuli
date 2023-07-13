@@ -138,7 +138,7 @@ Qaterial.Page
 
 			currentIndex: -1
 			height: contentHeight
-			width: Math.min(parent.width, Qaterial.Style.maxContainerSize*0.85)
+			width: Math.min(Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.85)
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			boundsBehavior: Flickable.StopAtBounds

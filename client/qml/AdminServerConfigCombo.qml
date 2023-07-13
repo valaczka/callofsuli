@@ -27,6 +27,8 @@ Row {
 		flat: false
 		editable: false
 
+		font: Qaterial.Style.textTheme.body1
+
 		anchors.verticalCenter: parent.verticalCenter
 
 		model: ListModel {

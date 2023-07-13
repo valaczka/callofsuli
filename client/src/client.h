@@ -33,8 +33,6 @@
 #include <QQuickItem>
 #include <QLoggingCategory>
 #include "qtimer.h"
-#include "server.h"
-#include "utils.h"
 #include "websocket.h"
 #include "eventstream.h"
 #include <QAbstractSocket>
@@ -43,6 +41,8 @@
 class Application;
 class AbstractGame;
 class WebSocket;
+class Updater;
+class Utils;
 
 
 /**
@@ -58,6 +58,7 @@ class Client : public QObject
 
 	Q_PROPERTY(Utils* Utils READ utils CONSTANT)
 	Q_PROPERTY(bool debug READ debug CONSTANT)
+	Q_PROPERTY(Updater *updater READ updater CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
@@ -223,9 +224,8 @@ public:
 
 	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
 
-	virtual void checkUpdates();
 
-
+	Updater *updater() const;
 
 public slots:
 	virtual void onWebSocketError(const QNetworkReply::NetworkError &code);
@@ -283,9 +283,9 @@ protected:
 	QQuickWindow *m_mainWindow = nullptr;
 	bool m_mainWindowClosable = false;
 
-	Utils *const m_utils;
+	Utils *m_utils = nullptr;
 	AbstractGame *m_currentGame = nullptr;
-	WebSocket *const m_webSocket;
+	WebSocket *m_webSocket = nullptr;
 	QPointer<EventStream> m_eventStream = nullptr;
 
 	qreal m_safeMarginLeft = 0;
@@ -302,6 +302,8 @@ protected:
 	OlmLoader m_olmLoader;
 
 	QUrl m_parseUrl;
+
+	Updater *m_updater = nullptr;
 };
 
 

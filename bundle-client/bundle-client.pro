@@ -23,16 +23,6 @@ win32 {
 	BinFile = callofsuli.exe
 }
 
-linux {
-	lines = $$cat(../client/deploy/callofsuli.desktop, blob)
-	lines += "X-AppImage-Name=Call of Suli"
-	lines += "X-AppImage-Version=$${VERSION}"
-	lines += "X-AppImage-Arch=x86_64"
-
-	write_file($$OUT_PWD/callofsuli.desktop, lines)
-
-	message(Create .desktop: $$OUT_PWD/callofsuli.desktop)
-}
 
 win32: LibExtension = dll
 else: LibExtension = so
@@ -75,7 +65,8 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			ln -s usr/$${BinFile}.sh $${CQtTargetDir}/AppRun ; \
 			cp $$PWD/../resources/internal/img/cos.png $${CQtTargetDir}/callofsuli.png; \
 			ln -s callofsuli.png $${CQtTargetDir}/.DirIcon ; \
-			cp $$OUT_PWD/callofsuli.desktop $${CQtTargetDir} ; \
+			cat $$PWD/../client/deploy/callofsuli.desktop >$${CQtTargetDir}/callofsuli.desktop ; \
+			echo "X-AppImage-Version=$${VERSION}" >>$${CQtTargetDir}/callofsuli.desktop ; \
 			cp $$PWD/../client/deploy/appimageupdatetool-x86_64.AppImage $${CQtTargetDir}/usr/bin/
 
 

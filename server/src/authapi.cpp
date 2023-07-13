@@ -190,6 +190,10 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 		}
 	});
 
+	responseAnswer(response, {
+					   { QStringLiteral("state"), flow->state() },
+					   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+				   });
 }
 
 

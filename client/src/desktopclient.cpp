@@ -32,7 +32,7 @@
 #include "qscreen.h"
 #include <QSettings>
 
-#define _APPIMAGE_UPDATE_TOOL QCoreApplication::applicationDirPath()+QStringLiteral("/appimageupdatetool-x86_64.AppImage")
+
 
 /**
  * @brief DesktopClient::DesktopClient
@@ -201,50 +201,6 @@ void DesktopClient::performVibrate() const
 }
 
 
-
-/**
- * @brief DesktopClient::appImageUpdatePerform
- */
-
-void DesktopClient::appImageUpdatePerform()
-{
-#ifdef Q_OS_LINUX
-	const QByteArray &appImage = qgetenv("APPIMAGE");
-
-	LOG_CWARNING("client") << "LINUX PERFORM UPDATES" << appImage;
-
-	if (appImage.isEmpty())
-		return;
-
-	LOG_CDEBUG("client") << "C1" << QFile::exists(_APPIMAGE_UPDATE_TOOL);
-
-	if (!QFile::exists(_APPIMAGE_UPDATE_TOOL))
-		return;
-
-	QProcess *process = new QProcess(this);
-
-	process->setProgram(_APPIMAGE_UPDATE_TOOL);
-	process->setArguments({QStringLiteral("-O"), QString::fromUtf8(appImage)});
-
-	connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error){
-		LOG_CWARNING("client") << "AppImageUpdate error" << error;
-		Client::checkUpdates();
-		process->deleteLater();
-	});
-
-	connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
-			[this, process](int exitCode, QProcess::ExitStatus exitStatus){
-		LOG_CINFO("client") << "APPIMAGE FINISHED" << exitCode << exitStatus;
-
-		process->deleteLater();
-	});
-
-	process->start();
-
-	LOG_CDEBUG("client") << "AppImageUpdate   FRISSÍTVE!";
-
-#endif
-}
 
 
 
@@ -753,56 +709,3 @@ void DesktopClient::setVibrate(bool newVibrate)
 }
 
 
-
-/**
- * @brief DesktopClient::checkUpdates
- */
-
-void DesktopClient::checkUpdates()
-{
-#ifdef Q_OS_LINUX
-	const QByteArray &appImage = qgetenv("APPIMAGE");
-
-	LOG_CWARNING("client") << "LINUX CHECK UPDATES" << appImage;
-
-	if (!appImage.isEmpty()) {
-		LOG_CDEBUG("client") << "C1" << QFile::exists(_APPIMAGE_UPDATE_TOOL);
-
-		if (QFile::exists(_APPIMAGE_UPDATE_TOOL)) {
-			QProcess *process = new QProcess(this);
-
-			process->setProgram(_APPIMAGE_UPDATE_TOOL);
-			process->setArguments({QStringLiteral("-j"), QString::fromUtf8(appImage)});
-
-			/*connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error){
-				LOG_CWARNING("client") << "AppImageUpdate error" << error;
-				Client::checkUpdates();
-				process->deleteLater();
-			});*/
-
-			connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
-					[this, process](int exitCode, QProcess::ExitStatus exitStatus){
-				LOG_CINFO("client") << "APPIMAGE FINISHED" << exitCode << exitStatus;
-
-				if (exitStatus != QProcess::NormalExit || exitCode > 1) {
-					Client::checkUpdates();
-				}
-
-				if (exitCode == 1)
-					emit appImageUpdateAvailable();
-
-				process->deleteLater();
-			});
-
-			process->start();
-
-			LOG_CDEBUG("client") << "AppImageUpdate check started";
-
-			return;
-		}
-	}
-
-#endif
-
-	Client::checkUpdates();
-}

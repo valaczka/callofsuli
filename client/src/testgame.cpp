@@ -30,6 +30,7 @@
 #include "gamequestion.h"
 #include "application.h"
 #include <QRandomGenerator>
+#include "utils.h"
 
 
 const QString TestGame::CheckOK = QStringLiteral("<span class=\"checkOK\">\ue5ca</span>");

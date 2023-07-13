@@ -26,6 +26,8 @@
 
 #include "scorelist.h"
 #include "application.h"
+#include "user.h"
+#include "utils.h"
 
 
 /**

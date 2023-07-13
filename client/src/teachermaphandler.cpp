@@ -26,6 +26,7 @@
 
 #include "teachermaphandler.h"
 #include "gamemap.h"
+#include "utils.h"
 
 
 /**

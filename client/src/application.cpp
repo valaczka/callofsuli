@@ -47,6 +47,8 @@
 #include "testgame.h"
 #include "userimporter.h"
 #include "userloglist.h"
+#include "utils.h"
+#include "updater.h"
 #include <QFontDatabase>
 #include <QDebug>
 
@@ -349,6 +351,8 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
+	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
+	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
 

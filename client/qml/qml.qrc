@@ -180,5 +180,6 @@
         <file>PageTeacherScoreList.qml</file>
         <file>PageAdminUserImport.qml</file>
         <file>QLabelInformative.qml</file>
+        <file>SettingsSoftware.qml</file>
     </qresource>
 </RCC>

@@ -26,6 +26,8 @@
 
 #include "userloglist.h"
 #include "application.h"
+#include "rank.h"
+#include "server.h"
 
 UserLogList::UserLogList(QObject *parent)
 	: QObject{parent}

@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "clientcache.h"
 #include "application.h"
+#include "utils.h"
 
 
 TeacherGroup::TeacherGroup(QObject *parent)

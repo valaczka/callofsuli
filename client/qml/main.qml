@@ -106,6 +106,127 @@ Qaterial.ApplicationWindow
 	}
 
 	Connections {
+		target: Client.updater
+
+		function onGitHubUpdateCheckFailed() {
+			Client.snack(qsTr("Frissítéskeresés sikertelen"))
+		}
+
+		function onGitHubUpdateAvailable(data) {
+			if (data.installer !== undefined) {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									Client.updater.updateGitHub(data.installer, data.sha1)
+								},
+								text: qsTr("Az applikációhoz új frissítés érhető el: %1. Letöltsem?").arg(data.version),
+								title: qsTr("Frissítés"),
+								iconSource: Qaterial.Icons.applicationCog
+							})
+			} else if (Qt.platform.os == "android" || Qt.platform.os == "ios") {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									Client.updater.updateNative()
+								},
+								text: qsTr("Az applikációhoz új frissítés érhető el: %1. Frissítsem?").arg(data.version),
+								title: qsTr("Frissítés"),
+								iconSource: Qaterial.Icons.applicationCog
+							})
+			} else {
+				Client.messageInfo(qsTr("Új verzió elérhető: ")+data.version, qsTr("Frissítés"))
+			}
+		}
+
+		function onAppImageUpdateFailed(errorString) {
+			Client.messageError(errorString, qsTr("AppImage frissítés sikertelen"))
+		}
+
+		function onAppImageUpdateSuccess() {
+			Qaterial.DialogManager.showDialog({
+												  iconColor: Qaterial.Colors.green500,
+												  iconSource: Qaterial.Icons.update,
+												  textColor: Qaterial.Colors.green500,
+												  iconFill: false,
+												  iconSize: Qaterial.Style.roundIcon.size,
+												  standardButtons: Dialog.Cancel | Dialog.Ok,
+												  text: qsTr("Sikeres frissítés, zárd be az alkalmazást"),
+												  title: qsTr("Applikáció frissítve"),
+												  onAccepted: function() {
+													  Qt.quit()
+												  }
+											  })
+
+		}
+
+		function onAppImageUpdateAvailable() {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								Client.updater.updateAppImage()
+							},
+							onRejected: function()
+							{
+								Client.updater.autoUpdate = false
+								Client.messageInfo(qsTr("Automatikus frissítéskeresés letiltve, a beállításoknál tudod visszakapcsolni."),
+												   qsTr("Frissítéskeresés"))
+							},
+							text: qsTr("Az applikációhoz új frissítés érhető el. Frissítsem?"),
+							title: qsTr("Call of Suli - AppImage"),
+							iconSource: Qaterial.Icons.applicationCog
+						})
+		}
+
+		function onUpdateReady() {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								Client.updater.updateExecute()
+							},
+							text: qsTr("A telepítő letöltődött, elindítsam?"),
+							title: qsTr("Frissítés telepítése"),
+							iconSource: Qaterial.Icons.checkBold
+						})
+
+		}
+
+		function onUpdateDownloadFailed() {
+			Client.messageError(qsTr("A telepítő letöltése nem sikerült"), qsTr("Frissítés sikertelen"))
+		}
+
+		function onUpdateExecuteFailed() {
+			Client.messageError(qsTr("Nem sikerült elindítani a telepítőt"), qsTr("Frissítés sikertelen"))
+		}
+
+		function onUpdateExecuteStarted() {
+			Qaterial.DialogManager.showDialog({
+												  iconColor: Qaterial.Colors.green500,
+												  iconSource: Qaterial.Icons.update,
+												  textColor: Qaterial.Colors.green500,
+												  iconFill: false,
+												  iconSize: Qaterial.Style.roundIcon.size,
+												  standardButtons: Dialog.Cancel | Dialog.Ok,
+												  text: qsTr("A telepítő elindult, zárd be az alkalmazást"),
+												  title: qsTr("Frissítés telepítése"),
+												  onAccepted: function() {
+													  Qt.quit()
+												  }
+											  })
+
+		}
+
+		function onUpdateNotAvailable() {
+			Client.messageInfo(qsTr("Az applikáció naprakész"), qsTr("Nincsen új frissítés"))
+		}
+
+	}
+
+
+	Connections {
 		target: Client
 
 		ignoreUnknownSignals: true
@@ -124,18 +245,6 @@ Qaterial.ApplicationWindow
 		}
 
 
-		function onAppImageUpdateAvailable() {
-			JS.questionDialog(
-						{
-							onAccepted: function()
-							{
-								Client.appImageUpdatePerform()
-							},
-							text: qsTr("Az applikációhoz új frissítés érhető el. Frissítsem?"),
-							title: qsTr("Call of Suli - AppImage"),
-							iconSource: Qaterial.Icons.applicationCog
-						})
-		}
 	}
 
 

@@ -28,6 +28,7 @@
 #include "application.h"
 #include "client.h"
 #include "xlsxdocument.h"
+#include "utils.h"
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"
