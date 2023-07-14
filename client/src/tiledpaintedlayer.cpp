@@ -105,35 +105,15 @@ void TiledPaintedLayer::paint(QPainter *painter)
 
 			if (!cell.isEmpty()) {
 				Tiled::Tile *tile = cell.tile();
-				const QPoint &pos = QPoint(cellX * m_map->tileWidth(), cellY * m_map->tileHeight() - tile->height() + m_map->tileHeight());
+				QPointF pos = QPointF(cellX * m_map->tileWidth(), cellY * m_map->tileHeight() - tile->height() + m_map->tileHeight());
 
-				QPainter::PixmapFragment fragment;
-				fragment.x = pos.x();
-				fragment.y = pos.y();
-				fragment.sourceLeft = 0;
-				fragment.sourceTop = 0;
-				fragment.width = tile->width();
-				fragment.height = tile->height();
-				fragment.scaleX = cell.flippedHorizontally() ? -1 : 1;
-				fragment.scaleY = cell.flippedVertically() ? -1 : 1;
-				fragment.rotation = 0;
-				fragment.opacity = 1;
-
-				if (cell.flippedAntiDiagonally())
-					fragment.rotation = 90;
+				const QPixmap &tileImage = tile->image().copy(tile->imageRect());
 
 				QTransform transform;
-				transform.translate(pos.x() + tile->width() * .5, pos.y() + tile->height() * .5);
-				transform.rotate(fragment.rotation);
-				transform.scale(fragment.scaleX, fragment.scaleY);
+				transform.translate(tile->width()*.5, tile->height()*.5);
+				transform.scale(cell.flippedHorizontally() ? -1 : 1, cell.flippedVertically() ? -1 : 1);
 
-				QRect target = QRect(pos.x(), pos.y(), tile->width(), tile->height());
-				const QRect &source = tile->imageRect();
-
-				const QPixmap &tileImage = tile->image().transformed(transform);
-				painter->drawPixmap(target, tileImage, source);
-
-
+				painter->drawPixmap(pos, tileImage.transformed(transform));
 			}
 
 			cellY++;

@@ -1,18 +1,12 @@
 INCLUDEPATH += $$PWD
 
-#!wasm {
-	include($$PWD/../QDeferred/src/qdeferred.pri)
-	include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
+include($$PWD/../QDeferred/src/qdeferred.pri)
+include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
 
-	INCLUDEPATH += $$PWD/../QDeferred/src
-#}
-
-
+INCLUDEPATH += $$PWD/../QDeferred/src
 INCLUDEPATH += $$PWD/../QJsonWebToken/src
 
-
 android: INCLUDEPATH += $$PWD/../android_openssl/static/include
-
 
 # info: utils.h includes selectableobject.h
 
