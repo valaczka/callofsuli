@@ -27,7 +27,6 @@
 #include "desktopclient.h"
 #include "Logger.h"
 #include "qdiriterator.h"
-#include "qprocess.h"
 #include "qquickwindow.h"
 #include "qscreen.h"
 #include <QSettings>
@@ -213,8 +212,10 @@ void DesktopClient::onMainWindowChanged()
 	if (!m_mainWindow)
 		return;
 
-#if defined(Q_OS_ANDROID) || !defined(QT_DEBUG)
+#if defined(Q_OS_ANDROID)
 	m_mainWindow->showFullScreen();
+#elif defined(Q_OS_WIN) || defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
+	m_mainWindow->showMaximized();
 #endif
 
 	if (!m_mainWindow->screen())

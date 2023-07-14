@@ -134,6 +134,10 @@ public:
 	Q_INVOKABLE static void vibrate();
 
 
+	Q_INVOKABLE static qint64 getDiskCacheSize();
+	Q_INVOKABLE static QString getFormattedDiskCacheSize();
+	Q_INVOKABLE static void clearDiskCache();
+
 	static size_t getPeakRSS();
 	static size_t getCurrentRSS();
 

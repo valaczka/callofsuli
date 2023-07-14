@@ -10,7 +10,7 @@ OutputDir=..
 OutputBaseFilename={#COSexe}
 PrivilegesRequired=lowest
 LicenseFile=LICENSE
-AppCopyright=Copyright (C) 2012-2022 Valaczka János Pál
+AppCopyright=Copyright (C) 2012-2023 Valaczka János Pál
 DisableDirPage=auto
 DisableProgramGroupPage=auto
 

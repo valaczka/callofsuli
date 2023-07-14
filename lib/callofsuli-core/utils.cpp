@@ -792,6 +792,115 @@ void Utils::vibrate()
 
 
 
+/**
+ * @brief Utils::getDiskCacheSize
+ * @param dir
+ * @return
+ */
+
+qint64 Utils::getDiskCacheSize()
+{
+	QDir dir(standardPath());
+
+	LOG_CTRACE("utils") << "Get disk cache size in:" << qPrintable(dir.absolutePath());
+
+	if (!dir.exists())
+		return 0;
+
+	QDirIterator it(dir, QDirIterator::Subdirectories);
+	qint64 total = 0;
+	while (it.hasNext()) {
+		it.next();
+		total += it.fileInfo().size();
+	}
+	return total;
+}
+
+
+
+/**
+ * @brief Utils::getFormattedDiskCacheSize
+ * @param dir
+ * @return
+ */
+
+QString Utils::getFormattedDiskCacheSize()
+{
+	return QLocale::system().formattedDataSize(getDiskCacheSize());
+}
+
+
+
+/**
+ * @brief Utils::clearDiskCache
+ * @param dir
+ */
+
+void Utils::clearDiskCache()
+{
+	const QString &basePath = standardPath();
+	QDir dir(basePath);
+
+	LOG_CDEBUG("utils") << "Clear disk cache:" << qPrintable(dir.absolutePath()) << "...";
+
+	if (!dir.exists())
+		return;
+
+	QStringList preventList;
+
+	preventList << basePath;
+	preventList << basePath + QStringLiteral("/servers");
+	preventList << basePath + QStringLiteral("/servers/[0-9]");
+	preventList << basePath + QStringLiteral("/servers/[0-9][0-9]");
+	preventList << basePath + QStringLiteral("/servers/[0-9][0-9][0-9]");
+	preventList << basePath + QStringLiteral("/servers/[0-9][0-9][0-9][0-9]");
+	preventList << basePath + QStringLiteral("/servers/[0-9]/config.json");
+	preventList << basePath + QStringLiteral("/servers/[0-9][0-9]/config.json");
+	preventList << basePath + QStringLiteral("/servers/[0-9][0-9][0-9]/config.json");
+	preventList << basePath + QStringLiteral("/servers/[0-9][0-9][0-9][0-9]/config.json");
+
+
+	QDirIterator it(basePath, QDir::AllEntries | QDir::Hidden | QDir::System, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		it.next();
+		const QFileInfo &info = it.fileInfo();
+
+		if (info.isDir() || !info.absoluteFilePath().startsWith(basePath))
+			continue;
+
+		if (!QDir::match(preventList, info.absoluteFilePath())) {
+			bool success = QFile::remove(info.absoluteFilePath());
+			LOG_CDEBUG("utils") << "   -" << info.absoluteFilePath() << "->" << success;
+		}
+	}
+
+	QDirIterator it2(basePath, QDir::AllEntries | QDir::Hidden | QDir::System, QDirIterator::Subdirectories);
+
+	while (it2.hasNext()) {
+		it2.next();
+		const QFileInfo &info = it2.fileInfo();
+
+		if (!info.isDir() || !info.absoluteFilePath().startsWith(basePath))
+			continue;
+
+		if (!QDir::match(preventList, info.absoluteFilePath())) {
+			QDir d(info.path());
+			bool success = d.rmdir(info.fileName());
+			LOG_CDEBUG("utils") << "   -" << info.absoluteFilePath() << "->" << success;
+		}
+
+	}
+
+
+
+	LOG_CDEBUG("utils") << "...disk cache cleared";
+
+}
+
+
+
+
 
 /**
  * @brief Utils::getAndroidSafeMargins
@@ -934,7 +1043,7 @@ size_t Utils::getCurrentRSS()
 	struct mach_task_basic_info info;
 	mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
 	if ( task_info( mach_task_self( ), MACH_TASK_BASIC_INFO,
-		(task_info_t)&info, &infoCount ) != KERN_SUCCESS )
+					(task_info_t)&info, &infoCount ) != KERN_SUCCESS )
 		return (size_t)0L;      /* Can't access? */
 	return (size_t)info.resident_size;
 

@@ -12,6 +12,8 @@ QPageGradient {
 
 	progressBarEnabled: true
 
+	appBar.backButtonVisible: StackView.index > 1
+
 	property MapPlay map: null
 
 	property SortFilterProxyModel mList: SortFilterProxyModel {

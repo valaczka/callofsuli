@@ -30,9 +30,9 @@
 #include "xlsxdocument.h"
 #include "utils.h"
 
-#ifdef Q_OS_WASM
+/*#ifdef Q_OS_WASM
 #include "onlineclient.h"
-#endif
+#endif*/
 
 
 
@@ -57,9 +57,9 @@ UserImporter::UserImporter(QObject *parent)
 	, m_client(Application::instance()->client())
 	, m_worker(new QLambdaThreadWorker())
 {
-#ifdef Q_OS_WASM
+/*#ifdef Q_OS_WASM
 	m_onlineClient = dynamic_cast<OnlineClient*>(m_client);
-#endif
+#endif*/
 }
 
 
@@ -312,7 +312,7 @@ const QJsonArray &UserImporter::records() const
 }
 
 
-
+/*
 
 
 #ifdef Q_OS_WASM
@@ -345,11 +345,6 @@ return;
 client->wasmSaveContent(data, m_displayName);
 
 
-
-
-/**
- * @brief MapEditor::wasmUploadImage
- */
 
 void UserImporter::wasmUploadImage(QJSValue uploadFunc)
 {
@@ -386,4 +381,4 @@ void UserImporter::wasmUploadImage(QJSValue uploadFunc)
 }
 
 #endif
-
+*/

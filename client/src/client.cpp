@@ -74,6 +74,14 @@ Client::Client(Application *app, QObject *parent)
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
 	startCache();
+
+	QInputMethod *im = QGuiApplication::inputMethod();
+
+	if (im) {
+		connect(im, &QInputMethod::keyboardRectangleChanged, this, [im]{
+			LOG_CDEBUG("client") << "****************************" << im->keyboardRectangle();
+		});
+	}
 }
 
 
@@ -171,6 +179,14 @@ QQuickItem* Client::stackPushPage(QString qml, QVariantMap parameters) const
 
 bool Client::stackPop(int index, const bool &forced) const
 {
+	QInputMethod *im = QGuiApplication::inputMethod();
+
+	if (im && im->isVisible()) {
+		LOG_CDEBUG("client") << "Hide input method";
+		im->hide();
+		return false;
+	}
+
 	if (!m_mainStack) {
 		LOG_CERROR("client") << "mainStack nincsen beállítva!";
 		return false;
@@ -431,7 +447,8 @@ void Client::onWebSocketError(const QNetworkReply::NetworkError &code)
 		return;
 		break;
 	case QNetworkReply::SslHandshakeFailedError:
-		errStr = tr("Az SSL tanúsítvány hibás");
+		//errStr = tr("Az SSL tanúsítvány hibás");
+		return;
 		break;
 
 	default:
@@ -1585,11 +1602,11 @@ void Client::snack(const QString &text) const
  * @brief Client::loadDemoMap
  */
 
-void Client::loadDemoMap(const QUrl &url)
+QQuickItem* Client::loadDemoMap(const QUrl &url)
 {
 	if (m_currentGame) {
 		LOG_CERROR("client") << "Game already exists";
-		return;
+		return nullptr;
 	}
 
 	MapPlayDemo *mapPlay = new MapPlayDemo(this);
@@ -1604,7 +1621,7 @@ void Client::loadDemoMap(const QUrl &url)
 
 	if (!success) {
 		delete mapPlay;
-		return;
+		return nullptr;
 	}
 
 
@@ -1616,10 +1633,12 @@ void Client::loadDemoMap(const QUrl &url)
 	if (!page) {
 		messageError(tr("Nem lehet betölteni a demó oldalt!"));
 		delete mapPlay;
-		return;
+		return nullptr;
 	}
 
 	connect(page, &QQuickItem::destroyed, mapPlay, &MapPlay::deleteLater);
+
+	return page;
 }
 
 

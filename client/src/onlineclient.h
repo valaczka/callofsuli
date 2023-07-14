@@ -56,6 +56,7 @@ signals:
 
 private:
 	QStringList m_resourceList;
+	bool m_demoMode = false;
 
 };
 

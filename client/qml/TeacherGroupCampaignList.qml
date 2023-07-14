@@ -129,7 +129,7 @@ Item
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Még egyetlen hadjárat sincsen felvéve. Hozz létre egyet.")
-		iconSource: Qaterial.Icons.account
+		iconSource: Qaterial.Icons.trophyVariantOutline
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true

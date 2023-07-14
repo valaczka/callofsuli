@@ -27,7 +27,7 @@ win32 {
 win32: LibExtension = dll
 else: LibExtension = so
 
-win32: LddBinFile = $${CQtTargetDir}/$${BinFile}
+win32: LddBinFile = $${CQtTargetDir}/usr/$${BinFile}
 else: LddBinFile = $${CQtTargetDir}/usr/bin/$${BinFile}
 
 win32: LddLibDir = $${CQtTargetDir}/usr
@@ -46,7 +46,10 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
 				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f) || \
 					cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f $${LddLibDir} ; \
-			done
+			done ; \
+			which libjpeg-8.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libjpeg-8.dll) $${LddLibDir} ; \
+			which libssl-1_1-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libssl-1_1-x64.dll) $${LddLibDir} ; \
+			which libcrypto-1_1-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-1_1-x64.dll) $${LddLibDir}
 
 else: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \

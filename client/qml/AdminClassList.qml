@@ -54,7 +54,7 @@ Qaterial.Page
 		header: Column {
 			QItemDelegate {
 				text: qsTr("Minden felhasználó")
-				iconSource: Qaterial.Icons.desktopClassic
+				iconSource: Qaterial.Icons.accountGroup
 
 				width: view.width
 
@@ -63,7 +63,7 @@ Qaterial.Page
 
 			QItemDelegate {
 				text: qsTr("Osztály nélküli felhasználók")
-				iconSource: Qaterial.Icons.desktopClassic
+				iconSource: Qaterial.Icons.accountSupervisorOutline
 
 				width: view.width
 
@@ -78,7 +78,7 @@ Qaterial.Page
 
 			highlighted: ListView.isCurrentItem
 			//highlightedIcon: server ? server.autoConnect : false
-			iconSource: Qaterial.Icons.desktopClassic
+			iconSource: Qaterial.Icons.accountMultiple
 			text: classObject ? classObject.name : ""
 
 			onClicked: if (!view.selectEnabled)

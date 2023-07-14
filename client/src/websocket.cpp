@@ -41,7 +41,11 @@ WebSocket::WebSocket(Client *client)
 {
 	LOG_CTRACE("websocket") << "WebSocket created";
 
+
 #ifndef QT_NO_SSL
+	if (!QSslSocket::supportsSsl())
+		LOG_CERROR("websocket") << "Platform doesn't support SSL";
+
 	QFile certFile(QStringLiteral(":/root_CallOfSuli_CA.crt"));
 
 	LOG_CTRACE("websocket") << "Cert file exists:" << certFile.exists();
@@ -58,6 +62,8 @@ WebSocket::WebSocket(Client *client)
 			LOG_CTRACE("websocket") << "Root certificate added";
 		}
 	}
+#else
+	LOG_CERROR("websocket") << "Qt built without SSL support";
 #endif
 
 
@@ -148,7 +154,7 @@ void WebSocket::connectToServer(Server *server)
 
 	setState(Connecting);
 
-	send(ApiGeneral, "config")->done([this](const QJsonObject &json){
+	WebSocketReply *wr = send(ApiGeneral, "config")->done([this](const QJsonObject &json){
 
 		if (json.isEmpty() || json.value(QStringLiteral("server")).toString() != QStringLiteral("Call of Suli server")) {
 			m_client->messageError(tr("A megadott címen nem található Call of Suli szerver"), tr("Sikertelen csatlakozás"));
@@ -174,6 +180,35 @@ void WebSocket::connectToServer(Server *server)
 		setState(Connected);
 	});
 
+#ifndef QT_NO_SSL
+	wr->setSslErrorCallback([this](const QList<QSslError> &list){
+		LOG_CDEBUG("websocket") << "SslErrorCallback:" << list;
+		m_pendingSslErrors = list;
+
+		QStringList errorList;
+		QSslCertificate cert;
+		foreach (const QSslError &e, list) {
+			if (cert.isNull())
+				cert = e.certificate();
+
+			errorList << e.errorString();
+		}
+
+		if (cert.isNull())
+			errorList.prepend(tr("Hiányzó tanúsítvány!"));
+		else {
+			if (!cert.subjectInfo(QSslCertificate::LocalityName).isEmpty() || !cert.subjectInfo(QSslCertificate::CountryName).isEmpty())
+				errorList.prepend(tr("Helység: %1 (%2)").arg(cert.subjectInfo(QSslCertificate::LocalityName).join(QStringLiteral(", ")),
+															 cert.subjectInfo(QSslCertificate::CountryName).join(QStringLiteral(", "))));
+			if (!cert.subjectInfo(QSslCertificate::Organization).isEmpty())
+				errorList.prepend(tr("Szervezet: %1").arg(cert.subjectInfo(QSslCertificate::Organization).join(QStringLiteral(", "))));
+			if (!cert.subjectInfo(QSslCertificate::CommonName).isEmpty())
+				errorList.prepend(tr("Név: %1").arg(cert.subjectInfo(QSslCertificate::CommonName).join(QStringLiteral(", "))));
+		}
+
+		emit pendingSslErrors(errorList);
+	});
+#endif
 }
 
 
@@ -384,6 +419,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
+
 	LOG_CDEBUG("websocket") << "Send content:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << content.size();
 
 	WebSocketReply *wr = new WebSocketReply(reply, this);
@@ -394,101 +430,6 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 
 
 
-
-
-/**
- * @brief WebSocket::send
- * @param api
- * @param path
- * @param content
- * @param data
- * @return
- */
-
-#ifndef Q_OS_WASM
-
-WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByteArray &content, const QJsonObject &data)
-{
-	Q_ASSERT (m_networkManager);
-
-	if (!m_server) {
-		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return nullptr;
-	}
-
-	QNetworkRequest r(getUrl(api, path));
-
-#ifndef QT_NO_SSL
-	if (!m_rootCertificate.isNull()) {
-		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-		config.addCaCertificate(m_rootCertificate);
-		r.setSslConfiguration(config);
-	}
-#endif
-
-	if (!m_server->token().isEmpty()) {
-		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
-	}
-
-	QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-
-	QHttpPart jsonPart;
-	jsonPart.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
-	jsonPart.setHeader(QNetworkRequest::ContentDispositionHeader, QByteArrayLiteral("form-data; name=\"json\";"));
-	jsonPart.setBody(QJsonDocument(data).toJson());
-	multiPart->append(jsonPart);
-
-	QHttpPart contentPart;
-	contentPart.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/octet-stream"));
-	contentPart.setHeader(QNetworkRequest::ContentDispositionHeader, QByteArrayLiteral("form-data; name=\"content\"; filename=\"content.file\""));
-	contentPart.setBody(content);
-	multiPart->append(contentPart);
-
-	QNetworkReply *reply = m_networkManager->post(r, multiPart);
-
-
-	multiPart->setParent(reply);
-
-	LOG_CDEBUG("websocket") << "Send multipart content:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << data << content.size();
-
-	WebSocketReply *wr = new WebSocketReply(reply, this);
-	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
-	return wr;
-}
-#endif
-
-
-
-
-/**
- * @brief WebSocket::get
- * @param url
- * @return
- */
-
-QNetworkReply *WebSocket::get(const QUrl &url)
-{
-	Q_ASSERT (m_networkManager);
-
-	/*if (!m_server) {
-		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return nullptr;
-	}*/
-
-	QNetworkRequest r(url);
-
-#ifndef QT_NO_SSL
-	if (!m_rootCertificate.isNull()) {
-		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-		config.addCaCertificate(m_rootCertificate);
-		r.setSslConfiguration(config);
-	}
-#endif
-
-	LOG_CTRACE("websocket") << "GET:" << url.toString();
-
-	return m_networkManager->get(r);
-}
 
 
 
@@ -534,7 +475,7 @@ EventStream *WebSocket::getEventStream(const API &api, const QString &path, cons
 	EventStream *stream = new EventStream(this);
 	stream->setRequest(r);
 	stream->setRequestData(QJsonDocument(data).toJson());
-	stream->connect();
+	stream->connect(m_server);
 
 	LOG_CTRACE("websocket") << "Get EventStream:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
 
@@ -564,6 +505,35 @@ void WebSocket::checkPending()
 
 
 /**
+ * @brief WebSocket::acceptPendingSslErrors
+ */
+
+void WebSocket::acceptPendingSslErrors()
+{
+#ifndef QT_NO_SSL
+	if (m_server && !m_pendingSslErrors.isEmpty()) {
+		QSslCertificate cert;
+		QList<QSslError::SslError> ignoredErrors = m_server->ignoredSslErrors();
+		foreach (const QSslError &error, m_pendingSslErrors) {
+			if (cert.isNull())
+				cert = error.certificate();
+
+			if (!ignoredErrors.contains(error.error()))
+				ignoredErrors << error.error();
+		}
+		m_server->setCertificate(cert.toPem());
+		m_server->setIgnoredSslErrors(ignoredErrors);
+
+		m_pendingSslErrors.clear();
+
+		connectToServer();
+	}
+#endif
+}
+
+
+
+/**
  * @brief WebSocketReply::WebSocketReply
  * @param reply
  * @param socket
@@ -586,26 +556,40 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 	connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
 		LOG_CDEBUG("websocket") << "SSL error:" << e;
 
-		QList<QSslError> list;
+		Server *server = m_socket->server();
 
-		foreach (const QSslError &err, e) {
-#ifdef QT_DEBUG
-			if (err.error() == QSslError::HostNameMismatch)
-				list.append(err);
-#endif
+		if (server && !server->certificate().isEmpty()) {
+			QSslCertificate cert(server->certificate(), QSsl::Pem);
+
+			if (cert.isNull()) {
+				LOG_CERROR("websocket") << "Invalid server certificate stored";
+			} else {
+				QList<QSslError> ignoredErrors;
+
+				for (auto it=e.constBegin(); it != e.constEnd(); ++it) {
+					if (it->certificate() != cert)
+						LOG_CWARNING("websocket") << "Server certificate mismatch";
+					else if (server->ignoredSslErrors().contains(it->error()))
+						ignoredErrors.append(*it);
+
+				}
+
+				if (ignoredErrors.size() == e.size()) {
+					LOG_CDEBUG("websocket") << "Ignore SSL errors:" << ignoredErrors;
+					m_reply->ignoreSslErrors(ignoredErrors);
+					return;
+				}
+			}
 		}
 
-		if (!list.isEmpty()) {
-			m_reply->ignoreSslErrors(list);
-			LOG_CWARNING("websocket") << "SSL errors ignored:" << list;
-		}
+		m_pending = false;
+		emit failed(this);
+		emit finished();
 
-		if (list.size() < e.size()) {
-			m_pending = false;
-			emit failed(this);
-			emit finished();
+		if (m_sslErrorCallback)
+			m_sslErrorCallback(e);
+		else
 			emit m_socket->socketSslErrors(e);
-		}
 	});
 #endif
 
@@ -644,7 +628,7 @@ WebSocketReply::WebSocketReply(const QNetworkReply::NetworkError &error, QObject
 {
 	LOG_CTRACE("websocket") << "WebSocketReply created" << error << this;
 
-	QMetaObject::invokeMethod(this, "onErrorPresent", Qt::QueuedConnection, Q_ARG(const QNetworkReply::NetworkError &, error));
+	QMetaObject::invokeMethod(this, "onErrorPresent", Qt::QueuedConnection, Q_ARG(QNetworkReply::NetworkError, error));
 }
 
 
@@ -817,6 +801,22 @@ void WebSocketReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 	}
 
 	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+}
+
+
+/**
+ * @brief WebSocketReply::sslErrorCallback
+ * @return
+ */
+
+const std::function<void (const QList<QSslError> &)> &WebSocketReply::sslErrorCallback() const
+{
+	return m_sslErrorCallback;
+}
+
+void WebSocketReply::setSslErrorCallback(const std::function<void (const QList<QSslError> &)> &newSslErrorCallback)
+{
+	m_sslErrorCallback = newSslErrorCallback;
 }
 
 

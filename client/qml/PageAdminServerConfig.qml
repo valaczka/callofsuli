@@ -13,7 +13,7 @@ QPage {
 	subtitle: Client.server ? Client.server.serverName : ""
 
 	appBar.backButtonVisible: true
-	appBar.rightComponent: Row {
+	/*appBar.rightComponent: Row {					TODO
 		visible: _hasModified
 		Qaterial.AppBarButton
 		{
@@ -25,7 +25,7 @@ QPage {
 			icon.source: Qaterial.Icons.contentSaveAll
 			ToolTip.text: qsTr("Mindet ment")
 		}
-	}
+	}*/
 
 
 	property var _items: []

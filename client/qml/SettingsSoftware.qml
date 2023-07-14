@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
+import "JScript.js" as JS
 
 Column {
 	id: root
@@ -24,6 +25,36 @@ Column {
 		onClicked: {
 			Client.updater.checkAvailableUpdates(true)
 			enabled = false
+		}
+	}
+
+	Qaterial.IconLabel {
+		id: _cacheLabel
+
+		property string cacheSize: Client.Utils.getFormattedDiskCacheSize()
+
+		text: qsTr("Gyorsítótár mérete: <b>%1</b>").arg(cacheSize)
+
+		icon.source: Qaterial.Icons.folderDownload
+		anchors.horizontalCenter: parent.horizontalCenter
+	}
+
+	QButton {
+		icon.source: Qaterial.Icons.folderRemoveOutline
+		anchors.horizontalCenter: parent.horizontalCenter
+		text: qsTr("Gyorsítótár törlése")
+		onClicked: {
+			JS.questionDialog({
+								  onAccepted: function()
+								  {
+									  Client.Utils.clearDiskCache()
+									  Client.snack("Gyorsítótár törölve")
+									  _cacheLabel.cacheSize = Client.Utils.getFormattedDiskCacheSize()
+								  },
+								  text: qsTr("Biztosan törlöd a gyorsítótárat?"),
+								  iconSource: Qaterial.Icons.folderRemoveOutline,
+								  title: qsTr("Gyorsítótár törlése")
+							  })
 		}
 	}
 }

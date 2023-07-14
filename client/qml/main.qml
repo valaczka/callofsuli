@@ -93,15 +93,18 @@ Qaterial.ApplicationWindow
 	}
 
 
-	Action {
-		id: actionFullscreen
+	readonly property Action actionFullScreen: Action {
 		shortcut: "Ctrl+F11"
+		text: qsTr("Teljes képernyő")
+		icon.source: mainWindow.visibility === Window.FullScreen ? Qaterial.Icons.fullscreenExit : Qaterial.Icons.fullscreen
+		checked: mainWindow.visibility === Window.FullScreen
+		checkable: true
 
 		onTriggered: {
-			if (mainWindow.visibility === Window.FullScreen)
-				mainWindow.showMaximized()
-			else
+			if (checked)
 				mainWindow.showFullScreen()
+			else
+				mainWindow.showMaximized()
 		}
 	}
 
@@ -245,6 +248,25 @@ Qaterial.ApplicationWindow
 		}
 
 
+	}
+
+
+	Connections {
+		target: Client.webSocket
+
+		function onPendingSslErrors(list) {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								Client.webSocket.acceptPendingSslErrors()
+							},
+							text: qsTr("A szerver tanúsítványa hibás. Ennek ellenére csatlakozol hozzá?\n")+list.join("\n"),
+							title: qsTr("SSL tanúsítvány"),
+							iconSource: Qaterial.Icons.shieldAlertOutline
+						})
+
+		}
 	}
 
 

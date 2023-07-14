@@ -43,6 +43,12 @@ Column {
 		}
 	}
 
+	Qaterial.SwitchButton {
+		anchors.horizontalCenter: parent.horizontalCenter
+		action: Client.mainWindow.actionFullScreen
+		visible: Qt.platform.os == "osx" || Qt.platform.os == "windows" || Qt.platform.os == "linux"
+	}
+
 	QButton {
 		icon.source: Qaterial.Icons.notificationClearAll
 		anchors.horizontalCenter: parent.horizontalCenter

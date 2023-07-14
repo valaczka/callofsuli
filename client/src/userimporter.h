@@ -33,6 +33,10 @@
 
 class Client;
 
+/*#ifdef Q_OS_WASM
+class OnlineClient;
+#endif*/
+
 class UserImporter : public QObject
 {
 	Q_OBJECT
@@ -64,10 +68,10 @@ public slots:
 	void downloadTemplate(const QUrl &file);
 	void upload(const QUrl &file);
 
-#ifdef Q_OS_WASM
+/*#ifdef Q_OS_WASM
 	void wasmDownloadTempate();
 	void wasmUpload();
-#endif
+#endif*/
 
 signals:
 	void loadStarted();
@@ -90,9 +94,9 @@ private:
 	QJsonArray m_records;
 	QJsonArray m_errorRecords;
 
-#ifdef Q_OS_WASM
-	OnlineClient *m_client = nullptr;
-#endif
+/*#ifdef Q_OS_WASM
+	OnlineClient *m_onlineClient = nullptr;
+#endif*/
 };
 
 #endif // USERIMPORTER_H

@@ -26,6 +26,7 @@
 
 #include "updater.h"
 #include "Logger.h"
+#include "qcryptographichash.h"
 #include "qnetworkreply.h"
 #include "qnetworkrequest.h"
 #include "qsettings.h"
@@ -68,8 +69,6 @@ Updater::Updater(Client *client)
 
 	removeUpdaterExecutable();
 
-	/*connect(&m_timer, &QTimer::timeout, this, &Updater::printMemory);
-	m_timer.start(5000);*/
 }
 
 
@@ -384,11 +383,6 @@ void Updater::githubUpdateCheck(const bool &force)
 		uint vMajor = vstr.section('.', 0, 0).toUInt();
 		uint vMinor = vstr.section('.', 1, 1).toUInt();
 		uint vBuild = vstr.section('.', 2, 2).toUInt();
-
-
-		LOG_CINFO("updater") << "***** CHECK" << vMajor << Utils::versionMajor() << (vMajor > Utils::versionMajor());
-		LOG_CINFO("updater") << "***** CHECK" << vMinor << Utils::versionMinor() << (vMinor > Utils::versionMinor());
-		LOG_CINFO("updater") << "***** CHECK" << vBuild << Utils::versionBuild() << (vBuild > Utils::versionBuild());
 
 		const QString &lastNotified = Utils::settingsGet(QStringLiteral("update/lastVersion")).toString();
 

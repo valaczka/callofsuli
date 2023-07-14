@@ -32,6 +32,7 @@
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
+#include <QtPlatformHeaders/QWindowsWindowFunctions>
 #endif
 
 
@@ -46,16 +47,18 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 {
 #ifdef Q_OS_WIN
 	SetConsoleOutputCP(CP_UTF8);
+
+	QWindowsWindowFunctions::setWindowActivationBehavior(QWindowsWindowFunctions::AlwaysActivateWindow);
 #endif
 
 	m_appender = new ColorConsoleAppender;
 
 #ifndef QT_NO_DEBUG
 	m_appender->setFormat(QString::fromStdString(
-									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
-									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
-									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
-									 ColorConsoleAppender::green+">\n"));
+							  "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
+							  ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+							  ColorConsoleAppender::magenta+"%{file}:%{line}"+
+							  ColorConsoleAppender::green+">\n"));
 #else
 	m_appender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message}\n"));
 #endif
@@ -233,10 +236,16 @@ void DesktopApplication::performInstanceArguments(const QStringList &arguments)
 
 int DesktopApplication::runSingleInstance()
 {
-	if (!m_singleInstance.process()) {
+	if (m_singleInstance.process()) {
+		if (!m_singleInstance.isMaster()) {
+			LOG_CINFO("app") << QObject::tr("Már fut az alkalmazás egy példánya");
+			return 1;
+		}
+	} else {
 		LOG_CINFO("app") << QObject::tr("Már fut az alkalmazás egy példánya");
-		return 0;
+		return 1;
 	}
+
 
 	return run();
 }

@@ -27,6 +27,7 @@
 #include "eventstream.h"
 #include "Logger.h"
 #include "qjsondocument.h"
+#include "server.h"
 #include "websocket.h"
 #include "application.h"
 
@@ -118,7 +119,7 @@ void EventStream::setReconnect(bool newReconnect)
  * @brief EventStream::connect
  */
 
-void EventStream::connect()
+void EventStream::connect(Server *server)
 {
 	LOG_CDEBUG("websocket") << "Connect event stream:" << m_request.url().toString();
 
@@ -136,6 +137,23 @@ void EventStream::connect()
 	m_reply = m_socket->networkManager()->post(m_request, m_requestData);
 
 #ifndef QT_NO_SSL
+	if (server && !server->certificate().isEmpty()) {
+		QSslCertificate cert(server->certificate());
+		if (cert.isNull()) {
+			LOG_CERROR("websocket") << "Invalid server certificate stored";
+		} else {
+			QList<QSslError> expectedErrors;
+
+			foreach (const QSslError::SslError &err, server->ignoredSslErrors()) {
+				LOG_CDEBUG("websocket") << "Ignore SSL error:" << err;
+				expectedErrors << QSslError(err, cert);
+			}
+
+			if (!expectedErrors.isEmpty())
+				m_reply->ignoreSslErrors(expectedErrors);
+		}
+	}
+
 	QObject::connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
 		LOG_CDEBUG("websocket") << "SSL error:" << e;
 

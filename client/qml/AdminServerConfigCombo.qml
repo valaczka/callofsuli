@@ -29,6 +29,8 @@ Row {
 
 		font: Qaterial.Style.textTheme.body1
 
+		width: Math.max(implicitWidth, Qaterial.Style.pixelSizeRatio * 200)
+
 		anchors.verticalCenter: parent.verticalCenter
 
 		model: ListModel {

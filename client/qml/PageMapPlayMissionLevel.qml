@@ -258,7 +258,7 @@ QPageGradient {
 
 		ListView {
 			id: _xpView
-			width: Math.min(Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.6)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.6)
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: map && map.gameState == MapPlay.StateFinished
@@ -319,7 +319,7 @@ QPageGradient {
 
 		ListView {
 			id: _unlockView
-			width: Math.min(Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.6)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.6)
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			property bool showPlaceholders: true
@@ -421,7 +421,7 @@ QPageGradient {
 
 		MapPlayMissionLevelInfoList {
 			id: _listDuration
-			width: Math.min(Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
 			anchors.horizontalCenter: parent.horizontalCenter
 			mapGameList: _mapGameList
 			positionType: MapPlayMissionLevelInfoList.Duration
@@ -451,7 +451,7 @@ QPageGradient {
 
 		MapPlayMissionLevelInfoList {
 			id: _listSolved
-			width: Math.min(Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
 			anchors.horizontalCenter: parent.horizontalCenter
 			mapGameList: _mapGameList
 			positionType: MapPlayMissionLevelInfoList.Solved

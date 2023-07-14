@@ -32,6 +32,7 @@
 #include <QObject>
 
 class WebSocket;
+class Server;
 
 #define MAX_RETRIES	5
 
@@ -63,7 +64,7 @@ public:
 	void setReconnect(bool newReconnect);
 
 public slots:
-	void connect();
+	void connect(Server *server = nullptr);
 	void disconnect();
 
 private slots:

@@ -260,7 +260,7 @@ QPage {
 			QDashboardButton {
 				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
 				text: qsTr("Pályák")
-				icon.source: Qaterial.Icons.map
+				icon.source: Qaterial.Icons.briefcaseVariant
 				highlighted: false
 				outlined: true
 				flat: true

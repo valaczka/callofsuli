@@ -50,7 +50,7 @@ QTableView {
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Még egyetlen résztvevő sincsen felvéve. Adj hozzá a csoporthoz egy osztályt vagy felhasználót.")
-		iconSource: Qaterial.Icons.account
+		iconSource: Qaterial.Icons.accountOutline
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true

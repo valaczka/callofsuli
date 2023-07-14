@@ -34,7 +34,7 @@ QPage {
 
 		Item {
 			id: _item
-			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
 			height: control.paddingTop
 		}
 

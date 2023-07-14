@@ -36,6 +36,7 @@
 #include "libtiled/mapobject.h"
 #include "libtiled/objectgroup.h"
 #include "qtimer.h"
+#include "server.h"
 #include "tiledpaintedlayer.h"
 #include "utils.h"
 #include <QRandomGenerator>

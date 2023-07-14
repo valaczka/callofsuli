@@ -87,8 +87,8 @@ QPage {
 		currentIndex: swipeView.currentIndex
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Osztályok"), source: Qaterial.Icons.account, color: "green" })
-			model.append({ text: qsTr("Felhasználók"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Osztályok"), source: Qaterial.Icons.accountGroupOutline, color: Qaterial.Colors.lightBlue400 })
+			model.append({ text: qsTr("Felhasználók"), source: Qaterial.Icons.accountCircle, color: Qaterial.Colors.amber400 })
 		}
 	}
 
@@ -96,7 +96,7 @@ QPage {
 	Action {
 		id: actionClassAdd
 		text: qsTr("Új osztály")
-		icon.source: Qaterial.Icons.plus
+		icon.source: Qaterial.Icons.accountMultiplePlusOutline
 		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Osztály neve"),
@@ -121,7 +121,7 @@ QPage {
 	Action {
 		id: actionClassRemove
 		text: qsTr("Törlés")
-		icon.source: Qaterial.Icons.delete_
+		icon.source: Qaterial.Icons.accountMultipleRemove
 		onTriggered: {
 			var l = _class.view.getSelected()
 			if (!l.length)
@@ -141,7 +141,7 @@ QPage {
 											.fail(JS.failMessage("Törlés sikertelen"))
 										},
 										title: qsTr("Osztályok törlése"),
-										iconSource: Qaterial.Icons.closeCircle
+										iconSource: Qaterial.Icons.accountMultipleRemove
 									})
 
 		}
@@ -189,7 +189,7 @@ QPage {
 	Action {
 		id: actionUserImport
 		text: qsTr("Importálás")
-		icon.source: Qaterial.Icons.import_
+		icon.source: Qaterial.Icons.accountArrowUpOutline
 		onTriggered: Client.stackPushPage("PageAdminUserImport.qml", {
 											 classId: _user.classid
 										  })

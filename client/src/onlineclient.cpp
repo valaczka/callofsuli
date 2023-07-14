@@ -39,6 +39,8 @@
 #include "application.h"
 #include "gameterrain.h"
 #include "actiongame.h"
+#include "server.h"
+#include "utils.h"
 #include "websocket.h"
 
 OnlineClient::OnlineClient(Application *app, QObject *parent)
@@ -152,6 +154,8 @@ void OnlineClient::onResourceDownloaded()
 			const QJsonObject &o = Utils::byteArrayToJsonObject(payload);
 			const QJsonArray &resources = o.value(QStringLiteral("resources")).toArray();
 
+			m_demoMode = o.value(QStringLiteral("demo")).toBool(false);
+
 			QUrl url;
 			url.setScheme(m_parseUrl.scheme());
 			url.setHost(m_parseUrl.host());
@@ -216,7 +220,10 @@ void OnlineClient::onAllResourceReady()
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
 
-	m_startPage = stackPushPage("PageStart.qml");
+	if (m_demoMode)
+		m_startPage = loadDemoMap();
+	else
+		m_startPage = stackPushPage("PageStart.qml");
 }
 
 

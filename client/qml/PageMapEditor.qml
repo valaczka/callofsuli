@@ -56,7 +56,7 @@ QPage {
 		}
 	}
 
-	appBar.backButtonVisible: true
+	appBar.backButtonVisible: StackView.index > 1
 	appBar.rightComponent: MapEditorToolbarComponent {
 		editor: mapEditor
 		Shortcut {
@@ -118,7 +118,7 @@ QPage {
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Nincs betöltve pálya!")
-		iconSource: Qaterial.Icons.desktopClassic
+		iconSource: Qaterial.Icons.briefcaseOffOutline
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true

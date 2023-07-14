@@ -70,7 +70,7 @@ QPage {
 			selectableObject: mapObject
 
 			highlighted: ListView.isCurrentItem
-			iconSource: mapObject.draftVersion > 0 ? Qaterial.Icons.paperclipOff : Qaterial.Icons.desktopClassic
+			iconSource: mapObject.draftVersion > 0 ? Qaterial.Icons.briefcaseEditOutline : Qaterial.Icons.briefcaseCheck
 			iconColor: mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
 			text: mapObject ? (mapObject.name + (mapObject.draftVersion > 0 ? qsTr(" [*]") : "")) : ""
 			secondaryText: mapObject ? qsTr("%1. verzió (%2 @%3)").arg(mapObject.version)
@@ -126,7 +126,7 @@ QPage {
 		width: parent.width
 		drawSeparator: true
 		text: qsTr("Még egyetlen pálya sincsen felvéve. Hozz létre egy újat.")
-		iconSource: Qaterial.Icons.account
+		iconSource: Qaterial.Icons.briefcasePlusOutline
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true
@@ -164,7 +164,7 @@ QPage {
 	Action {
 		id: actionMapAdd
 		text: qsTr("Új pálya")
-		icon.source: Qaterial.Icons.plus
+		icon.source: Qaterial.Icons.briefcasePlus
 		enabled: handler
 		onTriggered: {
 			Qaterial.DialogManager.showTextFieldDialog({
@@ -202,7 +202,7 @@ QPage {
 											.fail(JS.failMessage("Törlés sikertelen"))
 										},
 										title: qsTr("Pályák törlése"),
-										iconSource: Qaterial.Icons.closeCircle
+										iconSource: Qaterial.Icons.briefcaseRemove
 									})
 
 		}
@@ -240,7 +240,7 @@ QPage {
 	Action {
 		id: actionMapImport
 		text: qsTr("Pálya importálása")
-		icon.source: Qaterial.Icons.databaseImport
+		icon.source: Qaterial.Icons.briefcaseUploadOutline
 		enabled: handler
 		onTriggered: {
 			Qaterial.DialogManager.openFromComponent(cmpFile)
@@ -261,7 +261,7 @@ QPage {
 	Action {
 		id: actionMapPublish
 		text: qsTr("Közzététel")
-		icon.source: Qaterial.Icons.send
+		icon.source: Qaterial.Icons.briefcaseCheck
 		onTriggered: {
 			var l = view.getSelected()
 			if (!l.length)
@@ -290,7 +290,7 @@ QPage {
 											Client.messageInfo(qsTr("Vázlatok közzétéve"))
 										},
 										title: qsTr("Vázlatok közzététele"),
-										iconSource: Qaterial.Icons.send
+										iconSource: Qaterial.Icons.briefcaseCheck
 									})
 
 		}
@@ -299,7 +299,7 @@ QPage {
 	Action {
 		id: actionMapDeleteDraft
 		text: qsTr("Vázlat törlése")
-		icon.source: Qaterial.Icons.cancel
+		icon.source: Qaterial.Icons.briefcaseRemoveOutline
 		onTriggered: {
 			var l = view.getSelected()
 			if (!l.length)
@@ -328,7 +328,7 @@ QPage {
 											Client.messageInfo(qsTr("Vázlatok törölve"))
 										},
 										title: qsTr("Vázlatok törlése"),
-										iconSource: Qaterial.Icons.deleteAlert
+										iconSource: Qaterial.Icons.briefcaseRemoveOutline
 									})
 
 		}

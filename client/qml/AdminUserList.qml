@@ -191,16 +191,26 @@ Qaterial.Page
 				iconSource: user ? (user.roles & _rolePanel) ?
 									   Qaterial.Icons.desktopClassic :
 									   (user.roles & _roleAdmin) ?
-										   Qaterial.Icons.accountTie :
+										   Qaterial.Icons.accountCog :
 										   (user.roles & _roleTeacher) ?
 											   Qaterial.Icons.accountTieHat :
-											   Qaterial.Icons.account : Qaterial.Icons.account
+											   Qaterial.Icons.accountSchoolOutline : Qaterial.Icons.accountSchoolOutline
 
 				text: user ? user.fullName: ""
 				secondaryText: user ? user.username + (user.oauth.length ? " ("+user.oauth+")" : "") : ""
-				textColor: user && user.active ? Qaterial.Style.colorTheme.primaryText : Qaterial.Style.colorTheme.disabledText
-				iconColor: user ? (user.selected ? Qaterial.Style.accentColor :
-												   user.active ? Qaterial.Style.iconColor() : Qaterial.Style.colorTheme.disabledText)
+				textColor: user && user.active ?
+							   ((user.roles & _roleAdmin) ? Qaterial.Colors.red300 :
+															(user.roles & _roleTeacher) ? Qaterial.Colors.amber300 :
+																						  Qaterial.Style.colorTheme.primaryText) :
+							   Qaterial.Style.colorTheme.disabledText
+				iconColor: user ? (user.selected ?
+									   Qaterial.Style.accentColor :
+									   user.active ? ((user.roles & _roleAdmin) ?
+														  Qaterial.Colors.red300 :
+														  (user.roles & _roleTeacher) ?
+															  Qaterial.Colors.amber300 :
+															  Qaterial.Style.iconColor()) :
+													 Qaterial.Style.colorTheme.disabledText)
 								: Qaterial.Style.colorTheme.primaryText
 
 
@@ -298,7 +308,7 @@ Qaterial.Page
 
 	Action {
 		id: actionUserRemove
-		icon.source: Qaterial.Icons.minus
+		icon.source: Qaterial.Icons.accountRemove
 		text: qsTr("Törlés")
 		onTriggered: {
 			var l = view.getSelected()
@@ -320,7 +330,7 @@ Qaterial.Page
 
 										},
 										title: qsTr("Felhasználók törlése"),
-										iconSource: Qaterial.Icons.closeCircle
+										iconSource: Qaterial.Icons.accountRemove
 									})
 
 		}
@@ -350,7 +360,7 @@ Qaterial.Page
 											.fail(JS.failMessage("Aktiválás sikertelen"))
 										},
 										title: qsTr("Felhasználók aktiválása"),
-										iconSource: Qaterial.Icons.eye
+										iconSource: Qaterial.Icons.accountCheck
 									})
 
 		}
@@ -380,7 +390,7 @@ Qaterial.Page
 											.fail(JS.failMessage("Inaktiválás sikertelen"))
 										},
 										title: qsTr("Felhasználók inaktiválása"),
-										iconSource: Qaterial.Icons.eyeOff
+										iconSource: Qaterial.Icons.accountOff
 									})
 
 		}

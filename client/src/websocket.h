@@ -108,14 +108,12 @@ public slots:
 
 	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content);
-#ifndef Q_OS_WASM
-	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content, const QJsonObject &data);
-#endif
 
-	QNetworkReply *get(const QUrl &url);
 	EventStream *getEventStream(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
 
 	void checkPending();
+
+	void acceptPendingSslErrors();
 
 private:
 	void abortAllReplies();
@@ -128,9 +126,10 @@ signals:
 #endif
 	void socketError(QNetworkReply::NetworkError code);
 	void responseError(const QString &error);
+	void pendingSslErrors(const QStringList &list);
+
 	void stateChanged();
 	void serverChanged();
-
 	void pendingChanged();
 
 private:
@@ -141,6 +140,7 @@ private:
 
 #ifndef QT_NO_SSL
 	QSslCertificate m_rootCertificate;
+	QList<QSslError> m_pendingSslErrors;
 #endif
 	QNetworkAccessManager *m_networkManager = nullptr;
 	QVector<WebSocketReply *> m_replies;
@@ -227,6 +227,8 @@ public:
 
 	Q_INVOKABLE WebSocketReply *error(const QJSValue &v);
 
+	const std::function<void (const QList<QSslError> &)> &sslErrorCallback() const;
+	void setSslErrorCallback(const std::function<void (const QList<QSslError> &)> &newSslErrorCallback);
 
 public slots:
 	void abort();
@@ -253,6 +255,7 @@ private:
 	QJSValueList m_jsvaluesFail;
 	QVector<std::function<void (const QNetworkReply::NetworkError &)>> m_funcsError;
 	QJSValueList m_jsvaluesError;
+	std::function<void (const QList<QSslError> &)> m_sslErrorCallback;
 };
 
 
