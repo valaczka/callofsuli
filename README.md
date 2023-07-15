@@ -20,10 +20,10 @@ A <i>Call of Suli</i> egy olyan digitális feladatlapkészítő és kiértékel�
 ## 📥 Letöltés
  A *Call of Suli* a következő platformokon elérhető: `android` `ios` `windows` `linux`
 - [![Static Badge](https://img.shields.io/badge/Android-green?logo=Google%20Play&logoColor=white)](https://play.google.com/store/apps/details?id=hu.piarista.vjp.callofsuli) Google Play áruház [link](https://play.google.com/store/apps/details?id=hu.piarista.vjp.callofsuli)
-- [![Static Badge](https://img.shields.io/badge/Huawei-blue?logo=Huawei&logoColor=white)](./) Huawei App Galery `publikálás alatt`
-- [![Static Badge](https://img.shields.io/badge/iOS-brown?logo=Appstore&logoColor=white)](./) Apple App Store `publikálás alatt`
-- [![Static Badge](https://img.shields.io/badge/Liunx-darkmagenta?logo=Linux&logoColor=pink)](./releases/latest/download/Call_of_Suli-x86_64.AppImage) Linux AppImage [link](./releases/latest/download/Call_of_Suli-x86_64.AppImage)
-- [![Static Badge](https://img.shields.io/badge/Windows-cyan?logo=Microsoft&logoColor=white)](./releases/latest/download/Call_of_Suli_x64_install.exe) Windows telepítő [link](./releases/latest/download/Call_of_Suli_x64_install.exe)
+- [![Static Badge](https://img.shields.io/badge/Huawei-blue?logo=Huawei&logoColor=white)](https://github.com/valaczka/callofsuli) Huawei App Galery `publikálás alatt`
+- [![Static Badge](https://img.shields.io/badge/iOS-brown?logo=Appstore&logoColor=white)](https://github.com/valaczka/callofsuli) Apple App Store `publikálás alatt`
+- [![Static Badge](https://img.shields.io/badge/Liunx-darkmagenta?logo=Linux&logoColor=pink)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli-x86_64.AppImage) Linux AppImage [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli-x86_64.AppImage)
+- [![Static Badge](https://img.shields.io/badge/Windows-cyan?logo=Microsoft&logoColor=white)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe) Windows telepítő [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe)
 - Korábbi verziók és forráskód [link](./releases)
 
 
