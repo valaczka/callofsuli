@@ -273,8 +273,6 @@ void EventStream::onReplyReadyRead()
 	foreach (const QByteArray &l, lines) {
 		QByteArray line = l.simplified();
 
-		LOG_CINFO("client") << "EVENT MESSAGE" << event << data;
-
 		// If more events received
 		if (line.isEmpty() && (!event.isEmpty() || !data.isEmpty())) {
 			if (event == QByteArrayLiteral("hello") && data == QByteArrayLiteral("hello message"))
@@ -303,9 +301,6 @@ void EventStream::onReplyReadyRead()
 	}
 
 	if (!event.isEmpty() || !data.isEmpty()) {
-
-		LOG_CINFO("client") << "EVENT MESSAGE" << event << data;
-
 		if (event == QByteArrayLiteral("hello") && data == QByteArrayLiteral("hello message"))
 			emit eventHelloReceived();
 		else

@@ -161,6 +161,7 @@ Item
 					if (o)
 						Client.stackPushPage("PageTeacherCampaign.qml", {
 												 group: control.group,
+												 mapHandler: control.mapHandler,
 												 campaign: o
 											 })
 				})

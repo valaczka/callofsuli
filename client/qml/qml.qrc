@@ -107,7 +107,6 @@
         <file>PageMapPlayMissionLevel.qml</file>
         <file>MapPlayMissionLevelInfoList.qml</file>
         <file>QPlaceholderItem.qml</file>
-        <file>TeacherCampaignTaskList.qml</file>
         <file>StudentCampaign.qml</file>
         <file>StudentStreak.qml</file>
         <file>GameQuestionDNDbutton.qml</file>
@@ -181,5 +180,6 @@
         <file>PageAdminUserImport.qml</file>
         <file>QLabelInformative.qml</file>
         <file>SettingsSoftware.qml</file>
+        <file>TeacherCampaignTiming.qml</file>
     </qresource>
 </RCC>

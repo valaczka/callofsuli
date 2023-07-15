@@ -12,220 +12,61 @@ Item {
 	property Campaign campaign: null
 	property TeacherMapHandler mapHandler: null
 
-	readonly property color _doneColor: Qaterial.Colors.green500
-	readonly property real _stepperSize: 48
-	readonly property real _stepperPadding: 24
+	QScrollable {
+		anchors.fill: parent
 
-	property QTextFieldInPlaceButtons _inPlaceButtons: null
+		QFormColumn {
+			id: _form
 
-	property var stackPopFunction: function() {
-		if (_inPlaceButtons && _inPlaceButtons.active) {
-			_inPlaceButtons.revert()
-			return false
-		}
+			spacing: 3
 
-		return true
-	}
+			QExpandableHeader {
+				width: parent.width
+				text: qsTr("Alapadatok")
+				icon: Qaterial.Icons.serverOutline
+				button.visible: false
+				topPadding: 10 * Qaterial.Style.pixelSizeRatio
+			}
 
-	Qaterial.TextField {
-		id: textFieldCampaignDescription
+			Qaterial.TextField {
+				id: _tfName
 
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+				width: parent.width
+				leadingIconSource: Qaterial.Icons.renameBox
+				leadingIconInline: true
+				title: qsTr("A hadjárat neve")
+				readOnly: !campaign || campaign.state >= Campaign.Finished
+				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A hadjárat véget ért, a név már nem módosítható") : ""
 
-		anchors.top: parent.top
-		anchors.horizontalCenter: parent.horizontalCenter
-
-		font: Qaterial.Style.textTheme.headline4
-		leadingIconSource: Qaterial.Icons.accountMultiple
-		leadingIconInline: true
-		placeholderText: qsTr("A hadjárat neve")
-		backgroundBorderHeight: 1
-		backgroundColor: "transparent"
-		trailingContent: Qaterial.TextFieldButtonContainer
-		{
-			QTextFieldInPlaceButtons {
-				id: textFieldDescriptionInPlaceButtons
-				setTo: campaign ? campaign.description : ""
-				onSaveRequest: {
-					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
-								{
-									description: text
-								})
-					.done(function(r){
-						reloadCampaign()
-						saved()
-					})
-					.fail(function(err) {
-						Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-						revert()
-					})
+				trailingContent: Qaterial.TextFieldButtonContainer
+				{
+					QTextFieldInPlaceButtons {
+						setTo: campaign ? campaign.description : ""
+						onSaveRequest: {
+							Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
+										{
+											description: text
+										})
+							.done(function(r){
+								reloadCampaign()
+								saved()
+							})
+							.fail(function(err) {
+								Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+								revert()
+							})
+						}
+					}
 				}
-
-				Component.onCompleted: control._inPlaceButtons = textFieldDescriptionInPlaceButtons
-
-			}
-		}
-
-	}
-
-	Qaterial.Stepper {
-		id: stepper
-
-		anchors.top: textFieldCampaignDescription.bottom
-		anchors.topMargin: _stepperPadding
-
-		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-		anchors.horizontalCenter: parent.horizontalCenter
-
-		indicatorHeight: _stepperSize
-		indicatorWidth: _stepperSize
-
-		clickable: true
-
-
-		onCurrentElementChanged: {
-			if (currentElement)
-				stack.replace(currentElement.cmp)
-			else
-				stack.clear()
-		}
-
-		model: Qaterial.StepperModel {
-			Qaterial.StepperElement {
-				text: qsTr("Előkészítés")
-				done: campaign && campaign.state >= Campaign.Prepared
-				property string iconName: Qaterial.Icons.battery10
-				property Component cmp: cmpDetails
 			}
 
-			Qaterial.StepperElement {
-				text: qsTr("Időzítés")
-				done: campaign && campaign.state >= Campaign.Running
-				property string iconName: Qaterial.Icons.battery30
-				property Component cmp: cmpStart
-			}
-
-			Qaterial.StepperElement {
-				text: qsTr("Befejezés")
-				done: campaign && campaign.state >= Campaign.Finished
-				property string iconName: Qaterial.Icons.battery60Bluetooth
-				property Component cmp: cmpFinish
-			}
-		}
-
-		separator: Rectangle
-		{
-			property Qaterial.StepperElement previous
-			property Qaterial.StepperElement next
-			property int index
-			property bool highlighted:
-			{
-				if (previous == null)
-					return next.done
-				if (next == null)
-					return previous.done
-				return previous.done && next.done
-			}
-			color: highlighted ? _doneColor : Qaterial.Style.dividersColor()
-			height: 8
-			radius: 4
-		}
-
-
-		indicator: Qaterial.ColorIcon
-		{
-			anchors.centerIn: parent
-			iconSize: _stepperSize
-
-			property Qaterial.StepperElement element
-			property bool done: element ? element.done : false
-
-			color: done ? _doneColor : Qaterial.Style.dividersColor()
-			source: element.iconName
-		}
-
-		contentItem: Qaterial.Label
-		{
-			width: 100
-			height: 20
-
-			property Qaterial.StepperElement element
-			property int index
-			property bool done: element ? element.done : false
-
-			readonly property bool isCurrent: index === stepper.currentIndex
-
-			text: element.text
-			font.family: Qaterial.Style.textTheme.body2.family
-			font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
-			font.weight: isCurrent ? Font.Bold : Qaterial.Style.textTheme.body2.weight
-			horizontalAlignment: stepper.vertical ? Text.AlignLeft : Text.AlignHCenter
-			color: isCurrent ? Qaterial.Style.accentColor : Qaterial.Style.primaryTextColor()
-
-		}
-	}
-
-	Qaterial.StackView {
-		id: stack
-		anchors.top: stepper.bottom
-		anchors.topMargin: _stepperPadding
-		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		anchors.right: parent.right
-	}
-
-
-
-	Component.onCompleted: {
-		if (!campaign)
-			return
-
-		if (campaign.state == Campaign.Finished) {
-			stepper.currentIndex = stepper.count-1
-			return
-		}
-
-		for (var i=0; i<=stepper.count-1; i++) {
-			var o = stepper.model.get(i)
-
-			if (!o || !o.done) {
-				stepper.currentIndex = i
-				return
-			}
-		}
-	}
-
-
-
-	// ----- DETAILS COMPONENT
-
-	Component {
-		id: cmpDetails
-
-		TeacherCampaignTaskList {
-			group: control.group
-			campaign: control.campaign
-			mapHandler: control.mapHandler
-			actionTaskCreate: actionAddTask
-			onReloadRequest: reloadCampaign()
-		}
-	}
-
-	// ----- START COMPONENT
-
-	Component {
-		id: cmpStart
-
-		QScrollable {
-			contentCentered: true
-
-			spacing: 10
 
 			QDateTimePicker {
-				anchors.horizontalCenter: parent.horizontalCenter
+				width: parent.width
 				visible: campaign && (campaign.state < Campaign.Running || campaign.startTime.getTime())
 				canEdit: campaign && campaign.state < Campaign.Running
 				title: campaign && campaign.state < Campaign.Running ? qsTr("Automatikus indítás") : qsTr("Indítás ideje")
+				helperText: campaign && campaign.state >= Campaign.Running ? qsTr("A hadjárat már elindult, az időpont nem módosítható") : ""
 				onSaveRequest: {
 					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
@@ -248,10 +89,11 @@ Item {
 			}
 
 			QDateTimePicker {
-				anchors.horizontalCenter: parent.horizontalCenter
+				width: parent.width
 				visible: campaign && (campaign.state < Campaign.Finished || campaign.endTime.getTime())
 				canEdit: campaign && campaign.state < Campaign.Finished
 				title: campaign && campaign.state < Campaign.Finished ? qsTr("Automatikus befejezés") : qsTr("Befejezés ideje")
+				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A hadjárat már befejeződött, az időpont nem módosítható") : ""
 				onSaveRequest: {
 					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
@@ -273,172 +115,249 @@ Item {
 				}
 			}
 
-			QButton {
-				icon.source: Qaterial.Icons.play
-				text: qsTr("Start")
-				anchors.horizontalCenter: parent.horizontalCenter
 
-				enabled: campaign
-				visible: campaign && campaign.state < Campaign.Running
-				onClicked: {
-					Client.send(WebSocket.ApiTeacher, "campaign/%1/run".arg(campaign.campaignid))
-					.done(function(r){
-						reloadCampaign()
-					})
-					.fail(JS.failMessage(qsTr("Hadjárat indítása sikertelen")))
-				}
+
+			QExpandableHeader {
+				width: parent.width
+				text: qsTr("Értékelés")
+				icon: Qaterial.Icons.bullseyeArrow
+				button.visible: false
+				topPadding: 20 * Qaterial.Style.pixelSizeRatio
 			}
 
-			Qaterial.LabelBody1 {
-				id: _labelStart
-				color: Qaterial.Colors.lightGreen400
-				width: parent.width
-				horizontalAlignment: Qt.AlignHCenter
-				leftPadding: 20
-				rightPadding: 20
-				wrapMode: Text.Wrap
-				visible: _startTimer.running
 
-				Timer {
-					id: _startTimer
-					interval: 500
-					triggeredOnStart: true
-					running: campaign && campaign.startTime.getTime() && campaign.state < Campaign.Running
-					repeat: true
-					onTriggered: {
-						var diff = campaign.startTime.getTime() - new Date().getTime()
-						if (diff <= 0) {
-							stop()
+
+
+			Row {
+				anchors.left: parent.left
+
+				spacing: 5
+
+				Qaterial.LabelBody1 {
+					anchors.verticalCenter: parent.verticalCenter
+					text: qsTr("Alapértelmezett jegy:")
+				}
+
+				Qaterial.ComboBox {
+					id: _combo
+
+					flat: false
+					enabled: campaign && campaign.state < Campaign.Finished
+
+					font: Qaterial.Style.textTheme.body1
+
+					width: Math.max(implicitWidth, Qaterial.Style.pixelSizeRatio * 250)
+
+					anchors.verticalCenter: parent.verticalCenter
+
+					model: ListModel {
+						id: comboModel
+					}
+
+					valueRole: "gradeid"
+					textRole: "fullname"
+
+					Component.onCompleted: {
+						comboModel.append({gradeid: -1, fullname: qsTr("-- nincs --")})
+
+						var m = Client.cache("gradeList")
+						for (var i=0; i<m.length; ++i) {
+							var o = m.get(i)
+							comboModel.append({gradeid: o.gradeid, fullname: "%1 (%2)".arg(o.longname).arg(o.shortname)})
+						}
+
+						setFromCampaign()
+					}
+
+
+					Connections {
+						target: campaign
+
+						function onDefaultGradeChanged() {
+							_combo.setFromCampaign()
+						}
+					}
+
+
+					function setFromCampaign() {
+						if (!campaign) {
+							_buttons.set(-1)
 							return
 						}
 
-						diff = Math.floor(diff/1000)
+						if (!campaign.defaultGrade) {
+							_buttons.set(0)
+							return
+						}
 
-						var s = diff%60
-						diff = Math.floor(diff/60)
-						var m = diff%60
-						diff = Math.floor(diff/60)
-						var h = diff%24
-						diff = Math.floor(diff/24)
+						for (var i=1; i<model.count; ++i) {
+							if (model.get(i).gradeid === campaign.defaultGrade.gradeid) {
+								_buttons.set(i)
+								return
+							}
+						}
+					}
+				}
 
-						var list = []
 
-						if (diff > 0)
-							list.push(qsTr("%1 nap").arg(diff))
-						if (h > 0 || diff > 0)
-							list.push(qsTr("%1 óra").arg(h))
-						if (m > 0 || h > 0)
-							list.push(qsTr("%1 perc").arg(m))
-						if (s > 0 || m > 0)
-							list.push(qsTr("%1 másodperc").arg(s))
+				QComboBoxInPlaceButtons {
+					id: _buttons
+					combo: _combo
 
-						_labelStart.text = qsTr("Indításig hátralévő idő:\n")+list.join(" ")
+					visible: true
+					enabled: active
+					opacity: active ? 1.0 : 0.0
+
+					anchors.verticalCenter: parent.verticalCenter
+
+					onSaveRequest: {
+						if (!campaign)
+							return
+
+						if (campaign.state >= Campaign.Finished) {
+							Client.messageWarning(qsTr("A hadjárat már véget ért, az alapértelmezett jegy nem módosítható"),
+												  qsTr("Alapértelmezett jegy"))
+							return
+						} else if (campaign.state >= Campaign.Running) {
+
+							JS.questionDialog(
+										{
+											onAccepted: function()
+											{
+												_save()
+											},
+											onRejected: function() {
+												revert()
+											},
+											text: qsTr("A hadjárat már elindult, biztosan megváltoztatod az alapértelmezett jegyet?"),
+											title: qsTr("Alapértelmezett jegy"),
+											iconSource: Qaterial.Icons.progressQuestion
+										})
+							return
+						}
+
+						_save()
+
+					}
+
+					function _save() {
+						Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
+									{
+										defaultGrade: _combo.currentValue
+									})
+						.done(function(r){
+							reloadCampaign()
+							saved()
+						})
+						.fail(function(err) {
+							Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+							revert()
+						})
+					}
+				}
+			}
+
+
+			QLabelInformative {
+				text: qsTr("A hadjárat értékeléséhez vegyél fel kritériumokat. A játékosok csak olyan pályákon tudnak játszani, melyek valamelyik kritériumhoz tartoznak. Legalább egy pályára/küldetésre vonatkozó kritérium szükséges a játékhoz!")
+				visible: !_rptr.model || !_rptr.model.length
+
+				topPadding: 30 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+			}
+
+			QButton {
+				action: actionAddTask
+				visible: !_rptr.model || !_rptr.model.length
+				anchors.horizontalCenter: parent.horizontalCenter
+			}
+
+			Column {
+				width: parent.width
+
+				Repeater {
+					id: _rptr
+
+					delegate: Item {
+						width: parent.width
+						height: task ? _delegate.implicitHeight : _section.implicitHeight
+
+						readonly property Task task: modelData.task
+
+						Qaterial.ListSectionTitle {
+							id: _section
+							width: parent.width
+							text: modelData.section
+							visible: !task
+						}
+
+						Qaterial.ItemDelegate {
+							id: _delegate
+
+							width: parent.width
+							visible: task
+
+							icon.source: task && task.required ? Qaterial.Icons.accessPointCheck : Qaterial.Icons.accessPoint
+							highlightedIcon: task && task.required
+
+							onClicked: {
+								if (!campaign)
+									return
+
+								if (campaign.state >= Campaign.Finished) {
+									Client.messageWarning(qsTr("A hadjárat már véget ért, a kritérium nem módosítható"),
+														  qsTr("Kritérium szerkesztése"))
+									return
+								} else if (campaign.state >= Campaign.Running) {
+									JS.questionDialog(
+												{
+													onAccepted: function()
+													{
+														editTask()
+													},
+													text: qsTr("A hadjárat már elindult, biztosan módosítod a kritériumot?"),
+													title: qsTr("Kritérium szerkesztése"),
+													iconSource: Qaterial.Icons.progressQuestion
+												})
+									return
+								}
+
+								editTask()
+							}
+
+							Connections {
+								target: task
+
+								function onCriterionChanged() { _delegate.getText() }
+								function onMapUuidChanged() { _delegate.getText() }
+							}
+
+							Component.onCompleted: getText()
+
+							function getText() {
+								text = task ? task.readableCriterion(mapHandler ? mapHandler.mapList : null) : ""
+							}
+
+							function editTask() {
+								let o = Client.stackPushPage("TeacherCampaignTaskEdit.qml", {
+																 campaign: campaign,
+																 mapHandler: mapHandler,
+																 task: task
+															 })
+
+								if (o)
+									o.Component.destruction.connect(reloadCampaign)
+							}
+
+						}
+
+
 					}
 				}
 			}
 		}
-
 	}
 
-
-	// ----- FINISH COMPONENT
-
-	Component {
-		id: cmpFinish
-
-		QScrollable {
-			contentCentered: true
-
-			spacing: 10
-
-			QIconLabel {
-				width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-				anchors.horizontalCenter: parent.horizontalCenter
-
-				visible: campaign && campaign.state >= Campaign.Running
-
-				font: Qaterial.Style.textTheme.headline3
-				color: Qaterial.Colors.lightGreen400
-
-				text: campaign && campaign.state == Campaign.Finished ? qsTr("A hadjárat véget ért") : qsTr("A hadjárat folyamatban van")
-				icon.source: campaign && campaign.state == Campaign.Finished ? Qaterial.Icons.checkBold : Qaterial.Icons.play
-				icon.width: 48
-				icon.height: 48
-			}
-
-			Qaterial.LabelBody1 {
-				id: _labelEnd
-				color: Qaterial.Colors.lightGreen400
-				width: parent.width
-				horizontalAlignment: Qt.AlignHCenter
-				leftPadding: 20
-				rightPadding: 20
-				wrapMode: Text.Wrap
-				visible: _endTimer.running
-
-				Timer {
-					id: _endTimer
-					interval: 500
-					triggeredOnStart: true
-					running: campaign && campaign.endTime.getTime() && campaign.state == Campaign.Running
-					repeat: true
-					onTriggered: {
-						var diff = campaign.endTime.getTime() - new Date().getTime()
-						if (diff <= 0) {
-							stop()
-							return
-						}
-
-						diff = Math.floor(diff/1000)
-
-						var s = diff%60
-						diff = Math.floor(diff/60)
-						var m = diff%60
-						diff = Math.floor(diff/60)
-						var h = diff%24
-						diff = Math.floor(diff/24)
-
-						var list = []
-
-						if (diff > 0)
-							list.push(qsTr("%1 nap").arg(diff))
-						if (h > 0 || diff > 0)
-							list.push(qsTr("%1 óra").arg(h))
-						if (m > 0 || h > 0)
-							list.push(qsTr("%1 perc").arg(m))
-						if (s > 0 || m > 0)
-							list.push(qsTr("%1 másodperc").arg(s))
-
-						_labelEnd.text = qsTr("Befejezésig hátralévő idő:\n")+list.join(" ")
-					}
-				}
-			}
-
-			QButton {
-				anchors.horizontalCenter: parent.horizontalCenter
-				icon.source: Qaterial.Icons.stop
-				text: qsTr("Leállítás")
-				enabled: campaign && campaign.state == Campaign.Running
-				visible: campaign && campaign.state < Campaign.Finished
-				onClicked: {
-					JS.questionDialog({
-										  onAccepted: function()
-										  {
-											  Client.send(WebSocket.ApiTeacher, "campaign/%1/finish".arg(campaign.campaignid))
-											  .done(function(r){
-												  reloadCampaign()
-											  })
-											  .fail(JS.failMessage(qsTr("Hadjárat befejezése sikertelen")))
-										  },
-										  title: qsTr("Hadjárat befejezése"),
-										  text: qsTr("Biztosan befejezed a hadjáratot?")
-									  })
-
-				}
-			}
-		}
-
-	}
 
 
 	QFabButton {
@@ -451,8 +370,29 @@ Item {
 		id: actionAddTask
 		text: qsTr("Új kritérium")
 		icon.source: Qaterial.Icons.plus
-		enabled: false
+		enabled: campaign && campaign.state < Campaign.Finished
 		onTriggered: {
+			if (!campaign || campaign.state >= Campaign.Finished)
+				return
+
+			if (campaign.state >= Campaign.Running) {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									addTask()
+								},
+								text: qsTr("A hadjárat már elindult, biztosan létrehozol egy új kritériumot?"),
+								title: qsTr("Új kritérium"),
+								iconSource: Qaterial.Icons.progressQuestion
+							})
+				return
+			}
+
+			addTask()
+		}
+
+		function addTask() {
 			let o = Client.stackPushPage("TeacherCampaignTaskEdit.qml", {
 											 campaign: campaign,
 											 mapHandler: mapHandler
@@ -463,6 +403,16 @@ Item {
 		}
 	}
 
+
+	onCampaignChanged: reloadTaskList()
+
+	Connections {
+		target: campaign
+
+		function onTaskListReloaded() {
+			reloadTaskList()
+		}
+	}
 
 
 
@@ -482,4 +432,11 @@ Item {
 		.fail(JS.failMessage(qsTr("Hadjárat letöltése sikertelen")))
 	}
 
+
+	function reloadTaskList() {
+		if (campaign)
+			_rptr.model = campaign.getOrderedTaskListModel()
+		else
+			_rptr.model = null
+	}
 }

@@ -24,6 +24,7 @@ QFormColumn {
 		readOnly: true
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		field: "username"
+		helperText: qsTr("A felhasználónév nem módosítható")
 	}
 
 
@@ -33,6 +34,7 @@ QFormColumn {
 		field: "familyName"
 		width: parent.width
 		readOnly: !_form.editable || !_form.nameEditable
+		helperText: !_form.nameEditable ? qsTr("A vezetéknevek módosítása nincs engedélyezve a szerveren") : ""
 		validator: RegExpValidator { regExp: /.+/ }
 		errorText: qsTr("Vezetéknév szükséges")
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
@@ -49,6 +51,7 @@ QFormColumn {
 		field: "givenName"
 		width: parent.width
 		readOnly: !_form.editable || !_form.nameEditable
+		helperText: !_form.nameEditable ? qsTr("A keresztnevek módosítása nincs engedélyezve a szerveren") : ""
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
@@ -75,6 +78,7 @@ QFormColumn {
 		field: "picture"
 		width: parent.width
 		readOnly: !_form.editable || !_form.pictureEditable
+		helperText: !_form.nameEditable ? qsTr("A képek módosítása nincs engedélyezve a szerveren") : ""
 		//leadingIconSource: Qaterial.Icons.imageOutline
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{

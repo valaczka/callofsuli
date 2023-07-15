@@ -41,7 +41,7 @@ QPage {
 		QFormColumn {
 			id: _form
 
-			spacing: 3
+			//spacing: 3
 
 			QExpandableHeader {
 				width: parent.width

@@ -47,7 +47,6 @@
 #include <QScreen>
 
 #ifdef Q_OS_ANDROID
-#include "qandroidfunctions.h"
 #include "qscreen.h"
 #endif
 
@@ -74,14 +73,6 @@ Client::Client(Application *app, QObject *parent)
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
 	startCache();
-
-	QInputMethod *im = QGuiApplication::inputMethod();
-
-	if (im) {
-		connect(im, &QInputMethod::keyboardRectangleChanged, this, [im]{
-			LOG_CDEBUG("client") << "****************************" << im->keyboardRectangle();
-		});
-	}
 }
 
 
@@ -179,13 +170,13 @@ QQuickItem* Client::stackPushPage(QString qml, QVariantMap parameters) const
 
 bool Client::stackPop(int index, const bool &forced) const
 {
-	QInputMethod *im = QGuiApplication::inputMethod();
+	/*QInputMethod *im = QGuiApplication::inputMethod();
 
 	if (im && im->isVisible()) {
 		LOG_CDEBUG("client") << "Hide input method";
 		im->hide();
 		return false;
-	}
+	}*/
 
 	if (!m_mainStack) {
 		LOG_CERROR("client") << "mainStack nincsen beállítva!";

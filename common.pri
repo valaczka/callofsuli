@@ -10,11 +10,11 @@
 # App Version
 
 AppVersionMajor = 3
-AppVersionMinor = 2
+AppVersionMinor = 3
 
 # Automatic version increment (build)
 
-AppVersionIncrement = true
+AppVersionIncrement = false
 
 
 
@@ -37,7 +37,7 @@ AndroidVersionCode = 32
 
 # Build creation enabled (linux, win32, mac, wasm)
 
-CreateBundle = false
+CreateBundle = true
 
 # CQtDeployer path
 
