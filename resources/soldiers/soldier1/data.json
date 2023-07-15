@@ -1,11 +1,13 @@
 {
 	"name": "soldier1new",
+	"frameWidth": 90,
+	"frameHeight": 45,
 	"width": 24,
 	"height": 40,
 	"x": 35,
 	"y": 3,
 	"facingLeft": false,
-	"walk": 2.2,
+	"walk": 1.1,
 	"shotSound": "shot.wav",
 	"hp": {
 		"1": 2,
@@ -15,8 +17,6 @@
 	"sprites": {
 		"idle":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 45,
 			"frameX": 0,
 			"frameY": 90,
 			"frameCount": 8,
@@ -25,8 +25,6 @@
 		},
 		"walk":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 45,
 			"frameX": 360,
 			"frameY": 135,
 			"frameCount": 5,
@@ -35,8 +33,6 @@
 		},
 		"walk2": {
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 45,
 			"frameX": 180,
 			"frameY": 180,
 			"frameCount": 5,
@@ -45,8 +41,6 @@
 		},
 		"shot":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 45,
 			"frameX": 90,
 			"frameY": 135,
 			"frameCount": 3,
@@ -55,16 +49,12 @@
 		},
 		"dead":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 45,
 			"frameCount": 13,
 			"frameDuration": 30,
 			"to": { "dead2": 1 }
 		},
 		"dead2":	{
 			"source": "sprite.png",
-			"frameWidth": 90,
-			"frameHeight": 45,
 			"frameX": 540,
 			"frameY": 45,
 			"frameCount": 1,

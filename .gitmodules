@@ -1,3 +1,54 @@
-[submodule "client/android_openssl"]
-	path = client/android_openssl
-	url = https://github.com/KDAB/android_openssl
+[submodule "lib/qml-box2d"]
+	path = lib/qml-box2d
+	url = https://github.com/valaczka/qml-box2d
+[submodule "lib/CuteLogger"]
+	path = lib/CuteLogger
+	url = https://github.com/valaczka/CuteLogger.git
+[submodule "lib/tiled"]
+	path = lib/tiled
+	url = https://github.com/valaczka/tiled.git
+[submodule "lib/Qaterial"]
+	path = lib/Qaterial
+	url = https://github.com/valaczka/Qaterial.git
+[submodule "lib/qzxing"]
+	path = lib/qzxing
+	url = https://github.com/valaczka/qzxing.git
+[submodule "lib/SortFilterProxyModel"]
+	path = lib/SortFilterProxyModel
+	url = https://github.com/valaczka/SortFilterProxyModel.git
+[submodule "lib/QtXlsxWriter"]
+	path = lib/QtXlsxWriter
+	url = https://github.com/valaczka/QtXlsxWriter.git
+[submodule "lib/MaterialDesignSvgo"]
+	path = lib/MaterialDesignSvgo
+	url = https://github.com/OlivierLDff/MaterialDesignSvgo.git
+[submodule "lib/QDeferred"]
+	path = lib/QDeferred
+	url = https://github.com/juangburgos/QDeferred.git
+[submodule "lib/QtService"]
+	path = lib/QtService
+	url = https://github.com/valaczka/QtService.git
+[submodule "lib/QCtrlSignals"]
+	path = lib/QCtrlSignals
+	url = https://github.com/Skycoder42/QCtrlSignals.git
+[submodule "lib/QConsole"]
+	path = lib/QConsole
+	url = https://github.com/Skycoder42/QConsole.git
+[submodule "lib/android_openssl"]
+	path = lib/android_openssl
+	url = https://github.com/KDAB/android_openssl.git
+[submodule "lib/QJsonWebToken"]
+	path = lib/QJsonWebToken
+	url = https://github.com/juangburgos/QJsonWebToken.git
+[submodule "lib/HttpServer"]
+	path = lib/HttpServer
+	url = https://github.com/valaczka/HttpServer.git
+[submodule "lib/QOlm"]
+	path = lib/QOlm
+	url = https://github.com/valaczka/QOlm.git
+[submodule "lib/qsyncable"]
+	path = lib/qsyncable
+	url = https://github.com/benlau/qsyncable.git
+[submodule "lib/QSingleInstance"]
+	path = lib/QSingleInstance
+	url = https://github.com/valaczka/QSingleInstance.git

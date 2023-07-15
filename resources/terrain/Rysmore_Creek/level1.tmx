@@ -1,101 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="72" height="27" tilewidth="32" tileheight="32" infinite="0" nextlayerid="74" nextobjectid="250">
+<map version="1.8" tiledversion="1.8.2" orientation="orthogonal" renderorder="right-down" width="72" height="27" tilewidth="32" tileheight="32" infinite="0" nextlayerid="74" nextobjectid="250">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
   <image source="../tileset/hyptosis.png" width="960" height="3840"/>
-  <terraintypes>
-   <terrain name="StoneWall1" tile="475"/>
-   <terrain name="StoneWall2" tile="2457"/>
-   <terrain name="StoneWall3" tile="2644"/>
-   <terrain name="StoneWall4" tile="1094"/>
-   <terrain name="StoneWall5" tile="1097"/>
-   <terrain name="StoneWall7" tile="1774"/>
-   <terrain name="StoneWall8" tile="2554"/>
-  </terraintypes>
-  <tile id="312" terrain="0,0,0,0"/>
-  <tile id="375" terrain="0,0,0,0"/>
-  <tile id="402" terrain="0,0,0,0"/>
-  <tile id="475" terrain=",,,0"/>
-  <tile id="476" terrain=",,0,0"/>
-  <tile id="477" terrain=",,0,"/>
-  <tile id="504" terrain=",0,,0"/>
-  <tile id="505" terrain="0,0,0,0"/>
-  <tile id="506" terrain="0,,0,"/>
-  <tile id="507" terrain="0,0,0,0"/>
-  <tile id="534" terrain=",0,,"/>
-  <tile id="535" terrain="0,0,,"/>
-  <tile id="536" terrain="0,,,"/>
-  <tile id="537" terrain="0,0,0,0"/>
-  <tile id="642" terrain="0,0,0,0"/>
-  <tile id="882" terrain="0,0,0,0"/>
-  <tile id="1006" terrain="4,4,4,4"/>
-  <tile id="1036" terrain="4,4,4,4"/>
-  <tile id="1038" terrain="0,0,0,0"/>
-  <tile id="1039" terrain="0,0,0,0"/>
-  <tile id="1066" terrain="4,4,4,4"/>
-  <tile id="1068" terrain="0,0,0,0"/>
-  <tile id="1069" terrain="4,4,4,4"/>
-  <tile id="1092" terrain="3,3,3,3"/>
-  <tile id="1093" terrain="3,3,3,3"/>
-  <tile id="1094" terrain=",,,3"/>
-  <tile id="1095" terrain=",,3,3"/>
-  <tile id="1096" terrain=",,3,"/>
-  <tile id="1097" terrain=",,,4"/>
-  <tile id="1098" terrain=",,4,4"/>
-  <tile id="1099" terrain=",,4,"/>
-  <tile id="1122" terrain=",3,,"/>
-  <tile id="1123" terrain="3,3,3,3"/>
-  <tile id="1124" terrain=",3,,3"/>
-  <tile id="1126" terrain="3,,3,"/>
-  <tile id="1127" terrain=",4,,4"/>
-  <tile id="1129" terrain="4,,4,"/>
-  <tile id="1154" terrain=",3,,"/>
-  <tile id="1155" terrain="3,3,,"/>
-  <tile id="1156" terrain="3,,,"/>
-  <tile id="1157" terrain=",4,,"/>
-  <tile id="1158" terrain="4,4,,"/>
-  <tile id="1159" terrain="4,,,"/>
-  <tile id="1625" terrain="2,2,2,2"/>
-  <tile id="1626" terrain="2,,2,"/>
-  <tile id="1628" terrain=",,2,2"/>
-  <tile id="1629" terrain=",,2,"/>
-  <tile id="1655" terrain="2,2,,"/>
-  <tile id="1656" terrain="2,,,"/>
-  <tile id="1657" terrain="2,2,2,2"/>
-  <tile id="1658" terrain="2,2,2,2"/>
-  <tile id="1659" terrain=",,2,2"/>
-  <tile id="1723" terrain="4,4,4,4"/>
-  <tile id="1774" terrain=",,,5"/>
-  <tile id="1775" terrain=",,5,5"/>
-  <tile id="1776" terrain=",,5,"/>
-  <tile id="1777" terrain="5,5,5,5"/>
-  <tile id="1778" terrain="5,5,5,5"/>
-  <tile id="1804" terrain=",5,,5"/>
-  <tile id="1805" terrain="5,5,5,5"/>
-  <tile id="1806" terrain="5,,5,"/>
-  <tile id="1807" terrain="5,5,5,5"/>
-  <tile id="1808" terrain="5,5,5,5"/>
-  <tile id="1834" terrain=",5,,"/>
-  <tile id="1835" terrain="5,5,,"/>
-  <tile id="1836" terrain="5,,,"/>
-  <tile id="2289" terrain=",,6,6"/>
-  <tile id="2290" terrain=",,6,"/>
-  <tile id="2319" terrain="6,6,6,6"/>
-  <tile id="2320" terrain="6,,6,"/>
-  <tile id="2349" terrain="6,6,,"/>
-  <tile id="2350" terrain="6,,,"/>
-  <tile id="2454" terrain=",,1,1"/>
-  <tile id="2456" terrain=",,1,"/>
-  <tile id="2457" terrain=",,,1"/>
-  <tile id="2484" terrain="1,1,,"/>
-  <tile id="2485" terrain="1,1,,"/>
-  <tile id="2486" terrain="1,,,"/>
-  <tile id="2487" terrain=",1,,"/>
-  <tile id="2554" terrain=",,,6"/>
-  <tile id="2584" terrain=",6,,6"/>
-  <tile id="2614" terrain=",6,,"/>
-  <tile id="2644" terrain=",,,2"/>
-  <tile id="2674" terrain=",2,,2"/>
-  <tile id="2704" terrain=",2,,"/>
+  <wangsets>
+   <wangset name="Terepek" type="corner" tile="-1">
+    <wangcolor name="StoneWall1" color="#ff0000" tile="475" probability="1"/>
+    <wangcolor name="StoneWall2" color="#00ff00" tile="2457" probability="1"/>
+    <wangcolor name="StoneWall3" color="#0000ff" tile="2644" probability="1"/>
+    <wangcolor name="StoneWall4" color="#ff7700" tile="1094" probability="1"/>
+    <wangcolor name="StoneWall5" color="#00e9ff" tile="1097" probability="1"/>
+    <wangcolor name="StoneWall7" color="#ff00d8" tile="1774" probability="1"/>
+    <wangcolor name="StoneWall8" color="#ffff00" tile="2554" probability="1"/>
+    <wangtile tileid="312" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="375" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="402" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="475" wangid="0,0,0,1,0,0,0,0"/>
+    <wangtile tileid="476" wangid="0,0,0,1,0,1,0,0"/>
+    <wangtile tileid="477" wangid="0,0,0,0,0,1,0,0"/>
+    <wangtile tileid="504" wangid="0,1,0,1,0,0,0,0"/>
+    <wangtile tileid="505" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="506" wangid="0,0,0,0,0,1,0,1"/>
+    <wangtile tileid="507" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="534" wangid="0,1,0,0,0,0,0,0"/>
+    <wangtile tileid="535" wangid="0,1,0,0,0,0,0,1"/>
+    <wangtile tileid="536" wangid="0,0,0,0,0,0,0,1"/>
+    <wangtile tileid="537" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="642" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="882" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="1006" wangid="0,5,0,5,0,5,0,5"/>
+    <wangtile tileid="1036" wangid="0,5,0,5,0,5,0,5"/>
+    <wangtile tileid="1038" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="1039" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="1066" wangid="0,5,0,5,0,5,0,5"/>
+    <wangtile tileid="1068" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="1069" wangid="0,5,0,5,0,5,0,5"/>
+    <wangtile tileid="1092" wangid="0,4,0,4,0,4,0,4"/>
+    <wangtile tileid="1093" wangid="0,4,0,4,0,4,0,4"/>
+    <wangtile tileid="1094" wangid="0,0,0,4,0,0,0,0"/>
+    <wangtile tileid="1095" wangid="0,0,0,4,0,4,0,0"/>
+    <wangtile tileid="1096" wangid="0,0,0,0,0,4,0,0"/>
+    <wangtile tileid="1097" wangid="0,0,0,5,0,0,0,0"/>
+    <wangtile tileid="1098" wangid="0,0,0,5,0,5,0,0"/>
+    <wangtile tileid="1099" wangid="0,0,0,0,0,5,0,0"/>
+    <wangtile tileid="1122" wangid="0,4,0,0,0,0,0,0"/>
+    <wangtile tileid="1123" wangid="0,4,0,4,0,4,0,4"/>
+    <wangtile tileid="1124" wangid="0,4,0,4,0,0,0,0"/>
+    <wangtile tileid="1126" wangid="0,0,0,0,0,4,0,4"/>
+    <wangtile tileid="1127" wangid="0,5,0,5,0,0,0,0"/>
+    <wangtile tileid="1129" wangid="0,0,0,0,0,5,0,5"/>
+    <wangtile tileid="1154" wangid="0,4,0,0,0,0,0,0"/>
+    <wangtile tileid="1155" wangid="0,4,0,0,0,0,0,4"/>
+    <wangtile tileid="1156" wangid="0,0,0,0,0,0,0,4"/>
+    <wangtile tileid="1157" wangid="0,5,0,0,0,0,0,0"/>
+    <wangtile tileid="1158" wangid="0,5,0,0,0,0,0,5"/>
+    <wangtile tileid="1159" wangid="0,0,0,0,0,0,0,5"/>
+    <wangtile tileid="1625" wangid="0,3,0,3,0,3,0,3"/>
+    <wangtile tileid="1626" wangid="0,0,0,0,0,3,0,3"/>
+    <wangtile tileid="1628" wangid="0,0,0,3,0,3,0,0"/>
+    <wangtile tileid="1629" wangid="0,0,0,0,0,3,0,0"/>
+    <wangtile tileid="1655" wangid="0,3,0,0,0,0,0,3"/>
+    <wangtile tileid="1656" wangid="0,0,0,0,0,0,0,3"/>
+    <wangtile tileid="1657" wangid="0,3,0,3,0,3,0,3"/>
+    <wangtile tileid="1658" wangid="0,3,0,3,0,3,0,3"/>
+    <wangtile tileid="1659" wangid="0,0,0,3,0,3,0,0"/>
+    <wangtile tileid="1723" wangid="0,5,0,5,0,5,0,5"/>
+    <wangtile tileid="1774" wangid="0,0,0,6,0,0,0,0"/>
+    <wangtile tileid="1775" wangid="0,0,0,6,0,6,0,0"/>
+    <wangtile tileid="1776" wangid="0,0,0,0,0,6,0,0"/>
+    <wangtile tileid="1777" wangid="0,6,0,6,0,6,0,6"/>
+    <wangtile tileid="1778" wangid="0,6,0,6,0,6,0,6"/>
+    <wangtile tileid="1804" wangid="0,6,0,6,0,0,0,0"/>
+    <wangtile tileid="1805" wangid="0,6,0,6,0,6,0,6"/>
+    <wangtile tileid="1806" wangid="0,0,0,0,0,6,0,6"/>
+    <wangtile tileid="1807" wangid="0,6,0,6,0,6,0,6"/>
+    <wangtile tileid="1808" wangid="0,6,0,6,0,6,0,6"/>
+    <wangtile tileid="1834" wangid="0,6,0,0,0,0,0,0"/>
+    <wangtile tileid="1835" wangid="0,6,0,0,0,0,0,6"/>
+    <wangtile tileid="1836" wangid="0,0,0,0,0,0,0,6"/>
+    <wangtile tileid="2289" wangid="0,0,0,7,0,7,0,0"/>
+    <wangtile tileid="2290" wangid="0,0,0,0,0,7,0,0"/>
+    <wangtile tileid="2319" wangid="0,7,0,7,0,7,0,7"/>
+    <wangtile tileid="2320" wangid="0,0,0,0,0,7,0,7"/>
+    <wangtile tileid="2349" wangid="0,7,0,0,0,0,0,7"/>
+    <wangtile tileid="2350" wangid="0,0,0,0,0,0,0,7"/>
+    <wangtile tileid="2454" wangid="0,0,0,2,0,2,0,0"/>
+    <wangtile tileid="2456" wangid="0,0,0,0,0,2,0,0"/>
+    <wangtile tileid="2457" wangid="0,0,0,2,0,0,0,0"/>
+    <wangtile tileid="2484" wangid="0,2,0,0,0,0,0,2"/>
+    <wangtile tileid="2485" wangid="0,2,0,0,0,0,0,2"/>
+    <wangtile tileid="2486" wangid="0,0,0,0,0,0,0,2"/>
+    <wangtile tileid="2487" wangid="0,2,0,0,0,0,0,0"/>
+    <wangtile tileid="2554" wangid="0,0,0,7,0,0,0,0"/>
+    <wangtile tileid="2584" wangid="0,7,0,7,0,0,0,0"/>
+    <wangtile tileid="2614" wangid="0,7,0,0,0,0,0,0"/>
+    <wangtile tileid="2644" wangid="0,0,0,3,0,0,0,0"/>
+    <wangtile tileid="2674" wangid="0,3,0,3,0,0,0,0"/>
+    <wangtile tileid="2704" wangid="0,3,0,0,0,0,0,0"/>
+   </wangset>
+  </wangsets>
  </tileset>
  <layer id="71" name="2. csemperéteg" width="72" height="27">
   <data encoding="base64" compression="zlib">
@@ -242,7 +244,7 @@
     <property name="blockTop" type="int" value="2"/>
    </properties>
   </object>
-  <object id="215" x="946" y="97" width="22" height="226"/>
+  <object id="215" x="946" y="97" width="22" height="223.697"/>
   <object id="216" x="1245" y="99" width="23" height="223"/>
   <object id="217" x="1815" y="100" width="21" height="188"/>
   <object id="218" x="1812" y="545" width="20" height="252"/>

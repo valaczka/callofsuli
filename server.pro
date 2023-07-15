@@ -1,11 +1,22 @@
+include(common.pri)
+
 TEMPLATE = subdirs
 
-#CONFIG += skip_version
+server_lib.file = lib/lib_server.pro
+server_lib.makefile = Makefile
+application.file = server/src/app.pro
+application.makefile = Makefile
 
-!skip_version {
-	SUBDIRS = version
+
+SUBDIRS += \
+			version \
+			server_lib \
+			application
+
+
+linux|win32|mac:!android:!ios {
+	if($$CreateBundle):	SUBDIRS += bundle-server
 }
 
-SUBDIRS += server/app
-
 CONFIG += ordered
+

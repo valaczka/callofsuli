@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GQ_writer.qml</file>
+        <file>ME_writer.qml</file>
+    </qresource>
+</RCC>

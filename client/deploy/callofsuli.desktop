@@ -2,6 +2,7 @@
 Type=Application
 Name=Call of Suli
 Exec=callofsuli %u
+Icon=callofsuli
 StartupNotify=false
 MimeType=x-scheme-handler/callofsuli;
-
+Categories=Education;

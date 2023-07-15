@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>GQ_truefalse.qml</file>
-        <file>ME_truefalse.qml</file>
-    </qresource>
-</RCC>

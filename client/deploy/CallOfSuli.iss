@@ -6,16 +6,16 @@ DefaultDirName={usercf}\Call of Suli
 UninstallDisplayIcon={app}\callofsuli.exe
 SolidCompression=yes
 AllowNoIcons=yes
-OutputDir=.\
+OutputDir=..
 OutputBaseFilename={#COSexe}
 PrivilegesRequired=lowest
-LicenseFile=.\build\LICENSE
-AppCopyright=Copyright (C) 2012-2022 Valaczka János Pál
+LicenseFile=LICENSE
+AppCopyright=Copyright (C) 2012-2023 Valaczka János Pál
 DisableDirPage=auto
 DisableProgramGroupPage=auto
 
 [Files]
-Source: ".\build\*"; DestDir: "{app}"; Flags: recursesubdirs
+Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs
 
 
 [Tasks]
