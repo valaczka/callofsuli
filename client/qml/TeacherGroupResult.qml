@@ -145,7 +145,7 @@ QTableView {
 
 
 
-	// Hadjáratok
+	// Kihívások
 
 
 	topHeaderDelegate:  MouseArea {

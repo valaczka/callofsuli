@@ -30,7 +30,7 @@ QPage {
 
 	readonly property string _campaignName: campaign ? campaign.readableName : ""
 
-	title: campaign ? _campaignName : qsTr("Új hadjárat")
+	title: campaign ? _campaignName : qsTr("Új kihívás")
 	subtitle: group ? group.fullName : ""
 
 
@@ -86,7 +86,7 @@ QPage {
 		currentIndex: swipeView.currentIndex
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Hadjárat"), source: Qaterial.Icons.trophyVariantOutline, color: Qaterial.Colors.indigo200 })
+			model.append({ text: qsTr("Kihívás"), source: Qaterial.Icons.trophyVariantOutline, color: Qaterial.Colors.indigo200 })
 			model.append({ text: qsTr("Időzítés"), source: Qaterial.Icons.timer, color: Qaterial.Colors.pink200 })
 			model.append({ text: qsTr("Eredmények"), source: Qaterial.Icons.chartBar, color: Qaterial.Colors.green200 })
 		}
@@ -104,7 +104,7 @@ QPage {
 		id: _actionRemove
 
 		enabled: campaign && campaign.state < Campaign.Running
-		text: qsTr("Hadjárat törlése")
+		text: qsTr("Kihívás törlése")
 		icon.source: Qaterial.Icons.delete_
 		onTriggered: JS.questionDialog(
 						 {
@@ -117,7 +117,7 @@ QPage {
 								 })
 								 .fail(JS.failMessage("Törlés sikertelen"))
 							 },
-							 text: qsTr("Biztosan törlöd a hadjáratot?"),
+							 text: qsTr("Biztosan törlöd a kihívást?"),
 							 title: _campaignName,
 							 iconSource: Qaterial.Icons.closeCircle
 						 })

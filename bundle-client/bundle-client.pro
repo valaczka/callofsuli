@@ -13,7 +13,7 @@ else: CQtTargetDir = CallOfSuli.AppDir
 
 win32 {
 	lines = "$${LITERAL_HASH}define COSversion = \"$${VERSION}\""
-	lines += "$${LITERAL_HASH}define COSexe = \"Call_of_Suli_x64_install.exe\""
+	lines += "$${LITERAL_HASH}define COSexe = \"Call_of_Suli_x64_install_unsigned\""
 	lines += $$cat(../client/deploy/CallOfSuli.iss, blob)
 
 	write_file($$OUT_PWD/$${CQtTargetDir}/usr/CallOfSuli.iss, lines)

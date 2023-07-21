@@ -28,7 +28,7 @@ WasmWithBox2D = true
 
 # Android
 
-AndroidVersionCode = 32
+AndroidVersionCode = 33
 
 
 #########################################################################
@@ -37,7 +37,7 @@ AndroidVersionCode = 32
 
 # Build creation enabled (linux, win32, mac, wasm)
 
-CreateBundle = true
+CreateBundle = false
 
 # CQtDeployer path
 

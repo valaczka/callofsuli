@@ -71,21 +71,21 @@ Qaterial.ApplicationWindow
 	}
 
 
-	readonly property Action fontPlus: Action {
+	property Action fontPlus: Action {
 		shortcut: "Ctrl++"
 		text: qsTr("Növelés")
 		icon.source: Qaterial.Icons.magnifyPlus
 		onTriggered: setPixelSize(Qaterial.Style.userPixelSize+1)
 	}
 
-	readonly property Action fontMinus: Action {
+	property Action fontMinus: Action {
 		shortcut: "Ctrl+-"
 		text: qsTr("Csökkentés")
 		icon.source: Qaterial.Icons.magnifyMinus
 		onTriggered: setPixelSize(Qaterial.Style.userPixelSize-1)
 	}
 
-	readonly property Action fontNormal: Action {
+	property Action fontNormal: Action {
 		shortcut: "Ctrl+0"
 		text: qsTr("Visszaállítás")
 		icon.source: Qaterial.Icons.magnifyRemoveOutline
@@ -93,7 +93,7 @@ Qaterial.ApplicationWindow
 	}
 
 
-	readonly property Action actionFullScreen: Action {
+	property Action actionFullScreen: Action {
 		shortcut: "Ctrl+F11"
 		text: qsTr("Teljes képernyő")
 		icon.source: mainWindow.visibility === Window.FullScreen ? Qaterial.Icons.fullscreenExit : Qaterial.Icons.fullscreen

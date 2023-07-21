@@ -30,7 +30,7 @@ Item {
 				.done(function(r){
 					reloadRequest()
 				})
-				.fail(JS.failMessage(qsTr("Hadjárat indítása sikertelen")))
+				.fail(JS.failMessage(qsTr("Kihívás indítása sikertelen")))
 			}
 		}
 
@@ -103,7 +103,7 @@ Item {
 			Qaterial.LabelHeadline4
 			{
 				id: _label
-				text: campaign && campaign.state == Campaign.Finished ? qsTr("A hadjárat véget ért") : qsTr("A hadjárat folyamatban van")
+				text: campaign && campaign.state == Campaign.Finished ? qsTr("A kihívás véget ért") : qsTr("A kihívás folyamatban van")
 				color: Qaterial.Colors.lightGreen400
 				elide: Text.ElideNone
 				width: Math.min(implicitWidth, _row.parent.width-_icon.width-_row.spacing)
@@ -176,10 +176,10 @@ Item {
 										  .done(function(r){
 											  reloadRequest()
 										  })
-										  .fail(JS.failMessage(qsTr("Hadjárat befejezése sikertelen")))
+										  .fail(JS.failMessage(qsTr("Kihívás befejezése sikertelen")))
 									  },
-									  title: qsTr("Hadjárat befejezése"),
-									  text: qsTr("Biztosan befejezed a hadjáratot?")
+									  title: qsTr("Kihívás befejezése"),
+									  text: qsTr("Biztosan befejezed a kihívást?")
 								  })
 
 			}

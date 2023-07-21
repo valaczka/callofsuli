@@ -27,15 +27,17 @@
 #include "utils.h"
 #include "Logger.h"
 #include "qdesktopservices.h"
+#include "qdir.h"
+#include "qdiriterator.h"
 #include "qfileinfo.h"
 #include "qjsondocument.h"
 #include "qmath.h"
 #include "qsettings.h"
-#include "selectableobject.h"
 #include <random>
 #include "../../version/version.h"
 
 #ifdef CLIENT_UTILS
+#include "selectableobject.h"
 #include "qsdiffrunner.h"
 #include "qclipboard.h"
 #include "QGuiApplication"

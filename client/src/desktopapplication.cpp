@@ -166,8 +166,11 @@ void DesktopApplication::commandLineParse()
 	} else if (parser.isSet(QStringLiteral("play"))) {
 		m_commandLine = Play;
 		m_commandLineData = parser.value(QStringLiteral("play"));
-	} else if (parser.isSet(QStringLiteral("dev-page")))
+	}
+#ifdef QT_DEBUG
+	else if (parser.isSet(QStringLiteral("dev-page")))
 		m_commandLine = DevPage;
+#endif
 
 	m_arguments = parser.positionalArguments();
 

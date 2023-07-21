@@ -24,7 +24,7 @@ A <i>Call of Suli</i> egy olyan digitális feladatlapkészítő és kiértékel�
 - [![Static Badge](https://img.shields.io/badge/iOS-brown?logo=Appstore&logoColor=white)](https://github.com/valaczka/callofsuli) Apple App Store `publikálás alatt`
 - [![Static Badge](https://img.shields.io/badge/Liunx-darkmagenta?logo=Linux&logoColor=pink)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli-x86_64.AppImage) Linux AppImage [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli-x86_64.AppImage)
 - [![Static Badge](https://img.shields.io/badge/Windows-cyan?logo=Microsoft&logoColor=white)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe) Windows telepítő [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe)
-- Korábbi verziók és forráskód [link](./releases)
+- Korábbi verziók és forráskód [link](https://github.com/valaczka/callofsuli/releases)
 
 
 
@@ -40,7 +40,7 @@ A <i>Call of Suli</i> egy olyan digitális feladatlapkészítő és kiértékel�
 Kezdd el felfedezni a *Call of Suli* játékos oktatási világát, és tegyél szert új tudásra és készségekre a szórakozás és a tanulás kombinációjával! Töltsd le az alkalmazást most ingyenesen, és induljon a tanulás izgalmas utazása! Tanárként pedig a *Call of Suli*val varázsold játékká az okatatást!
 
 
-## 📋 Feladattípusok:
+## 📋 Feladattípusok
 > A Call of Suli csupa olyan feladattípust használ, melyet tanári beavatkozás nélkül, automatikusan ki tud értékelni.
 - Egyszerű választás
 - Többszörös választás

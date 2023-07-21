@@ -128,7 +128,7 @@ Item
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen hadjárat sincsen felvéve. Hozz létre egyet.")
+		text: qsTr("Még egyetlen kihívás sincsen felvéve. Hozz létre egyet.")
 		iconSource: Qaterial.Icons.trophyVariantOutline
 		fillIcon: false
 		outlinedIcon: true
@@ -151,7 +151,7 @@ Item
 	Action {
 		id: actionCampaignAdd
 		enabled: group
-		text: qsTr("Új hadjárat")
+		text: qsTr("Új kihívás")
 		icon.source: Qaterial.Icons.accountPlus
 		onTriggered: {
 			Client.send(WebSocket.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
@@ -166,7 +166,7 @@ Item
 											 })
 				})
 			})
-			.fail(JS.failMessage(qsTr("Hadjárat létrehozása sikertelen")))
+			.fail(JS.failMessage(qsTr("Kihívás létrehozása sikertelen")))
 		}
 	}
 }

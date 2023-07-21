@@ -34,9 +34,9 @@ Item {
 				width: parent.width
 				leadingIconSource: Qaterial.Icons.renameBox
 				leadingIconInline: true
-				title: qsTr("A hadjárat neve")
+				title: qsTr("A kihívás neve")
 				readOnly: !campaign || campaign.state >= Campaign.Finished
-				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A hadjárat véget ért, a név már nem módosítható") : ""
+				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A kihívás véget ért, a név már nem módosítható") : ""
 
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
@@ -66,7 +66,7 @@ Item {
 				visible: campaign && (campaign.state < Campaign.Running || campaign.startTime.getTime())
 				canEdit: campaign && campaign.state < Campaign.Running
 				title: campaign && campaign.state < Campaign.Running ? qsTr("Automatikus indítás") : qsTr("Indítás ideje")
-				helperText: campaign && campaign.state >= Campaign.Running ? qsTr("A hadjárat már elindult, az időpont nem módosítható") : ""
+				helperText: campaign && campaign.state >= Campaign.Running ? qsTr("A kihívás már elindult, az időpont nem módosítható") : ""
 				onSaveRequest: {
 					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
@@ -93,7 +93,7 @@ Item {
 				visible: campaign && (campaign.state < Campaign.Finished || campaign.endTime.getTime())
 				canEdit: campaign && campaign.state < Campaign.Finished
 				title: campaign && campaign.state < Campaign.Finished ? qsTr("Automatikus befejezés") : qsTr("Befejezés ideje")
-				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A hadjárat már befejeződött, az időpont nem módosítható") : ""
+				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A kihívás már befejeződött, az időpont nem módosítható") : ""
 				onSaveRequest: {
 					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
@@ -215,7 +215,7 @@ Item {
 							return
 
 						if (campaign.state >= Campaign.Finished) {
-							Client.messageWarning(qsTr("A hadjárat már véget ért, az alapértelmezett jegy nem módosítható"),
+							Client.messageWarning(qsTr("A kihívás már véget ért, az alapértelmezett jegy nem módosítható"),
 												  qsTr("Alapértelmezett jegy"))
 							return
 						} else if (campaign.state >= Campaign.Running) {
@@ -229,7 +229,7 @@ Item {
 											onRejected: function() {
 												revert()
 											},
-											text: qsTr("A hadjárat már elindult, biztosan megváltoztatod az alapértelmezett jegyet?"),
+											text: qsTr("A kihívás már elindult, biztosan megváltoztatod az alapértelmezett jegyet?"),
 											title: qsTr("Alapértelmezett jegy"),
 											iconSource: Qaterial.Icons.progressQuestion
 										})
@@ -259,7 +259,7 @@ Item {
 
 
 			QLabelInformative {
-				text: qsTr("A hadjárat értékeléséhez vegyél fel kritériumokat. A játékosok csak olyan pályákon tudnak játszani, melyek valamelyik kritériumhoz tartoznak. Legalább egy pályára/küldetésre vonatkozó kritérium szükséges a játékhoz!")
+				text: qsTr("A kihívás értékeléséhez vegyél fel kritériumokat. A játékosok csak olyan pályákon tudnak játszani, melyek valamelyik kritériumhoz tartoznak. Legalább egy pályára/küldetésre vonatkozó kritérium szükséges a játékhoz!")
 				visible: !_rptr.model || !_rptr.model.length
 
 				topPadding: 30 * Qaterial.Style.pixelSizeRatio
@@ -305,7 +305,7 @@ Item {
 									return
 
 								if (campaign.state >= Campaign.Finished) {
-									Client.messageWarning(qsTr("A hadjárat már véget ért, a kritérium nem módosítható"),
+									Client.messageWarning(qsTr("A kihívás már véget ért, a kritérium nem módosítható"),
 														  qsTr("Kritérium szerkesztése"))
 									return
 								} else if (campaign.state >= Campaign.Running) {
@@ -315,7 +315,7 @@ Item {
 													{
 														editTask()
 													},
-													text: qsTr("A hadjárat már elindult, biztosan módosítod a kritériumot?"),
+													text: qsTr("A kihívás már elindult, biztosan módosítod a kritériumot?"),
 													title: qsTr("Kritérium szerkesztése"),
 													iconSource: Qaterial.Icons.progressQuestion
 												})
@@ -382,7 +382,7 @@ Item {
 								{
 									addTask()
 								},
-								text: qsTr("A hadjárat már elindult, biztosan létrehozol egy új kritériumot?"),
+								text: qsTr("A kihívás már elindult, biztosan létrehozol egy új kritériumot?"),
 								title: qsTr("Új kritérium"),
 								iconSource: Qaterial.Icons.progressQuestion
 							})
@@ -423,13 +423,13 @@ Item {
 		Client.send(WebSocket.ApiTeacher, "campaign/%1".arg(campaign.campaignid))
 		.done(function(r){
 			if (r.id !== campaign.campaignid) {
-				Client.messageWarning(qsTr("Érvénytelen hadjárat"), qsTr("Belső hiba"))
+				Client.messageWarning(qsTr("Érvénytelen kihívás"), qsTr("Belső hiba"))
 				return
 			}
 
 			campaign.loadFromJson(r, true)
 		})
-		.fail(JS.failMessage(qsTr("Hadjárat letöltése sikertelen")))
+		.fail(JS.failMessage(qsTr("Kihívás letöltése sikertelen")))
 	}
 
 

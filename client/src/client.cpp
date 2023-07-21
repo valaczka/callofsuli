@@ -1431,6 +1431,19 @@ void Client::safeMarginsGet()
 #ifdef Q_OS_ANDROID
 	margins = Utils::getAndroidSafeMargins();
 #else
+	const QString &str = QString::fromUtf8(qgetenv("SAFE_MARGINS"));
+
+	if (!str.isEmpty()) {
+		margins.setTop(str.section(',', 0, 0).toDouble());
+		margins.setLeft(str.section(',', 1, 1).toDouble());
+		margins.setBottom(str.section(',', 2, 2).toDouble());
+		margins.setRight(str.section(',', 3, 3).toDouble());
+
+		setSafeMargins(margins);
+		return;
+	}
+
+
 	QPlatformWindow *platformWindow = m_mainWindow->handle();
 	if(!platformWindow) {
 		LOG_CERROR("client") << "Invalid QPlatformWindow";
