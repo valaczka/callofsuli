@@ -168,11 +168,39 @@ void GameObject::onSceneChanged()
 		}
 
 		if (m_scene) {
-			connect(m_scene->timingTimer(), &QTimer::timeout, this, &GameObject::timingTimerTimeout);
+			connect(m_scene->timingTimer(), &QTimer::timeout, this, &GameObject::calculateTimeout);
 			emit sceneConnected();
 			m_sceneConnected = true;
 		}
 	}
+}
+
+
+
+
+/**
+ * @brief GameObject::calculateTimeout
+ */
+
+void GameObject::calculateTimeout()
+{
+	if (!m_scene) {
+		m_elapsedTimer.invalidate();
+		return;
+	}
+
+	qreal factor = 1.0;
+
+	if (!m_elapsedTimer.isValid())
+		m_elapsedTimer.start();
+	else {
+		const qreal &msec = m_elapsedTimer.restart();
+		const qreal &interval = m_scene->timingTimerTimeoutMsec();
+
+		factor = qMax(1.0, msec/interval);
+	}
+
+	emit timingTimerTimeout(factor);
 }
 
 

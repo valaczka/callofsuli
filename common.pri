@@ -14,7 +14,7 @@ AppVersionMinor = 3
 
 # Automatic version increment (build)
 
-AppVersionIncrement = false
+AppVersionIncrement = true
 
 
 
@@ -28,7 +28,7 @@ WasmWithBox2D = true
 
 # Android
 
-AndroidVersionCode = 33
+AndroidVersionCode = 34
 
 
 #########################################################################

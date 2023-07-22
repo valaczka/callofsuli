@@ -424,7 +424,7 @@ void GameEntity::onEndContact(Box2DFixture *other)
  * @brief GameEntity::onRayCastTimerTimeout
  */
 
-void GameEntity::onRayCastTimerTimeout()
+void GameEntity::onRayCastTimerTimeout(const qreal &)
 {
 	if (game() && game()->running() && m_rayCastEnabled && isAlive())
 		doRayCast();

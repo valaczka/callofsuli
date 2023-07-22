@@ -71,7 +71,7 @@ void GameEnemySoldier::onAttack()
  * @brief GameEnemySoldier::onMovingTimerTimeout
  */
 
-void GameEnemySoldier::onTimingTimerTimeout()
+void GameEnemySoldier::onTimingTimerTimeout(const qreal &delayFactor)
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
 		LOG_CWARNING("scene") << "Invalid enemy type";
@@ -87,7 +87,7 @@ void GameEnemySoldier::onTimingTimerTimeout()
 
 
 	if (m_enemyState == Idle) {
-		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec();
+		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
 			setFacingLeft(!facingLeft());
@@ -99,25 +99,29 @@ void GameEnemySoldier::onTimingTimerTimeout()
 		qreal delta = m_walkSize;
 
 		if (facingLeft()) {
-			if (posX-delta < m_terrainEnemyData.rect.left()) {
+			if ((posX-(delta*delayFactor) < m_terrainEnemyData.rect.left()) && (posX-delta >= m_terrainEnemyData.rect.left())) {
+				setX(posX-delta);
+			} else if (posX-(delta*delayFactor) < m_terrainEnemyData.rect.left()) {
 				setEnemyState(Idle);
 				m_turnElapsedMsec = 0;
 			} else {
-				setX(posX-delta);
+				setX(posX-(delta*delayFactor));
 			}
 		} else {
-			if (posX+delta > m_terrainEnemyData.rect.right() - width()) {
+			if ((posX+(delta*delayFactor) > m_terrainEnemyData.rect.right() - width()) && (posX+delta <= m_terrainEnemyData.rect.right() - width())) {
+				setX(posX+delta);
+			} else if (posX+(delta*delayFactor) > m_terrainEnemyData.rect.right() - width()) {
 				setEnemyState(Idle);
 				m_turnElapsedMsec = 0;
 			} else {
-				setX(posX+delta);
+				setX(posX+(delta*delayFactor));
 			}
 		}
 
 		m_body->setAwake(true);
 
 	} else if (m_enemyState == WatchPlayer) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
+		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
 
@@ -127,7 +131,7 @@ void GameEnemySoldier::onTimingTimerTimeout()
 			m_attackElapsedMsec = 0;
 		}
 	} else if (m_enemyState == Attack) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
+		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
 			attackPlayer();

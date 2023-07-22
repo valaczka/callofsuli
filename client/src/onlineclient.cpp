@@ -56,7 +56,7 @@ OnlineClient::OnlineClient(Application *app, QObject *parent)
 
 OnlineClient::~OnlineClient()
 {
-
+	enableTabCloseConfirmation(false);
 }
 
 

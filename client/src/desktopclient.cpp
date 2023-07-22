@@ -31,6 +31,10 @@
 #include "qscreen.h"
 #include <QSettings>
 
+#ifdef Q_OS_ANDROID
+#include "mobileutils.h"
+#endif
+
 
 
 /**
@@ -248,6 +252,16 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 
 void DesktopClient::onStartPageLoaded()
 {
+#ifdef Q_OS_ANDROID
+	const QString &uri = MobileUtils::checkPendingIntents();
+
+	if (!uri.isEmpty()) {
+		m_parseUrl = QUrl(uri);
+		parseUrl();
+		return;
+	}
+#endif
+
 	if (m_parseUrl.isValid()) {
 		LOG_CTRACE("client") << "Try connect to command line URL:" << m_parseUrl;
 

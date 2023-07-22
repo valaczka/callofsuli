@@ -29,7 +29,6 @@
 
 #include "box2dworld.h"
 #include "gameplayerposition.h"
-#include "qloggingcategory.h"
 #include <QQuickItem>
 #include <QStack>
 #include "gameladder.h"

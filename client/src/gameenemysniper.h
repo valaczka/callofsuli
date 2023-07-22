@@ -63,7 +63,7 @@ signals:
 
 private slots:
 	void onAttack();
-	void onTimingTimerTimeout();
+	void onTimingTimerTimeout(const qreal &delayFactor);
 
 private:
 	int m_msecBeforeTurn = 5000;

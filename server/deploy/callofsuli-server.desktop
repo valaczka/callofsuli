@@ -1,9 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Call of Suli
+Name=Call of Suli server
 Exec=callofsuli-server %u
 Icon=callofsuli-server
 StartupNotify=false
-MimeType=x-scheme-handler/callofsuli;
 Categories=Education;
 Terminal=true

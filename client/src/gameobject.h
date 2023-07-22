@@ -38,6 +38,7 @@
 #include <QObject>
 #include <QQuickItem>
 #include "box2dbody.h"
+#include "qelapsedtimer.h"
 
 
 /**
@@ -102,7 +103,7 @@ signals:
 	void sceneChanged();
 	void gameChanged();
 	void sceneConnected();
-	void timingTimerTimeout();
+	void timingTimerTimeout(const qreal &delayFactor);
 	void objectTypeChanged();
 
 protected:
@@ -111,8 +112,10 @@ protected:
 	QList<QPointer<QQuickItem>> m_childItems;
 
 private:
+	void calculateTimeout();
 	bool m_sceneConnected = false;
 	QString m_objectType;
+	QElapsedTimer m_elapsedTimer;
 };
 
 #endif // GAMEOBJECT_H

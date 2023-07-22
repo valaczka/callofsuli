@@ -50,14 +50,20 @@ public class ClientActivity extends QtActivity
 
 
 
-	public boolean checkPendingIntents() {
+	public String checkPendingIntents() {
 	   if(isIntentPending) {
 		   isIntentPending = false;
-		   processIntent();
-		   return true;
+		   Intent intent = getIntent();
+
+		   if (intent.getAction().equals("android.intent.action.VIEW")) {
+			   String uri = intent.getDataString();
+			   if (uri != null){
+				   return uri;
+			   }
+		   }
 	   }
 
-	   return false;
+	   return "";
    }
 
 

@@ -179,7 +179,7 @@ public slots:
 private slots:
 	void onBeginContact(Box2DFixture *other);
 	void onEndContact(Box2DFixture *other);
-	void onRayCastTimerTimeout();
+	void onRayCastTimerTimeout(const qreal &);
 	void onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, qreal fraction);
 	void onSequenceCurrentSpriteChanged(QString sprite);
 

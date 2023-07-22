@@ -43,7 +43,6 @@ class GamePlayer : public GameEntity
 	Q_PROPERTY(GameLadder* ladder READ ladder WRITE setLadder NOTIFY ladderChanged)
 	Q_PROPERTY(LadderState ladderState READ ladderState NOTIFY ladderStateChanged)
 	Q_PROPERTY(PlayerState playerState READ playerState NOTIFY playerStateChanged)
-	Q_PROPERTY(qreal runSize READ runSize CONSTANT)
 	Q_PROPERTY(MovingFlags movingFlags READ movingFlags WRITE setMovingFlags NOTIFY movingFlagsChanged)
 	Q_PROPERTY(qreal deathlyFall READ deathlyFall WRITE setDeathlyFall NOTIFY deathlyFallChanged)
 	Q_PROPERTY(qreal hurtFall READ hurtFall WRITE setHurtFall NOTIFY hurtFallChanged)
@@ -129,9 +128,6 @@ public:
 	const PlayerState &playerState() const;
 	void setPlayerState(const PlayerState &newPlayerState);
 
-	qreal runSize() const;
-	qreal climbSize() const;
-
 	const MovingFlags &movingFlags() const;
 	void setMovingFlags(const MovingFlags &newMovingFlags);
 
@@ -194,7 +190,7 @@ private slots:
 	void onEnemyKilled();
 	void onIsOnGroundChanged();
 	void onSceneConnected();
-	void onTimingTimerTimeout();
+	void onTimingTimerTimeout(const qreal &delayFactor);
 	void onBeginContact(Box2DFixture *other);
 	void onEndContact(Box2DFixture *other);
 	void onBaseGroundContacted();
@@ -202,7 +198,7 @@ private slots:
 	void onHpOrShieldChanged();
 
 private:
-	void ladderMove(const bool &up);
+	void ladderMove(const bool &up, const qreal &delayFactor);
 
 #ifndef Q_OS_WASM
 	QSoundEffect *m_soundEffectShot = nullptr;
@@ -216,6 +212,8 @@ private:
 	qreal m_fallStart = -1;
 	qreal m_deathlyFall = 500;
 	qreal m_hurtFall = 200;
+	qreal m_runSize = 0;
+	qreal m_climbSize = 0;
 	QHash<QString, QStringList> m_soundEffectHash;
 	QHash<QString, int> m_soundEffectNum;
 	LadderState m_ladderState = LadderInactive;

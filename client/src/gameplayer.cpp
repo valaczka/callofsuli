@@ -179,7 +179,7 @@ void GamePlayer::onSceneConnected()
  * @brief GamePlayer::onTimingTimerTimeout
  */
 
-void GamePlayer::onTimingTimerTimeout()
+void GamePlayer::onTimingTimerTimeout(const qreal &delayFactor)
 {
 	if (game() && !game()->running())
 		return;
@@ -201,7 +201,7 @@ void GamePlayer::onTimingTimerTimeout()
 		if (!m_invisible)
 			setInvisible(true);
 
-		setInvisibleTime(qMax(m_invisibleTime - m_scene->timingTimerTimeoutMsec(), 0));
+		setInvisibleTime(qMax(m_invisibleTime - qFloor(m_scene->timingTimerTimeoutMsec() * delayFactor), 0));
 	}
 
 	setInvisible(m_invisibleTime > 0);
@@ -219,8 +219,8 @@ void GamePlayer::onTimingTimerTimeout()
 
 			if (myRight < left.x()) {
 				setFacingLeft(false);
-				if (left.x()-myRight > 5) {
-					setX(x() + m_walkSize);
+				if (left.x()-myRight > (5. * delayFactor)) {
+					setX(x() + (m_walkSize * delayFactor));
 					m_body->setAwake(true);				// Különben nem reagál a mozgásra
 				} else {
 					setPlayerState(Operate);
@@ -228,8 +228,8 @@ void GamePlayer::onTimingTimerTimeout()
 
 			} else if (myLeft > right.x()) {
 				setFacingLeft(true);
-				if (myLeft - right.x() > 5) {
-					setX(x() - m_walkSize);
+				if (myLeft - right.x() > (5. * delayFactor)) {
+					setX(x() - (m_walkSize * delayFactor));
 					m_body->setAwake(true);				// Különben nem reagál a mozgásra
 				} else {
 					setPlayerState(Operate);
@@ -245,7 +245,7 @@ void GamePlayer::onTimingTimerTimeout()
 	}
 
 
-	m_soundElapsedMsec += m_scene->timingTimerTimeoutMsec();
+	m_soundElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 	if (m_playerState == Walk) {
 		if (m_soundElapsedMsec >= 400) {
@@ -268,12 +268,12 @@ void GamePlayer::onTimingTimerTimeout()
 
 
 	if (m_playerState == ClimbUp && m_ladder) {
-		ladderMove(true);
+		ladderMove(true, delayFactor);
 		return;
 	}
 
 	if (m_playerState == ClimbDown && m_ladder) {
-		ladderMove(false);
+		ladderMove(false, delayFactor);
 		return;
 	}
 
@@ -324,14 +324,14 @@ void GamePlayer::onTimingTimerTimeout()
 	if (m_playerState == Run || m_playerState == Walk) {
 		if (m_playerState == Run) {
 			if (m_facingLeft)
-				setX(x() - runSize());
+				setX(x() - (m_runSize * delayFactor));
 			else
-				setX(x() + runSize());
+				setX(x() + (m_runSize * delayFactor));
 		} else {
 			if (m_facingLeft)
-				setX(x() - m_walkSize);
+				setX(x() - (m_walkSize * delayFactor));
 			else
-				setX(x() + m_walkSize);
+				setX(x() + (m_walkSize * delayFactor));
 		}
 
 		m_body->setAwake(true);				// Különben nem reagál a mozgásra
@@ -506,7 +506,7 @@ void GamePlayer::onHpOrShieldChanged()
  * @brief GamePlayer::ladderUp
  */
 
-void GamePlayer::ladderMove(const bool &up)
+void GamePlayer::ladderMove(const bool &up, const qreal &delayFactor)
 {
 	if (!m_ladder) {
 		LOG_CWARNING("scene") << "Missing ladder";
@@ -534,7 +534,7 @@ void GamePlayer::ladderMove(const bool &up)
 			playSoundEffect(QStringLiteral("ladder"));
 
 	} else if ((m_ladderState == LadderActive || m_ladderState == LadderTopSprite) && up) {
-		qreal _y = y() -climbSize();
+		qreal _y = y() - (m_climbSize * delayFactor);
 
 		if (m_ladderState == LadderActive && !QStringList({QStringLiteral("climbup"), QStringLiteral("climbup2"), QStringLiteral("climbup3")}).contains(m_lastCurrentSprite))
 			jumpToSprite(QStringLiteral("climbup2"));
@@ -556,7 +556,7 @@ void GamePlayer::ladderMove(const bool &up)
 			}
 		}
 	} else if ((m_ladderState == LadderActive || m_ladderState == LadderTopSprite) && !up) {
-		qreal _y = y() +climbSize();
+		qreal _y = y() + (m_climbSize * delayFactor);
 
 		if (!QStringList({QStringLiteral("climbdown"), QStringLiteral("climbdown2"), QStringLiteral("climbdown3")}).contains(m_lastCurrentSprite))
 			jumpToSprite(QStringLiteral("climbdown2"));
@@ -729,6 +729,9 @@ GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 	}
 
 	player->loadFromJsonFile();
+
+	player->m_runSize = player->m_dataObject.value(QStringLiteral("run")).toDouble(player->m_walkSize);
+	player->m_climbSize = player->m_dataObject.value(QStringLiteral("climb")).toDouble(player->m_walkSize);
 
 	return player;
 }
@@ -1167,27 +1170,6 @@ void GamePlayer::setPlayerState(const PlayerState &newPlayerState)
 }
 
 
-
-/**
- * @brief GamePlayer::runSize
- * @return
- */
-
-qreal GamePlayer::runSize() const
-{
-	return m_dataObject.value(QStringLiteral("run")).toDouble(m_walkSize);
-}
-
-
-/**
- * @brief GamePlayer::climbSize
- * @return
- */
-
-qreal GamePlayer::climbSize() const
-{
-	return m_dataObject.value(QStringLiteral("climb")).toDouble(m_walkSize);
-}
 
 
 /**

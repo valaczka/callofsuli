@@ -174,6 +174,19 @@ void MobileUtils::vibrate(const int &milliseconds)
 
 
 
+QString MobileUtils::checkPendingIntents()
+{
+	QAndroidJniObject uri = QtAndroid::androidActivity().callObjectMethod<jstring>("checkPendingIntents");
+
+	QString uriStr = uri.toString();
+
+	LOG_CDEBUG("client") << "Check pending intents:" << uriStr;
+
+	return uriStr;
+}
+
+
+
 
 
 
@@ -187,6 +200,7 @@ Java_hu_piarista_vjp_callofsuli_ClientActivity_setUrl(JNIEnv *env,
 													  jstring url)
 {
 	const char *urlStr = env->GetStringUTFChars(url, NULL);
+
 	QUrl _url(QString::fromUtf8(urlStr));
 	Application::instance()->selectUrl(_url);
 

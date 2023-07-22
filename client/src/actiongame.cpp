@@ -1538,6 +1538,9 @@ void ActionGame::dialogMessageTooltip(const QString &text, const QString &icon, 
 
 	LOG_CDEBUG("game") << title << text;
 
+	if (player())
+		player()->standbyMovingFlags();
+
 	QMetaObject::invokeMethod(m_pageItem, "messageTooltip", Qt::DirectConnection,
 							  Q_ARG(QString, text),
 							  Q_ARG(QString, icon),
@@ -1597,6 +1600,9 @@ void ActionGame::dialogMessageFinish(const QString &text, const QString &icon, c
 	}
 
 	LOG_CDEBUG("game") << text;
+
+	if (player())
+		player()->standbyMovingFlags();
 
 	QMetaObject::invokeMethod(m_pageItem, "messageFinish", Qt::DirectConnection,
 							  Q_ARG(QString, text),

@@ -246,7 +246,7 @@ void GameEnemySniper::onAttack()
  * @brief GameEnemySniper::onTimingTimerTimeout
  */
 
-void GameEnemySniper::onTimingTimerTimeout()
+void GameEnemySniper::onTimingTimerTimeout(const qreal &delayFactor)
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySniper) {
 		LOG_CWARNING("scene") << "Invalid enemy type";
@@ -261,14 +261,14 @@ void GameEnemySniper::onTimingTimerTimeout()
 	}
 
 	if (m_enemyState == Move) {
-		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec();
+		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
 			setFacingLeft(!facingLeft());
 			m_turnElapsedMsec = -1;
 		}
 	} else if (m_enemyState == WatchPlayer) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
+		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
 
@@ -278,7 +278,7 @@ void GameEnemySniper::onTimingTimerTimeout()
 			m_attackElapsedMsec = 0;
 		}
 	} else if (m_enemyState == Attack) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec();
+		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
 
 		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
 			attackPlayer();

@@ -27,6 +27,7 @@
 #ifndef MOBILEUTILS_H
 #define MOBILEUTILS_H
 
+#include "qurl.h"
 #include <string>
 
 class MobileUtils
@@ -46,6 +47,7 @@ public:
 	static void vibrate(const int &milliseconds = 400);
 
 	static void openUrl(const std::string &url);
+	static QString checkPendingIntents();
 
 private:
 	static MobileUtils *m_instance;

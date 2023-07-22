@@ -129,4 +129,8 @@ void MobileUtils::openUrl(const std::string &url)
 }
 
 
+QString MobileUtils::checkPendingIntents()
+{
+	return QLatin1String("");
+}
 
