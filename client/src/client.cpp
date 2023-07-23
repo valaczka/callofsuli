@@ -37,7 +37,7 @@
 #include "websocket.h"
 #include "gameterrain.h"
 #include "qquickwindow.h"
-#include "qguiapplication.h"
+#include "qapplication.h"
 #include <qpa/qplatformwindow.h>
 #include "Logger.h"
 #include "mapgame.h"
@@ -170,7 +170,7 @@ QQuickItem* Client::stackPushPage(QString qml, QVariantMap parameters) const
 
 bool Client::stackPop(int index, const bool &forced) const
 {
-	/*QInputMethod *im = QGuiApplication::inputMethod();
+	/*QInputMethod *im = QApplication::inputMethod();
 
 	if (im && im->isVisible()) {
 		LOG_CDEBUG("client") << "Hide input method";
@@ -1260,7 +1260,7 @@ QString Client::getSystemInfo() const
 {
 	QString text;
 
-	QScreen *screen = QGuiApplication::primaryScreen();
+	QScreen *screen = QApplication::primaryScreen();
 
 	text += tr("Képernyő mérete: **%1x%2**\n\n").arg(screen->geometry().width()).arg(screen->geometry().height());
 	text += tr("Logical DPI: **%1**\n\n").arg(screen->logicalDotsPerInch());
@@ -1280,11 +1280,11 @@ qreal Client::getDevicePixelSizeCorrection() const
 	const qreal refDpi = 72.;
 	const qreal refHeight = 700.;
 	const qreal refWidth = 400.;
-	const QRect &rect = QGuiApplication::primaryScreen()->geometry();
+	const QRect &rect = QApplication::primaryScreen()->geometry();
 	const qreal &height = qMax(rect.width(), rect.height());
 	const qreal &width = qMin(rect.width(), rect.height());
 
-	const qreal &dpi = QGuiApplication::primaryScreen()->logicalDotsPerInch();
+	const qreal &dpi = QApplication::primaryScreen()->logicalDotsPerInch();
 
 	qreal ratioFont = qMin(1., qMin(height*refDpi/(dpi*refHeight), width*refDpi/(dpi*refWidth)));
 

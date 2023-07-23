@@ -40,7 +40,7 @@
 #include "selectableobject.h"
 #include "qsdiffrunner.h"
 #include "qclipboard.h"
-#include "QGuiApplication"
+#include "QApplication"
 #endif
 
 const quint32 Utils::m_versionMajor = VERSION_MAJOR;
@@ -49,7 +49,7 @@ const quint32 Utils::m_versionBuild = VERSION_BUILD;
 
 #ifdef Q_OS_ANDROID
 #include "qandroidfunctions.h"
-#include "QGuiApplication"
+#include "QApplication"
 #include "qscreen.h"
 #endif
 
@@ -629,7 +629,7 @@ void Utils::patchSListModel(QSListModel *model, const QVariantList &data, const 
 
 void Utils::setClipboardText(const QString &text)
 {
-	QClipboard *clipboard = QGuiApplication::clipboard();
+	QClipboard *clipboard = QApplication::clipboard();
 
 	if (!clipboard) {
 		LOG_CERROR("utils") << "Cliboard unavailable";
@@ -647,7 +647,7 @@ void Utils::setClipboardText(const QString &text)
 
 QString Utils::clipboardText()
 {
-	QClipboard *clipboard = QGuiApplication::clipboard();
+	QClipboard *clipboard = QApplication::clipboard();
 
 	if (!clipboard) {
 		LOG_CERROR("utils") << "Cliboard unavailable";
@@ -914,7 +914,7 @@ void Utils::clearDiskCache()
 QMarginsF Utils::getAndroidSafeMargins()
 {
 	QMarginsF margins;
-	static const double devicePixelRatio = QGuiApplication::primaryScreen()->devicePixelRatio();
+	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
 
 	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
 

@@ -82,7 +82,7 @@ QVector<Question> AbstractLevelGame::createQuestions()
 
 	foreach (GameMapChapter *chapter, m_missionLevel->chapters()) {
 		foreach (GameMapObjective *objective, chapter->objectives()) {
-			int n = (objective->storageId() != -1 ? objective->storageCount() : 1);
+			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
 			for (int i=0; i<n; ++i)
 				list.append(Question(objective));

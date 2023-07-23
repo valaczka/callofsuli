@@ -50,6 +50,8 @@ GeneralAPI::GeneralAPI(ServerService *service)
 	addMap("^score/*$", this, &GeneralAPI::userStudent);
 	addMap("^user/([^/]+)/*$", this, &GeneralAPI::user);
 	addMap("^user/([^/]+)/log/*$", this, &GeneralAPI::userLog);
+	addMap("^user/([^/]+)/log/xp/*$", this, &GeneralAPI::userXpLog);
+	addMap("^user/([^/]+)/log/game/*$", this, &GeneralAPI::userGameLog);
 
 	addMap("^me/*$", this, &GeneralAPI::userMe);
 
@@ -361,6 +363,85 @@ void GeneralAPI::userLog(const QRegularExpressionMatch &match, const QJsonObject
 
 
 
+/**
+ * @brief GeneralAPI::userXpLog
+ * @param match
+ * @param response
+ */
+
+void GeneralAPI::userXpLog(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const QString &username = match.captured(1);
+
+	LOG_CTRACE("client") << "Get user xp log:" << username;
+
+	databaseMainWorker()->execInThread([this, username, response, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+		QJsonArray list;
+
+		if (data.value(QStringLiteral("cummulate")).toBool()) {
+			list = QueryBuilder::q(db)
+					.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
+							  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
+							  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND score.timestamp<=cte.day) "
+							  "WHERE cte.username=").addValue(username)
+					.addQuery(" GROUP BY day").execToJsonArray(&err);
+		} else {
+			list = QueryBuilder::q(db)
+					.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
+							  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
+							  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND date(score.timestamp)=cte.day) "
+							  "WHERE cte.username=").addValue(username)
+					.addQuery(" GROUP BY day").execToJsonArray(&err);
+		}
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+
+/**
+ * @brief GeneralAPI::userGameLog
+ * @param match
+ * @param response
+ */
+
+void GeneralAPI::userGameLog(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	const QString &username = match.captured(1);
+
+	LOG_CTRACE("client") << "Get user xp log:" << username;
+
+	databaseMainWorker()->execInThread([this, username, response]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		const QJsonArray &list = QueryBuilder::q(db)
+				.addQuery("SELECT date(timestamp) AS day, CAST(JULIANDAY(date('now'))-JULIANDAY(date(timestamp)) AS INTEGER) AS diff, "
+						  "SUM(CASE WHEN success THEN 1 ELSE 0 END) AS success, COUNT(*) AS full FROM game "
+						  "WHERE username=").addValue(username)
+				.addQuery(" GROUP BY username, date(timestamp)").execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, "list", list);
+	});
+}
+
+
+
 
 /**
  * @brief GeneralAPI::grade
@@ -379,7 +460,7 @@ void GeneralAPI::grade(const QRegularExpressionMatch &, const QJsonObject &, QPo
 		bool err = false;
 
 		const QJsonArray &list = QueryBuilder::q(db)
-		.addQuery("SELECT id, shortname, longname, value FROM grade")
+				.addQuery("SELECT id, shortname, longname, value FROM grade")
 				.execToJsonArray(&err);
 
 		if (err)

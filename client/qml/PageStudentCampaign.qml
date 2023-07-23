@@ -31,6 +31,17 @@ QPageGradient {
 		return true
 	}
 
+	appBar.rightComponent: Qaterial.AppBarButton
+	{
+		icon.source: Qaterial.Icons.eye
+		ToolTip.text: qsTr("Eredmények megjelenítése")
+		onClicked: {
+			withResult = true
+			reload()
+		}
+		visible: !withResult
+	}
+
 	// Külön kell, mert nem az összeset jelenítjük meg!
 
 	StudentMapList {

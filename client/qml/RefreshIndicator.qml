@@ -12,6 +12,9 @@ Qaterial.Pane
 	padding: 0
 	x: (handler.width - width) / 2
 	y: (dragProgress > 100) ? 100 : dragProgress
+
+	property bool readyToRefresh: false
+
 	/*Material.elevation: 2
 	background: Rectangle {
 		id: backgroud_rect
@@ -35,11 +38,11 @@ Qaterial.Pane
 		//Behavior on rotation { NumberAnimation { duration: 200 } }
 		opacity: (dragProgress < 50) ? 0.5*(dragProgress/50) : 1
 
-		color: dragProgress >= 100 ? Qaterial.Colors.green400 : Qaterial.Style.iconColor()
+		color: readyToRefresh ? Qaterial.Colors.green400 : Qaterial.Style.iconColor()
 
 		rotation:
 		{
-			 if (dragProgress >= 100)
+			 if (readyToRefresh)
 				 return rotation;
 			 if (dragProgress >= 50 && dragProgress <= 100)
 				return ((dragProgress - 50) * 200) / 50;

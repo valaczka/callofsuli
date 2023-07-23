@@ -169,7 +169,11 @@ QPage {
 					if (_module.currentValue !== "mission")
 						return
 
+					reloadMissionList()
+				}
 
+
+				function reloadMissionList() {
 					let m = mapHandler.mapList.get(currentIndex)
 
 					let list = []
@@ -203,7 +207,6 @@ QPage {
 					}
 
 					_mission.model = list
-
 				}
 
 			}
@@ -371,6 +374,8 @@ QPage {
 			_module.currentIndex = _module.combo.indexOfValue(task.criterion.module)
 			_map.currentIndex = _map.combo.indexOfValue(task.mapUuid)
 
+			_map.reloadMissionList()
+
 			if (task.criterion.mission !== undefined) {
 				for (let j=0; j<_mission.model.length; ++j) {
 					let ml = _mission.model[j]
@@ -387,6 +392,8 @@ QPage {
 
 			_form.modified = false
 
+		} else {
+			_map.reloadMissionList()
 		}
 	}
 

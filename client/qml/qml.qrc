@@ -181,5 +181,6 @@
         <file>QLabelInformative.qml</file>
         <file>SettingsSoftware.qml</file>
         <file>TeacherCampaignTiming.qml</file>
+        <file>StudentXpChart.qml</file>
     </qresource>
 </RCC>

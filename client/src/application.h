@@ -28,7 +28,7 @@
 #define APPLICATION_H
 
 #include "client.h"
-#include <QGuiApplication>
+#include <QApplication>
 #include <QtQml>
 #include "../modules/interfaces.h"
 
@@ -56,7 +56,7 @@ public:
 	const char *version() const;
 	static bool debug();
 
-	QGuiApplication *application() const;
+	QApplication *application() const;
 	QQmlApplicationEngine *engine() const;
 	Client *client() const;
 
@@ -95,7 +95,7 @@ protected:
 
 	CommandLine m_commandLine = Normal;
 	QString m_commandLineData;
-	QGuiApplication *m_application = nullptr;
+	QApplication *m_application = nullptr;
 	QQmlApplicationEngine *m_engine = nullptr;
 	Client *m_client = nullptr;
 	static Application *m_instance;

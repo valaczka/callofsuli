@@ -67,6 +67,8 @@ public:
 	void user(const QString &username, const QPointer<HttpResponse> &response, const Credential::Roles &roles = Credential::None) const;
 
 	void userLog(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void userXpLog(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void userGameLog(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 	void grade(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 

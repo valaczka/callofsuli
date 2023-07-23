@@ -38,7 +38,7 @@
 #include <Logger.h>
 
 #if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
-#include "qguiapplication.h"
+#include "qapplication.h"
 #include "qscreen.h"
 #endif
 
@@ -813,7 +813,7 @@ void ActionGame::onSceneStarted()
 
 
 #if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
-	QScreen *screen = QGuiApplication::primaryScreen();
+	QScreen *screen = QApplication::primaryScreen();
 	if (screen &&
 			(screen->primaryOrientation() == Qt::ScreenOrientation::PortraitOrientation ||
 			 screen->primaryOrientation() == Qt::ScreenOrientation::InvertedPortraitOrientation)) {

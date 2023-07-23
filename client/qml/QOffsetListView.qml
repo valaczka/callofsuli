@@ -65,7 +65,7 @@ ListView {
 	PullToRefreshHandler {
 		target: view
 		enabled: view.refreshEnabled
-		absoluteThreshold: 100
+		absoluteThreshold: view.height*0.65
 		onPullDownRelease: if (offsetModel) offsetModel.reload()
 	}
 

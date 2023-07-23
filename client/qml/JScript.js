@@ -190,3 +190,26 @@ function readableDate(timestamp1) {
 
 	return date1.toLocaleString(Qt.locale(), format)
 }
+
+
+function readableDateDate(date1, format1, format2) {
+	var date2 = new Date()
+
+	var y1 = date1.getFullYear()
+	var y2 = date2.getFullYear()
+	var m1 = date1.getMonth()
+	var m2 = date2.getMonth()
+	var d1 = date1.getDate()
+	var d2 = date2.getDate()
+
+	var format = ""
+
+	if (y1 == y2 && m1 == m2 && d1 == d2)
+		return qsTr("Ma")
+	else if (y1 == y2)
+		format = format1
+	else
+		format = format2
+
+	return date1.toLocaleString(Qt.locale(), format)
+}

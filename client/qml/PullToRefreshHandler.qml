@@ -31,7 +31,9 @@ Item
 	// Delegates properties:
 	property Component swipeUpHintDelegate: null
 	property Component swipeDownHintDelegate: null
-	property Component refreshIndicatorDelegate: RefreshIndicator {}
+	property Component refreshIndicatorDelegate: RefreshIndicator {
+		readyToRefresh: control.isPullDown || control.isPullUp
+	}
 
 	QtObject
 	{

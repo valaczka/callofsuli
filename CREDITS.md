@@ -27,6 +27,7 @@
 - Free Game Assets (https://mobilegamegraphics.com/product/airplane-dogfight-assets-free-assets)
 - Game-icons.net by Lorc, Delapouite & contributors (https://opengameart.org/content/700-rpg-icons, https://game-icons.net)
 - Hansjörg Malthaner (http://opengameart.org/users/varkalandar)
+- Kingel's Creative Commons pixel art (https://forums.tigsource.com/index.php?topic=14166.0)
 - Sprites: Snk/Playmore, Black Zellyo3, Dk, Ivo, Ragey (https://www.spriters-resource.com)
 - WrathGames Studio (https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog)
 

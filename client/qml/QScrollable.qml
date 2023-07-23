@@ -64,7 +64,7 @@ Item {
 		PullToRefreshHandler {
 			target: _flickable
 			enabled: control.refreshEnabled
-			absoluteThreshold: 100
+			absoluteThreshold: control.height*0.65
 			onPullDownRelease: control.refreshRequest()
 		}
 

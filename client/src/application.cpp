@@ -35,6 +35,7 @@
 #include "mapeditor.h"
 #include "mapgame.h"
 #include "offsetmodel.h"
+#include "qapplication.h"
 #include "qrimage.h"
 #include "qsjsonlistmodel.h"
 #include "scorelist.h"
@@ -113,18 +114,18 @@ const bool Application::m_debug = true;
 Application::Application(int &argc, char **argv)
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
 	QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
 	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
 	QCoreApplication::setApplicationVersion(m_version);
-	QGuiApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
+	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	if (!m_instance)
 		m_instance = this;
 
-	m_application = new QGuiApplication(argc, argv);
+	m_application = new QApplication(argc, argv);
 
 	m_engine = new QQmlApplicationEngine(m_application);
 
@@ -225,7 +226,7 @@ const char *Application::version() const
  * @return
  */
 
-QGuiApplication *Application::application() const
+QApplication *Application::application() const
 {
 	return m_application;
 }

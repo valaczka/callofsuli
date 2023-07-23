@@ -70,7 +70,7 @@ QItemGradient {
 			width: Math.min(parent.width-40, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 0
-			topPadding: 40
+			topPadding: 20 * Qaterial.Style.pixelSizeRatio
 
 			QAnimatedProgressBar {
 				id: _progressXp
@@ -120,6 +120,26 @@ QItemGradient {
 			value: 0
 			user: root.user
 			maxIconCount: Math.floor((_col.width-implicitLabelWidth)/iconSize)
+		}
+
+
+		StudentXpChart {
+			id: _chart
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.85)
+			anchors.horizontalCenter: parent.horizontalCenter
+			visible: false
+
+			property bool _showPlaceholder: true
+		}
+
+		QPlaceholderItem {
+			anchors.horizontalCenter: parent.horizontalCenter
+			widthRatio: 1.0
+			heightRatio: 1.0
+			width: _chart.width
+			height: _chart.height
+			rectangleRadius: 5
+			visible: _chart._showPlaceholder
 		}
 
 
@@ -229,6 +249,14 @@ QItemGradient {
 		Client.reloadCache("studentCampaignList", function() {
 			_firstRun = false
 		})
+		Client.send(WebSocket.ApiGeneral, "user/%1/log/xp".arg(user.username))
+		.done(function(r){
+			_chart.loadList(r.list)
+			_chart._showPlaceholder = false
+			if (r.list.length)
+				_chart.visible = true
+		})
+		.fail((err) => _chart._showPlaceholder = false)
 	}
 }
 

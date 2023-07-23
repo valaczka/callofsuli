@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2
+QT += gui quick svg xml network gui-private quickcontrols2 charts
 
 !wasm: QT += multimedia sql networkauth
 

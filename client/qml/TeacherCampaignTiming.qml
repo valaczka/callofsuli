@@ -13,6 +13,7 @@ Item {
 	signal reloadRequest()
 
 	QScrollable {
+		id: _scrollable
 		anchors.fill: parent
 		contentCentered: true
 
@@ -106,8 +107,8 @@ Item {
 				text: campaign && campaign.state == Campaign.Finished ? qsTr("A kihívás véget ért") : qsTr("A kihívás folyamatban van")
 				color: Qaterial.Colors.lightGreen400
 				elide: Text.ElideNone
-				width: Math.min(implicitWidth, _row.parent.width-_icon.width-_row.spacing)
-				wrapMode: implicitWidth > width ? Text.Wrap : Text.NoWrap
+				width: Math.min(implicitWidth, _scrollable.contentContainer.width-_icon.width-_row.spacing)
+				//wrapMode: Text.Wrap
 				horizontalAlignment: Text.AlignHCenter
 			}
 		}

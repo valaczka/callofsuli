@@ -67,7 +67,7 @@ ListView {
 	PullToRefreshHandler {
 		target: view
 		enabled: view.refreshEnabled
-		absoluteThreshold: 100 * Qaterial.Style.pixelSizeRatio
+		absoluteThreshold: view.height*0.65
 		onPullDownRelease: view.refreshRequest()
 	}
 
