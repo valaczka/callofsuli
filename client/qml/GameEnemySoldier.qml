@@ -31,7 +31,7 @@ GameEnemySoldierImpl {
 	}
 
 
-	onRayCastPerformed: ray.show(rect, scene)
+	onRayCastPerformed: Qt.callLater(() => ray.show(rect, scene))
 
 	GameEntityRay {
 		id: ray

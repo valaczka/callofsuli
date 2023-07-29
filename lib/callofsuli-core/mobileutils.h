@@ -51,6 +51,8 @@ public:
 
 private:
 	static MobileUtils *m_instance;
+
+	static QString m_pendingArg;
 };
 
 #endif // MOBILEUTILS_H

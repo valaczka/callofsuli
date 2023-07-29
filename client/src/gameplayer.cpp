@@ -33,7 +33,7 @@
 #include "gamescene.h"
 
 #ifndef Q_OS_WASM
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #endif
 
 
@@ -98,7 +98,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	connect(this, &GameEntity::baseGroundContact, this, &GamePlayer::onBaseGroundContacted);
 
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client) {
 		m_soundEffectShot = client->newSoundEffect();
@@ -138,7 +138,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 GamePlayer::~GamePlayer()
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client) {
 		client->removeSoundEffect(m_soundEffectShot);

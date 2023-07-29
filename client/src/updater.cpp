@@ -47,7 +47,7 @@
 #define _UPDATER_EXECUTABLE_WIN QCoreApplication::applicationDirPath()+QStringLiteral("/_auto_updater.exe")
 #define _URL_GITHUB QStringLiteral("https://valaczka.github.io/callofsuli/version.json")
 #define _URL_MARKET QStringLiteral("market://details?id=hu.piarista.vjp.callofsuli")
-#define _URL_APPSTORE QStringLiteral("itms-apps://itunes.apple.com/app/id1024941703")
+#define _URL_APPSTORE QStringLiteral("itms-apps://itunes.apple.com/app/id1639323717")
 
 /**
  * @brief Updater::Updater

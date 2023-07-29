@@ -25,7 +25,7 @@
  */
 
 #include "mobileapplication.h"
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #include "Logger.h"
 
 
@@ -92,5 +92,5 @@ void MobileApplication::createStandardPath()
 
 Client *MobileApplication::createClient()
 {
-	return new DesktopClient(this, m_application);
+	return new StandaloneClient(this, m_application);
 }

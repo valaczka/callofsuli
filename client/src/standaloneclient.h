@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * desktopclient.h
+ * standaloneclient.h
  *
  * Created on: 2022. 12. 17.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * DesktopClient
+ * StandaloneClient
  *
  *  This file is part of Call of Suli.
  *
@@ -24,8 +24,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DESKTOPCLIENT_H
-#define DESKTOPCLIENT_H
+#ifndef STANDALONECLIENT_H
+#define STANDALONECLIENT_H
 
 #include "client.h"
 #include "qlambdathreadworker.h"
@@ -35,10 +35,10 @@
 #include "utils.h"
 
 /**
- * @brief The DesktopClient class
+ * @brief The StandaloneClient class
  */
 
-class DesktopClient : public Client
+class StandaloneClient : public Client
 {
 	Q_OBJECT
 
@@ -52,8 +52,8 @@ class DesktopClient : public Client
 
 
 public:
-	explicit DesktopClient(Application *app, QObject *parent = nullptr);
-	virtual ~DesktopClient();
+	explicit StandaloneClient(Application *app, QObject *parent = nullptr);
+	virtual ~StandaloneClient();
 
 	QSoundEffect *newSoundEffect();
 	void removeSoundEffect(QSoundEffect *effect);

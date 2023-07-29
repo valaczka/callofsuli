@@ -211,6 +211,8 @@ public:
 	Q_INVOKABLE void setParseUrl(const QUrl &url);
 	Q_INVOKABLE const QUrl &getParseUrl() const;
 
+	static QUrl normalizeUrl(const QUrl &url);
+
 	Q_INVOKABLE QString getSystemInfo() const;
 	Q_INVOKABLE qreal getDevicePixelSizeCorrection() const;
 

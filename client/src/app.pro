@@ -33,13 +33,13 @@ include(../../lib/import_lib_client.pri)
 
 	SOURCES += \
 		mobileapplication.cpp \
-		desktopclient.cpp \
-		sound.cpp
+		sound.cpp \
+	standaloneclient.cpp
 
 	HEADERS += \
 		mobileapplication.h \
-		desktopclient.h \
-		sound.h
+		sound.h \
+	standaloneclient.h
 
 	!android:!ios {
 		SOURCES += desktopapplication.cpp

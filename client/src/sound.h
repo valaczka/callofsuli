@@ -80,7 +80,7 @@ private:
 	QVariantAnimation *m_fadeAnimation = nullptr;
 	int m_musicVolume;
 
-	friend class DesktopClient;
+	friend class StandaloneClient;
 };
 
 

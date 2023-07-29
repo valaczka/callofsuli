@@ -35,6 +35,7 @@
 
 
 MobileUtils* MobileUtils::m_instance = nullptr;
+QString MobileUtils::m_pendingArg;
 
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
@@ -124,13 +125,21 @@ void MobileUtils::vibrate(const int &)
 
 void MobileUtils::openUrl(const std::string &url)
 {
-	QUrl _url(QString::fromStdString(url));
-	Application::instance()->selectUrl(_url);
+	if (Application::instance()->client()) {
+		QUrl _url(QString::fromStdString(url));
+		Application::instance()->selectUrl(_url);
+	} else {
+		m_pendingArg = QString::fromStdString(url);
+	}
 }
 
 
 QString MobileUtils::checkPendingIntents()
 {
-	return QLatin1String("");
+	QString r = m_pendingArg;
+
+	m_pendingArg = QLatin1String("");
+
+	return r;
 }
 

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * desktopclient.cpp
+ * standaloneclient.cpp
  *
  * Created on: 2022. 12. 17.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * DesktopClient
+ * StandaloneClient
  *
  *  This file is part of Call of Suli.
  *
@@ -24,31 +24,32 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #include "Logger.h"
 #include "qdiriterator.h"
 #include "qquickwindow.h"
 #include "qscreen.h"
+#include "application.h"
 #include <QSettings>
 
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 #include "mobileutils.h"
 #endif
 
 
 
 /**
- * @brief DesktopClient::DesktopClient
+ * @brief StandaloneClient::StandaloneClient
  * @param app
  * @param parent
  */
 
-DesktopClient::DesktopClient(Application *app, QObject *parent)
+StandaloneClient::StandaloneClient(Application *app, QObject *parent)
 	: Client(app, parent)
 	, m_serverList(new ServerList(this))
 	, m_worker(new QLambdaThreadWorker())
 {
-	LOG_CTRACE("client") << "DesktopClient created:" << this;
+	LOG_CTRACE("client") << "StandaloneClient created:" << this;
 
 	QDefer ret;
 
@@ -70,24 +71,24 @@ DesktopClient::DesktopClient(Application *app, QObject *parent)
 	s.endGroup();
 
 
-	connect(this, &Client::mainWindowChanged, this, &DesktopClient::onMainWindowChanged);
-	connect(this, &Client::startPageLoaded, this, &DesktopClient::onStartPageLoaded);
+	connect(this, &Client::mainWindowChanged, this, &StandaloneClient::onMainWindowChanged);
+	connect(this, &Client::startPageLoaded, this, &StandaloneClient::onStartPageLoaded);
 
 	serverListLoad();
 
 	m_soundEffectTimer.setInterval(1500);
-	connect(&m_soundEffectTimer, &QTimer::timeout, this, &DesktopClient::onSoundEffectTimeout);
+	connect(&m_soundEffectTimer, &QTimer::timeout, this, &StandaloneClient::onSoundEffectTimeout);
 
-	connect(this, &DesktopClient::volumeSfxChanged, &m_soundEffectTimer, [this](){ m_soundEffectTimer.start(); });
+	connect(this, &StandaloneClient::volumeSfxChanged, &m_soundEffectTimer, [this](){ m_soundEffectTimer.start(); });
 }
 
 
 
 /**
- * @brief DesktopClient::~DesktopClient
+ * @brief StandaloneClient::~StandaloneClient
  */
 
-DesktopClient::~DesktopClient()
+StandaloneClient::~StandaloneClient()
 {
 	serverDeleteTemporary();
 	serverListSave();
@@ -116,18 +117,18 @@ DesktopClient::~DesktopClient()
 	delete m_serverList;
 	m_serverList = nullptr;
 
-	LOG_CTRACE("client") << "DesktopClient destroyed:" << this;
+	LOG_CTRACE("client") << "StandaloneClient destroyed:" << this;
 }
 
 
 
 
 /**
- * @brief DesktopClient::newSoundEffect
+ * @brief StandaloneClient::newSoundEffect
  * @return
  */
 
-QSoundEffect *DesktopClient::newSoundEffect()
+QSoundEffect *StandaloneClient::newSoundEffect()
 {
 	QSoundEffect *e = nullptr;
 
@@ -149,11 +150,11 @@ QSoundEffect *DesktopClient::newSoundEffect()
 
 
 /**
- * @brief DesktopClient::removeSoundEffect
+ * @brief StandaloneClient::removeSoundEffect
  * @param effect
  */
 
-void DesktopClient::removeSoundEffect(QSoundEffect *effect)
+void StandaloneClient::removeSoundEffect(QSoundEffect *effect)
 {
 	if (effect)
 		m_soundEffectList.removeAll(effect);
@@ -166,12 +167,12 @@ void DesktopClient::removeSoundEffect(QSoundEffect *effect)
 
 
 /**
- * @brief DesktopClient::playSound
+ * @brief StandaloneClient::playSound
  * @param source
  * @param soundType
  */
 
-void DesktopClient::playSound(const QString &source, const Sound::SoundType &soundType)
+void StandaloneClient::playSound(const QString &source, const Sound::SoundType &soundType)
 {
 	m_worker->execInThread([this, soundType, source](){
 		m_sound->playSound(source, soundType);
@@ -180,12 +181,12 @@ void DesktopClient::playSound(const QString &source, const Sound::SoundType &sou
 
 
 /**
- * @brief DesktopClient::stopSound
+ * @brief StandaloneClient::stopSound
  * @param source
  * @param soundType
  */
 
-void DesktopClient::stopSound(const QString &source, const Sound::SoundType &soundType)
+void StandaloneClient::stopSound(const QString &source, const Sound::SoundType &soundType)
 {
 	m_worker->execInThread([this, soundType, source](){
 		m_sound->stopSound(source, soundType);
@@ -194,10 +195,10 @@ void DesktopClient::stopSound(const QString &source, const Sound::SoundType &sou
 
 
 /**
- * @brief DesktopClient::performVibrate
+ * @brief StandaloneClient::performVibrate
  */
 
-void DesktopClient::performVibrate() const
+void StandaloneClient::performVibrate() const
 {
 	if (m_vibrate)
 		Utils::vibrate();
@@ -208,15 +209,15 @@ void DesktopClient::performVibrate() const
 
 
 /**
- * @brief DesktopClient::onMainWindowChanged
+ * @brief StandaloneClient::onMainWindowChanged
  */
 
-void DesktopClient::onMainWindowChanged()
+void StandaloneClient::onMainWindowChanged()
 {
 	if (!m_mainWindow)
 		return;
 
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 	m_mainWindow->showFullScreen();
 #elif defined(Q_OS_WIN) || defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
 	m_mainWindow->showMaximized();
@@ -225,17 +226,17 @@ void DesktopClient::onMainWindowChanged()
 	if (!m_mainWindow->screen())
 		return;
 
-	connect(m_mainWindow->screen(), &QScreen::primaryOrientationChanged, this, &DesktopClient::onOrientationChanged);
+	connect(m_mainWindow->screen(), &QScreen::primaryOrientationChanged, this, &StandaloneClient::onOrientationChanged);
 
 }
 
 
 /**
- * @brief DesktopClient::onOrientationChanged
+ * @brief StandaloneClient::onOrientationChanged
  * @param orientation
  */
 
-void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
+void StandaloneClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 {
 	LOG_CTRACE("client") << "Screen orientation changed:" << orientation;
 
@@ -247,12 +248,12 @@ void DesktopClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 
 
 /**
- * @brief DesktopClient::onStartPageLoaded
+ * @brief StandaloneClient::onStartPageLoaded
  */
 
-void DesktopClient::onStartPageLoaded()
+void StandaloneClient::onStartPageLoaded()
 {
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 	const QString &uri = MobileUtils::checkPendingIntents();
 
 	if (!uri.isEmpty()) {
@@ -263,6 +264,8 @@ void DesktopClient::onStartPageLoaded()
 #endif
 
 	if (m_parseUrl.isValid()) {
+		m_parseUrl = normalizeUrl(m_parseUrl);
+
 		LOG_CTRACE("client") << "Try connect to command line URL:" << m_parseUrl;
 
 		Server *s = serverAddWithUrl(m_parseUrl);
@@ -283,10 +286,10 @@ void DesktopClient::onStartPageLoaded()
 
 
 /**
- * @brief DesktopClient::onOAuthFinished
+ * @brief StandaloneClient::onOAuthFinished
  */
 
-void DesktopClient::onOAuthFinished()
+void StandaloneClient::onOAuthFinished()
 {
 	LOG_CTRACE("client") << "Desktop OAuth finished";
 
@@ -301,11 +304,11 @@ void DesktopClient::onOAuthFinished()
 
 
 /**
- * @brief DesktopClient::onOAuthStarted
+ * @brief StandaloneClient::onOAuthStarted
  * @param url
  */
 
-void DesktopClient::onOAuthStarted(const QUrl &url)
+void StandaloneClient::onOAuthStarted(const QUrl &url)
 {
 	LOG_CTRACE("client") << "Desktop OAuth started:" << url;
 
@@ -338,11 +341,11 @@ void DesktopClient::onOAuthStarted(const QUrl &url)
 
 
 /**
- * @brief DesktopClient::serverListLoad
+ * @brief StandaloneClient::serverListLoad
  * @param dir
  */
 
-void DesktopClient::serverListLoad(const QDir &dir)
+void StandaloneClient::serverListLoad(const QDir &dir)
 {
 	LOG_CDEBUG("client") << "Load servers from:" << qPrintable(dir.absolutePath());
 
@@ -360,7 +363,7 @@ void DesktopClient::serverListLoad(const QDir &dir)
 		if (!s)
 			continue;
 
-		connect(s, &Server::selectedChanged, this, &DesktopClient::serverListSelectedCountChanged);
+		connect(s, &Server::selectedChanged, this, &StandaloneClient::serverListSelectedCountChanged);
 
 		s->setName(realname.section('/', -2, -2));
 		s->setDirectory(realname.section('/', 0, -2));
@@ -381,11 +384,11 @@ void DesktopClient::serverListLoad(const QDir &dir)
 
 
 /**
- * @brief DesktopClient::serverListSave
+ * @brief StandaloneClient::serverListSave
  * @param dir
  */
 
-void DesktopClient::serverListSave(const QDir &dir)
+void StandaloneClient::serverListSave(const QDir &dir)
 {
 	LOG_CDEBUG("client") << "Save servers to:" << qPrintable(dir.absolutePath());
 
@@ -411,12 +414,12 @@ void DesktopClient::serverListSave(const QDir &dir)
 
 
 /**
- * @brief DesktopClient::_setVolume
+ * @brief StandaloneClient::_setVolume
  * @param channel
  * @param newVolume
  */
 
-void DesktopClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
+void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
 {
 	if (!m_worker)
 		return;
@@ -448,10 +451,10 @@ void DesktopClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
 
 
 /**
- * @brief DesktopClient::onSoundEffectTimeout
+ * @brief StandaloneClient::onSoundEffectTimeout
  */
 
-void DesktopClient::onSoundEffectTimeout()
+void StandaloneClient::onSoundEffectTimeout()
 {
 	if (!m_sound)
 		return;
@@ -469,22 +472,22 @@ void DesktopClient::onSoundEffectTimeout()
 
 
 /**
- * @brief DesktopClient::serverList
+ * @brief StandaloneClient::serverList
  * @return
  */
 
-ServerList *DesktopClient::serverList() const
+ServerList *StandaloneClient::serverList() const
 {
 	return m_serverList;
 }
 
 
 /**
- * @brief DesktopClient::serverSetAutoConnect
+ * @brief StandaloneClient::serverSetAutoConnect
  * @param server
  */
 
-void DesktopClient::serverSetAutoConnect(Server *server) const
+void StandaloneClient::serverSetAutoConnect(Server *server) const
 {
 	for (Server *s : *m_serverList)
 		s->setAutoConnect(s == server);
@@ -492,11 +495,11 @@ void DesktopClient::serverSetAutoConnect(Server *server) const
 
 
 /**
- * @brief DesktopClient::serverAdd
+ * @brief StandaloneClient::serverAdd
  * @param server
  */
 
-Server *DesktopClient::serverAdd()
+Server *StandaloneClient::serverAdd()
 {
 	LOG_CTRACE("client") << "Add new server";
 
@@ -521,7 +524,7 @@ Server *DesktopClient::serverAdd()
 	server->setName(subdir);
 	server->setDirectory(dir.absoluteFilePath(subdir));
 
-	connect(server, &Server::selectedChanged, this, &DesktopClient::serverListSelectedCountChanged);
+	connect(server, &Server::selectedChanged, this, &StandaloneClient::serverListSelectedCountChanged);
 
 	if (!Utils::jsonObjectToFile(server->toJson(), dir.filePath(server->name()+QStringLiteral("/config.json")))) {
 		LOG_CERROR("client") << "Can't save server data:" << qPrintable(dir.absoluteFilePath(server->name()));
@@ -541,11 +544,11 @@ Server *DesktopClient::serverAdd()
 
 
 /**
- * @brief DesktopClient::serverDelete
+ * @brief StandaloneClient::serverDelete
  * @param server
  */
 
-bool DesktopClient::serverDelete(Server *server)
+bool StandaloneClient::serverDelete(Server *server)
 {
 	Q_ASSERT(server);
 
@@ -566,10 +569,10 @@ bool DesktopClient::serverDelete(Server *server)
 
 
 /**
- * @brief DesktopClient::serverDeleteTemporary
+ * @brief StandaloneClient::serverDeleteTemporary
  */
 
-void DesktopClient::serverDeleteTemporary()
+void StandaloneClient::serverDeleteTemporary()
 {
 	QVector<Server*> list;
 
@@ -590,11 +593,11 @@ void DesktopClient::serverDeleteTemporary()
 
 
 /**
- * @brief DesktopClient::serverDeleteSelected
+ * @brief StandaloneClient::serverDeleteSelected
  * @return
  */
 
-bool DesktopClient::serverDeleteSelected()
+bool StandaloneClient::serverDeleteSelected()
 {
 	LOG_CTRACE("client") << "Delete selected servers";
 
@@ -620,12 +623,12 @@ bool DesktopClient::serverDeleteSelected()
 
 
 /**
- * @brief DesktopClient::serverAddWithUrl
+ * @brief StandaloneClient::serverAddWithUrl
  * @param url
  * @return
  */
 
-Server *DesktopClient::serverAddWithUrl(const QUrl &url)
+Server *StandaloneClient::serverAddWithUrl(const QUrl &url)
 {
 	LOG_CTRACE("client") << "Add new server:" << url;
 
@@ -663,11 +666,11 @@ Server *DesktopClient::serverAddWithUrl(const QUrl &url)
 
 
 /**
- * @brief DesktopClient::serverListSelectedCount
+ * @brief StandaloneClient::serverListSelectedCount
  * @return
  */
 
-int DesktopClient::serverListSelectedCount() const
+int StandaloneClient::serverListSelectedCount() const
 {
 	return Utils::selectedCount(m_serverList);
 }
@@ -675,47 +678,47 @@ int DesktopClient::serverListSelectedCount() const
 
 
 /**
- * @brief DesktopClient::volumeMusic
+ * @brief StandaloneClient::volumeMusic
  * @return
  */
 
 
-int DesktopClient::volumeMusic() const
+int StandaloneClient::volumeMusic() const
 {
 	return m_volumeMusic;
 }
 
-void DesktopClient::setVolumeMusic(int newVolumeMusic)
+void StandaloneClient::setVolumeMusic(int newVolumeMusic)
 {
 	_setVolume(Sound::MusicChannel, newVolumeMusic);
 }
 
-int DesktopClient::volumeSfx() const
+int StandaloneClient::volumeSfx() const
 {
 	return m_volumeSfx;
 }
 
-void DesktopClient::setVolumeSfx(int newVolumeSfx)
+void StandaloneClient::setVolumeSfx(int newVolumeSfx)
 {
 	_setVolume(Sound::SfxChannel, newVolumeSfx);
 }
 
-int DesktopClient::volumeVoiceOver() const
+int StandaloneClient::volumeVoiceOver() const
 {
 	return m_volumeVoiceOver;
 }
 
-void DesktopClient::setVolumeVoiceOver(int newVolumeVoiceOver)
+void StandaloneClient::setVolumeVoiceOver(int newVolumeVoiceOver)
 {
 	_setVolume(Sound::VoiceoverChannel, newVolumeVoiceOver);
 }
 
-bool DesktopClient::vibrate() const
+bool StandaloneClient::vibrate() const
 {
 	return m_vibrate;
 }
 
-void DesktopClient::setVibrate(bool newVibrate)
+void StandaloneClient::setVibrate(bool newVibrate)
 {
 	if (m_vibrate == newVibrate)
 		return;

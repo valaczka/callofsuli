@@ -42,7 +42,7 @@
 #include <QRandomGenerator>
 
 #ifndef Q_OS_WASM
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #endif
 
 /**
@@ -155,7 +155,7 @@ void GameScene::load()
 void GameScene::playSoundPlayerVoice(const QString &source)
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
 		client->playSound(source, Sound::PlayerVoice);
 #endif
@@ -170,7 +170,7 @@ void GameScene::playSoundPlayerVoice(const QString &source)
 void GameScene::playSound(const QString &source)
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
 		client->playSound(source, Sound::GameSound);
 #endif
@@ -185,7 +185,7 @@ void GameScene::playSound(const QString &source)
 void GameScene::playSoundVoiceOver(const QString &source)
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
 		client->playSound(source, Sound::VoiceOver);
 #endif
@@ -200,7 +200,7 @@ void GameScene::playSoundVoiceOver(const QString &source)
 void GameScene::playSoundMusic(const QString &source)
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
 		client->playSound(source, Sound::Music);
 #endif
@@ -217,7 +217,7 @@ void GameScene::playSoundMusic(const QString &source)
 void GameScene::stopSoundMusic(const QString &source)
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
 		client->stopSound(source, Sound::Music);
 #endif

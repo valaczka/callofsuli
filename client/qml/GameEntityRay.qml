@@ -21,6 +21,9 @@ Rectangle {
 	}*/
 
 	function show(rect, scene) {
+		if (!visible)
+			return
+
 		control.x = rect.x
 		control.y = rect.y
 		control.width = rect.width

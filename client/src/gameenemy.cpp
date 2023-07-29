@@ -32,7 +32,7 @@
 #include <qtimer.h>
 
 #ifndef Q_OS_WASM
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #endif
 
 GameEnemy::GameEnemy(QQuickItem *parent)
@@ -47,7 +47,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	connect(this, &GameObject::sceneConnected, this, &GameEnemy::onSceneConnected);
 
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client) {
 		m_soundEffect = client->newSoundEffect();
@@ -75,7 +75,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 GameEnemy::~GameEnemy()
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client)
 		client->removeSoundEffect(m_soundEffect);

@@ -43,7 +43,7 @@
 #endif
 
 #ifndef Q_OS_WASM
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #endif
 
 
@@ -901,7 +901,7 @@ void ActionGame::onGameQuestionSuccess(const QVariantMap &answer)
 void ActionGame::onGameQuestionFailed(const QVariantMap &answer)
 {
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(m_client);
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
 	if (client)
 		client->performVibrate();
 #endif

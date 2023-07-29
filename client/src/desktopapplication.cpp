@@ -27,7 +27,7 @@
 #include <RollingFileAppender.h>
 #include "ColorConsoleAppender.h"
 #include "desktopapplication.h"
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #include "utils.h"
 
 #ifdef Q_OS_WIN
@@ -262,7 +262,7 @@ int DesktopApplication::runSingleInstance()
 
 Client *DesktopApplication::createClient()
 {
-	Client *c = new DesktopClient(this, m_application);
+	Client *c = new StandaloneClient(this, m_application);
 
 	if (!m_arguments.isEmpty()) {
 		QUrl u(m_arguments.at(0));

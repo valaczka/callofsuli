@@ -22,7 +22,7 @@ GamePlayerImpl {
 	opacity: invisible ? 0.5 : 1.0
 
 
-	onRayCastPerformed: ray.show(rect, scene)
+	onRayCastPerformed: Qt.callLater(() => ray.show(rect, scene))
 
 	GameEntityRay {
 		id: ray

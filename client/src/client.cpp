@@ -1170,17 +1170,9 @@ void Client::parseUrl()
 
 	LOG_CINFO("client") << "Parse URL:" << m_parseUrl;
 
+	m_parseUrl = normalizeUrl(m_parseUrl);
+
 	const QUrlQuery q(m_parseUrl);
-
-	if (m_parseUrl.scheme() == QStringLiteral("callofsuli")) {
-		if (q.hasQueryItem(QStringLiteral("ssl")))
-			m_parseUrl.setScheme(QStringLiteral("https"));
-		else
-			m_parseUrl.setScheme(QStringLiteral("http"));
-
-		LOG_CINFO("client") << "Parse modified URL:" << m_parseUrl;
-	}
-
 
 	if (!server()) {
 		Server *server = serverAddWithUrl(m_parseUrl);
@@ -1246,6 +1238,39 @@ void Client::setParseUrl(const QUrl &url)
 const QUrl &Client::getParseUrl() const
 {
 	return m_parseUrl;
+}
+
+
+
+
+/**
+ * @brief Client::normalizeUrl
+ * @param url
+ * @return
+ */
+
+QUrl Client::normalizeUrl(const QUrl &url)
+{
+	QUrl ret = url;
+
+	if (url.isEmpty())
+		return ret;
+
+	LOG_CDEBUG("client") << "Normalize URL:" << url;
+
+	const QUrlQuery q(url);
+
+
+	if (url.scheme() == QStringLiteral("callofsuli")) {
+		if (q.hasQueryItem(QStringLiteral("ssl")))
+			ret.setScheme(QStringLiteral("https"));
+		else
+			ret.setScheme(QStringLiteral("http"));
+
+		LOG_CINFO("client") << "Normalized URL:" << ret;
+	}
+
+	return ret;
 }
 
 

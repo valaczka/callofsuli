@@ -330,6 +330,8 @@ Service::CommandResult ServerService::onResume()
 bool ServerService::wasmLoad()
 {
 	QStringList wasmList;
+
+	wasmList.append(m_settings->dataDir().absoluteFilePath(QStringLiteral("wasm.rcc")));
 	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/share/wasm.rcc"));
 	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../share/wasm.rcc"));
 	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../../share/wasm.rcc"));
@@ -706,6 +708,9 @@ bool ServerService::preStart()
 	parser.addOption({{QStringLiteral("q"), QStringLiteral("quiet")}, QObject::tr("Csendes üzemmód")});
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 
+
+	parser.addOption({{QStringLiteral("n"), QStringLiteral("name")}, QObject::tr("A szerver process elnevezése"), QStringLiteral("name")});
+
 #ifndef QT_DEBUG
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #else
@@ -737,14 +742,31 @@ bool ServerService::preStart()
 		return false;
 	}
 
-	if (parser.isSet(QStringLiteral("dir"))) {
+
+
+	const QByteArray &envName = qgetenv("SERVER_NAME");
+
+	if (parser.isSet(QStringLiteral("name")))
+		QCoreApplication::setApplicationName(QStringLiteral("callofsuli-server-").append(parser.value(QStringLiteral("name"))));
+	else if (!envName.isEmpty())
+		QCoreApplication::setApplicationName(QStringLiteral("callofsuli-server-").append(QString::fromUtf8(envName)));
+
+
+
+	const QByteArray &envDir = qgetenv("SERVER_DIR");
+
+	if (parser.isSet(QStringLiteral("dir")))
 		m_settings->setDataDir(parser.value(QStringLiteral("dir")));
-	} else {
+	else if (!envDir.isEmpty())
+			m_settings->setDataDir(QString::fromUtf8(envDir));
+	else {
 		LOG_CERROR("service") << "You must specify main data directory";
 
 		std::exit(1);
 		return false;
 	}
+
+
 
 
 	if (parser.isSet(QStringLiteral("quiet")))
@@ -775,11 +797,12 @@ bool ServerService::preStart()
 	if (m_settings->generateJwtSecret())
 		m_settings->saveToFile(true);
 
+#ifdef QT_DEBUG
 	if (parser.isSet(QStringLiteral("latency"))) {
 		setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
 		LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
 	}
-
+#endif
 
 	if (parser.isSet(QStringLiteral("log")))
 		m_settings->setLogLimit(parser.value(QStringLiteral("log")).toInt());

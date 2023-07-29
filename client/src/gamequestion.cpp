@@ -30,7 +30,7 @@
 #include "application.h"
 
 #ifndef Q_OS_WASM
-#include "desktopclient.h"
+#include "standaloneclient.h"
 #endif
 
 GameQuestion::GameQuestion(QQuickItem *parent)
@@ -149,9 +149,9 @@ void GameQuestion::onLoaderLoaded(QQuickItem *item)
 	}
 
 #ifndef Q_OS_WASM
-	DesktopClient *client = qobject_cast<DesktopClient*>(Application::instance()->client());
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
-		connect(component, &GameQuestionComponent::vibrateRequest, client, &DesktopClient::performVibrate);
+		connect(component, &GameQuestionComponent::vibrateRequest, client, &StandaloneClient::performVibrate);
 #endif
 
 

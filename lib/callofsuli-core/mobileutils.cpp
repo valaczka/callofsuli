@@ -33,6 +33,7 @@
 
 
 MobileUtils* MobileUtils::m_instance = nullptr;
+QString MobileUtils::m_pendingArg;
 
 /**
  * @brief MobileUtils::MobileUtils
