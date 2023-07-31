@@ -158,6 +158,8 @@ public:
 	void setInvisibleTime(const int &msec);
 	const int &invisibleTime() const;
 
+	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
+
 public slots:
 	void hurtByEnemy(GameEnemy *, const bool &canProtect = false);
 	void killByEnemy(GameEnemy *);
@@ -188,9 +190,7 @@ signals:
 
 private slots:
 	void onEnemyKilled();
-	void onIsOnGroundChanged();
 	void onSceneConnected();
-	void onTimingTimerTimeout(const qreal &delayFactor);
 	void onBeginContact(Box2DFixture *other);
 	void onEndContact(Box2DFixture *other);
 	void onBaseGroundContacted();

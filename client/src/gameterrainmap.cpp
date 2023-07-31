@@ -26,7 +26,6 @@
 
 #include "gameterrainmap.h"
 #include "Logger.h"
-#include "client.h"
 #include "libtiled/mapreader.h"
 #include "libtiled/objectgroup.h"
 
@@ -83,6 +82,16 @@ bool GameTerrainMap::loadMapFromFile(QString filename)
 		LOG_CWARNING("client") << "Failed to read" << qPrintable(filename) << "error:" << qPrintable(reader.errorString());
 		return false;
 	}
+
+	const QString dirName = filename.section('/', 0, -2);
+	const QString imageTerrain = dirName+QStringLiteral("/terrain.png");
+	const QString imageOver = dirName+QStringLiteral("/over.png");
+
+	if (QFile::exists(imageTerrain))
+		m_imageTerrain = QStringLiteral("qrc")+imageTerrain;
+
+	if (QFile::exists(imageOver))
+		m_imageOver = QStringLiteral("qrc")+imageOver;
 
 	if (loadObjectLayers()) {
 		m_isValid = true;
@@ -323,6 +332,16 @@ void GameTerrainMap::readPickableLayer(Tiled::ObjectGroup *layer)
 			LOG_CWARNING("client") << "Invalid map object type:" << type;
 		}
 	}
+}
+
+const QString &GameTerrainMap::imageOver() const
+{
+	return m_imageOver;
+}
+
+const QString &GameTerrainMap::imageTerrain() const
+{
+	return m_imageTerrain;
 }
 
 

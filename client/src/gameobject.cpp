@@ -67,6 +67,9 @@ GameObject::GameObject(QQuickItem *parent)
 
 GameObject::~GameObject()
 {
+	if (m_scene)
+		m_scene->gameObjectRemove(this);
+
 	delete m_body;
 
 	qDeleteAll(m_childItems);
@@ -168,7 +171,7 @@ void GameObject::onSceneChanged()
 		}
 
 		if (m_scene) {
-			connect(m_scene->timingTimer(), &QTimer::timeout, this, &GameObject::calculateTimeout);
+			m_scene->gameObjectAdd(this);
 			emit sceneConnected();
 			m_sceneConnected = true;
 		}
@@ -176,32 +179,6 @@ void GameObject::onSceneChanged()
 }
 
 
-
-
-/**
- * @brief GameObject::calculateTimeout
- */
-
-void GameObject::calculateTimeout()
-{
-	if (!m_scene) {
-		m_elapsedTimer.invalidate();
-		return;
-	}
-
-	qreal factor = 1.0;
-
-	if (!m_elapsedTimer.isValid())
-		m_elapsedTimer.start();
-	else {
-		const qreal &msec = m_elapsedTimer.restart();
-		const qreal &interval = m_scene->timingTimerTimeoutMsec();
-
-		factor = qMax(1.0, msec/interval);
-	}
-
-	emit timingTimerTimeout(factor);
-}
 
 
 /**
@@ -232,4 +209,18 @@ void GameObject::setObjectType(const QString &newObjectType)
 		return;
 	m_objectType = newObjectType;
 	emit objectTypeChanged();
+}
+
+
+
+/**
+ * @brief GameObject::onTimingTimerTimeout
+ * @param msec
+ * @param delayFactor
+ */
+
+void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
+{
+	Q_UNUSED(msec)
+	Q_UNUSED(delayFactor)
 }

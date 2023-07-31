@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.8" tiledversion="1.8.2" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
+<tileset version="1.10" tiledversion="1.10.1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
  <image source="hyptosis.png" width="960" height="3840"/>
  <wangsets>
   <wangset name="Terepek" type="corner" tile="-1">
@@ -10,6 +10,7 @@
    <wangcolor name="StoneWall5" color="#00e9ff" tile="1097" probability="1"/>
    <wangcolor name="StoneWall7" color="#ff00d8" tile="1774" probability="1"/>
    <wangcolor name="StoneWall8" color="#ffff00" tile="2554" probability="1"/>
+   <wangcolor name="MineWall1" color="#a000ff" tile="-1" probability="1"/>
    <wangtile tileid="312" wangid="0,1,0,1,0,1,0,1"/>
    <wangtile tileid="375" wangid="0,1,0,1,0,1,0,1"/>
    <wangtile tileid="402" wangid="0,1,0,1,0,1,0,1"/>
@@ -83,6 +84,7 @@
    <wangtile tileid="2349" wangid="0,7,0,0,0,0,0,7"/>
    <wangtile tileid="2350" wangid="0,0,0,0,0,0,0,7"/>
    <wangtile tileid="2454" wangid="0,0,0,2,0,2,0,0"/>
+   <wangtile tileid="2455" wangid="0,0,0,2,0,2,0,0"/>
    <wangtile tileid="2456" wangid="0,0,0,0,0,2,0,0"/>
    <wangtile tileid="2457" wangid="0,0,0,2,0,0,0,0"/>
    <wangtile tileid="2484" wangid="0,2,0,0,0,0,0,2"/>
@@ -95,6 +97,33 @@
    <wangtile tileid="2644" wangid="0,0,0,3,0,0,0,0"/>
    <wangtile tileid="2674" wangid="0,3,0,3,0,0,0,0"/>
    <wangtile tileid="2704" wangid="0,3,0,0,0,0,0,0"/>
+   <wangtile tileid="2888" wangid="0,8,0,8,0,8,0,8"/>
+   <wangtile tileid="2890" wangid="0,8,0,0,0,0,0,8"/>
+   <wangtile tileid="2919" wangid="0,8,0,8,0,0,0,0"/>
+   <wangtile tileid="2920" wangid="0,0,0,0,0,8,0,8"/>
+   <wangtile tileid="2949" wangid="0,8,0,0,0,0,0,0"/>
+   <wangtile tileid="2950" wangid="0,0,0,0,0,0,0,8"/>
+   <wangtile tileid="2951" wangid="0,8,0,8,0,0,0,0"/>
+   <wangtile tileid="2952" wangid="0,0,0,0,0,8,0,8"/>
+   <wangtile tileid="2953" wangid="0,8,0,8,0,8,0,8"/>
+   <wangtile tileid="2985" wangid="0,0,0,8,0,8,0,0"/>
+   <wangtile tileid="3015" wangid="0,0,0,8,0,0,0,0"/>
+   <wangtile tileid="3045" wangid="0,0,0,0,0,8,0,0"/>
+  </wangset>
+  <wangset name="Terepek2" type="corner" tile="-1">
+   <wangcolor name="MineWall2" color="#ff0000" tile="-1" probability="1"/>
+   <wangtile tileid="2888" wangid="0,1,0,1,0,1,0,1"/>
+   <wangtile tileid="2919" wangid="0,1,0,1,0,0,0,0"/>
+   <wangtile tileid="2920" wangid="0,0,0,0,0,1,0,1"/>
+   <wangtile tileid="2951" wangid="0,1,0,1,0,0,0,0"/>
+   <wangtile tileid="2952" wangid="0,0,0,0,0,1,0,1"/>
+   <wangtile tileid="2953" wangid="0,1,0,1,0,1,0,1"/>
+   <wangtile tileid="2981" wangid="0,1,0,0,0,0,0,0"/>
+   <wangtile tileid="2982" wangid="0,0,0,0,0,0,0,1"/>
+   <wangtile tileid="2983" wangid="0,1,0,0,0,0,0,1"/>
+   <wangtile tileid="2985" wangid="0,0,0,1,0,1,0,0"/>
+   <wangtile tileid="3015" wangid="0,0,0,1,0,0,0,0"/>
+   <wangtile tileid="3045" wangid="0,0,0,0,0,1,0,0"/>
   </wangset>
  </wangsets>
 </tileset>

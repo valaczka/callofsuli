@@ -91,8 +91,6 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 
 	connect(this, &GameObject::sceneConnected, this, &GamePlayer::onSceneConnected);
-	connect(this, &GameObject::timingTimerTimeout, this, &GamePlayer::onTimingTimerTimeout);
-	connect(this, &GameEntity::isOnGroundChanged, this, &GamePlayer::onIsOnGroundChanged);
 	connect(this, &GameEntity::beginContact, this, &GamePlayer::onBeginContact);
 	connect(this, &GameEntity::endContact, this, &GamePlayer::onEndContact);
 	connect(this, &GameEntity::baseGroundContact, this, &GamePlayer::onBaseGroundContacted);
@@ -175,12 +173,18 @@ void GamePlayer::onSceneConnected()
 
 
 
+
 /**
  * @brief GamePlayer::onTimingTimerTimeout
+ * @param msec
+ * @param delayFactor
  */
 
-void GamePlayer::onTimingTimerTimeout(const qreal &delayFactor)
+void GamePlayer::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 {
+	if (!game() || !m_scene)
+		return;
+
 	if (game() && !game()->running())
 		return;
 
@@ -201,7 +205,7 @@ void GamePlayer::onTimingTimerTimeout(const qreal &delayFactor)
 		if (!m_invisible)
 			setInvisible(true);
 
-		setInvisibleTime(qMax(m_invisibleTime - qFloor(m_scene->timingTimerTimeoutMsec() * delayFactor), 0));
+		setInvisibleTime(qMax(m_invisibleTime - qFloor(msec * delayFactor), 0));
 	}
 
 	setInvisible(m_invisibleTime > 0);
@@ -245,7 +249,7 @@ void GamePlayer::onTimingTimerTimeout(const qreal &delayFactor)
 	}
 
 
-	m_soundElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+	m_soundElapsedMsec += msec * delayFactor;
 
 	if (m_playerState == Walk) {
 		if (m_soundElapsedMsec >= 400) {
@@ -292,15 +296,17 @@ void GamePlayer::onTimingTimerTimeout(const qreal &delayFactor)
 		return;
 	} else if (m_playerState == Fall) {
 		qreal d = y()-m_fallStart;
-		LOG_CDEBUG("scene") << "Player fell:" << d;
+		LOG_CINFO("scene") << "Player fell:" << d;
 
-		if (d >= m_deathlyFall || m_hp == 1) {
-			setPlayerState(Dead);
-			m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/falldead.mp3"));
-			kill();
-			return;
-		} else if (d >= m_hurtFall) {
-			decreaseHp();
+		if (!m_ladderFall) {
+			if (d >= m_deathlyFall || (d >= m_hurtFall && m_hp == 1)) {
+				setPlayerState(Dead);
+				m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/falldead.mp3"));
+				kill();
+				return;
+			} else if (d >= m_hurtFall) {
+				decreaseHp();
+			}
 		}
 
 		setPlayerState(Idle);
@@ -343,8 +349,6 @@ void GamePlayer::onTimingTimerTimeout(const qreal &delayFactor)
 	} else if (m_lastCurrentSprite != QStringLiteral("idle")) {
 		jumpToSprite(QStringLiteral("idle"));
 	}
-
-
 
 }
 
@@ -542,6 +546,7 @@ void GamePlayer::ladderMove(const bool &up, const qreal &delayFactor)
 		if (_y < m_ladder->boundRect().top() - height()) {
 			_y = m_ladder->boundRect().top()-height();
 			LOG_CDEBUG("scene") << "Finish climbing up on ladder:" << m_ladder->boundRect();
+			m_ladderFall = true;
 			setLadderState(LadderInactive);
 			setY(_y);
 			body()->setBodyType(Box2DBody::Dynamic);
@@ -1058,14 +1063,6 @@ void GamePlayer::onMovingFlagsChanged()
 }
 
 
-/**
- * @brief GamePlayer::onIsOnGroundChanged
- */
-
-void GamePlayer::onIsOnGroundChanged()
-{
-
-}
 
 
 
@@ -1272,3 +1269,5 @@ const int &GamePlayer::invisibleTime() const
 {
 	return m_invisibleTime;
 }
+
+

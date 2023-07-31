@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="75" height="35" tilewidth="32" tileheight="32" infinite="0" nextlayerid="32" nextobjectid="2">
+ <tileset firstgid="1" source="../_Template/tileset/wood-fall.tsx"/>
+ <group id="15" name="TILES">
+  <group id="23" name="Background">
+   <layer id="24" name="TerrainBG" width="75" height="35">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+   <layer id="25" name="NormalBG" width="75" height="35">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+   <layer id="26" name="TransposedBG" width="75" height="35" offsetx="0" offsety="-16">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+  </group>
+  <group id="27" name="Middle">
+   <layer id="28" name="TerrainM" width="75" height="35">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+   <layer id="29" name="NormalM" width="75" height="35">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+   <layer id="30" name="TransposedM" width="75" height="35" offsetx="0" offsety="-16">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+  </group>
+  <group id="2" name="Foreground">
+   <layer id="5" name="TerrainFG" width="75" height="35">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+   <layer id="4" name="NormalFG" width="75" height="35">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+   <layer id="13" name="TransposedFG" width="75" height="35" offsetx="0" offsety="-16">
+    <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+   </layer>
+  </group>
+  <layer id="31" name="Before" width="75" height="35">
+   <properties>
+    <property name="z" type="int" value="11"/>
+   </properties>
+   <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20ON6AAAAAAAAAAAAAA/gwpBAAB
+  </data>
+  </layer>
+ </group>
+ <objectgroup color="#ffaa00" id="17" name="Ground"/>
+ <objectgroup color="#ff0000" id="18" name="Enemies"/>
+ <objectgroup color="#ffff00" id="19" name="Objects"/>
+ <objectgroup color="#00ff00" id="20" name="Items"/>
+ <objectgroup color="#ff00ff" id="21" name="Ladders"/>
+ <objectgroup color="#ffffff" id="22" name="Player">
+  <object id="1" x="144" y="82">
+   <properties>
+    <property name="block" type="int" value="1"/>
+    <property name="start" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

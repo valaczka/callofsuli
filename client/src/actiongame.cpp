@@ -1294,7 +1294,7 @@ int ActionGame::activeEnemies() const
 
 void ActionGame::onPlayerDied(GameEntity *)
 {
-	LOG_CDEBUG("game") << "Player died";
+	LOG_CINFO("game") << "Player died";
 	setPlayer(nullptr);
 
 	message(tr("Your man has died"), QStringLiteral("#e53935"));
@@ -1332,7 +1332,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	m_killStreak++;
 
-	LOG_CWARNING("game") << "Kill streak:" << m_killStreak;
+	LOG_CINFO("game") << "Kill streak:" << m_killStreak;
 
 	int xp = 0;
 

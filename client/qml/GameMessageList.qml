@@ -41,7 +41,7 @@ ListView {
 
 			anchors.centerIn: parent
 
-			Qaterial.LabelBody1 {
+			Qaterial.LabelBody2 {
 				id: _label
 
 				width: Math.min(implicitWidth, _item.width/1.5)

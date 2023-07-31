@@ -42,7 +42,6 @@ GameEnemySniper::GameEnemySniper(QQuickItem *parent)
 	m_defaultShotSound = QStringLiteral("qrc:/sound/sfx/rifle.wav");
 
 	connect(this, &GameEnemy::attack, this, &GameEnemySniper::onAttack);
-	connect(this, &GameObject::timingTimerTimeout, this, &GameEnemySniper::onTimingTimerTimeout);
 	connect(this, &GameObject::sceneConnected, this, &GameEnemySniper::onSceneConnected);
 }
 
@@ -242,11 +241,16 @@ void GameEnemySniper::onAttack()
 }
 
 
+
+
+
 /**
  * @brief GameEnemySniper::onTimingTimerTimeout
+ * @param msec
+ * @param delayFactor
  */
 
-void GameEnemySniper::onTimingTimerTimeout(const qreal &delayFactor)
+void GameEnemySniper::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySniper) {
 		LOG_CWARNING("scene") << "Invalid enemy type";
@@ -261,14 +265,14 @@ void GameEnemySniper::onTimingTimerTimeout(const qreal &delayFactor)
 	}
 
 	if (m_enemyState == Move) {
-		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+		m_turnElapsedMsec += msec * delayFactor;
 
 		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
 			setFacingLeft(!facingLeft());
 			m_turnElapsedMsec = -1;
 		}
 	} else if (m_enemyState == WatchPlayer) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+		m_attackElapsedMsec += msec * delayFactor;
 
 		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
 
@@ -278,7 +282,7 @@ void GameEnemySniper::onTimingTimerTimeout(const qreal &delayFactor)
 			m_attackElapsedMsec = 0;
 		}
 	} else if (m_enemyState == Attack) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+		m_attackElapsedMsec += msec * delayFactor;
 
 		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
 			attackPlayer();
@@ -286,7 +290,6 @@ void GameEnemySniper::onTimingTimerTimeout(const qreal &delayFactor)
 		}
 	}
 }
-
 
 
 /**
@@ -306,6 +309,10 @@ void GameEnemySniper::setTurnElapsedMsec(int newTurnElapsedMsec)
 	m_turnElapsedMsec = newTurnElapsedMsec;
 	emit turnElapsedMsecChanged();
 }
+
+
+
+
 
 int GameEnemySniper::msecBeforeTurn() const
 {

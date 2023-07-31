@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.9" tiledversion="1.9.2" orientation="orthogonal" renderorder="right-down" width="59" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="86" nextobjectid="269">
  <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
-  <image source="../tileset/hyptosis.png" width="960" height="3840"/>
+  <image source="../_Template/tileset/hyptosis.png" width="960" height="3840"/>
   <wangsets>
    <wangset name="Terepek" type="corner" tile="-1">
     <wangcolor name="StoneWall1" color="#ff0000" tile="475" probability="1"/>

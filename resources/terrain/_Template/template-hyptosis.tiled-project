@@ -1,0 +1,12 @@
+{
+    "automappingRulesFile": "tileset/rules/hyptosis.txt",
+    "commands": [
+    ],
+    "compatibilityVersion": 1100,
+    "extensionsPath": "extensions",
+    "folders": [
+        "."
+    ],
+    "propertyTypes": [
+    ]
+}

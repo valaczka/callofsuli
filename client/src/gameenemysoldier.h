@@ -49,6 +49,8 @@ public:
 
 	Q_INVOKABLE void attackPlayer();
 
+	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
+
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
 	virtual void enemyStateModified() override;
@@ -62,7 +64,6 @@ signals:
 
 private slots:
 	void onAttack();
-	void onTimingTimerTimeout(const qreal &delayFactor);
 
 private:
 	int m_msecBeforeTurn = 5000;

@@ -196,7 +196,6 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
-	tiledpaintedlayer.cpp \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
@@ -260,7 +259,6 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
-	tiledpaintedlayer.h \
 	updater.h \
 	user.h \
 	userimporter.h \

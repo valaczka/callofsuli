@@ -32,8 +32,8 @@
 #include <QQuickItem>
 #include <QStack>
 #include "gameladder.h"
-#include "tiledpaintedlayer.h"
 #include "gameterrainmap.h"
+#include "qtimer.h"
 
 class ActionGame;
 class GameObject;
@@ -55,11 +55,11 @@ class GameScene : public QQuickItem
 	Q_PROPERTY(QList<QPointer<GameLadder>> ladders READ ladders CONSTANT)
 	Q_PROPERTY(bool showObjects READ showObjects WRITE setShowObjects NOTIFY showObjectsChanged)
 	Q_PROPERTY(bool showEnemies READ showEnemies WRITE setShowEnemies NOTIFY showEnemiesChanged)
-	Q_PROPERTY(QTimer *timingTimer READ timingTimer CONSTANT)
-	Q_PROPERTY(int timingTimerTimeoutMsec READ timingTimerTimeoutMsec CONSTANT)
 	Q_PROPERTY(QQuickItem* mouseArea READ mouseArea WRITE setMouseArea NOTIFY mouseAreaChanged)
 	Q_PROPERTY(SceneState sceneState READ sceneState WRITE setSceneState NOTIFY sceneStateChanged)
 	Q_PROPERTY(QQuickItem* messageList READ messageList WRITE setMessageList NOTIFY messageListChanged)
+	Q_PROPERTY(QString imageTerrain READ imageTerrain NOTIFY imageTerrainChanged)
+	Q_PROPERTY(QString imageOver READ imageOver NOTIFY imageOverChanged)
 
 public:
 	GameScene(QQuickItem *parent = nullptr);
@@ -106,9 +106,6 @@ public:
 
 	Q_INVOKABLE void addChildItem(QQuickItem *item);
 
-	QTimer *timingTimer() const;
-	int timingTimerTimeoutMsec() const;
-
 	QQuickItem *mouseArea() const;
 	void setMouseArea(QQuickItem *newMouseArea);
 
@@ -129,6 +126,12 @@ public:
 
 	QQuickItem *messageList() const;
 	void setMessageList(QQuickItem *newMessageList);
+
+	const QString &imageTerrain() const;
+	const QString &imageOver() const;
+
+	void gameObjectAdd(GameObject *object);
+	void gameObjectRemove(GameObject *object);
 
 public slots:
 	void zoomOverviewToggle();
@@ -156,6 +159,8 @@ signals:
 	void mouseAreaChanged();
 	void sceneStateChanged();
 	void messageListChanged();
+	void imageTerrainChanged();
+	void imageOverChanged();
 
 private:
 	void loadGameData();
@@ -170,20 +175,31 @@ private:
 
 
 private:
+	void onTimerTimeout();
+
+	void fpsSet();
+	void fpsIncrease();
+	void fpsDecrease();
+
 	ActionGame *m_game = nullptr;
 	GameTerrainMap m_terrain;
 	Box2DWorld *m_world = nullptr;
 	QQuickItem *m_mouseArea = nullptr;
 	QQuickItem *m_messageList = nullptr;
 
-	QTimer *m_timingTimer = nullptr;
+	QElapsedTimer m_elapsedTimer;
 	const int m_timingTimerTimeoutMsec = TIMING_TIMER_TIMEOUT_MSEC;
+
+	QElapsedTimer m_performanceTimer;
+	const QVector<double> m_fpsList = {60., 30., 25., 24., 18., 12.};
+	int m_fpsIndex = 0;
 
 	QList<QPointer<GameObject>> m_grounds;
 	QList<QPointer<GameLadder>> m_ladders;
-	QList<QPointer<TiledPaintedLayer>> m_tiledLayers;
 	QList<QPointer<QQuickItem>> m_childItems;
 	QStack<QPointer<GamePlayerPosition>> m_playerPositions;
+
+	QVector<GameObject*> m_gameObjects;
 
 	bool m_zoomOverview = false;
 	bool m_debugView = false;

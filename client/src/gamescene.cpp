@@ -35,9 +35,7 @@
 #include "gameplayerposition.h"
 #include "libtiled/mapobject.h"
 #include "libtiled/objectgroup.h"
-#include "qtimer.h"
 #include "server.h"
-#include "tiledpaintedlayer.h"
 #include "utils.h"
 #include <QRandomGenerator>
 
@@ -52,15 +50,11 @@
 
 GameScene::GameScene(QQuickItem *parent)
 	: QQuickItem(parent)
-	, m_timingTimer(new QTimer(this))
 {
 	LOG_CDEBUG("scene") << "Scene created" << this;
 
 	setImplicitWidth(200);
 	setImplicitHeight(200);
-
-	m_timingTimer->setInterval(m_timingTimerTimeoutMsec);
-	m_timingTimer->start();
 
 	loadGameData();
 
@@ -75,11 +69,8 @@ GameScene::GameScene(QQuickItem *parent)
 
 GameScene::~GameScene()
 {
-	delete m_timingTimer;
-
 	qDeleteAll(m_childItems);
 	qDeleteAll(m_ladders);
-	qDeleteAll(m_tiledLayers);
 	qDeleteAll(m_grounds);
 
 	LOG_CDEBUG("scene") << "Scene destroyed" << this;
@@ -414,30 +405,17 @@ void GameScene::loadGameData()
 
 void GameScene::loadTiledLayers()
 {
-	Tiled::Map *map = m_terrain.map();
-
-	if (!map) {
-		LOG_CWARNING("scene") << "Invalid map";
-		return;
+	if (!m_terrain.imageTerrain().isEmpty()) {
+		LOG_CDEBUG("scene") <<  "Load terrain tile image:" << qPrintable(m_terrain.imageTerrain());
+		emit imageTerrainChanged();
 	}
 
-	for (auto layer = map->tileLayers().begin(); layer != map->tileLayers().end(); ++layer) {
-		LOG_CDEBUG("scene") <<  QObject::tr("Load tile layer:") << layer->name();
-
-		Tiled::TileLayer *l = static_cast<Tiled::TileLayer*>(*layer);
-
-		TiledPaintedLayer *paintedLayer = new TiledPaintedLayer(this, map, l);
-		QVariant layerZ = layer->property("z");
-		paintedLayer->setX(layer->offset().x());
-		paintedLayer->setY(layer->offset().y());
-		paintedLayer->setZ(layerZ.isValid() ? layerZ.toInt() : -1);
-		paintedLayer->setOpacity(layer->opacity());
-		paintedLayer->setVisible(layer->isVisible());
-		paintedLayer->setWidth(paintedLayer->implicitWidth());
-		paintedLayer->setHeight(paintedLayer->implicitHeight());
-
-		m_tiledLayers.append(paintedLayer);
+	if (!m_terrain.imageOver().isEmpty()) {
+		LOG_CDEBUG("scene") <<  "Load terrain over image:" << qPrintable(m_terrain.imageOver());
+		emit imageOverChanged();
 	}
+
+	QCoreApplication::processEvents();
 }
 
 
@@ -652,6 +630,107 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 }
 
 
+
+
+
+/**
+ * @brief GameScene::onTimerTimeout
+ */
+
+void GameScene::onTimerTimeout()
+{
+	qreal factor = 1.0;
+
+	if (!m_elapsedTimer.isValid())
+		m_elapsedTimer.start();
+	else {
+		const qreal &msec = m_elapsedTimer.restart();
+		const qreal &interval = m_timingTimerTimeoutMsec;
+
+		factor = msec/interval;
+
+		const qreal &fpsFactor = (msec/1000.) * m_fpsList.at(m_fpsIndex);
+
+
+		if (fpsFactor >= 1.5) {
+			if (!m_performanceTimer.isValid())
+				m_performanceTimer.start();
+			else if (m_performanceTimer.elapsed() >= 2000) {
+				fpsDecrease();
+				m_performanceTimer.invalidate();
+			}
+		} else if (fpsFactor <= 0.8) {
+			if (!m_performanceTimer.isValid())
+				m_performanceTimer.start();
+			else if (m_performanceTimer.elapsed() >= 1000) {
+				fpsIncrease();
+				m_performanceTimer.invalidate();
+			}
+		} else if (m_performanceTimer.isValid())
+			m_performanceTimer.invalidate();
+	}
+
+
+	foreach (GameObject *o, m_gameObjects)
+		o->onTimingTimerTimeout(m_timingTimerTimeoutMsec, factor);
+
+
+	foreach (GameObject *o, m_gameObjects) {
+		GameEntity *e = qobject_cast<GameEntity*>(o);
+		if (e)
+			e->performRayCast();
+	}
+}
+
+
+
+/**
+ * @brief GameScene::fpsSet
+ */
+
+void GameScene::fpsSet()
+{
+	double fps = m_fpsList.at(m_fpsIndex);
+	LOG_CINFO("scene") << "Set fps:" << fps;
+
+#ifdef QT_DEBUG
+	if (m_game)
+		m_game->message(QString("FPS SET %1").arg(fps));
+#endif
+
+	if (m_world)
+		m_world->setTimeStep(1./fps);
+}
+
+
+/**
+ * @brief GameScene::fpsIncrease
+ */
+
+void GameScene::fpsIncrease()
+{
+	if (m_fpsIndex > 0) {
+		--m_fpsIndex;
+		fpsSet();
+	}
+}
+
+
+/**
+ * @brief GameScene::fpsDecrease
+ */
+
+void GameScene::fpsDecrease()
+{
+	if (m_fpsIndex < m_fpsList.size()-1) {
+		++m_fpsIndex;
+		fpsSet();
+	}
+}
+
+
+
+
 /**
  * @brief GameScene::terrain
  * @return
@@ -779,26 +858,6 @@ void GameScene::createPlayer()
 
 
 
-/**
- * @brief GameScene::timingTimerTimeoutMsec
- * @return
- */
-
-int GameScene::timingTimerTimeoutMsec() const
-{
-	return m_timingTimerTimeoutMsec;
-}
-
-
-/**
- * @brief GameScene::timingTimer
- * @return
- */
-
-QTimer *GameScene::timingTimer() const
-{
-	return m_timingTimer;
-}
 
 
 
@@ -830,6 +889,11 @@ void GameScene::setWorld(Box2DWorld *newWorld)
 		return;
 	m_world = newWorld;
 	emit worldChanged();
+
+	if (m_world) {
+		fpsSet();
+		connect(m_world, &Box2DWorld::stepped, this, &GameScene::onTimerTimeout);
+	}
 }
 
 
@@ -910,6 +974,8 @@ void GameScene::onSceneLoadFailed()
 	m_game->pageItem()->setProperty("closeQuestion", QLatin1String(""));
 
 	m_game->unloadPageItem();
+
+	emit m_game->gameFinished(AbstractGame::Fail);
 
 }
 
@@ -1039,4 +1105,39 @@ void GameScene::setMessageList(QQuickItem *newMessageList)
 		return;
 	m_messageList = newMessageList;
 	emit messageListChanged();
+}
+
+
+
+const QString &GameScene::imageTerrain() const
+{
+	return m_terrain.imageTerrain();
+}
+
+const QString &GameScene::imageOver() const
+{
+	return m_terrain.imageOver();
+}
+
+
+/**
+ * @brief GameScene::gameObjectAdd
+ * @param object
+ */
+
+void GameScene::gameObjectAdd(GameObject *object)
+{
+	if (!m_gameObjects.contains(object))
+		m_gameObjects.append(object);
+}
+
+
+/**
+ * @brief GameScene::gameObjectRemove
+ * @param object
+ */
+
+void GameScene::gameObjectRemove(GameObject *object)
+{
+	m_gameObjects.removeAll(object);
 }

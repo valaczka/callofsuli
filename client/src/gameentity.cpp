@@ -51,8 +51,6 @@ GameEntity::GameEntity(QQuickItem *parent)
 
 	connect(m_rayCast, &Box2DRayCast::fixtureReported, this, &GameEntity::onRayCastFixtureReported);
 
-	connect(this, &GameObject::sceneConnected, this, &GameEntity::onSceneConnected);
-
 	connect(this, &GameEntity::beginContact, this, &GameEntity::onBeginContact);
 	connect(this, &GameEntity::endContact, this, &GameEntity::onEndContact);
 
@@ -424,7 +422,7 @@ void GameEntity::onEndContact(Box2DFixture *other)
  * @brief GameEntity::onRayCastTimerTimeout
  */
 
-void GameEntity::onRayCastTimerTimeout(const qreal &)
+void GameEntity::performRayCast()
 {
 	if (game() && game()->running() && m_rayCastEnabled && isAlive())
 		doRayCast();
@@ -726,14 +724,6 @@ void GameEntity::onFacingLeftChanged()
 }
 
 
-/**
- * @brief GameEntity::onSceneConnected
- */
-
-void GameEntity::onSceneConnected()
-{
-	connect(this, &GameObject::timingTimerTimeout, this, &GameEntity::onRayCastTimerTimeout);
-}
 
 
 /**
@@ -820,6 +810,8 @@ void GameEntity::setHpProgressValue(int newHpProgressValue)
 	m_hpProgressValue = newHpProgressValue;
 	emit hpProgressValueChanged();
 }
+
+
 
 
 /**

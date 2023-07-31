@@ -36,11 +36,30 @@ GameSceneImpl {
 	scale: _sceneZoom+((1.0-_sceneZoom)*_sceneScale)
 	transformOrigin: Item.TopLeft
 
-	world: World {  }
+	world: World {
+		//timeStep: 1.0/25.0
+	}
 
 	mouseArea: area
 
 	layer.enabled: true
+
+
+	Image {
+		anchors.fill: parent
+		fillMode: Image.Pad
+		source: control.imageTerrain
+		visible: control.imageTerrain != ""
+	}
+
+
+	Image {
+		anchors.fill: parent
+		fillMode: Image.Pad
+		source: control.imageOver
+		visible: control.imageOver != ""
+		z: 11
+	}
 
 
 	// Base ground

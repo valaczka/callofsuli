@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="32" nextobjectid="16">
+ <tileset firstgid="1" source="../_Template/tileset/wood-fall.tsx"/>
+ <tileset firstgid="1588" source="../_Template/tileset/hyptosis.tsx"/>
+ <group id="15" name="TILES">
+  <group id="23" name="Background">
+   <layer id="24" name="TerrainBG" width="30" height="20">
+    <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AU0AIwAjETkZiZDH3IepCBBBAbIWFJJFoSTU4KTZ8kmj50vZJoepCBPBAbEIk5kPTpI4njcjM+e9EBKeEOw8S6FR+AhR96OKOHObK/cMUhKYCUcCfVT0MRkJvvKAWwfIcv/mFsYtMyMYDcfDcKaA8ARAMQqA==
+  </data>
+   </layer>
+   <layer id="25" name="NormalBG" width="30" height="20">
+    <data encoding="base64" compression="zlib">
+   eJztlLtSAkEQRbfmk0AlEXMfmKg5PkjAXAETJAeBBM0VJRFzn9+gqJ/jydzqWqZ7pjbkVp2a2a3qO1NdfSdJlsrSukuSMmy4/38F9kVYgVVYg5LT60K0R90+HKTqN9lvwTbsQAV2nV4Xojp1DThN1VfZH8IRHMMJ1JxeZ5Gvl2es59CEFrThQvh3+L6EbuC5vl72WPtwBQMYwkj4j/m+hpvAc329vGW9gwncwwNMhf8j3zN4CjzX18tn1hd4hTd4h4/I+ZHy9fKT9Qvm8A0/8OvisiPnyNJLqZjsyDnK6qX2XliyIz3kHGX1UnsvLNmRHpZMau+FJTvSw5JJ7W6W7EgPyxxZ7qZJelgyGTPjUtJjUSbTyuO9iPGw3E1THh4x+gMWwYm3
+  </data>
+   </layer>
+   <layer id="26" name="TransposedBG" width="30" height="20" offsetx="0" offsety="16">
+    <data encoding="base64" compression="zlib">
+   eJzt08VNRUEYhuGTUxJUgUsFuFSASwW4VIBLBbhUgEsFuDTAs5nkhszmziGs7ps8ySSTb/lnWbyaPMtqqaOeBhppopkWWvO/24Xa/LXTQSdddNNDL330R/apu9CAv0GGGGaEUcYYZ4LJyD51F5ryN80Ms8wxzwKLLLEc2afuQiv+VlljnQ022WKbHXYj+9RdaM/fPgcccsQxJ5xyxnlkn7oLXfi75IprbrjljnseeCzZV3lX5+Xvfvfk75kXXnnjnQ8++eK7ZB/up9xd0YreT2pF7ye1oveTWtH7Sa3o/aRW9H5S++/7qVQp1g9jmpPm
+  </data>
+   </layer>
+  </group>
+  <group id="27" name="Middle">
+   <layer id="28" name="TerrainM" width="30" height="20">
+    <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUjAL6AzcgdicSe1DR3lggLkfCcUi4HI2Op6K9KUBcSiQuo6K9lAJi44macQQCyPGELY5gbGrGEbK9uNIFDFPbXmLThy+V7R0FtAMAOmYedg==
+  </data>
+   </layer>
+   <layer id="29" name="NormalM" width="30" height="20">
+    <data encoding="base64" compression="zlib">
+   eJzt0kkOAUEUgOHX6TqF4RCGExgSwx6NxLBHIzHs0bgCGlcw3M+/6AN0VSe90S/5VpXKv3hPJJl/mZQlkkYGWSu+bo5WHgUUDbotJdJGB44K/69Gq44GmgbdCa0pZnA1ugNaQ4wwNujuaO1xgKfC723F2xobbA26F1pX3OArvb2VbJEyKqjaet0XrTc++Cq9vTm0uuihH3RN71xnby6tORZYBl3TO9fZm0friBPOQTfqnYcZn9YdDzyDbtQ7N52od55MMnHND7f/JU8=
+  </data>
+   </layer>
+   <layer id="30" name="TransposedM" width="30" height="20" offsetx="0" offsety="16">
+    <data encoding="base64" compression="zlib">
+   eJxjYBgFo2BwAidmBgZnIHYBYldm+tkbCbQrCoijgTiGjvYWAO0qBOIiIC6mo73tQLs6gLgTiLtoYC+ueJwHZM8H4gVAvJAG9o7GI30AreNxFIyCoQoAIjISNQ==
+  </data>
+   </layer>
+  </group>
+  <group id="2" name="Foreground">
+   <layer id="5" name="TerrainFG" width="30" height="20">
+    <data encoding="base64" compression="zlib">
+   eJxjYBgFo2BogG4g7sGBe2lo704g3oUDT6KhvaQCfOFDy3BayYA7fGB4Nw3sHSqAmHihRRwREy9DLY4IhSWtygFCYTkUwm4U0B8AACmnMpg=
+  </data>
+   </layer>
+   <layer id="4" name="NormalFG" width="30" height="20">
+    <data encoding="base64" compression="zlib">
+   eJztzbkVgkAURuE3ARkVuBShUgRqaq4YuiQEqKFLESpFsBQB2JW3ASZ6TuL853zRvDNXxO+ftgtE9jjgGOj+vQr73660brjjodxNLd0nrRfeyJW7thW0SlSoFboDIzLECGPTf9fQatHho9Cd0JpihsjS1V5Ma44Flg67a1obJNg67Ga0Tjjj4rDr5+f3u30BfBoTEw==
+  </data>
+   </layer>
+   <layer id="13" name="TransposedFG" width="30" height="20" offsetx="0" offsety="16">
+    <data encoding="base64" compression="zlib">
+   eJzt1DkKwkAYhuE/SppREVK6gB7B5RCa3lrtRGMluJQuh3A5hMshXG7lWwYhJhMHQckHTzfkhSGMSLJfX0qJpFX08wVLpIgSylb8boVmVaNbo1VHA80Purpr0WrDRSf7vW6XXg99THzdvMad+Te0RUbwMLaDz03pzTDHwsA9L2mtsMbmTVdnbi78zJbWDnscDHUHEbpHWieccTHUjbIrrRvueAR0lSOSccK/pfsmxN3rv6z7JiRL9s97Ag7QFHk=
+  </data>
+   </layer>
+  </group>
+ </group>
+ <layer id="31" name="Before" width="30" height="20">
+  <properties>
+   <property name="z" type="int" value="11"/>
+  </properties>
+  <data encoding="base64" compression="zlib">
+   eJzt0rcNwzAQhWE2Uus4p+MMjjM4zuA4g+MMjjM4Av4bNiruZFLq9ICvEkkB786YZDMIjBlihDEmmAbynQrfq6ihjgaayp1oZpyfY4ElVlgrb7T43kYHXfTQ//O/G85vscMeBxyVN1w6iubE+TMuuOKGu/KGS0c2dkYPPPHCGx98lTdcOrKxM8qFxuRRQBEllEP5rktHNj4z0jqS9t1nRlpH0r77zEiL1KXPjLRIXbrscdxIXbrscdyk2aWUNLuUkmaXWbIkkR+i13J9
+  </data>
+ </layer>
+ <objectgroup color="#ffaa00" id="17" name="Ground">
+  <object id="1" x="108.5" y="271" width="294.25" height="16.5"/>
+  <object id="2" x="268.75" y="462.5" width="263" height="16.25"/>
+  <object id="3" x="492.5" y="364.25" width="390" height="18"/>
+  <object id="4" x="683.5" y="172.75" width="232.5" height="15"/>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="18" name="Enemies">
+  <object id="5" x="121" y="265.5">
+   <polyline points="0,0 105,0"/>
+  </object>
+  <object id="6" x="240" y="265">
+   <polyline points="0,0 148.5,-0.5"/>
+  </object>
+  <object id="7" x="694" y="167.5">
+   <polyline points="0,0 143,-1.5"/>
+  </object>
+  <object id="8" x="789.5" y="166">
+   <polyline points="0,0 112.5,0.5"/>
+  </object>
+  <object id="9" x="504.5" y="360">
+   <polyline points="0,0 113,-1"/>
+  </object>
+  <object id="10" x="595.5" y="359">
+   <polyline points="0,0 149,-1"/>
+  </object>
+  <object id="11" x="764.5" y="358.5">
+   <polyline points="0,0 105.5,-0.5"/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ffff00" id="19" name="Objects"/>
+ <objectgroup color="#00ff00" id="20" name="Items"/>
+ <objectgroup color="#ff00ff" id="21" name="Ladders">
+  <object id="12" x="505.5" y="363" width="12.5" height="92"/>
+ </objectgroup>
+ <objectgroup color="#ffffff" id="22" name="Player">
+  <properties>
+   <property name="block" type="int" value="1"/>
+   <property name="start" type="bool" value="true"/>
+  </properties>
+  <object id="13" x="371" y="456.5">
+   <properties>
+    <property name="block" type="int" value="1"/>
+    <property name="start" type="bool" value="true"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="14" x="620.5" y="358.5">
+   <point/>
+  </object>
+  <object id="15" x="153" y="268">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

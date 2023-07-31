@@ -78,6 +78,8 @@ void LiteGame::onPageReady()
 		pageItem()->setProperty("closeQuestion", QLatin1String(""));
 
 		unloadPageItem();
+
+		emit gameFinished(AbstractGame::Fail);
 		return;
 	}
 

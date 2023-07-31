@@ -61,7 +61,7 @@ GameQuestionComponentImpl {
 
 			fillMode: Image.PreserveAspectFit
 			cache: true
-			asynchronous: true
+			//asynchronous: true
 
 			sourceSize.width: width
 			sourceSize.height: height

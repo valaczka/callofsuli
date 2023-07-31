@@ -875,7 +875,7 @@ Page {
 
 		anchors.horizontalCenter: parent.horizontalCenter
 
-		y: parent.height*0.33
+		y: parent.height*0.25
 
 		z: 6
 

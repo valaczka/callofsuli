@@ -56,7 +56,7 @@ Row {
 			source: image ? "image://mapimage/%1".arg(image.imageid) : ""
 			visible: false
 			cache: false
-			asynchronous: true
+			//asynchronous: true
 			sourceSize.width: width
 			sourceSize.height: height
 		}

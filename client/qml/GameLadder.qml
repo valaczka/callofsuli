@@ -73,7 +73,7 @@ GameLadderImpl {
 
 	BorderImage {
 		id: img
-		source: "qrc:/terrain/tileset/ladder1.png"
+		source: "qrc:/internal/game/ladder1.png"
 		x: (control.width-ladderWidth)/2
 		y: fixtureHeight
 		width: ladderWidth

@@ -234,7 +234,8 @@ void OnlineClient::onAllResourceReady()
 
 void OnlineClient::enableTabCloseConfirmation(bool enable)
 {
-	LOG_CDEBUG("client") << "Enable tab close confirmation" << enable;
+	Q_UNUSED(enable)
+	/*LOG_CDEBUG("client") << "Enable tab close confirmation" << enable;
 
 	using emscripten::val;
 	const val window = val::global("window");
@@ -244,12 +245,12 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 		window.call<void>("addEventListener", std::string("beforeunload"), eventHandler, capture);
 	} else {
 		window.call<void>("removeEventListener", std::string("beforeunload"), eventHandler, capture);
-	}
+	}*/
 }
 
 
 
-
+/*
 namespace {
 void beforeUnloadhandler(emscripten::val event) {
 	LOG_CWARNING("client") << "Unload handler";
@@ -264,3 +265,4 @@ void beforeUnloadhandler(emscripten::val event) {
 EMSCRIPTEN_BINDINGS(app) {
 	function("app_beforeUnloadHandler", &beforeUnloadhandler);
 }
+*/

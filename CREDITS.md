@@ -30,6 +30,7 @@
 - Kingel's Creative Commons pixel art (https://forums.tigsource.com/index.php?topic=14166.0)
 - Sprites: Snk/Playmore, Black Zellyo3, Dk, Ivo, Ragey (https://www.spriters-resource.com)
 - WrathGames Studio (https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog)
+- Free graphic resources for designers - (c) 2018-2023 Creazilla (https://creazilla.com)
 
 **Music & SFX**
 

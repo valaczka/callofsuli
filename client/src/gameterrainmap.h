@@ -48,6 +48,9 @@ public:
 
 	Tiled::Map* map() const;
 
+	const QString &imageTerrain() const;
+	const QString &imageOver() const;
+
 protected:
 	void readEnemyLayer(Tiled::ObjectGroup *layer);
 	void readObjectLayer(Tiled::ObjectGroup *layer);
@@ -55,6 +58,9 @@ protected:
 	void readPickableLayer(Tiled::ObjectGroup *layer);
 
 	std::unique_ptr<Tiled::Map> m_map;
+
+	QString m_imageTerrain;
+	QString m_imageOver;
 };
 
 #endif // GAMETERRAINMAP_H

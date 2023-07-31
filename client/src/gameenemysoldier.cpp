@@ -36,7 +36,6 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
 	: GameEnemy(parent)
 {
 	connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
-	connect(this, &GameObject::timingTimerTimeout, this, &GameEnemySoldier::onTimingTimerTimeout);
 	connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
 
 }
@@ -68,10 +67,12 @@ void GameEnemySoldier::onAttack()
 
 
 /**
- * @brief GameEnemySoldier::onMovingTimerTimeout
+ * @brief GameEnemySoldier::onTimingTimerTimeout
+ * @param msec
+ * @param delayFactor
  */
 
-void GameEnemySoldier::onTimingTimerTimeout(const qreal &delayFactor)
+void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
 		LOG_CWARNING("scene") << "Invalid enemy type";
@@ -87,7 +88,7 @@ void GameEnemySoldier::onTimingTimerTimeout(const qreal &delayFactor)
 
 
 	if (m_enemyState == Idle) {
-		m_turnElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+		m_turnElapsedMsec += msec * delayFactor;
 
 		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
 			setFacingLeft(!facingLeft());
@@ -121,7 +122,7 @@ void GameEnemySoldier::onTimingTimerTimeout(const qreal &delayFactor)
 		m_body->setAwake(true);
 
 	} else if (m_enemyState == WatchPlayer) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+		m_attackElapsedMsec += msec * delayFactor;
 
 		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
 
@@ -131,7 +132,7 @@ void GameEnemySoldier::onTimingTimerTimeout(const qreal &delayFactor)
 			m_attackElapsedMsec = 0;
 		}
 	} else if (m_enemyState == Attack) {
-		m_attackElapsedMsec += m_scene->timingTimerTimeoutMsec() * delayFactor;
+		m_attackElapsedMsec += msec * delayFactor;
 
 		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
 			attackPlayer();
@@ -231,6 +232,8 @@ void GameEnemySoldier::attackPlayer()
 	if (player() && player()->isAlive())
 		player()->hurtByEnemy(this, true);
 }
+
+
 
 
 /**

@@ -168,6 +168,8 @@ public:
 	int hpProgressValue() const;
 	void setHpProgressValue(int newHpProgressValue);
 
+	void performRayCast();
+
 public slots:
 	void decreaseHp();
 	void kill();
@@ -179,7 +181,6 @@ public slots:
 private slots:
 	void onBeginContact(Box2DFixture *other);
 	void onEndContact(Box2DFixture *other);
-	void onRayCastTimerTimeout(const qreal &);
 	void onRayCastFixtureReported(Box2DFixture *fixture, const QPointF &, const QPointF &, qreal fraction);
 	void onSequenceCurrentSpriteChanged(QString sprite);
 
@@ -250,7 +251,6 @@ private:
 	void doRayCast(const QPointF &point1, const QPointF &point2);
 	void rayCastFixtureCheck();
 	void onFacingLeftChanged();
-	void onSceneConnected();
 
 	void loadSprites();
 

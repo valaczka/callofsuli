@@ -96,6 +96,8 @@ public:
 	const QString &objectType() const;
 	void setObjectType(const QString &newObjectType);
 
+	virtual void onTimingTimerTimeout(const int &msec, const qreal &delayFactor);
+
 private slots:
 	void onSceneChanged();
 
@@ -103,7 +105,6 @@ signals:
 	void sceneChanged();
 	void gameChanged();
 	void sceneConnected();
-	void timingTimerTimeout(const qreal &delayFactor);
 	void objectTypeChanged();
 
 protected:
@@ -112,10 +113,8 @@ protected:
 	QList<QPointer<QQuickItem>> m_childItems;
 
 private:
-	void calculateTimeout();
 	bool m_sceneConnected = false;
 	QString m_objectType;
-	QElapsedTimer m_elapsedTimer;
 };
 
 #endif // GAMEOBJECT_H
